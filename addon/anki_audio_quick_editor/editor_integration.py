@@ -9,7 +9,7 @@ import threading
 import weakref
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any
+from typing import Any, cast
 
 from .audio_processor import (
     format_ffmpeg_command,
@@ -21,6 +21,8 @@ from .audio_state import AudioEditState, AudioProcessingConfig
 from .editor_actions import BRIDGE_COMMANDS, apply_processing_command
 from .editor_ui import injection_script
 from .errors import AudioProcessingError, AudioQuickEditorError, MissingMediaError
+from .prosody_analyzer import analyze_prosody
+from .prosody_types import ProsodyTrack, clamp_cursor_ms
 from .sound_refs import (
     replace_sound_reference,
     safe_media_basename,
@@ -47,6 +49,10 @@ class EditorSession:
     undo_stack: list[HistoryEntry] = field(default_factory=list)
     processing: bool = False
     source_mtime_ns: int | None = None
+    cursor_ms: int = 0
+    analysis_generation: int = 0
+    visualized_filename: str | None = None
+    visualized_duration_ms: int | None = None
 
 
 _SESSIONS: "weakref.WeakKeyDictionary[Any, EditorSession]" = weakref.WeakKeyDictionary()
@@ -87,6 +93,12 @@ def _handle_bridge_command(editor: Any, command: str) -> bool:
         if command == "aqe:scan":
             _eval_status(editor, "")
             editor.web.eval("window.__aqeScan && window.__aqeScan()")
+            return True
+        if command == "aqe:analyze":
+            _analyze_current_async(editor)
+            return True
+        if command == "aqe:set-cursor":
+            _set_cursor_from_web(editor)
             return True
         if command == "aqe:play":
             _play(editor)
@@ -188,6 +200,7 @@ def _replace_current_field_after_render(
         session.current_filename = saved_name
         session.field_index = field_index
         session.processing = False
+        session.cursor_ms = clamp_cursor_ms(session.cursor_ms, None)
     editor.loadNote(focusTo=field_index)
     _set_busy(editor, False)
     _eval_status(editor, f"Updated field to {saved_name}")
@@ -212,7 +225,18 @@ def _play(editor: Any) -> None:
         play_path = source_path
     av_player.stop_and_clear_queue()
     av_player.play_tags([SoundOrVideoTag(str(play_path))])
-    _eval_status(editor, "Playing")
+    offset_seconds = max(0.0, session.cursor_ms / 1000)
+    if offset_seconds <= 0:
+        _eval_status(editor, "Playing")
+        return
+    try:
+        seek_relative = cast(Any, av_player.seek_relative)
+        seek_relative(offset_seconds)
+    except Exception as exc:  # pragma: no cover - depends on active Anki audio backend
+        logger.info("audio seek failed: %s", exc)
+        _eval_status(editor, "Playing from start; seeking was not available.", kind="warning")
+        return
+    _eval_status(editor, f"Playing from {offset_seconds:.2f}s")
 
 
 def _undo(editor: Any) -> None:
@@ -233,6 +257,7 @@ def _undo(editor: Any) -> None:
     session.state = previous.state
     session.current_filename = previous.filename
     session.field_index = field_index
+    session.cursor_ms = 0
     editor.loadNote(focusTo=field_index)
     _eval_status(editor, f"Undid last edit; restored {previous.filename}")
 
@@ -272,7 +297,74 @@ def _session_and_source(editor: Any) -> tuple[EditorSession, Path]:
         session.processing = False
         session.field_index = field_index
         session.source_mtime_ns = mtime
+        session.cursor_ms = 0
+        session.visualized_filename = None
+        session.visualized_duration_ms = None
     return session, media_path
+
+
+def _current_media_path(editor: Any) -> tuple[EditorSession, Path]:
+    session, _source_path = _session_and_source(editor)
+    filename = session.current_filename
+    if not filename:
+        raise AudioProcessingError("No [sound:...] reference found in the current field.")
+    media_path = Path(editor.mw.col.media.dir()) / safe_media_basename(filename)
+    if not media_path.is_file():
+        raise MissingMediaError("The referenced audio file was not found in Anki's media folder.")
+    return session, media_path
+
+
+def _analyze_current_async(editor: Any) -> None:
+    session, current_path = _current_media_path(editor)
+    config = AudioProcessingConfig.from_config(_config(editor))
+    session.analysis_generation += 1
+    generation = session.analysis_generation
+    session.visualized_filename = current_path.name
+    _eval_visualizer_status(editor, "Analyzing...")
+
+    def _run() -> None:
+        try:
+            track = analyze_prosody(current_path, config)
+            _main(editor, lambda: _analysis_finished(editor, generation, track))
+        except Exception as exc:
+            message = str(exc)
+            _main(editor, lambda: _analysis_failed(editor, generation, message))
+
+    threading.Thread(target=_run, daemon=True).start()
+
+
+def _analysis_finished(editor: Any, generation: int, track: ProsodyTrack) -> None:
+    session = _SESSIONS.get(editor)
+    if session is None or generation != session.analysis_generation:
+        return
+    session.visualized_duration_ms = track.duration_ms
+    session.cursor_ms = clamp_cursor_ms(session.cursor_ms, track.duration_ms)
+    payload = json.dumps(track.to_payload())
+    cursor_payload = json.dumps(session.cursor_ms)
+    field_index = session.field_index if session.field_index is not None else _current_field_index(editor)
+    editor.web.eval(
+        "window.__aqeSetVisualizer && window.__aqeSetVisualizer("
+        f"{json.dumps(int(field_index))}, {payload}, {cursor_payload})"
+    )
+
+
+def _analysis_failed(editor: Any, generation: int, message: str) -> None:
+    session = _SESSIONS.get(editor)
+    if session is None or generation != session.analysis_generation:
+        return
+    _eval_visualizer_status(editor, message or "Audio visualization failed.", kind="error")
+
+
+def _set_cursor_from_web(editor: Any) -> None:
+    def _apply(value: Any) -> None:
+        session = _SESSIONS.setdefault(editor, EditorSession())
+        session.cursor_ms = clamp_cursor_ms(value, session.visualized_duration_ms)
+
+    _eval_with_callback(
+        editor,
+        "window.__aqeGetCursorMs ? window.__aqeGetCursorMs() : 0",
+        _apply,
+    )
 
 
 def _current_field_index(editor: Any) -> int:
@@ -294,6 +386,18 @@ def _eval_status(editor: Any, message: str, kind: str = "info") -> None:
     editor.web.eval(f"window.__aqeSetStatus && window.__aqeSetStatus({payload}, {kind_payload})")
 
 
+def _eval_visualizer_status(editor: Any, message: str, kind: str = "info") -> None:
+    field_index = getattr(editor, "currentField", None)
+    if field_index is None:
+        field_index = getattr(editor, "last_field_index", None)
+    if field_index is None:
+        return
+    editor.web.eval(
+        "window.__aqeSetVisualizerStatus && window.__aqeSetVisualizerStatus("
+        f"{json.dumps(int(field_index))}, {json.dumps(message)}, {json.dumps(kind)})"
+    )
+
+
 def _set_busy(editor: Any, busy: bool, message: str = "", command: str = "") -> None:
     field_index = getattr(editor, "currentField", None)
     if field_index is None:
@@ -309,3 +413,12 @@ def _set_busy(editor: Any, busy: bool, message: str = "", command: str = "") -> 
 
 def _main(editor: Any, callback: Any) -> None:
     editor.mw.taskman.run_on_main(callback)
+
+
+def _eval_with_callback(editor: Any, expression: str, callback: Any) -> None:
+    if hasattr(editor.web, "evalWithCallback"):
+        editor.web.evalWithCallback(expression, callback)
+        return
+    page = editor.web.page() if hasattr(editor.web, "page") else None
+    if page is not None and hasattr(page, "runJavaScript"):
+        page.runJavaScript(expression, callback)

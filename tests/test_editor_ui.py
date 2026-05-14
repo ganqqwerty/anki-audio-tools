@@ -12,9 +12,14 @@ def test_injection_script_embeds_audio_field_indices() -> None:
     assert '.field-container[data-index="' in script
     assert "button.dataset.aqeCommand = command;" in script
     assert '"aqe:undo"' in script
+    assert 'pycmd("aqe:analyze");' in script
+    assert 'pycmd("aqe:set-cursor");' in script
     assert '"aqe:save"' not in script
     assert '"aqe:cancel"' not in script
     assert "window.__aqeSetBusy = setControlsBusy;" in script
+    assert "window.__aqeSetVisualizer =" in script
+    assert "class=\"aqe-visualizer-svg\"" in script
+    assert "Hz`" in script
     assert "button.disabled = !!busy;" in script
     assert "status.title = command || \"\";" in script
     assert 'pycmd("focus:" + ord);' in script

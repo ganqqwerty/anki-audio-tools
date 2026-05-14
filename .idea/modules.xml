@@ -2,7 +2,7 @@
 <project version="4">
   <component name="ProjectModuleManager">
     <modules>
-      <module fileurl="file://$PROJECT_DIR$/anki-audio-tools.iml" filepath="$PROJECT_DIR$/anki-audio-tools.iml" />
+      <module fileurl="file://$PROJECT_DIR$/FEATURES-SPECIFICATION.iml" filepath="$PROJECT_DIR$/FEATURES-SPECIFICATION.iml" />
     </modules>
   </component>
 </project>

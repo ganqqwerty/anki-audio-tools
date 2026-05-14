@@ -5,6 +5,7 @@ Anki desktop add-on for quickly editing audio references from the note editor. I
 ## What It Includes
 
 - Inline Anki editor controls for fields containing `[sound:...]` references
+- Inline prosody visualization with pitch, intensity, and a draggable playback start cursor
 - ffmpeg-backed MP3 rendering for each inline edit action
 - Non-destructive save flow that writes a new media file and updates the field reference
 - Settings dialog backed by `AnkiWebView` and a committed Svelte bundle
@@ -18,6 +19,7 @@ Anki desktop add-on for quickly editing audio references from the note editor. I
 - Anki 25.09 or later
 - Python 3.13 as bundled by Anki
 - `ffmpeg` and `ffprobe` available on PATH, or an explicit `ffmpeg_path` in settings
+- Optional: `praat-parselmouth` in Anki's Python for preferred pitch/intensity analysis; the add-on falls back to ffmpeg-decoded PCM without it
 - Node.js 18+ for editing or rebuilding the settings UI
 
 ## Quick Start

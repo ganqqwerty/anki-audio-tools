@@ -93,6 +93,10 @@ source_modules = [
     "anki_audio_quick_editor.editor_actions",
     "anki_audio_quick_editor.editor_ui",
     "anki_audio_quick_editor.errors",
+    "anki_audio_quick_editor.prosody_analyzer",
+    "anki_audio_quick_editor.prosody_fallback",
+    "anki_audio_quick_editor.prosody_praat",
+    "anki_audio_quick_editor.prosody_types",
     "anki_audio_quick_editor.settings_state",
     "anki_audio_quick_editor.sound_refs",
 ]
@@ -125,7 +129,7 @@ extend_exclude = ["addon/anki_audio_quick_editor/vendor", "settings_ui", "script
 ignore_notebooks = true
 
 [tool.deptry.per_rule_ignores]
-DEP001 = ["aqt", "anki", "anki_audio_quick_editor", "debugpy", "PyQt6", "dev"]
+DEP001 = ["aqt", "anki", "anki_audio_quick_editor", "debugpy", "parselmouth", "PyQt6", "dev"]
 DEP002 = ["pytest-qt", "pytest-randomly"]
 DEP003 = ["aqt", "anki", "PyQt6"]
 

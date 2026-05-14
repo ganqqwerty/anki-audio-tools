@@ -6,6 +6,7 @@ import json
 import re
 from pathlib import Path
 from typing import Any
+from unittest.mock import patch
 
 from PyQt6.QtWidgets import QWidget
 
@@ -88,6 +89,37 @@ def _processing_status_js() -> str:
     """
 
 
+def _visualizer_js() -> str:
+    return """
+    (() => {
+      const visualizer = document.querySelector('.aqe-visualizer[data-aqe-field-ord="0"]');
+      if (!visualizer) return null;
+      const labels = Array.from(visualizer.querySelectorAll('.aqe-hz-label')).map((node) => node.textContent);
+      return {
+        durationMs: Number(visualizer.dataset.durationMs || "0"),
+        sourceFilename: visualizer.dataset.sourceFilename || "",
+        analyzerName: visualizer.dataset.analyzerName || "",
+        cursorMs: Number(visualizer.dataset.cursorMs || "0"),
+        intensity: visualizer.querySelector('.aqe-intensity')?.getAttribute('d') || "",
+        pitchPaths: visualizer.querySelectorAll('.aqe-pitch-path').length,
+        labels,
+        cursorX: visualizer.querySelector('.aqe-cursor')?.getAttribute('x1') || "",
+        status: visualizer.querySelector('.aqe-visualizer-status')?.textContent || "",
+        statusKind: visualizer.querySelector('.aqe-visualizer-status')?.dataset.kind || "",
+      };
+    })()
+    """
+
+
+def _wait_for_visualizer_track(editor, predicate=lambda track: True, timeout: float = 10.0):
+    return wait_for_js_condition(
+        editor.web,
+        _visualizer_js(),
+        lambda track: track is not None and track["durationMs"] > 0 and predicate(track),
+        timeout=timeout,
+    )
+
+
 def test_each_processing_button_updates_field_to_new_real_audio(anki_mw, ffmpeg_config) -> None:
     from anki_audio_quick_editor.audio_processor import probe_duration_ms
 
@@ -123,12 +155,165 @@ def test_each_processing_button_updates_field_to_new_real_audio(anki_mw, ffmpeg_
             wait_for_selector(editor.web, _button_selector(command), timeout=5.0)
             previous_name = _click_and_wait_for_new_file(editor, note, media_dir, command, previous_name)
             generated_names.append(previous_name)
+            _wait_for_visualizer_track(
+                editor,
+                lambda track, expected=previous_name: track["sourceFilename"] == expected,
+            )
 
         assert len(generated_names) == len(set(generated_names))
         assert source.read_bytes() == original_bytes
         assert probe_duration_ms(media_dir / generated_names[0], ffmpeg_config) < probe_duration_ms(
             source, ffmpeg_config
         )
+    finally:
+        editor.set_note(None)
+        parent.close()
+
+
+def test_visualizer_renders_pitch_intensity_labels_and_cursor(anki_mw, ffmpeg_config) -> None:
+    media_dir = Path(anki_mw.col.media.dir())
+    source = media_dir / "editor_visualizer_source.wav"
+    generate_tone(ffmpeg_config, source, duration_s=1.0)
+    note = _basic_audio_note(anki_mw, source.name)
+    _configure_ffmpeg(anki_mw, ffmpeg_config)
+
+    editor, parent = _open_editor(anki_mw, note)
+    try:
+        wait_for_selector(editor.web, '.aqe-visualizer[data-aqe-field-ord="0"]', timeout=10.0)
+        track = _wait_for_visualizer_track(
+            editor,
+            lambda value: value["sourceFilename"] == source.name and value["pitchPaths"] > 0,
+        )
+
+        assert track["intensity"].startswith("M ")
+        assert len(track["labels"]) == 2
+        assert all(label.endswith(" Hz") for label in track["labels"])
+        assert track["cursorX"]
+    finally:
+        editor.set_note(None)
+        parent.close()
+
+
+def test_cursor_drag_updates_session_and_play_uses_seek(anki_mw, ffmpeg_config) -> None:
+    from aqt.sound import av_player
+
+    from anki_audio_quick_editor.editor_integration import _SESSIONS
+
+    media_dir = Path(anki_mw.col.media.dir())
+    source = media_dir / "editor_cursor_source.wav"
+    generate_tone(ffmpeg_config, source, duration_s=2.0)
+    note = _basic_audio_note(anki_mw, source.name)
+    _configure_ffmpeg(anki_mw, ffmpeg_config)
+
+    editor, parent = _open_editor(anki_mw, note)
+    seek_calls: list[float] = []
+    try:
+        _wait_for_visualizer_track(editor, lambda value: value["sourceFilename"] == source.name)
+        run_js(
+            editor.web,
+            """
+            (() => {
+              const svg = document.querySelector('.aqe-visualizer[data-aqe-field-ord="0"] .aqe-visualizer-svg');
+              const rect = svg.getBoundingClientRect();
+              const EventCtor = window.PointerEvent || window.MouseEvent;
+              const x = rect.left + rect.width * 0.65;
+              svg.dispatchEvent(new EventCtor('pointerdown', { clientX: x, clientY: rect.top + 20, bubbles: true }));
+              window.dispatchEvent(new EventCtor('pointerup', { clientX: x, clientY: rect.top + 20, bubbles: true }));
+            })()
+            """,
+        )
+        wait_for_condition(
+            lambda: (
+                (session := _SESSIONS.get(editor)) is not None
+                and session.cursor_ms >= 1000
+            ),
+            timeout=5.0,
+            message="Dragging the visualizer cursor did not update the editor session",
+        )
+        track = _wait_for_visualizer_track(editor, lambda value: value["cursorMs"] >= 1000)
+
+        with (
+            patch.object(av_player, "stop_and_clear_queue", lambda: None),
+            patch.object(av_player, "play_tags", lambda _tags: None),
+            patch.object(av_player, "seek_relative", lambda seconds: seek_calls.append(seconds)),
+        ):
+            click_selector(editor.web, _button_selector("aqe:play"), timeout=5.0)
+            wait_for_condition(
+                lambda: bool(seek_calls),
+                timeout=5.0,
+                message="Playback did not attempt to seek from the selected cursor",
+            )
+
+        assert seek_calls[0] >= track["cursorMs"] / 1000 - 0.05
+    finally:
+        editor.set_note(None)
+        parent.close()
+
+
+def test_silence_visualizer_renders_pitch_gaps_without_crashing(anki_mw, ffmpeg_config) -> None:
+    media_dir = Path(anki_mw.col.media.dir())
+    source = media_dir / "editor_silence_source.wav"
+    import subprocess
+
+    subprocess.run(
+        [
+            ffmpeg_config.ffmpeg_path,
+            "-y",
+            "-f",
+            "lavfi",
+            "-i",
+            "anullsrc=r=16000:cl=mono:d=0.7",
+            str(source),
+        ],
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+    note = _basic_audio_note(anki_mw, source.name)
+    _configure_ffmpeg(anki_mw, ffmpeg_config)
+
+    editor, parent = _open_editor(anki_mw, note)
+    try:
+        track = _wait_for_visualizer_track(editor, lambda value: value["sourceFilename"] == source.name)
+
+        assert track["intensity"].startswith("M ")
+        assert track["pitchPaths"] == 0
+    finally:
+        editor.set_note(None)
+        parent.close()
+
+
+def test_visualizer_failure_is_non_mutating_and_edit_buttons_still_work(
+    anki_mw,
+    ffmpeg_config,
+    monkeypatch,
+) -> None:
+    media_dir = Path(anki_mw.col.media.dir())
+    source = media_dir / "editor_visualizer_failure_source.wav"
+    generate_tone(ffmpeg_config, source, duration_s=1.2)
+    note = _basic_audio_note(anki_mw, source.name)
+    _configure_ffmpeg(anki_mw, ffmpeg_config)
+    monkeypatch.setattr(
+        "anki_audio_quick_editor.editor_integration.analyze_prosody",
+        lambda *_args: (_ for _ in ()).throw(RuntimeError("visualizer exploded")),
+    )
+
+    editor, parent = _open_editor(anki_mw, note)
+    try:
+        wait_for_js_condition(
+            editor.web,
+            _visualizer_js(),
+            lambda value: value is not None
+            and value["statusKind"] == "error"
+            and "visualizer exploded" in value["status"],
+            timeout=10.0,
+        )
+        generated_name = _click_and_wait_for_new_file(
+            editor, note, media_dir, "aqe:trim-left", source.name
+        )
+
+        assert generated_name != source.name
+        assert (media_dir / generated_name).is_file()
     finally:
         editor.set_note(None)
         parent.close()

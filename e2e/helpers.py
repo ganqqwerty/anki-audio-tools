@@ -100,8 +100,11 @@ def wait_for_selector(target, selector: str, timeout: float = DEFAULT_E2E_TIMEOU
     deadline = time.time() + timeout
     expr = f"document.querySelector({json.dumps(selector)}) !== null"
     while time.time() < deadline:
-        if wait_for_js(target, expr, timeout=min(0.5, timeout)):
-            return True
+        try:
+            if wait_for_js(target, expr, timeout=min(0.5, timeout)):
+                return True
+        except TimeoutError:
+            pass
         _run_event_loop_step()
     try:
         body = wait_for_js(

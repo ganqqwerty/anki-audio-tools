@@ -35,6 +35,9 @@ In scope:
 - Show a processing status while work is running.
 - Hide the exact ffmpeg command by default.
 - Optionally show the exact ffmpeg command while processing through a settings flag.
+- Show a compact prosody visualization below the inline buttons for the current clip.
+- Draw pitch in Hertz, intensity as a neutral filled background, and blank pitch gaps for unvoiced frames.
+- Let the user drag a position indicator to choose the playback start position.
 - Leave note persistence to Anki's normal editor save flow.
 - Require user-installed system `ffmpeg` and `ffprobe` for MVP.
 
@@ -44,6 +47,7 @@ Out of scope:
 - Selector UI for choosing among multiple sound tags in one field.
 - Batch editing.
 - Waveform visualization.
+- Comparison between native/user recordings.
 - Manual timeline selection.
 - Noise reduction.
 - Recording.
@@ -63,6 +67,7 @@ Example inline controls:
 
 ```text
 ▶  [ -L ] [ +L ] [ -R ] [ +R ] [ Trim Silence ] [ Remove Pauses ] [ Slower ] [ Faster ] [ Undo ]
+<pitch Hz line over intensity fill, draggable cursor>
 ```
 
 Main flow:
@@ -75,7 +80,9 @@ Main flow:
 6. The new MP3 is added to Anki media using Anki's media APIs.
 7. The field's first selected `[sound:...]` reference is replaced with the new file.
 8. Controls re-enable and status reports the updated filename.
-9. User may click Undo to restore the previous generated reference and edit state.
+9. The prosody graph refreshes for the newly referenced clip.
+10. User may drag the cursor and press Play to listen from that position.
+11. User may click Undo to restore the previous generated reference and edit state.
 
 Success outcome:
 
@@ -127,6 +134,8 @@ Behavior:
 Bridge commands:
 
 - `aqe:scan`
+- `aqe:analyze`
+- `aqe:set-cursor`
 - `aqe:play`
 - `aqe:trim-left`
 - `aqe:untrim-left`
@@ -190,11 +199,44 @@ Behavior:
 - Playback stops any current Anki audio playback before starting.
 - Playback prefers the latest generated filename from the edit session.
 - If the generated file is unavailable, playback falls back to the source path when possible.
+- Playback starts from the visualizer cursor when one has been set.
+- Seeking uses Anki's current audio player after playback starts; if seeking is unavailable, playback falls back to the beginning with a non-fatal status.
 
 Acceptance criteria:
 
 - User can repeatedly edit and replay a clip.
 - Playback uses the latest applied audio reference.
+- Dragging the cursor changes the next playback start position.
+
+## FR5A - Prosody Visualization
+
+The add-on must show a compact visualization for the current clip below the inline controls.
+
+Behavior:
+
+- Analysis runs automatically after controls mount, after each successful generated-file update, and after Undo.
+- V1 shows only the current clip; no comparison track is included.
+- Pitch is rendered as segmented SVG paths with Hertz labels only.
+- Unvoiced pitch frames render as blank gaps instead of bridged lines.
+- Intensity is rendered as a neutral filled area behind the pitch contour.
+- The vertical cursor can be dragged; the displayed seconds update immediately.
+- The graph may take up to about `300 ms` to refresh after an edit.
+- Analysis is recomputed for the current clip and is not cached by generated filename.
+- If visualization analysis fails, edit buttons remain usable and the field is not mutated.
+
+Implementation:
+
+- Prefer `praat-parselmouth` when it is available in Anki's Python.
+- Keep Parselmouth isolated behind the analyzer backend.
+- Use the built-in ffmpeg/PCM fallback as the required cross-platform path.
+- Do not add `librosa` for V1.
+
+Acceptance criteria:
+
+- The real Anki editor shows pitch paths, intensity fill, Hertz labels, and cursor line for voiced fixtures.
+- Silent/unvoiced fixtures show no pitch path and do not crash.
+- Graph data refreshes after processing buttons generate new media.
+- Dragging the cursor updates editor session state and playback attempts to seek from that offset.
 
 ## FR6 - Manual Trim
 
@@ -357,6 +399,8 @@ Settings behavior:
 The implementation must preserve these boundaries:
 
 - Anki-import-safe parsing, edit-state, config-migration, settings-state, editor-action, and audio-planning helpers must not import Anki at module level.
+- Prosody type, analyzer-selection, Parselmouth backend, and ffmpeg/PCM fallback modules must not import Anki at module level.
+- Optional Parselmouth imports must be isolated to `prosody_praat.py` function bodies.
 - Thin runtime integration modules should avoid Anki imports at module level where practical.
 - Anki editor/media/player operations stay in `editor_integration.py`.
 - Settings shell stays a small `QDialog` plus `AnkiWebView`.
@@ -374,6 +418,7 @@ Required automated coverage:
 - ffmpeg tests that render real audio and verify duration changes.
 - E2E tests that open real Anki editor UI, find inline controls, click buttons, and verify generated audio exists.
 - E2E tests for each processing button.
+- E2E tests for prosody visualization, graph refresh after each processing button, cursor dragging, playback seek, silence gaps, and visualization failure.
 - E2E tests for fast clicking while processing.
 - E2E tests for Undo after multiple generated outputs.
 - E2E tests for settings-driven behavior such as trim step and ffmpeg command visibility.
@@ -391,4 +436,5 @@ Current manual smoke expectations:
 - Local development add-on ID is `1000000002`.
 - Anki on this machine is version `25.09` and uses Python `3.13.5`.
 - MVP depends on Homebrew/system ffmpeg during local development.
+- `praat-parselmouth` is optional; a dry-run verified compatible wheels for this machine, but the shipped add-on uses the built-in ffmpeg/PCM fallback when it is not installed.
 - A feature is not complete until `python3 scripts/dev.py check` and `python3 scripts/dev.py test-e2e` pass.

@@ -17,6 +17,10 @@ IMPORT_SAFE_MODULES = {
     "editor_actions",
     "editor_ui",
     "errors",
+    "prosody_analyzer",
+    "prosody_fallback",
+    "prosody_praat",
+    "prosody_types",
     "settings_state",
     "sound_refs",
 }

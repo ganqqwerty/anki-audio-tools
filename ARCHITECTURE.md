@@ -9,14 +9,15 @@ Anki Audio Quick Editor keeps a tested Anki shell and adds a focused inline audi
 - isolated collection/database helpers
 - a Svelte settings UI delivered through `AnkiWebView`
 - Anki-import-safe sound-reference, edit-state, and ffmpeg helpers
-- thin Anki editor integration for inline controls, playback, automatic media replacement, and Undo
+- Anki-import-safe prosody analysis helpers for pitch/intensity visualization
+- thin Anki editor integration for inline controls, playback, automatic media replacement, visualization, and Undo
 
 ## Runtime Layers
 
 | Layer | Modules | Responsibility |
 |-------|---------|----------------|
 | Entry point | `__init__.py` | Startup hook registration, menu setup, config action |
-| Anki-import-safe helpers | `_version.py`, `audio_processor.py`, `audio_state.py`, `config_migration.py`, `db_helpers.py`, `editor_actions.py`, `editor_ui.py`, `errors.py`, `settings_state.py`, `sound_refs.py` | Logic without module-level Anki imports |
+| Anki-import-safe helpers | `_version.py`, `audio_processor.py`, `audio_state.py`, `config_migration.py`, `db_helpers.py`, `editor_actions.py`, `editor_ui.py`, `errors.py`, `prosody_analyzer.py`, `prosody_fallback.py`, `prosody_praat.py`, `prosody_types.py`, `settings_state.py`, `sound_refs.py` | Logic without module-level Anki imports |
 | UI modules | `editor_integration.py` | User-facing behavior that touches Anki editor, media, playback, and task APIs |
 | Settings shell | `settings/__init__.py` | `QDialog` + `AnkiWebView` host only |
 | Settings backend | `settings/commands.py`, `settings/initial_state.py` | Bridge dispatch and startup state |
@@ -26,10 +27,12 @@ Anki Audio Quick Editor keeps a tested Anki shell and adds a focused inline audi
 1. `__init__.py` registers editor integration during `main_window_did_init`.
 2. `editor_integration.py` attaches `aqe:*` bridge commands on `editor_did_init`.
 3. `editor_ui.py` injects compact controls near fields containing supported `[sound:...]` tags through `editor_will_load_note`.
-4. Processing button presses update an `AudioEditState` for the current field and render a new MP3 with `audio_processor.py`.
-5. `editor_integration.py` writes the result through Anki's media manager and replaces the first supported sound reference in the field.
-6. Playback uses Anki's audio player against the latest generated reference, stopping any previous playback first.
-7. Undo restores the previous generated reference and edit state without deleting generated media.
+4. Controls mount a compact SVG prosody visualizer and request async analysis for the current referenced media.
+5. `prosody_analyzer.py` uses optional Parselmouth/Praat when available and falls back to ffmpeg-decoded PCM pitch/intensity analysis otherwise.
+6. Processing button presses update an `AudioEditState` for the current field and render a new MP3 with `audio_processor.py`.
+7. `editor_integration.py` writes the result through Anki's media manager and replaces the first supported sound reference in the field.
+8. Playback uses Anki's audio player against the latest generated reference, stopping any previous playback first and seeking to the visualizer cursor when set.
+9. Undo restores the previous generated reference and edit state without deleting generated media.
 
 ## Settings Flow
 
@@ -70,6 +73,7 @@ Config defaults are stored in `config.json` and migrated into user config:
 - Anki-import-safe modules must not import `aqt` or `anki` at module level.
 - Thin editor/settings runtime modules keep Anki imports inside function boundaries where practical.
 - Python bridge command registration and injected editor UI commands must stay in sync.
+- Optional analysis dependencies such as Parselmouth must stay isolated to their backend module and never become package-level imports.
 - Collection/database access must stay inside `db_helpers.py`.
 - The settings shell must stay a thin `QDialog` + `AnkiWebView` wrapper.
 - Every production module must be classified into a layer.

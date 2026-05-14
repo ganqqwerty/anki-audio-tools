@@ -6,6 +6,8 @@ from .audio_state import AudioEditState, AudioProcessingConfig
 
 BRIDGE_COMMANDS = (
     "aqe:scan",
+    "aqe:analyze",
+    "aqe:set-cursor",
     "aqe:play",
     "aqe:trim-left",
     "aqe:untrim-left",
