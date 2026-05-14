@@ -10,7 +10,7 @@ python3 scripts/dev.py test-e2e
 ## What Gets Tested
 
 - `tests/` covers sound-reference parsing, edit-state validation, ffmpeg filter construction, config migration, bootstrap behavior, editor bridge wiring, and settings command/state logic.
-- `tests/test_architecture/` enforces layer boundaries, module classification, shell-thin settings rules, and DB access isolation.
+- `tests/test_architecture/` enforces layer boundaries, module classification, Anki-import-safe helper modules, import-safe runtime modules, editor bridge command sync, shell-thin settings rules, and DB access isolation.
 - `settings_ui/tests/` covers bridge commands, async job plumbing, logging, and the settings UI.
 - `e2e/` exercises the real add-on inside a live Anki runtime via `aqt._run(exec=False)`, including ffmpeg-backed audio processing when `ffmpeg` and `ffprobe` are installed.
 

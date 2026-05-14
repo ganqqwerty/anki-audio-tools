@@ -18,6 +18,7 @@ from .audio_processor import (
     temp_final_path,
 )
 from .audio_state import AudioEditState, AudioProcessingConfig
+from .editor_actions import BRIDGE_COMMANDS, apply_processing_command
 from .editor_ui import injection_script
 from .errors import AudioProcessingError, AudioQuickEditorError, MissingMediaError
 from .sound_refs import (
@@ -27,21 +28,6 @@ from .sound_refs import (
 )
 
 logger = logging.getLogger(__name__)
-
-BRIDGE_COMMANDS = (
-    "aqe:scan",
-    "aqe:play",
-    "aqe:trim-left",
-    "aqe:untrim-left",
-    "aqe:trim-right",
-    "aqe:untrim-right",
-    "aqe:slower",
-    "aqe:faster",
-    "aqe:trim-silence",
-    "aqe:remove-pauses",
-    "aqe:undo",
-)
-
 
 @dataclass(frozen=True)
 class HistoryEntry:
@@ -127,7 +113,7 @@ def _update_state_and_render(editor: Any, command: str) -> None:
         return
     config = AudioProcessingConfig.from_config(_config(editor))
     state = session.state or AudioEditState(source_file=source_path.name)
-    updated_state = _apply_command_to_state(command, state, config)
+    updated_state = apply_processing_command(command, state, config)
     if updated_state is None:
         _set_busy(editor, False)
         return
@@ -136,27 +122,6 @@ def _update_state_and_render(editor: Any, command: str) -> None:
         _eval_status(editor, "No change to process.")
         return
     _render_and_replace_async(editor, session, source_path, updated_state, config)
-
-
-def _apply_command_to_state(
-    command: str,
-    state: AudioEditState,
-    config: AudioProcessingConfig,
-) -> AudioEditState | None:
-    """Return the edit state after applying a bridge command."""
-    step = config.manual_trim_small_ms
-    actions = {
-        "aqe:trim-left": lambda: state.trim_left(step),
-        "aqe:untrim-left": lambda: state.untrim_left(step),
-        "aqe:trim-right": lambda: state.trim_right(step),
-        "aqe:untrim-right": lambda: state.untrim_right(step),
-        "aqe:slower": lambda: state.slower(config),
-        "aqe:faster": lambda: state.faster(config),
-        "aqe:trim-silence": state.toggle_edge_trim,
-        "aqe:remove-pauses": state.toggle_internal_pauses,
-    }
-    action = actions.get(command)
-    return action() if action else None
 
 
 def _render_and_replace_async(

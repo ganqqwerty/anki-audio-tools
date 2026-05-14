@@ -1,14 +1,14 @@
-"""Rule 1: pure modules must not import aqt/anki at module level."""
+"""Rule 1: import-safe modules must not import aqt/anki at module level."""
 
 from .conftest import (
-    PURE_MODULES,
+    IMPORT_SAFE_MODULES,
     _imports_anki,
     _module_files,
     get_module_level_imports,
 )
 
 
-def test_all_pure_modules_avoid_module_level_anki_imports() -> None:
-    for module_name in PURE_MODULES:
+def test_all_import_safe_modules_avoid_module_level_anki_imports() -> None:
+    for module_name in IMPORT_SAFE_MODULES:
         for path in _module_files(module_name):
             assert _imports_anki(get_module_level_imports(path)) == [], path.name

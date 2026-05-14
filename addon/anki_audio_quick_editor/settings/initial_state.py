@@ -1,9 +1,7 @@
-"""Initial state builder for the settings UI."""
+"""Thin Anki wrapper for settings UI initial state."""
 
 from __future__ import annotations
 
-import json
-import os
 from typing import Any
 
 
@@ -12,17 +10,15 @@ def build_initial_state(config: dict[str, Any]) -> str:
     from aqt import mw
 
     from .._version import __version__
+    from ..settings_state import build_initial_state_payload, encode_initial_state
 
     addon_id = mw.addonManager.addonFromModule(__name__)
     addon_dir = mw.addonManager.addonsFolder(addon_id)
-    state = {
-        "config": config,
-        "version": __version__,
-        "addon_dir": addon_dir,
-        "log_file_path": os.path.join(addon_dir, "anki_audio_quick_editor.log"),
-        "diagnostics": {
-            "addon_id": addon_id,
-            "collection_available": mw.col is not None,
-        },
-    }
-    return json.dumps(state)
+    state = build_initial_state_payload(
+        config,
+        version=__version__,
+        addon_id=addon_id,
+        addon_dir=addon_dir,
+        collection_available=mw.col is not None,
+    )
+    return encode_initial_state(state)

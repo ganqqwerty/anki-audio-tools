@@ -82,7 +82,7 @@ include_external_packages = true
 exclude_type_checking_imports = true
 
 [[tool.importlinter.contracts]]
-name = "pure-no-upper-layers"
+name = "import-safe-no-upper-layers"
 type = "forbidden"
 source_modules = [
     "anki_audio_quick_editor._version",
@@ -90,8 +90,10 @@ source_modules = [
     "anki_audio_quick_editor.audio_state",
     "anki_audio_quick_editor.config_migration",
     "anki_audio_quick_editor.db_helpers",
+    "anki_audio_quick_editor.editor_actions",
     "anki_audio_quick_editor.editor_ui",
     "anki_audio_quick_editor.errors",
+    "anki_audio_quick_editor.settings_state",
     "anki_audio_quick_editor.sound_refs",
 ]
 forbidden_modules = [

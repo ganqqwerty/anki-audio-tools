@@ -1,11 +1,11 @@
 # Anki Audio Quick Editor
 
-Anki desktop add-on for quickly editing audio references from the note editor. It is optimized for short sentence-mining clips: trim edges, adjust speed, remove silence, preview quickly, and save edits as new MP3 files while leaving original media untouched.
+Anki desktop add-on for quickly editing audio references from the note editor. It is optimized for short sentence-mining clips: trim edges, adjust speed, remove silence, and automatically apply each edit as a new MP3 while leaving original media untouched.
 
 ## What It Includes
 
 - Inline Anki editor controls for fields containing `[sound:...]` references
-- ffmpeg-backed preview/final MP3 rendering
+- ffmpeg-backed MP3 rendering for each inline edit action
 - Non-destructive save flow that writes a new media file and updates the field reference
 - Settings dialog backed by `AnkiWebView` and a committed Svelte bundle
 - Config defaults, JSON Schema validation, and deep-merge migration support

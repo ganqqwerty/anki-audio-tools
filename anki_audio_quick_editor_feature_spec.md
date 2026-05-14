@@ -1,393 +1,336 @@
-# Anki Audio Quick Editor — Feature Specification
+# Anki Audio Quick Editor Feature Specification
 
 ## 1. Product Goal
 
-Build a cross-platform Anki add-on that allows users to quickly edit audio files attached to Anki notes from inside the Anki Editor.
+Anki Audio Quick Editor is an Anki Desktop add-on for fast, inline, non-destructive audio cleanup from the Anki Editor.
 
-The add-on is optimized for language-learning sentence cards created by sentence-mining tools. The main goal is editing speed: the user should be able to fix short sentence audio clips with minimal clicks, instant preview, and safe reversible output.
+The product is optimized for sentence-mining language learners who frequently need to trim, speed-adjust, or clean short audio clips attached to individual notes. The core interaction is deliberately lightweight: click a control near the audio field, wait for processing, and the field is automatically updated to reference a newly generated MP3.
 
 ## 2. Target User
 
-### Primary user
-A language learner who sentence-mines short audio clips and occasionally needs to clean up individual clips attached to Anki cards.
+The primary user is a language learner who sentence-mines short clips and occasionally needs to clean up one audio reference while editing an Anki note.
 
-### User characteristics
+User characteristics:
+
 - Uses Anki Desktop.
-- Uses sentence-mining tools that insert `[sound:filename.mp3]` references into note fields.
+- Uses note fields containing `[sound:filename.ext]` references.
 - Edits one clip at a time.
-- Needs quick manual correction, not large batch processing.
-- Wants destructive audio transformation, but reversible by creating a new file rather than overwriting the original.
+- Wants quick correction, not a full waveform editor.
+- Wants transformations to be reversible by keeping older media files, not by modifying originals.
 
-## 3. Scope
+## 3. Current MVP Scope
 
-### In scope for MVP
-- Detect a single audio reference in an Anki Editor field.
-- Support fields containing HTML around the `[sound:...]` reference.
-- Inject compact inline audio editing controls near fields containing audio.
-- Provide instant preview after every edit operation.
-- Crop audio from the left or right by small increments.
-- Speed up or slow down audio while preserving pitch.
-- Auto-trim leading and trailing silence.
-- Remove internal pauses longer than a configurable threshold.
-- Compress removed internal pauses to a fixed 100 ms gap.
-- Save every edit as a new MP3 file.
-- Replace the field’s `[sound:...]` reference with the newly generated MP3.
-- Leave original files untouched.
-- Let Anki handle note persistence normally.
-- Work on Linux, Windows, and macOS.
+In scope:
 
-### Out of scope for MVP
-- Multiple sound references inside one field.
+- Detect supported `[sound:...]` tags in Anki Editor fields.
+- Support `[sound:...]` references surrounded by field HTML.
+- Inject compact inline controls near fields containing supported audio.
+- When a field has multiple supported sound tags, edit the first supported reference.
+- Apply each processing action immediately.
+- Create a new MP3 file after every processing action.
+- Replace the current field's first selected sound reference with the newly generated MP3.
+- Preserve all original and previously generated media files.
+- Provide an Undo button that restores the previous generated field reference and edit state.
+- Disable inline controls while ffmpeg processing is running.
+- Show a processing status while work is running.
+- Hide the exact ffmpeg command by default.
+- Optionally show the exact ffmpeg command while processing through a settings flag.
+- Leave note persistence to Anki's normal editor save flow.
+- Require user-installed system `ffmpeg` and `ffprobe` for MVP.
+
+Out of scope:
+
+- Save and Cancel buttons in the inline editor controls.
+- Selector UI for choosing among multiple sound tags in one field.
 - Batch editing.
-- Full audio editor dialog.
 - Waveform visualization.
-- Pitch visualization.
-- Manual timeline editing.
-- Drag selection.
+- Manual timeline selection.
 - Noise reduction.
-- Audio recording.
+- Recording.
 - TTS generation.
-- Cleanup tracking for generated files.
-- Mobile Anki support.
-- Web Anki support.
+- Generated-file cleanup tracking.
+- Mobile Anki and AnkiWeb support.
 
-## 4. Core Use Case
+## 4. Core Interaction
 
-### Use case: Quickly clean a sentence audio clip
+Example field:
 
-**Actor:** Anki user  
-**Context:** User is editing a note that contains an audio reference such as `[sound:sentence.mp3]`.
+```text
+[sound:sentence.wav]
+```
 
-### Main flow
-1. User opens an Anki note in the Editor.
-2. User places cursor in a field containing one or more `[sound:...]` references.
-3. User triggers the add-on via toolbar button, menu item, or hotkey.
-4. Add-on identifies the relevant audio file.
-5. Add-on opens a compact editing dialog.
-6. User previews the original clip.
-7. User applies one or more transformations:
-   - crop from left
-   - crop from right
-   - speed adjustment
-   - edge silence trimming
-   - internal pause removal
-8. User previews the edited result instantly.
-9. User saves.
-10. Add-on creates a new audio file in Anki’s media collection.
-11. Add-on replaces the old `[sound:...]` reference in the current field with the new reference.
-12. Original file remains unchanged.
+Example inline controls:
 
-### Success outcome
-The note now references the edited audio file, while the original file still exists and can be restored manually if needed.
+```text
+▶  [ -L ] [ +L ] [ -R ] [ +R ] [ Trim Silence ] [ Remove Pauses ] [ Slower ] [ Faster ] [ Undo ]
+```
+
+Main flow:
+
+1. User opens an Anki note in the editor.
+2. The add-on scans fields and injects controls near supported audio fields.
+3. User clicks an edit action such as `-L`, `Faster`, or `Trim Silence`.
+4. Controls disable immediately and show a processing status.
+5. The add-on renders a new MP3 with ffmpeg.
+6. The new MP3 is added to Anki media using Anki's media APIs.
+7. The field's first selected `[sound:...]` reference is replaced with the new file.
+8. Controls re-enable and status reports the updated filename.
+9. User may click Undo to restore the previous generated reference and edit state.
+
+Success outcome:
+
+- The field references the latest generated MP3.
+- Original media remains unchanged.
+- Older generated files remain on disk and may be manually restored if needed.
 
 ## 5. Functional Requirements
 
-## FR1 — Audio reference detection
+## FR1 - Sound Reference Detection
 
-The add-on must detect a single audio reference inside an Anki Editor field.
+The add-on must detect Anki sound references in editor fields.
 
-### Supported syntax
+Supported extensions:
+
 ```text
-[sound:filename.mp3]
-[sound:filename.wav]
-[sound:filename.ogg]
+.mp3
+.wav
+.ogg
 ```
 
-### Behavior
+Behavior:
+
 - Fields may contain surrounding HTML.
-- Each supported field contains exactly one sound reference.
-- Multiple sound references inside a single field are not supported.
-- If no sound reference exists, no controls should be rendered.
-- If the referenced file is missing, controls should show an error state.
+- Fields without supported audio do not get controls.
+- If multiple supported references exist, MVP edits the first supported reference.
+- Unsupported audio extensions are ignored for inline-control mounting.
+- If the selected media file is missing, the action must fail non-destructively with a clear error.
 
-### Acceptance criteria
-- The add-on correctly detects `[sound:...]` references inside HTML fields.
-- The add-on ignores fields without audio.
-- The add-on does not attempt to support multiple sound tags.
+Acceptance criteria:
 
-## FR2 — Inline controls in Anki Editor
+- `[sound:...]` tags are detected inside HTML.
+- The first supported reference is selected in multi-sound fields.
+- Replacement preserves surrounding HTML.
+- Fields without supported audio remain unchanged.
 
-The add-on must inject compact inline controls near fields containing audio.
+## FR2 - Inline Editor Controls
 
-### UI concept
-Instead of opening a separate editor dialog, the add-on provides small inline action buttons near the field.
+The add-on must inject compact controls near supported fields inside the Anki Editor webview.
 
-### Example controls
-```text
-▶  [ -L ] [ +L ] [ -R ] [ +R ] [ Trim Silence ] [ Remove Pauses ] [ Slower ] [ Faster ]
-```
+Behavior:
 
-### Behavior
-- Controls appear only for fields containing a supported `[sound:...]` tag.
-- Actions operate immediately.
-- After each action, a new temporary preview is generated automatically.
-- User can immediately replay the updated audio.
+- Controls appear only for fields with supported audio.
+- Controls send `aqe:*` bridge commands through Anki's editor bridge.
+- Processing actions immediately render and apply a new MP3.
+- Playback plays the latest referenced/generated audio.
+- Undo restores the previous generated reference and edit state.
 
-### Acceptance criteria
-- Controls appear inline near supported fields.
-- Controls are hidden for fields without audio.
-- User can edit audio without opening a separate dialog.
-- Updated preview is available after every operation.
+Bridge commands:
 
-## FR3 — Automatic preview regeneration
+- `aqe:scan`
+- `aqe:play`
+- `aqe:trim-left`
+- `aqe:untrim-left`
+- `aqe:trim-right`
+- `aqe:untrim-right`
+- `aqe:slower`
+- `aqe:faster`
+- `aqe:trim-silence`
+- `aqe:remove-pauses`
+- `aqe:undo`
 
-The add-on must automatically regenerate preview audio after every edit operation.
+Not supported as inline commands:
 
-### Behavior
-- Every transformation immediately produces a temporary preview MP3.
-- The preview becomes the currently playable version.
-- User does not manually request preview generation.
+- `aqe:preview`
+- `aqe:save`
+- `aqe:cancel`
 
-### Acceptance criteria
-- After trimming, playback reflects the updated audio immediately.
-- After speed changes, playback reflects the updated audio immediately.
-- Preview generation feels interactive for short sentence clips.
+## FR3 - Automatic Apply
 
-## FR4 — Playback
+Every processing action must produce a new media file and update the current field automatically.
 
-The add-on must support quick playback of the current preview.
+Behavior:
 
-### Behavior
-- Playback button always plays the latest preview state.
-- Playback should stop any previous playback before starting a new one.
-- Playback should remain lightweight and immediate.
+- There is no separate Save button.
+- There is no Cancel button.
+- Each meaningful state change creates a distinct MP3 filename.
+- No-op actions should not create a new file.
+- Failed processing must leave the field unchanged.
 
-### Acceptance criteria
-- User can repeatedly modify and replay clips quickly.
-- Playback uses the most recently generated preview.
+Acceptance criteria:
 
-## FR5 — Manual crop from left and right
+- Clicking `-L` creates a shorter MP3 and updates the field reference.
+- Clicking `Faster` creates a shorter pitch-preserving MP3 and updates the field reference.
+- Clicking quickly while processing does not queue conflicting operations.
+- The previous field reference is available through Undo.
 
-The add-on must allow the user to crop time from the beginning or end of the clip.
+## FR4 - Busy State And Processing Status
 
-### Controls
-Recommended hotkeys:
-- `[` trims from the left.
-- `]` trims from the right.
-- Modifier keys may change increment size.
-
-### Default increments
-- Small step: 100 ms.
-- Large step: 500 ms.
+Audio processing can take significant time, so the UI must prevent overlapping operations.
 
-### Behavior
-- Left crop increases start offset.
-- Right crop decreases end offset.
-- Crop limits must prevent negative or zero-length output.
+Behavior:
 
-### Acceptance criteria
-- User can remove 100 ms from the beginning.
-- User can remove 100 ms from the end.
-- User cannot crop beyond valid duration.
-- Preview reflects crop changes.
+- Processing buttons are disabled while ffmpeg runs.
+- Status shows that processing is active.
+- By default, status does not show the ffmpeg command.
+- If `show_ffmpeg_commands` is enabled, status shows the exact shell-escaped ffmpeg command and stores it in the status title.
 
-## FR6 — Speed adjustment
+Acceptance criteria:
 
-The add-on must allow changing playback speed while preserving pitch.
+- Fast repeated clicks during processing produce at most one generated result.
+- Controls re-enable after success or failure.
+- Default status hides command details.
+- Enabling the setting exposes command details for diagnostics.
 
-### Default behavior
-- Initial speed: 1.00x.
-- Increase step: +0.05x.
-- Decrease step: -0.05x.
-- Suggested range: 0.75x to 1.50x.
+## FR5 - Playback
 
-### Implementation expectation
-Use `ffmpeg` `atempo` filter or equivalent.
+The add-on must support quick playback of the currently referenced audio.
 
-### Acceptance criteria
-- User can speed up a clip to 1.15x.
-- Pitch should not noticeably change.
-- Preview reflects speed changes.
-- Invalid speed values are rejected.
-
-## FR7 — Auto-trim leading and trailing silence
-
-The add-on must remove silence from the beginning and end of the clip.
+Behavior:
 
-### Default settings
-- Silence threshold: configurable; initial default `-35 dB`.
-- Minimum silence duration: configurable; initial default `100 ms` for edge trim.
+- Playback stops any current Anki audio playback before starting.
+- Playback prefers the latest generated filename from the edit session.
+- If the generated file is unavailable, playback falls back to the source path when possible.
 
-### Behavior
-- Leading silence is removed.
-- Trailing silence is removed.
-- Speech should not be cut off aggressively.
+Acceptance criteria:
 
-### Acceptance criteria
-- Clip with silence before speech is trimmed at the beginning.
-- Clip with silence after speech is trimmed at the end.
-- Clip without significant silence remains mostly unchanged.
+- User can repeatedly edit and replay a clip.
+- Playback uses the latest applied audio reference.
 
-## FR8 — Remove internal pauses
+## FR6 - Manual Trim
 
-The add-on must remove or shorten pauses inside the clip when silence exceeds a configurable threshold.
+The add-on must crop time from the beginning or end of the clip.
 
-### Default settings
-- Detect internal silence longer than 300 ms.
-- Remove excess silence or compress it to a short remaining gap.
-- Recommended remaining gap: 80–120 ms.
+Controls:
 
-### Behavior
-For short sentence cards, the add-on should make audio denser without making it sound unnaturally chopped.
+- `-L`: trim configured small step from the left.
+- `+L`: undo configured small step from the left trim in the current edit state.
+- `-R`: trim configured small step from the right.
+- `+R`: undo configured small step from the right trim in the current edit state.
 
-### Preferred algorithm
-1. Detect silent intervals using `ffmpeg silencedetect` or equivalent.
-2. Identify internal silent intervals longer than threshold.
-3. Preserve speech regions.
-4. Reassemble speech regions with a small fixed pause between them.
-5. Generate preview file.
+Default increments:
 
-### Acceptance criteria
-- A 700 ms pause inside a clip is reduced or removed.
-- Pauses shorter than 300 ms are preserved.
-- Leading/trailing silence handling remains separate from internal pause removal.
-- Output is still a single playable audio file.
+- Small step: `100 ms`.
+- Large step: `500 ms`, reserved for future shortcut/modifier behavior.
 
-## FR9 — Save as new MP3 file
+Acceptance criteria:
 
-The add-on must never overwrite the original audio file.
+- Trimming from the left makes output duration shorter.
+- Trimming from the right makes output duration shorter.
+- Trim values cannot produce zero or negative-duration output.
+- Untrim buttons cannot reduce trim below zero.
 
-### Behavior
-- Every save operation creates a new MP3 file.
-- Original format is ignored.
-- Output format is always MP3.
-- Generated files are not tracked for cleanup.
-- The field’s `[sound:...]` reference is replaced with the new MP3 reference.
-- The original file remains untouched.
+## FR7 - Speed Adjustment
 
-### Filename strategy
-Example:
-```text
-originalname__aqe_20260512_143012.mp3
-```
+The add-on must change playback speed while preserving pitch.
 
-### Acceptance criteria
-- Saving always creates a new MP3.
-- Original file remains unchanged.
-- Field reference updates correctly.
-- Generated files are not deleted automatically.
+Defaults:
 
-## FR10 — Reversibility
+- Initial speed: `1.00x`.
+- Step: `0.05x`.
+- Minimum speed: `0.75x`.
+- Maximum speed: `1.50x`.
 
-The add-on must support manual reversal by preserving original media files.
+Implementation:
 
-### Behavior
-- Original media files are never modified.
-- The add-on only updates the field reference.
-- Anki itself remains responsible for saving note changes.
+- Use ffmpeg `atempo` filters.
+- Split atempo filters when needed to stay within ffmpeg's valid range.
 
-### Acceptance criteria
-- User can manually restore the old sound reference if desired.
-- The add-on does not directly persist notes outside normal Anki workflows.
+Acceptance criteria:
 
-## FR11 — Cross-platform support
+- Faster output has shorter duration.
+- Slower output has longer duration where allowed.
+- Pitch remains preserved.
+- Invalid speeds are rejected before rendering.
 
-The add-on should work on:
-- Windows
-- macOS
-- Linux
+## FR8 - Edge Silence Trim
 
-### Dependencies
-- Python bundled with Anki.
-- Qt/PyQt bundled with Anki.
-- `ffmpeg` available on the user’s system.
+The add-on must optionally remove leading and trailing silence.
 
-### MVP dependency policy
-The MVP may require the user to install `ffmpeg` manually.
+Defaults:
 
-### Acceptance criteria
-- If `ffmpeg` is missing, add-on shows an installation/configuration error.
-- Paths with spaces are handled correctly.
-- Non-ASCII filenames are handled correctly where possible.
+- Threshold: `-35 dB`.
+- Minimum edge silence: `100 ms`.
 
-## 6. Non-Functional Requirements
+Acceptance criteria:
 
-## NFR1 — Speed
+- Leading silence is reduced.
+- Trailing silence is reduced.
+- Speech should not be aggressively cut.
 
-The add-on is optimized for short sentence clips.
+## FR9 - Internal Pause Compression
 
-### Target
-For clips under 10 seconds, common operations should complete quickly enough to feel interactive.
+The add-on must optionally compress long internal pauses.
 
-## NFR2 — Safety
+Defaults:
 
-The add-on must avoid destructive data loss.
+- Internal pause threshold: `300 ms`.
+- Remaining target gap: `100 ms`.
 
-### Rules
-- Never overwrite original file in MVP.
-- Never delete media automatically in MVP.
-- Cancel must leave note unchanged.
-- Failed processing must leave note unchanged.
+Acceptance criteria:
 
-## NFR3 — Simplicity
+- A long internal pause is reduced toward the configured target gap.
+- Short pauses below threshold remain mostly unchanged.
+- Output remains a single playable MP3.
 
-The UI should be compact and keyboard-friendly.
+## FR10 - Filename Strategy
 
-### Principle
-The user should not need to understand audio engineering concepts to use the tool.
+Every generated output must use a new, collection-safe MP3 filename.
 
-## NFR4 — Reliability
-
-The add-on must handle common failure cases gracefully.
-
-### Examples
-- Missing file.
-- Unsupported format.
-- Broken audio file.
-- Missing `ffmpeg`.
-- Processing failure.
-- Multiple sound references.
-
-## NFR5 — Maintainability
-
-The code should separate concerns clearly:
-- Anki integration
-- field parsing
-- media path handling
-- audio processing
-- preview playback
-- UI state
-- config/settings
-
-## 7. Suggested MVP UI
-
-## Inline controls
-
-Controls are rendered directly near fields containing audio.
-
-### Example
+Filename shape:
 
 ```text
-▶  [ -L ] [ +L ] [ -R ] [ +R ] [ Trim Silence ] [ Remove Pauses ] [ Slower ] [ Faster ]
+safe-original-stem__aqe_YYYYMMDD_HHMMSS_microseconds_randomtoken.mp3
 ```
 
-## Suggested button behavior
+Rules:
 
-| Control | Action |
-|---|---|
-| ▶ | Play current preview |
-| -L | Trim 100 ms from left |
-| +L | Undo 100 ms left trim in current edit state |
-| -R | Trim 100 ms from right |
-| +R | Undo 100 ms right trim in current edit state |
-| Trim Silence | Auto-trim leading/trailing silence |
-| Remove Pauses | Compress pauses >300 ms to 100 ms |
-| Slower | Decrease speed by 0.05x |
-| Faster | Increase speed by 0.05x |
+- Always use `.mp3`.
+- Sanitize illegal or awkward stem characters to safe ASCII.
+- Collapse empty or fully illegal stems to `audio`.
+- Bound the preferred generated filename length before handing it to Anki media APIs.
+- Include timestamp microseconds and a random token to avoid collisions during rapid clicks.
+- Let Anki media APIs finalize collection-safe naming if a collision still occurs.
 
-### Interaction model
-- Every button press updates the edit state.
-- Every button press automatically regenerates preview audio.
-- User can immediately replay the updated preview.
-- Saving occurs through a dedicated Save button or automatic apply action.
+Corner cases:
 
-## 8. Configuration
+- Original filename contains path separators: resolve only the media basename.
+- Original filename contains illegal characters: sanitize the generated stem.
+- Original filename is very long: truncate the generated stem while preserving uniqueness suffix.
+- Original filename is non-ASCII: smoke-test and sanitize to a safe generated basename.
+- Original file is missing: do not change the field.
+- Original file cannot be read by ffmpeg: show processing failure and do not change the field.
+- Generated preferred name collides: accept Anki's returned stored filename.
 
-MVP should have simple defaults, with optional settings later.
+## FR11 - Error Handling
 
-### Default settings
+Errors must be non-mutating unless the new media file has already been successfully written and the field replacement is intentional.
+
+Required error cases:
+
+- Missing `ffmpeg` or `ffprobe`.
+- Missing referenced media file.
+- Unsupported audio reference.
+- Invalid edit state.
+- ffmpeg probe or render failure.
+- No audio in the current field.
+- Processing command received while another operation is still active.
+
+User-facing missing ffmpeg message:
+
+```text
+Audio Quick Editor requires ffmpeg. Please install ffmpeg and make sure it is available in PATH, or configure its path in the add-on settings.
+```
+
+## 6. Configuration
+
+Current config defaults:
+
 ```json
 {
+  "_config_version": 3,
+  "enabled": true,
+  "debug_logging": false,
+  "show_ffmpeg_commands": false,
   "manual_trim_small_ms": 100,
   "manual_trim_large_ms": 500,
   "speed_step": 0.05,
@@ -397,181 +340,55 @@ MVP should have simple defaults, with optional settings later.
   "edge_silence_min_ms": 100,
   "internal_pause_threshold_ms": 300,
   "internal_pause_target_gap_ms": 100,
-  "output_format": "mp3"
+  "output_format": "mp3",
+  "ffmpeg_path": ""
 }
 ```
 
-## 9. Technical Design Overview
+Settings behavior:
 
-## Components
+- Inline editor controls are always enabled in MVP.
+- Debug logging is optional.
+- ffmpeg command visibility is optional and disabled by default.
+- `ffmpeg_path` may point to a specific ffmpeg binary; blank uses PATH.
 
-### Anki integration layer
-Responsibilities:
-- add editor button/hotkey
-- access current note and field
-- update field HTML/text
-- trigger editor refresh/save behavior
+## 7. Architecture Requirements
 
-### Sound reference parser
-Responsibilities:
-- find `[sound:...]` tags
-- choose target audio file
-- replace selected sound reference
+The implementation must preserve these boundaries:
 
-### Media service
-Responsibilities:
-- resolve file path in collection media
-- generate unique output filename
-- create temporary preview files
-- clean temporary files
+- Anki-import-safe parsing, edit-state, config-migration, settings-state, editor-action, and audio-planning helpers must not import Anki at module level.
+- Thin runtime integration modules should avoid Anki imports at module level where practical.
+- Anki editor/media/player operations stay in `editor_integration.py`.
+- Settings shell stays a small `QDialog` plus `AnkiWebView`.
+- Settings backend does not import editor integration.
+- Python bridge command registration must stay in sync with injected editor UI commands.
+- Runtime code must not depend on generated Svelte source files; Anki consumes committed bundle output.
 
-### Audio processing service
-Responsibilities:
-- inspect duration
-- crop
-- speed adjustment
-- trim edge silence
-- detect and remove internal pauses
-- produce preview and final output
+## 8. Acceptance Test Scenarios
 
-### UI dialog
-Responsibilities:
-- show current editing state
-- bind hotkeys
-- request previews
-- call save/cancel
+Required automated coverage:
 
-### Playback service
-Responsibilities:
-- play original file
-- play preview file
-- stop playback when needed
+- Unit tests for sound tag parsing, first-reference selection, unsupported extensions, and safe replacement.
+- Unit tests for edit-state bounds, speed clamping, trim/untrim, and invalid zero-duration output.
+- Unit tests for filename sanitization, long names, non-ASCII smoke coverage, and command construction.
+- ffmpeg tests that render real audio and verify duration changes.
+- E2E tests that open real Anki editor UI, find inline controls, click buttons, and verify generated audio exists.
+- E2E tests for each processing button.
+- E2E tests for fast clicking while processing.
+- E2E tests for Undo after multiple generated outputs.
+- E2E tests for settings-driven behavior such as trim step and ffmpeg command visibility.
+- E2E tests for missing media or processing failure paths where practical.
 
-## 10. Processing Model
+Current manual smoke expectations:
 
-The editor should maintain an edit state object rather than modifying the file after every individual button press.
+- Settings are available from `Tools -> Anki Audio Quick Editor -> Settings`.
+- Fields with audio show inline controls in the editor.
+- Fields without audio do not show inline controls.
+- Original media files remain untouched after processing.
 
-### Example edit state
-```json
-{
-  "source_file": "sentence.mp3",
-  "left_trim_ms": 200,
-  "right_trim_ms": 100,
-  "speed": 1.15,
-  "edge_trim_enabled": true,
-  "remove_internal_pauses_enabled": true,
-  "internal_pause_threshold_ms": 300,
-  "internal_pause_target_gap_ms": 100
-}
-```
+## 9. Development Notes
 
-Whenever the user requests preview, the add-on renders a temporary audio file from the current edit state.
-
-When the user saves, the add-on renders the final file from the same edit state and updates the note field.
-
-## 11. Error Handling
-
-## Missing `ffmpeg`
-Message:
-```text
-Audio Quick Editor requires ffmpeg. Please install ffmpeg and make sure it is available in PATH, or configure its path in the add-on settings.
-```
-
-## No audio in field
-Message:
-```text
-No [sound:...] reference found in the current field.
-```
-
-## Missing media file
-Message:
-```text
-The referenced audio file was not found in Anki's media folder.
-```
-
-## Processing failed
-Message:
-```text
-Audio processing failed. The note was not changed.
-```
-
-## 12. MVP Acceptance Test Scenarios
-
-### Scenario 1 — Open editor for single audio field
-Given a note field contains `[sound:test.mp3]`, when user launches the add-on, then the dialog opens for `test.mp3`.
-
-### Scenario 2 — Cancel safely
-Given the dialog is open, when user clicks Cancel, then no new media file is created and the note field remains unchanged.
-
-### Scenario 3 — Trim left and save
-Given a 3-second clip, when user trims 200 ms from the left and saves, then a new file is created and the field references the new file.
-
-### Scenario 4 — Speed up and preview
-Given a sentence clip, when user sets speed to 1.15x, then preview plays faster without changing pitch noticeably.
-
-### Scenario 5 — Remove edge silence
-Given a clip with 500 ms leading silence and 600 ms trailing silence, when user applies edge trim, then preview removes most leading/trailing silence.
-
-### Scenario 6 — Remove internal pause
-Given a clip with a 700 ms pause between words, when user applies internal pause removal with threshold 300 ms, then the pause is reduced to approximately 100 ms.
-
-### Scenario 7 — Multiple sound references
-Given a field contains two `[sound:...]` references, when user launches the add-on, then the user can select which audio file to edit.
-
-### Scenario 8 — Missing ffmpeg
-Given `ffmpeg` is unavailable, when user launches the add-on, then the add-on shows a clear setup error and does not crash.
-
-## 13. Development Milestones
-
-## Milestone 1 — Skeleton Anki add-on
-- Add toolbar/menu entry in Anki Editor.
-- Detect current field.
-- Parse `[sound:...]` reference.
-- Show basic dialog.
-
-## Milestone 2 — Media and preview foundation
-- Resolve Anki media file path.
-- Check `ffmpeg` availability.
-- Play original audio.
-- Generate temporary copy/preview.
-- Play edited preview.
-
-## Milestone 3 — Basic transforms
-- Manual left/right crop.
-- Speed adjustment.
-- Save as new file.
-- Replace field reference.
-
-## Milestone 4 — Silence processing
-- Edge silence trimming.
-- Internal pause detection.
-- Internal pause compression/removal.
-
-## Milestone 5 — UX polish
-- Hotkeys.
-- Better status messages.
-- Optional waveform preview.
-- Settings dialog.
-
-## Milestone 6 — Cross-platform hardening
-- Test on Windows, macOS, Linux.
-- Handle paths with spaces.
-- Handle non-ASCII filenames.
-- Improve ffmpeg configuration.
-
-## 14. Resolved Product Decisions
-
-| Topic | Decision |
-|---|---|
-| Output format | Always generate MP3 |
-| Original format preservation | Not supported |
-| HTML around sound tags | Supported |
-| Multiple sound files in one field | Not supported |
-| Preview generation | Automatic after every edit |
-| Generated file cleanup | No cleanup tracking |
-| Internal pause handling | Compress to fixed 100 ms gap |
-| Waveform display | Not included |
-| Pitch visualization | Not included |
-| Save behavior | Only update editor field; Anki saves normally |
-| Editing UI | Inline controls near fields instead of modal dialog |
-
+- Local development add-on ID is `1000000002`.
+- Anki on this machine is version `25.09` and uses Python `3.13.5`.
+- MVP depends on Homebrew/system ffmpeg during local development.
+- A feature is not complete until `python3 scripts/dev.py check` and `python3 scripts/dev.py test-e2e` pass.

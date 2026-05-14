@@ -8,14 +8,16 @@ from typing import Union
 
 ADDON_DIR = Path(__file__).parent.parent.parent / "addon" / "anki_audio_quick_editor"
 
-PURE_MODULES = {
+IMPORT_SAFE_MODULES = {
     "_version",
     "audio_processor",
     "audio_state",
     "config_migration",
     "db_helpers",
+    "editor_actions",
     "editor_ui",
     "errors",
+    "settings_state",
     "sound_refs",
 }
 UI_MODULES = {"editor_integration"}
@@ -23,7 +25,9 @@ SETTINGS_MODULES = {"settings"}
 SETTINGS_BACKEND_MODULES = {"settings.commands", "settings.initial_state"}
 ENTRY_POINT = {"__init__"}
 
-ALL_LAYERS = PURE_MODULES | UI_MODULES | SETTINGS_MODULES | SETTINGS_BACKEND_MODULES | ENTRY_POINT
+ALL_LAYERS = (
+    IMPORT_SAFE_MODULES | UI_MODULES | SETTINGS_MODULES | SETTINGS_BACKEND_MODULES | ENTRY_POINT
+)
 ANKI_PREFIXES = ("aqt", "anki")
 
 

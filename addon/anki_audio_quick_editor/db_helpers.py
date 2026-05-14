@@ -1,4 +1,4 @@
-"""Pure helpers for collection-backed diagnostics."""
+"""Import-safe helpers for collection-backed diagnostics."""
 
 from __future__ import annotations
 
