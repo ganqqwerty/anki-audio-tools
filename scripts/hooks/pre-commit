@@ -1,0 +1,69 @@
+#!/usr/bin/env bash
+#
+# pre-commit hook — block commits that contain secrets or runtime Anki config.
+#
+
+set -euo pipefail
+
+RED='\033[0;31m'
+YELLOW='\033[1;33m'
+NC='\033[0m'
+
+BLOCKED=0
+STAGED_FILES=$(git diff --cached --name-only --diff-filter=ACM 2>/dev/null || true)
+
+for f in $STAGED_FILES; do
+    if echo "$f" | grep -qE '(^|/)meta\.json$'; then
+        echo -e "${RED}BLOCKED:${NC} $f is staged for commit."
+        echo "  meta.json contains runtime add-on config and may include secrets."
+        BLOCKED=1
+    fi
+
+    if echo "$f" | grep -qE '(^|/)config\.json$'; then
+        DIFF_CONTENT=$(git diff --cached -U0 -- "$f" 2>/dev/null || true)
+        if echo "$DIFF_CONTENT" | grep '^\+' | grep -vE '^\+\+\+' | grep -qE '"api_key"\s*:\s*"[^"]{10,}"'; then
+            echo -e "${RED}BLOCKED:${NC} $f contains a non-empty api_key value."
+            BLOCKED=1
+        fi
+    fi
+done
+
+for f in $STAGED_FILES; do
+    if echo "$f" | grep -qE '(^|/)\.env(\.local|\.production|\.development)?$'; then
+        echo -e "${RED}BLOCKED:${NC} $f is staged for commit (.env file with possible secrets)."
+        BLOCKED=1
+    fi
+done
+
+DIFF=$(git diff --cached --diff-filter=ACDMR -U0 -- . ':!tests/*' ':!*.md' ':!.git/*' 2>/dev/null || true)
+
+if [ -n "$DIFF" ]; then
+    ADDED_LINES=$(echo "$DIFF" | grep '^\+' | grep -vE '^\+\+\+' || true)
+    if [ -n "$ADDED_LINES" ]; then
+        if echo "$ADDED_LINES" | grep -qE 'sk-[A-Za-z0-9_-]{20,}'; then
+            echo -e "${RED}BLOCKED:${NC} Possible OpenAI API key found"
+            BLOCKED=1
+        fi
+        if echo "$ADDED_LINES" | grep -qE 'AIza[A-Za-z0-9_-]{35,}'; then
+            echo -e "${RED}BLOCKED:${NC} Possible Google API key found"
+            BLOCKED=1
+        fi
+        if echo "$ADDED_LINES" | grep -iE '(api_key|api.key|apikey|secret.key|access.token)' | grep -vE '(api_key_url|api_key_label|pricing_url|default_model)' | grep -qE '["'"'"'][A-Za-z0-9_/+=.:-]{20,}["'"'"']'; then
+            echo -e "${RED}BLOCKED:${NC} Possible API key or secret in assignment"
+            BLOCKED=1
+        fi
+        if echo "$ADDED_LINES" | grep -qE '(API_KEY|SECRET|TOKEN|PASSWORD)\s*=\s*\S{10,}'; then
+            echo -e "${RED}BLOCKED:${NC} Possible secret in environment variable assignment"
+            BLOCKED=1
+        fi
+    fi
+fi
+
+if [ "$BLOCKED" -ne 0 ]; then
+    echo ""
+    echo -e "${YELLOW}If this is a false positive, bypass with:${NC}"
+    echo "  git commit --no-verify"
+    exit 1
+fi
+
+exit 0

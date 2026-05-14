@@ -1,0 +1,18 @@
+{
+  "$schema": "./config.schema.json",
+  "_config_version": 3,
+  "enabled": true,
+  "debug_logging": false,
+  "show_ffmpeg_commands": false,
+  "manual_trim_small_ms": 100,
+  "manual_trim_large_ms": 500,
+  "speed_step": 0.05,
+  "min_speed": 0.75,
+  "max_speed": 1.5,
+  "edge_silence_threshold_db": -35,
+  "edge_silence_min_ms": 100,
+  "internal_pause_threshold_ms": 300,
+  "internal_pause_target_gap_ms": 100,
+  "output_format": "mp3",
+  "ffmpeg_path": ""
+}

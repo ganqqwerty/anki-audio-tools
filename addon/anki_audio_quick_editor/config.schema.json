@@ -1,0 +1,83 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Anki Audio Quick Editor Config",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "_config_version",
+    "enabled",
+    "debug_logging",
+    "show_ffmpeg_commands",
+    "manual_trim_small_ms",
+    "manual_trim_large_ms",
+    "speed_step",
+    "min_speed",
+    "max_speed",
+    "edge_silence_threshold_db",
+    "edge_silence_min_ms",
+    "internal_pause_threshold_ms",
+    "internal_pause_target_gap_ms",
+    "output_format",
+    "ffmpeg_path"
+  ],
+  "properties": {
+    "$schema": {
+      "type": "string"
+    },
+    "_config_version": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "enabled": {
+      "type": "boolean"
+    },
+    "debug_logging": {
+      "type": "boolean"
+    },
+    "show_ffmpeg_commands": {
+      "type": "boolean"
+    },
+    "manual_trim_small_ms": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "manual_trim_large_ms": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "speed_step": {
+      "type": "number",
+      "exclusiveMinimum": 0
+    },
+    "min_speed": {
+      "type": "number",
+      "exclusiveMinimum": 0
+    },
+    "max_speed": {
+      "type": "number",
+      "exclusiveMinimum": 0
+    },
+    "edge_silence_threshold_db": {
+      "type": "integer"
+    },
+    "edge_silence_min_ms": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "internal_pause_threshold_ms": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "internal_pause_target_gap_ms": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "output_format": {
+      "type": "string",
+      "const": "mp3"
+    },
+    "ffmpeg_path": {
+      "type": "string"
+    }
+  }
+}

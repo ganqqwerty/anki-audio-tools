@@ -1,0 +1,4 @@
+interface:
+  display_name: "Add Dep"
+  short_description: "Add or update dependencies using repo conventions"
+  default_prompt: "Add or update a dependency in this repository using the correct vendoring, Python dev-dependency, or Svelte workflow, then verify the change."

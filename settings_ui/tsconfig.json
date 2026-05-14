@@ -1,0 +1,25 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "lib": ["ES2022", "DOM", "DOM.Iterable"],
+    "strict": true,
+    "noUncheckedIndexedAccess": true,
+    "exactOptionalPropertyTypes": true,
+    "noImplicitOverride": true,
+    "noPropertyAccessFromIndexSignature": false,
+    "verbatimModuleSyntax": true,
+    "isolatedModules": true,
+    "allowImportingTsExtensions": true,
+    "noEmit": true,
+    "skipLibCheck": true,
+    "types": ["vitest/globals"],
+    "paths": {
+      "$lib/*": ["./src/lib/*"],
+      "$lib": ["./src/lib/index.ts"]
+    }
+  },
+  "include": ["src/**/*.ts", "src/**/*.svelte", "tests/**/*.ts"],
+  "exclude": ["node_modules"]
+}

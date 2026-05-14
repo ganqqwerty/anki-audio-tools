@@ -1,0 +1,4 @@
+interface:
+  display_name: "Doc Maintain"
+  short_description: "Audit and sync repository docs after refactors"
+  default_prompt: "Audit and update repository documentation so AGENTS.md, ARCHITECTURE.md, TESTING.md, CONFIG_SCHEMA.md, WEBVIEW_AND_TEMPLATES.md, and DEVELOPMENT.md match the current codebase."

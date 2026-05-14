@@ -1,0 +1,5 @@
+# Auto-generated Svelte bundle outputs shipped into the Anki add-on.
+addon/anki_short_story/templates/settings/settings_bundle.css
+addon/anki_short_story/templates/settings/settings_bundle.js
+addon/anki_short_story/templates/story_svelte/story_bundle.css
+addon/anki_short_story/templates/story_svelte/story_bundle.js

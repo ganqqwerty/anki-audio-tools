@@ -1,0 +1,24 @@
+/addon/anki_audio_quick_editor/vendor/
+/.venv/
+__pycache__/
+
+# Anki add-on runtime config (contains user's API keys and settings)
+meta.json
+
+# Coverage artifacts
+.coverage
+htmlcov/
+coverage.xml
+
+# Build artifacts
+dist/
+
+# Environment / secrets
+.env
+.env.*
+!.env.example
+/addon/anki_audio_quick_editor/*.log
+/coverage.json
+/.scannerwork/
+node_modules
+.gitnexus
