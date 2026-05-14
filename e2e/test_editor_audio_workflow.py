@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import re
+import time
 from pathlib import Path
 from typing import Any
 from unittest.mock import patch
@@ -34,6 +35,25 @@ def _basic_audio_note(anki_mw, audio_filename: str):
     return note
 
 
+def _three_audio_field_note(anki_mw, audio_filenames: tuple[str, str, str]):
+    models = anki_mw.col.models
+    notetype = models.new("AQE E2E Three Audio Fields")
+    for name in ("One", "Two", "Three"):
+        models.add_field(notetype, models.new_field(name))
+    template = models.new_template("Card 1")
+    template["qfmt"] = "{{One}}"
+    template["afmt"] = "{{FrontSide}}<hr>{{Two}} {{Three}}"
+    models.add_template(notetype, template)
+    models.add(notetype)
+    note = anki_mw.col.new_note(notetype)
+    for index, filename in enumerate(audio_filenames):
+        note.fields[index] = f"Field {index + 1} [sound:{filename}]"
+    deck_id = anki_mw.col.decks.id("Default")
+    assert deck_id is not None
+    anki_mw.col.add_note(note, deck_id)
+    return note
+
+
 def _sound_filename(field_html: str) -> str:
     match = re.search(r"\[sound:([^\]]+)\]", field_html)
     assert match is not None
@@ -46,8 +66,8 @@ def _configure_ffmpeg(anki_mw, ffmpeg_config, **overrides: Any) -> None:
     anki_mw.addonManager.writeConfig(ADDON_NUMERIC_ID, config)
 
 
-def _button_selector(command: str) -> str:
-    return f'.aqe-controls[data-aqe-field-ord="0"] [data-aqe-command="{command}"]'
+def _button_selector(command: str, ord_: int = 0) -> str:
+    return f'.aqe-controls[data-aqe-field-ord="{ord_}"] [data-aqe-command="{command}"]'
 
 
 def _open_editor(anki_mw, note):
@@ -55,16 +75,17 @@ def _open_editor(anki_mw, note):
 
     parent = QWidget()
     container = QWidget(parent)
+    parent.resize(1400, 900)
     parent.show()
     editor = Editor(anki_mw, container, parent, editor_mode=EditorMode.BROWSER)
     editor.set_note(note, hide=False, focusTo=0)
     return editor, parent
 
 
-def _wait_for_generated_mp3(note, media_dir: Path, previous_name: str) -> str:
+def _wait_for_generated_mp3(note, media_dir: Path, previous_name: str, field_index: int = 0) -> str:
     wait_for_condition(
         lambda: (
-            (filename := _sound_filename(note.fields[0])) != previous_name
+            (filename := _sound_filename(note.fields[field_index])) != previous_name
             and "__aqe_" in filename
             and filename.endswith(".mp3")
             and (media_dir / filename).is_file()
@@ -72,12 +93,19 @@ def _wait_for_generated_mp3(note, media_dir: Path, previous_name: str) -> str:
         timeout=10.0,
         message="Editor did not replace the field with a newly generated MP3",
     )
-    return _sound_filename(note.fields[0])
+    return _sound_filename(note.fields[field_index])
 
 
-def _click_and_wait_for_new_file(editor, note, media_dir: Path, command: str, previous_name: str) -> str:
-    click_selector(editor.web, _button_selector(command), timeout=5.0)
-    return _wait_for_generated_mp3(note, media_dir, previous_name)
+def _click_and_wait_for_new_file(
+    editor,
+    note,
+    media_dir: Path,
+    command: str,
+    previous_name: str,
+    field_index: int = 0,
+) -> str:
+    click_selector(editor.web, _button_selector(command, field_index), timeout=5.0)
+    return _wait_for_generated_mp3(note, media_dir, previous_name, field_index)
 
 
 def _processing_status_js() -> str:
@@ -89,35 +117,67 @@ def _processing_status_js() -> str:
     """
 
 
-def _visualizer_js() -> str:
+def _visualizer_js(ord_: int = 0) -> str:
     return """
     (() => {
-      const visualizer = document.querySelector('.aqe-visualizer[data-aqe-field-ord="0"]');
+      const ord = __ORD__;
+      const visualizer = document.querySelector(`.aqe-visualizer[data-aqe-field-ord="${ord}"]`);
       if (!visualizer) return null;
       const labels = Array.from(visualizer.querySelectorAll('.aqe-hz-label')).map((node) => node.textContent);
       return {
+        active: visualizer.dataset.graphActive === "true",
+        busy: visualizer.dataset.graphBusy === "true",
+        hidden: visualizer.hidden,
         durationMs: Number(visualizer.dataset.durationMs || "0"),
         sourceFilename: visualizer.dataset.sourceFilename || "",
         analyzerName: visualizer.dataset.analyzerName || "",
         cursorMs: Number(visualizer.dataset.cursorMs || "0"),
+        progressMs: Number(visualizer.dataset.progressMs || "0"),
         intensity: visualizer.querySelector('.aqe-intensity')?.getAttribute('d') || "",
         pitchPaths: visualizer.querySelectorAll('.aqe-pitch-path').length,
+        xAxisLabels: Array.from(visualizer.querySelectorAll('.aqe-x-label')).map((node) => node.textContent),
         labels,
         cursorX: visualizer.querySelector('.aqe-cursor')?.getAttribute('x1') || "",
         status: visualizer.querySelector('.aqe-visualizer-status')?.textContent || "",
         statusKind: visualizer.querySelector('.aqe-visualizer-status')?.dataset.kind || "",
+        graphButtonLabel: document.querySelector(`[data-testid="aqe-button-${ord}-graph"]`)?.textContent || "",
+        playButtonLabel: document.querySelector(`[data-testid="aqe-button-${ord}-play"]`)?.textContent || "",
+        allButtonsDisabled: Array.from(document.querySelectorAll('.aqe-button')).every((button) => button.disabled),
       };
     })()
-    """
+    """.replace("__ORD__", json.dumps(ord_))
 
 
-def _wait_for_visualizer_track(editor, predicate=lambda track: True, timeout: float = 10.0):
+def _wait_for_visualizer_track(editor, predicate=lambda track: True, timeout: float = 10.0, ord_: int = 0):
     return wait_for_js_condition(
         editor.web,
-        _visualizer_js(),
+        _visualizer_js(ord_),
         lambda track: track is not None and track["durationMs"] > 0 and predicate(track),
         timeout=timeout,
     )
+
+
+def _graph_state_js(ord_: int = 0) -> str:
+    return f"window.__aqeGraphStateForTest ? window.__aqeGraphStateForTest({ord_}) : null"
+
+
+def _click_graph_and_wait(editor, predicate=lambda track: True, ord_: int = 0, timeout: float = 10.0):
+    selector = f'[data-testid="aqe-button-{ord_}-graph"]'
+    wait_for_selector(editor.web, selector, timeout=5.0)
+    wait_for_js_condition(
+        editor.web,
+        f"""
+        (() => {{
+          const button = document.querySelector({json.dumps(selector)});
+          if (!button) return null;
+          button.click();
+          return window.__aqeGraphStateForTest ? window.__aqeGraphStateForTest({ord_}) : null;
+        }})()
+        """,
+        lambda state: state is not None and state["active"] is True,
+        timeout=5.0,
+    )
+    return _wait_for_visualizer_track(editor, predicate, timeout=timeout, ord_=ord_)
 
 
 def test_each_processing_button_updates_field_to_new_real_audio(anki_mw, ffmpeg_config) -> None:
@@ -155,16 +215,20 @@ def test_each_processing_button_updates_field_to_new_real_audio(anki_mw, ffmpeg_
             wait_for_selector(editor.web, _button_selector(command), timeout=5.0)
             previous_name = _click_and_wait_for_new_file(editor, note, media_dir, command, previous_name)
             generated_names.append(previous_name)
-            _wait_for_visualizer_track(
-                editor,
-                lambda track, expected=previous_name: track["sourceFilename"] == expected,
-            )
 
         assert len(generated_names) == len(set(generated_names))
         assert source.read_bytes() == original_bytes
         assert probe_duration_ms(media_dir / generated_names[0], ffmpeg_config) < probe_duration_ms(
             source, ffmpeg_config
         )
+        graph_state = wait_for_js_condition(
+            editor.web,
+            _graph_state_js(),
+            lambda value: value is not None,
+            timeout=5.0,
+        )
+        assert graph_state["active"] is False
+        assert graph_state["hidden"] is True
     finally:
         editor.set_note(None)
         parent.close()
@@ -179,8 +243,18 @@ def test_visualizer_renders_pitch_intensity_labels_and_cursor(anki_mw, ffmpeg_co
 
     editor, parent = _open_editor(anki_mw, note)
     try:
-        wait_for_selector(editor.web, '.aqe-visualizer[data-aqe-field-ord="0"]', timeout=10.0)
-        track = _wait_for_visualizer_track(
+        wait_for_selector(editor.web, _button_selector("aqe:analyze"), timeout=10.0)
+        initial = wait_for_js_condition(
+            editor.web,
+            _graph_state_js(),
+            lambda value: value is not None,
+            timeout=5.0,
+        )
+        assert initial["active"] is False
+        assert initial["hidden"] is True
+        assert initial["graphButtonLabel"] == "Graph"
+
+        track = _click_graph_and_wait(
             editor,
             lambda value: value["sourceFilename"] == source.name and value["pitchPaths"] > 0,
         )
@@ -189,6 +263,127 @@ def test_visualizer_renders_pitch_intensity_labels_and_cursor(anki_mw, ffmpeg_co
         assert len(track["labels"]) == 2
         assert all(label.endswith(" Hz") for label in track["labels"])
         assert track["cursorX"]
+        assert track["graphButtonLabel"] == "Redraw"
+        assert any(label.endswith("ms") for label in track["xAxisLabels"])
+    finally:
+        editor.set_note(None)
+        parent.close()
+
+
+def test_visualizer_uses_second_axis_for_long_clip(anki_mw, ffmpeg_config) -> None:
+    media_dir = Path(anki_mw.col.media.dir())
+    source = media_dir / "editor_visualizer_long_source.wav"
+    generate_tone(ffmpeg_config, source, duration_s=14.0)
+    note = _basic_audio_note(anki_mw, source.name)
+    _configure_ffmpeg(anki_mw, ffmpeg_config)
+
+    editor, parent = _open_editor(anki_mw, note)
+    try:
+        track = _click_graph_and_wait(editor, lambda value: value["sourceFilename"] == source.name)
+
+        assert track["durationMs"] >= 13_500
+        assert any(label.endswith("s") for label in track["xAxisLabels"])
+        assert not any(label.endswith("ms") for label in track["xAxisLabels"])
+    finally:
+        editor.set_note(None)
+        parent.close()
+
+
+def test_graph_redraw_resets_after_audio_edit_when_active(anki_mw, ffmpeg_config) -> None:
+    media_dir = Path(anki_mw.col.media.dir())
+    source = media_dir / "editor_graph_redraw_source.wav"
+    generate_tone(ffmpeg_config, source, duration_s=2.0)
+    note = _basic_audio_note(anki_mw, source.name)
+    _configure_ffmpeg(anki_mw, ffmpeg_config)
+
+    editor, parent = _open_editor(anki_mw, note)
+    try:
+        _click_graph_and_wait(editor, lambda value: value["sourceFilename"] == source.name)
+        generated_name = _click_and_wait_for_new_file(
+            editor, note, media_dir, "aqe:trim-left", source.name
+        )
+        track = _wait_for_visualizer_track(
+            editor,
+            lambda value: value["sourceFilename"] == generated_name and value["cursorMs"] == 0,
+            timeout=10.0,
+        )
+
+        assert track["graphButtonLabel"] == "Redraw"
+        assert track["progressMs"] == 0
+    finally:
+        editor.set_note(None)
+        parent.close()
+
+
+def test_redraw_button_resets_cursor_and_reanalyzes_current_clip(anki_mw, ffmpeg_config) -> None:
+    media_dir = Path(anki_mw.col.media.dir())
+    source = media_dir / "editor_redraw_source.wav"
+    generate_tone(ffmpeg_config, source, duration_s=2.0)
+    note = _basic_audio_note(anki_mw, source.name)
+    _configure_ffmpeg(anki_mw, ffmpeg_config)
+
+    editor, parent = _open_editor(anki_mw, note)
+    try:
+        _click_graph_and_wait(editor, lambda value: value["sourceFilename"] == source.name)
+        run_js(editor.web, "window.__aqeSetCursorForTest(0, 1500, false)")
+        wait_for_js_condition(
+            editor.web,
+            _graph_state_js(),
+            lambda state: state is not None and state["cursorMs"] == 1500,
+            timeout=5.0,
+        )
+        track = _click_graph_and_wait(
+            editor,
+            lambda value: value["sourceFilename"] == source.name and value["cursorMs"] == 0,
+            timeout=10.0,
+        )
+
+        assert track["graphButtonLabel"] == "Redraw"
+    finally:
+        editor.set_note(None)
+        parent.close()
+
+
+def test_cursor_normalization_matches_pointer_position_at_multiple_widths(
+    anki_mw,
+    ffmpeg_config,
+) -> None:
+    media_dir = Path(anki_mw.col.media.dir())
+    source = media_dir / "editor_cursor_width_source.wav"
+    generate_tone(ffmpeg_config, source, duration_s=2.0)
+    note = _basic_audio_note(anki_mw, source.name)
+    _configure_ffmpeg(anki_mw, ffmpeg_config)
+
+    editor, parent = _open_editor(anki_mw, note)
+    try:
+        _click_graph_and_wait(editor, lambda value: value["sourceFilename"] == source.name)
+        for width in (640, 1000, 1400):
+            parent.resize(width, 900)
+            resize_deadline = time.monotonic() + 0.1
+            wait_for_condition(
+                lambda deadline=resize_deadline: time.monotonic() >= deadline,
+                timeout=1.0,
+            )
+            error = wait_for_js_condition(
+                editor.web,
+                """
+                (() => {
+                  const ord = 0;
+                  const svg = document.querySelector('.aqe-visualizer[data-aqe-field-ord="0"] .aqe-visualizer-svg');
+                  if (!svg || !window.__aqeSetCursorByClientXForTest) return 999;
+                  const rect = svg.getBoundingClientRect();
+                  const targetX = rect.left + rect.width * 0.73;
+                  const result = window.__aqeSetCursorByClientXForTest(ord, targetX, false);
+                  if (!result || !result.bounds) return 999;
+                  const cursorX = Number(document.querySelector('[data-testid="aqe-cursor-0"]').getAttribute('x1'));
+                  const pixelX = result.bounds.left + ((cursorX - 44) / 566) * result.bounds.width;
+                  return Math.abs(pixelX - targetX);
+                })()
+                """,
+                lambda value: isinstance(value, (int, float)) and value < 4,
+                timeout=5.0,
+            )
+            assert error < 4
     finally:
         editor.set_note(None)
         parent.close()
@@ -207,8 +402,9 @@ def test_cursor_drag_updates_session_and_play_uses_seek(anki_mw, ffmpeg_config) 
 
     editor, parent = _open_editor(anki_mw, note)
     seek_calls: list[float] = []
+    toggle_calls: list[str] = []
     try:
-        _wait_for_visualizer_track(editor, lambda value: value["sourceFilename"] == source.name)
+        _click_graph_and_wait(editor, lambda value: value["sourceFilename"] == source.name)
         run_js(
             editor.web,
             """
@@ -236,6 +432,7 @@ def test_cursor_drag_updates_session_and_play_uses_seek(anki_mw, ffmpeg_config) 
             patch.object(av_player, "stop_and_clear_queue", lambda: None),
             patch.object(av_player, "play_tags", lambda _tags: None),
             patch.object(av_player, "seek_relative", lambda seconds: seek_calls.append(seconds)),
+            patch.object(av_player, "toggle_pause", lambda: toggle_calls.append("toggle")),
         ):
             click_selector(editor.web, _button_selector("aqe:play"), timeout=5.0)
             wait_for_condition(
@@ -243,8 +440,44 @@ def test_cursor_drag_updates_session_and_play_uses_seek(anki_mw, ffmpeg_config) 
                 timeout=5.0,
                 message="Playback did not attempt to seek from the selected cursor",
             )
+            progressed = wait_for_js_condition(
+                editor.web,
+                _graph_state_js(),
+                lambda state: state is not None and state["progressMs"] > track["cursorMs"] + 120,
+                timeout=5.0,
+            )
+            click_selector(editor.web, _button_selector("aqe:play"), timeout=5.0)
+            paused = wait_for_js_condition(
+                editor.web,
+                _graph_state_js(),
+                lambda state: state is not None and state["playbackState"] == "paused",
+                timeout=5.0,
+            )
+            paused_progress = paused["progressMs"]
+            pause_deadline = time.monotonic() + 0.35
+            wait_for_condition(
+                lambda: time.monotonic() >= pause_deadline,
+                timeout=1.0,
+                message="short playback pause wait failed",
+            )
+            frozen = wait_for_js_condition(
+                editor.web,
+                _graph_state_js(),
+                lambda state: state is not None,
+                timeout=2.0,
+            )
+            click_selector(editor.web, _button_selector("aqe:play"), timeout=5.0)
+            wait_for_js_condition(
+                editor.web,
+                _graph_state_js(),
+                lambda state: state is not None and state["progressMs"] > paused_progress + 120,
+                timeout=5.0,
+            )
 
         assert seek_calls[0] >= track["cursorMs"] / 1000 - 0.05
+        assert progressed["playButtonLabel"] == "Pause"
+        assert abs(frozen["progressMs"] - paused_progress) < 80
+        assert len(toggle_calls) >= 2
     finally:
         editor.set_note(None)
         parent.close()
@@ -274,7 +507,7 @@ def test_silence_visualizer_renders_pitch_gaps_without_crashing(anki_mw, ffmpeg_
 
     editor, parent = _open_editor(anki_mw, note)
     try:
-        track = _wait_for_visualizer_track(editor, lambda value: value["sourceFilename"] == source.name)
+        track = _click_graph_and_wait(editor, lambda value: value["sourceFilename"] == source.name)
 
         assert track["intensity"].startswith("M ")
         assert track["pitchPaths"] == 0
@@ -300,6 +533,7 @@ def test_visualizer_failure_is_non_mutating_and_edit_buttons_still_work(
 
     editor, parent = _open_editor(anki_mw, note)
     try:
+        click_selector(editor.web, _button_selector("aqe:analyze"), timeout=10.0)
         wait_for_js_condition(
             editor.web,
             _visualizer_js(),
@@ -415,6 +649,59 @@ def test_fast_clicks_are_ignored_while_processing(anki_mw, ffmpeg_config) -> Non
         generated_for_source = list(media_dir.glob("editor_fast_click_source__aqe_*.mp3"))
         assert generated_for_source == [media_dir / generated_name]
         assert (media_dir / generated_name).is_file()
+    finally:
+        editor.set_note(None)
+        parent.close()
+
+
+def test_three_audio_fields_fast_cross_clicks_lock_globally_and_do_not_corrupt_fields(
+    anki_mw,
+    ffmpeg_config,
+) -> None:
+    media_dir = Path(anki_mw.col.media.dir())
+    sources = (
+        media_dir / "editor_three_fields_one.wav",
+        media_dir / "editor_three_fields_two.wav",
+        media_dir / "editor_three_fields_three.wav",
+    )
+    for source in sources:
+        generate_tone(ffmpeg_config, source, duration_s=3.0)
+    note = _three_audio_field_note(anki_mw, tuple(source.name for source in sources))
+    _configure_ffmpeg(anki_mw, ffmpeg_config)
+
+    editor, parent = _open_editor(anki_mw, note)
+    try:
+        wait_for_selector(editor.web, _button_selector("aqe:trim-left", 0), timeout=10.0)
+        wait_for_selector(editor.web, _button_selector("aqe:faster", 1), timeout=10.0)
+        wait_for_selector(editor.web, _button_selector("aqe:trim-right", 2), timeout=10.0)
+        locked = wait_for_js_condition(
+            editor.web,
+            """
+            (() => {
+              document.querySelector('[data-testid="aqe-button-0-trim-left"]').click();
+              const lockedAfterFirst = Array.from(document.querySelectorAll('.aqe-button')).every((button) => button.disabled);
+              document.querySelector('[data-testid="aqe-button-1-faster"]').click();
+              document.querySelector('[data-testid="aqe-button-2-trim-right"]').click();
+              return lockedAfterFirst;
+            })()
+            """,
+            lambda value: value is True,
+            timeout=5.0,
+        )
+        generated_name = _wait_for_generated_mp3(note, media_dir, sources[0].name, field_index=0)
+        unlocked = wait_for_js_condition(
+            editor.web,
+            _graph_state_js(0),
+            lambda state: state is not None and state["allButtonsDisabled"] is False,
+            timeout=5.0,
+        )
+
+        assert locked is True
+        assert unlocked["allButtonsDisabled"] is False
+        assert _sound_filename(note.fields[0]) == generated_name
+        assert _sound_filename(note.fields[1]) == sources[1].name
+        assert _sound_filename(note.fields[2]) == sources[2].name
+        assert list(media_dir.glob("editor_three_fields_one__aqe_*.mp3")) == [media_dir / generated_name]
     finally:
         editor.set_note(None)
         parent.close()

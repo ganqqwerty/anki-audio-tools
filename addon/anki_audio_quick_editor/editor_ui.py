@@ -7,12 +7,17 @@ import json
 
 def injection_script(audio_field_indices: list[int] | None = None) -> str:
     """Return JavaScript that mounts compact controls next to audio fields."""
-    field_indices_json = json.dumps(audio_field_indices or [])
-    return f"""
-(function() {{
-  const soundPattern = /\\[sound:([^\\]]+)\\]/i;
-  const supportedPattern = /\\.(mp3|wav|ogg)$/i;
-  const audioFieldIndices = new Set({field_indices_json});
+    return (
+        _SCRIPT_TEMPLATE.replace("__FIELD_INDICES_JSON__", json.dumps(audio_field_indices or []))
+        .replace("__CSS_JSON__", json.dumps(_css()))
+    )
+
+
+_SCRIPT_TEMPLATE = r"""
+(function() {
+  const soundPattern = /\[sound:([^\]]+)\]/i;
+  const supportedPattern = /\.(mp3|wav|ogg)$/i;
+  const audioFieldIndices = new Set(__FIELD_INDICES_JSON__);
   const processingCommands = new Set([
     "aqe:trim-left",
     "aqe:untrim-left",
@@ -23,118 +28,158 @@ def injection_script(audio_field_indices: list[int] | None = None) -> str:
     "aqe:trim-silence",
     "aqe:remove-pauses"
   ]);
-  const plot = {{ width: 620, height: 138, left: 44, right: 10, top: 10, bottom: 24 }};
+  const commandSlugs = {
+    "aqe:play": "play",
+    "aqe:analyze": "graph",
+    "aqe:trim-left": "trim-left",
+    "aqe:untrim-left": "untrim-left",
+    "aqe:trim-right": "trim-right",
+    "aqe:untrim-right": "untrim-right",
+    "aqe:trim-silence": "trim-silence",
+    "aqe:remove-pauses": "remove-pauses",
+    "aqe:slower": "slower",
+    "aqe:faster": "faster",
+    "aqe:undo": "undo"
+  };
+  const plot = { width: 620, height: 150, left: 44, right: 10, top: 10, bottom: 34 };
   const styleId = "aqe-inline-style";
 
-  function ensureStyle() {{
+  function ensureStyle() {
     if (document.getElementById(styleId)) return;
     const style = document.createElement("style");
     style.id = styleId;
-    style.textContent = {json.dumps(_css())};
+    style.textContent = __CSS_JSON__;
     document.head.appendChild(style);
-  }}
+  }
 
-  function fieldNodes() {{
+  function fieldNodes() {
     const candidates = Array.from(document.querySelectorAll('[contenteditable="true"], .field, [data-field-ord]'));
     const seen = new Set();
-    return candidates.filter((node) => {{
+    return candidates.filter((node) => {
       if (seen.has(node)) return false;
       seen.add(node);
       return node.textContent || node.innerHTML;
-    }});
-  }}
+    });
+  }
 
-  function explicitFieldTargets() {{
+  function explicitFieldTargets() {
     return Array.from(audioFieldIndices)
-      .map((ord) => {{
-        const container = document.querySelector(`.field-container[data-index="${{ord}}"]`);
+      .map((ord) => {
+        const container = document.querySelector(`.field-container[data-index="${ord}"]`);
         if (!container) return null;
-        return {{
+        return {
           ord,
           node: container.querySelector('[contenteditable="true"]') || container
-        }};
-      }})
+        };
+      })
       .filter(Boolean);
-  }}
+  }
 
-  function fieldIndex(node, fallback) {{
+  function fieldIndex(node, fallback) {
     const attrs = ["data-field-ord", "data-ord", "data-index"];
-    for (const attr of attrs) {{
+    for (const attr of attrs) {
       const raw = node.getAttribute && node.getAttribute(attr);
-      if (raw !== null && raw !== undefined && /^\\d+$/.test(raw)) return Number(raw);
-    }}
-    const idMatch = String(node.id || "").match(/(\\d+)/);
+      if (raw !== null && raw !== undefined && /^\d+$/.test(raw)) return Number(raw);
+    }
+    const idMatch = String(node.id || "").match(/(\d+)/);
     return idMatch ? Number(idMatch[1]) : fallback;
-  }}
+  }
 
-  function send(command, node, ord) {{
-    const controls = document.querySelector(`.aqe-controls[data-aqe-field-ord="${{ord}}"]`);
-    if (controls && controls.dataset.busy === "true") return;
+  function testId(ord, command) {
+    return `aqe-button-${ord}-${commandSlugs[command] || command.replace(/[^a-z0-9]+/g, "-")}`;
+  }
+
+  function anyBusy() {
+    return document.body.dataset.aqeBusy === "true";
+  }
+
+  function redrawAfterEditKey(ord) {
+    return `aqe-redraw-after-edit-${ord}`;
+  }
+
+  function rememberGraphRedrawIfActive(ord) {
+    const visualizer = visualizerForOrd(ord);
+    if (visualizer && visualizer.dataset.graphActive === "true") {
+      sessionStorage.setItem(redrawAfterEditKey(ord), "true");
+    }
+  }
+
+  function send(command, node, ord) {
+    if (anyBusy()) return;
     if (node && typeof node.focus === "function") node.focus();
     window.__aqeActiveField = ord;
-    if (processingCommands.has(command)) setControlsBusy(ord, true, "Processing...");
-    if (typeof pycmd === "function") {{
+    if (command === "aqe:analyze") {
+      requestGraph(ord, true);
+      return;
+    }
+    if (processingCommands.has(command)) {
+      rememberGraphRedrawIfActive(ord);
+      setControlsBusy(ord, true, "Processing...");
+    }
+    if (typeof pycmd === "function") {
       pycmd("focus:" + ord);
       pycmd(command);
-    }}
-  }}
+    }
+  }
 
-  function requestAnalysis(node, ord) {{
-    if (node && typeof node.focus === "function") node.focus();
-    window.__aqeActiveField = ord;
-    if (typeof pycmd === "function") {{
-      pycmd("focus:" + ord);
-      pycmd("aqe:analyze");
-    }}
-  }}
-
-  function makeButton(label, title, command, node, ord) {{
+  function makeButton(label, title, command, node, ord) {
     const button = document.createElement("button");
     button.type = "button";
     button.className = "aqe-button";
     button.dataset.aqeCommand = command;
+    button.dataset.testid = testId(ord, command);
     button.textContent = label;
     button.title = title;
     button.addEventListener("mousedown", (event) => event.preventDefault());
     button.addEventListener("click", () => send(command, node, ord));
     return button;
-  }}
+  }
 
-  function statusNode() {{
+  function statusNode(ord) {
     const span = document.createElement("span");
     span.className = "aqe-status";
+    span.dataset.testid = `aqe-status-${ord}`;
     span.textContent = "";
     return span;
-  }}
+  }
 
-  function visualizerNode(node, ord) {{
+  function visualizerNode(ord) {
     const wrapper = document.createElement("div");
     wrapper.className = "aqe-visualizer";
     wrapper.dataset.aqeFieldOrd = String(ord);
     wrapper.dataset.cursorMs = "0";
+    wrapper.dataset.progressMs = "0";
+    wrapper.dataset.graphActive = "false";
+    wrapper.dataset.graphBusy = "false";
+    wrapper.dataset.playbackState = "stopped";
+    wrapper.dataset.testid = `aqe-graph-${ord}`;
+    wrapper.hidden = true;
     wrapper.innerHTML = `
-      <svg class="aqe-visualizer-svg" viewBox="0 0 ${{plot.width}} ${{plot.height}}" role="img" aria-label="Audio pitch and intensity visualization">
-        <path class="aqe-intensity" d=""></path>
-        <g class="aqe-pitch"></g>
+      <svg class="aqe-visualizer-svg" data-testid="aqe-graph-svg-${ord}" viewBox="0 0 ${plot.width} ${plot.height}" role="img" aria-label="Audio pitch and intensity visualization">
+        <path class="aqe-intensity" data-testid="aqe-intensity-${ord}" d=""></path>
+        <g class="aqe-pitch" data-testid="aqe-pitch-${ord}"></g>
         <g class="aqe-labels"></g>
-        <line class="aqe-cursor" x1="${{plot.left}}" x2="${{plot.left}}" y1="${{plot.top}}" y2="${{plot.height - plot.bottom}}"></line>
+        <g class="aqe-x-axis" data-testid="aqe-x-axis-${ord}"></g>
+        <line class="aqe-cursor" data-testid="aqe-cursor-${ord}" x1="${plot.left}" x2="${plot.left}" y1="${plot.top}" y2="${plot.height - plot.bottom}"></line>
       </svg>
       <div class="aqe-visualizer-meta">
-        <span class="aqe-cursor-label">0.00s</span>
-        <span class="aqe-visualizer-status"></span>
+        <span class="aqe-cursor-label" data-testid="aqe-progress-label-${ord}">0 ms</span>
+        <span class="aqe-visualizer-status" data-testid="aqe-graph-status-${ord}"></span>
       </div>
     `;
     const svg = wrapper.querySelector(".aqe-visualizer-svg");
     svg.addEventListener("pointerdown", (event) => startCursorDrag(event, wrapper, ord, true));
     return wrapper;
-  }}
+  }
 
-  function controlsFor(node, ord) {{
+  function controlsFor(node, ord) {
     const wrapper = document.createElement("div");
     wrapper.className = "aqe-controls";
     wrapper.dataset.aqeFieldOrd = String(ord);
+    wrapper.dataset.testid = `aqe-controls-${ord}`;
     wrapper.append(
-      makeButton("▶", "Play current audio", "aqe:play", node, ord),
+      makeButton("Play", "Play or pause current audio", "aqe:play", node, ord),
+      makeButton("Graph", "Analyze and show pitch/intensity graph", "aqe:analyze", node, ord),
       makeButton("-L", "Trim 100 ms from left", "aqe:trim-left", node, ord),
       makeButton("+L", "Undo 100 ms left trim", "aqe:untrim-left", node, ord),
       makeButton("-R", "Trim 100 ms from right", "aqe:trim-right", node, ord),
@@ -144,14 +189,14 @@ def injection_script(audio_field_indices: list[int] | None = None) -> str:
       makeButton("Slower", "Decrease speed", "aqe:slower", node, ord),
       makeButton("Faster", "Increase speed", "aqe:faster", node, ord),
       makeButton("Undo", "Restore the previous generated audio reference", "aqe:undo", node, ord),
-      statusNode(),
-      visualizerNode(node, ord)
+      statusNode(ord),
+      visualizerNode(ord)
     );
     return wrapper;
-  }}
+  }
 
-  function mountNear(node, ord) {{
-    const existing = document.querySelector(`.aqe-controls[data-aqe-field-ord="${{ord}}"]`);
+  function mountNear(node, ord) {
+    const existing = document.querySelector(`.aqe-controls[data-aqe-field-ord="${ord}"]`);
     if (existing) existing.remove();
     const parent = node.closest && node.closest(".field-container")
       ? node.closest(".field-container")
@@ -159,138 +204,164 @@ def injection_script(audio_field_indices: list[int] | None = None) -> str:
         ? node.closest(".field")
         : node.parentElement;
     const controls = controlsFor(node, ord);
-    if (parent && parent.parentElement) {{
+    if (parent && parent.parentElement) {
       parent.insertAdjacentElement("afterend", controls);
-    }} else {{
+    } else {
       node.insertAdjacentElement("afterend", controls);
-    }}
-    setTimeout(() => requestAnalysis(node, ord), 300);
-  }}
+    }
+    if (sessionStorage.getItem(redrawAfterEditKey(ord)) === "true") {
+      sessionStorage.removeItem(redrawAfterEditKey(ord));
+      setTimeout(() => requestGraph(ord, true), 120);
+    }
+  }
 
-  function scan() {{
+  function scan() {
     ensureStyle();
     document.querySelectorAll(".aqe-controls").forEach((node) => node.remove());
     const explicitTargets = explicitFieldTargets();
-    if (explicitTargets.length) {{
+    if (explicitTargets.length) {
       explicitTargets.forEach((target) => mountNear(target.node, target.ord));
       return;
-    }}
-    fieldNodes().forEach((node, fallback) => {{
+    }
+    fieldNodes().forEach((node, fallback) => {
       const html = node.innerHTML || node.textContent || "";
       const match = html.match(soundPattern);
       if (!match || !supportedPattern.test(match[1])) return;
       mountNear(node, fieldIndex(node, fallback));
-    }});
-  }}
+    });
+  }
 
-  function controlsForOrd(ord) {{
-    const controls = document.querySelector(`.aqe-controls[data-aqe-field-ord="${{ord}}"]`);
-    return controls;
-  }}
+  function controlsForOrd(ord) {
+    return document.querySelector(`.aqe-controls[data-aqe-field-ord="${ord}"]`);
+  }
 
-  function setControlsBusy(ord, busy, message, command) {{
-    const controls = controlsForOrd(ord);
-    if (!controls) return;
-    controls.dataset.busy = busy ? "true" : "false";
-    controls.querySelectorAll(".aqe-button").forEach((button) => {{
+  function allButtons() {
+    return Array.from(document.querySelectorAll(".aqe-button"));
+  }
+
+  function setControlsBusy(ord, busy, message, command) {
+    document.body.dataset.aqeBusy = busy ? "true" : "false";
+    document.querySelectorAll(".aqe-controls").forEach((controls) => {
+      controls.dataset.busy = busy ? "true" : "false";
+    });
+    allButtons().forEach((button) => {
       button.disabled = !!busy;
-    }});
-    const status = controls.querySelector(".aqe-status");
+    });
+    const controls = controlsForOrd(ord);
+    const status = controls && controls.querySelector(".aqe-status");
     if (!status) return;
     status.textContent = message || "";
     status.dataset.kind = busy ? "processing" : "info";
     status.title = command || "";
-  }}
+  }
 
   window.__aqeSetBusy = setControlsBusy;
 
-  window.__aqeSetStatus = function(message, kind) {{
+  window.__aqeSetStatus = function(message, kind) {
     const ord = window.__aqeActiveField;
     const controls = controlsForOrd(ord);
     const status = controls && controls.querySelector(".aqe-status");
     if (!status) return;
     status.textContent = message || "";
     status.dataset.kind = kind || "info";
-  }};
+  };
 
-  function visualizerForOrd(ord) {{
-    return document.querySelector(`.aqe-visualizer[data-aqe-field-ord="${{ord}}"]`);
-  }}
+  function visualizerForOrd(ord) {
+    return document.querySelector(`.aqe-visualizer[data-aqe-field-ord="${ord}"]`);
+  }
 
-  function setVisualizerStatus(ord, message, kind) {{
+  function buttonFor(ord, command) {
+    const controls = controlsForOrd(ord);
+    return controls && controls.querySelector(`[data-aqe-command="${command}"]`);
+  }
+
+  function graphButton(ord) {
+    return buttonFor(ord, "aqe:analyze");
+  }
+
+  function playButton(ord) {
+    return buttonFor(ord, "aqe:play");
+  }
+
+  function setVisualizerStatus(ord, message, kind) {
     const visualizer = visualizerForOrd(ord);
     if (!visualizer) return;
     const status = visualizer.querySelector(".aqe-visualizer-status");
     if (!status) return;
     status.textContent = message || "";
     status.dataset.kind = kind || "info";
-  }}
+  }
 
-  function plotWidth() {{
+  function plotWidth() {
     return plot.width - plot.left - plot.right;
-  }}
+  }
 
-  function plotHeight() {{
+  function plotHeight() {
     return plot.height - plot.top - plot.bottom;
-  }}
+  }
 
-  function xForMs(ms, durationMs) {{
+  function xForMs(ms, durationMs) {
     if (!durationMs) return plot.left;
     return plot.left + Math.max(0, Math.min(1, ms / durationMs)) * plotWidth();
-  }}
+  }
 
-  function yForPitch(pitchHz, minHz, maxHz) {{
+  function yForPitch(pitchHz, minHz, maxHz) {
     if (!pitchHz || !minHz || !maxHz || maxHz <= minHz) return plot.height - plot.bottom;
     const ratio = Math.max(0, Math.min(1, (pitchHz - minHz) / (maxHz - minHz)));
     return plot.top + (1 - ratio) * plotHeight();
-  }}
+  }
 
-  function pathForIntensity(points, durationMs) {{
+  function formatTime(ms, durationMs) {
+    if (durationMs && durationMs < 2000) return `${Math.round(ms)} ms`;
+    return `${(ms / 1000).toFixed(2)}s`;
+  }
+
+  function pathForIntensity(points, durationMs) {
     if (!points || !points.length || !durationMs) return "";
     const base = plot.height - plot.bottom;
-    const head = `M ${{xForMs(points[0][0], durationMs).toFixed(2)}} ${{base.toFixed(2)}}`;
-    const body = points.map((point) => {{
+    const head = `M ${xForMs(points[0][0], durationMs).toFixed(2)} ${base.toFixed(2)}`;
+    const body = points.map((point) => {
       const x = xForMs(point[0], durationMs).toFixed(2);
       const y = (base - Math.max(0, Math.min(1, point[2] || 0)) * plotHeight()).toFixed(2);
-      return `L ${{x}} ${{y}}`;
-    }}).join(" ");
-    const tail = `L ${{xForMs(points[points.length - 1][0], durationMs).toFixed(2)}} ${{base.toFixed(2)}} Z`;
-    return `${{head}} ${{body}} ${{tail}}`;
-  }}
+      return `L ${x} ${y}`;
+    }).join(" ");
+    const tail = `L ${xForMs(points[points.length - 1][0], durationMs).toFixed(2)} ${base.toFixed(2)} Z`;
+    return `${head} ${body} ${tail}`;
+  }
 
-  function pitchSegments(points, durationMs, minHz, maxHz) {{
+  function pitchSegments(points, durationMs, minHz, maxHz) {
     const segments = [];
     let current = [];
-    for (const point of points || []) {{
+    for (const point of points || []) {
       const pitchHz = point[1];
       const voiced = point[3] && pitchHz !== null && pitchHz !== undefined;
-      if (!voiced) {{
+      if (!voiced) {
         if (current.length) segments.push(current);
         current = [];
         continue;
-      }}
+      }
       current.push([
         xForMs(point[0], durationMs),
         yForPitch(pitchHz, minHz, maxHz),
       ]);
-    }}
+    }
     if (current.length) segments.push(current);
     return segments;
-  }}
+  }
 
-  function drawPitch(visualizer, track) {{
+  function drawPitch(visualizer, track) {
     const group = visualizer.querySelector(".aqe-pitch");
     group.textContent = "";
-    for (const segment of pitchSegments(track.points, track.durationMs, track.pitchMinHz, track.pitchMaxHz)) {{
+    for (const segment of pitchSegments(track.points, track.durationMs, track.pitchMinHz, track.pitchMaxHz)) {
       if (segment.length < 2) continue;
       const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
       path.setAttribute("class", "aqe-pitch-path");
-      path.setAttribute("d", segment.map((point, index) => `${{index ? "L" : "M"}} ${{point[0].toFixed(2)}} ${{point[1].toFixed(2)}}`).join(" "));
+      path.setAttribute("d", segment.map((point, index) => `${index ? "L" : "M"} ${point[0].toFixed(2)} ${point[1].toFixed(2)}`).join(" "));
       group.appendChild(path);
-    }}
-  }}
+    }
+  }
 
-  function drawLabels(visualizer, track) {{
+  function drawLabels(visualizer, track) {
     const group = visualizer.querySelector(".aqe-labels");
     group.textContent = "";
     const maxHz = track.pitchMaxHz || 500;
@@ -298,93 +369,290 @@ def injection_script(audio_field_indices: list[int] | None = None) -> str:
     for (const item of [
       [maxHz, plot.top + 10],
       [minHz, plot.height - plot.bottom],
-    ]) {{
+    ]) {
       const text = document.createElementNS("http://www.w3.org/2000/svg", "text");
       text.setAttribute("class", "aqe-hz-label");
       text.setAttribute("x", "2");
       text.setAttribute("y", String(item[1]));
-      text.textContent = `${{Math.round(item[0])}} Hz`;
+      text.textContent = `${Math.round(item[0])} Hz`;
       group.appendChild(text);
-    }}
-  }}
+    }
+  }
 
-  function setCursor(visualizer, ms, notifyPython) {{
+  function drawXAxis(visualizer, durationMs) {
+    const group = visualizer.querySelector(".aqe-x-axis");
+    group.textContent = "";
+    const ticks = [0, durationMs / 2, durationMs].filter((value, index, values) => index === 0 || value !== values[index - 1]);
+    for (const tick of ticks) {
+      const x = xForMs(tick, durationMs);
+      const line = document.createElementNS("http://www.w3.org/2000/svg", "line");
+      line.setAttribute("class", "aqe-x-tick");
+      line.setAttribute("x1", x.toFixed(2));
+      line.setAttribute("x2", x.toFixed(2));
+      line.setAttribute("y1", String(plot.height - plot.bottom));
+      line.setAttribute("y2", String(plot.height - plot.bottom + 4));
+      const text = document.createElementNS("http://www.w3.org/2000/svg", "text");
+      text.setAttribute("class", "aqe-x-label");
+      text.setAttribute("x", x.toFixed(2));
+      text.setAttribute("y", String(plot.height - 8));
+      text.textContent = formatTime(tick, durationMs);
+      group.append(line, text);
+    }
+  }
+
+  function setCursor(visualizer, ms, notifyPython) {
     const durationMs = Number(visualizer.dataset.durationMs || "0");
     const clamped = Math.max(0, Math.min(Number(ms) || 0, durationMs || 0));
     visualizer.dataset.cursorMs = String(Math.round(clamped));
+    visualizer.dataset.progressMs = String(Math.round(clamped));
     const x = xForMs(clamped, durationMs);
     const cursor = visualizer.querySelector(".aqe-cursor");
-    if (cursor) {{
+    if (cursor) {
       cursor.setAttribute("x1", x.toFixed(2));
       cursor.setAttribute("x2", x.toFixed(2));
-    }}
+    }
     const label = visualizer.querySelector(".aqe-cursor-label");
-    if (label) label.textContent = `${{(clamped / 1000).toFixed(2)}}s`;
-    if (notifyPython && typeof pycmd === "function") {{
+    if (label) label.textContent = formatTime(clamped, durationMs);
+    if (notifyPython && typeof pycmd === "function") {
       window.__aqeActiveField = Number(visualizer.dataset.aqeFieldOrd || "0");
       pycmd("focus:" + window.__aqeActiveField);
       pycmd("aqe:set-cursor");
-    }}
-  }}
+    }
+  }
 
-  function cursorMsFromEvent(event, svg, durationMs) {{
+  function graphPixelBounds(svg) {
     const rect = svg.getBoundingClientRect();
-    const ratio = Math.max(0, Math.min(1, (event.clientX - rect.left - (plot.left / plot.width) * rect.width) / ((plotWidth() / plot.width) * rect.width)));
-    return ratio * durationMs;
-  }}
+    const scaleX = rect.width / plot.width;
+    return {
+      left: rect.left + plot.left * scaleX,
+      width: plotWidth() * scaleX
+    };
+  }
 
-  function startCursorDrag(event, visualizer, ord, notifyPython) {{
+  function cursorMsFromEvent(event, svg, durationMs) {
+    const bounds = graphPixelBounds(svg);
+    const ratio = Math.max(0, Math.min(1, (event.clientX - bounds.left) / bounds.width));
+    return ratio * durationMs;
+  }
+
+  function startCursorDrag(event, visualizer, ord, notifyPython) {
     event.preventDefault();
+    stopPlaybackTimer(visualizer);
     const svg = visualizer.querySelector(".aqe-visualizer-svg");
     const durationMs = Number(visualizer.dataset.durationMs || "0");
     if (!svg || !durationMs) return;
-    const move = (moveEvent) => {{
+    const move = (moveEvent) => {
       setCursor(visualizer, cursorMsFromEvent(moveEvent, svg, durationMs), false);
-    }};
-    const up = (upEvent) => {{
+    };
+    const up = (upEvent) => {
       window.removeEventListener("pointermove", move);
       window.removeEventListener("pointerup", up);
       setCursor(visualizer, cursorMsFromEvent(upEvent, svg, durationMs), notifyPython);
-    }};
+    };
     move(event);
     window.addEventListener("pointermove", move);
     window.addEventListener("pointerup", up);
-  }}
+  }
 
-  window.__aqeSetVisualizer = function(ord, track, cursorMs) {{
+  function requestGraph(ord, notifyPython) {
+    const visualizer = visualizerForOrd(ord);
+    if (!visualizer) return;
+    stopPlaybackTimer(visualizer);
+    visualizer.hidden = false;
+    visualizer.dataset.graphActive = "true";
+    visualizer.dataset.graphBusy = "true";
+    visualizer.dataset.durationMs = "0";
+    visualizer.dataset.sourceFilename = "";
+    visualizer.dataset.cursorMs = "0";
+    visualizer.dataset.progressMs = "0";
+    visualizer.querySelector(".aqe-intensity").setAttribute("d", "");
+    visualizer.querySelector(".aqe-pitch").textContent = "";
+    visualizer.querySelector(".aqe-labels").textContent = "";
+    visualizer.querySelector(".aqe-x-axis").textContent = "";
+    setCursor(visualizer, 0, false);
+    const button = graphButton(ord);
+    if (button) button.textContent = "Redraw";
+    setVisualizerStatus(ord, "Analyzing...", "processing");
+    window.__aqeActiveField = ord;
+    if (notifyPython && typeof pycmd === "function") {
+      setControlsBusy(ord, true, "Analyzing...", "");
+      pycmd("focus:" + ord);
+      pycmd("aqe:analyze");
+    }
+  }
+
+  function resetGraphAfterEdit(ord) {
+    const visualizer = visualizerForOrd(ord);
+    if (!visualizer || visualizer.dataset.graphActive !== "true") return;
+    requestGraph(ord, true);
+  }
+
+  function startPlaybackTimer(visualizer, startMs) {
+    stopPlaybackTimer(visualizer);
+    const durationMs = Number(visualizer.dataset.durationMs || "0");
+    if (!durationMs) return;
+    visualizer.dataset.playbackState = "playing";
+    visualizer.dataset.playStartedAt = String(performance.now());
+    visualizer.dataset.playStartMs = String(Number(startMs) || 0);
+    const ord = Number(visualizer.dataset.aqeFieldOrd || "0");
+    const button = playButton(ord);
+    if (button) button.textContent = "Pause";
+    const tick = () => {
+      if (visualizer.dataset.playbackState !== "playing") return;
+      const elapsed = performance.now() - Number(visualizer.dataset.playStartedAt || "0");
+      const nextMs = Math.min(durationMs, Number(visualizer.dataset.playStartMs || "0") + elapsed);
+      setCursor(visualizer, nextMs, false);
+      if (nextMs >= durationMs) {
+        stopPlaybackTimer(visualizer);
+        return;
+      }
+      visualizer.__aqePlaybackTimer = window.requestAnimationFrame(tick);
+    };
+    visualizer.__aqePlaybackTimer = window.requestAnimationFrame(tick);
+  }
+
+  function pausePlaybackTimer(visualizer) {
+    if (visualizer.__aqePlaybackTimer) {
+      window.cancelAnimationFrame(visualizer.__aqePlaybackTimer);
+      visualizer.__aqePlaybackTimer = null;
+    }
+    visualizer.dataset.playbackState = "paused";
+    const ord = Number(visualizer.dataset.aqeFieldOrd || "0");
+    const button = playButton(ord);
+    if (button) button.textContent = "Play";
+  }
+
+  function stopPlaybackTimer(visualizer) {
+    if (visualizer.__aqePlaybackTimer) {
+      window.cancelAnimationFrame(visualizer.__aqePlaybackTimer);
+      visualizer.__aqePlaybackTimer = null;
+    }
+    visualizer.dataset.playbackState = "stopped";
+    const ord = Number(visualizer.dataset.aqeFieldOrd || "0");
+    const button = playButton(ord);
+    if (button) button.textContent = "Play";
+  }
+
+  function playbackRequest(ord) {
+    const visualizer = visualizerForOrd(ord);
+    if (!visualizer) return { ord, action: "start", cursorMs: 0 };
+    const state = visualizer.dataset.playbackState || "stopped";
+    let action = "start";
+    if (state === "playing") action = "pause";
+    if (state === "paused") action = "resume";
+    return {
+      ord,
+      action,
+      cursorMs: Number(visualizer.dataset.cursorMs || "0")
+    };
+  }
+
+  window.__aqeSetVisualizer = function(ord, track, cursorMs) {
     const visualizer = visualizerForOrd(ord);
     if (!visualizer || !track) return;
+    visualizer.hidden = false;
+    visualizer.dataset.graphActive = "true";
+    visualizer.dataset.graphBusy = "false";
     visualizer.dataset.durationMs = String(track.durationMs || 0);
     visualizer.dataset.analyzerName = track.analyzerName || "";
     visualizer.dataset.sourceFilename = track.sourceFilename || "";
+    const button = graphButton(ord);
+    if (button) button.textContent = "Redraw";
     const intensity = visualizer.querySelector(".aqe-intensity");
     if (intensity) intensity.setAttribute("d", pathForIntensity(track.points, track.durationMs));
     drawPitch(visualizer, track);
     drawLabels(visualizer, track);
+    drawXAxis(visualizer, track.durationMs || 0);
     setCursor(visualizer, cursorMs || 0, false);
     setVisualizerStatus(ord, track.analyzerName || "", "info");
-  }};
+  };
 
-  window.__aqeSetVisualizerStatus = setVisualizerStatus;
+  window.__aqeSetVisualizerStatus = function(ord, message, kind) {
+    const visualizer = visualizerForOrd(ord);
+    if (visualizer) {
+      visualizer.hidden = false;
+      visualizer.dataset.graphActive = "true";
+      visualizer.dataset.graphBusy = kind === "processing" ? "true" : "false";
+      const button = graphButton(ord);
+      if (button) button.textContent = "Redraw";
+    }
+    setVisualizerStatus(ord, message, kind);
+  };
 
-  window.__aqeGetCursorMs = function() {{
+  window.__aqeResetGraphAfterEdit = resetGraphAfterEdit;
+
+  window.__aqeSetPlaybackState = function(ord, state, cursorMs) {
+    const visualizer = visualizerForOrd(ord);
+    if (!visualizer) return;
+    if (state === "playing") startPlaybackTimer(visualizer, cursorMs);
+    else if (state === "paused") pausePlaybackTimer(visualizer);
+    else stopPlaybackTimer(visualizer);
+  };
+
+  window.__aqeGetPlaybackRequest = function() {
+    const ord = Number(window.__aqeActiveField || "0");
+    return playbackRequest(ord);
+  };
+
+  window.__aqeGetCursorMs = function() {
     const ord = window.__aqeActiveField;
     const visualizer = visualizerForOrd(ord);
     return visualizer ? Number(visualizer.dataset.cursorMs || "0") : 0;
-  }};
+  };
 
-  window.__aqeSetCursorForTest = function(ord, ms, notifyPython) {{
+  window.__aqeSetCursorForTest = function(ord, ms, notifyPython) {
     const visualizer = visualizerForOrd(ord);
     if (!visualizer) return false;
+    visualizer.hidden = false;
+    visualizer.dataset.graphActive = "true";
     setCursor(visualizer, ms, !!notifyPython);
     return true;
-  }};
+  };
+
+  window.__aqeSetCursorByClientXForTest = function(ord, clientX, notifyPython) {
+    const visualizer = visualizerForOrd(ord);
+    const svg = visualizer && visualizer.querySelector(".aqe-visualizer-svg");
+    if (!visualizer || !svg) return null;
+    const durationMs = Number(visualizer.dataset.durationMs || "0");
+    const ms = cursorMsFromEvent({ clientX }, svg, durationMs);
+    setCursor(visualizer, ms, !!notifyPython);
+    return {
+      cursorMs: Number(visualizer.dataset.cursorMs || "0"),
+      cursorX: Number(visualizer.querySelector(".aqe-cursor").getAttribute("x1")),
+      bounds: graphPixelBounds(svg)
+    };
+  };
+
+  window.__aqeGraphStateForTest = function(ord) {
+    const visualizer = visualizerForOrd(ord);
+    const graph = graphButton(ord);
+    const play = playButton(ord);
+    if (!visualizer) return null;
+    return {
+      active: visualizer.dataset.graphActive === "true",
+      busy: visualizer.dataset.graphBusy === "true",
+      hidden: !!visualizer.hidden,
+      durationMs: Number(visualizer.dataset.durationMs || "0"),
+      cursorMs: Number(visualizer.dataset.cursorMs || "0"),
+      progressMs: Number(visualizer.dataset.progressMs || "0"),
+      sourceFilename: visualizer.dataset.sourceFilename || "",
+      graphButtonLabel: graph ? graph.textContent : "",
+      playButtonLabel: play ? play.textContent : "",
+      playbackState: visualizer.dataset.playbackState || "stopped",
+      xAxisLabels: Array.from(visualizer.querySelectorAll(".aqe-x-label")).map((node) => node.textContent),
+      pitchPaths: visualizer.querySelectorAll(".aqe-pitch-path").length,
+      intensity: visualizer.querySelector(".aqe-intensity")?.getAttribute("d") || "",
+      cursorX: Number(visualizer.querySelector(".aqe-cursor")?.getAttribute("x1") || "0"),
+      allButtonsDisabled: allButtons().every((button) => button.disabled),
+      anyButtonDisabled: allButtons().some((button) => button.disabled)
+    };
+  };
 
   window.__aqeScan = scan;
   setTimeout(scan, 0);
   setTimeout(scan, 250);
   setTimeout(scan, 1000);
-}})();
+})();
 """
 
 
@@ -397,6 +665,7 @@ def _css() -> str:
   display: flex;
   flex-wrap: wrap;
   gap: 5px;
+  justify-content: flex-start;
   margin: 4px 0 10px;
   padding: 6px 8px;
 }
@@ -420,14 +689,19 @@ def _css() -> str:
 }
 .aqe-visualizer {
   flex-basis: 100%;
+  max-width: 760px;
   min-width: 220px;
+}
+.aqe-visualizer[hidden] {
+  display: none;
 }
 .aqe-visualizer-svg {
   border: 1px solid;
   border-radius: 8px;
   display: block;
-  height: 138px;
+  height: 150px;
   margin-top: 4px;
+  max-width: 760px;
   width: 100%;
 }
 .aqe-intensity {
@@ -449,16 +723,25 @@ def _css() -> str:
   stroke: currentColor;
   stroke-width: 1.5;
 }
-.aqe-hz-label {
+.aqe-hz-label,
+.aqe-x-label {
   fill: currentColor;
   font-size: 11px;
   opacity: 0.8;
+}
+.aqe-x-label {
+  text-anchor: middle;
+}
+.aqe-x-tick {
+  opacity: 0.5;
+  stroke: currentColor;
+  stroke-width: 1;
 }
 .aqe-visualizer-meta {
   display: flex;
   font-size: 12px;
   gap: 8px;
-  justify-content: space-between;
+  justify-content: flex-start;
   margin-top: 2px;
 }
 .aqe-visualizer-status[data-kind="error"] {

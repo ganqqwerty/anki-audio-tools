@@ -48,11 +48,15 @@ class EditorSession:
     current_filename: str | None = None
     undo_stack: list[HistoryEntry] = field(default_factory=list)
     processing: bool = False
+    analysis_busy: bool = False
     source_mtime_ns: int | None = None
     cursor_ms: int = 0
     analysis_generation: int = 0
+    graph_active_fields: set[int] = field(default_factory=set)
     visualized_filename: str | None = None
     visualized_duration_ms: int | None = None
+    playback_active: bool = False
+    playback_paused: bool = False
 
 
 _SESSIONS: "weakref.WeakKeyDictionary[Any, EditorSession]" = weakref.WeakKeyDictionary()
@@ -119,10 +123,11 @@ def _handle_bridge_command(editor: Any, command: str) -> bool:
 
 
 def _update_state_and_render(editor: Any, command: str) -> None:
-    session, source_path = _session_and_source(editor)
-    if session.processing:
+    existing = _SESSIONS.get(editor)
+    if existing and _is_busy(existing):
         _eval_status(editor, "Still processing. Please wait.", kind="processing")
         return
+    session, source_path = _session_and_source(editor)
     config = AudioProcessingConfig.from_config(_config(editor))
     state = session.state or AudioEditState(source_file=source_path.name)
     updated_state = apply_processing_command(command, state, config)
@@ -144,7 +149,10 @@ def _render_and_replace_async(
     config: AudioProcessingConfig,
 ) -> None:
     session.processing = True
+    session.playback_active = False
+    session.playback_paused = False
     _set_busy(editor, True, "Processing...")
+    _eval_playback_state(editor, session.field_index, "stopped", session.cursor_ms)
 
     def _run() -> None:
         try:
@@ -193,6 +201,7 @@ def _replace_current_field_after_render(
         raise AudioProcessingError("No [sound:...] reference found in the current field.")
     editor.note.fields[field_index] = replace_sound_reference(field_html, selection.selected, saved_name)
     session = _SESSIONS.get(editor)
+    should_redraw_graph = False
     if session:
         if session.state is not None and session.current_filename is not None:
             session.undo_stack.append(HistoryEntry(session.state, session.current_filename))
@@ -200,25 +209,72 @@ def _replace_current_field_after_render(
         session.current_filename = saved_name
         session.field_index = field_index
         session.processing = False
-        session.cursor_ms = clamp_cursor_ms(session.cursor_ms, None)
+        session.cursor_ms = 0
+        session.playback_active = False
+        session.playback_paused = False
+        should_redraw_graph = (
+            field_index in session.graph_active_fields
+            or session.visualized_filename is not None
+        )
+        if should_redraw_graph:
+            session.visualized_filename = None
+            session.visualized_duration_ms = None
     editor.loadNote(focusTo=field_index)
-    _set_busy(editor, False)
     _eval_status(editor, f"Updated field to {saved_name}")
+    _eval_playback_state(editor, field_index, "stopped", 0)
+    if should_redraw_graph:
+        _request_graph_redraw(editor, field_index)
+    else:
+        _set_busy(editor, False)
 
 
 def _render_failed(editor: Any, message: str) -> None:
     session = _SESSIONS.get(editor)
     if session:
         session.processing = False
+        session.playback_active = False
+        session.playback_paused = False
     _set_busy(editor, False)
     _eval_status(editor, message, kind="error")
 
 
 def _play(editor: Any) -> None:
+    _eval_with_callback(
+        editor,
+        "window.__aqeGetPlaybackRequest ? window.__aqeGetPlaybackRequest() : "
+        "({ action: 'start', cursorMs: 0 })",
+        lambda request: _play_with_request(editor, request),
+    )
+
+
+def _play_with_request(editor: Any, request: Any) -> None:
     from anki.sound import SoundOrVideoTag
     from aqt.sound import av_player
 
     session, source_path = _session_and_source(editor)
+    if _is_busy(session):
+        _eval_status(editor, "Still processing. Please wait.", kind="processing")
+        return
+    field_index = _current_field_index(editor)
+    action = "start"
+    cursor_ms = session.cursor_ms
+    if isinstance(request, dict):
+        action = str(request.get("action") or "start")
+        cursor_ms = clamp_cursor_ms(request.get("cursorMs"), session.visualized_duration_ms)
+    session.cursor_ms = cursor_ms
+    if action in {"pause", "resume"} and session.playback_active:
+        try:
+            av_player.toggle_pause()
+        except Exception as exc:  # pragma: no cover - depends on active Anki audio backend
+            logger.info("audio pause/resume failed: %s", exc)
+            _eval_status(editor, "Pause/resume was not available.", kind="warning")
+            return
+        session.playback_paused = action == "pause"
+        state = "paused" if session.playback_paused else "playing"
+        _eval_playback_state(editor, field_index, state, cursor_ms)
+        _eval_status(editor, "Paused" if session.playback_paused else "Playing")
+        return
+
     filename = session.current_filename or source_path.name
     play_path = Path(editor.mw.col.media.dir()) / filename
     if not play_path.is_file():
@@ -226,6 +282,9 @@ def _play(editor: Any) -> None:
     av_player.stop_and_clear_queue()
     av_player.play_tags([SoundOrVideoTag(str(play_path))])
     offset_seconds = max(0.0, session.cursor_ms / 1000)
+    session.playback_active = True
+    session.playback_paused = False
+    _eval_playback_state(editor, field_index, "playing", session.cursor_ms)
     if offset_seconds <= 0:
         _eval_status(editor, "Playing")
         return
@@ -241,7 +300,7 @@ def _play(editor: Any) -> None:
 
 def _undo(editor: Any) -> None:
     session, _source_path = _session_and_source(editor)
-    if session.processing:
+    if _is_busy(session):
         _eval_status(editor, "Still processing. Please wait.", kind="processing")
         return
     if not session.undo_stack:
@@ -258,8 +317,13 @@ def _undo(editor: Any) -> None:
     session.current_filename = previous.filename
     session.field_index = field_index
     session.cursor_ms = 0
+    session.playback_active = False
+    session.playback_paused = False
     editor.loadNote(focusTo=field_index)
     _eval_status(editor, f"Undid last edit; restored {previous.filename}")
+    _eval_playback_state(editor, field_index, "stopped", 0)
+    if field_index in session.graph_active_fields:
+        _request_graph_redraw(editor, field_index)
 
 
 def _session_and_source(editor: Any) -> tuple[EditorSession, Path]:
@@ -295,11 +359,14 @@ def _session_and_source(editor: Any) -> tuple[EditorSession, Path]:
         session.current_filename = filename
         session.undo_stack.clear()
         session.processing = False
+        session.analysis_busy = False
         session.field_index = field_index
         session.source_mtime_ns = mtime
         session.cursor_ms = 0
         session.visualized_filename = None
         session.visualized_duration_ms = None
+        session.playback_active = False
+        session.playback_paused = False
     return session, media_path
 
 
@@ -315,11 +382,24 @@ def _current_media_path(editor: Any) -> tuple[EditorSession, Path]:
 
 
 def _analyze_current_async(editor: Any) -> None:
+    existing = _SESSIONS.get(editor)
+    if existing and _is_busy(existing):
+        _eval_visualizer_status(editor, "Still processing. Please wait.", kind="processing")
+        return
     session, current_path = _current_media_path(editor)
     config = AudioProcessingConfig.from_config(_config(editor))
+    field_index = _current_field_index(editor)
     session.analysis_generation += 1
     generation = session.analysis_generation
+    session.analysis_busy = True
+    session.playback_active = False
+    session.playback_paused = False
+    session.cursor_ms = 0
+    session.graph_active_fields.add(field_index)
     session.visualized_filename = current_path.name
+    session.visualized_duration_ms = None
+    _set_busy(editor, True, "Analyzing...")
+    _eval_playback_state(editor, field_index, "stopped", 0)
     _eval_visualizer_status(editor, "Analyzing...")
 
     def _run() -> None:
@@ -337,6 +417,7 @@ def _analysis_finished(editor: Any, generation: int, track: ProsodyTrack) -> Non
     session = _SESSIONS.get(editor)
     if session is None or generation != session.analysis_generation:
         return
+    session.analysis_busy = False
     session.visualized_duration_ms = track.duration_ms
     session.cursor_ms = clamp_cursor_ms(session.cursor_ms, track.duration_ms)
     payload = json.dumps(track.to_payload())
@@ -346,12 +427,17 @@ def _analysis_finished(editor: Any, generation: int, track: ProsodyTrack) -> Non
         "window.__aqeSetVisualizer && window.__aqeSetVisualizer("
         f"{json.dumps(int(field_index))}, {payload}, {cursor_payload})"
     )
+    _set_busy(editor, False)
 
 
 def _analysis_failed(editor: Any, generation: int, message: str) -> None:
     session = _SESSIONS.get(editor)
     if session is None or generation != session.analysis_generation:
         return
+    session.analysis_busy = False
+    session.playback_active = False
+    session.playback_paused = False
+    _set_busy(editor, False)
     _eval_visualizer_status(editor, message or "Audio visualization failed.", kind="error")
 
 
@@ -365,6 +451,10 @@ def _set_cursor_from_web(editor: Any) -> None:
         "window.__aqeGetCursorMs ? window.__aqeGetCursorMs() : 0",
         _apply,
     )
+
+
+def _is_busy(session: EditorSession) -> bool:
+    return session.processing or session.analysis_busy
 
 
 def _current_field_index(editor: Any) -> int:
@@ -396,6 +486,44 @@ def _eval_visualizer_status(editor: Any, message: str, kind: str = "info") -> No
         "window.__aqeSetVisualizerStatus && window.__aqeSetVisualizerStatus("
         f"{json.dumps(int(field_index))}, {json.dumps(message)}, {json.dumps(kind)})"
     )
+
+
+def _eval_playback_state(
+    editor: Any,
+    field_index: int | None,
+    state: str,
+    cursor_ms: int,
+) -> None:
+    if field_index is None:
+        return
+    editor.web.eval(
+        "window.__aqeSetPlaybackState && window.__aqeSetPlaybackState("
+        f"{json.dumps(int(field_index))}, {json.dumps(state)}, {json.dumps(int(cursor_ms))})"
+    )
+
+
+def _request_graph_redraw(editor: Any, field_index: int) -> None:
+    from aqt.qt import QTimer
+
+    redraw_key = f"__aqeAutoRedrawStarted{int(field_index)}"
+    script = (
+        "(function() { "
+        f"if (window.__aqeResetGraphAfterEdit && !window[{json.dumps(redraw_key)}]) {{ "
+        f"window[{json.dumps(redraw_key)}] = true; "
+        f"window.__aqeResetGraphAfterEdit({json.dumps(int(field_index))}); "
+        "} "
+        "})()"
+    )
+
+    def _attempt(remaining: int) -> None:
+        try:
+            editor.web.eval(script)
+        except RuntimeError:
+            return
+        if remaining > 0:
+            QTimer.singleShot(100, lambda: _attempt(remaining - 1))
+
+    QTimer.singleShot(100, lambda: _attempt(30))
 
 
 def _set_busy(editor: Any, busy: bool, message: str = "", command: str = "") -> None:
