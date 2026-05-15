@@ -18,6 +18,14 @@ The e2e suite runs the real add-on inside a live Anki runtime using `aqt._run(ex
 - the add-on is symlinked under `addons21/1000000002`
 - modules are aliased so `anki_audio_quick_editor.*` resolves to the same module objects Anki loaded as `1000000002.*`
 
+## Playback Interval Tests
+
+Playback tests patch Anki's `av_player` with a fake recorder that captures `play_tags()`, `seek_relative()`, `stop_and_clear_queue()`, and `toggle_pause()`. This makes cursor playback observable without needing audible output.
+
+Asserting that `seek_relative()` was called is not enough because the bug class is about the effective interval AQE asks Anki to play. Cursor playback now prepares a temporary `aqe_playback_*__from_<ms>ms_*.mp3` segment and plays that from zero, so the fake recorder maps the temp filename and ffprobe duration back to the original-file interval.
+
+Use about `±75 ms` tolerance for cursor and seek assertions. That leaves room for SVG coordinate rounding, timer jitter, and Qt event-loop scheduling while still catching flipped intervals such as `0%-30%` instead of `70%-100%`.
+
 ## Run It
 
 ```bash

@@ -16,6 +16,8 @@ from anki_audio_quick_editor.editor_integration import (
     UndoHistory,
     _analyze_prosody_cached,
     _audio_field_indices,
+    _is_busy,
+    _playback_segment_ready,
     _prosody_cache_key,
     _reveal_file,
     _set_busy,
@@ -124,6 +126,29 @@ def test_set_busy_falls_back_to_session_field_index() -> None:
 
     assert "window.__aqeSetBusy" in editor.web.eval.call_args.args[0]
     assert "(2, false" in editor.web.eval.call_args.args[0]
+
+
+def test_is_busy_includes_playback_preparation() -> None:
+    assert _is_busy(EditorSession(playback_preparing=True)) is True
+    assert _is_busy(EditorSession()) is False
+
+
+def test_stale_playback_segment_completion_is_ignored_and_cleaned(tmp_path: Path) -> None:
+    class Editor:
+        pass
+
+    editor = Editor()
+    session = EditorSession(playback_generation=2)
+    _SESSIONS[editor] = session
+    temp_dir = tmp_path / "aqe_playback_stale"
+    temp_dir.mkdir()
+    segment = temp_dir / "aqe_playback_clip__from_700ms_deadbeef.mp3"
+    segment.write_bytes(b"audio")
+
+    _playback_segment_ready(editor, 1, 0, 700, segment)
+
+    assert not temp_dir.exists()
+    assert session.temp_playback_path is None
 
 
 def test_reveal_file_selects_file_on_macos(tmp_path: Path, monkeypatch) -> None:

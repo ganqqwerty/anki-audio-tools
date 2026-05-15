@@ -11,12 +11,13 @@ import threading
 import weakref
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any, cast
+from typing import Any
 
 from .audio_processor import (
     format_ffmpeg_command,
     make_output_filename,
     render_audio,
+    render_playback_segment,
     temp_final_path,
 )
 from .audio_state import AudioEditState, AudioProcessingConfig
@@ -82,6 +83,9 @@ class EditorSession:
     visualized_duration_ms: int | None = None
     playback_active: bool = False
     playback_paused: bool = False
+    playback_preparing: bool = False
+    playback_generation: int = 0
+    temp_playback_path: Path | None = None
 
 
 _SESSIONS: "weakref.WeakKeyDictionary[Any, EditorSession]" = weakref.WeakKeyDictionary()
@@ -177,7 +181,7 @@ def _render_and_replace_async(
     updated_state: AudioEditState,
     config: AudioProcessingConfig,
 ) -> None:
-    _stop_audio_playback()
+    _stop_session_playback(session)
     session.processing = True
     session.playback_active = False
     session.playback_paused = False
@@ -276,6 +280,29 @@ def _stop_audio_playback() -> None:
         logger.info("audio stop failed: %s", exc)
 
 
+def _stop_session_playback(session: EditorSession) -> None:
+    session.playback_generation += 1
+    session.playback_preparing = False
+    session.playback_active = False
+    session.playback_paused = False
+    _stop_audio_playback()
+    _cleanup_temp_playback(session)
+
+
+def _cleanup_temp_playback(session: EditorSession) -> None:
+    temp_path = session.temp_playback_path
+    session.temp_playback_path = None
+    if temp_path is None:
+        return
+    try:
+        if temp_path.parent.name.startswith("aqe_playback_"):
+            shutil.rmtree(temp_path.parent, ignore_errors=True)
+        else:
+            temp_path.unlink(missing_ok=True)
+    except OSError as exc:
+        logger.info("temporary playback cleanup failed: %s", exc)
+
+
 def _play(editor: Any) -> None:
     _eval_with_callback(
         editor,
@@ -288,9 +315,9 @@ def _play(editor: Any) -> None:
 def _play_ended(editor: Any) -> None:
     session = _SESSIONS.get(editor)
     if session:
-        session.playback_active = False
-        session.playback_paused = False
-    _stop_audio_playback()
+        _stop_session_playback(session)
+    else:
+        _stop_audio_playback()
     _eval_status(editor, "")
 
 
@@ -338,24 +365,96 @@ def _start_playback_from_cursor(
     play_path = Path(editor.mw.col.media.dir()) / filename
     if not play_path.is_file():
         play_path = source_path
-    av_player.stop_and_clear_queue()
-    av_player.play_tags([SoundOrVideoTag(str(play_path))])
+    _stop_session_playback(session)
     session.cursor_ms = clamp_cursor_ms(cursor_ms, session.visualized_duration_ms)
     offset_seconds = max(0.0, session.cursor_ms / 1000)
-    session.playback_active = True
-    session.playback_paused = False
-    _eval_playback_state(editor, field_index, "playing", session.cursor_ms)
     if offset_seconds <= 0:
+        av_player.play_tags([SoundOrVideoTag(str(play_path))])
+        session.playback_active = True
+        session.playback_paused = False
+        _eval_playback_state(editor, field_index, "playing", session.cursor_ms)
         _eval_status(editor, "Playing")
         return
-    try:
-        seek_relative = cast(Any, av_player.seek_relative)
-        seek_relative(offset_seconds)
-    except Exception as exc:  # pragma: no cover - depends on active Anki audio backend
-        logger.info("audio seek failed: %s", exc)
-        _eval_status(editor, "Playing from start; seeking was not available.", kind="warning")
+
+    config = AudioProcessingConfig.from_config(_config(editor))
+    session.playback_generation += 1
+    generation = session.playback_generation
+    session.playback_preparing = True
+    session.playback_active = True
+    session.playback_paused = False
+    playback_cursor_ms = session.cursor_ms
+    _set_busy(editor, True, "Preparing playback...")
+    _eval_playback_state(editor, field_index, "stopped", session.cursor_ms)
+
+    def _run() -> None:
+        try:
+            def _show_command(command: tuple[str, ...]) -> None:
+                rendered = format_ffmpeg_command(command)
+                message = "Preparing playback with ffmpeg"
+                command_text = ""
+                if config.show_ffmpeg_commands:
+                    message = f"{message}: {rendered}"
+                    command_text = rendered
+                _main(editor, lambda: _set_busy(editor, True, message, command_text))
+
+            result = render_playback_segment(
+                play_path,
+                playback_cursor_ms,
+                config,
+                on_command=_show_command,
+            )
+            _main(
+                editor,
+                lambda: _playback_segment_ready(
+                    editor,
+                    generation,
+                    field_index,
+                    playback_cursor_ms,
+                    result.output_path,
+                ),
+            )
+        except Exception as exc:
+            message = str(exc)
+            _main(editor, lambda: _playback_segment_failed(editor, generation, message))
+
+    threading.Thread(target=_run, daemon=True).start()
+
+
+def _playback_segment_ready(
+    editor: Any,
+    generation: int,
+    field_index: int,
+    cursor_ms: int,
+    playback_path: Path,
+) -> None:
+    session = _SESSIONS.get(editor)
+    if session is None or generation != session.playback_generation:
+        shutil.rmtree(playback_path.parent, ignore_errors=True)
         return
-    _eval_status(editor, f"Playing from {offset_seconds:.2f}s")
+    from anki.sound import SoundOrVideoTag
+    from aqt.sound import av_player
+
+    session.playback_preparing = False
+    session.temp_playback_path = playback_path
+    session.playback_active = True
+    session.playback_paused = False
+    av_player.stop_and_clear_queue()
+    av_player.play_tags([SoundOrVideoTag(str(playback_path))])
+    _set_busy(editor, False)
+    _eval_playback_state(editor, field_index, "playing", cursor_ms)
+    _eval_status(editor, f"Playing from {max(0.0, cursor_ms / 1000):.2f}s")
+
+
+def _playback_segment_failed(editor: Any, generation: int, message: str) -> None:
+    session = _SESSIONS.get(editor)
+    if session is None or generation != session.playback_generation:
+        return
+    session.playback_preparing = False
+    session.playback_active = False
+    session.playback_paused = False
+    _set_busy(editor, False)
+    _eval_playback_state(editor, session.field_index, "stopped", session.cursor_ms)
+    _eval_status(editor, message or "Could not prepare playback.", kind="error")
 
 
 def _undo(editor: Any) -> None:
@@ -367,7 +466,7 @@ def _undo(editor: Any) -> None:
     if previous is None:
         _eval_status(editor, "Nothing to undo.")
         return
-    _stop_audio_playback()
+    _stop_session_playback(session)
     field_index = _current_field_index(editor)
     field_html = editor.note.fields[field_index]
     selection = select_first_sound_reference(field_html)
@@ -461,6 +560,7 @@ def _session_and_source(editor: Any) -> tuple[EditorSession, Path]:
         or session.source_mtime_ns != mtime
         or session.state.source_file != filename
     ):
+        _stop_session_playback(session)
         session.state = AudioEditState(source_file=filename)
         session.current_filename = filename
         session.undo_history.clear()
@@ -473,6 +573,7 @@ def _session_and_source(editor: Any) -> tuple[EditorSession, Path]:
         session.visualized_duration_ms = None
         session.playback_active = False
         session.playback_paused = False
+        session.playback_preparing = False
     return session, media_path
 
 
@@ -495,7 +596,7 @@ def _analyze_current_async(editor: Any) -> None:
     session, current_path = _current_media_path(editor)
     config = AudioProcessingConfig.from_config(_config(editor))
     field_index = _current_field_index(editor)
-    _stop_audio_playback()
+    _stop_session_playback(session)
     session.analysis_generation += 1
     generation = session.analysis_generation
     session.analysis_busy = True
@@ -583,7 +684,7 @@ def _set_cursor_from_web(editor: Any) -> None:
 
 
 def _is_busy(session: EditorSession) -> bool:
-    return session.processing or session.analysis_busy
+    return session.processing or session.analysis_busy or session.playback_preparing
 
 
 def _current_field_index(editor: Any) -> int:

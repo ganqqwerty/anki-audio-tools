@@ -5,6 +5,8 @@ from __future__ import annotations
 import json
 import re
 import time
+from contextlib import contextmanager
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 from unittest.mock import patch
@@ -21,6 +23,152 @@ from e2e.helpers import (
 )
 
 ADDON_NUMERIC_ID = "1000000002"
+PLAYBACK_INTERVAL_TOLERANCE_MS = 75
+
+
+@dataclass
+class PlaybackAttempt:
+    filename: str
+    path: Path
+    duration_ms: int
+    start_ms: int = 0
+    end_ms: int = 0
+    audible_start_ms: int = 0
+    audible_end_ms: int = 0
+    started_at: float = 0.0
+    seek_calls: list[float] | None = None
+
+    def __post_init__(self) -> None:
+        self.end_ms = self.duration_ms
+        self.audible_end_ms = self.duration_ms
+        if self.seek_calls is None:
+            self.seek_calls = []
+
+
+class FakePlaybackRecorder:
+    def __init__(
+        self,
+        media_dir: Path,
+        durations_ms: dict[str, int],
+        *,
+        apply_immediate_seek: bool = True,
+        ffmpeg_config: Any | None = None,
+    ) -> None:
+        self.media_dir = media_dir
+        self.durations_ms = durations_ms
+        self.apply_immediate_seek = apply_immediate_seek
+        self.ffmpeg_config = ffmpeg_config
+        self.attempts: list[PlaybackAttempt] = []
+        self.unknown_filenames: list[str] = []
+        self.stop_count = 0
+        self.toggle_count = 0
+
+    @property
+    def current(self) -> PlaybackAttempt | None:
+        return self.attempts[-1] if self.attempts else None
+
+    def play_tags(self, tags) -> None:
+        tag = tags[0]
+        filename = str(tag.filename)
+        path = Path(filename)
+        if not path.is_absolute():
+            path = self.media_dir / filename
+        duration_ms = self._duration_ms(path)
+        attempt = PlaybackAttempt(
+            filename=path.name,
+            path=path,
+            duration_ms=duration_ms,
+            started_at=time.monotonic(),
+        )
+        segment_start_ms = _playback_segment_start_ms(path.name)
+        if segment_start_ms is not None:
+            attempt.start_ms = segment_start_ms
+            attempt.end_ms = segment_start_ms + duration_ms
+            attempt.audible_start_ms = segment_start_ms
+            attempt.audible_end_ms = attempt.end_ms
+        self.attempts.append(attempt)
+
+    def _duration_ms(self, path: Path) -> int:
+        duration_ms = self.durations_ms.get(path.name)
+        if duration_ms is not None:
+            return duration_ms
+        if self.ffmpeg_config is not None and path.is_file():
+            from anki_audio_quick_editor.audio_processor import probe_duration_ms
+
+            return probe_duration_ms(path, self.ffmpeg_config)
+        self.unknown_filenames.append(path.name)
+        return next(iter(self.durations_ms.values()))
+
+    def seek_relative(self, seconds: float) -> None:
+        current = self.current
+        if current is None:
+            return
+        current.seek_calls = current.seek_calls or []
+        current.seek_calls.append(seconds)
+        current.start_ms = max(
+            0,
+            min(current.duration_ms, current.start_ms + round(seconds * 1000)),
+        )
+        if self.apply_immediate_seek:
+            current.audible_start_ms = current.start_ms
+
+    def stop_and_clear_queue(self) -> None:
+        self.stop_count += 1
+        current = self.current
+        if current is None or current.started_at <= 0:
+            return
+        elapsed_ms = round((time.monotonic() - current.started_at) * 1000)
+        current.audible_end_ms = max(
+            current.audible_start_ms,
+            min(current.duration_ms, current.audible_start_ms + elapsed_ms),
+        )
+
+    def toggle_pause(self) -> None:
+        self.toggle_count += 1
+
+
+@contextmanager
+def _record_fake_playback(
+    media_dir: Path,
+    durations_ms: dict[str, int],
+    *,
+    apply_immediate_seek: bool = True,
+    ffmpeg_config: Any | None = None,
+):
+    from aqt.sound import av_player
+
+    recorder = FakePlaybackRecorder(
+        media_dir,
+        durations_ms,
+        apply_immediate_seek=apply_immediate_seek,
+        ffmpeg_config=ffmpeg_config,
+    )
+    with (
+        patch.object(av_player, "stop_and_clear_queue", recorder.stop_and_clear_queue),
+        patch.object(av_player, "play_tags", recorder.play_tags),
+        patch.object(av_player, "seek_relative", recorder.seek_relative),
+        patch.object(av_player, "toggle_pause", recorder.toggle_pause),
+    ):
+        yield recorder
+
+
+def _assert_interval(
+    attempt: PlaybackAttempt,
+    expected_start_ms: int,
+    *,
+    expected_end_ms: int | None = None,
+    tolerance_ms: int = PLAYBACK_INTERVAL_TOLERANCE_MS,
+) -> None:
+    assert abs(attempt.start_ms - expected_start_ms) <= tolerance_ms
+    if expected_end_ms is not None:
+        assert abs(attempt.end_ms - expected_end_ms) <= tolerance_ms
+    else:
+        assert attempt.end_ms >= attempt.start_ms
+
+
+def _playback_segment_start_ms(filename: str) -> int | None:
+    match = re.search(r"__from_(\d+)ms_", filename)
+    return int(match.group(1)) if match else None
 
 
 def _basic_audio_note(anki_mw, audio_filename: str):
@@ -442,9 +590,7 @@ def test_cursor_normalization_matches_pointer_position_at_multiple_widths(
         parent.close()
 
 
-def test_cursor_drag_updates_session_and_play_uses_seek(anki_mw, ffmpeg_config) -> None:
-    from aqt.sound import av_player
-
+def test_cursor_drag_updates_session_and_play_uses_playback_segment(anki_mw, ffmpeg_config) -> None:
     from anki_audio_quick_editor.editor_integration import _SESSIONS
 
     media_dir = Path(anki_mw.col.media.dir())
@@ -454,8 +600,6 @@ def test_cursor_drag_updates_session_and_play_uses_seek(anki_mw, ffmpeg_config) 
     _configure_ffmpeg(anki_mw, ffmpeg_config)
 
     editor, parent = _open_editor(anki_mw, note)
-    seek_calls: list[float] = []
-    toggle_calls: list[str] = []
     try:
         _click_graph_and_wait(editor, lambda value: value["sourceFilename"] == source.name)
         run_js(
@@ -481,17 +625,16 @@ def test_cursor_drag_updates_session_and_play_uses_seek(anki_mw, ffmpeg_config) 
         )
         track = _wait_for_visualizer_track(editor, lambda value: value["cursorMs"] >= 1000)
 
-        with (
-            patch.object(av_player, "stop_and_clear_queue", lambda: None),
-            patch.object(av_player, "play_tags", lambda _tags: None),
-            patch.object(av_player, "seek_relative", lambda seconds: seek_calls.append(seconds)),
-            patch.object(av_player, "toggle_pause", lambda: toggle_calls.append("toggle")),
-        ):
+        with _record_fake_playback(
+            media_dir,
+            {source.name: round(track["durationMs"])},
+            ffmpeg_config=ffmpeg_config,
+        ) as playback:
             click_selector(editor.web, _button_selector("aqe:play"), timeout=5.0)
             wait_for_condition(
-                lambda: bool(seek_calls),
+                lambda: playback.current is not None,
                 timeout=5.0,
-                message="Playback did not attempt to seek from the selected cursor",
+                message="Playback did not start from the selected cursor segment",
             )
             progressed = wait_for_js_condition(
                 editor.web,
@@ -527,18 +670,149 @@ def test_cursor_drag_updates_session_and_play_uses_seek(anki_mw, ffmpeg_config) 
                 timeout=5.0,
             )
 
-        assert seek_calls[0] >= track["cursorMs"] / 1000 - 0.05
+        assert playback.current is not None
+        _assert_interval(
+            playback.current,
+            round(track["cursorMs"]),
+            expected_end_ms=round(track["durationMs"]),
+        )
+        assert playback.current.seek_calls == []
         assert progressed["playButtonLabel"] == "Pause"
         assert abs(frozen["progressMs"] - paused_progress) < 80
-        assert len(toggle_calls) >= 2
+        assert playback.toggle_count >= 2
+    finally:
+        editor.set_note(None)
+        parent.close()
+
+
+def test_drag_to_70_percent_play_records_70_to_100_interval(anki_mw, ffmpeg_config) -> None:
+    media_dir = Path(anki_mw.col.media.dir())
+    source = media_dir / "editor_drag_70_source.wav"
+    generate_tone(ffmpeg_config, source, duration_s=1.0)
+    note = _basic_audio_note(anki_mw, source.name)
+    _configure_ffmpeg(anki_mw, ffmpeg_config)
+
+    editor, parent = _open_editor(anki_mw, note)
+    try:
+        track = _click_graph_and_wait(editor, lambda value: value["sourceFilename"] == source.name)
+        _drag_cursor_to_ratio(editor, 0.70)
+        dragged = wait_for_js_condition(
+            editor.web,
+            _graph_state_js(),
+            lambda state: state is not None and 650 <= state["anchorMs"] <= 750,
+            timeout=5.0,
+        )
+        with _record_fake_playback(
+            media_dir,
+            {source.name: round(track["durationMs"])},
+            ffmpeg_config=ffmpeg_config,
+        ) as playback:
+            click_selector(editor.web, _button_selector("aqe:play"), timeout=5.0)
+            wait_for_condition(
+                lambda: playback.current is not None,
+                timeout=5.0,
+                message="Playback did not record an effective interval from the dragged cursor",
+            )
+
+        assert playback.current is not None
+        _assert_interval(
+            playback.current,
+            round(track["durationMs"] * 0.70),
+            expected_end_ms=round(track["durationMs"]),
+        )
+        assert playback.current.seek_calls == []
+        assert 220 <= playback.current.duration_ms <= 380
+        assert "__from_" in playback.current.filename
+        assert playback.current.start_ms > playback.current.duration_ms * 0.50
+        assert playback.current.start_ms != 0
+        assert dragged["cursorMs"] == dragged["anchorMs"]
+    finally:
+        editor.set_note(None)
+        parent.close()
+
+
+def test_play_from_zero_uses_original_file_without_segment(anki_mw, ffmpeg_config) -> None:
+    media_dir = Path(anki_mw.col.media.dir())
+    source = media_dir / "editor_play_zero_source.wav"
+    generate_tone(ffmpeg_config, source, duration_s=1.0)
+    note = _basic_audio_note(anki_mw, source.name)
+    _configure_ffmpeg(anki_mw, ffmpeg_config)
+
+    editor, parent = _open_editor(anki_mw, note)
+    try:
+        track = _click_graph_and_wait(editor, lambda value: value["sourceFilename"] == source.name)
+        with _record_fake_playback(media_dir, {source.name: round(track["durationMs"])}) as playback:
+            click_selector(editor.web, _button_selector("aqe:play"), timeout=5.0)
+            wait_for_condition(
+                lambda: playback.current is not None,
+                timeout=5.0,
+                message="Playback from zero did not start",
+            )
+
+        assert playback.current is not None
+        _assert_interval(playback.current, 0, expected_end_ms=round(track["durationMs"]))
+        assert playback.current.filename == source.name
+        assert "__from_" not in playback.current.filename
+        assert playback.current.seek_calls == []
+    finally:
+        editor.set_note(None)
+        parent.close()
+
+
+def test_drag_to_70_percent_plays_audible_70_to_100_without_seek(
+    anki_mw,
+    ffmpeg_config,
+) -> None:
+    media_dir = Path(anki_mw.col.media.dir())
+    source = media_dir / "editor_drag_70_delayed_seek_source.wav"
+    generate_tone(ffmpeg_config, source, duration_s=1.0)
+    note = _basic_audio_note(anki_mw, source.name)
+    _configure_ffmpeg(anki_mw, ffmpeg_config)
+
+    editor, parent = _open_editor(anki_mw, note)
+    try:
+        track = _click_graph_and_wait(editor, lambda value: value["sourceFilename"] == source.name)
+        _drag_cursor_to_ratio(editor, 0.70)
+        wait_for_js_condition(
+            editor.web,
+            _graph_state_js(),
+            lambda state: state is not None and 650 <= state["anchorMs"] <= 750,
+            timeout=5.0,
+        )
+        with _record_fake_playback(
+            media_dir,
+            {source.name: round(track["durationMs"])},
+            apply_immediate_seek=False,
+            ffmpeg_config=ffmpeg_config,
+        ) as playback:
+            click_selector(editor.web, _button_selector("aqe:play"), timeout=5.0)
+            wait_for_condition(
+                lambda: playback.current is not None,
+                timeout=5.0,
+                message="Playback did not start the selected cursor segment",
+            )
+            wait_for_js_condition(
+                editor.web,
+                _graph_state_js(),
+                lambda state: state is not None and state["playbackState"] == "stopped",
+                timeout=5.0,
+            )
+
+        assert playback.current is not None
+        _assert_interval(
+            playback.current,
+            round(track["durationMs"] * 0.70),
+            expected_end_ms=round(track["durationMs"]),
+        )
+        assert playback.current.audible_start_ms >= round(track["durationMs"] * 0.70)
+        assert playback.current.seek_calls == []
+        assert 220 <= playback.current.duration_ms <= 380
     finally:
         editor.set_note(None)
         parent.close()
 
 
 def test_pause_drag_then_play_restarts_from_dragged_cursor(anki_mw, ffmpeg_config) -> None:
-    from aqt.sound import av_player
-
     media_dir = Path(anki_mw.col.media.dir())
     source = media_dir / "editor_pause_drag_play_source.wav"
     generate_tone(ffmpeg_config, source, duration_s=2.0)
@@ -546,17 +820,13 @@ def test_pause_drag_then_play_restarts_from_dragged_cursor(anki_mw, ffmpeg_confi
     _configure_ffmpeg(anki_mw, ffmpeg_config)
 
     editor, parent = _open_editor(anki_mw, note)
-    seek_calls: list[float] = []
-    play_calls: list[str] = []
-    toggle_calls: list[str] = []
     try:
-        _click_graph_and_wait(editor, lambda value: value["sourceFilename"] == source.name)
-        with (
-            patch.object(av_player, "stop_and_clear_queue", lambda: None),
-            patch.object(av_player, "play_tags", lambda _tags: play_calls.append("play")),
-            patch.object(av_player, "seek_relative", lambda seconds: seek_calls.append(seconds)),
-            patch.object(av_player, "toggle_pause", lambda: toggle_calls.append("toggle")),
-        ):
+        track = _click_graph_and_wait(editor, lambda value: value["sourceFilename"] == source.name)
+        with _record_fake_playback(
+            media_dir,
+            {source.name: round(track["durationMs"])},
+            ffmpeg_config=ffmpeg_config,
+        ) as playback:
             click_selector(editor.web, _button_selector("aqe:play"), timeout=5.0)
             wait_for_js_condition(
                 editor.web,
@@ -582,21 +852,26 @@ def test_pause_drag_then_play_restarts_from_dragged_cursor(anki_mw, ffmpeg_confi
             )
             click_selector(editor.web, _button_selector("aqe:play"), timeout=5.0)
             wait_for_condition(
-                lambda: len(play_calls) >= 2 and bool(seek_calls) and seek_calls[-1] >= 0.75,
+                lambda: len(playback.attempts) >= 2 and playback.current is not None,
                 timeout=5.0,
                 message="Playback did not restart from the cursor selected while paused",
             )
 
+        assert playback.current is not None
+        _assert_interval(
+            playback.current,
+            dragged["anchorMs"],
+            expected_end_ms=round(track["durationMs"]),
+        )
+        assert playback.current.seek_calls == []
         assert dragged["anchorMs"] == dragged["cursorMs"]
-        assert len(toggle_calls) == 1
+        assert playback.toggle_count == 1
     finally:
         editor.set_note(None)
         parent.close()
 
 
 def test_playback_completion_clears_status_and_returns_cursor_to_anchor(anki_mw, ffmpeg_config) -> None:
-    from aqt.sound import av_player
-
     media_dir = Path(anki_mw.col.media.dir())
     source = media_dir / "editor_playback_finish_source.wav"
     generate_tone(ffmpeg_config, source, duration_s=1.0)
@@ -604,21 +879,19 @@ def test_playback_completion_clears_status_and_returns_cursor_to_anchor(anki_mw,
     _configure_ffmpeg(anki_mw, ffmpeg_config)
 
     editor, parent = _open_editor(anki_mw, note)
-    seek_calls: list[float] = []
     try:
-        _click_graph_and_wait(editor, lambda value: value["sourceFilename"] == source.name)
+        track = _click_graph_and_wait(editor, lambda value: value["sourceFilename"] == source.name)
         run_js(editor.web, "window.__aqeSetCursorForTest(0, 300, false)")
-        with (
-            patch.object(av_player, "stop_and_clear_queue", lambda: None),
-            patch.object(av_player, "play_tags", lambda _tags: None),
-            patch.object(av_player, "seek_relative", lambda seconds: seek_calls.append(seconds)),
-            patch.object(av_player, "toggle_pause", lambda: None),
-        ):
+        with _record_fake_playback(
+            media_dir,
+            {source.name: round(track["durationMs"])},
+            ffmpeg_config=ffmpeg_config,
+        ) as playback:
             click_selector(editor.web, _button_selector("aqe:play"), timeout=5.0)
             wait_for_condition(
-                lambda: bool(seek_calls),
+                lambda: playback.current is not None,
                 timeout=5.0,
-                message="Playback did not seek from the selected anchor before completion",
+                message="Playback did not start from the selected anchor segment",
             )
             finished = wait_for_js_condition(
                 editor.web,
@@ -638,15 +911,15 @@ def test_playback_completion_clears_status_and_returns_cursor_to_anchor(anki_mw,
             )
 
         assert finished["anchorMs"] == 300
-        assert seek_calls and seek_calls[0] >= 0.25
+        assert len(playback.attempts) == 1
+        _assert_interval(playback.attempts[0], 300, expected_end_ms=round(track["durationMs"]))
+        assert playback.attempts[0].seek_calls == []
     finally:
         editor.set_note(None)
         parent.close()
 
 
 def test_drag_while_playing_restarts_playback_from_released_cursor(anki_mw, ffmpeg_config) -> None:
-    from aqt.sound import av_player
-
     media_dir = Path(anki_mw.col.media.dir())
     source = media_dir / "editor_drag_while_playing_source.wav"
     generate_tone(ffmpeg_config, source, duration_s=2.0)
@@ -654,16 +927,13 @@ def test_drag_while_playing_restarts_playback_from_released_cursor(anki_mw, ffmp
     _configure_ffmpeg(anki_mw, ffmpeg_config)
 
     editor, parent = _open_editor(anki_mw, note)
-    seek_calls: list[float] = []
-    play_calls: list[str] = []
     try:
-        _click_graph_and_wait(editor, lambda value: value["sourceFilename"] == source.name)
-        with (
-            patch.object(av_player, "stop_and_clear_queue", lambda: None),
-            patch.object(av_player, "play_tags", lambda _tags: play_calls.append("play")),
-            patch.object(av_player, "seek_relative", lambda seconds: seek_calls.append(seconds)),
-            patch.object(av_player, "toggle_pause", lambda: None),
-        ):
+        track = _click_graph_and_wait(editor, lambda value: value["sourceFilename"] == source.name)
+        with _record_fake_playback(
+            media_dir,
+            {source.name: round(track["durationMs"])},
+            ffmpeg_config=ffmpeg_config,
+        ) as playback:
             click_selector(editor.web, _button_selector("aqe:play"), timeout=5.0)
             wait_for_js_condition(
                 editor.web,
@@ -683,11 +953,18 @@ def test_drag_while_playing_restarts_playback_from_released_cursor(anki_mw, ffmp
                 timeout=5.0,
             )
             wait_for_condition(
-                lambda: len(play_calls) >= 2 and bool(seek_calls) and seek_calls[-1] >= 1.4,
+                lambda: len(playback.attempts) >= 2 and playback.current is not None,
                 timeout=5.0,
                 message="Dragging while playing did not restart playback from release point",
             )
 
+        assert playback.current is not None
+        _assert_interval(
+            playback.current,
+            restarted["anchorMs"],
+            expected_end_ms=round(track["durationMs"]),
+        )
+        assert playback.current.seek_calls == []
         assert restarted["playButtonLabel"] == "Pause"
     finally:
         editor.set_note(None)
