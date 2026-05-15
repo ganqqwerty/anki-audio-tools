@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import re
+import subprocess
 import time
 from contextlib import contextmanager
 from dataclasses import dataclass
@@ -11,7 +12,16 @@ from pathlib import Path
 from typing import Any
 from unittest.mock import patch
 
+import pytest
 from PyQt6.QtWidgets import QWidget
+from tests.prosody_language_fixtures import (
+    LANGUAGE_CONTOUR_SPECS,
+    ContourWindow,
+    generate_praat_vowel_fixture,
+    median,
+    require_praat_and_ffmpeg,
+    window_named,
+)
 
 from e2e.helpers import (
     click_selector,
@@ -351,6 +361,102 @@ def _drag_cursor_to_ratio(editor, ratio: float, ord_: int = 0) -> None:
           window.dispatchEvent(new EventCtor('pointerup', { clientX: x, clientY: rect.top + 20, bubbles: true }));
         })()
         """.replace("__ORD__", json.dumps(ord_)).replace("__RATIO__", json.dumps(ratio)),
+    )
+
+
+def _generate_tone_silence_tone(ffmpeg_config, path: Path) -> None:
+    subprocess.run(
+        [
+            ffmpeg_config.ffmpeg_path,
+            "-y",
+            "-f",
+            "lavfi",
+            "-i",
+            "sine=frequency=220:duration=0.4",
+            "-f",
+            "lavfi",
+            "-i",
+            "anullsrc=r=44100:cl=mono:d=0.45",
+            "-f",
+            "lavfi",
+            "-i",
+            "sine=frequency=330:duration=0.4",
+            "-filter_complex",
+            "[0:a][1:a][2:a]concat=n=3:v=0:a=1[out]",
+            "-map",
+            "[out]",
+            str(path),
+        ],
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+
+
+def _generate_language_contour_for_e2e(path: Path, spec_name: str) -> None:
+    require_praat_and_ffmpeg()
+    generate_praat_vowel_fixture(path, LANGUAGE_CONTOUR_SPECS[spec_name])
+
+
+def _rendered_pitch_points_js(ord_: int = 0) -> str:
+    return """
+    (() => {
+      const ord = __ORD__;
+      const visualizer = document.querySelector(`.aqe-visualizer[data-aqe-field-ord="${ord}"]`);
+      if (!visualizer) return null;
+      const durationMs = Number(visualizer.dataset.durationMs || "0");
+      const plot = { width: 620, left: 44, right: 10 };
+      const plotWidth = plot.width - plot.left - plot.right;
+      const points = [];
+      for (const path of visualizer.querySelectorAll(".aqe-pitch-path")) {
+        const values = (path.getAttribute("d") || "").match(/-?\\d+(?:\\.\\d+)?/g) || [];
+        for (let index = 0; index + 1 < values.length; index += 2) {
+          const x = Number(values[index]);
+          const y = Number(values[index + 1]);
+          const ms = ((x - plot.left) / plotWidth) * durationMs;
+          points.push({ ms, y });
+        }
+      }
+      return {
+        durationMs,
+        paths: visualizer.querySelectorAll(".aqe-pitch-path").length,
+        points
+      };
+    })()
+    """.replace("__ORD__", json.dumps(ord_))
+
+
+def _median_rendered_y(rendered: dict, window: ContourWindow) -> float:
+    values = [
+        point["y"]
+        for point in rendered["points"]
+        if window.start_ms <= point["ms"] <= window.end_ms
+    ]
+    return median(values)
+
+
+@contextmanager
+def _language_contour_editor(anki_mw, ffmpeg_config, spec_name: str):
+    media_dir = Path(anki_mw.col.media.dir())
+    source = media_dir / f"editor_{spec_name}.wav"
+    _generate_language_contour_for_e2e(source, spec_name)
+    note = _basic_audio_note(anki_mw, source.name)
+    _configure_ffmpeg(anki_mw, ffmpeg_config)
+    editor, parent = _open_editor(anki_mw, note)
+    try:
+        yield editor, parent, source, LANGUAGE_CONTOUR_SPECS[spec_name]
+    finally:
+        editor.set_note(None)
+        parent.close()
+
+
+def _rendered_language_contour(editor, source_name: str) -> dict:
+    _click_graph_and_wait(editor, lambda value: value["sourceFilename"] == source_name)
+    return wait_for_js_condition(
+        editor.web,
+        _rendered_pitch_points_js(),
+        lambda value: value is not None and value["paths"] > 0 and bool(value["points"]),
+        timeout=5.0,
     )
 
 
@@ -971,10 +1077,193 @@ def test_drag_while_playing_restarts_playback_from_released_cursor(anki_mw, ffmp
         parent.close()
 
 
+def test_visualizer_splits_internal_silence_into_separate_pitch_paths(
+    anki_mw,
+    ffmpeg_config,
+) -> None:
+    media_dir = Path(anki_mw.col.media.dir())
+    source = media_dir / "editor_visualizer_tone_silence_tone.wav"
+    _generate_tone_silence_tone(ffmpeg_config, source)
+    note = _basic_audio_note(anki_mw, source.name)
+    _configure_ffmpeg(anki_mw, ffmpeg_config)
+
+    editor, parent = _open_editor(anki_mw, note)
+    try:
+        track = _click_graph_and_wait(
+            editor,
+            lambda value: value["sourceFilename"] == source.name and value["pitchPaths"] >= 2,
+        )
+
+        assert track["pitchPaths"] >= 2
+        assert track["intensity"].startswith("M ")
+    finally:
+        editor.set_note(None)
+        parent.close()
+
+
+@pytest.mark.praat
+def test_visualizer_shows_japanese_nakadaka_internal_pitch_drop(
+    anki_mw,
+    ffmpeg_config,
+) -> None:
+    with _language_contour_editor(anki_mw, ffmpeg_config, "ja_nakadaka_4mora_1_5s") as (
+        editor,
+        _parent,
+        source,
+        spec,
+    ):
+        rendered = _rendered_language_contour(editor, source.name)
+
+        pre_drop_y = _median_rendered_y(rendered, window_named(spec, "pre_drop_high"))
+        post_drop_y = _median_rendered_y(rendered, window_named(spec, "post_drop_low"))
+        assert post_drop_y - pre_drop_y >= 16
+
+
+@pytest.mark.praat
+def test_visualizer_shows_japanese_odaka_drop_on_particle(
+    anki_mw,
+    ffmpeg_config,
+) -> None:
+    with _language_contour_editor(anki_mw, ffmpeg_config, "ja_odaka_3mora_particle_1_6s") as (
+        editor,
+        _parent,
+        source,
+        spec,
+    ):
+        rendered = _rendered_language_contour(editor, source.name)
+
+        word_y = _median_rendered_y(rendered, window_named(spec, "word_high"))
+        particle_y = _median_rendered_y(rendered, window_named(spec, "particle_low"))
+        assert particle_y - word_y >= 16
+
+
+@pytest.mark.praat
+@pytest.mark.parametrize(
+    ("spec_name", "earlier_window", "later_window", "direction"),
+    [
+        ("zh_tone2_rising_0_9s", "early", "late", "rise"),
+        ("zh_tone4_falling_0_8s", "early", "late", "fall"),
+    ],
+)
+def test_visualizer_shows_mandarin_tone2_and_tone4_opposite_slopes(
+    anki_mw,
+    ffmpeg_config,
+    spec_name: str,
+    earlier_window: str,
+    later_window: str,
+    direction: str,
+) -> None:
+    with _language_contour_editor(anki_mw, ffmpeg_config, spec_name) as (
+        editor,
+        _parent,
+        source,
+        spec,
+    ):
+        rendered = _rendered_language_contour(editor, source.name)
+
+        earlier_y = _median_rendered_y(rendered, window_named(spec, earlier_window))
+        later_y = _median_rendered_y(rendered, window_named(spec, later_window))
+        if direction == "rise":
+            assert earlier_y - later_y >= 16
+        else:
+            assert later_y - earlier_y >= 16
+
+
+@pytest.mark.praat
+def test_visualizer_shows_mandarin_tone3_dip(
+    anki_mw,
+    ffmpeg_config,
+) -> None:
+    with _language_contour_editor(anki_mw, ffmpeg_config, "zh_tone3_dipping_1_1s") as (
+        editor,
+        _parent,
+        source,
+        spec,
+    ):
+        rendered = _rendered_language_contour(editor, source.name)
+
+        early_y = _median_rendered_y(rendered, window_named(spec, "early"))
+        trough_y = _median_rendered_y(rendered, window_named(spec, "trough"))
+        late_y = _median_rendered_y(rendered, window_named(spec, "late"))
+        assert trough_y - early_y >= 16
+        assert trough_y - late_y >= 16
+
+
+@pytest.mark.praat
+@pytest.mark.parametrize(
+    ("spec_name", "earlier_window", "later_window", "direction"),
+    [
+        ("vi_sac_high_rising_0_9s", "early", "late", "rise"),
+        ("vi_huyen_low_falling_0_9s", "early", "late", "fall"),
+        ("vi_nang_low_checked_0_8s", "early", "late_low", "fall"),
+    ],
+)
+def test_visualizer_shows_vietnamese_rising_and_falling_tones(
+    anki_mw,
+    ffmpeg_config,
+    spec_name: str,
+    earlier_window: str,
+    later_window: str,
+    direction: str,
+) -> None:
+    with _language_contour_editor(anki_mw, ffmpeg_config, spec_name) as (
+        editor,
+        _parent,
+        source,
+        spec,
+    ):
+        rendered = _rendered_language_contour(editor, source.name)
+
+        earlier_y = _median_rendered_y(rendered, window_named(spec, earlier_window))
+        later_y = _median_rendered_y(rendered, window_named(spec, later_window))
+        if direction == "rise":
+            assert earlier_y - later_y >= 16
+        else:
+            assert later_y - earlier_y >= 16
+
+
+@pytest.mark.praat
+def test_visualizer_shows_vietnamese_hoi_dip(
+    anki_mw,
+    ffmpeg_config,
+) -> None:
+    with _language_contour_editor(anki_mw, ffmpeg_config, "vi_hoi_dipping_1_0s") as (
+        editor,
+        _parent,
+        source,
+        spec,
+    ):
+        rendered = _rendered_language_contour(editor, source.name)
+
+        early_y = _median_rendered_y(rendered, window_named(spec, "early"))
+        trough_y = _median_rendered_y(rendered, window_named(spec, "trough"))
+        late_y = _median_rendered_y(rendered, window_named(spec, "late"))
+        assert trough_y - early_y >= 16
+        assert trough_y - late_y >= 16
+
+
+@pytest.mark.praat
+def test_visualizer_shows_vietnamese_nga_broken_rise(
+    anki_mw,
+    ffmpeg_config,
+) -> None:
+    with _language_contour_editor(anki_mw, ffmpeg_config, "vi_nga_broken_rising_1_0s") as (
+        editor,
+        _parent,
+        source,
+        spec,
+    ):
+        rendered = _rendered_language_contour(editor, source.name)
+
+        pre_break_y = _median_rendered_y(rendered, window_named(spec, "pre_break"))
+        late_y = _median_rendered_y(rendered, window_named(spec, "late"))
+        assert rendered["paths"] >= 2
+        assert pre_break_y - late_y >= 16
+
+
 def test_silence_visualizer_renders_pitch_gaps_without_crashing(anki_mw, ffmpeg_config) -> None:
     media_dir = Path(anki_mw.col.media.dir())
     source = media_dir / "editor_silence_source.wav"
-    import subprocess
 
     subprocess.run(
         [

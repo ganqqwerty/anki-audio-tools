@@ -24,10 +24,14 @@ dev = [
     "pytest-randomly",
     "mutmut",
     "jsonschema",
+    "praat-parselmouth>=0.4.7",
 ]
 
 [tool.pytest.ini_options]
 testpaths = ["tests", "e2e"]
+markers = [
+    "praat: requires praat-parselmouth for generated speech contour fixtures",
+]
 
 [tool.ruff]
 src = ["addon", "tests", "e2e"]
@@ -128,10 +132,14 @@ skips = [
 extend_exclude = ["addon/anki_audio_quick_editor/vendor", "settings_ui", "scripts"]
 ignore_notebooks = true
 
+[tool.deptry.package_module_name_map]
+praat-parselmouth = ["parselmouth"]
+
 [tool.deptry.per_rule_ignores]
 DEP001 = ["aqt", "anki", "anki_audio_quick_editor", "debugpy", "parselmouth", "PyQt6", "dev"]
 DEP002 = ["pytest-qt", "pytest-randomly"]
 DEP003 = ["aqt", "anki", "PyQt6"]
+DEP004 = ["parselmouth"]
 
 [tool.mutmut]
 paths_to_mutate = "addon/anki_audio_quick_editor/"

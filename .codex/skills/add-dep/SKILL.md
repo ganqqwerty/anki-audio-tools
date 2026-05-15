@@ -11,7 +11,7 @@ Read `DEVELOPMENT.md` first, then determine which dependency category applies.
 
 ## Decision Tree
 
-1. If code in `addon/anki_short_story/` needs it at add-on runtime, it is a **Python runtime dependency** and must be vendored into `addon/anki_short_story/vendor/`.
+1. If code in `addon/anki-audio-tools/` needs it at add-on runtime, it is a **Python runtime dependency** and must be vendored into `addon/anki-audio-tools/vendor/`.
 2. If it is a linter, test tool, type checker, or similar, it is a **Python dev dependency** and must be listed in both `scripts/dev.py` and `pyproject.toml`.
 3. If it is for `settings_ui/`, it is a **Svelte dependency** and belongs in `settings_ui/package.json`.
 

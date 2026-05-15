@@ -23,6 +23,7 @@ ADDON_SYMLINK_ID = "1000000002"
 DEV_DEPS = [
     "pytest-cov", "pytest-qt", "ruff", "mypy", "radon", "import-linter",
     "deptry", "vulture", "bandit", "pytest-randomly", "mutmut", "jsonschema",
+    "praat-parselmouth>=0.4.7",
 ]
 
 

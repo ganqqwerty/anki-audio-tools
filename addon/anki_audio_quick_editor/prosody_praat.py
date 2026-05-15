@@ -78,6 +78,8 @@ def _nearest_intensity(
     if not intensity_times or not intensity_values:
         return None
     index = min(range(len(intensity_times)), key=lambda idx: abs(intensity_times[idx] - time_s))
+    if index >= len(intensity_values):
+        return None
     try:
         return float(intensity_values[index])
     except (TypeError, ValueError):

@@ -71,3 +71,98 @@ def test_praat_adapter_converts_voiced_unvoiced_and_intensity(monkeypatch, tmp_p
     assert track.points[0].pitch_hz is None
     assert track.points[1].pitch_hz == 220.25
     assert track.points[1].intensity_db == 55.0
+
+
+def test_praat_adapter_uses_nearest_intensity_frame(monkeypatch, tmp_path: Path) -> None:
+    source = tmp_path / "nearest.wav"
+    source.write_bytes(b"fake")
+    _install_fake_parselmouth(
+        monkeypatch,
+        pitch_times=[0.002, 0.018, 0.031],
+        frequencies=[180.0, 220.0, 260.0],
+        intensity_times=[0.0, 0.02, 0.04],
+        intensity_values=[30.0, 60.0, 45.0],
+    )
+    monkeypatch.setattr("anki_audio_quick_editor.prosody_praat.probe_duration_ms", lambda *_args: 40)
+
+    track = analyze_with_praat(source, AudioProcessingConfig())
+
+    assert [point.intensity_db for point in track.points] == [30.0, 60.0, 45.0]
+
+
+def test_praat_adapter_derives_pitch_bounds_from_voiced_frames_only(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    source = tmp_path / "bounds.wav"
+    source.write_bytes(b"fake")
+    _install_fake_parselmouth(
+        monkeypatch,
+        pitch_times=[0.0, 0.01, 0.02, 0.03, 0.04],
+        frequencies=[0.0, 240.0, 120.0, 0.0, 300.0],
+        intensity_times=[0.0, 0.02, 0.04],
+        intensity_values=[35.0, 45.0, 55.0],
+    )
+    monkeypatch.setattr("anki_audio_quick_editor.prosody_praat.probe_duration_ms", lambda *_args: 50)
+
+    track = analyze_with_praat(source, AudioProcessingConfig())
+
+    assert [point.voiced for point in track.points] == [False, True, True, False, True]
+    assert track.pitch_min_hz == 120.0
+    assert track.pitch_max_hz == 300.0
+
+
+def test_praat_adapter_tolerates_mismatched_pitch_and_intensity_lengths(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    source = tmp_path / "mismatched.wav"
+    source.write_bytes(b"fake")
+    _install_fake_parselmouth(
+        monkeypatch,
+        pitch_times=[0.0, 0.01, 0.02, 0.03],
+        frequencies=[190.0, 210.0, 230.0],
+        intensity_times=[0.0, 0.01, 0.02, 0.03],
+        intensity_values=[40.0, 42.0],
+    )
+    monkeypatch.setattr("anki_audio_quick_editor.prosody_praat.probe_duration_ms", lambda *_args: 40)
+
+    track = analyze_with_praat(source, AudioProcessingConfig())
+
+    assert len(track.points) == 3
+    assert track.points[0].intensity_db == 40.0
+    assert track.points[1].intensity_db == 42.0
+    assert track.points[2].intensity_db is None
+
+
+def _install_fake_parselmouth(
+    monkeypatch,
+    *,
+    pitch_times: list[float],
+    frequencies: list[float],
+    intensity_times: list[float],
+    intensity_values: list[float],
+) -> None:
+    class FakePitch:
+        selected_array = {"frequency": frequencies}
+
+        def xs(self):
+            return pitch_times
+
+    class FakeIntensity:
+        values = [intensity_values]
+
+        def xs(self):
+            return intensity_times
+
+    class FakeSound:
+        def __init__(self, path: str) -> None:
+            self.path = path
+
+        def to_pitch(self, **_kwargs):
+            return FakePitch()
+
+        def to_intensity(self, **_kwargs):
+            return FakeIntensity()
+
+    monkeypatch.setitem(sys.modules, "parselmouth", types.SimpleNamespace(Sound=FakeSound))
