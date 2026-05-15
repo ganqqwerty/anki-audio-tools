@@ -31,6 +31,7 @@ def test_injection_script_embeds_audio_field_indices() -> None:
     assert "window.__aqeSetBusy = setControlsBusy;" in script
     assert "window.__aqeSetVisualizer =" in script
     assert "class=\"aqe-visualizer-svg\"" in script
+    assert 'class="aqe-spinner"' in script
     assert "Hz`" in script
     assert "button.disabled = !!busy;" in script
     assert "status.title = command || \"\";" in script
@@ -61,6 +62,10 @@ def test_visualizer_has_progress_axis_and_lock_test_hooks() -> None:
     assert "durationMs < 2000" in script
     assert "return `${Math.round(ms)} ms`;" in script
     assert "setControlsBusy(ord, true, \"Analyzing...\", \"\");" in script
+    assert 'visualizer.dataset.hasTrack = "false";' in script
+    assert 'visualizer.dataset.hasTrack = "true";' in script
+    assert "spinner.hidden = !processing;" in script
+    assert "spinnerVisible" in script
     assert "document.body.dataset.aqeBusy" in script
     assert "window.__aqeGraphStateForTest" in script
     assert "window.__aqeSetCursorByClientXForTest" in script
@@ -77,6 +82,21 @@ def test_disabled_button_styling_is_visible_without_color() -> None:
     assert ".aqe-button:disabled" in script
     assert "cursor: not-allowed;" in script
     assert "opacity: 0.45;" in script
+
+
+def test_visualizer_layout_spinner_and_dark_theme_safe_styles_are_injected() -> None:
+    script = injection_script([0])
+
+    assert "color-scheme: light dark;" in script
+    assert "background: transparent;" in script
+    assert "color: inherit;" in script
+    assert "flex: 0 0 100%;" in script
+    assert "width: min(760px, 100%);" in script
+    assert '.aqe-visualizer[data-has-track=\\"false\\"] .aqe-visualizer-svg' in script
+    assert '.aqe-visualizer[data-has-track=\\"false\\"] .aqe-cursor-label' in script
+    assert ".aqe-spinner" in script
+    assert "animation: aqe-spin 800ms linear infinite;" in script
+    assert "@keyframes aqe-spin" in script
 
 
 def test_playback_finish_and_cursor_drag_intents_are_injected() -> None:

@@ -143,6 +143,7 @@ _SCRIPT_TEMPLATE = r"""
     wrapper.dataset.progressMs = "0";
     wrapper.dataset.graphActive = "false";
     wrapper.dataset.graphBusy = "false";
+    wrapper.dataset.hasTrack = "false";
     wrapper.dataset.playbackState = "stopped";
     wrapper.dataset.resumeRequiresRestart = "false";
     wrapper.dataset.testid = `aqe-graph-${ord}`;
@@ -156,6 +157,7 @@ _SCRIPT_TEMPLATE = r"""
         <line class="aqe-cursor" data-testid="aqe-cursor-${ord}" x1="${plot.left}" x2="${plot.left}" y1="${plot.top}" y2="${plot.height - plot.bottom}"></line>
       </svg>
       <div class="aqe-visualizer-meta">
+        <span class="aqe-spinner" data-testid="aqe-graph-spinner-${ord}" hidden aria-hidden="true"></span>
         <span class="aqe-cursor-label" data-testid="aqe-progress-label-${ord}">0 ms</span>
         <span class="aqe-visualizer-status" data-testid="aqe-graph-status-${ord}"></span>
       </div>
@@ -292,6 +294,10 @@ _SCRIPT_TEMPLATE = r"""
     const visualizer = visualizerForOrd(ord);
     if (!visualizer) return;
     const status = visualizer.querySelector(".aqe-visualizer-status");
+    const spinner = visualizer.querySelector(".aqe-spinner");
+    const processing = kind === "processing";
+    visualizer.dataset.graphBusy = processing ? "true" : "false";
+    if (spinner) spinner.hidden = !processing;
     if (!status) return;
     status.textContent = message || "";
     status.dataset.kind = kind || "info";
@@ -485,6 +491,7 @@ _SCRIPT_TEMPLATE = r"""
     visualizer.hidden = false;
     visualizer.dataset.graphActive = "true";
     visualizer.dataset.graphBusy = "true";
+    visualizer.dataset.hasTrack = "false";
     visualizer.dataset.durationMs = "0";
     visualizer.dataset.sourceFilename = "";
     visualizer.dataset.anchorMs = "0";
@@ -591,6 +598,7 @@ _SCRIPT_TEMPLATE = r"""
     visualizer.hidden = false;
     visualizer.dataset.graphActive = "true";
     visualizer.dataset.graphBusy = "false";
+    visualizer.dataset.hasTrack = "true";
     visualizer.dataset.durationMs = String(track.durationMs || 0);
     visualizer.dataset.anchorMs = String(cursorMs || 0);
     visualizer.dataset.analyzerName = track.analyzerName || "";
@@ -612,7 +620,9 @@ _SCRIPT_TEMPLATE = r"""
     if (visualizer) {
       visualizer.hidden = false;
       visualizer.dataset.graphActive = "true";
-      visualizer.dataset.graphBusy = kind === "processing" ? "true" : "false";
+      if (kind === "processing") {
+        visualizer.dataset.hasTrack = "false";
+      }
       const button = graphButton(ord);
       if (button) button.textContent = "Redraw";
     }
@@ -686,6 +696,7 @@ _SCRIPT_TEMPLATE = r"""
       active: visualizer.dataset.graphActive === "true",
       busy: visualizer.dataset.graphBusy === "true",
       hidden: !!visualizer.hidden,
+      hasTrack: visualizer.dataset.hasTrack === "true",
       durationMs: Number(visualizer.dataset.durationMs || "0"),
       anchorMs: Number(visualizer.dataset.anchorMs || "0"),
       cursorMs: Number(visualizer.dataset.cursorMs || "0"),
@@ -699,6 +710,7 @@ _SCRIPT_TEMPLATE = r"""
       pitchPaths: visualizer.querySelectorAll(".aqe-pitch-path").length,
       intensity: visualizer.querySelector(".aqe-intensity")?.getAttribute("d") || "",
       cursorX: Number(visualizer.querySelector(".aqe-cursor")?.getAttribute("x1") || "0"),
+      spinnerVisible: visualizer.querySelector(".aqe-spinner") ? !visualizer.querySelector(".aqe-spinner").hidden : false,
       allButtonsDisabled: allButtons().every((button) => button.disabled),
       anyButtonDisabled: allButtons().some((button) => button.disabled)
     };
@@ -718,6 +730,8 @@ def _css() -> str:
   align-items: center;
   border: 1px solid;
   border-radius: 10px;
+  color: inherit;
+  color-scheme: light dark;
   display: flex;
   flex-wrap: wrap;
   gap: 5px;
@@ -726,8 +740,10 @@ def _css() -> str:
   padding: 6px 8px;
 }
 .aqe-button {
+  background: transparent;
   border: 1px solid;
   border-radius: 7px;
+  color: inherit;
   cursor: pointer;
   font-size: 12px;
   font-weight: 700;
@@ -754,20 +770,26 @@ def _css() -> str:
   font-weight: 700;
 }
 .aqe-visualizer {
-  flex-basis: 100%;
+  align-self: flex-start;
+  flex: 0 0 100%;
   max-width: 760px;
   min-width: 220px;
+  width: min(760px, 100%);
 }
 .aqe-visualizer[hidden] {
+  display: none;
+}
+.aqe-visualizer[data-has-track="false"] .aqe-visualizer-svg,
+.aqe-visualizer[data-has-track="false"] .aqe-cursor-label {
   display: none;
 }
 .aqe-visualizer-svg {
   border: 1px solid;
   border-radius: 8px;
+  color: inherit;
   display: block;
   height: 150px;
   margin-top: 4px;
-  max-width: 760px;
   width: 100%;
 }
 .aqe-intensity {
@@ -804,13 +826,33 @@ def _css() -> str:
   stroke-width: 1;
 }
 .aqe-visualizer-meta {
+  align-items: center;
   display: flex;
   font-size: 12px;
   gap: 8px;
   justify-content: flex-start;
   margin-top: 2px;
 }
+.aqe-spinner {
+  animation: aqe-spin 800ms linear infinite;
+  border: 2px solid currentColor;
+  border-right-color: transparent;
+  border-radius: 999px;
+  box-sizing: border-box;
+  display: inline-block;
+  height: 12px;
+  opacity: 0.75;
+  width: 12px;
+}
+.aqe-spinner[hidden] {
+  display: none;
+}
 .aqe-visualizer-status[data-kind="error"] {
   font-weight: 700;
+}
+@keyframes aqe-spin {
+  to {
+    transform: rotate(360deg);
+  }
 }
 """
