@@ -31,12 +31,35 @@ from .sound_refs import (
 
 logger = logging.getLogger(__name__)
 
+ProsodyCacheKey = tuple[str, int, int]
+
+
 @dataclass(frozen=True)
-class HistoryEntry:
+class UndoEntry:
     """A field reference and edit state that can be restored by Undo."""
 
     state: AudioEditState
     filename: str
+
+
+@dataclass
+class UndoHistory:
+    """Undo stack for generated audio references."""
+
+    entries: list[UndoEntry] = field(default_factory=list)
+
+    def push(self, state: AudioEditState | None, filename: str | None) -> None:
+        """Remember the current generated/reference state before rendering."""
+        if state is not None and filename:
+            self.entries.append(UndoEntry(state, filename))
+
+    def pop(self) -> UndoEntry | None:
+        """Return the previous state to restore, if one exists."""
+        return self.entries.pop() if self.entries else None
+
+    def clear(self) -> None:
+        """Drop history when switching fields or source media."""
+        self.entries.clear()
 
 
 @dataclass
@@ -46,7 +69,7 @@ class EditorSession:
     state: AudioEditState | None = None
     field_index: int | None = None
     current_filename: str | None = None
-    undo_stack: list[HistoryEntry] = field(default_factory=list)
+    undo_history: UndoHistory = field(default_factory=UndoHistory)
     processing: bool = False
     analysis_busy: bool = False
     source_mtime_ns: int | None = None
@@ -60,6 +83,8 @@ class EditorSession:
 
 
 _SESSIONS: "weakref.WeakKeyDictionary[Any, EditorSession]" = weakref.WeakKeyDictionary()
+_ANALYSIS_CACHE: dict[ProsodyCacheKey, ProsodyTrack] = {}
+_ANALYSIS_CACHE_MAX = 32
 
 
 def register_editor_hooks(gui_hooks: Any) -> None:
@@ -107,6 +132,9 @@ def _handle_bridge_command(editor: Any, command: str) -> bool:
         if command == "aqe:play":
             _play(editor)
             return True
+        if command == "aqe:play-ended":
+            _play_ended(editor)
+            return True
         if command == "aqe:undo":
             _undo(editor)
             return True
@@ -134,10 +162,6 @@ def _update_state_and_render(editor: Any, command: str) -> None:
     if updated_state is None:
         _set_busy(editor, False)
         return
-    if updated_state == state:
-        _set_busy(editor, False)
-        _eval_status(editor, "No change to process.")
-        return
     _render_and_replace_async(editor, session, source_path, updated_state, config)
 
 
@@ -148,6 +172,7 @@ def _render_and_replace_async(
     updated_state: AudioEditState,
     config: AudioProcessingConfig,
 ) -> None:
+    _stop_audio_playback()
     session.processing = True
     session.playback_active = False
     session.playback_paused = False
@@ -203,8 +228,7 @@ def _replace_current_field_after_render(
     session = _SESSIONS.get(editor)
     should_redraw_graph = False
     if session:
-        if session.state is not None and session.current_filename is not None:
-            session.undo_stack.append(HistoryEntry(session.state, session.current_filename))
+        session.undo_history.push(session.state, session.current_filename)
         session.state = updated_state
         session.current_filename = saved_name
         session.field_index = field_index
@@ -223,7 +247,7 @@ def _replace_current_field_after_render(
     _eval_status(editor, f"Updated field to {saved_name}")
     _eval_playback_state(editor, field_index, "stopped", 0)
     if should_redraw_graph:
-        _request_graph_redraw(editor, field_index)
+        _request_graph_redraw(editor, field_index, saved_name)
     else:
         _set_busy(editor, False)
 
@@ -238,6 +262,15 @@ def _render_failed(editor: Any, message: str) -> None:
     _eval_status(editor, message, kind="error")
 
 
+def _stop_audio_playback() -> None:
+    try:
+        from aqt.sound import av_player
+
+        av_player.stop_and_clear_queue()
+    except Exception as exc:  # pragma: no cover - depends on active Anki audio backend
+        logger.info("audio stop failed: %s", exc)
+
+
 def _play(editor: Any) -> None:
     _eval_with_callback(
         editor,
@@ -247,8 +280,16 @@ def _play(editor: Any) -> None:
     )
 
 
+def _play_ended(editor: Any) -> None:
+    session = _SESSIONS.get(editor)
+    if session:
+        session.playback_active = False
+        session.playback_paused = False
+    _stop_audio_playback()
+    _eval_status(editor, "")
+
+
 def _play_with_request(editor: Any, request: Any) -> None:
-    from anki.sound import SoundOrVideoTag
     from aqt.sound import av_player
 
     session, source_path = _session_and_source(editor)
@@ -275,12 +316,26 @@ def _play_with_request(editor: Any, request: Any) -> None:
         _eval_status(editor, "Paused" if session.playback_paused else "Playing")
         return
 
+    _start_playback_from_cursor(editor, session, source_path, field_index, cursor_ms)
+
+
+def _start_playback_from_cursor(
+    editor: Any,
+    session: EditorSession,
+    source_path: Path,
+    field_index: int,
+    cursor_ms: int,
+) -> None:
+    from anki.sound import SoundOrVideoTag
+    from aqt.sound import av_player
+
     filename = session.current_filename or source_path.name
     play_path = Path(editor.mw.col.media.dir()) / filename
     if not play_path.is_file():
         play_path = source_path
     av_player.stop_and_clear_queue()
     av_player.play_tags([SoundOrVideoTag(str(play_path))])
+    session.cursor_ms = clamp_cursor_ms(cursor_ms, session.visualized_duration_ms)
     offset_seconds = max(0.0, session.cursor_ms / 1000)
     session.playback_active = True
     session.playback_paused = False
@@ -303,10 +358,11 @@ def _undo(editor: Any) -> None:
     if _is_busy(session):
         _eval_status(editor, "Still processing. Please wait.", kind="processing")
         return
-    if not session.undo_stack:
+    previous = session.undo_history.pop()
+    if previous is None:
         _eval_status(editor, "Nothing to undo.")
         return
-    previous = session.undo_stack.pop()
+    _stop_audio_playback()
     field_index = _current_field_index(editor)
     field_html = editor.note.fields[field_index]
     selection = select_first_sound_reference(field_html)
@@ -323,7 +379,7 @@ def _undo(editor: Any) -> None:
     _eval_status(editor, f"Undid last edit; restored {previous.filename}")
     _eval_playback_state(editor, field_index, "stopped", 0)
     if field_index in session.graph_active_fields:
-        _request_graph_redraw(editor, field_index)
+        _request_graph_redraw(editor, field_index, previous.filename)
 
 
 def _session_and_source(editor: Any) -> tuple[EditorSession, Path]:
@@ -357,7 +413,7 @@ def _session_and_source(editor: Any) -> tuple[EditorSession, Path]:
     ):
         session.state = AudioEditState(source_file=filename)
         session.current_filename = filename
-        session.undo_stack.clear()
+        session.undo_history.clear()
         session.processing = False
         session.analysis_busy = False
         session.field_index = field_index
@@ -389,6 +445,7 @@ def _analyze_current_async(editor: Any) -> None:
     session, current_path = _current_media_path(editor)
     config = AudioProcessingConfig.from_config(_config(editor))
     field_index = _current_field_index(editor)
+    _stop_audio_playback()
     session.analysis_generation += 1
     generation = session.analysis_generation
     session.analysis_busy = True
@@ -404,13 +461,30 @@ def _analyze_current_async(editor: Any) -> None:
 
     def _run() -> None:
         try:
-            track = analyze_prosody(current_path, config)
+            track = _analyze_prosody_cached(current_path, config)
             _main(editor, lambda: _analysis_finished(editor, generation, track))
         except Exception as exc:
             message = str(exc)
             _main(editor, lambda: _analysis_failed(editor, generation, message))
 
     threading.Thread(target=_run, daemon=True).start()
+
+
+def _prosody_cache_key(path: Path) -> ProsodyCacheKey:
+    stat = path.stat()
+    return (str(path), int(stat.st_size), int(stat.st_mtime_ns))
+
+
+def _analyze_prosody_cached(path: Path, config: AudioProcessingConfig) -> ProsodyTrack:
+    key = _prosody_cache_key(path)
+    cached = _ANALYSIS_CACHE.get(key)
+    if cached is not None:
+        return cached
+    track = analyze_prosody(path, config)
+    _ANALYSIS_CACHE[key] = track
+    while len(_ANALYSIS_CACHE) > _ANALYSIS_CACHE_MAX:
+        _ANALYSIS_CACHE.pop(next(iter(_ANALYSIS_CACHE)))
+    return track
 
 
 def _analysis_finished(editor: Any, generation: int, track: ProsodyTrack) -> None:
@@ -443,12 +517,17 @@ def _analysis_failed(editor: Any, generation: int, message: str) -> None:
 
 def _set_cursor_from_web(editor: Any) -> None:
     def _apply(value: Any) -> None:
-        session = _SESSIONS.setdefault(editor, EditorSession())
-        session.cursor_ms = clamp_cursor_ms(value, session.visualized_duration_ms)
+        session, source_path = _session_and_source(editor)
+        cursor_value = value.get("cursorMs") if isinstance(value, dict) else value
+        session.cursor_ms = clamp_cursor_ms(cursor_value, session.visualized_duration_ms)
+        if isinstance(value, dict) and value.get("restartPlayback"):
+            field_index = _current_field_index(editor)
+            _start_playback_from_cursor(editor, session, source_path, field_index, session.cursor_ms)
 
     _eval_with_callback(
         editor,
-        "window.__aqeGetCursorMs ? window.__aqeGetCursorMs() : 0",
+        "window.__aqeGetCursorIntent ? window.__aqeGetCursorIntent() : "
+        "(window.__aqeGetCursorMs ? window.__aqeGetCursorMs() : 0)",
         _apply,
     )
 
@@ -502,34 +581,30 @@ def _eval_playback_state(
     )
 
 
-def _request_graph_redraw(editor: Any, field_index: int) -> None:
+def _request_graph_redraw(editor: Any, field_index: int, expected_filename: str | None = None) -> None:
     from aqt.qt import QTimer
 
-    redraw_key = f"__aqeAutoRedrawStarted{int(field_index)}"
-    script = (
-        "(function() { "
-        f"if (window.__aqeResetGraphAfterEdit && !window[{json.dumps(redraw_key)}]) {{ "
-        f"window[{json.dumps(redraw_key)}] = true; "
-        f"window.__aqeResetGraphAfterEdit({json.dumps(int(field_index))}); "
-        "} "
-        "})()"
-    )
+    _ = expected_filename
 
-    def _attempt(remaining: int) -> None:
+    def _start() -> None:
+        if getattr(editor, "note", None) is None:
+            return
         try:
-            editor.web.eval(script)
+            editor.web.eval("window.__aqeScan && window.__aqeScan()")
         except RuntimeError:
             return
-        if remaining > 0:
-            QTimer.singleShot(100, lambda: _attempt(remaining - 1))
+        _analyze_current_async(editor)
 
-    QTimer.singleShot(100, lambda: _attempt(30))
+    QTimer.singleShot(150, _start)
 
 
 def _set_busy(editor: Any, busy: bool, message: str = "", command: str = "") -> None:
     field_index = getattr(editor, "currentField", None)
     if field_index is None:
         field_index = getattr(editor, "last_field_index", None)
+    if field_index is None:
+        session = _SESSIONS.get(editor)
+        field_index = session.field_index if session else None
     if field_index is None:
         return
     editor.web.eval(

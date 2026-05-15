@@ -9,10 +9,9 @@ BRIDGE_COMMANDS = (
     "aqe:analyze",
     "aqe:set-cursor",
     "aqe:play",
+    "aqe:play-ended",
     "aqe:trim-left",
-    "aqe:untrim-left",
     "aqe:trim-right",
-    "aqe:untrim-right",
     "aqe:slower",
     "aqe:faster",
     "aqe:trim-silence",
@@ -22,9 +21,7 @@ BRIDGE_COMMANDS = (
 
 PROCESSING_COMMANDS = (
     "aqe:trim-left",
-    "aqe:untrim-left",
     "aqe:trim-right",
-    "aqe:untrim-right",
     "aqe:slower",
     "aqe:faster",
     "aqe:trim-silence",
@@ -41,9 +38,7 @@ def apply_processing_command(
     step = config.manual_trim_small_ms
     actions = {
         "aqe:trim-left": lambda: state.trim_left(step),
-        "aqe:untrim-left": lambda: state.untrim_left(step),
         "aqe:trim-right": lambda: state.trim_right(step),
-        "aqe:untrim-right": lambda: state.untrim_right(step),
         "aqe:slower": lambda: state.slower(config),
         "aqe:faster": lambda: state.faster(config),
         "aqe:trim-silence": state.toggle_edge_trim,

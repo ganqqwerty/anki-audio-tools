@@ -20,9 +20,7 @@ _SCRIPT_TEMPLATE = r"""
   const audioFieldIndices = new Set(__FIELD_INDICES_JSON__);
   const processingCommands = new Set([
     "aqe:trim-left",
-    "aqe:untrim-left",
     "aqe:trim-right",
-    "aqe:untrim-right",
     "aqe:slower",
     "aqe:faster",
     "aqe:trim-silence",
@@ -32,9 +30,7 @@ _SCRIPT_TEMPLATE = r"""
     "aqe:play": "play",
     "aqe:analyze": "graph",
     "aqe:trim-left": "trim-left",
-    "aqe:untrim-left": "untrim-left",
     "aqe:trim-right": "trim-right",
-    "aqe:untrim-right": "untrim-right",
     "aqe:trim-silence": "trim-silence",
     "aqe:remove-pauses": "remove-pauses",
     "aqe:slower": "slower",
@@ -85,23 +81,18 @@ _SCRIPT_TEMPLATE = r"""
     return idMatch ? Number(idMatch[1]) : fallback;
   }
 
+  function audioSourceForNode(node) {
+    const html = node.innerHTML || node.textContent || "";
+    const match = html.match(soundPattern);
+    return match && supportedPattern.test(match[1]) ? match[1] : "";
+  }
+
   function testId(ord, command) {
     return `aqe-button-${ord}-${commandSlugs[command] || command.replace(/[^a-z0-9]+/g, "-")}`;
   }
 
   function anyBusy() {
     return document.body.dataset.aqeBusy === "true";
-  }
-
-  function redrawAfterEditKey(ord) {
-    return `aqe-redraw-after-edit-${ord}`;
-  }
-
-  function rememberGraphRedrawIfActive(ord) {
-    const visualizer = visualizerForOrd(ord);
-    if (visualizer && visualizer.dataset.graphActive === "true") {
-      sessionStorage.setItem(redrawAfterEditKey(ord), "true");
-    }
   }
 
   function send(command, node, ord) {
@@ -113,7 +104,6 @@ _SCRIPT_TEMPLATE = r"""
       return;
     }
     if (processingCommands.has(command)) {
-      rememberGraphRedrawIfActive(ord);
       setControlsBusy(ord, true, "Processing...");
     }
     if (typeof pycmd === "function") {
@@ -147,11 +137,13 @@ _SCRIPT_TEMPLATE = r"""
     const wrapper = document.createElement("div");
     wrapper.className = "aqe-visualizer";
     wrapper.dataset.aqeFieldOrd = String(ord);
+    wrapper.dataset.anchorMs = "0";
     wrapper.dataset.cursorMs = "0";
     wrapper.dataset.progressMs = "0";
     wrapper.dataset.graphActive = "false";
     wrapper.dataset.graphBusy = "false";
     wrapper.dataset.playbackState = "stopped";
+    wrapper.dataset.resumeRequiresRestart = "false";
     wrapper.dataset.testid = `aqe-graph-${ord}`;
     wrapper.hidden = true;
     wrapper.innerHTML = `
@@ -181,9 +173,7 @@ _SCRIPT_TEMPLATE = r"""
       makeButton("Play", "Play or pause current audio", "aqe:play", node, ord),
       makeButton("Graph", "Analyze and show pitch/intensity graph", "aqe:analyze", node, ord),
       makeButton("-L", "Trim 100 ms from left", "aqe:trim-left", node, ord),
-      makeButton("+L", "Undo 100 ms left trim", "aqe:untrim-left", node, ord),
       makeButton("-R", "Trim 100 ms from right", "aqe:trim-right", node, ord),
-      makeButton("+R", "Undo 100 ms right trim", "aqe:untrim-right", node, ord),
       makeButton("Trim Silence", "Trim leading and trailing silence", "aqe:trim-silence", node, ord),
       makeButton("Remove Pauses", "Compress long internal pauses", "aqe:remove-pauses", node, ord),
       makeButton("Slower", "Decrease speed", "aqe:slower", node, ord),
@@ -196,28 +186,32 @@ _SCRIPT_TEMPLATE = r"""
   }
 
   function mountNear(node, ord) {
-    const existing = document.querySelector(`.aqe-controls[data-aqe-field-ord="${ord}"]`);
-    if (existing) existing.remove();
+    const existingControls = Array.from(document.querySelectorAll(`.aqe-controls[data-aqe-field-ord="${ord}"]`));
+    const sourceFilename = audioSourceForNode(node);
+    const reusable = existingControls.find((controls) => controls.dataset.aqeSourceFilename === sourceFilename);
+    if (reusable) {
+      existingControls.forEach((controls) => {
+        if (controls !== reusable) controls.remove();
+      });
+      return;
+    }
+    existingControls.forEach((controls) => controls.remove());
     const parent = node.closest && node.closest(".field-container")
       ? node.closest(".field-container")
       : node.closest && node.closest(".field")
         ? node.closest(".field")
         : node.parentElement;
     const controls = controlsFor(node, ord);
+    controls.dataset.aqeSourceFilename = sourceFilename;
     if (parent && parent.parentElement) {
       parent.insertAdjacentElement("afterend", controls);
     } else {
       node.insertAdjacentElement("afterend", controls);
     }
-    if (sessionStorage.getItem(redrawAfterEditKey(ord)) === "true") {
-      sessionStorage.removeItem(redrawAfterEditKey(ord));
-      setTimeout(() => requestGraph(ord, true), 120);
-    }
   }
 
   function scan() {
     ensureStyle();
-    document.querySelectorAll(".aqe-controls").forEach((node) => node.remove());
     const explicitTargets = explicitFieldTargets();
     if (explicitTargets.length) {
       explicitTargets.forEach((target) => mountNear(target.node, target.ord));
@@ -265,6 +259,15 @@ _SCRIPT_TEMPLATE = r"""
     status.textContent = message || "";
     status.dataset.kind = kind || "info";
   };
+
+  function clearStatus(ord) {
+    const controls = controlsForOrd(ord);
+    const status = controls && controls.querySelector(".aqe-status");
+    if (!status) return;
+    status.textContent = "";
+    status.dataset.kind = "info";
+    status.title = "";
+  }
 
   function visualizerForOrd(ord) {
     return document.querySelector(`.aqe-visualizer[data-aqe-field-ord="${ord}"]`);
@@ -400,11 +403,15 @@ _SCRIPT_TEMPLATE = r"""
     }
   }
 
-  function setCursor(visualizer, ms, notifyPython) {
+  function setCursor(visualizer, ms, notifyPython, options) {
+    const opts = options || {};
     const durationMs = Number(visualizer.dataset.durationMs || "0");
     const clamped = Math.max(0, Math.min(Number(ms) || 0, durationMs || 0));
     visualizer.dataset.cursorMs = String(Math.round(clamped));
     visualizer.dataset.progressMs = String(Math.round(clamped));
+    if (opts.updateAnchor !== false) {
+      visualizer.dataset.anchorMs = String(Math.round(clamped));
+    }
     const x = xForMs(clamped, durationMs);
     const cursor = visualizer.querySelector(".aqe-cursor");
     if (cursor) {
@@ -415,6 +422,11 @@ _SCRIPT_TEMPLATE = r"""
     if (label) label.textContent = formatTime(clamped, durationMs);
     if (notifyPython && typeof pycmd === "function") {
       window.__aqeActiveField = Number(visualizer.dataset.aqeFieldOrd || "0");
+      window.__aqeLastCursorIntent = {
+        cursorMs: Math.round(clamped),
+        previousPlaybackState: opts.previousPlaybackState || visualizer.dataset.playbackState || "stopped",
+        restartPlayback: !!opts.restartPlayback
+      };
       pycmd("focus:" + window.__aqeActiveField);
       pycmd("aqe:set-cursor");
     }
@@ -437,7 +449,10 @@ _SCRIPT_TEMPLATE = r"""
 
   function startCursorDrag(event, visualizer, ord, notifyPython) {
     event.preventDefault();
-    stopPlaybackTimer(visualizer);
+    const previousPlaybackState = visualizer.dataset.playbackState || "stopped";
+    if (previousPlaybackState === "playing") {
+      stopPlaybackTimer(visualizer);
+    }
     const svg = visualizer.querySelector(".aqe-visualizer-svg");
     const durationMs = Number(visualizer.dataset.durationMs || "0");
     if (!svg || !durationMs) return;
@@ -447,7 +462,14 @@ _SCRIPT_TEMPLATE = r"""
     const up = (upEvent) => {
       window.removeEventListener("pointermove", move);
       window.removeEventListener("pointerup", up);
-      setCursor(visualizer, cursorMsFromEvent(upEvent, svg, durationMs), notifyPython);
+      const restartPlayback = previousPlaybackState === "playing";
+      if (previousPlaybackState === "paused") {
+        visualizer.dataset.resumeRequiresRestart = "true";
+      }
+      setCursor(visualizer, cursorMsFromEvent(upEvent, svg, durationMs), notifyPython, {
+        previousPlaybackState,
+        restartPlayback
+      });
     };
     move(event);
     window.addEventListener("pointermove", move);
@@ -463,8 +485,10 @@ _SCRIPT_TEMPLATE = r"""
     visualizer.dataset.graphBusy = "true";
     visualizer.dataset.durationMs = "0";
     visualizer.dataset.sourceFilename = "";
+    visualizer.dataset.anchorMs = "0";
     visualizer.dataset.cursorMs = "0";
     visualizer.dataset.progressMs = "0";
+    visualizer.dataset.resumeRequiresRestart = "false";
     visualizer.querySelector(".aqe-intensity").setAttribute("d", "");
     visualizer.querySelector(".aqe-pitch").textContent = "";
     visualizer.querySelector(".aqe-labels").textContent = "";
@@ -483,8 +507,9 @@ _SCRIPT_TEMPLATE = r"""
 
   function resetGraphAfterEdit(ord) {
     const visualizer = visualizerForOrd(ord);
-    if (!visualizer || visualizer.dataset.graphActive !== "true") return;
+    if (!visualizer) return false;
     requestGraph(ord, true);
+    return true;
   }
 
   function startPlaybackTimer(visualizer, startMs) {
@@ -501,9 +526,17 @@ _SCRIPT_TEMPLATE = r"""
       if (visualizer.dataset.playbackState !== "playing") return;
       const elapsed = performance.now() - Number(visualizer.dataset.playStartedAt || "0");
       const nextMs = Math.min(durationMs, Number(visualizer.dataset.playStartMs || "0") + elapsed);
-      setCursor(visualizer, nextMs, false);
+      setCursor(visualizer, nextMs, false, { updateAnchor: false });
       if (nextMs >= durationMs) {
+        const anchorMs = Number(visualizer.dataset.anchorMs || "0");
         stopPlaybackTimer(visualizer);
+        setCursor(visualizer, anchorMs, false, { updateAnchor: false });
+        clearStatus(ord);
+        if (typeof pycmd === "function") {
+          window.__aqeActiveField = ord;
+          pycmd("focus:" + ord);
+          pycmd("aqe:play-ended");
+        }
         return;
       }
       visualizer.__aqePlaybackTimer = window.requestAnimationFrame(tick);
@@ -528,6 +561,7 @@ _SCRIPT_TEMPLATE = r"""
       visualizer.__aqePlaybackTimer = null;
     }
     visualizer.dataset.playbackState = "stopped";
+    visualizer.dataset.resumeRequiresRestart = "false";
     const ord = Number(visualizer.dataset.aqeFieldOrd || "0");
     const button = playButton(ord);
     if (button) button.textContent = "Play";
@@ -539,11 +573,13 @@ _SCRIPT_TEMPLATE = r"""
     const state = visualizer.dataset.playbackState || "stopped";
     let action = "start";
     if (state === "playing") action = "pause";
-    if (state === "paused") action = "resume";
+    if (state === "paused") {
+      action = visualizer.dataset.resumeRequiresRestart === "true" ? "start" : "resume";
+    }
     return {
       ord,
       action,
-      cursorMs: Number(visualizer.dataset.cursorMs || "0")
+      cursorMs: Number(visualizer.dataset.anchorMs || visualizer.dataset.cursorMs || "0")
     };
   }
 
@@ -554,6 +590,7 @@ _SCRIPT_TEMPLATE = r"""
     visualizer.dataset.graphActive = "true";
     visualizer.dataset.graphBusy = "false";
     visualizer.dataset.durationMs = String(track.durationMs || 0);
+    visualizer.dataset.anchorMs = String(cursorMs || 0);
     visualizer.dataset.analyzerName = track.analyzerName || "";
     visualizer.dataset.sourceFilename = track.sourceFilename || "";
     const button = graphButton(ord);
@@ -565,6 +602,7 @@ _SCRIPT_TEMPLATE = r"""
     drawXAxis(visualizer, track.durationMs || 0);
     setCursor(visualizer, cursorMs || 0, false);
     setVisualizerStatus(ord, track.analyzerName || "", "info");
+    setControlsBusy(ord, false, "", "");
   };
 
   window.__aqeSetVisualizerStatus = function(ord, message, kind) {
@@ -584,6 +622,9 @@ _SCRIPT_TEMPLATE = r"""
   window.__aqeSetPlaybackState = function(ord, state, cursorMs) {
     const visualizer = visualizerForOrd(ord);
     if (!visualizer) return;
+    if (state === "playing" || state === "paused") {
+      visualizer.dataset.resumeRequiresRestart = "false";
+    }
     if (state === "playing") startPlaybackTimer(visualizer, cursorMs);
     else if (state === "paused") pausePlaybackTimer(visualizer);
     else stopPlaybackTimer(visualizer);
@@ -598,6 +639,17 @@ _SCRIPT_TEMPLATE = r"""
     const ord = window.__aqeActiveField;
     const visualizer = visualizerForOrd(ord);
     return visualizer ? Number(visualizer.dataset.cursorMs || "0") : 0;
+  };
+
+  window.__aqeGetCursorIntent = function() {
+    const ord = Number(window.__aqeActiveField || "0");
+    const visualizer = visualizerForOrd(ord);
+    const fallback = visualizer ? Number(visualizer.dataset.cursorMs || "0") : 0;
+    return window.__aqeLastCursorIntent || {
+      cursorMs: fallback,
+      previousPlaybackState: visualizer ? visualizer.dataset.playbackState || "stopped" : "stopped",
+      restartPlayback: false
+    };
   };
 
   window.__aqeSetCursorForTest = function(ord, ms, notifyPython) {
@@ -633,12 +685,14 @@ _SCRIPT_TEMPLATE = r"""
       busy: visualizer.dataset.graphBusy === "true",
       hidden: !!visualizer.hidden,
       durationMs: Number(visualizer.dataset.durationMs || "0"),
+      anchorMs: Number(visualizer.dataset.anchorMs || "0"),
       cursorMs: Number(visualizer.dataset.cursorMs || "0"),
       progressMs: Number(visualizer.dataset.progressMs || "0"),
       sourceFilename: visualizer.dataset.sourceFilename || "",
       graphButtonLabel: graph ? graph.textContent : "",
       playButtonLabel: play ? play.textContent : "",
       playbackState: visualizer.dataset.playbackState || "stopped",
+      resumeRequiresRestart: visualizer.dataset.resumeRequiresRestart === "true",
       xAxisLabels: Array.from(visualizer.querySelectorAll(".aqe-x-label")).map((node) => node.textContent),
       pitchPaths: visualizer.querySelectorAll(".aqe-pitch-path").length,
       intensity: visualizer.querySelector(".aqe-intensity")?.getAttribute("d") || "",
@@ -679,6 +733,16 @@ def _css() -> str:
 }
 .aqe-button:hover {
   text-decoration: underline;
+}
+.aqe-controls[data-busy="true"] {
+  border-style: dashed;
+}
+.aqe-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
+}
+.aqe-button:disabled:hover {
+  text-decoration: none;
 }
 .aqe-status {
   font-size: 12px;

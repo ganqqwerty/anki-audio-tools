@@ -39,3 +39,19 @@ def test_apply_processing_command_returns_none_for_non_processing_command() -> N
     state = AudioEditState("clip.mp3")
 
     assert apply_processing_command("aqe:play", state, config) is None
+
+
+def test_play_graph_cursor_and_play_ended_are_not_processing_commands() -> None:
+    assert {
+        "aqe:play",
+        "aqe:play-ended",
+        "aqe:analyze",
+        "aqe:set-cursor",
+    }.isdisjoint(PROCESSING_COMMANDS)
+
+
+def test_untrim_commands_are_not_registered() -> None:
+    assert "aqe:untrim-left" not in BRIDGE_COMMANDS
+    assert "aqe:untrim-right" not in BRIDGE_COMMANDS
+    assert "aqe:untrim-left" not in PROCESSING_COMMANDS
+    assert "aqe:untrim-right" not in PROCESSING_COMMANDS

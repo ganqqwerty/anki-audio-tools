@@ -16,6 +16,10 @@ def test_injection_script_embeds_audio_field_indices() -> None:
     assert 'pycmd("aqe:set-cursor");' in script
     assert '"aqe:save"' not in script
     assert '"aqe:cancel"' not in script
+    assert '"aqe:untrim-left"' not in script
+    assert '"aqe:untrim-right"' not in script
+    assert 'makeButton("+L"' not in script
+    assert 'makeButton("+R"' not in script
     assert "window.__aqeSetBusy = setControlsBusy;" in script
     assert "window.__aqeSetVisualizer =" in script
     assert "class=\"aqe-visualizer-svg\"" in script
@@ -30,9 +34,15 @@ def test_graph_is_user_requested_and_redraws_after_active_edits() -> None:
 
     assert 'makeButton("Graph", "Analyze and show pitch/intensity graph", "aqe:analyze"' in script
     assert "requestGraph(ord, true);" in script
-    assert "rememberGraphRedrawIfActive(ord);" in script
-    assert "sessionStorage.setItem(redrawAfterEditKey(ord), \"true\");" in script
-    assert "sessionStorage.removeItem(redrawAfterEditKey(ord));" in script
+    assert "rememberGraphRedrawIfActive" not in script
+    assert "redrawAfterEditKey" not in script
+    assert "sessionStorage" not in script
+    assert "function audioSourceForNode(node)" in script
+    assert "const existingControls = Array.from" in script
+    assert "controls.dataset.aqeSourceFilename === sourceFilename" in script
+    assert "existingControls.forEach((controls) => controls.remove());" in script
+    assert "controls.dataset.aqeSourceFilename = sourceFilename;" in script
+    assert 'document.querySelectorAll(".aqe-controls").forEach((node) => node.remove());' not in script
     assert "requestAnalysis" not in script
 
 
@@ -47,3 +57,26 @@ def test_visualizer_has_progress_axis_and_lock_test_hooks() -> None:
     assert "window.__aqeSetCursorByClientXForTest" in script
     assert "window.__aqeSetPlaybackState" in script
     assert "window.requestAnimationFrame(tick)" in script
+    assert 'setControlsBusy(ord, false, "", "");' in script
+
+
+def test_disabled_button_styling_is_visible_without_color() -> None:
+    script = injection_script([0])
+
+    assert ".aqe-controls[data-busy=" in script
+    assert "border-style: dashed;" in script
+    assert ".aqe-button:disabled" in script
+    assert "cursor: not-allowed;" in script
+    assert "opacity: 0.45;" in script
+
+
+def test_playback_finish_and_cursor_drag_intents_are_injected() -> None:
+    script = injection_script([0])
+
+    assert 'pycmd("aqe:play-ended");' in script
+    assert 'clearStatus(ord);' in script
+    assert 'setCursor(visualizer, anchorMs, false, { updateAnchor: false });' in script
+    assert 'visualizer.dataset.resumeRequiresRestart = "true";' in script
+    assert 'const restartPlayback = previousPlaybackState === "playing";' in script
+    assert "window.__aqeGetCursorIntent" in script
+    assert "anchorMs" in script
