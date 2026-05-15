@@ -17,6 +17,7 @@ from anki_audio_quick_editor.editor_integration import (
     _analyze_prosody_cached,
     _audio_field_indices,
     _prosody_cache_key,
+    _reveal_file,
     _set_busy,
     register_editor_hooks,
 )
@@ -123,3 +124,51 @@ def test_set_busy_falls_back_to_session_field_index() -> None:
 
     assert "window.__aqeSetBusy" in editor.web.eval.call_args.args[0]
     assert "(2, false" in editor.web.eval.call_args.args[0]
+
+
+def test_reveal_file_selects_file_on_macos(tmp_path: Path, monkeypatch) -> None:
+    source = tmp_path / "clip.mp3"
+    source.write_bytes(b"audio")
+    commands: list[tuple[str, ...]] = []
+
+    monkeypatch.setattr("anki_audio_quick_editor.editor_integration.platform.system", lambda: "Darwin")
+    monkeypatch.setattr(
+        "anki_audio_quick_editor.editor_integration._run_detached",
+        lambda command: commands.append(command),
+    )
+
+    _reveal_file(source)
+
+    assert commands == [("open", "-R", str(source.resolve()))]
+
+
+def test_reveal_file_selects_file_on_windows(tmp_path: Path, monkeypatch) -> None:
+    source = tmp_path / "clip.mp3"
+    source.write_bytes(b"audio")
+    commands: list[tuple[str, ...]] = []
+
+    monkeypatch.setattr("anki_audio_quick_editor.editor_integration.platform.system", lambda: "Windows")
+    monkeypatch.setattr(
+        "anki_audio_quick_editor.editor_integration._run_detached",
+        lambda command: commands.append(command),
+    )
+
+    _reveal_file(source)
+
+    assert commands == [("explorer", f"/select,{source.resolve()}")]
+
+
+def test_reveal_file_opens_parent_folder_elsewhere(tmp_path: Path, monkeypatch) -> None:
+    source = tmp_path / "clip.mp3"
+    source.write_bytes(b"audio")
+    folders: list[Path] = []
+
+    monkeypatch.setattr("anki_audio_quick_editor.editor_integration.platform.system", lambda: "Linux")
+    monkeypatch.setattr(
+        "anki_audio_quick_editor.editor_integration._open_parent_folder",
+        lambda folder: folders.append(folder),
+    )
+
+    _reveal_file(source)
+
+    assert folders == [source.resolve().parent]

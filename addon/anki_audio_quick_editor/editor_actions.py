@@ -10,6 +10,7 @@ BRIDGE_COMMANDS = (
     "aqe:set-cursor",
     "aqe:play",
     "aqe:play-ended",
+    "aqe:show-file",
     "aqe:trim-left",
     "aqe:trim-right",
     "aqe:slower",

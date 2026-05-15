@@ -12,6 +12,7 @@ def test_injection_script_embeds_audio_field_indices() -> None:
     assert '.field-container[data-index="' in script
     assert "button.dataset.aqeCommand = command;" in script
     assert '"aqe:undo"' in script
+    assert '"aqe:show-file"' in script
     assert 'pycmd("aqe:analyze");' in script
     assert 'pycmd("aqe:set-cursor");' in script
     assert '"aqe:save"' not in script
@@ -27,6 +28,7 @@ def test_injection_script_embeds_audio_field_indices() -> None:
     assert "button.disabled = !!busy;" in script
     assert "status.title = command || \"\";" in script
     assert 'pycmd("focus:" + ord);' in script
+    assert 'makeButton("Folder", "Show current audio file in folder", "aqe:show-file"' in script
 
 
 def test_graph_is_user_requested_and_redraws_after_active_edits() -> None:

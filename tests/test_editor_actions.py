@@ -45,6 +45,7 @@ def test_play_graph_cursor_and_play_ended_are_not_processing_commands() -> None:
     assert {
         "aqe:play",
         "aqe:play-ended",
+        "aqe:show-file",
         "aqe:analyze",
         "aqe:set-cursor",
     }.isdisjoint(PROCESSING_COMMANDS)

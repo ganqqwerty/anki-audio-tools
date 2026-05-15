@@ -240,7 +240,18 @@ def test_each_processing_button_updates_field_to_new_real_audio(anki_mw, ffmpeg_
               .map((node) => node.textContent.trim())
             """,
             lambda labels: labels
-            == ["Play", "Graph", "-L", "-R", "Trim Silence", "Remove Pauses", "Slower", "Faster", "Undo"],
+            == [
+                "Play",
+                "Graph",
+                "Folder",
+                "-L",
+                "-R",
+                "Trim Silence",
+                "Remove Pauses",
+                "Slower",
+                "Faster",
+                "Undo",
+            ],
             timeout=5.0,
         )
 

@@ -4,7 +4,9 @@ from __future__ import annotations
 
 import json
 import logging
+import platform
 import shutil
+import subprocess
 import threading
 import weakref
 from dataclasses import dataclass, field
@@ -131,6 +133,9 @@ def _handle_bridge_command(editor: Any, command: str) -> bool:
             return True
         if command == "aqe:play":
             _play(editor)
+            return True
+        if command == "aqe:show-file":
+            _show_current_audio_file(editor)
             return True
         if command == "aqe:play-ended":
             _play_ended(editor)
@@ -380,6 +385,51 @@ def _undo(editor: Any) -> None:
     _eval_playback_state(editor, field_index, "stopped", 0)
     if field_index in session.graph_active_fields:
         _request_graph_redraw(editor, field_index, previous.filename)
+
+
+def _show_current_audio_file(editor: Any) -> None:
+    session, media_path = _current_media_path(editor)
+    if _is_busy(session):
+        _eval_status(editor, "Still processing. Please wait.", kind="processing")
+        return
+    _reveal_file(media_path)
+    _eval_status(editor, f"Showing {media_path.name} in folder")
+
+
+def _reveal_file(path: Path) -> None:
+    if not path.is_file():
+        raise MissingMediaError("The referenced audio file was not found in Anki's media folder.")
+    resolved = path.resolve()
+    system = platform.system()
+    if system == "Darwin":
+        _run_detached(("open", "-R", str(resolved)))
+        return
+    if system == "Windows":
+        _run_detached(("explorer", f"/select,{resolved}"))
+        return
+    _open_parent_folder(resolved.parent)
+
+
+def _open_parent_folder(folder: Path) -> None:
+    xdg_open = shutil.which("xdg-open")
+    if xdg_open:
+        _run_detached((xdg_open, str(folder)))
+        return
+    try:
+        from aqt.qt import QDesktopServices, QUrl
+
+        if QDesktopServices.openUrl(QUrl.fromLocalFile(str(folder))):
+            return
+    except Exception as exc:
+        logger.info("Qt folder open failed: %s", exc)
+    raise AudioProcessingError("Could not open the containing folder.")
+
+
+def _run_detached(command: tuple[str, ...]) -> None:
+    try:
+        subprocess.Popen(command)  # nosec B603
+    except OSError as exc:
+        raise AudioProcessingError("Could not open the containing folder.") from exc
 
 
 def _session_and_source(editor: Any) -> tuple[EditorSession, Path]:

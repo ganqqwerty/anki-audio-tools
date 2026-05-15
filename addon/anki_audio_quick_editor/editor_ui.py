@@ -29,6 +29,7 @@ _SCRIPT_TEMPLATE = r"""
   const commandSlugs = {
     "aqe:play": "play",
     "aqe:analyze": "graph",
+    "aqe:show-file": "show-file",
     "aqe:trim-left": "trim-left",
     "aqe:trim-right": "trim-right",
     "aqe:trim-silence": "trim-silence",
@@ -172,6 +173,7 @@ _SCRIPT_TEMPLATE = r"""
     wrapper.append(
       makeButton("Play", "Play or pause current audio", "aqe:play", node, ord),
       makeButton("Graph", "Analyze and show pitch/intensity graph", "aqe:analyze", node, ord),
+      makeButton("Folder", "Show current audio file in folder", "aqe:show-file", node, ord),
       makeButton("-L", "Trim 100 ms from left", "aqe:trim-left", node, ord),
       makeButton("-R", "Trim 100 ms from right", "aqe:trim-right", node, ord),
       makeButton("Trim Silence", "Trim leading and trailing silence", "aqe:trim-silence", node, ord),
