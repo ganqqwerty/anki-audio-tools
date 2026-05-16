@@ -17,6 +17,7 @@ def test_detects_sound_reference_inside_html() -> None:
     selection = select_first_sound_reference("<div>before [sound:sentence.mp3] after</div>")
 
     assert selection.selected is not None
+    assert selection.selected.tag == "[sound:sentence.mp3]"
     assert selection.selected.filename == "sentence.mp3"
     assert selection.has_multiple is False
 
@@ -36,8 +37,10 @@ def test_ignores_fields_without_audio() -> None:
 
 
 def test_rejects_unsupported_audio_extension() -> None:
-    with pytest.raises(UnsupportedAudioError, match="unsupported format"):
+    with pytest.raises(UnsupportedAudioError) as exc_info:
         select_first_sound_reference("[sound:movie.mp4]")
+
+    assert str(exc_info.value) == "The first audio reference uses an unsupported format."
 
 
 def test_multiple_sound_references_selects_first_supported_reference() -> None:

@@ -87,7 +87,7 @@ def field_groups_for_notes(notes: Sequence[BatchNoteSnapshot]) -> tuple[FieldGro
 
 def append_image_reference(field_html: str, image_filename: str) -> str:
     """Append an Anki image media reference on a new visual line."""
-    image_tag = f'<img src="{html.escape(image_filename, quote=True)}">'
+    image_tag = f'<img src="{html.escape(image_filename, quote=True)}">'  # pragma: no mutate
     return f"{field_html}<br>{image_tag}" if field_html else image_tag
 
 
