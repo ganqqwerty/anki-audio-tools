@@ -43,7 +43,7 @@ Anki Audio Quick Editor keeps a tested Anki shell and adds focused inline and ba
 3. `editor_ui.py` injects compact controls near fields containing supported `[sound:...]` tags through `editor_will_load_note`.
 4. Controls mount a compact SVG prosody visualizer and request async analysis for the current referenced media.
 5. `prosody_analyzer.py` uses optional Parselmouth/Praat when available and falls back to ffmpeg-decoded PCM pitch/intensity analysis otherwise.
-6. Processing button presses update an `AudioEditState` for the current field and render a new MP3 with `audio_processor.py`.
+6. Processing button presses update an `AudioEditState` for the current field, including trim, speed, volume, and silence edits, then render a new MP3 with `audio_processor.py`.
 7. `editor_integration.py` writes the result through Anki's media manager and replaces the first supported sound reference in the field.
 8. Playback uses Anki's audio player against the latest generated reference, stopping any previous playback first and seeking to the visualizer cursor when set.
 9. Undo restores the previous generated reference and edit state without deleting generated media.
@@ -73,7 +73,7 @@ Config defaults are stored in `config.json` and migrated into user config:
 
 ```json
 {
-  "_config_version": 3,
+  "_config_version": 4,
   "enabled": true,
   "debug_logging": false,
   "show_ffmpeg_commands": false,
@@ -82,6 +82,9 @@ Config defaults are stored in `config.json` and migrated into user config:
   "speed_step": 0.05,
   "min_speed": 0.75,
   "max_speed": 1.5,
+  "volume_step_db": 3.0,
+  "min_volume_db": -24.0,
+  "max_volume_db": 24.0,
   "edge_silence_threshold_db": -35,
   "edge_silence_min_ms": 100,
   "internal_pause_threshold_ms": 300,

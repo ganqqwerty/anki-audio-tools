@@ -504,6 +504,8 @@ def test_each_processing_button_updates_field_to_new_real_audio(anki_mw, ffmpeg_
                 "Remove Pauses",
                 "Slower",
                 "Faster",
+                "Volume -",
+                "Volume +",
                 "Undo",
             ],
             timeout=5.0,
@@ -516,6 +518,8 @@ def test_each_processing_button_updates_field_to_new_real_audio(anki_mw, ffmpeg_
             "aqe:trim-right",
             "aqe:slower",
             "aqe:faster",
+            "aqe:volume-down",
+            "aqe:volume-up",
             "aqe:trim-silence",
             "aqe:remove-pauses",
         ):

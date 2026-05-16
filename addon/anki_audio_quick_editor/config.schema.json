@@ -13,6 +13,9 @@
     "speed_step",
     "min_speed",
     "max_speed",
+    "volume_step_db",
+    "min_volume_db",
+    "max_volume_db",
     "edge_silence_threshold_db",
     "edge_silence_min_ms",
     "internal_pause_threshold_ms",
@@ -56,6 +59,16 @@
     "max_speed": {
       "type": "number",
       "exclusiveMinimum": 0
+    },
+    "volume_step_db": {
+      "type": "number",
+      "exclusiveMinimum": 0
+    },
+    "min_volume_db": {
+      "type": "number"
+    },
+    "max_volume_db": {
+      "type": "number"
     },
     "edge_silence_threshold_db": {
       "type": "integer"

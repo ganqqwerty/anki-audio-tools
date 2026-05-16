@@ -18,33 +18,55 @@ from anki_audio_quick_editor.audio_processor import (
     probe_duration_ms,
     render_audio,
     render_playback_segment,
+    temp_final_path,
 )
 from anki_audio_quick_editor.audio_state import AudioEditState, AudioProcessingConfig
+from anki_audio_quick_editor.errors import AudioProcessingError
 
 
 def test_build_audio_filters_includes_crop_speed_and_silence_steps() -> None:
+    config = AudioProcessingConfig()
     state = AudioEditState(
         "clip.mp3",
         left_trim_ms=200,
         right_trim_ms=100,
         speed=1.15,
+        volume_db=3.0,
         edge_trim_enabled=True,
         remove_internal_pauses_enabled=True,
     )
 
-    filters = build_audio_filters(3000, state, AudioProcessingConfig())
+    filters = build_audio_filters(3000, state, config)
+    threshold = f"{config.edge_silence_threshold_db}dB"
 
     assert "atrim=start=0.200:end=2.900" in filters
     assert "silenceremove=start_periods=1" in filters
     assert "stop_periods=-1" in filters
+    assert f"start_threshold={threshold}" in filters
+    assert f"stop_threshold={threshold}" in filters
     assert "stop_silence=0.100" in filters
+    assert "volume=3.00dB" in filters
     assert "atempo=1.150" in filters
+    assert filters.index("stop_silence=0.100") < filters.index("volume=3.00dB")
+    assert filters.index("volume=3.00dB") < filters.index("atempo=1.150")
+
+
+def test_build_audio_filters_omits_volume_filter_when_unchanged() -> None:
+    filters = build_audio_filters(3000, AudioEditState("clip.mp3"), AudioProcessingConfig())
+
+    assert "volume=" not in filters
 
 
 def test_build_playback_segment_filters_starts_at_cursor_and_resets_timestamps() -> None:
     filters = build_playback_segment_filters(700)
 
     assert filters == "atrim=start=0.700,asetpts=PTS-STARTPTS"
+
+
+def test_build_playback_segment_filters_clamps_negative_cursor_to_zero() -> None:
+    filters = build_playback_segment_filters(-200)
+
+    assert filters == "atrim=start=0.000,asetpts=PTS-STARTPTS"
 
 
 def test_make_output_filename_is_mp3_and_timestamped() -> None:
@@ -76,6 +98,25 @@ def test_make_playback_segment_filename_is_debuggable_and_sanitized() -> None:
     filename = make_playback_segment_filename("../短い test.wav", 700, "abc12345")
 
     assert filename == "aqe_playback_test__from_700ms_abc12345.mp3"
+
+
+def test_temp_final_path_preserves_basename_only() -> None:
+    path = temp_final_path("../nested/clip.mp3")
+
+    assert path.name == "clip.mp3"
+    assert path.parent.name.startswith("aqe_final_")
+
+
+def test_render_playback_segment_rejects_cursor_at_end(monkeypatch, tmp_path: Path) -> None:
+    monkeypatch.setattr("anki_audio_quick_editor.audio_processor.find_ffmpeg", lambda *_args: Path("/tmp/ffmpeg"))
+    monkeypatch.setattr("anki_audio_quick_editor.audio_processor.probe_duration_ms", lambda *_args: 1000)
+
+    with pytest.raises(AudioProcessingError, match="Cursor is at the end of the audio."):
+        render_playback_segment(
+            tmp_path / "source.wav",
+            1000,
+            AudioProcessingConfig(),
+        )
 
 
 @pytest.mark.skipif(

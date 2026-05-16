@@ -16,6 +16,9 @@ class AudioProcessingConfig:
     speed_step: float = 0.05
     min_speed: float = 0.75
     max_speed: float = 1.5
+    volume_step_db: float = 3.0
+    min_volume_db: float = -24.0
+    max_volume_db: float = 24.0
     edge_silence_threshold_db: int = -35
     edge_silence_min_ms: int = 100
     internal_pause_threshold_ms: int = 300
@@ -33,6 +36,9 @@ class AudioProcessingConfig:
             speed_step=float(config.get("speed_step", cls.speed_step)),
             min_speed=float(config.get("min_speed", cls.min_speed)),
             max_speed=float(config.get("max_speed", cls.max_speed)),
+            volume_step_db=float(config.get("volume_step_db", cls.volume_step_db)),
+            min_volume_db=float(config.get("min_volume_db", cls.min_volume_db)),
+            max_volume_db=float(config.get("max_volume_db", cls.max_volume_db)),
             edge_silence_threshold_db=int(
                 config.get("edge_silence_threshold_db", cls.edge_silence_threshold_db)
             ),
@@ -59,6 +65,7 @@ class AudioEditState:
     left_trim_ms: int = 0
     right_trim_ms: int = 0
     speed: float = 1.0
+    volume_db: float = 0.0
     edge_trim_enabled: bool = False
     remove_internal_pauses_enabled: bool = False
 
@@ -86,6 +93,20 @@ class AudioEditState:
         """Return a state with speed decreased by the configured step."""
         return replace(self, speed=round(max(config.min_speed, self.speed - config.speed_step), 2))
 
+    def volume_up(self, config: AudioProcessingConfig) -> "AudioEditState":
+        """Return a state with volume increased by the configured dB step."""
+        return replace(
+            self,
+            volume_db=round(min(config.max_volume_db, self.volume_db + config.volume_step_db), 2),
+        )
+
+    def volume_down(self, config: AudioProcessingConfig) -> "AudioEditState":
+        """Return a state with volume decreased by the configured dB step."""
+        return replace(
+            self,
+            volume_db=round(max(config.min_volume_db, self.volume_db - config.volume_step_db), 2),
+        )
+
     def toggle_edge_trim(self) -> "AudioEditState":
         """Return a state with edge silence trimming enabled."""
         return replace(self, edge_trim_enabled=True)
@@ -98,6 +119,8 @@ class AudioEditState:
         """Raise if this edit state cannot render playable audio."""
         if self.speed < config.min_speed or self.speed > config.max_speed:
             raise InvalidEditStateError("Invalid speed value.")
+        if self.volume_db < config.min_volume_db or self.volume_db > config.max_volume_db:
+            raise InvalidEditStateError("Invalid volume value.")
         if self.left_trim_ms < 0 or self.right_trim_ms < 0:
             raise InvalidEditStateError("Trim values cannot be negative.")
         if self.left_trim_ms + self.right_trim_ms >= max(0, duration_ms - 50):

@@ -8,6 +8,9 @@ export interface Config {
   speed_step: number;
   min_speed: number;
   max_speed: number;
+  volume_step_db: number;
+  min_volume_db: number;
+  max_volume_db: number;
   edge_silence_threshold_db: number;
   edge_silence_min_ms: number;
   internal_pause_threshold_ms: number;

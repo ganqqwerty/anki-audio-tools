@@ -49,7 +49,7 @@ def test_save_command_writes_config(anki_mw) -> None:
     from anki_audio_quick_editor.settings.commands import handle_settings_command
 
     config = {
-        "_config_version": 3,
+        "_config_version": 4,
         "enabled": False,
         "debug_logging": True,
         "show_ffmpeg_commands": False,
@@ -58,6 +58,9 @@ def test_save_command_writes_config(anki_mw) -> None:
         "speed_step": 0.05,
         "min_speed": 0.75,
         "max_speed": 1.5,
+        "volume_step_db": 3.0,
+        "min_volume_db": -24.0,
+        "max_volume_db": 24.0,
         "edge_silence_threshold_db": -35,
         "edge_silence_min_ms": 100,
         "internal_pause_threshold_ms": 300,

@@ -20,7 +20,7 @@
 
   const initialState: InitialState = window.__INITIAL_STATE__ ?? {
     config: {
-      _config_version: 3,
+      _config_version: 4,
       enabled: true,
       debug_logging: false,
       show_ffmpeg_commands: false,
@@ -29,6 +29,9 @@
       speed_step: 0.05,
       min_speed: 0.75,
       max_speed: 1.5,
+      volume_step_db: 3.0,
+      min_volume_db: -24.0,
+      max_volume_db: 24.0,
       edge_silence_threshold_db: -35,
       edge_silence_min_ms: 100,
       internal_pause_threshold_ms: 300,
@@ -160,6 +163,18 @@
           <label>
             <span>Max speed</span>
             <input type="number" min="0.1" step="0.05" bind:value={config.max_speed} />
+          </label>
+          <label>
+            <span>Volume step (dB)</span>
+            <input type="number" min="0.1" step="0.1" bind:value={config.volume_step_db} />
+          </label>
+          <label>
+            <span>Min volume (dB)</span>
+            <input type="number" step="0.1" bind:value={config.min_volume_db} />
+          </label>
+          <label>
+            <span>Max volume (dB)</span>
+            <input type="number" step="0.1" bind:value={config.max_volume_db} />
           </label>
           <label>
             <span>Silence threshold (dB)</span>

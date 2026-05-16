@@ -4,7 +4,7 @@ import { describe, expect, it, vi } from "vitest";
 import App from "../src/App.svelte";
 
 const defaultConfig = {
-  _config_version: 3,
+  _config_version: 4,
   enabled: true,
   debug_logging: false,
   show_ffmpeg_commands: false,
@@ -13,6 +13,9 @@ const defaultConfig = {
   speed_step: 0.05,
   min_speed: 0.75,
   max_speed: 1.5,
+  volume_step_db: 3.0,
+  min_volume_db: -24.0,
+  max_volume_db: 24.0,
   edge_silence_threshold_db: -35,
   edge_silence_min_ms: 100,
   internal_pause_threshold_ms: 300,
@@ -45,6 +48,9 @@ describe("App", () => {
     expect(screen.queryByText("Enable inline editor controls")).not.toBeInTheDocument();
     expect(screen.getByText("Show ffmpeg commands while processing")).toBeInTheDocument();
     expect(screen.getByText("ffmpeg path")).toBeInTheDocument();
+    expect(screen.getByText("Volume step (dB)")).toBeInTheDocument();
+    expect(screen.getByText("Min volume (dB)")).toBeInTheDocument();
+    expect(screen.getByText("Max volume (dB)")).toBeInTheDocument();
   });
 
   it("always saves inline editor controls as enabled", async () => {
@@ -66,6 +72,42 @@ describe("App", () => {
       .find((command) => command.startsWith("settings_save:")) as string;
     const config = JSON.parse(call.slice("settings_save:".length)) as { enabled: boolean };
     expect(config.enabled).toBe(true);
+  });
+
+  it("saves edited volume settings", async () => {
+    window.__INITIAL_STATE__ = {
+      config: defaultConfig,
+      version: "0.1.0",
+      addon_dir: "/tmp/addon",
+      log_file_path: "/tmp/addon/log.txt",
+      diagnostics: { addon_id: "anki_audio_quick_editor", collection_available: true },
+    };
+
+    render(App);
+    await fireEvent.input(screen.getByLabelText("Volume step (dB)"), {
+      target: { value: "1.5" },
+    });
+    await fireEvent.input(screen.getByLabelText("Min volume (dB)"), {
+      target: { value: "-18" },
+    });
+    await fireEvent.input(screen.getByLabelText("Max volume (dB)"), {
+      target: { value: "12" },
+    });
+    await fireEvent.click(screen.getByRole("button", { name: "Save" }));
+
+    const call = vi
+      .mocked(pycmdMock())
+      .mock.calls
+      .map(([command]) => command as string)
+      .find((command) => command.startsWith("settings_save:")) as string;
+    const config = JSON.parse(call.slice("settings_save:".length)) as {
+      volume_step_db: number;
+      min_volume_db: number;
+      max_volume_db: number;
+    };
+    expect(config.volume_step_db).toBe(1.5);
+    expect(config.min_volume_db).toBe(-18);
+    expect(config.max_volume_db).toBe(12);
   });
 
   it("shows diagnostics data and runs a health check", async () => {

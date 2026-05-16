@@ -34,6 +34,17 @@ def test_apply_processing_command_handles_speed_and_feature_toggles() -> None:
     assert edge_trimmed == AudioEditState("clip.mp3", edge_trim_enabled=True)
 
 
+def test_apply_processing_command_handles_volume_steps() -> None:
+    config = AudioProcessingConfig(volume_step_db=2.5)
+    state = AudioEditState("clip.mp3")
+
+    louder = apply_processing_command("aqe:volume-up", state, config)
+    quieter = apply_processing_command("aqe:volume-down", state, config)
+
+    assert louder == AudioEditState("clip.mp3", volume_db=2.5)
+    assert quieter == AudioEditState("clip.mp3", volume_db=-2.5)
+
+
 def test_apply_processing_command_returns_none_for_non_processing_command() -> None:
     config = AudioProcessingConfig()
     state = AudioEditState("clip.mp3")

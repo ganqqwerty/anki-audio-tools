@@ -24,7 +24,9 @@ _SCRIPT_TEMPLATE = r"""
     "aqe:slower",
     "aqe:faster",
     "aqe:trim-silence",
-    "aqe:remove-pauses"
+    "aqe:remove-pauses",
+    "aqe:volume-down",
+    "aqe:volume-up"
   ]);
   const commandSlugs = {
     "aqe:play": "play",
@@ -36,6 +38,8 @@ _SCRIPT_TEMPLATE = r"""
     "aqe:remove-pauses": "remove-pauses",
     "aqe:slower": "slower",
     "aqe:faster": "faster",
+    "aqe:volume-down": "volume-down",
+    "aqe:volume-up": "volume-up",
     "aqe:undo": "undo"
   };
   const plot = { width: 620, height: 150, left: 44, right: 10, top: 10, bottom: 34 };
@@ -182,6 +186,8 @@ _SCRIPT_TEMPLATE = r"""
       makeButton("Remove Pauses", "Compress long internal pauses", "aqe:remove-pauses", node, ord),
       makeButton("Slower", "Decrease speed", "aqe:slower", node, ord),
       makeButton("Faster", "Increase speed", "aqe:faster", node, ord),
+      makeButton("Volume -", "Decrease volume", "aqe:volume-down", node, ord),
+      makeButton("Volume +", "Increase volume", "aqe:volume-up", node, ord),
       makeButton("Undo", "Restore the previous generated audio reference", "aqe:undo", node, ord),
       statusNode(ord),
       visualizerNode(ord)

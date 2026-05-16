@@ -10,11 +10,14 @@ Audio Quick Editor config lives in [`addon/anki_audio_quick_editor/config.json`]
 | `enabled` | boolean | Master on/off flag for inline editor controls |
 | `debug_logging` | boolean | Raises package logger verbosity |
 | `show_ffmpeg_commands` | boolean | Shows the exact ffmpeg command in inline processing status when enabled |
-| `manual_trim_small_ms` | integer | Default trim step for inline `-L`, `+L`, `-R`, and `+R` controls |
+| `manual_trim_small_ms` | integer | Default trim step for inline `-L` and `-R` controls |
 | `manual_trim_large_ms` | integer | Reserved larger trim step for future shortcut modifiers |
 | `speed_step` | number | Amount added or removed by Faster/Slower |
 | `min_speed` | number | Lower bound for pitch-preserving speed changes |
 | `max_speed` | number | Upper bound for pitch-preserving speed changes |
+| `volume_step_db` | number | Decibel amount added or removed by Volume +/- |
+| `min_volume_db` | number | Lower bound for manual gain changes |
+| `max_volume_db` | number | Upper bound for manual gain changes |
 | `edge_silence_threshold_db` | integer | Silence threshold used by edge trim and pause removal |
 | `edge_silence_min_ms` | integer | Minimum leading/trailing silence duration to trim |
 | `internal_pause_threshold_ms` | integer | Internal silence duration that qualifies as a pause |

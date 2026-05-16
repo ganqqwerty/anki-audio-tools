@@ -204,6 +204,9 @@ def build_audio_filters(
             f"stop_silence={gap_s:.3f}"
         )
 
+    if not math.isclose(state.volume_db, 0.0):
+        filters.append(f"volume={state.volume_db:.2f}dB")
+
     if not math.isclose(state.speed, 1.0):
         filters.extend(_atempo_filters(state.speed))
     return ",".join(filters)

@@ -60,6 +60,42 @@ def test_speed_up_renders_shorter_mp3(
     assert faster_duration_ms < original_duration_ms - 250
 
 
+def test_volume_gain_renders_new_mp3_with_db_filter(
+    anki_mw,
+    tmp_path: Path,
+    ffmpeg_config,
+) -> None:
+    from anki_audio_quick_editor.audio_processor import (
+        format_ffmpeg_command,
+        render_audio,
+    )
+    from anki_audio_quick_editor.audio_state import AudioEditState
+
+    del anki_mw
+    source = tmp_path / "volume-source.wav"
+    louder = tmp_path / "louder.mp3"
+    quieter = tmp_path / "quieter.mp3"
+    generate_tone(ffmpeg_config, source, duration_s=1.0)
+
+    louder_result = render_audio(
+        source,
+        AudioEditState(source_file=source.name, volume_db=6.0),
+        ffmpeg_config,
+        output_path=louder,
+    )
+    quieter_result = render_audio(
+        source,
+        AudioEditState(source_file=source.name, volume_db=-6.0),
+        ffmpeg_config,
+        output_path=quieter,
+    )
+
+    assert louder.is_file()
+    assert quieter.is_file()
+    assert "volume=6.00dB" in format_ffmpeg_command(louder_result.command)
+    assert "volume=-6.00dB" in format_ffmpeg_command(quieter_result.command)
+
+
 def test_final_save_writes_new_anki_media_without_overwriting_original(
     anki_mw,
     ffmpeg_config,
