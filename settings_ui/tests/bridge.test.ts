@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import {
+  copySupportReport,
   registerCallbacks,
   sendAsyncCmd,
   sendBridgeCommand,
@@ -72,6 +73,17 @@ describe("sendAsyncCmd", () => {
       id: "job-1",
       op: "health_check",
       payload: { sample: true },
+    });
+  });
+});
+
+describe("copySupportReport", () => {
+  it("sends a copy_support_report payload", () => {
+    copySupportReport("support text");
+    const call = pycmd.mock.calls[0]?.[0] ?? "";
+    expect(call).toMatch(/^copy_support_report:/);
+    expect(JSON.parse(call.slice("copy_support_report:".length))).toEqual({
+      text: "support text",
     });
   });
 });

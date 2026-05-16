@@ -52,6 +52,14 @@ export interface SaveErrorPayload {
   error: string;
 }
 
+export interface SupportReportResult {
+  reportText: string;
+}
+
+export interface ShowLogFileResult {
+  logFilePath: string;
+}
+
 export interface HealthReport {
   collection_available: boolean;
   deck_count: number;
@@ -60,6 +68,13 @@ export interface HealthReport {
   deep_filter?: {
     available: boolean;
     path: string;
+    version: string;
+    error: string;
+  };
+  sidon?: {
+    available: boolean;
+    path: string;
+    model_dir: string;
     version: string;
     error: string;
   };

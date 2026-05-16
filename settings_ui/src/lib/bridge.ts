@@ -27,6 +27,10 @@ export function sendAsyncCmd(id: string, op: string, payload: unknown): void {
   sendBridgeCommand(`async_cmd:${JSON.stringify({ id, op, payload })}`);
 }
 
+export function copySupportReport(text: string): void {
+  sendBridgeCommand(`copy_support_report:${JSON.stringify({ text })}`);
+}
+
 export interface BridgeCallbacks {
   onAsyncProgress?: (payload: AsyncProgressPayload) => void;
   onAsyncDone?: (payload: AsyncDonePayload) => void;

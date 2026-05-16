@@ -4,27 +4,33 @@ from __future__ import annotations
 
 import json
 import logging
-import platform
 import shutil
-import subprocess
 import threading
 import weakref
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any
+from typing import Any, Callable
 
 from .audio_processor import (
+    AudioProcessingResult,
     format_ffmpeg_command,
     make_output_filename,
     render_audio,
     render_noise_reduced_audio,
     render_playback_segment,
+    render_sidon_audio,
     temp_final_path,
 )
 from .audio_state import AudioEditState, AudioProcessingConfig
-from .editor_actions import BRIDGE_COMMANDS, CMD_REMOVE_NOISE, apply_processing_command
+from .editor_actions import (
+    BRIDGE_COMMANDS,
+    CMD_REMOVE_NOISE,
+    CMD_SIDON,
+    apply_processing_command,
+)
 from .editor_ui import injection_script
 from .errors import AudioProcessingError, AudioQuickEditorError, MissingMediaError
+from .file_reveal import reveal_file
 from .prosody_cache import (
     analyze_prosody_cached as _analyze_prosody_cached,
 )
@@ -33,6 +39,12 @@ from .sound_refs import (
     replace_sound_reference,
     safe_media_basename,
     select_first_sound_reference,
+)
+from .support import (
+    SIDON_SUPPORT_HINT,
+    format_sidon_support_log_block,
+    latest_sidon_support_incident,
+    record_latest_sidon_support_incident,
 )
 
 logger = logging.getLogger(__name__)
@@ -180,6 +192,7 @@ def _handle_non_processing_command(editor: Any, command: str) -> bool:
         "aqe:play-ended": _play_ended,
         "aqe:undo": _undo,
         CMD_REMOVE_NOISE: _remove_noise_async,
+        CMD_SIDON: _sidon_async,
     }
     handler = handlers.get(command)
     if handler is None:
@@ -301,6 +314,34 @@ def _render_failed(editor: Any, message: str) -> None:
 
 
 def _remove_noise_async(editor: Any) -> None:
+    _run_special_audio_transform_async(
+        editor,
+        label="Removing noise",
+        failure_log_label="remove noise failed",
+        renderer=render_noise_reduced_audio,
+    )
+
+
+def _sidon_async(editor: Any) -> None:
+    _run_special_audio_transform_async(
+        editor,
+        label="Restoring speech",
+        failure_log_label="sidon restore failed",
+        renderer=render_sidon_audio,
+        support_hint=SIDON_SUPPORT_HINT,
+        failure_context_recorder=_record_sidon_failure_context,
+    )
+
+
+def _run_special_audio_transform_async(
+    editor: Any,
+    *,
+    label: str,
+    failure_log_label: str,
+    renderer: Callable[..., AudioProcessingResult],
+    support_hint: str = "",
+    failure_context_recorder: Callable[[Path, AudioProcessingConfig, Exception], None] | None = None,
+) -> None:
     existing = _SESSIONS.get(editor)
     if existing and _is_busy(existing):
         _eval_status(editor, STILL_PROCESSING_MESSAGE, kind="processing")
@@ -311,7 +352,7 @@ def _remove_noise_async(editor: Any) -> None:
     session.processing = True
     session.playback_active = False
     session.playback_paused = False
-    _set_busy(editor, True, "Removing noise...")
+    _set_busy(editor, True, f"{label}...")
     _eval_playback_state(editor, session.field_index, "stopped", session.cursor_ms)
 
     def _run() -> None:
@@ -322,14 +363,14 @@ def _remove_noise_async(editor: Any) -> None:
 
             def _show_command(command: tuple[str, ...]) -> None:
                 rendered = format_ffmpeg_command(command)
-                message = "Removing noise"
+                message = label
                 command_text = ""
                 if config.show_ffmpeg_commands:
                     message = f"{message}: {rendered}"
                     command_text = rendered
                 _main(editor, lambda: _set_busy(editor, True, message, command_text))
 
-            render_noise_reduced_audio(
+            renderer(
                 current_path,
                 config,
                 output_path=output_path,
@@ -340,8 +381,13 @@ def _remove_noise_async(editor: Any) -> None:
             _main(editor, lambda: _replace_current_field_after_noise_removal(editor, saved_name))
         except Exception as exc:
             message = str(exc)
-            logger.exception("remove noise failed: %s", message)
-            _main(editor, lambda: _render_failed(editor, message))
+            rendered_message = message
+            if failure_context_recorder is not None:
+                failure_context_recorder(current_path, config, exc)
+            _log_special_transform_failure(failure_log_label, message)
+            if support_hint:
+                rendered_message = f"{message} {support_hint}"
+            _main(editor, lambda: _render_failed(editor, rendered_message))
         finally:
             if output_path is not None:
                 shutil.rmtree(output_path.parent, ignore_errors=True)
@@ -605,44 +651,38 @@ def _show_current_audio_file(editor: Any) -> None:
     if _is_busy(session):
         _eval_status(editor, STILL_PROCESSING_MESSAGE, kind="processing")
         return
-    _reveal_file(media_path)
+    reveal_file(media_path)
     _eval_status(editor, f"Showing {media_path.name} in folder")
 
+def _record_sidon_failure_context(
+    source_path: Path,
+    config: AudioProcessingConfig,
+    exc: Exception,
+) -> None:
+    record_latest_sidon_support_incident(
+        operation="sidon_restore",
+        media_filename=source_path.name,
+        source_path=str(source_path.resolve()),
+        user_message=str(exc),
+        exception_type=type(exc).__name__,
+        ffmpeg_path=config.ffmpeg_path,
+    )
 
-def _reveal_file(path: Path) -> None:
-    if not path.is_file():
-        raise MissingMediaError(REFERENCED_AUDIO_MISSING)
-    resolved = path.resolve()
-    system = platform.system()
-    if system == "Darwin":
-        _run_detached(("open", "-R", str(resolved)))
+
+def _log_special_transform_failure(failure_log_label: str, message: str) -> None:
+    if failure_log_label != "sidon restore failed":
+        logger.exception("%s: %s", failure_log_label, message)
         return
-    if system == "Windows":
-        _run_detached(("explorer", f"/select,{resolved}"))
+    incident = latest_sidon_support_incident()
+    if incident:
+        logger.exception(
+            "%s: %s\n%s",
+            failure_log_label,
+            message,
+            format_sidon_support_log_block(incident),
+        )
         return
-    _open_parent_folder(resolved.parent)
-
-
-def _open_parent_folder(folder: Path) -> None:
-    xdg_open = shutil.which("xdg-open")
-    if xdg_open:
-        _run_detached((xdg_open, str(folder)))
-        return
-    try:
-        from aqt.qt import QDesktopServices, QUrl
-
-        if QDesktopServices.openUrl(QUrl.fromLocalFile(str(folder))):
-            return
-    except Exception as exc:
-        logger.info("Qt folder open failed: %s", exc)
-    raise AudioProcessingError("Could not open the containing folder.")
-
-
-def _run_detached(command: tuple[str, ...]) -> None:
-    try:
-        subprocess.Popen(command)  # nosec B603
-    except OSError as exc:
-        raise AudioProcessingError("Could not open the containing folder.") from exc
+    logger.exception("%s: %s", failure_log_label, message)
 
 
 def _session_and_source(editor: Any) -> tuple[EditorSession, Path]:

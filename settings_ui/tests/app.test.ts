@@ -157,4 +157,82 @@ describe("App", () => {
     );
     expect(container).toHaveTextContent("Health check completed");
   });
+
+  it("copies a support report from diagnostics", async () => {
+    window.__INITIAL_STATE__ = {
+      config: defaultConfig,
+      version: "0.1.0",
+      addon_dir: "/tmp/addon",
+      log_file_path: "/tmp/addon/log.txt",
+      diagnostics: { addon_id: "anki_audio_quick_editor", collection_available: true },
+    };
+
+    render(App);
+    await fireEvent.click(screen.getByRole("tab", { name: "Diagnostics & About" }));
+    await fireEvent.click(screen.getByRole("button", { name: "Copy Support Report" }));
+
+    const call = vi
+      .mocked(pycmdMock())
+      .mock.calls
+      .map(([command]) => command as string)
+      .find((command) => command.startsWith("async_cmd:")) as string;
+    const { id } = JSON.parse(call.slice("async_cmd:".length)) as { id: string };
+
+    window.onAsyncDone?.({
+      id,
+      ok: true,
+      result: {
+        reportText: "support body",
+      },
+    });
+
+    await waitFor(() =>
+      expect(
+        vi
+          .mocked(pycmdMock())
+          .mock.calls.some(
+            ([command]) =>
+              typeof command === "string" &&
+              command.startsWith("copy_support_report:") &&
+              command.includes("support body"),
+          ),
+      ).toBe(true)
+    );
+    expect(screen.getByTestId("diagnostics-message")).toHaveTextContent("Support report copied");
+  });
+
+  it("opens the log file from diagnostics", async () => {
+    window.__INITIAL_STATE__ = {
+      config: defaultConfig,
+      version: "0.1.0",
+      addon_dir: "/tmp/addon",
+      log_file_path: "/tmp/addon/log.txt",
+      diagnostics: { addon_id: "anki_audio_quick_editor", collection_available: true },
+    };
+
+    render(App);
+    await fireEvent.click(screen.getByRole("tab", { name: "Diagnostics & About" }));
+    await fireEvent.click(screen.getByRole("button", { name: "Show Log File" }));
+
+    const call = vi
+      .mocked(pycmdMock())
+      .mock.calls
+      .map(([command]) => command as string)
+      .find((command) => command.startsWith("async_cmd:")) as string;
+    const { id } = JSON.parse(call.slice("async_cmd:".length)) as { id: string };
+
+    window.onAsyncDone?.({
+      id,
+      ok: true,
+      result: {
+        logFilePath: "/tmp/addon/log.txt",
+      },
+    });
+
+    await waitFor(() =>
+      expect(screen.getByTestId("diagnostics-message")).toHaveTextContent(
+        "Log file opened: /tmp/addon/log.txt",
+      )
+    );
+  });
 });

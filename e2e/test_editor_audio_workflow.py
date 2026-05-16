@@ -6,6 +6,7 @@ import json
 import os
 import re
 import shlex
+import shutil
 import subprocess
 import sys
 import time
@@ -278,6 +279,72 @@ def _fake_deep_filter_executable(tmp_path: Path, *, fail: bool = False) -> tuple
         )
         executable.chmod(0o755)
     return executable, log_path
+
+
+def _render_direct_deep_filter_reference(
+    ffmpeg_config,
+    source: Path,
+    output_path: Path,
+    *,
+    post_filter: bool,
+) -> None:
+    from anki_audio_quick_editor.audio_processor import find_deep_filter
+
+    deep_filter = find_deep_filter("")
+    work_dir = output_path.parent / "direct_deep_filter_work"
+    input_wav = work_dir / "input_48k_mono.wav"
+    output_dir = work_dir / "deep_filter_output"
+    output_dir.mkdir(parents=True, exist_ok=True)
+
+    subprocess.run(
+        [
+            ffmpeg_config.ffmpeg_path,
+            "-y",
+            "-i",
+            str(source),
+            "-vn",
+            "-ac",
+            "1",
+            "-ar",
+            "48000",
+            "-codec:a",
+            "pcm_s16le",
+            str(input_wav),
+        ],
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+    deep_filter_command = [str(deep_filter), "-D"]
+    if post_filter:
+        deep_filter_command.append("--pf")
+    deep_filter_command.extend(["-o", str(output_dir), str(input_wav)])
+    subprocess.run(
+        deep_filter_command,
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+
+    wav_outputs = sorted(output_dir.glob("*.wav"))
+    assert len(wav_outputs) == 1
+    subprocess.run(
+        [
+            ffmpeg_config.ffmpeg_path,
+            "-y",
+            "-i",
+            str(wav_outputs[0]),
+            "-vn",
+            "-codec:a",
+            "libmp3lame",
+            "-q:a",
+            "4",
+            str(output_path),
+        ],
+        check=True,
+        capture_output=True,
+        text=True,
+    )
 
 
 def _button_selector(command: str, ord_: int = 0) -> str:
@@ -558,6 +625,7 @@ def test_each_processing_button_updates_field_to_new_real_audio(anki_mw, ffmpeg_
                 "-R",
                 "Trim Silence",
                 "Remove Pauses",
+                "Sidon",
                 "Remove noise",
                 "Slower",
                 "Faster",
@@ -661,6 +729,55 @@ def test_remove_noise_button_runs_deep_filter_and_is_undoable(
         parent.close()
 
 
+def test_remove_noise_button_matches_direct_deep_filter_output(
+    anki_mw,
+    ffmpeg_config,
+    tmp_path,
+) -> None:
+    sample_path = Path(
+        "/Users/iuriikatkov/Library/Application Support/Anki2/main2/collection.media/3d8ca69aee6.mp3"
+    )
+    if not sample_path.is_file():
+        pytest.skip(f"Local DeepFilterNet sample is unavailable: {sample_path}")
+
+    media_dir = Path(anki_mw.col.media.dir())
+    source = media_dir / sample_path.name
+    shutil.copyfile(sample_path, source)
+    direct_output = tmp_path / "3d8ca69aee6_direct_deep_filter.mp3"
+    _render_direct_deep_filter_reference(
+        ffmpeg_config,
+        source,
+        direct_output,
+        post_filter=True,
+    )
+
+    note = _basic_audio_note(anki_mw, source.name)
+    _configure_ffmpeg(
+        anki_mw,
+        ffmpeg_config,
+        deep_filter_path="",
+        deep_filter_post_filter=True,
+        show_ffmpeg_commands=True,
+    )
+
+    editor, parent = _open_editor(anki_mw, note)
+    try:
+        click_selector(editor.web, _button_selector("aqe:remove-noise"), timeout=5.0)
+        generated_name = _wait_for_generated_mp3(note, media_dir, source.name)
+        generated_path = media_dir / generated_name
+
+        ui_bytes = generated_path.read_bytes()
+        direct_bytes = direct_output.read_bytes()
+        assert ui_bytes == direct_bytes, (
+            "Remove noise button output differs from direct DeepFilterNet output: "
+            f"ui={generated_path} ({len(ui_bytes)} bytes), "
+            f"direct={direct_output} ({len(direct_bytes)} bytes)"
+        )
+    finally:
+        editor.set_note(None)
+        parent.close()
+
+
 def test_remove_noise_failure_leaves_note_unchanged(
     anki_mw,
     ffmpeg_config,
@@ -698,6 +815,46 @@ def test_remove_noise_failure_leaves_note_unchanged(
             "input_48k_mono.wav"
         )
         assert not list(media_dir.glob("editor_remove_noise_failure_source__aqe_*.mp3"))
+    finally:
+        editor.set_note(None)
+        parent.close()
+
+
+def test_sidon_failure_shows_support_hint_without_mutating_note(
+    anki_mw,
+    ffmpeg_config,
+    monkeypatch,
+) -> None:
+    media_dir = Path(anki_mw.col.media.dir())
+    source = media_dir / "editor_sidon_failure_source.wav"
+    generate_tone(ffmpeg_config, source, duration_s=0.8)
+    original_field = f"Prompt [sound:{source.name}]"
+    note = _basic_audio_note(anki_mw, source.name)
+    _configure_ffmpeg(anki_mw, ffmpeg_config)
+    monkeypatch.setattr(
+        "anki_audio_quick_editor.editor_integration.render_sidon_audio",
+        lambda *_args, **_kwargs: (_ for _ in ()).throw(
+            RuntimeError("Sidon speech restoration failed.")
+        ),
+    )
+
+    editor, parent = _open_editor(anki_mw, note)
+    try:
+        click_selector(editor.web, _button_selector("aqe:sidon"), timeout=10.0)
+        status = wait_for_js_condition(
+            editor.web,
+            _processing_status_js(),
+            lambda value: value is not None
+            and value["kind"] == "error"
+            and "Sidon speech restoration failed." in value["text"]
+            and "Open Settings > Diagnostics to copy logs for the developer." in value["text"],
+            timeout=10.0,
+        )
+
+        assert status["title"] == ""
+        assert note.fields[0] == original_field
+        assert _sound_filename(note.fields[0]) == source.name
+        assert not list(media_dir.glob("editor_sidon_failure_source__aqe_*.mp3"))
     finally:
         editor.set_note(None)
         parent.close()

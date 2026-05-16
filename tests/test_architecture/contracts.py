@@ -86,7 +86,7 @@ MODULE_CONTRACTS: dict[str, ModuleContract] = {
     "audio_processor": _contract(
         "audio_processor",
         layer=Layer.IMPORT_SAFE_CORE,
-        allowed_addon_deps=("audio_state", "errors"),
+        allowed_addon_deps=("audio_state", "errors", "support"),
         allowed_side_effects=(SideEffect.SUBPROCESS_RUN, SideEffect.TEMP_FILESYSTEM_CLEANUP),
     ),
     "audio_state": _contract(
@@ -154,14 +154,15 @@ MODULE_CONTRACTS: dict[str, ModuleContract] = {
             "editor_actions",
             "editor_ui",
             "errors",
+            "file_reveal",
             "prosody_cache",
             "prosody_types",
             "sound_refs",
+            "support",
         ),
         allowed_side_effects=(
             SideEffect.ANKI_IMPORTS_ANYWHERE,
             SideEffect.MEDIA_WRITE,
-            SideEffect.SUBPROCESS_POPEN,
             SideEffect.THREAD_SPAWN,
             SideEffect.GUI_HOOK_REGISTRATION,
             SideEffect.WEB_EVAL,
@@ -172,6 +173,13 @@ MODULE_CONTRACTS: dict[str, ModuleContract] = {
     ),
     "editor_ui": _contract("editor_ui", layer=Layer.IMPORT_SAFE_CORE),
     "errors": _contract("errors", layer=Layer.IMPORT_SAFE_CORE),
+    "file_reveal": _contract(
+        "file_reveal",
+        layer=Layer.IMPORT_SAFE_CORE,
+        allowed_addon_deps=("errors",),
+        allowed_side_effects=(SideEffect.SUBPROCESS_POPEN, SideEffect.ANKI_IMPORTS_ANYWHERE),
+        allow_any_anki_imports=True,
+    ),
     "prosody_analyzer": _contract(
         "prosody_analyzer",
         layer=Layer.IMPORT_SAFE_CORE,
@@ -214,7 +222,7 @@ MODULE_CONTRACTS: dict[str, ModuleContract] = {
     "settings.commands": _contract(
         "settings.commands",
         layer=Layer.SETTINGS_BACKEND,
-        allowed_addon_deps=("db_helpers", "diagnostics"),
+        allowed_addon_deps=("_version", "db_helpers", "diagnostics", "file_reveal", "support"),
         allowed_side_effects=(
             SideEffect.ANKI_IMPORTS_ANYWHERE,
             SideEffect.THREAD_SPAWN,
@@ -236,4 +244,5 @@ MODULE_CONTRACTS: dict[str, ModuleContract] = {
         layer=Layer.IMPORT_SAFE_CORE,
         allowed_addon_deps=("errors",),
     ),
+    "support": _contract("support", layer=Layer.IMPORT_SAFE_CORE),
 }

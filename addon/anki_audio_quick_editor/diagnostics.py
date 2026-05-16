@@ -52,3 +52,60 @@ def build_deep_filter_health(config: dict[str, Any]) -> dict[str, Any]:
         "version": version if result.returncode == 0 else "",
         "error": "" if result.returncode == 0 else version or "deep-filter --version failed.",
     }
+
+
+def build_sidon_health() -> dict[str, Any]:
+    """Return bundled Sidon availability and version details."""
+    from .audio_processor import (
+        expected_bundled_sidon_dir,
+        expected_bundled_sidon_model_dir,
+        find_sidon_bundle,
+    )
+
+    expected_dir = expected_bundled_sidon_dir()
+    expected_model_dir = expected_bundled_sidon_model_dir()
+    try:
+        sidon_path, model_dir = find_sidon_bundle()
+    except Exception as exc:
+        return {
+            "available": False,
+            "path": str(expected_dir / "bin" / "sidon-cli") if expected_dir is not None else "",
+            "model_dir": str(expected_model_dir) if expected_model_dir is not None else "",
+            "version": "",
+            "error": str(exc),
+        }
+
+    command = (str(sidon_path), "--version")
+    try:
+        result = subprocess.run(
+            list(command),
+            capture_output=True,
+            text=True,
+            check=False,
+            timeout=10,
+        )  # nosec B603
+    except OSError as exc:
+        return {
+            "available": False,
+            "path": str(sidon_path),
+            "model_dir": str(model_dir),
+            "version": "",
+            "error": str(exc),
+        }
+    except subprocess.TimeoutExpired:
+        return {
+            "available": False,
+            "path": str(sidon_path),
+            "model_dir": str(model_dir),
+            "version": "",
+            "error": "sidon-cli --version timed out.",
+        }
+
+    version = (result.stdout or result.stderr).strip()
+    return {
+        "available": result.returncode == 0,
+        "path": str(sidon_path),
+        "model_dir": str(model_dir),
+        "version": version if result.returncode == 0 else "",
+        "error": "" if result.returncode == 0 else version or "sidon-cli --version failed.",
+    }

@@ -33,6 +33,9 @@ def handle_settings_command(
     if cmd.startswith("frontend_log:"):
         _handle_frontend_log(cmd[len("frontend_log:"):])
         return True
+    if cmd.startswith("copy_support_report:"):
+        _handle_copy_support_report(cmd[len("copy_support_report:"):])
+        return True
     return False
 
 
@@ -123,6 +126,10 @@ def _dispatch_op(
 ) -> Any:
     if op == "health_check":
         return _op_health_check(payload, progress_fn)
+    if op == "support_report":
+        return _op_support_report(payload, progress_fn)
+    if op == "show_log_file":
+        return _op_show_log_file(progress_fn)
     raise RuntimeError(f"Unknown async operation: {op}")
 
 
@@ -133,7 +140,7 @@ def _op_health_check(
     from aqt import mw
 
     from ..db_helpers import build_health_report
-    from ..diagnostics import build_deep_filter_health
+    from ..diagnostics import build_deep_filter_health, build_sidon_health
 
     progress_fn(20, "Inspecting collection")
     report = build_health_report(mw.col)
@@ -141,8 +148,66 @@ def _op_health_check(
     raw_config = payload.get("config")
     config = cast(dict[str, Any], raw_config) if isinstance(raw_config, dict) else {}
     report["deep_filter"] = build_deep_filter_health(config)
+    progress_fn(80, "Checking Sidon")
+    report["sidon"] = build_sidon_health()
     progress_fn(100, "Done")
     return report
+
+
+def _op_support_report(
+    payload: dict[str, Any],
+    progress_fn: Callable[[int, str], None],
+) -> Any:
+    from aqt import mw
+
+    from .._version import __version__
+    from ..diagnostics import build_deep_filter_health, build_sidon_health
+    from ..support import (
+        addon_log_path,
+        build_support_report_text,
+        latest_sidon_support_incident,
+        read_log_tail,
+    )
+
+    progress_fn(20, "Collecting environment")
+    raw_config = payload.get("config")
+    config = cast(dict[str, Any], raw_config) if isinstance(raw_config, dict) else {}
+    addon_id = mw.addonManager.addonFromModule(__name__)
+    addon_dir = mw.addonManager.addonsFolder(addon_id)
+    log_path = addon_log_path(addon_dir)
+    progress_fn(50, "Checking external tools")
+    deep_filter_health = build_deep_filter_health(config)
+    sidon_health = build_sidon_health()
+    progress_fn(75, "Reading recent logs")
+    report_text = build_support_report_text(
+        version=__version__,
+        addon_dir=addon_dir,
+        log_file_path=str(log_path),
+        deep_filter_health=deep_filter_health,
+        sidon_health=sidon_health,
+        incident=latest_sidon_support_incident(),
+        log_tail=read_log_tail(log_path),
+    )
+    progress_fn(100, "Done")
+    return {"reportText": report_text}
+
+
+def _op_show_log_file(
+    progress_fn: Callable[[int, str], None],
+) -> Any:
+    from aqt import mw
+
+    from ..file_reveal import reveal_file
+    from ..support import addon_log_path
+
+    progress_fn(25, "Locating log file")
+    addon_id = mw.addonManager.addonFromModule(__name__)
+    addon_dir = mw.addonManager.addonsFolder(addon_id)
+    log_path = addon_log_path(addon_dir)
+    progress_fn(75, "Opening log file")
+    reveal_file(log_path, missing_message="The Audio Quick Editor log file was not found.")
+    progress_fn(100, "Done")
+    return {"logFilePath": str(log_path)}
 
 
 def _handle_frontend_log(payload_str: str) -> None:
@@ -167,3 +232,23 @@ def _handle_frontend_log(payload_str: str) -> None:
         logger.error(rendered)
     else:
         logger.info(rendered)
+
+
+def _handle_copy_support_report(payload_str: str) -> None:
+    from aqt.qt import QApplication
+
+    try:
+        payload = json.loads(payload_str)
+    except json.JSONDecodeError:
+        logger.warning("copy_support_report: invalid payload")
+        return
+
+    text = payload.get("text")
+    if not isinstance(text, str):
+        logger.warning("copy_support_report: missing text payload")
+        return
+    clipboard = QApplication.clipboard()
+    if clipboard is None:
+        logger.warning("copy_support_report: clipboard unavailable")
+        return
+    clipboard.setText(text)

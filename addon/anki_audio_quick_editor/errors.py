@@ -13,6 +13,10 @@ class MissingDeepFilterError(AudioQuickEditorError):
     """Raised when DeepFilterNet's deep-filter executable cannot be found."""
 
 
+class MissingSidonError(AudioQuickEditorError):
+    """Raised when the bundled Sidon runtime cannot be found or is incomplete."""
+
+
 class MissingMediaError(AudioQuickEditorError):
     """Raised when a referenced Anki media file does not exist."""
 

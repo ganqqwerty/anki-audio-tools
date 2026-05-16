@@ -22,6 +22,7 @@ CMD_VOLUME_UP = "aqe:volume-up"
 CMD_TRIM_SILENCE = "aqe:trim-silence"
 CMD_REMOVE_PAUSES = "aqe:remove-pauses"
 CMD_REMOVE_NOISE = "aqe:remove-noise"
+CMD_SIDON = "aqe:sidon"
 
 BRIDGE_COMMANDS = (
     "aqe:scan",
@@ -39,6 +40,7 @@ BRIDGE_COMMANDS = (
     CMD_TRIM_SILENCE,
     CMD_REMOVE_PAUSES,
     CMD_REMOVE_NOISE,
+    CMD_SIDON,
     "aqe:undo",
 )
 

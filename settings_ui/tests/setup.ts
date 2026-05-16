@@ -6,11 +6,20 @@ import "@testing-library/jest-dom";
 const pycmdMock = vi.fn<(cmd: string) => void>();
 (globalThis as unknown as Record<string, unknown>)["pycmd"] = pycmdMock;
 
+const clipboardWriteTextMock = vi.fn<(text: string) => Promise<void>>();
+Object.defineProperty(globalThis.navigator, "clipboard", {
+  configurable: true,
+  value: {
+    writeText: clipboardWriteTextMock,
+  },
+});
+
 // ---------------------------------------------------------------------------
 // Reset between tests
 // ---------------------------------------------------------------------------
 beforeEach(() => {
   pycmdMock.mockReset();
+  clipboardWriteTextMock.mockReset();
 
   // Clean up all window.on* callbacks
   delete window.onAsyncProgress;
@@ -22,4 +31,4 @@ beforeEach(() => {
 });
 
 // Re-export pycmd mock so tests can inspect calls
-export { pycmdMock };
+export { clipboardWriteTextMock, pycmdMock };

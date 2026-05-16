@@ -83,6 +83,7 @@ def test_play_graph_cursor_and_play_ended_are_not_processing_commands() -> None:
         "aqe:analyze",
         "aqe:set-cursor",
         "aqe:remove-noise",
+        "aqe:sidon",
     }.isdisjoint(PROCESSING_COMMANDS)
 
 

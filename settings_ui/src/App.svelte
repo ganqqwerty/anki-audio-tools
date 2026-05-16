@@ -3,6 +3,7 @@
 
   import { handleAsyncDone, handleAsyncProgress, startAsyncOp } from "$lib/async-jobs.js";
   import {
+    copySupportReport,
     registerCallbacks,
     settingsCancel,
     settingsResetDefaults,
@@ -16,6 +17,8 @@
     HealthReport,
     InitialState,
     SaveErrorPayload,
+    ShowLogFileResult,
+    SupportReportResult,
   } from "$lib/types.js";
 
   const initialState: InitialState = window.__INITIAL_STATE__ ?? {
@@ -57,6 +60,7 @@
   let healthMessage = $state<string>("Not run yet");
   let healthReport = $state<HealthReport | null>(null);
   let healthProgress = $state<AsyncProgressPayload | null>(null);
+  let diagnosticsMessage = $state<string>("");
 
   onMount(() => {
     registerCallbacks({
@@ -76,6 +80,7 @@
 
   async function runHealthCheck(): Promise<void> {
     healthMessage = "Running health check...";
+    diagnosticsMessage = "";
     healthProgress = null;
     try {
       const result = await startAsyncOp("health_check", { config }) as HealthReport;
@@ -85,6 +90,33 @@
       const message = error instanceof Error ? error.message : String(error);
       healthMessage = message;
       logger.error("health check failed", { message });
+    }
+  }
+
+  async function copyLatestSupportReport(): Promise<void> {
+    diagnosticsMessage = "Preparing support report...";
+    healthProgress = null;
+    try {
+      const result = await startAsyncOp("support_report", { config }) as SupportReportResult;
+      copySupportReport(result.reportText);
+      diagnosticsMessage = "Support report copied";
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      diagnosticsMessage = message;
+      logger.error("support report failed", { message });
+    }
+  }
+
+  async function showLogFile(): Promise<void> {
+    diagnosticsMessage = "Opening log file...";
+    healthProgress = null;
+    try {
+      const result = await startAsyncOp("show_log_file", {}) as ShowLogFileResult;
+      diagnosticsMessage = `Log file opened: ${result.logFilePath}`;
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      diagnosticsMessage = message;
+      logger.error("show log file failed", { message });
     }
   }
 
@@ -117,6 +149,7 @@
     </button>
     <button
       class:active={activeTab === "diagnostics"}
+      data-testid="settings-tab-diagnostics"
       role="tab"
       aria-selected={activeTab === "diagnostics"}
       type="button"
@@ -239,8 +272,29 @@
         </dl>
 
         <div class="actions">
-          <button type="button" class="btn btn-primary" onclick={runHealthCheck}>
+          <button
+            type="button"
+            class="btn btn-primary"
+            data-testid="run-health-check"
+            onclick={runHealthCheck}
+          >
             Run Health Check
+          </button>
+          <button
+            type="button"
+            class="btn btn-secondary"
+            data-testid="copy-support-report"
+            onclick={copyLatestSupportReport}
+          >
+            Copy Support Report
+          </button>
+          <button
+            type="button"
+            class="btn btn-secondary"
+            data-testid="show-log-file"
+            onclick={showLogFile}
+          >
+            Show Log File
           </button>
           {#if healthProgress}
             <p class="muted" data-testid="health-progress">
@@ -250,6 +304,7 @@
         </div>
 
         <p class="muted" data-testid="health-message">{healthMessage}</p>
+        <p class="muted" data-testid="diagnostics-message">{diagnosticsMessage}</p>
 
         {#if healthReport}
           <pre class="report" data-testid="health-report">{JSON.stringify(healthReport, null, 2)}</pre>
