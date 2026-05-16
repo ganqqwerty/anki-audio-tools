@@ -24,3 +24,4 @@ dist/
 /.scannerwork/
 node_modules
 .gitnexus
+/addon/anki_audio_quick_editor/aqe_artifacts/

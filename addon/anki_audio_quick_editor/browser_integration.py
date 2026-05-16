@@ -320,6 +320,9 @@ def _run_batch_in_background(
         mw.addonManager.getConfig(mw.addonManager.addonFromModule(__name__)) or {}
     )
     media_dir = Path(mw.col.media.dir())
+    artifact_root = Path(
+        mw.addonManager.addonsFolder(mw.addonManager.addonFromModule(__name__))
+    ) / "aqe_artifacts"
 
     def on_log(line: str) -> None:
         logger.info("batch operation: %s", line)
@@ -340,6 +343,7 @@ def _run_batch_in_background(
             dialog.cancel_event,
             on_log,
             on_progress,
+            artifact_root=artifact_root,
         )
 
     def done(future: Any) -> None:
@@ -365,6 +369,7 @@ def _run_batch(
     cancel_event: threading.Event,
     on_log: Any,
     on_progress: Any,
+    artifact_root: Path | None = None,
 ) -> BatchRunReport:
     report = BatchRunReport(total=len(note_ids))
     undo_entry: int | None = None
@@ -389,6 +394,7 @@ def _run_batch(
             request,
             media_dir,
             config,
+            artifact_root,
         )
         last_audio = note_result.audio_filename or last_audio
         if note_result.written and undo_entry is None:
@@ -418,6 +424,7 @@ def _process_note(
     request: BatchRunRequest,
     media_dir: Path,
     config: AudioProcessingConfig,
+    artifact_root: Path | None = None,
 ) -> BatchNoteResult:
     try:
         note = col.get_note(note_id)
@@ -432,6 +439,7 @@ def _process_note(
         media_dir=media_dir,
         config=config,
         media_writer=col.media.write_data,
+        artifact_root=artifact_root,
     )
     if current_audio and result.audio_filename is None:
         return BatchNoteResult(

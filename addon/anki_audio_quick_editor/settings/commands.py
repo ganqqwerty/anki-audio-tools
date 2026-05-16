@@ -176,6 +176,7 @@ def _op_support_report(
         addon_log_path,
         build_support_report_text,
         latest_mp_senet_support_incident,
+        latest_pause_pipeline_support_incident,
         latest_sidon_support_incident,
         read_log_tail,
     )
@@ -200,6 +201,7 @@ def _op_support_report(
         mp_senet_health=mp_senet_health,
         sidon_incident=latest_sidon_support_incident(),
         mp_senet_incident=latest_mp_senet_support_incident(),
+        pause_pipeline_incident=latest_pause_pipeline_support_incident(),
         log_tail=read_log_tail(log_path),
     )
     progress_fn(100, "Done")

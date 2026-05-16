@@ -143,6 +143,7 @@ def process_note_batch_operation(
     media_dir: Path,
     config: AudioProcessingConfig,
     media_writer: MediaWriter,
+    artifact_root: Path | None = None,
     now_provider: NowProvider | None = None,
 ) -> BatchNoteResult:
     """Process one batch operation for ``note``."""
@@ -196,6 +197,7 @@ def process_note_batch_operation(
             audio_filename=audio_filename,
             config=config,
             media_writer=media_writer,
+            artifact_root=artifact_root,
         )
 
     raise ValueError(f"Unsupported batch operation: {request.operation}")
@@ -251,6 +253,7 @@ def _process_transform_operation(
     audio_filename: str,
     config: AudioProcessingConfig,
     media_writer: MediaWriter,
+    artifact_root: Path | None,
 ) -> BatchNoteResult:
     output_path: Path | None = None
     try:
@@ -261,7 +264,13 @@ def _process_transform_operation(
         )
         desired_name = make_output_filename(audio_filename)
         output_path = temp_final_path(desired_name)
-        render_audio(source_path, updated_state, config, output_path=output_path)
+        render_audio(
+            source_path,
+            updated_state,
+            config,
+            output_path=output_path,
+            artifact_root=artifact_root,
+        )
         with output_path.open("rb") as file:
             saved_name = media_writer(desired_name, file.read())
         replaced_html = replace_sound_reference(source_html, selection, saved_name)

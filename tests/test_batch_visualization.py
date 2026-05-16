@@ -148,13 +148,22 @@ def test_process_note_batch_operation_replaces_audio_reference_for_transform(
 ) -> None:
     source = tmp_path / "clip.mp3"
     source.write_bytes(b"audio")
+    artifact_root = tmp_path / "artifacts"
     note = BatchNoteSnapshot(10, "Basic", {"Audio": "before [sound:clip.mp3] after"})
     render_calls: list[tuple[str, float]] = []
     writes: list[tuple[str, bytes]] = []
 
-    def fake_render_audio(source_path, state, _config, output_path=None, on_command=None):
+    def fake_render_audio(
+        source_path,
+        state,
+        _config,
+        output_path=None,
+        on_command=None,
+        artifact_root=None,
+    ):
         del on_command
         assert output_path is not None
+        assert artifact_root == tmp_path / "artifacts"
         output_path.write_bytes(b"rendered")
         render_calls.append((source_path.name, state.speed))
 
@@ -170,6 +179,7 @@ def test_process_note_batch_operation_replaces_audio_reference_for_transform(
         media_dir=tmp_path,
         config=AudioProcessingConfig(speed_step=0.1),
         media_writer=media_writer,
+        artifact_root=artifact_root,
     )
 
     assert result.written

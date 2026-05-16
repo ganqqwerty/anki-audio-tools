@@ -17,6 +17,7 @@ MP_SENET_SUPPORT_HINT = "Open Settings > Diagnostics to copy logs for the develo
 _SUPPORT_LOCK = threading.Lock()
 _LATEST_SIDON_INCIDENT: dict[str, Any] | None = None
 _LATEST_MP_SENET_INCIDENT: dict[str, Any] | None = None
+_LATEST_PAUSE_PIPELINE_INCIDENT: dict[str, Any] | None = None
 
 
 def addon_log_path(addon_dir: str | Path) -> Path:
@@ -92,6 +93,41 @@ def clear_latest_mp_senet_support_incident() -> None:
 
     with _SUPPORT_LOCK:
         _LATEST_MP_SENET_INCIDENT = None
+
+
+def record_latest_pause_pipeline_support_incident(**fields: Any) -> dict[str, Any]:
+    """Merge ``fields`` into the latest pause-pipeline support incident."""
+    global _LATEST_PAUSE_PIPELINE_INCIDENT
+
+    with _SUPPORT_LOCK:
+        merged = copy.deepcopy(_LATEST_PAUSE_PIPELINE_INCIDENT) if _LATEST_PAUSE_PIPELINE_INCIDENT else {}
+        merged.setdefault("timestamp", datetime.now(UTC).isoformat())
+        for key, value in fields.items():
+            if value is None:
+                continue
+            if isinstance(value, str) and not value:
+                continue
+            if isinstance(value, list) and not value:
+                continue
+            if isinstance(value, dict) and not value:
+                continue
+            merged[key] = copy.deepcopy(value)
+        _LATEST_PAUSE_PIPELINE_INCIDENT = merged
+        return copy.deepcopy(merged)
+
+
+def latest_pause_pipeline_support_incident() -> dict[str, Any] | None:
+    """Return the latest recorded pause-pipeline support incident, if any."""
+    with _SUPPORT_LOCK:
+        return copy.deepcopy(_LATEST_PAUSE_PIPELINE_INCIDENT)
+
+
+def clear_latest_pause_pipeline_support_incident() -> None:
+    """Clear the recorded pause-pipeline support incident."""
+    global _LATEST_PAUSE_PIPELINE_INCIDENT
+
+    with _SUPPORT_LOCK:
+        _LATEST_PAUSE_PIPELINE_INCIDENT = None
 
 
 def build_command_record(
@@ -243,6 +279,7 @@ def build_support_report_text(
     mp_senet_health: dict[str, Any],
     sidon_incident: dict[str, Any] | None,
     mp_senet_incident: dict[str, Any] | None,
+    pause_pipeline_incident: dict[str, Any] | None,
     log_tail: str,
 ) -> str:
     """Build a support report suitable for copying into a bug report."""
@@ -271,6 +308,17 @@ def build_support_report_text(
         runtime_fields=(
             ("MP-SENet path", "mp_senet_path"),
             ("MP-SENet model path", "mp_senet_model_path"),
+        ),
+    )
+    _append_incident_report_section(
+        sections,
+        title="Latest pause-shortening failure",
+        incident=pause_pipeline_incident,
+        missing_message="No pause-shortening failure has been captured in this session.",
+        runtime_fields=(
+            ("DeepFilterNet path", "deep_filter_path"),
+            ("Artifact dir", "artifact_dir"),
+            ("Manifest path", "manifest_path"),
         ),
     )
 

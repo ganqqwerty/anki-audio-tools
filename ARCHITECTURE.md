@@ -51,7 +51,7 @@ Shared batchable operations live in `audio_operations.py` and are the only suppo
 
 - `graph`
 - `trim_silence`
-- `remove_pauses`
+- `remove_pauses` (`Shorten Pauses` in the UI)
 - `slower`
 - `faster`
 - `volume_down`
@@ -65,6 +65,17 @@ Rules:
 - Batch runs are single-operation only. Users compose multi-step workflows by running separate jobs sequentially.
 - Non-graph batch operations replace the first supported sound reference in the source field with a new generated audio file.
 - `graph` remains special: it analyzes the selected source field and appends an SVG reference to a chosen target field.
+
+## Pause Shortening Pipeline
+
+The shared `remove_pauses` operation is DeepFilterNet-assisted and speeds long pauses instead of deleting audio chunks.
+
+1. `audio_processor.py` remains the side-effect boundary for ffmpeg, DeepFilterNet, and artifact filesystem writes.
+2. `audio_pipeline.py` is import-safe planning code for parsing `silencedetect` output, building pause timelines, generating filter scripts, and naming retained runs.
+3. Editor and Browser adapters pass `<addon_dir>/aqe_artifacts` into `render_audio(...)` so each pause-shortening run keeps its own provenance directory.
+4. The pipeline renders `01_working_original.wav` from the original source with manual trims and optional edge trim, prepares `02_analysis_input_48k_mono.wav`, runs DeepFilterNet into `03_deep_filter_output/`, detects silence on the cleaned analysis audio, and renders the final MP3 from `01_working_original.wav`.
+5. The artifact directory retains the working WAV, analysis WAV, DeepFilter output, raw silence metadata, parsed interval JSON, timeline JSON, generated `filter_complex` script, final MP3 copy, and `manifest.json`.
+6. DeepFilterNet is required for this operation. Failures keep the partial artifact directory, record a pause-pipeline support incident, and leave the note unchanged.
 
 ## Browser Batch Operations Flow
 

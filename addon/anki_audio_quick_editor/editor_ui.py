@@ -196,7 +196,7 @@ _SCRIPT_TEMPLATE = r"""
       makeButton("-L", "Trim 100 ms from left", "aqe:trim-left", node, ord),
       makeButton("-R", "Trim 100 ms from right", "aqe:trim-right", node, ord),
       makeButton("Trim Silence", "Trim leading and trailing silence", "aqe:trim-silence", node, ord),
-      makeButton("Remove Pauses", "Compress long internal pauses", "aqe:remove-pauses", node, ord),
+      makeButton("Shorten Pauses", "Speed up long internal pauses", "aqe:remove-pauses", node, ord),
       makeButton("Sidon", "Restore speech with Sidon", "aqe:sidon", node, ord),
       makeButton("MP-SENet", "Denoise speech with MP-SENet", "aqe:mp-senet", node, ord),
       makeButton("Remove noise", "Reduce background noise with DeepFilterNet", "aqe:remove-noise", node, ord),

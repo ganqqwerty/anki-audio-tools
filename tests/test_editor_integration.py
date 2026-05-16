@@ -555,8 +555,10 @@ def test_mp_senet_replaces_current_media_and_resets_state(tmp_path: Path, monkey
     ("failure", "expected_message"),
     [
         (
-            MissingDeepFilterError("Remove noise requires DeepFilterNet's deep-filter executable."),
-            "Remove noise requires DeepFilterNet",
+            MissingDeepFilterError(
+                "DeepFilterNet's deep-filter executable is required for Remove noise and Shorten Pauses."
+            ),
+            "DeepFilterNet's deep-filter executable is required",
         ),
         (
             PermissionError(13, "Permission denied", "/bin/deep-filter"),

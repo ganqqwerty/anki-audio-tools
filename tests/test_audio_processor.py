@@ -3,10 +3,12 @@
 from __future__ import annotations
 
 import importlib
+import json
 import math
 import random
 import shutil
 import subprocess
+import sys
 import wave
 from array import array
 from datetime import datetime
@@ -27,6 +29,8 @@ from anki_audio_quick_editor.audio_processor import (
     build_playback_segment_filters,
     build_sidon_command,
     build_sidon_prepare_command,
+    build_silencedetect_command,
+    build_working_original_filters,
     find_deep_filter,
     find_ffmpeg,
     find_ffprobe,
@@ -54,8 +58,10 @@ from anki_audio_quick_editor.errors import (
 )
 from anki_audio_quick_editor.support import (
     clear_latest_mp_senet_support_incident,
+    clear_latest_pause_pipeline_support_incident,
     clear_latest_sidon_support_incident,
     latest_mp_senet_support_incident,
+    latest_pause_pipeline_support_incident,
     latest_sidon_support_incident,
 )
 
@@ -68,6 +74,38 @@ def _deep_filter_available() -> bool:
     except MissingDeepFilterError:
         return False
     return True
+
+
+def _fake_deep_filter_executable(tmp_path: Path, *, fail: bool = False) -> Path:
+    script_path = tmp_path / "fake_deep_filter.py"
+    script_path.write_text(
+        "\n".join(
+            [
+                "from __future__ import annotations",
+                "import shutil",
+                "import sys",
+                "from pathlib import Path",
+                f"FAIL = {fail!r}",
+                "args = sys.argv[1:]",
+                "if FAIL:",
+                "    sys.stderr.write('fake deep-filter failed')",
+                "    raise SystemExit(12)",
+                "output_dir = Path(args[args.index('-o') + 1])",
+                "input_wav = Path(args[-1])",
+                "output_dir.mkdir(parents=True, exist_ok=True)",
+                "shutil.copyfile(input_wav, output_dir / 'clean.wav')",
+            ]
+        ),
+        encoding="utf-8",
+    )
+    executable = tmp_path / "deep-filter"
+    executable.write_text(
+        "#!/bin/sh\n"
+        f"exec {sys.executable!r} {str(script_path)!r} \"$@\"\n",
+        encoding="utf-8",
+    )
+    executable.chmod(0o755)
+    return executable
 
 
 FFMPEG_AVAILABLE = shutil.which("ffmpeg") is not None and shutil.which("ffprobe") is not None
@@ -162,7 +200,7 @@ def test_find_deep_filter_raises_when_missing(monkeypatch) -> None:
     monkeypatch.setattr("anki_audio_quick_editor.audio_processor._bundled_deep_filter_path", lambda: None)
     monkeypatch.setattr("anki_audio_quick_editor.audio_processor.shutil.which", lambda _name: None)
 
-    with pytest.raises(MissingDeepFilterError, match="Remove noise requires DeepFilterNet"):
+    with pytest.raises(MissingDeepFilterError, match="DeepFilterNet.*Remove noise.*Shorten Pauses"):
         find_deep_filter()
 
 
@@ -289,18 +327,15 @@ def test_build_audio_filters_includes_crop_speed_and_silence_steps() -> None:
 
     filters = build_audio_filters(3000, state, config)
     edge_threshold = f"{config.edge_silence_threshold_db}dB"
-    pause_threshold = f"{config.internal_pause_silence_threshold_db}dB"
 
     assert "atrim=start=0.200:end=2.900" in filters
     assert "silenceremove=start_periods=1" in filters
-    assert "stop_periods=-1" in filters
     assert f"start_threshold={edge_threshold}" in filters
     assert f"stop_periods=1:stop_duration=0.100:stop_threshold={edge_threshold}" in filters
-    assert f"stop_periods=-1:stop_duration=0.300:stop_threshold={pause_threshold}" in filters
-    assert "stop_silence=0.100" in filters
+    assert "stop_periods=-1" not in filters
+    assert "stop_silence=0.100" not in filters
     assert "volume=3.00dB" in filters
     assert "atempo=1.150" in filters
-    assert filters.index("stop_silence=0.100") < filters.index("volume=3.00dB")
     assert filters.index("volume=3.00dB") < filters.index("atempo=1.150")
 
 
@@ -316,19 +351,46 @@ def test_build_audio_filters_omits_atempo_when_speed_is_unchanged() -> None:
     assert "atempo=" not in filters
 
 
-def test_build_audio_filters_uses_exact_pause_threshold_and_gap_values() -> None:
+def test_build_working_original_filters_omits_volume_speed_and_internal_pause_processing() -> None:
+    filters = build_working_original_filters(
+        3000,
+        AudioEditState(
+            "clip.mp3",
+            speed=1.25,
+            volume_db=3.0,
+            remove_internal_pauses_enabled=True,
+        ),
+        AudioProcessingConfig(),
+    )
+
+    assert filters == "atrim=start=0.000:end=3.000,asetpts=PTS-STARTPTS"
+
+
+def test_build_silencedetect_command_uses_exact_pause_threshold_and_gap_values(tmp_path: Path) -> None:
     config = AudioProcessingConfig(
         internal_pause_silence_threshold_db=-41,
         internal_pause_threshold_ms=275,
         internal_pause_target_gap_ms=125,
     )
-    state = AudioEditState("clip.mp3", remove_internal_pauses_enabled=True)
 
-    filters = build_audio_filters(3000, state, config)
+    command = build_silencedetect_command(
+        Path("/bin/ffmpeg"),
+        tmp_path / "analysis.wav",
+        threshold_db=config.internal_pause_silence_threshold_db,
+        min_duration_ms=config.internal_pause_threshold_ms,
+    )
 
-    assert "stop_threshold=-41dB" in filters
-    assert "stop_duration=0.275" in filters
-    assert "stop_silence=0.125" in filters
+    assert command == (
+        "/bin/ffmpeg",
+        "-y",
+        "-i",
+        str(tmp_path / "analysis.wav"),
+        "-af",
+        "silencedetect=noise=-41dB:d=0.275",
+        "-f",
+        "null",
+        "-",
+    )
 
 
 def test_build_audio_filters_preserves_precise_silence_filter_parameters() -> None:
@@ -350,17 +412,14 @@ def test_build_audio_filters_preserves_precise_silence_filter_parameters() -> No
 
     assert "start_duration=0.509" in filters
     assert "stop_duration=0.509" in filters
-    assert "stop_silence=0.509" in filters
-    assert filters.count("silenceremove=") == 2
+    assert "stop_silence=0.509" not in filters
+    assert filters.count("silenceremove=") == 1
     assert (
         "silenceremove="
         f"start_periods=1:start_duration=0.509:start_threshold={edge_threshold}:"
         f"stop_periods=1:stop_duration=0.509:stop_threshold={edge_threshold}"
     ) in filters
-    assert (
-        f",silenceremove=stop_periods=-1:stop_duration=0.509:stop_threshold={pause_threshold}:"
-        "stop_silence=0.509"
-    ) in filters
+    assert pause_threshold not in filters
 
 
 def test_build_audio_filters_preserves_precise_trim_boundaries() -> None:
@@ -1408,18 +1467,32 @@ def test_render_audio_smoke_with_path_spaces_and_non_ascii(tmp_path: Path) -> No
 def test_render_audio_remove_pauses_preserves_short_pause(tmp_path: Path) -> None:
     source = tmp_path / "short_pause.wav"
     output = tmp_path / "short_pause.mp3"
+    artifact_root = tmp_path / "artifacts"
+    fake_deep_filter = _fake_deep_filter_executable(tmp_path)
     _generate_short_pause_clip(source)
     source_duration_ms = probe_duration_ms(source, AudioProcessingConfig())
 
     result = render_audio(
         source,
         AudioEditState("short_pause.wav", remove_internal_pauses_enabled=True),
-        AudioProcessingConfig(),
+        AudioProcessingConfig(deep_filter_path=str(fake_deep_filter)),
         output_path=output,
+        artifact_root=artifact_root,
     )
 
     assert result.output_path == output
     assert abs((result.duration_ms or 0) - source_duration_ms) <= 25
+    assert result.artifact_manifest_path is not None
+    manifest = json.loads(result.artifact_manifest_path.read_text(encoding="utf-8"))
+    assert manifest["timeline"] == [
+        {
+            "end_ms": source_duration_ms,
+            "kind": "normal",
+            "output_duration_ms": source_duration_ms,
+            "speed_factor": 1.0,
+            "start_ms": 0,
+        }
+    ]
 
 
 @pytest.mark.skipif(
@@ -1429,19 +1502,82 @@ def test_render_audio_remove_pauses_preserves_short_pause(tmp_path: Path) -> Non
 def test_render_audio_remove_pauses_compresses_obvious_long_pause(tmp_path: Path) -> None:
     source = tmp_path / "long_pause.wav"
     output = tmp_path / "long_pause.mp3"
+    artifact_root = tmp_path / "artifacts"
+    fake_deep_filter = _fake_deep_filter_executable(tmp_path)
     _generate_long_pause_clip(source)
     source_duration_ms = probe_duration_ms(source, AudioProcessingConfig())
 
     result = render_audio(
         source,
         AudioEditState("long_pause.wav", remove_internal_pauses_enabled=True),
-        AudioProcessingConfig(),
+        AudioProcessingConfig(deep_filter_path=str(fake_deep_filter)),
         output_path=output,
+        artifact_root=artifact_root,
     )
 
     assert result.output_path == output
     assert result.duration_ms is not None
     assert result.duration_ms <= source_duration_ms - 200
+    assert result.artifact_manifest_path is not None
+    run_dir = result.artifact_manifest_path.parent
+    assert (run_dir / "01_working_original.wav").is_file()
+    assert (run_dir / "02_analysis_input_48k_mono.wav").is_file()
+    assert (run_dir / "03_deep_filter_output" / "clean.wav").is_file()
+    assert (run_dir / "04_silencedetect_stderr.txt").is_file()
+    assert (run_dir / "04_silence_intervals.json").is_file()
+    assert (run_dir / "05_timeline.json").is_file()
+    assert (run_dir / "06_filter_complex.ffscript").is_file()
+    assert (run_dir / "07_final_output.mp3").is_file()
+    filter_script = (run_dir / "06_filter_complex.ffscript").read_text(encoding="utf-8")
+    assert "atempo=" in filter_script
+    manifest = json.loads(result.artifact_manifest_path.read_text(encoding="utf-8"))
+    assert manifest["operation"] == "deep_filter_pause_speedup"
+    assert manifest["source"]["filename"] == "long_pause.wav"
+    assert manifest["silence_intervals"]
+    assert any(segment["kind"] == "pause" for segment in manifest["timeline"])
+    render_stage = next(stage for stage in manifest["stages"] if stage["name"] == "render_final_output")
+    assert "01_working_original.wav" in render_stage["command"]
+    assert "06_filter_complex.ffscript" in render_stage["command"]
+
+
+@pytest.mark.skipif(
+    not FFMPEG_AVAILABLE,
+    reason=FFMPEG_SKIP_REASON,
+)
+def test_render_audio_remove_pauses_keeps_partial_manifest_on_deep_filter_failure(
+    tmp_path: Path,
+) -> None:
+    clear_latest_pause_pipeline_support_incident()
+    source = tmp_path / "long_pause.wav"
+    output = tmp_path / "long_pause.mp3"
+    artifact_root = tmp_path / "artifacts"
+    fake_deep_filter = _fake_deep_filter_executable(tmp_path, fail=True)
+    _generate_long_pause_clip(source)
+
+    with pytest.raises(AudioProcessingError, match="fake deep-filter failed"):
+        render_audio(
+            source,
+            AudioEditState("long_pause.wav", remove_internal_pauses_enabled=True),
+            AudioProcessingConfig(deep_filter_path=str(fake_deep_filter)),
+            output_path=output,
+            artifact_root=artifact_root,
+        )
+
+    run_dirs = list(artifact_root.iterdir())
+    assert len(run_dirs) == 1
+    manifest_path = run_dirs[0] / "manifest.json"
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    assert manifest["errors"] == ["fake deep-filter failed"]
+    assert [stage["name"] for stage in manifest["stages"]] == [
+        "render_working_original",
+        "prepare_deep_filter_input",
+        "deep_filter_analysis",
+    ]
+    assert not output.exists()
+    incident = latest_pause_pipeline_support_incident()
+    assert incident is not None
+    assert incident["manifest_path"] == str(manifest_path)
+    assert incident["artifact_dir"] == str(run_dirs[0])
 
 
 @pytest.mark.skipif(
@@ -1453,18 +1589,25 @@ def test_render_audio_remove_pauses_preserves_quiet_micro_word_between_pauses(
 ) -> None:
     source = tmp_path / "quiet_micro_word.wav"
     output = tmp_path / "quiet_micro_word.mp3"
+    fake_deep_filter = _fake_deep_filter_executable(tmp_path)
     _generate_quiet_micro_word_clip(source)
     source_duration_ms = probe_duration_ms(source, AudioProcessingConfig())
 
     result = render_audio(
         source,
         AudioEditState("quiet_micro_word.wav", remove_internal_pauses_enabled=True),
-        AudioProcessingConfig(),
+        AudioProcessingConfig(deep_filter_path=str(fake_deep_filter)),
         output_path=output,
+        artifact_root=tmp_path / "artifacts",
     )
 
     assert result.output_path == output
-    assert abs((result.duration_ms or 0) - source_duration_ms) <= 25
+    assert result.duration_ms is not None
+    assert result.duration_ms < source_duration_ms
+    assert result.duration_ms > 550
+    assert result.artifact_manifest_path is not None
+    manifest = json.loads(result.artifact_manifest_path.read_text(encoding="utf-8"))
+    assert sum(1 for segment in manifest["timeline"] if segment["kind"] == "pause") == 2
 
 
 @pytest.mark.skipif(

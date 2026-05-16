@@ -11,7 +11,7 @@ import subprocess
 import sys
 import time
 from contextlib import contextmanager
-from dataclasses import dataclass
+from dataclasses import asdict, dataclass
 from pathlib import Path
 from typing import Any
 from unittest.mock import patch
@@ -224,13 +224,35 @@ def _sound_filename(field_html: str) -> str:
 
 def _configure_ffmpeg(anki_mw, ffmpeg_config, **overrides: Any) -> None:
     config = anki_mw.addonManager.getConfig(ADDON_NUMERIC_ID) or {}
+    config.update(asdict(ffmpeg_config))
     config.update({"ffmpeg_path": ffmpeg_config.ffmpeg_path, **overrides})
     anki_mw.addonManager.writeConfig(ADDON_NUMERIC_ID, config)
 
 
-def _fake_deep_filter_executable(tmp_path: Path, *, fail: bool = False) -> tuple[Path, Path]:
+def _artifact_root(anki_mw) -> Path:
+    return Path(anki_mw.addonManager.addonsFolder(ADDON_NUMERIC_ID)) / "aqe_artifacts"
+
+
+def _artifact_dirs_for_source(artifact_root: Path, source: Path) -> set[Path]:
+    if not artifact_root.exists():
+        return set()
+    return set(artifact_root.glob(f"{source.stem}__*"))
+
+
+def _cleanup_artifact_dirs(artifact_root: Path, source: Path) -> None:
+    for run_dir in _artifact_dirs_for_source(artifact_root, source):
+        shutil.rmtree(run_dir, ignore_errors=True)
+
+
+def _fake_deep_filter_executable(
+    tmp_path: Path,
+    *,
+    fail: bool = False,
+    cleaned_source: Path | None = None,
+) -> tuple[Path, Path]:
     log_path = tmp_path / "deep-filter-argv.json"
     script_path = tmp_path / "fake_deep_filter.py"
+    cleaned_source_value = str(cleaned_source) if cleaned_source is not None else ""
     script_path.write_text(
         "\n".join(
             [
@@ -243,6 +265,7 @@ def _fake_deep_filter_executable(tmp_path: Path, *, fail: bool = False) -> tuple
                 "",
                 f"LOG_PATH = Path({str(log_path)!r})",
                 f"FAIL = {fail!r}",
+                f"CLEANED_SOURCE = {cleaned_source_value!r}",
                 "",
                 "args = sys.argv[1:]",
                 "LOG_PATH.write_text(json.dumps(args), encoding='utf-8')",
@@ -259,7 +282,8 @@ def _fake_deep_filter_executable(tmp_path: Path, *, fail: bool = False) -> tuple
                 "    raise SystemExit(2)",
                 "input_wav = Path(args[-1])",
                 "output_dir.mkdir(parents=True, exist_ok=True)",
-                "shutil.copyfile(input_wav, output_dir / 'clean.wav')",
+                "source_wav = Path(CLEANED_SOURCE) if CLEANED_SOURCE else input_wav",
+                "shutil.copyfile(source_wav, output_dir / 'clean.wav')",
             ]
         ),
         encoding="utf-8",
@@ -516,6 +540,51 @@ def _generate_tone_silence_tone(ffmpeg_config, path: Path) -> None:
     )
 
 
+def _generate_noisy_pause_and_clean_analysis(
+    ffmpeg_config,
+    noisy_path: Path,
+    cleaned_analysis_path: Path,
+) -> None:
+    for path, middle_filter, sample_rate in (
+        (
+            noisy_path,
+            "anoisesrc=c=white:r=44100:d=0.8:a=0.06",
+            "44100",
+        ),
+        (
+            cleaned_analysis_path,
+            "anullsrc=r=48000:cl=mono:d=0.8",
+            "48000",
+        ),
+    ):
+        subprocess.run(
+            [
+                ffmpeg_config.ffmpeg_path,
+                "-y",
+                "-f",
+                "lavfi",
+                "-i",
+                f"sine=frequency=440:sample_rate={sample_rate}:duration=0.35",
+                "-f",
+                "lavfi",
+                "-i",
+                middle_filter,
+                "-f",
+                "lavfi",
+                "-i",
+                f"sine=frequency=660:sample_rate={sample_rate}:duration=0.35",
+                "-filter_complex",
+                "[0:a][1:a][2:a]concat=n=3:v=0:a=1[out]",
+                "-map",
+                "[out]",
+                str(path),
+            ],
+            check=True,
+            capture_output=True,
+            text=True,
+        )
+
+
 def _generate_language_contour_for_e2e(path: Path, spec_name: str) -> None:
     require_praat_and_ffmpeg()
     generate_praat_vowel_fixture(path, LANGUAGE_CONTOUR_SPECS[spec_name])
@@ -583,15 +652,21 @@ def _rendered_language_contour(editor, source_name: str) -> dict:
     )
 
 
-def test_each_processing_button_updates_field_to_new_real_audio(anki_mw, ffmpeg_config) -> None:
+def test_each_processing_button_updates_field_to_new_real_audio(
+    anki_mw,
+    ffmpeg_config,
+    tmp_path,
+) -> None:
     from anki_audio_quick_editor.audio_processor import probe_duration_ms
 
     media_dir = Path(anki_mw.col.media.dir())
     source = media_dir / "editor_each_button_source.wav"
     generate_tone(ffmpeg_config, source, duration_s=2.0)
     original_bytes = source.read_bytes()
+    fake_deep_filter, _deep_filter_log = _fake_deep_filter_executable(tmp_path)
     note = _basic_audio_note(anki_mw, source.name)
-    _configure_ffmpeg(anki_mw, ffmpeg_config)
+    _configure_ffmpeg(anki_mw, ffmpeg_config, deep_filter_path=str(fake_deep_filter))
+    artifact_root = _artifact_root(anki_mw)
 
     editor, parent = _open_editor(anki_mw, note)
     try:
@@ -624,7 +699,7 @@ def test_each_processing_button_updates_field_to_new_real_audio(anki_mw, ffmpeg_
                 "-L",
                 "-R",
                 "Trim Silence",
-                "Remove Pauses",
+                "Shorten Pauses",
                 "Sidon",
                 "MP-SENet",
                 "Remove noise",
@@ -669,6 +744,159 @@ def test_each_processing_button_updates_field_to_new_real_audio(anki_mw, ffmpeg_
     finally:
         editor.set_note(None)
         parent.close()
+        _cleanup_artifact_dirs(artifact_root, source)
+
+
+def test_shorten_pauses_uses_deep_filter_analysis_and_retains_artifacts(
+    anki_mw,
+    ffmpeg_config,
+    tmp_path,
+) -> None:
+    from anki_audio_quick_editor.audio_processor import probe_duration_ms
+
+    media_dir = Path(anki_mw.col.media.dir())
+    source = media_dir / "editor_shorten_pause_source.wav"
+    cleaned_analysis = tmp_path / "editor_shorten_pause_cleaned.wav"
+    _generate_noisy_pause_and_clean_analysis(ffmpeg_config, source, cleaned_analysis)
+    original_bytes = source.read_bytes()
+    fake_deep_filter, deep_filter_log = _fake_deep_filter_executable(
+        tmp_path,
+        cleaned_source=cleaned_analysis,
+    )
+    note = _basic_audio_note(anki_mw, source.name)
+    _configure_ffmpeg(
+        anki_mw,
+        ffmpeg_config,
+        deep_filter_path=str(fake_deep_filter),
+        deep_filter_post_filter=True,
+        show_ffmpeg_commands=True,
+    )
+    artifact_root = _artifact_root(anki_mw)
+    before_artifacts = _artifact_dirs_for_source(artifact_root, source)
+
+    editor, parent = _open_editor(anki_mw, note)
+    try:
+        click_selector(editor.web, _button_selector("aqe:remove-pauses"), timeout=10.0)
+        generated_name = _wait_for_generated_mp3(note, media_dir, source.name)
+        generated_path = media_dir / generated_name
+
+        source_duration_ms = probe_duration_ms(source, ffmpeg_config)
+        generated_duration_ms = probe_duration_ms(generated_path, ffmpeg_config)
+        assert source.read_bytes() == original_bytes
+        assert 650 <= generated_duration_ms <= 1050
+        assert generated_duration_ms < source_duration_ms - 350
+
+        new_artifacts = sorted(
+            _artifact_dirs_for_source(artifact_root, source) - before_artifacts,
+            key=lambda path: path.stat().st_mtime_ns,
+        )
+        assert len(new_artifacts) == 1
+        run_dir = new_artifacts[0]
+        manifest_path = run_dir / "manifest.json"
+        manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+
+        for relative_path in (
+            "01_working_original.wav",
+            "02_analysis_input_48k_mono.wav",
+            "03_deep_filter_output/clean.wav",
+            "04_silencedetect_stderr.txt",
+            "04_silence_intervals.json",
+            "05_timeline.json",
+            "06_filter_complex.ffscript",
+            "07_final_output.mp3",
+            "manifest.json",
+        ):
+            assert (run_dir / relative_path).is_file()
+
+        stage_by_name = {stage["name"]: stage for stage in manifest["stages"]}
+        assert "03_deep_filter_output/clean.wav" in " ".join(
+            stage_by_name["detect_silence"]["argv"]
+        )
+        assert "01_working_original.wav" in " ".join(
+            stage_by_name["render_final_output"]["argv"]
+        )
+        assert "06_filter_complex.ffscript" in " ".join(
+            stage_by_name["render_final_output"]["argv"]
+        )
+        assert manifest["silence_intervals"]
+        pause_segments = [segment for segment in manifest["timeline"] if segment["kind"] == "pause"]
+        assert len(pause_segments) == 1
+        assert pause_segments[0]["speed_factor"] >= 7.0
+
+        filter_script = (run_dir / "06_filter_complex.ffscript").read_text(encoding="utf-8")
+        assert "atempo=" in filter_script
+        deep_filter_args = json.loads(deep_filter_log.read_text(encoding="utf-8"))
+        assert Path(deep_filter_args[-1]).name == "02_analysis_input_48k_mono.wav"
+    finally:
+        editor.set_note(None)
+        parent.close()
+        _cleanup_artifact_dirs(artifact_root, source)
+
+
+def test_shorten_pauses_failure_leaves_note_unchanged_and_records_manifest(
+    anki_mw,
+    ffmpeg_config,
+    tmp_path,
+) -> None:
+    from anki_audio_quick_editor.support import (
+        clear_latest_pause_pipeline_support_incident,
+        latest_pause_pipeline_support_incident,
+    )
+
+    media_dir = Path(anki_mw.col.media.dir())
+    source = media_dir / "editor_shorten_pause_failure_source.wav"
+    cleaned_analysis = tmp_path / "editor_shorten_pause_failure_cleaned.wav"
+    _generate_noisy_pause_and_clean_analysis(ffmpeg_config, source, cleaned_analysis)
+    original_field = f"Prompt [sound:{source.name}]"
+    fake_deep_filter, deep_filter_log = _fake_deep_filter_executable(tmp_path, fail=True)
+    note = _basic_audio_note(anki_mw, source.name)
+    _configure_ffmpeg(
+        anki_mw,
+        ffmpeg_config,
+        deep_filter_path=str(fake_deep_filter),
+        deep_filter_post_filter=True,
+    )
+    artifact_root = _artifact_root(anki_mw)
+    before_artifacts = _artifact_dirs_for_source(artifact_root, source)
+    clear_latest_pause_pipeline_support_incident()
+
+    editor, parent = _open_editor(anki_mw, note)
+    try:
+        click_selector(editor.web, _button_selector("aqe:remove-pauses"), timeout=10.0)
+        status = wait_for_js_condition(
+            editor.web,
+            _processing_status_js(),
+            lambda value: value is not None
+            and value["kind"] == "error"
+            and "fake deep-filter failed" in value["text"],
+            timeout=10.0,
+        )
+
+        assert status["title"] == ""
+        assert note.fields[0] == original_field
+        assert _sound_filename(note.fields[0]) == source.name
+        assert json.loads(deep_filter_log.read_text(encoding="utf-8"))[-1].endswith(
+            "02_analysis_input_48k_mono.wav"
+        )
+
+        incident = latest_pause_pipeline_support_incident()
+        assert incident is not None
+        assert incident["manifest_path"].endswith("manifest.json")
+        assert Path(incident["manifest_path"]).is_file()
+        assert Path(incident["artifact_dir"]).is_dir()
+        assert "fake deep-filter failed" in incident["user_message"]
+
+        new_artifacts = _artifact_dirs_for_source(artifact_root, source) - before_artifacts
+        assert len(new_artifacts) == 1
+        manifest = json.loads(
+            (next(iter(new_artifacts)) / "manifest.json").read_text(encoding="utf-8")
+        )
+        assert manifest["errors"]
+        assert not list(media_dir.glob("editor_shorten_pause_failure_source__aqe_*.mp3"))
+    finally:
+        editor.set_note(None)
+        parent.close()
+        _cleanup_artifact_dirs(artifact_root, source)
 
 
 def test_remove_noise_button_runs_deep_filter_and_is_undoable(

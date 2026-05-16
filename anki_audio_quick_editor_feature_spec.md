@@ -66,7 +66,7 @@ Example field:
 Example inline controls:
 
 ```text
-▶  [ -L ] [ +L ] [ -R ] [ +R ] [ Trim Silence ] [ Remove Pauses ] [ Slower ] [ Faster ] [ Undo ]
+▶  [ -L ] [ +L ] [ -R ] [ +R ] [ Trim Silence ] [ Shorten Pauses ] [ Slower ] [ Faster ] [ Undo ]
 <pitch Hz line over intensity fill, draggable cursor>
 ```
 

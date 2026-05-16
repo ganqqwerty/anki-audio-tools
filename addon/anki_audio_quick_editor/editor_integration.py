@@ -260,6 +260,7 @@ def _render_and_replace_async(
                 config,
                 output_path=output_path,
                 on_command=_show_command,
+                artifact_root=_artifact_root(editor),
             )
             with output_path.open("rb") as file:
                 saved_name = editor.mw.col.media.write_data(desired_name, file.read())
@@ -880,6 +881,11 @@ def _current_field_index(editor: Any) -> int:
 def _config(editor: Any) -> dict[str, Any]:
     addon_id = editor.mw.addonManager.addonFromModule(__name__)
     return editor.mw.addonManager.getConfig(addon_id) or {}
+
+
+def _artifact_root(editor: Any) -> Path:
+    addon_id = editor.mw.addonManager.addonFromModule(__name__)
+    return Path(editor.mw.addonManager.addonsFolder(addon_id)) / "aqe_artifacts"
 
 
 def _eval_status(editor: Any, message: str, kind: str = "info") -> None:

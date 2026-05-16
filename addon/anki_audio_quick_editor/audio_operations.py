@@ -26,7 +26,7 @@ BATCH_OPERATIONS = (OP_GRAPH,) + TRANSFORM_OPERATIONS
 OPERATION_LABELS: dict[str, str] = {
     OP_GRAPH: "Graph",
     OP_TRIM_SILENCE: "Trim Silence",
-    OP_REMOVE_PAUSES: "Remove Pauses",
+    OP_REMOVE_PAUSES: "Shorten Pauses",
     OP_SLOWER: "Slower",
     OP_FASTER: "Faster",
     OP_VOLUME_DOWN: "Volume -",

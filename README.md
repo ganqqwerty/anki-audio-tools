@@ -1,12 +1,13 @@
 # Anki Audio Quick Editor
 
-Anki desktop add-on for quickly editing audio references from the note editor. It is optimized for short sentence-mining clips: trim edges, adjust speed, remove silence, and automatically apply each edit as a new MP3 while leaving original media untouched.
+Anki desktop add-on for quickly editing audio references from the note editor. It is optimized for short sentence-mining clips: trim edges, adjust speed, shorten long pauses, and automatically apply each edit as a new MP3 while leaving original media untouched.
 
 ## What It Includes
 
 - Inline Anki editor controls for fields containing `[sound:...]` references
 - Inline prosody visualization with pitch, intensity, and a draggable playback start cursor
 - ffmpeg-backed MP3 rendering for each inline edit action
+- DeepFilterNet-assisted pause detection with retained debug artifacts for pause shortening
 - Non-destructive save flow that writes a new media file and updates the field reference
 - Settings dialog backed by `AnkiWebView` and a committed Svelte bundle
 - Config defaults, JSON Schema validation, and deep-merge migration support
@@ -19,6 +20,7 @@ Anki desktop add-on for quickly editing audio references from the note editor. I
 - Anki 25.09 or later
 - Python 3.13 as bundled by Anki
 - `ffmpeg` and `ffprobe` available on PATH, or an explicit `ffmpeg_path` in settings
+- DeepFilterNet's `deep-filter` for pause shortening and noise removal; macOS arm64 uses the bundled binary, other platforms can configure `deep_filter_path` or provide it on PATH
 - Optional: `praat-parselmouth` in Anki's Python for preferred pitch/intensity analysis; the add-on falls back to ffmpeg-decoded PCM without it
 - Node.js 18+ for editing or rebuilding the settings UI
 

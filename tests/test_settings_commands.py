@@ -9,8 +9,10 @@ from unittest.mock import MagicMock, patch
 from anki_audio_quick_editor.settings.commands import handle_settings_command
 from anki_audio_quick_editor.support import (
     clear_latest_mp_senet_support_incident,
+    clear_latest_pause_pipeline_support_incident,
     clear_latest_sidon_support_incident,
     record_latest_mp_senet_support_incident,
+    record_latest_pause_pipeline_support_incident,
     record_latest_sidon_support_incident,
 )
 
@@ -220,6 +222,7 @@ def test_async_support_report_returns_incident_and_log_tail(tmp_path: Path) -> N
     from aqt import mw
 
     clear_latest_mp_senet_support_incident()
+    clear_latest_pause_pipeline_support_incident()
     clear_latest_sidon_support_incident()
     record_latest_sidon_support_incident(
         operation="sidon_restore",
@@ -248,6 +251,20 @@ def test_async_support_report_returns_incident_and_log_tail(tmp_path: Path) -> N
             {"command": "/bin/mp-senet-cli denoise --input in.wav", "returncode": 5, "stdout": "", "stderr": "boom", "launch_error": ""},
         ],
     )
+    record_latest_pause_pipeline_support_incident(
+        operation="deep_filter_pause_speedup",
+        media_filename="clip.mp3",
+        source_path="/media/clip.mp3",
+        user_message="DeepFilterNet pause analysis failed.",
+        exception_type="AudioProcessingError",
+        ffmpeg_path="/bin/ffmpeg",
+        deep_filter_path="/bin/deep-filter",
+        artifact_dir="/addon/aqe_artifacts/clip__run",
+        manifest_path="/addon/aqe_artifacts/clip__run/manifest.json",
+        attempted_commands=[
+            {"command": "/bin/deep-filter -D -o out in.wav", "returncode": 12, "stdout": "", "stderr": "boom", "launch_error": ""},
+        ],
+    )
     addon_dir = tmp_path / "addon"
     addon_dir.mkdir()
     log_path = addon_dir / "anki_audio_quick_editor.log"
@@ -272,12 +289,15 @@ def test_async_support_report_returns_incident_and_log_tail(tmp_path: Path) -> N
     assert "Media filename: clip.mp3" in report_text
     assert "Torch backend is not initialized" in report_text
     assert "TorchScript load failed" in report_text
+    assert "DeepFilterNet pause analysis failed." in report_text
+    assert "/addon/aqe_artifacts/clip__run/manifest.json" in report_text
     assert "line-1" in report_text
     assert str(log_path) in report_text
 
 
 def test_async_support_report_handles_missing_log_file() -> None:
     clear_latest_mp_senet_support_incident()
+    clear_latest_pause_pipeline_support_incident()
     clear_latest_sidon_support_incident()
     dialog = _make_dialog()
     calls, eval_fn = _capture_eval()
@@ -291,6 +311,7 @@ def test_async_support_report_handles_missing_log_file() -> None:
     report_text = result["result"]["reportText"]
     assert "No Sidon failure has been captured in this session." in report_text
     assert "No MP-SENet failure has been captured in this session." in report_text
+    assert "No pause-shortening failure has been captured in this session." in report_text
     assert "Log file not found:" in report_text or "(log file is empty)" in report_text
 
 

@@ -27,7 +27,9 @@ This:
 
 Anki add-ons cannot rely on `pip install` at user runtime. Audio Quick Editor currently uses only the Python/Qt runtime bundled with Anki plus user-installed `ffmpeg`/`ffprobe` executables, so no Python runtime packages are vendored.
 
-Noise removal uses DeepFilterNet's `deep-filter` executable. The repository bundles the pinned macOS arm64 binary at `addon/anki_audio_quick_editor/bin/deep-filter-0.5.6-aarch64-apple-darwin`; see `addon/anki_audio_quick_editor/bin/README.md` for the upstream release URL and checksum. Other platforms can still configure `deep_filter_path` or provide `deep-filter` on `PATH`.
+Noise removal and pause shortening use DeepFilterNet's `deep-filter` executable. The repository bundles the pinned macOS arm64 binary at `addon/anki_audio_quick_editor/bin/deep-filter-0.5.6-aarch64-apple-darwin`; see `addon/anki_audio_quick_editor/bin/README.md` for the upstream release URL and checksum. Other platforms can still configure `deep_filter_path` or provide `deep-filter` on `PATH`.
+
+Pause-shortening runs retain provenance under `<addon_dir>/aqe_artifacts/<run_id>/`, including intermediate WAV files, raw silence metadata, timeline JSON, filter script, final output copy, and `manifest.json`. The directory is intentionally unbounded for now, so clean it manually during local testing if it grows large.
 
 Sidon speech restoration and MP-SENet denoising use bundled macOS arm64 CPU CLIs under `addon/anki_audio_quick_editor/bin/`. Both are ready-to-run in the packaged add-on; MP-SENet reuses the LibTorch dylibs already shipped with the Sidon bundle and ships its TorchScript VoiceBank+DEMAND model in `mp-senet-cli-macos-arm64/models/`.
 

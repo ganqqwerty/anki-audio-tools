@@ -83,10 +83,11 @@ MODULE_CONTRACTS: dict[str, ModuleContract] = {
         layer=Layer.IMPORT_SAFE_CORE,
         allowed_addon_deps=("audio_state",),
     ),
+    "audio_pipeline": _contract("audio_pipeline", layer=Layer.IMPORT_SAFE_CORE),
     "audio_processor": _contract(
         "audio_processor",
         layer=Layer.IMPORT_SAFE_CORE,
-        allowed_addon_deps=("audio_state", "errors", "support"),
+        allowed_addon_deps=("audio_pipeline", "audio_state", "errors", "support"),
         allowed_side_effects=(SideEffect.SUBPROCESS_RUN, SideEffect.TEMP_FILESYSTEM_CLEANUP),
     ),
     "audio_state": _contract(
