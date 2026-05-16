@@ -73,6 +73,7 @@ class UndoHistory:
 class EditorSession:
     """Mutable edit session for a single editor instance."""
 
+    note_id: int | None = None
     state: AudioEditState | None = None
     field_index: int | None = None
     current_filename: str | None = None
@@ -109,6 +110,8 @@ def _on_editor_did_init(editor: Any) -> None:
 
 
 def _on_editor_will_load_note(js: str, note: Any, editor: Any) -> str:
+    _reset_editor_session_for_note_load(editor, getattr(note, "id", None))
+    _SESSIONS.setdefault(editor, EditorSession()).note_id = getattr(note, "id", None)
     return f"{js}\n{injection_script(_audio_field_indices(note))}"
 
 
@@ -123,6 +126,31 @@ def _audio_field_indices(note: Any) -> list[int]:
         if selection.selected is not None:
             indices.append(index)
     return indices
+
+
+def _reset_editor_session_for_note_load(editor: Any, note_id: int | None = None) -> None:
+    session = _SESSIONS.get(editor)
+    if session is None:
+        return
+    if session.note_id == note_id:
+        return
+    session.analysis_generation += 1
+    _stop_session_playback(session)
+    session.note_id = note_id
+    session.state = None
+    session.field_index = None
+    session.current_filename = None
+    session.undo_history.clear()
+    session.processing = False
+    session.analysis_busy = False
+    session.source_mtime_ns = None
+    session.cursor_ms = 0
+    session.graph_active_fields.clear()
+    session.visualized_filename = None
+    session.visualized_duration_ms = None
+    session.playback_active = False
+    session.playback_paused = False
+    session.playback_preparing = False
 
 
 def _handle_bridge_command(editor: Any, command: str) -> None:
@@ -312,6 +340,7 @@ def _remove_noise_async(editor: Any) -> None:
             _main(editor, lambda: _replace_current_field_after_noise_removal(editor, saved_name))
         except Exception as exc:
             message = str(exc)
+            logger.exception("remove noise failed: %s", message)
             _main(editor, lambda: _render_failed(editor, message))
         finally:
             if output_path is not None:

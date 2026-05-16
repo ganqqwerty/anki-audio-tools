@@ -14,6 +14,7 @@ ROOT = Path(__file__).resolve().parent.parent
 ADDON_DIR = ROOT / "addon" / "anki_audio_quick_editor"
 DIST_DIR = ROOT / "dist"
 INCLUDE_EXTENSIONS = {".py", ".html", ".json", ".pyi", ".typed", ".js", ".css"}
+INCLUDE_DIRS = {"bin"}
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from dev import _find_anki_python  # noqa: E402
@@ -84,6 +85,8 @@ def _should_include(path: Path) -> bool:
     if path.suffix in {".pyc", ".so", ".pyd", ".c"}:
         return False
     rel = path.relative_to(ADDON_DIR)
+    if rel.parts and rel.parts[0] in INCLUDE_DIRS:
+        return True
     if rel.parts and rel.parts[0] == "vendor":
         return True
     return path.suffix in INCLUDE_EXTENSIONS

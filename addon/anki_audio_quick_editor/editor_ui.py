@@ -286,6 +286,69 @@ _SCRIPT_TEMPLATE = r"""
     status.title = "";
   }
 
+  function prepareForNewNote() {
+    document.body.dataset.aqeBusy = "false";
+    window.__aqeActiveField = null;
+    window.__aqeLastCursorIntent = null;
+    document.querySelectorAll(".aqe-controls").forEach((controls) => {
+      controls.dataset.busy = "false";
+      controls.dataset.aqeSourceFilename = "";
+      controls.querySelectorAll(".aqe-button").forEach((button) => {
+        button.disabled = false;
+        if (button.dataset.aqeCommand === "aqe:analyze") button.textContent = "Graph";
+        if (button.dataset.aqeCommand === "aqe:play") button.textContent = "Play";
+      });
+      const status = controls.querySelector(".aqe-status");
+      if (status) {
+        status.textContent = "";
+        status.dataset.kind = "info";
+        status.title = "";
+      }
+      const visualizer = controls.querySelector(".aqe-visualizer");
+      if (!visualizer) return;
+      if (visualizer.__aqePlaybackTimer) {
+        window.cancelAnimationFrame(visualizer.__aqePlaybackTimer);
+        visualizer.__aqePlaybackTimer = null;
+      }
+      visualizer.hidden = true;
+      visualizer.dataset.anchorMs = "0";
+      visualizer.dataset.cursorMs = "0";
+      visualizer.dataset.progressMs = "0";
+      visualizer.dataset.graphActive = "false";
+      visualizer.dataset.graphBusy = "false";
+      visualizer.dataset.hasTrack = "false";
+      visualizer.dataset.playbackState = "stopped";
+      visualizer.dataset.resumeRequiresRestart = "false";
+      visualizer.dataset.durationMs = "0";
+      visualizer.dataset.sourceFilename = "";
+      visualizer.dataset.analyzerName = "";
+      visualizer.dataset.playStartedAt = "0";
+      visualizer.dataset.playStartMs = "0";
+      const intensity = visualizer.querySelector(".aqe-intensity");
+      if (intensity) intensity.setAttribute("d", "");
+      const pitch = visualizer.querySelector(".aqe-pitch");
+      if (pitch) pitch.textContent = "";
+      const labels = visualizer.querySelector(".aqe-labels");
+      if (labels) labels.textContent = "";
+      const xAxis = visualizer.querySelector(".aqe-x-axis");
+      if (xAxis) xAxis.textContent = "";
+      const cursor = visualizer.querySelector(".aqe-cursor");
+      if (cursor) {
+        cursor.setAttribute("x1", String(plot.left));
+        cursor.setAttribute("x2", String(plot.left));
+      }
+      const label = visualizer.querySelector(".aqe-cursor-label");
+      if (label) label.textContent = "0 ms";
+      const graphStatus = visualizer.querySelector(".aqe-visualizer-status");
+      if (graphStatus) {
+        graphStatus.textContent = "";
+        graphStatus.dataset.kind = "info";
+      }
+      const spinner = visualizer.querySelector(".aqe-spinner");
+      if (spinner) spinner.hidden = true;
+    });
+  }
+
   function visualizerForOrd(ord) {
     return document.querySelector(`.aqe-visualizer[data-aqe-field-ord="${ord}"]`);
   }
@@ -729,6 +792,8 @@ _SCRIPT_TEMPLATE = r"""
     };
   };
 
+  window.__aqePrepareForNewNote = prepareForNewNote;
+  prepareForNewNote();
   window.__aqeScan = scan;
   setTimeout(scan, 0);
   setTimeout(scan, 250);

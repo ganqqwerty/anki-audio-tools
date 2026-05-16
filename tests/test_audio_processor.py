@@ -3,8 +3,12 @@
 from __future__ import annotations
 
 import importlib
+import math
+import random
 import shutil
 import subprocess
+import wave
+from array import array
 from datetime import datetime
 from pathlib import Path
 from types import SimpleNamespace
@@ -38,6 +42,20 @@ from anki_audio_quick_editor.errors import (
     MissingDeepFilterError,
     MissingFfmpegError,
 )
+
+FFMPEG_SKIP_REASON = "ffmpeg and ffprobe are required for audio rendering smoke tests"
+
+
+def _deep_filter_available() -> bool:
+    try:
+        find_deep_filter()
+    except MissingDeepFilterError:
+        return False
+    return True
+
+
+FFMPEG_AVAILABLE = shutil.which("ffmpeg") is not None and shutil.which("ffprobe") is not None
+DEEP_FILTER_AVAILABLE = _deep_filter_available()
 
 
 def test_find_ffmpeg_uses_default_path_lookup_when_unconfigured(monkeypatch) -> None:
@@ -89,10 +107,32 @@ def test_find_deep_filter_uses_default_path_lookup_when_unconfigured(monkeypatch
         calls.append(name)
         return "/usr/local/bin/deep-filter"
 
+    monkeypatch.setattr("anki_audio_quick_editor.audio_processor._bundled_deep_filter_path", lambda: None)
     monkeypatch.setattr("anki_audio_quick_editor.audio_processor.shutil.which", fake_which)
 
     assert find_deep_filter() == Path("/usr/local/bin/deep-filter")
     assert calls == ["deep-filter"]
+
+
+def test_find_deep_filter_uses_bundled_binary_before_path_lookup(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    bundled = tmp_path / "deep-filter"
+    bundled.write_text("")
+    calls: list[str] = []
+
+    monkeypatch.setattr(
+        "anki_audio_quick_editor.audio_processor._bundled_deep_filter_path",
+        lambda: bundled,
+    )
+    monkeypatch.setattr(
+        "anki_audio_quick_editor.audio_processor.shutil.which",
+        lambda name: calls.append(name) or "/usr/local/bin/deep-filter",
+    )
+
+    assert find_deep_filter() == bundled
+    assert calls == []
 
 
 def test_find_deep_filter_prefers_existing_configured_file(tmp_path: Path) -> None:
@@ -103,6 +143,7 @@ def test_find_deep_filter_prefers_existing_configured_file(tmp_path: Path) -> No
 
 
 def test_find_deep_filter_raises_when_missing(monkeypatch) -> None:
+    monkeypatch.setattr("anki_audio_quick_editor.audio_processor._bundled_deep_filter_path", lambda: None)
     monkeypatch.setattr("anki_audio_quick_editor.audio_processor.shutil.which", lambda _name: None)
 
     with pytest.raises(MissingDeepFilterError, match="Remove noise requires DeepFilterNet"):
@@ -699,6 +740,87 @@ def test_render_noise_reduced_audio_runs_prepare_deep_filter_and_encode(
     assert result.duration_ms == 1000
 
 
+def test_render_noise_reduced_audio_reports_deep_filter_parameter_errors(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    monkeypatch.setattr("anki_audio_quick_editor.audio_processor.find_ffmpeg", lambda _path: Path("/bin/ffmpeg"))
+    monkeypatch.setattr(
+        "anki_audio_quick_editor.audio_processor.find_deep_filter",
+        lambda _path: Path("/bin/deep-filter"),
+    )
+
+    def fake_run(cmd: list[str], capture_output: bool, text: bool, check: bool) -> SimpleNamespace:
+        if cmd[0] == "/bin/deep-filter":
+            return SimpleNamespace(returncode=2, stdout="", stderr="error: unexpected argument '--atten-lim'")
+        return SimpleNamespace(returncode=0, stdout="", stderr="")
+
+    monkeypatch.setattr("anki_audio_quick_editor.audio_processor.subprocess.run", fake_run)
+
+    with pytest.raises(AudioProcessingError, match="unexpected argument '--atten-lim'"):
+        render_noise_reduced_audio(
+            tmp_path / "source.mp3",
+            AudioProcessingConfig(),
+            output_path=tmp_path / "cleaned.mp3",
+        )
+
+
+def test_render_noise_reduced_audio_reports_deep_filter_launch_errors(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    monkeypatch.setattr("anki_audio_quick_editor.audio_processor.find_ffmpeg", lambda _path: Path("/bin/ffmpeg"))
+    monkeypatch.setattr(
+        "anki_audio_quick_editor.audio_processor.find_deep_filter",
+        lambda _path: Path("/bin/deep-filter"),
+    )
+
+    def fake_run(cmd: list[str], capture_output: bool, text: bool, check: bool) -> SimpleNamespace:
+        if cmd[0] == "/bin/deep-filter":
+            raise PermissionError(13, "Permission denied", "/bin/deep-filter")
+        return SimpleNamespace(returncode=0, stdout="", stderr="")
+
+    monkeypatch.setattr("anki_audio_quick_editor.audio_processor.subprocess.run", fake_run)
+
+    with pytest.raises(AudioProcessingError, match="Could not start DeepFilterNet noise removal"):
+        render_noise_reduced_audio(
+            tmp_path / "source.mp3",
+            AudioProcessingConfig(),
+            output_path=tmp_path / "cleaned.mp3",
+        )
+
+
+@pytest.mark.skipif(
+    not FFMPEG_AVAILABLE or not DEEP_FILTER_AVAILABLE,
+    reason="deep-filter, ffmpeg, and ffprobe are required for denoise quality smoke tests",
+)
+def test_render_noise_reduced_audio_reduces_measured_noise_floor(tmp_path: Path) -> None:
+    source = tmp_path / "noisy_speech_like.wav"
+    output = tmp_path / "denoised.mp3"
+    _generate_noisy_speech_like_clip(source)
+
+    input_samples = _decode_mono_pcm16(source)
+    input_noise_rms = _window_rms(input_samples, start_s=0.05, end_s=0.30)
+    input_signal_rms = _window_rms(input_samples, start_s=0.55, end_s=1.10)
+
+    result = render_noise_reduced_audio(
+        source,
+        AudioProcessingConfig(deep_filter_post_filter=True),
+        output_path=output,
+    )
+
+    output_samples = _decode_mono_pcm16(output)
+    output_noise_rms = _window_rms(output_samples, start_s=0.05, end_s=0.30)
+    output_signal_rms = _window_rms(output_samples, start_s=0.55, end_s=1.10)
+
+    assert result.output_path == output
+    assert output.is_file()
+    assert result.duration_ms is not None
+    assert 1400 <= result.duration_ms <= 1800
+    assert _db_drop(input_noise_rms, output_noise_rms) >= 3.0
+    assert _db_drop(input_signal_rms, output_signal_rms) < 12.0
+
+
 def test_render_audio_uses_default_error_message_for_blank_stderr(monkeypatch, tmp_path: Path) -> None:
     monkeypatch.setattr("anki_audio_quick_editor.audio_processor.find_ffmpeg", lambda _path: Path("/bin/ffmpeg"))
     monkeypatch.setattr("anki_audio_quick_editor.audio_processor.probe_duration_ms", lambda *_args: 1000)
@@ -824,8 +946,8 @@ def test_render_playback_segment_uses_exact_end_of_audio_message(monkeypatch, tm
 
 
 @pytest.mark.skipif(
-    shutil.which("ffmpeg") is None or shutil.which("ffprobe") is None,
-    reason="ffmpeg and ffprobe are required for audio rendering smoke tests",
+    not FFMPEG_AVAILABLE,
+    reason=FFMPEG_SKIP_REASON,
 )
 def test_render_audio_smoke_with_path_spaces_and_non_ascii(tmp_path: Path) -> None:
     source_dir = tmp_path / "media with spaces"
@@ -862,8 +984,8 @@ def test_render_audio_smoke_with_path_spaces_and_non_ascii(tmp_path: Path) -> No
 
 
 @pytest.mark.skipif(
-    shutil.which("ffmpeg") is None or shutil.which("ffprobe") is None,
-    reason="ffmpeg and ffprobe are required for audio rendering smoke tests",
+    not FFMPEG_AVAILABLE,
+    reason=FFMPEG_SKIP_REASON,
 )
 def test_render_audio_remove_pauses_preserves_short_pause(tmp_path: Path) -> None:
     source = tmp_path / "short_pause.wav"
@@ -883,8 +1005,8 @@ def test_render_audio_remove_pauses_preserves_short_pause(tmp_path: Path) -> Non
 
 
 @pytest.mark.skipif(
-    shutil.which("ffmpeg") is None or shutil.which("ffprobe") is None,
-    reason="ffmpeg and ffprobe are required for audio rendering smoke tests",
+    not FFMPEG_AVAILABLE,
+    reason=FFMPEG_SKIP_REASON,
 )
 def test_render_audio_remove_pauses_compresses_obvious_long_pause(tmp_path: Path) -> None:
     source = tmp_path / "long_pause.wav"
@@ -905,8 +1027,8 @@ def test_render_audio_remove_pauses_compresses_obvious_long_pause(tmp_path: Path
 
 
 @pytest.mark.skipif(
-    shutil.which("ffmpeg") is None or shutil.which("ffprobe") is None,
-    reason="ffmpeg and ffprobe are required for audio rendering smoke tests",
+    not FFMPEG_AVAILABLE,
+    reason=FFMPEG_SKIP_REASON,
 )
 def test_render_audio_remove_pauses_preserves_quiet_micro_word_between_pauses(
     tmp_path: Path,
@@ -928,8 +1050,8 @@ def test_render_audio_remove_pauses_preserves_quiet_micro_word_between_pauses(
 
 
 @pytest.mark.skipif(
-    shutil.which("ffmpeg") is None or shutil.which("ffprobe") is None,
-    reason="ffmpeg and ffprobe are required for audio rendering smoke tests",
+    not FFMPEG_AVAILABLE,
+    reason=FFMPEG_SKIP_REASON,
 )
 def test_render_playback_segment_from_70_percent_is_shorter(tmp_path: Path) -> None:
     source = tmp_path / "cursor source.wav"
@@ -1035,6 +1157,77 @@ def _generate_quiet_micro_word_clip(path: Path) -> None:
         "[out]",
         str(path),
     )
+
+
+def _generate_noisy_speech_like_clip(path: Path) -> None:
+    sample_rate = 48_000
+    duration_s = 1.6
+    noise_only_s = 0.4
+    rng = random.Random(42)
+    samples: list[int] = []
+    for index in range(round(sample_rate * duration_s)):
+        time_s = index / sample_rate
+        noise = rng.uniform(-0.08, 0.08)
+        signal = 0.0
+        if noise_only_s <= time_s < duration_s - noise_only_s:
+            speech_time = time_s - noise_only_s
+            envelope = 0.55 + 0.45 * math.sin(2 * math.pi * 4.5 * speech_time) ** 2
+            signal = envelope * (
+                0.16 * math.sin(2 * math.pi * 180 * speech_time)
+                + 0.08 * math.sin(2 * math.pi * 360 * speech_time)
+                + 0.04 * math.sin(2 * math.pi * 540 * speech_time)
+            )
+        value = max(-0.95, min(0.95, signal + noise))
+        samples.append(round(value * 32767))
+
+    with wave.open(str(path), "wb") as wav_file:
+        wav_file.setnchannels(1)
+        wav_file.setsampwidth(2)
+        wav_file.setframerate(sample_rate)
+        wav_file.writeframes(array("h", samples).tobytes())
+
+
+def _decode_mono_pcm16(path: Path, sample_rate: int = 48_000) -> list[int]:
+    result = subprocess.run(
+        [
+            "ffmpeg",
+            "-v",
+            "error",
+            "-i",
+            str(path),
+            "-ac",
+            "1",
+            "-ar",
+            str(sample_rate),
+            "-f",
+            "s16le",
+            "pipe:1",
+        ],
+        check=True,
+        capture_output=True,
+    )
+    samples = array("h")
+    samples.frombytes(result.stdout)
+    return list(samples)
+
+
+def _window_rms(
+    samples: list[int],
+    *,
+    start_s: float,
+    end_s: float,
+    sample_rate: int = 48_000,
+) -> float:
+    start = round(start_s * sample_rate)
+    end = round(end_s * sample_rate)
+    window = samples[start:end]
+    assert window
+    return math.sqrt(sum((sample / 32768) ** 2 for sample in window) / len(window))
+
+
+def _db_drop(before: float, after: float) -> float:
+    floor = 1e-9
+    return 20 * math.log10(max(before, floor) / max(after, floor))
 
 
 def _run_ffmpeg(*args: str) -> None:

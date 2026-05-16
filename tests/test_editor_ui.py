@@ -72,6 +72,8 @@ def test_visualizer_has_progress_axis_and_lock_test_hooks() -> None:
 
     assert "durationMs < 2000" in script
     assert "return `${Math.round(ms)} ms`;" in script
+    assert "window.__aqePrepareForNewNote = prepareForNewNote;" in script
+    assert "prepareForNewNote();" in script
     assert "setControlsBusy(ord, true, \"Analyzing...\", \"\");" in script
     assert 'visualizer.dataset.hasTrack = "false";' in script
     assert 'visualizer.dataset.hasTrack = "true";' in script
@@ -120,6 +122,161 @@ def test_playback_finish_and_cursor_drag_intents_are_injected() -> None:
     assert 'const restartPlayback = previousPlaybackState === "playing";' in script
     assert "window.__aqeGetCursorIntent" in script
     assert "anchorMs" in script
+
+
+def test_prepare_for_new_note_resets_rendered_visualizer_state() -> None:
+    result = _run_visualizer_helper_js(
+        """
+        const controls = {
+          dataset: { busy: "true", aqeSourceFilename: "one.wav" },
+          buttons: [
+            { dataset: { aqeCommand: "aqe:analyze" }, textContent: "Redraw", disabled: true },
+            { dataset: { aqeCommand: "aqe:play" }, textContent: "Pause", disabled: true }
+          ],
+          status: { textContent: "Busy", dataset: { kind: "error" }, title: "ffmpeg" },
+          visualizer: {
+            hidden: false,
+            dataset: {
+              aqeFieldOrd: "0",
+              anchorMs: "400",
+              cursorMs: "350",
+              progressMs: "360",
+              graphActive: "true",
+              graphBusy: "true",
+              hasTrack: "true",
+              playbackState: "playing",
+              resumeRequiresRestart: "true",
+              durationMs: "1200",
+              sourceFilename: "one.wav",
+              analyzerName: "praat",
+              playStartedAt: "100",
+              playStartMs: "200"
+            },
+            __aqePlaybackTimer: 41,
+            intensity: {
+              attributes: { d: "M 1 2" },
+              setAttribute(name, value) { this.attributes[name] = String(value); }
+            },
+            pitch: { textContent: "pitch" },
+            labels: { textContent: "labels" },
+            xAxis: { textContent: "x-axis" },
+            cursor: {
+              attributes: { x1: "90", x2: "90" },
+              setAttribute(name, value) { this.attributes[name] = String(value); }
+            },
+            cursorLabel: { textContent: "0.35s" },
+            graphStatus: { textContent: "Analyzing...", dataset: { kind: "processing" } },
+            spinner: { hidden: false },
+            querySelector(selector) {
+              if (selector === ".aqe-intensity") return this.intensity;
+              if (selector === ".aqe-pitch") return this.pitch;
+              if (selector === ".aqe-labels") return this.labels;
+              if (selector === ".aqe-x-axis") return this.xAxis;
+              if (selector === ".aqe-cursor") return this.cursor;
+              if (selector === ".aqe-cursor-label") return this.cursorLabel;
+              if (selector === ".aqe-visualizer-status") return this.graphStatus;
+              if (selector === ".aqe-spinner") return this.spinner;
+              throw new Error(`Unexpected visualizer selector: ${selector}`);
+            }
+          },
+          querySelectorAll(selector) {
+            if (selector === ".aqe-button") return this.buttons;
+            throw new Error(`Unexpected controls selectorAll: ${selector}`);
+          },
+          querySelector(selector) {
+            if (selector === ".aqe-status") return this.status;
+            if (selector === ".aqe-visualizer") return this.visualizer;
+            throw new Error(`Unexpected controls selector: ${selector}`);
+          }
+        };
+        const cancelled = [];
+        document.body = { dataset: { aqeBusy: "true" } };
+        document.querySelectorAll = (selector) => {
+          if (selector === ".aqe-controls") return [controls];
+          throw new Error(`Unexpected document selector: ${selector}`);
+        };
+        window.__aqeActiveField = 7;
+        window.__aqeLastCursorIntent = { cursorMs: 500 };
+        window.cancelAnimationFrame = (id) => {
+          cancelled.push(id);
+        };
+
+        return (function() {
+          prepareForNewNote();
+          return {
+            busy: document.body.dataset.aqeBusy,
+            activeField: window.__aqeActiveField,
+            lastCursorIntent: window.__aqeLastCursorIntent,
+            controlsBusy: controls.dataset.busy,
+            sourceFilename: controls.dataset.aqeSourceFilename,
+            graphLabel: controls.buttons[0].textContent,
+            playLabel: controls.buttons[1].textContent,
+            buttonsDisabled: controls.buttons.map((button) => button.disabled),
+            statusText: controls.status.textContent,
+            statusKind: controls.status.dataset.kind,
+            statusTitle: controls.status.title,
+            hidden: controls.visualizer.hidden,
+            graphActive: controls.visualizer.dataset.graphActive,
+            graphBusy: controls.visualizer.dataset.graphBusy,
+            hasTrack: controls.visualizer.dataset.hasTrack,
+            durationMs: controls.visualizer.dataset.durationMs,
+            cursorMs: controls.visualizer.dataset.cursorMs,
+            progressMs: controls.visualizer.dataset.progressMs,
+            source: controls.visualizer.dataset.sourceFilename,
+            analyzer: controls.visualizer.dataset.analyzerName,
+            playbackState: controls.visualizer.dataset.playbackState,
+            resumeRequiresRestart: controls.visualizer.dataset.resumeRequiresRestart,
+            intensity: controls.visualizer.intensity.attributes.d,
+            pitch: controls.visualizer.pitch.textContent,
+            labels: controls.visualizer.labels.textContent,
+            xAxis: controls.visualizer.xAxis.textContent,
+            cursorX1: controls.visualizer.cursor.attributes.x1,
+            cursorX2: controls.visualizer.cursor.attributes.x2,
+            cursorLabel: controls.visualizer.cursorLabel.textContent,
+            graphStatus: controls.visualizer.graphStatus.textContent,
+            graphStatusKind: controls.visualizer.graphStatus.dataset.kind,
+            spinnerHidden: controls.visualizer.spinner.hidden,
+            timer: controls.visualizer.__aqePlaybackTimer,
+            cancelled
+          };
+        })();
+        """
+    )
+
+    assert result["busy"] == "false"
+    assert result["activeField"] is None
+    assert result["lastCursorIntent"] is None
+    assert result["controlsBusy"] == "false"
+    assert result["sourceFilename"] == ""
+    assert result["graphLabel"] == "Graph"
+    assert result["playLabel"] == "Play"
+    assert result["buttonsDisabled"] == [False, False]
+    assert result["statusText"] == ""
+    assert result["statusKind"] == "info"
+    assert result["statusTitle"] == ""
+    assert result["hidden"] is True
+    assert result["graphActive"] == "false"
+    assert result["graphBusy"] == "false"
+    assert result["hasTrack"] == "false"
+    assert result["durationMs"] == "0"
+    assert result["cursorMs"] == "0"
+    assert result["progressMs"] == "0"
+    assert result["source"] == ""
+    assert result["analyzer"] == ""
+    assert result["playbackState"] == "stopped"
+    assert result["resumeRequiresRestart"] == "false"
+    assert result["intensity"] == ""
+    assert result["pitch"] == ""
+    assert result["labels"] == ""
+    assert result["xAxis"] == ""
+    assert result["cursorX1"] == "44"
+    assert result["cursorX2"] == "44"
+    assert result["cursorLabel"] == "0 ms"
+    assert result["graphStatus"] == ""
+    assert result["graphStatusKind"] == "info"
+    assert result["spinnerHidden"] is True
+    assert result["timer"] is None
+    assert result["cancelled"] == [41]
 
 
 def test_visualizer_pitch_paths_split_at_unvoiced_points() -> None:
@@ -221,6 +378,7 @@ def _run_visualizer_helper_js(scenario: str):
     helpers = "\n".join(
         _extract_js_function(script, name)
         for name in (
+            "prepareForNewNote",
             "plotWidth",
             "plotHeight",
             "xForMs",
@@ -260,6 +418,9 @@ def _run_visualizer_helper_js(scenario: str):
       createElementNS(_namespace, tagName) {{
         return new FakeNode(tagName);
       }}
+    }};
+    const window = {{
+      cancelAnimationFrame() {{}}
     }};
 
     function runScenario() {{

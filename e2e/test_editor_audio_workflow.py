@@ -784,6 +784,51 @@ def test_graph_redraw_resets_after_audio_edit_when_active(anki_mw, ffmpeg_config
         parent.close()
 
 
+def test_graph_hides_when_browser_editor_switches_to_another_note(anki_mw, ffmpeg_config) -> None:
+    media_dir = Path(anki_mw.col.media.dir())
+    first_source = media_dir / "editor_switch_note_one.wav"
+    second_source = media_dir / "editor_switch_note_two.wav"
+    generate_tone(ffmpeg_config, first_source, duration_s=1.0)
+    generate_tone(ffmpeg_config, second_source, duration_s=1.0)
+    first_note = _basic_audio_note(anki_mw, first_source.name)
+    second_note = _basic_audio_note(anki_mw, second_source.name)
+    _configure_ffmpeg(anki_mw, ffmpeg_config)
+
+    editor, parent = _open_editor(anki_mw, first_note)
+    try:
+        first_track = _click_graph_and_wait(
+            editor,
+            lambda value: value["sourceFilename"] == first_source.name,
+        )
+        assert first_track["hidden"] is False
+
+        editor.set_note(second_note, hide=False, focusTo=0)
+        wait_for_selector(editor.web, _button_selector("aqe:analyze"), timeout=10.0)
+        reset_state = wait_for_js_condition(
+            editor.web,
+            _graph_state_js(),
+            lambda value: value is not None
+            and value["hidden"] is True
+            and value["active"] is False
+            and value["hasTrack"] is False
+            and value["sourceFilename"] == ""
+            and value["graphButtonLabel"] == "Graph",
+            timeout=10.0,
+        )
+
+        assert reset_state["hidden"] is True
+        assert reset_state["sourceFilename"] == ""
+
+        second_track = _click_graph_and_wait(
+            editor,
+            lambda value: value["sourceFilename"] == second_source.name,
+        )
+        assert second_track["sourceFilename"] == second_source.name
+    finally:
+        editor.set_note(None)
+        parent.close()
+
+
 def test_redraw_button_resets_cursor_and_reanalyzes_current_clip(anki_mw, ffmpeg_config) -> None:
     media_dir = Path(anki_mw.col.media.dir())
     source = media_dir / "editor_redraw_source.wav"

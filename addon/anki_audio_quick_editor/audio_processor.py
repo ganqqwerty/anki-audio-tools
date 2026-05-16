@@ -5,6 +5,7 @@ from __future__ import annotations
 import json
 import math
 import os
+import platform
 import shlex
 import shutil
 import subprocess
@@ -17,6 +18,14 @@ from pathlib import Path
 
 from .audio_state import AudioEditState, AudioProcessingConfig
 from .errors import AudioProcessingError, MissingDeepFilterError, MissingFfmpegError
+
+BUNDLED_DEEP_FILTER_VERSION = "0.5.6"
+_PACKAGE_DIR = Path(__file__).resolve().parent
+_BUNDLED_DEEP_FILTER_BY_PLATFORM = {
+    ("Darwin", "arm64"): _PACKAGE_DIR
+    / "bin"
+    / f"deep-filter-{BUNDLED_DEEP_FILTER_VERSION}-aarch64-apple-darwin",
+}
 
 
 @dataclass(frozen=True)
@@ -57,11 +66,14 @@ def find_ffprobe(ffmpeg_path: Path) -> Path:
 
 
 def find_deep_filter(configured_path: str = "") -> Path:
-    """Return a deep-filter executable path, honoring an optional config override."""
+    """Return a deep-filter executable path, honoring config, bundled binary, then PATH."""
     if configured_path:
         path = Path(configured_path).expanduser()
         if path.is_file():
             return path
+    bundled = _bundled_deep_filter_path()
+    if bundled is not None:
+        return bundled
     found = shutil.which("deep-filter")
     if found:
         return Path(found)
@@ -69,6 +81,13 @@ def find_deep_filter(configured_path: str = "") -> Path:
         "Remove noise requires DeepFilterNet's deep-filter executable. Install DeepFilterNet "
         "and make sure deep-filter is available in PATH, or configure its path in add-on settings."
     )
+
+
+def _bundled_deep_filter_path() -> Path | None:
+    binary = _BUNDLED_DEEP_FILTER_BY_PLATFORM.get((platform.system(), platform.machine()))
+    if binary is not None and binary.is_file():
+        return binary
+    return None
 
 
 def probe_duration_ms(source_path: Path, config: AudioProcessingConfig) -> int:
@@ -238,12 +257,10 @@ def render_noise_reduced_audio(
         prepare_cmd = build_deep_filter_prepare_command(ffmpeg_path, source_path, input_wav)
         if on_command:
             on_command(prepare_cmd)
-        prepare_result = subprocess.run(
-            list(prepare_cmd),
-            capture_output=True,
-            text=True,
-            check=False,
-        )  # nosec B603
+        prepare_result = _run_external_command(
+            prepare_cmd,
+            "Could not start audio preparation for DeepFilterNet.",
+        )
         if prepare_result.returncode != 0:
             raise AudioProcessingError(
                 prepare_result.stderr.strip() or "Could not prepare audio for DeepFilterNet."
@@ -257,12 +274,10 @@ def render_noise_reduced_audio(
         )
         if on_command:
             on_command(deep_filter_cmd)
-        deep_filter_result = subprocess.run(
-            list(deep_filter_cmd),
-            capture_output=True,
-            text=True,
-            check=False,
-        )  # nosec B603
+        deep_filter_result = _run_external_command(
+            deep_filter_cmd,
+            "Could not start DeepFilterNet noise removal.",
+        )
         if deep_filter_result.returncode != 0:
             raise AudioProcessingError(
                 deep_filter_result.stderr.strip() or "DeepFilterNet noise removal failed."
@@ -272,12 +287,10 @@ def render_noise_reduced_audio(
         encode_cmd = build_mp3_encode_command(ffmpeg_path, cleaned_wav, output_path)
         if on_command:
             on_command(encode_cmd)
-        encode_result = subprocess.run(
-            list(encode_cmd),
-            capture_output=True,
-            text=True,
-            check=False,
-        )  # nosec B603
+        encode_result = _run_external_command(
+            encode_cmd,
+            "Could not start MP3 encoding for DeepFilterNet output.",
+        )
         if encode_result.returncode != 0:
             raise AudioProcessingError(
                 encode_result.stderr.strip() or "Could not encode DeepFilterNet output."
@@ -290,6 +303,21 @@ def render_noise_reduced_audio(
         )
     finally:
         shutil.rmtree(work_dir, ignore_errors=True)
+
+
+def _run_external_command(
+    command: tuple[str, ...],
+    launch_error_message: str,
+) -> subprocess.CompletedProcess[str]:
+    try:
+        return subprocess.run(
+            list(command),
+            capture_output=True,
+            text=True,
+            check=False,
+        )  # nosec B603
+    except OSError as exc:
+        raise AudioProcessingError(f"{launch_error_message} {exc}") from exc
 
 
 def render_playback_segment(

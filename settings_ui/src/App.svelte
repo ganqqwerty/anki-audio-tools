@@ -151,7 +151,7 @@
           <input
             type="text"
             bind:value={config.deep_filter_path}
-            placeholder="Leave blank to use PATH"
+            placeholder="Leave blank to use bundled binary, then PATH"
           />
         </label>
         <label class="toggle">

@@ -3,9 +3,12 @@
 from __future__ import annotations
 
 import importlib
+import logging
 from pathlib import Path
 from types import SimpleNamespace
 from unittest.mock import MagicMock
+
+import pytest
 
 from anki_audio_quick_editor.audio_state import AudioEditState, AudioProcessingConfig
 from anki_audio_quick_editor.editor_integration import (
@@ -13,14 +16,17 @@ from anki_audio_quick_editor.editor_integration import (
     BRIDGE_COMMANDS,
     EditorSession,
     UndoHistory,
+    _analysis_finished,
     _audio_field_indices,
     _handle_bridge_command,
     _is_busy,
     _playback_segment_ready,
+    _reset_editor_session_for_note_load,
     _reveal_file,
     _set_busy,
     register_editor_hooks,
 )
+from anki_audio_quick_editor.errors import AudioProcessingError, MissingDeepFilterError
 from anki_audio_quick_editor.prosody_cache import (
     _ANALYSIS_CACHE,
     analyze_prosody_cached,
@@ -131,6 +137,59 @@ def test_set_busy_falls_back_to_session_field_index() -> None:
     assert "(2, false" in editor.web.eval.call_args.args[0]
 
 
+def test_note_load_reset_clears_note_specific_session_state(monkeypatch) -> None:
+    class Editor:
+        pass
+
+    editor = Editor()
+    source_path = Path("/tmp/playback.mp3")
+    session = EditorSession(
+        note_id=10,
+        state=AudioEditState("source.mp3", left_trim_ms=100),
+        field_index=2,
+        current_filename="generated.mp3",
+        processing=True,
+        analysis_busy=True,
+        source_mtime_ns=123,
+        cursor_ms=450,
+        analysis_generation=3,
+        graph_active_fields={2},
+        visualized_filename="generated.mp3",
+        visualized_duration_ms=1200,
+        playback_active=True,
+        playback_paused=True,
+        playback_preparing=True,
+        playback_generation=4,
+        temp_playback_path=source_path,
+    )
+    session.undo_history.push(AudioEditState("source.mp3"), "generated.mp3")
+    _SESSIONS[editor] = session
+
+    monkeypatch.setattr("anki_audio_quick_editor.editor_integration._stop_audio_playback", lambda: None)
+    monkeypatch.setattr("anki_audio_quick_editor.editor_integration._cleanup_temp_playback", lambda current: setattr(current, "temp_playback_path", None))
+
+    _reset_editor_session_for_note_load(editor, 11)
+
+    assert session.note_id == 11
+    assert session.state is None
+    assert session.field_index is None
+    assert session.current_filename is None
+    assert session.processing is False
+    assert session.analysis_busy is False
+    assert session.source_mtime_ns is None
+    assert session.cursor_ms == 0
+    assert session.analysis_generation == 4
+    assert session.graph_active_fields == set()
+    assert session.visualized_filename is None
+    assert session.visualized_duration_ms is None
+    assert session.playback_active is False
+    assert session.playback_paused is False
+    assert session.playback_preparing is False
+    assert session.playback_generation == 5
+    assert session.temp_playback_path is None
+    assert session.undo_history.pop() is None
+
+
 def test_is_busy_includes_playback_preparation() -> None:
     assert _is_busy(EditorSession(playback_preparing=True)) is True
     assert _is_busy(EditorSession()) is False
@@ -152,6 +211,68 @@ def test_stale_playback_segment_completion_is_ignored_and_cleaned(tmp_path: Path
 
     assert not temp_dir.exists()
     assert session.temp_playback_path is None
+
+
+def test_stale_analysis_completion_is_ignored_after_note_load_reset() -> None:
+    class Editor:
+        pass
+
+    editor = Editor()
+    editor.currentField = 0
+    editor.web = MagicMock()
+    session = EditorSession(
+        note_id=10,
+        field_index=0,
+        analysis_busy=True,
+        analysis_generation=2,
+    )
+    _SESSIONS[editor] = session
+    track = ProsodyTrack(
+        duration_ms=1000,
+        points=(ProsodyPoint(0, 220.0, -20.0, 0.5, True),),
+        pitch_min_hz=220.0,
+        pitch_max_hz=220.0,
+        source_filename="clip.mp3",
+        analyzer_name="test",
+    )
+
+    _reset_editor_session_for_note_load(editor, 11)
+    _analysis_finished(editor, 2, track)
+
+    assert session.analysis_generation == 3
+    assert session.visualized_duration_ms is None
+    editor.web.eval.assert_not_called()
+
+
+def test_note_load_reset_skips_same_note_reload(monkeypatch) -> None:
+    class Editor:
+        pass
+
+    editor = Editor()
+    session = EditorSession(
+        note_id=12,
+        state=AudioEditState("source.mp3"),
+        field_index=0,
+        current_filename="source.mp3",
+        analysis_generation=5,
+        playback_generation=3,
+    )
+    _SESSIONS[editor] = session
+    stop_calls: list[str] = []
+
+    monkeypatch.setattr(
+        "anki_audio_quick_editor.editor_integration._stop_audio_playback",
+        lambda: stop_calls.append("stop"),
+    )
+
+    _reset_editor_session_for_note_load(editor, 12)
+
+    assert stop_calls == []
+    assert session.note_id == 12
+    assert session.state == AudioEditState("source.mp3")
+    assert session.current_filename == "source.mp3"
+    assert session.analysis_generation == 5
+    assert session.playback_generation == 3
 
 
 def test_reveal_file_selects_file_on_macos(tmp_path: Path, monkeypatch) -> None:
@@ -277,7 +398,30 @@ def test_remove_noise_replaces_current_media_and_resets_state(tmp_path: Path, mo
     editor.loadNote.assert_called_once_with(focusTo=0)
 
 
-def test_remove_noise_failure_clears_busy_and_keeps_note(tmp_path: Path, monkeypatch) -> None:
+@pytest.mark.parametrize(
+    ("failure", "expected_message"),
+    [
+        (
+            MissingDeepFilterError("Remove noise requires DeepFilterNet's deep-filter executable."),
+            "Remove noise requires DeepFilterNet",
+        ),
+        (
+            PermissionError(13, "Permission denied", "/bin/deep-filter"),
+            "Permission denied",
+        ),
+        (
+            AudioProcessingError("error: unexpected argument '--atten-lim'"),
+            "unexpected argument '--atten-lim'",
+        ),
+    ],
+)
+def test_remove_noise_failure_logs_renders_error_and_keeps_note(
+    failure: Exception,
+    expected_message: str,
+    tmp_path: Path,
+    monkeypatch,
+    caplog,
+) -> None:
     class ImmediateThread:
         def __init__(self, target, daemon=True):
             self._target = target
@@ -293,7 +437,7 @@ def test_remove_noise_failure_clears_busy_and_keeps_note(tmp_path: Path, monkeyp
     (media_dir / "clip.mp3").write_bytes(b"source")
 
     def fake_render_noise_reduced_audio(*_args, **_kwargs) -> None:
-        raise RuntimeError("deep-filter failed")
+        raise failure
 
     editor = Editor()
     editor.currentField = 0
@@ -320,10 +464,13 @@ def test_remove_noise_failure_clears_busy_and_keeps_note(tmp_path: Path, monkeyp
         fake_render_noise_reduced_audio,
     )
     monkeypatch.setattr("anki_audio_quick_editor.editor_integration._stop_audio_playback", lambda: None)
+    caplog.set_level(logging.ERROR, logger="anki_audio_quick_editor.editor_integration")
 
     _handle_bridge_command(editor, "aqe:remove-noise")
 
     assert editor.note.fields == ["[sound:clip.mp3]"]
     assert editor.mw.col.media.write_data.call_count == 0
     assert _SESSIONS[editor].processing is False
-    assert any("deep-filter failed" in call.args[0] for call in editor.web.eval.call_args_list)
+    assert any(expected_message in call.args[0] for call in editor.web.eval.call_args_list)
+    assert "remove noise failed" in caplog.text
+    assert expected_message in caplog.text

@@ -24,7 +24,7 @@ Audio Quick Editor config lives in [`addon/anki_audio_quick_editor/config.json`]
 | `internal_pause_target_gap_ms` | integer | Remaining gap preserved when compressing pauses |
 | `output_format` | string | Final output format; MVP supports only `mp3` |
 | `ffmpeg_path` | string | Optional explicit path to `ffmpeg`; blank uses PATH |
-| `deep_filter_path` | string | Optional explicit path to DeepFilterNet `deep-filter`; blank uses PATH |
+| `deep_filter_path` | string | Optional explicit path to DeepFilterNet `deep-filter`; blank uses a bundled platform binary when available, then PATH |
 | `deep_filter_post_filter` | boolean | Enables DeepFilterNet post-filtering for stronger noise suppression |
 
 ## Access Pattern
