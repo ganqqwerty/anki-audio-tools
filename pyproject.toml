@@ -90,14 +90,19 @@ name = "import-safe-no-upper-layers"
 type = "forbidden"
 source_modules = [
     "anki_audio_quick_editor._version",
+    "anki_audio_quick_editor.audio_operations",
+    "anki_audio_quick_editor.audio_pipeline",
     "anki_audio_quick_editor.audio_processor",
     "anki_audio_quick_editor.audio_state",
+    "anki_audio_quick_editor.batch_operations",
     "anki_audio_quick_editor.batch_visualization",
     "anki_audio_quick_editor.config_migration",
     "anki_audio_quick_editor.db_helpers",
+    "anki_audio_quick_editor.diagnostics",
     "anki_audio_quick_editor.editor_actions",
     "anki_audio_quick_editor.editor_ui",
     "anki_audio_quick_editor.errors",
+    "anki_audio_quick_editor.file_reveal",
     "anki_audio_quick_editor.prosody_analyzer",
     "anki_audio_quick_editor.prosody_cache",
     "anki_audio_quick_editor.prosody_fallback",
@@ -106,6 +111,7 @@ source_modules = [
     "anki_audio_quick_editor.prosody_types",
     "anki_audio_quick_editor.settings_state",
     "anki_audio_quick_editor.sound_refs",
+    "anki_audio_quick_editor.support",
 ]
 forbidden_modules = [
     "anki_audio_quick_editor.browser_integration",

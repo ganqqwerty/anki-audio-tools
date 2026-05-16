@@ -3,8 +3,12 @@
 from __future__ import annotations
 
 import json
+import logging
 from pathlib import Path
+from types import SimpleNamespace
 from unittest.mock import MagicMock, patch
+
+import pytest
 
 from anki_audio_quick_editor.settings.commands import handle_settings_command
 from anki_audio_quick_editor.support import (
@@ -83,11 +87,135 @@ def test_settings_cancel_rejects_dialog() -> None:
     assert dialog.rejected is True
 
 
-def test_frontend_log_handles_invalid_json() -> None:
+def test_settings_reset_defaults_warns_when_defaults_are_missing() -> None:
+    from aqt import mw
+    from aqt.qt import QMessageBox
+
+    mw.addonManager.addonConfigDefaults.return_value = None
     dialog = _make_dialog()
     _, eval_fn = _capture_eval()
 
+    assert handle_settings_command("settings_reset_defaults", eval_fn, dialog) is True
+
+    QMessageBox.warning.assert_called_once_with(dialog, "Reset Failed", "Could not load config defaults.")
+    mw.addonManager.writeConfig.assert_not_called()
+    assert dialog.rejected is False
+
+
+def test_settings_reset_defaults_respects_no_confirmation() -> None:
+    from aqt import mw
+    from aqt.qt import QMessageBox
+
+    QMessageBox.StandardButton = SimpleNamespace(Yes=1, No=2)
+    QMessageBox.warning.return_value = QMessageBox.StandardButton.No
+    mw.addonManager.addonConfigDefaults.return_value = {"enabled": True}
+    dialog = _make_dialog()
+    _, eval_fn = _capture_eval()
+
+    assert handle_settings_command("settings_reset_defaults", eval_fn, dialog) is True
+
+    mw.addonManager.writeConfig.assert_not_called()
+    assert dialog.rejected is False
+
+
+def test_settings_reset_defaults_writes_defaults_and_closes_on_yes() -> None:
+    from aqt import mw
+    from aqt.qt import QMessageBox
+
+    defaults = {"enabled": True, "debug_logging": False}
+    QMessageBox.StandardButton = SimpleNamespace(Yes=1, No=2)
+    QMessageBox.warning.return_value = QMessageBox.StandardButton.Yes
+    mw.addonManager.addonConfigDefaults.return_value = defaults
+    dialog = _make_dialog()
+    _, eval_fn = _capture_eval()
+
+    assert handle_settings_command("settings_reset_defaults", eval_fn, dialog) is True
+
+    mw.addonManager.writeConfig.assert_called_once_with("anki_audio_quick_editor", defaults)
+    assert dialog.rejected is True
+
+
+def test_frontend_log_handles_invalid_json(caplog: pytest.LogCaptureFixture) -> None:
+    dialog = _make_dialog()
+    _, eval_fn = _capture_eval()
+
+    caplog.set_level(logging.WARNING, logger="anki_audio_quick_editor.settings.commands")
+
     assert handle_settings_command("frontend_log:not-json", eval_fn, dialog) is True
+    assert "frontend_log: invalid payload" in caplog.text
+
+
+@pytest.mark.parametrize(
+    ("level", "expected_level"),
+    [
+        ("debug", logging.DEBUG),
+        ("info", logging.INFO),
+        ("warn", logging.WARNING),
+        ("error", logging.ERROR),
+        ("unknown", logging.INFO),
+    ],
+)
+def test_frontend_log_renders_level_message_and_context(
+    level: str,
+    expected_level: int,
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    dialog = _make_dialog()
+    _, eval_fn = _capture_eval()
+    caplog.set_level(logging.DEBUG, logger="anki_audio_quick_editor.settings.commands")
+    payload = json.dumps({"level": level, "message": "loaded", "context": {"tab": "diagnostics"}})
+
+    assert handle_settings_command(f"frontend_log:{payload}", eval_fn, dialog) is True
+
+    record = caplog.records[-1]
+    assert record.levelno == expected_level
+    assert record.message == "frontend: loaded | {'tab': 'diagnostics'}"
+
+
+def test_async_command_logs_invalid_json_without_callback(caplog: pytest.LogCaptureFixture) -> None:
+    dialog = _make_dialog()
+    calls, eval_fn = _capture_eval()
+    caplog.set_level(logging.ERROR, logger="anki_audio_quick_editor.settings.commands")
+
+    assert handle_settings_command("async_cmd:not-json", eval_fn, dialog) is True
+
+    assert calls == []
+    assert "async_cmd: invalid JSON payload" in caplog.text
+
+
+def test_async_command_reports_unknown_operation() -> None:
+    dialog = _make_dialog()
+    calls, eval_fn = _capture_eval()
+    payload = json.dumps({"id": "job-unknown", "op": "explode", "payload": {}})
+
+    with patch("threading.Thread", _ImmediateThread):
+        assert handle_settings_command(f"async_cmd:{payload}", eval_fn, dialog) is True
+
+    result = _parse_callback(calls[-1], "onAsyncDone")
+    assert result == {
+        "id": "job-unknown",
+        "ok": False,
+        "error": "Unknown async operation: explode",
+    }
+
+
+def test_async_health_check_uses_empty_config_for_non_dict_payload_config() -> None:
+    dialog = _make_dialog()
+    calls, eval_fn = _capture_eval()
+    payload = json.dumps({"id": "job-1", "op": "health_check", "payload": {"config": "/not/a/dict"}})
+
+    with (
+        patch("threading.Thread", _ImmediateThread),
+        patch("anki_audio_quick_editor.diagnostics.build_deep_filter_health", return_value={"available": False}) as deep_filter_health,
+        patch("anki_audio_quick_editor.diagnostics.build_sidon_health", return_value={"available": False}),
+        patch("anki_audio_quick_editor.diagnostics.build_mp_senet_health", return_value={"available": False}),
+    ):
+        assert handle_settings_command(f"async_cmd:{payload}", eval_fn, dialog) is True
+
+    deep_filter_health.assert_called_once_with({})
+    result = _parse_callback(calls[-1], "onAsyncDone")
+    assert result["ok"] is True
+    assert result["result"]["deep_filter"] == {"available": False}
 
 
 def test_async_health_check_reports_result() -> None:
@@ -342,6 +470,30 @@ def test_async_show_log_file_reveals_path(tmp_path: Path) -> None:
     assert result["result"] == {"logFilePath": str(log_path)}
 
 
+def test_async_show_log_file_reports_reveal_failure(tmp_path: Path) -> None:
+    from aqt import mw
+
+    addon_dir = tmp_path / "addon"
+    addon_dir.mkdir()
+    dialog = _make_dialog()
+    calls, eval_fn = _capture_eval()
+    payload = json.dumps({"id": "job-log", "op": "show_log_file", "payload": {}})
+
+    with (
+        patch("threading.Thread", _ImmediateThread),
+        patch.object(mw.addonManager, "addonsFolder", return_value=str(addon_dir)),
+        patch("anki_audio_quick_editor.file_reveal.reveal_file", side_effect=RuntimeError("missing log")),
+    ):
+        assert handle_settings_command(f"async_cmd:{payload}", eval_fn, dialog) is True
+
+    result = _parse_callback(calls[-1], "onAsyncDone")
+    assert result == {
+        "id": "job-log",
+        "ok": False,
+        "error": "missing log",
+    }
+
+
 def test_copy_support_report_updates_clipboard() -> None:
     clipboard = MagicMock()
     dialog = _make_dialog()
@@ -352,6 +504,42 @@ def test_copy_support_report_updates_clipboard() -> None:
         assert handle_settings_command(f"copy_support_report:{payload}", eval_fn, dialog) is True
 
     clipboard.setText.assert_called_once_with("support text")
+
+
+def test_copy_support_report_logs_invalid_json_without_clipboard(caplog: pytest.LogCaptureFixture) -> None:
+    dialog = _make_dialog()
+    _, eval_fn = _capture_eval()
+    caplog.set_level(logging.WARNING, logger="anki_audio_quick_editor.settings.commands")
+
+    with patch("aqt.qt.QApplication.clipboard") as clipboard:
+        assert handle_settings_command("copy_support_report:not-json", eval_fn, dialog) is True
+
+    clipboard.assert_not_called()
+    assert "copy_support_report: invalid payload" in caplog.text
+
+
+def test_copy_support_report_logs_missing_text_without_clipboard(caplog: pytest.LogCaptureFixture) -> None:
+    dialog = _make_dialog()
+    _, eval_fn = _capture_eval()
+    caplog.set_level(logging.WARNING, logger="anki_audio_quick_editor.settings.commands")
+
+    with patch("aqt.qt.QApplication.clipboard") as clipboard:
+        assert handle_settings_command("copy_support_report:{}", eval_fn, dialog) is True
+
+    clipboard.assert_not_called()
+    assert "copy_support_report: missing text payload" in caplog.text
+
+
+def test_copy_support_report_logs_unavailable_clipboard(caplog: pytest.LogCaptureFixture) -> None:
+    dialog = _make_dialog()
+    _, eval_fn = _capture_eval()
+    caplog.set_level(logging.WARNING, logger="anki_audio_quick_editor.settings.commands")
+    payload = json.dumps({"text": "support text"})
+
+    with patch("aqt.qt.QApplication.clipboard", return_value=None):
+        assert handle_settings_command(f"copy_support_report:{payload}", eval_fn, dialog) is True
+
+    assert "copy_support_report: clipboard unavailable" in caplog.text
 
 
 def test_unknown_command_returns_false() -> None:

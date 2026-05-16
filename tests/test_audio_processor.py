@@ -19,6 +19,7 @@ import pytest
 
 from anki_audio_quick_editor.audio_processor import (
     _atempo_filters,
+    _render_external_error_message,
     _safe_filename_stem,
     build_audio_filters,
     build_deep_filter_command,
@@ -1018,6 +1019,174 @@ def test_render_noise_reduced_audio_reports_deep_filter_launch_errors(
             AudioProcessingConfig(),
             output_path=tmp_path / "cleaned.mp3",
         )
+
+
+def test_render_noise_reduced_audio_reports_prepare_failure_before_deep_filter(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    calls: list[list[str]] = []
+
+    monkeypatch.setattr("anki_audio_quick_editor.audio_processor.find_ffmpeg", lambda _path: Path("/bin/ffmpeg"))
+    monkeypatch.setattr(
+        "anki_audio_quick_editor.audio_processor.find_deep_filter",
+        lambda _path: Path("/bin/deep-filter"),
+    )
+
+    def fake_run(cmd: list[str], capture_output: bool, text: bool, check: bool) -> SimpleNamespace:
+        calls.append(cmd)
+        return SimpleNamespace(returncode=1, stdout="", stderr="prepare failed")
+
+    monkeypatch.setattr("anki_audio_quick_editor.audio_processor.subprocess.run", fake_run)
+
+    with pytest.raises(AudioProcessingError, match="prepare failed"):
+        render_noise_reduced_audio(
+            tmp_path / "source.mp3",
+            AudioProcessingConfig(),
+            output_path=tmp_path / "cleaned.mp3",
+        )
+
+    assert len(calls) == 1
+    assert calls[0][0] == "/bin/ffmpeg"
+
+
+def test_render_noise_reduced_audio_reports_encode_failure_after_deep_filter(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    output = tmp_path / "cleaned.mp3"
+    calls: list[list[str]] = []
+
+    monkeypatch.setattr("anki_audio_quick_editor.audio_processor.find_ffmpeg", lambda _path: Path("/bin/ffmpeg"))
+    monkeypatch.setattr(
+        "anki_audio_quick_editor.audio_processor.find_deep_filter",
+        lambda _path: Path("/bin/deep-filter"),
+    )
+
+    def fake_run(cmd: list[str], capture_output: bool, text: bool, check: bool) -> SimpleNamespace:
+        calls.append(cmd)
+        if cmd[0] == "/bin/deep-filter":
+            output_dir = Path(cmd[cmd.index("-o") + 1])
+            output_dir.mkdir(parents=True, exist_ok=True)
+            (output_dir / "clean.wav").write_bytes(b"cleaned")
+        if cmd[-1] == str(output):
+            return SimpleNamespace(returncode=1, stdout="", stderr="")
+        return SimpleNamespace(returncode=0, stdout="", stderr="")
+
+    monkeypatch.setattr("anki_audio_quick_editor.audio_processor.subprocess.run", fake_run)
+
+    with pytest.raises(AudioProcessingError) as exc_info:
+        render_noise_reduced_audio(
+            tmp_path / "source.mp3",
+            AudioProcessingConfig(),
+            output_path=output,
+        )
+
+    assert str(exc_info.value) == "Could not encode DeepFilterNet output."
+    assert [call[0] for call in calls] == ["/bin/ffmpeg", "/bin/deep-filter", "/bin/ffmpeg"]
+
+
+def test_render_noise_reduced_audio_uses_default_temp_output_path(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    monkeypatch.setattr("anki_audio_quick_editor.audio_processor.find_ffmpeg", lambda _path: Path("/bin/ffmpeg"))
+    monkeypatch.setattr(
+        "anki_audio_quick_editor.audio_processor.find_deep_filter",
+        lambda _path: Path("/bin/deep-filter"),
+    )
+    monkeypatch.setattr("anki_audio_quick_editor.audio_processor.probe_duration_ms", lambda *_args: 1234)
+
+    def fake_run(cmd: list[str], capture_output: bool, text: bool, check: bool) -> SimpleNamespace:
+        if cmd[0] == "/bin/deep-filter":
+            output_dir = Path(cmd[cmd.index("-o") + 1])
+            output_dir.mkdir(parents=True, exist_ok=True)
+            (output_dir / "clean.wav").write_bytes(b"cleaned")
+        return SimpleNamespace(returncode=0, stdout="", stderr="")
+
+    monkeypatch.setattr("anki_audio_quick_editor.audio_processor.subprocess.run", fake_run)
+
+    result = render_noise_reduced_audio(tmp_path / "source.mp3", AudioProcessingConfig())
+
+    assert result.output_path.name.startswith("aqe_denoised_")
+    assert result.output_path.suffix == ".mp3"
+    assert result.duration_ms == 1234
+
+
+@pytest.mark.parametrize(
+    ("result", "default_message", "expected"),
+    [
+        (
+            SimpleNamespace(stderr='{"error":"stderr json failed"}', stdout=""),
+            "default failure",
+            "stderr json failed",
+        ),
+        (
+            SimpleNamespace(stderr="", stdout='{"error":"stdout json failed"}'),
+            "default failure",
+            "stdout json failed",
+        ),
+        (
+            SimpleNamespace(stderr=" plain stderr failed ", stdout='{"error":"ignored"}'),
+            "default failure",
+            "plain stderr failed",
+        ),
+        (
+            SimpleNamespace(stderr="   ", stdout=""),
+            "default failure",
+            "default failure",
+        ),
+    ],
+)
+def test_render_external_error_message_prefers_structured_and_plain_output(
+    result: SimpleNamespace,
+    default_message: str,
+    expected: str,
+) -> None:
+    assert _render_external_error_message(result, default_message) == expected
+
+
+def test_render_audio_pause_pipeline_records_launch_error_for_out_of_disk(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    clear_latest_pause_pipeline_support_incident()
+    source = tmp_path / "source.mp3"
+    source.write_bytes(b"source")
+    output = tmp_path / "out.mp3"
+    artifact_root = tmp_path / "artifacts"
+
+    monkeypatch.setattr("anki_audio_quick_editor.audio_processor.find_ffmpeg", lambda _path: Path("/bin/ffmpeg"))
+    monkeypatch.setattr(
+        "anki_audio_quick_editor.audio_processor.find_deep_filter",
+        lambda _path: Path("/bin/deep-filter"),
+    )
+    monkeypatch.setattr("anki_audio_quick_editor.audio_processor.probe_duration_ms", lambda *_args: 1000)
+
+    def fake_run(*_args, **_kwargs) -> None:
+        raise OSError(28, "No space left on device")
+
+    monkeypatch.setattr("anki_audio_quick_editor.audio_processor.subprocess.run", fake_run)
+
+    with pytest.raises(AudioProcessingError, match="No space left on device"):
+        render_audio(
+            source,
+            AudioEditState("source.mp3", remove_internal_pauses_enabled=True),
+            AudioProcessingConfig(),
+            output_path=output,
+            artifact_root=artifact_root,
+        )
+
+    run_dirs = list(artifact_root.iterdir())
+    assert len(run_dirs) == 1
+    manifest_path = run_dirs[0] / "manifest.json"
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    assert manifest["stages"][0]["name"] == "render_working_original"
+    assert "No space left on device" in manifest["stages"][0]["launch_error"]
+    incident = latest_pause_pipeline_support_incident()
+    assert incident is not None
+    assert incident["manifest_path"] == str(manifest_path)
+    assert incident["attempted_commands"][0]["launch_error"].startswith("Could not start working-audio preparation.")
 
 
 def test_render_sidon_audio_runs_prepare_restore_and_encode(
