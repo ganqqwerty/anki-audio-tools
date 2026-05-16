@@ -20,6 +20,7 @@ Audio Quick Editor config lives in [`addon/anki_audio_quick_editor/config.json`]
 | `max_volume_db` | number | Upper bound for manual gain changes |
 | `edge_silence_threshold_db` | integer | Silence threshold used by edge trim and pause removal |
 | `edge_silence_min_ms` | integer | Minimum leading/trailing silence duration to trim |
+| `internal_pause_silence_threshold_db` | integer | Silence threshold used when detecting internal pauses |
 | `internal_pause_threshold_ms` | integer | Internal silence duration that qualifies as a pause |
 | `internal_pause_target_gap_ms` | integer | Remaining gap preserved when compressing pauses |
 | `output_format` | string | Final output format; MVP supports only `mp3` |

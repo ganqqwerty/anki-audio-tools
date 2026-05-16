@@ -40,9 +40,10 @@ Anki Audio Quick Editor keeps the human-facing architecture doc short and puts t
 4. Controls mount a compact SVG prosody visualizer and request async analysis for the current referenced media.
 5. `prosody_analyzer.py` uses optional Parselmouth/Praat when available and falls back to ffmpeg-decoded PCM pitch/intensity analysis otherwise.
 6. Processing button presses update an `AudioEditState` for the current field, including trim, speed, volume, and silence edits, then render a new MP3 with `audio_processor.py`.
-7. `editor_integration.py` writes the result through Anki's media manager and replaces the first supported sound reference in the field.
-8. Playback uses Anki's audio player against the latest generated reference, stopping any previous playback first and seeking to the visualizer cursor when set.
-9. Undo restores the previous generated reference and edit state without deleting generated media.
+7. Special transform buttons call bundled or configured external denoisers/restorers through `audio_processor.py`, including DeepFilterNet, Sidon, and MP-SENet.
+8. `editor_integration.py` writes the result through Anki's media manager and replaces the first supported sound reference in the field.
+9. Playback uses Anki's audio player against the latest generated reference, stopping any previous playback first and seeking to the visualizer cursor when set.
+10. Undo restores the previous generated reference and edit state without deleting generated media.
 
 ## Batchable Operations
 
@@ -92,7 +93,7 @@ Config defaults are stored in `config.json` and migrated into user config:
 
 ```json
 {
-  "_config_version": 4,
+  "_config_version": 6,
   "enabled": true,
   "debug_logging": false,
   "show_ffmpeg_commands": false,
@@ -106,10 +107,13 @@ Config defaults are stored in `config.json` and migrated into user config:
   "max_volume_db": 24.0,
   "edge_silence_threshold_db": -35,
   "edge_silence_min_ms": 100,
+  "internal_pause_silence_threshold_db": -45,
   "internal_pause_threshold_ms": 300,
   "internal_pause_target_gap_ms": 100,
   "output_format": "mp3",
-  "ffmpeg_path": ""
+  "ffmpeg_path": "",
+  "deep_filter_path": "",
+  "deep_filter_post_filter": true
 }
 ```
 

@@ -24,8 +24,10 @@ def test_injection_script_embeds_audio_field_indices() -> None:
     assert '"aqe:volume-up"' in script
     assert '"aqe:remove-noise"' in script
     assert '"aqe:sidon"' in script
+    assert '"aqe:mp-senet"' in script
     assert '"aqe:remove-noise": "remove-noise"' in script
     assert '"aqe:sidon": "sidon"' in script
+    assert '"aqe:mp-senet": "mp-senet"' in script
     assert 'pycmd("aqe:analyze");' in script
     assert 'pycmd("aqe:set-cursor");' in script
     assert '"aqe:save"' not in script
@@ -46,12 +48,14 @@ def test_injection_script_embeds_audio_field_indices() -> None:
     assert 'makeButton("Volume -", "Decrease volume", "aqe:volume-down"' in script
     assert 'makeButton("Volume +", "Increase volume", "aqe:volume-up"' in script
     assert 'makeButton("Sidon", "Restore speech with Sidon", "aqe:sidon"' in script
+    assert 'makeButton("MP-SENet", "Denoise speech with MP-SENet", "aqe:mp-senet"' in script
     assert (
         'makeButton("Remove noise", "Reduce background noise with DeepFilterNet", '
         '"aqe:remove-noise"'
     ) in script
     assert 'if (command === "aqe:remove-noise") return "Removing noise...";' in script
     assert 'if (command === "aqe:sidon") return "Restoring speech...";' in script
+    assert 'if (command === "aqe:mp-senet") return "Denoising with MP-SENet...";' in script
 
 
 def test_graph_is_user_requested_and_redraws_after_active_edits() -> None:

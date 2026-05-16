@@ -16,6 +16,7 @@ from .audio_processor import (
     format_ffmpeg_command,
     make_output_filename,
     render_audio,
+    render_mp_senet_audio,
     render_noise_reduced_audio,
     render_playback_segment,
     render_sidon_audio,
@@ -24,6 +25,7 @@ from .audio_processor import (
 from .audio_state import AudioEditState, AudioProcessingConfig
 from .editor_actions import (
     BRIDGE_COMMANDS,
+    CMD_MP_SENET,
     CMD_REMOVE_NOISE,
     CMD_SIDON,
     apply_processing_command,
@@ -41,9 +43,13 @@ from .sound_refs import (
     select_first_sound_reference,
 )
 from .support import (
+    MP_SENET_SUPPORT_HINT,
     SIDON_SUPPORT_HINT,
+    format_mp_senet_support_log_block,
     format_sidon_support_log_block,
+    latest_mp_senet_support_incident,
     latest_sidon_support_incident,
+    record_latest_mp_senet_support_incident,
     record_latest_sidon_support_incident,
 )
 
@@ -193,6 +199,7 @@ def _handle_non_processing_command(editor: Any, command: str) -> bool:
         "aqe:undo": _undo,
         CMD_REMOVE_NOISE: _remove_noise_async,
         CMD_SIDON: _sidon_async,
+        CMD_MP_SENET: _mp_senet_async,
     }
     handler = handlers.get(command)
     if handler is None:
@@ -330,6 +337,17 @@ def _sidon_async(editor: Any) -> None:
         renderer=render_sidon_audio,
         support_hint=SIDON_SUPPORT_HINT,
         failure_context_recorder=_record_sidon_failure_context,
+    )
+
+
+def _mp_senet_async(editor: Any) -> None:
+    _run_special_audio_transform_async(
+        editor,
+        label="Denoising with MP-SENet",
+        failure_log_label="mp-senet denoise failed",
+        renderer=render_mp_senet_audio,
+        support_hint=MP_SENET_SUPPORT_HINT,
+        failure_context_recorder=_record_mp_senet_failure_context,
     )
 
 
@@ -669,7 +687,34 @@ def _record_sidon_failure_context(
     )
 
 
+def _record_mp_senet_failure_context(
+    source_path: Path,
+    config: AudioProcessingConfig,
+    exc: Exception,
+) -> None:
+    record_latest_mp_senet_support_incident(
+        operation="mp_senet_denoise",
+        media_filename=source_path.name,
+        source_path=str(source_path.resolve()),
+        user_message=str(exc),
+        exception_type=type(exc).__name__,
+        ffmpeg_path=config.ffmpeg_path,
+    )
+
+
 def _log_special_transform_failure(failure_log_label: str, message: str) -> None:
+    if failure_log_label == "mp-senet denoise failed":
+        incident = latest_mp_senet_support_incident()
+        if incident:
+            logger.exception(
+                "%s: %s\n%s",
+                failure_log_label,
+                message,
+                format_mp_senet_support_log_block(incident),
+            )
+            return
+        logger.exception("%s: %s", failure_log_label, message)
+        return
     if failure_log_label != "sidon restore failed":
         logger.exception("%s: %s", failure_log_label, message)
         return

@@ -626,6 +626,7 @@ def test_each_processing_button_updates_field_to_new_real_audio(anki_mw, ffmpeg_
                 "Trim Silence",
                 "Remove Pauses",
                 "Sidon",
+                "MP-SENet",
                 "Remove noise",
                 "Slower",
                 "Faster",

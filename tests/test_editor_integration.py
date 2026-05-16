@@ -28,6 +28,7 @@ from anki_audio_quick_editor.editor_integration import (
 from anki_audio_quick_editor.errors import (
     AudioProcessingError,
     MissingDeepFilterError,
+    MissingMpSenetError,
     MissingSidonError,
 )
 from anki_audio_quick_editor.file_reveal import reveal_file
@@ -38,8 +39,11 @@ from anki_audio_quick_editor.prosody_cache import (
 )
 from anki_audio_quick_editor.prosody_types import ProsodyPoint, ProsodyTrack
 from anki_audio_quick_editor.support import (
+    MP_SENET_SUPPORT_HINT,
     SIDON_SUPPORT_HINT,
+    clear_latest_mp_senet_support_incident,
     clear_latest_sidon_support_incident,
+    latest_mp_senet_support_incident,
     latest_sidon_support_incident,
 )
 
@@ -477,6 +481,76 @@ def test_sidon_replaces_current_media_and_resets_state(tmp_path: Path, monkeypat
     editor.loadNote.assert_called_once_with(focusTo=0)
 
 
+def test_mp_senet_replaces_current_media_and_resets_state(tmp_path: Path, monkeypatch) -> None:
+    class ImmediateThread:
+        def __init__(self, target, daemon=True):
+            self._target = target
+
+        def start(self) -> None:
+            self._target()
+
+    class Editor:
+        pass
+
+    media_dir = tmp_path / "media"
+    media_dir.mkdir()
+    source = media_dir / "clip.mp3"
+    source.write_bytes(b"source")
+    rendered: list[Path] = []
+
+    def fake_render_mp_senet_audio(source_path: Path, _config: AudioProcessingConfig, output_path: Path, **_kwargs) -> None:
+        rendered.append(source_path)
+        output_path.write_bytes(b"denoised")
+
+    def fake_write_data(desired_name: str, data: bytes) -> str:
+        saved_path = media_dir / desired_name
+        saved_path.write_bytes(data)
+        return desired_name
+
+    editor = Editor()
+    editor.currentField = 0
+    editor.note = SimpleNamespace(fields=["[sound:clip.mp3]"])
+    editor.web = MagicMock()
+    editor.loadNote = MagicMock()
+    editor.mw = SimpleNamespace(
+        taskman=SimpleNamespace(run_on_main=lambda callback: callback()),
+        addonManager=SimpleNamespace(
+            addonFromModule=MagicMock(return_value="addon"),
+            getConfig=MagicMock(return_value={}),
+        ),
+        col=SimpleNamespace(
+            media=SimpleNamespace(
+                dir=MagicMock(return_value=str(media_dir)),
+                write_data=MagicMock(side_effect=fake_write_data),
+            )
+        ),
+    )
+    _SESSIONS[editor] = EditorSession(
+        state=AudioEditState("clip.mp3", volume_db=3.0),
+        field_index=0,
+        current_filename="clip.mp3",
+    )
+
+    monkeypatch.setattr("anki_audio_quick_editor.editor_integration.threading.Thread", ImmediateThread)
+    monkeypatch.setattr(
+        "anki_audio_quick_editor.editor_integration.render_mp_senet_audio",
+        fake_render_mp_senet_audio,
+    )
+    monkeypatch.setattr("anki_audio_quick_editor.editor_integration._stop_audio_playback", lambda: None)
+
+    _handle_bridge_command(editor, "aqe:mp-senet")
+
+    saved_name = editor.mw.col.media.write_data.call_args.args[0]
+    session = _SESSIONS[editor]
+    assert rendered == [source]
+    assert editor.note.fields == [f"[sound:{saved_name}]"]
+    assert session.undo_history.pop().filename == "clip.mp3"
+    assert session.state == AudioEditState(source_file=saved_name)
+    assert session.current_filename == saved_name
+    assert session.processing is False
+    editor.loadNote.assert_called_once_with(focusTo=0)
+
+
 @pytest.mark.parametrize(
     ("failure", "expected_message"),
     [
@@ -639,6 +713,95 @@ def test_sidon_failure_logs_renders_error_and_keeps_note(
     incident = latest_sidon_support_incident()
     assert incident is not None
     assert incident["operation"] == "sidon_restore"
+    assert incident["media_filename"] == "clip.mp3"
+    assert incident["source_path"].endswith("clip.mp3")
+    assert expected_message in incident["user_message"]
+
+
+@pytest.mark.parametrize(
+    ("failure", "expected_message"),
+    [
+        (
+            MissingMpSenetError("MP-SENet requires the bundled mp-senet-cli runtime and model file."),
+            "MP-SENet requires the bundled mp-senet-cli runtime",
+        ),
+        (
+            PermissionError(13, "Permission denied", "/bin/mp-senet-cli"),
+            "Permission denied",
+        ),
+        (
+            AudioProcessingError("TorchScript load failed"),
+            "TorchScript load failed",
+        ),
+    ],
+)
+def test_mp_senet_failure_logs_renders_error_and_keeps_note(
+    failure: Exception,
+    expected_message: str,
+    tmp_path: Path,
+    monkeypatch,
+    caplog,
+) -> None:
+    clear_latest_mp_senet_support_incident()
+
+    class ImmediateThread:
+        def __init__(self, target, daemon=True):
+            self._target = target
+
+        def start(self) -> None:
+            self._target()
+
+    class Editor:
+        pass
+
+    media_dir = tmp_path / "media"
+    media_dir.mkdir()
+    (media_dir / "clip.mp3").write_bytes(b"source")
+
+    def fake_render_mp_senet_audio(*_args, **_kwargs) -> None:
+        raise failure
+
+    editor = Editor()
+    editor.currentField = 0
+    editor.note = SimpleNamespace(fields=["[sound:clip.mp3]"])
+    editor.web = MagicMock()
+    editor.loadNote = MagicMock()
+    editor.mw = SimpleNamespace(
+        taskman=SimpleNamespace(run_on_main=lambda callback: callback()),
+        addonManager=SimpleNamespace(
+            addonFromModule=MagicMock(return_value="addon"),
+            getConfig=MagicMock(return_value={}),
+        ),
+        col=SimpleNamespace(
+            media=SimpleNamespace(
+                dir=MagicMock(return_value=str(media_dir)),
+                write_data=MagicMock(),
+            )
+        ),
+    )
+
+    monkeypatch.setattr("anki_audio_quick_editor.editor_integration.threading.Thread", ImmediateThread)
+    monkeypatch.setattr(
+        "anki_audio_quick_editor.editor_integration.render_mp_senet_audio",
+        fake_render_mp_senet_audio,
+    )
+    monkeypatch.setattr("anki_audio_quick_editor.editor_integration._stop_audio_playback", lambda: None)
+    caplog.set_level(logging.ERROR, logger="anki_audio_quick_editor.editor_integration")
+
+    _handle_bridge_command(editor, "aqe:mp-senet")
+
+    assert editor.note.fields == ["[sound:clip.mp3]"]
+    assert editor.mw.col.media.write_data.call_count == 0
+    assert _SESSIONS[editor].processing is False
+    assert any(
+        expected_message in call.args[0] and MP_SENET_SUPPORT_HINT in call.args[0]
+        for call in editor.web.eval.call_args_list
+    )
+    assert "mp-senet denoise failed" in caplog.text
+    assert expected_message in caplog.text
+    incident = latest_mp_senet_support_incident()
+    assert incident is not None
+    assert incident["operation"] == "mp_senet_denoise"
     assert incident["media_filename"] == "clip.mp3"
     assert incident["source_path"].endswith("clip.mp3")
     assert expected_message in incident["user_message"]

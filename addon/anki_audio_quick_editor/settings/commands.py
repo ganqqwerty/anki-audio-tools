@@ -140,7 +140,11 @@ def _op_health_check(
     from aqt import mw
 
     from ..db_helpers import build_health_report
-    from ..diagnostics import build_deep_filter_health, build_sidon_health
+    from ..diagnostics import (
+        build_deep_filter_health,
+        build_mp_senet_health,
+        build_sidon_health,
+    )
 
     progress_fn(20, "Inspecting collection")
     report = build_health_report(mw.col)
@@ -148,8 +152,10 @@ def _op_health_check(
     raw_config = payload.get("config")
     config = cast(dict[str, Any], raw_config) if isinstance(raw_config, dict) else {}
     report["deep_filter"] = build_deep_filter_health(config)
-    progress_fn(80, "Checking Sidon")
+    progress_fn(75, "Checking Sidon")
     report["sidon"] = build_sidon_health()
+    progress_fn(90, "Checking MP-SENet")
+    report["mp_senet"] = build_mp_senet_health()
     progress_fn(100, "Done")
     return report
 
@@ -161,10 +167,15 @@ def _op_support_report(
     from aqt import mw
 
     from .._version import __version__
-    from ..diagnostics import build_deep_filter_health, build_sidon_health
+    from ..diagnostics import (
+        build_deep_filter_health,
+        build_mp_senet_health,
+        build_sidon_health,
+    )
     from ..support import (
         addon_log_path,
         build_support_report_text,
+        latest_mp_senet_support_incident,
         latest_sidon_support_incident,
         read_log_tail,
     )
@@ -178,6 +189,7 @@ def _op_support_report(
     progress_fn(50, "Checking external tools")
     deep_filter_health = build_deep_filter_health(config)
     sidon_health = build_sidon_health()
+    mp_senet_health = build_mp_senet_health()
     progress_fn(75, "Reading recent logs")
     report_text = build_support_report_text(
         version=__version__,
@@ -185,7 +197,9 @@ def _op_support_report(
         log_file_path=str(log_path),
         deep_filter_health=deep_filter_health,
         sidon_health=sidon_health,
-        incident=latest_sidon_support_incident(),
+        mp_senet_health=mp_senet_health,
+        sidon_incident=latest_sidon_support_incident(),
+        mp_senet_incident=latest_mp_senet_support_incident(),
         log_tail=read_log_tail(log_path),
     )
     progress_fn(100, "Done")

@@ -21,12 +21,18 @@ from .errors import (
     AudioProcessingError,
     MissingDeepFilterError,
     MissingFfmpegError,
+    MissingMpSenetError,
     MissingSidonError,
 )
-from .support import build_command_record, record_latest_sidon_support_incident
+from .support import (
+    build_command_record,
+    record_latest_mp_senet_support_incident,
+    record_latest_sidon_support_incident,
+)
 
 BUNDLED_DEEP_FILTER_VERSION = "0.5.6"
 BUNDLED_SIDON_VERSION = "0.1"
+BUNDLED_MP_SENET_VERSION = "0.1"
 _PACKAGE_DIR = Path(__file__).resolve().parent
 _BUNDLED_DEEP_FILTER_BY_PLATFORM = {
     ("Darwin", "arm64"): _PACKAGE_DIR
@@ -35,6 +41,9 @@ _BUNDLED_DEEP_FILTER_BY_PLATFORM = {
 }
 _BUNDLED_SIDON_DIR_BY_PLATFORM = {
     ("Darwin", "arm64"): _PACKAGE_DIR / "bin" / "sidon-cli-macos-arm64",
+}
+_BUNDLED_MP_SENET_DIR_BY_PLATFORM = {
+    ("Darwin", "arm64"): _PACKAGE_DIR / "bin" / "mp-senet-cli-macos-arm64",
 }
 
 
@@ -138,6 +147,44 @@ def find_sidon_bundle() -> tuple[Path, Path]:
             "Reinstall the add-on to restore them."
         )
     return sidon_path, model_dir
+
+
+def expected_bundled_mp_senet_dir() -> Path | None:
+    """Return the expected bundled MP-SENet directory for the current platform."""
+    return _BUNDLED_MP_SENET_DIR_BY_PLATFORM.get((platform.system(), platform.machine()))
+
+
+def expected_bundled_mp_senet_model_path() -> Path | None:
+    """Return the expected bundled MP-SENet TorchScript model path."""
+    bundled_dir = expected_bundled_mp_senet_dir()
+    if bundled_dir is None:
+        return None
+    return bundled_dir / "models" / "mp_senet_vb.torchscript.pt"
+
+
+def find_mp_senet_bundle() -> tuple[Path, Path]:
+    """Return the bundled MP-SENet executable and TorchScript model path."""
+    bundled_dir = expected_bundled_mp_senet_dir()
+    if bundled_dir is None:
+        raise MissingMpSenetError("MP-SENet is only bundled for macOS arm64 right now.")
+
+    mp_senet_path = bundled_dir / "bin" / "mp-senet-cli"
+    model_path = bundled_dir / "models" / "mp_senet_vb.torchscript.pt"
+    missing_paths = [
+        path
+        for path in (
+            mp_senet_path,
+            bundled_dir / "bin" / "mp-senet-cli-real",
+            model_path,
+        )
+        if not path.is_file()
+    ]
+    if missing_paths:
+        raise MissingMpSenetError(
+            "MP-SENet requires the bundled mp-senet-cli runtime and model file. "
+            "Reinstall the add-on to restore them."
+        )
+    return mp_senet_path, model_path
 
 
 def probe_duration_ms(source_path: Path, config: AudioProcessingConfig) -> int:
@@ -274,6 +321,28 @@ def build_sidon_prepare_command(
     )
 
 
+def build_mp_senet_prepare_command(
+    ffmpeg_path: Path,
+    source_path: Path,
+    output_wav_path: Path,
+) -> tuple[str, ...]:
+    """Build the ffmpeg command that prepares a 16 kHz mono WAV for MP-SENet."""
+    return (
+        str(ffmpeg_path),
+        "-y",
+        "-i",
+        str(source_path),
+        "-vn",
+        "-ac",
+        "1",
+        "-ar",
+        "16000",
+        "-codec:a",
+        "pcm_s16le",
+        str(output_wav_path),
+    )
+
+
 def build_sidon_command(
     sidon_path: Path,
     input_wav_path: Path,
@@ -290,6 +359,27 @@ def build_sidon_command(
         str(output_wav_path),
         "--model-dir",
         str(model_dir),
+        "--overwrite",
+        "--json",
+    )
+
+
+def build_mp_senet_command(
+    mp_senet_path: Path,
+    input_wav_path: Path,
+    output_wav_path: Path,
+    model_path: Path,
+) -> tuple[str, ...]:
+    """Build the MP-SENet command for one prepared WAV file."""
+    return (
+        str(mp_senet_path),
+        "denoise",
+        "--input",
+        str(input_wav_path),
+        "--output",
+        str(output_wav_path),
+        "--model",
+        str(model_path),
         "--overwrite",
         "--json",
     )
@@ -482,7 +572,112 @@ def render_sidon_audio(
             shutil.rmtree(work_dir, ignore_errors=True)
 
 
+def render_mp_senet_audio(
+    source_path: Path,
+    config: AudioProcessingConfig,
+    output_path: Path | None = None,
+    on_command: Callable[[tuple[str, ...]], None] | None = None,
+) -> AudioProcessingResult:
+    """Render a denoised MP3 using the bundled MP-SENet executable."""
+    ffmpeg_path: Path | None = None
+    mp_senet_path: Path | None = None
+    mp_senet_model_path: Path | None = None
+    attempted_commands: list[dict[str, object]] = []
+    work_dir: Path | None = None
+    try:
+        ffmpeg_path = find_ffmpeg(config.ffmpeg_path)
+        mp_senet_path, mp_senet_model_path = find_mp_senet_bundle()
+        if output_path is None:
+            output_path = Path(tempfile.mkstemp(prefix="aqe_mp_senet_", suffix=".mp3")[1])
+
+        work_dir = Path(tempfile.mkdtemp(prefix="aqe_mp_senet_"))
+        input_wav = work_dir / "input_16k_mono.wav"
+        denoised_wav = work_dir / "denoised.wav"
+
+        prepare_cmd = build_mp_senet_prepare_command(ffmpeg_path, source_path, input_wav)
+        prepare_result = _run_recorded_external_command(
+            prepare_cmd,
+            "Could not start audio preparation for MP-SENet.",
+            attempted_commands,
+            on_command,
+        )
+        if prepare_result.returncode != 0:
+            raise AudioProcessingError(
+                _render_external_error_message(
+                    prepare_result,
+                    "Could not prepare audio for MP-SENet.",
+                )
+            )
+
+        mp_senet_cmd = build_mp_senet_command(
+            mp_senet_path,
+            input_wav,
+            denoised_wav,
+            mp_senet_model_path,
+        )
+        mp_senet_result = _run_recorded_external_command(
+            mp_senet_cmd,
+            "Could not start MP-SENet denoise.",
+            attempted_commands,
+            on_command,
+        )
+        if mp_senet_result.returncode != 0:
+            raise AudioProcessingError(
+                _render_external_error_message(mp_senet_result, "MP-SENet denoise failed.")
+            )
+        if not denoised_wav.is_file():
+            raise AudioProcessingError("MP-SENet did not produce a WAV output.")
+
+        encode_cmd = build_mp3_encode_command(ffmpeg_path, denoised_wav, output_path)
+        encode_result = _run_recorded_external_command(
+            encode_cmd,
+            "Could not start MP3 encoding for MP-SENet output.",
+            attempted_commands,
+            on_command,
+        )
+        if encode_result.returncode != 0:
+            raise AudioProcessingError(
+                _render_external_error_message(
+                    encode_result,
+                    "Could not encode MP-SENet output.",
+                )
+            )
+
+        return AudioProcessingResult(
+            output_path=output_path,
+            command=mp_senet_cmd,
+            duration_ms=probe_duration_ms(output_path, config),
+        )
+    except Exception as exc:
+        _record_mp_senet_failure(
+            source_path,
+            exc,
+            ffmpeg_path=ffmpeg_path,
+            mp_senet_path=mp_senet_path,
+            mp_senet_model_path=mp_senet_model_path,
+            attempted_commands=attempted_commands,
+        )
+        raise
+    finally:
+        if work_dir is not None:
+            shutil.rmtree(work_dir, ignore_errors=True)
+
+
 def _run_sidon_external_command(
+    command: tuple[str, ...],
+    launch_error_message: str,
+    attempted_commands: list[dict[str, object]],
+    on_command: Callable[[tuple[str, ...]], None] | None,
+) -> subprocess.CompletedProcess[str]:
+    return _run_recorded_external_command(
+        command,
+        launch_error_message,
+        attempted_commands,
+        on_command,
+    )
+
+
+def _run_recorded_external_command(
     command: tuple[str, ...],
     launch_error_message: str,
     attempted_commands: list[dict[str, object]],
@@ -504,6 +699,28 @@ def _run_sidon_external_command(
         )
     )
     return result
+
+
+def _record_mp_senet_failure(
+    source_path: Path,
+    exc: Exception,
+    *,
+    ffmpeg_path: Path | None,
+    mp_senet_path: Path | None,
+    mp_senet_model_path: Path | None,
+    attempted_commands: list[dict[str, object]],
+) -> None:
+    record_latest_mp_senet_support_incident(
+        operation="mp_senet_denoise",
+        media_filename=source_path.name,
+        source_path=str(source_path.resolve()),
+        user_message=str(exc),
+        exception_type=type(exc).__name__,
+        ffmpeg_path=str(ffmpeg_path) if ffmpeg_path is not None else "",
+        mp_senet_path=str(mp_senet_path) if mp_senet_path is not None else "",
+        mp_senet_model_path=str(mp_senet_model_path) if mp_senet_model_path is not None else "",
+        attempted_commands=attempted_commands,
+    )
 
 
 def _record_sidon_failure(

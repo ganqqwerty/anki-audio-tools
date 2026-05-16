@@ -29,6 +29,8 @@ Anki add-ons cannot rely on `pip install` at user runtime. Audio Quick Editor cu
 
 Noise removal uses DeepFilterNet's `deep-filter` executable. The repository bundles the pinned macOS arm64 binary at `addon/anki_audio_quick_editor/bin/deep-filter-0.5.6-aarch64-apple-darwin`; see `addon/anki_audio_quick_editor/bin/README.md` for the upstream release URL and checksum. Other platforms can still configure `deep_filter_path` or provide `deep-filter` on `PATH`.
 
+Sidon speech restoration and MP-SENet denoising use bundled macOS arm64 CPU CLIs under `addon/anki_audio_quick_editor/bin/`. Both are ready-to-run in the packaged add-on; MP-SENet reuses the LibTorch dylibs already shipped with the Sidon bundle and ships its TorchScript VoiceBank+DEMAND model in `mp-senet-cli-macos-arm64/models/`.
+
 Prosody visualization can use `praat-parselmouth` when it is already available in Anki's Python, but the shipped add-on does not require it. The required cross-platform path is the built-in ffmpeg/PCM fallback. A dry-run compatibility check on this machine resolved `praat-parselmouth 0.4.7` and `numpy 2.4.4` for Anki Python 3.13, but those packages were not installed or vendored.
 
 Local ffmpeg setup:

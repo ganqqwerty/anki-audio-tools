@@ -17,6 +17,10 @@ class MissingSidonError(AudioQuickEditorError):
     """Raised when the bundled Sidon runtime cannot be found or is incomplete."""
 
 
+class MissingMpSenetError(AudioQuickEditorError):
+    """Raised when the bundled MP-SENet runtime cannot be found or is incomplete."""
+
+
 class MissingMediaError(AudioQuickEditorError):
     """Raised when a referenced Anki media file does not exist."""
 

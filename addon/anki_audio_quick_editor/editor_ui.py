@@ -27,6 +27,7 @@ _SCRIPT_TEMPLATE = r"""
     "aqe:remove-pauses",
     "aqe:remove-noise",
     "aqe:sidon",
+    "aqe:mp-senet",
     "aqe:volume-down",
     "aqe:volume-up"
   ]);
@@ -40,6 +41,7 @@ _SCRIPT_TEMPLATE = r"""
     "aqe:remove-pauses": "remove-pauses",
     "aqe:remove-noise": "remove-noise",
     "aqe:sidon": "sidon",
+    "aqe:mp-senet": "mp-senet",
     "aqe:slower": "slower",
     "aqe:faster": "faster",
     "aqe:volume-down": "volume-down",
@@ -107,6 +109,7 @@ _SCRIPT_TEMPLATE = r"""
   function processingMessage(command) {
     if (command === "aqe:remove-noise") return "Removing noise...";
     if (command === "aqe:sidon") return "Restoring speech...";
+    if (command === "aqe:mp-senet") return "Denoising with MP-SENet...";
     return "Processing...";
   }
 
@@ -195,6 +198,7 @@ _SCRIPT_TEMPLATE = r"""
       makeButton("Trim Silence", "Trim leading and trailing silence", "aqe:trim-silence", node, ord),
       makeButton("Remove Pauses", "Compress long internal pauses", "aqe:remove-pauses", node, ord),
       makeButton("Sidon", "Restore speech with Sidon", "aqe:sidon", node, ord),
+      makeButton("MP-SENet", "Denoise speech with MP-SENet", "aqe:mp-senet", node, ord),
       makeButton("Remove noise", "Reduce background noise with DeepFilterNet", "aqe:remove-noise", node, ord),
       makeButton("Slower", "Decrease speed", "aqe:slower", node, ord),
       makeButton("Faster", "Increase speed", "aqe:faster", node, ord),
