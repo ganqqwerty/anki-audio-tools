@@ -19,18 +19,19 @@ Use the repo task runner instead of calling tools like `pytest`, `ruff`, or `myp
 Run each step in order. If one step fails, note it and continue so the user gets the full picture.
 
 1. `python3 scripts/dev.py config-schema`
-2. `python3 scripts/dev.py test`
-3. `python3 scripts/dev.py lint`
-4. `python3 scripts/dev.py typecheck`
-5. `python3 scripts/dev.py arch`
-6. `python3 scripts/dev.py deadcode`
-7. `python3 scripts/dev.py security`
-8. `python3 scripts/dev.py deps`
-9. `python3 scripts/dev.py complexity`
-10. `python3 scripts/dev.py test-svelte`
-11. `python3 scripts/dev.py coverage`
-12. SonarQube if requested or already part of the workflow
-13. `python3 scripts/dev.py test-e2e`
+2. `python3 scripts/dev.py test-anki-api`
+3. `python3 scripts/dev.py test`
+4. `python3 scripts/dev.py lint`
+5. `python3 scripts/dev.py typecheck`
+6. `python3 scripts/dev.py arch`
+7. `python3 scripts/dev.py deadcode`
+8. `python3 scripts/dev.py security`
+9. `python3 scripts/dev.py deps`
+10. `python3 scripts/dev.py complexity`
+11. `python3 scripts/dev.py test-svelte`
+12. `python3 scripts/dev.py coverage`
+13. SonarQube if requested or already part of the workflow
+14. `python3 scripts/dev.py test-e2e`
 
 If `radon` prints nothing, complexity is effectively a pass.
 

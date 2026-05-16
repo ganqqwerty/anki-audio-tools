@@ -420,6 +420,10 @@ def cmd_test() -> int:
     return _run_pytest("tests/", label="python tests")
 
 
+def cmd_test_anki_api() -> int:
+    return _run_pytest("anki_api_contract/", label="Anki API compatibility tests")
+
+
 def cmd_test_e2e() -> int:
     return _run_pytest("e2e/", label="python e2e tests")
 
@@ -470,7 +474,7 @@ def cmd_complexity() -> int:
             str(anki_python), "-m", "radon", "cc",
             "addon/anki_audio_quick_editor/",
             "--min", "C",
-            "--ignore", "vendor",
+            "--ignore", "vendor,bin",
             "--show-complexity",
         ],
         label="radon complexity",
@@ -484,7 +488,12 @@ def cmd_deadcode() -> int:
     if whitelist.is_file():
         paths.append(str(whitelist))
     return _run(
-        [str(anki_python), "-m", "vulture", *paths, "--exclude", "vendor", "--min-confidence", "80"],
+        [
+            str(anki_python), "-m", "vulture",
+            *paths,
+            "--exclude", "vendor,bin",
+            "--min-confidence", "80",
+        ],
         label="vulture deadcode",
     )
 
@@ -495,7 +504,7 @@ def cmd_security() -> int:
         [
             str(anki_python), "-m", "bandit",
             "-r", "addon/anki_audio_quick_editor/",
-            "--exclude", "addon/anki_audio_quick_editor/vendor",
+            "--exclude", "addon/anki_audio_quick_editor/vendor,addon/anki_audio_quick_editor/bin",
             "-c", "pyproject.toml",
         ],
         label="bandit security",
@@ -628,6 +637,7 @@ def cmd_check() -> int:
         ("deps", cmd_deps),
         ("complexity", cmd_complexity),
         ("arch", cmd_arch),
+        ("test-anki-api", cmd_test_anki_api),
         ("test", cmd_test),
         ("test-svelte", cmd_test_svelte),
     ]
@@ -707,11 +717,16 @@ COMMANDS: dict[str, tuple[Callable[[], int], str]] = {
     "lint": (cmd_lint, "Run ruff linter"),
     "typecheck": (cmd_typecheck, "Run mypy type checker"),
     "arch": (cmd_arch, "Run import-linter architecture contracts"),
+    "test-anki-api": (cmd_test_anki_api, "Run real Anki API compatibility tests"),
     "complexity": (cmd_complexity, "Run radon complexity check"),
     "deadcode": (cmd_deadcode, "Find dead code (vulture)"),
     "security": (cmd_security, "Run bandit security linter"),
     "deps": (cmd_deps, "Check dependencies (deptry)"),
-    "check": (cmd_check, "Full QC: config-schema + architecture-report + lint + typecheck + security + deadcode + deps + complexity + arch + test + svelte"),
+    "check": (
+        cmd_check,
+        "Full QC: config-schema + architecture-report + lint + typecheck + "
+        "security + deadcode + deps + complexity + arch + test-anki-api + test + svelte",
+    ),
     "coverage": (cmd_coverage, "Run tests with coverage report"),
     "sonar": (cmd_sonar, "Optional SonarQube analysis (needs SONAR_TOKEN)"),
     "muttest": (cmd_muttest, "Mutation testing (advisory, opt-in)"),

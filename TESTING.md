@@ -4,6 +4,7 @@
 
 ```bash
 python3 scripts/dev.py architecture-report
+python3 scripts/dev.py test-anki-api
 python3 scripts/dev.py check
 python3 scripts/dev.py test-e2e
 ```
@@ -11,7 +12,9 @@ python3 scripts/dev.py test-e2e
 ## What Gets Tested
 
 - `tests/` covers sound-reference parsing, edit-state validation, ffmpeg filter construction, DeepFilter-assisted pause pipeline planning and artifacts, external denoiser/restorer command construction, prosody analysis and serialization, SVG rendering, batch visualization decisions, Browser hook wiring, config migration, bootstrap behavior, editor bridge wiring, and settings command/state logic.
+- `anki_api_contract/` discovers the Anki API surface from production add-on code and checks it against the real installed Anki Python runtime without launching a full Anki app.
 - `tests/test_architecture/` enforces layer boundaries, module classification, Anki-import-safe helper modules, import-safe runtime modules, editor bridge command sync, prosody dependency isolation, shell-thin settings rules, and DB access isolation.
+- `tests/test_anki_api_contract_mocks.py` checks the mocked unit-test Anki surface against the same generated contract so mocks cannot hide a missing real API.
 - `tests/test_architecture/contracts.py` is the executable architecture source of truth; `tests/test_architecture/inspection.py` powers both the tests and the architecture report.
 - `settings_ui/tests/` covers bridge commands, async job plumbing, logging, and the settings UI.
 - `e2e/` exercises the real add-on inside a live Anki runtime via `aqt._run(exec=False)`, including ffmpeg-backed audio processing when `ffmpeg` and `ffprobe` are installed.
@@ -25,6 +28,7 @@ A feature is not complete until `python3 scripts/dev.py test-e2e` passes.
 | Task | Command |
 |------|---------|
 | Architecture report | `python3 scripts/dev.py architecture-report` |
+| Real Anki API compatibility | `python3 scripts/dev.py test-anki-api` |
 | Unit + architecture tests | `python3 scripts/dev.py test` |
 | Lint | `python3 scripts/dev.py lint` |
 | Type checking | `python3 scripts/dev.py typecheck` |
@@ -40,6 +44,7 @@ A feature is not complete until `python3 scripts/dev.py test-e2e` passes.
 
 | Area | Files |
 |------|-------|
+| Real Anki API compatibility | `anki_api_contract/*.py`, `tests/test_anki_api_contract_mocks.py` |
 | Batch visualization core | `tests/test_batch_visualization.py` |
 | Browser menu/context integration | `tests/test_browser_integration.py` |
 | Pause shortening pipeline | `tests/test_audio_pipeline.py`, `tests/test_audio_processor.py` |
@@ -101,7 +106,8 @@ When changing module boundaries or side effects, use this order:
 2. Run `python3 scripts/dev.py test-e2e` to establish baseline runtime behavior.
 3. Run `python3 scripts/dev.py architecture-report`.
 4. Run `python3 scripts/dev.py arch`.
-5. Run `python3 scripts/dev.py test`.
+5. Run `python3 scripts/dev.py test-anki-api`.
+6. Run `python3 scripts/dev.py test`.
 
 If `test-e2e` fails before the architecture change, treat that as a baseline bug to classify before tightening contracts.
 
