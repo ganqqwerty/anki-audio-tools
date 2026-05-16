@@ -3,8 +3,11 @@
 from __future__ import annotations
 
 import json
+import os
 import re
+import shlex
 import subprocess
+import sys
 import time
 from contextlib import contextmanager
 from dataclasses import dataclass
@@ -224,6 +227,59 @@ def _configure_ffmpeg(anki_mw, ffmpeg_config, **overrides: Any) -> None:
     anki_mw.addonManager.writeConfig(ADDON_NUMERIC_ID, config)
 
 
+def _fake_deep_filter_executable(tmp_path: Path, *, fail: bool = False) -> tuple[Path, Path]:
+    log_path = tmp_path / "deep-filter-argv.json"
+    script_path = tmp_path / "fake_deep_filter.py"
+    script_path.write_text(
+        "\n".join(
+            [
+                "from __future__ import annotations",
+                "",
+                "import json",
+                "import shutil",
+                "import sys",
+                "from pathlib import Path",
+                "",
+                f"LOG_PATH = Path({str(log_path)!r})",
+                f"FAIL = {fail!r}",
+                "",
+                "args = sys.argv[1:]",
+                "LOG_PATH.write_text(json.dumps(args), encoding='utf-8')",
+                "if FAIL:",
+                "    sys.stderr.write('fake deep-filter failed')",
+                "    raise SystemExit(12)",
+                "if '--version' in args:",
+                "    print('fake deep-filter 0.0')",
+                "    raise SystemExit(0)",
+                "try:",
+                "    output_dir = Path(args[args.index('-o') + 1])",
+                "except (ValueError, IndexError):",
+                "    sys.stderr.write('missing output directory')",
+                "    raise SystemExit(2)",
+                "input_wav = Path(args[-1])",
+                "output_dir.mkdir(parents=True, exist_ok=True)",
+                "shutil.copyfile(input_wav, output_dir / 'clean.wav')",
+            ]
+        ),
+        encoding="utf-8",
+    )
+    if os.name == "nt":
+        executable = tmp_path / "deep-filter.cmd"
+        executable.write_text(
+            f'@echo off\n"{sys.executable}" "{script_path}" %*\n',
+            encoding="utf-8",
+        )
+    else:
+        executable = tmp_path / "deep-filter"
+        executable.write_text(
+            "#!/bin/sh\n"
+            f"exec {shlex.quote(sys.executable)} {shlex.quote(str(script_path))} \"$@\"\n",
+            encoding="utf-8",
+        )
+        executable.chmod(0o755)
+    return executable, log_path
+
+
 def _button_selector(command: str, ord_: int = 0) -> str:
     return f'.aqe-controls[data-aqe-field-ord="{ord_}"] [data-aqe-command="{command}"]'
 
@@ -270,7 +326,7 @@ def _processing_status_js() -> str:
     return """
     (() => {
       const status = document.querySelector('.aqe-controls[data-aqe-field-ord="0"] .aqe-status');
-      return status ? { text: status.textContent, title: status.title } : null;
+      return status ? { text: status.textContent, title: status.title, kind: status.dataset.kind || "" } : null;
     })()
     """
 
@@ -502,6 +558,7 @@ def test_each_processing_button_updates_field_to_new_real_audio(anki_mw, ffmpeg_
                 "-R",
                 "Trim Silence",
                 "Remove Pauses",
+                "Remove noise",
                 "Slower",
                 "Faster",
                 "Volume -",
@@ -540,6 +597,107 @@ def test_each_processing_button_updates_field_to_new_real_audio(anki_mw, ffmpeg_
         )
         assert graph_state["active"] is False
         assert graph_state["hidden"] is True
+    finally:
+        editor.set_note(None)
+        parent.close()
+
+
+def test_remove_noise_button_runs_deep_filter_and_is_undoable(
+    anki_mw,
+    ffmpeg_config,
+    tmp_path,
+) -> None:
+    from anki_audio_quick_editor.audio_processor import probe_duration_ms
+
+    media_dir = Path(anki_mw.col.media.dir())
+    source = media_dir / "editor_remove_noise_source.wav"
+    generate_tone(ffmpeg_config, source, duration_s=1.2)
+    original_bytes = source.read_bytes()
+    fake_deep_filter, deep_filter_log = _fake_deep_filter_executable(tmp_path)
+    note = _basic_audio_note(anki_mw, source.name)
+    _configure_ffmpeg(
+        anki_mw,
+        ffmpeg_config,
+        deep_filter_path=str(fake_deep_filter),
+        deep_filter_post_filter=True,
+        show_ffmpeg_commands=True,
+    )
+
+    editor, parent = _open_editor(anki_mw, note)
+    try:
+        _click_graph_and_wait(editor, lambda value: value["sourceFilename"] == source.name)
+        click_selector(editor.web, _button_selector("aqe:remove-noise"), timeout=5.0)
+        generated_name = _wait_for_generated_mp3(note, media_dir, source.name)
+
+        generated_path = media_dir / generated_name
+        assert generated_path.is_file()
+        assert generated_name.endswith(".mp3")
+        assert source.read_bytes() == original_bytes
+        assert probe_duration_ms(generated_path, ffmpeg_config) > 0
+        assert abs(probe_duration_ms(generated_path, ffmpeg_config) - 1200) < 250
+
+        deep_filter_args = json.loads(deep_filter_log.read_text(encoding="utf-8"))
+        assert "-D" in deep_filter_args
+        assert "--pf" in deep_filter_args
+        assert "-o" in deep_filter_args
+        output_dir = Path(deep_filter_args[deep_filter_args.index("-o") + 1])
+        assert output_dir.name == "deep_filter_output"
+        assert Path(deep_filter_args[-1]).name == "input_48k_mono.wav"
+
+        _wait_for_visualizer_track(
+            editor,
+            lambda value: value["sourceFilename"] == generated_name and value["cursorMs"] == 0,
+            timeout=10.0,
+        )
+
+        click_selector(editor.web, _button_selector("aqe:undo"), timeout=5.0)
+        wait_for_condition(
+            lambda: _sound_filename(note.fields[0]) == source.name,
+            timeout=5.0,
+            message="Undo did not restore the original audio reference after noise removal",
+        )
+    finally:
+        editor.set_note(None)
+        parent.close()
+
+
+def test_remove_noise_failure_leaves_note_unchanged(
+    anki_mw,
+    ffmpeg_config,
+    tmp_path,
+) -> None:
+    media_dir = Path(anki_mw.col.media.dir())
+    source = media_dir / "editor_remove_noise_failure_source.wav"
+    generate_tone(ffmpeg_config, source, duration_s=0.8)
+    original_field = f"Prompt [sound:{source.name}]"
+    fake_deep_filter, deep_filter_log = _fake_deep_filter_executable(tmp_path, fail=True)
+    note = _basic_audio_note(anki_mw, source.name)
+    _configure_ffmpeg(
+        anki_mw,
+        ffmpeg_config,
+        deep_filter_path=str(fake_deep_filter),
+        deep_filter_post_filter=True,
+    )
+
+    editor, parent = _open_editor(anki_mw, note)
+    try:
+        click_selector(editor.web, _button_selector("aqe:remove-noise"), timeout=10.0)
+        status = wait_for_js_condition(
+            editor.web,
+            _processing_status_js(),
+            lambda value: value is not None
+            and value["kind"] == "error"
+            and "fake deep-filter failed" in value["text"],
+            timeout=10.0,
+        )
+
+        assert status["title"] == ""
+        assert note.fields[0] == original_field
+        assert _sound_filename(note.fields[0]) == source.name
+        assert json.loads(deep_filter_log.read_text(encoding="utf-8"))[-1].endswith(
+            "input_48k_mono.wav"
+        )
+        assert not list(media_dir.glob("editor_remove_noise_failure_source__aqe_*.mp3"))
     finally:
         editor.set_note(None)
         parent.close()

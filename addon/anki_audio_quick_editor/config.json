@@ -1,6 +1,6 @@
 {
   "$schema": "./config.schema.json",
-  "_config_version": 4,
+  "_config_version": 6,
   "enabled": true,
   "debug_logging": false,
   "show_ffmpeg_commands": false,
@@ -14,8 +14,11 @@
   "max_volume_db": 24.0,
   "edge_silence_threshold_db": -35,
   "edge_silence_min_ms": 100,
+  "internal_pause_silence_threshold_db": -45,
   "internal_pause_threshold_ms": 300,
   "internal_pause_target_gap_ms": 100,
   "output_format": "mp3",
-  "ffmpeg_path": ""
+  "ffmpeg_path": "",
+  "deep_filter_path": "",
+  "deep_filter_post_filter": true
 }

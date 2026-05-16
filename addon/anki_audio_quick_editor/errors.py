@@ -9,6 +9,10 @@ class MissingFfmpegError(AudioQuickEditorError):
     """Raised when ffmpeg or ffprobe cannot be found."""
 
 
+class MissingDeepFilterError(AudioQuickEditorError):
+    """Raised when DeepFilterNet's deep-filter executable cannot be found."""
+
+
 class MissingMediaError(AudioQuickEditorError):
     """Raised when a referenced Anki media file does not exist."""
 

@@ -21,10 +21,13 @@ class AudioProcessingConfig:
     max_volume_db: float = 24.0
     edge_silence_threshold_db: int = -35
     edge_silence_min_ms: int = 100
+    internal_pause_silence_threshold_db: int = -45
     internal_pause_threshold_ms: int = 300
     internal_pause_target_gap_ms: int = 100
     output_format: str = "mp3"
     ffmpeg_path: str = ""
+    deep_filter_path: str = ""
+    deep_filter_post_filter: bool = True
     show_ffmpeg_commands: bool = False
 
     @classmethod
@@ -43,6 +46,12 @@ class AudioProcessingConfig:
                 config.get("edge_silence_threshold_db", cls.edge_silence_threshold_db)
             ),
             edge_silence_min_ms=int(config.get("edge_silence_min_ms", cls.edge_silence_min_ms)),
+            internal_pause_silence_threshold_db=int(
+                config.get(
+                    "internal_pause_silence_threshold_db",
+                    cls.internal_pause_silence_threshold_db,
+                )
+            ),
             internal_pause_threshold_ms=int(
                 config.get("internal_pause_threshold_ms", cls.internal_pause_threshold_ms)
             ),
@@ -51,6 +60,10 @@ class AudioProcessingConfig:
             ),
             output_format=str(config.get("output_format", cls.output_format)),
             ffmpeg_path=str(config.get("ffmpeg_path", cls.ffmpeg_path)),
+            deep_filter_path=str(config.get("deep_filter_path", cls.deep_filter_path)),
+            deep_filter_post_filter=bool(
+                config.get("deep_filter_post_filter", cls.deep_filter_post_filter)
+            ),
             show_ffmpeg_commands=bool(
                 config.get("show_ffmpeg_commands", cls.show_ffmpeg_commands)
             ),

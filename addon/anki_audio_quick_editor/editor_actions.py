@@ -1,7 +1,16 @@
-"""Import-safe editor command constants and edit-state transitions."""
+"""Import-safe editor bridge commands and shared operation mapping."""
 
 from __future__ import annotations
 
+from .audio_operations import (
+    OP_FASTER,
+    OP_REMOVE_PAUSES,
+    OP_SLOWER,
+    OP_TRIM_SILENCE,
+    OP_VOLUME_DOWN,
+    OP_VOLUME_UP,
+    apply_audio_operation,
+)
 from .audio_state import AudioEditState, AudioProcessingConfig
 
 CMD_TRIM_LEFT = "aqe:trim-left"
@@ -12,6 +21,7 @@ CMD_VOLUME_DOWN = "aqe:volume-down"
 CMD_VOLUME_UP = "aqe:volume-up"
 CMD_TRIM_SILENCE = "aqe:trim-silence"
 CMD_REMOVE_PAUSES = "aqe:remove-pauses"
+CMD_REMOVE_NOISE = "aqe:remove-noise"
 
 BRIDGE_COMMANDS = (
     "aqe:scan",
@@ -28,6 +38,7 @@ BRIDGE_COMMANDS = (
     CMD_VOLUME_UP,
     CMD_TRIM_SILENCE,
     CMD_REMOVE_PAUSES,
+    CMD_REMOVE_NOISE,
     "aqe:undo",
 )
 
@@ -42,6 +53,20 @@ PROCESSING_COMMANDS = (
     CMD_REMOVE_PAUSES,
 )
 
+BRIDGE_COMMAND_TO_OPERATION = {
+    CMD_SLOWER: OP_SLOWER,
+    CMD_FASTER: OP_FASTER,
+    CMD_VOLUME_DOWN: OP_VOLUME_DOWN,
+    CMD_VOLUME_UP: OP_VOLUME_UP,
+    CMD_TRIM_SILENCE: OP_TRIM_SILENCE,
+    CMD_REMOVE_PAUSES: OP_REMOVE_PAUSES,
+}
+
+
+def operation_for_command(command: str) -> str | None:
+    """Return the shared audio operation for one editor bridge command."""
+    return BRIDGE_COMMAND_TO_OPERATION.get(command)
+
 
 def apply_processing_command(
     command: str,
@@ -50,15 +75,11 @@ def apply_processing_command(
 ) -> AudioEditState | None:
     """Return the edit state after applying a processing command."""
     step = config.manual_trim_small_ms
-    actions = {
-        CMD_TRIM_LEFT: lambda: state.trim_left(step),
-        CMD_TRIM_RIGHT: lambda: state.trim_right(step),
-        CMD_SLOWER: lambda: state.slower(config),
-        CMD_FASTER: lambda: state.faster(config),
-        CMD_VOLUME_DOWN: lambda: state.volume_down(config),
-        CMD_VOLUME_UP: lambda: state.volume_up(config),
-        CMD_TRIM_SILENCE: state.toggle_edge_trim,
-        CMD_REMOVE_PAUSES: state.toggle_internal_pauses,
-    }
-    action = actions.get(command)
-    return action() if action else None
+    if command == CMD_TRIM_LEFT:
+        return state.trim_left(step)
+    if command == CMD_TRIM_RIGHT:
+        return state.trim_right(step)
+    operation = operation_for_command(command)
+    if operation is None:
+        return None
+    return apply_audio_operation(operation, state, config)

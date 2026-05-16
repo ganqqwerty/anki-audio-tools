@@ -5,7 +5,7 @@ from __future__ import annotations
 import copy
 from typing import Any
 
-CURRENT_CONFIG_VERSION = 4
+CURRENT_CONFIG_VERSION = 6
 
 
 def deep_merge(defaults: dict[str, Any], user: dict[str, Any]) -> dict[str, Any]:

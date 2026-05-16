@@ -79,6 +79,35 @@ class TestMigrateConfig:
         assert migrated["debug_logging"] is False
         assert changed is True
 
+    def test_picks_up_deep_filter_defaults(self) -> None:
+        user = {"_config_version": 4, "enabled": True}
+        defaults = {
+            "_config_version": CURRENT_CONFIG_VERSION,
+            "enabled": True,
+            "deep_filter_path": "",
+            "deep_filter_post_filter": True,
+        }
+
+        migrated, changed = migrate_config(user, defaults)
+
+        assert migrated["deep_filter_path"] == ""
+        assert migrated["deep_filter_post_filter"] is True
+        assert changed is True
+
+    def test_picks_up_internal_pause_silence_threshold_default(self) -> None:
+        user = {"_config_version": 5, "enabled": True}
+        defaults = {
+            "_config_version": CURRENT_CONFIG_VERSION,
+            "enabled": True,
+            "internal_pause_silence_threshold_db": -45,
+        }
+
+        migrated, changed = migrate_config(user, defaults)
+
+        assert migrated["internal_pause_silence_threshold_db"] == -45
+        assert migrated["_config_version"] == CURRENT_CONFIG_VERSION
+        assert changed is True
+
     def test_current_version_only_marks_change_when_defaults_add_values(self) -> None:
         user = {"_config_version": CURRENT_CONFIG_VERSION, "enabled": False}
         defaults = {

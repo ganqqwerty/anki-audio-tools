@@ -13,10 +13,13 @@ export interface Config {
   max_volume_db: number;
   edge_silence_threshold_db: number;
   edge_silence_min_ms: number;
+  internal_pause_silence_threshold_db: number;
   internal_pause_threshold_ms: number;
   internal_pause_target_gap_ms: number;
   output_format: "mp3";
   ffmpeg_path: string;
+  deep_filter_path: string;
+  deep_filter_post_filter: boolean;
 }
 
 export interface DiagnosticsState {
@@ -54,4 +57,10 @@ export interface HealthReport {
   deck_count: number;
   note_type_count: number;
   card_count: number;
+  deep_filter?: {
+    available: boolean;
+    path: string;
+    version: string;
+    error: string;
+  };
 }

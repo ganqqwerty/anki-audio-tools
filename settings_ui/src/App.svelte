@@ -20,7 +20,7 @@
 
   const initialState: InitialState = window.__INITIAL_STATE__ ?? {
     config: {
-      _config_version: 4,
+      _config_version: 6,
       enabled: true,
       debug_logging: false,
       show_ffmpeg_commands: false,
@@ -34,10 +34,13 @@
       max_volume_db: 24.0,
       edge_silence_threshold_db: -35,
       edge_silence_min_ms: 100,
+      internal_pause_silence_threshold_db: -45,
       internal_pause_threshold_ms: 300,
       internal_pause_target_gap_ms: 100,
       output_format: "mp3",
       ffmpeg_path: "",
+      deep_filter_path: "",
+      deep_filter_post_filter: true,
     },
     version: "",
     addon_dir: "",
@@ -75,7 +78,7 @@
     healthMessage = "Running health check...";
     healthProgress = null;
     try {
-      const result = await startAsyncOp("health_check", {}) as HealthReport;
+      const result = await startAsyncOp("health_check", { config }) as HealthReport;
       healthReport = result;
       healthMessage = "Health check completed";
     } catch (error) {
@@ -143,6 +146,18 @@
             placeholder="Leave blank to use PATH"
           />
         </label>
+        <label class="field-row">
+          <span>DeepFilterNet path</span>
+          <input
+            type="text"
+            bind:value={config.deep_filter_path}
+            placeholder="Leave blank to use PATH"
+          />
+        </label>
+        <label class="toggle">
+          <input type="checkbox" bind:checked={config.deep_filter_post_filter} />
+          <span>Use DeepFilterNet post-filter</span>
+        </label>
         <div class="settings-grid">
           <label>
             <span>Small trim step (ms)</span>
@@ -177,12 +192,16 @@
             <input type="number" step="0.1" bind:value={config.max_volume_db} />
           </label>
           <label>
-            <span>Silence threshold (dB)</span>
+            <span>Edge silence threshold (dB)</span>
             <input type="number" bind:value={config.edge_silence_threshold_db} />
           </label>
           <label>
             <span>Edge silence min (ms)</span>
             <input type="number" min="1" bind:value={config.edge_silence_min_ms} />
+          </label>
+          <label>
+            <span>Internal pause silence threshold (dB)</span>
+            <input type="number" bind:value={config.internal_pause_silence_threshold_db} />
           </label>
           <label>
             <span>Pause threshold (ms)</span>

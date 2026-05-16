@@ -18,10 +18,13 @@
     "max_volume_db",
     "edge_silence_threshold_db",
     "edge_silence_min_ms",
+    "internal_pause_silence_threshold_db",
     "internal_pause_threshold_ms",
     "internal_pause_target_gap_ms",
     "output_format",
-    "ffmpeg_path"
+    "ffmpeg_path",
+    "deep_filter_path",
+    "deep_filter_post_filter"
   ],
   "properties": {
     "$schema": {
@@ -77,6 +80,9 @@
       "type": "integer",
       "minimum": 1
     },
+    "internal_pause_silence_threshold_db": {
+      "type": "integer"
+    },
     "internal_pause_threshold_ms": {
       "type": "integer",
       "minimum": 1
@@ -91,6 +97,12 @@
     },
     "ffmpeg_path": {
       "type": "string"
+    },
+    "deep_filter_path": {
+      "type": "string"
+    },
+    "deep_filter_post_filter": {
+      "type": "boolean"
     }
   }
 }

@@ -2,16 +2,39 @@
 
 from __future__ import annotations
 
+from anki_audio_quick_editor.audio_operations import (
+    OP_FASTER,
+    OP_REMOVE_PAUSES,
+    OP_SLOWER,
+    OP_TRIM_SILENCE,
+    OP_VOLUME_DOWN,
+    OP_VOLUME_UP,
+)
 from anki_audio_quick_editor.audio_state import AudioEditState, AudioProcessingConfig
 from anki_audio_quick_editor.editor_actions import (
+    BRIDGE_COMMAND_TO_OPERATION,
     BRIDGE_COMMANDS,
     PROCESSING_COMMANDS,
     apply_processing_command,
+    operation_for_command,
 )
 
 
 def test_processing_commands_are_registered_bridge_commands() -> None:
     assert set(PROCESSING_COMMANDS) < set(BRIDGE_COMMANDS)
+
+
+def test_batchable_processing_commands_map_to_shared_operations() -> None:
+    assert BRIDGE_COMMAND_TO_OPERATION == {
+        "aqe:slower": OP_SLOWER,
+        "aqe:faster": OP_FASTER,
+        "aqe:volume-down": OP_VOLUME_DOWN,
+        "aqe:volume-up": OP_VOLUME_UP,
+        "aqe:trim-silence": OP_TRIM_SILENCE,
+        "aqe:remove-pauses": OP_REMOVE_PAUSES,
+    }
+    assert operation_for_command("aqe:trim-left") is None
+    assert operation_for_command("aqe:trim-right") is None
 
 
 def test_apply_processing_command_uses_configured_trim_step() -> None:
@@ -59,6 +82,7 @@ def test_play_graph_cursor_and_play_ended_are_not_processing_commands() -> None:
         "aqe:show-file",
         "aqe:analyze",
         "aqe:set-cursor",
+        "aqe:remove-noise",
     }.isdisjoint(PROCESSING_COMMANDS)
 
 

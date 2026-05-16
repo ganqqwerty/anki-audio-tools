@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+from pathlib import Path
 from unittest.mock import MagicMock, patch
 
 from anki_audio_quick_editor.settings.commands import handle_settings_command
@@ -94,6 +95,41 @@ def test_async_health_check_reports_result() -> None:
     result = _parse_callback(done_calls[0], "onAsyncDone")
     assert result["ok"] is True
     assert "card_count" in result["result"]
+    assert "deep_filter" in result["result"]
+
+
+def test_async_health_check_reports_deep_filter_version() -> None:
+    dialog = _make_dialog()
+    calls, eval_fn = _capture_eval()
+    payload = json.dumps(
+        {
+            "id": "job-1",
+            "op": "health_check",
+            "payload": {"config": {"deep_filter_path": "/custom/deep-filter"}},
+        }
+    )
+
+    with (
+        patch("threading.Thread", _ImmediateThread),
+        patch(
+            "anki_audio_quick_editor.audio_processor.find_deep_filter",
+            return_value=Path("/custom/deep-filter"),
+        ),
+        patch("anki_audio_quick_editor.diagnostics.subprocess.run") as run,
+    ):
+        run.return_value.returncode = 0
+        run.return_value.stdout = "deep-filter 0.5.6\n"
+        run.return_value.stderr = ""
+        handle_settings_command(f"async_cmd:{payload}", eval_fn, dialog)
+
+    done_calls = [call for call in calls if call.startswith("window.onAsyncDone(")]
+    result = _parse_callback(done_calls[0], "onAsyncDone")
+    assert result["result"]["deep_filter"] == {
+        "available": True,
+        "path": "/custom/deep-filter",
+        "version": "deep-filter 0.5.6",
+        "error": "",
+    }
 
 
 def test_unknown_command_returns_false() -> None:

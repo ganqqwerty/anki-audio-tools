@@ -99,8 +99,12 @@ def test_processing_config_from_partial_config_uses_defaults() -> None:
     assert config.volume_step_db == 3.0
     assert config.min_volume_db == -24.0
     assert config.max_volume_db == 24.0
+    assert config.edge_silence_threshold_db == -35
+    assert config.internal_pause_silence_threshold_db == -45
     assert config.output_format == "mp3"
     assert config.ffmpeg_path == "/opt/bin/ffmpeg"
+    assert config.deep_filter_path == ""
+    assert config.deep_filter_post_filter is True
     assert config.show_ffmpeg_commands is False
 
 
@@ -118,3 +122,21 @@ def test_processing_config_reads_show_ffmpeg_commands_flag() -> None:
     config = AudioProcessingConfig.from_config({"show_ffmpeg_commands": True})
 
     assert config.show_ffmpeg_commands is True
+
+
+def test_processing_config_reads_internal_pause_silence_threshold() -> None:
+    config = AudioProcessingConfig.from_config({"internal_pause_silence_threshold_db": -42})
+
+    assert config.internal_pause_silence_threshold_db == -42
+
+
+def test_processing_config_reads_deep_filter_settings() -> None:
+    config = AudioProcessingConfig.from_config(
+        {
+            "deep_filter_path": "/opt/bin/deep-filter",
+            "deep_filter_post_filter": False,
+        }
+    )
+
+    assert config.deep_filter_path == "/opt/bin/deep-filter"
+    assert config.deep_filter_post_filter is False

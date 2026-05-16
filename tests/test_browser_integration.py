@@ -9,8 +9,9 @@ from unittest.mock import MagicMock
 
 import aqt
 
+from anki_audio_quick_editor.audio_operations import OP_FASTER, OP_GRAPH
 from anki_audio_quick_editor.audio_state import AudioProcessingConfig
-from anki_audio_quick_editor.batch_visualization import BatchNoteResult
+from anki_audio_quick_editor.batch_operations import BatchNoteResult, BatchRunRequest
 from anki_audio_quick_editor.browser_integration import (
     ACTION_LABEL,
     _on_browser_menus_did_init,
@@ -108,8 +109,7 @@ def test_run_batch_stops_after_current_note_when_cancel_requested(monkeypatch, t
     report = _run_batch(
         col,
         [1, 2],
-        "Audio",
-        "Image",
+        BatchRunRequest(operation=OP_GRAPH, source_field="Audio", target_field="Image"),
         tmp_path,
         AudioProcessingConfig(),
         cancel_event,
@@ -123,3 +123,34 @@ def test_run_batch_stops_after_current_note_when_cancel_requested(monkeypatch, t
     assert col.updated == [1]
     assert col.merged == [42]
     assert progress_calls == [1]
+
+
+def test_run_batch_uses_source_field_for_transform_updates(monkeypatch, tmp_path: Path) -> None:
+    col = _FakeCol()
+
+    monkeypatch.setattr(
+        "anki_audio_quick_editor.browser_integration._process_note",
+        lambda *_args, **_kwargs: BatchNoteResult(
+            note_id=1,
+            status="written",
+            message="replaced audio with clip__aqe.mp3",
+            target_field="Audio",
+            target_html="[sound:clip__aqe.mp3]",
+            audio_filename="clip.mp3",
+            written_filename="clip__aqe.mp3",
+        ),
+    )
+
+    report = _run_batch(
+        col,
+        [1],
+        BatchRunRequest(operation=OP_FASTER, source_field="Audio"),
+        tmp_path,
+        AudioProcessingConfig(),
+        threading.Event(),
+        lambda _line: None,
+        lambda *_args: None,
+    )
+
+    assert report.written == 1
+    assert col.notes[1].fields["Audio"] == "[sound:clip__aqe.mp3]"

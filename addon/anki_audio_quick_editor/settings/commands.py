@@ -7,7 +7,7 @@ import logging
 import threading
 import uuid
 from collections.abc import Callable
-from typing import Any
+from typing import Any, cast
 
 logger = logging.getLogger(__name__)
 
@@ -130,13 +130,17 @@ def _op_health_check(
     payload: dict[str, Any],
     progress_fn: Callable[[int, str], None],
 ) -> Any:
-    del payload
     from aqt import mw
 
     from ..db_helpers import build_health_report
+    from ..diagnostics import build_deep_filter_health
 
     progress_fn(20, "Inspecting collection")
     report = build_health_report(mw.col)
+    progress_fn(60, "Checking DeepFilterNet")
+    raw_config = payload.get("config")
+    config = cast(dict[str, Any], raw_config) if isinstance(raw_config, dict) else {}
+    report["deep_filter"] = build_deep_filter_health(config)
     progress_fn(100, "Done")
     return report
 

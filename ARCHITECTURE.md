@@ -2,26 +2,22 @@
 
 ## Overview
 
-Anki Audio Quick Editor keeps a tested Anki shell and adds focused inline and batch audio workflows:
+Anki Audio Quick Editor keeps the human-facing architecture doc short and puts the executable source of truth in code:
 
-- a thin `__init__.py` bootstrap
-- centralized config migration
-- isolated collection/database helpers
-- a Svelte settings UI delivered through `AnkiWebView`
-- Anki-import-safe sound-reference, edit-state, and ffmpeg helpers
-- Anki-import-safe prosody analysis, caching, SVG rendering, and batch decision helpers
-- thin Anki editor integration for inline controls, playback, automatic media replacement, visualization, and Undo
-- thin Anki Browser integration for selected-note batch visualization generation
+- architecture contracts live in `tests/test_architecture/contracts.py`
+- architecture observations and reporting live in `tests/test_architecture/inspection.py`
+- pass/fail enforcement happens through `tests/test_architecture/*.py`, `python3 scripts/dev.py architecture-report`, and `python3 scripts/dev.py arch`
+- GitNexus is useful for discovery and blast-radius review, but it is not the enforcement source of truth
 
 ## Runtime Layers
 
-| Layer | Modules | Responsibility |
+| Layer | Responsibility |
 |-------|---------|----------------|
-| Entry point | `__init__.py` | Startup hook registration, menu setup, config action |
-| Anki-import-safe helpers | `_version.py`, `audio_processor.py`, `audio_state.py`, `batch_visualization.py`, `config_migration.py`, `db_helpers.py`, `editor_actions.py`, `editor_ui.py`, `errors.py`, `prosody_analyzer.py`, `prosody_cache.py`, `prosody_fallback.py`, `prosody_praat.py`, `prosody_svg.py`, `prosody_types.py`, `settings_state.py`, `sound_refs.py` | Logic without module-level Anki imports |
-| UI modules | `browser_integration.py`, `editor_integration.py` | User-facing behavior that touches Anki Browser/editor, media, playback, task, and Qt APIs |
-| Settings shell | `settings/__init__.py` | `QDialog` + `AnkiWebView` host only |
-| Settings backend | `settings/commands.py`, `settings/initial_state.py` | Bridge dispatch and startup state |
+| Entry point | Startup hook registration, menu setup, config action |
+| Import-safe core | Logic that stays safe to inspect and test without loading Anki runtime objects |
+| UI adapters | User-facing Browser/editor behavior that touches Anki, Qt, playback, taskman, and media APIs |
+| Settings shell | Thin `QDialog` + `AnkiWebView` host only |
+| Settings backend | Bridge dispatch and startup state |
 
 ## Bootstrap Hooks
 
@@ -48,16 +44,39 @@ Anki Audio Quick Editor keeps a tested Anki shell and adds focused inline and ba
 8. Playback uses Anki's audio player against the latest generated reference, stopping any previous playback first and seeking to the visualizer cursor when set.
 9. Undo restores the previous generated reference and edit state without deleting generated media.
 
-## Browser Batch Visualization Flow
+## Batchable Operations
 
-1. `browser_integration.py` adds `Generate Audio Visualizations...` to the Browser Cards menu and context menu.
+Shared batchable operations live in `audio_operations.py` and are the only supported cross-UI operation source of truth:
+
+- `graph`
+- `trim_silence`
+- `remove_pauses`
+- `slower`
+- `faster`
+- `volume_down`
+- `volume_up`
+
+Rules:
+
+- New batch-capable behavior must be introduced as an import-safe shared operation before it is wired into the editor bridge or Browser dialog.
+- Editor bridge strings such as `aqe:faster` are adapter concerns only and must map into shared operations through `editor_actions.py`.
+- Browser batch workflows and editor processing must share the same operation semantics for all transform operations.
+- Batch runs are single-operation only. Users compose multi-step workflows by running separate jobs sequentially.
+- Non-graph batch operations replace the first supported sound reference in the source field with a new generated audio file.
+- `graph` remains special: it analyzes the selected source field and appends an SVG reference to a chosen target field.
+
+## Browser Batch Operations Flow
+
+1. `browser_integration.py` adds `Run Audio Batch Operation...` to the Browser Cards menu and context menu.
 2. The Browser selection is deduplicated to note IDs before processing.
-3. The dialog builds source and target field combos from the union of selected-note fields, grouped by note type. The selected value is the field name, so shared field names apply across note types.
-4. Batch execution runs with `mw.taskman.run_in_background(..., uses_collection=True)` and posts progress/log updates back to the main thread.
-5. `batch_visualization.py` handles import-safe per-note decisions: missing source/target fields, empty source fields, and unsupported sound references are skips; missing media and analysis/render/write/update exceptions are failures.
-6. Only the first supported `[sound:...]` reference in the source field is used. The generated SVG is written to Anki media and appended to the target field as an `<img>` reference.
-7. `prosody_cache.py` shares cached analysis between editor and batch paths, while `prosody_svg.py` renders deterministic UTF-8 SVG media using the current pitch/intensity style.
-8. Successful updates are merged into one custom Anki undo entry where Anki supports it. Cancellation stops before the next note, leaving completed writes intact.
+3. The dialog builds one operation selector plus source and target field combos from the union of selected-note fields, grouped by note type. The selected value is the field name, so shared field names apply across note types.
+4. Source field selection is always required. Target field selection is required only for `graph`.
+5. Batch execution runs with `mw.taskman.run_in_background(..., uses_collection=True)` and posts progress/log updates back to the main thread.
+6. `batch_operations.py` handles import-safe per-note decisions: missing required fields, empty source fields, and unsupported sound references are skips; missing media and analysis/render/write/update exceptions are failures.
+7. For transform operations, only the first supported `[sound:...]` reference in the source field is used. The transformed audio is written to Anki media and replaces that source-field reference in place.
+8. For `graph`, the generated SVG is written to Anki media and appended to the chosen target field as an `<img>` reference.
+9. `prosody_cache.py` shares cached analysis between editor and batch paths, while `prosody_svg.py` renders deterministic UTF-8 SVG media using the current pitch/intensity style.
+10. Successful updates are merged into one custom Anki undo entry where Anki supports it. Cancellation stops before the next note, leaving completed writes intact.
 
 ## Settings Flow
 
@@ -96,6 +115,17 @@ Config defaults are stored in `config.json` and migrated into user config:
 
 `config_migration.py` deep-merges defaults into user config and stamps the current schema version.
 
+## Source Of Truth
+
+Use these commands when changing architecture or boundaries:
+
+- `python3 scripts/dev.py architecture-report`
+- `python3 scripts/dev.py arch`
+- `python3 scripts/dev.py test`
+- `python3 scripts/dev.py test-e2e`
+
+The canonical module contracts and allowed side effects are defined in `tests/test_architecture/contracts.py`. Keep this file authoritative and keep this document descriptive.
+
 ## Import-Linter Contracts
 
 | Contract | Source modules | Forbidden modules |
@@ -105,11 +135,9 @@ Config defaults are stored in `config.json` and migrated into user config:
 
 ## Enforced Rules
 
-- Anki-import-safe modules must not import `aqt` or `anki` at module level.
-- Thin Browser/editor/settings runtime modules keep Anki/Qt imports inside function boundaries where practical.
+- Import policy, addon dependency policy, and side-effect policy are enforced by executable module contracts.
 - Python bridge command registration and injected editor UI commands must stay in sync.
+- Shared batch operations must stay free of editor bridge strings and editor-adapter imports.
 - Optional analysis dependencies such as Parselmouth must stay isolated to their backend module and never become package-level imports.
-- Collection/database access must stay inside `db_helpers.py`.
 - The settings shell must stay a thin `QDialog` + `AnkiWebView` wrapper.
-- Every production module must be classified into a layer.
-- Leaf modules must stay safe to import without dragging in runtime side effects.
+- Every production module must have an executable contract entry.

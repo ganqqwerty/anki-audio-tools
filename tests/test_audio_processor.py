@@ -3,11 +3,11 @@
 from __future__ import annotations
 
 import importlib
-from types import SimpleNamespace
 import shutil
 import subprocess
 from datetime import datetime
 from pathlib import Path
+from types import SimpleNamespace
 
 import pytest
 
@@ -15,7 +15,11 @@ from anki_audio_quick_editor.audio_processor import (
     _atempo_filters,
     _safe_filename_stem,
     build_audio_filters,
+    build_deep_filter_command,
+    build_deep_filter_prepare_command,
+    build_mp3_encode_command,
     build_playback_segment_filters,
+    find_deep_filter,
     find_ffmpeg,
     find_ffprobe,
     format_ffmpeg_command,
@@ -23,11 +27,17 @@ from anki_audio_quick_editor.audio_processor import (
     make_playback_segment_filename,
     probe_duration_ms,
     render_audio,
+    render_noise_reduced_audio,
     render_playback_segment,
+    select_deep_filter_output,
     temp_final_path,
 )
 from anki_audio_quick_editor.audio_state import AudioEditState, AudioProcessingConfig
-from anki_audio_quick_editor.errors import AudioProcessingError, MissingFfmpegError
+from anki_audio_quick_editor.errors import (
+    AudioProcessingError,
+    MissingDeepFilterError,
+    MissingFfmpegError,
+)
 
 
 def test_find_ffmpeg_uses_default_path_lookup_when_unconfigured(monkeypatch) -> None:
@@ -70,6 +80,33 @@ def test_find_ffmpeg_prefers_existing_configured_file(tmp_path: Path) -> None:
     ffmpeg.write_text("")
 
     assert find_ffmpeg(str(ffmpeg)) == ffmpeg
+
+
+def test_find_deep_filter_uses_default_path_lookup_when_unconfigured(monkeypatch) -> None:
+    calls: list[str] = []
+
+    def fake_which(name: str) -> str:
+        calls.append(name)
+        return "/usr/local/bin/deep-filter"
+
+    monkeypatch.setattr("anki_audio_quick_editor.audio_processor.shutil.which", fake_which)
+
+    assert find_deep_filter() == Path("/usr/local/bin/deep-filter")
+    assert calls == ["deep-filter"]
+
+
+def test_find_deep_filter_prefers_existing_configured_file(tmp_path: Path) -> None:
+    deep_filter = tmp_path / "deep-filter"
+    deep_filter.write_text("")
+
+    assert find_deep_filter(str(deep_filter)) == deep_filter
+
+
+def test_find_deep_filter_raises_when_missing(monkeypatch) -> None:
+    monkeypatch.setattr("anki_audio_quick_editor.audio_processor.shutil.which", lambda _name: None)
+
+    with pytest.raises(MissingDeepFilterError, match="Remove noise requires DeepFilterNet"):
+        find_deep_filter()
 
 
 def test_find_ffprobe_prefers_sibling_binary(tmp_path: Path, monkeypatch) -> None:
@@ -125,13 +162,15 @@ def test_build_audio_filters_includes_crop_speed_and_silence_steps() -> None:
     )
 
     filters = build_audio_filters(3000, state, config)
-    threshold = f"{config.edge_silence_threshold_db}dB"
+    edge_threshold = f"{config.edge_silence_threshold_db}dB"
+    pause_threshold = f"{config.internal_pause_silence_threshold_db}dB"
 
     assert "atrim=start=0.200:end=2.900" in filters
     assert "silenceremove=start_periods=1" in filters
     assert "stop_periods=-1" in filters
-    assert f"start_threshold={threshold}" in filters
-    assert f"stop_threshold={threshold}" in filters
+    assert f"start_threshold={edge_threshold}" in filters
+    assert f"stop_periods=1:stop_duration=0.100:stop_threshold={edge_threshold}" in filters
+    assert f"stop_periods=-1:stop_duration=0.300:stop_threshold={pause_threshold}" in filters
     assert "stop_silence=0.100" in filters
     assert "volume=3.00dB" in filters
     assert "atempo=1.150" in filters
@@ -153,6 +192,7 @@ def test_build_audio_filters_omits_atempo_when_speed_is_unchanged() -> None:
 
 def test_build_audio_filters_uses_exact_pause_threshold_and_gap_values() -> None:
     config = AudioProcessingConfig(
+        internal_pause_silence_threshold_db=-41,
         internal_pause_threshold_ms=275,
         internal_pause_target_gap_ms=125,
     )
@@ -160,6 +200,7 @@ def test_build_audio_filters_uses_exact_pause_threshold_and_gap_values() -> None
 
     filters = build_audio_filters(3000, state, config)
 
+    assert "stop_threshold=-41dB" in filters
     assert "stop_duration=0.275" in filters
     assert "stop_silence=0.125" in filters
 
@@ -167,6 +208,7 @@ def test_build_audio_filters_uses_exact_pause_threshold_and_gap_values() -> None
 def test_build_audio_filters_preserves_precise_silence_filter_parameters() -> None:
     config = AudioProcessingConfig(
         edge_silence_min_ms=509,
+        internal_pause_silence_threshold_db=-47,
         internal_pause_threshold_ms=509,
         internal_pause_target_gap_ms=509,
     )
@@ -177,14 +219,20 @@ def test_build_audio_filters_preserves_precise_silence_filter_parameters() -> No
     )
 
     filters = build_audio_filters(3000, state, config)
-    threshold = f"{config.edge_silence_threshold_db}dB"
+    edge_threshold = f"{config.edge_silence_threshold_db}dB"
+    pause_threshold = f"{config.internal_pause_silence_threshold_db}dB"
 
     assert "start_duration=0.509" in filters
     assert "stop_duration=0.509" in filters
     assert "stop_silence=0.509" in filters
     assert filters.count("silenceremove=") == 2
     assert (
-        f",silenceremove=stop_periods=-1:stop_duration=0.509:stop_threshold={threshold}:"
+        "silenceremove="
+        f"start_periods=1:start_duration=0.509:start_threshold={edge_threshold}:"
+        f"stop_periods=1:stop_duration=0.509:stop_threshold={edge_threshold}"
+    ) in filters
+    assert (
+        f",silenceremove=stop_periods=-1:stop_duration=0.509:stop_threshold={pause_threshold}:"
         "stop_silence=0.509"
     ) in filters
 
@@ -207,6 +255,105 @@ def test_build_playback_segment_filters_clamps_negative_cursor_to_zero() -> None
     filters = build_playback_segment_filters(-200)
 
     assert filters == "atrim=start=0.000,asetpts=PTS-STARTPTS"
+
+
+def test_build_deep_filter_prepare_command_uses_48khz_mono_pcm(tmp_path: Path) -> None:
+    command = build_deep_filter_prepare_command(
+        Path("/bin/ffmpeg"),
+        tmp_path / "source.mp3",
+        tmp_path / "input.wav",
+    )
+
+    assert command == (
+        "/bin/ffmpeg",
+        "-y",
+        "-i",
+        str(tmp_path / "source.mp3"),
+        "-vn",
+        "-ac",
+        "1",
+        "-ar",
+        "48000",
+        "-codec:a",
+        "pcm_s16le",
+        str(tmp_path / "input.wav"),
+    )
+
+
+def test_build_deep_filter_command_includes_post_filter_when_enabled(tmp_path: Path) -> None:
+    command = build_deep_filter_command(
+        Path("/bin/deep-filter"),
+        tmp_path / "input.wav",
+        tmp_path / "out",
+        post_filter=True,
+    )
+
+    assert command == (
+        "/bin/deep-filter",
+        "-D",
+        "--pf",
+        "-o",
+        str(tmp_path / "out"),
+        str(tmp_path / "input.wav"),
+    )
+
+
+def test_build_deep_filter_command_omits_post_filter_when_disabled(tmp_path: Path) -> None:
+    command = build_deep_filter_command(
+        Path("/bin/deep-filter"),
+        tmp_path / "input.wav",
+        tmp_path / "out",
+        post_filter=False,
+    )
+
+    assert "--pf" not in command
+    assert command == (
+        "/bin/deep-filter",
+        "-D",
+        "-o",
+        str(tmp_path / "out"),
+        str(tmp_path / "input.wav"),
+    )
+
+
+def test_build_mp3_encode_command_uses_existing_output_policy(tmp_path: Path) -> None:
+    command = build_mp3_encode_command(
+        Path("/bin/ffmpeg"),
+        tmp_path / "cleaned.wav",
+        tmp_path / "cleaned.mp3",
+    )
+
+    assert command == (
+        "/bin/ffmpeg",
+        "-y",
+        "-i",
+        str(tmp_path / "cleaned.wav"),
+        "-vn",
+        "-codec:a",
+        "libmp3lame",
+        "-q:a",
+        "4",
+        str(tmp_path / "cleaned.mp3"),
+    )
+
+
+def test_select_deep_filter_output_accepts_exactly_one_wav(tmp_path: Path) -> None:
+    output = tmp_path / "cleaned.wav"
+    output.write_bytes(b"wav")
+    (tmp_path / "notes.txt").write_text("ignored")
+
+    assert select_deep_filter_output(tmp_path) == output
+
+
+def test_select_deep_filter_output_rejects_zero_or_multiple_wavs(tmp_path: Path) -> None:
+    with pytest.raises(AudioProcessingError, match="did not produce"):
+        select_deep_filter_output(tmp_path)
+
+    (tmp_path / "a.wav").write_bytes(b"a")
+    (tmp_path / "b.wav").write_bytes(b"b")
+
+    with pytest.raises(AudioProcessingError, match="multiple"):
+        select_deep_filter_output(tmp_path)
 
 
 def test_make_output_filename_is_mp3_and_timestamped() -> None:
@@ -499,6 +646,59 @@ def test_render_audio_uses_expected_ffmpeg_invocation(monkeypatch, tmp_path: Pat
     assert result.duration_ms == 825
 
 
+def test_render_noise_reduced_audio_runs_prepare_deep_filter_and_encode(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    calls: list[list[str]] = []
+    commands: list[tuple[str, ...]] = []
+
+    monkeypatch.setattr("anki_audio_quick_editor.audio_processor.find_ffmpeg", lambda _path: Path("/bin/ffmpeg"))
+    monkeypatch.setattr(
+        "anki_audio_quick_editor.audio_processor.find_deep_filter",
+        lambda _path: Path("/bin/deep-filter"),
+    )
+    monkeypatch.setattr("anki_audio_quick_editor.audio_processor.probe_duration_ms", lambda *_args: 1000)
+
+    def fake_run(cmd: list[str], capture_output: bool, text: bool, check: bool) -> SimpleNamespace:
+        calls.append(cmd)
+        if cmd[0] == "/bin/deep-filter":
+            output_dir = Path(cmd[cmd.index("-o") + 1])
+            output_dir.mkdir(parents=True, exist_ok=True)
+            (output_dir / "input_48k_mono.wav").write_bytes(b"cleaned")
+        return SimpleNamespace(returncode=0, stdout="", stderr="")
+
+    monkeypatch.setattr("anki_audio_quick_editor.audio_processor.subprocess.run", fake_run)
+
+    output = tmp_path / "cleaned.mp3"
+    result = render_noise_reduced_audio(
+        tmp_path / "source.mp3",
+        AudioProcessingConfig(deep_filter_path="/custom/deep-filter", deep_filter_post_filter=True),
+        output_path=output,
+        on_command=commands.append,
+    )
+
+    assert calls[0][:10] == [
+        "/bin/ffmpeg",
+        "-y",
+        "-i",
+        str(tmp_path / "source.mp3"),
+        "-vn",
+        "-ac",
+        "1",
+        "-ar",
+        "48000",
+        "-codec:a",
+    ]
+    assert calls[1][0:3] == ["/bin/deep-filter", "-D", "--pf"]
+    assert calls[2][0:4] == ["/bin/ffmpeg", "-y", "-i", calls[2][3]]
+    assert calls[2][-5:] == ["-codec:a", "libmp3lame", "-q:a", "4", str(output)]
+    assert commands == [tuple(call) for call in calls]
+    assert result.output_path == output
+    assert result.command == tuple(calls[1])
+    assert result.duration_ms == 1000
+
+
 def test_render_audio_uses_default_error_message_for_blank_stderr(monkeypatch, tmp_path: Path) -> None:
     monkeypatch.setattr("anki_audio_quick_editor.audio_processor.find_ffmpeg", lambda _path: Path("/bin/ffmpeg"))
     monkeypatch.setattr("anki_audio_quick_editor.audio_processor.probe_duration_ms", lambda *_args: 1000)
@@ -665,6 +865,72 @@ def test_render_audio_smoke_with_path_spaces_and_non_ascii(tmp_path: Path) -> No
     shutil.which("ffmpeg") is None or shutil.which("ffprobe") is None,
     reason="ffmpeg and ffprobe are required for audio rendering smoke tests",
 )
+def test_render_audio_remove_pauses_preserves_short_pause(tmp_path: Path) -> None:
+    source = tmp_path / "short_pause.wav"
+    output = tmp_path / "short_pause.mp3"
+    _generate_short_pause_clip(source)
+    source_duration_ms = probe_duration_ms(source, AudioProcessingConfig())
+
+    result = render_audio(
+        source,
+        AudioEditState("short_pause.wav", remove_internal_pauses_enabled=True),
+        AudioProcessingConfig(),
+        output_path=output,
+    )
+
+    assert result.output_path == output
+    assert abs((result.duration_ms or 0) - source_duration_ms) <= 25
+
+
+@pytest.mark.skipif(
+    shutil.which("ffmpeg") is None or shutil.which("ffprobe") is None,
+    reason="ffmpeg and ffprobe are required for audio rendering smoke tests",
+)
+def test_render_audio_remove_pauses_compresses_obvious_long_pause(tmp_path: Path) -> None:
+    source = tmp_path / "long_pause.wav"
+    output = tmp_path / "long_pause.mp3"
+    _generate_long_pause_clip(source)
+    source_duration_ms = probe_duration_ms(source, AudioProcessingConfig())
+
+    result = render_audio(
+        source,
+        AudioEditState("long_pause.wav", remove_internal_pauses_enabled=True),
+        AudioProcessingConfig(),
+        output_path=output,
+    )
+
+    assert result.output_path == output
+    assert result.duration_ms is not None
+    assert result.duration_ms <= source_duration_ms - 200
+
+
+@pytest.mark.skipif(
+    shutil.which("ffmpeg") is None or shutil.which("ffprobe") is None,
+    reason="ffmpeg and ffprobe are required for audio rendering smoke tests",
+)
+def test_render_audio_remove_pauses_preserves_quiet_micro_word_between_pauses(
+    tmp_path: Path,
+) -> None:
+    source = tmp_path / "quiet_micro_word.wav"
+    output = tmp_path / "quiet_micro_word.mp3"
+    _generate_quiet_micro_word_clip(source)
+    source_duration_ms = probe_duration_ms(source, AudioProcessingConfig())
+
+    result = render_audio(
+        source,
+        AudioEditState("quiet_micro_word.wav", remove_internal_pauses_enabled=True),
+        AudioProcessingConfig(),
+        output_path=output,
+    )
+
+    assert result.output_path == output
+    assert abs((result.duration_ms or 0) - source_duration_ms) <= 25
+
+
+@pytest.mark.skipif(
+    shutil.which("ffmpeg") is None or shutil.which("ffprobe") is None,
+    reason="ffmpeg and ffprobe are required for audio rendering smoke tests",
+)
 def test_render_playback_segment_from_70_percent_is_shorter(tmp_path: Path) -> None:
     source = tmp_path / "cursor source.wav"
     output = tmp_path / "cursor segment.mp3"
@@ -695,3 +961,86 @@ def test_render_playback_segment_from_70_percent_is_shorter(tmp_path: Path) -> N
     assert "atrim=start=0.700" in format_ffmpeg_command(result.command)
     assert output.is_file()
     assert 220 <= probe_duration_ms(output, AudioProcessingConfig()) <= 380
+
+
+def _generate_short_pause_clip(path: Path) -> None:
+    _run_ffmpeg(
+        "-f",
+        "lavfi",
+        "-i",
+        "sine=frequency=220:duration=0.25",
+        "-f",
+        "lavfi",
+        "-i",
+        "anullsrc=r=44100:cl=mono:d=0.25",
+        "-f",
+        "lavfi",
+        "-i",
+        "sine=frequency=300:duration=0.25",
+        "-filter_complex",
+        "[0:a][1:a][2:a]concat=n=3:v=0:a=1[out]",
+        "-map",
+        "[out]",
+        str(path),
+    )
+
+
+def _generate_long_pause_clip(path: Path) -> None:
+    _run_ffmpeg(
+        "-f",
+        "lavfi",
+        "-i",
+        "sine=frequency=220:duration=0.25",
+        "-f",
+        "lavfi",
+        "-i",
+        "anullsrc=r=44100:cl=mono:d=0.75",
+        "-f",
+        "lavfi",
+        "-i",
+        "sine=frequency=300:duration=0.25",
+        "-filter_complex",
+        "[0:a][1:a][2:a]concat=n=3:v=0:a=1[out]",
+        "-map",
+        "[out]",
+        str(path),
+    )
+
+
+def _generate_quiet_micro_word_clip(path: Path) -> None:
+    _run_ffmpeg(
+        "-f",
+        "lavfi",
+        "-i",
+        "sine=frequency=220:duration=0.20",
+        "-f",
+        "lavfi",
+        "-i",
+        "anullsrc=r=44100:cl=mono:d=0.31",
+        "-f",
+        "lavfi",
+        "-i",
+        "sine=frequency=260:duration=0.07,volume=0.08",
+        "-f",
+        "lavfi",
+        "-i",
+        "anullsrc=r=44100:cl=mono:d=0.31",
+        "-f",
+        "lavfi",
+        "-i",
+        "sine=frequency=300:duration=0.20",
+        "-filter_complex",
+        "[0:a][1:a][2:a][3:a][4:a]concat=n=5:v=0:a=1[out]",
+        "-map",
+        "[out]",
+        str(path),
+    )
+
+
+def _run_ffmpeg(*args: str) -> None:
+    subprocess.run(
+        ["ffmpeg", "-y", *args],
+        check=True,
+        capture_output=True,
+        text=True,
+    )

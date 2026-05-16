@@ -1,4 +1,4 @@
-"""Browser menu integration for batch audio visualization generation."""
+"""Browser menu integration for batch audio operations."""
 
 from __future__ import annotations
 
@@ -8,21 +8,28 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
+from .audio_operations import (
+    BATCH_OPERATIONS,
+    OP_GRAPH,
+    OPERATION_LABELS,
+    requires_target_field,
+)
 from .audio_state import AudioProcessingConfig
-from .batch_visualization import (
+from .batch_operations import (
     BatchNoteResult,
     BatchNoteSnapshot,
+    BatchRunRequest,
     FieldGroup,
     field_groups_for_notes,
     first_audio_filename,
-    process_note_visualization,
+    process_note_batch_operation,
     unique_note_ids,
 )
 
 logger = logging.getLogger(__name__)
 
-ACTION_LABEL = "Generate Audio Visualizations..."
-UNDO_LABEL = "Batch Audio Visualizations"
+ACTION_LABEL = "Run Audio Batch Operation..."
+UNDO_LABEL = "Batch Audio Operation"
 
 
 @dataclass
@@ -111,11 +118,11 @@ def _snapshot_from_note(note: Any) -> BatchNoteSnapshot:
 
 
 def _create_dialog(browser: Any, note_ids: list[int], groups: tuple[FieldGroup, ...]) -> Any:
-    return BatchVisualizationDialog(browser, note_ids, groups)
+    return BatchOperationsDialog(browser, note_ids, groups)
 
 
-class BatchVisualizationDialog:
-    """Small composed Qt dialog wrapper for batch visualization progress."""
+class BatchOperationsDialog:
+    """Small composed Qt dialog wrapper for batch audio operations."""
 
     def __init__(self, browser: Any, note_ids: list[int], groups: tuple[FieldGroup, ...]) -> None:
         from aqt.qt import (
@@ -133,11 +140,14 @@ class BatchVisualizationDialog:
         self._running = False
         self._finished = False
         self._dialog = QDialog(browser)
-        self._dialog.setWindowTitle("Generate Audio Visualizations")
+        self._dialog.setWindowTitle("Run Audio Batch Operation")
         self._dialog.setMinimumWidth(680)
         self._dialog.setMinimumHeight(520)
-        self._status_label = QLabel("Choose fields for the selected notes.")
+        self._status_label = QLabel("Choose an operation and fields for the selected notes.")
+        self._operation_label = QLabel("Operation")
+        self._operation_combo = QComboBox()
         self._source_combo = QComboBox()
+        self._target_label = QLabel("Target field")
         self._target_combo = QComboBox()
         self._progress = QProgressBar()
         self._log = QPlainTextEdit()
@@ -156,6 +166,7 @@ class BatchVisualizationDialog:
 
         layout = QVBoxLayout(self._dialog)
         layout.addWidget(self._status_label)
+        layout.addLayout(self._operation_row())
         layout.addLayout(self._field_row(groups))
         self._progress.setMinimum(0)
         self._progress.setMaximum(len(self.note_ids))
@@ -169,6 +180,17 @@ class BatchVisualizationDialog:
         button_row.addWidget(self._copy_button)
         button_row.addWidget(self._cancel_button)
         layout.addLayout(button_row)
+        self._sync_target_visibility()
+
+    def _operation_row(self) -> Any:
+        from aqt.qt import QHBoxLayout
+
+        for operation in BATCH_OPERATIONS:
+            self._operation_combo.addItem(OPERATION_LABELS[operation], operation)
+        row = QHBoxLayout()
+        row.addWidget(self._operation_label)
+        row.addWidget(self._operation_combo)
+        return row
 
     def _field_row(self, groups: tuple[FieldGroup, ...]) -> Any:
         from aqt.qt import QHBoxLayout, QLabel
@@ -178,40 +200,49 @@ class BatchVisualizationDialog:
         field_row = QHBoxLayout()
         field_row.addWidget(QLabel("Source field"))
         field_row.addWidget(self._source_combo)
-        field_row.addWidget(QLabel("Target field"))
+        field_row.addWidget(self._target_label)
         field_row.addWidget(self._target_combo)
         return field_row
 
     def _connect_buttons(self) -> None:
         from aqt.qt import qconnect
 
+        qconnect(self._operation_combo.currentIndexChanged, lambda _index: self._sync_target_visibility())
         qconnect(self._start_button.clicked, self._start)
         qconnect(self._copy_button.clicked, self._copy_log)
         qconnect(self._cancel_button.clicked, self._cancel_or_close)
 
     def _start(self) -> None:
+        operation = self._operation_combo.currentData()
         source_field = self._source_combo.currentData()
-        target_field = self._target_combo.currentData()
-        if not source_field or not target_field:
-            self.append_log("Choose both source and target fields before starting.")
+        target_field = self._target_combo.currentData() if requires_target_field(str(operation)) else None
+        try:
+            request = BatchRunRequest(
+                operation=str(operation),
+                source_field=str(source_field or ""),
+                target_field=str(target_field) if target_field else None,
+            )
+        except ValueError as exc:
+            self.append_log(str(exc))
             return
         self._running = True
+        self._operation_combo.setEnabled(False)
         self._source_combo.setEnabled(False)
         self._target_combo.setEnabled(False)
         self._start_button.setEnabled(False)
-        self._status_label.setText("Starting batch visualization...")
+        self._status_label.setText(f"Starting {OPERATION_LABELS[request.operation]} batch...")
         logger.info(
-            "batch visualization started: notes=%s source=%s target=%s",
+            "batch operation started: notes=%s operation=%s source=%s target=%s",
             len(self.note_ids),
-            source_field,
-            target_field,
+            request.operation,
+            request.source_field,
+            request.target_field,
         )
         _run_batch_in_background(
             self.browser,
             self,
             self.note_ids,
-            str(source_field),
-            str(target_field),
+            request,
         )
 
     def append_log(self, line: str) -> None:
@@ -264,6 +295,13 @@ class BatchVisualizationDialog:
         if clipboard is not None:
             clipboard.setText(self._log.toPlainText())
 
+    def _sync_target_visibility(self) -> None:
+        operation = str(self._operation_combo.currentData() or OP_GRAPH)
+        needs_target = requires_target_field(operation)
+        self._target_label.setVisible(needs_target)
+        self._target_combo.setVisible(needs_target)
+        self._target_combo.setEnabled(needs_target and not self._running)
+
 
 def _populate_combo(combo: Any, groups: tuple[FieldGroup, ...]) -> None:
     for group in groups:
@@ -275,8 +313,7 @@ def _run_batch_in_background(
     browser: Any,
     dialog: Any,
     note_ids: list[int],
-    source_field: str,
-    target_field: str,
+    request: BatchRunRequest,
 ) -> None:
     mw = browser.mw
     config = AudioProcessingConfig.from_config(
@@ -285,7 +322,7 @@ def _run_batch_in_background(
     media_dir = Path(mw.col.media.dir())
 
     def on_log(line: str) -> None:
-        logger.info("batch visualization: %s", line)
+        logger.info("batch operation: %s", line)
         mw.taskman.run_on_main(lambda value=line: dialog.append_log(value))
 
     def on_progress(processed: int, total: int, current_audio: str, failures: int) -> None:
@@ -297,8 +334,7 @@ def _run_batch_in_background(
         return _run_batch(
             mw.col,
             note_ids,
-            source_field,
-            target_field,
+            request,
             media_dir,
             config,
             dialog.cancel_event,
@@ -310,11 +346,11 @@ def _run_batch_in_background(
         try:
             report = future.result()
         except Exception as exc:
-            logger.exception("batch visualization failed")
-            dialog.finish_with_error(f"Batch visualization failed: {exc}")
+            logger.exception("batch operation failed")
+            dialog.finish_with_error(f"Batch operation failed: {exc}")
             return
         _publish_collection_changes(browser, report.changes)
-        logger.info("batch visualization finished: %s", report.summary)
+        logger.info("batch operation finished: %s", report.summary)
         dialog.finish_with_report(report)
 
     mw.taskman.run_in_background(task, done, uses_collection=True)
@@ -323,8 +359,7 @@ def _run_batch_in_background(
 def _run_batch(
     col: Any,
     note_ids: list[int],
-    source_field: str,
-    target_field: str,
+    request: BatchRunRequest,
     media_dir: Path,
     config: AudioProcessingConfig,
     cancel_event: threading.Event,
@@ -336,7 +371,8 @@ def _run_batch(
     last_audio = ""
 
     report.add(
-        f"Starting batch: {len(note_ids)} notes, source={source_field!r}, target={target_field!r}."
+        f"Starting batch: {len(note_ids)} notes, operation={request.operation!r}, "
+        f"source={request.source_field!r}, target={request.target_field!r}."
     )
     on_log(report.log_lines[-1])
 
@@ -350,15 +386,19 @@ def _run_batch(
         note_result = _process_note(
             col,
             int(note_id),
-            source_field,
-            target_field,
+            request,
             media_dir,
             config,
         )
         last_audio = note_result.audio_filename or last_audio
         if note_result.written and undo_entry is None:
             undo_entry = col.add_custom_undo_entry(UNDO_LABEL)
-        note_result = _apply_result(col, report, note_result, target_field)
+        note_result = _apply_result(
+            col,
+            report,
+            note_result,
+            request.target_field or request.source_field,
+        )
         report.processed += 1
         line = _format_result_line(note_result)
         report.add(line)
@@ -375,8 +415,7 @@ def _run_batch(
 def _process_note(
     col: Any,
     note_id: int,
-    source_field: str,
-    target_field: str,
+    request: BatchRunRequest,
     media_dir: Path,
     config: AudioProcessingConfig,
 ) -> BatchNoteResult:
@@ -386,11 +425,10 @@ def _process_note(
     except Exception as exc:
         return BatchNoteResult(note_id=note_id, status="failed", message=str(exc) or "note load failed")
 
-    current_audio = first_audio_filename(snapshot, source_field) or ""
-    result = process_note_visualization(
+    current_audio = first_audio_filename(snapshot, request.source_field) or ""
+    result = process_note_batch_operation(
         snapshot,
-        source_field=source_field,
-        target_field=target_field,
+        request=request,
         media_dir=media_dir,
         config=config,
         media_writer=col.media.write_data,
@@ -404,6 +442,7 @@ def _process_note(
             target_html=result.target_html,
             audio_filename=current_audio,
             image_filename=result.image_filename,
+            written_filename=result.written_filename,
         )
     return result
 
@@ -412,7 +451,7 @@ def _apply_result(
     col: Any,
     report: BatchRunReport,
     result: BatchNoteResult,
-    target_field: str,
+    fallback_field: str,
 ) -> BatchNoteResult:
     if result.written:
         try:
@@ -427,11 +466,12 @@ def _apply_result(
             return BatchNoteResult(
                 note_id=result.note_id,
                 status="failed",
-                message=str(exc) or f"failed to update target field {target_field!r}",
+                message=str(exc) or f"failed to update target field {fallback_field!r}",
                 target_field=result.target_field,
                 target_html=result.target_html,
                 audio_filename=result.audio_filename,
                 image_filename=result.image_filename,
+                written_filename=result.written_filename,
             )
         return result
     if result.failure:

@@ -14,6 +14,7 @@ from anki_audio_quick_editor.editor_integration import (
     EditorSession,
     UndoHistory,
     _audio_field_indices,
+    _handle_bridge_command,
     _is_busy,
     _playback_segment_ready,
     _reveal_file,
@@ -199,3 +200,130 @@ def test_reveal_file_opens_parent_folder_elsewhere(tmp_path: Path, monkeypatch) 
     _reveal_file(source)
 
     assert folders == [source.resolve().parent]
+
+
+def test_remove_noise_replaces_current_media_and_resets_state(tmp_path: Path, monkeypatch) -> None:
+    class ImmediateThread:
+        def __init__(self, target, daemon=True):
+            self._target = target
+
+        def start(self) -> None:
+            self._target()
+
+    class Editor:
+        pass
+
+    media_dir = tmp_path / "media"
+    media_dir.mkdir()
+    source = media_dir / "clip.mp3"
+    source.write_bytes(b"source")
+    rendered: list[Path] = []
+
+    def fake_render_noise_reduced_audio(source_path: Path, _config: AudioProcessingConfig, output_path: Path, **_kwargs) -> None:
+        rendered.append(source_path)
+        output_path.write_bytes(b"cleaned")
+
+    def fake_write_data(desired_name: str, data: bytes) -> str:
+        saved_path = media_dir / desired_name
+        saved_path.write_bytes(data)
+        return desired_name
+
+    editor = Editor()
+    editor.currentField = 0
+    editor.note = SimpleNamespace(fields=["[sound:clip.mp3]"])
+    editor.web = MagicMock()
+    editor.loadNote = MagicMock()
+    editor.mw = SimpleNamespace(
+        taskman=SimpleNamespace(run_on_main=lambda callback: callback()),
+        addonManager=SimpleNamespace(
+            addonFromModule=MagicMock(return_value="addon"),
+            getConfig=MagicMock(
+                return_value={
+                    "deep_filter_path": "/bin/deep-filter",
+                    "deep_filter_post_filter": True,
+                }
+            ),
+        ),
+        col=SimpleNamespace(
+            media=SimpleNamespace(
+                dir=MagicMock(return_value=str(media_dir)),
+                write_data=MagicMock(side_effect=fake_write_data),
+            )
+        ),
+    )
+    _SESSIONS[editor] = EditorSession(
+        state=AudioEditState("clip.mp3", volume_db=3.0),
+        field_index=0,
+        current_filename="clip.mp3",
+    )
+
+    monkeypatch.setattr("anki_audio_quick_editor.editor_integration.threading.Thread", ImmediateThread)
+    monkeypatch.setattr(
+        "anki_audio_quick_editor.editor_integration.render_noise_reduced_audio",
+        fake_render_noise_reduced_audio,
+    )
+    monkeypatch.setattr("anki_audio_quick_editor.editor_integration._stop_audio_playback", lambda: None)
+
+    _handle_bridge_command(editor, "aqe:remove-noise")
+
+    saved_name = editor.mw.col.media.write_data.call_args.args[0]
+    session = _SESSIONS[editor]
+    assert rendered == [source]
+    assert editor.note.fields == [f"[sound:{saved_name}]"]
+    assert session.undo_history.pop().filename == "clip.mp3"
+    assert session.state == AudioEditState(source_file=saved_name)
+    assert session.current_filename == saved_name
+    assert session.processing is False
+    editor.loadNote.assert_called_once_with(focusTo=0)
+
+
+def test_remove_noise_failure_clears_busy_and_keeps_note(tmp_path: Path, monkeypatch) -> None:
+    class ImmediateThread:
+        def __init__(self, target, daemon=True):
+            self._target = target
+
+        def start(self) -> None:
+            self._target()
+
+    class Editor:
+        pass
+
+    media_dir = tmp_path / "media"
+    media_dir.mkdir()
+    (media_dir / "clip.mp3").write_bytes(b"source")
+
+    def fake_render_noise_reduced_audio(*_args, **_kwargs) -> None:
+        raise RuntimeError("deep-filter failed")
+
+    editor = Editor()
+    editor.currentField = 0
+    editor.note = SimpleNamespace(fields=["[sound:clip.mp3]"])
+    editor.web = MagicMock()
+    editor.loadNote = MagicMock()
+    editor.mw = SimpleNamespace(
+        taskman=SimpleNamespace(run_on_main=lambda callback: callback()),
+        addonManager=SimpleNamespace(
+            addonFromModule=MagicMock(return_value="addon"),
+            getConfig=MagicMock(return_value={}),
+        ),
+        col=SimpleNamespace(
+            media=SimpleNamespace(
+                dir=MagicMock(return_value=str(media_dir)),
+                write_data=MagicMock(),
+            )
+        ),
+    )
+
+    monkeypatch.setattr("anki_audio_quick_editor.editor_integration.threading.Thread", ImmediateThread)
+    monkeypatch.setattr(
+        "anki_audio_quick_editor.editor_integration.render_noise_reduced_audio",
+        fake_render_noise_reduced_audio,
+    )
+    monkeypatch.setattr("anki_audio_quick_editor.editor_integration._stop_audio_playback", lambda: None)
+
+    _handle_bridge_command(editor, "aqe:remove-noise")
+
+    assert editor.note.fields == ["[sound:clip.mp3]"]
+    assert editor.mw.col.media.write_data.call_count == 0
+    assert _SESSIONS[editor].processing is False
+    assert any("deep-filter failed" in call.args[0] for call in editor.web.eval.call_args_list)

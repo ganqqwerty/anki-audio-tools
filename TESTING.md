@@ -3,6 +3,7 @@
 ## Main Commands
 
 ```bash
+python3 scripts/dev.py architecture-report
 python3 scripts/dev.py check
 python3 scripts/dev.py test-e2e
 ```
@@ -11,6 +12,7 @@ python3 scripts/dev.py test-e2e
 
 - `tests/` covers sound-reference parsing, edit-state validation, ffmpeg filter construction, prosody analysis and serialization, SVG rendering, batch visualization decisions, Browser hook wiring, config migration, bootstrap behavior, editor bridge wiring, and settings command/state logic.
 - `tests/test_architecture/` enforces layer boundaries, module classification, Anki-import-safe helper modules, import-safe runtime modules, editor bridge command sync, prosody dependency isolation, shell-thin settings rules, and DB access isolation.
+- `tests/test_architecture/contracts.py` is the executable architecture source of truth; `tests/test_architecture/inspection.py` powers both the tests and the architecture report.
 - `settings_ui/tests/` covers bridge commands, async job plumbing, logging, and the settings UI.
 - `e2e/` exercises the real add-on inside a live Anki runtime via `aqt._run(exec=False)`, including ffmpeg-backed audio processing when `ffmpeg` and `ffprobe` are installed.
 
@@ -22,6 +24,7 @@ A feature is not complete until `python3 scripts/dev.py test-e2e` passes.
 
 | Task | Command |
 |------|---------|
+| Architecture report | `python3 scripts/dev.py architecture-report` |
 | Unit + architecture tests | `python3 scripts/dev.py test` |
 | Lint | `python3 scripts/dev.py lint` |
 | Type checking | `python3 scripts/dev.py typecheck` |
@@ -88,6 +91,18 @@ Recommended workflow:
 | Prosody boundaries | Optional Parselmouth/Praat dependencies stay isolated and do not become package-level imports. |
 | Settings/backend isolation | Settings backend modules do not import UI modules; the settings shell remains thin. |
 | DB access restriction | Direct collection/database access remains isolated to approved helpers. |
+
+## Architecture Workflow
+
+When changing module boundaries or side effects, use this order:
+
+1. Refresh the local GitNexus index if policy and environment allow it.
+2. Run `python3 scripts/dev.py test-e2e` to establish baseline runtime behavior.
+3. Run `python3 scripts/dev.py architecture-report`.
+4. Run `python3 scripts/dev.py arch`.
+5. Run `python3 scripts/dev.py test`.
+
+If `test-e2e` fails before the architecture change, treat that as a baseline bug to classify before tightening contracts.
 
 ## Import-Linter Contracts
 

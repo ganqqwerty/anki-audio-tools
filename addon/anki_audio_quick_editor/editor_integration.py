@@ -17,11 +17,12 @@ from .audio_processor import (
     format_ffmpeg_command,
     make_output_filename,
     render_audio,
+    render_noise_reduced_audio,
     render_playback_segment,
     temp_final_path,
 )
 from .audio_state import AudioEditState, AudioProcessingConfig
-from .editor_actions import BRIDGE_COMMANDS, apply_processing_command
+from .editor_actions import BRIDGE_COMMANDS, CMD_REMOVE_NOISE, apply_processing_command
 from .editor_ui import injection_script
 from .errors import AudioProcessingError, AudioQuickEditorError, MissingMediaError
 from .prosody_cache import (
@@ -126,27 +127,7 @@ def _audio_field_indices(note: Any) -> list[int]:
 
 def _handle_bridge_command(editor: Any, command: str) -> None:
     try:
-        if command == "aqe:scan":
-            _eval_status(editor, "")
-            editor.web.eval("window.__aqeScan && window.__aqeScan()")
-            return
-        if command == "aqe:analyze":
-            _analyze_current_async(editor)
-            return
-        if command == "aqe:set-cursor":
-            _set_cursor_from_web(editor)
-            return
-        if command == "aqe:play":
-            _play(editor)
-            return
-        if command == "aqe:show-file":
-            _show_current_audio_file(editor)
-            return
-        if command == "aqe:play-ended":
-            _play_ended(editor)
-            return
-        if command == "aqe:undo":
-            _undo(editor)
+        if _handle_non_processing_command(editor, command):
             return
         _update_state_and_render(editor, command)
     except AudioQuickEditorError as exc:
@@ -156,6 +137,27 @@ def _handle_bridge_command(editor: Any, command: str) -> None:
         logger.exception("audio quick editor command failed: %s", command)
         _set_busy(editor, False)
         _eval_status(editor, f"Audio processing failed. The note was not changed. ({exc})", kind="error")
+
+
+def _handle_non_processing_command(editor: Any, command: str) -> bool:
+    if command == "aqe:scan":
+        _eval_status(editor, "")
+        editor.web.eval("window.__aqeScan && window.__aqeScan()")
+        return True
+    handlers = {
+        "aqe:analyze": _analyze_current_async,
+        "aqe:set-cursor": _set_cursor_from_web,
+        "aqe:play": _play,
+        "aqe:show-file": _show_current_audio_file,
+        "aqe:play-ended": _play_ended,
+        "aqe:undo": _undo,
+        CMD_REMOVE_NOISE: _remove_noise_async,
+    }
+    handler = handlers.get(command)
+    if handler is None:
+        return False
+    handler(editor)
+    return True
 
 
 def _update_state_and_render(editor: Any, command: str) -> None:
@@ -268,6 +270,90 @@ def _render_failed(editor: Any, message: str) -> None:
         session.playback_paused = False
     _set_busy(editor, False)
     _eval_status(editor, message, kind="error")
+
+
+def _remove_noise_async(editor: Any) -> None:
+    existing = _SESSIONS.get(editor)
+    if existing and _is_busy(existing):
+        _eval_status(editor, STILL_PROCESSING_MESSAGE, kind="processing")
+        return
+    session, current_path = _current_media_path(editor)
+    config = AudioProcessingConfig.from_config(_config(editor))
+    _stop_session_playback(session)
+    session.processing = True
+    session.playback_active = False
+    session.playback_paused = False
+    _set_busy(editor, True, "Removing noise...")
+    _eval_playback_state(editor, session.field_index, "stopped", session.cursor_ms)
+
+    def _run() -> None:
+        output_path: Path | None = None
+        try:
+            desired_name = make_output_filename(current_path.name)
+            output_path = temp_final_path(desired_name)
+
+            def _show_command(command: tuple[str, ...]) -> None:
+                rendered = format_ffmpeg_command(command)
+                message = "Removing noise"
+                command_text = ""
+                if config.show_ffmpeg_commands:
+                    message = f"{message}: {rendered}"
+                    command_text = rendered
+                _main(editor, lambda: _set_busy(editor, True, message, command_text))
+
+            render_noise_reduced_audio(
+                current_path,
+                config,
+                output_path=output_path,
+                on_command=_show_command,
+            )
+            with output_path.open("rb") as file:
+                saved_name = editor.mw.col.media.write_data(desired_name, file.read())
+            _main(editor, lambda: _replace_current_field_after_noise_removal(editor, saved_name))
+        except Exception as exc:
+            message = str(exc)
+            _main(editor, lambda: _render_failed(editor, message))
+        finally:
+            if output_path is not None:
+                shutil.rmtree(output_path.parent, ignore_errors=True)
+
+    threading.Thread(target=_run, daemon=True).start()
+
+
+def _replace_current_field_after_noise_removal(editor: Any, saved_name: str) -> None:
+    field_index = _current_field_index(editor)
+    field_html = editor.note.fields[field_index]
+    selection = select_first_sound_reference(field_html)
+    if selection.selected is None:
+        raise AudioProcessingError(CURRENT_FIELD_AUDIO_MISSING)
+    editor.note.fields[field_index] = replace_sound_reference(field_html, selection.selected, saved_name)
+    session = _SESSIONS.get(editor)
+    should_redraw_graph = False
+    if session:
+        session.undo_history.push(session.state, session.current_filename)
+        session.state = AudioEditState(source_file=saved_name)
+        session.current_filename = saved_name
+        session.field_index = field_index
+        saved_path = Path(editor.mw.col.media.dir()) / safe_media_basename(saved_name)
+        session.source_mtime_ns = saved_path.stat().st_mtime_ns if saved_path.is_file() else None
+        session.processing = False
+        session.cursor_ms = 0
+        session.playback_active = False
+        session.playback_paused = False
+        should_redraw_graph = (
+            field_index in session.graph_active_fields
+            or session.visualized_filename is not None
+        )
+        if should_redraw_graph:
+            session.visualized_filename = None
+            session.visualized_duration_ms = None
+    editor.loadNote(focusTo=field_index)
+    _eval_status(editor, f"Updated field to {saved_name}")
+    _eval_playback_state(editor, field_index, "stopped", 0)
+    if should_redraw_graph:
+        _request_graph_redraw(editor)
+    else:
+        _set_busy(editor, False)
 
 
 def _stop_audio_playback() -> None:

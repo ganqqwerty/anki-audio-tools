@@ -25,6 +25,7 @@ _SCRIPT_TEMPLATE = r"""
     "aqe:faster",
     "aqe:trim-silence",
     "aqe:remove-pauses",
+    "aqe:remove-noise",
     "aqe:volume-down",
     "aqe:volume-up"
   ]);
@@ -36,6 +37,7 @@ _SCRIPT_TEMPLATE = r"""
     "aqe:trim-right": "trim-right",
     "aqe:trim-silence": "trim-silence",
     "aqe:remove-pauses": "remove-pauses",
+    "aqe:remove-noise": "remove-noise",
     "aqe:slower": "slower",
     "aqe:faster": "faster",
     "aqe:volume-down": "volume-down",
@@ -100,6 +102,10 @@ _SCRIPT_TEMPLATE = r"""
     return document.body.dataset.aqeBusy === "true";
   }
 
+  function processingMessage(command) {
+    return command === "aqe:remove-noise" ? "Removing noise..." : "Processing...";
+  }
+
   function send(command, node, ord) {
     if (anyBusy()) return;
     if (node && typeof node.focus === "function") node.focus();
@@ -109,7 +115,7 @@ _SCRIPT_TEMPLATE = r"""
       return;
     }
     if (processingCommands.has(command)) {
-      setControlsBusy(ord, true, "Processing...");
+      setControlsBusy(ord, true, processingMessage(command));
     }
     if (typeof pycmd === "function") {
       pycmd("focus:" + ord);
@@ -184,6 +190,7 @@ _SCRIPT_TEMPLATE = r"""
       makeButton("-R", "Trim 100 ms from right", "aqe:trim-right", node, ord),
       makeButton("Trim Silence", "Trim leading and trailing silence", "aqe:trim-silence", node, ord),
       makeButton("Remove Pauses", "Compress long internal pauses", "aqe:remove-pauses", node, ord),
+      makeButton("Remove noise", "Reduce background noise with DeepFilterNet", "aqe:remove-noise", node, ord),
       makeButton("Slower", "Decrease speed", "aqe:slower", node, ord),
       makeButton("Faster", "Increase speed", "aqe:faster", node, ord),
       makeButton("Volume -", "Decrease volume", "aqe:volume-down", node, ord),

@@ -5,15 +5,19 @@ from __future__ import annotations
 from datetime import datetime
 from pathlib import Path
 
+from anki_audio_quick_editor.audio_operations import OP_FASTER, OP_GRAPH, OP_VOLUME_DOWN
 from anki_audio_quick_editor.audio_state import AudioProcessingConfig
-from anki_audio_quick_editor.batch_visualization import (
+from anki_audio_quick_editor.batch_operations import (
     BatchNoteSnapshot,
+    BatchRunRequest,
     append_image_reference,
     field_groups_for_notes,
     first_audio_filename,
-    process_note_visualization,
+    process_note_batch_operation,
     unique_note_ids,
 )
+from anki_audio_quick_editor.batch_visualization import process_note_visualization
+from anki_audio_quick_editor.errors import AudioProcessingError
 from anki_audio_quick_editor.prosody_types import ProsodyPoint, ProsodyTrack
 
 
@@ -70,6 +74,23 @@ def test_first_audio_filename_returns_none_for_missing_or_invalid_source() -> No
     assert first_audio_filename(unsupported, "Audio") is None
 
 
+def test_batch_run_request_requires_target_field_for_graph_only() -> None:
+    graph = BatchRunRequest(operation=OP_GRAPH, source_field="Audio", target_field="Image")
+    transform = BatchRunRequest(operation=OP_FASTER, source_field="Audio")
+
+    assert graph.target_field == "Image"
+    assert transform.target_field is None
+
+
+def test_batch_run_request_rejects_missing_graph_target() -> None:
+    try:
+        BatchRunRequest(operation=OP_GRAPH, source_field="Audio")
+    except ValueError as exc:
+        assert str(exc) == "Choose a target field before starting."
+    else:  # pragma: no cover - defensive
+        raise AssertionError("expected missing target field to fail")
+
+
 def test_process_note_visualization_appends_generated_media(
     tmp_path: Path,
     monkeypatch,
@@ -93,7 +114,7 @@ def test_process_note_visualization_appends_generated_media(
         analyzer_calls.append((source_path, call_config))
         return track
 
-    monkeypatch.setattr("anki_audio_quick_editor.batch_visualization.analyze_prosody_cached", analyze)
+    monkeypatch.setattr("anki_audio_quick_editor.batch_operations.analyze_prosody_cached", analyze)
 
     def media_writer(name: str, data: bytes) -> str:
         writes.append((name, data))
@@ -119,6 +140,47 @@ def test_process_note_visualization_appends_generated_media(
     assert analyzer_calls == [(source, config)]
     assert writes[0][0] == result.image_filename
     assert writes[0][1].startswith(b"<svg ")
+
+
+def test_process_note_batch_operation_replaces_audio_reference_for_transform(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    source = tmp_path / "clip.mp3"
+    source.write_bytes(b"audio")
+    note = BatchNoteSnapshot(10, "Basic", {"Audio": "before [sound:clip.mp3] after"})
+    render_calls: list[tuple[str, float]] = []
+    writes: list[tuple[str, bytes]] = []
+
+    def fake_render_audio(source_path, state, _config, output_path=None, on_command=None):
+        del on_command
+        assert output_path is not None
+        output_path.write_bytes(b"rendered")
+        render_calls.append((source_path.name, state.speed))
+
+    monkeypatch.setattr("anki_audio_quick_editor.batch_operations.render_audio", fake_render_audio)
+
+    def media_writer(name: str, data: bytes) -> str:
+        writes.append((name, data))
+        return name
+
+    result = process_note_batch_operation(
+        note,
+        request=BatchRunRequest(operation=OP_FASTER, source_field="Audio"),
+        media_dir=tmp_path,
+        config=AudioProcessingConfig(speed_step=0.1),
+        media_writer=media_writer,
+    )
+
+    assert result.written
+    assert result.audio_filename == "clip.mp3"
+    assert result.target_field == "Audio"
+    assert result.image_filename is None
+    assert result.written_filename is not None
+    assert "[sound:clip.mp3]" not in result.target_html
+    assert result.written_filename in result.target_html
+    assert render_calls == [("clip.mp3", 1.1)]
+    assert writes[0][1] == b"rendered"
 
 
 def test_process_note_visualization_skips_expected_missing_inputs(tmp_path: Path) -> None:
@@ -172,6 +234,19 @@ def test_process_note_visualization_skips_expected_missing_inputs(tmp_path: Path
     assert missing_target.message == "missing target field 'Image'"
 
 
+def test_process_note_batch_operation_skips_missing_transform_source_field(tmp_path: Path) -> None:
+    result = process_note_batch_operation(
+        BatchNoteSnapshot(5, "Basic", {"Image": ""}),
+        request=BatchRunRequest(operation=OP_VOLUME_DOWN, source_field="Audio"),
+        media_dir=tmp_path,
+        config=AudioProcessingConfig(),
+        media_writer=lambda name, data: name,
+    )
+
+    assert result.status == "skipped"
+    assert result.message == "missing source field 'Audio'"
+
+
 def test_process_note_visualization_counts_missing_media_as_failure(tmp_path: Path) -> None:
     result = process_note_visualization(
         BatchNoteSnapshot(1, "Basic", {"Audio": "[sound:missing.mp3]", "Image": ""}),
@@ -188,6 +263,36 @@ def test_process_note_visualization_counts_missing_media_as_failure(tmp_path: Pa
     assert result.message == "media file not found: missing.mp3"
 
 
+def test_process_note_batch_operation_preserves_failure_payload_when_transform_render_raises(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    source = tmp_path / "clip.mp3"
+    source.write_bytes(b"audio")
+    note = BatchNoteSnapshot(10, "Basic", {"Audio": "[sound:clip.mp3]"})
+
+    monkeypatch.setattr(
+        "anki_audio_quick_editor.batch_operations.render_audio",
+        lambda *_args, **_kwargs: (_ for _ in ()).throw(AudioProcessingError("boom")),
+    )
+
+    result = process_note_batch_operation(
+        note,
+        request=BatchRunRequest(operation=OP_FASTER, source_field="Audio"),
+        media_dir=tmp_path,
+        config=AudioProcessingConfig(),
+        media_writer=lambda name, data: name,
+    )
+
+    assert result.note_id == 10
+    assert result.status == "failed"
+    assert result.message == "boom"
+    assert result.target_field is None
+    assert result.target_html is None
+    assert result.audio_filename == "clip.mp3"
+    assert result.written_filename is None
+
+
 def test_process_note_visualization_preserves_failure_payload_when_generation_raises(
     tmp_path: Path,
     monkeypatch,
@@ -197,7 +302,7 @@ def test_process_note_visualization_preserves_failure_payload_when_generation_ra
     note = BatchNoteSnapshot(10, "Basic", {"Audio": "[sound:clip.mp3]", "Image": "old"})
 
     monkeypatch.setattr(
-        "anki_audio_quick_editor.batch_visualization.analyze_prosody_cached",
+        "anki_audio_quick_editor.batch_operations.analyze_prosody_cached",
         lambda *_args, **_kwargs: (_ for _ in ()).throw(RuntimeError("boom")),
     )
 

@@ -442,6 +442,27 @@ def cmd_arch() -> int:
     return _run([str(lint_imports)], env={"PYTHONPATH": "addon"}, label="import-linter architecture check")
 
 
+def cmd_architecture_report() -> int:
+    json_mode = "--json" in sys.argv[2:]
+    root_str = str(ROOT)
+    if root_str not in sys.path:
+        sys.path.insert(0, root_str)
+    from tests.test_architecture.inspection import (
+        build_architecture_report,
+        format_architecture_report_json,
+        format_architecture_report_text,
+    )
+
+    report = build_architecture_report()
+    if json_mode:
+        print(format_architecture_report_json())
+    else:
+        print(format_architecture_report_text())
+    violations = report["violations"]
+    assert isinstance(violations, list)
+    return 1 if violations else 0
+
+
 def cmd_complexity() -> int:
     anki_python = _find_anki_python()
     return _run(
@@ -599,6 +620,7 @@ def cmd_sonar() -> int:
 def cmd_check() -> int:
     steps: list[tuple[str, Callable[[], int]]] = [
         ("config-schema", cmd_config_schema),
+        ("architecture-report", cmd_architecture_report),
         ("lint", cmd_lint),
         ("typecheck", cmd_typecheck),
         ("security", cmd_security),
@@ -679,6 +701,7 @@ def cmd_info() -> int:
 
 COMMANDS: dict[str, tuple[Callable[[], int], str]] = {
     "setup": (cmd_setup, "One-time setup: install dev deps, create symlink, npm install"),
+    "architecture-report": (cmd_architecture_report, "Inspect executable architecture contracts and report violations"),
     "test": (cmd_test, "Run unit + architecture tests"),
     "test-e2e": (cmd_test_e2e, "Run e2e tests (requires Anki runtime)"),
     "lint": (cmd_lint, "Run ruff linter"),
@@ -688,7 +711,7 @@ COMMANDS: dict[str, tuple[Callable[[], int], str]] = {
     "deadcode": (cmd_deadcode, "Find dead code (vulture)"),
     "security": (cmd_security, "Run bandit security linter"),
     "deps": (cmd_deps, "Check dependencies (deptry)"),
-    "check": (cmd_check, "Full QC: config-schema + lint + typecheck + security + deadcode + deps + complexity + arch + test + svelte"),
+    "check": (cmd_check, "Full QC: config-schema + architecture-report + lint + typecheck + security + deadcode + deps + complexity + arch + test + svelte"),
     "coverage": (cmd_coverage, "Run tests with coverage report"),
     "sonar": (cmd_sonar, "Optional SonarQube analysis (needs SONAR_TOKEN)"),
     "muttest": (cmd_muttest, "Mutation testing (advisory, opt-in)"),

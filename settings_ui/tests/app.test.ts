@@ -4,7 +4,7 @@ import { describe, expect, it, vi } from "vitest";
 import App from "../src/App.svelte";
 
 const defaultConfig = {
-  _config_version: 4,
+  _config_version: 6,
   enabled: true,
   debug_logging: false,
   show_ffmpeg_commands: false,
@@ -18,10 +18,13 @@ const defaultConfig = {
   max_volume_db: 24.0,
   edge_silence_threshold_db: -35,
   edge_silence_min_ms: 100,
+  internal_pause_silence_threshold_db: -45,
   internal_pause_threshold_ms: 300,
   internal_pause_target_gap_ms: 100,
   output_format: "mp3" as const,
   ffmpeg_path: "",
+  deep_filter_path: "",
+  deep_filter_post_filter: true,
 };
 
 function pycmdMock(): ReturnType<typeof vi.fn> {
@@ -48,9 +51,13 @@ describe("App", () => {
     expect(screen.queryByText("Enable inline editor controls")).not.toBeInTheDocument();
     expect(screen.getByText("Show ffmpeg commands while processing")).toBeInTheDocument();
     expect(screen.getByText("ffmpeg path")).toBeInTheDocument();
+    expect(screen.getByText("DeepFilterNet path")).toBeInTheDocument();
+    expect(screen.getByText("Use DeepFilterNet post-filter")).toBeInTheDocument();
     expect(screen.getByText("Volume step (dB)")).toBeInTheDocument();
     expect(screen.getByText("Min volume (dB)")).toBeInTheDocument();
     expect(screen.getByText("Max volume (dB)")).toBeInTheDocument();
+    expect(screen.getByText("Edge silence threshold (dB)")).toBeInTheDocument();
+    expect(screen.getByText("Internal pause silence threshold (dB)")).toBeInTheDocument();
   });
 
   it("always saves inline editor controls as enabled", async () => {
@@ -128,7 +135,11 @@ describe("App", () => {
       .mock.calls
       .map(([command]) => command as string)
       .find((command) => command.startsWith("async_cmd:")) as string;
-    const { id } = JSON.parse(call.slice("async_cmd:".length)) as { id: string };
+    const { id, payload } = JSON.parse(call.slice("async_cmd:".length)) as {
+      id: string;
+      payload: { config: typeof defaultConfig };
+    };
+    expect(payload.config.deep_filter_post_filter).toBe(true);
     window.onAsyncProgress?.({ id, progress: 100, message: "Done" });
     window.onAsyncDone?.({
       id,

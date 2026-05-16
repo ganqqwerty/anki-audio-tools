@@ -49,7 +49,7 @@ def test_save_command_writes_config(anki_mw) -> None:
     from anki_audio_quick_editor.settings.commands import handle_settings_command
 
     config = {
-        "_config_version": 4,
+        "_config_version": 6,
         "enabled": False,
         "debug_logging": True,
         "show_ffmpeg_commands": False,
@@ -63,10 +63,13 @@ def test_save_command_writes_config(anki_mw) -> None:
         "max_volume_db": 24.0,
         "edge_silence_threshold_db": -35,
         "edge_silence_min_ms": 100,
+        "internal_pause_silence_threshold_db": -45,
         "internal_pause_threshold_ms": 300,
         "internal_pause_target_gap_ms": 100,
         "output_format": "mp3",
         "ffmpeg_path": "",
+        "deep_filter_path": "",
+        "deep_filter_post_filter": True,
     }
     eval_calls: list[str] = []
     dialog = type("Dialog", (), {"accept": lambda self: None, "reject": lambda self: None})()

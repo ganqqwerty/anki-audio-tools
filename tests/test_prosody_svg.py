@@ -2,8 +2,8 @@
 
 from __future__ import annotations
 
-from datetime import datetime
 import math
+from datetime import datetime
 
 from anki_audio_quick_editor.prosody_svg import (
     PLOT,
