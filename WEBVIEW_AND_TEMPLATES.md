@@ -7,6 +7,8 @@ The settings UI keeps one committed webview bundle:
 - source: `settings_ui/src/`
 - output: `addon/anki_audio_quick_editor/templates/settings/settings_bundle.{js,css}`
 
+No Browser batch-visualization template is bundled. That workflow uses a native Qt dialog from `browser_integration.py`.
+
 Rebuild it with:
 
 ```bash
@@ -19,6 +21,7 @@ python3 scripts/dev.py build
 - All Python -> JavaScript async callbacks use `window.onAsyncProgress(...)`, `window.onAsyncDone(...)`, or `window.onSaveError(...)`.
 - Always `json.dumps()` values before interpolating them into `webview.eval(...)`.
 - Inline editor controls are injected from Python via `editor_ui.py`, not through the settings Svelte bundle.
+- Browser batch visualization progress and logging are native Qt widgets, not Svelte/WebView content.
 
 ## Important WebView Gotchas
 

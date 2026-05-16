@@ -4,7 +4,7 @@ This is the canonical repository instructions document. [`CLAUDE.md`](CLAUDE.md)
 
 ## Project Overview
 
-Anki desktop add-on for quick, non-destructive audio edits from the Anki Editor. Add-on runtime code lives in `addon/anki_audio_quick_editor/`.
+Anki desktop add-on for quick, non-destructive audio edits from the Anki Editor plus batch prosody visualization generation from the Anki Browser. Add-on runtime code lives in `addon/anki_audio_quick_editor/`.
 
 ## Workflow Helpers
 

@@ -9,7 +9,7 @@ python3 scripts/dev.py test-e2e
 
 ## What Gets Tested
 
-- `tests/` covers sound-reference parsing, edit-state validation, ffmpeg filter construction, prosody analysis and serialization, config migration, bootstrap behavior, editor bridge wiring, and settings command/state logic.
+- `tests/` covers sound-reference parsing, edit-state validation, ffmpeg filter construction, prosody analysis and serialization, SVG rendering, batch visualization decisions, Browser hook wiring, config migration, bootstrap behavior, editor bridge wiring, and settings command/state logic.
 - `tests/test_architecture/` enforces layer boundaries, module classification, Anki-import-safe helper modules, import-safe runtime modules, editor bridge command sync, prosody dependency isolation, shell-thin settings rules, and DB access isolation.
 - `settings_ui/tests/` covers bridge commands, async job plumbing, logging, and the settings UI.
 - `e2e/` exercises the real add-on inside a live Anki runtime via `aqt._run(exec=False)`, including ffmpeg-backed audio processing when `ffmpeg` and `ffprobe` are installed.
@@ -32,6 +32,35 @@ A feature is not complete until `python3 scripts/dev.py test-e2e` passes.
 | Complexity | `python3 scripts/dev.py complexity` |
 | Settings UI tests | `python3 scripts/dev.py test-svelte` |
 
+## Focused Test Files
+
+| Area | Files |
+|------|-------|
+| Batch visualization core | `tests/test_batch_visualization.py` |
+| Browser menu/context integration | `tests/test_browser_integration.py` |
+| Prosody SVG media rendering | `tests/test_prosody_svg.py` |
+| Shared prosody analysis/cache and editor integration | `tests/test_prosody_analyzer.py`, `tests/test_prosody_fallback.py`, `tests/test_editor_integration.py` |
+| Architecture boundaries | `tests/test_architecture/*.py` |
+
+## Architecture Rules
+
+| Rule | Purpose |
+|------|---------|
+| Module-level Anki import ban | Import-safe helpers, including batch and SVG modules, must not import `aqt` or `anki` at module load time. |
+| Runtime import safety | UI layers must not leak into import-safe modules. |
+| Editor bridge contract | Injected editor UI commands and registered bridge commands must stay in sync. |
+| Module classification | Every production module must be listed in one architecture layer. |
+| Prosody boundaries | Optional Parselmouth/Praat dependencies stay isolated and do not become package-level imports. |
+| Settings/backend isolation | Settings backend modules do not import UI modules; the settings shell remains thin. |
+| DB access restriction | Direct collection/database access remains isolated to approved helpers. |
+
+## Import-Linter Contracts
+
+| Contract | Enforced Boundary |
+|----------|-------------------|
+| `import-safe-no-upper-layers` | Import-safe helpers cannot import Browser/editor UI modules or settings backend modules. |
+| `settings-backend-no-ui` | Settings backend modules cannot import editor integration. |
+
 ## E2E Notes
 
 The e2e suite uses a temporary `ANKI_BASE`, symlinks the add-on under `1000000002`, and aliases modules so config resolution continues to work under both the numeric import path and the friendly package name.
@@ -39,6 +68,8 @@ The e2e suite uses a temporary `ANKI_BASE`, symlinks the add-on under `100000000
 Audio rendering and fallback prosody tests require `ffmpeg` and `ffprobe`. On this machine they are installed with Homebrew as `ffmpeg 8.1.1` under `/opt/homebrew/bin/`; e2e tests prefer that Homebrew binary and do not use bundled app copies such as Migaku's ffmpeg.
 
 Prosody visualization e2e coverage verifies that the real Anki editor renders intensity fill, pitch paths, Hertz labels, and cursor seeking, and that the graph refreshes after real ffmpeg-generated media changes.
+
+Browser batch visualization is currently covered by unit tests for hook registration, dialog entry behavior, batch progress/cancel semantics, SVG media writes, skip/failure handling, and target-field appends. Add real Browser dialog e2e coverage before making risky UI changes to that workflow.
 
 Playback interval e2e tests patch Anki's `av_player` with a fake recorder instead of relying on speakers, microphone capture, or an audio-listening model. The recorder observes `play_tags()`, `seek_relative()`, `stop_and_clear_queue()`, and `toggle_pause()`, and derives the effective original-file `start_ms`/`end_ms` interval AQE asked Anki to play. Cursor playback should use temporary `aqe_playback_*__from_<ms>ms_*.mp3` segments instead of relative seek.
 
