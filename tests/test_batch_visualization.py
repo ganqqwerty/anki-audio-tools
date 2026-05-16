@@ -10,6 +10,7 @@ from anki_audio_quick_editor.batch_visualization import (
     BatchNoteSnapshot,
     append_image_reference,
     field_groups_for_notes,
+    first_audio_filename,
     process_note_visualization,
     unique_note_ids,
 )
@@ -38,6 +39,24 @@ def test_field_groups_preserve_fields_by_note_type() -> None:
 def test_append_image_reference_uses_new_line_media_tag() -> None:
     assert append_image_reference("existing", "viz.svg") == 'existing<br><img src="viz.svg">'
     assert append_image_reference("", "viz.svg") == '<img src="viz.svg">'
+
+
+def test_append_image_reference_escapes_filename_for_html() -> None:
+    assert append_image_reference("existing", 'viz"bad.svg') == 'existing<br><img src="viz&quot;bad.svg">'
+
+
+def test_first_audio_filename_returns_sanitized_basename() -> None:
+    note = BatchNoteSnapshot(10, "Basic", {"Audio": r"[sound:..\nested\clip.mp3]"})
+
+    assert first_audio_filename(note, "Audio") == "clip.mp3"
+
+
+def test_first_audio_filename_returns_none_for_missing_or_invalid_source() -> None:
+    missing = BatchNoteSnapshot(10, "Basic", {"Image": ""})
+    unsupported = BatchNoteSnapshot(11, "Basic", {"Audio": "[sound:movie.mp4]"})
+
+    assert first_audio_filename(missing, "Audio") is None
+    assert first_audio_filename(unsupported, "Audio") is None
 
 
 def test_process_note_visualization_appends_generated_media(
@@ -109,10 +128,19 @@ def test_process_note_visualization_skips_expected_missing_inputs(tmp_path: Path
         config=config,
         media_writer=writer,
     )
+    missing_target = process_note_visualization(
+        BatchNoteSnapshot(4, "Basic", {"Audio": "[sound:clip.mp3]"}),
+        source_field="Audio",
+        target_field="Image",
+        media_dir=tmp_path,
+        config=config,
+        media_writer=writer,
+    )
 
     assert missing_source.status == "skipped"
     assert empty_source.status == "skipped"
     assert unsupported.status == "skipped"
+    assert missing_target.status == "skipped"
 
 
 def test_process_note_visualization_counts_missing_media_as_failure(tmp_path: Path) -> None:

@@ -146,6 +146,40 @@ DEP003 = ["aqt", "anki", "PyQt6"]
 DEP004 = ["parselmouth"]
 
 [tool.mutmut]
-paths_to_mutate = "addon/anki_audio_quick_editor/"
-tests_dir = "tests/"
-runner = "python -m pytest tests/ -x -q"
+paths_to_mutate = [
+    "addon/anki_audio_quick_editor",
+]
+do_not_mutate = [
+    "addon/anki_audio_quick_editor/__init__.py",
+    "addon/anki_audio_quick_editor/_version.py",
+    "addon/anki_audio_quick_editor/browser_integration.py",
+    "addon/anki_audio_quick_editor/db_helpers.py",
+    "addon/anki_audio_quick_editor/editor_actions.py",
+    "addon/anki_audio_quick_editor/editor_integration.py",
+    "addon/anki_audio_quick_editor/editor_ui.py",
+    "addon/anki_audio_quick_editor/errors.py",
+    "addon/anki_audio_quick_editor/prosody_analyzer.py",
+    "addon/anki_audio_quick_editor/prosody_cache.py",
+    "addon/anki_audio_quick_editor/prosody_fallback.py",
+    "addon/anki_audio_quick_editor/prosody_praat.py",
+    "addon/anki_audio_quick_editor/prosody_types.py",
+    "addon/anki_audio_quick_editor/settings/__init__.py",
+    "addon/anki_audio_quick_editor/settings/commands.py",
+    "addon/anki_audio_quick_editor/settings/initial_state.py",
+]
+mutate_only_covered_lines = true
+pytest_add_cli_args = [
+    "-p",
+    "no:randomly",
+    "-p",
+    "no:random-order",
+]
+pytest_add_cli_args_test_selection = [
+    "tests/test_audio_state.py",
+    "tests/test_config_migration.py",
+    "tests/test_sound_refs.py",
+    "tests/test_settings_state.py",
+    "tests/test_batch_visualization.py",
+    "tests/test_prosody_svg.py",
+    "tests/test_audio_processor.py",
+]

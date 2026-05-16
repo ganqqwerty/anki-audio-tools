@@ -31,6 +31,9 @@ fi
 
 cd "${REPO_ROOT}" || exit 0
 
+GITNEXUS_VERSION="${GITNEXUS_VERSION:-1.6.4}"
+GITNEXUS_PACKAGE="gitnexus@${GITNEXUS_VERSION}"
+
 CHANGED_FILES=''
 case "${HOOK_NAME}" in
   post-commit)
@@ -65,9 +68,9 @@ if [ -n "${CHANGED_FILES}" ]; then
   fi
 fi
 
-set -- -y gitnexus@latest analyze
+set -- -y "${GITNEXUS_PACKAGE}" analyze --skip-agents-md --no-stats
 if [ -f .gitnexus/meta.json ] && grep -Eq '"embeddings"[[:space:]]*:[[:space:]]*[1-9][0-9]*' .gitnexus/meta.json; then
-  set -- -y gitnexus@latest analyze --embeddings
+  set -- -y "${GITNEXUS_PACKAGE}" analyze --embeddings --skip-agents-md --no-stats
 fi
 
 echo "[gitnexus] ${HOOK_NAME}: refreshing index from ${REPO_ROOT}"

@@ -31,6 +31,7 @@ A feature is not complete until `python3 scripts/dev.py test-e2e` passes.
 | Dependency audit | `python3 scripts/dev.py deps` |
 | Complexity | `python3 scripts/dev.py complexity` |
 | Settings UI tests | `python3 scripts/dev.py test-svelte` |
+| Mutation testing (advisory) | `python3 scripts/dev.py muttest run` |
 
 ## Focused Test Files
 
@@ -41,6 +42,40 @@ A feature is not complete until `python3 scripts/dev.py test-e2e` passes.
 | Prosody SVG media rendering | `tests/test_prosody_svg.py` |
 | Shared prosody analysis/cache and editor integration | `tests/test_prosody_analyzer.py`, `tests/test_prosody_fallback.py`, `tests/test_editor_integration.py` |
 | Architecture boundaries | `tests/test_architecture/*.py` |
+
+## Mutation Testing
+
+Mutation testing is available as an advisory, opt-in workflow for the deterministic Python core. It is not part of `python3 scripts/dev.py check` and it is not a feature-completion gate.
+
+Current first-wave mutation scope:
+
+- `audio_state.py`
+- `config_migration.py`
+- `sound_refs.py`
+- `settings_state.py`
+- `batch_visualization.py`
+- `prosody_svg.py`
+- `audio_processor.py`
+
+The mutmut run uses the Anki bundled Python environment via `scripts/dev.py`, mutates only covered lines, disables pytest randomization, and limits test selection to the matching focused unit-test files.
+
+Useful commands:
+
+```bash
+python3 scripts/dev.py muttest run
+python3 scripts/dev.py muttest results
+python3 scripts/dev.py muttest show <mutant>
+python3 scripts/dev.py muttest tests-for-mutant <mutant>
+python3 scripts/dev.py muttest browse
+python3 scripts/dev.py muttest print-time-estimates
+```
+
+Recommended workflow:
+
+1. Run `python3 scripts/dev.py muttest run`.
+2. Inspect survivors with `python3 scripts/dev.py muttest results`.
+3. Use `show` and `tests-for-mutant` to understand each survivor.
+4. Tighten deterministic unit tests or consciously classify equivalent/noisy survivors.
 
 ## Architecture Rules
 

@@ -10,6 +10,7 @@ meta.json
 htmlcov/
 coverage.xml
 settings_ui/coverage/
+mutants/
 
 # Build artifacts
 dist/

@@ -21,6 +21,13 @@ def test_detects_sound_reference_inside_html() -> None:
     assert selection.has_multiple is False
 
 
+def test_detects_sound_reference_trims_inner_whitespace() -> None:
+    selection = select_first_sound_reference("[sound:  sentence.MP3  ]")
+
+    assert selection.selected is not None
+    assert selection.selected.filename == "sentence.MP3"
+
+
 def test_ignores_fields_without_audio() -> None:
     selection = select_first_sound_reference("<b>No audio here</b>")
 
@@ -29,7 +36,7 @@ def test_ignores_fields_without_audio() -> None:
 
 
 def test_rejects_unsupported_audio_extension() -> None:
-    with pytest.raises(UnsupportedAudioError):
+    with pytest.raises(UnsupportedAudioError, match="unsupported format"):
         select_first_sound_reference("[sound:movie.mp4]")
 
 
@@ -51,3 +58,10 @@ def test_replace_preserves_surrounding_html() -> None:
 def test_safe_media_basename_strips_path_components() -> None:
     assert safe_media_basename("../nested/audio.mp3") == "audio.mp3"
     assert safe_media_basename(r"..\nested\audio.mp3") == "audio.mp3"
+
+
+def test_replace_only_updates_selected_reference_when_multiple_exist() -> None:
+    html = "[sound:first.mp3] and [sound:second.ogg]"
+    reference = find_sound_references(html)[1]
+
+    assert replace_sound_reference(html, reference, "updated.wav") == "[sound:first.mp3] and [sound:updated.wav]"

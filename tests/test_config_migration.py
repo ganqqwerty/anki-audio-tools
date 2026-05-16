@@ -25,6 +25,10 @@ class TestDeepMerge:
         result = deep_merge({"enabled": True}, {"custom": {"x": 1}})
         assert result["custom"] == {"x": 1}
 
+    def test_scalar_user_value_replaces_nested_default(self) -> None:
+        defaults = {"flags": {"debug": False, "verbose": False}}
+        assert deep_merge(defaults, {"flags": "manual"}) == {"flags": "manual"}
+
     def test_inputs_are_not_mutated(self) -> None:
         defaults = {"flags": {"debug": False}}
         user = {"flags": {"debug": True}}
@@ -33,6 +37,18 @@ class TestDeepMerge:
         deep_merge(defaults, user)
         assert defaults == defaults_copy
         assert user == user_copy
+
+    def test_result_does_not_share_nested_defaults_or_user_values(self) -> None:
+        defaults = {"flags": {"debug": False}, "nested": {"levels": [1, 2]}}
+        user = {"custom": {"items": ["a", "b"]}}
+
+        result = deep_merge(defaults, user)
+        result["flags"]["debug"] = True
+        result["nested"]["levels"].append(3)
+        result["custom"]["items"].append("c")
+
+        assert defaults == {"flags": {"debug": False}, "nested": {"levels": [1, 2]}}
+        assert user == {"custom": {"items": ["a", "b"]}}
 
 
 class TestMigrateConfig:
@@ -59,6 +75,21 @@ class TestMigrateConfig:
             "debug_logging": False,
         }
         migrated, changed = migrate_config(user, defaults)
+        assert migrated["enabled"] is False
+        assert migrated["debug_logging"] is False
+        assert changed is True
+
+    def test_current_version_only_marks_change_when_defaults_add_values(self) -> None:
+        user = {"_config_version": CURRENT_CONFIG_VERSION, "enabled": False}
+        defaults = {
+            "_config_version": CURRENT_CONFIG_VERSION,
+            "enabled": True,
+            "debug_logging": False,
+        }
+
+        migrated, changed = migrate_config(user, defaults)
+
+        assert migrated["_config_version"] == CURRENT_CONFIG_VERSION
         assert migrated["enabled"] is False
         assert migrated["debug_logging"] is False
         assert changed is True

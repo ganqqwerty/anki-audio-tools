@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+import json
 import os
 import platform
 import queue
@@ -487,7 +488,71 @@ def cmd_deps() -> int:
 
 def cmd_muttest() -> int:
     anki_python = _find_anki_python()
-    return _run([str(anki_python), "-m", "mutmut", "run", *sys.argv[2:]], label="mutmut mutation testing")
+    mutmut_args = sys.argv[2:]
+    if not mutmut_args or mutmut_args[0].startswith("-"):
+        mutmut_args = ["run", *mutmut_args]
+    labels = {
+        "run": "mutmut mutation testing",
+        "results": "mutmut results",
+        "show": "mutmut show mutant",
+        "tests-for-mutant": "mutmut tests for mutant",
+        "browse": "mutmut browse",
+        "print-time-estimates": "mutmut time estimates",
+        "export-cicd-stats": "mutmut CI/CD stats export",
+        "apply": "mutmut apply mutant",
+    }
+    rc = _run(
+        [str(anki_python), "-m", "mutmut", *mutmut_args],
+        label=labels.get(mutmut_args[0], f"mutmut {' '.join(mutmut_args)}"),
+    )
+    if rc != 0 or mutmut_args[0] != "run":
+        return rc
+    if not _mutmut_fix_stats_prefix_mismatch():
+        return rc
+    print("[dev] detected mutmut stats/module prefix mismatch; rerunning with normalized stats.")
+    return _run(
+        [str(anki_python), "-m", "mutmut", *mutmut_args],
+        label="mutmut mutation testing (normalized stats rerun)",
+    )
+
+
+def _mutmut_fix_stats_prefix_mismatch() -> bool:
+    stats_path = ROOT / "mutants" / "mutmut-stats.json"
+    if not stats_path.is_file():
+        return False
+
+    meta_paths = sorted((ROOT / "mutants").glob("addon/anki_audio_quick_editor/*.py.meta"))
+    if not meta_paths:
+        return False
+
+    try:
+        stats = json.loads(stats_path.read_text())
+        first_meta = json.loads(meta_paths[0].read_text())
+    except json.JSONDecodeError:
+        return False
+
+    stats_keys = list(stats.get("tests_by_mangled_function_name", {}).keys())
+    meta_keys = list(first_meta.get("exit_code_by_key", {}).keys())
+    if not stats_keys or not meta_keys:
+        return False
+
+    source_prefix = "anki_audio_quick_editor."
+    target_prefix = "addon.anki_audio_quick_editor."
+    if not any(key.startswith(source_prefix) for key in stats_keys):
+        return False
+    if not any(key.startswith(target_prefix) for key in meta_keys):
+        return False
+
+    stats["tests_by_mangled_function_name"] = {
+        (
+            f"{target_prefix}{key[len(source_prefix):]}"
+            if key.startswith(source_prefix)
+            else key
+        ): value
+        for key, value in stats["tests_by_mangled_function_name"].items()
+    }
+    stats_path.write_text(json.dumps(stats, indent=4))
+    return True
 
 
 def cmd_coverage() -> int:
@@ -626,7 +691,7 @@ COMMANDS: dict[str, tuple[Callable[[], int], str]] = {
     "check": (cmd_check, "Full QC: config-schema + lint + typecheck + security + deadcode + deps + complexity + arch + test + svelte"),
     "coverage": (cmd_coverage, "Run tests with coverage report"),
     "sonar": (cmd_sonar, "Optional SonarQube analysis (needs SONAR_TOKEN)"),
-    "muttest": (cmd_muttest, "Mutation testing (slow, opt-in)"),
+    "muttest": (cmd_muttest, "Mutation testing (advisory, opt-in)"),
     "build": (cmd_build, "Build the settings Svelte bundle"),
     "build-ui": (cmd_build_ui, "Build the settings Svelte bundle"),
     "test-svelte": (cmd_test_svelte, "Run settings Svelte UI tests"),
