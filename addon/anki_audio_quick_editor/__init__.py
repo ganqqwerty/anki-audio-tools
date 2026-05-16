@@ -92,6 +92,13 @@ def _setup_editor_integration() -> None:
     register_editor_hooks(gui_hooks)
 
 
+def _setup_browser_integration() -> None:
+    """Register browser hooks for batch visualization generation."""
+    from .browser_integration import register_browser_hooks
+
+    register_browser_hooks(gui_hooks)
+
+
 def _setup_menu() -> None:
     """Register the add-on submenu under Tools."""
     submenu = mw.form.menuTools.addMenu("Anki Audio Quick Editor")
@@ -106,6 +113,7 @@ gui_hooks.main_window_did_init.append(_migrate_config)
 gui_hooks.main_window_did_init.append(_setup_file_logging)
 gui_hooks.main_window_did_init.append(_apply_log_level)
 gui_hooks.main_window_did_init.append(_setup_editor_integration)
+gui_hooks.main_window_did_init.append(_setup_browser_integration)
 gui_hooks.main_window_did_init.append(_setup_menu)
 mw.addonManager.setConfigAction(__name__, _open_settings)
 

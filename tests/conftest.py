@@ -51,6 +51,7 @@ _QT_MOCKS = {
         "QGroupBox",
         "QScrollArea",
         "QPlainTextEdit",
+        "QProgressBar",
         "QComboBox",
         "QLineEdit",
         "QTabWidget",
@@ -62,6 +63,7 @@ _QT_MOCKS = {
         "QMenu",
         "Qt",
         "QFileDialog",
+        "QApplication",
     )
 }
 for _name, _mock in _QT_MOCKS.items():
@@ -83,6 +85,8 @@ for _hook_name in (
     "main_window_did_init",
     "editor_did_init",
     "editor_will_load_note",
+    "browser_menus_did_init",
+    "browser_will_show_context_menu",
     "reviewer_will_show_context_menu",
     "deck_browser_will_show_options_menu",
 ):
@@ -98,6 +102,8 @@ _mw = _named_mock("aqt.mw")
 _aqt = types.ModuleType("aqt")
 _aqt.mw = _mw
 _aqt.gui_hooks = _aqt_gui_hooks
+_aqt.qt = _qt
+_aqt.utils = _aqt_utils
 
 sys.modules["aqt"] = _aqt
 sys.modules["aqt.qt"] = _qt
@@ -144,6 +150,8 @@ def _reset_static_mock_modules() -> None:
         "main_window_did_init",
         "editor_did_init",
         "editor_will_load_note",
+        "browser_menus_did_init",
+        "browser_will_show_context_menu",
         "reviewer_will_show_context_menu",
         "deck_browser_will_show_options_menu",
     ):

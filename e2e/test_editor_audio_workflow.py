@@ -1304,7 +1304,7 @@ def test_visualizer_failure_is_non_mutating_and_edit_buttons_still_work(
     note = _basic_audio_note(anki_mw, source.name)
     _configure_ffmpeg(anki_mw, ffmpeg_config)
     monkeypatch.setattr(
-        "anki_audio_quick_editor.editor_integration.analyze_prosody",
+        "anki_audio_quick_editor.prosody_cache.analyze_prosody",
         lambda *_args: (_ for _ in ()).throw(RuntimeError("visualizer exploded")),
     )
 

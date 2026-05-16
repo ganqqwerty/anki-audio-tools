@@ -9,19 +9,21 @@ from unittest.mock import MagicMock
 
 from anki_audio_quick_editor.audio_state import AudioEditState, AudioProcessingConfig
 from anki_audio_quick_editor.editor_integration import (
-    _ANALYSIS_CACHE,
     _SESSIONS,
     BRIDGE_COMMANDS,
     EditorSession,
     UndoHistory,
-    _analyze_prosody_cached,
     _audio_field_indices,
     _is_busy,
     _playback_segment_ready,
-    _prosody_cache_key,
     _reveal_file,
     _set_busy,
     register_editor_hooks,
+)
+from anki_audio_quick_editor.prosody_cache import (
+    _ANALYSIS_CACHE,
+    analyze_prosody_cached,
+    prosody_cache_key,
 )
 from anki_audio_quick_editor.prosody_types import ProsodyPoint, ProsodyTrack
 
@@ -42,7 +44,7 @@ def test_entrypoint_registers_editor_startup_hook() -> None:
 
     importlib.reload(anki_audio_quick_editor)
 
-    assert aqt.gui_hooks.main_window_did_init.append.call_count == 5
+    assert aqt.gui_hooks.main_window_did_init.append.call_count == 6
 
 
 def test_editor_init_registers_all_bridge_commands(tmp_path: Path) -> None:
@@ -78,9 +80,9 @@ def test_undo_history_restores_last_audio_modification_only() -> None:
 def test_prosody_cache_key_uses_path_size_and_mtime(tmp_path: Path) -> None:
     source = tmp_path / "clip.mp3"
     source.write_bytes(b"one")
-    first_key = _prosody_cache_key(source)
+    first_key = prosody_cache_key(source)
     source.write_bytes(b"one-two")
-    second_key = _prosody_cache_key(source)
+    second_key = prosody_cache_key(source)
 
     assert first_key[0] == str(source)
     assert second_key[0] == str(source)
@@ -105,11 +107,11 @@ def test_prosody_cache_reuses_matching_file_identity(tmp_path: Path, monkeypatch
         calls.append(path)
         return track
 
-    monkeypatch.setattr("anki_audio_quick_editor.editor_integration.analyze_prosody", fake_analyze)
+    monkeypatch.setattr("anki_audio_quick_editor.prosody_cache.analyze_prosody", fake_analyze)
     _ANALYSIS_CACHE.clear()
 
-    assert _analyze_prosody_cached(source, AudioProcessingConfig()) is track
-    assert _analyze_prosody_cached(source, AudioProcessingConfig()) is track
+    assert analyze_prosody_cached(source, AudioProcessingConfig()) is track
+    assert analyze_prosody_cached(source, AudioProcessingConfig()) is track
     assert calls == [source]
 
 

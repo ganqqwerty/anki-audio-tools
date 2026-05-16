@@ -24,7 +24,9 @@ from .audio_state import AudioEditState, AudioProcessingConfig
 from .editor_actions import BRIDGE_COMMANDS, apply_processing_command
 from .editor_ui import injection_script
 from .errors import AudioProcessingError, AudioQuickEditorError, MissingMediaError
-from .prosody_analyzer import analyze_prosody
+from .prosody_cache import (
+    analyze_prosody_cached as _analyze_prosody_cached,
+)
 from .prosody_types import ProsodyTrack, clamp_cursor_ms
 from .sound_refs import (
     replace_sound_reference,
@@ -33,9 +35,6 @@ from .sound_refs import (
 )
 
 logger = logging.getLogger(__name__)
-
-ProsodyCacheKey = tuple[str, int, int]
-
 
 @dataclass(frozen=True)
 class UndoEntry:
@@ -89,8 +88,6 @@ class EditorSession:
 
 
 _SESSIONS: "weakref.WeakKeyDictionary[Any, EditorSession]" = weakref.WeakKeyDictionary()
-_ANALYSIS_CACHE: dict[ProsodyCacheKey, ProsodyTrack] = {}
-_ANALYSIS_CACHE_MAX = 32
 
 
 def register_editor_hooks(gui_hooks: Any) -> None:
@@ -619,23 +616,6 @@ def _analyze_current_async(editor: Any) -> None:
             _main(editor, lambda: _analysis_failed(editor, generation, message))
 
     threading.Thread(target=_run, daemon=True).start()
-
-
-def _prosody_cache_key(path: Path) -> ProsodyCacheKey:
-    stat = path.stat()
-    return (str(path), int(stat.st_size), int(stat.st_mtime_ns))
-
-
-def _analyze_prosody_cached(path: Path, config: AudioProcessingConfig) -> ProsodyTrack:
-    key = _prosody_cache_key(path)
-    cached = _ANALYSIS_CACHE.get(key)
-    if cached is not None:
-        return cached
-    track = analyze_prosody(path, config)
-    _ANALYSIS_CACHE[key] = track
-    while len(_ANALYSIS_CACHE) > _ANALYSIS_CACHE_MAX:
-        _ANALYSIS_CACHE.pop(next(iter(_ANALYSIS_CACHE)))
-    return track
 
 
 def _analysis_finished(editor: Any, generation: int, track: ProsodyTrack) -> None:

@@ -12,19 +12,22 @@ IMPORT_SAFE_MODULES = {
     "_version",
     "audio_processor",
     "audio_state",
+    "batch_visualization",
     "config_migration",
     "db_helpers",
     "editor_actions",
     "editor_ui",
     "errors",
     "prosody_analyzer",
+    "prosody_cache",
     "prosody_fallback",
     "prosody_praat",
+    "prosody_svg",
     "prosody_types",
     "settings_state",
     "sound_refs",
 }
-UI_MODULES = {"editor_integration"}
+UI_MODULES = {"browser_integration", "editor_integration"}
 SETTINGS_MODULES = {"settings"}
 SETTINGS_BACKEND_MODULES = {"settings.commands", "settings.initial_state"}
 ENTRY_POINT = {"__init__"}
