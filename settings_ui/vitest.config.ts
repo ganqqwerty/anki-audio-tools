@@ -15,6 +15,7 @@ export default defineConfig({
     setupFiles: ["./tests/setup.ts"],
     coverage: {
       provider: "v8",
+      reporter: ["text", "html", "clover", "lcov"],
       thresholds: {
         lines: 80,
         functions: 80,
@@ -25,6 +26,7 @@ export default defineConfig({
         "tests/**",
         "**/*.config.*",
         "src/main.ts",
+        "src/lib/types.ts",
       ],
     },
   },

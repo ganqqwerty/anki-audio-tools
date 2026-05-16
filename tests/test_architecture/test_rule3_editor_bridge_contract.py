@@ -15,6 +15,15 @@ LEGACY_COMMANDS = {"aqe:preview", "aqe:save", "aqe:cancel"}
 
 def _constant_tuple_assignment(path: Path, name: str) -> set[str]:
     tree = ast.parse(path.read_text(encoding="utf-8"))
+    constants = {
+        node.targets[0].id: node.value.value
+        for node in tree.body
+        if isinstance(node, ast.Assign)
+        and len(node.targets) == 1
+        and isinstance(node.targets[0], ast.Name)
+        and isinstance(node.value, ast.Constant)
+        and isinstance(node.value.value, str)
+    }
     for node in tree.body:
         if not isinstance(node, ast.Assign):
             continue
@@ -22,13 +31,14 @@ def _constant_tuple_assignment(path: Path, name: str) -> set[str]:
             continue
         if not isinstance(node.value, ast.Tuple):
             raise AssertionError(f"{name} must stay a tuple literal")
-        values = {
-            element.value
-            for element in node.value.elts
-            if isinstance(element, ast.Constant) and isinstance(element.value, str)
-        }
+        values: set[str] = set()
+        for element in node.value.elts:
+            if isinstance(element, ast.Constant) and isinstance(element.value, str):
+                values.add(element.value)
+            elif isinstance(element, ast.Name) and element.id in constants:
+                values.add(constants[element.id])
         if len(values) != len(node.value.elts):
-            raise AssertionError(f"{name} must contain only string literals")
+            raise AssertionError(f"{name} must contain only string literals or string constants")
         return values
     raise AssertionError(f"{name} assignment not found in {path}")
 

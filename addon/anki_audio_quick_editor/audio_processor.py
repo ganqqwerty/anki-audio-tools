@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import math
 import os
 import shlex
 import shutil
@@ -74,7 +75,7 @@ def probe_duration_ms(source_path: Path, config: AudioProcessingConfig) -> int:
         raise AudioProcessingError(result.stderr.strip() or "Could not inspect audio duration.")
     try:
         seconds = float(json.loads(result.stdout)["format"]["duration"])
-    except (KeyError, TypeError, ValueError, json.JSONDecodeError) as exc:
+    except (KeyError, TypeError, ValueError) as exc:
         raise AudioProcessingError("Could not parse audio duration.") from exc
     return max(0, round(seconds * 1000))
 
@@ -203,7 +204,7 @@ def build_audio_filters(
             f"stop_silence={gap_s:.3f}"
         )
 
-    if state.speed != 1.0:
+    if not math.isclose(state.speed, 1.0):
         filters.extend(_atempo_filters(state.speed))
     return ",".join(filters)
 

@@ -12,20 +12,19 @@ import { sendBridgeCommand } from "./bridge.js";
 
 type LogLevel = "debug" | "info" | "warn" | "error";
 
+function consoleForLevel(level: LogLevel): typeof console.warn {
+  if (level === "error") {
+    return console.error;
+  }
+  return console.warn;
+}
+
 function _log(level: LogLevel, message: string, context?: unknown): void {
-  // Always log to console at the correct level
-  const consoleFn =
-    level === "debug"
-      ? console.warn // jsdom / Anki webview don't have console.debug
-      : level === "info"
-        ? console.warn // promote info to warn so it shows in Anki console
-        : level === "warn"
-          ? console.warn
-          : console.error;
-  if (context !== undefined) {
-    consoleFn(`[settings] ${message}`, context);
-  } else {
+  const consoleFn = consoleForLevel(level);
+  if (context === undefined) {
     consoleFn(`[settings] ${message}`);
+  } else {
+    consoleFn(`[settings] ${message}`, context);
   }
 
   // Fire-and-forget: send to Python logger (ignore failures)

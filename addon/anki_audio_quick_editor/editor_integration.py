@@ -36,6 +36,10 @@ from .sound_refs import (
 
 logger = logging.getLogger(__name__)
 
+CURRENT_FIELD_AUDIO_MISSING = "No [sound:...] reference found in the current field."
+REFERENCED_AUDIO_MISSING = "The referenced audio file was not found in Anki's media folder."
+STILL_PROCESSING_MESSAGE = "Still processing. Please wait."
+
 @dataclass(frozen=True)
 class UndoEntry:
     """A field reference and edit state that can be restored by Undo."""
@@ -120,32 +124,31 @@ def _audio_field_indices(note: Any) -> list[int]:
     return indices
 
 
-def _handle_bridge_command(editor: Any, command: str) -> bool:
+def _handle_bridge_command(editor: Any, command: str) -> None:
     try:
         if command == "aqe:scan":
             _eval_status(editor, "")
             editor.web.eval("window.__aqeScan && window.__aqeScan()")
-            return True
+            return
         if command == "aqe:analyze":
             _analyze_current_async(editor)
-            return True
+            return
         if command == "aqe:set-cursor":
             _set_cursor_from_web(editor)
-            return True
+            return
         if command == "aqe:play":
             _play(editor)
-            return True
+            return
         if command == "aqe:show-file":
             _show_current_audio_file(editor)
-            return True
+            return
         if command == "aqe:play-ended":
             _play_ended(editor)
-            return True
+            return
         if command == "aqe:undo":
             _undo(editor)
-            return True
+            return
         _update_state_and_render(editor, command)
-        return True
     except AudioQuickEditorError as exc:
         _set_busy(editor, False)
         _eval_status(editor, str(exc), kind="error")
@@ -153,13 +156,12 @@ def _handle_bridge_command(editor: Any, command: str) -> bool:
         logger.exception("audio quick editor command failed: %s", command)
         _set_busy(editor, False)
         _eval_status(editor, f"Audio processing failed. The note was not changed. ({exc})", kind="error")
-    return True
 
 
 def _update_state_and_render(editor: Any, command: str) -> None:
     existing = _SESSIONS.get(editor)
     if existing and _is_busy(existing):
-        _eval_status(editor, "Still processing. Please wait.", kind="processing")
+        _eval_status(editor, STILL_PROCESSING_MESSAGE, kind="processing")
         return
     session, source_path = _session_and_source(editor)
     config = AudioProcessingConfig.from_config(_config(editor))
@@ -229,7 +231,7 @@ def _replace_current_field_after_render(
     field_html = editor.note.fields[field_index]
     selection = select_first_sound_reference(field_html)
     if selection.selected is None:
-        raise AudioProcessingError("No [sound:...] reference found in the current field.")
+        raise AudioProcessingError(CURRENT_FIELD_AUDIO_MISSING)
     editor.note.fields[field_index] = replace_sound_reference(field_html, selection.selected, saved_name)
     session = _SESSIONS.get(editor)
     should_redraw_graph = False
@@ -253,7 +255,7 @@ def _replace_current_field_after_render(
     _eval_status(editor, f"Updated field to {saved_name}")
     _eval_playback_state(editor, field_index, "stopped", 0)
     if should_redraw_graph:
-        _request_graph_redraw(editor, field_index, saved_name)
+        _request_graph_redraw(editor)
     else:
         _set_busy(editor, False)
 
@@ -323,7 +325,7 @@ def _play_with_request(editor: Any, request: Any) -> None:
 
     session, source_path = _session_and_source(editor)
     if _is_busy(session):
-        _eval_status(editor, "Still processing. Please wait.", kind="processing")
+        _eval_status(editor, STILL_PROCESSING_MESSAGE, kind="processing")
         return
     field_index = _current_field_index(editor)
     action = "start"
@@ -457,7 +459,7 @@ def _playback_segment_failed(editor: Any, generation: int, message: str) -> None
 def _undo(editor: Any) -> None:
     session, _source_path = _session_and_source(editor)
     if _is_busy(session):
-        _eval_status(editor, "Still processing. Please wait.", kind="processing")
+        _eval_status(editor, STILL_PROCESSING_MESSAGE, kind="processing")
         return
     previous = session.undo_history.pop()
     if previous is None:
@@ -468,7 +470,7 @@ def _undo(editor: Any) -> None:
     field_html = editor.note.fields[field_index]
     selection = select_first_sound_reference(field_html)
     if selection.selected is None:
-        raise AudioProcessingError("No [sound:...] reference found in the current field.")
+        raise AudioProcessingError(CURRENT_FIELD_AUDIO_MISSING)
     editor.note.fields[field_index] = replace_sound_reference(field_html, selection.selected, previous.filename)
     session.state = previous.state
     session.current_filename = previous.filename
@@ -480,13 +482,13 @@ def _undo(editor: Any) -> None:
     _eval_status(editor, f"Undid last edit; restored {previous.filename}")
     _eval_playback_state(editor, field_index, "stopped", 0)
     if field_index in session.graph_active_fields:
-        _request_graph_redraw(editor, field_index, previous.filename)
+        _request_graph_redraw(editor)
 
 
 def _show_current_audio_file(editor: Any) -> None:
     session, media_path = _current_media_path(editor)
     if _is_busy(session):
-        _eval_status(editor, "Still processing. Please wait.", kind="processing")
+        _eval_status(editor, STILL_PROCESSING_MESSAGE, kind="processing")
         return
     _reveal_file(media_path)
     _eval_status(editor, f"Showing {media_path.name} in folder")
@@ -494,7 +496,7 @@ def _show_current_audio_file(editor: Any) -> None:
 
 def _reveal_file(path: Path) -> None:
     if not path.is_file():
-        raise MissingMediaError("The referenced audio file was not found in Anki's media folder.")
+        raise MissingMediaError(REFERENCED_AUDIO_MISSING)
     resolved = path.resolve()
     system = platform.system()
     if system == "Darwin":
@@ -533,7 +535,7 @@ def _session_and_source(editor: Any) -> tuple[EditorSession, Path]:
     field_html = editor.note.fields[field_index]
     selection = select_first_sound_reference(field_html)
     if selection.selected is None:
-        raise AudioProcessingError("No [sound:...] reference found in the current field.")
+        raise AudioProcessingError(CURRENT_FIELD_AUDIO_MISSING)
     filename = safe_media_basename(selection.selected.filename)
     media_path = Path(editor.mw.col.media.dir()) / filename
     session = _SESSIONS.setdefault(editor, EditorSession())
@@ -548,7 +550,7 @@ def _session_and_source(editor: Any) -> tuple[EditorSession, Path]:
         return session, source_path
 
     if not media_path.is_file():
-        raise MissingMediaError("The referenced audio file was not found in Anki's media folder.")
+        raise MissingMediaError(REFERENCED_AUDIO_MISSING)
 
     mtime = media_path.stat().st_mtime_ns
     if (
@@ -578,17 +580,17 @@ def _current_media_path(editor: Any) -> tuple[EditorSession, Path]:
     session, _source_path = _session_and_source(editor)
     filename = session.current_filename
     if not filename:
-        raise AudioProcessingError("No [sound:...] reference found in the current field.")
+        raise AudioProcessingError(CURRENT_FIELD_AUDIO_MISSING)
     media_path = Path(editor.mw.col.media.dir()) / safe_media_basename(filename)
     if not media_path.is_file():
-        raise MissingMediaError("The referenced audio file was not found in Anki's media folder.")
+        raise MissingMediaError(REFERENCED_AUDIO_MISSING)
     return session, media_path
 
 
 def _analyze_current_async(editor: Any) -> None:
     existing = _SESSIONS.get(editor)
     if existing and _is_busy(existing):
-        _eval_visualizer_status(editor, "Still processing. Please wait.", kind="processing")
+        _eval_visualizer_status(editor, STILL_PROCESSING_MESSAGE, kind="processing")
         return
     session, current_path = _current_media_path(editor)
     config = AudioProcessingConfig.from_config(_config(editor))
@@ -672,7 +674,7 @@ def _current_field_index(editor: Any) -> int:
         return int(editor.currentField)
     if getattr(editor, "last_field_index", None) is not None:
         return int(editor.last_field_index)
-    raise AudioProcessingError("No [sound:...] reference found in the current field.")
+    raise AudioProcessingError(CURRENT_FIELD_AUDIO_MISSING)
 
 
 def _config(editor: Any) -> dict[str, Any]:
@@ -712,10 +714,8 @@ def _eval_playback_state(
     )
 
 
-def _request_graph_redraw(editor: Any, field_index: int, expected_filename: str | None = None) -> None:
+def _request_graph_redraw(editor: Any) -> None:
     from aqt.qt import QTimer
-
-    _ = expected_filename
 
     def _start() -> None:
         if getattr(editor, "note", None) is None:

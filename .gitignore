@@ -9,6 +9,7 @@ meta.json
 .coverage
 htmlcov/
 coverage.xml
+settings_ui/coverage/
 
 # Build artifacts
 dist/

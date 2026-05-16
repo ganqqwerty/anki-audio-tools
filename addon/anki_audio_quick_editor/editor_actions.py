@@ -4,6 +4,13 @@ from __future__ import annotations
 
 from .audio_state import AudioEditState, AudioProcessingConfig
 
+CMD_TRIM_LEFT = "aqe:trim-left"
+CMD_TRIM_RIGHT = "aqe:trim-right"
+CMD_SLOWER = "aqe:slower"
+CMD_FASTER = "aqe:faster"
+CMD_TRIM_SILENCE = "aqe:trim-silence"
+CMD_REMOVE_PAUSES = "aqe:remove-pauses"
+
 BRIDGE_COMMANDS = (
     "aqe:scan",
     "aqe:analyze",
@@ -11,22 +18,22 @@ BRIDGE_COMMANDS = (
     "aqe:play",
     "aqe:play-ended",
     "aqe:show-file",
-    "aqe:trim-left",
-    "aqe:trim-right",
-    "aqe:slower",
-    "aqe:faster",
-    "aqe:trim-silence",
-    "aqe:remove-pauses",
+    CMD_TRIM_LEFT,
+    CMD_TRIM_RIGHT,
+    CMD_SLOWER,
+    CMD_FASTER,
+    CMD_TRIM_SILENCE,
+    CMD_REMOVE_PAUSES,
     "aqe:undo",
 )
 
 PROCESSING_COMMANDS = (
-    "aqe:trim-left",
-    "aqe:trim-right",
-    "aqe:slower",
-    "aqe:faster",
-    "aqe:trim-silence",
-    "aqe:remove-pauses",
+    CMD_TRIM_LEFT,
+    CMD_TRIM_RIGHT,
+    CMD_SLOWER,
+    CMD_FASTER,
+    CMD_TRIM_SILENCE,
+    CMD_REMOVE_PAUSES,
 )
 
 
@@ -38,12 +45,12 @@ def apply_processing_command(
     """Return the edit state after applying a processing command."""
     step = config.manual_trim_small_ms
     actions = {
-        "aqe:trim-left": lambda: state.trim_left(step),
-        "aqe:trim-right": lambda: state.trim_right(step),
-        "aqe:slower": lambda: state.slower(config),
-        "aqe:faster": lambda: state.faster(config),
-        "aqe:trim-silence": state.toggle_edge_trim,
-        "aqe:remove-pauses": state.toggle_internal_pauses,
+        CMD_TRIM_LEFT: lambda: state.trim_left(step),
+        CMD_TRIM_RIGHT: lambda: state.trim_right(step),
+        CMD_SLOWER: lambda: state.slower(config),
+        CMD_FASTER: lambda: state.faster(config),
+        CMD_TRIM_SILENCE: state.toggle_edge_trim,
+        CMD_REMOVE_PAUSES: state.toggle_internal_pauses,
     }
     action = actions.get(command)
     return action() if action else None

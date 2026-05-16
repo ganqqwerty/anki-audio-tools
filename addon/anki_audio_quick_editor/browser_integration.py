@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import logging
 import threading
-from dataclasses import dataclass, field, replace
+from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
@@ -424,10 +424,14 @@ def _apply_result(
             report.written += 1
         except Exception as exc:
             report.failures += 1
-            return replace(
-                result,
+            return BatchNoteResult(
+                note_id=result.note_id,
                 status="failed",
                 message=str(exc) or f"failed to update target field {target_field!r}",
+                target_field=result.target_field,
+                target_html=result.target_html,
+                audio_filename=result.audio_filename,
+                image_filename=result.image_filename,
             )
         return result
     if result.failure:

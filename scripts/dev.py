@@ -130,12 +130,19 @@ def _print_run_header(
     print(f"[dev] cwd: {run_cwd}")
     print(f"[dev] cmd: {rendered_cmd}")
     if env:
-        print("[dev] env: " + ", ".join(f"{key}={value}" for key, value in sorted(env.items())))
+        print("[dev] env: " + ", ".join(f"{key}={_display_env_value(key, value)}" for key, value in sorted(env.items())))
     print("[dev] output: live")
     if idle_warning_s:
         print(f"[dev] idle warning: {_format_duration(idle_warning_s)} without output")
     if idle_timeout_s:
         print(f"[dev] idle timeout: {_format_duration(idle_timeout_s)} without output")
+
+
+def _display_env_value(key: str, value: str) -> str:
+    sensitive_markers = ("TOKEN", "PASSWORD", "SECRET", "KEY")
+    if any(marker in key.upper() for marker in sensitive_markers):
+        return "<redacted>"
+    return value
 
 
 def _handle_idle_warning(
@@ -488,16 +495,40 @@ def cmd_coverage() -> int:
     return _run([str(anki_python), "-m", "pytest", "tests/", "--cov", "--cov-report=term-missing"], label="python coverage")
 
 
+def _prefix_settings_ui_lcov_paths() -> None:
+    lcov = SETTINGS_UI_DIR / "coverage" / "lcov.info"
+    if not lcov.is_file():
+        return
+    lines: list[str] = []
+    for line in lcov.read_text().splitlines(keepends=True):
+        if line.startswith("SF:src/"):
+            lines.append(f"SF:settings_ui/{line[3:]}")
+        else:
+            lines.append(line)
+    lcov.write_text("".join(lines))
+
+
 def cmd_sonar() -> int:
     scanner = shutil.which("sonar-scanner")
     if not scanner:
         _die("sonar-scanner not found. Install it first if you want local Sonar analysis.")
-    token = os.environ.get("SONAR_TOKEN") or _load_dotenv().get("SONAR_TOKEN")
+    dotenv = _load_dotenv()
+    token = os.environ.get("SONAR_TOKEN") or dotenv.get("SONAR_TOKEN")
     if not token:
         _die("SONAR_TOKEN not set.")
+    host_url = os.environ.get("SONAR_HOST_URL") or dotenv.get("SONAR_HOST_URL") or "http://localhost:9000"
     anki_python = _find_anki_python()
     _run([str(anki_python), "-m", "pytest", "tests/", "--cov", "--cov-report=xml"], label="python coverage for sonar")
-    return _run([scanner], env={"SONAR_TOKEN": token}, label="sonar-scanner analysis")
+    if (SETTINGS_UI_DIR / "node_modules").is_dir():
+        _run(["npm", "run", "test:coverage"], cwd=SETTINGS_UI_DIR, label="settings UI coverage for sonar")
+        _prefix_settings_ui_lcov_paths()
+    else:
+        print("settings_ui/node_modules not found - skipping settings UI coverage.")
+    return _run(
+        [scanner, f"-Dsonar.host.url={host_url}"],
+        env={"SONAR_TOKEN": token},
+        label="sonar-scanner analysis",
+    )
 
 
 def cmd_check() -> int:

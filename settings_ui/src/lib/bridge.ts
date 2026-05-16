@@ -5,11 +5,9 @@ import type {
   SaveErrorPayload,
 } from "./types.js";
 
-declare function pycmd(cmd: string): void;
-
 export function sendBridgeCommand(command: string): void {
-  if (typeof pycmd !== "undefined") {
-    pycmd(command);
+  if (globalThis.pycmd !== undefined) {
+    globalThis.pycmd(command);
   }
 }
 
@@ -37,17 +35,22 @@ export interface BridgeCallbacks {
 
 export function registerCallbacks(callbacks: BridgeCallbacks): void {
   if (callbacks.onAsyncProgress) {
-    window.onAsyncProgress = callbacks.onAsyncProgress;
+    globalThis.onAsyncProgress = callbacks.onAsyncProgress;
   }
   if (callbacks.onAsyncDone) {
-    window.onAsyncDone = callbacks.onAsyncDone;
+    globalThis.onAsyncDone = callbacks.onAsyncDone;
   }
   if (callbacks.onSaveError) {
-    window.onSaveError = callbacks.onSaveError;
+    globalThis.onSaveError = callbacks.onSaveError;
   }
 }
 
 declare global {
+  var pycmd: ((cmd: string) => void) | undefined;
+  var onAsyncProgress: ((payload: AsyncProgressPayload) => void) | undefined;
+  var onAsyncDone: ((payload: AsyncDonePayload) => void) | undefined;
+  var onSaveError: ((payload: SaveErrorPayload) => void) | undefined;
+
   interface Window {
     __INITIAL_STATE__?: import("./types.js").InitialState;
     onAsyncProgress?: (payload: AsyncProgressPayload) => void;
