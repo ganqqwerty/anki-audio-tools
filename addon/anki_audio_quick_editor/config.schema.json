@@ -16,8 +16,6 @@
     "volume_step_db",
     "min_volume_db",
     "max_volume_db",
-    "edge_silence_threshold_db",
-    "edge_silence_min_ms",
     "internal_pause_silence_threshold_db",
     "internal_pause_threshold_ms",
     "internal_pause_target_gap_ms",
@@ -72,13 +70,6 @@
     },
     "max_volume_db": {
       "type": "number"
-    },
-    "edge_silence_threshold_db": {
-      "type": "integer"
-    },
-    "edge_silence_min_ms": {
-      "type": "integer",
-      "minimum": 1
     },
     "internal_pause_silence_threshold_db": {
       "type": "integer"

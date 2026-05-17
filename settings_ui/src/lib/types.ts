@@ -11,8 +11,6 @@ export interface Config {
   volume_step_db: number;
   min_volume_db: number;
   max_volume_db: number;
-  edge_silence_threshold_db: number;
-  edge_silence_min_ms: number;
   internal_pause_silence_threshold_db: number;
   internal_pause_threshold_ms: number;
   internal_pause_target_gap_ms: number;

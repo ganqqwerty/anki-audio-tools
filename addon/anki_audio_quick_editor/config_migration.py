@@ -5,7 +5,14 @@ from __future__ import annotations
 import copy
 from typing import Any
 
-CURRENT_CONFIG_VERSION = 6
+CURRENT_CONFIG_VERSION = 7
+
+REMOVED_CONFIG_KEYS = frozenset(
+    {
+        "edge_silence_threshold_db",
+        "edge_silence_min_ms",
+    }
+)
 
 
 def deep_merge(defaults: dict[str, Any], user: dict[str, Any]) -> dict[str, Any]:
@@ -25,6 +32,8 @@ def migrate_config(
 ) -> tuple[dict[str, Any], bool]:
     """Merge defaults into user config and stamp the current schema version."""
     merged = deep_merge(defaults, user_config)
+    for key in REMOVED_CONFIG_KEYS:
+        merged.pop(key, None)
     changed = merged != user_config
 
     if merged.get("_config_version") != CURRENT_CONFIG_VERSION:

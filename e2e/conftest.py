@@ -23,7 +23,7 @@ ADDON_NUMERIC_ID = "1000000002"
 
 def _default_config() -> dict:
     return {
-        "_config_version": 6,
+        "_config_version": 7,
         "enabled": True,
         "debug_logging": False,
         "show_ffmpeg_commands": False,
@@ -35,8 +35,6 @@ def _default_config() -> dict:
         "volume_step_db": 3.0,
         "min_volume_db": -24.0,
         "max_volume_db": 24.0,
-        "edge_silence_threshold_db": -35,
-        "edge_silence_min_ms": 100,
         "internal_pause_silence_threshold_db": -45,
         "internal_pause_threshold_ms": 300,
         "internal_pause_target_gap_ms": 100,

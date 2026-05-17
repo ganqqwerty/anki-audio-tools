@@ -18,8 +18,6 @@ Audio Quick Editor config lives in [`addon/anki_audio_quick_editor/config.json`]
 | `volume_step_db` | number | Decibel amount added or removed by Volume +/- |
 | `min_volume_db` | number | Lower bound for manual gain changes |
 | `max_volume_db` | number | Upper bound for manual gain changes |
-| `edge_silence_threshold_db` | integer | Silence threshold used by leading/trailing edge trim |
-| `edge_silence_min_ms` | integer | Minimum leading/trailing silence duration to trim |
 | `internal_pause_silence_threshold_db` | integer | Silence threshold passed to ffmpeg `silencedetect` on DeepFilterNet-cleaned analysis audio |
 | `internal_pause_threshold_ms` | integer | Internal silence duration that qualifies for pause speed-up |
 | `internal_pause_target_gap_ms` | integer | Target duration for sped-up pause segments |

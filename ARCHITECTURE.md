@@ -39,7 +39,7 @@ Anki Audio Quick Editor keeps the human-facing architecture doc short and puts t
 3. `editor_ui.py` injects compact controls near fields containing supported `[sound:...]` tags through `editor_will_load_note`.
 4. Controls mount a compact SVG prosody visualizer and request async analysis for the current referenced media.
 5. `prosody_analyzer.py` uses optional Parselmouth/Praat when available and falls back to ffmpeg-decoded PCM pitch/intensity analysis otherwise.
-6. Processing button presses update an `AudioEditState` for the current field, including trim, speed, volume, and silence edits, then render a new MP3 with `audio_processor.py`.
+6. Processing button presses update an `AudioEditState` for the current field, including manual trim, speed, volume, and pause-shortening edits, then render a new MP3 with `audio_processor.py`.
 7. Special transform buttons call bundled or configured external denoisers/restorers through `audio_processor.py`, including DeepFilterNet, Sidon, and MP-SENet.
 8. `editor_integration.py` writes the result through Anki's media manager and replaces the first supported sound reference in the field.
 9. Playback uses Anki's audio player against the latest generated reference, stopping any previous playback first and seeking to the visualizer cursor when set.
@@ -50,7 +50,6 @@ Anki Audio Quick Editor keeps the human-facing architecture doc short and puts t
 Shared batchable operations live in `audio_operations.py` and are the only supported cross-UI operation source of truth:
 
 - `graph`
-- `trim_silence`
 - `remove_pauses` (`Shorten Pauses` in the UI)
 - `slower`
 - `faster`
@@ -73,7 +72,7 @@ The shared `remove_pauses` operation is DeepFilterNet-assisted and speeds long p
 1. `audio_processor.py` remains the side-effect boundary for ffmpeg, DeepFilterNet, and artifact filesystem writes.
 2. `audio_pipeline.py` is import-safe planning code for parsing `silencedetect` output, building pause timelines, generating filter scripts, and naming retained runs.
 3. Editor and Browser adapters pass `<addon_dir>/aqe_artifacts` into `render_audio(...)` so each pause-shortening run keeps its own provenance directory.
-4. The pipeline renders `01_working_original.wav` from the original source with manual trims and optional edge trim, prepares `02_analysis_input_48k_mono.wav`, runs DeepFilterNet into `03_deep_filter_output/`, detects silence on the cleaned analysis audio, and renders the final MP3 from `01_working_original.wav`.
+4. The pipeline renders `01_working_original.wav` from the original source with manual trims, prepares `02_analysis_input_48k_mono.wav`, runs DeepFilterNet into `03_deep_filter_output/`, detects silence on the cleaned analysis audio, and renders the final MP3 from `01_working_original.wav`.
 5. The artifact directory retains the working WAV, analysis WAV, DeepFilter output, raw silence metadata, parsed interval JSON, timeline JSON, generated `filter_complex` script, final MP3 copy, and `manifest.json`.
 6. DeepFilterNet is required for this operation. Failures keep the partial artifact directory, record a pause-pipeline support incident, and leave the note unchanged.
 
@@ -104,7 +103,7 @@ Config defaults are stored in `config.json` and migrated into user config:
 
 ```json
 {
-  "_config_version": 6,
+  "_config_version": 7,
   "enabled": true,
   "debug_logging": false,
   "show_ffmpeg_commands": false,
@@ -116,8 +115,6 @@ Config defaults are stored in `config.json` and migrated into user config:
   "volume_step_db": 3.0,
   "min_volume_db": -24.0,
   "max_volume_db": 24.0,
-  "edge_silence_threshold_db": -35,
-  "edge_silence_min_ms": 100,
   "internal_pause_silence_threshold_db": -45,
   "internal_pause_threshold_ms": 300,
   "internal_pause_target_gap_ms": 100,

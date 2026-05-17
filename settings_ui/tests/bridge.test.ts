@@ -35,8 +35,6 @@ describe("settingsSave", () => {
       volume_step_db: 3.0,
       min_volume_db: -24.0,
       max_volume_db: 24.0,
-      edge_silence_threshold_db: -35,
-      edge_silence_min_ms: 100,
       internal_pause_silence_threshold_db: -45,
       internal_pause_threshold_ms: 300,
       internal_pause_target_gap_ms: 100,

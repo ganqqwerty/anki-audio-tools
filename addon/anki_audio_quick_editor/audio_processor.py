@@ -253,7 +253,7 @@ def render_audio(
             source_duration_ms=duration_ms,
         )
 
-    filters = build_audio_filters(duration_ms, state, config)
+    filters = build_audio_filters(duration_ms, state)
     cmd = build_ffmpeg_command(ffmpeg_path, source_path, filters, output_path)
     if on_command:
         on_command(cmd)
@@ -568,7 +568,7 @@ def _render_deep_filter_pause_speedup_audio(
         deep_filter_path = find_deep_filter(config.deep_filter_path)
         manifest["deep_filter_path"] = str(deep_filter_path)
         write_manifest()
-        working_filters = build_working_original_filters(source_duration_ms, state, config)
+        working_filters = build_working_original_filters(source_duration_ms, state)
         working_cmd = build_wav_filter_command(
             ffmpeg_path,
             source_path,
@@ -1132,7 +1132,6 @@ def _build_pause_pipeline_manifest(
             "right_trim_ms": state.right_trim_ms,
             "speed": state.speed,
             "volume_db": state.volume_db,
-            "edge_trim_enabled": state.edge_trim_enabled,
             "remove_internal_pauses_enabled": state.remove_internal_pauses_enabled,
         },
         "config": _pause_pipeline_config_snapshot(config),
@@ -1164,8 +1163,6 @@ def _pause_pipeline_config_snapshot(config: AudioProcessingConfig) -> dict[str, 
         "ffmpeg_path": config.ffmpeg_path,
         "deep_filter_path": config.deep_filter_path,
         "deep_filter_post_filter": config.deep_filter_post_filter,
-        "edge_silence_threshold_db": config.edge_silence_threshold_db,
-        "edge_silence_min_ms": config.edge_silence_min_ms,
         "internal_pause_silence_threshold_db": config.internal_pause_silence_threshold_db,
         "internal_pause_threshold_ms": config.internal_pause_threshold_ms,
         "internal_pause_target_gap_ms": config.internal_pause_target_gap_ms,
@@ -1293,10 +1290,9 @@ def format_ffmpeg_command(command: tuple[str, ...]) -> str:
 def build_audio_filters(
     duration_ms: int,
     state: AudioEditState,
-    config: AudioProcessingConfig,
 ) -> str:
     """Build the ffmpeg audio filter chain for an edit state."""
-    filters = build_working_original_filters(duration_ms, state, config).split(",")
+    filters = build_working_original_filters(duration_ms, state).split(",")
 
     if not math.isclose(state.volume_db, 0.0):
         filters.append(f"volume={state.volume_db:.2f}dB")
@@ -1309,7 +1305,6 @@ def build_audio_filters(
 def build_working_original_filters(
     duration_ms: int,
     state: AudioEditState,
-    config: AudioProcessingConfig,
 ) -> str:
     """Build filters for original-derived audio before pause speed-up analysis."""
     filters: list[str] = []
@@ -1317,15 +1312,6 @@ def build_working_original_filters(
     end_s = (duration_ms - state.right_trim_ms) / 1000
     filters.append(f"atrim=start={start_s:.3f}:end={end_s:.3f}")
     filters.append("asetpts=PTS-STARTPTS")
-
-    edge_threshold = f"{config.edge_silence_threshold_db}dB"
-    if state.edge_trim_enabled:
-        edge_s = config.edge_silence_min_ms / 1000
-        filters.append(
-            "silenceremove="
-            f"start_periods=1:start_duration={edge_s:.3f}:start_threshold={edge_threshold}:"
-            f"stop_periods=1:stop_duration={edge_s:.3f}:stop_threshold={edge_threshold}"
-        )
 
     return ",".join(filters)
 

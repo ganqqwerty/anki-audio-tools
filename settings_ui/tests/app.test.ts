@@ -4,7 +4,7 @@ import { describe, expect, it, vi } from "vitest";
 import App from "../src/App.svelte";
 
 const defaultConfig = {
-  _config_version: 6,
+  _config_version: 7,
   enabled: true,
   debug_logging: false,
   show_ffmpeg_commands: false,
@@ -16,8 +16,6 @@ const defaultConfig = {
   volume_step_db: 3.0,
   min_volume_db: -24.0,
   max_volume_db: 24.0,
-  edge_silence_threshold_db: -35,
-  edge_silence_min_ms: 100,
   internal_pause_silence_threshold_db: -45,
   internal_pause_threshold_ms: 300,
   internal_pause_target_gap_ms: 100,
@@ -56,7 +54,7 @@ describe("App", () => {
     expect(screen.getByText("Volume step (dB)")).toBeInTheDocument();
     expect(screen.getByText("Min volume (dB)")).toBeInTheDocument();
     expect(screen.getByText("Max volume (dB)")).toBeInTheDocument();
-    expect(screen.getByText("Edge silence threshold (dB)")).toBeInTheDocument();
+    expect(screen.queryByText("Edge silence threshold (dB)")).not.toBeInTheDocument();
     expect(screen.getByText("Internal pause silence threshold (dB)")).toBeInTheDocument();
   });
 

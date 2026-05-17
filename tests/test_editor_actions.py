@@ -6,7 +6,6 @@ from anki_audio_quick_editor.audio_operations import (
     OP_FASTER,
     OP_REMOVE_PAUSES,
     OP_SLOWER,
-    OP_TRIM_SILENCE,
     OP_VOLUME_DOWN,
     OP_VOLUME_UP,
 )
@@ -30,7 +29,6 @@ def test_batchable_processing_commands_map_to_shared_operations() -> None:
         "aqe:faster": OP_FASTER,
         "aqe:volume-down": OP_VOLUME_DOWN,
         "aqe:volume-up": OP_VOLUME_UP,
-        "aqe:trim-silence": OP_TRIM_SILENCE,
         "aqe:remove-pauses": OP_REMOVE_PAUSES,
     }
     assert operation_for_command("aqe:trim-left") is None
@@ -51,10 +49,10 @@ def test_apply_processing_command_handles_speed_and_feature_toggles() -> None:
     state = AudioEditState("clip.mp3")
 
     faster = apply_processing_command("aqe:faster", state, config)
-    edge_trimmed = apply_processing_command("aqe:trim-silence", state, config)
+    pauses_shortened = apply_processing_command("aqe:remove-pauses", state, config)
 
     assert faster == AudioEditState("clip.mp3", speed=1.1)
-    assert edge_trimmed == AudioEditState("clip.mp3", edge_trim_enabled=True)
+    assert pauses_shortened == AudioEditState("clip.mp3", remove_internal_pauses_enabled=True)
 
 
 def test_apply_processing_command_handles_volume_steps() -> None:
@@ -85,6 +83,7 @@ def test_play_graph_cursor_and_play_ended_are_not_processing_commands() -> None:
         "aqe:remove-noise",
         "aqe:sidon",
         "aqe:mp-senet",
+        "aqe:trim-silence",
     }.isdisjoint(PROCESSING_COMMANDS)
 
 

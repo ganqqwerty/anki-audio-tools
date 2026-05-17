@@ -86,9 +86,8 @@ def test_validate_rejects_invalid_volume() -> None:
 
 
 def test_feature_toggles_only_enable_processing_steps() -> None:
-    state = AudioEditState("clip.mp3").toggle_edge_trim().toggle_internal_pauses()
+    state = AudioEditState("clip.mp3").toggle_internal_pauses()
 
-    assert state.edge_trim_enabled is True
     assert state.remove_internal_pauses_enabled is True
 
 
@@ -99,7 +98,6 @@ def test_processing_config_from_partial_config_uses_defaults() -> None:
     assert config.volume_step_db == 3.0
     assert config.min_volume_db == -24.0
     assert config.max_volume_db == 24.0
-    assert config.edge_silence_threshold_db == -35
     assert config.internal_pause_silence_threshold_db == -45
     assert config.output_format == "mp3"
     assert config.ffmpeg_path == "/opt/bin/ffmpeg"

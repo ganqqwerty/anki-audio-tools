@@ -19,8 +19,6 @@ class AudioProcessingConfig:
     volume_step_db: float = 3.0
     min_volume_db: float = -24.0
     max_volume_db: float = 24.0
-    edge_silence_threshold_db: int = -35
-    edge_silence_min_ms: int = 100
     internal_pause_silence_threshold_db: int = -45
     internal_pause_threshold_ms: int = 300
     internal_pause_target_gap_ms: int = 100
@@ -42,10 +40,6 @@ class AudioProcessingConfig:
             volume_step_db=float(config.get("volume_step_db", cls.volume_step_db)),
             min_volume_db=float(config.get("min_volume_db", cls.min_volume_db)),
             max_volume_db=float(config.get("max_volume_db", cls.max_volume_db)),
-            edge_silence_threshold_db=int(
-                config.get("edge_silence_threshold_db", cls.edge_silence_threshold_db)
-            ),
-            edge_silence_min_ms=int(config.get("edge_silence_min_ms", cls.edge_silence_min_ms)),
             internal_pause_silence_threshold_db=int(
                 config.get(
                     "internal_pause_silence_threshold_db",
@@ -79,7 +73,6 @@ class AudioEditState:
     right_trim_ms: int = 0
     speed: float = 1.0
     volume_db: float = 0.0
-    edge_trim_enabled: bool = False
     remove_internal_pauses_enabled: bool = False
 
     def trim_left(self, step_ms: int) -> "AudioEditState":
@@ -119,10 +112,6 @@ class AudioEditState:
             self,
             volume_db=round(max(config.min_volume_db, self.volume_db - config.volume_step_db), 2),
         )
-
-    def toggle_edge_trim(self) -> "AudioEditState":
-        """Return a state with edge silence trimming enabled."""
-        return replace(self, edge_trim_enabled=True)
 
     def toggle_internal_pauses(self) -> "AudioEditState":
         """Return a state with internal pause compression enabled."""

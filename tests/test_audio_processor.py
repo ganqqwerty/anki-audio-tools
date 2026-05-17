@@ -315,39 +315,32 @@ def test_find_ffprobe_raises_when_no_binary_available(monkeypatch, tmp_path: Pat
 
 
 def test_build_audio_filters_includes_crop_speed_and_silence_steps() -> None:
-    config = AudioProcessingConfig()
     state = AudioEditState(
         "clip.mp3",
         left_trim_ms=200,
         right_trim_ms=100,
         speed=1.15,
         volume_db=3.0,
-        edge_trim_enabled=True,
         remove_internal_pauses_enabled=True,
     )
 
-    filters = build_audio_filters(3000, state, config)
-    edge_threshold = f"{config.edge_silence_threshold_db}dB"
+    filters = build_audio_filters(3000, state)
 
     assert "atrim=start=0.200:end=2.900" in filters
-    assert "silenceremove=start_periods=1" in filters
-    assert f"start_threshold={edge_threshold}" in filters
-    assert f"stop_periods=1:stop_duration=0.100:stop_threshold={edge_threshold}" in filters
-    assert "stop_periods=-1" not in filters
-    assert "stop_silence=0.100" not in filters
+    assert "silenceremove" not in filters
     assert "volume=3.00dB" in filters
     assert "atempo=1.150" in filters
     assert filters.index("volume=3.00dB") < filters.index("atempo=1.150")
 
 
 def test_build_audio_filters_omits_volume_filter_when_unchanged() -> None:
-    filters = build_audio_filters(3000, AudioEditState("clip.mp3"), AudioProcessingConfig())
+    filters = build_audio_filters(3000, AudioEditState("clip.mp3"))
 
     assert "volume=" not in filters
 
 
 def test_build_audio_filters_omits_atempo_when_speed_is_unchanged() -> None:
-    filters = build_audio_filters(3000, AudioEditState("clip.mp3", speed=1.0), AudioProcessingConfig())
+    filters = build_audio_filters(3000, AudioEditState("clip.mp3", speed=1.0))
 
     assert "atempo=" not in filters
 
@@ -361,7 +354,6 @@ def test_build_working_original_filters_omits_volume_speed_and_internal_pause_pr
             volume_db=3.0,
             remove_internal_pauses_enabled=True,
         ),
-        AudioProcessingConfig(),
     )
 
     assert filters == "atrim=start=0.000:end=3.000,asetpts=PTS-STARTPTS"
@@ -394,39 +386,29 @@ def test_build_silencedetect_command_uses_exact_pause_threshold_and_gap_values(t
     )
 
 
-def test_build_audio_filters_preserves_precise_silence_filter_parameters() -> None:
+def test_build_audio_filters_omits_edge_silence_filter_parameters() -> None:
     config = AudioProcessingConfig(
-        edge_silence_min_ms=509,
         internal_pause_silence_threshold_db=-47,
         internal_pause_threshold_ms=509,
         internal_pause_target_gap_ms=509,
     )
     state = AudioEditState(
         "clip.mp3",
-        edge_trim_enabled=True,
         remove_internal_pauses_enabled=True,
     )
 
-    filters = build_audio_filters(3000, state, config)
-    edge_threshold = f"{config.edge_silence_threshold_db}dB"
+    filters = build_audio_filters(3000, state)
     pause_threshold = f"{config.internal_pause_silence_threshold_db}dB"
 
-    assert "start_duration=0.509" in filters
-    assert "stop_duration=0.509" in filters
-    assert "stop_silence=0.509" not in filters
-    assert filters.count("silenceremove=") == 1
-    assert (
-        "silenceremove="
-        f"start_periods=1:start_duration=0.509:start_threshold={edge_threshold}:"
-        f"stop_periods=1:stop_duration=0.509:stop_threshold={edge_threshold}"
-    ) in filters
+    assert "silenceremove" not in filters
+    assert "start_duration=0.509" not in filters
     assert pause_threshold not in filters
 
 
 def test_build_audio_filters_preserves_precise_trim_boundaries() -> None:
     state = AudioEditState("clip.mp3", left_trim_ms=999, right_trim_ms=222)
 
-    filters = build_audio_filters(3000, state, AudioProcessingConfig())
+    filters = build_audio_filters(3000, state)
 
     assert filters.startswith("atrim=start=0.999:end=2.778,asetpts=PTS-STARTPTS")
 

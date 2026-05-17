@@ -108,6 +108,25 @@ class TestMigrateConfig:
         assert migrated["_config_version"] == CURRENT_CONFIG_VERSION
         assert changed is True
 
+    def test_removes_deleted_edge_silence_keys(self) -> None:
+        user = {
+            "_config_version": 6,
+            "enabled": True,
+            "edge_silence_threshold_db": -35,
+            "edge_silence_min_ms": 100,
+        }
+        defaults = {
+            "_config_version": CURRENT_CONFIG_VERSION,
+            "enabled": True,
+        }
+
+        migrated, changed = migrate_config(user, defaults)
+
+        assert "edge_silence_threshold_db" not in migrated
+        assert "edge_silence_min_ms" not in migrated
+        assert migrated["_config_version"] == CURRENT_CONFIG_VERSION
+        assert changed is True
+
     def test_current_version_only_marks_change_when_defaults_add_values(self) -> None:
         user = {"_config_version": CURRENT_CONFIG_VERSION, "enabled": False}
         defaults = {

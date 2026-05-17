@@ -66,7 +66,7 @@ Example field:
 Example inline controls:
 
 ```text
-▶  [ -L ] [ +L ] [ -R ] [ +R ] [ Trim Silence ] [ Shorten Pauses ] [ Slower ] [ Faster ] [ Undo ]
+▶  [ -L ] [ +L ] [ -R ] [ +R ] [ Shorten Pauses ] [ Slower ] [ Faster ] [ Undo ]
 <pitch Hz line over intensity fill, draggable cursor>
 ```
 
@@ -74,7 +74,7 @@ Main flow:
 
 1. User opens an Anki note in the editor.
 2. The add-on scans fields and injects controls near supported audio fields.
-3. User clicks an edit action such as `-L`, `Faster`, or `Trim Silence`.
+3. User clicks an edit action such as `-L`, `Faster`, or `Shorten Pauses`.
 4. Controls disable immediately and show a processing status.
 5. The add-on renders a new MP3 with ffmpeg.
 6. The new MP3 is added to Anki media using Anki's media APIs.
@@ -143,7 +143,6 @@ Bridge commands:
 - `aqe:untrim-right`
 - `aqe:slower`
 - `aqe:faster`
-- `aqe:trim-silence`
 - `aqe:remove-pauses`
 - `aqe:undo`
 
@@ -284,22 +283,7 @@ Acceptance criteria:
 - Pitch remains preserved.
 - Invalid speeds are rejected before rendering.
 
-## FR8 - Edge Silence Trim
-
-The add-on must optionally remove leading and trailing silence.
-
-Defaults:
-
-- Threshold: `-35 dB`.
-- Minimum edge silence: `100 ms`.
-
-Acceptance criteria:
-
-- Leading silence is reduced.
-- Trailing silence is reduced.
-- Speech should not be aggressively cut.
-
-## FR9 - Internal Pause Compression
+## FR8 - Internal Pause Compression
 
 The add-on must optionally compress long internal pauses.
 
@@ -369,7 +353,7 @@ Current config defaults:
 
 ```json
 {
-  "_config_version": 3,
+  "_config_version": 7,
   "enabled": true,
   "debug_logging": false,
   "show_ffmpeg_commands": false,
@@ -378,12 +362,16 @@ Current config defaults:
   "speed_step": 0.05,
   "min_speed": 0.75,
   "max_speed": 1.5,
-  "edge_silence_threshold_db": -35,
-  "edge_silence_min_ms": 100,
+  "volume_step_db": 3.0,
+  "min_volume_db": -24.0,
+  "max_volume_db": 24.0,
+  "internal_pause_silence_threshold_db": -45,
   "internal_pause_threshold_ms": 300,
   "internal_pause_target_gap_ms": 100,
   "output_format": "mp3",
-  "ffmpeg_path": ""
+  "ffmpeg_path": "",
+  "deep_filter_path": "",
+  "deep_filter_post_filter": true
 }
 ```
 

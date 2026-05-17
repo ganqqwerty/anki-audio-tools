@@ -27,7 +27,6 @@ def test_browser_operation_selector_is_driven_by_shared_registry() -> None:
     assert "for operation in BATCH_OPERATIONS:" in text
     assert "OPERATION_LABELS[operation]" in text
     for literal in (
-        "trim_silence",
         "remove_pauses",
         "slower",
         "faster",

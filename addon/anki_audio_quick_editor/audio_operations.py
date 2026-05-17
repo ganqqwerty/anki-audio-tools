@@ -5,7 +5,6 @@ from __future__ import annotations
 from .audio_state import AudioEditState, AudioProcessingConfig
 
 OP_GRAPH = "graph"
-OP_TRIM_SILENCE = "trim_silence"
 OP_REMOVE_PAUSES = "remove_pauses"
 OP_SLOWER = "slower"
 OP_FASTER = "faster"
@@ -13,7 +12,6 @@ OP_VOLUME_DOWN = "volume_down"
 OP_VOLUME_UP = "volume_up"
 
 TRANSFORM_OPERATIONS = (
-    OP_TRIM_SILENCE,
     OP_REMOVE_PAUSES,
     OP_SLOWER,
     OP_FASTER,
@@ -25,7 +23,6 @@ BATCH_OPERATIONS = (OP_GRAPH,) + TRANSFORM_OPERATIONS
 
 OPERATION_LABELS: dict[str, str] = {
     OP_GRAPH: "Graph",
-    OP_TRIM_SILENCE: "Trim Silence",
     OP_REMOVE_PAUSES: "Shorten Pauses",
     OP_SLOWER: "Slower",
     OP_FASTER: "Faster",
@@ -59,7 +56,6 @@ def apply_audio_operation(
     """Return the next edit state after applying one shared audio operation."""
     validate_operation(operation)
     actions = {
-        OP_TRIM_SILENCE: state.toggle_edge_trim,
         OP_REMOVE_PAUSES: state.toggle_internal_pauses,
         OP_SLOWER: lambda: state.slower(config),
         OP_FASTER: lambda: state.faster(config),

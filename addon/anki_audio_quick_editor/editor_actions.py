@@ -6,7 +6,6 @@ from .audio_operations import (
     OP_FASTER,
     OP_REMOVE_PAUSES,
     OP_SLOWER,
-    OP_TRIM_SILENCE,
     OP_VOLUME_DOWN,
     OP_VOLUME_UP,
     apply_audio_operation,
@@ -19,7 +18,6 @@ CMD_SLOWER = "aqe:slower"
 CMD_FASTER = "aqe:faster"
 CMD_VOLUME_DOWN = "aqe:volume-down"
 CMD_VOLUME_UP = "aqe:volume-up"
-CMD_TRIM_SILENCE = "aqe:trim-silence"
 CMD_REMOVE_PAUSES = "aqe:remove-pauses"
 CMD_REMOVE_NOISE = "aqe:remove-noise"
 CMD_SIDON = "aqe:sidon"
@@ -38,7 +36,6 @@ BRIDGE_COMMANDS = (
     CMD_FASTER,
     CMD_VOLUME_DOWN,
     CMD_VOLUME_UP,
-    CMD_TRIM_SILENCE,
     CMD_REMOVE_PAUSES,
     CMD_REMOVE_NOISE,
     CMD_SIDON,
@@ -53,7 +50,6 @@ PROCESSING_COMMANDS = (
     CMD_FASTER,
     CMD_VOLUME_DOWN,
     CMD_VOLUME_UP,
-    CMD_TRIM_SILENCE,
     CMD_REMOVE_PAUSES,
 )
 
@@ -62,7 +58,6 @@ BRIDGE_COMMAND_TO_OPERATION = {
     CMD_FASTER: OP_FASTER,
     CMD_VOLUME_DOWN: OP_VOLUME_DOWN,
     CMD_VOLUME_UP: OP_VOLUME_UP,
-    CMD_TRIM_SILENCE: OP_TRIM_SILENCE,
     CMD_REMOVE_PAUSES: OP_REMOVE_PAUSES,
 }
 

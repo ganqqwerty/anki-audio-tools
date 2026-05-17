@@ -698,7 +698,6 @@ def test_each_processing_button_updates_field_to_new_real_audio(
                 "Folder",
                 "-L",
                 "-R",
-                "Trim Silence",
                 "Shorten Pauses",
                 "Sidon",
                 "MP-SENet",
@@ -721,7 +720,6 @@ def test_each_processing_button_updates_field_to_new_real_audio(
             "aqe:faster",
             "aqe:volume-down",
             "aqe:volume-up",
-            "aqe:trim-silence",
             "aqe:remove-pauses",
         ):
             wait_for_selector(editor.web, _button_selector(command), timeout=5.0)
@@ -1993,7 +1991,7 @@ def test_undo_restores_previous_generated_reference(anki_mw, ffmpeg_config) -> N
 
         previous_name = source.name
         generated_names: list[str] = []
-        for command in ("aqe:trim-left", "aqe:faster", "aqe:trim-right", "aqe:trim-silence"):
+        for command in ("aqe:trim-left", "aqe:faster", "aqe:trim-right", "aqe:volume-up"):
             previous_name = _click_and_wait_for_new_file(
                 editor, note, media_dir, command, previous_name
             )
