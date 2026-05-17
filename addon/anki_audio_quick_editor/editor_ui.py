@@ -164,6 +164,7 @@ _SCRIPT_TEMPLATE = r"""
     wrapper.dataset.testid = `aqe-graph-${ord}`;
     wrapper.hidden = true;
     wrapper.innerHTML = `
+      <audio class="aqe-audio-clock" data-testid="aqe-audio-clock-${ord}" preload="metadata" muted hidden></audio>
       <svg class="aqe-visualizer-svg" data-testid="aqe-graph-svg-${ord}" viewBox="0 0 ${plot.width} ${plot.height}" role="img" aria-label="Audio pitch and intensity visualization">
         <path class="aqe-intensity" data-testid="aqe-intensity-${ord}" d=""></path>
         <g class="aqe-pitch" data-testid="aqe-pitch-${ord}"></g>
@@ -177,6 +178,8 @@ _SCRIPT_TEMPLATE = r"""
         <span class="aqe-visualizer-status" data-testid="aqe-graph-status-${ord}"></span>
       </div>
     `;
+    resetAudioClockState(wrapper);
+    installAudioClockHandlers(wrapper);
     const svg = wrapper.querySelector(".aqe-visualizer-svg");
     svg.addEventListener("pointerdown", (event) => startCursorDrag(event, wrapper, ord, true));
     return wrapper;
@@ -312,10 +315,8 @@ _SCRIPT_TEMPLATE = r"""
       }
       const visualizer = controls.querySelector(".aqe-visualizer");
       if (!visualizer) return;
-      if (visualizer.__aqePlaybackTimer) {
-        window.cancelAnimationFrame(visualizer.__aqePlaybackTimer);
-        visualizer.__aqePlaybackTimer = null;
-      }
+      clearPlaybackFrame(visualizer);
+      clearAudioClockSource(visualizer);
       visualizer.hidden = true;
       visualizer.dataset.anchorMs = "0";
       visualizer.dataset.cursorMs = "0";
@@ -330,6 +331,7 @@ _SCRIPT_TEMPLATE = r"""
       visualizer.dataset.analyzerName = "";
       visualizer.dataset.playStartedAt = "0";
       visualizer.dataset.playStartMs = "0";
+      visualizer.dataset.progressClockMode = "stopped";
       const intensity = visualizer.querySelector(".aqe-intensity");
       if (intensity) intensity.setAttribute("d", "");
       const pitch = visualizer.querySelector(".aqe-pitch");
@@ -407,6 +409,134 @@ _SCRIPT_TEMPLATE = r"""
   function formatTime(ms, durationMs) {
     if (durationMs && durationMs < 2000) return `${Math.round(ms)} ms`;
     return `${(ms / 1000).toFixed(2)}s`;
+  }
+
+  function mediaUrlForFilename(filename) {
+    return encodeURIComponent(filename || "").replace(/%2F/gi, "/");
+  }
+
+  function audioClockFor(visualizer) {
+    return visualizer && visualizer.querySelector(".aqe-audio-clock");
+  }
+
+  function resetAudioClockState(visualizer) {
+    visualizer.__aqeAudioClockAvailable = false;
+    visualizer.__aqeAudioClockFallback = false;
+    visualizer.__aqeAudioClockLastSeekedMs = 0;
+    visualizer.dataset.progressClockMode = "stopped";
+  }
+
+  function clearPlaybackFrame(visualizer) {
+    if (visualizer.__aqePlaybackTimer) {
+      window.cancelAnimationFrame(visualizer.__aqePlaybackTimer);
+      visualizer.__aqePlaybackTimer = null;
+    }
+  }
+
+  function pauseAudioClock(visualizer) {
+    const audio = audioClockFor(visualizer);
+    if (!audio || typeof audio.pause !== "function") return;
+    try {
+      audio.pause();
+    } catch (_error) {
+      visualizer.__aqeAudioClockAvailable = false;
+      visualizer.__aqeAudioClockFallback = true;
+    }
+  }
+
+  function clearAudioClockSource(visualizer) {
+    const audio = audioClockFor(visualizer);
+    resetAudioClockState(visualizer);
+    if (!audio) return;
+    pauseAudioClock(visualizer);
+    if (typeof audio.removeAttribute === "function") {
+      audio.removeAttribute("src");
+    }
+    if ("src" in audio) {
+      audio.src = "";
+    }
+    try {
+      if (typeof audio.load === "function") audio.load();
+    } catch (_error) {
+      visualizer.__aqeAudioClockFallback = true;
+    }
+  }
+
+  function configureAudioClock(visualizer, filename) {
+    const audio = audioClockFor(visualizer);
+    resetAudioClockState(visualizer);
+    if (!audio) {
+      visualizer.__aqeAudioClockFallback = true;
+      return;
+    }
+    pauseAudioClock(visualizer);
+    if (!filename) {
+      clearAudioClockSource(visualizer);
+      return;
+    }
+    const source = mediaUrlForFilename(filename);
+    if (typeof audio.setAttribute === "function") {
+      audio.setAttribute("src", source);
+    } else {
+      audio.src = source;
+    }
+    try {
+      if (typeof audio.load === "function") audio.load();
+    } catch (_error) {
+      visualizer.__aqeAudioClockAvailable = false;
+      visualizer.__aqeAudioClockFallback = true;
+    }
+  }
+
+  function installAudioClockHandlers(visualizer) {
+    const audio = audioClockFor(visualizer);
+    if (!audio || audio.__aqeClockHandlersInstalled || typeof audio.addEventListener !== "function") return;
+    audio.__aqeClockHandlersInstalled = true;
+    audio.addEventListener("loadedmetadata", () => {
+      if (typeof audio.getAttribute === "function" && !audio.getAttribute("src")) return;
+      visualizer.__aqeAudioClockAvailable = true;
+      visualizer.__aqeAudioClockFallback = false;
+    });
+    audio.addEventListener("error", () => {
+      visualizer.__aqeAudioClockAvailable = false;
+      visualizer.__aqeAudioClockFallback = true;
+      if (visualizer.dataset.playbackState === "playing" && visualizer.dataset.progressClockMode === "audio") {
+        startManualProgressClock(visualizer, Number(visualizer.dataset.cursorMs || "0"));
+      }
+    });
+    audio.addEventListener("ended", () => {
+      if (visualizer.dataset.playbackState === "playing") completePlayback(visualizer);
+    });
+    audio.addEventListener("seeked", () => {
+      visualizer.__aqeAudioClockLastSeekedMs = Math.round((Number(audio.currentTime) || 0) * 1000);
+    });
+  }
+
+  function audioClockReady(visualizer) {
+    const audio = audioClockFor(visualizer);
+    if (!audio || !visualizer.__aqeAudioClockAvailable) return false;
+    if (typeof audio.getAttribute === "function" && !audio.getAttribute("src")) return false;
+    return audio.readyState === undefined || audio.readyState >= 1;
+  }
+
+  function clampProgressMs(visualizer, ms) {
+    const durationMs = Number(visualizer.dataset.durationMs || "0");
+    return Math.max(0, Math.min(Number(ms) || 0, durationMs || 0));
+  }
+
+  function seekAudioClock(visualizer, ms) {
+    const audio = audioClockFor(visualizer);
+    if (!audio) return false;
+    const clamped = clampProgressMs(visualizer, ms);
+    try {
+      audio.currentTime = clamped / 1000;
+      visualizer.__aqeAudioClockLastSeekedMs = Math.round(clamped);
+      return true;
+    } catch (_error) {
+      visualizer.__aqeAudioClockAvailable = false;
+      visualizer.__aqeAudioClockFallback = true;
+      return false;
+    }
   }
 
   function pathForIntensity(points, durationMs) {
@@ -524,9 +654,12 @@ _SCRIPT_TEMPLATE = r"""
 
   function graphPixelBounds(svg) {
     const rect = svg.getBoundingClientRect();
-    const scaleX = rect.width / plot.width;
+    const rectWidth = Number(rect.width) || plot.width;
+    const rectHeight = Number(rect.height) || plot.height;
+    const scaleX = Math.min(rectWidth / plot.width, rectHeight / plot.height) || 1;
+    const renderedViewBoxLeft = rect.left + (rectWidth - plot.width * scaleX) / 2;
     return {
-      left: rect.left + plot.left * scaleX,
+      left: renderedViewBoxLeft + plot.left * scaleX,
       width: plotWidth() * scaleX
     };
   }
@@ -541,7 +674,7 @@ _SCRIPT_TEMPLATE = r"""
     event.preventDefault();
     const previousPlaybackState = visualizer.dataset.playbackState || "stopped";
     if (previousPlaybackState === "playing") {
-      stopPlaybackTimer(visualizer);
+      stopProgressClock(visualizer);
     }
     const svg = visualizer.querySelector(".aqe-visualizer-svg");
     const durationMs = Number(visualizer.dataset.durationMs || "0");
@@ -556,10 +689,14 @@ _SCRIPT_TEMPLATE = r"""
       if (previousPlaybackState === "paused") {
         visualizer.dataset.resumeRequiresRestart = "true";
       }
-      setCursor(visualizer, cursorMsFromEvent(upEvent, svg, durationMs), notifyPython, {
+      const releasedMs = cursorMsFromEvent(upEvent, svg, durationMs);
+      setCursor(visualizer, releasedMs, notifyPython, {
         previousPlaybackState,
         restartPlayback
       });
+      if (audioClockReady(visualizer)) {
+        seekAudioClock(visualizer, releasedMs);
+      }
     };
     move(event);
     window.addEventListener("pointermove", move);
@@ -569,7 +706,7 @@ _SCRIPT_TEMPLATE = r"""
   function requestGraph(ord, notifyPython) {
     const visualizer = visualizerForOrd(ord);
     if (!visualizer) return;
-    stopPlaybackTimer(visualizer);
+    stopProgressClock(visualizer, { clearAudio: true });
     visualizer.hidden = false;
     visualizer.dataset.graphActive = "true";
     visualizer.dataset.graphBusy = "true";
@@ -603,31 +740,63 @@ _SCRIPT_TEMPLATE = r"""
     return true;
   }
 
-  function startPlaybackTimer(visualizer, startMs) {
-    stopPlaybackTimer(visualizer);
-    const durationMs = Number(visualizer.dataset.durationMs || "0");
-    if (!durationMs) return;
-    visualizer.dataset.playbackState = "playing";
-    visualizer.dataset.playStartedAt = String(performance.now());
-    visualizer.dataset.playStartMs = String(Number(startMs) || 0);
+  function setPlaybackButtonLabel(visualizer, label) {
     const ord = Number(visualizer.dataset.aqeFieldOrd || "0");
     const button = playButton(ord);
-    if (button) button.textContent = "Pause";
+    if (button) button.textContent = label;
+  }
+
+  function manualProgressMs(visualizer) {
+    const durationMs = Number(visualizer.dataset.durationMs || "0");
+    const elapsed = performance.now() - Number(visualizer.dataset.playStartedAt || "0");
+    return Math.min(durationMs, Number(visualizer.dataset.playStartMs || "0") + elapsed);
+  }
+
+  function audioProgressMs(visualizer) {
+    const audio = audioClockFor(visualizer);
+    if (!audio) return null;
+    const durationMs = Number(visualizer.dataset.durationMs || "0");
+    return Math.min(durationMs, (Number(audio.currentTime) || 0) * 1000);
+  }
+
+  function currentProgressMs(visualizer) {
+    if (visualizer.dataset.progressClockMode === "audio") {
+      return audioProgressMs(visualizer);
+    }
+    if (visualizer.dataset.progressClockMode === "manual") {
+      return manualProgressMs(visualizer);
+    }
+    return Number(visualizer.dataset.progressMs || visualizer.dataset.cursorMs || "0");
+  }
+
+  function completePlayback(visualizer) {
+    const ord = Number(visualizer.dataset.aqeFieldOrd || "0");
+    const anchorMs = Number(visualizer.dataset.anchorMs || "0");
+    stopProgressClock(visualizer);
+    setCursor(visualizer, anchorMs, false, { updateAnchor: false });
+    if (audioClockReady(visualizer)) {
+      seekAudioClock(visualizer, anchorMs);
+    }
+    clearStatus(ord);
+    if (typeof pycmd === "function") {
+      window.__aqeActiveField = ord;
+      pycmd("focus:" + ord);
+      pycmd("aqe:play-ended");
+    }
+  }
+
+  function paintProgressFromClock(visualizer) {
+    const durationMs = Number(visualizer.dataset.durationMs || "0");
     const tick = () => {
       if (visualizer.dataset.playbackState !== "playing") return;
-      const elapsed = performance.now() - Number(visualizer.dataset.playStartedAt || "0");
-      const nextMs = Math.min(durationMs, Number(visualizer.dataset.playStartMs || "0") + elapsed);
+      const nextMs = audioProgressMs(visualizer);
+      if (nextMs === null) {
+        startManualProgressClock(visualizer, Number(visualizer.dataset.cursorMs || "0"));
+        return;
+      }
       setCursor(visualizer, nextMs, false, { updateAnchor: false });
       if (nextMs >= durationMs) {
-        const anchorMs = Number(visualizer.dataset.anchorMs || "0");
-        stopPlaybackTimer(visualizer);
-        setCursor(visualizer, anchorMs, false, { updateAnchor: false });
-        clearStatus(ord);
-        if (typeof pycmd === "function") {
-          window.__aqeActiveField = ord;
-          pycmd("focus:" + ord);
-          pycmd("aqe:play-ended");
-        }
+        completePlayback(visualizer);
         return;
       }
       visualizer.__aqePlaybackTimer = window.requestAnimationFrame(tick);
@@ -635,27 +804,103 @@ _SCRIPT_TEMPLATE = r"""
     visualizer.__aqePlaybackTimer = window.requestAnimationFrame(tick);
   }
 
-  function pausePlaybackTimer(visualizer) {
-    if (visualizer.__aqePlaybackTimer) {
-      window.cancelAnimationFrame(visualizer.__aqePlaybackTimer);
-      visualizer.__aqePlaybackTimer = null;
-    }
-    visualizer.dataset.playbackState = "paused";
-    const ord = Number(visualizer.dataset.aqeFieldOrd || "0");
-    const button = playButton(ord);
-    if (button) button.textContent = "Play";
+  function startManualProgressClock(visualizer, startMs) {
+    clearPlaybackFrame(visualizer);
+    pauseAudioClock(visualizer);
+    const durationMs = Number(visualizer.dataset.durationMs || "0");
+    if (!durationMs) return;
+    const clampedStartMs = clampProgressMs(visualizer, startMs);
+    visualizer.__aqeAudioClockFallback = true;
+    visualizer.dataset.playbackState = "playing";
+    visualizer.dataset.progressClockMode = "manual";
+    visualizer.dataset.playStartedAt = String(performance.now());
+    visualizer.dataset.playStartMs = String(clampedStartMs);
+    setPlaybackButtonLabel(visualizer, "Pause");
+    const tick = () => {
+      if (visualizer.dataset.playbackState !== "playing") return;
+      const nextMs = manualProgressMs(visualizer);
+      setCursor(visualizer, nextMs, false, { updateAnchor: false });
+      if (nextMs >= durationMs) {
+        completePlayback(visualizer);
+        return;
+      }
+      visualizer.__aqePlaybackTimer = window.requestAnimationFrame(tick);
+    };
+    visualizer.__aqePlaybackTimer = window.requestAnimationFrame(tick);
   }
 
-  function stopPlaybackTimer(visualizer) {
-    if (visualizer.__aqePlaybackTimer) {
-      window.cancelAnimationFrame(visualizer.__aqePlaybackTimer);
-      visualizer.__aqePlaybackTimer = null;
+  function startAudioProgressClock(visualizer, startMs) {
+    const audio = audioClockFor(visualizer);
+    if (!audio || !seekAudioClock(visualizer, startMs) || typeof audio.play !== "function") {
+      startManualProgressClock(visualizer, startMs);
+      return;
     }
+    visualizer.dataset.progressClockMode = "audio";
+    visualizer.__aqeAudioClockFallback = false;
+    let playResult;
+    try {
+      playResult = audio.play();
+    } catch (_error) {
+      startManualProgressClock(visualizer, startMs);
+      return;
+    }
+    const startPainting = () => {
+      if (visualizer.dataset.playbackState !== "playing") return;
+      clearPlaybackFrame(visualizer);
+      visualizer.dataset.progressClockMode = "audio";
+      paintProgressFromClock(visualizer);
+    };
+    if (playResult && typeof playResult.then === "function") {
+      playResult.then(startPainting).catch(() => {
+        if (visualizer.dataset.playbackState === "playing") {
+          startManualProgressClock(visualizer, currentProgressMs(visualizer));
+        }
+      });
+      return;
+    }
+    startPainting();
+  }
+
+  function startProgressClock(visualizer, startMs) {
+    stopProgressClock(visualizer);
+    const durationMs = Number(visualizer.dataset.durationMs || "0");
+    if (!durationMs) return;
+    const clampedStartMs = clampProgressMs(visualizer, startMs);
+    visualizer.dataset.playbackState = "playing";
+    visualizer.dataset.playStartedAt = String(performance.now());
+    visualizer.dataset.playStartMs = String(clampedStartMs);
+    setCursor(visualizer, clampedStartMs, false, { updateAnchor: false });
+    setPlaybackButtonLabel(visualizer, "Pause");
+    if (audioClockReady(visualizer)) {
+      startAudioProgressClock(visualizer, clampedStartMs);
+      return;
+    }
+    startManualProgressClock(visualizer, clampedStartMs);
+  }
+
+  function pauseProgressClock(visualizer) {
+    const currentMs = currentProgressMs(visualizer);
+    if (currentMs !== null) {
+      setCursor(visualizer, currentMs, false, { updateAnchor: false });
+    }
+    clearPlaybackFrame(visualizer);
+    pauseAudioClock(visualizer);
+    visualizer.dataset.playbackState = "paused";
+    visualizer.dataset.progressClockMode = "stopped";
+    setPlaybackButtonLabel(visualizer, "Play");
+  }
+
+  function stopProgressClock(visualizer, options) {
+    const opts = options || {};
+    clearPlaybackFrame(visualizer);
+    pauseAudioClock(visualizer);
     visualizer.dataset.playbackState = "stopped";
+    visualizer.dataset.progressClockMode = "stopped";
     visualizer.dataset.resumeRequiresRestart = "false";
-    const ord = Number(visualizer.dataset.aqeFieldOrd || "0");
-    const button = playButton(ord);
-    if (button) button.textContent = "Play";
+    if (opts.clearAudio) {
+      clearAudioClockSource(visualizer);
+    }
+    setPlaybackButtonLabel(visualizer, "Play");
   }
 
   function playbackRequest(ord) {
@@ -685,6 +930,7 @@ _SCRIPT_TEMPLATE = r"""
     visualizer.dataset.anchorMs = String(cursorMs || 0);
     visualizer.dataset.analyzerName = track.analyzerName || "";
     visualizer.dataset.sourceFilename = track.sourceFilename || "";
+    configureAudioClock(visualizer, track.sourceFilename || "");
     const button = graphButton(ord);
     if (button) button.textContent = "Redraw";
     const intensity = visualizer.querySelector(".aqe-intensity");
@@ -693,6 +939,9 @@ _SCRIPT_TEMPLATE = r"""
     drawLabels(visualizer, track);
     drawXAxis(visualizer, track.durationMs || 0);
     setCursor(visualizer, cursorMs || 0, false);
+    if (audioClockReady(visualizer)) {
+      seekAudioClock(visualizer, cursorMs || 0);
+    }
     setVisualizerStatus(ord, track.analyzerName || "", "info");
     setControlsBusy(ord, false, "", "");
   };
@@ -719,9 +968,9 @@ _SCRIPT_TEMPLATE = r"""
     if (state === "playing" || state === "paused") {
       visualizer.dataset.resumeRequiresRestart = "false";
     }
-    if (state === "playing") startPlaybackTimer(visualizer, cursorMs);
-    else if (state === "paused") pausePlaybackTimer(visualizer);
-    else stopPlaybackTimer(visualizer);
+    if (state === "playing") startProgressClock(visualizer, cursorMs);
+    else if (state === "paused") pauseProgressClock(visualizer);
+    else stopProgressClock(visualizer);
   };
 
   window.__aqeGetPlaybackRequest = function() {
@@ -774,6 +1023,7 @@ _SCRIPT_TEMPLATE = r"""
     const graph = graphButton(ord);
     const play = playButton(ord);
     if (!visualizer) return null;
+    const audio = audioClockFor(visualizer);
     return {
       active: visualizer.dataset.graphActive === "true",
       busy: visualizer.dataset.graphBusy === "true",
@@ -788,6 +1038,11 @@ _SCRIPT_TEMPLATE = r"""
       playButtonLabel: play ? play.textContent : "",
       playbackState: visualizer.dataset.playbackState || "stopped",
       resumeRequiresRestart: visualizer.dataset.resumeRequiresRestart === "true",
+      audioClockSrc: audio ? (audio.getAttribute("src") || "") : "",
+      audioClockCurrentMs: audio ? Math.round((Number(audio.currentTime) || 0) * 1000) : 0,
+      audioClockReady: !!(audio && visualizer.__aqeAudioClockAvailable),
+      audioClockFallback: !!visualizer.__aqeAudioClockFallback,
+      progressClockMode: visualizer.dataset.progressClockMode || "stopped",
       xAxisLabels: Array.from(visualizer.querySelectorAll(".aqe-x-label")).map((node) => node.textContent),
       pitchPaths: visualizer.querySelectorAll(".aqe-pitch-path").length,
       intensity: visualizer.querySelector(".aqe-intensity")?.getAttribute("d") || "",

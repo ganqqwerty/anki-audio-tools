@@ -132,9 +132,322 @@ def test_playback_finish_and_cursor_drag_intents_are_injected() -> None:
     assert "anchorMs" in script
 
 
+def test_visualizer_injects_hidden_audio_clock() -> None:
+    script = injection_script([0])
+
+    assert 'class="aqe-audio-clock"' in script
+    assert 'data-testid="aqe-audio-clock-${ord}"' in script
+    assert 'preload="metadata"' in script
+    assert "muted hidden" in script
+    assert 'configureAudioClock(visualizer, track.sourceFilename || "");' in script
+
+
+def test_audio_clock_source_uses_encoded_media_filename() -> None:
+    result = _run_visualizer_helper_js(
+        """
+        return {
+          spaced: mediaUrlForFilename("hello world.mp3"),
+          unicode: mediaUrlForFilename("かな.wav"),
+          slash: mediaUrlForFilename("nested/clip.mp3"),
+          plainIntroducesSlash: mediaUrlForFilename("plain clip.mp3").includes("/")
+        };
+        """,
+        helper_names=("mediaUrlForFilename",),
+    )
+
+    assert result["spaced"] == "hello%20world.mp3"
+    assert result["unicode"] == "%E3%81%8B%E3%81%AA.wav"
+    assert result["slash"] == "nested/clip.mp3"
+    assert result["plainIntroducesSlash"] is False
+
+
+def test_playback_state_contract_remains_unchanged() -> None:
+    script = injection_script([0])
+
+    assert "window.__aqeSetPlaybackState = function(ord, state, cursorMs)" in script
+    assert "window.__aqeGetPlaybackRequest = function()" in script
+    assert "window.__aqeGetCursorMs = function()" in script
+    assert "window.__aqeGetCursorIntent = function()" in script
+    assert "window.__aqeGraphStateForTest = function(ord)" in script
+    assert 'pycmd("aqe:play-ended");' in script
+
+
+def test_audio_clock_falls_back_to_manual_timer_on_play_failure() -> None:
+    result = _run_visualizer_helper_js(
+        """
+        const frames = [];
+        __aqeNow = 1000;
+        window.requestAnimationFrame = (callback) => {
+          frames.push(callback);
+          return frames.length;
+        };
+        window.cancelAnimationFrame = () => {};
+        const button = { textContent: "Play" };
+        const controls = {
+          querySelector(selector) {
+            if (selector === '[data-aqe-command="aqe:play"]') return button;
+            throw new Error(`Unexpected controls selector: ${selector}`);
+          }
+        };
+        document.querySelector = (selector) => {
+          if (selector === '.aqe-controls[data-aqe-field-ord="0"]') return controls;
+          return null;
+        };
+        const audio = {
+          currentTime: 0,
+          readyState: 1,
+          srcAttr: "clip.mp3",
+          pauseCalls: 0,
+          getAttribute(name) {
+            return name === "src" ? this.srcAttr : "";
+          },
+          pause() {
+            this.pauseCalls += 1;
+          },
+          play() {
+            return Promise.reject(new Error("blocked"));
+          }
+        };
+        const cursor = {
+          attributes: {},
+          setAttribute(name, value) { this.attributes[name] = String(value); }
+        };
+        const visualizer = {
+          dataset: {
+            aqeFieldOrd: "0",
+            anchorMs: "100",
+            cursorMs: "100",
+            progressMs: "100",
+            durationMs: "1000",
+            playbackState: "stopped",
+            progressClockMode: "stopped",
+            resumeRequiresRestart: "false"
+          },
+          __aqeAudioClockAvailable: true,
+          __aqeAudioClockFallback: false,
+          querySelector(selector) {
+            if (selector === ".aqe-audio-clock") return audio;
+            if (selector === ".aqe-cursor") return cursor;
+            if (selector === ".aqe-cursor-label") return { textContent: "" };
+            throw new Error(`Unexpected visualizer selector: ${selector}`);
+          }
+        };
+
+        startProgressClock(visualizer, 100);
+        await Promise.resolve();
+        await Promise.resolve();
+        __aqeNow = 1250;
+        frames.shift()();
+        return {
+          cursorMs: Number(visualizer.dataset.cursorMs),
+          fallback: visualizer.__aqeAudioClockFallback,
+          mode: visualizer.dataset.progressClockMode,
+          pauseCalls: audio.pauseCalls,
+          playLabel: button.textContent,
+          progressMs: Number(visualizer.dataset.progressMs)
+        };
+        """,
+        helper_names=(
+            "controlsForOrd",
+            "buttonFor",
+            "playButton",
+            "plotWidth",
+            "xForMs",
+            "formatTime",
+            "audioClockFor",
+            "clearPlaybackFrame",
+            "pauseAudioClock",
+            "audioClockReady",
+            "clampProgressMs",
+            "seekAudioClock",
+            "setCursor",
+            "setPlaybackButtonLabel",
+            "manualProgressMs",
+            "audioProgressMs",
+            "currentProgressMs",
+            "completePlayback",
+            "paintProgressFromClock",
+            "startManualProgressClock",
+            "startAudioProgressClock",
+            "startProgressClock",
+            "pauseProgressClock",
+            "stopProgressClock",
+        ),
+    )
+
+    assert result["mode"] == "manual"
+    assert result["fallback"] is True
+    assert result["progressMs"] == 350
+    assert result["cursorMs"] == 350
+    assert result["pauseCalls"] >= 1
+    assert result["playLabel"] == "Pause"
+
+
+def test_drag_release_seeks_audio_clock() -> None:
+    result = _run_visualizer_helper_js(
+        """
+        const listeners = {};
+        window.addEventListener = (name, callback) => {
+          listeners[name] = callback;
+        };
+        window.removeEventListener = () => {};
+        const audio = {
+          currentTime: 0,
+          readyState: 1,
+          srcAttr: "clip.mp3",
+          getAttribute(name) {
+            return name === "src" ? this.srcAttr : "";
+          }
+        };
+        const cursor = {
+          attributes: {},
+          setAttribute(name, value) { this.attributes[name] = String(value); }
+        };
+        const svg = {
+          getBoundingClientRect() {
+            return { left: 0, width: plot.width };
+          }
+        };
+        const visualizer = {
+          dataset: {
+            aqeFieldOrd: "0",
+            anchorMs: "0",
+            cursorMs: "0",
+            progressMs: "0",
+            durationMs: "1000",
+            playbackState: "stopped"
+          },
+          __aqeAudioClockAvailable: true,
+          querySelector(selector) {
+            if (selector === ".aqe-visualizer-svg") return svg;
+            if (selector === ".aqe-audio-clock") return audio;
+            if (selector === ".aqe-cursor") return cursor;
+            if (selector === ".aqe-cursor-label") return { textContent: "" };
+            throw new Error(`Unexpected visualizer selector: ${selector}`);
+          }
+        };
+        let prevented = false;
+
+        startCursorDrag(
+          { clientX: plot.left, preventDefault() { prevented = true; } },
+          visualizer,
+          0,
+          false
+        );
+        listeners.pointerup({ clientX: plot.left + plotWidth() * 0.6 });
+        return {
+          anchorMs: Number(visualizer.dataset.anchorMs),
+          cursorMs: Number(visualizer.dataset.cursorMs),
+          currentTimeMs: Math.round(audio.currentTime * 1000),
+          prevented
+        };
+        """,
+        helper_names=(
+            "plotWidth",
+            "xForMs",
+            "formatTime",
+            "audioClockFor",
+            "audioClockReady",
+            "clampProgressMs",
+            "seekAudioClock",
+            "setCursor",
+            "graphPixelBounds",
+            "cursorMsFromEvent",
+            "startCursorDrag",
+        ),
+    )
+
+    assert result["prevented"] is True
+    assert result["anchorMs"] == 600
+    assert result["cursorMs"] == 600
+    assert result["currentTimeMs"] == 600
+
+
+def test_cursor_click_position_matches_rendered_indicator_when_svg_is_letterboxed() -> None:
+    result = _run_visualizer_helper_js(
+        """
+        const cursor = {
+          attributes: {},
+          setAttribute(name, value) { this.attributes[name] = String(value); },
+          getAttribute(name) { return this.attributes[name]; }
+        };
+        const svg = {
+          getBoundingClientRect() {
+            return { left: 10, top: 0, width: 760, height: 150 };
+          }
+        };
+        const visualizer = {
+          hidden: false,
+          dataset: {
+            aqeFieldOrd: "0",
+            graphActive: "true",
+            anchorMs: "0",
+            cursorMs: "0",
+            progressMs: "0",
+            durationMs: "2000"
+          },
+          querySelector(selector) {
+            if (selector === ".aqe-visualizer-svg") return svg;
+            if (selector === ".aqe-cursor") return cursor;
+            if (selector === ".aqe-cursor-label") return { textContent: "" };
+            throw new Error(`Unexpected visualizer selector: ${selector}`);
+          }
+        };
+
+        const rect = svg.getBoundingClientRect();
+        const renderedScale = Math.min(rect.width / plot.width, rect.height / plot.height);
+        const renderedLeft = rect.left + (rect.width - plot.width * renderedScale) / 2;
+        const plotLeftPx = renderedLeft + plot.left * renderedScale;
+        const plotWidthPx = plotWidth() * renderedScale;
+
+        return [0.25, 0.5, 0.75].map((ratio) => {
+          const targetX = plotLeftPx + plotWidthPx * ratio;
+          const cursorMs = cursorMsFromEvent({ clientX: targetX }, svg, 2000);
+          setCursor(visualizer, cursorMs, false);
+          const cursorViewBoxX = Number(cursor.getAttribute("x1"));
+          const cursorPixelX = renderedLeft + cursorViewBoxX * renderedScale;
+          return {
+            ratio,
+            cursorMs: Number(visualizer.dataset.cursorMs),
+            errorPx: Math.abs(cursorPixelX - targetX)
+          };
+        });
+        """,
+        helper_names=(
+            "plotWidth",
+            "xForMs",
+            "formatTime",
+            "setCursor",
+            "graphPixelBounds",
+            "cursorMsFromEvent",
+        ),
+    )
+
+    assert [round(item["cursorMs"]) for item in result] == [500, 1000, 1500]
+    assert all(item["errorPx"] < 1 for item in result)
+
+
 def test_prepare_for_new_note_resets_rendered_visualizer_state() -> None:
     result = _run_visualizer_helper_js(
         """
+        const audioClock = {
+          src: "one.wav",
+          srcAttr: "one.wav",
+          pauseCalls: 0,
+          loadCalls: 0,
+          getAttribute(name) {
+            return name === "src" ? this.srcAttr : "";
+          },
+          removeAttribute(name) {
+            if (name === "src") this.srcAttr = "";
+          },
+          pause() {
+            this.pauseCalls += 1;
+          },
+          load() {
+            this.loadCalls += 1;
+          }
+        };
         const controls = {
           dataset: { busy: "true", aqeSourceFilename: "one.wav" },
           buttons: [
@@ -158,9 +471,13 @@ def test_prepare_for_new_note_resets_rendered_visualizer_state() -> None:
               sourceFilename: "one.wav",
               analyzerName: "praat",
               playStartedAt: "100",
-              playStartMs: "200"
+              playStartMs: "200",
+              progressClockMode: "audio"
             },
             __aqePlaybackTimer: 41,
+            __aqeAudioClockAvailable: true,
+            __aqeAudioClockFallback: true,
+            audioClock,
             intensity: {
               attributes: { d: "M 1 2" },
               setAttribute(name, value) { this.attributes[name] = String(value); }
@@ -176,6 +493,7 @@ def test_prepare_for_new_note_resets_rendered_visualizer_state() -> None:
             graphStatus: { textContent: "Analyzing...", dataset: { kind: "processing" } },
             spinner: { hidden: false },
             querySelector(selector) {
+              if (selector === ".aqe-audio-clock") return this.audioClock;
               if (selector === ".aqe-intensity") return this.intensity;
               if (selector === ".aqe-pitch") return this.pitch;
               if (selector === ".aqe-labels") return this.labels;
@@ -234,6 +552,13 @@ def test_prepare_for_new_note_resets_rendered_visualizer_state() -> None:
             analyzer: controls.visualizer.dataset.analyzerName,
             playbackState: controls.visualizer.dataset.playbackState,
             resumeRequiresRestart: controls.visualizer.dataset.resumeRequiresRestart,
+            progressClockMode: controls.visualizer.dataset.progressClockMode,
+            audioClockAvailable: controls.visualizer.__aqeAudioClockAvailable,
+            audioClockFallback: controls.visualizer.__aqeAudioClockFallback,
+            audioClockSrc: controls.visualizer.audioClock.srcAttr,
+            audioClockPropSrc: controls.visualizer.audioClock.src,
+            audioClockPauseCalls: controls.visualizer.audioClock.pauseCalls,
+            audioClockLoadCalls: controls.visualizer.audioClock.loadCalls,
             intensity: controls.visualizer.intensity.attributes.d,
             pitch: controls.visualizer.pitch.textContent,
             labels: controls.visualizer.labels.textContent,
@@ -273,6 +598,13 @@ def test_prepare_for_new_note_resets_rendered_visualizer_state() -> None:
     assert result["analyzer"] == ""
     assert result["playbackState"] == "stopped"
     assert result["resumeRequiresRestart"] == "false"
+    assert result["progressClockMode"] == "stopped"
+    assert result["audioClockAvailable"] is False
+    assert result["audioClockFallback"] is False
+    assert result["audioClockSrc"] == ""
+    assert result["audioClockPropSrc"] == ""
+    assert result["audioClockPauseCalls"] == 1
+    assert result["audioClockLoadCalls"] == 1
     assert result["intensity"] == ""
     assert result["pitch"] == ""
     assert result["labels"] == ""
@@ -378,26 +710,34 @@ def test_visualizer_flat_pitch_range_renders_finite_path_and_labels() -> None:
     assert all(value == value and abs(value) < 10_000 for value in coordinates)
 
 
-def _run_visualizer_helper_js(scenario: str):
+def _run_visualizer_helper_js(scenario: str, helper_names: tuple[str, ...] | None = None):
     node = shutil.which("node")
     if node is None:
         pytest.skip("Node.js is required to evaluate visualizer helper JavaScript")
     script = injection_script([0])
+    default_helper_names = (
+        "audioClockFor",
+        "resetAudioClockState",
+        "clearPlaybackFrame",
+        "pauseAudioClock",
+        "clearAudioClockSource",
+        "prepareForNewNote",
+        "plotWidth",
+        "plotHeight",
+        "xForMs",
+        "yForPitch",
+        "pitchSegments",
+        "drawPitch",
+        "drawLabels",
+    )
     helpers = "\n".join(
         _extract_js_function(script, name)
-        for name in (
-            "prepareForNewNote",
-            "plotWidth",
-            "plotHeight",
-            "xForMs",
-            "yForPitch",
-            "pitchSegments",
-            "drawPitch",
-            "drawLabels",
-        )
+        for name in (helper_names or default_helper_names)
     )
     node_code = f"""
     const plot = {{ width: 620, height: 150, left: 44, right: 10, top: 10, bottom: 34 }};
+    let __aqeNow = 0;
+    const performance = {{ now: () => __aqeNow }};
     {helpers}
 
     class FakeNode {{
@@ -431,11 +771,16 @@ def _run_visualizer_helper_js(scenario: str):
       cancelAnimationFrame() {{}}
     }};
 
-    function runScenario() {{
+    async function runScenario() {{
       {scenario}
     }}
 
-    process.stdout.write(JSON.stringify(runScenario()));
+    Promise.resolve(runScenario())
+      .then((result) => process.stdout.write(JSON.stringify(result)))
+      .catch((error) => {{
+        console.error(error && error.stack ? error.stack : String(error));
+        process.exit(1);
+      }});
     """
     result = subprocess.run([node, "-e", node_code], capture_output=True, text=True, check=False)
     assert result.returncode == 0, result.stderr

@@ -1270,12 +1270,22 @@ def test_cursor_normalization_matches_pointer_position_at_multiple_widths(
                   const svg = document.querySelector('.aqe-visualizer[data-aqe-field-ord="0"] .aqe-visualizer-svg');
                   if (!svg || !window.__aqeSetCursorByClientXForTest) return 999;
                   const rect = svg.getBoundingClientRect();
-                  const targetX = rect.left + rect.width * 0.73;
-                  const result = window.__aqeSetCursorByClientXForTest(ord, targetX, false);
-                  if (!result || !result.bounds) return 999;
-                  const cursorX = Number(document.querySelector('[data-testid="aqe-cursor-0"]').getAttribute('x1'));
-                  const pixelX = result.bounds.left + ((cursorX - 44) / 566) * result.bounds.width;
-                  return Math.abs(pixelX - targetX);
+                  const viewBoxWidth = 620;
+                  const viewBoxHeight = 150;
+                  const plotLeft = 44;
+                  const plotWidth = 566;
+                  const scale = Math.min(rect.width / viewBoxWidth, rect.height / viewBoxHeight);
+                  const renderedViewBoxLeft = rect.left + (rect.width - viewBoxWidth * scale) / 2;
+                  const renderedPlotLeft = renderedViewBoxLeft + plotLeft * scale;
+                  const renderedPlotWidth = plotWidth * scale;
+                  return Math.max(...[0.25, 0.5, 0.75].map((ratio) => {
+                    const targetX = renderedPlotLeft + renderedPlotWidth * ratio;
+                    const result = window.__aqeSetCursorByClientXForTest(ord, targetX, false);
+                    if (!result || !result.bounds) return 999;
+                    const cursorX = Number(document.querySelector('[data-testid="aqe-cursor-0"]').getAttribute('x1'));
+                    const pixelX = renderedViewBoxLeft + cursorX * scale;
+                    return Math.abs(pixelX - targetX);
+                  }));
                 })()
                 """,
                 lambda value: isinstance(value, (int, float)) and value < 4,
