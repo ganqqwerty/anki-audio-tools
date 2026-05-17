@@ -122,6 +122,20 @@ class TestMigrateConfig:
         assert migrated["_config_version"] == CURRENT_CONFIG_VERSION
         assert changed is True
 
+    def test_picks_up_show_graph_default(self) -> None:
+        user = {"_config_version": 8, "enabled": True}
+        defaults = {
+            "_config_version": CURRENT_CONFIG_VERSION,
+            "enabled": True,
+            "show_graph_by_default": False,
+        }
+
+        migrated, changed = migrate_config(user, defaults)
+
+        assert migrated["show_graph_by_default"] is False
+        assert migrated["_config_version"] == CURRENT_CONFIG_VERSION
+        assert changed is True
+
     def test_removes_deleted_edge_silence_keys(self) -> None:
         user = {
             "_config_version": 6,

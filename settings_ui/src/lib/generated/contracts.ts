@@ -46,6 +46,7 @@ export interface Config {
     output_format:                       OutputFormat;
     repeat_playback_by_default:          boolean;
     show_ffmpeg_commands:                boolean;
+    show_graph_by_default:               boolean;
     speed_step:                          number;
     volume_step_db:                      number;
 }

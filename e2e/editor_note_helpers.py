@@ -54,7 +54,13 @@ def _sound_filename(field_html: str) -> str:
 def _configure_ffmpeg(anki_mw, ffmpeg_config, **overrides: Any) -> None:
     config = anki_mw.addonManager.getConfig(ADDON_NUMERIC_ID) or {}
     config.update(asdict(ffmpeg_config))
-    config.update({"ffmpeg_path": ffmpeg_config.ffmpeg_path, **overrides})
+    config.update(
+        {
+            "ffmpeg_path": ffmpeg_config.ffmpeg_path,
+            "show_graph_by_default": False,
+            **overrides,
+        }
+    )
     anki_mw.addonManager.writeConfig(ADDON_NUMERIC_ID, config)
 
 

@@ -29,6 +29,10 @@ import {
 } from "./audio-clock.js";
 import { logger } from "./logger.js";
 import {
+  continueDefaultGraphQueue,
+  finishDefaultGraphRequest,
+} from "./default-graph-queue.js";
+import {
   buildPlaybackRequestForPython,
   type PlaybackRegion,
 } from "./playback-state.js";
@@ -131,6 +135,9 @@ export function setControlsBusy(ord: number, busy: boolean, message = "", comman
   allRepeatCheckboxes().forEach((checkbox) => {
     checkbox.disabled = !!busy;
   });
+  if (!busy) {
+    queueMicrotask(() => continueDefaultGraphQueue(defaultGraphQueueDependencies()));
+  }
   const controls = controlsForOrd(ord);
   const status = controls?.querySelector<HTMLElement>(".aqe-status");
   if (!status) return;
@@ -497,6 +504,7 @@ export function setVisualizer(ord: number, rawTrack: ProsodyPayload, cursorMs: n
   }
   setVisualizerStatus(ord, track.analyzerName || "", "info");
   setControlsBusy(ord, false, "", "");
+  finishDefaultGraphRequest(ord, defaultGraphQueueDependencies());
   logger.info("graph rendered", graphLogContext(ord, track));
 }
 
@@ -514,6 +522,16 @@ export function setVisualizerStatusFromPython(ord: number, message: string, kind
     setCommandButtonLabel(ord, "aqe:analyze", "Redraw");
   }
   setVisualizerStatus(ord, message, kind);
+  if (kind !== "processing") {
+    finishDefaultGraphRequest(ord, defaultGraphQueueDependencies());
+  }
+}
+
+function defaultGraphQueueDependencies() {
+  return {
+    anyBusy,
+    requestGraph,
+  };
 }
 
 export function prepareForNewNote(): void {

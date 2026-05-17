@@ -43,11 +43,18 @@ export interface ButtonSpec {
 
 export interface EditorRuntimeConfig {
   audioFieldIndices: number[];
+  audioFieldSources?: Record<number, string>;
   repeatPlaybackByDefault?: boolean;
+  showGraphByDefault?: boolean;
 }
 
 export interface FieldTarget {
   node: HTMLElement;
+  ord: number;
+  sourceFilename: string;
+}
+
+export interface DefaultGraphTarget {
   ord: number;
   sourceFilename: string;
 }

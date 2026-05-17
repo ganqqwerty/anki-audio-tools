@@ -133,24 +133,32 @@ def _on_editor_will_load_note(js: str, note: Any, editor: Any) -> str:
     _reset_editor_session_for_note_load(editor, getattr(note, "id", None))
     _SESSIONS.setdefault(editor, EditorSession()).note_id = getattr(note, "id", None)
     config = _config(editor)
+    audio_field_sources = _audio_field_sources(note)
     script = injection_script(
-        _audio_field_indices(note),
+        list(audio_field_sources),
+        audio_field_sources=audio_field_sources,
         repeat_playback_by_default=bool(config.get("repeat_playback_by_default", False)),
+        show_graph_by_default=bool(config.get("show_graph_by_default", False)),
     )
     return f"{js}\n{script}"
 
 
 def _audio_field_indices(note: Any) -> list[int]:
     """Return field indices containing an MVP-supported sound reference."""
-    indices: list[int] = []
+    return list(_audio_field_sources(note))
+
+
+def _audio_field_sources(note: Any) -> dict[int, str]:
+    """Return field indices and first supported sound filename for the note."""
+    sources: dict[int, str] = {}
     for index, field_html in enumerate(getattr(note, "fields", [])):
         try:
             selection = select_first_sound_reference(field_html)
         except AudioQuickEditorError:
             continue
         if selection.selected is not None:
-            indices.append(index)
-    return indices
+            sources[index] = safe_media_basename(selection.selected.filename)
+    return sources
 
 
 def _reset_editor_session_for_note_load(editor: Any, note_id: int | None = None) -> None:

@@ -2,9 +2,11 @@
 
 from __future__ import annotations
 
+import json
 import subprocess
 import time
 from pathlib import Path
+from unittest.mock import patch
 
 from PyQt6.QtWidgets import QApplication
 
@@ -21,6 +23,7 @@ from e2e.editor_note_helpers import (
     _click_and_wait_for_new_file,
     _configure_ffmpeg,
     _open_editor,
+    _three_audio_field_note,
 )
 from e2e.helpers import (
     click_selector,
@@ -30,6 +33,123 @@ from e2e.helpers import (
     wait_for_js_condition,
     wait_for_selector,
 )
+from e2e.test_settings_dialog import _open_settings_dialog
+
+
+def _set_show_graph_by_default_from_settings(anki_mw, enabled: bool) -> None:
+    dialog = _open_settings_dialog(anki_mw)
+    checkbox_selector = '[data-testid="show-graph-by-default"]'
+    save_selector = '[data-testid="settings-save"]'
+    current = wait_for_js_condition(
+        dialog,
+        f"document.querySelector({json.dumps(checkbox_selector)})?.checked",
+        lambda value: value in {True, False},
+        timeout=5.0,
+    )
+    if current != enabled:
+        click_selector(dialog, checkbox_selector, timeout=5.0)
+        wait_for_js_condition(
+            dialog,
+            f"document.querySelector({json.dumps(checkbox_selector)})?.checked",
+            lambda value: value is enabled,
+            timeout=5.0,
+        )
+
+    with patch.object(
+        anki_mw.addonManager,
+        "writeConfig",
+        wraps=anki_mw.addonManager.writeConfig,
+    ) as mock_write:
+        click_selector(dialog, save_selector, timeout=5.0)
+        wait_for_condition(lambda: mock_write.called, timeout=5.0)
+
+    saved_config = mock_write.call_args.args[1]
+    assert saved_config["show_graph_by_default"] is enabled
+
+
+def test_show_graph_by_default_auto_analyzes_all_audio_fields(
+    anki_mw,
+    ffmpeg_config,
+) -> None:
+    media_dir = Path(anki_mw.col.media.dir())
+    sources = (
+        media_dir / "editor_default_graph_one.wav",
+        media_dir / "editor_default_graph_two.wav",
+        media_dir / "editor_default_graph_three.wav",
+    )
+    for index, source in enumerate(sources):
+        generate_tone(ffmpeg_config, source, duration_s=0.8 + index * 0.1)
+    note = _three_audio_field_note(anki_mw, tuple(source.name for source in sources))
+    _configure_ffmpeg(anki_mw, ffmpeg_config, show_graph_by_default=True)
+
+    editor, parent = _open_editor(anki_mw, note)
+    try:
+        tracks = [
+            _wait_for_visualizer_track(
+                editor,
+                lambda value, expected=source.name: value["sourceFilename"] == expected
+                and value["pitchPaths"] > 0
+                and value["graphButtonLabel"] == "Redraw",
+                timeout=20.0,
+                ord_=ord_,
+            )
+            for ord_, source in enumerate(sources)
+        ]
+
+        assert [track["sourceFilename"] for track in tracks] == [source.name for source in sources]
+        assert all(track["active"] is True and track["hidden"] is False for track in tracks)
+    finally:
+        editor.set_note(None)
+        parent.close()
+
+
+def test_show_graph_default_setting_change_applies_to_later_editor_loads(
+    anki_mw,
+    ffmpeg_config,
+) -> None:
+    media_dir = Path(anki_mw.col.media.dir())
+    enabled_source = media_dir / "editor_default_graph_setting_enabled.wav"
+    disabled_source = media_dir / "editor_default_graph_setting_disabled.wav"
+    generate_tone(ffmpeg_config, enabled_source, duration_s=0.9)
+    generate_tone(ffmpeg_config, disabled_source, duration_s=0.9)
+    enabled_note = _basic_audio_note(anki_mw, enabled_source.name)
+    disabled_note = _basic_audio_note(anki_mw, disabled_source.name)
+    _configure_ffmpeg(anki_mw, ffmpeg_config, show_graph_by_default=False)
+
+    _set_show_graph_by_default_from_settings(anki_mw, True)
+    editor, parent = _open_editor(anki_mw, enabled_note)
+    try:
+        track = _wait_for_visualizer_track(
+            editor,
+            lambda value: value["sourceFilename"] == enabled_source.name
+            and value["graphButtonLabel"] == "Redraw",
+            timeout=15.0,
+        )
+        assert track["active"] is True
+    finally:
+        editor.set_note(None)
+        parent.close()
+
+    _set_show_graph_by_default_from_settings(anki_mw, False)
+    editor, parent = _open_editor(anki_mw, disabled_note)
+    try:
+        wait_for_selector(editor.web, _button_selector("aqe:analyze"), timeout=10.0)
+        quiet_until = time.monotonic() + 1.0
+        wait_for_condition(lambda: time.monotonic() >= quiet_until, timeout=2.0)
+        state = wait_for_js_condition(
+            editor.web,
+            _graph_state_js(),
+            lambda value: value is not None,
+            timeout=5.0,
+        )
+
+        assert state["active"] is False
+        assert state["hidden"] is True
+        assert state["sourceFilename"] == ""
+        assert state["graphButtonLabel"] == "Graph"
+    finally:
+        editor.set_note(None)
+        parent.close()
 
 
 def test_visualizer_renders_pitch_intensity_labels_and_cursor(anki_mw, ffmpeg_config) -> None:

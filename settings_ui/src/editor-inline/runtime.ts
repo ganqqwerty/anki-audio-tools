@@ -1,7 +1,12 @@
 import {
   prepareForNewNote,
+  requestGraph,
   requestPendingGraphRedraw,
 } from "./actions.js";
+import {
+  clearDefaultGraphQueue,
+  enqueueDefaultGraphs,
+} from "./default-graph-queue.js";
 import {
   disposeAllControllers,
   mountController,
@@ -19,8 +24,12 @@ export function initializeEditorRuntime(config: EditorRuntimeConfig = window.__A
   window.__AQE_EDITOR_CONFIG__ = config;
   installEditorWindowContract();
   prepareForNewNote();
+  clearDefaultGraphQueue();
   window.__aqeEditorDispose = disposeEditorRuntime;
-  logger.info("editor runtime initialized", { audioFieldIndices: config.audioFieldIndices });
+  logger.info("editor runtime initialized", {
+    audioFieldIndices: config.audioFieldIndices,
+    showGraphByDefault: config.showGraphByDefault === true,
+  });
   const scanWithConfig = (): void => scan(config);
   window.__aqeScan = scanWithConfig;
   scheduleScan(scanWithConfig, 0);
@@ -36,25 +45,30 @@ export function disposeEditorRuntime(): void {
 
 export function scan(config: EditorRuntimeConfig = window.__AQE_EDITOR_CONFIG__ ?? { audioFieldIndices: [] }): void {
   if (config.audioFieldIndices.length) {
-    const explicitTargets = explicitFieldTargets(config.audioFieldIndices);
+    const explicitTargets = explicitFieldTargets(config.audioFieldIndices, config.audioFieldSources);
     explicitTargets.forEach((target) => mountNear(target));
     logger.debug("scan mounted explicit fields", { count: explicitTargets.length });
     requestPendingGraphRedraw();
+    enqueueConfiguredDefaultGraphs(config, explicitTargets);
     return;
   }
+  const mountedTargets: FieldTarget[] = [];
   let count = 0;
   fieldNodes().forEach((node, fallback) => {
     const sourceFilename = audioSourceForNode(node);
     if (!sourceFilename) return;
-    mountNear({
+    const target = {
       node,
       ord: fieldIndex(node, fallback),
       sourceFilename,
-    });
+    };
+    mountNear(target);
+    mountedTargets.push(target);
     count += 1;
   });
   logger.debug("scan mounted detected fields", { count });
   requestPendingGraphRedraw();
+  enqueueConfiguredDefaultGraphs(config, mountedTargets);
 }
 
 export function fieldNodes(): HTMLElement[] {
@@ -67,13 +81,16 @@ export function fieldNodes(): HTMLElement[] {
   });
 }
 
-export function explicitFieldTargets(audioFieldIndices: readonly number[]): FieldTarget[] {
+export function explicitFieldTargets(
+  audioFieldIndices: readonly number[],
+  audioFieldSources: Record<number, string> = {},
+): FieldTarget[] {
   return audioFieldIndices
     .map((ord): FieldTarget | null => {
       const container = document.querySelector<HTMLElement>(`.field-container[data-index="${ord}"]`);
       if (!container) return null;
       const node = container.querySelector<HTMLElement>('[contenteditable="true"]') || container;
-      const sourceFilename = audioSourceForNode(node) || audioSourceForNode(container);
+      const sourceFilename = audioSourceForNode(node) || audioSourceForNode(container) || audioFieldSources[ord] || "";
       return {
         ord,
         node,
@@ -102,6 +119,17 @@ export function audioSourceForNode(node: HTMLElement): string {
 
 export function mountNear(target: FieldTarget): void {
   mountController(target);
+}
+
+function enqueueConfiguredDefaultGraphs(config: EditorRuntimeConfig, targets: readonly FieldTarget[]): void {
+  if (!config.showGraphByDefault) return;
+  enqueueDefaultGraphs(
+    targets.map(({ ord, sourceFilename }) => ({ ord, sourceFilename })),
+    {
+      anyBusy: () => document.body.dataset.aqeBusy === "true",
+      requestGraph,
+    },
+  );
 }
 
 function scheduleScan(callback: () => void, delayMs: number): void {

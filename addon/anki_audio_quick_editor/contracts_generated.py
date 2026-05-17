@@ -94,6 +94,7 @@ class Config:
     output_format: OutputFormat
     repeat_playback_by_default: bool
     show_ffmpeg_commands: bool
+    show_graph_by_default: bool
     speed_step: float
     volume_step_db: float
     schema: Optional[str] = None
@@ -119,10 +120,11 @@ class Config:
         output_format = OutputFormat(obj.get("output_format"))
         repeat_playback_by_default = from_bool(obj.get("repeat_playback_by_default"))
         show_ffmpeg_commands = from_bool(obj.get("show_ffmpeg_commands"))
+        show_graph_by_default = from_bool(obj.get("show_graph_by_default"))
         speed_step = from_float(obj.get("speed_step"))
         volume_step_db = from_float(obj.get("volume_step_db"))
         schema = from_union([from_str, from_none], obj.get("$schema"))
-        return Config(config_version, debug_logging, deep_filter_path, deep_filter_post_filter, enabled, ffmpeg_path, internal_pause_silence_threshold_db, internal_pause_target_gap_ms, internal_pause_threshold_ms, manual_trim_large_ms, manual_trim_small_ms, max_speed, max_volume_db, min_speed, min_volume_db, output_format, repeat_playback_by_default, show_ffmpeg_commands, speed_step, volume_step_db, schema)
+        return Config(config_version, debug_logging, deep_filter_path, deep_filter_post_filter, enabled, ffmpeg_path, internal_pause_silence_threshold_db, internal_pause_target_gap_ms, internal_pause_threshold_ms, manual_trim_large_ms, manual_trim_small_ms, max_speed, max_volume_db, min_speed, min_volume_db, output_format, repeat_playback_by_default, show_ffmpeg_commands, show_graph_by_default, speed_step, volume_step_db, schema)
 
     def to_dict(self) -> dict:
         result: dict = {}
@@ -144,6 +146,7 @@ class Config:
         result["output_format"] = to_enum(OutputFormat, self.output_format)
         result["repeat_playback_by_default"] = from_bool(self.repeat_playback_by_default)
         result["show_ffmpeg_commands"] = from_bool(self.show_ffmpeg_commands)
+        result["show_graph_by_default"] = from_bool(self.show_graph_by_default)
         result["speed_step"] = to_float(self.speed_step)
         result["volume_step_db"] = to_float(self.volume_step_db)
         if self.schema is not None:

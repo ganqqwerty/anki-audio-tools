@@ -24,6 +24,14 @@
     <input type="checkbox" bind:checked={config.repeat_playback_by_default} />
     <span>Repeat playback by default</span>
   </label>
+  <label class="toggle">
+    <input
+      data-testid="show-graph-by-default"
+      type="checkbox"
+      bind:checked={config.show_graph_by_default}
+    />
+    <span>Show graph by default</span>
+  </label>
   <label class="field-row">
     <span>ffmpeg path</span>
     <input

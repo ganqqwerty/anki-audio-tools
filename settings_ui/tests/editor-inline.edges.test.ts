@@ -117,7 +117,7 @@ describe("editor inline defensive edges", () => {
 
     expect(explicit).toHaveLength(1);
     expect(explicit[0]?.sourceFilename).toBe("fallback.mp3");
-    expect(explicitFieldTargets([5])[0]?.sourceFilename).toBe("");
+    expect(explicitFieldTargets([5], { 5: "note-source.wav" })[0]?.sourceFilename).toBe("note-source.wav");
     expect(explicitFieldTargets([6])[0]?.sourceFilename).toBe("container.mp3");
     expect(audioSourceForNode(document.getElementById("field-7")!)).toBe("");
     expect(fieldIndex(document.getElementById("field-7")!, 0)).toBe(7);

@@ -45,6 +45,17 @@ function renderFields(): void {
   `;
 }
 
+function renderTwoAudioFields(): void {
+  document.body.innerHTML = `
+    <div class="field-container" data-index="0">
+      <div contenteditable="true" id="f0">[sound:clip one.mp3]</div>
+    </div>
+    <div class="field-container" data-index="1">
+      <div contenteditable="true" id="f1">[sound:clip two.mp3]</div>
+    </div>
+  `;
+}
+
 function graphClientX(svg: SVGSVGElement, ratio: number): number {
   const rect = svg.getBoundingClientRect();
   return 44 + 566 * ratio + rect.left;
@@ -277,6 +288,40 @@ describe("editor inline Svelte integration", () => {
 
     const repeat = document.querySelector<HTMLInputElement>('[data-testid="aqe-repeat-0"]');
     expect(repeat).toBeChecked();
+  });
+
+  it("auto-queues default graphs for all mounted audio fields", async () => {
+    renderTwoAudioFields();
+    initializeEditorRuntime({ audioFieldIndices: [0, 1], showGraphByDefault: true });
+    scan({ audioFieldIndices: [0, 1], showGraphByDefault: true });
+    scan({ audioFieldIndices: [0, 1], showGraphByDefault: true });
+
+    expect(bridgeCommands().filter((command) => command === "aqe:analyze")).toHaveLength(1);
+    expect(bridgeCommands()).toContain("focus:0");
+    expect(window.__aqeGraphStateForTest?.(0)).toMatchObject({ busy: true, hidden: false });
+
+    window.__aqeSetVisualizer?.(0, { ...track, sourceFilename: "clip one.mp3" }, 0);
+    await Promise.resolve();
+    await Promise.resolve();
+
+    expect(bridgeCommands().filter((command) => command === "aqe:analyze")).toHaveLength(2);
+    expect(bridgeCommands()).toContain("focus:1");
+    expect(window.__aqeGraphStateForTest?.(1)).toMatchObject({ busy: true, hidden: false });
+  });
+
+  it("continues the default graph queue after an analysis error", async () => {
+    renderTwoAudioFields();
+    initializeEditorRuntime({ audioFieldIndices: [0, 1], showGraphByDefault: true });
+    scan({ audioFieldIndices: [0, 1], showGraphByDefault: true });
+
+    window.__aqeSetBusy?.(0, false);
+    window.__aqeSetVisualizerStatus?.(0, "Audio visualization failed.", "error");
+    await Promise.resolve();
+    await Promise.resolve();
+
+    expect(bridgeCommands().filter((command) => command === "aqe:analyze")).toHaveLength(2);
+    expect(bridgeCommands()).toContain("focus:1");
+    expect(window.__aqeGraphStateForTest?.(1)).toMatchObject({ busy: true, hidden: false });
   });
 
   it("creates, replaces, and clears graph selections with Shift gestures", () => {

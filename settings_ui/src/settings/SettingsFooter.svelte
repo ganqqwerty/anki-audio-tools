@@ -20,7 +20,7 @@
     <button type="button" class="btn btn-secondary" onclick={onCancel}>
       Cancel
     </button>
-    <button type="button" class="btn btn-primary" onclick={onSave}>
+    <button type="button" class="btn btn-primary" data-testid="settings-save" onclick={onSave}>
       Save
     </button>
   </div>

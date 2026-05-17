@@ -67,6 +67,8 @@ python3 scripts/dev.py build
 
 Do not treat `settings_ui/src/` as the runtime artifact. During Anki and e2e runs, the add-on reads `addon/anki_audio_quick_editor/templates/settings/settings_bundle.{js,css}` and `addon/anki_audio_quick_editor/templates/editor/editor_bundle.{js,css}`. Build output changes after `check`, `test-svelte`, or `test-e2e` are expected when source changed and should be reviewed like normal generated artifacts.
 
+The generated webview bundles are committed runtime artifacts, but they should not be indexed as source code by GitNexus. Keep `addon/anki_audio_quick_editor/templates/*/*_bundle.{js,css}` in `.gitnexusignore` so change detection stays focused on the TypeScript, Svelte, Python, schema, and test sources that produced them. If ignored bundle symbols still appear after changing `.gitnexusignore`, run a forced rebuild of the local index rather than relying on an incremental "already up to date" analyze pass.
+
 `quicktype` is pinned as a settings UI dev dependency and installed from `settings_ui/package-lock.json`. It is used only for development-time JSON contract generation and is not bundled into the Anki add-on runtime.
 
 Frontend quality checks run through:
@@ -85,6 +87,16 @@ python3 scripts/dev.py contracts-check
 ```
 
 `contracts-check` is part of `python3 scripts/dev.py check` and also runs before the frontend bundle build.
+
+## GitNexus Local Index Notes
+
+The repo hook currently pins GitNexus through `GITNEXUS_VERSION` in `scripts/gitnexus_auto_analyze.sh`. Prefer the pinned version when refreshing the index manually:
+
+```bash
+npx -y gitnexus@1.6.4 analyze --force --skip-agents-md --no-stats
+```
+
+Using bare `npx gitnexus ...` may pick a newer package than the repo hook. If the latest package fails with a CLI/runtime error, retry the pinned version before treating GitNexus as unavailable.
 
 ## Type And Exception Policy
 

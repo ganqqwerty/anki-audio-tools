@@ -128,7 +128,7 @@ If GitNexus is available for this repo, use it to inspect unfamiliar code, asses
 
 This project is indexed by GitNexus as **anki-audio-tools**. Use the GitNexus MCP tools to understand code, assess impact, and navigate safely.
 
-> If any GitNexus tool warns the index is stale, run `npx gitnexus analyze --skip-agents-md --no-stats` in terminal first.
+> If any GitNexus tool warns the index is stale, run `npx -y gitnexus@1.6.4 analyze --skip-agents-md --no-stats` in terminal first. Use the version pinned in `scripts/gitnexus_auto_analyze.sh`; bare `npx gitnexus` may install a newer CLI with local analyzer regressions.
 
 ## Always Do
 

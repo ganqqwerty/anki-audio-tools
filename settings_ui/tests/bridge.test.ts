@@ -18,6 +18,7 @@ const config: Config = {
   debug_logging: false,
   show_ffmpeg_commands: false,
   repeat_playback_by_default: false,
+  show_graph_by_default: false,
   manual_trim_small_ms: 100,
   manual_trim_large_ms: 500,
   speed_step: 0.05,

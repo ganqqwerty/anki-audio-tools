@@ -51,3 +51,6 @@ Regenerate them with `python3 scripts/dev.py contracts-generate`; `python3 scrip
 - Functions used by inline handlers must be attached to `window`.
 - JSON inserted into HTML must be escaped carefully; the settings shell embeds pre-serialized JSON into `window.__INITIAL_STATE__`.
 - Injected editor bundles can outlive one apparent editor render through scheduled scans and Anki field reloads. Dispose the old `window.__aqe*` runtime before replacing note field contents, and make dispose idempotent so repeated injections do not leave orphaned controls.
+- The editable Anki field DOM is not a reliable source of truth during early note load. `editor_will_load_note` injection can run before `[sound:...]` markup is fully visible to WebEngine scans, so startup behavior that needs audio sources should pass note-derived data from Python and let later DOM scans refine it.
+- Inline editor scans can also beat Svelte control mounting by a tick. Queue-based startup work should retry briefly when the target visualizer or controls are not mounted yet, instead of treating that field as absent.
+- Prefer stable `data-testid` attributes for settings controls that e2e tests must click. Text labels and Svelte structure are easier to disturb during UI polish than explicit test ids.

@@ -9,6 +9,7 @@
     "debug_logging",
     "show_ffmpeg_commands",
     "repeat_playback_by_default",
+    "show_graph_by_default",
     "manual_trim_small_ms",
     "manual_trim_large_ms",
     "speed_step",
@@ -43,6 +44,9 @@
       "type": "boolean"
     },
     "repeat_playback_by_default": {
+      "type": "boolean"
+    },
+    "show_graph_by_default": {
       "type": "boolean"
     },
     "manual_trim_small_ms": {

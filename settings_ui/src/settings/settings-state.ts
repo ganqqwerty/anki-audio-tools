@@ -5,11 +5,12 @@ export type SettingsTab = "general" | "diagnostics";
 
 export const FALLBACK_INITIAL_STATE: InitialState = {
   config: {
-    _config_version: 8,
+    _config_version: 9,
     enabled: true,
     debug_logging: false,
     show_ffmpeg_commands: false,
     repeat_playback_by_default: false,
+    show_graph_by_default: false,
     manual_trim_small_ms: 100,
     manual_trim_large_ms: 500,
     speed_step: 0.05,

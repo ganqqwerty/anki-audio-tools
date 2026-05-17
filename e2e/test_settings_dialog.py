@@ -119,6 +119,7 @@ def test_save_command_writes_config(anki_mw) -> None:
         "debug_logging": True,
         "show_ffmpeg_commands": False,
         "repeat_playback_by_default": False,
+        "show_graph_by_default": False,
         "manual_trim_small_ms": 100,
         "manual_trim_large_ms": 500,
         "speed_step": 0.05,
@@ -152,6 +153,51 @@ def test_save_command_writes_config(anki_mw) -> None:
 
     assert mock_write.called
     assert eval_calls == []
+
+
+def test_show_graph_by_default_checkbox_toggles_and_saves_in_one_session(anki_mw) -> None:
+    config = anki_mw.addonManager.getConfig("1000000002") or {}
+    config["show_graph_by_default"] = False
+    anki_mw.addonManager.writeConfig("1000000002", config)
+
+    dialog = _open_settings_dialog(anki_mw)
+    checkbox_selector = '[data-testid="show-graph-by-default"]'
+    save_selector = '[data-testid="settings-save"]'
+
+    initial = wait_for_js_condition(
+        dialog,
+        f"document.querySelector({json.dumps(checkbox_selector)})?.checked",
+        lambda value: value is False,
+        timeout=5.0,
+    )
+    assert initial is False
+
+    click_selector(dialog, checkbox_selector, timeout=5.0)
+    wait_for_js_condition(
+        dialog,
+        f"document.querySelector({json.dumps(checkbox_selector)})?.checked",
+        lambda value: value is True,
+        timeout=5.0,
+    )
+    click_selector(dialog, checkbox_selector, timeout=5.0)
+    wait_for_js_condition(
+        dialog,
+        f"document.querySelector({json.dumps(checkbox_selector)})?.checked",
+        lambda value: value is False,
+        timeout=5.0,
+    )
+    click_selector(dialog, checkbox_selector, timeout=5.0)
+
+    with patch.object(
+        anki_mw.addonManager,
+        "writeConfig",
+        wraps=anki_mw.addonManager.writeConfig,
+    ) as mock_write:
+        click_selector(dialog, save_selector, timeout=5.0)
+        wait_for_condition(lambda: mock_write.called, timeout=5.0)
+
+    saved_config = mock_write.call_args.args[1]
+    assert saved_config["show_graph_by_default"] is True
 
 
 def test_diagnostics_can_copy_support_report_and_open_log_file(anki_mw) -> None:
