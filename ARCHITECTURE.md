@@ -153,3 +153,4 @@ The canonical module contracts and allowed side effects are defined in `tests/te
 - Optional analysis dependencies such as Parselmouth must stay isolated to their backend module and never become package-level imports.
 - The settings shell must stay a thin `QDialog` + `AnkiWebView` wrapper.
 - Every production module must have an executable contract entry.
+- Broad exception handlers must stay in the function-qualified architecture allowlist with a reason.

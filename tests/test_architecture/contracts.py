@@ -234,6 +234,7 @@ MODULE_CONTRACTS: dict[str, ModuleContract] = {
             "contracts_generated",
             "db_helpers",
             "diagnostics",
+            "errors",
             "file_reveal",
             "support",
         ),

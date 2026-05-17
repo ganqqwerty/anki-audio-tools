@@ -10,7 +10,11 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from anki_audio_quick_editor.settings.commands import handle_settings_command
+from anki_audio_quick_editor.errors import SettingsCommandError
+from anki_audio_quick_editor.settings.commands import (
+    _dispatch_op,
+    handle_settings_command,
+)
 from anki_audio_quick_editor.support import (
     clear_latest_mp_senet_support_incident,
     clear_latest_pause_pipeline_support_incident,
@@ -221,6 +225,11 @@ def test_async_command_reports_unknown_operation() -> None:
         "ok": False,
         "error": "Unknown async operation: explode",
     }
+
+
+def test_unknown_async_operation_uses_settings_command_error() -> None:
+    with pytest.raises(SettingsCommandError, match="Unknown async operation: explode"):
+        _dispatch_op("explode", {}, lambda _pct, _message: None)
 
 
 def test_async_health_check_rejects_non_dict_payload_config() -> None:

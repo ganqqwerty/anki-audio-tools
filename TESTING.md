@@ -101,6 +101,7 @@ Recommended workflow:
 | Prosody boundaries | Optional Parselmouth/Praat dependencies stay isolated and do not become package-level imports. |
 | Settings/backend isolation | Settings backend modules do not import UI modules; the settings shell remains thin. |
 | DB access restriction | Direct collection/database access remains isolated to approved helpers. |
+| Broad exception allowlist | `except Exception` handlers are limited to documented boundary functions with a reason. |
 
 ## Architecture Workflow
 

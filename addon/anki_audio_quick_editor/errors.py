@@ -5,6 +5,10 @@ class AudioQuickEditorError(Exception):
     """Base exception for add-on failures that can be shown to users."""
 
 
+class SettingsCommandError(AudioQuickEditorError):
+    """Raised when a settings webview bridge command cannot be dispatched."""
+
+
 class MissingFfmpegError(AudioQuickEditorError):
     """Raised when ffmpeg or ffprobe cannot be found."""
 

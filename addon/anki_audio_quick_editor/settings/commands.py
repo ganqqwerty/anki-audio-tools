@@ -20,6 +20,7 @@ from ..contracts_generated import (
     ShowLogFileResult,
     SupportReportResult,
 )
+from ..errors import SettingsCommandError
 
 logger = logging.getLogger(__name__)
 CONTRACT_DECODE_ERRORS = (AssertionError, TypeError, ValueError)
@@ -160,7 +161,7 @@ def _dispatch_op(
         return _op_support_report(payload, progress_fn)
     if op == "show_log_file":
         return _op_show_log_file(progress_fn)
-    raise RuntimeError(f"Unknown async operation: {op}")
+    raise SettingsCommandError(f"Unknown async operation: {op}")
 
 
 def _op_health_check(
