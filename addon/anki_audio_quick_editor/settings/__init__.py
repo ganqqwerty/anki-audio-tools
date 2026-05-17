@@ -45,7 +45,8 @@ class SettingsDialog(QDialog):
             return handle_settings_command(cmd, _eval_fn, self)
 
         self._webview.set_bridge_command(_on_bridge_cmd, self)
-        self._webview.setHtml(_render_settings_html(config))
+        body, head = _render_settings_content(config)
+        self._webview.stdHtml(body=body, head=head, context=self)
         layout.addWidget(self._webview)
 
     def run_js(self, script: str, callback: Any = None) -> None:
@@ -56,8 +57,8 @@ class SettingsDialog(QDialog):
         self._webview.page().runJavaScript(script, callback)
 
 
-def _render_settings_html(config: dict[str, Any]) -> str:
-    """Render the settings webview HTML with the compiled Svelte bundle embedded."""
+def _render_settings_content(config: dict[str, Any]) -> tuple[str, str]:
+    """Render settings webview body/head fragments for Anki's themed HTML shell."""
     initial_state_json = build_initial_state(config).replace("</script>", "<\\/script>")
     bundle_js = _BUNDLE_JS.read_text(encoding="utf-8") if _BUNDLE_JS.exists() else ""
     bundle_css = _BUNDLE_CSS.read_text(encoding="utf-8") if _BUNDLE_CSS.exists() else ""
@@ -83,17 +84,26 @@ window.addEventListener("unhandledrejection", function(event) {
 });
 """
 
-    return f"""<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
+    head = f"""<meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <style>{bundle_css}</style>
-</head>
-<body>
+  <style>{bundle_css}</style>"""
+    body = f"""
   <div id="app"></div>
   <script>window.__INITIAL_STATE__ = {initial_state_json};</script>
   <script>{js_error_reporter}</script>
-  <script>{bundle_js}</script>
+  <script>{bundle_js}</script>"""
+    return body, head
+
+
+def _render_settings_html(config: dict[str, Any]) -> str:
+    """Render settings fragments inside a minimal HTML shell for tests."""
+    body, head = _render_settings_content(config)
+    return f"""<!DOCTYPE html>
+<html lang="en">
+<head>
+  {head}
+</head>
+<body>
+{body}
 </body>
 </html>"""

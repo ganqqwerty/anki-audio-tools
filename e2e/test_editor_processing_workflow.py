@@ -71,10 +71,19 @@ def test_each_processing_button_updates_field_to_new_real_audio(
         assert wait_for_js_condition(
             editor.web,
             """
-            Array.from(document.querySelectorAll('.aqe-button'))
-              .map((node) => node.textContent.trim())
+            (() => {
+              const buttons = Array.from(document.querySelectorAll('.aqe-button'));
+              return {
+                labels: buttons.map((node) => (
+                  node.querySelector('.aqe-button-label')?.textContent || node.textContent || ''
+                ).trim()),
+                iconsPerButton: buttons.map((node) => node.querySelectorAll('.aqe-button-icon svg').length),
+                iconStrokeValues: Array.from(document.querySelectorAll('.aqe-button .aqe-button-icon svg'))
+                  .map((node) => node.getAttribute('stroke') || getComputedStyle(node).stroke || ''),
+              };
+            })()
             """,
-            lambda labels: labels
+            lambda state: state["labels"]
             == [
                 "Play",
                 "Graph",
@@ -90,7 +99,10 @@ def test_each_processing_button_updates_field_to_new_real_audio(
                 "Volume -",
                 "Volume +",
                 "Undo",
-            ],
+            ]
+            and all(count >= 1 for count in state["iconsPerButton"])
+            and state["iconStrokeValues"]
+            and all(stroke == "currentColor" for stroke in state["iconStrokeValues"]),
             timeout=5.0,
         )
 

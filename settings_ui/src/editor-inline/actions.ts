@@ -157,6 +157,27 @@ export function clearStatus(ord: number): void {
   status.title = "";
 }
 
+function setCommandButtonLabel(ord: number, command: EditorCommand, label: string): void {
+  const button = command === "aqe:play"
+    ? playButton(ord)
+    : command === "aqe:analyze"
+      ? graphButton(ord)
+      : controlsForOrd(ord)?.querySelector<HTMLButtonElement>(`[data-aqe-command="${command}"]`) ?? null;
+  if (!button) return;
+  const labelNode = button.querySelector<HTMLElement>(".aqe-button-label");
+  if (labelNode) {
+    labelNode.textContent = label;
+  } else {
+    button.textContent = label;
+  }
+  if (command === "aqe:play") {
+    button.dataset.aqeButtonState = label === "Pause" ? "pause" : "play";
+  }
+  if (command === "aqe:analyze") {
+    button.dataset.aqeButtonState = label === "Redraw" ? "redraw" : "graph";
+  }
+}
+
 export function send(command: EditorCommand, node: HTMLElement, ord: number): void {
   if (anyBusy()) return;
   if (typeof node.focus === "function") node.focus();
@@ -424,8 +445,7 @@ export function requestGraph(ord: number, notifyPython: boolean): void {
   renderGraphRequested(visualizer);
   clearSelection(visualizer);
   setCursor(visualizer, 0, false);
-  const button = graphButton(ord);
-  if (button) button.textContent = "Redraw";
+  setCommandButtonLabel(ord, "aqe:analyze", "Redraw");
   setVisualizerStatus(ord, "Analyzing...", "processing");
   window.__aqeActiveField = ord;
   logger.info("graph requested", { notifyPython, ord });
@@ -470,8 +490,7 @@ export function setVisualizer(ord: number, rawTrack: ProsodyPayload, cursorMs: n
   visualizer.dataset.playbackEndMs = String(track.durationMs || 0);
   visualizer.dataset.playbackRegionMode = "full";
   configureAudioClock(visualizer, track.sourceFilename || "");
-  const button = graphButton(ord);
-  if (button) button.textContent = "Redraw";
+  setCommandButtonLabel(ord, "aqe:analyze", "Redraw");
   setCursor(visualizer, cursorMs || 0, false);
   if (audioClockReady(visualizer)) {
     seekAudioClock(visualizer, cursorMs || 0);
@@ -492,8 +511,7 @@ export function setVisualizerStatusFromPython(ord: number, message: string, kind
     if (kind === "processing") {
       visualizer.dataset.hasTrack = "false";
     }
-    const button = graphButton(ord);
-    if (button) button.textContent = "Redraw";
+    setCommandButtonLabel(ord, "aqe:analyze", "Redraw");
   }
   setVisualizerStatus(ord, message, kind);
 }
@@ -507,8 +525,12 @@ export function prepareForNewNote(): void {
     controls.dataset.aqeSourceFilename = "";
     controls.querySelectorAll<HTMLButtonElement>(".aqe-button").forEach((button) => {
       button.disabled = false;
-      if (button.dataset.aqeCommand === "aqe:analyze") button.textContent = "Graph";
-      if (button.dataset.aqeCommand === "aqe:play") button.textContent = "Play";
+      if (button.dataset.aqeCommand === "aqe:analyze") {
+        setCommandButtonLabel(Number(controls.dataset.aqeFieldOrd || "0"), "aqe:analyze", "Graph");
+      }
+      if (button.dataset.aqeCommand === "aqe:play") {
+        setCommandButtonLabel(Number(controls.dataset.aqeFieldOrd || "0"), "aqe:play", "Play");
+      }
     });
     controls.querySelectorAll<HTMLInputElement>(".aqe-repeat-checkbox").forEach((checkbox) => {
       checkbox.disabled = false;
@@ -558,8 +580,7 @@ export function prepareForNewNote(): void {
 
 export function setPlaybackButtonLabel(visualizer: VisualizerElement, label: string): void {
   const ord = Number(visualizer.dataset.aqeFieldOrd || "0");
-  const button = playButton(ord);
-  if (button) button.textContent = label;
+  setCommandButtonLabel(ord, "aqe:play", label);
 }
 
 export function manualProgressMs(visualizer: VisualizerElement): number {

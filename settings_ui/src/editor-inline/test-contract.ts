@@ -101,6 +101,9 @@ export function graphStateForTest(ord: number): GraphStateForTest | null {
   const graph = graphButton(ord);
   const play = playButton(ord);
   if (!visualizer) return null;
+  const buttonIcons = allButtons().flatMap((button) => (
+    Array.from(button.querySelectorAll<SVGElement>(".aqe-button-icon svg"))
+  ));
   const audio = audioClockFor(visualizer);
   const selection = selectionForVisualizer(visualizer);
   const draftSelection = draftSelectionForVisualizer(visualizer);
@@ -114,8 +117,10 @@ export function graphStateForTest(ord: number): GraphStateForTest | null {
     cursorMs: Number(visualizer.dataset.cursorMs || "0"),
     progressMs: Number(visualizer.dataset.progressMs || "0"),
     sourceFilename: visualizer.dataset.sourceFilename || "",
-    graphButtonLabel: graph ? graph.textContent || "" : "",
-    playButtonLabel: play ? play.textContent || "" : "",
+    graphButtonLabel: buttonLabel(graph),
+    graphButtonState: graph?.dataset.aqeButtonState || "",
+    playButtonLabel: buttonLabel(play),
+    playButtonState: play?.dataset.aqeButtonState || "",
     playbackState: playbackStateFor(visualizer),
     selectionActive: selection !== null,
     selectionStartMs: selection?.startMs ?? null,
@@ -144,6 +149,8 @@ export function graphStateForTest(ord: number): GraphStateForTest | null {
     spinnerVisible: visualizer.querySelector<HTMLElement>(".aqe-spinner") ? !visualizer.querySelector<HTMLElement>(".aqe-spinner")?.hidden : false,
     allButtonsDisabled: allButtons().every((button) => button.disabled),
     anyButtonDisabled: allButtons().some((button) => button.disabled),
+    buttonIconCount: buttonIcons.length,
+    buttonIconStrokeValues: buttonIcons.map((node) => node.getAttribute("stroke") || getComputedStyle(node).stroke || ""),
   };
 }
 
@@ -160,4 +167,8 @@ function progressClockModeFor(visualizer: VisualizerElement): ProgressClockMode 
   const mode = visualizer.dataset.progressClockMode;
   if (mode === "audio" || mode === "manual" || mode === "stopped") return mode;
   return "stopped";
+}
+
+function buttonLabel(button: HTMLButtonElement | null): string {
+  return button?.querySelector<HTMLElement>(".aqe-button-label")?.textContent || button?.textContent || "";
 }

@@ -2,6 +2,7 @@
   import { onMount } from "svelte";
 
   import { COMMAND_BUTTONS, testId } from "./commands.js";
+  import EditorCommandIcon from "./EditorCommandIcon.svelte";
   import {
     handleVisualizerPointerDown,
     initializePlaybackRegionState,
@@ -36,12 +37,17 @@
       type="button"
       class="aqe-button"
       data-aqe-command={button.command}
+      data-aqe-button-state={button.command === "aqe:play" ? "play" : button.command === "aqe:analyze" ? "graph" : "default"}
       data-testid={testId(target.ord, button.command)}
       title={button.title}
       onmousedown={(event) => event.preventDefault()}
       onclick={() => send(button.command, target.node, target.ord)}
     >
-      {button.label}
+      <EditorCommandIcon className="aqe-button-icon-default" icon={button.icon} />
+      {#if button.activeIcon}
+        <EditorCommandIcon className="aqe-button-icon-active" icon={button.activeIcon} />
+      {/if}
+      <span class="aqe-button-label">{button.label}</span>
     </button>
     {#if button.command === "aqe:play"}
       <label
@@ -167,14 +173,39 @@
     padding: 6px 8px;
   }
   :global(.aqe-button) {
+    align-items: center;
     background: transparent;
     border: 1px solid;
     border-radius: 7px;
     color: inherit;
     cursor: pointer;
+    display: inline-flex;
     font-size: 12px;
     font-weight: 700;
+    gap: 5px;
+    min-height: 27px;
     padding: 4px 8px;
+  }
+  :global(.aqe-button-icon) {
+    color: currentColor;
+    display: inline-flex;
+    flex: 0 0 auto;
+    line-height: 0;
+  }
+  :global(.aqe-button-icon svg) {
+    display: block;
+    stroke: currentColor;
+  }
+  :global(.aqe-button-icon-active) {
+    display: none;
+  }
+  :global(.aqe-button[data-aqe-button-state="pause"] .aqe-button-icon-default),
+  :global(.aqe-button[data-aqe-button-state="redraw"] .aqe-button-icon-default) {
+    display: none;
+  }
+  :global(.aqe-button[data-aqe-button-state="pause"] .aqe-button-icon-active),
+  :global(.aqe-button[data-aqe-button-state="redraw"] .aqe-button-icon-active) {
+    display: inline-flex;
   }
   :global(.aqe-button:hover) {
     text-decoration: underline;

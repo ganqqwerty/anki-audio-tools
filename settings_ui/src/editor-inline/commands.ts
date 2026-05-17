@@ -1,24 +1,31 @@
 import type { ButtonSpec, EditorCommand } from "./types.js";
 
 export const COMMAND_BUTTONS: readonly ButtonSpec[] = [
-  { command: "aqe:play", label: "Play", title: "Play or pause current audio" },
-  { command: "aqe:analyze", label: "Graph", title: "Analyze and show pitch/intensity graph" },
-  { command: "aqe:show-file", label: "Folder", title: "Show current audio file in folder" },
-  { command: "aqe:trim-left", label: "-L", title: "Trim 100 ms from left" },
-  { command: "aqe:trim-right", label: "-R", title: "Trim 100 ms from right" },
-  { command: "aqe:remove-pauses", label: "Shorten Pauses", title: "Speed up long internal pauses" },
-  { command: "aqe:sidon", label: "Sidon", title: "Restore speech with Sidon" },
-  { command: "aqe:mp-senet", label: "MP-SENet", title: "Denoise speech with MP-SENet" },
+  { activeIcon: "pause", command: "aqe:play", icon: "play", label: "Play", title: "Play or pause current audio" },
+  {
+    activeIcon: "refresh-cw",
+    command: "aqe:analyze",
+    icon: "chart-line",
+    label: "Graph",
+    title: "Analyze and show pitch/intensity graph",
+  },
+  { command: "aqe:show-file", icon: "folder-open", label: "Folder", title: "Show current audio file in folder" },
+  { command: "aqe:trim-left", icon: "scissors", label: "-L", title: "Trim 100 ms from left" },
+  { command: "aqe:trim-right", icon: "scissors", label: "-R", title: "Trim 100 ms from right" },
+  { command: "aqe:remove-pauses", icon: "timer-reset", label: "Shorten Pauses", title: "Speed up long internal pauses" },
+  { command: "aqe:sidon", icon: "wand-sparkles", label: "Sidon", title: "Restore speech with Sidon" },
+  { command: "aqe:mp-senet", icon: "sparkles", label: "MP-SENet", title: "Denoise speech with MP-SENet" },
   {
     command: "aqe:remove-noise",
+    icon: "volume-x",
     label: "Remove noise",
     title: "Reduce background noise with DeepFilterNet",
   },
-  { command: "aqe:slower", label: "Slower", title: "Decrease speed" },
-  { command: "aqe:faster", label: "Faster", title: "Increase speed" },
-  { command: "aqe:volume-down", label: "Volume -", title: "Decrease volume" },
-  { command: "aqe:volume-up", label: "Volume +", title: "Increase volume" },
-  { command: "aqe:undo", label: "Undo", title: "Restore the previous generated audio reference" },
+  { command: "aqe:slower", icon: "rewind", label: "Slower", title: "Decrease speed" },
+  { command: "aqe:faster", icon: "fast-forward", label: "Faster", title: "Increase speed" },
+  { command: "aqe:volume-down", icon: "volume-1", label: "Volume -", title: "Decrease volume" },
+  { command: "aqe:volume-up", icon: "volume-2", label: "Volume +", title: "Increase volume" },
+  { command: "aqe:undo", icon: "undo-2", label: "Undo", title: "Restore the previous generated audio reference" },
 ] as const;
 
 export const PROCESSING_COMMANDS = new Set<EditorCommand>([

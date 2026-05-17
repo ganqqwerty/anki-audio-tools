@@ -97,9 +97,11 @@
 
 <style>
   .card {
-    border: 1px solid;
+    background: var(--canvas-elevated, transparent);
+    border: 1px solid var(--border, currentColor);
     border-radius: 24px;
     box-shadow: none;
+    color: var(--fg, currentColor);
     padding: 24px;
   }
 
@@ -134,14 +136,28 @@
 
   input[type="text"],
   input[type="number"] {
-    border: 1px solid;
+    background: var(--canvas-inset, Field);
+    border: 1px solid var(--border, currentColor);
     border-radius: 12px;
+    color: var(--fg, FieldText);
     font: inherit;
     font-weight: 500;
     padding: 10px 12px;
   }
 
+  input[type="text"]::placeholder,
+  input[type="number"]::placeholder {
+    color: var(--fg-subtle, currentColor);
+  }
+
+  input[type="text"]:focus,
+  input[type="number"]:focus {
+    border-color: var(--border-focus, var(--border, currentColor));
+    outline: 1px solid var(--border-focus, currentColor);
+  }
+
   .error {
+    color: var(--accent-danger, currentColor);
     font-weight: 600;
   }
 </style>

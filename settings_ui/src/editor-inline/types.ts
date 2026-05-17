@@ -16,8 +16,27 @@ export type EditorCommand =
   | "aqe:volume-up"
   | "aqe:undo";
 
+export type EditorIconName =
+  | "chart-line"
+  | "fast-forward"
+  | "folder-open"
+  | "pause"
+  | "play"
+  | "refresh-cw"
+  | "rewind"
+  | "scissors"
+  | "sparkles"
+  | "timer-reset"
+  | "undo-2"
+  | "volume-1"
+  | "volume-2"
+  | "volume-x"
+  | "wand-sparkles";
+
 export interface ButtonSpec {
+  activeIcon?: EditorIconName;
   command: EditorCommand;
+  icon: EditorIconName;
   label: string;
   title: string;
 }
@@ -80,11 +99,15 @@ export interface GraphStateForTest {
   cursorX: number;
   durationMs: number;
   graphButtonLabel: string;
+  graphButtonState: string;
   hasTrack: boolean;
   hidden: boolean;
   intensity: string;
   pitchPaths: number;
+  buttonIconCount: number;
+  buttonIconStrokeValues: string[];
   playButtonLabel: string;
+  playButtonState: string;
   playbackEngine: "html" | "native";
   playbackEndMs: number;
   playbackRegionMode: "selection" | "full";

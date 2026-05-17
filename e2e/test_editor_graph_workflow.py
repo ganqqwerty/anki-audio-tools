@@ -6,6 +6,8 @@ import subprocess
 import time
 from pathlib import Path
 
+from PyQt6.QtWidgets import QApplication
+
 from e2e.editor_audio_generation_helpers import _generate_tone_silence_tone
 from e2e.editor_graph_helpers import (
     _click_graph_and_wait,
@@ -64,6 +66,91 @@ def test_visualizer_renders_pitch_intensity_labels_and_cursor(anki_mw, ffmpeg_co
     finally:
         editor.set_note(None)
         parent.close()
+
+
+def test_editor_controls_and_graph_are_dark_mode_aware(anki_mw, ffmpeg_config) -> None:
+    from aqt.theme import Theme
+
+    previous_theme = anki_mw.pm.theme()
+    media_dir = Path(anki_mw.col.media.dir())
+    source = media_dir / "editor_dark_mode_source.wav"
+    generate_tone(ffmpeg_config, source, duration_s=1.0)
+    note = _basic_audio_note(anki_mw, source.name)
+    _configure_ffmpeg(anki_mw, ffmpeg_config)
+
+    try:
+        anki_mw.set_theme(Theme.DARK)
+        editor, parent = _open_editor(anki_mw, note)
+        try:
+            wait_for_selector(editor.web, _button_selector("aqe:analyze"), timeout=10.0)
+            initial = wait_for_js_condition(
+                editor.web,
+                """
+                (() => {
+                  const buttons = Array.from(document.querySelectorAll('.aqe-button'));
+                  return {
+                    bodyNight: document.body.classList.contains('nightMode'),
+                    htmlNight: document.documentElement.classList.contains('night-mode'),
+                    bsTheme: document.documentElement.dataset.bsTheme || "",
+                    iconsPerButton: buttons.map((button) => button.querySelectorAll('.aqe-button-icon svg').length),
+                    iconStrokeValues: Array.from(document.querySelectorAll('.aqe-button .aqe-button-icon svg'))
+                      .map((node) => node.getAttribute('stroke') || getComputedStyle(node).stroke || ''),
+                    graphButtonState: document.querySelector('[data-testid="aqe-button-0-graph"]')?.dataset.aqeButtonState || "",
+                    playButtonState: document.querySelector('[data-testid="aqe-button-0-play"]')?.dataset.aqeButtonState || "",
+                  };
+                })()
+                """,
+                lambda value: value is not None
+                and value["htmlNight"] is True
+                and value["bodyNight"] is True
+                and value["bsTheme"] == "dark"
+                and value["iconsPerButton"]
+                and all(count >= 1 for count in value["iconsPerButton"])
+                and all(stroke == "currentColor" for stroke in value["iconStrokeValues"])
+                and value["graphButtonState"] == "graph"
+                and value["playButtonState"] == "play",
+                timeout=10.0,
+            )
+            assert initial["bodyNight"] is True
+
+            track = _click_graph_and_wait(
+                editor,
+                lambda value: value["sourceFilename"] == source.name and value["pitchPaths"] > 0,
+            )
+            assert track["graphButtonLabel"] == "Redraw"
+            assert track["graphButtonState"] == "redraw"
+
+            graph_visibility = wait_for_js_condition(
+                editor.web,
+                """
+                (() => {
+                  const svg = document.querySelector('.aqe-visualizer-svg');
+                  const pitch = document.querySelector('.aqe-pitch-path');
+                  const intensity = document.querySelector('.aqe-intensity');
+                  if (!svg || !pitch || !intensity) return null;
+                  const pitchStyle = getComputedStyle(pitch);
+                  const intensityStyle = getComputedStyle(intensity);
+                  return {
+                    color: getComputedStyle(svg).color,
+                    intensityFill: intensityStyle.fill,
+                    intensityPath: intensity.getAttribute('d') || "",
+                    pitchStroke: pitchStyle.stroke,
+                  };
+                })()
+                """,
+                lambda value: value is not None
+                and value["intensityPath"].startswith("M ")
+                and value["pitchStroke"] not in ("", "none")
+                and value["intensityFill"] not in ("", "none"),
+                timeout=5.0,
+            )
+            assert graph_visibility["pitchStroke"] != "none"
+        finally:
+            editor.set_note(None)
+            parent.close()
+    finally:
+        anki_mw.set_theme(previous_theme)
+        QApplication.processEvents()
 
 
 def test_visualizer_uses_second_axis_for_long_clip(anki_mw, ffmpeg_config) -> None:

@@ -87,9 +87,11 @@
 
 <style>
   .card {
-    border: 1px solid;
+    background: var(--canvas-elevated, transparent);
+    border: 1px solid var(--border, currentColor);
     border-radius: 24px;
     box-shadow: none;
+    color: var(--fg, currentColor);
     padding: 24px;
   }
 
@@ -104,6 +106,7 @@
   }
 
   dt {
+    color: var(--fg-subtle, currentColor);
     font-size: 0.8rem;
     letter-spacing: 0.08em;
     text-transform: uppercase;
@@ -123,19 +126,34 @@
 
   .btn {
     appearance: none;
-    border: 1px solid;
+    background: var(--button-bg, transparent);
+    border: 1px solid var(--border-subtle, currentColor);
     border-radius: 999px;
+    color: var(--fg, currentColor);
     cursor: pointer;
     font: inherit;
     padding: 10px 16px;
   }
 
+  .btn:hover {
+    background: var(--button-gradient-start, var(--button-bg, transparent));
+    border-color: var(--button-hover-border, var(--border, currentColor));
+  }
+
   .btn-primary {
+    border-color: var(--border-focus, var(--border, currentColor));
     font-weight: 700;
   }
 
+  .muted {
+    color: var(--fg-subtle, currentColor);
+  }
+
   .report {
+    background: var(--canvas-code, var(--canvas-inset, transparent));
+    border: 1px solid var(--border-subtle, currentColor);
     border-radius: 18px;
+    color: var(--fg, currentColor);
     margin-top: 16px;
     overflow: auto;
     padding: 16px;

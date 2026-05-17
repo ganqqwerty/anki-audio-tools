@@ -160,12 +160,17 @@
 
 <style>
   :global(body) {
+    background: var(--canvas, Canvas);
+    color: var(--fg, CanvasText);
+    color-scheme: light dark;
+    font-family: inherit;
     margin: 0;
-    font-family: "Avenir Next", "Segoe UI", sans-serif;
   }
 
   .settings-root {
+    background: var(--canvas, Canvas);
     box-sizing: border-box;
+    color: var(--fg, CanvasText);
     min-height: 100vh;
     padding: 28px;
   }
@@ -186,6 +191,7 @@
   }
 
   .eyebrow {
+    color: var(--fg-subtle, currentColor);
     font-size: 0.78rem;
     letter-spacing: 0.12em;
     margin: 0 0 6px;
@@ -199,11 +205,13 @@
   }
 
   .summary {
+    color: var(--fg-subtle, currentColor);
     max-width: 38rem;
   }
 
   .version-pill {
-    border: 1px solid;
+    background: var(--canvas-elevated, transparent);
+    border: 1px solid var(--border, currentColor);
     border-radius: 999px;
     font-weight: 600;
     padding: 10px 14px;
@@ -217,14 +225,22 @@
 
   .tab-nav button {
     appearance: none;
-    border: 1px solid;
+    background: var(--button-bg, transparent);
+    border: 1px solid var(--border-subtle, currentColor);
     border-radius: 999px;
+    color: var(--fg, currentColor);
     cursor: pointer;
     font: inherit;
     padding: 10px 16px;
   }
 
+  .tab-nav button:hover {
+    background: var(--button-gradient-start, var(--button-bg, transparent));
+    border-color: var(--button-hover-border, var(--border, currentColor));
+  }
+
   .tab-nav button.active {
+    border-color: var(--border-focus, var(--border, currentColor));
     font-weight: 700;
     text-decoration: underline;
   }

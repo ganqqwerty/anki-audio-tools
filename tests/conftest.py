@@ -108,8 +108,19 @@ class _AnkiWebView:
         self._bridge_command = func
         self._bridge_context = context
 
-    def setHtml(self, html: str) -> None:
+    def setHtml(self, html: str, *_args: object) -> None:
         self._html = html
+
+    def stdHtml(
+        self,
+        body: str,
+        *,
+        head: str = "",
+        context: object | None = None,
+        **_kwargs: object,
+    ) -> None:
+        del context
+        self._html = f"<!doctype html><html><head>{head}</head><body>{body}</body></html>"
 
     def eval(self, js: str) -> None:
         del js

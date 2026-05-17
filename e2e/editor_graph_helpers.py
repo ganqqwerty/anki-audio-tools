@@ -11,6 +11,9 @@ def _visualizer_js(ord_: int = 0) -> str:
     return """
     (() => {
       const ord = __ORD__;
+      const buttonLabel = (button) => button?.querySelector('.aqe-button-label')?.textContent || button?.textContent || "";
+      const graphButton = document.querySelector(`[data-testid="aqe-button-${ord}-graph"]`);
+      const playButton = document.querySelector(`[data-testid="aqe-button-${ord}-play"]`);
       const visualizer = document.querySelector(`.aqe-visualizer[data-aqe-field-ord="${ord}"]`);
       if (!visualizer) return null;
       const labels = Array.from(visualizer.querySelectorAll('.aqe-hz-label')).map((node) => node.textContent);
@@ -33,8 +36,10 @@ def _visualizer_js(ord_: int = 0) -> str:
         cursorX: visualizer.querySelector('.aqe-cursor')?.getAttribute('x1') || "",
         status: visualizer.querySelector('.aqe-visualizer-status')?.textContent || "",
         statusKind: visualizer.querySelector('.aqe-visualizer-status')?.dataset.kind || "",
-        graphButtonLabel: document.querySelector(`[data-testid="aqe-button-${ord}-graph"]`)?.textContent || "",
-        playButtonLabel: document.querySelector(`[data-testid="aqe-button-${ord}-play"]`)?.textContent || "",
+        graphButtonLabel: buttonLabel(graphButton),
+        graphButtonState: graphButton?.dataset.aqeButtonState || "",
+        playButtonLabel: buttonLabel(playButton),
+        playButtonState: playButton?.dataset.aqeButtonState || "",
         playbackState: visualizer.dataset.playbackState || "stopped",
         playbackStartMs: Number(visualizer.dataset.playbackStartMs || "0"),
         playbackEndMs: Number(visualizer.dataset.playbackEndMs || "0"),
