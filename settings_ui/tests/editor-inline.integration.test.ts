@@ -324,16 +324,24 @@ describe("editor inline Svelte integration", () => {
     scan({ audioFieldIndices: [0, 1], showGraphByDefault: true });
     scan({ audioFieldIndices: [0, 1], showGraphByDefault: true });
 
-    expect(bridgeCommands().filter((command) => command === "aqe:analyze")).toHaveLength(1);
-    expect(bridgeCommands()).toContain("focus:0");
+    expect(bridgeCommands().filter((command) => command === "aqe:analyze-field")).toHaveLength(1);
+    expect(bridgeCommands()).not.toContain("focus:0");
+    expect(window.__aqePopPendingGraphAnalysisRequest?.()).toEqual({
+      ord: 0,
+      sourceFilename: "clip one.mp3",
+    });
     expect(window.__aqeGraphStateForTest?.(0)).toMatchObject({ busy: true, hidden: false });
 
     window.__aqeSetVisualizer?.(0, { ...track, sourceFilename: "clip one.mp3" }, 0);
     await Promise.resolve();
     await Promise.resolve();
 
-    expect(bridgeCommands().filter((command) => command === "aqe:analyze")).toHaveLength(2);
-    expect(bridgeCommands()).toContain("focus:1");
+    expect(bridgeCommands().filter((command) => command === "aqe:analyze-field")).toHaveLength(2);
+    expect(bridgeCommands()).not.toContain("focus:1");
+    expect(window.__aqePopPendingGraphAnalysisRequest?.()).toEqual({
+      ord: 1,
+      sourceFilename: "clip two.mp3",
+    });
     expect(window.__aqeGraphStateForTest?.(1)).toMatchObject({ busy: true, hidden: false });
   });
 
@@ -347,8 +355,8 @@ describe("editor inline Svelte integration", () => {
     await Promise.resolve();
     await Promise.resolve();
 
-    expect(bridgeCommands().filter((command) => command === "aqe:analyze")).toHaveLength(2);
-    expect(bridgeCommands()).toContain("focus:1");
+    expect(bridgeCommands().filter((command) => command === "aqe:analyze-field")).toHaveLength(2);
+    expect(bridgeCommands()).not.toContain("focus:1");
     expect(window.__aqeGraphStateForTest?.(1)).toMatchObject({ busy: true, hidden: false });
   });
 

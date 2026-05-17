@@ -12,6 +12,7 @@ import {
 import {
   focusAndSendCommand,
   popPendingPlaybackRequest,
+  sendGraphAnalysisRequest,
   setCursorIntent,
   setPendingPlaybackRequest,
 } from "./bridge.js";
@@ -35,14 +36,7 @@ import {
   buildPlaybackRequestForPython,
   type PlaybackRegion,
 } from "./playback-state.js";
-import type {
-  AudioClockElement,
-  CursorIntent,
-  EditorCommand,
-  PlaybackRequest,
-  PlaybackState,
-  VisualizerElement,
-} from "./types.js";
+import type { AudioClockElement, CursorIntent, DefaultGraphTarget, EditorCommand, PlaybackRequest, PlaybackState, VisualizerElement } from "./types.js";
 import { isPlaybackState, normalizeTrack } from "./types.js";
 import {
   shouldTreatSelectionGestureAsClick as isClickLikeSelectionGesture,
@@ -90,7 +84,7 @@ import {
   type ProgressClockOptions,
 } from "./playback-controller.js";
 
-export { popEditorFrontendLog } from "./bridge.js";
+export { popEditorFrontendLog, popPendingGraphAnalysisRequest } from "./bridge.js";
 export {
   buttonFor,
   controlsForOrd,
@@ -445,20 +439,32 @@ export function handleVisualizerPointerDown(event: PointerEvent, ord: number): v
 }
 
 export function requestGraph(ord: number, notifyPython: boolean): void {
-  const visualizer = visualizerForOrd(ord);
-  if (!visualizer) return;
-  stopProgressClock(visualizer, { clearAudio: true });
-  renderGraphRequested(visualizer);
-  clearSelection(visualizer);
-  setCursor(visualizer, 0, false);
-  setCommandButtonLabel(ord, "aqe:analyze", "Redraw");
-  setVisualizerStatus(ord, "Analyzing...", "processing");
+  if (!prepareGraphRequest(ord)) return;
   window.__aqeActiveField = ord;
   logger.info("graph requested", { notifyPython, ord });
   if (notifyPython) {
     setControlsBusy(ord, true, "Analyzing...", "");
     focusAndSendCommand(ord, "aqe:analyze");
   }
+}
+
+export function requestDefaultGraph(target: DefaultGraphTarget): void {
+  if (!prepareGraphRequest(target.ord)) return;
+  logger.info("default graph requested", target);
+  setControlsBusy(target.ord, true, "Analyzing...", "");
+  sendGraphAnalysisRequest(target);
+}
+
+function prepareGraphRequest(ord: number): boolean {
+  const visualizer = visualizerForOrd(ord);
+  if (!visualizer) return false;
+  stopProgressClock(visualizer, { clearAudio: true });
+  renderGraphRequested(visualizer);
+  clearSelection(visualizer);
+  setCursor(visualizer, 0, false);
+  setCommandButtonLabel(ord, "aqe:analyze", "Redraw");
+  setVisualizerStatus(ord, "Analyzing...", "processing");
+  return true;
 }
 
 export function resetGraphAfterEdit(ord: number): boolean {
@@ -529,7 +535,7 @@ export function setVisualizerStatusFromPython(ord: number, message: string, kind
 function defaultGraphQueueDependencies() {
   return {
     anyBusy,
-    requestGraph,
+    requestDefaultGraph,
   };
 }
 

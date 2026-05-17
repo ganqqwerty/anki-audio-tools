@@ -79,6 +79,7 @@ def test_play_graph_cursor_and_play_ended_are_not_processing_commands() -> None:
         "aqe:play-ended",
         "aqe:show-file",
         "aqe:analyze",
+        "aqe:analyze-field",
         "aqe:set-cursor",
         "aqe:denoise-standard",
         "aqe:mp-senet",
@@ -91,6 +92,7 @@ def test_play_graph_cursor_and_play_ended_are_not_processing_commands() -> None:
     assert "aqe:mp-senet" in BRIDGE_COMMANDS
     assert "aqe:settings" in BRIDGE_COMMANDS
     assert "aqe:redo" in BRIDGE_COMMANDS
+    assert "aqe:analyze-field" in BRIDGE_COMMANDS
     assert ("aqe:" + "si" + "don") not in BRIDGE_COMMANDS
 
 

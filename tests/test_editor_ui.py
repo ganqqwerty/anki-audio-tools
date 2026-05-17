@@ -63,6 +63,7 @@ def test_injection_script_keeps_python_window_contract() -> None:
     assert "__aqeGetPlaybackRequest" in script
     assert "__aqeGetCursorIntent" in script
     assert "__aqePopFrontendLog" in script
+    assert "__aqePopPendingGraphAnalysisRequest" in script
     assert "__aqeScan" in script
     assert "__aqeGraphStateForTest" in script
 

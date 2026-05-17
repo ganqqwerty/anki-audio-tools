@@ -3,6 +3,7 @@ import type {
   CursorIntent,
   CursorPositionForTest,
   EditorRuntimeConfig,
+  GraphAnalysisRequest,
   GraphStateForTest,
   PlaybackRequest,
   PlaybackState,
@@ -24,6 +25,7 @@ declare global {
     __aqeLastPlaybackRequest?: PlaybackRequest | null;
     __aqePendingGraphRedrawField?: number | null;
     __aqePendingPlaybackRequest?: PlaybackRequest | null;
+    __aqePopPendingGraphAnalysisRequest?: (() => GraphAnalysisRequest | null) | undefined;
     __aqePopFrontendLog?: (() => FrontendLogPayload | null) | undefined;
     __aqePrepareForNewNote?: (() => void) | undefined;
     __aqeResetGraphAfterEdit?: ((ord: number) => boolean) | undefined;

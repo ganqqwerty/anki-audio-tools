@@ -1,6 +1,6 @@
 import {
   prepareForNewNote,
-  requestGraph,
+  requestDefaultGraph,
   requestPendingGraphRedraw,
 } from "./actions.js";
 import {
@@ -127,7 +127,7 @@ function enqueueConfiguredDefaultGraphs(config: EditorRuntimeConfig, targets: re
     targets.map(({ ord, sourceFilename }) => ({ ord, sourceFilename })),
     {
       anyBusy: () => document.body.dataset.aqeBusy === "true",
-      requestGraph,
+      requestDefaultGraph,
     },
   );
 }

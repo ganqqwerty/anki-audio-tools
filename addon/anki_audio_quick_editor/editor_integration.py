@@ -25,6 +25,7 @@ from .audio_state import AudioEditState, AudioProcessingConfig
 from .contracts_generated import FrontendLogPayload, ProsodyPayload
 from .editor_actions import (
     BRIDGE_COMMANDS,
+    CMD_ANALYZE_FIELD,
     CMD_DENOISE_STANDARD,
     CMD_MP_SENET,
     CMD_REDO,
@@ -87,19 +88,6 @@ class UndoHistory:
         self.entries.clear()
 
 
-@dataclass(frozen=True)
-class EditSessionSnapshot:
-    """Edit state to restore after read-only cross-field work."""
-
-    state: AudioEditState | None
-    field_index: int | None
-    current_filename: str | None
-    undo_entries: tuple[UndoEntry, ...]
-    redo_entries: tuple[UndoEntry, ...]
-    source_mtime_ns: int | None
-    cursor_ms: int
-
-
 @dataclass
 class EditorSession:
     """Mutable edit session for a single editor instance."""
@@ -112,12 +100,16 @@ class EditorSession:
     redo_history: UndoHistory = field(default_factory=UndoHistory)
     processing: bool = False
     analysis_busy: bool = False
+    analysis_busy_fields: set[int] = field(default_factory=set)
     source_mtime_ns: int | None = None
     cursor_ms: int = 0
     analysis_generation: int = 0
+    analysis_generations_by_field: dict[int, int] = field(default_factory=dict)
     graph_active_fields: set[int] = field(default_factory=set)
     visualized_filename: str | None = None
     visualized_duration_ms: int | None = None
+    visualized_filenames_by_field: dict[int, str] = field(default_factory=dict)
+    visualized_durations_by_field: dict[int, int] = field(default_factory=dict)
     playback_active: bool = False
     playback_paused: bool = False
     playback_preparing: bool = False
@@ -195,11 +187,15 @@ def _reset_editor_session_for_note_load(editor: Any, note_id: int | None = None)
     session.redo_history.clear()
     session.processing = False
     session.analysis_busy = False
+    session.analysis_busy_fields.clear()
     session.source_mtime_ns = None
     session.cursor_ms = 0
+    session.analysis_generations_by_field.clear()
     session.graph_active_fields.clear()
     session.visualized_filename = None
     session.visualized_duration_ms = None
+    session.visualized_filenames_by_field.clear()
+    session.visualized_durations_by_field.clear()
     session.playback_active = False
     session.playback_paused = False
     session.playback_preparing = False
@@ -226,6 +222,7 @@ def _handle_non_processing_command(editor: Any, command: str) -> bool:
         return True
     handlers = {
         "aqe:analyze": _analyze_current_async,
+        CMD_ANALYZE_FIELD: _analyze_field_from_frontend,
         "aqe:set-cursor": _set_cursor_from_web,
         "aqe:play": _play,
         "aqe:frontend-log": _handle_editor_frontend_log,
@@ -371,6 +368,8 @@ def _replace_current_field_after_render(
         if should_redraw_graph:
             session.visualized_filename = None
             session.visualized_duration_ms = None
+            session.visualized_filenames_by_field.pop(field_index, None)
+            session.visualized_durations_by_field.pop(field_index, None)
     editor.loadNote(focusTo=field_index)
     _eval_status(editor, f"Updated field to {saved_name}")
     _eval_playback_state(editor, field_index, "stopped", 0)
@@ -501,6 +500,8 @@ def _replace_current_field_after_noise_removal(editor: Any, saved_name: str) -> 
         if should_redraw_graph:
             session.visualized_filename = None
             session.visualized_duration_ms = None
+            session.visualized_filenames_by_field.pop(field_index, None)
+            session.visualized_durations_by_field.pop(field_index, None)
     editor.loadNote(focusTo=field_index)
     _eval_status(editor, f"Updated field to {saved_name}")
     _eval_playback_state(editor, field_index, "stopped", 0)
@@ -568,7 +569,7 @@ def _play_with_request(editor: Any, request: Any) -> None:
         _eval_status(editor, STILL_PROCESSING_MESSAGE, kind="processing")
         return
     field_index = _current_field_index(editor)
-    action, engine, cursor_ms = _playback_request_values(session, request)
+    action, engine, cursor_ms = _playback_request_values(session, request, field_index)
     session.cursor_ms = cursor_ms
     if engine == "html":
         _apply_html_playback_request(editor, session, field_index, action, cursor_ms)
@@ -582,12 +583,16 @@ def _play_with_request(editor: Any, request: Any) -> None:
 def _playback_request_values(
     session: EditorSession,
     request: Any,
+    field_index: int,
 ) -> tuple[str, str, int]:
     if not isinstance(request, dict):
         return "start", "native", session.cursor_ms
     action = str(request.get("action") or "start")
     engine = str(request.get("engine") or "native")
-    cursor_ms = clamp_cursor_ms(request.get("cursorMs"), session.visualized_duration_ms)
+    duration_ms = request.get("endMs")
+    if duration_ms is None:
+        duration_ms = _visualized_duration_for_field(session, field_index, session.current_filename)
+    cursor_ms = clamp_cursor_ms(request.get("cursorMs"), duration_ms)
     return action, engine, cursor_ms
 
 
@@ -909,12 +914,7 @@ def _session_and_source(editor: Any) -> tuple[EditorSession, Path]:
 
 
 def _current_sound_reference(editor: Any, field_index: int) -> tuple[str, Path]:
-    field_html = editor.note.fields[field_index]
-    selection = select_first_sound_reference(field_html)
-    if selection.selected is None:
-        raise AudioProcessingError(CURRENT_FIELD_AUDIO_MISSING)
-    filename = safe_media_basename(selection.selected.filename)
-    return filename, Path(editor.mw.col.media.dir()) / filename
+    return _sound_reference_for_field(editor, field_index)
 
 
 def _session_original_source_path(
@@ -985,32 +985,97 @@ def _analyze_current_async(editor: Any) -> None:
         _eval_visualizer_status(editor, STILL_PROCESSING_MESSAGE, kind="processing")
         return
     field_index = _current_field_index(editor)
-    snapshot = _snapshot_edit_state_for_cross_field_analysis(existing, field_index)
+    filename, media_path = _current_sound_reference(editor, field_index)
+    if not media_path.is_file():
+        raise MissingMediaError(REFERENCED_AUDIO_MISSING)
+    _start_field_analysis_async(editor, field_index, filename, media_path)
+
+
+def _analyze_field_from_frontend(editor: Any) -> None:
+    _eval_with_callback(
+        editor,
+        "window.__aqePopPendingGraphAnalysisRequest ? "
+        "window.__aqePopPendingGraphAnalysisRequest() : null",
+        lambda request: _analyze_requested_field_async(editor, request),
+    )
+
+
+def _analyze_requested_field_async(editor: Any, request: Any) -> None:
+    parsed = _parse_graph_analysis_request(request)
+    if parsed is None:
+        return
+    field_index, expected_filename = parsed
+    resolved = _resolve_requested_field_media(editor, field_index, expected_filename)
+    if resolved is None:
+        _finish_ignored_field_analysis(editor, field_index)
+        return
+    filename, media_path = resolved
+    if not media_path.is_file():
+        _fail_field_analysis_without_generation(editor, field_index, REFERENCED_AUDIO_MISSING)
+        return
+    _start_field_analysis_async(editor, field_index, filename, media_path)
+
+
+def _parse_graph_analysis_request(request: Any) -> tuple[int, str] | None:
+    if not isinstance(request, dict):
+        return None
+    raw_ord = request.get("ord")
+    if raw_ord is None:
+        return None
     try:
-        session, current_path = _current_media_path(editor)
+        field_index = int(raw_ord)
+    except (TypeError, ValueError):
+        return None
+    if field_index < 0:
+        return None
+    filename = safe_media_basename(str(request.get("sourceFilename") or ""))
+    return (field_index, filename) if filename else None
+
+
+def _resolve_requested_field_media(
+    editor: Any,
+    field_index: int,
+    expected_filename: str,
+) -> tuple[str, Path] | None:
+    if getattr(editor, "note", None) is None:
+        return None
+    fields = getattr(editor.note, "fields", [])
+    if field_index >= len(fields):
+        return None
+    try:
+        filename, media_path = _sound_reference_for_field(editor, field_index)
     except AudioQuickEditorError:
-        if existing is not None:
-            _restore_edit_state_snapshot(existing, snapshot)
-        raise
-    _restore_edit_state_snapshot(session, snapshot)
+        return None
+    return (filename, media_path) if filename == expected_filename else None
+
+
+def _sound_reference_for_field(editor: Any, field_index: int) -> tuple[str, Path]:
+    field_html = editor.note.fields[field_index]
+    selection = select_first_sound_reference(field_html)
+    if selection.selected is None:
+        raise AudioProcessingError(CURRENT_FIELD_AUDIO_MISSING)
+    filename = safe_media_basename(selection.selected.filename)
+    return filename, Path(editor.mw.col.media.dir()) / filename
+
+
+def _start_field_analysis_async(
+    editor: Any,
+    field_index: int,
+    filename: str,
+    media_path: Path,
+) -> None:
+    session = _SESSIONS.setdefault(editor, EditorSession())
+    if _is_busy(session):
+        _eval_visualizer_status_for_field(editor, field_index, STILL_PROCESSING_MESSAGE, kind="processing")
+        return
     config = AudioProcessingConfig.from_config(_config(editor))
-    _stop_session_playback(session)
-    session.analysis_generation += 1
-    generation = session.analysis_generation
-    session.analysis_busy = True
-    session.playback_active = False
-    session.playback_paused = False
-    session.cursor_ms = 0
-    session.graph_active_fields.add(field_index)
-    session.visualized_filename = current_path.name
-    session.visualized_duration_ms = None
-    _set_busy(editor, True, "Analyzing...")
-    _eval_playback_state(editor, field_index, "stopped", 0)
-    _eval_visualizer_status(editor, "Analyzing...")
+    generation = _begin_field_analysis(session, field_index, filename)
+    _set_busy_for_field(editor, field_index, True, "Analyzing...")
+    _eval_visualizer_status_for_field(editor, field_index, "Analyzing...", kind="processing")
 
     def _run() -> None:
         try:
-            track = _analyze_prosody_cached(current_path, config)
+            track = _analyze_prosody_cached(media_path, config)
             _main(editor, lambda: _analysis_finished(editor, generation, field_index, track))
         except Exception as exc:
             message = str(exc)
@@ -1019,36 +1084,26 @@ def _analyze_current_async(editor: Any) -> None:
     threading.Thread(target=_run, daemon=True).start()
 
 
-def _snapshot_edit_state_for_cross_field_analysis(
-    session: EditorSession | None,
-    field_index: int,
-) -> EditSessionSnapshot | None:
-    if session is None or session.field_index is None or session.field_index == field_index:
-        return None
-    return EditSessionSnapshot(
-        state=session.state,
-        field_index=session.field_index,
-        current_filename=session.current_filename,
-        undo_entries=tuple(session.undo_history.entries),
-        redo_entries=tuple(session.redo_history.entries),
-        source_mtime_ns=session.source_mtime_ns,
-        cursor_ms=session.cursor_ms,
-    )
+def _begin_field_analysis(session: EditorSession, field_index: int, filename: str) -> int:
+    session.analysis_generation += 1
+    generation = session.analysis_generation
+    session.analysis_generations_by_field[field_index] = generation
+    session.analysis_busy_fields.add(field_index)
+    session.analysis_busy = True
+    session.graph_active_fields.add(field_index)
+    session.visualized_filenames_by_field[field_index] = filename
+    session.visualized_durations_by_field.pop(field_index, None)
+    return generation
 
 
-def _restore_edit_state_snapshot(
-    session: EditorSession,
-    snapshot: EditSessionSnapshot | None,
-) -> None:
-    if snapshot is None:
-        return
-    session.state = snapshot.state
-    session.field_index = snapshot.field_index
-    session.current_filename = snapshot.current_filename
-    session.undo_history.entries = list(snapshot.undo_entries)
-    session.redo_history.entries = list(snapshot.redo_entries)
-    session.source_mtime_ns = snapshot.source_mtime_ns
-    session.cursor_ms = snapshot.cursor_ms
+def _finish_ignored_field_analysis(editor: Any, field_index: int) -> None:
+    _set_busy_for_field(editor, field_index, False)
+    _eval_visualizer_status_for_field(editor, field_index, "", kind="info")
+
+
+def _fail_field_analysis_without_generation(editor: Any, field_index: int, message: str) -> None:
+    _set_busy_for_field(editor, field_index, False)
+    _eval_visualizer_status_for_field(editor, field_index, message or "Audio visualization failed.", kind="error")
 
 
 def _analysis_finished(
@@ -1058,28 +1113,32 @@ def _analysis_finished(
     track: ProsodyTrack,
 ) -> None:
     session = _SESSIONS.get(editor)
-    if session is None or generation != session.analysis_generation:
+    if session is None or not _is_current_field_analysis(session, field_index, generation):
         return
-    session.analysis_busy = False
-    session.visualized_duration_ms = track.duration_ms
-    session.cursor_ms = clamp_cursor_ms(session.cursor_ms, track.duration_ms)
+    _end_field_analysis(session, field_index)
+    session.visualized_filenames_by_field[field_index] = track.source_filename
+    session.visualized_durations_by_field[field_index] = track.duration_ms
+    cursor_ms = 0
+    if session.field_index == field_index:
+        session.visualized_filename = track.source_filename
+        session.visualized_duration_ms = track.duration_ms
+        session.cursor_ms = clamp_cursor_ms(session.cursor_ms, track.duration_ms)
+        cursor_ms = session.cursor_ms
     payload = json.dumps(ProsodyPayload.from_dict(track.to_payload()).to_dict())
-    cursor_payload = json.dumps(session.cursor_ms)
+    cursor_payload = json.dumps(cursor_ms)
     editor.web.eval(
         "window.__aqeSetVisualizer && window.__aqeSetVisualizer("
         f"{json.dumps(int(field_index))}, {payload}, {cursor_payload})"
     )
-    _set_busy(editor, False)
+    _set_busy_for_field(editor, field_index, False)
 
 
 def _analysis_failed(editor: Any, generation: int, field_index: int, message: str) -> None:
     session = _SESSIONS.get(editor)
-    if session is None or generation != session.analysis_generation:
+    if session is None or not _is_current_field_analysis(session, field_index, generation):
         return
-    session.analysis_busy = False
-    session.playback_active = False
-    session.playback_paused = False
-    _set_busy(editor, False)
+    _end_field_analysis(session, field_index)
+    _set_busy_for_field(editor, field_index, False)
     editor.web.eval(
         "window.__aqeSetVisualizerStatus && window.__aqeSetVisualizerStatus("
         f"{json.dumps(int(field_index))}, "
@@ -1088,19 +1147,34 @@ def _analysis_failed(editor: Any, generation: int, field_index: int, message: st
     )
 
 
+def _is_current_field_analysis(
+    session: EditorSession,
+    field_index: int,
+    generation: int,
+) -> bool:
+    return session.analysis_generations_by_field.get(field_index) == generation
+
+
+def _end_field_analysis(session: EditorSession, field_index: int) -> None:
+    session.analysis_busy_fields.discard(field_index)
+    session.analysis_generations_by_field.pop(field_index, None)
+    session.analysis_busy = bool(session.analysis_busy_fields)
+
+
 def _set_cursor_from_web(editor: Any) -> None:
     def _apply(value: Any) -> None:
         if getattr(editor, "note", None) is None:
             return
         session, source_path = _session_and_source(editor)
         cursor_value = value.get("cursorMs") if isinstance(value, dict) else value
-        session.cursor_ms = clamp_cursor_ms(cursor_value, session.visualized_duration_ms)
+        field_index = _current_field_index(editor)
+        duration_ms = _visualized_duration_for_field(session, field_index, session.current_filename)
+        session.cursor_ms = clamp_cursor_ms(cursor_value, duration_ms)
         if isinstance(value, dict) and value.get("restartPlayback"):
             if value.get("engine") == "html":
                 session.playback_active = True
                 session.playback_paused = False
                 return
-            field_index = _current_field_index(editor)
             _start_playback_from_cursor(editor, session, source_path, field_index, session.cursor_ms)
 
     _eval_with_callback(
@@ -1112,7 +1186,24 @@ def _set_cursor_from_web(editor: Any) -> None:
 
 
 def _is_busy(session: EditorSession) -> bool:
-    return session.processing or session.analysis_busy or session.playback_preparing
+    return (
+        session.processing
+        or session.analysis_busy
+        or bool(session.analysis_busy_fields)
+        or session.playback_preparing
+    )
+
+
+def _visualized_duration_for_field(
+    session: EditorSession,
+    field_index: int,
+    filename: str | None,
+) -> int | None:
+    if filename and session.visualized_filenames_by_field.get(field_index) == filename:
+        return session.visualized_durations_by_field.get(field_index)
+    if session.field_index == field_index:
+        return session.visualized_duration_ms
+    return None
 
 
 def _current_field_index(editor: Any) -> int:
@@ -1149,6 +1240,15 @@ def _eval_visualizer_status(editor: Any, message: str, kind: str = "info") -> No
         field_index = getattr(editor, "last_field_index", None)
     if field_index is None:
         return
+    _eval_visualizer_status_for_field(editor, int(field_index), message, kind=kind)
+
+
+def _eval_visualizer_status_for_field(
+    editor: Any,
+    field_index: int,
+    message: str,
+    kind: str = "info",
+) -> None:
     editor.web.eval(
         "window.__aqeSetVisualizerStatus && window.__aqeSetVisualizerStatus("
         f"{json.dumps(int(field_index))}, {json.dumps(message)}, {json.dumps(kind)})"
@@ -1228,6 +1328,16 @@ def _set_busy(editor: Any, busy: bool, message: str = "", command: str = "") -> 
         field_index = session.field_index if session else None
     if field_index is None:
         return
+    _set_busy_for_field(editor, int(field_index), busy, message, command)
+
+
+def _set_busy_for_field(
+    editor: Any,
+    field_index: int,
+    busy: bool,
+    message: str = "",
+    command: str = "",
+) -> None:
     editor.web.eval(
         "window.__aqeSetBusy && window.__aqeSetBusy("
         f"{json.dumps(int(field_index))}, {json.dumps(busy)}, "

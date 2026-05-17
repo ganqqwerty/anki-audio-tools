@@ -3,6 +3,7 @@ import {
   getCursorMs,
   getPlaybackRequest,
   popEditorFrontendLog,
+  popPendingGraphAnalysisRequest,
   prepareForNewNote,
   resetGraphAfterEdit,
   setControlsBusy,
@@ -18,6 +19,7 @@ export const EDITOR_WINDOW_CONTRACT_NAMES = [
   "__aqeGetCursorIntent",
   "__aqeGetCursorMs",
   "__aqeGetPlaybackRequest",
+  "__aqePopPendingGraphAnalysisRequest",
   "__aqePopFrontendLog",
   "__aqePrepareForNewNote",
   "__aqeResetGraphAfterEdit",
@@ -42,5 +44,6 @@ export function installEditorWindowContract(): void {
   window.__aqeGetCursorIntent = getCursorIntent;
   window.__aqePrepareForNewNote = prepareForNewNote;
   window.__aqePopFrontendLog = popEditorFrontendLog;
+  window.__aqePopPendingGraphAnalysisRequest = popPendingGraphAnalysisRequest;
   installEditorTestWindowContract();
 }

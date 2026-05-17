@@ -119,7 +119,7 @@ BROAD_EXCEPTION_ALLOWLIST: tuple[BroadExceptionAllowance, ...] = (
     ),
     BroadExceptionAllowance(
         "editor_integration",
-        "_analyze_current_async._run",
+        "_start_field_analysis_async._run",
         1,
         "Background prosody analysis worker boundary reports analyzer failures on the main thread.",
     ),

@@ -6,7 +6,7 @@ import type { DefaultGraphTarget } from "./types.js";
 
 export interface DefaultGraphQueueDependencies {
   anyBusy: () => boolean;
-  requestGraph: (ord: number, notifyPython: boolean) => void;
+  requestDefaultGraph: (target: DefaultGraphTarget) => void;
 }
 
 interface QueuedDefaultGraph {
@@ -76,7 +76,10 @@ export function continueDefaultGraphQueue(dependencies: DefaultGraphQueueDepende
     }
     activeKey = next.key;
     activeOrd = next.ord;
-    dependencies.requestGraph(next.ord, true);
+    dependencies.requestDefaultGraph({
+      ord: next.ord,
+      sourceFilename: next.sourceFilename,
+    });
     return;
   }
 }

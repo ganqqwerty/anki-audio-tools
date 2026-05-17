@@ -65,6 +65,11 @@ export interface DefaultGraphTarget {
   sourceFilename: string;
 }
 
+export interface GraphAnalysisRequest {
+  ord: number;
+  sourceFilename: string;
+}
+
 export type ProsodyPoint = readonly [number, number | null, number | null, boolean | null];
 
 export interface NormalizedProsodyTrack {

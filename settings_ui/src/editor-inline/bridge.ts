@@ -1,7 +1,8 @@
 import type { FrontendLogPayload } from "../lib/generated/contracts.js";
-import type { CursorIntent, PlaybackRequest } from "./types.js";
+import type { CursorIntent, GraphAnalysisRequest, PlaybackRequest } from "./types.js";
 
 const frontendLogs: FrontendLogPayload[] = [];
+let pendingGraphAnalysisRequest: GraphAnalysisRequest | null = null;
 
 export function sendBridgeCommand(command: string): void {
   if (globalThis.pycmd !== undefined) {
@@ -12,6 +13,11 @@ export function sendBridgeCommand(command: string): void {
 export function focusAndSendCommand(ord: number, command: string): void {
   sendBridgeCommand(`focus:${ord}`);
   sendBridgeCommand(command);
+}
+
+export function sendGraphAnalysisRequest(request: GraphAnalysisRequest): void {
+  pendingGraphAnalysisRequest = request;
+  sendBridgeCommand("aqe:analyze-field");
 }
 
 export function sendEditorFrontendLog(payload: FrontendLogPayload): void {
@@ -32,6 +38,13 @@ export function popPendingPlaybackRequest(): PlaybackRequest | null {
   if (!window.__aqePendingPlaybackRequest) return null;
   const request = window.__aqePendingPlaybackRequest;
   window.__aqePendingPlaybackRequest = null;
+  return request;
+}
+
+export function popPendingGraphAnalysisRequest(): GraphAnalysisRequest | null {
+  if (!pendingGraphAnalysisRequest) return null;
+  const request = pendingGraphAnalysisRequest;
+  pendingGraphAnalysisRequest = null;
   return request;
 }
 
