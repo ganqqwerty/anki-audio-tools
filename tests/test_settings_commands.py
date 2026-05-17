@@ -53,10 +53,11 @@ def _capture_eval() -> tuple[list[str], callable]:
 
 def _full_config() -> dict[str, object]:
     return {
-        "_config_version": 7,
+        "_config_version": 8,
         "enabled": True,
         "debug_logging": False,
         "show_ffmpeg_commands": False,
+        "repeat_playback_by_default": False,
         "manual_trim_small_ms": 100,
         "manual_trim_large_ms": 500,
         "speed_step": 0.05,

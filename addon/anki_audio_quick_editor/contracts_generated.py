@@ -92,6 +92,7 @@ class Config:
     min_speed: float
     min_volume_db: float
     output_format: OutputFormat
+    repeat_playback_by_default: bool
     show_ffmpeg_commands: bool
     speed_step: float
     volume_step_db: float
@@ -116,11 +117,12 @@ class Config:
         min_speed = from_float(obj.get("min_speed"))
         min_volume_db = from_float(obj.get("min_volume_db"))
         output_format = OutputFormat(obj.get("output_format"))
+        repeat_playback_by_default = from_bool(obj.get("repeat_playback_by_default"))
         show_ffmpeg_commands = from_bool(obj.get("show_ffmpeg_commands"))
         speed_step = from_float(obj.get("speed_step"))
         volume_step_db = from_float(obj.get("volume_step_db"))
         schema = from_union([from_str, from_none], obj.get("$schema"))
-        return Config(config_version, debug_logging, deep_filter_path, deep_filter_post_filter, enabled, ffmpeg_path, internal_pause_silence_threshold_db, internal_pause_target_gap_ms, internal_pause_threshold_ms, manual_trim_large_ms, manual_trim_small_ms, max_speed, max_volume_db, min_speed, min_volume_db, output_format, show_ffmpeg_commands, speed_step, volume_step_db, schema)
+        return Config(config_version, debug_logging, deep_filter_path, deep_filter_post_filter, enabled, ffmpeg_path, internal_pause_silence_threshold_db, internal_pause_target_gap_ms, internal_pause_threshold_ms, manual_trim_large_ms, manual_trim_small_ms, max_speed, max_volume_db, min_speed, min_volume_db, output_format, repeat_playback_by_default, show_ffmpeg_commands, speed_step, volume_step_db, schema)
 
     def to_dict(self) -> dict:
         result: dict = {}
@@ -140,6 +142,7 @@ class Config:
         result["min_speed"] = to_float(self.min_speed)
         result["min_volume_db"] = to_float(self.min_volume_db)
         result["output_format"] = to_enum(OutputFormat, self.output_format)
+        result["repeat_playback_by_default"] = from_bool(self.repeat_playback_by_default)
         result["show_ffmpeg_commands"] = from_bool(self.show_ffmpeg_commands)
         result["speed_step"] = to_float(self.speed_step)
         result["volume_step_db"] = to_float(self.volume_step_db)

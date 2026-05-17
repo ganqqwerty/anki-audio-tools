@@ -55,13 +55,15 @@ def test_initial_state_shape(anki_mw) -> None:
 def test_save_command_writes_config(anki_mw) -> None:
     from unittest.mock import patch
 
+    from anki_audio_quick_editor.config_migration import CURRENT_CONFIG_VERSION
     from anki_audio_quick_editor.settings.commands import handle_settings_command
 
     config = {
-        "_config_version": 7,
+        "_config_version": CURRENT_CONFIG_VERSION,
         "enabled": False,
         "debug_logging": True,
         "show_ffmpeg_commands": False,
+        "repeat_playback_by_default": False,
         "manual_trim_small_ms": 100,
         "manual_trim_large_ms": 500,
         "speed_step": 0.05,

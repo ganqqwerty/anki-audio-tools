@@ -3,11 +3,17 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   audioClockReady,
   clearAudioClockSource,
+  clearSelectionDraft,
   commandSlugsForTest,
   configureAudioClock,
   currentProgressMs,
+  clearSelection,
+  commitSelectionDraft,
+  draftSelectionForVisualizer,
+  effectivePlaybackRegion,
   getCursorMs,
   getCursorIntent,
+  getPlaybackRequest,
   handleHtmlPlaybackCommand,
   installAudioClockHandlers,
   mediaUrlForFilename,
@@ -15,8 +21,14 @@ import {
   playbackRequest,
   resetGraphAfterEdit,
   seekAudioClock,
+  selectionForVisualizer,
+  setRepeatEnabled,
+  setRepeatEnabledForOrd,
+  setSelection,
+  setSelectionDraft,
   setPlaybackState,
   setVisualizerStatusFromPython,
+  shouldTreatSelectionGestureAsClick,
   startManualProgressClock,
   stopEditorPlayback,
   visualizerForOrd,
@@ -158,6 +170,95 @@ describe("editor inline action workflows", () => {
     expect(stopEditorPlayback(9)).toBe(false);
   });
 
+  it("normalizes selection state and includes region fields in playback requests", async () => {
+    const visualizer = await mountTrack(300);
+
+    expect(selectionForVisualizer(visualizer)).toBeNull();
+    expect(effectivePlaybackRegion(visualizer)).toEqual({ startMs: 0, endMs: 1000, mode: "full" });
+
+    expect(setSelection(visualizer, 900, 200)).toBe(true);
+    expect(selectionForVisualizer(visualizer)).toEqual({ startMs: 200, endMs: 900, mode: "selection" });
+    expect(window.__aqeGraphStateForTest?.(0)).toMatchObject({
+      selectionActive: true,
+      selectionStartMs: 200,
+      selectionEndMs: 900,
+      playbackRegionMode: "selection",
+    });
+    expect(playbackRequest(0)).toMatchObject({
+      action: "start",
+      cursorMs: 200,
+      endMs: 900,
+      loop: false,
+      regionMode: "selection",
+    });
+
+    setRepeatEnabled(visualizer, true);
+    expect(playbackRequest(0)).toMatchObject({ loop: true });
+    clearSelection(visualizer);
+    expect(effectivePlaybackRegion(visualizer)).toEqual({ startMs: 0, endMs: 1000, mode: "full" });
+    expect(playbackRequest(0)).toMatchObject({ cursorMs: 200, endMs: 1000, regionMode: "full" });
+  });
+
+  it("rejects tiny selection gestures using pixel and time thresholds", () => {
+    expect(shouldTreatSelectionGestureAsClick({ clientX: 10 }, { clientX: 12 }, 100, 250)).toBe(true);
+    expect(shouldTreatSelectionGestureAsClick({ clientX: 10 }, { clientX: 60 }, 100, 125)).toBe(true);
+    expect(shouldTreatSelectionGestureAsClick({ clientX: 10 }, { clientX: 60 }, 100, 250)).toBe(false);
+  });
+
+  it("keeps draft selection preview separate until it is committed", async () => {
+    const visualizer = await mountTrack(300);
+    expect(setSelection(visualizer, 100, 300)).toBe(true);
+
+    expect(setSelectionDraft(visualizer, 800, 400)).toBe(true);
+    expect(selectionForVisualizer(visualizer)).toEqual({ startMs: 100, endMs: 300, mode: "selection" });
+    expect(draftSelectionForVisualizer(visualizer)).toEqual({ startMs: 400, endMs: 800, mode: "selection" });
+    expect(window.__aqeGraphStateForTest?.(0)).toMatchObject({
+      selectionActive: true,
+      selectionStartMs: 100,
+      selectionEndMs: 300,
+      selectionDraftActive: true,
+      selectionDraftStartMs: 400,
+      selectionDraftEndMs: 800,
+    });
+    expect(visualizer.querySelector(".aqe-selection")).toHaveClass("aqe-selection-draft");
+
+    expect(commitSelectionDraft(visualizer)).toBe(true);
+    expect(window.__aqeGraphStateForTest?.(0)).toMatchObject({
+      cursorMs: 400,
+      selectionActive: true,
+      selectionStartMs: 400,
+      selectionEndMs: 800,
+      selectionDraftActive: false,
+      selectionDraftStartMs: null,
+      selectionDraftEndMs: null,
+    });
+    expect(visualizer.querySelector(".aqe-selection")).not.toHaveClass("aqe-selection-draft");
+
+    expect(setSelectionDraft(visualizer, 200, 220)).toBe(false);
+    expect(draftSelectionForVisualizer(visualizer)).toBeNull();
+    expect(selectionForVisualizer(visualizer)).toEqual({ startMs: 400, endMs: 800, mode: "selection" });
+    clearSelectionDraft(visualizer);
+    expect(window.__aqeGraphStateForTest?.(0)?.selectionDraftActive).toBe(false);
+  });
+
+  it("handles selection guard branches and direct playback request reads", async () => {
+    const visualizer = await mountTrack(300);
+
+    expect(setRepeatEnabledForOrd(99, true)).toBe(false);
+    expect(setSelection(visualizer, 100, 120)).toBe(false);
+    expect(selectionForVisualizer(visualizer)).toBeNull();
+
+    expect(setSelection(visualizer, 100, 300, { updateCursor: false })).toBe(true);
+    expect(visualizer.dataset.cursorMs).toBe("300");
+    window.__aqeActiveField = 0;
+    const request = getPlaybackRequest();
+    expect(request).toMatchObject({ cursorMs: 100, endMs: 300, regionMode: "selection" });
+    expect(visualizer.dataset.playbackEngine).toBe(request.engine);
+
+    visualizer.dataset.durationMs = "0";
+    expect(setSelection(visualizer, 0, 200)).toBe(false);
+  });
+
   it("supports pause and resume commands while HTML audio is active", async () => {
     const visualizer = await mountTrack(200);
     const audio = visualizer.querySelector<HTMLAudioElement>(".aqe-audio-clock")!;
@@ -231,5 +332,29 @@ describe("editor inline action workflows", () => {
     expect(currentProgressMs(visualizer)).toBeGreaterThanOrEqual(900);
     frames.shift()?.(performance.now() + 200);
     expect(Number(visualizer.dataset.progressMs)).toBeGreaterThanOrEqual(900);
+  });
+
+  it("loops manual progress clocks at the selected region boundary without play-ended", async () => {
+    const frames: Array<(time: number) => void> = [];
+    vi.spyOn(window, "requestAnimationFrame").mockImplementation((callback) => {
+      frames.push(callback);
+      return frames.length;
+    });
+    vi.spyOn(window, "cancelAnimationFrame").mockImplementation(() => undefined);
+    let now = 1000;
+    vi.spyOn(performance, "now").mockImplementation(() => now);
+    const visualizer = await mountTrack(0);
+    const audio = visualizer.querySelector<HTMLAudioElement>(".aqe-audio-clock")!;
+    audio.pause = vi.fn<() => void>(() => undefined);
+    setSelection(visualizer, 200, 400);
+    setRepeatEnabled(visualizer, true);
+
+    startManualProgressClock(visualizer, 350);
+    now = 1100;
+    frames.shift()?.(now);
+
+    expect(visualizer.dataset.playbackState).toBe("playing");
+    expect(visualizer.dataset.cursorMs).toBe("200");
+    expect(bridgeCommands()).not.toContain("aqe:play-ended");
   });
 });

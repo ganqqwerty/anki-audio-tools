@@ -5,10 +5,11 @@ import App from "../src/App.svelte";
 import { OutputFormat } from "../src/lib/types.js";
 
 const defaultConfig = {
-  _config_version: 7,
+  _config_version: 8,
   enabled: true,
   debug_logging: false,
   show_ffmpeg_commands: false,
+  repeat_playback_by_default: false,
   manual_trim_small_ms: 100,
   manual_trim_large_ms: 500,
   speed_step: 0.05,
@@ -49,6 +50,7 @@ describe("App", () => {
     expect(screen.getByText("Audio Quick Editor Settings")).toBeInTheDocument();
     expect(screen.queryByText("Enable inline editor controls")).not.toBeInTheDocument();
     expect(screen.getByText("Show ffmpeg commands while processing")).toBeInTheDocument();
+    expect(screen.getByText("Repeat playback by default")).toBeInTheDocument();
     expect(screen.getByText("ffmpeg path")).toBeInTheDocument();
     expect(screen.getByText("DeepFilterNet path")).toBeInTheDocument();
     expect(screen.getByText("Use DeepFilterNet post-filter")).toBeInTheDocument();
@@ -139,6 +141,7 @@ describe("App", () => {
       payload: { config: typeof defaultConfig };
     };
     expect(payload.config.deep_filter_post_filter).toBe(true);
+    expect(payload.config.repeat_playback_by_default).toBe(false);
     window.onAsyncProgress?.({ id, progress: 100, message: "Done" });
     window.onAsyncDone?.({
       id,

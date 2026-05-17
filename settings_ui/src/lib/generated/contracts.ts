@@ -44,6 +44,7 @@ export interface Config {
     min_speed:                           number;
     min_volume_db:                       number;
     output_format:                       OutputFormat;
+    repeat_playback_by_default:          boolean;
     show_ffmpeg_commands:                boolean;
     speed_step:                          number;
     volume_step_db:                      number;

@@ -22,10 +22,11 @@
 
   const initialState: InitialState = window.__INITIAL_STATE__ ?? {
     config: {
-      _config_version: 7,
+      _config_version: 8,
       enabled: true,
       debug_logging: false,
       show_ffmpeg_commands: false,
+      repeat_playback_by_default: false,
       manual_trim_small_ms: 100,
       manual_trim_large_ms: 500,
       speed_step: 0.05,
@@ -167,6 +168,10 @@
         <label class="toggle">
           <input type="checkbox" bind:checked={config.show_ffmpeg_commands} />
           <span>Show ffmpeg commands while processing</span>
+        </label>
+        <label class="toggle">
+          <input type="checkbox" bind:checked={config.repeat_playback_by_default} />
+          <span>Repeat playback by default</span>
         </label>
         <label class="field-row">
           <span>ffmpeg path</span>

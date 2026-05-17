@@ -11,9 +11,16 @@ _BUNDLE_CSS = _BUNDLE_DIR / "editor_bundle.css"
 _STYLE_ID = "aqe-inline-style"
 
 
-def injection_script(audio_field_indices: list[int] | None = None) -> str:
+def injection_script(
+    audio_field_indices: list[int] | None = None,
+    *,
+    repeat_playback_by_default: bool = False,
+) -> str:
     """Return JavaScript that mounts compact controls next to audio fields."""
-    config = {"audioFieldIndices": audio_field_indices or []}
+    config = {
+        "audioFieldIndices": audio_field_indices or [],
+        "repeatPlaybackByDefault": bool(repeat_playback_by_default),
+    }
     return (
         "(function() {\n"
         f"  window.__AQE_EDITOR_CONFIG__ = {json.dumps(config)};\n"

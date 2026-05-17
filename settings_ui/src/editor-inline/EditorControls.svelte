@@ -4,9 +4,11 @@
   import { COMMAND_BUTTONS, testId } from "./commands.js";
   import {
     handleVisualizerPointerDown,
+    initializePlaybackRegionState,
     installAudioClockHandlers,
     resetAudioClockState,
     send,
+    setRepeatEnabledForOrd,
     visualizerForOrd,
   } from "./actions.js";
   import { PLOT } from "./plot.js";
@@ -18,6 +20,7 @@
     const visualizer = visualizerForOrd(target.ord);
     if (!visualizer) return;
     resetAudioClockState(visualizer);
+    initializePlaybackRegionState(visualizer);
     installAudioClockHandlers(visualizer);
   });
 </script>
@@ -40,6 +43,21 @@
     >
       {button.label}
     </button>
+    {#if button.command === "aqe:play"}
+      <label
+        class="aqe-repeat-toggle"
+        title="Repeat selected region, or the whole graph when no region is selected."
+      >
+        <input
+          class="aqe-repeat-checkbox"
+          data-testid={`aqe-repeat-${target.ord}`}
+          type="checkbox"
+          checked={window.__AQE_EDITOR_CONFIG__?.repeatPlaybackByDefault === true}
+          onchange={(event) => setRepeatEnabledForOrd(target.ord, event.currentTarget.checked)}
+        />
+        <span>Repeat</span>
+      </label>
+    {/if}
   {/each}
   <span class="aqe-status" data-testid={`aqe-status-${target.ord}`}></span>
   <div
@@ -53,7 +71,17 @@
     data-has-track="false"
     data-playback-state="stopped"
     data-playback-engine=""
+    data-playback-start-ms="0"
+    data-playback-end-ms="0"
+    data-playback-region-mode="full"
     data-resume-requires-restart="false"
+    data-selection-active="false"
+    data-selection-start-ms=""
+    data-selection-end-ms=""
+    data-selection-draft-active="false"
+    data-selection-draft-start-ms=""
+    data-selection-draft-end-ms=""
+    data-repeat-enabled={window.__AQE_EDITOR_CONFIG__?.repeatPlaybackByDefault === true ? "true" : "false"}
     data-testid={`aqe-graph-${target.ord}`}
     hidden
   >
@@ -71,10 +99,37 @@
       aria-label="Audio pitch and intensity visualization"
       onpointerdown={(event) => handleVisualizerPointerDown(event, target.ord)}
     >
+      <rect
+        class="aqe-selection"
+        data-testid={`aqe-selection-${target.ord}`}
+        x={PLOT.left}
+        y={PLOT.top}
+        width="0"
+        height={PLOT.height - PLOT.top - PLOT.bottom}
+        visibility="hidden"
+      ></rect>
       <path class="aqe-intensity" data-testid={`aqe-intensity-${target.ord}`} d=""></path>
       <g class="aqe-pitch" data-testid={`aqe-pitch-${target.ord}`}></g>
       <g class="aqe-labels"></g>
       <g class="aqe-x-axis" data-testid={`aqe-x-axis-${target.ord}`}></g>
+      <line
+        class="aqe-selection-edge aqe-selection-start"
+        data-testid={`aqe-selection-start-${target.ord}`}
+        x1={PLOT.left}
+        x2={PLOT.left}
+        y1={PLOT.top}
+        y2={PLOT.height - PLOT.bottom}
+        visibility="hidden"
+      ></line>
+      <line
+        class="aqe-selection-edge aqe-selection-end"
+        data-testid={`aqe-selection-end-${target.ord}`}
+        x1={PLOT.left}
+        x2={PLOT.left}
+        y1={PLOT.top}
+        y2={PLOT.height - PLOT.bottom}
+        visibility="hidden"
+      ></line>
       <line
         class="aqe-cursor"
         data-testid={`aqe-cursor-${target.ord}`}
@@ -134,6 +189,21 @@
   :global(.aqe-button:disabled:hover) {
     text-decoration: none;
   }
+  :global(.aqe-repeat-toggle) {
+    align-items: center;
+    display: inline-flex;
+    font-size: 12px;
+    font-weight: 700;
+    gap: 4px;
+    padding: 0 2px;
+  }
+  :global(.aqe-repeat-checkbox) {
+    margin: 0;
+  }
+  :global(.aqe-repeat-checkbox:disabled) {
+    cursor: not-allowed;
+    opacity: 0.45;
+  }
   :global(.aqe-status) {
     font-size: 12px;
     margin-left: 4px;
@@ -168,6 +238,21 @@
     fill: currentColor;
     opacity: 0.12;
     stroke: none;
+  }
+  :global(.aqe-selection) {
+    fill: currentColor;
+    opacity: 0.16;
+    pointer-events: none;
+  }
+  :global(.aqe-selection-draft) {
+    opacity: 0.24;
+  }
+  :global(.aqe-selection-edge) {
+    opacity: 0.65;
+    pointer-events: none;
+    stroke: currentColor;
+    stroke-dasharray: 3 3;
+    stroke-width: 1;
   }
   :global(.aqe-pitch-path) {
     fill: none;

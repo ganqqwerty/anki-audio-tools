@@ -34,6 +34,17 @@ import { isPlaybackState, normalizeTrack } from "./types.js";
 
 export { popEditorFrontendLog } from "./bridge.js";
 
+const SELECTION_DRAG_PIXEL_THRESHOLD = 4;
+const MIN_SELECTION_DURATION_MS = 50;
+
+type PlaybackRegionMode = "selection" | "full";
+
+interface PlaybackRegion {
+  endMs: number;
+  mode: PlaybackRegionMode;
+  startMs: number;
+}
+
 export function controlsForOrd(ord: number): HTMLElement | null {
   return document.querySelector<HTMLElement>(`.aqe-controls[data-aqe-field-ord="${ord}"]`);
 }
@@ -59,8 +70,41 @@ function allButtons(): HTMLButtonElement[] {
   return Array.from(document.querySelectorAll<HTMLButtonElement>(".aqe-button"));
 }
 
+function repeatCheckboxForOrd(ord: number): HTMLInputElement | null {
+  const controls = controlsForOrd(ord);
+  return controls?.querySelector<HTMLInputElement>(".aqe-repeat-checkbox") ?? null;
+}
+
+function allRepeatCheckboxes(): HTMLInputElement[] {
+  return Array.from(document.querySelectorAll<HTMLInputElement>(".aqe-repeat-checkbox"));
+}
+
 function anyBusy(): boolean {
   return document.body.dataset.aqeBusy === "true";
+}
+
+function repeatDefaultFromConfig(): boolean {
+  return window.__AQE_EDITOR_CONFIG__?.repeatPlaybackByDefault === true;
+}
+
+function allVisualizers(): VisualizerElement[] {
+  return Array.from(document.querySelectorAll<VisualizerElement>(".aqe-visualizer"));
+}
+
+function stopOtherPlayback(activeVisualizer: VisualizerElement): void {
+  for (const visualizer of allVisualizers()) {
+    if (visualizer !== activeVisualizer && playbackStateFor(visualizer) !== "stopped") {
+      stopProgressClock(visualizer);
+    }
+  }
+}
+
+function stopAllEditorPlayback(): void {
+  for (const visualizer of allVisualizers()) {
+    if (playbackStateFor(visualizer) !== "stopped") {
+      stopProgressClock(visualizer);
+    }
+  }
 }
 
 export function setControlsBusy(ord: number, busy: boolean, message = "", command = ""): void {
@@ -70,6 +114,9 @@ export function setControlsBusy(ord: number, busy: boolean, message = "", comman
   });
   allButtons().forEach((button) => {
     button.disabled = !!busy;
+  });
+  allRepeatCheckboxes().forEach((checkbox) => {
+    checkbox.disabled = !!busy;
   });
   const controls = controlsForOrd(ord);
   const status = controls?.querySelector<HTMLElement>(".aqe-status");
@@ -110,6 +157,7 @@ export function send(command: EditorCommand, node: HTMLElement, ord: number): vo
     return;
   }
   if (PROCESSING_COMMANDS.has(command)) {
+    stopAllEditorPlayback();
     setControlsBusy(ord, true, processingMessage(command));
   }
   focusAndSendCommand(ord, command);
@@ -201,7 +249,9 @@ export function installAudioClockHandlers(visualizer: VisualizerElement): void {
     }
   });
   audio.addEventListener("ended", () => {
-    if (visualizer.dataset.playbackState === "playing") completePlayback(visualizer);
+    if (visualizer.dataset.playbackState === "playing") {
+      handlePlaybackBoundary(visualizer, Number(visualizer.dataset.durationMs || "0"), { forceAudioPlay: true });
+    }
   });
   audio.addEventListener("seeked", () => {
     visualizer.__aqeAudioClockLastSeekedMs = Math.round((Number(audio.currentTime) || 0) * 1000);
@@ -218,6 +268,249 @@ export function audioClockReady(visualizer: VisualizerElement | null): boolean {
 export function clampProgressMs(visualizer: VisualizerElement, ms: number): number {
   const durationMs = Number(visualizer.dataset.durationMs || "0");
   return Math.max(0, Math.min(Number(ms) || 0, durationMs || 0));
+}
+
+export function selectionForVisualizer(visualizer: VisualizerElement | null): PlaybackRegion | null {
+  if (!visualizer || visualizer.dataset.selectionActive !== "true") return null;
+  const durationMs = Number(visualizer.dataset.durationMs || "0");
+  if (!durationMs) return null;
+  const rawStart = Number(visualizer.dataset.selectionStartMs || "0");
+  const rawEnd = Number(visualizer.dataset.selectionEndMs || "0");
+  const startMs = clampProgressMs(visualizer, Math.min(rawStart, rawEnd));
+  const endMs = clampProgressMs(visualizer, Math.max(rawStart, rawEnd));
+  if (endMs - startMs < MIN_SELECTION_DURATION_MS) return null;
+  return { startMs, endMs, mode: "selection" };
+}
+
+export function draftSelectionForVisualizer(visualizer: VisualizerElement | null): PlaybackRegion | null {
+  if (!visualizer || visualizer.dataset.selectionDraftActive !== "true") return null;
+  const durationMs = Number(visualizer.dataset.durationMs || "0");
+  if (!durationMs) return null;
+  const rawStart = Number(visualizer.dataset.selectionDraftStartMs || "0");
+  const rawEnd = Number(visualizer.dataset.selectionDraftEndMs || "0");
+  const startMs = clampProgressMs(visualizer, Math.min(rawStart, rawEnd));
+  const endMs = clampProgressMs(visualizer, Math.max(rawStart, rawEnd));
+  if (endMs - startMs < MIN_SELECTION_DURATION_MS) return null;
+  return { startMs, endMs, mode: "selection" };
+}
+
+export function effectivePlaybackRegion(visualizer: VisualizerElement): PlaybackRegion {
+  const selection = selectionForVisualizer(visualizer);
+  if (selection) return selection;
+  return {
+    startMs: 0,
+    endMs: Number(visualizer.dataset.durationMs || "0") || 0,
+    mode: "full",
+  };
+}
+
+export function clampMsToRegion(ms: number, region: Pick<PlaybackRegion, "startMs" | "endMs">): number {
+  return Math.max(region.startMs, Math.min(Number(ms) || 0, region.endMs));
+}
+
+export function setRepeatEnabled(visualizer: VisualizerElement, enabled: boolean): void {
+  visualizer.dataset.repeatEnabled = enabled ? "true" : "false";
+  const ord = Number(visualizer.dataset.aqeFieldOrd || "0");
+  const checkbox = repeatCheckboxForOrd(ord);
+  if (checkbox) checkbox.checked = enabled;
+}
+
+export function setRepeatEnabledForOrd(ord: number, enabled: boolean): boolean {
+  const visualizer = visualizerForOrd(ord);
+  if (!visualizer) return false;
+  setRepeatEnabled(visualizer, enabled);
+  return true;
+}
+
+export function clearSelectionDraft(
+  visualizer: VisualizerElement,
+  options: { redraw?: boolean } = {},
+): void {
+  visualizer.dataset.selectionDraftActive = "false";
+  visualizer.dataset.selectionDraftStartMs = "";
+  visualizer.dataset.selectionDraftEndMs = "";
+  if (options.redraw !== false) {
+    drawSelection(visualizer);
+  }
+}
+
+export function setSelectionDraft(
+  visualizer: VisualizerElement,
+  startMs: number,
+  endMs: number,
+  options: { redraw?: boolean } = {},
+): boolean {
+  const durationMs = Number(visualizer.dataset.durationMs || "0");
+  if (!durationMs) {
+    clearSelectionDraft(visualizer, options);
+    return false;
+  }
+  const normalizedStart = clampProgressMs(visualizer, Math.min(startMs, endMs));
+  const normalizedEnd = clampProgressMs(visualizer, Math.max(startMs, endMs));
+  if (normalizedEnd - normalizedStart < MIN_SELECTION_DURATION_MS) {
+    clearSelectionDraft(visualizer, options);
+    return false;
+  }
+  visualizer.dataset.selectionDraftActive = "true";
+  visualizer.dataset.selectionDraftStartMs = String(Math.round(normalizedStart));
+  visualizer.dataset.selectionDraftEndMs = String(Math.round(normalizedEnd));
+  if (options.redraw !== false) {
+    drawSelection(visualizer);
+  }
+  return true;
+}
+
+export function commitSelectionDraft(
+  visualizer: VisualizerElement,
+  options: { updateCursor?: boolean } = {},
+): boolean {
+  const draft = draftSelectionForVisualizer(visualizer);
+  if (!draft) {
+    clearSelectionDraft(visualizer);
+    return false;
+  }
+  clearSelectionDraft(visualizer, { redraw: false });
+  return setSelection(visualizer, draft.startMs, draft.endMs, options);
+}
+
+export function clearSelection(
+  visualizer: VisualizerElement,
+  options: { resetPlaybackRegion?: boolean } = {},
+): void {
+  visualizer.dataset.selectionActive = "false";
+  visualizer.dataset.selectionStartMs = "";
+  visualizer.dataset.selectionEndMs = "";
+  clearSelectionDraft(visualizer, { redraw: false });
+  drawSelection(visualizer);
+  if (options.resetPlaybackRegion !== false) {
+    const region = effectivePlaybackRegion(visualizer);
+    visualizer.dataset.playbackStartMs = String(Math.round(region.startMs));
+    visualizer.dataset.playbackEndMs = String(Math.round(region.endMs));
+    visualizer.dataset.playbackRegionMode = region.mode;
+  }
+}
+
+export function setSelection(
+  visualizer: VisualizerElement,
+  startMs: number,
+  endMs: number,
+  options: { updateCursor?: boolean } = {},
+): boolean {
+  const durationMs = Number(visualizer.dataset.durationMs || "0");
+  if (!durationMs) {
+    clearSelection(visualizer);
+    return false;
+  }
+  const normalizedStart = clampProgressMs(visualizer, Math.min(startMs, endMs));
+  const normalizedEnd = clampProgressMs(visualizer, Math.max(startMs, endMs));
+  if (normalizedEnd - normalizedStart < MIN_SELECTION_DURATION_MS) {
+    clearSelection(visualizer);
+    return false;
+  }
+  clearSelectionDraft(visualizer, { redraw: false });
+  visualizer.dataset.selectionActive = "true";
+  visualizer.dataset.selectionStartMs = String(Math.round(normalizedStart));
+  visualizer.dataset.selectionEndMs = String(Math.round(normalizedEnd));
+  visualizer.dataset.playbackStartMs = String(Math.round(normalizedStart));
+  visualizer.dataset.playbackEndMs = String(Math.round(normalizedEnd));
+  visualizer.dataset.playbackRegionMode = "selection";
+  drawSelection(visualizer);
+  if (options.updateCursor !== false) {
+    setCursor(visualizer, normalizedStart, false);
+  }
+  return true;
+}
+
+export function initializePlaybackRegionState(visualizer: VisualizerElement): void {
+  visualizer.dataset.playbackStartMs = "0";
+  visualizer.dataset.playbackEndMs = String(Number(visualizer.dataset.durationMs || "0") || 0);
+  visualizer.dataset.playbackRegionMode = "full";
+  setRepeatEnabled(visualizer, repeatDefaultFromConfig());
+  clearSelection(visualizer, { resetPlaybackRegion: false });
+}
+
+export function shouldTreatSelectionGestureAsClick(
+  startEvent: Pick<PointerEvent, "clientX">,
+  endEvent: Pick<PointerEvent, "clientX">,
+  startMs: number,
+  endMs: number,
+): boolean {
+  return Math.abs(endEvent.clientX - startEvent.clientX) < SELECTION_DRAG_PIXEL_THRESHOLD
+    || Math.abs(endMs - startMs) < MIN_SELECTION_DURATION_MS;
+}
+
+function repeatEnabledFor(visualizer: VisualizerElement): boolean {
+  return visualizer.dataset.repeatEnabled === "true";
+}
+
+function playbackRequestForStart(
+  visualizer: VisualizerElement,
+  ord: number,
+  startMs: number,
+  engine: "html" | "native" | "" = playbackEngineFor(visualizer),
+): PlaybackRequest {
+  const region = effectivePlaybackRegion(visualizer);
+  return {
+    ord,
+    action: "start",
+    cursorMs: Math.round(clampProgressMs(visualizer, startMs)),
+    endMs: Math.round(region.endMs),
+    engine,
+    loop: repeatEnabledFor(visualizer),
+    regionMode: region.mode,
+  };
+}
+
+function setPlaybackPass(
+  visualizer: VisualizerElement,
+  startMs: number,
+  region: PlaybackRegion = effectivePlaybackRegion(visualizer),
+): void {
+  visualizer.dataset.playbackStartMs = String(Math.round(startMs));
+  visualizer.dataset.playbackEndMs = String(Math.round(region.endMs));
+  visualizer.dataset.playbackRegionMode = region.mode;
+}
+
+function scrubMsFromEvent(event: Pick<PointerEvent, "clientX">, svg: SVGSVGElement, durationMs: number, visualizer: VisualizerElement): number {
+  const rawMs = cursorMsFromEvent(event, svg, durationMs);
+  const selection = selectionForVisualizer(visualizer);
+  if (selection && repeatEnabledFor(visualizer)) {
+    return clampMsToRegion(rawMs, selection);
+  }
+  return rawMs;
+}
+
+function drawSelection(visualizer: VisualizerElement): void {
+  const band = visualizer.querySelector<SVGRectElement>(".aqe-selection");
+  const startEdge = visualizer.querySelector<SVGLineElement>(".aqe-selection-start");
+  const endEdge = visualizer.querySelector<SVGLineElement>(".aqe-selection-end");
+  const draftSelection = draftSelectionForVisualizer(visualizer);
+  const selection = draftSelection ?? selectionForVisualizer(visualizer);
+  const durationMs = Number(visualizer.dataset.durationMs || "0");
+  if (!band || !startEdge || !endEdge || !selection || !durationMs) {
+    band?.setAttribute("width", "0");
+    band?.setAttribute("visibility", "hidden");
+    band?.classList.remove("aqe-selection-draft");
+    startEdge?.setAttribute("visibility", "hidden");
+    endEdge?.setAttribute("visibility", "hidden");
+    return;
+  }
+  const startX = xForMs(selection.startMs, durationMs);
+  const endX = xForMs(selection.endMs, durationMs);
+  band.setAttribute("visibility", "visible");
+  band.classList.toggle("aqe-selection-draft", draftSelection !== null);
+  band.setAttribute("x", startX.toFixed(2));
+  band.setAttribute("y", String(PLOT.top));
+  band.setAttribute("width", Math.max(0, endX - startX).toFixed(2));
+  band.setAttribute("height", String(PLOT.height - PLOT.top - PLOT.bottom));
+  startEdge.setAttribute("visibility", "visible");
+  endEdge.setAttribute("visibility", "visible");
+  for (const [edge, x] of [[startEdge, startX], [endEdge, endX]] as const) {
+    edge.setAttribute("x1", x.toFixed(2));
+    edge.setAttribute("x2", x.toFixed(2));
+    edge.setAttribute("y1", String(PLOT.top));
+    edge.setAttribute("y2", String(PLOT.height - PLOT.bottom));
+  }
 }
 
 export function seekAudioClock(visualizer: VisualizerElement, ms: number): boolean {
@@ -278,14 +571,14 @@ export function setCursor(
 export function startCursorDrag(event: PointerEvent, visualizer: VisualizerElement, ord: number, notifyPython: boolean): void {
   event.preventDefault();
   const previousPlaybackState = playbackStateFor(visualizer);
-  if (previousPlaybackState === "playing") {
-    stopProgressClock(visualizer);
-  }
   const svg = visualizer.querySelector<SVGSVGElement>(".aqe-visualizer-svg");
   const durationMs = Number(visualizer.dataset.durationMs || "0");
   if (!svg || !durationMs) return;
+  if (previousPlaybackState === "playing") {
+    stopProgressClock(visualizer);
+  }
   const move = (moveEvent: PointerEvent): void => {
-    setCursor(visualizer, cursorMsFromEvent(moveEvent, svg, durationMs), false);
+    setCursor(visualizer, scrubMsFromEvent(moveEvent, svg, durationMs, visualizer), false);
   };
   const up = (upEvent: PointerEvent): void => {
     window.removeEventListener("pointermove", move);
@@ -294,7 +587,7 @@ export function startCursorDrag(event: PointerEvent, visualizer: VisualizerEleme
     if (previousPlaybackState === "paused") {
       visualizer.dataset.resumeRequiresRestart = "true";
     }
-    const releasedMs = cursorMsFromEvent(upEvent, svg, durationMs);
+    const releasedMs = scrubMsFromEvent(upEvent, svg, durationMs, visualizer);
     const restartEngine = restartPlayback && audioClockReady(visualizer) ? "html" : "";
     setCursor(visualizer, releasedMs, notifyPython, {
       previousPlaybackState,
@@ -305,12 +598,7 @@ export function startCursorDrag(event: PointerEvent, visualizer: VisualizerEleme
       seekAudioClock(visualizer, releasedMs);
     }
     if (restartPlayback && restartEngine === "html") {
-      startEditorHtmlPlayback(visualizer, {
-        action: "start",
-        cursorMs: Math.round(clampProgressMs(visualizer, releasedMs)),
-        engine: "html",
-        ord,
-      });
+      startEditorHtmlPlayback(visualizer, playbackRequestForStart(visualizer, ord, releasedMs, "html"));
     }
   };
   move(event);
@@ -318,9 +606,97 @@ export function startCursorDrag(event: PointerEvent, visualizer: VisualizerEleme
   window.addEventListener("pointerup", up);
 }
 
+export function startSelectionGesture(event: PointerEvent, visualizer: VisualizerElement, ord: number): void {
+  event.preventDefault();
+  const svg = visualizer.querySelector<SVGSVGElement>(".aqe-visualizer-svg");
+  const durationMs = Number(visualizer.dataset.durationMs || "0");
+  if (!svg || !durationMs) return;
+  const previousPlaybackState = playbackStateFor(visualizer);
+  const frozenProgressMs = currentProgressMs(visualizer) ?? Number(visualizer.dataset.cursorMs || "0");
+  const startEvent = { clientX: event.clientX };
+  const startMs = cursorMsFromEvent(event, svg, durationMs);
+  let stoppedForDrag = false;
+  let move = (_moveEvent: PointerEvent): void => {};
+  let up = (_upEvent: PointerEvent): void => {};
+  let cancel = (): void => {};
+  let keydown = (_keyEvent: KeyboardEvent): void => {};
+  const cleanup = (): void => {
+    window.removeEventListener("pointermove", move);
+    window.removeEventListener("pointerup", up);
+    window.removeEventListener("pointercancel", cancel);
+    window.removeEventListener("keydown", keydown);
+    window.removeEventListener("blur", cancel);
+    svg.removeEventListener("lostpointercapture", cancel);
+  };
+  const stopForDrag = (): void => {
+    if (stoppedForDrag || previousPlaybackState !== "playing") return;
+    stoppedForDrag = true;
+    stopProgressClock(visualizer, { clearEngine: false });
+    setCursor(visualizer, frozenProgressMs, false, { updateAnchor: false });
+  };
+  const resumeInterruptedPlayback = (): void => {
+    if (previousPlaybackState === "playing" && stoppedForDrag) {
+      startEditorHtmlPlayback(visualizer, playbackRequestForStart(visualizer, ord, frozenProgressMs, "html"));
+    }
+  };
+  move = (moveEvent: PointerEvent): void => {
+    const moveMs = cursorMsFromEvent(moveEvent, svg, durationMs);
+    if (shouldTreatSelectionGestureAsClick(startEvent, moveEvent, startMs, moveMs)) {
+      clearSelectionDraft(visualizer);
+      return;
+    }
+    stopForDrag();
+    setSelectionDraft(visualizer, startMs, moveMs);
+  };
+  up = (upEvent: PointerEvent): void => {
+    cleanup();
+    const endMs = cursorMsFromEvent(upEvent, svg, durationMs);
+    if (shouldTreatSelectionGestureAsClick(startEvent, upEvent, startMs, endMs)) {
+      clearSelection(visualizer);
+      resumeInterruptedPlayback();
+      return;
+    }
+    stopForDrag();
+    if (!draftSelectionForVisualizer(visualizer)) {
+      setSelectionDraft(visualizer, startMs, endMs, { redraw: false });
+    }
+    const selected = commitSelectionDraft(visualizer);
+    if (previousPlaybackState === "paused") {
+      visualizer.dataset.resumeRequiresRestart = "true";
+    }
+    if (selected && previousPlaybackState === "playing") {
+      const selection = selectionForVisualizer(visualizer);
+      startEditorHtmlPlayback(
+        visualizer,
+        playbackRequestForStart(visualizer, ord, selection?.startMs ?? startMs, "html"),
+      );
+    }
+  };
+  cancel = (): void => {
+    cleanup();
+    clearSelectionDraft(visualizer);
+    resumeInterruptedPlayback();
+  };
+  keydown = (keyEvent: KeyboardEvent): void => {
+    if (keyEvent.key === "Escape") {
+      cancel();
+    }
+  };
+  window.addEventListener("pointermove", move);
+  window.addEventListener("pointerup", up);
+  window.addEventListener("pointercancel", cancel);
+  window.addEventListener("keydown", keydown);
+  window.addEventListener("blur", cancel);
+  svg.addEventListener("lostpointercapture", cancel);
+}
+
 export function handleVisualizerPointerDown(event: PointerEvent, ord: number): void {
   const visualizer = visualizerForOrd(ord);
   if (!visualizer) return;
+  if (event.shiftKey) {
+    startSelectionGesture(event, visualizer, ord);
+    return;
+  }
   startCursorDrag(event, visualizer, ord, true);
 }
 
@@ -339,6 +715,10 @@ export function requestGraph(ord: number, notifyPython: boolean): void {
   visualizer.dataset.progressMs = "0";
   visualizer.dataset.resumeRequiresRestart = "false";
   visualizer.dataset.playbackEngine = "";
+  visualizer.dataset.playbackStartMs = "0";
+  visualizer.dataset.playbackEndMs = "0";
+  visualizer.dataset.playbackRegionMode = "full";
+  clearSelection(visualizer);
   visualizer.querySelector<SVGPathElement>(".aqe-intensity")?.setAttribute("d", "");
   clearText(visualizer, ".aqe-pitch");
   clearText(visualizer, ".aqe-labels");
@@ -387,6 +767,10 @@ export function setVisualizer(ord: number, rawTrack: ProsodyPayload, cursorMs: n
   visualizer.dataset.anchorMs = String(cursorMs || 0);
   visualizer.dataset.analyzerName = track.analyzerName || "";
   visualizer.dataset.sourceFilename = track.sourceFilename || "";
+  clearSelection(visualizer);
+  visualizer.dataset.playbackStartMs = "0";
+  visualizer.dataset.playbackEndMs = String(track.durationMs || 0);
+  visualizer.dataset.playbackRegionMode = "full";
   configureAudioClock(visualizer, track.sourceFilename || "");
   const button = graphButton(ord);
   if (button) button.textContent = "Redraw";
@@ -430,6 +814,9 @@ export function prepareForNewNote(): void {
       if (button.dataset.aqeCommand === "aqe:analyze") button.textContent = "Graph";
       if (button.dataset.aqeCommand === "aqe:play") button.textContent = "Play";
     });
+    controls.querySelectorAll<HTMLInputElement>(".aqe-repeat-checkbox").forEach((checkbox) => {
+      checkbox.disabled = false;
+    });
     const status = controls.querySelector<HTMLElement>(".aqe-status");
     if (status) {
       status.textContent = "";
@@ -455,7 +842,12 @@ export function prepareForNewNote(): void {
     visualizer.dataset.analyzerName = "";
     visualizer.dataset.playStartedAt = "0";
     visualizer.dataset.playStartMs = "0";
+    visualizer.dataset.playbackStartMs = "0";
+    visualizer.dataset.playbackEndMs = "0";
+    visualizer.dataset.playbackRegionMode = "full";
     visualizer.dataset.progressClockMode = "stopped";
+    setRepeatEnabled(visualizer, repeatDefaultFromConfig());
+    clearSelection(visualizer);
     visualizer.querySelector<SVGPathElement>(".aqe-intensity")?.setAttribute("d", "");
     clearText(visualizer, ".aqe-pitch");
     clearText(visualizer, ".aqe-labels");
@@ -506,9 +898,64 @@ export function currentProgressMs(visualizer: VisualizerElement): number | null 
   return Number(visualizer.dataset.progressMs || visualizer.dataset.cursorMs || "0");
 }
 
+function playbackEndMs(visualizer: VisualizerElement): number {
+  const region = effectivePlaybackRegion(visualizer);
+  const endMs = Number(visualizer.dataset.playbackEndMs || "0") || region.endMs;
+  return Math.max(region.startMs, Math.min(endMs, Number(visualizer.dataset.durationMs || "0") || 0));
+}
+
+function restartLoopPlayback(visualizer: VisualizerElement, options: { forceAudioPlay?: boolean } = {}): void {
+  const region = effectivePlaybackRegion(visualizer);
+  const loopStartMs = region.startMs;
+  setPlaybackPass(visualizer, loopStartMs, region);
+  visualizer.dataset.playStartedAt = String(performance.now());
+  visualizer.dataset.playStartMs = String(loopStartMs);
+  setCursor(visualizer, loopStartMs, false, { updateAnchor: false });
+  if (visualizer.dataset.progressClockMode !== "audio" || !audioClockReady(visualizer)) {
+    startManualProgressClock(visualizer, loopStartMs);
+    return;
+  }
+  if (!seekAudioClock(visualizer, loopStartMs)) {
+    startManualProgressClock(visualizer, loopStartMs);
+    return;
+  }
+  if (!options.forceAudioPlay) {
+    clearPlaybackFrame(visualizer);
+    paintProgressFromClock(visualizer);
+    return;
+  }
+  const audio = audioClockFor(visualizer);
+  if (!audio || typeof audio.play !== "function") return;
+  clearPlaybackFrame(visualizer);
+  void Promise.resolve(audio.play())
+    .then(() => {
+      if (visualizer.dataset.playbackState === "playing") {
+        paintProgressFromClock(visualizer);
+      }
+    })
+    .catch(() => {
+      if (visualizer.dataset.playbackState === "playing") {
+        startManualProgressClock(visualizer, loopStartMs);
+      }
+    });
+}
+
+function handlePlaybackBoundary(visualizer: VisualizerElement, nextMs: number, options: { forceAudioPlay?: boolean } = {}): boolean {
+  if (nextMs < playbackEndMs(visualizer)) return false;
+  if (repeatEnabledFor(visualizer)) {
+    restartLoopPlayback(visualizer, options);
+    return true;
+  }
+  completePlayback(visualizer);
+  return true;
+}
+
 export function completePlayback(visualizer: VisualizerElement): void {
   const ord = Number(visualizer.dataset.aqeFieldOrd || "0");
-  const anchorMs = Number(visualizer.dataset.anchorMs || "0");
+  const region = effectivePlaybackRegion(visualizer);
+  const anchorMs = visualizer.dataset.playbackRegionMode === "selection"
+    ? region.startMs
+    : Number(visualizer.dataset.anchorMs || "0");
   stopProgressClock(visualizer);
   setCursor(visualizer, anchorMs, false, { updateAnchor: false });
   if (audioClockReady(visualizer)) {
@@ -520,7 +967,6 @@ export function completePlayback(visualizer: VisualizerElement): void {
 }
 
 export function paintProgressFromClock(visualizer: VisualizerElement): void {
-  const durationMs = Number(visualizer.dataset.durationMs || "0");
   const tick = (): void => {
     if (visualizer.dataset.playbackState !== "playing") return;
     const nextMs = audioProgressMs(visualizer);
@@ -529,8 +975,7 @@ export function paintProgressFromClock(visualizer: VisualizerElement): void {
       return;
     }
     setCursor(visualizer, nextMs, false, { updateAnchor: false });
-    if (nextMs >= durationMs) {
-      completePlayback(visualizer);
+    if (handlePlaybackBoundary(visualizer, nextMs)) {
       return;
     }
     visualizer.__aqePlaybackTimer = window.requestAnimationFrame(tick);
@@ -549,13 +994,13 @@ export function startManualProgressClock(visualizer: VisualizerElement, startMs:
   visualizer.dataset.progressClockMode = "manual";
   visualizer.dataset.playStartedAt = String(performance.now());
   visualizer.dataset.playStartMs = String(clampedStartMs);
+  setPlaybackPass(visualizer, clampedStartMs);
   setPlaybackButtonLabel(visualizer, "Pause");
   const tick = (): void => {
     if (visualizer.dataset.playbackState !== "playing") return;
     const nextMs = manualProgressMs(visualizer);
     setCursor(visualizer, nextMs, false, { updateAnchor: false });
-    if (nextMs >= durationMs) {
-      completePlayback(visualizer);
+    if (handlePlaybackBoundary(visualizer, nextMs)) {
       return;
     }
     visualizer.__aqePlaybackTimer = window.requestAnimationFrame(tick);
@@ -619,6 +1064,7 @@ export function startProgressClock(
 ): void {
   const selectedEngine = options.engine || visualizer.dataset.playbackEngine || "";
   stopProgressClock(visualizer, { clearEngine: false });
+  stopOtherPlayback(visualizer);
   const durationMs = Number(visualizer.dataset.durationMs || "0");
   if (!durationMs) return;
   const clampedStartMs = clampProgressMs(visualizer, startMs);
@@ -626,6 +1072,7 @@ export function startProgressClock(
   visualizer.dataset.playbackState = "playing";
   visualizer.dataset.playStartedAt = String(performance.now());
   visualizer.dataset.playStartMs = String(clampedStartMs);
+  setPlaybackPass(visualizer, clampedStartMs);
   setCursor(visualizer, clampedStartMs, false, { updateAnchor: false });
   setPlaybackButtonLabel(visualizer, "Pause");
   logger.info("playback clock selected", { engine: selectedEngine || "auto", startMs: clampedStartMs });
@@ -678,20 +1125,34 @@ export function playbackRequest(ord: number): PlaybackRequest {
   const visualizer = visualizerForOrd(ord);
   if (!visualizer) return { ord, action: "start", cursorMs: 0 };
   const state = playbackStateFor(visualizer);
+  const region = effectivePlaybackRegion(visualizer);
   let action: PlaybackRequest["action"] = "start";
   if (state === "playing") action = "pause";
   if (state === "paused") {
     action = visualizer.dataset.resumeRequiresRestart === "true" ? "start" : "resume";
   }
   let cursorMs = Number(visualizer.dataset.anchorMs || visualizer.dataset.cursorMs || "0");
-  if (action === "pause" || action === "resume") {
+  if (action === "start" && region.mode === "selection") {
+    cursorMs = region.startMs;
+  }
+  if (action === "pause") {
     cursorMs = Number(currentProgressMs(visualizer) || visualizer.dataset.cursorMs || cursorMs);
+  }
+  if (action === "resume") {
+    cursorMs = Number(currentProgressMs(visualizer) || visualizer.dataset.cursorMs || cursorMs);
+    if (region.mode === "selection" && (cursorMs < region.startMs || cursorMs > region.endMs)) {
+      action = "start";
+      cursorMs = region.startMs;
+    }
   }
   return {
     ord,
     action,
     cursorMs: Math.round(cursorMs),
+    endMs: Math.round(region.endMs),
     engine: playbackEngineFor(visualizer),
+    loop: repeatEnabledFor(visualizer),
+    regionMode: region.mode,
   };
 }
 
@@ -725,6 +1186,11 @@ export function startEditorHtmlPlayback(visualizer: VisualizerElement, request: 
     onAudioPlayFailed() {
       logger.warn("html playback failed; falling back to native", { ord: request.ord });
       stopProgressClock(visualizer);
+      if (request.regionMode === "selection" || request.loop) {
+        window.__aqeActiveField = request.ord;
+        setStatus("Selected repeat playback needs browser audio.", "warning");
+        return;
+      }
       sendPlaybackRequest({
         ...request,
         engine: "native",
@@ -872,6 +1338,8 @@ export function graphStateForTest(ord: number): GraphStateForTest | null {
   const play = playButton(ord);
   if (!visualizer) return null;
   const audio = audioClockFor(visualizer);
+  const selection = selectionForVisualizer(visualizer);
+  const draftSelection = draftSelectionForVisualizer(visualizer);
   return {
     active: visualizer.dataset.graphActive === "true",
     busy: visualizer.dataset.graphBusy === "true",
@@ -885,6 +1353,17 @@ export function graphStateForTest(ord: number): GraphStateForTest | null {
     graphButtonLabel: graph ? graph.textContent || "" : "",
     playButtonLabel: play ? play.textContent || "" : "",
     playbackState: playbackStateFor(visualizer),
+    selectionActive: selection !== null,
+    selectionStartMs: selection?.startMs ?? null,
+    selectionEndMs: selection?.endMs ?? null,
+    selectionDraftActive: draftSelection !== null,
+    selectionDraftStartMs: draftSelection?.startMs ?? null,
+    selectionDraftEndMs: draftSelection?.endMs ?? null,
+    repeatEnabled: repeatEnabledFor(visualizer),
+    repeatCheckboxDisabled: !!repeatCheckboxForOrd(ord)?.disabled,
+    playbackStartMs: Number(visualizer.dataset.playbackStartMs || "0"),
+    playbackEndMs: Number(visualizer.dataset.playbackEndMs || "0"),
+    playbackRegionMode: visualizer.dataset.playbackRegionMode === "selection" ? "selection" : "full",
     resumeRequiresRestart: visualizer.dataset.resumeRequiresRestart === "true",
     audioClockSrc: audio ? (audio.getAttribute("src") || "") : "",
     audioClockCurrentMs: audio ? Math.round((Number(audio.currentTime) || 0) * 1000) : 0,

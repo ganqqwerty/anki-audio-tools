@@ -132,7 +132,12 @@ def _on_editor_did_init(editor: Any) -> None:
 def _on_editor_will_load_note(js: str, note: Any, editor: Any) -> str:
     _reset_editor_session_for_note_load(editor, getattr(note, "id", None))
     _SESSIONS.setdefault(editor, EditorSession()).note_id = getattr(note, "id", None)
-    return f"{js}\n{injection_script(_audio_field_indices(note))}"
+    config = _config(editor)
+    script = injection_script(
+        _audio_field_indices(note),
+        repeat_playback_by_default=bool(config.get("repeat_playback_by_default", False)),
+    )
+    return f"{js}\n{script}"
 
 
 def _audio_field_indices(note: Any) -> list[int]:

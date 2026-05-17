@@ -8,7 +8,10 @@ from anki_audio_quick_editor.editor_ui import injection_script
 def test_injection_script_embeds_audio_field_indices_and_bundle() -> None:
     script = injection_script([1, 3])
 
-    assert 'window.__AQE_EDITOR_CONFIG__ = {"audioFieldIndices": [1, 3]};' in script
+    assert (
+        'window.__AQE_EDITOR_CONFIG__ = {"audioFieldIndices": [1, 3], '
+        '"repeatPlaybackByDefault": false};'
+    ) in script
     assert "window.__aqeEditorDispose" in script
     assert "aqe:frontend-log" in script
     assert "aqe:show-file" in script
@@ -18,6 +21,15 @@ def test_injection_script_embeds_audio_field_indices_and_bundle() -> None:
     assert "aqe:mp-senet" in script
     assert "aqe:save" not in script
     assert "aqe:cancel" not in script
+
+
+def test_injection_script_embeds_repeat_default() -> None:
+    script = injection_script([0], repeat_playback_by_default=True)
+
+    assert (
+        'window.__AQE_EDITOR_CONFIG__ = {"audioFieldIndices": [0], '
+        '"repeatPlaybackByDefault": true};'
+    ) in script
 
 
 def test_injection_script_keeps_python_window_contract() -> None:

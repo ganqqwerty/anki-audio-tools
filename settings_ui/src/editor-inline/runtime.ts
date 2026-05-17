@@ -18,6 +18,7 @@ import {
   setVisualizer,
   setVisualizerStatusFromPython,
   stopEditorPlayback,
+  visualizerForOrd,
 } from "./actions.js";
 import { logger } from "./logger.js";
 import type { EditorRuntimeConfig, FieldTarget, MountedField } from "./types.js";
@@ -28,6 +29,7 @@ const mountedFields = new Map<number, MountedField>();
 
 export function initializeEditorRuntime(config: EditorRuntimeConfig = window.__AQE_EDITOR_CONFIG__ ?? { audioFieldIndices: [] }): void {
   disposeEditorRuntime();
+  window.__AQE_EDITOR_CONFIG__ = config;
   installWindowContract();
   prepareForNewNote();
   window.__aqeEditorDispose = disposeEditorRuntime;
@@ -115,6 +117,14 @@ export function mountNear(target: FieldTarget): void {
   const existing = mountedFields.get(target.ord);
   if (existing && document.body.contains(existing.host)) {
     if (!target.sourceFilename || existing.sourceFilename === target.sourceFilename) {
+      return;
+    }
+    const visualizer = visualizerForOrd(target.ord);
+    if (visualizer?.dataset.graphBusy === "true" || visualizer?.dataset.hasTrack === "true") {
+      const renderedSource = visualizer.dataset.sourceFilename || target.sourceFilename;
+      existing.sourceFilename = renderedSource;
+      const controls = document.querySelector<HTMLElement>(`.aqe-controls[data-aqe-field-ord="${target.ord}"]`);
+      if (controls) controls.dataset.aqeSourceFilename = renderedSource;
       return;
     }
   }

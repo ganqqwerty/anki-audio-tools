@@ -28,6 +28,7 @@ beforeEach(() => {
 
   // Reset __INITIAL_STATE__
   delete window.__INITIAL_STATE__;
+  delete window.__AQE_EDITOR_CONFIG__;
 });
 
 // Re-export pycmd mock so tests can inspect calls

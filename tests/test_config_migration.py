@@ -108,6 +108,20 @@ class TestMigrateConfig:
         assert migrated["_config_version"] == CURRENT_CONFIG_VERSION
         assert changed is True
 
+    def test_picks_up_repeat_playback_default(self) -> None:
+        user = {"_config_version": 7, "enabled": True}
+        defaults = {
+            "_config_version": CURRENT_CONFIG_VERSION,
+            "enabled": True,
+            "repeat_playback_by_default": False,
+        }
+
+        migrated, changed = migrate_config(user, defaults)
+
+        assert migrated["repeat_playback_by_default"] is False
+        assert migrated["_config_version"] == CURRENT_CONFIG_VERSION
+        assert changed is True
+
     def test_removes_deleted_edge_silence_keys(self) -> None:
         user = {
             "_config_version": 6,

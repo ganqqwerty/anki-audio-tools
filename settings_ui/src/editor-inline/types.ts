@@ -24,6 +24,7 @@ export interface ButtonSpec {
 
 export interface EditorRuntimeConfig {
   audioFieldIndices: number[];
+  repeatPlaybackByDefault?: boolean;
 }
 
 export interface FieldTarget {
@@ -46,8 +47,11 @@ export interface NormalizedProsodyTrack {
 export interface PlaybackRequest {
   action: "start" | "pause" | "resume";
   cursorMs: number;
+  endMs?: number;
   engine?: "html" | "native" | "";
+  loop?: boolean;
   ord: number;
+  regionMode?: "selection" | "full";
 }
 
 export interface CursorIntent {
@@ -82,10 +86,21 @@ export interface GraphStateForTest {
   pitchPaths: number;
   playButtonLabel: string;
   playbackEngine: "html" | "native";
+  playbackEndMs: number;
+  playbackRegionMode: "selection" | "full";
+  playbackStartMs: number;
   playbackState: PlaybackState;
   progressClockMode: ProgressClockMode;
   progressMs: number;
+  repeatCheckboxDisabled: boolean;
+  repeatEnabled: boolean;
   resumeRequiresRestart: boolean;
+  selectionActive: boolean;
+  selectionDraftActive: boolean;
+  selectionDraftEndMs: number | null;
+  selectionDraftStartMs: number | null;
+  selectionEndMs: number | null;
+  selectionStartMs: number | null;
   sourceFilename: string;
   spinnerVisible: boolean;
   xAxisLabels: string[];
