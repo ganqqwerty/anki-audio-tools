@@ -1,5 +1,7 @@
 # Frontend Architecture Refactor Plan
 
+Implementation commit: `263636191674b78365d0e4d73f40a0e09012ec90`
+
 ## Purpose
 
 This document records the current shape of the Svelte/TypeScript frontend, the architecture problems identified in the inline editor bundle, and a staged plan for refactoring it without losing behavior. It is intended to guide a large refactor, not to describe the final architecture as if it already exists.
@@ -1048,4 +1050,3 @@ The refactor is complete when:
 - `python3 scripts/dev.py test` passes.
 - `python3 scripts/dev.py test-e2e` passes.
 - GitNexus change detection reports only expected affected frontend/editor flows.
-
