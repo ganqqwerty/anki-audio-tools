@@ -10,6 +10,7 @@ from .conftest import ADDON_DIR
 
 EDITOR_ACTIONS = ADDON_DIR / "editor_actions.py"
 EDITOR_UI = ADDON_DIR / "editor_ui.py"
+EDITOR_UI_TS = ADDON_DIR.parent.parent / "settings_ui" / "src" / "editor-inline"
 LEGACY_COMMANDS = {"aqe:preview", "aqe:save", "aqe:cancel"}
 
 
@@ -49,6 +50,10 @@ def _editor_ui_commands() -> set[str]:
     for node in ast.walk(tree):
         if isinstance(node, ast.Constant) and isinstance(node.value, str):
             commands.update(re.findall(r"aqe:[a-z-]+", node.value))
+    for path in sorted(EDITOR_UI_TS.rglob("*")):
+        if path.suffix not in {".svelte", ".ts"}:
+            continue
+        commands.update(re.findall(r"aqe:[a-z-]+", path.read_text(encoding="utf-8")))
     return commands
 
 

@@ -29,6 +29,7 @@ BRIDGE_COMMANDS = (
     "aqe:set-cursor",
     "aqe:play",
     "aqe:play-ended",
+    "aqe:frontend-log",
     "aqe:show-file",
     CMD_TRIM_LEFT,
     CMD_TRIM_RIGHT,

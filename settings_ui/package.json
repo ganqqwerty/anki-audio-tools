@@ -4,7 +4,9 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "build": "vite build",
+    "build": "npm run build:settings && npm run build:editor",
+    "build:settings": "vite build",
+    "build:editor": "vite build --config vite.editor.config.ts",
     "dev": "vite",
     "test": "vitest run",
     "test:watch": "vitest",

@@ -1,0 +1,40 @@
+import type { FrontendLogPayload } from "../lib/generated/contracts.js";
+import type { CursorIntent, PlaybackRequest } from "./types.js";
+
+const frontendLogs: FrontendLogPayload[] = [];
+
+export function sendBridgeCommand(command: string): void {
+  if (globalThis.pycmd !== undefined) {
+    globalThis.pycmd(command);
+  }
+}
+
+export function focusAndSendCommand(ord: number, command: string): void {
+  sendBridgeCommand(`focus:${ord}`);
+  sendBridgeCommand(command);
+}
+
+export function sendEditorFrontendLog(payload: FrontendLogPayload): void {
+  frontendLogs.push(payload);
+  sendBridgeCommand("aqe:frontend-log");
+}
+
+export function popEditorFrontendLog(): FrontendLogPayload | null {
+  return frontendLogs.shift() ?? null;
+}
+
+export function setPendingPlaybackRequest(request: PlaybackRequest): void {
+  window.__aqePendingPlaybackRequest = request;
+  window.__aqeLastPlaybackRequest = request;
+}
+
+export function popPendingPlaybackRequest(): PlaybackRequest | null {
+  if (!window.__aqePendingPlaybackRequest) return null;
+  const request = window.__aqePendingPlaybackRequest;
+  window.__aqePendingPlaybackRequest = null;
+  return request;
+}
+
+export function setCursorIntent(intent: CursorIntent): void {
+  window.__aqeLastCursorIntent = intent;
+}

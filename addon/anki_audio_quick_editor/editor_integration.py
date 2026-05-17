@@ -23,7 +23,7 @@ from .audio_processor import (
     temp_final_path,
 )
 from .audio_state import AudioEditState, AudioProcessingConfig
-from .contracts_generated import ProsodyPayload
+from .contracts_generated import FrontendLogPayload, ProsodyPayload
 from .editor_actions import (
     BRIDGE_COMMANDS,
     CMD_MP_SENET,
@@ -55,6 +55,7 @@ from .support import (
 )
 
 logger = logging.getLogger(__name__)
+CONTRACT_DECODE_ERRORS = (AssertionError, TypeError, ValueError)
 
 CURRENT_FIELD_AUDIO_MISSING = "No [sound:...] reference found in the current field."
 REFERENCED_AUDIO_MISSING = "The referenced audio file was not found in Anki's media folder."
@@ -195,6 +196,7 @@ def _handle_non_processing_command(editor: Any, command: str) -> bool:
         "aqe:analyze": _analyze_current_async,
         "aqe:set-cursor": _set_cursor_from_web,
         "aqe:play": _play,
+        "aqe:frontend-log": _handle_editor_frontend_log,
         "aqe:show-file": _show_current_audio_file,
         "aqe:play-ended": _play_ended,
         "aqe:undo": _undo,
@@ -207,6 +209,37 @@ def _handle_non_processing_command(editor: Any, command: str) -> bool:
         return False
     handler(editor)
     return True
+
+
+def _handle_editor_frontend_log(editor: Any) -> None:
+    _eval_with_callback(
+        editor,
+        "window.__aqePopFrontendLog ? window.__aqePopFrontendLog() : null",
+        _log_editor_frontend_payload,
+    )
+
+
+def _log_editor_frontend_payload(raw_payload: Any) -> None:
+    if raw_payload is None:
+        return
+    try:
+        payload = FrontendLogPayload.from_dict(raw_payload)
+    except CONTRACT_DECODE_ERRORS:
+        logger.warning("editor frontend_log: invalid payload")
+        return
+
+    rendered = f"editor frontend: {payload.message}"
+    if payload.context is not None:
+        rendered = f"{rendered} | {payload.context!r}"
+    level = payload.level.value
+    if level == "debug":
+        logger.debug(rendered)
+    elif level == "warn":
+        logger.warning(rendered)
+    elif level == "error":
+        logger.error(rendered)
+    else:
+        logger.info(rendered)
 
 
 def _update_state_and_render(editor: Any, command: str) -> None:

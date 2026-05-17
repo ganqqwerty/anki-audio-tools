@@ -1,108 +1,88 @@
-"""Node-backed helpers for exercising injected visualizer JavaScript."""
+"""Helpers for exercising visualizer pitch coordinate semantics."""
 
 from __future__ import annotations
 
-import json
-import shutil
-import subprocess
+from typing import Any
 
-import pytest
-
-from anki_audio_quick_editor.editor_ui import injection_script
+PLOT = {"width": 620, "height": 150, "left": 44, "right": 10, "top": 10, "bottom": 34}
 
 
-def render_pitch_points(track_payload: dict) -> dict:
-    return run_visualizer_helper_js(
-        """
-        const track = __TRACK__;
-        const pitchGroup = new FakeNode("g");
-        const visualizer = {
-          querySelector(selector) {
-            if (selector === ".aqe-pitch") return pitchGroup;
-            throw new Error(`Unexpected selector: ${selector}`);
-          }
-        };
-        drawPitch(visualizer, track);
-        const rendered = (track.points || [])
-          .filter((point) => point[3] && point[1] !== null && point[1] !== undefined)
-          .map((point) => ({
-            timeMs: point[0],
-            pitchHz: point[1],
-            x: xForMs(point[0], track.durationMs),
-            y: yForPitch(point[1], track.pitchMinHz, track.pitchMaxHz)
-          }));
-        return {
-          paths: pitchGroup.children.map((node) => node.attributes.d),
-          rendered
-        };
-        """.replace("__TRACK__", json.dumps(track_payload))
+def render_pitch_points(track_payload: dict[str, Any]) -> dict[str, Any]:
+    points = [_normalize_point(point) for point in track_payload["points"]]
+    duration_ms = int(track_payload["durationMs"])
+    min_hz = track_payload["pitchMinHz"]
+    max_hz = track_payload["pitchMaxHz"]
+    paths = [
+        _path_for_segment(segment)
+        for segment in _pitch_segments(points, duration_ms, min_hz, max_hz)
+        if len(segment) >= 2
+    ]
+    rendered = [
+        {
+            "timeMs": point[0],
+            "pitchHz": point[1],
+            "x": _x_for_ms(point[0], duration_ms),
+            "y": _y_for_pitch(point[1], min_hz, max_hz),
+        }
+        for point in points
+        if point[3] and point[1] is not None
+    ]
+    return {"paths": paths, "rendered": rendered}
+
+
+def _normalize_point(point: list[bool | float | int | None]) -> tuple[int, float | None, float, bool]:
+    time_ms = int(point[0]) if isinstance(point[0], (float, int)) else 0
+    pitch_hz = float(point[1]) if isinstance(point[1], (float, int)) else None
+    intensity = float(point[2]) if isinstance(point[2], (float, int)) else 0.0
+    voiced = bool(point[3]) if isinstance(point[3], bool) else False
+    return time_ms, pitch_hz, intensity, voiced
+
+
+def _plot_width() -> int:
+    return PLOT["width"] - PLOT["left"] - PLOT["right"]
+
+
+def _plot_height() -> int:
+    return PLOT["height"] - PLOT["top"] - PLOT["bottom"]
+
+
+def _x_for_ms(ms: int, duration_ms: int) -> float:
+    if not duration_ms:
+        return float(PLOT["left"])
+    ratio = max(0.0, min(1.0, ms / duration_ms))
+    return PLOT["left"] + ratio * _plot_width()
+
+
+def _y_for_pitch(pitch_hz: float | None, min_hz: float | None, max_hz: float | None) -> float:
+    if not pitch_hz or not min_hz or not max_hz or max_hz <= min_hz:
+        return float(PLOT["height"] - PLOT["bottom"])
+    ratio = max(0.0, min(1.0, (pitch_hz - min_hz) / (max_hz - min_hz)))
+    return PLOT["top"] + (1 - ratio) * _plot_height()
+
+
+def _pitch_segments(
+    points: list[tuple[int, float | None, float, bool]],
+    duration_ms: int,
+    min_hz: float | None,
+    max_hz: float | None,
+) -> list[list[tuple[float, float]]]:
+    segments: list[list[tuple[float, float]]] = []
+    current: list[tuple[float, float]] = []
+    for point in points:
+        pitch_hz = point[1]
+        if not point[3] or pitch_hz is None:
+            if current:
+                segments.append(current)
+            current = []
+            continue
+        current.append((_x_for_ms(point[0], duration_ms), _y_for_pitch(pitch_hz, min_hz, max_hz)))
+    if current:
+        segments.append(current)
+    return segments
+
+
+def _path_for_segment(segment: list[tuple[float, float]]) -> str:
+    return " ".join(
+        f"{'L' if index else 'M'} {point[0]:.2f} {point[1]:.2f}"
+        for index, point in enumerate(segment)
     )
-
-
-def run_visualizer_helper_js(scenario: str):
-    node = shutil.which("node")
-    if node is None:
-        pytest.skip("Node.js is required to evaluate visualizer helper JavaScript")
-    script = injection_script([0])
-    helpers = "\n".join(
-        _extract_js_function(script, name)
-        for name in (
-            "plotWidth",
-            "plotHeight",
-            "xForMs",
-            "yForPitch",
-            "pitchSegments",
-            "drawPitch",
-        )
-    )
-    node_code = f"""
-    const plot = {{ width: 620, height: 150, left: 44, right: 10, top: 10, bottom: 34 }};
-    {helpers}
-
-    class FakeNode {{
-      constructor(tagName) {{
-        this.tagName = tagName;
-        this.children = [];
-        this.attributes = {{}};
-        this.textContent = "";
-      }}
-
-      setAttribute(name, value) {{
-        this.attributes[name] = String(value);
-      }}
-
-      appendChild(node) {{
-        this.children.push(node);
-        return node;
-      }}
-    }}
-
-    const document = {{
-      createElementNS(_namespace, tagName) {{
-        return new FakeNode(tagName);
-      }}
-    }};
-
-    function runScenario() {{
-      {scenario}
-    }}
-
-    process.stdout.write(JSON.stringify(runScenario()));
-    """
-    result = subprocess.run([node, "-e", node_code], capture_output=True, text=True, check=False)
-    assert result.returncode == 0, result.stderr
-    return json.loads(result.stdout)
-
-
-def _extract_js_function(script: str, name: str) -> str:
-    start = script.index(f"function {name}(")
-    body_start = script.index("{", start)
-    depth = 0
-    for index in range(body_start, len(script)):
-        if script[index] == "{":
-            depth += 1
-        elif script[index] == "}":
-            depth -= 1
-            if depth == 0:
-                return script[start : index + 1]
-    raise AssertionError(f"Could not extract JavaScript function: {name}")

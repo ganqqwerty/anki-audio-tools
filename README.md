@@ -9,7 +9,7 @@ Anki desktop add-on for quickly editing audio references from the note editor. I
 - ffmpeg-backed MP3 rendering for each inline edit action
 - DeepFilterNet-assisted pause detection with retained debug artifacts for pause shortening
 - Non-destructive save flow that writes a new media file and updates the field reference
-- Settings dialog backed by `AnkiWebView` and a committed Svelte bundle
+- Settings dialog and inline editor controls backed by committed Svelte/TypeScript bundles
 - Config defaults, JSON Schema validation, and deep-merge migration support
 - Unit tests, architecture tests, and real-runtime e2e tests
 - `scripts/dev.py` for setup, checks, builds, release, and e2e execution
@@ -22,7 +22,7 @@ Anki desktop add-on for quickly editing audio references from the note editor. I
 - `ffmpeg` and `ffprobe` available on PATH, or an explicit `ffmpeg_path` in settings
 - DeepFilterNet's `deep-filter` for pause shortening and noise removal; macOS arm64 uses the bundled binary, other platforms can configure `deep_filter_path` or provide it on PATH
 - Optional: `praat-parselmouth` in Anki's Python for preferred pitch/intensity analysis; the add-on falls back to ffmpeg-decoded PCM without it
-- Node.js 18+ for editing or rebuilding the settings UI
+- Node.js 18+ for editing or rebuilding the settings/editor frontend bundles
 
 ## Quick Start
 
@@ -37,8 +37,8 @@ The local development add-on ID is `1000000002`.
 ## Development
 
 - Runtime package: `addon/anki_audio_quick_editor/`
-- Settings frontend: `settings_ui/`
-- Build the settings bundle: `python3 scripts/dev.py build`
+- Settings and editor frontend source: `settings_ui/`
+- Build the committed frontend bundles: `python3 scripts/dev.py build`
 - Open the settings dialog from Anki: `Tools -> Anki Audio Quick Editor -> Settings`
 - Edit audio from Anki by focusing a field containing `[sound:filename.mp3]` and using the injected inline controls.
 

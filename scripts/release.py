@@ -16,6 +16,14 @@ DIST_DIR = ROOT / "dist"
 INCLUDE_EXTENSIONS = {".py", ".html", ".json", ".pyi", ".typed", ".js", ".css"}
 INCLUDE_DIRS = {"bin"}
 EXCLUDE_DIRS = {"aqe_artifacts"}
+REQUIRED_ARCHIVE_FILES = (
+    "__init__.py",
+    "config.json",
+    "templates/settings/settings_bundle.js",
+    "templates/settings/settings_bundle.css",
+    "templates/editor/editor_bundle.js",
+    "templates/editor/editor_bundle.css",
+)
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from dev import _find_anki_python  # noqa: E402
@@ -62,22 +70,63 @@ def _run_checks() -> None:
         sys.exit(result.returncode)
 
 
+def _source_mtime(paths: list[Path]) -> float:
+    newest = 0.0
+    for path in paths:
+        if path.is_file() and path.suffix in {".svelte", ".ts"}:
+            newest = max(newest, path.stat().st_mtime)
+        elif path.is_dir():
+            newest = max(
+                newest,
+                max(
+                    (child.stat().st_mtime for child in path.rglob("*") if child.suffix in {".svelte", ".ts"}),
+                    default=0.0,
+                ),
+            )
+    return newest
+
+
 def _verify_bundle_fresh() -> None:
     src_dir = ROOT / "settings_ui" / "src"
-    bundle = ADDON_DIR / "templates" / "settings" / "settings_bundle.js"
     if not src_dir.is_dir():
         return
-    if not bundle.exists():
-        print("ERROR: settings bundle missing. Run: python3 scripts/dev.py build")
-        sys.exit(1)
-    bundle_mtime = bundle.stat().st_mtime
-    newest_source = max(
-        (path.stat().st_mtime for path in src_dir.rglob("*") if path.suffix in {".svelte", ".ts"}),
-        default=0.0,
-    )
-    if newest_source > bundle_mtime:
-        print("ERROR: settings bundle is stale. Run: python3 scripts/dev.py build")
-        sys.exit(1)
+    bundle_specs = [
+        (
+            "settings",
+            [
+                src_dir / "App.svelte",
+                src_dir / "main.ts",
+                src_dir / "lib",
+            ],
+            [
+                ADDON_DIR / "templates" / "settings" / "settings_bundle.js",
+                ADDON_DIR / "templates" / "settings" / "settings_bundle.css",
+            ],
+        ),
+        (
+            "editor",
+            [
+                src_dir / "editor-inline",
+                src_dir / "lib",
+            ],
+            [
+                ADDON_DIR / "templates" / "editor" / "editor_bundle.js",
+                ADDON_DIR / "templates" / "editor" / "editor_bundle.css",
+            ],
+        ),
+    ]
+    for label, source_paths, bundles in bundle_specs:
+        missing = [bundle for bundle in bundles if not bundle.exists()]
+        if missing:
+            missing_paths = ", ".join(str(path.relative_to(ROOT)) for path in missing)
+            print(f"ERROR: {label} bundle missing files: {missing_paths}. Run: python3 scripts/dev.py build")
+            sys.exit(1)
+        newest_source = _source_mtime(source_paths)
+        stale = [bundle for bundle in bundles if newest_source > bundle.stat().st_mtime]
+        if stale:
+            stale_paths = ", ".join(str(path.relative_to(ROOT)) for path in stale)
+            print(f"ERROR: {label} bundle is stale: {stale_paths}. Run: python3 scripts/dev.py build")
+            sys.exit(1)
 
 
 def _should_include(path: Path) -> bool:
@@ -107,7 +156,7 @@ def _build_archive(version: str) -> Path:
 
 def _validate_archive(archive: Path) -> None:
     names = zipfile.ZipFile(archive, "r").namelist()
-    for required in ("__init__.py", "config.json"):
+    for required in REQUIRED_ARCHIVE_FILES:
         if required not in names:
             print(f"VALIDATION ERROR: missing required file {required}")
             sys.exit(1)

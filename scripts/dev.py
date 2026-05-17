@@ -621,10 +621,10 @@ def cmd_sonar() -> int:
     anki_python = _find_anki_python()
     _run([str(anki_python), "-m", "pytest", "tests/", "--cov", "--cov-report=xml"], label="python coverage for sonar")
     if (SETTINGS_UI_DIR / "node_modules").is_dir():
-        _run(["npm", "run", "test:coverage"], cwd=SETTINGS_UI_DIR, label="settings UI coverage for sonar")
+        _run(["npm", "run", "test:coverage"], cwd=SETTINGS_UI_DIR, label="frontend UI coverage for sonar")
         _prefix_settings_ui_lcov_paths()
     else:
-        print("settings_ui/node_modules not found - skipping settings UI coverage.")
+        print("settings_ui/node_modules not found - skipping frontend UI coverage.")
     return _run(
         [scanner, f"-Dsonar.host.url={host_url}"],
         env={"SONAR_TOKEN": token},
@@ -685,7 +685,7 @@ def cmd_build_ui() -> int:
     contracts_rc = cmd_contracts_check()
     if contracts_rc != 0:
         return contracts_rc
-    return _run(["npm", "run", "build"], cwd=SETTINGS_UI_DIR, label="settings UI build")
+    return _run(["npm", "run", "build"], cwd=SETTINGS_UI_DIR, label="frontend webview bundle build")
 
 
 def cmd_build() -> int:
@@ -700,7 +700,7 @@ def cmd_test_svelte() -> int:
         print("settings_ui/node_modules not found - skipping Svelte tests.")
         print("  Run: python3 scripts/dev.py setup")
         return 0
-    return _run(["npm", "test"], cwd=SETTINGS_UI_DIR, label="settings UI tests")
+    return _run(["npm", "test"], cwd=SETTINGS_UI_DIR, label="frontend UI tests")
 
 
 def cmd_release() -> int:
@@ -748,9 +748,9 @@ COMMANDS: dict[str, tuple[Callable[[], int], str]] = {
     "coverage": (cmd_coverage, "Run tests with coverage report"),
     "sonar": (cmd_sonar, "Optional SonarQube analysis (needs SONAR_TOKEN)"),
     "muttest": (cmd_muttest, "Mutation testing (advisory, opt-in)"),
-    "build": (cmd_build, "Build the settings Svelte bundle"),
-    "build-ui": (cmd_build_ui, "Build the settings Svelte bundle"),
-    "test-svelte": (cmd_test_svelte, "Run settings Svelte UI tests"),
+    "build": (cmd_build, "Build the settings and editor Svelte bundles"),
+    "build-ui": (cmd_build_ui, "Build the settings and editor Svelte bundles"),
+    "test-svelte": (cmd_test_svelte, "Run Svelte UI tests"),
     "config-schema": (cmd_config_schema, "Validate config.json against JSON Schema"),
     "contracts-generate": (cmd_contracts_generate, "Generate Python and TypeScript JSON contracts"),
     "contracts-check": (cmd_contracts_check, "Verify generated JSON contracts are current"),

@@ -36,8 +36,8 @@ Anki Audio Quick Editor keeps the human-facing architecture doc short and puts t
 
 1. `__init__.py` registers editor integration during `main_window_did_init`.
 2. `editor_integration.py` attaches `aqe:*` bridge commands on `editor_did_init`.
-3. `editor_ui.py` injects compact controls near fields containing supported `[sound:...]` tags through `editor_will_load_note`.
-4. Controls mount a compact SVG prosody visualizer and request async analysis for the current referenced media.
+3. `editor_ui.py` injects the committed editor Svelte bundle near fields containing supported `[sound:...]` tags through `editor_will_load_note`.
+4. The editor bundle mounts one compact Svelte control surface per audio field, including an SVG prosody visualizer, and requests async analysis for the current referenced media.
 5. `prosody_analyzer.py` uses optional Parselmouth/Praat when available and falls back to ffmpeg-decoded PCM pitch/intensity analysis otherwise.
 6. Processing button presses update an `AudioEditState` for the current field, including manual trim, speed, volume, and pause-shortening edits, then render a new MP3 with `audio_processor.py`.
 7. Special transform buttons call bundled or configured external denoisers/restorers through `audio_processor.py`, including DeepFilterNet, Sidon, and MP-SENet.
@@ -92,7 +92,7 @@ The shared `remove_pauses` operation is DeepFilterNet-assisted and speeds long p
 ## Settings Flow
 
 1. Python renders HTML containing `window.__INITIAL_STATE__`.
-2. The committed `settings_bundle.js` mounts the Svelte app.
+2. The committed `settings_bundle.js` mounts the settings Svelte app.
 3. The app sends commands through `pycmd(...)`.
 4. `settings/commands.py` handles save/reset/log/async operations.
 5. Python sends async completion events back via `webview.eval(...)`.
@@ -149,6 +149,7 @@ The canonical module contracts and allowed side effects are defined in `tests/te
 
 - Import policy, addon dependency policy, and side-effect policy are enforced by executable module contracts.
 - Python bridge command registration and injected editor UI commands must stay in sync.
+- Editor TypeScript/Svelte source is part of that bridge-command sync check, not only Python injection code.
 - Shared batch operations must stay free of editor bridge strings and editor-adapter imports.
 - Optional analysis dependencies such as Parselmouth must stay isolated to their backend module and never become package-level imports.
 - The settings shell must stay a thin `QDialog` + `AnkiWebView` wrapper.

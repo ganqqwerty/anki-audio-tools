@@ -16,7 +16,7 @@ python3 scripts/dev.py test-e2e
 - `tests/test_architecture/` enforces layer boundaries, module classification, Anki-import-safe helper modules, import-safe runtime modules, editor bridge command sync, prosody dependency isolation, shell-thin settings rules, and DB access isolation.
 - `tests/test_anki_api_contract_mocks.py` checks the mocked unit-test Anki surface against the same generated contract so mocks cannot hide a missing real API.
 - `tests/test_architecture/contracts.py` is the executable architecture source of truth; `tests/test_architecture/inspection.py` powers both the tests and the architecture report.
-- `settings_ui/tests/` covers bridge commands, async job plumbing, logging, and the settings UI.
+- `settings_ui/tests/` covers bridge commands, async job plumbing, logging, the settings UI, and the inline editor Svelte runtime with Anki cut off behind DOM/backend test doubles.
 - `scripts/generate_contracts.py --check` verifies generated Python/TypeScript JSON communication contracts are in sync with `contracts/communication.schema.json`.
 - `e2e/` exercises the real add-on inside a live Anki runtime via `aqt._run(exec=False)`, including ffmpeg-backed audio processing when `ffmpeg` and `ffprobe` are installed.
 
@@ -40,7 +40,7 @@ A feature is not complete until `python3 scripts/dev.py test-e2e` passes.
 | Security | `python3 scripts/dev.py security` |
 | Dependency audit | `python3 scripts/dev.py deps` |
 | Complexity | `python3 scripts/dev.py complexity` |
-| Settings UI tests | `python3 scripts/dev.py test-svelte` |
+| Frontend Svelte/Vitest tests | `python3 scripts/dev.py test-svelte` |
 | Mutation testing (advisory) | `python3 scripts/dev.py muttest run` |
 
 ## Focused Test Files
@@ -130,6 +130,8 @@ The e2e suite uses a temporary `ANKI_BASE`, symlinks the add-on under `100000000
 Audio rendering and fallback prosody tests require `ffmpeg` and `ffprobe`. On this machine they are installed with Homebrew as `ffmpeg 8.1.1` under `/opt/homebrew/bin/`; e2e tests prefer that Homebrew binary and do not use bundled app copies such as Migaku's ffmpeg.
 
 Prosody visualization e2e coverage verifies that the real Anki editor renders intensity fill, pitch paths, Hertz labels, and cursor seeking, and that the graph refreshes after real ffmpeg-generated media changes.
+
+The inline editor has an additional in-between integration layer in `settings_ui/tests/editor-inline.*.test.ts`: tests mount fake Anki editor fields in jsdom, replace `pycmd` with a bridge double, provide deterministic prosody/audio payloads, and drive the public `window.__aqe*` contract without loading Anki. The editor-inline coverage gate enforces at least 90% lines/statements/functions for `settings_ui/src/editor-inline/`; branch coverage is enforced separately for defensive DOM guards.
 
 Browser batch visualization is currently covered by unit tests for hook registration, dialog entry behavior, batch progress/cancel semantics, SVG media writes, skip/failure handling, and target-field appends. Add real Browser dialog e2e coverage before making risky UI changes to that workflow.
 

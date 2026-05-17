@@ -8,9 +8,20 @@
  * All other files must use this logger instead of console.log/warn/error.
  */
 
+import type { FrontendLogPayload } from "./generated/contracts.js";
+import { Level } from "./generated/contracts.js";
 import { sendBridgeCommand } from "./bridge.js";
 
 type LogLevel = "debug" | "info" | "warn" | "error";
+type JsonLogValue = null | boolean | number | string | JsonLogValue[] | { [key: string]: JsonLogValue };
+type LogSender = (payload: FrontendLogPayload) => void;
+
+export interface ScopedLogger {
+  debug: (message: string, context?: unknown) => void;
+  error: (message: string, context?: unknown) => void;
+  info: (message: string, context?: unknown) => void;
+  warn: (message: string, context?: unknown) => void;
+}
 
 function consoleForLevel(level: LogLevel): typeof console.warn {
   if (level === "error") {
@@ -19,27 +30,68 @@ function consoleForLevel(level: LogLevel): typeof console.warn {
   return console.warn;
 }
 
-function _log(level: LogLevel, message: string, context?: unknown): void {
-  const consoleFn = consoleForLevel(level);
-  if (context === undefined) {
-    consoleFn(`[settings] ${message}`);
-  } else {
-    consoleFn(`[settings] ${message}`, context);
-  }
-
-  // Fire-and-forget: send to Python logger (ignore failures)
-  try {
-    sendBridgeCommand(
-      `frontend_log:${JSON.stringify({ level, message, context })}`,
-    );
-  } catch {
-    // Silently ignore — pycmd may not be available yet
-  }
+function generatedLevel(level: LogLevel): Level {
+  if (level === "debug") return Level.Debug;
+  if (level === "warn") return Level.Warn;
+  if (level === "error") return Level.Error;
+  return Level.Info;
 }
 
-export const logger = {
-  debug: (message: string, context?: unknown) => _log("debug", message, context),
-  info: (message: string, context?: unknown) => _log("info", message, context),
-  warn: (message: string, context?: unknown) => _log("warn", message, context),
-  error: (message: string, context?: unknown) => _log("error", message, context),
-};
+function serializableContext(context: unknown, depth = 0): JsonLogValue {
+  if (context === null) return null;
+  if (typeof context === "boolean" || typeof context === "number" || typeof context === "string") {
+    return context;
+  }
+  if (Array.isArray(context)) {
+    if (depth >= 4) return "[array]";
+    return context.map((item) => serializableContext(item, depth + 1));
+  }
+  if (typeof context === "object") {
+    if (depth >= 4) return "[object]";
+    const result: { [key: string]: JsonLogValue } = {};
+    for (const [key, value] of Object.entries(context)) {
+      result[key] = serializableContext(value, depth + 1);
+    }
+    return result;
+  }
+  return String(context);
+}
+
+function payloadFor(level: LogLevel, message: string, context?: unknown): FrontendLogPayload {
+  const payload: FrontendLogPayload = {
+    level: generatedLevel(level),
+    message,
+  };
+  if (context !== undefined) {
+    payload.context = serializableContext(context);
+  }
+  return payload;
+}
+
+export function createLogger(scope: string, sendPayload: LogSender): ScopedLogger {
+  function log(level: LogLevel, message: string, context?: unknown): void {
+    const consoleFn = consoleForLevel(level);
+    if (context === undefined) {
+      consoleFn(`[${scope}] ${message}`);
+    } else {
+      consoleFn(`[${scope}] ${message}`, context);
+    }
+
+    try {
+      sendPayload(payloadFor(level, message, context));
+    } catch {
+      // pycmd may not be available while the WebView is initializing.
+    }
+  }
+
+  return {
+    debug: (message: string, context?: unknown) => log("debug", message, context),
+    error: (message: string, context?: unknown) => log("error", message, context),
+    info: (message: string, context?: unknown) => log("info", message, context),
+    warn: (message: string, context?: unknown) => log("warn", message, context),
+  };
+}
+
+export const logger = createLogger("settings", (payload) => {
+  sendBridgeCommand(`frontend_log:${JSON.stringify(payload)}`);
+});

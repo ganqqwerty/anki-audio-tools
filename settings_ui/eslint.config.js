@@ -6,7 +6,7 @@ import svelteParser from "svelte-eslint-parser";
 import globals from "globals";
 
 // Files that are allowed to call pycmd() and assign window.on* callbacks
-const BRIDGE_FILES = ["**/lib/bridge.ts"];
+const BRIDGE_FILES = ["**/lib/bridge.ts", "**/editor-inline/bridge.ts"];
 
 /** @type {import("eslint").Linter.Config[]} */
 export default [
@@ -18,6 +18,7 @@ export default [
       "src/components/ui/**",
       "src/lib/generated/**",
       "vite.config.ts",
+      "vite.editor.config.ts",
       "vitest.config.ts",
       "svelte.config.js",
       "eslint.config.js",

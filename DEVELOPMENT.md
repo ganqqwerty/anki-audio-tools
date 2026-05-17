@@ -57,7 +57,7 @@ Python dev dependencies live in two places and must stay in sync:
 
 ## Frontend Dependencies
 
-The settings UI uses Svelte 5 and Vite from `settings_ui/package.json`. Rebuild committed bundles after editing `.svelte` or `.ts` files:
+The settings dialog and inline editor UI use Svelte 5 and Vite from `settings_ui/package.json`. Rebuild committed bundles after editing `.svelte` or `.ts` files:
 
 ```bash
 python3 scripts/dev.py build
@@ -72,7 +72,7 @@ python3 scripts/dev.py contracts-generate
 python3 scripts/dev.py contracts-check
 ```
 
-`contracts-check` is part of `python3 scripts/dev.py check` and also runs before the settings UI bundle build.
+`contracts-check` is part of `python3 scripts/dev.py check` and also runs before the frontend bundle build.
 
 ## Type And Exception Policy
 
