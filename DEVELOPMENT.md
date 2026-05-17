@@ -23,6 +23,14 @@ This:
 - creates the add-on symlink in `addons21/1000000002`
 - runs `npm ci` in `settings_ui/` when `package-lock.json` is present, otherwise `npm install`
 
+## E2E Add-on Config Isolation
+
+The local development install is a symlink from Anki's `addons21/1000000002` to `addon/anki_audio_quick_editor/`. Anki stores per-add-on user config in `meta.json` inside the add-on folder, and `meta.json` is intentionally git-ignored.
+
+E2E tests must copy the add-on into their temporary `ANKI_BASE` instead of symlinking back to the repo. Otherwise, test-only config writes can leak into the real development add-on. The most visible symptom is manual Anki clicks on `Shorten Pauses` or `Remove noise` failing with `fake deep-filter failed`, because an E2E fake `deep-filter` path was written into `addon/anki_audio_quick_editor/meta.json`.
+
+If that happens, clear `deep_filter_path` in `addon/anki_audio_quick_editor/meta.json` or use the settings dialog to reset the DeepFilterNet path. The E2E fixture should keep excluding `meta.json`, logs, caches, and artifact directories from the copied add-on tree.
+
 ## Runtime Dependencies
 
 Anki add-ons cannot rely on `pip install` at user runtime. Audio Quick Editor currently uses only the Python/Qt runtime bundled with Anki plus user-installed `ffmpeg`/`ffprobe` executables, so no Python runtime packages are vendored.

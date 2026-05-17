@@ -502,19 +502,27 @@ def _play_ended(editor: Any) -> None:
 
 
 def _play_with_request(editor: Any, request: Any) -> None:
-    from aqt.sound import av_player
-
+    if getattr(editor, "note", None) is None:
+        return
     session, source_path = _session_and_source(editor)
     if _is_busy(session):
         _eval_status(editor, STILL_PROCESSING_MESSAGE, kind="processing")
         return
     field_index = _current_field_index(editor)
     action = "start"
+    engine = "native"
     cursor_ms = session.cursor_ms
     if isinstance(request, dict):
         action = str(request.get("action") or "start")
+        engine = str(request.get("engine") or "native")
         cursor_ms = clamp_cursor_ms(request.get("cursorMs"), session.visualized_duration_ms)
     session.cursor_ms = cursor_ms
+    if engine == "html":
+        _apply_html_playback_request(editor, session, field_index, action, cursor_ms)
+        return
+
+    from aqt.sound import av_player
+
     if action in {"pause", "resume"} and session.playback_active:
         try:
             av_player.toggle_pause()
@@ -529,6 +537,37 @@ def _play_with_request(editor: Any, request: Any) -> None:
         return
 
     _start_playback_from_cursor(editor, session, source_path, field_index, cursor_ms)
+
+
+def _apply_html_playback_request(
+    editor: Any,
+    session: EditorSession,
+    field_index: int,
+    action: str,
+    cursor_ms: int,
+) -> None:
+    if action == "pause":
+        session.cursor_ms = cursor_ms
+        session.playback_preparing = False
+        session.playback_active = True
+        session.playback_paused = True
+        _set_busy(editor, False)
+        _eval_status(editor, "Paused")
+        return
+
+    if action == "start":
+        _stop_session_playback(session)
+
+    session.cursor_ms = cursor_ms
+    session.field_index = field_index
+    session.playback_preparing = False
+    session.playback_active = True
+    session.playback_paused = False
+    _set_busy(editor, False)
+    if cursor_ms > 0 and action == "start":
+        _eval_status(editor, f"Playing from {max(0.0, cursor_ms / 1000):.2f}s")
+    else:
+        _eval_status(editor, "Playing")
 
 
 def _start_playback_from_cursor(
@@ -852,10 +891,16 @@ def _analysis_failed(editor: Any, generation: int, message: str) -> None:
 
 def _set_cursor_from_web(editor: Any) -> None:
     def _apply(value: Any) -> None:
+        if getattr(editor, "note", None) is None:
+            return
         session, source_path = _session_and_source(editor)
         cursor_value = value.get("cursorMs") if isinstance(value, dict) else value
         session.cursor_ms = clamp_cursor_ms(cursor_value, session.visualized_duration_ms)
         if isinstance(value, dict) and value.get("restartPlayback"):
+            if value.get("engine") == "html":
+                session.playback_active = True
+                session.playback_paused = False
+                return
             field_index = _current_field_index(editor)
             _start_playback_from_cursor(editor, session, source_path, field_index, session.cursor_ms)
 

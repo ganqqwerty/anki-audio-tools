@@ -119,6 +119,9 @@ _SCRIPT_TEMPLATE = r"""
       requestGraph(ord, true);
       return;
     }
+    if (command === "aqe:play" && handleHtmlPlaybackCommand(ord)) {
+      return;
+    }
     if (processingCommands.has(command)) {
       setControlsBusy(ord, true, processingMessage(command));
     }
@@ -160,11 +163,12 @@ _SCRIPT_TEMPLATE = r"""
     wrapper.dataset.graphBusy = "false";
     wrapper.dataset.hasTrack = "false";
     wrapper.dataset.playbackState = "stopped";
+    wrapper.dataset.playbackEngine = "";
     wrapper.dataset.resumeRequiresRestart = "false";
     wrapper.dataset.testid = `aqe-graph-${ord}`;
     wrapper.hidden = true;
     wrapper.innerHTML = `
-      <audio class="aqe-audio-clock" data-testid="aqe-audio-clock-${ord}" preload="metadata" muted hidden></audio>
+      <audio class="aqe-audio-clock" data-testid="aqe-audio-clock-${ord}" preload="metadata" hidden></audio>
       <svg class="aqe-visualizer-svg" data-testid="aqe-graph-svg-${ord}" viewBox="0 0 ${plot.width} ${plot.height}" role="img" aria-label="Audio pitch and intensity visualization">
         <path class="aqe-intensity" data-testid="aqe-intensity-${ord}" d=""></path>
         <g class="aqe-pitch" data-testid="aqe-pitch-${ord}"></g>
@@ -325,6 +329,7 @@ _SCRIPT_TEMPLATE = r"""
       visualizer.dataset.graphBusy = "false";
       visualizer.dataset.hasTrack = "false";
       visualizer.dataset.playbackState = "stopped";
+      visualizer.dataset.playbackEngine = "";
       visualizer.dataset.resumeRequiresRestart = "false";
       visualizer.dataset.durationMs = "0";
       visualizer.dataset.sourceFilename = "";
@@ -647,6 +652,9 @@ _SCRIPT_TEMPLATE = r"""
         previousPlaybackState: opts.previousPlaybackState || visualizer.dataset.playbackState || "stopped",
         restartPlayback: !!opts.restartPlayback
       };
+      if (opts.engine) {
+        window.__aqeLastCursorIntent.engine = opts.engine;
+      }
       pycmd("focus:" + window.__aqeActiveField);
       pycmd("aqe:set-cursor");
     }
@@ -690,12 +698,22 @@ _SCRIPT_TEMPLATE = r"""
         visualizer.dataset.resumeRequiresRestart = "true";
       }
       const releasedMs = cursorMsFromEvent(upEvent, svg, durationMs);
+      const restartEngine = restartPlayback && audioClockReady(visualizer) ? "html" : "";
       setCursor(visualizer, releasedMs, notifyPython, {
         previousPlaybackState,
-        restartPlayback
+        restartPlayback,
+        engine: restartEngine
       });
       if (audioClockReady(visualizer)) {
         seekAudioClock(visualizer, releasedMs);
+      }
+      if (restartPlayback && restartEngine === "html") {
+        startEditorHtmlPlayback(visualizer, {
+          ord,
+          action: "start",
+          cursorMs: Math.round(clampProgressMs(visualizer, releasedMs)),
+          engine: "html"
+        });
       }
     };
     move(event);
@@ -717,6 +735,7 @@ _SCRIPT_TEMPLATE = r"""
     visualizer.dataset.cursorMs = "0";
     visualizer.dataset.progressMs = "0";
     visualizer.dataset.resumeRequiresRestart = "false";
+    visualizer.dataset.playbackEngine = "";
     visualizer.querySelector(".aqe-intensity").setAttribute("d", "");
     visualizer.querySelector(".aqe-pitch").textContent = "";
     visualizer.querySelector(".aqe-labels").textContent = "";
@@ -829,9 +848,14 @@ _SCRIPT_TEMPLATE = r"""
     visualizer.__aqePlaybackTimer = window.requestAnimationFrame(tick);
   }
 
-  function startAudioProgressClock(visualizer, startMs) {
+  function startAudioProgressClock(visualizer, startMs, options) {
+    const opts = options || {};
     const audio = audioClockFor(visualizer);
     if (!audio || !seekAudioClock(visualizer, startMs) || typeof audio.play !== "function") {
+      if (opts.manualFallback === false) {
+        if (opts.onAudioPlayFailed) opts.onAudioPlayFailed();
+        return;
+      }
       startManualProgressClock(visualizer, startMs);
       return;
     }
@@ -841,6 +865,10 @@ _SCRIPT_TEMPLATE = r"""
     try {
       playResult = audio.play();
     } catch (_error) {
+      if (opts.manualFallback === false) {
+        if (opts.onAudioPlayFailed) opts.onAudioPlayFailed();
+        return;
+      }
       startManualProgressClock(visualizer, startMs);
       return;
     }
@@ -849,10 +877,15 @@ _SCRIPT_TEMPLATE = r"""
       clearPlaybackFrame(visualizer);
       visualizer.dataset.progressClockMode = "audio";
       paintProgressFromClock(visualizer);
+      if (opts.onAudioStarted) opts.onAudioStarted();
     };
     if (playResult && typeof playResult.then === "function") {
       playResult.then(startPainting).catch(() => {
         if (visualizer.dataset.playbackState === "playing") {
+          if (opts.manualFallback === false) {
+            if (opts.onAudioPlayFailed) opts.onAudioPlayFailed();
+            return;
+          }
           startManualProgressClock(visualizer, currentProgressMs(visualizer));
         }
       });
@@ -861,18 +894,29 @@ _SCRIPT_TEMPLATE = r"""
     startPainting();
   }
 
-  function startProgressClock(visualizer, startMs) {
-    stopProgressClock(visualizer);
+  function startProgressClock(visualizer, startMs, options) {
+    const opts = options || {};
+    const selectedEngine = opts.engine || visualizer.dataset.playbackEngine || "";
+    stopProgressClock(visualizer, { clearEngine: false });
     const durationMs = Number(visualizer.dataset.durationMs || "0");
     if (!durationMs) return;
     const clampedStartMs = clampProgressMs(visualizer, startMs);
+    visualizer.dataset.playbackEngine = selectedEngine;
     visualizer.dataset.playbackState = "playing";
     visualizer.dataset.playStartedAt = String(performance.now());
     visualizer.dataset.playStartMs = String(clampedStartMs);
     setCursor(visualizer, clampedStartMs, false, { updateAnchor: false });
     setPlaybackButtonLabel(visualizer, "Pause");
+    if (selectedEngine === "native") {
+      startManualProgressClock(visualizer, clampedStartMs);
+      return;
+    }
     if (audioClockReady(visualizer)) {
-      startAudioProgressClock(visualizer, clampedStartMs);
+      startAudioProgressClock(visualizer, clampedStartMs, opts);
+      return;
+    }
+    if (opts.manualFallback === false) {
+      if (opts.onAudioPlayFailed) opts.onAudioPlayFailed();
       return;
     }
     startManualProgressClock(visualizer, clampedStartMs);
@@ -897,6 +941,9 @@ _SCRIPT_TEMPLATE = r"""
     visualizer.dataset.playbackState = "stopped";
     visualizer.dataset.progressClockMode = "stopped";
     visualizer.dataset.resumeRequiresRestart = "false";
+    if (opts.clearEngine !== false) {
+      visualizer.dataset.playbackEngine = "";
+    }
     if (opts.clearAudio) {
       clearAudioClockSource(visualizer);
     }
@@ -912,11 +959,76 @@ _SCRIPT_TEMPLATE = r"""
     if (state === "paused") {
       action = visualizer.dataset.resumeRequiresRestart === "true" ? "start" : "resume";
     }
+    let cursorMs = Number(visualizer.dataset.anchorMs || visualizer.dataset.cursorMs || "0");
+    if (action === "pause" || action === "resume") {
+      cursorMs = Number(currentProgressMs(visualizer) || visualizer.dataset.cursorMs || cursorMs);
+    }
     return {
       ord,
       action,
-      cursorMs: Number(visualizer.dataset.anchorMs || visualizer.dataset.cursorMs || "0")
+      cursorMs: Math.round(cursorMs),
+      engine: playbackEngineFor(visualizer)
     };
+  }
+
+  function playbackEngineFor(visualizer) {
+    if (!visualizer || visualizer.dataset.hasTrack !== "true") return "native";
+    const activeEngine = visualizer.dataset.playbackEngine || "";
+    if (visualizer.dataset.playbackState !== "stopped" && activeEngine) {
+      return activeEngine;
+    }
+    return audioClockReady(visualizer) ? "html" : "native";
+  }
+
+  function sendPlaybackRequest(request) {
+    const visualizer = visualizerForOrd(request.ord);
+    if (visualizer) {
+      visualizer.dataset.playbackEngine = request.engine || "";
+    }
+    window.__aqePendingPlaybackRequest = request;
+    window.__aqeLastPlaybackRequest = request;
+    if (typeof pycmd === "function") {
+      window.__aqeActiveField = request.ord;
+      pycmd("focus:" + request.ord);
+      pycmd("aqe:play");
+    }
+  }
+
+  function startEditorHtmlPlayback(visualizer, request) {
+    startProgressClock(visualizer, request.cursorMs, {
+      engine: "html",
+      manualFallback: false,
+      onAudioStarted() {
+        sendPlaybackRequest(request);
+      },
+      onAudioPlayFailed() {
+        stopProgressClock(visualizer);
+        sendPlaybackRequest({
+          ...request,
+          engine: "native"
+        });
+      }
+    });
+    return true;
+  }
+
+  function handleHtmlPlaybackCommand(ord) {
+    const visualizer = visualizerForOrd(ord);
+    if (playbackEngineFor(visualizer) !== "html") return false;
+    const request = {
+      ...playbackRequest(ord),
+      engine: "html"
+    };
+    if (request.action === "pause") {
+      pauseProgressClock(visualizer);
+      request.cursorMs = Number(visualizer.dataset.cursorMs || request.cursorMs || "0");
+      sendPlaybackRequest(request);
+      return true;
+    }
+    if (request.action === "resume") {
+      request.cursorMs = Number(visualizer.dataset.cursorMs || request.cursorMs || "0");
+    }
+    return startEditorHtmlPlayback(visualizer, request);
   }
 
   window.__aqeSetVisualizer = function(ord, track, cursorMs) {
@@ -968,14 +1080,70 @@ _SCRIPT_TEMPLATE = r"""
     if (state === "playing" || state === "paused") {
       visualizer.dataset.resumeRequiresRestart = "false";
     }
-    if (state === "playing") startProgressClock(visualizer, cursorMs);
+    if (state === "playing") startProgressClock(visualizer, cursorMs, {
+      engine: visualizer.dataset.playbackEngine || ""
+    });
     else if (state === "paused") pauseProgressClock(visualizer);
     else stopProgressClock(visualizer);
   };
 
   window.__aqeGetPlaybackRequest = function() {
+    if (window.__aqePendingPlaybackRequest) {
+      const request = window.__aqePendingPlaybackRequest;
+      window.__aqePendingPlaybackRequest = null;
+      return request;
+    }
     const ord = Number(window.__aqeActiveField || "0");
-    return playbackRequest(ord);
+    const request = playbackRequest(ord);
+    const visualizer = visualizerForOrd(ord);
+    if (visualizer) {
+      visualizer.dataset.playbackEngine = request.engine || "";
+    }
+    return request;
+  };
+
+  window.__aqeStopEditorPlayback = function(ord) {
+    const visualizer = visualizerForOrd(ord);
+    if (!visualizer) return false;
+    stopProgressClock(visualizer);
+    return true;
+  };
+
+  window.__aqeInstallAudioPlaybackTestDriverForTest = function(ord) {
+    const visualizer = visualizerForOrd(ord);
+    const audio = audioClockFor(visualizer);
+    if (!visualizer || !audio) return false;
+    audio.__aqeTestDriverInstalled = true;
+    audio.pause = function() {
+      audio.__aqeTestPlaying = false;
+      if (audio.__aqeTestFrame) {
+        window.cancelAnimationFrame(audio.__aqeTestFrame);
+        audio.__aqeTestFrame = null;
+      }
+    };
+    audio.play = function() {
+      audio.__aqeTestPlaying = true;
+      audio.__aqeTestLastNow = performance.now();
+      const tick = () => {
+        if (!audio.__aqeTestPlaying) return;
+        const now = performance.now();
+        const durationSeconds = Number(visualizer.dataset.durationMs || "0") / 1000;
+        const elapsedSeconds = Math.max(0, (now - Number(audio.__aqeTestLastNow || now)) / 1000);
+        audio.__aqeTestLastNow = now;
+        audio.currentTime = Math.min(durationSeconds, (Number(audio.currentTime) || 0) + elapsedSeconds);
+        if (durationSeconds && audio.currentTime >= durationSeconds) {
+          audio.__aqeTestPlaying = false;
+          if (typeof audio.dispatchEvent === "function") {
+            audio.dispatchEvent(new Event("ended"));
+          }
+          return;
+        }
+        audio.__aqeTestFrame = window.requestAnimationFrame(tick);
+      };
+      audio.__aqeTestFrame = window.requestAnimationFrame(tick);
+      return Promise.resolve();
+    };
+    return true;
   };
 
   window.__aqeGetCursorMs = function() {
@@ -1042,6 +1210,9 @@ _SCRIPT_TEMPLATE = r"""
       audioClockCurrentMs: audio ? Math.round((Number(audio.currentTime) || 0) * 1000) : 0,
       audioClockReady: !!(audio && visualizer.__aqeAudioClockAvailable),
       audioClockFallback: !!visualizer.__aqeAudioClockFallback,
+      audioClockMuted: !!(audio && audio.muted),
+      audioPlaybackTestDriver: !!(audio && audio.__aqeTestDriverInstalled),
+      playbackEngine: playbackEngineFor(visualizer),
       progressClockMode: visualizer.dataset.progressClockMode || "stopped",
       xAxisLabels: Array.from(visualizer.querySelectorAll(".aqe-x-label")).map((node) => node.textContent),
       pitchPaths: visualizer.querySelectorAll(".aqe-pitch-path").length,
@@ -1109,11 +1280,11 @@ def _css() -> str:
   font-weight: 700;
 }
 .aqe-visualizer {
-  align-self: flex-start;
-  flex: 0 0 100%;
-  max-width: 760px;
-  min-width: 220px;
-  width: min(760px, 100%);
+  align-self: stretch;
+  flex: 1 0 100%;
+  max-width: none;
+  min-width: 0;
+  width: 100%;
 }
 .aqe-visualizer[hidden] {
   display: none;

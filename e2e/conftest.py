@@ -93,7 +93,17 @@ def anki_base(tmp_path_factory):
     base = tmp_path_factory.mktemp("anki_base")
     addons = base / "addons21"
     addons.mkdir()
-    (addons / ADDON_NUMERIC_ID).symlink_to(ADDON_DIR.resolve())
+    shutil.copytree(
+        ADDON_DIR.resolve(),
+        addons / ADDON_NUMERIC_ID,
+        ignore=shutil.ignore_patterns(
+            "__pycache__",
+            "*.pyc",
+            "*.log",
+            "aqe_artifacts",
+            "meta.json",
+        ),
+    )
     os.environ["ANKI_BASE"] = str(base)
     yield base
 

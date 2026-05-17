@@ -111,8 +111,12 @@ def test_visualizer_layout_spinner_and_dark_theme_safe_styles_are_injected() -> 
     assert "color-scheme: light dark;" in script
     assert "background: transparent;" in script
     assert "color: inherit;" in script
-    assert "flex: 0 0 100%;" in script
-    assert "width: min(760px, 100%);" in script
+    assert 'const wrapper = document.createElement("div");' in script
+    assert 'wrapper.className = "aqe-visualizer";' in script
+    assert "align-self: stretch;" in script
+    assert "flex: 1 0 100%;" in script
+    assert "max-width: none;" in script
+    assert "width: 100%;" in script
     assert '.aqe-visualizer[data-has-track=\\"false\\"] .aqe-visualizer-svg' in script
     assert '.aqe-visualizer[data-has-track=\\"false\\"] .aqe-cursor-label' in script
     assert ".aqe-spinner" in script
@@ -138,7 +142,8 @@ def test_visualizer_injects_hidden_audio_clock() -> None:
     assert 'class="aqe-audio-clock"' in script
     assert 'data-testid="aqe-audio-clock-${ord}"' in script
     assert 'preload="metadata"' in script
-    assert "muted hidden" in script
+    assert 'preload="metadata" hidden' in script
+    assert "muted hidden" not in script
     assert 'configureAudioClock(visualizer, track.sourceFilename || "");' in script
 
 
@@ -280,6 +285,360 @@ def test_audio_clock_falls_back_to_manual_timer_on_play_failure() -> None:
     assert result["progressMs"] == 350
     assert result["cursorMs"] == 350
     assert result["pauseCalls"] >= 1
+    assert result["playLabel"] == "Pause"
+
+
+def test_html_playback_command_starts_audio_and_queues_bridge_request() -> None:
+    result = _run_visualizer_helper_js(
+        """
+        const frames = [];
+        const pycmds = [];
+        globalThis.pycmd = (command) => pycmds.push(command);
+        window.requestAnimationFrame = (callback) => {
+          frames.push(callback);
+          return frames.length;
+        };
+        window.cancelAnimationFrame = () => {};
+        const button = { textContent: "Play" };
+        const controls = {
+          querySelector(selector) {
+            if (selector === '[data-aqe-command="aqe:play"]') return button;
+            throw new Error(`Unexpected controls selector: ${selector}`);
+          }
+        };
+        const audio = {
+          currentTime: 0,
+          muted: false,
+          readyState: 1,
+          srcAttr: "clip.mp3",
+          pauseCalls: 0,
+          playCalls: 0,
+          getAttribute(name) {
+            return name === "src" ? this.srcAttr : "";
+          },
+          pause() {
+            this.pauseCalls += 1;
+          },
+          play() {
+            this.playCalls += 1;
+            return Promise.resolve();
+          }
+        };
+        const cursor = {
+          attributes: {},
+          setAttribute(name, value) { this.attributes[name] = String(value); }
+        };
+        const visualizer = {
+          dataset: {
+            aqeFieldOrd: "0",
+            anchorMs: "400",
+            cursorMs: "400",
+            progressMs: "400",
+            durationMs: "1000",
+            hasTrack: "true",
+            playbackState: "stopped",
+            progressClockMode: "stopped",
+            resumeRequiresRestart: "false"
+          },
+          __aqeAudioClockAvailable: true,
+          __aqeAudioClockFallback: false,
+          querySelector(selector) {
+            if (selector === ".aqe-audio-clock") return audio;
+            if (selector === ".aqe-cursor") return cursor;
+            if (selector === ".aqe-cursor-label") return { textContent: "" };
+            throw new Error(`Unexpected visualizer selector: ${selector}`);
+          }
+        };
+        document.querySelector = (selector) => {
+          if (selector === '.aqe-visualizer[data-aqe-field-ord="0"]') return visualizer;
+          if (selector === '.aqe-controls[data-aqe-field-ord="0"]') return controls;
+          return null;
+        };
+
+        const handled = handleHtmlPlaybackCommand(0);
+        await Promise.resolve();
+        const request = window.__aqePendingPlaybackRequest;
+        return {
+          handled,
+          request,
+          pycmds,
+          playbackState: visualizer.dataset.playbackState,
+          mode: visualizer.dataset.progressClockMode,
+          playCalls: audio.playCalls,
+          pauseCalls: audio.pauseCalls,
+          playLabel: button.textContent
+        };
+        """,
+        helper_names=(
+            "controlsForOrd",
+            "buttonFor",
+            "playButton",
+            "visualizerForOrd",
+            "plotWidth",
+            "xForMs",
+            "formatTime",
+            "audioClockFor",
+            "clearPlaybackFrame",
+            "pauseAudioClock",
+            "audioClockReady",
+            "clampProgressMs",
+            "seekAudioClock",
+            "setCursor",
+            "setPlaybackButtonLabel",
+            "audioProgressMs",
+            "currentProgressMs",
+            "completePlayback",
+            "paintProgressFromClock",
+            "startManualProgressClock",
+            "startAudioProgressClock",
+            "startProgressClock",
+            "pauseProgressClock",
+            "stopProgressClock",
+            "playbackRequest",
+            "playbackEngineFor",
+            "sendPlaybackRequest",
+            "startEditorHtmlPlayback",
+            "handleHtmlPlaybackCommand",
+        ),
+    )
+
+    assert result["handled"] is True
+    assert result["request"] == {"ord": 0, "action": "start", "cursorMs": 400, "engine": "html"}
+    assert result["pycmds"] == ["focus:0", "aqe:play"]
+    assert result["playbackState"] == "playing"
+    assert result["mode"] == "audio"
+    assert result["playCalls"] == 1
+    assert result["pauseCalls"] == 1
+    assert result["playLabel"] == "Pause"
+
+
+def test_html_playback_command_falls_back_to_native_when_audio_play_rejects() -> None:
+    result = _run_visualizer_helper_js(
+        """
+        const pycmds = [];
+        globalThis.pycmd = (command) => pycmds.push(command);
+        window.cancelAnimationFrame = () => {};
+        const button = { textContent: "Play" };
+        const controls = {
+          querySelector(selector) {
+            if (selector === '[data-aqe-command="aqe:play"]') return button;
+            throw new Error(`Unexpected controls selector: ${selector}`);
+          }
+        };
+        const audio = {
+          currentTime: 0,
+          muted: false,
+          readyState: 1,
+          srcAttr: "clip.mp3",
+          pauseCalls: 0,
+          playCalls: 0,
+          getAttribute(name) {
+            return name === "src" ? this.srcAttr : "";
+          },
+          pause() {
+            this.pauseCalls += 1;
+          },
+          play() {
+            this.playCalls += 1;
+            return Promise.reject(new Error("blocked"));
+          }
+        };
+        const cursor = {
+          attributes: {},
+          setAttribute(name, value) { this.attributes[name] = String(value); }
+        };
+        const visualizer = {
+          dataset: {
+            aqeFieldOrd: "0",
+            anchorMs: "700",
+            cursorMs: "700",
+            progressMs: "700",
+            durationMs: "1000",
+            hasTrack: "true",
+            playbackState: "stopped",
+            progressClockMode: "stopped",
+            resumeRequiresRestart: "false"
+          },
+          __aqeAudioClockAvailable: true,
+          __aqeAudioClockFallback: false,
+          querySelector(selector) {
+            if (selector === ".aqe-audio-clock") return audio;
+            if (selector === ".aqe-cursor") return cursor;
+            if (selector === ".aqe-cursor-label") return { textContent: "" };
+            throw new Error(`Unexpected visualizer selector: ${selector}`);
+          }
+        };
+        document.querySelector = (selector) => {
+          if (selector === '.aqe-visualizer[data-aqe-field-ord="0"]') return visualizer;
+          if (selector === '.aqe-controls[data-aqe-field-ord="0"]') return controls;
+          return null;
+        };
+
+        const handled = handleHtmlPlaybackCommand(0);
+        await Promise.resolve();
+        await Promise.resolve();
+        const request = window.__aqePendingPlaybackRequest;
+        return {
+          handled,
+          request,
+          pycmds,
+          playbackState: visualizer.dataset.playbackState,
+          mode: visualizer.dataset.progressClockMode,
+          playCalls: audio.playCalls,
+          pauseCalls: audio.pauseCalls,
+          playLabel: button.textContent
+        };
+        """,
+        helper_names=(
+            "controlsForOrd",
+            "buttonFor",
+            "playButton",
+            "visualizerForOrd",
+            "plotWidth",
+            "xForMs",
+            "formatTime",
+            "audioClockFor",
+            "clearPlaybackFrame",
+            "pauseAudioClock",
+            "audioClockReady",
+            "clampProgressMs",
+            "seekAudioClock",
+            "setCursor",
+            "setPlaybackButtonLabel",
+            "audioProgressMs",
+            "currentProgressMs",
+            "completePlayback",
+            "paintProgressFromClock",
+            "startManualProgressClock",
+            "startAudioProgressClock",
+            "startProgressClock",
+            "pauseProgressClock",
+            "stopProgressClock",
+            "playbackRequest",
+            "playbackEngineFor",
+            "sendPlaybackRequest",
+            "startEditorHtmlPlayback",
+            "handleHtmlPlaybackCommand",
+        ),
+    )
+
+    assert result["handled"] is True
+    assert result["request"] == {"ord": 0, "action": "start", "cursorMs": 700, "engine": "native"}
+    assert result["pycmds"] == ["focus:0", "aqe:play"]
+    assert result["playbackState"] == "stopped"
+    assert result["mode"] == "stopped"
+    assert result["playCalls"] == 1
+    assert result["pauseCalls"] == 2
+    assert result["playLabel"] == "Play"
+
+
+def test_native_playback_state_uses_manual_clock_without_starting_audio() -> None:
+    result = _run_visualizer_helper_js(
+        """
+        const frames = [];
+        window.requestAnimationFrame = (callback) => {
+          frames.push(callback);
+          return frames.length;
+        };
+        window.cancelAnimationFrame = () => {};
+        const button = { textContent: "Play" };
+        const controls = {
+          querySelector(selector) {
+            if (selector === '[data-aqe-command="aqe:play"]') return button;
+            throw new Error(`Unexpected controls selector: ${selector}`);
+          }
+        };
+        document.querySelector = (selector) => {
+          if (selector === '.aqe-controls[data-aqe-field-ord="0"]') return controls;
+          return null;
+        };
+        const audio = {
+          currentTime: 0,
+          readyState: 1,
+          srcAttr: "clip.mp3",
+          pauseCalls: 0,
+          playCalls: 0,
+          getAttribute(name) {
+            return name === "src" ? this.srcAttr : "";
+          },
+          pause() {
+            this.pauseCalls += 1;
+          },
+          play() {
+            this.playCalls += 1;
+            return Promise.resolve();
+          }
+        };
+        const cursor = {
+          attributes: {},
+          setAttribute(name, value) { this.attributes[name] = String(value); }
+        };
+        const visualizer = {
+          dataset: {
+            aqeFieldOrd: "0",
+            anchorMs: "300",
+            cursorMs: "300",
+            progressMs: "300",
+            durationMs: "1000",
+            hasTrack: "true",
+            playbackEngine: "native",
+            playbackState: "stopped",
+            progressClockMode: "stopped",
+            resumeRequiresRestart: "false"
+          },
+          __aqeAudioClockAvailable: true,
+          __aqeAudioClockFallback: false,
+          querySelector(selector) {
+            if (selector === ".aqe-audio-clock") return audio;
+            if (selector === ".aqe-cursor") return cursor;
+            if (selector === ".aqe-cursor-label") return { textContent: "" };
+            throw new Error(`Unexpected visualizer selector: ${selector}`);
+          }
+        };
+
+        startProgressClock(visualizer, 300);
+        return {
+          engine: visualizer.dataset.playbackEngine,
+          mode: visualizer.dataset.progressClockMode,
+          playbackState: visualizer.dataset.playbackState,
+          playCalls: audio.playCalls,
+          pauseCalls: audio.pauseCalls,
+          playLabel: button.textContent
+        };
+        """,
+        helper_names=(
+            "controlsForOrd",
+            "buttonFor",
+            "playButton",
+            "plotWidth",
+            "xForMs",
+            "formatTime",
+            "audioClockFor",
+            "clearPlaybackFrame",
+            "pauseAudioClock",
+            "audioClockReady",
+            "clampProgressMs",
+            "seekAudioClock",
+            "setCursor",
+            "setPlaybackButtonLabel",
+            "manualProgressMs",
+            "audioProgressMs",
+            "currentProgressMs",
+            "completePlayback",
+            "paintProgressFromClock",
+            "startManualProgressClock",
+            "startAudioProgressClock",
+            "startProgressClock",
+            "pauseProgressClock",
+            "stopProgressClock",
+        ),
+    )
+
+    assert result["engine"] == "native"
+    assert result["mode"] == "manual"
+    assert result["playbackState"] == "playing"
+    assert result["playCalls"] == 0
+    assert result["pauseCalls"] == 2
     assert result["playLabel"] == "Pause"
 
 

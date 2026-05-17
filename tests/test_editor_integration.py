@@ -20,9 +20,11 @@ from anki_audio_quick_editor.editor_integration import (
     _audio_field_indices,
     _handle_bridge_command,
     _is_busy,
+    _play_with_request,
     _playback_segment_ready,
     _reset_editor_session_for_note_load,
     _set_busy,
+    _set_cursor_from_web,
     register_editor_hooks,
 )
 from anki_audio_quick_editor.errors import (
@@ -224,6 +226,112 @@ def test_stale_playback_segment_completion_is_ignored_and_cleaned(tmp_path: Path
 
     assert not temp_dir.exists()
     assert session.temp_playback_path is None
+
+
+def test_html_playback_request_updates_session_without_native_segment(tmp_path: Path, monkeypatch) -> None:
+    class Editor:
+        pass
+
+    media_dir = tmp_path / "media"
+    media_dir.mkdir()
+    source = media_dir / "clip.mp3"
+    source.write_bytes(b"audio")
+    editor = Editor()
+    editor.currentField = 0
+    editor.note = SimpleNamespace(fields=["[sound:clip.mp3]"])
+    editor.web = MagicMock()
+    editor.mw = SimpleNamespace(col=SimpleNamespace(media=SimpleNamespace(dir=lambda: str(media_dir))))
+    session = EditorSession(
+        state=AudioEditState("clip.mp3"),
+        field_index=0,
+        current_filename="clip.mp3",
+        source_mtime_ns=source.stat().st_mtime_ns,
+        visualized_duration_ms=2000,
+    )
+    _SESSIONS[editor] = session
+    stop_calls: list[str] = []
+
+    monkeypatch.setattr(
+        "anki_audio_quick_editor.editor_integration._stop_audio_playback",
+        lambda: stop_calls.append("stop"),
+    )
+    monkeypatch.setattr(
+        "anki_audio_quick_editor.editor_integration.render_playback_segment",
+        lambda *_args, **_kwargs: pytest.fail("HTML playback should not render a segment"),
+    )
+
+    _play_with_request(editor, {"engine": "html", "action": "start", "cursorMs": 700})
+
+    assert session.cursor_ms == 700
+    assert session.playback_active is True
+    assert session.playback_paused is False
+    assert session.playback_preparing is False
+    assert stop_calls == ["stop"]
+    evals = [call.args[0] for call in editor.web.eval.call_args_list]
+    assert any("Playing from 0.70s" in call for call in evals)
+
+
+def test_html_cursor_restart_intent_does_not_start_native_playback(tmp_path: Path, monkeypatch) -> None:
+    class Editor:
+        pass
+
+    media_dir = tmp_path / "media"
+    media_dir.mkdir()
+    source = media_dir / "clip.mp3"
+    source.write_bytes(b"audio")
+    editor = Editor()
+    editor.currentField = 0
+    editor.note = SimpleNamespace(fields=["[sound:clip.mp3]"])
+    editor.web = MagicMock()
+    editor.mw = SimpleNamespace(col=SimpleNamespace(media=SimpleNamespace(dir=lambda: str(media_dir))))
+    session = EditorSession(
+        state=AudioEditState("clip.mp3"),
+        field_index=0,
+        current_filename="clip.mp3",
+        source_mtime_ns=source.stat().st_mtime_ns,
+        visualized_duration_ms=2000,
+    )
+    _SESSIONS[editor] = session
+
+    monkeypatch.setattr(
+        "anki_audio_quick_editor.editor_integration._eval_with_callback",
+        lambda _editor, _script, callback: callback(
+            {"cursorMs": 1400, "restartPlayback": True, "engine": "html"}
+        ),
+    )
+    monkeypatch.setattr(
+        "anki_audio_quick_editor.editor_integration._start_playback_from_cursor",
+        lambda *_args, **_kwargs: pytest.fail("HTML cursor restart should not start native playback"),
+    )
+
+    _set_cursor_from_web(editor)
+
+    assert session.cursor_ms == 1400
+    assert session.playback_active is True
+    assert session.playback_paused is False
+
+
+def test_late_html_playback_request_is_ignored_after_editor_note_is_cleared() -> None:
+    editor = SimpleNamespace(note=None, currentField=0, web=MagicMock())
+
+    _play_with_request(editor, {"engine": "html", "action": "start", "cursorMs": 700})
+
+    editor.web.eval.assert_not_called()
+
+
+def test_late_cursor_intent_is_ignored_after_editor_note_is_cleared(monkeypatch) -> None:
+    editor = SimpleNamespace(note=None, currentField=0, web=MagicMock())
+
+    monkeypatch.setattr(
+        "anki_audio_quick_editor.editor_integration._eval_with_callback",
+        lambda _editor, _script, callback: callback(
+            {"cursorMs": 700, "restartPlayback": True, "engine": "html"}
+        ),
+    )
+
+    _set_cursor_from_web(editor)
+
+    editor.web.eval.assert_not_called()
 
 
 def test_stale_analysis_completion_is_ignored_after_note_load_reset() -> None:

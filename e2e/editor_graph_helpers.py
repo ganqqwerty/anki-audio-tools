@@ -1,0 +1,119 @@
+"""Shared graph and HTML-audio helpers for editor E2E tests."""
+
+from __future__ import annotations
+
+import json
+
+from e2e.helpers import run_js, wait_for_js_condition, wait_for_selector
+
+
+def _visualizer_js(ord_: int = 0) -> str:
+    return """
+    (() => {
+      const ord = __ORD__;
+      const visualizer = document.querySelector(`.aqe-visualizer[data-aqe-field-ord="${ord}"]`);
+      if (!visualizer) return null;
+      const labels = Array.from(visualizer.querySelectorAll('.aqe-hz-label')).map((node) => node.textContent);
+      return {
+        active: visualizer.dataset.graphActive === "true",
+        busy: visualizer.dataset.graphBusy === "true",
+        hidden: visualizer.hidden,
+        durationMs: Number(visualizer.dataset.durationMs || "0"),
+        sourceFilename: visualizer.dataset.sourceFilename || "",
+        analyzerName: visualizer.dataset.analyzerName || "",
+        anchorMs: Number(visualizer.dataset.anchorMs || "0"),
+        cursorMs: Number(visualizer.dataset.cursorMs || "0"),
+        progressMs: Number(visualizer.dataset.progressMs || "0"),
+        resumeRequiresRestart: visualizer.dataset.resumeRequiresRestart === "true",
+        intensity: visualizer.querySelector('.aqe-intensity')?.getAttribute('d') || "",
+        pitchPaths: visualizer.querySelectorAll('.aqe-pitch-path').length,
+        xAxisLabels: Array.from(visualizer.querySelectorAll('.aqe-x-label')).map((node) => node.textContent),
+        labels,
+        cursorX: visualizer.querySelector('.aqe-cursor')?.getAttribute('x1') || "",
+        status: visualizer.querySelector('.aqe-visualizer-status')?.textContent || "",
+        statusKind: visualizer.querySelector('.aqe-visualizer-status')?.dataset.kind || "",
+        graphButtonLabel: document.querySelector(`[data-testid="aqe-button-${ord}-graph"]`)?.textContent || "",
+        playButtonLabel: document.querySelector(`[data-testid="aqe-button-${ord}-play"]`)?.textContent || "",
+        allButtonsDisabled: Array.from(document.querySelectorAll('.aqe-button')).every((button) => button.disabled),
+      };
+    })()
+    """.replace("__ORD__", json.dumps(ord_))
+
+
+def _wait_for_visualizer_track(editor, predicate=lambda track: True, timeout: float = 10.0, ord_: int = 0):
+    return wait_for_js_condition(
+        editor.web,
+        _visualizer_js(ord_),
+        lambda track: track is not None
+        and track["durationMs"] > 0
+        and track["allButtonsDisabled"] is False
+        and predicate(track),
+        timeout=timeout,
+    )
+
+
+def _graph_state_js(ord_: int = 0) -> str:
+    return f"window.__aqeGraphStateForTest ? window.__aqeGraphStateForTest({ord_}) : null"
+
+
+def _click_graph_and_wait(editor, predicate=lambda track: True, ord_: int = 0, timeout: float = 10.0):
+    selector = f'[data-testid="aqe-button-{ord_}-graph"]'
+    wait_for_selector(editor.web, selector, timeout=5.0)
+    wait_for_js_condition(
+        editor.web,
+        f"""
+        (() => {{
+          const button = document.querySelector({json.dumps(selector)});
+          if (!button) return null;
+          button.click();
+          return window.__aqeGraphStateForTest ? window.__aqeGraphStateForTest({ord_}) : null;
+        }})()
+        """,
+        lambda state: state is not None and state["active"] is True,
+        timeout=5.0,
+    )
+    return _wait_for_visualizer_track(editor, predicate, timeout=timeout, ord_=ord_)
+
+
+def _drag_cursor_to_ratio(editor, ratio: float, ord_: int = 0) -> None:
+    run_js(
+        editor.web,
+        """
+        (() => {
+          const ord = __ORD__;
+          const ratio = __RATIO__;
+          const svg = document.querySelector(`.aqe-visualizer[data-aqe-field-ord="${ord}"] .aqe-visualizer-svg`);
+          const rect = svg.getBoundingClientRect();
+          const plot = { width: 620, left: 44, right: 10 };
+          const plotLeft = rect.left + (plot.left / plot.width) * rect.width;
+          const plotWidth = ((plot.width - plot.left - plot.right) / plot.width) * rect.width;
+          const x = plotLeft + plotWidth * ratio;
+          const EventCtor = window.PointerEvent || window.MouseEvent;
+          svg.dispatchEvent(new EventCtor('pointerdown', { clientX: x, clientY: rect.top + 20, bubbles: true }));
+          window.dispatchEvent(new EventCtor('pointerup', { clientX: x, clientY: rect.top + 20, bubbles: true }));
+        })()
+        """.replace("__ORD__", json.dumps(ord_)).replace("__RATIO__", json.dumps(ratio)),
+    )
+
+
+def _wait_for_html_playback(editor, predicate=lambda state: True, timeout: float = 5.0, ord_: int = 0):
+    return wait_for_js_condition(
+        editor.web,
+        _graph_state_js(ord_),
+        lambda state: state is not None
+        and state["playbackState"] == "playing"
+        and state["playbackEngine"] == "html"
+        and state["progressClockMode"] == "audio"
+        and predicate(state),
+        timeout=timeout,
+    )
+
+
+def _install_html_audio_test_driver(editor, ord_: int = 0) -> None:
+    wait_for_js_condition(
+        editor.web,
+        f"window.__aqeInstallAudioPlaybackTestDriverForTest"
+        f" && window.__aqeInstallAudioPlaybackTestDriverForTest({ord_})",
+        lambda value: value is True,
+        timeout=5.0,
+    )

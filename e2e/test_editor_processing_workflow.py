@@ -1,0 +1,396 @@
+"""E2E tests for editor audio edit controls and processing state."""
+
+from __future__ import annotations
+
+import json
+from pathlib import Path
+from unittest.mock import patch
+
+from e2e.editor_audio_generation_helpers import _fake_deep_filter_executable
+from e2e.editor_graph_helpers import (
+    _click_graph_and_wait,
+    _graph_state_js,
+    _wait_for_visualizer_track,
+)
+from e2e.editor_note_helpers import (
+    _artifact_root,
+    _basic_audio_note,
+    _button_selector,
+    _cleanup_artifact_dirs,
+    _click_and_wait_for_new_file,
+    _configure_ffmpeg,
+    _open_editor,
+    _processing_status_js,
+    _sound_filename,
+    _three_audio_field_note,
+    _wait_for_generated_mp3,
+)
+from e2e.helpers import (
+    click_selector,
+    generate_tone,
+    run_js,
+    wait_for_condition,
+    wait_for_js_condition,
+    wait_for_selector,
+)
+
+
+def test_each_processing_button_updates_field_to_new_real_audio(
+    anki_mw,
+    ffmpeg_config,
+    tmp_path,
+) -> None:
+    from anki_audio_quick_editor.audio_processor import probe_duration_ms
+
+    media_dir = Path(anki_mw.col.media.dir())
+    source = media_dir / "editor_each_button_source.wav"
+    generate_tone(ffmpeg_config, source, duration_s=2.0)
+    original_bytes = source.read_bytes()
+    fake_deep_filter, _deep_filter_log = _fake_deep_filter_executable(tmp_path)
+    note = _basic_audio_note(anki_mw, source.name)
+    _configure_ffmpeg(anki_mw, ffmpeg_config, deep_filter_path=str(fake_deep_filter))
+    artifact_root = _artifact_root(anki_mw)
+
+    editor, parent = _open_editor(anki_mw, note)
+    try:
+        wait_for_selector(editor.web, _button_selector("aqe:trim-left"), timeout=10.0)
+        assert wait_for_js_condition(
+            editor.web,
+            "Array.from(document.querySelectorAll('[data-aqe-command]')).map((node) => node.dataset.aqeCommand)",
+            lambda commands: all(
+                command not in commands
+                for command in (
+                    "aqe:save",
+                    "aqe:cancel",
+                    "aqe:untrim-left",
+                    "aqe:untrim-right",
+                )
+            ),
+            timeout=5.0,
+        )
+        assert wait_for_js_condition(
+            editor.web,
+            """
+            Array.from(document.querySelectorAll('.aqe-button'))
+              .map((node) => node.textContent.trim())
+            """,
+            lambda labels: labels
+            == [
+                "Play",
+                "Graph",
+                "Folder",
+                "-L",
+                "-R",
+                "Shorten Pauses",
+                "Sidon",
+                "MP-SENet",
+                "Remove noise",
+                "Slower",
+                "Faster",
+                "Volume -",
+                "Volume +",
+                "Undo",
+            ],
+            timeout=5.0,
+        )
+
+        previous_name = source.name
+        generated_names: list[str] = []
+        for command in (
+            "aqe:trim-left",
+            "aqe:trim-right",
+            "aqe:slower",
+            "aqe:faster",
+            "aqe:volume-down",
+            "aqe:volume-up",
+            "aqe:remove-pauses",
+        ):
+            wait_for_selector(editor.web, _button_selector(command), timeout=5.0)
+            previous_name = _click_and_wait_for_new_file(editor, note, media_dir, command, previous_name)
+            generated_names.append(previous_name)
+
+        assert len(generated_names) == len(set(generated_names))
+        assert source.read_bytes() == original_bytes
+        assert probe_duration_ms(media_dir / generated_names[0], ffmpeg_config) < probe_duration_ms(
+            source, ffmpeg_config
+        )
+        graph_state = wait_for_js_condition(
+            editor.web,
+            _graph_state_js(),
+            lambda value: value is not None,
+            timeout=5.0,
+        )
+        assert graph_state["active"] is False
+        assert graph_state["hidden"] is True
+    finally:
+        editor.set_note(None)
+        parent.close()
+        _cleanup_artifact_dirs(artifact_root, source)
+
+
+def test_sidon_failure_shows_support_hint_without_mutating_note(
+    anki_mw,
+    ffmpeg_config,
+    monkeypatch,
+) -> None:
+    media_dir = Path(anki_mw.col.media.dir())
+    source = media_dir / "editor_sidon_failure_source.wav"
+    generate_tone(ffmpeg_config, source, duration_s=0.8)
+    original_field = f"Prompt [sound:{source.name}]"
+    note = _basic_audio_note(anki_mw, source.name)
+    _configure_ffmpeg(anki_mw, ffmpeg_config)
+    monkeypatch.setattr(
+        "anki_audio_quick_editor.editor_integration.render_sidon_audio",
+        lambda *_args, **_kwargs: (_ for _ in ()).throw(
+            RuntimeError("Sidon speech restoration failed.")
+        ),
+    )
+
+    editor, parent = _open_editor(anki_mw, note)
+    try:
+        click_selector(editor.web, _button_selector("aqe:sidon"), timeout=10.0)
+        status = wait_for_js_condition(
+            editor.web,
+            _processing_status_js(),
+            lambda value: value is not None
+            and value["kind"] == "error"
+            and "Sidon speech restoration failed." in value["text"]
+            and "Open Settings > Diagnostics to copy logs for the developer." in value["text"],
+            timeout=10.0,
+        )
+
+        assert status["title"] == ""
+        assert note.fields[0] == original_field
+        assert _sound_filename(note.fields[0]) == source.name
+        assert not list(media_dir.glob("editor_sidon_failure_source__aqe_*.mp3"))
+    finally:
+        editor.set_note(None)
+        parent.close()
+
+
+def test_ffmpeg_command_status_respects_settings_flag(anki_mw, ffmpeg_config) -> None:
+    media_dir = Path(anki_mw.col.media.dir())
+    hidden_source = media_dir / "editor_hidden_command_source.wav"
+    shown_source = media_dir / "editor_shown_command_source.wav"
+    generate_tone(ffmpeg_config, hidden_source, duration_s=2.0)
+    generate_tone(ffmpeg_config, shown_source, duration_s=2.0)
+
+    hidden_note = _basic_audio_note(anki_mw, hidden_source.name)
+    _configure_ffmpeg(anki_mw, ffmpeg_config, show_ffmpeg_commands=False)
+    hidden_editor, hidden_parent = _open_editor(anki_mw, hidden_note)
+    try:
+        wait_for_selector(hidden_editor.web, _button_selector("aqe:trim-left"), timeout=10.0)
+        click_selector(hidden_editor.web, _button_selector("aqe:trim-left"), timeout=5.0)
+        hidden_status = wait_for_js_condition(
+            hidden_editor.web,
+            _processing_status_js(),
+            lambda status: status is not None and status["text"].startswith("Processing with ffmpeg"),
+            timeout=5.0,
+        )
+        assert " -i " not in hidden_status["text"]
+        assert hidden_status["title"] == ""
+        _wait_for_generated_mp3(hidden_note, media_dir, hidden_source.name)
+    finally:
+        hidden_editor.set_note(None)
+        hidden_parent.close()
+
+    shown_note = _basic_audio_note(anki_mw, shown_source.name)
+    _configure_ffmpeg(anki_mw, ffmpeg_config, show_ffmpeg_commands=True)
+    shown_editor, shown_parent = _open_editor(anki_mw, shown_note)
+    try:
+        wait_for_selector(shown_editor.web, _button_selector("aqe:trim-left"), timeout=10.0)
+        click_selector(shown_editor.web, _button_selector("aqe:trim-left"), timeout=5.0)
+        shown_status = wait_for_js_condition(
+            shown_editor.web,
+            _processing_status_js(),
+            lambda status: status is not None and " -i " in status["text"],
+            timeout=5.0,
+        )
+        assert shown_status["title"].startswith(ffmpeg_config.ffmpeg_path)
+        _wait_for_generated_mp3(shown_note, media_dir, shown_source.name)
+    finally:
+        shown_editor.set_note(None)
+        shown_parent.close()
+
+
+def test_undo_restores_previous_generated_reference(anki_mw, ffmpeg_config) -> None:
+    from aqt.sound import av_player
+
+    media_dir = Path(anki_mw.col.media.dir())
+    source = media_dir / "editor_undo_source.wav"
+    generate_tone(ffmpeg_config, source, duration_s=2.0)
+    note = _basic_audio_note(anki_mw, source.name)
+    _configure_ffmpeg(anki_mw, ffmpeg_config)
+
+    editor, parent = _open_editor(anki_mw, note)
+    try:
+        wait_for_selector(editor.web, _button_selector("aqe:trim-left"), timeout=10.0)
+        _click_graph_and_wait(editor, lambda value: value["sourceFilename"] == source.name)
+        with (
+            patch.object(av_player, "stop_and_clear_queue", lambda: None),
+            patch.object(av_player, "play_tags", lambda _tags: None),
+            patch.object(av_player, "seek_relative", lambda _seconds: None),
+            patch.object(av_player, "toggle_pause", lambda: None),
+        ):
+            click_selector(editor.web, _button_selector("aqe:play"), timeout=5.0)
+            click_selector(editor.web, _button_selector("aqe:play"), timeout=5.0)
+        _click_graph_and_wait(editor, lambda value: value["sourceFilename"] == source.name)
+
+        previous_name = source.name
+        generated_names: list[str] = []
+        for command in ("aqe:trim-left", "aqe:faster", "aqe:trim-right", "aqe:volume-up"):
+            previous_name = _click_and_wait_for_new_file(
+                editor, note, media_dir, command, previous_name
+            )
+            generated_names.append(previous_name)
+            _wait_for_visualizer_track(
+                editor,
+                lambda value, expected=previous_name: value["sourceFilename"] == expected,
+                timeout=10.0,
+            )
+
+        click_selector(editor.web, _button_selector("aqe:undo"), timeout=5.0)
+        wait_for_condition(
+            lambda: _sound_filename(note.fields[0]) == generated_names[-2],
+            timeout=5.0,
+            message="Undo did not restore the previous generated audio reference",
+        )
+        restored_track = _wait_for_visualizer_track(
+            editor,
+            lambda value: value["sourceFilename"] == generated_names[-2],
+            timeout=10.0,
+        )
+
+        assert len(generated_names) == len(set(generated_names))
+        assert restored_track["sourceFilename"] == generated_names[-2]
+        assert all((media_dir / name).is_file() for name in generated_names)
+    finally:
+        editor.set_note(None)
+        parent.close()
+
+
+def test_fast_clicks_are_ignored_while_processing(anki_mw, ffmpeg_config) -> None:
+    media_dir = Path(anki_mw.col.media.dir())
+    source = media_dir / "editor_fast_click_source.wav"
+    generate_tone(ffmpeg_config, source, duration_s=3.0)
+    note = _basic_audio_note(anki_mw, source.name)
+    _configure_ffmpeg(anki_mw, ffmpeg_config)
+
+    editor, parent = _open_editor(anki_mw, note)
+    try:
+        selector = _button_selector("aqe:trim-left")
+        wait_for_selector(editor.web, selector, timeout=10.0)
+        run_js(
+            editor.web,
+            f"""
+            const button = document.querySelector({json.dumps(selector)});
+            for (let i = 0; i < 5; i++) button.click();
+            """,
+        )
+        generated_name = _wait_for_generated_mp3(note, media_dir, source.name)
+
+        generated_for_source = list(media_dir.glob("editor_fast_click_source__aqe_*.mp3"))
+        assert generated_for_source == [media_dir / generated_name]
+        assert (media_dir / generated_name).is_file()
+    finally:
+        editor.set_note(None)
+        parent.close()
+
+
+def test_three_audio_fields_fast_cross_clicks_lock_globally_and_do_not_corrupt_fields(
+    anki_mw,
+    ffmpeg_config,
+) -> None:
+    media_dir = Path(anki_mw.col.media.dir())
+    sources = (
+        media_dir / "editor_three_fields_one.wav",
+        media_dir / "editor_three_fields_two.wav",
+        media_dir / "editor_three_fields_three.wav",
+    )
+    for source in sources:
+        generate_tone(ffmpeg_config, source, duration_s=3.0)
+    note = _three_audio_field_note(anki_mw, tuple(source.name for source in sources))
+    _configure_ffmpeg(anki_mw, ffmpeg_config)
+
+    editor, parent = _open_editor(anki_mw, note)
+    try:
+        wait_for_selector(editor.web, _button_selector("aqe:trim-left", 0), timeout=10.0)
+        wait_for_selector(editor.web, _button_selector("aqe:faster", 1), timeout=10.0)
+        wait_for_selector(editor.web, _button_selector("aqe:trim-right", 2), timeout=10.0)
+        locked = wait_for_js_condition(
+            editor.web,
+            """
+            (() => {
+              document.querySelector('[data-testid="aqe-button-0-trim-left"]').click();
+              const lockedAfterFirst = Array.from(document.querySelectorAll('.aqe-button')).every((button) => button.disabled);
+              const firstButton = document.querySelector('[data-testid="aqe-button-0-trim-left"]');
+              const controls = document.querySelector('[data-testid="aqe-controls-0"]');
+              const buttonStyle = getComputedStyle(firstButton);
+              const controlsStyle = getComputedStyle(controls);
+              document.querySelector('[data-testid="aqe-button-1-faster"]').click();
+              document.querySelector('[data-testid="aqe-button-2-trim-right"]').click();
+              return {
+                lockedAfterFirst,
+                cursor: buttonStyle.cursor,
+                opacity: Number(buttonStyle.opacity),
+                borderStyle: controlsStyle.borderTopStyle
+              };
+            })()
+            """,
+            lambda value: value is not None and value["lockedAfterFirst"] is True,
+            timeout=5.0,
+        )
+        generated_name = _wait_for_generated_mp3(note, media_dir, sources[0].name, field_index=0)
+        unlocked = wait_for_js_condition(
+            editor.web,
+            _graph_state_js(0),
+            lambda state: state is not None and state["allButtonsDisabled"] is False,
+            timeout=5.0,
+        )
+
+        assert locked["lockedAfterFirst"] is True
+        assert locked["cursor"] == "not-allowed"
+        assert locked["opacity"] < 0.7
+        assert locked["borderStyle"] == "dashed"
+        assert unlocked["allButtonsDisabled"] is False
+        assert _sound_filename(note.fields[0]) == generated_name
+        assert _sound_filename(note.fields[1]) == sources[1].name
+        assert _sound_filename(note.fields[2]) == sources[2].name
+        assert list(media_dir.glob("editor_three_fields_one__aqe_*.mp3")) == [media_dir / generated_name]
+    finally:
+        editor.set_note(None)
+        parent.close()
+
+
+def test_settings_trim_step_controls_editor_button_behavior(anki_mw, ffmpeg_config) -> None:
+    from anki_audio_quick_editor.audio_processor import probe_duration_ms
+    from anki_audio_quick_editor.editor_integration import _SESSIONS
+
+    media_dir = Path(anki_mw.col.media.dir())
+    source = media_dir / "editor_settings_source.wav"
+    generate_tone(ffmpeg_config, source, duration_s=2.0)
+    note = _basic_audio_note(anki_mw, source.name)
+    _configure_ffmpeg(anki_mw, ffmpeg_config, manual_trim_small_ms=500)
+
+    editor, parent = _open_editor(anki_mw, note)
+    try:
+        wait_for_selector(editor.web, _button_selector("aqe:trim-left"), timeout=10.0)
+        generated_name = _click_and_wait_for_new_file(
+            editor, note, media_dir, "aqe:trim-left", source.name
+        )
+
+        wait_for_condition(
+            lambda: (
+                (session := _SESSIONS.get(editor)) is not None
+                and session.state is not None
+                and session.state.left_trim_ms == 500
+            ),
+            timeout=5.0,
+            message="Editor did not use the configured trim step",
+        )
+        assert probe_duration_ms(media_dir / generated_name, ffmpeg_config) < probe_duration_ms(
+            source, ffmpeg_config
+        ) - 350
+    finally:
+        editor.set_note(None)
+        parent.close()
