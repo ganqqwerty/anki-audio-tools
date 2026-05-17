@@ -21,6 +21,13 @@ ROOT = Path(__file__).resolve().parent.parent
 ADDON_DIR = ROOT / "addon" / "anki_audio_quick_editor"
 SETTINGS_UI_DIR = ROOT / "settings_ui"
 ADDON_SYMLINK_ID = "1000000002"
+PYTHON_COVERAGE_FAIL_UNDER = 70
+RADON_FAIL_MIN_RANK = "C"
+COVERAGE_XML = ROOT / "coverage.xml"
+SETTINGS_UI_LCOV = SETTINGS_UI_DIR / "coverage" / "lcov.info"
+RADON_EXCLUDED_FILES = {
+    "addon/anki_audio_quick_editor/contracts_generated.py",
+}
 DEV_DEPS = [
     "pytest-cov", "pytest-qt", "ruff", "mypy", "radon", "import-linter",
     "deptry", "vulture", "bandit", "pytest-randomly", "mutmut", "jsonschema",
@@ -291,6 +298,36 @@ def _run(
     return rc
 
 
+def _run_capture(
+    cmd: list[str],
+    env: dict[str, str] | None = None,
+    cwd: Path | None = None,
+    *,
+    label: str | None = None,
+) -> tuple[int, str]:
+    run_cwd = cwd or ROOT
+    merged_env = {**os.environ, **env} if env else None
+    rendered_cmd = shlex.join(str(part) for part in cmd)
+    _print_run_header(rendered_cmd, run_cwd, env, label, idle_warning_s=0.0, idle_timeout_s=0.0)
+
+    start = time.monotonic()
+    result = subprocess.run(
+        [str(part) for part in cmd],
+        cwd=run_cwd,
+        env=merged_env,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.STDOUT,
+        text=True,
+    )
+    output = result.stdout or ""
+    if output:
+        sys.stdout.write(output)
+        sys.stdout.flush()
+    elapsed = time.monotonic() - start
+    print(f"[dev] finished with exit code {result.returncode} in {_format_duration(elapsed)}")
+    return result.returncode, output
+
+
 def _pytest_args(target: str, *, collect_only: bool = False) -> list[str]:
     target_args = [target]
     if target == "e2e/":
@@ -475,16 +512,61 @@ def cmd_architecture_report() -> int:
 
 def cmd_complexity() -> int:
     anki_python = _find_anki_python()
-    return _run(
+    rc, output = _run_capture(
         [
             str(anki_python), "-m", "radon", "cc",
             "addon/anki_audio_quick_editor/",
-            "--min", "C",
+            "--min", RADON_FAIL_MIN_RANK,
             "--ignore", "vendor,bin",
-            "--show-complexity",
+            "--json",
         ],
-        label="radon complexity",
+        label=f"radon complexity (fail on {RADON_FAIL_MIN_RANK} or worse)",
     )
+    if rc != 0:
+        return rc
+    try:
+        report = json.loads(output or "{}")
+    except json.JSONDecodeError as exc:
+        print(f"ERROR: could not parse radon JSON output: {exc}", file=sys.stderr)
+        return 1
+    violations = _radon_complexity_violations(report)
+    if not violations:
+        print(f"PASS: no functions or classes at radon rank {RADON_FAIL_MIN_RANK} or worse.")
+        return 0
+    print(f"FAIL: radon found {len(violations)} item(s) at rank {RADON_FAIL_MIN_RANK} or worse:")
+    for violation in violations:
+        print(f"  {violation}")
+    return 1
+
+
+def _radon_complexity_violations(report: object) -> list[str]:
+    if not isinstance(report, dict):
+        return ["radon output did not contain the expected file map"]
+    failing_ranks = set("CDEF")
+    violations: list[str] = []
+    for raw_path, entries in sorted(report.items()):
+        if not isinstance(entries, list):
+            continue
+        path = Path(str(raw_path))
+        display_path = str(path)
+        if path.is_absolute():
+            try:
+                display_path = str(path.relative_to(ROOT))
+            except ValueError:
+                display_path = str(path)
+        if display_path in RADON_EXCLUDED_FILES:
+            continue
+        for entry in entries:
+            if not isinstance(entry, dict):
+                continue
+            rank = str(entry.get("rank", "")).upper()
+            if rank not in failing_ranks:
+                continue
+            name = entry.get("name", "<unknown>")
+            line = entry.get("lineno", "?")
+            complexity = entry.get("complexity", "?")
+            violations.append(f"{display_path}:{line} {name} rank={rank} complexity={complexity}")
+    return violations
 
 
 def cmd_deadcode() -> int:
@@ -593,20 +675,40 @@ def _mutmut_fix_stats_prefix_mismatch() -> bool:
 
 def cmd_coverage() -> int:
     anki_python = _find_anki_python()
-    return _run([str(anki_python), "-m", "pytest", "tests/", "--cov", "--cov-report=term-missing"], label="python coverage")
+    return _run(
+        [
+            str(anki_python), "-m", "pytest", "tests/",
+            "--cov",
+            "--cov-branch",
+            "--cov-report=term-missing",
+            f"--cov-fail-under={PYTHON_COVERAGE_FAIL_UNDER}",
+        ],
+        label=f"python coverage (fail under {PYTHON_COVERAGE_FAIL_UNDER}%)",
+    )
 
 
 def _prefix_settings_ui_lcov_paths() -> None:
-    lcov = SETTINGS_UI_DIR / "coverage" / "lcov.info"
-    if not lcov.is_file():
+    if not SETTINGS_UI_LCOV.is_file():
         return
     lines: list[str] = []
-    for line in lcov.read_text().splitlines(keepends=True):
+    for line in SETTINGS_UI_LCOV.read_text().splitlines(keepends=True):
         if line.startswith("SF:src/"):
             lines.append(f"SF:settings_ui/{line[3:]}")
         else:
             lines.append(line)
-    lcov.write_text("".join(lines))
+    SETTINGS_UI_LCOV.write_text("".join(lines))
+
+
+def _remove_stale_report(path: Path) -> None:
+    if path.is_file():
+        path.unlink()
+
+
+def _require_report(path: Path, label: str) -> int:
+    if path.is_file():
+        return 0
+    print(f"ERROR: {label} report was not generated: {path}", file=sys.stderr)
+    return 1
 
 
 def cmd_sonar() -> int:
@@ -619,12 +721,36 @@ def cmd_sonar() -> int:
         _die("SONAR_TOKEN not set.")
     host_url = os.environ.get("SONAR_HOST_URL") or dotenv.get("SONAR_HOST_URL") or "http://localhost:9000"
     anki_python = _find_anki_python()
-    _run([str(anki_python), "-m", "pytest", "tests/", "--cov", "--cov-report=xml"], label="python coverage for sonar")
-    if (SETTINGS_UI_DIR / "node_modules").is_dir():
-        _run(["npm", "run", "test:coverage"], cwd=SETTINGS_UI_DIR, label="frontend UI coverage for sonar")
-        _prefix_settings_ui_lcov_paths()
-    else:
-        print("settings_ui/node_modules not found - skipping frontend UI coverage.")
+    _remove_stale_report(COVERAGE_XML)
+    _remove_stale_report(SETTINGS_UI_LCOV)
+    python_rc = _run(
+        [
+            str(anki_python), "-m", "pytest", "tests/",
+            "--cov",
+            "--cov-branch",
+            "--cov-report=xml",
+            f"--cov-fail-under={PYTHON_COVERAGE_FAIL_UNDER}",
+        ],
+        label=f"python coverage for sonar (fail under {PYTHON_COVERAGE_FAIL_UNDER}%)",
+    )
+    if python_rc != 0:
+        return python_rc
+    report_rc = _require_report(COVERAGE_XML, "Python coverage XML")
+    if report_rc != 0:
+        return report_rc
+    if not SETTINGS_UI_DIR.is_dir():
+        print("ERROR: settings_ui/ not found; cannot generate frontend coverage for sonar.", file=sys.stderr)
+        return 1
+    if not (SETTINGS_UI_DIR / "node_modules").is_dir():
+        print("ERROR: settings_ui/node_modules not found; run: python3 scripts/dev.py setup", file=sys.stderr)
+        return 1
+    ui_rc = _run(["npm", "run", "test:coverage"], cwd=SETTINGS_UI_DIR, label="frontend UI coverage for sonar")
+    if ui_rc != 0:
+        return ui_rc
+    _prefix_settings_ui_lcov_paths()
+    report_rc = _require_report(SETTINGS_UI_LCOV, "frontend LCOV")
+    if report_rc != 0:
+        return report_rc
     return _run(
         [scanner, f"-Dsonar.host.url={host_url}"],
         env={"SONAR_TOKEN": token},
@@ -694,13 +820,15 @@ def cmd_build() -> int:
 
 def cmd_test_svelte() -> int:
     if not SETTINGS_UI_DIR.is_dir():
-        print("settings_ui/ not found - skipping Svelte tests.")
-        return 0
+        print("ERROR: settings_ui/ not found; cannot validate frontend.", file=sys.stderr)
+        return 1
+    if not shutil.which("npm"):
+        print("ERROR: npm not found. Install Node.js 18+.", file=sys.stderr)
+        return 1
     if not (SETTINGS_UI_DIR / "node_modules").is_dir():
-        print("settings_ui/node_modules not found - skipping Svelte tests.")
-        print("  Run: python3 scripts/dev.py setup")
-        return 0
-    return _run(["npm", "test"], cwd=SETTINGS_UI_DIR, label="frontend UI tests")
+        print("ERROR: settings_ui/node_modules not found. Run: python3 scripts/dev.py setup", file=sys.stderr)
+        return 1
+    return _run(["npm", "run", "validate"], cwd=SETTINGS_UI_DIR, label="frontend UI validation")
 
 
 def cmd_release() -> int:
@@ -743,14 +871,14 @@ COMMANDS: dict[str, tuple[Callable[[], int], str]] = {
     "check": (
         cmd_check,
         "Full QC: config-schema + contracts-check + architecture-report + lint + typecheck + "
-        "security + deadcode + deps + complexity + arch + test-anki-api + test + svelte",
+        "security + deadcode + deps + complexity + arch + test-anki-api + test + frontend validate",
     ),
-    "coverage": (cmd_coverage, "Run tests with coverage report"),
+    "coverage": (cmd_coverage, f"Run tests with branch coverage report (fail under {PYTHON_COVERAGE_FAIL_UNDER}%)"),
     "sonar": (cmd_sonar, "Optional SonarQube analysis (needs SONAR_TOKEN)"),
     "muttest": (cmd_muttest, "Mutation testing (advisory, opt-in)"),
     "build": (cmd_build, "Build the settings and editor Svelte bundles"),
     "build-ui": (cmd_build_ui, "Build the settings and editor Svelte bundles"),
-    "test-svelte": (cmd_test_svelte, "Run Svelte UI tests"),
+    "test-svelte": (cmd_test_svelte, "Run frontend validation: svelte-check + ESLint + tsc + Vitest coverage"),
     "config-schema": (cmd_config_schema, "Validate config.json against JSON Schema"),
     "contracts-generate": (cmd_contracts_generate, "Generate Python and TypeScript JSON contracts"),
     "contracts-check": (cmd_contracts_check, "Verify generated JSON contracts are current"),

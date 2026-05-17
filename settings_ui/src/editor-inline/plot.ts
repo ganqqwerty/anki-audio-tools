@@ -38,7 +38,7 @@ export function pathForIntensity(points: readonly ProsodyPoint[], durationMs: nu
     const y = (base - intensity * plotHeight()).toFixed(2);
     return `L ${x} ${y}`;
   }).join(" ");
-  const last = points[points.length - 1] ?? first;
+  const last = points.at(-1) ?? first;
   const tail = `L ${xForMs(last[0], durationMs).toFixed(2)} ${base.toFixed(2)} Z`;
   return `${head} ${body} ${tail}`;
 }

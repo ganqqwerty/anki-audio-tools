@@ -187,7 +187,7 @@ def ffmpeg_config():
 @pytest.hookimpl(hookwrapper=True, tryfirst=True)
 def pytest_sessionfinish(session, exitstatus):
     """Force-exit after pytest prints the summary to avoid Qt WebEngine teardown hangs."""
-    del session, exitstatus
+    del session
     yield
 
     for stream in (sys.stdout, sys.stderr):
@@ -210,4 +210,4 @@ def pytest_sessionfinish(session, exitstatus):
     except Exception:
         pass
 
-    os._exit(0)
+    os._exit(int(exitstatus))

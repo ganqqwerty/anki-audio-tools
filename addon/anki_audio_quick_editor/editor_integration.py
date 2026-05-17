@@ -542,34 +542,51 @@ def _play_with_request(editor: Any, request: Any) -> None:
         _eval_status(editor, STILL_PROCESSING_MESSAGE, kind="processing")
         return
     field_index = _current_field_index(editor)
-    action = "start"
-    engine = "native"
-    cursor_ms = session.cursor_ms
-    if isinstance(request, dict):
-        action = str(request.get("action") or "start")
-        engine = str(request.get("engine") or "native")
-        cursor_ms = clamp_cursor_ms(request.get("cursorMs"), session.visualized_duration_ms)
+    action, engine, cursor_ms = _playback_request_values(session, request)
     session.cursor_ms = cursor_ms
     if engine == "html":
         _apply_html_playback_request(editor, session, field_index, action, cursor_ms)
         return
-
-    from aqt.sound import av_player
-
-    if action in {"pause", "resume"} and session.playback_active:
-        try:
-            av_player.toggle_pause()
-        except Exception as exc:  # pragma: no cover - depends on active Anki audio backend
-            logger.info("audio pause/resume failed: %s", exc)
-            _eval_status(editor, "Pause/resume was not available.", kind="warning")
-            return
-        session.playback_paused = action == "pause"
-        state = "paused" if session.playback_paused else "playing"
-        _eval_playback_state(editor, field_index, state, cursor_ms)
-        _eval_status(editor, "Paused" if session.playback_paused else "Playing")
+    if _toggle_native_pause_resume(editor, session, field_index, action, cursor_ms):
         return
 
     _start_playback_from_cursor(editor, session, source_path, field_index, cursor_ms)
+
+
+def _playback_request_values(
+    session: EditorSession,
+    request: Any,
+) -> tuple[str, str, int]:
+    if not isinstance(request, dict):
+        return "start", "native", session.cursor_ms
+    action = str(request.get("action") or "start")
+    engine = str(request.get("engine") or "native")
+    cursor_ms = clamp_cursor_ms(request.get("cursorMs"), session.visualized_duration_ms)
+    return action, engine, cursor_ms
+
+
+def _toggle_native_pause_resume(
+    editor: Any,
+    session: EditorSession,
+    field_index: int,
+    action: str,
+    cursor_ms: int,
+) -> bool:
+    if action not in {"pause", "resume"} or not session.playback_active:
+        return False
+    from aqt.sound import av_player
+
+    try:
+        av_player.toggle_pause()
+    except Exception as exc:  # pragma: no cover - depends on active Anki audio backend
+        logger.info("audio pause/resume failed: %s", exc)
+        _eval_status(editor, "Pause/resume was not available.", kind="warning")
+        return True
+    session.playback_paused = action == "pause"
+    state = "paused" if session.playback_paused else "playing"
+    _eval_playback_state(editor, field_index, state, cursor_ms)
+    _eval_status(editor, "Paused" if session.playback_paused else "Playing")
+    return True
 
 
 def _apply_html_playback_request(
@@ -806,48 +823,78 @@ def _log_special_transform_failure(failure_log_label: str, message: str) -> None
 
 def _session_and_source(editor: Any) -> tuple[EditorSession, Path]:
     field_index = _current_field_index(editor)
-    field_html = editor.note.fields[field_index]
-    selection = select_first_sound_reference(field_html)
-    if selection.selected is None:
-        raise AudioProcessingError(CURRENT_FIELD_AUDIO_MISSING)
-    filename = safe_media_basename(selection.selected.filename)
-    media_path = Path(editor.mw.col.media.dir()) / filename
+    filename, media_path = _current_sound_reference(editor, field_index)
     session = _SESSIONS.setdefault(editor, EditorSession())
-    if (
-        session.field_index == field_index
-        and session.state is not None
-        and session.current_filename == filename
-    ):
-        source_path = Path(editor.mw.col.media.dir()) / session.state.source_file
-        if not source_path.is_file():
-            raise MissingMediaError("The original audio file was not found in Anki's media folder.")
+    source_path = _session_original_source_path(editor, session, field_index, filename)
+    if source_path is not None:
         return session, source_path
 
     if not media_path.is_file():
         raise MissingMediaError(REFERENCED_AUDIO_MISSING)
 
     mtime = media_path.stat().st_mtime_ns
-    if (
+    if _session_needs_media_reset(session, field_index, filename, mtime):
+        _reset_session_for_media(session, field_index, filename, mtime)
+    return session, media_path
+
+
+def _current_sound_reference(editor: Any, field_index: int) -> tuple[str, Path]:
+    field_html = editor.note.fields[field_index]
+    selection = select_first_sound_reference(field_html)
+    if selection.selected is None:
+        raise AudioProcessingError(CURRENT_FIELD_AUDIO_MISSING)
+    filename = safe_media_basename(selection.selected.filename)
+    return filename, Path(editor.mw.col.media.dir()) / filename
+
+
+def _session_original_source_path(
+    editor: Any,
+    session: EditorSession,
+    field_index: int,
+    filename: str,
+) -> Path | None:
+    if session.field_index != field_index or session.state is None or session.current_filename != filename:
+        return None
+    source_path = Path(editor.mw.col.media.dir()) / session.state.source_file
+    if not source_path.is_file():
+        raise MissingMediaError("The original audio file was not found in Anki's media folder.")
+    return source_path
+
+
+def _session_needs_media_reset(
+    session: EditorSession,
+    field_index: int,
+    filename: str,
+    mtime: int,
+) -> bool:
+    return (
         session.field_index != field_index
         or session.state is None
         or session.source_mtime_ns != mtime
         or session.state.source_file != filename
-    ):
-        _stop_session_playback(session)
-        session.state = AudioEditState(source_file=filename)
-        session.current_filename = filename
-        session.undo_history.clear()
-        session.processing = False
-        session.analysis_busy = False
-        session.field_index = field_index
-        session.source_mtime_ns = mtime
-        session.cursor_ms = 0
-        session.visualized_filename = None
-        session.visualized_duration_ms = None
-        session.playback_active = False
-        session.playback_paused = False
-        session.playback_preparing = False
-    return session, media_path
+    )
+
+
+def _reset_session_for_media(
+    session: EditorSession,
+    field_index: int,
+    filename: str,
+    mtime: int,
+) -> None:
+    _stop_session_playback(session)
+    session.state = AudioEditState(source_file=filename)
+    session.current_filename = filename
+    session.undo_history.clear()
+    session.processing = False
+    session.analysis_busy = False
+    session.field_index = field_index
+    session.source_mtime_ns = mtime
+    session.cursor_ms = 0
+    session.visualized_filename = None
+    session.visualized_duration_ms = None
+    session.playback_active = False
+    session.playback_paused = False
+    session.playback_preparing = False
 
 
 def _current_media_path(editor: Any) -> tuple[EditorSession, Path]:
@@ -1000,18 +1047,53 @@ def _eval_playback_state(
 
 
 def _request_graph_redraw(editor: Any) -> None:
+    field_index = getattr(editor, "currentField", None)
+    if field_index is None:
+        field_index = getattr(editor, "last_field_index", None)
+    if field_index is None:
+        session = _SESSIONS.get(editor)
+        field_index = session.field_index if session else 0
+    _schedule_graph_redraw_attempt(editor, int(field_index or 0), remaining=12, delay_ms=150)
+
+
+def _schedule_graph_redraw_attempt(
+    editor: Any,
+    field_index: int,
+    *,
+    remaining: int,
+    delay_ms: int,
+) -> None:
     from aqt.qt import QTimer
 
-    def _start() -> None:
+    def _attempt() -> None:
         if getattr(editor, "note", None) is None:
             return
         try:
-            editor.web.eval("window.__aqeScan && window.__aqeScan()")
+            _eval_with_callback(
+                editor,
+                _graph_redraw_expression(field_index),
+                lambda started: _retry_graph_redraw(editor, field_index, bool(started), remaining - 1),
+            )
         except RuntimeError:
             return
-        _analyze_current_async(editor)
 
-    QTimer.singleShot(150, _start)
+    QTimer.singleShot(delay_ms, _attempt)
+
+
+def _graph_redraw_expression(field_index: int) -> str:
+    return (
+        "(() => {"
+        "if (!window.__aqeScan || !window.__aqeResetGraphAfterEdit) return false;"
+        "window.__aqeScan();"
+        f"return window.__aqeResetGraphAfterEdit({json.dumps(int(field_index))});"
+        "})()"
+    )
+
+
+def _retry_graph_redraw(editor: Any, field_index: int, started: bool, remaining: int) -> None:
+    if started or remaining <= 0:
+        return
+    _schedule_graph_redraw_attempt(editor, field_index, remaining=remaining, delay_ms=100)
 
 
 def _set_busy(editor: Any, busy: bool, message: str = "", command: str = "") -> None:

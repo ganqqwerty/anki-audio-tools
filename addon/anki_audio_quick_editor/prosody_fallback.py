@@ -141,18 +141,20 @@ def _correlation(frame: list[float], lag: int) -> float:
 
 def _first_confident_peak(lag_scores: list[tuple[int, float]], best_score: float) -> int:
     minimum = max(MIN_CORRELATION, best_score * 0.9)
-    if len(lag_scores) == 1:
-        return lag_scores[0][0]
-    first_lag, first_score = lag_scores[0]
-    if first_score >= minimum and first_score >= lag_scores[1][1]:
-        return first_lag
-    for index in range(1, len(lag_scores) - 1):
-        lag, score = lag_scores[index]
-        previous_score = lag_scores[index - 1][1]
-        next_score = lag_scores[index + 1][1]
-        if score >= minimum and score >= previous_score and score >= next_score:
+    for index, (lag, _score) in enumerate(lag_scores):
+        if _is_confident_peak(lag_scores, index, minimum):
             return lag
-    last_lag, last_score = lag_scores[-1]
-    if last_score >= minimum and last_score >= lag_scores[-2][1]:
-        return last_lag
     return next(lag for lag, score in lag_scores if score >= minimum)
+
+
+def _is_confident_peak(
+    lag_scores: list[tuple[int, float]],
+    index: int,
+    minimum: float,
+) -> bool:
+    score = lag_scores[index][1]
+    if score < minimum:
+        return False
+    previous_score = lag_scores[index - 1][1] if index > 0 else float("-inf")
+    next_score = lag_scores[index + 1][1] if index + 1 < len(lag_scores) else float("-inf")
+    return score >= previous_score and score >= next_score

@@ -11,9 +11,8 @@ from pathlib import Path
 PAUSE_PIPELINE_MANIFEST_VERSION = 1
 
 _SILENCE_START_RE = re.compile(r"silence_start:\s*(-?\d+(?:\.\d+)?)")
-_SILENCE_END_RE = re.compile(
-    r"silence_end:\s*(-?\d+(?:\.\d+)?)(?:\s*\|\s*silence_duration:\s*(-?\d+(?:\.\d+)?))?"
-)
+_SILENCE_END_RE = re.compile(r"silence_end:\s*(-?\d+(?:\.\d+)?)")
+_SILENCE_DURATION_RE = re.compile(r"silence_duration:\s*(-?\d+(?:\.\d+)?)")
 
 
 @dataclass(frozen=True)
@@ -72,7 +71,8 @@ def parse_silencedetect_intervals(stderr: str, duration_ms: int) -> tuple[Silenc
         if not end_match:
             continue
         end_ms = _seconds_to_ms(float(end_match.group(1)))
-        duration_value = end_match.group(2)
+        duration_match = _SILENCE_DURATION_RE.search(line)
+        duration_value = duration_match.group(1) if duration_match else None
         duration_from_line_ms = (
             _seconds_to_ms(float(duration_value)) if duration_value is not None else None
         )
@@ -138,46 +138,50 @@ def build_filter_complex_script(
     speed: float,
 ) -> str:
     """Build an ffmpeg filter_complex script for a planned timeline."""
-    usable_segments = tuple(segment for segment in segments if segment.end_ms > segment.start_ms)
-    if not usable_segments:
-        usable_segments = (_normal_segment(0, 1),)
-
-    lines: list[str] = []
-    source_labels: list[str] = []
-    if len(usable_segments) > 1:
-        source_labels = [f"src{index}" for index in range(len(usable_segments))]
-        split_outputs = "".join(f"[{label}]" for label in source_labels)
-        lines.append(f"[0:a]asplit={len(usable_segments)}{split_outputs}")
-    else:
-        source_labels = ["0:a"]
-
-    segment_labels: list[str] = []
-    for index, segment in enumerate(usable_segments):
-        label = f"a{index}"
-        segment_labels.append(label)
-        source = source_labels[index]
-        start_s = segment.start_ms / 1000
-        end_s = segment.end_ms / 1000
-        filters = [
-            f"[{source}]atrim=start={start_s:.3f}:end={end_s:.3f}",
-            "asetpts=PTS-STARTPTS",
-        ]
-        if segment.kind == "pause" and not _is_close(segment.speed_factor, 1.0):
-            filters.extend(atempo_filters(segment.speed_factor))
-        lines.append(f"{','.join(filters)}[{label}]")
+    usable_segments = _usable_timeline_segments(segments)
+    source_labels, lines = _source_labels_and_split_lines(len(usable_segments))
+    segment_labels = [f"a{index}" for index in range(len(usable_segments))]
+    lines.extend(
+        _segment_filter_line(source, label, segment)
+        for source, label, segment in zip(source_labels, segment_labels, usable_segments, strict=True)
+    )
 
     concat_inputs = "".join(f"[{label}]" for label in segment_labels)
     lines.append(f"{concat_inputs}concat=n={len(segment_labels)}:v=0:a=1[cat]")
-
-    output_filters: list[str] = []
-    if not _is_close(volume_db, 0.0):
-        output_filters.append(f"volume={volume_db:.2f}dB")
-    if not _is_close(speed, 1.0):
-        output_filters.extend(atempo_filters(speed))
-    if not output_filters:
-        output_filters.append("anull")
-    lines.append(f"[cat]{','.join(output_filters)}[out]")
+    lines.append(f"[cat]{','.join(_output_filters(volume_db, speed))}[out]")
     return ";\n".join(lines) + "\n"
+
+
+def _usable_timeline_segments(segments: tuple[TimelineSegment, ...]) -> tuple[TimelineSegment, ...]:
+    usable_segments = tuple(segment for segment in segments if segment.end_ms > segment.start_ms)
+    return usable_segments or (_normal_segment(0, 1),)
+
+
+def _source_labels_and_split_lines(segment_count: int) -> tuple[list[str], list[str]]:
+    if segment_count <= 1:
+        return ["0:a"], []
+    source_labels = [f"src{index}" for index in range(segment_count)]
+    split_outputs = "".join(f"[{label}]" for label in source_labels)
+    return source_labels, [f"[0:a]asplit={segment_count}{split_outputs}"]
+
+
+def _segment_filter_line(source: str, label: str, segment: TimelineSegment) -> str:
+    filters = [
+        f"[{source}]atrim=start={segment.start_ms / 1000:.3f}:end={segment.end_ms / 1000:.3f}",
+        "asetpts=PTS-STARTPTS",
+    ]
+    if segment.kind == "pause" and not _is_close(segment.speed_factor, 1.0):
+        filters.extend(atempo_filters(segment.speed_factor))
+    return f"{','.join(filters)}[{label}]"
+
+
+def _output_filters(volume_db: float, speed: float) -> list[str]:
+    filters: list[str] = []
+    if not _is_close(volume_db, 0.0):
+        filters.append(f"volume={volume_db:.2f}dB")
+    if not _is_close(speed, 1.0):
+        filters.extend(atempo_filters(speed))
+    return filters or ["anull"]
 
 
 def atempo_filters(speed: float) -> list[str]:

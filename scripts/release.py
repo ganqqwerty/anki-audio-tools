@@ -60,14 +60,22 @@ def _verify_versions(version: str) -> None:
         sys.exit(1)
 
 
-def _run_checks() -> None:
+def _run_dev_command(command: str) -> None:
     result = subprocess.run(
-        [sys.executable, "scripts/dev.py", "check"],
+        [sys.executable, "scripts/dev.py", command],
         cwd=ROOT,
         text=True,
     )
     if result.returncode != 0:
         sys.exit(result.returncode)
+
+
+def _run_checks(*, full: bool) -> None:
+    _run_dev_command("check")
+    if not full:
+        return
+    _run_dev_command("test-e2e")
+    _run_dev_command("sonar")
 
 
 def _source_mtime(paths: list[Path]) -> float:
@@ -170,14 +178,17 @@ def main() -> None:
     parser = argparse.ArgumentParser(description="Build .ankiaddon package")
     parser.add_argument("--version", help="Override version")
     parser.add_argument("--skip-checks", action="store_true", help="Skip validation commands")
+    parser.add_argument("--full", action="store_true", help="Run e2e tests and Sonar quality gate before packaging")
     args = parser.parse_args()
+    if args.skip_checks and args.full:
+        parser.error("--full cannot be used with --skip-checks")
 
     version = args.version or _read_pyproject_version()
     _verify_versions(version)
 
     if not args.skip_checks:
         _find_anki_python()
-        _run_checks()
+        _run_checks(full=args.full)
         _verify_bundle_fresh()
 
     archive = _build_archive(version)

@@ -72,6 +72,18 @@ describe("editor inline Svelte integration", () => {
     expect(fieldIndex(document.getElementById("f0")!, 7)).toBe(0);
   });
 
+  it("preserves an existing explicit mount when a reload scan has no visible sound text", () => {
+    initializeEditorRuntime({ audioFieldIndices: [0] });
+    scan({ audioFieldIndices: [0] });
+    const controls = document.querySelector(".aqe-controls");
+
+    document.getElementById("f0")!.textContent = "";
+    scan({ audioFieldIndices: [0] });
+
+    expect(document.querySelectorAll(".aqe-controls")).toHaveLength(1);
+    expect(document.querySelector(".aqe-controls")).toBe(controls);
+  });
+
   it("auto-detects supported audio fields, dedupes rescans, and remounts changed sources", () => {
     document.body.innerHTML = `
       <div>

@@ -14,7 +14,7 @@
     "lint": "eslint .",
     "check": "svelte-check --tsconfig ./tsconfig.json",
     "typecheck": "tsc --noEmit",
-    "validate": "npm run check && npm run lint && npm run typecheck && npm run test"
+    "validate": "npm run check && npm run lint && npm run typecheck && npm run test:coverage"
   },
   "dependencies": {
     "bits-ui": "^1.3.20",

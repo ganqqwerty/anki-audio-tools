@@ -70,10 +70,12 @@ show_complexity = true
 [tool.coverage.run]
 source = ["addon/anki_audio_quick_editor"]
 omit = ["addon/anki_audio_quick_editor/vendor/*"]
+branch = true
 
 [tool.coverage.report]
 show_missing = true
 skip_covered = false
+fail_under = 70
 exclude_lines = [
     "if __name__",
     "pass",

@@ -33,7 +33,9 @@ Run each step in order. If one step fails, note it and continue so the user gets
 13. SonarQube if requested or already part of the workflow
 14. `python3 scripts/dev.py test-e2e`
 
-If `radon` prints nothing, complexity is effectively a pass.
+`python3 scripts/dev.py complexity` fails on any hand-maintained add-on function or class at Radon rank C or worse; generated contract output is ignored by that fail decision.
+`python3 scripts/dev.py coverage` uses branch coverage and fails below the configured threshold.
+`python3 scripts/dev.py test-svelte` runs the full frontend validation chain, including Vitest coverage thresholds.
 
 ## Coverage Review
 

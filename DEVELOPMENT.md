@@ -65,6 +65,14 @@ python3 scripts/dev.py build
 
 `quicktype` is pinned as a settings UI dev dependency and installed from `settings_ui/package-lock.json`. It is used only for development-time JSON contract generation and is not bundled into the Anki add-on runtime.
 
+Frontend quality checks run through:
+
+```bash
+python3 scripts/dev.py test-svelte
+```
+
+That command requires `settings_ui/node_modules` and runs `npm run validate`, which chains `svelte-check`, ESLint, `tsc --noEmit`, and Vitest coverage thresholds.
+
 Generate and verify communication contracts with:
 
 ```bash

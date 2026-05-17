@@ -38,23 +38,45 @@ function generatedLevel(level: LogLevel): Level {
 }
 
 function serializableContext(context: unknown, depth = 0): JsonLogValue {
+  const scalar = serializableScalar(context);
+  if (scalar !== undefined) return scalar;
+  if (Array.isArray(context)) {
+    return serializableArray(context, depth);
+  }
+  if (context !== null && typeof context === "object") {
+    return serializableObject(context, depth);
+  }
+  return fallbackContextLabel(context);
+}
+
+function serializableScalar(context: unknown): JsonLogValue | undefined {
+  if (context === undefined) return "[undefined]";
   if (context === null) return null;
   if (typeof context === "boolean" || typeof context === "number" || typeof context === "string") {
     return context;
   }
-  if (Array.isArray(context)) {
-    if (depth >= 4) return "[array]";
-    return context.map((item) => serializableContext(item, depth + 1));
+  return undefined;
+}
+
+function serializableArray(context: unknown[], depth: number): JsonLogValue {
+  if (depth >= 4) return "[array]";
+  return context.map((item) => serializableContext(item, depth + 1));
+}
+
+function serializableObject(context: object, depth: number): JsonLogValue {
+  if (depth >= 4) return "[object]";
+  const result: { [key: string]: JsonLogValue } = {};
+  for (const [key, value] of Object.entries(context)) {
+    result[key] = serializableContext(value, depth + 1);
   }
-  if (typeof context === "object") {
-    if (depth >= 4) return "[object]";
-    const result: { [key: string]: JsonLogValue } = {};
-    for (const [key, value] of Object.entries(context)) {
-      result[key] = serializableContext(value, depth + 1);
-    }
-    return result;
-  }
-  return String(context);
+  return result;
+}
+
+function fallbackContextLabel(context: unknown): string {
+  if (typeof context === "bigint") return context.toString();
+  if (typeof context === "symbol") return context.description ? `Symbol(${context.description})` : "Symbol()";
+  if (typeof context === "function") return `[function ${context.name || "anonymous"}]`;
+  return "[unserializable]";
 }
 
 function payloadFor(level: LogLevel, message: string, context?: unknown): FrontendLogPayload {

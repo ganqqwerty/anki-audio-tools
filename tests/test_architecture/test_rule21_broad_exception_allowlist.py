@@ -119,7 +119,7 @@ BROAD_EXCEPTION_ALLOWLIST: tuple[BroadExceptionAllowance, ...] = (
     ),
     BroadExceptionAllowance(
         "editor_integration",
-        "_play_with_request",
+        "_toggle_native_pause_resume",
         1,
         "Best-effort playback backend integration reports pause/resume unavailability as a warning.",
     ),

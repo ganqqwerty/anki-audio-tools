@@ -48,8 +48,8 @@ export function disposeEditorRuntime(): void {
 }
 
 export function scan(config: EditorRuntimeConfig = window.__AQE_EDITOR_CONFIG__ ?? { audioFieldIndices: [] }): void {
-  const explicitTargets = explicitFieldTargets(config.audioFieldIndices);
-  if (explicitTargets.length) {
+  if (config.audioFieldIndices.length) {
+    const explicitTargets = explicitFieldTargets(config.audioFieldIndices);
     explicitTargets.forEach((target) => mountNear(target));
     logger.debug("scan mounted explicit fields", { count: explicitTargets.length });
     return;
@@ -84,10 +84,11 @@ export function explicitFieldTargets(audioFieldIndices: readonly number[]): Fiel
       const container = document.querySelector<HTMLElement>(`.field-container[data-index="${ord}"]`);
       if (!container) return null;
       const node = container.querySelector<HTMLElement>('[contenteditable="true"]') || container;
+      const sourceFilename = audioSourceForNode(node) || audioSourceForNode(container);
       return {
         ord,
         node,
-        sourceFilename: audioSourceForNode(node),
+        sourceFilename,
       };
     })
     .filter((target): target is FieldTarget => target !== null);
@@ -99,21 +100,23 @@ export function fieldIndex(node: HTMLElement, fallback: number): number {
     const raw = node.getAttribute(attr);
     if (raw !== null && /^\d+$/.test(raw)) return Number(raw);
   }
-  const idMatch = String(node.id || "").match(/(\d+)/);
+  const idMatch = /(\d+)/.exec(String(node.id || ""));
   return idMatch ? Number(idMatch[1]) : fallback;
 }
 
 export function audioSourceForNode(node: HTMLElement): string {
   const html = node.innerHTML || node.textContent || "";
-  const match = html.match(soundPattern);
+  const match = soundPattern.exec(html);
   const filename = match?.[1];
   return filename && supportedPattern.test(filename) ? filename : "";
 }
 
 export function mountNear(target: FieldTarget): void {
   const existing = mountedFields.get(target.ord);
-  if (existing?.sourceFilename === target.sourceFilename && document.body.contains(existing.host)) {
-    return;
+  if (existing && document.body.contains(existing.host)) {
+    if (!target.sourceFilename || existing.sourceFilename === target.sourceFilename) {
+      return;
+    }
   }
   disposeField(target.ord);
   const parent = target.node.closest(".field-container")
@@ -123,9 +126,9 @@ export function mountNear(target: FieldTarget): void {
   const host = document.createElement("div");
   host.className = "aqe-mount-host";
   if (parent.parentElement) {
-    parent.insertAdjacentElement("afterend", host);
+    parent.after(host);
   } else {
-    target.node.insertAdjacentElement("afterend", host);
+    target.node.after(host);
   }
   const component = mount(EditorControls, {
     target: host,

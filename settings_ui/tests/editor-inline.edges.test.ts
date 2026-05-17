@@ -106,6 +106,8 @@ describe("editor inline defensive edges", () => {
   it("handles scanner/index fallbacks and unsupported audio references", () => {
     document.body.innerHTML = `
       <div class="field-container" data-index="4">[sound:fallback.mp3]</div>
+      <div class="field-container" data-index="5"></div>
+      <div class="field-container" data-index="6">[sound:container.mp3]<div contenteditable="true"></div></div>
       <div contenteditable="true" id="field-7">[sound:unsupported.flac]</div>
       <div contenteditable="true" data-ord="8">text</div>
       <div contenteditable="true">duplicate</div>
@@ -115,6 +117,8 @@ describe("editor inline defensive edges", () => {
 
     expect(explicit).toHaveLength(1);
     expect(explicit[0]?.sourceFilename).toBe("fallback.mp3");
+    expect(explicitFieldTargets([5])[0]?.sourceFilename).toBe("");
+    expect(explicitFieldTargets([6])[0]?.sourceFilename).toBe("container.mp3");
     expect(audioSourceForNode(document.getElementById("field-7")!)).toBe("");
     expect(fieldIndex(document.getElementById("field-7")!, 0)).toBe(7);
     expect(fieldIndex(document.querySelector<HTMLElement>("[data-ord]")!, 0)).toBe(8);

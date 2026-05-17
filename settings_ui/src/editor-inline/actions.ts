@@ -2,7 +2,6 @@ import type { ProsodyPayload } from "../lib/generated/contracts.js";
 import { COMMAND_SLUGS, PROCESSING_COMMANDS, processingMessage } from "./commands.js";
 import {
   focusAndSendCommand,
-  popEditorFrontendLog,
   popPendingPlaybackRequest,
   setCursorIntent,
   setPendingPlaybackRequest,
@@ -33,7 +32,7 @@ import type {
 } from "./types.js";
 import { isPlaybackState, normalizeTrack } from "./types.js";
 
-export { popEditorFrontendLog };
+export { popEditorFrontendLog } from "./bridge.js";
 
 export function controlsForOrd(ord: number): HTMLElement | null {
   return document.querySelector<HTMLElement>(`.aqe-controls[data-aqe-field-ord="${ord}"]`);
@@ -117,7 +116,7 @@ export function send(command: EditorCommand, node: HTMLElement, ord: number): vo
 }
 
 export function mediaUrlForFilename(filename: string): string {
-  return encodeURIComponent(filename || "").replace(/%2F/gi, "/");
+  return encodeURIComponent(filename || "").replaceAll("%2F", "/");
 }
 
 export function audioClockFor(visualizer: VisualizerElement | null): AudioClockElement | null {
@@ -584,17 +583,13 @@ export function startAudioProgressClock(
   }
   visualizer.dataset.progressClockMode = "audio";
   visualizer.__aqeAudioClockFallback = false;
-  let playResult: Promise<void> | void;
-  try {
-    playResult = audio.play();
-  } catch {
+  const handlePlaybackFailure = (): void => {
     if (options.manualFallback === false) {
       options.onAudioPlayFailed?.();
       return;
     }
     startManualProgressClock(visualizer, startMs);
-    return;
-  }
+  };
   const startPainting = (): void => {
     if (visualizer.dataset.playbackState !== "playing") return;
     clearPlaybackFrame(visualizer);
@@ -603,20 +598,13 @@ export function startAudioProgressClock(
     paintProgressFromClock(visualizer);
     options.onAudioStarted?.();
   };
-  if (playResult && typeof playResult.then === "function") {
-    playResult.then(startPainting).catch(() => {
-      if (visualizer.dataset.playbackState === "playing") {
-        if (options.manualFallback === false) {
-          options.onAudioPlayFailed?.();
-          return;
-        }
-        logger.warn("html audio play rejected; using manual clock", { ord: visualizer.dataset.aqeFieldOrd });
-        startManualProgressClock(visualizer, currentProgressMs(visualizer) ?? 0);
-      }
+  void Promise.resolve(audio.play())
+    .then(startPainting)
+    .catch(() => {
+      if (visualizer.dataset.playbackState !== "playing") return;
+      logger.warn("html audio play rejected; using manual clock", { ord: visualizer.dataset.aqeFieldOrd });
+      handlePlaybackFailure();
     });
-    return;
-  }
-  startPainting();
 }
 
 export function startProgressClock(

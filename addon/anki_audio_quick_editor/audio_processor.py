@@ -45,6 +45,8 @@ from .support import (
 BUNDLED_DEEP_FILTER_VERSION = "0.5.6"
 BUNDLED_SIDON_VERSION = "0.1"
 BUNDLED_MP_SENET_VERSION = "0.1"
+FFMPEG_AUDIO_CODEC_ARG = "-codec:a"
+WAV_MIME_TYPE = "audio/wav"
 _PACKAGE_DIR = Path(__file__).resolve().parent
 _BUNDLED_DEEP_FILTER_BY_PLATFORM = {
     ("Darwin", "arm64"): _PACKAGE_DIR
@@ -282,7 +284,7 @@ def build_ffmpeg_command(
         "-vn",
         "-filter:a",
         filters,
-        "-codec:a",
+        FFMPEG_AUDIO_CODEC_ARG,
         "libmp3lame",
         "-q:a",
         "4",
@@ -305,7 +307,7 @@ def build_wav_filter_command(
         "-vn",
         "-filter:a",
         filters,
-        "-codec:a",
+        FFMPEG_AUDIO_CODEC_ARG,
         "pcm_s16le",
         str(output_path),
     )
@@ -327,7 +329,7 @@ def build_deep_filter_prepare_command(
         "1",
         "-ar",
         "48000",
-        "-codec:a",
+        FFMPEG_AUDIO_CODEC_ARG,
         "pcm_s16le",
         str(output_wav_path),
     )
@@ -389,7 +391,7 @@ def build_filter_complex_render_command(
         str(filter_script_path),
         "-map",
         "[out]",
-        "-codec:a",
+        FFMPEG_AUDIO_CODEC_ARG,
         "libmp3lame",
         "-q:a",
         "4",
@@ -409,7 +411,7 @@ def build_sidon_prepare_command(
         "-i",
         str(source_path),
         "-vn",
-        "-codec:a",
+        FFMPEG_AUDIO_CODEC_ARG,
         "pcm_s16le",
         str(output_wav_path),
     )
@@ -431,7 +433,7 @@ def build_mp_senet_prepare_command(
         "1",
         "-ar",
         "16000",
-        "-codec:a",
+        FFMPEG_AUDIO_CODEC_ARG,
         "pcm_s16le",
         str(output_wav_path),
     )
@@ -491,7 +493,7 @@ def build_mp3_encode_command(
         "-i",
         str(source_path),
         "-vn",
-        "-codec:a",
+        FFMPEG_AUDIO_CODEC_ARG,
         "libmp3lame",
         "-q:a",
         "4",
@@ -584,7 +586,7 @@ def _render_deep_filter_pause_speedup_audio(
             attempted_commands,
             on_command,
         )
-        artifacts.append(_artifact_record("working_original", working_original, "audio/wav"))
+        artifacts.append(_artifact_record("working_original", working_original, WAV_MIME_TYPE))
         working_duration_ms = probe_duration_ms(working_original, config)
         manifest["working_duration_ms"] = working_duration_ms
         write_manifest()
@@ -599,7 +601,7 @@ def _render_deep_filter_pause_speedup_audio(
             attempted_commands,
             on_command,
         )
-        artifacts.append(_artifact_record("analysis_input", analysis_input, "audio/wav"))
+        artifacts.append(_artifact_record("analysis_input", analysis_input, WAV_MIME_TYPE))
         write_manifest()
 
         deep_filter_cmd = build_deep_filter_command(
@@ -619,7 +621,7 @@ def _render_deep_filter_pause_speedup_audio(
             on_command,
         )
         cleaned_analysis_wav = select_deep_filter_output(deep_filter_output_dir)
-        artifacts.append(_artifact_record("deep_filter_output", cleaned_analysis_wav, "audio/wav"))
+        artifacts.append(_artifact_record("deep_filter_output", cleaned_analysis_wav, WAV_MIME_TYPE))
         write_manifest()
 
         silence_cmd = build_silencedetect_command(
@@ -755,16 +757,12 @@ def render_noise_reduced_audio(
 
     try:
         prepare_cmd = build_deep_filter_prepare_command(ffmpeg_path, source_path, input_wav)
-        if on_command:
-            on_command(prepare_cmd)
-        prepare_result = _run_external_command(
+        _run_audio_stage(
             prepare_cmd,
             "Could not start audio preparation for DeepFilterNet.",
+            "Could not prepare audio for DeepFilterNet.",
+            on_command,
         )
-        if prepare_result.returncode != 0:
-            raise AudioProcessingError(
-                prepare_result.stderr.strip() or "Could not prepare audio for DeepFilterNet."
-            )
 
         deep_filter_cmd = build_deep_filter_command(
             deep_filter_path,
@@ -772,29 +770,21 @@ def render_noise_reduced_audio(
             deep_filter_output_dir,
             post_filter=config.deep_filter_post_filter,
         )
-        if on_command:
-            on_command(deep_filter_cmd)
-        deep_filter_result = _run_external_command(
+        _run_audio_stage(
             deep_filter_cmd,
             "Could not start DeepFilterNet noise removal.",
+            "DeepFilterNet noise removal failed.",
+            on_command,
         )
-        if deep_filter_result.returncode != 0:
-            raise AudioProcessingError(
-                deep_filter_result.stderr.strip() or "DeepFilterNet noise removal failed."
-            )
 
         cleaned_wav = select_deep_filter_output(deep_filter_output_dir)
         encode_cmd = build_mp3_encode_command(ffmpeg_path, cleaned_wav, output_path)
-        if on_command:
-            on_command(encode_cmd)
-        encode_result = _run_external_command(
+        _run_audio_stage(
             encode_cmd,
             "Could not start MP3 encoding for DeepFilterNet output.",
+            "Could not encode DeepFilterNet output.",
+            on_command,
         )
-        if encode_result.returncode != 0:
-            raise AudioProcessingError(
-                encode_result.stderr.strip() or "Could not encode DeepFilterNet output."
-            )
 
         return AudioProcessingResult(
             output_path=output_path,
@@ -803,6 +793,20 @@ def render_noise_reduced_audio(
         )
     finally:
         shutil.rmtree(work_dir, ignore_errors=True)
+
+
+def _run_audio_stage(
+    command: tuple[str, ...],
+    launch_error: str,
+    failure_message: str,
+    on_command: Callable[[tuple[str, ...]], None] | None,
+) -> subprocess.CompletedProcess[str]:
+    if on_command:
+        on_command(command)
+    result = _run_external_command(command, launch_error)
+    if result.returncode != 0:
+        raise AudioProcessingError(result.stderr.strip() or failure_message)
+    return result
 
 
 def render_sidon_audio(
