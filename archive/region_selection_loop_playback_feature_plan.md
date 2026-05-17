@@ -1,5 +1,7 @@
 # Region Selection And Loop Playback Feature Plan
 
+Implementation commit: `845517118054e89aff001fd0c2ab3e5920549211`
+
 ## Background
 
 Audio Quick Editor already has a compact prosody graph in the Anki Editor. The graph supports a single playback cursor/progress indicator:
