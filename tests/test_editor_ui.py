@@ -18,8 +18,11 @@ def test_injection_script_embeds_audio_field_indices_and_bundle() -> None:
     assert "aqe:show-file" in script
     assert "aqe:volume-down" in script
     assert "aqe:volume-up" in script
-    assert "aqe:sidon" in script
+    assert "aqe:denoise-standard" in script
     assert "aqe:mp-senet" in script
+    assert "aqe:redo" in script
+    assert "aqe:settings" in script
+    assert ("aqe:" + "remove" + "-noise") not in script
     assert "aqe:save" not in script
     assert "aqe:cancel" not in script
 

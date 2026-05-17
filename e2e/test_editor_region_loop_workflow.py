@@ -12,6 +12,7 @@ from e2e.editor_graph_helpers import (
     _graph_state_js,
     _install_html_audio_test_driver,
     _wait_for_html_playback,
+    _wait_for_visualizer_track,
 )
 from e2e.editor_note_helpers import (
     _basic_audio_note,
@@ -140,10 +141,12 @@ def _set_repeat(editor, enabled: bool, ord_: int = 0) -> None:
         editor.web,
         f"""
         (() => {{
-          const checkbox = document.querySelector('[data-testid="aqe-repeat-{ord_}"]');
-          if (!checkbox) return null;
-          if (checkbox.checked !== {str(enabled).lower()}) checkbox.click();
-          return checkbox.checked;
+          const toggle = document.querySelector('[data-testid="aqe-repeat-{ord_}"]');
+          if (!toggle) return null;
+          const requested = {str(enabled).lower()};
+          const current = toggle.getAttribute("aria-pressed") === "true";
+          if (current !== requested) toggle.click();
+          return toggle.getAttribute("aria-pressed") === "true";
         }})()
         """,
         lambda value: value is enabled,
@@ -531,6 +534,108 @@ def test_processing_during_selected_repeat_stops_playback_and_redraw_clears_sele
         assert playback.attempts == []
         assert stopped_for_processing["repeatEnabled"] is True
         assert redrawn["sourceFilename"] == generated_name
+    finally:
+        editor.set_note(None)
+        parent.close()
+
+
+def test_graph_default_auto_analysis_supports_region_selection(
+    anki_mw,
+    ffmpeg_config,
+) -> None:
+    media_dir = Path(anki_mw.col.media.dir())
+    source = media_dir / "editor_graph_default_region_selection.wav"
+    generate_tone(ffmpeg_config, source, duration_s=2.0)
+    note = _basic_audio_note(anki_mw, source.name)
+    _configure_ffmpeg(
+        anki_mw,
+        ffmpeg_config,
+        repeat_playback_by_default=False,
+        show_graph_by_default=True,
+    )
+
+    editor, parent = _open_editor(anki_mw, note)
+    try:
+        auto_track = _wait_for_visualizer_track(
+            editor,
+            lambda state: state["sourceFilename"] == source.name,
+            timeout=10.0,
+        )
+        _shift_drag_region(editor, 0.2, 0.55)
+        selected = _state(
+            editor,
+            lambda state: state["selectionActive"] is True
+            and state["selectionStartMs"] == 400
+            and state["selectionEndMs"] == 1100,
+        )
+
+        assert auto_track["active"] is True
+        assert selected["playbackRegionMode"] == "selection"
+        assert selected["repeatEnabled"] is False
+    finally:
+        editor.set_note(None)
+        parent.close()
+
+
+def test_graph_default_repeat_can_be_turned_off_for_selected_region_playback(
+    anki_mw,
+    ffmpeg_config,
+) -> None:
+    media_dir = Path(anki_mw.col.media.dir())
+    source = media_dir / "editor_graph_default_repeat_off.wav"
+    generate_tone(ffmpeg_config, source, duration_s=2.0)
+    note = _basic_audio_note(anki_mw, source.name)
+    _configure_ffmpeg(
+        anki_mw,
+        ffmpeg_config,
+        repeat_playback_by_default=True,
+        show_graph_by_default=True,
+    )
+
+    editor, parent = _open_editor(anki_mw, note)
+    try:
+        track = _wait_for_visualizer_track(
+            editor,
+            lambda state: state["sourceFilename"] == source.name,
+            timeout=10.0,
+        )
+        _install_html_audio_test_driver(editor)
+        initial = _state(editor, lambda state: state["repeatEnabled"] is True)
+        _shift_drag_region(editor, 0.25, 0.65)
+        _set_repeat(editor, False)
+        repeat_off = _state(
+            editor,
+            lambda state: state["repeatEnabled"] is False
+            and state["selectionStartMs"] == 500
+            and state["selectionEndMs"] == 1300,
+        )
+
+        with _record_fake_playback(
+            media_dir,
+            {source.name: round(track["durationMs"])},
+            ffmpeg_config=ffmpeg_config,
+        ) as playback:
+            click_selector(editor.web, _button_selector("aqe:play"), timeout=5.0)
+            playing = _wait_for_html_playback(
+                editor,
+                lambda state: state["playbackStartMs"] == 500
+                and state["playbackEndMs"] == 1300
+                and state["repeatEnabled"] is False,
+            )
+            _force_audio_boundary(editor)
+            finished = _state(
+                editor,
+                lambda state: state["playbackState"] == "stopped"
+                and state["cursorMs"] == 500
+                and state["repeatEnabled"] is False,
+                timeout=5.0,
+            )
+
+        assert playback.attempts == []
+        assert initial["repeatEnabled"] is True
+        assert repeat_off["playbackRegionMode"] == "selection"
+        assert playing["playButtonLabel"] == "Pause"
+        assert finished["playButtonLabel"] == "Play"
     finally:
         editor.set_note(None)
         parent.close()

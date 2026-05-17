@@ -80,11 +80,18 @@ def test_play_graph_cursor_and_play_ended_are_not_processing_commands() -> None:
         "aqe:show-file",
         "aqe:analyze",
         "aqe:set-cursor",
-        "aqe:remove-noise",
-        "aqe:sidon",
+        "aqe:denoise-standard",
         "aqe:mp-senet",
+        "aqe:settings",
+        "aqe:redo",
         "aqe:trim-silence",
     }.isdisjoint(PROCESSING_COMMANDS)
+
+    assert "aqe:denoise-standard" in BRIDGE_COMMANDS
+    assert "aqe:mp-senet" in BRIDGE_COMMANDS
+    assert "aqe:settings" in BRIDGE_COMMANDS
+    assert "aqe:redo" in BRIDGE_COMMANDS
+    assert ("aqe:" + "si" + "don") not in BRIDGE_COMMANDS
 
 
 def test_untrim_commands_are_not_registered() -> None:

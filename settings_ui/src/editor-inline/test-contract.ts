@@ -4,7 +4,7 @@ import {
   allButtons,
   graphButton,
   playButton,
-  repeatCheckboxForOrd,
+  repeatButtonForOrd,
   visualizerForOrd,
 } from "./dom-selectors.js";
 import {
@@ -129,7 +129,7 @@ export function graphStateForTest(ord: number): GraphStateForTest | null {
     selectionDraftStartMs: draftSelection?.startMs ?? null,
     selectionDraftEndMs: draftSelection?.endMs ?? null,
     repeatEnabled: visualizer.dataset.repeatEnabled === "true",
-    repeatCheckboxDisabled: !!repeatCheckboxForOrd(ord)?.disabled,
+    repeatControlDisabled: !!repeatButtonForOrd(ord)?.disabled,
     playbackStartMs: Number(visualizer.dataset.playbackStartMs || "0"),
     playbackEndMs: Number(visualizer.dataset.playbackEndMs || "0"),
     playbackRegionMode: visualizer.dataset.playbackRegionMode === "selection" ? "selection" : "full",

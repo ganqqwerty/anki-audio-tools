@@ -7,36 +7,42 @@ export type EditorCommand =
   | "aqe:trim-left"
   | "aqe:trim-right"
   | "aqe:remove-pauses"
-  | "aqe:remove-noise"
-  | "aqe:sidon"
+  | "aqe:denoise-standard"
   | "aqe:mp-senet"
   | "aqe:slower"
   | "aqe:faster"
   | "aqe:volume-down"
   | "aqe:volume-up"
-  | "aqe:undo";
+  | "aqe:undo"
+  | "aqe:redo"
+  | "aqe:settings";
 
 export type EditorIconName =
   | "chart-line"
+  | "chevron-down"
+  | "circle-help"
   | "fast-forward"
   | "folder-open"
   | "pause"
   | "play"
+  | "redo-2"
   | "refresh-cw"
+  | "repeat-2"
   | "rewind"
   | "scissors"
+  | "settings"
   | "sparkles"
   | "timer-reset"
   | "undo-2"
   | "volume-1"
   | "volume-2"
-  | "volume-x"
-  | "wand-sparkles";
+  | "volume-x";
 
 export interface ButtonSpec {
   activeIcon?: EditorIconName;
   command: EditorCommand;
   icon: EditorIconName;
+  iconOnly?: boolean;
   label: string;
   title: string;
 }
@@ -122,7 +128,7 @@ export interface GraphStateForTest {
   playbackState: PlaybackState;
   progressClockMode: ProgressClockMode;
   progressMs: number;
-  repeatCheckboxDisabled: boolean;
+  repeatControlDisabled: boolean;
   repeatEnabled: boolean;
   resumeRequiresRestart: boolean;
   selectionActive: boolean;

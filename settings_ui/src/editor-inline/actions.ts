@@ -2,12 +2,11 @@ import type { ProsodyPayload } from "../lib/generated/contracts.js";
 import { PROCESSING_COMMANDS, processingMessage } from "./commands.js";
 import {
   allButtons,
-  allRepeatCheckboxes,
   allVisualizers,
   controlsForOrd,
   graphButton,
   playButton,
-  repeatCheckboxForOrd,
+  repeatButtonForOrd,
   visualizerForOrd,
 } from "./dom-selectors.js";
 import {
@@ -131,9 +130,6 @@ export function setControlsBusy(ord: number, busy: boolean, message = "", comman
   });
   allButtons().forEach((button) => {
     button.disabled = !!busy;
-  });
-  allRepeatCheckboxes().forEach((checkbox) => {
-    checkbox.disabled = !!busy;
   });
   if (!busy) {
     queueMicrotask(() => continueDefaultGraphQueue(defaultGraphQueueDependencies()));
@@ -268,8 +264,11 @@ export function effectivePlaybackRegion(visualizer: VisualizerElement): Playback
 export function setRepeatEnabled(visualizer: VisualizerElement, enabled: boolean): void {
   visualizer.dataset.repeatEnabled = enabled ? "true" : "false";
   const ord = Number(visualizer.dataset.aqeFieldOrd || "0");
-  const checkbox = repeatCheckboxForOrd(ord);
-  if (checkbox) checkbox.checked = enabled;
+  const button = repeatButtonForOrd(ord);
+  if (button) {
+    button.ariaPressed = enabled ? "true" : "false";
+    button.dataset.aqeButtonState = enabled ? "active" : "default";
+  }
 }
 
 export function setRepeatEnabledForOrd(ord: number, enabled: boolean): boolean {
@@ -549,9 +548,6 @@ export function prepareForNewNote(): void {
       if (button.dataset.aqeCommand === "aqe:play") {
         setCommandButtonLabel(Number(controls.dataset.aqeFieldOrd || "0"), "aqe:play", "Play");
       }
-    });
-    controls.querySelectorAll<HTMLInputElement>(".aqe-repeat-checkbox").forEach((checkbox) => {
-      checkbox.disabled = false;
     });
     const status = controls.querySelector<HTMLElement>(".aqe-status");
     if (status) {

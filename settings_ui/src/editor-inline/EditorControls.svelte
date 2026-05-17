@@ -1,7 +1,7 @@
 <script lang="ts">
   import { onMount } from "svelte";
 
-  import { COMMAND_BUTTONS, testId } from "./commands.js";
+  import { COMMAND_BUTTONS, DENOISE_BUTTONS, testId } from "./commands.js";
   import EditorCommandIcon from "./EditorCommandIcon.svelte";
   import {
     handleVisualizerPointerDown,
@@ -16,6 +16,13 @@
   import type { FieldTarget } from "./types.js";
 
   const { target }: { target: FieldTarget } = $props();
+  const repeatDefault = window.__AQE_EDITOR_CONFIG__?.repeatPlaybackByDefault === true;
+
+  function toggleRepeat(event: MouseEvent): void {
+    const button = event.currentTarget as HTMLButtonElement;
+    const enabled = button.ariaPressed !== "true";
+    setRepeatEnabledForOrd(target.ord, enabled);
+  }
 
   onMount(() => {
     const visualizer = visualizerForOrd(target.ord);
@@ -35,11 +42,13 @@
   {#each COMMAND_BUTTONS as button (button.command)}
     <button
       type="button"
+      class:aqe-icon-only={button.iconOnly === true}
       class="aqe-button"
       data-aqe-command={button.command}
       data-aqe-button-state={button.command === "aqe:play" ? "play" : button.command === "aqe:analyze" ? "graph" : "default"}
       data-testid={testId(target.ord, button.command)}
       title={button.title}
+      aria-label={button.title}
       onmousedown={(event) => event.preventDefault()}
       onclick={() => send(button.command, target.node, target.ord)}
     >
@@ -50,22 +59,62 @@
       <span class="aqe-button-label">{button.label}</span>
     </button>
     {#if button.command === "aqe:play"}
-      <label
-        class="aqe-repeat-toggle"
+      <button
+        type="button"
+        class="aqe-button aqe-icon-only aqe-repeat-button"
+        data-aqe-button-state={repeatDefault ? "active" : "default"}
+        data-testid={`aqe-repeat-${target.ord}`}
         title="Repeat selected region, or the whole graph when no region is selected."
+        aria-label="Repeat playback"
+        aria-pressed={repeatDefault ? "true" : "false"}
+        onmousedown={(event) => event.preventDefault()}
+        onclick={toggleRepeat}
       >
-        <input
-          class="aqe-repeat-checkbox"
-          data-testid={`aqe-repeat-${target.ord}`}
-          type="checkbox"
-          checked={window.__AQE_EDITOR_CONFIG__?.repeatPlaybackByDefault === true}
-          onchange={(event) => setRepeatEnabledForOrd(target.ord, event.currentTarget.checked)}
-        />
-        <span>Repeat</span>
-      </label>
+        <EditorCommandIcon icon="repeat-2" />
+        <span class="aqe-button-label">Repeat</span>
+      </button>
+    {/if}
+    {#if button.command === "aqe:remove-pauses"}
+      <details class="aqe-menu" data-testid={`aqe-denoise-menu-${target.ord}`}>
+        <summary class="aqe-button aqe-menu-summary" title="Denoise audio" aria-label="Denoise audio">
+          <EditorCommandIcon icon="sparkles" />
+          <span class="aqe-button-label">Denoise</span>
+          <EditorCommandIcon className="aqe-menu-chevron" icon="chevron-down" />
+        </summary>
+        <div class="aqe-menu-items" role="menu">
+          {#each DENOISE_BUTTONS as denoiseButton (denoiseButton.command)}
+            <button
+              type="button"
+              class="aqe-button aqe-menu-item"
+              data-aqe-command={denoiseButton.command}
+              data-aqe-button-state="default"
+              data-testid={testId(target.ord, denoiseButton.command)}
+              title={denoiseButton.title}
+              aria-label={denoiseButton.title}
+              role="menuitem"
+              onmousedown={(event) => event.preventDefault()}
+              onclick={() => send(denoiseButton.command, target.node, target.ord)}
+            >
+              <EditorCommandIcon icon={denoiseButton.icon} />
+              <span class="aqe-button-label">{denoiseButton.label}</span>
+            </button>
+          {/each}
+        </div>
+      </details>
     {/if}
   {/each}
   <span class="aqe-status" data-testid={`aqe-status-${target.ord}`}></span>
+  <details class="aqe-help" data-testid={`aqe-help-${target.ord}`}>
+    <summary class="aqe-help-summary" title="Show editor help">
+      <EditorCommandIcon icon="circle-help" />
+      <span>Help</span>
+    </summary>
+    <div class="aqe-help-body">
+      <p>Holding Shift on the graph selects a region. Playing with a selected region plays only that region; Repeat loops the selected region, or the full graph when no region is selected.</p>
+      <p>Play starts or pauses audio. Graph shows the pitch and loudness graph. Folder opens the current audio file. -L and -R trim 100 ms from the left or right. Shorten Pauses speeds up long internal pauses. Denoise Standard uses DeepFilterNet, and Denoise MP-SENet uses MP-SENet. Slower and Faster change speed. Volume - and Volume + change loudness. Undo and Redo move through generated audio edits. Settings opens the add-on settings.</p>
+      <p>In the graph, grey is loudness and lines are pitch of the voice.</p>
+    </div>
+  </details>
   <div
     class="aqe-visualizer"
     data-aqe-field-ord={target.ord}
@@ -87,7 +136,7 @@
     data-selection-draft-active="false"
     data-selection-draft-start-ms=""
     data-selection-draft-end-ms=""
-    data-repeat-enabled={window.__AQE_EDITOR_CONFIG__?.repeatPlaybackByDefault === true ? "true" : "false"}
+    data-repeat-enabled={repeatDefault ? "true" : "false"}
     data-testid={`aqe-graph-${target.ord}`}
     hidden
   >
@@ -157,190 +206,3 @@
     </div>
   </div>
 </div>
-
-<style>
-  :global(.aqe-controls) {
-    align-items: center;
-    border: 1px solid;
-    border-radius: 10px;
-    color: inherit;
-    color-scheme: light dark;
-    display: flex;
-    flex-wrap: wrap;
-    gap: 5px;
-    justify-content: flex-start;
-    margin: 4px 0 10px;
-    padding: 6px 8px;
-  }
-  :global(.aqe-button) {
-    align-items: center;
-    background: transparent;
-    border: 1px solid;
-    border-radius: 7px;
-    color: inherit;
-    cursor: pointer;
-    display: inline-flex;
-    font-size: 12px;
-    font-weight: 700;
-    gap: 5px;
-    min-height: 27px;
-    padding: 4px 8px;
-  }
-  :global(.aqe-button-icon) {
-    color: currentColor;
-    display: inline-flex;
-    flex: 0 0 auto;
-    line-height: 0;
-  }
-  :global(.aqe-button-icon svg) {
-    display: block;
-    stroke: currentColor;
-  }
-  :global(.aqe-button-icon-active) {
-    display: none;
-  }
-  :global(.aqe-button[data-aqe-button-state="pause"] .aqe-button-icon-default),
-  :global(.aqe-button[data-aqe-button-state="redraw"] .aqe-button-icon-default) {
-    display: none;
-  }
-  :global(.aqe-button[data-aqe-button-state="pause"] .aqe-button-icon-active),
-  :global(.aqe-button[data-aqe-button-state="redraw"] .aqe-button-icon-active) {
-    display: inline-flex;
-  }
-  :global(.aqe-button:hover) {
-    text-decoration: underline;
-  }
-  :global(.aqe-controls[data-busy="true"]) {
-    border-style: dashed;
-  }
-  :global(.aqe-button:disabled) {
-    cursor: not-allowed;
-    opacity: 0.45;
-  }
-  :global(.aqe-button:disabled:hover) {
-    text-decoration: none;
-  }
-  :global(.aqe-repeat-toggle) {
-    align-items: center;
-    display: inline-flex;
-    font-size: 12px;
-    font-weight: 700;
-    gap: 4px;
-    padding: 0 2px;
-  }
-  :global(.aqe-repeat-checkbox) {
-    margin: 0;
-  }
-  :global(.aqe-repeat-checkbox:disabled) {
-    cursor: not-allowed;
-    opacity: 0.45;
-  }
-  :global(.aqe-status) {
-    font-size: 12px;
-    margin-left: 4px;
-  }
-  :global(.aqe-status[data-kind="error"]) {
-    font-weight: 700;
-  }
-  :global(.aqe-visualizer) {
-    align-self: stretch;
-    flex: 1 0 100%;
-    max-width: none;
-    min-width: 0;
-    width: 100%;
-  }
-  :global(.aqe-visualizer[hidden]) {
-    display: none;
-  }
-  :global(.aqe-visualizer[data-has-track="false"] .aqe-visualizer-svg),
-  :global(.aqe-visualizer[data-has-track="false"] .aqe-cursor-label) {
-    display: none;
-  }
-  :global(.aqe-visualizer-svg) {
-    border: 1px solid;
-    border-radius: 8px;
-    color: inherit;
-    display: block;
-    height: 150px;
-    margin-top: 4px;
-    width: 100%;
-  }
-  :global(.aqe-intensity) {
-    fill: currentColor;
-    opacity: 0.12;
-    stroke: none;
-  }
-  :global(.aqe-selection) {
-    fill: currentColor;
-    opacity: 0.16;
-    pointer-events: none;
-  }
-  :global(.aqe-selection-draft) {
-    opacity: 0.24;
-  }
-  :global(.aqe-selection-edge) {
-    opacity: 0.65;
-    pointer-events: none;
-    stroke: currentColor;
-    stroke-dasharray: 3 3;
-    stroke-width: 1;
-  }
-  :global(.aqe-pitch-path) {
-    fill: none;
-    opacity: 0.9;
-    stroke: currentColor;
-    stroke-linecap: round;
-    stroke-linejoin: round;
-    stroke-width: 2;
-  }
-  :global(.aqe-cursor) {
-    opacity: 0.8;
-    pointer-events: none;
-    stroke: currentColor;
-    stroke-width: 1.5;
-  }
-  :global(.aqe-hz-label),
-  :global(.aqe-x-label) {
-    fill: currentColor;
-    font-size: 11px;
-    opacity: 0.8;
-  }
-  :global(.aqe-x-label) {
-    text-anchor: middle;
-  }
-  :global(.aqe-x-tick) {
-    opacity: 0.5;
-    stroke: currentColor;
-    stroke-width: 1;
-  }
-  :global(.aqe-visualizer-meta) {
-    align-items: center;
-    display: flex;
-    font-size: 12px;
-    gap: 8px;
-    justify-content: flex-start;
-    margin-top: 2px;
-  }
-  :global(.aqe-spinner) {
-    animation: aqe-spin 800ms linear infinite;
-    border: 2px solid currentColor;
-    border-right-color: transparent;
-    border-radius: 999px;
-    box-sizing: border-box;
-    display: inline-block;
-    height: 12px;
-    opacity: 0.75;
-    width: 12px;
-  }
-  :global(.aqe-spinner[hidden]) {
-    display: none;
-  }
-  :global(.aqe-visualizer-status[data-kind="error"]) {
-    font-weight: 700;
-  }
-  @keyframes aqe-spin {
-    to {
-      transform: rotate(360deg);
-    }
-  }
-</style>

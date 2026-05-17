@@ -19,9 +19,10 @@ CMD_FASTER = "aqe:faster"
 CMD_VOLUME_DOWN = "aqe:volume-down"
 CMD_VOLUME_UP = "aqe:volume-up"
 CMD_REMOVE_PAUSES = "aqe:remove-pauses"
-CMD_REMOVE_NOISE = "aqe:remove-noise"
-CMD_SIDON = "aqe:sidon"
+CMD_DENOISE_STANDARD = "aqe:denoise-standard"
 CMD_MP_SENET = "aqe:mp-senet"
+CMD_SETTINGS = "aqe:settings"
+CMD_REDO = "aqe:redo"
 
 BRIDGE_COMMANDS = (
     "aqe:scan",
@@ -38,10 +39,11 @@ BRIDGE_COMMANDS = (
     CMD_VOLUME_DOWN,
     CMD_VOLUME_UP,
     CMD_REMOVE_PAUSES,
-    CMD_REMOVE_NOISE,
-    CMD_SIDON,
+    CMD_DENOISE_STANDARD,
     CMD_MP_SENET,
     "aqe:undo",
+    CMD_REDO,
+    CMD_SETTINGS,
 )
 
 PROCESSING_COMMANDS = (

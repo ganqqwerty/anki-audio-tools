@@ -13,11 +13,11 @@
 </script>
 
 <footer class="footer">
-  <button type="button" class="btn btn-secondary" onclick={onResetDefaults}>
+  <button type="button" class="btn btn-secondary" data-testid="settings-reset-defaults" onclick={onResetDefaults}>
     Reset Defaults
   </button>
   <div class="footer-actions">
-    <button type="button" class="btn btn-secondary" onclick={onCancel}>
+    <button type="button" class="btn btn-secondary" data-testid="settings-cancel" onclick={onCancel}>
       Cancel
     </button>
     <button type="button" class="btn btn-primary" data-testid="settings-save" onclick={onSave}>

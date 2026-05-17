@@ -202,16 +202,16 @@ def test_show_graph_by_default_checkbox_toggles_and_saves_in_one_session(anki_mw
 
 def test_diagnostics_can_copy_support_report_and_open_log_file(anki_mw) -> None:
     from anki_audio_quick_editor.support import (
-        clear_latest_sidon_support_incident,
-        record_latest_sidon_support_incident,
+        clear_latest_mp_senet_support_incident,
+        record_latest_mp_senet_support_incident,
     )
 
-    clear_latest_sidon_support_incident()
-    record_latest_sidon_support_incident(
-        operation="sidon_restore",
+    clear_latest_mp_senet_support_incident()
+    record_latest_mp_senet_support_incident(
+        operation="mp_senet_denoise",
         media_filename="3d8ca69aee6.mp3",
         source_path="/tmp/3d8ca69aee6.mp3",
-        user_message="Sidon speech restoration failed.",
+        user_message="MP-SENet denoise failed.",
         exception_type="AudioProcessingError",
     )
     dialog = _open_settings_dialog(anki_mw)
@@ -221,7 +221,7 @@ def test_diagnostics_can_copy_support_report_and_open_log_file(anki_mw) -> None:
 
     wait_for_condition(
         lambda: "3d8ca69aee6.mp3" in QApplication.clipboard().text()
-        and "Sidon speech restoration failed." in QApplication.clipboard().text(),
+        and "MP-SENet denoise failed." in QApplication.clipboard().text(),
         timeout=5.0,
     )
 

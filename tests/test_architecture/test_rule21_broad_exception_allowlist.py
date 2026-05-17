@@ -29,12 +29,6 @@ BROAD_EXCEPTION_ALLOWLIST: tuple[BroadExceptionAllowance, ...] = (
     ),
     BroadExceptionAllowance(
         "audio_processor",
-        "render_sidon_audio",
-        1,
-        "External Sidon runtime boundary records support context before surfacing an add-on error.",
-    ),
-    BroadExceptionAllowance(
-        "audio_processor",
         "render_mp_senet_audio",
         1,
         "External MP-SENet runtime boundary records support context before surfacing an add-on error.",
@@ -78,12 +72,6 @@ BROAD_EXCEPTION_ALLOWLIST: tuple[BroadExceptionAllowance, ...] = (
     BroadExceptionAllowance(
         "diagnostics",
         "build_deep_filter_health",
-        1,
-        "Diagnostic external-tool probe reports availability instead of raising.",
-    ),
-    BroadExceptionAllowance(
-        "diagnostics",
-        "build_sidon_health",
         1,
         "Diagnostic external-tool probe reports availability instead of raising.",
     ),

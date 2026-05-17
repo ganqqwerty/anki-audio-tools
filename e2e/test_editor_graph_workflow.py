@@ -152,6 +152,67 @@ def test_show_graph_default_setting_change_applies_to_later_editor_loads(
         parent.close()
 
 
+def test_editor_settings_save_refreshes_current_editor_repeat_default(
+    anki_mw,
+    ffmpeg_config,
+) -> None:
+    import anki_audio_quick_editor
+    from anki_audio_quick_editor.settings import SettingsDialog
+
+    media_dir = Path(anki_mw.col.media.dir())
+    source = media_dir / "editor_settings_repeat_source.wav"
+    generate_tone(ffmpeg_config, source, duration_s=0.8)
+    note = _basic_audio_note(anki_mw, source.name)
+    _configure_ffmpeg(anki_mw, ffmpeg_config, repeat_playback_by_default=False)
+
+    editor, parent = _open_editor(anki_mw, note)
+    try:
+        wait_for_selector(editor.web, _button_selector("aqe:settings"), timeout=10.0)
+        wait_for_js_condition(
+            editor.web,
+            "document.querySelector('[data-testid=\"aqe-repeat-0\"]')?.getAttribute('aria-pressed')",
+            lambda value: value == "false",
+            timeout=5.0,
+        )
+        click_selector(editor.web, _button_selector("aqe:settings"), timeout=5.0)
+        QApplication.processEvents()
+        wait_for_condition(
+            lambda: isinstance(anki_audio_quick_editor._settings_dialog, SettingsDialog)
+            and anki_audio_quick_editor._settings_dialog.isVisible(),
+            timeout=5.0,
+        )
+        dialog = anki_audio_quick_editor._settings_dialog
+        checkbox_selector = '[data-testid="repeat-playback-by-default"]'
+        save_selector = '[data-testid="settings-save"]'
+        wait_for_js_condition(
+            dialog,
+            f"document.querySelector({json.dumps(checkbox_selector)})?.checked",
+            lambda value: value is False,
+            timeout=5.0,
+        )
+        click_selector(dialog, checkbox_selector, timeout=5.0)
+
+        with patch.object(
+            anki_mw.addonManager,
+            "writeConfig",
+            wraps=anki_mw.addonManager.writeConfig,
+        ) as mock_write:
+            click_selector(dialog, save_selector, timeout=5.0)
+            wait_for_condition(lambda: mock_write.called, timeout=5.0)
+
+        saved_config = mock_write.call_args.args[1]
+        assert saved_config["repeat_playback_by_default"] is True
+        wait_for_js_condition(
+            editor.web,
+            "document.querySelector('[data-testid=\"aqe-repeat-0\"]')?.getAttribute('aria-pressed')",
+            lambda value: value == "true",
+            timeout=10.0,
+        )
+    finally:
+        editor.set_note(None)
+        parent.close()
+
+
 def test_visualizer_renders_pitch_intensity_labels_and_cursor(anki_mw, ffmpeg_config) -> None:
     media_dir = Path(anki_mw.col.media.dir())
     source = media_dir / "editor_visualizer_source.wav"

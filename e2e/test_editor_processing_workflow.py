@@ -3,8 +3,11 @@
 from __future__ import annotations
 
 import json
+import subprocess
 from pathlib import Path
 from unittest.mock import patch
+
+import pytest
 
 from e2e.editor_audio_generation_helpers import _fake_deep_filter_executable
 from e2e.editor_graph_helpers import (
@@ -86,19 +89,22 @@ def test_each_processing_button_updates_field_to_new_real_audio(
             lambda state: state["labels"]
             == [
                 "Play",
+                "Repeat",
                 "Graph",
                 "Folder",
                 "-L",
                 "-R",
                 "Shorten Pauses",
-                "Sidon",
+                "Denoise",
+                "Standard",
                 "MP-SENet",
-                "Remove noise",
                 "Slower",
                 "Faster",
                 "Volume -",
                 "Volume +",
                 "Undo",
+                "Redo",
+                "Settings",
             ]
             and all(count >= 1 for count in state["iconsPerButton"])
             and state["iconStrokeValues"]
@@ -138,46 +144,6 @@ def test_each_processing_button_updates_field_to_new_real_audio(
         editor.set_note(None)
         parent.close()
         _cleanup_artifact_dirs(artifact_root, source)
-
-
-def test_sidon_failure_shows_support_hint_without_mutating_note(
-    anki_mw,
-    ffmpeg_config,
-    monkeypatch,
-) -> None:
-    media_dir = Path(anki_mw.col.media.dir())
-    source = media_dir / "editor_sidon_failure_source.wav"
-    generate_tone(ffmpeg_config, source, duration_s=0.8)
-    original_field = f"Prompt [sound:{source.name}]"
-    note = _basic_audio_note(anki_mw, source.name)
-    _configure_ffmpeg(anki_mw, ffmpeg_config)
-    monkeypatch.setattr(
-        "anki_audio_quick_editor.editor_integration.render_sidon_audio",
-        lambda *_args, **_kwargs: (_ for _ in ()).throw(
-            RuntimeError("Sidon speech restoration failed.")
-        ),
-    )
-
-    editor, parent = _open_editor(anki_mw, note)
-    try:
-        click_selector(editor.web, _button_selector("aqe:sidon"), timeout=10.0)
-        status = wait_for_js_condition(
-            editor.web,
-            _processing_status_js(),
-            lambda value: value is not None
-            and value["kind"] == "error"
-            and "Sidon speech restoration failed." in value["text"]
-            and "Open Settings > Diagnostics to copy logs for the developer." in value["text"],
-            timeout=10.0,
-        )
-
-        assert status["title"] == ""
-        assert note.fields[0] == original_field
-        assert _sound_filename(note.fields[0]) == source.name
-        assert not list(media_dir.glob("editor_sidon_failure_source__aqe_*.mp3"))
-    finally:
-        editor.set_note(None)
-        parent.close()
 
 
 def test_ffmpeg_command_status_respects_settings_flag(anki_mw, ffmpeg_config) -> None:
@@ -281,6 +247,99 @@ def test_undo_restores_previous_generated_reference(anki_mw, ffmpeg_config) -> N
         parent.close()
 
 
+def test_processing_undo_redo_and_new_edit_clears_redo(anki_mw, ffmpeg_config) -> None:
+    media_dir = Path(anki_mw.col.media.dir())
+    source = media_dir / "editor_redo_stack_source.wav"
+    generate_tone(ffmpeg_config, source, duration_s=2.0)
+    note = _basic_audio_note(anki_mw, source.name)
+    _configure_ffmpeg(anki_mw, ffmpeg_config)
+
+    editor, parent = _open_editor(anki_mw, note)
+    try:
+        wait_for_selector(editor.web, _button_selector("aqe:trim-left"), timeout=10.0)
+        _click_graph_and_wait(editor, lambda value: value["sourceFilename"] == source.name)
+
+        first_generated = _click_and_wait_for_new_file(
+            editor,
+            note,
+            media_dir,
+            "aqe:trim-left",
+            source.name,
+        )
+        _wait_for_visualizer_track(
+            editor,
+            lambda value: value["sourceFilename"] == first_generated,
+            timeout=10.0,
+        )
+        second_generated = _click_and_wait_for_new_file(
+            editor,
+            note,
+            media_dir,
+            "aqe:volume-up",
+            first_generated,
+        )
+        _wait_for_visualizer_track(
+            editor,
+            lambda value: value["sourceFilename"] == second_generated,
+            timeout=10.0,
+        )
+
+        click_selector(editor.web, _button_selector("aqe:undo"), timeout=5.0)
+        wait_for_condition(
+            lambda: _sound_filename(note.fields[0]) == first_generated,
+            timeout=5.0,
+            message="Undo did not restore the previous generated reference",
+        )
+        click_selector(editor.web, _button_selector("aqe:redo"), timeout=5.0)
+        wait_for_condition(
+            lambda: _sound_filename(note.fields[0]) == second_generated,
+            timeout=5.0,
+            message="Redo did not restore the undone generated reference",
+        )
+
+        click_selector(editor.web, _button_selector("aqe:undo"), timeout=5.0)
+        wait_for_condition(
+            lambda: _sound_filename(note.fields[0]) == first_generated,
+            timeout=5.0,
+            message="Second undo did not restore the previous generated reference",
+        )
+        third_generated = _click_and_wait_for_new_file(
+            editor,
+            note,
+            media_dir,
+            "aqe:trim-right",
+            first_generated,
+        )
+        assert third_generated not in {first_generated, second_generated}
+        wait_for_js_condition(
+            editor.web,
+            f"""
+            (() => {{
+              const controls = document.querySelector('.aqe-controls[data-aqe-field-ord="0"]');
+              const redo = document.querySelector({_button_selector("aqe:redo")!r});
+              return controls?.dataset.aqeSourceFilename === {third_generated!r}
+                && redo !== null
+                && redo.disabled === false;
+            }})()
+            """,
+            lambda value: value is True,
+            timeout=5.0,
+        )
+
+        click_selector(editor.web, _button_selector("aqe:redo"), timeout=5.0)
+        redo_status = wait_for_js_condition(
+            editor.web,
+            _processing_status_js(),
+            lambda value: value is not None and value["text"] == "Nothing to redo.",
+            timeout=5.0,
+        )
+        assert redo_status["kind"] == "info"
+        assert _sound_filename(note.fields[0]) == third_generated
+    finally:
+        editor.set_note(None)
+        parent.close()
+
+
 def test_fast_clicks_are_ignored_while_processing(anki_mw, ffmpeg_config) -> None:
     media_dir = Path(anki_mw.col.media.dir())
     source = media_dir / "editor_fast_click_source.wav"
@@ -372,6 +431,113 @@ def test_three_audio_fields_fast_cross_clicks_lock_globally_and_do_not_corrupt_f
     finally:
         editor.set_note(None)
         parent.close()
+
+
+@pytest.mark.parametrize(
+    "command",
+    [
+        "aqe:trim-left",
+        "aqe:faster",
+        "aqe:volume-up",
+        "aqe:remove-pauses",
+        "aqe:mp-senet",
+    ],
+)
+def test_multi_field_processing_undo_redo_survives_graph_default_auto_analysis(
+    anki_mw,
+    ffmpeg_config,
+    tmp_path,
+    monkeypatch,
+    command: str,
+) -> None:
+    media_dir = Path(anki_mw.col.media.dir())
+    slug = command.removeprefix("aqe:").replace("-", "_")
+    sources = (
+        media_dir / f"editor_graph_default_{slug}_one.wav",
+        media_dir / f"editor_graph_default_{slug}_two.wav",
+        media_dir / f"editor_graph_default_{slug}_three.wav",
+    )
+    for index, source in enumerate(sources):
+        generate_tone(ffmpeg_config, source, duration_s=1.4 + index * 0.1)
+    note = _three_audio_field_note(anki_mw, tuple(source.name for source in sources))
+    fake_deep_filter, _deep_filter_log = _fake_deep_filter_executable(tmp_path)
+    if command == "aqe:mp-senet":
+        monkeypatch.setattr(
+            "anki_audio_quick_editor.editor_integration.render_mp_senet_audio",
+            _fake_mp_senet_renderer,
+        )
+    _configure_ffmpeg(
+        anki_mw,
+        ffmpeg_config,
+        deep_filter_path=str(fake_deep_filter),
+        deep_filter_post_filter=True,
+        show_graph_by_default=True,
+    )
+
+    editor, parent = _open_editor(anki_mw, note)
+    try:
+        _wait_for_visualizer_track(
+            editor,
+            lambda value: value["sourceFilename"] == sources[2].name,
+            ord_=2,
+            timeout=10.0,
+        )
+        generated_name = _click_and_wait_for_new_file(
+            editor,
+            note,
+            media_dir,
+            command,
+            sources[0].name,
+        )
+        _wait_for_visualizer_track(
+            editor,
+            lambda value: value["sourceFilename"] == sources[2].name,
+            ord_=2,
+            timeout=10.0,
+        )
+
+        click_selector(editor.web, _button_selector("aqe:undo"), timeout=5.0)
+        wait_for_condition(
+            lambda: _sound_filename(note.fields[0]) == sources[0].name,
+            timeout=5.0,
+            message=f"Undo after {command} failed after graph-default auto-analysis crossed fields",
+        )
+        _wait_for_visualizer_track(
+            editor,
+            lambda value: value["sourceFilename"] == sources[2].name,
+            ord_=2,
+            timeout=10.0,
+        )
+        click_selector(editor.web, _button_selector("aqe:redo"), timeout=5.0)
+        wait_for_condition(
+            lambda: _sound_filename(note.fields[0]) == generated_name,
+            timeout=5.0,
+            message=f"Redo after {command} failed after graph-default auto-analysis crossed fields",
+        )
+
+        assert _sound_filename(note.fields[1]) == sources[1].name
+        assert _sound_filename(note.fields[2]) == sources[2].name
+    finally:
+        editor.set_note(None)
+        parent.close()
+
+
+def _fake_mp_senet_renderer(source_path: Path, config, output_path: Path, **_kwargs) -> None:
+    subprocess.run(
+        [
+            config.ffmpeg_path,
+            "-y",
+            "-i",
+            str(source_path),
+            "-vn",
+            "-codec:a",
+            "libmp3lame",
+            str(output_path),
+        ],
+        check=True,
+        capture_output=True,
+        text=True,
+    )
 
 
 def test_settings_trim_step_controls_editor_button_behavior(anki_mw, ffmpeg_config) -> None:

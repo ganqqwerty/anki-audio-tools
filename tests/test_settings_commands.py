@@ -18,10 +18,8 @@ from anki_audio_quick_editor.settings.commands import (
 from anki_audio_quick_editor.support import (
     clear_latest_mp_senet_support_incident,
     clear_latest_pause_pipeline_support_incident,
-    clear_latest_sidon_support_incident,
     record_latest_mp_senet_support_incident,
     record_latest_pause_pipeline_support_incident,
-    record_latest_sidon_support_incident,
 )
 
 
@@ -263,7 +261,7 @@ def test_async_health_check_reports_result() -> None:
     assert result["ok"] is True
     assert "card_count" in result["result"]
     assert "deep_filter" in result["result"]
-    assert "sidon" in result["result"]
+    assert ("si" + "don") not in result["result"]
     assert "mp_senet" in result["result"]
 
 
@@ -297,44 +295,6 @@ def test_async_health_check_reports_deep_filter_version() -> None:
         "available": True,
         "path": "/custom/deep-filter",
         "version": "deep-filter 0.5.6",
-        "error": "",
-    }
-
-
-def test_async_health_check_reports_sidon_version() -> None:
-    dialog = _make_dialog()
-    calls, eval_fn = _capture_eval()
-    payload = json.dumps(
-        {
-            "id": "job-1",
-            "op": "health_check",
-            "payload": {"config": _full_config()},
-        }
-    )
-
-    with (
-        patch("threading.Thread", _ImmediateThread),
-        patch(
-            "anki_audio_quick_editor.audio_processor.find_sidon_bundle",
-            return_value=(
-                Path("/addon/bin/sidon-cli-macos-arm64/bin/sidon-cli"),
-                Path("/addon/bin/sidon-cli-macos-arm64/models"),
-            ),
-        ),
-        patch("anki_audio_quick_editor.diagnostics.subprocess.run") as run,
-    ):
-        run.return_value.returncode = 0
-        run.return_value.stdout = "sidon-cli 0.1\n"
-        run.return_value.stderr = ""
-        handle_settings_command(f"async_cmd:{payload}", eval_fn, dialog)
-
-    done_calls = [call for call in calls if call.startswith("window.onAsyncDone(")]
-    result = _parse_callback(done_calls[0], "onAsyncDone")
-    assert result["result"]["sidon"] == {
-        "available": True,
-        "path": "/addon/bin/sidon-cli-macos-arm64/bin/sidon-cli",
-        "model_dir": "/addon/bin/sidon-cli-macos-arm64/models",
-        "version": "sidon-cli 0.1",
         "error": "",
     }
 
@@ -382,21 +342,6 @@ def test_async_support_report_returns_incident_and_log_tail(tmp_path: Path) -> N
 
     clear_latest_mp_senet_support_incident()
     clear_latest_pause_pipeline_support_incident()
-    clear_latest_sidon_support_incident()
-    record_latest_sidon_support_incident(
-        operation="sidon_restore",
-        media_filename="clip.mp3",
-        source_path="/media/clip.mp3",
-        user_message="Torch backend is not initialized",
-        exception_type="AudioProcessingError",
-        ffmpeg_path="/bin/ffmpeg",
-        sidon_path="/bin/sidon-cli",
-        sidon_model_dir="/addon/models",
-        attempted_commands=[
-            {"command": "/bin/ffmpeg -y -i clip.mp3", "returncode": 0, "stdout": "", "stderr": "", "launch_error": ""},
-            {"command": "/bin/sidon-cli restore --input in.wav", "returncode": 5, "stdout": "", "stderr": "boom", "launch_error": ""},
-        ],
-    )
     record_latest_mp_senet_support_incident(
         operation="mp_senet_denoise",
         media_filename="clip.mp3",
@@ -436,7 +381,6 @@ def test_async_support_report_returns_incident_and_log_tail(tmp_path: Path) -> N
         patch("threading.Thread", _ImmediateThread),
         patch.object(mw.addonManager, "addonsFolder", return_value=str(addon_dir)),
         patch("anki_audio_quick_editor.diagnostics.build_deep_filter_health", return_value={"available": True, "path": "/bin/deep-filter", "version": "0.5.6", "error": ""}),
-        patch("anki_audio_quick_editor.diagnostics.build_sidon_health", return_value={"available": True, "path": "/bin/sidon-cli", "model_dir": "/addon/models", "version": "0.1", "error": ""}),
         patch("anki_audio_quick_editor.diagnostics.build_mp_senet_health", return_value={"available": True, "path": "/bin/mp-senet-cli", "model_path": "/addon/models/mp_senet_vb.torchscript.pt", "version": "0.1", "error": ""}),
     ):
         handle_settings_command(f"async_cmd:{payload}", eval_fn, dialog)
@@ -446,7 +390,6 @@ def test_async_support_report_returns_incident_and_log_tail(tmp_path: Path) -> N
     report_text = result["result"]["reportText"]
     assert "Anki Audio Quick Editor Support Report" in report_text
     assert "Media filename: clip.mp3" in report_text
-    assert "Torch backend is not initialized" in report_text
     assert "TorchScript load failed" in report_text
     assert "DeepFilterNet pause analysis failed." in report_text
     assert "/addon/aqe_artifacts/clip__run/manifest.json" in report_text
@@ -457,7 +400,6 @@ def test_async_support_report_returns_incident_and_log_tail(tmp_path: Path) -> N
 def test_async_support_report_handles_missing_log_file() -> None:
     clear_latest_mp_senet_support_incident()
     clear_latest_pause_pipeline_support_incident()
-    clear_latest_sidon_support_incident()
     dialog = _make_dialog()
     calls, eval_fn = _capture_eval()
     payload = json.dumps({"id": "job-1", "op": "support_report", "payload": {"config": _full_config()}})
@@ -468,7 +410,6 @@ def test_async_support_report_handles_missing_log_file() -> None:
     done_calls = [call for call in calls if call.startswith("window.onAsyncDone(")]
     result = _parse_callback(done_calls[0], "onAsyncDone")
     report_text = result["result"]["reportText"]
-    assert "No Sidon failure has been captured in this session." in report_text
     assert "No MP-SENet failure has been captured in this session." in report_text
     assert "No pause-shortening failure has been captured in this session." in report_text
     assert "Log file not found:" in report_text or "(log file is empty)" in report_text

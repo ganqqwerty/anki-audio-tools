@@ -28,15 +28,12 @@ from anki_audio_quick_editor.audio_processor import (
     build_mp_senet_command,
     build_mp_senet_prepare_command,
     build_playback_segment_filters,
-    build_sidon_command,
-    build_sidon_prepare_command,
     build_silencedetect_command,
     build_working_original_filters,
     find_deep_filter,
     find_ffmpeg,
     find_ffprobe,
     find_mp_senet_bundle,
-    find_sidon_bundle,
     format_ffmpeg_command,
     make_output_filename,
     make_playback_segment_filename,
@@ -45,7 +42,6 @@ from anki_audio_quick_editor.audio_processor import (
     render_mp_senet_audio,
     render_noise_reduced_audio,
     render_playback_segment,
-    render_sidon_audio,
     select_deep_filter_output,
     temp_final_path,
 )
@@ -55,15 +51,12 @@ from anki_audio_quick_editor.errors import (
     MissingDeepFilterError,
     MissingFfmpegError,
     MissingMpSenetError,
-    MissingSidonError,
 )
 from anki_audio_quick_editor.support import (
     clear_latest_mp_senet_support_incident,
     clear_latest_pause_pipeline_support_incident,
-    clear_latest_sidon_support_incident,
     latest_mp_senet_support_incident,
     latest_pause_pipeline_support_incident,
-    latest_sidon_support_incident,
 )
 
 FFMPEG_SKIP_REASON = "ffmpeg and ffprobe are required for audio rendering smoke tests"
@@ -201,41 +194,8 @@ def test_find_deep_filter_raises_when_missing(monkeypatch) -> None:
     monkeypatch.setattr("anki_audio_quick_editor.audio_processor._bundled_deep_filter_path", lambda: None)
     monkeypatch.setattr("anki_audio_quick_editor.audio_processor.shutil.which", lambda _name: None)
 
-    with pytest.raises(MissingDeepFilterError, match="DeepFilterNet.*Remove noise.*Shorten Pauses"):
+    with pytest.raises(MissingDeepFilterError, match="DeepFilterNet.*Standard denoise.*Shorten Pauses"):
         find_deep_filter()
-
-
-def test_find_sidon_bundle_uses_bundled_directory_when_complete(tmp_path: Path, monkeypatch) -> None:
-    bundled_dir = tmp_path / "sidon-cli-macos-arm64"
-    sidon_path = bundled_dir / "bin" / "sidon-cli"
-    model_dir = bundled_dir / "models"
-    sidon_path.parent.mkdir(parents=True)
-    model_dir.mkdir(parents=True)
-    sidon_path.write_text("")
-    (model_dir / "feature_extractor_cpu.pt").write_text("")
-    (model_dir / "decoder_cpu.pt").write_text("")
-
-    monkeypatch.setattr(
-        "anki_audio_quick_editor.audio_processor.expected_bundled_sidon_dir",
-        lambda: bundled_dir,
-    )
-
-    assert find_sidon_bundle() == (sidon_path, model_dir)
-
-
-def test_find_sidon_bundle_raises_when_bundle_is_incomplete(tmp_path: Path, monkeypatch) -> None:
-    bundled_dir = tmp_path / "sidon-cli-macos-arm64"
-    (bundled_dir / "bin").mkdir(parents=True)
-    (bundled_dir / "bin" / "sidon-cli").write_text("")
-    (bundled_dir / "models").mkdir(parents=True)
-
-    monkeypatch.setattr(
-        "anki_audio_quick_editor.audio_processor.expected_bundled_sidon_dir",
-        lambda: bundled_dir,
-    )
-
-    with pytest.raises(MissingSidonError, match="bundled sidon-cli runtime and model files"):
-        find_sidon_bundle()
 
 
 def test_find_mp_senet_bundle_uses_bundled_directory_when_complete(tmp_path: Path, monkeypatch) -> None:
@@ -484,25 +444,6 @@ def test_build_deep_filter_command_omits_post_filter_when_disabled(tmp_path: Pat
     )
 
 
-def test_build_sidon_prepare_command_uses_pcm_wav_output(tmp_path: Path) -> None:
-    command = build_sidon_prepare_command(
-        Path("/bin/ffmpeg"),
-        tmp_path / "source.mp3",
-        tmp_path / "input.wav",
-    )
-
-    assert command == (
-        "/bin/ffmpeg",
-        "-y",
-        "-i",
-        str(tmp_path / "source.mp3"),
-        "-vn",
-        "-codec:a",
-        "pcm_s16le",
-        str(tmp_path / "input.wav"),
-    )
-
-
 def test_build_mp_senet_prepare_command_uses_16khz_mono_pcm(tmp_path: Path) -> None:
     command = build_mp_senet_prepare_command(
         Path("/bin/ffmpeg"),
@@ -523,28 +464,6 @@ def test_build_mp_senet_prepare_command_uses_16khz_mono_pcm(tmp_path: Path) -> N
         "-codec:a",
         "pcm_s16le",
         str(tmp_path / "input.wav"),
-    )
-
-
-def test_build_sidon_command_includes_model_dir_and_json(tmp_path: Path) -> None:
-    command = build_sidon_command(
-        Path("/bin/sidon-cli"),
-        tmp_path / "input.wav",
-        tmp_path / "output.wav",
-        tmp_path / "models",
-    )
-
-    assert command == (
-        "/bin/sidon-cli",
-        "restore",
-        "--input",
-        str(tmp_path / "input.wav"),
-        "--output",
-        str(tmp_path / "output.wav"),
-        "--model-dir",
-        str(tmp_path / "models"),
-        "--overwrite",
-        "--json",
     )
 
 
@@ -1169,127 +1088,6 @@ def test_render_audio_pause_pipeline_records_launch_error_for_out_of_disk(
     assert incident is not None
     assert incident["manifest_path"] == str(manifest_path)
     assert incident["attempted_commands"][0]["launch_error"].startswith("Could not start working-audio preparation.")
-
-
-def test_render_sidon_audio_runs_prepare_restore_and_encode(
-    monkeypatch,
-    tmp_path: Path,
-) -> None:
-    clear_latest_sidon_support_incident()
-    calls: list[list[str]] = []
-    commands: list[tuple[str, ...]] = []
-
-    monkeypatch.setattr("anki_audio_quick_editor.audio_processor.find_ffmpeg", lambda _path: Path("/bin/ffmpeg"))
-    monkeypatch.setattr(
-        "anki_audio_quick_editor.audio_processor.find_sidon_bundle",
-        lambda: (Path("/bin/sidon-cli"), tmp_path / "models"),
-    )
-    monkeypatch.setattr("anki_audio_quick_editor.audio_processor.probe_duration_ms", lambda *_args: 1000)
-
-    def fake_run(cmd: list[str], capture_output: bool, text: bool, check: bool) -> SimpleNamespace:
-        calls.append(cmd)
-        if cmd[0] == "/bin/sidon-cli":
-            Path(cmd[cmd.index("--output") + 1]).write_bytes(b"restored")
-            return SimpleNamespace(returncode=0, stdout='{"ok":true}', stderr="")
-        return SimpleNamespace(returncode=0, stdout="", stderr="")
-
-    monkeypatch.setattr("anki_audio_quick_editor.audio_processor.subprocess.run", fake_run)
-
-    output = tmp_path / "restored.mp3"
-    result = render_sidon_audio(
-        tmp_path / "source.mp3",
-        AudioProcessingConfig(),
-        output_path=output,
-        on_command=commands.append,
-    )
-
-    assert calls[0] == [
-        "/bin/ffmpeg",
-        "-y",
-        "-i",
-        str(tmp_path / "source.mp3"),
-        "-vn",
-        "-codec:a",
-        "pcm_s16le",
-        calls[0][-1],
-    ]
-    assert calls[1][0] == "/bin/sidon-cli"
-    assert "--model-dir" in calls[1]
-    assert "--json" in calls[1]
-    assert calls[2][0:4] == ["/bin/ffmpeg", "-y", "-i", calls[2][3]]
-    assert calls[2][-5:] == ["-codec:a", "libmp3lame", "-q:a", "4", str(output)]
-    assert commands == [tuple(call) for call in calls]
-    assert result.output_path == output
-    assert result.command == tuple(calls[1])
-    assert result.duration_ms == 1000
-    assert latest_sidon_support_incident() is None
-
-
-def test_render_sidon_audio_reports_restore_errors(
-    monkeypatch,
-    tmp_path: Path,
-) -> None:
-    clear_latest_sidon_support_incident()
-    monkeypatch.setattr("anki_audio_quick_editor.audio_processor.find_ffmpeg", lambda _path: Path("/bin/ffmpeg"))
-    monkeypatch.setattr(
-        "anki_audio_quick_editor.audio_processor.find_sidon_bundle",
-        lambda: (Path("/bin/sidon-cli"), tmp_path / "models"),
-    )
-
-    def fake_run(cmd: list[str], capture_output: bool, text: bool, check: bool) -> SimpleNamespace:
-        if cmd[0] == "/bin/sidon-cli":
-            return SimpleNamespace(returncode=5, stdout='{"error":"Torch backend is not initialized"}', stderr="")
-        return SimpleNamespace(returncode=0, stdout="", stderr="")
-
-    monkeypatch.setattr("anki_audio_quick_editor.audio_processor.subprocess.run", fake_run)
-
-    with pytest.raises(AudioProcessingError, match="Torch backend is not initialized"):
-        render_sidon_audio(
-            tmp_path / "source.mp3",
-            AudioProcessingConfig(),
-            output_path=tmp_path / "restored.mp3",
-        )
-    incident = latest_sidon_support_incident()
-    assert incident is not None
-    assert incident["operation"] == "sidon_restore"
-    assert incident["media_filename"] == "source.mp3"
-    assert incident["ffmpeg_path"] == "/bin/ffmpeg"
-    assert incident["sidon_path"] == "/bin/sidon-cli"
-    assert len(incident["attempted_commands"]) == 2
-    assert incident["attempted_commands"][1]["command"].startswith("/bin/sidon-cli restore")
-    assert incident["attempted_commands"][1]["returncode"] == 5
-    assert incident["attempted_commands"][1]["stdout"] == '{"error":"Torch backend is not initialized"}'
-
-
-def test_render_sidon_audio_reports_launch_errors(
-    monkeypatch,
-    tmp_path: Path,
-) -> None:
-    clear_latest_sidon_support_incident()
-    monkeypatch.setattr("anki_audio_quick_editor.audio_processor.find_ffmpeg", lambda _path: Path("/bin/ffmpeg"))
-    monkeypatch.setattr(
-        "anki_audio_quick_editor.audio_processor.find_sidon_bundle",
-        lambda: (Path("/bin/sidon-cli"), tmp_path / "models"),
-    )
-
-    def fake_run(cmd: list[str], capture_output: bool, text: bool, check: bool) -> SimpleNamespace:
-        if cmd[0] == "/bin/sidon-cli":
-            raise PermissionError(13, "Permission denied", "/bin/sidon-cli")
-        return SimpleNamespace(returncode=0, stdout="", stderr="")
-
-    monkeypatch.setattr("anki_audio_quick_editor.audio_processor.subprocess.run", fake_run)
-
-    with pytest.raises(AudioProcessingError, match="Could not start Sidon speech restoration"):
-        render_sidon_audio(
-            tmp_path / "source.mp3",
-            AudioProcessingConfig(),
-            output_path=tmp_path / "restored.mp3",
-        )
-    incident = latest_sidon_support_incident()
-    assert incident is not None
-    assert incident["attempted_commands"][1]["launch_error"].startswith(
-        "Could not start Sidon speech restoration."
-    )
 
 
 def test_render_mp_senet_audio_runs_prepare_denoise_and_encode(

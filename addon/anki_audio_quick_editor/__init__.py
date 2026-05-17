@@ -6,6 +6,7 @@ import logging
 import logging.handlers
 import os
 import sys
+from collections.abc import Callable
 from pathlib import Path
 
 from ._version import __version__  # noqa: F401
@@ -73,15 +74,22 @@ def _apply_log_level() -> None:
     logger.setLevel(logging.DEBUG if config.get("debug_logging", False) else logging.INFO)
 
 
-def _open_settings() -> bool:
-    """Open the settings dialog and suppress Anki's JSON editor."""
+def _show_settings_dialog(on_saved: Callable[[], None] | None = None) -> None:
+    """Open the settings dialog and optionally run a callback after Save."""
     from .settings import SettingsDialog
 
     global _settings_dialog
     _settings_dialog = SettingsDialog(mw)
+    if on_saved is not None:
+        qconnect(_settings_dialog.accepted, on_saved)
     _settings_dialog.show()
     _settings_dialog.raise_()
     _settings_dialog.activateWindow()
+
+
+def _open_settings() -> bool:
+    """Open the settings dialog and suppress Anki's JSON editor."""
+    _show_settings_dialog()
     return False
 
 
@@ -89,7 +97,7 @@ def _setup_editor_integration() -> None:
     """Register editor hooks for inline audio controls."""
     from .editor_integration import register_editor_hooks
 
-    register_editor_hooks(gui_hooks)
+    register_editor_hooks(gui_hooks, settings_opener=_show_settings_dialog)
 
 
 def _setup_browser_integration() -> None:

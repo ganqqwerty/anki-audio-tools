@@ -24,6 +24,7 @@ from e2e.editor_note_helpers import (
     _open_editor,
     _processing_status_js,
     _sound_filename,
+    _three_audio_field_note,
     _wait_for_generated_mp3,
 )
 from e2e.helpers import (
@@ -186,7 +187,7 @@ def test_shorten_pauses_failure_leaves_note_unchanged_and_records_manifest(
         _cleanup_artifact_dirs(artifact_root, source)
 
 
-def test_remove_noise_button_runs_deep_filter_and_is_undoable(
+def test_standard_denoise_menu_runs_deep_filter_and_is_undoable(
     anki_mw,
     ffmpeg_config,
     tmp_path,
@@ -194,7 +195,7 @@ def test_remove_noise_button_runs_deep_filter_and_is_undoable(
     from anki_audio_quick_editor.audio_processor import probe_duration_ms
 
     media_dir = Path(anki_mw.col.media.dir())
-    source = media_dir / "editor_remove_noise_source.wav"
+    source = media_dir / "editor_standard_denoise_source.wav"
     generate_tone(ffmpeg_config, source, duration_s=1.2)
     original_bytes = source.read_bytes()
     fake_deep_filter, deep_filter_log = _fake_deep_filter_executable(tmp_path)
@@ -210,7 +211,7 @@ def test_remove_noise_button_runs_deep_filter_and_is_undoable(
     editor, parent = _open_editor(anki_mw, note)
     try:
         _click_graph_and_wait(editor, lambda value: value["sourceFilename"] == source.name)
-        click_selector(editor.web, _button_selector("aqe:remove-noise"), timeout=5.0)
+        click_selector(editor.web, _button_selector("aqe:denoise-standard"), timeout=5.0)
         generated_name = _wait_for_generated_mp3(note, media_dir, source.name)
 
         generated_path = media_dir / generated_name
@@ -238,14 +239,230 @@ def test_remove_noise_button_runs_deep_filter_and_is_undoable(
         wait_for_condition(
             lambda: _sound_filename(note.fields[0]) == source.name,
             timeout=5.0,
-            message="Undo did not restore the original audio reference after noise removal",
+            message="Undo did not restore the original audio reference after standard denoise",
         )
     finally:
         editor.set_note(None)
         parent.close()
 
 
-def test_remove_noise_button_matches_direct_deep_filter_output(
+def test_standard_denoise_menu_click_then_undo_and_redo_restores_reference(
+    anki_mw,
+    ffmpeg_config,
+    tmp_path,
+) -> None:
+    media_dir = Path(anki_mw.col.media.dir())
+    source = media_dir / "editor_standard_denoise_menu_undo_source.wav"
+    generate_tone(ffmpeg_config, source, duration_s=1.2)
+    fake_deep_filter, _deep_filter_log = _fake_deep_filter_executable(tmp_path)
+    note = _basic_audio_note(anki_mw, source.name)
+    _configure_ffmpeg(
+        anki_mw,
+        ffmpeg_config,
+        deep_filter_path=str(fake_deep_filter),
+        deep_filter_post_filter=True,
+    )
+
+    editor, parent = _open_editor(anki_mw, note)
+    try:
+        click_selector(editor.web, '[data-testid="aqe-denoise-menu-0"] > summary', timeout=10.0)
+        wait_for_js_condition(
+            editor.web,
+            'document.querySelector(\'[data-testid="aqe-denoise-menu-0"]\')?.open',
+            lambda value: value is True,
+            timeout=5.0,
+        )
+        click_selector(editor.web, _button_selector("aqe:denoise-standard"), timeout=5.0)
+        generated_name = _wait_for_generated_mp3(note, media_dir, source.name)
+
+        click_selector(editor.web, _button_selector("aqe:undo"), timeout=5.0)
+        wait_for_condition(
+            lambda: _sound_filename(note.fields[0]) == source.name,
+            timeout=5.0,
+            message="Undo after Denoise > Standard reported nothing to undo",
+        )
+
+        click_selector(editor.web, _button_selector("aqe:redo"), timeout=5.0)
+        wait_for_condition(
+            lambda: _sound_filename(note.fields[0]) == generated_name,
+            timeout=5.0,
+            message="Redo did not restore the Standard denoise output",
+        )
+    finally:
+        editor.set_note(None)
+        parent.close()
+
+
+def test_standard_denoise_menu_undo_with_user_meta_settings(
+    anki_mw,
+    ffmpeg_config,
+) -> None:
+    media_dir = Path(anki_mw.col.media.dir())
+    source = media_dir / "editor_standard_denoise_user_meta_source.wav"
+    generate_tone(ffmpeg_config, source, duration_s=1.2)
+    note = _basic_audio_note(anki_mw, source.name)
+    _configure_ffmpeg(
+        anki_mw,
+        ffmpeg_config,
+        debug_logging=True,
+        deep_filter_path="",
+        deep_filter_post_filter=True,
+        repeat_playback_by_default=False,
+        show_graph_by_default=True,
+    )
+
+    editor, parent = _open_editor(anki_mw, note)
+    try:
+        _wait_for_visualizer_track(
+            editor,
+            lambda value: value["sourceFilename"] == source.name,
+            timeout=10.0,
+        )
+        click_selector(editor.web, '[data-testid="aqe-denoise-menu-0"] > summary', timeout=10.0)
+        wait_for_js_condition(
+            editor.web,
+            'document.querySelector(\'[data-testid="aqe-denoise-menu-0"]\')?.open',
+            lambda value: value is True,
+            timeout=5.0,
+        )
+        click_selector(editor.web, _button_selector("aqe:denoise-standard"), timeout=5.0)
+        generated_name = _wait_for_generated_mp3(note, media_dir, source.name)
+        _wait_for_visualizer_track(
+            editor,
+            lambda value: value["sourceFilename"] == generated_name and value["cursorMs"] == 0,
+            timeout=10.0,
+        )
+
+        click_selector(editor.web, _button_selector("aqe:undo"), timeout=5.0)
+        wait_for_condition(
+            lambda: _sound_filename(note.fields[0]) == source.name,
+            timeout=5.0,
+            message="Undo after Denoise > Standard failed with user meta settings",
+        )
+    finally:
+        editor.set_note(None)
+        parent.close()
+
+
+def test_standard_denoise_menu_undo_with_user_meta_settings_on_local_sample(
+    anki_mw,
+    ffmpeg_config,
+) -> None:
+    sample_path = Path(
+        "/Users/iuriikatkov/Library/Application Support/Anki2/main2/collection.media/3d8ca69aee6.mp3"
+    )
+    if not sample_path.is_file():
+        pytest.skip(f"Local DeepFilterNet sample is unavailable: {sample_path}")
+
+    media_dir = Path(anki_mw.col.media.dir())
+    source = media_dir / sample_path.name
+    shutil.copyfile(sample_path, source)
+    note = _basic_audio_note(anki_mw, source.name)
+    _configure_ffmpeg(
+        anki_mw,
+        ffmpeg_config,
+        debug_logging=True,
+        deep_filter_path="",
+        deep_filter_post_filter=True,
+        repeat_playback_by_default=False,
+        show_graph_by_default=True,
+    )
+
+    editor, parent = _open_editor(anki_mw, note)
+    try:
+        _wait_for_visualizer_track(
+            editor,
+            lambda value: value["sourceFilename"] == source.name,
+            timeout=10.0,
+        )
+        click_selector(editor.web, '[data-testid="aqe-denoise-menu-0"] > summary', timeout=10.0)
+        wait_for_js_condition(
+            editor.web,
+            'document.querySelector(\'[data-testid="aqe-denoise-menu-0"]\')?.open',
+            lambda value: value is True,
+            timeout=5.0,
+        )
+        click_selector(editor.web, _button_selector("aqe:denoise-standard"), timeout=5.0)
+        generated_name = _wait_for_generated_mp3(note, media_dir, source.name)
+        _wait_for_visualizer_track(
+            editor,
+            lambda value: value["sourceFilename"] == generated_name and value["cursorMs"] == 0,
+            timeout=10.0,
+        )
+
+        click_selector(editor.web, _button_selector("aqe:undo"), timeout=5.0)
+        wait_for_condition(
+            lambda: _sound_filename(note.fields[0]) == source.name,
+            timeout=5.0,
+            message="Undo after Denoise > Standard failed on the local sample",
+        )
+    finally:
+        editor.set_note(None)
+        parent.close()
+
+
+def test_standard_denoise_menu_undo_with_user_meta_settings_and_multiple_audio_fields(
+    anki_mw,
+    ffmpeg_config,
+) -> None:
+    media_dir = Path(anki_mw.col.media.dir())
+    sources = (
+        media_dir / "editor_standard_denoise_multi_one.wav",
+        media_dir / "editor_standard_denoise_multi_two.wav",
+        media_dir / "editor_standard_denoise_multi_three.wav",
+    )
+    for index, source in enumerate(sources):
+        generate_tone(ffmpeg_config, source, duration_s=0.8 + index * 0.1)
+    note = _three_audio_field_note(anki_mw, tuple(source.name for source in sources))
+    _configure_ffmpeg(
+        anki_mw,
+        ffmpeg_config,
+        debug_logging=True,
+        deep_filter_path="",
+        deep_filter_post_filter=True,
+        repeat_playback_by_default=False,
+        show_graph_by_default=True,
+    )
+
+    editor, parent = _open_editor(anki_mw, note)
+    try:
+        _wait_for_visualizer_track(
+            editor,
+            lambda value: value["sourceFilename"] == sources[2].name,
+            timeout=10.0,
+            ord_=2,
+        )
+        click_selector(editor.web, '[data-testid="aqe-denoise-menu-0"] > summary', timeout=10.0)
+        wait_for_js_condition(
+            editor.web,
+            'document.querySelector(\'[data-testid="aqe-denoise-menu-0"]\')?.open',
+            lambda value: value is True,
+            timeout=5.0,
+        )
+        click_selector(editor.web, _button_selector("aqe:denoise-standard"), timeout=5.0)
+        generated_name = _wait_for_generated_mp3(note, media_dir, sources[0].name)
+        _wait_for_visualizer_track(
+            editor,
+            lambda value: value["sourceFilename"] == sources[2].name,
+            timeout=10.0,
+            ord_=2,
+        )
+
+        click_selector(editor.web, _button_selector("aqe:undo"), timeout=5.0)
+        wait_for_condition(
+            lambda: _sound_filename(note.fields[0]) == sources[0].name,
+            timeout=5.0,
+            message=(
+                "Undo after Denoise > Standard failed after graph auto-analysis "
+                f"advanced past {generated_name}"
+            ),
+        )
+    finally:
+        editor.set_note(None)
+        parent.close()
+
+
+def test_standard_denoise_menu_matches_direct_deep_filter_output(
     anki_mw,
     ffmpeg_config,
     tmp_path,
@@ -278,14 +495,14 @@ def test_remove_noise_button_matches_direct_deep_filter_output(
 
     editor, parent = _open_editor(anki_mw, note)
     try:
-        click_selector(editor.web, _button_selector("aqe:remove-noise"), timeout=5.0)
+        click_selector(editor.web, _button_selector("aqe:denoise-standard"), timeout=5.0)
         generated_name = _wait_for_generated_mp3(note, media_dir, source.name)
         generated_path = media_dir / generated_name
 
         ui_bytes = generated_path.read_bytes()
         direct_bytes = direct_output.read_bytes()
         assert ui_bytes == direct_bytes, (
-            "Remove noise button output differs from direct DeepFilterNet output: "
+            "Standard denoise menu output differs from direct DeepFilterNet output: "
             f"ui={generated_path} ({len(ui_bytes)} bytes), "
             f"direct={direct_output} ({len(direct_bytes)} bytes)"
         )
@@ -294,13 +511,13 @@ def test_remove_noise_button_matches_direct_deep_filter_output(
         parent.close()
 
 
-def test_remove_noise_failure_leaves_note_unchanged(
+def test_standard_denoise_failure_leaves_note_unchanged(
     anki_mw,
     ffmpeg_config,
     tmp_path,
 ) -> None:
     media_dir = Path(anki_mw.col.media.dir())
-    source = media_dir / "editor_remove_noise_failure_source.wav"
+    source = media_dir / "editor_standard_denoise_failure_source.wav"
     generate_tone(ffmpeg_config, source, duration_s=0.8)
     original_field = f"Prompt [sound:{source.name}]"
     fake_deep_filter, deep_filter_log = _fake_deep_filter_executable(tmp_path, fail=True)
@@ -314,7 +531,7 @@ def test_remove_noise_failure_leaves_note_unchanged(
 
     editor, parent = _open_editor(anki_mw, note)
     try:
-        click_selector(editor.web, _button_selector("aqe:remove-noise"), timeout=10.0)
+        click_selector(editor.web, _button_selector("aqe:denoise-standard"), timeout=10.0)
         status = wait_for_js_condition(
             editor.web,
             _processing_status_js(),
@@ -330,7 +547,7 @@ def test_remove_noise_failure_leaves_note_unchanged(
         assert json.loads(deep_filter_log.read_text(encoding="utf-8"))[-1].endswith(
             "input_48k_mono.wav"
         )
-        assert not list(media_dir.glob("editor_remove_noise_failure_source__aqe_*.mp3"))
+        assert not list(media_dir.glob("editor_standard_denoise_failure_source__aqe_*.mp3"))
     finally:
         editor.set_note(None)
         parent.close()

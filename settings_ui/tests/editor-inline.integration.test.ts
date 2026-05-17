@@ -138,10 +138,32 @@ describe("editor inline Svelte integration", () => {
     scan({ audioFieldIndices: [0] });
 
     expect(document.querySelectorAll(".aqe-controls")).toHaveLength(1);
-    expect(document.querySelector('[data-testid="aqe-button-0-graph"]')).toHaveTextContent("Graph");
+    const graphButton = document.querySelector<HTMLButtonElement>('[data-testid="aqe-button-0-graph"]')!;
+    const settingsButton = document.querySelector<HTMLButtonElement>('[data-testid="aqe-button-0-settings"]')!;
+    expect(graphButton).toHaveClass("aqe-icon-only");
+    expect(graphButton).toHaveAttribute("aria-label", "Analyze and show pitch/intensity graph");
+    expect(settingsButton).toHaveClass("aqe-icon-only");
     expect(document.querySelector('[data-testid="aqe-button-0-mp-senet"]')).toHaveTextContent("MP-SENet");
+    expect(document.querySelector('[data-testid="aqe-button-0-denoise-standard"]')).toHaveTextContent("Standard");
     expect(audioSourceForNode(document.getElementById("f0")!)).toBe("clip one.mp3");
     expect(fieldIndex(document.getElementById("f0")!, 7)).toBe(0);
+  });
+
+  it("dispatches denoise menu commands and renders collapsed help", () => {
+    initializeEditorRuntime({ audioFieldIndices: [0] });
+    scan({ audioFieldIndices: [0] });
+
+    const help = document.querySelector<HTMLDetailsElement>('[data-testid="aqe-help-0"]')!;
+    expect(help.open).toBe(false);
+    expect(help).toHaveTextContent("Holding Shift on the graph selects a region.");
+    expect(help).toHaveTextContent("grey is loudness and lines are pitch of the voice.");
+
+    document.querySelector<HTMLButtonElement>('[data-testid="aqe-button-0-denoise-standard"]')!.click();
+    expect(bridgeCommands()).toContain("aqe:denoise-standard");
+
+    window.__aqePrepareForNewNote?.();
+    document.querySelector<HTMLButtonElement>('[data-testid="aqe-button-0-mp-senet"]')!.click();
+    expect(bridgeCommands()).toContain("aqe:mp-senet");
   });
 
   it("removes orphaned controls from previous bundle instances before mounting", () => {
@@ -286,8 +308,14 @@ describe("editor inline Svelte integration", () => {
     initializeEditorRuntime({ audioFieldIndices: [0], repeatPlaybackByDefault: true });
     scan({ audioFieldIndices: [0], repeatPlaybackByDefault: true });
 
-    const repeat = document.querySelector<HTMLInputElement>('[data-testid="aqe-repeat-0"]');
-    expect(repeat).toBeChecked();
+    const repeat = document.querySelector<HTMLButtonElement>('[data-testid="aqe-repeat-0"]');
+    expect(repeat).toHaveAttribute("aria-pressed", "true");
+    expect(repeat).toHaveClass("aqe-icon-only");
+
+    repeat?.click();
+
+    expect(window.__aqeGraphStateForTest?.(0)?.repeatEnabled).toBe(false);
+    expect(repeat).toHaveAttribute("aria-pressed", "false");
   });
 
   it("auto-queues default graphs for all mounted audio fields", async () => {
@@ -502,7 +530,7 @@ describe("editor inline Svelte integration", () => {
     const svg = document.querySelector<SVGSVGElement>('[data-testid="aqe-graph-svg-0"]')!;
     setGraphBounds(svg);
     dragGraphSelection(svg, 0.25, 0.75);
-    document.querySelector<HTMLInputElement>('[data-testid="aqe-repeat-0"]')!.click();
+    document.querySelector<HTMLButtonElement>('[data-testid="aqe-repeat-0"]')!.click();
     const audio = prepareHtmlAudio();
 
     document.querySelector<HTMLButtonElement>('[data-testid="aqe-button-0-play"]')!.click();
@@ -530,7 +558,7 @@ describe("editor inline Svelte integration", () => {
     const svg = document.querySelector<SVGSVGElement>('[data-testid="aqe-graph-svg-0"]')!;
     setGraphBounds(svg);
     dragGraphSelection(svg, 0.25, 0.75);
-    const repeat = document.querySelector<HTMLInputElement>('[data-testid="aqe-repeat-0"]')!;
+    const repeat = document.querySelector<HTMLButtonElement>('[data-testid="aqe-repeat-0"]')!;
     repeat.click();
     const audio = prepareHtmlAudio();
 
@@ -556,7 +584,7 @@ describe("editor inline Svelte integration", () => {
     const svg = document.querySelector<SVGSVGElement>('[data-testid="aqe-graph-svg-0"]')!;
     setGraphBounds(svg);
     dragGraphSelection(svg, 0.25, 0.75);
-    document.querySelector<HTMLInputElement>('[data-testid="aqe-repeat-0"]')!.click();
+    document.querySelector<HTMLButtonElement>('[data-testid="aqe-repeat-0"]')!.click();
 
     document.querySelector<HTMLButtonElement>('[data-testid="aqe-button-0-volume-up"]')!.click();
 
@@ -598,7 +626,7 @@ describe("editor inline Svelte integration", () => {
     setGraphBounds(firstSvg);
     setGraphBounds(secondSvg);
     dragGraphSelection(firstSvg, 0.2, 0.6);
-    document.querySelector<HTMLInputElement>('[data-testid="aqe-repeat-0"]')!.click();
+    document.querySelector<HTMLButtonElement>('[data-testid="aqe-repeat-0"]')!.click();
     dragGraphSelection(secondSvg, 0.3, 0.5);
     const firstAudio = prepareHtmlAudio(0);
     const secondAudio = prepareHtmlAudio(1);
@@ -634,13 +662,13 @@ describe("editor inline Svelte integration", () => {
 
     expect(bridgeCommands()).toContain("aqe:volume-up");
     expect(window.__aqeGraphStateForTest?.(0)?.allButtonsDisabled).toBe(true);
-    expect(window.__aqeGraphStateForTest?.(0)?.repeatCheckboxDisabled).toBe(true);
+    expect(window.__aqeGraphStateForTest?.(0)?.repeatControlDisabled).toBe(true);
     expect(document.querySelector('[data-testid="aqe-status-0"]')).toHaveTextContent("Processing...");
 
     window.__aqePrepareForNewNote?.();
 
     expect(window.__aqeGraphStateForTest?.(0)?.allButtonsDisabled).toBe(false);
-    expect(window.__aqeGraphStateForTest?.(0)?.repeatCheckboxDisabled).toBe(false);
+    expect(window.__aqeGraphStateForTest?.(0)?.repeatControlDisabled).toBe(false);
     expect(document.querySelector('[data-testid="aqe-status-0"]')).toHaveTextContent("");
   });
 

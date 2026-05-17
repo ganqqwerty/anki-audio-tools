@@ -88,9 +88,10 @@ describe("editor inline action workflows", () => {
     expect(mediaUrlForFilename("hello world.mp3")).toBe("hello%20world.mp3");
     expect(mediaUrlForFilename("かな.wav")).toBe("%E3%81%8B%E3%81%AA.wav");
     expect(mediaUrlForFilename("nested/clip.mp3")).toBe("nested/clip.mp3");
-    expect(commandSlugsForTest()["aqe:remove-noise"]).toBe("remove-noise");
-    expect(processingMessage("aqe:remove-noise")).toBe("Removing noise...");
-    expect(processingMessage("aqe:sidon")).toBe("Restoring speech...");
+    expect(commandSlugsForTest()["aqe:denoise-standard"]).toBe("denoise-standard");
+    expect(commandSlugsForTest()["aqe:redo"]).toBe("redo");
+    expect(commandSlugsForTest()["aqe:settings"]).toBe("settings");
+    expect(processingMessage("aqe:denoise-standard")).toBe("Denoising with Standard...");
     expect(processingMessage("aqe:mp-senet")).toBe("Denoising with MP-SENet...");
     expect(processingMessage("aqe:faster")).toBe("Processing...");
   });

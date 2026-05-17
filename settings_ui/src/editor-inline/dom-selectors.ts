@@ -21,17 +21,17 @@ export function playButton(ord: number): HTMLButtonElement | null {
   return buttonFor(ord, "aqe:play");
 }
 
-export function repeatCheckboxForOrd(ord: number): HTMLInputElement | null {
+export function repeatButtonForOrd(ord: number): HTMLButtonElement | null {
   const controls = controlsForOrd(ord);
-  return controls?.querySelector<HTMLInputElement>(".aqe-repeat-checkbox") ?? null;
+  return controls?.querySelector<HTMLButtonElement>(".aqe-repeat-button") ?? null;
 }
 
 export function allButtons(): HTMLButtonElement[] {
   return Array.from(document.querySelectorAll<HTMLButtonElement>(".aqe-button"));
 }
 
-export function allRepeatCheckboxes(): HTMLInputElement[] {
-  return Array.from(document.querySelectorAll<HTMLInputElement>(".aqe-repeat-checkbox"));
+export function allRepeatButtons(): HTMLButtonElement[] {
+  return Array.from(document.querySelectorAll<HTMLButtonElement>(".aqe-repeat-button"));
 }
 
 export function allVisualizers(): VisualizerElement[] {

@@ -21,7 +21,11 @@
     <span>Show ffmpeg commands while processing</span>
   </label>
   <label class="toggle">
-    <input type="checkbox" bind:checked={config.repeat_playback_by_default} />
+    <input
+      data-testid="repeat-playback-by-default"
+      type="checkbox"
+      bind:checked={config.repeat_playback_by_default}
+    />
     <span>Repeat playback by default</span>
   </label>
   <label class="toggle">

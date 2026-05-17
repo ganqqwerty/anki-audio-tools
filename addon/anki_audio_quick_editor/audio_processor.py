@@ -33,17 +33,14 @@ from .errors import (
     MissingDeepFilterError,
     MissingFfmpegError,
     MissingMpSenetError,
-    MissingSidonError,
 )
 from .support import (
     build_command_record,
     record_latest_mp_senet_support_incident,
     record_latest_pause_pipeline_support_incident,
-    record_latest_sidon_support_incident,
 )
 
 BUNDLED_DEEP_FILTER_VERSION = "0.5.6"
-BUNDLED_SIDON_VERSION = "0.1"
 BUNDLED_MP_SENET_VERSION = "0.1"
 FFMPEG_AUDIO_CODEC_ARG = "-codec:a"
 WAV_MIME_TYPE = "audio/wav"
@@ -52,9 +49,6 @@ _BUNDLED_DEEP_FILTER_BY_PLATFORM = {
     ("Darwin", "arm64"): _PACKAGE_DIR
     / "bin"
     / f"deep-filter-{BUNDLED_DEEP_FILTER_VERSION}-aarch64-apple-darwin",
-}
-_BUNDLED_SIDON_DIR_BY_PLATFORM = {
-    ("Darwin", "arm64"): _PACKAGE_DIR / "bin" / "sidon-cli-macos-arm64",
 }
 _BUNDLED_MP_SENET_DIR_BY_PLATFORM = {
     ("Darwin", "arm64"): _PACKAGE_DIR / "bin" / "mp-senet-cli-macos-arm64",
@@ -112,7 +106,7 @@ def find_deep_filter(configured_path: str = "") -> Path:
     if found:
         return Path(found)
     raise MissingDeepFilterError(
-        "DeepFilterNet's deep-filter executable is required for Remove noise and Shorten Pauses. "
+        "DeepFilterNet's deep-filter executable is required for Standard denoise and Shorten Pauses. "
         "Install DeepFilterNet and make sure deep-filter is available in PATH, or configure its "
         "path in add-on settings."
     )
@@ -123,46 +117,6 @@ def _bundled_deep_filter_path() -> Path | None:
     if binary is not None and binary.is_file():
         return binary
     return None
-
-
-def expected_bundled_sidon_dir() -> Path | None:
-    """Return the expected bundled Sidon directory for the current platform."""
-    return _BUNDLED_SIDON_DIR_BY_PLATFORM.get((platform.system(), platform.machine()))
-
-
-def expected_bundled_sidon_model_dir() -> Path | None:
-    """Return the expected bundled Sidon model directory for the current platform."""
-    bundled_dir = expected_bundled_sidon_dir()
-    if bundled_dir is None:
-        return None
-    return bundled_dir / "models"
-
-
-def find_sidon_bundle() -> tuple[Path, Path]:
-    """Return the bundled Sidon executable and model directory."""
-    bundled_dir = expected_bundled_sidon_dir()
-    if bundled_dir is None:
-        raise MissingSidonError(
-            "Sidon is only bundled for macOS arm64 right now."
-        )
-
-    sidon_path = bundled_dir / "bin" / "sidon-cli"
-    model_dir = bundled_dir / "models"
-    missing_paths = [
-        path
-        for path in (
-            sidon_path,
-            model_dir / "feature_extractor_cpu.pt",
-            model_dir / "decoder_cpu.pt",
-        )
-        if not path.is_file()
-    ]
-    if missing_paths:
-        raise MissingSidonError(
-            "Sidon requires the bundled sidon-cli runtime and model files. "
-            "Reinstall the add-on to restore them."
-        )
-    return sidon_path, model_dir
 
 
 def expected_bundled_mp_senet_dir() -> Path | None:
@@ -399,24 +353,6 @@ def build_filter_complex_render_command(
     )
 
 
-def build_sidon_prepare_command(
-    ffmpeg_path: Path,
-    source_path: Path,
-    output_wav_path: Path,
-) -> tuple[str, ...]:
-    """Build the ffmpeg command that prepares a PCM WAV for Sidon."""
-    return (
-        str(ffmpeg_path),
-        "-y",
-        "-i",
-        str(source_path),
-        "-vn",
-        FFMPEG_AUDIO_CODEC_ARG,
-        "pcm_s16le",
-        str(output_wav_path),
-    )
-
-
 def build_mp_senet_prepare_command(
     ffmpeg_path: Path,
     source_path: Path,
@@ -436,27 +372,6 @@ def build_mp_senet_prepare_command(
         FFMPEG_AUDIO_CODEC_ARG,
         "pcm_s16le",
         str(output_wav_path),
-    )
-
-
-def build_sidon_command(
-    sidon_path: Path,
-    input_wav_path: Path,
-    output_wav_path: Path,
-    model_dir: Path,
-) -> tuple[str, ...]:
-    """Build the Sidon command for one prepared WAV file."""
-    return (
-        str(sidon_path),
-        "restore",
-        "--input",
-        str(input_wav_path),
-        "--output",
-        str(output_wav_path),
-        "--model-dir",
-        str(model_dir),
-        "--overwrite",
-        "--json",
     )
 
 
@@ -809,94 +724,6 @@ def _run_audio_stage(
     return result
 
 
-def render_sidon_audio(
-    source_path: Path,
-    config: AudioProcessingConfig,
-    output_path: Path | None = None,
-    on_command: Callable[[tuple[str, ...]], None] | None = None,
-) -> AudioProcessingResult:
-    """Render a speech-restored MP3 using the bundled Sidon executable."""
-    ffmpeg_path: Path | None = None
-    sidon_path: Path | None = None
-    sidon_model_dir: Path | None = None
-    attempted_commands: list[dict[str, object]] = []
-    work_dir: Path | None = None
-    try:
-        ffmpeg_path = find_ffmpeg(config.ffmpeg_path)
-        sidon_path, sidon_model_dir = find_sidon_bundle()
-        if output_path is None:
-            output_path = Path(tempfile.mkstemp(prefix="aqe_sidon_", suffix=".mp3")[1])
-
-        work_dir = Path(tempfile.mkdtemp(prefix="aqe_sidon_"))
-        input_wav = work_dir / "input_pcm.wav"
-        restored_wav = work_dir / "restored.wav"
-
-        prepare_cmd = build_sidon_prepare_command(ffmpeg_path, source_path, input_wav)
-        prepare_result = _run_sidon_external_command(
-            prepare_cmd,
-            "Could not start audio preparation for Sidon.",
-            attempted_commands,
-            on_command,
-        )
-        if prepare_result.returncode != 0:
-            raise AudioProcessingError(
-                _render_external_error_message(
-                    prepare_result,
-                    "Could not prepare audio for Sidon.",
-                )
-            )
-
-        sidon_cmd = build_sidon_command(
-            sidon_path,
-            input_wav,
-            restored_wav,
-            sidon_model_dir,
-        )
-        sidon_result = _run_sidon_external_command(
-            sidon_cmd,
-            "Could not start Sidon speech restoration.",
-            attempted_commands,
-            on_command,
-        )
-        if sidon_result.returncode != 0:
-            raise AudioProcessingError(
-                _render_external_error_message(sidon_result, "Sidon speech restoration failed.")
-            )
-        if not restored_wav.is_file():
-            raise AudioProcessingError("Sidon did not produce a WAV output.")
-
-        encode_cmd = build_mp3_encode_command(ffmpeg_path, restored_wav, output_path)
-        encode_result = _run_sidon_external_command(
-            encode_cmd,
-            "Could not start MP3 encoding for Sidon output.",
-            attempted_commands,
-            on_command,
-        )
-        if encode_result.returncode != 0:
-            raise AudioProcessingError(
-                _render_external_error_message(encode_result, "Could not encode Sidon output.")
-            )
-
-        return AudioProcessingResult(
-            output_path=output_path,
-            command=sidon_cmd,
-            duration_ms=probe_duration_ms(output_path, config),
-        )
-    except Exception as exc:
-        _record_sidon_failure(
-            source_path,
-            exc,
-            ffmpeg_path=ffmpeg_path,
-            sidon_path=sidon_path,
-            sidon_model_dir=sidon_model_dir,
-            attempted_commands=attempted_commands,
-        )
-        raise
-    finally:
-        if work_dir is not None:
-            shutil.rmtree(work_dir, ignore_errors=True)
-
-
 def render_mp_senet_audio(
     source_path: Path,
     config: AudioProcessingConfig,
@@ -988,20 +815,6 @@ def render_mp_senet_audio(
             shutil.rmtree(work_dir, ignore_errors=True)
 
 
-def _run_sidon_external_command(
-    command: tuple[str, ...],
-    launch_error_message: str,
-    attempted_commands: list[dict[str, object]],
-    on_command: Callable[[tuple[str, ...]], None] | None,
-) -> subprocess.CompletedProcess[str]:
-    return _run_recorded_external_command(
-        command,
-        launch_error_message,
-        attempted_commands,
-        on_command,
-    )
-
-
 def _run_recorded_external_command(
     command: tuple[str, ...],
     launch_error_message: str,
@@ -1044,28 +857,6 @@ def _record_mp_senet_failure(
         ffmpeg_path=str(ffmpeg_path) if ffmpeg_path is not None else "",
         mp_senet_path=str(mp_senet_path) if mp_senet_path is not None else "",
         mp_senet_model_path=str(mp_senet_model_path) if mp_senet_model_path is not None else "",
-        attempted_commands=attempted_commands,
-    )
-
-
-def _record_sidon_failure(
-    source_path: Path,
-    exc: Exception,
-    *,
-    ffmpeg_path: Path | None,
-    sidon_path: Path | None,
-    sidon_model_dir: Path | None,
-    attempted_commands: list[dict[str, object]],
-) -> None:
-    record_latest_sidon_support_incident(
-        operation="sidon_restore",
-        media_filename=source_path.name,
-        source_path=str(source_path.resolve()),
-        user_message=str(exc),
-        exception_type=type(exc).__name__,
-        ffmpeg_path=str(ffmpeg_path) if ffmpeg_path is not None else "",
-        sidon_path=str(sidon_path) if sidon_path is not None else "",
-        sidon_model_dir=str(sidon_model_dir) if sidon_model_dir is not None else "",
         attempted_commands=attempted_commands,
     )
 

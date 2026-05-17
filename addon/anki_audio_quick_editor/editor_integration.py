@@ -19,16 +19,16 @@ from .audio_processor import (
     render_mp_senet_audio,
     render_noise_reduced_audio,
     render_playback_segment,
-    render_sidon_audio,
     temp_final_path,
 )
 from .audio_state import AudioEditState, AudioProcessingConfig
 from .contracts_generated import FrontendLogPayload, ProsodyPayload
 from .editor_actions import (
     BRIDGE_COMMANDS,
+    CMD_DENOISE_STANDARD,
     CMD_MP_SENET,
-    CMD_REMOVE_NOISE,
-    CMD_SIDON,
+    CMD_REDO,
+    CMD_SETTINGS,
     apply_processing_command,
 )
 from .editor_ui import injection_script
@@ -45,13 +45,9 @@ from .sound_refs import (
 )
 from .support import (
     MP_SENET_SUPPORT_HINT,
-    SIDON_SUPPORT_HINT,
     format_mp_senet_support_log_block,
-    format_sidon_support_log_block,
     latest_mp_senet_support_incident,
-    latest_sidon_support_incident,
     record_latest_mp_senet_support_incident,
-    record_latest_sidon_support_incident,
 )
 
 logger = logging.getLogger(__name__)
@@ -60,6 +56,8 @@ CONTRACT_DECODE_ERRORS = (AssertionError, TypeError, ValueError)
 CURRENT_FIELD_AUDIO_MISSING = "No [sound:...] reference found in the current field."
 REFERENCED_AUDIO_MISSING = "The referenced audio file was not found in Anki's media folder."
 STILL_PROCESSING_MESSAGE = "Still processing. Please wait."
+SettingsOpener = Callable[[Callable[[], None] | None], None]
+_SETTINGS_OPENER: SettingsOpener | None = None
 
 @dataclass(frozen=True)
 class UndoEntry:
@@ -89,6 +87,19 @@ class UndoHistory:
         self.entries.clear()
 
 
+@dataclass(frozen=True)
+class EditSessionSnapshot:
+    """Edit state to restore after read-only cross-field work."""
+
+    state: AudioEditState | None
+    field_index: int | None
+    current_filename: str | None
+    undo_entries: tuple[UndoEntry, ...]
+    redo_entries: tuple[UndoEntry, ...]
+    source_mtime_ns: int | None
+    cursor_ms: int
+
+
 @dataclass
 class EditorSession:
     """Mutable edit session for a single editor instance."""
@@ -98,6 +109,7 @@ class EditorSession:
     field_index: int | None = None
     current_filename: str | None = None
     undo_history: UndoHistory = field(default_factory=UndoHistory)
+    redo_history: UndoHistory = field(default_factory=UndoHistory)
     processing: bool = False
     analysis_busy: bool = False
     source_mtime_ns: int | None = None
@@ -116,8 +128,14 @@ class EditorSession:
 _SESSIONS: "weakref.WeakKeyDictionary[Any, EditorSession]" = weakref.WeakKeyDictionary()
 
 
-def register_editor_hooks(gui_hooks: Any) -> None:
+def register_editor_hooks(
+    gui_hooks: Any,
+    *,
+    settings_opener: SettingsOpener | None = None,
+) -> None:
     """Register all editor hooks used by the add-on."""
+    global _SETTINGS_OPENER
+    _SETTINGS_OPENER = settings_opener
     gui_hooks.editor_did_init.append(_on_editor_did_init)
     gui_hooks.editor_will_load_note.append(_on_editor_will_load_note)
 
@@ -174,6 +192,7 @@ def _reset_editor_session_for_note_load(editor: Any, note_id: int | None = None)
     session.field_index = None
     session.current_filename = None
     session.undo_history.clear()
+    session.redo_history.clear()
     session.processing = False
     session.analysis_busy = False
     session.source_mtime_ns = None
@@ -213,8 +232,9 @@ def _handle_non_processing_command(editor: Any, command: str) -> bool:
         "aqe:show-file": _show_current_audio_file,
         "aqe:play-ended": _play_ended,
         "aqe:undo": _undo,
-        CMD_REMOVE_NOISE: _remove_noise_async,
-        CMD_SIDON: _sidon_async,
+        CMD_REDO: _redo,
+        CMD_SETTINGS: _open_settings_from_editor,
+        CMD_DENOISE_STANDARD: _denoise_standard_async,
         CMD_MP_SENET: _mp_senet_async,
     }
     handler = handlers.get(command)
@@ -336,6 +356,7 @@ def _replace_current_field_after_render(
     should_redraw_graph = False
     if session:
         session.undo_history.push(session.state, session.current_filename)
+        session.redo_history.clear()
         session.state = updated_state
         session.current_filename = saved_name
         session.field_index = field_index
@@ -369,23 +390,12 @@ def _render_failed(editor: Any, message: str) -> None:
     _eval_status(editor, message, kind="error")
 
 
-def _remove_noise_async(editor: Any) -> None:
+def _denoise_standard_async(editor: Any) -> None:
     _run_special_audio_transform_async(
         editor,
-        label="Removing noise",
-        failure_log_label="remove noise failed",
+        label="Denoising with Standard",
+        failure_log_label="standard denoise failed",
         renderer=render_noise_reduced_audio,
-    )
-
-
-def _sidon_async(editor: Any) -> None:
-    _run_special_audio_transform_async(
-        editor,
-        label="Restoring speech",
-        failure_log_label="sidon restore failed",
-        renderer=render_sidon_audio,
-        support_hint=SIDON_SUPPORT_HINT,
-        failure_context_recorder=_record_sidon_failure_context,
     )
 
 
@@ -474,6 +484,7 @@ def _replace_current_field_after_noise_removal(editor: Any, saved_name: str) -> 
     should_redraw_graph = False
     if session:
         session.undo_history.push(session.state, session.current_filename)
+        session.redo_history.clear()
         session.state = AudioEditState(source_file=saved_name)
         session.current_filename = saved_name
         session.field_index = field_index
@@ -750,25 +761,95 @@ def _undo(editor: Any) -> None:
     if previous is None:
         _eval_status(editor, "Nothing to undo.")
         return
+    _restore_history_entry(
+        editor,
+        session,
+        previous,
+        redo_current=True,
+        status=f"Undid last edit; restored {previous.filename}",
+    )
+
+
+def _redo(editor: Any) -> None:
+    session, _source_path = _session_and_source(editor)
+    if _is_busy(session):
+        _eval_status(editor, STILL_PROCESSING_MESSAGE, kind="processing")
+        return
+    next_entry = session.redo_history.pop()
+    if next_entry is None:
+        _eval_status(editor, "Nothing to redo.")
+        return
+    _restore_history_entry(
+        editor,
+        session,
+        next_entry,
+        redo_current=False,
+        status=f"Redid edit; restored {next_entry.filename}",
+    )
+
+
+def _restore_history_entry(
+    editor: Any,
+    session: EditorSession,
+    entry: UndoEntry,
+    *,
+    redo_current: bool,
+    status: str,
+) -> None:
     _stop_session_playback(session)
     field_index = _current_field_index(editor)
     field_html = editor.note.fields[field_index]
     selection = select_first_sound_reference(field_html)
     if selection.selected is None:
         raise AudioProcessingError(CURRENT_FIELD_AUDIO_MISSING)
+    current_state = session.state
+    current_filename = session.current_filename
     _dispose_editor_frontend_controls(editor)
-    editor.note.fields[field_index] = replace_sound_reference(field_html, selection.selected, previous.filename)
-    session.state = previous.state
-    session.current_filename = previous.filename
+    editor.note.fields[field_index] = replace_sound_reference(field_html, selection.selected, entry.filename)
+    if redo_current:
+        session.redo_history.push(current_state, current_filename)
+    else:
+        session.undo_history.push(current_state, current_filename)
+    session.state = entry.state
+    session.current_filename = entry.filename
     session.field_index = field_index
     session.cursor_ms = 0
     session.playback_active = False
     session.playback_paused = False
+    restored_path = Path(editor.mw.col.media.dir()) / safe_media_basename(entry.filename)
+    session.source_mtime_ns = restored_path.stat().st_mtime_ns if restored_path.is_file() else None
     editor.loadNote(focusTo=field_index)
-    _eval_status(editor, f"Undid last edit; restored {previous.filename}")
+    _eval_status(editor, status)
     _eval_playback_state(editor, field_index, "stopped", 0)
     if field_index in session.graph_active_fields:
         _request_graph_redraw(editor)
+
+
+def _open_settings_from_editor(editor: Any) -> None:
+    if _SETTINGS_OPENER is None:
+        _eval_status(editor, "Settings are not available.", kind="error")
+        return
+
+    def _after_saved() -> None:
+        _refresh_editor_after_settings_save(editor)
+
+    _SETTINGS_OPENER(_after_saved)
+    _eval_status(editor, "Opened settings.")
+
+
+def _refresh_editor_after_settings_save(editor: Any) -> None:
+    field_index = _current_field_index(editor)
+    session = _SESSIONS.get(editor)
+    if session is not None:
+        session.analysis_generation += 1
+        _stop_session_playback(session)
+        session.processing = False
+        session.analysis_busy = False
+        session.playback_active = False
+        session.playback_paused = False
+        session.playback_preparing = False
+    _dispose_editor_frontend_controls(editor)
+    editor.loadNote(focusTo=field_index)
 
 
 def _show_current_audio_file(editor: Any) -> None:
@@ -778,21 +859,6 @@ def _show_current_audio_file(editor: Any) -> None:
         return
     reveal_file(media_path)
     _eval_status(editor, f"Showing {media_path.name} in folder")
-
-def _record_sidon_failure_context(
-    source_path: Path,
-    config: AudioProcessingConfig,
-    exc: Exception,
-) -> None:
-    record_latest_sidon_support_incident(
-        operation="sidon_restore",
-        media_filename=source_path.name,
-        source_path=str(source_path.resolve()),
-        user_message=str(exc),
-        exception_type=type(exc).__name__,
-        ffmpeg_path=config.ffmpeg_path,
-    )
-
 
 def _record_mp_senet_failure_context(
     source_path: Path,
@@ -821,18 +887,6 @@ def _log_special_transform_failure(failure_log_label: str, message: str) -> None
             )
             return
         logger.exception("%s: %s", failure_log_label, message)
-        return
-    if failure_log_label != "sidon restore failed":
-        logger.exception("%s: %s", failure_log_label, message)
-        return
-    incident = latest_sidon_support_incident()
-    if incident:
-        logger.exception(
-            "%s: %s\n%s",
-            failure_log_label,
-            message,
-            format_sidon_support_log_block(incident),
-        )
         return
     logger.exception("%s: %s", failure_log_label, message)
 
@@ -901,6 +955,7 @@ def _reset_session_for_media(
     session.state = AudioEditState(source_file=filename)
     session.current_filename = filename
     session.undo_history.clear()
+    session.redo_history.clear()
     session.processing = False
     session.analysis_busy = False
     session.field_index = field_index
@@ -929,9 +984,16 @@ def _analyze_current_async(editor: Any) -> None:
     if existing and _is_busy(existing):
         _eval_visualizer_status(editor, STILL_PROCESSING_MESSAGE, kind="processing")
         return
-    session, current_path = _current_media_path(editor)
-    config = AudioProcessingConfig.from_config(_config(editor))
     field_index = _current_field_index(editor)
+    snapshot = _snapshot_edit_state_for_cross_field_analysis(existing, field_index)
+    try:
+        session, current_path = _current_media_path(editor)
+    except AudioQuickEditorError:
+        if existing is not None:
+            _restore_edit_state_snapshot(existing, snapshot)
+        raise
+    _restore_edit_state_snapshot(session, snapshot)
+    config = AudioProcessingConfig.from_config(_config(editor))
     _stop_session_playback(session)
     session.analysis_generation += 1
     generation = session.analysis_generation
@@ -949,15 +1011,52 @@ def _analyze_current_async(editor: Any) -> None:
     def _run() -> None:
         try:
             track = _analyze_prosody_cached(current_path, config)
-            _main(editor, lambda: _analysis_finished(editor, generation, track))
+            _main(editor, lambda: _analysis_finished(editor, generation, field_index, track))
         except Exception as exc:
             message = str(exc)
-            _main(editor, lambda: _analysis_failed(editor, generation, message))
+            _main(editor, lambda: _analysis_failed(editor, generation, field_index, message))
 
     threading.Thread(target=_run, daemon=True).start()
 
 
-def _analysis_finished(editor: Any, generation: int, track: ProsodyTrack) -> None:
+def _snapshot_edit_state_for_cross_field_analysis(
+    session: EditorSession | None,
+    field_index: int,
+) -> EditSessionSnapshot | None:
+    if session is None or session.field_index is None or session.field_index == field_index:
+        return None
+    return EditSessionSnapshot(
+        state=session.state,
+        field_index=session.field_index,
+        current_filename=session.current_filename,
+        undo_entries=tuple(session.undo_history.entries),
+        redo_entries=tuple(session.redo_history.entries),
+        source_mtime_ns=session.source_mtime_ns,
+        cursor_ms=session.cursor_ms,
+    )
+
+
+def _restore_edit_state_snapshot(
+    session: EditorSession,
+    snapshot: EditSessionSnapshot | None,
+) -> None:
+    if snapshot is None:
+        return
+    session.state = snapshot.state
+    session.field_index = snapshot.field_index
+    session.current_filename = snapshot.current_filename
+    session.undo_history.entries = list(snapshot.undo_entries)
+    session.redo_history.entries = list(snapshot.redo_entries)
+    session.source_mtime_ns = snapshot.source_mtime_ns
+    session.cursor_ms = snapshot.cursor_ms
+
+
+def _analysis_finished(
+    editor: Any,
+    generation: int,
+    field_index: int,
+    track: ProsodyTrack,
+) -> None:
     session = _SESSIONS.get(editor)
     if session is None or generation != session.analysis_generation:
         return
@@ -966,7 +1065,6 @@ def _analysis_finished(editor: Any, generation: int, track: ProsodyTrack) -> Non
     session.cursor_ms = clamp_cursor_ms(session.cursor_ms, track.duration_ms)
     payload = json.dumps(ProsodyPayload.from_dict(track.to_payload()).to_dict())
     cursor_payload = json.dumps(session.cursor_ms)
-    field_index = session.field_index if session.field_index is not None else _current_field_index(editor)
     editor.web.eval(
         "window.__aqeSetVisualizer && window.__aqeSetVisualizer("
         f"{json.dumps(int(field_index))}, {payload}, {cursor_payload})"
@@ -974,7 +1072,7 @@ def _analysis_finished(editor: Any, generation: int, track: ProsodyTrack) -> Non
     _set_busy(editor, False)
 
 
-def _analysis_failed(editor: Any, generation: int, message: str) -> None:
+def _analysis_failed(editor: Any, generation: int, field_index: int, message: str) -> None:
     session = _SESSIONS.get(editor)
     if session is None or generation != session.analysis_generation:
         return
@@ -982,7 +1080,12 @@ def _analysis_failed(editor: Any, generation: int, message: str) -> None:
     session.playback_active = False
     session.playback_paused = False
     _set_busy(editor, False)
-    _eval_visualizer_status(editor, message or "Audio visualization failed.", kind="error")
+    editor.web.eval(
+        "window.__aqeSetVisualizerStatus && window.__aqeSetVisualizerStatus("
+        f"{json.dumps(int(field_index))}, "
+        f"{json.dumps(message or 'Audio visualization failed.')}, "
+        f"{json.dumps('error')})"
+    )
 
 
 def _set_cursor_from_web(editor: Any) -> None:
