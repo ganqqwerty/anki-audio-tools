@@ -468,6 +468,9 @@ def cmd_test_anki_api() -> int:
 
 
 def cmd_test_e2e() -> int:
+    build_rc = cmd_build_ui()
+    if build_rc != 0:
+        return build_rc
     return _run_pytest("e2e/", label="python e2e tests")
 
 
@@ -828,6 +831,9 @@ def cmd_test_svelte() -> int:
     if not (SETTINGS_UI_DIR / "node_modules").is_dir():
         print("ERROR: settings_ui/node_modules not found. Run: python3 scripts/dev.py setup", file=sys.stderr)
         return 1
+    build_rc = cmd_build_ui()
+    if build_rc != 0:
+        return build_rc
     return _run(["npm", "run", "validate"], cwd=SETTINGS_UI_DIR, label="frontend UI validation")
 
 
@@ -859,7 +865,7 @@ COMMANDS: dict[str, tuple[Callable[[], int], str]] = {
     "setup": (cmd_setup, "One-time setup: install dev deps, create symlink, npm install"),
     "architecture-report": (cmd_architecture_report, "Inspect executable architecture contracts and report violations"),
     "test": (cmd_test, "Run unit + architecture tests"),
-    "test-e2e": (cmd_test_e2e, "Run e2e tests (requires Anki runtime)"),
+    "test-e2e": (cmd_test_e2e, "Build frontend bundles, then run e2e tests (requires Anki runtime)"),
     "lint": (cmd_lint, "Run ruff linter"),
     "typecheck": (cmd_typecheck, "Run mypy type checker"),
     "arch": (cmd_arch, "Run import-linter architecture contracts"),
@@ -878,7 +884,7 @@ COMMANDS: dict[str, tuple[Callable[[], int], str]] = {
     "muttest": (cmd_muttest, "Mutation testing (advisory, opt-in)"),
     "build": (cmd_build, "Build the settings and editor Svelte bundles"),
     "build-ui": (cmd_build_ui, "Build the settings and editor Svelte bundles"),
-    "test-svelte": (cmd_test_svelte, "Run frontend validation: svelte-check + ESLint + tsc + Vitest coverage"),
+    "test-svelte": (cmd_test_svelte, "Build frontend bundles, then run validation: svelte-check + ESLint + tsc + Vitest coverage"),
     "config-schema": (cmd_config_schema, "Validate config.json against JSON Schema"),
     "contracts-generate": (cmd_contracts_generate, "Generate Python and TypeScript JSON contracts"),
     "contracts-check": (cmd_contracts_check, "Verify generated JSON contracts are current"),

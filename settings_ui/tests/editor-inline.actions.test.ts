@@ -4,7 +4,6 @@ import {
   audioClockReady,
   clearAudioClockSource,
   clearSelectionDraft,
-  commandSlugsForTest,
   configureAudioClock,
   currentProgressMs,
   clearSelection,
@@ -34,6 +33,7 @@ import {
   visualizerForOrd,
 } from "../src/editor-inline/actions.js";
 import { processingMessage } from "../src/editor-inline/commands.js";
+import { commandSlugsForTest } from "../src/editor-inline/test-contract.js";
 import { disposeEditorRuntime, initializeEditorRuntime, scan } from "../src/editor-inline/runtime.js";
 import type { VisualizerElement } from "../src/editor-inline/types.js";
 import { pycmdMock } from "./setup.js";

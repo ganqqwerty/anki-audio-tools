@@ -17,6 +17,8 @@ Rebuild it with:
 python3 scripts/dev.py build
 ```
 
+Frontend-dependent test commands also build before they run. `python3 scripts/dev.py test-svelte` rebuilds before validation, and `python3 scripts/dev.py test-e2e` rebuilds before launching Anki e2e tests.
+
 Owned JSON communication contracts are schema-first:
 
 - source schema: `contracts/communication.schema.json`

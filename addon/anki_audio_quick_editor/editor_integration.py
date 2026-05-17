@@ -322,6 +322,7 @@ def _replace_current_field_after_render(
     selection = select_first_sound_reference(field_html)
     if selection.selected is None:
         raise AudioProcessingError(CURRENT_FIELD_AUDIO_MISSING)
+    _dispose_editor_frontend_controls(editor)
     editor.note.fields[field_index] = replace_sound_reference(field_html, selection.selected, saved_name)
     session = _SESSIONS.get(editor)
     should_redraw_graph = False
@@ -459,6 +460,7 @@ def _replace_current_field_after_noise_removal(editor: Any, saved_name: str) -> 
     selection = select_first_sound_reference(field_html)
     if selection.selected is None:
         raise AudioProcessingError(CURRENT_FIELD_AUDIO_MISSING)
+    _dispose_editor_frontend_controls(editor)
     editor.note.fields[field_index] = replace_sound_reference(field_html, selection.selected, saved_name)
     session = _SESSIONS.get(editor)
     should_redraw_graph = False
@@ -746,6 +748,7 @@ def _undo(editor: Any) -> None:
     selection = select_first_sound_reference(field_html)
     if selection.selected is None:
         raise AudioProcessingError(CURRENT_FIELD_AUDIO_MISSING)
+    _dispose_editor_frontend_controls(editor)
     editor.note.fields[field_index] = replace_sound_reference(field_html, selection.selected, previous.filename)
     session.state = previous.state
     session.current_filename = previous.filename
@@ -1017,6 +1020,10 @@ def _config(editor: Any) -> dict[str, Any]:
 def _artifact_root(editor: Any) -> Path:
     addon_id = editor.mw.addonManager.addonFromModule(__name__)
     return Path(editor.mw.addonManager.addonsFolder(addon_id)) / "aqe_artifacts"
+
+
+def _dispose_editor_frontend_controls(editor: Any) -> None:
+    editor.web.eval("window.__aqeEditorDispose && window.__aqeEditorDispose()")
 
 
 def _eval_status(editor: Any, message: str, kind: str = "info") -> None:

@@ -1,0 +1,163 @@
+import { COMMAND_SLUGS } from "./commands.js";
+import { audioClockFor } from "./audio-clock.js";
+import {
+  allButtons,
+  graphButton,
+  playButton,
+  repeatCheckboxForOrd,
+  visualizerForOrd,
+} from "./dom-selectors.js";
+import {
+  draftSelectionForVisualizer,
+  playbackEngineFor,
+  selectionForVisualizer,
+  setCursor,
+} from "./actions.js";
+import { cursorMsFromEvent, graphPixelBounds } from "./plot.js";
+import type {
+  CursorPositionForTest,
+  EditorCommand,
+  GraphStateForTest,
+  PlaybackState,
+  ProgressClockMode,
+  VisualizerElement,
+} from "./types.js";
+import { isPlaybackState } from "./types.js";
+
+export const EDITOR_TEST_WINDOW_CONTRACT_NAMES = [
+  "__aqeGraphStateForTest",
+  "__aqeInstallAudioPlaybackTestDriverForTest",
+  "__aqeSetCursorByClientXForTest",
+  "__aqeSetCursorForTest",
+] as const;
+
+export function installEditorTestWindowContract(): void {
+  window.__aqeGraphStateForTest = graphStateForTest;
+  window.__aqeInstallAudioPlaybackTestDriverForTest = installAudioPlaybackTestDriver;
+  window.__aqeSetCursorByClientXForTest = setCursorByClientXForTest;
+  window.__aqeSetCursorForTest = setCursorForTest;
+}
+
+export function installAudioPlaybackTestDriver(ord: number): boolean {
+  const visualizer = visualizerForOrd(ord);
+  const audio = audioClockFor(visualizer);
+  if (!visualizer || !audio) return false;
+  audio.__aqeTestDriverInstalled = true;
+  audio.pause = function pause(): void {
+    audio.__aqeTestPlaying = false;
+    if (audio.__aqeTestFrame) {
+      window.cancelAnimationFrame(audio.__aqeTestFrame);
+      audio.__aqeTestFrame = null;
+    }
+  };
+  audio.play = function play(): Promise<void> {
+    audio.__aqeTestPlaying = true;
+    audio.__aqeTestLastNow = performance.now();
+    const tick = (): void => {
+      if (!audio.__aqeTestPlaying) return;
+      const now = performance.now();
+      const durationSeconds = Number(visualizer.dataset.durationMs || "0") / 1000;
+      const elapsedSeconds = Math.max(0, (now - Number(audio.__aqeTestLastNow || now)) / 1000);
+      audio.__aqeTestLastNow = now;
+      audio.currentTime = Math.min(durationSeconds, (Number(audio.currentTime) || 0) + elapsedSeconds);
+      if (durationSeconds && audio.currentTime >= durationSeconds) {
+        audio.__aqeTestPlaying = false;
+        audio.dispatchEvent(new Event("ended"));
+        return;
+      }
+      audio.__aqeTestFrame = window.requestAnimationFrame(tick);
+    };
+    audio.__aqeTestFrame = window.requestAnimationFrame(tick);
+    return Promise.resolve();
+  };
+  return true;
+}
+
+export function setCursorForTest(ord: number, ms: number, notifyPython: boolean): boolean {
+  const visualizer = visualizerForOrd(ord);
+  if (!visualizer) return false;
+  visualizer.hidden = false;
+  visualizer.dataset.graphActive = "true";
+  setCursor(visualizer, ms, !!notifyPython);
+  return true;
+}
+
+export function setCursorByClientXForTest(ord: number, clientX: number, notifyPython: boolean): CursorPositionForTest | null {
+  const visualizer = visualizerForOrd(ord);
+  const svg = visualizer?.querySelector<SVGSVGElement>(".aqe-visualizer-svg") ?? null;
+  if (!visualizer || !svg) return null;
+  const durationMs = Number(visualizer.dataset.durationMs || "0");
+  const ms = cursorMsFromEvent({ clientX }, svg, durationMs);
+  setCursor(visualizer, ms, !!notifyPython);
+  return {
+    cursorMs: Number(visualizer.dataset.cursorMs || "0"),
+    cursorX: Number(visualizer.querySelector<SVGLineElement>(".aqe-cursor")?.getAttribute("x1") || "0"),
+    bounds: graphPixelBounds(svg),
+  };
+}
+
+export function graphStateForTest(ord: number): GraphStateForTest | null {
+  const visualizer = visualizerForOrd(ord);
+  const graph = graphButton(ord);
+  const play = playButton(ord);
+  if (!visualizer) return null;
+  const audio = audioClockFor(visualizer);
+  const selection = selectionForVisualizer(visualizer);
+  const draftSelection = draftSelectionForVisualizer(visualizer);
+  return {
+    active: visualizer.dataset.graphActive === "true",
+    busy: visualizer.dataset.graphBusy === "true",
+    hidden: !!visualizer.hidden,
+    hasTrack: visualizer.dataset.hasTrack === "true",
+    durationMs: Number(visualizer.dataset.durationMs || "0"),
+    anchorMs: Number(visualizer.dataset.anchorMs || "0"),
+    cursorMs: Number(visualizer.dataset.cursorMs || "0"),
+    progressMs: Number(visualizer.dataset.progressMs || "0"),
+    sourceFilename: visualizer.dataset.sourceFilename || "",
+    graphButtonLabel: graph ? graph.textContent || "" : "",
+    playButtonLabel: play ? play.textContent || "" : "",
+    playbackState: playbackStateFor(visualizer),
+    selectionActive: selection !== null,
+    selectionStartMs: selection?.startMs ?? null,
+    selectionEndMs: selection?.endMs ?? null,
+    selectionDraftActive: draftSelection !== null,
+    selectionDraftStartMs: draftSelection?.startMs ?? null,
+    selectionDraftEndMs: draftSelection?.endMs ?? null,
+    repeatEnabled: visualizer.dataset.repeatEnabled === "true",
+    repeatCheckboxDisabled: !!repeatCheckboxForOrd(ord)?.disabled,
+    playbackStartMs: Number(visualizer.dataset.playbackStartMs || "0"),
+    playbackEndMs: Number(visualizer.dataset.playbackEndMs || "0"),
+    playbackRegionMode: visualizer.dataset.playbackRegionMode === "selection" ? "selection" : "full",
+    resumeRequiresRestart: visualizer.dataset.resumeRequiresRestart === "true",
+    audioClockSrc: audio ? (audio.getAttribute("src") || "") : "",
+    audioClockCurrentMs: audio ? Math.round((Number(audio.currentTime) || 0) * 1000) : 0,
+    audioClockReady: !!(audio && visualizer.__aqeAudioClockAvailable),
+    audioClockFallback: !!visualizer.__aqeAudioClockFallback,
+    audioClockMuted: !!(audio && audio.muted),
+    audioPlaybackTestDriver: !!(audio && audio.__aqeTestDriverInstalled),
+    playbackEngine: playbackEngineFor(visualizer),
+    progressClockMode: progressClockModeFor(visualizer),
+    xAxisLabels: Array.from(visualizer.querySelectorAll<SVGTextElement>(".aqe-x-label")).map((node) => node.textContent || ""),
+    pitchPaths: visualizer.querySelectorAll(".aqe-pitch-path").length,
+    intensity: visualizer.querySelector<SVGPathElement>(".aqe-intensity")?.getAttribute("d") || "",
+    cursorX: Number(visualizer.querySelector<SVGLineElement>(".aqe-cursor")?.getAttribute("x1") || "0"),
+    spinnerVisible: visualizer.querySelector<HTMLElement>(".aqe-spinner") ? !visualizer.querySelector<HTMLElement>(".aqe-spinner")?.hidden : false,
+    allButtonsDisabled: allButtons().every((button) => button.disabled),
+    anyButtonDisabled: allButtons().some((button) => button.disabled),
+  };
+}
+
+export function commandSlugsForTest(): Readonly<Record<EditorCommand, string>> {
+  return COMMAND_SLUGS;
+}
+
+function playbackStateFor(visualizer: VisualizerElement): PlaybackState {
+  const state = visualizer.dataset.playbackState;
+  return isPlaybackState(state) ? state : "stopped";
+}
+
+function progressClockModeFor(visualizer: VisualizerElement): ProgressClockMode {
+  const mode = visualizer.dataset.progressClockMode;
+  if (mode === "audio" || mode === "manual" || mode === "stopped") return mode;
+  return "stopped";
+}

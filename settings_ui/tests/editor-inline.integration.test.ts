@@ -133,6 +133,44 @@ describe("editor inline Svelte integration", () => {
     expect(fieldIndex(document.getElementById("f0")!, 7)).toBe(0);
   });
 
+  it("removes orphaned controls from previous bundle instances before mounting", () => {
+    document.body.insertAdjacentHTML(
+      "afterbegin",
+      `
+        <div class="aqe-mount-host">
+          <div class="aqe-controls" data-aqe-field-ord="0">
+            <div class="aqe-visualizer" data-aqe-field-ord="0" hidden data-graph-active="false"></div>
+          </div>
+        </div>
+      `,
+    );
+
+    initializeEditorRuntime({ audioFieldIndices: [0] });
+    scan({ audioFieldIndices: [0] });
+    window.__aqeSetVisualizer?.(0, track, 0);
+
+    const visualizers = document.querySelectorAll<HTMLElement>('.aqe-visualizer[data-aqe-field-ord="0"]');
+    expect(document.querySelectorAll(".aqe-controls")).toHaveLength(1);
+    expect(visualizers).toHaveLength(1);
+    expect(document.querySelector<HTMLElement>('.aqe-visualizer[data-aqe-field-ord="0"]')?.dataset.sourceFilename).toBe(
+      "clip one.mp3",
+    );
+  });
+
+  it("cancels delayed scans when the runtime is disposed", () => {
+    vi.useFakeTimers();
+    try {
+      initializeEditorRuntime({ audioFieldIndices: [0] });
+      disposeEditorRuntime();
+
+      vi.runAllTimers();
+
+      expect(document.querySelectorAll(".aqe-controls")).toHaveLength(0);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
   it("preserves an existing explicit mount when a reload scan has no visible sound text", () => {
     initializeEditorRuntime({ audioFieldIndices: [0] });
     scan({ audioFieldIndices: [0] });
@@ -209,6 +247,28 @@ describe("editor inline Svelte integration", () => {
       hasTrack: true,
       sourceFilename: "updated.mp3",
     });
+  });
+
+  it("replays a pending graph redraw after the editor runtime remounts", () => {
+    initializeEditorRuntime({ audioFieldIndices: [0] });
+    scan({ audioFieldIndices: [0] });
+
+    expect(window.__aqeResetGraphAfterEdit?.(0)).toBe(true);
+    expect(window.__aqePendingGraphRedrawField).toBe(0);
+
+    disposeEditorRuntime();
+    renderFields();
+    initializeEditorRuntime({ audioFieldIndices: [0] });
+    scan({ audioFieldIndices: [0] });
+
+    expect(window.__aqeGraphStateForTest?.(0)).toMatchObject({
+      busy: true,
+      hidden: false,
+    });
+    expect(bridgeCommands().filter((command) => command === "aqe:analyze")).toHaveLength(2);
+
+    window.__aqeSetVisualizer?.(0, track, 0);
+    expect(window.__aqePendingGraphRedrawField).toBeNull();
   });
 
   it("renders repeat next to play and initializes it from runtime config", () => {

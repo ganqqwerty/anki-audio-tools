@@ -22,6 +22,7 @@ declare global {
     __aqeInstallAudioPlaybackTestDriverForTest?: ((ord: number) => boolean) | undefined;
     __aqeLastCursorIntent?: CursorIntent | null;
     __aqeLastPlaybackRequest?: PlaybackRequest | null;
+    __aqePendingGraphRedrawField?: number | null;
     __aqePendingPlaybackRequest?: PlaybackRequest | null;
     __aqePopFrontendLog?: (() => FrontendLogPayload | null) | undefined;
     __aqePrepareForNewNote?: (() => void) | undefined;

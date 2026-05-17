@@ -1,52 +1,37 @@
-import { mount, unmount } from "svelte";
-
-import EditorControls from "./EditorControls.svelte";
 import {
-  getCursorIntent,
-  getCursorMs,
-  getPlaybackRequest,
-  graphStateForTest,
-  installAudioPlaybackTestDriver,
-  popEditorFrontendLog,
   prepareForNewNote,
-  resetGraphAfterEdit,
-  setControlsBusy,
-  setCursorByClientXForTest,
-  setCursorForTest,
-  setPlaybackState,
-  setStatus,
-  setVisualizer,
-  setVisualizerStatusFromPython,
-  stopEditorPlayback,
-  visualizerForOrd,
+  requestPendingGraphRedraw,
 } from "./actions.js";
+import {
+  disposeAllControllers,
+  mountController,
+} from "./field-controller.js";
 import { logger } from "./logger.js";
-import type { EditorRuntimeConfig, FieldTarget, MountedField } from "./types.js";
+import type { EditorRuntimeConfig, FieldTarget } from "./types.js";
+import { installEditorWindowContract } from "./window-contract.js";
 
 const soundPattern = /\[sound:([^\]]+)\]/i;
 const supportedPattern = /\.(mp3|wav|ogg)$/i;
-const mountedFields = new Map<number, MountedField>();
+let scheduledScanTimers: number[] = [];
 
 export function initializeEditorRuntime(config: EditorRuntimeConfig = window.__AQE_EDITOR_CONFIG__ ?? { audioFieldIndices: [] }): void {
   disposeEditorRuntime();
   window.__AQE_EDITOR_CONFIG__ = config;
-  installWindowContract();
+  installEditorWindowContract();
   prepareForNewNote();
   window.__aqeEditorDispose = disposeEditorRuntime;
   logger.info("editor runtime initialized", { audioFieldIndices: config.audioFieldIndices });
   const scanWithConfig = (): void => scan(config);
   window.__aqeScan = scanWithConfig;
-  window.setTimeout(scanWithConfig, 0);
-  window.setTimeout(scanWithConfig, 250);
-  window.setTimeout(scanWithConfig, 1000);
+  scheduleScan(scanWithConfig, 0);
+  scheduleScan(scanWithConfig, 250);
+  scheduleScan(scanWithConfig, 1000);
 }
 
 export function disposeEditorRuntime(): void {
-  for (const mounted of mountedFields.values()) {
-    void unmount(mounted.component);
-    mounted.host.remove();
-  }
-  mountedFields.clear();
+  scheduledScanTimers.forEach((timer) => window.clearTimeout(timer));
+  scheduledScanTimers = [];
+  disposeAllControllers();
 }
 
 export function scan(config: EditorRuntimeConfig = window.__AQE_EDITOR_CONFIG__ ?? { audioFieldIndices: [] }): void {
@@ -54,6 +39,7 @@ export function scan(config: EditorRuntimeConfig = window.__AQE_EDITOR_CONFIG__ 
     const explicitTargets = explicitFieldTargets(config.audioFieldIndices);
     explicitTargets.forEach((target) => mountNear(target));
     logger.debug("scan mounted explicit fields", { count: explicitTargets.length });
+    requestPendingGraphRedraw();
     return;
   }
   let count = 0;
@@ -68,6 +54,7 @@ export function scan(config: EditorRuntimeConfig = window.__AQE_EDITOR_CONFIG__ 
     count += 1;
   });
   logger.debug("scan mounted detected fields", { count });
+  requestPendingGraphRedraw();
 }
 
 export function fieldNodes(): HTMLElement[] {
@@ -114,69 +101,13 @@ export function audioSourceForNode(node: HTMLElement): string {
 }
 
 export function mountNear(target: FieldTarget): void {
-  const existing = mountedFields.get(target.ord);
-  if (existing && document.body.contains(existing.host)) {
-    if (!target.sourceFilename || existing.sourceFilename === target.sourceFilename) {
-      return;
-    }
-    const visualizer = visualizerForOrd(target.ord);
-    if (visualizer?.dataset.graphBusy === "true" || visualizer?.dataset.hasTrack === "true") {
-      const renderedSource = visualizer.dataset.sourceFilename || target.sourceFilename;
-      existing.sourceFilename = renderedSource;
-      const controls = document.querySelector<HTMLElement>(`.aqe-controls[data-aqe-field-ord="${target.ord}"]`);
-      if (controls) controls.dataset.aqeSourceFilename = renderedSource;
-      return;
-    }
-  }
-  disposeField(target.ord);
-  const parent = target.node.closest(".field-container")
-    || target.node.closest(".field")
-    || target.node.parentElement
-    || target.node;
-  const host = document.createElement("div");
-  host.className = "aqe-mount-host";
-  if (parent.parentElement) {
-    parent.after(host);
-  } else {
-    target.node.after(host);
-  }
-  const component = mount(EditorControls, {
-    target: host,
-    props: { target },
-  }) as Record<string, unknown>;
-  mountedFields.set(target.ord, {
-    component,
-    host,
-    ord: target.ord,
-    sourceFilename: target.sourceFilename,
-  });
+  mountController(target);
 }
 
-function disposeField(ord: number): void {
-  const mounted = mountedFields.get(ord);
-  if (mounted) {
-    void unmount(mounted.component);
-    mounted.host.remove();
-    mountedFields.delete(ord);
-  }
-  document.querySelectorAll<HTMLElement>(`.aqe-controls[data-aqe-field-ord="${ord}"]`).forEach((node) => node.remove());
-}
-
-function installWindowContract(): void {
-  window.__aqeSetBusy = setControlsBusy;
-  window.__aqeSetStatus = setStatus;
-  window.__aqeSetVisualizer = setVisualizer;
-  window.__aqeSetVisualizerStatus = setVisualizerStatusFromPython;
-  window.__aqeResetGraphAfterEdit = resetGraphAfterEdit;
-  window.__aqeSetPlaybackState = setPlaybackState;
-  window.__aqeGetPlaybackRequest = getPlaybackRequest;
-  window.__aqeStopEditorPlayback = stopEditorPlayback;
-  window.__aqeInstallAudioPlaybackTestDriverForTest = installAudioPlaybackTestDriver;
-  window.__aqeGetCursorMs = getCursorMs;
-  window.__aqeGetCursorIntent = getCursorIntent;
-  window.__aqeSetCursorForTest = setCursorForTest;
-  window.__aqeSetCursorByClientXForTest = setCursorByClientXForTest;
-  window.__aqeGraphStateForTest = graphStateForTest;
-  window.__aqePrepareForNewNote = prepareForNewNote;
-  window.__aqePopFrontendLog = popEditorFrontendLog;
+function scheduleScan(callback: () => void, delayMs: number): void {
+  const timer = window.setTimeout(() => {
+    scheduledScanTimers = scheduledScanTimers.filter((scheduled) => scheduled !== timer);
+    callback();
+  }, delayMs);
+  scheduledScanTimers.push(timer);
 }

@@ -68,7 +68,7 @@ Use `python3 scripts/dev.py check` for the reusable QC gate. A feature is not co
 | Full QC | `python3 scripts/dev.py check` |
 | Anki API compatibility | `python3 scripts/dev.py test-anki-api` |
 | Unit tests | `python3 scripts/dev.py test` |
-| E2E tests | `python3 scripts/dev.py test-e2e` |
+| E2E tests (builds frontend first) | `python3 scripts/dev.py test-e2e` |
 | Linter | `python3 scripts/dev.py lint` |
 | Type checker | `python3 scripts/dev.py typecheck` |
 | Python coverage | `python3 scripts/dev.py coverage` |

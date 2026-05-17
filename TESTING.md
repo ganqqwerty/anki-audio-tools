@@ -18,7 +18,7 @@ python3 scripts/dev.py test-e2e
 - `tests/test_architecture/` enforces layer boundaries, module classification, Anki-import-safe helper modules, import-safe runtime modules, editor bridge command sync, prosody dependency isolation, shell-thin settings rules, and DB access isolation.
 - `tests/test_anki_api_contract_mocks.py` checks the mocked unit-test Anki surface against the same generated contract so mocks cannot hide a missing real API.
 - `tests/test_architecture/contracts.py` is the executable architecture source of truth; `tests/test_architecture/inspection.py` powers both the tests and the architecture report.
-- `settings_ui/tests/` covers bridge commands, async job plumbing, logging, the settings UI, and the inline editor Svelte runtime with Anki cut off behind DOM/backend test doubles. `python3 scripts/dev.py test-svelte` runs the frontend validation chain: `svelte-check`, ESLint, `tsc --noEmit`, and Vitest coverage thresholds.
+- `settings_ui/tests/` covers bridge commands, async job plumbing, logging, the settings UI, and the inline editor Svelte runtime with Anki cut off behind DOM/backend test doubles. `python3 scripts/dev.py test-svelte` rebuilds the committed frontend bundles, then runs the frontend validation chain: `svelte-check`, ESLint, `tsc --noEmit`, and Vitest coverage thresholds.
 - `scripts/generate_contracts.py --check` verifies generated Python/TypeScript JSON communication contracts are in sync with `contracts/communication.schema.json`.
 - `python3 scripts/dev.py coverage` runs Python unit tests with branch coverage and fails below 70%.
 - `python3 scripts/dev.py sonar` regenerates Python XML coverage and frontend LCOV from scratch, waits for the Sonar quality gate, and fails on missing reports or a failed quality gate.
@@ -26,7 +26,7 @@ python3 scripts/dev.py test-e2e
 
 ## Feature Completion Rule
 
-A feature is not complete until `python3 scripts/dev.py test-e2e` passes.
+A feature is not complete until `python3 scripts/dev.py test-e2e` passes. The e2e command rebuilds the frontend bundles first so Anki tests never depend on stale committed webview output.
 
 ## Individual Checks
 
@@ -45,13 +45,14 @@ A feature is not complete until `python3 scripts/dev.py test-e2e` passes.
 | Dependency audit | `python3 scripts/dev.py deps` |
 | Complexity | `python3 scripts/dev.py complexity` |
 | Frontend validation | `python3 scripts/dev.py test-svelte` |
+| E2E tests with frontend rebuild | `python3 scripts/dev.py test-e2e` |
 | Python branch coverage | `python3 scripts/dev.py coverage` |
 | SonarQube quality gate | `python3 scripts/dev.py sonar` |
 | Mutation testing (advisory) | `python3 scripts/dev.py muttest run` |
 
 ## Quality Gates
 
-`python3 scripts/dev.py check` is the reusable local QC gate. It runs schema and contract staleness checks, architecture reporting, Ruff, mypy, Bandit, Vulture, Deptry, Radon, import-linter, Anki API contract tests, Python unit/architecture tests, and frontend validation.
+`python3 scripts/dev.py check` is the reusable local QC gate. It runs schema and contract staleness checks, architecture reporting, Ruff, mypy, Bandit, Vulture, Deptry, Radon, import-linter, Anki API contract tests, Python unit/architecture tests, and frontend validation. Its frontend validation step rebuilds bundles through `test-svelte`.
 
 The Radon complexity command fails when any hand-maintained add-on function or class is rank C or worse. Generated communication-contract output is excluded from the fail decision; contract freshness is enforced separately by `contracts-check`. Ruff also enforces McCabe complexity with `max-complexity = 10`.
 
