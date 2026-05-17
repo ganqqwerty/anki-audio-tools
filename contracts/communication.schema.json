@@ -1,0 +1,263 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "CommunicationContracts",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "settingsSavePayload": { "$ref": "#/definitions/SettingsSavePayload" },
+    "asyncCommand": { "$ref": "#/definitions/AsyncCommand" },
+    "asyncProgressPayload": { "$ref": "#/definitions/AsyncProgressPayload" },
+    "asyncDonePayload": { "$ref": "#/definitions/AsyncDonePayload" },
+    "frontendLogPayload": { "$ref": "#/definitions/FrontendLogPayload" },
+    "copySupportReportPayload": { "$ref": "#/definitions/CopySupportReportPayload" },
+    "saveErrorPayload": { "$ref": "#/definitions/SaveErrorPayload" },
+    "healthReport": { "$ref": "#/definitions/HealthReport" },
+    "initialState": { "$ref": "#/definitions/InitialState" },
+    "prosodyPayload": { "$ref": "#/definitions/ProsodyPayload" },
+    "showLogFileResult": { "$ref": "#/definitions/ShowLogFileResult" },
+    "supportReportResult": { "$ref": "#/definitions/SupportReportResult" }
+  },
+  "definitions": {
+    "Config": {
+      "$comment": "Replaced by scripts/generate_contracts.py from addon/anki_audio_quick_editor/config.schema.json before quicktype runs.",
+      "type": "object"
+    },
+    "JsonValue": {
+      "oneOf": [
+        { "type": "null" },
+        { "type": "boolean" },
+        { "type": "number" },
+        { "type": "string" },
+        {
+          "type": "array",
+          "items": {}
+        },
+        {
+          "type": "object",
+          "additionalProperties": true
+        }
+      ]
+    },
+    "SettingsSavePayload": {
+      "$ref": "#/definitions/Config"
+    },
+    "DiagnosticsState": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["addon_id", "collection_available"],
+      "properties": {
+        "addon_id": { "type": "string" },
+        "collection_available": { "type": "boolean" }
+      }
+    },
+    "InitialState": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["config", "version", "addon_dir", "log_file_path", "diagnostics"],
+      "properties": {
+        "config": { "$ref": "#/definitions/Config" },
+        "version": { "type": "string" },
+        "addon_dir": { "type": "string" },
+        "log_file_path": { "type": "string" },
+        "diagnostics": { "$ref": "#/definitions/DiagnosticsState" }
+      }
+    },
+    "HealthCheckPayload": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["config"],
+      "properties": {
+        "config": { "$ref": "#/definitions/Config" }
+      }
+    },
+    "SupportReportPayload": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["config"],
+      "properties": {
+        "config": { "$ref": "#/definitions/Config" }
+      }
+    },
+    "ShowLogFilePayload": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {}
+    },
+    "HealthCheckAsyncCommand": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "op", "payload"],
+      "properties": {
+        "id": { "type": "string" },
+        "op": { "type": "string" },
+        "payload": { "$ref": "#/definitions/HealthCheckPayload" }
+      }
+    },
+    "SupportReportAsyncCommand": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "op", "payload"],
+      "properties": {
+        "id": { "type": "string" },
+        "op": { "type": "string" },
+        "payload": { "$ref": "#/definitions/SupportReportPayload" }
+      }
+    },
+    "ShowLogFileAsyncCommand": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "op", "payload"],
+      "properties": {
+        "id": { "type": "string" },
+        "op": { "type": "string" },
+        "payload": { "$ref": "#/definitions/ShowLogFilePayload" }
+      }
+    },
+    "AsyncCommand": {
+      "oneOf": [
+        { "$ref": "#/definitions/HealthCheckAsyncCommand" },
+        { "$ref": "#/definitions/SupportReportAsyncCommand" },
+        { "$ref": "#/definitions/ShowLogFileAsyncCommand" }
+      ]
+    },
+    "AsyncProgressPayload": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "progress", "message"],
+      "properties": {
+        "id": { "type": "string" },
+        "progress": { "type": "integer" },
+        "message": { "type": "string" }
+      }
+    },
+    "ExternalToolHealth": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["available", "path", "version", "error"],
+      "properties": {
+        "available": { "type": "boolean" },
+        "path": { "type": "string" },
+        "version": { "type": "string" },
+        "error": { "type": "string" },
+        "model_dir": { "type": "string" },
+        "model_path": { "type": "string" }
+      }
+    },
+    "HealthReport": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["collection_available", "deck_count", "note_type_count", "card_count"],
+      "properties": {
+        "collection_available": { "type": "boolean" },
+        "deck_count": { "type": "integer" },
+        "note_type_count": { "type": "integer" },
+        "card_count": { "type": "integer" },
+        "deep_filter": { "$ref": "#/definitions/ExternalToolHealth" },
+        "sidon": { "$ref": "#/definitions/ExternalToolHealth" },
+        "mp_senet": { "$ref": "#/definitions/ExternalToolHealth" }
+      }
+    },
+    "SupportReportResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["reportText"],
+      "properties": {
+        "reportText": { "type": "string" }
+      }
+    },
+    "ShowLogFileResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["logFilePath"],
+      "properties": {
+        "logFilePath": { "type": "string" }
+      }
+    },
+    "AsyncSuccessPayload": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "ok", "result"],
+      "properties": {
+        "id": { "type": "string" },
+        "ok": { "enum": [true] },
+        "result": { "$ref": "#/definitions/JsonValue" }
+      }
+    },
+    "AsyncFailurePayload": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "ok", "error"],
+      "properties": {
+        "id": { "type": "string" },
+        "ok": { "enum": [false] },
+        "error": { "type": "string" }
+      }
+    },
+    "AsyncDonePayload": {
+      "oneOf": [
+        { "$ref": "#/definitions/AsyncSuccessPayload" },
+        { "$ref": "#/definitions/AsyncFailurePayload" }
+      ]
+    },
+    "FrontendLogPayload": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["level", "message"],
+      "properties": {
+        "level": { "enum": ["debug", "info", "warn", "error", "unknown"] },
+        "message": { "type": "string" },
+        "context": { "$ref": "#/definitions/JsonValue" }
+      }
+    },
+    "CopySupportReportPayload": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["text"],
+      "properties": {
+        "text": { "type": "string" }
+      }
+    },
+    "SaveErrorPayload": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["error"],
+      "properties": {
+        "error": { "type": "string" }
+      }
+    },
+    "ProsodyPointPayload": {
+      "type": "array",
+      "minItems": 4,
+      "maxItems": 4,
+      "items": [
+        { "type": "integer" },
+        { "type": ["number", "null"] },
+        { "type": "number" },
+        { "type": "boolean" }
+      ]
+    },
+    "ProsodyPayload": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "durationMs",
+        "pitchMinHz",
+        "pitchMaxHz",
+        "sourceFilename",
+        "analyzerName",
+        "points"
+      ],
+      "properties": {
+        "durationMs": { "type": "integer" },
+        "pitchMinHz": { "type": ["number", "null"] },
+        "pitchMaxHz": { "type": ["number", "null"] },
+        "sourceFilename": { "type": "string" },
+        "analyzerName": { "type": "string" },
+        "points": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/ProsodyPointPayload" }
+        }
+      }
+    }
+  }
+}

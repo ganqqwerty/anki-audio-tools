@@ -1,5 +1,7 @@
 import type {
   AsyncDonePayload,
+  AsyncOperationName,
+  AsyncOperationPayloads,
   AsyncProgressPayload,
   Config,
   SaveErrorPayload,
@@ -23,7 +25,11 @@ export function settingsResetDefaults(): void {
   sendBridgeCommand("settings_reset_defaults");
 }
 
-export function sendAsyncCmd(id: string, op: string, payload: unknown): void {
+export function sendAsyncCmd<TOp extends AsyncOperationName>(
+  id: string,
+  op: TOp,
+  payload: AsyncOperationPayloads[TOp],
+): void {
   sendBridgeCommand(`async_cmd:${JSON.stringify({ id, op, payload })}`);
 }
 

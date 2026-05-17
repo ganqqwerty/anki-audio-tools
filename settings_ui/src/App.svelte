@@ -10,6 +10,7 @@
     settingsSave,
   } from "$lib/bridge.js";
   import { logger } from "$lib/logger.js";
+  import { OutputFormat } from "$lib/types.js";
   import type {
     AsyncDonePayload,
     AsyncProgressPayload,
@@ -17,8 +18,6 @@
     HealthReport,
     InitialState,
     SaveErrorPayload,
-    ShowLogFileResult,
-    SupportReportResult,
   } from "$lib/types.js";
 
   const initialState: InitialState = window.__INITIAL_STATE__ ?? {
@@ -38,7 +37,7 @@
       internal_pause_silence_threshold_db: -45,
       internal_pause_threshold_ms: 300,
       internal_pause_target_gap_ms: 100,
-      output_format: "mp3",
+      output_format: OutputFormat.Mp3,
       ffmpeg_path: "",
       deep_filter_path: "",
       deep_filter_post_filter: true,
@@ -81,7 +80,7 @@
     diagnosticsMessage = "";
     healthProgress = null;
     try {
-      const result = await startAsyncOp("health_check", { config }) as HealthReport;
+      const result = await startAsyncOp("health_check", { config });
       healthReport = result;
       healthMessage = "Health check completed";
     } catch (error) {
@@ -95,7 +94,7 @@
     diagnosticsMessage = "Preparing support report...";
     healthProgress = null;
     try {
-      const result = await startAsyncOp("support_report", { config }) as SupportReportResult;
+      const result = await startAsyncOp("support_report", { config });
       copySupportReport(result.reportText);
       diagnosticsMessage = "Support report copied";
     } catch (error) {
@@ -109,7 +108,7 @@
     diagnosticsMessage = "Opening log file...";
     healthProgress = null;
     try {
-      const result = await startAsyncOp("show_log_file", {}) as ShowLogFileResult;
+      const result = await startAsyncOp("show_log_file", {});
       diagnosticsMessage = `Log file opened: ${result.logFilePath}`;
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);

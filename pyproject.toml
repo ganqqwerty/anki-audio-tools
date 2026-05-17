@@ -97,6 +97,7 @@ source_modules = [
     "anki_audio_quick_editor.batch_operations",
     "anki_audio_quick_editor.batch_visualization",
     "anki_audio_quick_editor.config_migration",
+    "anki_audio_quick_editor.contracts_generated",
     "anki_audio_quick_editor.db_helpers",
     "anki_audio_quick_editor.diagnostics",
     "anki_audio_quick_editor.editor_actions",

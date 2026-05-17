@@ -10,9 +10,34 @@ from anki_audio_quick_editor.settings_state import (
 )
 
 
+def _full_config() -> dict[str, object]:
+    return {
+        "_config_version": 7,
+        "enabled": True,
+        "debug_logging": False,
+        "show_ffmpeg_commands": False,
+        "manual_trim_small_ms": 100,
+        "manual_trim_large_ms": 500,
+        "speed_step": 0.05,
+        "min_speed": 0.75,
+        "max_speed": 1.5,
+        "volume_step_db": 3.0,
+        "min_volume_db": -24.0,
+        "max_volume_db": 24.0,
+        "internal_pause_silence_threshold_db": -45,
+        "internal_pause_threshold_ms": 300,
+        "internal_pause_target_gap_ms": 100,
+        "output_format": "mp3",
+        "ffmpeg_path": "",
+        "deep_filter_path": "",
+        "deep_filter_post_filter": True,
+    }
+
+
 def test_build_initial_state_payload_has_settings_webview_shape() -> None:
+    config = _full_config()
     payload = build_initial_state_payload(
-        {"enabled": True},
+        config,
         version="0.1.0",
         addon_id="anki_audio_quick_editor",
         addon_dir="/tmp/addon",
@@ -20,7 +45,7 @@ def test_build_initial_state_payload_has_settings_webview_shape() -> None:
     )
 
     assert payload == {
-        "config": {"enabled": True},
+        "config": config,
         "version": "0.1.0",
         "addon_dir": "/tmp/addon",
         "log_file_path": "/tmp/addon/anki_audio_quick_editor.log",
@@ -33,7 +58,7 @@ def test_build_initial_state_payload_has_settings_webview_shape() -> None:
 
 def test_encode_initial_state_returns_json() -> None:
     payload = build_initial_state_payload(
-        {},
+        _full_config(),
         version="0.1.0",
         addon_id="addon",
         addon_dir="/tmp/addon",
@@ -45,7 +70,7 @@ def test_encode_initial_state_returns_json() -> None:
 
 def test_build_initial_state_payload_preserves_false_diagnostics_and_log_path() -> None:
     payload = build_initial_state_payload(
-        {"enabled": False},
+        {**_full_config(), "enabled": False},
         version="0.1.0",
         addon_id="addon",
         addon_dir="/tmp/custom-addon",

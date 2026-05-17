@@ -9,9 +9,30 @@ import {
   settingsResetDefaults,
   settingsSave,
 } from "../src/lib/bridge.js";
-import type { Config } from "../src/lib/types.js";
+import { OutputFormat, type Config } from "../src/lib/types.js";
 
 const pycmd = (globalThis as unknown as Record<string, ReturnType<typeof vi.fn>>)["pycmd"]!;
+const config: Config = {
+  _config_version: 1,
+  enabled: true,
+  debug_logging: false,
+  show_ffmpeg_commands: false,
+  manual_trim_small_ms: 100,
+  manual_trim_large_ms: 500,
+  speed_step: 0.05,
+  min_speed: 0.75,
+  max_speed: 1.5,
+  volume_step_db: 3.0,
+  min_volume_db: -24.0,
+  max_volume_db: 24.0,
+  internal_pause_silence_threshold_db: -45,
+  internal_pause_threshold_ms: 300,
+  internal_pause_target_gap_ms: 100,
+  output_format: OutputFormat.Mp3,
+  ffmpeg_path: "",
+  deep_filter_path: "",
+  deep_filter_post_filter: true,
+};
 
 describe("sendBridgeCommand", () => {
   it("forwards raw commands to pycmd", () => {
@@ -22,27 +43,6 @@ describe("sendBridgeCommand", () => {
 
 describe("settingsSave", () => {
   it("sends a settings_save payload", () => {
-    const config: Config = {
-      _config_version: 1,
-      enabled: true,
-      debug_logging: false,
-      show_ffmpeg_commands: false,
-      manual_trim_small_ms: 100,
-      manual_trim_large_ms: 500,
-      speed_step: 0.05,
-      min_speed: 0.75,
-      max_speed: 1.5,
-      volume_step_db: 3.0,
-      min_volume_db: -24.0,
-      max_volume_db: 24.0,
-      internal_pause_silence_threshold_db: -45,
-      internal_pause_threshold_ms: 300,
-      internal_pause_target_gap_ms: 100,
-      output_format: "mp3",
-      ffmpeg_path: "",
-      deep_filter_path: "",
-      deep_filter_post_filter: true,
-    };
     settingsSave(config);
     const call = pycmd.mock.calls[0]?.[0] ?? "";
     expect(call).toMatch(/^settings_save:/);
@@ -64,13 +64,15 @@ describe("lifecycle commands", () => {
 
 describe("sendAsyncCmd", () => {
   it("serializes id, op, and payload", () => {
-    sendAsyncCmd("job-1", "health_check", { sample: true });
+    sendAsyncCmd("job-1", "health_check", { config });
     const call = pycmd.mock.calls[0]?.[0] ?? "";
     expect(call).toMatch(/^async_cmd:/);
     expect(JSON.parse(call.slice("async_cmd:".length))).toEqual({
       id: "job-1",
       op: "health_check",
-      payload: { sample: true },
+      payload: {
+        config,
+      },
     });
   });
 });

@@ -21,7 +21,7 @@ This:
 
 - installs Python dev dependencies into Anki's Python
 - creates the add-on symlink in `addons21/1000000002`
-- runs `npm install` in `settings_ui/`
+- runs `npm ci` in `settings_ui/` when `package-lock.json` is present, otherwise `npm install`
 
 ## Runtime Dependencies
 
@@ -54,3 +54,14 @@ The settings UI uses Svelte 5 and Vite from `settings_ui/package.json`. Rebuild 
 ```bash
 python3 scripts/dev.py build
 ```
+
+`quicktype` is pinned as a settings UI dev dependency and installed from `settings_ui/package-lock.json`. It is used only for development-time JSON contract generation and is not bundled into the Anki add-on runtime.
+
+Generate and verify communication contracts with:
+
+```bash
+python3 scripts/dev.py contracts-generate
+python3 scripts/dev.py contracts-check
+```
+
+`contracts-check` is part of `python3 scripts/dev.py check` and also runs before the settings UI bundle build.

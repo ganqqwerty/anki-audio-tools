@@ -130,6 +130,11 @@ MODULE_CONTRACTS: dict[str, ModuleContract] = {
         allow_any_anki_imports=True,
     ),
     "config_migration": _contract("config_migration", layer=Layer.IMPORT_SAFE_CORE),
+    "contracts_generated": _contract(
+        "contracts_generated",
+        layer=Layer.IMPORT_SAFE_CORE,
+        notes="Generated quicktype DTOs for owned JSON bridge contracts.",
+    ),
     "db_helpers": _contract(
         "db_helpers",
         layer=Layer.IMPORT_SAFE_CORE,
@@ -152,6 +157,7 @@ MODULE_CONTRACTS: dict[str, ModuleContract] = {
         allowed_addon_deps=(
             "audio_processor",
             "audio_state",
+            "contracts_generated",
             "editor_actions",
             "editor_ui",
             "errors",
@@ -223,7 +229,14 @@ MODULE_CONTRACTS: dict[str, ModuleContract] = {
     "settings.commands": _contract(
         "settings.commands",
         layer=Layer.SETTINGS_BACKEND,
-        allowed_addon_deps=("_version", "db_helpers", "diagnostics", "file_reveal", "support"),
+        allowed_addon_deps=(
+            "_version",
+            "contracts_generated",
+            "db_helpers",
+            "diagnostics",
+            "file_reveal",
+            "support",
+        ),
         allowed_side_effects=(
             SideEffect.ANKI_IMPORTS_ANYWHERE,
             SideEffect.THREAD_SPAWN,
@@ -239,7 +252,11 @@ MODULE_CONTRACTS: dict[str, ModuleContract] = {
         allowed_side_effects=(SideEffect.ANKI_IMPORTS_ANYWHERE,),
         allow_any_anki_imports=True,
     ),
-    "settings_state": _contract("settings_state", layer=Layer.IMPORT_SAFE_CORE),
+    "settings_state": _contract(
+        "settings_state",
+        layer=Layer.IMPORT_SAFE_CORE,
+        allowed_addon_deps=("contracts_generated",),
+    ),
     "sound_refs": _contract(
         "sound_refs",
         layer=Layer.IMPORT_SAFE_CORE,

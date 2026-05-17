@@ -8,9 +8,20 @@
  */
 
 import { sendAsyncCmd } from "./bridge.js";
-import type { AsyncDonePayload, AsyncProgressPayload } from "./types.js";
+import type {
+  AsyncDonePayload,
+  AsyncOperationName,
+  AsyncOperationPayloads,
+  AsyncOperationResults,
+  AsyncProgressPayload,
+  ExternalToolHealth,
+  HealthReport,
+  ShowLogFileResult,
+  SupportReportResult,
+} from "./types.js";
 
 interface PendingJob {
+  op: AsyncOperationName;
   resolve: (result: unknown) => void;
   reject: (error: Error) => void;
   // Explicit `| undefined` required by exactOptionalPropertyTypes
@@ -34,15 +45,20 @@ function _nextId(): string {
  * @param payload - Operation-specific payload
  * @param onProgress - Optional progress callback (pct: 0-100, message: string)
  */
-export function startAsyncOp(
-  op: string,
-  payload: unknown,
+export function startAsyncOp<TOp extends AsyncOperationName>(
+  op: TOp,
+  payload: AsyncOperationPayloads[TOp],
   onProgress?: (pct: number, message: string) => void,
-): Promise<unknown> {
+): Promise<AsyncOperationResults[TOp]> {
   const id = _nextId();
 
-  const promise = new Promise<unknown>((resolve, reject) => {
-    _pending.set(id, { resolve, reject, onProgress });
+  const promise = new Promise<AsyncOperationResults[TOp]>((resolve, reject) => {
+    _pending.set(id, {
+      op,
+      resolve: (result: unknown) => resolve(result as AsyncOperationResults[TOp]),
+      reject,
+      onProgress,
+    });
   });
 
   sendAsyncCmd(id, op, payload);
@@ -70,7 +86,12 @@ export function handleAsyncDone(payload: AsyncDonePayload): void {
   _pending.delete(payload.id);
 
   if (payload.ok) {
-    job.resolve(payload.result);
+    const narrowed = _narrowResult(job.op, payload.result);
+    if (narrowed.ok) {
+      job.resolve(narrowed.result);
+    } else {
+      job.reject(new Error(narrowed.error));
+    }
   } else {
     job.reject(new Error(payload.error ?? "Unknown async error"));
   }
@@ -80,4 +101,62 @@ export function handleAsyncDone(payload: AsyncDonePayload): void {
 export function _clearPendingForTest(): void {
   _pending.clear();
   _idCounter = 0;
+}
+
+function _narrowResult(
+  op: AsyncOperationName,
+  result: AsyncDonePayload["result"],
+):
+  | { ok: true; result: AsyncOperationResults[AsyncOperationName] }
+  | { ok: false; error: string } {
+  if (op === "health_check" && _isHealthReport(result)) {
+    return { ok: true, result };
+  }
+  if (op === "support_report" && _isSupportReportResult(result)) {
+    return { ok: true, result };
+  }
+  if (op === "show_log_file" && _isShowLogFileResult(result)) {
+    return { ok: true, result };
+  }
+  return {
+    ok: false,
+    error: `Invalid async result payload for ${op}`,
+  };
+}
+
+function _isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+function _isExternalToolHealth(value: unknown): value is ExternalToolHealth {
+  if (!_isRecord(value)) return false;
+  return (
+    typeof value.available === "boolean" &&
+    typeof value.path === "string" &&
+    typeof value.version === "string" &&
+    typeof value.error === "string" &&
+    (value.model_dir === undefined || typeof value.model_dir === "string") &&
+    (value.model_path === undefined || typeof value.model_path === "string")
+  );
+}
+
+function _isHealthReport(value: unknown): value is HealthReport {
+  if (!_isRecord(value)) return false;
+  return (
+    typeof value.collection_available === "boolean" &&
+    typeof value.deck_count === "number" &&
+    typeof value.note_type_count === "number" &&
+    typeof value.card_count === "number" &&
+    (value.deep_filter === undefined || _isExternalToolHealth(value.deep_filter)) &&
+    (value.sidon === undefined || _isExternalToolHealth(value.sidon)) &&
+    (value.mp_senet === undefined || _isExternalToolHealth(value.mp_senet))
+  );
+}
+
+function _isSupportReportResult(value: unknown): value is SupportReportResult {
+  return _isRecord(value) && typeof value.reportText === "string";
+}
+
+function _isShowLogFileResult(value: unknown): value is ShowLogFileResult {
+  return _isRecord(value) && typeof value.logFilePath === "string";
 }

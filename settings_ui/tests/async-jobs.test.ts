@@ -15,8 +15,30 @@ import {
   handleAsyncProgress,
   startAsyncOp,
 } from "../src/lib/async-jobs.js";
+import { OutputFormat } from "../src/lib/types.js";
 
 const pycmd = (globalThis as unknown as Record<string, ReturnType<typeof vi.fn>>)["pycmd"]!;
+const config = {
+  _config_version: 7,
+  enabled: true,
+  debug_logging: false,
+  show_ffmpeg_commands: false,
+  manual_trim_small_ms: 100,
+  manual_trim_large_ms: 500,
+  speed_step: 0.05,
+  min_speed: 0.75,
+  max_speed: 1.5,
+  volume_step_db: 3.0,
+  min_volume_db: -24.0,
+  max_volume_db: 24.0,
+  internal_pause_silence_threshold_db: -45,
+  internal_pause_threshold_ms: 300,
+  internal_pause_target_gap_ms: 100,
+  output_format: OutputFormat.Mp3,
+  ffmpeg_path: "",
+  deep_filter_path: "",
+  deep_filter_post_filter: true,
+};
 
 afterEach(() => {
   _clearPendingForTest();
@@ -24,7 +46,7 @@ afterEach(() => {
 
 describe("startAsyncOp", () => {
   it("calls pycmd with async_cmd containing op and payload", () => {
-    void startAsyncOp("health_check", {});
+    void startAsyncOp("health_check", { config });
     const call = pycmd.mock.calls[0]?.[0] ?? "";
     expect(call).toMatch(/^async_cmd:/);
     const parsed = JSON.parse(call.slice("async_cmd:".length)) as {
@@ -33,12 +55,12 @@ describe("startAsyncOp", () => {
       payload: unknown;
     };
     expect(parsed.op).toBe("health_check");
-    expect(parsed.payload).toEqual({});
+    expect(parsed.payload).toEqual({ config });
   });
 
   it("generates a unique id for each call", () => {
-    void startAsyncOp("op_a", {});
-    void startAsyncOp("op_b", {});
+    void startAsyncOp("health_check", { config });
+    void startAsyncOp("support_report", { config });
     const id1 = JSON.parse(
       (pycmd.mock.calls[0]?.[0] ?? "{}").slice("async_cmd:".length)
     ).id as string;
@@ -49,19 +71,28 @@ describe("startAsyncOp", () => {
   });
 
   it("promise resolves with result when onAsyncDone fires ok=true", async () => {
-    const promise = startAsyncOp("health_check", {});
+    const promise = startAsyncOp("health_check", { config });
     const id = JSON.parse(
       (pycmd.mock.calls[0]?.[0] ?? "{}").slice("async_cmd:".length)
     ).id as string;
 
-    handleAsyncDone({ id, ok: true, result: { response: "hello" } });
+    handleAsyncDone({
+      id,
+      ok: true,
+      result: {
+        collection_available: true,
+        deck_count: 1,
+        note_type_count: 2,
+        card_count: 3,
+      },
+    });
 
     const result = await promise;
-    expect(result).toEqual({ response: "hello" });
+    expect(result.card_count).toBe(3);
   });
 
   it("promise rejects with error when onAsyncDone fires ok=false", async () => {
-    const promise = startAsyncOp("health_check", {});
+    const promise = startAsyncOp("health_check", { config });
     const id = JSON.parse(
       (pycmd.mock.calls[0]?.[0] ?? "{}").slice("async_cmd:".length)
     ).id as string;
@@ -73,7 +104,7 @@ describe("startAsyncOp", () => {
 
   it("calls onProgress callback with pct and message", () => {
     const onProgress = vi.fn();
-    void startAsyncOp("fetch_voices", {}, onProgress);
+    void startAsyncOp("show_log_file", {}, onProgress);
     const id = JSON.parse(
       (pycmd.mock.calls[0]?.[0] ?? "{}").slice("async_cmd:".length)
     ).id as string;
@@ -89,18 +120,29 @@ describe("startAsyncOp", () => {
   });
 
   it("cleans up pending map after resolution", async () => {
-    const promise = startAsyncOp("op", {});
+    const promise = startAsyncOp("support_report", { config });
     const id = JSON.parse(
       (pycmd.mock.calls[0]?.[0] ?? "{}").slice("async_cmd:".length)
     ).id as string;
 
-    handleAsyncDone({ id, ok: true, result: null });
+    handleAsyncDone({ id, ok: true, result: { reportText: "support" } });
     await promise;
 
     // A second done with the same ID should be silently ignored
     expect(() => {
       handleAsyncDone({ id, ok: false, error: "late" });
     }).not.toThrow();
+  });
+
+  it("rejects when an async result payload does not match the operation", async () => {
+    const promise = startAsyncOp("show_log_file", {});
+    const id = JSON.parse(
+      (pycmd.mock.calls[0]?.[0] ?? "{}").slice("async_cmd:".length)
+    ).id as string;
+
+    handleAsyncDone({ id, ok: true, result: { reportText: "wrong shape" } });
+
+    await expect(promise).rejects.toThrow("Invalid async result payload for show_log_file");
   });
 });
 

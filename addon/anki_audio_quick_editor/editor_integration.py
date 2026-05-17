@@ -23,6 +23,7 @@ from .audio_processor import (
     temp_final_path,
 )
 from .audio_state import AudioEditState, AudioProcessingConfig
+from .contracts_generated import ProsodyPayload
 from .editor_actions import (
     BRIDGE_COMMANDS,
     CMD_MP_SENET,
@@ -828,7 +829,7 @@ def _analysis_finished(editor: Any, generation: int, track: ProsodyTrack) -> Non
     session.analysis_busy = False
     session.visualized_duration_ms = track.duration_ms
     session.cursor_ms = clamp_cursor_ms(session.cursor_ms, track.duration_ms)
-    payload = json.dumps(track.to_payload())
+    payload = json.dumps(ProsodyPayload.from_dict(track.to_payload()).to_dict())
     cursor_payload = json.dumps(session.cursor_ms)
     field_index = session.field_index if session.field_index is not None else _current_field_index(editor)
     editor.web.eval(

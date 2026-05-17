@@ -47,6 +47,30 @@ def _capture_eval() -> tuple[list[str], callable]:
     return calls, eval_fn
 
 
+def _full_config() -> dict[str, object]:
+    return {
+        "_config_version": 7,
+        "enabled": True,
+        "debug_logging": False,
+        "show_ffmpeg_commands": False,
+        "manual_trim_small_ms": 100,
+        "manual_trim_large_ms": 500,
+        "speed_step": 0.05,
+        "min_speed": 0.75,
+        "max_speed": 1.5,
+        "volume_step_db": 3.0,
+        "min_volume_db": -24.0,
+        "max_volume_db": 24.0,
+        "internal_pause_silence_threshold_db": -45,
+        "internal_pause_threshold_ms": 300,
+        "internal_pause_target_gap_ms": 100,
+        "output_format": "mp3",
+        "ffmpeg_path": "",
+        "deep_filter_path": "",
+        "deep_filter_post_filter": True,
+    }
+
+
 def _parse_callback(js: str, name: str) -> dict:
     prefix = f"window.{name}("
     assert js.startswith(prefix)
@@ -58,7 +82,7 @@ def test_settings_save_writes_config_and_accepts() -> None:
 
     dialog = _make_dialog()
     _, eval_fn = _capture_eval()
-    config = {"enabled": False, "debug_logging": True}
+    config = {**_full_config(), "enabled": False, "debug_logging": True}
 
     handle_settings_command(f"settings_save:{json.dumps(config)}", eval_fn, dialog)
 
@@ -199,29 +223,25 @@ def test_async_command_reports_unknown_operation() -> None:
     }
 
 
-def test_async_health_check_uses_empty_config_for_non_dict_payload_config() -> None:
+def test_async_health_check_rejects_non_dict_payload_config() -> None:
     dialog = _make_dialog()
     calls, eval_fn = _capture_eval()
     payload = json.dumps({"id": "job-1", "op": "health_check", "payload": {"config": "/not/a/dict"}})
 
-    with (
-        patch("threading.Thread", _ImmediateThread),
-        patch("anki_audio_quick_editor.diagnostics.build_deep_filter_health", return_value={"available": False}) as deep_filter_health,
-        patch("anki_audio_quick_editor.diagnostics.build_sidon_health", return_value={"available": False}),
-        patch("anki_audio_quick_editor.diagnostics.build_mp_senet_health", return_value={"available": False}),
-    ):
-        assert handle_settings_command(f"async_cmd:{payload}", eval_fn, dialog) is True
+    assert handle_settings_command(f"async_cmd:{payload}", eval_fn, dialog) is True
 
-    deep_filter_health.assert_called_once_with({})
     result = _parse_callback(calls[-1], "onAsyncDone")
-    assert result["ok"] is True
-    assert result["result"]["deep_filter"] == {"available": False}
+    assert result == {
+        "id": "job-1",
+        "ok": False,
+        "error": "Invalid async command payload",
+    }
 
 
 def test_async_health_check_reports_result() -> None:
     dialog = _make_dialog()
     calls, eval_fn = _capture_eval()
-    payload = json.dumps({"id": "job-1", "op": "health_check", "payload": {}})
+    payload = json.dumps({"id": "job-1", "op": "health_check", "payload": {"config": _full_config()}})
 
     with patch("threading.Thread", _ImmediateThread):
         handle_settings_command(f"async_cmd:{payload}", eval_fn, dialog)
@@ -243,7 +263,7 @@ def test_async_health_check_reports_deep_filter_version() -> None:
         {
             "id": "job-1",
             "op": "health_check",
-            "payload": {"config": {"deep_filter_path": "/custom/deep-filter"}},
+            "payload": {"config": {**_full_config(), "deep_filter_path": "/custom/deep-filter"}},
         }
     )
 
@@ -277,7 +297,7 @@ def test_async_health_check_reports_sidon_version() -> None:
         {
             "id": "job-1",
             "op": "health_check",
-            "payload": {},
+            "payload": {"config": _full_config()},
         }
     )
 
@@ -315,7 +335,7 @@ def test_async_health_check_reports_mp_senet_version() -> None:
         {
             "id": "job-1",
             "op": "health_check",
-            "payload": {},
+            "payload": {"config": _full_config()},
         }
     )
 
@@ -399,7 +419,7 @@ def test_async_support_report_returns_incident_and_log_tail(tmp_path: Path) -> N
     log_path.write_text("line-1\nline-2\n", encoding="utf-8")
     dialog = _make_dialog()
     calls, eval_fn = _capture_eval()
-    payload = json.dumps({"id": "job-1", "op": "support_report", "payload": {"config": {}}})
+    payload = json.dumps({"id": "job-1", "op": "support_report", "payload": {"config": _full_config()}})
 
     with (
         patch("threading.Thread", _ImmediateThread),
@@ -429,7 +449,7 @@ def test_async_support_report_handles_missing_log_file() -> None:
     clear_latest_sidon_support_incident()
     dialog = _make_dialog()
     calls, eval_fn = _capture_eval()
-    payload = json.dumps({"id": "job-1", "op": "support_report", "payload": {"config": {}}})
+    payload = json.dumps({"id": "job-1", "op": "support_report", "payload": {"config": _full_config()}})
 
     with patch("threading.Thread", _ImmediateThread):
         handle_settings_command(f"async_cmd:{payload}", eval_fn, dialog)

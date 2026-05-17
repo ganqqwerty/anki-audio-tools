@@ -2,6 +2,7 @@ import { fireEvent, render, screen, waitFor } from "@testing-library/svelte";
 import { describe, expect, it, vi } from "vitest";
 
 import App from "../src/App.svelte";
+import { OutputFormat } from "../src/lib/types.js";
 
 const defaultConfig = {
   _config_version: 7,
@@ -19,7 +20,7 @@ const defaultConfig = {
   internal_pause_silence_threshold_db: -45,
   internal_pause_threshold_ms: 300,
   internal_pause_target_gap_ms: 100,
-  output_format: "mp3" as const,
+  output_format: OutputFormat.Mp3,
   ffmpeg_path: "",
   deep_filter_path: "",
   deep_filter_post_filter: true,

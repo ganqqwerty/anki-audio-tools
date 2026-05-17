@@ -6,6 +6,8 @@ import json
 import os
 from typing import Any
 
+from .contracts_generated import InitialState
+
 
 def build_initial_state_payload(
     config: dict[str, Any],
@@ -30,4 +32,4 @@ def build_initial_state_payload(
 
 def encode_initial_state(payload: dict[str, Any]) -> str:
     """Encode a settings initial-state payload as JSON."""
-    return json.dumps(payload)
+    return json.dumps(InitialState.from_dict(payload).to_dict())

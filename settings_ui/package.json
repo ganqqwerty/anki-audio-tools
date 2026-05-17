@@ -30,6 +30,7 @@
     "eslint": "^9.29.0",
     "eslint-plugin-svelte": "^2.46.1",
     "jsdom": "^26.1.0",
+    "quicktype": "23.2.6",
     "svelte": "^5.35.5",
     "svelte-check": "^4.2.1",
     "svelte-language-server": "^0.17.29",

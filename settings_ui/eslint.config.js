@@ -16,6 +16,7 @@ export default [
       "node_modules/**",
       "../addon/anki_audio_quick_editor/templates/settings/**",
       "src/components/ui/**",
+      "src/lib/generated/**",
       "vite.config.ts",
       "vitest.config.ts",
       "svelte.config.js",
@@ -48,6 +49,7 @@ export default [
         // Ignore type-only declarations
         ignoreRestSiblings: true,
       }],
+      "@typescript-eslint/no-explicit-any": "error",
       // TS-A: no pycmd() outside bridge.ts
       "no-restricted-syntax": [
         "error",
@@ -92,6 +94,7 @@ export default [
         argsIgnorePattern: "^_",
         varsIgnorePattern: "^_",
       }],
+      "@typescript-eslint/no-explicit-any": "error",
       // TS-A and TS-B apply to Svelte files too
       "no-restricted-syntax": [
         "error",
@@ -131,6 +134,7 @@ export default [
         // Ignore type-only declarations in declare global {}
         ignoreRestSiblings: true,
       }],
+      "@typescript-eslint/no-explicit-any": "error",
       "no-console": ["error", { allow: ["warn", "error"] }],
     },
   },
@@ -158,6 +162,7 @@ export default [
     rules: {
       "no-unused-vars": "off",
       "@typescript-eslint/no-unused-vars": "off",
+      "@typescript-eslint/no-explicit-any": "error",
       "no-console": "off",
       // Tests CAN access window (they run in jsdom)
       // Tests CAN assign window.on* to inspect callbacks

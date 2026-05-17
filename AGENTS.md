@@ -25,6 +25,7 @@ After major refactors, package renames, config schema changes, hook changes, or 
 | `addon/anki_audio_quick_editor/` | Audio Quick Editor runtime package |
 | `addon/anki_audio_quick_editor/settings/` | Settings dialog Python shell + bridge backend |
 | `addon/anki_audio_quick_editor/templates/` | Committed webview bundle output |
+| `contracts/` | Source JSON Schemas for generated Python/TypeScript communication contracts |
 | `tests/` | Unit + architecture tests |
 | `tests/test_architecture/` | Architecture boundary enforcement |
 | `e2e/` | End-to-end tests with real Anki + Qt |
@@ -71,6 +72,7 @@ Use `python3 scripts/dev.py check` for the reusable QC gate. A feature is not co
 | Linter | `python3 scripts/dev.py lint` |
 | Type checker | `python3 scripts/dev.py typecheck` |
 | Config schema | `python3 scripts/dev.py config-schema` |
+| JSON contracts | `python3 scripts/dev.py contracts-check` |
 
 ## Planning Features
 

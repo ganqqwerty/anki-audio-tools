@@ -17,6 +17,7 @@ python3 scripts/dev.py test-e2e
 - `tests/test_anki_api_contract_mocks.py` checks the mocked unit-test Anki surface against the same generated contract so mocks cannot hide a missing real API.
 - `tests/test_architecture/contracts.py` is the executable architecture source of truth; `tests/test_architecture/inspection.py` powers both the tests and the architecture report.
 - `settings_ui/tests/` covers bridge commands, async job plumbing, logging, and the settings UI.
+- `scripts/generate_contracts.py --check` verifies generated Python/TypeScript JSON communication contracts are in sync with `contracts/communication.schema.json`.
 - `e2e/` exercises the real add-on inside a live Anki runtime via `aqt._run(exec=False)`, including ffmpeg-backed audio processing when `ffmpeg` and `ffprobe` are installed.
 
 ## Feature Completion Rule
@@ -32,6 +33,8 @@ A feature is not complete until `python3 scripts/dev.py test-e2e` passes.
 | Unit + architecture tests | `python3 scripts/dev.py test` |
 | Lint | `python3 scripts/dev.py lint` |
 | Type checking | `python3 scripts/dev.py typecheck` |
+| JSON contract staleness | `python3 scripts/dev.py contracts-check` |
+| JSON contract generation | `python3 scripts/dev.py contracts-generate` |
 | Import-linter | `python3 scripts/dev.py arch` |
 | Dead code | `python3 scripts/dev.py deadcode` |
 | Security | `python3 scripts/dev.py security` |
@@ -50,6 +53,7 @@ A feature is not complete until `python3 scripts/dev.py test-e2e` passes.
 | Pause shortening pipeline | `tests/test_audio_pipeline.py`, `tests/test_audio_processor.py` |
 | Prosody SVG media rendering | `tests/test_prosody_svg.py` |
 | Shared prosody analysis/cache and editor integration | `tests/test_prosody_analyzer.py`, `tests/test_prosody_fallback.py`, `tests/test_editor_integration.py` |
+| JSON contract generation | `tests/test_contract_generation.py` |
 | Architecture boundaries | `tests/test_architecture/*.py` |
 
 ## Mutation Testing

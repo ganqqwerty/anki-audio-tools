@@ -15,10 +15,19 @@ Rebuild it with:
 python3 scripts/dev.py build
 ```
 
+Owned JSON communication contracts are schema-first:
+
+- source schema: `contracts/communication.schema.json`
+- generated TypeScript: `settings_ui/src/lib/generated/contracts.ts`
+- generated Python: `addon/anki_audio_quick_editor/contracts_generated.py`
+
+Regenerate them with `python3 scripts/dev.py contracts-generate`; `python3 scripts/dev.py contracts-check` fails when the committed generated files are stale.
+
 ## Bridge Rules
 
 - All JavaScript -> Python commands go through `settings_ui/src/lib/bridge.ts`.
 - All Python -> JavaScript async callbacks use `window.onAsyncProgress(...)`, `window.onAsyncDone(...)`, or `window.onSaveError(...)`.
+- Settings bridge payloads and callback payloads should use the generated contract types rather than ad hoc `Any`/`unknown` shapes.
 - Always `json.dumps()` values before interpolating them into `webview.eval(...)`.
 - Inline editor controls are injected from Python via `editor_ui.py`, not through the settings Svelte bundle.
 - Browser batch visualization progress and logging are native Qt widgets, not Svelte/WebView content.

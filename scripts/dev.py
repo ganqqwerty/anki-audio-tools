@@ -407,13 +407,19 @@ def _setup_addon_symlink() -> None:
 def cmd_setup() -> int:
     anki_python = _find_anki_python()
     print(f"Anki Python: {anki_python}")
-    rc = _run([str(anki_python), "-m", "pip", "install", *DEV_DEPS], label="installing Python dev dependencies")
-    if rc == 0:
+    pip_rc = _run([str(anki_python), "-m", "pip", "install", *DEV_DEPS], label="installing Python dev dependencies")
+    if pip_rc == 0:
         print(f"  Installed: {', '.join(DEV_DEPS)}")
     _setup_addon_symlink()
+    npm_rc = 0
     if SETTINGS_UI_DIR.is_dir() and shutil.which("npm"):
-        _run(["npm", "install", "--legacy-peer-deps"], cwd=SETTINGS_UI_DIR, label="settings UI npm install")
-    return 0
+        npm_cmd = ["npm", "ci", "--legacy-peer-deps"]
+        if not (SETTINGS_UI_DIR / "package-lock.json").is_file():
+            npm_cmd = ["npm", "install", "--legacy-peer-deps"]
+        npm_rc = _run(npm_cmd, cwd=SETTINGS_UI_DIR, label="settings UI npm install")
+    if pip_rc != 0:
+        return pip_rc
+    return npm_rc
 
 
 def cmd_test() -> int:
@@ -629,6 +635,7 @@ def cmd_sonar() -> int:
 def cmd_check() -> int:
     steps: list[tuple[str, Callable[[], int]]] = [
         ("config-schema", cmd_config_schema),
+        ("contracts-check", cmd_contracts_check),
         ("architecture-report", cmd_architecture_report),
         ("lint", cmd_lint),
         ("typecheck", cmd_typecheck),
@@ -662,11 +669,22 @@ def cmd_config_schema() -> int:
     return _run([str(anki_python), "scripts/config_schema_validate.py"], label="config schema validation")
 
 
+def cmd_contracts_generate() -> int:
+    return _run([sys.executable, "scripts/generate_contracts.py", "--write"], label="contract generation")
+
+
+def cmd_contracts_check() -> int:
+    return _run([sys.executable, "scripts/generate_contracts.py", "--check"], label="contract staleness check")
+
+
 def cmd_build_ui() -> int:
     if not SETTINGS_UI_DIR.is_dir():
         _die("settings_ui/ directory not found.")
     if not shutil.which("npm"):
         _die("npm not found. Install Node.js 18+.")
+    contracts_rc = cmd_contracts_check()
+    if contracts_rc != 0:
+        return contracts_rc
     return _run(["npm", "run", "build"], cwd=SETTINGS_UI_DIR, label="settings UI build")
 
 
@@ -724,7 +742,7 @@ COMMANDS: dict[str, tuple[Callable[[], int], str]] = {
     "deps": (cmd_deps, "Check dependencies (deptry)"),
     "check": (
         cmd_check,
-        "Full QC: config-schema + architecture-report + lint + typecheck + "
+        "Full QC: config-schema + contracts-check + architecture-report + lint + typecheck + "
         "security + deadcode + deps + complexity + arch + test-anki-api + test + svelte",
     ),
     "coverage": (cmd_coverage, "Run tests with coverage report"),
@@ -734,6 +752,8 @@ COMMANDS: dict[str, tuple[Callable[[], int], str]] = {
     "build-ui": (cmd_build_ui, "Build the settings Svelte bundle"),
     "test-svelte": (cmd_test_svelte, "Run settings Svelte UI tests"),
     "config-schema": (cmd_config_schema, "Validate config.json against JSON Schema"),
+    "contracts-generate": (cmd_contracts_generate, "Generate Python and TypeScript JSON contracts"),
+    "contracts-check": (cmd_contracts_check, "Verify generated JSON contracts are current"),
     "release": (cmd_release, "Run scripts/release.py"),
     "info": (cmd_info, "Print discovered paths and versions"),
 }

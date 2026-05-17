@@ -7,9 +7,22 @@ import logging
 import threading
 import uuid
 from collections.abc import Callable
-from typing import Any, cast
+from typing import Any
+
+from ..contracts_generated import (
+    AsyncCommand,
+    AsyncDonePayload,
+    AsyncProgressPayload,
+    Config,
+    CopySupportReportPayload,
+    FrontendLogPayload,
+    HealthReport,
+    ShowLogFileResult,
+    SupportReportResult,
+)
 
 logger = logging.getLogger(__name__)
+CONTRACT_DECODE_ERRORS = (AssertionError, TypeError, ValueError)
 
 
 def handle_settings_command(
@@ -47,9 +60,15 @@ def _handle_settings_save(
     from aqt import mw
 
     try:
-        config = json.loads(payload_str)
+        raw_config = json.loads(payload_str)
     except json.JSONDecodeError:
         payload = json.dumps({"error": "Invalid JSON payload"})
+        eval_fn(f"window.onSaveError({payload})")
+        return
+    try:
+        config = Config.from_dict(raw_config).to_dict()
+    except CONTRACT_DECODE_ERRORS:
+        payload = json.dumps({"error": "Invalid settings payload"})
         eval_fn(f"window.onSaveError({payload})")
         return
 
@@ -90,30 +109,41 @@ def _handle_async_cmd(payload_str: str, eval_fn: Callable[[str], None]) -> None:
     from aqt import mw
 
     try:
-        payload = json.loads(payload_str)
+        raw_payload = json.loads(payload_str)
     except json.JSONDecodeError:
         logger.error("async_cmd: invalid JSON payload")
         return
+    raw_job_id = _raw_job_id(raw_payload)
 
-    job_id = payload.get("id", str(uuid.uuid4()))
-    op = payload.get("op", "")
-    op_payload = payload.get("payload", {})
+    try:
+        command = AsyncCommand.from_dict(raw_payload)
+    except CONTRACT_DECODE_ERRORS as exc:
+        data = json.dumps(
+            AsyncDonePayload(raw_job_id, False, error="Invalid async command payload").to_dict()
+        )
+        mw.taskman.run_on_main(lambda: eval_fn(f"window.onAsyncDone({data})"))
+        logger.warning("async_cmd: invalid payload shape: %s", exc)
+        return
+
+    job_id = command.id
+    op = command.op
+    op_payload = command.payload.to_dict()
 
     def _main_eval(js: str) -> None:
         mw.taskman.run_on_main(lambda: eval_fn(js))
 
     def _progress(pct: int, message: str) -> None:
-        data = json.dumps({"id": job_id, "progress": pct, "message": message})
+        data = json.dumps(AsyncProgressPayload(job_id, message, pct).to_dict())
         _main_eval(f"window.onAsyncProgress({data})")
 
     def _run() -> None:
         try:
             result = _dispatch_op(op, op_payload, _progress)
-            data = json.dumps({"id": job_id, "ok": True, "result": result})
+            data = json.dumps(AsyncDonePayload(job_id, True, result=result).to_dict())
             _main_eval(f"window.onAsyncDone({data})")
         except Exception as exc:  # pragma: no cover - tested via public callback path
             logger.exception("async operation failed: %s", op)
-            data = json.dumps({"id": job_id, "ok": False, "error": str(exc)})
+            data = json.dumps(AsyncDonePayload(job_id, False, error=str(exc)).to_dict())
             _main_eval(f"window.onAsyncDone({data})")
 
     threading.Thread(target=_run, daemon=True).start()
@@ -149,15 +179,14 @@ def _op_health_check(
     progress_fn(20, "Inspecting collection")
     report = build_health_report(mw.col)
     progress_fn(60, "Checking DeepFilterNet")
-    raw_config = payload.get("config")
-    config = cast(dict[str, Any], raw_config) if isinstance(raw_config, dict) else {}
+    config = _config_payload(payload)
     report["deep_filter"] = build_deep_filter_health(config)
     progress_fn(75, "Checking Sidon")
     report["sidon"] = build_sidon_health()
     progress_fn(90, "Checking MP-SENet")
     report["mp_senet"] = build_mp_senet_health()
     progress_fn(100, "Done")
-    return report
+    return HealthReport.from_dict(report).to_dict()
 
 
 def _op_support_report(
@@ -182,8 +211,7 @@ def _op_support_report(
     )
 
     progress_fn(20, "Collecting environment")
-    raw_config = payload.get("config")
-    config = cast(dict[str, Any], raw_config) if isinstance(raw_config, dict) else {}
+    config = _config_payload(payload)
     addon_id = mw.addonManager.addonFromModule(__name__)
     addon_dir = mw.addonManager.addonsFolder(addon_id)
     log_path = addon_log_path(addon_dir)
@@ -205,7 +233,7 @@ def _op_support_report(
         log_tail=read_log_tail(log_path),
     )
     progress_fn(100, "Done")
-    return {"reportText": report_text}
+    return SupportReportResult(report_text).to_dict()
 
 
 def _op_show_log_file(
@@ -223,19 +251,24 @@ def _op_show_log_file(
     progress_fn(75, "Opening log file")
     reveal_file(log_path, missing_message="The Audio Quick Editor log file was not found.")
     progress_fn(100, "Done")
-    return {"logFilePath": str(log_path)}
+    return ShowLogFileResult(str(log_path)).to_dict()
 
 
 def _handle_frontend_log(payload_str: str) -> None:
     try:
-        payload = json.loads(payload_str)
+        raw_payload = json.loads(payload_str)
     except json.JSONDecodeError:
         logger.warning("frontend_log: invalid payload")
         return
+    try:
+        payload = FrontendLogPayload.from_dict(raw_payload)
+    except CONTRACT_DECODE_ERRORS:
+        logger.warning("frontend_log: invalid payload")
+        return
 
-    level = str(payload.get("level", "info")).lower()
-    message = str(payload.get("message", ""))
-    context = payload.get("context")
+    level = payload.level.value
+    message = payload.message
+    context = payload.context
     rendered = f"frontend: {message}"
     if context is not None:
         rendered = f"{rendered} | {context!r}"
@@ -254,17 +287,39 @@ def _handle_copy_support_report(payload_str: str) -> None:
     from aqt.qt import QApplication
 
     try:
-        payload = json.loads(payload_str)
+        raw_payload = json.loads(payload_str)
     except json.JSONDecodeError:
         logger.warning("copy_support_report: invalid payload")
         return
-
-    text = payload.get("text")
-    if not isinstance(text, str):
-        logger.warning("copy_support_report: missing text payload")
+    try:
+        payload = CopySupportReportPayload.from_dict(raw_payload)
+    except CONTRACT_DECODE_ERRORS:
+        if isinstance(raw_payload, dict) and not isinstance(raw_payload.get("text"), str):
+            logger.warning("copy_support_report: missing text payload")
+        else:
+            logger.warning("copy_support_report: invalid payload")
         return
+
     clipboard = QApplication.clipboard()
     if clipboard is None:
         logger.warning("copy_support_report: clipboard unavailable")
         return
-    clipboard.setText(text)
+    clipboard.setText(payload.text)
+
+
+def _raw_job_id(payload: Any) -> str:
+    if isinstance(payload, dict):
+        job_id = payload.get("id")
+        if isinstance(job_id, str):
+            return job_id
+    return str(uuid.uuid4())
+
+
+def _config_payload(payload: dict[str, Any]) -> dict[str, Any]:
+    raw_config = payload.get("config")
+    if not isinstance(raw_config, dict):
+        return {}
+    try:
+        return Config.from_dict(raw_config).to_dict()
+    except CONTRACT_DECODE_ERRORS:
+        return {}
