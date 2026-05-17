@@ -65,6 +65,8 @@ python3 scripts/dev.py build
 
 `python3 scripts/dev.py test-svelte` and `python3 scripts/dev.py test-e2e` also run the frontend bundle build before their tests. Keep that dependency in `scripts/dev.py` so test callers do not need to remember it.
 
+Do not treat `settings_ui/src/` as the runtime artifact. During Anki and e2e runs, the add-on reads `addon/anki_audio_quick_editor/templates/settings/settings_bundle.{js,css}` and `addon/anki_audio_quick_editor/templates/editor/editor_bundle.{js,css}`. Build output changes after `check`, `test-svelte`, or `test-e2e` are expected when source changed and should be reviewed like normal generated artifacts.
+
 `quicktype` is pinned as a settings UI dev dependency and installed from `settings_ui/package-lock.json`. It is used only for development-time JSON contract generation and is not bundled into the Anki add-on runtime.
 
 Frontend quality checks run through:

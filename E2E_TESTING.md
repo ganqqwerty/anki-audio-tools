@@ -31,3 +31,20 @@ Use about `±75 ms` tolerance for cursor and seek assertions. That leaves room f
 ```bash
 python3 scripts/dev.py test-e2e
 ```
+
+Run this command through `scripts/dev.py`, not bare `pytest e2e`, after frontend changes. The dev runner rebuilds the committed settings/editor webview bundles before Anki starts. Bare pytest can pass or fail against stale JavaScript because Anki loads `addon/anki_audio_quick_editor/templates/**`, not `settings_ui/src/**`.
+
+If an e2e run leaves bundle diffs, inspect and commit them with the source change. That churn usually means the previous committed bundles were stale or the build was not run before the test.
+
+## Inline Editor Lifecycle Gotchas
+
+The injected editor frontend schedules immediate and delayed scans so controls appear after Anki finishes rendering editor fields. That makes lifecycle bugs look strange: an old delayed scan can remount controls after a note reload, undo, or processing command if disposal does not cancel it.
+
+When changing editor field replacement, undo, processing, or frontend runtime mounting, preserve these rules:
+
+- Python should call `window.__aqeEditorDispose && window.__aqeEditorDispose()` before mutating/reloading fields that may contain existing AQE controls.
+- Frontend runtime disposal should cancel delayed scan timers and remove orphaned `.aqe-mount-host` / `.aqe-controls` nodes.
+- Rescans should keep a busy or already-rendered graph for the same field source, but they should not leave duplicate hidden visualizers behind.
+- Add or update jsdom integration tests in `settings_ui/tests/editor-inline.integration.test.ts` before relying only on e2e. They are faster and can deterministically catch orphan controls and canceled delayed scans.
+
+Symptoms of this class of bug include two visualizers for one field, a hidden old visualizer receiving playback/graph state, buttons becoming enabled during processing, or graph state reverting shortly after an apparently successful e2e step.

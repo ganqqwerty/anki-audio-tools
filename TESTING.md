@@ -28,6 +28,16 @@ python3 scripts/dev.py test-e2e
 
 A feature is not complete until `python3 scripts/dev.py test-e2e` passes. The e2e command rebuilds the frontend bundles first so Anki tests never depend on stale committed webview output.
 
+## Frontend Build Notes
+
+The settings and inline editor frontend are compiled into committed files under `addon/anki_audio_quick_editor/templates/`. Anki e2e tests load those committed bundles, not the TypeScript or Svelte source in `settings_ui/src/`.
+
+Use `python3 scripts/dev.py test-svelte` for frontend work and `python3 scripts/dev.py test-e2e` for Anki runtime checks. Both commands intentionally run `python3 scripts/dev.py build` first. If the build changes `templates/*_bundle.{js,css}`, commit those generated bundle changes with the source change.
+
+Avoid running `npm run validate` or `pytest e2e` directly as the only verification after frontend changes. Direct commands are useful for focused debugging, but they bypass the repository rule that bundle freshness is part of the test command.
+
+`python3 scripts/dev.py check` reaches frontend validation through `test-svelte`, so it can also modify committed bundles. Check `git diff` after running it.
+
 ## Individual Checks
 
 | Task | Command |

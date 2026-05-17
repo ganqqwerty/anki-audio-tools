@@ -19,6 +19,10 @@ python3 scripts/dev.py build
 
 Frontend-dependent test commands also build before they run. `python3 scripts/dev.py test-svelte` rebuilds before validation, and `python3 scripts/dev.py test-e2e` rebuilds before launching Anki e2e tests.
 
+This build step is not optional for runtime verification. The Anki editor and settings dialogs load only the committed files in `addon/anki_audio_quick_editor/templates/`; they do not load Vite source files or a dev server. If e2e behavior does not match a TypeScript/Svelte edit, check whether the committed bundle changed and whether the test was run through `scripts/dev.py`.
+
+After running `check`, `test-svelte`, or `test-e2e`, review bundle diffs before committing. A source-only frontend commit can be misleading because the packaged add-on uses the generated templates.
+
 Owned JSON communication contracts are schema-first:
 
 - source schema: `contracts/communication.schema.json`
@@ -43,3 +47,4 @@ Regenerate them with `python3 scripts/dev.py contracts-generate`; `python3 scrip
 - Scripts inserted via `innerHTML` do not execute.
 - Functions used by inline handlers must be attached to `window`.
 - JSON inserted into HTML must be escaped carefully; the settings shell embeds pre-serialized JSON into `window.__INITIAL_STATE__`.
+- Injected editor bundles can outlive one apparent editor render through scheduled scans and Anki field reloads. Dispose the old `window.__aqe*` runtime before replacing note field contents, and make dispose idempotent so repeated injections do not leave orphaned controls.
