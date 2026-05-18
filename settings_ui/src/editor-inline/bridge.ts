@@ -1,5 +1,5 @@
 import type { FrontendLogPayload } from "../lib/generated/contracts.js";
-import type { CursorIntent, GraphAnalysisRequest, PlaybackRequest, RegionDeleteRequest } from "./types.js";
+import type { CursorIntent, EditorCommandPayload, GraphAnalysisRequest, PlaybackRequest, RegionDeleteRequest } from "./types.js";
 
 const frontendLogs: FrontendLogPayload[] = [];
 let pendingGraphAnalysisRequest: GraphAnalysisRequest | null = null;
@@ -14,6 +14,11 @@ export function sendBridgeCommand(command: string): void {
 export function focusAndSendCommand(ord: number, command: string): void {
   sendBridgeCommand(`focus:${ord}`);
   sendBridgeCommand(command);
+}
+
+export function focusAndSendCommandPayload(ord: number, payload: EditorCommandPayload): void {
+  sendBridgeCommand(`focus:${ord}`);
+  sendBridgeCommand(JSON.stringify(payload));
 }
 
 export function sendGraphAnalysisRequest(request: GraphAnalysisRequest): void {

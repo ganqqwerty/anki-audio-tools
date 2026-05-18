@@ -186,6 +186,61 @@ describe("editor inline Svelte integration", () => {
     expect(bridgeCommands()).toContain("aqe:rnnoise");
   });
 
+  it("dispatches trim commands with the field-local split value", () => {
+    window.__AQE_EDITOR_CONFIG__ = {
+      audioFieldIndices: [0],
+      splitButtonDefaults: {
+        denoiseAlgorithm: "standard",
+        pauseAggressiveness: "normal",
+        speedStep: 0.05,
+        trimStepMs: 200,
+        volumeStepDb: 3,
+      },
+    };
+    initializeEditorRuntime(window.__AQE_EDITOR_CONFIG__);
+    scan(window.__AQE_EDITOR_CONFIG__);
+
+    document.querySelector<HTMLButtonElement>('[data-testid="aqe-button-0-trim-left"]')!.click();
+
+    expect(bridgeCommands()).toContain("focus:0");
+    const payload = JSON.parse(commandLog().find((command) => command.startsWith("{")) ?? "{}");
+    expect(payload).toEqual({
+      command: "aqe:trim-left",
+      fieldOrd: 0,
+      overrides: {
+        trimStepMs: 200,
+      },
+    });
+  });
+
+  it("keeps trim split values isolated across audio fields", async () => {
+    renderTwoAudioFields();
+    window.__AQE_EDITOR_CONFIG__ = {
+      audioFieldIndices: [0, 1],
+      splitButtonDefaults: {
+        denoiseAlgorithm: "standard",
+        pauseAggressiveness: "normal",
+        speedStep: 0.05,
+        trimStepMs: 100,
+        volumeStepDb: 3,
+      },
+    };
+    initializeEditorRuntime(window.__AQE_EDITOR_CONFIG__);
+    scan(window.__AQE_EDITOR_CONFIG__);
+
+    document.querySelector<HTMLButtonElement>('[data-testid="aqe-split-0-trim-left-menu"]')!.click();
+    await Promise.resolve();
+    document.querySelector<HTMLButtonElement>('[data-testid="aqe-split-0-trim-left-preset-200"]')!.click();
+    document.querySelector<HTMLButtonElement>('[data-testid="aqe-button-0-trim-left"]')!.click();
+    window.__aqeSetBusy?.(0, false);
+    document.querySelector<HTMLButtonElement>('[data-testid="aqe-button-1-trim-left"]')!.click();
+
+    const payloads = commandLog()
+      .filter((command) => command.startsWith("{"))
+      .map((command) => JSON.parse(command));
+    expect(payloads.map((payload) => payload.overrides.trimStepMs)).toEqual([200, 100]);
+  });
+
   it("removes orphaned controls from previous bundle instances before mounting", () => {
     document.body.insertAdjacentHTML(
       "afterbegin",

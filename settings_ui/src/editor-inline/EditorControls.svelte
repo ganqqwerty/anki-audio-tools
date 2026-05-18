@@ -3,6 +3,7 @@
 
   import { COMMAND_BUTTONS, DENOISE_BUTTONS, testId } from "./commands.js";
   import EditorCommandIcon from "./EditorCommandIcon.svelte";
+  import SplitButton from "./SplitButton.svelte";
   import {
     handleVisualizerPointerDown,
     initializePlaybackRegionState,
@@ -25,6 +26,10 @@
     setRepeatEnabledForOrd(target.ord, enabled);
   }
 
+  function isTrimSplitCommand(command: string): boolean {
+    return command === "aqe:trim-left" || command === "aqe:trim-right";
+  }
+
   onMount(() => {
     const visualizer = visualizerForOrd(target.ord);
     if (!visualizer) return;
@@ -41,24 +46,28 @@
   data-testid={`aqe-controls-${target.ord}`}
 >
   {#each COMMAND_BUTTONS as button (button.command)}
-    <button
-      type="button"
-      class:aqe-icon-only={button.iconOnly === true}
-      class="aqe-button"
-      data-aqe-command={button.command}
-      data-aqe-button-state={button.command === "aqe:play" ? "play" : button.command === "aqe:analyze" ? "graph" : "default"}
-      data-testid={testId(target.ord, button.command)}
-      title={button.title}
-      aria-label={button.title}
-      onmousedown={(event) => event.preventDefault()}
-      onclick={() => send(button.command, target.node, target.ord)}
-    >
-      <EditorCommandIcon className="aqe-button-icon-default" icon={button.icon} />
-      {#if button.activeIcon}
-        <EditorCommandIcon className="aqe-button-icon-active" icon={button.activeIcon} />
-      {/if}
-      <span class="aqe-button-label">{button.label}</span>
-    </button>
+    {#if isTrimSplitCommand(button.command)}
+      <SplitButton {button} {target} />
+    {:else}
+      <button
+        type="button"
+        class:aqe-icon-only={button.iconOnly === true}
+        class="aqe-button"
+        data-aqe-command={button.command}
+        data-aqe-button-state={button.command === "aqe:play" ? "play" : button.command === "aqe:analyze" ? "graph" : "default"}
+        data-testid={testId(target.ord, button.command)}
+        title={button.title}
+        aria-label={button.title}
+        onmousedown={(event) => event.preventDefault()}
+        onclick={() => send(button.command, target.node, target.ord)}
+      >
+        <EditorCommandIcon className="aqe-button-icon-default" icon={button.icon} />
+        {#if button.activeIcon}
+          <EditorCommandIcon className="aqe-button-icon-active" icon={button.activeIcon} />
+        {/if}
+        <span class="aqe-button-label">{button.label}</span>
+      </button>
+    {/if}
     {#if button.command === "aqe:play"}
       <button
         type="button"

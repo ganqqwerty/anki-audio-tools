@@ -55,6 +55,23 @@ export interface EditorRuntimeConfig {
   audioFieldSources?: Record<number, string>;
   repeatPlaybackByDefault?: boolean;
   showGraphByDefault?: boolean;
+  splitButtonDefaults?: SplitButtonDefaults;
+}
+
+export interface SplitButtonDefaults {
+  denoiseAlgorithm: "standard" | "rnnoise";
+  pauseAggressiveness: "gentle" | "normal" | "aggressive";
+  speedStep: number;
+  trimStepMs: number;
+  volumeStepDb: number;
+}
+
+export interface EditorCommandPayload {
+  command: EditorCommand;
+  fieldOrd: number;
+  overrides?: {
+    trimStepMs?: number;
+  };
 }
 
 export interface FieldTarget {
