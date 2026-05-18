@@ -135,11 +135,166 @@ Use a test-first implementation. Required coverage:
 - Unit tests for command payload decoding and fallback behavior.
 - Unit tests for applying trim, speed, volume, and pause-aggressiveness overrides.
 - Frontend tests for split-button local state initialization, popover close behavior, and per-field isolation.
+- Integration tests for risky bridge and render boundaries, especially payload decoding, settings default propagation, session state isolation, and command fallback behavior.
 - E2E tests that settings defaults are selected by default in the editor.
 - E2E tests that changing a split-menu value does not change settings.
 - E2E tests that changing a split-menu value affects only the current field.
 - E2E tests that repeated main-button clicks reuse the selected local value.
-- E2E tests for denoise primary-button algorithm selection if practical without running expensive denoise binaries; otherwise cover command dispatch at the bridge layer and keep binary behavior in existing processing tests.
+- E2E tests for multi-field notes where each field keeps independent split-button values and generated media updates only the active field.
+- E2E tests for the Automatically Show Graph setting to prove graph startup still works with split-button controls and multi-field initialization.
+- E2E tests should use real processing binaries for normal success paths, including ffmpeg/ffprobe and the bundled denoise binaries where the feature under test depends on them.
+- Exceptional-scenario E2E tests may use mocks only when the mock demonstrates the exceptional behavior directly, such as a renderer raising an error, a missing binary, or a failed external command.
+- E2E tests for denoise primary-button algorithm selection should use real binaries for success-path coverage where practical. If full denoise rendering is too slow for every local override case, keep one real-binary success path and cover the remaining algorithm dispatch matrix with focused integration tests.
+
+## Implementation Phases
+
+Each phase should be completed test-first and should leave the full relevant quality gate green before moving on. Shared infrastructure may be introduced in the earliest phase that needs it, but each feature phase must include its settings, unit/integration tests, frontend tests, E2E coverage, and generated bundle updates.
+
+### Phase 1: Shared Split-Button Infrastructure
+
+Settings:
+
+- Extend editor runtime config so the inline editor receives all split-button defaults from Python.
+- Add any schema fields needed by later phases, with generated TypeScript/Python contracts kept in sync.
+
+Implementation:
+
+- Add the split-button component shape, floating popover positioning, outside-click close, Escape close, and single-open-popover behavior.
+- Add local per-field split-button state initialized from settings.
+- Add payload-capable command dispatch while preserving the existing plain string command path.
+- Add Python payload decoding and validation scaffolding without changing audio behavior yet.
+
+Tests:
+
+- Frontend tests for popover positioning contract, close behavior, and one-open-popover behavior.
+- Frontend tests for per-field local state initialization and isolation.
+- Python unit tests for command payload decoding, validation, fallback, and compatibility with plain string commands.
+- Integration tests from frontend command payload shape through Python command handling using non-rendering or minimal render boundaries.
+- E2E smoke test that the editor toolbar still mounts for single-field and multi-field notes.
+- E2E test that the Automatically Show Graph setting still renders startup graphs with split-button controls present.
+
+### Phase 2: Trim Left And Trim Right
+
+Settings:
+
+- Reuse the trim-step default setting for the initial split-button value unless a new default is needed.
+- Keep the slider range fixed at 50 ms to 10 s.
+
+Implementation:
+
+- Add trim left and trim right split buttons.
+- Apply local `trimStepMs` overrides per command.
+- Ensure repeated clicks accumulate the selected trim amount.
+
+Tests:
+
+- Unit tests for trim override validation and accumulation.
+- Frontend tests for trim slider formatting, presets, and local state.
+- Integration tests proving trim payloads update only the effective command value, not persisted settings.
+- E2E tests with real ffmpeg/ffprobe for configured default selection, changing trim amount locally, repeated trim clicks, and output-duration change.
+- Multi-field E2E tests proving field 0 and field 1 can use different trim amounts and only the active field media reference changes.
+
+### Phase 3: Volume
+
+Settings:
+
+- Reuse volume step and configured min/max volume settings for defaults and slider bounds.
+
+Implementation:
+
+- Add volume up and volume down split buttons.
+- Interpret the selected dB amount as positive for Volume Up and negative for Volume Down.
+- Clamp effective volume to configured min/max bounds.
+
+Tests:
+
+- Unit tests for volume override validation, sign handling, and clamping.
+- Frontend tests for dB slider display and per-field local state.
+- Integration tests proving volume payloads do not mutate settings.
+- E2E tests with real ffmpeg/ffprobe for default dB selection, local override, repeated clicks, and multi-field isolation.
+
+### Phase 4: Speed Slower And Faster
+
+Settings:
+
+- Reuse speed step and configured min/max speed settings for defaults and slider bounds.
+
+Implementation:
+
+- Add slower and faster split buttons.
+- Apply the selected speed delta or multiplier consistently with the existing slower/faster behavior.
+- Clamp effective speed to configured min/max bounds.
+
+Tests:
+
+- Unit tests for speed override validation and min/max clamping.
+- Frontend tests for speed slider display and local state.
+- Integration tests for payload handling and settings isolation.
+- E2E tests with real ffmpeg/ffprobe for default speed selection, local override, output-duration change, repeated clicks, and multi-field isolation.
+
+### Phase 5: Shorten Pauses Aggressiveness
+
+Settings:
+
+- Add a default Shorten Pauses aggressiveness setting with values Gentle, Normal, and Aggressive.
+- Normal maps to the current configured pause settings.
+
+Implementation:
+
+- Add the Shorten Pauses split button with a three-stop aggressiveness slider.
+- Map Gentle, Normal, and Aggressive to deterministic per-render pause settings.
+- Keep the existing DeepFilterNet plus silence-detect pipeline.
+
+Tests:
+
+- Unit tests for aggressiveness mapping and validation.
+- Integration tests proving the effective pause settings reach the render pipeline without changing persisted settings.
+- Frontend tests for labeled slider stops and default selection.
+- E2E tests with real binaries for Normal success path and at least one non-Normal aggressiveness success path.
+- Multi-field E2E tests proving different fields can keep different aggressiveness values.
+- Exceptional-scenario E2E tests may mock renderer failure or missing binary behavior to verify error display and cleanup.
+
+### Phase 6: Denoise Algorithm Split Button
+
+Settings:
+
+- Add a default denoise algorithm setting with Standard and RNNoise options.
+- Keep DeepFilterNet post-filter as the existing global setting.
+
+Implementation:
+
+- Replace the current denoise details menu with a primary Denoise button plus attached floating algorithm menu.
+- Primary Denoise runs the selected local algorithm for the active field.
+- Algorithm selection is local per field and does not mutate settings.
+
+Tests:
+
+- Unit tests for algorithm default validation and command mapping.
+- Frontend tests for menu selection, local state, and popover close behavior.
+- Integration tests proving selected algorithm dispatches to the correct Python renderer.
+- E2E tests with real bundled binaries for Standard and RNNoise success paths where feasible.
+- Multi-field E2E tests proving field-local algorithm selection.
+- Exceptional-scenario E2E tests may mock renderer failures for Standard or RNNoise to verify user-visible error handling and busy-state cleanup.
+
+### Phase 7: Cross-Feature Regression And Quality Gate
+
+Settings:
+
+- Verify all new settings appear in the settings dialog, persist correctly, migrate correctly, and are included in generated contracts.
+
+Implementation:
+
+- Rebuild committed settings and editor webview bundles.
+- Review toolbar layout at narrow and normal editor widths.
+- Confirm popover viewport clamping near toolbar edges.
+
+Tests:
+
+- Full frontend test suite.
+- Full Python unit and integration suite.
+- E2E multi-field regression covering at least trim, volume, speed, Shorten Pauses, denoise, and Automatically Show Graph together in one realistic editor session.
+- `python3 scripts/dev.py check`.
+- `python3 scripts/dev.py test-e2e`.
 
 ## Risks
 
