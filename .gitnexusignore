@@ -1,6 +1,12 @@
 # Documentation prose is useful for humans, but it adds noisy symbols/sections
 # to code impact reports.
 *.md
+README.txt
+FEATURES-SPECIFICATION.iml
+
+# Machine-readable specifications are maintained as docs/contracts, not runtime
+# execution flow.
+*.schema.json
 
 # Auto-generated Svelte bundle outputs shipped into the Anki add-on.
 addon/anki_audio_quick_editor/templates/editor/editor_bundle.css
