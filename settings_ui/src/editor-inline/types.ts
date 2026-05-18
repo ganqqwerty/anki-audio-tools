@@ -19,6 +19,7 @@ export type EditorCommand =
   | "aqe:settings";
 
 export type EditorIconName =
+  | "audio-lines"
   | "chart-line"
   | "chevron-down"
   | "circle-help"
@@ -132,6 +133,7 @@ export interface GraphStateForTest {
   durationMs: number;
   graphButtonLabel: string;
   graphButtonState: string;
+  graphButtonTitle: string;
   hasTrack: boolean;
   hidden: boolean;
   intensity: string;

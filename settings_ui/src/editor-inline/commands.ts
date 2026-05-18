@@ -3,9 +3,9 @@ import type { ButtonSpec, EditorCommand } from "./types.js";
 export const COMMAND_BUTTONS: readonly ButtonSpec[] = [
   { activeIcon: "pause", command: "aqe:play", icon: "play", iconOnly: true, label: "Play", title: "Play or pause current audio" },
   {
-    activeIcon: "refresh-cw",
+    activeIcon: "audio-lines",
     command: "aqe:analyze",
-    icon: "chart-line",
+    icon: "audio-lines",
     iconOnly: true,
     label: "Graph",
     title: "Analyze and show pitch/intensity graph",

@@ -103,6 +103,77 @@ def test_show_graph_by_default_auto_analyzes_all_audio_fields(
         parent.close()
 
 
+def test_manual_graph_after_clearing_default_graph_field_shows_error_without_analyzing(
+    anki_mw,
+    ffmpeg_config,
+) -> None:
+    media_dir = Path(anki_mw.col.media.dir())
+    source = media_dir / "editor_default_graph_cleared_field.wav"
+    generate_tone(ffmpeg_config, source, duration_s=0.8)
+    note = _basic_audio_note(anki_mw, source.name)
+    _configure_ffmpeg(anki_mw, ffmpeg_config, show_graph_by_default=True)
+
+    editor, parent = _open_editor(anki_mw, note)
+    try:
+        _wait_for_visualizer_track(
+            editor,
+            lambda value: value["sourceFilename"] == source.name
+            and value["graphButtonLabel"] == "Redraw",
+            timeout=15.0,
+        )
+        run_js(
+            editor.web,
+            """
+            (() => {
+              const field = document.querySelector('.field-container[data-index="0"] [contenteditable="true"]');
+              if (!field) return false;
+              field.focus();
+              field.innerHTML = "";
+              field.dispatchEvent(new InputEvent("input", {
+                bubbles: true,
+                inputType: "deleteContentBackward",
+              }));
+              field.dispatchEvent(new Event("change", { bubbles: true }));
+              field.blur();
+              return true;
+            })()
+            """,
+        )
+        editor.onBridgeCmd(f"blur:0:{note.id}:")
+        wait_for_condition(
+            lambda: "[sound:" not in note.fields[0],
+            timeout=5.0,
+            message="Editor field was not cleared before graph analysis",
+        )
+
+        click_selector(editor.web, _button_selector("aqe:analyze"), timeout=5.0)
+        state = wait_for_js_condition(
+            editor.web,
+            """
+            (() => {
+              const status = document.querySelector('.aqe-controls[data-aqe-field-ord="0"] .aqe-status');
+              const graphStatus = document.querySelector('[data-testid="aqe-graph-status-0"]');
+              return {
+                status: status?.textContent || "",
+                statusKind: status?.dataset.kind || "",
+                graphStatus: graphStatus?.textContent || "",
+                graphStatusKind: graphStatus?.dataset.kind || "",
+              };
+            })()
+            """,
+            lambda value: value is not None
+            and value["statusKind"] == "error"
+            and "No [sound:...] reference" in value["status"],
+            timeout=10.0,
+        )
+
+        assert state["graphStatus"] != "Analyzing..."
+        assert state["graphStatusKind"] != "processing"
+    finally:
+        editor.set_note(None)
+        parent.close()
+
+
 def test_show_graph_default_setting_change_applies_to_later_editor_loads(
     anki_mw,
     ffmpeg_config,

@@ -168,6 +168,9 @@ function setCommandButtonLabel(ord: number, command: EditorCommand, label: strin
   }
   if (command === "aqe:analyze") {
     button.dataset.aqeButtonState = label === "Redraw" ? "redraw" : "graph";
+    const title = label === "Redraw" ? "Redraw the pitch graph" : "Analyze and show pitch/intensity graph";
+    button.title = title;
+    button.setAttribute("aria-label", title);
   }
 }
 

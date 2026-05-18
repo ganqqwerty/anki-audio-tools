@@ -1,4 +1,5 @@
 <script lang="ts">
+  import AudioLines from "@lucide/svelte/icons/audio-lines";
   import ChartLine from "@lucide/svelte/icons/chart-line";
   import ChevronDown from "@lucide/svelte/icons/chevron-down";
   import CircleHelp from "@lucide/svelte/icons/circle-help";
@@ -28,7 +29,9 @@
 </script>
 
 <span class={classes} aria-hidden="true">
-  {#if icon === "chart-line"}
+  {#if icon === "audio-lines"}
+    <AudioLines size={14} strokeWidth={2} />
+  {:else if icon === "chart-line"}
     <ChartLine size={14} strokeWidth={2} />
   {:else if icon === "chevron-down"}
     <ChevronDown size={14} strokeWidth={2} />

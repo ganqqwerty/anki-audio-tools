@@ -282,6 +282,7 @@ describe("editor inline Svelte integration", () => {
     expect(state?.pitchPaths).toBe(2);
     expect(state?.intensity).toMatch(/^M /);
     expect(state?.audioClockSrc).toBe("clip%20one.mp3");
+    expect(state?.graphButtonTitle).toBe("Redraw the pitch graph");
     expect(state?.allButtonsDisabled).toBe(false);
   });
 

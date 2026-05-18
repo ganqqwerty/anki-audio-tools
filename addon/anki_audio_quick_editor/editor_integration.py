@@ -1245,9 +1245,17 @@ def _analyze_current_async(editor: Any) -> None:
         _eval_visualizer_status(editor, STILL_PROCESSING_MESSAGE, kind="processing")
         return
     field_index = _current_field_index(editor)
-    filename, media_path = _current_sound_reference(editor, field_index)
+    try:
+        filename, media_path = _current_sound_reference(editor, field_index)
+    except AudioQuickEditorError as exc:
+        message = str(exc)
+        _fail_field_analysis_without_generation(editor, field_index, message)
+        _eval_status(editor, message, kind="error")
+        return
     if not media_path.is_file():
-        raise MissingMediaError(REFERENCED_AUDIO_MISSING)
+        _fail_field_analysis_without_generation(editor, field_index, REFERENCED_AUDIO_MISSING)
+        _eval_status(editor, REFERENCED_AUDIO_MISSING, kind="error")
+        return
     _start_field_analysis_async(editor, field_index, filename, media_path)
 
 

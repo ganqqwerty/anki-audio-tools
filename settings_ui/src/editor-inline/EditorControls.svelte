@@ -143,7 +143,7 @@
             <span>Start or pause audio.</span>
           </span>
           <span class="aqe-help-item">
-            <span class="aqe-help-command"><EditorCommandIcon icon="chart-line" /><span>Graph</span></span>
+            <span class="aqe-help-command"><EditorCommandIcon icon="audio-lines" /><span>Graph</span></span>
             <span>Show pitch and loudness.</span>
           </span>
           <span class="aqe-help-item">

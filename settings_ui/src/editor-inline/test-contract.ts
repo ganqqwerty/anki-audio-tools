@@ -121,6 +121,7 @@ export function graphStateForTest(ord: number): GraphStateForTest | null {
     sourceFilename: visualizer.dataset.sourceFilename || "",
     graphButtonLabel: buttonLabel(graph),
     graphButtonState: graph?.dataset.aqeButtonState || "",
+    graphButtonTitle: graph?.title || "",
     playButtonLabel: buttonLabel(play),
     playButtonState: play?.dataset.aqeButtonState || "",
     playbackState: playbackStateFor(visualizer),
