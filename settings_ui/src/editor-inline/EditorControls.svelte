@@ -26,8 +26,15 @@
     setRepeatEnabledForOrd(target.ord, enabled);
   }
 
-  function isTrimSplitCommand(command: string): boolean {
-    return command === "aqe:trim-left" || command === "aqe:trim-right";
+  function isSplitCommand(command: string): boolean {
+    return [
+      "aqe:trim-left",
+      "aqe:trim-right",
+      "aqe:slower",
+      "aqe:faster",
+      "aqe:volume-down",
+      "aqe:volume-up",
+    ].includes(command);
   }
 
   onMount(() => {
@@ -46,7 +53,7 @@
   data-testid={`aqe-controls-${target.ord}`}
 >
   {#each COMMAND_BUTTONS as button (button.command)}
-    {#if isTrimSplitCommand(button.command)}
+    {#if isSplitCommand(button.command)}
       <SplitButton {button} {target} />
     {:else}
       <button

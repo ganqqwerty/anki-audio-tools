@@ -70,14 +70,22 @@ export interface EditorCommandPayload {
   command: EditorCommand;
   fieldOrd: number;
   overrides?: {
+    speedStep?: number;
     trimStepMs?: number;
+    volumeStepDb?: number;
   };
 }
 
 export interface FieldSplitButtonState {
   defaultTrimStepMs: number;
+  defaultSpeedStep: number;
+  defaultVolumeStepDb: number;
+  speedEdited: boolean;
+  speedStep: number;
   trimEdited: boolean;
   trimStepMs: number;
+  volumeEdited: boolean;
+  volumeStepDb: number;
 }
 
 export interface FieldTarget {

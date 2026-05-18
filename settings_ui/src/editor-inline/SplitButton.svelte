@@ -4,19 +4,24 @@
   import EditorCommandIcon from "./EditorCommandIcon.svelte";
   import { send } from "./actions.js";
   import {
-    buildTrimCommandPayload,
+    buildSplitCommandPayload,
+    formatSpeedStep,
     formatTrimMs,
+    formatVolumeDb,
     getSplitButtonState,
+    setSpeedStepForField,
     setTrimStepForField,
+    setVolumeStepForField,
   } from "./split-button-state.js";
   import { COMMAND_SLUGS } from "./commands.js";
   import type { ButtonSpec, FieldTarget } from "./types.js";
 
   const { button, target }: { button: ButtonSpec; target: FieldTarget } = $props();
-  const presets = [100, 200, 500, 1000];
   let wrapper: HTMLSpanElement;
   let open = $state(false);
   let trimStepMs = $state(100);
+  let volumeStepDb = $state(3);
+  let speedStep = $state(0.05);
 
   function slug(): string {
     return COMMAND_SLUGS[button.command];
@@ -36,9 +41,55 @@
     trimStepMs = setTrimStepForField(target.ord, value).trimStepMs;
   }
 
+  function applyVolumeStep(value: number): void {
+    volumeStepDb = setVolumeStepForField(target.ord, value).volumeStepDb;
+  }
+
+  function applySpeedStep(value: number): void {
+    speedStep = setSpeedStepForField(target.ord, value).speedStep;
+  }
+
   function dispatchPrimary(): void {
     close();
-    send(button.command, target.node, target.ord, buildTrimCommandPayload(button.command, target.ord));
+    send(button.command, target.node, target.ord, buildSplitCommandPayload(button.command, target.ord));
+  }
+
+  function valueLabel(): string {
+    if (button.command === "aqe:volume-up" || button.command === "aqe:volume-down") {
+      return formatVolumeDb(volumeStepDb);
+    }
+    if (button.command === "aqe:faster" || button.command === "aqe:slower") {
+      return formatSpeedStep(speedStep, button.command);
+    }
+    return formatTrimMs(trimStepMs);
+  }
+
+  function sliderValue(): number {
+    if (button.command === "aqe:volume-up" || button.command === "aqe:volume-down") return volumeStepDb;
+    if (button.command === "aqe:faster" || button.command === "aqe:slower") return speedStep;
+    return trimStepMs;
+  }
+
+  function sliderConfig(): { min: string; max: string; step: string; labels: string[]; presets: number[] } {
+    if (button.command === "aqe:volume-up" || button.command === "aqe:volume-down") {
+      return { min: "0.5", max: "12", step: "0.5", labels: ["0.5 dB", "12 dB"], presets: [1, 3, 6, 9] };
+    }
+    if (button.command === "aqe:faster" || button.command === "aqe:slower") {
+      return { min: "0.01", max: "0.25", step: "0.01", labels: ["x1.01", "x1.25"], presets: [0.03, 0.05, 0.1, 0.2] };
+    }
+    return { min: "50", max: "10000", step: "50", labels: ["50 ms", "10 s"], presets: [100, 200, 500, 1000] };
+  }
+
+  function applyValue(value: number): void {
+    if (button.command === "aqe:volume-up" || button.command === "aqe:volume-down") {
+      applyVolumeStep(value);
+      return;
+    }
+    if (button.command === "aqe:faster" || button.command === "aqe:slower") {
+      applySpeedStep(value);
+      return;
+    }
+    applyTrimStep(value);
   }
 
   function onDocumentPointerDown(event: MouseEvent): void {
@@ -52,7 +103,10 @@
   }
 
   onMount(() => {
-    trimStepMs = getSplitButtonState(target.ord).trimStepMs;
+    const state = getSplitButtonState(target.ord);
+    trimStepMs = state.trimStepMs;
+    volumeStepDb = state.volumeStepDb;
+    speedStep = state.speedStep;
     document.addEventListener("mousedown", onDocumentPointerDown, true);
     document.addEventListener("keydown", onDocumentKeyDown, true);
     return () => {
@@ -94,31 +148,35 @@
     <div class="aqe-split-popover" data-testid={`aqe-split-${target.ord}-${slug()}-popover`}>
       <div class="aqe-split-popover-header">
         <strong>{button.label}</strong>
-        <span>{formatTrimMs(trimStepMs)}</span>
+        <span>{valueLabel()}</span>
       </div>
       <input
         data-testid={`aqe-split-${target.ord}-${slug()}-slider`}
         type="range"
-        min="50"
-        max="10000"
-        step="50"
-        value={trimStepMs}
-        oninput={(event) => applyTrimStep(Number((event.currentTarget as HTMLInputElement).value))}
+        min={sliderConfig().min}
+        max={sliderConfig().max}
+        step={sliderConfig().step}
+        value={sliderValue()}
+        oninput={(event) => applyValue(Number((event.currentTarget as HTMLInputElement).value))}
       />
       <div class="aqe-split-range-labels">
-        <span>50 ms</span>
-        <span>10 s</span>
+        <span>{sliderConfig().labels[0]}</span>
+        <span>{sliderConfig().labels[1]}</span>
       </div>
       <div class="aqe-split-presets">
-        {#each presets as preset}
+        {#each sliderConfig().presets as preset}
           <button
             type="button"
             class="aqe-button aqe-split-preset"
             data-testid={`aqe-split-${target.ord}-${slug()}-preset-${preset}`}
-            aria-pressed={trimStepMs === preset ? "true" : "false"}
-            onclick={() => applyTrimStep(preset)}
+            aria-pressed={sliderValue() === preset ? "true" : "false"}
+            onclick={() => applyValue(preset)}
           >
-            {formatTrimMs(preset)}
+            {button.command === "aqe:volume-up" || button.command === "aqe:volume-down"
+              ? formatVolumeDb(preset)
+              : button.command === "aqe:faster" || button.command === "aqe:slower"
+                ? formatSpeedStep(preset, button.command)
+                : formatTrimMs(preset)}
           </button>
         {/each}
       </div>

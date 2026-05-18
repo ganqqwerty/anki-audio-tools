@@ -7,6 +7,10 @@ import type {
 
 const MIN_TRIM_MS = 50;
 const MAX_TRIM_MS = 10_000;
+const MIN_VOLUME_STEP_DB = 0.5;
+const MAX_VOLUME_STEP_DB = 12;
+const MIN_SPEED_STEP = 0.01;
+const MAX_SPEED_STEP = 0.25;
 const DEFAULTS: SplitButtonDefaults = {
   denoiseAlgorithm: "standard",
   pauseAggressiveness: "normal",
@@ -32,6 +36,16 @@ export function clampTrimStepMs(value: number): number {
   return Math.max(MIN_TRIM_MS, Math.min(MAX_TRIM_MS, Math.round(value)));
 }
 
+export function clampVolumeStepDb(value: number): number {
+  if (!Number.isFinite(value)) return DEFAULTS.volumeStepDb;
+  return Math.max(MIN_VOLUME_STEP_DB, Math.min(MAX_VOLUME_STEP_DB, Math.round(value * 10) / 10));
+}
+
+export function clampSpeedStep(value: number): number {
+  if (!Number.isFinite(value)) return DEFAULTS.speedStep;
+  return Math.max(MIN_SPEED_STEP, Math.min(MAX_SPEED_STEP, Math.round(value * 100) / 100));
+}
+
 export function formatTrimMs(value: number): string {
   const ms = clampTrimStepMs(value);
   if (ms < 1000) return `${ms} ms`;
@@ -39,8 +53,22 @@ export function formatTrimMs(value: number): string {
   return `${Number.isInteger(seconds) ? seconds.toFixed(0) : seconds.toFixed(1)} s`;
 }
 
+export function formatVolumeDb(value: number): string {
+  const db = clampVolumeStepDb(value);
+  return `${Number.isInteger(db) ? db.toFixed(0) : db.toFixed(1)} dB`;
+}
+
+export function formatSpeedStep(value: number, command: EditorCommand): string {
+  const step = clampSpeedStep(value);
+  const multiplier = command === "aqe:slower" ? 1 - step : 1 + step;
+  return `x${multiplier.toFixed(2)}`;
+}
+
 export function getSplitButtonState(ord: number): FieldSplitButtonState {
-  const defaultTrimStepMs = clampTrimStepMs(splitButtonDefaults().trimStepMs);
+  const defaults = splitButtonDefaults();
+  const defaultTrimStepMs = clampTrimStepMs(defaults.trimStepMs);
+  const defaultVolumeStepDb = clampVolumeStepDb(defaults.volumeStepDb);
+  const defaultSpeedStep = clampSpeedStep(defaults.speedStep);
   const states = fieldStates();
   const existing = states[ord];
   if (existing) {
@@ -48,12 +76,26 @@ export function getSplitButtonState(ord: number): FieldSplitButtonState {
       existing.defaultTrimStepMs = defaultTrimStepMs;
       existing.trimStepMs = defaultTrimStepMs;
     }
+    if (!existing.volumeEdited && existing.defaultVolumeStepDb !== defaultVolumeStepDb) {
+      existing.defaultVolumeStepDb = defaultVolumeStepDb;
+      existing.volumeStepDb = defaultVolumeStepDb;
+    }
+    if (!existing.speedEdited && existing.defaultSpeedStep !== defaultSpeedStep) {
+      existing.defaultSpeedStep = defaultSpeedStep;
+      existing.speedStep = defaultSpeedStep;
+    }
     return existing;
   }
   const state = {
     defaultTrimStepMs,
+    defaultVolumeStepDb,
+    defaultSpeedStep,
+    speedEdited: false,
+    speedStep: defaultSpeedStep,
     trimEdited: false,
     trimStepMs: defaultTrimStepMs,
+    volumeEdited: false,
+    volumeStepDb: defaultVolumeStepDb,
   };
   states[ord] = state;
   return state;
@@ -66,6 +108,20 @@ export function setTrimStepForField(ord: number, value: number): FieldSplitButto
   return state;
 }
 
+export function setVolumeStepForField(ord: number, value: number): FieldSplitButtonState {
+  const state = getSplitButtonState(ord);
+  state.volumeEdited = true;
+  state.volumeStepDb = clampVolumeStepDb(value);
+  return state;
+}
+
+export function setSpeedStepForField(ord: number, value: number): FieldSplitButtonState {
+  const state = getSplitButtonState(ord);
+  state.speedEdited = true;
+  state.speedStep = clampSpeedStep(value);
+  return state;
+}
+
 export function buildTrimCommandPayload(command: EditorCommand, ord: number): EditorCommandPayload {
   return {
     command,
@@ -74,4 +130,15 @@ export function buildTrimCommandPayload(command: EditorCommand, ord: number): Ed
       trimStepMs: getSplitButtonState(ord).trimStepMs,
     },
   };
+}
+
+export function buildSplitCommandPayload(command: EditorCommand, ord: number): EditorCommandPayload {
+  const state = getSplitButtonState(ord);
+  if (command === "aqe:volume-up" || command === "aqe:volume-down") {
+    return { command, fieldOrd: ord, overrides: { volumeStepDb: state.volumeStepDb } };
+  }
+  if (command === "aqe:faster" || command === "aqe:slower") {
+    return { command, fieldOrd: ord, overrides: { speedStep: state.speedStep } };
+  }
+  return buildTrimCommandPayload(command, ord);
 }

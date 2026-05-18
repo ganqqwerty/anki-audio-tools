@@ -9,6 +9,7 @@ import {
   initializeEditorRuntime,
   scan,
 } from "../src/editor-inline/runtime.js";
+import type { EditorCommandPayload } from "../src/editor-inline/types.js";
 import { pycmdMock } from "./setup.js";
 
 const track = {
@@ -240,6 +241,39 @@ describe("editor inline Svelte integration", () => {
 
     expect(bridgeCommands().filter((command) => command === "aqe:command-payload")).toHaveLength(2);
     expect([firstPayload, secondPayload].map((payload) => payload?.overrides?.trimStepMs)).toEqual([200, 100]);
+  });
+
+  it("dispatches volume and speed split payloads with local values", async () => {
+    renderFields();
+    window.__AQE_EDITOR_CONFIG__ = {
+      audioFieldIndices: [0],
+      splitButtonDefaults: {
+        denoiseAlgorithm: "standard",
+        pauseAggressiveness: "normal",
+        speedStep: 0.05,
+        trimStepMs: 100,
+        volumeStepDb: 3,
+      },
+    };
+    initializeEditorRuntime(window.__AQE_EDITOR_CONFIG__);
+    scan(window.__AQE_EDITOR_CONFIG__);
+
+    document.querySelector<HTMLButtonElement>('[data-testid="aqe-split-0-volume-up-menu"]')!.click();
+    await Promise.resolve();
+    document.querySelector<HTMLButtonElement>('[data-testid="aqe-split-0-volume-up-preset-6"]')!.click();
+    document.querySelector<HTMLButtonElement>('[data-testid="aqe-button-0-volume-up"]')!.click();
+    const volumePayload = window.__aqePendingCommandPayload as EditorCommandPayload | null | undefined;
+    window.__aqePendingCommandPayload = null;
+    window.__aqeSetBusy?.(0, false);
+
+    document.querySelector<HTMLButtonElement>('[data-testid="aqe-split-0-faster-menu"]')!.click();
+    await Promise.resolve();
+    document.querySelector<HTMLButtonElement>('[data-testid="aqe-split-0-faster-preset-0.1"]')!.click();
+    document.querySelector<HTMLButtonElement>('[data-testid="aqe-button-0-faster"]')!.click();
+
+    expect(volumePayload?.overrides?.volumeStepDb).toBe(6);
+    const speedPayload = window.__aqePendingCommandPayload as EditorCommandPayload | null | undefined;
+    expect(speedPayload?.overrides?.speedStep).toBe(0.1);
   });
 
   it("removes orphaned controls from previous bundle instances before mounting", () => {
@@ -832,7 +866,8 @@ describe("editor inline Svelte integration", () => {
 
     document.querySelector<HTMLButtonElement>('[data-testid="aqe-button-0-volume-up"]')!.click();
 
-    expect(bridgeCommands()).toContain("aqe:volume-up");
+    expect(bridgeCommands()).toContain("aqe:command-payload");
+    expect(window.__aqePendingCommandPayload?.command).toBe("aqe:volume-up");
     expect(window.__aqeGraphStateForTest?.(0)?.allButtonsDisabled).toBe(true);
     expect(window.__aqeGraphStateForTest?.(0)?.repeatControlDisabled).toBe(true);
     expect(document.querySelector('[data-testid="aqe-status-0"]')).toHaveTextContent("Processing...");

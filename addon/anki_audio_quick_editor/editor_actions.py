@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import json
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from typing import Any
 
 from .audio_operations import (
@@ -32,6 +32,10 @@ CMD_SETTINGS = "aqe:settings"
 CMD_REDO = "aqe:redo"
 MIN_TRIM_OVERRIDE_MS = 50
 MAX_TRIM_OVERRIDE_MS = 10_000
+MIN_VOLUME_STEP_DB = 0.5
+MAX_VOLUME_STEP_DB = 12.0
+MIN_SPEED_STEP = 0.01
+MAX_SPEED_STEP = 0.25
 
 BRIDGE_COMMANDS = (
     "aqe:scan",
@@ -82,6 +86,8 @@ class EditorCommandOverrides:
     """Validated local editor command override values."""
 
     trim_step_ms: int | None = None
+    volume_step_db: float | None = None
+    speed_step: float | None = None
 
 
 @dataclass(frozen=True)
@@ -103,17 +109,41 @@ def _int_or_none(value: Any) -> int | None:
     return None
 
 
+def _float_or_none(value: Any) -> float | None:
+    if isinstance(value, bool):
+        return None
+    if isinstance(value, int | float):
+        return float(value)
+    return None
+
+
 def _clamp_trim_step_ms(value: int | None) -> int | None:
     if value is None:
         return None
     return max(MIN_TRIM_OVERRIDE_MS, min(MAX_TRIM_OVERRIDE_MS, value))
 
 
+def _clamp_float(value: float | None, minimum: float, maximum: float) -> float | None:
+    if value is None:
+        return None
+    return max(minimum, min(maximum, value))
+
+
 def _overrides_from_raw(raw: Any) -> EditorCommandOverrides:
     if not isinstance(raw, dict):
         return EditorCommandOverrides()
     return EditorCommandOverrides(
-        trim_step_ms=_clamp_trim_step_ms(_int_or_none(raw.get("trimStepMs")))
+        trim_step_ms=_clamp_trim_step_ms(_int_or_none(raw.get("trimStepMs"))),
+        volume_step_db=_clamp_float(
+            _float_or_none(raw.get("volumeStepDb")),
+            MIN_VOLUME_STEP_DB,
+            MAX_VOLUME_STEP_DB,
+        ),
+        speed_step=_clamp_float(
+            _float_or_none(raw.get("speedStep")),
+            MIN_SPEED_STEP,
+            MAX_SPEED_STEP,
+        ),
     )
 
 
@@ -151,6 +181,11 @@ def apply_processing_command(
 ) -> AudioEditState | None:
     """Return the edit state after applying a processing command."""
     payload = decode_editor_command_payload(command)
+    effective_config = replace(
+        config,
+        volume_step_db=payload.overrides.volume_step_db or config.volume_step_db,
+        speed_step=payload.overrides.speed_step or config.speed_step,
+    )
     step = payload.overrides.trim_step_ms or config.manual_trim_small_ms
     if payload.command == CMD_TRIM_LEFT:
         return state.trim_left(step)
@@ -159,4 +194,4 @@ def apply_processing_command(
     operation = operation_for_command(payload.command)
     if operation is None:
         return None
-    return apply_audio_operation(operation, state, config)
+    return apply_audio_operation(operation, state, effective_config)

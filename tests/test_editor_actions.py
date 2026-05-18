@@ -108,6 +108,34 @@ def test_apply_processing_command_handles_volume_steps() -> None:
     assert quieter == AudioEditState("clip.mp3", volume_db=-2.5)
 
 
+def test_apply_processing_command_uses_volume_override_without_mutating_config() -> None:
+    config = AudioProcessingConfig(volume_step_db=2.5)
+    state = AudioEditState("clip.mp3")
+    decoded = decode_editor_command_payload(
+        '{"command":"aqe:volume-up","fieldOrd":0,"overrides":{"volumeStepDb":6}}'
+    )
+
+    updated = apply_processing_command(decoded, state, config)
+
+    assert decoded.overrides.volume_step_db == 6
+    assert updated == AudioEditState("clip.mp3", volume_db=6)
+    assert config.volume_step_db == 2.5
+
+
+def test_apply_processing_command_uses_speed_override_without_mutating_config() -> None:
+    config = AudioProcessingConfig(speed_step=0.05)
+    state = AudioEditState("clip.mp3")
+    decoded = decode_editor_command_payload(
+        '{"command":"aqe:faster","fieldOrd":0,"overrides":{"speedStep":0.1}}'
+    )
+
+    updated = apply_processing_command(decoded, state, config)
+
+    assert decoded.overrides.speed_step == 0.1
+    assert updated == AudioEditState("clip.mp3", speed=1.1)
+    assert config.speed_step == 0.05
+
+
 def test_apply_processing_command_returns_none_for_non_processing_command() -> None:
     config = AudioProcessingConfig()
     state = AudioEditState("clip.mp3")

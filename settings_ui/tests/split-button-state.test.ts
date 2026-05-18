@@ -2,10 +2,17 @@ import { beforeEach, describe, expect, it } from "vitest";
 
 import {
   buildTrimCommandPayload,
+  buildSplitCommandPayload,
+  clampSpeedStep,
   clampTrimStepMs,
+  clampVolumeStepDb,
+  formatSpeedStep,
   formatTrimMs,
+  formatVolumeDb,
   getSplitButtonState,
+  setSpeedStepForField,
   setTrimStepForField,
+  setVolumeStepForField,
 } from "../src/editor-inline/split-button-state.js";
 
 describe("split button state", () => {
@@ -27,6 +34,20 @@ describe("split button state", () => {
     expect(clampTrimStepMs(20000)).toBe(10000);
   });
 
+  it("formats and clamps volume step values", () => {
+    expect(formatVolumeDb(3)).toBe("3 dB");
+    expect(formatVolumeDb(2.5)).toBe("2.5 dB");
+    expect(clampVolumeStepDb(0.1)).toBe(0.5);
+    expect(clampVolumeStepDb(20)).toBe(12);
+  });
+
+  it("formats and clamps speed step values", () => {
+    expect(formatSpeedStep(0.05, "aqe:faster")).toBe("x1.05");
+    expect(formatSpeedStep(0.1, "aqe:slower")).toBe("x0.90");
+    expect(clampSpeedStep(0.001)).toBe(0.01);
+    expect(clampSpeedStep(1)).toBe(0.25);
+  });
+
   it("initializes field state from editor runtime defaults", () => {
     window.__AQE_EDITOR_CONFIG__ = {
       audioFieldIndices: [0],
@@ -40,6 +61,8 @@ describe("split button state", () => {
     };
 
     expect(getSplitButtonState(0).trimStepMs).toBe(250);
+    expect(getSplitButtonState(0).volumeStepDb).toBe(3);
+    expect(getSplitButtonState(0).speedStep).toBe(0.05);
   });
 
   it("keeps trim state isolated per field", () => {
@@ -58,6 +81,26 @@ describe("split button state", () => {
 
     expect(getSplitButtonState(0).trimStepMs).toBe(200);
     expect(getSplitButtonState(1).trimStepMs).toBe(100);
+  });
+
+  it("builds volume and speed payloads from local field state", () => {
+    setVolumeStepForField(0, 6);
+    setSpeedStepForField(0, 0.1);
+
+    expect(buildSplitCommandPayload("aqe:volume-up", 0)).toEqual({
+      command: "aqe:volume-up",
+      fieldOrd: 0,
+      overrides: {
+        volumeStepDb: 6,
+      },
+    });
+    expect(buildSplitCommandPayload("aqe:faster", 0)).toEqual({
+      command: "aqe:faster",
+      fieldOrd: 0,
+      overrides: {
+        speedStep: 0.1,
+      },
+    });
   });
 
   it("builds trim payloads from local field state", () => {
