@@ -128,6 +128,43 @@ Shorten Pauses should keep using the existing DeepFilterNet plus silence-detect 
 
 The exact numeric mapping should be chosen during implementation against the current pipeline constraints and validated with focused unit tests.
 
+## Architecture Boundaries
+
+The implementation must preserve the repository's existing layer contracts in `tests/test_architecture/contracts.py`. New code should be placed by responsibility, not convenience:
+
+- `settings_ui/src/editor-inline/`: owns split-button rendering, floating popover behavior, local per-field UI state, and command payload creation. It must not know about Anki Python internals, filesystem paths, media writes, or audio rendering details.
+- `editor_ui.py`: remains import-safe HTML/config injection only. It may pass serialized defaults into `window.__AQE_EDITOR_CONFIG__`, but must not parse bridge payloads, render audio, touch Anki media, or become a behavior coordinator.
+- `editor_actions.py`: remains import-safe command and state-transition glue. It may decode/normalize owned command payloads and map editor bridge commands to import-safe operations. It must not import Anki, call renderers, write media, evaluate webview JavaScript, or contain frontend layout concerns.
+- `audio_state.py`: owns typed processing defaults and pure `AudioEditState` transitions. Override application and validation that can be pure should live here or in an import-safe helper, not in `editor_integration.py`.
+- `audio_operations.py`: remains the shared batchable operation registry and operation semantics source of truth. It must stay free of `aqe:` bridge strings and editor-only concepts.
+- `audio_pipeline.py`: remains import-safe planning for silence parsing, pause timelines, and filter generation. Shorten Pauses aggressiveness mapping may use this layer only if it stays pure and independent of Anki/editor state.
+- `audio_processor.py`: remains the side-effect boundary for ffmpeg, DeepFilterNet, RNNoise, temporary files, and artifacts. It should accept effective processing configuration; it should not parse editor bridge payloads or own per-field UI state.
+- `editor_integration.py`: remains the Anki editor UI adapter. It may receive normalized commands, call renderers, manage editor sessions, write Anki media, replace field sound refs, and evaluate status updates. It should stay thin around coordination and must not accumulate slider math or frontend-state logic that can live in import-safe modules.
+- `settings_state.py`, `settings.initial_state`, and `settings.commands`: own persisted config defaults and settings bridge behavior. They must not import editor adapter modules or depend on editor runtime state.
+- `contracts/communication.schema.json`, generated Python DTOs, and generated TypeScript DTOs remain the source for owned JSON settings contracts. If editor command payloads become an owned JSON contract, add them to the schema and regenerate both sides instead of hand-rolling parallel types.
+
+Cross-module rules:
+
+- Keep the existing plain-string bridge command path compatible while introducing payload-capable dispatch.
+- Do not let Browser batch paths depend on editor bridge payloads. If a new transform behavior is batch-capable, expose it through import-safe shared operation/config semantics first.
+- Do not add Anki imports to import-safe modules.
+- Do not add media writes, note updates, background threads, subprocess calls, or webview evaluation outside modules whose contracts already allow those side effects.
+- Do not put settings persistence behind editor split-menu interactions; popover changes are local to the editor field/session.
+- Update module contracts only when a new production module is introduced or a boundary intentionally changes. Contract updates must be accompanied by an architecture test that proves the new boundary is intentional.
+
+## Architecture Tests
+
+The implementation must add or update architecture tests where the new split-button payload seam could drift:
+
+- Extend `tests/test_architecture/test_rule3_editor_bridge_contract.py` so payload-capable editor commands remain registered by Python and referenced by the Svelte/TypeScript editor source. If command strings are embedded inside JSON payload builders, the scanner must still find them.
+- Add an architecture test that editor command payload schema/decoder code stays import-safe and does not import Anki, Qt, `editor_integration`, or renderer modules.
+- Add an architecture test that shared core modules (`audio_operations.py`, `audio_state.py`, `audio_pipeline.py`, and any new import-safe split-button helper) remain free of `aqe:` bridge strings unless the module is explicitly the editor command adapter.
+- Add an architecture test that settings backend modules do not import editor UI/adapter modules while adding split-button defaults.
+- Add or update a side-effect architecture test proving only `editor_integration.py` writes Anki media or updates editor fields for split-button processing; pure override helpers must not cross that boundary.
+- Add an architecture test for the denoise split button proving algorithm menu selection dispatches through editor adapter mapping and does not add denoise-specific renderer calls to frontend source or import-safe command registries.
+- If a new Python production module is introduced, add it to `MODULE_CONTRACTS` and verify `tests/test_architecture/test_rule15_all_modules_have_contracts.py`, import policy, dependency policy, and side-effect policy all pass.
+- If editor command payloads are added to generated contracts, extend contract-generation/check tests so stale generated Python/TypeScript files fail the quality gate.
+
 ## Testing
 
 Use a test-first implementation. Required coverage:
