@@ -33,7 +33,9 @@ from .editor_actions import (
     CMD_REDO,
     CMD_RNNOISE,
     CMD_SETTINGS,
+    EditorCommandPayload,
     apply_processing_command,
+    decode_editor_command_payload,
 )
 from .editor_ui import injection_script
 from .errors import AudioProcessingError, AudioQuickEditorError, MissingMediaError
@@ -231,10 +233,13 @@ def _reset_editor_session_for_note_load(editor: Any, note_id: int | None = None)
 
 
 def _handle_bridge_command(editor: Any, command: str) -> None:
+    payload = decode_editor_command_payload(command)
     try:
-        if _handle_non_processing_command(editor, command):
+        if payload.field_ord is not None:
+            editor.currentField = payload.field_ord
+        if _handle_non_processing_command(editor, payload.command):
             return
-        _update_state_and_render(editor, command)
+        _update_state_and_render(editor, payload)
     except AudioQuickEditorError as exc:
         _set_busy(editor, False)
         _eval_status(editor, str(exc), kind="error")
@@ -302,7 +307,7 @@ def _log_editor_frontend_payload(raw_payload: Any) -> None:
         logger.info(rendered)
 
 
-def _update_state_and_render(editor: Any, command: str) -> None:
+def _update_state_and_render(editor: Any, command: str | EditorCommandPayload) -> None:
     existing = _SESSIONS.get(editor)
     if existing and _is_busy(existing):
         _eval_status(editor, STILL_PROCESSING_MESSAGE, kind="processing")
