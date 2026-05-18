@@ -1,16 +1,10 @@
-import { PROCESSING_COMMANDS, processingMessage } from "./commands.js";
 import {
-  allButtons,
   allVisualizers,
-  controlsForOrd,
-  graphButton,
-  playButton,
   repeatButtonForOrd,
   visualizerForOrd,
 } from "./dom-selectors.js";
 import {
   focusAndSendCommand,
-  focusAndSendCommandPayload,
   setCursorIntent,
 } from "./bridge.js";
 import {
@@ -23,18 +17,14 @@ import {
   seekAudioClock as seekAudioClockElement,
 } from "./audio-clock.js";
 import { logger } from "./logger.js";
-import { continueDefaultGraphQueue } from "./default-graph-queue.js";
 import type { PlaybackRegion } from "./playback-state.js";
 import type {
   CursorIntent,
-  EditorCommand,
-  EditorCommandPayload,
   PlaybackRequest,
   PlaybackState,
   VisualizerElement,
 } from "./types.js";
 import {
-  syncAllRegionDeleteControls,
   syncRegionDeleteControl,
 } from "./region-delete-state.js";
 import {
@@ -66,7 +56,19 @@ import {
 } from "./playback-controller.js";
 export { popEditorFrontendLog, popPendingGraphAnalysisRequest } from "./bridge.js";
 import {
-  defaultGraphQueueDependencies,
+  clearStatus,
+  repeatDefaultFromConfig,
+} from "./control-actions.js";
+export {
+  anyBusy,
+  clearStatus,
+  repeatDefaultFromConfig,
+  setCommandButtonLabel,
+  setControlsBusy,
+  setStatus,
+} from "./control-actions.js";
+export { send } from "./command-actions.js";
+import {
   prepareForNewNote,
   requestDefaultGraph,
   requestGraph,
@@ -126,113 +128,12 @@ export {
 };
 export { prepareForNewNote, requestDefaultGraph, requestGraph, requestPendingGraphRedraw, resetGraphAfterEdit, setVisualizer, setVisualizerStatus, setVisualizerStatusFromPython };
 
-export function anyBusy(): boolean {
-  return document.body.dataset.aqeBusy === "true";
-}
-
-export function repeatDefaultFromConfig(): boolean {
-  return window.__AQE_EDITOR_CONFIG__?.repeatPlaybackByDefault === true;
-}
-
 export function stopOtherPlayback(activeVisualizer: VisualizerElement): void {
   for (const visualizer of allVisualizers()) {
     if (visualizer !== activeVisualizer && playbackStateFor(visualizer) !== "stopped") {
       stopProgressClock(visualizer);
     }
   }
-}
-
-function stopAllEditorPlayback(): void {
-  for (const visualizer of allVisualizers()) {
-    if (playbackStateFor(visualizer) !== "stopped") {
-      stopProgressClock(visualizer);
-    }
-  }
-}
-
-export function setControlsBusy(ord: number, busy: boolean, message = "", command = ""): void {
-  document.body.dataset.aqeBusy = busy ? "true" : "false";
-  document.querySelectorAll<HTMLElement>(".aqe-controls").forEach((controls) => {
-    controls.dataset.busy = busy ? "true" : "false";
-  });
-  allButtons().forEach((button) => {
-    button.disabled = !!busy;
-  });
-  syncAllRegionDeleteControls();
-  if (!busy) {
-    queueMicrotask(() => continueDefaultGraphQueue(defaultGraphQueueDependencies()));
-  }
-  const controls = controlsForOrd(ord);
-  const status = controls?.querySelector<HTMLElement>(".aqe-status");
-  if (!status) return;
-  status.textContent = message || "";
-  status.dataset.kind = busy ? "processing" : "info";
-  status.title = command || "";
-}
-
-export function setStatus(message: string, kind = "info"): void {
-  const ord = Number(window.__aqeActiveField ?? 0);
-  const controls = controlsForOrd(ord);
-  const status = controls?.querySelector<HTMLElement>(".aqe-status");
-  if (!status) return;
-  status.textContent = message || "";
-  status.dataset.kind = kind || "info";
-}
-
-export function clearStatus(ord: number): void {
-  const controls = controlsForOrd(ord);
-  const status = controls?.querySelector<HTMLElement>(".aqe-status");
-  if (!status) return;
-  status.textContent = "";
-  status.dataset.kind = "info";
-  status.title = "";
-}
-
-export function setCommandButtonLabel(ord: number, command: EditorCommand, label: string): void {
-  const button = command === "aqe:play"
-    ? playButton(ord)
-    : command === "aqe:analyze"
-      ? graphButton(ord)
-      : controlsForOrd(ord)?.querySelector<HTMLButtonElement>(`[data-aqe-command="${command}"]`) ?? null;
-  if (!button) return;
-  const labelNode = button.querySelector<HTMLElement>(".aqe-button-label");
-  if (labelNode) {
-    labelNode.textContent = label;
-  } else {
-    button.textContent = label;
-  }
-  if (command === "aqe:play") {
-    button.dataset.aqeButtonState = label === "Pause" ? "pause" : "play";
-  }
-  if (command === "aqe:analyze") {
-    button.dataset.aqeButtonState = label === "Redraw" ? "redraw" : "graph";
-    const title = label === "Redraw" ? "Redraw the pitch graph" : "Analyze and show pitch/intensity graph";
-    button.title = title;
-    button.setAttribute("aria-label", title);
-  }
-}
-
-export function send(command: EditorCommand, node: HTMLElement, ord: number, payload?: EditorCommandPayload): void {
-  if (anyBusy()) return;
-  if (typeof node.focus === "function") node.focus();
-  window.__aqeActiveField = ord;
-  logger.info("command dispatched", { command, ord });
-  if (command === "aqe:analyze") {
-    requestGraph(ord, true);
-    return;
-  }
-  if (command === "aqe:play" && handleHtmlPlaybackCommand(ord)) {
-    return;
-  }
-  if (PROCESSING_COMMANDS.has(command)) {
-    stopAllEditorPlayback();
-    setControlsBusy(ord, true, processingMessage(command));
-  }
-  if (payload) {
-    focusAndSendCommandPayload(ord, payload);
-    return;
-  }
-  focusAndSendCommand(ord, command);
 }
 
 export function resetAudioClockState(visualizer: VisualizerElement): void {

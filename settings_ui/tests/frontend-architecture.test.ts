@@ -9,7 +9,6 @@ const projectRoot = cwd();
 const sourceRoot = join(projectRoot, "src");
 
 const lineLimitAllowlist = new Map<string, number>([
-  ["src/editor-inline/actions.ts", 800],
   ["src/editor-inline/EditorControls.svelte", 350],
 ]);
 
@@ -19,6 +18,7 @@ const exportCountAllowlist = new Map<string, number>([
 
 const querySelectorAllowlist = new Set([
   "src/editor-inline/actions.ts",
+  "src/editor-inline/control-actions.ts",
   "src/editor-inline/dom-selectors.ts",
   "src/editor-inline/field-controller.ts",
   "src/editor-inline/graph-actions.ts",

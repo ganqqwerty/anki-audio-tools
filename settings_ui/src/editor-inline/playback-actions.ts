@@ -23,9 +23,8 @@ import {
   effectivePlaybackRegion,
   playbackControllerDependencies,
   repeatEnabledFor,
-  setCommandButtonLabel,
-  setStatus,
 } from "./actions.js";
+import { setCommandButtonLabel, setStatus } from "./control-actions.js";
 
 export function setPlaybackButtonLabel(visualizer: VisualizerElement, label: string): void {
   const ord = Number(visualizer.dataset.aqeFieldOrd || "0");

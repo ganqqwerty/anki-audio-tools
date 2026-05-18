@@ -13,20 +13,22 @@ import {
   resetVisualizerPlot,
 } from "./visualizer-renderer.js";
 import {
-  anyBusy,
   audioClockReady,
   clearAudioClockSource,
   clearPlaybackFrame,
   clearSelection,
   configureAudioClock,
-  repeatDefaultFromConfig,
   seekAudioClock,
-  setCommandButtonLabel,
-  setControlsBusy,
   setCursor,
   setRepeatEnabled,
   stopProgressClock,
 } from "./actions.js";
+import {
+  anyBusy,
+  repeatDefaultFromConfig,
+  setCommandButtonLabel,
+  setControlsBusy,
+} from "./control-actions.js";
 
 export function requestGraph(ord: number, notifyPython: boolean): void {
   if (!prepareGraphRequest(ord)) return;
