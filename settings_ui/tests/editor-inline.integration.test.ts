@@ -172,7 +172,10 @@ describe("editor inline Svelte integration", () => {
 
     const help = document.querySelector<HTMLDetailsElement>('[data-testid="aqe-help-0"]')!;
     expect(help.open).toBe(false);
-    expect(help).toHaveTextContent("Holding Shift on the graph selects a region.");
+    expect(help.querySelectorAll(".aqe-help-command")).toHaveLength(14);
+    expect(help).toHaveTextContent("Shift-drag on the graph to select a region.");
+    expect(help).toHaveTextContent("Delete Region removes only the selected region.");
+    expect(help).toHaveTextContent("Every edit creates a new media file and updates the field to point at it.");
     expect(help).toHaveTextContent("grey is loudness and lines are pitch of the voice.");
 
     document.querySelector<HTMLButtonElement>('[data-testid="aqe-button-0-denoise-standard"]')!.click();

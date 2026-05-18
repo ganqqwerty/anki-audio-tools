@@ -126,9 +126,79 @@
       <span>Help</span>
     </summary>
     <div class="aqe-help-body">
-      <p>Holding Shift on the graph selects a region. Playing with a selected region plays only that region; Repeat loops the selected region, or the full graph when no region is selected.</p>
-      <p>Play starts or pauses audio. Graph shows the pitch and loudness graph. Folder opens the current audio file. -L and -R trim 100 ms from the left or right. Shorten Pauses speeds up long internal pauses. Denoise Standard uses DeepFilterNet, and Denoise RNNoise uses RNNoise. Slower and Faster change speed. Volume - and Volume + change loudness. Undo and Redo move through generated audio edits. Settings opens the add-on settings.</p>
-      <p>In the graph, grey is loudness and lines are pitch of the voice.</p>
+      <section class="aqe-help-section">
+        <h4 class="aqe-help-title">Graph and regions</h4>
+        <ul class="aqe-help-list">
+          <li><kbd>Shift</kbd>-drag on the graph to select a region.</li>
+          <li>Play uses the selected region when one is active; Repeat loops the selected region, or the full graph otherwise.</li>
+          <li>Delete Region removes only the selected region. Backspace does the same when the graph is focused.</li>
+          <li>In the graph, grey is loudness and lines are pitch of the voice.</li>
+        </ul>
+      </section>
+      <section class="aqe-help-section">
+        <h4 class="aqe-help-title">Buttons</h4>
+        <div class="aqe-help-grid">
+          <span class="aqe-help-item">
+            <span class="aqe-help-command"><EditorCommandIcon icon="play" /><span>Play</span></span>
+            <span>Start or pause audio.</span>
+          </span>
+          <span class="aqe-help-item">
+            <span class="aqe-help-command"><EditorCommandIcon icon="chart-line" /><span>Graph</span></span>
+            <span>Show pitch and loudness.</span>
+          </span>
+          <span class="aqe-help-item">
+            <span class="aqe-help-command"><EditorCommandIcon icon="folder-open" /><span>Folder</span></span>
+            <span>Open the current audio file.</span>
+          </span>
+          <span class="aqe-help-item">
+            <span class="aqe-help-command"><EditorCommandIcon icon="scissors" /><span>-L</span></span>
+            <span>Trim 100 ms from the left.</span>
+          </span>
+          <span class="aqe-help-item">
+            <span class="aqe-help-command"><EditorCommandIcon icon="scissors" /><span>-R</span></span>
+            <span>Trim 100 ms from the right.</span>
+          </span>
+          <span class="aqe-help-item">
+            <span class="aqe-help-command"><EditorCommandIcon icon="timer-reset" /><span>Shorten Pauses</span></span>
+            <span>Speed up long internal pauses.</span>
+          </span>
+          <span class="aqe-help-item">
+            <span class="aqe-help-command"><EditorCommandIcon icon="sparkles" /><span>Denoise</span></span>
+            <span>Use Standard or RNNoise cleanup.</span>
+          </span>
+          <span class="aqe-help-item">
+            <span class="aqe-help-command"><EditorCommandIcon icon="rewind" /><span>Slower</span></span>
+            <span>Decrease speed.</span>
+          </span>
+          <span class="aqe-help-item">
+            <span class="aqe-help-command"><EditorCommandIcon icon="fast-forward" /><span>Faster</span></span>
+            <span>Increase speed.</span>
+          </span>
+          <span class="aqe-help-item">
+            <span class="aqe-help-command"><EditorCommandIcon icon="volume-1" /><span>Volume -</span></span>
+            <span>Decrease loudness.</span>
+          </span>
+          <span class="aqe-help-item">
+            <span class="aqe-help-command"><EditorCommandIcon icon="volume-2" /><span>Volume +</span></span>
+            <span>Increase loudness.</span>
+          </span>
+          <span class="aqe-help-item">
+            <span class="aqe-help-command"><EditorCommandIcon icon="undo-2" /><span>Undo</span></span>
+            <span>Restore the previous edit.</span>
+          </span>
+          <span class="aqe-help-item">
+            <span class="aqe-help-command"><EditorCommandIcon icon="redo-2" /><span>Redo</span></span>
+            <span>Restore the undone edit.</span>
+          </span>
+          <span class="aqe-help-item">
+            <span class="aqe-help-command"><EditorCommandIcon icon="trash-2" /><span>Delete Region</span></span>
+            <span>Remove the selected graph region.</span>
+          </span>
+        </div>
+      </section>
+      <p class="aqe-help-note">
+        Every edit creates a new media file and updates the field to point at it. The original file remains in your media collection.
+      </p>
     </div>
   </details>
   <div
