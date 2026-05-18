@@ -41,6 +41,8 @@ Pause-shortening runs retain provenance under `<addon_dir>/aqe_artifacts/<run_id
 
 MP-SENet denoising uses a bundled macOS arm64 CPU CLI under `addon/anki_audio_quick_editor/bin/`. It is ready to run in the packaged add-on and ships its LibTorch dylibs plus TorchScript VoiceBank+DEMAND model inside `mp-senet-cli-macos-arm64/`.
 
+RNNoise denoising uses a bundled macOS arm64 CLI at `addon/anki_audio_quick_editor/bin/rnnoise-cli-macos-arm64/bin/rnnoise-cli`. The add-on uses ffmpeg to convert arbitrary source audio to raw 48 kHz mono signed 16-bit PCM, runs RNNoise over that raw stream, then uses ffmpeg to encode the result as MP3.
+
 Prosody visualization can use `praat-parselmouth` when it is already available in Anki's Python, but the shipped add-on does not require it. The required cross-platform path is the built-in ffmpeg/PCM fallback. A dry-run compatibility check on this machine resolved `praat-parselmouth 0.4.7` and `numpy 2.4.4` for Anki Python 3.13, but those packages were not installed or vendored.
 
 Local ffmpeg setup:

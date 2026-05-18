@@ -153,7 +153,8 @@
         "note_type_count": { "type": "integer" },
         "card_count": { "type": "integer" },
         "deep_filter": { "$ref": "#/definitions/ExternalToolHealth" },
-        "mp_senet": { "$ref": "#/definitions/ExternalToolHealth" }
+        "mp_senet": { "$ref": "#/definitions/ExternalToolHealth" },
+        "rnnoise": { "$ref": "#/definitions/ExternalToolHealth" }
       }
     },
     "SupportReportResult": {

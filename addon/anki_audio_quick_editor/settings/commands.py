@@ -174,6 +174,7 @@ def _op_health_check(
     from ..diagnostics import (
         build_deep_filter_health,
         build_mp_senet_health,
+        build_rnnoise_health,
     )
 
     progress_fn(20, "Inspecting collection")
@@ -181,8 +182,10 @@ def _op_health_check(
     progress_fn(60, "Checking DeepFilterNet")
     config = _config_payload(payload)
     report["deep_filter"] = build_deep_filter_health(config)
-    progress_fn(90, "Checking MP-SENet")
+    progress_fn(80, "Checking MP-SENet")
     report["mp_senet"] = build_mp_senet_health()
+    progress_fn(90, "Checking RNNoise")
+    report["rnnoise"] = build_rnnoise_health()
     progress_fn(100, "Done")
     return HealthReport.from_dict(report).to_dict()
 
@@ -197,12 +200,14 @@ def _op_support_report(
     from ..diagnostics import (
         build_deep_filter_health,
         build_mp_senet_health,
+        build_rnnoise_health,
     )
     from ..support import (
         addon_log_path,
         build_support_report_text,
         latest_mp_senet_support_incident,
         latest_pause_pipeline_support_incident,
+        latest_rnnoise_support_incident,
         read_log_tail,
     )
 
@@ -214,6 +219,7 @@ def _op_support_report(
     progress_fn(50, "Checking external tools")
     deep_filter_health = build_deep_filter_health(config)
     mp_senet_health = build_mp_senet_health()
+    rnnoise_health = build_rnnoise_health()
     progress_fn(75, "Reading recent logs")
     report_text = build_support_report_text(
         version=__version__,
@@ -221,7 +227,9 @@ def _op_support_report(
         log_file_path=str(log_path),
         deep_filter_health=deep_filter_health,
         mp_senet_health=mp_senet_health,
+        rnnoise_health=rnnoise_health,
         mp_senet_incident=latest_mp_senet_support_incident(),
+        rnnoise_incident=latest_rnnoise_support_incident(),
         pause_pipeline_incident=latest_pause_pipeline_support_incident(),
         log_tail=read_log_tail(log_path),
     )

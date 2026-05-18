@@ -18,6 +18,7 @@
   import Volume1 from "@lucide/svelte/icons/volume-1";
   import Volume2 from "@lucide/svelte/icons/volume-2";
   import VolumeX from "@lucide/svelte/icons/volume-x";
+  import Waves from "@lucide/svelte/icons/waves";
 
   import type { EditorIconName } from "./types.js";
 
@@ -64,5 +65,7 @@
     <Volume2 size={14} strokeWidth={2} />
   {:else if icon === "volume-x"}
     <VolumeX size={14} strokeWidth={2} />
+  {:else if icon === "waves"}
+    <Waves size={14} strokeWidth={2} />
   {/if}
 </span>

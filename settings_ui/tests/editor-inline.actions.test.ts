@@ -89,10 +89,12 @@ describe("editor inline action workflows", () => {
     expect(mediaUrlForFilename("かな.wav")).toBe("%E3%81%8B%E3%81%AA.wav");
     expect(mediaUrlForFilename("nested/clip.mp3")).toBe("nested/clip.mp3");
     expect(commandSlugsForTest()["aqe:denoise-standard"]).toBe("denoise-standard");
+    expect(commandSlugsForTest()["aqe:rnnoise"]).toBe("rnnoise");
     expect(commandSlugsForTest()["aqe:redo"]).toBe("redo");
     expect(commandSlugsForTest()["aqe:settings"]).toBe("settings");
     expect(processingMessage("aqe:denoise-standard")).toBe("Denoising with Standard...");
     expect(processingMessage("aqe:mp-senet")).toBe("Denoising with MP-SENet...");
+    expect(processingMessage("aqe:rnnoise")).toBe("Denoising with RNNoise...");
     expect(processingMessage("aqe:faster")).toBe("Processing...");
   });
 

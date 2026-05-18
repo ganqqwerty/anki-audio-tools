@@ -93,6 +93,7 @@ export interface HealthReport {
     deep_filter?:         ExternalToolHealth;
     mp_senet?:            ExternalToolHealth;
     note_type_count:      number;
+    rnnoise?:             ExternalToolHealth;
 }
 
 export interface ExternalToolHealth {

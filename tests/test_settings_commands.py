@@ -18,8 +18,10 @@ from anki_audio_quick_editor.settings.commands import (
 from anki_audio_quick_editor.support import (
     clear_latest_mp_senet_support_incident,
     clear_latest_pause_pipeline_support_incident,
+    clear_latest_rnnoise_support_incident,
     record_latest_mp_senet_support_incident,
     record_latest_pause_pipeline_support_incident,
+    record_latest_rnnoise_support_incident,
 )
 
 
@@ -263,6 +265,7 @@ def test_async_health_check_reports_result() -> None:
     assert "deep_filter" in result["result"]
     assert ("si" + "don") not in result["result"]
     assert "mp_senet" in result["result"]
+    assert "rnnoise" in result["result"]
 
 
 def test_async_health_check_reports_deep_filter_version() -> None:
@@ -337,11 +340,46 @@ def test_async_health_check_reports_mp_senet_version() -> None:
     }
 
 
+def test_async_health_check_reports_rnnoise_version() -> None:
+    dialog = _make_dialog()
+    calls, eval_fn = _capture_eval()
+    payload = json.dumps(
+        {
+            "id": "job-1",
+            "op": "health_check",
+            "payload": {"config": _full_config()},
+        }
+    )
+
+    with (
+        patch("threading.Thread", _ImmediateThread),
+        patch(
+            "anki_audio_quick_editor.audio_processor.find_rnnoise_bundle",
+            return_value=Path("/addon/bin/rnnoise-cli-macos-arm64/bin/rnnoise-cli"),
+        ),
+        patch("anki_audio_quick_editor.diagnostics.subprocess.run") as run,
+    ):
+        run.return_value.returncode = 0
+        run.return_value.stdout = "rnnoise-cli 0.2\n"
+        run.return_value.stderr = ""
+        handle_settings_command(f"async_cmd:{payload}", eval_fn, dialog)
+
+    done_calls = [call for call in calls if call.startswith("window.onAsyncDone(")]
+    result = _parse_callback(done_calls[0], "onAsyncDone")
+    assert result["result"]["rnnoise"] == {
+        "available": True,
+        "path": "/addon/bin/rnnoise-cli-macos-arm64/bin/rnnoise-cli",
+        "version": "rnnoise-cli 0.2",
+        "error": "",
+    }
+
+
 def test_async_support_report_returns_incident_and_log_tail(tmp_path: Path) -> None:
     from aqt import mw
 
     clear_latest_mp_senet_support_incident()
     clear_latest_pause_pipeline_support_incident()
+    clear_latest_rnnoise_support_incident()
     record_latest_mp_senet_support_incident(
         operation="mp_senet_denoise",
         media_filename="clip.mp3",
@@ -369,6 +407,18 @@ def test_async_support_report_returns_incident_and_log_tail(tmp_path: Path) -> N
             {"command": "/bin/deep-filter -D -o out in.wav", "returncode": 12, "stdout": "", "stderr": "boom", "launch_error": ""},
         ],
     )
+    record_latest_rnnoise_support_incident(
+        operation="rnnoise_denoise",
+        media_filename="rnnoise.mp3",
+        source_path="/media/rnnoise.mp3",
+        user_message="RNNoise denoise failed.",
+        exception_type="AudioProcessingError",
+        ffmpeg_path="/bin/ffmpeg",
+        rnnoise_path="/bin/rnnoise-cli",
+        attempted_commands=[
+            {"command": "/bin/rnnoise-cli denoise --input in.s16le", "returncode": 5, "stdout": "", "stderr": "boom", "launch_error": ""},
+        ],
+    )
     addon_dir = tmp_path / "addon"
     addon_dir.mkdir()
     log_path = addon_dir / "anki_audio_quick_editor.log"
@@ -382,6 +432,7 @@ def test_async_support_report_returns_incident_and_log_tail(tmp_path: Path) -> N
         patch.object(mw.addonManager, "addonsFolder", return_value=str(addon_dir)),
         patch("anki_audio_quick_editor.diagnostics.build_deep_filter_health", return_value={"available": True, "path": "/bin/deep-filter", "version": "0.5.6", "error": ""}),
         patch("anki_audio_quick_editor.diagnostics.build_mp_senet_health", return_value={"available": True, "path": "/bin/mp-senet-cli", "model_path": "/addon/models/mp_senet_vb.torchscript.pt", "version": "0.1", "error": ""}),
+        patch("anki_audio_quick_editor.diagnostics.build_rnnoise_health", return_value={"available": True, "path": "/bin/rnnoise-cli", "version": "0.2", "error": ""}),
     ):
         handle_settings_command(f"async_cmd:{payload}", eval_fn, dialog)
 
@@ -392,6 +443,9 @@ def test_async_support_report_returns_incident_and_log_tail(tmp_path: Path) -> N
     assert "Media filename: clip.mp3" in report_text
     assert "TorchScript load failed" in report_text
     assert "DeepFilterNet pause analysis failed." in report_text
+    assert "RNNoise denoise failed." in report_text
+    assert "/bin/rnnoise-cli denoise --input in.s16le" in report_text
+    assert "0.2" in report_text
     assert "/addon/aqe_artifacts/clip__run/manifest.json" in report_text
     assert "line-1" in report_text
     assert str(log_path) in report_text
@@ -400,6 +454,7 @@ def test_async_support_report_returns_incident_and_log_tail(tmp_path: Path) -> N
 def test_async_support_report_handles_missing_log_file() -> None:
     clear_latest_mp_senet_support_incident()
     clear_latest_pause_pipeline_support_incident()
+    clear_latest_rnnoise_support_incident()
     dialog = _make_dialog()
     calls, eval_fn = _capture_eval()
     payload = json.dumps({"id": "job-1", "op": "support_report", "payload": {"config": _full_config()}})
@@ -411,6 +466,7 @@ def test_async_support_report_handles_missing_log_file() -> None:
     result = _parse_callback(done_calls[0], "onAsyncDone")
     report_text = result["result"]["reportText"]
     assert "No MP-SENet failure has been captured in this session." in report_text
+    assert "No RNNoise failure has been captured in this session." in report_text
     assert "No pause-shortening failure has been captured in this session." in report_text
     assert "Log file not found:" in report_text or "(log file is empty)" in report_text
 

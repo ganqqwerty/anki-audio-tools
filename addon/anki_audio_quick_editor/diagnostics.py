@@ -109,3 +109,51 @@ def build_mp_senet_health() -> dict[str, Any]:
         "version": version if result.returncode == 0 else "",
         "error": "" if result.returncode == 0 else version or "mp-senet-cli --version failed.",
     }
+
+
+def build_rnnoise_health() -> dict[str, Any]:
+    """Return bundled RNNoise availability and version details."""
+    from .audio_processor import expected_bundled_rnnoise_dir, find_rnnoise_bundle
+
+    expected_dir = expected_bundled_rnnoise_dir()
+    try:
+        rnnoise_path = find_rnnoise_bundle()
+    except Exception as exc:
+        return {
+            "available": False,
+            "path": str(expected_dir / "bin" / "rnnoise-cli") if expected_dir is not None else "",
+            "version": "",
+            "error": str(exc),
+        }
+
+    command = (str(rnnoise_path), "--version")
+    try:
+        result = subprocess.run(
+            list(command),
+            capture_output=True,
+            text=True,
+            check=False,
+            timeout=10,
+        )  # nosec B603
+    except OSError as exc:
+        return {
+            "available": False,
+            "path": str(rnnoise_path),
+            "version": "",
+            "error": str(exc),
+        }
+    except subprocess.TimeoutExpired:
+        return {
+            "available": False,
+            "path": str(rnnoise_path),
+            "version": "",
+            "error": "rnnoise-cli --version timed out.",
+        }
+
+    version = (result.stdout or result.stderr).strip()
+    return {
+        "available": result.returncode == 0,
+        "path": str(rnnoise_path),
+        "version": version if result.returncode == 0 else "",
+        "error": "" if result.returncode == 0 else version or "rnnoise-cli --version failed.",
+    }

@@ -21,6 +21,10 @@ class MissingMpSenetError(AudioQuickEditorError):
     """Raised when the bundled MP-SENet runtime cannot be found or is incomplete."""
 
 
+class MissingRnnoiseError(AudioQuickEditorError):
+    """Raised when the bundled RNNoise runtime cannot be found or is incomplete."""
+
+
 class MissingMediaError(AudioQuickEditorError):
     """Raised when a referenced Anki media file does not exist."""
 

@@ -98,6 +98,7 @@ def test_each_processing_button_updates_field_to_new_real_audio(
                 "Denoise",
                 "Standard",
                 "MP-SENet",
+                "RNNoise",
                 "Slower",
                 "Faster",
                 "Volume -",
@@ -441,6 +442,7 @@ def test_three_audio_fields_fast_cross_clicks_lock_globally_and_do_not_corrupt_f
         "aqe:volume-up",
         "aqe:remove-pauses",
         "aqe:mp-senet",
+        "aqe:rnnoise",
     ],
 )
 def test_multi_field_processing_undo_redo_survives_graph_default_auto_analysis(
@@ -464,6 +466,11 @@ def test_multi_field_processing_undo_redo_survives_graph_default_auto_analysis(
     if command == "aqe:mp-senet":
         monkeypatch.setattr(
             "anki_audio_quick_editor.editor_integration.render_mp_senet_audio",
+            _fake_mp_senet_renderer,
+        )
+    if command == "aqe:rnnoise":
+        monkeypatch.setattr(
+            "anki_audio_quick_editor.editor_integration.render_rnnoise_audio",
             _fake_mp_senet_renderer,
         )
     _configure_ffmpeg(

@@ -34,6 +34,12 @@ BROAD_EXCEPTION_ALLOWLIST: tuple[BroadExceptionAllowance, ...] = (
         "External MP-SENet runtime boundary records support context before surfacing an add-on error.",
     ),
     BroadExceptionAllowance(
+        "audio_processor",
+        "render_rnnoise_audio",
+        1,
+        "External RNNoise runtime boundary records support context before surfacing an add-on error.",
+    ),
+    BroadExceptionAllowance(
         "batch_operations",
         "_process_graph_operation",
         1,
@@ -78,6 +84,12 @@ BROAD_EXCEPTION_ALLOWLIST: tuple[BroadExceptionAllowance, ...] = (
     BroadExceptionAllowance(
         "diagnostics",
         "build_mp_senet_health",
+        1,
+        "Diagnostic external-tool probe reports availability instead of raising.",
+    ),
+    BroadExceptionAllowance(
+        "diagnostics",
+        "build_rnnoise_health",
         1,
         "Diagnostic external-tool probe reports availability instead of raising.",
     ),

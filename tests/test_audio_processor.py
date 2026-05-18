@@ -28,12 +28,16 @@ from anki_audio_quick_editor.audio_processor import (
     build_mp_senet_command,
     build_mp_senet_prepare_command,
     build_playback_segment_filters,
+    build_rnnoise_command,
+    build_rnnoise_encode_command,
+    build_rnnoise_prepare_command,
     build_silencedetect_command,
     build_working_original_filters,
     find_deep_filter,
     find_ffmpeg,
     find_ffprobe,
     find_mp_senet_bundle,
+    find_rnnoise_bundle,
     format_ffmpeg_command,
     make_output_filename,
     make_playback_segment_filename,
@@ -42,6 +46,7 @@ from anki_audio_quick_editor.audio_processor import (
     render_mp_senet_audio,
     render_noise_reduced_audio,
     render_playback_segment,
+    render_rnnoise_audio,
     select_deep_filter_output,
     temp_final_path,
 )
@@ -51,12 +56,15 @@ from anki_audio_quick_editor.errors import (
     MissingDeepFilterError,
     MissingFfmpegError,
     MissingMpSenetError,
+    MissingRnnoiseError,
 )
 from anki_audio_quick_editor.support import (
     clear_latest_mp_senet_support_incident,
     clear_latest_pause_pipeline_support_incident,
+    clear_latest_rnnoise_support_incident,
     latest_mp_senet_support_incident,
     latest_pause_pipeline_support_incident,
+    latest_rnnoise_support_incident,
 )
 
 FFMPEG_SKIP_REASON = "ffmpeg and ffprobe are required for audio rendering smoke tests"
@@ -232,6 +240,39 @@ def test_find_mp_senet_bundle_raises_when_bundle_is_incomplete(
 
     with pytest.raises(MissingMpSenetError, match="bundled mp-senet-cli runtime and model file"):
         find_mp_senet_bundle()
+
+
+def test_find_rnnoise_bundle_uses_bundled_executable_when_complete(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    bundled_dir = tmp_path / "rnnoise-cli-macos-arm64"
+    rnnoise_path = bundled_dir / "bin" / "rnnoise-cli"
+    rnnoise_path.parent.mkdir(parents=True)
+    rnnoise_path.write_text("")
+
+    monkeypatch.setattr(
+        "anki_audio_quick_editor.audio_processor.expected_bundled_rnnoise_dir",
+        lambda: bundled_dir,
+    )
+
+    assert find_rnnoise_bundle() == rnnoise_path
+
+
+def test_find_rnnoise_bundle_raises_when_bundle_is_incomplete(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    bundled_dir = tmp_path / "rnnoise-cli-macos-arm64"
+    (bundled_dir / "bin").mkdir(parents=True)
+
+    monkeypatch.setattr(
+        "anki_audio_quick_editor.audio_processor.expected_bundled_rnnoise_dir",
+        lambda: bundled_dir,
+    )
+
+    with pytest.raises(MissingRnnoiseError, match="bundled rnnoise-cli executable"):
+        find_rnnoise_bundle()
 
 
 def test_find_ffprobe_prefers_sibling_binary(tmp_path: Path, monkeypatch) -> None:
@@ -486,6 +527,77 @@ def test_build_mp_senet_command_includes_model_path_and_json(tmp_path: Path) -> 
         str(tmp_path / "models" / "mp_senet_vb.torchscript.pt"),
         "--overwrite",
         "--json",
+    )
+
+
+def test_build_rnnoise_prepare_command_uses_48khz_mono_raw_pcm(tmp_path: Path) -> None:
+    command = build_rnnoise_prepare_command(
+        Path("/bin/ffmpeg"),
+        tmp_path / "source.mp3",
+        tmp_path / "input.s16le",
+    )
+
+    assert command == (
+        "/bin/ffmpeg",
+        "-y",
+        "-i",
+        str(tmp_path / "source.mp3"),
+        "-vn",
+        "-ac",
+        "1",
+        "-ar",
+        "48000",
+        "-f",
+        "s16le",
+        "-codec:a",
+        "pcm_s16le",
+        str(tmp_path / "input.s16le"),
+    )
+
+
+def test_build_rnnoise_command_includes_json_and_overwrite(tmp_path: Path) -> None:
+    command = build_rnnoise_command(
+        Path("/bin/rnnoise-cli"),
+        tmp_path / "input.s16le",
+        tmp_path / "denoised.s16le",
+    )
+
+    assert command == (
+        "/bin/rnnoise-cli",
+        "denoise",
+        "--input",
+        str(tmp_path / "input.s16le"),
+        "--output",
+        str(tmp_path / "denoised.s16le"),
+        "--overwrite",
+        "--json",
+    )
+
+
+def test_build_rnnoise_encode_command_reads_raw_pcm(tmp_path: Path) -> None:
+    command = build_rnnoise_encode_command(
+        Path("/bin/ffmpeg"),
+        tmp_path / "denoised.s16le",
+        tmp_path / "denoised.mp3",
+    )
+
+    assert command == (
+        "/bin/ffmpeg",
+        "-y",
+        "-f",
+        "s16le",
+        "-ar",
+        "48000",
+        "-ac",
+        "1",
+        "-i",
+        str(tmp_path / "denoised.s16le"),
+        "-vn",
+        "-codec:a",
+        "libmp3lame",
+        "-q:a",
+        "4",
+        str(tmp_path / "denoised.mp3"),
     )
 
 
@@ -1214,6 +1326,138 @@ def test_render_mp_senet_audio_reports_launch_errors(
     assert incident["attempted_commands"][1]["launch_error"].startswith(
         "Could not start MP-SENet denoise."
     )
+
+
+def test_render_rnnoise_audio_runs_prepare_denoise_and_encode(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    clear_latest_rnnoise_support_incident()
+    calls: list[list[str]] = []
+    commands: list[tuple[str, ...]] = []
+
+    monkeypatch.setattr("anki_audio_quick_editor.audio_processor.find_ffmpeg", lambda _path: Path("/bin/ffmpeg"))
+    monkeypatch.setattr(
+        "anki_audio_quick_editor.audio_processor.find_rnnoise_bundle",
+        lambda: Path("/bin/rnnoise-cli"),
+    )
+    monkeypatch.setattr("anki_audio_quick_editor.audio_processor.probe_duration_ms", lambda *_args: 1000)
+
+    def fake_run(cmd: list[str], capture_output: bool, text: bool, check: bool) -> SimpleNamespace:
+        calls.append(cmd)
+        if cmd[0] == "/bin/rnnoise-cli":
+            Path(cmd[cmd.index("--output") + 1]).write_bytes(b"denoised")
+            return SimpleNamespace(returncode=0, stdout='{"ok":true}', stderr="")
+        return SimpleNamespace(returncode=0, stdout="", stderr="")
+
+    monkeypatch.setattr("anki_audio_quick_editor.audio_processor.subprocess.run", fake_run)
+
+    output = tmp_path / "denoised.mp3"
+    result = render_rnnoise_audio(
+        tmp_path / "source.mp3",
+        AudioProcessingConfig(),
+        output_path=output,
+        on_command=commands.append,
+    )
+
+    assert calls[0] == [
+        "/bin/ffmpeg",
+        "-y",
+        "-i",
+        str(tmp_path / "source.mp3"),
+        "-vn",
+        "-ac",
+        "1",
+        "-ar",
+        "48000",
+        "-f",
+        "s16le",
+        "-codec:a",
+        "pcm_s16le",
+        calls[0][-1],
+    ]
+    assert calls[1][0] == "/bin/rnnoise-cli"
+    assert calls[1][1:] == [
+        "denoise",
+        "--input",
+        calls[1][3],
+        "--output",
+        calls[1][5],
+        "--overwrite",
+        "--json",
+    ]
+    assert calls[2][0:8] == ["/bin/ffmpeg", "-y", "-f", "s16le", "-ar", "48000", "-ac", "1"]
+    assert calls[2][-5:] == ["-codec:a", "libmp3lame", "-q:a", "4", str(output)]
+    assert commands == [tuple(call) for call in calls]
+    assert result.output_path == output
+    assert result.command == tuple(calls[1])
+    assert result.duration_ms == 1000
+    assert latest_rnnoise_support_incident() is None
+
+
+def test_render_rnnoise_audio_reports_denoise_errors(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    clear_latest_rnnoise_support_incident()
+    monkeypatch.setattr("anki_audio_quick_editor.audio_processor.find_ffmpeg", lambda _path: Path("/bin/ffmpeg"))
+    monkeypatch.setattr(
+        "anki_audio_quick_editor.audio_processor.find_rnnoise_bundle",
+        lambda: Path("/bin/rnnoise-cli"),
+    )
+
+    def fake_run(cmd: list[str], capture_output: bool, text: bool, check: bool) -> SimpleNamespace:
+        if cmd[0] == "/bin/rnnoise-cli":
+            return SimpleNamespace(returncode=5, stdout='{"error":"invalid raw input"}', stderr="")
+        return SimpleNamespace(returncode=0, stdout="", stderr="")
+
+    monkeypatch.setattr("anki_audio_quick_editor.audio_processor.subprocess.run", fake_run)
+
+    with pytest.raises(AudioProcessingError, match="invalid raw input"):
+        render_rnnoise_audio(
+            tmp_path / "source.mp3",
+            AudioProcessingConfig(),
+            output_path=tmp_path / "denoised.mp3",
+        )
+    incident = latest_rnnoise_support_incident()
+    assert incident is not None
+    assert incident["operation"] == "rnnoise_denoise"
+    assert incident["media_filename"] == "source.mp3"
+    assert incident["ffmpeg_path"] == "/bin/ffmpeg"
+    assert incident["rnnoise_path"] == "/bin/rnnoise-cli"
+    assert len(incident["attempted_commands"]) == 2
+    assert incident["attempted_commands"][1]["command"].startswith("/bin/rnnoise-cli denoise")
+    assert incident["attempted_commands"][1]["returncode"] == 5
+    assert incident["attempted_commands"][1]["stdout"] == '{"error":"invalid raw input"}'
+
+
+def test_render_rnnoise_audio_reports_launch_errors(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    clear_latest_rnnoise_support_incident()
+    monkeypatch.setattr("anki_audio_quick_editor.audio_processor.find_ffmpeg", lambda _path: Path("/bin/ffmpeg"))
+    monkeypatch.setattr(
+        "anki_audio_quick_editor.audio_processor.find_rnnoise_bundle",
+        lambda: Path("/bin/rnnoise-cli"),
+    )
+
+    def fake_run(cmd: list[str], capture_output: bool, text: bool, check: bool) -> SimpleNamespace:
+        if cmd[0] == "/bin/rnnoise-cli":
+            raise PermissionError(13, "Permission denied", "/bin/rnnoise-cli")
+        return SimpleNamespace(returncode=0, stdout="", stderr="")
+
+    monkeypatch.setattr("anki_audio_quick_editor.audio_processor.subprocess.run", fake_run)
+
+    with pytest.raises(AudioProcessingError, match="Could not start RNNoise denoise"):
+        render_rnnoise_audio(
+            tmp_path / "source.mp3",
+            AudioProcessingConfig(),
+            output_path=tmp_path / "denoised.mp3",
+        )
+    incident = latest_rnnoise_support_incident()
+    assert incident is not None
+    assert incident["attempted_commands"][1]["launch_error"].startswith("Could not start RNNoise denoise.")
 
 
 @pytest.mark.skipif(

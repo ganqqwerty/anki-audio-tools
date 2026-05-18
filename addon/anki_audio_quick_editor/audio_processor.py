@@ -33,15 +33,18 @@ from .errors import (
     MissingDeepFilterError,
     MissingFfmpegError,
     MissingMpSenetError,
+    MissingRnnoiseError,
 )
 from .support import (
     build_command_record,
     record_latest_mp_senet_support_incident,
     record_latest_pause_pipeline_support_incident,
+    record_latest_rnnoise_support_incident,
 )
 
 BUNDLED_DEEP_FILTER_VERSION = "0.5.6"
 BUNDLED_MP_SENET_VERSION = "0.1"
+BUNDLED_RNNOISE_VERSION = "0.2"
 FFMPEG_AUDIO_CODEC_ARG = "-codec:a"
 WAV_MIME_TYPE = "audio/wav"
 _PACKAGE_DIR = Path(__file__).resolve().parent
@@ -52,6 +55,9 @@ _BUNDLED_DEEP_FILTER_BY_PLATFORM = {
 }
 _BUNDLED_MP_SENET_DIR_BY_PLATFORM = {
     ("Darwin", "arm64"): _PACKAGE_DIR / "bin" / "mp-senet-cli-macos-arm64",
+}
+_BUNDLED_RNNOISE_DIR_BY_PLATFORM = {
+    ("Darwin", "arm64"): _PACKAGE_DIR / "bin" / "rnnoise-cli-macos-arm64",
 }
 
 
@@ -155,6 +161,25 @@ def find_mp_senet_bundle() -> tuple[Path, Path]:
             "Reinstall the add-on to restore them."
         )
     return mp_senet_path, model_path
+
+
+def expected_bundled_rnnoise_dir() -> Path | None:
+    """Return the expected bundled RNNoise directory for the current platform."""
+    return _BUNDLED_RNNOISE_DIR_BY_PLATFORM.get((platform.system(), platform.machine()))
+
+
+def find_rnnoise_bundle() -> Path:
+    """Return the bundled RNNoise executable path."""
+    bundled_dir = expected_bundled_rnnoise_dir()
+    if bundled_dir is None:
+        raise MissingRnnoiseError("RNNoise is only bundled for macOS arm64 right now.")
+
+    rnnoise_path = bundled_dir / "bin" / "rnnoise-cli"
+    if not rnnoise_path.is_file():
+        raise MissingRnnoiseError(
+            "RNNoise requires the bundled rnnoise-cli executable. Reinstall the add-on to restore it."
+        )
+    return rnnoise_path
 
 
 def probe_duration_ms(source_path: Path, config: AudioProcessingConfig) -> int:
@@ -393,6 +418,74 @@ def build_mp_senet_command(
         str(model_path),
         "--overwrite",
         "--json",
+    )
+
+
+def build_rnnoise_prepare_command(
+    ffmpeg_path: Path,
+    source_path: Path,
+    output_raw_path: Path,
+) -> tuple[str, ...]:
+    """Build the ffmpeg command that prepares 48 kHz mono raw PCM for RNNoise."""
+    return (
+        str(ffmpeg_path),
+        "-y",
+        "-i",
+        str(source_path),
+        "-vn",
+        "-ac",
+        "1",
+        "-ar",
+        "48000",
+        "-f",
+        "s16le",
+        FFMPEG_AUDIO_CODEC_ARG,
+        "pcm_s16le",
+        str(output_raw_path),
+    )
+
+
+def build_rnnoise_command(
+    rnnoise_path: Path,
+    input_raw_path: Path,
+    output_raw_path: Path,
+) -> tuple[str, ...]:
+    """Build the RNNoise command for one prepared raw PCM file."""
+    return (
+        str(rnnoise_path),
+        "denoise",
+        "--input",
+        str(input_raw_path),
+        "--output",
+        str(output_raw_path),
+        "--overwrite",
+        "--json",
+    )
+
+
+def build_rnnoise_encode_command(
+    ffmpeg_path: Path,
+    source_raw_path: Path,
+    output_path: Path,
+) -> tuple[str, ...]:
+    """Build the ffmpeg command that encodes RNNoise raw PCM output as MP3."""
+    return (
+        str(ffmpeg_path),
+        "-y",
+        "-f",
+        "s16le",
+        "-ar",
+        "48000",
+        "-ac",
+        "1",
+        "-i",
+        str(source_raw_path),
+        "-vn",
+        FFMPEG_AUDIO_CODEC_ARG,
+        "libmp3lame",
+        "-q:a",
+        "4",
+        str(output_path),
     )
 
 
@@ -815,6 +908,90 @@ def render_mp_senet_audio(
             shutil.rmtree(work_dir, ignore_errors=True)
 
 
+def render_rnnoise_audio(
+    source_path: Path,
+    config: AudioProcessingConfig,
+    output_path: Path | None = None,
+    on_command: Callable[[tuple[str, ...]], None] | None = None,
+) -> AudioProcessingResult:
+    """Render a denoised MP3 using the bundled RNNoise executable."""
+    ffmpeg_path: Path | None = None
+    rnnoise_path: Path | None = None
+    attempted_commands: list[dict[str, object]] = []
+    work_dir: Path | None = None
+    try:
+        ffmpeg_path = find_ffmpeg(config.ffmpeg_path)
+        rnnoise_path = find_rnnoise_bundle()
+        if output_path is None:
+            output_path = Path(tempfile.mkstemp(prefix="aqe_rnnoise_", suffix=".mp3")[1])
+
+        work_dir = Path(tempfile.mkdtemp(prefix="aqe_rnnoise_"))
+        input_raw = work_dir / "input_48k_mono.s16le"
+        denoised_raw = work_dir / "denoised.s16le"
+
+        prepare_cmd = build_rnnoise_prepare_command(ffmpeg_path, source_path, input_raw)
+        prepare_result = _run_recorded_external_command(
+            prepare_cmd,
+            "Could not start audio preparation for RNNoise.",
+            attempted_commands,
+            on_command,
+        )
+        if prepare_result.returncode != 0:
+            raise AudioProcessingError(
+                _render_external_error_message(
+                    prepare_result,
+                    "Could not prepare audio for RNNoise.",
+                )
+            )
+
+        rnnoise_cmd = build_rnnoise_command(rnnoise_path, input_raw, denoised_raw)
+        rnnoise_result = _run_recorded_external_command(
+            rnnoise_cmd,
+            "Could not start RNNoise denoise.",
+            attempted_commands,
+            on_command,
+        )
+        if rnnoise_result.returncode != 0:
+            raise AudioProcessingError(
+                _render_external_error_message(rnnoise_result, "RNNoise denoise failed.")
+            )
+        if not denoised_raw.is_file():
+            raise AudioProcessingError("RNNoise did not produce a raw PCM output.")
+
+        encode_cmd = build_rnnoise_encode_command(ffmpeg_path, denoised_raw, output_path)
+        encode_result = _run_recorded_external_command(
+            encode_cmd,
+            "Could not start MP3 encoding for RNNoise output.",
+            attempted_commands,
+            on_command,
+        )
+        if encode_result.returncode != 0:
+            raise AudioProcessingError(
+                _render_external_error_message(
+                    encode_result,
+                    "Could not encode RNNoise output.",
+                )
+            )
+
+        return AudioProcessingResult(
+            output_path=output_path,
+            command=rnnoise_cmd,
+            duration_ms=probe_duration_ms(output_path, config),
+        )
+    except Exception as exc:
+        _record_rnnoise_failure(
+            source_path,
+            exc,
+            ffmpeg_path=ffmpeg_path,
+            rnnoise_path=rnnoise_path,
+            attempted_commands=attempted_commands,
+        )
+        raise
+    finally:
+        if work_dir is not None:
+            shutil.rmtree(work_dir, ignore_errors=True)
+
+
 def _run_recorded_external_command(
     command: tuple[str, ...],
     launch_error_message: str,
@@ -857,6 +1034,26 @@ def _record_mp_senet_failure(
         ffmpeg_path=str(ffmpeg_path) if ffmpeg_path is not None else "",
         mp_senet_path=str(mp_senet_path) if mp_senet_path is not None else "",
         mp_senet_model_path=str(mp_senet_model_path) if mp_senet_model_path is not None else "",
+        attempted_commands=attempted_commands,
+    )
+
+
+def _record_rnnoise_failure(
+    source_path: Path,
+    exc: Exception,
+    *,
+    ffmpeg_path: Path | None,
+    rnnoise_path: Path | None,
+    attempted_commands: list[dict[str, object]],
+) -> None:
+    record_latest_rnnoise_support_incident(
+        operation="rnnoise_denoise",
+        media_filename=source_path.name,
+        source_path=str(source_path.resolve()),
+        user_message=str(exc),
+        exception_type=type(exc).__name__,
+        ffmpeg_path=str(ffmpeg_path) if ffmpeg_path is not None else "",
+        rnnoise_path=str(rnnoise_path) if rnnoise_path is not None else "",
         attempted_commands=attempted_commands,
     )
 

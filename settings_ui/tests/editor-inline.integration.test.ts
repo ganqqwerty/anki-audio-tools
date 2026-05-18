@@ -145,6 +145,7 @@ describe("editor inline Svelte integration", () => {
     expect(settingsButton).toHaveClass("aqe-icon-only");
     expect(document.querySelector('[data-testid="aqe-button-0-mp-senet"]')).toHaveTextContent("MP-SENet");
     expect(document.querySelector('[data-testid="aqe-button-0-denoise-standard"]')).toHaveTextContent("Standard");
+    expect(document.querySelector('[data-testid="aqe-button-0-rnnoise"]')).toHaveTextContent("RNNoise");
     expect(audioSourceForNode(document.getElementById("f0")!)).toBe("clip one.mp3");
     expect(fieldIndex(document.getElementById("f0")!, 7)).toBe(0);
   });
@@ -164,6 +165,9 @@ describe("editor inline Svelte integration", () => {
     window.__aqePrepareForNewNote?.();
     document.querySelector<HTMLButtonElement>('[data-testid="aqe-button-0-mp-senet"]')!.click();
     expect(bridgeCommands()).toContain("aqe:mp-senet");
+    window.__aqePrepareForNewNote?.();
+    document.querySelector<HTMLButtonElement>('[data-testid="aqe-button-0-rnnoise"]')!.click();
+    expect(bridgeCommands()).toContain("aqe:rnnoise");
   });
 
   it("removes orphaned controls from previous bundle instances before mounting", () => {

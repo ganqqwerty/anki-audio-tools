@@ -15,6 +15,7 @@ MP_SENET_SUPPORT_HINT = "Open Settings > Diagnostics to copy logs for the develo
 
 _SUPPORT_LOCK = threading.Lock()
 _LATEST_MP_SENET_INCIDENT: dict[str, Any] | None = None
+_LATEST_RNNOISE_INCIDENT: dict[str, Any] | None = None
 _LATEST_PAUSE_PIPELINE_INCIDENT: dict[str, Any] | None = None
 
 
@@ -56,6 +57,41 @@ def clear_latest_mp_senet_support_incident() -> None:
 
     with _SUPPORT_LOCK:
         _LATEST_MP_SENET_INCIDENT = None
+
+
+def record_latest_rnnoise_support_incident(**fields: Any) -> dict[str, Any]:
+    """Merge ``fields`` into the latest RNNoise support incident."""
+    global _LATEST_RNNOISE_INCIDENT
+
+    with _SUPPORT_LOCK:
+        merged = copy.deepcopy(_LATEST_RNNOISE_INCIDENT) if _LATEST_RNNOISE_INCIDENT else {}
+        merged.setdefault("timestamp", datetime.now(UTC).isoformat())
+        for key, value in fields.items():
+            if value is None:
+                continue
+            if isinstance(value, str) and not value:
+                continue
+            if isinstance(value, list) and not value:
+                continue
+            if isinstance(value, dict) and not value:
+                continue
+            merged[key] = copy.deepcopy(value)
+        _LATEST_RNNOISE_INCIDENT = merged
+        return copy.deepcopy(merged)
+
+
+def latest_rnnoise_support_incident() -> dict[str, Any] | None:
+    """Return the latest recorded RNNoise support incident, if any."""
+    with _SUPPORT_LOCK:
+        return copy.deepcopy(_LATEST_RNNOISE_INCIDENT)
+
+
+def clear_latest_rnnoise_support_incident() -> None:
+    """Clear the recorded RNNoise support incident."""
+    global _LATEST_RNNOISE_INCIDENT
+
+    with _SUPPORT_LOCK:
+        _LATEST_RNNOISE_INCIDENT = None
 
 
 def record_latest_pause_pipeline_support_incident(**fields: Any) -> dict[str, Any]:
@@ -143,6 +179,31 @@ def format_mp_senet_support_log_block(incident: dict[str, Any]) -> str:
     return "\n".join(lines)
 
 
+def format_rnnoise_support_log_block(incident: dict[str, Any]) -> str:
+    """Render a compact multi-line RNNoise support block for logger output."""
+    lines = [
+        "rnnoise support incident:",
+        f"  timestamp: {incident.get('timestamp', '')}",
+        f"  operation: {incident.get('operation', '')}",
+        f"  media_filename: {incident.get('media_filename', '')}",
+        f"  source_path: {incident.get('source_path', '')}",
+        f"  user_message: {incident.get('user_message', '')}",
+        f"  exception_type: {incident.get('exception_type', '')}",
+        f"  ffmpeg_path: {incident.get('ffmpeg_path', '')}",
+        f"  rnnoise_path: {incident.get('rnnoise_path', '')}",
+    ]
+    for index, command in enumerate(incident.get("attempted_commands", []), start=1):
+        lines.append(f"  command_{index}: {command.get('command', '')}")
+        lines.append(f"    returncode: {command.get('returncode')}")
+        if command.get("launch_error"):
+            lines.append(f"    launch_error: {command['launch_error']}")
+        if command.get("stdout"):
+            lines.append(f"    stdout: {command['stdout']}")
+        if command.get("stderr"):
+            lines.append(f"    stderr: {command['stderr']}")
+    return "\n".join(lines)
+
+
 def read_log_tail(log_path: Path, max_lines: int = LOG_TAIL_LINE_COUNT) -> str:
     """Return the last ``max_lines`` lines from ``log_path`` or a clear fallback."""
     try:
@@ -213,7 +274,9 @@ def build_support_report_text(
     log_file_path: str,
     deep_filter_health: dict[str, Any],
     mp_senet_health: dict[str, Any],
+    rnnoise_health: dict[str, Any],
     mp_senet_incident: dict[str, Any] | None,
+    rnnoise_incident: dict[str, Any] | None,
     pause_pipeline_incident: dict[str, Any] | None,
     log_tail: str,
 ) -> str:
@@ -237,6 +300,13 @@ def build_support_report_text(
     )
     _append_incident_report_section(
         sections,
+        title="Latest RNNoise failure",
+        incident=rnnoise_incident,
+        missing_message="No RNNoise failure has been captured in this session.",
+        runtime_fields=(("RNNoise path", "rnnoise_path"),),
+    )
+    _append_incident_report_section(
+        sections,
         title="Latest pause-shortening failure",
         incident=pause_pipeline_incident,
         missing_message="No pause-shortening failure has been captured in this session.",
@@ -255,6 +325,9 @@ def build_support_report_text(
             "",
             "Current MP-SENet health",
             json.dumps(mp_senet_health, indent=2, sort_keys=True),
+            "",
+            "Current RNNoise health",
+            json.dumps(rnnoise_health, indent=2, sort_keys=True),
             "",
             f"Recent log tail (last {LOG_TAIL_LINE_COUNT} lines)",
             log_tail,

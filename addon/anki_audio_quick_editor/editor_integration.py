@@ -19,6 +19,7 @@ from .audio_processor import (
     render_mp_senet_audio,
     render_noise_reduced_audio,
     render_playback_segment,
+    render_rnnoise_audio,
     temp_final_path,
 )
 from .audio_state import AudioEditState, AudioProcessingConfig
@@ -29,6 +30,7 @@ from .editor_actions import (
     CMD_DENOISE_STANDARD,
     CMD_MP_SENET,
     CMD_REDO,
+    CMD_RNNOISE,
     CMD_SETTINGS,
     apply_processing_command,
 )
@@ -47,8 +49,11 @@ from .sound_refs import (
 from .support import (
     MP_SENET_SUPPORT_HINT,
     format_mp_senet_support_log_block,
+    format_rnnoise_support_log_block,
     latest_mp_senet_support_incident,
+    latest_rnnoise_support_incident,
     record_latest_mp_senet_support_incident,
+    record_latest_rnnoise_support_incident,
 )
 
 logger = logging.getLogger(__name__)
@@ -233,6 +238,7 @@ def _handle_non_processing_command(editor: Any, command: str) -> bool:
         CMD_SETTINGS: _open_settings_from_editor,
         CMD_DENOISE_STANDARD: _denoise_standard_async,
         CMD_MP_SENET: _mp_senet_async,
+        CMD_RNNOISE: _rnnoise_async,
     }
     handler = handlers.get(command)
     if handler is None:
@@ -406,6 +412,17 @@ def _mp_senet_async(editor: Any) -> None:
         renderer=render_mp_senet_audio,
         support_hint=MP_SENET_SUPPORT_HINT,
         failure_context_recorder=_record_mp_senet_failure_context,
+    )
+
+
+def _rnnoise_async(editor: Any) -> None:
+    _run_special_audio_transform_async(
+        editor,
+        label="Denoising with RNNoise",
+        failure_log_label="rnnoise denoise failed",
+        renderer=render_rnnoise_audio,
+        support_hint=MP_SENET_SUPPORT_HINT,
+        failure_context_recorder=_record_rnnoise_failure_context,
     )
 
 
@@ -880,6 +897,21 @@ def _record_mp_senet_failure_context(
     )
 
 
+def _record_rnnoise_failure_context(
+    source_path: Path,
+    config: AudioProcessingConfig,
+    exc: Exception,
+) -> None:
+    record_latest_rnnoise_support_incident(
+        operation="rnnoise_denoise",
+        media_filename=source_path.name,
+        source_path=str(source_path.resolve()),
+        user_message=str(exc),
+        exception_type=type(exc).__name__,
+        ffmpeg_path=config.ffmpeg_path,
+    )
+
+
 def _log_special_transform_failure(failure_log_label: str, message: str) -> None:
     if failure_log_label == "mp-senet denoise failed":
         incident = latest_mp_senet_support_incident()
@@ -889,6 +921,18 @@ def _log_special_transform_failure(failure_log_label: str, message: str) -> None
                 failure_log_label,
                 message,
                 format_mp_senet_support_log_block(incident),
+            )
+            return
+        logger.exception("%s: %s", failure_log_label, message)
+        return
+    if failure_log_label == "rnnoise denoise failed":
+        incident = latest_rnnoise_support_incident()
+        if incident:
+            logger.exception(
+                "%s: %s\n%s",
+                failure_log_label,
+                message,
+                format_rnnoise_support_log_block(incident),
             )
             return
         logger.exception("%s: %s", failure_log_label, message)
