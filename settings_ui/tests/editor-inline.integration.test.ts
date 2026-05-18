@@ -9,6 +9,8 @@ import {
   initializeEditorRuntime,
   scan,
 } from "../src/editor-inline/runtime.js";
+import { requestDefaultGraph } from "../src/editor-inline/actions.js";
+import { enqueueDefaultGraphs } from "../src/editor-inline/default-graph-queue.js";
 import type { EditorCommandPayload } from "../src/editor-inline/types.js";
 import { pycmdMock } from "./setup.js";
 
@@ -517,6 +519,38 @@ describe("editor inline Svelte integration", () => {
     expect(window.__aqeGraphStateForTest?.(1)).toMatchObject({ busy: true, hidden: false });
   });
 
+  it("retries a default graph request after delayed controls mount", async () => {
+    vi.useFakeTimers();
+    try {
+      initializeEditorRuntime({ audioFieldIndices: [] });
+      document.body.innerHTML = "";
+
+      enqueueDefaultGraphs(
+        [{ ord: 0, sourceFilename: "clip one.mp3" }],
+        {
+          anyBusy: () => false,
+          requestDefaultGraph,
+        },
+      );
+
+      expect(bridgeCommands()).not.toContain("aqe:analyze-field");
+
+      renderFields();
+      scan({ audioFieldIndices: [0] });
+      vi.runOnlyPendingTimers();
+      await Promise.resolve();
+
+      expect(bridgeCommands()).toContain("aqe:analyze-field");
+      expect(window.__aqePopPendingGraphAnalysisRequest?.()).toEqual({
+        ord: 0,
+        sourceFilename: "clip one.mp3",
+      });
+      expect(window.__aqeGraphStateForTest?.(0)).toMatchObject({ busy: true, hidden: false });
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
   it("creates, replaces, and clears graph selections with Shift gestures", () => {
     initializeEditorRuntime({ audioFieldIndices: [0] });
     scan({ audioFieldIndices: [0] });
@@ -745,6 +779,42 @@ describe("editor inline Svelte integration", () => {
     expect(band).not.toHaveClass("aqe-selection-draft");
   });
 
+  it("discards draft selection with Escape while preserving interrupted playback", async () => {
+    const frames = mockAnimationFrames();
+    initializeEditorRuntime({ audioFieldIndices: [0] });
+    scan({ audioFieldIndices: [0] });
+    await Promise.resolve();
+    window.__aqeSetVisualizer?.(0, track, 100);
+    const svg = document.querySelector<SVGSVGElement>('[data-testid="aqe-graph-svg-0"]')!;
+    setGraphBounds(svg);
+    dragGraphSelection(svg, 0.2, 0.6);
+    const audio = prepareHtmlAudio();
+
+    document.querySelector<HTMLButtonElement>('[data-testid="aqe-button-0-play"]')!.click();
+    await Promise.resolve();
+    audio.currentTime = 0.3;
+    frames.shift()?.(performance.now() + 300);
+
+    dispatchGraphPointer(svg, "pointerdown", graphClientX(svg, 0.7), true);
+    dispatchGraphPointer(svg, "pointermove", graphClientX(svg, 0.9), true);
+    expect(window.__aqeGraphStateForTest?.(0)).toMatchObject({
+      playbackState: "stopped",
+      selectionDraftActive: true,
+      cursorMs: 300,
+    });
+
+    window.dispatchEvent(new KeyboardEvent("keydown", { bubbles: true, key: "Escape" }));
+
+    expect(window.__aqeGraphStateForTest?.(0)).toMatchObject({
+      playbackState: "playing",
+      selectionStartMs: 200,
+      selectionEndMs: 600,
+      selectionDraftActive: false,
+      cursorMs: 300,
+    });
+    expect(audio.play).toHaveBeenCalledTimes(2);
+  });
+
   it("keeps selection stable through normal click and drag gestures", () => {
     initializeEditorRuntime({ audioFieldIndices: [0] });
     scan({ audioFieldIndices: [0] });
@@ -771,6 +841,54 @@ describe("editor inline Svelte integration", () => {
       selectionStartMs: 200,
       selectionEndMs: 600,
       cursorMs: 900,
+    });
+  });
+
+  it("clamps cursor drags to the selected repeat region", () => {
+    initializeEditorRuntime({ audioFieldIndices: [0] });
+    scan({ audioFieldIndices: [0] });
+    window.__aqeSetVisualizer?.(0, track, 100);
+    const svg = document.querySelector<SVGSVGElement>('[data-testid="aqe-graph-svg-0"]')!;
+    setGraphBounds(svg);
+    dragGraphSelection(svg, 0.2, 0.6);
+    document.querySelector<HTMLButtonElement>('[data-testid="aqe-repeat-0"]')!.click();
+
+    dispatchGraphPointer(svg, "pointerdown", graphClientX(svg, 0.9));
+    dispatchGraphPointer(svg, "pointerup", graphClientX(svg, 0.9));
+
+    expect(window.__aqeGraphStateForTest?.(0)).toMatchObject({
+      cursorMs: 600,
+      selectionStartMs: 200,
+      selectionEndMs: 600,
+      repeatEnabled: true,
+    });
+    expect(window.__aqeGetCursorIntent?.()).toMatchObject({
+      cursorMs: 600,
+      previousPlaybackState: "stopped",
+      restartPlayback: false,
+    });
+  });
+
+  it("marks paused cursor drags for playback restart", () => {
+    initializeEditorRuntime({ audioFieldIndices: [0] });
+    scan({ audioFieldIndices: [0] });
+    window.__aqeSetVisualizer?.(0, track, 100);
+    window.__aqeSetPlaybackState?.(0, "paused", 100);
+    const svg = document.querySelector<SVGSVGElement>('[data-testid="aqe-graph-svg-0"]')!;
+    setGraphBounds(svg);
+
+    dispatchGraphPointer(svg, "pointerdown", graphClientX(svg, 0.4));
+    dispatchGraphPointer(svg, "pointerup", graphClientX(svg, 0.4));
+
+    expect(window.__aqeGraphStateForTest?.(0)).toMatchObject({
+      cursorMs: 400,
+      playbackState: "paused",
+      resumeRequiresRestart: true,
+    });
+    expect(window.__aqeGetCursorIntent?.()).toMatchObject({
+      cursorMs: 400,
+      previousPlaybackState: "paused",
+      restartPlayback: false,
     });
   });
 

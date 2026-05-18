@@ -168,6 +168,63 @@ def test_support_report_renders_rnnoise_incident_and_health() -> None:
     assert '"version": "rnnoise-cli 0.2"' in report
 
 
+def test_rnnoise_support_log_block_renders_optional_command_details() -> None:
+    from anki_audio_quick_editor.support import format_rnnoise_support_log_block
+
+    block = format_rnnoise_support_log_block(
+        {
+            "timestamp": "2026-05-17T09:08:07+00:00",
+            "operation": "rnnoise_denoise",
+            "media_filename": "clip.mp3",
+            "source_path": "/media/clip.mp3",
+            "user_message": "invalid raw input",
+            "exception_type": "AudioProcessingError",
+            "ffmpeg_path": "/bin/ffmpeg",
+            "rnnoise_path": "/bin/rnnoise-cli",
+            "attempted_commands": [
+                build_command_record(
+                    ("/bin/rnnoise-cli", "denoise"),
+                    returncode=None,
+                    stdout="partial stdout",
+                    stderr="partial stderr",
+                    launch_error="permission denied",
+                )
+            ],
+        }
+    )
+
+    assert "rnnoise support incident:" in block
+    assert "command_1: /bin/rnnoise-cli denoise" in block
+    assert "returncode: None" in block
+    assert "launch_error: permission denied" in block
+    assert "stdout: partial stdout" in block
+    assert "stderr: partial stderr" in block
+
+
+def test_incident_recorders_ignore_empty_string_list_and_dict_fields() -> None:
+    clear_latest_rnnoise_support_incident()
+
+    record_latest_rnnoise_support_incident(
+        operation="rnnoise_denoise",
+        media_filename="clip.mp3",
+        attempted_commands=[build_command_record(("/bin/rnnoise-cli", "--version"), returncode=0)],
+        metadata={"tool": "rnnoise"},
+    )
+    updated = record_latest_rnnoise_support_incident(
+        operation="",
+        media_filename="",
+        attempted_commands=[],
+        metadata={},
+        user_message="updated",
+    )
+
+    assert updated["operation"] == "rnnoise_denoise"
+    assert updated["media_filename"] == "clip.mp3"
+    assert updated["attempted_commands"][0]["command"] == "/bin/rnnoise-cli --version"
+    assert updated["metadata"] == {"tool": "rnnoise"}
+    assert updated["user_message"] == "updated"
+
+
 def test_read_log_tail_reports_empty_file(tmp_path: Path) -> None:
     log_path = tmp_path / "empty.log"
     log_path.write_text("", encoding="utf-8")

@@ -14,9 +14,12 @@ from anki_audio_quick_editor.audio_state import AudioProcessingConfig
 from anki_audio_quick_editor.batch_operations import BatchNoteResult, BatchRunRequest
 from anki_audio_quick_editor.browser_integration import (
     ACTION_LABEL,
+    BatchRunReport,
     _on_browser_menus_did_init,
     _open_batch_dialog,
+    _publish_collection_changes,
     _run_batch,
+    _run_batch_in_background,
     register_browser_hooks,
 )
 
@@ -45,6 +48,44 @@ def test_empty_selection_shows_warning() -> None:
     _open_batch_dialog(browser)
 
     aqt.utils.showWarning.assert_called_once()
+
+
+def test_selection_without_fields_shows_warning(monkeypatch) -> None:
+    browser = SimpleNamespace(selected_notes=lambda: [1], mw=SimpleNamespace(col=MagicMock()))
+
+    monkeypatch.setattr("anki_audio_quick_editor.browser_integration._snapshots_for_note_ids", lambda *_args: [])
+
+    _open_batch_dialog(browser)
+
+    aqt.utils.showWarning.assert_called_once_with(
+        "The selected cards do not expose any note fields.",
+        parent=browser,
+    )
+
+
+def test_open_batch_dialog_builds_field_groups_from_selected_notes(monkeypatch) -> None:
+    dialog_calls: list[tuple[list[int], tuple[object, ...]]] = []
+
+    class Dialog:
+        def exec(self) -> None:
+            dialog_calls.append(("exec", ()))  # type: ignore[arg-type]
+
+    def create_dialog(_browser: object, note_ids: list[int], groups: tuple[object, ...]) -> Dialog:
+        dialog_calls.append((note_ids, groups))
+        return Dialog()
+
+    col = SimpleNamespace(get_note=lambda _note_id: _FakeNote(int(_note_id)))
+    browser = SimpleNamespace(selected_notes=lambda: [2, 1, 2], mw=SimpleNamespace(col=col))
+    monkeypatch.setattr("anki_audio_quick_editor.browser_integration._create_dialog", create_dialog)
+
+    _open_batch_dialog(browser)
+
+    assert dialog_calls[0][0] == [2, 1]
+    groups = dialog_calls[0][1]
+    assert len(groups) == 1
+    assert groups[0].notetype_name == "Basic"
+    assert groups[0].fields == ("Audio", "Image")
+    assert dialog_calls[1] == ("exec", ())
 
 
 class _FakeNote:
@@ -82,6 +123,55 @@ class _FakeCol:
     def merge_undo_entries(self, entry: int) -> object:
         self.merged.append(entry)
         return object()
+
+
+def test_run_batch_reports_note_load_and_update_failures(monkeypatch, tmp_path: Path) -> None:
+    class FailingCol(_FakeCol):
+        def get_note(self, note_id: int) -> _FakeNote:
+            if note_id == 1:
+                raise RuntimeError("note disappeared")
+            return super().get_note(note_id)
+
+        def update_note(self, note: _FakeNote) -> object:
+            del note
+            raise RuntimeError("database locked")
+
+    def fake_process_note_batch_operation(*_args, **_kwargs) -> BatchNoteResult:
+        return BatchNoteResult(
+            note_id=2,
+            status="written",
+            message="appended viz.svg",
+            target_field="Image",
+            target_html='<img src="viz.svg">',
+            audio_filename="clip.mp3",
+            image_filename="viz.svg",
+        )
+
+    monkeypatch.setattr(
+        "anki_audio_quick_editor.browser_integration.process_note_batch_operation",
+        fake_process_note_batch_operation,
+    )
+    logs: list[str] = []
+    progress: list[tuple[int, int, str, int]] = []
+
+    report = _run_batch(
+        FailingCol(),
+        [1, 2],
+        BatchRunRequest(operation=OP_GRAPH, source_field="Audio", target_field="Image"),
+        tmp_path,
+        AudioProcessingConfig(),
+        threading.Event(),
+        logs.append,
+        lambda *args: progress.append(args),  # type: ignore[arg-type]
+    )
+
+    assert report.processed == 2
+    assert report.written == 0
+    assert report.skipped == 0
+    assert report.failures == 2
+    assert "FAIL note 1: note disappeared" in logs
+    assert "FAIL note 2 (clip.mp3): database locked" in logs
+    assert progress == [(1, 2, "", 1), (2, 2, "clip.mp3", 2)]
 
 
 def test_run_batch_stops_after_current_note_when_cancel_requested(monkeypatch, tmp_path: Path) -> None:
@@ -154,3 +244,103 @@ def test_run_batch_uses_source_field_for_transform_updates(monkeypatch, tmp_path
 
     assert report.written == 1
     assert col.notes[1].fields["Audio"] == "[sound:clip__aqe.mp3]"
+
+
+def test_run_batch_in_background_publishes_changes_and_finishes_dialog(monkeypatch, tmp_path: Path) -> None:
+    report = BatchRunReport(total=1, processed=1, written=1, changes=object())
+    calls: list[object] = []
+
+    class Taskman:
+        def run_on_main(self, callback) -> None:
+            callback()
+
+        def run_in_background(self, task, done, *, uses_collection: bool) -> None:
+            calls.append(("uses_collection", uses_collection))
+            calls.append(("task_result", task()))
+            done(SimpleNamespace(result=lambda: report))
+
+    browser = SimpleNamespace(
+        mw=SimpleNamespace(
+            addonManager=SimpleNamespace(
+                addonFromModule=lambda _module: "anki_audio_quick_editor",
+                getConfig=lambda _addon_id: {},
+                addonsFolder=lambda _addon_id: str(tmp_path / "addon"),
+            ),
+            col=SimpleNamespace(media=SimpleNamespace(dir=lambda: str(tmp_path / "media"))),
+            taskman=Taskman(),
+            update_undo_actions=MagicMock(),
+        )
+    )
+    dialog = SimpleNamespace(
+        cancel_event=threading.Event(),
+        append_log=MagicMock(),
+        update_progress=MagicMock(),
+        finish_with_report=MagicMock(),
+        finish_with_error=MagicMock(),
+    )
+    monkeypatch.setattr("anki_audio_quick_editor.browser_integration._run_batch", lambda *_args, **_kwargs: report)
+
+    _run_batch_in_background(
+        browser,
+        dialog,
+        [1],
+        BatchRunRequest(operation=OP_GRAPH, source_field="Audio", target_field="Image"),
+    )
+
+    assert calls[0] == ("uses_collection", True)
+    assert calls[1] == ("task_result", report)
+    browser.mw.update_undo_actions.assert_called_once()
+    aqt.gui_hooks.operation_did_execute.assert_called_once_with(report.changes, browser)
+    dialog.finish_with_report.assert_called_once_with(report)
+    dialog.finish_with_error.assert_not_called()
+
+
+def test_run_batch_in_background_finishes_with_error(tmp_path: Path) -> None:
+    class Taskman:
+        def run_on_main(self, callback) -> None:
+            callback()
+
+        def run_in_background(self, task, done, *, uses_collection: bool) -> None:
+            del task, uses_collection
+            done(SimpleNamespace(result=MagicMock(side_effect=RuntimeError("worker exploded"))))
+
+    browser = SimpleNamespace(
+        mw=SimpleNamespace(
+            addonManager=SimpleNamespace(
+                addonFromModule=lambda _module: "anki_audio_quick_editor",
+                getConfig=lambda _addon_id: {},
+                addonsFolder=lambda _addon_id: str(tmp_path / "addon"),
+            ),
+            col=SimpleNamespace(media=SimpleNamespace(dir=lambda: str(tmp_path / "media"))),
+            taskman=Taskman(),
+            update_undo_actions=MagicMock(),
+        )
+    )
+    dialog = SimpleNamespace(
+        cancel_event=threading.Event(),
+        append_log=MagicMock(),
+        update_progress=MagicMock(),
+        finish_with_report=MagicMock(),
+        finish_with_error=MagicMock(),
+    )
+
+    _run_batch_in_background(
+        browser,
+        dialog,
+        [1],
+        BatchRunRequest(operation=OP_GRAPH, source_field="Audio", target_field="Image"),
+    )
+
+    dialog.finish_with_error.assert_called_once_with("Batch operation failed: worker exploded")
+    dialog.finish_with_report.assert_not_called()
+    browser.mw.update_undo_actions.assert_not_called()
+    aqt.gui_hooks.operation_did_execute.assert_not_called()
+
+
+def test_publish_collection_changes_ignores_empty_changes() -> None:
+    browser = SimpleNamespace(mw=SimpleNamespace(update_undo_actions=MagicMock()))
+
+    _publish_collection_changes(browser, None)
+
+    browser.mw.update_undo_actions.assert_not_called()
+    aqt.gui_hooks.operation_did_execute.assert_not_called()
