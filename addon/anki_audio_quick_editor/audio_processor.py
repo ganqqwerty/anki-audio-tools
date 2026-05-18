@@ -1,539 +1,198 @@
-"""ffmpeg-backed rendering for preview and final audio files."""
+"""Backward-compatible facade for audio processing APIs."""
 
 from __future__ import annotations
 
-import hashlib
-import json
-import math
-import os
-import platform
-import shlex
 import shutil
 import subprocess
 import tempfile
-import time
 import uuid
 from collections.abc import Callable
-from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
+from typing import Any, cast
 
-from .audio_pipeline import (
-    PAUSE_PIPELINE_MANIFEST_VERSION,
-    build_filter_complex_script,
-    intervals_to_json,
-    make_pause_pipeline_run_id,
-    parse_silencedetect_intervals,
-    plan_pause_timeline,
-    timeline_to_json,
+from . import audio_external as _audio_external
+from . import audio_noise_reduction as _audio_noise_reduction
+from . import audio_pause_pipeline as _audio_pause_pipeline
+from . import audio_rendering as _audio_rendering
+from . import audio_tools as _audio_tools
+from .audio_artifacts import (
+    _artifact_record,
+    _build_pause_pipeline_manifest,
+    _create_pause_pipeline_run_dir,
+    _pause_pipeline_config_snapshot,
+    _sha256_file,
+    _source_file_record,
 )
+from .audio_commands import (
+    FFMPEG_AUDIO_CODEC_ARG,
+    WAV_MIME_TYPE,
+    _atempo_filters,
+    build_audio_filters,
+    build_deep_filter_command,
+    build_deep_filter_prepare_command,
+    build_ffmpeg_command,
+    build_filter_complex_render_command,
+    build_mp3_encode_command,
+    build_playback_segment_filters,
+    build_region_delete_command,
+    build_region_delete_plan,
+    build_rnnoise_command,
+    build_rnnoise_encode_command,
+    build_rnnoise_prepare_command,
+    build_silencedetect_command,
+    build_wav_filter_command,
+    build_working_original_filters,
+    format_ffmpeg_command,
+)
+from .audio_noise_reduction import (
+    _record_rnnoise_failure,
+    _run_audio_stage,
+    _run_recorded_external_command,
+    select_deep_filter_output,
+)
+from .audio_pause_pipeline import _run_pipeline_stage
+from .audio_rendering import _safe_filename_stem
 from .audio_state import AudioEditState, AudioProcessingConfig
-from .errors import (
-    AudioProcessingError,
-    MissingDeepFilterError,
-    MissingFfmpegError,
-    MissingRnnoiseError,
-)
-from .support import (
-    build_command_record,
-    record_latest_pause_pipeline_support_incident,
-    record_latest_rnnoise_support_incident,
-)
+from .audio_types import AudioProcessingResult, RegionDeletePlan
 
-BUNDLED_DEEP_FILTER_VERSION = "0.5.6"
-BUNDLED_RNNOISE_VERSION = "0.2"
-FFMPEG_AUDIO_CODEC_ARG = "-codec:a"
-WAV_MIME_TYPE = "audio/wav"
-_PACKAGE_DIR = Path(__file__).resolve().parent
-_BUNDLED_DEEP_FILTER_BY_PLATFORM = {
-    ("Darwin", "arm64"): _PACKAGE_DIR
-    / "bin"
-    / f"deep-filter-{BUNDLED_DEEP_FILTER_VERSION}-aarch64-apple-darwin",
-}
-_BUNDLED_RNNOISE_DIR_BY_PLATFORM = {
-    ("Darwin", "arm64"): _PACKAGE_DIR / "bin" / "rnnoise-cli-macos-arm64",
-}
+__all__ = [
+    "BUNDLED_DEEP_FILTER_VERSION",
+    "BUNDLED_RNNOISE_VERSION",
+    "FFMPEG_AUDIO_CODEC_ARG",
+    "WAV_MIME_TYPE",
+    "AudioProcessingResult",
+    "RegionDeletePlan",
+    "_BUNDLED_DEEP_FILTER_VERSION",
+    "_PACKAGE_DIR",
+    "_artifact_record",
+    "_atempo_filters",
+    "_build_pause_pipeline_manifest",
+    "_bundled_deep_filter_path",
+    "_create_pause_pipeline_run_dir",
+    "_pause_pipeline_config_snapshot",
+    "_record_rnnoise_failure",
+    "_render_deep_filter_pause_speedup_audio",
+    "_render_external_error_message",
+    "_run_audio_stage",
+    "_run_external_command",
+    "_run_pipeline_stage",
+    "_run_recorded_external_command",
+    "_safe_filename_stem",
+    "_sha256_file",
+    "_source_file_record",
+    "build_audio_filters",
+    "build_deep_filter_command",
+    "build_deep_filter_prepare_command",
+    "build_ffmpeg_command",
+    "build_filter_complex_render_command",
+    "build_mp3_encode_command",
+    "build_playback_segment_filters",
+    "build_region_delete_command",
+    "build_region_delete_plan",
+    "build_rnnoise_command",
+    "build_rnnoise_encode_command",
+    "build_rnnoise_prepare_command",
+    "build_silencedetect_command",
+    "build_wav_filter_command",
+    "build_working_original_filters",
+    "expected_bundled_rnnoise_dir",
+    "find_deep_filter",
+    "find_ffmpeg",
+    "find_ffprobe",
+    "find_rnnoise_bundle",
+    "format_ffmpeg_command",
+    "make_output_filename",
+    "make_playback_segment_filename",
+    "probe_duration_ms",
+    "render_audio",
+    "render_audio_region_deleted",
+    "render_noise_reduced_audio",
+    "render_playback_segment",
+    "render_rnnoise_audio",
+    "select_deep_filter_output",
+    "temp_final_path",
+    "temp_playback_path",
+]
 
-
-@dataclass(frozen=True)
-class AudioProcessingResult:
-    """Rendered audio metadata."""
-
-    output_path: Path
-    command: tuple[str, ...]
-    duration_ms: int | None = None
-    artifact_manifest_path: Path | None = None
-
-
-@dataclass(frozen=True)
-class RegionDeletePlan:
-    """Filter plan for deleting one region from a clip timeline."""
-
-    selection_start_ms: int
-    selection_end_ms: int
-    duration_ms: int
-    filter_complex: str
-
-    @property
-    def removed_duration_ms(self) -> int:
-        """Return the selected duration removed by this plan."""
-        return self.selection_end_ms - self.selection_start_ms
-
-    @property
-    def expected_duration_ms(self) -> int:
-        """Return the approximate output duration before encoder tolerance."""
-        return self.duration_ms - self.removed_duration_ms
-
-
-def find_ffmpeg(configured_path: str = "") -> Path:  # pragma: no mutate
-    """Return an ffmpeg executable path, honoring an optional config override."""
-    if configured_path:
-        path = Path(configured_path).expanduser()
-        if path.is_file():
-            return path
-    found = shutil.which("ffmpeg")
-    if found:
-        return Path(found)
-    raise MissingFfmpegError(
-        "Audio Quick Editor requires ffmpeg. Please install ffmpeg and make sure it is "
-        "available in PATH, or configure its path in the add-on settings."
-    )
-
-
-def find_ffprobe(ffmpeg_path: Path) -> Path:
-    """Return ffprobe next to ffmpeg or from PATH."""
-    sibling = ffmpeg_path.with_name("ffprobe" + ffmpeg_path.suffix)
-    if sibling.is_file():
-        return sibling
-    found = shutil.which("ffprobe")
-    if found:
-        return Path(found)
-    raise MissingFfmpegError(
-        "Audio Quick Editor requires ffprobe alongside ffmpeg to inspect audio duration."
-    )
-
-
-def find_deep_filter(configured_path: str = "") -> Path:
-    """Return a deep-filter executable path, honoring config, bundled binary, then PATH."""
-    if configured_path:
-        path = Path(configured_path).expanduser()
-        if path.is_file():
-            return path
-    bundled = _bundled_deep_filter_path()
-    if bundled is not None:
-        return bundled
-    found = shutil.which("deep-filter")
-    if found:
-        return Path(found)
-    raise MissingDeepFilterError(
-        "DeepFilterNet's deep-filter executable is required for Standard denoise and Shorten Pauses. "
-        "Install DeepFilterNet and make sure deep-filter is available in PATH, or configure its "
-        "path in add-on settings."
-    )
+_BUNDLED_DEEP_FILTER_VERSION = _audio_tools.BUNDLED_DEEP_FILTER_VERSION
+BUNDLED_DEEP_FILTER_VERSION = _audio_tools.BUNDLED_DEEP_FILTER_VERSION
+BUNDLED_RNNOISE_VERSION = _audio_tools.BUNDLED_RNNOISE_VERSION
+_PACKAGE_DIR = _audio_tools.PACKAGE_DIR
+_ORIGINAL_BUNDLED_DEEP_FILTER_PATH = _audio_tools._bundled_deep_filter_path
+_ORIGINAL_EXPECTED_BUNDLED_RNNOISE_DIR = _audio_tools.expected_bundled_rnnoise_dir
+_ORIGINAL_MAKE_PLAYBACK_SEGMENT_FILENAME = _audio_rendering.make_playback_segment_filename
 
 
 def _bundled_deep_filter_path() -> Path | None:
-    binary = _BUNDLED_DEEP_FILTER_BY_PLATFORM.get((platform.system(), platform.machine()))
-    if binary is not None and binary.is_file():
-        return binary
-    return None
+    return _ORIGINAL_BUNDLED_DEEP_FILTER_PATH()
+
+
+def _sync_tool_dependencies() -> None:
+    audio_tools = cast(Any, _audio_tools)
+    audio_tools.Path = Path
+    audio_tools.shutil = shutil
+    audio_tools._bundled_deep_filter_path = _bundled_deep_filter_path
+
+
+def find_ffmpeg(configured_path: str = "") -> Path:  # pragma: no mutate
+    _sync_tool_dependencies()
+    return _audio_tools.find_ffmpeg(configured_path)
+
+
+def find_ffprobe(ffmpeg_path: Path) -> Path:
+    _sync_tool_dependencies()
+    return _audio_tools.find_ffprobe(ffmpeg_path)
+
+
+def find_deep_filter(configured_path: str = "") -> Path:
+    _sync_tool_dependencies()
+    return _audio_tools.find_deep_filter(configured_path)
 
 
 def expected_bundled_rnnoise_dir() -> Path | None:
-    """Return the expected bundled RNNoise directory for the current platform."""
-    return _BUNDLED_RNNOISE_DIR_BY_PLATFORM.get((platform.system(), platform.machine()))
+    return _ORIGINAL_EXPECTED_BUNDLED_RNNOISE_DIR()
 
 
 def find_rnnoise_bundle() -> Path:
-    """Return the bundled RNNoise executable path."""
-    bundled_dir = expected_bundled_rnnoise_dir()
-    if bundled_dir is None:
-        raise MissingRnnoiseError("RNNoise is only bundled for macOS arm64 right now.")
+    _sync_tool_dependencies()
+    cast(Any, _audio_tools).expected_bundled_rnnoise_dir = expected_bundled_rnnoise_dir
+    return _audio_tools.find_rnnoise_bundle()
 
-    rnnoise_path = bundled_dir / "bin" / "rnnoise-cli"
-    if not rnnoise_path.is_file():
-        raise MissingRnnoiseError(
-            "RNNoise requires the bundled rnnoise-cli executable. Reinstall the add-on to restore it."
-        )
-    return rnnoise_path
+
+def _sync_external_dependencies() -> None:
+    audio_external = cast(Any, _audio_external)
+    audio_external.subprocess = subprocess
+    audio_external.find_ffmpeg = find_ffmpeg
+    audio_external.find_ffprobe = find_ffprobe
 
 
 def probe_duration_ms(source_path: Path, config: AudioProcessingConfig) -> int:
-    """Inspect an audio file duration with ffprobe."""
-    ffmpeg_path = find_ffmpeg(config.ffmpeg_path)
-    ffprobe_path = find_ffprobe(ffmpeg_path)
-    cmd = [
-        str(ffprobe_path),
-        "-v",
-        "error",
-        "-show_entries",
-        "format=duration",
-        "-of",
-        "json",
-        str(source_path),
-    ]
-    result = subprocess.run(cmd, capture_output=True, text=True, check=False)  # nosec B603
-    if result.returncode != 0:
-        raise AudioProcessingError(result.stderr.strip() or "Could not inspect audio duration.")
-    try:
-        seconds = float(json.loads(result.stdout)["format"]["duration"])
-    except (KeyError, TypeError, ValueError) as exc:
-        raise AudioProcessingError("Could not parse audio duration.") from exc
-    return max(0, round(seconds * 1000))
+    _sync_external_dependencies()
+    return _audio_external.probe_duration_ms(source_path, config)
 
 
-def render_audio(
-    source_path: Path,
-    state: AudioEditState,
-    config: AudioProcessingConfig,
-    output_path: Path | None = None,
-    on_command: Callable[[tuple[str, ...]], None] | None = None,
-    artifact_root: Path | None = None,
-) -> AudioProcessingResult:
-    """Render ``state`` from ``source_path`` to an MP3 file."""
-    ffmpeg_path = find_ffmpeg(config.ffmpeg_path)
-    duration_ms = probe_duration_ms(source_path, config)
-    state.validate(duration_ms, config)
-
-    if output_path is None:
-        output_path = Path(tempfile.mkstemp(prefix="aqe_preview_", suffix=".mp3")[1])
-
-    if state.remove_internal_pauses_enabled:
-        return _render_deep_filter_pause_speedup_audio(
-            source_path,
-            state,
-            config,
-            ffmpeg_path,
-            output_path,
-            on_command,
-            artifact_root=artifact_root,
-            source_duration_ms=duration_ms,
-        )
-
-    filters = build_audio_filters(duration_ms, state)
-    cmd = build_ffmpeg_command(ffmpeg_path, source_path, filters, output_path)
-    if on_command:
-        on_command(cmd)
-    result = subprocess.run(list(cmd), capture_output=True, text=True, check=False)  # nosec B603
-    if result.returncode != 0:
-        raise AudioProcessingError(result.stderr.strip() or "Audio processing failed.")
-    return AudioProcessingResult(
-        output_path=output_path,
-        command=cmd,
-        duration_ms=probe_duration_ms(output_path, config),
-    )
+def _run_external_command(
+    command: tuple[str, ...],
+    launch_error_message: str,
+) -> subprocess.CompletedProcess[str]:
+    _sync_external_dependencies()
+    return _audio_external._run_external_command(command, launch_error_message)
 
 
-def render_audio_region_deleted(
-    source_path: Path,
-    selection_start_ms: int,
-    selection_end_ms: int,
-    config: AudioProcessingConfig,
-    output_path: Path | None = None,
-    on_command: Callable[[tuple[str, ...]], None] | None = None,
-) -> AudioProcessingResult:
-    """Render an MP3 with one selected region removed from ``source_path``."""
-    ffmpeg_path = find_ffmpeg(config.ffmpeg_path)
-    duration_ms = probe_duration_ms(source_path, config)
-    plan = build_region_delete_plan(selection_start_ms, selection_end_ms, duration_ms)
-
-    if output_path is None:
-        output_path = Path(tempfile.mkstemp(prefix="aqe_region_delete_", suffix=".mp3")[1])
-
-    cmd = build_region_delete_command(ffmpeg_path, source_path, plan.filter_complex, output_path)
-    if on_command:
-        on_command(cmd)
-    result = subprocess.run(list(cmd), capture_output=True, text=True, check=False)  # nosec B603
-    if result.returncode != 0:
-        raise AudioProcessingError(result.stderr.strip() or "Audio processing failed.")
-    return AudioProcessingResult(
-        output_path=output_path,
-        command=cmd,
-        duration_ms=probe_duration_ms(output_path, config),
-    )
+def _render_external_error_message(
+    result: subprocess.CompletedProcess[str],
+    default_message: str,
+) -> str:
+    return _audio_external._render_external_error_message(result, default_message)
 
 
-def build_region_delete_plan(
-    selection_start_ms: int,
-    selection_end_ms: int,
-    duration_ms: int,
-) -> RegionDeletePlan:
-    """Return a concat/trim plan for deleting one region from a clip."""
-    duration = max(0, int(round(duration_ms)))
-    start = max(0, min(int(round(selection_start_ms)), duration))
-    end = max(0, min(int(round(selection_end_ms)), duration))
-    if end <= start:
-        raise AudioProcessingError("Select a region before deleting it.")
-    if start <= 0 and end >= duration:
-        raise AudioProcessingError("Cannot delete the whole audio clip.")
-
-    start_s = start / 1000
-    end_s = end / 1000
-    duration_s = duration / 1000
-    if start <= 0:
-        filter_complex = f"[0:a]atrim=start={end_s:.3f},asetpts=PTS-STARTPTS[out]"
-    elif end >= duration:
-        filter_complex = f"[0:a]atrim=end={start_s:.3f},asetpts=PTS-STARTPTS[out]"
-    else:
-        filter_complex = (
-            f"[0:a]atrim=start=0.000:end={start_s:.3f},asetpts=PTS-STARTPTS[a0];"
-            f"[0:a]atrim=start={end_s:.3f}:end={duration_s:.3f},asetpts=PTS-STARTPTS[a1];"
-            "[a0][a1]concat=n=2:v=0:a=1[out]"
-        )
-    return RegionDeletePlan(start, end, duration, filter_complex)
-
-
-def build_ffmpeg_command(
-    ffmpeg_path: Path,
-    source_path: Path,
-    filters: str,
-    output_path: Path,
-) -> tuple[str, ...]:
-    """Build the ffmpeg command used to render a processed MP3."""
-    return (
-        str(ffmpeg_path),
-        "-y",
-        "-i",
-        str(source_path),
-        "-vn",
-        "-filter:a",
-        filters,
-        FFMPEG_AUDIO_CODEC_ARG,
-        "libmp3lame",
-        "-q:a",
-        "4",
-        str(output_path),
-    )
-
-
-def build_wav_filter_command(
-    ffmpeg_path: Path,
-    source_path: Path,
-    filters: str,
-    output_path: Path,
-) -> tuple[str, ...]:
-    """Build an ffmpeg command that renders filtered PCM WAV output."""
-    return (
-        str(ffmpeg_path),
-        "-y",
-        "-i",
-        str(source_path),
-        "-vn",
-        "-filter:a",
-        filters,
-        FFMPEG_AUDIO_CODEC_ARG,
-        "pcm_s16le",
-        str(output_path),
-    )
-
-
-def build_deep_filter_prepare_command(
-    ffmpeg_path: Path,
-    source_path: Path,
-    output_wav_path: Path,
-) -> tuple[str, ...]:
-    """Build the ffmpeg command that prepares a 48 kHz mono WAV for DeepFilterNet."""
-    return (
-        str(ffmpeg_path),
-        "-y",
-        "-i",
-        str(source_path),
-        "-vn",
-        "-ac",
-        "1",
-        "-ar",
-        "48000",
-        FFMPEG_AUDIO_CODEC_ARG,
-        "pcm_s16le",
-        str(output_wav_path),
-    )
-
-
-def build_deep_filter_command(
-    deep_filter_path: Path,
-    input_wav_path: Path,
-    output_dir: Path,
-    *,
-    post_filter: bool,
-) -> tuple[str, ...]:
-    """Build the DeepFilterNet command for one prepared WAV file."""
-    command = [
-        str(deep_filter_path),
-        "-D",
-    ]
-    if post_filter:
-        command.append("--pf")
-    command.extend(("-o", str(output_dir), str(input_wav_path)))
-    return tuple(command)
-
-
-def build_silencedetect_command(
-    ffmpeg_path: Path,
-    source_path: Path,
-    *,
-    threshold_db: int,
-    min_duration_ms: int,
-) -> tuple[str, ...]:
-    """Build an ffmpeg command that emits silencedetect metadata to stderr."""
-    return (
-        str(ffmpeg_path),
-        "-y",
-        "-i",
-        str(source_path),
-        "-af",
-        f"silencedetect=noise={threshold_db}dB:d={max(1, int(min_duration_ms)) / 1000:.3f}",
-        "-f",
-        "null",
-        "-",
-    )
-
-
-def build_filter_complex_render_command(
-    ffmpeg_path: Path,
-    source_path: Path,
-    filter_script_path: Path,
-    output_path: Path,
-) -> tuple[str, ...]:
-    """Build an ffmpeg command that renders from a filter_complex script."""
-    return (
-        str(ffmpeg_path),
-        "-y",
-        "-i",
-        str(source_path),
-        "-vn",
-        "-filter_complex_script",
-        str(filter_script_path),
-        "-map",
-        "[out]",
-        FFMPEG_AUDIO_CODEC_ARG,
-        "libmp3lame",
-        "-q:a",
-        "4",
-        str(output_path),
-    )
-
-
-def build_region_delete_command(
-    ffmpeg_path: Path,
-    source_path: Path,
-    filter_complex: str,
-    output_path: Path,
-) -> tuple[str, ...]:
-    """Build an ffmpeg command that removes one selected audio region."""
-    return (
-        str(ffmpeg_path),
-        "-y",
-        "-i",
-        str(source_path),
-        "-vn",
-        "-filter_complex",
-        filter_complex,
-        "-map",
-        "[out]",
-        FFMPEG_AUDIO_CODEC_ARG,
-        "libmp3lame",
-        "-q:a",
-        "4",
-        str(output_path),
-    )
-
-
-def build_rnnoise_prepare_command(
-    ffmpeg_path: Path,
-    source_path: Path,
-    output_raw_path: Path,
-) -> tuple[str, ...]:
-    """Build the ffmpeg command that prepares 48 kHz mono raw PCM for RNNoise."""
-    return (
-        str(ffmpeg_path),
-        "-y",
-        "-i",
-        str(source_path),
-        "-vn",
-        "-ac",
-        "1",
-        "-ar",
-        "48000",
-        "-f",
-        "s16le",
-        FFMPEG_AUDIO_CODEC_ARG,
-        "pcm_s16le",
-        str(output_raw_path),
-    )
-
-
-def build_rnnoise_command(
-    rnnoise_path: Path,
-    input_raw_path: Path,
-    output_raw_path: Path,
-) -> tuple[str, ...]:
-    """Build the RNNoise command for one prepared raw PCM file."""
-    return (
-        str(rnnoise_path),
-        "denoise",
-        "--input",
-        str(input_raw_path),
-        "--output",
-        str(output_raw_path),
-        "--overwrite",
-        "--json",
-    )
-
-
-def build_rnnoise_encode_command(
-    ffmpeg_path: Path,
-    source_raw_path: Path,
-    output_path: Path,
-) -> tuple[str, ...]:
-    """Build the ffmpeg command that encodes RNNoise raw PCM output as MP3."""
-    return (
-        str(ffmpeg_path),
-        "-y",
-        "-f",
-        "s16le",
-        "-ar",
-        "48000",
-        "-ac",
-        "1",
-        "-i",
-        str(source_raw_path),
-        "-vn",
-        FFMPEG_AUDIO_CODEC_ARG,
-        "libmp3lame",
-        "-q:a",
-        "4",
-        str(output_path),
-    )
-
-
-def build_mp3_encode_command(
-    ffmpeg_path: Path,
-    source_path: Path,
-    output_path: Path,
-) -> tuple[str, ...]:
-    """Build the ffmpeg command used to encode processed WAV output as MP3."""
-    return (
-        str(ffmpeg_path),
-        "-y",
-        "-i",
-        str(source_path),
-        "-vn",
-        FFMPEG_AUDIO_CODEC_ARG,
-        "libmp3lame",
-        "-q:a",
-        "4",
-        str(output_path),
-    )
-
-
-def select_deep_filter_output(output_dir: Path) -> Path:
-    """Return the single WAV generated by DeepFilterNet, or raise a clear error."""
-    wav_outputs = sorted(path for path in output_dir.glob("*.wav") if path.is_file())
-    if len(wav_outputs) == 1:
-        return wav_outputs[0]
-    if not wav_outputs:
-        raise AudioProcessingError("DeepFilterNet did not produce a WAV output.")
-    raise AudioProcessingError("DeepFilterNet produced multiple WAV outputs.")
+def _sync_pause_dependencies() -> None:
+    audio_pause_pipeline = cast(Any, _audio_pause_pipeline)
+    audio_pause_pipeline.find_deep_filter = find_deep_filter
+    audio_pause_pipeline.probe_duration_ms = probe_duration_ms
+    audio_pause_pipeline._run_external_command = _run_external_command
+    audio_pause_pipeline._render_external_error_message = _render_external_error_message
 
 
 def _render_deep_filter_pause_speedup_audio(
@@ -547,598 +206,67 @@ def _render_deep_filter_pause_speedup_audio(
     artifact_root: Path | None,
     source_duration_ms: int,
 ) -> AudioProcessingResult:
-    deep_filter_path: Path | None = None
-    run_dir = _create_pause_pipeline_run_dir(source_path, artifact_root)
-    manifest_path = run_dir / "manifest.json"
-    attempted_commands: list[dict[str, object]] = []
-    stages: list[dict[str, object]] = []
-    artifacts: list[dict[str, object]] = []
-    warnings: list[str] = []
-    errors: list[str] = []
-    primary_command: tuple[str, ...] = ()
-    final_duration_ms: int | None = None
-    working_original = run_dir / "01_working_original.wav"
-    analysis_input = run_dir / "02_analysis_input_48k_mono.wav"
-    deep_filter_output_dir = run_dir / "03_deep_filter_output"
-    raw_silence_path = run_dir / "04_silencedetect_stderr.txt"
-    intervals_path = run_dir / "04_silence_intervals.json"
-    timeline_path = run_dir / "05_timeline.json"
-    filter_script_path = run_dir / "06_filter_complex.ffscript"
-    final_copy_path = run_dir / "07_final_output.mp3"
-    deep_filter_output_dir.mkdir(parents=True, exist_ok=True)
-
-    manifest = _build_pause_pipeline_manifest(
-        run_dir,
+    _sync_pause_dependencies()
+    return _audio_pause_pipeline._render_deep_filter_pause_speedup_audio(
         source_path,
         state,
         config,
-        source_duration_ms,
-        stages=stages,
-        artifacts=artifacts,
-        warnings=warnings,
-        errors=errors,
-    )
-
-    def write_manifest() -> None:
-        manifest["stages"] = stages
-        manifest["artifacts"] = artifacts
-        manifest["warnings"] = warnings
-        manifest["errors"] = errors
-        manifest_path.write_text(
-            json.dumps(manifest, indent=2, sort_keys=True),
-            encoding="utf-8",
-        )
-
-    artifacts.append(_artifact_record("source", source_path, "input"))
-    artifacts.append({"id": "manifest", "path": str(manifest_path), "kind": "manifest", "exists": True})
-    try:
-        deep_filter_path = find_deep_filter(config.deep_filter_path)
-        manifest["deep_filter_path"] = str(deep_filter_path)
-        write_manifest()
-        working_filters = build_working_original_filters(source_duration_ms, state)
-        working_cmd = build_wav_filter_command(
-            ffmpeg_path,
-            source_path,
-            working_filters,
-            working_original,
-        )
-        _run_pipeline_stage(
-            "render_working_original",
-            working_cmd,
-            "Could not start working-audio preparation.",
-            "Could not prepare working audio for pause shortening.",
-            stages,
-            attempted_commands,
-            on_command,
-        )
-        artifacts.append(_artifact_record("working_original", working_original, WAV_MIME_TYPE))
-        working_duration_ms = probe_duration_ms(working_original, config)
-        manifest["working_duration_ms"] = working_duration_ms
-        write_manifest()
-
-        prepare_cmd = build_deep_filter_prepare_command(ffmpeg_path, working_original, analysis_input)
-        _run_pipeline_stage(
-            "prepare_deep_filter_input",
-            prepare_cmd,
-            "Could not start DeepFilterNet analysis preparation.",
-            "Could not prepare audio for DeepFilterNet pause analysis.",
-            stages,
-            attempted_commands,
-            on_command,
-        )
-        artifacts.append(_artifact_record("analysis_input", analysis_input, WAV_MIME_TYPE))
-        write_manifest()
-
-        deep_filter_cmd = build_deep_filter_command(
-            deep_filter_path,
-            analysis_input,
-            deep_filter_output_dir,
-            post_filter=config.deep_filter_post_filter,
-        )
-        primary_command = deep_filter_cmd
-        _run_pipeline_stage(
-            "deep_filter_analysis",
-            deep_filter_cmd,
-            "Could not start DeepFilterNet pause analysis.",
-            "DeepFilterNet pause analysis failed.",
-            stages,
-            attempted_commands,
-            on_command,
-        )
-        cleaned_analysis_wav = select_deep_filter_output(deep_filter_output_dir)
-        artifacts.append(_artifact_record("deep_filter_output", cleaned_analysis_wav, WAV_MIME_TYPE))
-        write_manifest()
-
-        silence_cmd = build_silencedetect_command(
-            ffmpeg_path,
-            cleaned_analysis_wav,
-            threshold_db=config.internal_pause_silence_threshold_db,
-            min_duration_ms=config.internal_pause_threshold_ms,
-        )
-        silence_result = _run_pipeline_stage(
-            "detect_silence",
-            silence_cmd,
-            "Could not start pause detection.",
-            "Pause detection failed.",
-            stages,
-            attempted_commands,
-            on_command,
-        )
-        raw_silence_path.write_text(silence_result.stderr, encoding="utf-8")
-        silence_intervals = parse_silencedetect_intervals(
-            silence_result.stderr,
-            working_duration_ms,
-        )
-        intervals_json = intervals_to_json(silence_intervals)
-        intervals_path.write_text(
-            json.dumps(intervals_json, indent=2, sort_keys=True),
-            encoding="utf-8",
-        )
-        manifest["silence_intervals"] = intervals_json
-        artifacts.extend(
-            [
-                _artifact_record("silencedetect_stderr", raw_silence_path, "text/plain"),
-                _artifact_record("silence_intervals", intervals_path, "application/json"),
-            ]
-        )
-        write_manifest()
-
-        timeline = plan_pause_timeline(
-            working_duration_ms,
-            silence_intervals,
-            min_pause_ms=config.internal_pause_threshold_ms,
-            target_gap_ms=config.internal_pause_target_gap_ms,
-        )
-        timeline_json = timeline_to_json(timeline)
-        timeline_path.write_text(
-            json.dumps(timeline_json, indent=2, sort_keys=True),
-            encoding="utf-8",
-        )
-        filter_script = build_filter_complex_script(
-            timeline,
-            volume_db=state.volume_db,
-            speed=state.speed,
-        )
-        filter_script_path.write_text(filter_script, encoding="utf-8")
-        manifest["timeline"] = timeline_json
-        artifacts.extend(
-            [
-                _artifact_record("timeline", timeline_path, "application/json"),
-                _artifact_record("filter_complex_script", filter_script_path, "text/plain"),
-            ]
-        )
-        write_manifest()
-
-        render_cmd = build_filter_complex_render_command(
-            ffmpeg_path,
-            working_original,
-            filter_script_path,
-            output_path,
-        )
-        _run_pipeline_stage(
-            "render_final_output",
-            render_cmd,
-            "Could not start pause-shortened audio rendering.",
-            "Could not render pause-shortened audio.",
-            stages,
-            attempted_commands,
-            on_command,
-        )
-        if output_path.resolve() != final_copy_path.resolve():
-            shutil.copyfile(output_path, final_copy_path)
-        artifacts.append(_artifact_record("final_output", final_copy_path, "audio/mpeg"))
-        final_duration_ms = probe_duration_ms(output_path, config)
-        manifest["final_output"] = {
-            "path": str(output_path),
-            "artifact_path": str(final_copy_path),
-            "duration_ms": final_duration_ms,
-        }
-        write_manifest()
-        return AudioProcessingResult(
-            output_path=output_path,
-            command=primary_command or render_cmd,
-            duration_ms=final_duration_ms,
-            artifact_manifest_path=manifest_path,
-        )
-    except Exception as exc:
-        errors.append(str(exc) or type(exc).__name__)
-        manifest["final_output"] = {
-            "path": str(output_path),
-            "artifact_path": str(final_copy_path),
-            "duration_ms": final_duration_ms,
-        }
-        write_manifest()
-        record_latest_pause_pipeline_support_incident(
-            operation="deep_filter_pause_speedup",
-            media_filename=source_path.name,
-            source_path=str(source_path.resolve()),
-            user_message=str(exc),
-            exception_type=type(exc).__name__,
-            ffmpeg_path=str(ffmpeg_path),
-            deep_filter_path=str(deep_filter_path) if deep_filter_path is not None else "",
-            manifest_path=str(manifest_path),
-            artifact_dir=str(run_dir),
-            attempted_commands=attempted_commands,
-        )
-        raise
-
-
-def render_noise_reduced_audio(
-    source_path: Path,
-    config: AudioProcessingConfig,
-    output_path: Path | None = None,
-    on_command: Callable[[tuple[str, ...]], None] | None = None,
-) -> AudioProcessingResult:
-    """Render a noise-reduced MP3 using the external DeepFilterNet executable."""
-    ffmpeg_path = find_ffmpeg(config.ffmpeg_path)
-    deep_filter_path = find_deep_filter(config.deep_filter_path)
-    if output_path is None:
-        output_path = Path(tempfile.mkstemp(prefix="aqe_denoised_", suffix=".mp3")[1])
-
-    work_dir = Path(tempfile.mkdtemp(prefix="aqe_deep_filter_"))
-    input_wav = work_dir / "input_48k_mono.wav"
-    deep_filter_output_dir = work_dir / "deep_filter_output"
-    deep_filter_output_dir.mkdir(parents=True, exist_ok=True)
-
-    try:
-        prepare_cmd = build_deep_filter_prepare_command(ffmpeg_path, source_path, input_wav)
-        _run_audio_stage(
-            prepare_cmd,
-            "Could not start audio preparation for DeepFilterNet.",
-            "Could not prepare audio for DeepFilterNet.",
-            on_command,
-        )
-
-        deep_filter_cmd = build_deep_filter_command(
-            deep_filter_path,
-            input_wav,
-            deep_filter_output_dir,
-            post_filter=config.deep_filter_post_filter,
-        )
-        _run_audio_stage(
-            deep_filter_cmd,
-            "Could not start DeepFilterNet noise removal.",
-            "DeepFilterNet noise removal failed.",
-            on_command,
-        )
-
-        cleaned_wav = select_deep_filter_output(deep_filter_output_dir)
-        encode_cmd = build_mp3_encode_command(ffmpeg_path, cleaned_wav, output_path)
-        _run_audio_stage(
-            encode_cmd,
-            "Could not start MP3 encoding for DeepFilterNet output.",
-            "Could not encode DeepFilterNet output.",
-            on_command,
-        )
-
-        return AudioProcessingResult(
-            output_path=output_path,
-            command=deep_filter_cmd,
-            duration_ms=probe_duration_ms(output_path, config),
-        )
-    finally:
-        shutil.rmtree(work_dir, ignore_errors=True)
-
-
-def _run_audio_stage(
-    command: tuple[str, ...],
-    launch_error: str,
-    failure_message: str,
-    on_command: Callable[[tuple[str, ...]], None] | None,
-) -> subprocess.CompletedProcess[str]:
-    if on_command:
-        on_command(command)
-    result = _run_external_command(command, launch_error)
-    if result.returncode != 0:
-        raise AudioProcessingError(result.stderr.strip() or failure_message)
-    return result
-
-
-def render_rnnoise_audio(
-    source_path: Path,
-    config: AudioProcessingConfig,
-    output_path: Path | None = None,
-    on_command: Callable[[tuple[str, ...]], None] | None = None,
-) -> AudioProcessingResult:
-    """Render a denoised MP3 using the bundled RNNoise executable."""
-    ffmpeg_path: Path | None = None
-    rnnoise_path: Path | None = None
-    attempted_commands: list[dict[str, object]] = []
-    work_dir: Path | None = None
-    try:
-        ffmpeg_path = find_ffmpeg(config.ffmpeg_path)
-        rnnoise_path = find_rnnoise_bundle()
-        if output_path is None:
-            output_path = Path(tempfile.mkstemp(prefix="aqe_rnnoise_", suffix=".mp3")[1])
-
-        work_dir = Path(tempfile.mkdtemp(prefix="aqe_rnnoise_"))
-        input_raw = work_dir / "input_48k_mono.s16le"
-        denoised_raw = work_dir / "denoised.s16le"
-
-        prepare_cmd = build_rnnoise_prepare_command(ffmpeg_path, source_path, input_raw)
-        prepare_result = _run_recorded_external_command(
-            prepare_cmd,
-            "Could not start audio preparation for RNNoise.",
-            attempted_commands,
-            on_command,
-        )
-        if prepare_result.returncode != 0:
-            raise AudioProcessingError(
-                _render_external_error_message(
-                    prepare_result,
-                    "Could not prepare audio for RNNoise.",
-                )
-            )
-
-        rnnoise_cmd = build_rnnoise_command(rnnoise_path, input_raw, denoised_raw)
-        rnnoise_result = _run_recorded_external_command(
-            rnnoise_cmd,
-            "Could not start RNNoise denoise.",
-            attempted_commands,
-            on_command,
-        )
-        if rnnoise_result.returncode != 0:
-            raise AudioProcessingError(
-                _render_external_error_message(rnnoise_result, "RNNoise denoise failed.")
-            )
-        if not denoised_raw.is_file():
-            raise AudioProcessingError("RNNoise did not produce a raw PCM output.")
-
-        encode_cmd = build_rnnoise_encode_command(ffmpeg_path, denoised_raw, output_path)
-        encode_result = _run_recorded_external_command(
-            encode_cmd,
-            "Could not start MP3 encoding for RNNoise output.",
-            attempted_commands,
-            on_command,
-        )
-        if encode_result.returncode != 0:
-            raise AudioProcessingError(
-                _render_external_error_message(
-                    encode_result,
-                    "Could not encode RNNoise output.",
-                )
-            )
-
-        return AudioProcessingResult(
-            output_path=output_path,
-            command=rnnoise_cmd,
-            duration_ms=probe_duration_ms(output_path, config),
-        )
-    except Exception as exc:
-        _record_rnnoise_failure(
-            source_path,
-            exc,
-            ffmpeg_path=ffmpeg_path,
-            rnnoise_path=rnnoise_path,
-            attempted_commands=attempted_commands,
-        )
-        raise
-    finally:
-        if work_dir is not None:
-            shutil.rmtree(work_dir, ignore_errors=True)
-
-
-def _run_recorded_external_command(
-    command: tuple[str, ...],
-    launch_error_message: str,
-    attempted_commands: list[dict[str, object]],
-    on_command: Callable[[tuple[str, ...]], None] | None,
-) -> subprocess.CompletedProcess[str]:
-    if on_command:
-        on_command(command)
-    try:
-        result = _run_external_command(command, launch_error_message)
-    except AudioProcessingError as exc:
-        attempted_commands.append(build_command_record(command, launch_error=str(exc)))
-        raise
-    attempted_commands.append(
-        build_command_record(
-            command,
-            returncode=result.returncode,
-            stdout=result.stdout,
-            stderr=result.stderr,
-        )
-    )
-    return result
-
-
-def _record_rnnoise_failure(
-    source_path: Path,
-    exc: Exception,
-    *,
-    ffmpeg_path: Path | None,
-    rnnoise_path: Path | None,
-    attempted_commands: list[dict[str, object]],
-) -> None:
-    record_latest_rnnoise_support_incident(
-        operation="rnnoise_denoise",
-        media_filename=source_path.name,
-        source_path=str(source_path.resolve()),
-        user_message=str(exc),
-        exception_type=type(exc).__name__,
-        ffmpeg_path=str(ffmpeg_path) if ffmpeg_path is not None else "",
-        rnnoise_path=str(rnnoise_path) if rnnoise_path is not None else "",
-        attempted_commands=attempted_commands,
+        ffmpeg_path,
+        output_path,
+        on_command,
+        artifact_root=artifact_root,
+        source_duration_ms=source_duration_ms,
     )
 
 
-def _run_external_command(
-    command: tuple[str, ...],
-    launch_error_message: str,
-) -> subprocess.CompletedProcess[str]:
-    try:
-        return subprocess.run(
-            list(command),
-            capture_output=True,
-            text=True,
-            check=False,
-        )  # nosec B603
-    except OSError as exc:
-        raise AudioProcessingError(f"{launch_error_message} {exc}") from exc
+def _sync_rendering_dependencies() -> None:
+    audio_rendering = cast(Any, _audio_rendering)
+    audio_rendering.find_ffmpeg = find_ffmpeg
+    audio_rendering.probe_duration_ms = probe_duration_ms
+    audio_rendering.build_audio_filters = build_audio_filters
+    audio_rendering._render_deep_filter_pause_speedup_audio = _render_deep_filter_pause_speedup_audio
+    audio_rendering.subprocess = subprocess
+    audio_rendering.tempfile = tempfile
+    audio_rendering.uuid = uuid
+    audio_rendering.make_playback_segment_filename = make_playback_segment_filename
 
 
-def _render_external_error_message(
-    result: subprocess.CompletedProcess[str],
-    default_message: str,
-) -> str:
-    for candidate in (result.stderr.strip(), result.stdout.strip()):
-        if not candidate:
-            continue
-        try:
-            parsed = json.loads(candidate)
-        except json.JSONDecodeError:
-            return candidate
-        if isinstance(parsed, dict):
-            error = parsed.get("error")
-            if isinstance(error, str) and error.strip():
-                return error.strip()
-        return candidate
-    return default_message
-
-
-def _create_pause_pipeline_run_dir(source_path: Path, artifact_root: Path | None) -> Path:
-    root = artifact_root or (_PACKAGE_DIR / "aqe_artifacts")
-    run_dir = Path(root).expanduser() / make_pause_pipeline_run_id(source_path.name)
-    run_dir.mkdir(parents=True, exist_ok=False)
-    return run_dir
-
-
-def _build_pause_pipeline_manifest(
-    run_dir: Path,
+def render_audio(
     source_path: Path,
     state: AudioEditState,
     config: AudioProcessingConfig,
-    source_duration_ms: int,
-    *,
-    stages: list[dict[str, object]],
-    artifacts: list[dict[str, object]],
-    warnings: list[str],
-    errors: list[str],
-) -> dict[str, object]:
-    return {
-        "schema_version": PAUSE_PIPELINE_MANIFEST_VERSION,
-        "run_id": run_dir.name,
-        "created_at": datetime.now().isoformat(),
-        "operation": "deep_filter_pause_speedup",
-        "artifact_dir": str(run_dir),
-        "source": _source_file_record(source_path, source_duration_ms),
-        "state": {
-            "source_file": state.source_file,
-            "left_trim_ms": state.left_trim_ms,
-            "right_trim_ms": state.right_trim_ms,
-            "speed": state.speed,
-            "volume_db": state.volume_db,
-            "remove_internal_pauses_enabled": state.remove_internal_pauses_enabled,
-        },
-        "config": _pause_pipeline_config_snapshot(config),
-        "stages": stages,
-        "artifacts": artifacts,
-        "silence_intervals": [],
-        "timeline": [],
-        "warnings": warnings,
-        "errors": errors,
-        "working_duration_ms": None,
-        "final_output": None,
-    }
-
-
-def _source_file_record(source_path: Path, duration_ms: int) -> dict[str, object]:
-    stat = source_path.stat()
-    return {
-        "filename": source_path.name,
-        "path": str(source_path),
-        "duration_ms": duration_ms,
-        "size_bytes": stat.st_size,
-        "mtime_ns": stat.st_mtime_ns,
-        "sha256": _sha256_file(source_path),
-    }
-
-
-def _pause_pipeline_config_snapshot(config: AudioProcessingConfig) -> dict[str, object]:
-    return {
-        "ffmpeg_path": config.ffmpeg_path,
-        "deep_filter_path": config.deep_filter_path,
-        "deep_filter_post_filter": config.deep_filter_post_filter,
-        "internal_pause_silence_threshold_db": config.internal_pause_silence_threshold_db,
-        "internal_pause_threshold_ms": config.internal_pause_threshold_ms,
-        "internal_pause_target_gap_ms": config.internal_pause_target_gap_ms,
-        "speed": {
-            "min": config.min_speed,
-            "max": config.max_speed,
-        },
-        "output_format": config.output_format,
-    }
-
-
-def _artifact_record(artifact_id: str, path: Path, kind: str) -> dict[str, object]:
-    exists = path.exists()
-    record: dict[str, object] = {
-        "id": artifact_id,
-        "path": str(path),
-        "kind": kind,
-        "exists": exists,
-    }
-    if path.is_file():
-        stat = path.stat()
-        record["size_bytes"] = stat.st_size
-        record["sha256"] = _sha256_file(path)
-    return record
-
-
-def _sha256_file(path: Path) -> str:
-    digest = hashlib.sha256()
-    with path.open("rb") as file:
-        for chunk in iter(lambda: file.read(1024 * 1024), b""):
-            digest.update(chunk)
-    return digest.hexdigest()
-
-
-def _run_pipeline_stage(
-    name: str,
-    command: tuple[str, ...],
-    launch_error_message: str,
-    failure_message: str,
-    stages: list[dict[str, object]],
-    attempted_commands: list[dict[str, object]],
-    on_command: Callable[[tuple[str, ...]], None] | None,
-) -> subprocess.CompletedProcess[str]:
-    if on_command:
-        on_command(command)
-    started = time.monotonic()
-    stage: dict[str, object] = {
-        "name": name,
-        "argv": list(command),
-        "command": shlex.join(command),
-    }
-    try:
-        result = _run_external_command(command, launch_error_message)
-    except AudioProcessingError as exc:
-        stage["duration_seconds"] = round(time.monotonic() - started, 6)
-        stage["launch_error"] = str(exc)
-        stages.append(stage)
-        attempted_commands.append(build_command_record(command, launch_error=str(exc)))
-        raise
-
-    stage.update(
-        {
-            "duration_seconds": round(time.monotonic() - started, 6),
-            "returncode": result.returncode,
-            "stdout": result.stdout.strip(),
-            "stderr": result.stderr.strip(),
-        }
+    output_path: Path | None = None,
+    on_command: Callable[[tuple[str, ...]], None] | None = None,
+    artifact_root: Path | None = None,
+) -> AudioProcessingResult:
+    _sync_rendering_dependencies()
+    return _audio_rendering.render_audio(
+        source_path,
+        state,
+        config,
+        output_path,
+        on_command,
+        artifact_root,
     )
-    stages.append(stage)
-    attempted_commands.append(
-        build_command_record(
-            command,
-            returncode=result.returncode,
-            stdout=result.stdout,
-            stderr=result.stderr,
-        )
+
+
+def render_audio_region_deleted(
+    source_path: Path,
+    selection_start_ms: int,
+    selection_end_ms: int,
+    config: AudioProcessingConfig,
+    output_path: Path | None = None,
+    on_command: Callable[[tuple[str, ...]], None] | None = None,
+) -> AudioProcessingResult:
+    _sync_rendering_dependencies()
+    return _audio_rendering.render_audio_region_deleted(
+        source_path,
+        selection_start_ms,
+        selection_end_ms,
+        config,
+        output_path,
+        on_command,
     )
-    if result.returncode != 0:
-        raise AudioProcessingError(_render_external_error_message(result, failure_message))
-    return result
 
 
 def render_playback_segment(
@@ -1148,68 +276,14 @@ def render_playback_segment(
     output_path: Path | None = None,
     on_command: Callable[[tuple[str, ...]], None] | None = None,
 ) -> AudioProcessingResult:
-    """Render a temporary cursor-to-end segment for deterministic playback."""
-    ffmpeg_path = find_ffmpeg(config.ffmpeg_path)
-    duration_ms = probe_duration_ms(source_path, config)
-    clamped_start_ms = max(0, min(int(start_ms), duration_ms))
-    if clamped_start_ms >= max(0, duration_ms - 20):
-        raise AudioProcessingError("Cursor is at the end of the audio.")
-
-    if output_path is None:
-        output_path = temp_playback_path(source_path.name, clamped_start_ms)
-
-    filters = build_playback_segment_filters(clamped_start_ms)
-    cmd = build_ffmpeg_command(ffmpeg_path, source_path, filters, output_path)
-    if on_command:
-        on_command(cmd)
-    result = subprocess.run(list(cmd), capture_output=True, text=True, check=False)  # nosec B603
-    if result.returncode != 0:
-        raise AudioProcessingError(result.stderr.strip() or "Playback segment rendering failed.")
-    return AudioProcessingResult(
-        output_path=output_path,
-        command=cmd,
-        duration_ms=probe_duration_ms(output_path, config),
+    _sync_rendering_dependencies()
+    return _audio_rendering.render_playback_segment(
+        source_path,
+        start_ms,
+        config,
+        output_path,
+        on_command,
     )
-
-
-def build_playback_segment_filters(start_ms: int) -> str:
-    """Build filters for a temporary cursor-to-end playback segment."""
-    start_s = max(0, int(start_ms)) / 1000
-    return f"atrim=start={start_s:.3f},asetpts=PTS-STARTPTS"
-
-
-def format_ffmpeg_command(command: tuple[str, ...]) -> str:
-    """Return a shell-style ffmpeg command string for user-facing diagnostics."""
-    return shlex.join(command)
-
-
-def build_audio_filters(
-    duration_ms: int,
-    state: AudioEditState,
-) -> str:
-    """Build the ffmpeg audio filter chain for an edit state."""
-    filters = build_working_original_filters(duration_ms, state).split(",")
-
-    if not math.isclose(state.volume_db, 0.0):
-        filters.append(f"volume={state.volume_db:.2f}dB")
-
-    if not math.isclose(state.speed, 1.0):
-        filters.extend(_atempo_filters(state.speed))
-    return ",".join(filters)
-
-
-def build_working_original_filters(
-    duration_ms: int,
-    state: AudioEditState,
-) -> str:
-    """Build filters for original-derived audio before pause speed-up analysis."""
-    filters: list[str] = []
-    start_s = state.left_trim_ms / 1000
-    end_s = (duration_ms - state.right_trim_ms) / 1000
-    filters.append(f"atrim=start={start_s:.3f}:end={end_s:.3f}")
-    filters.append("asetpts=PTS-STARTPTS")
-
-    return ",".join(filters)
 
 
 def make_output_filename(
@@ -1217,26 +291,13 @@ def make_output_filename(
     now: datetime | None = None,
     token: str | None = None,
 ) -> str:
-    """Return the preferred generated MP3 filename for a final save."""
-    now = now or datetime.now()
-    token = token or uuid.uuid4().hex[:8]
-    stem = Path(source_filename).stem or "audio"
-    safe_stem = _safe_filename_stem(stem)
-    suffix = f"__aqe_{now:%Y%m%d_%H%M%S_%f}_{token}.mp3"
-    max_stem_length = max(1, 120 - len(suffix))  # pragma: no mutate
-    return f"{safe_stem[:max_stem_length]}{suffix}"
-
-
-def _safe_filename_stem(stem: str) -> str:
-    safe = "".join(ch if ch.isascii() and (ch.isalnum() or ch in {"-", "_"}) else "_" for ch in stem)  # pragma: no mutate
-    safe = "_".join(part for part in safe.split("_") if part)
-    return safe or "audio"
+    _sync_rendering_dependencies()
+    return _audio_rendering.make_output_filename(source_filename, now, token)
 
 
 def temp_final_path(filename: str) -> Path:
-    """Return a temp path preserving a final desired basename for diagnostics."""
-    temp_dir = Path(tempfile.mkdtemp(prefix="aqe_final_"))
-    return temp_dir / os.path.basename(filename)
+    _sync_rendering_dependencies()
+    return _audio_rendering.temp_final_path(filename)
 
 
 def make_playback_segment_filename(
@@ -1244,29 +305,52 @@ def make_playback_segment_filename(
     start_ms: int,
     token: str | None = None,
 ) -> str:
-    """Return a debuggable temp filename for cursor playback segments."""
-    token = token or uuid.uuid4().hex[:8]  # pragma: no mutate
-    stem = _safe_filename_stem(Path(source_filename).stem or "audio")  # pragma: no mutate
-    suffix = f"__from_{max(0, int(start_ms))}ms_{token}.mp3"
-    prefix = "aqe_playback_"
-    max_stem_length = max(1, 160 - len(prefix) - len(suffix))  # pragma: no mutate
-    return f"{prefix}{stem[:max_stem_length]}{suffix}"
+    cast(Any, _audio_rendering).uuid = uuid
+    return _ORIGINAL_MAKE_PLAYBACK_SEGMENT_FILENAME(source_filename, start_ms, token)
 
 
 def temp_playback_path(source_filename: str, start_ms: int) -> Path:
-    """Return a temp path for a cursor-to-end playback segment."""
-    temp_dir = Path(tempfile.mkdtemp(prefix="aqe_playback_"))  # pragma: no mutate
-    return temp_dir / make_playback_segment_filename(source_filename, start_ms)
+    _sync_rendering_dependencies()
+    return _audio_rendering.temp_playback_path(source_filename, start_ms)
 
 
-def _atempo_filters(speed: float) -> list[str]:
-    remaining = speed
-    filters: list[str] = []
-    while remaining > 2.0:
-        filters.append("atempo=2.000")
-        remaining /= 2.0  # pragma: no mutate
-    while remaining < 0.5:
-        filters.append("atempo=0.500")
-        remaining /= 0.5  # pragma: no mutate
-    filters.append(f"atempo={remaining:.3f}")
-    return filters
+def _sync_noise_dependencies() -> None:
+    audio_noise_reduction = cast(Any, _audio_noise_reduction)
+    audio_noise_reduction.find_ffmpeg = find_ffmpeg
+    audio_noise_reduction.find_deep_filter = find_deep_filter
+    audio_noise_reduction.find_rnnoise_bundle = find_rnnoise_bundle
+    audio_noise_reduction.probe_duration_ms = probe_duration_ms
+    audio_noise_reduction._run_external_command = _run_external_command
+    audio_noise_reduction._render_external_error_message = _render_external_error_message
+    audio_noise_reduction.tempfile = tempfile
+    audio_noise_reduction.shutil = shutil
+
+
+def render_noise_reduced_audio(
+    source_path: Path,
+    config: AudioProcessingConfig,
+    output_path: Path | None = None,
+    on_command: Callable[[tuple[str, ...]], None] | None = None,
+) -> AudioProcessingResult:
+    _sync_noise_dependencies()
+    return _audio_noise_reduction.render_noise_reduced_audio(
+        source_path,
+        config,
+        output_path,
+        on_command,
+    )
+
+
+def render_rnnoise_audio(
+    source_path: Path,
+    config: AudioProcessingConfig,
+    output_path: Path | None = None,
+    on_command: Callable[[tuple[str, ...]], None] | None = None,
+) -> AudioProcessingResult:
+    _sync_noise_dependencies()
+    return _audio_noise_reduction.render_rnnoise_audio(
+        source_path,
+        config,
+        output_path,
+        on_command,
+    )

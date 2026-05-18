@@ -29,5 +29,5 @@ def test_browser_integration_avoids_editor_actions_module() -> None:
     hits = _imports_addon_modules(get_all_imports(path), {"editor_actions"}, path)
     assert hits == []
     assert MODULE_CONTRACTS["browser_integration"].allowed_addon_deps == frozenset(
-        {"audio_operations", "audio_state", "batch_operations"}
+        {"audio_state", "batch_operations", "browser_dialog", "browser_report"}
     )

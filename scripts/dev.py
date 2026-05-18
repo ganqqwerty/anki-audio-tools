@@ -4,441 +4,47 @@
 from __future__ import annotations
 
 import json
-import os
-import platform
-import queue
-import shlex
 import shutil
-import subprocess
 import sys
-import textwrap
-import threading
-import time
 from collections.abc import Callable
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
+
+# isort: off
+from scripts.dev_tasks.coverage import cmd_coverage, cmd_info, cmd_sonar
+from scripts.dev_tasks.process import _run, _run_capture
+from scripts.dev_tasks.pytest_runner import _run_pytest
+from scripts.dev_tasks.python_env import (
+    _anki_bin_dir,
+    _die,
+    _find_anki_python,
+    _setup_addon_symlink,
+)
+from scripts.dev_tasks.quality import _mutmut_fix_stats_prefix_mismatch, _radon_complexity_violations
+# isort: on
+
 ADDON_DIR = ROOT / "addon" / "anki_audio_quick_editor"
 SETTINGS_UI_DIR = ROOT / "settings_ui"
-ADDON_SYMLINK_ID = "1000000002"
 PYTHON_COVERAGE_FAIL_UNDER = 70
 RADON_FAIL_MIN_RANK = "C"
-COVERAGE_XML = ROOT / "coverage.xml"
-SETTINGS_UI_LCOV = SETTINGS_UI_DIR / "coverage" / "lcov.info"
-RADON_EXCLUDED_FILES = {
-    "addon/anki_audio_quick_editor/contracts_generated.py",
-}
 DEV_DEPS = [
-    "pytest-cov", "pytest-qt", "ruff", "mypy", "radon", "import-linter",
-    "deptry", "vulture", "bandit", "pytest-randomly", "mutmut", "jsonschema",
+    "pytest-cov",
+    "pytest-qt",
+    "ruff",
+    "mypy",
+    "radon",
+    "import-linter",
+    "deptry",
+    "vulture",
+    "bandit",
+    "pytest-randomly",
+    "mutmut",
+    "jsonschema",
     "praat-parselmouth>=0.4.7",
 ]
-
-
-def _load_dotenv() -> dict[str, str]:
-    env_file = ROOT / ".env"
-    if not env_file.is_file():
-        return {}
-    result: dict[str, str] = {}
-    for line in env_file.read_text().splitlines():
-        line = line.strip()
-        if not line or line.startswith("#") or "=" not in line:
-            continue
-        key, _, value = line.partition("=")
-        key = key.strip()
-        value = value.strip()
-        if len(value) >= 2 and value[0] == value[-1] and value[0] in ('"', "'"):
-            value = value[1:-1]
-        result[key] = value
-    return result
-
-
-def _candidate_paths() -> list[Path]:
-    system = platform.system()
-    if system == "Darwin":
-        base = Path.home() / "Library" / "Application Support"
-        return [base / "AnkiProgramFiles" / ".venv" / "bin" / "python3"]
-    if system == "Linux":
-        return [
-            Path.home() / ".local" / "share" / "AnkiProgramFiles" / ".venv" / "bin" / "python3",
-            Path.home() / ".var" / "app" / "net.ankiweb.Anki" / "data" / "AnkiProgramFiles" / ".venv" / "bin" / "python3",
-        ]
-    if system == "Windows":
-        appdata = os.environ.get("APPDATA", "")
-        if appdata:
-            return [Path(appdata) / "AnkiProgramFiles" / ".venv" / "Scripts" / "python.exe"]
-    return []
-
-
-def _validate_python(python: Path) -> bool:
-    if not python.is_file():
-        return False
-    try:
-        result = subprocess.run([str(python), "-c", "import anki"], capture_output=True, timeout=15)
-        return result.returncode == 0
-    except (OSError, subprocess.TimeoutExpired):
-        return False
-
-
-def _die(message: str) -> None:
-    print(f"ERROR: {message}", file=sys.stderr)
-    raise SystemExit(1)
-
-
-def _find_anki_python() -> Path:
-    dotenv = _load_dotenv()
-    env_value = os.environ.get("ANKI_PYTHON") or dotenv.get("ANKI_PYTHON")
-    if env_value:
-        candidate = Path(env_value).expanduser()
-        if _validate_python(candidate):
-            return candidate
-        _die(f"ANKI_PYTHON is set to {env_value!r} but is not usable.")
-    for candidate in _candidate_paths():
-        if _validate_python(candidate):
-            return candidate
-    _die("Could not find Anki's bundled Python. Launch Anki once or set ANKI_PYTHON in .env.")
-    raise SystemExit(1)
-
-
-def _anki_bin_dir(anki_python: Path) -> Path:
-    return anki_python.parent
-
-
-def _read_seconds_env(name: str, default: float) -> float:
-    raw = os.environ.get(name)
-    if raw is None:
-        return default
-    try:
-        value = float(raw)
-    except ValueError:
-        return default
-    return value if value > 0 else 0.0
-
-
-def _format_duration(seconds: float) -> str:
-    total = int(seconds)
-    minutes, secs = divmod(total, 60)
-    hours, minutes = divmod(minutes, 60)
-    if hours:
-        return f"{hours}h {minutes}m {secs}s"
-    if minutes:
-        return f"{minutes}m {secs}s"
-    return f"{secs}s"
-
-
-def _print_run_header(
-    rendered_cmd: str,
-    run_cwd: Path,
-    env: dict[str, str] | None,
-    label: str | None,
-    idle_warning_s: float,
-    idle_timeout_s: float,
-) -> None:
-    print(f"\n[dev] {label or 'running command'}")
-    print(f"[dev] cwd: {run_cwd}")
-    print(f"[dev] cmd: {rendered_cmd}")
-    if env:
-        print("[dev] env: " + ", ".join(f"{key}={_display_env_value(key, value)}" for key, value in sorted(env.items())))
-    print("[dev] output: live")
-    if idle_warning_s:
-        print(f"[dev] idle warning: {_format_duration(idle_warning_s)} without output")
-    if idle_timeout_s:
-        print(f"[dev] idle timeout: {_format_duration(idle_timeout_s)} without output")
-
-
-def _display_env_value(key: str, value: str) -> str:
-    sensitive_markers = ("TOKEN", "PASSWORD", "SECRET", "KEY")
-    if any(marker in key.upper() for marker in sensitive_markers):
-        return "<redacted>"
-    return value
-
-
-def _handle_idle_warning(
-    *,
-    now: float,
-    start: float,
-    last_output: float,
-    next_warning: float,
-    idle_warning_s: float,
-) -> float:
-    if idle_warning_s and now >= next_warning:
-        idle_for = now - last_output
-        print(
-            f"[dev] still waiting: no output for {_format_duration(idle_for)} "
-            f"(elapsed {_format_duration(now - start)})"
-        )
-        return now + idle_warning_s
-    return next_warning
-
-
-def _terminate_process_after_idle(process: subprocess.Popen[str], *, idle_for: float, terminate_grace_s: float) -> None:
-    print(
-        f"[dev] idle timeout reached after {_format_duration(idle_for)}; terminating command...",
-        file=sys.stderr,
-    )
-    process.terminate()
-    try:
-        process.wait(timeout=terminate_grace_s)
-    except subprocess.TimeoutExpired:
-        process.kill()
-
-
-def _handle_idle_queue_wait(
-    *,
-    output_queue: queue.Queue[str | None],
-    process: subprocess.Popen[str],
-    start: float,
-    last_output: float,
-    next_warning: float,
-    stream_closed: bool,
-    idle_warning_s: float,
-    idle_timeout_s: float,
-    terminate_grace_s: float,
-) -> tuple[bool, bool, bool, float, float]:
-    try:
-        line = output_queue.get(timeout=1)
-    except queue.Empty:
-        now = time.monotonic()
-        idle_for = now - last_output
-        next_warning = _handle_idle_warning(
-            now=now,
-            start=start,
-            last_output=last_output,
-            next_warning=next_warning,
-            idle_warning_s=idle_warning_s,
-        )
-        if idle_timeout_s and idle_for >= idle_timeout_s and process.poll() is None:
-            _terminate_process_after_idle(process, idle_for=idle_for, terminate_grace_s=terminate_grace_s)
-            return False, True, stream_closed, last_output, next_warning
-        if stream_closed and process.poll() is not None:
-            return True, False, stream_closed, last_output, next_warning
-        return False, False, stream_closed, last_output, next_warning
-    if line is None:
-        if process.poll() is not None:
-            return True, False, True, last_output, next_warning
-        return False, False, True, last_output, next_warning
-    sys.stdout.write(line)
-    sys.stdout.flush()
-    last_output = time.monotonic()
-    next_warning = last_output + idle_warning_s if idle_warning_s else float("inf")
-    return False, False, stream_closed, last_output, next_warning
-
-
-def _run(
-    cmd: list[str],
-    env: dict[str, str] | None = None,
-    cwd: Path | None = None,
-    *,
-    label: str | None = None,
-    idle_warning_s: float | None = None,
-    idle_timeout_s: float | None = None,
-) -> int:
-    run_cwd = cwd or ROOT
-    merged_env = {**os.environ, **env} if env else None
-    if idle_warning_s is None:
-        idle_warning_s = _read_seconds_env("DEV_IDLE_WARNING_SECS", 30.0)
-    if idle_timeout_s is None:
-        idle_timeout_s = _read_seconds_env("DEV_IDLE_TIMEOUT_SECS", 300.0)
-    terminate_grace_s = _read_seconds_env("DEV_TERMINATE_GRACE_SECS", 5.0)
-    rendered_cmd = shlex.join(str(part) for part in cmd)
-    _print_run_header(rendered_cmd, run_cwd, env, label, idle_warning_s, idle_timeout_s)
-
-    process = subprocess.Popen(
-        [str(part) for part in cmd],
-        cwd=run_cwd,
-        env=merged_env,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.STDOUT,
-        text=True,
-        bufsize=1,
-    )
-    assert process.stdout is not None
-    output_queue: queue.Queue[str | None] = queue.Queue()
-
-    def _pump_output() -> None:
-        try:
-            for line in iter(process.stdout.readline, ""):
-                output_queue.put(line)
-        finally:
-            process.stdout.close()
-            output_queue.put(None)
-
-    reader = threading.Thread(target=_pump_output, daemon=True)
-    reader.start()
-
-    start = time.monotonic()
-    last_output = start
-    next_warning = start + idle_warning_s if idle_warning_s else float("inf")
-    stream_closed = False
-    interrupted_for_idle = False
-
-    while True:
-        should_break, timed_out, stream_closed, last_output, next_warning = _handle_idle_queue_wait(
-            output_queue=output_queue,
-            process=process,
-            start=start,
-            last_output=last_output,
-            next_warning=next_warning,
-            stream_closed=stream_closed,
-            idle_warning_s=idle_warning_s,
-            idle_timeout_s=idle_timeout_s,
-            terminate_grace_s=terminate_grace_s,
-        )
-        if timed_out:
-            interrupted_for_idle = True
-            continue
-        if should_break:
-            break
-
-    rc = process.wait()
-    reader.join(timeout=1)
-    elapsed = time.monotonic() - start
-    status = "terminated after idle timeout" if interrupted_for_idle else f"finished with exit code {rc}"
-    print(f"[dev] {status} in {_format_duration(elapsed)}")
-    return rc
-
-
-def _run_capture(
-    cmd: list[str],
-    env: dict[str, str] | None = None,
-    cwd: Path | None = None,
-    *,
-    label: str | None = None,
-) -> tuple[int, str]:
-    run_cwd = cwd or ROOT
-    merged_env = {**os.environ, **env} if env else None
-    rendered_cmd = shlex.join(str(part) for part in cmd)
-    _print_run_header(rendered_cmd, run_cwd, env, label, idle_warning_s=0.0, idle_timeout_s=0.0)
-
-    start = time.monotonic()
-    result = subprocess.run(
-        [str(part) for part in cmd],
-        cwd=run_cwd,
-        env=merged_env,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.STDOUT,
-        text=True,
-    )
-    output = result.stdout or ""
-    if output:
-        sys.stdout.write(output)
-        sys.stdout.flush()
-    elapsed = time.monotonic() - start
-    print(f"[dev] finished with exit code {result.returncode} in {_format_duration(elapsed)}")
-    return result.returncode, output
-
-
-def _pytest_args(target: str, *, collect_only: bool = False) -> list[str]:
-    target_args = [target]
-    if target == "e2e/":
-        target_args = ["--pyargs", "e2e"]
-    args = [
-        "pytest",
-        *target_args,
-        "-vv",
-        "--durations=20",
-        "-o",
-        "console_output_style=progress-even-when-capture-no",
-    ]
-    if collect_only:
-        args.append("--collect-only")
-    else:
-        args.extend(["-s", "--setup-show", "-o", "log_cli=true", "-o", "log_cli_level=INFO"])
-    return args
-
-
-def _probe_import_sequence(target: str, *, label: str, anki_python: Path) -> None:
-    target_path = ROOT / target.rstrip("/")
-    if not target_path.exists():
-        return
-    timeout_s = _read_seconds_env("DEV_IMPORT_PROBE_TIMEOUT_SECS", 15.0)
-    conftests = sorted(target_path.rglob("conftest.py"))
-    test_files = sorted(target_path.rglob("test_*.py"))
-    if not conftests and not test_files:
-        return
-
-    helper_code = textwrap.dedent(
-        """
-        import importlib.util
-        import os
-        import sys
-        from pathlib import Path
-
-        root = Path(sys.argv[1])
-        conftest_arg = sys.argv[2]
-        target = Path(sys.argv[3])
-        sys.path.insert(0, str(root))
-
-        if conftest_arg:
-            for index, raw_path in enumerate(conftest_arg.split(os.pathsep)):
-                path = Path(raw_path)
-                spec = importlib.util.spec_from_file_location(f"_probe_conftest_{index}", path)
-                module = importlib.util.module_from_spec(spec)
-                sys.modules[spec.name] = module
-                assert spec.loader is not None
-                spec.loader.exec_module(module)
-
-        spec = importlib.util.spec_from_file_location(f"_probe_target_{target.stem}", target)
-        module = importlib.util.module_from_spec(spec)
-        sys.modules[spec.name] = module
-        assert spec.loader is not None
-        spec.loader.exec_module(module)
-        print(f"[probe] imported {target}")
-        """
-    )
-    conftest_str = os.pathsep.join(str(path) for path in conftests)
-    for path in [*conftests, *test_files]:
-        try:
-            result = subprocess.run(
-                [str(anki_python), "-c", helper_code, str(ROOT), conftest_str if path.name != "conftest.py" else "", str(path)],
-                cwd=ROOT,
-                capture_output=True,
-                text=True,
-                timeout=timeout_s,
-            )
-        except subprocess.TimeoutExpired:
-            print(f"[dev] probe TIMEOUT: {path.relative_to(ROOT)}", file=sys.stderr)
-            return
-        if result.returncode != 0:
-            print(result.stderr.rstrip(), file=sys.stderr)
-            return
-
-
-def _run_pytest(target: str, *, label: str) -> int:
-    anki_python = _find_anki_python()
-    collect_warning_s = _read_seconds_env("DEV_PYTEST_COLLECT_WARNING_SECS", 10.0)
-    collect_timeout_s = _read_seconds_env("DEV_PYTEST_COLLECT_TIMEOUT_SECS", 60.0)
-    rc = _run(
-        [str(anki_python), "-m", *_pytest_args(target, collect_only=True)],
-        label=f"{label} (collect)",
-        idle_warning_s=collect_warning_s,
-        idle_timeout_s=collect_timeout_s,
-    )
-    if rc != 0:
-        _probe_import_sequence(target, label=label, anki_python=anki_python)
-        return rc
-    return _run([str(anki_python), "-m", *_pytest_args(target)], label=f"{label} (run)")
-
-
-def _setup_addon_symlink() -> None:
-    system = platform.system()
-    if system == "Darwin":
-        addons_dir = Path.home() / "Library" / "Application Support" / "Anki2" / "addons21"
-    elif system == "Linux":
-        addons_dir = Path.home() / ".local" / "share" / "Anki2" / "addons21"
-    else:
-        addons_dir = None
-    if addons_dir and addons_dir.is_dir():
-        link = addons_dir / ADDON_SYMLINK_ID
-        if link.is_symlink() or link.exists():
-            print(f"  Already exists: {link}")
-        else:
-            link.symlink_to(ADDON_DIR)
-            print(f"  Created: {link} -> {ADDON_DIR}")
-    elif addons_dir:
-        print(f"  Skipped: {addons_dir} does not exist (launch Anki once first)")
-    else:
-        print(f"  Skipped: symlink creation not supported on {system}")
 
 
 def cmd_setup() -> int:
@@ -548,36 +154,6 @@ def cmd_complexity() -> int:
     return 1
 
 
-def _radon_complexity_violations(report: object) -> list[str]:
-    if not isinstance(report, dict):
-        return ["radon output did not contain the expected file map"]
-    failing_ranks = set("CDEF")
-    violations: list[str] = []
-    for raw_path, entries in sorted(report.items()):
-        if not isinstance(entries, list):
-            continue
-        path = Path(str(raw_path))
-        display_path = str(path)
-        if path.is_absolute():
-            try:
-                display_path = str(path.relative_to(ROOT))
-            except ValueError:
-                display_path = str(path)
-        if display_path in RADON_EXCLUDED_FILES:
-            continue
-        for entry in entries:
-            if not isinstance(entry, dict):
-                continue
-            rank = str(entry.get("rank", "")).upper()
-            if rank not in failing_ranks:
-                continue
-            name = entry.get("name", "<unknown>")
-            line = entry.get("lineno", "?")
-            complexity = entry.get("complexity", "?")
-            violations.append(f"{display_path}:{line} {name} rank={rank} complexity={complexity}")
-    return violations
-
-
 def cmd_deadcode() -> int:
     anki_python = _find_anki_python()
     paths = ["addon/anki_audio_quick_editor/"]
@@ -643,130 +219,6 @@ def cmd_muttest() -> int:
     )
 
 
-def _mutmut_fix_stats_prefix_mismatch() -> bool:
-    stats_path = ROOT / "mutants" / "mutmut-stats.json"
-    if not stats_path.is_file():
-        return False
-
-    meta_paths = sorted((ROOT / "mutants").glob("addon/anki_audio_quick_editor/*.py.meta"))
-    if not meta_paths:
-        return False
-
-    try:
-        stats = json.loads(stats_path.read_text())
-        first_meta = json.loads(meta_paths[0].read_text())
-    except json.JSONDecodeError:
-        return False
-
-    stats_keys = list(stats.get("tests_by_mangled_function_name", {}).keys())
-    meta_keys = list(first_meta.get("exit_code_by_key", {}).keys())
-    if not stats_keys or not meta_keys:
-        return False
-
-    source_prefix = "anki_audio_quick_editor."
-    target_prefix = "addon.anki_audio_quick_editor."
-    if not any(key.startswith(source_prefix) for key in stats_keys):
-        return False
-    if not any(key.startswith(target_prefix) for key in meta_keys):
-        return False
-
-    stats["tests_by_mangled_function_name"] = {
-        (
-            f"{target_prefix}{key[len(source_prefix):]}"
-            if key.startswith(source_prefix)
-            else key
-        ): value
-        for key, value in stats["tests_by_mangled_function_name"].items()
-    }
-    stats_path.write_text(json.dumps(stats, indent=4))
-    return True
-
-
-def cmd_coverage() -> int:
-    anki_python = _find_anki_python()
-    return _run(
-        [
-            str(anki_python), "-m", "pytest", "tests/",
-            "--cov",
-            "--cov-branch",
-            "--cov-report=term-missing",
-            f"--cov-fail-under={PYTHON_COVERAGE_FAIL_UNDER}",
-        ],
-        label=f"python coverage (fail under {PYTHON_COVERAGE_FAIL_UNDER}%)",
-    )
-
-
-def _prefix_settings_ui_lcov_paths() -> None:
-    if not SETTINGS_UI_LCOV.is_file():
-        return
-    lines: list[str] = []
-    for line in SETTINGS_UI_LCOV.read_text().splitlines(keepends=True):
-        if line.startswith("SF:src/"):
-            lines.append(f"SF:settings_ui/{line[3:]}")
-        else:
-            lines.append(line)
-    SETTINGS_UI_LCOV.write_text("".join(lines))
-
-
-def _remove_stale_report(path: Path) -> None:
-    if path.is_file():
-        path.unlink()
-
-
-def _require_report(path: Path, label: str) -> int:
-    if path.is_file():
-        return 0
-    print(f"ERROR: {label} report was not generated: {path}", file=sys.stderr)
-    return 1
-
-
-def cmd_sonar() -> int:
-    scanner = shutil.which("sonar-scanner")
-    if not scanner:
-        _die("sonar-scanner not found. Install it first if you want local Sonar analysis.")
-    dotenv = _load_dotenv()
-    token = os.environ.get("SONAR_TOKEN") or dotenv.get("SONAR_TOKEN")
-    if not token:
-        _die("SONAR_TOKEN not set.")
-    host_url = os.environ.get("SONAR_HOST_URL") or dotenv.get("SONAR_HOST_URL") or "http://localhost:9000"
-    anki_python = _find_anki_python()
-    _remove_stale_report(COVERAGE_XML)
-    _remove_stale_report(SETTINGS_UI_LCOV)
-    python_rc = _run(
-        [
-            str(anki_python), "-m", "pytest", "tests/",
-            "--cov",
-            "--cov-branch",
-            "--cov-report=xml",
-            f"--cov-fail-under={PYTHON_COVERAGE_FAIL_UNDER}",
-        ],
-        label=f"python coverage for sonar (fail under {PYTHON_COVERAGE_FAIL_UNDER}%)",
-    )
-    if python_rc != 0:
-        return python_rc
-    report_rc = _require_report(COVERAGE_XML, "Python coverage XML")
-    if report_rc != 0:
-        return report_rc
-    if not SETTINGS_UI_DIR.is_dir():
-        print("ERROR: settings_ui/ not found; cannot generate frontend coverage for sonar.", file=sys.stderr)
-        return 1
-    if not (SETTINGS_UI_DIR / "node_modules").is_dir():
-        print("ERROR: settings_ui/node_modules not found; run: python3 scripts/dev.py setup", file=sys.stderr)
-        return 1
-    ui_rc = _run(["npm", "run", "test:coverage"], cwd=SETTINGS_UI_DIR, label="frontend UI coverage for sonar")
-    if ui_rc != 0:
-        return ui_rc
-    _prefix_settings_ui_lcov_paths()
-    report_rc = _require_report(SETTINGS_UI_LCOV, "frontend LCOV")
-    if report_rc != 0:
-        return report_rc
-    return _run(
-        [scanner, f"-Dsonar.host.url={host_url}"],
-        env={"SONAR_TOKEN": token},
-        label="sonar-scanner analysis",
-    )
-
-
 def cmd_check() -> int:
     steps: list[tuple[str, Callable[[], int]]] = [
         ("config-schema", cmd_config_schema),
@@ -774,6 +226,7 @@ def cmd_check() -> int:
         ("contracts-check", cmd_contracts_check),
         ("architecture-report", cmd_architecture_report),
         ("lint", cmd_lint),
+        ("file-lines", cmd_file_lines),
         ("typecheck", cmd_typecheck),
         ("security", cmd_security),
         ("deadcode", cmd_deadcode),
@@ -813,6 +266,20 @@ def cmd_contracts_check() -> int:
     return _run([sys.executable, "scripts/generate_contracts.py", "--check"], label="contract staleness check")
 
 
+def cmd_file_lines() -> int:
+    root_str = str(ROOT)
+    if root_str not in sys.path:
+        sys.path.insert(0, root_str)
+    from scripts.dev_tasks.file_lines import (
+        format_python_file_length_report,
+        scan_python_file_lengths,
+    )
+
+    report = scan_python_file_lengths(ROOT)
+    print(format_python_file_length_report(report))
+    return report.exit_code
+
+
 def cmd_build_ui() -> int:
     if not SETTINGS_UI_DIR.is_dir():
         _die("settings_ui/ directory not found.")
@@ -848,26 +315,6 @@ def cmd_release() -> int:
     return _run([sys.executable, "scripts/release.py"], label="release build")
 
 
-def cmd_info() -> int:
-    anki_python = _find_anki_python()
-    print(f"Anki Python:  {anki_python}")
-    result = subprocess.run([str(anki_python), "--version"], capture_output=True, text=True)
-    print(f"Python:       {result.stdout.strip()}")
-    node = shutil.which("node")
-    if node:
-        print(f"Node.js:      {subprocess.run([node, '--version'], capture_output=True, text=True).stdout.strip()}")
-    else:
-        print("Node.js:      not found")
-    npm = shutil.which("npm")
-    if npm:
-        print(f"npm:          {subprocess.run([npm, '--version'], capture_output=True, text=True).stdout.strip()}")
-    else:
-        print("npm:          not found")
-    print(f"Project root: {ROOT}")
-    print(f"Add-on dir:   {ADDON_DIR}")
-    return 0
-
-
 COMMANDS: dict[str, tuple[Callable[[], int], str]] = {
     "setup": (cmd_setup, "One-time setup: install dev deps, create symlink, npm install"),
     "architecture-report": (cmd_architecture_report, "Inspect executable architecture contracts and report violations"),
@@ -884,7 +331,7 @@ COMMANDS: dict[str, tuple[Callable[[], int], str]] = {
     "check": (
         cmd_check,
         "Full QC: config-schema + contracts-generate + contracts-check + architecture-report + lint + typecheck + "
-        "security + deadcode + deps + complexity + arch + test-anki-api + test + frontend validate",
+        "file-lines + security + deadcode + deps + complexity + arch + test-anki-api + test + frontend validate",
     ),
     "coverage": (cmd_coverage, f"Run tests with branch coverage report (fail under {PYTHON_COVERAGE_FAIL_UNDER}%)"),
     "sonar": (cmd_sonar, "Optional SonarQube analysis (needs SONAR_TOKEN)"),
@@ -895,6 +342,7 @@ COMMANDS: dict[str, tuple[Callable[[], int], str]] = {
     "config-schema": (cmd_config_schema, "Validate config.json against JSON Schema"),
     "contracts-generate": (cmd_contracts_generate, "Generate Python and TypeScript JSON contracts"),
     "contracts-check": (cmd_contracts_check, "Verify generated JSON contracts are current"),
+    "file-lines": (cmd_file_lines, "Check hand-maintained Python files against line-count limits"),
     "release": (cmd_release, "Run scripts/release.py"),
     "info": (cmd_info, "Print discovered paths and versions"),
 }

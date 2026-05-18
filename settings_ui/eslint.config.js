@@ -51,6 +51,7 @@ export default [
         ignoreRestSiblings: true,
       }],
       "@typescript-eslint/no-explicit-any": "error",
+      "max-lines": ["warn", { max: 400, skipBlankLines: false, skipComments: false }],
       // TS-A: no pycmd() outside bridge.ts
       "no-restricted-syntax": [
         "error",
@@ -96,6 +97,7 @@ export default [
         varsIgnorePattern: "^_",
       }],
       "@typescript-eslint/no-explicit-any": "error",
+      "max-lines": ["warn", { max: 400, skipBlankLines: false, skipComments: false }],
       // TS-A and TS-B apply to Svelte files too
       "no-restricted-syntax": [
         "error",
@@ -136,6 +138,7 @@ export default [
         ignoreRestSiblings: true,
       }],
       "@typescript-eslint/no-explicit-any": "error",
+      "max-lines": ["warn", { max: 400, skipBlankLines: false, skipComments: false }],
       "no-console": ["error", { allow: ["warn", "error"] }],
     },
   },
@@ -164,6 +167,7 @@ export default [
       "no-unused-vars": "off",
       "@typescript-eslint/no-unused-vars": "off",
       "@typescript-eslint/no-explicit-any": "error",
+      "max-lines": ["warn", { max: 400, skipBlankLines: false, skipComments: false }],
       "no-console": "off",
       // Tests CAN access window (they run in jsdom)
       // Tests CAN assign window.on* to inspect callbacks

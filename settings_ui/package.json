@@ -12,6 +12,7 @@
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
     "lint": "eslint .",
+    "lint:max-lines": "eslint . --config eslint.max-lines.config.js",
     "check": "svelte-check --tsconfig ./tsconfig.json",
     "typecheck": "tsc --noEmit",
     "validate": "npm run check && npm run lint && npm run typecheck && npm run test:coverage"

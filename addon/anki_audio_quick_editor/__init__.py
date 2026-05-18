@@ -33,6 +33,13 @@ from aqt.qt import qconnect  # noqa: E402
 _settings_dialog = None
 
 
+def _addon_loggers() -> tuple[logging.Logger, ...]:
+    runtime_logger = logging.getLogger(__name__)
+    if runtime_logger.name == logger.name:
+        return (logger,)
+    return (logger, runtime_logger)
+
+
 def _migrate_config() -> None:
     """Deep-merge defaults into the user's config and stamp the schema version."""
     from .config_migration import migrate_config
@@ -63,7 +70,8 @@ def _setup_file_logging() -> None:
     handler.setFormatter(
         logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s")
     )
-    logger.addHandler(handler)
+    for target_logger in _addon_loggers():
+        target_logger.addHandler(handler)
     logger.debug("file logging initialized at %s", log_file)
 
 
@@ -71,7 +79,9 @@ def _apply_log_level() -> None:
     """Apply the debug logging toggle from config to the console logger."""
     addon_id = mw.addonManager.addonFromModule(__name__)
     config = mw.addonManager.getConfig(addon_id) or {}
-    logger.setLevel(logging.DEBUG if config.get("debug_logging", False) else logging.INFO)
+    level = logging.DEBUG if config.get("debug_logging", False) else logging.INFO
+    for target_logger in _addon_loggers():
+        target_logger.setLevel(level)
 
 
 def _show_settings_dialog(on_saved: Callable[[], None] | None = None) -> None:

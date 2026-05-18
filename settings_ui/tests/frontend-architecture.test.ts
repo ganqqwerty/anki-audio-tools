@@ -21,6 +21,7 @@ const querySelectorAllowlist = new Set([
   "src/editor-inline/actions.ts",
   "src/editor-inline/dom-selectors.ts",
   "src/editor-inline/field-controller.ts",
+  "src/editor-inline/graph-actions.ts",
   "src/editor-inline/runtime.ts",
 ]);
 
@@ -46,6 +47,12 @@ const internalWindowStateNames = new Set([
 ]);
 
 describe("frontend architecture guardrails", () => {
+  it("excludes generated frontend files from hand-maintained file checks", () => {
+    expect(isHandMaintainedFrontendFile("src/lib/generated/contracts.ts")).toBe(false);
+    expect(isHandMaintainedFrontendFile("../addon/anki_audio_quick_editor/templates/editor/bundle.js")).toBe(false);
+    expect(isHandMaintainedFrontendFile("src/editor-inline/actions.ts")).toBe(true);
+  });
+
   it("keeps hand-maintained production frontend files below size limits or explicit temporary allowlists", () => {
     const offenders = productionFiles()
       .map((path) => {
@@ -132,8 +139,15 @@ describe("frontend architecture guardrails", () => {
 function productionFiles(): string[] {
   return walk(sourceRoot)
     .filter((path) => /\.(svelte|ts)$/.test(path))
-    .filter((path) => !path.includes("/lib/generated/"))
+    .filter((path) => isHandMaintainedFrontendFile(toRelPath(path)))
     .filter((path) => !path.endsWith("/main.ts"));
+}
+
+function isHandMaintainedFrontendFile(relPath: string): boolean {
+  return ![
+    /^src\/lib\/generated\//,
+    /^\.\.\/addon\/anki_audio_quick_editor\/templates\//,
+  ].some((pattern) => pattern.test(relPath));
 }
 
 function walk(root: string): string[] {

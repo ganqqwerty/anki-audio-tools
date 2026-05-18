@@ -49,6 +49,8 @@ Avoid running `npm run validate` or `pytest e2e` directly as the only verificati
 | Type checking | `python3 scripts/dev.py typecheck` |
 | JSON contract staleness | `python3 scripts/dev.py contracts-check` |
 | JSON contract generation | `python3 scripts/dev.py contracts-generate` |
+| Python file length policy | `python3 scripts/dev.py file-lines` |
+| Frontend hard file length policy | `cd settings_ui && npm run lint:max-lines` |
 | Import-linter | `python3 scripts/dev.py arch` |
 | Dead code | `python3 scripts/dev.py deadcode` |
 | Security | `python3 scripts/dev.py security` |
@@ -65,6 +67,8 @@ Avoid running `npm run validate` or `pytest e2e` directly as the only verificati
 `python3 scripts/dev.py check` is the reusable local QC gate. It runs schema validation, generates and verifies JSON contracts, architecture reporting, Ruff, mypy, Bandit, Vulture, Deptry, Radon, import-linter, Anki API contract tests, Python unit/architecture tests, and frontend validation. Its frontend validation step rebuilds bundles through `test-svelte`.
 
 The Radon complexity command fails when any hand-maintained add-on function or class is rank C or worse. Generated communication-contract output is excluded from the fail decision; contract freshness is enforced separately by `contracts-check`. Ruff also enforces McCabe complexity with `max-complexity = 10`.
+
+The file-length policy warns above 400 physical lines and fails above 500 physical lines for hand-maintained Python, TypeScript, and Svelte files. Generated contract output and committed webview bundle output are excluded by explicit generated-file predicates, and contract freshness remains covered by `python3 scripts/dev.py contracts-check`.
 
 Python coverage uses branch coverage and fails below 70%. Frontend coverage thresholds are enforced by Vitest: 80% lines/functions/statements, 70% branches, and 90% lines/functions/statements for `settings_ui/src/editor-inline/`.
 

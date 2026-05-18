@@ -8,9 +8,12 @@ from .conftest import ADDON_DIR, _imports_addon_modules, get_all_imports
 from .contracts import MODULE_CONTRACTS, SideEffect
 
 BROWSER_INTEGRATION = ADDON_DIR / "browser_integration.py"
+BROWSER_DIALOG = ADDON_DIR / "browser_dialog.py"
 ALLOWED_PERSISTENCE_FILES = {
     "browser_integration.py",
     "editor_integration.py",
+    "editor_processing.py",
+    "editor_region_delete.py",
 }
 PERSISTENCE_PATTERNS = [
     r"\.media\.write_data\(",
@@ -20,7 +23,7 @@ PERSISTENCE_PATTERNS = [
 
 
 def test_browser_operation_selector_is_driven_by_shared_registry() -> None:
-    text = BROWSER_INTEGRATION.read_text(encoding="utf-8")
+    text = BROWSER_DIALOG.read_text(encoding="utf-8")
 
     for symbol in ("BATCH_OPERATIONS", "OPERATION_LABELS", "OP_GRAPH", "requires_target_field"):
         assert symbol in text
