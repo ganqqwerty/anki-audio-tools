@@ -39,8 +39,10 @@ const internalWindowStateNames = new Set([
   "__aqeActiveField",
   "__aqeLastCursorIntent",
   "__aqeLastPlaybackRequest",
+  "__aqePendingCommandPayload",
   "__aqePendingGraphRedrawField",
   "__aqePendingPlaybackRequest",
+  "__aqeSplitButtonStates",
 ]);
 
 describe("frontend architecture guardrails", () => {

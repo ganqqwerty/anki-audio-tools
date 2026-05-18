@@ -203,8 +203,8 @@ describe("editor inline Svelte integration", () => {
     document.querySelector<HTMLButtonElement>('[data-testid="aqe-button-0-trim-left"]')!.click();
 
     expect(bridgeCommands()).toContain("focus:0");
-    const payload = JSON.parse(commandLog().find((command) => command.startsWith("{")) ?? "{}");
-    expect(payload).toEqual({
+    expect(bridgeCommands()).toContain("aqe:command-payload");
+    expect(window.__aqePendingCommandPayload).toEqual({
       command: "aqe:trim-left",
       fieldOrd: 0,
       overrides: {
@@ -232,13 +232,14 @@ describe("editor inline Svelte integration", () => {
     await Promise.resolve();
     document.querySelector<HTMLButtonElement>('[data-testid="aqe-split-0-trim-left-preset-200"]')!.click();
     document.querySelector<HTMLButtonElement>('[data-testid="aqe-button-0-trim-left"]')!.click();
+    const firstPayload = window.__aqePendingCommandPayload;
+    window.__aqePendingCommandPayload = null;
     window.__aqeSetBusy?.(0, false);
     document.querySelector<HTMLButtonElement>('[data-testid="aqe-button-1-trim-left"]')!.click();
+    const secondPayload = window.__aqePendingCommandPayload;
 
-    const payloads = commandLog()
-      .filter((command) => command.startsWith("{"))
-      .map((command) => JSON.parse(command));
-    expect(payloads.map((payload) => payload.overrides.trimStepMs)).toEqual([200, 100]);
+    expect(bridgeCommands().filter((command) => command === "aqe:command-payload")).toHaveLength(2);
+    expect([firstPayload, secondPayload].map((payload) => payload?.overrides?.trimStepMs)).toEqual([200, 100]);
   });
 
   it("removes orphaned controls from previous bundle instances before mounting", () => {

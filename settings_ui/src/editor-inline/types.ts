@@ -74,6 +74,12 @@ export interface EditorCommandPayload {
   };
 }
 
+export interface FieldSplitButtonState {
+  defaultTrimStepMs: number;
+  trimEdited: boolean;
+  trimStepMs: number;
+}
+
 export interface FieldTarget {
   node: HTMLElement;
   ord: number;

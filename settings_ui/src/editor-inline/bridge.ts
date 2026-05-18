@@ -18,7 +18,8 @@ export function focusAndSendCommand(ord: number, command: string): void {
 
 export function focusAndSendCommandPayload(ord: number, payload: EditorCommandPayload): void {
   sendBridgeCommand(`focus:${ord}`);
-  sendBridgeCommand(JSON.stringify(payload));
+  window.__aqePendingCommandPayload = payload;
+  sendBridgeCommand("aqe:command-payload");
 }
 
 export function sendGraphAnalysisRequest(request: GraphAnalysisRequest): void {

@@ -16,6 +16,7 @@ from e2e.editor_graph_helpers import (
     _wait_for_visualizer_track,
 )
 from e2e.editor_note_helpers import (
+    ADDON_NUMERIC_ID,
     _artifact_root,
     _basic_audio_note,
     _button_selector,
@@ -36,6 +37,32 @@ from e2e.helpers import (
     wait_for_js_condition,
     wait_for_selector,
 )
+
+
+def _split_menu_selector(command: str, ord_: int = 0) -> str:
+    slug = command.removeprefix("aqe:")
+    return f'[data-testid="aqe-split-{ord_}-{slug}-menu"]'
+
+
+def _split_popover_state_js(command: str, ord_: int = 0) -> str:
+    slug = command.removeprefix("aqe:")
+    return f"""
+    (() => {{
+      const popover = document.querySelector('[data-testid="aqe-split-{ord_}-{slug}-popover"]');
+      const slider = document.querySelector('[data-testid="aqe-split-{ord_}-{slug}-slider"]');
+      const anchor = document.querySelector('[data-testid="aqe-split-{ord_}-{slug}-menu"]')?.closest('.aqe-split-button');
+      return popover && slider ? {{
+        text: popover.textContent,
+        sliderValue: slider.value,
+        top: popover.getBoundingClientRect().top,
+        buttonBottom: anchor.getBoundingClientRect().bottom,
+        centerDelta: Math.abs(
+          popover.getBoundingClientRect().left + popover.getBoundingClientRect().width / 2
+          - (anchor.getBoundingClientRect().left + anchor.getBoundingClientRect().width / 2)
+        )
+      }} : null;
+    }})()
+    """
 
 
 def test_each_processing_button_updates_field_to_new_real_audio(
@@ -96,7 +123,9 @@ def test_each_processing_button_updates_field_to_new_real_audio(
                 "Graph",
                 "Folder",
                 "-L",
+                "Options",
                 "-R",
+                "Options",
                 "Shorten Pauses",
                 "Denoise",
                 "Standard",
@@ -572,6 +601,158 @@ def test_settings_trim_step_controls_editor_button_behavior(anki_mw, ffmpeg_conf
         assert probe_duration_ms(media_dir / generated_name, ffmpeg_config) < probe_duration_ms(
             source, ffmpeg_config
         ) - 350
+    finally:
+        editor.set_note(None)
+        parent.close()
+
+
+def test_trim_split_button_uses_settings_default_and_closes_on_outside_click(
+    anki_mw,
+    ffmpeg_config,
+) -> None:
+    media_dir = Path(anki_mw.col.media.dir())
+    source = media_dir / "editor_split_default_source.wav"
+    generate_tone(ffmpeg_config, source, duration_s=2.0)
+    note = _basic_audio_note(anki_mw, source.name)
+    _configure_ffmpeg(anki_mw, ffmpeg_config, manual_trim_small_ms=500)
+
+    editor, parent = _open_editor(anki_mw, note)
+    try:
+        wait_for_selector(editor.web, _button_selector("aqe:trim-left"), timeout=10.0)
+        click_selector(editor.web, _split_menu_selector("aqe:trim-left"), timeout=5.0)
+        popover = wait_for_js_condition(
+            editor.web,
+            _split_popover_state_js("aqe:trim-left"),
+            lambda value: value is not None and value["sliderValue"] == "500",
+            timeout=5.0,
+        )
+
+        run_js(editor.web, "document.body.dispatchEvent(new MouseEvent('mousedown', { bubbles: true }))")
+        wait_for_js_condition(
+            editor.web,
+            "document.querySelector('[data-testid=\"aqe-split-0-trim-left-popover\"]') === null",
+            timeout=5.0,
+        )
+
+        assert "500 ms" in popover["text"]
+        assert popover["top"] >= popover["buttonBottom"]
+        assert popover["centerDelta"] < 2
+    finally:
+        editor.set_note(None)
+        parent.close()
+
+
+def test_trim_split_button_local_value_repeats_without_changing_settings(
+    anki_mw,
+    ffmpeg_config,
+) -> None:
+    from anki_audio_quick_editor.editor_integration import _SESSIONS
+
+    media_dir = Path(anki_mw.col.media.dir())
+    source = media_dir / "editor_split_repeat_source.wav"
+    generate_tone(ffmpeg_config, source, duration_s=2.0)
+    note = _basic_audio_note(anki_mw, source.name)
+    _configure_ffmpeg(anki_mw, ffmpeg_config, manual_trim_small_ms=500)
+
+    editor, parent = _open_editor(anki_mw, note)
+    try:
+        wait_for_selector(editor.web, _button_selector("aqe:trim-left"), timeout=10.0)
+        click_selector(editor.web, _split_menu_selector("aqe:trim-left"), timeout=5.0)
+        click_selector(
+            editor.web,
+            '[data-testid="aqe-split-0-trim-left-preset-200"]',
+            timeout=5.0,
+        )
+
+        first_name = _click_and_wait_for_new_file(
+            editor,
+            note,
+            media_dir,
+            "aqe:trim-left",
+            source.name,
+        )
+        wait_for_selector(editor.web, _button_selector("aqe:trim-left"), timeout=10.0)
+        second_name = _click_and_wait_for_new_file(
+            editor,
+            note,
+            media_dir,
+            "aqe:trim-left",
+            first_name,
+        )
+
+        wait_for_condition(
+            lambda: (
+                (session := _SESSIONS.get(editor)) is not None
+                and session.state is not None
+                and session.state.left_trim_ms == 400
+            ),
+            timeout=5.0,
+            message="Trim split button did not reuse the field-local 200 ms value",
+        )
+        config = anki_mw.addonManager.getConfig(ADDON_NUMERIC_ID)
+        assert config["manual_trim_small_ms"] == 500
+        assert _sound_filename(note.fields[0]) == second_name
+    finally:
+        editor.set_note(None)
+        parent.close()
+
+
+def test_trim_split_button_value_is_isolated_across_audio_fields(
+    anki_mw,
+    ffmpeg_config,
+) -> None:
+    from anki_audio_quick_editor.audio_processor import probe_duration_ms
+
+    media_dir = Path(anki_mw.col.media.dir())
+    sources = (
+        media_dir / "editor_split_multi_one.wav",
+        media_dir / "editor_split_multi_two.wav",
+        media_dir / "editor_split_multi_three.wav",
+    )
+    for source in sources:
+        generate_tone(ffmpeg_config, source, duration_s=2.0)
+    note = _three_audio_field_note(anki_mw, tuple(source.name for source in sources))
+    _configure_ffmpeg(anki_mw, ffmpeg_config, manual_trim_small_ms=100)
+
+    editor, parent = _open_editor(anki_mw, note)
+    try:
+        wait_for_selector(editor.web, _button_selector("aqe:trim-left", 0), timeout=10.0)
+        wait_for_selector(editor.web, _button_selector("aqe:trim-left", 1), timeout=10.0)
+        click_selector(editor.web, _split_menu_selector("aqe:trim-left", 0), timeout=5.0)
+        click_selector(
+            editor.web,
+            '[data-testid="aqe-split-0-trim-left-preset-200"]',
+            timeout=5.0,
+        )
+
+        first_name = _click_and_wait_for_new_file(
+            editor,
+            note,
+            media_dir,
+            "aqe:trim-left",
+            sources[0].name,
+            field_index=0,
+        )
+        second_name = _click_and_wait_for_new_file(
+            editor,
+            note,
+            media_dir,
+            "aqe:trim-left",
+            sources[1].name,
+            field_index=1,
+        )
+
+        first_delta = probe_duration_ms(sources[0], ffmpeg_config) - probe_duration_ms(
+            media_dir / first_name,
+            ffmpeg_config,
+        )
+        second_delta = probe_duration_ms(sources[1], ffmpeg_config) - probe_duration_ms(
+            media_dir / second_name,
+            ffmpeg_config,
+        )
+        assert 140 <= first_delta <= 320
+        assert 40 <= second_delta <= 180
+        assert _sound_filename(note.fields[2]) == sources[2].name
     finally:
         editor.set_note(None)
         parent.close()

@@ -27,6 +27,7 @@ CMD_DENOISE_STANDARD = "aqe:denoise-standard"
 CMD_RNNOISE = "aqe:rnnoise"
 CMD_DELETE_SELECTION = "aqe:delete-selection"
 CMD_ANALYZE_FIELD = "aqe:analyze-field"
+CMD_COMMAND_PAYLOAD = "aqe:command-payload"
 CMD_SETTINGS = "aqe:settings"
 CMD_REDO = "aqe:redo"
 MIN_TRIM_OVERRIDE_MS = 50
@@ -36,6 +37,7 @@ BRIDGE_COMMANDS = (
     "aqe:scan",
     "aqe:analyze",
     CMD_ANALYZE_FIELD,
+    CMD_COMMAND_PAYLOAD,
     "aqe:set-cursor",
     "aqe:play",
     "aqe:play-ended",

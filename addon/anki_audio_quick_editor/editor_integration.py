@@ -28,6 +28,7 @@ from .contracts_generated import FrontendLogPayload, ProsodyPayload
 from .editor_actions import (
     BRIDGE_COMMANDS,
     CMD_ANALYZE_FIELD,
+    CMD_COMMAND_PAYLOAD,
     CMD_DELETE_SELECTION,
     CMD_DENOISE_STANDARD,
     CMD_REDO,
@@ -233,6 +234,9 @@ def _reset_editor_session_for_note_load(editor: Any, note_id: int | None = None)
 
 
 def _handle_bridge_command(editor: Any, command: str) -> None:
+    if command == CMD_COMMAND_PAYLOAD:
+        _handle_pending_command_payload(editor)
+        return
     payload = decode_editor_command_payload(command)
     try:
         if payload.field_ord is not None:
@@ -247,6 +251,24 @@ def _handle_bridge_command(editor: Any, command: str) -> None:
         logger.exception("audio quick editor command failed: %s", command)
         _set_busy(editor, False)
         _eval_status(editor, f"Audio processing failed. The note was not changed. ({exc})", kind="error")
+
+
+def _handle_pending_command_payload(editor: Any) -> None:
+    expression = """
+    (() => {
+      const payload = window.__aqePendingCommandPayload || null;
+      window.__aqePendingCommandPayload = null;
+      return payload;
+    })()
+    """
+
+    def _continue(raw_payload: Any) -> None:
+        if raw_payload is None:
+            _set_busy(editor, False)
+            return
+        _handle_bridge_command(editor, json.dumps(raw_payload))
+
+    _eval_with_callback(editor, expression, _continue)
 
 
 def _handle_non_processing_command(editor: Any, command: str) -> bool:

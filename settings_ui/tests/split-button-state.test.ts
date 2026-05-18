@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it } from "vitest";
 
 import {
   buildTrimCommandPayload,
@@ -9,6 +9,11 @@ import {
 } from "../src/editor-inline/split-button-state.js";
 
 describe("split button state", () => {
+  beforeEach(() => {
+    delete window.__AQE_EDITOR_CONFIG__;
+    delete window.__aqeSplitButtonStates;
+  });
+
   it("formats trim values for compact display", () => {
     expect(formatTrimMs(200)).toBe("200 ms");
     expect(formatTrimMs(999)).toBe("999 ms");
@@ -65,5 +70,11 @@ describe("split button state", () => {
         trimStepMs: 200,
       },
     });
+  });
+
+  it("persists local field state across editor bundle reinjection", () => {
+    setTrimStepForField(0, 200);
+    expect(window.__aqeSplitButtonStates?.[0]?.trimStepMs).toBe(200);
+    expect(getSplitButtonState(0).trimStepMs).toBe(200);
   });
 });

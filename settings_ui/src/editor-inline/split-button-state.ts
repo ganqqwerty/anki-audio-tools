@@ -1,4 +1,9 @@
-import type { EditorCommand, EditorCommandPayload, SplitButtonDefaults } from "./types.js";
+import type {
+  EditorCommand,
+  EditorCommandPayload,
+  FieldSplitButtonState,
+  SplitButtonDefaults,
+} from "./types.js";
 
 const MIN_TRIM_MS = 50;
 const MAX_TRIM_MS = 10_000;
@@ -10,13 +15,10 @@ const DEFAULTS: SplitButtonDefaults = {
   volumeStepDb: 3,
 };
 
-interface FieldSplitButtonState {
-  defaultTrimStepMs: number;
-  trimEdited: boolean;
-  trimStepMs: number;
+function fieldStates(): Record<number, FieldSplitButtonState> {
+  window.__aqeSplitButtonStates ??= {};
+  return window.__aqeSplitButtonStates;
 }
-
-const fieldStates = new Map<number, FieldSplitButtonState>();
 
 export function splitButtonDefaults(): SplitButtonDefaults {
   return {
@@ -39,7 +41,8 @@ export function formatTrimMs(value: number): string {
 
 export function getSplitButtonState(ord: number): FieldSplitButtonState {
   const defaultTrimStepMs = clampTrimStepMs(splitButtonDefaults().trimStepMs);
-  const existing = fieldStates.get(ord);
+  const states = fieldStates();
+  const existing = states[ord];
   if (existing) {
     if (!existing.trimEdited && existing.defaultTrimStepMs !== defaultTrimStepMs) {
       existing.defaultTrimStepMs = defaultTrimStepMs;
@@ -52,7 +55,7 @@ export function getSplitButtonState(ord: number): FieldSplitButtonState {
     trimEdited: false,
     trimStepMs: defaultTrimStepMs,
   };
-  fieldStates.set(ord, state);
+  states[ord] = state;
   return state;
 }
 
