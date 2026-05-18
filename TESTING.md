@@ -74,7 +74,23 @@ Python coverage uses branch coverage and fails below 70%. Frontend coverage thre
 
 SonarQube is opt-in because it needs `sonar-scanner` and `SONAR_TOKEN`, but when run it is a hard gate: coverage reports must be freshly generated and the scanner waits for the server quality gate. Generated contracts are excluded from Sonar issue and coverage accounting. The inline editor bundle intentionally keeps the browser `window.__aqe*` bridge contract, so Sonar's `typescript:S7764` global-object preference is ignored only under `settings_ui/src/editor-inline/**`.
 
-`python3 scripts/release.py --full` runs the normal release checks plus `test-e2e` and Sonar before packaging. Plain `python3 scripts/release.py` keeps the faster release path: `check`, bundle freshness verification, archive creation, and archive validation.
+`python3 scripts/release.py --full` runs the normal release checks plus `test-e2e` and Sonar before packaging. Plain `python3 scripts/release.py` keeps the faster release path: `check`, required artifact generation, runtime asset staging, archive creation, and archive validation.
+
+Release self-sufficiency has its own checks:
+
+| Task | Command |
+|------|---------|
+| Verify cached runtime payloads | `python3 scripts/dev.py release-assets verify --target all` |
+| Fast current-platform packaging without expensive QC | `python3 scripts/release.py --skip-quality-checks --target current` |
+| Extracted archive smoke test | `python3 scripts/dev.py release-smoke dist/anki-audio-quick-editor-<version>-<target>.ankiaddon` |
+| Native platform acceptance | `python3 scripts/release_acceptance.py --archive dist/anki-audio-quick-editor-<version>-<target>.ankiaddon --target current` |
+
+`--skip-quality-checks` still regenerates contracts and webview bundles, stages locked runtime assets, validates the archive manifest, and enforces the native payload matrix. It only skips the expensive quality suite. A platform-targeted release is not approved until native acceptance logs exist for each platform archive in the release set.
+
+Third-party static FFmpeg makes the universal `--target all` archive larger
+than the normal size gate. Build platform-targeted archives for standard
+distribution; use `--allow-large-archive "<reason>"` only for intentional direct
+distribution of a universal archive.
 
 ## Focused Test Files
 

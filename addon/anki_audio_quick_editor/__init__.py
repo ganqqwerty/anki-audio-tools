@@ -19,13 +19,24 @@ _VENDOR_DIR = Path(__file__).parent / "vendor"
 if str(_VENDOR_DIR) not in sys.path:
     sys.path.insert(0, str(_VENDOR_DIR))
 
-if os.environ.get("DEBUG_ANKI"):
-    import debugpy
+def _maybe_attach_debugger(*, wait_for_client: bool = True) -> None:
+    """Attach debugpy when requested without making it a shipped dependency."""
+    if not os.environ.get("DEBUG_ANKI"):
+        return
+    try:
+        import debugpy
+    except ImportError:
+        logger.warning("DEBUG_ANKI is set, but debugpy is not installed; continuing without debugger.")
+        return
 
     debugpy.listen(5678)
     logger.info("debugpy listening on port 5678")
-    debugpy.wait_for_client()
-    logger.info("debugger attached")
+    if wait_for_client:
+        debugpy.wait_for_client()
+        logger.info("debugger attached")
+
+
+_maybe_attach_debugger()
 
 from aqt import gui_hooks, mw  # noqa: E402
 from aqt.qt import qconnect  # noqa: E402

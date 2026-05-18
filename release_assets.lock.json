@@ -1,0 +1,224 @@
+{
+  "schema_version": 1,
+  "release_ready": true,
+  "targets": {
+    "macos-arm64": {
+      "os": "macos",
+      "cpu": "arm64",
+      "tools": {
+        "deep-filter": {
+          "version": "0.5.6",
+          "source_url": "https://github.com/Rikorose/DeepFilterNet/releases/tag/v0.5.6",
+          "download_url": "https://github.com/Rikorose/DeepFilterNet/releases/download/v0.5.6/deep-filter-0.5.6-aarch64-apple-darwin",
+          "original_filename": "deep-filter-0.5.6-aarch64-apple-darwin",
+          "executable": "deep-filter",
+          "diagnostic_args": [
+            "--version"
+          ],
+          "licenses": [
+            "MIT",
+            "Apache-2.0"
+          ],
+          "sha256": "4601e7f4e4c03e59a4c5b5000216ef3add3e808799cfccd95e14e83ea4611081"
+        },
+        "ffmpeg": {
+          "version": "8.1.1",
+          "source_url": "https://ffmpeg.org/download.html",
+          "provider_url": "https://ffmpeg.martin-riedl.de/",
+          "download_url": "https://ffmpeg.martin-riedl.de/download/macos/arm64/1778761665_8.1.1/ffmpeg.zip",
+          "download_sha256": "a05b1a47bb3ac89a95a55eec713f8bbb347051bb07015f3b7d08fb62ed81a21e",
+          "archive_member": "ffmpeg",
+          "original_filename": "ffmpeg.zip",
+          "build": "third-party-static-gpl",
+          "executable": "ffmpeg",
+          "diagnostic_args": [
+            "-version"
+          ],
+          "licenses": [
+            "GPL-3.0-or-later"
+          ],
+          "sha256": "ef4fe121377039053b0d7bed4a9aa46e7912918f5ba6424a1dd155f4eed625b0"
+        },
+        "ffprobe": {
+          "version": "8.1.1",
+          "source_url": "https://ffmpeg.org/download.html",
+          "provider_url": "https://ffmpeg.martin-riedl.de/",
+          "download_url": "https://ffmpeg.martin-riedl.de/download/macos/arm64/1778761665_8.1.1/ffprobe.zip",
+          "download_sha256": "135e70d2518beeb568183952dbc4bdeca1628dd49a7376d57e6b27dbc57d209f",
+          "archive_member": "ffprobe",
+          "original_filename": "ffprobe.zip",
+          "build": "third-party-static-gpl",
+          "executable": "ffprobe",
+          "diagnostic_args": [
+            "-version"
+          ],
+          "licenses": [
+            "GPL-3.0-or-later"
+          ],
+          "sha256": "3ec76ddd72068162294249465c36257d6c1add564f9b078e31e173837832967d"
+        },
+        "rnnoise-cli": {
+          "version": "0.2",
+          "source_url": "https://github.com/xiph/rnnoise/releases/download/v0.2/rnnoise-0.2.tar.gz",
+          "cli_source": "scripts/rnnoise_cli/rnnoise_cli.c",
+          "build": "local-static-rnnoise",
+          "executable": "rnnoise-cli",
+          "diagnostic_args": [
+            "--version"
+          ],
+          "licenses": [
+            "BSD-3-Clause"
+          ],
+          "sha256": "f3031f0ac63124faacff26629b8edabdef3d645162de5593176f0b723cc53f70"
+        }
+      }
+    },
+    "macos-x86_64": {
+      "os": "macos",
+      "cpu": "x86_64",
+      "tools": {
+        "deep-filter": {
+          "version": "0.5.6",
+          "source_url": "https://github.com/Rikorose/DeepFilterNet/releases/tag/v0.5.6",
+          "download_url": "https://github.com/Rikorose/DeepFilterNet/releases/download/v0.5.6/deep-filter-0.5.6-x86_64-apple-darwin",
+          "original_filename": "deep-filter-0.5.6-x86_64-apple-darwin",
+          "executable": "deep-filter",
+          "diagnostic_args": [
+            "--version"
+          ],
+          "licenses": [
+            "MIT",
+            "Apache-2.0"
+          ],
+          "sha256": "d3be84003acb7c23e738ad7f70a158ec779a8d233a82e7fa3e717d112eb5b50f"
+        },
+        "ffmpeg": {
+          "version": "8.1.1",
+          "source_url": "https://ffmpeg.org/download.html",
+          "provider_url": "https://ffmpeg.martin-riedl.de/",
+          "download_url": "https://ffmpeg.martin-riedl.de/download/macos/amd64/1778768838_8.1.1/ffmpeg.zip",
+          "download_sha256": "8cb711bfa6f66033112d708dc275220419d0fdb49c5b752f8db25f11a92d321f",
+          "archive_member": "ffmpeg",
+          "original_filename": "ffmpeg.zip",
+          "build": "third-party-static-gpl",
+          "executable": "ffmpeg",
+          "diagnostic_args": [
+            "-version"
+          ],
+          "licenses": [
+            "GPL-3.0-or-later"
+          ],
+          "sha256": "6a2c2884161d883fbb1ef21a0223475283eb4e381ee870956719f59f32daf74c"
+        },
+        "ffprobe": {
+          "version": "8.1.1",
+          "source_url": "https://ffmpeg.org/download.html",
+          "provider_url": "https://ffmpeg.martin-riedl.de/",
+          "download_url": "https://ffmpeg.martin-riedl.de/download/macos/amd64/1778768838_8.1.1/ffprobe.zip",
+          "download_sha256": "e9b9b83fef584c367b27c683a1172921b4f48fa8bd5df6712ef54e63b915ea50",
+          "archive_member": "ffprobe",
+          "original_filename": "ffprobe.zip",
+          "build": "third-party-static-gpl",
+          "executable": "ffprobe",
+          "diagnostic_args": [
+            "-version"
+          ],
+          "licenses": [
+            "GPL-3.0-or-later"
+          ],
+          "sha256": "cb39232c06f663e97917798ed75f7538341367401f9c180f10646193a7a29a54"
+        },
+        "rnnoise-cli": {
+          "version": "0.2",
+          "source_url": "https://github.com/xiph/rnnoise/releases/download/v0.2/rnnoise-0.2.tar.gz",
+          "cli_source": "scripts/rnnoise_cli/rnnoise_cli.c",
+          "build": "local-static-rnnoise",
+          "executable": "rnnoise-cli",
+          "diagnostic_args": [
+            "--version"
+          ],
+          "licenses": [
+            "BSD-3-Clause"
+          ],
+          "sha256": "4a592f34119030c4b607aa2829e5c20f3e0479b6e15070d44c1e281de68cde2f"
+        }
+      }
+    },
+    "windows-x86_64": {
+      "os": "windows",
+      "cpu": "x86_64",
+      "tools": {
+        "deep-filter": {
+          "version": "0.5.6",
+          "source_url": "https://github.com/Rikorose/DeepFilterNet/releases/tag/v0.5.6",
+          "download_url": "https://github.com/Rikorose/DeepFilterNet/releases/download/v0.5.6/deep-filter-0.5.6-x86_64-pc-windows-msvc.exe",
+          "original_filename": "deep-filter-0.5.6-x86_64-pc-windows-msvc.exe",
+          "executable": "deep-filter.exe",
+          "diagnostic_args": [
+            "--version"
+          ],
+          "licenses": [
+            "MIT",
+            "Apache-2.0"
+          ],
+          "sha256": "75e11fa16445f560cb6b021521ddb89e89270d13b83089705d98776f58fd7915"
+        },
+        "ffmpeg": {
+          "version": "8.1.1",
+          "source_url": "https://ffmpeg.org/download.html",
+          "provider_url": "https://www.gyan.dev/ffmpeg/builds/",
+          "download_url": "https://www.gyan.dev/ffmpeg/builds/packages/ffmpeg-8.1.1-essentials_build.zip",
+          "download_sha256": "6f58ce889f59c311410f7d2b18895b33c03456463486f3b1ebc93d97a0f54541",
+          "archive_member": "ffmpeg-8.1.1-essentials_build/bin/ffmpeg.exe",
+          "original_filename": "ffmpeg-8.1.1-essentials_build.zip",
+          "build": "third-party-static-gpl",
+          "executable": "ffmpeg.exe",
+          "diagnostic_args": [
+            "-version"
+          ],
+          "licenses": [
+            "GPL-3.0-or-later"
+          ],
+          "sha256": "228d7a8556258de907fdb55f36850078ebc7680b84ec30d84ea02e99bec1d1eb"
+        },
+        "ffprobe": {
+          "version": "8.1.1",
+          "source_url": "https://ffmpeg.org/download.html",
+          "provider_url": "https://www.gyan.dev/ffmpeg/builds/",
+          "download_url": "https://www.gyan.dev/ffmpeg/builds/packages/ffmpeg-8.1.1-essentials_build.zip",
+          "download_sha256": "6f58ce889f59c311410f7d2b18895b33c03456463486f3b1ebc93d97a0f54541",
+          "archive_member": "ffmpeg-8.1.1-essentials_build/bin/ffprobe.exe",
+          "original_filename": "ffmpeg-8.1.1-essentials_build.zip",
+          "build": "third-party-static-gpl",
+          "executable": "ffprobe.exe",
+          "diagnostic_args": [
+            "-version"
+          ],
+          "licenses": [
+            "GPL-3.0-or-later"
+          ],
+          "sha256": "0fde260f5abd35c9cafd96f594cc76365a780c1b73a90e35b6a3409ea1db1bf0"
+        },
+        "rnnoise-cli": {
+          "version": "0.2",
+          "source_url": "https://github.com/xiph/rnnoise/releases/download/v0.2/rnnoise-0.2.tar.gz",
+          "cli_source": "scripts/rnnoise_cli/rnnoise_cli.c",
+          "build": "local-static-rnnoise",
+          "executable": "rnnoise-cli.exe",
+          "diagnostic_args": [
+            "--version"
+          ],
+          "licenses": [
+            "BSD-3-Clause"
+          ],
+          "sha256": "c30d233b4095c49c434a0fa778850b56c2c5587646e6bd28e9f8ee45f53cd6b6"
+        }
+      }
+    }
+  },
+  "notices": [
+    "FFmpeg 8.1.1 and FFprobe are redistributed from third-party GPLv3 static builds: Martin Riedl for macOS and Gyan Doshi for Windows.",
+    "DeepFilterNet 0.5.6 executable assets are redistributed under upstream MIT and Apache-2.0 terms.",
+    "RNNoise 0.2 is built from upstream source plus scripts/rnnoise_cli/rnnoise_cli.c under BSD-style terms."
+  ]
+}

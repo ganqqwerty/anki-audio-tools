@@ -35,17 +35,44 @@ If that happens, clear `deep_filter_path` in `addon/anki_audio_quick_editor/meta
 
 ## Runtime Dependencies
 
-Anki add-ons cannot rely on `pip install` at user runtime. Audio Quick Editor currently uses only the Python/Qt runtime bundled with Anki plus user-installed `ffmpeg`/`ffprobe` executables, so no Python runtime packages are vendored.
+Anki add-ons cannot rely on `pip install` at user runtime. Audio Quick Editor uses the Python/Qt runtime bundled with Anki and ships a locked native runtime payload for supported release platforms. The self-sufficient release matrix is macOS arm64, macOS x86_64, and Windows x86_64.
 
-Noise removal and pause shortening use DeepFilterNet's `deep-filter` executable. The repository bundles the pinned macOS arm64 binary at `addon/anki_audio_quick_editor/bin/deep-filter-0.5.6-aarch64-apple-darwin`; see `addon/anki_audio_quick_editor/bin/README.md` for the upstream release URL and checksum. Other platforms can still configure `deep_filter_path` or provide `deep-filter` on `PATH`.
+Release archives bundle `ffmpeg`, `ffprobe`, DeepFilterNet's `deep-filter`, and `rnnoise-cli` below `bin/<target>/`. Runtime discovery checks user overrides first, bundled tools second, and `PATH` as a compatibility fallback. The settings diagnostics report whether each tool came from config, the bundled payload, or `PATH`.
+
+Native release assets are not committed into `addon/anki_audio_quick_editor/bin/`. The checked-in `bin/` directory contains documentation and notices only. Use `.release-assets/bin/<target>/` as the ignored build/fetch cache and `release_assets.lock.json` as the source of truth for expected executables, source URLs, diagnostic arguments, and SHA-256 values.
+
+Release asset workflow:
+
+```bash
+python3 scripts/dev.py release-assets fetch-deepfilter --target all
+python3 scripts/dev.py release-assets fetch-ffmpeg --target all
+python3 scripts/dev.py release-assets build-rnnoise --target macos-arm64
+python3 scripts/dev.py release-assets build-rnnoise --target macos-x86_64
+python3 scripts/dev.py release-assets build-rnnoise --target windows-x86_64
+python3 scripts/dev.py release-assets verify --target all
+```
+
+FFmpeg and FFprobe are fetched from locked third-party static release archives: Martin Riedl's macOS builds and Gyan Doshi's Windows essentials build. The lock records both the provider archive SHA-256 and the extracted executable SHA-256. RNNoise is still built locally from source; Windows RNNoise can be cross-built from macOS when `x86_64-w64-mingw32-gcc` is available. A release is not approved until native acceptance has run on each supported platform.
+
+Package one platform at a time for normal distribution:
+
+```bash
+python3 scripts/release.py --target macos-arm64
+python3 scripts/release.py --target macos-x86_64
+python3 scripts/release.py --target windows-x86_64
+```
+
+The universal `--target all` archive still works for direct distribution when
+called with `--allow-large-archive "<reason>"`, but third-party static FFmpeg
+pushes it above the normal compressed-size gate.
 
 Pause-shortening runs retain provenance under `<addon_dir>/aqe_artifacts/<run_id>/`, including intermediate WAV files, raw silence metadata, timeline JSON, filter script, final output copy, and `manifest.json`. The directory is intentionally unbounded for now, so clean it manually during local testing if it grows large.
 
-RNNoise denoising uses a bundled macOS arm64 CLI at `addon/anki_audio_quick_editor/bin/rnnoise-cli-macos-arm64/bin/rnnoise-cli`. The add-on uses ffmpeg to convert arbitrary source audio to raw 48 kHz mono signed 16-bit PCM, runs RNNoise over that raw stream, then uses ffmpeg to encode the result as MP3.
+RNNoise denoising uses ffmpeg to convert arbitrary source audio to raw 48 kHz mono signed 16-bit PCM, runs RNNoise over that raw stream, then uses ffmpeg to encode the result as MP3.
 
 Prosody visualization can use `praat-parselmouth` when it is already available in Anki's Python, but the shipped add-on does not require it. The required cross-platform path is the built-in ffmpeg/PCM fallback. A dry-run compatibility check on this machine resolved `praat-parselmouth 0.4.7` and `numpy 2.4.4` for Anki Python 3.13, but those packages were not installed or vendored.
 
-Local ffmpeg setup:
+Local ffmpeg setup remains useful for development and e2e baselines:
 
 - Installed with Homebrew: `ffmpeg 8.1.1`
 - Binaries: `/opt/homebrew/bin/ffmpeg` and `/opt/homebrew/bin/ffprobe`

@@ -19,9 +19,8 @@ Anki desktop add-on for quickly editing audio references from the note editor. I
 
 - Anki 25.09 or later
 - Python 3.13 as bundled by Anki
-- `ffmpeg` and `ffprobe` available on PATH, or an explicit `ffmpeg_path` in settings
-- DeepFilterNet's `deep-filter` for pause shortening and noise removal; macOS arm64 uses the bundled binary, other platforms can configure `deep_filter_path` or provide it on PATH
-- RNNoise denoising uses a bundled macOS arm64 executable; other platforms currently show a clear unsupported-runtime diagnostic for that model
+- Release archives bundle `ffmpeg`, `ffprobe`, DeepFilterNet, and RNNoise runtimes for macOS arm64, macOS x86_64, and Windows x86_64
+- Optional advanced overrides: explicit `ffmpeg_path` and `deep_filter_path` settings still take precedence over bundled tools
 - Optional: `praat-parselmouth` in Anki's Python for preferred pitch/intensity analysis; the add-on falls back to ffmpeg-decoded PCM without it
 - Node.js 18+ for editing or rebuilding the settings/editor frontend bundles
 
@@ -46,7 +45,15 @@ The local development add-on ID is `1000000002`.
 ## Release
 
 ```bash
-python3 scripts/release.py
+python3 scripts/dev.py release-assets verify --target all
+python3 scripts/release.py --target current
+python3 scripts/dev.py release-smoke dist/anki-audio-quick-editor-<version>-<target>.ankiaddon
 ```
 
-This validates the repo and produces `dist/anki-audio-quick-editor-<version>.ankiaddon`.
+This validates the repo, regenerates contracts and webview bundles, stages locked
+native runtime payloads, validates the archive manifest, and produces a
+platform-targeted archive such as
+`dist/anki-audio-quick-editor-<version>-macos-arm64.ankiaddon`. Universal
+archives remain available with `--target all`, but the third-party FFmpeg
+payload makes them too large for the normal release size gate unless an explicit
+`--allow-large-archive` reason is supplied.

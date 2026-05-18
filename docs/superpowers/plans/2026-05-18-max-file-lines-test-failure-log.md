@@ -125,3 +125,21 @@
 - Classification: bad fixture/setup coupling
 - Decision: make the guard self-contained by deriving the repository root from the test file path.
 - Follow-up owner/task: current refactor; prefer local path derivation for architecture tests unless a fixture already exists.
+
+## 2026-05-18 - frontend control action DOM boundary drift
+
+- Failing command and test id: `python3 scripts/dev.py check`; frontend validation step `npm run validate`; `settings_ui/tests/frontend-architecture.test.ts`
+- Observed failure message: `src/editor-inline/control-actions.ts: document query` was reported by the frontend architecture test.
+- Why the test failed: extracting DOM status, busy-state, and label helpers from `actions.ts` introduced a new module that legitimately owns editor-control DOM queries, but the executable frontend architecture allowlist still only knew about the previous modules.
+- Classification: architecture contract drift.
+- Decision: add `settings_ui/src/editor-inline/control-actions.ts` to the query-selector allowlist and remove the temporary max-line exception for `actions.ts`.
+- Follow-up owner/task: current refactor; when splitting frontend DOM helpers, update `settings_ui/tests/frontend-architecture.test.ts` in the same patch as the new module.
+
+## 2026-05-18 - split e2e trailing blank lines
+
+- Failing command and test id: `git diff --check`
+- Observed failure message: `e2e/test_editor_graph_visualizer_workflow.py:236: new blank line at EOF` and `e2e/test_editor_processing_workflow.py:370: new blank line at EOF`.
+- Why the test failed: moving tests into focused e2e modules left trailing blank lines at EOF in two source files.
+- Classification: formatting fallout.
+- Decision: remove the trailing blank lines and rerun `git diff --check`.
+- Follow-up owner/task: current refactor; include `git diff --check` before staging split-file changes.

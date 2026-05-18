@@ -19,6 +19,8 @@ python3 scripts/dev.py build
 
 Frontend-dependent test commands also build before they run. `python3 scripts/dev.py test-svelte` rebuilds before validation, and `python3 scripts/dev.py test-e2e` rebuilds before launching Anki e2e tests.
 
+Release packaging also regenerates contracts and both webview bundles before staging files, even when invoked with `--skip-quality-checks`. A release archive should never depend on ignored generated files that happened to be present before the release command started.
+
 This build step is not optional for runtime verification. The Anki editor and settings dialogs load only the generated files in `addon/anki_audio_quick_editor/templates/`; they do not load Vite source files or a dev server. If e2e behavior does not match a TypeScript/Svelte edit, check whether the bundle was regenerated and whether the test was run through `scripts/dev.py`.
 
 Generated bundle files are ignored by git. Commit the source files that produce them, not the generated `settings_bundle.*` or `editor_bundle.*` files.

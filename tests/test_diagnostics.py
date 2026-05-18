@@ -28,6 +28,7 @@ def test_deep_filter_health_reports_missing_configured_executable(monkeypatch) -
     assert health == {
         "available": False,
         "path": "/missing/deep filter",
+        "source": "config",
         "version": "",
         "error": "deep-filter is missing",
     }
@@ -49,6 +50,7 @@ def test_deep_filter_health_reports_os_error(monkeypatch) -> None:
 
     assert health["available"] is False
     assert health["path"] == "/tools/deep-filter"
+    assert health["source"] == "PATH"
     assert health["version"] == ""
     assert "No space left on device" in health["error"]
 
@@ -69,6 +71,7 @@ def test_deep_filter_health_reports_timeout(monkeypatch) -> None:
     assert health == {
         "available": False,
         "path": "/tools/deep-filter",
+        "source": "PATH",
         "version": "",
         "error": "deep-filter --version timed out.",
     }
@@ -99,6 +102,7 @@ def test_deep_filter_health_reports_nonzero_version_stderr_with_problematic_file
     assert health == {
         "available": False,
         "path": "/tools/deep-filter",
+        "source": "PATH",
         "version": "",
         "error": "could not inspect 'bad name [final] #1.wav'",
     }
@@ -106,10 +110,11 @@ def test_deep_filter_health_reports_nonzero_version_stderr_with_problematic_file
 
 def test_rnnoise_health_reports_missing_bundle_at_expected_path(monkeypatch, tmp_path: Path) -> None:
     expected_dir = tmp_path / "rnnoise-cli-macos-arm64"
+    expected_path = expected_dir / "rnnoise-cli"
 
     monkeypatch.setattr(
-        "anki_audio_quick_editor.audio_processor.expected_bundled_rnnoise_dir",
-        lambda: expected_dir,
+        "anki_audio_quick_editor.audio_processor.expected_bundled_tool_path",
+        lambda tool_name: expected_path if tool_name == "rnnoise-cli" else None,
     )
     monkeypatch.setattr(
         "anki_audio_quick_editor.audio_processor.find_rnnoise_bundle",
@@ -122,7 +127,8 @@ def test_rnnoise_health_reports_missing_bundle_at_expected_path(monkeypatch, tmp
 
     assert health == {
         "available": False,
-        "path": str(expected_dir / "bin" / "rnnoise-cli"),
+        "path": str(expected_path),
+        "source": "bundled",
         "version": "",
         "error": "rnnoise bundle is incomplete",
     }
@@ -131,16 +137,18 @@ def test_rnnoise_health_reports_missing_bundle_at_expected_path(monkeypatch, tmp
 
 def test_rnnoise_health_reports_successful_version(monkeypatch) -> None:
     monkeypatch.setattr(
-        "anki_audio_quick_editor.audio_processor.expected_bundled_rnnoise_dir",
-        lambda: Path("/addon/bin/rnnoise-cli-macos-arm64"),
+        "anki_audio_quick_editor.audio_processor.expected_bundled_tool_path",
+        lambda tool_name: (
+            Path("/addon/bin/macos-arm64/rnnoise-cli") if tool_name == "rnnoise-cli" else None
+        ),
     )
     monkeypatch.setattr(
         "anki_audio_quick_editor.audio_processor.find_rnnoise_bundle",
-        lambda: Path("/addon/bin/rnnoise-cli-macos-arm64/bin/rnnoise-cli"),
+        lambda: Path("/addon/bin/macos-arm64/rnnoise-cli"),
     )
 
     def fake_run(cmd, capture_output: bool, text: bool, check: bool, timeout: int) -> SimpleNamespace:
-        assert cmd == ["/addon/bin/rnnoise-cli-macos-arm64/bin/rnnoise-cli", "--version"]
+        assert cmd == ["/addon/bin/macos-arm64/rnnoise-cli", "--version"]
         assert capture_output is True
         assert text is True
         assert check is False
@@ -153,7 +161,8 @@ def test_rnnoise_health_reports_successful_version(monkeypatch) -> None:
 
     assert health == {
         "available": True,
-        "path": "/addon/bin/rnnoise-cli-macos-arm64/bin/rnnoise-cli",
+        "path": "/addon/bin/macos-arm64/rnnoise-cli",
+        "source": "bundled",
         "version": "rnnoise-cli 0.2",
         "error": "",
     }
@@ -162,8 +171,8 @@ def test_rnnoise_health_reports_successful_version(monkeypatch) -> None:
 def test_rnnoise_health_reports_timeout_and_os_error(monkeypatch) -> None:
     rnnoise_path = Path("/addon/bin/rnnoise-cli")
     monkeypatch.setattr(
-        "anki_audio_quick_editor.audio_processor.expected_bundled_rnnoise_dir",
-        lambda: rnnoise_path.parent.parent,
+        "anki_audio_quick_editor.audio_processor.expected_bundled_tool_path",
+        lambda tool_name: rnnoise_path if tool_name == "rnnoise-cli" else None,
     )
     monkeypatch.setattr("anki_audio_quick_editor.audio_processor.find_rnnoise_bundle", lambda: rnnoise_path)
 
@@ -174,6 +183,7 @@ def test_rnnoise_health_reports_timeout_and_os_error(monkeypatch) -> None:
     assert build_rnnoise_health() == {
         "available": False,
         "path": str(rnnoise_path),
+        "source": "bundled",
         "version": "",
         "error": "rnnoise-cli --version timed out.",
     }
@@ -185,18 +195,21 @@ def test_rnnoise_health_reports_timeout_and_os_error(monkeypatch) -> None:
     health = build_rnnoise_health()
     assert health["available"] is False
     assert health["path"] == str(rnnoise_path)
+    assert health["source"] == "bundled"
     assert health["version"] == ""
     assert "permission denied" in health["error"]
 
 
 def test_rnnoise_health_reports_nonzero_version_output(monkeypatch) -> None:
     monkeypatch.setattr(
-        "anki_audio_quick_editor.audio_processor.expected_bundled_rnnoise_dir",
-        lambda: Path("/addon/bin/rnnoise-cli-macos-arm64"),
+        "anki_audio_quick_editor.audio_processor.expected_bundled_tool_path",
+        lambda tool_name: (
+            Path("/addon/bin/macos-arm64/rnnoise-cli") if tool_name == "rnnoise-cli" else None
+        ),
     )
     monkeypatch.setattr(
         "anki_audio_quick_editor.audio_processor.find_rnnoise_bundle",
-        lambda: Path("/addon/bin/rnnoise-cli-macos-arm64/bin/rnnoise-cli"),
+        lambda: Path("/addon/bin/macos-arm64/rnnoise-cli"),
     )
     monkeypatch.setattr(
         "anki_audio_quick_editor.diagnostics.subprocess.run",
@@ -205,7 +218,8 @@ def test_rnnoise_health_reports_nonzero_version_output(monkeypatch) -> None:
 
     assert build_rnnoise_health() == {
         "available": False,
-        "path": "/addon/bin/rnnoise-cli-macos-arm64/bin/rnnoise-cli",
+        "path": "/addon/bin/macos-arm64/rnnoise-cli",
+        "source": "bundled",
         "version": "",
         "error": "invalid arch",
     }

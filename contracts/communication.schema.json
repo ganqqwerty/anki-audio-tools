@@ -133,10 +133,11 @@
     "ExternalToolHealth": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["available", "path", "version", "error"],
+      "required": ["available", "path", "source", "version", "error"],
       "properties": {
         "available": { "type": "boolean" },
         "path": { "type": "string" },
+        "source": { "type": "string", "enum": ["", "config", "bundled", "PATH"] },
         "version": { "type": "string" },
         "error": { "type": "string" }
       }

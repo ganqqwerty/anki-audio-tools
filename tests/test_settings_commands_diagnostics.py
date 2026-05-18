@@ -159,6 +159,7 @@ def test_async_health_check_reports_deep_filter_version() -> None:
     assert result["result"]["deep_filter"] == {
         "available": True,
         "path": "/custom/deep-filter",
+        "source": "config",
         "version": "deep-filter 0.5.6",
         "error": "",
     }
@@ -193,8 +194,8 @@ def test_async_health_check_reports_rnnoise_version() -> None:
     assert result["result"]["rnnoise"] == {
         "available": True,
         "path": "/addon/bin/rnnoise-cli-macos-arm64/bin/rnnoise-cli",
+        "source": "bundled",
         "version": "rnnoise-cli 0.2",
         "error": "",
     }
-
 

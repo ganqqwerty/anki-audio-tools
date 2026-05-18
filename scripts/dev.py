@@ -45,6 +45,7 @@ DEV_DEPS = [
     "jsonschema",
     "praat-parselmouth>=0.4.7",
 ]
+_COMMAND_ARGS: list[str] = []
 
 
 def cmd_setup() -> int:
@@ -69,7 +70,13 @@ def cmd_test() -> int:
     contracts_rc = cmd_contracts_generate()
     if contracts_rc != 0:
         return contracts_rc
-    return _run_pytest("tests/", label="python tests")
+    targets = _COMMAND_ARGS or ["tests/"]
+    for target in targets:
+        label = f"python tests: {target}" if _COMMAND_ARGS else "python tests"
+        rc = _run_pytest(target, label=label)
+        if rc != 0:
+            return rc
+    return 0
 
 
 def cmd_test_anki_api() -> int:
@@ -315,6 +322,22 @@ def cmd_release() -> int:
     return _run([sys.executable, "scripts/release.py"], label="release build")
 
 
+def cmd_release_assets() -> int:
+    args = _COMMAND_ARGS
+    if not args:
+        print("Usage: python3 scripts/dev.py release-assets <subcommand> [args...]", file=sys.stderr)
+        return 1
+    return _run([sys.executable, "scripts/release_assets.py", *args], label="release asset preparation")
+
+
+def cmd_release_smoke() -> int:
+    args = _COMMAND_ARGS
+    if len(args) != 1:
+        print("Usage: python3 scripts/dev.py release-smoke <archive.ankiaddon>", file=sys.stderr)
+        return 1
+    return _run([sys.executable, "scripts/release_smoke.py", args[0]], label="release archive smoke test")
+
+
 COMMANDS: dict[str, tuple[Callable[[], int], str]] = {
     "setup": (cmd_setup, "One-time setup: install dev deps, create symlink, npm install"),
     "architecture-report": (cmd_architecture_report, "Inspect executable architecture contracts and report violations"),
@@ -344,6 +367,8 @@ COMMANDS: dict[str, tuple[Callable[[], int], str]] = {
     "contracts-check": (cmd_contracts_check, "Verify generated JSON contracts are current"),
     "file-lines": (cmd_file_lines, "Check hand-maintained Python files against line-count limits"),
     "release": (cmd_release, "Run scripts/release.py"),
+    "release-assets": (cmd_release_assets, "Fetch, build, verify, and stage locked release runtime assets"),
+    "release-smoke": (cmd_release_smoke, "Smoke-test a built .ankiaddon archive in isolation"),
     "info": (cmd_info, "Print discovered paths and versions"),
 }
 
@@ -369,6 +394,8 @@ def main() -> None:
         print(f"Unknown command: {command!r}\n")
         cmd_help()
         raise SystemExit(1)
+    global _COMMAND_ARGS
+    _COMMAND_ARGS = sys.argv[2:]
     print(f"[dev] selected command: {command}")
     func, _ = COMMANDS[command]
     raise SystemExit(func())

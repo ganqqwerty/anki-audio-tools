@@ -96,7 +96,10 @@ __all__ = [
     "build_silencedetect_command",
     "build_wav_filter_command",
     "build_working_original_filters",
+    "bundled_tool_path",
+    "current_platform_key",
     "expected_bundled_rnnoise_dir",
+    "expected_bundled_tool_path",
     "find_deep_filter",
     "find_ffmpeg",
     "find_ffprobe",
@@ -113,6 +116,7 @@ __all__ = [
     "select_deep_filter_output",
     "temp_final_path",
     "temp_playback_path",
+    "tool_source_label",
 ]
 
 _BUNDLED_DEEP_FILTER_VERSION = _audio_tools.BUNDLED_DEEP_FILTER_VERSION
@@ -121,6 +125,7 @@ BUNDLED_RNNOISE_VERSION = _audio_tools.BUNDLED_RNNOISE_VERSION
 _PACKAGE_DIR = _audio_tools.PACKAGE_DIR
 _ORIGINAL_BUNDLED_DEEP_FILTER_PATH = _audio_tools._bundled_deep_filter_path
 _ORIGINAL_EXPECTED_BUNDLED_RNNOISE_DIR = _audio_tools.expected_bundled_rnnoise_dir
+_ORIGINAL_EXPECTED_BUNDLED_TOOL_PATH = _audio_tools.expected_bundled_tool_path
 _ORIGINAL_MAKE_PLAYBACK_SEGMENT_FILENAME = _audio_rendering.make_playback_segment_filename
 
 
@@ -133,6 +138,22 @@ def _sync_tool_dependencies() -> None:
     audio_tools.Path = Path
     audio_tools.shutil = shutil
     audio_tools._bundled_deep_filter_path = _bundled_deep_filter_path
+
+
+def current_platform_key() -> str | None:
+    return _audio_tools.current_platform_key()
+
+
+def bundled_tool_path(tool_name: str) -> Path | None:
+    return _audio_tools.bundled_tool_path(tool_name)
+
+
+def expected_bundled_tool_path(tool_name: str) -> Path | None:
+    return _ORIGINAL_EXPECTED_BUNDLED_TOOL_PATH(tool_name)
+
+
+def tool_source_label(tool_path: Path, *, configured_path: str = "") -> str:
+    return _audio_tools.tool_source_label(tool_path, configured_path=configured_path)
 
 
 def find_ffmpeg(configured_path: str = "") -> Path:  # pragma: no mutate
@@ -156,8 +177,16 @@ def expected_bundled_rnnoise_dir() -> Path | None:
 
 def find_rnnoise_bundle() -> Path:
     _sync_tool_dependencies()
-    cast(Any, _audio_tools).expected_bundled_rnnoise_dir = expected_bundled_rnnoise_dir
-    return _audio_tools.find_rnnoise_bundle()
+    audio_tools = cast(Any, _audio_tools)
+    original_dir = audio_tools.expected_bundled_rnnoise_dir
+    original_path = audio_tools.expected_bundled_tool_path
+    audio_tools.expected_bundled_rnnoise_dir = expected_bundled_rnnoise_dir
+    audio_tools.expected_bundled_tool_path = expected_bundled_tool_path
+    try:
+        return _audio_tools.find_rnnoise_bundle()
+    finally:
+        audio_tools.expected_bundled_rnnoise_dir = original_dir
+        audio_tools.expected_bundled_tool_path = original_path
 
 
 def _sync_external_dependencies() -> None:
