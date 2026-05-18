@@ -17,6 +17,7 @@ def injection_script(
     audio_field_sources: dict[int, str] | None = None,
     repeat_playback_by_default: bool = False,
     show_graph_by_default: bool = False,
+    split_button_defaults: dict[str, object] | None = None,
 ) -> str:
     """Return JavaScript that mounts compact controls next to audio fields."""
     config = {
@@ -24,6 +25,14 @@ def injection_script(
         "audioFieldSources": audio_field_sources or {},
         "repeatPlaybackByDefault": bool(repeat_playback_by_default),
         "showGraphByDefault": bool(show_graph_by_default),
+        "splitButtonDefaults": split_button_defaults
+        or {
+            "trimStepMs": 100,
+            "volumeStepDb": 3.0,
+            "speedStep": 0.05,
+            "pauseAggressiveness": "normal",
+            "denoiseAlgorithm": "standard",
+        },
     }
     return (
         "(function() {\n"

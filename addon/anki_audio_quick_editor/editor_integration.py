@@ -171,6 +171,13 @@ def _on_editor_will_load_note(js: str, note: Any, editor: Any) -> str:
         audio_field_sources=audio_field_sources,
         repeat_playback_by_default=bool(config.get("repeat_playback_by_default", False)),
         show_graph_by_default=bool(config.get("show_graph_by_default", False)),
+        split_button_defaults={
+            "trimStepMs": int(config.get("manual_trim_small_ms", 100)),
+            "volumeStepDb": float(config.get("volume_step_db", 3.0)),
+            "speedStep": float(config.get("speed_step", 0.05)),
+            "pauseAggressiveness": str(config.get("pause_aggressiveness", "normal")),
+            "denoiseAlgorithm": str(config.get("denoise_algorithm", "standard")),
+        },
     )
     return f"{js}\n{script}"
 
