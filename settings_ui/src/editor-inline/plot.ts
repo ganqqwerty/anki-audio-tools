@@ -131,9 +131,8 @@ export function graphPixelBounds(svg: SVGSVGElement): { left: number; width: num
   const rectWidth = Number(rect.width) || PLOT.width;
   const rectHeight = Number(rect.height) || PLOT.height;
   const scaleX = Math.min(rectWidth / PLOT.width, rectHeight / PLOT.height) || 1;
-  const renderedViewBoxLeft = rect.left + (rectWidth - PLOT.width * scaleX) / 2;
   return {
-    left: renderedViewBoxLeft + PLOT.left * scaleX,
+    left: rect.left + PLOT.left * scaleX,
     width: plotWidth() * scaleX,
   };
 }

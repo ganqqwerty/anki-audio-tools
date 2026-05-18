@@ -1,6 +1,7 @@
 .aqe-controls {
   align-items: center;
   border: 1px solid;
+  border-color: ButtonBorder;
   border-radius: 10px;
   color: inherit;
   color-scheme: light dark;
@@ -16,12 +17,13 @@
   align-items: center;
   background: transparent;
   border: 1px solid;
+  border-color: ButtonBorder;
   border-radius: 7px;
   color: inherit;
   cursor: pointer;
   display: inline-flex;
   font-size: 12px;
-  font-weight: 700;
+  font-weight: 400;
   gap: 5px;
   min-height: 27px;
   padding: 4px 8px;
@@ -90,7 +92,7 @@
 
 .aqe-repeat-button[data-aqe-button-state="active"] {
   border-style: solid;
-  box-shadow: inset 0 0 0 1px currentColor;
+  box-shadow: inset 0 0 0 1px ButtonBorder;
 }
 
 .aqe-menu {
@@ -112,6 +114,7 @@
 .aqe-menu-items {
   background: Canvas;
   border: 1px solid;
+  border-color: ButtonBorder;
   border-radius: 7px;
   box-shadow: 0 8px 18px rgb(0 0 0 / 18%);
   display: grid;
@@ -144,6 +147,7 @@
 
 .aqe-help-body {
   border-top: 1px solid;
+  border-color: ButtonBorder;
   display: grid;
   gap: 6px;
   margin-top: 6px;
@@ -182,6 +186,7 @@
 
 .aqe-visualizer-svg {
   border: 1px solid;
+  border-color: ButtonBorder;
   border-radius: 8px;
   color: inherit;
   display: block;

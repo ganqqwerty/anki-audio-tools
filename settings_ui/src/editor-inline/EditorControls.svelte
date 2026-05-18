@@ -150,6 +150,7 @@
       class="aqe-visualizer-svg"
       data-testid={`aqe-graph-svg-${target.ord}`}
       viewBox={`0 0 ${PLOT.width} ${PLOT.height}`}
+      preserveAspectRatio="xMinYMin meet"
       role="img"
       aria-label="Audio pitch and intensity visualization"
       onpointerdown={(event) => handleVisualizerPointerDown(event, target.ord)}
