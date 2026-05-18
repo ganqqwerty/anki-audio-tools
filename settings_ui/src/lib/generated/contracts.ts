@@ -91,18 +91,15 @@ export interface HealthReport {
     collection_available: boolean;
     deck_count:           number;
     deep_filter?:         ExternalToolHealth;
-    mp_senet?:            ExternalToolHealth;
     note_type_count:      number;
     rnnoise?:             ExternalToolHealth;
 }
 
 export interface ExternalToolHealth {
-    available:   boolean;
-    error:       string;
-    model_dir?:  string;
-    model_path?: string;
-    path:        string;
-    version:     string;
+    available: boolean;
+    error:     string;
+    path:      string;
+    version:   string;
 }
 
 export interface InitialState {

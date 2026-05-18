@@ -108,7 +108,7 @@ describe("editor inline defensive edges", () => {
       <div class="field-container" data-index="4">[sound:fallback.mp3]</div>
       <div class="field-container" data-index="5"></div>
       <div class="field-container" data-index="6">[sound:container.mp3]<div contenteditable="true"></div></div>
-      <div contenteditable="true" id="field-7">[sound:unsupported.flac]</div>
+      <div contenteditable="true" id="field-7">[sound:unsupported.mp4]</div>
       <div contenteditable="true" data-ord="8">text</div>
       <div contenteditable="true">duplicate</div>
       <div contenteditable="true">duplicate</div>

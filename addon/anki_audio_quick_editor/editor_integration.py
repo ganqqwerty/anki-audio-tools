@@ -16,7 +16,6 @@ from .audio_processor import (
     format_ffmpeg_command,
     make_output_filename,
     render_audio,
-    render_mp_senet_audio,
     render_noise_reduced_audio,
     render_playback_segment,
     render_rnnoise_audio,
@@ -28,7 +27,6 @@ from .editor_actions import (
     BRIDGE_COMMANDS,
     CMD_ANALYZE_FIELD,
     CMD_DENOISE_STANDARD,
-    CMD_MP_SENET,
     CMD_REDO,
     CMD_RNNOISE,
     CMD_SETTINGS,
@@ -47,12 +45,9 @@ from .sound_refs import (
     select_first_sound_reference,
 )
 from .support import (
-    MP_SENET_SUPPORT_HINT,
-    format_mp_senet_support_log_block,
+    SUPPORT_REPORT_HINT,
     format_rnnoise_support_log_block,
-    latest_mp_senet_support_incident,
     latest_rnnoise_support_incident,
-    record_latest_mp_senet_support_incident,
     record_latest_rnnoise_support_incident,
 )
 
@@ -159,7 +154,7 @@ def _on_editor_will_load_note(js: str, note: Any, editor: Any) -> str:
 
 
 def _audio_field_indices(note: Any) -> list[int]:
-    """Return field indices containing an MVP-supported sound reference."""
+    """Return field indices containing a supported sound reference."""
     return list(_audio_field_sources(note))
 
 
@@ -237,7 +232,6 @@ def _handle_non_processing_command(editor: Any, command: str) -> bool:
         CMD_REDO: _redo,
         CMD_SETTINGS: _open_settings_from_editor,
         CMD_DENOISE_STANDARD: _denoise_standard_async,
-        CMD_MP_SENET: _mp_senet_async,
         CMD_RNNOISE: _rnnoise_async,
     }
     handler = handlers.get(command)
@@ -404,24 +398,13 @@ def _denoise_standard_async(editor: Any) -> None:
     )
 
 
-def _mp_senet_async(editor: Any) -> None:
-    _run_special_audio_transform_async(
-        editor,
-        label="Denoising with MP-SENet",
-        failure_log_label="mp-senet denoise failed",
-        renderer=render_mp_senet_audio,
-        support_hint=MP_SENET_SUPPORT_HINT,
-        failure_context_recorder=_record_mp_senet_failure_context,
-    )
-
-
 def _rnnoise_async(editor: Any) -> None:
     _run_special_audio_transform_async(
         editor,
         label="Denoising with RNNoise",
         failure_log_label="rnnoise denoise failed",
         renderer=render_rnnoise_audio,
-        support_hint=MP_SENET_SUPPORT_HINT,
+        support_hint=SUPPORT_REPORT_HINT,
         failure_context_recorder=_record_rnnoise_failure_context,
     )
 
@@ -882,21 +865,6 @@ def _show_current_audio_file(editor: Any) -> None:
     reveal_file(media_path)
     _eval_status(editor, f"Showing {media_path.name} in folder")
 
-def _record_mp_senet_failure_context(
-    source_path: Path,
-    config: AudioProcessingConfig,
-    exc: Exception,
-) -> None:
-    record_latest_mp_senet_support_incident(
-        operation="mp_senet_denoise",
-        media_filename=source_path.name,
-        source_path=str(source_path.resolve()),
-        user_message=str(exc),
-        exception_type=type(exc).__name__,
-        ffmpeg_path=config.ffmpeg_path,
-    )
-
-
 def _record_rnnoise_failure_context(
     source_path: Path,
     config: AudioProcessingConfig,
@@ -913,18 +881,6 @@ def _record_rnnoise_failure_context(
 
 
 def _log_special_transform_failure(failure_log_label: str, message: str) -> None:
-    if failure_log_label == "mp-senet denoise failed":
-        incident = latest_mp_senet_support_incident()
-        if incident:
-            logger.exception(
-                "%s: %s\n%s",
-                failure_log_label,
-                message,
-                format_mp_senet_support_log_block(incident),
-            )
-            return
-        logger.exception("%s: %s", failure_log_label, message)
-        return
     if failure_log_label == "rnnoise denoise failed":
         incident = latest_rnnoise_support_incident()
         if incident:

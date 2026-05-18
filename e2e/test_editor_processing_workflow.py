@@ -97,7 +97,6 @@ def test_each_processing_button_updates_field_to_new_real_audio(
                 "Shorten Pauses",
                 "Denoise",
                 "Standard",
-                "MP-SENet",
                 "RNNoise",
                 "Slower",
                 "Faster",
@@ -441,7 +440,6 @@ def test_three_audio_fields_fast_cross_clicks_lock_globally_and_do_not_corrupt_f
         "aqe:faster",
         "aqe:volume-up",
         "aqe:remove-pauses",
-        "aqe:mp-senet",
         "aqe:rnnoise",
     ],
 )
@@ -463,15 +461,10 @@ def test_multi_field_processing_undo_redo_survives_graph_default_auto_analysis(
         generate_tone(ffmpeg_config, source, duration_s=1.4 + index * 0.1)
     note = _three_audio_field_note(anki_mw, tuple(source.name for source in sources))
     fake_deep_filter, _deep_filter_log = _fake_deep_filter_executable(tmp_path)
-    if command == "aqe:mp-senet":
-        monkeypatch.setattr(
-            "anki_audio_quick_editor.editor_integration.render_mp_senet_audio",
-            _fake_mp_senet_renderer,
-        )
     if command == "aqe:rnnoise":
         monkeypatch.setattr(
             "anki_audio_quick_editor.editor_integration.render_rnnoise_audio",
-            _fake_mp_senet_renderer,
+            _fake_special_renderer,
         )
     _configure_ffmpeg(
         anki_mw,
@@ -529,7 +522,7 @@ def test_multi_field_processing_undo_redo_survives_graph_default_auto_analysis(
         parent.close()
 
 
-def _fake_mp_senet_renderer(source_path: Path, config, output_path: Path, **_kwargs) -> None:
+def _fake_special_renderer(source_path: Path, config, output_path: Path, **_kwargs) -> None:
     subprocess.run(
         [
             config.ffmpeg_path,

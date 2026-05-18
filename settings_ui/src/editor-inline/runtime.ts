@@ -16,7 +16,7 @@ import type { EditorRuntimeConfig, FieldTarget } from "./types.js";
 import { installEditorWindowContract } from "./window-contract.js";
 
 const soundPattern = /\[sound:([^\]]+)\]/i;
-const supportedPattern = /\.(mp3|wav|ogg)$/i;
+const supportedPattern = /\.(aac|flac|m4a|mp3|oga|ogg|opus|wav|webm)$/i;
 let scheduledScanTimers: number[] = [];
 
 export function initializeEditorRuntime(config: EditorRuntimeConfig = window.__AQE_EDITOR_CONFIG__ ?? { audioFieldIndices: [] }): void {

@@ -82,7 +82,6 @@ def test_play_graph_cursor_and_play_ended_are_not_processing_commands() -> None:
         "aqe:analyze-field",
         "aqe:set-cursor",
         "aqe:denoise-standard",
-        "aqe:mp-senet",
         "aqe:rnnoise",
         "aqe:settings",
         "aqe:redo",
@@ -90,7 +89,6 @@ def test_play_graph_cursor_and_play_ended_are_not_processing_commands() -> None:
     }.isdisjoint(PROCESSING_COMMANDS)
 
     assert "aqe:denoise-standard" in BRIDGE_COMMANDS
-    assert "aqe:mp-senet" in BRIDGE_COMMANDS
     assert "aqe:rnnoise" in BRIDGE_COMMANDS
     assert "aqe:settings" in BRIDGE_COMMANDS
     assert "aqe:redo" in BRIDGE_COMMANDS

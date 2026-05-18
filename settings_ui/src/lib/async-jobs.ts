@@ -134,9 +134,7 @@ function _isExternalToolHealth(value: unknown): value is ExternalToolHealth {
     typeof value.available === "boolean" &&
     typeof value.path === "string" &&
     typeof value.version === "string" &&
-    typeof value.error === "string" &&
-    (value.model_dir === undefined || typeof value.model_dir === "string") &&
-    (value.model_path === undefined || typeof value.model_path === "string")
+    typeof value.error === "string"
   );
 }
 
@@ -148,7 +146,6 @@ function _isHealthReport(value: unknown): value is HealthReport {
     typeof value.note_type_count === "number" &&
     typeof value.card_count === "number" &&
     (value.deep_filter === undefined || _isExternalToolHealth(value.deep_filter)) &&
-    (value.mp_senet === undefined || _isExternalToolHealth(value.mp_senet)) &&
     (value.rnnoise === undefined || _isExternalToolHealth(value.rnnoise))
   );
 }

@@ -197,7 +197,7 @@ When paused:
 
 ### Editing Commands And Redraws
 
-Editing commands include destructive-output operations that generate a new audio reference, such as Volume +, Volume -, Slower, Faster, Trim, Standard denoise, Remove pauses, and MP-SENet.
+Editing commands include destructive-output operations that generate a new audio reference, such as Volume +, Volume -, Slower, Faster, Trim, Standard denoise, Remove pauses, and RNNoise.
 
 When the user clicks an editing command while playback is playing, repeating, or paused:
 

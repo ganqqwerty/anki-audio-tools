@@ -96,12 +96,18 @@ Success outcome:
 
 The add-on must detect Anki sound references in editor fields.
 
-Supported extensions:
+Supported input extensions:
 
 ```text
+.aac
+.flac
+.m4a
 .mp3
-.wav
+.oga
 .ogg
+.opus
+.wav
+.webm
 ```
 
 Behavior:

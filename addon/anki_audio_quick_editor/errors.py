@@ -17,10 +17,6 @@ class MissingDeepFilterError(AudioQuickEditorError):
     """Raised when DeepFilterNet's deep-filter executable cannot be found."""
 
 
-class MissingMpSenetError(AudioQuickEditorError):
-    """Raised when the bundled MP-SENet runtime cannot be found or is incomplete."""
-
-
 class MissingRnnoiseError(AudioQuickEditorError):
     """Raised when the bundled RNNoise runtime cannot be found or is incomplete."""
 

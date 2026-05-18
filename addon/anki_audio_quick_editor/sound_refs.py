@@ -10,7 +10,9 @@ from pathlib import Path
 
 from .errors import UnsupportedAudioError
 
-SUPPORTED_AUDIO_EXTENSIONS = frozenset({".mp3", ".wav", ".ogg"})
+SUPPORTED_AUDIO_EXTENSIONS = frozenset(
+    {".aac", ".flac", ".m4a", ".mp3", ".oga", ".ogg", ".opus", ".wav", ".webm"}
+)
 SOUND_REF_RE = re.compile(r"(?i)\[sound:(?P<filename>[^\]]+)\]")
 
 
@@ -74,7 +76,7 @@ def select_first_sound_reference(field_html: str) -> SoundReferenceSelection:
 
 
 def is_supported_audio_filename(filename: str) -> bool:
-    """Return whether ``filename`` has an MVP-supported audio extension."""
+    """Return whether ``filename`` has a supported audio extension."""
     return Path(filename).suffix.lower() in SUPPORTED_AUDIO_EXTENSIONS
 
 

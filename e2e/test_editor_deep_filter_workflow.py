@@ -6,8 +6,6 @@ import json
 import shutil
 from pathlib import Path
 
-import pytest
-
 from e2e.editor_audio_generation_helpers import (
     _fake_deep_filter_executable,
     _generate_noisy_pause_and_clean_analysis,
@@ -32,6 +30,10 @@ from e2e.helpers import (
     generate_tone,
     wait_for_condition,
     wait_for_js_condition,
+)
+
+DEEP_FILTER_SAMPLE_FIXTURE = (
+    Path(__file__).parent / "fixtures" / "audio" / "3d8ca69aee6_input_48k_mono.wav"
 )
 
 
@@ -348,15 +350,9 @@ def test_standard_denoise_menu_undo_with_user_meta_settings_on_local_sample(
     anki_mw,
     ffmpeg_config,
 ) -> None:
-    sample_path = Path(
-        "/Users/iuriikatkov/Library/Application Support/Anki2/main2/collection.media/3d8ca69aee6.mp3"
-    )
-    if not sample_path.is_file():
-        pytest.skip(f"Local DeepFilterNet sample is unavailable: {sample_path}")
-
     media_dir = Path(anki_mw.col.media.dir())
-    source = media_dir / sample_path.name
-    shutil.copyfile(sample_path, source)
+    source = media_dir / DEEP_FILTER_SAMPLE_FIXTURE.name
+    shutil.copyfile(DEEP_FILTER_SAMPLE_FIXTURE, source)
     note = _basic_audio_note(anki_mw, source.name)
     _configure_ffmpeg(
         anki_mw,
@@ -467,16 +463,10 @@ def test_standard_denoise_menu_matches_direct_deep_filter_output(
     ffmpeg_config,
     tmp_path,
 ) -> None:
-    sample_path = Path(
-        "/Users/iuriikatkov/Library/Application Support/Anki2/main2/collection.media/3d8ca69aee6.mp3"
-    )
-    if not sample_path.is_file():
-        pytest.skip(f"Local DeepFilterNet sample is unavailable: {sample_path}")
-
     media_dir = Path(anki_mw.col.media.dir())
-    source = media_dir / sample_path.name
-    shutil.copyfile(sample_path, source)
-    direct_output = tmp_path / "3d8ca69aee6_direct_deep_filter.mp3"
+    source = media_dir / DEEP_FILTER_SAMPLE_FIXTURE.name
+    shutil.copyfile(DEEP_FILTER_SAMPLE_FIXTURE, source)
+    direct_output = tmp_path / "3d8ca69aee6_input_48k_mono_direct_deep_filter.mp3"
     _render_direct_deep_filter_reference(
         ffmpeg_config,
         source,

@@ -138,9 +138,7 @@
         "available": { "type": "boolean" },
         "path": { "type": "string" },
         "version": { "type": "string" },
-        "error": { "type": "string" },
-        "model_dir": { "type": "string" },
-        "model_path": { "type": "string" }
+        "error": { "type": "string" }
       }
     },
     "HealthReport": {
@@ -153,7 +151,6 @@
         "note_type_count": { "type": "integer" },
         "card_count": { "type": "integer" },
         "deep_filter": { "$ref": "#/definitions/ExternalToolHealth" },
-        "mp_senet": { "$ref": "#/definitions/ExternalToolHealth" },
         "rnnoise": { "$ref": "#/definitions/ExternalToolHealth" }
       }
     },

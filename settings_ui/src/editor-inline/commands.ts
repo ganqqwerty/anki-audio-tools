@@ -30,7 +30,6 @@ export const DENOISE_BUTTONS: readonly ButtonSpec[] = [
     label: "Standard",
     title: "Denoise speech with DeepFilterNet",
   },
-  { command: "aqe:mp-senet", icon: "sparkles", label: "MP-SENet", title: "Denoise speech with MP-SENet" },
   { command: "aqe:rnnoise", icon: "waves", label: "RNNoise", title: "Denoise speech with RNNoise" },
 ] as const;
 
@@ -41,7 +40,6 @@ export const PROCESSING_COMMANDS = new Set<EditorCommand>([
   "aqe:faster",
   "aqe:remove-pauses",
   "aqe:denoise-standard",
-  "aqe:mp-senet",
   "aqe:rnnoise",
   "aqe:volume-down",
   "aqe:volume-up",
@@ -55,7 +53,6 @@ export const COMMAND_SLUGS: Readonly<Record<EditorCommand, string>> = {
   "aqe:trim-right": "trim-right",
   "aqe:remove-pauses": "remove-pauses",
   "aqe:denoise-standard": "denoise-standard",
-  "aqe:mp-senet": "mp-senet",
   "aqe:rnnoise": "rnnoise",
   "aqe:slower": "slower",
   "aqe:faster": "faster",
@@ -72,7 +69,6 @@ export function testId(ord: number, command: EditorCommand): string {
 
 export function processingMessage(command: EditorCommand): string {
   if (command === "aqe:denoise-standard") return "Denoising with Standard...";
-  if (command === "aqe:mp-senet") return "Denoising with MP-SENet...";
   if (command === "aqe:rnnoise") return "Denoising with RNNoise...";
   return "Processing...";
 }

@@ -21,7 +21,7 @@ Anki desktop add-on for quickly editing audio references from the note editor. I
 - Python 3.13 as bundled by Anki
 - `ffmpeg` and `ffprobe` available on PATH, or an explicit `ffmpeg_path` in settings
 - DeepFilterNet's `deep-filter` for pause shortening and noise removal; macOS arm64 uses the bundled binary, other platforms can configure `deep_filter_path` or provide it on PATH
-- MP-SENet and RNNoise denoising use bundled macOS arm64 executables; other platforms currently show a clear unsupported-runtime diagnostic for those models
+- RNNoise denoising uses a bundled macOS arm64 executable; other platforms currently show a clear unsupported-runtime diagnostic for that model
 - Optional: `praat-parselmouth` in Anki's Python for preferred pitch/intensity analysis; the add-on falls back to ffmpeg-decoded PCM without it
 - Node.js 18+ for editing or rebuilding the settings/editor frontend bundles
 
@@ -41,7 +41,7 @@ The local development add-on ID is `1000000002`.
 - Settings and editor frontend source: `settings_ui/`
 - Build the committed frontend bundles: `python3 scripts/dev.py build`
 - Open the settings dialog from Anki: `Tools -> Anki Audio Quick Editor -> Settings`
-- Edit audio from Anki by focusing a field containing `[sound:filename.mp3]` and using the injected inline controls.
+- Edit audio from Anki by focusing a field containing a supported sound reference such as `[sound:filename.m4a]`; edits are saved as new MP3 files.
 
 ## Release
 

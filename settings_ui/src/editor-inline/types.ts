@@ -8,7 +8,6 @@ export type EditorCommand =
   | "aqe:trim-right"
   | "aqe:remove-pauses"
   | "aqe:denoise-standard"
-  | "aqe:mp-senet"
   | "aqe:rnnoise"
   | "aqe:slower"
   | "aqe:faster"

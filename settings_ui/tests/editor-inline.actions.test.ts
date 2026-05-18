@@ -93,7 +93,6 @@ describe("editor inline action workflows", () => {
     expect(commandSlugsForTest()["aqe:redo"]).toBe("redo");
     expect(commandSlugsForTest()["aqe:settings"]).toBe("settings");
     expect(processingMessage("aqe:denoise-standard")).toBe("Denoising with Standard...");
-    expect(processingMessage("aqe:mp-senet")).toBe("Denoising with MP-SENet...");
     expect(processingMessage("aqe:rnnoise")).toBe("Denoising with RNNoise...");
     expect(processingMessage("aqe:faster")).toBe("Processing...");
   });

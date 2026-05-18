@@ -25,8 +25,6 @@ from anki_audio_quick_editor.audio_processor import (
     build_deep_filter_command,
     build_deep_filter_prepare_command,
     build_mp3_encode_command,
-    build_mp_senet_command,
-    build_mp_senet_prepare_command,
     build_playback_segment_filters,
     build_rnnoise_command,
     build_rnnoise_encode_command,
@@ -36,14 +34,12 @@ from anki_audio_quick_editor.audio_processor import (
     find_deep_filter,
     find_ffmpeg,
     find_ffprobe,
-    find_mp_senet_bundle,
     find_rnnoise_bundle,
     format_ffmpeg_command,
     make_output_filename,
     make_playback_segment_filename,
     probe_duration_ms,
     render_audio,
-    render_mp_senet_audio,
     render_noise_reduced_audio,
     render_playback_segment,
     render_rnnoise_audio,
@@ -55,14 +51,11 @@ from anki_audio_quick_editor.errors import (
     AudioProcessingError,
     MissingDeepFilterError,
     MissingFfmpegError,
-    MissingMpSenetError,
     MissingRnnoiseError,
 )
 from anki_audio_quick_editor.support import (
-    clear_latest_mp_senet_support_incident,
     clear_latest_pause_pipeline_support_incident,
     clear_latest_rnnoise_support_incident,
-    latest_mp_senet_support_incident,
     latest_pause_pipeline_support_incident,
     latest_rnnoise_support_incident,
 )
@@ -204,42 +197,6 @@ def test_find_deep_filter_raises_when_missing(monkeypatch) -> None:
 
     with pytest.raises(MissingDeepFilterError, match="DeepFilterNet.*Standard denoise.*Shorten Pauses"):
         find_deep_filter()
-
-
-def test_find_mp_senet_bundle_uses_bundled_directory_when_complete(tmp_path: Path, monkeypatch) -> None:
-    bundled_dir = tmp_path / "mp-senet-cli-macos-arm64"
-    mp_senet_path = bundled_dir / "bin" / "mp-senet-cli"
-    model_path = bundled_dir / "models" / "mp_senet_vb.torchscript.pt"
-    mp_senet_path.parent.mkdir(parents=True)
-    model_path.parent.mkdir(parents=True)
-    mp_senet_path.write_text("")
-    (bundled_dir / "bin" / "mp-senet-cli-real").write_text("")
-    model_path.write_text("")
-
-    monkeypatch.setattr(
-        "anki_audio_quick_editor.audio_processor.expected_bundled_mp_senet_dir",
-        lambda: bundled_dir,
-    )
-
-    assert find_mp_senet_bundle() == (mp_senet_path, model_path)
-
-
-def test_find_mp_senet_bundle_raises_when_bundle_is_incomplete(
-    tmp_path: Path,
-    monkeypatch,
-) -> None:
-    bundled_dir = tmp_path / "mp-senet-cli-macos-arm64"
-    (bundled_dir / "bin").mkdir(parents=True)
-    (bundled_dir / "bin" / "mp-senet-cli").write_text("")
-    (bundled_dir / "models").mkdir(parents=True)
-
-    monkeypatch.setattr(
-        "anki_audio_quick_editor.audio_processor.expected_bundled_mp_senet_dir",
-        lambda: bundled_dir,
-    )
-
-    with pytest.raises(MissingMpSenetError, match="bundled mp-senet-cli runtime and model file"):
-        find_mp_senet_bundle()
 
 
 def test_find_rnnoise_bundle_uses_bundled_executable_when_complete(
@@ -482,51 +439,6 @@ def test_build_deep_filter_command_omits_post_filter_when_disabled(tmp_path: Pat
         "-o",
         str(tmp_path / "out"),
         str(tmp_path / "input.wav"),
-    )
-
-
-def test_build_mp_senet_prepare_command_uses_16khz_mono_pcm(tmp_path: Path) -> None:
-    command = build_mp_senet_prepare_command(
-        Path("/bin/ffmpeg"),
-        tmp_path / "source.mp3",
-        tmp_path / "input.wav",
-    )
-
-    assert command == (
-        "/bin/ffmpeg",
-        "-y",
-        "-i",
-        str(tmp_path / "source.mp3"),
-        "-vn",
-        "-ac",
-        "1",
-        "-ar",
-        "16000",
-        "-codec:a",
-        "pcm_s16le",
-        str(tmp_path / "input.wav"),
-    )
-
-
-def test_build_mp_senet_command_includes_model_path_and_json(tmp_path: Path) -> None:
-    command = build_mp_senet_command(
-        Path("/bin/mp-senet-cli"),
-        tmp_path / "input.wav",
-        tmp_path / "output.wav",
-        tmp_path / "models" / "mp_senet_vb.torchscript.pt",
-    )
-
-    assert command == (
-        "/bin/mp-senet-cli",
-        "denoise",
-        "--input",
-        str(tmp_path / "input.wav"),
-        "--output",
-        str(tmp_path / "output.wav"),
-        "--model",
-        str(tmp_path / "models" / "mp_senet_vb.torchscript.pt"),
-        "--overwrite",
-        "--json",
     )
 
 
@@ -1200,132 +1112,6 @@ def test_render_audio_pause_pipeline_records_launch_error_for_out_of_disk(
     assert incident is not None
     assert incident["manifest_path"] == str(manifest_path)
     assert incident["attempted_commands"][0]["launch_error"].startswith("Could not start working-audio preparation.")
-
-
-def test_render_mp_senet_audio_runs_prepare_denoise_and_encode(
-    monkeypatch,
-    tmp_path: Path,
-) -> None:
-    clear_latest_mp_senet_support_incident()
-    calls: list[list[str]] = []
-    commands: list[tuple[str, ...]] = []
-    model_path = tmp_path / "models" / "mp_senet_vb.torchscript.pt"
-
-    monkeypatch.setattr("anki_audio_quick_editor.audio_processor.find_ffmpeg", lambda _path: Path("/bin/ffmpeg"))
-    monkeypatch.setattr(
-        "anki_audio_quick_editor.audio_processor.find_mp_senet_bundle",
-        lambda: (Path("/bin/mp-senet-cli"), model_path),
-    )
-    monkeypatch.setattr("anki_audio_quick_editor.audio_processor.probe_duration_ms", lambda *_args: 1000)
-
-    def fake_run(cmd: list[str], capture_output: bool, text: bool, check: bool) -> SimpleNamespace:
-        calls.append(cmd)
-        if cmd[0] == "/bin/mp-senet-cli":
-            Path(cmd[cmd.index("--output") + 1]).write_bytes(b"denoised")
-            return SimpleNamespace(returncode=0, stdout='{"ok":true}', stderr="")
-        return SimpleNamespace(returncode=0, stdout="", stderr="")
-
-    monkeypatch.setattr("anki_audio_quick_editor.audio_processor.subprocess.run", fake_run)
-
-    output = tmp_path / "denoised.mp3"
-    result = render_mp_senet_audio(
-        tmp_path / "source.mp3",
-        AudioProcessingConfig(),
-        output_path=output,
-        on_command=commands.append,
-    )
-
-    assert calls[0] == [
-        "/bin/ffmpeg",
-        "-y",
-        "-i",
-        str(tmp_path / "source.mp3"),
-        "-vn",
-        "-ac",
-        "1",
-        "-ar",
-        "16000",
-        "-codec:a",
-        "pcm_s16le",
-        calls[0][-1],
-    ]
-    assert calls[1][0] == "/bin/mp-senet-cli"
-    assert "--model" in calls[1]
-    assert "--json" in calls[1]
-    assert calls[2][0:4] == ["/bin/ffmpeg", "-y", "-i", calls[2][3]]
-    assert calls[2][-5:] == ["-codec:a", "libmp3lame", "-q:a", "4", str(output)]
-    assert commands == [tuple(call) for call in calls]
-    assert result.output_path == output
-    assert result.command == tuple(calls[1])
-    assert result.duration_ms == 1000
-    assert latest_mp_senet_support_incident() is None
-
-
-def test_render_mp_senet_audio_reports_denoise_errors(
-    monkeypatch,
-    tmp_path: Path,
-) -> None:
-    clear_latest_mp_senet_support_incident()
-    monkeypatch.setattr("anki_audio_quick_editor.audio_processor.find_ffmpeg", lambda _path: Path("/bin/ffmpeg"))
-    monkeypatch.setattr(
-        "anki_audio_quick_editor.audio_processor.find_mp_senet_bundle",
-        lambda: (Path("/bin/mp-senet-cli"), tmp_path / "models" / "mp_senet_vb.torchscript.pt"),
-    )
-
-    def fake_run(cmd: list[str], capture_output: bool, text: bool, check: bool) -> SimpleNamespace:
-        if cmd[0] == "/bin/mp-senet-cli":
-            return SimpleNamespace(returncode=5, stdout='{"error":"TorchScript load failed"}', stderr="")
-        return SimpleNamespace(returncode=0, stdout="", stderr="")
-
-    monkeypatch.setattr("anki_audio_quick_editor.audio_processor.subprocess.run", fake_run)
-
-    with pytest.raises(AudioProcessingError, match="TorchScript load failed"):
-        render_mp_senet_audio(
-            tmp_path / "source.mp3",
-            AudioProcessingConfig(),
-            output_path=tmp_path / "denoised.mp3",
-        )
-    incident = latest_mp_senet_support_incident()
-    assert incident is not None
-    assert incident["operation"] == "mp_senet_denoise"
-    assert incident["media_filename"] == "source.mp3"
-    assert incident["ffmpeg_path"] == "/bin/ffmpeg"
-    assert incident["mp_senet_path"] == "/bin/mp-senet-cli"
-    assert len(incident["attempted_commands"]) == 2
-    assert incident["attempted_commands"][1]["command"].startswith("/bin/mp-senet-cli denoise")
-    assert incident["attempted_commands"][1]["returncode"] == 5
-    assert incident["attempted_commands"][1]["stdout"] == '{"error":"TorchScript load failed"}'
-
-
-def test_render_mp_senet_audio_reports_launch_errors(
-    monkeypatch,
-    tmp_path: Path,
-) -> None:
-    clear_latest_mp_senet_support_incident()
-    monkeypatch.setattr("anki_audio_quick_editor.audio_processor.find_ffmpeg", lambda _path: Path("/bin/ffmpeg"))
-    monkeypatch.setattr(
-        "anki_audio_quick_editor.audio_processor.find_mp_senet_bundle",
-        lambda: (Path("/bin/mp-senet-cli"), tmp_path / "models" / "mp_senet_vb.torchscript.pt"),
-    )
-
-    def fake_run(cmd: list[str], capture_output: bool, text: bool, check: bool) -> SimpleNamespace:
-        if cmd[0] == "/bin/mp-senet-cli":
-            raise PermissionError(13, "Permission denied", "/bin/mp-senet-cli")
-        return SimpleNamespace(returncode=0, stdout="", stderr="")
-
-    monkeypatch.setattr("anki_audio_quick_editor.audio_processor.subprocess.run", fake_run)
-
-    with pytest.raises(AudioProcessingError, match="Could not start MP-SENet denoise"):
-        render_mp_senet_audio(
-            tmp_path / "source.mp3",
-            AudioProcessingConfig(),
-            output_path=tmp_path / "denoised.mp3",
-        )
-    incident = latest_mp_senet_support_incident()
-    assert incident is not None
-    assert incident["attempted_commands"][1]["launch_error"].startswith(
-        "Could not start MP-SENet denoise."
-    )
 
 
 def test_render_rnnoise_audio_runs_prepare_denoise_and_encode(

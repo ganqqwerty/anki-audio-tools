@@ -143,11 +143,27 @@ describe("editor inline Svelte integration", () => {
     expect(graphButton).toHaveClass("aqe-icon-only");
     expect(graphButton).toHaveAttribute("aria-label", "Analyze and show pitch/intensity graph");
     expect(settingsButton).toHaveClass("aqe-icon-only");
-    expect(document.querySelector('[data-testid="aqe-button-0-mp-senet"]')).toHaveTextContent("MP-SENet");
     expect(document.querySelector('[data-testid="aqe-button-0-denoise-standard"]')).toHaveTextContent("Standard");
     expect(document.querySelector('[data-testid="aqe-button-0-rnnoise"]')).toHaveTextContent("RNNoise");
     expect(audioSourceForNode(document.getElementById("f0")!)).toBe("clip one.mp3");
     expect(fieldIndex(document.getElementById("f0")!, 7)).toBe(0);
+  });
+
+  it.each(["aac", "flac", "m4a", "mp3", "oga", "ogg", "opus", "wav", "webm"])(
+    "detects %s sound references as supported audio",
+    (extension) => {
+      document.body.innerHTML = `<div id="format-field">[sound:clip one.${extension.toUpperCase()}]</div>`;
+
+      expect(audioSourceForNode(document.getElementById("format-field")!)).toBe(
+        `clip one.${extension.toUpperCase()}`,
+      );
+    },
+  );
+
+  it("does not detect mp4 sound references as supported audio", () => {
+    document.body.innerHTML = '<div id="video-field">[sound:clip.mp4]</div>';
+
+    expect(audioSourceForNode(document.getElementById("video-field")!)).toBe("");
   });
 
   it("dispatches denoise menu commands and renders collapsed help", () => {
@@ -162,9 +178,6 @@ describe("editor inline Svelte integration", () => {
     document.querySelector<HTMLButtonElement>('[data-testid="aqe-button-0-denoise-standard"]')!.click();
     expect(bridgeCommands()).toContain("aqe:denoise-standard");
 
-    window.__aqePrepareForNewNote?.();
-    document.querySelector<HTMLButtonElement>('[data-testid="aqe-button-0-mp-senet"]')!.click();
-    expect(bridgeCommands()).toContain("aqe:mp-senet");
     window.__aqePrepareForNewNote?.();
     document.querySelector<HTMLButtonElement>('[data-testid="aqe-button-0-rnnoise"]')!.click();
     expect(bridgeCommands()).toContain("aqe:rnnoise");

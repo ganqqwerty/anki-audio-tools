@@ -295,8 +295,6 @@ class ExternalToolHealth:
     error: str
     path: str
     version: str
-    model_dir: Optional[str] = None
-    model_path: Optional[str] = None
 
     @staticmethod
     def from_dict(obj: Any) -> 'ExternalToolHealth':
@@ -305,9 +303,7 @@ class ExternalToolHealth:
         error = from_str(obj.get("error"))
         path = from_str(obj.get("path"))
         version = from_str(obj.get("version"))
-        model_dir = from_union([from_str, from_none], obj.get("model_dir"))
-        model_path = from_union([from_str, from_none], obj.get("model_path"))
-        return ExternalToolHealth(available, error, path, version, model_dir, model_path)
+        return ExternalToolHealth(available, error, path, version)
 
     def to_dict(self) -> dict:
         result: dict = {}
@@ -315,10 +311,6 @@ class ExternalToolHealth:
         result["error"] = from_str(self.error)
         result["path"] = from_str(self.path)
         result["version"] = from_str(self.version)
-        if self.model_dir is not None:
-            result["model_dir"] = from_union([from_str, from_none], self.model_dir)
-        if self.model_path is not None:
-            result["model_path"] = from_union([from_str, from_none], self.model_path)
         return result
 
 
@@ -329,7 +321,6 @@ class HealthReport:
     deck_count: int
     note_type_count: int
     deep_filter: Optional[ExternalToolHealth] = None
-    mp_senet: Optional[ExternalToolHealth] = None
     rnnoise: Optional[ExternalToolHealth] = None
 
     @staticmethod
@@ -340,9 +331,8 @@ class HealthReport:
         deck_count = from_int(obj.get("deck_count"))
         note_type_count = from_int(obj.get("note_type_count"))
         deep_filter = from_union([ExternalToolHealth.from_dict, from_none], obj.get("deep_filter"))
-        mp_senet = from_union([ExternalToolHealth.from_dict, from_none], obj.get("mp_senet"))
         rnnoise = from_union([ExternalToolHealth.from_dict, from_none], obj.get("rnnoise"))
-        return HealthReport(card_count, collection_available, deck_count, note_type_count, deep_filter, mp_senet, rnnoise)
+        return HealthReport(card_count, collection_available, deck_count, note_type_count, deep_filter, rnnoise)
 
     def to_dict(self) -> dict:
         result: dict = {}
@@ -352,8 +342,6 @@ class HealthReport:
         result["note_type_count"] = from_int(self.note_type_count)
         if self.deep_filter is not None:
             result["deep_filter"] = from_union([lambda x: to_class(ExternalToolHealth, x), from_none], self.deep_filter)
-        if self.mp_senet is not None:
-            result["mp_senet"] = from_union([lambda x: to_class(ExternalToolHealth, x), from_none], self.mp_senet)
         if self.rnnoise is not None:
             result["rnnoise"] = from_union([lambda x: to_class(ExternalToolHealth, x), from_none], self.rnnoise)
         return result

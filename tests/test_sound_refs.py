@@ -6,11 +6,15 @@ import pytest
 
 from anki_audio_quick_editor.errors import UnsupportedAudioError
 from anki_audio_quick_editor.sound_refs import (
+    SUPPORTED_AUDIO_EXTENSIONS,
     find_sound_references,
+    is_supported_audio_filename,
     replace_sound_reference,
     safe_media_basename,
     select_first_sound_reference,
 )
+
+COMMON_AUDIO_EXTENSIONS = (".aac", ".flac", ".m4a", ".mp3", ".oga", ".ogg", ".opus", ".wav", ".webm")
 
 
 def test_detects_sound_reference_inside_html() -> None:
@@ -27,6 +31,20 @@ def test_detects_sound_reference_trims_inner_whitespace() -> None:
 
     assert selection.selected is not None
     assert selection.selected.filename == "sentence.MP3"
+
+
+def test_supported_audio_extensions_match_common_input_formats() -> None:
+    assert SUPPORTED_AUDIO_EXTENSIONS == frozenset(COMMON_AUDIO_EXTENSIONS)
+
+
+@pytest.mark.parametrize("extension", COMMON_AUDIO_EXTENSIONS)
+def test_accepts_common_supported_audio_extensions_case_insensitively(extension: str) -> None:
+    for filename in (f"clip{extension}", f"clip{extension.upper()}"):
+        selection = select_first_sound_reference(f"[sound:{filename}]")
+
+        assert selection.selected is not None
+        assert selection.selected.filename == filename
+        assert is_supported_audio_filename(filename)
 
 
 def test_ignores_fields_without_audio() -> None:

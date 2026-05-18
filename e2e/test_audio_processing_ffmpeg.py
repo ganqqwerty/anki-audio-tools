@@ -2,9 +2,47 @@
 
 from __future__ import annotations
 
+import subprocess
 from pathlib import Path
 
+import pytest
+
 from e2e.helpers import generate_tone
+
+FORMAT_FIXTURES = (
+    ("aac", ("-c:a", "aac", "-f", "adts")),
+    ("flac", ("-c:a", "flac")),
+    ("m4a", ("-c:a", "aac", "-f", "mp4")),
+    ("mp3", ("-c:a", "libmp3lame")),
+    ("oga", ("-ac", "2", "-c:a", "vorbis", "-strict", "-2", "-f", "ogg")),
+    ("ogg", ("-ac", "2", "-c:a", "vorbis", "-strict", "-2", "-f", "ogg")),
+    ("opus", ("-ar", "48000", "-c:a", "opus", "-strict", "-2", "-f", "opus")),
+    ("wav", ("-c:a", "pcm_s16le")),
+    ("webm", ("-ar", "48000", "-c:a", "opus", "-strict", "-2", "-f", "webm")),
+)
+
+
+def _generate_audio_fixture(ffmpeg_config, path: Path, output_args: tuple[str, ...]) -> None:
+    subprocess.run(
+        [
+            ffmpeg_config.ffmpeg_path,
+            "-y",
+            "-f",
+            "lavfi",
+            "-i",
+            "sine=frequency=440:duration=0.8",
+            "-vn",
+            "-ac",
+            "1",
+            "-ar",
+            "44100",
+            *output_args,
+            str(path),
+        ],
+        check=True,
+        capture_output=True,
+        text=True,
+    )
 
 
 def test_trim_left_renders_shorter_recording(
@@ -94,6 +132,36 @@ def test_volume_gain_renders_new_mp3_with_db_filter(
     assert quieter.is_file()
     assert "volume=6.00dB" in format_ffmpeg_command(louder_result.command)
     assert "volume=-6.00dB" in format_ffmpeg_command(quieter_result.command)
+
+
+@pytest.mark.parametrize(("extension", "output_args"), FORMAT_FIXTURES)
+def test_common_audio_input_format_renders_to_mp3(
+    anki_mw,
+    tmp_path: Path,
+    ffmpeg_config,
+    extension: str,
+    output_args: tuple[str, ...],
+) -> None:
+    from anki_audio_quick_editor.audio_processor import probe_duration_ms, render_audio
+    from anki_audio_quick_editor.audio_state import AudioEditState
+
+    del anki_mw
+    source = tmp_path / f"common-input.{extension}"
+    output = tmp_path / f"rendered-{extension}.mp3"
+    _generate_audio_fixture(ffmpeg_config, source, output_args)
+
+    result = render_audio(
+        source,
+        AudioEditState(source_file=source.name, volume_db=-1.0),
+        ffmpeg_config,
+        output_path=output,
+    )
+
+    assert output.is_file()
+    assert result.output_path == output
+    assert result.output_path.suffix == ".mp3"
+    assert "libmp3lame" in result.command
+    assert probe_duration_ms(output, ffmpeg_config) > 0
 
 
 def test_final_save_writes_new_anki_media_without_overwriting_original(
