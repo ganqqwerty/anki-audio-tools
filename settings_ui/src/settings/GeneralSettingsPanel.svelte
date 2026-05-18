@@ -101,6 +101,21 @@
       <span>Pause target gap (ms)</span>
       <input type="number" min="1" bind:value={config.internal_pause_target_gap_ms} />
     </label>
+    <label>
+      <span>Shorten pauses level</span>
+      <select bind:value={config.pause_aggressiveness}>
+        <option value="gentle">Gentle</option>
+        <option value="normal">Normal</option>
+        <option value="aggressive">Aggressive</option>
+      </select>
+    </label>
+    <label>
+      <span>Default denoise algorithm</span>
+      <select bind:value={config.denoise_algorithm}>
+        <option value="standard">Standard</option>
+        <option value="rnnoise">RNNoise</option>
+      </select>
+    </label>
   </div>
   {#if saveError}
     <p class="error" data-testid="save-error">{saveError}</p>
@@ -147,7 +162,8 @@
   }
 
   input[type="text"],
-  input[type="number"] {
+  input[type="number"],
+  select {
     background: var(--canvas-inset, Field);
     border: 1px solid var(--border, currentColor);
     border-radius: 12px;
@@ -163,7 +179,8 @@
   }
 
   input[type="text"]:focus,
-  input[type="number"]:focus {
+  input[type="number"]:focus,
+  select:focus {
     border-color: var(--border-focus, var(--border, currentColor));
     outline: 1px solid var(--border-focus, currentColor);
   }

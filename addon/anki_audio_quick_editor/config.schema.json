@@ -21,10 +21,12 @@
     "internal_pause_silence_threshold_db",
     "internal_pause_threshold_ms",
     "internal_pause_target_gap_ms",
+    "pause_aggressiveness",
     "output_format",
     "ffmpeg_path",
     "deep_filter_path",
-    "deep_filter_post_filter"
+    "deep_filter_post_filter",
+    "denoise_algorithm"
   ],
   "properties": {
     "$schema": {
@@ -90,6 +92,10 @@
       "type": "integer",
       "minimum": 1
     },
+    "pause_aggressiveness": {
+      "type": "string",
+      "enum": ["gentle", "normal", "aggressive"]
+    },
     "output_format": {
       "type": "string",
       "const": "mp3"
@@ -102,6 +108,10 @@
     },
     "deep_filter_post_filter": {
       "type": "boolean"
+    },
+    "denoise_algorithm": {
+      "type": "string",
+      "enum": ["standard", "rnnoise"]
     }
   }
 }

@@ -1,10 +1,10 @@
 import { describe, expect, it } from "vitest";
 
 import { saveConfigPayload } from "../src/settings/settings-state.js";
-import { OutputFormat, type Config } from "../src/lib/types.js";
+import { DenoiseAlgorithm, OutputFormat, PauseAggressiveness, type Config } from "../src/lib/types.js";
 
 const config: Config = {
-  _config_version: 9,
+  _config_version: 10,
   enabled: false,
   debug_logging: false,
   show_ffmpeg_commands: false,
@@ -25,6 +25,8 @@ const config: Config = {
   ffmpeg_path: "",
   deep_filter_path: "",
   deep_filter_post_filter: true,
+  denoise_algorithm: DenoiseAlgorithm.Standard,
+  pause_aggressiveness: PauseAggressiveness.Normal,
 };
 
 describe("settings state helpers", () => {

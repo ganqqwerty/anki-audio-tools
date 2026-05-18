@@ -37,6 +37,7 @@ from .editor_actions import (
     EditorCommandPayload,
     apply_processing_command,
     decode_editor_command_payload,
+    processing_config_for_command,
 )
 from .editor_ui import injection_script
 from .errors import AudioProcessingError, AudioQuickEditorError, MissingMediaError
@@ -341,7 +342,13 @@ def _update_state_and_render(editor: Any, command: str | EditorCommandPayload) -
     if updated_state is None:
         _set_busy(editor, False)
         return
-    _render_and_replace_async(editor, session, source_path, updated_state, config)
+    _render_and_replace_async(
+        editor,
+        session,
+        source_path,
+        updated_state,
+        processing_config_for_command(command, config),
+    )
 
 
 def _render_and_replace_async(

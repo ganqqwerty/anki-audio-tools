@@ -5,10 +5,14 @@
   import { send } from "./actions.js";
   import {
     buildSplitCommandPayload,
+    formatDenoiseAlgorithm,
+    formatPauseAggressiveness,
     formatSpeedStep,
     formatTrimMs,
     formatVolumeDb,
     getSplitButtonState,
+    setDenoiseAlgorithmForField,
+    setPauseAggressivenessForField,
     setSpeedStepForField,
     setTrimStepForField,
     setVolumeStepForField,
@@ -22,6 +26,8 @@
   let trimStepMs = $state(100);
   let volumeStepDb = $state(3);
   let speedStep = $state(0.05);
+  let pauseAggressiveness = $state<"gentle" | "normal" | "aggressive">("normal");
+  let denoiseAlgorithm = $state<"standard" | "rnnoise">("standard");
 
   function slug(): string {
     return COMMAND_SLUGS[button.command];
@@ -49,6 +55,14 @@
     speedStep = setSpeedStepForField(target.ord, value).speedStep;
   }
 
+  function applyPauseAggressiveness(value: "gentle" | "normal" | "aggressive"): void {
+    pauseAggressiveness = setPauseAggressivenessForField(target.ord, value).pauseAggressiveness;
+  }
+
+  function applyDenoiseAlgorithm(value: "standard" | "rnnoise"): void {
+    denoiseAlgorithm = setDenoiseAlgorithmForField(target.ord, value).denoiseAlgorithm;
+  }
+
   function dispatchPrimary(): void {
     close();
     send(button.command, target.node, target.ord, buildSplitCommandPayload(button.command, target.ord));
@@ -60,6 +74,10 @@
     }
     if (button.command === "aqe:faster" || button.command === "aqe:slower") {
       return formatSpeedStep(speedStep, button.command);
+    }
+    if (button.command === "aqe:remove-pauses") return formatPauseAggressiveness(pauseAggressiveness);
+    if (button.command === "aqe:denoise-standard" || button.command === "aqe:rnnoise") {
+      return formatDenoiseAlgorithm(denoiseAlgorithm);
     }
     return formatTrimMs(trimStepMs);
   }
@@ -92,6 +110,28 @@
     applyTrimStep(value);
   }
 
+  function optionValues(): string[] {
+    if (button.command === "aqe:remove-pauses") return ["gentle", "normal", "aggressive"];
+    if (button.command === "aqe:denoise-standard" || button.command === "aqe:rnnoise") return ["standard", "rnnoise"];
+    return [];
+  }
+
+  function optionLabel(value: string): string {
+    if (value === "rnnoise") return "RNNoise";
+    if (value === "aggressive") return "Aggressive";
+    if (value === "gentle") return "Gentle";
+    return value === "standard" ? "Standard" : "Normal";
+  }
+
+  function applyOption(value: string): void {
+    if (value === "gentle" || value === "normal" || value === "aggressive") {
+      applyPauseAggressiveness(value);
+    }
+    if (value === "standard" || value === "rnnoise") {
+      applyDenoiseAlgorithm(value);
+    }
+  }
+
   function onDocumentPointerDown(event: MouseEvent): void {
     if (!open || !wrapper) return;
     if (event.target instanceof Node && wrapper.contains(event.target)) return;
@@ -107,6 +147,8 @@
     trimStepMs = state.trimStepMs;
     volumeStepDb = state.volumeStepDb;
     speedStep = state.speedStep;
+    pauseAggressiveness = state.pauseAggressiveness;
+    denoiseAlgorithm = state.denoiseAlgorithm;
     document.addEventListener("mousedown", onDocumentPointerDown, true);
     document.addEventListener("keydown", onDocumentKeyDown, true);
     return () => {
@@ -150,21 +192,36 @@
         <strong>{button.label}</strong>
         <span>{valueLabel()}</span>
       </div>
-      <input
-        data-testid={`aqe-split-${target.ord}-${slug()}-slider`}
-        type="range"
-        min={sliderConfig().min}
-        max={sliderConfig().max}
-        step={sliderConfig().step}
-        value={sliderValue()}
-        oninput={(event) => applyValue(Number((event.currentTarget as HTMLInputElement).value))}
-      />
-      <div class="aqe-split-range-labels">
-        <span>{sliderConfig().labels[0]}</span>
-        <span>{sliderConfig().labels[1]}</span>
-      </div>
-      <div class="aqe-split-presets">
-        {#each sliderConfig().presets as preset}
+      {#if optionValues().length}
+        <div class="aqe-split-presets">
+          {#each optionValues() as option}
+            <button
+              type="button"
+              class="aqe-button aqe-split-preset"
+              data-testid={`aqe-split-${target.ord}-${slug()}-preset-${option}`}
+              aria-pressed={valueLabel() === optionLabel(option) ? "true" : "false"}
+              onclick={() => applyOption(option)}
+            >
+              {optionLabel(option)}
+            </button>
+          {/each}
+        </div>
+      {:else}
+        <input
+          data-testid={`aqe-split-${target.ord}-${slug()}-slider`}
+          type="range"
+          min={sliderConfig().min}
+          max={sliderConfig().max}
+          step={sliderConfig().step}
+          value={sliderValue()}
+          oninput={(event) => applyValue(Number((event.currentTarget as HTMLInputElement).value))}
+        />
+        <div class="aqe-split-range-labels">
+          <span>{sliderConfig().labels[0]}</span>
+          <span>{sliderConfig().labels[1]}</span>
+        </div>
+        <div class="aqe-split-presets">
+          {#each sliderConfig().presets as preset}
           <button
             type="button"
             class="aqe-button aqe-split-preset"
@@ -178,8 +235,9 @@
                 ? formatSpeedStep(preset, button.command)
                 : formatTrimMs(preset)}
           </button>
-        {/each}
-      </div>
+          {/each}
+        </div>
+      {/if}
     </div>
   {/if}
 </span>

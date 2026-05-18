@@ -17,6 +17,7 @@ from e2e.editor_graph_helpers import (
 )
 from e2e.editor_note_helpers import (
     ADDON_NUMERIC_ID,
+    _artifact_dirs_for_source,
     _artifact_root,
     _basic_audio_note,
     _button_selector,
@@ -127,9 +128,9 @@ def test_each_processing_button_updates_field_to_new_real_audio(
                 "-R",
                 "Options",
                 "Shorten Pauses",
+                "Options",
                 "Denoise",
-                "Standard",
-                "RNNoise",
+                "Options",
                 "Slower",
                 "Options",
                 "Faster",
@@ -518,11 +519,20 @@ def test_multi_field_processing_undo_redo_survives_graph_default_auto_analysis(
             ord_=2,
             timeout=10.0,
         )
+        click_command = command
+        if command == "aqe:rnnoise":
+            click_selector(editor.web, _split_menu_selector("aqe:denoise-standard"), timeout=5.0)
+            click_selector(
+                editor.web,
+                '[data-testid="aqe-split-0-denoise-standard-preset-rnnoise"]',
+                timeout=5.0,
+            )
+            click_command = "aqe:denoise-standard"
         generated_name = _click_and_wait_for_new_file(
             editor,
             note,
             media_dir,
-            command,
+            click_command,
             sources[0].name,
         )
         _wait_for_visualizer_track(
@@ -835,3 +845,64 @@ def test_volume_and_speed_split_buttons_apply_local_values_without_changing_sett
     finally:
         editor.set_note(None)
         parent.close()
+
+
+def test_pause_split_button_applies_local_aggressiveness_without_changing_settings(
+    anki_mw,
+    ffmpeg_config,
+    tmp_path,
+) -> None:
+    media_dir = Path(anki_mw.col.media.dir())
+    source = media_dir / "editor_split_pause_source.wav"
+    generate_tone(ffmpeg_config, source, duration_s=2.0)
+    fake_deep_filter, _deep_filter_log = _fake_deep_filter_executable(tmp_path)
+    note = _basic_audio_note(anki_mw, source.name)
+    _configure_ffmpeg(
+        anki_mw,
+        ffmpeg_config,
+        deep_filter_path=str(fake_deep_filter),
+        internal_pause_silence_threshold_db=-45,
+        internal_pause_threshold_ms=300,
+        internal_pause_target_gap_ms=100,
+        pause_aggressiveness="normal",
+    )
+    artifact_root = _artifact_root(anki_mw)
+
+    editor, parent = _open_editor(anki_mw, note)
+    try:
+        wait_for_selector(editor.web, _button_selector("aqe:remove-pauses"), timeout=10.0)
+        before_artifacts = _artifact_dirs_for_source(artifact_root, source)
+        click_selector(editor.web, _split_menu_selector("aqe:remove-pauses"), timeout=5.0)
+        click_selector(
+            editor.web,
+            '[data-testid="aqe-split-0-remove-pauses-preset-aggressive"]',
+            timeout=5.0,
+        )
+        generated_name = _click_and_wait_for_new_file(
+            editor,
+            note,
+            media_dir,
+            "aqe:remove-pauses",
+            source.name,
+        )
+        wait_for_condition(
+            lambda: len(_artifact_dirs_for_source(artifact_root, source) - before_artifacts) == 1,
+            timeout=5.0,
+            message="Pause split button did not produce a new artifact manifest",
+        )
+        new_artifact = next(iter(_artifact_dirs_for_source(artifact_root, source) - before_artifacts))
+        manifest = json.loads((new_artifact / "manifest.json").read_text(encoding="utf-8"))
+
+        config = anki_mw.addonManager.getConfig(ADDON_NUMERIC_ID)
+        assert manifest["config"]["internal_pause_silence_threshold_db"] == -50
+        assert manifest["config"]["internal_pause_threshold_ms"] == 180
+        assert manifest["config"]["internal_pause_target_gap_ms"] == 60
+        assert config["pause_aggressiveness"] == "normal"
+        assert config["internal_pause_silence_threshold_db"] == -45
+        assert config["internal_pause_threshold_ms"] == 300
+        assert config["internal_pause_target_gap_ms"] == 100
+        assert _sound_filename(note.fields[0]) == generated_name
+    finally:
+        editor.set_note(None)
+        parent.close()
+        _cleanup_artifact_dirs(artifact_root, source)

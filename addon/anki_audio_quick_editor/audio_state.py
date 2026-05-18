@@ -22,10 +22,12 @@ class AudioProcessingConfig:
     internal_pause_silence_threshold_db: int = -45
     internal_pause_threshold_ms: int = 300
     internal_pause_target_gap_ms: int = 100
+    pause_aggressiveness: str = "normal"
     output_format: str = "mp3"
     ffmpeg_path: str = ""
     deep_filter_path: str = ""
     deep_filter_post_filter: bool = True
+    denoise_algorithm: str = "standard"
     show_ffmpeg_commands: bool = False
 
     @classmethod
@@ -52,12 +54,16 @@ class AudioProcessingConfig:
             internal_pause_target_gap_ms=int(
                 config.get("internal_pause_target_gap_ms", cls.internal_pause_target_gap_ms)
             ),
+            pause_aggressiveness=str(
+                config.get("pause_aggressiveness", cls.pause_aggressiveness)
+            ),
             output_format=str(config.get("output_format", cls.output_format)),
             ffmpeg_path=str(config.get("ffmpeg_path", cls.ffmpeg_path)),
             deep_filter_path=str(config.get("deep_filter_path", cls.deep_filter_path)),
             deep_filter_post_filter=bool(
                 config.get("deep_filter_post_filter", cls.deep_filter_post_filter)
             ),
+            denoise_algorithm=str(config.get("denoise_algorithm", cls.denoise_algorithm)),
             show_ffmpeg_commands=bool(
                 config.get("show_ffmpeg_commands", cls.show_ffmpeg_commands)
             ),

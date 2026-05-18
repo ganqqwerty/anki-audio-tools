@@ -36,6 +36,7 @@ MIN_VOLUME_STEP_DB = 0.5
 MAX_VOLUME_STEP_DB = 12.0
 MIN_SPEED_STEP = 0.01
 MAX_SPEED_STEP = 0.25
+PAUSE_AGGRESSIVENESS = frozenset({"gentle", "normal", "aggressive"})
 
 BRIDGE_COMMANDS = (
     "aqe:scan",
@@ -88,6 +89,7 @@ class EditorCommandOverrides:
     trim_step_ms: int | None = None
     volume_step_db: float | None = None
     speed_step: float | None = None
+    pause_aggressiveness: str | None = None
 
 
 @dataclass(frozen=True)
@@ -129,6 +131,12 @@ def _clamp_float(value: float | None, minimum: float, maximum: float) -> float |
     return max(minimum, min(maximum, value))
 
 
+def _pause_aggressiveness_or_none(value: Any) -> str | None:
+    if not isinstance(value, str):
+        return None
+    return value if value in PAUSE_AGGRESSIVENESS else None
+
+
 def _overrides_from_raw(raw: Any) -> EditorCommandOverrides:
     if not isinstance(raw, dict):
         return EditorCommandOverrides()
@@ -144,6 +152,7 @@ def _overrides_from_raw(raw: Any) -> EditorCommandOverrides:
             MIN_SPEED_STEP,
             MAX_SPEED_STEP,
         ),
+        pause_aggressiveness=_pause_aggressiveness_or_none(raw.get("pauseAggressiveness")),
     )
 
 
@@ -174,6 +183,25 @@ def operation_for_command(command: str) -> str | None:
     return BRIDGE_COMMAND_TO_OPERATION.get(command)
 
 
+def processing_config_for_command(
+    command: str | EditorCommandPayload,
+    config: AudioProcessingConfig,
+) -> AudioProcessingConfig:
+    """Return the effective render config for a local editor command."""
+    payload = decode_editor_command_payload(command)
+    effective_config = replace(
+        config,
+        volume_step_db=payload.overrides.volume_step_db or config.volume_step_db,
+        speed_step=payload.overrides.speed_step or config.speed_step,
+    )
+    if operation_for_command(payload.command) == OP_REMOVE_PAUSES:
+        return _config_for_pause_aggressiveness(
+            effective_config,
+            payload.overrides.pause_aggressiveness or config.pause_aggressiveness,
+        )
+    return effective_config
+
+
 def apply_processing_command(
     command: str | EditorCommandPayload,
     state: AudioEditState,
@@ -181,11 +209,7 @@ def apply_processing_command(
 ) -> AudioEditState | None:
     """Return the edit state after applying a processing command."""
     payload = decode_editor_command_payload(command)
-    effective_config = replace(
-        config,
-        volume_step_db=payload.overrides.volume_step_db or config.volume_step_db,
-        speed_step=payload.overrides.speed_step or config.speed_step,
-    )
+    effective_config = processing_config_for_command(payload, config)
     step = payload.overrides.trim_step_ms or config.manual_trim_small_ms
     if payload.command == CMD_TRIM_LEFT:
         return state.trim_left(step)
@@ -195,3 +219,26 @@ def apply_processing_command(
     if operation is None:
         return None
     return apply_audio_operation(operation, state, effective_config)
+
+
+def _config_for_pause_aggressiveness(
+    config: AudioProcessingConfig,
+    aggressiveness: str,
+) -> AudioProcessingConfig:
+    if aggressiveness == "gentle":
+        return replace(
+            config,
+            internal_pause_silence_threshold_db=-42,
+            internal_pause_threshold_ms=450,
+            internal_pause_target_gap_ms=180,
+            pause_aggressiveness=aggressiveness,
+        )
+    if aggressiveness == "aggressive":
+        return replace(
+            config,
+            internal_pause_silence_threshold_db=-50,
+            internal_pause_threshold_ms=180,
+            internal_pause_target_gap_ms=60,
+            pause_aggressiveness=aggressiveness,
+        )
+    return replace(config, pause_aggressiveness="normal")

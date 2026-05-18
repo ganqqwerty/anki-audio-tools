@@ -135,6 +135,8 @@ def test_save_command_writes_config(anki_mw) -> None:
         "ffmpeg_path": "",
         "deep_filter_path": "",
         "deep_filter_post_filter": True,
+        "denoise_algorithm": "standard",
+        "pause_aggressiveness": "normal",
     }
     eval_calls: list[str] = []
     dialog = type("Dialog", (), {"accept": lambda self: None, "reject": lambda self: None})()

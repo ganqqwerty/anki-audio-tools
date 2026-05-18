@@ -1,7 +1,7 @@
 <script lang="ts">
   import { onMount } from "svelte";
 
-  import { COMMAND_BUTTONS, DENOISE_BUTTONS, testId } from "./commands.js";
+  import { COMMAND_BUTTONS, testId } from "./commands.js";
   import EditorCommandIcon from "./EditorCommandIcon.svelte";
   import SplitButton from "./SplitButton.svelte";
   import {
@@ -15,10 +15,16 @@
   import { visualizerForOrd } from "./dom-selectors.js";
   import { handleVisualizerKeyDown, sendRegionDelete } from "./region-delete.js";
   import { PLOT } from "./plot.js";
-  import type { FieldTarget } from "./types.js";
+  import type { ButtonSpec, FieldTarget } from "./types.js";
 
   const { target }: { target: FieldTarget } = $props();
   const repeatDefault = window.__AQE_EDITOR_CONFIG__?.repeatPlaybackByDefault === true;
+  const denoiseButton: ButtonSpec = {
+    command: "aqe:denoise-standard",
+    icon: "sparkles",
+    label: "Denoise",
+    title: "Denoise audio",
+  };
 
   function toggleRepeat(event: MouseEvent): void {
     const button = event.currentTarget as HTMLButtonElement;
@@ -34,6 +40,8 @@
       "aqe:faster",
       "aqe:volume-down",
       "aqe:volume-up",
+      "aqe:remove-pauses",
+      "aqe:denoise-standard",
     ].includes(command);
   }
 
@@ -92,32 +100,7 @@
       </button>
     {/if}
     {#if button.command === "aqe:remove-pauses"}
-      <details class="aqe-menu" data-testid={`aqe-denoise-menu-${target.ord}`}>
-        <summary class="aqe-button aqe-menu-summary" title="Denoise audio" aria-label="Denoise audio">
-          <EditorCommandIcon icon="sparkles" />
-          <span class="aqe-button-label">Denoise</span>
-          <EditorCommandIcon className="aqe-menu-chevron" icon="chevron-down" />
-        </summary>
-        <div class="aqe-menu-items" role="menu">
-          {#each DENOISE_BUTTONS as denoiseButton (denoiseButton.command)}
-            <button
-              type="button"
-              class="aqe-button aqe-menu-item"
-              data-aqe-command={denoiseButton.command}
-              data-aqe-button-state="default"
-              data-testid={testId(target.ord, denoiseButton.command)}
-              title={denoiseButton.title}
-              aria-label={denoiseButton.title}
-              role="menuitem"
-              onmousedown={(event) => event.preventDefault()}
-              onclick={() => send(denoiseButton.command, target.node, target.ord)}
-            >
-              <EditorCommandIcon icon={denoiseButton.icon} />
-              <span class="aqe-button-label">{denoiseButton.label}</span>
-            </button>
-          {/each}
-        </div>
-      </details>
+      <SplitButton button={denoiseButton} {target} />
     {/if}
   {/each}
   <button

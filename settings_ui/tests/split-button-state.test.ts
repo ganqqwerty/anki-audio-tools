@@ -6,10 +6,14 @@ import {
   clampSpeedStep,
   clampTrimStepMs,
   clampVolumeStepDb,
+  formatDenoiseAlgorithm,
+  formatPauseAggressiveness,
   formatSpeedStep,
   formatTrimMs,
   formatVolumeDb,
   getSplitButtonState,
+  setDenoiseAlgorithmForField,
+  setPauseAggressivenessForField,
   setSpeedStepForField,
   setTrimStepForField,
   setVolumeStepForField,
@@ -48,6 +52,14 @@ describe("split button state", () => {
     expect(clampSpeedStep(1)).toBe(0.25);
   });
 
+  it("formats option split values for pause and denoise controls", () => {
+    expect(formatPauseAggressiveness("gentle")).toBe("Gentle");
+    expect(formatPauseAggressiveness("normal")).toBe("Normal");
+    expect(formatPauseAggressiveness("aggressive")).toBe("Aggressive");
+    expect(formatDenoiseAlgorithm("standard")).toBe("Standard");
+    expect(formatDenoiseAlgorithm("rnnoise")).toBe("RNNoise");
+  });
+
   it("initializes field state from editor runtime defaults", () => {
     window.__AQE_EDITOR_CONFIG__ = {
       audioFieldIndices: [0],
@@ -63,6 +75,8 @@ describe("split button state", () => {
     expect(getSplitButtonState(0).trimStepMs).toBe(250);
     expect(getSplitButtonState(0).volumeStepDb).toBe(3);
     expect(getSplitButtonState(0).speedStep).toBe(0.05);
+    expect(getSplitButtonState(0).pauseAggressiveness).toBe("normal");
+    expect(getSplitButtonState(0).denoiseAlgorithm).toBe("standard");
   });
 
   it("keeps trim state isolated per field", () => {
@@ -99,6 +113,26 @@ describe("split button state", () => {
       fieldOrd: 0,
       overrides: {
         speedStep: 0.1,
+      },
+    });
+  });
+
+  it("builds pause and denoise payloads from local field state", () => {
+    setPauseAggressivenessForField(0, "aggressive");
+    setDenoiseAlgorithmForField(0, "rnnoise");
+
+    expect(buildSplitCommandPayload("aqe:remove-pauses", 0)).toEqual({
+      command: "aqe:remove-pauses",
+      fieldOrd: 0,
+      overrides: {
+        pauseAggressiveness: "aggressive",
+      },
+    });
+    expect(buildSplitCommandPayload("aqe:denoise-standard", 0)).toEqual({
+      command: "aqe:rnnoise",
+      fieldOrd: 0,
+      overrides: {
+        denoiseAlgorithm: "rnnoise",
       },
     });
   });

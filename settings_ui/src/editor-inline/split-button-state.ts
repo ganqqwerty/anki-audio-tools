@@ -64,11 +64,21 @@ export function formatSpeedStep(value: number, command: EditorCommand): string {
   return `x${multiplier.toFixed(2)}`;
 }
 
+export function formatPauseAggressiveness(value: FieldSplitButtonState["pauseAggressiveness"]): string {
+  return value === "aggressive" ? "Aggressive" : value === "gentle" ? "Gentle" : "Normal";
+}
+
+export function formatDenoiseAlgorithm(value: FieldSplitButtonState["denoiseAlgorithm"]): string {
+  return value === "rnnoise" ? "RNNoise" : "Standard";
+}
+
 export function getSplitButtonState(ord: number): FieldSplitButtonState {
   const defaults = splitButtonDefaults();
   const defaultTrimStepMs = clampTrimStepMs(defaults.trimStepMs);
   const defaultVolumeStepDb = clampVolumeStepDb(defaults.volumeStepDb);
   const defaultSpeedStep = clampSpeedStep(defaults.speedStep);
+  const defaultPauseAggressiveness = defaults.pauseAggressiveness;
+  const defaultDenoiseAlgorithm = defaults.denoiseAlgorithm;
   const states = fieldStates();
   const existing = states[ord];
   if (existing) {
@@ -84,12 +94,26 @@ export function getSplitButtonState(ord: number): FieldSplitButtonState {
       existing.defaultSpeedStep = defaultSpeedStep;
       existing.speedStep = defaultSpeedStep;
     }
+    if (!existing.pauseEdited && existing.defaultPauseAggressiveness !== defaultPauseAggressiveness) {
+      existing.defaultPauseAggressiveness = defaultPauseAggressiveness;
+      existing.pauseAggressiveness = defaultPauseAggressiveness;
+    }
+    if (!existing.denoiseEdited && existing.defaultDenoiseAlgorithm !== defaultDenoiseAlgorithm) {
+      existing.defaultDenoiseAlgorithm = defaultDenoiseAlgorithm;
+      existing.denoiseAlgorithm = defaultDenoiseAlgorithm;
+    }
     return existing;
   }
   const state = {
+    defaultDenoiseAlgorithm,
+    defaultPauseAggressiveness,
     defaultTrimStepMs,
     defaultVolumeStepDb,
     defaultSpeedStep,
+    denoiseAlgorithm: defaultDenoiseAlgorithm,
+    denoiseEdited: false,
+    pauseAggressiveness: defaultPauseAggressiveness,
+    pauseEdited: false,
     speedEdited: false,
     speedStep: defaultSpeedStep,
     trimEdited: false,
@@ -122,6 +146,26 @@ export function setSpeedStepForField(ord: number, value: number): FieldSplitButt
   return state;
 }
 
+export function setPauseAggressivenessForField(
+  ord: number,
+  value: FieldSplitButtonState["pauseAggressiveness"],
+): FieldSplitButtonState {
+  const state = getSplitButtonState(ord);
+  state.pauseEdited = true;
+  state.pauseAggressiveness = value;
+  return state;
+}
+
+export function setDenoiseAlgorithmForField(
+  ord: number,
+  value: FieldSplitButtonState["denoiseAlgorithm"],
+): FieldSplitButtonState {
+  const state = getSplitButtonState(ord);
+  state.denoiseEdited = true;
+  state.denoiseAlgorithm = value;
+  return state;
+}
+
 export function buildTrimCommandPayload(command: EditorCommand, ord: number): EditorCommandPayload {
   return {
     command,
@@ -139,6 +183,13 @@ export function buildSplitCommandPayload(command: EditorCommand, ord: number): E
   }
   if (command === "aqe:faster" || command === "aqe:slower") {
     return { command, fieldOrd: ord, overrides: { speedStep: state.speedStep } };
+  }
+  if (command === "aqe:remove-pauses") {
+    return { command, fieldOrd: ord, overrides: { pauseAggressiveness: state.pauseAggressiveness } };
+  }
+  if (command === "aqe:denoise-standard" || command === "aqe:rnnoise") {
+    const selectedCommand = state.denoiseAlgorithm === "rnnoise" ? "aqe:rnnoise" : "aqe:denoise-standard";
+    return { command: selectedCommand, fieldOrd: ord, overrides: { denoiseAlgorithm: state.denoiseAlgorithm } };
   }
   return buildTrimCommandPayload(command, ord);
 }

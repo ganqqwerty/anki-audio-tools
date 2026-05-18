@@ -70,6 +70,8 @@ export interface EditorCommandPayload {
   command: EditorCommand;
   fieldOrd: number;
   overrides?: {
+    denoiseAlgorithm?: "standard" | "rnnoise";
+    pauseAggressiveness?: "gentle" | "normal" | "aggressive";
     speedStep?: number;
     trimStepMs?: number;
     volumeStepDb?: number;
@@ -77,9 +79,15 @@ export interface EditorCommandPayload {
 }
 
 export interface FieldSplitButtonState {
+  defaultDenoiseAlgorithm: "standard" | "rnnoise";
+  defaultPauseAggressiveness: "gentle" | "normal" | "aggressive";
   defaultTrimStepMs: number;
   defaultSpeedStep: number;
   defaultVolumeStepDb: number;
+  denoiseAlgorithm: "standard" | "rnnoise";
+  denoiseEdited: boolean;
+  pauseAggressiveness: "gentle" | "normal" | "aggressive";
+  pauseEdited: boolean;
   speedEdited: boolean;
   speedStep: number;
   trimEdited: boolean;

@@ -144,8 +144,8 @@ describe("editor inline Svelte integration", () => {
     expect(graphButton).toHaveClass("aqe-icon-only");
     expect(graphButton).toHaveAttribute("aria-label", "Analyze and show pitch/intensity graph");
     expect(settingsButton).toHaveClass("aqe-icon-only");
-    expect(document.querySelector('[data-testid="aqe-button-0-denoise-standard"]')).toHaveTextContent("Standard");
-    expect(document.querySelector('[data-testid="aqe-button-0-rnnoise"]')).toHaveTextContent("RNNoise");
+    expect(document.querySelector('[data-testid="aqe-button-0-denoise-standard"]')).toHaveTextContent("Denoise");
+    expect(document.querySelector('[data-testid="aqe-split-0-denoise-standard-menu"]')).toHaveTextContent("Options");
     expect(audioSourceForNode(document.getElementById("f0")!)).toBe("clip one.mp3");
     expect(fieldIndex(document.getElementById("f0")!, 7)).toBe(0);
   });
@@ -167,7 +167,7 @@ describe("editor inline Svelte integration", () => {
     expect(audioSourceForNode(document.getElementById("video-field")!)).toBe("");
   });
 
-  it("dispatches denoise menu commands and renders collapsed help", () => {
+  it("dispatches denoise split commands and renders collapsed help", async () => {
     initializeEditorRuntime({ audioFieldIndices: [0] });
     scan({ audioFieldIndices: [0] });
 
@@ -180,11 +180,27 @@ describe("editor inline Svelte integration", () => {
     expect(help).toHaveTextContent("grey is loudness and lines are pitch of the voice.");
 
     document.querySelector<HTMLButtonElement>('[data-testid="aqe-button-0-denoise-standard"]')!.click();
-    expect(bridgeCommands()).toContain("aqe:denoise-standard");
+    expect(bridgeCommands()).toContain("aqe:command-payload");
+    expect(window.__aqePendingCommandPayload).toMatchObject({
+      command: "aqe:denoise-standard",
+      fieldOrd: 0,
+      overrides: {
+        denoiseAlgorithm: "standard",
+      },
+    });
 
     window.__aqePrepareForNewNote?.();
-    document.querySelector<HTMLButtonElement>('[data-testid="aqe-button-0-rnnoise"]')!.click();
-    expect(bridgeCommands()).toContain("aqe:rnnoise");
+    document.querySelector<HTMLButtonElement>('[data-testid="aqe-split-0-denoise-standard-menu"]')!.click();
+    await Promise.resolve();
+    document.querySelector<HTMLButtonElement>('[data-testid="aqe-split-0-denoise-standard-preset-rnnoise"]')!.click();
+    document.querySelector<HTMLButtonElement>('[data-testid="aqe-button-0-denoise-standard"]')!.click();
+    expect(window.__aqePendingCommandPayload).toMatchObject({
+      command: "aqe:rnnoise",
+      fieldOrd: 0,
+      overrides: {
+        denoiseAlgorithm: "rnnoise",
+      },
+    });
   });
 
   it("dispatches trim commands with the field-local split value", () => {
@@ -274,6 +290,36 @@ describe("editor inline Svelte integration", () => {
     expect(volumePayload?.overrides?.volumeStepDb).toBe(6);
     const speedPayload = window.__aqePendingCommandPayload as EditorCommandPayload | null | undefined;
     expect(speedPayload?.overrides?.speedStep).toBe(0.1);
+  });
+
+  it("dispatches pause aggressiveness split payloads with local values", async () => {
+    renderFields();
+    window.__AQE_EDITOR_CONFIG__ = {
+      audioFieldIndices: [0],
+      splitButtonDefaults: {
+        denoiseAlgorithm: "standard",
+        pauseAggressiveness: "normal",
+        speedStep: 0.05,
+        trimStepMs: 100,
+        volumeStepDb: 3,
+      },
+    };
+    initializeEditorRuntime(window.__AQE_EDITOR_CONFIG__);
+    scan(window.__AQE_EDITOR_CONFIG__);
+
+    document.querySelector<HTMLButtonElement>('[data-testid="aqe-split-0-remove-pauses-menu"]')!.click();
+    await Promise.resolve();
+    document.querySelector<HTMLButtonElement>('[data-testid="aqe-split-0-remove-pauses-preset-aggressive"]')!.click();
+    document.querySelector<HTMLButtonElement>('[data-testid="aqe-button-0-remove-pauses"]')!.click();
+
+    expect(bridgeCommands()).toContain("aqe:command-payload");
+    expect(window.__aqePendingCommandPayload).toMatchObject({
+      command: "aqe:remove-pauses",
+      fieldOrd: 0,
+      overrides: {
+        pauseAggressiveness: "aggressive",
+      },
+    });
   });
 
   it("removes orphaned controls from previous bundle instances before mounting", () => {

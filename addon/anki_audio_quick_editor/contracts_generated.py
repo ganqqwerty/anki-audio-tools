@@ -45,14 +45,14 @@ def from_union(fs, x):
     assert False
 
 
-def to_float(x: Any) -> float:
-    assert isinstance(x, (int, float))
-    return x
-
-
 def to_enum(c: Type[EnumT], x: Any) -> EnumT:
     assert isinstance(x, c)
     return x.value
+
+
+def to_float(x: Any) -> float:
+    assert isinstance(x, (int, float))
+    return x
 
 
 def to_class(c: Type[T], x: Any) -> dict:
@@ -70,8 +70,19 @@ def from_dict(f: Callable[[Any], T], x: Any) -> Dict[str, T]:
     return { k: f(v) for (k, v) in x.items() }
 
 
+class DenoiseAlgorithm(Enum):
+    RNNOISE = "rnnoise"
+    STANDARD = "standard"
+
+
 class OutputFormat(Enum):
     MP3 = "mp3"
+
+
+class PauseAggressiveness(Enum):
+    AGGRESSIVE = "aggressive"
+    GENTLE = "gentle"
+    NORMAL = "normal"
 
 
 @dataclass
@@ -80,6 +91,7 @@ class Config:
     debug_logging: bool
     deep_filter_path: str
     deep_filter_post_filter: bool
+    denoise_algorithm: DenoiseAlgorithm
     enabled: bool
     ffmpeg_path: str
     internal_pause_silence_threshold_db: int
@@ -92,6 +104,7 @@ class Config:
     min_speed: float
     min_volume_db: float
     output_format: OutputFormat
+    pause_aggressiveness: PauseAggressiveness
     repeat_playback_by_default: bool
     show_ffmpeg_commands: bool
     show_graph_by_default: bool
@@ -106,6 +119,7 @@ class Config:
         debug_logging = from_bool(obj.get("debug_logging"))
         deep_filter_path = from_str(obj.get("deep_filter_path"))
         deep_filter_post_filter = from_bool(obj.get("deep_filter_post_filter"))
+        denoise_algorithm = DenoiseAlgorithm(obj.get("denoise_algorithm"))
         enabled = from_bool(obj.get("enabled"))
         ffmpeg_path = from_str(obj.get("ffmpeg_path"))
         internal_pause_silence_threshold_db = from_int(obj.get("internal_pause_silence_threshold_db"))
@@ -118,13 +132,14 @@ class Config:
         min_speed = from_float(obj.get("min_speed"))
         min_volume_db = from_float(obj.get("min_volume_db"))
         output_format = OutputFormat(obj.get("output_format"))
+        pause_aggressiveness = PauseAggressiveness(obj.get("pause_aggressiveness"))
         repeat_playback_by_default = from_bool(obj.get("repeat_playback_by_default"))
         show_ffmpeg_commands = from_bool(obj.get("show_ffmpeg_commands"))
         show_graph_by_default = from_bool(obj.get("show_graph_by_default"))
         speed_step = from_float(obj.get("speed_step"))
         volume_step_db = from_float(obj.get("volume_step_db"))
         schema = from_union([from_str, from_none], obj.get("$schema"))
-        return Config(config_version, debug_logging, deep_filter_path, deep_filter_post_filter, enabled, ffmpeg_path, internal_pause_silence_threshold_db, internal_pause_target_gap_ms, internal_pause_threshold_ms, manual_trim_large_ms, manual_trim_small_ms, max_speed, max_volume_db, min_speed, min_volume_db, output_format, repeat_playback_by_default, show_ffmpeg_commands, show_graph_by_default, speed_step, volume_step_db, schema)
+        return Config(config_version, debug_logging, deep_filter_path, deep_filter_post_filter, denoise_algorithm, enabled, ffmpeg_path, internal_pause_silence_threshold_db, internal_pause_target_gap_ms, internal_pause_threshold_ms, manual_trim_large_ms, manual_trim_small_ms, max_speed, max_volume_db, min_speed, min_volume_db, output_format, pause_aggressiveness, repeat_playback_by_default, show_ffmpeg_commands, show_graph_by_default, speed_step, volume_step_db, schema)
 
     def to_dict(self) -> dict:
         result: dict = {}
@@ -132,6 +147,7 @@ class Config:
         result["debug_logging"] = from_bool(self.debug_logging)
         result["deep_filter_path"] = from_str(self.deep_filter_path)
         result["deep_filter_post_filter"] = from_bool(self.deep_filter_post_filter)
+        result["denoise_algorithm"] = to_enum(DenoiseAlgorithm, self.denoise_algorithm)
         result["enabled"] = from_bool(self.enabled)
         result["ffmpeg_path"] = from_str(self.ffmpeg_path)
         result["internal_pause_silence_threshold_db"] = from_int(self.internal_pause_silence_threshold_db)
@@ -144,6 +160,7 @@ class Config:
         result["min_speed"] = to_float(self.min_speed)
         result["min_volume_db"] = to_float(self.min_volume_db)
         result["output_format"] = to_enum(OutputFormat, self.output_format)
+        result["pause_aggressiveness"] = to_enum(PauseAggressiveness, self.pause_aggressiveness)
         result["repeat_playback_by_default"] = from_bool(self.repeat_playback_by_default)
         result["show_ffmpeg_commands"] = from_bool(self.show_ffmpeg_commands)
         result["show_graph_by_default"] = from_bool(self.show_graph_by_default)

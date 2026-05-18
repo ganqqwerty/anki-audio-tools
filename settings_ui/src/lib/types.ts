@@ -13,7 +13,7 @@ export type {
   ShowLogFileResult,
   SupportReportResult,
 } from "./generated/contracts.js";
-export { Level, OutputFormat } from "./generated/contracts.js";
+export { DenoiseAlgorithm, Level, OutputFormat, PauseAggressiveness } from "./generated/contracts.js";
 
 import type {
   Config,

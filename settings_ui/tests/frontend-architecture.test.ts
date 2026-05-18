@@ -104,6 +104,26 @@ describe("frontend architecture guardrails", () => {
     expect(offenders).toEqual([]);
   });
 
+  it("keeps persisted settings UI and per-field editor split state separated", () => {
+    const offenders = productionFiles()
+      .map((path) => ({
+        relPath: toRelPath(path),
+        source: readFileSync(path, "utf-8"),
+      }))
+      .filter(({ relPath, source }) => {
+        if (relPath.startsWith("src/settings/")) {
+          return /from\s+["']\.\.\/editor-inline\//.test(source) || /from\s+["']\.\.\/\.\.\/editor-inline\//.test(source);
+        }
+        if (relPath.startsWith("src/editor-inline/")) {
+          return /from\s+["']\.\.\/settings\//.test(source) || /from\s+["']\.\.\/\.\.\/settings\//.test(source);
+        }
+        return false;
+      })
+      .map(({ relPath }) => relPath);
+
+    expect(offenders).toEqual([]);
+  });
+
   it("does not keep the unused frontend utility residue around", () => {
     expect(existsSync(join(sourceRoot, "lib", "utils.ts"))).toBe(false);
   });
