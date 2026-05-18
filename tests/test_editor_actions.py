@@ -15,6 +15,7 @@ from anki_audio_quick_editor.editor_actions import (
     BRIDGE_COMMANDS,
     PROCESSING_COMMANDS,
     apply_processing_command,
+    decode_editor_command_payload,
     operation_for_command,
 )
 
@@ -42,6 +43,47 @@ def test_apply_processing_command_uses_configured_trim_step() -> None:
     updated = apply_processing_command("aqe:trim-left", state, config)
 
     assert updated == AudioEditState("clip.mp3", left_trim_ms=250)
+
+
+def test_decode_processing_command_accepts_json_payload() -> None:
+    decoded = decode_editor_command_payload(
+        '{"command":"aqe:trim-left","fieldOrd":0,"overrides":{"trimStepMs":200}}'
+    )
+
+    assert decoded.command == "aqe:trim-left"
+    assert decoded.field_ord == 0
+    assert decoded.overrides.trim_step_ms == 200
+
+
+def test_apply_processing_command_uses_trim_override_without_mutating_config() -> None:
+    config = AudioProcessingConfig(manual_trim_small_ms=500)
+    state = AudioEditState("clip.mp3")
+    decoded = decode_editor_command_payload(
+        '{"command":"aqe:trim-left","fieldOrd":0,"overrides":{"trimStepMs":200}}'
+    )
+
+    updated = apply_processing_command(decoded, state, config)
+
+    assert updated == AudioEditState("clip.mp3", left_trim_ms=200)
+    assert config.manual_trim_small_ms == 500
+
+
+def test_apply_processing_command_clamps_trim_override() -> None:
+    config = AudioProcessingConfig(manual_trim_small_ms=500)
+    state = AudioEditState("clip.mp3")
+    low = decode_editor_command_payload(
+        '{"command":"aqe:trim-left","fieldOrd":0,"overrides":{"trimStepMs":10}}'
+    )
+    high = decode_editor_command_payload(
+        '{"command":"aqe:trim-right","fieldOrd":0,"overrides":{"trimStepMs":20000}}'
+    )
+
+    assert apply_processing_command(low, state, config) == AudioEditState(
+        "clip.mp3", left_trim_ms=50
+    )
+    assert apply_processing_command(high, state, config) == AudioEditState(
+        "clip.mp3", right_trim_ms=10000
+    )
 
 
 def test_apply_processing_command_handles_speed_and_feature_toggles() -> None:
