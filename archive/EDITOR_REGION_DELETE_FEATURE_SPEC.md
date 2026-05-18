@@ -1,5 +1,7 @@
 # Inline Graph Region Delete Feature Specification
 
+Implemented in commit: `5da7f88172b831eab3480d9761f48bb99845dfb6`
+
 ## 1. Background
 
 Audio Quick Editor already supports inline, non-destructive audio edits from the Anki Editor. Current processing actions are initiated from editor controls, rendered through ffmpeg, saved as new Anki media files, and applied by replacing the active field's selected `[sound:...]` reference. The original media file remains untouched, generated files remain on disk, and Undo/Redo restores previous audio references and edit state.
