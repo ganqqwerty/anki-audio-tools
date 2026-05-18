@@ -2,6 +2,7 @@ import { COMMAND_SLUGS } from "./commands.js";
 import { audioClockFor } from "./audio-clock.js";
 import {
   allButtons,
+  controlsForOrd,
   graphButton,
   playButton,
   repeatButtonForOrd,
@@ -100,6 +101,7 @@ export function graphStateForTest(ord: number): GraphStateForTest | null {
   const visualizer = visualizerForOrd(ord);
   const graph = graphButton(ord);
   const play = playButton(ord);
+  const regionDelete = controlsForOrd(ord)?.querySelector<HTMLButtonElement>(".aqe-delete-region-button") ?? null;
   if (!visualizer) return null;
   const buttonIcons = allButtons().flatMap((button) => (
     Array.from(button.querySelectorAll<SVGElement>(".aqe-button-icon svg"))
@@ -130,6 +132,8 @@ export function graphStateForTest(ord: number): GraphStateForTest | null {
     selectionDraftEndMs: draftSelection?.endMs ?? null,
     repeatEnabled: visualizer.dataset.repeatEnabled === "true",
     repeatControlDisabled: !!repeatButtonForOrd(ord)?.disabled,
+    regionDeleteButtonDisabled: !!regionDelete?.disabled,
+    regionDeleteButtonHidden: regionDelete ? !!regionDelete.hidden : true,
     playbackStartMs: Number(visualizer.dataset.playbackStartMs || "0"),
     playbackEndMs: Number(visualizer.dataset.playbackEndMs || "0"),
     playbackRegionMode: visualizer.dataset.playbackRegionMode === "selection" ? "selection" : "full",

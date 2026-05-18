@@ -26,6 +26,7 @@ from anki_audio_quick_editor.audio_processor import (
     build_deep_filter_prepare_command,
     build_mp3_encode_command,
     build_playback_segment_filters,
+    build_region_delete_plan,
     build_rnnoise_command,
     build_rnnoise_encode_command,
     build_rnnoise_prepare_command,
@@ -40,6 +41,7 @@ from anki_audio_quick_editor.audio_processor import (
     make_playback_segment_filename,
     probe_duration_ms,
     render_audio,
+    render_audio_region_deleted,
     render_noise_reduced_audio,
     render_playback_segment,
     render_rnnoise_audio,
@@ -369,6 +371,32 @@ def test_build_audio_filters_preserves_precise_trim_boundaries() -> None:
     filters = build_audio_filters(3000, state)
 
     assert filters.startswith("atrim=start=0.999:end=2.778,asetpts=PTS-STARTPTS")
+
+
+def test_build_region_delete_plan_concats_audio_around_middle_selection() -> None:
+    plan = build_region_delete_plan(500, 1250, 2000)
+
+    assert plan.removed_duration_ms == 750
+    assert plan.expected_duration_ms == 1250
+    assert plan.filter_complex == (
+        "[0:a]atrim=start=0.000:end=0.500,asetpts=PTS-STARTPTS[a0];"
+        "[0:a]atrim=start=1.250:end=2.000,asetpts=PTS-STARTPTS[a1];"
+        "[a0][a1]concat=n=2:v=0:a=1[out]"
+    )
+
+
+def test_build_region_delete_plan_handles_prefix_and_suffix_deletion() -> None:
+    assert build_region_delete_plan(0, 400, 2000).filter_complex == (
+        "[0:a]atrim=start=0.400,asetpts=PTS-STARTPTS[out]"
+    )
+    assert build_region_delete_plan(1400, 2000, 2000).filter_complex == (
+        "[0:a]atrim=end=1.400,asetpts=PTS-STARTPTS[out]"
+    )
+
+
+def test_build_region_delete_plan_rejects_whole_audio_deletion() -> None:
+    with pytest.raises(AudioProcessingError, match="whole audio"):
+        build_region_delete_plan(0, 2000, 2000)
 
 
 def test_build_playback_segment_filters_starts_at_cursor_and_resets_timestamps() -> None:
@@ -841,6 +869,58 @@ def test_render_audio_uses_expected_ffmpeg_invocation(monkeypatch, tmp_path: Pat
     assert result.output_path == output
     assert result.command == expected_command
     assert result.duration_ms == 825
+
+
+def test_render_audio_region_deleted_uses_concat_filter(monkeypatch, tmp_path: Path) -> None:
+    calls: list[tuple[list[str], bool, bool, bool]] = []
+    durations = iter([2000, 1250])
+    commands: list[tuple[str, ...]] = []
+
+    monkeypatch.setattr("anki_audio_quick_editor.audio_processor.find_ffmpeg", lambda _path: Path("/bin/ffmpeg"))
+    monkeypatch.setattr("anki_audio_quick_editor.audio_processor.probe_duration_ms", lambda *_args: next(durations))
+
+    def fake_run(cmd: list[str], capture_output: bool, text: bool, check: bool) -> SimpleNamespace:
+        calls.append((cmd, capture_output, text, check))
+        return SimpleNamespace(returncode=0, stdout="", stderr="")
+
+    monkeypatch.setattr("anki_audio_quick_editor.audio_processor.subprocess.run", fake_run)
+
+    output = tmp_path / "cut.mp3"
+    result = render_audio_region_deleted(
+        tmp_path / "source.wav",
+        500,
+        1250,
+        AudioProcessingConfig(),
+        output_path=output,
+        on_command=commands.append,
+    )
+
+    filter_complex = (
+        "[0:a]atrim=start=0.000:end=0.500,asetpts=PTS-STARTPTS[a0];"
+        "[0:a]atrim=start=1.250:end=2.000,asetpts=PTS-STARTPTS[a1];"
+        "[a0][a1]concat=n=2:v=0:a=1[out]"
+    )
+    expected_command = (
+        "/bin/ffmpeg",
+        "-y",
+        "-i",
+        str(tmp_path / "source.wav"),
+        "-vn",
+        "-filter_complex",
+        filter_complex,
+        "-map",
+        "[out]",
+        "-codec:a",
+        "libmp3lame",
+        "-q:a",
+        "4",
+        str(output),
+    )
+    assert calls == [(list(expected_command), True, True, False)]
+    assert commands == [expected_command]
+    assert result.output_path == output
+    assert result.command == expected_command
+    assert result.duration_ms == 1250
 
 
 def test_render_noise_reduced_audio_runs_prepare_deep_filter_and_encode(

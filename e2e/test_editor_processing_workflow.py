@@ -75,14 +75,17 @@ def test_each_processing_button_updates_field_to_new_real_audio(
             editor.web,
             """
             (() => {
-              const buttons = Array.from(document.querySelectorAll('.aqe-button'));
+              const buttons = Array.from(document.querySelectorAll('.aqe-button'))
+                .filter((node) => getComputedStyle(node).display !== 'none' && node.getClientRects().length > 0);
               return {
                 labels: buttons.map((node) => (
                   node.querySelector('.aqe-button-label')?.textContent || node.textContent || ''
                 ).trim()),
                 iconsPerButton: buttons.map((node) => node.querySelectorAll('.aqe-button-icon svg').length),
-                iconStrokeValues: Array.from(document.querySelectorAll('.aqe-button .aqe-button-icon svg'))
-                  .map((node) => node.getAttribute('stroke') || getComputedStyle(node).stroke || ''),
+                iconStrokeValues: buttons.flatMap((button) =>
+                  Array.from(button.querySelectorAll('.aqe-button-icon svg'))
+                    .map((node) => node.getAttribute('stroke') || getComputedStyle(node).stroke || '')
+                ),
               };
             })()
             """,

@@ -1,8 +1,9 @@
 import type { FrontendLogPayload } from "../lib/generated/contracts.js";
-import type { CursorIntent, GraphAnalysisRequest, PlaybackRequest } from "./types.js";
+import type { CursorIntent, GraphAnalysisRequest, PlaybackRequest, RegionDeleteRequest } from "./types.js";
 
 const frontendLogs: FrontendLogPayload[] = [];
 let pendingGraphAnalysisRequest: GraphAnalysisRequest | null = null;
+let pendingRegionDeleteRequest: RegionDeleteRequest | null = null;
 
 export function sendBridgeCommand(command: string): void {
   if (globalThis.pycmd !== undefined) {
@@ -45,6 +46,17 @@ export function popPendingGraphAnalysisRequest(): GraphAnalysisRequest | null {
   if (!pendingGraphAnalysisRequest) return null;
   const request = pendingGraphAnalysisRequest;
   pendingGraphAnalysisRequest = null;
+  return request;
+}
+
+export function setPendingRegionDeleteRequest(request: RegionDeleteRequest): void {
+  pendingRegionDeleteRequest = request;
+}
+
+export function popPendingRegionDeleteRequest(): RegionDeleteRequest | null {
+  if (!pendingRegionDeleteRequest) return null;
+  const request = pendingRegionDeleteRequest;
+  pendingRegionDeleteRequest = null;
   return request;
 }
 

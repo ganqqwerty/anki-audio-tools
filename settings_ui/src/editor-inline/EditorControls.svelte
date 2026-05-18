@@ -10,8 +10,9 @@
     resetAudioClockState,
     send,
     setRepeatEnabledForOrd,
-    visualizerForOrd,
   } from "./actions.js";
+  import { visualizerForOrd } from "./dom-selectors.js";
+  import { handleVisualizerKeyDown, sendRegionDelete } from "./region-delete.js";
   import { PLOT } from "./plot.js";
   import type { FieldTarget } from "./types.js";
 
@@ -103,6 +104,21 @@
       </details>
     {/if}
   {/each}
+  <button
+    type="button"
+    class="aqe-button aqe-delete-region-button"
+    data-aqe-command="aqe:delete-selection"
+    data-aqe-button-state="default"
+    data-testid={testId(target.ord, "aqe:delete-selection")}
+    title="Delete selected region"
+    aria-label="Delete selected region"
+    hidden
+    onmousedown={(event) => event.preventDefault()}
+    onclick={() => sendRegionDelete("button", target.node, target.ord)}
+  >
+    <EditorCommandIcon icon="trash-2" />
+    <span class="aqe-button-label">Delete Region</span>
+  </button>
   <span class="aqe-status" data-testid={`aqe-status-${target.ord}`}></span>
   <details class="aqe-help" data-testid={`aqe-help-${target.ord}`}>
     <summary class="aqe-help-summary" title="Show editor help">
@@ -138,6 +154,10 @@
     data-selection-draft-end-ms=""
     data-repeat-enabled={repeatDefault ? "true" : "false"}
     data-testid={`aqe-graph-${target.ord}`}
+    role="button"
+    aria-label="Audio graph"
+    tabindex="0"
+    onkeydown={(event) => handleVisualizerKeyDown(event, target.ord)}
     hidden
   >
     <audio

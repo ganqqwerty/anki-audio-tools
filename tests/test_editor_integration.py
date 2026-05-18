@@ -21,8 +21,10 @@ from anki_audio_quick_editor.editor_integration import (
     _audio_field_indices,
     _handle_bridge_command,
     _is_busy,
+    _parse_region_delete_request,
     _play_with_request,
     _playback_segment_ready,
+    _replace_current_field_after_region_delete,
     _reset_editor_session_for_note_load,
     _set_busy,
     _set_cursor_from_web,
@@ -142,6 +144,77 @@ def test_editor_undo_and_redo_restore_audio_references_without_processing(
     assert session.current_filename == "clip__aqe_first.mp3"
     assert session.undo_history.pop().filename == "clip.mp3"
     assert editor.loadNote.call_count == 2
+
+
+def test_region_delete_request_parser_normalizes_payload() -> None:
+    request = _parse_region_delete_request(
+        {
+            "ord": "2",
+            "sourceFilename": "../clip.wav",
+            "selectionStartMs": 1200.2,
+            "selectionEndMs": 300.7,
+            "cursorMs": 9999,
+            "durationMs": 2000,
+            "trigger": "backspace",
+            "playbackActive": True,
+        }
+    )
+
+    assert request is not None
+    assert request.field_index == 2
+    assert request.source_filename == "clip.wav"
+    assert request.selection_start_ms == 301
+    assert request.selection_end_ms == 1200
+    assert request.cursor_ms == 2000
+    assert request.trigger == "backspace"
+    assert request.playback_active is True
+
+
+def test_region_delete_replacement_updates_only_requested_field_and_history(tmp_path: Path) -> None:
+    media_dir = tmp_path / "media"
+    media_dir.mkdir()
+    current = media_dir / "clip.mp3"
+    generated = media_dir / "clip__aqe_cut.mp3"
+    current.write_bytes(b"current")
+    generated.write_bytes(b"generated")
+    class Editor:
+        pass
+
+    editor = Editor()
+    editor.currentField = 1
+    editor.note = SimpleNamespace(fields=["[sound:other.mp3]", "<b>Prompt</b> [sound:clip.mp3] extra"])
+    editor.web = MagicMock()
+    editor.loadNote = MagicMock()
+    editor.mw = SimpleNamespace(col=SimpleNamespace(media=SimpleNamespace(dir=lambda: str(media_dir))))
+    session = EditorSession(
+        state=AudioEditState("clip.mp3"),
+        field_index=1,
+        current_filename="clip.mp3",
+        source_mtime_ns=current.stat().st_mtime_ns,
+    )
+    _SESSIONS[editor] = session
+    request = _parse_region_delete_request(
+        {
+            "ord": 1,
+            "sourceFilename": "clip.mp3",
+            "selectionStartMs": 250,
+            "selectionEndMs": 750,
+            "cursorMs": 300,
+            "durationMs": 1000,
+            "trigger": "button",
+        }
+    )
+    assert request is not None
+
+    _replace_current_field_after_region_delete(editor, request, generated.name, 500, 0.0)
+
+    assert editor.note.fields == ["[sound:other.mp3]", "<b>Prompt</b> [sound:clip__aqe_cut.mp3] extra"]
+    assert session.current_filename == "clip__aqe_cut.mp3"
+    assert session.state == AudioEditState("clip__aqe_cut.mp3")
+    assert session.cursor_ms == 0
+    assert session.redo_history.pop() is None
+    assert session.undo_history.pop().filename == "clip.mp3"
+    assert editor.loadNote.call_args.kwargs == {"focusTo": 1}
 
 
 def test_editor_settings_command_opens_settings_and_refreshes_after_save(

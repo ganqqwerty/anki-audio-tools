@@ -29,6 +29,7 @@ describe("editor inline window contract", () => {
       "__aqeInstallAudioPlaybackTestDriverForTest",
       "__aqePopFrontendLog",
       "__aqePopPendingGraphAnalysisRequest",
+      "__aqePopPendingRegionDeleteRequest",
       "__aqePrepareForNewNote",
       "__aqeResetGraphAfterEdit",
       "__aqeScan",

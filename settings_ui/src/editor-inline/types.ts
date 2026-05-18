@@ -4,6 +4,7 @@ export type EditorCommand =
   | "aqe:play"
   | "aqe:analyze"
   | "aqe:show-file"
+  | "aqe:delete-selection"
   | "aqe:trim-left"
   | "aqe:trim-right"
   | "aqe:remove-pauses"
@@ -34,6 +35,7 @@ export type EditorIconName =
   | "sparkles"
   | "waves"
   | "timer-reset"
+  | "trash-2"
   | "undo-2"
   | "volume-1"
   | "volume-2"
@@ -92,6 +94,17 @@ export interface PlaybackRequest {
   regionMode?: "selection" | "full";
 }
 
+export interface RegionDeleteRequest {
+  cursorMs: number;
+  durationMs: number;
+  ord: number;
+  playbackActive: boolean;
+  selectionEndMs: number;
+  selectionStartMs: number;
+  sourceFilename: string;
+  trigger: "button" | "backspace";
+}
+
 export interface CursorIntent {
   cursorMs: number;
   engine?: "html" | "native" | "";
@@ -135,6 +148,8 @@ export interface GraphStateForTest {
   progressClockMode: ProgressClockMode;
   progressMs: number;
   repeatControlDisabled: boolean;
+  regionDeleteButtonDisabled: boolean;
+  regionDeleteButtonHidden: boolean;
   repeatEnabled: boolean;
   resumeRequiresRestart: boolean;
   selectionActive: boolean;

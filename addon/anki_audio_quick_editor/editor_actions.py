@@ -21,6 +21,7 @@ CMD_VOLUME_UP = "aqe:volume-up"
 CMD_REMOVE_PAUSES = "aqe:remove-pauses"
 CMD_DENOISE_STANDARD = "aqe:denoise-standard"
 CMD_RNNOISE = "aqe:rnnoise"
+CMD_DELETE_SELECTION = "aqe:delete-selection"
 CMD_ANALYZE_FIELD = "aqe:analyze-field"
 CMD_SETTINGS = "aqe:settings"
 CMD_REDO = "aqe:redo"
@@ -43,6 +44,7 @@ BRIDGE_COMMANDS = (
     CMD_REMOVE_PAUSES,
     CMD_DENOISE_STANDARD,
     CMD_RNNOISE,
+    CMD_DELETE_SELECTION,
     "aqe:undo",
     CMD_REDO,
     CMD_SETTINGS,

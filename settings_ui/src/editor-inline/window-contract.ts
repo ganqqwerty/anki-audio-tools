@@ -13,6 +13,7 @@ import {
   setVisualizerStatusFromPython,
   stopEditorPlayback,
 } from "./actions.js";
+import { popPendingRegionDeleteRequest } from "./bridge.js";
 import { installEditorTestWindowContract } from "./test-contract.js";
 
 export const EDITOR_WINDOW_CONTRACT_NAMES = [
@@ -20,6 +21,7 @@ export const EDITOR_WINDOW_CONTRACT_NAMES = [
   "__aqeGetCursorMs",
   "__aqeGetPlaybackRequest",
   "__aqePopPendingGraphAnalysisRequest",
+  "__aqePopPendingRegionDeleteRequest",
   "__aqePopFrontendLog",
   "__aqePrepareForNewNote",
   "__aqeResetGraphAfterEdit",
@@ -45,5 +47,6 @@ export function installEditorWindowContract(): void {
   window.__aqePrepareForNewNote = prepareForNewNote;
   window.__aqePopFrontendLog = popEditorFrontendLog;
   window.__aqePopPendingGraphAnalysisRequest = popPendingGraphAnalysisRequest;
+  window.__aqePopPendingRegionDeleteRequest = popPendingRegionDeleteRequest;
   installEditorTestWindowContract();
 }

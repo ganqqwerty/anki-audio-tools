@@ -14,6 +14,7 @@ def _visualizer_js(ord_: int = 0) -> str:
       const buttonLabel = (button) => button?.querySelector('.aqe-button-label')?.textContent || button?.textContent || "";
       const graphButton = document.querySelector(`[data-testid="aqe-button-${ord}-graph"]`);
       const playButton = document.querySelector(`[data-testid="aqe-button-${ord}-play"]`);
+      const deleteButton = document.querySelector(`[data-testid="aqe-button-${ord}-delete-selection"]`);
       const visualizer = document.querySelector(`.aqe-visualizer[data-aqe-field-ord="${ord}"]`);
       if (!visualizer) return null;
       const labels = Array.from(visualizer.querySelectorAll('.aqe-hz-label')).map((node) => node.textContent);
@@ -51,6 +52,8 @@ def _visualizer_js(ord_: int = 0) -> str:
         selectionDraftStartMs: visualizer.dataset.selectionDraftStartMs ? Number(visualizer.dataset.selectionDraftStartMs) : null,
         selectionDraftEndMs: visualizer.dataset.selectionDraftEndMs ? Number(visualizer.dataset.selectionDraftEndMs) : null,
         repeatEnabled: visualizer.dataset.repeatEnabled === "true",
+        regionDeleteButtonDisabled: deleteButton ? deleteButton.disabled : true,
+        regionDeleteButtonHidden: deleteButton ? deleteButton.hidden : true,
         allButtonsDisabled: Array.from(document.querySelectorAll('.aqe-button')).every((button) => button.disabled),
       };
     })()

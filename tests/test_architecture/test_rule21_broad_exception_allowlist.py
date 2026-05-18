@@ -101,6 +101,18 @@ BROAD_EXCEPTION_ALLOWLIST: tuple[BroadExceptionAllowance, ...] = (
     ),
     BroadExceptionAllowance(
         "editor_integration",
+        "_delete_selection_async._run",
+        1,
+        "Background region-delete worker boundary logs request context and reports failure on the main thread.",
+    ),
+    BroadExceptionAllowance(
+        "editor_integration",
+        "_replace_current_field_after_region_delete",
+        1,
+        "Main-thread field replacement boundary keeps failed region deletes non-mutating and user-visible.",
+    ),
+    BroadExceptionAllowance(
+        "editor_integration",
         "_stop_audio_playback",
         1,
         "Best-effort playback backend integration cannot assume a stable Anki audio API surface.",

@@ -15,7 +15,6 @@ import {
   getPlaybackRequest,
   handleHtmlPlaybackCommand,
   installAudioClockHandlers,
-  mediaUrlForFilename,
   pauseAudioClock,
   playbackRequest,
   resetGraphAfterEdit,
@@ -30,9 +29,10 @@ import {
   shouldTreatSelectionGestureAsClick,
   startManualProgressClock,
   stopEditorPlayback,
-  visualizerForOrd,
 } from "../src/editor-inline/actions.js";
+import { mediaUrlForFilename } from "../src/editor-inline/audio-clock.js";
 import { processingMessage } from "../src/editor-inline/commands.js";
+import { visualizerForOrd } from "../src/editor-inline/dom-selectors.js";
 import { commandSlugsForTest } from "../src/editor-inline/test-contract.js";
 import { disposeEditorRuntime, initializeEditorRuntime, scan } from "../src/editor-inline/runtime.js";
 import type { VisualizerElement } from "../src/editor-inline/types.js";

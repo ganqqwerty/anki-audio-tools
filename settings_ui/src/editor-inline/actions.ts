@@ -17,12 +17,10 @@ import {
   setPendingPlaybackRequest,
 } from "./bridge.js";
 import {
-  audioClockFor as audioClockForElement,
   audioClockReady as isAudioClockReady,
   clearAudioClockSource as clearAudioClockElementSource,
   configureAudioClock as configureAudioClockElement,
   installAudioClockHandlers as installAudioClockElementHandlers,
-  mediaUrlForFilename as mediaUrlForAudioFilename,
   pauseAudioClock as pauseAudioClockElement,
   resetAudioClockState as resetAudioClockElementState,
   seekAudioClock as seekAudioClockElement,
@@ -36,8 +34,12 @@ import {
   buildPlaybackRequestForPython,
   type PlaybackRegion,
 } from "./playback-state.js";
-import type { AudioClockElement, CursorIntent, DefaultGraphTarget, EditorCommand, PlaybackRequest, PlaybackState, VisualizerElement } from "./types.js";
+import type { CursorIntent, DefaultGraphTarget, EditorCommand, PlaybackRequest, PlaybackState, VisualizerElement } from "./types.js";
 import { isPlaybackState, normalizeTrack } from "./types.js";
+import {
+  syncAllRegionDeleteControls,
+  syncRegionDeleteControl,
+} from "./region-delete-state.js";
 import {
   shouldTreatSelectionGestureAsClick as isClickLikeSelectionGesture,
 } from "./selection-state.js";
@@ -85,13 +87,6 @@ import {
 } from "./playback-controller.js";
 
 export { popEditorFrontendLog, popPendingGraphAnalysisRequest } from "./bridge.js";
-export {
-  buttonFor,
-  controlsForOrd,
-  graphButton,
-  playButton,
-  visualizerForOrd,
-} from "./dom-selectors.js";
 
 function anyBusy(): boolean {
   return document.body.dataset.aqeBusy === "true";
@@ -125,6 +120,7 @@ export function setControlsBusy(ord: number, busy: boolean, message = "", comman
   allButtons().forEach((button) => {
     button.disabled = !!busy;
   });
+  syncAllRegionDeleteControls();
   if (!busy) {
     queueMicrotask(() => continueDefaultGraphQueue(defaultGraphQueueDependencies()));
   }
@@ -192,14 +188,6 @@ export function send(command: EditorCommand, node: HTMLElement, ord: number): vo
     setControlsBusy(ord, true, processingMessage(command));
   }
   focusAndSendCommand(ord, command);
-}
-
-export function mediaUrlForFilename(filename: string): string {
-  return mediaUrlForAudioFilename(filename);
-}
-
-export function audioClockFor(visualizer: VisualizerElement | null): AudioClockElement | null {
-  return audioClockForElement(visualizer);
 }
 
 export function resetAudioClockState(visualizer: VisualizerElement): void {
@@ -292,7 +280,9 @@ export function commitSelectionDraft(
   visualizer: VisualizerElement,
   options: { updateCursor?: boolean } = {},
 ): boolean {
-  return commitSelectionDraftFromController(visualizer, selectionControllerDependencies(), options);
+  const committed = commitSelectionDraftFromController(visualizer, selectionControllerDependencies(), options);
+  syncRegionDeleteControl(visualizer);
+  return committed;
 }
 
 export function clearSelection(
@@ -300,6 +290,7 @@ export function clearSelection(
   options: { resetPlaybackRegion?: boolean } = {},
 ): void {
   clearSelectionFromController(visualizer, options);
+  syncRegionDeleteControl(visualizer);
 }
 
 export function setSelection(
@@ -308,7 +299,9 @@ export function setSelection(
   endMs: number,
   options: { updateCursor?: boolean } = {},
 ): boolean {
-  return setSelectionFromController(visualizer, startMs, endMs, selectionControllerDependencies(), options);
+  const selected = setSelectionFromController(visualizer, startMs, endMs, selectionControllerDependencies(), options);
+  syncRegionDeleteControl(visualizer);
+  return selected;
 }
 
 export function initializePlaybackRegionState(visualizer: VisualizerElement): void {
@@ -435,6 +428,7 @@ export function startSelectionGesture(event: PointerEvent, visualizer: Visualize
 }
 
 export function handleVisualizerPointerDown(event: PointerEvent, ord: number): void {
+  visualizerForOrd(ord)?.focus();
   handleVisualizerPointerDownGesture(event, ord, selectionGestureDependencies());
 }
 

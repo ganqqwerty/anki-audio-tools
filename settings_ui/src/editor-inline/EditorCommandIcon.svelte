@@ -14,6 +14,7 @@
   import Settings from "@lucide/svelte/icons/settings";
   import Sparkles from "@lucide/svelte/icons/sparkles";
   import TimerReset from "@lucide/svelte/icons/timer-reset";
+  import Trash2 from "@lucide/svelte/icons/trash-2";
   import Undo2 from "@lucide/svelte/icons/undo-2";
   import Volume1 from "@lucide/svelte/icons/volume-1";
   import Volume2 from "@lucide/svelte/icons/volume-2";
@@ -57,6 +58,8 @@
     <Sparkles size={14} strokeWidth={2} />
   {:else if icon === "timer-reset"}
     <TimerReset size={14} strokeWidth={2} />
+  {:else if icon === "trash-2"}
+    <Trash2 size={14} strokeWidth={2} />
   {:else if icon === "undo-2"}
     <Undo2 size={14} strokeWidth={2} />
   {:else if icon === "volume-1"}

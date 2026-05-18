@@ -7,6 +7,7 @@ import type {
   GraphStateForTest,
   PlaybackRequest,
   PlaybackState,
+  RegionDeleteRequest,
 } from "./types.js";
 
 declare global {
@@ -26,6 +27,7 @@ declare global {
     __aqePendingGraphRedrawField?: number | null;
     __aqePendingPlaybackRequest?: PlaybackRequest | null;
     __aqePopPendingGraphAnalysisRequest?: (() => GraphAnalysisRequest | null) | undefined;
+    __aqePopPendingRegionDeleteRequest?: (() => RegionDeleteRequest | null) | undefined;
     __aqePopFrontendLog?: (() => FrontendLogPayload | null) | undefined;
     __aqePrepareForNewNote?: (() => void) | undefined;
     __aqeResetGraphAfterEdit?: ((ord: number) => boolean) | undefined;

@@ -65,6 +65,26 @@ class AudioProcessingResult:
     artifact_manifest_path: Path | None = None
 
 
+@dataclass(frozen=True)
+class RegionDeletePlan:
+    """Filter plan for deleting one region from a clip timeline."""
+
+    selection_start_ms: int
+    selection_end_ms: int
+    duration_ms: int
+    filter_complex: str
+
+    @property
+    def removed_duration_ms(self) -> int:
+        """Return the selected duration removed by this plan."""
+        return self.selection_end_ms - self.selection_start_ms
+
+    @property
+    def expected_duration_ms(self) -> int:
+        """Return the approximate output duration before encoder tolerance."""
+        return self.duration_ms - self.removed_duration_ms
+
+
 def find_ffmpeg(configured_path: str = "") -> Path:  # pragma: no mutate
     """Return an ffmpeg executable path, honoring an optional config override."""
     if configured_path:
@@ -204,6 +224,65 @@ def render_audio(
     )
 
 
+def render_audio_region_deleted(
+    source_path: Path,
+    selection_start_ms: int,
+    selection_end_ms: int,
+    config: AudioProcessingConfig,
+    output_path: Path | None = None,
+    on_command: Callable[[tuple[str, ...]], None] | None = None,
+) -> AudioProcessingResult:
+    """Render an MP3 with one selected region removed from ``source_path``."""
+    ffmpeg_path = find_ffmpeg(config.ffmpeg_path)
+    duration_ms = probe_duration_ms(source_path, config)
+    plan = build_region_delete_plan(selection_start_ms, selection_end_ms, duration_ms)
+
+    if output_path is None:
+        output_path = Path(tempfile.mkstemp(prefix="aqe_region_delete_", suffix=".mp3")[1])
+
+    cmd = build_region_delete_command(ffmpeg_path, source_path, plan.filter_complex, output_path)
+    if on_command:
+        on_command(cmd)
+    result = subprocess.run(list(cmd), capture_output=True, text=True, check=False)  # nosec B603
+    if result.returncode != 0:
+        raise AudioProcessingError(result.stderr.strip() or "Audio processing failed.")
+    return AudioProcessingResult(
+        output_path=output_path,
+        command=cmd,
+        duration_ms=probe_duration_ms(output_path, config),
+    )
+
+
+def build_region_delete_plan(
+    selection_start_ms: int,
+    selection_end_ms: int,
+    duration_ms: int,
+) -> RegionDeletePlan:
+    """Return a concat/trim plan for deleting one region from a clip."""
+    duration = max(0, int(round(duration_ms)))
+    start = max(0, min(int(round(selection_start_ms)), duration))
+    end = max(0, min(int(round(selection_end_ms)), duration))
+    if end <= start:
+        raise AudioProcessingError("Select a region before deleting it.")
+    if start <= 0 and end >= duration:
+        raise AudioProcessingError("Cannot delete the whole audio clip.")
+
+    start_s = start / 1000
+    end_s = end / 1000
+    duration_s = duration / 1000
+    if start <= 0:
+        filter_complex = f"[0:a]atrim=start={end_s:.3f},asetpts=PTS-STARTPTS[out]"
+    elif end >= duration:
+        filter_complex = f"[0:a]atrim=end={start_s:.3f},asetpts=PTS-STARTPTS[out]"
+    else:
+        filter_complex = (
+            f"[0:a]atrim=start=0.000:end={start_s:.3f},asetpts=PTS-STARTPTS[a0];"
+            f"[0:a]atrim=start={end_s:.3f}:end={duration_s:.3f},asetpts=PTS-STARTPTS[a1];"
+            "[a0][a1]concat=n=2:v=0:a=1[out]"
+        )
+    return RegionDeletePlan(start, end, duration, filter_complex)
+
+
 def build_ffmpeg_command(
     ffmpeg_path: Path,
     source_path: Path,
@@ -324,6 +403,31 @@ def build_filter_complex_render_command(
         "-vn",
         "-filter_complex_script",
         str(filter_script_path),
+        "-map",
+        "[out]",
+        FFMPEG_AUDIO_CODEC_ARG,
+        "libmp3lame",
+        "-q:a",
+        "4",
+        str(output_path),
+    )
+
+
+def build_region_delete_command(
+    ffmpeg_path: Path,
+    source_path: Path,
+    filter_complex: str,
+    output_path: Path,
+) -> tuple[str, ...]:
+    """Build an ffmpeg command that removes one selected audio region."""
+    return (
+        str(ffmpeg_path),
+        "-y",
+        "-i",
+        str(source_path),
+        "-vn",
+        "-filter_complex",
+        filter_complex,
         "-map",
         "[out]",
         FFMPEG_AUDIO_CODEC_ARG,
