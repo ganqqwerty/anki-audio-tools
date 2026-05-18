@@ -5,6 +5,61 @@ from pathlib import Path
 import scripts.dev as dev
 
 
+def test_build_ui_generates_contracts_before_frontend_build(monkeypatch, tmp_path: Path) -> None:
+    settings_ui = tmp_path / "settings_ui"
+    settings_ui.mkdir()
+    calls: list[str] = []
+
+    monkeypatch.setattr(dev, "SETTINGS_UI_DIR", settings_ui)
+    monkeypatch.setattr(dev.shutil, "which", lambda name: "/usr/bin/npm" if name == "npm" else None)
+    monkeypatch.setattr(dev, "cmd_contracts_generate", lambda: calls.append("contracts-generate") or 0)
+    monkeypatch.setattr(dev, "_run", lambda cmd, **kwargs: calls.append(" ".join(cmd)) or 0)
+
+    assert dev.cmd_build_ui() == 0
+    assert calls == ["contracts-generate", "npm run build"]
+
+
+def test_build_ui_stops_when_contract_generation_fails(monkeypatch, tmp_path: Path) -> None:
+    settings_ui = tmp_path / "settings_ui"
+    settings_ui.mkdir()
+
+    monkeypatch.setattr(dev, "SETTINGS_UI_DIR", settings_ui)
+    monkeypatch.setattr(dev.shutil, "which", lambda name: "/usr/bin/npm" if name == "npm" else None)
+    monkeypatch.setattr(dev, "cmd_contracts_generate", lambda: 19)
+    monkeypatch.setattr(
+        dev,
+        "_run",
+        lambda *_args, **_kwargs: (_ for _ in ()).throw(AssertionError("frontend build should not run")),
+    )
+
+    assert dev.cmd_build_ui() == 19
+
+
+def test_python_test_command_generates_contracts_before_pytest(monkeypatch) -> None:
+    calls: list[str] = []
+
+    monkeypatch.setattr(dev, "cmd_contracts_generate", lambda: calls.append("contracts-generate") or 0)
+    monkeypatch.setattr(
+        dev,
+        "_run_pytest",
+        lambda target, *, label: calls.append(f"{target} {label}") or 0,
+    )
+
+    assert dev.cmd_test() == 0
+    assert calls == ["contracts-generate", "tests/ python tests"]
+
+
+def test_python_test_command_stops_when_contract_generation_fails(monkeypatch) -> None:
+    monkeypatch.setattr(dev, "cmd_contracts_generate", lambda: 29)
+    monkeypatch.setattr(
+        dev,
+        "_run_pytest",
+        lambda *_args, **_kwargs: (_ for _ in ()).throw(AssertionError("pytest should not run")),
+    )
+
+    assert dev.cmd_test() == 29
+
+
 def test_test_svelte_builds_frontend_before_validation(monkeypatch, tmp_path: Path) -> None:
     settings_ui = tmp_path / "settings_ui"
     (settings_ui / "node_modules").mkdir(parents=True)

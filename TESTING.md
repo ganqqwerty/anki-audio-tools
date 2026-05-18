@@ -18,7 +18,7 @@ python3 scripts/dev.py test-e2e
 - `tests/test_architecture/` enforces layer boundaries, module classification, Anki-import-safe helper modules, import-safe runtime modules, editor bridge command sync, prosody dependency isolation, shell-thin settings rules, and DB access isolation.
 - `tests/test_anki_api_contract_mocks.py` checks the mocked unit-test Anki surface against the same generated contract so mocks cannot hide a missing real API.
 - `tests/test_architecture/contracts.py` is the executable architecture source of truth; `tests/test_architecture/inspection.py` powers both the tests and the architecture report.
-- `settings_ui/tests/` covers bridge commands, async job plumbing, logging, the settings UI, and the inline editor Svelte runtime with Anki cut off behind DOM/backend test doubles. `python3 scripts/dev.py test-svelte` rebuilds the committed frontend bundles, then runs the frontend validation chain: `svelte-check`, ESLint, `tsc --noEmit`, and Vitest coverage thresholds.
+- `settings_ui/tests/` covers bridge commands, async job plumbing, logging, the settings UI, and the inline editor Svelte runtime with Anki cut off behind DOM/backend test doubles. `python3 scripts/dev.py test-svelte` rebuilds the ignored generated frontend bundles, then runs the frontend validation chain: `svelte-check`, ESLint, `tsc --noEmit`, and Vitest coverage thresholds.
 - `scripts/generate_contracts.py --check` verifies generated Python/TypeScript JSON communication contracts are in sync with `contracts/communication.schema.json`.
 - `python3 scripts/dev.py coverage` runs Python unit tests with branch coverage and fails below 70%.
 - `python3 scripts/dev.py sonar` regenerates Python XML coverage and frontend LCOV from scratch, waits for the Sonar quality gate, and fails on missing reports or a failed quality gate.
@@ -26,17 +26,17 @@ python3 scripts/dev.py test-e2e
 
 ## Feature Completion Rule
 
-A feature is not complete until `python3 scripts/dev.py test-e2e` passes. The e2e command rebuilds the frontend bundles first so Anki tests never depend on stale committed webview output.
+A feature is not complete until `python3 scripts/dev.py test-e2e` passes. The e2e command rebuilds the frontend bundles first so Anki tests never depend on stale webview output.
 
 ## Frontend Build Notes
 
-The settings and inline editor frontend are compiled into committed files under `addon/anki_audio_quick_editor/templates/`. Anki e2e tests load those committed bundles, not the TypeScript or Svelte source in `settings_ui/src/`.
+The settings and inline editor frontend are compiled into ignored generated files under `addon/anki_audio_quick_editor/templates/`. Anki e2e tests load those generated bundles, not the TypeScript or Svelte source in `settings_ui/src/`.
 
-Use `python3 scripts/dev.py test-svelte` for frontend work and `python3 scripts/dev.py test-e2e` for Anki runtime checks. Both commands intentionally run `python3 scripts/dev.py build` first. If the build changes `templates/*_bundle.{js,css}`, commit those generated bundle changes with the source change.
+Use `python3 scripts/dev.py test-svelte` for frontend work and `python3 scripts/dev.py test-e2e` for Anki runtime checks. Both commands intentionally run `python3 scripts/dev.py build` first. Do not commit generated `templates/*_bundle.{js,css}` files.
 
 Avoid running `npm run validate` or `pytest e2e` directly as the only verification after frontend changes. Direct commands are useful for focused debugging, but they bypass the repository rule that bundle freshness is part of the test command.
 
-`python3 scripts/dev.py check` reaches frontend validation through `test-svelte`, so it can also modify committed bundles. Check `git diff` after running it.
+`python3 scripts/dev.py check` reaches frontend validation through `test-svelte`, so it can also regenerate ignored bundle files.
 
 ## Individual Checks
 
@@ -62,7 +62,7 @@ Avoid running `npm run validate` or `pytest e2e` directly as the only verificati
 
 ## Quality Gates
 
-`python3 scripts/dev.py check` is the reusable local QC gate. It runs schema and contract staleness checks, architecture reporting, Ruff, mypy, Bandit, Vulture, Deptry, Radon, import-linter, Anki API contract tests, Python unit/architecture tests, and frontend validation. Its frontend validation step rebuilds bundles through `test-svelte`.
+`python3 scripts/dev.py check` is the reusable local QC gate. It runs schema validation, generates and verifies JSON contracts, architecture reporting, Ruff, mypy, Bandit, Vulture, Deptry, Radon, import-linter, Anki API contract tests, Python unit/architecture tests, and frontend validation. Its frontend validation step rebuilds bundles through `test-svelte`.
 
 The Radon complexity command fails when any hand-maintained add-on function or class is rank C or worse. Generated communication-contract output is excluded from the fail decision; contract freshness is enforced separately by `contracts-check`. Ruff also enforces McCabe complexity with `max-complexity = 10`.
 
@@ -159,6 +159,8 @@ The e2e suite uses a temporary `ANKI_BASE`, symlinks the add-on under `100000000
 E2E tests run in randomized order and Anki config is persistent inside the temporary add-on profile for the duration of a test. When adding a config key, update the e2e default-config helpers so the new setting is explicitly reset to its production default unless a test opts into another value. This prevents one settings-dialog test from silently changing later editor tests.
 
 Audio rendering and fallback prosody tests require `ffmpeg` and `ffprobe`. On this machine they are installed with Homebrew as `ffmpeg 8.1.1` under `/opt/homebrew/bin/`; e2e tests prefer that Homebrew binary and do not use bundled app copies such as Migaku's ffmpeg.
+
+External binary features should have two kinds of tests: normal-path coverage that runs the real executable in e2e when the binary is available, and focused unit/e2e fixtures with fake executables for exceptional behavior. Use fakes for missing tools, permission errors, invalid arguments, malformed output, and nonzero exits; do not replace the normal real-binary smoke path with a fake when the feature depends on actual media processing.
 
 Prosody visualization e2e coverage verifies that the real Anki editor renders intensity fill, pitch paths, Hertz labels, and cursor seeking, and that the graph refreshes after real ffmpeg-generated media changes.
 

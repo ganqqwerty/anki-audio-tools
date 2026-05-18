@@ -2,7 +2,7 @@
 
 ## Frontend Bundles
 
-The frontend source keeps two committed webview bundles:
+The frontend source builds two generated webview bundles:
 
 - settings source: `settings_ui/src/App.svelte`, `settings_ui/src/main.ts`, and shared `settings_ui/src/lib/`
 - output: `addon/anki_audio_quick_editor/templates/settings/settings_bundle.{js,css}`
@@ -19,9 +19,11 @@ python3 scripts/dev.py build
 
 Frontend-dependent test commands also build before they run. `python3 scripts/dev.py test-svelte` rebuilds before validation, and `python3 scripts/dev.py test-e2e` rebuilds before launching Anki e2e tests.
 
-This build step is not optional for runtime verification. The Anki editor and settings dialogs load only the committed files in `addon/anki_audio_quick_editor/templates/`; they do not load Vite source files or a dev server. If e2e behavior does not match a TypeScript/Svelte edit, check whether the committed bundle changed and whether the test was run through `scripts/dev.py`.
+This build step is not optional for runtime verification. The Anki editor and settings dialogs load only the generated files in `addon/anki_audio_quick_editor/templates/`; they do not load Vite source files or a dev server. If e2e behavior does not match a TypeScript/Svelte edit, check whether the bundle was regenerated and whether the test was run through `scripts/dev.py`.
 
-After running `check`, `test-svelte`, or `test-e2e`, review bundle diffs before committing. A source-only frontend commit can be misleading because the packaged add-on uses the generated templates.
+Generated bundle files are ignored by git. Commit the source files that produce them, not the generated `settings_bundle.*` or `editor_bundle.*` files.
+
+If a generated bundle such as `addon/anki_audio_quick_editor/templates/editor/editor_bundle.js` conflicts locally, resolve the source files first, then run `python3 scripts/dev.py build`. Do not hand-merge minified or generated bundle content.
 
 Owned JSON communication contracts are schema-first:
 
@@ -29,7 +31,9 @@ Owned JSON communication contracts are schema-first:
 - generated TypeScript: `settings_ui/src/lib/generated/contracts.ts`
 - generated Python: `addon/anki_audio_quick_editor/contracts_generated.py`
 
-Regenerate them with `python3 scripts/dev.py contracts-generate`; `python3 scripts/dev.py contracts-check` fails when the committed generated files are stale.
+Generated contract files are ignored by git. Regenerate them with `python3 scripts/dev.py contracts-generate`; `python3 scripts/dev.py contracts-check` verifies local generated files against the schema.
+
+Config schema changes usually have several consumers. When adding, renaming, or removing a config key, update the source schema and generated contracts together with the committed default config, Python config migration tests, settings initial-state fixtures, Svelte settings fixtures, and e2e default-config helpers. Run `python3 scripts/dev.py config-schema`, `python3 scripts/dev.py contracts-generate`, and `python3 scripts/dev.py contracts-check` before relying on frontend or e2e results.
 
 ## Bridge Rules
 
@@ -39,7 +43,7 @@ Regenerate them with `python3 scripts/dev.py contracts-generate`; `python3 scrip
 - Settings bridge payloads and callback payloads should use the generated contract types rather than ad hoc `Any`/`unknown` shapes.
 - Editor frontend logging reuses `FrontendLogPayload`; the editor bundle queues payloads on `window.__aqePopFrontendLog()` and notifies Python with `aqe:frontend-log`.
 - Always `json.dumps()` values before interpolating them into `webview.eval(...)`.
-- Inline editor controls are injected from Python via `editor_ui.py`, which embeds the committed editor bundle and field-index config.
+- Inline editor controls are injected from Python via `editor_ui.py`, which embeds the generated editor bundle and field-index config.
 - Browser batch visualization progress and logging are native Qt widgets, not Svelte/WebView content.
 
 ## Important WebView Gotchas

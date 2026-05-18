@@ -15,6 +15,12 @@ mutants/
 # Build artifacts
 dist/
 
+# Generated source and webview artifacts
+/addon/anki_audio_quick_editor/contracts_generated.py
+/settings_ui/src/lib/generated/
+/addon/anki_audio_quick_editor/templates/settings/settings_bundle.*
+/addon/anki_audio_quick_editor/templates/editor/editor_bundle.*
+
 # Environment / secrets
 .env
 .env.*

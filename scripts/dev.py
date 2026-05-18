@@ -460,6 +460,9 @@ def cmd_setup() -> int:
 
 
 def cmd_test() -> int:
+    contracts_rc = cmd_contracts_generate()
+    if contracts_rc != 0:
+        return contracts_rc
     return _run_pytest("tests/", label="python tests")
 
 
@@ -480,6 +483,9 @@ def cmd_lint() -> int:
 
 
 def cmd_typecheck() -> int:
+    contracts_rc = cmd_contracts_generate()
+    if contracts_rc != 0:
+        return contracts_rc
     anki_python = _find_anki_python()
     return _run([str(anki_python), "-m", "mypy"], label="mypy typecheck")
 
@@ -764,6 +770,7 @@ def cmd_sonar() -> int:
 def cmd_check() -> int:
     steps: list[tuple[str, Callable[[], int]]] = [
         ("config-schema", cmd_config_schema),
+        ("contracts-generate", cmd_contracts_generate),
         ("contracts-check", cmd_contracts_check),
         ("architecture-report", cmd_architecture_report),
         ("lint", cmd_lint),
@@ -811,7 +818,7 @@ def cmd_build_ui() -> int:
         _die("settings_ui/ directory not found.")
     if not shutil.which("npm"):
         _die("npm not found. Install Node.js 18+.")
-    contracts_rc = cmd_contracts_check()
+    contracts_rc = cmd_contracts_generate()
     if contracts_rc != 0:
         return contracts_rc
     return _run(["npm", "run", "build"], cwd=SETTINGS_UI_DIR, label="frontend webview bundle build")
@@ -876,7 +883,7 @@ COMMANDS: dict[str, tuple[Callable[[], int], str]] = {
     "deps": (cmd_deps, "Check dependencies (deptry)"),
     "check": (
         cmd_check,
-        "Full QC: config-schema + contracts-check + architecture-report + lint + typecheck + "
+        "Full QC: config-schema + contracts-generate + contracts-check + architecture-report + lint + typecheck + "
         "security + deadcode + deps + complexity + arch + test-anki-api + test + frontend validate",
     ),
     "coverage": (cmd_coverage, f"Run tests with branch coverage report (fail under {PYTHON_COVERAGE_FAIL_UNDER}%)"),
