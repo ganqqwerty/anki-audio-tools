@@ -11,6 +11,7 @@ import {
 } from "./dom-selectors.js";
 import {
   focusAndSendCommand,
+  focusAndSendCommandPayload,
   popPendingPlaybackRequest,
   sendGraphAnalysisRequest,
   setCursorIntent,
@@ -34,7 +35,7 @@ import {
   buildPlaybackRequestForPython,
   type PlaybackRegion,
 } from "./playback-state.js";
-import type { CursorIntent, DefaultGraphTarget, EditorCommand, PlaybackRequest, PlaybackState, VisualizerElement } from "./types.js";
+import type { CursorIntent, DefaultGraphTarget, EditorCommand, EditorCommandPayload, PlaybackRequest, PlaybackState, VisualizerElement } from "./types.js";
 import { isPlaybackState, normalizeTrack } from "./types.js";
 import {
   syncAllRegionDeleteControls,
@@ -85,7 +86,6 @@ import {
   type PlaybackControllerDependencies,
   type ProgressClockOptions,
 } from "./playback-controller.js";
-
 export { popEditorFrontendLog, popPendingGraphAnalysisRequest } from "./bridge.js";
 
 function anyBusy(): boolean {
@@ -174,7 +174,7 @@ function setCommandButtonLabel(ord: number, command: EditorCommand, label: strin
   }
 }
 
-export function send(command: EditorCommand, node: HTMLElement, ord: number): void {
+export function send(command: EditorCommand, node: HTMLElement, ord: number, payload?: EditorCommandPayload): void {
   if (anyBusy()) return;
   if (typeof node.focus === "function") node.focus();
   window.__aqeActiveField = ord;
@@ -189,6 +189,10 @@ export function send(command: EditorCommand, node: HTMLElement, ord: number): vo
   if (PROCESSING_COMMANDS.has(command)) {
     stopAllEditorPlayback();
     setControlsBusy(ord, true, processingMessage(command));
+  }
+  if (payload) {
+    focusAndSendCommandPayload(ord, payload);
+    return;
   }
   focusAndSendCommand(ord, command);
 }

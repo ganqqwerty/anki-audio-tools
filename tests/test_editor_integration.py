@@ -322,6 +322,77 @@ def test_set_busy_falls_back_to_session_field_index() -> None:
     assert "(2, false" in editor.web.eval.call_args.args[0]
 
 
+def test_bridge_accepts_processing_json_payload(tmp_path: Path, monkeypatch) -> None:
+    class Editor:
+        pass
+
+    editor = Editor()
+    editor.currentField = 0
+    editor.web = MagicMock()
+    source = tmp_path / "clip.mp3"
+    source.write_bytes(b"source")
+    session = EditorSession(state=AudioEditState("clip.mp3"), field_index=0)
+    _SESSIONS[editor] = session
+    rendered: dict[str, AudioEditState | int] = {}
+
+    monkeypatch.setattr(
+        "anki_audio_quick_editor.editor_integration._session_and_source",
+        lambda _editor: (session, source),
+    )
+    monkeypatch.setattr(
+        "anki_audio_quick_editor.editor_integration._config",
+        lambda _editor: {"manual_trim_small_ms": 500},
+    )
+    monkeypatch.setattr(
+        "anki_audio_quick_editor.editor_integration._render_and_replace_async",
+        lambda _editor, _session, _source_path, updated_state, _config: rendered.update(
+            state=updated_state,
+            current_field=editor.currentField,
+        ),
+    )
+
+    _handle_bridge_command(
+        editor,
+        '{"command":"aqe:trim-left","fieldOrd":1,"overrides":{"trimStepMs":200}}',
+    )
+
+    assert rendered["state"] == AudioEditState("clip.mp3", left_trim_ms=200)
+    assert rendered["current_field"] == 1
+
+
+def test_bridge_keeps_plain_processing_commands(tmp_path: Path, monkeypatch) -> None:
+    class Editor:
+        pass
+
+    editor = Editor()
+    editor.currentField = 0
+    editor.web = MagicMock()
+    source = tmp_path / "clip.mp3"
+    source.write_bytes(b"source")
+    session = EditorSession(state=AudioEditState("clip.mp3"), field_index=0)
+    _SESSIONS[editor] = session
+    rendered: dict[str, AudioEditState] = {}
+
+    monkeypatch.setattr(
+        "anki_audio_quick_editor.editor_integration._session_and_source",
+        lambda _editor: (session, source),
+    )
+    monkeypatch.setattr(
+        "anki_audio_quick_editor.editor_integration._config",
+        lambda _editor: {"manual_trim_small_ms": 300},
+    )
+    monkeypatch.setattr(
+        "anki_audio_quick_editor.editor_integration._render_and_replace_async",
+        lambda _editor, _session, _source_path, updated_state, _config: rendered.update(
+            state=updated_state
+        ),
+    )
+
+    _handle_bridge_command(editor, "aqe:trim-left")
+
+    assert rendered["state"] == AudioEditState("clip.mp3", left_trim_ms=300)
+
+
 def test_note_load_reset_clears_note_specific_session_state(monkeypatch) -> None:
     class Editor:
         pass

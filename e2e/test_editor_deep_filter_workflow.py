@@ -267,10 +267,10 @@ def test_standard_denoise_menu_click_then_undo_and_redo_restores_reference(
 
     editor, parent = _open_editor(anki_mw, note)
     try:
-        click_selector(editor.web, '[data-testid="aqe-denoise-menu-0"] > summary', timeout=10.0)
+        click_selector(editor.web, '[data-testid="aqe-split-0-denoise-standard-menu"]', timeout=10.0)
         wait_for_js_condition(
             editor.web,
-            'document.querySelector(\'[data-testid="aqe-denoise-menu-0"]\')?.open',
+            'document.querySelector(\'[data-testid="aqe-split-0-denoise-standard-popover"]\') !== null',
             lambda value: value is True,
             timeout=5.0,
         )
@@ -320,10 +320,10 @@ def test_standard_denoise_menu_undo_with_user_meta_settings(
             lambda value: value["sourceFilename"] == source.name,
             timeout=10.0,
         )
-        click_selector(editor.web, '[data-testid="aqe-denoise-menu-0"] > summary', timeout=10.0)
+        click_selector(editor.web, '[data-testid="aqe-split-0-denoise-standard-menu"]', timeout=10.0)
         wait_for_js_condition(
             editor.web,
-            'document.querySelector(\'[data-testid="aqe-denoise-menu-0"]\')?.open',
+            'document.querySelector(\'[data-testid="aqe-split-0-denoise-standard-popover"]\') !== null',
             lambda value: value is True,
             timeout=5.0,
         )
@@ -371,10 +371,10 @@ def test_standard_denoise_menu_undo_with_user_meta_settings_on_local_sample(
             lambda value: value["sourceFilename"] == source.name,
             timeout=10.0,
         )
-        click_selector(editor.web, '[data-testid="aqe-denoise-menu-0"] > summary', timeout=10.0)
+        click_selector(editor.web, '[data-testid="aqe-split-0-denoise-standard-menu"]', timeout=10.0)
         wait_for_js_condition(
             editor.web,
-            'document.querySelector(\'[data-testid="aqe-denoise-menu-0"]\')?.open',
+            'document.querySelector(\'[data-testid="aqe-split-0-denoise-standard-popover"]\') !== null',
             lambda value: value is True,
             timeout=5.0,
         )
@@ -428,10 +428,10 @@ def test_standard_denoise_menu_undo_with_user_meta_settings_and_multiple_audio_f
             timeout=10.0,
             ord_=2,
         )
-        click_selector(editor.web, '[data-testid="aqe-denoise-menu-0"] > summary', timeout=10.0)
+        click_selector(editor.web, '[data-testid="aqe-split-0-denoise-standard-menu"]', timeout=10.0)
         wait_for_js_condition(
             editor.web,
-            'document.querySelector(\'[data-testid="aqe-denoise-menu-0"]\')?.open',
+            'document.querySelector(\'[data-testid="aqe-split-0-denoise-standard-popover"]\') !== null',
             lambda value: value is True,
             timeout=5.0,
         )

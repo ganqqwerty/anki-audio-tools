@@ -15,11 +15,11 @@ import {
   handleAsyncProgress,
   startAsyncOp,
 } from "../src/lib/async-jobs.js";
-import { OutputFormat } from "../src/lib/types.js";
+import { DenoiseAlgorithm, OutputFormat, PauseAggressiveness } from "../src/lib/types.js";
 
 const pycmd = (globalThis as unknown as Record<string, ReturnType<typeof vi.fn>>)["pycmd"]!;
 const config = {
-  _config_version: 9,
+  _config_version: 10,
   enabled: true,
   debug_logging: false,
   show_ffmpeg_commands: false,
@@ -40,6 +40,8 @@ const config = {
   ffmpeg_path: "",
   deep_filter_path: "",
   deep_filter_post_filter: true,
+  denoise_algorithm: DenoiseAlgorithm.Standard,
+  pause_aggressiveness: PauseAggressiveness.Normal,
 };
 
 afterEach(() => {

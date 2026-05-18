@@ -2,10 +2,10 @@ import { fireEvent, render, screen, waitFor } from "@testing-library/svelte";
 import { describe, expect, it, vi } from "vitest";
 
 import App from "../src/App.svelte";
-import { OutputFormat } from "../src/lib/types.js";
+import { DenoiseAlgorithm, OutputFormat, PauseAggressiveness } from "../src/lib/types.js";
 
 const defaultConfig = {
-  _config_version: 9,
+  _config_version: 10,
   enabled: true,
   debug_logging: false,
   show_ffmpeg_commands: false,
@@ -26,6 +26,8 @@ const defaultConfig = {
   ffmpeg_path: "",
   deep_filter_path: "",
   deep_filter_post_filter: true,
+  denoise_algorithm: DenoiseAlgorithm.Standard,
+  pause_aggressiveness: PauseAggressiveness.Normal,
 };
 
 function pycmdMock(): ReturnType<typeof vi.fn> {
@@ -56,6 +58,8 @@ describe("App", () => {
     expect(screen.getByText("ffmpeg path")).toBeInTheDocument();
     expect(screen.getByText("DeepFilterNet path")).toBeInTheDocument();
     expect(screen.getByText("Use DeepFilterNet post-filter")).toBeInTheDocument();
+    expect(screen.getByText("Shorten pauses level")).toBeInTheDocument();
+    expect(screen.getByText("Default denoise algorithm")).toBeInTheDocument();
     expect(screen.getByText("Volume step (dB)")).toBeInTheDocument();
     expect(screen.getByText("Min volume (dB)")).toBeInTheDocument();
     expect(screen.getByText("Max volume (dB)")).toBeInTheDocument();
@@ -118,6 +122,37 @@ describe("App", () => {
     expect(config.volume_step_db).toBe(1.5);
     expect(config.min_volume_db).toBe(-18);
     expect(config.max_volume_db).toBe(12);
+  });
+
+  it("saves split button default settings", async () => {
+    window.__INITIAL_STATE__ = {
+      config: defaultConfig,
+      version: "0.1.0",
+      addon_dir: "/tmp/addon",
+      log_file_path: "/tmp/addon/log.txt",
+      diagnostics: { addon_id: "anki_audio_quick_editor", collection_available: true },
+    };
+
+    render(App);
+    await fireEvent.change(screen.getByLabelText("Shorten pauses level"), {
+      target: { value: PauseAggressiveness.Aggressive },
+    });
+    await fireEvent.change(screen.getByLabelText("Default denoise algorithm"), {
+      target: { value: DenoiseAlgorithm.Rnnoise },
+    });
+    await fireEvent.click(screen.getByRole("button", { name: "Save" }));
+
+    const call = vi
+      .mocked(pycmdMock())
+      .mock.calls
+      .map(([command]) => command as string)
+      .find((command) => command.startsWith("settings_save:")) as string;
+    const config = JSON.parse(call.slice("settings_save:".length)) as {
+      denoise_algorithm: string;
+      pause_aggressiveness: string;
+    };
+    expect(config.pause_aggressiveness).toBe("aggressive");
+    expect(config.denoise_algorithm).toBe("rnnoise");
   });
 
   it("shows diagnostics data and runs a health check", async () => {

@@ -32,6 +32,7 @@ export interface Config {
     debug_logging:                       boolean;
     deep_filter_path:                    string;
     deep_filter_post_filter:             boolean;
+    denoise_algorithm:                   DenoiseAlgorithm;
     enabled:                             boolean;
     ffmpeg_path:                         string;
     internal_pause_silence_threshold_db: number;
@@ -44,6 +45,7 @@ export interface Config {
     min_speed:                           number;
     min_volume_db:                       number;
     output_format:                       OutputFormat;
+    pause_aggressiveness:                PauseAggressiveness;
     repeat_playback_by_default:          boolean;
     show_ffmpeg_commands:                boolean;
     show_graph_by_default:               boolean;
@@ -51,8 +53,19 @@ export interface Config {
     volume_step_db:                      number;
 }
 
+export enum DenoiseAlgorithm {
+    Rnnoise = "rnnoise",
+    Standard = "standard",
+}
+
 export enum OutputFormat {
     Mp3 = "mp3",
+}
+
+export enum PauseAggressiveness {
+    Aggressive = "aggressive",
+    Gentle = "gentle",
+    Normal = "normal",
 }
 
 export interface AsyncDonePayload {

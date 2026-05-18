@@ -1,6 +1,6 @@
 {
   "$schema": "./config.schema.json",
-  "_config_version": 9,
+  "_config_version": 10,
   "enabled": true,
   "debug_logging": false,
   "show_ffmpeg_commands": false,
@@ -17,8 +17,10 @@
   "internal_pause_silence_threshold_db": -45,
   "internal_pause_threshold_ms": 300,
   "internal_pause_target_gap_ms": 100,
+  "pause_aggressiveness": "normal",
   "output_format": "mp3",
   "ffmpeg_path": "",
   "deep_filter_path": "",
-  "deep_filter_post_filter": true
+  "deep_filter_post_filter": true,
+  "denoise_algorithm": "standard"
 }

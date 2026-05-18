@@ -9,6 +9,7 @@ import {
   initializeEditorRuntime,
   scan,
 } from "../src/editor-inline/runtime.js";
+import type { EditorCommandPayload } from "../src/editor-inline/types.js";
 import { pycmdMock } from "./setup.js";
 
 const track = {
@@ -143,8 +144,8 @@ describe("editor inline Svelte integration", () => {
     expect(graphButton).toHaveClass("aqe-icon-only");
     expect(graphButton).toHaveAttribute("aria-label", "Analyze and show pitch/intensity graph");
     expect(settingsButton).toHaveClass("aqe-icon-only");
-    expect(document.querySelector('[data-testid="aqe-button-0-denoise-standard"]')).toHaveTextContent("Standard");
-    expect(document.querySelector('[data-testid="aqe-button-0-rnnoise"]')).toHaveTextContent("RNNoise");
+    expect(document.querySelector('[data-testid="aqe-button-0-denoise-standard"]')).toHaveTextContent("Denoise");
+    expect(document.querySelector('[data-testid="aqe-split-0-denoise-standard-menu"]')).toHaveTextContent("Options");
     expect(audioSourceForNode(document.getElementById("f0")!)).toBe("clip one.mp3");
     expect(fieldIndex(document.getElementById("f0")!, 7)).toBe(0);
   });
@@ -166,7 +167,7 @@ describe("editor inline Svelte integration", () => {
     expect(audioSourceForNode(document.getElementById("video-field")!)).toBe("");
   });
 
-  it("dispatches denoise menu commands and renders collapsed help", () => {
+  it("dispatches denoise split commands and renders collapsed help", async () => {
     initializeEditorRuntime({ audioFieldIndices: [0] });
     scan({ audioFieldIndices: [0] });
 
@@ -179,11 +180,146 @@ describe("editor inline Svelte integration", () => {
     expect(help).toHaveTextContent("grey is loudness and lines are pitch of the voice.");
 
     document.querySelector<HTMLButtonElement>('[data-testid="aqe-button-0-denoise-standard"]')!.click();
-    expect(bridgeCommands()).toContain("aqe:denoise-standard");
+    expect(bridgeCommands()).toContain("aqe:command-payload");
+    expect(window.__aqePendingCommandPayload).toMatchObject({
+      command: "aqe:denoise-standard",
+      fieldOrd: 0,
+      overrides: {
+        denoiseAlgorithm: "standard",
+      },
+    });
 
     window.__aqePrepareForNewNote?.();
-    document.querySelector<HTMLButtonElement>('[data-testid="aqe-button-0-rnnoise"]')!.click();
-    expect(bridgeCommands()).toContain("aqe:rnnoise");
+    document.querySelector<HTMLButtonElement>('[data-testid="aqe-split-0-denoise-standard-menu"]')!.click();
+    await Promise.resolve();
+    document.querySelector<HTMLButtonElement>('[data-testid="aqe-split-0-denoise-standard-preset-rnnoise"]')!.click();
+    document.querySelector<HTMLButtonElement>('[data-testid="aqe-button-0-denoise-standard"]')!.click();
+    expect(window.__aqePendingCommandPayload).toMatchObject({
+      command: "aqe:rnnoise",
+      fieldOrd: 0,
+      overrides: {
+        denoiseAlgorithm: "rnnoise",
+      },
+    });
+  });
+
+  it("dispatches trim commands with the field-local split value", () => {
+    window.__AQE_EDITOR_CONFIG__ = {
+      audioFieldIndices: [0],
+      splitButtonDefaults: {
+        denoiseAlgorithm: "standard",
+        pauseAggressiveness: "normal",
+        speedStep: 0.05,
+        trimStepMs: 200,
+        volumeStepDb: 3,
+      },
+    };
+    initializeEditorRuntime(window.__AQE_EDITOR_CONFIG__);
+    scan(window.__AQE_EDITOR_CONFIG__);
+
+    document.querySelector<HTMLButtonElement>('[data-testid="aqe-button-0-trim-left"]')!.click();
+
+    expect(bridgeCommands()).toContain("focus:0");
+    expect(bridgeCommands()).toContain("aqe:command-payload");
+    expect(window.__aqePendingCommandPayload).toEqual({
+      command: "aqe:trim-left",
+      fieldOrd: 0,
+      overrides: {
+        trimStepMs: 200,
+      },
+    });
+  });
+
+  it("keeps trim split values isolated across audio fields", async () => {
+    renderTwoAudioFields();
+    window.__AQE_EDITOR_CONFIG__ = {
+      audioFieldIndices: [0, 1],
+      splitButtonDefaults: {
+        denoiseAlgorithm: "standard",
+        pauseAggressiveness: "normal",
+        speedStep: 0.05,
+        trimStepMs: 100,
+        volumeStepDb: 3,
+      },
+    };
+    initializeEditorRuntime(window.__AQE_EDITOR_CONFIG__);
+    scan(window.__AQE_EDITOR_CONFIG__);
+
+    document.querySelector<HTMLButtonElement>('[data-testid="aqe-split-0-trim-left-menu"]')!.click();
+    await Promise.resolve();
+    document.querySelector<HTMLButtonElement>('[data-testid="aqe-split-0-trim-left-preset-200"]')!.click();
+    document.querySelector<HTMLButtonElement>('[data-testid="aqe-button-0-trim-left"]')!.click();
+    const firstPayload = window.__aqePendingCommandPayload;
+    window.__aqePendingCommandPayload = null;
+    window.__aqeSetBusy?.(0, false);
+    document.querySelector<HTMLButtonElement>('[data-testid="aqe-button-1-trim-left"]')!.click();
+    const secondPayload = window.__aqePendingCommandPayload;
+
+    expect(bridgeCommands().filter((command) => command === "aqe:command-payload")).toHaveLength(2);
+    expect([firstPayload, secondPayload].map((payload) => payload?.overrides?.trimStepMs)).toEqual([200, 100]);
+  });
+
+  it("dispatches volume and speed split payloads with local values", async () => {
+    renderFields();
+    window.__AQE_EDITOR_CONFIG__ = {
+      audioFieldIndices: [0],
+      splitButtonDefaults: {
+        denoiseAlgorithm: "standard",
+        pauseAggressiveness: "normal",
+        speedStep: 0.05,
+        trimStepMs: 100,
+        volumeStepDb: 3,
+      },
+    };
+    initializeEditorRuntime(window.__AQE_EDITOR_CONFIG__);
+    scan(window.__AQE_EDITOR_CONFIG__);
+
+    document.querySelector<HTMLButtonElement>('[data-testid="aqe-split-0-volume-up-menu"]')!.click();
+    await Promise.resolve();
+    document.querySelector<HTMLButtonElement>('[data-testid="aqe-split-0-volume-up-preset-6"]')!.click();
+    document.querySelector<HTMLButtonElement>('[data-testid="aqe-button-0-volume-up"]')!.click();
+    const volumePayload = window.__aqePendingCommandPayload as EditorCommandPayload | null | undefined;
+    window.__aqePendingCommandPayload = null;
+    window.__aqeSetBusy?.(0, false);
+
+    document.querySelector<HTMLButtonElement>('[data-testid="aqe-split-0-faster-menu"]')!.click();
+    await Promise.resolve();
+    document.querySelector<HTMLButtonElement>('[data-testid="aqe-split-0-faster-preset-0.1"]')!.click();
+    document.querySelector<HTMLButtonElement>('[data-testid="aqe-button-0-faster"]')!.click();
+
+    expect(volumePayload?.overrides?.volumeStepDb).toBe(6);
+    const speedPayload = window.__aqePendingCommandPayload as EditorCommandPayload | null | undefined;
+    expect(speedPayload?.overrides?.speedStep).toBe(0.1);
+  });
+
+  it("dispatches pause aggressiveness split payloads with local values", async () => {
+    renderFields();
+    window.__AQE_EDITOR_CONFIG__ = {
+      audioFieldIndices: [0],
+      splitButtonDefaults: {
+        denoiseAlgorithm: "standard",
+        pauseAggressiveness: "normal",
+        speedStep: 0.05,
+        trimStepMs: 100,
+        volumeStepDb: 3,
+      },
+    };
+    initializeEditorRuntime(window.__AQE_EDITOR_CONFIG__);
+    scan(window.__AQE_EDITOR_CONFIG__);
+
+    document.querySelector<HTMLButtonElement>('[data-testid="aqe-split-0-remove-pauses-menu"]')!.click();
+    await Promise.resolve();
+    document.querySelector<HTMLButtonElement>('[data-testid="aqe-split-0-remove-pauses-preset-aggressive"]')!.click();
+    document.querySelector<HTMLButtonElement>('[data-testid="aqe-button-0-remove-pauses"]')!.click();
+
+    expect(bridgeCommands()).toContain("aqe:command-payload");
+    expect(window.__aqePendingCommandPayload).toMatchObject({
+      command: "aqe:remove-pauses",
+      fieldOrd: 0,
+      overrides: {
+        pauseAggressiveness: "aggressive",
+      },
+    });
   });
 
   it("removes orphaned controls from previous bundle instances before mounting", () => {
@@ -777,7 +913,8 @@ describe("editor inline Svelte integration", () => {
 
     document.querySelector<HTMLButtonElement>('[data-testid="aqe-button-0-volume-up"]')!.click();
 
-    expect(bridgeCommands()).toContain("aqe:volume-up");
+    expect(bridgeCommands()).toContain("aqe:command-payload");
+    expect(window.__aqePendingCommandPayload?.command).toBe("aqe:volume-up");
     expect(window.__aqeGraphStateForTest?.(0)?.allButtonsDisabled).toBe(true);
     expect(window.__aqeGraphStateForTest?.(0)?.repeatControlDisabled).toBe(true);
     expect(document.querySelector('[data-testid="aqe-status-0"]')).toHaveTextContent("Processing...");

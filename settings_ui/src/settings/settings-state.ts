@@ -1,11 +1,11 @@
-import { OutputFormat } from "$lib/types.js";
+import { DenoiseAlgorithm, OutputFormat, PauseAggressiveness } from "$lib/types.js";
 import type { Config, InitialState } from "$lib/types.js";
 
 export type SettingsTab = "general" | "diagnostics";
 
 export const FALLBACK_INITIAL_STATE: InitialState = {
   config: {
-    _config_version: 9,
+    _config_version: 10,
     enabled: true,
     debug_logging: false,
     show_ffmpeg_commands: false,
@@ -22,10 +22,12 @@ export const FALLBACK_INITIAL_STATE: InitialState = {
     internal_pause_silence_threshold_db: -45,
     internal_pause_threshold_ms: 300,
     internal_pause_target_gap_ms: 100,
+    pause_aggressiveness: PauseAggressiveness.Normal,
     output_format: OutputFormat.Mp3,
     ffmpeg_path: "",
     deep_filter_path: "",
     deep_filter_post_filter: true,
+    denoise_algorithm: DenoiseAlgorithm.Standard,
   },
   version: "",
   addon_dir: "",

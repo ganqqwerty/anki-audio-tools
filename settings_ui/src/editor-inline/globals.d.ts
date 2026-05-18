@@ -2,7 +2,9 @@ import type { FrontendLogPayload, ProsodyPayload } from "../lib/generated/contra
 import type {
   CursorIntent,
   CursorPositionForTest,
+  EditorCommandPayload,
   EditorRuntimeConfig,
+  FieldSplitButtonState,
   GraphAnalysisRequest,
   GraphStateForTest,
   PlaybackRequest,
@@ -25,7 +27,9 @@ declare global {
     __aqeLastCursorIntent?: CursorIntent | null;
     __aqeLastPlaybackRequest?: PlaybackRequest | null;
     __aqePendingGraphRedrawField?: number | null;
+    __aqePendingCommandPayload?: EditorCommandPayload | null;
     __aqePendingPlaybackRequest?: PlaybackRequest | null;
+    __aqeSplitButtonStates?: Record<number, FieldSplitButtonState> | undefined;
     __aqePopPendingGraphAnalysisRequest?: (() => GraphAnalysisRequest | null) | undefined;
     __aqePopPendingRegionDeleteRequest?: (() => RegionDeleteRequest | null) | undefined;
     __aqePopFrontendLog?: (() => FrontendLogPayload | null) | undefined;

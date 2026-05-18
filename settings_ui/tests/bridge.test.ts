@@ -9,11 +9,11 @@ import {
   settingsResetDefaults,
   settingsSave,
 } from "../src/lib/bridge.js";
-import { OutputFormat, type Config } from "../src/lib/types.js";
+import { DenoiseAlgorithm, OutputFormat, PauseAggressiveness, type Config } from "../src/lib/types.js";
 
 const pycmd = (globalThis as unknown as Record<string, ReturnType<typeof vi.fn>>)["pycmd"]!;
 const config: Config = {
-  _config_version: 1,
+  _config_version: 10,
   enabled: true,
   debug_logging: false,
   show_ffmpeg_commands: false,
@@ -34,6 +34,8 @@ const config: Config = {
   ffmpeg_path: "",
   deep_filter_path: "",
   deep_filter_post_filter: true,
+  denoise_algorithm: DenoiseAlgorithm.Standard,
+  pause_aggressiveness: PauseAggressiveness.Normal,
 };
 
 describe("sendBridgeCommand", () => {

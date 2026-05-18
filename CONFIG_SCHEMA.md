@@ -23,13 +23,15 @@ Audio Quick Editor config lives in [`addon/anki_audio_quick_editor/config.json`]
 | `internal_pause_silence_threshold_db` | integer | Silence threshold passed to ffmpeg `silencedetect` on DeepFilterNet-cleaned analysis audio |
 | `internal_pause_threshold_ms` | integer | Internal silence duration that qualifies for pause speed-up |
 | `internal_pause_target_gap_ms` | integer | Target duration for sped-up pause segments |
+| `pause_aggressiveness` | string | Default user-facing Shorten Pauses split-button level: `gentle`, `normal`, or `aggressive` |
 | `output_format` | string | Final output format; MVP supports only `mp3` |
 | `ffmpeg_path` | string | Optional explicit path to `ffmpeg`; blank uses PATH |
 | `deep_filter_path` | string | Optional explicit path to DeepFilterNet `deep-filter`; blank uses a bundled platform binary when available, then PATH |
 | `deep_filter_post_filter` | boolean | Enables DeepFilterNet post-filtering for stronger noise suppression and pause-detection analysis |
+| `denoise_algorithm` | string | Default Denoise split-button algorithm: `standard` for DeepFilterNet or `rnnoise` for RNNoise |
 
 ## Access Pattern
 
 Read config through `mw.addonManager.getConfig(addon_id)` in Anki-facing modules. Merge defaults through `config_migration.migrate_config()` during startup.
 
-Pause shortening uses the existing internal pause keys with DeepFilterNet as an analysis preprocessor. It stores retained provenance under `<addon_dir>/aqe_artifacts/<run_id>/`; this artifact location is not currently configurable.
+Pause shortening uses the internal pause keys with DeepFilterNet as an analysis preprocessor. The user-facing `pause_aggressiveness` default maps to concrete threshold/target values when the editor split button sends a local override; persisted settings are not changed by per-field split-button selections. Pause shortening stores retained provenance under `<addon_dir>/aqe_artifacts/<run_id>/`; this artifact location is not currently configurable.

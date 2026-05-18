@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from unittest.mock import patch
+
 from anki_audio_quick_editor.audio_operations import (
     OP_FASTER,
     OP_REMOVE_PAUSES,
@@ -15,7 +17,9 @@ from anki_audio_quick_editor.editor_actions import (
     BRIDGE_COMMANDS,
     PROCESSING_COMMANDS,
     apply_processing_command,
+    decode_editor_command_payload,
     operation_for_command,
+    processing_config_for_command,
 )
 
 
@@ -44,6 +48,47 @@ def test_apply_processing_command_uses_configured_trim_step() -> None:
     assert updated == AudioEditState("clip.mp3", left_trim_ms=250)
 
 
+def test_decode_processing_command_accepts_json_payload() -> None:
+    decoded = decode_editor_command_payload(
+        '{"command":"aqe:trim-left","fieldOrd":0,"overrides":{"trimStepMs":200}}'
+    )
+
+    assert decoded.command == "aqe:trim-left"
+    assert decoded.field_ord == 0
+    assert decoded.overrides.trim_step_ms == 200
+
+
+def test_apply_processing_command_uses_trim_override_without_mutating_config() -> None:
+    config = AudioProcessingConfig(manual_trim_small_ms=500)
+    state = AudioEditState("clip.mp3")
+    decoded = decode_editor_command_payload(
+        '{"command":"aqe:trim-left","fieldOrd":0,"overrides":{"trimStepMs":200}}'
+    )
+
+    updated = apply_processing_command(decoded, state, config)
+
+    assert updated == AudioEditState("clip.mp3", left_trim_ms=200)
+    assert config.manual_trim_small_ms == 500
+
+
+def test_apply_processing_command_clamps_trim_override() -> None:
+    config = AudioProcessingConfig(manual_trim_small_ms=500)
+    state = AudioEditState("clip.mp3")
+    low = decode_editor_command_payload(
+        '{"command":"aqe:trim-left","fieldOrd":0,"overrides":{"trimStepMs":10}}'
+    )
+    high = decode_editor_command_payload(
+        '{"command":"aqe:trim-right","fieldOrd":0,"overrides":{"trimStepMs":20000}}'
+    )
+
+    assert apply_processing_command(low, state, config) == AudioEditState(
+        "clip.mp3", left_trim_ms=50
+    )
+    assert apply_processing_command(high, state, config) == AudioEditState(
+        "clip.mp3", right_trim_ms=10000
+    )
+
+
 def test_apply_processing_command_handles_speed_and_feature_toggles() -> None:
     config = AudioProcessingConfig(speed_step=0.1)
     state = AudioEditState("clip.mp3")
@@ -64,6 +109,96 @@ def test_apply_processing_command_handles_volume_steps() -> None:
 
     assert louder == AudioEditState("clip.mp3", volume_db=2.5)
     assert quieter == AudioEditState("clip.mp3", volume_db=-2.5)
+
+
+def test_apply_processing_command_uses_volume_override_without_mutating_config() -> None:
+    config = AudioProcessingConfig(volume_step_db=2.5)
+    state = AudioEditState("clip.mp3")
+    decoded = decode_editor_command_payload(
+        '{"command":"aqe:volume-up","fieldOrd":0,"overrides":{"volumeStepDb":6}}'
+    )
+
+    updated = apply_processing_command(decoded, state, config)
+
+    assert decoded.overrides.volume_step_db == 6
+    assert updated == AudioEditState("clip.mp3", volume_db=6)
+    assert config.volume_step_db == 2.5
+
+
+def test_apply_processing_command_uses_speed_override_without_mutating_config() -> None:
+    config = AudioProcessingConfig(speed_step=0.05)
+    state = AudioEditState("clip.mp3")
+    decoded = decode_editor_command_payload(
+        '{"command":"aqe:faster","fieldOrd":0,"overrides":{"speedStep":0.1}}'
+    )
+
+    updated = apply_processing_command(decoded, state, config)
+
+    assert decoded.overrides.speed_step == 0.1
+    assert updated == AudioEditState("clip.mp3", speed=1.1)
+    assert config.speed_step == 0.05
+
+
+def test_decode_processing_command_accepts_pause_aggressiveness_override() -> None:
+    decoded = decode_editor_command_payload(
+        '{"command":"aqe:remove-pauses","fieldOrd":0,"overrides":{"pauseAggressiveness":"aggressive"}}'
+    )
+
+    assert decoded.overrides.pause_aggressiveness == "aggressive"
+
+
+def test_apply_processing_command_uses_pause_aggressiveness_without_mutating_config() -> None:
+    config = AudioProcessingConfig(
+        internal_pause_silence_threshold_db=-45,
+        internal_pause_threshold_ms=300,
+        internal_pause_target_gap_ms=100,
+        pause_aggressiveness="normal",
+    )
+    state = AudioEditState("clip.mp3")
+    decoded = decode_editor_command_payload(
+        '{"command":"aqe:remove-pauses","fieldOrd":0,"overrides":{"pauseAggressiveness":"aggressive"}}'
+    )
+    captured: dict[str, AudioProcessingConfig] = {}
+
+    def fake_apply(operation: str, current_state: AudioEditState, effective_config: AudioProcessingConfig) -> AudioEditState:
+        captured["config"] = effective_config
+        return current_state.toggle_internal_pauses()
+
+    with patch("anki_audio_quick_editor.editor_actions.apply_audio_operation", fake_apply):
+        updated = apply_processing_command(decoded, state, config)
+
+    assert updated == AudioEditState("clip.mp3", remove_internal_pauses_enabled=True)
+    assert captured["config"].pause_aggressiveness == "aggressive"
+    assert captured["config"].internal_pause_silence_threshold_db == -50
+    assert captured["config"].internal_pause_threshold_ms == 180
+    assert captured["config"].internal_pause_target_gap_ms == 60
+    assert config.pause_aggressiveness == "normal"
+    assert config.internal_pause_threshold_ms == 300
+
+
+def test_processing_config_for_command_returns_render_config_with_local_overrides() -> None:
+    config = AudioProcessingConfig(
+        volume_step_db=3,
+        speed_step=0.05,
+        pause_aggressiveness="normal",
+        internal_pause_silence_threshold_db=-45,
+        internal_pause_threshold_ms=300,
+        internal_pause_target_gap_ms=100,
+    )
+    decoded = decode_editor_command_payload(
+        '{"command":"aqe:remove-pauses","fieldOrd":0,'
+        '"overrides":{"pauseAggressiveness":"aggressive","volumeStepDb":6,"speedStep":0.1}}'
+    )
+
+    effective = processing_config_for_command(decoded, config)
+
+    assert effective.volume_step_db == 6
+    assert effective.speed_step == 0.1
+    assert effective.pause_aggressiveness == "aggressive"
+    assert effective.internal_pause_silence_threshold_db == -50
+    assert effective.internal_pause_threshold_ms == 180
+    assert effective.internal_pause_target_gap_ms == 60
+    assert config.pause_aggressiveness == "normal"
 
 
 def test_apply_processing_command_returns_none_for_non_processing_command() -> None:

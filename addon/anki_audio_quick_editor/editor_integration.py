@@ -28,12 +28,16 @@ from .contracts_generated import FrontendLogPayload, ProsodyPayload
 from .editor_actions import (
     BRIDGE_COMMANDS,
     CMD_ANALYZE_FIELD,
+    CMD_COMMAND_PAYLOAD,
     CMD_DELETE_SELECTION,
     CMD_DENOISE_STANDARD,
     CMD_REDO,
     CMD_RNNOISE,
     CMD_SETTINGS,
+    EditorCommandPayload,
     apply_processing_command,
+    decode_editor_command_payload,
+    processing_config_for_command,
 )
 from .editor_ui import injection_script
 from .errors import AudioProcessingError, AudioQuickEditorError, MissingMediaError
@@ -171,6 +175,13 @@ def _on_editor_will_load_note(js: str, note: Any, editor: Any) -> str:
         audio_field_sources=audio_field_sources,
         repeat_playback_by_default=bool(config.get("repeat_playback_by_default", False)),
         show_graph_by_default=bool(config.get("show_graph_by_default", False)),
+        split_button_defaults={
+            "trimStepMs": int(config.get("manual_trim_small_ms", 100)),
+            "volumeStepDb": float(config.get("volume_step_db", 3.0)),
+            "speedStep": float(config.get("speed_step", 0.05)),
+            "pauseAggressiveness": str(config.get("pause_aggressiveness", "normal")),
+            "denoiseAlgorithm": str(config.get("denoise_algorithm", "standard")),
+        },
     )
     return f"{js}\n{script}"
 
@@ -224,10 +235,16 @@ def _reset_editor_session_for_note_load(editor: Any, note_id: int | None = None)
 
 
 def _handle_bridge_command(editor: Any, command: str) -> None:
+    if command == CMD_COMMAND_PAYLOAD:
+        _handle_pending_command_payload(editor)
+        return
+    payload = decode_editor_command_payload(command)
     try:
-        if _handle_non_processing_command(editor, command):
+        if payload.field_ord is not None:
+            editor.currentField = payload.field_ord
+        if _handle_non_processing_command(editor, payload.command):
             return
-        _update_state_and_render(editor, command)
+        _update_state_and_render(editor, payload)
     except AudioQuickEditorError as exc:
         _set_busy(editor, False)
         _eval_status(editor, str(exc), kind="error")
@@ -235,6 +252,24 @@ def _handle_bridge_command(editor: Any, command: str) -> None:
         logger.exception("audio quick editor command failed: %s", command)
         _set_busy(editor, False)
         _eval_status(editor, f"Audio processing failed. The note was not changed. ({exc})", kind="error")
+
+
+def _handle_pending_command_payload(editor: Any) -> None:
+    expression = """
+    (() => {
+      const payload = window.__aqePendingCommandPayload || null;
+      window.__aqePendingCommandPayload = null;
+      return payload;
+    })()
+    """
+
+    def _continue(raw_payload: Any) -> None:
+        if raw_payload is None:
+            _set_busy(editor, False)
+            return
+        _handle_bridge_command(editor, json.dumps(raw_payload))
+
+    _eval_with_callback(editor, expression, _continue)
 
 
 def _handle_non_processing_command(editor: Any, command: str) -> bool:
@@ -295,7 +330,7 @@ def _log_editor_frontend_payload(raw_payload: Any) -> None:
         logger.info(rendered)
 
 
-def _update_state_and_render(editor: Any, command: str) -> None:
+def _update_state_and_render(editor: Any, command: str | EditorCommandPayload) -> None:
     existing = _SESSIONS.get(editor)
     if existing and _is_busy(existing):
         _eval_status(editor, STILL_PROCESSING_MESSAGE, kind="processing")
@@ -307,7 +342,13 @@ def _update_state_and_render(editor: Any, command: str) -> None:
     if updated_state is None:
         _set_busy(editor, False)
         return
-    _render_and_replace_async(editor, session, source_path, updated_state, config)
+    _render_and_replace_async(
+        editor,
+        session,
+        source_path,
+        updated_state,
+        processing_config_for_command(command, config),
+    )
 
 
 def _render_and_replace_async(
