@@ -204,16 +204,21 @@ export function startProgressClock(
   stopProgressClock(visualizer, deps, { clearEngine: false });
   deps.stopOtherPlayback(visualizer);
   const durationMs = Number(visualizer.dataset.durationMs || "0");
-  if (!durationMs) return;
-  const clampedStartMs = clampProgressMs(visualizer, startMs);
+  const clampedStartMs = durationMs ? clampProgressMs(visualizer, startMs) : Math.max(0, Number(startMs) || 0);
   visualizer.dataset.playbackEngine = selectedEngine;
   visualizer.dataset.playbackState = "playing";
   visualizer.dataset.playStartedAt = String(performance.now());
   visualizer.dataset.playStartMs = String(clampedStartMs);
   setPlaybackPass(visualizer, clampedStartMs, deps);
-  deps.setCursor(visualizer, clampedStartMs, false, { updateAnchor: false });
+  if (durationMs) {
+    deps.setCursor(visualizer, clampedStartMs, false, { updateAnchor: false });
+  } else {
+    visualizer.dataset.cursorMs = String(Math.round(clampedStartMs));
+    visualizer.dataset.progressMs = String(Math.round(clampedStartMs));
+  }
   deps.setPlaybackButtonLabel(visualizer, "Pause");
   logger.info("playback clock selected", { engine: selectedEngine || "auto", startMs: clampedStartMs });
+  if (!durationMs) return;
   if (selectedEngine === "native") {
     startManualProgressClock(visualizer, clampedStartMs, deps);
     return;

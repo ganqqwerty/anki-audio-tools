@@ -66,7 +66,10 @@ def play_ended(editor: Any, deps: Any) -> None:
     """Handle the frontend/native playback-ended callback."""
     session = deps.sessions.get(editor)
     if session:
+        field_index = session.field_index if session.field_index is not None else 0
+        cursor_ms = session.cursor_ms
         deps.stop_session_playback(session)
+        deps.eval_playback_state(editor, field_index, "stopped", cursor_ms)
     else:
         deps.stop_audio_playback()
     deps.eval_status(editor, "")

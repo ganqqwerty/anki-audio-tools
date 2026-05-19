@@ -183,6 +183,57 @@ def test_play_from_zero_uses_original_file_without_segment(anki_mw, ffmpeg_confi
         parent.close()
 
 
+def test_play_without_graph_shown_uses_pause_button_until_native_playback_ends(
+    anki_mw,
+    ffmpeg_config,
+) -> None:
+    media_dir = Path(anki_mw.col.media.dir())
+    source = media_dir / "editor_no_graph_native_playback_source.wav"
+    generate_tone(ffmpeg_config, source, duration_s=1.0)
+    note = _basic_audio_note(anki_mw, source.name)
+    _configure_ffmpeg(anki_mw, ffmpeg_config)
+
+    editor, parent = _open_editor(anki_mw, note)
+    try:
+        wait_for_js_condition(
+            editor.web,
+            _graph_state_js(),
+            lambda state: state is not None
+            and state["hidden"] is True
+            and state["hasTrack"] is False
+            and state["playButtonLabel"] == "Play",
+            timeout=5.0,
+        )
+        with _record_fake_playback(media_dir, {source.name: 1000}) as playback:
+            click_selector(editor.web, _button_selector("aqe:play"), timeout=5.0)
+            playing = wait_for_js_condition(
+                editor.web,
+                _graph_state_js(),
+                lambda state: state is not None
+                and state["hidden"] is True
+                and state["playbackState"] == "playing"
+                and state["playButtonLabel"] == "Pause",
+                timeout=5.0,
+            )
+            run_js(editor.web, "pycmd('aqe:play-ended')")
+            wait_for_js_condition(
+                editor.web,
+                _graph_state_js(),
+                lambda state: state is not None
+                and state["playbackState"] == "stopped"
+                and state["playButtonLabel"] == "Play",
+                timeout=5.0,
+            )
+
+        assert playback.attempts
+        assert playback.attempts[0].filename == source.name
+        assert playback.attempts[0].start_ms == 0
+        assert playing["playbackEngine"] == "native"
+    finally:
+        editor.set_note(None)
+        parent.close()
+
+
 def test_drag_to_70_percent_plays_html_audio_70_to_100_without_native_seek(
     anki_mw,
     ffmpeg_config,

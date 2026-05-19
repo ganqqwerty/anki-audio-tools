@@ -108,6 +108,40 @@ afterEach(() => {
     });
   });
 
+  it("shows pause for native playback before the hidden audio duration is known", async () => {
+    initializeEditorRuntime({ audioFieldIndices: [0] });
+    scan({ audioFieldIndices: [0] });
+    await Promise.resolve();
+
+    const playButton = document.querySelector<HTMLButtonElement>('[data-testid="aqe-button-0-play"]')!;
+    playButton.click();
+
+    expect(window.__aqeGetPlaybackRequest?.()).toMatchObject({
+      action: "start",
+      cursorMs: 0,
+      engine: "native",
+      ord: 0,
+      regionMode: "full",
+    });
+
+    window.__aqeSetPlaybackState?.(0, "playing", 0);
+
+    expect(window.__aqeGraphStateForTest?.(0)).toMatchObject({
+      durationMs: 0,
+      hidden: true,
+      playbackEngine: "native",
+      playbackState: "playing",
+      playButtonLabel: "Pause",
+    });
+
+    window.__aqeSetPlaybackState?.(0, "stopped", 0);
+
+    expect(window.__aqeGraphStateForTest?.(0)).toMatchObject({
+      playbackState: "stopped",
+      playButtonLabel: "Play",
+    });
+  });
+
   it("starts HTML playback from an explicit selected region", async () => {
     initializeEditorRuntime({ audioFieldIndices: [0] });
     scan({ audioFieldIndices: [0] });
