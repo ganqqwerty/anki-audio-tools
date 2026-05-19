@@ -86,6 +86,8 @@ def test_render_settings_content_escapes_initial_state_and_includes_error_report
     assert "window.__INITIAL_STATE__ = {\"danger\": \"<\\/script><script>evil()<\\/script>\"};" in body
     assert "window.addEventListener(\"error\"" in body
     assert "window.addEventListener(\"unhandledrejection\"" in body
+    assert "stack: event.error && event.error.stack" in body
+    assert "stack: reason && reason.stack" in body
     assert "frontend_log:" in body
     assert "window.__bundleLoaded = true;" in body
 

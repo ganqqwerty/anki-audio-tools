@@ -10,6 +10,7 @@ from collections.abc import Callable
 from pathlib import Path
 
 from ._version import __version__ as __version__
+from .diagnostics_runtime import capture_exception, configure_runtime, set_debug_enabled
 
 logging.basicConfig(level=logging.INFO, format="%(name)s: %(levelname)s: %(message)s")
 logger = logging.getLogger("anki_audio_quick_editor")
@@ -86,6 +87,14 @@ def _setup_file_logging() -> None:
     logger.debug("file logging initialized at %s", log_file)
 
 
+def _setup_diagnostics() -> None:
+    """Initialize runtime diagnostics once the add-on directory is known."""
+    addon_id = mw.addonManager.addonFromModule(__name__)
+    addon_dir = Path(mw.addonManager.addonsFolder(addon_id))
+    config = mw.addonManager.getConfig(addon_id) or {}
+    configure_runtime(addon_dir, debug_enabled=bool(config.get("debug_logging", False)))
+
+
 def _apply_log_level() -> None:
     """Apply the debug logging toggle from config to the console logger."""
     addon_id = mw.addonManager.addonFromModule(__name__)
@@ -93,6 +102,7 @@ def _apply_log_level() -> None:
     level = logging.DEBUG if config.get("debug_logging", False) else logging.INFO
     for target_logger in _addon_loggers():
         target_logger.setLevel(level)
+    set_debug_enabled(bool(config.get("debug_logging", False)))
 
 
 def _show_settings_dialog(on_saved: Callable[[], None] | None = None) -> None:
@@ -138,12 +148,26 @@ def _setup_menu() -> None:
     qconnect(settings_action.triggered, _open_settings)
 
 
-gui_hooks.main_window_did_init.append(_migrate_config)
-gui_hooks.main_window_did_init.append(_setup_file_logging)
-gui_hooks.main_window_did_init.append(_apply_log_level)
-gui_hooks.main_window_did_init.append(_setup_editor_integration)
-gui_hooks.main_window_did_init.append(_setup_browser_integration)
-gui_hooks.main_window_did_init.append(_setup_menu)
+def _with_hook_boundary(name: str, func: Callable[[], None]) -> Callable[[], None]:
+    """Wrap a startup hook so failures leave diagnostics before Anki reports them."""
+    def _wrapped() -> None:
+        try:
+            func()
+        except Exception as exc:
+            capture_exception(f"hook.{name}", exc, operation=f"hook.{name}", log=logger)
+            raise
+
+    _wrapped.__name__ = getattr(func, "__name__", name)
+    return _wrapped
+
+
+gui_hooks.main_window_did_init.append(_with_hook_boundary("migrate_config", _migrate_config))
+gui_hooks.main_window_did_init.append(_with_hook_boundary("setup_file_logging", _setup_file_logging))
+gui_hooks.main_window_did_init.append(_with_hook_boundary("setup_diagnostics", _setup_diagnostics))
+gui_hooks.main_window_did_init.append(_with_hook_boundary("apply_log_level", _apply_log_level))
+gui_hooks.main_window_did_init.append(_with_hook_boundary("setup_editor_integration", _setup_editor_integration))
+gui_hooks.main_window_did_init.append(_with_hook_boundary("setup_browser_integration", _setup_browser_integration))
+gui_hooks.main_window_did_init.append(_with_hook_boundary("setup_menu", _setup_menu))
 mw.addonManager.setConfigAction(__name__, _open_settings)
 
 logger.info("audio quick editor add-on loaded")

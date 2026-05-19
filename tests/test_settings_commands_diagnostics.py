@@ -65,6 +65,37 @@ def test_frontend_log_renders_level_message_and_context(
     assert record.message == "frontend: loaded | {'tab': 'diagnostics'}"
 
 
+def test_frontend_error_payload_records_stack_for_support_report(
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    from anki_audio_quick_editor.diagnostics_runtime import (
+        latest_incident,
+        reset_for_tests,
+    )
+
+    reset_for_tests()
+    dialog = _make_dialog()
+    _, eval_fn = _capture_eval()
+    caplog.set_level(logging.ERROR, logger="anki_audio_quick_editor.settings.commands")
+    payload = json.dumps(
+        {
+            "scope": "settings",
+            "level": "error",
+            "message": "frontend exploded",
+            "stack": "Error: frontend exploded\n    at SettingsApp",
+            "context": {"tab": "diagnostics"},
+        }
+    )
+
+    assert handle_settings_command(f"frontend_log:{payload}", eval_fn, dialog) is True
+
+    assert "Error: frontend exploded" in caplog.text
+    incident = latest_incident()
+    assert incident is not None
+    assert incident["boundary"] == "settings.frontend"
+    assert incident["traceback"] == "Error: frontend exploded\n    at SettingsApp"
+
+
 def test_async_command_logs_invalid_json_without_callback(caplog: pytest.LogCaptureFixture) -> None:
     dialog = _make_dialog()
     calls, eval_fn = _capture_eval()
@@ -198,4 +229,3 @@ def test_async_health_check_reports_rnnoise_version() -> None:
         "version": "rnnoise-cli 0.2",
         "error": "",
     }
-

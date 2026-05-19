@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import html
+import logging
 import shutil
 from collections.abc import Callable, Sequence
 from dataclasses import dataclass
@@ -18,6 +19,7 @@ from .audio_operations import (
 )
 from .audio_processor import make_output_filename, render_audio, temp_final_path
 from .audio_state import AudioEditState, AudioProcessingConfig
+from .diagnostics_runtime import capture_exception, new_operation_id, record_breadcrumb
 from .errors import AudioQuickEditorError
 from .media_paths import existing_media_file_path
 from .prosody_cache import analyze_prosody_cached
@@ -31,6 +33,7 @@ from .sound_refs import (
 
 MediaWriter = Callable[[str, bytes], str]
 NowProvider = Callable[[], datetime]
+logger = logging.getLogger(__name__)
 
 
 @dataclass(frozen=True)
@@ -148,6 +151,19 @@ def process_note_batch_operation(
     now_provider: NowProvider | None = None,
 ) -> BatchNoteResult:
     """Process one batch operation for ``note``."""
+    operation_id = new_operation_id("batch-note")
+    record_breadcrumb(
+        "browser.batch.note_started",
+        source="browser",
+        operation="browser.batch",
+        operation_id=operation_id,
+        context={
+            "note_id": note.note_id,
+            "operation": request.operation,
+            "source_field": request.source_field,
+            "target_field": request.target_field,
+        },
+    )
     if request.source_field not in note.fields:
         return _skipped(note, f"missing source field {request.source_field!r}")
 
@@ -186,6 +202,7 @@ def process_note_batch_operation(
             config=config,
             media_writer=media_writer,
             now_provider=now_provider,
+            operation_id=operation_id,
         )
 
     if is_transform_operation(request.operation):
@@ -199,6 +216,7 @@ def process_note_batch_operation(
             config=config,
             media_writer=media_writer,
             artifact_root=artifact_root,
+            operation_id=operation_id,
         )
 
     raise ValueError(f"Unsupported batch operation: {request.operation}")
@@ -213,6 +231,7 @@ def _process_graph_operation(
     config: AudioProcessingConfig,
     media_writer: MediaWriter,
     now_provider: NowProvider | None,
+    operation_id: str,
 ) -> BatchNoteResult:
     target_field = request.target_field
     assert target_field is not None
@@ -225,6 +244,20 @@ def _process_graph_operation(
         )
         saved_name = media_writer(desired_name, svg_bytes)
     except Exception as exc:
+        capture_exception(
+            "browser.batch.note_graph",
+            exc,
+            operation="browser.batch.graph",
+            operation_id=operation_id,
+            user_message=str(exc) or "visualization generation failed",
+            context={
+                "note_id": note.note_id,
+                "source_field": request.source_field,
+                "target_field": request.target_field,
+                "audio_filename": audio_filename,
+            },
+            log=logger,
+        )
         return BatchNoteResult(
             note_id=note.note_id,
             status="failed",
@@ -255,6 +288,7 @@ def _process_transform_operation(
     config: AudioProcessingConfig,
     media_writer: MediaWriter,
     artifact_root: Path | None,
+    operation_id: str,
 ) -> BatchNoteResult:
     output_path: Path | None = None
     try:
@@ -276,6 +310,19 @@ def _process_transform_operation(
             saved_name = media_writer(desired_name, file.read())
         replaced_html = replace_sound_reference(source_html, selection, saved_name)
     except Exception as exc:
+        capture_exception(
+            "browser.batch.note_transform",
+            exc,
+            operation=f"browser.batch.{request.operation}",
+            operation_id=operation_id,
+            user_message=str(exc) or "audio transformation failed",
+            context={
+                "note_id": note.note_id,
+                "source_field": request.source_field,
+                "audio_filename": audio_filename,
+            },
+            log=logger,
+        )
         return BatchNoteResult(
             note_id=note.note_id,
             status="failed",

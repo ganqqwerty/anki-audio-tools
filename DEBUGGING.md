@@ -14,6 +14,8 @@ Set `DEBUG_ANKI=1` before launching Anki to make the add-on wait for a debugger 
 
 The add-on creates a rotating log file inside the add-on directory after `main_window_did_init`.
 
+See [`ERROR_HANDLING_AND_DIAGNOSTICS.md`](ERROR_HANDLING_AND_DIAGNOSTICS.md) for the debug-mode breadcrumb, error-boundary, crash-forensics, and support-report strategy.
+
 ## Playback Cursor Bugs
 
 When playback starts from the wrong point, inspect the graph state first: `anchorMs` is the user's selected start point and `cursorMs` is the visible/progress position.

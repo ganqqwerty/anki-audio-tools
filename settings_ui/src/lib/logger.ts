@@ -79,11 +79,27 @@ function fallbackContextLabel(context: unknown): string {
   return "[unserializable]";
 }
 
-function payloadFor(level: LogLevel, message: string, context?: unknown): FrontendLogPayload {
+function stackFor(context: unknown): string | undefined {
+  if (context instanceof Error && context.stack) {
+    return context.stack;
+  }
+  if (context !== null && typeof context === "object" && "stack" in context) {
+    const stack = (context as { stack?: unknown }).stack;
+    if (typeof stack === "string" && stack.length > 0) return stack;
+  }
+  return undefined;
+}
+
+function payloadFor(scope: string, level: LogLevel, message: string, context?: unknown): FrontendLogPayload {
   const payload: FrontendLogPayload = {
     level: generatedLevel(level),
     message,
+    scope,
   };
+  const stack = stackFor(context);
+  if (stack !== undefined) {
+    payload.stack = stack;
+  }
   if (context !== undefined) {
     payload.context = serializableContext(context);
   }
@@ -100,7 +116,7 @@ export function createLogger(scope: string, sendPayload: LogSender): ScopedLogge
     }
 
     try {
-      sendPayload(payloadFor(level, message, context));
+      sendPayload(payloadFor(scope, level, message, context));
     } catch {
       // pycmd may not be available while the WebView is initializing.
     }

@@ -133,6 +133,61 @@ def test_support_report_renders_empty_pause_pipeline_command_report() -> None:
     assert "(no external commands were captured)" in report
 
 
+def test_support_report_renders_latest_error_recent_events_and_crash_forensics() -> None:
+    report = build_support_report_text(
+        version="1.2.3",
+        addon_dir="/addon",
+        log_file_path="/addon/anki_audio_quick_editor.log",
+        deep_filter_health={"available": False},
+        rnnoise_health={"available": False},
+        rnnoise_incident=None,
+        pause_pipeline_incident=None,
+        log_tail="recent log",
+        diagnostics_context={
+            "latest_error": {
+                "timestamp": "2026-05-19T10:00:00+00:00",
+                "session_id": "session-1",
+                "operation": "editor.render",
+                "operation_id": "op-1",
+                "boundary": "editor.worker.render",
+                "exception_type": "RuntimeError",
+                "user_message": "render failed",
+                "context": {"field_index": 0},
+                "traceback": "Traceback (most recent call last):\nRuntimeError: render failed",
+            },
+            "recent_events": [
+                {
+                    "seq": 1,
+                    "timestamp": "2026-05-19T09:59:59+00:00",
+                    "source": "editor",
+                    "event": "editor.render.started",
+                    "operation": "editor.render",
+                    "operation_id": "op-1",
+                    "boundary": "",
+                    "context": {"source_filename": "clip.mp3"},
+                }
+            ],
+            "crash_forensics": {
+                "session_id": "session-1",
+                "debug_enabled": True,
+                "event_log_path": "/addon/anki_audio_quick_editor_events.jsonl",
+                "crash_log_path": "/addon/anki_audio_quick_editor_crash.log",
+                "session_marker_path": "/addon/anki_audio_quick_editor_session.json",
+                "previous_dirty_session": {"session_id": "previous", "clean_exit": False},
+            },
+        },
+    )
+
+    assert "Latest captured error" in report
+    assert "Boundary: editor.worker.render" in report
+    assert "RuntimeError: render failed" in report
+    assert "Recent event sequence" in report
+    assert "editor:editor.render.started" in report
+    assert "Crash forensics" in report
+    assert "Previous session ended cleanly: no" in report
+    assert "/addon/anki_audio_quick_editor_events.jsonl" in report
+
+
 def test_support_report_renders_rnnoise_incident_and_health() -> None:
     report = build_support_report_text(
         version="1.2.3",

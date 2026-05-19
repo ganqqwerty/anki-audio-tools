@@ -9,6 +9,7 @@ from pathlib import Path
 from typing import Any, cast
 
 from .audio_state import AudioEditState, AudioProcessingConfig
+from .diagnostics_runtime import capture_exception, new_operation_id, record_breadcrumb
 from .editor_session import EditorSession, RegionDeleteRequest
 from .errors import AudioProcessingError
 from .media_paths import existing_media_file_path, media_filenames_match
@@ -142,6 +143,7 @@ def delete_selection_async(
     deps: Any,
 ) -> None:
     """Render a media file with the requested region removed."""
+    operation_id = new_operation_id("region")
     started_at = time.monotonic()
     deps.stop_session_playback(session)
     session.processing = True
@@ -152,6 +154,14 @@ def delete_selection_async(
     deps.set_busy_for_field(editor, request.field_index, True, "Deleting region...")
     deps.eval_playback_state(editor, request.field_index, "stopped", request.cursor_ms)
     logger.info("region delete accepted: %s", region_delete_log_context(request))
+    record_breadcrumb(
+        "editor.region_delete.accepted",
+        source="editor",
+        operation="editor.region_delete",
+        operation_id=operation_id,
+        context=region_delete_log_context(request),
+        flush=True,
+    )
 
     def _run() -> None:
         output_path: Path | None = None
@@ -198,7 +208,15 @@ def delete_selection_async(
                 ),
             )
         except Exception as exc:
-            logger.exception("region delete failed: %s", region_delete_log_context(request))
+            capture_exception(
+                "editor.worker.region_delete",
+                exc,
+                operation="editor.region_delete",
+                operation_id=operation_id,
+                user_message=str(exc),
+                context=region_delete_log_context(request),
+                log=logger,
+            )
             message = str(exc)
             deps.main(editor, lambda: deps.render_failed(editor, message))
         finally:
@@ -257,6 +275,17 @@ def replace_current_field_after_region_delete(
                 "elapsed_ms": round((time.monotonic() - started_at) * 1000),
             },
         )
+        record_breadcrumb(
+            "editor.region_delete.completed",
+            source="editor",
+            operation="editor.region_delete",
+            context={
+                **region_delete_log_context(request),
+                "generated_filename": saved_name,
+                "output_duration_ms": output_duration_ms,
+            },
+            flush=True,
+        )
         editor.loadNote(focusTo=field_index)
         deps.eval_status(editor, f"Updated field to {saved_name}")
         deps.eval_playback_state(editor, field_index, "stopped", 0)
@@ -265,7 +294,14 @@ def replace_current_field_after_region_delete(
         else:
             deps.set_busy_for_field(editor, field_index, False)
     except Exception as exc:
-        logger.exception("region delete replacement failed: %s", region_delete_log_context(request))
+        capture_exception(
+            "editor.main.region_delete_replacement",
+            exc,
+            operation="editor.region_delete",
+            user_message=str(exc),
+            context=region_delete_log_context(request),
+            log=logger,
+        )
         deps.render_failed(editor, str(exc))
 
 

@@ -12,7 +12,7 @@ import anki_audio_quick_editor
 def test_entrypoint_registers_hooks_and_config_action() -> None:
     importlib.reload(anki_audio_quick_editor)
 
-    assert aqt.gui_hooks.main_window_did_init.append.call_count == 6
+    assert aqt.gui_hooks.main_window_did_init.append.call_count == 7
     aqt.mw.addonManager.setConfigAction.assert_called_once()
 
 

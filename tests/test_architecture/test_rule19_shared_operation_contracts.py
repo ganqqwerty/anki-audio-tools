@@ -19,7 +19,13 @@ def test_browser_batch_adapter_uses_shared_registry_and_executor() -> None:
     assert "BatchRunRequest" in dialog_text
     assert "process_note_batch_operation" in integration_text
     assert MODULE_CONTRACTS["browser_integration"].allowed_addon_deps == frozenset(
-        {"audio_state", "batch_operations", "browser_dialog", "browser_report"}
+        {
+            "audio_state",
+            "batch_operations",
+            "browser_dialog",
+            "browser_report",
+            "diagnostics_runtime",
+        }
     )
     assert MODULE_CONTRACTS["browser_dialog"].allowed_addon_deps == frozenset(
         {"audio_operations", "batch_operations", "browser_report"}

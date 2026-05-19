@@ -12,6 +12,7 @@ UI_CONTRACTS: dict[str, ModuleContract] = {
             "_version",
             "browser_integration",
             "config_migration",
+            "diagnostics_runtime",
             "editor_integration",
             "settings",
         ),
@@ -32,6 +33,7 @@ UI_CONTRACTS: dict[str, ModuleContract] = {
             "batch_operations",
             "browser_dialog",
             "browser_report",
+            "diagnostics_runtime",
         ),
         allowed_side_effects=(
             SideEffect.ANKI_IMPORTS_ANYWHERE,
@@ -75,6 +77,7 @@ UI_CONTRACTS: dict[str, ModuleContract] = {
             "contracts_generated",
             "db_helpers",
             "diagnostics",
+            "diagnostics_runtime",
             "errors",
             "file_reveal",
             "support",
