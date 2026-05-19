@@ -41,16 +41,23 @@ def _split_popover_state_js(command: str, ord_: int = 0) -> str:
       const popover = document.querySelector('[data-testid="aqe-split-{ord_}-{slug}-popover"]');
       const slider = document.querySelector('[data-testid="aqe-split-{ord_}-{slug}-slider"]');
       const anchor = document.querySelector('[data-testid="aqe-split-{ord_}-{slug}-menu"]')?.closest('.aqe-split-button');
-      return popover && slider ? {{
+      if (!popover || !slider || !anchor) return null;
+      const popoverRect = popover.getBoundingClientRect();
+      const anchorRect = anchor.getBoundingClientRect();
+      return {{
         text: popover.textContent,
         sliderValue: slider.value,
-        top: popover.getBoundingClientRect().top,
-        buttonBottom: anchor.getBoundingClientRect().bottom,
+        bottom: popoverRect.bottom,
+        left: popoverRect.left,
+        right: popoverRect.right,
+        top: popoverRect.top,
+        buttonBottom: anchorRect.bottom,
+        viewportHeight: window.innerHeight,
+        viewportWidth: window.innerWidth,
         centerDelta: Math.abs(
-          popover.getBoundingClientRect().left + popover.getBoundingClientRect().width / 2
-          - (anchor.getBoundingClientRect().left + anchor.getBoundingClientRect().width / 2)
+          popoverRect.left + popoverRect.width / 2 - (anchorRect.left + anchorRect.width / 2)
         )
-      }} : null;
+      }};
     }})()
     """
 
@@ -105,7 +112,12 @@ def test_trim_split_button_uses_settings_default_and_closes_on_outside_click(
         popover = wait_for_js_condition(
             editor.web,
             _split_popover_state_js("aqe:trim-left"),
-            lambda value: value is not None and value["sliderValue"] == "500",
+            lambda value: value is not None
+            and value["sliderValue"] == "500"
+            and value["left"] >= 0
+            and value["top"] >= 0
+            and value["right"] <= value["viewportWidth"]
+            and value["bottom"] <= value["viewportHeight"],
             timeout=5.0,
         )
 
@@ -117,8 +129,10 @@ def test_trim_split_button_uses_settings_default_and_closes_on_outside_click(
         )
 
         assert "500 ms" in popover["text"]
-        assert popover["top"] >= popover["buttonBottom"]
-        assert popover["centerDelta"] < 2
+        assert popover["left"] >= 0
+        assert popover["top"] >= 0
+        assert popover["right"] <= popover["viewportWidth"]
+        assert popover["bottom"] <= popover["viewportHeight"]
     finally:
         editor.set_note(None)
         parent.close()

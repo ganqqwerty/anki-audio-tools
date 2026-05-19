@@ -103,15 +103,15 @@
   border: 1px solid;
   border-color: ButtonBorder;
   border-radius: 8px;
+  box-sizing: border-box;
   box-shadow: 0 10px 24px rgb(0 0 0 / 22%);
   display: grid;
   gap: 8px;
-  left: 50%;
-  min-width: 210px;
+  max-width: calc(100vw - 16px);
+  min-width: min(210px, calc(100vw - 16px));
+  overflow: auto;
   padding: 10px;
-  position: absolute;
-  top: calc(100% + 4px);
-  transform: translateX(-50%);
+  position: fixed;
   z-index: var(--aqe-floating-z-index, 10000);
 }
 
