@@ -3,17 +3,20 @@ import { beforeEach, describe, expect, it } from "vitest";
 import {
   buildTrimCommandPayload,
   buildSplitCommandPayload,
+  clampRepeatPauseSeconds,
   clampSpeedStep,
   clampTrimStepMs,
   clampVolumeStepDb,
   formatDenoiseAlgorithm,
   formatPauseAggressiveness,
+  formatRepeatPauseSeconds,
   formatSpeedStep,
   formatTrimMs,
   formatVolumeDb,
   getSplitButtonState,
   setDenoiseAlgorithmForField,
   setPauseAggressivenessForField,
+  setRepeatPauseSecondsForField,
   setSpeedStepForField,
   setTrimStepForField,
   setVolumeStepForField,
@@ -52,6 +55,15 @@ describe("split button state", () => {
     expect(clampSpeedStep(1)).toBe(0.25);
   });
 
+  it("formats and clamps repeat pause values", () => {
+    expect(formatRepeatPauseSeconds(0)).toBe("0 s");
+    expect(formatRepeatPauseSeconds(0.5)).toBe("0.5 s");
+    expect(formatRepeatPauseSeconds(2)).toBe("2 s");
+    expect(clampRepeatPauseSeconds(-1)).toBe(0);
+    expect(clampRepeatPauseSeconds(20)).toBe(10);
+    expect(clampRepeatPauseSeconds(0.56)).toBe(0.6);
+  });
+
   it("formats option split values for pause and denoise controls", () => {
     expect(formatPauseAggressiveness("gentle")).toBe("Gentle");
     expect(formatPauseAggressiveness("normal")).toBe("Normal");
@@ -66,6 +78,7 @@ describe("split button state", () => {
       splitButtonDefaults: {
         denoiseAlgorithm: "standard",
         pauseAggressiveness: "normal",
+        repeatPauseSeconds: 1.5,
         speedStep: 0.05,
         trimStepMs: 250,
         volumeStepDb: 3,
@@ -75,6 +88,7 @@ describe("split button state", () => {
     expect(getSplitButtonState(0).trimStepMs).toBe(250);
     expect(getSplitButtonState(0).volumeStepDb).toBe(3);
     expect(getSplitButtonState(0).speedStep).toBe(0.05);
+    expect(getSplitButtonState(0).repeatPauseSeconds).toBe(1.5);
     expect(getSplitButtonState(0).pauseAggressiveness).toBe("normal");
     expect(getSplitButtonState(0).denoiseAlgorithm).toBe("standard");
   });
@@ -85,6 +99,7 @@ describe("split button state", () => {
       splitButtonDefaults: {
         denoiseAlgorithm: "standard",
         pauseAggressiveness: "normal",
+        repeatPauseSeconds: 0,
         speedStep: 0.05,
         trimStepMs: 100,
         volumeStepDb: 3,
@@ -147,6 +162,14 @@ describe("split button state", () => {
         trimStepMs: 200,
       },
     });
+  });
+
+  it("keeps repeat pause state field-local without changing command payloads", () => {
+    setRepeatPauseSecondsForField(0, 2);
+
+    expect(getSplitButtonState(0).repeatPauseSeconds).toBe(2);
+    expect(getSplitButtonState(1).repeatPauseSeconds).toBe(0);
+    expect(buildSplitCommandPayload("aqe:faster", 0).overrides).not.toHaveProperty("repeatPauseSeconds");
   });
 
   it("persists local field state across editor bundle reinjection", () => {

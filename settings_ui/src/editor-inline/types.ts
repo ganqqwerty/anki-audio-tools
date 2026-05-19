@@ -45,6 +45,7 @@ export interface EditorRuntimeConfig {
 export interface SplitButtonDefaults {
   denoiseAlgorithm: "standard" | "rnnoise";
   pauseAggressiveness: "gentle" | "normal" | "aggressive";
+  repeatPauseSeconds: number;
   speedStep: number;
   trimStepMs: number;
   volumeStepDb: number;
@@ -65,6 +66,7 @@ export interface EditorCommandPayload {
 export interface FieldSplitButtonState {
   defaultDenoiseAlgorithm: "standard" | "rnnoise";
   defaultPauseAggressiveness: "gentle" | "normal" | "aggressive";
+  defaultRepeatPauseSeconds: number;
   defaultTrimStepMs: number;
   defaultSpeedStep: number;
   defaultVolumeStepDb: number;
@@ -72,6 +74,8 @@ export interface FieldSplitButtonState {
   denoiseEdited: boolean;
   pauseAggressiveness: "gentle" | "normal" | "aggressive";
   pauseEdited: boolean;
+  repeatPauseEdited: boolean;
+  repeatPauseSeconds: number;
   speedEdited: boolean;
   speedStep: number;
   trimEdited: boolean;
@@ -180,6 +184,8 @@ export interface GraphStateForTest {
   regionDeleteRestButtonDisabled: boolean;
   regionDeleteRestButtonHidden: boolean;
   repeatEnabled: boolean;
+  repeatPauseSeconds: number;
+  repeatPauseWaiting: boolean;
   resumeRequiresRestart: boolean;
   selectionActive: boolean;
   selectionDraftActive: boolean;
@@ -218,6 +224,7 @@ export type VisualizerElement = HTMLElement & {
   __aqeAudioClockFallback?: boolean;
   __aqeAudioClockLastSeekedMs?: number;
   __aqePlaybackTimer?: number | null;
+  __aqeRepeatPauseTimer?: number | null;
 };
 
 export interface MountedField {

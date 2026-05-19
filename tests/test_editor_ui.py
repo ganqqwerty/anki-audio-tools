@@ -22,6 +22,7 @@ def test_injection_script_embeds_audio_field_indices_and_bundle() -> None:
     assert config["audioFieldSources"] == {}
     assert config["repeatPlaybackByDefault"] is False
     assert config["showGraphByDefault"] is False
+    assert config["splitButtonDefaults"]["repeatPauseSeconds"] == 0.0
     assert "window.__aqeEditorDispose" in script
     assert "aqe:frontend-log" in script
     assert "aqe:show-file" in script
@@ -61,6 +62,7 @@ def test_injection_script_embeds_split_button_defaults() -> None:
             "trimStepMs": 250,
             "volumeStepDb": 2.5,
             "speedStep": 0.1,
+            "repeatPauseSeconds": 2.0,
             "pauseAggressiveness": "normal",
             "denoiseAlgorithm": "standard",
         },
@@ -70,6 +72,7 @@ def test_injection_script_embeds_split_button_defaults() -> None:
         "trimStepMs": 250,
         "volumeStepDb": 2.5,
         "speedStep": 0.1,
+        "repeatPauseSeconds": 2.0,
         "pauseAggressiveness": "normal",
         "denoiseAlgorithm": "standard",
     }

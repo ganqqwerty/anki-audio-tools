@@ -33,6 +33,20 @@
       <span>{t("settings.repeat_playback_by_default")}</span>
     </span>
   </label>
+  <label class="field-row repeat-pause-row">
+    <span class="label-with-icon">
+      <CommandIcon className="settings-label-icon" icon="repeat-2" />
+      <span>{t("settings.repeat_pause_seconds")}</span>
+    </span>
+    <input
+      data-testid="repeat-pause-seconds"
+      type="number"
+      min="0"
+      max="10"
+      step="0.1"
+      bind:value={config.repeat_pause_seconds}
+    />
+  </label>
   <label class="toggle">
     <input
       data-testid="show-graph-by-default"

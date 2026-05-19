@@ -27,13 +27,14 @@ def test_settings_save_writes_config_and_accepts() -> None:
 
     dialog = _make_dialog()
     _, eval_fn = _capture_eval()
-    config = {**_full_config(), "enabled": False, "debug_logging": True}
+    config = {**_full_config(), "enabled": False, "debug_logging": True, "repeat_pause_seconds": 2.5}
 
     handle_settings_command(f"settings_save:{json.dumps(config)}", eval_fn, dialog)
 
     mw.addonManager.writeConfig.assert_called_once()
     saved_config = mw.addonManager.writeConfig.call_args.args[1]
     assert saved_config["enabled"] is True
+    assert saved_config["repeat_pause_seconds"] == 2.5
     assert dialog.accepted is True
 
 

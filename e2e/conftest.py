@@ -23,11 +23,12 @@ ADDON_NUMERIC_ID = "1000000002"
 
 def _default_config() -> dict:
     return {
-        "_config_version": 9,
+        "_config_version": 11,
         "enabled": True,
         "debug_logging": False,
         "show_ffmpeg_commands": False,
         "repeat_playback_by_default": False,
+        "repeat_pause_seconds": 0.0,
         "show_graph_by_default": False,
         "manual_trim_small_ms": 100,
         "manual_trim_large_ms": 500,

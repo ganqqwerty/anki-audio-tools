@@ -103,11 +103,12 @@ Config defaults are stored in `config.json` and migrated into user config:
 
 ```json
 {
-  "_config_version": 10,
+  "_config_version": 11,
   "enabled": true,
   "debug_logging": false,
   "show_ffmpeg_commands": false,
   "repeat_playback_by_default": false,
+  "repeat_pause_seconds": 0.0,
   "show_graph_by_default": false,
   "manual_trim_small_ms": 100,
   "manual_trim_large_ms": 500,
@@ -130,7 +131,7 @@ Config defaults are stored in `config.json` and migrated into user config:
 ```
 
 `config_migration.py` deep-merges defaults into user config and stamps the current schema version.
-Editor split-button choices are field-local runtime overrides. Settings provide defaults for trim amount, volume step, speed step, pause aggressiveness, and denoise algorithm, but changing a split-button value in one editor field does not write back to persisted config or other fields.
+Editor split-button choices are field-local runtime overrides. Settings provide defaults for trim amount, volume step, speed step, repeat pause, pause aggressiveness, and denoise algorithm, but changing a split-button value in one editor field does not write back to persisted config or other fields.
 
 ## Source Of Truth
 

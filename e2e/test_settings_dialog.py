@@ -131,6 +131,7 @@ def test_save_command_writes_config(anki_mw) -> None:
         "debug_logging": True,
         "show_ffmpeg_commands": False,
         "repeat_playback_by_default": False,
+        "repeat_pause_seconds": 0.0,
         "show_graph_by_default": False,
         "manual_trim_small_ms": 100,
         "manual_trim_large_ms": 500,

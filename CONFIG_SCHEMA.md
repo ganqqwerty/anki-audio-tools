@@ -11,6 +11,7 @@ Audio Quick Editor config lives in [`addon/anki_audio_quick_editor/config.json`]
 | `debug_logging` | boolean | Raises package logger verbosity |
 | `show_ffmpeg_commands` | boolean | Shows the exact ffmpeg command in inline processing status when enabled |
 | `repeat_playback_by_default` | boolean | Starts each mounted inline editor Repeat checkbox checked when enabled |
+| `repeat_pause_seconds` | number | Default field-local pause between Repeat loop passes, from `0` to `10` seconds |
 | `show_graph_by_default` | boolean | Automatically analyzes and opens inline graphs for all audio fields on note load when enabled |
 | `manual_trim_small_ms` | integer | Default trim step for inline `-L` and `-R` controls |
 | `manual_trim_large_ms` | integer | Reserved larger trim step for future shortcut modifiers |
@@ -34,4 +35,4 @@ Audio Quick Editor config lives in [`addon/anki_audio_quick_editor/config.json`]
 
 Read config through `mw.addonManager.getConfig(addon_id)` in Anki-facing modules. Merge defaults through `config_migration.migrate_config()` during startup.
 
-Pause shortening uses the internal pause keys with DeepFilterNet as an analysis preprocessor. The user-facing `pause_aggressiveness` default maps to concrete threshold/target values when the editor split button sends a local override; persisted settings are not changed by per-field split-button selections. Pause shortening stores retained provenance under `<addon_dir>/aqe_artifacts/<run_id>/`; this artifact location is not currently configurable.
+Pause shortening uses the internal pause keys with DeepFilterNet as an analysis preprocessor. The user-facing `pause_aggressiveness` default maps to concrete threshold/target values when the editor split button sends a local override; persisted settings are not changed by per-field split-button selections. The persisted `repeat_pause_seconds` value is only the editor default; changes made in a repeat split-button menu are field-local and do not write back to config. Pause shortening stores retained provenance under `<addon_dir>/aqe_artifacts/<run_id>/`; this artifact location is not currently configurable.

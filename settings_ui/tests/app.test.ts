@@ -5,11 +5,12 @@ import App from "../src/App.svelte";
 import { DenoiseAlgorithm, Direction, OutputFormat, PauseAggressiveness } from "../src/lib/types.js";
 
 const defaultConfig = {
-  _config_version: 10,
+  _config_version: 11,
   enabled: true,
   debug_logging: false,
   show_ffmpeg_commands: false,
   repeat_playback_by_default: false,
+  repeat_pause_seconds: 0,
   show_graph_by_default: false,
   manual_trim_small_ms: 100,
   manual_trim_large_ms: 500,
@@ -61,6 +62,7 @@ describe("App", () => {
     expect(screen.queryByText("Enable inline editor controls")).not.toBeInTheDocument();
     expect(screen.getByText("Show ffmpeg commands while processing")).toBeInTheDocument();
     expect(screen.getByText("Repeat playback by default")).toBeInTheDocument();
+    expect(screen.getByText("Pause between repeats (s)")).toBeInTheDocument();
     expect(screen.getByText("Show graph by default")).toBeInTheDocument();
     expect(screen.getByText("ffmpeg path")).toBeInTheDocument();
     expect(screen.getByText("DeepFilterNet path")).toBeInTheDocument();
@@ -129,6 +131,9 @@ describe("App", () => {
     await fireEvent.change(screen.getByLabelText("Default denoise algorithm"), {
       target: { value: DenoiseAlgorithm.Rnnoise },
     });
+    await fireEvent.input(screen.getByTestId("repeat-pause-seconds"), {
+      target: { value: "2.5" },
+    });
     await fireEvent.click(screen.getByRole("button", { name: "Save" }));
 
     const call = vi
@@ -139,9 +144,11 @@ describe("App", () => {
     const config = JSON.parse(call.slice("settings_save:".length)) as {
       denoise_algorithm: string;
       pause_aggressiveness: string;
+      repeat_pause_seconds: number;
     };
     expect(config.pause_aggressiveness).toBe("aggressive");
     expect(config.denoise_algorithm).toBe("rnnoise");
+    expect(config.repeat_pause_seconds).toBe(2.5);
   });
 
   it("shows diagnostics data and runs a health check", async () => {
@@ -162,6 +169,7 @@ describe("App", () => {
     };
     expect(payload.config.deep_filter_post_filter).toBe(true);
     expect(payload.config.repeat_playback_by_default).toBe(false);
+    expect(payload.config.repeat_pause_seconds).toBe(0);
     expect(payload.config.show_graph_by_default).toBe(false);
     window.onAsyncProgress?.({ id, progress: 100, message: "Done" });
     window.onAsyncDone?.({

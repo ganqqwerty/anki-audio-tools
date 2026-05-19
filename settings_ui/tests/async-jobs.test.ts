@@ -19,11 +19,12 @@ import { DenoiseAlgorithm, OutputFormat, PauseAggressiveness } from "../src/lib/
 
 const pycmd = (globalThis as unknown as Record<string, ReturnType<typeof vi.fn>>)["pycmd"]!;
 const config = {
-  _config_version: 10,
+  _config_version: 11,
   enabled: true,
   debug_logging: false,
   show_ffmpeg_commands: false,
   repeat_playback_by_default: false,
+  repeat_pause_seconds: 0,
   show_graph_by_default: false,
   manual_trim_small_ms: 100,
   manual_trim_large_ms: 500,

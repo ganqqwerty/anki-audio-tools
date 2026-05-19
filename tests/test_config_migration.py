@@ -122,6 +122,20 @@ class TestMigrateConfig:
         assert migrated["_config_version"] == CURRENT_CONFIG_VERSION
         assert changed is True
 
+    def test_picks_up_repeat_pause_default(self) -> None:
+        user = {"_config_version": 10, "enabled": True}
+        defaults = {
+            "_config_version": CURRENT_CONFIG_VERSION,
+            "enabled": True,
+            "repeat_pause_seconds": 0.0,
+        }
+
+        migrated, changed = migrate_config(user, defaults)
+
+        assert migrated["repeat_pause_seconds"] == 0.0
+        assert migrated["_config_version"] == CURRENT_CONFIG_VERSION
+        assert changed is True
+
     def test_picks_up_show_graph_default(self) -> None:
         user = {"_config_version": 8, "enabled": True}
         defaults = {

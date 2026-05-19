@@ -12,9 +12,12 @@ const MIN_VOLUME_STEP_DB = 0.5;
 const MAX_VOLUME_STEP_DB = 12;
 const MIN_SPEED_STEP = 0.01;
 const MAX_SPEED_STEP = 0.25;
+const MIN_REPEAT_PAUSE_SECONDS = 0;
+const MAX_REPEAT_PAUSE_SECONDS = 10;
 const DEFAULTS: SplitButtonDefaults = {
   denoiseAlgorithm: "standard",
   pauseAggressiveness: "normal",
+  repeatPauseSeconds: 0,
   speedStep: 0.05,
   trimStepMs: 100,
   volumeStepDb: 3,
@@ -47,6 +50,14 @@ export function clampSpeedStep(value: number): number {
   return Math.max(MIN_SPEED_STEP, Math.min(MAX_SPEED_STEP, Math.round(value * 100) / 100));
 }
 
+export function clampRepeatPauseSeconds(value: number): number {
+  if (!Number.isFinite(value)) return DEFAULTS.repeatPauseSeconds;
+  return Math.max(
+    MIN_REPEAT_PAUSE_SECONDS,
+    Math.min(MAX_REPEAT_PAUSE_SECONDS, Math.round(value * 10) / 10),
+  );
+}
+
 export function formatTrimMs(value: number): string {
   const ms = clampTrimStepMs(value);
   if (ms < 1000) return `${ms} ms`;
@@ -65,6 +76,11 @@ export function formatSpeedStep(value: number, command: EditorCommand): string {
   return `x${multiplier.toFixed(2)}`;
 }
 
+export function formatRepeatPauseSeconds(value: number): string {
+  const seconds = clampRepeatPauseSeconds(value);
+  return `${Number.isInteger(seconds) ? seconds.toFixed(0) : seconds.toFixed(1)} s`;
+}
+
 export function formatPauseAggressiveness(value: FieldSplitButtonState["pauseAggressiveness"]): string {
   if (value === "aggressive") return t("settings.pause_aggressiveness.aggressive");
   if (value === "gentle") return t("settings.pause_aggressiveness.gentle");
@@ -80,11 +96,17 @@ export function getSplitButtonState(ord: number): FieldSplitButtonState {
   const defaultTrimStepMs = clampTrimStepMs(defaults.trimStepMs);
   const defaultVolumeStepDb = clampVolumeStepDb(defaults.volumeStepDb);
   const defaultSpeedStep = clampSpeedStep(defaults.speedStep);
+  const defaultRepeatPauseSeconds = clampRepeatPauseSeconds(defaults.repeatPauseSeconds);
   const defaultPauseAggressiveness = defaults.pauseAggressiveness;
   const defaultDenoiseAlgorithm = defaults.denoiseAlgorithm;
   const states = fieldStates();
   const existing = states[ord];
   if (existing) {
+    if (!Number.isFinite(existing.repeatPauseSeconds)) {
+      existing.repeatPauseSeconds = defaultRepeatPauseSeconds;
+      existing.defaultRepeatPauseSeconds = defaultRepeatPauseSeconds;
+      existing.repeatPauseEdited = false;
+    }
     if (!existing.trimEdited && existing.defaultTrimStepMs !== defaultTrimStepMs) {
       existing.defaultTrimStepMs = defaultTrimStepMs;
       existing.trimStepMs = defaultTrimStepMs;
@@ -96,6 +118,10 @@ export function getSplitButtonState(ord: number): FieldSplitButtonState {
     if (!existing.speedEdited && existing.defaultSpeedStep !== defaultSpeedStep) {
       existing.defaultSpeedStep = defaultSpeedStep;
       existing.speedStep = defaultSpeedStep;
+    }
+    if (!existing.repeatPauseEdited && existing.defaultRepeatPauseSeconds !== defaultRepeatPauseSeconds) {
+      existing.defaultRepeatPauseSeconds = defaultRepeatPauseSeconds;
+      existing.repeatPauseSeconds = defaultRepeatPauseSeconds;
     }
     if (!existing.pauseEdited && existing.defaultPauseAggressiveness !== defaultPauseAggressiveness) {
       existing.defaultPauseAggressiveness = defaultPauseAggressiveness;
@@ -110,6 +136,7 @@ export function getSplitButtonState(ord: number): FieldSplitButtonState {
   const state = {
     defaultDenoiseAlgorithm,
     defaultPauseAggressiveness,
+    defaultRepeatPauseSeconds,
     defaultTrimStepMs,
     defaultVolumeStepDb,
     defaultSpeedStep,
@@ -117,6 +144,8 @@ export function getSplitButtonState(ord: number): FieldSplitButtonState {
     denoiseEdited: false,
     pauseAggressiveness: defaultPauseAggressiveness,
     pauseEdited: false,
+    repeatPauseEdited: false,
+    repeatPauseSeconds: defaultRepeatPauseSeconds,
     speedEdited: false,
     speedStep: defaultSpeedStep,
     trimEdited: false,
@@ -146,6 +175,13 @@ export function setSpeedStepForField(ord: number, value: number): FieldSplitButt
   const state = getSplitButtonState(ord);
   state.speedEdited = true;
   state.speedStep = clampSpeedStep(value);
+  return state;
+}
+
+export function setRepeatPauseSecondsForField(ord: number, value: number): FieldSplitButtonState {
+  const state = getSplitButtonState(ord);
+  state.repeatPauseEdited = true;
+  state.repeatPauseSeconds = clampRepeatPauseSeconds(value);
   return state;
 }
 

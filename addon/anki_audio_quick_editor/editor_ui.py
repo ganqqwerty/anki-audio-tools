@@ -33,6 +33,7 @@ def injection_script(
             "trimStepMs": 100,
             "volumeStepDb": 3.0,
             "speedStep": 0.05,
+            "repeatPauseSeconds": 0.0,
             "pauseAggressiveness": "normal",
             "denoiseAlgorithm": "standard",
         },

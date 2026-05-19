@@ -163,6 +163,54 @@ def test_selected_repeat_loops_pauses_resumes_and_can_finish_current_pass(
         parent.close()
 
 
+def test_selected_repeat_waits_configured_pause_between_html_loop_passes(
+    anki_mw,
+    ffmpeg_config,
+) -> None:
+    media_dir, source, _note, editor, parent, track = _open_tone_editor(
+        anki_mw,
+        ffmpeg_config,
+        "editor_region_repeat_pause_middle.wav",
+        2.0,
+        repeat_pause_seconds=0.2,
+    )
+    try:
+        _shift_drag_region(editor, 0.25, 0.65)
+        _set_repeat(editor, True)
+
+        with _record_fake_playback(
+            media_dir,
+            {source.name: round(track["durationMs"])},
+            ffmpeg_config=ffmpeg_config,
+        ) as playback:
+            click_selector(editor.web, _button_selector("aqe:play"), timeout=5.0)
+            _wait_for_html_playback(editor, lambda state: state["progressMs"] >= 600)
+            _force_audio_boundary(editor)
+            waiting = _state(
+                editor,
+                lambda state: state["playbackState"] == "playing"
+                and state["progressClockMode"] == "stopped"
+                and state["repeatPauseWaiting"] is True
+                and state["repeatPauseSeconds"] == 0.2
+                and abs(state["cursorMs"] - 500) <= PLAYBACK_INTERVAL_TOLERANCE_MS,
+                timeout=2.0,
+            )
+            restarted = _wait_for_html_playback(
+                editor,
+                lambda state: state["repeatPauseWaiting"] is False
+                and state["repeatPauseSeconds"] == 0.2
+                and state["progressMs"] >= 500,
+                timeout=5.0,
+            )
+
+        assert playback.attempts == []
+        assert waiting["playButtonLabel"] == "Pause"
+        assert restarted["playButtonLabel"] == "Pause"
+    finally:
+        editor.set_note(None)
+        parent.close()
+
+
 def test_repeat_playback_interactions_replace_clear_and_clamp_region(
     anki_mw,
     ffmpeg_config,

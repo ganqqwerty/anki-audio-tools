@@ -28,6 +28,7 @@ beforeEach(() => {
 afterEach(() => {
   disposeEditorRuntime();
   restoreConsole();
+  vi.useRealTimers();
   vi.restoreAllMocks();
 });
 
@@ -103,6 +104,7 @@ afterEach(() => {
       playbackStartMs: 250,
       playbackEndMs: 750,
       playbackRegionMode: "selection",
+      repeatPauseWaiting: false,
     });
     expect(bridgeCommands()).not.toContain("aqe:play-ended");
   });

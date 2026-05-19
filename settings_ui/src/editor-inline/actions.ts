@@ -205,12 +205,26 @@ export function setRepeatEnabled(visualizer: VisualizerElement, enabled: boolean
     button.ariaPressed = enabled ? "true" : "false";
     button.dataset.aqeButtonState = enabled ? "active" : "default";
   }
+  if (!enabled && visualizer.dataset.repeatPauseWaiting === "true") {
+    completePlayback(visualizer);
+  }
 }
 
 export function setRepeatEnabledForOrd(ord: number, enabled: boolean): boolean {
   const visualizer = visualizerForOrd(ord);
   if (!visualizer) return false;
   setRepeatEnabled(visualizer, enabled);
+  return true;
+}
+
+export function setRepeatPauseSeconds(visualizer: VisualizerElement, seconds: number): void {
+  visualizer.dataset.repeatPauseSeconds = String(Math.max(0, Math.min(10, Number(seconds) || 0)));
+}
+
+export function setRepeatPauseSecondsForOrd(ord: number, seconds: number): boolean {
+  const visualizer = visualizerForOrd(ord);
+  if (!visualizer) return false;
+  setRepeatPauseSeconds(visualizer, seconds);
   return true;
 }
 

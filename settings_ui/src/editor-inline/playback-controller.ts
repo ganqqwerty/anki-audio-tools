@@ -42,6 +42,15 @@ export function clearPlaybackFrame(visualizer: VisualizerElement): void {
     window.cancelAnimationFrame(visualizer.__aqePlaybackTimer);
     visualizer.__aqePlaybackTimer = null;
   }
+  clearRepeatPauseTimer(visualizer);
+}
+
+function clearRepeatPauseTimer(visualizer: VisualizerElement): void {
+  if (visualizer.__aqeRepeatPauseTimer) {
+    window.clearTimeout(visualizer.__aqeRepeatPauseTimer);
+    visualizer.__aqeRepeatPauseTimer = null;
+  }
+  visualizer.dataset.repeatPauseWaiting = "false";
 }
 
 export function manualProgressMs(visualizer: VisualizerElement): number {
@@ -274,20 +283,71 @@ function restartLoopPlayback(
   options: { forceAudioPlay?: boolean } = {},
 ): void {
   const region = deps.effectivePlaybackRegion(visualizer);
+  const delayMs = repeatPauseDelayMs(visualizer);
+  if (delayMs > 0) {
+    scheduleRepeatLoopPlayback(visualizer, deps, options, region, delayMs);
+    return;
+  }
+  restartLoopPlaybackNow(visualizer, deps, options, region);
+}
+
+function scheduleRepeatLoopPlayback(
+  visualizer: VisualizerElement,
+  deps: PlaybackControllerDependencies,
+  options: { forceAudioPlay?: boolean },
+  region: PlaybackRegion,
+  delayMs: number,
+): void {
   const loopStartMs = region.startMs;
+  clearPlaybackFrame(visualizer);
+  pauseAudioClock(visualizer);
   setPlaybackPass(visualizer, loopStartMs, deps, region);
   visualizer.dataset.playStartedAt = String(performance.now());
   visualizer.dataset.playStartMs = String(loopStartMs);
+  visualizer.dataset.playbackState = "playing";
+  visualizer.dataset.progressClockMode = "stopped";
+  visualizer.dataset.repeatPauseWaiting = "true";
   deps.setCursor(visualizer, loopStartMs, false, { updateAnchor: false });
+  deps.setPlaybackButtonLabel(visualizer, "Pause");
+  visualizer.__aqeRepeatPauseTimer = window.setTimeout(() => {
+    visualizer.__aqeRepeatPauseTimer = null;
+    visualizer.dataset.repeatPauseWaiting = "false";
+    if (visualizer.dataset.playbackState !== "playing") return;
+    if (!deps.repeatEnabledFor(visualizer)) {
+      completePlayback(visualizer, deps);
+      return;
+    }
+    restartLoopPlaybackNow(visualizer, deps, { ...options, forceAudioPlay: true }, region);
+  }, delayMs);
+}
+
+function restartLoopPlaybackNow(
+  visualizer: VisualizerElement,
+  deps: PlaybackControllerDependencies,
+  options: { forceAudioPlay?: boolean } = {},
+  region: PlaybackRegion = deps.effectivePlaybackRegion(visualizer),
+): void {
+  const loopStartMs = region.startMs;
+  clearRepeatPauseTimer(visualizer);
+  setPlaybackPass(visualizer, loopStartMs, deps, region);
+  visualizer.dataset.playStartedAt = String(performance.now());
+  visualizer.dataset.playStartMs = String(loopStartMs);
+  visualizer.dataset.playbackState = "playing";
+  deps.setCursor(visualizer, loopStartMs, false, { updateAnchor: false });
+  const canUseAudioClock = audioClockReady(visualizer)
+    && (visualizer.dataset.progressClockMode === "audio" || visualizer.dataset.playbackEngine === "html");
   if (visualizer.dataset.progressClockMode !== "audio" || !audioClockReady(visualizer)) {
-    startManualProgressClock(visualizer, loopStartMs, deps);
-    return;
+    if (!canUseAudioClock) {
+      startManualProgressClock(visualizer, loopStartMs, deps);
+      return;
+    }
+    visualizer.dataset.progressClockMode = "audio";
   }
   if (!seekAudioClock(visualizer, loopStartMs, Number(visualizer.dataset.durationMs || "0"))) {
     startManualProgressClock(visualizer, loopStartMs, deps);
     return;
   }
-  if (!options.forceAudioPlay) {
+  if (!options.forceAudioPlay && visualizer.dataset.progressClockMode === "audio") {
     clearPlaybackFrame(visualizer);
     paintProgressFromClock(visualizer, deps);
     return;
@@ -306,6 +366,12 @@ function restartLoopPlayback(
         startManualProgressClock(visualizer, loopStartMs, deps);
       }
     });
+}
+
+function repeatPauseDelayMs(visualizer: VisualizerElement): number {
+  const seconds = Number(visualizer.dataset.repeatPauseSeconds || "0");
+  if (!Number.isFinite(seconds) || seconds <= 0) return 0;
+  return Math.round(Math.min(10, seconds) * 1000);
 }
 
 function clampProgressMs(visualizer: VisualizerElement, ms: number): number {

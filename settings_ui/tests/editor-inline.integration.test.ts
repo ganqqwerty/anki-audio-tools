@@ -114,6 +114,7 @@ afterEach(() => {
       splitButtonDefaults: {
         denoiseAlgorithm: "standard",
         pauseAggressiveness: "normal",
+        repeatPauseSeconds: 0,
         speedStep: 0.05,
         trimStepMs: 200,
         volumeStepDb: 3,
@@ -142,6 +143,7 @@ afterEach(() => {
       splitButtonDefaults: {
         denoiseAlgorithm: "standard",
         pauseAggressiveness: "normal",
+        repeatPauseSeconds: 0,
         speedStep: 0.05,
         trimStepMs: 100,
         volumeStepDb: 3,
@@ -171,6 +173,7 @@ afterEach(() => {
       splitButtonDefaults: {
         denoiseAlgorithm: "standard",
         pauseAggressiveness: "normal",
+        repeatPauseSeconds: 0,
         speedStep: 0.05,
         trimStepMs: 100,
         volumeStepDb: 3,
@@ -205,6 +208,7 @@ afterEach(() => {
       splitButtonDefaults: {
         denoiseAlgorithm: "standard",
         pauseAggressiveness: "normal",
+        repeatPauseSeconds: 0,
         speedStep: 0.05,
         trimStepMs: 100,
         volumeStepDb: 3,
@@ -265,6 +269,7 @@ afterEach(() => {
       splitButtonDefaults: {
         denoiseAlgorithm: "standard",
         pauseAggressiveness: "normal",
+        repeatPauseSeconds: 0,
         speedStep: 0.05,
         trimStepMs: 100,
         volumeStepDb: 3,
@@ -365,13 +370,48 @@ afterEach(() => {
     expect(document.querySelector(".aqe-controls")?.getAttribute("data-aqe-source-filename")).toBe("second.ogg");
   });
 
-  it("renders repeat next to play and initializes it from runtime config", () => {
-    initializeEditorRuntime({ audioFieldIndices: [0], repeatPlaybackByDefault: true });
-    scan({ audioFieldIndices: [0], repeatPlaybackByDefault: true });
+  it("renders repeat as a numeric split button and initializes it from runtime config", async () => {
+    const config = {
+      audioFieldIndices: [0],
+      repeatPlaybackByDefault: true,
+      splitButtonDefaults: {
+        denoiseAlgorithm: "standard" as const,
+        pauseAggressiveness: "normal" as const,
+        repeatPauseSeconds: 1.5,
+        speedStep: 0.05,
+        trimStepMs: 100,
+        volumeStepDb: 3,
+      },
+    };
+    initializeEditorRuntime(config);
+    scan(config);
+    await Promise.resolve();
 
     const repeat = document.querySelector<HTMLButtonElement>('[data-testid="aqe-repeat-0"]');
     expect(repeat).toHaveAttribute("aria-pressed", "true");
     expect(repeat).toHaveClass("aqe-icon-only");
+    expect(repeat?.closest(".aqe-split-button")).not.toBeNull();
+    expect(window.__aqeGraphStateForTest?.(0)?.repeatPauseSeconds).toBe(1.5);
+
+    document.querySelector<HTMLButtonElement>('[data-testid="aqe-split-0-repeat-menu"]')!.click();
+    await Promise.resolve();
+    const input = document.querySelector<HTMLInputElement>('[data-testid="aqe-split-0-repeat-value"]')!;
+    const slider = document.querySelector<HTMLInputElement>('[data-testid="aqe-split-0-repeat-slider"]')!;
+    expect(document.querySelector('[data-testid="aqe-split-0-repeat-popover"]')).not.toBeNull();
+    expect(input.value).toBe("1.5");
+    expect(slider.value).toBe("1.5");
+
+    slider.value = "2";
+    slider.dispatchEvent(new Event("input", { bubbles: true }));
+    await Promise.resolve();
+    expect(input.value).toBe("2");
+    expect(window.__aqeGraphStateForTest?.(0)?.repeatPauseSeconds).toBe(2);
+
+    input.value = "0.5";
+    input.dispatchEvent(new Event("input", { bubbles: true }));
+    await Promise.resolve();
+    expect(slider.value).toBe("0.5");
+    expect(window.__aqeGraphStateForTest?.(0)?.repeatPauseSeconds).toBe(0.5);
 
     repeat?.click();
 

@@ -139,6 +139,8 @@ export function graphStateForTest(ord: number): GraphStateForTest | null {
     selectionEndHandleVisible: endHandle?.getAttribute("visibility") === "visible",
     selectionEndHandleX: endHandle?.getAttribute("x") ? Number(endHandle.getAttribute("x")) : null,
     repeatEnabled: visualizer.dataset.repeatEnabled === "true",
+    repeatPauseSeconds: Number(visualizer.dataset.repeatPauseSeconds || "0"),
+    repeatPauseWaiting: visualizer.dataset.repeatPauseWaiting === "true",
     repeatControlDisabled: !!repeatButtonForOrd(ord)?.disabled,
     regionDeleteButtonDisabled: !!regionDelete?.disabled,
     regionDeleteButtonHidden: regionDelete ? !!regionDelete.hidden : true,

@@ -5,6 +5,7 @@
   import { t } from "../lib/i18n.js";
   import EditorCommandIcon from "./EditorCommandIcon.svelte";
   import SplitButton from "./SplitButton.svelte";
+  import RepeatSplitButton from "./RepeatSplitButton.svelte";
   import {
     configureAudioClock,
     handleVisualizerPointerDown,
@@ -12,7 +13,6 @@
     installAudioClockHandlers,
     resetAudioClockState,
     send,
-    setRepeatEnabledForOrd,
     startSelectionResizeGesture,
   } from "./actions.js";
   import { visualizerForOrd } from "./dom-selectors.js";
@@ -22,6 +22,7 @@
 
   const { target }: { target: FieldTarget } = $props();
   const repeatDefault = window.__AQE_EDITOR_CONFIG__?.repeatPlaybackByDefault === true;
+  const repeatPauseDefault = window.__AQE_EDITOR_CONFIG__?.splitButtonDefaults?.repeatPauseSeconds ?? 0;
   const buttons = commandButtons();
   const denoiseButton: ButtonSpec = {
     command: "aqe:denoise-standard",
@@ -29,12 +30,6 @@
     label: t("editor.command.denoise.label"),
     title: t("editor.command.denoise.title"),
   };
-
-  function toggleRepeat(event: MouseEvent): void {
-    const button = event.currentTarget as HTMLButtonElement;
-    const enabled = button.ariaPressed !== "true";
-    setRepeatEnabledForOrd(target.ord, enabled);
-  }
 
   function isSplitCommand(command: string): boolean {
     return [
@@ -89,20 +84,7 @@
       </button>
     {/if}
     {#if button.command === "aqe:play"}
-      <button
-        type="button"
-        class="aqe-button aqe-icon-only aqe-repeat-button"
-        data-aqe-button-state={repeatDefault ? "active" : "default"}
-        data-testid={`aqe-repeat-${target.ord}`}
-        title={t("editor.repeat.title")}
-        aria-label={t("editor.repeat.aria")}
-        aria-pressed={repeatDefault ? "true" : "false"}
-        onmousedown={(event) => event.preventDefault()}
-        onclick={toggleRepeat}
-      >
-        <EditorCommandIcon icon="repeat-2" />
-        <span class="aqe-button-label">{t("editor.repeat.label")}</span>
-      </button>
+      <RepeatSplitButton {repeatDefault} {target} />
     {/if}
     {#if button.command === "aqe:remove-pauses"}
       <SplitButton button={denoiseButton} {target} />
@@ -242,6 +224,8 @@
     data-selection-draft-start-ms=""
     data-selection-draft-end-ms=""
     data-repeat-enabled={repeatDefault ? "true" : "false"}
+    data-repeat-pause-seconds={repeatPauseDefault}
+    data-repeat-pause-waiting="false"
     data-testid={`aqe-graph-${target.ord}`}
     role="button"
     aria-label={t("editor.graph.aria")}

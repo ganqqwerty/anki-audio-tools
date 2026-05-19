@@ -210,6 +210,7 @@ def _on_editor_will_load_note(js: str, note: Any, editor: Any) -> str:
             "trimStepMs": int(config.get("manual_trim_small_ms", 100)),
             "volumeStepDb": float(config.get("volume_step_db", 3.0)),
             "speedStep": float(config.get("speed_step", 0.05)),
+            "repeatPauseSeconds": float(config.get("repeat_pause_seconds", 0.0)),
             "pauseAggressiveness": str(config.get("pause_aggressiveness", "normal")),
             "denoiseAlgorithm": str(config.get("denoise_algorithm", "standard")),
         },

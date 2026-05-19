@@ -226,7 +226,12 @@ def test_editor_settings_save_refreshes_current_editor_repeat_default(
     source = media_dir / "editor_settings_repeat_source.wav"
     generate_tone(ffmpeg_config, source, duration_s=0.8)
     note = _basic_audio_note(anki_mw, source.name)
-    _configure_ffmpeg(anki_mw, ffmpeg_config, repeat_playback_by_default=False)
+    _configure_ffmpeg(
+        anki_mw,
+        ffmpeg_config,
+        repeat_playback_by_default=False,
+        repeat_pause_seconds=0.0,
+    )
 
     editor, parent = _open_editor(anki_mw, note)
     try:
@@ -246,6 +251,7 @@ def test_editor_settings_save_refreshes_current_editor_repeat_default(
         )
         dialog = anki_audio_quick_editor._settings_dialog
         checkbox_selector = '[data-testid="repeat-playback-by-default"]'
+        pause_selector = '[data-testid="repeat-pause-seconds"]'
         save_selector = '[data-testid="settings-save"]'
         wait_for_js_condition(
             dialog,
@@ -254,6 +260,21 @@ def test_editor_settings_save_refreshes_current_editor_repeat_default(
             timeout=5.0,
         )
         click_selector(dialog, checkbox_selector, timeout=5.0)
+        wait_for_js_condition(
+            dialog,
+            f"""
+            (() => {{
+              const input = document.querySelector({json.dumps(pause_selector)});
+              if (!input) return false;
+              input.value = "1.5";
+              input.dispatchEvent(new Event("input", {{ bubbles: true }}));
+              input.dispatchEvent(new Event("change", {{ bubbles: true }}));
+              return Number(input.value);
+            }})()
+            """,
+            lambda value: value == 1.5,
+            timeout=5.0,
+        )
 
         with patch.object(
             anki_mw.addonManager,
@@ -265,10 +286,17 @@ def test_editor_settings_save_refreshes_current_editor_repeat_default(
 
         saved_config = mock_write.call_args.args[1]
         assert saved_config["repeat_playback_by_default"] is True
+        assert saved_config["repeat_pause_seconds"] == 1.5
         wait_for_js_condition(
             editor.web,
             "document.querySelector('[data-testid=\"aqe-repeat-0\"]')?.getAttribute('aria-pressed')",
             lambda value: value == "true",
+            timeout=10.0,
+        )
+        wait_for_js_condition(
+            editor.web,
+            "window.__aqeGraphStateForTest ? window.__aqeGraphStateForTest(0)?.repeatPauseSeconds : null",
+            lambda value: value == 1.5,
             timeout=10.0,
         )
     finally:

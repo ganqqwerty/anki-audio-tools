@@ -58,6 +58,7 @@ def _configure_ffmpeg(anki_mw, ffmpeg_config, **overrides: Any) -> None:
         {
             "ffmpeg_path": ffmpeg_config.ffmpeg_path,
             "repeat_playback_by_default": False,
+            "repeat_pause_seconds": 0.0,
             "show_graph_by_default": False,
             **overrides,
         }
