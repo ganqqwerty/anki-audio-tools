@@ -31,6 +31,7 @@ SETTINGS_UI_DIR = ROOT / "settings_ui"
 PYTHON_COVERAGE_FAIL_UNDER = 80
 RADON_FAIL_MIN_RANK = "C"
 DEV_DEPS = [
+    "pytest>=9.0.2",
     "pytest-cov",
     "pytest-qt",
     "ruff",
@@ -161,6 +162,44 @@ def cmd_complexity() -> int:
     return 1
 
 
+def cmd_maintainability() -> int:
+    anki_python = _find_anki_python()
+    rc, output = _run_capture(
+        [
+            str(anki_python), "-m", "radon", "mi",
+            "addon/anki_audio_quick_editor/",
+            "--min", "C",
+            "--max", "C",
+            "--ignore", "vendor,bin",
+            "--json",
+        ],
+        label="radon maintainability (fail on C rank)",
+    )
+    if rc != 0:
+        return rc
+    try:
+        report = json.loads(output or "{}")
+    except json.JSONDecodeError as exc:
+        print(f"ERROR: could not parse radon maintainability JSON output: {exc}", file=sys.stderr)
+        return 1
+    if not report:
+        print("PASS: no files at radon maintainability rank C.")
+        return 0
+    print(f"FAIL: radon found {len(report)} file(s) at maintainability rank C:")
+    for path, entry in sorted(report.items()):
+        rank = entry.get("rank", "?") if isinstance(entry, dict) else "?"
+        mi_score = entry.get("mi", "?") if isinstance(entry, dict) else "?"
+        print(f"  {path} rank={rank} mi={mi_score}")
+    return 1
+
+
+def cmd_quality_metrics() -> int:
+    complexity_rc = cmd_complexity()
+    if complexity_rc != 0:
+        return complexity_rc
+    return cmd_maintainability()
+
+
 def cmd_deadcode() -> int:
     anki_python = _find_anki_python()
     paths = ["addon/anki_audio_quick_editor/"]
@@ -186,6 +225,8 @@ def cmd_security() -> int:
             "-r", "addon/anki_audio_quick_editor/",
             "--exclude", "addon/anki_audio_quick_editor/vendor,addon/anki_audio_quick_editor/bin",
             "-c", "pyproject.toml",
+            "-ll",
+            "-ii",
         ],
         label="bandit security",
     )
@@ -238,7 +279,7 @@ def cmd_check() -> int:
         ("security", cmd_security),
         ("deadcode", cmd_deadcode),
         ("deps", cmd_deps),
-        ("complexity", cmd_complexity),
+        ("complexity", cmd_quality_metrics),
         ("arch", cmd_arch),
         ("test-anki-api", cmd_test_anki_api),
         ("test", cmd_test),
@@ -348,7 +389,7 @@ COMMANDS: dict[str, tuple[Callable[[], int], str]] = {
     "typecheck": (cmd_typecheck, "Run mypy type checker"),
     "arch": (cmd_arch, "Run import-linter architecture contracts"),
     "test-anki-api": (cmd_test_anki_api, "Run real Anki API compatibility tests"),
-    "complexity": (cmd_complexity, "Run radon complexity check"),
+    "complexity": (cmd_quality_metrics, "Run radon complexity and maintainability checks"),
     "deadcode": (cmd_deadcode, "Find dead code (vulture)"),
     "security": (cmd_security, "Run bandit security linter"),
     "deps": (cmd_deps, "Check dependencies (deptry)"),

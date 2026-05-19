@@ -9,7 +9,7 @@ dependencies = [
 
 [dependency-groups]
 dev = [
-    "pytest",
+    "pytest>=9.0.2",
     "pytest-cov",
     "pytest-qt",
     "ruff",
@@ -27,20 +27,65 @@ dev = [
     "praat-parselmouth>=0.4.7",
 ]
 
-[tool.pytest.ini_options]
+[tool.pytest]
+minversion = "9.0"
 testpaths = ["tests", "e2e"]
+addopts = [
+    "-ra",
+]
+strict = true
+strict_xfail = true
+filterwarnings = ["error"]
+required_plugins = [
+    "pytest-randomly",
+]
 markers = [
     "praat: requires praat-parselmouth for generated speech contour fixtures",
 ]
-filterwarnings = ["error"]
 
 [tool.ruff]
+target-version = "py313"
+line-length = 88
 src = ["addon", "tests", "e2e"]
 exclude = ["addon/anki_audio_quick_editor/vendor", "vulture_whitelist.py"]
 
 [tool.ruff.lint]
-select = ["F", "E9", "B", "C90", "I", "PT", "RET", "RUF", "SIM", "UP"]
+select = [
+    "E",
+    "F",
+    "W",
+    "I",
+    "B",
+    "UP",
+    "C4",
+    "SIM",
+    "RET",
+    "ARG",
+    "PTH",
+    "RUF",
+    "N",
+    "A",
+    "PT",
+    "DTZ",
+    "TID",
+    "PIE",
+    "PERF",
+    "PL",
+    "C90",
+]
 ignore = [
+    "D100",
+    "D104",
+    "D107",
+    "E501",
+    "PLC0415",
+    "PLR0402",
+    "PLR0911",
+    "PLR0913",
+    "PLR0915",
+    "PLR2004",
+    "PLW0603",
+    "PLW1510",
     "PT017",
     "PT022",
     "RUF005",
@@ -54,17 +99,92 @@ ignore = [
     "SIM105",
     "SIM300",
     "SIM905",
+    "TID252",
     "UP007",
     "UP035",
     "UP037",
     "UP042",
 ]
+fixable = ["ALL"]
 
 [tool.ruff.lint.isort]
 known-first-party = ["anki_audio_quick_editor"]
 
 [tool.ruff.lint.mccabe]
 max-complexity = 10
+
+[tool.ruff.lint.per-file-ignores]
+"anki_api_contract/**/*.py" = [
+    "ANN",
+    "ARG",
+    "C4",
+    "D",
+    "DTZ",
+    "N",
+    "PERF",
+    "PIE",
+    "PLR2004",
+]
+"e2e/**/*.py" = [
+    "ANN",
+    "ARG",
+    "D",
+    "DTZ",
+    "N",
+    "PERF",
+    "PIE",
+    "PLR2004",
+    "PLW0108",
+]
+"scripts/**/*.py" = [
+    "ANN",
+    "ARG",
+    "D",
+    "DTZ",
+    "E402",
+    "N",
+    "PLR2004",
+    "PLW0108",
+    "PLW2901",
+]
+"tests/**/*.py" = [
+    "A002",
+    "ANN",
+    "ARG",
+    "C4",
+    "D",
+    "DTZ",
+    "E731",
+    "N",
+    "PERF",
+    "PIE",
+    "PLC0414",
+    "PLR2004",
+    "PLW0108",
+]
+"addon/**/__init__.py" = ["F401"]
+"addon/anki_audio_quick_editor/audio_artifacts.py" = ["DTZ005"]
+"addon/anki_audio_quick_editor/audio_pipeline.py" = ["DTZ005"]
+"addon/anki_audio_quick_editor/audio_rendering.py" = ["DTZ005", "PTH119"]
+"addon/anki_audio_quick_editor/browser_integration.py" = ["PERF401"]
+"addon/anki_audio_quick_editor/prosody_svg.py" = ["DTZ005"]
+"addon/anki_audio_quick_editor/settings_state.py" = ["PTH118"]
+"addon/anki_audio_quick_editor/sound_refs.py" = ["PTH119"]
+
+[tool.ruff.lint.pydocstyle]
+convention = "google"
+
+[tool.ruff.lint.pylint]
+max-args = 6
+max-positional-args = 4
+max-branches = 10
+max-returns = 5
+max-statements = 40
+max-locals = 12
+max-nested-blocks = 4
+
+[tool.ruff.format]
+docstring-code-format = true
 
 [tool.mypy]
 python_version = "3.13"
@@ -93,8 +213,16 @@ module = [
 ignore_missing_imports = true
 
 [tool.radon]
-cc_min = "C"
+exclude = "*/tests/*,*/test_*.py,*/migrations/*,*/generated/*"
+ignore = ".git,.venv,build,dist,vendor,bin"
+cc_min = "B"
+cc_max = "F"
 show_complexity = true
+average = true
+total_average = true
+mi_min = "B"
+mi_max = "C"
+show_mi = true
 
 [tool.coverage.run]
 source = ["addon/anki_audio_quick_editor"]
@@ -190,13 +318,35 @@ forbidden_modules = [
 
 [tool.bandit]
 exclude_dirs = ["addon/anki_audio_quick_editor/vendor", "tests", "e2e"]
+
+[tool.bandit.assert_used]
 skips = [
-    "B101",
+    "*/tests/*",
+    "*/e2e/*",
+    "*_test.py",
+    "test_*.py",
 ]
 
 [tool.deptry]
+known_first_party = ["anki_audio_quick_editor"]
 extend_exclude = ["addon/anki_audio_quick_editor/vendor", "settings_ui", "scripts"]
 ignore_notebooks = true
+
+[tool.vulture]
+paths = [
+    "addon/anki_audio_quick_editor",
+    "tests",
+    "vulture_whitelist.py",
+]
+min_confidence = 80
+sort_by_size = true
+exclude = [
+    "*/.venv/*",
+    "*/build/*",
+    "*/dist/*",
+    "*/generated/*",
+    "*/vendor/*",
+]
 
 [tool.deptry.package_module_name_map]
 praat-parselmouth = ["parselmouth"]
@@ -230,6 +380,7 @@ do_not_mutate = [
     "addon/anki_audio_quick_editor/settings/initial_state.py",
 ]
 mutate_only_covered_lines = true
+max_stack_depth = 8
 pytest_add_cli_args = [
     "-p",
     "no:randomly",
