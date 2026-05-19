@@ -72,6 +72,42 @@ afterEach(() => {
     expect(window.__aqeGraphStateForTest?.(0)?.playbackEngine).toBe("html");
   });
 
+  it("uses hidden HTML audio playback for full-file repeat before the graph is shown", async () => {
+    initializeEditorRuntime({ audioFieldIndices: [0] });
+    scan({ audioFieldIndices: [0] });
+    await Promise.resolve();
+    const visualizer = document.querySelector<HTMLElement>('[data-testid="aqe-graph-0"]')!;
+    const audio = document.querySelector<HTMLAudioElement>('[data-testid="aqe-audio-clock-0"]')!;
+    expect(audio.getAttribute("src")).toBe("clip%20one.mp3");
+    Object.defineProperty(audio, "duration", { configurable: true, value: 1 });
+    Object.defineProperty(audio, "readyState", { configurable: true, value: 1 });
+    audio.play = vi.fn<() => Promise<void>>(() => Promise.resolve());
+    audio.pause = vi.fn<() => void>(() => undefined);
+    audio.dispatchEvent(new Event("loadedmetadata"));
+    expect(window.__aqeGraphStateForTest?.(0)?.durationMs).toBe(1000);
+
+    document.querySelector<HTMLButtonElement>('[data-testid="aqe-repeat-0"]')!.click();
+    document.querySelector<HTMLButtonElement>('[data-testid="aqe-button-0-play"]')!.click();
+    await Promise.resolve();
+
+    expect(window.__aqeGetPlaybackRequest?.()).toEqual({
+      action: "start",
+      cursorMs: 0,
+      endMs: 1000,
+      engine: "html",
+      loop: true,
+      ord: 0,
+      regionMode: "full",
+    });
+    expect(window.__aqeGraphStateForTest?.(0)).toMatchObject({
+      hidden: true,
+      hasTrack: false,
+      playbackEngine: "html",
+      playbackState: "playing",
+      repeatEnabled: true,
+    });
+  });
+
   it("starts HTML playback from an explicit selected region", async () => {
     initializeEditorRuntime({ audioFieldIndices: [0] });
     scan({ audioFieldIndices: [0] });
@@ -187,7 +223,7 @@ afterEach(() => {
 
     expect(bridgeCommands()).not.toContain("aqe:play");
     expect(document.querySelector('[data-testid="aqe-status-0"]')).toHaveTextContent(
-      "Selected repeat playback needs browser audio.",
+      "Repeat playback needs browser audio.",
     );
     expect(window.__aqeGraphStateForTest?.(0)).toMatchObject({
       playbackState: "stopped",

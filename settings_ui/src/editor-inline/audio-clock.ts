@@ -3,6 +3,7 @@ import type { AudioClockElement, VisualizerElement } from "./types.js";
 export interface AudioClockHandlerCallbacks {
   onEndedDuringPlayback?: () => void;
   onErrorDuringPlayback?: () => void;
+  onLoadedMetadata?: (durationMs: number) => void;
 }
 
 export function mediaUrlForFilename(filename: string): string {
@@ -77,6 +78,10 @@ export function installAudioClockHandlers(
     if (!audio.getAttribute("src")) return;
     visualizer.__aqeAudioClockAvailable = true;
     visualizer.__aqeAudioClockFallback = false;
+    const durationSeconds = Number(audio.duration);
+    if (Number.isFinite(durationSeconds) && durationSeconds > 0) {
+      callbacks.onLoadedMetadata?.(Math.round(durationSeconds * 1000));
+    }
   });
   audio.addEventListener("error", () => {
     visualizer.__aqeAudioClockAvailable = false;

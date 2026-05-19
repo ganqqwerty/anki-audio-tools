@@ -103,10 +103,14 @@ export function playbackRequest(ord: number): PlaybackRequest {
 }
 
 export function playbackEngineFor(visualizer: VisualizerElement | null): "html" | "native" {
-  if (!visualizer || visualizer.dataset.hasTrack !== "true") return "native";
+  if (!visualizer) return "native";
   const activeEngine = visualizer.dataset.playbackEngine || "";
   if (visualizer.dataset.playbackState !== "stopped" && (activeEngine === "html" || activeEngine === "native")) {
     return activeEngine;
+  }
+  if (visualizer.dataset.hasTrack !== "true") {
+    const hasDuration = Number(visualizer.dataset.durationMs || "0") > 0;
+    return repeatEnabledFor(visualizer) && hasDuration && audioClockReady(visualizer) ? "html" : "native";
   }
   return audioClockReady(visualizer) ? "html" : "native";
 }
@@ -134,7 +138,7 @@ export function startEditorHtmlPlayback(visualizer: VisualizerElement, request: 
       stopProgressClock(visualizer);
       if (request.regionMode === "selection" || request.loop) {
         window.__aqeActiveField = request.ord;
-        setStatus("Selected repeat playback needs browser audio.", "warning");
+        setStatus("Repeat playback needs browser audio.", "warning");
         return;
       }
       sendPlaybackRequest({

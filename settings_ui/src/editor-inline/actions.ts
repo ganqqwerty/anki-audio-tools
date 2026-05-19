@@ -160,6 +160,12 @@ export function configureAudioClock(visualizer: VisualizerElement, filename: str
 
 export function installAudioClockHandlers(visualizer: VisualizerElement): void {
   installAudioClockElementHandlers(visualizer, {
+    onLoadedMetadata(durationMs) {
+      if (visualizer.dataset.hasTrack === "true") return;
+      visualizer.dataset.durationMs = String(durationMs);
+      visualizer.dataset.playbackEndMs = String(durationMs);
+      renderCursor(visualizer, Number(visualizer.dataset.cursorMs || "0"), durationMs);
+    },
     onErrorDuringPlayback() {
       logger.warn("audio clock failed during playback", { ord: visualizer.dataset.aqeFieldOrd });
       startManualProgressClock(visualizer, Number(visualizer.dataset.cursorMs || "0"));
