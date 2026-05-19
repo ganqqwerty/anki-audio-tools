@@ -41,6 +41,11 @@ _LEGACY_TOOL_PATHS = {
         "macos-arm64": ("bin/deep-filter-0.5.6-aarch64-apple-darwin",),
         "macos-x86_64": ("bin/deep-filter-0.5.6-x86_64-apple-darwin",),
         "windows-x86_64": ("bin/deep-filter-0.5.6-x86_64-pc-windows-msvc.exe",),
+    },
+    "rnnoise-cli": {
+        "macos-arm64": ("bin/rnnoise-cli-macos-arm64/bin/rnnoise-cli",),
+        "macos-x86_64": ("bin/rnnoise-cli-macos-x86_64/bin/rnnoise-cli",),
+        "windows-x86_64": ("bin/rnnoise-cli-windows-x86_64/rnnoise-cli.exe",),
     }
 }
 
@@ -173,9 +178,12 @@ def find_rnnoise_bundle() -> Path:
     rnnoise_path = expected_bundled_tool_path("rnnoise-cli")
     if rnnoise_path is None:
         raise MissingRnnoiseError(f"RNNoise is not bundled for {platform_description()}.")
-    if not rnnoise_path.is_file():
-        raise MissingRnnoiseError(
-            f"RNNoise requires the bundled rnnoise-cli executable at {rnnoise_path}. "
-            "Reinstall the add-on to restore it."
-        )
-    return rnnoise_path
+    if rnnoise_path.is_file():
+        return rnnoise_path
+    bundled = bundled_tool_path("rnnoise-cli")
+    if bundled is not None:
+        return bundled
+    raise MissingRnnoiseError(
+        f"RNNoise requires the bundled rnnoise-cli executable at {rnnoise_path}. "
+        "Reinstall the add-on to restore it."
+    )

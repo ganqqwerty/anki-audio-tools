@@ -206,6 +206,20 @@ def test_find_rnnoise_bundle_uses_bundled_executable_when_complete(
     assert find_rnnoise_bundle() == rnnoise_path
 
 
+def test_find_rnnoise_bundle_accepts_legacy_macos_arm64_bundle(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    legacy = tmp_path / "bin" / "rnnoise-cli-macos-arm64" / "bin" / "rnnoise-cli"
+    legacy.parent.mkdir(parents=True)
+    legacy.write_text("")
+
+    monkeypatch.setattr("anki_audio_quick_editor.audio_tools._PACKAGE_DIR", tmp_path)
+    monkeypatch.setattr("anki_audio_quick_editor.audio_tools.current_platform_key", lambda: "macos-arm64")
+
+    assert find_rnnoise_bundle() == legacy
+
+
 def test_find_rnnoise_bundle_raises_when_bundle_is_incomplete(
     tmp_path: Path,
     monkeypatch,
@@ -217,6 +231,8 @@ def test_find_rnnoise_bundle_raises_when_bundle_is_incomplete(
         "anki_audio_quick_editor.audio_processor.expected_bundled_tool_path",
         lambda tool_name: bundled_dir / "rnnoise-cli" if tool_name == "rnnoise-cli" else None,
     )
+    monkeypatch.setattr("anki_audio_quick_editor.audio_tools._PACKAGE_DIR", tmp_path)
+    monkeypatch.setattr("anki_audio_quick_editor.audio_tools.current_platform_key", lambda: "macos-arm64")
 
     with pytest.raises(MissingRnnoiseError, match="bundled rnnoise-cli executable"):
         find_rnnoise_bundle()
