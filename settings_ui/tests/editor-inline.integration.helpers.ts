@@ -74,12 +74,13 @@ export function dragGraphSelection(svg: SVGSVGElement, startRatio: number, endRa
   dispatchGraphPointer(svg, "pointerup", graphClientX(svg, endRatio), true);
 }
 
-export function dispatchHandlePointer(handle: Element, type: string, clientX: number): void {
+export function dispatchHandlePointer(handle: Element, type: string, clientX: number, shiftKey = false): void {
   const EventCtor = window.PointerEvent || window.MouseEvent;
   const event = new EventCtor(type, {
     bubbles: true,
     clientX,
     clientY: 20,
+    shiftKey,
   });
   if (type === "pointerdown") {
     handle.dispatchEvent(event);

@@ -210,6 +210,43 @@ afterEach(() => {
     expect(audio.play).toHaveBeenCalledTimes(2);
   });
 
+  it("cancels active resize playback at the interrupted progress", async () => {
+    const frames = mockAnimationFrames();
+    initializeEditorRuntime({ audioFieldIndices: [0] });
+    scan({ audioFieldIndices: [0] });
+    await Promise.resolve();
+    window.__aqeSetVisualizer?.(0, track, 100);
+    const svg = document.querySelector<SVGSVGElement>('[data-testid="aqe-graph-svg-0"]')!;
+    setGraphBounds(svg);
+    dragGraphSelection(svg, 0.25, 0.75);
+    const audio = prepareHtmlAudio();
+
+    document.querySelector<HTMLButtonElement>('[data-testid="aqe-button-0-play"]')!.click();
+    await Promise.resolve();
+    audio.currentTime = 0.5;
+    frames.shift()?.(performance.now() + 500);
+    const handle = document.querySelector('[data-testid="aqe-selection-resize-end-0"]')!;
+
+    dispatchHandlePointer(handle, "pointerdown", graphClientX(svg, 0.75));
+    dispatchHandlePointer(handle, "pointermove", graphClientX(svg, 0.9));
+    window.dispatchEvent(new KeyboardEvent("keydown", { bubbles: true, key: "Escape" }));
+    await Promise.resolve();
+
+    expect(window.__aqeGraphStateForTest?.(0)).toMatchObject({
+      playbackState: "playing",
+      playButtonLabel: "Pause",
+      cursorMs: 500,
+      selectionStartMs: 250,
+      selectionEndMs: 750,
+      selectionDraftActive: false,
+      playbackStartMs: 500,
+      playbackEndMs: 750,
+      playbackRegionMode: "selection",
+    });
+    expect(audio.pause).toHaveBeenCalled();
+    expect(audio.play).toHaveBeenCalledTimes(2);
+  });
+
   it("keeps paused playback paused after resize and requires restart from resized start", async () => {
     initializeEditorRuntime({ audioFieldIndices: [0] });
     scan({ audioFieldIndices: [0] });

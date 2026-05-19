@@ -288,7 +288,10 @@
         aria-label="Resize selection start"
         tabindex="0"
         visibility="hidden"
-        onpointerdown={(event) => startSelectionResizeGesture(event, target.ord, "start")}
+        onpointerdown={(event) => {
+          if (event.shiftKey) return;
+          startSelectionResizeGesture(event, target.ord, "start");
+        }}
       ></rect>
       <rect
         class="aqe-selection-resize-handle aqe-selection-resize-end"
@@ -302,7 +305,10 @@
         aria-label="Resize selection end"
         tabindex="0"
         visibility="hidden"
-        onpointerdown={(event) => startSelectionResizeGesture(event, target.ord, "end")}
+        onpointerdown={(event) => {
+          if (event.shiftKey) return;
+          startSelectionResizeGesture(event, target.ord, "end");
+        }}
       ></rect>
       <line
         class="aqe-cursor"

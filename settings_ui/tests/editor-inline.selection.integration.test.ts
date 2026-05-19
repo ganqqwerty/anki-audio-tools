@@ -384,6 +384,30 @@ afterEach(() => {
     });
   });
 
+  it("lets Shift-drag from a visible handle replace the selection", () => {
+    initializeEditorRuntime({ audioFieldIndices: [0] });
+    scan({ audioFieldIndices: [0] });
+    window.__aqeSetVisualizer?.(0, track, 100);
+    const svg = document.querySelector<SVGSVGElement>('[data-testid="aqe-graph-svg-0"]')!;
+    setGraphBounds(svg);
+    dragGraphSelection(svg, 0.2, 0.6);
+    const handle = document.querySelector('[data-testid="aqe-selection-resize-end-0"]')!;
+
+    dispatchHandlePointer(handle, "pointerdown", graphClientX(svg, 0.6), true);
+    dispatchHandlePointer(handle, "pointermove", graphClientX(svg, 0.9), true);
+    dispatchHandlePointer(handle, "pointerup", graphClientX(svg, 0.9), true);
+
+    expect(window.__aqeGraphStateForTest?.(0)).toMatchObject({
+      selectionActive: true,
+      selectionStartMs: 600,
+      selectionEndMs: 900,
+      selectionDraftActive: false,
+      cursorMs: 600,
+      playbackStartMs: 600,
+      playbackEndMs: 900,
+    });
+  });
+
   it("keeps selection stable through normal click and drag gestures", () => {
     initializeEditorRuntime({ audioFieldIndices: [0] });
     scan({ audioFieldIndices: [0] });

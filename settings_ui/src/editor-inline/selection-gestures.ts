@@ -230,6 +230,13 @@ export function startSelectionResizeGesture(
       deps.playbackRequestForStart(visualizer, ord, committedSelection?.startMs ?? latestRange.startMs, "html"),
     );
   };
+  const resumeInterruptedPlayback = (): void => {
+    if (previousPlaybackState !== "playing" || !stoppedForDrag) return;
+    deps.startEditorHtmlPlayback(
+      visualizer,
+      deps.playbackRequestForStart(visualizer, ord, frozenProgressMs, "html"),
+    );
+  };
   stopForDrag();
   move = (moveEvent: PointerEvent): void => {
     const resized = resizeFromEvent(moveEvent);
@@ -260,7 +267,7 @@ export function startSelectionResizeGesture(
   cancel = (): void => {
     cleanup();
     deps.clearSelectionDraft(visualizer);
-    restartFromSelectionStart();
+    resumeInterruptedPlayback();
   };
   keydown = (keyEvent: KeyboardEvent): void => {
     if (keyEvent.key === "Escape") {
