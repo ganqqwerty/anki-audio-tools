@@ -23,6 +23,9 @@ from e2e.editor_playback_helpers import (
     PLAYBACK_INTERVAL_TOLERANCE_MS,
     _record_fake_playback,
 )
+from e2e.editor_region_loop_helpers import (
+    _shift_click_region,
+)
 from e2e.helpers import (
     click_selector,
     generate_tone,
@@ -284,6 +287,13 @@ def test_playback_completion_clears_status_and_returns_cursor_to_anchor(anki_mw,
     try:
         track = _click_graph_and_wait(editor, lambda value: value["sourceFilename"] == source.name)
         _install_html_audio_test_driver(editor)
+        _shift_click_region(editor, 0.5)
+        wait_for_js_condition(
+            editor.web,
+            _graph_state_js(),
+            lambda state: state is not None and state["selectionActive"] is False,
+            timeout=5.0,
+        )
         run_js(editor.web, "window.__aqeSetCursorForTest(0, 300, false)")
         with _record_fake_playback(
             media_dir,

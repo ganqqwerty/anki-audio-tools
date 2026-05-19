@@ -2,6 +2,7 @@ import { clampMsToRegion, type PlaybackRegion } from "./playback-state.js";
 import { cursorMsFromEvent } from "./plot.js";
 import { startGestureSession } from "./gesture-session.js";
 import {
+  expandSelectionRangeToPoint,
   resizeSelectionRange,
   shouldTreatSelectionGestureAsClick,
   type SelectionResizeEdge,
@@ -38,6 +39,12 @@ export interface SelectionGestureDependencies {
   seekAudioClock: (visualizer: VisualizerElement, ms: number) => boolean;
   selectionForVisualizer: (visualizer: VisualizerElement | null) => PlaybackRegion | null;
   setCursor: (visualizer: VisualizerElement, ms: number, notifyPython: boolean, options?: CursorOptions) => void;
+  setSelection: (
+    visualizer: VisualizerElement,
+    startMs: number,
+    endMs: number,
+    options?: { updateCursor?: boolean },
+  ) => boolean;
   setSelectionDraft: (
     visualizer: VisualizerElement,
     startMs: number,
@@ -67,6 +74,8 @@ export function startCursorDrag(
   if (previousPlaybackState === "playing") {
     deps.stopProgressClock(visualizer);
   }
+  const startEvent = { clientX: event.clientX };
+  const startMs = cursorMsFromEvent(event, svg, durationMs);
   const move = (moveEvent: PointerEvent): void => {
     deps.setCursor(visualizer, scrubMsFromEvent(moveEvent, svg, durationMs, visualizer, deps), false);
   };
@@ -77,7 +86,19 @@ export function startCursorDrag(
     if (previousPlaybackState === "paused") {
       setVisualizerResumeRequiresRestart(visualizer, true);
     }
-    const releasedMs = scrubMsFromEvent(upEvent, svg, durationMs, visualizer, deps);
+    const rawReleasedMs = cursorMsFromEvent(upEvent, svg, durationMs);
+    const expandedSelection = clickExpandedSelection(
+      startEvent,
+      upEvent,
+      startMs,
+      rawReleasedMs,
+      visualizer,
+      durationMs,
+      deps,
+    );
+    const releasedMs = expandedSelection
+      ? rawReleasedMs
+      : scrubMsFromEvent(upEvent, svg, durationMs, visualizer, deps);
     const restartEngine = restartPlayback && deps.audioClockReady(visualizer) ? "html" : "";
     deps.setCursor(visualizer, releasedMs, notifyPython, {
       previousPlaybackState,
@@ -94,6 +115,23 @@ export function startCursorDrag(
   move(event);
   window.addEventListener("pointermove", move);
   window.addEventListener("pointerup", up);
+}
+
+function clickExpandedSelection(
+  startEvent: Pick<PointerEvent, "clientX">,
+  upEvent: PointerEvent,
+  startMs: number,
+  releasedMs: number,
+  visualizer: VisualizerElement,
+  durationMs: number,
+  deps: SelectionGestureDependencies,
+): boolean {
+  if (!shouldTreatSelectionGestureAsClick(startEvent, upEvent, startMs, releasedMs)) return false;
+  const selection = deps.selectionForVisualizer(visualizer);
+  if (!selection) return false;
+  const expanded = expandSelectionRangeToPoint(selection, releasedMs, durationMs);
+  if (!expanded) return false;
+  return deps.setSelection(visualizer, expanded.startMs, expanded.endMs, { updateCursor: false });
 }
 
 export function startSelectionGesture(

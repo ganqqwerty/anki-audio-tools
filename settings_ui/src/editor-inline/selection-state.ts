@@ -40,13 +40,29 @@ export function normalizeSelectionRange(
   durationMs: number,
   minDurationMs = MIN_SELECTION_DURATION_MS,
 ): SelectionRange | null {
+  const duration = Math.max(0, Number(durationMs) || 0);
   const start = clampMs(Math.min(startMs, endMs), durationMs);
   const end = clampMs(Math.max(startMs, endMs), durationMs);
-  if (!durationMs || end - start < minDurationMs) return null;
+  const minimum = Math.max(0, Number(minDurationMs) || 0);
+  const coversFullDuration = duration > 0 && start <= 0 && end >= duration;
+  if (!duration || (!coversFullDuration && end - start < minimum)) return null;
   return {
     startMs: Math.round(start),
     endMs: Math.round(end),
   };
+}
+
+export function expandSelectionRangeToPoint(
+  selection: SelectionRange,
+  pointMs: number,
+  durationMs: number,
+): SelectionRange | null {
+  const point = clampMs(pointMs, durationMs);
+  const start = clampMs(selection.startMs, durationMs);
+  const end = clampMs(selection.endMs, durationMs);
+  if (point < start) return normalizeSelectionRange(point, end, durationMs);
+  if (point > end) return normalizeSelectionRange(start, point, durationMs);
+  return null;
 }
 
 export type SelectionResizeEdge = "end" | "start";

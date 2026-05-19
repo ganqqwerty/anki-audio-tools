@@ -302,6 +302,7 @@ function selectionGestureDependencies(): SelectionGestureDependencies {
     seekAudioClock,
     selectionForVisualizer,
     setCursor,
+    setSelection,
     setSelectionDraft,
     startEditorHtmlPlayback,
     stopProgressClock,

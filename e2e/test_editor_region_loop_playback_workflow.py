@@ -240,7 +240,7 @@ def test_repeat_playback_interactions_replace_clear_and_clamp_region(
                 and state["audioClockCurrentMs"] >= 1200 - PLAYBACK_INTERVAL_TOLERANCE_MS,
             )
 
-            _normal_drag(editor, 0.1, 0.1)
+            _normal_drag(editor, 0.1, 0.2)
             clamped = _wait_for_html_playback(
                 editor,
                 lambda state: state["selectionStartMs"] == 1200
@@ -298,8 +298,10 @@ def test_processing_during_selected_repeat_stops_playback_and_redraw_clears_sele
                 lambda state: state["sourceFilename"] == generated_name
                 and state["durationMs"] > 0
                 and state["allButtonsDisabled"] is False
-                and state["selectionActive"] is False
-                and state["playbackRegionMode"] == "full"
+                and state["selectionActive"] is True
+                and state["selectionStartMs"] == 0
+                and abs(state["selectionEndMs"] - state["durationMs"]) <= 1
+                and state["playbackRegionMode"] == "selection"
                 and state["playbackState"] == "stopped",
                 timeout=10.0,
             )

@@ -175,8 +175,8 @@ describe("editor inline action workflows", () => {
   it("normalizes selection state and includes region fields in playback requests", async () => {
     const visualizer = await mountTrack(300);
 
-    expect(selectionForVisualizer(visualizer)).toBeNull();
-    expect(effectivePlaybackRegion(visualizer)).toEqual({ startMs: 0, endMs: 1000, mode: "full" });
+    expect(selectionForVisualizer(visualizer)).toEqual({ startMs: 0, endMs: 1000, mode: "selection" });
+    expect(effectivePlaybackRegion(visualizer)).toEqual({ startMs: 0, endMs: 1000, mode: "selection" });
 
     expect(setSelection(visualizer, 900, 200)).toBe(true);
     expect(selectionForVisualizer(visualizer)).toEqual({ startMs: 200, endMs: 900, mode: "selection" });

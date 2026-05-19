@@ -41,7 +41,8 @@ afterEach(() => {
     dragGraphSelection(svg, 0.2, 0.6);
     document.querySelector<HTMLButtonElement>('[data-testid="aqe-repeat-0"]')!.click();
 
-    dispatchGraphPointer(svg, "pointerdown", graphClientX(svg, 0.9));
+    dispatchGraphPointer(svg, "pointerdown", graphClientX(svg, 0.5));
+    dispatchGraphPointer(svg, "pointermove", graphClientX(svg, 0.9));
     dispatchGraphPointer(svg, "pointerup", graphClientX(svg, 0.9));
 
     expect(window.__aqeGraphStateForTest?.(0)).toMatchObject({
@@ -137,7 +138,7 @@ afterEach(() => {
     expect(bridgeCommands()).toContain("aqe:play-ended");
   });
 
-  it("keeps stopped selections during processing and clears them on successful redraw", () => {
+  it("keeps stopped selections during processing and selects the full graph on successful redraw", () => {
     initializeEditorRuntime({ audioFieldIndices: [0] });
     scan({ audioFieldIndices: [0] });
     window.__aqeSetVisualizer?.(0, track, 100);
@@ -159,9 +160,11 @@ afterEach(() => {
 
     expect(window.__aqeGraphStateForTest?.(0)).toMatchObject({
       sourceFilename: "processed.mp3",
-      selectionActive: false,
+      selectionActive: true,
+      selectionStartMs: 0,
+      selectionEndMs: 1000,
       repeatEnabled: true,
-      playbackRegionMode: "full",
+      playbackRegionMode: "selection",
       playbackStartMs: 0,
       playbackEndMs: 1000,
     });

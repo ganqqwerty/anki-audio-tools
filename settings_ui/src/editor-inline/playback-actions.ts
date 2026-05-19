@@ -137,7 +137,7 @@ export function startEditorHtmlPlayback(visualizer: VisualizerElement, request: 
     onAudioPlayFailed() {
       logger.warn("html playback failed; falling back to native", { ord: request.ord });
       stopProgressClock(visualizer);
-      if (request.regionMode === "selection" || request.loop) {
+      if ((request.regionMode === "selection" && !isWholeClipSelectionRequest(visualizer, request)) || request.loop) {
         window.__aqeActiveField = request.ord;
         setStatus(t("editor.status.selected_repeat_browser_audio"), "warning");
         return;
@@ -149,6 +149,11 @@ export function startEditorHtmlPlayback(visualizer: VisualizerElement, request: 
     },
   });
   return true;
+}
+
+function isWholeClipSelectionRequest(visualizer: VisualizerElement, request: PlaybackRequest): boolean {
+  const durationMs = Number(visualizer.dataset.durationMs || "0") || 0;
+  return request.cursorMs <= 0 && durationMs > 0 && Number(request.endMs || 0) >= durationMs;
 }
 
 export function handleHtmlPlaybackCommand(ord: number): boolean {

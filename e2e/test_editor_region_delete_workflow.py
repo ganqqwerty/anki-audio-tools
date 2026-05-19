@@ -97,7 +97,9 @@ def test_delete_region_button_cuts_middle_region_and_redraws_graph(
         redrawn = _wait_for_visualizer_track(
             editor,
             lambda value: value["sourceFilename"] == generated_name
-            and value["selectionActive"] is False
+            and value["selectionActive"] is True
+            and value["selectionStartMs"] == 0
+            and abs(value["selectionEndMs"] - value["durationMs"]) <= 1
             and value["cursorMs"] == 0,
             timeout=10.0,
         )
@@ -153,7 +155,9 @@ def test_delete_rest_button_keeps_selected_middle_region_and_redraws_graph(
         redrawn = _wait_for_visualizer_track(
             editor,
             lambda value: value["sourceFilename"] == generated_name
-            and value["selectionActive"] is False
+            and value["selectionActive"] is True
+            and value["selectionStartMs"] == 0
+            and abs(value["selectionEndMs"] - value["durationMs"]) <= 1
             and value["cursorMs"] == 0,
             timeout=10.0,
         )

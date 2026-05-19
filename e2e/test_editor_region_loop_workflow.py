@@ -31,13 +31,15 @@ def test_region_selection_gestures_create_replace_clamp_and_preserve_normal_curs
     try:
         _shift_pointer_down(editor, 0.25)
         pointer_down = _state(editor)
-        assert pointer_down["selectionActive"] is False
+        assert pointer_down["selectionActive"] is True
+        assert pointer_down["selectionStartMs"] == 0
+        assert pointer_down["selectionEndMs"] == 2000
         assert pointer_down["selectionDraftActive"] is False
 
         _shift_pointer_move(editor, 0.625)
         draft = _state(
             editor,
-            lambda state: state["selectionActive"] is False
+            lambda state: state["selectionActive"] is True
             and state["selectionDraftActive"] is True
             and state["selectionDraftStartMs"] == 500
             and state["selectionDraftEndMs"] == 1250,
@@ -50,7 +52,7 @@ def test_region_selection_gestures_create_replace_clamp_and_preserve_normal_curs
             lambda state: state["selectionDraftStartMs"] == 500
             and state["selectionDraftEndMs"] == 1500,
         )
-        assert updated_draft["selectionActive"] is False
+        assert updated_draft["selectionActive"] is True
 
         _shift_pointer_move(editor, 0.625)
         _shift_pointer_up(editor, 0.625)
@@ -95,12 +97,12 @@ def test_region_selection_gestures_create_replace_clamp_and_preserve_normal_curs
         _normal_drag(editor, 0.9, 0.9)
         clicked = _state(editor, lambda state: 1750 <= state["cursorMs"] <= 1850)
         assert clicked["selectionStartMs"] == 600
-        assert clicked["selectionEndMs"] == 1600
+        assert clicked["selectionEndMs"] == 1800
 
         _normal_drag(editor, 0.1, 0.4)
         dragged = _state(editor, lambda state: 750 <= state["cursorMs"] <= 850)
         assert dragged["selectionStartMs"] == 600
-        assert dragged["selectionEndMs"] == 1600
+        assert dragged["selectionEndMs"] == 1800
 
         _shift_drag_region(editor, -0.25, 1.25)
         clamped = _state(
