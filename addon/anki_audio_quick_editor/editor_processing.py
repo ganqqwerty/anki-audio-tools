@@ -16,6 +16,7 @@ from .editor_actions import (
 )
 from .editor_session import EditorSession
 from .errors import AudioProcessingError
+from .i18n import t
 from .media_paths import existing_media_file_path
 from .sound_refs import (
     replace_sound_reference,
@@ -74,7 +75,7 @@ def render_and_replace_async(
     session.processing = True
     session.playback_active = False
     session.playback_paused = False
-    deps.set_busy(editor, True, "Processing...")
+    deps.set_busy(editor, True, t("editor.status.processing"))
     deps.eval_playback_state(editor, session.field_index, "stopped", session.cursor_ms)
 
     def _run() -> None:
@@ -84,7 +85,7 @@ def render_and_replace_async(
 
             def _show_command(command: tuple[str, ...]) -> None:
                 rendered = deps.format_ffmpeg_command(command)
-                status_message = "Processing with ffmpeg"
+                status_message = t("editor.status.processing_ffmpeg")
                 command_text = ""
                 if config.show_ffmpeg_commands:
                     status_message = f"{status_message}: {rendered}"
@@ -155,7 +156,7 @@ def replace_current_field_after_render(
             session.visualized_filenames_by_field.pop(field_index, None)
             session.visualized_durations_by_field.pop(field_index, None)
     editor.loadNote(focusTo=field_index)
-    deps.eval_status(editor, f"Updated field to {saved_name}")
+    deps.eval_status(editor, t("editor.status.updated_field", {"filename": saved_name}))
     deps.eval_playback_state(editor, field_index, "stopped", 0)
     if should_redraw_graph:
         deps.request_graph_redraw(editor)
@@ -178,7 +179,7 @@ def denoise_standard_async(editor: Any, deps: Any) -> None:
     """Start standard DeepFilter denoise for the current media."""
     deps.run_special_audio_transform_async(
         editor,
-        label="Denoising with Standard",
+        label=t("editor.status.denoising_standard"),
         failure_log_label="standard denoise failed",
         renderer=deps.render_noise_reduced_audio,
     )
@@ -188,7 +189,7 @@ def rnnoise_async(editor: Any, deps: Any) -> None:
     """Start RNNoise denoise for the current media."""
     deps.run_special_audio_transform_async(
         editor,
-        label="Denoising with RNNoise",
+        label=t("editor.status.denoising_rnnoise"),
         failure_log_label="rnnoise denoise failed",
         renderer=deps.render_rnnoise_audio,
         support_hint=deps.support_report_hint,
@@ -308,7 +309,7 @@ def replace_current_field_after_noise_removal(editor: Any, saved_name: str, deps
             session.visualized_filenames_by_field.pop(field_index, None)
             session.visualized_durations_by_field.pop(field_index, None)
     editor.loadNote(focusTo=field_index)
-    deps.eval_status(editor, f"Updated field to {saved_name}")
+    deps.eval_status(editor, t("editor.status.updated_field", {"filename": saved_name}))
     deps.eval_playback_state(editor, field_index, "stopped", 0)
     if should_redraw_graph:
         deps.request_graph_redraw(editor)

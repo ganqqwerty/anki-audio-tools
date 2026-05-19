@@ -53,12 +53,27 @@
     "InitialState": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["config", "version", "addon_dir", "log_file_path", "diagnostics"],
+      "required": [
+        "config",
+        "version",
+        "addon_dir",
+        "log_file_path",
+        "locale",
+        "direction",
+        "messages",
+        "diagnostics"
+      ],
       "properties": {
         "config": { "$ref": "#/definitions/Config" },
         "version": { "type": "string" },
         "addon_dir": { "type": "string" },
         "log_file_path": { "type": "string" },
+        "locale": { "type": "string" },
+        "direction": { "enum": ["ltr", "rtl"] },
+        "messages": {
+          "type": "object",
+          "additionalProperties": { "type": "string" }
+        },
         "diagnostics": { "$ref": "#/definitions/DiagnosticsState" }
       }
     },

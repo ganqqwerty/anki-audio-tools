@@ -43,6 +43,12 @@ def test_initial_state_has_required_keys() -> None:
         "version",
         "addon_dir",
         "log_file_path",
+        "locale",
+        "direction",
+        "messages",
         "diagnostics",
     }
     assert state["diagnostics"]["addon_id"] == "anki_audio_quick_editor"
+    assert state["locale"] == "en"
+    assert state["direction"] == "ltr"
+    assert "settings.title" in state["messages"]

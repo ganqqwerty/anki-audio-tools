@@ -9,6 +9,7 @@ import subprocess  # nosec B404
 from pathlib import Path
 
 from .errors import AudioProcessingError, MissingMediaError
+from .i18n import t
 
 logger = logging.getLogger(__name__)
 
@@ -16,11 +17,11 @@ logger = logging.getLogger(__name__)
 def reveal_file(
     path: Path,
     *,
-    missing_message: str = "The referenced audio file was not found in Anki's media folder.",
+    missing_message: str = "",
 ) -> None:
     """Reveal ``path`` in the platform file manager."""
     if not path.is_file():
-        raise MissingMediaError(missing_message)
+        raise MissingMediaError(missing_message or t("editor.status.referenced_audio_missing"))
     resolved = path.resolve()
     system = platform.system()
     if system == "Darwin":
@@ -48,11 +49,11 @@ def _open_parent_folder(folder: Path) -> None:
             return
     except Exception as exc:
         logger.info("Qt folder open failed: %s", exc)
-    raise AudioProcessingError("Could not open the containing folder.")
+    raise AudioProcessingError(t("file_reveal.open_failed"))
 
 
 def _run_detached(command: str | tuple[str, ...]) -> None:
     try:
         subprocess.Popen(command)  # nosec B603
     except OSError as exc:
-        raise AudioProcessingError("Could not open the containing folder.") from exc
+        raise AudioProcessingError(t("file_reveal.open_failed")) from exc

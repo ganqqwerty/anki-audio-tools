@@ -50,11 +50,11 @@ class _DiagnosticsState:
         self.crash_log_path: Path | None = None
         self.session_marker_path: Path | None = None
         self.previous_dirty_session: dict[str, Any] | None = None
-        self._crash_file: Any = None
-        self._hooks_installed = False
-        self._atexit_registered = False
-        self._previous_sys_hook: Callable[..., Any] | None = None
-        self._previous_thread_hook: Callable[..., Any] | None = None
+        self.crash_file: Any = None
+        self.hooks_installed = False
+        self.atexit_registered = False
+        self.previous_sys_hook: Callable[..., Any] | None = None
+        self.previous_thread_hook: Callable[..., Any] | None = None
 
 
 _STATE = _DiagnosticsState()
@@ -74,9 +74,9 @@ def configure_runtime(addon_dir: str | Path, *, debug_enabled: bool) -> None:
         _write_session_marker(clean_exit=False)
         _enable_faulthandler()
         _install_process_hooks()
-        if not _STATE._atexit_registered:
+        if not _STATE.atexit_registered:
             atexit.register(mark_session_clean)
-            _STATE._atexit_registered = True
+            _STATE.atexit_registered = True
     if _STATE.previous_dirty_session is not None:
         logger.warning("previous diagnostics session did not exit cleanly: %s", _STATE.previous_dirty_session)
     record_breadcrumb(
@@ -136,13 +136,14 @@ def record_breadcrumb(
         if should_flush:
             _write_session_marker(clean_exit=False)
             flush_logging()
-        return copy.deepcopy(entry)
+    return copy.deepcopy(entry)
 
 
 def recent_breadcrumbs(limit: int = 40) -> list[dict[str, Any]]:
     """Return the newest breadcrumbs in chronological order."""
     with _STATE.lock:
-        return copy.deepcopy(list(_STATE.breadcrumbs)[-limit:])
+        breadcrumbs = list(_STATE.breadcrumbs)[-limit:]
+    return copy.deepcopy(breadcrumbs)
 
 
 def capture_exception(
@@ -243,34 +244,38 @@ def record_frontend_error(
 def latest_incident() -> dict[str, Any] | None:
     """Return the latest captured incident, if any."""
     with _STATE.lock:
-        return copy.deepcopy(_STATE.latest_incident)
+        incident = _STATE.latest_incident
+    return copy.deepcopy(incident)
 
 
 def support_report_context() -> dict[str, Any]:
     """Return diagnostics data ready for support report rendering."""
     with _STATE.lock:
-        return {
-            "latest_error": copy.deepcopy(_STATE.latest_incident),
-            "recent_events": copy.deepcopy(list(_STATE.breadcrumbs)),
-            "crash_forensics": {
-                "session_id": _STATE.session_id,
-                "started_at": _STATE.started_at,
-                "debug_enabled": _STATE.debug_enabled,
-                "event_log_path": str(_STATE.event_log_path or ""),
-                "crash_log_path": str(_STATE.crash_log_path or ""),
-                "session_marker_path": str(_STATE.session_marker_path or ""),
-                "previous_dirty_session": copy.deepcopy(_STATE.previous_dirty_session),
-            },
+        latest_error = copy.deepcopy(_STATE.latest_incident)
+        recent_events = copy.deepcopy(list(_STATE.breadcrumbs))
+        crash_forensics = {
+            "session_id": _STATE.session_id,
+            "started_at": _STATE.started_at,
+            "debug_enabled": _STATE.debug_enabled,
+            "event_log_path": str(_STATE.event_log_path or ""),
+            "crash_log_path": str(_STATE.crash_log_path or ""),
+            "session_marker_path": str(_STATE.session_marker_path or ""),
+            "previous_dirty_session": copy.deepcopy(_STATE.previous_dirty_session),
         }
+    return {
+        "latest_error": latest_error,
+        "recent_events": recent_events,
+        "crash_forensics": crash_forensics,
+    }
 
 
 def mark_session_clean() -> None:
     """Mark the diagnostics session as cleanly closed when possible."""
     with _STATE.lock:
         _write_session_marker(clean_exit=True)
-        if _STATE._crash_file is not None:
+        if _STATE.crash_file is not None:
             try:
-                _STATE._crash_file.flush()
+                _STATE.crash_file.flush()
             except OSError:
                 pass
 
@@ -289,8 +294,8 @@ def flush_logging() -> None:
                 seen.add(marker)
                 try:
                     handler.flush()
-                except Exception:  # pragma: no cover - logging handler defensive path
-                    pass
+                except Exception as exc:  # pragma: no cover - logging handler defensive path
+                    logger.debug("logging handler flush failed: %s", exc)
             if not current.propagate or current.parent is current:
                 break
             current = current.parent
@@ -301,24 +306,24 @@ def reset_for_tests() -> None:
     global _STATE
     old_state = _STATE
     with old_state.lock:
-        if old_state._previous_sys_hook is not None:
-            sys.excepthook = old_state._previous_sys_hook
-        if old_state._previous_thread_hook is not None:
-            threading.excepthook = old_state._previous_thread_hook
-        if old_state._crash_file is not None:
+        if old_state.previous_sys_hook is not None:
+            sys.excepthook = old_state.previous_sys_hook
+        if old_state.previous_thread_hook is not None:
+            threading.excepthook = old_state.previous_thread_hook
+        if old_state.crash_file is not None:
             try:
                 faulthandler.disable()
-                old_state._crash_file.close()
+                old_state.crash_file.close()
             except OSError:
                 pass
         _STATE = _DiagnosticsState()
 
 
 def _install_process_hooks() -> None:
-    if _STATE._hooks_installed:
+    if _STATE.hooks_installed:
         return
-    _STATE._previous_sys_hook = sys.excepthook
-    _STATE._previous_thread_hook = threading.excepthook
+    _STATE.previous_sys_hook = sys.excepthook
+    _STATE.previous_thread_hook = threading.excepthook
 
     def _sys_hook(
         exc_type: type[BaseException],
@@ -328,7 +333,7 @@ def _install_process_hooks() -> None:
         if exc.__traceback__ is None and tb is not None:
             exc = exc.with_traceback(tb)
         capture_exception("process.sys_excepthook", exc, operation="process", log=logger)
-        previous = _STATE._previous_sys_hook
+        previous = _STATE.previous_sys_hook
         if previous is not None and previous is not sys.__excepthook__ and previous is not _sys_hook:
             previous(exc_type, exc, tb)
 
@@ -342,23 +347,23 @@ def _install_process_hooks() -> None:
                 context={"thread_name": getattr(args.thread, "name", "")},
                 log=logger,
             )
-        previous = _STATE._previous_thread_hook
+        previous = _STATE.previous_thread_hook
         if previous is not None and previous is not threading.__excepthook__ and previous is not _thread_hook:
             previous(args)
 
     sys.excepthook = _sys_hook
     threading.excepthook = _thread_hook
-    _STATE._hooks_installed = True
+    _STATE.hooks_installed = True
 
 
 def _enable_faulthandler() -> None:
     if _STATE.crash_log_path is None:
         return
     try:
-        if _STATE._crash_file is not None:
-            _STATE._crash_file.close()
-        _STATE._crash_file = _STATE.crash_log_path.open("a", encoding="utf-8")
-        faulthandler.enable(file=_STATE._crash_file, all_threads=True)
+        if _STATE.crash_file is not None:
+            _STATE.crash_file.close()
+        _STATE.crash_file = _STATE.crash_log_path.open("a", encoding="utf-8")
+        faulthandler.enable(file=_STATE.crash_file, all_threads=True)
     except (OSError, RuntimeError) as exc:
         logger.warning("could not enable faulthandler diagnostics: %s", exc)
 
@@ -427,20 +432,28 @@ def _safe_json(value: Any, *, depth: int = 0) -> Any:
     if depth >= 4:
         return _fallback_label(value)
     if isinstance(value, dict):
-        result: dict[str, Any] = {}
-        for index, (key, item) in enumerate(value.items()):
-            if index >= 50:
-                result["..."] = "truncated"
-                break
-            result[str(key)] = _safe_json(item, depth=depth + 1)
-        return result
+        return _safe_json_mapping(value, depth=depth)
     if isinstance(value, (list, tuple, set)):
-        items = list(value)
-        rendered = [_safe_json(item, depth=depth + 1) for item in items[:50]]
-        if len(items) > 50:
-            rendered.append("truncated")
-        return rendered
+        return _safe_json_sequence(value, depth=depth)
     return _fallback_label(value)
+
+
+def _safe_json_mapping(value: dict[Any, Any], *, depth: int) -> dict[str, Any]:
+    result: dict[str, Any] = {}
+    for index, (key, item) in enumerate(value.items()):
+        if index >= 50:
+            result["..."] = "truncated"
+            break
+        result[str(key)] = _safe_json(item, depth=depth + 1)
+    return result
+
+
+def _safe_json_sequence(value: list[Any] | tuple[Any, ...] | set[Any], *, depth: int) -> list[Any]:
+    items = list(value)
+    rendered = [_safe_json(item, depth=depth + 1) for item in items[:50]]
+    if len(items) > 50:
+        rendered.append("truncated")
+    return rendered
 
 
 def _truncate_string(value: str, limit: int = 4000) -> str:

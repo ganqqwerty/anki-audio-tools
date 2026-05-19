@@ -38,14 +38,23 @@ def _full_config() -> dict[str, object]:
     }
 
 
+def _payload_args() -> dict[str, object]:
+    return {
+        "version": "0.1.0",
+        "addon_id": "anki_audio_quick_editor",
+        "addon_dir": "/tmp/addon",
+        "collection_available": True,
+        "locale": "de",
+        "direction": "ltr",
+        "messages": {"settings.title": "Einstellungen"},
+    }
+
+
 def test_build_initial_state_payload_has_settings_webview_shape() -> None:
     config = _full_config()
     payload = build_initial_state_payload(
         config,
-        version="0.1.0",
-        addon_id="anki_audio_quick_editor",
-        addon_dir="/tmp/addon",
-        collection_available=True,
+        **_payload_args(),
     )
 
     assert payload == {
@@ -53,6 +62,9 @@ def test_build_initial_state_payload_has_settings_webview_shape() -> None:
         "version": "0.1.0",
         "addon_dir": "/tmp/addon",
         "log_file_path": "/tmp/addon/anki_audio_quick_editor.log",
+        "locale": "de",
+        "direction": "ltr",
+        "messages": {"settings.title": "Einstellungen"},
         "diagnostics": {
             "addon_id": "anki_audio_quick_editor",
             "collection_available": True,
@@ -63,10 +75,7 @@ def test_build_initial_state_payload_has_settings_webview_shape() -> None:
 def test_encode_initial_state_returns_json() -> None:
     payload = build_initial_state_payload(
         _full_config(),
-        version="0.1.0",
-        addon_id="addon",
-        addon_dir="/tmp/addon",
-        collection_available=False,
+        **{**_payload_args(), "addon_id": "addon", "collection_available": False},
     )
 
     assert json.loads(encode_initial_state(payload)) == payload
@@ -75,10 +84,12 @@ def test_encode_initial_state_returns_json() -> None:
 def test_build_initial_state_payload_preserves_false_diagnostics_and_log_path() -> None:
     payload = build_initial_state_payload(
         {**_full_config(), "enabled": False},
-        version="0.1.0",
-        addon_id="addon",
-        addon_dir="/tmp/custom-addon",
-        collection_available=False,
+        **{
+            **_payload_args(),
+            "addon_id": "addon",
+            "addon_dir": "/tmp/custom-addon",
+            "collection_available": False,
+        },
     )
 
     assert payload["diagnostics"]["collection_available"] is False

@@ -104,7 +104,19 @@ def test_initial_state_shape(anki_mw) -> None:
 
     config = anki_mw.addonManager.getConfig("1000000002") or {}
     state = json.loads(build_initial_state(config))
-    assert set(state) == {"config", "version", "addon_dir", "log_file_path", "diagnostics"}
+    assert set(state) == {
+        "addon_dir",
+        "config",
+        "diagnostics",
+        "direction",
+        "locale",
+        "log_file_path",
+        "messages",
+        "version",
+    }
+    assert state["direction"] in {"ltr", "rtl"}
+    assert isinstance(state["locale"], str)
+    assert isinstance(state["messages"], dict)
 
 
 def test_save_command_writes_config(anki_mw) -> None:

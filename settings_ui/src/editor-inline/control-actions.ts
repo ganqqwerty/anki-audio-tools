@@ -1,4 +1,5 @@
 import { PROCESSING_COMMANDS, processingMessage } from "./commands.js";
+import { t } from "../lib/i18n.js";
 import {
   allButtons,
   controlsForOrd,
@@ -63,21 +64,30 @@ export function setCommandButtonLabel(ord: number, command: EditorCommand, label
       ? graphButton(ord)
       : controlsForOrd(ord)?.querySelector<HTMLButtonElement>(`[data-aqe-command="${command}"]`) ?? null;
   if (!button) return;
+  const displayLabel = localizedButtonLabel(command, label);
   const labelNode = button.querySelector<HTMLElement>(".aqe-button-label");
   if (labelNode) {
-    labelNode.textContent = label;
+    labelNode.textContent = displayLabel;
   } else {
-    button.textContent = label;
+    button.textContent = displayLabel;
   }
   if (command === "aqe:play") {
     button.dataset.aqeButtonState = label === "Pause" ? "pause" : "play";
   }
   if (command === "aqe:analyze") {
     button.dataset.aqeButtonState = label === "Redraw" ? "redraw" : "graph";
-    const title = label === "Redraw" ? "Redraw the pitch graph" : "Analyze and show pitch/intensity graph";
+    const title = label === "Redraw" ? t("editor.command.redraw.title") : t("editor.command.graph.title");
     button.title = title;
     button.setAttribute("aria-label", title);
   }
+}
+
+function localizedButtonLabel(command: EditorCommand, label: string): string {
+  if (command === "aqe:play" && label === "Pause") return t("editor.command.pause.label");
+  if (command === "aqe:play" && label === "Play") return t("editor.command.play.label");
+  if (command === "aqe:analyze" && label === "Redraw") return t("editor.command.redraw.label");
+  if (command === "aqe:analyze" && label === "Graph") return t("editor.command.graph.label");
+  return label;
 }
 
 export function processingBusyMessage(command: EditorCommand): string {

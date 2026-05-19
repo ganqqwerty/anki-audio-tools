@@ -103,7 +103,7 @@ describe("frontend architecture guardrails", () => {
       if (/requestAnimationFrame|cancelAnimationFrame/.test(source) && !requestAnimationFrameAllowlist.has(relPath)) {
         offenders.push(`${relPath}: animation frame`);
       }
-      if (/\.(play|pause|load|currentTime)\b/.test(source) && !audioElementAllowlist.has(relPath)) {
+      if (/\.(play|pause|load|currentTime)\b/.test(withoutStringLiterals(source)) && !audioElementAllowlist.has(relPath)) {
         offenders.push(`${relPath}: audio element operation`);
       }
     }
@@ -184,4 +184,8 @@ function withoutComments(source: string): string {
   return source
     .replaceAll(/\/\*[\s\S]*?\*\//g, "")
     .replaceAll(/^\s*\/\/.*$/gm, "");
+}
+
+function withoutStringLiterals(source: string): string {
+  return source.replaceAll(/(["'`])(?:\\[\s\S]|(?!\1)[^\\])*\1/g, "\"\"");
 }

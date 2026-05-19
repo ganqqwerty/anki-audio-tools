@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { t } from "$lib/i18n.js";
   import type { Config } from "$lib/types.js";
 
   let {
@@ -11,14 +12,14 @@
 </script>
 
 <div class="card">
-  <h2>General</h2>
+  <h2>{t("settings.tab.general")}</h2>
   <label class="toggle">
     <input type="checkbox" bind:checked={config.debug_logging} />
-    <span>Enable debug logging</span>
+    <span>{t("settings.debug_logging")}</span>
   </label>
   <label class="toggle">
     <input type="checkbox" bind:checked={config.show_ffmpeg_commands} />
-    <span>Show ffmpeg commands while processing</span>
+    <span>{t("settings.show_ffmpeg_commands")}</span>
   </label>
   <label class="toggle">
     <input
@@ -26,7 +27,7 @@
       type="checkbox"
       bind:checked={config.repeat_playback_by_default}
     />
-    <span>Repeat playback by default</span>
+    <span>{t("settings.repeat_playback_by_default")}</span>
   </label>
   <label class="toggle">
     <input
@@ -34,85 +35,85 @@
       type="checkbox"
       bind:checked={config.show_graph_by_default}
     />
-    <span>Show graph by default</span>
+    <span>{t("settings.show_graph_by_default")}</span>
   </label>
   <label class="field-row">
-    <span>ffmpeg path</span>
+    <span>{t("settings.ffmpeg_path")}</span>
     <input
       type="text"
       bind:value={config.ffmpeg_path}
-      placeholder="Leave blank to use PATH"
+      placeholder={t("settings.ffmpeg_path.placeholder")}
     />
   </label>
   <label class="field-row">
-    <span>DeepFilterNet path</span>
+    <span>{t("settings.deep_filter_path")}</span>
     <input
       type="text"
       bind:value={config.deep_filter_path}
-      placeholder="Leave blank to use bundled binary, then PATH"
+      placeholder={t("settings.deep_filter_path.placeholder")}
     />
   </label>
   <label class="toggle">
     <input type="checkbox" bind:checked={config.deep_filter_post_filter} />
-    <span>Use DeepFilterNet post-filter</span>
+    <span>{t("settings.deep_filter_post_filter")}</span>
   </label>
   <div class="settings-grid">
     <label>
-      <span>Small trim step (ms)</span>
+      <span>{t("settings.manual_trim_small_ms")}</span>
       <input type="number" min="1" bind:value={config.manual_trim_small_ms} />
     </label>
     <label>
-      <span>Large trim step (ms)</span>
+      <span>{t("settings.manual_trim_large_ms")}</span>
       <input type="number" min="1" bind:value={config.manual_trim_large_ms} />
     </label>
     <label>
-      <span>Speed step</span>
+      <span>{t("settings.speed_step")}</span>
       <input type="number" min="0.01" step="0.01" bind:value={config.speed_step} />
     </label>
     <label>
-      <span>Min speed</span>
+      <span>{t("settings.min_speed")}</span>
       <input type="number" min="0.1" step="0.05" bind:value={config.min_speed} />
     </label>
     <label>
-      <span>Max speed</span>
+      <span>{t("settings.max_speed")}</span>
       <input type="number" min="0.1" step="0.05" bind:value={config.max_speed} />
     </label>
     <label>
-      <span>Volume step (dB)</span>
+      <span>{t("settings.volume_step_db")}</span>
       <input type="number" min="0.1" step="0.1" bind:value={config.volume_step_db} />
     </label>
     <label>
-      <span>Min volume (dB)</span>
+      <span>{t("settings.min_volume_db")}</span>
       <input type="number" step="0.1" bind:value={config.min_volume_db} />
     </label>
     <label>
-      <span>Max volume (dB)</span>
+      <span>{t("settings.max_volume_db")}</span>
       <input type="number" step="0.1" bind:value={config.max_volume_db} />
     </label>
     <label>
-      <span>Internal pause silence threshold (dB)</span>
+      <span>{t("settings.internal_pause_silence_threshold_db")}</span>
       <input type="number" bind:value={config.internal_pause_silence_threshold_db} />
     </label>
     <label>
-      <span>Pause threshold (ms)</span>
+      <span>{t("settings.internal_pause_threshold_ms")}</span>
       <input type="number" min="1" bind:value={config.internal_pause_threshold_ms} />
     </label>
     <label>
-      <span>Pause target gap (ms)</span>
+      <span>{t("settings.internal_pause_target_gap_ms")}</span>
       <input type="number" min="1" bind:value={config.internal_pause_target_gap_ms} />
     </label>
     <label>
-      <span>Shorten pauses level</span>
+      <span>{t("settings.pause_aggressiveness")}</span>
       <select bind:value={config.pause_aggressiveness}>
-        <option value="gentle">Gentle</option>
-        <option value="normal">Normal</option>
-        <option value="aggressive">Aggressive</option>
+        <option value="gentle">{t("settings.pause_aggressiveness.gentle")}</option>
+        <option value="normal">{t("settings.pause_aggressiveness.normal")}</option>
+        <option value="aggressive">{t("settings.pause_aggressiveness.aggressive")}</option>
       </select>
     </label>
     <label>
-      <span>Default denoise algorithm</span>
+      <span>{t("settings.denoise_algorithm")}</span>
       <select bind:value={config.denoise_algorithm}>
-        <option value="standard">Standard</option>
+        <option value="standard">{t("settings.denoise_algorithm.standard")}</option>
         <option value="rnnoise">RNNoise</option>
       </select>
     </label>

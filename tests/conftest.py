@@ -285,11 +285,15 @@ _anki_models = types.ModuleType("anki.models")
 _anki_models.ModelManager = _ModelManager
 _anki_notes = types.ModuleType("anki.notes")
 _anki_notes.Note = _Note
+_anki_lang = types.ModuleType("anki.lang")
+_anki_lang.current_lang = "en"
+_anki_lang.is_rtl = lambda _lang: False
 _anki_sound = types.ModuleType("anki.sound")
 _anki_sound.SoundOrVideoTag = _SoundOrVideoTag
 _anki.collection = _anki_collection
 _anki.db = _anki_db
 _anki.decks = _anki_decks
+_anki.lang = _anki_lang
 _anki.media = _anki_media
 _anki.models = _anki_models
 _anki.notes = _anki_notes
@@ -326,6 +330,7 @@ sys.modules["anki.decks"] = _anki_decks
 sys.modules["anki.media"] = _anki_media
 sys.modules["anki.models"] = _anki_models
 sys.modules["anki.notes"] = _anki_notes
+sys.modules["anki.lang"] = _anki_lang
 sys.modules["anki.sound"] = _anki_sound
 
 

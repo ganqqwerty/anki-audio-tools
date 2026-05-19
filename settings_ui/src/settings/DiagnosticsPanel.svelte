@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { t } from "$lib/i18n.js";
   import type { AsyncProgressPayload, HealthReport, InitialState } from "$lib/types.js";
 
   type DiagnosticsAction = () => void | Promise<void>;
@@ -25,22 +26,22 @@
 </script>
 
 <div class="card">
-  <h2>Diagnostics</h2>
+  <h2>{t("diagnostics.title")}</h2>
   <dl class="meta-grid">
     <div>
-      <dt>Add-on ID</dt>
+      <dt>{t("diagnostics.addon_id")}</dt>
       <dd>{initialState.diagnostics.addon_id}</dd>
     </div>
     <div>
-      <dt>Collection available</dt>
-      <dd>{initialState.diagnostics.collection_available ? "Yes" : "No"}</dd>
+      <dt>{t("diagnostics.collection_available")}</dt>
+      <dd>{initialState.diagnostics.collection_available ? t("diagnostics.yes") : t("diagnostics.no")}</dd>
     </div>
     <div>
-      <dt>Add-on folder</dt>
+      <dt>{t("diagnostics.addon_folder")}</dt>
       <dd>{initialState.addon_dir}</dd>
     </div>
     <div>
-      <dt>Log file</dt>
+      <dt>{t("diagnostics.log_file")}</dt>
       <dd>{initialState.log_file_path}</dd>
     </div>
   </dl>
@@ -52,7 +53,7 @@
       data-testid="run-health-check"
       onclick={onRunHealthCheck}
     >
-      Run Health Check
+      {t("diagnostics.run_health_check")}
     </button>
     <button
       type="button"
@@ -60,7 +61,7 @@
       data-testid="copy-support-report"
       onclick={onCopySupportReport}
     >
-      Copy Support Report
+      {t("diagnostics.copy_support_report")}
     </button>
     <button
       type="button"
@@ -68,7 +69,7 @@
       data-testid="show-log-file"
       onclick={onShowLogFile}
     >
-      Show Log File
+      {t("diagnostics.show_log_file")}
     </button>
     {#if healthProgress}
       <p class="muted" data-testid="health-progress">

@@ -1,37 +1,115 @@
 import type { ButtonSpec, EditorCommand } from "./types.js";
+import { t } from "../lib/i18n.js";
 
-export const COMMAND_BUTTONS: readonly ButtonSpec[] = [
-  { activeIcon: "pause", command: "aqe:play", icon: "play", iconOnly: true, label: "Play", title: "Play or pause current audio" },
-  {
-    activeIcon: "audio-lines",
-    command: "aqe:analyze",
-    icon: "audio-lines",
-    iconOnly: true,
-    label: "Graph",
-    title: "Analyze and show pitch/intensity graph",
-  },
-  { command: "aqe:show-file", icon: "folder-open", label: "Folder", title: "Show current audio file in folder" },
-  { command: "aqe:trim-left", icon: "scissors", label: "-L", title: "Trim 100 ms from left" },
-  { command: "aqe:trim-right", icon: "scissors", label: "-R", title: "Trim 100 ms from right" },
-  { command: "aqe:remove-pauses", icon: "timer-reset", label: "Shorten Pauses", title: "Speed up long internal pauses" },
-  { command: "aqe:slower", icon: "rewind", label: "Slower", title: "Decrease speed" },
-  { command: "aqe:faster", icon: "fast-forward", label: "Faster", title: "Increase speed" },
-  { command: "aqe:volume-down", icon: "volume-1", iconOnly: true, label: "Volume -", title: "Decrease volume" },
-  { command: "aqe:volume-up", icon: "volume-2", iconOnly: true, label: "Volume +", title: "Increase volume" },
-  { command: "aqe:undo", icon: "undo-2", iconOnly: true, label: "Undo", title: "Restore the previous generated audio reference" },
-  { command: "aqe:redo", icon: "redo-2", iconOnly: true, label: "Redo", title: "Restore the most recently undone audio reference" },
-  { command: "aqe:settings", icon: "settings", iconOnly: true, label: "Settings", title: "Open Audio Quick Editor settings" },
-] as const;
+export function commandButtons(): readonly ButtonSpec[] {
+  const trimMs = window.__AQE_EDITOR_CONFIG__?.splitButtonDefaults?.trimStepMs ?? 100;
+  return [
+    {
+      activeIcon: "pause",
+      command: "aqe:play",
+      icon: "play",
+      iconOnly: true,
+      label: t("editor.command.play.label"),
+      title: t("editor.command.play.title"),
+    },
+    {
+      activeIcon: "audio-lines",
+      command: "aqe:analyze",
+      icon: "audio-lines",
+      iconOnly: true,
+      label: t("editor.command.graph.label"),
+      title: t("editor.command.graph.title"),
+    },
+    {
+      command: "aqe:show-file",
+      icon: "folder-open",
+      label: t("editor.command.folder.label"),
+      title: t("editor.command.folder.title"),
+    },
+    {
+      command: "aqe:trim-left",
+      icon: "scissors",
+      label: t("editor.command.trim_left.label"),
+      title: t("editor.command.trim_left.title", { ms: trimMs }),
+    },
+    {
+      command: "aqe:trim-right",
+      icon: "scissors",
+      label: t("editor.command.trim_right.label"),
+      title: t("editor.command.trim_right.title", { ms: trimMs }),
+    },
+    {
+      command: "aqe:remove-pauses",
+      icon: "timer-reset",
+      label: t("editor.command.shorten_pauses.label"),
+      title: t("editor.command.shorten_pauses.title"),
+    },
+    {
+      command: "aqe:slower",
+      icon: "rewind",
+      label: t("editor.command.slower.label"),
+      title: t("editor.command.slower.title"),
+    },
+    {
+      command: "aqe:faster",
+      icon: "fast-forward",
+      label: t("editor.command.faster.label"),
+      title: t("editor.command.faster.title"),
+    },
+    {
+      command: "aqe:volume-down",
+      icon: "volume-1",
+      iconOnly: true,
+      label: t("editor.command.volume_down.label"),
+      title: t("editor.command.volume_down.title"),
+    },
+    {
+      command: "aqe:volume-up",
+      icon: "volume-2",
+      iconOnly: true,
+      label: t("editor.command.volume_up.label"),
+      title: t("editor.command.volume_up.title"),
+    },
+    {
+      command: "aqe:undo",
+      icon: "undo-2",
+      iconOnly: true,
+      label: t("editor.command.undo.label"),
+      title: t("editor.command.undo.title"),
+    },
+    {
+      command: "aqe:redo",
+      icon: "redo-2",
+      iconOnly: true,
+      label: t("editor.command.redo.label"),
+      title: t("editor.command.redo.title"),
+    },
+    {
+      command: "aqe:settings",
+      icon: "settings",
+      iconOnly: true,
+      label: t("editor.command.settings.label"),
+      title: t("editor.command.settings.title"),
+    },
+  ] as const;
+}
 
-export const DENOISE_BUTTONS: readonly ButtonSpec[] = [
-  {
-    command: "aqe:denoise-standard",
-    icon: "volume-x",
-    label: "Standard",
-    title: "Denoise speech with DeepFilterNet",
-  },
-  { command: "aqe:rnnoise", icon: "waves", label: "RNNoise", title: "Denoise speech with RNNoise" },
-] as const;
+export function denoiseButtons(): readonly ButtonSpec[] {
+  return [
+    {
+      command: "aqe:denoise-standard",
+      icon: "volume-x",
+      label: t("editor.command.standard.label"),
+      title: t("editor.command.standard.title"),
+    },
+    {
+      command: "aqe:rnnoise",
+      icon: "waves",
+      label: t("editor.command.rnnoise.label"),
+      title: t("editor.command.rnnoise.title"),
+    },
+  ] as const;
+}
 
 export const PROCESSING_COMMANDS = new Set<EditorCommand>([
   "aqe:trim-left",
@@ -69,8 +147,8 @@ export function testId(ord: number, command: EditorCommand): string {
 }
 
 export function processingMessage(command: EditorCommand): string {
-  if (command === "aqe:denoise-standard") return "Denoising with Standard...";
-  if (command === "aqe:rnnoise") return "Denoising with RNNoise...";
-  if (command === "aqe:delete-selection") return "Deleting region...";
-  return "Processing...";
+  if (command === "aqe:denoise-standard") return `${t("editor.status.denoising_standard")}...`;
+  if (command === "aqe:rnnoise") return `${t("editor.status.denoising_rnnoise")}...`;
+  if (command === "aqe:delete-selection") return t("editor.status.deleting_region");
+  return t("editor.status.processing");
 }

@@ -24,6 +24,7 @@ from .editor_actions import (
     decode_editor_command_payload,
 )
 from .errors import AudioQuickEditorError
+from .i18n import t
 
 logger = logging.getLogger(__name__)
 CONTRACT_DECODE_ERRORS = (AssertionError, TypeError, ValueError)
@@ -68,12 +69,12 @@ def handle_bridge_command(editor: Any, command: str, deps: Any) -> None:
             exc,
             operation="editor.command",
             operation_id=operation_id,
-            user_message=f"Audio processing failed. The note was not changed. ({exc})",
+            user_message=t("editor.processing_failed_note_unchanged", {"error": exc}),
             context={"command": command, "field_index": getattr(editor, "currentField", None)},
             log=logger,
         )
         deps.set_busy(editor, False)
-        deps.eval_status(editor, f"Audio processing failed. The note was not changed. ({exc})", kind="error")
+        deps.eval_status(editor, t("editor.processing_failed_note_unchanged", {"error": exc}), kind="error")
 
 
 def handle_pending_command_payload(editor: Any, deps: Any) -> None:
@@ -142,27 +143,15 @@ def log_editor_frontend_payload(raw_payload: Any) -> None:
         logger.warning("editor frontend_log: invalid payload")
         return
 
-    rendered = f"editor frontend: {payload.message}"
-    if payload.context is not None:
-        rendered = f"{rendered} | {payload.context!r}"
     stack = str(getattr(payload, "stack", "") or "")
-    if stack:
-        rendered = f"{rendered}\n{stack}"
     level = payload.level.value
-    if level == "debug":
-        logger.debug(rendered)
-    elif level == "warn":
-        logger.warning(rendered)
-    elif level == "error":
-        logger.error(rendered)
-    else:
-        logger.info(rendered)
+    _log_frontend(level, _render_frontend_log("editor frontend", payload.message, payload.context, stack))
     scope = str(getattr(payload, "scope", "") or "editor")
     operation_id = str(getattr(payload, "operation_id", "") or "")
     record_breadcrumb(
         "frontend.log",
         source=scope,
-        level="error" if level == "error" else "debug",
+        level=_breadcrumb_level(level),
         operation="frontend.log",
         operation_id=operation_id,
         boundary="editor.frontend",
@@ -185,3 +174,23 @@ def log_editor_frontend_payload(raw_payload: Any) -> None:
             operation_id=operation_id,
             context=payload.context,
         )
+
+
+def _render_frontend_log(prefix: str, message: str, context: Any, stack: str) -> str:
+    rendered = f"{prefix}: {message}"
+    if context is not None:
+        rendered = f"{rendered} | {context!r}"
+    return f"{rendered}\n{stack}" if stack else rendered
+
+
+def _log_frontend(level: str, rendered: str) -> None:
+    log_fn = {
+        "debug": logger.debug,
+        "warn": logger.warning,
+        "error": logger.error,
+    }.get(level, logger.info)
+    log_fn(rendered)
+
+
+def _breadcrumb_level(level: str) -> str:
+    return "error" if level == "error" else "debug"

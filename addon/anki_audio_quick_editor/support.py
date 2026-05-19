@@ -10,8 +10,11 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
+from .i18n import t
+
 LOG_TAIL_LINE_COUNT = 200
-SUPPORT_REPORT_HINT = "Open Settings > Diagnostics to copy logs for the developer."
+
+SUPPORT_REPORT_HINT = t("support.report_hint")
 
 _SUPPORT_LOCK = threading.Lock()
 _LATEST_RNNOISE_INCIDENT: dict[str, Any] | None = None

@@ -2,7 +2,10 @@
 
 from __future__ import annotations
 
+from typing import Mapping
+
 from .audio_state import AudioEditState, AudioProcessingConfig
+from .i18n import format_message
 
 OP_GRAPH = "graph"
 OP_REMOVE_PAUSES = "remove_pauses"
@@ -29,6 +32,23 @@ OPERATION_LABELS: dict[str, str] = {
     OP_VOLUME_DOWN: "Volume -",
     OP_VOLUME_UP: "Volume +",
 }
+
+OPERATION_LABEL_KEYS: dict[str, str] = {
+    OP_GRAPH: "operation.graph",
+    OP_REMOVE_PAUSES: "operation.remove_pauses",
+    OP_SLOWER: "operation.slower",
+    OP_FASTER: "operation.faster",
+    OP_VOLUME_DOWN: "operation.volume_down",
+    OP_VOLUME_UP: "operation.volume_up",
+}
+
+
+def operation_label(operation: str, messages: Mapping[str, str] | None = None) -> str:
+    """Return a localized label for a supported batch/editor operation."""
+    key = OPERATION_LABEL_KEYS.get(operation)
+    if key is None:
+        return operation
+    return format_message(messages or {}, key)
 
 
 def is_transform_operation(operation: str) -> bool:

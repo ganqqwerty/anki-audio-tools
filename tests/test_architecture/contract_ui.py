@@ -14,6 +14,7 @@ UI_CONTRACTS: dict[str, ModuleContract] = {
             "config_migration",
             "diagnostics_runtime",
             "editor_integration",
+            "i18n",
             "settings",
         ),
         allowed_side_effects=(
@@ -34,6 +35,7 @@ UI_CONTRACTS: dict[str, ModuleContract] = {
             "browser_dialog",
             "browser_report",
             "diagnostics_runtime",
+            "i18n",
         ),
         allowed_side_effects=(
             SideEffect.ANKI_IMPORTS_ANYWHERE,
@@ -48,19 +50,19 @@ UI_CONTRACTS: dict[str, ModuleContract] = {
     "browser_dialog": contract(
         "browser_dialog",
         layer=Layer.UI_ADAPTER,
-        allowed_addon_deps=("audio_operations", "batch_operations", "browser_report"),
+        allowed_addon_deps=("audio_operations", "batch_operations", "browser_report", "i18n"),
         allowed_side_effects=(SideEffect.ANKI_IMPORTS_ANYWHERE,),
         allow_any_anki_imports=True,
     ),
     "browser_report": contract(
         "browser_report",
         layer=Layer.IMPORT_SAFE_CORE,
-        allowed_addon_deps=("batch_operations",),
+        allowed_addon_deps=("batch_operations", "i18n"),
     ),
     "settings": contract(
         "settings",
         layer=Layer.SETTINGS_SHELL,
-        allowed_addon_deps=("settings.commands", "settings.initial_state"),
+        allowed_addon_deps=("i18n", "settings.commands", "settings.initial_state"),
         allowed_side_effects=(
             SideEffect.ANKI_IMPORTS_ANYWHERE,
             SideEffect.ANKI_IMPORTS_MODULE_LEVEL,
@@ -80,6 +82,7 @@ UI_CONTRACTS: dict[str, ModuleContract] = {
             "diagnostics_runtime",
             "errors",
             "file_reveal",
+            "i18n",
             "support",
         ),
         allowed_side_effects=(
@@ -93,7 +96,7 @@ UI_CONTRACTS: dict[str, ModuleContract] = {
     "settings.initial_state": contract(
         "settings.initial_state",
         layer=Layer.SETTINGS_BACKEND,
-        allowed_addon_deps=("_version", "settings_state"),
+        allowed_addon_deps=("_version", "i18n", "settings_state"),
         allowed_side_effects=(SideEffect.ANKI_IMPORTS_ANYWHERE,),
         allow_any_anki_imports=True,
     ),

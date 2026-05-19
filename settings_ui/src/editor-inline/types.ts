@@ -54,6 +54,9 @@ export interface ButtonSpec {
 export interface EditorRuntimeConfig {
   audioFieldIndices: number[];
   audioFieldSources?: Record<number, string>;
+  direction?: "ltr" | "rtl";
+  locale?: string;
+  messages?: Record<string, string>;
   repeatPlaybackByDefault?: boolean;
   showGraphByDefault?: boolean;
   splitButtonDefaults?: SplitButtonDefaults;

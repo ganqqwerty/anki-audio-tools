@@ -156,6 +156,10 @@ class _AnkiApiVisitor(ast.NodeVisitor):
             parameters: tuple[str, ...] = ()
             if isinstance(callback, ast.Name):
                 parameters = self.function_parameters.get(callback.id, ())
+            elif isinstance(callback, ast.Call):
+                wrapped_callback = callback.args[1] if len(callback.args) > 1 else None
+                if isinstance(wrapped_callback, ast.Name):
+                    parameters = self.function_parameters.get(wrapped_callback.id, ())
             self.callable_uses.add(
                 CallableUse(
                     "aqt.gui_hooks",

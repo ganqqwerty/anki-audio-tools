@@ -1,4 +1,5 @@
 import type { ProsodyPayload } from "../lib/generated/contracts.js";
+import { t } from "../lib/i18n.js";
 import { focusAndSendCommand, sendGraphAnalysisRequest } from "./bridge.js";
 import { finishDefaultGraphRequest } from "./default-graph-queue.js";
 import { visualizerForOrd } from "./dom-selectors.js";
@@ -35,7 +36,7 @@ export function requestGraph(ord: number, notifyPython: boolean): void {
   window.__aqeActiveField = ord;
   logger.info("graph requested", { notifyPython, ord });
   if (notifyPython) {
-    setControlsBusy(ord, true, "Analyzing...", "");
+    setControlsBusy(ord, true, t("editor.status.analyzing"), "");
     focusAndSendCommand(ord, "aqe:analyze");
   }
 }
@@ -43,7 +44,7 @@ export function requestGraph(ord: number, notifyPython: boolean): void {
 export function requestDefaultGraph(target: DefaultGraphTarget): void {
   if (!prepareGraphRequest(target.ord)) return;
   logger.info("default graph requested", target);
-  setControlsBusy(target.ord, true, "Analyzing...", "");
+  setControlsBusy(target.ord, true, t("editor.status.analyzing"), "");
   sendGraphAnalysisRequest(target);
 }
 
@@ -55,7 +56,7 @@ function prepareGraphRequest(ord: number): boolean {
   clearSelection(visualizer);
   setCursor(visualizer, 0, false);
   setCommandButtonLabel(ord, "aqe:analyze", "Redraw");
-  setVisualizerStatus(ord, "Analyzing...", "processing");
+  setVisualizerStatus(ord, t("editor.status.analyzing"), "processing");
   return true;
 }
 

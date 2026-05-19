@@ -7,6 +7,7 @@ from typing import Any
 
 from .editor_session import EditorSession, UndoEntry
 from .errors import AudioProcessingError
+from .i18n import t
 from .media_paths import existing_media_file_path
 from .sound_refs import (
     replace_sound_reference,
@@ -22,7 +23,7 @@ def undo(editor: Any, deps: Any) -> None:
         return
     previous = session.undo_history.pop()
     if previous is None:
-        deps.eval_status(editor, "Nothing to undo.")
+        deps.eval_status(editor, t("editor.status.nothing_to_undo"))
         return
     deps.restore_history_entry(
         editor,
@@ -41,7 +42,7 @@ def redo(editor: Any, deps: Any) -> None:
         return
     next_entry = session.redo_history.pop()
     if next_entry is None:
-        deps.eval_status(editor, "Nothing to redo.")
+        deps.eval_status(editor, t("editor.status.nothing_to_redo"))
         return
     deps.restore_history_entry(
         editor,

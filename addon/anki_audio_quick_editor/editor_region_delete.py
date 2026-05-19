@@ -12,6 +12,7 @@ from .audio_state import AudioEditState, AudioProcessingConfig
 from .diagnostics_runtime import capture_exception, new_operation_id, record_breadcrumb
 from .editor_session import EditorSession, RegionDeleteRequest
 from .errors import AudioProcessingError
+from .i18n import t
 from .media_paths import existing_media_file_path, media_filenames_match
 from .sound_refs import (
     replace_sound_reference,
@@ -37,7 +38,7 @@ def delete_selection_with_request(editor: Any, request: Any, deps: Any) -> None:
     parsed = parse_region_delete_request(request)
     if parsed is None:
         deps.set_busy(editor, False)
-        deps.eval_status(editor, "Could not read the selected region.", kind="error")
+        deps.eval_status(editor, t("editor.status.region_read_failed"), kind="error")
         return
     existing = deps.sessions.get(editor)
     if existing and deps.is_busy(existing):
@@ -46,22 +47,22 @@ def delete_selection_with_request(editor: Any, request: Any, deps: Any) -> None:
     active_field = deps.current_field_index(editor)
     if active_field != parsed.field_index:
         deps.set_busy_for_field(editor, parsed.field_index, False)
-        deps.eval_status(editor, "The selected graph is no longer the active field.", kind="error")
+        deps.eval_status(editor, t("editor.status.graph_inactive"), kind="error")
         return
     resolved = deps.resolve_requested_field_media(editor, parsed.field_index, parsed.source_filename)
     if resolved is None:
         deps.set_busy_for_field(editor, parsed.field_index, False)
-        deps.eval_status(editor, "The selected graph no longer matches the current audio.", kind="error")
+        deps.eval_status(editor, t("editor.status.graph_audio_mismatch"), kind="error")
         return
     session, current_path = deps.current_media_path(editor)
     if not media_filenames_match(current_path.name, parsed.source_filename):
         deps.set_busy_for_field(editor, parsed.field_index, False)
-        deps.eval_status(editor, "The selected graph no longer matches the current audio.", kind="error")
+        deps.eval_status(editor, t("editor.status.graph_audio_mismatch"), kind="error")
         return
     if parsed.selection_start_ms <= 0 and parsed.selection_end_ms >= parsed.duration_ms:
         logger.info("region delete rejected whole clip: %s", region_delete_log_context(parsed))
         deps.set_busy_for_field(editor, parsed.field_index, False)
-        deps.eval_status(editor, "Cannot delete the whole audio clip.", kind="warning")
+        deps.eval_status(editor, t("editor.status.delete_whole_clip"), kind="warning")
         return
     delete_selection_async(
         editor,
@@ -151,7 +152,7 @@ def delete_selection_async(
     session.playback_active = False
     session.playback_paused = False
     session.cursor_ms = request.cursor_ms
-    deps.set_busy_for_field(editor, request.field_index, True, "Deleting region...")
+    deps.set_busy_for_field(editor, request.field_index, True, t("editor.status.deleting_region"))
     deps.eval_playback_state(editor, request.field_index, "stopped", request.cursor_ms)
     logger.info("region delete accepted: %s", region_delete_log_context(request))
     record_breadcrumb(
@@ -171,7 +172,7 @@ def delete_selection_async(
 
             def _show_command(command: tuple[str, ...]) -> None:
                 rendered = deps.format_ffmpeg_command(command)
-                status_message = "Deleting region with ffmpeg"
+                status_message = t("editor.status.deleting_region_ffmpeg")
                 command_text = ""
                 if config.show_ffmpeg_commands:
                     status_message = f"{status_message}: {rendered}"
@@ -242,7 +243,7 @@ def replace_current_field_after_region_delete(
         if selection.selected is None:
             raise AudioProcessingError(deps.current_field_audio_missing)
         if not media_filenames_match(selection.selected.filename, request.source_filename):
-            raise AudioProcessingError("The selected graph no longer matches the current audio.")
+            raise AudioProcessingError(t("editor.status.graph_audio_mismatch"))
         deps.dispose_editor_frontend_controls(editor)
         editor.note.fields[field_index] = replace_sound_reference(field_html, selection.selected, saved_name)
         session = deps.sessions.get(editor)
@@ -287,7 +288,7 @@ def replace_current_field_after_region_delete(
             flush=True,
         )
         editor.loadNote(focusTo=field_index)
-        deps.eval_status(editor, f"Updated field to {saved_name}")
+        deps.eval_status(editor, t("editor.status.updated_field", {"filename": saved_name}))
         deps.eval_playback_state(editor, field_index, "stopped", 0)
         if should_redraw_graph:
             deps.request_graph_redraw(editor)
