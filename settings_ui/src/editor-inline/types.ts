@@ -147,7 +147,7 @@ export interface RegionDeleteRequest {
   trigger: "button" | "backspace";
 }
 
-export type RegionDeleteOperation = "delete-selection" | "delete-rest";
+type RegionDeleteOperation = "delete-selection" | "delete-rest";
 
 export interface CursorIntent {
   cursorMs: number;

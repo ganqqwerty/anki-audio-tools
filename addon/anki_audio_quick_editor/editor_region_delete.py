@@ -145,7 +145,7 @@ def region_delete_operation(request: dict[str, Any]) -> RegionDeleteOperation | 
     operation = REGION_DELETE_OPERATION if "operation" not in request else str(request["operation"])
     if operation not in REGION_DELETE_OPERATIONS:
         return None
-    return cast(RegionDeleteOperation, operation)
+    return operation
 
 
 def region_operation_busy_message(request: RegionDeleteRequest) -> str:

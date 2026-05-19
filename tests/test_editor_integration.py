@@ -283,10 +283,33 @@ def test_region_operation_renderer_routes_delete_selection_to_delete_renderer(tm
         assert request is not None
 
         expected = object()
+
+        def deleted_renderer(
+            _source_path: Path,
+            start_ms: int,
+            end_ms: int,
+            *_args: object,
+            _calls: list[tuple[str, int, int]] = calls,
+            _expected: object = expected,
+            **_kwargs: object,
+        ) -> object:
+            _calls.append(("delete", start_ms, end_ms))
+            return _expected
+
+        def kept_renderer(
+            _source_path: Path,
+            start_ms: int,
+            end_ms: int,
+            *_args: object,
+            _calls: list[tuple[str, int, int]] = calls,
+            **_kwargs: object,
+        ) -> object:
+            _calls.append(("keep", start_ms, end_ms))
+            return object()
+
         deps = SimpleNamespace(
-            render_audio_region_deleted=lambda *_args, **_kwargs: calls.append(("delete", _args[1], _args[2]))
-            or expected,
-            render_audio_region_kept=lambda *_args, **_kwargs: calls.append(("keep", _args[1], _args[2])),
+            render_audio_region_deleted=deleted_renderer,
+            render_audio_region_kept=kept_renderer,
         )
 
         result = render_region_operation(

@@ -2,8 +2,10 @@ import { allVisualizers, controlsForOrd } from "./dom-selectors.js";
 import { logger } from "./logger.js";
 import type { PlaybackRegion } from "./playback-state.js";
 import { selectionForVisualizer } from "./selection-controller.js";
-import type { RegionDeleteOperation, RegionDeleteRequest, VisualizerElement } from "./types.js";
+import type { RegionDeleteRequest, VisualizerElement } from "./types.js";
 import { isPlaybackState } from "./types.js";
+
+type RegionDeleteOperation = RegionDeleteRequest["operation"];
 
 function anyBusy(): boolean {
   return document.body.dataset.aqeBusy === "true";

@@ -4,7 +4,9 @@ import { logger } from "./logger.js";
 import { setControlsBusy, stopProgressClock } from "./actions.js";
 import { regionDeleteRequestFor, syncRegionDeleteControl } from "./region-delete-state.js";
 import { visualizerForOrd } from "./dom-selectors.js";
-import type { RegionDeleteOperation, RegionDeleteRequest } from "./types.js";
+import type { RegionDeleteRequest } from "./types.js";
+
+type RegionDeleteOperation = RegionDeleteRequest["operation"];
 
 function anyBusy(): boolean {
   return document.body.dataset.aqeBusy === "true";
