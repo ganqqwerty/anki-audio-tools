@@ -34,6 +34,11 @@ CORE_CONTRACTS: dict[str, ModuleContract] = {
         ),
         allow_any_anki_imports=True,
     ),
+    "media_paths": contract(
+        "media_paths",
+        layer=Layer.IMPORT_SAFE_CORE,
+        allowed_addon_deps=("sound_refs",),
+    ),
     "prosody_analyzer": contract(
         "prosody_analyzer",
         layer=Layer.IMPORT_SAFE_CORE,

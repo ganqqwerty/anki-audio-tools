@@ -10,6 +10,7 @@ from .audio_state import AudioProcessingConfig
 from .contracts_generated import ProsodyPayload
 from .editor_session import EditorSession
 from .errors import AudioQuickEditorError
+from .media_paths import existing_media_file_path
 from .prosody_types import ProsodyTrack, clamp_cursor_ms
 from .sound_refs import safe_media_basename
 
@@ -22,13 +23,14 @@ def analyze_current_async(editor: Any, deps: Any) -> None:
         return
     field_index = deps.current_field_index(editor)
     try:
-        filename, media_path = deps.current_sound_reference(editor, field_index)
+        filename, _media_path = deps.current_sound_reference(editor, field_index)
     except AudioQuickEditorError as exc:
         message = str(exc)
         deps.fail_field_analysis_without_generation(editor, field_index, message)
         deps.eval_status(editor, message, kind="error")
         return
-    if not media_path.is_file():
+    media_path = existing_media_file_path(Path(editor.mw.col.media.dir()), filename)
+    if media_path is None:
         deps.fail_field_analysis_without_generation(editor, field_index, deps.referenced_audio_missing)
         deps.eval_status(editor, deps.referenced_audio_missing, kind="error")
         return
@@ -55,8 +57,9 @@ def analyze_requested_field_async(editor: Any, request: Any, deps: Any) -> None:
     if resolved is None:
         deps.finish_ignored_field_analysis(editor, field_index)
         return
-    filename, media_path = resolved
-    if not media_path.is_file():
+    filename, _media_path = resolved
+    media_path = existing_media_file_path(Path(editor.mw.col.media.dir()), filename)
+    if media_path is None:
         deps.fail_field_analysis_without_generation(editor, field_index, deps.referenced_audio_missing)
         return
     deps.start_field_analysis_async(editor, field_index, filename, media_path)

@@ -27,9 +27,13 @@ def reveal_file(
         _run_detached(("open", "-R", str(resolved)))
         return
     if system == "Windows":
-        _run_detached(("explorer", f"/select,{resolved}"))
+        _run_detached(_windows_explorer_select_command(resolved))
         return
     _open_parent_folder(resolved.parent)
+
+
+def _windows_explorer_select_command(path: Path) -> str:
+    return f'explorer.exe /select,"{path}"'
 
 
 def _open_parent_folder(folder: Path) -> None:
@@ -47,7 +51,7 @@ def _open_parent_folder(folder: Path) -> None:
     raise AudioProcessingError("Could not open the containing folder.")
 
 
-def _run_detached(command: tuple[str, ...]) -> None:
+def _run_detached(command: str | tuple[str, ...]) -> None:
     try:
         subprocess.Popen(command)  # nosec B603
     except OSError as exc:

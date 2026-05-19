@@ -7,6 +7,11 @@ from typing import Any
 
 from .editor_session import EditorSession
 from .errors import AudioProcessingError, AudioQuickEditorError, MissingMediaError
+from .media_paths import (
+    existing_media_file_path,
+    media_filenames_match,
+    resolve_media_file_path,
+)
 from .sound_refs import safe_media_basename, select_first_sound_reference
 
 CURRENT_FIELD_AUDIO_MISSING = "No [sound:...] reference found in the current field."
@@ -47,7 +52,9 @@ def sound_reference_for_field(editor: Any, field_index: int) -> tuple[str, Path]
     if selection.selected is None:
         raise AudioProcessingError(CURRENT_FIELD_AUDIO_MISSING)
     filename = safe_media_basename(selection.selected.filename)
-    return filename, Path(editor.mw.col.media.dir()) / filename
+    media_dir = Path(editor.mw.col.media.dir())
+    media_path = existing_media_file_path(media_dir, filename) or resolve_media_file_path(media_dir, filename)
+    return filename, media_path
 
 
 def resolve_requested_field_media(
@@ -65,7 +72,7 @@ def resolve_requested_field_media(
         filename, media_path = sound_reference_for_field(editor, field_index)
     except AudioQuickEditorError:
         return None
-    return (filename, media_path) if filename == expected_filename else None
+    return (filename, media_path) if media_filenames_match(filename, expected_filename) else None
 
 
 def session_original_source_path(
@@ -75,10 +82,14 @@ def session_original_source_path(
     filename: str,
 ) -> Path | None:
     """Return the original source media path for an active generated edit session."""
-    if session.field_index != field_index or session.state is None or session.current_filename != filename:
+    if (
+        session.field_index != field_index
+        or session.state is None
+        or not media_filenames_match(str(session.current_filename or ""), filename)
+    ):
         return None
-    source_path = Path(editor.mw.col.media.dir()) / session.state.source_file
-    if not source_path.is_file():
+    source_path = existing_media_file_path(Path(editor.mw.col.media.dir()), session.state.source_file)
+    if source_path is None:
         raise MissingMediaError("The original audio file was not found in Anki's media folder.")
     return source_path
 
@@ -94,7 +105,7 @@ def session_needs_media_reset(
         session.field_index != field_index
         or session.state is None
         or session.source_mtime_ns != mtime
-        or session.state.source_file != filename
+        or not media_filenames_match(session.state.source_file, filename)
     )
 
 

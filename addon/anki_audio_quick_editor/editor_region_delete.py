@@ -11,6 +11,7 @@ from typing import Any, cast
 from .audio_state import AudioEditState, AudioProcessingConfig
 from .editor_session import EditorSession, RegionDeleteRequest
 from .errors import AudioProcessingError
+from .media_paths import existing_media_file_path, media_filenames_match
 from .sound_refs import (
     replace_sound_reference,
     safe_media_basename,
@@ -52,7 +53,7 @@ def delete_selection_with_request(editor: Any, request: Any, deps: Any) -> None:
         deps.eval_status(editor, "The selected graph no longer matches the current audio.", kind="error")
         return
     session, current_path = deps.current_media_path(editor)
-    if current_path.name != parsed.source_filename:
+    if not media_filenames_match(current_path.name, parsed.source_filename):
         deps.set_busy_for_field(editor, parsed.field_index, False)
         deps.eval_status(editor, "The selected graph no longer matches the current audio.", kind="error")
         return
@@ -222,7 +223,7 @@ def replace_current_field_after_region_delete(
         selection = select_first_sound_reference(field_html)
         if selection.selected is None:
             raise AudioProcessingError(deps.current_field_audio_missing)
-        if safe_media_basename(selection.selected.filename) != request.source_filename:
+        if not media_filenames_match(selection.selected.filename, request.source_filename):
             raise AudioProcessingError("The selected graph no longer matches the current audio.")
         deps.dispose_editor_frontend_controls(editor)
         editor.note.fields[field_index] = replace_sound_reference(field_html, selection.selected, saved_name)
@@ -234,8 +235,8 @@ def replace_current_field_after_region_delete(
             session.state = AudioEditState(source_file=saved_name)
             session.current_filename = saved_name
             session.field_index = field_index
-            saved_path = Path(editor.mw.col.media.dir()) / safe_media_basename(saved_name)
-            session.source_mtime_ns = saved_path.stat().st_mtime_ns if saved_path.is_file() else None
+            saved_path = existing_media_file_path(Path(editor.mw.col.media.dir()), saved_name)
+            session.source_mtime_ns = saved_path.stat().st_mtime_ns if saved_path is not None else None
             session.processing = False
             session.cursor_ms = 0
             session.playback_active = False

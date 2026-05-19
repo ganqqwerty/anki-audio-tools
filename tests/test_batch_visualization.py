@@ -193,6 +193,65 @@ def test_process_note_batch_operation_replaces_audio_reference_for_transform(
     assert writes[0][1] == b"rendered"
 
 
+def test_process_note_batch_operation_resolves_windows_case_variant(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    source = tmp_path / "Clip.MP3"
+    source.write_bytes(b"audio")
+    note = BatchNoteSnapshot(10, "Basic", {"Audio": "[sound:clip.mp3]"})
+    render_calls: list[Path] = []
+
+    monkeypatch.setattr("anki_audio_quick_editor.media_paths.platform.system", lambda: "Windows")
+
+    def fake_render_audio(
+        source_path,
+        _state,
+        _config,
+        output_path=None,
+        on_command=None,
+        artifact_root=None,
+    ):
+        del on_command, artifact_root
+        assert output_path is not None
+        output_path.write_bytes(b"rendered")
+        render_calls.append(source_path)
+
+    monkeypatch.setattr("anki_audio_quick_editor.batch_operations.render_audio", fake_render_audio)
+
+    result = process_note_batch_operation(
+        note,
+        request=BatchRunRequest(operation=OP_FASTER, source_field="Audio"),
+        media_dir=tmp_path,
+        config=AudioProcessingConfig(speed_step=0.1),
+        media_writer=lambda name, data: name,
+    )
+
+    assert result.written
+    assert render_calls == [source]
+
+
+def test_process_note_batch_operation_requires_exact_non_windows_case(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    (tmp_path / "Clip.MP3").write_bytes(b"audio")
+    note = BatchNoteSnapshot(10, "Basic", {"Audio": "[sound:clip.mp3]"})
+    monkeypatch.setattr("anki_audio_quick_editor.media_paths.platform.system", lambda: "Darwin")
+
+    result = process_note_batch_operation(
+        note,
+        request=BatchRunRequest(operation=OP_FASTER, source_field="Audio"),
+        media_dir=tmp_path,
+        config=AudioProcessingConfig(speed_step=0.1),
+        media_writer=lambda name, data: name,
+    )
+
+    assert not result.written
+    assert result.status == "failed"
+    assert result.message == "media file not found: clip.mp3"
+
+
 def test_process_note_visualization_skips_expected_missing_inputs(tmp_path: Path) -> None:
     writer = lambda name, data: name
     config = AudioProcessingConfig()

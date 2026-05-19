@@ -18,6 +18,7 @@ EDITOR_CONTRACTS: dict[str, ModuleContract] = {
             "contracts_generated",
             "editor_session",
             "errors",
+            "media_paths",
             "prosody_types",
             "sound_refs",
         ),
@@ -93,18 +94,18 @@ EDITOR_CONTRACTS: dict[str, ModuleContract] = {
     "editor_history": contract(
         "editor_history",
         layer=Layer.UI_ADAPTER,
-        allowed_addon_deps=("editor_session", "errors", "sound_refs"),
+        allowed_addon_deps=("editor_session", "errors", "media_paths", "sound_refs"),
         allowed_side_effects=(SideEffect.WEB_EVAL,),
     ),
     "editor_media": contract(
         "editor_media",
         layer=Layer.IMPORT_SAFE_CORE,
-        allowed_addon_deps=("editor_session", "errors", "sound_refs"),
+        allowed_addon_deps=("editor_session", "errors", "media_paths", "sound_refs"),
     ),
     "editor_playback": contract(
         "editor_playback",
         layer=Layer.UI_ADAPTER,
-        allowed_addon_deps=("audio_state", "editor_session", "prosody_types"),
+        allowed_addon_deps=("audio_state", "editor_session", "media_paths", "prosody_types"),
         allowed_side_effects=(
             SideEffect.ANKI_IMPORTS_ANYWHERE,
             SideEffect.THREAD_SPAWN,
@@ -121,6 +122,7 @@ EDITOR_CONTRACTS: dict[str, ModuleContract] = {
             "editor_actions",
             "editor_session",
             "errors",
+            "media_paths",
             "sound_refs",
             "support",
         ),
@@ -134,7 +136,7 @@ EDITOR_CONTRACTS: dict[str, ModuleContract] = {
     "editor_region_delete": contract(
         "editor_region_delete",
         layer=Layer.UI_ADAPTER,
-        allowed_addon_deps=("audio_state", "editor_session", "errors", "sound_refs"),
+        allowed_addon_deps=("audio_state", "editor_session", "errors", "media_paths", "sound_refs"),
         allowed_side_effects=(
             SideEffect.MEDIA_WRITE,
             SideEffect.THREAD_SPAWN,
@@ -156,7 +158,7 @@ EDITOR_CONTRACTS: dict[str, ModuleContract] = {
             "editor_playback",
             "editor_session",
             "errors",
-            "sound_refs",
+            "media_paths",
         ),
         allowed_side_effects=(SideEffect.TEMP_FILESYSTEM_CLEANUP,),
     ),
@@ -190,6 +192,7 @@ EDITOR_CONTRACTS: dict[str, ModuleContract] = {
             "editor_ui",
             "errors",
             "file_reveal",
+            "media_paths",
             "prosody_cache",
             "prosody_types",
             "sound_refs",

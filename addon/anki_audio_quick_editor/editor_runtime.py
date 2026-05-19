@@ -17,7 +17,7 @@ from .editor_media import (
 from .editor_playback import cleanup_temp_playback, stop_audio_playback
 from .editor_session import EditorSession
 from .errors import AudioProcessingError, MissingMediaError
-from .sound_refs import safe_media_basename
+from .media_paths import existing_media_file_path
 
 CURRENT_FIELD_AUDIO_MISSING = "No [sound:...] reference found in the current field."
 REFERENCED_AUDIO_MISSING = "The referenced audio file was not found in Anki's media folder."
@@ -31,19 +31,20 @@ SESSIONS: "weakref.WeakKeyDictionary[Any, EditorSession]" = weakref.WeakKeyDicti
 def session_and_source(editor: Any) -> tuple[EditorSession, Path]:
     """Return the active session and source media path for the current editor field."""
     field_index = current_field_index(editor)
-    filename, media_path = current_sound_reference(editor, field_index)
+    filename, _candidate_path = current_sound_reference(editor, field_index)
     session = SESSIONS.setdefault(editor, EditorSession())
     source_path = session_original_source_path(editor, session, field_index, filename)
     if source_path is not None:
         return session, source_path
 
-    if not media_path.is_file():
+    existing_path = existing_media_file_path(Path(editor.mw.col.media.dir()), filename)
+    if existing_path is None:
         raise MissingMediaError(REFERENCED_AUDIO_MISSING)
 
-    mtime = media_path.stat().st_mtime_ns
+    mtime = existing_path.stat().st_mtime_ns
     if session_needs_media_reset(session, field_index, filename, mtime):
         reset_session_for_media(session, field_index, filename, mtime)
-    return session, media_path
+    return session, existing_path
 
 
 def current_sound_reference(editor: Any, field_index: int) -> tuple[str, Path]:
@@ -81,8 +82,8 @@ def current_media_path(editor: Any) -> tuple[EditorSession, Path]:
     filename = session.current_filename
     if not filename:
         raise AudioProcessingError(CURRENT_FIELD_AUDIO_MISSING)
-    media_path = Path(editor.mw.col.media.dir()) / safe_media_basename(filename)
-    if not media_path.is_file():
+    media_path = existing_media_file_path(Path(editor.mw.col.media.dir()), filename)
+    if media_path is None:
         raise MissingMediaError(REFERENCED_AUDIO_MISSING)
     return session, media_path
 
