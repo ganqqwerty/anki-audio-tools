@@ -148,6 +148,101 @@ def test_region_delete_request_parser_normalizes_payload() -> None:
     assert request.cursor_ms == 2000
     assert request.trigger == "backspace"
     assert request.playback_active is True
+    assert request.operation == "delete-selection"
+
+
+def test_region_delete_request_parser_accepts_delete_rest_operation() -> None:
+    request = _parse_region_delete_request(
+        {
+            "operation": "delete-rest",
+            "ord": 0,
+            "sourceFilename": "clip.wav",
+            "selectionStartMs": 250,
+            "selectionEndMs": 750,
+            "cursorMs": 300,
+            "durationMs": 1000,
+            "trigger": "button",
+            "playbackActive": False,
+        }
+    )
+
+    assert request is not None
+    assert request.operation == "delete-rest"
+    assert request.selection_start_ms == 250
+    assert request.selection_end_ms == 750
+
+
+def test_delete_rest_removed_duration_counts_outside_selection() -> None:
+    request = _parse_region_delete_request(
+        {
+            "operation": "delete-rest",
+            "ord": 0,
+            "sourceFilename": "clip.wav",
+            "selectionStartMs": 250,
+            "selectionEndMs": 700,
+            "cursorMs": 300,
+            "durationMs": 1000,
+            "trigger": "button",
+        }
+    )
+
+    assert request is not None
+    assert request.selected_duration_ms == 450
+    assert request.removed_duration_ms == 550
+
+
+def test_region_delete_request_parser_rejects_unknown_operation() -> None:
+    request = _parse_region_delete_request(
+        {
+            "operation": "replace-with-silence",
+            "ord": 0,
+            "sourceFilename": "clip.wav",
+            "selectionStartMs": 250,
+            "selectionEndMs": 750,
+            "cursorMs": 300,
+            "durationMs": 1000,
+            "trigger": "button",
+        }
+    )
+
+    assert request is None
+
+
+def test_region_operation_renderer_routes_delete_rest_to_keep_renderer(tmp_path: Path) -> None:
+    from anki_audio_quick_editor.editor_region_delete import render_region_operation
+
+    calls: list[tuple[str, int, int]] = []
+    request = _parse_region_delete_request(
+        {
+            "operation": "delete-rest",
+            "ord": 0,
+            "sourceFilename": "clip.wav",
+            "selectionStartMs": 250,
+            "selectionEndMs": 750,
+            "cursorMs": 300,
+            "durationMs": 1000,
+            "trigger": "button",
+        }
+    )
+    assert request is not None
+
+    expected = object()
+    deps = SimpleNamespace(
+        render_audio_region_deleted=lambda *_args, **_kwargs: calls.append(("delete", _args[1], _args[2])),
+        render_audio_region_kept=lambda *_args, **_kwargs: calls.append(("keep", _args[1], _args[2])) or expected,
+    )
+
+    result = render_region_operation(
+        deps,
+        tmp_path / "clip.wav",
+        request,
+        AudioProcessingConfig(),
+        output_path=tmp_path / "out.mp3",
+        on_command=None,
+    )
+
+    assert result is expected
+    assert calls == [("keep", 250, 750)]
 
 
 def test_region_delete_replacement_updates_only_requested_field_and_history(tmp_path: Path) -> None:
