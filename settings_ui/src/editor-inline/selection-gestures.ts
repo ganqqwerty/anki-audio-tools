@@ -1,11 +1,18 @@
 import { clampMsToRegion, type PlaybackRegion } from "./playback-state.js";
 import { cursorMsFromEvent } from "./plot.js";
+import { startGestureSession } from "./gesture-session.js";
 import {
   resizeSelectionRange,
   shouldTreatSelectionGestureAsClick,
   type SelectionResizeEdge,
 } from "./selection-state.js";
 import type { PlaybackRequest, PlaybackState, VisualizerElement } from "./types.js";
+import {
+  readVisualizerCursorMs,
+  readVisualizerDurationMs,
+  readVisualizerRepeatEnabled,
+  setVisualizerResumeRequiresRestart,
+} from "./visualizer-state.js";
 
 type CursorOptions = {
   engine?: "html" | "native" | "";
@@ -55,7 +62,7 @@ export function startCursorDrag(
   event.preventDefault();
   const previousPlaybackState = deps.playbackStateFor(visualizer);
   const svg = visualizer.querySelector<SVGSVGElement>(".aqe-visualizer-svg");
-  const durationMs = Number(visualizer.dataset.durationMs || "0");
+  const durationMs = readVisualizerDurationMs(visualizer);
   if (!svg || !durationMs) return;
   if (previousPlaybackState === "playing") {
     deps.stopProgressClock(visualizer);
@@ -68,7 +75,7 @@ export function startCursorDrag(
     window.removeEventListener("pointerup", up);
     const restartPlayback = previousPlaybackState === "playing";
     if (previousPlaybackState === "paused") {
-      visualizer.dataset.resumeRequiresRestart = "true";
+      setVisualizerResumeRequiresRestart(visualizer, true);
     }
     const releasedMs = scrubMsFromEvent(upEvent, svg, durationMs, visualizer, deps);
     const restartEngine = restartPlayback && deps.audioClockReady(visualizer) ? "html" : "";
@@ -97,88 +104,68 @@ export function startSelectionGesture(
 ): void {
   event.preventDefault();
   const svg = visualizer.querySelector<SVGSVGElement>(".aqe-visualizer-svg");
-  const durationMs = Number(visualizer.dataset.durationMs || "0");
+  const durationMs = readVisualizerDurationMs(visualizer);
   if (!svg || !durationMs) return;
   const previousPlaybackState = deps.playbackStateFor(visualizer);
-  const frozenProgressMs = deps.currentProgressMs(visualizer) ?? Number(visualizer.dataset.cursorMs || "0");
+  const frozenProgressMs = deps.currentProgressMs(visualizer) ?? readVisualizerCursorMs(visualizer);
   const startEvent = { clientX: event.clientX };
   const startMs = cursorMsFromEvent(event, svg, durationMs);
   let stoppedForDrag = false;
-  let move = (_moveEvent: PointerEvent): void => {};
-  let up = (_upEvent: PointerEvent): void => {};
-  let cancel = (): void => {};
-  let keydown = (_keyEvent: KeyboardEvent): void => {};
-  const cleanup = (): void => {
-    window.removeEventListener("pointermove", move);
-    window.removeEventListener("pointerup", up);
-    window.removeEventListener("pointercancel", cancel);
-    window.removeEventListener("keydown", keydown);
-    window.removeEventListener("blur", cancel);
-    svg.removeEventListener("lostpointercapture", cancel);
-  };
   const stopForDrag = (): void => {
     if (stoppedForDrag || previousPlaybackState !== "playing") return;
     stoppedForDrag = true;
     deps.stopProgressClock(visualizer, { clearEngine: false });
     deps.setCursor(visualizer, frozenProgressMs, false, { updateAnchor: false });
   };
-  const resumeInterruptedPlayback = (): void => {
-    if (previousPlaybackState === "playing" && stoppedForDrag) {
-      deps.startEditorHtmlPlayback(
-        visualizer,
-        deps.playbackRequestForStart(visualizer, ord, frozenProgressMs, "html"),
-      );
-    }
-  };
-  move = (moveEvent: PointerEvent): void => {
-    const moveMs = cursorMsFromEvent(moveEvent, svg, durationMs);
-    if (shouldTreatSelectionGestureAsClick(startEvent, moveEvent, startMs, moveMs)) {
+  startGestureSession({
+    lostPointerCaptureTarget: svg,
+    onCancel() {
       deps.clearSelectionDraft(visualizer);
-      return;
-    }
-    stopForDrag();
-    deps.setSelectionDraft(visualizer, startMs, moveMs);
-  };
-  up = (upEvent: PointerEvent): void => {
-    cleanup();
-    const endMs = cursorMsFromEvent(upEvent, svg, durationMs);
-    if (shouldTreatSelectionGestureAsClick(startEvent, upEvent, startMs, endMs)) {
-      deps.clearSelection(visualizer);
-      resumeInterruptedPlayback();
-      return;
-    }
-    stopForDrag();
-    if (!deps.draftSelectionForVisualizer(visualizer)) {
-      deps.setSelectionDraft(visualizer, startMs, endMs, { redraw: false });
-    }
-    const selected = deps.commitSelectionDraft(visualizer);
-    if (previousPlaybackState === "paused") {
-      visualizer.dataset.resumeRequiresRestart = "true";
-    }
-    if (selected && previousPlaybackState === "playing") {
-      const selection = deps.selectionForVisualizer(visualizer);
-      deps.startEditorHtmlPlayback(
+      resumeInterruptedSelectionPlayback(
+        deps,
         visualizer,
-        deps.playbackRequestForStart(visualizer, ord, selection?.startMs ?? startMs, "html"),
+        ord,
+        previousPlaybackState,
+        stoppedForDrag,
+        frozenProgressMs,
       );
-    }
-  };
-  cancel = (): void => {
-    cleanup();
-    deps.clearSelectionDraft(visualizer);
-    resumeInterruptedPlayback();
-  };
-  keydown = (keyEvent: KeyboardEvent): void => {
-    if (keyEvent.key === "Escape") {
-      cancel();
-    }
-  };
-  window.addEventListener("pointermove", move);
-  window.addEventListener("pointerup", up);
-  window.addEventListener("pointercancel", cancel);
-  window.addEventListener("keydown", keydown);
-  window.addEventListener("blur", cancel);
-  svg.addEventListener("lostpointercapture", cancel);
+    },
+    onPointerMove(moveEvent) {
+      const moveMs = cursorMsFromEvent(moveEvent, svg, durationMs);
+      if (shouldTreatSelectionGestureAsClick(startEvent, moveEvent, startMs, moveMs)) {
+        deps.clearSelectionDraft(visualizer);
+        return;
+      }
+      stopForDrag();
+      deps.setSelectionDraft(visualizer, startMs, moveMs);
+    },
+    onPointerUp(upEvent) {
+      const endMs = cursorMsFromEvent(upEvent, svg, durationMs);
+      if (shouldTreatSelectionGestureAsClick(startEvent, upEvent, startMs, endMs)) {
+        deps.clearSelection(visualizer);
+        resumeInterruptedSelectionPlayback(
+          deps,
+          visualizer,
+          ord,
+          previousPlaybackState,
+          stoppedForDrag,
+          frozenProgressMs,
+        );
+        return;
+      }
+      stopForDrag();
+      if (!deps.draftSelectionForVisualizer(visualizer)) {
+        deps.setSelectionDraft(visualizer, startMs, endMs, { redraw: false });
+      }
+      const selected = deps.commitSelectionDraft(visualizer);
+      if (previousPlaybackState === "paused") {
+        setVisualizerResumeRequiresRestart(visualizer, true);
+      }
+      if (selected) {
+        restartCommittedSelectionPlayback(deps, visualizer, ord, previousPlaybackState, stoppedForDrag, startMs);
+      }
+    },
+  });
 }
 
 export function startSelectionResizeGesture(
@@ -191,26 +178,14 @@ export function startSelectionResizeGesture(
   event.preventDefault();
   event.stopPropagation();
   const svg = visualizer.querySelector<SVGSVGElement>(".aqe-visualizer-svg");
-  const durationMs = Number(visualizer.dataset.durationMs || "0");
+  const durationMs = readVisualizerDurationMs(visualizer);
   const selection = deps.selectionForVisualizer(visualizer);
   if (!svg || !durationMs || !selection) return;
   const previousPlaybackState = deps.playbackStateFor(visualizer);
-  const frozenProgressMs = deps.currentProgressMs(visualizer) ?? Number(visualizer.dataset.cursorMs || "0");
+  const frozenProgressMs = deps.currentProgressMs(visualizer) ?? readVisualizerCursorMs(visualizer);
   const captureTarget = event.currentTarget instanceof Element ? event.currentTarget : svg;
   let stoppedForDrag = false;
   let latestRange = selection;
-  let move = (_moveEvent: PointerEvent): void => {};
-  let up = (_upEvent: PointerEvent): void => {};
-  let cancel = (): void => {};
-  let keydown = (_keyEvent: KeyboardEvent): void => {};
-  const cleanup = (): void => {
-    window.removeEventListener("pointermove", move);
-    window.removeEventListener("pointerup", up);
-    window.removeEventListener("pointercancel", cancel);
-    window.removeEventListener("keydown", keydown);
-    window.removeEventListener("blur", cancel);
-    captureTarget.removeEventListener("lostpointercapture", cancel);
-  };
   const stopForDrag = (): void => {
     if (stoppedForDrag || previousPlaybackState !== "playing") return;
     stoppedForDrag = true;
@@ -222,64 +197,53 @@ export function startSelectionResizeGesture(
     const range = resizeSelectionRange(selection, edge, edgeMs, durationMs);
     return range ? { ...range, mode: "selection" } : null;
   };
-  const restartFromSelectionStart = (): void => {
-    if (previousPlaybackState !== "playing" || !stoppedForDrag) return;
-    const committedSelection = deps.selectionForVisualizer(visualizer);
-    deps.startEditorHtmlPlayback(
-      visualizer,
-      deps.playbackRequestForStart(visualizer, ord, committedSelection?.startMs ?? latestRange.startMs, "html"),
-    );
-  };
-  const resumeInterruptedPlayback = (): void => {
-    if (previousPlaybackState !== "playing" || !stoppedForDrag) return;
-    deps.startEditorHtmlPlayback(
-      visualizer,
-      deps.playbackRequestForStart(visualizer, ord, frozenProgressMs, "html"),
-    );
-  };
   stopForDrag();
-  move = (moveEvent: PointerEvent): void => {
-    const resized = resizeFromEvent(moveEvent);
-    if (!resized) {
+  startGestureSession({
+    lostPointerCaptureTarget: captureTarget,
+    onCancel() {
       deps.clearSelectionDraft(visualizer);
-      return;
-    }
-    latestRange = resized;
-    deps.setSelectionDraft(visualizer, resized.startMs, resized.endMs);
-  };
-  up = (upEvent: PointerEvent): void => {
-    cleanup();
-    const resized = resizeFromEvent(upEvent);
-    if (resized) {
-      latestRange = resized;
-      if (!deps.draftSelectionForVisualizer(visualizer)) {
-        deps.setSelectionDraft(visualizer, resized.startMs, resized.endMs, { redraw: false });
+      resumeInterruptedSelectionPlayback(
+        deps,
+        visualizer,
+        ord,
+        previousPlaybackState,
+        stoppedForDrag,
+        frozenProgressMs,
+      );
+    },
+    onPointerMove(moveEvent) {
+      const resized = resizeFromEvent(moveEvent);
+      if (!resized) {
+        deps.clearSelectionDraft(visualizer);
+        return;
       }
-      deps.commitSelectionDraft(visualizer);
-    } else {
-      deps.clearSelectionDraft(visualizer);
-    }
-    if (previousPlaybackState === "paused") {
-      visualizer.dataset.resumeRequiresRestart = "true";
-    }
-    restartFromSelectionStart();
-  };
-  cancel = (): void => {
-    cleanup();
-    deps.clearSelectionDraft(visualizer);
-    resumeInterruptedPlayback();
-  };
-  keydown = (keyEvent: KeyboardEvent): void => {
-    if (keyEvent.key === "Escape") {
-      cancel();
-    }
-  };
-  window.addEventListener("pointermove", move);
-  window.addEventListener("pointerup", up);
-  window.addEventListener("pointercancel", cancel);
-  window.addEventListener("keydown", keydown);
-  window.addEventListener("blur", cancel);
-  captureTarget.addEventListener("lostpointercapture", cancel);
+      latestRange = resized;
+      deps.setSelectionDraft(visualizer, resized.startMs, resized.endMs);
+    },
+    onPointerUp(upEvent) {
+      const resized = resizeFromEvent(upEvent);
+      if (resized) {
+        latestRange = resized;
+        if (!deps.draftSelectionForVisualizer(visualizer)) {
+          deps.setSelectionDraft(visualizer, resized.startMs, resized.endMs, { redraw: false });
+        }
+        deps.commitSelectionDraft(visualizer);
+      } else {
+        deps.clearSelectionDraft(visualizer);
+      }
+      if (previousPlaybackState === "paused") {
+        setVisualizerResumeRequiresRestart(visualizer, true);
+      }
+      restartCommittedSelectionPlayback(
+        deps,
+        visualizer,
+        ord,
+        previousPlaybackState,
+        stoppedForDrag,
+        latestRange.startMs,
+      );
+    },
+  });
 }
 
 export function handleVisualizerPointerDown(
@@ -305,8 +269,39 @@ function scrubMsFromEvent(
 ): number {
   const rawMs = cursorMsFromEvent(event, svg, durationMs);
   const selection = deps.selectionForVisualizer(visualizer);
-  if (selection && visualizer.dataset.repeatEnabled === "true") {
+  if (selection && readVisualizerRepeatEnabled(visualizer)) {
     return clampMsToRegion(rawMs, selection);
   }
   return rawMs;
+}
+
+function resumeInterruptedSelectionPlayback(
+  deps: SelectionGestureDependencies,
+  visualizer: VisualizerElement,
+  ord: number,
+  previousPlaybackState: PlaybackState,
+  stoppedForGesture: boolean,
+  interruptedProgressMs: number,
+): void {
+  if (previousPlaybackState !== "playing" || !stoppedForGesture) return;
+  deps.startEditorHtmlPlayback(
+    visualizer,
+    deps.playbackRequestForStart(visualizer, ord, interruptedProgressMs, "html"),
+  );
+}
+
+function restartCommittedSelectionPlayback(
+  deps: SelectionGestureDependencies,
+  visualizer: VisualizerElement,
+  ord: number,
+  previousPlaybackState: PlaybackState,
+  stoppedForGesture: boolean,
+  fallbackStartMs: number,
+): void {
+  if (previousPlaybackState !== "playing" || !stoppedForGesture) return;
+  const committedSelection = deps.selectionForVisualizer(visualizer);
+  deps.startEditorHtmlPlayback(
+    visualizer,
+    deps.playbackRequestForStart(visualizer, ord, committedSelection?.startMs ?? fallbackStartMs, "html"),
+  );
 }

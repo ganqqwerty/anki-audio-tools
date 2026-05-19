@@ -141,6 +141,7 @@ def test_test_svelte_stops_when_frontend_build_fails(monkeypatch, tmp_path: Path
 def test_test_e2e_builds_frontend_before_pytest(monkeypatch) -> None:
     calls: list[str] = []
 
+    monkeypatch.setattr(dev, "_COMMAND_ARGS", [])
     monkeypatch.setattr(dev, "cmd_build_ui", lambda: calls.append("build") or 0)
     monkeypatch.setattr(
         dev,
@@ -150,6 +151,33 @@ def test_test_e2e_builds_frontend_before_pytest(monkeypatch) -> None:
 
     assert dev.cmd_test_e2e() == 0
     assert calls == ["build", "e2e/ python e2e tests"]
+
+
+def test_test_e2e_forwards_explicit_pytest_targets(monkeypatch) -> None:
+    calls: list[str] = []
+    graph_default_target = (
+        "e2e/test_editor_region_loop_graph_workflow.py::"
+        "test_graph_default_repeat_can_be_turned_off_for_selected_region_playback"
+    )
+    multi_field_target = (
+        "e2e/test_editor_region_loop_graph_workflow.py::"
+        "test_two_audio_fields_keep_region_state_scoped_and_single_active_playback"
+    )
+
+    monkeypatch.setattr(dev, "_COMMAND_ARGS", [graph_default_target, multi_field_target])
+    monkeypatch.setattr(dev, "cmd_build_ui", lambda: calls.append("build") or 0)
+    monkeypatch.setattr(
+        dev,
+        "_run_pytest",
+        lambda target, *, label: calls.append(f"{target} {label}") or 0,
+    )
+
+    assert dev.cmd_test_e2e() == 0
+    assert calls == [
+        "build",
+        f"{graph_default_target} python e2e tests: {graph_default_target}",
+        f"{multi_field_target} python e2e tests: {multi_field_target}",
+    ]
 
 
 def test_test_e2e_stops_when_frontend_build_fails(monkeypatch) -> None:

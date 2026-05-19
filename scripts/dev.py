@@ -87,7 +87,13 @@ def cmd_test_e2e() -> int:
     build_rc = cmd_build_ui()
     if build_rc != 0:
         return build_rc
-    return _run_pytest("e2e/", label="python e2e tests")
+    targets = _COMMAND_ARGS or ["e2e/"]
+    for target in targets:
+        label = f"python e2e tests: {target}" if _COMMAND_ARGS else "python e2e tests"
+        rc = _run_pytest(target, label=label)
+        if rc != 0:
+            return rc
+    return 0
 
 
 def cmd_lint() -> int:

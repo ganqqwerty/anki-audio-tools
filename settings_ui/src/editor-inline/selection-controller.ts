@@ -8,6 +8,15 @@ import {
 } from "./selection-state.js";
 import type { PlaybackState, VisualizerElement } from "./types.js";
 import { renderSelection } from "./visualizer-renderer.js";
+import {
+  clearVisualizerSelection,
+  clearVisualizerSelectionDraft,
+  readVisualizerDurationMs,
+  readVisualizerSelectionState,
+  setVisualizerPlaybackRegion,
+  setVisualizerSelection,
+  setVisualizerSelectionDraft,
+} from "./visualizer-state.js";
 
 export interface SelectionControllerDependencies {
   setCursor: (
@@ -24,21 +33,13 @@ export interface SelectionControllerDependencies {
 }
 
 export function selectionForVisualizer(visualizer: VisualizerElement | null): PlaybackRegion | null {
-  if (!visualizer || visualizer.dataset.selectionActive !== "true") return null;
-  return selectionRegion({
-    active: visualizer.dataset.selectionActive === "true",
-    startMs: Number(visualizer.dataset.selectionStartMs || "0"),
-    endMs: Number(visualizer.dataset.selectionEndMs || "0"),
-  }, Number(visualizer.dataset.durationMs || "0"));
+  if (!visualizer) return null;
+  return selectionRegion(readVisualizerSelectionState(visualizer), readVisualizerDurationMs(visualizer));
 }
 
 export function draftSelectionForVisualizer(visualizer: VisualizerElement | null): PlaybackRegion | null {
-  if (!visualizer || visualizer.dataset.selectionDraftActive !== "true") return null;
-  return draftSelectionRegion({
-    draftActive: visualizer.dataset.selectionDraftActive === "true",
-    draftStartMs: Number(visualizer.dataset.selectionDraftStartMs || "0"),
-    draftEndMs: Number(visualizer.dataset.selectionDraftEndMs || "0"),
-  }, Number(visualizer.dataset.durationMs || "0"));
+  if (!visualizer) return null;
+  return draftSelectionRegion(readVisualizerSelectionState(visualizer), readVisualizerDurationMs(visualizer));
 }
 
 export function effectivePlaybackRegion(visualizer: VisualizerElement): PlaybackRegion {
@@ -46,7 +47,7 @@ export function effectivePlaybackRegion(visualizer: VisualizerElement): Playback
   if (selection) return selection;
   return {
     startMs: 0,
-    endMs: Number(visualizer.dataset.durationMs || "0") || 0,
+    endMs: readVisualizerDurationMs(visualizer),
     mode: "full",
   };
 }
@@ -55,9 +56,7 @@ export function clearSelectionDraft(
   visualizer: VisualizerElement,
   options: { redraw?: boolean } = {},
 ): void {
-  visualizer.dataset.selectionDraftActive = "false";
-  visualizer.dataset.selectionDraftStartMs = "";
-  visualizer.dataset.selectionDraftEndMs = "";
+  clearVisualizerSelectionDraft(visualizer);
   if (options.redraw !== false) {
     drawSelection(visualizer);
   }
@@ -69,15 +68,16 @@ export function setSelectionDraft(
   endMs: number,
   options: { redraw?: boolean } = {},
 ): boolean {
-  const durationMs = Number(visualizer.dataset.durationMs || "0");
+  const durationMs = readVisualizerDurationMs(visualizer);
   const selection = setDraftSelectionRange(emptySelectionState(), startMs, endMs, durationMs);
   if (!selection.draftActive || selection.draftStartMs === null || selection.draftEndMs === null) {
     clearSelectionDraft(visualizer, options);
     return false;
   }
-  visualizer.dataset.selectionDraftActive = "true";
-  visualizer.dataset.selectionDraftStartMs = String(selection.draftStartMs);
-  visualizer.dataset.selectionDraftEndMs = String(selection.draftEndMs);
+  setVisualizerSelectionDraft(visualizer, {
+    startMs: selection.draftStartMs,
+    endMs: selection.draftEndMs,
+  });
   if (options.redraw !== false) {
     drawSelection(visualizer);
   }
@@ -102,16 +102,11 @@ export function clearSelection(
   visualizer: VisualizerElement,
   options: { resetPlaybackRegion?: boolean } = {},
 ): void {
-  visualizer.dataset.selectionActive = "false";
-  visualizer.dataset.selectionStartMs = "";
-  visualizer.dataset.selectionEndMs = "";
+  clearVisualizerSelection(visualizer);
   clearSelectionDraft(visualizer, { redraw: false });
   drawSelection(visualizer);
   if (options.resetPlaybackRegion !== false) {
-    const region = effectivePlaybackRegion(visualizer);
-    visualizer.dataset.playbackStartMs = String(Math.round(region.startMs));
-    visualizer.dataset.playbackEndMs = String(Math.round(region.endMs));
-    visualizer.dataset.playbackRegionMode = region.mode;
+    setVisualizerPlaybackRegion(visualizer, effectivePlaybackRegion(visualizer));
   }
 }
 
@@ -122,19 +117,19 @@ export function setSelection(
   deps: SelectionControllerDependencies,
   options: { updateCursor?: boolean } = {},
 ): boolean {
-  const durationMs = Number(visualizer.dataset.durationMs || "0");
+  const durationMs = readVisualizerDurationMs(visualizer);
   const selection = setSelectionRange(emptySelectionState(), startMs, endMs, durationMs);
   if (!selection.active || selection.startMs === null || selection.endMs === null) {
     clearSelection(visualizer);
     return false;
   }
+  const committedRange = {
+    startMs: selection.startMs,
+    endMs: selection.endMs,
+  };
   clearSelectionDraft(visualizer, { redraw: false });
-  visualizer.dataset.selectionActive = "true";
-  visualizer.dataset.selectionStartMs = String(selection.startMs);
-  visualizer.dataset.selectionEndMs = String(selection.endMs);
-  visualizer.dataset.playbackStartMs = String(selection.startMs);
-  visualizer.dataset.playbackEndMs = String(selection.endMs);
-  visualizer.dataset.playbackRegionMode = "selection";
+  setVisualizerSelection(visualizer, committedRange);
+  setVisualizerPlaybackRegion(visualizer, { ...committedRange, mode: "selection" });
   drawSelection(visualizer);
   if (options.updateCursor !== false) {
     deps.setCursor(visualizer, selection.startMs, false);
