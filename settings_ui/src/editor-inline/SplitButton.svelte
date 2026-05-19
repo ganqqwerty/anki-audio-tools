@@ -161,6 +161,7 @@
 <span class="aqe-split-button" bind:this={wrapper}>
   <button
     type="button"
+    class:aqe-icon-only={button.iconOnly === true}
     class="aqe-button aqe-split-primary"
     data-aqe-command={button.command}
     data-aqe-button-state="default"
