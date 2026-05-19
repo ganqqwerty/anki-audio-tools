@@ -78,7 +78,7 @@ afterEach(() => {
     expect(help.open).toBe(false);
     expect(help.querySelectorAll(".aqe-help-command")).toHaveLength(14);
     expect(help).toHaveTextContent("Shift-drag on the graph to select a region.");
-    expect(help).toHaveTextContent("Delete Region removes only the selected region.");
+    expect(help).toHaveTextContent("Delete Region removes the selected region; Delete the rest keeps only the selected region.");
     expect(help).toHaveTextContent("Every edit creates a new media file and updates the field to point at it.");
     expect(help).toHaveTextContent("grey is loudness and lines are pitch of the voice.");
 

@@ -5,6 +5,7 @@ export type EditorCommand =
   | "aqe:analyze"
   | "aqe:show-file"
   | "aqe:delete-selection"
+  | "aqe:delete-rest"
   | "aqe:trim-left"
   | "aqe:trim-right"
   | "aqe:remove-pauses"
@@ -137,6 +138,7 @@ export interface PlaybackRequest {
 export interface RegionDeleteRequest {
   cursorMs: number;
   durationMs: number;
+  operation: RegionDeleteOperation;
   ord: number;
   playbackActive: boolean;
   selectionEndMs: number;
@@ -144,6 +146,8 @@ export interface RegionDeleteRequest {
   sourceFilename: string;
   trigger: "button" | "backspace";
 }
+
+export type RegionDeleteOperation = "delete-selection" | "delete-rest";
 
 export interface CursorIntent {
   cursorMs: number;
@@ -191,6 +195,8 @@ export interface GraphStateForTest {
   repeatControlDisabled: boolean;
   regionDeleteButtonDisabled: boolean;
   regionDeleteButtonHidden: boolean;
+  regionDeleteRestButtonDisabled: boolean;
+  regionDeleteRestButtonHidden: boolean;
   repeatEnabled: boolean;
   resumeRequiresRestart: boolean;
   selectionActive: boolean;

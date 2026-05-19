@@ -50,6 +50,7 @@ export const COMMAND_SLUGS: Readonly<Record<EditorCommand, string>> = {
   "aqe:analyze": "graph",
   "aqe:show-file": "show-file",
   "aqe:delete-selection": "delete-selection",
+  "aqe:delete-rest": "delete-rest",
   "aqe:trim-left": "trim-left",
   "aqe:trim-right": "trim-right",
   "aqe:remove-pauses": "remove-pauses",
@@ -72,5 +73,6 @@ export function processingMessage(command: EditorCommand): string {
   if (command === "aqe:denoise-standard") return "Denoising with Standard...";
   if (command === "aqe:rnnoise") return "Denoising with RNNoise...";
   if (command === "aqe:delete-selection") return "Deleting region...";
+  if (command === "aqe:delete-rest") return "Deleting rest...";
   return "Processing...";
 }

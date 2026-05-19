@@ -119,6 +119,21 @@
     <EditorCommandIcon icon="trash-2" />
     <span class="aqe-button-label">Delete Region</span>
   </button>
+  <button
+    type="button"
+    class="aqe-button aqe-delete-rest-button"
+    data-aqe-command="aqe:delete-rest"
+    data-aqe-button-state="default"
+    data-testid={testId(target.ord, "aqe:delete-rest")}
+    title="Delete the rest of the audio"
+    aria-label="Delete the rest of the audio"
+    hidden
+    onmousedown={(event) => event.preventDefault()}
+    onclick={() => sendRegionDelete("button", target.node, target.ord, "delete-rest")}
+  >
+    <EditorCommandIcon icon="trash-2" />
+    <span class="aqe-button-label">Delete the rest</span>
+  </button>
   <span class="aqe-status" data-testid={`aqe-status-${target.ord}`}></span>
   <details class="aqe-help" data-testid={`aqe-help-${target.ord}`}>
     <summary class="aqe-help-summary" title="Show editor help">
@@ -131,7 +146,7 @@
         <ul class="aqe-help-list">
           <li><kbd>Shift</kbd>-drag on the graph to select a region.</li>
           <li>Play uses the selected region when one is active; Repeat loops the selected region, or the full graph otherwise.</li>
-          <li>Delete Region removes only the selected region. Backspace does the same when the graph is focused.</li>
+          <li>Delete Region removes the selected region; Delete the rest keeps only the selected region. Backspace deletes the selected region when the graph is focused.</li>
           <li>In the graph, grey is loudness and lines are pitch of the voice.</li>
         </ul>
       </section>

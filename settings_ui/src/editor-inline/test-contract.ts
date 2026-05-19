@@ -102,6 +102,7 @@ export function graphStateForTest(ord: number): GraphStateForTest | null {
   const graph = graphButton(ord);
   const play = playButton(ord);
   const regionDelete = controlsForOrd(ord)?.querySelector<HTMLButtonElement>(".aqe-delete-region-button") ?? null;
+  const regionDeleteRest = controlsForOrd(ord)?.querySelector<HTMLButtonElement>(".aqe-delete-rest-button") ?? null;
   if (!visualizer) return null;
   const buttonIcons = allButtons().flatMap((button) => (
     Array.from(button.querySelectorAll<SVGElement>(".aqe-button-icon svg"))
@@ -141,6 +142,8 @@ export function graphStateForTest(ord: number): GraphStateForTest | null {
     repeatControlDisabled: !!repeatButtonForOrd(ord)?.disabled,
     regionDeleteButtonDisabled: !!regionDelete?.disabled,
     regionDeleteButtonHidden: regionDelete ? !!regionDelete.hidden : true,
+    regionDeleteRestButtonDisabled: !!regionDeleteRest?.disabled,
+    regionDeleteRestButtonHidden: regionDeleteRest ? !!regionDeleteRest.hidden : true,
     playbackStartMs: Number(visualizer.dataset.playbackStartMs || "0"),
     playbackEndMs: Number(visualizer.dataset.playbackEndMs || "0"),
     playbackRegionMode: visualizer.dataset.playbackRegionMode === "selection" ? "selection" : "full",
