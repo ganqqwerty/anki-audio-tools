@@ -206,8 +206,8 @@
             <span>Restore the undone edit.</span>
           </span>
           <span class="aqe-help-item">
-            <span class="aqe-help-command"><EditorCommandIcon icon="trash-2" /><span>Delete Region</span></span>
-            <span>Remove the selected graph region.</span>
+            <span class="aqe-help-command"><EditorCommandIcon icon="trash-2" /><span>Delete Region / Delete the rest</span></span>
+            <span>Remove the selected graph region or keep only that region.</span>
           </span>
         </div>
       </section>
