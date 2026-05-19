@@ -7,9 +7,9 @@ from typing import Any
 
 from .editor_session import EditorSession, UndoEntry
 from .errors import AudioProcessingError
+from .media_paths import existing_media_file_path
 from .sound_refs import (
     replace_sound_reference,
-    safe_media_basename,
     select_first_sound_reference,
 )
 
@@ -82,8 +82,8 @@ def restore_history_entry(
     session.cursor_ms = 0
     session.playback_active = False
     session.playback_paused = False
-    restored_path = Path(editor.mw.col.media.dir()) / safe_media_basename(entry.filename)
-    session.source_mtime_ns = restored_path.stat().st_mtime_ns if restored_path.is_file() else None
+    restored_path = existing_media_file_path(Path(editor.mw.col.media.dir()), entry.filename)
+    session.source_mtime_ns = restored_path.stat().st_mtime_ns if restored_path is not None else None
     editor.loadNote(focusTo=field_index)
     deps.eval_status(editor, status)
     deps.eval_playback_state(editor, field_index, "stopped", 0)

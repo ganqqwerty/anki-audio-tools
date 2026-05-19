@@ -15,9 +15,9 @@ from .editor_actions import (
 )
 from .editor_session import EditorSession
 from .errors import AudioProcessingError
+from .media_paths import existing_media_file_path
 from .sound_refs import (
     replace_sound_reference,
-    safe_media_basename,
     select_first_sound_reference,
 )
 from .support import (
@@ -258,8 +258,8 @@ def replace_current_field_after_noise_removal(editor: Any, saved_name: str, deps
         session.state = AudioEditState(source_file=saved_name)
         session.current_filename = saved_name
         session.field_index = field_index
-        saved_path = Path(editor.mw.col.media.dir()) / safe_media_basename(saved_name)
-        session.source_mtime_ns = saved_path.stat().st_mtime_ns if saved_path.is_file() else None
+        saved_path = existing_media_file_path(Path(editor.mw.col.media.dir()), saved_name)
+        session.source_mtime_ns = saved_path.stat().st_mtime_ns if saved_path is not None else None
         session.processing = False
         session.cursor_ms = 0
         session.playback_active = False

@@ -108,6 +108,7 @@ AUDIO_CONTRACTS: dict[str, ModuleContract] = {
             "audio_processor",
             "audio_state",
             "errors",
+            "media_paths",
             "prosody_cache",
             "prosody_svg",
             "sound_refs",

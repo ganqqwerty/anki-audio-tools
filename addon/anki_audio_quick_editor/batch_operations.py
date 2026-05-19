@@ -19,6 +19,7 @@ from .audio_operations import (
 from .audio_processor import make_output_filename, render_audio, temp_final_path
 from .audio_state import AudioEditState, AudioProcessingConfig
 from .errors import AudioQuickEditorError
+from .media_paths import existing_media_file_path
 from .prosody_cache import analyze_prosody_cached
 from .prosody_svg import make_visualization_filename, render_prosody_svg
 from .sound_refs import (
@@ -167,8 +168,8 @@ def process_note_batch_operation(
         assert target_field is not None
         if target_field not in note.fields:
             return _skipped(note, f"missing target field {target_field!r}")
-    source_path = media_dir / audio_filename
-    if not source_path.is_file():
+    source_path = existing_media_file_path(media_dir, audio_filename)
+    if source_path is None:
         return BatchNoteResult(
             note_id=note.note_id,
             status="failed",

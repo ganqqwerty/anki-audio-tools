@@ -9,6 +9,7 @@ from typing import Any
 
 from .audio_state import AudioProcessingConfig
 from .editor_session import EditorSession
+from .media_paths import existing_media_file_path
 from .prosody_types import clamp_cursor_ms
 
 logger = logging.getLogger(__name__)
@@ -179,9 +180,7 @@ def start_playback_from_cursor(
     from aqt.sound import av_player
 
     filename = session.current_filename or source_path.name
-    play_path = Path(editor.mw.col.media.dir()) / filename
-    if not play_path.is_file():
-        play_path = source_path
+    play_path = existing_media_file_path(Path(editor.mw.col.media.dir()), filename) or source_path
     deps.stop_session_playback(session)
     session.cursor_ms = clamp_cursor_ms(cursor_ms, session.visualized_duration_ms)
     offset_seconds = max(0.0, session.cursor_ms / 1000)
