@@ -153,9 +153,7 @@ class _AnkiApiVisitor(ast.NodeVisitor):
             return
         if len(parts) == 3 and parts[2] == "append":
             callback = node.args[0] if node.args else None
-            parameters: tuple[str, ...] = ()
-            if isinstance(callback, ast.Name):
-                parameters = self.function_parameters.get(callback.id, ())
+            parameters = self._callback_parameters(callback)
             self.callable_uses.add(
                 CallableUse(
                     "aqt.gui_hooks",
@@ -170,6 +168,15 @@ class _AnkiApiVisitor(ast.NodeVisitor):
             self.callable_uses.add(
                 _callable_use("aqt.gui_hooks", parts[1], node, exact=True)
             )
+
+    def _callback_parameters(self, callback: ast.AST | None) -> tuple[str, ...]:
+        if isinstance(callback, ast.Name):
+            return self.function_parameters.get(callback.id, ())
+        if isinstance(callback, ast.Call):
+            for arg in callback.args:
+                if isinstance(arg, ast.Name) and arg.id in self.function_parameters:
+                    return self.function_parameters[arg.id]
+        return ()
 
     def _record_mapped_object_call(self, parts: tuple[str, ...], node: ast.Call) -> None:
         if "()" in parts:

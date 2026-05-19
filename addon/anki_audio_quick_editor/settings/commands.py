@@ -304,51 +304,24 @@ def _op_show_log_file(
 
 
 def _handle_frontend_log(payload_str: str) -> None:
-    try:
-        raw_payload = json.loads(payload_str)
-    except json.JSONDecodeError:
-        logger.warning("frontend_log: invalid payload")
-        return
-    try:
-        payload = FrontendLogPayload.from_dict(raw_payload)
-    except CONTRACT_DECODE_ERRORS:
-        logger.warning("frontend_log: invalid payload")
+    payload = _decode_frontend_log_payload(payload_str)
+    if payload is None:
         return
 
     level = payload.level.value
     message = payload.message
     context = payload.context
-    rendered = f"frontend: {message}"
-    if context is not None:
-        rendered = f"{rendered} | {context!r}"
     stack = str(getattr(payload, "stack", "") or "")
     scope = str(getattr(payload, "scope", "") or "settings")
     operation_id = str(getattr(payload, "operation_id", "") or "")
-    if stack:
-        rendered = f"{rendered}\n{stack}"
-
-    if level == "debug":
-        logger.debug(rendered)
-    elif level == "warn":
-        logger.warning(rendered)
-    elif level == "error":
-        logger.error(rendered)
-    else:
-        logger.info(rendered)
+    _emit_frontend_log(level, _render_frontend_log("frontend", message, context, stack))
     record_breadcrumb(
         "frontend.log",
         source=scope,
         level="error" if level == "error" else "debug",
         operation="frontend.log",
         operation_id=operation_id,
-        context={
-            "level": level,
-            "message": message,
-            "filename": getattr(payload, "filename", None),
-            "lineno": getattr(payload, "lineno", None),
-            "colno": getattr(payload, "colno", None),
-            "context": context,
-        },
+        context=_frontend_log_context(payload, level),
     )
     if level == "error":
         record_frontend_error(
@@ -360,6 +333,50 @@ def _handle_frontend_log(payload_str: str) -> None:
             operation_id=operation_id,
             context=context,
         )
+
+
+def _decode_frontend_log_payload(payload_str: str) -> FrontendLogPayload | None:
+    try:
+        raw_payload = json.loads(payload_str)
+    except json.JSONDecodeError:
+        logger.warning("frontend_log: invalid payload")
+        return None
+    try:
+        return FrontendLogPayload.from_dict(raw_payload)
+    except CONTRACT_DECODE_ERRORS:
+        logger.warning("frontend_log: invalid payload")
+        return None
+
+
+def _render_frontend_log(prefix: str, message: str, context: object, stack: str) -> str:
+    rendered = f"{prefix}: {message}"
+    if context is not None:
+        rendered = f"{rendered} | {context!r}"
+    if stack:
+        rendered = f"{rendered}\n{stack}"
+    return rendered
+
+
+def _emit_frontend_log(level: str, rendered: str) -> None:
+    if level == "debug":
+        logger.debug(rendered)
+    elif level == "warn":
+        logger.warning(rendered)
+    elif level == "error":
+        logger.error(rendered)
+    else:
+        logger.info(rendered)
+
+
+def _frontend_log_context(payload: FrontendLogPayload, level: str) -> dict[str, object]:
+    return {
+        "level": level,
+        "message": payload.message,
+        "filename": getattr(payload, "filename", None),
+        "lineno": getattr(payload, "lineno", None),
+        "colno": getattr(payload, "colno", None),
+        "context": payload.context,
+    }
 
 
 def _handle_copy_support_report(payload_str: str) -> None:

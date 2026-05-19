@@ -48,7 +48,7 @@ def _full_config() -> dict[str, object]:
             "denoise_algorithm": "standard",
             "pause_aggressiveness": "normal",
         }
-    
+
 
 
 def _parse_callback(js: str, name: str) -> dict:
