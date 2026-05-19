@@ -54,6 +54,50 @@ def _split_popover_state_js(command: str, ord_: int = 0) -> str:
     }})()
     """
 
+
+def _split_value_state_js(command: str, ord_: int = 0) -> str:
+    slug = command.removeprefix("aqe:")
+    return f"""
+    (() => {{
+      const input = document.querySelector('[data-testid="aqe-split-{ord_}-{slug}-value"]');
+      const slider = document.querySelector('[data-testid="aqe-split-{ord_}-{slug}-slider"]');
+      return input && slider ? {{
+        inputMax: input.max,
+        inputMin: input.min,
+        inputStep: input.step,
+        inputValue: input.value,
+        sliderValue: slider.value,
+      }} : null;
+    }})()
+    """
+
+
+def _set_split_value_input_js(command: str, value: str, ord_: int = 0) -> str:
+    slug = command.removeprefix("aqe:")
+    return f"""
+    (() => {{
+      const input = document.querySelector('[data-testid="aqe-split-{ord_}-{slug}-value"]');
+      if (!input) return false;
+      input.value = {json.dumps(value)};
+      input.dispatchEvent(new Event("input", {{ bubbles: true }}));
+      return true;
+    }})()
+    """
+
+
+def _set_split_slider_js(command: str, value: str, ord_: int = 0) -> str:
+    slug = command.removeprefix("aqe:")
+    return f"""
+    (() => {{
+      const slider = document.querySelector('[data-testid="aqe-split-{ord_}-{slug}-slider"]');
+      if (!slider) return false;
+      slider.value = {json.dumps(value)};
+      slider.dispatchEvent(new Event("input", {{ bubbles: true }}));
+      return true;
+    }})()
+    """
+
+
 def test_settings_trim_step_controls_editor_button_behavior(anki_mw, ffmpeg_config) -> None:
     from anki_audio_quick_editor.audio_processor import probe_duration_ms
     from anki_audio_quick_editor.editor_integration import _SESSIONS
@@ -235,6 +279,182 @@ def test_trim_split_button_value_is_isolated_across_audio_fields(
         assert 140 <= first_delta <= 320
         assert 40 <= second_delta <= 180
         assert _sound_filename(note.fields[2]) == sources[2].name
+    finally:
+        editor.set_note(None)
+        parent.close()
+
+
+def test_split_tooltip_value_inputs_sync_with_sliders_and_apply_local_values(
+    anki_mw,
+    ffmpeg_config,
+) -> None:
+    from anki_audio_quick_editor.editor_integration import _SESSIONS
+
+    media_dir = Path(anki_mw.col.media.dir())
+    source = media_dir / "editor_split_tooltip_input_source.wav"
+    generate_tone(ffmpeg_config, source, duration_s=2.0)
+    note = _basic_audio_note(anki_mw, source.name)
+    _configure_ffmpeg(anki_mw, ffmpeg_config, manual_trim_small_ms=100, volume_step_db=3, speed_step=0.05)
+
+    editor, parent = _open_editor(anki_mw, note)
+    try:
+        wait_for_selector(editor.web, _button_selector("aqe:trim-left"), timeout=10.0)
+        click_selector(editor.web, _split_menu_selector("aqe:trim-left"), timeout=5.0)
+        trim_state = wait_for_js_condition(
+            editor.web,
+            _split_value_state_js("aqe:trim-left"),
+            lambda value: value is not None and value["inputValue"] == "100" and value["sliderValue"] == "100",
+            timeout=5.0,
+        )
+        assert trim_state["inputMin"] == "50"
+        assert trim_state["inputMax"] == "10000"
+        assert trim_state["inputStep"] == "50"
+
+        wait_for_js_condition(
+            editor.web,
+            _set_split_slider_js("aqe:trim-left", "250"),
+            lambda value: value is True,
+            timeout=5.0,
+        )
+        wait_for_js_condition(
+            editor.web,
+            _split_value_state_js("aqe:trim-left"),
+            lambda value: value is not None and value["inputValue"] == "250",
+            timeout=5.0,
+        )
+        wait_for_js_condition(
+            editor.web,
+            _set_split_value_input_js("aqe:trim-left", "350"),
+            lambda value: value is True,
+            timeout=5.0,
+        )
+        wait_for_js_condition(
+            editor.web,
+            _split_value_state_js("aqe:trim-left"),
+            lambda value: value is not None and value["sliderValue"] == "350",
+            timeout=5.0,
+        )
+        trim_name = _click_and_wait_for_new_file(
+            editor,
+            note,
+            media_dir,
+            "aqe:trim-left",
+            source.name,
+        )
+        wait_for_condition(
+            lambda: (
+                (session := _SESSIONS.get(editor)) is not None
+                and session.state is not None
+                and session.state.left_trim_ms == 350
+            ),
+            timeout=5.0,
+            message="Trim tooltip input did not apply the local 350 ms value",
+        )
+
+        wait_for_selector(editor.web, _button_selector("aqe:volume-up"), timeout=10.0)
+        click_selector(editor.web, _split_menu_selector("aqe:volume-up"), timeout=5.0)
+        wait_for_js_condition(
+            editor.web,
+            _set_split_value_input_js("aqe:volume-up", "6.5"),
+            lambda value: value is True,
+            timeout=5.0,
+        )
+        wait_for_js_condition(
+            editor.web,
+            _split_value_state_js("aqe:volume-up"),
+            lambda value: value is not None and value["sliderValue"] == "6.5",
+            timeout=5.0,
+        )
+        volume_name = _click_and_wait_for_new_file(
+            editor,
+            note,
+            media_dir,
+            "aqe:volume-up",
+            trim_name,
+        )
+        wait_for_condition(
+            lambda: (
+                (session := _SESSIONS.get(editor)) is not None
+                and session.state is not None
+                and session.state.volume_db == 6.5
+            ),
+            timeout=5.0,
+            message="Volume tooltip input did not apply the local 6.5 dB value",
+        )
+
+        wait_for_selector(editor.web, _button_selector("aqe:faster"), timeout=10.0)
+        click_selector(editor.web, _split_menu_selector("aqe:faster"), timeout=5.0)
+        wait_for_js_condition(
+            editor.web,
+            _set_split_value_input_js("aqe:faster", "1.12"),
+            lambda value: value is True,
+            timeout=5.0,
+        )
+        wait_for_js_condition(
+            editor.web,
+            _split_value_state_js("aqe:faster"),
+            lambda value: value is not None and value["sliderValue"] == "0.12",
+            timeout=5.0,
+        )
+        faster_name = _click_and_wait_for_new_file(
+            editor,
+            note,
+            media_dir,
+            "aqe:faster",
+            volume_name,
+        )
+        wait_for_condition(
+            lambda: (
+                (session := _SESSIONS.get(editor)) is not None
+                and session.state is not None
+                and session.state.speed == 1.12
+            ),
+            timeout=5.0,
+            message="Faster tooltip input did not apply the local x1.12 value",
+        )
+
+        wait_for_selector(editor.web, _button_selector("aqe:slower"), timeout=10.0)
+        click_selector(editor.web, _split_menu_selector("aqe:slower"), timeout=5.0)
+        wait_for_js_condition(
+            editor.web,
+            _set_split_slider_js("aqe:slower", "0.08"),
+            lambda value: value is True,
+            timeout=5.0,
+        )
+        wait_for_js_condition(
+            editor.web,
+            _split_value_state_js("aqe:slower"),
+            lambda value: value is not None and value["inputValue"] == "0.92",
+            timeout=5.0,
+        )
+        wait_for_js_condition(
+            editor.web,
+            _set_split_value_input_js("aqe:slower", "0.88"),
+            lambda value: value is True,
+            timeout=5.0,
+        )
+        wait_for_js_condition(
+            editor.web,
+            _split_value_state_js("aqe:slower"),
+            lambda value: value is not None and value["sliderValue"] == "0.12",
+            timeout=5.0,
+        )
+        _click_and_wait_for_new_file(
+            editor,
+            note,
+            media_dir,
+            "aqe:slower",
+            faster_name,
+        )
+        wait_for_condition(
+            lambda: (
+                (session := _SESSIONS.get(editor)) is not None
+                and session.state is not None
+                and session.state.speed == 1.0
+            ),
+            timeout=5.0,
+            message="Slower tooltip input did not apply the local x0.88 value",
+        )
     finally:
         editor.set_note(None)
         parent.close()

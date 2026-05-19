@@ -197,6 +197,67 @@ afterEach(() => {
     expect(speedPayload?.overrides?.speedStep).toBe(0.1);
   });
 
+  it("syncs split tooltip value inputs with sliders", async () => {
+    renderFields();
+    window.__aqeSplitButtonStates = {};
+    window.__AQE_EDITOR_CONFIG__ = {
+      audioFieldIndices: [0],
+      splitButtonDefaults: {
+        denoiseAlgorithm: "standard",
+        pauseAggressiveness: "normal",
+        speedStep: 0.05,
+        trimStepMs: 100,
+        volumeStepDb: 3,
+      },
+    };
+    initializeEditorRuntime(window.__AQE_EDITOR_CONFIG__);
+    scan(window.__AQE_EDITOR_CONFIG__);
+
+    document.querySelector<HTMLButtonElement>('[data-testid="aqe-split-0-trim-left-menu"]')!.click();
+    await Promise.resolve();
+    const trimInput = document.querySelector<HTMLInputElement>('[data-testid="aqe-split-0-trim-left-value"]')!;
+    const trimSlider = document.querySelector<HTMLInputElement>('[data-testid="aqe-split-0-trim-left-slider"]')!;
+    trimSlider.value = "250";
+    trimSlider.dispatchEvent(new Event("input", { bubbles: true }));
+    await Promise.resolve();
+    expect(trimInput.value).toBe("250");
+    trimInput.value = "350";
+    trimInput.dispatchEvent(new Event("input", { bubbles: true }));
+    await Promise.resolve();
+    expect(trimSlider.value).toBe("350");
+    document.querySelector<HTMLButtonElement>('[data-testid="aqe-button-0-trim-left"]')!.click();
+    expect(window.__aqePendingCommandPayload?.overrides?.trimStepMs).toBe(350);
+    window.__aqePendingCommandPayload = null;
+    window.__aqeSetBusy?.(0, false);
+
+    document.querySelector<HTMLButtonElement>('[data-testid="aqe-split-0-volume-up-menu"]')!.click();
+    await Promise.resolve();
+    const volumeInput = document.querySelector<HTMLInputElement>('[data-testid="aqe-split-0-volume-up-value"]')!;
+    const volumeSlider = document.querySelector<HTMLInputElement>('[data-testid="aqe-split-0-volume-up-slider"]')!;
+    volumeInput.value = "6.5";
+    volumeInput.dispatchEvent(new Event("input", { bubbles: true }));
+    await Promise.resolve();
+    expect(volumeSlider.value).toBe("6.5");
+    document.querySelector<HTMLButtonElement>('[data-testid="aqe-button-0-volume-up"]')!.click();
+    const volumePayload = window.__aqePendingCommandPayload as EditorCommandPayload | null | undefined;
+    expect(volumePayload?.overrides?.volumeStepDb).toBe(6.5);
+    window.__aqePendingCommandPayload = null;
+    window.__aqeSetBusy?.(0, false);
+
+    document.querySelector<HTMLButtonElement>('[data-testid="aqe-split-0-slower-menu"]')!.click();
+    await Promise.resolve();
+    const slowerInput = document.querySelector<HTMLInputElement>('[data-testid="aqe-split-0-slower-value"]')!;
+    const slowerSlider = document.querySelector<HTMLInputElement>('[data-testid="aqe-split-0-slower-slider"]')!;
+    expect(slowerInput.value).toBe("0.95");
+    slowerInput.value = "0.88";
+    slowerInput.dispatchEvent(new Event("input", { bubbles: true }));
+    await Promise.resolve();
+    expect(slowerSlider.value).toBe("0.12");
+    document.querySelector<HTMLButtonElement>('[data-testid="aqe-button-0-slower"]')!.click();
+    const speedPayload = window.__aqePendingCommandPayload as EditorCommandPayload | null | undefined;
+    expect(speedPayload?.overrides?.speedStep).toBe(0.12);
+  });
+
   it("dispatches pause aggressiveness split payloads with local values", async () => {
     renderFields();
     window.__AQE_EDITOR_CONFIG__ = {

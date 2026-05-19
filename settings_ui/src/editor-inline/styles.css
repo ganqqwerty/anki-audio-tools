@@ -132,6 +132,21 @@
   font-size: 11px;
 }
 
+.aqe-split-value-input {
+  background: Field;
+  border: 1px solid;
+  border-color: ButtonBorder;
+  border-radius: 5px;
+  box-sizing: border-box;
+  color: FieldText;
+  font: inherit;
+  font-size: 11px;
+  min-height: 24px;
+  padding: 2px 4px;
+  text-align: right;
+  width: 66px;
+}
+
 .aqe-split-presets {
   gap: 5px;
 }
