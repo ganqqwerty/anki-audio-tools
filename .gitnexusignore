@@ -7,10 +7,37 @@ FEATURES-SPECIFICATION.iml
 # Machine-readable specifications are maintained as docs/contracts, not runtime
 # execution flow.
 *.schema.json
+package-lock.json
+release_assets.lock.json
 
-# Auto-generated Svelte bundle outputs shipped into the Anki add-on.
-addon/anki_audio_quick_editor/templates/editor/editor_bundle.css
-addon/anki_audio_quick_editor/templates/editor/editor_bundle.js
-addon/anki_audio_quick_editor/templates/settings/settings_bundle.css
-addon/anki_audio_quick_editor/templates/settings/settings_bundle.js
+# Generated source and webview artifacts.
+addon/anki_audio_quick_editor/contracts_generated.py
+settings_ui/src/lib/generated/
+addon/anki_audio_quick_editor/templates/editor/editor_bundle.*
+addon/anki_audio_quick_editor/templates/settings/settings_bundle.*
+
+# Runtime, release, and test artifacts.
 addon/anki_audio_quick_editor/aqe_artifacts/
+addon/anki_audio_quick_editor/bin/
+e2e/fixtures/audio/
+dist/
+.release-assets/
+mutants/
+
+# Local dependency, cache, and report directories.
+addon/anki_audio_quick_editor/vendor/
+.venv/
+node_modules/
+settings_ui/node_modules/
+settings_ui/coverage/
+htmlcov/
+.coverage
+coverage.xml
+coverage.json
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.scannerwork/
+.gitnexus/
+.superpowers/
+.worktrees/
