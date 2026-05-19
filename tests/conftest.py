@@ -206,9 +206,9 @@ class _SoundOrVideoTag:
 _qt = types.ModuleType("aqt.qt")
 _QT_CLASS_NAMES = """
     QAction qconnect QDialog QVBoxLayout QHBoxLayout QLabel QTextEdit QPushButton
-    QGroupBox QScrollArea QPlainTextEdit QProgressBar QComboBox QLineEdit QTabWidget
-    QDialogButtonBox QWidget QGridLayout QCheckBox QDesktopServices QMessageBox QMenu
-    Qt QFileDialog QApplication QTimer QUrl
+    QGroupBox QScrollArea QPlainTextEdit QProgressBar QComboBox QDoubleSpinBox
+    QLineEdit QTabWidget QDialogButtonBox QWidget QGridLayout QCheckBox QDesktopServices
+    QMessageBox QMenu Qt QFileDialog QApplication QTimer QUrl
 """.split()
 _QT_MOCKS = {name: _named_mock(f"aqt.qt.{name}") for name in _QT_CLASS_NAMES}
 for _name, _mock in _QT_MOCKS.items():

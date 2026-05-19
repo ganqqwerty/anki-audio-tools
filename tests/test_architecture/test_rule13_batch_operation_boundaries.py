@@ -24,6 +24,14 @@ def test_batch_core_modules_avoid_editor_bridge_strings() -> None:
         assert "aqe:" not in text, relative
 
 
+def test_batch_and_editor_share_operation_parameter_helper() -> None:
+    editor_text = (ADDON_DIR / "editor_actions.py").read_text(encoding="utf-8")
+    batch_text = (ADDON_DIR / "batch_operations.py").read_text(encoding="utf-8")
+
+    assert "audio_operation_params" in editor_text
+    assert "audio_operation_params" in batch_text
+
+
 def test_browser_integration_avoids_editor_actions_module() -> None:
     path = ADDON_DIR / "browser_integration.py"
     hits = _imports_addon_modules(get_all_imports(path), {"editor_actions"}, path)

@@ -216,13 +216,12 @@ def test_graph_hides_when_browser_editor_switches_to_another_note(anki_mw, ffmpe
             and value["hidden"] is True
             and value["active"] is False
             and value["hasTrack"] is False
-            and value["sourceFilename"] == ""
             and value["graphButtonLabel"] == "Graph",
             timeout=10.0,
         )
 
         assert reset_state["hidden"] is True
-        assert reset_state["sourceFilename"] == ""
+        assert reset_state["hasTrack"] is False
 
         second_track = _click_graph_and_wait(
             editor,

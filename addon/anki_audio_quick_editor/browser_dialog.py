@@ -5,17 +5,26 @@ from __future__ import annotations
 import logging
 import threading
 from collections.abc import Callable
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
+from .audio_operation_params import AudioOperationParameters, parameters_from_raw
 from .audio_operations import (
     BATCH_OPERATIONS,
+    OP_FASTER,
     OP_GRAPH,
+    OP_REMOVE_PAUSES,
+    OP_SLOWER,
+    OP_VOLUME_DOWN,
+    OP_VOLUME_UP,
     operation_label,
     requires_target_field,
 )
 from .batch_operations import BatchRunRequest, FieldGroup
 from .browser_report import BatchRunReport
 from .i18n import active_context, format_message
+
+if TYPE_CHECKING:
+    from .audio_state import AudioProcessingConfig
 
 logger = logging.getLogger(__name__)
 
@@ -28,11 +37,13 @@ class BatchOperationsDialog:
         browser: Any,
         note_ids: list[int],
         groups: tuple[FieldGroup, ...],
+        config: AudioProcessingConfig,
         run_batch_in_background: Callable[[Any, Any, list[int], BatchRunRequest], None],
     ) -> None:
         from aqt.qt import (
             QComboBox,
             QDialog,
+            QDoubleSpinBox,
             QLabel,
             QPlainTextEdit,
             QProgressBar,
@@ -47,6 +58,7 @@ class BatchOperationsDialog:
         self._run_batch_in_background = run_batch_in_background
         self._running = False
         self._finished = False
+        self._config = config
         self._dialog = QDialog(browser)
         self._dialog.setWindowTitle(self.tr("batch.window_title"))
         self._dialog.setMinimumWidth(680)
@@ -57,11 +69,18 @@ class BatchOperationsDialog:
         self._source_combo = QComboBox()
         self._target_label = QLabel(self.tr("batch.target_field"))
         self._target_combo = QComboBox()
+        self._speed_label = QLabel(self.tr("settings.speed_step"))
+        self._speed_spin = QDoubleSpinBox()
+        self._volume_label = QLabel(self.tr("settings.volume_step_db"))
+        self._volume_spin = QDoubleSpinBox()
+        self._pause_label = QLabel(self.tr("settings.pause_aggressiveness"))
+        self._pause_combo = QComboBox()
         self._progress = QProgressBar()
         self._log = QPlainTextEdit()
         self._start_button = QPushButton(self.tr("batch.start"))
         self._copy_button = QPushButton(self.tr("batch.copy_log"))
         self._cancel_button = QPushButton(self.tr("batch.cancel"))
+        self._configure_parameter_controls(config)
         self._build_layout(groups)
         self._connect_buttons()
 
@@ -80,6 +99,7 @@ class BatchOperationsDialog:
         layout.addWidget(self._status_label)
         layout.addLayout(self._operation_row())
         layout.addLayout(self._field_row(groups))
+        layout.addLayout(self._parameter_row())
         self._progress.setMinimum(0)
         self._progress.setMaximum(len(self.note_ids))
         self._progress.setValue(0)
@@ -116,6 +136,34 @@ class BatchOperationsDialog:
         field_row.addWidget(self._target_combo)
         return field_row
 
+    def _parameter_row(self) -> Any:
+        from aqt.qt import QHBoxLayout
+
+        row = QHBoxLayout()
+        row.addWidget(self._speed_label)
+        row.addWidget(self._speed_spin)
+        row.addWidget(self._volume_label)
+        row.addWidget(self._volume_spin)
+        row.addWidget(self._pause_label)
+        row.addWidget(self._pause_combo)
+        return row
+
+    def _configure_parameter_controls(self, config: AudioProcessingConfig) -> None:
+        self._speed_spin.setRange(0.01, 0.25)
+        self._speed_spin.setSingleStep(0.01)
+        self._speed_spin.setDecimals(2)
+        self._speed_spin.setValue(config.speed_step)
+        self._volume_spin.setRange(0.5, 12.0)
+        self._volume_spin.setSingleStep(0.5)
+        self._volume_spin.setDecimals(1)
+        self._volume_spin.setValue(config.volume_step_db)
+        for value in ("gentle", "normal", "aggressive"):
+            self._pause_combo.addItem(self.tr(f"settings.pause_aggressiveness.{value}"), value)
+        selected_index = self._pause_combo.findData(config.pause_aggressiveness)
+        self._pause_combo.setCurrentIndex(
+            selected_index if isinstance(selected_index, int) and selected_index >= 0 else 0
+        )
+
     def _connect_buttons(self) -> None:
         from aqt.qt import qconnect
 
@@ -133,6 +181,7 @@ class BatchOperationsDialog:
                 operation=str(operation),
                 source_field=str(source_field or ""),
                 target_field=str(target_field) if target_field else None,
+                parameters=self._selected_parameters(),
             )
         except ValueError as exc:
             self.append_log(str(exc))
@@ -141,6 +190,7 @@ class BatchOperationsDialog:
         self._operation_combo.setEnabled(False)
         self._source_combo.setEnabled(False)
         self._target_combo.setEnabled(False)
+        self._sync_target_visibility()
         self._start_button.setEnabled(False)
         self._status_label.setText(
             self.tr("batch.starting", {"operation": operation_label(request.operation, self._messages)})
@@ -157,6 +207,24 @@ class BatchOperationsDialog:
             self,
             self.note_ids,
             request,
+        )
+
+    def _selected_parameters(self) -> AudioOperationParameters:
+        operation = str(self._operation_combo.currentData() or OP_GRAPH)
+        return parameters_from_raw(
+            speed_step=(
+                float(self._speed_spin.value())
+                if operation in {OP_SLOWER, OP_FASTER}
+                else None
+            ),
+            volume_step_db=(
+                float(self._volume_spin.value())
+                if operation in {OP_VOLUME_DOWN, OP_VOLUME_UP}
+                else None
+            ),
+            pause_aggressiveness=(
+                self._pause_combo.currentData() if operation == OP_REMOVE_PAUSES else None
+            ),
         )
 
     def append_log(self, line: str) -> None:
@@ -215,9 +283,21 @@ class BatchOperationsDialog:
     def _sync_target_visibility(self) -> None:
         operation = str(self._operation_combo.currentData() or OP_GRAPH)
         needs_target = requires_target_field(operation)
+        show_speed = operation in {OP_SLOWER, OP_FASTER}
+        show_volume = operation in {OP_VOLUME_DOWN, OP_VOLUME_UP}
+        show_pause = operation == OP_REMOVE_PAUSES
         self._target_label.setVisible(needs_target)
         self._target_combo.setVisible(needs_target)
         self._target_combo.setEnabled(needs_target and not self._running)
+        self._speed_label.setVisible(show_speed)
+        self._speed_spin.setVisible(show_speed)
+        self._speed_spin.setEnabled(show_speed and not self._running)
+        self._volume_label.setVisible(show_volume)
+        self._volume_spin.setVisible(show_volume)
+        self._volume_spin.setEnabled(show_volume and not self._running)
+        self._pause_label.setVisible(show_pause)
+        self._pause_combo.setVisible(show_pause)
+        self._pause_combo.setEnabled(show_pause and not self._running)
 
 
 def _populate_combo(combo: Any, groups: tuple[FieldGroup, ...]) -> None:

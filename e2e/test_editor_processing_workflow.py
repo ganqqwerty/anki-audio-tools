@@ -117,10 +117,11 @@ def test_each_processing_button_updates_field_to_new_real_audio(
             })()
             """,
             lambda state: state["labels"]
-            == [
-                "Play",
-                "Repeat",
-                "Graph",
+                == [
+                    "Play",
+                    "Repeat",
+                    "Options",
+                    "Graph",
                 "Folder",
                 "-L",
                 "Options",

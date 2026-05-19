@@ -3,9 +3,14 @@
 from __future__ import annotations
 
 import json
-from dataclasses import dataclass, replace
+from dataclasses import dataclass
 from typing import Any
 
+from .audio_operation_params import (
+    AudioOperationParameters,
+    effective_config_for_operation,
+    parameters_from_raw,
+)
 from .audio_operations import (
     OP_FASTER,
     OP_REMOVE_PAUSES,
@@ -31,13 +36,6 @@ CMD_ANALYZE_FIELD = "aqe:analyze-field"
 CMD_COMMAND_PAYLOAD = "aqe:command-payload"
 CMD_SETTINGS = "aqe:settings"
 CMD_REDO = "aqe:redo"
-MIN_TRIM_OVERRIDE_MS = 50
-MAX_TRIM_OVERRIDE_MS = 10_000
-MIN_VOLUME_STEP_DB = 0.5
-MAX_VOLUME_STEP_DB = 12.0
-MIN_SPEED_STEP = 0.01
-MAX_SPEED_STEP = 0.25
-PAUSE_AGGRESSIVENESS = frozenset({"gentle", "normal", "aggressive"})
 
 BRIDGE_COMMANDS = (
     "aqe:scan",
@@ -113,48 +111,20 @@ def _int_or_none(value: Any) -> int | None:
     return None
 
 
-def _float_or_none(value: Any) -> float | None:
-    if isinstance(value, bool):
-        return None
-    if isinstance(value, int | float):
-        return float(value)
-    return None
-
-
-def _clamp_trim_step_ms(value: int | None) -> int | None:
-    if value is None:
-        return None
-    return max(MIN_TRIM_OVERRIDE_MS, min(MAX_TRIM_OVERRIDE_MS, value))
-
-
-def _clamp_float(value: float | None, minimum: float, maximum: float) -> float | None:
-    if value is None:
-        return None
-    return max(minimum, min(maximum, value))
-
-
-def _pause_aggressiveness_or_none(value: Any) -> str | None:
-    if not isinstance(value, str):
-        return None
-    return value if value in PAUSE_AGGRESSIVENESS else None
-
-
 def _overrides_from_raw(raw: Any) -> EditorCommandOverrides:
     if not isinstance(raw, dict):
         return EditorCommandOverrides()
+    params = parameters_from_raw(
+        trim_step_ms=raw.get("trimStepMs"),
+        volume_step_db=raw.get("volumeStepDb"),
+        speed_step=raw.get("speedStep"),
+        pause_aggressiveness=raw.get("pauseAggressiveness"),
+    )
     return EditorCommandOverrides(
-        trim_step_ms=_clamp_trim_step_ms(_int_or_none(raw.get("trimStepMs"))),
-        volume_step_db=_clamp_float(
-            _float_or_none(raw.get("volumeStepDb")),
-            MIN_VOLUME_STEP_DB,
-            MAX_VOLUME_STEP_DB,
-        ),
-        speed_step=_clamp_float(
-            _float_or_none(raw.get("speedStep")),
-            MIN_SPEED_STEP,
-            MAX_SPEED_STEP,
-        ),
-        pause_aggressiveness=_pause_aggressiveness_or_none(raw.get("pauseAggressiveness")),
+        trim_step_ms=params.trim_step_ms,
+        volume_step_db=params.volume_step_db,
+        speed_step=params.speed_step,
+        pause_aggressiveness=params.pause_aggressiveness,
     )
 
 
@@ -191,17 +161,18 @@ def processing_config_for_command(
 ) -> AudioProcessingConfig:
     """Return the effective render config for a local editor command."""
     payload = decode_editor_command_payload(command)
-    effective_config = replace(
+    operation = operation_for_command(payload.command)
+    if operation is None:
+        return config
+    return effective_config_for_operation(
+        operation,
         config,
-        volume_step_db=payload.overrides.volume_step_db or config.volume_step_db,
-        speed_step=payload.overrides.speed_step or config.speed_step,
+        AudioOperationParameters(
+            volume_step_db=payload.overrides.volume_step_db,
+            speed_step=payload.overrides.speed_step,
+            pause_aggressiveness=payload.overrides.pause_aggressiveness,
+        ),
     )
-    if operation_for_command(payload.command) == OP_REMOVE_PAUSES:
-        return _config_for_pause_aggressiveness(
-            effective_config,
-            payload.overrides.pause_aggressiveness or config.pause_aggressiveness,
-        )
-    return effective_config
 
 
 def apply_processing_command(
@@ -221,26 +192,3 @@ def apply_processing_command(
     if operation is None:
         return None
     return apply_audio_operation(operation, state, effective_config)
-
-
-def _config_for_pause_aggressiveness(
-    config: AudioProcessingConfig,
-    aggressiveness: str,
-) -> AudioProcessingConfig:
-    if aggressiveness == "gentle":
-        return replace(
-            config,
-            internal_pause_silence_threshold_db=-42,
-            internal_pause_threshold_ms=450,
-            internal_pause_target_gap_ms=180,
-            pause_aggressiveness=aggressiveness,
-        )
-    if aggressiveness == "aggressive":
-        return replace(
-            config,
-            internal_pause_silence_threshold_db=-50,
-            internal_pause_threshold_ms=180,
-            internal_pause_target_gap_ms=60,
-            pause_aggressiveness=aggressiveness,
-        )
-    return replace(config, pause_aggressiveness="normal")

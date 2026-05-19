@@ -56,7 +56,7 @@ def test_mocked_anki_callable_uses_are_declared(use: CallableUse) -> None:
     assert _resolve_declared(module, use.qualname) is not None
 
 
-def test_browser_hook_wrapper_signatures_are_discovered() -> None:
+def test_browser_menu_hook_wrapper_signature_is_discovered() -> None:
     browser_hooks = {
         use.qualname: use
         for use in SURFACE.callable_uses
@@ -64,4 +64,4 @@ def test_browser_hook_wrapper_signatures_are_discovered() -> None:
     }
 
     assert browser_hooks["browser_menus_did_init"].exact_parameter_names == ("browser",)
-    assert browser_hooks["browser_will_show_context_menu"].exact_parameter_names == ("browser", "menu")
+    assert "browser_will_show_context_menu" not in browser_hooks

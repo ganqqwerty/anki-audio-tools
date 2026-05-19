@@ -29,12 +29,9 @@ ACTION_LABEL = "Run Audio Batch Operation..."
 UNDO_LABEL = "Batch Audio Operation"
 
 def register_browser_hooks(gui_hooks: Any) -> None:
-    """Register Browser menu and context-menu hooks."""
+    """Register Browser menu hooks."""
     gui_hooks.browser_menus_did_init.append(
         _browser_hook_boundary("browser_menus_did_init", _on_browser_menus_did_init)
-    )
-    gui_hooks.browser_will_show_context_menu.append(
-        _browser_hook_boundary("browser_will_show_context_menu", _on_browser_will_show_context_menu)
     )
 
 
@@ -57,15 +54,6 @@ def _on_browser_menus_did_init(browser: Any) -> None:
     qconnect(action.triggered, lambda _checked=False, b=browser: _open_batch_dialog(b))
 
 
-def _on_browser_will_show_context_menu(browser: Any, menu: Any) -> None:
-    from aqt.qt import qconnect
-
-    menu.addSeparator()
-    action = menu.addAction(_tr("batch.action"))
-    assert action is not None
-    qconnect(action.triggered, lambda _checked=False, b=browser: _open_batch_dialog(b))
-
-
 def _open_batch_dialog(browser: Any) -> None:
     from aqt.utils import showWarning
 
@@ -80,7 +68,10 @@ def _open_batch_dialog(browser: Any) -> None:
         showWarning(_tr("batch.no_fields"), parent=browser)
         return
 
-    dialog = _create_dialog(browser, note_ids, groups)
+    config = AudioProcessingConfig.from_config(
+        browser.mw.addonManager.getConfig(browser.mw.addonManager.addonFromModule(__name__)) or {}
+    )
+    dialog = _create_dialog(browser, note_ids, groups, config)
     dialog.exec()
 
 
@@ -101,8 +92,13 @@ def _snapshot_from_note(note: Any) -> BatchNoteSnapshot:
     )
 
 
-def _create_dialog(browser: Any, note_ids: list[int], groups: tuple[FieldGroup, ...]) -> Any:
-    return BatchOperationsDialog(browser, note_ids, groups, _run_batch_in_background)
+def _create_dialog(
+    browser: Any,
+    note_ids: list[int],
+    groups: tuple[FieldGroup, ...],
+    config: AudioProcessingConfig,
+) -> Any:
+    return BatchOperationsDialog(browser, note_ids, groups, config, _run_batch_in_background)
 
 
 
@@ -204,6 +200,7 @@ def _run_batch(
                 "operation": repr(request.operation),
                 "source": repr(request.source_field),
                 "target": repr(request.target_field),
+                "parameters": _format_parameters(request),
             },
         )
     )
@@ -244,6 +241,18 @@ def _run_batch(
 
     report.add(report.summary)
     return report
+
+
+def _format_parameters(request: BatchRunRequest) -> str:
+    params = request.parameters
+    values: list[str] = []
+    if request.operation in {"slower", "faster"} and params.speed_step is not None:
+        values.append(f"speed_step={params.speed_step}")
+    if request.operation in {"volume_down", "volume_up"} and params.volume_step_db is not None:
+        values.append(f"volume_step_db={params.volume_step_db}")
+    if request.operation == "remove_pauses" and params.pause_aggressiveness is not None:
+        values.append(f"pause_aggressiveness={params.pause_aggressiveness}")
+    return ", ".join(values) if values else "defaults"
 
 
 def _tr(key: str, values: dict[str, object] | None = None) -> str:

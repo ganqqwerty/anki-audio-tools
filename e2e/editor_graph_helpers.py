@@ -23,6 +23,7 @@ def _visualizer_js(ord_: int = 0) -> str:
         active: visualizer.dataset.graphActive === "true",
         busy: visualizer.dataset.graphBusy === "true",
         hidden: visualizer.hidden,
+        hasTrack: visualizer.dataset.hasTrack === "true",
         durationMs: Number(visualizer.dataset.durationMs || "0"),
         sourceFilename: visualizer.dataset.sourceFilename || "",
         analyzerName: visualizer.dataset.analyzerName || "",
@@ -68,6 +69,7 @@ def _wait_for_visualizer_track(editor, predicate=lambda track: True, timeout: fl
         editor.web,
         _visualizer_js(ord_),
         lambda track: track is not None
+        and track["hasTrack"] is True
         and track["durationMs"] > 0
         and track["allButtonsDisabled"] is False
         and predicate(track),

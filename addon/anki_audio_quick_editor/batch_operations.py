@@ -6,10 +6,14 @@ import html
 import logging
 import shutil
 from collections.abc import Callable, Sequence
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import datetime
 from pathlib import Path
 
+from .audio_operation_params import (
+    AudioOperationParameters,
+    effective_config_for_operation,
+)
 from .audio_operations import (
     OP_GRAPH,
     apply_audio_operation,
@@ -43,6 +47,7 @@ class BatchRunRequest:
     operation: str
     source_field: str
     target_field: str | None = None
+    parameters: AudioOperationParameters = field(default_factory=AudioOperationParameters)
 
     def __post_init__(self) -> None:
         operation = validate_operation(self.operation)
@@ -292,17 +297,22 @@ def _process_transform_operation(
 ) -> BatchNoteResult:
     output_path: Path | None = None
     try:
+        effective_config = effective_config_for_operation(
+            request.operation,
+            config,
+            request.parameters,
+        )
         updated_state = apply_audio_operation(
             request.operation,
             AudioEditState(source_file=audio_filename),
-            config,
+            effective_config,
         )
         desired_name = make_output_filename(audio_filename)
         output_path = temp_final_path(desired_name)
         render_audio(
             source_path,
             updated_state,
-            config,
+            effective_config,
             output_path=output_path,
             artifact_root=artifact_root,
         )

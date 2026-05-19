@@ -208,7 +208,7 @@ def test_show_graph_default_setting_change_applies_to_later_editor_loads(
 
         assert state["active"] is False
         assert state["hidden"] is True
-        assert state["sourceFilename"] == ""
+        assert state["hasTrack"] is False
         assert state["graphButtonLabel"] == "Graph"
     finally:
         editor.set_note(None)

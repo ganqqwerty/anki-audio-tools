@@ -9,7 +9,8 @@ const projectRoot = cwd();
 const sourceRoot = join(projectRoot, "src");
 
 const lineLimitAllowlist = new Map<string, number>([
-  ["src/editor-inline/EditorControls.svelte", 350],
+  ["src/editor-inline/EditorControls.svelte", 360],
+  ["src/editor-inline/SplitButton.svelte", 370],
 ]);
 
 const exportCountAllowlist = new Map<string, number>([

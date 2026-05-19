@@ -50,7 +50,13 @@ UI_CONTRACTS: dict[str, ModuleContract] = {
     "browser_dialog": contract(
         "browser_dialog",
         layer=Layer.UI_ADAPTER,
-        allowed_addon_deps=("audio_operations", "batch_operations", "browser_report", "i18n"),
+        allowed_addon_deps=(
+            "audio_operation_params",
+            "audio_operations",
+            "batch_operations",
+            "browser_report",
+            "i18n",
+        ),
         allowed_side_effects=(SideEffect.ANKI_IMPORTS_ANYWHERE,),
         allow_any_anki_imports=True,
     ),

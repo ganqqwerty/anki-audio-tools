@@ -5,7 +5,13 @@ from __future__ import annotations
 from datetime import datetime
 from pathlib import Path
 
-from anki_audio_quick_editor.audio_operations import OP_FASTER, OP_GRAPH, OP_VOLUME_DOWN
+from anki_audio_quick_editor.audio_operation_params import AudioOperationParameters
+from anki_audio_quick_editor.audio_operations import (
+    OP_FASTER,
+    OP_GRAPH,
+    OP_REMOVE_PAUSES,
+    OP_VOLUME_DOWN,
+)
 from anki_audio_quick_editor.audio_state import AudioProcessingConfig
 from anki_audio_quick_editor.batch_operations import (
     BatchNoteSnapshot,
@@ -191,6 +197,87 @@ def test_process_note_batch_operation_replaces_audio_reference_for_transform(
     assert result.written_filename in result.target_html
     assert render_calls == [("clip.mp3", 1.1)]
     assert writes[0][1] == b"rendered"
+
+
+def test_process_note_batch_operation_uses_speed_parameter_for_transform(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    source = tmp_path / "clip.mp3"
+    source.write_bytes(b"audio")
+    note = BatchNoteSnapshot(10, "Basic", {"Audio": "[sound:clip.mp3]"})
+    speeds: list[float] = []
+
+    def fake_render_audio(
+        source_path,
+        state,
+        _config,
+        output_path=None,
+        on_command=None,
+        artifact_root=None,
+    ):
+        del source_path, _config, on_command, artifact_root
+        assert output_path is not None
+        speeds.append(state.speed)
+        output_path.write_bytes(b"rendered")
+
+    monkeypatch.setattr("anki_audio_quick_editor.batch_operations.render_audio", fake_render_audio)
+
+    result = process_note_batch_operation(
+        note,
+        request=BatchRunRequest(
+            operation=OP_FASTER,
+            source_field="Audio",
+            parameters=AudioOperationParameters(speed_step=0.2),
+        ),
+        media_dir=tmp_path,
+        config=AudioProcessingConfig(speed_step=0.05),
+        media_writer=lambda name, data: name,
+    )
+
+    assert result.written
+    assert speeds == [1.2]
+
+
+def test_process_note_batch_operation_uses_pause_aggressiveness_parameter(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    source = tmp_path / "clip.mp3"
+    source.write_bytes(b"audio")
+    note = BatchNoteSnapshot(10, "Basic", {"Audio": "[sound:clip.mp3]"})
+    configs: list[AudioProcessingConfig] = []
+
+    def fake_render_audio(
+        source_path,
+        state,
+        config,
+        output_path=None,
+        on_command=None,
+        artifact_root=None,
+    ):
+        del source_path, state, on_command, artifact_root
+        assert output_path is not None
+        configs.append(config)
+        output_path.write_bytes(b"rendered")
+
+    monkeypatch.setattr("anki_audio_quick_editor.batch_operations.render_audio", fake_render_audio)
+
+    result = process_note_batch_operation(
+        note,
+        request=BatchRunRequest(
+            operation=OP_REMOVE_PAUSES,
+            source_field="Audio",
+            parameters=AudioOperationParameters(pause_aggressiveness="gentle"),
+        ),
+        media_dir=tmp_path,
+        config=AudioProcessingConfig(pause_aggressiveness="normal"),
+        media_writer=lambda name, data: name,
+    )
+
+    assert result.written
+    assert configs[0].pause_aggressiveness == "gentle"
+    assert configs[0].internal_pause_threshold_ms == 450
 
 
 def test_process_note_batch_operation_resolves_windows_case_variant(

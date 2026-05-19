@@ -9,6 +9,7 @@ from unittest.mock import MagicMock
 
 import aqt
 
+from anki_audio_quick_editor.audio_operation_params import AudioOperationParameters
 from anki_audio_quick_editor.audio_operations import OP_FASTER, OP_GRAPH
 from anki_audio_quick_editor.audio_state import AudioProcessingConfig
 from anki_audio_quick_editor.batch_operations import BatchNoteResult, BatchRunRequest
@@ -30,7 +31,7 @@ def test_register_browser_hooks() -> None:
     register_browser_hooks(hooks)
 
     hooks.browser_menus_did_init.append.assert_called_once()
-    hooks.browser_will_show_context_menu.append.assert_called_once()
+    hooks.browser_will_show_context_menu.append.assert_not_called()
 
 
 def test_browser_menu_action_is_added() -> None:
@@ -64,18 +65,34 @@ def test_selection_without_fields_shows_warning(monkeypatch) -> None:
 
 
 def test_open_batch_dialog_builds_field_groups_from_selected_notes(monkeypatch) -> None:
-    dialog_calls: list[tuple[list[int], tuple[object, ...]]] = []
+    dialog_calls: list[tuple[object, ...]] = []
 
     class Dialog:
         def exec(self) -> None:
             dialog_calls.append(("exec", ()))  # type: ignore[arg-type]
 
-    def create_dialog(_browser: object, note_ids: list[int], groups: tuple[object, ...]) -> Dialog:
-        dialog_calls.append((note_ids, groups))
+    def create_dialog(
+        _browser: object,
+        note_ids: list[int],
+        groups: tuple[object, ...],
+        config: AudioProcessingConfig,
+    ) -> Dialog:
+        dialog_calls.append((note_ids, groups, config))
         return Dialog()
 
     col = SimpleNamespace(get_note=lambda _note_id: _FakeNote(int(_note_id)))
-    browser = SimpleNamespace(selected_notes=lambda: [2, 1, 2], mw=SimpleNamespace(col=col))
+    addon_manager = SimpleNamespace(
+        addonFromModule=lambda _module: "anki_audio_quick_editor",
+        getConfig=lambda _addon_id: {
+            "speed_step": 0.1,
+            "volume_step_db": 6.0,
+            "pause_aggressiveness": "aggressive",
+        },
+    )
+    browser = SimpleNamespace(
+        selected_notes=lambda: [2, 1, 2],
+        mw=SimpleNamespace(col=col, addonManager=addon_manager),
+    )
     monkeypatch.setattr("anki_audio_quick_editor.browser_integration._create_dialog", create_dialog)
 
     _open_batch_dialog(browser)
@@ -85,6 +102,10 @@ def test_open_batch_dialog_builds_field_groups_from_selected_notes(monkeypatch) 
     assert len(groups) == 1
     assert groups[0].notetype_name == "Basic"
     assert groups[0].fields == ("Audio", "Image")
+    config = dialog_calls[0][2]
+    assert config.speed_step == 0.1
+    assert config.volume_step_db == 6.0
+    assert config.pause_aggressiveness == "aggressive"
     assert dialog_calls[1] == ("exec", ())
 
 
@@ -244,6 +265,38 @@ def test_run_batch_uses_source_field_for_transform_updates(monkeypatch, tmp_path
 
     assert report.written == 1
     assert col.notes[1].fields["Audio"] == "[sound:clip__aqe.mp3]"
+
+
+def test_run_batch_logs_transform_parameters(monkeypatch, tmp_path: Path) -> None:
+    col = _FakeCol()
+    monkeypatch.setattr(
+        "anki_audio_quick_editor.browser_integration._process_note",
+        lambda *_args, **_kwargs: BatchNoteResult(
+            note_id=1,
+            status="skipped",
+            message="source field 'Audio' has no supported sound reference",
+            audio_filename=None,
+        ),
+    )
+    logs: list[str] = []
+
+    _run_batch(
+        col,
+        [1],
+        BatchRunRequest(
+            operation=OP_FASTER,
+            source_field="Audio",
+            parameters=AudioOperationParameters(speed_step=0.1),
+        ),
+        tmp_path,
+        AudioProcessingConfig(),
+        threading.Event(),
+        logs.append,
+        lambda *_args: None,
+    )
+
+    assert "parameters=" in logs[0]
+    assert "speed_step=0.1" in logs[0]
 
 
 def test_run_batch_in_background_publishes_changes_and_finishes_dialog(monkeypatch, tmp_path: Path) -> None:
