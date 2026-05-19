@@ -108,6 +108,51 @@ def test_deep_filter_health_reports_nonzero_version_stderr_with_problematic_file
     }
 
 
+def test_health_checks_forward_window_visibility_kwargs(monkeypatch) -> None:
+    run_kwargs: list[dict[str, object]] = []
+    monkeypatch.setattr(
+        "anki_audio_quick_editor.audio_processor.find_deep_filter",
+        lambda _configured_path: Path("/tools/deep-filter"),
+    )
+    monkeypatch.setattr(
+        "anki_audio_quick_editor.audio_processor.expected_bundled_tool_path",
+        lambda tool_name: Path("/addon/bin/rnnoise-cli") if tool_name == "rnnoise-cli" else None,
+    )
+    monkeypatch.setattr(
+        "anki_audio_quick_editor.audio_processor.find_rnnoise_bundle",
+        lambda: Path("/addon/bin/rnnoise-cli"),
+    )
+    monkeypatch.setattr(
+        "anki_audio_quick_editor.audio_processor._external_command_run_kwargs",
+        lambda: {"creationflags": 0x08000000},
+    )
+
+    def fake_run(
+        _cmd: list[str],
+        *,
+        capture_output: bool,
+        text: bool,
+        check: bool,
+        timeout: int,
+        **kwargs: object,
+    ) -> SimpleNamespace:
+        assert capture_output is True
+        assert text is True
+        assert check is False
+        assert timeout == 10
+        run_kwargs.append(kwargs)
+        return SimpleNamespace(returncode=0, stdout="tool 1.0\n", stderr="")
+
+    monkeypatch.setattr("anki_audio_quick_editor.diagnostics.subprocess.run", fake_run)
+
+    assert build_deep_filter_health({})["available"] is True
+    assert build_rnnoise_health()["available"] is True
+    assert run_kwargs == [
+        {"creationflags": 0x08000000},
+        {"creationflags": 0x08000000},
+    ]
+
+
 def test_rnnoise_health_reports_missing_bundle_at_expected_path(monkeypatch, tmp_path: Path) -> None:
     expected_dir = tmp_path / "rnnoise-cli-macos-arm64"
     expected_path = expected_dir / "rnnoise-cli"

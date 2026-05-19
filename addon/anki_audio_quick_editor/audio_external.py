@@ -3,14 +3,26 @@
 from __future__ import annotations
 
 import json
+import os
 import subprocess  # nosec B404
 import time
 from pathlib import Path
+from typing import Any
 
 from .audio_state import AudioProcessingConfig
 from .audio_tools import find_ffmpeg, find_ffprobe
-from .diagnostics_runtime import new_operation_id, record_breadcrumb
+from .diagnostics_runtime import is_debug_enabled, new_operation_id, record_breadcrumb
 from .errors import AudioProcessingError
+
+
+def _is_windows() -> bool:
+    return os.name == "nt"
+
+
+def _external_command_run_kwargs() -> dict[str, Any]:
+    if not _is_windows() or is_debug_enabled():
+        return {}
+    return {"creationflags": getattr(subprocess, "CREATE_NO_WINDOW", 0)}
 
 
 def probe_duration_ms(source_path: Path, config: AudioProcessingConfig) -> int:
@@ -36,7 +48,13 @@ def probe_duration_ms(source_path: Path, config: AudioProcessingConfig) -> int:
         operation_id=operation_id,
         context={"argv": cmd, "source_path": str(source_path)},
     )
-    result = subprocess.run(cmd, capture_output=True, text=True, check=False)  # nosec B603
+    result = subprocess.run(
+        cmd,
+        capture_output=True,
+        text=True,
+        check=False,
+        **_external_command_run_kwargs(),
+    )  # nosec B603
     record_breadcrumb(
         "external.command.finished",
         source="external",
@@ -80,6 +98,7 @@ def _run_external_command(
             capture_output=True,
             text=True,
             check=False,
+            **_external_command_run_kwargs(),
         )  # nosec B603
         record_breadcrumb(
             "external.command.finished",

@@ -8,7 +8,11 @@ from typing import Any
 
 def build_deep_filter_health(config: dict[str, Any]) -> dict[str, Any]:
     """Return DeepFilterNet executable availability and version details."""
-    from .audio_processor import find_deep_filter, tool_source_label
+    from .audio_processor import (
+        _external_command_run_kwargs,
+        find_deep_filter,
+        tool_source_label,
+    )
 
     configured_path = str(config.get("deep_filter_path", ""))
     try:
@@ -31,6 +35,7 @@ def build_deep_filter_health(config: dict[str, Any]) -> dict[str, Any]:
             text=True,
             check=False,
             timeout=10,
+            **_external_command_run_kwargs(),
         )  # nosec B603
     except OSError as exc:
         return {
@@ -61,7 +66,11 @@ def build_deep_filter_health(config: dict[str, Any]) -> dict[str, Any]:
 
 def build_rnnoise_health() -> dict[str, Any]:
     """Return bundled RNNoise availability and version details."""
-    from .audio_processor import expected_bundled_tool_path, find_rnnoise_bundle
+    from .audio_processor import (
+        _external_command_run_kwargs,
+        expected_bundled_tool_path,
+        find_rnnoise_bundle,
+    )
 
     expected_path = expected_bundled_tool_path("rnnoise-cli")
     try:
@@ -83,6 +92,7 @@ def build_rnnoise_health() -> dict[str, Any]:
             text=True,
             check=False,
             timeout=10,
+            **_external_command_run_kwargs(),
         )  # nosec B603
     except OSError as exc:
         return {

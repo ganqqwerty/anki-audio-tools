@@ -72,6 +72,7 @@ __all__ = [
     "_build_pause_pipeline_manifest",
     "_bundled_deep_filter_path",
     "_create_pause_pipeline_run_dir",
+    "_external_command_run_kwargs",
     "_pause_pipeline_config_snapshot",
     "_record_rnnoise_failure",
     "_render_deep_filter_pause_speedup_audio",
@@ -213,6 +214,11 @@ def _run_external_command(
     return _audio_external._run_external_command(command, launch_error_message)
 
 
+def _external_command_run_kwargs() -> dict[str, Any]:
+    _sync_external_dependencies()
+    return _audio_external._external_command_run_kwargs()
+
+
 def _render_external_error_message(
     result: subprocess.CompletedProcess[str],
     default_message: str,
@@ -258,6 +264,7 @@ def _sync_rendering_dependencies() -> None:
     audio_rendering.probe_duration_ms = probe_duration_ms
     audio_rendering.build_audio_filters = build_audio_filters
     audio_rendering._render_deep_filter_pause_speedup_audio = _render_deep_filter_pause_speedup_audio
+    audio_rendering._external_command_run_kwargs = _external_command_run_kwargs
     audio_rendering.subprocess = subprocess
     audio_rendering.tempfile = tempfile
     audio_rendering.uuid = uuid

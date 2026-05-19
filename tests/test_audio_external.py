@@ -8,7 +8,12 @@ import subprocess
 import pytest
 
 from anki_audio_quick_editor import diagnostics_runtime
-from anki_audio_quick_editor.audio_external import _run_external_command
+from anki_audio_quick_editor.audio_external import (
+    _external_command_run_kwargs,
+    _run_external_command,
+    probe_duration_ms,
+)
+from anki_audio_quick_editor.audio_state import AudioProcessingConfig
 from anki_audio_quick_editor.errors import AudioProcessingError
 
 
@@ -21,6 +26,37 @@ def _reset_diagnostics() -> None:
 
 def _jsonl(path):
     return [json.loads(line) for line in path.read_text(encoding="utf-8").splitlines()]
+
+
+def test_external_command_run_kwargs_hide_windows_console_when_debug_disabled(monkeypatch) -> None:
+    diagnostics_runtime.set_debug_enabled(False)
+    monkeypatch.setattr("anki_audio_quick_editor.audio_external._is_windows", lambda: True)
+    monkeypatch.setattr(
+        "anki_audio_quick_editor.audio_external.subprocess.CREATE_NO_WINDOW",
+        0x08000000,
+        raising=False,
+    )
+
+    assert _external_command_run_kwargs() == {"creationflags": 0x08000000}
+
+
+def test_external_command_run_kwargs_keep_default_windows_behavior_in_debug(monkeypatch) -> None:
+    diagnostics_runtime.set_debug_enabled(True)
+    monkeypatch.setattr("anki_audio_quick_editor.audio_external._is_windows", lambda: True)
+    monkeypatch.setattr(
+        "anki_audio_quick_editor.audio_external.subprocess.CREATE_NO_WINDOW",
+        0x08000000,
+        raising=False,
+    )
+
+    assert _external_command_run_kwargs() == {}
+
+
+def test_external_command_run_kwargs_omit_flags_on_non_windows(monkeypatch) -> None:
+    diagnostics_runtime.set_debug_enabled(False)
+    monkeypatch.setattr("anki_audio_quick_editor.audio_external._is_windows", lambda: False)
+
+    assert _external_command_run_kwargs() == {}
 
 
 def test_external_command_success_records_duration_and_returncode(tmp_path, monkeypatch) -> None:
@@ -38,6 +74,70 @@ def test_external_command_success_records_duration_and_returncode(tmp_path, monk
     assert events[-1]["event"] == "external.command.finished"
     assert events[-1]["context"]["returncode"] == 0
     assert events[-1]["context"]["stdout"] == "ok"
+
+
+def test_external_command_forwards_window_visibility_kwargs(tmp_path, monkeypatch) -> None:
+    diagnostics_runtime.configure_runtime(tmp_path, debug_enabled=False)
+    run_kwargs: list[dict[str, object]] = []
+    monkeypatch.setattr(
+        "anki_audio_quick_editor.audio_external._external_command_run_kwargs",
+        lambda: {"creationflags": 0x08000000},
+    )
+
+    def fake_run(
+        _cmd: list[str],
+        *,
+        capture_output: bool,
+        text: bool,
+        check: bool,
+        **kwargs: object,
+    ) -> subprocess.CompletedProcess[str]:
+        assert capture_output is True
+        assert text is True
+        assert check is False
+        run_kwargs.append(kwargs)
+        return subprocess.CompletedProcess(["ffmpeg"], 0, stdout="ok", stderr="")
+
+    monkeypatch.setattr("anki_audio_quick_editor.audio_external.subprocess.run", fake_run)
+
+    _run_external_command(("ffmpeg", "-version"), "launch failed")
+
+    assert run_kwargs == [{"creationflags": 0x08000000}]
+
+
+def test_probe_duration_forwards_window_visibility_kwargs(tmp_path, monkeypatch) -> None:
+    diagnostics_runtime.configure_runtime(tmp_path, debug_enabled=False)
+    run_kwargs: list[dict[str, object]] = []
+    monkeypatch.setattr("anki_audio_quick_editor.audio_external.find_ffmpeg", lambda _path: tmp_path / "ffmpeg")
+    monkeypatch.setattr("anki_audio_quick_editor.audio_external.find_ffprobe", lambda _path: tmp_path / "ffprobe")
+    monkeypatch.setattr(
+        "anki_audio_quick_editor.audio_external._external_command_run_kwargs",
+        lambda: {"creationflags": 0x08000000},
+    )
+
+    def fake_run(
+        _cmd: list[str],
+        *,
+        capture_output: bool,
+        text: bool,
+        check: bool,
+        **kwargs: object,
+    ) -> subprocess.CompletedProcess[str]:
+        assert capture_output is True
+        assert text is True
+        assert check is False
+        run_kwargs.append(kwargs)
+        return subprocess.CompletedProcess(
+            ["ffprobe"],
+            0,
+            stdout='{"format":{"duration":"1.25"}}',
+            stderr="",
+        )
+
+    monkeypatch.setattr("anki_audio_quick_editor.audio_external.subprocess.run", fake_run)
+
+    assert probe_duration_ms(tmp_path / "clip.wav", AudioProcessingConfig()) == 1250
+    assert run_kwargs == [{"creationflags": 0x08000000}]
 
 
 def test_external_command_nonzero_records_stderr_tail(tmp_path, monkeypatch) -> None:

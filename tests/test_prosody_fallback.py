@@ -5,6 +5,7 @@ from __future__ import annotations
 import shutil
 import subprocess
 from pathlib import Path
+from types import SimpleNamespace
 
 import pytest
 
@@ -12,11 +13,38 @@ from anki_audio_quick_editor.audio_state import AudioProcessingConfig
 from anki_audio_quick_editor.prosody_fallback import (
     PITCH_CEILING_HZ,
     PITCH_FLOOR_HZ,
+    _decode_pcm,
     analyze_with_fallback,
 )
 
 FFMPEG_AVAILABLE = shutil.which("ffmpeg") is not None and shutil.which("ffprobe") is not None
 FFMPEG_SKIP_REASON = "ffmpeg and ffprobe are required for fallback prosody tests"
+
+
+def test_decode_pcm_forwards_window_visibility_kwargs(monkeypatch, tmp_path: Path) -> None:
+    run_kwargs: list[dict[str, object]] = []
+    monkeypatch.setattr("anki_audio_quick_editor.prosody_fallback.find_ffmpeg", lambda _path: Path("/bin/ffmpeg"))
+    monkeypatch.setattr(
+        "anki_audio_quick_editor.prosody_fallback._external_command_run_kwargs",
+        lambda: {"creationflags": 0x08000000},
+    )
+
+    def fake_run(
+        _cmd: list[str],
+        *,
+        capture_output: bool,
+        check: bool,
+        **kwargs: object,
+    ) -> SimpleNamespace:
+        assert capture_output is True
+        assert check is False
+        run_kwargs.append(kwargs)
+        return SimpleNamespace(returncode=0, stdout=b"\x01\x00\xff\xff", stderr=b"")
+
+    monkeypatch.setattr("anki_audio_quick_editor.prosody_fallback.subprocess.run", fake_run)
+
+    assert _decode_pcm(tmp_path / "clip.wav", AudioProcessingConfig()) == [1.0, -1.0]
+    assert run_kwargs == [{"creationflags": 0x08000000}]
 
 
 @pytest.mark.skipif(not FFMPEG_AVAILABLE, reason=FFMPEG_SKIP_REASON)

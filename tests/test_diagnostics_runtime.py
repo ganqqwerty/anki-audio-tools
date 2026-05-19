@@ -51,6 +51,14 @@ def test_debug_breadcrumbs_are_written_as_jsonl_and_flushed(tmp_path) -> None:
     assert parsed[-1]["context"] == {"value": "ok"}
 
 
+def test_is_debug_enabled_reflects_runtime_state() -> None:
+    diagnostics.set_debug_enabled(False)
+    assert diagnostics.is_debug_enabled() is False
+
+    diagnostics.set_debug_enabled(True)
+    assert diagnostics.is_debug_enabled() is True
+
+
 def test_exception_boundary_logs_stack_context_and_records_incident(
     tmp_path,
     caplog: pytest.LogCaptureFixture,

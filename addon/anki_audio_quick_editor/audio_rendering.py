@@ -18,7 +18,7 @@ from .audio_commands import (
     build_region_delete_plan,
     build_region_keep_plan,
 )
-from .audio_external import probe_duration_ms
+from .audio_external import _external_command_run_kwargs, probe_duration_ms
 from .audio_pause_pipeline import _render_deep_filter_pause_speedup_audio
 from .audio_state import AudioEditState, AudioProcessingConfig
 from .audio_tools import find_ffmpeg
@@ -58,7 +58,13 @@ def render_audio(
     cmd = build_ffmpeg_command(ffmpeg_path, source_path, filters, output_path)
     if on_command:
         on_command(cmd)
-    result = subprocess.run(list(cmd), capture_output=True, text=True, check=False)  # nosec B603
+    result = subprocess.run(
+        list(cmd),
+        capture_output=True,
+        text=True,
+        check=False,
+        **_external_command_run_kwargs(),
+    )  # nosec B603
     if result.returncode != 0:
         raise AudioProcessingError(result.stderr.strip() or "Audio processing failed.")
     return AudioProcessingResult(
@@ -97,7 +103,13 @@ def _render_region_filter_complex(
     cmd = build_region_delete_command(ffmpeg_path, source_path, filter_complex, output_path)
     if on_command:
         on_command(cmd)
-    result = subprocess.run(list(cmd), capture_output=True, text=True, check=False)  # nosec B603
+    result = subprocess.run(
+        list(cmd),
+        capture_output=True,
+        text=True,
+        check=False,
+        **_external_command_run_kwargs(),
+    )  # nosec B603
     if result.returncode != 0:
         raise AudioProcessingError(result.stderr.strip() or "Audio processing failed.")
     return AudioProcessingResult(
@@ -146,7 +158,13 @@ def render_playback_segment(
     cmd = build_ffmpeg_command(ffmpeg_path, source_path, filters, output_path)
     if on_command:
         on_command(cmd)
-    result = subprocess.run(list(cmd), capture_output=True, text=True, check=False)  # nosec B603
+    result = subprocess.run(
+        list(cmd),
+        capture_output=True,
+        text=True,
+        check=False,
+        **_external_command_run_kwargs(),
+    )  # nosec B603
     if result.returncode != 0:
         raise AudioProcessingError(result.stderr.strip() or "Playback segment rendering failed.")
     return AudioProcessingResult(

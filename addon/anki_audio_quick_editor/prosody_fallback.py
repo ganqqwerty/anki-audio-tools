@@ -8,7 +8,11 @@ import sys
 from array import array
 from pathlib import Path
 
-from .audio_processor import find_ffmpeg, probe_duration_ms
+from .audio_processor import (
+    _external_command_run_kwargs,
+    find_ffmpeg,
+    probe_duration_ms,
+)
 from .audio_state import AudioProcessingConfig
 from .errors import AudioProcessingError
 from .prosody_types import ProsodyPoint, ProsodyTrack, build_prosody_track
@@ -79,7 +83,12 @@ def _decode_pcm(source_path: Path, config: AudioProcessingConfig) -> list[float]
         "s16le",
         "pipe:1",
     ]
-    result = subprocess.run(command, capture_output=True, check=False)  # nosec B603
+    result = subprocess.run(
+        command,
+        capture_output=True,
+        check=False,
+        **_external_command_run_kwargs(),
+    )  # nosec B603
     if result.returncode != 0:
         message = result.stderr.decode("utf-8", errors="replace").strip()
         raise AudioProcessingError(message or "Could not decode audio for visualization.")

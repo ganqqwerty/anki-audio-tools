@@ -95,6 +95,13 @@ def set_debug_enabled(enabled: bool) -> None:
         _resize_breadcrumb_ring(DEBUG_BREADCRUMB_CAPACITY if enabled else DEFAULT_BREADCRUMB_CAPACITY)
 
 
+def is_debug_enabled() -> bool:
+    """Return whether debug-mode diagnostics are enabled."""
+    with _STATE.lock:
+        enabled = _STATE.debug_enabled
+    return bool(enabled)
+
+
 def new_operation_id(prefix: str = "op") -> str:
     """Return a compact id for correlating breadcrumbs from one user action."""
     return f"{prefix}-{uuid.uuid4().hex[:12]}"

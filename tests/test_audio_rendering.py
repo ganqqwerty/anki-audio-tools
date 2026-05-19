@@ -223,6 +223,43 @@ def test_render_audio_uses_expected_ffmpeg_invocation(monkeypatch, tmp_path: Pat
     assert result.duration_ms == 825
 
 
+def test_render_audio_forwards_window_visibility_kwargs(monkeypatch, tmp_path: Path) -> None:
+    run_kwargs: list[dict[str, object]] = []
+    durations = iter([1000, 1000])
+
+    monkeypatch.setattr("anki_audio_quick_editor.audio_processor.find_ffmpeg", lambda _path: Path("/bin/ffmpeg"))
+    monkeypatch.setattr("anki_audio_quick_editor.audio_processor.probe_duration_ms", lambda *_args: next(durations))
+    monkeypatch.setattr(
+        "anki_audio_quick_editor.audio_processor._external_command_run_kwargs",
+        lambda: {"creationflags": 0x08000000},
+    )
+
+    def fake_run(
+        _cmd: list[str],
+        *,
+        capture_output: bool,
+        text: bool,
+        check: bool,
+        **kwargs: object,
+    ) -> SimpleNamespace:
+        assert capture_output is True
+        assert text is True
+        assert check is False
+        run_kwargs.append(kwargs)
+        return SimpleNamespace(returncode=0, stdout="", stderr="")
+
+    monkeypatch.setattr("anki_audio_quick_editor.audio_processor.subprocess.run", fake_run)
+
+    render_audio(
+        tmp_path / "source.wav",
+        AudioEditState("clip.wav"),
+        AudioProcessingConfig(),
+        output_path=tmp_path / "edited.mp3",
+    )
+
+    assert run_kwargs == [{"creationflags": 0x08000000}]
+
+
 def test_render_audio_region_deleted_uses_concat_filter(monkeypatch, tmp_path: Path) -> None:
     calls: list[tuple[list[str], bool, bool, bool]] = []
     durations = iter([2000, 1250])
