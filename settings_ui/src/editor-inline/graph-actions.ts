@@ -22,6 +22,7 @@ import {
   seekAudioClock,
   setCursor,
   setRepeatEnabled,
+  setSelection,
   stopProgressClock,
 } from "./actions.js";
 import {
@@ -90,10 +91,7 @@ export function setVisualizer(ord: number, rawTrack: ProsodyPayload, cursorMs: n
   if (window.__aqePendingGraphRedrawField === ord) {
     window.__aqePendingGraphRedrawField = null;
   }
-  clearSelection(visualizer);
-  visualizer.dataset.playbackStartMs = "0";
-  visualizer.dataset.playbackEndMs = String(track.durationMs || 0);
-  visualizer.dataset.playbackRegionMode = "full";
+  setSelection(visualizer, 0, track.durationMs || 0, { updateCursor: false });
   configureAudioClock(visualizer, track.sourceFilename || "");
   setCommandButtonLabel(ord, "aqe:analyze", "Redraw");
   setCursor(visualizer, cursorMs || 0, false);

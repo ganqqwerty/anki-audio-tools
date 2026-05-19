@@ -119,6 +119,8 @@ export function graphRendered(
 ): EditorFieldState {
   const durationMs = Math.max(0, Number(payload.durationMs) || 0);
   const cursorMs = clampMs(payload.cursorMs, durationMs);
+  const selection = setSelectionRange(clearSelectionState(state.selection), 0, durationMs, durationMs);
+  const selectedPlayback = selection.active && selection.startMs !== null && selection.endMs !== null;
   return {
     ...state,
     cursor: {
@@ -135,11 +137,11 @@ export function graphRendered(
     },
     playback: {
       ...state.playback,
-      endMs: durationMs,
-      regionMode: "full",
-      startMs: 0,
+      endMs: selectedPlayback ? selection.endMs ?? durationMs : durationMs,
+      regionMode: selectedPlayback ? "selection" : "full",
+      startMs: selectedPlayback ? selection.startMs ?? 0 : 0,
     },
-    selection: clearSelectionState(state.selection),
+    selection,
     sourceFilename: payload.sourceFilename || "",
   };
 }

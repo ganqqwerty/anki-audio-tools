@@ -25,6 +25,30 @@ describe("editor inline selection creation integration", () => {
     vi.restoreAllMocks();
   });
 
+  it("selects the full graph when a visualizer track is rendered", () => {
+    initializeEditorRuntime({ audioFieldIndices: [0] });
+    scan({ audioFieldIndices: [0] });
+    window.__aqeSetVisualizer?.(0, track, 100);
+    const svg = document.querySelector<SVGSVGElement>('[data-testid="aqe-graph-svg-0"]')!;
+    setGraphBounds(svg);
+
+    expect(window.__aqeGraphStateForTest?.(0)).toMatchObject({
+      selectionActive: true,
+      selectionStartMs: 0,
+      selectionEndMs: 1000,
+      playbackRegionMode: "selection",
+      playbackStartMs: 0,
+      playbackEndMs: 1000,
+      selectionStartHandleVisible: true,
+      selectionEndHandleVisible: true,
+      regionDeleteButtonHidden: false,
+      regionDeleteButtonDisabled: true,
+      regionDeleteRestButtonHidden: false,
+      regionDeleteRestButtonDisabled: true,
+    });
+    expect(document.querySelector('[data-testid="aqe-selection-0"]')).toHaveAttribute("visibility", "visible");
+  });
+
   it("creates, replaces, and clears graph selections with Shift gestures", () => {
     initializeEditorRuntime({ audioFieldIndices: [0] });
     scan({ audioFieldIndices: [0] });
@@ -73,17 +97,19 @@ describe("editor inline selection creation integration", () => {
 
     dispatchGraphPointer(svg, "pointerdown", graphClientX(svg, 0.2), true);
     expect(window.__aqeGraphStateForTest?.(0)).toMatchObject({
-      selectionActive: false,
+      selectionActive: true,
+      selectionStartMs: 0,
+      selectionEndMs: 1000,
       selectionDraftActive: false,
       selectionDraftStartMs: null,
       selectionDraftEndMs: null,
       cursorMs: 100,
     });
-    expect(band).toHaveAttribute("visibility", "hidden");
+    expect(band).toHaveAttribute("visibility", "visible");
 
     dispatchGraphPointer(svg, "pointermove", graphClientX(svg, 0.6), true);
     expect(window.__aqeGraphStateForTest?.(0)).toMatchObject({
-      selectionActive: false,
+      selectionActive: true,
       selectionDraftActive: true,
       selectionDraftStartMs: 200,
       selectionDraftEndMs: 600,
@@ -94,7 +120,7 @@ describe("editor inline selection creation integration", () => {
 
     dispatchGraphPointer(svg, "pointermove", graphClientX(svg, 0.8), true);
     expect(window.__aqeGraphStateForTest?.(0)).toMatchObject({
-      selectionActive: false,
+      selectionActive: true,
       selectionDraftActive: true,
       selectionDraftStartMs: 200,
       selectionDraftEndMs: 800,
@@ -113,7 +139,7 @@ describe("editor inline selection creation integration", () => {
     expect(band).not.toHaveClass("aqe-selection-draft");
   });
 
-  it("keeps selection stable through normal click and drag gestures", () => {
+  it("expands selections with outside plain clicks and keeps plain drags stable", () => {
     initializeEditorRuntime({ audioFieldIndices: [0] });
     scan({ audioFieldIndices: [0] });
     window.__aqeSetVisualizer?.(0, track, 100);
@@ -127,8 +153,26 @@ describe("editor inline selection creation integration", () => {
     expect(window.__aqeGraphStateForTest?.(0)).toMatchObject({
       selectionActive: true,
       selectionStartMs: 200,
-      selectionEndMs: 600,
+      selectionEndMs: 800,
       cursorMs: 800,
+    });
+
+    dispatchGraphPointer(svg, "pointerdown", graphClientX(svg, 0.1));
+    dispatchGraphPointer(svg, "pointerup", graphClientX(svg, 0.1));
+
+    expect(window.__aqeGraphStateForTest?.(0)).toMatchObject({
+      selectionStartMs: 100,
+      selectionEndMs: 800,
+      cursorMs: 100,
+    });
+
+    dispatchGraphPointer(svg, "pointerdown", graphClientX(svg, 0.5));
+    dispatchGraphPointer(svg, "pointerup", graphClientX(svg, 0.5));
+
+    expect(window.__aqeGraphStateForTest?.(0)).toMatchObject({
+      selectionStartMs: 100,
+      selectionEndMs: 800,
+      cursorMs: 500,
     });
 
     dispatchGraphPointer(svg, "pointerdown", graphClientX(svg, 0.1));
@@ -136,9 +180,29 @@ describe("editor inline selection creation integration", () => {
     dispatchGraphPointer(svg, "pointerup", graphClientX(svg, 0.9));
 
     expect(window.__aqeGraphStateForTest?.(0)).toMatchObject({
-      selectionStartMs: 200,
-      selectionEndMs: 600,
+      selectionStartMs: 100,
+      selectionEndMs: 800,
       cursorMs: 900,
+    });
+  });
+
+  it("expands repeat-enabled selections from raw outside click positions", () => {
+    initializeEditorRuntime({ audioFieldIndices: [0] });
+    scan({ audioFieldIndices: [0] });
+    window.__aqeSetVisualizer?.(0, track, 100);
+    const svg = document.querySelector<SVGSVGElement>('[data-testid="aqe-graph-svg-0"]')!;
+    setGraphBounds(svg);
+
+    dragGraphSelection(svg, 0.2, 0.6);
+    document.querySelector<HTMLButtonElement>('[data-testid="aqe-repeat-0"]')!.click();
+    dispatchGraphPointer(svg, "pointerdown", graphClientX(svg, 0.8));
+    dispatchGraphPointer(svg, "pointerup", graphClientX(svg, 0.8));
+
+    expect(window.__aqeGraphStateForTest?.(0)).toMatchObject({
+      selectionStartMs: 200,
+      selectionEndMs: 800,
+      cursorMs: 800,
+      repeatEnabled: true,
     });
   });
 });

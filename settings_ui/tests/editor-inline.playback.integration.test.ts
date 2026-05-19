@@ -61,12 +61,12 @@ afterEach(() => {
     const request = window.__aqeGetPlaybackRequest?.();
     expect(request).toEqual({
       action: "start",
-      cursorMs: 400,
+      cursorMs: 0,
       endMs: 1000,
       engine: "html",
       loop: false,
       ord: 0,
-      regionMode: "full",
+      regionMode: "selection",
     });
     expect(window.__aqeGraphStateForTest?.(0)?.playbackState).toBe("playing");
     expect(window.__aqeGraphStateForTest?.(0)?.playbackEngine).toBe("html");
@@ -193,12 +193,12 @@ afterEach(() => {
 
     expect(window.__aqeGetPlaybackRequest?.()).toEqual({
       action: "start",
-      cursorMs: 700,
+      cursorMs: 0,
       endMs: 1000,
       engine: "native",
       loop: false,
       ord: 0,
-      regionMode: "full",
+      regionMode: "selection",
     });
     expect(window.__aqeGraphStateForTest?.(0)?.playbackState).toBe("stopped");
   });

@@ -28,7 +28,7 @@ describe("editor inline selection resize edge cases", () => {
     vi.restoreAllMocks();
   });
 
-  it("keeps resize handles hidden until a draft selection is committed", () => {
+  it("keeps resize handles hidden while a draft selection is active", () => {
     initializeEditorRuntime({ audioFieldIndices: [0] });
     scan({ audioFieldIndices: [0] });
     window.__aqeSetVisualizer?.(0, track, 100);
@@ -37,17 +37,17 @@ describe("editor inline selection resize edge cases", () => {
     const endHandle = document.querySelector('[data-testid="aqe-selection-resize-end-0"]')!;
     setGraphBounds(svg);
 
-    expect(startHandle).toHaveAttribute("visibility", "hidden");
-    expect(endHandle).toHaveAttribute("visibility", "hidden");
+    expect(startHandle).toHaveAttribute("visibility", "visible");
+    expect(endHandle).toHaveAttribute("visibility", "visible");
     expect(window.__aqeGraphStateForTest?.(0)).toMatchObject({
-      selectionStartHandleVisible: false,
-      selectionEndHandleVisible: false,
+      selectionStartHandleVisible: true,
+      selectionEndHandleVisible: true,
     });
 
     dispatchGraphPointer(svg, "pointerdown", graphClientX(svg, 0.2), true);
     dispatchGraphPointer(svg, "pointermove", graphClientX(svg, 0.6), true);
     expect(window.__aqeGraphStateForTest?.(0)).toMatchObject({
-      selectionActive: false,
+      selectionActive: true,
       selectionDraftActive: true,
       selectionStartHandleVisible: false,
       selectionEndHandleVisible: false,

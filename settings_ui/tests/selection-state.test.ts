@@ -5,6 +5,7 @@ import {
   commitDraftSelectionState,
   draftSelectionRegion,
   emptySelectionState,
+  expandSelectionRangeToPoint,
   normalizeSelectionRange,
   resizeSelectionRange,
   selectionRegion,
@@ -22,6 +23,25 @@ describe("selection state", () => {
   it("rejects tiny or zero-duration selections", () => {
     expect(normalizeSelectionRange(100, 120, 1000)).toBeNull();
     expect(normalizeSelectionRange(0, 500, 0)).toBeNull();
+  });
+
+  it("keeps full-duration selections valid below the normal minimum duration", () => {
+    expect(normalizeSelectionRange(0, 30, 30)).toEqual({ startMs: 0, endMs: 30 });
+  });
+
+  it("expands committed selections to outside click positions", () => {
+    expect(expandSelectionRangeToPoint({ startMs: 200, endMs: 600 }, 800, 1000)).toEqual({
+      startMs: 200,
+      endMs: 800,
+    });
+    expect(expandSelectionRangeToPoint({ startMs: 200, endMs: 800 }, 100, 1000)).toEqual({
+      startMs: 100,
+      endMs: 800,
+    });
+  });
+
+  it("ignores click positions inside the selected region", () => {
+    expect(expandSelectionRangeToPoint({ startMs: 200, endMs: 800 }, 500, 1000)).toBeNull();
   });
 
   it("resizes selection edges while preserving the opposite edge", () => {

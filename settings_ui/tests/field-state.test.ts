@@ -48,7 +48,7 @@ describe("editor field state", () => {
     });
   });
 
-  it("renders graph payload into typed state and clears stale selection", () => {
+  it("renders graph payload into typed state and selects the full graph", () => {
     const state = graphRendered(initialFieldState({ ord: 0 }), {
       analyzerName: "praat",
       cursorMs: 1200,
@@ -59,7 +59,8 @@ describe("editor field state", () => {
     expect(state).toMatchObject({
       cursor: { anchorMs: 1000, ms: 1000, progressMs: 1000 },
       graph: { analyzerName: "praat", busy: false, durationMs: 1000, hasTrack: true },
-      playback: { endMs: 1000, regionMode: "full", startMs: 0 },
+      playback: { endMs: 1000, regionMode: "selection", startMs: 0 },
+      selection: { active: true, startMs: 0, endMs: 1000 },
       sourceFilename: "nested/clip.mp3",
     });
   });
@@ -97,7 +98,7 @@ describe("editor field state", () => {
     });
     const playing = playbackStarted(repeatToggled(state, true), 500, { clockMode: "audio", engine: "html" });
 
-    expect(effectivePlaybackRegion(playing)).toEqual({ startMs: 0, endMs: 1000, mode: "full" });
+    expect(effectivePlaybackRegion(playing)).toEqual({ startMs: 0, endMs: 1000, mode: "selection" });
     expect(playing).toMatchObject({
       cursor: { ms: 500 },
       playback: { clockMode: "audio", engine: "html", repeat: true, state: "playing" },

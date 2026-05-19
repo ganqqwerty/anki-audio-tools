@@ -33,7 +33,11 @@ describe("editor inline selection delete integration", () => {
     setGraphBounds(svg);
 
     expect(window.__aqeGraphStateForTest?.(0)).toMatchObject({
-      regionDeleteButtonHidden: true,
+      selectionActive: true,
+      selectionStartMs: 0,
+      selectionEndMs: 1000,
+      regionDeleteButtonHidden: false,
+      regionDeleteButtonDisabled: true,
     });
 
     dragGraphSelection(svg, 0.2, 0.6);
@@ -73,7 +77,11 @@ describe("editor inline selection delete integration", () => {
     setGraphBounds(svg);
 
     expect(window.__aqeGraphStateForTest?.(0)).toMatchObject({
-      regionDeleteRestButtonHidden: true,
+      selectionActive: true,
+      selectionStartMs: 0,
+      selectionEndMs: 1000,
+      regionDeleteRestButtonHidden: false,
+      regionDeleteRestButtonDisabled: true,
     });
 
     dragGraphSelection(svg, 0.2, 0.6);
