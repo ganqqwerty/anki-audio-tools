@@ -18,10 +18,12 @@ import { installEditorWindowContract } from "./window-contract.js";
 const soundPattern = /\[sound:([^\]]+)\]/i;
 const supportedPattern = /\.(aac|flac|m4a|mp3|oga|ogg|opus|wav|webm)$/i;
 let scheduledScanTimers: number[] = [];
+let globalErrorHandlersInstalled = false;
 
 export function initializeEditorRuntime(config: EditorRuntimeConfig = window.__AQE_EDITOR_CONFIG__ ?? { audioFieldIndices: [] }): void {
   disposeEditorRuntime();
   window.__AQE_EDITOR_CONFIG__ = config;
+  installGlobalErrorHandlers();
   installEditorWindowContract();
   prepareForNewNote();
   clearDefaultGraphQueue();
@@ -35,6 +37,25 @@ export function initializeEditorRuntime(config: EditorRuntimeConfig = window.__A
   scheduleScan(scanWithConfig, 0);
   scheduleScan(scanWithConfig, 250);
   scheduleScan(scanWithConfig, 1000);
+}
+
+function installGlobalErrorHandlers(): void {
+  if (globalErrorHandlersInstalled) return;
+  globalErrorHandlersInstalled = true;
+  window.addEventListener("error", (event) => {
+    logger.error(event.message || "unknown editor frontend error", {
+      filename: event.filename,
+      lineno: event.lineno,
+      colno: event.colno,
+      stack: event.error instanceof Error ? event.error.stack : "",
+    });
+  });
+  window.addEventListener("unhandledrejection", (event) => {
+    const reason = event.reason;
+    logger.error(`Unhandled rejection: ${reason instanceof Error ? reason.message : String(reason)}`, {
+      stack: reason instanceof Error ? reason.stack : "",
+    });
+  });
 }
 
 export function disposeEditorRuntime(): void {

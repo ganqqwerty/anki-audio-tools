@@ -20,6 +20,14 @@ from ..contracts_generated import (
     ShowLogFileResult,
     SupportReportResult,
 )
+from ..diagnostics_runtime import (
+    capture_exception,
+    new_operation_id,
+    record_breadcrumb,
+    record_frontend_error,
+    set_debug_enabled,
+    support_report_context,
+)
 from ..errors import SettingsCommandError
 
 logger = logging.getLogger(__name__)
@@ -32,6 +40,14 @@ def handle_settings_command(
     dialog: Any,
 ) -> bool:
     """Dispatch a settings command received from the Svelte UI."""
+    command_name = cmd.split(":", 1)[0]
+    record_breadcrumb(
+        "settings.command.received",
+        source="settings",
+        operation=f"settings.{command_name}",
+        operation_id=new_operation_id("settings"),
+        context={"command": command_name},
+    )
     if cmd == "settings_cancel":
         dialog.reject()
         return True
@@ -78,7 +94,16 @@ def _handle_settings_save(
     mw.addonManager.writeConfig(addon_id, config)
 
     root_logger = logging.getLogger("anki_audio_quick_editor")
-    root_logger.setLevel(logging.DEBUG if config.get("debug_logging", False) else logging.INFO)
+    debug_enabled = bool(config.get("debug_logging", False))
+    root_logger.setLevel(logging.DEBUG if debug_enabled else logging.INFO)
+    set_debug_enabled(debug_enabled)
+    record_breadcrumb(
+        "settings.saved",
+        source="settings",
+        operation="settings.save",
+        context={"debug_logging": debug_enabled},
+        flush=True,
+    )
     dialog.accept()
 
 
@@ -129,6 +154,15 @@ def _handle_async_cmd(payload_str: str, eval_fn: Callable[[str], None]) -> None:
     job_id = command.id
     op = command.op
     op_payload = command.payload.to_dict()
+    operation_id = f"settings-{job_id}"
+    record_breadcrumb(
+        "settings.async.started",
+        source="settings",
+        operation=f"settings.{op}",
+        operation_id=operation_id,
+        context={"op": op},
+        flush=True,
+    )
 
     def _main_eval(js: str) -> None:
         mw.taskman.run_on_main(lambda: eval_fn(js))
@@ -143,9 +177,25 @@ def _handle_async_cmd(payload_str: str, eval_fn: Callable[[str], None]) -> None:
             success_done_payload_json = json.dumps(
                 AsyncDonePayload(job_id, True, result=result).to_dict()
             )
+            record_breadcrumb(
+                "settings.async.succeeded",
+                source="settings",
+                operation=f"settings.{op}",
+                operation_id=operation_id,
+                context={"op": op},
+                flush=True,
+            )
             _main_eval(f"window.onAsyncDone({success_done_payload_json})")
         except Exception as async_error:  # pragma: no cover - tested via public callback path
-            logger.exception("async operation failed: %s", op)
+            capture_exception(
+                "settings.async_worker",
+                async_error,
+                operation=f"settings.{op}",
+                operation_id=operation_id,
+                user_message=str(async_error),
+                context={"op": op, "job_id": job_id},
+                log=logger,
+            )
             failure_done_payload_json = json.dumps(
                 AsyncDonePayload(job_id, False, error=str(async_error)).to_dict()
             )
@@ -210,6 +260,7 @@ def _op_support_report(
         read_log_tail,
     )
 
+    record_breadcrumb("settings.support_report.collect", source="settings", operation="settings.support_report")
     progress_fn(20, "Collecting environment")
     config = _config_payload(payload)
     addon_id = mw.addonManager.addonFromModule(__name__)
@@ -228,6 +279,7 @@ def _op_support_report(
         rnnoise_incident=latest_rnnoise_support_incident(),
         pause_pipeline_incident=latest_pause_pipeline_support_incident(),
         log_tail=read_log_tail(log_path),
+        diagnostics_context=support_report_context(),
     )
     progress_fn(100, "Done")
     return SupportReportResult(report_text).to_dict()
@@ -269,6 +321,11 @@ def _handle_frontend_log(payload_str: str) -> None:
     rendered = f"frontend: {message}"
     if context is not None:
         rendered = f"{rendered} | {context!r}"
+    stack = str(getattr(payload, "stack", "") or "")
+    scope = str(getattr(payload, "scope", "") or "settings")
+    operation_id = str(getattr(payload, "operation_id", "") or "")
+    if stack:
+        rendered = f"{rendered}\n{stack}"
 
     if level == "debug":
         logger.debug(rendered)
@@ -278,6 +335,31 @@ def _handle_frontend_log(payload_str: str) -> None:
         logger.error(rendered)
     else:
         logger.info(rendered)
+    record_breadcrumb(
+        "frontend.log",
+        source=scope,
+        level="error" if level == "error" else "debug",
+        operation="frontend.log",
+        operation_id=operation_id,
+        context={
+            "level": level,
+            "message": message,
+            "filename": getattr(payload, "filename", None),
+            "lineno": getattr(payload, "lineno", None),
+            "colno": getattr(payload, "colno", None),
+            "context": context,
+        },
+    )
+    if level == "error":
+        record_frontend_error(
+            "settings.frontend",
+            message=message,
+            stack=stack,
+            source=scope,
+            operation="settings.frontend",
+            operation_id=operation_id,
+            context=context,
+        )
 
 
 def _handle_copy_support_report(payload_str: str) -> None:

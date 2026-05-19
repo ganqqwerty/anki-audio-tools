@@ -7,6 +7,12 @@ import logging
 from typing import Any
 
 from .contracts_generated import FrontendLogPayload
+from .diagnostics_runtime import (
+    capture_exception,
+    new_operation_id,
+    record_breadcrumb,
+    record_frontend_error,
+)
 from .editor_actions import (
     CMD_ANALYZE_FIELD,
     CMD_COMMAND_PAYLOAD,
@@ -25,6 +31,15 @@ CONTRACT_DECODE_ERRORS = (AssertionError, TypeError, ValueError)
 
 def handle_bridge_command(editor: Any, command: str, deps: Any) -> None:
     """Decode and dispatch one command from Anki's editor bridge."""
+    operation_id = new_operation_id("editor")
+    record_breadcrumb(
+        "editor.command.received",
+        source="editor",
+        operation="editor.command",
+        operation_id=operation_id,
+        boundary="editor.bridge",
+        context={"command": command, "field_index": getattr(editor, "currentField", None)},
+    )
     if command == CMD_COMMAND_PAYLOAD:
         deps.handle_pending_command_payload(editor)
         return
@@ -36,10 +51,27 @@ def handle_bridge_command(editor: Any, command: str, deps: Any) -> None:
             return
         deps.update_state_and_render(editor, payload)
     except AudioQuickEditorError as exc:
+        record_breadcrumb(
+            "editor.command.rejected",
+            source="editor",
+            level="warning",
+            operation="editor.command",
+            operation_id=operation_id,
+            boundary="editor.bridge",
+            context={"command": command, "message": str(exc)},
+        )
         deps.set_busy(editor, False)
         deps.eval_status(editor, str(exc), kind="error")
     except Exception as exc:  # pragma: no cover - defensive boundary for Anki bridge
-        logger.exception("audio quick editor command failed: %s", command)
+        capture_exception(
+            "editor.bridge",
+            exc,
+            operation="editor.command",
+            operation_id=operation_id,
+            user_message=f"Audio processing failed. The note was not changed. ({exc})",
+            context={"command": command, "field_index": getattr(editor, "currentField", None)},
+            log=logger,
+        )
         deps.set_busy(editor, False)
         deps.eval_status(editor, f"Audio processing failed. The note was not changed. ({exc})", kind="error")
 
@@ -113,6 +145,9 @@ def log_editor_frontend_payload(raw_payload: Any) -> None:
     rendered = f"editor frontend: {payload.message}"
     if payload.context is not None:
         rendered = f"{rendered} | {payload.context!r}"
+    stack = str(getattr(payload, "stack", "") or "")
+    if stack:
+        rendered = f"{rendered}\n{stack}"
     level = payload.level.value
     if level == "debug":
         logger.debug(rendered)
@@ -122,3 +157,31 @@ def log_editor_frontend_payload(raw_payload: Any) -> None:
         logger.error(rendered)
     else:
         logger.info(rendered)
+    scope = str(getattr(payload, "scope", "") or "editor")
+    operation_id = str(getattr(payload, "operation_id", "") or "")
+    record_breadcrumb(
+        "frontend.log",
+        source=scope,
+        level="error" if level == "error" else "debug",
+        operation="frontend.log",
+        operation_id=operation_id,
+        boundary="editor.frontend",
+        context={
+            "level": level,
+            "message": payload.message,
+            "filename": getattr(payload, "filename", None),
+            "lineno": getattr(payload, "lineno", None),
+            "colno": getattr(payload, "colno", None),
+            "context": payload.context,
+        },
+    )
+    if level == "error":
+        record_frontend_error(
+            "editor.frontend",
+            message=payload.message,
+            stack=stack,
+            source=scope,
+            operation="editor.frontend",
+            operation_id=operation_id,
+            context=payload.context,
+        )

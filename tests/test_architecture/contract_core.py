@@ -23,6 +23,11 @@ CORE_CONTRACTS: dict[str, ModuleContract] = {
         allowed_addon_deps=("audio_processor",),
         allowed_side_effects=(SideEffect.SUBPROCESS_RUN,),
     ),
+    "diagnostics_runtime": contract(
+        "diagnostics_runtime",
+        layer=Layer.IMPORT_SAFE_CORE,
+        notes="Runtime support diagnostics, breadcrumbs, exception hooks, and crash/session files.",
+    ),
     "errors": contract("errors", layer=Layer.IMPORT_SAFE_CORE),
     "file_reveal": contract(
         "file_reveal",

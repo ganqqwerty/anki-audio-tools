@@ -16,6 +16,7 @@ EDITOR_CONTRACTS: dict[str, ModuleContract] = {
         allowed_addon_deps=(
             "audio_state",
             "contracts_generated",
+            "diagnostics_runtime",
             "editor_session",
             "errors",
             "prosody_types",
@@ -30,7 +31,7 @@ EDITOR_CONTRACTS: dict[str, ModuleContract] = {
     "editor_bridge": contract(
         "editor_bridge",
         layer=Layer.UI_ADAPTER,
-        allowed_addon_deps=("contracts_generated", "editor_actions", "errors"),
+        allowed_addon_deps=("contracts_generated", "diagnostics_runtime", "editor_actions", "errors"),
         allowed_side_effects=(SideEffect.WEB_EVAL,),
     ),
     "editor_callbacks": contract(
@@ -104,7 +105,7 @@ EDITOR_CONTRACTS: dict[str, ModuleContract] = {
     "editor_playback": contract(
         "editor_playback",
         layer=Layer.UI_ADAPTER,
-        allowed_addon_deps=("audio_state", "editor_session", "prosody_types"),
+        allowed_addon_deps=("audio_state", "diagnostics_runtime", "editor_session", "prosody_types"),
         allowed_side_effects=(
             SideEffect.ANKI_IMPORTS_ANYWHERE,
             SideEffect.THREAD_SPAWN,
@@ -118,6 +119,7 @@ EDITOR_CONTRACTS: dict[str, ModuleContract] = {
         layer=Layer.UI_ADAPTER,
         allowed_addon_deps=(
             "audio_state",
+            "diagnostics_runtime",
             "editor_actions",
             "editor_session",
             "errors",
@@ -134,7 +136,7 @@ EDITOR_CONTRACTS: dict[str, ModuleContract] = {
     "editor_region_delete": contract(
         "editor_region_delete",
         layer=Layer.UI_ADAPTER,
-        allowed_addon_deps=("audio_state", "editor_session", "errors", "sound_refs"),
+        allowed_addon_deps=("audio_state", "diagnostics_runtime", "editor_session", "errors", "sound_refs"),
         allowed_side_effects=(
             SideEffect.MEDIA_WRITE,
             SideEffect.THREAD_SPAWN,

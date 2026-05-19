@@ -219,6 +219,7 @@ def build_support_report_text(
     rnnoise_incident: dict[str, Any] | None,
     pause_pipeline_incident: dict[str, Any] | None,
     log_tail: str,
+    diagnostics_context: dict[str, Any] | None = None,
 ) -> str:
     """Build a support report suitable for copying into a bug report."""
     sections = [
@@ -228,6 +229,7 @@ def build_support_report_text(
         f"Add-on folder: {addon_dir}",
         f"Log file: {log_file_path}",
     ]
+    _append_general_diagnostics_sections(sections, diagnostics_context)
     _append_incident_report_section(
         sections,
         title="Latest RNNoise failure",
@@ -261,3 +263,91 @@ def build_support_report_text(
         ]
     )
     return "\n".join(sections)
+
+
+def _append_general_diagnostics_sections(
+    sections: list[str],
+    diagnostics_context: dict[str, Any] | None,
+) -> None:
+    context = diagnostics_context or {}
+    _append_latest_error_section(sections, _dict_or_none(context.get("latest_error")))
+    recent_events = context.get("recent_events")
+    _append_recent_events_section(
+        sections,
+        recent_events if isinstance(recent_events, list) else [],
+    )
+    _append_crash_forensics_section(sections, _dict_or_none(context.get("crash_forensics")) or {})
+
+
+def _append_latest_error_section(
+    sections: list[str],
+    incident: dict[str, Any] | None,
+) -> None:
+    sections.extend(["", "Latest captured error"])
+    if incident is None:
+        sections.append("No general error boundary has captured a failure in this session.")
+        return
+    sections.extend(
+        [
+            f"Timestamp: {incident.get('timestamp', '')}",
+            f"Session: {incident.get('session_id', '')}",
+            f"Operation: {incident.get('operation', '')}",
+            f"Operation id: {incident.get('operation_id', '')}",
+            f"Boundary: {incident.get('boundary', '')}",
+            f"Exception type: {incident.get('exception_type', '')}",
+            f"User-visible message: {incident.get('user_message', '')}",
+            f"Context: {json.dumps(incident.get('context', {}), sort_keys=True)}",
+        ]
+    )
+    traceback_text = str(incident.get("traceback", "")).strip()
+    if traceback_text:
+        sections.extend(["Traceback:", traceback_text])
+
+
+def _append_recent_events_section(sections: list[str], recent_events: list[Any]) -> None:
+    sections.extend(["", "Recent event sequence"])
+    if not recent_events:
+        sections.append("No diagnostics breadcrumbs have been captured in this session.")
+        return
+    for event in recent_events[-40:]:
+        if not isinstance(event, dict):
+            continue
+        context = event.get("context")
+        rendered_context = f" | {json.dumps(context, sort_keys=True)}" if context else ""
+        sections.append(
+            f"{event.get('seq', '')}. {event.get('timestamp', '')} "
+            f"{event.get('source', '')}:{event.get('event', '')} "
+            f"operation={event.get('operation', '')} "
+            f"operation_id={event.get('operation_id', '')} "
+            f"boundary={event.get('boundary', '')}{rendered_context}"
+        )
+
+
+def _append_crash_forensics_section(
+    sections: list[str],
+    crash_forensics: dict[str, Any],
+) -> None:
+    previous_dirty = crash_forensics.get("previous_dirty_session")
+    previous_clean = "unknown"
+    if isinstance(previous_dirty, dict):
+        previous_clean = "no"
+    elif crash_forensics:
+        previous_clean = "yes"
+    sections.extend(
+        [
+            "",
+            "Crash forensics",
+            f"Previous session ended cleanly: {previous_clean}",
+            f"Current session id: {crash_forensics.get('session_id', '')}",
+            f"Debug enabled: {crash_forensics.get('debug_enabled', '')}",
+            f"Event log path: {crash_forensics.get('event_log_path', '')}",
+            f"Crash log path: {crash_forensics.get('crash_log_path', '')}",
+            f"Session marker path: {crash_forensics.get('session_marker_path', '')}",
+        ]
+    )
+    if isinstance(previous_dirty, dict):
+        sections.append(f"Last dirty-session marker: {json.dumps(previous_dirty, sort_keys=True)}")
+
+
+def _dict_or_none(value: Any) -> dict[str, Any] | None:
+    return value if isinstance(value, dict) else None

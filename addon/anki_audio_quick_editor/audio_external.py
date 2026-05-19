@@ -4,15 +4,18 @@ from __future__ import annotations
 
 import json
 import subprocess  # nosec B404
+import time
 from pathlib import Path
 
 from .audio_state import AudioProcessingConfig
 from .audio_tools import find_ffmpeg, find_ffprobe
+from .diagnostics_runtime import new_operation_id, record_breadcrumb
 from .errors import AudioProcessingError
 
 
 def probe_duration_ms(source_path: Path, config: AudioProcessingConfig) -> int:
     """Inspect an audio file duration with ffprobe."""
+    operation_id = new_operation_id("ffprobe")
     ffmpeg_path = find_ffmpeg(config.ffmpeg_path)
     ffprobe_path = find_ffprobe(ffmpeg_path)
     cmd = [
@@ -25,7 +28,30 @@ def probe_duration_ms(source_path: Path, config: AudioProcessingConfig) -> int:
         "json",
         str(source_path),
     ]
+    started = time.monotonic()
+    record_breadcrumb(
+        "external.command.started",
+        source="external",
+        operation="external.ffprobe",
+        operation_id=operation_id,
+        context={"argv": cmd, "source_path": str(source_path)},
+    )
     result = subprocess.run(cmd, capture_output=True, text=True, check=False)  # nosec B603
+    record_breadcrumb(
+        "external.command.finished",
+        source="external",
+        level="error" if result.returncode != 0 else "debug",
+        operation="external.ffprobe",
+        operation_id=operation_id,
+        context={
+            "argv": cmd,
+            "returncode": result.returncode,
+            "duration_seconds": round(time.monotonic() - started, 6),
+            "stdout": result.stdout[-2000:],
+            "stderr": result.stderr[-2000:],
+        },
+        flush=result.returncode != 0,
+    )
     if result.returncode != 0:
         raise AudioProcessingError(result.stderr.strip() or "Could not inspect audio duration.")
     try:
@@ -39,14 +65,52 @@ def _run_external_command(
     command: tuple[str, ...],
     launch_error_message: str,
 ) -> subprocess.CompletedProcess[str]:
+    operation_id = new_operation_id("external")
+    started = time.monotonic()
+    record_breadcrumb(
+        "external.command.started",
+        source="external",
+        operation="external.command",
+        operation_id=operation_id,
+        context={"argv": list(command)},
+    )
     try:
-        return subprocess.run(
+        result = subprocess.run(
             list(command),
             capture_output=True,
             text=True,
             check=False,
         )  # nosec B603
+        record_breadcrumb(
+            "external.command.finished",
+            source="external",
+            level="error" if result.returncode != 0 else "debug",
+            operation="external.command",
+            operation_id=operation_id,
+            context={
+                "argv": list(command),
+                "returncode": result.returncode,
+                "duration_seconds": round(time.monotonic() - started, 6),
+                "stdout": result.stdout[-2000:],
+                "stderr": result.stderr[-2000:],
+            },
+            flush=result.returncode != 0,
+        )
+        return result
     except OSError as exc:
+        record_breadcrumb(
+            "external.command.launch_failed",
+            source="external",
+            level="error",
+            operation="external.command",
+            operation_id=operation_id,
+            context={
+                "argv": list(command),
+                "duration_seconds": round(time.monotonic() - started, 6),
+                "launch_error": str(exc),
+            },
+            flush=True,
+        )
         raise AudioProcessingError(f"{launch_error_message} {exc}") from exc
 
 
@@ -67,4 +131,3 @@ def _render_external_error_message(
                 return error.strip()
         return candidate
     return default_message
-

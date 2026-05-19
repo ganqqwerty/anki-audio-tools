@@ -204,7 +204,13 @@
       "properties": {
         "level": { "enum": ["debug", "info", "warn", "error", "unknown"] },
         "message": { "type": "string" },
-        "context": { "$ref": "#/definitions/JsonValue" }
+        "context": { "$ref": "#/definitions/JsonValue" },
+        "scope": { "type": "string" },
+        "stack": { "type": "string" },
+        "filename": { "type": "string" },
+        "lineno": { "type": "integer" },
+        "colno": { "type": "integer" },
+        "operation_id": { "type": "string" }
       }
     },
     "CopySupportReportPayload": {

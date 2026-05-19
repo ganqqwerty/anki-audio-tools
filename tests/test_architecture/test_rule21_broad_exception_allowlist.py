@@ -22,6 +22,12 @@ class BroadExceptionAllowance:
 
 BROAD_EXCEPTION_ALLOWLIST: tuple[BroadExceptionAllowance, ...] = (
     BroadExceptionAllowance(
+        "__init__",
+        "_with_hook_boundary._wrapped",
+        1,
+        "Startup hook boundary records diagnostics before re-raising for Anki startup visibility.",
+    ),
+    BroadExceptionAllowance(
         "audio_pause_pipeline",
         "_render_deep_filter_pause_speedup_audio",
         1,
@@ -53,6 +59,12 @@ BROAD_EXCEPTION_ALLOWLIST: tuple[BroadExceptionAllowance, ...] = (
     ),
     BroadExceptionAllowance(
         "browser_integration",
+        "_browser_hook_boundary._wrapped",
+        1,
+        "Browser hook boundary records diagnostics before re-raising hook failures.",
+    ),
+    BroadExceptionAllowance(
+        "browser_integration",
         "_process_note",
         1,
         "Per-note browser batch boundary prevents one unexpected note failure from stopping the batch.",
@@ -80,6 +92,12 @@ BROAD_EXCEPTION_ALLOWLIST: tuple[BroadExceptionAllowance, ...] = (
         "build_rnnoise_health",
         1,
         "Diagnostic external-tool probe reports availability instead of raising.",
+    ),
+    BroadExceptionAllowance(
+        "diagnostics_runtime",
+        "flush_logging",
+        1,
+        "Diagnostics must never fail while flushing a broken logging handler after an error.",
     ),
     BroadExceptionAllowance(
         "editor_bridge",

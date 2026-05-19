@@ -54,9 +54,10 @@ describe("logger", () => {
     expect(calls.length).toBeGreaterThan(0);
     const payload = JSON.parse(
       (calls[0]?.[0] as string).slice("frontend_log:".length)
-    ) as { level: string; message: string };
+    ) as { level: string; message: string; scope: string };
     expect(payload.level).toBe("info");
     expect(payload.message).toBe("test log");
+    expect(payload.scope).toBe("settings");
   });
 
   it("includes context in pycmd payload when provided", () => {
@@ -75,6 +76,23 @@ describe("logger", () => {
     expect(warnSpy).toHaveBeenCalledWith("[settings] warn with ctx", {
       extra: "data",
     });
+  });
+
+  it("includes Error.stack in pycmd payload", () => {
+    const error = new Error("render failed");
+    logger.error("error with stack", error);
+
+    const calls = pycmd.mock.calls.filter((c) =>
+      (c[0] as string).startsWith("frontend_log:")
+    );
+    const payload = JSON.parse(
+      (calls[0]?.[0] as string).slice("frontend_log:".length)
+    ) as { level: string; message: string; stack: string; context: unknown };
+
+    expect(payload.level).toBe("error");
+    expect(payload.message).toBe("error with stack");
+    expect(payload.stack).toContain("Error: render failed");
+    expect(payload.context).toEqual({});
   });
 
   it("silently swallows pycmd failure", () => {

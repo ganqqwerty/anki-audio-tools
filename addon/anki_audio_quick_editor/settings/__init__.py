@@ -66,17 +66,25 @@ def _render_settings_content(config: dict[str, Any]) -> tuple[str, str]:
     js_error_reporter = r"""
 window.addEventListener("error", function(event) {
   var payload = JSON.stringify({
+    scope: "settings",
     level: "error",
-    message: (event.message || "unknown") + " @ " + (event.filename || "?") + ":" + (event.lineno || "?")
+    message: (event.message || "unknown") + " @ " + (event.filename || "?") + ":" + (event.lineno || "?"),
+    stack: event.error && event.error.stack ? String(event.error.stack) : "",
+    filename: event.filename || "",
+    lineno: event.lineno || 0,
+    colno: event.colno || 0
   });
   if (typeof pycmd === "function") {
     pycmd("frontend_log:" + payload);
   }
 });
 window.addEventListener("unhandledrejection", function(event) {
+  var reason = event.reason || "unknown";
   var payload = JSON.stringify({
+    scope: "settings",
     level: "error",
-    message: "Unhandled rejection: " + String(event.reason || "unknown")
+    message: "Unhandled rejection: " + String(reason && reason.message ? reason.message : reason),
+    stack: reason && reason.stack ? String(reason.stack) : ""
   });
   if (typeof pycmd === "function") {
     pycmd("frontend_log:" + payload);

@@ -140,6 +140,7 @@ source_modules = [
     "anki_audio_quick_editor.contracts_generated",
     "anki_audio_quick_editor.db_helpers",
     "anki_audio_quick_editor.diagnostics",
+    "anki_audio_quick_editor.diagnostics_runtime",
     "anki_audio_quick_editor.editor_actions",
     "anki_audio_quick_editor.editor_media",
     "anki_audio_quick_editor.editor_session",

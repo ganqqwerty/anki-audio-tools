@@ -8,6 +8,7 @@ from pathlib import Path
 from typing import Any
 
 from .audio_state import AudioProcessingConfig
+from .diagnostics_runtime import capture_exception, new_operation_id, record_breadcrumb
 from .editor_session import EditorSession
 from .prosody_types import clamp_cursor_ms
 
@@ -178,6 +179,7 @@ def start_playback_from_cursor(
     from anki.sound import SoundOrVideoTag
     from aqt.sound import av_player
 
+    operation_id = new_operation_id("playback")
     filename = session.current_filename or source_path.name
     play_path = Path(editor.mw.col.media.dir()) / filename
     if not play_path.is_file():
@@ -186,6 +188,13 @@ def start_playback_from_cursor(
     session.cursor_ms = clamp_cursor_ms(cursor_ms, session.visualized_duration_ms)
     offset_seconds = max(0.0, session.cursor_ms / 1000)
     if offset_seconds <= 0:
+        record_breadcrumb(
+            "editor.playback.native_started",
+            source="editor",
+            operation="editor.playback",
+            operation_id=operation_id,
+            context={"filename": str(play_path), "field_index": field_index, "cursor_ms": session.cursor_ms},
+        )
         av_player.play_tags([SoundOrVideoTag(str(play_path))])
         session.playback_active = True
         session.playback_paused = False
@@ -202,6 +211,14 @@ def start_playback_from_cursor(
     playback_cursor_ms = session.cursor_ms
     deps.set_busy(editor, True, "Preparing playback...")
     deps.eval_playback_state(editor, field_index, "stopped", session.cursor_ms)
+    record_breadcrumb(
+        "editor.playback.segment_render_started",
+        source="editor",
+        operation="editor.playback",
+        operation_id=operation_id,
+        context={"filename": str(play_path), "field_index": field_index, "cursor_ms": playback_cursor_ms},
+        flush=True,
+    )
 
     def _run() -> None:
         try:
@@ -233,6 +250,15 @@ def start_playback_from_cursor(
             )
         except Exception as exc:
             message = str(exc)
+            capture_exception(
+                "editor.worker.playback_segment",
+                exc,
+                operation="editor.playback",
+                operation_id=operation_id,
+                user_message=message or "Could not prepare playback.",
+                context={"filename": str(play_path), "field_index": field_index, "cursor_ms": playback_cursor_ms},
+                log=logger,
+            )
             deps.main(editor, lambda: deps.playback_segment_failed(editor, generation, message))
 
     deps.threading.Thread(target=_run, daemon=True).start()

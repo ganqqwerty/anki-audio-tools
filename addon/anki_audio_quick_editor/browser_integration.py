@@ -20,6 +20,7 @@ from .batch_operations import (
 )
 from .browser_dialog import BatchOperationsDialog
 from .browser_report import BatchRunReport, format_result_line
+from .diagnostics_runtime import capture_exception, new_operation_id, record_breadcrumb
 
 logger = logging.getLogger(__name__)
 
@@ -28,8 +29,23 @@ UNDO_LABEL = "Batch Audio Operation"
 
 def register_browser_hooks(gui_hooks: Any) -> None:
     """Register Browser menu and context-menu hooks."""
-    gui_hooks.browser_menus_did_init.append(_on_browser_menus_did_init)
-    gui_hooks.browser_will_show_context_menu.append(_on_browser_will_show_context_menu)
+    gui_hooks.browser_menus_did_init.append(
+        _browser_hook_boundary("browser_menus_did_init", _on_browser_menus_did_init)
+    )
+    gui_hooks.browser_will_show_context_menu.append(
+        _browser_hook_boundary("browser_will_show_context_menu", _on_browser_will_show_context_menu)
+    )
+
+
+def _browser_hook_boundary(name: str, func: Any) -> Any:
+    def _wrapped(*args: Any, **kwargs: Any) -> Any:
+        try:
+            return func(*args, **kwargs)
+        except Exception as exc:
+            capture_exception(f"browser.hook.{name}", exc, operation=f"browser.hook.{name}", log=logger)
+            raise
+
+    return _wrapped
 
 
 def _on_browser_menus_did_init(browser: Any) -> None:
@@ -95,6 +111,7 @@ def _run_batch_in_background(
     note_ids: list[int],
     request: BatchRunRequest,
 ) -> None:
+    operation_id = new_operation_id("batch")
     mw = browser.mw
     config = AudioProcessingConfig.from_config(
         mw.addonManager.getConfig(mw.addonManager.addonFromModule(__name__)) or {}
@@ -114,6 +131,19 @@ def _run_batch_in_background(
         )
 
     def task() -> BatchRunReport:
+        record_breadcrumb(
+            "browser.batch.started",
+            source="browser",
+            operation="browser.batch",
+            operation_id=operation_id,
+            context={
+                "note_count": len(note_ids),
+                "operation": request.operation,
+                "source_field": request.source_field,
+                "target_field": request.target_field,
+            },
+            flush=True,
+        )
         return _run_batch(
             mw.col,
             note_ids,
@@ -130,7 +160,15 @@ def _run_batch_in_background(
         try:
             report = future.result()
         except Exception as exc:
-            logger.exception("batch operation failed")
+            capture_exception(
+                "browser.batch.worker",
+                exc,
+                operation="browser.batch",
+                operation_id=operation_id,
+                user_message=f"Batch operation failed: {exc}",
+                context={"note_count": len(note_ids), "operation": request.operation},
+                log=logger,
+            )
             dialog.finish_with_error(f"Batch operation failed: {exc}")
             return
         _publish_collection_changes(browser, report.changes)
@@ -210,6 +248,14 @@ def _process_note(
         note = col.get_note(note_id)
         snapshot = _snapshot_from_note(note)
     except Exception as exc:
+        capture_exception(
+            "browser.batch.note_load",
+            exc,
+            operation=f"browser.batch.{request.operation}",
+            user_message=str(exc) or "note load failed",
+            context={"note_id": note_id, "source_field": request.source_field},
+            log=logger,
+        )
         return BatchNoteResult(note_id=note_id, status="failed", message=str(exc) or "note load failed")
 
     current_audio = first_audio_filename(snapshot, request.source_field) or ""
@@ -250,6 +296,20 @@ def _apply_result(
             col.update_note(note)
             report.written += 1
         except Exception as exc:
+            capture_exception(
+                "browser.batch.apply_result",
+                exc,
+                operation=f"browser.batch.{result.status}",
+                user_message=str(exc) or f"failed to update target field {fallback_field!r}",
+                context={
+                    "note_id": result.note_id,
+                    "target_field": result.target_field,
+                    "fallback_field": fallback_field,
+                    "audio_filename": result.audio_filename,
+                    "written_filename": result.written_filename,
+                },
+                log=logger,
+            )
             report.failures += 1
             return BatchNoteResult(
                 note_id=result.note_id,
@@ -279,4 +339,11 @@ def _publish_collection_changes(browser: Any, changes: Any) -> None:
         browser.mw.update_undo_actions()
         gui_hooks.operation_did_execute(changes, browser)
     except Exception as exc:  # pragma: no cover - UI refresh is best effort
-        logger.info("browser refresh after batch visualization failed: %s", exc)
+        capture_exception(
+            "browser.refresh_after_batch",
+            exc,
+            operation="browser.batch.refresh",
+            user_message=str(exc),
+            context={"has_changes": changes is not None},
+            log=logger,
+        )

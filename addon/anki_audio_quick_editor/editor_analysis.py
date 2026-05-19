@@ -8,6 +8,7 @@ from typing import Any
 
 from .audio_state import AudioProcessingConfig
 from .contracts_generated import ProsodyPayload
+from .diagnostics_runtime import capture_exception, new_operation_id, record_breadcrumb
 from .editor_session import EditorSession
 from .errors import AudioQuickEditorError
 from .prosody_types import ProsodyTrack, clamp_cursor_ms
@@ -87,6 +88,7 @@ def start_field_analysis_async(
     deps: Any,
 ) -> None:
     """Start background prosody analysis for a field."""
+    operation_id = new_operation_id("graph")
     session = deps.sessions.setdefault(editor, EditorSession())
     if deps.is_busy(session):
         deps.eval_visualizer_status_for_field(
@@ -100,6 +102,14 @@ def start_field_analysis_async(
     generation = begin_field_analysis(session, field_index, filename)
     deps.set_busy_for_field(editor, field_index, True, "Analyzing...")
     deps.eval_visualizer_status_for_field(editor, field_index, "Analyzing...", kind="processing")
+    record_breadcrumb(
+        "editor.graph_analysis.started",
+        source="editor",
+        operation="editor.graph_analysis",
+        operation_id=operation_id,
+        context={"field_index": field_index, "filename": filename},
+        flush=True,
+    )
 
     def _run() -> None:
         try:
@@ -107,6 +117,14 @@ def start_field_analysis_async(
             deps.main(editor, lambda: deps.analysis_finished(editor, generation, field_index, track))
         except Exception as exc:
             message = str(exc)
+            capture_exception(
+                "editor.worker.graph_analysis",
+                exc,
+                operation="editor.graph_analysis",
+                operation_id=operation_id,
+                user_message=message or "Audio visualization failed.",
+                context={"field_index": field_index, "filename": filename, "media_path": str(media_path)},
+            )
             deps.main(editor, lambda: deps.analysis_failed(editor, generation, field_index, message))
 
     deps.threading.Thread(target=_run, daemon=True).start()

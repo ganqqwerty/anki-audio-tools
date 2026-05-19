@@ -8,6 +8,7 @@ from pathlib import Path
 from typing import Any, Callable
 
 from .audio_state import AudioEditState, AudioProcessingConfig
+from .diagnostics_runtime import capture_exception, new_operation_id, record_breadcrumb
 from .editor_actions import (
     EditorCommandPayload,
     apply_processing_command,
@@ -60,6 +61,15 @@ def render_and_replace_async(
     deps: Any,
 ) -> None:
     """Render an edited audio file and replace the current field on completion."""
+    operation_id = new_operation_id("render")
+    record_breadcrumb(
+        "editor.render.started",
+        source="editor",
+        operation="editor.render",
+        operation_id=operation_id,
+        context={"source_filename": source_path.name},
+        flush=True,
+    )
     deps.stop_session_playback(session)
     session.processing = True
     session.playback_active = False
@@ -98,6 +108,15 @@ def render_and_replace_async(
             shutil.rmtree(output_path.parent, ignore_errors=True)
         except Exception as exc:
             message = str(exc)
+            capture_exception(
+                "editor.worker.render",
+                exc,
+                operation="editor.render",
+                operation_id=operation_id,
+                user_message=message,
+                context={"source_path": str(source_path), "state": updated_state},
+                log=logger,
+            )
             deps.main(editor, lambda: deps.render_failed(editor, message))
 
     deps.threading.Thread(target=_run, daemon=True).start()
@@ -188,6 +207,7 @@ def run_special_audio_transform_async(
     deps: Any,
 ) -> None:
     """Run a denoise transform and replace the current audio on completion."""
+    operation_id = new_operation_id("transform")
     existing = deps.sessions.get(editor)
     if existing and deps.is_busy(existing):
         deps.eval_status(editor, deps.still_processing_message, kind="processing")
@@ -200,6 +220,14 @@ def run_special_audio_transform_async(
     session.playback_paused = False
     deps.set_busy(editor, True, f"{label}...")
     deps.eval_playback_state(editor, session.field_index, "stopped", session.cursor_ms)
+    record_breadcrumb(
+        "editor.special_transform.started",
+        source="editor",
+        operation=f"editor.{failure_log_label}",
+        operation_id=operation_id,
+        context={"label": label, "source_filename": current_path.name},
+        flush=True,
+    )
 
     def _run() -> None:
         output_path: Path | None = None
@@ -231,6 +259,15 @@ def run_special_audio_transform_async(
             if failure_context_recorder is not None:
                 failure_context_recorder(current_path, config, exc)
             deps.log_special_transform_failure(failure_log_label, message)
+            capture_exception(
+                f"editor.worker.{failure_log_label}",
+                exc,
+                operation=f"editor.{failure_log_label}",
+                operation_id=operation_id,
+                user_message=message,
+                context={"source_path": str(current_path), "label": label},
+                log=logger,
+            )
             if support_hint:
                 rendered_message = f"{message} {support_hint}"
             deps.main(editor, lambda: deps.render_failed(editor, rendered_message))
