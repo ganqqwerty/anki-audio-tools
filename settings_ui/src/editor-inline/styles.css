@@ -223,6 +223,7 @@
 .aqe-help {
   flex: 1 0 100%;
   font-size: 12px;
+  max-width: min(980px, 100%);
 }
 
 .aqe-help-summary {
@@ -231,6 +232,25 @@
   display: inline-flex;
   font-weight: 700;
   gap: 5px;
+  list-style: none;
+}
+
+.aqe-help-summary::-webkit-details-marker {
+  display: none;
+}
+
+.aqe-help-triangle {
+  border-bottom: 4px solid transparent;
+  border-left: 6px solid currentColor;
+  border-top: 4px solid transparent;
+  height: 0;
+  transform-origin: 35% 50%;
+  transition: transform 120ms ease;
+  width: 0;
+}
+
+.aqe-help[open] .aqe-help-triangle {
+  transform: rotate(90deg);
 }
 
 .aqe-help-body {
@@ -274,15 +294,15 @@
 
 .aqe-help-grid {
   display: grid;
-  gap: 5px 8px;
-  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+  gap: 7px 14px;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr));
 }
 
 .aqe-help-item {
-  align-items: center;
+  align-items: start;
   display: grid;
   gap: 5px;
-  grid-template-columns: minmax(116px, max-content) minmax(0, 1fr);
+  grid-template-columns: minmax(0, 142px) minmax(0, 1fr);
 }
 
 .aqe-help-command {
@@ -293,8 +313,16 @@
   display: inline-flex;
   gap: 5px;
   min-height: 24px;
+  min-width: 0;
   padding: 2px 6px;
-  white-space: nowrap;
+}
+
+.aqe-help-command span:last-child {
+  overflow-wrap: anywhere;
+}
+
+.aqe-help-description {
+  line-height: 1.35;
 }
 
 .aqe-help-note {
