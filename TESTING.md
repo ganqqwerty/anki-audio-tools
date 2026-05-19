@@ -7,6 +7,7 @@ python3 scripts/dev.py architecture-report
 python3 scripts/dev.py test-anki-api
 python3 scripts/dev.py check
 python3 scripts/dev.py coverage
+python3 scripts/dev.py qodana
 python3 scripts/dev.py sonar
 python3 scripts/dev.py test-e2e
 ```
@@ -21,6 +22,7 @@ python3 scripts/dev.py test-e2e
 - `settings_ui/tests/` covers bridge commands, async job plumbing, logging, the settings UI, and the inline editor Svelte runtime with Anki cut off behind DOM/backend test doubles. `python3 scripts/dev.py test-svelte` rebuilds the ignored generated frontend bundles, then runs the frontend validation chain: `svelte-check`, ESLint, `tsc --noEmit`, and Vitest coverage thresholds.
 - `scripts/generate_contracts.py --check` verifies generated Python/TypeScript JSON communication contracts are in sync with `contracts/communication.schema.json`.
 - `python3 scripts/dev.py coverage` runs Python unit tests with branch coverage and fails below 70%.
+- `python3 scripts/dev.py qodana` runs JetBrains Qodana with `qodana.yaml` and fails on any reported problem.
 - `python3 scripts/dev.py sonar` regenerates Python XML coverage and frontend LCOV from scratch, waits for the Sonar quality gate, and fails on missing reports or a failed quality gate.
 - `e2e/` exercises the real add-on inside a live Anki runtime via `aqt._run(exec=False)`, including ffmpeg-backed audio processing when `ffmpeg` and `ffprobe` are installed.
 
@@ -59,14 +61,17 @@ Avoid running `npm run validate` or `pytest e2e` directly as the only verificati
 | Frontend validation | `python3 scripts/dev.py test-svelte` |
 | E2E tests with frontend rebuild | `python3 scripts/dev.py test-e2e` |
 | Python branch coverage | `python3 scripts/dev.py coverage` |
+| Qodana code quality | `python3 scripts/dev.py qodana` |
 | SonarQube quality gate | `python3 scripts/dev.py sonar` |
 | Mutation testing (advisory) | `python3 scripts/dev.py muttest run` |
 
 ## Quality Gates
 
-`python3 scripts/dev.py check` is the reusable local QC gate. It runs schema validation, generates and verifies JSON contracts, architecture reporting, Ruff, mypy, Bandit, Vulture, Deptry, Radon, import-linter, Anki API contract tests, Python unit/architecture tests, and frontend validation. Its frontend validation step rebuilds bundles through `test-svelte`.
+`python3 scripts/dev.py check` is the reusable local QC gate. It runs schema validation, generates and verifies JSON contracts, architecture reporting, Ruff, mypy, Bandit, Vulture, Deptry, Radon, Qodana, import-linter, Anki API contract tests, Python unit/architecture tests, and frontend validation. Its frontend validation step rebuilds bundles through `test-svelte`.
 
 The Radon complexity command fails when any hand-maintained add-on function or class is rank C or worse. Generated communication-contract output is excluded from the fail decision; contract freshness is enforced separately by `contracts-check`. Ruff also enforces McCabe complexity with `max-complexity = 10`.
+
+Qodana uses `qodana-python-community` in native mode and `failThreshold: 0`, so any Qodana problem fails the standard check. The CLI is an external developer tool and must be available as `qodana` on `PATH`.
 
 The file-length policy warns above 400 physical lines and fails above 500 physical lines for hand-maintained Python, TypeScript, and Svelte files. Generated contract output and committed webview bundle output are excluded by explicit generated-file predicates, and contract freshness remains covered by `python3 scripts/dev.py contracts-check`.
 

@@ -86,6 +86,10 @@ Python dev dependencies live in two places and must stay in sync:
 1. `scripts/dev.py` -> `DEV_DEPS`
 2. `pyproject.toml` -> `[dependency-groups].dev`
 
+Qodana is an external CLI dependency, not a Python package. It is configured by
+`qodana.yaml`, runs in native mode with `qodana-python-community`, and is part of
+`python3 scripts/dev.py check` through `python3 scripts/dev.py qodana`.
+
 ## Frontend Dependencies
 
 The settings dialog and inline editor UI use Svelte 5 and Vite from `settings_ui/package.json`. Rebuild ignored generated bundles after editing `.svelte` or `.ts` files:

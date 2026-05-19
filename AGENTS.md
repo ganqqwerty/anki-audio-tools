@@ -72,6 +72,7 @@ Use `python3 scripts/dev.py check` for the reusable QC gate. A feature is not co
 | Linter | `python3 scripts/dev.py lint` |
 | Type checker | `python3 scripts/dev.py typecheck` |
 | Python coverage | `python3 scripts/dev.py coverage` |
+| Qodana code quality | `python3 scripts/dev.py qodana` |
 | Sonar quality gate | `python3 scripts/dev.py sonar` |
 | Config schema | `python3 scripts/dev.py config-schema` |
 | JSON contracts | `python3 scripts/dev.py contracts-check` |
