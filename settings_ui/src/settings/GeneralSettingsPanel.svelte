@@ -1,4 +1,5 @@
 <script lang="ts">
+  import CommandIcon from "$lib/CommandIcon.svelte";
   import type { Config } from "$lib/types.js";
 
   let {
@@ -26,7 +27,10 @@
       type="checkbox"
       bind:checked={config.repeat_playback_by_default}
     />
-    <span>Repeat playback by default</span>
+    <span class="label-with-icon">
+      <CommandIcon className="settings-label-icon" icon="repeat-2" />
+      <span>Repeat playback by default</span>
+    </span>
   </label>
   <label class="toggle">
     <input
@@ -34,7 +38,10 @@
       type="checkbox"
       bind:checked={config.show_graph_by_default}
     />
-    <span>Show graph by default</span>
+    <span class="label-with-icon">
+      <CommandIcon className="settings-label-icon" icon="audio-lines" />
+      <span>Show graph by default</span>
+    </span>
   </label>
   <label class="field-row">
     <span>ffmpeg path</span>
@@ -54,55 +61,94 @@
   </label>
   <label class="toggle">
     <input type="checkbox" bind:checked={config.deep_filter_post_filter} />
-    <span>Use DeepFilterNet post-filter</span>
+    <span class="label-with-icon">
+      <CommandIcon className="settings-label-icon" icon="volume-x" />
+      <span>Use DeepFilterNet post-filter</span>
+    </span>
   </label>
   <div class="settings-grid">
     <label>
-      <span>Small trim step (ms)</span>
+      <span class="label-with-icon">
+        <CommandIcon className="settings-label-icon" icon="scissors" />
+        <span>Small trim step (ms)</span>
+      </span>
       <input type="number" min="1" bind:value={config.manual_trim_small_ms} />
     </label>
     <label>
-      <span>Large trim step (ms)</span>
+      <span class="label-with-icon">
+        <CommandIcon className="settings-label-icon" icon="scissors" />
+        <span>Large trim step (ms)</span>
+      </span>
       <input type="number" min="1" bind:value={config.manual_trim_large_ms} />
     </label>
     <label>
-      <span>Speed step</span>
+      <span class="label-with-icon">
+        <CommandIcon className="settings-label-icon" icon="fast-forward" />
+        <span>Speed step</span>
+      </span>
       <input type="number" min="0.01" step="0.01" bind:value={config.speed_step} />
     </label>
     <label>
-      <span>Min speed</span>
+      <span class="label-with-icon">
+        <CommandIcon className="settings-label-icon" icon="rewind" />
+        <span>Min speed</span>
+      </span>
       <input type="number" min="0.1" step="0.05" bind:value={config.min_speed} />
     </label>
     <label>
-      <span>Max speed</span>
+      <span class="label-with-icon">
+        <CommandIcon className="settings-label-icon" icon="fast-forward" />
+        <span>Max speed</span>
+      </span>
       <input type="number" min="0.1" step="0.05" bind:value={config.max_speed} />
     </label>
     <label>
-      <span>Volume step (dB)</span>
+      <span class="label-with-icon">
+        <CommandIcon className="settings-label-icon" icon="volume-2" />
+        <span>Volume step (dB)</span>
+      </span>
       <input type="number" min="0.1" step="0.1" bind:value={config.volume_step_db} />
     </label>
     <label>
-      <span>Min volume (dB)</span>
+      <span class="label-with-icon">
+        <CommandIcon className="settings-label-icon" icon="volume-1" />
+        <span>Min volume (dB)</span>
+      </span>
       <input type="number" step="0.1" bind:value={config.min_volume_db} />
     </label>
     <label>
-      <span>Max volume (dB)</span>
+      <span class="label-with-icon">
+        <CommandIcon className="settings-label-icon" icon="volume-2" />
+        <span>Max volume (dB)</span>
+      </span>
       <input type="number" step="0.1" bind:value={config.max_volume_db} />
     </label>
     <label>
-      <span>Internal pause silence threshold (dB)</span>
+      <span class="label-with-icon">
+        <CommandIcon className="settings-label-icon" icon="timer-reset" />
+        <span>Internal pause silence threshold (dB)</span>
+      </span>
       <input type="number" bind:value={config.internal_pause_silence_threshold_db} />
     </label>
     <label>
-      <span>Pause threshold (ms)</span>
+      <span class="label-with-icon">
+        <CommandIcon className="settings-label-icon" icon="timer-reset" />
+        <span>Pause threshold (ms)</span>
+      </span>
       <input type="number" min="1" bind:value={config.internal_pause_threshold_ms} />
     </label>
     <label>
-      <span>Pause target gap (ms)</span>
+      <span class="label-with-icon">
+        <CommandIcon className="settings-label-icon" icon="timer-reset" />
+        <span>Pause target gap (ms)</span>
+      </span>
       <input type="number" min="1" bind:value={config.internal_pause_target_gap_ms} />
     </label>
     <label>
-      <span>Shorten pauses level</span>
+      <span class="label-with-icon">
+        <CommandIcon className="settings-label-icon" icon="timer-reset" />
+        <span>Shorten pauses level</span>
+      </span>
       <select bind:value={config.pause_aggressiveness}>
         <option value="gentle">Gentle</option>
         <option value="normal">Normal</option>
@@ -110,7 +156,10 @@
       </select>
     </label>
     <label>
-      <span>Default denoise algorithm</span>
+      <span class="label-with-icon">
+        <CommandIcon className="settings-label-icon" icon="sparkles" />
+        <span>Default denoise algorithm</span>
+      </span>
       <select bind:value={config.denoise_algorithm}>
         <option value="standard">Standard</option>
         <option value="rnnoise">RNNoise</option>
@@ -152,6 +201,20 @@
 
   .field-row {
     margin: 14px 0;
+  }
+
+  .label-with-icon {
+    align-items: center;
+    display: inline-flex;
+    gap: 8px;
+    min-width: 0;
+  }
+
+  :global(.settings-label-icon) {
+    align-items: center;
+    color: var(--fg-subtle, currentColor);
+    display: inline-flex;
+    flex: 0 0 auto;
   }
 
   .settings-grid {

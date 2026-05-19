@@ -1,4 +1,5 @@
 import type { FrontendLogPayload, ProsodyPayload } from "../lib/generated/contracts.js";
+import type { CommandIconName } from "../lib/icon-types.js";
 
 export type EditorCommand =
   | "aqe:play"
@@ -18,29 +19,7 @@ export type EditorCommand =
   | "aqe:redo"
   | "aqe:settings";
 
-export type EditorIconName =
-  | "audio-lines"
-  | "chart-line"
-  | "chevron-down"
-  | "circle-help"
-  | "fast-forward"
-  | "folder-open"
-  | "pause"
-  | "play"
-  | "redo-2"
-  | "refresh-cw"
-  | "repeat-2"
-  | "rewind"
-  | "scissors"
-  | "settings"
-  | "sparkles"
-  | "waves"
-  | "timer-reset"
-  | "trash-2"
-  | "undo-2"
-  | "volume-1"
-  | "volume-2"
-  | "volume-x";
+export type EditorIconName = CommandIconName;
 
 export interface ButtonSpec {
   activeIcon?: EditorIconName;
