@@ -125,6 +125,53 @@ def _normal_drag(editor, start_ratio: float, end_ratio: float, ord_: int = 0) ->
     run_js(editor.web, _plot_pointer_script(ord_, start_ratio, end_ratio, shift=False, move=True))
 
 
+def _selection_handle_pointer_event_script(
+    ord_: int,
+    edge: str,
+    ratio: float,
+    event_type: str,
+) -> str:
+    target = "handle" if event_type == "pointerdown" else "window"
+    return f"""
+    (() => {{
+      const ord = {ord_};
+      const edge = {edge!r};
+      const ratio = {ratio};
+      const handle = document.querySelector(`[data-testid="aqe-selection-resize-${{edge}}-${{ord}}"]`);
+      const svg = document.querySelector(`.aqe-visualizer[data-aqe-field-ord="${{ord}}"] .aqe-visualizer-svg`);
+      const rect = svg.getBoundingClientRect();
+      const plot = {{ width: 620, left: 44, right: 10 }};
+      const plotLeft = rect.left + (plot.left / plot.width) * rect.width;
+      const plotWidth = ((plot.width - plot.left - plot.right) / plot.width) * rect.width;
+      const x = plotLeft + plotWidth * ratio;
+      const EventCtor = window.PointerEvent || window.MouseEvent;
+      {target}.dispatchEvent(new EventCtor("{event_type}", {{
+        bubbles: true,
+        clientX: x,
+        clientY: rect.top + 20,
+      }}));
+    }})()
+    """
+
+
+def _resize_handle_down(editor, edge: str, ratio: float, ord_: int = 0) -> None:
+    run_js(editor.web, _selection_handle_pointer_event_script(ord_, edge, ratio, "pointerdown"))
+
+
+def _resize_handle_move(editor, edge: str, ratio: float, ord_: int = 0) -> None:
+    run_js(editor.web, _selection_handle_pointer_event_script(ord_, edge, ratio, "pointermove"))
+
+
+def _resize_handle_up(editor, edge: str, ratio: float, ord_: int = 0) -> None:
+    run_js(editor.web, _selection_handle_pointer_event_script(ord_, edge, ratio, "pointerup"))
+
+
+def _drag_resize_handle(editor, edge: str, start_ratio: float, end_ratio: float, ord_: int = 0) -> None:
+    _resize_handle_down(editor, edge, start_ratio, ord_)
+    _resize_handle_move(editor, edge, end_ratio, ord_)
+    _resize_handle_up(editor, edge, end_ratio, ord_)
+
+
 def _set_repeat(editor, enabled: bool, ord_: int = 0) -> None:
     wait_for_js_condition(
         editor.web,
