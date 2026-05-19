@@ -119,6 +119,43 @@ def test_test_e2e_stops_when_frontend_build_fails(monkeypatch) -> None:
     assert dev.cmd_test_e2e() == 23
 
 
+def test_qodana_runs_with_committed_config(monkeypatch) -> None:
+    calls: list[tuple[list[str], dict[str, object]]] = []
+
+    monkeypatch.setattr(dev.shutil, "which", lambda name: "/usr/local/bin/qodana" if name == "qodana" else None)
+    monkeypatch.setattr(
+        dev,
+        "_run",
+        lambda cmd, **kwargs: calls.append((cmd, kwargs)) or 0,
+    )
+
+    assert dev.cmd_qodana() == 0
+    assert calls == [
+        (
+            [
+                "/usr/local/bin/qodana",
+                "--disable-update-checks",
+                "scan",
+                "--config",
+                "qodana.yaml",
+                "--project-dir",
+                str(dev.ROOT),
+                "--print-problems",
+            ],
+            {"label": "qodana code quality"},
+        )
+    ]
+
+
+def test_qodana_reports_missing_cli(monkeypatch, capsys) -> None:
+    monkeypatch.setattr(dev.shutil, "which", lambda name: None)
+
+    assert dev.cmd_qodana() == 1
+
+    captured = capsys.readouterr()
+    assert "qodana not found" in captured.err
+
+
 def test_check_includes_python_coverage_gate(monkeypatch) -> None:
     calls: list[str] = []
 
@@ -134,6 +171,7 @@ def test_check_includes_python_coverage_gate(monkeypatch) -> None:
         "cmd_deadcode": 0,
         "cmd_deps": 0,
         "cmd_complexity": 0,
+        "cmd_qodana": 0,
         "cmd_arch": 0,
         "cmd_test_anki_api": 0,
         "cmd_test": 0,
@@ -148,3 +186,5 @@ def test_check_includes_python_coverage_gate(monkeypatch) -> None:
     assert "cmd_coverage" in calls
     assert calls.index("cmd_coverage") > calls.index("cmd_test")
     assert calls.index("cmd_coverage") < calls.index("cmd_test_svelte")
+    assert calls.index("cmd_qodana") > calls.index("cmd_complexity")
+    assert calls.index("cmd_qodana") < calls.index("cmd_arch")

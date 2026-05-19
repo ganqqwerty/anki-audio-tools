@@ -196,6 +196,26 @@ def cmd_deps() -> int:
     return _run([str(anki_python), "-m", "deptry", "."], label="deptry dependency check")
 
 
+def cmd_qodana() -> int:
+    qodana = shutil.which("qodana")
+    if not qodana:
+        print("ERROR: qodana not found. Install the Qodana CLI and ensure it is on PATH.", file=sys.stderr)
+        return 1
+    return _run(
+        [
+            qodana,
+            "--disable-update-checks",
+            "scan",
+            "--config",
+            "qodana.yaml",
+            "--project-dir",
+            str(ROOT),
+            "--print-problems",
+        ],
+        label="qodana code quality",
+    )
+
+
 def cmd_muttest() -> int:
     anki_python = _find_anki_python()
     mutmut_args = sys.argv[2:]
@@ -239,6 +259,7 @@ def cmd_check() -> int:
         ("deadcode", cmd_deadcode),
         ("deps", cmd_deps),
         ("complexity", cmd_complexity),
+        ("qodana", cmd_qodana),
         ("arch", cmd_arch),
         ("test-anki-api", cmd_test_anki_api),
         ("test", cmd_test),
@@ -352,10 +373,11 @@ COMMANDS: dict[str, tuple[Callable[[], int], str]] = {
     "deadcode": (cmd_deadcode, "Find dead code (vulture)"),
     "security": (cmd_security, "Run bandit security linter"),
     "deps": (cmd_deps, "Check dependencies (deptry)"),
+    "qodana": (cmd_qodana, "Run Qodana code quality analysis"),
     "check": (
         cmd_check,
         "Full QC: config-schema + contracts-generate + contracts-check + architecture-report + lint + typecheck + "
-        "file-lines + security + deadcode + deps + complexity + arch + test-anki-api + test + coverage + "
+        "file-lines + security + deadcode + deps + complexity + qodana + arch + test-anki-api + test + coverage + "
         "frontend validate",
     ),
     "coverage": (cmd_coverage, f"Run tests with branch coverage report (fail under {PYTHON_COVERAGE_FAIL_UNDER}%)"),
