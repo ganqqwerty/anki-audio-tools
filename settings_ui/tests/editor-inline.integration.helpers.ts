@@ -74,6 +74,27 @@ export function dragGraphSelection(svg: SVGSVGElement, startRatio: number, endRa
   dispatchGraphPointer(svg, "pointerup", graphClientX(svg, endRatio), true);
 }
 
+export function dispatchHandlePointer(handle: Element, type: string, clientX: number): void {
+  const EventCtor = window.PointerEvent || window.MouseEvent;
+  const event = new EventCtor(type, {
+    bubbles: true,
+    clientX,
+    clientY: 20,
+  });
+  if (type === "pointerdown") {
+    handle.dispatchEvent(event);
+    return;
+  }
+  window.dispatchEvent(event);
+}
+
+export function dragSelectionHandle(svg: SVGSVGElement, edge: "end" | "start", endRatio: number, ord = 0): void {
+  const handle = document.querySelector(`[data-testid="aqe-selection-resize-${edge}-${ord}"]`)!;
+  dispatchHandlePointer(handle, "pointerdown", graphClientX(svg, edge === "start" ? 0.2 : 0.6));
+  dispatchHandlePointer(handle, "pointermove", graphClientX(svg, endRatio));
+  dispatchHandlePointer(handle, "pointerup", graphClientX(svg, endRatio));
+}
+
 export function setGraphBounds(svg: SVGSVGElement): void {
   svg.getBoundingClientRect = () => ({
     bottom: 150,

@@ -45,6 +45,7 @@ import {
 import {
   handleVisualizerPointerDown as handleVisualizerPointerDownGesture,
   startCursorDrag as startCursorDragGesture,
+  startSelectionResizeGesture as startSelectionResizeGestureFlow,
   startSelectionGesture as startSelectionGestureFlow,
   type SelectionGestureDependencies,
 } from "./selection-gestures.js";
@@ -376,11 +377,13 @@ export function startSelectionGesture(event: PointerEvent, visualizer: Visualize
 
 export function startSelectionResizeGesture(
   event: PointerEvent,
-  _ord: number,
-  _edge: SelectionResizeEdge,
+  ord: number,
+  edge: SelectionResizeEdge,
 ): void {
-  event.preventDefault();
-  event.stopPropagation();
+  visualizerForOrd(ord)?.focus();
+  const visualizer = visualizerForOrd(ord);
+  if (!visualizer) return;
+  startSelectionResizeGestureFlow(event, visualizer, ord, edge, selectionGestureDependencies());
 }
 
 export function handleVisualizerPointerDown(event: PointerEvent, ord: number): void {

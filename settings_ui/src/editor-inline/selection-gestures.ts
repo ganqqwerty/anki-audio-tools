@@ -1,6 +1,10 @@
 import { clampMsToRegion, type PlaybackRegion } from "./playback-state.js";
 import { cursorMsFromEvent } from "./plot.js";
-import { shouldTreatSelectionGestureAsClick } from "./selection-state.js";
+import {
+  resizeSelectionRange,
+  shouldTreatSelectionGestureAsClick,
+  type SelectionResizeEdge,
+} from "./selection-state.js";
 import type { PlaybackRequest, PlaybackState, VisualizerElement } from "./types.js";
 
 type CursorOptions = {
@@ -175,6 +179,100 @@ export function startSelectionGesture(
   window.addEventListener("keydown", keydown);
   window.addEventListener("blur", cancel);
   svg.addEventListener("lostpointercapture", cancel);
+}
+
+export function startSelectionResizeGesture(
+  event: PointerEvent,
+  visualizer: VisualizerElement,
+  ord: number,
+  edge: SelectionResizeEdge,
+  deps: SelectionGestureDependencies,
+): void {
+  event.preventDefault();
+  event.stopPropagation();
+  const svg = visualizer.querySelector<SVGSVGElement>(".aqe-visualizer-svg");
+  const durationMs = Number(visualizer.dataset.durationMs || "0");
+  const selection = deps.selectionForVisualizer(visualizer);
+  if (!svg || !durationMs || !selection) return;
+  const previousPlaybackState = deps.playbackStateFor(visualizer);
+  const frozenProgressMs = deps.currentProgressMs(visualizer) ?? Number(visualizer.dataset.cursorMs || "0");
+  const captureTarget = event.currentTarget instanceof Element ? event.currentTarget : svg;
+  let stoppedForDrag = false;
+  let latestRange = selection;
+  let move = (_moveEvent: PointerEvent): void => {};
+  let up = (_upEvent: PointerEvent): void => {};
+  let cancel = (): void => {};
+  let keydown = (_keyEvent: KeyboardEvent): void => {};
+  const cleanup = (): void => {
+    window.removeEventListener("pointermove", move);
+    window.removeEventListener("pointerup", up);
+    window.removeEventListener("pointercancel", cancel);
+    window.removeEventListener("keydown", keydown);
+    window.removeEventListener("blur", cancel);
+    captureTarget.removeEventListener("lostpointercapture", cancel);
+  };
+  const stopForDrag = (): void => {
+    if (stoppedForDrag || previousPlaybackState !== "playing") return;
+    stoppedForDrag = true;
+    deps.stopProgressClock(visualizer, { clearEngine: false });
+    deps.setCursor(visualizer, frozenProgressMs, false, { updateAnchor: false });
+  };
+  const resizeFromEvent = (resizeEvent: PointerEvent): PlaybackRegion | null => {
+    const edgeMs = cursorMsFromEvent(resizeEvent, svg, durationMs);
+    const range = resizeSelectionRange(selection, edge, edgeMs, durationMs);
+    return range ? { ...range, mode: "selection" } : null;
+  };
+  const restartFromSelectionStart = (): void => {
+    if (previousPlaybackState !== "playing" || !stoppedForDrag) return;
+    const committedSelection = deps.selectionForVisualizer(visualizer);
+    deps.startEditorHtmlPlayback(
+      visualizer,
+      deps.playbackRequestForStart(visualizer, ord, committedSelection?.startMs ?? latestRange.startMs, "html"),
+    );
+  };
+  stopForDrag();
+  move = (moveEvent: PointerEvent): void => {
+    const resized = resizeFromEvent(moveEvent);
+    if (!resized) {
+      deps.clearSelectionDraft(visualizer);
+      return;
+    }
+    latestRange = resized;
+    deps.setSelectionDraft(visualizer, resized.startMs, resized.endMs);
+  };
+  up = (upEvent: PointerEvent): void => {
+    cleanup();
+    const resized = resizeFromEvent(upEvent);
+    if (resized) {
+      latestRange = resized;
+      if (!deps.draftSelectionForVisualizer(visualizer)) {
+        deps.setSelectionDraft(visualizer, resized.startMs, resized.endMs, { redraw: false });
+      }
+      deps.commitSelectionDraft(visualizer);
+    } else {
+      deps.clearSelectionDraft(visualizer);
+    }
+    if (previousPlaybackState === "paused") {
+      visualizer.dataset.resumeRequiresRestart = "true";
+    }
+    restartFromSelectionStart();
+  };
+  cancel = (): void => {
+    cleanup();
+    deps.clearSelectionDraft(visualizer);
+    restartFromSelectionStart();
+  };
+  keydown = (keyEvent: KeyboardEvent): void => {
+    if (keyEvent.key === "Escape") {
+      cancel();
+    }
+  };
+  window.addEventListener("pointermove", move);
+  window.addEventListener("pointerup", up);
+  window.addEventListener("pointercancel", cancel);
+  window.addEventListener("keydown", keydown);
+  window.addEventListener("blur", cancel);
+  captureTarget.addEventListener("lostpointercapture", cancel);
 }
 
 export function handleVisualizerPointerDown(

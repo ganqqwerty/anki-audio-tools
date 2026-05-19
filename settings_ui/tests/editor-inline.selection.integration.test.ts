@@ -4,7 +4,9 @@ import { disposeEditorRuntime, initializeEditorRuntime, scan } from "../src/edit
 import {
   bridgeCommands,
   dispatchGraphPointer,
+  dispatchHandlePointer,
   dragGraphSelection,
+  dragSelectionHandle,
   graphClientX,
   mockAnimationFrames,
   muteConsole,
@@ -301,6 +303,85 @@ afterEach(() => {
       cursorMs: 300,
     });
     expect(audio.play).toHaveBeenCalledTimes(2);
+  });
+
+  it("resizes committed selections by dragging visible handles without Shift", () => {
+    initializeEditorRuntime({ audioFieldIndices: [0] });
+    scan({ audioFieldIndices: [0] });
+    window.__aqeSetVisualizer?.(0, track, 100);
+    const svg = document.querySelector<SVGSVGElement>('[data-testid="aqe-graph-svg-0"]')!;
+    setGraphBounds(svg);
+    dragGraphSelection(svg, 0.2, 0.6);
+
+    dragSelectionHandle(svg, "start", 0.1);
+    expect(window.__aqeGraphStateForTest?.(0)).toMatchObject({
+      selectionActive: true,
+      selectionStartMs: 100,
+      selectionEndMs: 600,
+      selectionDraftActive: false,
+      cursorMs: 100,
+      playbackStartMs: 100,
+      playbackEndMs: 600,
+      playButtonLabel: "Play",
+    });
+
+    dragSelectionHandle(svg, "end", 0.8);
+    expect(window.__aqeGraphStateForTest?.(0)).toMatchObject({
+      selectionStartMs: 100,
+      selectionEndMs: 800,
+      cursorMs: 100,
+      playbackStartMs: 100,
+      playbackEndMs: 800,
+      playButtonLabel: "Play",
+    });
+  });
+
+  it("clamps handle drags at the minimum duration without swapping edges", () => {
+    initializeEditorRuntime({ audioFieldIndices: [0] });
+    scan({ audioFieldIndices: [0] });
+    window.__aqeSetVisualizer?.(0, track, 100);
+    const svg = document.querySelector<SVGSVGElement>('[data-testid="aqe-graph-svg-0"]')!;
+    setGraphBounds(svg);
+    dragGraphSelection(svg, 0.2, 0.6);
+
+    dragSelectionHandle(svg, "start", 0.8);
+    expect(window.__aqeGraphStateForTest?.(0)).toMatchObject({
+      selectionStartMs: 550,
+      selectionEndMs: 600,
+    });
+
+    dragSelectionHandle(svg, "end", 0.1);
+    expect(window.__aqeGraphStateForTest?.(0)).toMatchObject({
+      selectionStartMs: 550,
+      selectionEndMs: 600,
+    });
+  });
+
+  it("cancels resize drafts without replacing the committed selection", () => {
+    initializeEditorRuntime({ audioFieldIndices: [0] });
+    scan({ audioFieldIndices: [0] });
+    window.__aqeSetVisualizer?.(0, track, 100);
+    const svg = document.querySelector<SVGSVGElement>('[data-testid="aqe-graph-svg-0"]')!;
+    setGraphBounds(svg);
+    dragGraphSelection(svg, 0.2, 0.6);
+    const handle = document.querySelector('[data-testid="aqe-selection-resize-end-0"]')!;
+
+    dispatchHandlePointer(handle, "pointerdown", graphClientX(svg, 0.6));
+    dispatchHandlePointer(handle, "pointermove", graphClientX(svg, 0.9));
+    expect(window.__aqeGraphStateForTest?.(0)).toMatchObject({
+      selectionStartMs: 200,
+      selectionEndMs: 600,
+      selectionDraftActive: true,
+      selectionDraftStartMs: 200,
+      selectionDraftEndMs: 900,
+    });
+
+    window.dispatchEvent(new KeyboardEvent("keydown", { bubbles: true, key: "Escape" }));
+    expect(window.__aqeGraphStateForTest?.(0)).toMatchObject({
+      selectionStartMs: 200,
+      selectionEndMs: 600,
+      selectionDraftActive: false,
+    });
   });
 
   it("keeps selection stable through normal click and drag gestures", () => {
