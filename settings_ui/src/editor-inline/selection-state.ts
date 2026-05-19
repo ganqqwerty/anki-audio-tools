@@ -49,6 +49,39 @@ export function normalizeSelectionRange(
   };
 }
 
+export type SelectionResizeEdge = "end" | "start";
+
+export function resizeSelectionRange(
+  selection: SelectionRange,
+  edge: SelectionResizeEdge,
+  edgeMs: number,
+  durationMs: number,
+  minDurationMs = MIN_SELECTION_DURATION_MS,
+): SelectionRange | null {
+  const duration = Math.max(0, Number(durationMs) || 0);
+  const minimum = Math.max(0, Number(minDurationMs) || 0);
+  if (!duration || duration < minimum) return null;
+
+  const start = clampMs(selection.startMs, duration);
+  const end = clampMs(selection.endMs, duration);
+
+  if (edge === "start") {
+    const fixedEnd = Math.max(minimum, end);
+    const resizedStart = Math.min(clampMs(edgeMs, duration), fixedEnd - minimum);
+    return {
+      startMs: Math.round(Math.max(0, resizedStart)),
+      endMs: Math.round(fixedEnd),
+    };
+  }
+
+  const fixedStart = Math.min(start, duration - minimum);
+  const resizedEnd = Math.max(clampMs(edgeMs, duration), fixedStart + minimum);
+  return {
+    startMs: Math.round(fixedStart),
+    endMs: Math.round(Math.min(duration, resizedEnd)),
+  };
+}
+
 export function selectionRegion(
   state: Pick<SelectionState, "active" | "endMs" | "startMs">,
   durationMs: number,
