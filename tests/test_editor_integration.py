@@ -208,6 +208,24 @@ def test_region_delete_request_parser_rejects_unknown_operation() -> None:
     assert request is None
 
 
+def test_region_delete_request_parser_rejects_explicit_malformed_operations() -> None:
+    for operation in ("", False, 0):
+        request = _parse_region_delete_request(
+            {
+                "operation": operation,
+                "ord": 0,
+                "sourceFilename": "clip.wav",
+                "selectionStartMs": 250,
+                "selectionEndMs": 750,
+                "cursorMs": 300,
+                "durationMs": 1000,
+                "trigger": "button",
+            }
+        )
+
+        assert request is None
+
+
 def test_region_operation_renderer_routes_delete_rest_to_keep_renderer(tmp_path: Path) -> None:
     from anki_audio_quick_editor.editor_region_delete import render_region_operation
 
@@ -243,6 +261,45 @@ def test_region_operation_renderer_routes_delete_rest_to_keep_renderer(tmp_path:
 
     assert result is expected
     assert calls == [("keep", 250, 750)]
+
+
+def test_region_operation_renderer_routes_delete_selection_to_delete_renderer(tmp_path: Path) -> None:
+    from anki_audio_quick_editor.editor_region_delete import render_region_operation
+
+    for payload in ({}, {"operation": "delete-selection"}):
+        calls: list[tuple[str, int, int]] = []
+        request = _parse_region_delete_request(
+            {
+                **payload,
+                "ord": 0,
+                "sourceFilename": "clip.wav",
+                "selectionStartMs": 250,
+                "selectionEndMs": 750,
+                "cursorMs": 300,
+                "durationMs": 1000,
+                "trigger": "button",
+            }
+        )
+        assert request is not None
+
+        expected = object()
+        deps = SimpleNamespace(
+            render_audio_region_deleted=lambda *_args, **_kwargs: calls.append(("delete", _args[1], _args[2]))
+            or expected,
+            render_audio_region_kept=lambda *_args, **_kwargs: calls.append(("keep", _args[1], _args[2])),
+        )
+
+        result = render_region_operation(
+            deps,
+            tmp_path / "clip.wav",
+            request,
+            AudioProcessingConfig(),
+            output_path=tmp_path / "out.mp3",
+            on_command=None,
+        )
+
+        assert result is expected
+        assert calls == [("delete", 250, 750)]
 
 
 def test_region_delete_replacement_updates_only_requested_field_and_history(tmp_path: Path) -> None:

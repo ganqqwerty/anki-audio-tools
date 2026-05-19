@@ -142,7 +142,7 @@ def region_delete_trigger(request: dict[str, Any]) -> str:
 
 def region_delete_operation(request: dict[str, Any]) -> RegionDeleteOperation | None:
     """Return the normalized selected-region operation."""
-    operation = str(request.get("operation") or REGION_DELETE_OPERATION)
+    operation = REGION_DELETE_OPERATION if "operation" not in request else str(request["operation"])
     if operation not in REGION_DELETE_OPERATIONS:
         return None
     return cast(RegionDeleteOperation, operation)
