@@ -160,10 +160,10 @@ def delete_selection_async(
 
             def _show_command(command: tuple[str, ...]) -> None:
                 rendered = deps.format_ffmpeg_command(command)
-                message = "Deleting region with ffmpeg"
+                status_message = "Deleting region with ffmpeg"
                 command_text = ""
                 if config.show_ffmpeg_commands:
-                    message = f"{message}: {rendered}"
+                    status_message = f"{status_message}: {rendered}"
                     command_text = rendered
                 deps.main(
                     editor,
@@ -171,7 +171,7 @@ def delete_selection_async(
                         editor,
                         request.field_index,
                         True,
-                        message,
+                        status_message,
                         command_text,
                     ),
                 )

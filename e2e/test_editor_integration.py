@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 
+# noinspection PyUnusedLocal
 def test_editor_hooks_are_registered(anki_mw) -> None:
     from aqt import gui_hooks
 

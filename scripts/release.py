@@ -408,6 +408,7 @@ def main() -> None:
         try:
             _stage_release_tree(staging_dir, lock=lock, target_keys=target_keys)
         except release_assets.ReleaseAssetError as exc:
+            # noinspection PyStringConversionWithoutDunderMethod
             print(f"ERROR: {exc}")
             sys.exit(1)
         archive = _build_archive(version, staging_dir, target_label=target_label)

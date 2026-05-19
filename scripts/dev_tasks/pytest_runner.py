@@ -33,6 +33,7 @@ def _pytest_args(target: str, *, collect_only: bool = False) -> list[str]:
     return args
 
 
+# noinspection PyUnusedLocal
 def _probe_import_sequence(target: str, *, label: str, anki_python: Path) -> None:
     del label
     target_path = ROOT / target.rstrip("/")

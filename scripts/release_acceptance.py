@@ -119,6 +119,7 @@ def main() -> int:
     try:
         report = accept_archive(args.archive, args.target)
     except ReleaseAcceptanceError as exc:
+        # noinspection PyStringConversionWithoutDunderMethod
         print(f"ERROR: {exc}", file=sys.stderr)
         return 1
     else:

@@ -1,16 +1,11 @@
 """E2E tests for selected-region graph-default behavior."""
 
-# ruff: noqa: F401
 from __future__ import annotations
 
-import time
 from pathlib import Path
-
-import pytest
 
 from e2e.editor_graph_helpers import (
     _click_graph_and_wait,
-    _graph_state_js,
     _install_html_audio_test_driver,
     _wait_for_html_playback,
     _wait_for_visualizer_track,
@@ -20,34 +15,22 @@ from e2e.editor_note_helpers import (
     _button_selector,
     _configure_ffmpeg,
     _open_editor,
-    _sound_filename,
-    _wait_for_generated_mp3,
 )
 from e2e.editor_playback_helpers import (
-    PLAYBACK_INTERVAL_TOLERANCE_MS,
     _record_fake_playback,
 )
 from e2e.editor_region_loop_helpers import (
     _force_audio_boundary,
     _force_repeat_wrap,
-    _normal_drag,
     _open_tone_editor,
-    _plot_pointer_script,
     _set_repeat,
-    _shift_click_region,
     _shift_drag_region,
-    _shift_pointer_cancel,
-    _shift_pointer_down,
-    _shift_pointer_move,
-    _shift_pointer_up,
     _state,
     _two_audio_field_note,
 )
 from e2e.helpers import (
     click_selector,
     generate_tone,
-    run_js,
-    wait_for_condition,
     wait_for_js_condition,
 )
 

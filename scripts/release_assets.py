@@ -486,6 +486,7 @@ def main(argv: list[str] | None = None) -> int:
     try:
         return int(args.func(args))
     except ReleaseAssetError as exc:
+        # noinspection PyStringConversionWithoutDunderMethod
         print(f"ERROR: {exc}", file=sys.stderr)
         return 1
 

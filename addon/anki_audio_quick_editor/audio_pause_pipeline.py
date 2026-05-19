@@ -5,7 +5,7 @@ from __future__ import annotations
 import json
 import shlex
 import shutil
-import subprocess
+import subprocess  # nosec B404
 import time
 from collections.abc import Callable
 from pathlib import Path
@@ -63,7 +63,6 @@ def _render_deep_filter_pause_speedup_audio(
     artifacts: list[dict[str, object]] = []
     warnings: list[str] = []
     errors: list[str] = []
-    primary_command: tuple[str, ...] = ()
     final_duration_ms: int | None = None
     working_original = run_dir / "01_working_original.wav"
     analysis_input = run_dir / "02_analysis_input_48k_mono.wav"
@@ -143,7 +142,6 @@ def _render_deep_filter_pause_speedup_audio(
             deep_filter_output_dir,
             post_filter=config.deep_filter_post_filter,
         )
-        primary_command = deep_filter_cmd
         _run_pipeline_stage(
             "deep_filter_analysis",
             deep_filter_cmd,
@@ -244,7 +242,7 @@ def _render_deep_filter_pause_speedup_audio(
         write_manifest()
         return AudioProcessingResult(
             output_path=output_path,
-            command=primary_command or render_cmd,
+            command=deep_filter_cmd,
             duration_ms=final_duration_ms,
             artifact_manifest_path=manifest_path,
         )

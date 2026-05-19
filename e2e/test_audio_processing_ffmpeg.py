@@ -45,6 +45,7 @@ def _generate_audio_fixture(ffmpeg_config, path: Path, output_args: tuple[str, .
     )
 
 
+# noinspection PyUnusedLocal
 def test_trim_left_renders_shorter_recording(
     anki_mw,
     tmp_path: Path,
@@ -72,6 +73,7 @@ def test_trim_left_renders_shorter_recording(
     assert trimmed_duration_ms < original_duration_ms - 350
 
 
+# noinspection PyUnusedLocal
 def test_speed_up_renders_shorter_mp3(
     anki_mw,
     tmp_path: Path,
@@ -98,6 +100,7 @@ def test_speed_up_renders_shorter_mp3(
     assert faster_duration_ms < original_duration_ms - 250
 
 
+# noinspection PyUnusedLocal
 def test_volume_gain_renders_new_mp3_with_db_filter(
     anki_mw,
     tmp_path: Path,
@@ -134,6 +137,7 @@ def test_volume_gain_renders_new_mp3_with_db_filter(
     assert "volume=-6.00dB" in format_ffmpeg_command(quieter_result.command)
 
 
+# noinspection PyUnusedLocal
 @pytest.mark.parametrize(("extension", "output_args"), FORMAT_FIXTURES)
 def test_common_audio_input_format_renders_to_mp3(
     anki_mw,

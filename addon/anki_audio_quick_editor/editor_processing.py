@@ -74,14 +74,14 @@ def render_and_replace_async(
 
             def _show_command(command: tuple[str, ...]) -> None:
                 rendered = deps.format_ffmpeg_command(command)
-                message = "Processing with ffmpeg"
+                status_message = "Processing with ffmpeg"
                 command_text = ""
                 if config.show_ffmpeg_commands:
-                    message = f"{message}: {rendered}"
+                    status_message = f"{status_message}: {rendered}"
                     command_text = rendered
                 deps.main(
                     editor,
-                    lambda: deps.set_busy(editor, True, message, command_text),
+                    lambda: deps.set_busy(editor, True, status_message, command_text),
                 )
 
             deps.render_audio(
@@ -209,12 +209,12 @@ def run_special_audio_transform_async(
 
             def _show_command(command: tuple[str, ...]) -> None:
                 rendered = deps.format_ffmpeg_command(command)
-                message = label
+                status_message = label
                 command_text = ""
                 if config.show_ffmpeg_commands:
-                    message = f"{message}: {rendered}"
+                    status_message = f"{status_message}: {rendered}"
                     command_text = rendered
-                deps.main(editor, lambda: deps.set_busy(editor, True, message, command_text))
+                deps.main(editor, lambda: deps.set_busy(editor, True, status_message, command_text))
 
             renderer(
                 current_path,

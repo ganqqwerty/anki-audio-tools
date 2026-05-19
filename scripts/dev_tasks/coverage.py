@@ -13,7 +13,7 @@ from scripts.dev_tasks.python_env import _die, _find_anki_python, _load_dotenv
 
 ROOT = Path(__file__).resolve().parents[2]
 SETTINGS_UI_DIR = ROOT / "settings_ui"
-PYTHON_COVERAGE_FAIL_UNDER = 70
+PYTHON_COVERAGE_FAIL_UNDER = 80
 COVERAGE_XML = ROOT / "coverage.xml"
 SETTINGS_UI_LCOV = SETTINGS_UI_DIR / "coverage" / "lcov.info"
 

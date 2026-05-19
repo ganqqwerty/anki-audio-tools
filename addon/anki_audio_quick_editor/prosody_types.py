@@ -28,7 +28,7 @@ class ProsodyTrack:
     source_filename: str
     analyzer_name: str
 
-    def to_payload(self) -> dict:
+    def to_payload(self) -> dict[str, object]:
         """Return a compact JSON-serializable payload for the editor webview."""
         return {
             "durationMs": self.duration_ms,

@@ -1,43 +1,28 @@
 """E2E tests for processing while graph-default analysis is active."""
 
-# ruff: noqa: F401
 from __future__ import annotations
 
-import json
 import subprocess
 from pathlib import Path
-from unittest.mock import patch
 
 import pytest
 
 from e2e.editor_audio_generation_helpers import _fake_deep_filter_executable
 from e2e.editor_graph_helpers import (
-    _click_graph_and_wait,
-    _graph_state_js,
     _wait_for_visualizer_track,
 )
 from e2e.editor_note_helpers import (
-    ADDON_NUMERIC_ID,
-    _artifact_dirs_for_source,
-    _artifact_root,
-    _basic_audio_note,
     _button_selector,
-    _cleanup_artifact_dirs,
     _click_and_wait_for_new_file,
     _configure_ffmpeg,
     _open_editor,
-    _processing_status_js,
     _sound_filename,
     _three_audio_field_note,
-    _wait_for_generated_mp3,
 )
 from e2e.helpers import (
     click_selector,
     generate_tone,
-    run_js,
     wait_for_condition,
-    wait_for_js_condition,
-    wait_for_selector,
 )
 
 

@@ -15,7 +15,7 @@
     "lint:max-lines": "eslint . --config eslint.max-lines.config.js",
     "check": "svelte-check --tsconfig ./tsconfig.json",
     "typecheck": "tsc --noEmit",
-    "validate": "npm run check && npm run lint && npm run typecheck && npm run test:coverage"
+    "validate": "npm run check && npm run lint && npm run lint:max-lines && npm run typecheck && npm run test:coverage"
   },
   "dependencies": {
     "@lucide/svelte": "^1.3.0",

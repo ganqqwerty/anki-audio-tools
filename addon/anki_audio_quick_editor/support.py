@@ -23,6 +23,7 @@ def addon_log_path(addon_dir: str | Path) -> Path:
     return Path(addon_dir) / "anki_audio_quick_editor.log"
 
 
+# noinspection PyInconsistentReturns
 def record_latest_rnnoise_support_incident(**fields: Any) -> dict[str, Any]:
     """Merge ``fields`` into the latest RNNoise support incident."""
     global _LATEST_RNNOISE_INCIDENT
@@ -44,6 +45,7 @@ def record_latest_rnnoise_support_incident(**fields: Any) -> dict[str, Any]:
         return copy.deepcopy(merged)
 
 
+# noinspection PyInconsistentReturns
 def latest_rnnoise_support_incident() -> dict[str, Any] | None:
     """Return the latest recorded RNNoise support incident, if any."""
     with _SUPPORT_LOCK:
@@ -58,6 +60,7 @@ def clear_latest_rnnoise_support_incident() -> None:
         _LATEST_RNNOISE_INCIDENT = None
 
 
+# noinspection PyInconsistentReturns
 def record_latest_pause_pipeline_support_incident(**fields: Any) -> dict[str, Any]:
     """Merge ``fields`` into the latest pause-pipeline support incident."""
     global _LATEST_PAUSE_PIPELINE_INCIDENT
@@ -79,6 +82,7 @@ def record_latest_pause_pipeline_support_incident(**fields: Any) -> dict[str, An
         return copy.deepcopy(merged)
 
 
+# noinspection PyInconsistentReturns
 def latest_pause_pipeline_support_incident() -> dict[str, Any] | None:
     """Return the latest recorded pause-pipeline support incident, if any."""
     with _SUPPORT_LOCK:

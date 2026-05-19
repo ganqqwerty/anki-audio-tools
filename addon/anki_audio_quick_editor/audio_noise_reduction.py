@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import shutil
-import subprocess
+import subprocess  # nosec B404
 import tempfile
 from collections.abc import Callable
 from pathlib import Path
@@ -235,4 +235,3 @@ def _record_rnnoise_failure(
         rnnoise_path=str(rnnoise_path) if rnnoise_path is not None else "",
         attempted_commands=attempted_commands,
     )
-

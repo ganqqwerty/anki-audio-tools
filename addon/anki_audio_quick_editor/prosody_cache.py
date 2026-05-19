@@ -17,7 +17,7 @@ _ANALYSIS_CACHE_MAX = 32
 def prosody_cache_key(path: Path) -> ProsodyCacheKey:
     """Return a cache key tied to a media file's current identity."""
     stat = path.stat()
-    return (str(path), int(stat.st_size), int(stat.st_mtime_ns))
+    return str(path), int(stat.st_size), int(stat.st_mtime_ns)
 
 
 def analyze_prosody_cached(path: Path, config: AudioProcessingConfig) -> ProsodyTrack:

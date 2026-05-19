@@ -1,37 +1,25 @@
 """Shared helpers for selected-region editor e2e workflows."""
 
-# ruff: noqa: F401
 from __future__ import annotations
 
-import time
 from pathlib import Path
-
-import pytest
 
 from e2e.editor_graph_helpers import (
     _click_graph_and_wait,
     _graph_state_js,
     _install_html_audio_test_driver,
-    _wait_for_html_playback,
-    _wait_for_visualizer_track,
 )
 from e2e.editor_note_helpers import (
     _basic_audio_note,
-    _button_selector,
     _configure_ffmpeg,
     _open_editor,
-    _sound_filename,
-    _wait_for_generated_mp3,
 )
 from e2e.editor_playback_helpers import (
     PLAYBACK_INTERVAL_TOLERANCE_MS,
-    _record_fake_playback,
 )
 from e2e.helpers import (
-    click_selector,
     generate_tone,
     run_js,
-    wait_for_condition,
     wait_for_js_condition,
 )
 

@@ -26,7 +26,7 @@ HEADER_TS = """/* eslint-disable */
 
 """
 HEADER_PY = '''# mypy: ignore-errors
-# ruff: noqa
+# ruff: noqa: B011,C901,I001,PT015,PT018,UP006,UP045,UP047
 """Generated JSON communication contracts. Do not edit by hand."""
 
 '''
@@ -113,6 +113,7 @@ def _postprocess_python(content: str) -> str:
     )
 
 
+# noinspection PyInconsistentReturns
 def generate_outputs() -> dict[Path, str]:
     """Return generated file contents keyed by repository path."""
     quicktype = _quicktype_bin()

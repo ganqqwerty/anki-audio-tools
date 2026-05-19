@@ -8,7 +8,6 @@ from collections.abc import Callable
 from types import ModuleType
 from typing import Any
 
-import aqt  # noqa: F401 - importing aqt primes Anki's generated modules.
 import pytest
 
 from anki_api_contract.discover import (
@@ -16,6 +15,8 @@ from anki_api_contract.discover import (
     ImportedObject,
     discover_anki_api_surface,
 )
+
+importlib.import_module("aqt")
 
 SURFACE = discover_anki_api_surface()
 

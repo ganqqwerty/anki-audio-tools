@@ -6,6 +6,8 @@ from dataclasses import dataclass, replace
 
 from .errors import InvalidEditStateError
 
+ConfigValue = str | int | float | bool
+
 
 @dataclass(frozen=True)
 class AudioProcessingConfig:
@@ -31,7 +33,7 @@ class AudioProcessingConfig:
     show_ffmpeg_commands: bool = False
 
     @classmethod
-    def from_config(cls, config: dict) -> "AudioProcessingConfig":
+    def from_config(cls, config: dict[str, ConfigValue]) -> "AudioProcessingConfig":
         """Build typed settings from persisted add-on config."""
         return cls(
             manual_trim_small_ms=int(config.get("manual_trim_small_ms", cls.manual_trim_small_ms)),

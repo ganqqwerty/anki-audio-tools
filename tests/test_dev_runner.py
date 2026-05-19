@@ -117,3 +117,34 @@ def test_test_e2e_stops_when_frontend_build_fails(monkeypatch) -> None:
     )
 
     assert dev.cmd_test_e2e() == 23
+
+
+def test_check_includes_python_coverage_gate(monkeypatch) -> None:
+    calls: list[str] = []
+
+    command_results = {
+        "cmd_config_schema": 0,
+        "cmd_contracts_generate": 0,
+        "cmd_contracts_check": 0,
+        "cmd_architecture_report": 0,
+        "cmd_lint": 0,
+        "cmd_file_lines": 0,
+        "cmd_typecheck": 0,
+        "cmd_security": 0,
+        "cmd_deadcode": 0,
+        "cmd_deps": 0,
+        "cmd_complexity": 0,
+        "cmd_arch": 0,
+        "cmd_test_anki_api": 0,
+        "cmd_test": 0,
+        "cmd_coverage": 0,
+        "cmd_test_svelte": 0,
+    }
+
+    for name, result in command_results.items():
+        monkeypatch.setattr(dev, name, lambda name=name, result=result: calls.append(name) or result)
+
+    assert dev.cmd_check() == 0
+    assert "cmd_coverage" in calls
+    assert calls.index("cmd_coverage") > calls.index("cmd_test")
+    assert calls.index("cmd_coverage") < calls.index("cmd_test_svelte")

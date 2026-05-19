@@ -32,13 +32,33 @@ testpaths = ["tests", "e2e"]
 markers = [
     "praat: requires praat-parselmouth for generated speech contour fixtures",
 ]
+filterwarnings = ["error"]
 
 [tool.ruff]
 src = ["addon", "tests", "e2e"]
 exclude = ["addon/anki_audio_quick_editor/vendor", "vulture_whitelist.py"]
 
 [tool.ruff.lint]
-select = ["F", "E9", "B", "C90", "I"]
+select = ["F", "E9", "B", "C90", "I", "PT", "RET", "RUF", "SIM", "UP"]
+ignore = [
+    "PT017",
+    "PT022",
+    "RUF005",
+    "RUF012",
+    "RUF022",
+    "RUF043",
+    "RUF046",
+    "RUF057",
+    "RUF100",
+    "SIM102",
+    "SIM105",
+    "SIM300",
+    "SIM905",
+    "UP007",
+    "UP035",
+    "UP037",
+    "UP042",
+]
 
 [tool.ruff.lint.isort]
 known-first-party = ["anki_audio_quick_editor"]
@@ -50,7 +70,9 @@ max-complexity = 10
 python_version = "3.13"
 files = ["addon/anki_audio_quick_editor"]
 exclude = "addon/anki_audio_quick_editor/vendor"
-ignore_missing_imports = true
+ignore_missing_imports = false
+disallow_any_generics = true
+no_implicit_reexport = true
 warn_return_any = true
 warn_unreachable = true
 warn_unused_configs = true
@@ -62,6 +84,13 @@ extra_checks = true
 disallow_untyped_defs = true
 disallow_incomplete_defs = true
 check_untyped_defs = true
+
+[[tool.mypy.overrides]]
+module = [
+    "debugpy",
+    "parselmouth",
+]
+ignore_missing_imports = true
 
 [tool.radon]
 cc_min = "C"
@@ -75,7 +104,7 @@ branch = true
 [tool.coverage.report]
 show_missing = true
 skip_covered = false
-fail_under = 70
+fail_under = 80
 exclude_lines = [
     "if __name__",
     "pass",
@@ -163,7 +192,6 @@ forbidden_modules = [
 exclude_dirs = ["addon/anki_audio_quick_editor/vendor", "tests", "e2e"]
 skips = [
     "B101",
-    "B404",
 ]
 
 [tool.deptry]

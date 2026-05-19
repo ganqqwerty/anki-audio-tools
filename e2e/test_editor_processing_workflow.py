@@ -81,8 +81,8 @@ def test_each_processing_button_updates_field_to_new_real_audio(
             editor.web,
             "Array.from(document.querySelectorAll('[data-aqe-command]')).map((node) => node.dataset.aqeCommand)",
             lambda commands: all(
-                command not in commands
-                for command in (
+                hidden_command not in commands
+                for hidden_command in (
                     "aqe:save",
                     "aqe:cancel",
                     "aqe:untrim-left",

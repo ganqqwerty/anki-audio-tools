@@ -118,12 +118,12 @@ def _handle_async_cmd(payload_str: str, eval_fn: Callable[[str], None]) -> None:
 
     try:
         command = AsyncCommand.from_dict(raw_payload)
-    except CONTRACT_DECODE_ERRORS as exc:
-        data = json.dumps(
+    except CONTRACT_DECODE_ERRORS as invalid_payload_error:
+        invalid_done_payload_json = json.dumps(
             AsyncDonePayload(raw_job_id, False, error="Invalid async command payload").to_dict()
         )
-        mw.taskman.run_on_main(lambda: eval_fn(f"window.onAsyncDone({data})"))
-        logger.warning("async_cmd: invalid payload shape: %s", exc)
+        mw.taskman.run_on_main(lambda: eval_fn(f"window.onAsyncDone({invalid_done_payload_json})"))
+        logger.warning("async_cmd: invalid payload shape: %s", invalid_payload_error)
         return
 
     job_id = command.id
@@ -134,18 +134,22 @@ def _handle_async_cmd(payload_str: str, eval_fn: Callable[[str], None]) -> None:
         mw.taskman.run_on_main(lambda: eval_fn(js))
 
     def _progress(pct: int, message: str) -> None:
-        data = json.dumps(AsyncProgressPayload(job_id, message, pct).to_dict())
-        _main_eval(f"window.onAsyncProgress({data})")
+        progress_payload_json = json.dumps(AsyncProgressPayload(job_id, message, pct).to_dict())
+        _main_eval(f"window.onAsyncProgress({progress_payload_json})")
 
     def _run() -> None:
         try:
             result = _dispatch_op(op, op_payload, _progress)
-            data = json.dumps(AsyncDonePayload(job_id, True, result=result).to_dict())
-            _main_eval(f"window.onAsyncDone({data})")
-        except Exception as exc:  # pragma: no cover - tested via public callback path
+            success_done_payload_json = json.dumps(
+                AsyncDonePayload(job_id, True, result=result).to_dict()
+            )
+            _main_eval(f"window.onAsyncDone({success_done_payload_json})")
+        except Exception as async_error:  # pragma: no cover - tested via public callback path
             logger.exception("async operation failed: %s", op)
-            data = json.dumps(AsyncDonePayload(job_id, False, error=str(exc)).to_dict())
-            _main_eval(f"window.onAsyncDone({data})")
+            failure_done_payload_json = json.dumps(
+                AsyncDonePayload(job_id, False, error=str(async_error)).to_dict()
+            )
+            _main_eval(f"window.onAsyncDone({failure_done_payload_json})")
 
     threading.Thread(target=_run, daemon=True).start()
 

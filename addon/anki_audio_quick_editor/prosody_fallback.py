@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import math
-import subprocess
+import subprocess  # nosec B404
 import sys
 from array import array
 from pathlib import Path

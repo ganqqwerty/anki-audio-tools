@@ -1,6 +1,7 @@
 /addon/anki_audio_quick_editor/vendor/
 /.venv/
 __pycache__/
+.DS_Store
 
 # Anki add-on runtime config (contains user's API keys and settings)
 meta.json

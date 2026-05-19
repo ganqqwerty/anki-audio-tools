@@ -1,0 +1,32 @@
+version: "1.0"
+linter: qodana-python-community
+withinDocker: false
+profile:
+  name: qodana.starter
+
+exclude:
+  # Qodana 2026.1 flags valid Python 3.10+ annotations in this project.
+  # Keep mypy as the source of truth for Python typing.
+  - name: PyTypeHintsInspection
+
+  # Dataclass/value-object modules intentionally omit explicit __init__ methods.
+  - name: PyClassHasNoInitInspection
+
+  # These files intentionally wire internal helper modules and Anki/Qt test seams.
+  - name: PyProtectedMemberInspection
+    paths:
+      - addon/anki_audio_quick_editor/audio_processor.py
+      - addon/anki_audio_quick_editor/editor_callbacks.py
+      - addon/anki_audio_quick_editor/editor_integration.py
+      - e2e
+      - scripts/dev.py
+
+  # This contract probe mirrors Anki API names, including non-PEP-8 hook names.
+  - name: PyPep8NamingInspection
+    paths:
+      - anki_api_contract/discover.py
+
+  # False positive: the script exits in the ImportError branch before jsonschema use.
+  - name: PyUnusedImportsInspection
+    paths:
+      - scripts/config_schema_validate.py

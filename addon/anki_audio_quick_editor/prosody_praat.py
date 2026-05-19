@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from importlib.util import find_spec
 from pathlib import Path
 from typing import Any
 
@@ -16,11 +17,7 @@ TIME_STEP_S = 0.01
 
 def is_praat_available() -> bool:
     """Return True when the optional Parselmouth runtime is importable."""
-    try:
-        import parselmouth  # noqa: F401
-    except ImportError:
-        return False
-    return True
+    return find_spec("parselmouth") is not None
 
 
 def analyze_with_praat(source_path: Path, config: AudioProcessingConfig) -> ProsodyTrack:

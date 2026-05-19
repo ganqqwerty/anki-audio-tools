@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import json
-import subprocess
+import subprocess  # nosec B404
 from pathlib import Path
 
 from .audio_state import AudioProcessingConfig
@@ -67,5 +67,4 @@ def _render_external_error_message(
                 return error.strip()
         return candidate
     return default_message
-
 

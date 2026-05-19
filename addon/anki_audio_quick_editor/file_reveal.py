@@ -5,7 +5,7 @@ from __future__ import annotations
 import logging
 import platform
 import shutil
-import subprocess
+import subprocess  # nosec B404
 from pathlib import Path
 
 from .errors import AudioProcessingError, MissingMediaError

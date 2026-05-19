@@ -7,11 +7,15 @@ from pathlib import Path
 from .contracts import MODULE_CONTRACTS, Layer
 from .inspection import (
     ANKI_PREFIXES,
-    get_all_imports,  # noqa: F401 - re-exported for architecture rule modules
-    get_module_level_imports,  # noqa: F401 - re-exported for architecture rule modules
     module_to_path,
     observe_module,
     resolve_relative_import,
+)
+from .inspection import (
+    get_all_imports as get_all_imports,
+)
+from .inspection import (
+    get_module_level_imports as get_module_level_imports,
 )
 
 ADDON_DIR = Path(__file__).parent.parent.parent / "addon" / "anki_audio_quick_editor"

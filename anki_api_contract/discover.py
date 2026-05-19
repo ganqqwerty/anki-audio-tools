@@ -307,11 +307,11 @@ def _attribute_parts(node: ast.AST) -> tuple[str, ...]:
     if isinstance(node, ast.Name):
         return (node.id,)
     if isinstance(node, ast.Attribute):
-        return (*_attribute_parts(node.value), node.attr)
+        return *_attribute_parts(node.value), node.attr
     if isinstance(node, ast.Call):
-        return (*_attribute_parts(node.func), "()")
+        return *_attribute_parts(node.func), "()"
     if isinstance(node, ast.Subscript):
-        return (*_attribute_parts(node.value), "[]")
+        return *_attribute_parts(node.value), "[]"
     return ()
 
 

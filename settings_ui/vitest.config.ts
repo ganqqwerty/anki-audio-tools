@@ -19,10 +19,10 @@ export default defineConfig({
       thresholds: {
         lines: 80,
         functions: 80,
-        branches: 70,
+        branches: 75,
         statements: 80,
         "src/editor-inline/**/*.{ts,svelte}": {
-          branches: 70,
+          branches: 75,
           functions: 90,
           lines: 90,
           statements: 90,

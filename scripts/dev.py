@@ -28,7 +28,7 @@ from scripts.dev_tasks.quality import _mutmut_fix_stats_prefix_mismatch, _radon_
 
 ADDON_DIR = ROOT / "addon" / "anki_audio_quick_editor"
 SETTINGS_UI_DIR = ROOT / "settings_ui"
-PYTHON_COVERAGE_FAIL_UNDER = 70
+PYTHON_COVERAGE_FAIL_UNDER = 80
 RADON_FAIL_MIN_RANK = "C"
 DEV_DEPS = [
     "pytest-cov",
@@ -242,6 +242,7 @@ def cmd_check() -> int:
         ("arch", cmd_arch),
         ("test-anki-api", cmd_test_anki_api),
         ("test", cmd_test),
+        ("coverage", cmd_coverage),
         ("test-svelte", cmd_test_svelte),
     ]
     failed: list[str] = []
@@ -354,7 +355,8 @@ COMMANDS: dict[str, tuple[Callable[[], int], str]] = {
     "check": (
         cmd_check,
         "Full QC: config-schema + contracts-generate + contracts-check + architecture-report + lint + typecheck + "
-        "file-lines + security + deadcode + deps + complexity + arch + test-anki-api + test + frontend validate",
+        "file-lines + security + deadcode + deps + complexity + arch + test-anki-api + test + coverage + "
+        "frontend validate",
     ),
     "coverage": (cmd_coverage, f"Run tests with branch coverage report (fail under {PYTHON_COVERAGE_FAIL_UNDER}%)"),
     "sonar": (cmd_sonar, "Optional SonarQube analysis (needs SONAR_TOKEN)"),

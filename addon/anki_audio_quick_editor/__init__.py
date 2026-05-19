@@ -9,7 +9,7 @@ import sys
 from collections.abc import Callable
 from pathlib import Path
 
-from ._version import __version__  # noqa: F401
+from ._version import __version__ as __version__
 
 logging.basicConfig(level=logging.INFO, format="%(name)s: %(levelname)s: %(message)s")
 logger = logging.getLogger("anki_audio_quick_editor")
@@ -48,7 +48,7 @@ def _addon_loggers() -> tuple[logging.Logger, ...]:
     runtime_logger = logging.getLogger(__name__)
     if runtime_logger.name == logger.name:
         return (logger,)
-    return (logger, runtime_logger)
+    return logger, runtime_logger
 
 
 def _migrate_config() -> None:

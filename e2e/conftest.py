@@ -77,6 +77,7 @@ def _start_anki_runtime() -> None:
     import aqt
     from aqt.profiles import ProfileManager
 
+    # noinspection PyUnusedLocal
     def _skip_lang_dialog(self, idx: int) -> None:
         del idx
         self.meta["defaultLang"] = "en_US"
@@ -186,6 +187,7 @@ def ffmpeg_config():
     return AudioProcessingConfig(ffmpeg_path=str(ffmpeg))
 
 
+# noinspection PyUnusedLocal
 @pytest.hookimpl(hookwrapper=True, tryfirst=True)
 def pytest_sessionfinish(session, exitstatus):
     """Force-exit after pytest prints the summary to avoid Qt WebEngine teardown hangs."""

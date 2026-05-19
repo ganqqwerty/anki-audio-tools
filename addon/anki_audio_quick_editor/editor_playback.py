@@ -208,12 +208,12 @@ def start_playback_from_cursor(
 
             def _show_command(command: tuple[str, ...]) -> None:
                 rendered = deps.format_ffmpeg_command(command)
-                message = "Preparing playback with ffmpeg"
+                status_message = "Preparing playback with ffmpeg"
                 command_text = ""
                 if config.show_ffmpeg_commands:
-                    message = f"{message}: {rendered}"
+                    status_message = f"{status_message}: {rendered}"
                     command_text = rendered
-                deps.main(editor, lambda: deps.set_busy(editor, True, message, command_text))
+                deps.main(editor, lambda: deps.set_busy(editor, True, status_message, command_text))
 
             result = deps.render_playback_segment(
                 play_path,
