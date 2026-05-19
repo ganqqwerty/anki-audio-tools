@@ -20,6 +20,7 @@ from e2e.editor_playback_helpers import (
     _record_fake_playback,
 )
 from e2e.editor_region_loop_helpers import (
+    _drag_resize_handle,
     _force_audio_boundary,
     _force_repeat_wrap,
     _open_tone_editor,
@@ -64,9 +65,17 @@ def test_graph_default_auto_analysis_supports_region_selection(
             and state["selectionStartMs"] == 400
             and state["selectionEndMs"] == 1100,
         )
+        _drag_resize_handle(editor, "end", 0.55, 0.7)
+        resized = _state(
+            editor,
+            lambda state: state["selectionStartMs"] == 400
+            and state["selectionEndMs"] == 1400
+            and state["selectionEndHandleVisible"] is True,
+        )
 
         assert auto_track["active"] is True
         assert selected["playbackRegionMode"] == "selection"
+        assert resized["playbackEndMs"] == 1400
         assert selected["repeatEnabled"] is False
     finally:
         editor.set_note(None)
@@ -156,6 +165,7 @@ def test_two_audio_fields_keep_region_state_scoped_and_single_active_playback(
         _install_html_audio_test_driver(editor, ord_=0)
         _install_html_audio_test_driver(editor, ord_=1)
         _shift_drag_region(editor, 0.2, 0.6, ord_=0)
+        _drag_resize_handle(editor, "end", 0.6, 0.75, ord_=0)
         _set_repeat(editor, True, ord_=0)
         _shift_drag_region(editor, 0.3, 0.5, ord_=1)
 
@@ -168,7 +178,13 @@ def test_two_audio_fields_keep_region_state_scoped_and_single_active_playback(
             ffmpeg_config=ffmpeg_config,
         ) as playback:
             click_selector(editor.web, _button_selector("aqe:play", 0), timeout=5.0)
-            _wait_for_html_playback(editor, lambda state: state["selectionStartMs"] == 400, ord_=0)
+            _wait_for_html_playback(
+                editor,
+                lambda state: state["selectionStartMs"] == 400
+                and state["selectionEndMs"] == 1500
+                and state["playbackEndMs"] == 1500,
+                ord_=0,
+            )
             click_selector(editor.web, _button_selector("aqe:play", 1), timeout=5.0)
             second_playing = _wait_for_html_playback(
                 editor,
@@ -179,6 +195,7 @@ def test_two_audio_fields_keep_region_state_scoped_and_single_active_playback(
                 editor,
                 lambda state: state["playbackState"] == "stopped"
                 and state["selectionStartMs"] == 400
+                and state["selectionEndMs"] == 1500
                 and state["repeatEnabled"] is True,
                 ord_=0,
             )
