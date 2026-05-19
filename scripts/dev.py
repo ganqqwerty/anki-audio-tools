@@ -92,6 +92,9 @@ def cmd_test_e2e() -> int:
 
 def cmd_lint() -> int:
     anki_python = _find_anki_python()
+    fix_rc = _run([str(anki_python), "-m", "ruff", "check", "--fix"], label="ruff lint autofix")
+    if fix_rc != 0:
+        return fix_rc
     return _run([str(anki_python), "-m", "ruff", "check"], label="ruff lint")
 
 
@@ -337,6 +340,9 @@ def cmd_test_svelte() -> int:
     build_rc = cmd_build_ui()
     if build_rc != 0:
         return build_rc
+    lint_fix_rc = _run(["npm", "run", "lint", "--", "--fix"], cwd=SETTINGS_UI_DIR, label="frontend UI lint autofix")
+    if lint_fix_rc != 0:
+        return lint_fix_rc
     return _run(["npm", "run", "validate"], cwd=SETTINGS_UI_DIR, label="frontend UI validation")
 
 
@@ -365,7 +371,7 @@ COMMANDS: dict[str, tuple[Callable[[], int], str]] = {
     "architecture-report": (cmd_architecture_report, "Inspect executable architecture contracts and report violations"),
     "test": (cmd_test, "Run unit + architecture tests"),
     "test-e2e": (cmd_test_e2e, "Build frontend bundles, then run e2e tests (requires Anki runtime)"),
-    "lint": (cmd_lint, "Run ruff linter"),
+    "lint": (cmd_lint, "Run ruff safe autofix, then ruff linter"),
     "typecheck": (cmd_typecheck, "Run mypy type checker"),
     "arch": (cmd_arch, "Run import-linter architecture contracts"),
     "test-anki-api": (cmd_test_anki_api, "Run real Anki API compatibility tests"),
@@ -385,7 +391,10 @@ COMMANDS: dict[str, tuple[Callable[[], int], str]] = {
     "muttest": (cmd_muttest, "Mutation testing (advisory, opt-in)"),
     "build": (cmd_build, "Build the settings and editor Svelte bundles"),
     "build-ui": (cmd_build_ui, "Build the settings and editor Svelte bundles"),
-    "test-svelte": (cmd_test_svelte, "Build frontend bundles, then run validation: svelte-check + ESLint + tsc + Vitest coverage"),
+    "test-svelte": (
+        cmd_test_svelte,
+        "Build frontend bundles, run ESLint autofix, then validate: svelte-check + ESLint + tsc + Vitest coverage",
+    ),
     "config-schema": (cmd_config_schema, "Validate config.json against JSON Schema"),
     "contracts-generate": (cmd_contracts_generate, "Generate Python and TypeScript JSON contracts"),
     "contracts-check": (cmd_contracts_check, "Verify generated JSON contracts are current"),
