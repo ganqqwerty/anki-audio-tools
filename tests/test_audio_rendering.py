@@ -377,3 +377,41 @@ def test_render_audio_smoke_with_path_spaces_and_non_ascii(tmp_path: Path) -> No
     assert " -y -i " in format_ffmpeg_command(result.command)
     assert output.is_file()
     assert 700 <= probe_duration_ms(output, AudioProcessingConfig()) <= 1000
+
+
+@pytest.mark.skipif(
+    not FFMPEG_AVAILABLE,
+    reason=FFMPEG_SKIP_REASON,
+)
+def test_render_audio_region_kept_smoke_outputs_selected_duration(tmp_path: Path) -> None:
+    source = tmp_path / "source.wav"
+    output = tmp_path / "kept.mp3"
+
+    subprocess.run(
+        [
+            "ffmpeg",
+            "-y",
+            "-f",
+            "lavfi",
+            "-i",
+            "sine=frequency=440:duration=2",
+            str(source),
+        ],
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+
+    result = render_audio_region_kept(
+        source,
+        500,
+        1250,
+        AudioProcessingConfig(),
+        output_path=output,
+    )
+    probed_duration_ms = probe_duration_ms(output, AudioProcessingConfig())
+
+    assert result.output_path == output
+    assert output.is_file()
+    assert result.duration_ms == probed_duration_ms
+    assert 650 <= probed_duration_ms <= 900
