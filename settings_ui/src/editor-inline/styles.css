@@ -1,4 +1,6 @@
 .aqe-controls {
+  --aqe-floating-z-index: 10000;
+
   align-items: center;
   border: 1px solid;
   border-color: ButtonBorder;
@@ -110,7 +112,7 @@
   position: absolute;
   top: calc(100% + 4px);
   transform: translateX(-50%);
-  z-index: 3;
+  z-index: var(--aqe-floating-z-index, 10000);
 }
 
 .aqe-split-popover-header,
@@ -195,7 +197,7 @@
   padding: 5px;
   position: absolute;
   top: calc(100% + 4px);
-  z-index: 2;
+  z-index: var(--aqe-floating-z-index, 10000);
 }
 
 .aqe-menu-item {
