@@ -6,6 +6,7 @@
   import EditorCommandIcon from "./EditorCommandIcon.svelte";
   import SplitButton from "./SplitButton.svelte";
   import {
+    configureAudioClock,
     handleVisualizerPointerDown,
     initializePlaybackRegionState,
     installAudioClockHandlers,
@@ -47,13 +48,14 @@
       "aqe:denoise-standard",
     ].includes(command);
   }
-
   onMount(() => {
     const visualizer = visualizerForOrd(target.ord);
     if (!visualizer) return;
     resetAudioClockState(visualizer);
     initializePlaybackRegionState(visualizer);
     installAudioClockHandlers(visualizer);
+    visualizer.dataset.sourceFilename = target.sourceFilename || "";
+    configureAudioClock(visualizer, target.sourceFilename || "");
   });
 </script>
 
