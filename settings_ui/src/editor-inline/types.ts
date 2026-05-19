@@ -197,7 +197,11 @@ export interface GraphStateForTest {
   selectionDraftActive: boolean;
   selectionDraftEndMs: number | null;
   selectionDraftStartMs: number | null;
+  selectionEndHandleVisible: boolean;
+  selectionEndHandleX: number | null;
   selectionEndMs: number | null;
+  selectionStartHandleVisible: boolean;
+  selectionStartHandleX: number | null;
   selectionStartMs: number | null;
   sourceFilename: string;
   spinnerVisible: boolean;

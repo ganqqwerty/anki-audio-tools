@@ -29,6 +29,7 @@ import {
 } from "./region-delete-state.js";
 import {
   shouldTreatSelectionGestureAsClick as isClickLikeSelectionGesture,
+  type SelectionResizeEdge,
 } from "./selection-state.js";
 import {
   clearSelection as clearSelectionFromController,
@@ -371,6 +372,15 @@ export function startCursorDrag(event: PointerEvent, visualizer: VisualizerEleme
 
 export function startSelectionGesture(event: PointerEvent, visualizer: VisualizerElement, ord: number): void {
   startSelectionGestureFlow(event, visualizer, ord, selectionGestureDependencies());
+}
+
+export function startSelectionResizeGesture(
+  event: PointerEvent,
+  _ord: number,
+  _edge: SelectionResizeEdge,
+): void {
+  event.preventDefault();
+  event.stopPropagation();
 }
 
 export function handleVisualizerPointerDown(event: PointerEvent, ord: number): void {

@@ -11,6 +11,7 @@
     resetAudioClockState,
     send,
     setRepeatEnabledForOrd,
+    startSelectionResizeGesture,
   } from "./actions.js";
   import { visualizerForOrd } from "./dom-selectors.js";
   import { handleVisualizerKeyDown, sendRegionDelete } from "./region-delete.js";
@@ -275,6 +276,34 @@
         y2={PLOT.height - PLOT.bottom}
         visibility="hidden"
       ></line>
+      <rect
+        class="aqe-selection-resize-handle aqe-selection-resize-start"
+        data-testid={`aqe-selection-resize-start-${target.ord}`}
+        x={PLOT.left - 5}
+        y={PLOT.top}
+        width="10"
+        height={PLOT.height - PLOT.top - PLOT.bottom}
+        rx="3"
+        role="button"
+        aria-label="Resize selection start"
+        tabindex="0"
+        visibility="hidden"
+        onpointerdown={(event) => startSelectionResizeGesture(event, target.ord, "start")}
+      ></rect>
+      <rect
+        class="aqe-selection-resize-handle aqe-selection-resize-end"
+        data-testid={`aqe-selection-resize-end-${target.ord}`}
+        x={PLOT.left - 5}
+        y={PLOT.top}
+        width="10"
+        height={PLOT.height - PLOT.top - PLOT.bottom}
+        rx="3"
+        role="button"
+        aria-label="Resize selection end"
+        tabindex="0"
+        visibility="hidden"
+        onpointerdown={(event) => startSelectionResizeGesture(event, target.ord, "end")}
+      ></rect>
       <line
         class="aqe-cursor"
         data-testid={`aqe-cursor-${target.ord}`}

@@ -62,6 +62,8 @@ export function renderSelection(
   const band = visualizer.querySelector<SVGRectElement>(".aqe-selection");
   const startEdge = visualizer.querySelector<SVGLineElement>(".aqe-selection-start");
   const endEdge = visualizer.querySelector<SVGLineElement>(".aqe-selection-end");
+  const startHandle = visualizer.querySelector<SVGRectElement>(".aqe-selection-resize-start");
+  const endHandle = visualizer.querySelector<SVGRectElement>(".aqe-selection-resize-end");
   const activeSelection = draftSelection ?? selection;
   const durationMs = Number(visualizer.dataset.durationMs || "0");
   if (!band || !startEdge || !endEdge || !activeSelection || !durationMs) {
@@ -70,6 +72,8 @@ export function renderSelection(
     band?.classList.remove("aqe-selection-draft");
     startEdge?.setAttribute("visibility", "hidden");
     endEdge?.setAttribute("visibility", "hidden");
+    startHandle?.setAttribute("visibility", "hidden");
+    endHandle?.setAttribute("visibility", "hidden");
     return;
   }
   const startX = xForMs(activeSelection.startMs, durationMs);
@@ -87,6 +91,14 @@ export function renderSelection(
     edge.setAttribute("x2", x.toFixed(2));
     edge.setAttribute("y1", String(PLOT.top));
     edge.setAttribute("y2", String(PLOT.height - PLOT.bottom));
+  }
+  const showHandles = selection !== null && draftSelection === null;
+  for (const [handle, x] of [[startHandle, startX], [endHandle, endX]] as const) {
+    handle?.setAttribute("visibility", showHandles ? "visible" : "hidden");
+    handle?.setAttribute("x", (x - 5).toFixed(2));
+    handle?.setAttribute("y", String(PLOT.top));
+    handle?.setAttribute("width", "10");
+    handle?.setAttribute("height", String(PLOT.height - PLOT.top - PLOT.bottom));
   }
 }
 

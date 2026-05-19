@@ -44,6 +44,14 @@ afterEach(() => {
       cursorMs: 200,
     });
     expect(document.querySelector('[data-testid="aqe-selection-0"]')).toHaveAttribute("visibility", "visible");
+    const startHandle = document.querySelector('[data-testid="aqe-selection-resize-start-0"]')!;
+    const endHandle = document.querySelector('[data-testid="aqe-selection-resize-end-0"]')!;
+    expect(startHandle).toHaveAttribute("visibility", "visible");
+    expect(endHandle).toHaveAttribute("visibility", "visible");
+    expect(window.__aqeGraphStateForTest?.(0)).toMatchObject({
+      selectionStartHandleVisible: true,
+      selectionEndHandleVisible: true,
+    });
 
     dragGraphSelection(svg, 0.8, 0.3);
     expect(window.__aqeGraphStateForTest?.(0)).toMatchObject({
@@ -55,6 +63,8 @@ afterEach(() => {
     dispatchGraphPointer(svg, "pointerup", graphClientX(svg, 0.5), true);
     expect(window.__aqeGraphStateForTest?.(0)?.selectionActive).toBe(false);
     expect(document.querySelector('[data-testid="aqe-selection-0"]')).toHaveAttribute("visibility", "hidden");
+    expect(startHandle).toHaveAttribute("visibility", "hidden");
+    expect(endHandle).toHaveAttribute("visibility", "hidden");
   });
 
   it("shows Delete Region for valid selections and queues a scoped button request", () => {

@@ -109,6 +109,8 @@ export function graphStateForTest(ord: number): GraphStateForTest | null {
   const audio = audioClockFor(visualizer);
   const selection = selectionForVisualizer(visualizer);
   const draftSelection = draftSelectionForVisualizer(visualizer);
+  const startHandle = visualizer.querySelector<SVGRectElement>(".aqe-selection-resize-start");
+  const endHandle = visualizer.querySelector<SVGRectElement>(".aqe-selection-resize-end");
   return {
     active: visualizer.dataset.graphActive === "true",
     busy: visualizer.dataset.graphBusy === "true",
@@ -131,6 +133,10 @@ export function graphStateForTest(ord: number): GraphStateForTest | null {
     selectionDraftActive: draftSelection !== null,
     selectionDraftStartMs: draftSelection?.startMs ?? null,
     selectionDraftEndMs: draftSelection?.endMs ?? null,
+    selectionStartHandleVisible: startHandle?.getAttribute("visibility") === "visible",
+    selectionStartHandleX: startHandle?.getAttribute("x") ? Number(startHandle.getAttribute("x")) : null,
+    selectionEndHandleVisible: endHandle?.getAttribute("visibility") === "visible",
+    selectionEndHandleX: endHandle?.getAttribute("x") ? Number(endHandle.getAttribute("x")) : null,
     repeatEnabled: visualizer.dataset.repeatEnabled === "true",
     repeatControlDisabled: !!repeatButtonForOrd(ord)?.disabled,
     regionDeleteButtonDisabled: !!regionDelete?.disabled,

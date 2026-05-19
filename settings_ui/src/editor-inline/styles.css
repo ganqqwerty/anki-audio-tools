@@ -354,6 +354,19 @@
   stroke-width: 1;
 }
 
+.aqe-selection-resize-handle {
+  cursor: ew-resize;
+  fill: ButtonFace;
+  opacity: 0.92;
+  pointer-events: auto;
+  stroke: currentColor;
+  stroke-width: 1;
+}
+
+.aqe-selection-resize-handle:hover {
+  fill: Highlight;
+}
+
 .aqe-pitch-path {
   fill: none;
   opacity: 0.9;
