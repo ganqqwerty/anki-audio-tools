@@ -16,6 +16,7 @@ from .audio_commands import (
     build_playback_segment_filters,
     build_region_delete_command,
     build_region_delete_plan,
+    build_region_keep_plan,
 )
 from .audio_external import probe_duration_ms
 from .audio_pause_pipeline import _render_deep_filter_pause_speedup_audio
@@ -76,14 +77,24 @@ def render_audio_region_deleted(
     on_command: Callable[[tuple[str, ...]], None] | None = None,
 ) -> AudioProcessingResult:
     """Render an MP3 with one selected region removed from ``source_path``."""
-    ffmpeg_path = find_ffmpeg(config.ffmpeg_path)
     duration_ms = probe_duration_ms(source_path, config)
     plan = build_region_delete_plan(selection_start_ms, selection_end_ms, duration_ms)
 
     if output_path is None:
         output_path = Path(tempfile.mkstemp(prefix="aqe_region_delete_", suffix=".mp3")[1])
 
-    cmd = build_region_delete_command(ffmpeg_path, source_path, plan.filter_complex, output_path)
+    return _render_region_filter_complex(source_path, plan.filter_complex, config, output_path, on_command)
+
+
+def _render_region_filter_complex(
+    source_path: Path,
+    filter_complex: str,
+    config: AudioProcessingConfig,
+    output_path: Path,
+    on_command: Callable[[tuple[str, ...]], None] | None = None,
+) -> AudioProcessingResult:
+    ffmpeg_path = find_ffmpeg(config.ffmpeg_path)
+    cmd = build_region_delete_command(ffmpeg_path, source_path, filter_complex, output_path)
     if on_command:
         on_command(cmd)
     result = subprocess.run(list(cmd), capture_output=True, text=True, check=False)  # nosec B603
@@ -94,6 +105,24 @@ def render_audio_region_deleted(
         command=cmd,
         duration_ms=probe_duration_ms(output_path, config),
     )
+
+
+def render_audio_region_kept(
+    source_path: Path,
+    selection_start_ms: int,
+    selection_end_ms: int,
+    config: AudioProcessingConfig,
+    output_path: Path | None = None,
+    on_command: Callable[[tuple[str, ...]], None] | None = None,
+) -> AudioProcessingResult:
+    """Render an MP3 with only one selected region kept from ``source_path``."""
+    duration_ms = probe_duration_ms(source_path, config)
+    plan = build_region_keep_plan(selection_start_ms, selection_end_ms, duration_ms)
+
+    if output_path is None:
+        output_path = Path(tempfile.mkstemp(prefix="aqe_region_keep_", suffix=".mp3")[1])
+
+    return _render_region_filter_complex(source_path, plan.filter_complex, config, output_path, on_command)
 
 
 def render_playback_segment(

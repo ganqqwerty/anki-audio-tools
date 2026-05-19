@@ -4,8 +4,11 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from pathlib import Path
+from typing import Literal
 
 from .audio_state import AudioEditState
+
+RegionDeleteOperation = Literal["delete-selection", "delete-rest"]
 
 
 @dataclass(frozen=True)
@@ -38,7 +41,7 @@ class UndoHistory:
 
 @dataclass(frozen=True)
 class RegionDeleteRequest:
-    """Frontend request to delete a selected graph region."""
+    """Frontend request to delete or keep a selected graph region."""
 
     field_index: int
     source_filename: str
@@ -48,11 +51,19 @@ class RegionDeleteRequest:
     duration_ms: int
     trigger: str
     playback_active: bool
+    operation: RegionDeleteOperation = "delete-selection"
+
+    @property
+    def selected_duration_ms(self) -> int:
+        """Return the normalized selected duration."""
+        return self.selection_end_ms - self.selection_start_ms
 
     @property
     def removed_duration_ms(self) -> int:
-        """Return the normalized selected duration."""
-        return self.selection_end_ms - self.selection_start_ms
+        """Return the approximate duration removed by this operation."""
+        if self.operation == "delete-rest":
+            return self.duration_ms - self.selected_duration_ms
+        return self.selected_duration_ms
 
 
 @dataclass

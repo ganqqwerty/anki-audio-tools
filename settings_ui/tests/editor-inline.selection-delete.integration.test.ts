@@ -45,6 +45,47 @@ describe("editor inline selection delete integration", () => {
     button.click();
 
     expect(window.__aqePopPendingRegionDeleteRequest?.()).toEqual({
+      operation: "delete-selection",
+      ord: 0,
+      sourceFilename: "clip one.mp3",
+      selectionStartMs: 200,
+      selectionEndMs: 600,
+      cursorMs: 200,
+      durationMs: 1000,
+      trigger: "button",
+      playbackActive: false,
+    });
+    expect(bridgeCommands()).toEqual(expect.arrayContaining(["focus:0", "aqe:delete-selection"]));
+    expect(window.__aqeGraphStateForTest?.(0)).toMatchObject({
+      busy: false,
+      playbackState: "stopped",
+      selectionActive: true,
+      allButtonsDisabled: true,
+    });
+  });
+
+  it("shows Delete the rest for valid selections and queues a keep-selection request", () => {
+    initializeEditorRuntime({ audioFieldIndices: [0] });
+    scan({ audioFieldIndices: [0] });
+    window.__aqeSetVisualizer?.(0, track, 250);
+    const svg = document.querySelector<SVGSVGElement>('[data-testid="aqe-graph-svg-0"]')!;
+    const button = document.querySelector<HTMLButtonElement>('[data-testid="aqe-button-0-delete-rest"]')!;
+    setGraphBounds(svg);
+
+    expect(window.__aqeGraphStateForTest?.(0)).toMatchObject({
+      regionDeleteRestButtonHidden: true,
+    });
+
+    dragGraphSelection(svg, 0.2, 0.6);
+    expect(window.__aqeGraphStateForTest?.(0)).toMatchObject({
+      regionDeleteRestButtonHidden: false,
+      regionDeleteRestButtonDisabled: false,
+    });
+
+    button.click();
+
+    expect(window.__aqePopPendingRegionDeleteRequest?.()).toEqual({
+      operation: "delete-rest",
       ord: 0,
       sourceFilename: "clip one.mp3",
       selectionStartMs: 200,
@@ -81,6 +122,7 @@ describe("editor inline selection delete integration", () => {
     graph.dispatchEvent(new KeyboardEvent("keydown", { bubbles: true, cancelable: true, key: "Backspace" }));
 
     expect(window.__aqePopPendingRegionDeleteRequest?.()).toMatchObject({
+      operation: "delete-selection",
       ord: 0,
       sourceFilename: "clip one.mp3",
       selectionStartMs: 200,
@@ -103,6 +145,8 @@ describe("editor inline selection delete integration", () => {
       selectionActive: true,
       regionDeleteButtonHidden: false,
       regionDeleteButtonDisabled: true,
+      regionDeleteRestButtonHidden: false,
+      regionDeleteRestButtonDisabled: true,
     });
 
     graph.focus();

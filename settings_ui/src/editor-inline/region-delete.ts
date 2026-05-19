@@ -6,17 +6,29 @@ import { regionDeleteRequestFor, syncRegionDeleteControl } from "./region-delete
 import { visualizerForOrd } from "./dom-selectors.js";
 import type { RegionDeleteRequest } from "./types.js";
 
+type RegionDeleteOperation = RegionDeleteRequest["operation"];
+
 function anyBusy(): boolean {
   return document.body.dataset.aqeBusy === "true";
 }
 
-export function sendRegionDelete(trigger: RegionDeleteRequest["trigger"], node: HTMLElement, ord: number): void {
+function commandForOperation(operation: RegionDeleteOperation): "aqe:delete-rest" | "aqe:delete-selection" {
+  return operation === "delete-rest" ? "aqe:delete-rest" : "aqe:delete-selection";
+}
+
+export function sendRegionDelete(
+  trigger: RegionDeleteRequest["trigger"],
+  node: HTMLElement,
+  ord: number,
+  operation: RegionDeleteOperation = "delete-selection",
+): void {
   if (anyBusy()) return;
   const visualizer = visualizerForOrd(ord);
   if (!visualizer) return;
-  const request = regionDeleteRequestFor(visualizer, trigger);
+  const request = regionDeleteRequestFor(visualizer, trigger, operation);
   syncRegionDeleteControl(visualizer);
   if (!request) return;
+  const command = commandForOperation(operation);
   if (typeof node.focus === "function") node.focus();
   stopProgressClock(visualizer, { clearAudio: true });
   setPendingRegionDeleteRequest(request);
@@ -28,9 +40,10 @@ export function sendRegionDelete(trigger: RegionDeleteRequest["trigger"], node: 
     selectionEndMs: request.selectionEndMs,
     durationMs: request.durationMs,
     trigger,
+    operation,
     playbackActive: request.playbackActive,
   });
-  setControlsBusy(ord, true, processingMessage("aqe:delete-selection"));
+  setControlsBusy(ord, true, processingMessage(command));
   focusAndSendCommand(ord, "aqe:delete-selection");
 }
 

@@ -16,6 +16,7 @@ from .diagnostics_runtime import (
 from .editor_actions import (
     CMD_ANALYZE_FIELD,
     CMD_COMMAND_PAYLOAD,
+    CMD_DELETE_REST,
     CMD_DELETE_SELECTION,
     CMD_DENOISE_STANDARD,
     CMD_REDO,
@@ -115,6 +116,7 @@ def handle_non_processing_command(editor: Any, command: str, deps: Any) -> bool:
         CMD_DENOISE_STANDARD: deps.denoise_standard_async,
         CMD_RNNOISE: deps.rnnoise_async,
         CMD_DELETE_SELECTION: deps.delete_selection_from_frontend,
+        CMD_DELETE_REST: deps.delete_selection_from_frontend,
     }
     handler = handlers.get(command)
     if handler is None:

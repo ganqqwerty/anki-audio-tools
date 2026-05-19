@@ -37,6 +37,7 @@ from .audio_commands import (
     build_playback_segment_filters,
     build_region_delete_command,
     build_region_delete_plan,
+    build_region_keep_plan,
     build_rnnoise_command,
     build_rnnoise_encode_command,
     build_rnnoise_prepare_command,
@@ -54,7 +55,7 @@ from .audio_noise_reduction import (
 from .audio_pause_pipeline import _run_pipeline_stage
 from .audio_rendering import _safe_filename_stem
 from .audio_state import AudioEditState, AudioProcessingConfig
-from .audio_types import AudioProcessingResult, RegionDeletePlan
+from .audio_types import AudioProcessingResult, RegionDeletePlan, RegionKeepPlan
 
 __all__ = [
     "BUNDLED_DEEP_FILTER_VERSION",
@@ -63,6 +64,7 @@ __all__ = [
     "WAV_MIME_TYPE",
     "AudioProcessingResult",
     "RegionDeletePlan",
+    "RegionKeepPlan",
     "_BUNDLED_DEEP_FILTER_VERSION",
     "_PACKAGE_DIR",
     "_artifact_record",
@@ -90,6 +92,7 @@ __all__ = [
     "build_playback_segment_filters",
     "build_region_delete_command",
     "build_region_delete_plan",
+    "build_region_keep_plan",
     "build_rnnoise_command",
     "build_rnnoise_encode_command",
     "build_rnnoise_prepare_command",
@@ -110,6 +113,7 @@ __all__ = [
     "probe_duration_ms",
     "render_audio",
     "render_audio_region_deleted",
+    "render_audio_region_kept",
     "render_noise_reduced_audio",
     "render_playback_segment",
     "render_rnnoise_audio",
@@ -289,6 +293,25 @@ def render_audio_region_deleted(
 ) -> AudioProcessingResult:
     _sync_rendering_dependencies()
     return _audio_rendering.render_audio_region_deleted(
+        source_path,
+        selection_start_ms,
+        selection_end_ms,
+        config,
+        output_path,
+        on_command,
+    )
+
+
+def render_audio_region_kept(
+    source_path: Path,
+    selection_start_ms: int,
+    selection_end_ms: int,
+    config: AudioProcessingConfig,
+    output_path: Path | None = None,
+    on_command: Callable[[tuple[str, ...]], None] | None = None,
+) -> AudioProcessingResult:
+    _sync_rendering_dependencies()
+    return _audio_rendering.render_audio_region_kept(
         source_path,
         selection_start_ms,
         selection_end_ms,

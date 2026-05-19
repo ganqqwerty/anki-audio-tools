@@ -5,12 +5,18 @@ import { selectionForVisualizer } from "./selection-controller.js";
 import type { RegionDeleteRequest, VisualizerElement } from "./types.js";
 import { isPlaybackState } from "./types.js";
 
+type RegionDeleteOperation = RegionDeleteRequest["operation"];
+
 function anyBusy(): boolean {
   return document.body.dataset.aqeBusy === "true";
 }
 
 function regionDeleteButtonForOrd(ord: number): HTMLButtonElement | null {
   return controlsForOrd(ord)?.querySelector<HTMLButtonElement>(".aqe-delete-region-button") ?? null;
+}
+
+function regionDeleteRestButtonForOrd(ord: number): HTMLButtonElement | null {
+  return controlsForOrd(ord)?.querySelector<HTMLButtonElement>(".aqe-delete-rest-button") ?? null;
 }
 
 function isWholeSelection(region: PlaybackRegion, durationMs: number): boolean {
@@ -21,19 +27,35 @@ function isValidRegionDeleteSelection(region: PlaybackRegion | null, durationMs:
   return !!region && region.endMs > region.startMs && !isWholeSelection(region, durationMs);
 }
 
+function titleForOperation(operation: RegionDeleteOperation, valid: boolean): string {
+  if (operation === "delete-rest") {
+    return valid ? "Delete the rest of the audio" : "Selection already covers the whole audio clip";
+  }
+  return valid ? "Delete selected region" : "Cannot delete the whole audio clip";
+}
+
+function syncRegionDeleteButton(
+  button: HTMLButtonElement | null,
+  operation: RegionDeleteOperation,
+  hasSelection: boolean,
+  valid: boolean,
+): void {
+  if (!button) return;
+  button.hidden = !hasSelection;
+  button.disabled = anyBusy() || !valid;
+  button.dataset.aqeButtonState = valid ? "default" : "unavailable";
+  button.title = titleForOperation(operation, valid);
+  button.setAttribute("aria-disabled", button.disabled ? "true" : "false");
+}
+
 export function syncRegionDeleteControl(visualizer: VisualizerElement): void {
   const ord = Number(visualizer.dataset.aqeFieldOrd || "0");
-  const button = regionDeleteButtonForOrd(ord);
-  if (!button) return;
   const region = selectionForVisualizer(visualizer);
   const durationMs = Number(visualizer.dataset.durationMs || "0");
   const hasSelection = region !== null;
   const valid = isValidRegionDeleteSelection(region, durationMs);
-  button.hidden = !hasSelection;
-  button.disabled = anyBusy() || !valid;
-  button.dataset.aqeButtonState = valid ? "default" : "unavailable";
-  button.title = valid ? "Delete selected region" : "Cannot delete the whole audio clip";
-  button.setAttribute("aria-disabled", button.disabled ? "true" : "false");
+  syncRegionDeleteButton(regionDeleteButtonForOrd(ord), "delete-selection", hasSelection, valid);
+  syncRegionDeleteButton(regionDeleteRestButtonForOrd(ord), "delete-rest", hasSelection, valid);
 }
 
 export function syncAllRegionDeleteControls(): void {
@@ -43,6 +65,7 @@ export function syncAllRegionDeleteControls(): void {
 export function regionDeleteRequestFor(
   visualizer: VisualizerElement,
   trigger: RegionDeleteRequest["trigger"],
+  operation: RegionDeleteOperation = "delete-selection",
 ): RegionDeleteRequest | null {
   const ord = Number(visualizer.dataset.aqeFieldOrd || "0");
   const durationMs = Number(visualizer.dataset.durationMs || "0") || 0;
@@ -56,6 +79,7 @@ export function regionDeleteRequestFor(
         selectionEndMs: region.endMs,
         durationMs,
         trigger,
+        operation,
       });
     }
     return null;
@@ -64,6 +88,7 @@ export function regionDeleteRequestFor(
   if (!sourceFilename) return null;
   const playbackState = visualizer.dataset.playbackState;
   return {
+    operation,
     ord,
     sourceFilename,
     selectionStartMs: Math.round(region.startMs),

@@ -15,6 +15,7 @@ def _visualizer_js(ord_: int = 0) -> str:
       const graphButton = document.querySelector(`[data-testid="aqe-button-${ord}-graph"]`);
       const playButton = document.querySelector(`[data-testid="aqe-button-${ord}-play"]`);
       const deleteButton = document.querySelector(`[data-testid="aqe-button-${ord}-delete-selection"]`);
+      const deleteRestButton = document.querySelector(`[data-testid="aqe-button-${ord}-delete-rest"]`);
       const visualizer = document.querySelector(`.aqe-visualizer[data-aqe-field-ord="${ord}"]`);
       if (!visualizer) return null;
       const labels = Array.from(visualizer.querySelectorAll('.aqe-hz-label')).map((node) => node.textContent);
@@ -54,6 +55,8 @@ def _visualizer_js(ord_: int = 0) -> str:
         repeatEnabled: visualizer.dataset.repeatEnabled === "true",
         regionDeleteButtonDisabled: deleteButton ? deleteButton.disabled : true,
         regionDeleteButtonHidden: deleteButton ? deleteButton.hidden : true,
+        regionDeleteRestButtonDisabled: deleteRestButton ? deleteRestButton.disabled : true,
+        regionDeleteRestButtonHidden: deleteRestButton ? deleteRestButton.hidden : true,
         allButtonsDisabled: Array.from(document.querySelectorAll('.aqe-button')).every((button) => button.disabled),
       };
     })()

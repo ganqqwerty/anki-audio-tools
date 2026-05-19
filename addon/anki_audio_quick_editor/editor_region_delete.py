@@ -10,7 +10,7 @@ from typing import Any, cast
 
 from .audio_state import AudioEditState, AudioProcessingConfig
 from .diagnostics_runtime import capture_exception, new_operation_id, record_breadcrumb
-from .editor_session import EditorSession, RegionDeleteRequest
+from .editor_session import EditorSession, RegionDeleteOperation, RegionDeleteRequest
 from .errors import AudioProcessingError
 from .media_paths import existing_media_file_path, media_filenames_match
 from .sound_refs import (
@@ -20,6 +20,10 @@ from .sound_refs import (
 )
 
 logger = logging.getLogger(__name__)
+
+REGION_DELETE_OPERATION: RegionDeleteOperation = "delete-selection"
+REGION_KEEP_OPERATION: RegionDeleteOperation = "delete-rest"
+REGION_DELETE_OPERATIONS = {REGION_DELETE_OPERATION, REGION_KEEP_OPERATION}
 
 
 def delete_selection_from_frontend(editor: Any, deps: Any) -> None:
@@ -61,7 +65,7 @@ def delete_selection_with_request(editor: Any, request: Any, deps: Any) -> None:
     if parsed.selection_start_ms <= 0 and parsed.selection_end_ms >= parsed.duration_ms:
         logger.info("region delete rejected whole clip: %s", region_delete_log_context(parsed))
         deps.set_busy_for_field(editor, parsed.field_index, False)
-        deps.eval_status(editor, "Cannot delete the whole audio clip.", kind="warning")
+        deps.eval_status(editor, region_operation_whole_clip_message(parsed), kind="warning")
         return
     delete_selection_async(
         editor,
@@ -100,6 +104,9 @@ def parse_region_delete_request(request: Any) -> RegionDeleteRequest | None:
     source_filename = region_delete_source_filename(request)
     if not source_filename:
         return None
+    operation = region_delete_operation(request)
+    if operation is None:
+        return None
     return RegionDeleteRequest(
         field_index=field_index,
         source_filename=source_filename,
@@ -109,6 +116,7 @@ def parse_region_delete_request(request: Any) -> RegionDeleteRequest | None:
         duration_ms=duration_ms,
         trigger=region_delete_trigger(request),
         playback_active=bool(request.get("playbackActive")),
+        operation=operation,
     )
 
 
@@ -134,6 +142,57 @@ def region_delete_trigger(request: dict[str, Any]) -> str:
     return trigger if trigger in {"button", "backspace"} else "unknown"
 
 
+def region_delete_operation(request: dict[str, Any]) -> RegionDeleteOperation | None:
+    """Return the normalized selected-region operation."""
+    operation = REGION_DELETE_OPERATION if "operation" not in request else str(request["operation"])
+    if operation not in REGION_DELETE_OPERATIONS:
+        return None
+    return operation
+
+
+def region_operation_busy_message(request: RegionDeleteRequest) -> str:
+    """Return the frontend busy message for a selected-region operation."""
+    return "Deleting rest..." if request.operation == REGION_KEEP_OPERATION else "Deleting region..."
+
+
+def region_operation_command_status(request: RegionDeleteRequest) -> str:
+    """Return the ffmpeg status prefix for a selected-region operation."""
+    return "Deleting rest with ffmpeg" if request.operation == REGION_KEEP_OPERATION else "Deleting region with ffmpeg"
+
+
+def region_operation_whole_clip_message(request: RegionDeleteRequest) -> str:
+    """Return the warning shown when the selected operation would be a no-op."""
+    return (
+        "Selection already covers the whole audio clip."
+        if request.operation == REGION_KEEP_OPERATION
+        else "Cannot delete the whole audio clip."
+    )
+
+
+def render_region_operation(
+    deps: Any,
+    source_path: Path,
+    request: RegionDeleteRequest,
+    config: AudioProcessingConfig,
+    output_path: Path,
+    on_command: Any,
+) -> Any:
+    """Render the requested selected-region operation."""
+    renderer = (
+        deps.render_audio_region_kept
+        if request.operation == REGION_KEEP_OPERATION
+        else deps.render_audio_region_deleted
+    )
+    return renderer(
+        source_path,
+        request.selection_start_ms,
+        request.selection_end_ms,
+        config,
+        output_path=output_path,
+        on_command=on_command,
+    )
+
+
 def delete_selection_async(
     editor: Any,
     session: EditorSession,
@@ -151,7 +210,7 @@ def delete_selection_async(
     session.playback_active = False
     session.playback_paused = False
     session.cursor_ms = request.cursor_ms
-    deps.set_busy_for_field(editor, request.field_index, True, "Deleting region...")
+    deps.set_busy_for_field(editor, request.field_index, True, region_operation_busy_message(request))
     deps.eval_playback_state(editor, request.field_index, "stopped", request.cursor_ms)
     logger.info("region delete accepted: %s", region_delete_log_context(request))
     record_breadcrumb(
@@ -171,7 +230,7 @@ def delete_selection_async(
 
             def _show_command(command: tuple[str, ...]) -> None:
                 rendered = deps.format_ffmpeg_command(command)
-                status_message = "Deleting region with ffmpeg"
+                status_message = region_operation_command_status(request)
                 command_text = ""
                 if config.show_ffmpeg_commands:
                     status_message = f"{status_message}: {rendered}"
@@ -187,13 +246,13 @@ def delete_selection_async(
                     ),
                 )
 
-            result = deps.render_audio_region_deleted(
+            result = render_region_operation(
+                deps,
                 source_path,
-                request.selection_start_ms,
-                request.selection_end_ms,
+                request,
                 config,
-                output_path=output_path,
-                on_command=_show_command,
+                output_path,
+                _show_command,
             )
             with output_path.open("rb") as file:
                 saved_name = editor.mw.col.media.write_data(desired_name, file.read())
@@ -315,4 +374,5 @@ def region_delete_log_context(request: RegionDeleteRequest) -> dict[str, object]
         "duration_ms": request.duration_ms,
         "trigger": request.trigger,
         "playback_active": request.playback_active,
+        "operation": request.operation,
     }
