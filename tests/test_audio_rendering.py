@@ -14,6 +14,7 @@ from anki_audio_quick_editor.audio_processor import (
     probe_duration_ms,
     render_audio,
     render_audio_region_deleted,
+    render_audio_region_kept,
     temp_final_path,
 )
 from anki_audio_quick_editor.audio_state import AudioEditState, AudioProcessingConfig
@@ -272,6 +273,54 @@ def test_render_audio_region_deleted_uses_concat_filter(monkeypatch, tmp_path: P
     assert result.output_path == output
     assert result.command == expected_command
     assert result.duration_ms == 1250
+
+
+def test_render_audio_region_kept_uses_single_trim_filter(monkeypatch, tmp_path: Path) -> None:
+    calls: list[tuple[list[str], bool, bool, bool]] = []
+    durations = iter([2000, 750])
+    commands: list[tuple[str, ...]] = []
+
+    monkeypatch.setattr("anki_audio_quick_editor.audio_processor.find_ffmpeg", lambda _path: Path("/bin/ffmpeg"))
+    monkeypatch.setattr("anki_audio_quick_editor.audio_processor.probe_duration_ms", lambda *_args: next(durations))
+
+    def fake_run(cmd: list[str], capture_output: bool, text: bool, check: bool) -> SimpleNamespace:
+        calls.append((cmd, capture_output, text, check))
+        return SimpleNamespace(returncode=0, stdout="", stderr="")
+
+    monkeypatch.setattr("anki_audio_quick_editor.audio_processor.subprocess.run", fake_run)
+
+    output = tmp_path / "kept.mp3"
+    result = render_audio_region_kept(
+        tmp_path / "source.wav",
+        500,
+        1250,
+        AudioProcessingConfig(),
+        output_path=output,
+        on_command=commands.append,
+    )
+
+    filter_complex = "[0:a]atrim=start=0.500:end=1.250,asetpts=PTS-STARTPTS[out]"
+    expected_command = (
+        "/bin/ffmpeg",
+        "-y",
+        "-i",
+        str(tmp_path / "source.wav"),
+        "-vn",
+        "-filter_complex",
+        filter_complex,
+        "-map",
+        "[out]",
+        "-codec:a",
+        "libmp3lame",
+        "-q:a",
+        "4",
+        str(output),
+    )
+    assert calls == [(list(expected_command), True, True, False)]
+    assert commands == [expected_command]
+    assert result.output_path == output
+    assert result.command == expected_command
+    assert result.duration_ms == 750
 
 
 def test_render_audio_uses_default_error_message_for_blank_stderr(monkeypatch, tmp_path: Path) -> None:

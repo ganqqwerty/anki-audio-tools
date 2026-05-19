@@ -7,7 +7,7 @@ import shlex
 from pathlib import Path
 
 from .audio_state import AudioEditState
-from .audio_types import RegionDeletePlan
+from .audio_types import RegionDeletePlan, RegionKeepPlan
 from .errors import AudioProcessingError
 
 FFMPEG_AUDIO_CODEC_ARG = "-codec:a"
@@ -41,6 +41,26 @@ def build_region_delete_plan(
             "[a0][a1]concat=n=2:v=0:a=1[out]"
         )
     return RegionDeletePlan(start, end, duration, filter_complex)
+
+
+def build_region_keep_plan(
+    selection_start_ms: int,
+    selection_end_ms: int,
+    duration_ms: int,
+) -> RegionKeepPlan:
+    """Return a trim plan for keeping one selected region from a clip."""
+    duration = max(0, int(round(duration_ms)))
+    start = max(0, min(int(round(selection_start_ms)), duration))
+    end = max(0, min(int(round(selection_end_ms)), duration))
+    if end <= start:
+        raise AudioProcessingError("Select a region before deleting the rest.")
+    if start <= 0 and end >= duration:
+        raise AudioProcessingError("Selection already covers the whole audio clip.")
+
+    start_s = start / 1000
+    end_s = end / 1000
+    filter_complex = f"[0:a]atrim=start={start_s:.3f}:end={end_s:.3f},asetpts=PTS-STARTPTS[out]"
+    return RegionKeepPlan(start, end, duration, filter_complex)
 
 
 def build_ffmpeg_command(

@@ -12,6 +12,7 @@ from anki_audio_quick_editor.audio_processor import (
     build_mp3_encode_command,
     build_playback_segment_filters,
     build_region_delete_plan,
+    build_region_keep_plan,
     build_rnnoise_command,
     build_rnnoise_encode_command,
     build_rnnoise_prepare_command,
@@ -148,6 +149,33 @@ def test_build_region_delete_plan_handles_prefix_and_suffix_deletion() -> None:
 def test_build_region_delete_plan_rejects_whole_audio_deletion() -> None:
     with pytest.raises(AudioProcessingError, match="whole audio"):
         build_region_delete_plan(0, 2000, 2000)
+
+
+def test_build_region_keep_plan_keeps_middle_selection() -> None:
+    plan = build_region_keep_plan(500, 1250, 2000)
+
+    assert plan.kept_duration_ms == 750
+    assert plan.removed_duration_ms == 1250
+    assert plan.expected_duration_ms == 750
+    assert plan.filter_complex == (
+        "[0:a]atrim=start=0.500:end=1.250,asetpts=PTS-STARTPTS[out]"
+    )
+
+
+def test_build_region_keep_plan_handles_edge_selections() -> None:
+    assert build_region_keep_plan(0, 400, 2000).filter_complex == (
+        "[0:a]atrim=start=0.000:end=0.400,asetpts=PTS-STARTPTS[out]"
+    )
+    assert build_region_keep_plan(1400, 2000, 2000).filter_complex == (
+        "[0:a]atrim=start=1.400:end=2.000,asetpts=PTS-STARTPTS[out]"
+    )
+
+
+def test_build_region_keep_plan_rejects_empty_and_whole_audio_selection() -> None:
+    with pytest.raises(AudioProcessingError, match="Select a region"):
+        build_region_keep_plan(500, 500, 2000)
+    with pytest.raises(AudioProcessingError, match="already covers the whole audio clip"):
+        build_region_keep_plan(0, 2000, 2000)
 
 
 def test_build_playback_segment_filters_starts_at_cursor_and_resets_timestamps() -> None:
