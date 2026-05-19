@@ -99,6 +99,38 @@
     return { min: "50", max: "10000", step: "50", labels: ["50 ms", "10 s"], presets: [100, 200, 500, 1000] };
   }
 
+  function valueInputConfig(): { min: string; max: string; step: string; label: string } {
+    if (button.command === "aqe:volume-up" || button.command === "aqe:volume-down") {
+      return { min: "0.5", max: "12", step: "0.5", label: "Volume step in dB" };
+    }
+    if (button.command === "aqe:faster") {
+      return { min: "1.01", max: "1.25", step: "0.01", label: "Faster speed multiplier" };
+    }
+    if (button.command === "aqe:slower") {
+      return { min: "0.75", max: "0.99", step: "0.01", label: "Slower speed multiplier" };
+    }
+    return { min: "50", max: "10000", step: "50", label: "Trim step in milliseconds" };
+  }
+
+  function valueInputValue(): number {
+    if (button.command === "aqe:faster") return Number((1 + speedStep).toFixed(2));
+    if (button.command === "aqe:slower") return Number((1 - speedStep).toFixed(2));
+    return sliderValue();
+  }
+
+  function applyValueInput(value: number): void {
+    if (!Number.isFinite(value)) return;
+    if (button.command === "aqe:faster") {
+      applySpeedStep(value - 1);
+      return;
+    }
+    if (button.command === "aqe:slower") {
+      applySpeedStep(1 - value);
+      return;
+    }
+    applyValue(value);
+  }
+
   function applyValue(value: number): void {
     if (button.command === "aqe:volume-up" || button.command === "aqe:volume-down") {
       applyVolumeStep(value);
@@ -192,7 +224,21 @@
     <div class="aqe-split-popover" data-testid={`aqe-split-${target.ord}-${slug()}-popover`}>
       <div class="aqe-split-popover-header">
         <strong>{button.label}</strong>
-        <span>{valueLabel()}</span>
+        {#if optionValues().length}
+          <span>{valueLabel()}</span>
+        {:else}
+          <input
+            class="aqe-split-value-input"
+            data-testid={`aqe-split-${target.ord}-${slug()}-value`}
+            type="number"
+            min={valueInputConfig().min}
+            max={valueInputConfig().max}
+            step={valueInputConfig().step}
+            value={valueInputValue()}
+            aria-label={valueInputConfig().label}
+            oninput={(event) => applyValueInput((event.currentTarget as HTMLInputElement).valueAsNumber)}
+          />
+        {/if}
       </div>
       {#if optionValues().length}
         <div class="aqe-split-presets">
