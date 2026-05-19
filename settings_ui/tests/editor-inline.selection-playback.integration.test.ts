@@ -192,6 +192,7 @@ afterEach(() => {
       selectionDraftStartMs: 250,
       selectionDraftEndMs: 900,
     });
+    expect(audio.pause).toHaveBeenCalled();
 
     dispatchHandlePointer(handle, "pointerup", graphClientX(svg, 0.9));
     await Promise.resolve();
@@ -253,12 +254,29 @@ afterEach(() => {
     const svg = document.querySelector<SVGSVGElement>('[data-testid="aqe-graph-svg-0"]')!;
     setGraphBounds(svg);
     dragGraphSelection(svg, 0.25, 0.75);
-    dragSelectionHandle(svg, "end", 0.9);
     document.querySelector<HTMLButtonElement>('[data-testid="aqe-repeat-0"]')!.click();
     const audio = prepareHtmlAudio();
 
     document.querySelector<HTMLButtonElement>('[data-testid="aqe-button-0-play"]')!.click();
     await Promise.resolve();
+    audio.currentTime = 0.5;
+    frames.shift()?.(performance.now() + 500);
+    const handle = document.querySelector('[data-testid="aqe-selection-resize-end-0"]')!;
+
+    dispatchHandlePointer(handle, "pointerdown", graphClientX(svg, 0.75));
+    dispatchHandlePointer(handle, "pointermove", graphClientX(svg, 0.9));
+    dispatchHandlePointer(handle, "pointerup", graphClientX(svg, 0.9));
+    await Promise.resolve();
+
+    expect(window.__aqeGraphStateForTest?.(0)).toMatchObject({
+      playbackState: "playing",
+      playbackStartMs: 250,
+      playbackEndMs: 900,
+      repeatEnabled: true,
+    });
+    expect(audio.pause).toHaveBeenCalled();
+    expect(audio.play).toHaveBeenCalledTimes(2);
+
     audio.currentTime = 0.91;
     frames.shift()?.(performance.now() + 900);
 
