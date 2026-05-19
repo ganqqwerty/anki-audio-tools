@@ -60,6 +60,31 @@ def test_python_test_command_stops_when_contract_generation_fails(monkeypatch) -
     assert dev.cmd_test() == 29
 
 
+def test_lint_runs_safe_autofix_before_check(monkeypatch) -> None:
+    calls: list[str] = []
+    anki_python = Path("/anki/python")
+
+    monkeypatch.setattr(dev, "_find_anki_python", lambda: anki_python)
+    monkeypatch.setattr(dev, "_run", lambda cmd, **kwargs: calls.append(" ".join(cmd)) or 0)
+
+    assert dev.cmd_lint() == 0
+    assert calls == [
+        "/anki/python -m ruff check --fix",
+        "/anki/python -m ruff check",
+    ]
+
+
+def test_lint_stops_when_safe_autofix_fails(monkeypatch) -> None:
+    calls: list[str] = []
+    anki_python = Path("/anki/python")
+
+    monkeypatch.setattr(dev, "_find_anki_python", lambda: anki_python)
+    monkeypatch.setattr(dev, "_run", lambda cmd, **kwargs: calls.append(" ".join(cmd)) or 42)
+
+    assert dev.cmd_lint() == 42
+    assert calls == ["/anki/python -m ruff check --fix"]
+
+
 def test_test_svelte_builds_frontend_before_validation(monkeypatch, tmp_path: Path) -> None:
     settings_ui = tmp_path / "settings_ui"
     (settings_ui / "node_modules").mkdir(parents=True)
@@ -75,7 +100,26 @@ def test_test_svelte_builds_frontend_before_validation(monkeypatch, tmp_path: Pa
     )
 
     assert dev.cmd_test_svelte() == 0
-    assert calls == ["build", "npm run validate"]
+    assert calls == ["build", "npm run lint -- --fix", "npm run validate"]
+
+
+def test_test_svelte_stops_when_lint_autofix_fails(monkeypatch, tmp_path: Path) -> None:
+    settings_ui = tmp_path / "settings_ui"
+    (settings_ui / "node_modules").mkdir(parents=True)
+    calls: list[str] = []
+
+    monkeypatch.setattr(dev, "SETTINGS_UI_DIR", settings_ui)
+    monkeypatch.setattr(dev.shutil, "which", lambda name: "/usr/bin/npm" if name == "npm" else None)
+    monkeypatch.setattr(dev, "cmd_build_ui", lambda: calls.append("build") or 0)
+
+    def fake_run(cmd: list[str], **_kwargs: object) -> int:
+        calls.append(" ".join(cmd))
+        return 31
+
+    monkeypatch.setattr(dev, "_run", fake_run)
+
+    assert dev.cmd_test_svelte() == 31
+    assert calls == ["build", "npm run lint -- --fix"]
 
 
 def test_test_svelte_stops_when_frontend_build_fails(monkeypatch, tmp_path: Path) -> None:
