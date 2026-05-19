@@ -35,3 +35,5 @@ node_modules
 /addon/anki_audio_quick_editor/aqe_artifacts/
 .superpowers/
 .worktrees/
+/addon/anki_audio_quick_editor/anki_audio_quick_editor_events.jsonl
+/addon/anki_audio_quick_editor/anki_audio_quick_editor_session.json
