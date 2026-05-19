@@ -111,16 +111,22 @@ def _handle_reset_defaults(dialog: Any) -> None:
     from aqt import mw
     from aqt.qt import QMessageBox
 
+    from ..i18n import t
+
     addon_id = mw.addonManager.addonFromModule(__name__)
     defaults = mw.addonManager.addonConfigDefaults(addon_id)
     if defaults is None:
-        QMessageBox.warning(dialog, "Reset Failed", "Could not load config defaults.")
+        QMessageBox.warning(
+            dialog,
+            t("settings.reset_failed.title"),
+            t("settings.reset_failed.defaults_missing"),
+        )
         return
 
     result = QMessageBox.warning(
         dialog,
-        "Reset Audio Quick Editor Settings",
-        "Reset all Audio Quick Editor settings to their defaults?",
+        t("settings.footer.reset_defaults"),
+        t("settings.reset_confirm.message"),
         QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
         QMessageBox.StandardButton.No,
     )
@@ -229,15 +235,16 @@ def _op_health_check(
         build_deep_filter_health,
         build_rnnoise_health,
     )
+    from ..i18n import t
 
-    progress_fn(20, "Inspecting collection")
+    progress_fn(20, t("settings.health.inspecting_collection"))
     report = build_health_report(mw.col)
-    progress_fn(60, "Checking DeepFilterNet")
+    progress_fn(60, t("settings.health.checking_deep_filter"))
     config = _config_payload(payload)
     report["deep_filter"] = build_deep_filter_health(config)
-    progress_fn(90, "Checking RNNoise")
+    progress_fn(90, t("settings.health.checking_rnnoise"))
     report["rnnoise"] = build_rnnoise_health()
-    progress_fn(100, "Done")
+    progress_fn(100, t("settings.async.done"))
     return HealthReport.from_dict(report).to_dict()
 
 
@@ -252,6 +259,7 @@ def _op_support_report(
         build_deep_filter_health,
         build_rnnoise_health,
     )
+    from ..i18n import t
     from ..support import (
         addon_log_path,
         build_support_report_text,
@@ -261,15 +269,15 @@ def _op_support_report(
     )
 
     record_breadcrumb("settings.support_report.collect", source="settings", operation="settings.support_report")
-    progress_fn(20, "Collecting environment")
+    progress_fn(20, t("settings.support.collecting_environment"))
     config = _config_payload(payload)
     addon_id = mw.addonManager.addonFromModule(__name__)
     addon_dir = mw.addonManager.addonsFolder(addon_id)
     log_path = addon_log_path(addon_dir)
-    progress_fn(50, "Checking external tools")
+    progress_fn(50, t("settings.support.checking_external_tools"))
     deep_filter_health = build_deep_filter_health(config)
     rnnoise_health = build_rnnoise_health()
-    progress_fn(75, "Reading recent logs")
+    progress_fn(75, t("settings.support.reading_recent_logs"))
     report_text = build_support_report_text(
         version=__version__,
         addon_dir=addon_dir,
@@ -281,7 +289,7 @@ def _op_support_report(
         log_tail=read_log_tail(log_path),
         diagnostics_context=support_report_context(),
     )
-    progress_fn(100, "Done")
+    progress_fn(100, t("settings.async.done"))
     return SupportReportResult(report_text).to_dict()
 
 
@@ -291,15 +299,16 @@ def _op_show_log_file(
     from aqt import mw
 
     from ..file_reveal import reveal_file
+    from ..i18n import t
     from ..support import addon_log_path
 
-    progress_fn(25, "Locating log file")
+    progress_fn(25, t("settings.log.locating"))
     addon_id = mw.addonManager.addonFromModule(__name__)
     addon_dir = mw.addonManager.addonsFolder(addon_id)
     log_path = addon_log_path(addon_dir)
-    progress_fn(75, "Opening log file")
-    reveal_file(log_path, missing_message="The Audio Quick Editor log file was not found.")
-    progress_fn(100, "Done")
+    progress_fn(75, t("settings.log.opening"))
+    reveal_file(log_path, missing_message=t("settings.log.missing"))
+    progress_fn(100, t("settings.async.done"))
     return ShowLogFileResult(str(log_path)).to_dict()
 
 
@@ -314,11 +323,11 @@ def _handle_frontend_log(payload_str: str) -> None:
     stack = str(getattr(payload, "stack", "") or "")
     scope = str(getattr(payload, "scope", "") or "settings")
     operation_id = str(getattr(payload, "operation_id", "") or "")
-    _emit_frontend_log(level, _render_frontend_log("frontend", message, context, stack))
+    _log_frontend(level, _render_frontend_log("frontend", message, context, stack))
     record_breadcrumb(
         "frontend.log",
         source=scope,
-        level="error" if level == "error" else "debug",
+        level=_breadcrumb_level(level),
         operation="frontend.log",
         operation_id=operation_id,
         context=_frontend_log_context(payload, level),
@@ -334,7 +343,6 @@ def _handle_frontend_log(payload_str: str) -> None:
             context=context,
         )
 
-
 def _decode_frontend_log_payload(payload_str: str) -> FrontendLogPayload | None:
     try:
         raw_payload = json.loads(payload_str)
@@ -348,24 +356,24 @@ def _decode_frontend_log_payload(payload_str: str) -> FrontendLogPayload | None:
         return None
 
 
-def _render_frontend_log(prefix: str, message: str, context: object, stack: str) -> str:
+def _render_frontend_log(prefix: str, message: str, context: Any, stack: str) -> str:
     rendered = f"{prefix}: {message}"
     if context is not None:
         rendered = f"{rendered} | {context!r}"
-    if stack:
-        rendered = f"{rendered}\n{stack}"
-    return rendered
+    return f"{rendered}\n{stack}" if stack else rendered
 
 
-def _emit_frontend_log(level: str, rendered: str) -> None:
-    if level == "debug":
-        logger.debug(rendered)
-    elif level == "warn":
-        logger.warning(rendered)
-    elif level == "error":
-        logger.error(rendered)
-    else:
-        logger.info(rendered)
+def _log_frontend(level: str, rendered: str) -> None:
+    log_fn = {
+        "debug": logger.debug,
+        "warn": logger.warning,
+        "error": logger.error,
+    }.get(level, logger.info)
+    log_fn(rendered)
+
+
+def _breadcrumb_level(level: str) -> str:
+    return "error" if level == "error" else "debug"
 
 
 def _frontend_log_context(payload: FrontendLogPayload, level: str) -> dict[str, object]:

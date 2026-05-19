@@ -21,6 +21,7 @@ from .batch_operations import (
 from .browser_dialog import BatchOperationsDialog
 from .browser_report import BatchRunReport, format_result_line
 from .diagnostics_runtime import capture_exception, new_operation_id, record_breadcrumb
+from .i18n import active_context, format_message
 
 logger = logging.getLogger(__name__)
 
@@ -51,7 +52,7 @@ def _browser_hook_boundary(name: str, func: Any) -> Any:
 def _on_browser_menus_did_init(browser: Any) -> None:
     from aqt.qt import qconnect
 
-    action = browser.form.menu_Cards.addAction(ACTION_LABEL)
+    action = browser.form.menu_Cards.addAction(_tr("batch.action"))
     assert action is not None
     qconnect(action.triggered, lambda _checked=False, b=browser: _open_batch_dialog(b))
 
@@ -60,7 +61,7 @@ def _on_browser_will_show_context_menu(browser: Any, menu: Any) -> None:
     from aqt.qt import qconnect
 
     menu.addSeparator()
-    action = menu.addAction(ACTION_LABEL)
+    action = menu.addAction(_tr("batch.action"))
     assert action is not None
     qconnect(action.triggered, lambda _checked=False, b=browser: _open_batch_dialog(b))
 
@@ -70,13 +71,13 @@ def _open_batch_dialog(browser: Any) -> None:
 
     note_ids = unique_note_ids(browser.selected_notes())
     if not note_ids:
-        showWarning("No cards are selected.", parent=browser)
+        showWarning(_tr("batch.no_cards_selected"), parent=browser)
         return
 
     snapshots = _snapshots_for_note_ids(browser.mw.col, note_ids)
     groups = field_groups_for_notes(snapshots)
     if not groups:
-        showWarning("The selected cards do not expose any note fields.", parent=browser)
+        showWarning(_tr("batch.no_fields"), parent=browser)
         return
 
     dialog = _create_dialog(browser, note_ids, groups)
@@ -165,11 +166,11 @@ def _run_batch_in_background(
                 exc,
                 operation="browser.batch",
                 operation_id=operation_id,
-                user_message=f"Batch operation failed: {exc}",
+                user_message=_tr("batch.failed", {"error": exc}),
                 context={"note_count": len(note_ids), "operation": request.operation},
                 log=logger,
             )
-            dialog.finish_with_error(f"Batch operation failed: {exc}")
+            dialog.finish_with_error(_tr("batch.failed", {"error": exc}))
             return
         _publish_collection_changes(browser, report.changes)
         logger.info("batch operation finished: %s", report.summary)
@@ -189,20 +190,29 @@ def _run_batch(
     on_progress: Any,
     artifact_root: Path | None = None,
 ) -> BatchRunReport:
-    report = BatchRunReport(total=len(note_ids))
+    messages = dict(active_context()["messages"])
+    report = BatchRunReport(total=len(note_ids), messages=messages)
     undo_entry: int | None = None
     last_audio = ""
 
     report.add(
-        f"Starting batch: {len(note_ids)} notes, operation={request.operation!r}, "
-        f"source={request.source_field!r}, target={request.target_field!r}."
+        format_message(
+            messages,
+            "batch.log.starting",
+            {
+                "total": len(note_ids),
+                "operation": repr(request.operation),
+                "source": repr(request.source_field),
+                "target": repr(request.target_field),
+            },
+        )
     )
     on_log(report.log_lines[-1])
 
     for note_id in note_ids:
         if cancel_event.is_set():
             report.canceled = True
-            report.add("Canceled before starting the next note.")
+            report.add(format_message(messages, "batch.log.canceled"))
             on_log(report.log_lines[-1])
             break
 
@@ -216,7 +226,7 @@ def _run_batch(
         )
         last_audio = note_result.audio_filename or last_audio
         if note_result.written and undo_entry is None:
-            undo_entry = col.add_custom_undo_entry(UNDO_LABEL)
+            undo_entry = col.add_custom_undo_entry(format_message(messages, "batch.undo_label"))
         note_result = _apply_result(
             col,
             report,
@@ -224,7 +234,7 @@ def _run_batch(
             request.target_field or request.source_field,
         )
         report.processed += 1
-        line = format_result_line(note_result)
+        line = format_result_line(note_result, messages)
         report.add(line)
         on_log(line)
         on_progress(report.processed, report.total, last_audio, report.failures)
@@ -234,6 +244,10 @@ def _run_batch(
 
     report.add(report.summary)
     return report
+
+
+def _tr(key: str, values: dict[str, object] | None = None) -> str:
+    return format_message(dict(active_context()["messages"]), key, values)
 
 
 def _process_note(

@@ -25,10 +25,10 @@ PERSISTENCE_PATTERNS = [
 def test_browser_operation_selector_is_driven_by_shared_registry() -> None:
     text = BROWSER_DIALOG.read_text(encoding="utf-8")
 
-    for symbol in ("BATCH_OPERATIONS", "OPERATION_LABELS", "OP_GRAPH", "requires_target_field"):
+    for symbol in ("BATCH_OPERATIONS", "operation_label", "OP_GRAPH", "requires_target_field"):
         assert symbol in text
     assert "for operation in BATCH_OPERATIONS:" in text
-    assert "OPERATION_LABELS[operation]" in text
+    assert "operation_label(operation" in text
     for literal in (
         "remove_pauses",
         "slower",

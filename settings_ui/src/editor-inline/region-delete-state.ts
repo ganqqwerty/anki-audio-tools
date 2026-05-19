@@ -1,4 +1,5 @@
 import { allVisualizers, controlsForOrd } from "./dom-selectors.js";
+import { t } from "../lib/i18n.js";
 import { logger } from "./logger.js";
 import type { PlaybackRegion } from "./playback-state.js";
 import { selectionForVisualizer } from "./selection-controller.js";
@@ -29,9 +30,9 @@ function isValidRegionDeleteSelection(region: PlaybackRegion | null, durationMs:
 
 function titleForOperation(operation: RegionDeleteOperation, valid: boolean): string {
   if (operation === "delete-rest") {
-    return valid ? "Delete the rest of the audio" : "Selection already covers the whole audio clip";
+    return valid ? t("editor.command.delete_rest.title") : t("editor.status.keep_whole_clip");
   }
-  return valid ? "Delete selected region" : "Cannot delete the whole audio clip";
+  return valid ? t("editor.command.delete_region.title") : t("editor.status.delete_whole_clip");
 }
 
 function syncRegionDeleteButton(

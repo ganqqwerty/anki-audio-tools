@@ -2,7 +2,7 @@ import { fireEvent, render, screen, waitFor } from "@testing-library/svelte";
 import { describe, expect, it, vi } from "vitest";
 
 import App from "../src/App.svelte";
-import { DenoiseAlgorithm, OutputFormat, PauseAggressiveness } from "../src/lib/types.js";
+import { DenoiseAlgorithm, Direction, OutputFormat, PauseAggressiveness } from "../src/lib/types.js";
 
 const defaultConfig = {
   _config_version: 10,
@@ -38,15 +38,22 @@ function pycmdMock(): ReturnType<typeof vi.fn> {
   return pycmd;
 }
 
+function setInitialState(config = defaultConfig, messages: Record<string, string> = {}): void {
+  window.__INITIAL_STATE__ = {
+    config,
+    version: "0.1.0",
+    addon_dir: "/tmp/addon",
+    log_file_path: "/tmp/addon/log.txt",
+    locale: "en",
+    direction: Direction.LTR,
+    messages,
+    diagnostics: { addon_id: "anki_audio_quick_editor", collection_available: true },
+  };
+}
+
 describe("App", () => {
   it("renders general settings from initial state", () => {
-    window.__INITIAL_STATE__ = {
-      config: defaultConfig,
-      version: "0.1.0",
-      addon_dir: "/tmp/addon",
-      log_file_path: "/tmp/addon/log.txt",
-      diagnostics: { addon_id: "anki_audio_quick_editor", collection_available: true },
-    };
+    setInitialState();
 
     render(App);
 
@@ -68,13 +75,7 @@ describe("App", () => {
   });
 
   it("always saves inline editor controls as enabled", async () => {
-    window.__INITIAL_STATE__ = {
-      config: { ...defaultConfig, enabled: false },
-      version: "0.1.0",
-      addon_dir: "/tmp/addon",
-      log_file_path: "/tmp/addon/log.txt",
-      diagnostics: { addon_id: "anki_audio_quick_editor", collection_available: true },
-    };
+    setInitialState({ ...defaultConfig, enabled: false });
 
     render(App);
     await fireEvent.click(screen.getByRole("button", { name: "Save" }));
@@ -89,13 +90,7 @@ describe("App", () => {
   });
 
   it("saves edited volume settings", async () => {
-    window.__INITIAL_STATE__ = {
-      config: defaultConfig,
-      version: "0.1.0",
-      addon_dir: "/tmp/addon",
-      log_file_path: "/tmp/addon/log.txt",
-      diagnostics: { addon_id: "anki_audio_quick_editor", collection_available: true },
-    };
+    setInitialState();
 
     render(App);
     await fireEvent.input(screen.getByLabelText("Volume step (dB)"), {
@@ -125,13 +120,7 @@ describe("App", () => {
   });
 
   it("saves split button default settings", async () => {
-    window.__INITIAL_STATE__ = {
-      config: defaultConfig,
-      version: "0.1.0",
-      addon_dir: "/tmp/addon",
-      log_file_path: "/tmp/addon/log.txt",
-      diagnostics: { addon_id: "anki_audio_quick_editor", collection_available: true },
-    };
+    setInitialState();
 
     render(App);
     await fireEvent.change(screen.getByLabelText("Shorten pauses level"), {
@@ -156,13 +145,7 @@ describe("App", () => {
   });
 
   it("shows diagnostics data and runs a health check", async () => {
-    window.__INITIAL_STATE__ = {
-      config: defaultConfig,
-      version: "0.1.0",
-      addon_dir: "/tmp/addon",
-      log_file_path: "/tmp/addon/log.txt",
-      diagnostics: { addon_id: "anki_audio_quick_editor", collection_available: true },
-    };
+    setInitialState();
 
     const { container } = render(App);
     await fireEvent.click(screen.getByRole("tab", { name: "Diagnostics & About" }));
@@ -199,13 +182,7 @@ describe("App", () => {
   });
 
   it("copies a support report from diagnostics", async () => {
-    window.__INITIAL_STATE__ = {
-      config: defaultConfig,
-      version: "0.1.0",
-      addon_dir: "/tmp/addon",
-      log_file_path: "/tmp/addon/log.txt",
-      diagnostics: { addon_id: "anki_audio_quick_editor", collection_available: true },
-    };
+    setInitialState();
 
     render(App);
     await fireEvent.click(screen.getByRole("tab", { name: "Diagnostics & About" }));
@@ -242,13 +219,7 @@ describe("App", () => {
   });
 
   it("opens the log file from diagnostics", async () => {
-    window.__INITIAL_STATE__ = {
-      config: defaultConfig,
-      version: "0.1.0",
-      addon_dir: "/tmp/addon",
-      log_file_path: "/tmp/addon/log.txt",
-      diagnostics: { addon_id: "anki_audio_quick_editor", collection_available: true },
-    };
+    setInitialState();
 
     render(App);
     await fireEvent.click(screen.getByRole("tab", { name: "Diagnostics & About" }));
@@ -274,5 +245,17 @@ describe("App", () => {
         "Log file opened: /tmp/addon/log.txt",
       )
     );
+  });
+
+  it("renders translated settings labels from initial messages", () => {
+    setInitialState(defaultConfig, {
+      "settings.title": "Audio-Schnelleditor Einstellungen",
+      "settings.show_ffmpeg_commands": "ffmpeg-Befehle anzeigen",
+    });
+
+    render(App);
+
+    expect(screen.getByText("Audio-Schnelleditor Einstellungen")).toBeInTheDocument();
+    expect(screen.getByText("ffmpeg-Befehle anzeigen")).toBeInTheDocument();
   });
 });

@@ -35,5 +35,6 @@ def test_browser_integration_avoids_editor_actions_module() -> None:
             "browser_dialog",
             "browser_report",
             "diagnostics_runtime",
+            "i18n",
         }
     )

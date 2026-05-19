@@ -1,4 +1,4 @@
-import { DenoiseAlgorithm, OutputFormat, PauseAggressiveness } from "$lib/types.js";
+import { DenoiseAlgorithm, Direction, OutputFormat, PauseAggressiveness } from "$lib/types.js";
 import type { Config, InitialState } from "$lib/types.js";
 
 export type SettingsTab = "general" | "diagnostics";
@@ -36,6 +36,9 @@ export const FALLBACK_INITIAL_STATE: InitialState = {
     addon_id: "",
     collection_available: false,
   },
+  locale: "en",
+  direction: Direction.LTR,
+  messages: {},
 };
 
 export function initialSettingsState(): InitialState {

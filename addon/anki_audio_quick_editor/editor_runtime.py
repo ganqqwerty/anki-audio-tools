@@ -17,11 +17,12 @@ from .editor_media import (
 from .editor_playback import cleanup_temp_playback, stop_audio_playback
 from .editor_session import EditorSession
 from .errors import AudioProcessingError, MissingMediaError
+from .i18n import t
 from .media_paths import existing_media_file_path
 
-CURRENT_FIELD_AUDIO_MISSING = "No [sound:...] reference found in the current field."
-REFERENCED_AUDIO_MISSING = "The referenced audio file was not found in Anki's media folder."
-STILL_PROCESSING_MESSAGE = "Still processing. Please wait."
+CURRENT_FIELD_AUDIO_MISSING = t("editor.status.current_field_audio_missing")
+REFERENCED_AUDIO_MISSING = t("editor.status.referenced_audio_missing")
+STILL_PROCESSING_MESSAGE = t("editor.status.still_processing")
 SettingsOpener = Callable[[Callable[[], None] | None], None]
 SETTINGS_OPENER: SettingsOpener | None = None
 

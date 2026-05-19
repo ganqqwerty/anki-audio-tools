@@ -18,6 +18,7 @@
     setVolumeStepForField,
   } from "./split-button-state.js";
   import { COMMAND_SLUGS } from "./commands.js";
+  import { t } from "../lib/i18n.js";
   import type { ButtonSpec, FieldTarget } from "./types.js";
 
   const { button, target }: { button: ButtonSpec; target: FieldTarget } = $props();
@@ -118,9 +119,9 @@
 
   function optionLabel(value: string): string {
     if (value === "rnnoise") return "RNNoise";
-    if (value === "aggressive") return "Aggressive";
-    if (value === "gentle") return "Gentle";
-    return value === "standard" ? "Standard" : "Normal";
+    if (value === "aggressive") return t("settings.pause_aggressiveness.aggressive");
+    if (value === "gentle") return t("settings.pause_aggressiveness.gentle");
+    return value === "standard" ? t("settings.denoise_algorithm.standard") : t("settings.pause_aggressiveness.normal");
   }
 
   function applyOption(value: string): void {
@@ -178,14 +179,14 @@
     type="button"
     class="aqe-button aqe-icon-only aqe-split-menu-button"
     data-testid={`aqe-split-${target.ord}-${slug()}-menu`}
-    title={`${button.title} amount`}
-    aria-label={`${button.title} amount`}
+    title={t("editor.split.options")}
+    aria-label={t("editor.split.options")}
     aria-expanded={open ? "true" : "false"}
     onmousedown={(event) => event.preventDefault()}
     onclick={toggle}
   >
     <EditorCommandIcon icon="chevron-down" />
-    <span class="aqe-button-label">Options</span>
+    <span class="aqe-button-label">{t("editor.split.options")}</span>
   </button>
   {#if open}
     <div class="aqe-split-popover" data-testid={`aqe-split-${target.ord}-${slug()}-popover`}>

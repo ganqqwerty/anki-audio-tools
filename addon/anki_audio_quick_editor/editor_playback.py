@@ -10,6 +10,7 @@ from typing import Any
 from .audio_state import AudioProcessingConfig
 from .diagnostics_runtime import capture_exception, new_operation_id, record_breadcrumb
 from .editor_session import EditorSession
+from .i18n import t
 from .media_paths import existing_media_file_path
 from .prosody_types import clamp_cursor_ms
 
@@ -126,12 +127,12 @@ def toggle_native_pause_resume(
         av_player.toggle_pause()
     except Exception as exc:  # pragma: no cover - depends on active Anki audio backend
         logger.info("audio pause/resume failed: %s", exc)
-        deps.eval_status(editor, "Pause/resume was not available.", kind="warning")
+        deps.eval_status(editor, t("editor.playback.pause_unavailable"), kind="warning")
         return True
     session.playback_paused = action == "pause"
     state = "paused" if session.playback_paused else "playing"
     deps.eval_playback_state(editor, field_index, state, cursor_ms)
-    deps.eval_status(editor, "Paused" if session.playback_paused else "Playing")
+    deps.eval_status(editor, t("editor.playback.paused") if session.playback_paused else t("editor.playback.playing"))
     return True
 
 
@@ -150,7 +151,7 @@ def apply_html_playback_request(
         session.playback_active = True
         session.playback_paused = True
         deps.set_busy(editor, False)
-        deps.eval_status(editor, "Paused")
+        deps.eval_status(editor, t("editor.playback.paused"))
         return
 
     if action == "start":
@@ -163,9 +164,9 @@ def apply_html_playback_request(
     session.playback_paused = False
     deps.set_busy(editor, False)
     if cursor_ms > 0 and action == "start":
-        deps.eval_status(editor, f"Playing from {max(0.0, cursor_ms / 1000):.2f}s")
+        deps.eval_status(editor, t("editor.playback.playing_from", {"seconds": f"{max(0.0, cursor_ms / 1000):.2f}"}))
     else:
-        deps.eval_status(editor, "Playing")
+        deps.eval_status(editor, t("editor.playback.playing"))
 
 
 def start_playback_from_cursor(
@@ -198,7 +199,7 @@ def start_playback_from_cursor(
         session.playback_active = True
         session.playback_paused = False
         deps.eval_playback_state(editor, field_index, "playing", session.cursor_ms)
-        deps.eval_status(editor, "Playing")
+        deps.eval_status(editor, t("editor.playback.playing"))
         return
 
     config = AudioProcessingConfig.from_config(deps.config(editor))
@@ -208,7 +209,7 @@ def start_playback_from_cursor(
     session.playback_active = True
     session.playback_paused = False
     playback_cursor_ms = session.cursor_ms
-    deps.set_busy(editor, True, "Preparing playback...")
+    deps.set_busy(editor, True, t("editor.playback.preparing"))
     deps.eval_playback_state(editor, field_index, "stopped", session.cursor_ms)
     record_breadcrumb(
         "editor.playback.segment_render_started",
@@ -224,7 +225,7 @@ def start_playback_from_cursor(
 
             def _show_command(command: tuple[str, ...]) -> None:
                 rendered = deps.format_ffmpeg_command(command)
-                status_message = "Preparing playback with ffmpeg"
+                status_message = t("editor.playback.preparing_ffmpeg")
                 command_text = ""
                 if config.show_ffmpeg_commands:
                     status_message = f"{status_message}: {rendered}"
@@ -254,7 +255,7 @@ def start_playback_from_cursor(
                 exc,
                 operation="editor.playback",
                 operation_id=operation_id,
-                user_message=message or "Could not prepare playback.",
+                user_message=message or t("editor.playback.prepare_failed"),
                 context={"filename": str(play_path), "field_index": field_index, "cursor_ms": playback_cursor_ms},
                 log=logger,
             )
@@ -287,7 +288,7 @@ def playback_segment_ready(
     av_player.play_tags([SoundOrVideoTag(str(playback_path))])
     deps.set_busy(editor, False)
     deps.eval_playback_state(editor, field_index, "playing", cursor_ms)
-    deps.eval_status(editor, f"Playing from {max(0.0, cursor_ms / 1000):.2f}s")
+    deps.eval_status(editor, t("editor.playback.playing_from", {"seconds": f"{max(0.0, cursor_ms / 1000):.2f}"}))
 
 
 def playback_segment_failed(editor: Any, generation: int, message: str, deps: Any) -> None:
@@ -300,7 +301,7 @@ def playback_segment_failed(editor: Any, generation: int, message: str, deps: An
     session.playback_paused = False
     deps.set_busy(editor, False)
     deps.eval_playback_state(editor, session.field_index, "stopped", session.cursor_ms)
-    deps.eval_status(editor, message or "Could not prepare playback.", kind="error")
+    deps.eval_status(editor, message or t("editor.playback.prepare_failed"), kind="error")
 
 
 def set_cursor_from_web(editor: Any, deps: Any) -> None:

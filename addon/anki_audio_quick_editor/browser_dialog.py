@@ -10,11 +10,12 @@ from typing import Any
 from .audio_operations import (
     BATCH_OPERATIONS,
     OP_GRAPH,
-    OPERATION_LABELS,
+    operation_label,
     requires_target_field,
 )
 from .batch_operations import BatchRunRequest, FieldGroup
 from .browser_report import BatchRunReport
+from .i18n import active_context, format_message
 
 logger = logging.getLogger(__name__)
 
@@ -40,27 +41,33 @@ class BatchOperationsDialog:
 
         self.browser = browser
         self.note_ids = note_ids
+        self._i18n = active_context()
+        self._messages = dict(self._i18n["messages"])
         self.cancel_event = threading.Event()
         self._run_batch_in_background = run_batch_in_background
         self._running = False
         self._finished = False
         self._dialog = QDialog(browser)
-        self._dialog.setWindowTitle("Run Audio Batch Operation")
+        self._dialog.setWindowTitle(self.tr("batch.window_title"))
         self._dialog.setMinimumWidth(680)
         self._dialog.setMinimumHeight(520)
-        self._status_label = QLabel("Choose an operation and fields for the selected notes.")
-        self._operation_label = QLabel("Operation")
+        self._status_label = QLabel(self.tr("batch.instructions"))
+        self._operation_label = QLabel(self.tr("batch.operation"))
         self._operation_combo = QComboBox()
         self._source_combo = QComboBox()
-        self._target_label = QLabel("Target field")
+        self._target_label = QLabel(self.tr("batch.target_field"))
         self._target_combo = QComboBox()
         self._progress = QProgressBar()
         self._log = QPlainTextEdit()
-        self._start_button = QPushButton("Start")
-        self._copy_button = QPushButton("Copy Log")
-        self._cancel_button = QPushButton("Cancel")
+        self._start_button = QPushButton(self.tr("batch.start"))
+        self._copy_button = QPushButton(self.tr("batch.copy_log"))
+        self._cancel_button = QPushButton(self.tr("batch.cancel"))
         self._build_layout(groups)
         self._connect_buttons()
+
+    def tr(self, key: str, values: dict[str, object] | None = None) -> str:
+        """Translate a batch dialog message."""
+        return format_message(self._messages, key, values)
 
     def exec(self) -> Any:
         """Show the dialog modally."""
@@ -91,7 +98,7 @@ class BatchOperationsDialog:
         from aqt.qt import QHBoxLayout
 
         for operation in BATCH_OPERATIONS:
-            self._operation_combo.addItem(OPERATION_LABELS[operation], operation)
+            self._operation_combo.addItem(operation_label(operation, self._messages), operation)
         row = QHBoxLayout()
         row.addWidget(self._operation_label)
         row.addWidget(self._operation_combo)
@@ -103,7 +110,7 @@ class BatchOperationsDialog:
         _populate_combo(self._source_combo, groups)
         _populate_combo(self._target_combo, groups)
         field_row = QHBoxLayout()
-        field_row.addWidget(QLabel("Source field"))
+        field_row.addWidget(QLabel(self.tr("batch.source_field")))
         field_row.addWidget(self._source_combo)
         field_row.addWidget(self._target_label)
         field_row.addWidget(self._target_combo)
@@ -135,7 +142,9 @@ class BatchOperationsDialog:
         self._source_combo.setEnabled(False)
         self._target_combo.setEnabled(False)
         self._start_button.setEnabled(False)
-        self._status_label.setText(f"Starting {OPERATION_LABELS[request.operation]} batch...")
+        self._status_label.setText(
+            self.tr("batch.starting", {"operation": operation_label(request.operation, self._messages)})
+        )
         logger.info(
             "batch operation started: notes=%s operation=%s source=%s target=%s",
             len(self.note_ids),
@@ -158,9 +167,12 @@ class BatchOperationsDialog:
         """Update progress controls from the main thread."""
         self._progress.setMaximum(total)
         self._progress.setValue(processed)
-        audio = current_audio or "no audio"
+        audio = current_audio or self.tr("batch.no_audio")
         self._status_label.setText(
-            f"Processed {processed}/{total} notes. Current audio: {audio}. Failures: {failures}."
+            self.tr(
+                "batch.progress",
+                {"processed": processed, "total": total, "audio": audio, "failures": failures},
+            )
         )
 
     def finish_with_report(self, report: BatchRunReport) -> None:
@@ -173,7 +185,7 @@ class BatchOperationsDialog:
         self.append_log(report.summary)
         self._copy_button.setEnabled(True)
         self._cancel_button.setEnabled(True)
-        self._cancel_button.setText("Close")
+        self._cancel_button.setText(self.tr("batch.close"))
 
     def finish_with_error(self, message: str) -> None:
         """Show an unexpected batch-level failure."""
@@ -183,12 +195,12 @@ class BatchOperationsDialog:
         self.append_log(message)
         self._copy_button.setEnabled(True)
         self._cancel_button.setEnabled(True)
-        self._cancel_button.setText("Close")
+        self._cancel_button.setText(self.tr("batch.close"))
 
     def _cancel_or_close(self) -> None:
         if self._running:
             self.cancel_event.set()
-            self.append_log("Cancel requested; stopping after the current note.")
+            self.append_log(self.tr("batch.cancel_requested"))
             self._cancel_button.setEnabled(False)
             return
         self._dialog.reject()

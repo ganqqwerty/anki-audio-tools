@@ -11,6 +11,7 @@ from .contracts_generated import ProsodyPayload
 from .diagnostics_runtime import capture_exception, new_operation_id, record_breadcrumb
 from .editor_session import EditorSession
 from .errors import AudioQuickEditorError
+from .i18n import t
 from .media_paths import existing_media_file_path
 from .prosody_types import ProsodyTrack, clamp_cursor_ms
 from .sound_refs import safe_media_basename
@@ -103,8 +104,8 @@ def start_field_analysis_async(
         return
     config = AudioProcessingConfig.from_config(deps.config(editor))
     generation = begin_field_analysis(session, field_index, filename)
-    deps.set_busy_for_field(editor, field_index, True, "Analyzing...")
-    deps.eval_visualizer_status_for_field(editor, field_index, "Analyzing...", kind="processing")
+    deps.set_busy_for_field(editor, field_index, True, t("editor.status.analyzing"))
+    deps.eval_visualizer_status_for_field(editor, field_index, t("editor.status.analyzing"), kind="processing")
     record_breadcrumb(
         "editor.graph_analysis.started",
         source="editor",
@@ -125,7 +126,7 @@ def start_field_analysis_async(
                 exc,
                 operation="editor.graph_analysis",
                 operation_id=operation_id,
-                user_message=message or "Audio visualization failed.",
+                user_message=message or t("editor.graph.failed"),
                 context={"field_index": field_index, "filename": filename, "media_path": str(media_path)},
             )
             deps.main(editor, lambda: deps.analysis_failed(editor, generation, field_index, message))
@@ -158,7 +159,7 @@ def fail_field_analysis_without_generation(editor: Any, field_index: int, messag
     deps.eval_visualizer_status_for_field(
         editor,
         field_index,
-        message or "Audio visualization failed.",
+        message or t("editor.graph.failed"),
         kind="error",
     )
 
@@ -202,7 +203,7 @@ def analysis_failed(editor: Any, generation: int, field_index: int, message: str
     editor.web.eval(
         "window.__aqeSetVisualizerStatus && window.__aqeSetVisualizerStatus("
         f"{json.dumps(int(field_index))}, "
-        f"{json.dumps(message or 'Audio visualization failed.')}, "
+        f"{json.dumps(message or t('editor.graph.failed'))}, "
         f"{json.dumps('error')})"
     )
 

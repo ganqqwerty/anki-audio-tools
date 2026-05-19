@@ -1,4 +1,6 @@
 <script lang="ts">
+  import { t } from "$lib/i18n.js";
+
   type FooterAction = () => void;
 
   let {
@@ -14,14 +16,14 @@
 
 <footer class="footer">
   <button type="button" class="btn btn-secondary" data-testid="settings-reset-defaults" onclick={onResetDefaults}>
-    Reset Defaults
+    {t("settings.footer.reset_defaults")}
   </button>
   <div class="footer-actions">
     <button type="button" class="btn btn-secondary" data-testid="settings-cancel" onclick={onCancel}>
-      Cancel
+      {t("settings.footer.cancel")}
     </button>
     <button type="button" class="btn btn-primary" data-testid="settings-save" onclick={onSave}>
-      Save
+      {t("settings.footer.save")}
     </button>
   </div>
 </footer>

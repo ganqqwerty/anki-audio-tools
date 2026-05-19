@@ -5,6 +5,8 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
+from .i18n import active_context
+
 _BUNDLE_DIR = Path(__file__).parent / "templates" / "editor"
 _BUNDLE_JS = _BUNDLE_DIR / "editor_bundle.js"
 _BUNDLE_CSS = _BUNDLE_DIR / "editor_bundle.css"
@@ -20,6 +22,7 @@ def injection_script(
     split_button_defaults: dict[str, object] | None = None,
 ) -> str:
     """Return JavaScript that mounts compact controls next to audio fields."""
+    i18n = active_context()
     config = {
         "audioFieldIndices": audio_field_indices or [],
         "audioFieldSources": audio_field_sources or {},
@@ -33,6 +36,9 @@ def injection_script(
             "pauseAggressiveness": "normal",
             "denoiseAlgorithm": "standard",
         },
+        "locale": i18n["locale"],
+        "direction": i18n["direction"],
+        "messages": i18n["messages"],
     }
     return (
         "(function() {\n"

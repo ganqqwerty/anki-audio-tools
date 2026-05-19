@@ -9,6 +9,7 @@
     settingsResetDefaults,
     settingsSave,
   } from "$lib/bridge.js";
+  import { configureI18n, t } from "$lib/i18n.js";
   import { logger } from "$lib/logger.js";
   import type {
     AsyncDonePayload,
@@ -28,11 +29,12 @@
   } from "./settings-state.js";
 
   const initialState = initialSettingsState();
+  configureI18n(initialState.locale, initialState.direction, initialState.messages);
 
   let config = $state(cloneConfig(initialState.config));
   let activeTab = $state<SettingsTab>("general");
   let saveError = $state("");
-  let healthMessage = $state("Not run yet");
+  let healthMessage = $state(t("settings.health.not_run"));
   let healthReport = $state<HealthReport | null>(null);
   let healthProgress = $state<AsyncProgressPayload | null>(null);
   let diagnosticsMessage = $state("");
@@ -54,13 +56,13 @@
   });
 
   async function runHealthCheck(): Promise<void> {
-    healthMessage = "Running health check...";
+    healthMessage = t("settings.health.running");
     diagnosticsMessage = "";
     healthProgress = null;
     try {
       const result = await startAsyncOp("health_check", { config });
       healthReport = result;
-      healthMessage = "Health check completed";
+      healthMessage = t("settings.health.completed");
     } catch (error) {
       const message = messageFromError(error);
       healthMessage = message;
@@ -69,12 +71,12 @@
   }
 
   async function copyLatestSupportReport(): Promise<void> {
-    diagnosticsMessage = "Preparing support report...";
+    diagnosticsMessage = t("settings.support.preparing");
     healthProgress = null;
     try {
       const result = await startAsyncOp("support_report", { config });
       copySupportReport(result.reportText);
-      diagnosticsMessage = "Support report copied";
+      diagnosticsMessage = t("settings.support.copied");
     } catch (error) {
       const message = messageFromError(error);
       diagnosticsMessage = message;
@@ -83,11 +85,11 @@
   }
 
   async function showLogFile(): Promise<void> {
-    diagnosticsMessage = "Opening log file...";
+    diagnosticsMessage = t("settings.log.opening");
     healthProgress = null;
     try {
       const result = await startAsyncOp("show_log_file", {});
-      diagnosticsMessage = `Log file opened: ${result.logFilePath}`;
+      diagnosticsMessage = t("settings.log.opened", { path: result.logFilePath });
     } catch (error) {
       const message = messageFromError(error);
       diagnosticsMessage = message;
@@ -100,19 +102,19 @@
   }
 </script>
 
-<div class="settings-root">
+<div class="settings-root" dir={initialState.direction} lang={initialState.locale}>
   <header class="hero">
     <div>
-      <p class="eyebrow">Anki Audio Quick Editor</p>
-      <h1>Audio Quick Editor Settings</h1>
+      <p class="eyebrow">{t("app.name")}</p>
+      <h1>{t("settings.title")}</h1>
       <p class="summary">
-        Tune quick inline audio edits while keeping original Anki media untouched.
+        {t("settings.summary")}
       </p>
     </div>
     <div class="version-pill">v{initialState.version}</div>
   </header>
 
-  <div class="tab-nav" role="tablist" aria-label="Settings sections">
+  <div class="tab-nav" role="tablist" aria-label={t("settings.tabs.label")}>
     <button
       class:active={activeTab === "general"}
       role="tab"
@@ -120,7 +122,7 @@
       type="button"
       onclick={() => (activeTab = "general")}
     >
-      General
+      {t("settings.tab.general")}
     </button>
     <button
       class:active={activeTab === "diagnostics"}
@@ -130,7 +132,7 @@
       type="button"
       onclick={() => (activeTab = "diagnostics")}
     >
-      Diagnostics &amp; About
+      {t("settings.tab.diagnostics")}
     </button>
   </div>
 

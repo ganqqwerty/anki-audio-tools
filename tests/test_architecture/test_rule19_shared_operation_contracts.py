@@ -14,7 +14,7 @@ BATCH_VISUALIZATION = ADDON_DIR / "batch_visualization.py"
 def test_browser_batch_adapter_uses_shared_registry_and_executor() -> None:
     dialog_text = BROWSER_DIALOG.read_text(encoding="utf-8")
     integration_text = BROWSER_INTEGRATION.read_text(encoding="utf-8")
-    for symbol in ("BATCH_OPERATIONS", "OPERATION_LABELS", "OP_GRAPH", "requires_target_field"):
+    for symbol in ("BATCH_OPERATIONS", "operation_label", "OP_GRAPH", "requires_target_field"):
         assert symbol in dialog_text
     assert "BatchRunRequest" in dialog_text
     assert "process_note_batch_operation" in integration_text
@@ -25,10 +25,11 @@ def test_browser_batch_adapter_uses_shared_registry_and_executor() -> None:
             "browser_dialog",
             "browser_report",
             "diagnostics_runtime",
+            "i18n",
         }
     )
     assert MODULE_CONTRACTS["browser_dialog"].allowed_addon_deps == frozenset(
-        {"audio_operations", "batch_operations", "browser_report"}
+        {"audio_operations", "batch_operations", "browser_report", "i18n"}
     )
 
 

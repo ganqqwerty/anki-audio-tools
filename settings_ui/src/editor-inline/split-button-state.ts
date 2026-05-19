@@ -4,6 +4,7 @@ import type {
   FieldSplitButtonState,
   SplitButtonDefaults,
 } from "./types.js";
+import { t } from "../lib/i18n.js";
 
 const MIN_TRIM_MS = 50;
 const MAX_TRIM_MS = 10_000;
@@ -65,11 +66,13 @@ export function formatSpeedStep(value: number, command: EditorCommand): string {
 }
 
 export function formatPauseAggressiveness(value: FieldSplitButtonState["pauseAggressiveness"]): string {
-  return value === "aggressive" ? "Aggressive" : value === "gentle" ? "Gentle" : "Normal";
+  if (value === "aggressive") return t("settings.pause_aggressiveness.aggressive");
+  if (value === "gentle") return t("settings.pause_aggressiveness.gentle");
+  return t("settings.pause_aggressiveness.normal");
 }
 
 export function formatDenoiseAlgorithm(value: FieldSplitButtonState["denoiseAlgorithm"]): string {
-  return value === "rnnoise" ? "RNNoise" : "Standard";
+  return value === "rnnoise" ? "RNNoise" : t("settings.denoise_algorithm.standard");
 }
 
 export function getSplitButtonState(ord: number): FieldSplitButtonState {

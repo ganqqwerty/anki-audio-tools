@@ -10,6 +10,7 @@ from aqt import mw
 from aqt.qt import QDialog, QVBoxLayout
 from aqt.webview import AnkiWebView
 
+from ..i18n import active_locale, t
 from .commands import handle_settings_command
 from .initial_state import build_initial_state
 
@@ -25,7 +26,7 @@ class SettingsDialog(QDialog):
 
     def __init__(self, parent: object) -> None:
         super().__init__(parent)  # type: ignore[arg-type]
-        self.setWindowTitle("Anki Audio Quick Editor - Settings")
+        self.setWindowTitle(t("settings.window_title"))
         self.setMinimumWidth(900)
         self.setMinimumHeight(640)
 
@@ -106,8 +107,9 @@ window.addEventListener("unhandledrejection", function(event) {
 def _render_settings_html(config: dict[str, Any]) -> str:
     """Render settings fragments inside a minimal HTML shell for tests."""
     body, head = _render_settings_content(config)
+    lang = active_locale()
     return f"""<!DOCTYPE html>
-<html lang="en">
+<html lang="{lang}">
 <head>
   {head}
 </head>

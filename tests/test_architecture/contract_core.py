@@ -29,10 +29,17 @@ CORE_CONTRACTS: dict[str, ModuleContract] = {
         notes="Runtime support diagnostics, breadcrumbs, exception hooks, and crash/session files.",
     ),
     "errors": contract("errors", layer=Layer.IMPORT_SAFE_CORE),
+    "i18n": contract(
+        "i18n",
+        layer=Layer.IMPORT_SAFE_CORE,
+        allowed_side_effects=(SideEffect.ANKI_IMPORTS_ANYWHERE,),
+        allow_any_anki_imports=True,
+        notes="Shared JSON catalog loader; imports Anki only inside active locale helpers.",
+    ),
     "file_reveal": contract(
         "file_reveal",
         layer=Layer.IMPORT_SAFE_CORE,
-        allowed_addon_deps=("errors",),
+        allowed_addon_deps=("errors", "i18n"),
         allowed_side_effects=(
             SideEffect.SUBPROCESS_POPEN,
             SideEffect.ANKI_IMPORTS_ANYWHERE,
@@ -86,5 +93,5 @@ CORE_CONTRACTS: dict[str, ModuleContract] = {
         layer=Layer.IMPORT_SAFE_CORE,
         allowed_addon_deps=("errors",),
     ),
-    "support": contract("support", layer=Layer.IMPORT_SAFE_CORE),
+    "support": contract("support", layer=Layer.IMPORT_SAFE_CORE, allowed_addon_deps=("i18n",)),
 }

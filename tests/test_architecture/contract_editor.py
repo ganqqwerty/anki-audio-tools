@@ -19,6 +19,7 @@ EDITOR_CONTRACTS: dict[str, ModuleContract] = {
             "diagnostics_runtime",
             "editor_session",
             "errors",
+            "i18n",
             "media_paths",
             "prosody_types",
             "sound_refs",
@@ -32,7 +33,7 @@ EDITOR_CONTRACTS: dict[str, ModuleContract] = {
     "editor_bridge": contract(
         "editor_bridge",
         layer=Layer.UI_ADAPTER,
-        allowed_addon_deps=("contracts_generated", "diagnostics_runtime", "editor_actions", "errors"),
+        allowed_addon_deps=("contracts_generated", "diagnostics_runtime", "editor_actions", "errors", "i18n"),
         allowed_side_effects=(SideEffect.WEB_EVAL,),
     ),
     "editor_callbacks": contract(
@@ -95,13 +96,13 @@ EDITOR_CONTRACTS: dict[str, ModuleContract] = {
     "editor_history": contract(
         "editor_history",
         layer=Layer.UI_ADAPTER,
-        allowed_addon_deps=("editor_session", "errors", "media_paths", "sound_refs"),
+        allowed_addon_deps=("editor_session", "errors", "i18n", "media_paths", "sound_refs"),
         allowed_side_effects=(SideEffect.WEB_EVAL,),
     ),
     "editor_media": contract(
         "editor_media",
         layer=Layer.IMPORT_SAFE_CORE,
-        allowed_addon_deps=("editor_session", "errors", "media_paths", "sound_refs"),
+        allowed_addon_deps=("editor_session", "errors", "i18n", "media_paths", "sound_refs"),
     ),
     "editor_playback": contract(
         "editor_playback",
@@ -110,6 +111,7 @@ EDITOR_CONTRACTS: dict[str, ModuleContract] = {
             "audio_state",
             "diagnostics_runtime",
             "editor_session",
+            "i18n",
             "media_paths",
             "prosody_types",
         ),
@@ -130,6 +132,7 @@ EDITOR_CONTRACTS: dict[str, ModuleContract] = {
             "editor_actions",
             "editor_session",
             "errors",
+            "i18n",
             "media_paths",
             "sound_refs",
             "support",
@@ -149,6 +152,7 @@ EDITOR_CONTRACTS: dict[str, ModuleContract] = {
             "diagnostics_runtime",
             "editor_session",
             "errors",
+            "i18n",
             "media_paths",
             "sound_refs",
         ),
@@ -173,6 +177,7 @@ EDITOR_CONTRACTS: dict[str, ModuleContract] = {
             "editor_playback",
             "editor_session",
             "errors",
+            "i18n",
             "media_paths",
         ),
         allowed_side_effects=(SideEffect.TEMP_FILESYSTEM_CLEANUP,),
@@ -180,7 +185,7 @@ EDITOR_CONTRACTS: dict[str, ModuleContract] = {
     "editor_settings_actions": contract(
         "editor_settings_actions",
         layer=Layer.UI_ADAPTER,
-        allowed_addon_deps=("file_reveal",),
+        allowed_addon_deps=("file_reveal", "i18n"),
         allowed_side_effects=(SideEffect.WEB_EVAL,),
     ),
     "editor_integration": contract(
@@ -224,5 +229,5 @@ EDITOR_CONTRACTS: dict[str, ModuleContract] = {
         ),
         allow_any_anki_imports=True,
     ),
-    "editor_ui": contract("editor_ui", layer=Layer.IMPORT_SAFE_CORE),
+    "editor_ui": contract("editor_ui", layer=Layer.IMPORT_SAFE_CORE, allowed_addon_deps=("i18n",)),
 }

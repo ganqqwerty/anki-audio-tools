@@ -140,10 +140,12 @@ def _setup_browser_integration() -> None:
 
 def _setup_menu() -> None:
     """Register the add-on submenu under Tools."""
+    from .i18n import t
+
     submenu = mw.form.menuTools.addMenu("Anki Audio Quick Editor")
     assert submenu is not None
 
-    settings_action = submenu.addAction("Settings")
+    settings_action = submenu.addAction(t("settings.menu"))
     assert settings_action is not None
     qconnect(settings_action.triggered, _open_settings)
 

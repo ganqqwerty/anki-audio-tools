@@ -16,6 +16,9 @@ def build_initial_state_payload(
     addon_id: str,
     addon_dir: str,
     collection_available: bool,
+    locale: str,
+    direction: str,
+    messages: dict[str, str],
 ) -> dict[str, Any]:
     """Build the JSON-serializable state consumed by the settings webview."""
     return {
@@ -23,6 +26,9 @@ def build_initial_state_payload(
         "version": version,
         "addon_dir": addon_dir,
         "log_file_path": os.path.join(addon_dir, "anki_audio_quick_editor.log"),
+        "locale": locale,
+        "direction": direction,
+        "messages": messages,
         "diagnostics": {
             "addon_id": addon_id,
             "collection_available": collection_available,

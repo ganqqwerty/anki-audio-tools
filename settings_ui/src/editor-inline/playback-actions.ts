@@ -25,6 +25,7 @@ import {
   repeatEnabledFor,
 } from "./actions.js";
 import { setCommandButtonLabel, setStatus } from "./control-actions.js";
+import { t } from "../lib/i18n.js";
 
 export function setPlaybackButtonLabel(visualizer: VisualizerElement, label: string): void {
   const ord = Number(visualizer.dataset.aqeFieldOrd || "0");
@@ -134,7 +135,7 @@ export function startEditorHtmlPlayback(visualizer: VisualizerElement, request: 
       stopProgressClock(visualizer);
       if (request.regionMode === "selection" || request.loop) {
         window.__aqeActiveField = request.ord;
-        setStatus("Selected repeat playback needs browser audio.", "warning");
+        setStatus(t("editor.status.selected_repeat_browser_audio"), "warning");
         return;
       }
       sendPlaybackRequest({

@@ -7,6 +7,7 @@ from typing import Any
 
 from .editor_session import EditorSession
 from .errors import AudioProcessingError, AudioQuickEditorError, MissingMediaError
+from .i18n import t
 from .media_paths import (
     existing_media_file_path,
     media_filenames_match,
@@ -14,8 +15,8 @@ from .media_paths import (
 )
 from .sound_refs import safe_media_basename, select_first_sound_reference
 
-CURRENT_FIELD_AUDIO_MISSING = "No [sound:...] reference found in the current field."
-REFERENCED_AUDIO_MISSING = "The referenced audio file was not found in Anki's media folder."
+CURRENT_FIELD_AUDIO_MISSING = t("editor.status.current_field_audio_missing")
+REFERENCED_AUDIO_MISSING = t("editor.status.referenced_audio_missing")
 
 
 def audio_field_indices(note: Any) -> list[int]:
@@ -90,7 +91,7 @@ def session_original_source_path(
         return None
     source_path = existing_media_file_path(Path(editor.mw.col.media.dir()), session.state.source_file)
     if source_path is None:
-        raise MissingMediaError("The original audio file was not found in Anki's media folder.")
+        raise MissingMediaError(t("editor.status.original_audio_missing"))
     return source_path
 
 

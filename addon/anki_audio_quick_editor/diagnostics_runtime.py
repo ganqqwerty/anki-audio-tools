@@ -294,8 +294,8 @@ def flush_logging() -> None:
                 seen.add(marker)
                 try:
                     handler.flush()
-                except Exception:  # pragma: no cover - logging handler defensive path
-                    pass
+                except Exception as exc:  # pragma: no cover - logging handler defensive path
+                    logger.debug("logging handler flush failed: %s", exc)
             if not current.propagate or current.parent is current:
                 break
             current = current.parent

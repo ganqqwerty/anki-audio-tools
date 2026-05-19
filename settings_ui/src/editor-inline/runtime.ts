@@ -7,6 +7,7 @@ import {
   clearDefaultGraphQueue,
   enqueueDefaultGraphs,
 } from "./default-graph-queue.js";
+import { configureI18n } from "../lib/i18n.js";
 import {
   disposeAllControllers,
   mountController,
@@ -23,6 +24,7 @@ let globalErrorHandlersInstalled = false;
 export function initializeEditorRuntime(config: EditorRuntimeConfig = window.__AQE_EDITOR_CONFIG__ ?? { audioFieldIndices: [] }): void {
   disposeEditorRuntime();
   window.__AQE_EDITOR_CONFIG__ = config;
+  configureI18n(config.locale, config.direction, config.messages);
   installGlobalErrorHandlers();
   installEditorWindowContract();
   prepareForNewNote();
