@@ -7,6 +7,10 @@ from dataclasses import dataclass, replace
 from .errors import InvalidEditStateError
 
 ConfigValue = str | int | float | bool
+GraphVoiceRange = str
+GraphRecordingCondition = str
+GraphSmoothness = str
+GraphVoiceLock = str
 
 
 @dataclass(frozen=True)
@@ -31,6 +35,11 @@ class AudioProcessingConfig:
     deep_filter_post_filter: bool = True
     denoise_algorithm: str = "standard"
     show_ffmpeg_commands: bool = False
+    graph_voice_range: GraphVoiceRange = "general"
+    graph_recording_condition: GraphRecordingCondition = "auto"
+    graph_smoothness: GraphSmoothness = "balanced"
+    graph_connect_short_dropouts_ms: int = 0
+    graph_voice_lock: GraphVoiceLock = "balanced"
 
     @classmethod
     def from_config(cls, config: dict[str, ConfigValue]) -> "AudioProcessingConfig":
@@ -69,6 +78,18 @@ class AudioProcessingConfig:
             show_ffmpeg_commands=bool(
                 config.get("show_ffmpeg_commands", cls.show_ffmpeg_commands)
             ),
+            graph_voice_range=str(config.get("graph_voice_range", cls.graph_voice_range)),
+            graph_recording_condition=str(
+                config.get("graph_recording_condition", cls.graph_recording_condition)
+            ),
+            graph_smoothness=str(config.get("graph_smoothness", cls.graph_smoothness)),
+            graph_connect_short_dropouts_ms=int(
+                config.get(
+                    "graph_connect_short_dropouts_ms",
+                    cls.graph_connect_short_dropouts_ms,
+                )
+            ),
+            graph_voice_lock=str(config.get("graph_voice_lock", cls.graph_voice_lock)),
         )
 
 

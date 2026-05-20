@@ -48,7 +48,10 @@ def current_field_index(editor: Any) -> int:
 
 def sound_reference_for_field(editor: Any, field_index: int) -> tuple[str, Path]:
     """Return the first supported sound filename and media path for a field."""
-    field_html = editor.note.fields[field_index]
+    fields = getattr(getattr(editor, "note", None), "fields", [])
+    if field_index < 0 or field_index >= len(fields):
+        raise AudioProcessingError(CURRENT_FIELD_AUDIO_MISSING)
+    field_html = fields[field_index]
     selection = select_first_sound_reference(field_html)
     if selection.selected is None:
         raise AudioProcessingError(CURRENT_FIELD_AUDIO_MISSING)

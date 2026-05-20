@@ -1,3 +1,4 @@
+import { audioSourceForNode } from "./sound-source.js";
 import type { EditorCommand, VisualizerElement } from "./types.js";
 
 export function controlsForOrd(ord: number): HTMLElement | null {
@@ -6,6 +7,12 @@ export function controlsForOrd(ord: number): HTMLElement | null {
 
 export function visualizerForOrd(ord: number): VisualizerElement | null {
   return document.querySelector<VisualizerElement>(`.aqe-visualizer[data-aqe-field-ord="${ord}"]`);
+}
+
+export function currentAudioSourceForOrd(ord: number): string {
+  const container = document.querySelector<HTMLElement>(`.field-container[data-index="${ord}"]`);
+  const node = container?.querySelector<HTMLElement>('[contenteditable="true"]') ?? container;
+  return audioSourceForNode(node) || audioSourceForNode(container);
 }
 
 export function buttonFor(ord: number, command: EditorCommand): HTMLButtonElement | null {

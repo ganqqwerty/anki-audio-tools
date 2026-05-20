@@ -282,6 +282,7 @@ source_modules = [
     "anki_audio_quick_editor.prosody_cache",
     "anki_audio_quick_editor.prosody_fallback",
     "anki_audio_quick_editor.prosody_praat",
+    "anki_audio_quick_editor.prosody_settings",
     "anki_audio_quick_editor.prosody_svg",
     "anki_audio_quick_editor.prosody_types",
     "anki_audio_quick_editor.settings_state",

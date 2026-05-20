@@ -99,6 +99,7 @@ class EditorCommandPayload:
     command: str
     field_ord: int | None = None
     overrides: EditorCommandOverrides = EditorCommandOverrides()
+    graph_settings: dict[str, object] | None = None
 
 
 def _int_or_none(value: Any) -> int | None:
@@ -128,6 +129,12 @@ def _overrides_from_raw(raw: Any) -> EditorCommandOverrides:
     )
 
 
+def _graph_settings_from_raw(raw: Any) -> dict[str, object] | None:
+    if not isinstance(raw, dict):
+        return None
+    return dict(raw)
+
+
 def decode_editor_command_payload(raw_command: str | EditorCommandPayload) -> EditorCommandPayload:
     """Return normalized editor command data from a bridge string or JSON payload."""
     if isinstance(raw_command, EditorCommandPayload):
@@ -147,6 +154,7 @@ def decode_editor_command_payload(raw_command: str | EditorCommandPayload) -> Ed
         command=command,
         field_ord=_int_or_none(raw_payload.get("fieldOrd")),
         overrides=_overrides_from_raw(raw_payload.get("overrides")),
+        graph_settings=_graph_settings_from_raw(raw_payload.get("graphSettings")),
     )
 
 

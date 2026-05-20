@@ -23,6 +23,11 @@ def test_injection_script_embeds_audio_field_indices_and_bundle() -> None:
     assert config["repeatPlaybackByDefault"] is False
     assert config["showGraphByDefault"] is False
     assert config["splitButtonDefaults"]["repeatPauseSeconds"] == 0.0
+    assert config["splitButtonDefaults"]["graphVoiceRange"] == "general"
+    assert config["splitButtonDefaults"]["graphRecordingCondition"] == "auto"
+    assert config["splitButtonDefaults"]["graphSmoothness"] == "balanced"
+    assert config["splitButtonDefaults"]["graphConnectShortDropoutsMs"] == 0
+    assert config["splitButtonDefaults"]["graphVoiceLock"] == "balanced"
     assert "window.__aqeEditorDispose" in script
     assert "aqe:frontend-log" in script
     assert "aqe:show-file" in script

@@ -5,6 +5,14 @@ import type {
   SplitButtonDefaults,
 } from "./types.js";
 import { t } from "../lib/i18n.js";
+import {
+  clampGraphConnectShortDropoutsMs,
+  defaultGraphSplitValues,
+  graphRecordingConditionOrDefault,
+  graphSmoothnessOrDefault,
+  graphVoiceLockOrDefault,
+  graphVoiceRangeOrDefault,
+} from "./graph-split-values.js";
 
 const MIN_TRIM_MS = 50;
 const MAX_TRIM_MS = 10_000;
@@ -14,8 +22,10 @@ const MIN_SPEED_STEP = 0.01;
 const MAX_SPEED_STEP = 0.25;
 const MIN_REPEAT_PAUSE_SECONDS = 0;
 const MAX_REPEAT_PAUSE_SECONDS = 10;
-const DEFAULTS: SplitButtonDefaults = {
+type CompleteSplitButtonDefaults = Required<SplitButtonDefaults>;
+const DEFAULTS: CompleteSplitButtonDefaults = {
   denoiseAlgorithm: "standard",
+  ...defaultGraphSplitValues(),
   pauseAggressiveness: "normal",
   repeatPauseSeconds: 0,
   speedStep: 0.05,
@@ -28,7 +38,7 @@ function fieldStates(): Record<number, FieldSplitButtonState> {
   return window.__aqeSplitButtonStates;
 }
 
-export function splitButtonDefaults(): SplitButtonDefaults {
+export function splitButtonDefaults(): CompleteSplitButtonDefaults {
   return {
     ...DEFAULTS,
     ...window.__AQE_EDITOR_CONFIG__?.splitButtonDefaults,
@@ -93,6 +103,11 @@ export function formatDenoiseAlgorithm(value: FieldSplitButtonState["denoiseAlgo
 
 export function getSplitButtonState(ord: number): FieldSplitButtonState {
   const defaults = splitButtonDefaults();
+  const defaultGraphConnectShortDropoutsMs = clampGraphConnectShortDropoutsMs(defaults.graphConnectShortDropoutsMs);
+  const defaultGraphRecordingCondition = graphRecordingConditionOrDefault(defaults.graphRecordingCondition);
+  const defaultGraphSmoothness = graphSmoothnessOrDefault(defaults.graphSmoothness);
+  const defaultGraphVoiceLock = graphVoiceLockOrDefault(defaults.graphVoiceLock);
+  const defaultGraphVoiceRange = graphVoiceRangeOrDefault(defaults.graphVoiceRange);
   const defaultTrimStepMs = clampTrimStepMs(defaults.trimStepMs);
   const defaultVolumeStepDb = clampVolumeStepDb(defaults.volumeStepDb);
   const defaultSpeedStep = clampSpeedStep(defaults.speedStep);
@@ -131,10 +146,37 @@ export function getSplitButtonState(ord: number): FieldSplitButtonState {
       existing.defaultDenoiseAlgorithm = defaultDenoiseAlgorithm;
       existing.denoiseAlgorithm = defaultDenoiseAlgorithm;
     }
+    if (!existing.graphEdited) {
+      if (existing.defaultGraphVoiceRange !== defaultGraphVoiceRange) {
+        existing.defaultGraphVoiceRange = defaultGraphVoiceRange;
+        existing.graphVoiceRange = defaultGraphVoiceRange;
+      }
+      if (existing.defaultGraphRecordingCondition !== defaultGraphRecordingCondition) {
+        existing.defaultGraphRecordingCondition = defaultGraphRecordingCondition;
+        existing.graphRecordingCondition = defaultGraphRecordingCondition;
+      }
+      if (existing.defaultGraphSmoothness !== defaultGraphSmoothness) {
+        existing.defaultGraphSmoothness = defaultGraphSmoothness;
+        existing.graphSmoothness = defaultGraphSmoothness;
+      }
+      if (existing.defaultGraphConnectShortDropoutsMs !== defaultGraphConnectShortDropoutsMs) {
+        existing.defaultGraphConnectShortDropoutsMs = defaultGraphConnectShortDropoutsMs;
+        existing.graphConnectShortDropoutsMs = defaultGraphConnectShortDropoutsMs;
+      }
+      if (existing.defaultGraphVoiceLock !== defaultGraphVoiceLock) {
+        existing.defaultGraphVoiceLock = defaultGraphVoiceLock;
+        existing.graphVoiceLock = defaultGraphVoiceLock;
+      }
+    }
     return existing;
   }
   const state = {
     defaultDenoiseAlgorithm,
+    defaultGraphConnectShortDropoutsMs,
+    defaultGraphRecordingCondition,
+    defaultGraphSmoothness,
+    defaultGraphVoiceLock,
+    defaultGraphVoiceRange,
     defaultPauseAggressiveness,
     defaultRepeatPauseSeconds,
     defaultTrimStepMs,
@@ -142,6 +184,12 @@ export function getSplitButtonState(ord: number): FieldSplitButtonState {
     defaultSpeedStep,
     denoiseAlgorithm: defaultDenoiseAlgorithm,
     denoiseEdited: false,
+    graphConnectShortDropoutsMs: defaultGraphConnectShortDropoutsMs,
+    graphEdited: false,
+    graphRecordingCondition: defaultGraphRecordingCondition,
+    graphSmoothness: defaultGraphSmoothness,
+    graphVoiceLock: defaultGraphVoiceLock,
+    graphVoiceRange: defaultGraphVoiceRange,
     pauseAggressiveness: defaultPauseAggressiveness,
     pauseEdited: false,
     repeatPauseEdited: false,
@@ -229,6 +277,19 @@ export function buildSplitCommandPayload(command: EditorCommand, ord: number): E
   if (command === "aqe:denoise-standard" || command === "aqe:rnnoise") {
     const selectedCommand = state.denoiseAlgorithm === "rnnoise" ? "aqe:rnnoise" : "aqe:denoise-standard";
     return { command: selectedCommand, fieldOrd: ord, overrides: { denoiseAlgorithm: state.denoiseAlgorithm } };
+  }
+  if (command === "aqe:analyze") {
+    return {
+      command,
+      fieldOrd: ord,
+      graphSettings: {
+        connectShortDropoutsMs: state.graphConnectShortDropoutsMs,
+        recordingCondition: state.graphRecordingCondition,
+        smoothness: state.graphSmoothness,
+        voiceLock: state.graphVoiceLock,
+        voiceRange: state.graphVoiceRange,
+      },
+    };
   }
   return buildTrimCommandPayload(command, ord);
 }

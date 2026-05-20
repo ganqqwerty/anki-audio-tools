@@ -6,23 +6,24 @@ from pathlib import Path
 
 from .audio_state import AudioProcessingConfig
 from .prosody_analyzer import analyze_prosody
+from .prosody_settings import prosody_cache_fingerprint
 from .prosody_types import ProsodyTrack
 
-ProsodyCacheKey = tuple[str, int, int]
+ProsodyCacheKey = tuple[str, int, int, tuple[object, ...]]
 
 _ANALYSIS_CACHE: dict[ProsodyCacheKey, ProsodyTrack] = {}
 _ANALYSIS_CACHE_MAX = 32
 
 
-def prosody_cache_key(path: Path) -> ProsodyCacheKey:
+def prosody_cache_key(path: Path, config: AudioProcessingConfig) -> ProsodyCacheKey:
     """Return a cache key tied to a media file's current identity."""
     stat = path.stat()
-    return str(path), int(stat.st_size), int(stat.st_mtime_ns)
+    return str(path), int(stat.st_size), int(stat.st_mtime_ns), prosody_cache_fingerprint(config)
 
 
 def analyze_prosody_cached(path: Path, config: AudioProcessingConfig) -> ProsodyTrack:
     """Analyze ``path`` and reuse results while the file identity is unchanged."""
-    key = prosody_cache_key(path)
+    key = prosody_cache_key(path, config)
     cached = _ANALYSIS_CACHE.get(key)
     if cached is not None:
         return cached

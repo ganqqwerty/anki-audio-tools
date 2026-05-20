@@ -1,5 +1,12 @@
 import type { FrontendLogPayload, ProsodyPayload } from "../lib/generated/contracts.js";
 import type { CommandIconName } from "../lib/icon-types.js";
+import type {
+  GraphRecordingCondition,
+  GraphSettings,
+  GraphSmoothness,
+  GraphVoiceLock,
+  GraphVoiceRange,
+} from "./graph-settings.js";
 
 export type EditorCommand =
   | "aqe:play"
@@ -44,6 +51,11 @@ export interface EditorRuntimeConfig {
 
 export interface SplitButtonDefaults {
   denoiseAlgorithm: "standard" | "rnnoise";
+  graphConnectShortDropoutsMs?: number;
+  graphRecordingCondition?: GraphRecordingCondition;
+  graphSmoothness?: GraphSmoothness;
+  graphVoiceLock?: GraphVoiceLock;
+  graphVoiceRange?: GraphVoiceRange;
   pauseAggressiveness: "gentle" | "normal" | "aggressive";
   repeatPauseSeconds: number;
   speedStep: number;
@@ -61,10 +73,16 @@ export interface EditorCommandPayload {
     trimStepMs?: number;
     volumeStepDb?: number;
   };
+  graphSettings?: GraphSettings;
 }
 
 export interface FieldSplitButtonState {
   defaultDenoiseAlgorithm: "standard" | "rnnoise";
+  defaultGraphConnectShortDropoutsMs: number;
+  defaultGraphRecordingCondition: GraphRecordingCondition;
+  defaultGraphSmoothness: GraphSmoothness;
+  defaultGraphVoiceLock: GraphVoiceLock;
+  defaultGraphVoiceRange: GraphVoiceRange;
   defaultPauseAggressiveness: "gentle" | "normal" | "aggressive";
   defaultRepeatPauseSeconds: number;
   defaultTrimStepMs: number;
@@ -72,6 +90,12 @@ export interface FieldSplitButtonState {
   defaultVolumeStepDb: number;
   denoiseAlgorithm: "standard" | "rnnoise";
   denoiseEdited: boolean;
+  graphConnectShortDropoutsMs: number;
+  graphEdited: boolean;
+  graphRecordingCondition: GraphRecordingCondition;
+  graphSmoothness: GraphSmoothness;
+  graphVoiceLock: GraphVoiceLock;
+  graphVoiceRange: GraphVoiceRange;
   pauseAggressiveness: "gentle" | "normal" | "aggressive";
   pauseEdited: boolean;
   repeatPauseEdited: boolean;
@@ -93,9 +117,11 @@ export interface FieldTarget {
 export interface DefaultGraphTarget {
   ord: number;
   sourceFilename: string;
+  graphSettings?: GraphSettings;
 }
 
 export interface GraphAnalysisRequest {
+  graphSettings?: GraphSettings;
   ord: number;
   sourceFilename: string;
 }

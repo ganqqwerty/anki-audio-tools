@@ -22,7 +22,7 @@ export function send(
   window.__aqeActiveField = ord;
   logger.info("command dispatched", { command, ord });
   if (command === "aqe:analyze") {
-    requestGraph(ord, true);
+    requestGraph(ord, true, payload?.graphSettings);
     return;
   }
   if (command === "aqe:play" && handleHtmlPlaybackCommand(ord)) {

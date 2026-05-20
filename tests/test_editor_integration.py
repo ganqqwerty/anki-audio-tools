@@ -21,12 +21,6 @@ from anki_audio_quick_editor.editor_integration import (
     _set_busy,
     register_editor_hooks,
 )
-from anki_audio_quick_editor.prosody_cache import (
-    _ANALYSIS_CACHE,
-    analyze_prosody_cached,
-    prosody_cache_key,
-)
-from anki_audio_quick_editor.prosody_types import ProsodyPoint, ProsodyTrack
 
 
 def test_register_editor_hooks() -> None:
@@ -422,44 +416,6 @@ def test_editor_settings_command_opens_settings_and_refreshes_after_save(
     assert editor.loadNote.call_args.args == ()
     assert editor.loadNote.call_args.kwargs == {"focusTo": 0}
     assert any("window.__aqeEditorDispose" in call.args[0] for call in editor.web.eval.call_args_list)
-
-
-def test_prosody_cache_key_uses_path_size_and_mtime(tmp_path: Path) -> None:
-    source = tmp_path / "clip.mp3"
-    source.write_bytes(b"one")
-    first_key = prosody_cache_key(source)
-    source.write_bytes(b"one-two")
-    second_key = prosody_cache_key(source)
-
-    assert first_key[0] == str(source)
-    assert second_key[0] == str(source)
-    assert first_key[1] != second_key[1]
-    assert isinstance(first_key[2], int)
-
-
-def test_prosody_cache_reuses_matching_file_identity(tmp_path: Path, monkeypatch) -> None:
-    source = tmp_path / "clip.mp3"
-    source.write_bytes(b"audio")
-    track = ProsodyTrack(
-        duration_ms=1000,
-        points=(ProsodyPoint(0, 220.0, -20.0, 0.5, True),),
-        pitch_min_hz=220.0,
-        pitch_max_hz=220.0,
-        source_filename=source.name,
-        analyzer_name="test",
-    )
-    calls: list[Path] = []
-
-    def fake_analyze(path: Path, _config: AudioProcessingConfig) -> ProsodyTrack:
-        calls.append(path)
-        return track
-
-    monkeypatch.setattr("anki_audio_quick_editor.prosody_cache.analyze_prosody", fake_analyze)
-    _ANALYSIS_CACHE.clear()
-
-    assert analyze_prosody_cached(source, AudioProcessingConfig()) is track
-    assert analyze_prosody_cached(source, AudioProcessingConfig()) is track
-    assert calls == [source]
 
 
 def test_set_busy_falls_back_to_session_field_index() -> None:

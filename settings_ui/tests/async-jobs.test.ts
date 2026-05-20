@@ -15,17 +15,30 @@ import {
   handleAsyncProgress,
   startAsyncOp,
 } from "../src/lib/async-jobs.js";
-import { DenoiseAlgorithm, OutputFormat, PauseAggressiveness } from "../src/lib/types.js";
+import {
+  DenoiseAlgorithm,
+  GraphRecordingCondition,
+  GraphSmoothness,
+  GraphVoiceLock,
+  GraphVoiceRange,
+  OutputFormat,
+  PauseAggressiveness,
+} from "../src/lib/types.js";
 
 const pycmd = (globalThis as unknown as Record<string, ReturnType<typeof vi.fn>>)["pycmd"]!;
 const config = {
-  _config_version: 11,
+  _config_version: 12,
   enabled: true,
   debug_logging: false,
   show_ffmpeg_commands: false,
   repeat_playback_by_default: false,
   repeat_pause_seconds: 0,
   show_graph_by_default: false,
+  graph_voice_range: GraphVoiceRange.General,
+  graph_recording_condition: GraphRecordingCondition.Auto,
+  graph_smoothness: GraphSmoothness.Balanced,
+  graph_connect_short_dropouts_ms: 0,
+  graph_voice_lock: GraphVoiceLock.Balanced,
   manual_trim_small_ms: 100,
   manual_trim_large_ms: 500,
   speed_step: 0.05,

@@ -150,6 +150,28 @@ class TestMigrateConfig:
         assert migrated["_config_version"] == CURRENT_CONFIG_VERSION
         assert changed is True
 
+    def test_picks_up_graph_display_defaults(self) -> None:
+        user = {"_config_version": 11, "enabled": True}
+        defaults = {
+            "_config_version": CURRENT_CONFIG_VERSION,
+            "enabled": True,
+            "graph_voice_range": "general",
+            "graph_recording_condition": "auto",
+            "graph_smoothness": "balanced",
+            "graph_connect_short_dropouts_ms": 0,
+            "graph_voice_lock": "balanced",
+        }
+
+        migrated, changed = migrate_config(user, defaults)
+
+        assert migrated["graph_voice_range"] == "general"
+        assert migrated["graph_recording_condition"] == "auto"
+        assert migrated["graph_smoothness"] == "balanced"
+        assert migrated["graph_connect_short_dropouts_ms"] == 0
+        assert migrated["graph_voice_lock"] == "balanced"
+        assert migrated["_config_version"] == CURRENT_CONFIG_VERSION
+        assert changed is True
+
     def test_removes_deleted_edge_silence_keys(self) -> None:
         user = {
             "_config_version": 6,

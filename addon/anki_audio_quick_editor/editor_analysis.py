@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
@@ -13,11 +14,26 @@ from .editor_session import EditorSession
 from .errors import AudioQuickEditorError
 from .i18n import t
 from .media_paths import existing_media_file_path
+from .prosody_settings import config_with_graph_settings, sanitize_graph_settings
 from .prosody_types import ProsodyTrack, clamp_cursor_ms
 from .sound_refs import safe_media_basename
 
 
-def analyze_current_async(editor: Any, deps: Any) -> None:
+@dataclass(frozen=True)
+class GraphAnalysisRequest:
+    """Frontend graph analysis request normalized for backend execution."""
+
+    field_index: int
+    graph_settings: dict[str, object]
+    source_filename: str
+
+
+def analyze_current_async(
+    editor: Any,
+    deps: Any,
+    *,
+    graph_settings: dict[str, object] | None = None,
+) -> None:
     """Analyze the active editor field for graph rendering."""
     existing = deps.sessions.get(editor)
     if existing and deps.is_busy(existing):
@@ -36,7 +52,7 @@ def analyze_current_async(editor: Any, deps: Any) -> None:
         deps.fail_field_analysis_without_generation(editor, field_index, deps.referenced_audio_missing)
         deps.eval_status(editor, deps.referenced_audio_missing, kind="error")
         return
-    deps.start_field_analysis_async(editor, field_index, filename, media_path)
+    deps.start_field_analysis_async(editor, field_index, filename, media_path, graph_settings)
 
 
 def analyze_field_from_frontend(editor: Any, deps: Any) -> None:
@@ -54,20 +70,25 @@ def analyze_requested_field_async(editor: Any, request: Any, deps: Any) -> None:
     parsed = parse_graph_analysis_request(request)
     if parsed is None:
         return
-    field_index, expected_filename = parsed
-    resolved = deps.resolve_requested_field_media(editor, field_index, expected_filename)
+    resolved = deps.resolve_requested_field_media(editor, parsed.field_index, parsed.source_filename)
     if resolved is None:
-        deps.finish_ignored_field_analysis(editor, field_index)
+        deps.finish_ignored_field_analysis(editor, parsed.field_index)
         return
     filename, _media_path = resolved
     media_path = existing_media_file_path(Path(editor.mw.col.media.dir()), filename)
     if media_path is None:
-        deps.fail_field_analysis_without_generation(editor, field_index, deps.referenced_audio_missing)
+        deps.fail_field_analysis_without_generation(editor, parsed.field_index, deps.referenced_audio_missing)
         return
-    deps.start_field_analysis_async(editor, field_index, filename, media_path)
+    deps.start_field_analysis_async(
+        editor,
+        parsed.field_index,
+        filename,
+        media_path,
+        parsed.graph_settings,
+    )
 
 
-def parse_graph_analysis_request(request: Any) -> tuple[int, str] | None:
+def parse_graph_analysis_request(request: Any) -> GraphAnalysisRequest | None:
     """Normalize a graph analysis request payload."""
     if not isinstance(request, dict):
         return None
@@ -81,7 +102,13 @@ def parse_graph_analysis_request(request: Any) -> tuple[int, str] | None:
     if field_index < 0:
         return None
     filename = safe_media_basename(str(request.get("sourceFilename") or ""))
-    return (field_index, filename) if filename else None
+    if not filename:
+        return None
+    return GraphAnalysisRequest(
+        field_index=field_index,
+        graph_settings=sanitize_graph_settings(request.get("graphSettings")),
+        source_filename=filename,
+    )
 
 
 def start_field_analysis_async(
@@ -89,6 +116,7 @@ def start_field_analysis_async(
     field_index: int,
     filename: str,
     media_path: Path,
+    graph_settings: dict[str, object] | None,
     deps: Any,
 ) -> None:
     """Start background prosody analysis for a field."""
@@ -102,7 +130,10 @@ def start_field_analysis_async(
             kind="processing",
         )
         return
-    config = AudioProcessingConfig.from_config(deps.config(editor))
+    config = config_with_graph_settings(
+        AudioProcessingConfig.from_config(deps.config(editor)),
+        graph_settings,
+    )
     generation = begin_field_analysis(session, field_index, filename)
     deps.set_busy_for_field(editor, field_index, True, t("editor.status.analyzing"))
     deps.eval_visualizer_status_for_field(editor, field_index, t("editor.status.analyzing"), kind="processing")

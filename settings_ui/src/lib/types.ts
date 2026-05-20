@@ -13,7 +13,17 @@ export type {
   ShowLogFileResult,
   SupportReportResult,
 } from "./generated/contracts.js";
-export { DenoiseAlgorithm, Direction, Level, OutputFormat, PauseAggressiveness } from "./generated/contracts.js";
+export {
+  DenoiseAlgorithm,
+  Direction,
+  GraphRecordingCondition,
+  GraphSmoothness,
+  GraphVoiceLock,
+  GraphVoiceRange,
+  Level,
+  OutputFormat,
+  PauseAggressiveness,
+} from "./generated/contracts.js";
 
 import type {
   Config,

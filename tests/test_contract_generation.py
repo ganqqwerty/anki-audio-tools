@@ -22,6 +22,11 @@ def test_composed_contract_schema_uses_config_schema_source() -> None:
     assert "repeat_playback_by_default" in config["properties"]
     assert "repeat_pause_seconds" in config["properties"]
     assert "show_graph_by_default" in config["properties"]
+    assert "graph_voice_range" in config["properties"]
+    assert "graph_recording_condition" in config["properties"]
+    assert "graph_smoothness" in config["properties"]
+    assert "graph_connect_short_dropouts_ms" in config["properties"]
+    assert "graph_voice_lock" in config["properties"]
 
 
 def test_stale_targets_reports_missing_and_changed_files(tmp_path: Path) -> None:

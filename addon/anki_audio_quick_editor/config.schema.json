@@ -11,6 +11,11 @@
     "repeat_playback_by_default",
     "repeat_pause_seconds",
     "show_graph_by_default",
+    "graph_voice_range",
+    "graph_recording_condition",
+    "graph_smoothness",
+    "graph_connect_short_dropouts_ms",
+    "graph_voice_lock",
     "manual_trim_small_ms",
     "manual_trim_large_ms",
     "speed_step",
@@ -56,6 +61,27 @@
     },
     "show_graph_by_default": {
       "type": "boolean"
+    },
+    "graph_voice_range": {
+      "type": "string",
+      "enum": ["bass", "low", "general", "high", "child"]
+    },
+    "graph_recording_condition": {
+      "type": "string",
+      "enum": ["auto", "very_noisy", "noisy", "normal", "clean", "studio"]
+    },
+    "graph_smoothness": {
+      "type": "string",
+      "enum": ["raw", "balanced", "smooth", "very_smooth"]
+    },
+    "graph_connect_short_dropouts_ms": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 150
+    },
+    "graph_voice_lock": {
+      "type": "string",
+      "enum": ["loose", "balanced", "stable"]
     },
     "manual_trim_small_ms": {
       "type": "integer",

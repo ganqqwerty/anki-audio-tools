@@ -58,6 +58,17 @@ def test_decode_processing_command_accepts_json_payload() -> None:
     assert decoded.overrides.trim_step_ms == 200
 
 
+def test_decode_graph_command_accepts_graph_settings() -> None:
+    decoded = decode_editor_command_payload(
+        '{"command":"aqe:analyze","fieldOrd":1,'
+        '"graphSettings":{"voiceRange":"bass","smoothness":"very_smooth"}}'
+    )
+
+    assert decoded.command == "aqe:analyze"
+    assert decoded.field_ord == 1
+    assert decoded.graph_settings == {"voiceRange": "bass", "smoothness": "very_smooth"}
+
+
 def test_apply_processing_command_uses_trim_override_without_mutating_config() -> None:
     config = AudioProcessingConfig(manual_trim_small_ms=500)
     state = AudioEditState("clip.mp3")

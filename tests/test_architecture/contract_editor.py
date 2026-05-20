@@ -21,6 +21,7 @@ EDITOR_CONTRACTS: dict[str, ModuleContract] = {
             "errors",
             "i18n",
             "media_paths",
+            "prosody_settings",
             "prosody_types",
             "sound_refs",
         ),

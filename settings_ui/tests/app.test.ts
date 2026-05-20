@@ -2,16 +2,30 @@ import { fireEvent, render, screen, waitFor } from "@testing-library/svelte";
 import { describe, expect, it, vi } from "vitest";
 
 import App from "../src/App.svelte";
-import { DenoiseAlgorithm, Direction, OutputFormat, PauseAggressiveness } from "../src/lib/types.js";
+import {
+  DenoiseAlgorithm,
+  Direction,
+  GraphRecordingCondition,
+  GraphSmoothness,
+  GraphVoiceLock,
+  GraphVoiceRange,
+  OutputFormat,
+  PauseAggressiveness,
+} from "../src/lib/types.js";
 
 const defaultConfig = {
-  _config_version: 11,
+  _config_version: 12,
   enabled: true,
   debug_logging: false,
   show_ffmpeg_commands: false,
   repeat_playback_by_default: false,
   repeat_pause_seconds: 0,
   show_graph_by_default: false,
+  graph_voice_range: GraphVoiceRange.General,
+  graph_recording_condition: GraphRecordingCondition.Auto,
+  graph_smoothness: GraphSmoothness.Balanced,
+  graph_connect_short_dropouts_ms: 0,
+  graph_voice_lock: GraphVoiceLock.Balanced,
   manual_trim_small_ms: 100,
   manual_trim_large_ms: 500,
   speed_step: 0.05,
@@ -64,6 +78,11 @@ describe("App", () => {
     expect(screen.getByText("Repeat playback by default")).toBeInTheDocument();
     expect(screen.getByText("Pause between repeats (s)")).toBeInTheDocument();
     expect(screen.getByText("Show graph by default")).toBeInTheDocument();
+    expect(screen.getByText("Graph voice range")).toBeInTheDocument();
+    expect(screen.getByText("Graph recording condition")).toBeInTheDocument();
+    expect(screen.getByText("Graph smoothness")).toBeInTheDocument();
+    expect(screen.getByText("Connect graph dropouts shorter than (ms)")).toBeInTheDocument();
+    expect(screen.getByText("Graph voice lock")).toBeInTheDocument();
     expect(screen.getByText("ffmpeg path")).toBeInTheDocument();
     expect(screen.getByText("DeepFilterNet path")).toBeInTheDocument();
     expect(screen.getByText("Use DeepFilterNet post-filter")).toBeInTheDocument();
@@ -149,6 +168,46 @@ describe("App", () => {
     expect(config.pause_aggressiveness).toBe("aggressive");
     expect(config.denoise_algorithm).toBe("rnnoise");
     expect(config.repeat_pause_seconds).toBe(2.5);
+  });
+
+  it("saves graph display defaults", async () => {
+    setInitialState();
+
+    render(App);
+    await fireEvent.change(screen.getByTestId("graph-voice-range"), {
+      target: { value: GraphVoiceRange.Child },
+    });
+    await fireEvent.change(screen.getByTestId("graph-recording-condition"), {
+      target: { value: GraphRecordingCondition.Studio },
+    });
+    await fireEvent.change(screen.getByTestId("graph-smoothness"), {
+      target: { value: GraphSmoothness.VerySmooth },
+    });
+    await fireEvent.input(screen.getByTestId("graph-connect-short-dropouts-ms"), {
+      target: { value: "90" },
+    });
+    await fireEvent.change(screen.getByTestId("graph-voice-lock"), {
+      target: { value: GraphVoiceLock.Stable },
+    });
+    await fireEvent.click(screen.getByRole("button", { name: "Save" }));
+
+    const call = vi
+      .mocked(pycmdMock())
+      .mock.calls
+      .map(([command]) => command as string)
+      .find((command) => command.startsWith("settings_save:")) as string;
+    const config = JSON.parse(call.slice("settings_save:".length)) as {
+      graph_connect_short_dropouts_ms: number;
+      graph_recording_condition: string;
+      graph_smoothness: string;
+      graph_voice_lock: string;
+      graph_voice_range: string;
+    };
+    expect(config.graph_voice_range).toBe("child");
+    expect(config.graph_recording_condition).toBe("studio");
+    expect(config.graph_smoothness).toBe("very_smooth");
+    expect(config.graph_connect_short_dropouts_ms).toBe(90);
+    expect(config.graph_voice_lock).toBe("stable");
   });
 
   it("shows diagnostics data and runs a health check", async () => {

@@ -1,6 +1,7 @@
 <script lang="ts">
   import CommandIcon from "$lib/CommandIcon.svelte";
   import { t } from "$lib/i18n.js";
+  import GraphSettingsFields from "./GraphSettingsFields.svelte";
   import type { Config } from "$lib/types.js";
 
   let {
@@ -58,6 +59,7 @@
       <span>{t("settings.show_graph_by_default")}</span>
     </span>
   </label>
+  <GraphSettingsFields bind:config />
   <label class="field-row">
     <span>{t("settings.ffmpeg_path")}</span>
     <input

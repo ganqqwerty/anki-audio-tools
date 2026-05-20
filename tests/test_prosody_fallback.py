@@ -11,11 +11,10 @@ import pytest
 
 from anki_audio_quick_editor.audio_state import AudioProcessingConfig
 from anki_audio_quick_editor.prosody_fallback import (
-    PITCH_CEILING_HZ,
-    PITCH_FLOOR_HZ,
     _decode_pcm,
     analyze_with_fallback,
 )
+from anki_audio_quick_editor.prosody_settings import resolve_analysis_options
 
 FFMPEG_AVAILABLE = shutil.which("ffmpeg") is not None and shutil.which("ffprobe") is not None
 FFMPEG_SKIP_REASON = "ffmpeg and ffprobe are required for fallback prosody tests"
@@ -119,7 +118,8 @@ def test_fallback_does_not_report_pitch_outside_supported_bounds(
     track = analyze_with_fallback(source, AudioProcessingConfig())
 
     voiced = [point.pitch_hz for point in track.points if point.pitch_hz is not None]
-    assert all(PITCH_FLOOR_HZ <= pitch_hz <= PITCH_CEILING_HZ for pitch_hz in voiced)
+    options = resolve_analysis_options(AudioProcessingConfig())
+    assert all(options.pitch_floor_hz <= pitch_hz <= options.pitch_ceiling_hz for pitch_hz in voiced)
 
 
 @pytest.mark.skipif(not FFMPEG_AVAILABLE, reason=FFMPEG_SKIP_REASON)
@@ -184,8 +184,9 @@ def test_fallback_short_clips_produce_finite_bounded_points(
     assert [point.time_ms for point in track.points] == sorted(point.time_ms for point in track.points)
     assert all(0 <= point.time_ms <= track.duration_ms for point in track.points)
     assert all(0.0 <= point.intensity_norm <= 1.0 for point in track.points)
+    options = resolve_analysis_options(AudioProcessingConfig())
     assert all(
-        point.pitch_hz is None or PITCH_FLOOR_HZ <= point.pitch_hz <= PITCH_CEILING_HZ
+        point.pitch_hz is None or options.pitch_floor_hz <= point.pitch_hz <= options.pitch_ceiling_hz
         for point in track.points
     )
 

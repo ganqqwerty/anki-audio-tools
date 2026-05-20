@@ -33,6 +33,7 @@
 
   function isSplitCommand(command: string): boolean {
     return [
+      "aqe:analyze",
       "aqe:trim-left",
       "aqe:trim-right",
       "aqe:slower",

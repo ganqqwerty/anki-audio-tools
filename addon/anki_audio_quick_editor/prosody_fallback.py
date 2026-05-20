@@ -15,23 +15,23 @@ from .audio_processor import (
 )
 from .audio_state import AudioProcessingConfig
 from .errors import AudioProcessingError
+from .prosody_settings import (
+    ProsodyAnalysisOptions,
+    postprocess_points,
+    resolve_analysis_options,
+)
 from .prosody_types import ProsodyPoint, ProsodyTrack, build_prosody_track
 
 SAMPLE_RATE = 16_000
-FRAME_MS = 40
-HOP_MS = 10
-PITCH_FLOOR_HZ = 75
-PITCH_CEILING_HZ = 500
-MIN_RMS = 50.0
-MIN_CORRELATION = 0.55
 
 
 def analyze_with_fallback(source_path: Path, config: AudioProcessingConfig) -> ProsodyTrack:
     """Analyze pitch and intensity using ffmpeg-decoded mono PCM."""
     samples = _decode_pcm(source_path, config)
     duration_ms = probe_duration_ms(source_path, config)
-    frame_size = SAMPLE_RATE * FRAME_MS // 1000
-    hop_size = SAMPLE_RATE * HOP_MS // 1000
+    options = resolve_analysis_options(config)
+    frame_size = SAMPLE_RATE * options.frame_ms // 1000
+    hop_size = max(1, round(SAMPLE_RATE * options.time_step_s))
     points: list[ProsodyPoint] = []
     if not samples:
         return build_prosody_track(
@@ -45,7 +45,7 @@ def analyze_with_fallback(source_path: Path, config: AudioProcessingConfig) -> P
         if len(frame) < frame_size:
             frame = frame + [0.0] * (frame_size - len(frame))
         rms = _rms(frame)
-        pitch_hz = _estimate_pitch(frame, rms)
+        pitch_hz = _estimate_pitch(frame, rms, options)
         time_ms = round(start * 1000 / SAMPLE_RATE)
         points.append(
             ProsodyPoint(
@@ -60,7 +60,7 @@ def analyze_with_fallback(source_path: Path, config: AudioProcessingConfig) -> P
             break
     return build_prosody_track(
         duration_ms=duration_ms,
-        points=points,
+        points=postprocess_points(points, config),
         source_filename=source_path.name,
         analyzer_name="ffmpeg-pcm",
     )
@@ -111,18 +111,18 @@ def _rms_to_db(rms: float) -> float:
     return max(-120.0, 20 * math.log10(rms / 32768.0))
 
 
-def _estimate_pitch(frame: list[float], rms: float) -> float | None:
-    if rms < MIN_RMS:
+def _estimate_pitch(frame: list[float], rms: float, options: ProsodyAnalysisOptions) -> float | None:
+    if rms < options.min_rms:
         return None
     centered = _center(frame)
-    min_lag = SAMPLE_RATE // PITCH_CEILING_HZ
-    max_lag = SAMPLE_RATE // PITCH_FLOOR_HZ
+    min_lag = max(1, int(SAMPLE_RATE // options.pitch_ceiling_hz))
+    max_lag = max(min_lag, int(SAMPLE_RATE // options.pitch_floor_hz))
     lag_scores = [
         (lag, _correlation(centered, lag))
         for lag in range(min_lag, min(max_lag, len(centered) - 1) + 1)
     ]
     best_score = max((score for _lag, score in lag_scores), default=0.0)
-    if best_score < MIN_CORRELATION:
+    if best_score < options.min_correlation:
         return None
     best_lag = _first_confident_peak(lag_scores, best_score)
     return SAMPLE_RATE / best_lag
@@ -149,7 +149,7 @@ def _correlation(frame: list[float], lag: int) -> float:
 
 
 def _first_confident_peak(lag_scores: list[tuple[int, float]], best_score: float) -> int:
-    minimum = max(MIN_CORRELATION, best_score * 0.9)
+    minimum = best_score * 0.9
     for index, (lag, _score) in enumerate(lag_scores):
         if _is_confident_peak(lag_scores, index, minimum):
             return lag

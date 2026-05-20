@@ -1,8 +1,8 @@
 import { beforeEach, describe, expect, it } from "vitest";
 
 import {
-  buildTrimCommandPayload,
   buildSplitCommandPayload,
+  buildTrimCommandPayload,
   clampRepeatPauseSeconds,
   clampSpeedStep,
   clampTrimStepMs,
@@ -21,6 +21,20 @@ import {
   setTrimStepForField,
   setVolumeStepForField,
 } from "../src/editor-inline/split-button-state.js";
+import {
+  setGraphConnectShortDropoutsForField,
+  setGraphRecordingConditionForField,
+  setGraphSmoothnessForField,
+  setGraphVoiceLockForField,
+  setGraphVoiceRangeForField,
+} from "../src/editor-inline/graph-split-state.js";
+import {
+  clampGraphConnectShortDropoutsMs,
+  formatGraphRecordingCondition,
+  formatGraphSmoothness,
+  formatGraphVoiceLock,
+  formatGraphVoiceRange,
+} from "../src/editor-inline/graph-split-values.js";
 
 describe("split button state", () => {
   beforeEach(() => {
@@ -72,11 +86,26 @@ describe("split button state", () => {
     expect(formatDenoiseAlgorithm("rnnoise")).toBe("RNNoise");
   });
 
+  it("formats and clamps graph split values", () => {
+    expect(formatGraphVoiceRange("child")).toBe("Child / falsetto");
+    expect(formatGraphRecordingCondition("very_noisy")).toBe("Very noisy");
+    expect(formatGraphSmoothness("very_smooth")).toBe("Very smooth");
+    expect(formatGraphVoiceLock("stable")).toBe("Stable");
+    expect(clampGraphConnectShortDropoutsMs(-10)).toBe(0);
+    expect(clampGraphConnectShortDropoutsMs(44)).toBe(30);
+    expect(clampGraphConnectShortDropoutsMs(999)).toBe(150);
+  });
+
   it("initializes field state from editor runtime defaults", () => {
     window.__AQE_EDITOR_CONFIG__ = {
       audioFieldIndices: [0],
       splitButtonDefaults: {
         denoiseAlgorithm: "standard",
+        graphConnectShortDropoutsMs: 60,
+        graphRecordingCondition: "noisy",
+        graphSmoothness: "smooth",
+        graphVoiceLock: "stable",
+        graphVoiceRange: "bass",
         pauseAggressiveness: "normal",
         repeatPauseSeconds: 1.5,
         speedStep: 0.05,
@@ -91,6 +120,11 @@ describe("split button state", () => {
     expect(getSplitButtonState(0).repeatPauseSeconds).toBe(1.5);
     expect(getSplitButtonState(0).pauseAggressiveness).toBe("normal");
     expect(getSplitButtonState(0).denoiseAlgorithm).toBe("standard");
+    expect(getSplitButtonState(0).graphVoiceRange).toBe("bass");
+    expect(getSplitButtonState(0).graphRecordingCondition).toBe("noisy");
+    expect(getSplitButtonState(0).graphSmoothness).toBe("smooth");
+    expect(getSplitButtonState(0).graphConnectShortDropoutsMs).toBe(60);
+    expect(getSplitButtonState(0).graphVoiceLock).toBe("stable");
   });
 
   it("keeps trim state isolated per field", () => {
@@ -148,6 +182,26 @@ describe("split button state", () => {
       fieldOrd: 0,
       overrides: {
         denoiseAlgorithm: "rnnoise",
+      },
+    });
+  });
+
+  it("builds graph payloads from local field state", () => {
+    setGraphVoiceRangeForField(0, "child");
+    setGraphRecordingConditionForField(0, "studio");
+    setGraphSmoothnessForField(0, "very_smooth");
+    setGraphConnectShortDropoutsForField(0, 90);
+    setGraphVoiceLockForField(0, "stable");
+
+    expect(buildSplitCommandPayload("aqe:analyze", 0)).toEqual({
+      command: "aqe:analyze",
+      fieldOrd: 0,
+      graphSettings: {
+        connectShortDropoutsMs: 90,
+        recordingCondition: "studio",
+        smoothness: "very_smooth",
+        voiceLock: "stable",
+        voiceRange: "child",
       },
     });
   });

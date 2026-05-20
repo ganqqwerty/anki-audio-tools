@@ -213,6 +213,13 @@ def _on_editor_will_load_note(js: str, note: Any, editor: Any) -> str:
             "repeatPauseSeconds": float(config.get("repeat_pause_seconds", 0.0)),
             "pauseAggressiveness": str(config.get("pause_aggressiveness", "normal")),
             "denoiseAlgorithm": str(config.get("denoise_algorithm", "standard")),
+            "graphVoiceRange": str(config.get("graph_voice_range", "general")),
+            "graphRecordingCondition": str(config.get("graph_recording_condition", "auto")),
+            "graphSmoothness": str(config.get("graph_smoothness", "balanced")),
+            "graphConnectShortDropoutsMs": int(
+                config.get("graph_connect_short_dropouts_ms", 0)
+            ),
+            "graphVoiceLock": str(config.get("graph_voice_lock", "balanced")),
         },
     )
     return f"{js}\n{script}"
