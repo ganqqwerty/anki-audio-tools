@@ -8,11 +8,8 @@ from typing import Any
 
 from .audio_processor import probe_duration_ms
 from .audio_state import AudioProcessingConfig
+from .prosody_settings import postprocess_points, resolve_analysis_options
 from .prosody_types import ProsodyPoint, ProsodyTrack, build_prosody_track
-
-PITCH_FLOOR_HZ = 75
-PITCH_CEILING_HZ = 500
-TIME_STEP_S = 0.01
 
 
 def is_praat_available() -> bool:
@@ -25,14 +22,29 @@ def analyze_with_praat(source_path: Path, config: AudioProcessingConfig) -> Pros
     import parselmouth
 
     sound = parselmouth.Sound(str(source_path))
-    pitch = sound.to_pitch(
-        time_step=TIME_STEP_S,
-        pitch_floor=PITCH_FLOOR_HZ,
-        pitch_ceiling=PITCH_CEILING_HZ,
-    )
+    options = resolve_analysis_options(config)
+    to_pitch_ac = getattr(sound, "to_pitch_ac", None)
+    if callable(to_pitch_ac):
+        pitch = to_pitch_ac(
+            time_step=options.time_step_s,
+            pitch_floor=options.pitch_floor_hz,
+            max_number_of_candidates=options.max_number_of_candidates,
+            silence_threshold=options.silence_threshold,
+            voicing_threshold=options.voicing_threshold,
+            octave_cost=options.octave_cost,
+            octave_jump_cost=options.octave_jump_cost,
+            voiced_unvoiced_cost=options.voiced_unvoiced_cost,
+            pitch_ceiling=options.pitch_ceiling_hz,
+        )
+    else:
+        pitch = sound.to_pitch(
+            time_step=options.time_step_s,
+            pitch_floor=options.pitch_floor_hz,
+            pitch_ceiling=options.pitch_ceiling_hz,
+        )
     intensity = sound.to_intensity(
-        minimum_pitch=PITCH_FLOOR_HZ,
-        time_step=TIME_STEP_S,
+        minimum_pitch=options.pitch_floor_hz,
+        time_step=options.time_step_s,
     )
     pitch_times = list(pitch.xs())
     frequencies = list(pitch.selected_array["frequency"])
@@ -44,7 +56,7 @@ def analyze_with_praat(source_path: Path, config: AudioProcessingConfig) -> Pros
     ]
     return build_prosody_track(
         duration_ms=probe_duration_ms(source_path, config),
-        points=points,
+        points=postprocess_points(points, config),
         source_filename=source_path.name,
         analyzer_name="praat-parselmouth",
     )

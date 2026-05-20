@@ -1,8 +1,9 @@
 import type { ProsodyPayload } from "../lib/generated/contracts.js";
 import { t } from "../lib/i18n.js";
-import { focusAndSendCommand, sendGraphAnalysisRequest } from "./bridge.js";
+import { focusAndSendCommandPayload, sendGraphAnalysisRequest } from "./bridge.js";
 import { finishDefaultGraphRequest } from "./default-graph-queue.js";
-import { visualizerForOrd } from "./dom-selectors.js";
+import { currentAudioSourceForOrd, visualizerForOrd } from "./dom-selectors.js";
+import type { GraphSettings } from "./graph-settings.js";
 import { logger } from "./logger.js";
 import { normalizeTrack, type DefaultGraphTarget, type VisualizerElement } from "./types.js";
 import {
@@ -30,14 +31,29 @@ import {
   setCommandButtonLabel,
   setControlsBusy,
 } from "./control-actions.js";
+import { graphSettingsForField } from "./graph-split-state.js";
 
-export function requestGraph(ord: number, notifyPython: boolean): void {
-  if (!prepareGraphRequest(ord)) return;
+export function requestGraph(ord: number, notifyPython: boolean, graphSettings?: GraphSettings): void {
+  const visualizer = visualizerForOrd(ord);
+  if (!visualizer || !prepareGraphRequest(ord)) return;
   window.__aqeActiveField = ord;
   logger.info("graph requested", { notifyPython, ord });
   if (notifyPython) {
     setControlsBusy(ord, true, t("editor.status.analyzing"), "");
-    focusAndSendCommand(ord, "aqe:analyze");
+    const sourceFilename = currentAudioSourceForOrd(ord);
+    if (sourceFilename) {
+      sendGraphAnalysisRequest({
+        graphSettings: graphSettings ?? graphSettingsForField(ord),
+        ord,
+        sourceFilename,
+      });
+      return;
+    }
+    focusAndSendCommandPayload(ord, {
+      command: "aqe:analyze",
+      fieldOrd: ord,
+      graphSettings: graphSettings ?? graphSettingsForField(ord),
+    });
   }
 }
 
@@ -45,7 +61,10 @@ export function requestDefaultGraph(target: DefaultGraphTarget): void {
   if (!prepareGraphRequest(target.ord)) return;
   logger.info("default graph requested", target);
   setControlsBusy(target.ord, true, t("editor.status.analyzing"), "");
-  sendGraphAnalysisRequest(target);
+  sendGraphAnalysisRequest({
+    ...target,
+    graphSettings: target.graphSettings ?? graphSettingsForField(target.ord),
+  });
 }
 
 function prepareGraphRequest(ord: number): boolean {

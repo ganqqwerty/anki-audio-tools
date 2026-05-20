@@ -116,36 +116,39 @@ def test_each_processing_button_updates_field_to_new_real_audio(
               };
             })()
             """,
-            lambda state: state["labels"]
+            lambda state: (
+                state["labels"]
                 == [
                     "Play",
                     "Repeat",
                     "Options",
                     "Graph",
-                "Folder",
-                "-L",
-                "Options",
-                "-R",
-                "Options",
-                "Shorten Pauses",
-                "Options",
-                "Denoise",
-                "Options",
-                "Slower",
-                "Options",
-                "Faster",
-                "Options",
-                "Volume -",
-                "Options",
-                "Volume +",
-                "Options",
-                "Undo",
-                "Redo",
-                "Settings",
-            ]
-            and all(count >= 1 for count in state["iconsPerButton"])
-            and state["iconStrokeValues"]
-            and all(stroke == "currentColor" for stroke in state["iconStrokeValues"]),
+                    "Options",
+                    "Folder",
+                    "-L",
+                    "Options",
+                    "-R",
+                    "Options",
+                    "Shorten Pauses",
+                    "Options",
+                    "Denoise",
+                    "Options",
+                    "Slower",
+                    "Options",
+                    "Faster",
+                    "Options",
+                    "Volume -",
+                    "Options",
+                    "Volume +",
+                    "Options",
+                    "Undo",
+                    "Redo",
+                    "Settings",
+                ]
+                and all(count >= 1 for count in state["iconsPerButton"])
+                and state["iconStrokeValues"]
+                and all(stroke == "currentColor" for stroke in state["iconStrokeValues"])
+            ),
             timeout=5.0,
         )
 

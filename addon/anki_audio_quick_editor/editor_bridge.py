@@ -22,6 +22,7 @@ from .editor_actions import (
     CMD_REDO,
     CMD_RNNOISE,
     CMD_SETTINGS,
+    EditorCommandPayload,
     decode_editor_command_payload,
 )
 from .errors import AudioQuickEditorError
@@ -49,7 +50,7 @@ def handle_bridge_command(editor: Any, command: str, deps: Any) -> None:
     try:
         if payload.field_ord is not None:
             editor.currentField = payload.field_ord
-        if deps.handle_non_processing_command(editor, payload.command):
+        if deps.handle_non_processing_command(editor, payload):
             return
         deps.update_state_and_render(editor, payload)
     except AudioQuickEditorError as exc:
@@ -97,14 +98,17 @@ def handle_pending_command_payload(editor: Any, deps: Any) -> None:
     deps.eval_with_callback(editor, expression, _continue)
 
 
-def handle_non_processing_command(editor: Any, command: str, deps: Any) -> bool:
+def handle_non_processing_command(editor: Any, command: str | EditorCommandPayload, deps: Any) -> bool:
     """Handle commands that do not apply an audio edit state."""
-    if command == "aqe:scan":
+    payload = decode_editor_command_payload(command)
+    if payload.command == "aqe:scan":
         deps.eval_status(editor, "")
         editor.web.eval("window.__aqeScan && window.__aqeScan()")
         return True
+    if payload.command == "aqe:analyze":
+        deps.analyze_current_async(editor, graph_settings=payload.graph_settings)
+        return True
     handlers = {
-        "aqe:analyze": deps.analyze_current_async,
         CMD_ANALYZE_FIELD: deps.analyze_field_from_frontend,
         "aqe:set-cursor": deps.set_cursor_from_web,
         "aqe:play": deps.play,
@@ -119,7 +123,7 @@ def handle_non_processing_command(editor: Any, command: str, deps: Any) -> bool:
         CMD_DELETE_SELECTION: deps.delete_selection_from_frontend,
         CMD_DELETE_REST: deps.delete_selection_from_frontend,
     }
-    handler = handlers.get(command)
+    handler = handlers.get(payload.command)
     if handler is None:
         return False
     handler(editor)

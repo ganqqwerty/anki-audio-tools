@@ -2,14 +2,11 @@
   import { onMount, tick } from "svelte";
 
   import EditorCommandIcon from "./EditorCommandIcon.svelte";
+  import GraphSplitOptions from "./GraphSplitOptions.svelte";
+  import SplitValueOptions from "./SplitValueOptions.svelte";
   import { send } from "./actions.js";
   import {
     buildSplitCommandPayload,
-    formatDenoiseAlgorithm,
-    formatPauseAggressiveness,
-    formatSpeedStep,
-    formatTrimMs,
-    formatVolumeDb,
     getSplitButtonState,
     setDenoiseAlgorithmForField,
     setPauseAggressivenessForField,
@@ -17,9 +14,26 @@
     setTrimStepForField,
     setVolumeStepForField,
   } from "./split-button-state.js";
+  import { formatGraphVoiceRange } from "./graph-split-values.js";
+  import {
+    setGraphConnectShortDropoutsForField,
+    setGraphRecordingConditionForField,
+    setGraphSmoothnessForField,
+    setGraphVoiceLockForField,
+    setGraphVoiceRangeForField,
+  } from "./graph-split-state.js";
   import { COMMAND_SLUGS } from "./commands.js";
   import { t } from "../lib/i18n.js";
-  import type { ButtonSpec, FieldTarget } from "./types.js";
+  import type {
+    GraphRecordingCondition,
+    GraphSmoothness,
+    GraphVoiceLock,
+    GraphVoiceRange,
+  } from "./graph-settings.js";
+  import type {
+    ButtonSpec,
+    FieldTarget,
+  } from "./types.js";
 
   const POPOVER_GAP_PX = 4;
   const VIEWPORT_MARGIN_PX = 8;
@@ -35,9 +49,20 @@
   let speedStep = $state(0.05);
   let pauseAggressiveness = $state<"gentle" | "normal" | "aggressive">("normal");
   let denoiseAlgorithm = $state<"standard" | "rnnoise">("standard");
+  let graphVoiceRange = $state<GraphVoiceRange>("general");
+  let graphRecordingCondition = $state<GraphRecordingCondition>("auto");
+  let graphSmoothness = $state<GraphSmoothness>("balanced");
+  let graphConnectShortDropoutsMs = $state(0);
+  let graphVoiceLock = $state<GraphVoiceLock>("balanced");
 
   function slug(): string {
     return COMMAND_SLUGS[button.command];
+  }
+
+  function initialButtonState(): string {
+    if (button.command === "aqe:play") return "play";
+    if (button.command === "aqe:analyze") return "graph";
+    return "default";
   }
 
   function close(): void {
@@ -71,109 +96,29 @@
     denoiseAlgorithm = setDenoiseAlgorithmForField(target.ord, value).denoiseAlgorithm;
   }
 
+  function applyGraphVoiceRange(value: GraphVoiceRange): void {
+    graphVoiceRange = setGraphVoiceRangeForField(target.ord, value).graphVoiceRange;
+  }
+
+  function applyGraphRecordingCondition(value: GraphRecordingCondition): void {
+    graphRecordingCondition = setGraphRecordingConditionForField(target.ord, value).graphRecordingCondition;
+  }
+
+  function applyGraphSmoothness(value: GraphSmoothness): void {
+    graphSmoothness = setGraphSmoothnessForField(target.ord, value).graphSmoothness;
+  }
+
+  function applyGraphConnectShortDropouts(value: number): void {
+    graphConnectShortDropoutsMs = setGraphConnectShortDropoutsForField(target.ord, value).graphConnectShortDropoutsMs;
+  }
+
+  function applyGraphVoiceLock(value: GraphVoiceLock): void {
+    graphVoiceLock = setGraphVoiceLockForField(target.ord, value).graphVoiceLock;
+  }
+
   function dispatchPrimary(): void {
     close();
     send(button.command, target.node, target.ord, buildSplitCommandPayload(button.command, target.ord));
-  }
-
-  function valueLabel(): string {
-    if (button.command === "aqe:volume-up" || button.command === "aqe:volume-down") {
-      return formatVolumeDb(volumeStepDb);
-    }
-    if (button.command === "aqe:faster" || button.command === "aqe:slower") {
-      return formatSpeedStep(speedStep, button.command);
-    }
-    if (button.command === "aqe:remove-pauses") return formatPauseAggressiveness(pauseAggressiveness);
-    if (button.command === "aqe:denoise-standard" || button.command === "aqe:rnnoise") {
-      return formatDenoiseAlgorithm(denoiseAlgorithm);
-    }
-    return formatTrimMs(trimStepMs);
-  }
-
-  function sliderValue(): number {
-    if (button.command === "aqe:volume-up" || button.command === "aqe:volume-down") return volumeStepDb;
-    if (button.command === "aqe:faster" || button.command === "aqe:slower") return speedStep;
-    return trimStepMs;
-  }
-
-  function sliderConfig(): { min: string; max: string; step: string; labels: string[]; presets: number[] } {
-    if (button.command === "aqe:volume-up" || button.command === "aqe:volume-down") {
-      return { min: "0.5", max: "12", step: "0.5", labels: ["0.5 dB", "12 dB"], presets: [1, 3, 6, 9] };
-    }
-    if (button.command === "aqe:faster" || button.command === "aqe:slower") {
-      return { min: "0.01", max: "0.25", step: "0.01", labels: ["x1.01", "x1.25"], presets: [0.03, 0.05, 0.1, 0.2] };
-    }
-    return { min: "50", max: "10000", step: "50", labels: ["50 ms", "10 s"], presets: [100, 200, 500, 1000] };
-  }
-
-  function valueInputConfig(): { min: string; max: string; step: string; label: string } {
-    if (button.command === "aqe:volume-up" || button.command === "aqe:volume-down") {
-      return { min: "0.5", max: "12", step: "0.5", label: "Volume step in dB" };
-    }
-    if (button.command === "aqe:faster") {
-      return { min: "1.01", max: "1.25", step: "0.01", label: "Faster speed multiplier" };
-    }
-    if (button.command === "aqe:slower") {
-      return { min: "0.75", max: "0.99", step: "0.01", label: "Slower speed multiplier" };
-    }
-    return { min: "50", max: "10000", step: "50", label: "Trim step in milliseconds" };
-  }
-
-  function valueInputValue(): number {
-    if (button.command === "aqe:faster") return Number((1 + speedStep).toFixed(2));
-    if (button.command === "aqe:slower") return Number((1 - speedStep).toFixed(2));
-    return sliderValue();
-  }
-
-  function applyValueInput(value: number): void {
-    if (!Number.isFinite(value)) return;
-    if (button.command === "aqe:faster") {
-      applySpeedStep(value - 1);
-      return;
-    }
-    if (button.command === "aqe:slower") {
-      applySpeedStep(1 - value);
-      return;
-    }
-    applyValue(value);
-  }
-
-  function applyValue(value: number): void {
-    if (button.command === "aqe:volume-up" || button.command === "aqe:volume-down") {
-      applyVolumeStep(value);
-      void updatePopoverPlacement();
-      return;
-    }
-    if (button.command === "aqe:faster" || button.command === "aqe:slower") {
-      applySpeedStep(value);
-      void updatePopoverPlacement();
-      return;
-    }
-    applyTrimStep(value);
-    void updatePopoverPlacement();
-  }
-
-  function optionValues(): string[] {
-    if (button.command === "aqe:remove-pauses") return ["gentle", "normal", "aggressive"];
-    if (button.command === "aqe:denoise-standard" || button.command === "aqe:rnnoise") return ["standard", "rnnoise"];
-    return [];
-  }
-
-  function optionLabel(value: string): string {
-    if (value === "rnnoise") return "RNNoise";
-    if (value === "aggressive") return t("settings.pause_aggressiveness.aggressive");
-    if (value === "gentle") return t("settings.pause_aggressiveness.gentle");
-    return value === "standard" ? t("settings.denoise_algorithm.standard") : t("settings.pause_aggressiveness.normal");
-  }
-
-  function applyOption(value: string): void {
-    if (value === "gentle" || value === "normal" || value === "aggressive") {
-      applyPauseAggressiveness(value);
-    }
-    if (value === "standard" || value === "rnnoise") {
-      applyDenoiseAlgorithm(value);
-    }
-    void updatePopoverPlacement();
   }
 
   function clamp(value: number, min: number, max: number): number {
@@ -245,6 +190,11 @@
     speedStep = state.speedStep;
     pauseAggressiveness = state.pauseAggressiveness;
     denoiseAlgorithm = state.denoiseAlgorithm;
+    graphVoiceRange = state.graphVoiceRange;
+    graphRecordingCondition = state.graphRecordingCondition;
+    graphSmoothness = state.graphSmoothness;
+    graphConnectShortDropoutsMs = state.graphConnectShortDropoutsMs;
+    graphVoiceLock = state.graphVoiceLock;
     document.addEventListener("mousedown", onDocumentPointerDown, true);
     document.addEventListener("keydown", onDocumentKeyDown, true);
     window.addEventListener("resize", onViewportChange);
@@ -264,7 +214,7 @@
     class:aqe-icon-only={button.iconOnly === true}
     class="aqe-button aqe-split-primary"
     data-aqe-command={button.command}
-    data-aqe-button-state="default"
+    data-aqe-button-state={initialButtonState()}
     data-testid={`aqe-button-${target.ord}-${slug()}`}
     title={button.title}
     aria-label={button.title}
@@ -291,72 +241,45 @@
     <div
       bind:this={popover}
       class="aqe-split-popover"
+      class:aqe-graph-split-popover={button.command === "aqe:analyze"}
       data-testid={`aqe-split-${target.ord}-${slug()}-popover`}
       style={popoverStyle}
     >
-      <div class="aqe-split-popover-header">
-        <strong>{button.label}</strong>
-        {#if optionValues().length}
-          <span>{valueLabel()}</span>
-        {:else}
-          <input
-            class="aqe-split-value-input"
-            data-testid={`aqe-split-${target.ord}-${slug()}-value`}
-            type="number"
-            min={valueInputConfig().min}
-            max={valueInputConfig().max}
-            step={valueInputConfig().step}
-            value={valueInputValue()}
-            aria-label={valueInputConfig().label}
-            oninput={(event) => applyValueInput((event.currentTarget as HTMLInputElement).valueAsNumber)}
-          />
-        {/if}
-      </div>
-      {#if optionValues().length}
-        <div class="aqe-split-presets">
-          {#each optionValues() as option}
-            <button
-              type="button"
-              class="aqe-button aqe-split-preset"
-              data-testid={`aqe-split-${target.ord}-${slug()}-preset-${option}`}
-              aria-pressed={valueLabel() === optionLabel(option) ? "true" : "false"}
-              onclick={() => applyOption(option)}
-            >
-              {optionLabel(option)}
-            </button>
-          {/each}
+      {#if button.command === "aqe:analyze"}
+        <div class="aqe-split-popover-header">
+          <strong>{button.label}</strong>
+          <span>{formatGraphVoiceRange(graphVoiceRange)}</span>
         </div>
-      {:else}
-        <input
-          data-testid={`aqe-split-${target.ord}-${slug()}-slider`}
-          type="range"
-          min={sliderConfig().min}
-          max={sliderConfig().max}
-          step={sliderConfig().step}
-          value={sliderValue()}
-          oninput={(event) => applyValue(Number((event.currentTarget as HTMLInputElement).value))}
+        <GraphSplitOptions
+          connectShortDropoutsMs={graphConnectShortDropoutsMs}
+          onConnectShortDropouts={applyGraphConnectShortDropouts}
+          onRecordingCondition={applyGraphRecordingCondition}
+          onSmoothness={applyGraphSmoothness}
+          onVoiceLock={applyGraphVoiceLock}
+          onVoiceRange={applyGraphVoiceRange}
+          recordingCondition={graphRecordingCondition}
+          slug={slug()}
+          smoothness={graphSmoothness}
+          targetOrd={target.ord}
+          voiceLock={graphVoiceLock}
+          voiceRange={graphVoiceRange}
         />
-        <div class="aqe-split-range-labels">
-          <span>{sliderConfig().labels[0]}</span>
-          <span>{sliderConfig().labels[1]}</span>
-        </div>
-        <div class="aqe-split-presets">
-          {#each sliderConfig().presets as preset}
-          <button
-            type="button"
-            class="aqe-button aqe-split-preset"
-            data-testid={`aqe-split-${target.ord}-${slug()}-preset-${preset}`}
-            aria-pressed={sliderValue() === preset ? "true" : "false"}
-            onclick={() => applyValue(preset)}
-          >
-            {button.command === "aqe:volume-up" || button.command === "aqe:volume-down"
-              ? formatVolumeDb(preset)
-              : button.command === "aqe:faster" || button.command === "aqe:slower"
-                ? formatSpeedStep(preset, button.command)
-                : formatTrimMs(preset)}
-          </button>
-          {/each}
-        </div>
+      {:else}
+        <SplitValueOptions
+          {button}
+          denoiseAlgorithm={denoiseAlgorithm}
+          onChange={() => void updatePopoverPlacement()}
+          onDenoiseAlgorithm={applyDenoiseAlgorithm}
+          onPauseAggressiveness={applyPauseAggressiveness}
+          onSpeedStep={applySpeedStep}
+          onTrimStep={applyTrimStep}
+          onVolumeStep={applyVolumeStep}
+          pauseAggressiveness={pauseAggressiveness}
+          speedStep={speedStep}
+          targetOrd={target.ord}
+          trimStepMs={trimStepMs}
+          volumeStepDb={volumeStepDb}
+        />
       {/if}
     </div>
   {/if}

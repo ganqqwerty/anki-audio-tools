@@ -24,13 +24,18 @@ def _capture_eval() -> tuple[list[str], callable]:
 
 def _full_config() -> dict[str, object]:
         return {
-            "_config_version": 11,
+            "_config_version": 12,
             "enabled": True,
             "debug_logging": False,
             "show_ffmpeg_commands": False,
             "repeat_playback_by_default": False,
             "repeat_pause_seconds": 0.0,
             "show_graph_by_default": False,
+            "graph_voice_range": "general",
+            "graph_recording_condition": "auto",
+            "graph_smoothness": "balanced",
+            "graph_connect_short_dropouts_ms": 0,
+            "graph_voice_lock": "balanced",
             "manual_trim_small_ms": 100,
             "manual_trim_large_ms": 500,
             "speed_step": 0.05,

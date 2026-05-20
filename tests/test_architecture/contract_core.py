@@ -64,18 +64,23 @@ CORE_CONTRACTS: dict[str, ModuleContract] = {
     "prosody_cache": contract(
         "prosody_cache",
         layer=Layer.IMPORT_SAFE_CORE,
-        allowed_addon_deps=("audio_state", "prosody_analyzer", "prosody_types"),
+        allowed_addon_deps=("audio_state", "prosody_analyzer", "prosody_settings", "prosody_types"),
     ),
     "prosody_fallback": contract(
         "prosody_fallback",
         layer=Layer.IMPORT_SAFE_CORE,
-        allowed_addon_deps=("audio_processor", "audio_state", "errors", "prosody_types"),
+        allowed_addon_deps=("audio_processor", "audio_state", "errors", "prosody_settings", "prosody_types"),
         allowed_side_effects=(SideEffect.SUBPROCESS_RUN,),
     ),
     "prosody_praat": contract(
         "prosody_praat",
         layer=Layer.IMPORT_SAFE_CORE,
-        allowed_addon_deps=("audio_processor", "audio_state", "prosody_types"),
+        allowed_addon_deps=("audio_processor", "audio_state", "prosody_settings", "prosody_types"),
+    ),
+    "prosody_settings": contract(
+        "prosody_settings",
+        layer=Layer.IMPORT_SAFE_CORE,
+        allowed_addon_deps=("audio_state", "prosody_types"),
     ),
     "prosody_svg": contract(
         "prosody_svg",

@@ -5,10 +5,13 @@ from __future__ import annotations
 from pathlib import Path
 from types import SimpleNamespace
 
+import pytest
+
 from anki_audio_quick_editor.editor_media import (
     resolve_requested_field_media,
     sound_reference_for_field,
 )
+from anki_audio_quick_editor.errors import AudioProcessingError
 from anki_audio_quick_editor.media_paths import (
     existing_media_file_path,
     media_filenames_match,
@@ -81,6 +84,13 @@ def test_sound_reference_for_field_returns_windows_case_variant(
 
     assert filename == "clip.mp3"
     assert media_path == source
+
+
+def test_sound_reference_for_field_rejects_missing_note() -> None:
+    editor = SimpleNamespace(note=None)
+
+    with pytest.raises(AudioProcessingError):
+        sound_reference_for_field(editor, 0)
 
 
 def test_resolve_requested_field_media_keeps_macos_case_sensitive(

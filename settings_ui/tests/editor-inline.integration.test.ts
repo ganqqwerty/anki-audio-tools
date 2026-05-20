@@ -108,6 +108,77 @@ afterEach(() => {
     });
   });
 
+  it("dispatches graph split requests with field-local graph settings", async () => {
+    const config = {
+      audioFieldIndices: [0],
+      splitButtonDefaults: {
+        denoiseAlgorithm: "standard" as const,
+        graphConnectShortDropoutsMs: 0,
+        graphRecordingCondition: "auto" as const,
+        graphSmoothness: "balanced" as const,
+        graphVoiceLock: "balanced" as const,
+        graphVoiceRange: "general" as const,
+        pauseAggressiveness: "normal" as const,
+        repeatPauseSeconds: 0,
+        speedStep: 0.05,
+        trimStepMs: 100,
+        volumeStepDb: 3,
+      },
+    };
+    initializeEditorRuntime(config);
+    scan(config);
+    await Promise.resolve();
+    window.__aqeSetBusy?.(0, false);
+
+    document.querySelector<HTMLButtonElement>('[data-testid="aqe-split-0-graph-menu"]')!.click();
+    await Promise.resolve();
+    for (const [slug, value] of [
+      ["voice-range", "4"],
+      ["recording-condition", "5"],
+      ["smoothness", "3"],
+      ["connect-dropouts", "90"],
+      ["voice-lock", "2"],
+    ] as const) {
+      const input = document.querySelector<HTMLInputElement>(`[data-testid="aqe-split-0-graph-${slug}"]`)!;
+      input.value = value;
+      input.dispatchEvent(new Event("input", { bubbles: true }));
+    }
+    await Promise.resolve();
+
+    document.querySelector<HTMLButtonElement>('[data-testid="aqe-button-0-graph"]')!.click();
+
+    expect(bridgeCommands()).toContain("aqe:analyze-field");
+    expect(window.__aqePopPendingGraphAnalysisRequest?.()).toEqual({
+      graphSettings: {
+        connectShortDropoutsMs: 90,
+        recordingCondition: "studio",
+        smoothness: "very_smooth",
+        voiceLock: "stable",
+        voiceRange: "child",
+      },
+      ord: 0,
+      sourceFilename: "clip one.mp3",
+    });
+  });
+
+  it("falls back to backend graph analysis when the current field no longer has audio", async () => {
+    initializeEditorRuntime({ audioFieldIndices: [0] });
+    scan({ audioFieldIndices: [0] });
+    window.__aqeSetVisualizer?.(0, { ...track, sourceFilename: "clip one.mp3" }, 0);
+    document.getElementById("f0")!.innerHTML = "";
+    await Promise.resolve();
+
+    document.querySelector<HTMLButtonElement>('[data-testid="aqe-button-0-graph"]')!.click();
+
+    expect(window.__aqePopPendingGraphAnalysisRequest?.()).toBeNull();
+    expect(bridgeCommands()).toContain("focus:0");
+    expect(bridgeCommands()).toContain("aqe:command-payload");
+    const payload = window.__aqePendingCommandPayload as EditorCommandPayload | null | undefined;
+    expect(payload?.command).toBe("aqe:analyze");
+    expect(payload?.fieldOrd).toBe(0);
+    expect(payload?.graphSettings).toMatchObject({ smoothness: expect.any(String) });
+  });
+
   it("dispatches trim commands with the field-local split value", () => {
     window.__AQE_EDITOR_CONFIG__ = {
       audioFieldIndices: [0],

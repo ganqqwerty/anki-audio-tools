@@ -13,13 +13,14 @@ import {
   mountController,
 } from "./field-controller.js";
 import { logger } from "./logger.js";
+import { audioSourceForNode } from "./sound-source.js";
 import type { EditorRuntimeConfig, FieldTarget } from "./types.js";
 import { installEditorWindowContract } from "./window-contract.js";
 
-const soundPattern = /\[sound:([^\]]+)\]/i;
-const supportedPattern = /\.(aac|flac|m4a|mp3|oga|ogg|opus|wav|webm)$/i;
 let scheduledScanTimers: number[] = [];
 let globalErrorHandlersInstalled = false;
+
+export { audioSourceForNode } from "./sound-source.js";
 
 export function initializeEditorRuntime(config: EditorRuntimeConfig = window.__AQE_EDITOR_CONFIG__ ?? { audioFieldIndices: [] }): void {
   disposeEditorRuntime();
@@ -131,13 +132,6 @@ export function fieldIndex(node: HTMLElement, fallback: number): number {
   }
   const idMatch = /(\d+)/.exec(String(node.id || ""));
   return idMatch ? Number(idMatch[1]) : fallback;
-}
-
-export function audioSourceForNode(node: HTMLElement): string {
-  const html = node.innerHTML || node.textContent || "";
-  const match = soundPattern.exec(html);
-  const filename = match?.[1];
-  return filename && supportedPattern.test(filename) ? filename : "";
 }
 
 export function mountNear(target: FieldTarget): void {

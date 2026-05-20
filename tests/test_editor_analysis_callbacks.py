@@ -8,7 +8,7 @@ from unittest.mock import MagicMock
 
 import pytest
 
-from anki_audio_quick_editor.audio_state import AudioEditState
+from anki_audio_quick_editor.audio_state import AudioEditState, AudioProcessingConfig
 from anki_audio_quick_editor.editor_integration import (
     _SESSIONS,
     EditorSession,
@@ -110,7 +110,7 @@ def test_field_addressed_analysis_preserves_edit_session_history(
         source_filename="field-two.mp3",
         analyzer_name="test",
     )
-    analyzed: list[Path] = []
+    analyzed: list[tuple[Path, AudioProcessingConfig]] = []
     class Editor:
         pass
 
@@ -138,16 +138,33 @@ def test_field_addressed_analysis_preserves_edit_session_history(
     monkeypatch.setattr("anki_audio_quick_editor.editor_dependencies.threading.Thread", ImmediateThread)
     monkeypatch.setattr(
         "anki_audio_quick_editor.editor_callbacks._eval_with_callback",
-        lambda _editor, _script, callback: callback({"ord": 1, "sourceFilename": "field-two.mp3"}),
+        lambda _editor, _script, callback: callback(
+            {
+                "ord": 1,
+                "sourceFilename": "field-two.mp3",
+                "graphSettings": {
+                    "voiceRange": "bass",
+                    "recordingCondition": "noisy",
+                    "smoothness": "smooth",
+                    "connectShortDropoutsMs": 60,
+                    "voiceLock": "stable",
+                },
+            }
+        ),
     )
     monkeypatch.setattr(
         "anki_audio_quick_editor.editor_dependencies.analyze_prosody_cached",
-        lambda path, _config: analyzed.append(path) or track,
+        lambda path, config: analyzed.append((path, config)) or track,
     )
 
     _handle_bridge_command(editor, "aqe:analyze-field")
 
-    assert analyzed == [field_two]
+    assert [path for path, _config in analyzed] == [field_two]
+    assert [config.graph_voice_range for _path, config in analyzed] == ["bass"]
+    assert [config.graph_recording_condition for _path, config in analyzed] == ["noisy"]
+    assert [config.graph_smoothness for _path, config in analyzed] == ["smooth"]
+    assert [config.graph_connect_short_dropouts_ms for _path, config in analyzed] == [60]
+    assert [config.graph_voice_lock for _path, config in analyzed] == ["stable"]
     assert session.state == AudioEditState("field-one.mp3", speed=1.1)
     assert session.field_index == 0
     assert session.current_filename == "field-one.mp3"
@@ -217,6 +234,74 @@ def test_manual_analysis_uses_read_only_field_path(tmp_path: Path, monkeypatch) 
     assert session.current_filename == "field-one.mp3"
     assert [entry.filename for entry in session.undo_history.entries] == ["field-one.mp3"]
     assert session.visualized_durations_by_field[1] == 900
+
+
+def test_manual_analysis_payload_applies_graph_settings(tmp_path: Path, monkeypatch) -> None:
+    class ImmediateThread:
+        def __init__(self, target, daemon=True):
+            self._target = target
+
+        def start(self) -> None:
+            self._target()
+
+    media_dir = tmp_path / "media"
+    media_dir.mkdir()
+    (media_dir / "field-one.mp3").write_bytes(b"one")
+    field_two = media_dir / "field-two.mp3"
+    field_two.write_bytes(b"two")
+    track = ProsodyTrack(
+        duration_ms=900,
+        points=(ProsodyPoint(0, 220.0, -20.0, 0.5, True),),
+        pitch_min_hz=220.0,
+        pitch_max_hz=220.0,
+        source_filename="field-two.mp3",
+        analyzer_name="test",
+    )
+    analyzed: list[tuple[Path, AudioProcessingConfig]] = []
+    class Editor:
+        pass
+
+    editor = Editor()
+    editor.currentField = 0
+    editor.note = SimpleNamespace(fields=["[sound:field-one.mp3]", "[sound:field-two.mp3]"])
+    editor.web = MagicMock()
+    editor.mw = SimpleNamespace(
+        taskman=SimpleNamespace(run_on_main=lambda callback: callback()),
+        addonManager=SimpleNamespace(
+            addonFromModule=MagicMock(return_value="addon"),
+            getConfig=MagicMock(return_value={}),
+        ),
+        col=SimpleNamespace(media=SimpleNamespace(dir=lambda: str(media_dir))),
+    )
+    session = EditorSession(
+        state=AudioEditState("field-one.mp3", volume_db=3.0),
+        field_index=0,
+        current_filename="field-one.mp3",
+    )
+    session.undo_history.push(AudioEditState("field-one.mp3"), "field-one.mp3")
+    _SESSIONS[editor] = session
+
+    monkeypatch.setattr("anki_audio_quick_editor.editor_dependencies.threading.Thread", ImmediateThread)
+    monkeypatch.setattr(
+        "anki_audio_quick_editor.editor_dependencies.analyze_prosody_cached",
+        lambda path, config: analyzed.append((path, config)) or track,
+    )
+
+    _handle_bridge_command(
+        editor,
+        '{"command":"aqe:analyze","fieldOrd":1,'
+        '"graphSettings":{"voiceRange":"child","recordingCondition":"studio",'
+        '"smoothness":"very_smooth","connectShortDropoutsMs":90,"voiceLock":"stable"}}',
+    )
+
+    assert [path for path, _config in analyzed] == [field_two]
+    assert [config.graph_voice_range for _path, config in analyzed] == ["child"]
+    assert [config.graph_recording_condition for _path, config in analyzed] == ["studio"]
+    assert [config.graph_smoothness for _path, config in analyzed] == ["very_smooth"]
+    assert [config.graph_connect_short_dropouts_ms for _path, config in analyzed] == [90]
+    assert [config.graph_voice_lock for _path, config in analyzed] == ["stable"]
+    assert editor.currentField == 1
+    assert session.state == AudioEditState("field-one.mp3", volume_db=3.0)
 
 
 def test_stale_field_addressed_analysis_request_is_ignored(tmp_path: Path, monkeypatch) -> None:

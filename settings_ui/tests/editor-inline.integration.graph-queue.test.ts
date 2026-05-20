@@ -15,6 +15,14 @@ import {
   track,
 } from "./editor-inline.integration.helpers.js";
 
+const defaultGraphSettings = {
+  connectShortDropoutsMs: 0,
+  recordingCondition: "auto",
+  smoothness: "balanced",
+  voiceLock: "balanced",
+  voiceRange: "general",
+};
+
 describe("editor inline graph queue integration", () => {
   let restoreConsole: () => void;
 
@@ -35,8 +43,12 @@ describe("editor inline graph queue integration", () => {
 
     document.querySelector<HTMLButtonElement>('[data-testid="aqe-button-0-graph"]')!.click();
 
-    expect(bridgeCommands()).toContain("focus:0");
-    expect(bridgeCommands()).toContain("aqe:analyze");
+    expect(bridgeCommands()).toContain("aqe:analyze-field");
+    expect(window.__aqePopPendingGraphAnalysisRequest?.()).toEqual({
+      graphSettings: defaultGraphSettings,
+      ord: 0,
+      sourceFilename: "clip one.mp3",
+    });
     expect(window.__aqeGraphStateForTest?.(0)?.busy).toBe(true);
 
     window.__aqeSetVisualizer?.(0, track, 200);
@@ -85,7 +97,7 @@ describe("editor inline graph queue integration", () => {
       busy: true,
       hidden: false,
     });
-    expect(bridgeCommands().filter((command) => command === "aqe:analyze")).toHaveLength(2);
+    expect(bridgeCommands().filter((command) => command === "aqe:analyze-field")).toHaveLength(2);
 
     window.__aqeSetVisualizer?.(0, track, 0);
     expect(window.__aqePendingGraphRedrawField).toBeNull();
@@ -100,6 +112,7 @@ describe("editor inline graph queue integration", () => {
     expect(bridgeCommands().filter((command) => command === "aqe:analyze-field")).toHaveLength(1);
     expect(bridgeCommands()).not.toContain("focus:0");
     expect(window.__aqePopPendingGraphAnalysisRequest?.()).toEqual({
+      graphSettings: defaultGraphSettings,
       ord: 0,
       sourceFilename: "clip one.mp3",
     });
@@ -112,6 +125,7 @@ describe("editor inline graph queue integration", () => {
     expect(bridgeCommands().filter((command) => command === "aqe:analyze-field")).toHaveLength(2);
     expect(bridgeCommands()).not.toContain("focus:1");
     expect(window.__aqePopPendingGraphAnalysisRequest?.()).toEqual({
+      graphSettings: defaultGraphSettings,
       ord: 1,
       sourceFilename: "clip two.mp3",
     });
@@ -156,6 +170,7 @@ describe("editor inline graph queue integration", () => {
 
       expect(bridgeCommands()).toContain("aqe:analyze-field");
       expect(window.__aqePopPendingGraphAnalysisRequest?.()).toEqual({
+        graphSettings: defaultGraphSettings,
         ord: 0,
         sourceFilename: "clip one.mp3",
       });
