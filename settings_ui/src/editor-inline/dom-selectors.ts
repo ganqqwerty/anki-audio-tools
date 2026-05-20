@@ -5,6 +5,10 @@ export function controlsForOrd(ord: number): HTMLElement | null {
   return document.querySelector<HTMLElement>(`.aqe-controls[data-aqe-field-ord="${ord}"]`);
 }
 
+export function allControls(): HTMLElement[] {
+  return Array.from(document.querySelectorAll<HTMLElement>(".aqe-controls"));
+}
+
 export function visualizerForOrd(ord: number): VisualizerElement | null {
   return document.querySelector<VisualizerElement>(`.aqe-visualizer[data-aqe-field-ord="${ord}"]`);
 }

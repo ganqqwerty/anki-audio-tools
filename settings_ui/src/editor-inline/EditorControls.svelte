@@ -48,6 +48,11 @@
       "aqe:denoise-standard",
     ].includes(command);
   }
+
+  function isRecordingCommand(command: string): boolean {
+    return command === "aqe:record-voice" || command === "aqe:play-recording";
+  }
+
   onMount(() => {
     const visualizer = visualizerForOrd(target.ord);
     if (!visualizer) return;
@@ -74,10 +79,12 @@
       <button
         type="button"
         class:aqe-icon-only={button.iconOnly === true}
+        class:aqe-recording-button={isRecordingCommand(button.command)}
         class="aqe-button"
         data-aqe-command={button.command}
         data-aqe-button-state={button.command === "aqe:analyze" ? "graph" : "default"}
         data-testid={testId(target.ord, button.command)}
+        disabled={isRecordingCommand(button.command)}
         title={button.title}
         aria-label={button.title}
         onmousedown={(event) => event.preventDefault()}
@@ -125,6 +132,11 @@
     <span class="aqe-button-label">{t("editor.command.delete_rest.label")}</span>
   </button>
   <span class="aqe-status" data-testid={`aqe-status-${target.ord}`}></span>
+  <span
+    class="aqe-recording-status"
+    data-kind="info"
+    data-testid={`aqe-recording-status-${target.ord}`}
+  ></span>
   <EditorHelp ord={target.ord} />
   <div
     class="aqe-visualizer"
@@ -183,6 +195,7 @@
       ></rect>
       <path class="aqe-intensity" data-testid={`aqe-intensity-${target.ord}`} d=""></path>
       <g class="aqe-pitch" data-testid={`aqe-pitch-${target.ord}`}></g>
+      <g class="aqe-learner-pitch" data-testid={`aqe-learner-pitch-${target.ord}`}></g>
       <g class="aqe-labels"></g>
       <g class="aqe-x-axis" data-testid={`aqe-x-axis-${target.ord}`}></g>
       <line

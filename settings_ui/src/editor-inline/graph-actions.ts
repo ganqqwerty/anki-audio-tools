@@ -10,6 +10,7 @@ import {
   graphLogContext,
   renderGraphRequested,
   renderVisualizerStatus,
+  renderLearnerVisualizerTrack,
   renderVisualizerTrack,
   resetCursorProjection,
   resetVisualizerPlot,
@@ -33,6 +34,7 @@ import {
   setControlsBusy,
 } from "./control-actions.js";
 import { graphSettingsForField } from "./graph-split-state.js";
+import { resetLearnerRecordingState } from "./recording-actions.js";
 
 export function requestGraph(ord: number, notifyPython: boolean, graphSettings?: GraphSettings): void {
   const visualizer = visualizerForOrd(ord);
@@ -73,6 +75,7 @@ function prepareGraphRequest(ord: number): boolean {
   if (!visualizer) return false;
   stopProgressClock(visualizer, { clearAudio: true });
   renderGraphRequested(visualizer);
+  resetLearnerRecordingState(ord);
   clearSelection(visualizer);
   setCursor(visualizer, 0, false);
   setCommandButtonLabel(ord, "aqe:analyze", "Redraw");
@@ -121,6 +124,13 @@ export function setVisualizer(ord: number, rawTrack: ProsodyPayload, cursorMs: n
   setControlsBusy(ord, false, "", "");
   finishDefaultGraphRequest(ord, defaultGraphQueueDependencies());
   logger.info("graph rendered", graphLogContext(ord, track));
+}
+
+export function setLearnerVisualizer(ord: number, rawTrack: ProsodyPayload): void {
+  const visualizer = visualizerForOrd(ord);
+  if (!visualizer || !rawTrack) return;
+  const track = normalizeTrack(rawTrack);
+  renderLearnerVisualizerTrack(visualizer, track);
 }
 
 export function setVisualizerStatusFromPython(ord: number, message: string, kind = "info"): void {
@@ -198,6 +208,7 @@ export function prepareForNewNote(): void {
     clearSelection(visualizer);
     resetVisualizerPlot(visualizer);
     resetCursorProjection(visualizer);
+    resetLearnerRecordingState(Number(controls.dataset.aqeFieldOrd || "0"));
     const graphStatus = visualizer.querySelector<HTMLElement>(".aqe-visualizer-status");
     if (graphStatus) {
       graphStatus.textContent = "";

@@ -1,5 +1,6 @@
 import type { FrontendLogPayload, ProsodyPayload } from "../lib/generated/contracts.js";
 import type { CommandIconName } from "../lib/icon-types.js";
+import type { LearnerRecordingStatus } from "./recording-state.js";
 import type {
   GraphRecordingCondition,
   GraphSettings,
@@ -14,6 +15,8 @@ export type EditorCommand =
   | "aqe:show-file"
   | "aqe:delete-selection"
   | "aqe:delete-rest"
+  | "aqe:record-voice"
+  | "aqe:play-recording"
   | "aqe:trim-left"
   | "aqe:trim-right"
   | "aqe:remove-pauses"
@@ -208,11 +211,14 @@ export interface GraphStateForTest {
   hasTrack: boolean;
   hidden: boolean;
   intensity: string;
+  learnerIntensityPaths: number;
+  learnerPitchPaths: number;
   pitchPaths: number;
   buttonIconCount: number;
   buttonIconStrokeValues: string[];
   playButtonLabel: string;
   playButtonState: string;
+  playRecordingButtonDisabled: boolean;
   playbackEngine: "html" | "native";
   playbackEndMs: number;
   playbackRegionMode: "selection" | "full";
@@ -220,6 +226,9 @@ export interface GraphStateForTest {
   playbackState: PlaybackState;
   progressClockMode: ProgressClockMode;
   progressMs: number;
+  recordButtonDisabled: boolean;
+  recordingStatus: LearnerRecordingStatus | "";
+  recordingStatusText: string;
   repeatControlDisabled: boolean;
   regionDeleteButtonDisabled: boolean;
   regionDeleteButtonHidden: boolean;
@@ -271,6 +280,7 @@ export type VisualizerElement = HTMLElement & {
   __aqeAudioClockLastSeekedMs?: number;
   __aqeTrack?: NormalizedProsodyTrack;
   __aqePlaybackTimer?: number | null;
+  __aqeRecordCountdownTimer?: number | null;
   __aqeRepeatPauseTimer?: number | null;
 };
 

@@ -2,6 +2,7 @@ import type { PlaybackRegion } from "./playback-state.js";
 import {
   PLOT,
   drawLabels,
+  drawLearnerPitch,
   drawPitch,
   drawXAxis,
   formatPitchHz,
@@ -42,6 +43,8 @@ export function renderVisualizerTrack(visualizer: VisualizerElement, track: Norm
   visualizer.dataset.graphBusy = "false";
   visualizer.dataset.hasTrack = "true";
   visualizer.dataset.durationMs = String(track.durationMs || 0);
+  visualizer.dataset.pitchMinHz = track.pitchMinHz == null ? "" : String(track.pitchMinHz);
+  visualizer.dataset.pitchMaxHz = track.pitchMaxHz == null ? "" : String(track.pitchMaxHz);
   visualizer.dataset.analyzerName = track.analyzerName || "";
   visualizer.dataset.sourceFilename = track.sourceFilename || "";
   visualizer.__aqeTrack = track;
@@ -50,6 +53,15 @@ export function renderVisualizerTrack(visualizer: VisualizerElement, track: Norm
   drawPitch(visualizer, track);
   drawLabels(visualizer, track);
   drawXAxis(visualizer, track.durationMs || 0);
+}
+
+export function renderLearnerVisualizerTrack(visualizer: VisualizerElement, track: NormalizedProsodyTrack): void {
+  if (visualizer.dataset.hasTrack !== "true") return;
+  drawLearnerPitch(visualizer, track, {
+    durationMs: Number(visualizer.dataset.durationMs || "0") || track.durationMs,
+    pitchMinHz: numberDatasetValue(visualizer.dataset.pitchMinHz) ?? track.pitchMinHz,
+    pitchMaxHz: numberDatasetValue(visualizer.dataset.pitchMaxHz) ?? track.pitchMaxHz,
+  });
 }
 
 export function renderVisualizerStatus(visualizer: VisualizerElement, message: string, kind = "info"): void {
@@ -154,8 +166,13 @@ export function renderCursor(visualizer: VisualizerElement, ms: number, duration
 export function resetVisualizerPlot(visualizer: VisualizerElement): void {
   visualizer.querySelector<SVGPathElement>(".aqe-intensity")?.setAttribute("d", "");
   clearText(visualizer, ".aqe-pitch");
+  clearLearnerVisualizerTrack(visualizer);
   clearText(visualizer, ".aqe-labels");
   clearText(visualizer, ".aqe-x-axis");
+}
+
+export function clearLearnerVisualizerTrack(visualizer: VisualizerElement): void {
+  clearText(visualizer, ".aqe-learner-pitch");
 }
 
 export function resetCursorProjection(visualizer: VisualizerElement): void {
@@ -202,4 +219,10 @@ function clampedCursorFlagX(cursorX: number): number {
 
 function cursorFlagNotchOffset(cursorX: number, flagX: number): number {
   return Math.max(-CURSOR_FLAG_NOTCH_MAX_OFFSET, Math.min(cursorX - flagX, CURSOR_FLAG_NOTCH_MAX_OFFSET));
+}
+
+function numberDatasetValue(value: string | undefined): number | null {
+  if (!value) return null;
+  const numberValue = Number(value);
+  return Number.isFinite(numberValue) ? numberValue : null;
 }

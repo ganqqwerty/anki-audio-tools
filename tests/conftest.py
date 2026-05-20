@@ -272,6 +272,9 @@ _aqt_browser.Browser = _named_mock("aqt.browser.Browser")
 _aqt_sound = types.ModuleType("aqt.sound")
 _aqt_sound.av_player = _named_mock("aqt.sound.av_player")
 
+_aqt_macos_helper = types.ModuleType("aqt._macos_helper")
+_aqt_macos_helper.macos_helper = _named_mock("aqt._macos_helper.macos_helper")
+
 _anki = types.ModuleType("anki")
 _anki_collection = types.ModuleType("anki.collection")
 _anki_collection.Collection = _Collection
@@ -321,6 +324,7 @@ sys.modules["aqt.utils"] = _aqt_utils
 sys.modules["aqt.gui_hooks"] = _aqt_gui_hooks
 sys.modules["aqt.browser"] = _aqt_browser
 sys.modules["aqt.main"] = _aqt_main
+sys.modules["aqt._macos_helper"] = _aqt_macos_helper
 sys.modules["aqt.sound"] = _aqt_sound
 sys.modules["aqt.taskman"] = _aqt_taskman
 sys.modules["anki"] = _anki
@@ -371,6 +375,8 @@ def _reset_static_mock_modules() -> None:
     _reset_mock_tree(_aqt_utils.tooltip)
     _reset_mock_tree(_aqt_utils.openLink)
     _reset_mock_tree(_aqt_browser.Browser)
+    sys.modules["aqt._macos_helper"] = _aqt_macos_helper
+    _reset_mock_tree(_aqt_macos_helper.macos_helper)
     _configure_av_player()
 
     for hook_name in _GUI_HOOK_NAMES:

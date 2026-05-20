@@ -16,6 +16,17 @@ AUDIO_CONTRACTS: dict[str, ModuleContract] = {
         allowed_addon_deps=("audio_state", "dpdfnet_settings"),
     ),
     "audio_pipeline": contract("audio_pipeline", layer=Layer.IMPORT_SAFE_CORE),
+    "audio_recording": contract(
+        "audio_recording",
+        layer=Layer.IMPORT_SAFE_CORE,
+        allowed_addon_deps=("errors",),
+        allowed_side_effects=(
+            SideEffect.ANKI_IMPORTS_ANYWHERE,
+            SideEffect.BACKGROUND_TASK_DISPATCH,
+        ),
+        allow_any_anki_imports=True,
+        notes="Native recorder adapter keeps Anki/Qt imports lazy for add-on import safety.",
+    ),
     "audio_artifacts": contract(
         "audio_artifacts",
         layer=Layer.IMPORT_SAFE_CORE,

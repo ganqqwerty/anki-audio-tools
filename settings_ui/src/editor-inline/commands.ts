@@ -22,6 +22,18 @@ export function commandButtons(): readonly ButtonSpec[] {
       title: t("editor.command.graph.title"),
     },
     {
+      command: "aqe:record-voice",
+      icon: "mic",
+      label: t("editor.command.record_voice.label"),
+      title: t("editor.command.record_voice.title"),
+    },
+    {
+      command: "aqe:play-recording",
+      icon: "play",
+      label: t("editor.command.play_recording.label"),
+      title: t("editor.command.play_recording.title"),
+    },
+    {
       command: "aqe:show-file",
       icon: "folder-open",
       label: t("editor.command.folder.label"),
@@ -148,6 +160,8 @@ export const COMMAND_SLUGS: Readonly<Record<EditorCommand, string>> = {
   "aqe:show-file": "show-file",
   "aqe:delete-selection": "delete-selection",
   "aqe:delete-rest": "delete-rest",
+  "aqe:record-voice": "record-voice",
+  "aqe:play-recording": "play-recording",
   "aqe:trim-left": "trim-left",
   "aqe:trim-right": "trim-right",
   "aqe:remove-pauses": "remove-pauses",

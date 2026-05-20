@@ -15,6 +15,8 @@ import {
 } from "./actions.js";
 import { playAfterEdit } from "./playback-actions.js";
 import { popPendingRegionDeleteRequest } from "./bridge.js";
+import { setLearnerVisualizer } from "./graph-actions.js";
+import { setLearnerRecordingState } from "./recording-actions.js";
 import { installEditorTestWindowContract } from "./test-contract.js";
 
 export const EDITOR_WINDOW_CONTRACT_NAMES = [
@@ -28,6 +30,8 @@ export const EDITOR_WINDOW_CONTRACT_NAMES = [
   "__aqePrepareForNewNote",
   "__aqeResetGraphAfterEdit",
   "__aqeSetBusy",
+  "__aqeSetLearnerRecordingState",
+  "__aqeSetLearnerVisualizer",
   "__aqeSetPlaybackState",
   "__aqeSetStatus",
   "__aqeSetVisualizer",
@@ -37,6 +41,8 @@ export const EDITOR_WINDOW_CONTRACT_NAMES = [
 
 export function installEditorWindowContract(): void {
   window.__aqeSetBusy = setControlsBusy;
+  window.__aqeSetLearnerRecordingState = setLearnerRecordingState;
+  window.__aqeSetLearnerVisualizer = setLearnerVisualizer;
   window.__aqeSetStatus = setStatus;
   window.__aqeSetVisualizer = setVisualizer;
   window.__aqeSetVisualizerStatus = setVisualizerStatusFromPython;

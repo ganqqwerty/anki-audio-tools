@@ -18,6 +18,8 @@ from .editor_actions import (
     CMD_DELETE_SELECTION,
     CMD_DENOISE_STANDARD,
     CMD_DPDFNET,
+    CMD_PLAY_RECORDING,
+    CMD_RECORD_VOICE,
     CMD_REDO,
     CMD_RNNOISE,
     CMD_SETTINGS,
@@ -111,10 +113,14 @@ def handle_non_processing_command(editor: Any, command: str | EditorCommandPaylo
     if payload.command == CMD_DPDFNET:
         deps.dpdfnet_async(editor, payload)
         return True
+    if payload.command == CMD_RECORD_VOICE:
+        deps.record_learner_voice(editor, graph_settings=payload.graph_settings)
+        return True
     handlers = {
         CMD_ANALYZE_FIELD: deps.analyze_field_from_frontend,
         "aqe:set-cursor": deps.set_cursor_from_web,
         "aqe:play": deps.play,
+        CMD_PLAY_RECORDING: deps.play_learner_recording,
         "aqe:frontend-log": deps.handle_editor_frontend_log,
         "aqe:show-file": deps.show_current_audio_file,
         "aqe:play-ended": deps.play_ended,

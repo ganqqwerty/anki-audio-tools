@@ -15,6 +15,8 @@ from anki_audio_quick_editor.audio_state import AudioEditState, AudioProcessingC
 from anki_audio_quick_editor.editor_actions import (
     BRIDGE_COMMAND_TO_OPERATION,
     BRIDGE_COMMANDS,
+    CMD_PLAY_RECORDING,
+    CMD_RECORD_VOICE,
     PROCESSING_COMMANDS,
     apply_processing_command,
     decode_editor_command_payload,
@@ -25,6 +27,13 @@ from anki_audio_quick_editor.editor_actions import (
 
 def test_processing_commands_are_registered_bridge_commands() -> None:
     assert set(PROCESSING_COMMANDS) < set(BRIDGE_COMMANDS)
+
+
+def test_recording_commands_are_registered_but_not_processing_commands() -> None:
+    assert CMD_RECORD_VOICE in BRIDGE_COMMANDS
+    assert CMD_PLAY_RECORDING in BRIDGE_COMMANDS
+    assert CMD_RECORD_VOICE not in PROCESSING_COMMANDS
+    assert CMD_PLAY_RECORDING not in PROCESSING_COMMANDS
 
 
 def test_batchable_processing_commands_map_to_shared_operations() -> None:

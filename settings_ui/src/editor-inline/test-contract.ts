@@ -2,6 +2,7 @@ import { COMMAND_SLUGS } from "./commands.js";
 import { audioClockFor } from "./audio-clock.js";
 import {
   allButtons,
+  buttonFor,
   controlsForOrd,
   graphButton,
   playButton,
@@ -117,6 +118,9 @@ export function graphStateForTest(ord: number): GraphStateForTest | null {
   const visualizer = visualizerForOrd(ord);
   const graph = graphButton(ord);
   const play = playButton(ord);
+  const recordButton = buttonFor(ord, "aqe:record-voice");
+  const playRecordingButton = buttonFor(ord, "aqe:play-recording");
+  const recordingStatus = controlsForOrd(ord)?.querySelector<HTMLElement>(".aqe-recording-status") ?? null;
   const repeatMenu = controlsForOrd(ord)?.querySelector<HTMLButtonElement>(".aqe-play-repeat-menu-button") ?? null;
   const regionDelete = controlsForOrd(ord)?.querySelector<HTMLButtonElement>(".aqe-delete-region-button") ?? null;
   const regionDeleteRest = controlsForOrd(ord)?.querySelector<HTMLButtonElement>(".aqe-delete-rest-button") ?? null;
@@ -147,6 +151,7 @@ export function graphStateForTest(ord: number): GraphStateForTest | null {
     graphButtonTitle: graph?.title || "",
     playButtonLabel: buttonLabel(play),
     playButtonState: play?.dataset.aqeButtonState || "",
+    playRecordingButtonDisabled: !!playRecordingButton?.disabled,
     playbackState: playbackStateFor(visualizer),
     selectionActive: selection !== null,
     selectionStartMs: selection?.startMs ?? null,
@@ -178,8 +183,13 @@ export function graphStateForTest(ord: number): GraphStateForTest | null {
     audioPlaybackTestDriver: !!(audio && audio.__aqeTestDriverInstalled),
     playbackEngine: playbackEngineFor(visualizer),
     progressClockMode: progressClockModeFor(visualizer),
+    recordButtonDisabled: !!recordButton?.disabled,
+    recordingStatus: recordingStatusForTest(controlsForOrd(ord)),
+    recordingStatusText: recordingStatus?.textContent || "",
     xAxisLabels: Array.from(visualizer.querySelectorAll<SVGTextElement>(".aqe-x-label")).map((node) => node.textContent || ""),
     pitchPaths: visualizer.querySelectorAll(".aqe-pitch-path").length,
+    learnerPitchPaths: visualizer.querySelectorAll(".aqe-learner-pitch-path").length,
+    learnerIntensityPaths: visualizer.querySelectorAll(".aqe-learner-intensity").length,
     intensity: visualizer.querySelector<SVGPathElement>(".aqe-intensity")?.getAttribute("d") || "",
     cursorX: Number(visualizer.querySelector<SVGLineElement>(".aqe-cursor")?.getAttribute("x1") || "0"),
     timecodeFlagVisible: timecodeFlag?.getAttribute("visibility") === "visible",
@@ -211,4 +221,20 @@ function progressClockModeFor(visualizer: VisualizerElement): ProgressClockMode 
 
 function buttonLabel(button: HTMLButtonElement | null): string {
   return button?.querySelector<HTMLElement>(".aqe-button-label")?.textContent || button?.textContent || "";
+}
+
+function recordingStatusForTest(controls: HTMLElement | null): GraphStateForTest["recordingStatus"] {
+  const status = controls?.dataset.learnerRecordingStatus || "";
+  if (
+    status === "idle"
+    || status === "countdown"
+    || status === "recording"
+    || status === "stopping"
+    || status === "analyzing"
+    || status === "ready"
+    || status === "failed"
+  ) {
+    return status;
+  }
+  return "";
 }

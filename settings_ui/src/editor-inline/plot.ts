@@ -91,14 +91,48 @@ export function pitchSegments(
   return segments;
 }
 
+interface PitchDrawOptions {
+  durationMs?: number;
+  groupSelector: string;
+  pathClass: string;
+  pitchMaxHz?: number | null;
+  pitchMinHz?: number | null;
+}
+
 export function drawPitch(visualizer: VisualizerElement, track: NormalizedProsodyTrack): void {
-  const group = visualizer.querySelector<SVGGElement>(".aqe-pitch");
+  drawPitchPaths(visualizer, track, {
+    groupSelector: ".aqe-pitch",
+    pathClass: "aqe-pitch-path",
+  });
+}
+
+export function drawLearnerPitch(
+  visualizer: VisualizerElement,
+  track: NormalizedProsodyTrack,
+  options: Pick<PitchDrawOptions, "durationMs" | "pitchMaxHz" | "pitchMinHz">,
+): void {
+  drawPitchPaths(visualizer, track, {
+    ...options,
+    groupSelector: ".aqe-learner-pitch",
+    pathClass: "aqe-learner-pitch-path",
+  });
+}
+
+function drawPitchPaths(
+  visualizer: VisualizerElement,
+  track: NormalizedProsodyTrack,
+  options: PitchDrawOptions,
+): void {
+  const group = visualizer.querySelector<SVGGElement>(options.groupSelector);
   if (!group) return;
   group.textContent = "";
-  for (const segment of pitchSegments(track.points, track.durationMs, track.pitchMinHz, track.pitchMaxHz)) {
+  const durationMs = options.durationMs ?? track.durationMs;
+  const minHz = options.pitchMinHz ?? track.pitchMinHz;
+  const maxHz = options.pitchMaxHz ?? track.pitchMaxHz;
+  for (const segment of pitchSegments(track.points, durationMs, minHz, maxHz)) {
     if (segment.length < 2) continue;
     const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
-    path.setAttribute("class", "aqe-pitch-path");
+    path.setAttribute("class", options.pathClass);
     path.setAttribute(
       "d",
       segment.map((point, index) => {

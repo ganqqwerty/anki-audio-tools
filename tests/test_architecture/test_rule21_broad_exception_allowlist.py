@@ -172,6 +172,12 @@ BROAD_EXCEPTION_ALLOWLIST: tuple[BroadExceptionAllowance, ...] = (
         "Background playback-segment worker boundary reports failures on the main thread.",
     ),
     BroadExceptionAllowance(
+        "editor_recording",
+        "analyze_learner_recording_async._run",
+        1,
+        "Background learner-recording analysis reports analyzer failures on the main thread.",
+    ),
+    BroadExceptionAllowance(
         "editor_analysis",
         "start_field_analysis_async._run",
         1,

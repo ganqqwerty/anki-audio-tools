@@ -73,6 +73,60 @@ afterEach(() => {
     expect(window.__aqeGraphStateForTest?.(0)?.playbackEngine).toBe("html");
   });
 
+  it("keeps learner pitch overlay separate during target playback", async () => {
+    initializeEditorRuntime({ audioFieldIndices: [0] });
+    scan({ audioFieldIndices: [0] });
+    await Promise.resolve();
+    window.__aqeSetVisualizer?.(0, track, 400);
+    window.__aqeSetLearnerVisualizer?.(0, {
+      ...track,
+      points: [
+        [0, 140, 1, true],
+        [500, 220, 0.4, true],
+        [1000, 240, 0.2, true],
+      ],
+      sourceFilename: "learner.wav",
+    });
+    const audio = document.querySelector<HTMLAudioElement>('[data-testid="aqe-audio-clock-0"]')!;
+    Object.defineProperty(audio, "readyState", { configurable: true, value: 1 });
+    audio.play = vi.fn<() => Promise<void>>(() => Promise.resolve());
+    audio.pause = vi.fn<() => void>(() => undefined);
+    audio.dispatchEvent(new Event("loadedmetadata"));
+
+    document.querySelector<HTMLButtonElement>('[data-testid="aqe-button-0-play"]')!.click();
+    await Promise.resolve();
+
+    expect(window.__aqeGraphStateForTest?.(0)).toMatchObject({
+      learnerIntensityPaths: 0,
+      learnerPitchPaths: 1,
+      pitchPaths: 2,
+      playbackState: "playing",
+    });
+  });
+
+  it("dispatches Play yours only after learner recording is ready", async () => {
+    initializeEditorRuntime({ audioFieldIndices: [0] });
+    scan({ audioFieldIndices: [0] });
+    await Promise.resolve();
+    window.__aqeSetVisualizer?.(0, track, 0);
+    const playYoursButton = document.querySelector<HTMLButtonElement>('[data-testid="aqe-button-0-play-recording"]')!;
+    expect(playYoursButton.disabled).toBe(true);
+
+    window.__aqeSetLearnerRecordingState?.({
+      fieldOrd: 0,
+      generation: 1,
+      mediaFilename: "target__aqe_voice.wav",
+      status: "ready",
+      targetDurationMs: track.durationMs,
+    });
+
+    expect(playYoursButton.disabled).toBe(false);
+    playYoursButton.click();
+
+    expect(bridgeCommands()).toContain("focus:0");
+    expect(bridgeCommands()).toContain("aqe:play-recording");
+  });
+
   it("uses hidden HTML audio playback for full-file repeat before the graph is shown", async () => {
     initializeEditorRuntime({ audioFieldIndices: [0] });
     scan({ audioFieldIndices: [0] });

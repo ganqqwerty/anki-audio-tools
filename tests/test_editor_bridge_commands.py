@@ -201,6 +201,54 @@ def test_pending_payload_missing_clears_busy_state() -> None:
     assert any("window.__aqeSetBusy" in call and "(3, false" in call for call in editor.web.eval_calls)
 
 
+def test_bridge_routes_record_voice_payload_with_graph_settings(monkeypatch) -> None:
+    class Editor:
+        pass
+
+    editor = Editor()
+    editor.currentField = 0
+    editor.web = MagicMock()
+    called: dict[str, object] = {}
+    monkeypatch.setattr(
+        "anki_audio_quick_editor.editor_callbacks._record_learner_voice",
+        lambda _editor, graph_settings=None: called.update(
+            editor=_editor,
+            field_index=_editor.currentField,
+            graph_settings=graph_settings,
+        ),
+    )
+
+    _handle_bridge_command(
+        editor,
+        '{"command":"aqe:record-voice","fieldOrd":2,'
+        '"graphSettings":{"voiceRange":"high","smoothness":"smooth"}}',
+    )
+
+    assert called == {
+        "editor": editor,
+        "field_index": 2,
+        "graph_settings": {"voiceRange": "high", "smoothness": "smooth"},
+    }
+
+
+def test_bridge_routes_play_recording(monkeypatch) -> None:
+    class Editor:
+        pass
+
+    editor = Editor()
+    editor.currentField = 0
+    editor.web = MagicMock()
+    called: list[object] = []
+    monkeypatch.setattr(
+        "anki_audio_quick_editor.editor_callbacks._play_learner_recording",
+        lambda _editor: called.append(_editor),
+    )
+
+    _handle_bridge_command(editor, "aqe:play-recording")
+
+    assert called == [editor]
+
+
 def test_busy_session_rejects_processing_command(tmp_path: Path, monkeypatch) -> None:
     class Editor:
         pass

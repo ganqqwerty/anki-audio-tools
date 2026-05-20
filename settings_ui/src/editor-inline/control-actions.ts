@@ -8,6 +8,7 @@ import {
 } from "./dom-selectors.js";
 import { continueDefaultGraphQueue } from "./default-graph-queue.js";
 import { syncAllRegionDeleteControls } from "./region-delete-state.js";
+import { syncAllRecordingControls } from "./recording-actions.js";
 import type { EditorCommand } from "./types.js";
 import { defaultGraphQueueDependencies } from "./graph-actions.js";
 
@@ -32,6 +33,7 @@ export function setControlsBusy(ord: number, busy: boolean, message = "", comman
     button.disabled = !!busy;
   });
   syncAllRegionDeleteControls();
+  syncAllRecordingControls();
   if (!busy) {
     queueMicrotask(() => continueDefaultGraphQueue(defaultGraphQueueDependencies()));
   }

@@ -35,6 +35,8 @@ CMD_VOICE_ONLY = "aqe:voice-only"
 CMD_DELETE_SELECTION = "aqe:delete-selection"
 CMD_DELETE_REST = "aqe:delete-rest"
 CMD_ANALYZE_FIELD = "aqe:analyze-field"
+CMD_RECORD_VOICE = "aqe:record-voice"
+CMD_PLAY_RECORDING = "aqe:play-recording"
 CMD_COMMAND_PAYLOAD = "aqe:command-payload"
 CMD_SETTINGS = "aqe:settings"
 CMD_REDO = "aqe:redo"
@@ -43,6 +45,8 @@ BRIDGE_COMMANDS = (
     "aqe:scan",
     "aqe:analyze",
     CMD_ANALYZE_FIELD,
+    CMD_RECORD_VOICE,
+    CMD_PLAY_RECORDING,
     CMD_COMMAND_PAYLOAD,
     "aqe:set-cursor",
     "aqe:play",

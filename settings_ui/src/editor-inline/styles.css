@@ -379,8 +379,18 @@
   margin-left: 4px;
 }
 
-.aqe-status[data-kind="error"] {
+.aqe-recording-status {
+  font-size: 12px;
+  margin-left: 2px;
+}
+
+.aqe-status[data-kind="error"],
+.aqe-recording-status[data-kind="error"] {
   font-weight: 700;
+}
+
+.aqe-recording-status[data-kind="processing"] {
+  color: GrayText;
 }
 
 .aqe-visualizer {
@@ -480,6 +490,16 @@
   fill: none;
   opacity: 0.9;
   stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 2;
+}
+
+.aqe-learner-pitch-path {
+  fill: none;
+  opacity: 0.95;
+  stroke: Highlight;
+  stroke-dasharray: 5 4;
   stroke-linecap: round;
   stroke-linejoin: round;
   stroke-width: 2;

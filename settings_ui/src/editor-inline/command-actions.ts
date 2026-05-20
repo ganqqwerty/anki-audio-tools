@@ -1,4 +1,5 @@
 import { PROCESSING_COMMANDS, processingMessage } from "./commands.js";
+import { t } from "../lib/i18n.js";
 import { focusAndSendCommand, focusAndSendCommandPayload } from "./bridge.js";
 import { allVisualizers } from "./dom-selectors.js";
 import { logger } from "./logger.js";
@@ -11,6 +12,7 @@ import {
 } from "./playback-actions.js";
 import type { EditorCommand, EditorCommandPayload, VisualizerElement } from "./types.js";
 import { anyBusy, setControlsBusy } from "./control-actions.js";
+import { startLearnerRecordingCountdown } from "./recording-actions.js";
 
 export function send(
   command: EditorCommand,
@@ -27,6 +29,18 @@ export function send(
     return;
   }
   if (command === "aqe:play" && handleHtmlPlaybackCommand(ord)) {
+    return;
+  }
+  if (command === "aqe:record-voice") {
+    stopAllEditorPlayback();
+    if (startLearnerRecordingCountdown(node, ord)) {
+      setControlsBusy(ord, true, t("editor.recording.countdown"), command);
+    }
+    return;
+  }
+  if (command === "aqe:play-recording") {
+    stopAllEditorPlayback();
+    focusAndSendCommand(ord, command);
     return;
   }
   if (shouldPlayAfterSuccessfulEdit(command)) {

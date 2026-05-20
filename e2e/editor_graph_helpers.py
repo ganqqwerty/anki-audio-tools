@@ -14,8 +14,11 @@ def _visualizer_js(ord_: int = 0) -> str:
       const buttonLabel = (button) => button?.querySelector('.aqe-button-label')?.textContent || button?.textContent || "";
       const graphButton = document.querySelector(`[data-testid="aqe-button-${ord}-graph"]`);
       const playButton = document.querySelector(`[data-testid="aqe-button-${ord}-play"]`);
+      const recordButton = document.querySelector(`[data-testid="aqe-button-${ord}-record-voice"]`);
+      const playRecordingButton = document.querySelector(`[data-testid="aqe-button-${ord}-play-recording"]`);
       const deleteButton = document.querySelector(`[data-testid="aqe-button-${ord}-delete-selection"]`);
       const deleteRestButton = document.querySelector(`[data-testid="aqe-button-${ord}-delete-rest"]`);
+      const recordingStatus = document.querySelector(`[data-testid="aqe-recording-status-${ord}"]`);
       const visualizer = document.querySelector(`.aqe-visualizer[data-aqe-field-ord="${ord}"]`);
       if (!visualizer) return null;
       const labels = Array.from(visualizer.querySelectorAll('.aqe-hz-label')).map((node) => node.textContent);
@@ -37,6 +40,8 @@ def _visualizer_js(ord_: int = 0) -> str:
         audioClockSrc: document.querySelector(`[data-testid="aqe-audio-clock-${ord}"]`)?.getAttribute("src") || "",
         intensity: visualizer.querySelector('.aqe-intensity')?.getAttribute('d') || "",
         pitchPaths: visualizer.querySelectorAll('.aqe-pitch-path').length,
+        learnerPitchPaths: visualizer.querySelectorAll('.aqe-learner-pitch-path').length,
+        learnerIntensityPaths: visualizer.querySelectorAll('.aqe-learner-intensity').length,
         xAxisLabels: Array.from(visualizer.querySelectorAll('.aqe-x-label')).map((node) => node.textContent),
         labels,
         cursorX: visualizer.querySelector('.aqe-cursor')?.getAttribute('x1') || "",
@@ -50,6 +55,10 @@ def _visualizer_js(ord_: int = 0) -> str:
         graphButtonState: graphButton?.dataset.aqeButtonState || "",
         playButtonLabel: buttonLabel(playButton),
         playButtonState: playButton?.dataset.aqeButtonState || "",
+        recordButtonDisabled: recordButton ? recordButton.disabled : true,
+        playRecordingButtonDisabled: playRecordingButton ? playRecordingButton.disabled : true,
+        recordingStatus: document.querySelector(`.aqe-controls[data-aqe-field-ord="${ord}"]`)?.dataset.learnerRecordingStatus || "",
+        recordingStatusText: recordingStatus?.textContent || "",
         playbackState: visualizer.dataset.playbackState || "stopped",
         playbackStartMs: Number(visualizer.dataset.playbackStartMs || "0"),
         playbackEndMs: Number(visualizer.dataset.playbackEndMs || "0"),
