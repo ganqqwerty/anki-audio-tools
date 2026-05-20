@@ -50,6 +50,13 @@ def _complete_executable_names() -> set[str]:
     return set(release.release_runtime_executables(release_assets.load_lock()))
 
 
+def _ffmpeg_archive_names(lock: dict) -> list[str]:
+    return [
+        f"bin/{target}/{lock['targets'][target]['tools']['ffmpeg']['executable']}"
+        for target in release_assets.lock_targets(lock)
+    ]
+
+
 def _lock_with_binary_hashes(content: bytes = b"binary") -> dict:
     lock = copy.deepcopy(release_assets.load_lock())
     digest = hashlib.sha256(content).hexdigest()
@@ -98,6 +105,70 @@ def test_release_validates_platform_runtime_payloads(tmp_path, capsys) -> None:
         release._validate_archive(archive, allow_large_archive=False, lock=_lock_with_binary_hashes())
 
     assert "bin/windows-x86_64/ffmpeg.exe" in capsys.readouterr().out
+
+
+def test_release_archive_includes_all_locked_models_and_ffmpeg_binaries(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    lock = _lock_with_binary_hashes()
+
+    def fake_stage_assets(
+        lock_arg: dict,
+        *,
+        destination: Path,
+        target_keys: list[str] | None = None,
+    ) -> list[Path]:
+        staged: list[Path] = []
+        for target in target_keys or release_assets.lock_targets(lock_arg):
+            executable = lock_arg["targets"][target]["tools"]["ffmpeg"]["executable"]
+            path = destination / target / executable
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_bytes(b"binary")
+            path.chmod(0o755)
+            staged.append(path)
+        for file_name in release_assets.lock_shared_files(lock_arg):
+            path = destination / lock_arg["shared_files"][file_name]["path"]
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_bytes(b"")
+            staged.append(path)
+        return staged
+
+    monkeypatch.setattr(release, "_stage_source_tree", lambda _staging_dir: None)
+    monkeypatch.setattr(release.release_assets, "stage_assets", fake_stage_assets)
+    monkeypatch.setattr(release, "DIST_DIR", tmp_path / "dist")
+
+    staging_dir = tmp_path / "staging"
+    release._stage_release_tree(staging_dir, lock=lock)
+    archive = release._build_archive("0.0.0-test", staging_dir)
+
+    with zipfile.ZipFile(archive, "r") as zf:
+        names = set(zf.namelist())
+
+    expected = {
+        "bin/runtime_manifest.json",
+        *release.release_runtime_shared_files(lock),
+        *_ffmpeg_archive_names(lock),
+    }
+    assert expected <= names
+
+
+def test_release_validation_requires_every_locked_model_and_ffmpeg_binary(tmp_path, capsys) -> None:
+    lock = _lock_with_binary_hashes()
+    required_runtime_names = [
+        *release.release_runtime_shared_files(lock),
+        *_ffmpeg_archive_names(lock),
+    ]
+
+    for missing_name in required_runtime_names:
+        archive = tmp_path / f"{missing_name.replace('/', '_')}.ankiaddon"
+        names = [name for name in release.release_manifest_files(lock) if name != missing_name]
+        _write_archive(archive, names, _complete_executable_names())
+
+        with pytest.raises(SystemExit):
+            release._validate_archive(archive, allow_large_archive=False, lock=lock)
+
+        assert missing_name in capsys.readouterr().out
 
 
 def test_release_validates_macos_executable_bits(tmp_path, capsys) -> None:
