@@ -16,6 +16,7 @@ import {
   type ProgressClockOptions,
 } from "./playback-controller.js";
 import { buildPlaybackRequestForPython } from "./playback-state.js";
+import { consumePostEditPlaybackIntent } from "./post-edit-playback.js";
 import type { CursorIntent, PlaybackRequest, PlaybackState, VisualizerElement } from "./types.js";
 import { isPlaybackState } from "./types.js";
 import {
@@ -23,8 +24,10 @@ import {
   effectivePlaybackRegion,
   playbackControllerDependencies,
   repeatEnabledFor,
+  setRepeatEnabled,
+  setRepeatPauseSeconds,
 } from "./actions.js";
-import { setCommandButtonLabel, setStatus } from "./control-actions.js";
+import { anyBusy, setCommandButtonLabel, setStatus } from "./control-actions.js";
 import { t } from "../lib/i18n.js";
 
 export function setPlaybackButtonLabel(visualizer: VisualizerElement, label: string): void {
@@ -101,6 +104,33 @@ export function playbackRequest(ord: number): PlaybackRequest {
     repeat: repeatEnabledFor(visualizer),
     resumeRequiresRestart: visualizer.dataset.resumeRequiresRestart === "true",
   });
+}
+
+export function playAfterEdit(ord: number): boolean {
+  const visualizer = visualizerForOrd(ord);
+  if (!visualizer) return false;
+  if (anyBusy()) return false;
+  const intent = consumePostEditPlaybackIntent(ord);
+  if (intent) {
+    setRepeatEnabled(visualizer, intent.repeat);
+    setRepeatPauseSeconds(visualizer, intent.repeatPauseSeconds);
+  }
+  window.__aqeActiveField = ord;
+  const region = effectivePlaybackRegion(visualizer);
+  const request: PlaybackRequest = {
+    action: "start",
+    cursorMs: Math.round(region.startMs),
+    endMs: Math.round(region.endMs),
+    engine: playbackEngineFor(visualizer),
+    loop: repeatEnabledFor(visualizer),
+    ord,
+    regionMode: region.mode,
+  };
+  if (request.engine === "html") {
+    return startEditorHtmlPlayback(visualizer, request);
+  }
+  sendPlaybackRequest(request);
+  return true;
 }
 
 export function playbackEngineFor(visualizer: VisualizerElement | null): "html" | "native" {

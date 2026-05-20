@@ -40,6 +40,7 @@
   "settings.deep_filter_path": "DeepFilterNet-Pfad",
   "settings.deep_filter_path.placeholder": "Leer lassen, um zuerst die mitgelieferte Binärdatei und dann PATH zu verwenden",
   "settings.deep_filter_post_filter": "DeepFilterNet-Nachfilter verwenden",
+  "settings.dpdfnet_attn_limit_db": "DPDFNet-Dämpfungsgrenze (dB)",
   "settings.manual_trim_small_ms": "Kleiner Schnittschritt (ms)",
   "settings.manual_trim_large_ms": "Großer Schnittschritt (ms)",
   "settings.speed_step": "Geschwindigkeitsschritt",

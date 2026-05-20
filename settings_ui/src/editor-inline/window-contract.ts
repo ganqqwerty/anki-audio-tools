@@ -13,6 +13,7 @@ import {
   setVisualizerStatusFromPython,
   stopEditorPlayback,
 } from "./actions.js";
+import { playAfterEdit } from "./playback-actions.js";
 import { popPendingRegionDeleteRequest } from "./bridge.js";
 import { installEditorTestWindowContract } from "./test-contract.js";
 
@@ -23,6 +24,7 @@ export const EDITOR_WINDOW_CONTRACT_NAMES = [
   "__aqePopPendingGraphAnalysisRequest",
   "__aqePopPendingRegionDeleteRequest",
   "__aqePopFrontendLog",
+  "__aqePlayAfterEdit",
   "__aqePrepareForNewNote",
   "__aqeResetGraphAfterEdit",
   "__aqeSetBusy",
@@ -41,6 +43,7 @@ export function installEditorWindowContract(): void {
   window.__aqeResetGraphAfterEdit = resetGraphAfterEdit;
   window.__aqeSetPlaybackState = setPlaybackState;
   window.__aqeGetPlaybackRequest = getPlaybackRequest;
+  window.__aqePlayAfterEdit = playAfterEdit;
   window.__aqeStopEditorPlayback = stopEditorPlayback;
   window.__aqeGetCursorMs = getCursorMs;
   window.__aqeGetCursorIntent = getCursorIntent;

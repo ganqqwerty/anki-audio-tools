@@ -92,6 +92,7 @@ def render_and_replace_async(
         flush=True,
     )
     deps.stop_session_playback(session)
+    session.post_edit_playback_generation += 1
     session.processing = True
     session.playback_active = False
     session.playback_paused = False
@@ -150,14 +151,14 @@ def replace_current_field_after_render(
     deps: Any,
 ) -> None:
     """Replace the current field after a successful standard render."""
-    field_index = deps.current_field_index(editor)
+    session = deps.sessions.get(editor)
+    field_index = int(session.field_index) if session and session.field_index is not None else deps.current_field_index(editor)
     field_html = editor.note.fields[field_index]
     selection = select_first_sound_reference(field_html)
     if selection.selected is None:
         raise AudioProcessingError(deps.current_field_audio_missing)
     deps.dispose_editor_frontend_controls(editor)
     editor.note.fields[field_index] = replace_sound_reference(field_html, selection.selected, saved_name)
-    session = deps.sessions.get(editor)
     should_redraw_graph = False
     if session:
         session.undo_history.push(session.state, session.current_filename)
@@ -182,6 +183,7 @@ def replace_current_field_after_render(
         deps.request_graph_redraw(editor)
     else:
         deps.set_busy(editor, False)
+    deps.request_playback_after_edit(editor, field_index)
 
 
 def render_failed(editor: Any, message: str, deps: Any) -> None:
@@ -261,6 +263,7 @@ def run_special_audio_transform_async(
     _cancel_graph_analysis_for_processing(editor, session, deps)
     config = AudioProcessingConfig.from_config(deps.config(editor))
     deps.stop_session_playback(session)
+    session.post_edit_playback_generation += 1
     session.processing = True
     session.playback_active = False
     session.playback_paused = False
@@ -326,14 +329,14 @@ def run_special_audio_transform_async(
 
 def replace_current_field_after_noise_removal(editor: Any, saved_name: str, deps: Any) -> None:
     """Replace the current field after a successful denoise transform."""
-    field_index = deps.current_field_index(editor)
+    session = deps.sessions.get(editor)
+    field_index = int(session.field_index) if session and session.field_index is not None else deps.current_field_index(editor)
     field_html = editor.note.fields[field_index]
     selection = select_first_sound_reference(field_html)
     if selection.selected is None:
         raise AudioProcessingError(deps.current_field_audio_missing)
     deps.dispose_editor_frontend_controls(editor)
     editor.note.fields[field_index] = replace_sound_reference(field_html, selection.selected, saved_name)
-    session = deps.sessions.get(editor)
     should_redraw_graph = False
     if session:
         session.undo_history.push(session.state, session.current_filename)
@@ -360,6 +363,7 @@ def replace_current_field_after_noise_removal(editor: Any, saved_name: str, deps
         deps.request_graph_redraw(editor)
     else:
         deps.set_busy(editor, False)
+    deps.request_playback_after_edit(editor, field_index)
 
 
 def record_rnnoise_failure_context(

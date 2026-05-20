@@ -64,6 +64,7 @@ def restore_history_entry(
 ) -> None:
     """Replace the current audio field with a history entry."""
     deps.stop_session_playback(session)
+    session.post_edit_playback_generation += 1
     field_index = deps.current_field_index(editor)
     field_html = editor.note.fields[field_index]
     selection = select_first_sound_reference(field_html)
@@ -90,3 +91,4 @@ def restore_history_entry(
     deps.eval_playback_state(editor, field_index, "stopped", 0)
     if field_index in session.graph_active_fields:
         deps.request_graph_redraw(editor)
+    deps.request_playback_after_edit(editor, field_index)

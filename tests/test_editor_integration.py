@@ -102,6 +102,7 @@ def test_editor_undo_and_redo_restore_audio_references_without_processing(
     _SESSIONS[editor] = session
 
     monkeypatch.setattr("anki_audio_quick_editor.editor_runtime.stop_audio_playback", lambda: None)
+    monkeypatch.setattr("aqt.qt.QTimer.singleShot", lambda _delay, callback: callback())
 
     _handle_bridge_command(editor, "aqe:undo")
 
@@ -118,6 +119,7 @@ def test_editor_undo_and_redo_restore_audio_references_without_processing(
     assert session.current_filename == "clip__aqe_first.mp3"
     assert session.undo_history.pop().filename == "clip.mp3"
     assert editor.loadNote.call_count == 2
+    assert sum("__aqePlayAfterEdit" in call.args[0] for call in editor.web.evalWithCallback.call_args_list) == 2
 
 
 def test_region_delete_request_parser_normalizes_payload() -> None:
@@ -319,7 +321,10 @@ def test_region_operation_renderer_routes_delete_selection_to_delete_renderer(tm
         assert calls == [("delete", 250, 750)]
 
 
-def test_region_delete_replacement_updates_only_requested_field_and_history(tmp_path: Path) -> None:
+def test_region_delete_replacement_updates_only_requested_field_and_history(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
     media_dir = tmp_path / "media"
     media_dir.mkdir()
     current = media_dir / "clip.mp3"
@@ -354,6 +359,7 @@ def test_region_delete_replacement_updates_only_requested_field_and_history(tmp_
         }
     )
     assert request is not None
+    monkeypatch.setattr("aqt.qt.QTimer.singleShot", lambda _delay, callback: callback())
 
     _replace_current_field_after_region_delete(editor, request, generated.name, 500, 0.0)
 
@@ -364,6 +370,7 @@ def test_region_delete_replacement_updates_only_requested_field_and_history(tmp_
     assert session.redo_history.pop() is None
     assert session.undo_history.pop().filename == "clip.mp3"
     assert editor.loadNote.call_args.kwargs == {"focusTo": 1}
+    assert "__aqePlayAfterEdit(1)" in editor.web.evalWithCallback.call_args.args[0]
 
 
 def test_editor_settings_command_opens_settings_and_refreshes_after_save(

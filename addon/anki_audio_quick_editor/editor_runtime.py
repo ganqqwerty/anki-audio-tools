@@ -75,6 +75,7 @@ def reset_session_for_media(
     session.playback_active = False
     session.playback_paused = False
     session.playback_preparing = False
+    session.post_edit_playback_generation += 1
 
 
 def current_media_path(editor: Any) -> tuple[EditorSession, Path]:

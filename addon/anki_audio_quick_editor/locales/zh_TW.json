@@ -40,6 +40,7 @@
   "settings.deep_filter_path": "DeepFilterNet 路徑",
   "settings.deep_filter_path.placeholder": "留空以先使用內建二進位檔，然後使用 PATH",
   "settings.deep_filter_post_filter": "使用 DeepFilterNet 後置濾波",
+  "settings.dpdfnet_attn_limit_db": "DPDFNet 衰減上限 (dB)",
   "settings.manual_trim_small_ms": "小幅修剪步長 (ms)",
   "settings.manual_trim_large_ms": "大幅修剪步長 (ms)",
   "settings.speed_step": "速度步長",

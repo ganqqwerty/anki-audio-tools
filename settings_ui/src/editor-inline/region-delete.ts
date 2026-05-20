@@ -1,6 +1,7 @@
 import { processingMessage } from "./commands.js";
 import { focusAndSendCommand, setPendingRegionDeleteRequest } from "./bridge.js";
 import { logger } from "./logger.js";
+import { rememberPostEditPlaybackIntent } from "./post-edit-playback.js";
 import { setControlsBusy, stopProgressClock } from "./actions.js";
 import { regionDeleteRequestFor, syncRegionDeleteControl } from "./region-delete-state.js";
 import { visualizerForOrd } from "./dom-selectors.js";
@@ -30,6 +31,7 @@ export function sendRegionDelete(
   if (!request) return;
   const command = commandForOperation(operation);
   if (typeof node.focus === "function") node.focus();
+  rememberPostEditPlaybackIntent(ord);
   stopProgressClock(visualizer, { clearAudio: true });
   setPendingRegionDeleteRequest(request);
   window.__aqeActiveField = ord;
