@@ -446,14 +446,24 @@
 .aqe-selection-resize-handle {
   cursor: ew-resize;
   fill: ButtonFace;
-  opacity: 0.92;
+  opacity: 0.96;
   pointer-events: auto;
   stroke: currentColor;
-  stroke-width: 1;
+  stroke-width: 1.25;
+  vector-effect: non-scaling-stroke;
 }
 
 .aqe-selection-resize-handle:hover {
-  fill: Highlight;
+  stroke: Highlight;
+}
+
+.aqe-selection-resize-grip {
+  opacity: 0.48;
+  pointer-events: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-width: 1;
+  vector-effect: non-scaling-stroke;
 }
 
 .aqe-pitch-path {

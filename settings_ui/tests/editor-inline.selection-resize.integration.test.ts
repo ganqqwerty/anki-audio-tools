@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
+import { PLOT } from "../src/editor-inline/plot.js";
 import { disposeEditorRuntime, initializeEditorRuntime, scan } from "../src/editor-inline/runtime.js";
 import {
   dispatchHandlePointer,
@@ -33,6 +34,16 @@ describe("editor inline selection resize integration", () => {
     const svg = document.querySelector<SVGSVGElement>('[data-testid="aqe-graph-svg-0"]')!;
     setGraphBounds(svg);
     dragGraphSelection(svg, 0.2, 0.6);
+    const plotHeight = PLOT.height - PLOT.top - PLOT.bottom;
+    const expectedHandleHeight = plotHeight * 0.8;
+    const expectedHandleY = PLOT.top + (plotHeight - expectedHandleHeight) / 2;
+    const startHandle = document.querySelector<SVGRectElement>('[data-testid="aqe-selection-resize-start-0"]')!;
+    const startGrip = document.querySelector<SVGGElement>(".aqe-selection-resize-grip-start")!;
+    expect(Number(startHandle.getAttribute("height"))).toBeCloseTo(expectedHandleHeight);
+    expect(Number(startHandle.getAttribute("y"))).toBeCloseTo(expectedHandleY);
+    expect(startGrip.getAttribute("transform")).toBe(
+      `translate(${(Number(startHandle.getAttribute("x")) + 5).toFixed(2)} ${(expectedHandleY + expectedHandleHeight / 2).toFixed(2)})`,
+    );
 
     dragSelectionHandle(svg, "start", 0.1);
     expect(window.__aqeGraphStateForTest?.(0)).toMatchObject({

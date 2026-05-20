@@ -21,6 +21,10 @@
   import type { ButtonSpec, FieldTarget } from "./types.js";
 
   const { target }: { target: FieldTarget } = $props();
+  const selectionPlotHeight = PLOT.height - PLOT.top - PLOT.bottom;
+  const selectionHandleHeight = selectionPlotHeight * 0.8;
+  const selectionHandleY = PLOT.top + (selectionPlotHeight - selectionHandleHeight) / 2;
+  const selectionHandleCenterY = selectionHandleY + selectionHandleHeight / 2;
   const repeatDefault = window.__AQE_EDITOR_CONFIG__?.repeatPlaybackByDefault === true;
   const repeatPauseDefault = window.__AQE_EDITOR_CONFIG__?.splitButtonDefaults?.repeatPauseSeconds ?? 0;
   const buttons = commandButtons();
@@ -284,9 +288,9 @@
         class="aqe-selection-resize-handle aqe-selection-resize-start"
         data-testid={`aqe-selection-resize-start-${target.ord}`}
         x={PLOT.left - 5}
-        y={PLOT.top}
+        y={selectionHandleY}
         width="10"
-        height={PLOT.height - PLOT.top - PLOT.bottom}
+        height={selectionHandleHeight}
         rx="3"
         role="button"
         aria-label="Resize selection start"
@@ -297,13 +301,23 @@
           startSelectionResizeGesture(event, target.ord, "start");
         }}
       ></rect>
+      <g
+        class="aqe-selection-resize-grip aqe-selection-resize-grip-start"
+        transform={`translate(${PLOT.left} ${selectionHandleCenterY})`}
+        visibility="hidden"
+        aria-hidden="true"
+      >
+        <line x1="-3" x2="3" y1="-10" y2="-10"></line>
+        <line x1="-3" x2="3" y1="0" y2="0"></line>
+        <line x1="-3" x2="3" y1="10" y2="10"></line>
+      </g>
       <rect
         class="aqe-selection-resize-handle aqe-selection-resize-end"
         data-testid={`aqe-selection-resize-end-${target.ord}`}
         x={PLOT.left - 5}
-        y={PLOT.top}
+        y={selectionHandleY}
         width="10"
-        height={PLOT.height - PLOT.top - PLOT.bottom}
+        height={selectionHandleHeight}
         rx="3"
         role="button"
         aria-label="Resize selection end"
@@ -314,6 +328,16 @@
           startSelectionResizeGesture(event, target.ord, "end");
         }}
       ></rect>
+      <g
+        class="aqe-selection-resize-grip aqe-selection-resize-grip-end"
+        transform={`translate(${PLOT.left} ${selectionHandleCenterY})`}
+        visibility="hidden"
+        aria-hidden="true"
+      >
+        <line x1="-3" x2="3" y1="-10" y2="-10"></line>
+        <line x1="-3" x2="3" y1="0" y2="0"></line>
+        <line x1="-3" x2="3" y1="10" y2="10"></line>
+      </g>
       <line
         class="aqe-cursor"
         data-testid={`aqe-cursor-${target.ord}`}

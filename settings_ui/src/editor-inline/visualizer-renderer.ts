@@ -64,6 +64,8 @@ export function renderSelection(
   const endEdge = visualizer.querySelector<SVGLineElement>(".aqe-selection-end");
   const startHandle = visualizer.querySelector<SVGRectElement>(".aqe-selection-resize-start");
   const endHandle = visualizer.querySelector<SVGRectElement>(".aqe-selection-resize-end");
+  const startGrip = visualizer.querySelector<SVGGElement>(".aqe-selection-resize-grip-start");
+  const endGrip = visualizer.querySelector<SVGGElement>(".aqe-selection-resize-grip-end");
   const activeSelection = draftSelection ?? selection;
   const durationMs = Number(visualizer.dataset.durationMs || "0");
   if (!band || !startEdge || !endEdge || !activeSelection || !durationMs) {
@@ -74,31 +76,41 @@ export function renderSelection(
     endEdge?.setAttribute("visibility", "hidden");
     startHandle?.setAttribute("visibility", "hidden");
     endHandle?.setAttribute("visibility", "hidden");
+    startGrip?.setAttribute("visibility", "hidden");
+    endGrip?.setAttribute("visibility", "hidden");
     return;
   }
   const startX = xForMs(activeSelection.startMs, durationMs);
   const endX = xForMs(activeSelection.endMs, durationMs);
+  const plotTop = PLOT.top;
+  const plotBottom = PLOT.height - PLOT.bottom;
+  const plotHeight = plotBottom - plotTop;
+  const handleHeight = plotHeight * 0.8;
+  const handleY = plotTop + (plotHeight - handleHeight) / 2;
+  const handleCenterY = handleY + handleHeight / 2;
   band.setAttribute("visibility", "visible");
   band.classList.toggle("aqe-selection-draft", draftSelection !== null);
   band.setAttribute("x", startX.toFixed(2));
-  band.setAttribute("y", String(PLOT.top));
+  band.setAttribute("y", String(plotTop));
   band.setAttribute("width", Math.max(0, endX - startX).toFixed(2));
-  band.setAttribute("height", String(PLOT.height - PLOT.top - PLOT.bottom));
+  band.setAttribute("height", String(plotHeight));
   startEdge.setAttribute("visibility", "visible");
   endEdge.setAttribute("visibility", "visible");
   for (const [edge, x] of [[startEdge, startX], [endEdge, endX]] as const) {
     edge.setAttribute("x1", x.toFixed(2));
     edge.setAttribute("x2", x.toFixed(2));
-    edge.setAttribute("y1", String(PLOT.top));
-    edge.setAttribute("y2", String(PLOT.height - PLOT.bottom));
+    edge.setAttribute("y1", String(plotTop));
+    edge.setAttribute("y2", String(plotBottom));
   }
   const showHandles = selection !== null && draftSelection === null;
-  for (const [handle, x] of [[startHandle, startX], [endHandle, endX]] as const) {
+  for (const [handle, grip, x] of [[startHandle, startGrip, startX], [endHandle, endGrip, endX]] as const) {
     handle?.setAttribute("visibility", showHandles ? "visible" : "hidden");
     handle?.setAttribute("x", (x - 5).toFixed(2));
-    handle?.setAttribute("y", String(PLOT.top));
+    handle?.setAttribute("y", handleY.toFixed(2));
     handle?.setAttribute("width", "10");
-    handle?.setAttribute("height", String(PLOT.height - PLOT.top - PLOT.bottom));
+    handle?.setAttribute("height", handleHeight.toFixed(2));
+    grip?.setAttribute("visibility", showHandles ? "visible" : "hidden");
+    grip?.setAttribute("transform", `translate(${x.toFixed(2)} ${handleCenterY.toFixed(2)})`);
   }
 }
 

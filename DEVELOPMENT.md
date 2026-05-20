@@ -55,6 +55,15 @@ python3 scripts/dev.py release-assets verify --target all
 python3 scripts/dev.py release-assets stage --target macos-arm64 --tool dpdfnet --destination addon/anki_audio_quick_editor/bin
 ```
 
+Windows DPDFNet is prepared through the manual GitHub Actions workflow
+`Build Windows DPDFNet`. The workflow runs on `windows-latest`, freezes the
+PyPI `dpdfnet` CLI with the `dpdfnet4` ONNX model bundled into `dpdfnet.exe`,
+smoke-tests `enhance`, and uploads a `dpdfnet-windows-x86_64` artifact. After
+downloading the artifact, place `dpdfnet.exe` at
+`.release-assets/bin/windows-x86_64/dpdfnet.exe`, update the lock with
+`python3 scripts/dev.py release-assets lock-checksums`, and only then add
+`dpdfnet` to the Windows release/runtime matrix.
+
 FFmpeg and FFprobe are fetched from locked third-party static release archives: Martin Riedl's macOS builds and Gyan Doshi's Windows essentials build. The lock records both the provider archive SHA-256 and the extracted executable SHA-256. RNNoise is still built locally from source; Windows RNNoise can be cross-built from macOS when `x86_64-w64-mingw32-gcc` is available. A release is not approved until native acceptance has run on each supported platform.
 
 Sherpa Spleeter is fetched from locked `sherpa-onnx` native archives. Packaging renames the upstream `sherpa-onnx-offline-source-separation` executable to `sherpa-spleeter`, stages the target-specific ONNX Runtime libraries beside it, and downloads the shared Spleeter 2-stems fp16 model archive once.
