@@ -242,7 +242,7 @@ def test_check_includes_python_coverage_gate(monkeypatch) -> None:
         "cmd_security": 0,
         "cmd_deadcode": 0,
         "cmd_deps": 0,
-        "cmd_complexity": 0,
+        "cmd_quality_metrics": 0,
         "cmd_qodana": 0,
         "cmd_arch": 0,
         "cmd_test_anki_api": 0,
@@ -258,5 +258,5 @@ def test_check_includes_python_coverage_gate(monkeypatch) -> None:
     assert "cmd_coverage" in calls
     assert calls.index("cmd_coverage") > calls.index("cmd_test")
     assert calls.index("cmd_coverage") < calls.index("cmd_test_svelte")
-    assert calls.index("cmd_qodana") > calls.index("cmd_complexity")
+    assert calls.index("cmd_qodana") > calls.index("cmd_quality_metrics")
     assert calls.index("cmd_qodana") < calls.index("cmd_arch")

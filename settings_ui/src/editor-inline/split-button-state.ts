@@ -5,15 +5,24 @@ import type {
   SplitButtonDefaults,
 } from "./types.js";
 import { t } from "../lib/i18n.js";
+import {
+  clampRepeatPauseSeconds,
+  clampSpeedStep,
+  clampTrimStepMs,
+  clampVolumeStepDb,
+} from "../lib/audio-operation-parameters.js";
+export {
+  clampRepeatPauseSeconds,
+  clampSpeedStep,
+  clampTrimStepMs,
+  clampVolumeStepDb,
+  formatPauseAggressiveness,
+  formatRepeatPauseSeconds,
+  formatSpeedStep,
+  formatTrimMs,
+  formatVolumeDb,
+} from "../lib/audio-operation-parameters.js";
 
-const MIN_TRIM_MS = 50;
-const MAX_TRIM_MS = 10_000;
-const MIN_VOLUME_STEP_DB = 0.5;
-const MAX_VOLUME_STEP_DB = 12;
-const MIN_SPEED_STEP = 0.01;
-const MAX_SPEED_STEP = 0.25;
-const MIN_REPEAT_PAUSE_SECONDS = 0;
-const MAX_REPEAT_PAUSE_SECONDS = 10;
 const DEFAULTS: SplitButtonDefaults = {
   denoiseAlgorithm: "standard",
   pauseAggressiveness: "normal",
@@ -33,58 +42,6 @@ export function splitButtonDefaults(): SplitButtonDefaults {
     ...DEFAULTS,
     ...window.__AQE_EDITOR_CONFIG__?.splitButtonDefaults,
   };
-}
-
-export function clampTrimStepMs(value: number): number {
-  if (!Number.isFinite(value)) return DEFAULTS.trimStepMs;
-  return Math.max(MIN_TRIM_MS, Math.min(MAX_TRIM_MS, Math.round(value)));
-}
-
-export function clampVolumeStepDb(value: number): number {
-  if (!Number.isFinite(value)) return DEFAULTS.volumeStepDb;
-  return Math.max(MIN_VOLUME_STEP_DB, Math.min(MAX_VOLUME_STEP_DB, Math.round(value * 10) / 10));
-}
-
-export function clampSpeedStep(value: number): number {
-  if (!Number.isFinite(value)) return DEFAULTS.speedStep;
-  return Math.max(MIN_SPEED_STEP, Math.min(MAX_SPEED_STEP, Math.round(value * 100) / 100));
-}
-
-export function clampRepeatPauseSeconds(value: number): number {
-  if (!Number.isFinite(value)) return DEFAULTS.repeatPauseSeconds;
-  return Math.max(
-    MIN_REPEAT_PAUSE_SECONDS,
-    Math.min(MAX_REPEAT_PAUSE_SECONDS, Math.round(value * 10) / 10),
-  );
-}
-
-export function formatTrimMs(value: number): string {
-  const ms = clampTrimStepMs(value);
-  if (ms < 1000) return `${ms} ms`;
-  const seconds = ms / 1000;
-  return `${Number.isInteger(seconds) ? seconds.toFixed(0) : seconds.toFixed(1)} s`;
-}
-
-export function formatVolumeDb(value: number): string {
-  const db = clampVolumeStepDb(value);
-  return `${Number.isInteger(db) ? db.toFixed(0) : db.toFixed(1)} dB`;
-}
-
-export function formatSpeedStep(value: number, command: EditorCommand): string {
-  const step = clampSpeedStep(value);
-  const multiplier = command === "aqe:slower" ? 1 - step : 1 + step;
-  return `x${multiplier.toFixed(2)}`;
-}
-
-export function formatRepeatPauseSeconds(value: number): string {
-  const seconds = clampRepeatPauseSeconds(value);
-  return `${Number.isInteger(seconds) ? seconds.toFixed(0) : seconds.toFixed(1)} s`;
-}
-
-export function formatPauseAggressiveness(value: FieldSplitButtonState["pauseAggressiveness"]): string {
-  if (value === "aggressive") return t("settings.pause_aggressiveness.aggressive");
-  if (value === "gentle") return t("settings.pause_aggressiveness.gentle");
-  return t("settings.pause_aggressiveness.normal");
 }
 
 export function formatDenoiseAlgorithm(value: FieldSplitButtonState["denoiseAlgorithm"]): string {

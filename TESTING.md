@@ -19,9 +19,9 @@ python3 scripts/dev.py test-e2e
 - `tests/test_architecture/` enforces layer boundaries, module classification, Anki-import-safe helper modules, import-safe runtime modules, editor bridge command sync, prosody dependency isolation, shell-thin settings rules, and DB access isolation.
 - `tests/test_anki_api_contract_mocks.py` checks the mocked unit-test Anki surface against the same generated contract so mocks cannot hide a missing real API.
 - `tests/test_architecture/contracts.py` is the executable architecture source of truth; `tests/test_architecture/inspection.py` powers both the tests and the architecture report.
-- `settings_ui/tests/` covers bridge commands, async job plumbing, logging, the settings UI, and the inline editor Svelte runtime with Anki cut off behind DOM/backend test doubles. `python3 scripts/dev.py test-svelte` rebuilds the ignored generated frontend bundles, then runs the frontend validation chain: `svelte-check`, ESLint, `tsc --noEmit`, and Vitest coverage thresholds.
+- `settings_ui/tests/` covers bridge envelopes, async job plumbing, logging, frontend independence guardrails, the settings UI, Browser batch UI, and the inline editor Svelte runtime with Anki cut off behind DOM/backend test doubles. `python3 scripts/dev.py test-svelte` rebuilds the ignored generated frontend bundles, then runs the frontend validation chain: `svelte-check`, ESLint, `tsc --noEmit`, and Vitest coverage thresholds.
 - `scripts/generate_contracts.py --check` verifies generated Python/TypeScript JSON communication contracts are in sync with `contracts/communication.schema.json`.
-- `python3 scripts/dev.py coverage` runs Python unit tests with branch coverage and fails below 70%.
+- `python3 scripts/dev.py coverage` runs Python unit tests with branch coverage and fails below 80%.
 - `python3 scripts/dev.py qodana` runs JetBrains Qodana with `qodana.yaml` and fails on any reported problem.
 - `python3 scripts/dev.py sonar` regenerates Python XML coverage and frontend LCOV from scratch, waits for the Sonar quality gate, and fails on missing reports or a failed quality gate.
 - `e2e/` exercises the real add-on inside a live Anki runtime via `aqt._run(exec=False)`, including ffmpeg-backed audio processing when `ffmpeg` and `ffprobe` are installed.
@@ -32,7 +32,7 @@ A feature is not complete until `python3 scripts/dev.py test-e2e` passes. The e2
 
 ## Frontend Build Notes
 
-The settings and inline editor frontend are compiled into ignored generated files under `addon/anki_audio_quick_editor/templates/`. Anki e2e tests load those generated bundles, not the TypeScript or Svelte source in `settings_ui/src/`.
+The settings, inline editor, and Browser batch frontends are compiled into ignored generated files under `addon/anki_audio_quick_editor/templates/`. Anki e2e tests load those generated bundles, not the TypeScript or Svelte source in `settings_ui/src/`.
 
 Use `python3 scripts/dev.py test-svelte` for frontend work and `python3 scripts/dev.py test-e2e` for Anki runtime checks. Both commands intentionally run `python3 scripts/dev.py build` first. Do not commit generated `templates/*_bundle.{js,css}` files.
 
@@ -69,13 +69,13 @@ Avoid running `npm run validate` or `pytest e2e` directly as the only verificati
 
 `python3 scripts/dev.py check` is the reusable local QC gate. It runs schema validation, generates and verifies JSON contracts, architecture reporting, Ruff, mypy, Bandit, Vulture, Deptry, Radon, Qodana, import-linter, Anki API contract tests, Python unit/architecture tests, and frontend validation. Its frontend validation step rebuilds bundles through `test-svelte`.
 
-The Radon complexity command fails when any hand-maintained add-on function or class is rank C or worse. Generated communication-contract output is excluded from the fail decision; contract freshness is enforced separately by `contracts-check`. Ruff also enforces McCabe complexity with `max-complexity = 10`.
+The Radon complexity and maintainability commands fail on hand-maintained add-on code at the configured thresholds. Generated communication-contract output is excluded from the fail decision; contract freshness is enforced separately by `contracts-check`. Ruff also enforces McCabe complexity with `max-complexity = 10`.
 
 Qodana uses `qodana-python-community` in native mode and `failThreshold: 0`, so any Qodana problem fails the standard check. The CLI is an external developer tool and must be available as `qodana` on `PATH`.
 
 The file-length policy warns above 400 physical lines and fails above 500 physical lines for hand-maintained Python, TypeScript, and Svelte files. Generated contract output and committed webview bundle output are excluded by explicit generated-file predicates, and contract freshness remains covered by `python3 scripts/dev.py contracts-check`.
 
-Python coverage uses branch coverage and fails below 70%. Frontend coverage thresholds are enforced by Vitest: 80% lines/functions/statements, 70% branches, and 90% lines/functions/statements for `settings_ui/src/editor-inline/`.
+Python coverage uses branch coverage and fails below 80%. Frontend coverage thresholds are enforced by Vitest: 80% lines/functions/statements, 70% branches, and 90% lines/functions/statements for `settings_ui/src/editor-inline/`.
 
 SonarQube is opt-in because it needs `sonar-scanner` and `SONAR_TOKEN`, but when run it is a hard gate: coverage reports must be freshly generated and the scanner waits for the server quality gate. Generated contracts are excluded from Sonar issue and coverage accounting. The inline editor bundle intentionally keeps the browser `window.__aqe*` bridge contract, so Sonar's `typescript:S7764` global-object preference is ignored only under `settings_ui/src/editor-inline/**`.
 
@@ -104,6 +104,8 @@ distribution of a universal archive.
 | Real Anki API compatibility | `anki_api_contract/*.py`, `tests/test_anki_api_contract_mocks.py` |
 | Batch visualization core | `tests/test_batch_visualization.py` |
 | Browser menu/context integration | `tests/test_browser_integration.py` |
+| Browser batch WebView shell/state | `tests/test_browser_dialog.py`, `tests/test_browser_dialog_state.py` |
+| Shared WebView bridge/shell/log helpers | `tests/test_webview_bridge.py`, `tests/test_webview_shell.py`, `tests/test_frontend_logs.py` |
 | Pause shortening pipeline | `tests/test_audio_pipeline.py`, `tests/test_audio_processor.py` |
 | Prosody SVG media rendering | `tests/test_prosody_svg.py` |
 | Shared prosody analysis/cache and editor integration | `tests/test_prosody_analyzer.py`, `tests/test_prosody_fallback.py`, `tests/test_editor_integration.py` |
@@ -149,7 +151,7 @@ Recommended workflow:
 | Rule | Purpose |
 |------|---------|
 | Module-level Anki import ban | Import-safe helpers, including batch and SVG modules, must not import `aqt` or `anki` at module load time. |
-| Runtime import safety | UI layers must not leak into import-safe modules. |
+| Runtime import safety | UI layers must not leak into import-safe modules, including shared WebView bridge/shell and frontend log helpers. |
 | Editor bridge contract | Injected editor UI commands and registered bridge commands must stay in sync. |
 | Module classification | Every production module must be listed in one architecture layer. |
 | Prosody boundaries | Optional Parselmouth/Praat dependencies stay isolated and do not become package-level imports. |
@@ -193,7 +195,7 @@ Settings that affect editor startup behavior need at least one same-session e2e 
 
 The inline editor has an additional in-between integration layer in `settings_ui/tests/editor-inline.*.test.ts`: tests mount fake Anki editor fields in jsdom, replace `pycmd` with a bridge double, provide deterministic prosody/audio payloads, and drive the public `window.__aqe*` contract without loading Anki. The editor-inline coverage gate enforces at least 90% lines/statements/functions for `settings_ui/src/editor-inline/`; branch coverage is enforced separately for defensive DOM guards. This gate runs as part of `python3 scripts/dev.py test-svelte` because that command uses `npm run validate`.
 
-Browser batch visualization is currently covered by unit tests for hook registration, dialog entry behavior, batch progress/cancel semantics, SVG media writes, skip/failure handling, and target-field appends. Add real Browser dialog e2e coverage before making risky UI changes to that workflow.
+Browser batch operations are covered by Python unit tests for hook registration, WebView shell behavior, state/contract decoding, batch progress/cancel semantics, SVG media writes, skip/failure handling, and target-field appends. The Svelte batch UI is covered in `settings_ui/tests/`. There is still no dedicated real Browser batch dialog e2e workflow, so add one before making risky executor or Browser-selection changes.
 
 Playback interval e2e tests patch Anki's `av_player` with a fake recorder instead of relying on speakers, microphone capture, or an audio-listening model. The recorder observes `play_tags()`, `seek_relative()`, `stop_and_clear_queue()`, and `toggle_pause()`, and derives the effective original-file `start_ms`/`end_ms` interval AQE asked Anki to play. Cursor playback should use temporary `aqe_playback_*__from_<ms>ms_*.mp3` segments instead of relative seek.
 

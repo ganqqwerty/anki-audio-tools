@@ -1,6 +1,15 @@
 export type {
   AsyncDonePayload,
   AsyncProgressPayload,
+  BatchErrorPayload,
+  BatchFieldGroup,
+  BatchFinishPayload,
+  BatchInitialState,
+  BatchLogPayload,
+  BatchOperationOption,
+  BatchOperationParameters,
+  BatchProgressPayload,
+  BatchStartRequest,
   Config,
   CopySupportReportPayload,
   DiagnosticsState,
@@ -13,7 +22,17 @@ export type {
   ShowLogFileResult,
   SupportReportResult,
 } from "./generated/contracts.js";
-export { DenoiseAlgorithm, Direction, Level, OutputFormat, PauseAggressiveness } from "./generated/contracts.js";
+export {
+  BatchOperationName,
+  BatchParameterKind,
+  BatchParameterName,
+  BatchPauseAggressiveness,
+  BatchPauseAggressiveness as PauseAggressiveness,
+  DenoiseAlgorithm,
+  Direction,
+  Level,
+  OutputFormat,
+} from "./generated/contracts.js";
 
 import type {
   Config,

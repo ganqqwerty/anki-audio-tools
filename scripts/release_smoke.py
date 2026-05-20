@@ -78,6 +78,8 @@ def smoke_archive(archive: Path) -> None:
         _require_nonempty(package_dir, "contracts_generated.py")
         _require_nonempty(package_dir, "templates/settings/settings_bundle.js")
         _require_nonempty(package_dir, "templates/editor/editor_bundle.js")
+        _require_nonempty(package_dir, "templates/batch/batch_bundle.js")
+        _require_nonempty(package_dir, "templates/batch/batch_bundle.css")
         __import__("anki_audio_quick_editor.contracts_generated")
         audio_tools = __import__("anki_audio_quick_editor.audio_tools", fromlist=["audio_tools"])
 

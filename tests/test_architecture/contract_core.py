@@ -29,6 +29,11 @@ CORE_CONTRACTS: dict[str, ModuleContract] = {
         notes="Runtime support diagnostics, breadcrumbs, exception hooks, and crash/session files.",
     ),
     "errors": contract("errors", layer=Layer.IMPORT_SAFE_CORE),
+    "frontend_logs": contract(
+        "frontend_logs",
+        layer=Layer.IMPORT_SAFE_CORE,
+        allowed_addon_deps=("contracts_generated", "diagnostics_runtime"),
+    ),
     "i18n": contract(
         "i18n",
         layer=Layer.IMPORT_SAFE_CORE,
@@ -94,4 +99,6 @@ CORE_CONTRACTS: dict[str, ModuleContract] = {
         allowed_addon_deps=("errors",),
     ),
     "support": contract("support", layer=Layer.IMPORT_SAFE_CORE, allowed_addon_deps=("i18n",)),
+    "webview_bridge": contract("webview_bridge", layer=Layer.IMPORT_SAFE_CORE),
+    "webview_shell": contract("webview_shell", layer=Layer.IMPORT_SAFE_CORE),
 }

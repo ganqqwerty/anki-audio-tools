@@ -13,16 +13,33 @@ export function sendBridgeCommand(command: string): void {
   }
 }
 
+export interface BridgeEnvelope<TPayload = unknown> {
+  command: string;
+  payload?: TPayload;
+}
+
+export function encodeBridgeCommand<TPayload>(command: string, payload?: TPayload): string {
+  const envelope: BridgeEnvelope<TPayload> = { command };
+  if (payload !== undefined) {
+    envelope.payload = payload;
+  }
+  return `bridge:${JSON.stringify(envelope)}`;
+}
+
+export function sendBridgeEnvelope<TPayload>(command: string, payload?: TPayload): void {
+  sendBridgeCommand(encodeBridgeCommand(command, payload));
+}
+
 export function settingsSave(config: Config): void {
-  sendBridgeCommand(`settings_save:${JSON.stringify(config)}`);
+  sendBridgeEnvelope("settings.save", config);
 }
 
 export function settingsCancel(): void {
-  sendBridgeCommand("settings_cancel");
+  sendBridgeEnvelope("settings.cancel");
 }
 
 export function settingsResetDefaults(): void {
-  sendBridgeCommand("settings_reset_defaults");
+  sendBridgeEnvelope("settings.reset_defaults");
 }
 
 export function sendAsyncCmd<TOp extends AsyncOperationName>(
@@ -30,11 +47,11 @@ export function sendAsyncCmd<TOp extends AsyncOperationName>(
   op: TOp,
   payload: AsyncOperationPayloads[TOp],
 ): void {
-  sendBridgeCommand(`async_cmd:${JSON.stringify({ id, op, payload })}`);
+  sendBridgeEnvelope("settings.async", { id, op, payload });
 }
 
 export function copySupportReport(text: string): void {
-  sendBridgeCommand(`copy_support_report:${JSON.stringify({ text })}`);
+  sendBridgeEnvelope("support.copy_report", { text });
 }
 
 export interface BridgeCallbacks {

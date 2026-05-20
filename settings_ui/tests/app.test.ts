@@ -39,6 +39,23 @@ function pycmdMock(): ReturnType<typeof vi.fn> {
   return pycmd;
 }
 
+function bridgeEnvelopes(): Array<{ command: string; payload?: unknown }> {
+  return vi
+    .mocked(pycmdMock())
+    .mock.calls
+    .map(([command]) => command as string)
+    .filter((command) => command.startsWith("bridge:"))
+    .map((command) => JSON.parse(command.slice("bridge:".length)) as { command: string; payload?: unknown });
+}
+
+function bridgePayload<T>(commandName: string): T {
+  const envelope = bridgeEnvelopes().find((item) => item.command === commandName);
+  if (!envelope) {
+    throw new Error(`Bridge command not found: ${commandName}`);
+  }
+  return envelope.payload as T;
+}
+
 function setInitialState(config = defaultConfig, messages: Record<string, string> = {}): void {
   window.__INITIAL_STATE__ = {
     config,
@@ -82,12 +99,7 @@ describe("App", () => {
     render(App);
     await fireEvent.click(screen.getByRole("button", { name: "Save" }));
 
-    const call = vi
-      .mocked(pycmdMock())
-      .mock.calls
-      .map(([command]) => command as string)
-      .find((command) => command.startsWith("settings_save:")) as string;
-    const config = JSON.parse(call.slice("settings_save:".length)) as { enabled: boolean };
+    const config = bridgePayload<{ enabled: boolean }>("settings.save");
     expect(config.enabled).toBe(true);
   });
 
@@ -106,16 +118,11 @@ describe("App", () => {
     });
     await fireEvent.click(screen.getByRole("button", { name: "Save" }));
 
-    const call = vi
-      .mocked(pycmdMock())
-      .mock.calls
-      .map(([command]) => command as string)
-      .find((command) => command.startsWith("settings_save:")) as string;
-    const config = JSON.parse(call.slice("settings_save:".length)) as {
+    const config = bridgePayload<{
       volume_step_db: number;
       min_volume_db: number;
       max_volume_db: number;
-    };
+    }>("settings.save");
     expect(config.volume_step_db).toBe(1.5);
     expect(config.min_volume_db).toBe(-18);
     expect(config.max_volume_db).toBe(12);
@@ -136,16 +143,11 @@ describe("App", () => {
     });
     await fireEvent.click(screen.getByRole("button", { name: "Save" }));
 
-    const call = vi
-      .mocked(pycmdMock())
-      .mock.calls
-      .map(([command]) => command as string)
-      .find((command) => command.startsWith("settings_save:")) as string;
-    const config = JSON.parse(call.slice("settings_save:".length)) as {
+    const config = bridgePayload<{
       denoise_algorithm: string;
       pause_aggressiveness: string;
       repeat_pause_seconds: number;
-    };
+    }>("settings.save");
     expect(config.pause_aggressiveness).toBe("aggressive");
     expect(config.denoise_algorithm).toBe("rnnoise");
     expect(config.repeat_pause_seconds).toBe(2.5);
@@ -158,15 +160,11 @@ describe("App", () => {
     await fireEvent.click(screen.getByRole("tab", { name: "Diagnostics & About" }));
     await fireEvent.click(screen.getByRole("button", { name: "Run Health Check" }));
 
-    const call = vi
-      .mocked(pycmdMock())
-      .mock.calls
-      .map(([command]) => command as string)
-      .find((command) => command.startsWith("async_cmd:")) as string;
-    const { id, payload } = JSON.parse(call.slice("async_cmd:".length)) as {
+    const { id, payload } = bridgePayload<{
       id: string;
+      op: string;
       payload: { config: typeof defaultConfig };
-    };
+    }>("settings.async");
     expect(payload.config.deep_filter_post_filter).toBe(true);
     expect(payload.config.repeat_playback_by_default).toBe(false);
     expect(payload.config.repeat_pause_seconds).toBe(0);
@@ -196,12 +194,7 @@ describe("App", () => {
     await fireEvent.click(screen.getByRole("tab", { name: "Diagnostics & About" }));
     await fireEvent.click(screen.getByRole("button", { name: "Copy Support Report" }));
 
-    const call = vi
-      .mocked(pycmdMock())
-      .mock.calls
-      .map(([command]) => command as string)
-      .find((command) => command.startsWith("async_cmd:")) as string;
-    const { id } = JSON.parse(call.slice("async_cmd:".length)) as { id: string };
+    const { id } = bridgePayload<{ id: string }>("settings.async");
 
     window.onAsyncDone?.({
       id,
@@ -218,7 +211,8 @@ describe("App", () => {
           .mock.calls.some(
             ([command]) =>
               typeof command === "string" &&
-              command.startsWith("copy_support_report:") &&
+              command.startsWith("bridge:") &&
+              JSON.parse(command.slice("bridge:".length)).command === "support.copy_report" &&
               command.includes("support body"),
           ),
       ).toBe(true)
@@ -233,12 +227,7 @@ describe("App", () => {
     await fireEvent.click(screen.getByRole("tab", { name: "Diagnostics & About" }));
     await fireEvent.click(screen.getByRole("button", { name: "Show Log File" }));
 
-    const call = vi
-      .mocked(pycmdMock())
-      .mock.calls
-      .map(([command]) => command as string)
-      .find((command) => command.startsWith("async_cmd:")) as string;
-    const { id } = JSON.parse(call.slice("async_cmd:".length)) as { id: string };
+    const { id } = bridgePayload<{ id: string }>("settings.async");
 
     window.onAsyncDone?.({
       id,

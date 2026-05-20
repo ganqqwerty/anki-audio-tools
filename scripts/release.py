@@ -33,6 +33,8 @@ BASE_REQUIRED_ARCHIVE_FILES = (
     "templates/settings/settings_bundle.css",
     "templates/editor/editor_bundle.js",
     "templates/editor/editor_bundle.css",
+    "templates/batch/batch_bundle.js",
+    "templates/batch/batch_bundle.css",
     "bin/README.md",
     "bin/THIRD_PARTY_NOTICES.md",
     "bin/runtime_manifest.json",
@@ -136,6 +138,17 @@ def _verify_bundle_fresh() -> None:
             [
                 ADDON_DIR / "templates" / "editor" / "editor_bundle.js",
                 ADDON_DIR / "templates" / "editor" / "editor_bundle.css",
+            ],
+        ),
+        (
+            "batch",
+            [
+                src_dir / "batch",
+                src_dir / "lib",
+            ],
+            [
+                ADDON_DIR / "templates" / "batch" / "batch_bundle.js",
+                ADDON_DIR / "templates" / "batch" / "batch_bundle.css",
             ],
         ),
     ]

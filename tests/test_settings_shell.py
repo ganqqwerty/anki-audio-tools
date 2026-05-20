@@ -88,7 +88,8 @@ def test_render_settings_content_escapes_initial_state_and_includes_error_report
     assert "window.addEventListener(\"unhandledrejection\"" in body
     assert "stack: event.error && event.error.stack" in body
     assert "stack: reason && reason.stack" in body
-    assert "frontend_log:" in body
+    assert "frontend.log" in body
+    assert "bridge:" in body
     assert "window.__bundleLoaded = true;" in body
 
 

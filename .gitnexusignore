@@ -15,6 +15,7 @@ addon/anki_audio_quick_editor/contracts_generated.py
 settings_ui/src/lib/generated/
 addon/anki_audio_quick_editor/templates/editor/editor_bundle.*
 addon/anki_audio_quick_editor/templates/settings/settings_bundle.*
+addon/anki_audio_quick_editor/templates/batch/batch_bundle.*
 
 # Runtime, release, and test artifacts.
 addon/anki_audio_quick_editor/aqe_artifacts/

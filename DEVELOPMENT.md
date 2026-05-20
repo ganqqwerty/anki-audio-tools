@@ -92,7 +92,7 @@ Qodana is an external CLI dependency, not a Python package. It is configured by
 
 ## Frontend Dependencies
 
-The settings dialog and inline editor UI use Svelte 5 and Vite from `settings_ui/package.json`. Rebuild ignored generated bundles after editing `.svelte` or `.ts` files:
+The settings dialog, inline editor UI, and Browser batch UI use Svelte 5 and Vite from `settings_ui/package.json`. Rebuild ignored generated bundles after editing `.svelte` or `.ts` files:
 
 ```bash
 python3 scripts/dev.py build
@@ -100,7 +100,9 @@ python3 scripts/dev.py build
 
 `python3 scripts/dev.py test-svelte` and `python3 scripts/dev.py test-e2e` also run the frontend bundle build before their tests. Keep that dependency in `scripts/dev.py` so test callers do not need to remember it.
 
-Do not treat `settings_ui/src/` as the runtime artifact. During Anki and e2e runs, the add-on reads `addon/anki_audio_quick_editor/templates/settings/settings_bundle.{js,css}` and `addon/anki_audio_quick_editor/templates/editor/editor_bundle.{js,css}`. Build output changes after `check`, `test-svelte`, or `test-e2e` are expected when source changed, but those generated files are ignored by git.
+Do not treat `settings_ui/src/` as the runtime artifact. During Anki and e2e runs, the add-on reads `addon/anki_audio_quick_editor/templates/settings/settings_bundle.{js,css}`, `addon/anki_audio_quick_editor/templates/editor/editor_bundle.{js,css}`, and `addon/anki_audio_quick_editor/templates/batch/batch_bundle.{js,css}`. Build output changes after `check`, `test-svelte`, or `test-e2e` are expected when source changed, but those generated files are ignored by git.
+
+Settings and Browser batch WebView commands use the shared `bridge:{ command, payload }` JSON envelope. Add new settings or batch bridge commands through `settings_ui/src/lib/bridge.ts` or `settings_ui/src/batch/bridge.ts`, decode them with `webview_bridge.py`, and keep payload shapes contract-backed when they cross the Python/TypeScript boundary.
 
 The generated webview bundles are runtime artifacts, but they should not be committed or indexed as source code by GitNexus. Keep `addon/anki_audio_quick_editor/templates/*/*_bundle.{js,css}` in `.gitignore` and `.gitnexusignore` so change detection stays focused on the TypeScript, Svelte, Python, schema, and test sources that produced them. If ignored bundle symbols still appear after changing `.gitnexusignore`, run a forced rebuild of the local index rather than relying on an incremental "already up to date" analyze pass.
 

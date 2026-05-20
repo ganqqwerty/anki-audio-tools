@@ -10,7 +10,7 @@
 
 import type { FrontendLogPayload } from "./generated/contracts.js";
 import { Level } from "./generated/contracts.js";
-import { sendBridgeCommand } from "./bridge.js";
+import { sendBridgeEnvelope } from "./bridge.js";
 
 type LogLevel = "debug" | "info" | "warn" | "error";
 type JsonLogValue = null | boolean | number | string | JsonLogValue[] | { [key: string]: JsonLogValue };
@@ -131,5 +131,5 @@ export function createLogger(scope: string, sendPayload: LogSender): ScopedLogge
 }
 
 export const logger = createLogger("settings", (payload) => {
-  sendBridgeCommand(`frontend_log:${JSON.stringify(payload)}`);
+  sendBridgeEnvelope("frontend.log", payload);
 });

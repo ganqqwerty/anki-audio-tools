@@ -49,16 +49,22 @@ afterEach(() => {
   _clearPendingForTest();
 });
 
+function asyncCommandAt(index: number): { id: string; op: string; payload: unknown } {
+  const command = pycmd.mock.calls[index]?.[0] ?? "";
+  const envelope = JSON.parse(String(command).slice("bridge:".length)) as {
+    command: string;
+    payload: { id: string; op: string; payload: unknown };
+  };
+  expect(envelope.command).toBe("settings.async");
+  return envelope.payload;
+}
+
 describe("startAsyncOp", () => {
   it("calls pycmd with async_cmd containing op and payload", () => {
     void startAsyncOp("health_check", { config });
     const call = pycmd.mock.calls[0]?.[0] ?? "";
-    expect(call).toMatch(/^async_cmd:/);
-    const parsed = JSON.parse(call.slice("async_cmd:".length)) as {
-      id: string;
-      op: string;
-      payload: unknown;
-    };
+    expect(call).toMatch(/^bridge:/);
+    const parsed = asyncCommandAt(0);
     expect(parsed.op).toBe("health_check");
     expect(parsed.payload).toEqual({ config });
   });
@@ -66,20 +72,14 @@ describe("startAsyncOp", () => {
   it("generates a unique id for each call", () => {
     void startAsyncOp("health_check", { config });
     void startAsyncOp("support_report", { config });
-    const id1 = JSON.parse(
-      (pycmd.mock.calls[0]?.[0] ?? "{}").slice("async_cmd:".length)
-    ).id as string;
-    const id2 = JSON.parse(
-      (pycmd.mock.calls[1]?.[0] ?? "{}").slice("async_cmd:".length)
-    ).id as string;
+    const id1 = asyncCommandAt(0).id;
+    const id2 = asyncCommandAt(1).id;
     expect(id1).not.toBe(id2);
   });
 
   it("promise resolves with result when onAsyncDone fires ok=true", async () => {
     const promise = startAsyncOp("health_check", { config });
-    const id = JSON.parse(
-      (pycmd.mock.calls[0]?.[0] ?? "{}").slice("async_cmd:".length)
-    ).id as string;
+    const id = asyncCommandAt(0).id;
 
     handleAsyncDone({
       id,
@@ -98,9 +98,7 @@ describe("startAsyncOp", () => {
 
   it("promise rejects with error when onAsyncDone fires ok=false", async () => {
     const promise = startAsyncOp("health_check", { config });
-    const id = JSON.parse(
-      (pycmd.mock.calls[0]?.[0] ?? "{}").slice("async_cmd:".length)
-    ).id as string;
+    const id = asyncCommandAt(0).id;
 
     handleAsyncDone({ id, ok: false, error: "API timeout" });
 
@@ -110,9 +108,7 @@ describe("startAsyncOp", () => {
   it("calls onProgress callback with pct and message", () => {
     const onProgress = vi.fn();
     void startAsyncOp("show_log_file", {}, onProgress);
-    const id = JSON.parse(
-      (pycmd.mock.calls[0]?.[0] ?? "{}").slice("async_cmd:".length)
-    ).id as string;
+    const id = asyncCommandAt(0).id;
 
     handleAsyncProgress({ id, progress: 50, message: "Fetching…" });
     expect(onProgress).toHaveBeenCalledWith(50, "Fetching…");
@@ -126,9 +122,7 @@ describe("startAsyncOp", () => {
 
   it("cleans up pending map after resolution", async () => {
     const promise = startAsyncOp("support_report", { config });
-    const id = JSON.parse(
-      (pycmd.mock.calls[0]?.[0] ?? "{}").slice("async_cmd:".length)
-    ).id as string;
+    const id = asyncCommandAt(0).id;
 
     handleAsyncDone({ id, ok: true, result: { reportText: "support" } });
     await promise;
@@ -141,9 +135,7 @@ describe("startAsyncOp", () => {
 
   it("rejects when an async result payload does not match the operation", async () => {
     const promise = startAsyncOp("show_log_file", {});
-    const id = JSON.parse(
-      (pycmd.mock.calls[0]?.[0] ?? "{}").slice("async_cmd:".length)
-    ).id as string;
+    const id = asyncCommandAt(0).id;
 
     handleAsyncDone({ id, ok: true, result: { reportText: "wrong shape" } });
 

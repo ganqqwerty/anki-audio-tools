@@ -19,13 +19,7 @@ def _radon_complexity_violations(report: object) -> list[str]:
     for raw_path, entries in sorted(report.items()):
         if not isinstance(entries, list):
             continue
-        path = Path(str(raw_path))
-        display_path = str(path)
-        if path.is_absolute():
-            try:
-                display_path = str(path.relative_to(ROOT))
-            except ValueError:
-                display_path = str(path)
+        display_path = _radon_display_path(raw_path)
         if display_path in RADON_EXCLUDED_FILES:
             continue
         for entry in entries:
@@ -39,6 +33,30 @@ def _radon_complexity_violations(report: object) -> list[str]:
             complexity = entry.get("complexity", "?")
             violations.append(f"{display_path}:{line} {name} rank={rank} complexity={complexity}")
     return violations
+
+
+def _radon_maintainability_violations(report: object) -> list[str]:
+    if not isinstance(report, dict):
+        return ["radon maintainability output did not contain the expected file map"]
+    violations: list[str] = []
+    for raw_path, entry in sorted(report.items()):
+        display_path = _radon_display_path(raw_path)
+        if display_path in RADON_EXCLUDED_FILES:
+            continue
+        rank = entry.get("rank", "?") if isinstance(entry, dict) else "?"
+        mi_score = entry.get("mi", "?") if isinstance(entry, dict) else "?"
+        violations.append(f"{display_path} rank={rank} mi={mi_score}")
+    return violations
+
+
+def _radon_display_path(raw_path: object) -> str:
+    path = Path(str(raw_path))
+    if not path.is_absolute():
+        return str(path)
+    try:
+        return str(path.relative_to(ROOT))
+    except ValueError:
+        return str(path)
 
 
 def _mutmut_fix_stats_prefix_mismatch() -> bool:
