@@ -8,6 +8,7 @@ import {
   muteConsole,
   prepareHtmlAudio,
   renderFields,
+  setRepeatMode,
   setGraphBounds,
   track,
 } from "./editor-inline.integration.helpers.js";
@@ -37,15 +38,14 @@ async function startSelectedRepeatWithPause(seconds: number) {
   const svg = document.querySelector<SVGSVGElement>('[data-testid="aqe-graph-svg-0"]')!;
   setGraphBounds(svg);
   dragGraphSelection(svg, 0.25, 0.75);
-  const repeat = document.querySelector<HTMLButtonElement>('[data-testid="aqe-repeat-0"]')!;
-  repeat.click();
+  await setRepeatMode(true);
   const audio = prepareHtmlAudio();
 
   document.querySelector<HTMLButtonElement>('[data-testid="aqe-button-0-play"]')!.click();
   await Promise.resolve();
   audio.currentTime = 0.76;
   frames.shift()?.(performance.now() + 800);
-  return { audio, repeat };
+  return { audio };
 }
 
 describe("editor inline selected repeat pause integration", () => {
@@ -105,9 +105,9 @@ describe("editor inline selected repeat pause integration", () => {
   });
 
   it("completes playback when repeat is disabled during the repeat pause", async () => {
-    const { audio, repeat } = await startSelectedRepeatWithPause(1);
+    const { audio } = await startSelectedRepeatWithPause(1);
 
-    repeat.click();
+    await setRepeatMode(false);
     await vi.advanceTimersByTimeAsync(1000);
 
     expect(audio.play).toHaveBeenCalledTimes(1);

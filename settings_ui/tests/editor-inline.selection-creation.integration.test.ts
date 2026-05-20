@@ -7,6 +7,7 @@ import {
   graphClientX,
   muteConsole,
   renderFields,
+  setRepeatMode,
   setGraphBounds,
   track,
 } from "./editor-inline.integration.helpers.js";
@@ -186,15 +187,16 @@ describe("editor inline selection creation integration", () => {
     });
   });
 
-  it("expands repeat-enabled selections from raw outside click positions", () => {
+  it("expands repeat-enabled selections from raw outside click positions", async () => {
     initializeEditorRuntime({ audioFieldIndices: [0] });
     scan({ audioFieldIndices: [0] });
+    await Promise.resolve();
     window.__aqeSetVisualizer?.(0, track, 100);
     const svg = document.querySelector<SVGSVGElement>('[data-testid="aqe-graph-svg-0"]')!;
     setGraphBounds(svg);
 
     dragGraphSelection(svg, 0.2, 0.6);
-    document.querySelector<HTMLButtonElement>('[data-testid="aqe-repeat-0"]')!.click();
+    await setRepeatMode(true);
     dispatchGraphPointer(svg, "pointerdown", graphClientX(svg, 0.8));
     dispatchGraphPointer(svg, "pointerup", graphClientX(svg, 0.8));
 

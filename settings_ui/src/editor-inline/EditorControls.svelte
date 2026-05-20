@@ -4,8 +4,8 @@
   import { commandButtons, testId } from "./commands.js";
   import { t } from "../lib/i18n.js";
   import EditorCommandIcon from "./EditorCommandIcon.svelte";
+  import PlaySplitButton from "./PlaySplitButton.svelte";
   import SplitButton from "./SplitButton.svelte";
-  import RepeatSplitButton from "./RepeatSplitButton.svelte";
   import {
     configureAudioClock,
     handleVisualizerPointerDown,
@@ -62,7 +62,9 @@
   data-testid={`aqe-controls-${target.ord}`}
 >
   {#each buttons as button (button.command)}
-    {#if isSplitCommand(button.command)}
+    {#if button.command === "aqe:play"}
+      <PlaySplitButton {button} {repeatDefault} {target} />
+    {:else if isSplitCommand(button.command)}
       <SplitButton {button} {target} />
     {:else}
       <button
@@ -70,7 +72,7 @@
         class:aqe-icon-only={button.iconOnly === true}
         class="aqe-button"
         data-aqe-command={button.command}
-        data-aqe-button-state={button.command === "aqe:play" ? "play" : button.command === "aqe:analyze" ? "graph" : "default"}
+        data-aqe-button-state={button.command === "aqe:analyze" ? "graph" : "default"}
         data-testid={testId(target.ord, button.command)}
         title={button.title}
         aria-label={button.title}
@@ -83,9 +85,6 @@
         {/if}
         <span class="aqe-button-label">{button.label}</span>
       </button>
-    {/if}
-    {#if button.command === "aqe:play"}
-      <RepeatSplitButton {repeatDefault} {target} />
     {/if}
     {#if button.command === "aqe:remove-pauses"}
       <SplitButton button={denoiseButton} {target} />

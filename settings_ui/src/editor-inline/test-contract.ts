@@ -101,6 +101,7 @@ export function graphStateForTest(ord: number): GraphStateForTest | null {
   const visualizer = visualizerForOrd(ord);
   const graph = graphButton(ord);
   const play = playButton(ord);
+  const repeatMenu = controlsForOrd(ord)?.querySelector<HTMLButtonElement>(".aqe-play-repeat-menu-button") ?? null;
   const regionDelete = controlsForOrd(ord)?.querySelector<HTMLButtonElement>(".aqe-delete-region-button") ?? null;
   const regionDeleteRest = controlsForOrd(ord)?.querySelector<HTMLButtonElement>(".aqe-delete-rest-button") ?? null;
   if (!visualizer) return null;
@@ -141,7 +142,7 @@ export function graphStateForTest(ord: number): GraphStateForTest | null {
     repeatEnabled: visualizer.dataset.repeatEnabled === "true",
     repeatPauseSeconds: Number(visualizer.dataset.repeatPauseSeconds || "0"),
     repeatPauseWaiting: visualizer.dataset.repeatPauseWaiting === "true",
-    repeatControlDisabled: !!repeatButtonForOrd(ord)?.disabled,
+    repeatControlDisabled: !!(repeatMenu?.disabled || repeatButtonForOrd(ord)?.disabled),
     regionDeleteButtonDisabled: !!regionDelete?.disabled,
     regionDeleteButtonHidden: regionDelete ? !!regionDelete.hidden : true,
     regionDeleteRestButtonDisabled: !!regionDeleteRest?.disabled,

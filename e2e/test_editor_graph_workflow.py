@@ -238,8 +238,14 @@ def test_editor_settings_save_refreshes_current_editor_repeat_default(
         wait_for_selector(editor.web, _button_selector("aqe:settings"), timeout=10.0)
         wait_for_js_condition(
             editor.web,
-            "document.querySelector('[data-testid=\"aqe-repeat-0\"]')?.getAttribute('aria-pressed')",
-            lambda value: value == "false",
+            "document.querySelector('[data-testid=\"aqe-split-0-play-menu\"]')?.getAttribute('title')",
+            lambda value: value == "Play options: Repeat off",
+            timeout=5.0,
+        )
+        wait_for_js_condition(
+            editor.web,
+            "window.__aqeGraphStateForTest ? window.__aqeGraphStateForTest(0)?.repeatEnabled : null",
+            lambda value: value is False,
             timeout=5.0,
         )
         click_selector(editor.web, _button_selector("aqe:settings"), timeout=5.0)
@@ -289,8 +295,14 @@ def test_editor_settings_save_refreshes_current_editor_repeat_default(
         assert saved_config["repeat_pause_seconds"] == 1.5
         wait_for_js_condition(
             editor.web,
-            "document.querySelector('[data-testid=\"aqe-repeat-0\"]')?.getAttribute('aria-pressed')",
-            lambda value: value == "true",
+            "document.querySelector('[data-testid=\"aqe-split-0-play-menu\"]')?.getAttribute('title')",
+            lambda value: value == "Play options: Repeat on",
+            timeout=10.0,
+        )
+        wait_for_js_condition(
+            editor.web,
+            "window.__aqeGraphStateForTest ? window.__aqeGraphStateForTest(0)?.repeatEnabled : null",
+            lambda value: value is True,
             timeout=10.0,
         )
         wait_for_js_condition(

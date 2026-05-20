@@ -119,6 +119,29 @@ export function prepareHtmlAudio(ord = 0): HTMLAudioElement {
   return audio;
 }
 
+export async function openPlayOptions(ord = 0): Promise<void> {
+  const menu = document.querySelector<HTMLButtonElement>(`[data-testid="aqe-split-${ord}-play-menu"]`)!;
+  if (menu.getAttribute("aria-expanded") !== "true") {
+    menu.click();
+    await Promise.resolve();
+  }
+}
+
+export async function setRepeatMode(enabled: boolean, ord = 0): Promise<HTMLButtonElement> {
+  await openPlayOptions(ord);
+  const menu = document.querySelector<HTMLButtonElement>(`[data-testid="aqe-split-${ord}-play-menu"]`)!;
+  const repeat = document.querySelector<HTMLButtonElement>(`[data-testid="aqe-repeat-${ord}"]`)!;
+  if ((repeat.getAttribute("aria-pressed") === "true") !== enabled) {
+    repeat.click();
+    await Promise.resolve();
+  }
+  if (menu.getAttribute("aria-expanded") === "true") {
+    menu.click();
+    await Promise.resolve();
+  }
+  return repeat;
+}
+
 export function mockAnimationFrames(): Array<Parameters<typeof window.requestAnimationFrame>[0]> {
   const frames: Array<Parameters<typeof window.requestAnimationFrame>[0]> = [];
   vi.spyOn(window, "requestAnimationFrame").mockImplementation((callback) => {

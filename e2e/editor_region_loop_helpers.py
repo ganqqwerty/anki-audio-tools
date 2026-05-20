@@ -177,7 +177,13 @@ def _set_repeat(editor, enabled: bool, ord_: int = 0) -> None:
         editor.web,
         f"""
         (() => {{
-          const toggle = document.querySelector('[data-testid="aqe-repeat-{ord_}"]');
+          let toggle = document.querySelector('[data-testid="aqe-repeat-{ord_}"]');
+          if (!toggle) {{
+            const menu = document.querySelector('[data-testid="aqe-split-{ord_}-play-menu"]');
+            if (!menu) return null;
+            if (menu.getAttribute("aria-expanded") !== "true") menu.click();
+            toggle = document.querySelector('[data-testid="aqe-repeat-{ord_}"]');
+          }}
           if (!toggle) return null;
           const requested = {str(enabled).lower()};
           const current = toggle.getAttribute("aria-pressed") === "true";

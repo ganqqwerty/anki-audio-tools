@@ -120,7 +120,6 @@ def test_each_processing_button_updates_field_to_new_real_audio(
                 state["labels"]
                 == [
                     "Play",
-                    "Repeat",
                     "Options",
                     "Graph",
                     "Options",

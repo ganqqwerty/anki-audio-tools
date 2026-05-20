@@ -19,6 +19,10 @@ export function repeatDefaultFromConfig(): boolean {
   return window.__AQE_EDITOR_CONFIG__?.repeatPlaybackByDefault === true;
 }
 
+export function playRepeatOptionsTitle(enabled: boolean): string {
+  return enabled ? t("editor.play.options_repeat_on") : t("editor.play.options_repeat_off");
+}
+
 export function setControlsBusy(ord: number, busy: boolean, message = "", command = ""): void {
   document.body.dataset.aqeBusy = busy ? "true" : "false";
   document.querySelectorAll<HTMLElement>(".aqe-controls").forEach((controls) => {

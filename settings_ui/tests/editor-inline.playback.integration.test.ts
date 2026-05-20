@@ -6,6 +6,7 @@ import {
   dragGraphSelection,
   muteConsole,
   renderFields,
+  setRepeatMode,
   setGraphBounds,
   track,
 } from "./editor-inline.integration.helpers.js";
@@ -86,7 +87,7 @@ afterEach(() => {
     audio.dispatchEvent(new Event("loadedmetadata"));
     expect(window.__aqeGraphStateForTest?.(0)?.durationMs).toBe(1000);
 
-    document.querySelector<HTMLButtonElement>('[data-testid="aqe-repeat-0"]')!.click();
+    await setRepeatMode(true);
     document.querySelector<HTMLButtonElement>('[data-testid="aqe-button-0-play"]')!.click();
     await Promise.resolve();
 

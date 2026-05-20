@@ -2,43 +2,62 @@
   import { onMount, tick } from "svelte";
 
   import EditorCommandIcon from "./EditorCommandIcon.svelte";
-  import { setRepeatEnabledForOrd, setRepeatPauseSecondsForOrd } from "./actions.js";
+  import { setRepeatEnabledForOrd, setRepeatPauseSecondsForOrd, send } from "./actions.js";
+  import { playRepeatOptionsTitle } from "./control-actions.js";
+  import { visualizerForOrd } from "./dom-selectors.js";
   import {
     formatRepeatPauseSeconds,
     getSplitButtonState,
     setRepeatPauseSecondsForField,
   } from "./split-button-state.js";
   import { t } from "../lib/i18n.js";
-  import type { FieldTarget } from "./types.js";
+  import type { ButtonSpec, FieldTarget } from "./types.js";
 
   const POPOVER_GAP_PX = 4;
   const VIEWPORT_MARGIN_PX = 8;
   const HIDDEN_POPOVER_STYLE = "visibility: hidden;";
   const PRESETS = [0, 0.5, 2, 10] as const;
 
-  const { repeatDefault, target }: { repeatDefault: boolean; target: FieldTarget } = $props();
+  const { button, repeatDefault, target }: {
+    button: ButtonSpec;
+    repeatDefault: boolean;
+    target: FieldTarget;
+  } = $props();
   let wrapper = $state<HTMLSpanElement>();
   let popover = $state<HTMLDivElement>();
   let open = $state(false);
   let popoverStyle = $state(HIDDEN_POPOVER_STYLE);
   let pressed = $state(false);
   let repeatPauseSeconds = $state(0);
+  const menuTitle = $derived(playRepeatOptionsTitle(pressed));
 
   function close(): void {
     open = false;
     popoverStyle = HIDDEN_POPOVER_STYLE;
   }
 
+  function syncRepeatState(): void {
+    const visualizer = visualizerForOrd(target.ord);
+    pressed = visualizer ? visualizer.dataset.repeatEnabled === "true" : repeatDefault;
+    const state = getSplitButtonState(target.ord);
+    repeatPauseSeconds = state.repeatPauseSeconds;
+    setRepeatPauseSecondsForOrd(target.ord, repeatPauseSeconds);
+  }
+
   function toggleMenu(event: MouseEvent): void {
     event.preventDefault();
     event.stopPropagation();
-    open = !open;
+    if (open) {
+      close();
+      return;
+    }
+    syncRepeatState();
+    open = true;
   }
 
   function toggleRepeat(event: MouseEvent): void {
     const button = event.currentTarget as HTMLButtonElement;
     const enabled = button.ariaPressed !== "true";
-    close();
     pressed = enabled;
     setRepeatEnabledForOrd(target.ord, enabled);
   }
@@ -48,6 +67,11 @@
     repeatPauseSeconds = state.repeatPauseSeconds;
     setRepeatPauseSecondsForOrd(target.ord, repeatPauseSeconds);
     void updatePopoverPlacement();
+  }
+
+  function dispatchPrimary(): void {
+    close();
+    send(button.command, target.node, target.ord);
   }
 
   function clamp(value: number, min: number, max: number): number {
@@ -113,10 +137,7 @@
   });
 
   onMount(() => {
-    const state = getSplitButtonState(target.ord);
-    pressed = repeatDefault;
-    repeatPauseSeconds = state.repeatPauseSeconds;
-    setRepeatPauseSecondsForOrd(target.ord, repeatPauseSeconds);
+    syncRepeatState();
     document.addEventListener("mousedown", onDocumentPointerDown, true);
     document.addEventListener("keydown", onDocumentKeyDown, true);
     window.addEventListener("resize", onViewportChange);
@@ -130,27 +151,32 @@
   });
 </script>
 
-<span class="aqe-split-button aqe-repeat-split-button" bind:this={wrapper}>
+<span class="aqe-split-button aqe-play-split-button" bind:this={wrapper}>
   <button
     type="button"
-    class="aqe-button aqe-icon-only aqe-repeat-button aqe-split-primary"
-    data-aqe-button-state={pressed ? "active" : "default"}
-    data-testid={`aqe-repeat-${target.ord}`}
-    title={t("editor.repeat.title")}
-    aria-label={t("editor.repeat.aria")}
-    aria-pressed={pressed ? "true" : "false"}
+    class:aqe-icon-only={button.iconOnly === true}
+    class="aqe-button aqe-split-primary"
+    data-aqe-command={button.command}
+    data-aqe-button-state="play"
+    data-testid={`aqe-button-${target.ord}-play`}
+    title={button.title}
+    aria-label={button.title}
     onmousedown={(event) => event.preventDefault()}
-    onclick={toggleRepeat}
+    onclick={dispatchPrimary}
   >
-    <EditorCommandIcon icon="repeat-2" />
-    <span class="aqe-button-label">{t("editor.repeat.label")}</span>
+    <EditorCommandIcon className="aqe-button-icon-default" icon={button.icon} />
+    {#if button.activeIcon}
+      <EditorCommandIcon className="aqe-button-icon-active" icon={button.activeIcon} />
+    {/if}
+    <span class="aqe-button-label">{button.label}</span>
   </button>
   <button
     type="button"
-    class="aqe-button aqe-icon-only aqe-split-menu-button"
-    data-testid={`aqe-split-${target.ord}-repeat-menu`}
-    title={t("editor.repeat.pause_options")}
-    aria-label={t("editor.repeat.pause_options")}
+    class="aqe-button aqe-icon-only aqe-split-menu-button aqe-play-repeat-menu-button"
+    data-aqe-button-state={pressed ? "active" : "default"}
+    data-testid={`aqe-split-${target.ord}-play-menu`}
+    title={menuTitle}
+    aria-label={menuTitle}
     aria-expanded={open ? "true" : "false"}
     onmousedown={(event) => event.preventDefault()}
     onclick={toggleMenu}
@@ -161,12 +187,30 @@
   {#if open}
     <div
       bind:this={popover}
-      class="aqe-split-popover"
-      data-testid={`aqe-split-${target.ord}-repeat-popover`}
+      class="aqe-split-popover aqe-play-split-popover"
+      data-testid={`aqe-split-${target.ord}-play-popover`}
       style={popoverStyle}
     >
       <div class="aqe-split-popover-header">
-        <strong>{t("editor.repeat.label")}</strong>
+        <strong>{t("editor.command.play.label")}</strong>
+        <span>{pressed ? t("editor.play.repeat_on") : t("editor.play.repeat_off")}</span>
+      </div>
+      <button
+        type="button"
+        class="aqe-button aqe-repeat-button aqe-repeat-toggle-button"
+        data-aqe-button-state={pressed ? "active" : "default"}
+        data-testid={`aqe-repeat-${target.ord}`}
+        title={t("editor.repeat.title")}
+        aria-label={t("editor.repeat.aria")}
+        aria-pressed={pressed ? "true" : "false"}
+        onmousedown={(event) => event.preventDefault()}
+        onclick={toggleRepeat}
+      >
+        <EditorCommandIcon icon="repeat-2" />
+        <span class="aqe-button-label">{t("editor.repeat.label")}</span>
+      </button>
+      <div class="aqe-split-popover-header">
+        <strong>{t("editor.repeat.pause_seconds")}</strong>
         <input
           class="aqe-split-value-input"
           data-testid={`aqe-split-${target.ord}-repeat-value`}

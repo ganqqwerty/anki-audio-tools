@@ -1,5 +1,6 @@
 import {
   allVisualizers,
+  playRepeatMenuButtonForOrd,
   repeatButtonForOrd,
   visualizerForOrd,
 } from "./dom-selectors.js";
@@ -59,6 +60,7 @@ import {
 export { popEditorFrontendLog, popPendingGraphAnalysisRequest } from "./bridge.js";
 import {
   clearStatus,
+  playRepeatOptionsTitle,
   repeatDefaultFromConfig,
 } from "./control-actions.js";
 export {
@@ -204,6 +206,13 @@ export function setRepeatEnabled(visualizer: VisualizerElement, enabled: boolean
   if (button) {
     button.ariaPressed = enabled ? "true" : "false";
     button.dataset.aqeButtonState = enabled ? "active" : "default";
+  }
+  const menuButton = playRepeatMenuButtonForOrd(ord);
+  if (menuButton) {
+    const title = playRepeatOptionsTitle(enabled);
+    menuButton.dataset.aqeButtonState = enabled ? "active" : "default";
+    menuButton.title = title;
+    menuButton.setAttribute("aria-label", title);
   }
   if (!enabled && visualizer.dataset.repeatPauseWaiting === "true") {
     completePlayback(visualizer);

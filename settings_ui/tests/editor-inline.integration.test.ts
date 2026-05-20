@@ -13,6 +13,7 @@ import type { EditorCommandPayload } from "../src/editor-inline/types.js";
 import {
   bridgeCommands,
   muteConsole,
+  openPlayOptions,
   renderFields,
   renderTwoAudioFields,
   track,
@@ -435,7 +436,7 @@ afterEach(() => {
     expect(document.querySelector(".aqe-controls")?.getAttribute("data-aqe-source-filename")).toBe("second.ogg");
   });
 
-  it("renders repeat as a numeric split button and initializes it from runtime config", async () => {
+  it("renders repeat as a Play split option and initializes it from runtime config", async () => {
     const config = {
       audioFieldIndices: [0],
       repeatPlaybackByDefault: true,
@@ -452,17 +453,18 @@ afterEach(() => {
     scan(config);
     await Promise.resolve();
 
+    const playMenu = document.querySelector<HTMLButtonElement>('[data-testid="aqe-split-0-play-menu"]');
+    expect(playMenu).toHaveAttribute("title", "Play options: Repeat on");
+    await openPlayOptions();
+
     const repeat = document.querySelector<HTMLButtonElement>('[data-testid="aqe-repeat-0"]');
     expect(repeat).toHaveAttribute("aria-pressed", "true");
-    expect(repeat).toHaveClass("aqe-icon-only");
     expect(repeat?.closest(".aqe-split-button")).not.toBeNull();
     expect(window.__aqeGraphStateForTest?.(0)?.repeatPauseSeconds).toBe(1.5);
 
-    document.querySelector<HTMLButtonElement>('[data-testid="aqe-split-0-repeat-menu"]')!.click();
-    await Promise.resolve();
     const input = document.querySelector<HTMLInputElement>('[data-testid="aqe-split-0-repeat-value"]')!;
     const slider = document.querySelector<HTMLInputElement>('[data-testid="aqe-split-0-repeat-slider"]')!;
-    expect(document.querySelector('[data-testid="aqe-split-0-repeat-popover"]')).not.toBeNull();
+    expect(document.querySelector('[data-testid="aqe-split-0-play-popover"]')).not.toBeNull();
     expect(input.value).toBe("1.5");
     expect(slider.value).toBe("1.5");
 
@@ -482,6 +484,7 @@ afterEach(() => {
 
     expect(window.__aqeGraphStateForTest?.(0)?.repeatEnabled).toBe(false);
     expect(repeat).toHaveAttribute("aria-pressed", "false");
+    expect(playMenu).toHaveAttribute("title", "Play options: Repeat off");
   });
 
 });

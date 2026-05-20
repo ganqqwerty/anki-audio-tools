@@ -33,6 +33,11 @@ export function repeatButtonForOrd(ord: number): HTMLButtonElement | null {
   return controls?.querySelector<HTMLButtonElement>(".aqe-repeat-button") ?? null;
 }
 
+export function playRepeatMenuButtonForOrd(ord: number): HTMLButtonElement | null {
+  const controls = controlsForOrd(ord);
+  return controls?.querySelector<HTMLButtonElement>(".aqe-play-repeat-menu-button") ?? null;
+}
+
 export function allButtons(): HTMLButtonElement[] {
   return Array.from(document.querySelectorAll<HTMLButtonElement>(".aqe-button"));
 }
