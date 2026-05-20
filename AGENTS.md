@@ -79,7 +79,7 @@ Use `python3 scripts/dev.py check` for the reusable QC gate. A feature is not co
 
 ## Planning Features
 
-Plans should specify tests before implementation. Prefer a test-first approach when practical.
+Plans should specify tests (including extensive e2e tests) before implementation. Prefer a test-first approach when practical.
 
 ## Building A Release
 
@@ -106,12 +106,71 @@ Use the unified package logger. File logging is initialized from the add-on boot
 
 ## Code Style
 
-- Use types wherever possible.
+### 1. Think Before Coding
+
+**Don't assume. Don't hide confusion. Surface tradeoffs.**
+
+Before implementing:
+- State your assumptions explicitly. If uncertain, ask.
+- If multiple interpretations exist, present them - don't pick silently.
+- If a simpler approach exists, say so. Push back when warranted.
+- If something is unclear, stop. Name what's confusing. Ask.
+
+### 2. Simplicity and readability First
+
+**Minimum code that solves the problem. Nothing speculative.**
+
+- No features beyond what was asked.
+- No abstractions for single-use code.
+- No "flexibility" or "configurability" that wasn't requested.
+- No error handling for impossible scenarios.
+- If you write 200 lines and it could be 50 lines of readable code, rewrite it.
 - Keep functions self-documenting.
-- Prefer extracting named helpers over explanatory inline comments.
 - Add docstrings for public APIs.
+
+Ask yourself: "Would a senior engineer say this is overcomplicated?" If yes, simplify.
+
+### 3. Surgical Changes
+
+**Touch only what you must. Clean up only your own mess.**
+
+When editing existing code:
+- Don't "improve" adjacent code, comments, or formatting.
+- Don't refactor things that aren't broken.
+- Match existing style, even if you'd do it differently.
+- If you notice unrelated dead code, mention it - don't delete it.
+
+When your changes create orphans:
+- Remove imports/variables/functions that YOUR changes made unused.
+- Don't remove pre-existing dead code unless asked.
+
+The test: Every changed line should trace directly to the user's request.
+
+### 4. Goal-Driven Execution
+
+**Define success criteria. Loop until verified.**
+
+Transform tasks into verifiable goals:
+- "Add validation" → "Write tests for invalid inputs, then make them pass"
+- "Fix the bug" → "Write a test that reproduces it, then make it pass"
+- "Refactor X" → "Ensure tests pass before and after"
+
+For multi-step tasks, state a brief plan:
+```
+1. [Step] → verify: [check]
+2. [Step] → verify: [check]
+3. [Step] → verify: [check]
+```
+
+Strong success criteria let you loop independently. Weak criteria ("make it work") require constant clarification.
+
+### 5. Rely on type safety and static analysis
+
+- Use types wherever possible.
+- Prefer extracting named helpers over explanatory inline comments.
 - Prefer pure functions for logic that does not need Anki objects.
 - Keep user preferences configuration-driven, not hardcoded.
+- When you see that an architecture pattern or a boundary emerges, suggest a test for it
 
 ## GitNexus — Optional Code Intelligence
 
@@ -122,7 +181,7 @@ If GitNexus is available for this repo, use it to inspect unfamiliar code, asses
 - Write a short imperative subject line.
 - Keep the subject focused and specific.
 - Use the body when you need to explain why the change matters.
-- Explain the behavior or system impact, not just the touched files.
+- Explain the intent, behavior and system impact, not the touched files.
 
 <!-- gitnexus:start -->
 # GitNexus — Code Intelligence
