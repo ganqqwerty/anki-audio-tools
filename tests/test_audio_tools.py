@@ -22,6 +22,10 @@ from anki_audio_quick_editor.errors import (
 )
 
 
+def _disable_bundled_tool_lookup(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr("anki_audio_quick_editor.audio_tools.bundled_tool_path", lambda _tool_name: None)
+
+
 def test_find_ffmpeg_uses_default_path_lookup_when_unconfigured(monkeypatch) -> None:
     calls: list[str] = []
 
@@ -29,6 +33,7 @@ def test_find_ffmpeg_uses_default_path_lookup_when_unconfigured(monkeypatch) -> 
         calls.append(name)
         return "/usr/local/bin/ffmpeg"
 
+    _disable_bundled_tool_lookup(monkeypatch)
     monkeypatch.setattr("anki_audio_quick_editor.audio_processor.shutil.which", fake_which)
 
     assert find_ffmpeg() == Path("/usr/local/bin/ffmpeg")
@@ -42,6 +47,7 @@ def test_find_ffmpeg_default_override_stays_empty_string() -> None:
 
 
 def test_find_ffmpeg_raises_exact_message_when_missing_and_unconfigured(monkeypatch) -> None:
+    _disable_bundled_tool_lookup(monkeypatch)
     monkeypatch.setattr("anki_audio_quick_editor.audio_processor.shutil.which", lambda _name: None)
     monkeypatch.setattr(
         "anki_audio_quick_editor.audio_processor.Path",
@@ -315,6 +321,7 @@ def test_find_ffprobe_falls_back_to_path_lookup(monkeypatch, tmp_path: Path) -> 
         calls.append(name)
         return "/usr/local/bin/ffprobe"
 
+    _disable_bundled_tool_lookup(monkeypatch)
     monkeypatch.setattr("anki_audio_quick_editor.audio_processor.shutil.which", fake_which)
 
     assert find_ffprobe(tmp_path / "ffmpeg") == Path("/usr/local/bin/ffprobe")
@@ -343,6 +350,7 @@ def test_find_ffprobe_uses_bundled_binary_before_path_lookup(
 
 
 def test_find_ffprobe_raises_when_no_binary_available(monkeypatch, tmp_path: Path) -> None:
+    _disable_bundled_tool_lookup(monkeypatch)
     monkeypatch.setattr("anki_audio_quick_editor.audio_processor.shutil.which", lambda _name: None)
 
     with pytest.raises(MissingFfmpegError) as exc_info:

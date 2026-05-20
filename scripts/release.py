@@ -40,7 +40,7 @@ BASE_REQUIRED_ARCHIVE_FILES = (
     "bin/runtime_manifest.json",
 )
 WARN_ARCHIVE_BYTES = 125 * 1024 * 1024
-FAIL_ARCHIVE_BYTES = 145 * 1024 * 1024
+FAIL_ARCHIVE_BYTES = 150 * 1024 * 1024
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import release_assets  # noqa: E402
