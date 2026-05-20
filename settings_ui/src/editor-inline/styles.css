@@ -426,17 +426,23 @@
 }
 
 .aqe-selection {
-  fill: currentColor;
-  fill-opacity: 0.16;
+  fill: Highlight;
+  fill-opacity: 0.2;
+  filter:
+    drop-shadow(0 0 2px rgb(255 255 255 / 70%))
+    drop-shadow(0 0 8px rgb(72 145 255 / 52%));
   pointer-events: none;
-  stroke: currentColor;
+  stroke: Highlight;
   stroke-opacity: 0.65;
   stroke-width: 1;
   vector-effect: non-scaling-stroke;
 }
 
 .aqe-selection-draft {
+  fill: currentColor;
   fill-opacity: 0.24;
+  filter: none;
+  stroke: currentColor;
 }
 
 .aqe-selection-edge {
