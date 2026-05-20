@@ -236,25 +236,59 @@ def _connect_short_dropouts(points: list[ProsodyPoint], max_gap_ms: int) -> list
     result = list(points)
     index = 1
     while index < len(result) - 1:
-        if result[index].voiced and result[index].pitch_hz is not None:
+        if _has_voiced_pitch(result[index]):
             index += 1
             continue
         gap_start = index
-        while index < len(result) and (not result[index].voiced or result[index].pitch_hz is None):
-            index += 1
-        before = result[gap_start - 1] if gap_start > 0 else None
-        after = result[index] if index < len(result) else None
-        if before is None or after is None or before.pitch_hz is None or after.pitch_hz is None:
+        index = _next_voiced_pitch_index(result, index)
+        bounds = _dropout_bounds(result, gap_start, index, max_gap_ms)
+        if bounds is None:
             continue
-        if after.time_ms - before.time_ms > max_gap_ms:
-            continue
-        span = max(1, after.time_ms - before.time_ms)
-        for gap_index in range(gap_start, index):
-            point = result[gap_index]
-            ratio = (point.time_ms - before.time_ms) / span
-            pitch = before.pitch_hz + (after.pitch_hz - before.pitch_hz) * ratio
-            result[gap_index] = replace(point, pitch_hz=pitch, voiced=True)
+        _fill_dropout(result, gap_start, index, *bounds)
     return result
+
+
+def _has_voiced_pitch(point: ProsodyPoint) -> bool:
+    return point.voiced and point.pitch_hz is not None
+
+
+def _next_voiced_pitch_index(points: list[ProsodyPoint], start: int) -> int:
+    index = start
+    while index < len(points) and not _has_voiced_pitch(points[index]):
+        index += 1
+    return index
+
+
+def _dropout_bounds(
+    points: list[ProsodyPoint],
+    gap_start: int,
+    gap_end: int,
+    max_gap_ms: int,
+) -> tuple[ProsodyPoint, ProsodyPoint] | None:
+    if gap_start <= 0 or gap_end >= len(points):
+        return None
+    before = points[gap_start - 1]
+    after = points[gap_end]
+    if not _has_voiced_pitch(before) or not _has_voiced_pitch(after):
+        return None
+    return (before, after) if after.time_ms - before.time_ms <= max_gap_ms else None
+
+
+def _fill_dropout(
+    points: list[ProsodyPoint],
+    gap_start: int,
+    gap_end: int,
+    before: ProsodyPoint,
+    after: ProsodyPoint,
+) -> None:
+    if before.pitch_hz is None or after.pitch_hz is None:
+        return
+    span = max(1, after.time_ms - before.time_ms)
+    for gap_index in range(gap_start, gap_end):
+        point = points[gap_index]
+        ratio = (point.time_ms - before.time_ms) / span
+        pitch = before.pitch_hz + (after.pitch_hz - before.pitch_hz) * ratio
+        points[gap_index] = replace(point, pitch_hz=pitch, voiced=True)
 
 
 def _smooth_pitch(points: list[ProsodyPoint], window: int) -> list[ProsodyPoint]:
