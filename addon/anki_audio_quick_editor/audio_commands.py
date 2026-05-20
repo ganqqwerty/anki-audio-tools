@@ -264,11 +264,15 @@ def build_dpdfnet_command(
     dpdfnet_path: Path,
     input_path: Path,
     output_wav_path: Path,
+    *,
+    attn_limit_db: float,
 ) -> tuple[str, ...]:
     """Build the DPDFNet command for one source audio file."""
     return (
         str(dpdfnet_path),
         "enhance",
+        "--attn-limit-db",
+        f"{attn_limit_db:g}",
         str(input_path),
         str(output_wav_path),
     )

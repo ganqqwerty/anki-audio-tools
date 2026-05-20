@@ -301,11 +301,14 @@ def test_build_dpdfnet_command_uses_enhance_subcommand(tmp_path: Path) -> None:
         Path("/bin/dpdfnet"),
         tmp_path / "source.mp3",
         tmp_path / "denoised.wav",
+        attn_limit_db=12.0,
     )
 
     assert command == (
         "/bin/dpdfnet",
         "enhance",
+        "--attn-limit-db",
+        "12",
         str(tmp_path / "source.mp3"),
         str(tmp_path / "denoised.wav"),
     )

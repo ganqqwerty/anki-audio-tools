@@ -53,6 +53,7 @@ export interface EditorRuntimeConfig {
 
 export interface SplitButtonDefaults {
   denoiseAlgorithm: DenoiseAlgorithm;
+  dpdfnetAttnLimitDb?: number;
   graphConnectShortDropoutsMs?: number;
   graphRecordingCondition?: GraphRecordingCondition;
   graphSmoothness?: GraphSmoothness;

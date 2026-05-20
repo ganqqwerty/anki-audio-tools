@@ -1,0 +1,180 @@
+"""E2E tests for DPDFNet attenuation-limit settings integration."""
+
+from __future__ import annotations
+
+import json
+from pathlib import Path
+from unittest.mock import patch
+
+from PyQt6.QtWidgets import QApplication
+
+from e2e.editor_note_helpers import (
+    ADDON_NUMERIC_ID,
+    _basic_audio_note,
+    _button_selector,
+    _configure_ffmpeg,
+    _open_editor,
+    _sound_filename,
+)
+from e2e.helpers import (
+    click_selector,
+    generate_tone,
+    run_js,
+    wait_for_condition,
+    wait_for_js_condition,
+    wait_for_selector,
+)
+from e2e.test_settings_dialog import _open_settings_dialog
+
+
+def _split_menu_selector(command: str, ord_: int = 0) -> str:
+    slug = command.removeprefix("aqe:")
+    return f'[data-testid="aqe-split-{ord_}-{slug}-menu"]'
+
+
+def test_settings_dialog_saves_dpdfnet_attenuation_limit(anki_mw) -> None:
+    config = anki_mw.addonManager.getConfig(ADDON_NUMERIC_ID) or {}
+    config["dpdfnet_attn_limit_db"] = 12.0
+    anki_mw.addonManager.writeConfig(ADDON_NUMERIC_ID, config)
+
+    dialog = _open_settings_dialog(anki_mw)
+    selector = '[data-testid="dpdfnet-attn-limit-db"]'
+    wait_for_selector(dialog, selector, timeout=5.0)
+    run_js(
+        dialog,
+        f"""
+        (() => {{
+          const input = document.querySelector({json.dumps(selector)});
+          input.value = "8.5";
+          input.dispatchEvent(new Event("input", {{ bubbles: true }}));
+          return input.value;
+        }})()
+        """,
+    )
+    wait_for_js_condition(
+        dialog,
+        f"Number(document.querySelector({json.dumps(selector)})?.value)",
+        lambda value: value == 8.5,
+        timeout=5.0,
+    )
+
+    with patch.object(
+        anki_mw.addonManager,
+        "writeConfig",
+        wraps=anki_mw.addonManager.writeConfig,
+    ) as mock_write:
+        click_selector(dialog, '[data-testid="settings-save"]', timeout=5.0)
+        wait_for_condition(lambda: mock_write.called, timeout=5.0)
+
+    saved_config = mock_write.call_args.args[1]
+    assert saved_config["dpdfnet_attn_limit_db"] == 8.5
+
+
+def test_editor_dpdfnet_uses_saved_attenuation_limit(
+    anki_mw,
+    ffmpeg_config,
+    monkeypatch,
+) -> None:
+    from anki_audio_quick_editor.audio_state import AudioProcessingConfig
+
+    captured: list[float] = []
+    media_dir = Path(anki_mw.col.media.dir())
+    source = media_dir / "editor_dpdfnet_attn_limit_source.wav"
+    generate_tone(ffmpeg_config, source, duration_s=1.0)
+    note = _basic_audio_note(anki_mw, source.name)
+    _configure_ffmpeg(anki_mw, ffmpeg_config, dpdfnet_attn_limit_db=8.5)
+
+    def fake_render_dpdfnet_audio(
+        _source_path: Path,
+        config: AudioProcessingConfig,
+        output_path: Path,
+        **_kwargs,
+    ) -> None:
+        captured.append(config.dpdfnet_attn_limit_db)
+        output_path.write_bytes(b"denoised")
+
+    monkeypatch.setattr(
+        "anki_audio_quick_editor.editor_dependencies.render_dpdfnet_audio",
+        fake_render_dpdfnet_audio,
+    )
+
+    editor, parent = _open_editor(anki_mw, note)
+    try:
+        wait_for_selector(editor.web, _button_selector("aqe:denoise-standard"), timeout=10.0)
+        click_selector(editor.web, _split_menu_selector("aqe:denoise-standard"), timeout=5.0)
+        wait_for_js_condition(
+            editor.web,
+            """
+            document.querySelector('[data-testid="aqe-split-0-denoise-standard-preset-dpdfnet"]')?.title
+            """,
+            lambda value: value == "Denoise speech with DPDFNet, attenuation limit 8.5 dB",
+            timeout=5.0,
+        )
+        click_selector(
+            editor.web,
+            '[data-testid="aqe-split-0-denoise-standard-preset-dpdfnet"]',
+            timeout=5.0,
+        )
+        wait_for_js_condition(
+            editor.web,
+            """
+            document.querySelector('[data-testid="aqe-button-0-denoise-standard"]')?.title
+            """,
+            lambda value: value == "Denoise speech with DPDFNet, attenuation limit 8.5 dB",
+            timeout=5.0,
+        )
+        click_selector(editor.web, _button_selector("aqe:denoise-standard"), timeout=5.0)
+        wait_for_condition(
+            lambda: captured == [8.5] and _sound_filename(note.fields[0]) != source.name,
+            timeout=10.0,
+            message="Editor did not pass saved DPDFNet attenuation limit to renderer",
+        )
+    finally:
+        editor.set_note(None)
+        parent.close()
+
+
+def test_batch_dialog_loads_with_saved_dpdfnet_attenuation_limit(anki_mw, ffmpeg_config) -> None:
+    from anki_audio_quick_editor.audio_state import AudioProcessingConfig
+    from anki_audio_quick_editor.batch_operations import FieldGroup
+    from anki_audio_quick_editor.browser_dialog import BatchOperationsDialog
+
+    _configure_ffmpeg(
+        anki_mw,
+        ffmpeg_config,
+        dpdfnet_attn_limit_db=8.5,
+        speed_step=0.1,
+        volume_step_db=6.0,
+        pause_aggressiveness="aggressive",
+    )
+    config = AudioProcessingConfig.from_config(
+        anki_mw.addonManager.getConfig(ADDON_NUMERIC_ID) or {}
+    )
+    started_requests = []
+    dialog = BatchOperationsDialog(
+        anki_mw,
+        [1, 2],
+        (FieldGroup("Basic", ("Front", "Back")),),
+        config,
+        lambda _browser, _dialog, _note_ids, request: started_requests.append(request),
+    )
+    dialog._dialog.show()
+    QApplication.processEvents()
+    try:
+        state = wait_for_js_condition(
+            dialog._webview,
+            """
+            (() => {
+              const operation = document.querySelector('select')?.value;
+              const labels = Array.from(document.querySelectorAll('label')).map((label) => label.textContent || "");
+              return { operation, labels };
+            })()
+            """,
+            lambda value: value is not None and value["operation"] == "graph",
+            timeout=5.0,
+        )
+        assert "Operation" in " ".join(state["labels"])
+        assert config.dpdfnet_attn_limit_db == 8.5
+        assert started_requests == []
+    finally:
+        dialog._dialog.close()

@@ -83,6 +83,16 @@
       <span>{t("settings.deep_filter_post_filter")}</span>
     </span>
   </label>
+  <label class="field-row">
+    <span>{t("settings.dpdfnet_attn_limit_db")}</span>
+    <input
+      data-testid="dpdfnet-attn-limit-db"
+      type="number"
+      min="0"
+      step="0.5"
+      bind:value={config.dpdfnet_attn_limit_db}
+    />
+  </label>
   <div class="settings-grid">
     <label>
       <span class="label-with-icon">

@@ -244,7 +244,7 @@
   "settings.support.reading_recent_logs": "正在讀取最近的日誌",
   "settings.denoise_algorithm.dpdfnet": "DPDFNet",
   "editor.command.dpdfnet.label": "DPDFNet",
-  "editor.command.dpdfnet.title": "使用 DPDFNet 對語音降噪",
+  "editor.command.dpdfnet.title": "使用 DPDFNet 對語音降噪，衰減上限 {db} dB",
   "editor.status.denoising_dpdfnet": "正在使用 DPDFNet 降噪",
   "settings.health.checking_dpdfnet": "正在檢查 DPDFNet"
 }

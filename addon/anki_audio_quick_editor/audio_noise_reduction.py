@@ -231,7 +231,12 @@ def render_dpdfnet_audio(
         work_dir = Path(tempfile.mkdtemp(prefix="aqe_dpdfnet_"))
         denoised_wav = work_dir / "denoised.wav"
 
-        dpdfnet_cmd = build_dpdfnet_command(dpdfnet_path, source_path, denoised_wav)
+        dpdfnet_cmd = build_dpdfnet_command(
+            dpdfnet_path,
+            source_path,
+            denoised_wav,
+            attn_limit_db=config.dpdfnet_attn_limit_db,
+        )
         dpdfnet_result = _run_recorded_external_command(
             dpdfnet_cmd,
             "Could not start DPDFNet denoise.",

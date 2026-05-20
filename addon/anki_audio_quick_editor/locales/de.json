@@ -244,7 +244,7 @@
   "settings.support.reading_recent_logs": "Aktuelle Protokolle werden gelesen",
   "settings.denoise_algorithm.dpdfnet": "DPDFNet",
   "editor.command.dpdfnet.label": "DPDFNet",
-  "editor.command.dpdfnet.title": "Sprache mit DPDFNet entrauschen",
+  "editor.command.dpdfnet.title": "Sprache mit DPDFNet entrauschen, Dämpfungslimit {db} dB",
   "editor.status.denoising_dpdfnet": "Entrauschen mit DPDFNet",
   "settings.health.checking_dpdfnet": "DPDFNet wird geprüft"
 }

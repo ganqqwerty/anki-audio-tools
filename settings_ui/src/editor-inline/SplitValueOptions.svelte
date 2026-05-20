@@ -127,6 +127,14 @@
     return value === "standard" ? t("settings.denoise_algorithm.standard") : t("settings.pause_aggressiveness.normal");
   }
 
+  function optionTitle(value: string): string {
+    if (value === "dpdfnet") {
+      const db = window.__AQE_EDITOR_CONFIG__?.splitButtonDefaults?.dpdfnetAttnLimitDb ?? 12;
+      return t("editor.command.dpdfnet.title", { db });
+    }
+    return optionLabel(value);
+  }
+
   function applyOption(value: string): void {
     if (value === "gentle" || value === "normal" || value === "aggressive") onPauseAggressiveness(value);
     if (value === "standard" || value === "rnnoise" || value === "dpdfnet" || value === "voice_only") onDenoiseAlgorithm(value);
@@ -166,6 +174,7 @@
         class="aqe-button aqe-split-preset"
         data-testid={`aqe-split-${targetOrd}-${slug}-preset-${option}`}
         aria-pressed={valueLabel() === optionLabel(option) ? "true" : "false"}
+        title={optionTitle(option)}
         onclick={() => applyOption(option)}
       >
         {optionLabel(option)}

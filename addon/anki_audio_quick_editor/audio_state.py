@@ -33,6 +33,7 @@ class AudioProcessingConfig:
     ffmpeg_path: str = ""
     deep_filter_path: str = ""
     deep_filter_post_filter: bool = True
+    dpdfnet_attn_limit_db: float = 12.0
     denoise_algorithm: str = "standard"
     show_ffmpeg_commands: bool = False
     graph_voice_range: GraphVoiceRange = "general"
@@ -73,6 +74,9 @@ class AudioProcessingConfig:
             deep_filter_path=str(config.get("deep_filter_path", cls.deep_filter_path)),
             deep_filter_post_filter=bool(
                 config.get("deep_filter_post_filter", cls.deep_filter_post_filter)
+            ),
+            dpdfnet_attn_limit_db=float(
+                config.get("dpdfnet_attn_limit_db", cls.dpdfnet_attn_limit_db)
             ),
             denoise_algorithm=str(config.get("denoise_algorithm", cls.denoise_algorithm)),
             show_ffmpeg_commands=bool(

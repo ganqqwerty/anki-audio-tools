@@ -5,7 +5,7 @@ from __future__ import annotations
 import copy
 from typing import Any
 
-CURRENT_CONFIG_VERSION = 12
+CURRENT_CONFIG_VERSION = 13
 
 REMOVED_CONFIG_KEYS = frozenset(
     {

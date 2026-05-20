@@ -26,7 +26,7 @@ LOCAL_DPDFNET_BUILD = Path("/Users/iuriikatkov/IdeaProjects/DPDFNet/dist/lite/dp
 
 def _default_config() -> dict:
     return {
-        "_config_version": 11,
+        "_config_version": 13,
         "enabled": True,
         "debug_logging": False,
         "show_ffmpeg_commands": False,
@@ -48,6 +48,7 @@ def _default_config() -> dict:
         "ffmpeg_path": "",
         "deep_filter_path": "",
         "deep_filter_post_filter": True,
+        "dpdfnet_attn_limit_db": 12.0,
     }
 
 

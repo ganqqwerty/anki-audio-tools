@@ -244,7 +244,7 @@
   "settings.support.reading_recent_logs": "Чтение последних журналов",
   "settings.denoise_algorithm.dpdfnet": "DPDFNet",
   "editor.command.dpdfnet.label": "DPDFNet",
-  "editor.command.dpdfnet.title": "Удалить шум речи через DPDFNet",
+  "editor.command.dpdfnet.title": "Удалить шум речи через DPDFNet, предел ослабления {db} дБ",
   "editor.status.denoising_dpdfnet": "Шумоподавление DPDFNet",
   "settings.health.checking_dpdfnet": "Проверка DPDFNet"
 }

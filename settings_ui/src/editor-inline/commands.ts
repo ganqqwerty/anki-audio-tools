@@ -95,6 +95,8 @@ export function commandButtons(): readonly ButtonSpec[] {
 }
 
 export function denoiseButtons(): readonly ButtonSpec[] {
+  const dpdfnetAttnLimitDb =
+    window.__AQE_EDITOR_CONFIG__?.splitButtonDefaults?.dpdfnetAttnLimitDb ?? 12;
   return [
     {
       command: "aqe:denoise-standard",
@@ -112,7 +114,7 @@ export function denoiseButtons(): readonly ButtonSpec[] {
       command: "aqe:dpdfnet",
       icon: "sparkles",
       label: t("editor.command.dpdfnet.label"),
-      title: t("editor.command.dpdfnet.title"),
+      title: t("editor.command.dpdfnet.title", { db: dpdfnetAttnLimitDb }),
     },
     {
       command: "aqe:voice-only",

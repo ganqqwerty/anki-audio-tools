@@ -34,6 +34,7 @@ export {
 type CompleteSplitButtonDefaults = Required<SplitButtonDefaults>;
 const DEFAULTS: CompleteSplitButtonDefaults = {
   denoiseAlgorithm: "standard",
+  dpdfnetAttnLimitDb: 12,
   ...defaultGraphSplitValues(),
   pauseAggressiveness: "normal",
   repeatPauseSeconds: 0,

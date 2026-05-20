@@ -32,6 +32,7 @@
     "ffmpeg_path",
     "deep_filter_path",
     "deep_filter_post_filter",
+    "dpdfnet_attn_limit_db",
     "denoise_algorithm"
   ],
   "properties": {
@@ -140,6 +141,10 @@
     },
     "deep_filter_post_filter": {
       "type": "boolean"
+    },
+    "dpdfnet_attn_limit_db": {
+      "type": "number",
+      "minimum": 0
     },
     "denoise_algorithm": {
       "type": "string",

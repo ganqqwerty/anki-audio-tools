@@ -106,7 +106,7 @@ Config defaults are stored in `config.json` and migrated into user config:
 
 ```json
 {
-  "_config_version": 11,
+  "_config_version": 13,
   "enabled": true,
   "debug_logging": false,
   "show_ffmpeg_commands": false,
@@ -129,12 +129,13 @@ Config defaults are stored in `config.json` and migrated into user config:
   "ffmpeg_path": "",
   "deep_filter_path": "",
   "deep_filter_post_filter": true,
+  "dpdfnet_attn_limit_db": 12.0,
   "denoise_algorithm": "standard"
 }
 ```
 
 `config_migration.py` deep-merges defaults into user config and stamps the current schema version.
-Editor split-button choices are field-local runtime overrides. Settings provide defaults for trim amount, volume step, speed step, repeat pause, pause aggressiveness, and cleanup action, but changing a split-button value in one editor field does not write back to persisted config or other fields.
+Editor split-button choices are field-local runtime overrides. Settings provide defaults for trim amount, volume step, speed step, repeat pause, pause aggressiveness, cleanup action, and DPDFNet attenuation limit display, but changing a split-button value in one editor field does not write back to persisted config or other fields.
 
 ## Source Of Truth
 

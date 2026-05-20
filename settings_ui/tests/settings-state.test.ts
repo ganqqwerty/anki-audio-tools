@@ -13,7 +13,7 @@ import {
 } from "../src/lib/types.js";
 
 const config: Config = {
-  _config_version: 12,
+  _config_version: 13,
   enabled: false,
   debug_logging: false,
   show_ffmpeg_commands: false,
@@ -40,6 +40,7 @@ const config: Config = {
   ffmpeg_path: "",
   deep_filter_path: "",
   deep_filter_post_filter: true,
+  dpdfnet_attn_limit_db: 12.0,
   denoise_algorithm: DenoiseAlgorithm.Standard,
   pause_aggressiveness: PauseAggressiveness.Normal,
 };

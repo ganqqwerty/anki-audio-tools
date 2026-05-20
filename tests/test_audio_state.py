@@ -103,6 +103,7 @@ def test_processing_config_from_partial_config_uses_defaults() -> None:
     assert config.ffmpeg_path == "/opt/bin/ffmpeg"
     assert config.deep_filter_path == ""
     assert config.deep_filter_post_filter is True
+    assert config.dpdfnet_attn_limit_db == 12.0
     assert config.show_ffmpeg_commands is False
 
 
@@ -138,3 +139,9 @@ def test_processing_config_reads_deep_filter_settings() -> None:
 
     assert config.deep_filter_path == "/opt/bin/deep-filter"
     assert config.deep_filter_post_filter is False
+
+
+def test_processing_config_reads_dpdfnet_settings() -> None:
+    config = AudioProcessingConfig.from_config({"dpdfnet_attn_limit_db": 8.5})
+
+    assert config.dpdfnet_attn_limit_db == 8.5

@@ -217,6 +217,7 @@ def _on_editor_will_load_note(js: str, note: Any, editor: Any) -> str:
             "repeatPauseSeconds": float(config.get("repeat_pause_seconds", 0.0)),
             "pauseAggressiveness": str(config.get("pause_aggressiveness", "normal")),
             "denoiseAlgorithm": str(config.get("denoise_algorithm", "standard")),
+            "dpdfnetAttnLimitDb": float(config.get("dpdfnet_attn_limit_db", 12.0)),
             "graphVoiceRange": str(config.get("graph_voice_range", "general")),
             "graphRecordingCondition": str(config.get("graph_recording_condition", "auto")),
             "graphSmoothness": str(config.get("graph_smoothness", "very_smooth")),

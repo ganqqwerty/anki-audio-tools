@@ -14,7 +14,7 @@ export type SettingsTab = "general" | "diagnostics";
 
 export const FALLBACK_INITIAL_STATE: InitialState = {
   config: {
-    _config_version: 12,
+    _config_version: 13,
     enabled: true,
     debug_logging: false,
     show_ffmpeg_commands: false,
@@ -42,6 +42,7 @@ export const FALLBACK_INITIAL_STATE: InitialState = {
     ffmpeg_path: "",
     deep_filter_path: "",
     deep_filter_post_filter: true,
+    dpdfnet_attn_limit_db: 12.0,
     denoise_algorithm: DenoiseAlgorithm.Standard,
   },
   version: "",

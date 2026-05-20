@@ -68,6 +68,26 @@
     return "default";
   }
 
+  function isDenoiseButton(): boolean {
+    return (
+      button.command === "aqe:denoise-standard" ||
+      button.command === "aqe:rnnoise" ||
+      button.command === "aqe:dpdfnet" ||
+      button.command === "aqe:voice-only"
+    );
+  }
+
+  function primaryTitle(): string {
+    if (!isDenoiseButton()) return button.title;
+    if (denoiseAlgorithm === "rnnoise") return t("editor.command.rnnoise.title");
+    if (denoiseAlgorithm === "dpdfnet") {
+      const db = window.__AQE_EDITOR_CONFIG__?.splitButtonDefaults?.dpdfnetAttnLimitDb ?? 12;
+      return t("editor.command.dpdfnet.title", { db });
+    }
+    if (denoiseAlgorithm === "voice_only") return t("editor.command.voice_only.title");
+    return t("editor.command.standard.title");
+  }
+
   function close(): void {
     open = false;
     popoverStyle = HIDDEN_POPOVER_STYLE;
@@ -219,8 +239,8 @@
     data-aqe-command={button.command}
     data-aqe-button-state={initialButtonState()}
     data-testid={`aqe-button-${target.ord}-${slug()}`}
-    title={button.title}
-    aria-label={button.title}
+    title={primaryTitle()}
+    aria-label={primaryTitle()}
     onmousedown={(event) => event.preventDefault()}
     onclick={dispatchPrimary}
   >

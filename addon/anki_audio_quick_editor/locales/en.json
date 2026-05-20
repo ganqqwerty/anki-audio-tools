@@ -40,6 +40,7 @@
   "settings.deep_filter_path": "DeepFilterNet path",
   "settings.deep_filter_path.placeholder": "Leave blank to use bundled binary, then PATH",
   "settings.deep_filter_post_filter": "Use DeepFilterNet post-filter",
+  "settings.dpdfnet_attn_limit_db": "DPDFNet attenuation limit (dB)",
   "settings.manual_trim_small_ms": "Small trim step (ms)",
   "settings.manual_trim_large_ms": "Large trim step (ms)",
   "settings.speed_step": "Speed step",
@@ -244,7 +245,7 @@
   "settings.support.reading_recent_logs": "Reading recent logs",
   "settings.denoise_algorithm.dpdfnet": "DPDFNet",
   "editor.command.dpdfnet.label": "DPDFNet",
-  "editor.command.dpdfnet.title": "Denoise speech with DPDFNet",
+  "editor.command.dpdfnet.title": "Denoise speech with DPDFNet, attenuation limit {db} dB",
   "editor.status.denoising_dpdfnet": "Denoising with DPDFNet",
   "settings.health.checking_dpdfnet": "Checking DPDFNet"
 }

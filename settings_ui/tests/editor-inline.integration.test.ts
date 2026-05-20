@@ -72,8 +72,20 @@ afterEach(() => {
   });
 
   it("dispatches denoise split commands and renders collapsed help", async () => {
-    initializeEditorRuntime({ audioFieldIndices: [0] });
-    scan({ audioFieldIndices: [0] });
+    const config = {
+      audioFieldIndices: [0],
+      splitButtonDefaults: {
+        denoiseAlgorithm: "standard" as const,
+        dpdfnetAttnLimitDb: 8.5,
+        pauseAggressiveness: "normal" as const,
+        repeatPauseSeconds: 0,
+        speedStep: 0.05,
+        trimStepMs: 100,
+        volumeStepDb: 3,
+      },
+    };
+    initializeEditorRuntime(config);
+    scan(config);
 
     const help = document.querySelector<HTMLDetailsElement>('[data-testid="aqe-help-0"]')!;
     expect(help.open).toBe(false);
@@ -86,6 +98,9 @@ afterEach(() => {
     expect(help).toHaveTextContent("Creates a new file with louder audio.");
     expect(help).toHaveTextContent("Every edit creates a new media file and updates the field to point at it.");
     expect(help).toHaveTextContent("grey is loudness and lines are pitch of the voice.");
+    expect(document.querySelector<HTMLButtonElement>('[data-testid="aqe-button-0-denoise-standard"]')?.title).toBe(
+      "Denoise speech with DeepFilterNet",
+    );
 
     document.querySelector<HTMLButtonElement>('[data-testid="aqe-button-0-denoise-standard"]')!.click();
     expect(bridgeCommands()).toContain("aqe:command-payload");
@@ -96,7 +111,15 @@ afterEach(() => {
     window.__aqePrepareForNewNote?.();
     document.querySelector<HTMLButtonElement>('[data-testid="aqe-split-0-denoise-standard-menu"]')!.click();
     await Promise.resolve();
-    document.querySelector<HTMLButtonElement>('[data-testid="aqe-split-0-denoise-standard-preset-dpdfnet"]')!.click();
+    const dpdfnetPreset = document.querySelector<HTMLButtonElement>(
+      '[data-testid="aqe-split-0-denoise-standard-preset-dpdfnet"]',
+    )!;
+    expect(dpdfnetPreset.title).toBe("Denoise speech with DPDFNet, attenuation limit 8.5 dB");
+    dpdfnetPreset.click();
+    await Promise.resolve();
+    expect(document.querySelector<HTMLButtonElement>('[data-testid="aqe-button-0-denoise-standard"]')?.title).toBe(
+      "Denoise speech with DPDFNet, attenuation limit 8.5 dB",
+    );
     document.querySelector<HTMLButtonElement>('[data-testid="aqe-button-0-denoise-standard"]')!.click();
     expect(window.__aqePendingCommandPayload?.command).toBe("aqe:dpdfnet");
     expect(window.__aqePendingCommandPayload?.fieldOrd).toBe(0);

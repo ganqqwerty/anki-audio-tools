@@ -29,10 +29,11 @@ Audio Quick Editor config lives in [`addon/anki_audio_quick_editor/config.json`]
 | `ffmpeg_path` | string | Optional explicit path to `ffmpeg`; blank uses PATH |
 | `deep_filter_path` | string | Optional explicit path to DeepFilterNet `deep-filter`; blank uses a bundled platform binary when available, then PATH |
 | `deep_filter_post_filter` | boolean | Enables DeepFilterNet post-filtering for stronger noise suppression and pause-detection analysis |
+| `dpdfnet_attn_limit_db` | number | Attenuation limit passed to DPDFNet `--attn-limit-db`; default is `12.0` dB |
 | `denoise_algorithm` | string | Default cleanup split-button action: `standard` for DeepFilterNet, `rnnoise` for RNNoise, `dpdfnet` for bundled DPDFNet Lite, or `voice_only` for Sherpa Spleeter vocals extraction |
 
 ## Access Pattern
 
 Read config through `mw.addonManager.getConfig(addon_id)` in Anki-facing modules. Merge defaults through `config_migration.migrate_config()` during startup.
 
-Pause shortening uses the internal pause keys with DeepFilterNet as an analysis preprocessor. The user-facing `pause_aggressiveness` default maps to concrete threshold/target values when the editor split button sends a local override; persisted settings are not changed by per-field split-button selections. The persisted `repeat_pause_seconds` value is only the editor default; changes made in a repeat split-button menu are field-local and do not write back to config. Pause shortening stores retained provenance under `<addon_dir>/aqe_artifacts/<run_id>/`; this artifact location is not currently configurable.
+Pause shortening uses the internal pause keys with DeepFilterNet as an analysis preprocessor. The user-facing `pause_aggressiveness` default maps to concrete threshold/target values when the editor split button sends a local override; persisted settings are not changed by per-field split-button selections. The persisted `repeat_pause_seconds` value is only the editor default; changes made in a repeat split-button menu are field-local and do not write back to config. DPDFNet denoise always uses the persisted `dpdfnet_attn_limit_db` value. Pause shortening stores retained provenance under `<addon_dir>/aqe_artifacts/<run_id>/`; this artifact location is not currently configurable.

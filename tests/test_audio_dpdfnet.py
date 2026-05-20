@@ -46,7 +46,7 @@ def test_render_dpdfnet_audio_runs_denoise_and_encode(
         assert timeout > 0
         calls.append(cmd)
         if cmd[0] == "/bin/dpdfnet":
-            Path(cmd[3]).write_bytes(b"denoised")
+            Path(cmd[5]).write_bytes(b"denoised")
         return SimpleNamespace(returncode=0, stdout="", stderr="")
 
     monkeypatch.setattr("anki_audio_quick_editor.audio_processor.subprocess.run", fake_run)
@@ -54,7 +54,7 @@ def test_render_dpdfnet_audio_runs_denoise_and_encode(
     output = tmp_path / "denoised.mp3"
     result = render_dpdfnet_audio(
         tmp_path / "source.mp3",
-        AudioProcessingConfig(),
+        AudioProcessingConfig(dpdfnet_attn_limit_db=8.5),
         output_path=output,
         on_command=commands.append,
     )
@@ -62,10 +62,12 @@ def test_render_dpdfnet_audio_runs_denoise_and_encode(
     assert calls[0] == [
         "/bin/dpdfnet",
         "enhance",
+        "--attn-limit-db",
+        "8.5",
         str(tmp_path / "source.mp3"),
-        calls[0][3],
+        calls[0][5],
     ]
-    assert calls[1][0:4] == ["/bin/ffmpeg", "-y", "-i", calls[0][3]]
+    assert calls[1][0:4] == ["/bin/ffmpeg", "-y", "-i", calls[0][5]]
     assert calls[1][-5:] == ["-codec:a", "libmp3lame", "-q:a", "4", str(output)]
     assert commands == [tuple(call) for call in calls]
     assert result.output_path == output
@@ -216,7 +218,7 @@ def test_render_dpdfnet_audio_reports_encode_errors(
 
     def fake_run(cmd: list[str], *_args, **_kwargs) -> SimpleNamespace:
         if cmd[0] == "/bin/dpdfnet":
-            Path(cmd[3]).write_bytes(b"denoised")
+            Path(cmd[5]).write_bytes(b"denoised")
             return SimpleNamespace(returncode=0, stdout="", stderr="")
         return SimpleNamespace(returncode=1, stdout="", stderr="encode failed")
 
