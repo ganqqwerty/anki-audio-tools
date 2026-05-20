@@ -80,22 +80,25 @@ The shared `remove_pauses` operation is DeepFilterNet-assisted and speeds long p
 
 1. `browser_integration.py` adds `Run Audio Batch Operation...` to the Browser Cards menu and context menu.
 2. The Browser selection is deduplicated to note IDs before processing.
-3. The dialog builds one operation selector plus source and target field combos from the union of selected-note fields, grouped by note type. The selected value is the field name, so shared field names apply across note types.
-4. Source field selection is always required. Target field selection is required only for `graph`.
-5. Batch execution runs with `mw.taskman.run_in_background(..., uses_collection=True)` and posts progress/log updates back to the main thread.
-6. `batch_operations.py` handles import-safe per-note decisions: missing required fields, empty source fields, and unsupported sound references are skips; missing media and analysis/render/write/update exceptions are failures.
-7. For transform operations, only the first supported `[sound:...]` reference in the source field is used. The transformed audio is written to Anki media and replaces that source-field reference in place.
-8. For `graph`, the generated SVG is written to Anki media and appended to the chosen target field as an `<img>` reference.
-9. `prosody_cache.py` shares cached analysis between editor and batch paths, while `prosody_svg.py` renders deterministic UTF-8 SVG media using the current pitch/intensity style.
-10. Successful updates are merged into one custom Anki undo entry where Anki supports it. Cancellation stops before the next note, leaving completed writes intact.
+3. `browser_dialog.py` hosts an `AnkiWebView` shell for the committed Browser batch Svelte bundle through `webview_shell.py`, while `browser_dialog_state.py` builds import-safe initial state and decodes generated contract payloads.
+4. Batch bridge commands use the shared `bridge:{ command, payload }` envelope decoded by `webview_bridge.py`; legacy `name:json` commands are accepted only as compatibility input.
+5. The Svelte app renders the operation selector plus source and target field controls from the union of selected-note fields, grouped by note type. Operation target and parameter behavior comes from Python-provided operation metadata, not frontend operation-name conditionals.
+6. Source field selection is always required. Target field selection is required only for operations whose metadata requires it.
+7. Batch execution runs with `mw.taskman.run_in_background(..., uses_collection=True)` and posts progress/log updates back to the WebView on the main thread.
+8. `batch_operations.py` handles import-safe per-note decisions: missing required fields, empty source fields, and unsupported sound references are skips; missing media and analysis/render/write/update exceptions are failures.
+9. For transform operations, only the first supported `[sound:...]` reference in the source field is used. The transformed audio is written to Anki media and replaces that source-field reference in place.
+10. For `graph`, the generated SVG is written to Anki media and appended to the chosen target field as an `<img>` reference.
+11. `prosody_cache.py` shares cached analysis between editor and batch paths, while `prosody_svg.py` renders deterministic UTF-8 SVG media using the current pitch/intensity style.
+12. Successful updates are merged into one custom Anki undo entry where Anki supports it. Cancellation stops before the next note, leaving completed writes intact.
 
 ## Settings Flow
 
-1. Python renders HTML containing `window.__INITIAL_STATE__`.
+1. Python renders HTML containing `window.__INITIAL_STATE__` through the shared `webview_shell.py` renderer.
 2. The committed `settings_bundle.js` mounts the settings Svelte app.
-3. The app sends commands through `pycmd(...)`.
-4. `settings/commands.py` handles save/reset/log/async operations.
+3. The app sends commands through the shared `bridge:{ command, payload }` envelope in `settings_ui/src/lib/bridge.ts`.
+4. `settings/commands.py` decodes commands with `webview_bridge.py` and handles save/reset/log/async operations.
 5. Python sends async completion events back via `webview.eval(...)`.
+6. Settings, editor, and batch frontend diagnostics all pass through `frontend_logs.py` before being recorded in runtime diagnostics.
 
 ## Config
 
@@ -148,7 +151,7 @@ The canonical module contracts and allowed side effects are defined in `tests/te
 
 | Contract | Source modules | Forbidden modules |
 |----------|----------------|-------------------|
-| `import-safe-no-upper-layers` | Import-safe helper modules, including batch visualization and prosody rendering/cache modules | Browser/editor UI modules and settings backend modules |
+| `import-safe-no-upper-layers` | Import-safe helper modules, including batch visualization, Browser batch state, shared WebView bridge/shell helpers, frontend log handling, and prosody rendering/cache modules | Browser/editor UI modules and settings backend modules |
 | `settings-backend-no-ui` | `settings.commands`, `settings.initial_state` | `editor_integration` |
 
 ## Enforced Rules

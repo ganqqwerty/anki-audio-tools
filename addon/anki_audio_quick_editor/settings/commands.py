@@ -15,7 +15,6 @@ from ..contracts_generated import (
     AsyncProgressPayload,
     Config,
     CopySupportReportPayload,
-    FrontendLogPayload,
     HealthReport,
     ShowLogFileResult,
     SupportReportResult,
@@ -24,11 +23,16 @@ from ..diagnostics_runtime import (
     capture_exception,
     new_operation_id,
     record_breadcrumb,
-    record_frontend_error,
     set_debug_enabled,
     support_report_context,
 )
 from ..errors import SettingsCommandError
+from ..frontend_logs import handle_frontend_log_payload
+from ..webview_bridge import (
+    WebviewBridgeCommand,
+    decode_webview_bridge_command,
+    legacy_json_payload,
+)
 
 logger = logging.getLogger(__name__)
 CONTRACT_DECODE_ERRORS = (AssertionError, TypeError, ValueError)
@@ -40,7 +44,13 @@ def handle_settings_command(
     dialog: Any,
 ) -> bool:
     """Dispatch a settings command received from the Svelte UI."""
-    command_name = cmd.split(":", 1)[0]
+    try:
+        command = decode_webview_bridge_command(cmd)
+    except (json.JSONDecodeError, ValueError) as exc:
+        logger.warning("settings bridge: invalid command: %s", exc)
+        return False
+
+    command_name = command.name
     record_breadcrumb(
         "settings.command.received",
         source="settings",
@@ -48,36 +58,36 @@ def handle_settings_command(
         operation_id=new_operation_id("settings"),
         context={"command": command_name},
     )
-    if cmd == "settings_cancel":
+    if command_name in {"settings.cancel", "settings_cancel"}:
         dialog.reject()
         return True
-    if cmd == "settings_reset_defaults":
+    if command_name in {"settings.reset_defaults", "settings_reset_defaults"}:
         _handle_reset_defaults(dialog)
         return True
-    if cmd.startswith("settings_save:"):
-        _handle_settings_save(cmd[len("settings_save:"):], eval_fn, dialog)
+    if command_name in {"settings.save", "settings_save"}:
+        _handle_settings_save(command, eval_fn, dialog)
         return True
-    if cmd.startswith("async_cmd:"):
-        _handle_async_cmd(cmd[len("async_cmd:"):], eval_fn)
+    if command_name in {"settings.async", "async_cmd"}:
+        _handle_async_cmd(command, eval_fn)
         return True
-    if cmd.startswith("frontend_log:"):
-        _handle_frontend_log(cmd[len("frontend_log:"):])
+    if command_name in {"frontend.log", "frontend_log"}:
+        _handle_frontend_log(command.legacy_payload if command.is_legacy else command.payload)
         return True
-    if cmd.startswith("copy_support_report:"):
-        _handle_copy_support_report(cmd[len("copy_support_report:"):])
+    if command_name in {"support.copy_report", "copy_support_report"}:
+        _handle_copy_support_report(command)
         return True
     return False
 
 
 def _handle_settings_save(
-    payload_str: str,
+    command: WebviewBridgeCommand,
     eval_fn: Callable[[str], None],
     dialog: Any,
 ) -> None:
     from aqt import mw
 
     try:
-        raw_config = json.loads(payload_str)
+        raw_config = legacy_json_payload(command)
     except json.JSONDecodeError:
         payload = json.dumps({"error": "Invalid JSON payload"})
         eval_fn(f"window.onSaveError({payload})")
@@ -137,18 +147,18 @@ def _handle_reset_defaults(dialog: Any) -> None:
     dialog.reject()
 
 
-def _handle_async_cmd(payload_str: str, eval_fn: Callable[[str], None]) -> None:
+def _handle_async_cmd(command: WebviewBridgeCommand, eval_fn: Callable[[str], None]) -> None:
     from aqt import mw
 
     try:
-        raw_payload = json.loads(payload_str)
+        raw_payload = legacy_json_payload(command)
     except json.JSONDecodeError:
         logger.error("async_cmd: invalid JSON payload")
         return
     raw_job_id = _raw_job_id(raw_payload)
 
     try:
-        command = AsyncCommand.from_dict(raw_payload)
+        async_command = AsyncCommand.from_dict(raw_payload)
     except CONTRACT_DECODE_ERRORS as invalid_payload_error:
         invalid_done_payload_json = json.dumps(
             AsyncDonePayload(raw_job_id, False, error="Invalid async command payload").to_dict()
@@ -157,9 +167,9 @@ def _handle_async_cmd(payload_str: str, eval_fn: Callable[[str], None]) -> None:
         logger.warning("async_cmd: invalid payload shape: %s", invalid_payload_error)
         return
 
-    job_id = command.id
-    op = command.op
-    op_payload = command.payload.to_dict()
+    job_id = async_command.id
+    op = async_command.op
+    op_payload = async_command.payload.to_dict()
     operation_id = f"settings-{job_id}"
     record_breadcrumb(
         "settings.async.started",
@@ -312,86 +322,22 @@ def _op_show_log_file(
     return ShowLogFileResult(str(log_path)).to_dict()
 
 
-def _handle_frontend_log(payload_str: str) -> None:
-    payload = _decode_frontend_log_payload(payload_str)
-    if payload is None:
-        return
-
-    level = payload.level.value
-    message = payload.message
-    context = payload.context
-    stack = str(getattr(payload, "stack", "") or "")
-    scope = str(getattr(payload, "scope", "") or "settings")
-    operation_id = str(getattr(payload, "operation_id", "") or "")
-    _log_frontend(level, _render_frontend_log("frontend", message, context, stack))
-    record_breadcrumb(
-        "frontend.log",
-        source=scope,
-        level=_breadcrumb_level(level),
-        operation="frontend.log",
-        operation_id=operation_id,
-        context=_frontend_log_context(payload, level),
+def _handle_frontend_log(raw_payload: Any) -> None:
+    handle_frontend_log_payload(
+        raw_payload,
+        logger=logger,
+        default_scope="settings",
+        boundary="settings.frontend",
+        log_prefix="frontend",
+        invalid_label="frontend_log",
     )
-    if level == "error":
-        record_frontend_error(
-            "settings.frontend",
-            message=message,
-            stack=stack,
-            source=scope,
-            operation="settings.frontend",
-            operation_id=operation_id,
-            context=context,
-        )
-
-def _decode_frontend_log_payload(payload_str: str) -> FrontendLogPayload | None:
-    try:
-        raw_payload = json.loads(payload_str)
-    except json.JSONDecodeError:
-        logger.warning("frontend_log: invalid payload")
-        return None
-    try:
-        return FrontendLogPayload.from_dict(raw_payload)
-    except CONTRACT_DECODE_ERRORS:
-        logger.warning("frontend_log: invalid payload")
-        return None
 
 
-def _render_frontend_log(prefix: str, message: str, context: Any, stack: str) -> str:
-    rendered = f"{prefix}: {message}"
-    if context is not None:
-        rendered = f"{rendered} | {context!r}"
-    return f"{rendered}\n{stack}" if stack else rendered
-
-
-def _log_frontend(level: str, rendered: str) -> None:
-    log_fn = {
-        "debug": logger.debug,
-        "warn": logger.warning,
-        "error": logger.error,
-    }.get(level, logger.info)
-    log_fn(rendered)
-
-
-def _breadcrumb_level(level: str) -> str:
-    return "error" if level == "error" else "debug"
-
-
-def _frontend_log_context(payload: FrontendLogPayload, level: str) -> dict[str, object]:
-    return {
-        "level": level,
-        "message": payload.message,
-        "filename": getattr(payload, "filename", None),
-        "lineno": getattr(payload, "lineno", None),
-        "colno": getattr(payload, "colno", None),
-        "context": payload.context,
-    }
-
-
-def _handle_copy_support_report(payload_str: str) -> None:
+def _handle_copy_support_report(command: WebviewBridgeCommand) -> None:
     from aqt.qt import QApplication
 
     try:
-        raw_payload = json.loads(payload_str)
+        raw_payload = legacy_json_payload(command)
     except json.JSONDecodeError:
         logger.warning("copy_support_report: invalid payload")
         return

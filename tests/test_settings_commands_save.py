@@ -38,6 +38,20 @@ def test_settings_save_writes_config_and_accepts() -> None:
     assert dialog.accepted is True
 
 
+def test_settings_save_accepts_bridge_envelope() -> None:
+    from aqt import mw
+
+    dialog = _make_dialog()
+    _, eval_fn = _capture_eval()
+    config = _full_config()
+    command = "bridge:" + json.dumps({"command": "settings.save", "payload": config})
+
+    assert handle_settings_command(command, eval_fn, dialog) is True
+
+    mw.addonManager.writeConfig.assert_called_once()
+    assert dialog.accepted is True
+
+
 def test_settings_save_reports_invalid_json() -> None:
     dialog = _make_dialog()
     calls, eval_fn = _capture_eval()

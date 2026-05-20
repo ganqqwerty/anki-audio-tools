@@ -16,9 +16,9 @@ import {
 } from "./editor-inline.integration.helpers.js";
 
 const defaultGraphSettings = {
-  connectShortDropoutsMs: 0,
+  connectShortDropoutsMs: 240,
   recordingCondition: "auto",
-  smoothness: "balanced",
+  smoothness: "very_smooth",
   voiceLock: "balanced",
   voiceRange: "general",
 };

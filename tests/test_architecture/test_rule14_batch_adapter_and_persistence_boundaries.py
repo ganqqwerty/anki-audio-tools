@@ -9,6 +9,7 @@ from .contracts import MODULE_CONTRACTS, SideEffect
 
 BROWSER_INTEGRATION = ADDON_DIR / "browser_integration.py"
 BROWSER_DIALOG = ADDON_DIR / "browser_dialog.py"
+BROWSER_DIALOG_STATE = ADDON_DIR / "browser_dialog_state.py"
 ALLOWED_PERSISTENCE_FILES = {
     "browser_integration.py",
     "editor_integration.py",
@@ -23,12 +24,15 @@ PERSISTENCE_PATTERNS = [
 
 
 def test_browser_operation_selector_is_driven_by_shared_registry() -> None:
-    text = BROWSER_DIALOG.read_text(encoding="utf-8")
+    dialog_text = BROWSER_DIALOG.read_text(encoding="utf-8")
+    state_text = BROWSER_DIALOG_STATE.read_text(encoding="utf-8")
 
     for symbol in ("BATCH_OPERATIONS", "operation_label", "OP_GRAPH", "requires_target_field"):
-        assert symbol in text
-    assert "for operation in BATCH_OPERATIONS:" in text
-    assert "operation_label(operation" in text
+        assert symbol in state_text
+    assert "build_batch_initial_state" in dialog_text
+    assert "for operation in BATCH_OPERATIONS" in state_text
+    assert "operation_label(operation" in state_text
+    assert '"parameter_name": _parameter_name(operation)' in state_text
     for literal in (
         "remove_pauses",
         "slower",
@@ -36,8 +40,10 @@ def test_browser_operation_selector_is_driven_by_shared_registry() -> None:
         "volume_down",
         "volume_up",
     ):
-        assert f'"{literal}"' not in text
-        assert f"'{literal}'" not in text
+        assert f'"{literal}"' not in dialog_text
+        assert f"'{literal}'" not in dialog_text
+        assert f'"{literal}"' not in state_text
+        assert f"'{literal}'" not in state_text
 
 
 def test_browser_integration_avoids_low_level_transform_mechanics_modules() -> None:

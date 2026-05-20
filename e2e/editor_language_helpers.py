@@ -5,6 +5,7 @@ from __future__ import annotations
 import json
 from contextlib import contextmanager
 from pathlib import Path
+from typing import Any
 
 from tests.prosody_language_fixtures import (
     LANGUAGE_CONTOUR_SPECS,
@@ -62,12 +63,12 @@ def _median_rendered_y(rendered: dict, window: ContourWindow) -> float:
 
 
 @contextmanager
-def _language_contour_editor(anki_mw, ffmpeg_config, spec_name: str):
+def _language_contour_editor(anki_mw, ffmpeg_config, spec_name: str, **config_overrides: Any):
     media_dir = Path(anki_mw.col.media.dir())
     source = media_dir / f"editor_{spec_name}.wav"
     _generate_language_contour_for_e2e(source, spec_name)
     note = _basic_audio_note(anki_mw, source.name)
-    _configure_ffmpeg(anki_mw, ffmpeg_config)
+    _configure_ffmpeg(anki_mw, ffmpeg_config, **config_overrides)
     editor, parent = _open_editor(anki_mw, note)
     try:
         yield editor, parent, source, LANGUAGE_CONTOUR_SPECS[spec_name]

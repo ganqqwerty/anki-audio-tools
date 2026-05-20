@@ -60,15 +60,15 @@ def _lock_with_binary_hashes(content: bytes = b"binary") -> dict:
 
 
 def test_release_validates_required_frontend_bundles(tmp_path, capsys) -> None:
-    archive = tmp_path / "missing-editor-css.ankiaddon"
-    names = [name for name in _complete_manifest_names() if name != "templates/editor/editor_bundle.css"]
+    archive = tmp_path / "missing-batch-css.ankiaddon"
+    names = [name for name in _complete_manifest_names() if name != "templates/batch/batch_bundle.css"]
     _write_archive(archive, names, _complete_executable_names())
 
     with pytest.raises(SystemExit):
         release._validate_archive(archive, allow_large_archive=False, lock=_lock_with_binary_hashes())
 
     output = capsys.readouterr().out
-    assert "templates/editor/editor_bundle.css" in output
+    assert "templates/batch/batch_bundle.css" in output
 
 
 def test_release_validates_generated_contracts(tmp_path, capsys) -> None:

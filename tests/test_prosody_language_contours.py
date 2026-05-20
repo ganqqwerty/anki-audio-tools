@@ -28,6 +28,10 @@ pytestmark = pytest.mark.praat
 
 PITCH_TOLERANCE_HZ = 32
 MIN_VISIBLE_CONTOUR_PX = 16
+RAW_CONTOUR_CONFIG = AudioProcessingConfig(
+    graph_connect_short_dropouts_ms=0,
+    graph_smoothness="raw",
+)
 
 
 @pytest.mark.parametrize("spec_name", sorted(LANGUAGE_CONTOUR_SPECS))
@@ -219,7 +223,7 @@ def _analyze_spec(tmp_path: Path, spec_name: str):
     require_praat_and_ffmpeg()
     spec = LANGUAGE_CONTOUR_SPECS[spec_name]
     source = generate_praat_vowel_fixture(tmp_path / f"{spec.name}.wav", spec)
-    return spec, analyze_with_praat(source, AudioProcessingConfig())
+    return spec, analyze_with_praat(source, RAW_CONTOUR_CONFIG)
 
 
 def _voiced_points(points, window: ContourWindow):

@@ -30,7 +30,7 @@ After major refactors, package renames, config schema changes, hook changes, or 
 | `tests/test_architecture/` | Architecture boundary enforcement |
 | `e2e/` | End-to-end tests with real Anki + Qt |
 | `scripts/` | `dev.py` task runner and `release.py` packaging script |
-| `settings_ui/` | Svelte 5 + TypeScript settings and inline editor UI source |
+| `settings_ui/` | Svelte 5 + TypeScript settings, inline editor, and Browser batch UI source |
 | `.claude/commands/` | Claude Code workflow commands |
 | `.codex/skills/` | Repo-local Codex skills mirroring shared workflows |
 

@@ -8,6 +8,12 @@ import { describe, expect, it } from "vitest";
 const projectRoot = cwd();
 const sourceRoot = join(projectRoot, "src");
 
+const frontendAreas = [
+  { name: "settings", prefix: "src/settings/" },
+  { name: "editor", prefix: "src/editor-inline/" },
+  { name: "batch", prefix: "src/batch/" },
+] as const;
+
 const lineLimitAllowlist = new Map<string, number>([
   ["src/editor-inline/EditorControls.svelte", 360],
   ["src/editor-inline/SplitButton.svelte", 370],
@@ -85,7 +91,11 @@ describe("frontend architecture guardrails", () => {
     for (const path of productionFiles()) {
       const relPath = toRelPath(path);
       const source = withoutComments(readFileSync(path, "utf-8"));
-      if (/\bpycmd\s*\(/.test(source) && !["src/lib/bridge.ts", "src/editor-inline/bridge.ts"].includes(relPath)) {
+      if (/\bpycmd\s*\(/.test(source) && ![
+        "src/lib/bridge.ts",
+        "src/editor-inline/bridge.ts",
+        "src/batch/bridge.ts",
+      ].includes(relPath)) {
         offenders.push(`${relPath}: pycmd`);
       }
       if (assignedPublicWindowContractNames(source).length && ![
@@ -132,10 +142,57 @@ describe("frontend architecture guardrails", () => {
     expect(offenders).toEqual([]);
   });
 
+  it("keeps settings, editor, and batch frontends independent except shared lib imports", () => {
+    const offenders = frontendArchitectureFiles()
+      .map((path) => ({ relPath: toRelPath(path), source: readFileSync(path, "utf-8") }))
+      .flatMap(({ relPath, source }) => forbiddenFrontendImports(relPath, source));
+
+    expect(offenders).toEqual([]);
+  });
+
+  it("keeps shared lib modules independent from feature frontends", () => {
+    const offenders = frontendArchitectureFiles()
+      .map((path) => ({ relPath: toRelPath(path), source: readFileSync(path, "utf-8") }))
+      .filter(({ relPath, source }) => relPath.startsWith("src/lib/") && importsFeatureFrontend(source))
+      .map(({ relPath }) => relPath);
+
+    expect(offenders).toEqual([]);
+  });
+
+  it("keeps batch and editor window contracts separated", () => {
+    const offenders = frontendArchitectureFiles()
+      .map((path) => ({ relPath: toRelPath(path), source: withoutComments(readFileSync(path, "utf-8")) }))
+      .filter(({ relPath, source }) => {
+        if (relPath.startsWith("src/batch/")) return /__aqe|__AQE_EDITOR_CONFIG__/.test(source);
+        if (relPath.startsWith("src/editor-inline/")) return /__AQE_BATCH_INITIAL_STATE__|onBatch/.test(source);
+        return false;
+      })
+      .map(({ relPath }) => relPath);
+
+    expect(offenders).toEqual([]);
+  });
+
+  it("keeps settings and batch bridge commands on the shared JSON envelope", () => {
+    const legacyPrefixes = /settings_save:|settings_cancel|settings_reset_defaults|async_cmd:|copy_support_report:|batch_start:|batch_cancel|batch_close|batch_copy_log|frontend_log:/;
+    const offenders = frontendArchitectureFiles()
+      .map((path) => ({ relPath: toRelPath(path), source: withoutComments(readFileSync(path, "utf-8")) }))
+      .filter(({ relPath }) => relPath.startsWith("src/lib/") || relPath.startsWith("src/batch/"))
+      .filter(({ source }) => legacyPrefixes.test(source))
+      .map(({ relPath }) => relPath);
+
+    expect(offenders).toEqual([]);
+  });
+
   it("does not keep the unused frontend utility residue around", () => {
     expect(existsSync(join(sourceRoot, "lib", "utils.ts"))).toBe(false);
   });
 });
+
+function frontendArchitectureFiles(): string[] {
+  return walk(sourceRoot)
+    .filter((path) => /\.(svelte|ts)$/.test(path))
+    .filter((path) => isHandMaintainedFrontendFile(toRelPath(path)));
+}
 
 function productionFiles(): string[] {
   return walk(sourceRoot)
@@ -174,6 +231,32 @@ function lineLimitFor(relPath: string): number {
 
 function countExports(source: string): number {
   return Array.from(source.matchAll(/^\s*export\s+(?:async\s+)?(?:function|const|let|class|interface|type|enum)\s+/gm)).length;
+}
+
+function forbiddenFrontendImports(relPath: string, source: string): string[] {
+  const owner = frontendAreas.find((area) => relPath.startsWith(area.prefix));
+  if (!owner) return [];
+  return frontendAreas
+    .filter((area) => area.name !== owner.name)
+    .filter((area) => importsFrontendArea(source, area.prefix))
+    .map((area) => `${relPath}: imports ${area.prefix}`);
+}
+
+function importsFeatureFrontend(source: string): boolean {
+  return frontendAreas.some((area) => importsFrontendArea(source, area.prefix));
+}
+
+function importsFrontendArea(source: string, prefix: string): boolean {
+  const imports = Array.from(
+    source.matchAll(/\bfrom\s+["']([^"']+)["']|import\s+["']([^"']+)["']/g),
+    (match) => match[1] ?? match[2] ?? "",
+  );
+  const areaName = prefix.slice("src/".length, -1);
+  return imports.some((specifier) => {
+    if (specifier.startsWith("$lib/")) return false;
+    if (specifier.startsWith(`../${areaName}/`) || specifier.startsWith(`../../${areaName}/`)) return true;
+    return specifier.includes(`/${areaName}/`);
+  });
 }
 
 function assignedPublicWindowContractNames(source: string): string[] {

@@ -157,7 +157,13 @@ def test_visualizer_shows_vietnamese_nga_broken_rise(
     anki_mw,
     ffmpeg_config,
 ) -> None:
-    with _language_contour_editor(anki_mw, ffmpeg_config, "vi_nga_broken_rising_1_0s") as (
+    with _language_contour_editor(
+        anki_mw,
+        ffmpeg_config,
+        "vi_nga_broken_rising_1_0s",
+        graph_connect_short_dropouts_ms=0,
+        graph_smoothness="raw",
+    ) as (
         editor,
         _parent,
         source,

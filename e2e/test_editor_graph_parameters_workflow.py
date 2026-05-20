@@ -30,7 +30,7 @@ def test_graph_smoothness_changes_real_praat_rendered_pitch_density(
     source = media_dir / "editor_graph_params_praat_smoothness.wav"
     _generate_frequency_tone(ffmpeg_config, source, frequency_hz=440, duration_s=1.0)
     note = _basic_audio_note(anki_mw, source.name)
-    _configure_ffmpeg(anki_mw, ffmpeg_config)
+    _configure_ffmpeg(anki_mw, ffmpeg_config, graph_smoothness="raw")
 
     editor, parent = _open_editor(anki_mw, note)
     try:
@@ -78,7 +78,7 @@ def test_graph_smoothness_changes_real_ffmpeg_pcm_rendered_pitch_density(
     source = media_dir / "editor_graph_params_fallback_smoothness.wav"
     _generate_frequency_tone(ffmpeg_config, source, frequency_hz=220, duration_s=1.0)
     note = _basic_audio_note(anki_mw, source.name)
-    _configure_ffmpeg(anki_mw, ffmpeg_config)
+    _configure_ffmpeg(anki_mw, ffmpeg_config, graph_smoothness="raw")
 
     editor, parent = _open_editor(anki_mw, note)
     try:

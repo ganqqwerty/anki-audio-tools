@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import {
   copySupportReport,
+  encodeBridgeCommand,
   registerCallbacks,
   sendAsyncCmd,
   sendBridgeCommand,
@@ -60,24 +61,34 @@ describe("sendBridgeCommand", () => {
   });
 });
 
+describe("encodeBridgeCommand", () => {
+  it("wraps commands in the shared JSON envelope", () => {
+    expect(encodeBridgeCommand("settings.cancel")).toBe('bridge:{"command":"settings.cancel"}');
+    expect(JSON.parse(encodeBridgeCommand("settings.save", { enabled: true }).slice("bridge:".length))).toEqual({
+      command: "settings.save",
+      payload: { enabled: true },
+    });
+  });
+});
+
 describe("settingsSave", () => {
-  it("sends a settings_save payload", () => {
+  it("sends a settings.save payload", () => {
     settingsSave(config);
     const call = pycmd.mock.calls[0]?.[0] ?? "";
-    expect(call).toMatch(/^settings_save:/);
-    expect(JSON.parse(call.slice("settings_save:".length))).toEqual(config);
+    const envelope = JSON.parse(call.slice("bridge:".length));
+    expect(envelope).toEqual({ command: "settings.save", payload: config });
   });
 });
 
 describe("lifecycle commands", () => {
-  it("sends settings_cancel", () => {
+  it("sends settings.cancel", () => {
     settingsCancel();
-    expect(pycmd).toHaveBeenCalledWith("settings_cancel");
+    expect(pycmd).toHaveBeenCalledWith('bridge:{"command":"settings.cancel"}');
   });
 
-  it("sends settings_reset_defaults", () => {
+  it("sends settings.reset_defaults", () => {
     settingsResetDefaults();
-    expect(pycmd).toHaveBeenCalledWith("settings_reset_defaults");
+    expect(pycmd).toHaveBeenCalledWith('bridge:{"command":"settings.reset_defaults"}');
   });
 });
 
@@ -85,12 +96,14 @@ describe("sendAsyncCmd", () => {
   it("serializes id, op, and payload", () => {
     sendAsyncCmd("job-1", "health_check", { config });
     const call = pycmd.mock.calls[0]?.[0] ?? "";
-    expect(call).toMatch(/^async_cmd:/);
-    expect(JSON.parse(call.slice("async_cmd:".length))).toEqual({
-      id: "job-1",
-      op: "health_check",
+    expect(JSON.parse(call.slice("bridge:".length))).toEqual({
+      command: "settings.async",
       payload: {
-        config,
+        id: "job-1",
+        op: "health_check",
+        payload: {
+          config,
+        },
       },
     });
   });
@@ -100,9 +113,11 @@ describe("copySupportReport", () => {
   it("sends a copy_support_report payload", () => {
     copySupportReport("support text");
     const call = pycmd.mock.calls[0]?.[0] ?? "";
-    expect(call).toMatch(/^copy_support_report:/);
-    expect(JSON.parse(call.slice("copy_support_report:".length))).toEqual({
-      text: "support text",
+    expect(JSON.parse(call.slice("bridge:".length))).toEqual({
+      command: "support.copy_report",
+      payload: {
+        text: "support text",
+      },
     });
   });
 });

@@ -34,7 +34,7 @@ EDITOR_CONTRACTS: dict[str, ModuleContract] = {
     "editor_bridge": contract(
         "editor_bridge",
         layer=Layer.UI_ADAPTER,
-        allowed_addon_deps=("contracts_generated", "diagnostics_runtime", "editor_actions", "errors", "i18n"),
+        allowed_addon_deps=("diagnostics_runtime", "editor_actions", "errors", "frontend_logs", "i18n"),
         allowed_side_effects=(SideEffect.WEB_EVAL,),
     ),
     "editor_callbacks": contract(

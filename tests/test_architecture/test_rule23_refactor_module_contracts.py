@@ -38,7 +38,7 @@ EDITOR_SPLIT_MODULES = {
     "editor_settings_actions",
 }
 
-BROWSER_SPLIT_MODULES = {"browser_dialog", "browser_report"}
+BROWSER_SPLIT_MODULES = {"browser_dialog", "browser_dialog_state", "browser_report"}
 
 
 def _qualified(module_name: str) -> str:
@@ -59,6 +59,7 @@ def test_split_modules_have_explicit_contract_layers() -> None:
         **{name: Layer.IMPORT_SAFE_CORE for name in AUDIO_SPLIT_MODULES},
         **{
             "browser_dialog": Layer.UI_ADAPTER,
+            "browser_dialog_state": Layer.IMPORT_SAFE_CORE,
             "browser_report": Layer.IMPORT_SAFE_CORE,
         },
         **{

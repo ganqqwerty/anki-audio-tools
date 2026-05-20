@@ -11,6 +11,7 @@ from aqt.qt import QDialog, QVBoxLayout
 from aqt.webview import AnkiWebView
 
 from ..i18n import active_locale, t
+from ..webview_shell import render_webview_content
 from .commands import handle_settings_command
 from .initial_state import build_initial_state
 
@@ -60,48 +61,13 @@ class SettingsDialog(QDialog):
 
 def _render_settings_content(config: dict[str, Any]) -> tuple[str, str]:
     """Render settings webview body/head fragments for Anki's themed HTML shell."""
-    initial_state_json = build_initial_state(config).replace("</script>", "<\\/script>")
-    bundle_js = _BUNDLE_JS.read_text(encoding="utf-8") if _BUNDLE_JS.exists() else ""
-    bundle_css = _BUNDLE_CSS.read_text(encoding="utf-8") if _BUNDLE_CSS.exists() else ""
-
-    js_error_reporter = r"""
-window.addEventListener("error", function(event) {
-  var payload = JSON.stringify({
-    scope: "settings",
-    level: "error",
-    message: (event.message || "unknown") + " @ " + (event.filename || "?") + ":" + (event.lineno || "?"),
-    stack: event.error && event.error.stack ? String(event.error.stack) : "",
-    filename: event.filename || "",
-    lineno: event.lineno || 0,
-    colno: event.colno || 0
-  });
-  if (typeof pycmd === "function") {
-    pycmd("frontend_log:" + payload);
-  }
-});
-window.addEventListener("unhandledrejection", function(event) {
-  var reason = event.reason || "unknown";
-  var payload = JSON.stringify({
-    scope: "settings",
-    level: "error",
-    message: "Unhandled rejection: " + String(reason && reason.message ? reason.message : reason),
-    stack: reason && reason.stack ? String(reason.stack) : ""
-  });
-  if (typeof pycmd === "function") {
-    pycmd("frontend_log:" + payload);
-  }
-});
-"""
-
-    head = f"""<meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <style>{bundle_css}</style>"""
-    body = f"""
-  <div id="app"></div>
-  <script>window.__INITIAL_STATE__ = {initial_state_json};</script>
-  <script>{js_error_reporter}</script>
-  <script>{bundle_js}</script>"""
-    return body, head
+    return render_webview_content(
+        initial_state_name="__INITIAL_STATE__",
+        initial_state=build_initial_state(config),
+        bundle_js=_BUNDLE_JS,
+        bundle_css=_BUNDLE_CSS,
+        scope="settings",
+    )
 
 
 def _render_settings_html(config: dict[str, Any]) -> str:

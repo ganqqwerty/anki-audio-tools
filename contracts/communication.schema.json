@@ -15,7 +15,13 @@
     "initialState": { "$ref": "#/definitions/InitialState" },
     "prosodyPayload": { "$ref": "#/definitions/ProsodyPayload" },
     "showLogFileResult": { "$ref": "#/definitions/ShowLogFileResult" },
-    "supportReportResult": { "$ref": "#/definitions/SupportReportResult" }
+    "supportReportResult": { "$ref": "#/definitions/SupportReportResult" },
+    "batchInitialState": { "$ref": "#/definitions/BatchInitialState" },
+    "batchStartRequest": { "$ref": "#/definitions/BatchStartRequest" },
+    "batchProgressPayload": { "$ref": "#/definitions/BatchProgressPayload" },
+    "batchLogPayload": { "$ref": "#/definitions/BatchLogPayload" },
+    "batchFinishPayload": { "$ref": "#/definitions/BatchFinishPayload" },
+    "batchErrorPayload": { "$ref": "#/definitions/BatchErrorPayload" }
   },
   "definitions": {
     "Config": {
@@ -184,6 +190,129 @@
       "required": ["logFilePath"],
       "properties": {
         "logFilePath": { "type": "string" }
+      }
+    },
+    "BatchOperationName": {
+      "enum": ["graph", "remove_pauses", "slower", "faster", "volume_down", "volume_up"]
+    },
+    "BatchParameterKind": {
+      "enum": ["none", "speed", "volume", "pause"]
+    },
+    "BatchParameterName": {
+      "enum": ["none", "speed_step", "volume_step_db", "pause_aggressiveness"]
+    },
+    "BatchPauseAggressiveness": {
+      "enum": ["gentle", "normal", "aggressive"]
+    },
+    "BatchOperationParameters": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "speed_step": { "type": "number" },
+        "volume_step_db": { "type": "number" },
+        "pause_aggressiveness": { "$ref": "#/definitions/BatchPauseAggressiveness" }
+      }
+    },
+    "BatchOperationOption": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["operation", "label", "requires_target_field", "parameter_kind", "parameter_name"],
+      "properties": {
+        "operation": { "$ref": "#/definitions/BatchOperationName" },
+        "label": { "type": "string" },
+        "requires_target_field": { "type": "boolean" },
+        "parameter_kind": { "$ref": "#/definitions/BatchParameterKind" },
+        "parameter_name": { "$ref": "#/definitions/BatchParameterName" }
+      }
+    },
+    "BatchFieldGroup": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["notetype_name", "fields"],
+      "properties": {
+        "notetype_name": { "type": "string" },
+        "fields": { "type": "array", "items": { "type": "string" } }
+      }
+    },
+    "BatchDefaults": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["speed_step", "volume_step_db", "pause_aggressiveness"],
+      "properties": {
+        "speed_step": { "type": "number" },
+        "volume_step_db": { "type": "number" },
+        "pause_aggressiveness": { "$ref": "#/definitions/BatchPauseAggressiveness" }
+      }
+    },
+    "BatchInitialState": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["note_count", "operations", "field_groups", "defaults", "locale", "direction", "messages"],
+      "properties": {
+        "note_count": { "type": "integer" },
+        "operations": { "type": "array", "items": { "$ref": "#/definitions/BatchOperationOption" } },
+        "field_groups": { "type": "array", "items": { "$ref": "#/definitions/BatchFieldGroup" } },
+        "defaults": { "$ref": "#/definitions/BatchDefaults" },
+        "locale": { "type": "string" },
+        "direction": { "enum": ["ltr", "rtl"] },
+        "messages": {
+          "type": "object",
+          "additionalProperties": { "type": "string" }
+        }
+      }
+    },
+    "BatchStartRequest": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["operation", "source_field", "parameters"],
+      "properties": {
+        "operation": { "$ref": "#/definitions/BatchOperationName" },
+        "source_field": { "type": "string" },
+        "target_field": { "type": ["string", "null"] },
+        "parameters": { "$ref": "#/definitions/BatchOperationParameters" }
+      }
+    },
+    "BatchProgressPayload": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["processed", "total", "current_audio", "failures", "message"],
+      "properties": {
+        "processed": { "type": "integer" },
+        "total": { "type": "integer" },
+        "current_audio": { "type": "string" },
+        "failures": { "type": "integer" },
+        "message": { "type": "string" }
+      }
+    },
+    "BatchLogPayload": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["line"],
+      "properties": {
+        "line": { "type": "string" }
+      }
+    },
+    "BatchFinishPayload": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["processed", "total", "written", "skipped", "failures", "canceled", "summary"],
+      "properties": {
+        "processed": { "type": "integer" },
+        "total": { "type": "integer" },
+        "written": { "type": "integer" },
+        "skipped": { "type": "integer" },
+        "failures": { "type": "integer" },
+        "canceled": { "type": "boolean" },
+        "summary": { "type": "string" }
+      }
+    },
+    "BatchErrorPayload": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["message"],
+      "properties": {
+        "message": { "type": "string" },
+        "recoverable": { "type": "boolean" }
       }
     },
     "AsyncSuccessPayload": {

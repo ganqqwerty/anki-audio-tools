@@ -51,14 +51,33 @@ UI_CONTRACTS: dict[str, ModuleContract] = {
         "browser_dialog",
         layer=Layer.UI_ADAPTER,
         allowed_addon_deps=(
-            "audio_operation_params",
             "audio_operations",
             "batch_operations",
+            "browser_dialog_state",
             "browser_report",
+            "frontend_logs",
+            "i18n",
+            "webview_bridge",
+            "webview_shell",
+        ),
+        allowed_side_effects=(
+            SideEffect.ANKI_IMPORTS_ANYWHERE,
+            SideEffect.WEB_EVAL,
+        ),
+        allow_any_anki_imports=True,
+    ),
+    "browser_dialog_state": contract(
+        "browser_dialog_state",
+        layer=Layer.IMPORT_SAFE_CORE,
+        allowed_addon_deps=(
+            "audio_operation_params",
+            "audio_operations",
+            "audio_state",
+            "batch_operations",
+            "browser_report",
+            "contracts_generated",
             "i18n",
         ),
-        allowed_side_effects=(SideEffect.ANKI_IMPORTS_ANYWHERE,),
-        allow_any_anki_imports=True,
     ),
     "browser_report": contract(
         "browser_report",
@@ -68,7 +87,7 @@ UI_CONTRACTS: dict[str, ModuleContract] = {
     "settings": contract(
         "settings",
         layer=Layer.SETTINGS_SHELL,
-        allowed_addon_deps=("i18n", "settings.commands", "settings.initial_state"),
+        allowed_addon_deps=("i18n", "settings.commands", "settings.initial_state", "webview_shell"),
         allowed_side_effects=(
             SideEffect.ANKI_IMPORTS_ANYWHERE,
             SideEffect.ANKI_IMPORTS_MODULE_LEVEL,
@@ -88,8 +107,10 @@ UI_CONTRACTS: dict[str, ModuleContract] = {
             "diagnostics_runtime",
             "errors",
             "file_reveal",
+            "frontend_logs",
             "i18n",
             "support",
+            "webview_bridge",
         ),
         allowed_side_effects=(
             SideEffect.ANKI_IMPORTS_ANYWHERE,

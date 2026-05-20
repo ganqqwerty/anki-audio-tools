@@ -1,36 +1,45 @@
-"""Qt dialog for Browser batch audio operations."""
+"""WebView dialog for Browser batch audio operations."""
 
 from __future__ import annotations
 
+import json
 import logging
 import threading
 from collections.abc import Callable
+from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
-from .audio_operation_params import AudioOperationParameters, parameters_from_raw
-from .audio_operations import (
-    BATCH_OPERATIONS,
-    OP_FASTER,
-    OP_GRAPH,
-    OP_REMOVE_PAUSES,
-    OP_SLOWER,
-    OP_VOLUME_DOWN,
-    OP_VOLUME_UP,
-    operation_label,
-    requires_target_field,
-)
+from .audio_operations import operation_label
 from .batch_operations import BatchRunRequest, FieldGroup
+from .browser_dialog_state import (
+    batch_error_payload,
+    batch_finish_payload,
+    batch_progress_payload,
+    build_batch_initial_state,
+    request_from_batch_start_payload,
+)
 from .browser_report import BatchRunReport
+from .frontend_logs import handle_frontend_log_payload
 from .i18n import active_context, format_message
+from .webview_bridge import (
+    WebviewBridgeCommand,
+    decode_webview_bridge_command,
+    legacy_json_payload,
+)
+from .webview_shell import render_webview_content
 
 if TYPE_CHECKING:
     from .audio_state import AudioProcessingConfig
 
 logger = logging.getLogger(__name__)
 
+_BUNDLE_DIR = Path(__file__).parent / "templates" / "batch"
+_BUNDLE_JS = _BUNDLE_DIR / "batch_bundle.js"
+_BUNDLE_CSS = _BUNDLE_DIR / "batch_bundle.css"
+
 
 class BatchOperationsDialog:
-    """Small composed Qt dialog wrapper for batch audio operations."""
+    """Small composed WebView dialog wrapper for batch audio operations."""
 
     def __init__(
         self,
@@ -40,15 +49,8 @@ class BatchOperationsDialog:
         config: AudioProcessingConfig,
         run_batch_in_background: Callable[[Any, Any, list[int], BatchRunRequest], None],
     ) -> None:
-        from aqt.qt import (
-            QComboBox,
-            QDialog,
-            QDoubleSpinBox,
-            QLabel,
-            QPlainTextEdit,
-            QProgressBar,
-            QPushButton,
-        )
+        from aqt.qt import QDialog, QVBoxLayout
+        from aqt.webview import AnkiWebView
 
         self.browser = browser
         self.note_ids = note_ids
@@ -58,31 +60,23 @@ class BatchOperationsDialog:
         self._run_batch_in_background = run_batch_in_background
         self._running = False
         self._finished = False
-        self._config = config
+        self._log_lines: list[str] = []
         self._dialog = QDialog(browser)
         self._dialog.setWindowTitle(self.tr("batch.window_title"))
         self._dialog.setMinimumWidth(680)
         self._dialog.setMinimumHeight(520)
-        self._status_label = QLabel(self.tr("batch.instructions"))
-        self._operation_label = QLabel(self.tr("batch.operation"))
-        self._operation_combo = QComboBox()
-        self._source_combo = QComboBox()
-        self._target_label = QLabel(self.tr("batch.target_field"))
-        self._target_combo = QComboBox()
-        self._speed_label = QLabel(self.tr("settings.speed_step"))
-        self._speed_spin = QDoubleSpinBox()
-        self._volume_label = QLabel(self.tr("settings.volume_step_db"))
-        self._volume_spin = QDoubleSpinBox()
-        self._pause_label = QLabel(self.tr("settings.pause_aggressiveness"))
-        self._pause_combo = QComboBox()
-        self._progress = QProgressBar()
-        self._log = QPlainTextEdit()
-        self._start_button = QPushButton(self.tr("batch.start"))
-        self._copy_button = QPushButton(self.tr("batch.copy_log"))
-        self._cancel_button = QPushButton(self.tr("batch.cancel"))
-        self._configure_parameter_controls(config)
-        self._build_layout(groups)
-        self._connect_buttons()
+
+        layout = QVBoxLayout(self._dialog)
+        layout.setContentsMargins(0, 0, 0, 0)
+
+        self._webview = AnkiWebView(parent=self._dialog)
+        self._webview.requiresCol = False
+        self._webview.set_bridge_command(self._handle_bridge_command, self)
+        body, head = _render_batch_content(
+            build_batch_initial_state(note_count=len(note_ids), groups=groups, config=config)
+        )
+        self._webview.stdHtml(body=body, head=head, context=self)
+        layout.addWidget(self._webview)
 
     def tr(self, key: str, values: dict[str, object] | None = None) -> str:
         """Translate a batch dialog message."""
@@ -92,215 +86,133 @@ class BatchOperationsDialog:
         """Show the dialog modally."""
         return self._dialog.exec()
 
-    def _build_layout(self, groups: tuple[FieldGroup, ...]) -> None:
-        from aqt.qt import QHBoxLayout, QVBoxLayout
-
-        layout = QVBoxLayout(self._dialog)
-        layout.addWidget(self._status_label)
-        layout.addLayout(self._operation_row())
-        layout.addLayout(self._field_row(groups))
-        layout.addLayout(self._parameter_row())
-        self._progress.setMinimum(0)
-        self._progress.setMaximum(len(self.note_ids))
-        self._progress.setValue(0)
-        layout.addWidget(self._progress)
-        self._log.setReadOnly(True)
-        layout.addWidget(self._log)
-        button_row = QHBoxLayout()
-        self._copy_button.setEnabled(False)
-        button_row.addWidget(self._start_button)
-        button_row.addWidget(self._copy_button)
-        button_row.addWidget(self._cancel_button)
-        layout.addLayout(button_row)
-        self._sync_target_visibility()
-
-    def _operation_row(self) -> Any:
-        from aqt.qt import QHBoxLayout
-
-        for operation in BATCH_OPERATIONS:
-            self._operation_combo.addItem(operation_label(operation, self._messages), operation)
-        row = QHBoxLayout()
-        row.addWidget(self._operation_label)
-        row.addWidget(self._operation_combo)
-        return row
-
-    def _field_row(self, groups: tuple[FieldGroup, ...]) -> Any:
-        from aqt.qt import QHBoxLayout, QLabel
-
-        _populate_combo(self._source_combo, groups)
-        _populate_combo(self._target_combo, groups)
-        field_row = QHBoxLayout()
-        field_row.addWidget(QLabel(self.tr("batch.source_field")))
-        field_row.addWidget(self._source_combo)
-        field_row.addWidget(self._target_label)
-        field_row.addWidget(self._target_combo)
-        return field_row
-
-    def _parameter_row(self) -> Any:
-        from aqt.qt import QHBoxLayout
-
-        row = QHBoxLayout()
-        row.addWidget(self._speed_label)
-        row.addWidget(self._speed_spin)
-        row.addWidget(self._volume_label)
-        row.addWidget(self._volume_spin)
-        row.addWidget(self._pause_label)
-        row.addWidget(self._pause_combo)
-        return row
-
-    def _configure_parameter_controls(self, config: AudioProcessingConfig) -> None:
-        self._speed_spin.setRange(0.01, 0.25)
-        self._speed_spin.setSingleStep(0.01)
-        self._speed_spin.setDecimals(2)
-        self._speed_spin.setValue(config.speed_step)
-        self._volume_spin.setRange(0.5, 12.0)
-        self._volume_spin.setSingleStep(0.5)
-        self._volume_spin.setDecimals(1)
-        self._volume_spin.setValue(config.volume_step_db)
-        for value in ("gentle", "normal", "aggressive"):
-            self._pause_combo.addItem(self.tr(f"settings.pause_aggressiveness.{value}"), value)
-        selected_index = self._pause_combo.findData(config.pause_aggressiveness)
-        self._pause_combo.setCurrentIndex(
-            selected_index if isinstance(selected_index, int) and selected_index >= 0 else 0
-        )
-
-    def _connect_buttons(self) -> None:
-        from aqt.qt import qconnect
-
-        qconnect(self._operation_combo.currentIndexChanged, lambda _index: self._sync_target_visibility())
-        qconnect(self._start_button.clicked, self._start)
-        qconnect(self._copy_button.clicked, self._copy_log)
-        qconnect(self._cancel_button.clicked, self._cancel_or_close)
-
-    def _start(self) -> None:
-        operation = self._operation_combo.currentData()
-        source_field = self._source_combo.currentData()
-        target_field = self._target_combo.currentData() if requires_target_field(str(operation)) else None
-        try:
-            request = BatchRunRequest(
-                operation=str(operation),
-                source_field=str(source_field or ""),
-                target_field=str(target_field) if target_field else None,
-                parameters=self._selected_parameters(),
-            )
-        except ValueError as exc:
-            self.append_log(str(exc))
-            return
-        self._running = True
-        self._operation_combo.setEnabled(False)
-        self._source_combo.setEnabled(False)
-        self._target_combo.setEnabled(False)
-        self._sync_target_visibility()
-        self._start_button.setEnabled(False)
-        self._status_label.setText(
-            self.tr("batch.starting", {"operation": operation_label(request.operation, self._messages)})
-        )
-        logger.info(
-            "batch operation started: notes=%s operation=%s source=%s target=%s",
-            len(self.note_ids),
-            request.operation,
-            request.source_field,
-            request.target_field,
-        )
-        self._run_batch_in_background(
-            self.browser,
-            self,
-            self.note_ids,
-            request,
-        )
-
-    def _selected_parameters(self) -> AudioOperationParameters:
-        operation = str(self._operation_combo.currentData() or OP_GRAPH)
-        return parameters_from_raw(
-            speed_step=(
-                float(self._speed_spin.value())
-                if operation in {OP_SLOWER, OP_FASTER}
-                else None
-            ),
-            volume_step_db=(
-                float(self._volume_spin.value())
-                if operation in {OP_VOLUME_DOWN, OP_VOLUME_UP}
-                else None
-            ),
-            pause_aggressiveness=(
-                self._pause_combo.currentData() if operation == OP_REMOVE_PAUSES else None
-            ),
-        )
-
     def append_log(self, line: str) -> None:
         """Append a line to the copyable report."""
-        self._log.appendPlainText(line)
+        self._log_lines.append(line)
+        self._emit("onBatchLog", {"line": line})
 
     def update_progress(self, processed: int, total: int, current_audio: str, failures: int) -> None:
         """Update progress controls from the main thread."""
-        self._progress.setMaximum(total)
-        self._progress.setValue(processed)
         audio = current_audio or self.tr("batch.no_audio")
-        self._status_label.setText(
-            self.tr(
-                "batch.progress",
-                {"processed": processed, "total": total, "audio": audio, "failures": failures},
-            )
+        message = self.tr(
+            "batch.progress",
+            {"processed": processed, "total": total, "audio": audio, "failures": failures},
+        )
+        self._emit(
+            "onBatchProgress",
+            batch_progress_payload(
+                processed=processed,
+                total=total,
+                current_audio=current_audio,
+                failures=failures,
+                message=message,
+            ),
         )
 
     def finish_with_report(self, report: BatchRunReport) -> None:
         """Switch the dialog into final report mode."""
         self._running = False
         self._finished = True
-        self._progress.setMaximum(report.total)
-        self._progress.setValue(report.processed)
-        self._status_label.setText(report.summary)
         self.append_log(report.summary)
-        self._copy_button.setEnabled(True)
-        self._cancel_button.setEnabled(True)
-        self._cancel_button.setText(self.tr("batch.close"))
+        self._emit("onBatchFinish", batch_finish_payload(report))
 
-    def finish_with_error(self, message: str) -> None:
+    def finish_with_error(self, message: str, *, recoverable: bool = False) -> None:
         """Show an unexpected batch-level failure."""
         self._running = False
-        self._finished = True
-        self._status_label.setText(message)
+        self._finished = not recoverable
         self.append_log(message)
-        self._copy_button.setEnabled(True)
-        self._cancel_button.setEnabled(True)
-        self._cancel_button.setText(self.tr("batch.close"))
+        self._emit("onBatchError", batch_error_payload(message, recoverable=recoverable))
+
+    def _emit(self, callback: str, payload: dict[str, Any]) -> None:
+        self._webview.eval(f"window.{callback}({json.dumps(payload)})")
+
+    def _handle_bridge_command(self, cmd: str) -> bool:
+        try:
+            command = decode_webview_bridge_command(cmd)
+        except (json.JSONDecodeError, ValueError) as exc:
+            logger.warning("invalid batch bridge command: %s", exc)
+            return False
+
+        if command.name in {"batch.start", "batch_start"}:
+            return self._handle_batch_start(command)
+        if command.name in {"batch.cancel", "batch_cancel"}:
+            self._cancel_or_close()
+            return True
+        if command.name in {"batch.close", "batch_close"}:
+            self._dialog.reject()
+            return True
+        if command.name in {"batch.copy_log", "batch_copy_log"}:
+            _clipboard_set_text("\n".join(self._log_lines))
+            return True
+        if command.name in {"frontend.log", "frontend_log"}:
+            _handle_frontend_log(command.legacy_payload if command.is_legacy else command.payload)
+            return True
+        return False
+
+    def _handle_batch_start(self, command: WebviewBridgeCommand) -> bool:
+        try:
+            raw_payload = legacy_json_payload(command)
+            request = request_from_batch_start_payload(raw_payload)
+        except (json.JSONDecodeError, AssertionError, TypeError) as exc:
+            message = self.tr("batch.failed", {"error": "Invalid batch request"})
+            self.finish_with_error(message)
+            logger.warning("invalid batch start payload: %s", exc)
+            return True
+        except ValueError as exc:
+            self.finish_with_error(str(exc), recoverable=True)
+            return True
+
+        self._running = True
+        self._finished = False
+        self._log_lines.clear()
+        operation = str(getattr(request, "operation", "") or "")
+        operation_name = operation_label(operation, self._messages) if operation else ""
+        self._emit(
+            "onBatchProgress",
+            batch_progress_payload(
+                processed=0,
+                total=len(self.note_ids),
+                current_audio="",
+                failures=0,
+                message=self.tr("batch.starting", {"operation": operation_name}),
+            ),
+        )
+        self._run_batch_in_background(self.browser, self, self.note_ids, request)
+        return True
 
     def _cancel_or_close(self) -> None:
         if self._running:
             self.cancel_event.set()
             self.append_log(self.tr("batch.cancel_requested"))
-            self._cancel_button.setEnabled(False)
             return
         self._dialog.reject()
 
-    def _copy_log(self) -> None:
-        from aqt.qt import QApplication
 
-        clipboard = QApplication.clipboard()
-        if clipboard is not None:
-            clipboard.setText(self._log.toPlainText())
-
-    def _sync_target_visibility(self) -> None:
-        operation = str(self._operation_combo.currentData() or OP_GRAPH)
-        needs_target = requires_target_field(operation)
-        show_speed = operation in {OP_SLOWER, OP_FASTER}
-        show_volume = operation in {OP_VOLUME_DOWN, OP_VOLUME_UP}
-        show_pause = operation == OP_REMOVE_PAUSES
-        self._target_label.setVisible(needs_target)
-        self._target_combo.setVisible(needs_target)
-        self._target_combo.setEnabled(needs_target and not self._running)
-        self._speed_label.setVisible(show_speed)
-        self._speed_spin.setVisible(show_speed)
-        self._speed_spin.setEnabled(show_speed and not self._running)
-        self._volume_label.setVisible(show_volume)
-        self._volume_spin.setVisible(show_volume)
-        self._volume_spin.setEnabled(show_volume and not self._running)
-        self._pause_label.setVisible(show_pause)
-        self._pause_combo.setVisible(show_pause)
-        self._pause_combo.setEnabled(show_pause and not self._running)
+def _render_batch_content(initial_state: dict[str, Any]) -> tuple[str, str]:
+    """Render batch webview body/head fragments for Anki's themed HTML shell."""
+    return render_webview_content(
+        initial_state_name="__AQE_BATCH_INITIAL_STATE__",
+        initial_state=initial_state,
+        bundle_js=_BUNDLE_JS,
+        bundle_css=_BUNDLE_CSS,
+        scope="batch",
+    )
 
 
-def _populate_combo(combo: Any, groups: tuple[FieldGroup, ...]) -> None:
-    for group in groups:
-        for field_name in group.fields:
-            combo.addItem(f"{group.notetype_name} / {field_name}", field_name)
+def _clipboard_set_text(text: str) -> None:
+    from aqt.qt import QApplication
+
+    clipboard = QApplication.clipboard()
+    if clipboard is not None:
+        clipboard.setText(text)
+
+
+def _handle_frontend_log(raw_payload: Any) -> None:
+    handle_frontend_log_payload(
+        raw_payload,
+        logger=logger,
+        default_scope="batch",
+        boundary="batch.frontend",
+        log_prefix="batch frontend",
+        invalid_label="batch frontend_log",
+    )

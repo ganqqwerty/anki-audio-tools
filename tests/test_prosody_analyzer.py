@@ -105,7 +105,10 @@ def test_praat_adapter_derives_pitch_bounds_from_voiced_frames_only(
     )
     monkeypatch.setattr("anki_audio_quick_editor.prosody_praat.probe_duration_ms", lambda *_args: 50)
 
-    track = analyze_with_praat(source, AudioProcessingConfig())
+    track = analyze_with_praat(
+        source,
+        AudioProcessingConfig(graph_connect_short_dropouts_ms=0, graph_smoothness="raw"),
+    )
 
     assert [point.voiced for point in track.points] == [False, True, True, False, True]
     assert track.pitch_min_hz == 120.0

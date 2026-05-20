@@ -23,7 +23,11 @@ from scripts.dev_tasks.python_env import (
     _find_anki_python,
     _setup_addon_symlink,
 )
-from scripts.dev_tasks.quality import _mutmut_fix_stats_prefix_mismatch, _radon_complexity_violations
+from scripts.dev_tasks.quality import (
+    _mutmut_fix_stats_prefix_mismatch,
+    _radon_complexity_violations,
+    _radon_maintainability_violations,
+)
 # isort: on
 
 ADDON_DIR = ROOT / "addon" / "anki_audio_quick_editor"
@@ -191,14 +195,13 @@ def cmd_maintainability() -> int:
     except json.JSONDecodeError as exc:
         print(f"ERROR: could not parse radon maintainability JSON output: {exc}", file=sys.stderr)
         return 1
-    if not report:
+    violations = _radon_maintainability_violations(report)
+    if not violations:
         print("PASS: no files at radon maintainability rank C.")
         return 0
-    print(f"FAIL: radon found {len(report)} file(s) at maintainability rank C:")
-    for path, entry in sorted(report.items()):
-        rank = entry.get("rank", "?") if isinstance(entry, dict) else "?"
-        mi_score = entry.get("mi", "?") if isinstance(entry, dict) else "?"
-        print(f"  {path} rank={rank} mi={mi_score}")
+    print(f"FAIL: radon found {len(violations)} file(s) at maintainability rank C:")
+    for violation in violations:
+        print(f"  {violation}")
     return 1
 
 
