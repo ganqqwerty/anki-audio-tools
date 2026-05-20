@@ -187,6 +187,12 @@ def test_build_playback_segment_filters_starts_at_cursor_and_resets_timestamps()
     assert filters == "atrim=start=0.700,asetpts=PTS-STARTPTS"
 
 
+def test_build_playback_segment_filters_honors_selected_end_boundary() -> None:
+    filters = build_playback_segment_filters(700, 1250)
+
+    assert filters == "atrim=start=0.700:end=1.250,asetpts=PTS-STARTPTS"
+
+
 def test_build_playback_segment_filters_clamps_negative_cursor_to_zero() -> None:
     filters = build_playback_segment_filters(-200)
 

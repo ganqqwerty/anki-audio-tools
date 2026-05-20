@@ -43,7 +43,23 @@ export function installAudioPlaybackTestDriver(ord: number): boolean {
   const visualizer = visualizerForOrd(ord);
   const audio = audioClockFor(visualizer);
   if (!visualizer || !audio) return false;
+  const markReady = (): void => {
+    try {
+      Object.defineProperty(audio, "readyState", { configurable: true, value: 1 });
+      Object.defineProperty(audio, "duration", {
+        configurable: true,
+        get: () => Number(visualizer.dataset.durationMs || "0") / 1000,
+      });
+    } catch {
+      // Some browser engines expose media properties as non-configurable.
+    }
+    visualizer.__aqeAudioClockAvailable = true;
+    visualizer.__aqeAudioClockFallback = false;
+  };
   audio.__aqeTestDriverInstalled = true;
+  markReady();
+  audio.addEventListener("error", markReady);
+  audio.dispatchEvent(new Event("loadedmetadata"));
   audio.pause = function pause(): void {
     audio.__aqeTestPlaying = false;
     if (audio.__aqeTestFrame) {

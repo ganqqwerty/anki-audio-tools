@@ -372,6 +372,7 @@ def render_playback_segment(
     config: AudioProcessingConfig,
     output_path: Path | None = None,
     on_command: Callable[[tuple[str, ...]], None] | None = None,
+    end_ms: int | None = None,
 ) -> AudioProcessingResult:
     _sync_rendering_dependencies()
     return _audio_rendering.render_playback_segment(
@@ -380,6 +381,7 @@ def render_playback_segment(
         config,
         output_path,
         on_command,
+        end_ms,
     )
 
 

@@ -148,6 +148,84 @@ def test_html_playback_request_updates_session_without_native_segment(tmp_path: 
     assert any("Playing from 0.70s" in call for call in evals)
 
 
+def test_native_selected_playback_renders_segment_from_cursor_to_selection_end(tmp_path: Path, monkeypatch) -> None:
+    class ImmediateThread:
+        def __init__(self, target, daemon=True):
+            del daemon
+            self._target = target
+
+        def start(self) -> None:
+            self._target()
+
+    class Editor:
+        pass
+
+    media_dir = tmp_path / "media"
+    media_dir.mkdir()
+    source = media_dir / "clip.m4a"
+    source.write_bytes(b"audio")
+    segment = tmp_path / "segment.mp3"
+    editor = Editor()
+    editor.currentField = 0
+    editor.note = SimpleNamespace(fields=["[sound:clip.m4a]"])
+    editor.web = MagicMock()
+    editor.mw = SimpleNamespace(
+        addonManager=SimpleNamespace(addonFromModule=lambda _module: "aqe", getConfig=lambda _addon_id: {}),
+        col=SimpleNamespace(media=SimpleNamespace(dir=lambda: str(media_dir))),
+        taskman=SimpleNamespace(run_on_main=lambda callback: callback()),
+    )
+    session = EditorSession(
+        state=AudioEditState("clip.m4a"),
+        field_index=0,
+        current_filename="clip.m4a",
+        source_mtime_ns=source.stat().st_mtime_ns,
+        visualized_duration_ms=2000,
+        visualized_filenames_by_field={0: "clip.m4a"},
+        visualized_durations_by_field={0: 2000},
+    )
+    _SESSIONS[editor] = session
+    render_calls: list[dict[str, object]] = []
+
+    monkeypatch.setattr("anki_audio_quick_editor.editor_dependencies.threading.Thread", ImmediateThread)
+
+    def fake_render_playback_segment(
+        source_path: Path,
+        start_ms: int,
+        _config: object,
+        output_path: Path | None = None,
+        on_command=None,
+        end_ms: int | None = None,
+    ) -> SimpleNamespace:
+        del output_path
+        render_calls.append({"source_path": source_path, "start_ms": start_ms, "end_ms": end_ms})
+        if on_command:
+            on_command(("ffmpeg", "-i", str(source_path)))
+        return SimpleNamespace(output_path=segment, command=(), duration_ms=500)
+
+    monkeypatch.setattr(
+        "anki_audio_quick_editor.editor_dependencies.render_playback_segment",
+        fake_render_playback_segment,
+    )
+
+    _play_with_request(
+        editor,
+        {"engine": "native", "action": "start", "cursorMs": 0, "endMs": 500, "regionMode": "selection"},
+    )
+
+    from aqt.sound import av_player
+
+    assert render_calls == [{"source_path": source, "start_ms": 0, "end_ms": 500}]
+    av_player.play_tags.assert_called_once()
+    played_tag = av_player.play_tags.call_args.args[0][0]
+    assert played_tag.filename == str(segment)
+    assert session.cursor_ms == 0
+    assert session.playback_active is True
+    evals = [call.args[0] for call in editor.web.eval.call_args_list]
+    assert any("window.__aqeSetPlaybackState && window.__aqeSetPlaybackState(0, \"playing\", 0)" in call for call in evals)
+    assert any("Playing\"" in call for call in evals)
+    assert not any("Playing from 0.00s" in call for call in evals)
+
+
 def test_html_cursor_restart_intent_does_not_start_native_playback(tmp_path: Path, monkeypatch) -> None:
     class Editor:
         pass
@@ -186,6 +264,54 @@ def test_html_cursor_restart_intent_does_not_start_native_playback(tmp_path: Pat
     assert session.cursor_ms == 1400
     assert session.playback_active is True
     assert session.playback_paused is False
+
+
+def test_native_cursor_restart_intent_keeps_selected_end_boundary(tmp_path: Path, monkeypatch) -> None:
+    class Editor:
+        pass
+
+    media_dir = tmp_path / "media"
+    media_dir.mkdir()
+    source = media_dir / "clip.m4a"
+    source.write_bytes(b"audio")
+    editor = Editor()
+    editor.currentField = 0
+    editor.note = SimpleNamespace(fields=["[sound:clip.m4a]"])
+    editor.web = MagicMock()
+    editor.mw = SimpleNamespace(col=SimpleNamespace(media=SimpleNamespace(dir=lambda: str(media_dir))))
+    session = EditorSession(
+        state=AudioEditState("clip.m4a"),
+        field_index=0,
+        current_filename="clip.m4a",
+        source_mtime_ns=source.stat().st_mtime_ns,
+        visualized_duration_ms=2000,
+        visualized_filenames_by_field={0: "clip.m4a"},
+        visualized_durations_by_field={0: 2000},
+    )
+    _SESSIONS[editor] = session
+    starts: list[tuple[int, int | None]] = []
+
+    monkeypatch.setattr(
+        "anki_audio_quick_editor.editor_callbacks._eval_with_callback",
+        lambda _editor, _script, callback: callback(
+            {
+                "cursorMs": 700,
+                "endMs": 1250,
+                "engine": "native",
+                "regionMode": "selection",
+                "restartPlayback": True,
+            }
+        ),
+    )
+    monkeypatch.setattr(
+        "anki_audio_quick_editor.editor_callbacks._start_playback_from_cursor",
+        lambda _editor, _session, _source_path, _field_index, cursor_ms, end_ms: starts.append((cursor_ms, end_ms)),
+    )
+
+    _set_cursor_from_web(editor)
+
+    assert session.cursor_ms == 700
+    assert starts == [(700, 1250)]
 
 
 def test_late_html_playback_request_is_ignored_after_editor_note_is_cleared() -> None:

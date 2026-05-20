@@ -84,7 +84,7 @@ def play_with_request(editor: Any, request: Any, deps: Any) -> None:
         deps.eval_status(editor, deps.still_processing_message, kind="processing")
         return
     field_index = deps.current_field_index(editor)
-    action, engine, cursor_ms = playback_request_values(session, request, field_index, deps)
+    action, engine, cursor_ms, end_ms, region_mode = playback_request_values(session, request, field_index, deps)
     session.cursor_ms = cursor_ms
     if engine == "html":
         apply_html_playback_request(editor, session, field_index, action, cursor_ms, deps)
@@ -92,7 +92,8 @@ def play_with_request(editor: Any, request: Any, deps: Any) -> None:
     if toggle_native_pause_resume(editor, session, field_index, action, cursor_ms, deps):
         return
 
-    deps.start_playback_from_cursor(editor, session, source_path, field_index, cursor_ms)
+    selected_end_ms = end_ms if region_mode == "selection" else None
+    deps.start_playback_from_cursor(editor, session, source_path, field_index, cursor_ms, selected_end_ms)
 
 
 def playback_request_values(
@@ -100,17 +101,17 @@ def playback_request_values(
     request: Any,
     field_index: int,
     deps: Any,
-) -> tuple[str, str, int]:
-    """Normalize action, engine, and cursor values from a playback payload."""
+) -> tuple[str, str, int, int | None, str]:
+    """Normalize action, engine, cursor, and selected-region end values from a playback payload."""
     if not isinstance(request, dict):
-        return "start", "native", session.cursor_ms
+        return "start", "native", session.cursor_ms, None, "full"
     action = str(request.get("action") or "start")
     engine = str(request.get("engine") or "native")
-    duration_ms = request.get("endMs")
-    if duration_ms is None:
-        duration_ms = deps.visualized_duration_for_field(session, field_index, session.current_filename)
-    cursor_ms = clamp_cursor_ms(request.get("cursorMs"), duration_ms)
-    return action, engine, cursor_ms
+    duration_ms = deps.visualized_duration_for_field(session, field_index, session.current_filename)
+    end_ms = _requested_end_ms(request.get("endMs"), duration_ms)
+    cursor_ms = clamp_cursor_ms(request.get("cursorMs"), end_ms if end_ms is not None else duration_ms)
+    region_mode = "selection" if request.get("regionMode") == "selection" else "full"
+    return action, engine, cursor_ms, end_ms, region_mode
 
 
 def toggle_native_pause_resume(
@@ -178,9 +179,10 @@ def start_playback_from_cursor(
     source_path: Path,
     field_index: int,
     cursor_ms: int,
+    end_ms: int | None,
     deps: Any,
 ) -> None:
-    """Start native playback, rendering a temporary segment when seeking is needed."""
+    """Start native playback, rendering a temporary segment when seeking or trimming is needed."""
     from anki.sound import SoundOrVideoTag
     from aqt.sound import av_player
 
@@ -188,9 +190,14 @@ def start_playback_from_cursor(
     filename = session.current_filename or source_path.name
     play_path = existing_media_file_path(Path(editor.mw.col.media.dir()), filename) or source_path
     deps.stop_session_playback(session)
-    session.cursor_ms = clamp_cursor_ms(cursor_ms, session.visualized_duration_ms)
+    source_duration_ms = deps.visualized_duration_for_field(session, field_index, filename)
+    playback_end_ms = _native_playback_end_ms(end_ms, source_duration_ms)
+    session.cursor_ms = clamp_cursor_ms(cursor_ms, playback_end_ms if playback_end_ms is not None else source_duration_ms)
     offset_seconds = max(0.0, session.cursor_ms / 1000)
-    if offset_seconds <= 0:
+    bounded_to_selection = playback_end_ms is not None and (
+        source_duration_ms is None or playback_end_ms < max(0, source_duration_ms - 20)
+    )
+    if offset_seconds <= 0 and not bounded_to_selection:
         record_breadcrumb(
             "editor.playback.native_started",
             source="editor",
@@ -212,6 +219,7 @@ def start_playback_from_cursor(
     session.playback_active = True
     session.playback_paused = False
     playback_cursor_ms = session.cursor_ms
+    playback_end_context = playback_end_ms
     deps.set_busy(editor, True, t("editor.playback.preparing"))
     deps.eval_playback_state(editor, field_index, "stopped", session.cursor_ms)
     record_breadcrumb(
@@ -219,7 +227,12 @@ def start_playback_from_cursor(
         source="editor",
         operation="editor.playback",
         operation_id=operation_id,
-        context={"filename": str(play_path), "field_index": field_index, "cursor_ms": playback_cursor_ms},
+        context={
+            "filename": str(play_path),
+            "field_index": field_index,
+            "cursor_ms": playback_cursor_ms,
+            "end_ms": playback_end_context,
+        },
         flush=True,
     )
 
@@ -240,6 +253,7 @@ def start_playback_from_cursor(
                 playback_cursor_ms,
                 config,
                 on_command=_show_command,
+                end_ms=playback_end_context,
             )
             deps.main(
                 editor,
@@ -259,7 +273,12 @@ def start_playback_from_cursor(
                 operation="editor.playback",
                 operation_id=operation_id,
                 user_message=message or t("editor.playback.prepare_failed"),
-                context={"filename": str(play_path), "field_index": field_index, "cursor_ms": playback_cursor_ms},
+                context={
+                    "filename": str(play_path),
+                    "field_index": field_index,
+                    "cursor_ms": playback_cursor_ms,
+                    "end_ms": playback_end_context,
+                },
                 log=logger,
             )
             deps.main(editor, lambda: deps.playback_segment_failed(editor, generation, message))
@@ -291,7 +310,10 @@ def playback_segment_ready(
     av_player.play_tags([SoundOrVideoTag(str(playback_path))])
     deps.set_busy(editor, False)
     deps.eval_playback_state(editor, field_index, "playing", cursor_ms)
-    deps.eval_status(editor, t("editor.playback.playing_from", {"seconds": f"{max(0.0, cursor_ms / 1000):.2f}"}))
+    if cursor_ms > 0:
+        deps.eval_status(editor, t("editor.playback.playing_from", {"seconds": f"{max(0.0, cursor_ms / 1000):.2f}"}))
+    else:
+        deps.eval_status(editor, t("editor.playback.playing"))
 
 
 def playback_segment_failed(editor: Any, generation: int, message: str, deps: Any) -> None:
@@ -323,7 +345,12 @@ def set_cursor_from_web(editor: Any, deps: Any) -> None:
                 session.playback_active = True
                 session.playback_paused = False
                 return
-            deps.start_playback_from_cursor(editor, session, source_path, field_index, session.cursor_ms)
+            end_ms = (
+                _requested_end_ms(value.get("endMs"), duration_ms)
+                if value.get("regionMode") == "selection" and value.get("endMs") is not None
+                else None
+            )
+            deps.start_playback_from_cursor(editor, session, source_path, field_index, session.cursor_ms, end_ms)
 
     deps.eval_with_callback(
         editor,
@@ -331,3 +358,21 @@ def set_cursor_from_web(editor: Any, deps: Any) -> None:
         "(window.__aqeGetCursorMs ? window.__aqeGetCursorMs() : 0)",
         _apply,
     )
+
+
+def _requested_end_ms(value: Any, duration_ms: int | None) -> int | None:
+    if value is None:
+        return duration_ms
+    try:
+        requested_end_ms = int(round(float(value)))
+    except (TypeError, ValueError):
+        requested_end_ms = 0
+    upper_ms = duration_ms if duration_ms is not None else requested_end_ms
+    return clamp_cursor_ms(requested_end_ms, upper_ms)
+
+
+def _native_playback_end_ms(end_ms: int | None, source_duration_ms: int | None) -> int | None:
+    if end_ms is None:
+        return None
+    upper = source_duration_ms if source_duration_ms is not None else max(0, int(end_ms))
+    return clamp_cursor_ms(end_ms, upper)

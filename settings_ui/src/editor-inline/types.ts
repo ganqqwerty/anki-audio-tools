@@ -168,8 +168,10 @@ type RegionDeleteOperation = "delete-selection" | "delete-rest";
 
 export interface CursorIntent {
   cursorMs: number;
+  endMs?: number;
   engine?: "html" | "native" | "";
   previousPlaybackState: PlaybackState;
+  regionMode?: "selection" | "full";
   restartPlayback: boolean;
 }
 

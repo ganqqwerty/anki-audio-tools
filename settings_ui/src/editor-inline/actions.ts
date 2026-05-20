@@ -385,9 +385,12 @@ export function setCursor(
   renderCursor(visualizer, clamped, durationMs);
   if (notifyPython) {
     window.__aqeActiveField = Number(visualizer.dataset.aqeFieldOrd || "0");
+    const region = effectivePlaybackRegion(visualizer);
     const intent: CursorIntent = {
       cursorMs: Math.round(clamped),
+      endMs: Math.round(region.endMs),
       previousPlaybackState: options.previousPlaybackState || playbackStateFor(visualizer),
+      regionMode: region.mode,
       restartPlayback: !!options.restartPlayback,
     };
     if (options.engine) intent.engine = options.engine;

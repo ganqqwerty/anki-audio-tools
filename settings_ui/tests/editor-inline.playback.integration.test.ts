@@ -238,7 +238,7 @@ afterEach(() => {
     expect(window.__aqeGraphStateForTest?.(0)?.playbackState).toBe("stopped");
   });
 
-  it("does not claim native selected playback when HTML play rejects", async () => {
+  it("falls back to native selected playback when HTML one-shot play rejects", async () => {
     initializeEditorRuntime({ audioFieldIndices: [0] });
     scan({ audioFieldIndices: [0] });
     await Promise.resolve();
@@ -246,6 +246,43 @@ afterEach(() => {
     const svg = document.querySelector<SVGSVGElement>('[data-testid="aqe-graph-svg-0"]')!;
     setGraphBounds(svg);
     dragGraphSelection(svg, 0.25, 0.75);
+    const audio = document.querySelector<HTMLAudioElement>('[data-testid="aqe-audio-clock-0"]')!;
+    Object.defineProperty(audio, "readyState", { configurable: true, value: 1 });
+    audio.play = vi.fn<() => Promise<void>>(() => Promise.reject(new Error("blocked")));
+    audio.pause = vi.fn<() => void>(() => undefined);
+    audio.dispatchEvent(new Event("loadedmetadata"));
+
+    document.querySelector<HTMLButtonElement>('[data-testid="aqe-button-0-play"]')!.click();
+    await Promise.resolve();
+    await Promise.resolve();
+
+    expect(bridgeCommands()).toContain("aqe:play");
+    expect(window.__aqeGetPlaybackRequest?.()).toEqual({
+      action: "start",
+      cursorMs: 250,
+      endMs: 750,
+      engine: "native",
+      loop: false,
+      ord: 0,
+      regionMode: "selection",
+    });
+    expect(window.__aqeGraphStateForTest?.(0)).toMatchObject({
+      playbackState: "stopped",
+      selectionStartMs: 250,
+      selectionEndMs: 750,
+      playbackRegionMode: "selection",
+    });
+  });
+
+  it("keeps selected repeat playback on browser audio when HTML play rejects", async () => {
+    initializeEditorRuntime({ audioFieldIndices: [0] });
+    scan({ audioFieldIndices: [0] });
+    await Promise.resolve();
+    window.__aqeSetVisualizer?.(0, track, 700);
+    const svg = document.querySelector<SVGSVGElement>('[data-testid="aqe-graph-svg-0"]')!;
+    setGraphBounds(svg);
+    dragGraphSelection(svg, 0.25, 0.75);
+    await setRepeatMode(true);
     const audio = document.querySelector<HTMLAudioElement>('[data-testid="aqe-audio-clock-0"]')!;
     Object.defineProperty(audio, "readyState", { configurable: true, value: 1 });
     audio.play = vi.fn<() => Promise<void>>(() => Promise.reject(new Error("blocked")));

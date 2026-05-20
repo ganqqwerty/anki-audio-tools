@@ -365,10 +365,13 @@ def build_mp3_encode_command(
     )
 
 
-def build_playback_segment_filters(start_ms: int) -> str:
-    """Build filters for a temporary cursor-to-end playback segment."""
+def build_playback_segment_filters(start_ms: int, end_ms: int | None = None) -> str:
+    """Build filters for a temporary native playback segment."""
     start_s = max(0, int(start_ms)) / 1000
-    return f"atrim=start={start_s:.3f},asetpts=PTS-STARTPTS"
+    if end_ms is None:
+        return f"atrim=start={start_s:.3f},asetpts=PTS-STARTPTS"
+    end_s = max(start_s, int(end_ms) / 1000)
+    return f"atrim=start={start_s:.3f}:end={end_s:.3f},asetpts=PTS-STARTPTS"
 
 
 def format_ffmpeg_command(command: tuple[str, ...]) -> str:

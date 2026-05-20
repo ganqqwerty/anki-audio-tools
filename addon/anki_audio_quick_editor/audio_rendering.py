@@ -143,18 +143,20 @@ def render_playback_segment(
     config: AudioProcessingConfig,
     output_path: Path | None = None,
     on_command: Callable[[tuple[str, ...]], None] | None = None,
+    end_ms: int | None = None,
 ) -> AudioProcessingResult:
-    """Render a temporary cursor-to-end segment for deterministic playback."""
+    """Render a temporary segment for deterministic native playback."""
     ffmpeg_path = find_ffmpeg(config.ffmpeg_path)
     duration_ms = probe_duration_ms(source_path, config)
     clamped_start_ms = max(0, min(int(start_ms), duration_ms))
-    if clamped_start_ms >= max(0, duration_ms - 20):
+    clamped_end_ms = duration_ms if end_ms is None else max(0, min(int(end_ms), duration_ms))
+    if clamped_start_ms >= max(0, clamped_end_ms - 20):
         raise AudioProcessingError("Cursor is at the end of the audio.")
 
     if output_path is None:
         output_path = temp_playback_path(source_path.name, clamped_start_ms)
 
-    filters = build_playback_segment_filters(clamped_start_ms)
+    filters = build_playback_segment_filters(clamped_start_ms, None if end_ms is None else clamped_end_ms)
     cmd = build_ffmpeg_command(ffmpeg_path, source_path, filters, output_path)
     if on_command:
         on_command(cmd)

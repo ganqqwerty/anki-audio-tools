@@ -109,6 +109,10 @@ export function playbackEngineFor(visualizer: VisualizerElement | null): "html" 
   if (visualizer.dataset.playbackState !== "stopped" && (activeEngine === "html" || activeEngine === "native")) {
     return activeEngine;
   }
+  const region = effectivePlaybackRegion(visualizer);
+  if (region.mode === "selection" && repeatEnabledFor(visualizer)) {
+    return "html";
+  }
   if (visualizer.dataset.hasTrack !== "true") {
     const hasDuration = Number(visualizer.dataset.durationMs || "0") > 0;
     return repeatEnabledFor(visualizer) && hasDuration && audioClockReady(visualizer) ? "html" : "native";
@@ -137,7 +141,7 @@ export function startEditorHtmlPlayback(visualizer: VisualizerElement, request: 
     onAudioPlayFailed() {
       logger.warn("html playback failed; falling back to native", { ord: request.ord });
       stopProgressClock(visualizer);
-      if ((request.regionMode === "selection" && !isWholeClipSelectionRequest(visualizer, request)) || request.loop) {
+      if (request.loop) {
         window.__aqeActiveField = request.ord;
         setStatus(t("editor.status.selected_repeat_browser_audio"), "warning");
         return;
@@ -149,11 +153,6 @@ export function startEditorHtmlPlayback(visualizer: VisualizerElement, request: 
     },
   });
   return true;
-}
-
-function isWholeClipSelectionRequest(visualizer: VisualizerElement, request: PlaybackRequest): boolean {
-  const durationMs = Number(visualizer.dataset.durationMs || "0") || 0;
-  return request.cursorMs <= 0 && durationMs > 0 && Number(request.endMs || 0) >= durationMs;
 }
 
 export function handleHtmlPlaybackCommand(ord: number): boolean {
@@ -223,11 +222,17 @@ export function getCursorIntent(): CursorIntent {
   const ord = Number(window.__aqeActiveField || "0");
   const visualizer = visualizerForOrd(ord);
   const fallback = visualizer ? Number(visualizer.dataset.cursorMs || "0") : 0;
-  return window.__aqeLastCursorIntent || {
+  const region = visualizer ? effectivePlaybackRegion(visualizer) : null;
+  const fallbackIntent: CursorIntent = {
     cursorMs: fallback,
     previousPlaybackState: visualizer ? playbackStateFor(visualizer) : "stopped",
     restartPlayback: false,
   };
+  if (region) {
+    fallbackIntent.endMs = Math.round(region.endMs);
+    fallbackIntent.regionMode = region.mode;
+  }
+  return window.__aqeLastCursorIntent || fallbackIntent;
 }
 
 export function playbackStateFor(visualizer: VisualizerElement): PlaybackState {

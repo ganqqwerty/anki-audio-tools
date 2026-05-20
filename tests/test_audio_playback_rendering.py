@@ -159,6 +159,51 @@ def test_render_playback_segment_clamps_negative_start_and_invokes_ffmpeg(monkey
     assert result.duration_ms == 300
 
 
+def test_render_playback_segment_honors_selected_end_boundary(monkeypatch, tmp_path: Path) -> None:
+    calls: list[tuple[list[str], bool, bool, bool]] = []
+    durations = iter([2000, 750])
+    commands: list[tuple[str, ...]] = []
+
+    monkeypatch.setattr("anki_audio_quick_editor.audio_processor.find_ffmpeg", lambda _path: Path("/bin/ffmpeg"))
+    monkeypatch.setattr("anki_audio_quick_editor.audio_processor.probe_duration_ms", lambda *_args: next(durations))
+
+    def fake_run(cmd: list[str], capture_output: bool, text: bool, check: bool) -> SimpleNamespace:
+        calls.append((cmd, capture_output, text, check))
+        return SimpleNamespace(returncode=0, stdout="", stderr="")
+
+    monkeypatch.setattr("anki_audio_quick_editor.audio_processor.subprocess.run", fake_run)
+
+    output = tmp_path / "segment.mp3"
+    result = render_playback_segment(
+        tmp_path / "source.wav",
+        500,
+        AudioProcessingConfig(),
+        output_path=output,
+        on_command=commands.append,
+        end_ms=1250,
+    )
+
+    expected_command = (
+        "/bin/ffmpeg",
+        "-y",
+        "-i",
+        str(tmp_path / "source.wav"),
+        "-vn",
+        "-filter:a",
+        "atrim=start=0.500:end=1.250,asetpts=PTS-STARTPTS",
+        "-codec:a",
+        "libmp3lame",
+        "-q:a",
+        "4",
+        str(output),
+    )
+    assert calls == [(list(expected_command), True, True, False)]
+    assert commands == [expected_command]
+    assert result.output_path == output
+    assert result.command == expected_command
+    assert result.duration_ms == 750
+
+
 def test_render_playback_segment_allows_cursor_before_end_threshold(monkeypatch, tmp_path: Path) -> None:
     durations = iter([1000, 21])
 
