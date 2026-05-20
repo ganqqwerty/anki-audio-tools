@@ -1,0 +1,834 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Audio Quick Editor Progress Indicator Prototypes</title>
+    <style>
+      :root {
+        color-scheme: light dark;
+        --bg: #eef1f3;
+        --fg: #202428;
+        --muted: #66727d;
+        --panel: #ffffff;
+        --line: #cbd3da;
+        --plot: #f8fafb;
+        --grid: #dde5eb;
+        --wave: #c9ced3;
+        --pitch: #1f2933;
+        --accent: #0b766f;
+        --accent-soft: rgb(11 118 111 / 14%);
+        --playhead: #b42318;
+        --playhead-soft: rgb(180 35 24 / 13%);
+        --buffer: rgb(84 105 126 / 18%);
+        --shadow: 0 14px 36px rgb(30 38 44 / 12%);
+        font-family:
+          Inter,
+          ui-sans-serif,
+          system-ui,
+          -apple-system,
+          BlinkMacSystemFont,
+          "Segoe UI",
+          sans-serif;
+      }
+
+      @media (prefers-color-scheme: dark) {
+        :root {
+          --bg: #171b1f;
+          --fg: #e8ecef;
+          --muted: #9ba7b0;
+          --panel: #242a30;
+          --line: #3c4650;
+          --plot: #1d2328;
+          --grid: #303942;
+          --wave: #39434d;
+          --pitch: #f0f3f5;
+          --accent: #34c5b6;
+          --accent-soft: rgb(52 197 182 / 16%);
+          --buffer: rgb(180 192 204 / 17%);
+          --shadow: 0 14px 36px rgb(0 0 0 / 32%);
+        }
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        background: linear-gradient(
+            180deg,
+            rgb(255 255 255 / 36%),
+            transparent 260px
+          ),
+          var(--bg);
+        color: var(--fg);
+        font-size: 14px;
+      }
+
+      main {
+        max-width: 1220px;
+        margin: 0 auto;
+        padding: 26px;
+      }
+
+      h1 {
+        margin: 0 0 8px;
+        font-size: clamp(24px, 3vw, 36px);
+        font-weight: 720;
+        letter-spacing: 0;
+      }
+
+      .intro {
+        max-width: 780px;
+        margin: 0 0 22px;
+        color: var(--muted);
+        line-height: 1.5;
+      }
+
+      .grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 16px;
+      }
+
+      .prototype {
+        min-width: 0;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        background: var(--panel);
+        box-shadow: var(--shadow);
+        padding: 14px;
+      }
+
+      .prototype h2 {
+        display: flex;
+        align-items: baseline;
+        justify-content: space-between;
+        gap: 12px;
+        margin: 0 0 10px;
+        font-size: 14px;
+        font-weight: 720;
+        letter-spacing: 0;
+      }
+
+      .prototype h2 span {
+        color: var(--muted);
+        font-size: 11px;
+        font-weight: 560;
+      }
+
+      .plot {
+        --progress: 42%;
+        --region-start: 25%;
+        --region-end: 74%;
+        position: relative;
+        height: 204px;
+        overflow: hidden;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        background: linear-gradient(
+            to right,
+            transparent 0 9.5%,
+            var(--grid) 9.5% 9.8%,
+            transparent 9.8% 100%
+          ),
+          linear-gradient(
+            to bottom,
+            transparent 0 24%,
+            var(--grid) 24% 24.5%,
+            transparent 24.5% 100%
+          ),
+          var(--plot);
+        background-size:
+          70px 100%,
+          100% 42px,
+          auto;
+        user-select: none;
+      }
+
+      .trace {
+        position: absolute;
+        inset: 18px 14px 38px;
+        width: calc(100% - 28px);
+        height: calc(100% - 56px);
+        pointer-events: none;
+      }
+
+      .wave {
+        fill: var(--wave);
+        opacity: 0.72;
+      }
+
+      .pitch {
+        fill: none;
+        stroke: var(--pitch);
+        stroke-dasharray: 18 10;
+        stroke-linecap: round;
+        stroke-linejoin: round;
+        stroke-width: 3;
+      }
+
+      .selection {
+        position: absolute;
+        top: 34px;
+        bottom: 43px;
+        left: var(--region-start);
+        width: calc(var(--region-end) - var(--region-start));
+        background: var(--accent-soft);
+        border-inline: 2px dashed
+          color-mix(in srgb, var(--accent) 62%, transparent);
+        pointer-events: none;
+      }
+
+      .played {
+        position: absolute;
+        top: 34px;
+        bottom: 43px;
+        left: 0;
+        width: var(--progress);
+        background: var(--playhead-soft);
+        pointer-events: none;
+      }
+
+      .timebar {
+        position: absolute;
+        right: 14px;
+        bottom: 10px;
+        left: 14px;
+        display: flex;
+        justify-content: space-between;
+        color: var(--muted);
+        font-variant-numeric: tabular-nums;
+        font-size: 11px;
+      }
+
+      .playhead {
+        position: absolute;
+        top: 20px;
+        bottom: 32px;
+        left: var(--progress);
+        width: 2px;
+        transform: translateX(-50%);
+        background: var(--playhead);
+        pointer-events: none;
+      }
+
+      .readout {
+        position: absolute;
+        left: var(--progress);
+        z-index: 2;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        border: 1px solid color-mix(in srgb, var(--playhead) 56%, var(--panel));
+        border-radius: 5px;
+        background: color-mix(in srgb, var(--panel) 94%, var(--playhead));
+        box-shadow: 0 7px 18px rgb(0 0 0 / 14%);
+        color: var(--fg);
+        font-size: 11px;
+        font-variant-numeric: tabular-nums;
+        font-weight: 680;
+        white-space: nowrap;
+      }
+
+      .readout strong {
+        color: var(--playhead);
+        font-weight: 760;
+      }
+
+      .ticks {
+        position: absolute;
+        right: 14px;
+        bottom: 31px;
+        left: 14px;
+        height: 8px;
+        background:
+          linear-gradient(to right, var(--line) 1px, transparent 1px) 0 0 / 20%
+            100%,
+          linear-gradient(
+              to right,
+              color-mix(in srgb, var(--line) 72%, transparent) 1px,
+              transparent 1px
+            )
+            10% 4px / 10% 4px;
+        border-top: 1px solid var(--line);
+      }
+
+      .v1 .readout {
+        top: 14px;
+        padding: 5px 7px;
+        transform: translateX(-50%);
+      }
+
+      .v1 .readout::after {
+        content: "";
+        position: absolute;
+        bottom: -6px;
+        left: 50%;
+        width: 10px;
+        height: 10px;
+        transform: translateX(-50%) rotate(45deg);
+        border-right: 1px solid
+          color-mix(in srgb, var(--playhead) 56%, var(--panel));
+        border-bottom: 1px solid
+          color-mix(in srgb, var(--playhead) 56%, var(--panel));
+        background: inherit;
+      }
+
+      .v2 .playhead {
+        top: 42px;
+        bottom: 42px;
+        width: 3px;
+        border-radius: 999px;
+      }
+
+      .v2 .knob {
+        position: absolute;
+        top: 22px;
+        left: var(--progress);
+        width: 24px;
+        height: 24px;
+        transform: translateX(-50%);
+        border: 3px solid var(--playhead);
+        border-radius: 999px;
+        background: var(--panel);
+        box-shadow: 0 0 0 4px var(--playhead-soft);
+      }
+
+      .v2 .readout {
+        top: 16px;
+        left: calc(var(--progress) + 36px);
+        padding: 5px 8px;
+      }
+
+      .v3 .ruler {
+        position: absolute;
+        inset: 0 0 auto;
+        height: 27px;
+        border-bottom: 1px solid var(--line);
+        background:
+          linear-gradient(to right, var(--line) 1px, transparent 1px) 14px 18px /
+            calc((100% - 28px) / 6) 8px,
+          color-mix(in srgb, var(--panel) 74%, transparent);
+      }
+
+      .v3 .ruler-labels {
+        position: absolute;
+        right: 14px;
+        left: 14px;
+        top: 6px;
+        display: flex;
+        justify-content: space-between;
+        color: var(--muted);
+        font-size: 10px;
+        font-variant-numeric: tabular-nums;
+      }
+
+      .v3 .readout {
+        top: 31px;
+        padding: 4px 7px;
+        transform: translateX(-50%);
+      }
+
+      .v4 .transport {
+        position: absolute;
+        right: 14px;
+        bottom: 28px;
+        left: 14px;
+        height: 18px;
+        border-radius: 999px;
+        background: var(--buffer);
+        overflow: hidden;
+      }
+
+      .v4 .transport::before {
+        content: "";
+        position: absolute;
+        inset: 0 auto 0 0;
+        width: var(--progress);
+        background: color-mix(in srgb, var(--playhead) 70%, var(--accent));
+      }
+
+      .v4 .transport::after {
+        content: "";
+        position: absolute;
+        top: 50%;
+        left: var(--progress);
+        width: 14px;
+        height: 14px;
+        transform: translate(-50%, -50%);
+        border: 2px solid var(--panel);
+        border-radius: 999px;
+        background: var(--playhead);
+      }
+
+      .v4 .readout {
+        bottom: 53px;
+        padding: 5px 8px;
+        transform: translateX(-50%);
+      }
+
+      .v5 {
+        --hover: 63%;
+      }
+
+      .v5 .hover {
+        position: absolute;
+        top: 20px;
+        bottom: 32px;
+        left: var(--hover);
+        width: 1px;
+        border-left: 1px dashed var(--muted);
+        pointer-events: none;
+      }
+
+      .v5 .hover-label {
+        position: absolute;
+        top: 22px;
+        left: var(--hover);
+        transform: translateX(-50%);
+        border: 1px solid var(--line);
+        border-radius: 4px;
+        background: var(--panel);
+        color: var(--muted);
+        font-size: 10px;
+        font-variant-numeric: tabular-nums;
+        padding: 4px 6px;
+      }
+
+      .v5 .readout {
+        bottom: 46px;
+        padding: 5px 8px;
+        transform: translateX(-50%);
+      }
+
+      .v6 .readout {
+        top: 50%;
+        display: grid;
+        grid-template-columns: auto auto;
+        gap: 2px 8px;
+        padding: 7px 9px;
+        transform: translate(-50%, -50%);
+        background: color-mix(in srgb, var(--panel) 90%, var(--accent));
+      }
+
+      .v6 .readout span {
+        color: var(--muted);
+        font-weight: 560;
+      }
+
+      .v7 .beat-grid {
+        position: absolute;
+        inset: 34px 14px 43px;
+        background: linear-gradient(
+            to right,
+            color-mix(in srgb, var(--accent) 55%, transparent) 1px,
+            transparent 1px
+          )
+          0 0 / 12.5% 100%;
+        opacity: 0.46;
+        pointer-events: none;
+      }
+
+      .v7 .playhead {
+        width: 4px;
+        border-radius: 999px;
+        box-shadow: 0 0 0 4px var(--playhead-soft);
+      }
+
+      .v7 .readout {
+        top: 14px;
+        padding: 5px 7px;
+        transform: translateX(-50%);
+      }
+
+      .v8 .buffered {
+        position: absolute;
+        right: 14px;
+        bottom: 31px;
+        left: 14px;
+        height: 6px;
+        border-radius: 999px;
+        background: linear-gradient(
+            to right,
+            var(--buffer) 0 78%,
+            transparent 78%
+          ),
+          color-mix(in srgb, var(--line) 60%, transparent);
+      }
+
+      .v8 .played-line {
+        position: absolute;
+        bottom: 31px;
+        left: 14px;
+        width: calc((100% - 28px) * 0.42);
+        height: 6px;
+        border-radius: 999px;
+        background: var(--playhead);
+      }
+
+      .v8 .readout {
+        top: 16px;
+        padding: 5px 8px;
+        transform: translateX(-50%);
+      }
+
+      .v9 {
+        --anchor: 31%;
+      }
+
+      .v9 .anchor {
+        position: absolute;
+        top: 34px;
+        bottom: 43px;
+        left: var(--anchor);
+        width: 2px;
+        transform: translateX(-50%);
+        background: var(--accent);
+        opacity: 0.8;
+      }
+
+      .v9 .anchor-label {
+        position: absolute;
+        bottom: 48px;
+        left: var(--anchor);
+        transform: translateX(-50%);
+        border-radius: 4px;
+        background: color-mix(in srgb, var(--accent) 16%, var(--panel));
+        color: var(--accent);
+        font-size: 10px;
+        font-weight: 700;
+        padding: 4px 6px;
+      }
+
+      .v9 .readout {
+        top: 15px;
+        padding: 5px 8px;
+        transform: translateX(-50%);
+      }
+
+      .v10 .playhead {
+        top: 28px;
+        bottom: 44px;
+        width: 1px;
+        background: currentColor;
+        color: var(--playhead);
+      }
+
+      .v10 .playhead::before,
+      .v10 .playhead::after {
+        content: "";
+        position: absolute;
+        left: 50%;
+        width: 13px;
+        height: 9px;
+        transform: translateX(-50%);
+        background: var(--playhead);
+        clip-path: polygon(0 0, 100% 0, 50% 100%);
+      }
+
+      .v10 .playhead::before {
+        top: -9px;
+      }
+
+      .v10 .playhead::after {
+        bottom: -9px;
+        transform: translateX(-50%) rotate(180deg);
+      }
+
+      .v10 .readout {
+        bottom: 12px;
+        left: calc(var(--progress) + 44px);
+        padding: 4px 7px;
+      }
+
+      @media (max-width: 780px) {
+        main {
+          padding: 18px;
+        }
+
+        .grid {
+          grid-template-columns: 1fr;
+        }
+
+        .plot {
+          height: 190px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <h1>Progress Indicator Prototypes</h1>
+      <p class="intro">
+        Ten directions for making the playback progress indicator feel more like
+        a compact audio/video editor: clearer playhead shape, current timecode,
+        range context, hover preview, buffer state, anchor markers, and
+        selected-region elapsed time.
+      </p>
+
+      <section class="grid" aria-label="Progress indicator visual prototypes">
+        <article class="prototype">
+          <h2>01. Timecode Flag <span>current / total</span></h2>
+          <div class="plot v1" style="--progress: 42%">
+            <div class="played"></div>
+            <svg class="trace" viewBox="0 0 720 150" aria-hidden="true">
+              <path
+                class="wave"
+                d="M0 122 C44 86 83 111 118 76 C153 42 188 72 220 52 C267 24 299 83 334 64 C392 31 414 112 466 83 C515 55 547 92 580 58 C623 17 669 69 720 44 L720 150 L0 150 Z"
+              ></path>
+              <path
+                class="pitch"
+                d="M0 92 C35 54 77 80 111 49 C151 12 186 58 217 37 C265 5 302 78 341 43 C388 0 429 89 470 52 C510 17 552 81 592 45 C638 4 678 42 720 26"
+              ></path>
+            </svg>
+            <div class="playhead"></div>
+            <div class="readout">
+              <strong>02.55s</strong><span>/ 06.08s</span>
+            </div>
+            <div class="ticks"></div>
+            <div class="timebar">
+              <span>0.00s</span><span>3.04s</span><span>6.08s</span>
+            </div>
+          </div>
+        </article>
+
+        <article class="prototype">
+          <h2>02. Lollipop Scrubber <span>large draggable head</span></h2>
+          <div class="plot v2" style="--progress: 37%">
+            <div class="selection"></div>
+            <svg class="trace" viewBox="0 0 720 150" aria-hidden="true">
+              <path
+                class="wave"
+                d="M0 126 C52 103 85 83 129 91 C178 100 206 45 249 59 C293 73 324 23 368 43 C411 63 445 113 486 79 C529 44 568 63 604 39 C641 13 678 33 720 57 L720 150 L0 150 Z"
+              ></path>
+              <path
+                class="pitch"
+                d="M0 94 C43 87 83 48 123 64 C167 82 205 22 242 37 C285 54 325 15 363 29 C407 45 445 96 486 60 C532 19 569 45 604 26 C645 4 681 31 720 38"
+              ></path>
+            </svg>
+            <div class="playhead"></div>
+            <div class="knob"></div>
+            <div class="readout">
+              <strong>02.25s</strong><span>-03.83s</span>
+            </div>
+            <div class="ticks"></div>
+            <div class="timebar">
+              <span>0.00s</span><span>selected region</span><span>6.08s</span>
+            </div>
+          </div>
+        </article>
+
+        <article class="prototype">
+          <h2>03. Timeline Ruler <span>editor-style top ticks</span></h2>
+          <div class="plot v3" style="--progress: 49%">
+            <div class="ruler">
+              <div class="ruler-labels">
+                <span>0s</span><span>1s</span><span>2s</span><span>3s</span
+                ><span>4s</span><span>5s</span><span>6s</span>
+              </div>
+            </div>
+            <svg class="trace" viewBox="0 0 720 150" aria-hidden="true">
+              <path
+                class="wave"
+                d="M0 126 C42 79 79 98 115 67 C151 36 194 57 236 42 C286 24 310 89 354 67 C398 45 434 70 469 54 C513 32 550 112 589 82 C635 47 673 66 720 42 L720 150 L0 150 Z"
+              ></path>
+              <path
+                class="pitch"
+                d="M0 97 C39 57 77 75 114 44 C153 13 193 43 234 27 C279 9 313 72 353 50 C399 26 433 55 469 37 C513 12 550 94 589 64 C633 30 674 48 720 29"
+              ></path>
+            </svg>
+            <div class="playhead"></div>
+            <div class="readout">
+              <strong>02.98s</strong><span>492 Hz</span>
+            </div>
+            <div class="timebar">
+              <span>0.00s</span><span>timeline ruler</span><span>6.08s</span>
+            </div>
+          </div>
+        </article>
+
+        <article class="prototype">
+          <h2>04. Transport Rail <span>played and buffered state</span></h2>
+          <div class="plot v4" style="--progress: 54%">
+            <svg class="trace" viewBox="0 0 720 150" aria-hidden="true">
+              <path
+                class="wave"
+                d="M0 121 C50 101 81 73 123 83 C166 93 193 54 235 63 C279 72 321 14 363 34 C410 56 441 92 486 76 C532 59 565 87 604 56 C646 24 680 60 720 47 L720 150 L0 150 Z"
+              ></path>
+              <path
+                class="pitch"
+                d="M0 88 C48 75 82 47 123 54 C166 62 196 32 236 42 C281 53 320 4 363 21 C408 39 443 73 487 55 C532 36 565 70 606 39 C647 8 681 43 720 31"
+              ></path>
+            </svg>
+            <div class="readout"><strong>03.28s</strong><span>54%</span></div>
+            <div class="transport"></div>
+            <div class="timebar">
+              <span>0.00s</span><span>buffered to 04.74s</span
+              ><span>6.08s</span>
+            </div>
+          </div>
+        </article>
+
+        <article class="prototype">
+          <h2>05. Hover Preview <span>playhead plus pointer time</span></h2>
+          <div class="plot v5" style="--progress: 32%">
+            <div class="played"></div>
+            <svg class="trace" viewBox="0 0 720 150" aria-hidden="true">
+              <path
+                class="wave"
+                d="M0 121 C44 86 84 95 121 79 C164 61 203 104 246 72 C293 36 323 61 365 39 C410 14 446 92 490 63 C532 36 565 65 604 43 C648 17 683 80 720 55 L720 150 L0 150 Z"
+              ></path>
+              <path
+                class="pitch"
+                d="M0 91 C43 58 84 67 121 51 C164 31 203 78 247 44 C291 11 324 35 365 16 C409 0 448 67 490 36 C532 9 565 37 604 18 C648 0 683 56 720 30"
+              ></path>
+            </svg>
+            <div class="hover"></div>
+            <div class="hover-label">hover 03.83s</div>
+            <div class="playhead"></div>
+            <div class="readout">
+              <strong>01.95s</strong><span>playing</span>
+            </div>
+            <div class="ticks"></div>
+            <div class="timebar">
+              <span>0.00s</span><span>tap/drag preview</span><span>6.08s</span>
+            </div>
+          </div>
+        </article>
+
+        <article class="prototype">
+          <h2>06. Region Time Stack <span>absolute and local time</span></h2>
+          <div
+            class="plot v6"
+            style="--progress: 58%; --region-start: 22%; --region-end: 75%"
+          >
+            <div class="selection"></div>
+            <svg class="trace" viewBox="0 0 720 150" aria-hidden="true">
+              <path
+                class="wave"
+                d="M0 125 C46 87 82 102 120 84 C165 64 202 94 244 62 C288 28 322 79 365 56 C409 33 448 52 487 37 C532 19 563 93 603 69 C646 43 683 66 720 51 L720 150 L0 150 Z"
+              ></path>
+              <path
+                class="pitch"
+                d="M0 92 C44 60 83 76 120 56 C164 36 203 64 244 35 C288 4 323 51 365 30 C409 8 449 31 488 12 C530 0 563 72 604 43 C646 17 681 43 720 26"
+              ></path>
+            </svg>
+            <div class="playhead"></div>
+            <div class="readout">
+              <strong>03.53s</strong><span>clip</span><strong>+02.19s</strong
+              ><span>region</span>
+            </div>
+            <div class="timebar">
+              <span>region 01.34s</span><span>2.19s in</span
+              ><span>end 04.56s</span>
+            </div>
+          </div>
+        </article>
+
+        <article class="prototype">
+          <h2>07. Beat-Snap Cursor <span>tick-aware editing</span></h2>
+          <div class="plot v7" style="--progress: 46%">
+            <div class="beat-grid"></div>
+            <svg class="trace" viewBox="0 0 720 150" aria-hidden="true">
+              <path
+                class="wave"
+                d="M0 128 C38 97 84 105 122 82 C164 56 198 72 239 55 C284 37 321 95 365 71 C411 46 442 78 486 59 C528 41 564 106 604 75 C650 40 681 65 720 44 L720 150 L0 150 Z"
+              ></path>
+              <path
+                class="pitch"
+                d="M0 94 C39 71 84 80 122 54 C165 29 199 49 239 30 C283 13 321 72 365 45 C411 19 443 55 486 34 C529 15 565 79 604 49 C649 15 682 42 720 25"
+              ></path>
+            </svg>
+            <div class="playhead"></div>
+            <div class="readout">
+              <strong>02.80s</strong><span>snap 2.75s</span>
+            </div>
+            <div class="timebar">
+              <span>0.00s</span><span>nearest tick: 2.75s</span
+              ><span>6.08s</span>
+            </div>
+          </div>
+        </article>
+
+        <article class="prototype">
+          <h2>08. Buffered Timeline <span>media-player context</span></h2>
+          <div class="plot v8" style="--progress: 42%">
+            <svg class="trace" viewBox="0 0 720 150" aria-hidden="true">
+              <path
+                class="wave"
+                d="M0 124 C42 91 82 105 118 78 C160 47 197 72 240 48 C287 21 321 81 363 58 C409 33 443 112 487 82 C532 51 565 67 606 45 C651 22 681 76 720 57 L720 150 L0 150 Z"
+              ></path>
+              <path
+                class="pitch"
+                d="M0 91 C42 62 82 80 119 51 C161 20 198 48 239 26 C285 0 321 57 363 33 C407 7 443 86 488 54 C532 23 566 42 606 20 C651 0 681 50 720 33"
+              ></path>
+            </svg>
+            <div class="playhead"></div>
+            <div class="readout">
+              <strong>02.55s</strong><span>loaded 78%</span>
+            </div>
+            <div class="buffered"></div>
+            <div class="played-line"></div>
+            <div class="timebar">
+              <span>0.00s</span><span>network/cache state</span
+              ><span>6.08s</span>
+            </div>
+          </div>
+        </article>
+
+        <article class="prototype">
+          <h2>09. Anchor + Progress <span>resume point and live head</span></h2>
+          <div class="plot v9" style="--progress: 52%">
+            <div class="played"></div>
+            <svg class="trace" viewBox="0 0 720 150" aria-hidden="true">
+              <path
+                class="wave"
+                d="M0 125 C42 97 83 89 122 76 C166 60 201 104 244 78 C289 52 323 36 365 48 C409 60 445 106 488 71 C531 36 563 54 604 39 C650 22 681 63 720 51 L720 150 L0 150 Z"
+              ></path>
+              <path
+                class="pitch"
+                d="M0 91 C43 72 84 61 122 49 C165 32 203 78 244 50 C288 24 323 9 365 20 C408 32 445 79 488 44 C531 10 564 27 604 11 C649 0 681 37 720 26"
+              ></path>
+            </svg>
+            <div class="anchor"></div>
+            <div class="anchor-label">resume</div>
+            <div class="playhead"></div>
+            <div class="readout">
+              <strong>03.16s</strong><span>+01.27s from resume</span>
+            </div>
+            <div class="timebar">
+              <span>0.00s</span><span>anchor 01.89s</span><span>6.08s</span>
+            </div>
+          </div>
+        </article>
+
+        <article class="prototype">
+          <h2>10. Edit-Line Brackets <span>minimal precise playhead</span></h2>
+          <div class="plot v10" style="--progress: 44%">
+            <svg class="trace" viewBox="0 0 720 150" aria-hidden="true">
+              <path
+                class="wave"
+                d="M0 126 C45 101 80 78 121 87 C167 98 199 53 241 67 C285 82 322 31 364 47 C410 64 443 96 487 72 C533 45 564 84 604 58 C649 28 682 67 720 49 L720 150 L0 150 Z"
+              ></path>
+              <path
+                class="pitch"
+                d="M0 94 C45 77 80 50 121 61 C167 70 199 25 241 40 C286 56 323 12 365 27 C411 42 443 74 488 49 C532 20 565 60 604 31 C649 0 683 42 720 27"
+              ></path>
+            </svg>
+            <div class="playhead"></div>
+            <div class="readout">
+              <strong>02.68s</strong><span>2680 ms</span>
+            </div>
+            <div class="ticks"></div>
+            <div class="timebar">
+              <span>0.00s</span><span>sample-accurate edit line</span
+              ><span>6.08s</span>
+            </div>
+          </div>
+        </article>
+      </section>
+    </main>
+  </body>
+</html>

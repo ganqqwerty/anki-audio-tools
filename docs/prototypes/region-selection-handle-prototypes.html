@@ -1,0 +1,989 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Audio Quick Editor Region Selection Prototypes</title>
+    <style>
+      :root {
+        color-scheme: light dark;
+        --bg: #eef1f3;
+        --fg: #202428;
+        --muted: #66727d;
+        --panel: #ffffff;
+        --line: #cbd3da;
+        --plot: #f8fafb;
+        --grid: #dde5eb;
+        --pitch: #2457d6;
+        --intensity: #c56f14;
+        --accent: #0b766f;
+        --accent-soft: rgb(11 118 111 / 14%);
+        --accent-mid: rgb(11 118 111 / 34%);
+        --danger: #b42318;
+        --shadow: 0 14px 36px rgb(30 38 44 / 12%);
+        font-family:
+          Inter,
+          ui-sans-serif,
+          system-ui,
+          -apple-system,
+          BlinkMacSystemFont,
+          "Segoe UI",
+          sans-serif;
+      }
+
+      @media (prefers-color-scheme: dark) {
+        :root {
+          --bg: #171b1f;
+          --fg: #e8ecef;
+          --muted: #9ba7b0;
+          --panel: #242a30;
+          --line: #3c4650;
+          --plot: #1d2328;
+          --grid: #303942;
+          --accent: #34c5b6;
+          --accent-soft: rgb(52 197 182 / 16%);
+          --accent-mid: rgb(52 197 182 / 36%);
+          --shadow: 0 14px 36px rgb(0 0 0 / 32%);
+        }
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        background: linear-gradient(
+            180deg,
+            rgb(255 255 255 / 36%),
+            transparent 260px
+          ),
+          var(--bg);
+        color: var(--fg);
+        font-size: 14px;
+      }
+
+      main {
+        max-width: 1220px;
+        margin: 0 auto;
+        padding: 26px;
+      }
+
+      h1 {
+        margin: 0 0 8px;
+        font-size: clamp(24px, 3vw, 36px);
+        font-weight: 720;
+        letter-spacing: 0;
+      }
+
+      .intro {
+        max-width: 760px;
+        margin: 0 0 22px;
+        color: var(--muted);
+        line-height: 1.5;
+      }
+
+      .grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 16px;
+      }
+
+      .prototype {
+        min-width: 0;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        background: var(--panel);
+        box-shadow: var(--shadow);
+        padding: 14px;
+      }
+
+      .prototype h2 {
+        display: flex;
+        align-items: baseline;
+        justify-content: space-between;
+        gap: 12px;
+        margin: 0 0 10px;
+        font-size: 14px;
+        font-weight: 720;
+        letter-spacing: 0;
+      }
+
+      .prototype h2 span {
+        color: var(--muted);
+        font-size: 11px;
+        font-weight: 560;
+      }
+
+      .plot {
+        --start: 31%;
+        --end: 69%;
+        --edge: var(--accent);
+        --fill: var(--accent-soft);
+        position: relative;
+        height: 196px;
+        overflow: hidden;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        background: linear-gradient(
+            to right,
+            transparent 0 9.5%,
+            var(--grid) 9.5% 9.8%,
+            transparent 9.8% 100%
+          ),
+          linear-gradient(
+            to bottom,
+            transparent 0 24%,
+            var(--grid) 24% 24.5%,
+            transparent 24.5% 100%
+          ),
+          var(--plot);
+        background-size:
+          70px 100%,
+          100% 42px,
+          auto;
+        user-select: none;
+      }
+
+      .trace {
+        position: absolute;
+        inset: 10px 12px 28px;
+        width: calc(100% - 24px);
+        height: calc(100% - 38px);
+        pointer-events: none;
+      }
+
+      .area {
+        fill: currentColor;
+        opacity: 0.08;
+      }
+
+      .pitch {
+        fill: none;
+        stroke: var(--pitch);
+        stroke-linecap: round;
+        stroke-linejoin: round;
+        stroke-width: 2.6;
+      }
+
+      .intensity {
+        fill: none;
+        opacity: 0.9;
+        stroke: var(--intensity);
+        stroke-linecap: round;
+        stroke-width: 2.2;
+      }
+
+      .selection {
+        position: absolute;
+        top: 27px;
+        bottom: 34px;
+        left: var(--start);
+        width: calc(var(--end) - var(--start));
+        background: var(--fill);
+        pointer-events: none;
+      }
+
+      .edge {
+        position: absolute;
+        top: 0;
+        bottom: 0;
+        width: 0;
+        color: var(--edge);
+      }
+
+      .edge.start {
+        left: 0;
+      }
+
+      .edge.end {
+        right: 0;
+      }
+
+      .edge-line {
+        position: absolute;
+        inset-block: 0;
+        left: -1px;
+        width: 2px;
+        background: currentColor;
+      }
+
+      .handle {
+        position: absolute;
+        top: 50%;
+        left: 0;
+        transform: translate(-50%, -50%);
+        pointer-events: auto;
+      }
+
+      .edge.end .handle {
+        transform: translate(-50%, -50%);
+      }
+
+      .cursor {
+        position: absolute;
+        top: 18px;
+        bottom: 25px;
+        left: 76%;
+        width: 2px;
+        background: var(--danger);
+        opacity: 0.68;
+        pointer-events: none;
+      }
+
+      .timebar {
+        position: absolute;
+        right: 12px;
+        bottom: 8px;
+        left: 12px;
+        display: flex;
+        justify-content: space-between;
+        color: var(--muted);
+        font-size: 11px;
+      }
+
+      .tick-band {
+        position: absolute;
+        right: 12px;
+        bottom: 27px;
+        left: 12px;
+        height: 1px;
+        background: var(--line);
+        pointer-events: none;
+      }
+
+      .tick-band::before,
+      .tick-band::after {
+        content: "";
+        position: absolute;
+        top: -3px;
+        width: 1px;
+        height: 7px;
+        background: var(--line);
+      }
+
+      .tick-band::before {
+        left: 32%;
+      }
+
+      .tick-band::after {
+        left: 68%;
+      }
+
+      .v1 .selection {
+        border-block: 2px solid var(--edge);
+      }
+
+      .v1 .edge-line {
+        width: 3px;
+      }
+
+      .v1 .handle {
+        width: 14px;
+        height: 88%;
+        border: 1px solid color-mix(in srgb, var(--edge) 70%, var(--panel));
+        border-radius: 4px;
+        background: linear-gradient(
+            to bottom,
+            transparent 0 34%,
+            currentColor 34% 36%,
+            transparent 36% 49%,
+            currentColor 49% 51%,
+            transparent 51% 64%,
+            currentColor 64% 66%,
+            transparent 66% 100%
+          ),
+          color-mix(in srgb, var(--panel) 86%, var(--edge));
+        box-shadow: 0 0 0 2px color-mix(in srgb, var(--panel) 70%, transparent);
+      }
+
+      .v2 .selection {
+        border: 1px solid var(--edge);
+        border-radius: 14px;
+      }
+
+      .v2 .edge-line {
+        opacity: 0;
+      }
+
+      .v2 .handle {
+        width: 24px;
+        height: 42px;
+        border: 2px solid var(--edge);
+        background: var(--panel);
+        box-shadow: 0 6px 16px rgb(0 0 0 / 14%);
+      }
+
+      .v2 .edge.start .handle {
+        left: -4px;
+        border-radius: 22px 8px 8px 22px;
+      }
+
+      .v2 .edge.end .handle {
+        left: 4px;
+        border-radius: 8px 22px 22px 8px;
+      }
+
+      .v2 .handle::before {
+        content: "";
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        width: 6px;
+        height: 6px;
+        border-top: 2px solid currentColor;
+        border-right: 2px solid currentColor;
+      }
+
+      .v2 .edge.start .handle::before {
+        transform: translate(-35%, -50%) rotate(-135deg);
+      }
+
+      .v2 .edge.end .handle::before {
+        transform: translate(-65%, -50%) rotate(45deg);
+      }
+
+      .v3 .selection {
+        background: linear-gradient(
+            to right,
+            color-mix(in srgb, var(--edge) 14%, transparent),
+            transparent 26% 74%,
+            color-mix(in srgb, var(--edge) 14%, transparent)
+          ),
+          var(--fill);
+      }
+
+      .v3 .edge-line {
+        opacity: 0;
+      }
+
+      .v3 .edge::before,
+      .v3 .edge::after {
+        content: "";
+        position: absolute;
+        left: -6px;
+        width: 18px;
+        height: 18px;
+        border-color: currentColor;
+        border-style: solid;
+      }
+
+      .v3 .edge::before {
+        top: -1px;
+        border-width: 2px 0 0 2px;
+        border-radius: 5px 0 0;
+      }
+
+      .v3 .edge::after {
+        bottom: -1px;
+        border-width: 0 0 2px 2px;
+        border-radius: 0 0 0 5px;
+      }
+
+      .v3 .edge.end::before,
+      .v3 .edge.end::after {
+        left: auto;
+        right: -6px;
+        border-left-width: 0;
+        border-right-width: 2px;
+        border-radius: 0 5px 0 0;
+      }
+
+      .v3 .edge.end::after {
+        border-radius: 0 0 5px;
+      }
+
+      .v3 .handle {
+        width: 22px;
+        height: 54px;
+        border-radius: 5px;
+      }
+
+      .v4 .selection {
+        border-block: 1px solid var(--edge);
+        background: repeating-linear-gradient(
+            135deg,
+            transparent 0 7px,
+            color-mix(in srgb, var(--edge) 18%, transparent) 7px 9px
+          ),
+          var(--fill);
+      }
+
+      .v4 .edge-line {
+        width: 2px;
+        background: repeating-linear-gradient(
+          to bottom,
+          currentColor 0 7px,
+          transparent 7px 12px
+        );
+      }
+
+      .v4 .handle {
+        width: 28px;
+        height: 28px;
+        background: currentColor;
+        clip-path: polygon(0 0, 100% 50%, 0 100%);
+      }
+
+      .v4 .edge.start .handle {
+        left: -15px;
+        transform: translate(-50%, -50%) rotate(180deg);
+      }
+
+      .v4 .edge.end .handle {
+        left: 15px;
+      }
+
+      .v5 .selection {
+        border: 1px solid color-mix(in srgb, var(--edge) 44%, transparent);
+        border-radius: 6px;
+        background: color-mix(in srgb, var(--fill) 80%, transparent);
+      }
+
+      .v5 .edge-line {
+        width: 1px;
+        opacity: 0.7;
+      }
+
+      .v5 .handle {
+        width: 18px;
+        height: calc(100% + 12px);
+        border: 1px solid color-mix(in srgb, currentColor 70%, var(--panel));
+        border-radius: 999px;
+        background: linear-gradient(
+            to right,
+            transparent 0 45%,
+            color-mix(in srgb, currentColor 90%, var(--panel)) 45% 55%,
+            transparent 55% 100%
+          ),
+          color-mix(in srgb, var(--panel) 72%, currentColor);
+        box-shadow:
+          inset 0 0 0 3px color-mix(in srgb, var(--panel) 74%, transparent),
+          0 8px 18px rgb(0 0 0 / 12%);
+      }
+
+      .v6 .selection {
+        border: 1px dashed color-mix(in srgb, var(--edge) 74%, transparent);
+        border-radius: 4px;
+      }
+
+      .v6 .edge-line {
+        background: repeating-linear-gradient(
+          to bottom,
+          currentColor 0 3px,
+          transparent 3px 7px
+        );
+        width: 2px;
+      }
+
+      .v6 .handle {
+        width: 22px;
+        height: 22px;
+        border: 2px solid var(--panel);
+        border-radius: 5px;
+        background: currentColor;
+        box-shadow:
+          0 0 0 1px currentColor,
+          0 5px 12px rgb(0 0 0 / 18%);
+        transform: translate(-50%, -50%) rotate(45deg);
+      }
+
+      .v6 .handle::before,
+      .v6 .handle::after {
+        content: "";
+        position: absolute;
+        background: currentColor;
+        opacity: 0.8;
+        transform: rotate(-45deg);
+      }
+
+      .v6 .handle::before {
+        top: -29px;
+        left: 8px;
+        width: 2px;
+        height: 16px;
+      }
+
+      .v6 .handle::after {
+        bottom: -29px;
+        left: 8px;
+        width: 2px;
+        height: 16px;
+      }
+
+      .v7 .selection {
+        border-block: 2px solid color-mix(in srgb, var(--edge) 62%, transparent);
+        background: radial-gradient(
+            circle at left center,
+            color-mix(in srgb, var(--edge) 20%, transparent),
+            transparent 34px
+          ),
+          radial-gradient(
+            circle at right center,
+            color-mix(in srgb, var(--edge) 20%, transparent),
+            transparent 34px
+          ),
+          var(--fill);
+      }
+
+      .v7 .edge-line {
+        width: 2px;
+      }
+
+      .v7 .handle {
+        width: 24px;
+        height: 82px;
+        border: 2px solid currentColor;
+        background: color-mix(in srgb, var(--panel) 86%, currentColor);
+      }
+
+      .v7 .edge.start .handle {
+        left: -3px;
+        border-radius: 30px 7px 7px 30px;
+        clip-path: polygon(0 0, 100% 10%, 100% 90%, 0 100%);
+      }
+
+      .v7 .edge.end .handle {
+        left: 3px;
+        border-radius: 7px 30px 30px 7px;
+        clip-path: polygon(0 10%, 100% 0, 100% 100%, 0 90%);
+      }
+
+      .v8 .selection {
+        border-block: 1px solid color-mix(in srgb, var(--edge) 58%, transparent);
+        background: linear-gradient(
+            to bottom,
+            color-mix(in srgb, var(--edge) 20%, transparent),
+            transparent 18%,
+            transparent 82%,
+            color-mix(in srgb, var(--edge) 20%, transparent)
+          ),
+          var(--fill);
+      }
+
+      .v8 .edge-line {
+        width: 0;
+      }
+
+      .v8 .handle {
+        width: 24px;
+        height: calc(100% + 8px);
+        border-block: 4px solid currentColor;
+      }
+
+      .v8 .edge.start .handle {
+        left: -3px;
+        border-left: 5px solid currentColor;
+        border-radius: 7px 0 0 7px;
+      }
+
+      .v8 .edge.end .handle {
+        left: 3px;
+        border-right: 5px solid currentColor;
+        border-radius: 0 7px 7px 0;
+      }
+
+      .v9 .selection {
+        border: 2px dotted color-mix(in srgb, var(--edge) 86%, transparent);
+        border-radius: 5px;
+        background: color-mix(in srgb, var(--fill) 70%, transparent);
+      }
+
+      .v9 .edge-line {
+        opacity: 0;
+      }
+
+      .v9 .handle {
+        width: 12px;
+        height: 84%;
+        background: radial-gradient(
+            circle,
+            currentColor 0 3px,
+            transparent 3.5px
+          )
+          50% 8px / 12px 18px repeat-y;
+      }
+
+      .v9 .handle::before {
+        content: "";
+        position: absolute;
+        inset: -7px -5px;
+        border-radius: 999px;
+        background: color-mix(in srgb, currentColor 12%, transparent);
+      }
+
+      .v10 .selection {
+        border: 1px solid color-mix(in srgb, var(--edge) 78%, transparent);
+        border-radius: 8px;
+        background: linear-gradient(
+            to right,
+            transparent,
+            color-mix(in srgb, var(--edge) 10%, transparent) 12% 88%,
+            transparent
+          ),
+          var(--fill);
+        box-shadow:
+          0 0 0 1px color-mix(in srgb, var(--edge) 26%, transparent),
+          0 0 18px color-mix(in srgb, var(--edge) 22%, transparent);
+      }
+
+      .v10 .edge-line {
+        width: 1px;
+        opacity: 0.72;
+      }
+
+      .v10 .handle {
+        width: 28px;
+        height: 28px;
+        border: 2px solid var(--panel);
+        border-radius: 999px;
+        background: linear-gradient(
+            to bottom,
+            transparent 0 42%,
+            currentColor 42% 58%,
+            transparent 58% 100%
+          ),
+          color-mix(in srgb, currentColor 72%, var(--panel));
+        box-shadow:
+          0 0 0 2px color-mix(in srgb, currentColor 54%, transparent),
+          0 0 22px color-mix(in srgb, currentColor 42%, transparent);
+      }
+
+      @media (max-width: 780px) {
+        main {
+          padding: 18px;
+        }
+
+        .grid {
+          grid-template-columns: 1fr;
+        }
+
+        .plot {
+          height: 184px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <h1>Region Selection Handle Prototypes</h1>
+      <p class="intro">
+        Ten standalone visual directions for selected audio regions in the
+        inline graph. The samples keep the current compact graph feel and vary
+        only the selected-band border, edge treatment, and resize handle shape.
+      </p>
+
+      <section class="grid" aria-label="Region selection visual prototypes">
+        <article class="prototype">
+          <h2>01. Slim Rails <span>full-height grip bars</span></h2>
+          <div class="plot v1" style="--start: 27%; --end: 64%">
+            <svg class="trace" viewBox="0 0 720 150" aria-hidden="true">
+              <path
+                class="area"
+                d="M0 122 C44 86 83 111 118 76 C153 42 188 72 220 52 C267 24 299 83 334 64 C392 31 414 112 466 83 C515 55 547 92 580 58 C623 17 669 69 720 44 L720 150 L0 150 Z"
+              ></path>
+              <path
+                class="intensity"
+                d="M0 114 C46 101 87 105 126 86 C176 62 221 91 267 70 C323 43 362 118 419 82 C470 50 518 112 565 72 C616 31 663 65 720 50"
+              ></path>
+              <path
+                class="pitch"
+                d="M0 92 C35 54 77 80 111 49 C151 12 186 58 217 37 C265 5 302 78 341 43 C388 0 429 89 470 52 C510 17 552 81 592 45 C638 4 678 42 720 26"
+              ></path>
+            </svg>
+            <div class="selection">
+              <div class="edge start">
+                <span class="edge-line"></span><span class="handle"></span>
+              </div>
+              <div class="edge end">
+                <span class="edge-line"></span><span class="handle"></span>
+              </div>
+            </div>
+            <div class="cursor"></div>
+            <div class="tick-band"></div>
+            <div class="timebar"><span>0 ms</span><span>2.4 s</span></div>
+          </div>
+        </article>
+
+        <article class="prototype">
+          <h2>02. Loop Tabs <span>rounded pull tabs</span></h2>
+          <div class="plot v2" style="--start: 34%; --end: 73%">
+            <svg class="trace" viewBox="0 0 720 150" aria-hidden="true">
+              <path
+                class="area"
+                d="M0 126 C52 103 85 83 129 91 C178 100 206 45 249 59 C293 73 324 23 368 43 C411 63 445 113 486 79 C529 44 568 63 604 39 C641 13 678 33 720 57 L720 150 L0 150 Z"
+              ></path>
+              <path
+                class="intensity"
+                d="M0 118 C44 106 82 81 126 90 C175 100 210 49 254 63 C299 77 328 35 367 50 C411 67 443 112 488 76 C530 42 567 67 605 43 C645 17 678 37 720 58"
+              ></path>
+              <path
+                class="pitch"
+                d="M0 94 C43 87 83 48 123 64 C167 82 205 22 242 37 C285 54 325 15 363 29 C407 45 445 96 486 60 C532 19 569 45 604 26 C645 4 681 31 720 38"
+              ></path>
+            </svg>
+            <div class="selection">
+              <div class="edge start">
+                <span class="edge-line"></span><span class="handle"></span>
+              </div>
+              <div class="edge end">
+                <span class="edge-line"></span><span class="handle"></span>
+              </div>
+            </div>
+            <div class="cursor"></div>
+            <div class="tick-band"></div>
+            <div class="timebar"><span>0 ms</span><span>2.4 s</span></div>
+          </div>
+        </article>
+
+        <article class="prototype">
+          <h2>03. Corner Brackets <span>quiet edge framing</span></h2>
+          <div class="plot v3" style="--start: 24%; --end: 58%">
+            <svg class="trace" viewBox="0 0 720 150" aria-hidden="true">
+              <path
+                class="area"
+                d="M0 126 C42 79 79 98 115 67 C151 36 194 57 236 42 C286 24 310 89 354 67 C398 45 434 70 469 54 C513 32 550 112 589 82 C635 47 673 66 720 42 L720 150 L0 150 Z"
+              ></path>
+              <path
+                class="intensity"
+                d="M0 118 C38 88 79 102 117 75 C155 48 193 63 236 48 C280 34 312 93 352 75 C398 55 430 78 470 60 C516 40 546 109 590 82 C635 54 675 70 720 48"
+              ></path>
+              <path
+                class="pitch"
+                d="M0 97 C39 57 77 75 114 44 C153 13 193 43 234 27 C279 9 313 72 353 50 C399 26 433 55 469 37 C513 12 550 94 589 64 C633 30 674 48 720 29"
+              ></path>
+            </svg>
+            <div class="selection">
+              <div class="edge start">
+                <span class="edge-line"></span><span class="handle"></span>
+              </div>
+              <div class="edge end">
+                <span class="edge-line"></span><span class="handle"></span>
+              </div>
+            </div>
+            <div class="cursor"></div>
+            <div class="tick-band"></div>
+            <div class="timebar"><span>0 ms</span><span>2.4 s</span></div>
+          </div>
+        </article>
+
+        <article class="prototype">
+          <h2>04. Folded Flags <span>directional resize markers</span></h2>
+          <div class="plot v4" style="--start: 39%; --end: 79%">
+            <svg class="trace" viewBox="0 0 720 150" aria-hidden="true">
+              <path
+                class="area"
+                d="M0 121 C50 101 81 73 123 83 C166 93 193 54 235 63 C279 72 321 14 363 34 C410 56 441 92 486 76 C532 59 565 87 604 56 C646 24 680 60 720 47 L720 150 L0 150 Z"
+              ></path>
+              <path
+                class="intensity"
+                d="M0 113 C49 99 82 78 121 86 C168 96 194 59 236 67 C282 75 321 26 365 43 C407 61 445 96 487 79 C530 62 565 90 606 61 C649 30 682 63 720 53"
+              ></path>
+              <path
+                class="pitch"
+                d="M0 88 C48 75 82 47 123 54 C166 62 196 32 236 42 C281 53 320 4 363 21 C408 39 443 73 487 55 C532 36 565 70 606 39 C647 8 681 43 720 31"
+              ></path>
+            </svg>
+            <div class="selection">
+              <div class="edge start">
+                <span class="edge-line"></span><span class="handle"></span>
+              </div>
+              <div class="edge end">
+                <span class="edge-line"></span><span class="handle"></span>
+              </div>
+            </div>
+            <div class="cursor"></div>
+            <div class="tick-band"></div>
+            <div class="timebar"><span>0 ms</span><span>2.4 s</span></div>
+          </div>
+        </article>
+
+        <article class="prototype">
+          <h2>05. Capsule Posts <span>tall soft handles</span></h2>
+          <div class="plot v5" style="--start: 29%; --end: 67%">
+            <svg class="trace" viewBox="0 0 720 150" aria-hidden="true">
+              <path
+                class="area"
+                d="M0 121 C44 86 84 95 121 79 C164 61 203 104 246 72 C293 36 323 61 365 39 C410 14 446 92 490 63 C532 36 565 65 604 43 C648 17 683 80 720 55 L720 150 L0 150 Z"
+              ></path>
+              <path
+                class="intensity"
+                d="M0 115 C44 91 84 99 122 82 C165 66 204 102 247 75 C293 45 325 66 365 46 C411 25 446 96 491 68 C535 43 566 70 605 49 C648 25 682 82 720 62"
+              ></path>
+              <path
+                class="pitch"
+                d="M0 91 C43 58 84 67 121 51 C164 31 203 78 247 44 C291 11 324 35 365 16 C409 0 448 67 490 36 C532 9 565 37 604 18 C648 0 683 56 720 30"
+              ></path>
+            </svg>
+            <div class="selection">
+              <div class="edge start">
+                <span class="edge-line"></span><span class="handle"></span>
+              </div>
+              <div class="edge end">
+                <span class="edge-line"></span><span class="handle"></span>
+              </div>
+            </div>
+            <div class="cursor"></div>
+            <div class="tick-band"></div>
+            <div class="timebar"><span>0 ms</span><span>2.4 s</span></div>
+          </div>
+        </article>
+
+        <article class="prototype">
+          <h2>06. Diamond Knobs <span>center-focused handles</span></h2>
+          <div class="plot v6" style="--start: 33%; --end: 62%">
+            <svg class="trace" viewBox="0 0 720 150" aria-hidden="true">
+              <path
+                class="area"
+                d="M0 125 C46 87 82 102 120 84 C165 64 202 94 244 62 C288 28 322 79 365 56 C409 33 448 52 487 37 C532 19 563 93 603 69 C646 43 683 66 720 51 L720 150 L0 150 Z"
+              ></path>
+              <path
+                class="intensity"
+                d="M0 116 C43 92 83 105 120 87 C165 68 204 93 245 66 C290 36 324 82 365 61 C409 40 449 58 487 42 C531 25 563 96 604 73 C645 50 681 71 720 58"
+              ></path>
+              <path
+                class="pitch"
+                d="M0 92 C44 60 83 76 120 56 C164 36 203 64 244 35 C288 4 323 51 365 30 C409 8 449 31 488 12 C530 0 563 72 604 43 C646 17 681 43 720 26"
+              ></path>
+            </svg>
+            <div class="selection">
+              <div class="edge start">
+                <span class="edge-line"></span><span class="handle"></span>
+              </div>
+              <div class="edge end">
+                <span class="edge-line"></span><span class="handle"></span>
+              </div>
+            </div>
+            <div class="cursor"></div>
+            <div class="tick-band"></div>
+            <div class="timebar"><span>0 ms</span><span>2.4 s</span></div>
+          </div>
+        </article>
+
+        <article class="prototype">
+          <h2>07. Wave Gates <span>asymmetric side pulls</span></h2>
+          <div class="plot v7" style="--start: 25%; --end: 70%">
+            <svg class="trace" viewBox="0 0 720 150" aria-hidden="true">
+              <path
+                class="area"
+                d="M0 128 C38 97 84 105 122 82 C164 56 198 72 239 55 C284 37 321 95 365 71 C411 46 442 78 486 59 C528 41 564 106 604 75 C650 40 681 65 720 44 L720 150 L0 150 Z"
+              ></path>
+              <path
+                class="intensity"
+                d="M0 119 C39 101 84 107 121 86 C163 62 198 78 239 61 C283 44 321 96 365 76 C411 54 443 82 486 65 C528 48 565 105 604 79 C650 48 682 69 720 51"
+              ></path>
+              <path
+                class="pitch"
+                d="M0 94 C39 71 84 80 122 54 C165 29 199 49 239 30 C283 13 321 72 365 45 C411 19 443 55 486 34 C529 15 565 79 604 49 C649 15 682 42 720 25"
+              ></path>
+            </svg>
+            <div class="selection">
+              <div class="edge start">
+                <span class="edge-line"></span><span class="handle"></span>
+              </div>
+              <div class="edge end">
+                <span class="edge-line"></span><span class="handle"></span>
+              </div>
+            </div>
+            <div class="cursor"></div>
+            <div class="tick-band"></div>
+            <div class="timebar"><span>0 ms</span><span>2.4 s</span></div>
+          </div>
+        </article>
+
+        <article class="prototype">
+          <h2>08. Heavy Bookends <span>bracketed range handles</span></h2>
+          <div class="plot v8" style="--start: 37%; --end: 75%">
+            <svg class="trace" viewBox="0 0 720 150" aria-hidden="true">
+              <path
+                class="area"
+                d="M0 124 C42 91 82 105 118 78 C160 47 197 72 240 48 C287 21 321 81 363 58 C409 33 443 112 487 82 C532 51 565 67 606 45 C651 22 681 76 720 57 L720 150 L0 150 Z"
+              ></path>
+              <path
+                class="intensity"
+                d="M0 116 C42 95 82 106 119 83 C159 56 197 77 240 55 C286 31 321 84 364 63 C409 43 443 111 488 85 C531 59 566 72 606 51 C649 29 681 78 720 64"
+              ></path>
+              <path
+                class="pitch"
+                d="M0 91 C42 62 82 80 119 51 C161 20 198 48 239 26 C285 0 321 57 363 33 C407 7 443 86 488 54 C532 23 566 42 606 20 C651 0 681 50 720 33"
+              ></path>
+            </svg>
+            <div class="selection">
+              <div class="edge start">
+                <span class="edge-line"></span><span class="handle"></span>
+              </div>
+              <div class="edge end">
+                <span class="edge-line"></span><span class="handle"></span>
+              </div>
+            </div>
+            <div class="cursor"></div>
+            <div class="tick-band"></div>
+            <div class="timebar"><span>0 ms</span><span>2.4 s</span></div>
+          </div>
+        </article>
+
+        <article class="prototype">
+          <h2>09. Pinch Dots <span>beaded tactile edges</span></h2>
+          <div class="plot v9" style="--start: 30%; --end: 71%">
+            <svg class="trace" viewBox="0 0 720 150" aria-hidden="true">
+              <path
+                class="area"
+                d="M0 125 C42 97 83 89 122 76 C166 60 201 104 244 78 C289 52 323 36 365 48 C409 60 445 106 488 71 C531 36 563 54 604 39 C650 22 681 63 720 51 L720 150 L0 150 Z"
+              ></path>
+              <path
+                class="intensity"
+                d="M0 117 C42 100 84 93 122 81 C166 66 203 103 244 82 C290 59 324 43 365 53 C408 64 444 105 489 75 C531 44 564 60 604 45 C649 30 681 67 720 59"
+              ></path>
+              <path
+                class="pitch"
+                d="M0 91 C43 72 84 61 122 49 C165 32 203 78 244 50 C288 24 323 9 365 20 C408 32 445 79 488 44 C531 10 564 27 604 11 C649 0 681 37 720 26"
+              ></path>
+            </svg>
+            <div class="selection">
+              <div class="edge start">
+                <span class="edge-line"></span><span class="handle"></span>
+              </div>
+              <div class="edge end">
+                <span class="edge-line"></span><span class="handle"></span>
+              </div>
+            </div>
+            <div class="cursor"></div>
+            <div class="tick-band"></div>
+            <div class="timebar"><span>0 ms</span><span>2.4 s</span></div>
+          </div>
+        </article>
+
+        <article class="prototype">
+          <h2>10. Glass Halo <span>glowing circular handles</span></h2>
+          <div class="plot v10" style="--start: 28%; --end: 66%">
+            <svg class="trace" viewBox="0 0 720 150" aria-hidden="true">
+              <path
+                class="area"
+                d="M0 126 C45 101 80 78 121 87 C167 98 199 53 241 67 C285 82 322 31 364 47 C410 64 443 96 487 72 C533 45 564 84 604 58 C649 28 682 67 720 49 L720 150 L0 150 Z"
+              ></path>
+              <path
+                class="intensity"
+                d="M0 118 C44 103 81 83 121 90 C166 101 200 59 241 72 C286 85 323 40 365 54 C410 70 443 98 488 76 C532 52 565 87 604 64 C649 36 683 70 720 57"
+              ></path>
+              <path
+                class="pitch"
+                d="M0 94 C45 77 80 50 121 61 C167 70 199 25 241 40 C286 56 323 12 365 27 C411 42 443 74 488 49 C532 20 565 60 604 31 C649 0 683 42 720 27"
+              ></path>
+            </svg>
+            <div class="selection">
+              <div class="edge start">
+                <span class="edge-line"></span><span class="handle"></span>
+              </div>
+              <div class="edge end">
+                <span class="edge-line"></span><span class="handle"></span>
+              </div>
+            </div>
+            <div class="cursor"></div>
+            <div class="tick-band"></div>
+            <div class="timebar"><span>0 ms</span><span>2.4 s</span></div>
+          </div>
+        </article>
+      </section>
+    </main>
+  </body>
+</html>

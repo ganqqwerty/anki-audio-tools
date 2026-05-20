@@ -1,0 +1,1100 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Audio Quick Editor Floating Panel Prototypes</title>
+  <style>
+    :root {
+      color-scheme: light dark;
+      --bg: #f5f2ea;
+      --fg: #202124;
+      --muted: #65707a;
+      --line: #cfd6dc;
+      --panel: rgba(255, 255, 255, 0.94);
+      --panel-strong: #ffffff;
+      --accent: #0d766e;
+      --accent-2: #b42318;
+      --accent-3: #6b4eff;
+      --shadow: 0 18px 48px rgba(28, 33, 38, 0.2);
+      --plot-bg: #fbfcfd;
+      --plot-grid: #dfe6eb;
+      --pitch: #315adf;
+      --intensity: #df8f23;
+      --selection: rgba(13, 118, 110, 0.14);
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg: #181b1f;
+        --fg: #e8ecef;
+        --muted: #9aa6af;
+        --line: #3a424a;
+        --panel: rgba(38, 43, 48, 0.95);
+        --panel-strong: #2f363c;
+        --shadow: 0 18px 52px rgba(0, 0, 0, 0.48);
+        --plot-bg: #20252a;
+        --plot-grid: #343d45;
+        --selection: rgba(34, 197, 177, 0.17);
+      }
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background: var(--bg);
+      color: var(--fg);
+      font-size: 14px;
+    }
+
+    main {
+      max-width: 980px;
+      margin: 0 auto;
+      padding: 24px;
+    }
+
+    h1 {
+      margin: 0 0 8px;
+      font-size: 22px;
+      font-weight: 680;
+    }
+
+    .note {
+      margin: 0 0 18px;
+      color: var(--muted);
+      line-height: 1.45;
+    }
+
+    .tabs {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-bottom: 16px;
+    }
+
+    .tab {
+      border: 1px solid var(--line);
+      border-radius: 7px;
+      padding: 8px 11px;
+      background: var(--panel-strong);
+      color: var(--fg);
+      cursor: pointer;
+      font: inherit;
+    }
+
+    .tab[aria-selected="true"] {
+      border-color: color-mix(in srgb, var(--accent) 58%, var(--line));
+      background: color-mix(in srgb, var(--accent) 13%, var(--panel-strong));
+    }
+
+    .stage {
+      position: relative;
+      min-height: 560px;
+      border: 1px solid var(--line);
+      background: color-mix(in srgb, var(--panel-strong) 72%, var(--bg));
+      overflow: hidden;
+      padding: 22px;
+    }
+
+    .anki-field {
+      max-width: 820px;
+      margin: 0 auto;
+      border: 1px solid var(--line);
+      background: var(--panel-strong);
+      padding: 14px;
+    }
+
+    .field-line {
+      margin-bottom: 12px;
+      color: var(--muted);
+    }
+
+    .mini-toolbar {
+      display: flex;
+      gap: 6px;
+      align-items: center;
+      margin-bottom: 8px;
+      color: var(--muted);
+    }
+
+    .mini-toolbar button {
+      width: 30px;
+      height: 28px;
+      border-radius: 6px;
+      border: 1px solid var(--line);
+      background: transparent;
+      color: var(--fg);
+    }
+
+    .plot-wrap {
+      position: relative;
+      padding: 10px 8px 6px;
+      border: 1px solid var(--line);
+      background: var(--plot-bg);
+      cursor: crosshair;
+      user-select: none;
+    }
+
+    svg {
+      display: block;
+      width: 100%;
+      height: auto;
+    }
+
+    .grid { stroke: var(--plot-grid); stroke-width: 1; }
+    .axis { stroke: var(--line); stroke-width: 1.5; }
+    .pitch { fill: none; stroke: var(--pitch); stroke-width: 2.3; }
+    .intensity { fill: none; stroke: var(--intensity); stroke-width: 2.1; opacity: 0.88; }
+    .selection { fill: var(--selection); stroke: var(--accent); stroke-width: 1.5; }
+    .cursor { stroke: var(--accent-2); stroke-width: 1.8; }
+
+    .timebar {
+      display: flex;
+      justify-content: space-between;
+      margin-top: 5px;
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .floating {
+      position: absolute;
+      left: var(--panel-x, 52%);
+      top: var(--panel-y, 235px);
+      transform: translate(-50%, -12px);
+      z-index: 4;
+      display: none;
+      color: var(--fg);
+    }
+
+    .stage[data-open="true"] .floating { display: block; }
+
+    .panel {
+      background: var(--panel);
+      border: 1px solid color-mix(in srgb, var(--line) 74%, transparent);
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(12px);
+    }
+
+    .icon-btn {
+      display: inline-grid;
+      place-items: center;
+      border: 1px solid var(--line);
+      background: var(--panel-strong);
+      color: var(--fg);
+      min-width: 34px;
+      height: 34px;
+      padding: 0;
+      cursor: pointer;
+      font: 650 13px/1 system-ui;
+    }
+
+    .icon-btn:hover,
+    .text-btn:hover,
+    .play:hover {
+      border-color: color-mix(in srgb, var(--accent) 58%, var(--line));
+      background: color-mix(in srgb, var(--accent) 10%, var(--panel-strong));
+    }
+
+    .play {
+      display: inline-grid;
+      place-items: center;
+      border: 0;
+      cursor: pointer;
+      background: var(--accent);
+      color: white;
+      box-shadow: 0 10px 22px color-mix(in srgb, var(--accent) 32%, transparent);
+      font: 800 28px/1 system-ui;
+    }
+
+    .text-btn {
+      border: 1px solid var(--line);
+      background: var(--panel-strong);
+      color: var(--fg);
+      font: 650 12px/1 system-ui;
+      padding: 8px 10px;
+      cursor: pointer;
+    }
+
+    .label {
+      display: block;
+      color: var(--muted);
+      font-size: 11px;
+      font-weight: 650;
+      text-transform: uppercase;
+      letter-spacing: 0;
+    }
+
+    .prototype { display: none; }
+    .prototype[data-active="true"] { display: block; }
+
+    .radial {
+      width: 244px;
+      height: 206px;
+      border-radius: 18px;
+      position: relative;
+      padding: 14px;
+    }
+
+    .radial .play {
+      position: absolute;
+      left: 50%;
+      top: 50%;
+      width: 74px;
+      height: 74px;
+      border-radius: 999px;
+      transform: translate(-50%, -50%);
+    }
+
+    .radial .icon-btn {
+      position: absolute;
+      width: 40px;
+      height: 40px;
+      border-radius: 999px;
+    }
+
+    .radial .repeat { left: 106px; top: 18px; }
+    .radial .left { left: 34px; top: 70px; }
+    .radial .right { right: 34px; top: 70px; }
+    .radial .loud { left: 57px; bottom: 26px; }
+    .radial .quiet { right: 57px; bottom: 26px; }
+
+    .radial .undo-row {
+      position: absolute;
+      right: 10px;
+      top: 10px;
+      display: flex;
+      gap: 4px;
+    }
+
+    .radial .undo-row .icon-btn {
+      position: static;
+      width: 30px;
+      height: 30px;
+      font-size: 12px;
+    }
+
+    .radial .label {
+      position: absolute;
+      left: 16px;
+      bottom: 12px;
+    }
+
+    .strip {
+      width: min(620px, calc(100vw - 64px));
+      border-radius: 10px;
+      padding: 10px;
+    }
+
+    .strip-top {
+      display: grid;
+      grid-template-columns: 70px 1fr auto;
+      gap: 10px;
+      align-items: center;
+    }
+
+    .strip .play {
+      width: 58px;
+      height: 58px;
+      border-radius: 14px;
+    }
+
+    .strip .groups {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      align-items: center;
+    }
+
+    .group {
+      display: flex;
+      gap: 4px;
+      align-items: center;
+      padding: 4px;
+      border: 1px solid color-mix(in srgb, var(--line) 72%, transparent);
+      border-radius: 8px;
+      background: color-mix(in srgb, var(--panel-strong) 72%, transparent);
+    }
+
+    .group .icon-btn { border-radius: 6px; }
+
+    .strip .selection-chip {
+      border-radius: 999px;
+      padding: 8px 11px;
+      background: color-mix(in srgb, var(--accent) 12%, var(--panel-strong));
+      border: 1px solid color-mix(in srgb, var(--accent) 40%, var(--line));
+      font-size: 12px;
+      color: var(--fg);
+      white-space: nowrap;
+    }
+
+    .edit-palette {
+      width: 360px;
+      border-radius: 12px;
+      padding: 12px;
+    }
+
+    .edit-head {
+      display: grid;
+      grid-template-columns: 64px 1fr;
+      gap: 12px;
+      align-items: center;
+      margin-bottom: 10px;
+    }
+
+    .edit-palette .play {
+      width: 64px;
+      height: 64px;
+      border-radius: 999px;
+    }
+
+    .range-title {
+      font-weight: 720;
+      margin-bottom: 4px;
+    }
+
+    .range-subtitle {
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .edit-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      margin-bottom: 10px;
+    }
+
+    .edit-grid .text-btn {
+      border-radius: 8px;
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      justify-content: center;
+      min-height: 40px;
+    }
+
+    .edit-grid .danger {
+      color: var(--accent-2);
+      border-color: color-mix(in srgb, var(--accent-2) 42%, var(--line));
+    }
+
+    .edit-row {
+      display: flex;
+      justify-content: space-between;
+      gap: 8px;
+      padding-top: 9px;
+      border-top: 1px solid var(--line);
+    }
+
+    .edit-row .icon-btn { border-radius: 999px; }
+
+    .bottom-caption {
+      margin-top: 14px;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.45;
+    }
+
+    .split-section {
+      max-width: 820px;
+      margin: 26px auto 0;
+      padding: 18px;
+      border: 1px solid var(--line);
+      background: var(--panel-strong);
+    }
+
+    .split-section h2 {
+      margin: 0 0 6px;
+      font-size: 18px;
+    }
+
+    .split-note {
+      margin: 0 0 14px;
+      color: var(--muted);
+      line-height: 1.45;
+    }
+
+    .split-tabs {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-bottom: 16px;
+    }
+
+    .split-board {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) minmax(220px, 280px);
+      gap: 18px;
+      align-items: start;
+    }
+
+    .split-demo {
+      --demo-surface: color-mix(in srgb, var(--plot-bg) 78%, var(--panel-strong));
+      min-height: 250px;
+      border: 1px solid var(--line);
+      background: var(--demo-surface);
+      padding: 18px;
+      display: grid;
+      place-items: center;
+    }
+
+    .split-info {
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.45;
+    }
+
+    .split-info strong {
+      display: block;
+      color: var(--fg);
+      margin-bottom: 6px;
+      font-size: 14px;
+    }
+
+    .split-variant { display: none; }
+    .split-variant[data-active="true"] { display: block; }
+
+    .split-stack {
+      width: min(100%, 360px);
+      display: grid;
+      gap: 10px;
+    }
+
+    .split-button {
+      display: grid;
+      color: var(--fg);
+    }
+
+    .split-button button {
+      color: inherit;
+      font: inherit;
+      cursor: pointer;
+    }
+
+    .split-primary,
+    .split-more,
+    .split-corner-more,
+    .split-value,
+    .split-pill {
+      border: 1px solid var(--line);
+      background: var(--panel);
+    }
+
+    .split-primary:hover,
+    .split-more:hover,
+    .split-corner-more:hover,
+    .split-value:hover,
+    .split-pill:hover {
+      border-color: color-mix(in srgb, var(--accent) 58%, var(--line));
+      background: color-mix(in srgb, var(--accent) 10%, var(--panel-strong));
+    }
+
+    .split-label {
+      font-weight: 720;
+    }
+
+    .split-sub {
+      color: var(--muted);
+      font-size: 11px;
+      font-weight: 620;
+    }
+
+    .split-inline {
+      grid-template-columns: 1fr 42px;
+      min-height: 46px;
+    }
+
+    .split-inline .split-primary {
+      border-radius: 9px 0 0 9px;
+      border-right: 0;
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      justify-content: center;
+      padding: 0 12px;
+    }
+
+    .split-inline .split-more {
+      border-radius: 0 9px 9px 0;
+    }
+
+    .split-value-badge {
+      display: inline-grid;
+      place-items: center;
+      min-width: 46px;
+      height: 24px;
+      border-radius: 999px;
+      background: color-mix(in srgb, var(--accent) 13%, var(--panel-strong));
+      color: var(--accent);
+      font-size: 12px;
+      font-weight: 760;
+    }
+
+    .split-orbit {
+      width: 150px;
+      height: 150px;
+      margin: 0 auto;
+      position: relative;
+    }
+
+    .split-orbit .split-primary {
+      position: absolute;
+      inset: 28px;
+      border-radius: 999px;
+      display: grid;
+      place-items: center;
+      text-align: center;
+      border-color: color-mix(in srgb, var(--accent) 46%, var(--line));
+    }
+
+    .split-orbit .split-more,
+    .split-orbit .split-value {
+      position: absolute;
+      width: 42px;
+      height: 42px;
+      border-radius: 999px;
+      display: grid;
+      place-items: center;
+      font-weight: 780;
+    }
+
+    .split-orbit .split-more { right: 0; top: 21px; }
+    .split-orbit .split-value { left: 0; bottom: 20px; color: var(--accent); }
+
+    .split-ladder {
+      grid-template-columns: 1fr;
+      gap: 4px;
+    }
+
+    .split-ladder .split-primary {
+      min-height: 52px;
+      border-radius: 9px 9px 4px 4px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+    }
+
+    .split-ladder-row {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr) 42px;
+      gap: 4px;
+    }
+
+    .split-ladder .split-pill,
+    .split-ladder .split-more {
+      min-height: 36px;
+      border-radius: 4px;
+      font-size: 12px;
+      font-weight: 720;
+    }
+
+    .split-ladder .split-pill[data-selected="true"] {
+      border-color: color-mix(in srgb, var(--accent) 58%, var(--line));
+      background: color-mix(in srgb, var(--accent) 14%, var(--panel-strong));
+      color: var(--accent);
+    }
+
+    .split-hybrid {
+      grid-template-columns: 58px 1fr 42px;
+      min-height: 58px;
+      align-items: stretch;
+    }
+
+    .split-hybrid .split-icon-main {
+      border: 1px solid color-mix(in srgb, var(--accent) 46%, var(--line));
+      border-radius: 999px 0 0 999px;
+      background: var(--accent);
+      color: white;
+      font-size: 21px;
+      font-weight: 850;
+    }
+
+    .split-hybrid .split-primary {
+      border-left: 0;
+      border-right: 0;
+      display: grid;
+      align-content: center;
+      justify-items: start;
+      padding: 0 12px;
+    }
+
+    .split-hybrid .split-more {
+      border-radius: 0 999px 999px 0;
+    }
+
+    .split-corner {
+      position: relative;
+      width: 66px;
+      height: 62px;
+      padding: 0 10px 10px 0;
+    }
+
+    .split-corner .split-primary {
+      position: absolute;
+      left: 0;
+      top: 0;
+      width: 58px;
+      height: 54px;
+      min-height: 0;
+      border-radius: 8px;
+      display: grid;
+      place-items: center;
+      padding: 0;
+      overflow: hidden;
+    }
+
+    .split-corner .split-primary::after {
+      content: "";
+      position: absolute;
+      right: -15px;
+      bottom: -15px;
+      width: 35px;
+      height: 35px;
+      border-radius: 999px;
+      background: var(--demo-surface);
+      box-shadow: 0 0 0 1px var(--demo-surface);
+    }
+
+    .split-corner-icon {
+      display: inline-grid;
+      place-items: center;
+      width: 34px;
+      height: 34px;
+      color: var(--fg);
+    }
+
+    .split-corner-more {
+      position: absolute;
+      right: 0;
+      bottom: 0;
+      z-index: 2;
+      width: 27px;
+      height: 27px;
+      border-radius: 999px;
+      display: grid;
+      place-items: center;
+      color: var(--fg);
+      box-shadow: 0 3px 10px rgba(28, 33, 38, 0.18);
+    }
+
+    .pack-icon {
+      display: block;
+      width: 23px;
+      height: 23px;
+      fill: none;
+      stroke: currentColor;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+      stroke-width: 2;
+    }
+
+    .split-corner-more .pack-icon {
+      width: 15px;
+      height: 15px;
+      margin: auto;
+    }
+
+    .split-corner-row {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 14px;
+      max-width: 340px;
+    }
+
+    .split-corner-sample {
+      display: grid;
+      justify-items: center;
+      gap: 5px;
+      color: var(--muted);
+      font-size: 11px;
+      font-weight: 650;
+    }
+
+    @media (max-width: 720px) {
+      .split-board { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>Floating Plot Panel Prototypes</h1>
+    <p class="note">Right-click or click inside the plot to move and open the contextual panel. Use the tabs to compare three shapes for the same idea.</p>
+
+    <div class="tabs" role="tablist" aria-label="Prototype variants">
+      <button class="tab" type="button" role="tab" aria-selected="true" data-prototype-tab="radial">A. Radial transport</button>
+      <button class="tab" type="button" role="tab" aria-selected="false" data-prototype-tab="strip">B. Mixer strip</button>
+      <button class="tab" type="button" role="tab" aria-selected="false" data-prototype-tab="edit">C. Selection palette</button>
+    </div>
+
+    <section class="stage" data-open="true" style="--panel-x: 57%; --panel-y: 274px;">
+      <div class="anki-field">
+        <div class="field-line">Front: [sound:italian_sentence_042.mp3]</div>
+        <div class="mini-toolbar" aria-hidden="true">
+          <button type="button">▶</button>
+          <button type="button">≋</button>
+          <button type="button">✂</button>
+          <button type="button">↶</button>
+          <span>current compact toolbar, left here for comparison</span>
+        </div>
+
+        <div class="plot-wrap" data-plot>
+          <svg viewBox="0 0 760 210" role="img" aria-label="Prototype prosody plot">
+            <line class="grid" x1="54" y1="26" x2="730" y2="26"></line>
+            <line class="grid" x1="54" y1="67" x2="730" y2="67"></line>
+            <line class="grid" x1="54" y1="108" x2="730" y2="108"></line>
+            <line class="grid" x1="54" y1="149" x2="730" y2="149"></line>
+            <line class="axis" x1="54" y1="172" x2="730" y2="172"></line>
+            <rect class="selection" x="268" y="28" width="218" height="142" rx="3"></rect>
+            <path class="intensity" d="M54 148 C94 132 125 154 167 119 S238 92 274 110 S339 151 379 123 S447 76 492 92 S558 145 606 120 S683 78 730 96"></path>
+            <path class="pitch" d="M54 120 C85 116 98 80 128 79 C161 78 169 142 204 142 C242 142 243 82 282 78 C323 74 335 130 369 130 C407 130 422 58 466 59 C510 60 515 128 553 128 C599 128 604 85 645 82 C686 79 696 116 730 108"></path>
+            <line class="cursor" x1="413" y1="28" x2="413" y2="172"></line>
+          </svg>
+          <div class="timebar"><span>0 ms</span><span>selected 1420-2610 ms</span><span>4120 ms</span></div>
+        </div>
+
+        <div class="bottom-caption" data-caption>
+          A puts transport at the click point. This is the most “sound editor” feeling option: fast play/repeat/trim/volume, with secondary actions kept small.
+        </div>
+      </div>
+
+      <div class="floating">
+        <div class="prototype" data-prototype="radial" data-active="true">
+          <div class="panel radial">
+            <button class="play" type="button" title="Play selection">▶</button>
+            <button class="icon-btn repeat" type="button" title="Repeat">↻</button>
+            <button class="icon-btn left" type="button" title="Trim left">L</button>
+            <button class="icon-btn right" type="button" title="Trim right">R</button>
+            <button class="icon-btn loud" type="button" title="Volume up">+</button>
+            <button class="icon-btn quiet" type="button" title="Volume down">−</button>
+            <span class="undo-row">
+              <button class="icon-btn" type="button" title="Undo">↶</button>
+              <button class="icon-btn" type="button" title="Redo">↷</button>
+            </span>
+            <span class="label">selection tools</span>
+          </div>
+        </div>
+
+        <div class="prototype" data-prototype="strip">
+          <div class="panel strip">
+            <div class="strip-top">
+              <button class="play" type="button" title="Play from here">▶</button>
+              <div class="groups">
+                <span class="group" aria-label="Selection">
+                  <button class="icon-btn" type="button" title="Repeat">↻</button>
+                  <button class="icon-btn" type="button" title="Delete selection">⌫</button>
+                  <button class="icon-btn" type="button" title="Keep only selection">⧉</button>
+                </span>
+                <span class="group" aria-label="Edits">
+                  <button class="text-btn" type="button" title="Trim left">−L</button>
+                  <button class="text-btn" type="button" title="Trim right">−R</button>
+                  <button class="icon-btn" type="button" title="Shorten pauses">⏱</button>
+                  <button class="icon-btn" type="button" title="Denoise">✦</button>
+                </span>
+                <span class="group" aria-label="Tone">
+                  <button class="icon-btn" type="button" title="Slower">−%</button>
+                  <button class="icon-btn" type="button" title="Faster">+%</button>
+                  <button class="icon-btn" type="button" title="Volume down">−</button>
+                  <button class="icon-btn" type="button" title="Volume up">+</button>
+                </span>
+              </div>
+              <span class="selection-chip">1.42-2.61s</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="prototype" data-prototype="edit">
+          <div class="panel edit-palette">
+            <div class="edit-head">
+              <button class="play" type="button" title="Play selection">▶</button>
+              <div>
+                <div class="range-title">Selection 1.42-2.61s</div>
+                <div class="range-subtitle">Actions apply to the selected region when possible.</div>
+              </div>
+            </div>
+            <div class="edit-grid">
+              <button class="text-btn" type="button"><span>✂</span><span>Trim edges</span></button>
+              <button class="text-btn" type="button"><span>⏱</span><span>Shorten pauses</span></button>
+              <button class="text-btn" type="button"><span>✦</span><span>Denoise</span></button>
+              <button class="text-btn danger" type="button"><span>⌫</span><span>Delete region</span></button>
+            </div>
+            <div class="edit-row">
+              <button class="icon-btn" type="button" title="Repeat">↻</button>
+              <button class="icon-btn" type="button" title="Slower">−%</button>
+              <button class="icon-btn" type="button" title="Faster">+%</button>
+              <button class="icon-btn" type="button" title="Volume down">−</button>
+              <button class="icon-btn" type="button" title="Volume up">+</button>
+              <button class="icon-btn" type="button" title="Undo">↶</button>
+              <button class="icon-btn" type="button" title="Settings">⚙</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="split-section">
+      <h2>Split Button Design Directions</h2>
+      <p class="split-note">These are small component prototypes for commands such as trim, speed, volume, pause removal, denoise, and graph presets. The question is how much of the adjustable value should be visible before the user opens the menu.</p>
+
+      <div class="split-tabs" role="tablist" aria-label="Split button variants">
+        <button class="tab" type="button" role="tab" aria-selected="true" data-split-tab="inline">1. Inline value</button>
+        <button class="tab" type="button" role="tab" aria-selected="false" data-split-tab="orbit">2. Round satellite</button>
+        <button class="tab" type="button" role="tab" aria-selected="false" data-split-tab="ladder">3. Preset ladder</button>
+        <button class="tab" type="button" role="tab" aria-selected="false" data-split-tab="hybrid">4. Icon rail</button>
+        <button class="tab" type="button" role="tab" aria-selected="false" data-split-tab="corner">5. Corner notch</button>
+      </div>
+
+      <div class="split-board">
+        <div class="split-demo">
+          <div class="split-variant" data-split="inline" data-active="true">
+            <div class="split-stack">
+              <div class="split-button split-inline">
+                <button class="split-primary" type="button"><span>✂</span><span class="split-label">Trim left</span><span class="split-value-badge">100 ms</span></button>
+                <button class="split-more" type="button" title="Trim left options">⌄</button>
+              </div>
+              <div class="split-button split-inline">
+                <button class="split-primary" type="button"><span>⏩</span><span class="split-label">Faster</span><span class="split-value-badge">+5%</span></button>
+                <button class="split-more" type="button" title="Speed options">⌄</button>
+              </div>
+              <div class="split-button split-inline">
+                <button class="split-primary" type="button"><span>✦</span><span class="split-label">Denoise</span><span class="split-value-badge">RNNoise</span></button>
+                <button class="split-more" type="button" title="Denoise options">⌄</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="split-variant" data-split="orbit">
+            <div class="split-stack">
+              <div class="split-button split-orbit">
+                <button class="split-primary" type="button"><span class="split-label">Trim<br>left</span></button>
+                <button class="split-more" type="button" title="More trim choices">⌄</button>
+                <button class="split-value" type="button" title="Current step">100</button>
+              </div>
+              <div class="split-button split-orbit">
+                <button class="split-primary" type="button"><span class="split-label">Volume<br>up</span></button>
+                <button class="split-more" type="button" title="More volume choices">⌄</button>
+                <button class="split-value" type="button" title="Current step">+3</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="split-variant" data-split="ladder">
+            <div class="split-stack">
+              <div class="split-button split-ladder">
+                <button class="split-primary" type="button"><span>⏱</span><span class="split-label">Shorten pauses</span></button>
+                <div class="split-ladder-row">
+                  <button class="split-pill" type="button">soft</button>
+                  <button class="split-pill" type="button" data-selected="true">normal</button>
+                  <button class="split-pill" type="button">hard</button>
+                  <button class="split-pill" type="button">max</button>
+                  <button class="split-more" type="button" title="More pause settings">⌄</button>
+                </div>
+              </div>
+              <div class="split-button split-ladder">
+                <button class="split-primary" type="button"><span>≋</span><span class="split-label">Graph</span></button>
+                <div class="split-ladder-row">
+                  <button class="split-pill" type="button">pitch</button>
+                  <button class="split-pill" type="button" data-selected="true">both</button>
+                  <button class="split-pill" type="button">voice</button>
+                  <button class="split-pill" type="button">clear</button>
+                  <button class="split-more" type="button" title="More graph settings">⌄</button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="split-variant" data-split="hybrid">
+            <div class="split-stack">
+              <div class="split-button split-hybrid">
+                <button class="split-icon-main" type="button">✂</button>
+                <button class="split-primary" type="button"><span class="split-label">Trim right</span><span class="split-sub">100 ms step</span></button>
+                <button class="split-more" type="button" title="Trim right options">⌄</button>
+              </div>
+              <div class="split-button split-hybrid">
+                <button class="split-icon-main" type="button">%</button>
+                <button class="split-primary" type="button"><span class="split-label">Slower</span><span class="split-sub">0.95x playback speed</span></button>
+                <button class="split-more" type="button" title="Speed options">⌄</button>
+              </div>
+              <div class="split-button split-hybrid">
+                <button class="split-icon-main" type="button">✦</button>
+                <button class="split-primary" type="button"><span class="split-label">Voice only</span><span class="split-sub">DPDNet, 12 dB limit</span></button>
+                <button class="split-more" type="button" title="Voice options">⌄</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="split-variant" data-split="corner">
+            <div class="split-corner-row">
+              <span class="split-corner-sample">
+                <span class="split-button split-corner">
+                  <button class="split-primary" type="button" aria-label="Trim left">
+                    <span class="split-corner-icon">
+                      <svg class="pack-icon" viewBox="0 0 24 24" aria-hidden="true">
+                        <circle cx="6" cy="6" r="3"></circle>
+                        <path d="M8.12 8.12 12 12"></path>
+                        <path d="M20 4 8.12 15.88"></path>
+                        <circle cx="6" cy="18" r="3"></circle>
+                        <path d="M14.8 14.8 20 20"></path>
+                      </svg>
+                    </span>
+                  </button>
+                  <button class="split-corner-more" type="button" title="Trim left options">
+                    <svg class="pack-icon" viewBox="0 0 24 24" aria-hidden="true">
+                      <path d="m6 9 6 6 6-6"></path>
+                    </svg>
+                  </button>
+                </span>
+                <span>trim</span>
+              </span>
+              <span class="split-corner-sample">
+                <span class="split-button split-corner">
+                  <button class="split-primary" type="button" aria-label="Faster">
+                    <span class="split-corner-icon">
+                      <svg class="pack-icon" viewBox="0 0 24 24" aria-hidden="true">
+                        <polygon points="13 19 22 12 13 5 13 19"></polygon>
+                        <polygon points="2 19 11 12 2 5 2 19"></polygon>
+                      </svg>
+                    </span>
+                  </button>
+                  <button class="split-corner-more" type="button" title="Speed options">
+                    <svg class="pack-icon" viewBox="0 0 24 24" aria-hidden="true">
+                      <path d="m6 9 6 6 6-6"></path>
+                    </svg>
+                  </button>
+                </span>
+                <span>speed</span>
+              </span>
+              <span class="split-corner-sample">
+                <span class="split-button split-corner">
+                  <button class="split-primary" type="button" aria-label="Denoise">
+                    <span class="split-corner-icon">
+                      <svg class="pack-icon" viewBox="0 0 24 24" aria-hidden="true">
+                        <path d="M9.937 15.5A2 2 0 0 0 8.5 14.063l-6.135-1.582a.5.5 0 0 1 0-.962L8.5 9.936A2 2 0 0 0 9.937 8.5l1.582-6.135a.5.5 0 0 1 .962 0L14.063 8.5A2 2 0 0 0 15.5 9.937l6.135 1.582a.5.5 0 0 1 0 .962L15.5 14.063a2 2 0 0 0-1.437 1.437l-1.582 6.135a.5.5 0 0 1-.962 0Z"></path>
+                        <path d="M20 3v4"></path>
+                        <path d="M22 5h-4"></path>
+                        <path d="M4 17v2"></path>
+                        <path d="M5 18H3"></path>
+                      </svg>
+                    </span>
+                  </button>
+                  <button class="split-corner-more" type="button" title="Denoise options">
+                    <svg class="pack-icon" viewBox="0 0 24 24" aria-hidden="true">
+                      <path d="m6 9 6 6 6-6"></path>
+                    </svg>
+                  </button>
+                </span>
+                <span>clean</span>
+              </span>
+              <span class="split-corner-sample">
+                <span class="split-button split-corner">
+                  <button class="split-primary" type="button" aria-label="Volume up">
+                    <span class="split-corner-icon">
+                      <svg class="pack-icon" viewBox="0 0 24 24" aria-hidden="true">
+                        <path d="M11 5 6 9H2v6h4l5 4V5Z"></path>
+                        <path d="M15.54 8.46a5 5 0 0 1 0 7.07"></path>
+                        <path d="M19.07 4.93a10 10 0 0 1 0 14.14"></path>
+                      </svg>
+                    </span>
+                  </button>
+                  <button class="split-corner-more" type="button" title="Volume options">
+                    <svg class="pack-icon" viewBox="0 0 24 24" aria-hidden="true">
+                      <path d="m6 9 6 6 6-6"></path>
+                    </svg>
+                  </button>
+                </span>
+                <span>volume</span>
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <aside class="split-info" data-split-info>
+          <strong>Inline value</strong>
+          Best default for the real toolbar and floating strip. The main action remains one click, while the current parameter is visible without opening the menu.
+        </aside>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    const captions = {
+      radial: "A puts transport at the click point. This is the most sound-editor feeling option: fast play/repeat/trim/volume, with secondary actions kept small.",
+      strip: "B keeps everything scannable in one horizontal strip. It is less expressive than A, but easiest to map onto the current toolbar commands and split-button groups.",
+      edit: "C treats right-click as a selection-specific command palette. It is strongest when a region exists because destructive and region-preserving commands can be labeled clearly."
+    };
+
+    const stage = document.querySelector(".stage");
+    const plot = document.querySelector("[data-plot]");
+    const caption = document.querySelector("[data-caption]");
+
+    function openAt(event) {
+      const rect = stage.getBoundingClientRect();
+      const x = Math.max(140, Math.min(rect.width - 140, event.clientX - rect.left));
+      const y = Math.max(160, Math.min(rect.height - 40, event.clientY - rect.top));
+      stage.style.setProperty("--panel-x", `${x}px`);
+      stage.style.setProperty("--panel-y", `${y}px`);
+      stage.dataset.open = "true";
+    }
+
+    plot.addEventListener("contextmenu", (event) => {
+      event.preventDefault();
+      openAt(event);
+    });
+    plot.addEventListener("click", openAt);
+
+    document.querySelectorAll("[data-prototype-tab]").forEach((tab) => {
+      tab.addEventListener("click", () => {
+        const next = tab.dataset.prototypeTab;
+        document.querySelectorAll("[data-prototype-tab]").forEach((item) => {
+          item.setAttribute("aria-selected", item === tab ? "true" : "false");
+        });
+        document.querySelectorAll("[data-prototype]").forEach((item) => {
+          item.dataset.active = item.dataset.prototype === next ? "true" : "false";
+        });
+        caption.textContent = captions[next];
+      });
+    });
+
+    const splitDescriptions = {
+      inline: {
+        title: "Inline value",
+        body: "Best default for the real toolbar and floating strip. The main action remains one click, while the current parameter is visible without opening the menu."
+      },
+      orbit: {
+        title: "Round satellite",
+        body: "Most expressive inside a floating panel. It makes sense for a few high-value commands, but it is too bulky for every operation."
+      },
+      ladder: {
+        title: "Preset ladder",
+        body: "Best when the menu usually changes between three or four known modes. It reduces hidden state, but takes more vertical space."
+      },
+      hybrid: {
+        title: "Icon rail",
+        body: "Good compromise for destructive or processing actions: large icon target, readable label, and a clear options gate."
+      },
+      corner: {
+        title: "Corner notch",
+        body: "Icon-only rectangular primary button with a circular bite removed from the bottom-right. The small round arrow button sits in that cutout as the split-menu handle."
+      }
+    };
+
+    const splitInfo = document.querySelector("[data-split-info]");
+    document.querySelectorAll("[data-split-tab]").forEach((tab) => {
+      tab.addEventListener("click", () => {
+        const next = tab.dataset.splitTab;
+        document.querySelectorAll("[data-split-tab]").forEach((item) => {
+          item.setAttribute("aria-selected", item === tab ? "true" : "false");
+        });
+        document.querySelectorAll("[data-split]").forEach((item) => {
+          item.dataset.active = item.dataset.split === next ? "true" : "false";
+        });
+        splitInfo.innerHTML = `<strong>${splitDescriptions[next].title}</strong>${splitDescriptions[next].body}`;
+      });
+    });
+  </script>
+</body>
+</html>
