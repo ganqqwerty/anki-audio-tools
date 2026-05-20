@@ -31,6 +31,7 @@ from .audio_commands import (
     build_audio_filters,
     build_deep_filter_command,
     build_deep_filter_prepare_command,
+    build_dpdfnet_command,
     build_ffmpeg_command,
     build_filter_complex_render_command,
     build_mp3_encode_command,
@@ -42,6 +43,8 @@ from .audio_commands import (
     build_rnnoise_encode_command,
     build_rnnoise_prepare_command,
     build_silencedetect_command,
+    build_spleeter_command,
+    build_spleeter_prepare_command,
     build_wav_filter_command,
     build_working_original_filters,
     format_ffmpeg_command,
@@ -59,6 +62,7 @@ from .audio_types import AudioProcessingResult, RegionDeletePlan, RegionKeepPlan
 
 __all__ = [
     "BUNDLED_DEEP_FILTER_VERSION",
+    "BUNDLED_DPDFNET_VERSION",
     "BUNDLED_RNNOISE_VERSION",
     "FFMPEG_AUDIO_CODEC_ARG",
     "WAV_MIME_TYPE",
@@ -87,6 +91,7 @@ __all__ = [
     "build_audio_filters",
     "build_deep_filter_command",
     "build_deep_filter_prepare_command",
+    "build_dpdfnet_command",
     "build_ffmpeg_command",
     "build_filter_complex_render_command",
     "build_mp3_encode_command",
@@ -98,16 +103,21 @@ __all__ = [
     "build_rnnoise_encode_command",
     "build_rnnoise_prepare_command",
     "build_silencedetect_command",
+    "build_spleeter_command",
+    "build_spleeter_prepare_command",
     "build_wav_filter_command",
     "build_working_original_filters",
     "bundled_tool_path",
     "current_platform_key",
     "expected_bundled_rnnoise_dir",
+    "expected_bundled_spleeter_model_path",
     "expected_bundled_tool_path",
     "find_deep_filter",
+    "find_dpdfnet_bundle",
     "find_ffmpeg",
     "find_ffprobe",
     "find_rnnoise_bundle",
+    "find_spleeter_bundle",
     "format_ffmpeg_command",
     "make_output_filename",
     "make_playback_segment_filename",
@@ -116,8 +126,10 @@ __all__ = [
     "render_audio_region_deleted",
     "render_audio_region_kept",
     "render_noise_reduced_audio",
+    "render_dpdfnet_audio",
     "render_playback_segment",
     "render_rnnoise_audio",
+    "render_voice_only_audio",
     "select_deep_filter_output",
     "temp_final_path",
     "temp_playback_path",
@@ -126,10 +138,12 @@ __all__ = [
 
 _BUNDLED_DEEP_FILTER_VERSION = _audio_tools.BUNDLED_DEEP_FILTER_VERSION
 BUNDLED_DEEP_FILTER_VERSION = _audio_tools.BUNDLED_DEEP_FILTER_VERSION
+BUNDLED_DPDFNET_VERSION = _audio_tools.BUNDLED_DPDFNET_VERSION
 BUNDLED_RNNOISE_VERSION = _audio_tools.BUNDLED_RNNOISE_VERSION
 _PACKAGE_DIR = _audio_tools.PACKAGE_DIR
 _ORIGINAL_BUNDLED_DEEP_FILTER_PATH = _audio_tools._bundled_deep_filter_path
 _ORIGINAL_EXPECTED_BUNDLED_RNNOISE_DIR = _audio_tools.expected_bundled_rnnoise_dir
+_ORIGINAL_EXPECTED_BUNDLED_SPLEETER_MODEL_PATH = _audio_tools.expected_bundled_spleeter_model_path
 _ORIGINAL_EXPECTED_BUNDLED_TOOL_PATH = _audio_tools.expected_bundled_tool_path
 _ORIGINAL_MAKE_PLAYBACK_SEGMENT_FILENAME = _audio_rendering.make_playback_segment_filename
 
@@ -155,6 +169,10 @@ def bundled_tool_path(tool_name: str) -> Path | None:
 
 def expected_bundled_tool_path(tool_name: str) -> Path | None:
     return _ORIGINAL_EXPECTED_BUNDLED_TOOL_PATH(tool_name)
+
+
+def expected_bundled_spleeter_model_path(model_name: str) -> Path | None:
+    return _ORIGINAL_EXPECTED_BUNDLED_SPLEETER_MODEL_PATH(model_name)
 
 
 def tool_source_label(tool_path: Path, *, configured_path: str = "") -> str:
@@ -194,6 +212,25 @@ def find_rnnoise_bundle() -> Path:
         audio_tools.expected_bundled_tool_path = original_path
 
 
+def find_dpdfnet_bundle() -> Path:
+    _sync_tool_dependencies()
+    return _audio_tools.find_dpdfnet_bundle()
+
+
+def find_spleeter_bundle() -> tuple[Path, Path, Path]:
+    _sync_tool_dependencies()
+    audio_tools = cast(Any, _audio_tools)
+    original_tool_path = audio_tools.expected_bundled_tool_path
+    original_model_path = audio_tools.expected_bundled_spleeter_model_path
+    audio_tools.expected_bundled_tool_path = expected_bundled_tool_path
+    audio_tools.expected_bundled_spleeter_model_path = expected_bundled_spleeter_model_path
+    try:
+        return _audio_tools.find_spleeter_bundle()
+    finally:
+        audio_tools.expected_bundled_tool_path = original_tool_path
+        audio_tools.expected_bundled_spleeter_model_path = original_model_path
+
+
 def _sync_external_dependencies() -> None:
     audio_external = cast(Any, _audio_external)
     audio_external.subprocess = subprocess
@@ -209,9 +246,10 @@ def probe_duration_ms(source_path: Path, config: AudioProcessingConfig) -> int:
 def _run_external_command(
     command: tuple[str, ...],
     launch_error_message: str,
+    timeout_seconds: float | None = None,
 ) -> subprocess.CompletedProcess[str]:
     _sync_external_dependencies()
-    return _audio_external._run_external_command(command, launch_error_message)
+    return _audio_external._run_external_command(command, launch_error_message, timeout_seconds)
 
 
 def _external_command_run_kwargs() -> dict[str, Any]:
@@ -378,6 +416,8 @@ def _sync_noise_dependencies() -> None:
     audio_noise_reduction.find_ffmpeg = find_ffmpeg
     audio_noise_reduction.find_deep_filter = find_deep_filter
     audio_noise_reduction.find_rnnoise_bundle = find_rnnoise_bundle
+    audio_noise_reduction.find_dpdfnet_bundle = find_dpdfnet_bundle
+    audio_noise_reduction.find_spleeter_bundle = find_spleeter_bundle
     audio_noise_reduction.probe_duration_ms = probe_duration_ms
     audio_noise_reduction._run_external_command = _run_external_command
     audio_noise_reduction._render_external_error_message = _render_external_error_message
@@ -408,6 +448,36 @@ def render_rnnoise_audio(
 ) -> AudioProcessingResult:
     _sync_noise_dependencies()
     return _audio_noise_reduction.render_rnnoise_audio(
+        source_path,
+        config,
+        output_path,
+        on_command,
+    )
+
+
+def render_dpdfnet_audio(
+    source_path: Path,
+    config: AudioProcessingConfig,
+    output_path: Path | None = None,
+    on_command: Callable[[tuple[str, ...]], None] | None = None,
+) -> AudioProcessingResult:
+    _sync_noise_dependencies()
+    return _audio_noise_reduction.render_dpdfnet_audio(
+        source_path,
+        config,
+        output_path,
+        on_command,
+    )
+
+
+def render_voice_only_audio(
+    source_path: Path,
+    config: AudioProcessingConfig,
+    output_path: Path | None = None,
+    on_command: Callable[[tuple[str, ...]], None] | None = None,
+) -> AudioProcessingResult:
+    _sync_noise_dependencies()
+    return _audio_noise_reduction.render_voice_only_audio(
         source_path,
         config,
         output_path,

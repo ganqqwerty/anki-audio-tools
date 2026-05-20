@@ -32,8 +32,11 @@
   } from "./graph-settings.js";
   import type {
     ButtonSpec,
+    FieldSplitButtonState,
     FieldTarget,
   } from "./types.js";
+
+  type DenoiseAlgorithm = FieldSplitButtonState["denoiseAlgorithm"];
 
   const POPOVER_GAP_PX = 4;
   const VIEWPORT_MARGIN_PX = 8;
@@ -48,7 +51,7 @@
   let volumeStepDb = $state(3);
   let speedStep = $state(0.05);
   let pauseAggressiveness = $state<"gentle" | "normal" | "aggressive">("normal");
-  let denoiseAlgorithm = $state<"standard" | "rnnoise">("standard");
+  let denoiseAlgorithm = $state<DenoiseAlgorithm>("standard");
   let graphVoiceRange = $state<GraphVoiceRange>("general");
   let graphRecordingCondition = $state<GraphRecordingCondition>("auto");
   let graphSmoothness = $state<GraphSmoothness>("very_smooth");
@@ -92,7 +95,7 @@
     pauseAggressiveness = setPauseAggressivenessForField(target.ord, value).pauseAggressiveness;
   }
 
-  function applyDenoiseAlgorithm(value: "standard" | "rnnoise"): void {
+  function applyDenoiseAlgorithm(value: DenoiseAlgorithm): void {
     denoiseAlgorithm = setDenoiseAlgorithmForField(target.ord, value).denoiseAlgorithm;
   }
 

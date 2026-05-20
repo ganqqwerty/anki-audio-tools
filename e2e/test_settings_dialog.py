@@ -222,12 +222,12 @@ def test_show_graph_by_default_checkbox_toggles_and_saves_in_one_session(anki_mw
 
 def test_diagnostics_can_copy_support_report_and_open_log_file(anki_mw) -> None:
     from anki_audio_quick_editor.support import (
-        clear_latest_rnnoise_support_incident,
-        record_latest_rnnoise_support_incident,
+        clear_latest_denoise_support_incident,
+        record_latest_denoise_support_incident,
     )
 
-    clear_latest_rnnoise_support_incident()
-    record_latest_rnnoise_support_incident(
+    clear_latest_denoise_support_incident()
+    record_latest_denoise_support_incident(
         operation="rnnoise_denoise",
         media_filename="3d8ca69aee6.mp3",
         source_path="/tmp/3d8ca69aee6.mp3",

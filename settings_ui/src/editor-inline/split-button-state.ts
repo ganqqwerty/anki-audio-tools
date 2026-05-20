@@ -55,7 +55,10 @@ export function splitButtonDefaults(): CompleteSplitButtonDefaults {
 }
 
 export function formatDenoiseAlgorithm(value: FieldSplitButtonState["denoiseAlgorithm"]): string {
-  return value === "rnnoise" ? "RNNoise" : t("settings.denoise_algorithm.standard");
+  if (value === "rnnoise") return t("settings.denoise_algorithm.rnnoise");
+  if (value === "dpdfnet") return t("settings.denoise_algorithm.dpdfnet");
+  if (value === "voice_only") return t("settings.denoise_algorithm.voice_only");
+  return t("settings.denoise_algorithm.standard");
 }
 
 export function getSplitButtonState(ord: number): FieldSplitButtonState {
@@ -231,8 +234,20 @@ export function buildSplitCommandPayload(command: EditorCommand, ord: number): E
   if (command === "aqe:remove-pauses") {
     return { command, fieldOrd: ord, overrides: { pauseAggressiveness: state.pauseAggressiveness } };
   }
-  if (command === "aqe:denoise-standard" || command === "aqe:rnnoise") {
-    const selectedCommand = state.denoiseAlgorithm === "rnnoise" ? "aqe:rnnoise" : "aqe:denoise-standard";
+  if (
+    command === "aqe:denoise-standard" ||
+    command === "aqe:rnnoise" ||
+    command === "aqe:dpdfnet" ||
+    command === "aqe:voice-only"
+  ) {
+    const selectedCommand =
+      state.denoiseAlgorithm === "rnnoise"
+        ? "aqe:rnnoise"
+        : state.denoiseAlgorithm === "dpdfnet"
+          ? "aqe:dpdfnet"
+        : state.denoiseAlgorithm === "voice_only"
+          ? "aqe:voice-only"
+          : "aqe:denoise-standard";
     return { command: selectedCommand, fieldOrd: ord, overrides: { denoiseAlgorithm: state.denoiseAlgorithm } };
   }
   if (command === "aqe:analyze") {

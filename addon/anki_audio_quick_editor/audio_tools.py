@@ -6,10 +6,17 @@ import platform
 import shutil
 from pathlib import Path
 
-from .errors import MissingDeepFilterError, MissingFfmpegError, MissingRnnoiseError
+from .errors import (
+    MissingDeepFilterError,
+    MissingDpdfnetError,
+    MissingFfmpegError,
+    MissingRnnoiseError,
+    MissingSpleeterError,
+)
 
 BUNDLED_DEEP_FILTER_VERSION = "0.5.6"
 BUNDLED_RNNOISE_VERSION = "0.2"
+BUNDLED_DPDFNET_VERSION = "0.1.0"
 FFMPEG_AUDIO_CODEC_ARG = "-codec:a"
 WAV_MIME_TYPE = "audio/wav"
 _PACKAGE_DIR = Path(__file__).resolve().parent
@@ -34,6 +41,14 @@ _TOOL_EXECUTABLES = {
         "macos-arm64": "rnnoise-cli",
         "macos-x86_64": "rnnoise-cli",
         "windows-x86_64": "rnnoise-cli.exe",
+    },
+    "dpdfnet": {
+        "macos-arm64": "dpdfnet",
+    },
+    "sherpa-spleeter": {
+        "macos-arm64": "sherpa-spleeter",
+        "macos-x86_64": "sherpa-spleeter",
+        "windows-x86_64": "sherpa-spleeter.exe",
     },
 }
 _LEGACY_TOOL_PATHS = {
@@ -187,3 +202,58 @@ def find_rnnoise_bundle() -> Path:
         f"RNNoise requires the bundled rnnoise-cli executable at {rnnoise_path}. "
         "Reinstall the add-on to restore it."
     )
+
+
+def find_dpdfnet_bundle() -> Path:
+    """Return the bundled DPDFNet executable path."""
+    dpdfnet_path = expected_bundled_tool_path("dpdfnet")
+    if dpdfnet_path is None:
+        raise MissingDpdfnetError(f"DPDFNet is not bundled for {platform_description()}.")
+    if dpdfnet_path.is_file():
+        return dpdfnet_path
+    raise MissingDpdfnetError(
+        f"DPDFNet requires the bundled dpdfnet executable at {dpdfnet_path}. "
+        "Reinstall the add-on to restore it."
+    )
+
+
+def expected_bundled_spleeter_model_path(model_name: str) -> Path | None:
+    """Return the expected bundled Sherpa Spleeter model path."""
+    if current_platform_key() is None:
+        return None
+    return _PACKAGE_DIR / "bin" / "models" / "spleeter-2stems-fp16" / model_name
+
+
+def find_spleeter_bundle() -> tuple[Path, Path, Path]:
+    """Return bundled Sherpa Spleeter executable and model paths."""
+    executable_path = expected_bundled_tool_path("sherpa-spleeter")
+    if executable_path is None:
+        raise MissingSpleeterError(f"Sherpa Spleeter is not bundled for {platform_description()}.")
+    if executable_path.is_file():
+        spleeter_path = executable_path
+    else:
+        bundled = bundled_tool_path("sherpa-spleeter")
+        if bundled is None:
+            raise MissingSpleeterError(
+                f"Voice Only requires the bundled sherpa-spleeter executable at {executable_path}. "
+                "Reinstall the add-on to restore it."
+            )
+        spleeter_path = bundled
+
+    return (
+        spleeter_path,
+        _required_spleeter_model("vocals.fp16.onnx"),
+        _required_spleeter_model("accompaniment.fp16.onnx"),
+    )
+
+
+def _required_spleeter_model(model_name: str) -> Path:
+    model_path = expected_bundled_spleeter_model_path(model_name)
+    if model_path is None:
+        raise MissingSpleeterError(f"Sherpa Spleeter models are not bundled for {platform_description()}.")
+    if not model_path.is_file():
+        raise MissingSpleeterError(
+            f"Voice Only requires the bundled Sherpa Spleeter model at {model_path}. "
+            "Reinstall the add-on to restore it."
+        )
+    return model_path

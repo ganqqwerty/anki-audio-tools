@@ -40,7 +40,7 @@ Anki Audio Quick Editor keeps the human-facing architecture doc short and puts t
 4. The editor bundle mounts one compact Svelte control surface per audio field, including an SVG prosody visualizer, and requests async analysis for the current referenced media.
 5. `prosody_analyzer.py` uses optional Parselmouth/Praat when available and falls back to ffmpeg-decoded PCM pitch/intensity analysis otherwise.
 6. Processing button presses update an `AudioEditState` for the current field, including manual trim, speed, volume, and pause-shortening edits, then render a new MP3 with `audio_processor.py`.
-7. Special transform controls call bundled or configured external denoisers through `audio_processor.py`, including DeepFilterNet and RNNoise.
+7. Special transform controls call bundled or configured external cleanup tools through `audio_processor.py`, including DeepFilterNet, RNNoise, DPDFNet Lite, and Sherpa Spleeter voice extraction.
 8. `editor_integration.py` writes the result through Anki's media manager and replaces the first supported sound reference in the field.
 9. Playback uses Anki's audio player against the latest generated reference, stopping any previous playback first and seeking to the visualizer cursor when set.
 10. Undo restores the previous generated reference and edit state without deleting generated media.
@@ -134,7 +134,7 @@ Config defaults are stored in `config.json` and migrated into user config:
 ```
 
 `config_migration.py` deep-merges defaults into user config and stamps the current schema version.
-Editor split-button choices are field-local runtime overrides. Settings provide defaults for trim amount, volume step, speed step, repeat pause, pause aggressiveness, and denoise algorithm, but changing a split-button value in one editor field does not write back to persisted config or other fields.
+Editor split-button choices are field-local runtime overrides. Settings provide defaults for trim amount, volume step, speed step, repeat pause, pause aggressiveness, and cleanup action, but changing a split-button value in one editor field does not write back to persisted config or other fields.
 
 ## Source Of Truth
 

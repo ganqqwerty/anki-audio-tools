@@ -30,6 +30,8 @@ CMD_VOLUME_UP = "aqe:volume-up"
 CMD_REMOVE_PAUSES = "aqe:remove-pauses"
 CMD_DENOISE_STANDARD = "aqe:denoise-standard"
 CMD_RNNOISE = "aqe:rnnoise"
+CMD_DPDFNET = "aqe:dpdfnet"
+CMD_VOICE_ONLY = "aqe:voice-only"
 CMD_DELETE_SELECTION = "aqe:delete-selection"
 CMD_DELETE_REST = "aqe:delete-rest"
 CMD_ANALYZE_FIELD = "aqe:analyze-field"
@@ -56,6 +58,8 @@ BRIDGE_COMMANDS = (
     CMD_REMOVE_PAUSES,
     CMD_DENOISE_STANDARD,
     CMD_RNNOISE,
+    CMD_DPDFNET,
+    CMD_VOICE_ONLY,
     CMD_DELETE_SELECTION,
     CMD_DELETE_REST,
     "aqe:undo",

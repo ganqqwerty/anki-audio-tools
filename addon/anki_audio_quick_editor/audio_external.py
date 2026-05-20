@@ -82,6 +82,7 @@ def probe_duration_ms(source_path: Path, config: AudioProcessingConfig) -> int:
 def _run_external_command(
     command: tuple[str, ...],
     launch_error_message: str,
+    timeout_seconds: float | None = None,
 ) -> subprocess.CompletedProcess[str]:
     operation_id = new_operation_id("external")
     started = time.monotonic()
@@ -93,12 +94,15 @@ def _run_external_command(
         context={"argv": list(command)},
     )
     try:
+        run_kwargs = _external_command_run_kwargs()
+        if timeout_seconds is not None:
+            run_kwargs["timeout"] = timeout_seconds
         result = subprocess.run(
             list(command),
             capture_output=True,
             text=True,
             check=False,
-            **_external_command_run_kwargs(),
+            **run_kwargs,
         )  # nosec B603
         record_breadcrumb(
             "external.command.finished",
@@ -116,6 +120,25 @@ def _run_external_command(
             flush=result.returncode != 0,
         )
         return result
+    except subprocess.TimeoutExpired as exc:
+        timeout_label = "unknown" if timeout_seconds is None else f"{timeout_seconds:g}"
+        timeout_message = f"{launch_error_message} Timed out after {timeout_label} seconds."
+        record_breadcrumb(
+            "external.command.timed_out",
+            source="external",
+            level="error",
+            operation="external.command",
+            operation_id=operation_id,
+            context={
+                "argv": list(command),
+                "duration_seconds": round(time.monotonic() - started, 6),
+                "timeout_seconds": timeout_seconds,
+                "stdout": str(exc.stdout or "")[-2000:],
+                "stderr": str(exc.stderr or "")[-2000:],
+            },
+            flush=True,
+        )
+        raise AudioProcessingError(timeout_message) from exc
     except OSError as exc:
         record_breadcrumb(
             "external.command.launch_failed",

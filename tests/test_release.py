@@ -36,7 +36,7 @@ def _write_archive(path: Path, names: list[str], executable_names: set[str] | No
             if name in executable_names:
                 content = b"binary"
             elif name == "bin/THIRD_PARTY_NOTICES.md":
-                content = b"FFmpeg LAME DeepFilterNet RNNoise"
+                content = b"FFmpeg LAME DeepFilterNet RNNoise Sherpa Spleeter"
             else:
                 content = b""
             zf.writestr(info, content)
@@ -56,6 +56,13 @@ def _lock_with_binary_hashes(content: bytes = b"binary") -> dict:
     for target in release_assets.lock_targets(lock):
         for tool_name in release_assets.lock_tools(lock, target):
             lock["targets"][target]["tools"][tool_name]["sha256"] = digest
+    empty_digest = hashlib.sha256(b"").hexdigest()
+    for target in release_assets.lock_targets(lock):
+        for tool_name in release_assets.lock_tools(lock, target):
+            for file_entry in release_assets.tool_runtime_files(lock, target, tool_name):
+                file_entry["sha256"] = empty_digest
+    for file_name in release_assets.lock_shared_files(lock):
+        lock["shared_files"][file_name]["sha256"] = empty_digest
     return lock
 
 
@@ -147,7 +154,10 @@ def test_release_manifest_files_can_be_limited_to_single_runtime_target() -> Non
     )
 
     assert "bin/macos-arm64/ffmpeg" in names
+    assert "bin/macos-arm64/libonnxruntime.1.24.4.dylib" in names
+    assert "bin/models/spleeter-2stems-fp16/vocals.fp16.onnx" in names
     assert "bin/windows-x86_64/ffmpeg.exe" not in names
+    assert "bin/windows-x86_64/onnxruntime.dll" not in names
 
 
 def test_runtime_manifest_can_be_limited_to_single_runtime_target(tmp_path) -> None:
@@ -157,6 +167,8 @@ def test_runtime_manifest_can_be_limited_to_single_runtime_target(tmp_path) -> N
 
     manifest = json.loads((tmp_path / "runtime_manifest.json").read_text(encoding="utf-8"))
     assert list(manifest["targets"]) == ["windows-x86_64"]
+    assert manifest["targets"]["windows-x86_64"]["tools"]["sherpa-spleeter"]["runtime_files"]
+    assert manifest["shared_files"]["spleeter-vocals"]["path"] == "models/spleeter-2stems-fp16/vocals.fp16.onnx"
 
 
 def test_runtime_manifest_includes_locked_diagnostic_args(tmp_path) -> None:

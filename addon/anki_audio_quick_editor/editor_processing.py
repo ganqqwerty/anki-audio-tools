@@ -23,9 +23,12 @@ from .sound_refs import (
     select_first_sound_reference,
 )
 from .support import (
-    format_rnnoise_support_log_block,
-    latest_rnnoise_support_incident,
-    record_latest_rnnoise_support_incident,
+    format_denoise_support_log_block,
+    format_spleeter_support_log_block,
+    latest_denoise_support_incident,
+    latest_spleeter_support_incident,
+    record_latest_denoise_support_incident,
+    record_latest_spleeter_support_incident,
 )
 
 logger = logging.getLogger(__name__)
@@ -34,10 +37,11 @@ logger = logging.getLogger(__name__)
 def update_state_and_render(editor: Any, command: str | EditorCommandPayload, deps: Any) -> None:
     """Apply a frontend processing command and start the render worker."""
     existing = deps.sessions.get(editor)
-    if existing and deps.is_busy(existing):
+    if existing and _has_blocking_work(existing):
         deps.eval_status(editor, deps.still_processing_message, kind="processing")
         return
     session, source_path = deps.session_and_source(editor)
+    _cancel_graph_analysis_for_processing(editor, session, deps)
     config = AudioProcessingConfig.from_config(deps.config(editor))
     state = session.state or AudioEditState(source_file=source_path.name)
     updated_state = apply_processing_command(command, state, config)
@@ -51,6 +55,22 @@ def update_state_and_render(editor: Any, command: str | EditorCommandPayload, de
         updated_state,
         processing_config_for_command(command, config),
     )
+
+
+def _has_blocking_work(session: EditorSession) -> bool:
+    return session.processing or session.playback_preparing
+
+
+def _cancel_graph_analysis_for_processing(editor: Any, session: EditorSession, deps: Any) -> None:
+    if not (session.analysis_busy or session.analysis_busy_fields):
+        return
+    busy_fields = set(session.analysis_busy_fields)
+    session.analysis_generation += 1
+    session.analysis_generations_by_field.clear()
+    session.analysis_busy_fields.clear()
+    session.analysis_busy = False
+    for field_index in busy_fields:
+        deps.set_busy_for_field(editor, field_index, False)
 
 
 def render_and_replace_async(
@@ -197,6 +217,30 @@ def rnnoise_async(editor: Any, deps: Any) -> None:
     )
 
 
+def dpdfnet_async(editor: Any, deps: Any) -> None:
+    """Start DPDFNet denoise for the current media."""
+    deps.run_special_audio_transform_async(
+        editor,
+        label=t("editor.status.denoising_dpdfnet"),
+        failure_log_label="dpdfnet denoise failed",
+        renderer=deps.render_dpdfnet_audio,
+        support_hint=deps.support_report_hint,
+        failure_context_recorder=deps.record_dpdfnet_failure_context,
+    )
+
+
+def voice_only_async(editor: Any, deps: Any) -> None:
+    """Start voice-only source separation for the current media."""
+    deps.run_special_audio_transform_async(
+        editor,
+        label=t("editor.status.extracting_voice"),
+        failure_log_label="voice only failed",
+        renderer=deps.render_voice_only_audio,
+        support_hint=deps.support_report_hint,
+        failure_context_recorder=deps.record_spleeter_failure_context,
+    )
+
+
 def run_special_audio_transform_async(
     editor: Any,
     *,
@@ -210,10 +254,11 @@ def run_special_audio_transform_async(
     """Run a denoise transform and replace the current audio on completion."""
     operation_id = new_operation_id("transform")
     existing = deps.sessions.get(editor)
-    if existing and deps.is_busy(existing):
+    if existing and _has_blocking_work(existing):
         deps.eval_status(editor, deps.still_processing_message, kind="processing")
         return
     session, current_path = deps.current_media_path(editor)
+    _cancel_graph_analysis_for_processing(editor, session, deps)
     config = AudioProcessingConfig.from_config(deps.config(editor))
     deps.stop_session_playback(session)
     session.processing = True
@@ -323,7 +368,7 @@ def record_rnnoise_failure_context(
     exc: Exception,
 ) -> None:
     """Record enough RNNoise failure context for the diagnostics report."""
-    record_latest_rnnoise_support_incident(
+    record_latest_denoise_support_incident(
         operation="rnnoise_denoise",
         media_filename=source_path.name,
         source_path=str(source_path.resolve()),
@@ -333,16 +378,60 @@ def record_rnnoise_failure_context(
     )
 
 
+def record_dpdfnet_failure_context(
+    source_path: Path,
+    config: AudioProcessingConfig,
+    exc: Exception,
+) -> None:
+    """Record enough DPDFNet failure context for the diagnostics report."""
+    record_latest_denoise_support_incident(
+        operation="dpdfnet_denoise",
+        media_filename=source_path.name,
+        source_path=str(source_path.resolve()),
+        user_message=str(exc),
+        exception_type=type(exc).__name__,
+        ffmpeg_path=config.ffmpeg_path,
+    )
+
+
+def record_spleeter_failure_context(
+    source_path: Path,
+    config: AudioProcessingConfig,
+    exc: Exception,
+) -> None:
+    """Record enough Sherpa Spleeter failure context for the diagnostics report."""
+    record_latest_spleeter_support_incident(
+        operation="voice_only",
+        media_filename=source_path.name,
+        source_path=str(source_path.resolve()),
+        user_message=str(exc),
+        exception_type=type(exc).__name__,
+        ffmpeg_path=config.ffmpeg_path,
+    )
+
+
 def log_special_transform_failure(failure_log_label: str, message: str) -> None:
-    """Log denoise failures, adding RNNoise diagnostics when available."""
-    if failure_log_label == "rnnoise denoise failed":
-        incident = latest_rnnoise_support_incident()
+    """Log denoise and source-separation failures with diagnostics when available."""
+    if failure_log_label in {"rnnoise denoise failed", "dpdfnet denoise failed"}:
+        incident = latest_denoise_support_incident()
         if incident:
             logger.exception(
                 "%s: %s\n%s",
                 failure_log_label,
                 message,
-                format_rnnoise_support_log_block(incident),
+                format_denoise_support_log_block(incident),
+            )
+            return
+        logger.exception("%s: %s", failure_log_label, message)
+        return
+    if failure_log_label == "voice only failed":
+        incident = latest_spleeter_support_incident()
+        if incident:
+            logger.exception(
+                "%s: %s\n%s",
+                failure_log_label,
+                message,
+                format_spleeter_support_log_block(incident),
             )
             return
         logger.exception("%s: %s", failure_log_label, message)

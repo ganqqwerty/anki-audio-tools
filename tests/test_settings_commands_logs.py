@@ -8,8 +8,8 @@ from anki_audio_quick_editor.settings.commands import (
     handle_settings_command,
 )
 from anki_audio_quick_editor.support import (
+    clear_latest_denoise_support_incident,
     clear_latest_pause_pipeline_support_incident,
-    clear_latest_rnnoise_support_incident,
 )
 from tests.settings_command_fixtures import (
     _capture_eval,
@@ -29,7 +29,7 @@ class _ImmediateThread:
 
 def test_async_support_report_handles_missing_log_file() -> None:
     clear_latest_pause_pipeline_support_incident()
-    clear_latest_rnnoise_support_incident()
+    clear_latest_denoise_support_incident()
     dialog = _make_dialog()
     calls, eval_fn = _capture_eval()
     payload = json.dumps({"id": "job-1", "op": "support_report", "payload": {"config": _full_config()}})
@@ -40,7 +40,7 @@ def test_async_support_report_handles_missing_log_file() -> None:
     done_calls = [call for call in calls if call.startswith("window.onAsyncDone(")]
     result = _parse_callback(done_calls[0], "onAsyncDone")
     report_text = result["result"]["reportText"]
-    assert "No RNNoise failure has been captured in this session." in report_text
+    assert "No external denoise failure has been captured in this session." in report_text
     assert "No pause-shortening failure has been captured in this session." in report_text
     assert "Log file not found:" in report_text or "(log file is empty)" in report_text
 
@@ -94,4 +94,3 @@ def test_async_show_log_file_reports_reveal_failure(tmp_path: Path) -> None:
         "ok": False,
         "error": "missing log",
     }
-

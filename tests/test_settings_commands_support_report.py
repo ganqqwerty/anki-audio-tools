@@ -13,8 +13,10 @@ from anki_audio_quick_editor.settings.commands import (
 from anki_audio_quick_editor.support import (
     clear_latest_pause_pipeline_support_incident,
     clear_latest_rnnoise_support_incident,
+    clear_latest_spleeter_support_incident,
     record_latest_pause_pipeline_support_incident,
     record_latest_rnnoise_support_incident,
+    record_latest_spleeter_support_incident,
 )
 from tests.settings_command_fixtures import (
     _capture_eval,
@@ -37,6 +39,7 @@ def test_async_support_report_returns_incident_and_log_tail(tmp_path: Path) -> N
 
     clear_latest_pause_pipeline_support_incident()
     clear_latest_rnnoise_support_incident()
+    clear_latest_spleeter_support_incident()
     record_latest_pause_pipeline_support_incident(
         operation="deep_filter_pause_speedup",
         media_filename="clip.mp3",
@@ -63,6 +66,20 @@ def test_async_support_report_returns_incident_and_log_tail(tmp_path: Path) -> N
             {"command": "/bin/rnnoise-cli denoise --input in.s16le", "returncode": 5, "stdout": "", "stderr": "boom", "launch_error": ""},
         ],
     )
+    record_latest_spleeter_support_incident(
+        operation="voice_only",
+        media_filename="voice.mp3",
+        source_path="/media/voice.mp3",
+        user_message="Voice Only extraction failed.",
+        exception_type="AudioProcessingError",
+        ffmpeg_path="/bin/ffmpeg",
+        spleeter_path="/bin/sherpa-spleeter",
+        vocals_model_path="/models/vocals.fp16.onnx",
+        accompaniment_model_path="/models/accompaniment.fp16.onnx",
+        attempted_commands=[
+            {"command": "/bin/sherpa-spleeter --json", "returncode": 5, "stdout": "", "stderr": "boom", "launch_error": ""},
+        ],
+    )
     addon_dir = tmp_path / "addon"
     addon_dir.mkdir()
     log_path = addon_dir / "anki_audio_quick_editor.log"
@@ -76,6 +93,8 @@ def test_async_support_report_returns_incident_and_log_tail(tmp_path: Path) -> N
         patch.object(mw.addonManager, "addonsFolder", return_value=str(addon_dir)),
         patch("anki_audio_quick_editor.diagnostics.build_deep_filter_health", return_value={"available": True, "path": "/bin/deep-filter", "version": "0.5.6", "error": ""}),
         patch("anki_audio_quick_editor.diagnostics.build_rnnoise_health", return_value={"available": True, "path": "/bin/rnnoise-cli", "version": "0.2", "error": ""}),
+        patch("anki_audio_quick_editor.diagnostics.build_dpdfnet_health", return_value={"available": True, "path": "/bin/dpdfnet", "version": "0.1.0", "error": ""}),
+        patch("anki_audio_quick_editor.diagnostics.build_spleeter_health", return_value={"available": True, "path": "/bin/sherpa-spleeter", "version": "1.13.2", "error": ""}),
     ):
         handle_settings_command(f"async_cmd:{payload}", eval_fn, dialog)
 
@@ -85,8 +104,11 @@ def test_async_support_report_returns_incident_and_log_tail(tmp_path: Path) -> N
     assert "Anki Audio Quick Editor Support Report" in report_text
     assert "DeepFilterNet pause analysis failed." in report_text
     assert "RNNoise denoise failed." in report_text
+    assert "Voice Only extraction failed." in report_text
     assert "/bin/rnnoise-cli denoise --input in.s16le" in report_text
+    assert "/bin/sherpa-spleeter --json" in report_text
     assert "0.2" in report_text
+    assert "0.1.0" in report_text
     assert "/addon/aqe_artifacts/clip__run/manifest.json" in report_text
     assert "line-1" in report_text
     assert str(log_path) in report_text
@@ -137,4 +159,3 @@ def test_copy_support_report_logs_unavailable_clipboard(caplog: pytest.LogCaptur
 
     with patch("aqt.qt.QApplication.clipboard", return_value=None):
         assert handle_settings_command(f"copy_support_report:{payload}", eval_fn, dialog) is True
-

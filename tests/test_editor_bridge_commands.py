@@ -222,6 +222,43 @@ def test_busy_session_rejects_processing_command(tmp_path: Path, monkeypatch) ->
     assert any("Still processing. Please wait." in call.args[0] for call in editor.web.eval.call_args_list)
 
 
+def test_processing_command_cancels_graph_analysis_busy_state(tmp_path: Path, monkeypatch) -> None:
+    class Editor:
+        pass
+
+    editor = Editor()
+    editor.currentField = 0
+    editor.web = MagicMock()
+    source = tmp_path / "clip.mp3"
+    source.write_bytes(b"source")
+    session = EditorSession(
+        state=AudioEditState("clip.mp3"),
+        field_index=0,
+        analysis_busy=True,
+        analysis_busy_fields={0},
+        analysis_generation=4,
+        analysis_generations_by_field={0: 4},
+    )
+    _SESSIONS[editor] = session
+    rendered: dict[str, AudioEditState] = {}
+
+    monkeypatch.setattr("anki_audio_quick_editor.editor_runtime.session_and_source", lambda _editor: (session, source))
+    monkeypatch.setattr("anki_audio_quick_editor.editor_runtime.config", lambda _editor: {"manual_trim_small_ms": 300})
+    monkeypatch.setattr(
+        "anki_audio_quick_editor.editor_callbacks._render_and_replace_async",
+        lambda _editor, _session, _source_path, updated_state, _config: rendered.update(state=updated_state),
+    )
+
+    _handle_bridge_command(editor, "aqe:trim-left")
+
+    assert rendered["state"] == AudioEditState("clip.mp3", left_trim_ms=300)
+    assert session.analysis_busy is False
+    assert session.analysis_busy_fields == set()
+    assert session.analysis_generations_by_field == {}
+    assert session.analysis_generation == 5
+    assert any("window.__aqeSetBusy" in call.args[0] and "(0, false" in call.args[0] for call in editor.web.eval.call_args_list)
+
+
 def test_editor_frontend_log_callback_records_levels(caplog: pytest.LogCaptureFixture) -> None:
     class Web:
         def evalWithCallback(self, _expression: str, callback: Callable[[object], None]) -> None:

@@ -5,6 +5,7 @@ export type CommandIconName =
   | "circle-help"
   | "fast-forward"
   | "folder-open"
+  | "mic"
   | "pause"
   | "play"
   | "redo-2"

@@ -173,7 +173,9 @@
         "note_type_count": { "type": "integer" },
         "card_count": { "type": "integer" },
         "deep_filter": { "$ref": "#/definitions/ExternalToolHealth" },
-        "rnnoise": { "$ref": "#/definitions/ExternalToolHealth" }
+        "rnnoise": { "$ref": "#/definitions/ExternalToolHealth" },
+        "dpdfnet": { "$ref": "#/definitions/ExternalToolHealth" },
+        "spleeter": { "$ref": "#/definitions/ExternalToolHealth" }
       }
     },
     "SupportReportResult": {

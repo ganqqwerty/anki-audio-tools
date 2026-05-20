@@ -17,8 +17,10 @@ LOG_TAIL_LINE_COUNT = 200
 SUPPORT_REPORT_HINT = t("support.report_hint")
 
 _SUPPORT_LOCK = threading.Lock()
-_LATEST_RNNOISE_INCIDENT: dict[str, Any] | None = None
+_LATEST_DENOISE_INCIDENT: dict[str, Any] | None = None
+_LATEST_SPLEETER_INCIDENT: dict[str, Any] | None = None
 _LATEST_PAUSE_PIPELINE_INCIDENT: dict[str, Any] | None = None
+_INCIDENT_IDENTITY_FIELDS = ("operation", "source_path", "user_message", "exception_type")
 
 
 def addon_log_path(addon_dir: str | Path) -> Path:
@@ -26,41 +28,117 @@ def addon_log_path(addon_dir: str | Path) -> Path:
     return Path(addon_dir) / "anki_audio_quick_editor.log"
 
 
+def _merge_support_fields(
+    existing: dict[str, Any] | None,
+    fields: dict[str, Any],
+    *,
+    start_new_on_identity_change: bool = True,
+) -> dict[str, Any]:
+    starts_new = start_new_on_identity_change and _starts_new_incident(existing, fields)
+    base = None if starts_new else existing
+    merged = copy.deepcopy(base) if base else {}
+    merged.setdefault("timestamp", datetime.now(UTC).isoformat())
+    for key, value in fields.items():
+        if _is_empty_support_field(key, value, starts_new=starts_new):
+            continue
+        merged[key] = copy.deepcopy(value)
+    return merged
+
+
+def _is_empty_support_field(key: str, value: Any, *, starts_new: bool) -> bool:
+    if value is None:
+        return True
+    if isinstance(value, str):
+        return not value
+    if isinstance(value, list):
+        return not value and not _keeps_empty_attempted_commands(key, starts_new)
+    if isinstance(value, dict):
+        return not value
+    return False
+
+
+def _keeps_empty_attempted_commands(key: str, starts_new: bool) -> bool:
+    return starts_new and key == "attempted_commands"
+
+
+def _starts_new_incident(existing: dict[str, Any] | None, fields: dict[str, Any]) -> bool:
+    if existing is None:
+        return False
+    for key in _INCIDENT_IDENTITY_FIELDS:
+        value = fields.get(key)
+        if not isinstance(value, str) or not value:
+            continue
+        existing_value = existing.get(key)
+        if isinstance(existing_value, str) and existing_value and existing_value != value:
+            return True
+    return False
+
+
 # noinspection PyInconsistentReturns
-def record_latest_rnnoise_support_incident(**fields: Any) -> dict[str, Any]:
-    """Merge ``fields`` into the latest RNNoise support incident."""
-    global _LATEST_RNNOISE_INCIDENT
+def record_latest_denoise_support_incident(**fields: Any) -> dict[str, Any]:
+    """Merge ``fields`` into the latest external-denoise support incident."""
+    global _LATEST_DENOISE_INCIDENT
 
     with _SUPPORT_LOCK:
-        merged = copy.deepcopy(_LATEST_RNNOISE_INCIDENT) if _LATEST_RNNOISE_INCIDENT else {}
-        merged.setdefault("timestamp", datetime.now(UTC).isoformat())
-        for key, value in fields.items():
-            if value is None:
-                continue
-            if isinstance(value, str) and not value:
-                continue
-            if isinstance(value, list) and not value:
-                continue
-            if isinstance(value, dict) and not value:
-                continue
-            merged[key] = copy.deepcopy(value)
-        _LATEST_RNNOISE_INCIDENT = merged
-        return copy.deepcopy(merged)
+        _LATEST_DENOISE_INCIDENT = _merge_support_fields(_LATEST_DENOISE_INCIDENT, fields)
+        return copy.deepcopy(_LATEST_DENOISE_INCIDENT)
+
+
+# noinspection PyInconsistentReturns
+def latest_denoise_support_incident() -> dict[str, Any] | None:
+    """Return the latest recorded external-denoise support incident, if any."""
+    with _SUPPORT_LOCK:
+        return copy.deepcopy(_LATEST_DENOISE_INCIDENT)
+
+
+def clear_latest_denoise_support_incident() -> None:
+    """Clear the recorded external-denoise support incident."""
+    global _LATEST_DENOISE_INCIDENT
+
+    with _SUPPORT_LOCK:
+        _LATEST_DENOISE_INCIDENT = None
+
+
+# noinspection PyInconsistentReturns
+def record_latest_rnnoise_support_incident(**fields: Any) -> dict[str, Any]:
+    """Compatibility wrapper for callers that still name RNNoise specifically."""
+    return record_latest_denoise_support_incident(**fields)
 
 
 # noinspection PyInconsistentReturns
 def latest_rnnoise_support_incident() -> dict[str, Any] | None:
-    """Return the latest recorded RNNoise support incident, if any."""
-    with _SUPPORT_LOCK:
-        return copy.deepcopy(_LATEST_RNNOISE_INCIDENT)
+    """Compatibility wrapper for the latest external-denoise support incident."""
+    return latest_denoise_support_incident()
 
 
 def clear_latest_rnnoise_support_incident() -> None:
-    """Clear the recorded RNNoise support incident."""
-    global _LATEST_RNNOISE_INCIDENT
+    """Compatibility wrapper for clearing external-denoise support context."""
+    clear_latest_denoise_support_incident()
+
+
+# noinspection PyInconsistentReturns
+def record_latest_spleeter_support_incident(**fields: Any) -> dict[str, Any]:
+    """Merge ``fields`` into the latest Sherpa Spleeter support incident."""
+    global _LATEST_SPLEETER_INCIDENT
 
     with _SUPPORT_LOCK:
-        _LATEST_RNNOISE_INCIDENT = None
+        _LATEST_SPLEETER_INCIDENT = _merge_support_fields(_LATEST_SPLEETER_INCIDENT, fields)
+        return copy.deepcopy(_LATEST_SPLEETER_INCIDENT)
+
+
+# noinspection PyInconsistentReturns
+def latest_spleeter_support_incident() -> dict[str, Any] | None:
+    """Return the latest recorded Sherpa Spleeter support incident, if any."""
+    with _SUPPORT_LOCK:
+        return copy.deepcopy(_LATEST_SPLEETER_INCIDENT)
+
+
+def clear_latest_spleeter_support_incident() -> None:
+    """Clear the recorded Sherpa Spleeter support incident."""
+    global _LATEST_SPLEETER_INCIDENT
+
+    with _SUPPORT_LOCK:
+        _LATEST_SPLEETER_INCIDENT = None
 
 
 # noinspection PyInconsistentReturns
@@ -69,20 +147,12 @@ def record_latest_pause_pipeline_support_incident(**fields: Any) -> dict[str, An
     global _LATEST_PAUSE_PIPELINE_INCIDENT
 
     with _SUPPORT_LOCK:
-        merged = copy.deepcopy(_LATEST_PAUSE_PIPELINE_INCIDENT) if _LATEST_PAUSE_PIPELINE_INCIDENT else {}
-        merged.setdefault("timestamp", datetime.now(UTC).isoformat())
-        for key, value in fields.items():
-            if value is None:
-                continue
-            if isinstance(value, str) and not value:
-                continue
-            if isinstance(value, list) and not value:
-                continue
-            if isinstance(value, dict) and not value:
-                continue
-            merged[key] = copy.deepcopy(value)
-        _LATEST_PAUSE_PIPELINE_INCIDENT = merged
-        return copy.deepcopy(merged)
+        _LATEST_PAUSE_PIPELINE_INCIDENT = _merge_support_fields(
+            _LATEST_PAUSE_PIPELINE_INCIDENT,
+            fields,
+            start_new_on_identity_change=False,
+        )
+        return copy.deepcopy(_LATEST_PAUSE_PIPELINE_INCIDENT)
 
 
 # noinspection PyInconsistentReturns
@@ -124,10 +194,10 @@ def format_command(command: tuple[str, ...]) -> str:
     return " ".join(shlex.quote(part) for part in command)
 
 
-def format_rnnoise_support_log_block(incident: dict[str, Any]) -> str:
-    """Render a compact multi-line RNNoise support block for logger output."""
+def format_denoise_support_log_block(incident: dict[str, Any]) -> str:
+    """Render a compact multi-line external-denoise support block for logger output."""
     lines = [
-        "rnnoise support incident:",
+        "denoise support incident:",
         f"  timestamp: {incident.get('timestamp', '')}",
         f"  operation: {incident.get('operation', '')}",
         f"  media_filename: {incident.get('media_filename', '')}",
@@ -135,7 +205,42 @@ def format_rnnoise_support_log_block(incident: dict[str, Any]) -> str:
         f"  user_message: {incident.get('user_message', '')}",
         f"  exception_type: {incident.get('exception_type', '')}",
         f"  ffmpeg_path: {incident.get('ffmpeg_path', '')}",
-        f"  rnnoise_path: {incident.get('rnnoise_path', '')}",
+    ]
+    for key in ("rnnoise_path", "dpdfnet_path"):
+        value = incident.get(key)
+        if value:
+            lines.append(f"  {key}: {value}")
+    for index, command in enumerate(incident.get("attempted_commands", []), start=1):
+        lines.append(f"  command_{index}: {command.get('command', '')}")
+        lines.append(f"    returncode: {command.get('returncode')}")
+        if command.get("launch_error"):
+            lines.append(f"    launch_error: {command['launch_error']}")
+        if command.get("stdout"):
+            lines.append(f"    stdout: {command['stdout']}")
+        if command.get("stderr"):
+            lines.append(f"    stderr: {command['stderr']}")
+    return "\n".join(lines)
+
+
+def format_rnnoise_support_log_block(incident: dict[str, Any]) -> str:
+    """Compatibility wrapper for the generic external-denoise support block."""
+    return format_denoise_support_log_block(incident)
+
+
+def format_spleeter_support_log_block(incident: dict[str, Any]) -> str:
+    """Render a compact multi-line Sherpa Spleeter support block for logger output."""
+    lines = [
+        "sherpa spleeter support incident:",
+        f"  timestamp: {incident.get('timestamp', '')}",
+        f"  operation: {incident.get('operation', '')}",
+        f"  media_filename: {incident.get('media_filename', '')}",
+        f"  source_path: {incident.get('source_path', '')}",
+        f"  user_message: {incident.get('user_message', '')}",
+        f"  exception_type: {incident.get('exception_type', '')}",
+        f"  ffmpeg_path: {incident.get('ffmpeg_path', '')}",
+        f"  spleeter_path: {incident.get('spleeter_path', '')}",
+        f"  vocals_model_path: {incident.get('vocals_model_path', '')}",
+        f"  accompaniment_model_path: {incident.get('accompaniment_model_path', '')}",
     ]
     for index, command in enumerate(incident.get("attempted_commands", []), start=1):
         lines.append(f"  command_{index}: {command.get('command', '')}")
@@ -207,7 +312,9 @@ def _append_incident_report_section(
         ]
     )
     for label, key in runtime_fields:
-        sections.append(f"{label}: {incident.get(key, '')}")
+        value = incident.get(key)
+        if value:
+            sections.append(f"{label}: {value}")
     sections.append("Attempted commands:")
     _append_attempted_command_report(sections, incident)
 
@@ -219,9 +326,12 @@ def build_support_report_text(
     log_file_path: str,
     deep_filter_health: dict[str, Any],
     rnnoise_health: dict[str, Any],
-    rnnoise_incident: dict[str, Any] | None,
+    dpdfnet_health: dict[str, Any] | None = None,
+    denoise_incident: dict[str, Any] | None,
     pause_pipeline_incident: dict[str, Any] | None,
     log_tail: str,
+    spleeter_health: dict[str, Any] | None = None,
+    spleeter_incident: dict[str, Any] | None = None,
     diagnostics_context: dict[str, Any] | None = None,
 ) -> str:
     """Build a support report suitable for copying into a bug report."""
@@ -235,10 +345,21 @@ def build_support_report_text(
     _append_general_diagnostics_sections(sections, diagnostics_context)
     _append_incident_report_section(
         sections,
-        title="Latest RNNoise failure",
-        incident=rnnoise_incident,
-        missing_message="No RNNoise failure has been captured in this session.",
-        runtime_fields=(("RNNoise path", "rnnoise_path"),),
+        title="Latest denoise failure",
+        incident=denoise_incident,
+        missing_message="No external denoise failure has been captured in this session.",
+        runtime_fields=(("RNNoise path", "rnnoise_path"), ("DPDFNet path", "dpdfnet_path")),
+    )
+    _append_incident_report_section(
+        sections,
+        title="Latest Voice Only failure",
+        incident=spleeter_incident,
+        missing_message="No Voice Only failure has been captured in this session.",
+        runtime_fields=(
+            ("Sherpa Spleeter path", "spleeter_path"),
+            ("Vocals model path", "vocals_model_path"),
+            ("Accompaniment model path", "accompaniment_model_path"),
+        ),
     )
     _append_incident_report_section(
         sections,
@@ -260,6 +381,12 @@ def build_support_report_text(
             "",
             "Current RNNoise health",
             json.dumps(rnnoise_health, indent=2, sort_keys=True),
+            "",
+            "Current DPDFNet health",
+            json.dumps(dpdfnet_health or {}, indent=2, sort_keys=True),
+            "",
+            "Current Sherpa Spleeter health",
+            json.dumps(spleeter_health or {"available": False}, indent=2, sort_keys=True),
             "",
             f"Recent log tail (last {LOG_TAIL_LINE_COUNT} lines)",
             log_tail,

@@ -146,7 +146,9 @@ function _isHealthReport(value: unknown): value is HealthReport {
     typeof value.note_type_count === "number" &&
     typeof value.card_count === "number" &&
     (value.deep_filter === undefined || _isExternalToolHealth(value.deep_filter)) &&
-    (value.rnnoise === undefined || _isExternalToolHealth(value.rnnoise))
+    (value.rnnoise === undefined || _isExternalToolHealth(value.rnnoise)) &&
+    (value.dpdfnet === undefined || _isExternalToolHealth(value.dpdfnet)) &&
+    (value.spleeter === undefined || _isExternalToolHealth(value.spleeter))
   );
 }
 

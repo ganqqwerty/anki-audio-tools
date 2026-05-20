@@ -229,6 +229,8 @@ def test_play_graph_cursor_and_play_ended_are_not_processing_commands() -> None:
         "aqe:set-cursor",
         "aqe:denoise-standard",
         "aqe:rnnoise",
+        "aqe:dpdfnet",
+        "aqe:voice-only",
         "aqe:settings",
         "aqe:redo",
         "aqe:trim-silence",
@@ -236,6 +238,8 @@ def test_play_graph_cursor_and_play_ended_are_not_processing_commands() -> None:
 
     assert "aqe:denoise-standard" in BRIDGE_COMMANDS
     assert "aqe:rnnoise" in BRIDGE_COMMANDS
+    assert "aqe:dpdfnet" in BRIDGE_COMMANDS
+    assert "aqe:voice-only" in BRIDGE_COMMANDS
     assert "aqe:settings" in BRIDGE_COMMANDS
     assert "aqe:redo" in BRIDGE_COMMANDS
     assert "aqe:analyze-field" in BRIDGE_COMMANDS

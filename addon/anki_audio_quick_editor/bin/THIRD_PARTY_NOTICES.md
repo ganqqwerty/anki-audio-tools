@@ -39,3 +39,26 @@ release packaging.
 - License: BSD-style upstream license.
 - Distribution note: `rnnoise-cli` is built from upstream RNNoise source and
   the local wrapper source at `scripts/rnnoise_cli/rnnoise_cli.c`.
+
+## DPDFNet
+
+- Version: DPDFNet Lite CLI 0.1.0 with the `dpdfnet4.tflite` model.
+- Source: https://github.com/ceva-ip/DPDFNet
+- License: Apache-2.0.
+- Distribution note: `dpdfnet` is built as a standalone TFLite command-line
+  tool from the local DPDFNet project for supported release targets.
+
+## Sherpa ONNX Spleeter
+
+- Version: Sherpa ONNX 1.13.2 runtime plus `sherpa-onnx-spleeter-2stems-fp16`
+  model files.
+- Runtime source: https://github.com/k2-fsa/sherpa-onnx/releases/tag/v1.13.2
+- Model source: https://github.com/k2-fsa/sherpa-onnx/releases/tag/source-separation-models
+- License posture: Sherpa ONNX runtime assets are published under Apache-2.0
+  terms; the Spleeter model files follow the upstream model release terms
+  tracked in `release_assets.lock.json`.
+- Distribution note: release packaging extracts the upstream
+  `sherpa-onnx-offline-source-separation` executable as `sherpa-spleeter`,
+  stages the required ONNX Runtime libraries beside it, and shares
+  `vocals.fp16.onnx` and `accompaniment.fp16.onnx` once under
+  `bin/models/spleeter-2stems-fp16/`.

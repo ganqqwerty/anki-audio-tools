@@ -40,6 +40,18 @@ BROAD_EXCEPTION_ALLOWLIST: tuple[BroadExceptionAllowance, ...] = (
         "External RNNoise runtime boundary records support context before surfacing an add-on error.",
     ),
     BroadExceptionAllowance(
+        "audio_noise_reduction",
+        "render_dpdfnet_audio",
+        1,
+        "External DPDFNet runtime boundary records support context before surfacing an add-on error.",
+    ),
+    BroadExceptionAllowance(
+        "audio_noise_reduction",
+        "render_voice_only_audio",
+        1,
+        "External Sherpa Spleeter boundary records model and command context before surfacing an add-on error.",
+    ),
+    BroadExceptionAllowance(
         "batch_operations",
         "_process_graph_operation",
         1,
@@ -92,6 +104,18 @@ BROAD_EXCEPTION_ALLOWLIST: tuple[BroadExceptionAllowance, ...] = (
         "build_rnnoise_health",
         1,
         "Diagnostic external-tool probe reports availability instead of raising.",
+    ),
+    BroadExceptionAllowance(
+        "diagnostics",
+        "build_dpdfnet_health",
+        1,
+        "Diagnostic external-tool probe reports availability instead of raising.",
+    ),
+    BroadExceptionAllowance(
+        "diagnostics",
+        "build_spleeter_health",
+        1,
+        "Diagnostic source-separation probe reports Sherpa Spleeter availability instead of raising.",
     ),
     BroadExceptionAllowance(
         "diagnostics_runtime",

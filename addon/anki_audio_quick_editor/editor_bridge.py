@@ -17,9 +17,11 @@ from .editor_actions import (
     CMD_DELETE_REST,
     CMD_DELETE_SELECTION,
     CMD_DENOISE_STANDARD,
+    CMD_DPDFNET,
     CMD_REDO,
     CMD_RNNOISE,
     CMD_SETTINGS,
+    CMD_VOICE_ONLY,
     EditorCommandPayload,
     decode_editor_command_payload,
 )
@@ -118,6 +120,8 @@ def handle_non_processing_command(editor: Any, command: str | EditorCommandPaylo
         CMD_SETTINGS: deps.open_settings_from_editor,
         CMD_DENOISE_STANDARD: deps.denoise_standard_async,
         CMD_RNNOISE: deps.rnnoise_async,
+        CMD_DPDFNET: deps.dpdfnet_async,
+        CMD_VOICE_ONLY: deps.voice_only_async,
         CMD_DELETE_SELECTION: deps.delete_selection_from_frontend,
         CMD_DELETE_REST: deps.delete_selection_from_frontend,
     }

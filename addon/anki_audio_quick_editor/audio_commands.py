@@ -260,6 +260,20 @@ def build_rnnoise_command(
     )
 
 
+def build_dpdfnet_command(
+    dpdfnet_path: Path,
+    input_path: Path,
+    output_wav_path: Path,
+) -> tuple[str, ...]:
+    """Build the DPDFNet command for one source audio file."""
+    return (
+        str(dpdfnet_path),
+        "enhance",
+        str(input_path),
+        str(output_wav_path),
+    )
+
+
 def build_rnnoise_encode_command(
     ffmpeg_path: Path,
     source_raw_path: Path,
@@ -283,6 +297,47 @@ def build_rnnoise_encode_command(
         "-q:a",
         "4",
         str(output_path),
+    )
+
+
+def build_spleeter_prepare_command(
+    ffmpeg_path: Path,
+    source_path: Path,
+    output_wav_path: Path,
+) -> tuple[str, ...]:
+    """Build the ffmpeg command that prepares 44.1 kHz stereo WAV for Spleeter."""
+    return (
+        str(ffmpeg_path),
+        "-y",
+        "-i",
+        str(source_path),
+        "-vn",
+        "-ac",
+        "2",
+        "-ar",
+        "44100",
+        FFMPEG_AUDIO_CODEC_ARG,
+        "pcm_s16le",
+        str(output_wav_path),
+    )
+
+
+def build_spleeter_command(
+    spleeter_path: Path,
+    vocals_model_path: Path,
+    accompaniment_model_path: Path,
+    input_wav_path: Path,
+    output_dir: Path,
+) -> tuple[str, ...]:
+    """Build the Sherpa Spleeter command used for voice-only extraction."""
+    return (
+        str(spleeter_path),
+        f"--spleeter-vocals={vocals_model_path}",
+        f"--spleeter-accompaniment={accompaniment_model_path}",
+        f"--input-wav={input_wav_path}",
+        f"--output-vocals-wav={output_dir / 'vocals.wav'}",
+        f"--output-accompaniment-wav={output_dir / 'accompaniment.wav'}",
+        "--num-threads=1",
     )
 
 

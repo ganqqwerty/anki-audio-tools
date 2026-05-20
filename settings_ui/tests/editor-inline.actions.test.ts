@@ -90,10 +90,14 @@ describe("editor inline action workflows", () => {
     expect(mediaUrlForFilename("nested/clip.mp3")).toBe("nested/clip.mp3");
     expect(commandSlugsForTest()["aqe:denoise-standard"]).toBe("denoise-standard");
     expect(commandSlugsForTest()["aqe:rnnoise"]).toBe("rnnoise");
+    expect(commandSlugsForTest()["aqe:dpdfnet"]).toBe("dpdfnet");
+    expect(commandSlugsForTest()["aqe:voice-only"]).toBe("voice-only");
     expect(commandSlugsForTest()["aqe:redo"]).toBe("redo");
     expect(commandSlugsForTest()["aqe:settings"]).toBe("settings");
     expect(processingMessage("aqe:denoise-standard")).toBe("Denoising with Standard...");
     expect(processingMessage("aqe:rnnoise")).toBe("Denoising with RNNoise...");
+    expect(processingMessage("aqe:dpdfnet")).toBe("Denoising with DPDFNet...");
+    expect(processingMessage("aqe:voice-only")).toBe("Extracting voice...");
     expect(processingMessage("aqe:faster")).toBe("Processing...");
   });
 

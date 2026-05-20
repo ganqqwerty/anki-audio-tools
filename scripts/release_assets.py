@@ -4,41 +4,61 @@
 from __future__ import annotations
 
 import argparse
-import hashlib
 import json
 import platform
 import shutil
 import stat
 import subprocess
 import sys
-import urllib.request
-import zipfile
-from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 from urllib.parse import urlparse
 
+if __package__ in {None, ""}:  # pragma: no cover - used in direct script mode
+    sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+
+from scripts.release_asset_common import (
+    SHARED_FILE_NAMES,
+    TARGET_KEYS,
+    TOOL_NAMES,
+    ReleaseAssetError,
+    VerificationResult,
+    _download_verified,
+    _extract_zip_member,
+    _required_https_url,
+    _required_sha256,
+    _required_string,
+    _safe_archive_member,
+    _safe_relative_executable,
+    _shared_file_entry,
+    _stage_shared_files,
+    _stage_tool_runtime_files,
+    _tool_entry,
+    _validate_target,
+    runtime_file_path,
+    sha256_file,
+    shared_asset_path,
+    tool_runtime_files,
+    validate_lock,
+)
+from scripts.release_asset_common import (
+    lock_shared_files as _lock_shared_files,
+)
+from scripts.release_asset_common import (
+    lock_targets as _lock_targets,
+)
+from scripts.release_asset_common import (
+    lock_tools as _lock_tools,
+)
+from scripts.release_sherpa_assets import (
+    append_sherpa_spleeter_smoke_report,
+    fetch_sherpa_spleeter,
+    fetch_spleeter_models,
+)
+
 ROOT = Path(__file__).resolve().parent.parent
 LOCK_PATH = ROOT / "release_assets.lock.json"
 CACHE_DIR = ROOT / ".release-assets"
-TARGET_KEYS = ["macos-arm64", "macos-x86_64", "windows-x86_64"]
-TOOL_NAMES = ["deep-filter", "ffmpeg", "ffprobe", "rnnoise-cli"]
-
-
-class ReleaseAssetError(RuntimeError):
-    """Raised when release asset preparation cannot continue."""
-
-
-@dataclass(frozen=True)
-class VerificationResult:
-    """Collected verification messages for a target/tool matrix."""
-
-    errors: list[str]
-    reports: list[str]
-
-    @property
-    def ok(self) -> bool:
-        return not self.errors
 
 
 def load_lock(path: Path = LOCK_PATH) -> dict[str, Any]:
@@ -50,45 +70,19 @@ def load_lock(path: Path = LOCK_PATH) -> dict[str, Any]:
 def lock_targets(lock: dict[str, Any]) -> list[str]:
     """Return target keys in lock-file order."""
 
-    targets = lock.get("targets")
-    if not isinstance(targets, dict):
-        raise ReleaseAssetError("release asset lock must contain a targets object")
-    return list(targets)
+    return _lock_targets(lock)
 
 
 def lock_tools(lock: dict[str, Any], target: str) -> list[str]:
     """Return canonical tool names for ``target``."""
 
-    tools = _target_tools(lock, target)
-    return [tool for tool in TOOL_NAMES if tool in tools]
+    return _lock_tools(lock, target)
 
 
-def validate_lock(lock: dict[str, Any]) -> None:
-    """Validate lock-file structure and release-ready checksum completeness."""
+def lock_shared_files(lock: dict[str, Any]) -> list[str]:
+    """Return canonical shared runtime file names."""
 
-    if lock.get("schema_version") != 1:
-        raise ReleaseAssetError("release asset lock schema_version must be 1")
-    if lock_targets(lock) != TARGET_KEYS:
-        raise ReleaseAssetError(f"release asset lock targets must be exactly {', '.join(TARGET_KEYS)}")
-    release_ready = bool(lock.get("release_ready", False))
-    for target in TARGET_KEYS:
-        tools = _target_tools(lock, target)
-        if sorted(tools) != sorted(TOOL_NAMES):
-            raise ReleaseAssetError(f"{target} tools must be exactly {', '.join(TOOL_NAMES)}")
-        for tool_name in TOOL_NAMES:
-            entry = _tool_entry(lock, target, tool_name)
-            executable = entry.get("executable")
-            if not isinstance(executable, str) or not executable:
-                raise ReleaseAssetError(f"{target}/{tool_name} must define executable")
-            _safe_relative_executable(executable)
-            source_url = entry.get("source_url")
-            if not isinstance(source_url, str) or not source_url.startswith("https://"):
-                raise ReleaseAssetError(f"{target}/{tool_name} must define an https source_url")
-            checksum = entry.get("sha256")
-            if release_ready and not checksum:
-                raise ReleaseAssetError(f"{target}/{tool_name} is release-ready but missing sha256")
-            if checksum is not None and not _is_sha256(checksum):
-                raise ReleaseAssetError(f"{target}/{tool_name} has invalid sha256")
+    return _lock_shared_files(lock)
 
 
 def verify_assets(
@@ -103,29 +97,94 @@ def verify_assets(
     validate_lock(lock)
     errors: list[str] = []
     reports: list[str] = []
-    for target in target_keys or TARGET_KEYS:
+    selected_targets = target_keys or TARGET_KEYS
+    for target in selected_targets:
         _validate_target(target)
-        for tool_name in TOOL_NAMES:
-            entry = _tool_entry(lock, target, tool_name)
-            path = asset_binary_path(cache_dir, target, entry)
-            if not path.is_file():
-                errors.append(f"{target}/{tool_name}: missing binary at {path}")
-                continue
-            expected_sha = entry.get("sha256")
-            if not expected_sha:
-                errors.append(f"{target}/{tool_name}: missing sha256 in release_assets.lock.json")
-                continue
-            actual_sha = sha256_file(path)
-            if actual_sha != expected_sha:
-                errors.append(
-                    f"{target}/{tool_name}: checksum mismatch "
-                    f"(expected {expected_sha}, got {actual_sha})"
-                )
-                continue
-            reports.append(f"{target}/{tool_name}: {path} sha256={actual_sha}")
-            if run_diagnostics and target == current_target_key():
-                _append_diagnostic_report(path, entry, reports, errors, target, tool_name)
+        for tool_name in lock_tools(lock, target):
+            _verify_tool_asset(lock, cache_dir, reports, errors, target, tool_name, run_diagnostics)
+            _verify_tool_runtime_files(lock, cache_dir, reports, errors, target, tool_name)
+    for file_name in SHARED_FILE_NAMES:
+        _verify_shared_asset(lock, cache_dir, reports, errors, file_name)
+    if run_diagnostics:
+        append_sherpa_spleeter_smoke_report(
+            lock,
+            cache_dir=cache_dir,
+            target_keys=selected_targets,
+            current_target=current_target_key(),
+            reports=reports,
+            errors=errors,
+        )
     return VerificationResult(errors=errors, reports=reports)
+
+
+def _verify_tool_asset(
+    lock: dict[str, Any],
+    cache_dir: Path,
+    reports: list[str],
+    errors: list[str],
+    target: str,
+    tool_name: str,
+    run_diagnostics: bool,
+) -> None:
+    entry = _tool_entry(lock, target, tool_name)
+    path = asset_binary_path(cache_dir, target, entry)
+    expected_sha = entry.get("sha256")
+    actual_sha = _verified_asset_sha(path, expected_sha, errors, f"{target}/{tool_name}", "binary")
+    if actual_sha is None:
+        return
+    reports.append(f"{target}/{tool_name}: {path} sha256={actual_sha}")
+    if run_diagnostics and target == current_target_key():
+        _append_diagnostic_report(path, entry, reports, errors, target, tool_name)
+
+
+def _verify_shared_asset(
+    lock: dict[str, Any],
+    cache_dir: Path,
+    reports: list[str],
+    errors: list[str],
+    file_name: str,
+) -> None:
+    entry = _shared_file_entry(lock, file_name)
+    path = shared_asset_path(cache_dir, entry)
+    actual_sha = _verified_asset_sha(path, entry.get("sha256"), errors, f"shared/{file_name}", "file")
+    if actual_sha is not None:
+        reports.append(f"shared/{file_name}: {path} sha256={actual_sha}")
+
+
+def _verify_tool_runtime_files(
+    lock: dict[str, Any],
+    cache_dir: Path,
+    reports: list[str],
+    errors: list[str],
+    target: str,
+    tool_name: str,
+) -> None:
+    for file_entry in tool_runtime_files(lock, target, tool_name):
+        label = f"{target}/{tool_name}/{file_entry['path']}"
+        path = runtime_file_path(cache_dir, target, file_entry)
+        actual_sha = _verified_asset_sha(path, file_entry.get("sha256"), errors, label, "file")
+        if actual_sha is not None:
+            reports.append(f"{label}: {path} sha256={actual_sha}")
+
+
+def _verified_asset_sha(
+    path: Path,
+    expected_sha: object,
+    errors: list[str],
+    label: str,
+    asset_kind: str,
+) -> str | None:
+    if not path.is_file():
+        errors.append(f"{label}: missing {asset_kind} at {path}")
+        return None
+    if not expected_sha:
+        errors.append(f"{label}: missing sha256 in release_assets.lock.json")
+        return None
+    actual_sha = sha256_file(path)
+    if actual_sha != expected_sha:
+        errors.append(f"{label}: checksum mismatch (expected {expected_sha}, got {actual_sha})")
+        return None
+    return actual_sha
 
 
 def stage_assets(
@@ -135,17 +194,18 @@ def stage_assets(
     destination: Path,
     target_keys: list[str] | None = None,
     tool_names: list[str] | None = None,
+    include_shared: bool | None = None,
 ) -> list[Path]:
     """Copy verified runtime executables into a staged ``bin`` directory."""
 
     validate_lock(lock)
     staged: list[Path] = []
     selected_targets = target_keys or TARGET_KEYS
-    selected_tools = tool_names or TOOL_NAMES
     for target in selected_targets:
         _validate_target(target)
-        for tool_name in selected_tools:
-            if tool_name not in TOOL_NAMES:
+        target_tools = lock_tools(lock, target)
+        for tool_name in tool_names or target_tools:
+            if tool_name not in target_tools:
                 raise ReleaseAssetError(f"unknown tool: {tool_name}")
             entry = _tool_entry(lock, target, tool_name)
             executable = _safe_relative_executable(entry["executable"])
@@ -164,6 +224,18 @@ def stage_assets(
             if not target.startswith("windows-"):
                 target_path.chmod(target_path.stat().st_mode | stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH)
             staged.append(target_path)
+            staged.extend(
+                _stage_tool_runtime_files(
+                    lock,
+                    cache_dir=cache_dir,
+                    destination=destination,
+                    target=target,
+                    tool_name=tool_name,
+                )
+            )
+    should_stage_shared = tool_names is None if include_shared is None else include_shared
+    if should_stage_shared:
+        staged.extend(_stage_shared_files(lock, cache_dir=cache_dir, destination=destination))
     return staged
 
 
@@ -173,11 +245,20 @@ def lock_checksums(*, lock_path: Path = LOCK_PATH, cache_dir: Path = CACHE_DIR) 
     lock = load_lock(lock_path)
     validate_lock(lock)
     for target in TARGET_KEYS:
-        for tool_name in TOOL_NAMES:
+        for tool_name in lock_tools(lock, target):
             entry = _tool_entry(lock, target, tool_name)
             path = asset_binary_path(cache_dir, target, entry)
             if path.is_file():
                 entry["sha256"] = sha256_file(path)
+            for file_entry in tool_runtime_files(lock, target, tool_name):
+                runtime_path = runtime_file_path(cache_dir, target, file_entry)
+                if runtime_path.is_file():
+                    file_entry["sha256"] = sha256_file(runtime_path)
+    for file_name in SHARED_FILE_NAMES:
+        entry = _shared_file_entry(lock, file_name)
+        path = shared_asset_path(cache_dir, entry)
+        if path.is_file():
+            entry["sha256"] = sha256_file(path)
     lock_path.write_text(json.dumps(lock, indent=2, sort_keys=False) + "\n", encoding="utf-8")
     return lock
 
@@ -253,81 +334,6 @@ def asset_binary_path(cache_dir: Path, target: str, entry: dict[str, Any]) -> Pa
     return cache_dir / "bin" / target / executable
 
 
-def sha256_file(path: Path) -> str:
-    """Return the SHA-256 digest for ``path``."""
-
-    digest = hashlib.sha256()
-    with path.open("rb") as handle:
-        for chunk in iter(lambda: handle.read(1024 * 1024), b""):
-            digest.update(chunk)
-    return digest.hexdigest()
-
-
-def _target_tools(lock: dict[str, Any], target: str) -> dict[str, Any]:
-    targets = lock.get("targets")
-    if not isinstance(targets, dict) or target not in targets:
-        raise ReleaseAssetError(f"unknown target: {target}")
-    target_entry = targets[target]
-    tools = target_entry.get("tools") if isinstance(target_entry, dict) else None
-    if not isinstance(tools, dict):
-        raise ReleaseAssetError(f"{target} must contain a tools object")
-    return tools
-
-
-def _tool_entry(lock: dict[str, Any], target: str, tool_name: str) -> dict[str, Any]:
-    tools = _target_tools(lock, target)
-    if tool_name not in tools:
-        raise ReleaseAssetError(f"{target} is missing {tool_name}")
-    entry = tools[tool_name]
-    if not isinstance(entry, dict):
-        raise ReleaseAssetError(f"{target}/{tool_name} entry must be an object")
-    return entry
-
-
-def _safe_relative_executable(raw: str) -> Path:
-    path = Path(raw)
-    if path.is_absolute() or ".." in path.parts or len(path.parts) != 1:
-        raise ReleaseAssetError(f"unsafe executable path: {raw}")
-    return path
-
-
-def _safe_archive_member(raw: str) -> str:
-    path = Path(raw)
-    if path.is_absolute() or ".." in path.parts or not path.name:
-        raise ReleaseAssetError(f"unsafe archive member path: {raw}")
-    return raw
-
-
-def _required_string(entry: dict[str, Any], key: str, target: str, tool_name: str) -> str:
-    value = entry.get(key)
-    if not isinstance(value, str) or not value:
-        raise ReleaseAssetError(f"{target}/{tool_name} must define {key}")
-    return value
-
-
-def _required_https_url(entry: dict[str, Any], key: str, target: str, tool_name: str) -> str:
-    value = _required_string(entry, key, target, tool_name)
-    if not value.startswith("https://"):
-        raise ReleaseAssetError(f"{target}/{tool_name} must define an https {key}")
-    return value
-
-
-def _required_sha256(entry: dict[str, Any], key: str, target: str, tool_name: str) -> str:
-    value = entry.get(key)
-    if not _is_sha256(value):
-        raise ReleaseAssetError(f"{target}/{tool_name} must define {key}")
-    return value
-
-
-def _is_sha256(value: Any) -> bool:
-    return isinstance(value, str) and len(value) == 64 and all(char in "0123456789abcdef" for char in value)
-
-
-def _validate_target(target: str) -> None:
-    if target not in TARGET_KEYS:
-        raise ReleaseAssetError(f"unknown target: {target}")
-
-
 def _target_selection(value: str) -> list[str]:
     if value == "all":
         return TARGET_KEYS
@@ -358,45 +364,11 @@ def _append_diagnostic_report(
     reports.append(f"{target}/{tool_name}: diagnostic ok: {output}")
 
 
-def _download_verified(url: str, destination: Path, expected_sha: str) -> None:
-    destination.parent.mkdir(parents=True, exist_ok=True)
-    if destination.is_file() and sha256_file(destination) == expected_sha:
-        return
-    tmp_path = destination.with_suffix(destination.suffix + ".download")
-    request = urllib.request.Request(url, headers={"User-Agent": "anki-audio-tools-release-assets/1.0"})
-    try:
-        with urllib.request.urlopen(request, timeout=60) as response, tmp_path.open("wb") as handle:  # nosec B310
-            shutil.copyfileobj(response, handle)
-    except OSError as exc:
-        tmp_path.unlink(missing_ok=True)
-        raise ReleaseAssetError(f"download failed for {url}: {exc}") from exc
-    actual_sha = sha256_file(tmp_path)
-    if actual_sha != expected_sha:
-        tmp_path.unlink(missing_ok=True)
-        raise ReleaseAssetError(f"download checksum mismatch for {url}: {actual_sha}")
-    tmp_path.replace(destination)
-
-
 def _ffmpeg_archive_path(cache_dir: Path, target: str, url: str) -> Path:
     name = Path(urlparse(url).path).name
     if not name:
         raise ReleaseAssetError(f"FFmpeg archive URL has no filename: {url}")
     return cache_dir / "sources" / "ffmpeg" / f"{target}-{name}"
-
-
-def _extract_zip_member(archive_path: Path, archive_member: str, destination: Path) -> None:
-    destination.parent.mkdir(parents=True, exist_ok=True)
-    tmp_path = destination.with_suffix(destination.suffix + ".extract")
-    try:
-        with zipfile.ZipFile(archive_path) as zf, zf.open(archive_member) as source, tmp_path.open("wb") as target:
-            shutil.copyfileobj(source, target)
-    except KeyError as exc:
-        tmp_path.unlink(missing_ok=True)
-        raise ReleaseAssetError(f"{archive_path.name} is missing {archive_member}") from exc
-    except zipfile.BadZipFile as exc:
-        tmp_path.unlink(missing_ok=True)
-        raise ReleaseAssetError(f"{archive_path.name} is not a valid zip archive") from exc
-    tmp_path.replace(destination)
 
 
 def _run_build_script(script: Path, target: str) -> None:
@@ -420,7 +392,12 @@ def _cmd_verify(args: argparse.Namespace) -> int:
 
 def _cmd_stage(args: argparse.Namespace) -> int:
     lock = load_lock()
-    staged = stage_assets(lock, destination=Path(args.destination), target_keys=_target_selection(args.target))
+    staged = stage_assets(
+        lock,
+        destination=Path(args.destination),
+        target_keys=_target_selection(args.target),
+        tool_names=args.tools,
+    )
     for path in staged:
         print(path)
     return 0
@@ -437,6 +414,22 @@ def _cmd_fetch_deepfilter(args: argparse.Namespace) -> int:
 def _cmd_fetch_ffmpeg(args: argparse.Namespace) -> int:
     lock = load_lock()
     fetched = fetch_ffmpeg(lock, target_keys=_target_selection(args.target))
+    for path in fetched:
+        print(path)
+    return 0
+
+
+def _cmd_fetch_sherpa_spleeter(args: argparse.Namespace) -> int:
+    lock = load_lock()
+    fetched = fetch_sherpa_spleeter(lock, target_keys=_target_selection(args.target))
+    for path in fetched:
+        print(path)
+    return 0
+
+
+def _cmd_fetch_spleeter_models(_args: argparse.Namespace) -> int:
+    lock = load_lock()
+    fetched = fetch_spleeter_models(lock)
     for path in fetched:
         print(path)
     return 0
@@ -468,6 +461,7 @@ def main(argv: list[str] | None = None) -> int:
     for name, func in (
         ("fetch-deepfilter", _cmd_fetch_deepfilter),
         ("fetch-ffmpeg", _cmd_fetch_ffmpeg),
+        ("fetch-sherpa-spleeter", _cmd_fetch_sherpa_spleeter),
         ("build-rnnoise", _cmd_build_rnnoise),
         ("verify", _cmd_verify),
     ):
@@ -475,10 +469,12 @@ def main(argv: list[str] | None = None) -> int:
         subparser.add_argument("--target", default="current")
         subparser.set_defaults(func=func)
 
+    subparsers.add_parser("fetch-spleeter-models").set_defaults(func=_cmd_fetch_spleeter_models)
     subparsers.add_parser("lock-checksums").set_defaults(func=_cmd_lock_checksums)
 
     stage = subparsers.add_parser("stage")
     stage.add_argument("--target", default="all")
+    stage.add_argument("--tool", action="append", choices=TOOL_NAMES, dest="tools")
     stage.add_argument("--destination", required=True)
     stage.set_defaults(func=_cmd_stage)
 

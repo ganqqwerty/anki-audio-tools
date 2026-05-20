@@ -5,6 +5,7 @@
   import CircleHelp from "@lucide/svelte/icons/circle-help";
   import FastForward from "@lucide/svelte/icons/fast-forward";
   import FolderOpen from "@lucide/svelte/icons/folder-open";
+  import Mic from "@lucide/svelte/icons/mic";
   import Pause from "@lucide/svelte/icons/pause";
   import Play from "@lucide/svelte/icons/play";
   import Redo2 from "@lucide/svelte/icons/redo-2";
@@ -50,6 +51,8 @@
     <FastForward {size} {strokeWidth} />
   {:else if icon === "folder-open"}
     <FolderOpen {size} {strokeWidth} />
+  {:else if icon === "mic"}
+    <Mic {size} {strokeWidth} />
   {:else if icon === "pause"}
     <Pause {size} {strokeWidth} />
   {:else if icon === "play"}

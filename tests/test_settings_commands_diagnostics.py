@@ -159,6 +159,8 @@ def test_async_health_check_reports_result() -> None:
     assert "deep_filter" in result["result"]
     assert ("si" + "don") not in result["result"]
     assert "rnnoise" in result["result"]
+    assert "dpdfnet" in result["result"]
+    assert "spleeter" in result["result"]
 
 
 def test_async_health_check_reports_deep_filter_version() -> None:
@@ -227,5 +229,79 @@ def test_async_health_check_reports_rnnoise_version() -> None:
         "path": "/addon/bin/rnnoise-cli-macos-arm64/bin/rnnoise-cli",
         "source": "bundled",
         "version": "rnnoise-cli 0.2",
+        "error": "",
+    }
+
+
+def test_async_health_check_reports_dpdfnet_version() -> None:
+    dialog = _make_dialog()
+    calls, eval_fn = _capture_eval()
+    payload = json.dumps(
+        {
+            "id": "job-1",
+            "op": "health_check",
+            "payload": {"config": _full_config()},
+        }
+    )
+
+    with (
+        patch("threading.Thread", _ImmediateThread),
+        patch(
+            "anki_audio_quick_editor.audio_processor.find_dpdfnet_bundle",
+            return_value=Path("/addon/bin/macos-arm64/dpdfnet"),
+        ),
+        patch("anki_audio_quick_editor.diagnostics.subprocess.run") as run,
+    ):
+        run.return_value.returncode = 0
+        run.return_value.stdout = "dpdfnet-lite 0.1.0\n"
+        run.return_value.stderr = ""
+        handle_settings_command(f"async_cmd:{payload}", eval_fn, dialog)
+
+    done_calls = [call for call in calls if call.startswith("window.onAsyncDone(")]
+    result = _parse_callback(done_calls[0], "onAsyncDone")
+    assert result["result"]["dpdfnet"] == {
+        "available": True,
+        "path": "/addon/bin/macos-arm64/dpdfnet",
+        "source": "bundled",
+        "version": "dpdfnet-lite 0.1.0",
+        "error": "",
+    }
+
+
+def test_async_health_check_reports_spleeter_probe() -> None:
+    dialog = _make_dialog()
+    calls, eval_fn = _capture_eval()
+    payload = json.dumps(
+        {
+            "id": "job-1",
+            "op": "health_check",
+            "payload": {"config": _full_config()},
+        }
+    )
+
+    with (
+        patch("threading.Thread", _ImmediateThread),
+        patch(
+            "anki_audio_quick_editor.audio_processor.find_spleeter_bundle",
+            return_value=(
+                Path("/addon/bin/macos-arm64/sherpa-spleeter"),
+                Path("/addon/bin/models/spleeter-2stems-fp16/vocals.fp16.onnx"),
+                Path("/addon/bin/models/spleeter-2stems-fp16/accompaniment.fp16.onnx"),
+            ),
+        ),
+        patch("anki_audio_quick_editor.diagnostics.subprocess.run") as run,
+    ):
+        run.return_value.returncode = 0
+        run.return_value.stdout = "Non-streaming source separation with sherpa-onnx.\n"
+        run.return_value.stderr = ""
+        handle_settings_command(f"async_cmd:{payload}", eval_fn, dialog)
+
+    done_calls = [call for call in calls if call.startswith("window.onAsyncDone(")]
+    result = _parse_callback(done_calls[0], "onAsyncDone")
+    assert result["result"]["spleeter"] == {
+        "available": True,
+        "path": "/addon/bin/macos-arm64/sherpa-spleeter",
+        "source": "bundled",
+        "version": "Non-streaming source separation with sherpa-onnx.",
         "error": "",
     }

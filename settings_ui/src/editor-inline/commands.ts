@@ -108,6 +108,18 @@ export function denoiseButtons(): readonly ButtonSpec[] {
       label: t("editor.command.rnnoise.label"),
       title: t("editor.command.rnnoise.title"),
     },
+    {
+      command: "aqe:dpdfnet",
+      icon: "sparkles",
+      label: t("editor.command.dpdfnet.label"),
+      title: t("editor.command.dpdfnet.title"),
+    },
+    {
+      command: "aqe:voice-only",
+      icon: "mic",
+      label: t("editor.command.voice_only.label"),
+      title: t("editor.command.voice_only.title"),
+    },
   ] as const;
 }
 
@@ -119,6 +131,8 @@ export const PROCESSING_COMMANDS = new Set<EditorCommand>([
   "aqe:remove-pauses",
   "aqe:denoise-standard",
   "aqe:rnnoise",
+  "aqe:dpdfnet",
+  "aqe:voice-only",
   "aqe:volume-down",
   "aqe:volume-up",
 ]);
@@ -134,6 +148,8 @@ export const COMMAND_SLUGS: Readonly<Record<EditorCommand, string>> = {
   "aqe:remove-pauses": "remove-pauses",
   "aqe:denoise-standard": "denoise-standard",
   "aqe:rnnoise": "rnnoise",
+  "aqe:dpdfnet": "dpdfnet",
+  "aqe:voice-only": "voice-only",
   "aqe:slower": "slower",
   "aqe:faster": "faster",
   "aqe:volume-down": "volume-down",
@@ -150,6 +166,8 @@ export function testId(ord: number, command: EditorCommand): string {
 export function processingMessage(command: EditorCommand): string {
   if (command === "aqe:denoise-standard") return `${t("editor.status.denoising_standard")}...`;
   if (command === "aqe:rnnoise") return `${t("editor.status.denoising_rnnoise")}...`;
+  if (command === "aqe:dpdfnet") return `${t("editor.status.denoising_dpdfnet")}...`;
+  if (command === "aqe:voice-only") return `${t("editor.status.extracting_voice")}...`;
   if (command === "aqe:delete-selection") return t("editor.status.deleting_region");
   if (command === "aqe:delete-rest") return t("editor.status.deleting_rest");
   return t("editor.status.processing");

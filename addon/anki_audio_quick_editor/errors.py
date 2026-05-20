@@ -21,6 +21,14 @@ class MissingRnnoiseError(AudioQuickEditorError):
     """Raised when the bundled RNNoise runtime cannot be found or is incomplete."""
 
 
+class MissingDpdfnetError(AudioQuickEditorError):
+    """Raised when the bundled DPDFNet runtime cannot be found or is incomplete."""
+
+
+class MissingSpleeterError(AudioQuickEditorError):
+    """Raised when the bundled Sherpa Spleeter runtime cannot be found."""
+
+
 class MissingMediaError(AudioQuickEditorError):
     """Raised when a referenced Anki media file does not exist."""
 

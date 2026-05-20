@@ -16,6 +16,10 @@ mutants/
 # Build artifacts
 dist/
 .release-assets/
+/addon/anki_audio_quick_editor/bin/runtime_manifest.json
+/addon/anki_audio_quick_editor/bin/macos-arm64/
+/addon/anki_audio_quick_editor/bin/macos-x86_64/
+/addon/anki_audio_quick_editor/bin/windows-x86_64/
 
 # Generated source and webview artifacts
 /addon/anki_audio_quick_editor/contracts_generated.py

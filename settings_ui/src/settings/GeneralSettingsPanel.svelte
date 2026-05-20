@@ -179,7 +179,9 @@
       </span>
       <select bind:value={config.denoise_algorithm}>
         <option value="standard">{t("settings.denoise_algorithm.standard")}</option>
-        <option value="rnnoise">RNNoise</option>
+        <option value="rnnoise">{t("settings.denoise_algorithm.rnnoise")}</option>
+        <option value="dpdfnet">{t("settings.denoise_algorithm.dpdfnet")}</option>
+        <option value="voice_only">{t("settings.denoise_algorithm.voice_only")}</option>
       </select>
     </label>
   </div>

@@ -29,7 +29,7 @@ Audio Quick Editor config lives in [`addon/anki_audio_quick_editor/config.json`]
 | `ffmpeg_path` | string | Optional explicit path to `ffmpeg`; blank uses PATH |
 | `deep_filter_path` | string | Optional explicit path to DeepFilterNet `deep-filter`; blank uses a bundled platform binary when available, then PATH |
 | `deep_filter_post_filter` | boolean | Enables DeepFilterNet post-filtering for stronger noise suppression and pause-detection analysis |
-| `denoise_algorithm` | string | Default Denoise split-button algorithm: `standard` for DeepFilterNet or `rnnoise` for RNNoise |
+| `denoise_algorithm` | string | Default cleanup split-button action: `standard` for DeepFilterNet, `rnnoise` for RNNoise, `dpdfnet` for bundled DPDFNet Lite, or `voice_only` for Sherpa Spleeter vocals extraction |
 
 ## Access Pattern
 

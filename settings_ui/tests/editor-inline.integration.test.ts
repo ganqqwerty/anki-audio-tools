@@ -88,26 +88,18 @@ afterEach(() => {
 
     document.querySelector<HTMLButtonElement>('[data-testid="aqe-button-0-denoise-standard"]')!.click();
     expect(bridgeCommands()).toContain("aqe:command-payload");
-    expect(window.__aqePendingCommandPayload).toMatchObject({
-      command: "aqe:denoise-standard",
-      fieldOrd: 0,
-      overrides: {
-        denoiseAlgorithm: "standard",
-      },
-    });
+    expect(window.__aqePendingCommandPayload?.command).toBe("aqe:denoise-standard");
+    expect(window.__aqePendingCommandPayload?.fieldOrd).toBe(0);
+    expect(window.__aqePendingCommandPayload?.overrides?.denoiseAlgorithm).toBe("standard");
 
     window.__aqePrepareForNewNote?.();
     document.querySelector<HTMLButtonElement>('[data-testid="aqe-split-0-denoise-standard-menu"]')!.click();
     await Promise.resolve();
-    document.querySelector<HTMLButtonElement>('[data-testid="aqe-split-0-denoise-standard-preset-rnnoise"]')!.click();
+    document.querySelector<HTMLButtonElement>('[data-testid="aqe-split-0-denoise-standard-preset-dpdfnet"]')!.click();
     document.querySelector<HTMLButtonElement>('[data-testid="aqe-button-0-denoise-standard"]')!.click();
-    expect(window.__aqePendingCommandPayload).toMatchObject({
-      command: "aqe:rnnoise",
-      fieldOrd: 0,
-      overrides: {
-        denoiseAlgorithm: "rnnoise",
-      },
-    });
+    expect(window.__aqePendingCommandPayload?.command).toBe("aqe:dpdfnet");
+    expect(window.__aqePendingCommandPayload?.fieldOrd).toBe(0);
+    expect(window.__aqePendingCommandPayload?.overrides?.denoiseAlgorithm).toBe("dpdfnet");
   });
 
   it("dispatches graph split requests with field-local graph settings", async () => {

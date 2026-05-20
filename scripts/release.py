@@ -44,6 +44,7 @@ FAIL_ARCHIVE_BYTES = 145 * 1024 * 1024
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import release_assets  # noqa: E402
+import scripts.release_asset_common as release_asset_common  # noqa: E402
 from dev import _find_anki_python  # noqa: E402
 
 
@@ -193,13 +194,23 @@ def release_runtime_executables(
     target_keys: list[str] | None = None,
 ) -> list[str]:
     """Return required runtime executable archive paths from the asset lock."""
-    lock = lock or release_assets.load_lock()
-    names: list[str] = []
-    for target in target_keys or release_assets.lock_targets(lock):
-        for tool_name in release_assets.lock_tools(lock, target):
-            executable = lock["targets"][target]["tools"][tool_name]["executable"]
-            names.append(f"bin/{target}/{executable}")
-    return sorted(names)
+
+    return release_asset_common.release_runtime_executables(lock or release_assets.load_lock(), target_keys=target_keys)
+
+
+def release_runtime_shared_files(lock: dict | None = None) -> list[str]:
+    """Return required shared runtime asset archive paths from the asset lock."""
+    return release_asset_common.release_runtime_shared_files(lock or release_assets.load_lock())
+
+
+def release_runtime_support_files(
+    lock: dict | None = None,
+    *,
+    target_keys: list[str] | None = None,
+) -> list[str]:
+    """Return required target-specific runtime support file archive paths."""
+
+    return release_asset_common.release_runtime_support_files(lock or release_assets.load_lock(), target_keys=target_keys)
 
 
 def release_manifest_files(
@@ -210,6 +221,8 @@ def release_manifest_files(
     """Return archive files required for a self-sufficient release."""
     required = set(BASE_REQUIRED_ARCHIVE_FILES)
     required.update(release_runtime_executables(lock, target_keys=target_keys))
+    required.update(release_runtime_support_files(lock, target_keys=target_keys))
+    required.update(release_runtime_shared_files(lock))
     for path in ADDON_DIR.rglob("*"):
         if path.is_file() and _should_include(path):
             required.add(path.relative_to(ADDON_DIR).as_posix())
@@ -241,11 +254,25 @@ def _write_runtime_manifest(
                         "executable": lock["targets"][target]["tools"][tool_name]["executable"],
                         "sha256": lock["targets"][target]["tools"][tool_name].get("sha256"),
                         "diagnostic_args": lock["targets"][target]["tools"][tool_name].get("diagnostic_args"),
+                        "runtime_files": [
+                            {
+                                "path": file_entry["path"],
+                                "sha256": file_entry.get("sha256"),
+                            }
+                            for file_entry in release_assets.tool_runtime_files(lock, target, tool_name)
+                        ],
                     }
                     for tool_name in release_assets.lock_tools(lock, target)
                 }
             }
             for target in selected_targets
+        },
+        "shared_files": {
+            file_name: {
+                "path": lock["shared_files"][file_name]["path"],
+                "sha256": lock["shared_files"][file_name].get("sha256"),
+            }
+            for file_name in release_assets.lock_shared_files(lock)
         },
     }
     (staging_bin_dir / "runtime_manifest.json").write_text(
@@ -295,6 +322,8 @@ def _validate_archive(
             if _is_forbidden_archive_name(name):
                 _validation_error(f"unexpected file {name}")
         _validate_runtime_matrix(zf, infos, lock, target_keys=target_keys)
+        _validate_runtime_support_files(zf, infos, lock, target_keys=target_keys)
+        _validate_shared_runtime_files(zf, infos, lock)
         _validate_notices(zf, names)
     _validate_archive_size(archive, allow_large_archive=allow_large_archive)
 
@@ -325,12 +354,51 @@ def _validate_runtime_matrix(
                 _validation_error(f"{name} checksum mismatch")
 
 
+def _validate_shared_runtime_files(
+    zf: zipfile.ZipFile,
+    infos: dict[str, zipfile.ZipInfo],
+    lock: dict,
+) -> None:
+    for file_name in release_assets.lock_shared_files(lock):
+        entry = lock["shared_files"][file_name]
+        name = f"bin/{entry['path']}"
+        if name not in infos:
+            _validation_error(f"missing required file {name}")
+        expected_sha = entry.get("sha256")
+        if not expected_sha:
+            _validation_error(f"{name} is missing sha256 in release_assets.lock.json")
+        actual_sha = hashlib.sha256(zf.read(name)).hexdigest()
+        if actual_sha != expected_sha:
+            _validation_error(f"{name} checksum mismatch")
+
+
+def _validate_runtime_support_files(
+    zf: zipfile.ZipFile,
+    infos: dict[str, zipfile.ZipInfo],
+    lock: dict,
+    *,
+    target_keys: list[str] | None = None,
+) -> None:
+    for target in target_keys or release_assets.lock_targets(lock):
+        for tool_name in release_assets.lock_tools(lock, target):
+            for file_entry in release_assets.tool_runtime_files(lock, target, tool_name):
+                name = f"bin/{target}/{file_entry['path']}"
+                if name not in infos:
+                    _validation_error(f"missing required file {name}")
+                expected_sha = file_entry.get("sha256")
+                if not expected_sha:
+                    _validation_error(f"{name} is missing sha256 in release_assets.lock.json")
+                actual_sha = hashlib.sha256(zf.read(name)).hexdigest()
+                if actual_sha != expected_sha:
+                    _validation_error(f"{name} checksum mismatch")
+
+
 def _validate_notices(zf: zipfile.ZipFile, names: set[str]) -> None:
     notice_name = "bin/THIRD_PARTY_NOTICES.md"
     if notice_name not in names:
         _validation_error(f"missing required file {notice_name}")
     notice_text = zf.read(notice_name).decode("utf-8", errors="replace")
-    for required in ("FFmpeg", "LAME", "DeepFilterNet", "RNNoise"):
+    for required in ("FFmpeg", "LAME", "DeepFilterNet", "RNNoise", "Sherpa", "Spleeter"):
         if required not in notice_text:
             _validation_error(f"{notice_name} is missing {required} notice")
 
@@ -387,16 +455,11 @@ def main() -> None:
         action="store_true",
         help="Skip expensive QC, but still generate artifacts, stage assets, and validate the archive",
     )
-    parser.add_argument(
-        "--skip-checks",
-        action="store_true",
-        help="Deprecated alias for --skip-quality-checks",
-    )
+    parser.add_argument("--skip-checks", action="store_true", help="Deprecated alias for --skip-quality-checks")
     parser.add_argument("--full", action="store_true", help="Run e2e tests and Sonar quality gate before packaging")
     parser.add_argument("--allow-large-archive", metavar="REASON", help="Allow archives above the hard size gate")
     parser.add_argument(
-        "--target",
-        default="all",
+        "--target", default="all",
         help="Release target to package: all, current, macos-arm64, macos-x86_64, or windows-x86_64",
     )
     args = parser.parse_args()
@@ -425,12 +488,7 @@ def main() -> None:
             print(f"ERROR: {exc}")
             sys.exit(1)
         archive = _build_archive(version, staging_dir, target_label=target_label)
-    _validate_archive(
-        archive,
-        allow_large_archive=bool(args.allow_large_archive),
-        lock=lock,
-        target_keys=target_keys,
-    )
+    _validate_archive(archive, allow_large_archive=bool(args.allow_large_archive), lock=lock, target_keys=target_keys)
     print(f"Done: {archive}")
 
 

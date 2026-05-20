@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import hashlib
 import importlib
 import os
 import shutil
@@ -17,8 +18,10 @@ import pytest
 pytest.importorskip("aqt")
 pytest.importorskip("anki.collection")
 
-ADDON_DIR = Path(__file__).parent.parent / "addon" / "anki_audio_quick_editor"
+PROJECT_ROOT = Path(__file__).parent.parent
+ADDON_DIR = PROJECT_ROOT / "addon" / "anki_audio_quick_editor"
 ADDON_NUMERIC_ID = "1000000002"
+LOCAL_DPDFNET_BUILD = Path("/Users/iuriikatkov/IdeaProjects/DPDFNet/dist/lite/dpdfnet")
 
 
 def _default_config() -> dict:
@@ -92,14 +95,65 @@ def _start_anki_runtime() -> None:
         aqt._run(exec=False, argv=startup_argv)
 
 
+def _sha256(path: Path) -> str:
+    hasher = hashlib.sha256()
+    with path.open("rb") as handle:
+        for chunk in iter(lambda: handle.read(1024 * 1024), b""):
+            hasher.update(chunk)
+    return hasher.hexdigest()
+
+
+def _dpdfnet_source_candidate() -> Path | None:
+    configured = os.environ.get("AQE_DPDFNET_PATH")
+    candidates = [
+        Path(configured).expanduser() if configured else None,
+        LOCAL_DPDFNET_BUILD,
+    ]
+    for candidate in candidates:
+        if candidate and candidate.is_file():
+            return candidate
+    return None
+
+
+def _stage_dpdfnet_bundle(addon_dir: Path) -> None:
+    from scripts import release_assets
+
+    if release_assets.current_target_key() != "macos-arm64":
+        return
+
+    cache_path = PROJECT_ROOT / ".release-assets" / "bin" / "macos-arm64" / "dpdfnet"
+    if cache_path.is_file():
+        release_assets.stage_assets(
+            release_assets.load_lock(),
+            destination=addon_dir / "bin",
+            target_keys=["macos-arm64"],
+            tool_names=["dpdfnet"],
+        )
+        return
+
+    source_path = _dpdfnet_source_candidate()
+    if source_path is None:
+        return
+
+    lock = release_assets.load_lock()
+    expected_sha = lock["targets"]["macos-arm64"]["tools"]["dpdfnet"]["sha256"]
+    if _sha256(source_path) != expected_sha:
+        return
+
+    destination = addon_dir / "bin" / "macos-arm64" / "dpdfnet"
+    destination.parent.mkdir(parents=True, exist_ok=True)
+    shutil.copy2(source_path, destination)
+    destination.chmod(destination.stat().st_mode | 0o755)
+
 @pytest.fixture(scope="session")
 def anki_base(tmp_path_factory):
     base = tmp_path_factory.mktemp("anki_base")
     addons = base / "addons21"
     addons.mkdir()
+    addon_dir = addons / ADDON_NUMERIC_ID
     shutil.copytree(
         ADDON_DIR.resolve(),
-        addons / ADDON_NUMERIC_ID,
+        addon_dir,
         ignore=shutil.ignore_patterns(
             "__pycache__",
             "*.pyc",
@@ -108,6 +162,7 @@ def anki_base(tmp_path_factory):
             "meta.json",
         ),
     )
+    _stage_dpdfnet_bundle(addon_dir)
     os.environ["ANKI_BASE"] = str(base)
     yield base
 

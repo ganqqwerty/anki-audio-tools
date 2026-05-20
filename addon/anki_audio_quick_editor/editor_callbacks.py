@@ -112,6 +112,8 @@ _replace_current_field_after_render = _with_deps(
 _render_failed = _with_deps(editor_processing.render_failed, _processing_deps)
 _denoise_standard_async = _with_deps(editor_processing.denoise_standard_async, _processing_deps)
 _rnnoise_async = _with_deps(editor_processing.rnnoise_async, _processing_deps)
+_dpdfnet_async = _with_deps(editor_processing.dpdfnet_async, _processing_deps)
+_voice_only_async = _with_deps(editor_processing.voice_only_async, _processing_deps)
 _run_special_audio_transform_async = _with_keyword_deps(
     editor_processing.run_special_audio_transform_async,
     _processing_deps,
@@ -121,6 +123,8 @@ _replace_current_field_after_noise_removal = _with_deps(
     _processing_deps,
 )
 _record_rnnoise_failure_context = editor_processing.record_rnnoise_failure_context
+_record_dpdfnet_failure_context = editor_processing.record_dpdfnet_failure_context
+_record_spleeter_failure_context = editor_processing.record_spleeter_failure_context
 _log_special_transform_failure = editor_processing.log_special_transform_failure
 
 _delete_selection_from_frontend = _with_deps(

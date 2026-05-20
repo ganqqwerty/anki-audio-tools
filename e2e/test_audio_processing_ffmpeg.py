@@ -200,3 +200,36 @@ def test_final_save_writes_new_anki_media_without_overwriting_original(
     assert saved_path.is_file()
     assert source.read_bytes() == original_bytes
     assert probe_duration_ms(saved_path, ffmpeg_config) < probe_duration_ms(source, ffmpeg_config)
+
+
+# noinspection PyUnusedLocal
+def test_dpdfnet_renders_from_locked_source_release_asset(
+    anki_mw,
+    tmp_path: Path,
+    ffmpeg_config,
+) -> None:
+    from anki_audio_quick_editor.audio_processor import (
+        current_platform_key,
+        find_dpdfnet_bundle,
+        probe_duration_ms,
+        render_dpdfnet_audio,
+    )
+
+    del anki_mw
+    if current_platform_key() != "macos-arm64":
+        pytest.skip("DPDFNet Lite is bundled for macos-arm64 only in v1.")
+
+    dpdfnet_path = find_dpdfnet_bundle()
+    assert dpdfnet_path.parts[-3:] == ("bin", "macos-arm64", "dpdfnet")
+
+    source = tmp_path / "dpdfnet-source.wav"
+    output = tmp_path / "dpdfnet-rendered.mp3"
+    generate_tone(ffmpeg_config, source, duration_s=0.8)
+
+    result = render_dpdfnet_audio(source, ffmpeg_config, output_path=output)
+
+    assert result.output_path == output
+    assert result.command[:2] == (str(dpdfnet_path), "enhance")
+    assert output.is_file()
+    assert output.suffix == ".mp3"
+    assert probe_duration_ms(output, ffmpeg_config) > 0

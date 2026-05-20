@@ -12,11 +12,13 @@ from anki_audio_quick_editor.audio_processor import (
     find_ffmpeg,
     find_ffprobe,
     find_rnnoise_bundle,
+    find_spleeter_bundle,
 )
 from anki_audio_quick_editor.errors import (
     MissingDeepFilterError,
     MissingFfmpegError,
     MissingRnnoiseError,
+    MissingSpleeterError,
 )
 
 
@@ -236,6 +238,56 @@ def test_find_rnnoise_bundle_raises_when_bundle_is_incomplete(
 
     with pytest.raises(MissingRnnoiseError, match="bundled rnnoise-cli executable"):
         find_rnnoise_bundle()
+
+
+def test_find_spleeter_bundle_uses_bundled_executable_and_models(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    executable = tmp_path / "bin" / "macos-arm64" / "sherpa-spleeter"
+    vocals = tmp_path / "bin" / "models" / "spleeter-2stems-fp16" / "vocals.fp16.onnx"
+    accompaniment = vocals.parent / "accompaniment.fp16.onnx"
+    executable.parent.mkdir(parents=True)
+    vocals.parent.mkdir(parents=True)
+    executable.write_text("")
+    vocals.write_text("")
+    accompaniment.write_text("")
+
+    monkeypatch.setattr(
+        "anki_audio_quick_editor.audio_processor.expected_bundled_tool_path",
+        lambda tool_name: executable if tool_name == "sherpa-spleeter" else None,
+    )
+    monkeypatch.setattr(
+        "anki_audio_quick_editor.audio_processor.expected_bundled_spleeter_model_path",
+        lambda model_name: vocals if model_name == "vocals.fp16.onnx" else accompaniment,
+    )
+
+    assert find_spleeter_bundle() == (executable, vocals, accompaniment)
+
+
+def test_find_spleeter_bundle_reports_missing_model(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    executable = tmp_path / "bin" / "macos-arm64" / "sherpa-spleeter"
+    vocals = tmp_path / "bin" / "models" / "spleeter-2stems-fp16" / "vocals.fp16.onnx"
+    accompaniment = vocals.parent / "accompaniment.fp16.onnx"
+    executable.parent.mkdir(parents=True)
+    vocals.parent.mkdir(parents=True)
+    executable.write_text("")
+    vocals.write_text("")
+
+    monkeypatch.setattr(
+        "anki_audio_quick_editor.audio_processor.expected_bundled_tool_path",
+        lambda tool_name: executable if tool_name == "sherpa-spleeter" else None,
+    )
+    monkeypatch.setattr(
+        "anki_audio_quick_editor.audio_processor.expected_bundled_spleeter_model_path",
+        lambda model_name: vocals if model_name == "vocals.fp16.onnx" else accompaniment,
+    )
+
+    with pytest.raises(MissingSpleeterError, match="accompaniment.fp16.onnx"):
+        find_spleeter_bundle()
 
 
 def test_find_ffprobe_prefers_sibling_binary(tmp_path: Path, monkeypatch) -> None:

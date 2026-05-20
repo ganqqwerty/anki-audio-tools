@@ -9,8 +9,8 @@ from anki_audio_quick_editor.audio_processor import render_rnnoise_audio
 from anki_audio_quick_editor.audio_state import AudioProcessingConfig
 from anki_audio_quick_editor.errors import AudioProcessingError
 from anki_audio_quick_editor.support import (
-    clear_latest_rnnoise_support_incident,
-    latest_rnnoise_support_incident,
+    clear_latest_denoise_support_incident,
+    latest_denoise_support_incident,
 )
 
 
@@ -18,7 +18,7 @@ def test_render_rnnoise_audio_runs_prepare_denoise_and_encode(
     monkeypatch,
     tmp_path: Path,
 ) -> None:
-    clear_latest_rnnoise_support_incident()
+    clear_latest_denoise_support_incident()
     calls: list[list[str]] = []
     commands: list[tuple[str, ...]] = []
 
@@ -40,7 +40,9 @@ def test_render_rnnoise_audio_runs_prepare_denoise_and_encode(
         capture_output: bool,
         text: bool,
         check: bool,
+        timeout: float,
     ) -> SimpleNamespace:
+        assert timeout > 0
         calls.append(cmd)
         if cmd[0] == "/bin/rnnoise-cli":
             Path(cmd[cmd.index("--output") + 1]).write_bytes(b"denoised")
@@ -98,14 +100,14 @@ def test_render_rnnoise_audio_runs_prepare_denoise_and_encode(
     assert result.output_path == output
     assert result.command == tuple(calls[1])
     assert result.duration_ms == 1000
-    assert latest_rnnoise_support_incident() is None
+    assert latest_denoise_support_incident() is None
 
 
 def test_render_rnnoise_audio_reports_denoise_errors(
     monkeypatch,
     tmp_path: Path,
 ) -> None:
-    clear_latest_rnnoise_support_incident()
+    clear_latest_denoise_support_incident()
     monkeypatch.setattr(
         "anki_audio_quick_editor.audio_processor.find_ffmpeg",
         lambda _path: Path("/bin/ffmpeg"),
@@ -120,7 +122,9 @@ def test_render_rnnoise_audio_reports_denoise_errors(
         capture_output: bool,
         text: bool,
         check: bool,
+        timeout: float,
     ) -> SimpleNamespace:
+        assert timeout > 0
         if cmd[0] == "/bin/rnnoise-cli":
             return SimpleNamespace(returncode=5, stdout='{"error":"invalid raw input"}', stderr="")
         return SimpleNamespace(returncode=0, stdout="", stderr="")
@@ -133,7 +137,7 @@ def test_render_rnnoise_audio_reports_denoise_errors(
             AudioProcessingConfig(),
             output_path=tmp_path / "denoised.mp3",
         )
-    incident = latest_rnnoise_support_incident()
+    incident = latest_denoise_support_incident()
     assert incident is not None
     assert incident["operation"] == "rnnoise_denoise"
     assert incident["media_filename"] == "source.mp3"
@@ -151,7 +155,7 @@ def test_render_rnnoise_audio_reports_launch_errors(
     monkeypatch,
     tmp_path: Path,
 ) -> None:
-    clear_latest_rnnoise_support_incident()
+    clear_latest_denoise_support_incident()
     monkeypatch.setattr(
         "anki_audio_quick_editor.audio_processor.find_ffmpeg",
         lambda _path: Path("/bin/ffmpeg"),
@@ -166,7 +170,9 @@ def test_render_rnnoise_audio_reports_launch_errors(
         capture_output: bool,
         text: bool,
         check: bool,
+        timeout: float,
     ) -> SimpleNamespace:
+        assert timeout > 0
         if cmd[0] == "/bin/rnnoise-cli":
             raise PermissionError(13, "Permission denied", "/bin/rnnoise-cli")
         return SimpleNamespace(returncode=0, stdout="", stderr="")
@@ -179,7 +185,7 @@ def test_render_rnnoise_audio_reports_launch_errors(
             AudioProcessingConfig(),
             output_path=tmp_path / "denoised.mp3",
         )
-    incident = latest_rnnoise_support_incident()
+    incident = latest_denoise_support_incident()
     assert incident is not None
     assert incident["attempted_commands"][1]["launch_error"].startswith(
         "Could not start RNNoise denoise."

@@ -104,7 +104,7 @@ describe("App", () => {
     expect(screen.getByText("DeepFilterNet path")).toBeInTheDocument();
     expect(screen.getByText("Use DeepFilterNet post-filter")).toBeInTheDocument();
     expect(screen.getByText("Shorten pauses level")).toBeInTheDocument();
-    expect(screen.getByText("Default denoise algorithm")).toBeInTheDocument();
+    expect(screen.getByText("Default cleanup action")).toBeInTheDocument();
     expect(screen.getByText("Volume step (dB)")).toBeInTheDocument();
     expect(screen.getByText("Min volume (dB)")).toBeInTheDocument();
     expect(screen.getByText("Max volume (dB)")).toBeInTheDocument();
@@ -154,8 +154,8 @@ describe("App", () => {
     await fireEvent.change(screen.getByLabelText("Shorten pauses level"), {
       target: { value: PauseAggressiveness.Aggressive },
     });
-    await fireEvent.change(screen.getByLabelText("Default denoise algorithm"), {
-      target: { value: DenoiseAlgorithm.Rnnoise },
+    await fireEvent.change(screen.getByLabelText("Default cleanup action"), {
+      target: { value: DenoiseAlgorithm.Dpdfnet },
     });
     await fireEvent.input(screen.getByTestId("repeat-pause-seconds"), {
       target: { value: "2.5" },
@@ -168,7 +168,7 @@ describe("App", () => {
       repeat_pause_seconds: number;
     }>("settings.save");
     expect(config.pause_aggressiveness).toBe("aggressive");
-    expect(config.denoise_algorithm).toBe("rnnoise");
+    expect(config.denoise_algorithm).toBe("dpdfnet");
     expect(config.repeat_pause_seconds).toBe(2.5);
   });
 

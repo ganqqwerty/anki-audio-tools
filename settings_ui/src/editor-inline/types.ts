@@ -19,6 +19,8 @@ export type EditorCommand =
   | "aqe:remove-pauses"
   | "aqe:denoise-standard"
   | "aqe:rnnoise"
+  | "aqe:dpdfnet"
+  | "aqe:voice-only"
   | "aqe:slower"
   | "aqe:faster"
   | "aqe:volume-down"
@@ -50,7 +52,7 @@ export interface EditorRuntimeConfig {
 }
 
 export interface SplitButtonDefaults {
-  denoiseAlgorithm: "standard" | "rnnoise";
+  denoiseAlgorithm: DenoiseAlgorithm;
   graphConnectShortDropoutsMs?: number;
   graphRecordingCondition?: GraphRecordingCondition;
   graphSmoothness?: GraphSmoothness;
@@ -67,7 +69,7 @@ export interface EditorCommandPayload {
   command: EditorCommand;
   fieldOrd: number;
   overrides?: {
-    denoiseAlgorithm?: "standard" | "rnnoise";
+    denoiseAlgorithm?: DenoiseAlgorithm;
     pauseAggressiveness?: "gentle" | "normal" | "aggressive";
     speedStep?: number;
     trimStepMs?: number;
@@ -77,7 +79,7 @@ export interface EditorCommandPayload {
 }
 
 export interface FieldSplitButtonState {
-  defaultDenoiseAlgorithm: "standard" | "rnnoise";
+  defaultDenoiseAlgorithm: DenoiseAlgorithm;
   defaultGraphConnectShortDropoutsMs: number;
   defaultGraphRecordingCondition: GraphRecordingCondition;
   defaultGraphSmoothness: GraphSmoothness;
@@ -88,7 +90,7 @@ export interface FieldSplitButtonState {
   defaultTrimStepMs: number;
   defaultSpeedStep: number;
   defaultVolumeStepDb: number;
-  denoiseAlgorithm: "standard" | "rnnoise";
+  denoiseAlgorithm: DenoiseAlgorithm;
   denoiseEdited: boolean;
   graphConnectShortDropoutsMs: number;
   graphEdited: boolean;
@@ -158,6 +160,8 @@ export interface RegionDeleteRequest {
   sourceFilename: string;
   trigger: "button" | "backspace";
 }
+
+type DenoiseAlgorithm = "standard" | "rnnoise" | "dpdfnet" | "voice_only";
 
 type RegionDeleteOperation = "delete-selection" | "delete-rest";
 

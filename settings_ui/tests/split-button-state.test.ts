@@ -84,6 +84,8 @@ describe("split button state", () => {
     expect(formatPauseAggressiveness("aggressive")).toBe("Aggressive");
     expect(formatDenoiseAlgorithm("standard")).toBe("Standard");
     expect(formatDenoiseAlgorithm("rnnoise")).toBe("RNNoise");
+    expect(formatDenoiseAlgorithm("dpdfnet")).toBe("DPDFNet");
+    expect(formatDenoiseAlgorithm("voice_only")).toBe("Voice Only");
   });
 
   it("formats and clamps graph split values", () => {
@@ -182,6 +184,24 @@ describe("split button state", () => {
       fieldOrd: 0,
       overrides: {
         denoiseAlgorithm: "rnnoise",
+      },
+    });
+
+    setDenoiseAlgorithmForField(0, "voice_only");
+    expect(buildSplitCommandPayload("aqe:denoise-standard", 0)).toEqual({
+      command: "aqe:voice-only",
+      fieldOrd: 0,
+      overrides: {
+        denoiseAlgorithm: "voice_only",
+      },
+    });
+
+    setDenoiseAlgorithmForField(0, "dpdfnet");
+    expect(buildSplitCommandPayload("aqe:rnnoise", 0)).toEqual({
+      command: "aqe:dpdfnet",
+      fieldOrd: 0,
+      overrides: {
+        denoiseAlgorithm: "dpdfnet",
       },
     });
   });

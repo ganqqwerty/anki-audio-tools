@@ -9,11 +9,15 @@ from anki_audio_quick_editor.support import (
     build_support_report_text,
     clear_latest_pause_pipeline_support_incident,
     clear_latest_rnnoise_support_incident,
+    clear_latest_spleeter_support_incident,
+    format_spleeter_support_log_block,
     latest_pause_pipeline_support_incident,
     latest_rnnoise_support_incident,
+    latest_spleeter_support_incident,
     read_log_tail,
     record_latest_pause_pipeline_support_incident,
     record_latest_rnnoise_support_incident,
+    record_latest_spleeter_support_incident,
 )
 
 
@@ -77,6 +81,22 @@ def test_latest_rnnoise_incident_returns_deep_copy() -> None:
     assert latest["attempted_commands"][0]["stderr"] == "boom"
 
 
+def test_latest_spleeter_incident_returns_deep_copy() -> None:
+    clear_latest_spleeter_support_incident()
+    incident = record_latest_spleeter_support_incident(
+        operation="voice_only",
+        attempted_commands=[
+            build_command_record(("/bin/sherpa-spleeter", "--version"), returncode=1, stderr="boom")
+        ],
+    )
+
+    incident["attempted_commands"][0]["stderr"] = "mutated"
+
+    latest = latest_spleeter_support_incident()
+    assert latest is not None
+    assert latest["attempted_commands"][0]["stderr"] == "boom"
+
+
 def test_support_report_renders_pause_pipeline_command_details() -> None:
     report = build_support_report_text(
         version="1.2.3",
@@ -84,7 +104,7 @@ def test_support_report_renders_pause_pipeline_command_details() -> None:
         log_file_path="/addon/anki_audio_quick_editor.log",
         deep_filter_health={"available": False},
         rnnoise_health={"available": False},
-        rnnoise_incident=None,
+        denoise_incident=None,
         pause_pipeline_incident={
             "timestamp": "2026-05-17T09:08:07+00:00",
             "operation": "deep_filter_pause_speedup",
@@ -125,7 +145,7 @@ def test_support_report_renders_empty_pause_pipeline_command_report() -> None:
         log_file_path="/addon/anki_audio_quick_editor.log",
         deep_filter_health={"available": False},
         rnnoise_health={"available": False},
-        rnnoise_incident=None,
+        denoise_incident=None,
         pause_pipeline_incident={"operation": "deep_filter_pause_speedup"},
         log_tail="recent log",
     )
@@ -140,7 +160,7 @@ def test_support_report_renders_latest_error_recent_events_and_crash_forensics()
         log_file_path="/addon/anki_audio_quick_editor.log",
         deep_filter_health={"available": False},
         rnnoise_health={"available": False},
-        rnnoise_incident=None,
+        denoise_incident=None,
         pause_pipeline_incident=None,
         log_tail="recent log",
         diagnostics_context={
@@ -195,7 +215,7 @@ def test_support_report_renders_rnnoise_incident_and_health() -> None:
         log_file_path="/addon/anki_audio_quick_editor.log",
         deep_filter_health={"available": False},
         rnnoise_health={"available": True, "path": "/bin/rnnoise-cli", "version": "rnnoise-cli 0.2", "error": ""},
-        rnnoise_incident={
+        denoise_incident={
             "timestamp": "2026-05-17T09:08:07+00:00",
             "operation": "rnnoise_denoise",
             "media_filename": "clip.mp3",
@@ -216,11 +236,57 @@ def test_support_report_renders_rnnoise_incident_and_health() -> None:
         log_tail="recent log",
     )
 
-    assert "Latest RNNoise failure" in report
+    assert "Latest denoise failure" in report
     assert "RNNoise path: /bin/rnnoise-cli" in report
     assert "1. /bin/rnnoise-cli denoise" in report
     assert "Current RNNoise health" in report
     assert '"version": "rnnoise-cli 0.2"' in report
+
+
+def test_support_report_renders_spleeter_incident_and_health() -> None:
+    report = build_support_report_text(
+        version="1.2.3",
+        addon_dir="/addon",
+        log_file_path="/addon/anki_audio_quick_editor.log",
+        deep_filter_health={"available": False},
+        rnnoise_health={"available": False},
+        denoise_incident=None,
+        spleeter_health={
+            "available": True,
+            "path": "/bin/sherpa-spleeter",
+            "version": "sherpa-spleeter 1.0",
+            "error": "",
+        },
+        spleeter_incident={
+            "timestamp": "2026-05-17T09:08:07+00:00",
+            "operation": "voice_only",
+            "media_filename": "clip.mp3",
+            "source_path": "/media/clip.mp3",
+            "user_message": "invalid wav",
+            "exception_type": "AudioProcessingError",
+            "ffmpeg_path": "/bin/ffmpeg",
+            "spleeter_path": "/bin/sherpa-spleeter",
+            "vocals_model_path": "/models/vocals.fp16.onnx",
+            "accompaniment_model_path": "/models/accompaniment.fp16.onnx",
+            "attempted_commands": [
+                build_command_record(
+                    ("/bin/sherpa-spleeter", "--json"),
+                    returncode=5,
+                    stdout='{"error":"invalid wav"}',
+                )
+            ],
+        },
+        pause_pipeline_incident=None,
+        log_tail="recent log",
+    )
+
+    assert "Latest Voice Only failure" in report
+    assert "Sherpa Spleeter path: /bin/sherpa-spleeter" in report
+    assert "Vocals model path: /models/vocals.fp16.onnx" in report
+    assert "Accompaniment model path: /models/accompaniment.fp16.onnx" in report
+    assert "1. /bin/sherpa-spleeter --json" in report
+    assert "Current Sherpa Spleeter health" in report
+    assert '"version": "sherpa-spleeter 1.0"' in report
 
 
 def test_rnnoise_support_log_block_renders_optional_command_details() -> None:
@@ -248,8 +314,41 @@ def test_rnnoise_support_log_block_renders_optional_command_details() -> None:
         }
     )
 
-    assert "rnnoise support incident:" in block
+    assert "denoise support incident:" in block
     assert "command_1: /bin/rnnoise-cli denoise" in block
+    assert "returncode: None" in block
+    assert "launch_error: permission denied" in block
+    assert "stdout: partial stdout" in block
+    assert "stderr: partial stderr" in block
+
+
+def test_spleeter_support_log_block_renders_optional_command_details() -> None:
+    block = format_spleeter_support_log_block(
+        {
+            "timestamp": "2026-05-17T09:08:07+00:00",
+            "operation": "voice_only",
+            "media_filename": "clip.mp3",
+            "source_path": "/media/clip.mp3",
+            "user_message": "invalid wav",
+            "exception_type": "AudioProcessingError",
+            "ffmpeg_path": "/bin/ffmpeg",
+            "spleeter_path": "/bin/sherpa-spleeter",
+            "vocals_model_path": "/models/vocals.fp16.onnx",
+            "accompaniment_model_path": "/models/accompaniment.fp16.onnx",
+            "attempted_commands": [
+                build_command_record(
+                    ("/bin/sherpa-spleeter", "--json"),
+                    returncode=None,
+                    stdout="partial stdout",
+                    stderr="partial stderr",
+                    launch_error="permission denied",
+                )
+            ],
+        }
+    )
+
+    assert "sherpa spleeter support incident:" in block
+    assert "command_1: /bin/sherpa-spleeter --json" in block
     assert "returncode: None" in block
     assert "launch_error: permission denied" in block
     assert "stdout: partial stdout" in block

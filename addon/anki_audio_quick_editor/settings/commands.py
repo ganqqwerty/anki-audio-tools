@@ -243,17 +243,23 @@ def _op_health_check(
     from ..db_helpers import build_health_report
     from ..diagnostics import (
         build_deep_filter_health,
+        build_dpdfnet_health,
         build_rnnoise_health,
+        build_spleeter_health,
     )
     from ..i18n import t
 
     progress_fn(20, t("settings.health.inspecting_collection"))
     report = build_health_report(mw.col)
-    progress_fn(60, t("settings.health.checking_deep_filter"))
+    progress_fn(55, t("settings.health.checking_deep_filter"))
     config = _config_payload(payload)
     report["deep_filter"] = build_deep_filter_health(config)
-    progress_fn(90, t("settings.health.checking_rnnoise"))
+    progress_fn(75, t("settings.health.checking_rnnoise"))
     report["rnnoise"] = build_rnnoise_health()
+    progress_fn(85, t("settings.health.checking_dpdfnet"))
+    report["dpdfnet"] = build_dpdfnet_health()
+    progress_fn(95, t("settings.health.checking_spleeter"))
+    report["spleeter"] = build_spleeter_health()
     progress_fn(100, t("settings.async.done"))
     return HealthReport.from_dict(report).to_dict()
 
@@ -267,14 +273,17 @@ def _op_support_report(
     from .._version import __version__
     from ..diagnostics import (
         build_deep_filter_health,
+        build_dpdfnet_health,
         build_rnnoise_health,
+        build_spleeter_health,
     )
     from ..i18n import t
     from ..support import (
         addon_log_path,
         build_support_report_text,
+        latest_denoise_support_incident,
         latest_pause_pipeline_support_incident,
-        latest_rnnoise_support_incident,
+        latest_spleeter_support_incident,
         read_log_tail,
     )
 
@@ -287,6 +296,8 @@ def _op_support_report(
     progress_fn(50, t("settings.support.checking_external_tools"))
     deep_filter_health = build_deep_filter_health(config)
     rnnoise_health = build_rnnoise_health()
+    dpdfnet_health = build_dpdfnet_health()
+    spleeter_health = build_spleeter_health()
     progress_fn(75, t("settings.support.reading_recent_logs"))
     report_text = build_support_report_text(
         version=__version__,
@@ -294,9 +305,12 @@ def _op_support_report(
         log_file_path=str(log_path),
         deep_filter_health=deep_filter_health,
         rnnoise_health=rnnoise_health,
-        rnnoise_incident=latest_rnnoise_support_incident(),
+        dpdfnet_health=dpdfnet_health,
+        denoise_incident=latest_denoise_support_incident(),
         pause_pipeline_incident=latest_pause_pipeline_support_incident(),
         log_tail=read_log_tail(log_path),
+        spleeter_health=spleeter_health,
+        spleeter_incident=latest_spleeter_support_incident(),
         diagnostics_context=support_report_context(),
     )
     progress_fn(100, t("settings.async.done"))

@@ -9,6 +9,7 @@ from anki_audio_quick_editor.audio_processor import (
     build_audio_filters,
     build_deep_filter_command,
     build_deep_filter_prepare_command,
+    build_dpdfnet_command,
     build_mp3_encode_command,
     build_playback_segment_filters,
     build_region_delete_plan,
@@ -17,6 +18,8 @@ from anki_audio_quick_editor.audio_processor import (
     build_rnnoise_encode_command,
     build_rnnoise_prepare_command,
     build_silencedetect_command,
+    build_spleeter_command,
+    build_spleeter_prepare_command,
     build_working_original_filters,
     select_deep_filter_output,
 )
@@ -293,6 +296,21 @@ def test_build_rnnoise_command_includes_json_and_overwrite(tmp_path: Path) -> No
     )
 
 
+def test_build_dpdfnet_command_uses_enhance_subcommand(tmp_path: Path) -> None:
+    command = build_dpdfnet_command(
+        Path("/bin/dpdfnet"),
+        tmp_path / "source.mp3",
+        tmp_path / "denoised.wav",
+    )
+
+    assert command == (
+        "/bin/dpdfnet",
+        "enhance",
+        str(tmp_path / "source.mp3"),
+        str(tmp_path / "denoised.wav"),
+    )
+
+
 def test_build_rnnoise_encode_command_reads_raw_pcm(tmp_path: Path) -> None:
     command = build_rnnoise_encode_command(
         Path("/bin/ffmpeg"),
@@ -317,6 +335,49 @@ def test_build_rnnoise_encode_command_reads_raw_pcm(tmp_path: Path) -> None:
         "-q:a",
         "4",
         str(tmp_path / "denoised.mp3"),
+    )
+
+
+def test_build_spleeter_prepare_command_uses_44k1_stereo_wav(tmp_path: Path) -> None:
+    command = build_spleeter_prepare_command(
+        Path("/bin/ffmpeg"),
+        tmp_path / "source.mp3",
+        tmp_path / "input.wav",
+    )
+
+    assert command == (
+        "/bin/ffmpeg",
+        "-y",
+        "-i",
+        str(tmp_path / "source.mp3"),
+        "-vn",
+        "-ac",
+        "2",
+        "-ar",
+        "44100",
+        "-codec:a",
+        "pcm_s16le",
+        str(tmp_path / "input.wav"),
+    )
+
+
+def test_build_spleeter_command_uses_sherpa_source_separation_flags(tmp_path: Path) -> None:
+    command = build_spleeter_command(
+        Path("/bin/sherpa-spleeter"),
+        tmp_path / "vocals.fp16.onnx",
+        tmp_path / "accompaniment.fp16.onnx",
+        tmp_path / "input.wav",
+        tmp_path / "out",
+    )
+
+    assert command == (
+        "/bin/sherpa-spleeter",
+        f"--spleeter-vocals={tmp_path / 'vocals.fp16.onnx'}",
+        f"--spleeter-accompaniment={tmp_path / 'accompaniment.fp16.onnx'}",
+        f"--input-wav={tmp_path / 'input.wav'}",
+        f"--output-vocals-wav={tmp_path / 'out' / 'vocals.wav'}",
+        f"--output-accompaniment-wav={tmp_path / 'out' / 'accompaniment.wav'}",
+        "--num-threads=1",
     )
 
 
@@ -368,4 +429,3 @@ def test_atempo_filters_preserve_exact_boundary_values() -> None:
     assert _atempo_filters(4.0) == ["atempo=2.000", "atempo=2.000"]
     assert _atempo_filters(0.25) == ["atempo=0.500", "atempo=0.500"]
     assert _atempo_filters(0.1) == ["atempo=0.500", "atempo=0.500", "atempo=0.500", "atempo=0.800"]
-

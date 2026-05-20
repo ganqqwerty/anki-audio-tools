@@ -37,22 +37,27 @@ If that happens, clear `deep_filter_path` in `addon/anki_audio_quick_editor/meta
 
 Anki add-ons cannot rely on `pip install` at user runtime. Audio Quick Editor uses the Python/Qt runtime bundled with Anki and ships a locked native runtime payload for supported release platforms. The self-sufficient release matrix is macOS arm64, macOS x86_64, and Windows x86_64.
 
-Release archives bundle `ffmpeg`, `ffprobe`, DeepFilterNet's `deep-filter`, and `rnnoise-cli` below `bin/<target>/`. Runtime discovery checks user overrides first, bundled tools second, and `PATH` as a compatibility fallback. The settings diagnostics report whether each tool came from config, the bundled payload, or `PATH`.
+Release archives bundle `ffmpeg`, `ffprobe`, DeepFilterNet's `deep-filter`, `rnnoise-cli`, and Sherpa's `sherpa-spleeter` below `bin/<target>/`, plus shared Spleeter model files below `bin/models/spleeter-2stems-fp16/`. The `macos-arm64` target also bundles DPDFNet Lite as `dpdfnet`; `macos-x86_64` and `windows-x86_64` intentionally do not include DPDFNet until matching binaries are built and locked. Runtime discovery checks user overrides first where supported, bundled tools second, and `PATH` as a compatibility fallback. The settings diagnostics report whether each tool came from config, the bundled payload, or `PATH`.
 
-Native release assets are not committed into `addon/anki_audio_quick_editor/bin/`. The checked-in `bin/` directory contains documentation and notices only. Use `.release-assets/bin/<target>/` as the ignored build/fetch cache and `release_assets.lock.json` as the source of truth for expected executables, source URLs, diagnostic arguments, and SHA-256 values.
+Native release assets are not committed into `addon/anki_audio_quick_editor/bin/`. The checked-in `bin/` directory contains documentation and notices only. Use `.release-assets/bin/<target>/` for target executables, `.release-assets/shared/` for shared model files, and `release_assets.lock.json` as the source of truth for expected runtime files, source URLs, diagnostic arguments, and SHA-256 values. Source-tree development uses the same runtime layout as releases: stage any needed generated payload into the add-on `bin/` tree before launching the symlinked add-on.
 
 Release asset workflow:
 
 ```bash
 python3 scripts/dev.py release-assets fetch-deepfilter --target all
 python3 scripts/dev.py release-assets fetch-ffmpeg --target all
+python3 scripts/dev.py release-assets fetch-sherpa-spleeter --target all
+python3 scripts/dev.py release-assets fetch-spleeter-models
 python3 scripts/dev.py release-assets build-rnnoise --target macos-arm64
 python3 scripts/dev.py release-assets build-rnnoise --target macos-x86_64
 python3 scripts/dev.py release-assets build-rnnoise --target windows-x86_64
 python3 scripts/dev.py release-assets verify --target all
+python3 scripts/dev.py release-assets stage --target macos-arm64 --tool dpdfnet --destination addon/anki_audio_quick_editor/bin
 ```
 
 FFmpeg and FFprobe are fetched from locked third-party static release archives: Martin Riedl's macOS builds and Gyan Doshi's Windows essentials build. The lock records both the provider archive SHA-256 and the extracted executable SHA-256. RNNoise is still built locally from source; Windows RNNoise can be cross-built from macOS when `x86_64-w64-mingw32-gcc` is available. A release is not approved until native acceptance has run on each supported platform.
+
+Sherpa Spleeter is fetched from locked `sherpa-onnx` native archives. Packaging renames the upstream `sherpa-onnx-offline-source-separation` executable to `sherpa-spleeter`, stages the target-specific ONNX Runtime libraries beside it, and downloads the shared Spleeter 2-stems fp16 model archive once.
 
 Package one platform at a time for normal distribution:
 

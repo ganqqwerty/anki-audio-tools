@@ -8,7 +8,9 @@
     formatVolumeDb,
   } from "./split-button-state.js";
   import { COMMAND_SLUGS } from "./commands.js";
-  import type { ButtonSpec } from "./types.js";
+  import type { ButtonSpec, FieldSplitButtonState } from "./types.js";
+
+  type DenoiseAlgorithm = FieldSplitButtonState["denoiseAlgorithm"];
 
   const {
     button,
@@ -26,9 +28,9 @@
     volumeStepDb,
   }: {
     button: ButtonSpec;
-    denoiseAlgorithm: "standard" | "rnnoise";
+    denoiseAlgorithm: DenoiseAlgorithm;
     onChange: () => void;
-    onDenoiseAlgorithm: (value: "standard" | "rnnoise") => void;
+    onDenoiseAlgorithm: (value: DenoiseAlgorithm) => void;
     onPauseAggressiveness: (value: "gentle" | "normal" | "aggressive") => void;
     onSpeedStep: (value: number) => void;
     onTrimStep: (value: number) => void;
@@ -47,7 +49,12 @@
     if (button.command === "aqe:volume-up" || button.command === "aqe:volume-down") return formatVolumeDb(volumeStepDb);
     if (button.command === "aqe:faster" || button.command === "aqe:slower") return formatSpeedStep(speedStep, button.command);
     if (button.command === "aqe:remove-pauses") return formatPauseAggressiveness(pauseAggressiveness);
-    if (button.command === "aqe:denoise-standard" || button.command === "aqe:rnnoise") {
+    if (
+      button.command === "aqe:denoise-standard" ||
+      button.command === "aqe:rnnoise" ||
+      button.command === "aqe:dpdfnet" ||
+      button.command === "aqe:voice-only"
+    ) {
       return formatDenoiseAlgorithm(denoiseAlgorithm);
     }
     return formatTrimMs(trimStepMs);
@@ -100,12 +107,21 @@
 
   function optionValues(): string[] {
     if (button.command === "aqe:remove-pauses") return ["gentle", "normal", "aggressive"];
-    if (button.command === "aqe:denoise-standard" || button.command === "aqe:rnnoise") return ["standard", "rnnoise"];
+    if (
+      button.command === "aqe:denoise-standard" ||
+      button.command === "aqe:rnnoise" ||
+      button.command === "aqe:dpdfnet" ||
+      button.command === "aqe:voice-only"
+    ) {
+      return ["standard", "rnnoise", "dpdfnet", "voice_only"];
+    }
     return [];
   }
 
   function optionLabel(value: string): string {
     if (value === "rnnoise") return "RNNoise";
+    if (value === "dpdfnet") return "DPDFNet";
+    if (value === "voice_only") return t("settings.denoise_algorithm.voice_only");
     if (value === "aggressive") return t("settings.pause_aggressiveness.aggressive");
     if (value === "gentle") return t("settings.pause_aggressiveness.gentle");
     return value === "standard" ? t("settings.denoise_algorithm.standard") : t("settings.pause_aggressiveness.normal");
@@ -113,7 +129,7 @@
 
   function applyOption(value: string): void {
     if (value === "gentle" || value === "normal" || value === "aggressive") onPauseAggressiveness(value);
-    if (value === "standard" || value === "rnnoise") onDenoiseAlgorithm(value);
+    if (value === "standard" || value === "rnnoise" || value === "dpdfnet" || value === "voice_only") onDenoiseAlgorithm(value);
     onChange();
   }
 

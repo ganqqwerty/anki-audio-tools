@@ -46,6 +46,8 @@ def _tool_matrix(script: bytes | None) -> dict[str, tuple[str, bytes | None]]:
         "ffprobe": ("ffprobe", script),
         "deep-filter": ("deep-filter", script),
         "rnnoise-cli": ("rnnoise-cli", script),
+        "sherpa-spleeter": ("sherpa-spleeter", script),
+        "dpdfnet": ("dpdfnet", script),
     }
 
 
@@ -96,7 +98,14 @@ def test_acceptance_writes_report_when_runtime_tools_pass(tmp_path: Path, monkey
     report = json.loads(report_path.read_text(encoding="utf-8"))
     assert report["target"] == target
     assert report["status"] == "passed"
-    assert set(report["tools"]) == {"ffmpeg", "ffprobe", "deep-filter", "rnnoise-cli"}
+    assert set(report["tools"]) == {
+        "ffmpeg",
+        "ffprobe",
+        "deep-filter",
+        "rnnoise-cli",
+        "sherpa-spleeter",
+        "dpdfnet",
+    }
 
 
 def test_version_reads_pyproject_without_runtime_tomllib(tmp_path: Path, monkeypatch) -> None:

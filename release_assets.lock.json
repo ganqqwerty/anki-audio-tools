@@ -70,6 +70,43 @@
             "BSD-3-Clause"
           ],
           "sha256": "f3031f0ac63124faacff26629b8edabdef3d645162de5593176f0b723cc53f70"
+        },
+        "dpdfnet": {
+          "version": "0.1.0",
+          "source_url": "https://github.com/ceva-ip/DPDFNet",
+          "model": "dpdfnet4.tflite",
+          "build": "local-pyinstaller-dpdfnet-lite",
+          "executable": "dpdfnet",
+          "diagnostic_args": [
+            "--version"
+          ],
+          "licenses": [
+            "Apache-2.0"
+          ],
+          "sha256": "b4c53b12fd1e5a7bee0e96271af4a61d0ea4ff9e91d15d5d2815cb169f5109e4"
+        },
+        "sherpa-spleeter": {
+          "version": "1.13.2",
+          "source_url": "https://github.com/k2-fsa/sherpa-onnx/releases/tag/v1.13.2",
+          "core_archive_url": "https://github.com/k2-fsa/sherpa-onnx/releases/download/v1.13.2/sherpa-onnx-v1.13.2-osx-arm64-shared-no-tts.tar.bz2",
+          "core_archive_sha256": "d880aaa79d36b784168a0398b278813d57ba8e135f468894b8f134b664e2e225",
+          "archive_member": "sherpa-onnx-v1.13.2-osx-arm64-shared-no-tts/bin/sherpa-onnx-offline-source-separation",
+          "build": "third-party-sherpa-source-separation",
+          "executable": "sherpa-spleeter",
+          "diagnostic_args": [
+            "--help"
+          ],
+          "runtime_files": [
+            {
+              "archive_member": "sherpa-onnx-v1.13.2-osx-arm64-shared-no-tts/lib/libonnxruntime.1.24.4.dylib",
+              "path": "libonnxruntime.1.24.4.dylib",
+              "sha256": "3b76ed91e19443f04b79d53bf415d5fe66dd81211e3b7787ba48009e49e2d04d"
+            }
+          ],
+          "licenses": [
+            "Apache-2.0"
+          ],
+          "sha256": "b9329b7989b30cfd38705ece9ffee2f09fb13ef2ffc7bb08c792aeefee4479f3"
         }
       }
     },
@@ -141,6 +178,29 @@
             "BSD-3-Clause"
           ],
           "sha256": "4a592f34119030c4b607aa2829e5c20f3e0479b6e15070d44c1e281de68cde2f"
+        },
+        "sherpa-spleeter": {
+          "version": "1.13.2",
+          "source_url": "https://github.com/k2-fsa/sherpa-onnx/releases/tag/v1.13.2",
+          "core_archive_url": "https://github.com/k2-fsa/sherpa-onnx/releases/download/v1.13.2/sherpa-onnx-v1.13.2-osx-x64-shared-no-tts.tar.bz2",
+          "core_archive_sha256": "d1819cce38390d5b51ff38cb15a1b32e47c6ffe15882926211054b1f95e01357",
+          "archive_member": "sherpa-onnx-v1.13.2-osx-x64-shared-no-tts/bin/sherpa-onnx-offline-source-separation",
+          "build": "third-party-sherpa-source-separation",
+          "executable": "sherpa-spleeter",
+          "diagnostic_args": [
+            "--help"
+          ],
+          "runtime_files": [
+            {
+              "archive_member": "sherpa-onnx-v1.13.2-osx-x64-shared-no-tts/lib/libonnxruntime.1.24.4.dylib",
+              "path": "libonnxruntime.1.24.4.dylib",
+              "sha256": "4cdc3fbfbe6da4d941ed0db63dd8b8014dd2fb73f929ef7dd99bc7eb0b9a632b"
+            }
+          ],
+          "licenses": [
+            "Apache-2.0"
+          ],
+          "sha256": "7caf0d633d54460606bdebb857b3a104ef57d38ee483d9f56b1190194fef0c1b"
         }
       }
     },
@@ -212,13 +272,70 @@
             "BSD-3-Clause"
           ],
           "sha256": "c30d233b4095c49c434a0fa778850b56c2c5587646e6bd28e9f8ee45f53cd6b6"
+        },
+        "sherpa-spleeter": {
+          "version": "1.13.2",
+          "source_url": "https://github.com/k2-fsa/sherpa-onnx/releases/tag/v1.13.2",
+          "core_archive_url": "https://github.com/k2-fsa/sherpa-onnx/releases/download/v1.13.2/sherpa-onnx-v1.13.2-win-x64-shared-MT-Release-no-tts.tar.bz2",
+          "core_archive_sha256": "c0ad48e0b80544bb7b05031ac8a8760b9e0279832176d749fcf131c8a139e658",
+          "archive_member": "sherpa-onnx-v1.13.2-win-x64-shared-MT-Release-no-tts/bin/sherpa-onnx-offline-source-separation.exe",
+          "build": "third-party-sherpa-source-separation",
+          "executable": "sherpa-spleeter.exe",
+          "diagnostic_args": [
+            "--help"
+          ],
+          "runtime_files": [
+            {
+              "archive_member": "sherpa-onnx-v1.13.2-win-x64-shared-MT-Release-no-tts/bin/onnxruntime.dll",
+              "path": "onnxruntime.dll",
+              "sha256": "756c938b0f2d14c45c7ad469c6429041d7e905ee6c6ad6049aa67ce937567e97"
+            },
+            {
+              "archive_member": "sherpa-onnx-v1.13.2-win-x64-shared-MT-Release-no-tts/bin/onnxruntime_providers_shared.dll",
+              "path": "onnxruntime_providers_shared.dll",
+              "sha256": "62f865e9fbe497f15d5a589b644d41e4723501e352a83571697fcd1f191c8db8"
+            }
+          ],
+          "licenses": [
+            "Apache-2.0"
+          ],
+          "sha256": "df9a77e66be7009d4f4ea4e133ea83e8bc012700a620ecc87096cad0dcd7cdd1"
         }
       }
+    }
+  },
+  "shared_files": {
+    "spleeter-vocals": {
+      "version": "sherpa-onnx-spleeter-2stems-fp16",
+      "source_url": "https://github.com/k2-fsa/sherpa-onnx/releases/tag/source-separation-models",
+      "download_url": "https://github.com/k2-fsa/sherpa-onnx/releases/download/source-separation-models/sherpa-onnx-spleeter-2stems-fp16.tar.bz2",
+      "download_sha256": "d54561979bd2e08a51e7dbd99ac36bb47564e089eefd403636dbca93e811bba2",
+      "archive_member": "sherpa-onnx-spleeter-2stems-fp16/vocals.fp16.onnx",
+      "path": "models/spleeter-2stems-fp16/vocals.fp16.onnx",
+      "licenses": [
+        "MIT"
+      ],
+      "sha256": "24cef84aedcd1fe87c0b743ef3370ad34dc1fabf6c9014d6128a75a538c7b668"
+    },
+    "spleeter-accompaniment": {
+      "version": "sherpa-onnx-spleeter-2stems-fp16",
+      "source_url": "https://github.com/k2-fsa/sherpa-onnx/releases/tag/source-separation-models",
+      "download_url": "https://github.com/k2-fsa/sherpa-onnx/releases/download/source-separation-models/sherpa-onnx-spleeter-2stems-fp16.tar.bz2",
+      "download_sha256": "d54561979bd2e08a51e7dbd99ac36bb47564e089eefd403636dbca93e811bba2",
+      "archive_member": "sherpa-onnx-spleeter-2stems-fp16/accompaniment.fp16.onnx",
+      "path": "models/spleeter-2stems-fp16/accompaniment.fp16.onnx",
+      "licenses": [
+        "MIT"
+      ],
+      "sha256": "d14cea55793cc531a5875f5f4da08207d1c5ab9292e8e0099a104eecb014fcc0"
     }
   },
   "notices": [
     "FFmpeg 8.1.1 and FFprobe are redistributed from third-party GPLv3 static builds: Martin Riedl for macOS and Gyan Doshi for Windows.",
     "DeepFilterNet 0.5.6 executable assets are redistributed under upstream MIT and Apache-2.0 terms.",
-    "RNNoise 0.2 is built from upstream source plus scripts/rnnoise_cli/rnnoise_cli.c under BSD-style terms."
+    "RNNoise 0.2 is built from upstream source plus scripts/rnnoise_cli/rnnoise_cli.c under BSD-style terms.",
+    "DPDFNet Lite CLI 0.1.0 is built from the local DPDFNet project with the dpdfnet4.tflite model under Apache-2.0 terms.",
+    "Sherpa ONNX source-separation runtime components are redistributed from k2-fsa/sherpa-onnx under Apache-2.0 terms.",
+    "Sherpa ONNX Spleeter 2-stems fp16 model files are redistributed from k2-fsa/sherpa-onnx source-separation-models."
   ]
 }

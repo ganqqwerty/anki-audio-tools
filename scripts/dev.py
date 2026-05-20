@@ -304,6 +304,7 @@ def cmd_check() -> int:
         ("config-schema", cmd_config_schema),
         ("contracts-generate", cmd_contracts_generate),
         ("contracts-check", cmd_contracts_check),
+        ("build-ui", cmd_build_ui),
         ("architecture-report", cmd_architecture_report),
         ("lint", cmd_lint),
         ("file-lines", cmd_file_lines),
