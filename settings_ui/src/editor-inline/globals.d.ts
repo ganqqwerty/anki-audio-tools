@@ -9,6 +9,7 @@ import type {
   GraphStateForTest,
   PlaybackRequest,
   PlaybackState,
+  PostEditPlaybackIntent,
   RegionDeleteRequest,
 } from "./types.js";
 
@@ -29,7 +30,9 @@ declare global {
     __aqePendingGraphRedrawField?: number | null;
     __aqePendingCommandPayload?: EditorCommandPayload | null;
     __aqePendingPlaybackRequest?: PlaybackRequest | null;
+    __aqePostEditPlaybackIntents?: Record<number, PostEditPlaybackIntent> | undefined;
     __aqeSplitButtonStates?: Record<number, FieldSplitButtonState> | undefined;
+    __aqePlayAfterEdit?: ((ord: number) => boolean) | undefined;
     __aqePopPendingGraphAnalysisRequest?: (() => GraphAnalysisRequest | null) | undefined;
     __aqePopPendingRegionDeleteRequest?: (() => RegionDeleteRequest | null) | undefined;
     __aqePopFrontendLog?: (() => FrontendLogPayload | null) | undefined;

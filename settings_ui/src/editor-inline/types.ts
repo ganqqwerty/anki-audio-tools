@@ -150,6 +150,11 @@ export interface PlaybackRequest {
   regionMode?: "selection" | "full";
 }
 
+export interface PostEditPlaybackIntent {
+  repeat: boolean;
+  repeatPauseSeconds: number;
+}
+
 export interface RegionDeleteRequest {
   cursorMs: number;
   durationMs: number;

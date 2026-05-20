@@ -18,6 +18,7 @@ from anki_audio_quick_editor.editor_integration import (
     _handle_bridge_command,
     _parse_region_delete_request,
     _replace_current_field_after_region_delete,
+    _replace_current_field_after_render,
     _set_busy,
     register_editor_hooks,
 )
@@ -102,6 +103,7 @@ def test_editor_undo_and_redo_restore_audio_references_without_processing(
     _SESSIONS[editor] = session
 
     monkeypatch.setattr("anki_audio_quick_editor.editor_runtime.stop_audio_playback", lambda: None)
+    monkeypatch.setattr("aqt.qt.QTimer.singleShot", lambda _delay, callback: callback())
 
     _handle_bridge_command(editor, "aqe:undo")
 
@@ -118,6 +120,90 @@ def test_editor_undo_and_redo_restore_audio_references_without_processing(
     assert session.current_filename == "clip__aqe_first.mp3"
     assert session.undo_history.pop().filename == "clip.mp3"
     assert editor.loadNote.call_count == 2
+    assert sum("__aqePlayAfterEdit" in call.args[0] for call in editor.web.evalWithCallback.call_args_list) == 2
+
+
+def test_standard_render_replacement_schedules_post_edit_playback(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    media_dir = tmp_path / "media"
+    media_dir.mkdir()
+    (media_dir / "clip.mp3").write_bytes(b"source")
+    class Editor:
+        pass
+
+    editor = Editor()
+    editor.currentField = 0
+    editor.note = SimpleNamespace(fields=["[sound:clip.mp3]"])
+    editor.web = MagicMock()
+    editor.loadNote = MagicMock()
+    editor.mw = SimpleNamespace(col=SimpleNamespace(media=SimpleNamespace(dir=lambda: str(media_dir))))
+    _SESSIONS[editor] = EditorSession(
+        state=AudioEditState("clip.mp3"),
+        field_index=0,
+        current_filename="clip.mp3",
+    )
+    monkeypatch.setattr("aqt.qt.QTimer.singleShot", lambda _delay, callback: callback())
+
+    _replace_current_field_after_render(editor, AudioEditState("clip.mp3", volume_db=3.0), "clip__aqe.mp3")
+
+    assert editor.note.fields == ["[sound:clip__aqe.mp3]"]
+    assert "__aqePlayAfterEdit(0)" in editor.web.evalWithCallback.call_args.args[0]
+
+
+def test_standard_render_replacement_uses_session_field_when_focus_changes(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    media_dir = tmp_path / "media"
+    media_dir.mkdir()
+    (media_dir / "first.mp3").write_bytes(b"first")
+    (media_dir / "second.mp3").write_bytes(b"second")
+    class Editor:
+        pass
+
+    editor = Editor()
+    editor.currentField = 0
+    editor.note = SimpleNamespace(fields=["[sound:first.mp3]", "[sound:second.mp3]"])
+    editor.web = MagicMock()
+    editor.loadNote = MagicMock()
+    editor.mw = SimpleNamespace(col=SimpleNamespace(media=SimpleNamespace(dir=lambda: str(media_dir))))
+    _SESSIONS[editor] = EditorSession(
+        state=AudioEditState("second.mp3"),
+        field_index=1,
+        current_filename="second.mp3",
+    )
+    monkeypatch.setattr("aqt.qt.QTimer.singleShot", lambda _delay, callback: callback())
+
+    _replace_current_field_after_render(editor, AudioEditState("second.mp3", left_trim_ms=100), "second__aqe.mp3")
+
+    assert editor.note.fields == ["[sound:first.mp3]", "[sound:second__aqe.mp3]"]
+    assert editor.loadNote.call_args.kwargs == {"focusTo": 1}
+    assert "__aqePlayAfterEdit(1)" in editor.web.evalWithCallback.call_args.args[0]
+
+
+def test_stale_post_edit_playback_attempt_is_ignored(monkeypatch) -> None:
+    from anki_audio_quick_editor import editor_frontend_callbacks
+
+    class Editor:
+        pass
+
+    scheduled: list[Callable[[], None]] = []
+    editor = Editor()
+    editor.note = SimpleNamespace(fields=["[sound:clip.mp3]"])
+    editor.web = MagicMock()
+    _SESSIONS[editor] = EditorSession(
+        field_index=0,
+        post_edit_playback_generation=3,
+    )
+    monkeypatch.setattr("aqt.qt.QTimer.singleShot", lambda _delay, callback: scheduled.append(callback))
+
+    editor_frontend_callbacks._request_playback_after_edit(editor, 0)
+    _SESSIONS[editor].post_edit_playback_generation += 1
+    scheduled[0]()
+
+    editor.web.evalWithCallback.assert_not_called()
 
 
 def test_region_delete_request_parser_normalizes_payload() -> None:
@@ -319,7 +405,10 @@ def test_region_operation_renderer_routes_delete_selection_to_delete_renderer(tm
         assert calls == [("delete", 250, 750)]
 
 
-def test_region_delete_replacement_updates_only_requested_field_and_history(tmp_path: Path) -> None:
+def test_region_delete_replacement_updates_only_requested_field_and_history(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
     media_dir = tmp_path / "media"
     media_dir.mkdir()
     current = media_dir / "clip.mp3"
@@ -354,6 +443,7 @@ def test_region_delete_replacement_updates_only_requested_field_and_history(tmp_
         }
     )
     assert request is not None
+    monkeypatch.setattr("aqt.qt.QTimer.singleShot", lambda _delay, callback: callback())
 
     _replace_current_field_after_region_delete(editor, request, generated.name, 500, 0.0)
 
@@ -364,6 +454,7 @@ def test_region_delete_replacement_updates_only_requested_field_and_history(tmp_
     assert session.redo_history.pop() is None
     assert session.undo_history.pop().filename == "clip.mp3"
     assert editor.loadNote.call_args.kwargs == {"focusTo": 1}
+    assert "__aqePlayAfterEdit(1)" in editor.web.evalWithCallback.call_args.args[0]
 
 
 def test_editor_settings_command_opens_settings_and_refreshes_after_save(

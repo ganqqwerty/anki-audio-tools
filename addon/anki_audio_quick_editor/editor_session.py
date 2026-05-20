@@ -92,6 +92,7 @@ class EditorSession:
     playback_paused: bool = False
     playback_preparing: bool = False
     playback_generation: int = 0
+    post_edit_playback_generation: int = 0
     temp_playback_path: Path | None = None
 
 
@@ -120,4 +121,5 @@ def reset_for_note_load(session: EditorSession, note_id: int | None) -> bool:
     session.playback_active = False
     session.playback_paused = False
     session.playback_preparing = False
+    session.post_edit_playback_generation += 1
     return True

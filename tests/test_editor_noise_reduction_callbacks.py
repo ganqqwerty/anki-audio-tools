@@ -92,6 +92,7 @@ def test_standard_denoise_replaces_current_media_and_resets_state(tmp_path: Path
         fake_render_noise_reduced_audio,
     )
     monkeypatch.setattr("anki_audio_quick_editor.editor_runtime.stop_audio_playback", lambda: None)
+    monkeypatch.setattr("aqt.qt.QTimer.singleShot", lambda _delay, callback: callback())
 
     _handle_bridge_command(editor, "aqe:denoise-standard")
 
@@ -105,6 +106,8 @@ def test_standard_denoise_replaces_current_media_and_resets_state(tmp_path: Path
     assert session.current_filename == saved_name
     assert session.processing is False
     editor.loadNote.assert_called_once_with(focusTo=0)
+    assert "__aqePlayAfterEdit(0)" in editor.web.evalWithCallback.call_args.args[0]
+
 
 def test_rnnoise_replaces_current_media_and_resets_state(tmp_path: Path, monkeypatch) -> None:
     class ImmediateThread:
