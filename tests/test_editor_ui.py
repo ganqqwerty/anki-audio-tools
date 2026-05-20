@@ -111,4 +111,6 @@ def test_injection_script_injects_editor_css() -> None:
     assert ".aqe-button:disabled" in script
     assert "data-busy=true" in script
     assert "border-style:dashed" in script
+    assert "stroke-dasharray:none" in script
+    assert "stroke-opacity:.65" in script
     assert "aqe-spin" in script

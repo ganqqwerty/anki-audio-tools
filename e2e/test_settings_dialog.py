@@ -153,6 +153,7 @@ def test_save_command_writes_config(anki_mw) -> None:
         "ffmpeg_path": "",
         "deep_filter_path": "",
         "deep_filter_post_filter": True,
+        "dpdfnet_attn_limit_db": 12.0,
         "denoise_algorithm": "standard",
         "pause_aggressiveness": "normal",
     }

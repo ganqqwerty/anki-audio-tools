@@ -427,19 +427,23 @@
 
 .aqe-selection {
   fill: currentColor;
-  opacity: 0.16;
+  fill-opacity: 0.16;
   pointer-events: none;
+  stroke: currentColor;
+  stroke-opacity: 0.65;
+  stroke-width: 1;
+  vector-effect: non-scaling-stroke;
 }
 
 .aqe-selection-draft {
-  opacity: 0.24;
+  fill-opacity: 0.24;
 }
 
 .aqe-selection-edge {
   opacity: 0.65;
   pointer-events: none;
   stroke: currentColor;
-  stroke-dasharray: 3 3;
+  stroke-dasharray: none;
   stroke-width: 1;
 }
 
