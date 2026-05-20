@@ -480,10 +480,44 @@
 }
 
 .aqe-cursor {
-  opacity: 0.8;
+  opacity: 0.9;
   pointer-events: none;
   stroke: currentColor;
   stroke-width: 1.5;
+}
+
+.aqe-cursor-flag {
+  pointer-events: none;
+}
+
+.aqe-cursor-flag-box,
+.aqe-cursor-flag-notch {
+  fill: Canvas;
+  stroke: currentColor;
+  stroke-width: 1;
+  vector-effect: non-scaling-stroke;
+}
+
+.aqe-cursor-flag-text {
+  fill: currentColor;
+  font-size: 10px;
+  font-weight: 700;
+  text-anchor: middle;
+}
+
+.aqe-cursor-flag-pitch {
+  font-weight: 600;
+  opacity: 0.62;
+}
+
+.aqe-cursor-label {
+  clip: rect(0 0 0 0);
+  clip-path: inset(50%);
+  height: 1px;
+  overflow: hidden;
+  position: absolute;
+  white-space: nowrap;
+  width: 1px;
 }
 
 .aqe-hz-label,

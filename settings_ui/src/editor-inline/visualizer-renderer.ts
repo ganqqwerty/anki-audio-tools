@@ -4,11 +4,18 @@ import {
   drawLabels,
   drawPitch,
   drawXAxis,
+  formatPitchHz,
   formatTime,
   pathForIntensity,
+  pitchHzAtMs,
   xForMs,
 } from "./plot.js";
 import type { NormalizedProsodyTrack, VisualizerElement } from "./types.js";
+
+const CURSOR_FLAG_WIDTH = 82;
+const CURSOR_FLAG_HALF_WIDTH = CURSOR_FLAG_WIDTH / 2;
+const CURSOR_FLAG_Y = PLOT.top + 4;
+const CURSOR_FLAG_NOTCH_MAX_OFFSET = CURSOR_FLAG_HALF_WIDTH - 5;
 
 export function renderGraphRequested(visualizer: VisualizerElement): void {
   visualizer.hidden = false;
@@ -25,6 +32,7 @@ export function renderGraphRequested(visualizer: VisualizerElement): void {
   visualizer.dataset.playbackStartMs = "0";
   visualizer.dataset.playbackEndMs = "0";
   visualizer.dataset.playbackRegionMode = "full";
+  delete visualizer.__aqeTrack;
   resetVisualizerPlot(visualizer);
 }
 
@@ -36,6 +44,7 @@ export function renderVisualizerTrack(visualizer: VisualizerElement, track: Norm
   visualizer.dataset.durationMs = String(track.durationMs || 0);
   visualizer.dataset.analyzerName = track.analyzerName || "";
   visualizer.dataset.sourceFilename = track.sourceFilename || "";
+  visualizer.__aqeTrack = track;
   const intensity = visualizer.querySelector<SVGPathElement>(".aqe-intensity");
   if (intensity) intensity.setAttribute("d", pathForIntensity(track.points, track.durationMs));
   drawPitch(visualizer, track);
@@ -121,8 +130,25 @@ export function renderCursor(visualizer: VisualizerElement, ms: number, duration
     cursor.setAttribute("x1", x.toFixed(2));
     cursor.setAttribute("x2", x.toFixed(2));
   }
+  const currentText = formatTime(ms, durationMs);
+  const pitchText = formatPitchHz(visualizer.__aqeTrack ? pitchHzAtMs(visualizer.__aqeTrack.points, ms) : null);
   const label = visualizer.querySelector<HTMLElement>(".aqe-cursor-label");
-  if (label) label.textContent = formatTime(ms, durationMs);
+  if (label) label.textContent = `${currentText} / ${pitchText}`;
+  const flag = visualizer.querySelector<SVGGElement>(".aqe-cursor-flag");
+  if (!flag) return;
+  if (durationMs <= 0) {
+    flag.setAttribute("visibility", "hidden");
+    return;
+  }
+  const flagX = clampedCursorFlagX(x);
+  flag.setAttribute("visibility", "visible");
+  flag.setAttribute("transform", `translate(${flagX.toFixed(2)} ${CURSOR_FLAG_Y})`);
+  flag.querySelector<SVGTextElement>(".aqe-cursor-flag-current")!.textContent = currentText;
+  flag.querySelector<SVGTextElement>(".aqe-cursor-flag-pitch")!.textContent = ` / ${pitchText}`;
+  flag.querySelector<SVGPathElement>(".aqe-cursor-flag-notch")?.setAttribute(
+    "transform",
+    `translate(${cursorFlagNotchOffset(x, flagX).toFixed(2)} 0)`,
+  );
 }
 
 export function resetVisualizerPlot(visualizer: VisualizerElement): void {
@@ -139,7 +165,15 @@ export function resetCursorProjection(visualizer: VisualizerElement): void {
     cursor.setAttribute("x2", String(PLOT.left));
   }
   const label = visualizer.querySelector<HTMLElement>(".aqe-cursor-label");
-  if (label) label.textContent = "0 ms";
+  if (label) label.textContent = "0 ms / -- Hz";
+  const flag = visualizer.querySelector<SVGGElement>(".aqe-cursor-flag");
+  if (flag) {
+    flag.setAttribute("visibility", "hidden");
+    flag.setAttribute("transform", `translate(${PLOT.left + CURSOR_FLAG_HALF_WIDTH} ${CURSOR_FLAG_Y})`);
+    flag.querySelector<SVGTextElement>(".aqe-cursor-flag-current")!.textContent = "0 ms";
+    flag.querySelector<SVGTextElement>(".aqe-cursor-flag-pitch")!.textContent = " / -- Hz";
+    flag.querySelector<SVGPathElement>(".aqe-cursor-flag-notch")?.removeAttribute("transform");
+  }
 }
 
 export function graphLogContext(
@@ -158,4 +192,14 @@ export function graphLogContext(
 function clearText(root: VisualizerElement, selector: string): void {
   const node = root.querySelector<HTMLElement | SVGElement>(selector);
   if (node) node.textContent = "";
+}
+
+function clampedCursorFlagX(cursorX: number): number {
+  const minX = PLOT.left + CURSOR_FLAG_HALF_WIDTH;
+  const maxX = PLOT.width - PLOT.right - CURSOR_FLAG_HALF_WIDTH;
+  return Math.max(minX, Math.min(cursorX, maxX));
+}
+
+function cursorFlagNotchOffset(cursorX: number, flagX: number): number {
+  return Math.max(-CURSOR_FLAG_NOTCH_MAX_OFFSET, Math.min(cursorX - flagX, CURSOR_FLAG_NOTCH_MAX_OFFSET));
 }

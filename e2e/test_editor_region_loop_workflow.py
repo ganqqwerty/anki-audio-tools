@@ -6,6 +6,9 @@ from e2e.editor_region_loop_helpers import (
     _normal_drag,
     _open_tone_editor,
     _plot_pointer_script,
+    _resize_handle_down,
+    _resize_handle_move,
+    _resize_handle_up,
     _shift_drag_region,
     _shift_pointer_cancel,
     _shift_pointer_down,
@@ -114,6 +117,50 @@ def test_region_selection_gestures_create_replace_clamp_and_preserve_normal_curs
         run_js(editor.web, _plot_pointer_script(0, 0.4, 0.402, shift=True, move=True))
         cleared = _state(editor, lambda state: state["selectionActive"] is False)
         assert cleared["playbackRegionMode"] == "full"
+    finally:
+        editor.set_note(None)
+        parent.close()
+
+
+def test_timecode_flag_updates_while_dragging_left_selection_handle(
+    anki_mw,
+    ffmpeg_config,
+) -> None:
+    _media_dir, _source, _note, editor, parent, _track = _open_tone_editor(
+        anki_mw,
+        ffmpeg_config,
+        "editor_region_left_handle_timecode_flag.wav",
+        2.0,
+    )
+    try:
+        _shift_drag_region(editor, 0.25, 0.75)
+
+        _resize_handle_down(editor, "start", 0.25)
+        _resize_handle_move(editor, "start", 0.4)
+        draft = _state(
+            editor,
+            lambda state: state["selectionDraftActive"] is True
+            and abs(state["cursorMs"] - 800) <= 80
+            and abs(state["progressMs"] - 800) <= 80
+            and state["timecodeFlagVisible"] is True
+            and state["timecodeFlagCurrent"] == "0.80s"
+            and state["timecodeFlagPitch"].endswith(" Hz")
+            and state["timecodeFlagPitch"] != " / -- Hz",
+        )
+
+        assert draft["selectionStartMs"] == 500
+        assert draft["selectionDraftStartMs"] == 800
+        assert draft["selectionDraftEndMs"] == 1500
+
+        _resize_handle_up(editor, "start", 0.4)
+        committed = _state(
+            editor,
+            lambda state: state["selectionDraftActive"] is False
+            and abs(state["cursorMs"] - 800) <= 80
+            and state["selectionStartMs"] == 800,
+        )
+        assert committed["timecodeFlagCurrent"] == "0.80s"
+        assert committed["timecodeFlagPitch"].endswith(" Hz")
     finally:
         editor.set_note(None)
         parent.close()

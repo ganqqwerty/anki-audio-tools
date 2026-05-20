@@ -25,6 +25,7 @@ import {
   setSelection,
   setSelectionDraft,
   setPlaybackState,
+  setCursor,
   setVisualizerStatusFromPython,
   shouldTreatSelectionGestureAsClick,
   startManualProgressClock,
@@ -33,6 +34,7 @@ import {
 import { mediaUrlForFilename } from "../src/editor-inline/audio-clock.js";
 import { processingMessage } from "../src/editor-inline/commands.js";
 import { visualizerForOrd } from "../src/editor-inline/dom-selectors.js";
+import { PLOT, xForMs } from "../src/editor-inline/plot.js";
 import { commandSlugsForTest } from "../src/editor-inline/test-contract.js";
 import { disposeEditorRuntime, initializeEditorRuntime, scan } from "../src/editor-inline/runtime.js";
 import type { VisualizerElement } from "../src/editor-inline/types.js";
@@ -322,6 +324,28 @@ describe("editor inline action workflows", () => {
     expect(resetGraphAfterEdit(99)).toBe(false);
   });
 
+  it("renders a timecode flag at the cursor and clamps it inside the plot", async () => {
+    const visualizer = await mountTrack(0);
+    window.__aqeSetVisualizer?.(0, { ...track, durationMs: 6000 }, 750);
+    const flag = visualizer.querySelector<SVGGElement>('[data-testid="aqe-cursor-flag-0"]')!;
+    const current = flag.querySelector<SVGTextElement>(".aqe-cursor-flag-current")!;
+    const pitch = flag.querySelector<SVGTextElement>(".aqe-cursor-flag-pitch")!;
+    const expectedX = xForMs(750, 6000).toFixed(2);
+
+    expect(flag).toHaveAttribute("visibility", "visible");
+    expect(flag).toHaveAttribute("transform", `translate(${expectedX} 14)`);
+    expect(current.textContent).toBe("0.75s");
+    expect(pitch.textContent).toBe(" / 200 Hz");
+    expect(visualizer.querySelector(".aqe-cursor-label")).toHaveTextContent("0.75s / 200 Hz");
+
+    setCursor(visualizer, 0, false);
+    expect(flag).toHaveAttribute("transform", `translate(${(PLOT.left + 41).toFixed(2)} 14)`);
+
+    setCursor(visualizer, 6000, false);
+    expect(flag).toHaveAttribute("transform", `translate(${(PLOT.width - PLOT.right - 41).toFixed(2)} 14)`);
+    expect(current.textContent).toBe("6.00s");
+  });
+
   it("advances manual clocks and exposes current progress", async () => {
     const frames: Array<(time: number) => void> = [];
     vi.spyOn(window, "requestAnimationFrame").mockImplementation((callback) => {
@@ -338,6 +362,29 @@ describe("editor inline action workflows", () => {
     expect(currentProgressMs(visualizer)).toBeGreaterThanOrEqual(900);
     frames.shift()?.(performance.now() + 200);
     expect(Number(visualizer.dataset.progressMs)).toBeGreaterThanOrEqual(900);
+  });
+
+  it("updates the timecode flag during progress clock ticks", async () => {
+    const frames: Array<(time: number) => void> = [];
+    vi.spyOn(window, "requestAnimationFrame").mockImplementation((callback) => {
+      frames.push(callback);
+      return frames.length;
+    });
+    vi.spyOn(window, "cancelAnimationFrame").mockImplementation(() => undefined);
+    let now = 1000;
+    vi.spyOn(performance, "now").mockImplementation(() => now);
+    const visualizer = await mountTrack(0);
+    const audio = visualizer.querySelector<HTMLAudioElement>(".aqe-audio-clock")!;
+    const flag = visualizer.querySelector<SVGGElement>(".aqe-cursor-flag")!;
+    audio.pause = vi.fn<() => void>(() => undefined);
+
+    startManualProgressClock(visualizer, 300);
+    now = 1400;
+    frames.shift()?.(now);
+
+    expect(flag.querySelector(".aqe-cursor-flag-current")?.textContent).toBe("700 ms");
+    expect(flag.querySelector(".aqe-cursor-flag-pitch")?.textContent).toBe(" / 196 Hz");
+    expect(window.__aqeGraphStateForTest?.(0)).toMatchObject({ progressMs: 700 });
   });
 
   it("loops manual progress clocks at the selected region boundary without play-ended", async () => {

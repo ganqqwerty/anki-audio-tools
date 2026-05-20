@@ -346,6 +346,19 @@
         y1={PLOT.top}
         y2={PLOT.height - PLOT.bottom}
       ></line>
+      <g
+        class="aqe-cursor-flag"
+        data-testid={`aqe-cursor-flag-${target.ord}`}
+        visibility="hidden"
+        aria-hidden="true"
+      >
+        <rect class="aqe-cursor-flag-box" x="-41" y="0" width="82" height="20" rx="4"></rect>
+        <path class="aqe-cursor-flag-notch" d="M -5 20 L 0 26 L 5 20 Z"></path>
+        <text class="aqe-cursor-flag-text" x="0" y="14">
+          <tspan class="aqe-cursor-flag-current">0 ms</tspan>
+          <tspan class="aqe-cursor-flag-pitch"> / -- Hz</tspan>
+        </text>
+      </g>
     </svg>
     <div class="aqe-visualizer-meta">
       <span

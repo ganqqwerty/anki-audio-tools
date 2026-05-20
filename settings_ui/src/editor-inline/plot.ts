@@ -26,6 +26,32 @@ export function formatTime(ms: number, durationMs: number): string {
   return `${(ms / 1000).toFixed(2)}s`;
 }
 
+export function formatPitchHz(pitchHz: number | null): string {
+  return pitchHz === null ? "-- Hz" : `${Math.round(pitchHz)} Hz`;
+}
+
+export function pitchHzAtMs(points: readonly ProsodyPoint[], ms: number): number | null {
+  if (!points.length) return null;
+  const targetMs = Number.isFinite(ms) ? ms : 0;
+  let previous: ProsodyPoint | null = null;
+  for (const point of points) {
+    const pointMs = point[0];
+    if (pointMs === targetMs) return voicedPitch(point);
+    if (pointMs > targetMs) {
+      const nextPitch = voicedPitch(point);
+      if (!previous) return nextPitch;
+      const previousPitch = voicedPitch(previous);
+      if (previousPitch === null || nextPitch === null) return null;
+      const spanMs = pointMs - previous[0];
+      if (spanMs <= 0) return nextPitch;
+      const ratio = (targetMs - previous[0]) / spanMs;
+      return previousPitch + (nextPitch - previousPitch) * ratio;
+    }
+    previous = point;
+  }
+  return previous ? voicedPitch(previous) : null;
+}
+
 export function pathForIntensity(points: readonly ProsodyPoint[], durationMs: number): string {
   if (!points.length || !durationMs) return "";
   const base = PLOT.height - PLOT.bottom;
@@ -141,4 +167,9 @@ export function cursorMsFromEvent(event: Pick<PointerEvent, "clientX">, svg: SVG
   const bounds = graphPixelBounds(svg);
   const ratio = Math.max(0, Math.min(1, (event.clientX - bounds.left) / bounds.width));
   return ratio * durationMs;
+}
+
+function voicedPitch(point: ProsodyPoint): number | null {
+  const pitchHz = point[1];
+  return point[3] === true && typeof pitchHz === "number" && Number.isFinite(pitchHz) ? pitchHz : null;
 }

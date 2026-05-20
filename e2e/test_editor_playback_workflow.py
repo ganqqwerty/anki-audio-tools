@@ -81,6 +81,13 @@ def test_cursor_drag_updates_session_and_play_uses_html_audio(anki_mw, ffmpeg_co
                 editor,
                 lambda state: state["progressMs"] > track["cursorMs"] + 120,
             )
+            timecoded = _wait_for_visualizer_track(
+                editor,
+                lambda state: state["timecodeFlagVisible"]
+                and state["timecodeFlagPitch"].endswith(" Hz")
+                and state["timecodeFlagCurrent"].endswith("s")
+                and state["progressMs"] >= progressed["progressMs"],
+            )
             click_selector(editor.web, _button_selector("aqe:play"), timeout=5.0)
             paused = wait_for_js_condition(
                 editor.web,
@@ -112,6 +119,7 @@ def test_cursor_drag_updates_session_and_play_uses_html_audio(anki_mw, ffmpeg_co
         assert playback.attempts == []
         assert progressed["playButtonLabel"] == "Pause"
         assert progressed["audioClockMuted"] is False
+        assert timecoded["timecodeFlagTransform"].startswith("translate(")
         assert abs(frozen["progressMs"] - paused_progress) < 80
         assert playback.toggle_count == 0
     finally:

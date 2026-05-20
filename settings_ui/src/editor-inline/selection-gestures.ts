@@ -221,6 +221,7 @@ export function startSelectionResizeGesture(
   if (!svg || !durationMs || !selection) return;
   const previousPlaybackState = deps.playbackStateFor(visualizer);
   const frozenProgressMs = deps.currentProgressMs(visualizer) ?? readVisualizerCursorMs(visualizer);
+  const cursorBeforeResizeMs = readVisualizerCursorMs(visualizer);
   const captureTarget = event.currentTarget instanceof Element ? event.currentTarget : svg;
   let stoppedForDrag = false;
   let latestRange = selection;
@@ -240,6 +241,9 @@ export function startSelectionResizeGesture(
     lostPointerCaptureTarget: captureTarget,
     onCancel() {
       deps.clearSelectionDraft(visualizer);
+      if (edge === "start") {
+        deps.setCursor(visualizer, cursorBeforeResizeMs, false, { updateAnchor: false });
+      }
       resumeInterruptedSelectionPlayback(
         deps,
         visualizer,
@@ -257,6 +261,9 @@ export function startSelectionResizeGesture(
       }
       latestRange = resized;
       deps.setSelectionDraft(visualizer, resized.startMs, resized.endMs);
+      if (edge === "start") {
+        deps.setCursor(visualizer, resized.startMs, false, { updateAnchor: false });
+      }
     },
     onPointerUp(upEvent) {
       const resized = resizeFromEvent(upEvent);

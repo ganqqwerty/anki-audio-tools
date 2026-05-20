@@ -232,6 +232,10 @@ export interface GraphStateForTest {
   selectionStartMs: number | null;
   sourceFilename: string;
   spinnerVisible: boolean;
+  timecodeFlagCurrent: string;
+  timecodeFlagPitch: string;
+  timecodeFlagTransform: string;
+  timecodeFlagVisible: boolean;
   xAxisLabels: string[];
 }
 
@@ -256,6 +260,7 @@ export type VisualizerElement = HTMLElement & {
   __aqeAudioClockAvailable?: boolean;
   __aqeAudioClockFallback?: boolean;
   __aqeAudioClockLastSeekedMs?: number;
+  __aqeTrack?: NormalizedProsodyTrack;
   __aqePlaybackTimer?: number | null;
   __aqeRepeatPauseTimer?: number | null;
 };

@@ -89,6 +89,30 @@ describe("editor inline selection resize integration", () => {
     });
   });
 
+  it("updates the cursor flag while dragging the left selection handle", () => {
+    initializeEditorRuntime({ audioFieldIndices: [0] });
+    scan({ audioFieldIndices: [0] });
+    window.__aqeSetVisualizer?.(0, track, 100);
+    const svg = document.querySelector<SVGSVGElement>('[data-testid="aqe-graph-svg-0"]')!;
+    setGraphBounds(svg);
+    dragGraphSelection(svg, 0.2, 0.6);
+    const handle = document.querySelector('[data-testid="aqe-selection-resize-start-0"]')!;
+    const flag = document.querySelector<SVGGElement>('[data-testid="aqe-cursor-flag-0"]')!;
+
+    dispatchHandlePointer(handle, "pointerdown", graphClientX(svg, 0.2));
+    dispatchHandlePointer(handle, "pointermove", graphClientX(svg, 0.1));
+
+    expect(window.__aqeGraphStateForTest?.(0)).toMatchObject({
+      cursorMs: 100,
+      progressMs: 100,
+      selectionDraftActive: true,
+      selectionDraftStartMs: 100,
+      selectionDraftEndMs: 600,
+    });
+    expect(flag.querySelector(".aqe-cursor-flag-current")?.textContent).toBe("100 ms");
+    expect(flag.querySelector(".aqe-cursor-flag-pitch")?.textContent).toBe(" / 150 Hz");
+  });
+
   it("cancels resize drafts without replacing the committed selection", () => {
     initializeEditorRuntime({ audioFieldIndices: [0] });
     scan({ audioFieldIndices: [0] });

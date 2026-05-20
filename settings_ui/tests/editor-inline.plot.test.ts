@@ -9,6 +9,7 @@ import {
   formatTime,
   graphPixelBounds,
   pathForIntensity,
+  pitchHzAtMs,
   pitchSegments,
   xForMs,
   yForPitch,
@@ -49,6 +50,12 @@ describe("editor inline plot helpers", () => {
     expect(segments).toHaveLength(2);
     expect(segments[0]).toHaveLength(2);
     expect(segments[1]).toHaveLength(2);
+  });
+
+  it("interpolates the pitch under the cursor and returns no pitch across unvoiced gaps", () => {
+    expect(pitchHzAtMs(track.points, 50)).toBeCloseTo(130);
+    expect(pitchHzAtMs(track.points, 250)).toBeNull();
+    expect(pitchHzAtMs(track.points, 350)).toBeCloseTo(250);
   });
 
   it("draws pitch paths, hertz labels, and x axis labels", () => {
