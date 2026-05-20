@@ -215,9 +215,9 @@ def _on_editor_will_load_note(js: str, note: Any, editor: Any) -> str:
             "denoiseAlgorithm": str(config.get("denoise_algorithm", "standard")),
             "graphVoiceRange": str(config.get("graph_voice_range", "general")),
             "graphRecordingCondition": str(config.get("graph_recording_condition", "auto")),
-            "graphSmoothness": str(config.get("graph_smoothness", "balanced")),
+            "graphSmoothness": str(config.get("graph_smoothness", "very_smooth")),
             "graphConnectShortDropoutsMs": int(
-                config.get("graph_connect_short_dropouts_ms", 0)
+                config.get("graph_connect_short_dropouts_ms", 240)
             ),
             "graphVoiceLock": str(config.get("graph_voice_lock", "balanced")),
         },

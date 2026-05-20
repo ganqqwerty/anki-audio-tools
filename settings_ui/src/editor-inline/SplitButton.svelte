@@ -51,8 +51,8 @@
   let denoiseAlgorithm = $state<"standard" | "rnnoise">("standard");
   let graphVoiceRange = $state<GraphVoiceRange>("general");
   let graphRecordingCondition = $state<GraphRecordingCondition>("auto");
-  let graphSmoothness = $state<GraphSmoothness>("balanced");
-  let graphConnectShortDropoutsMs = $state(0);
+  let graphSmoothness = $state<GraphSmoothness>("very_smooth");
+  let graphConnectShortDropoutsMs = $state(240);
   let graphVoiceLock = $state<GraphVoiceLock>("balanced");
 
   function slug(): string {

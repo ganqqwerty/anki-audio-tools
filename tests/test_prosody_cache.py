@@ -24,7 +24,7 @@ def test_prosody_cache_key_uses_path_size_and_mtime(tmp_path: Path) -> None:
     assert second_key[0] == str(source)
     assert first_key[1] != second_key[1]
     assert isinstance(first_key[2], int)
-    assert first_key[3] == ("general", "auto", "balanced", 0, "balanced")
+    assert first_key[3] == ("general", "auto", "very_smooth", 240, "balanced")
 
 
 def test_prosody_cache_key_includes_graph_analysis_settings(tmp_path: Path) -> None:

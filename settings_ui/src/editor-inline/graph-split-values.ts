@@ -6,9 +6,9 @@ import type {
   GraphVoiceRange,
 } from "./graph-settings.js";
 
-const DEFAULT_GRAPH_CONNECT_SHORT_DROPOUTS_MS = 0;
+const DEFAULT_GRAPH_CONNECT_SHORT_DROPOUTS_MS = 240;
 const DEFAULT_GRAPH_RECORDING_CONDITION: GraphRecordingCondition = "auto";
-const DEFAULT_GRAPH_SMOOTHNESS: GraphSmoothness = "balanced";
+const DEFAULT_GRAPH_SMOOTHNESS: GraphSmoothness = "very_smooth";
 const DEFAULT_GRAPH_VOICE_LOCK: GraphVoiceLock = "balanced";
 const DEFAULT_GRAPH_VOICE_RANGE: GraphVoiceRange = "general";
 const MIN_GRAPH_DROPOUT_MS = 0;

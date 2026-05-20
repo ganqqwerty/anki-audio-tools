@@ -37,8 +37,8 @@ class AudioProcessingConfig:
     show_ffmpeg_commands: bool = False
     graph_voice_range: GraphVoiceRange = "general"
     graph_recording_condition: GraphRecordingCondition = "auto"
-    graph_smoothness: GraphSmoothness = "balanced"
-    graph_connect_short_dropouts_ms: int = 0
+    graph_smoothness: GraphSmoothness = "very_smooth"
+    graph_connect_short_dropouts_ms: int = 240
     graph_voice_lock: GraphVoiceLock = "balanced"
 
     @classmethod

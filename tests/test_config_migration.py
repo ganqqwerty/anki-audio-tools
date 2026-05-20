@@ -157,8 +157,8 @@ class TestMigrateConfig:
             "enabled": True,
             "graph_voice_range": "general",
             "graph_recording_condition": "auto",
-            "graph_smoothness": "balanced",
-            "graph_connect_short_dropouts_ms": 0,
+            "graph_smoothness": "very_smooth",
+            "graph_connect_short_dropouts_ms": 240,
             "graph_voice_lock": "balanced",
         }
 
@@ -166,8 +166,8 @@ class TestMigrateConfig:
 
         assert migrated["graph_voice_range"] == "general"
         assert migrated["graph_recording_condition"] == "auto"
-        assert migrated["graph_smoothness"] == "balanced"
-        assert migrated["graph_connect_short_dropouts_ms"] == 0
+        assert migrated["graph_smoothness"] == "very_smooth"
+        assert migrated["graph_connect_short_dropouts_ms"] == 240
         assert migrated["graph_voice_lock"] == "balanced"
         assert migrated["_config_version"] == CURRENT_CONFIG_VERSION
         assert changed is True
