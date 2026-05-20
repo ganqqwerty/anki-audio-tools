@@ -14,6 +14,8 @@ export type CommandIconName =
   | "rewind"
   | "scissors"
   | "settings"
+  | "hare-running"
+  | "snail"
   | "sparkles"
   | "waves"
   | "timer-reset"

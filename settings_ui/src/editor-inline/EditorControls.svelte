@@ -169,11 +169,11 @@
             <span class="aqe-help-description">{t("editor.help.denoise_desc")}</span>
           </span>
           <span class="aqe-help-item">
-            <span class="aqe-help-command"><EditorCommandIcon icon="rewind" /><span>{t("editor.command.slower.label")}</span></span>
+            <span class="aqe-help-command"><EditorCommandIcon icon="snail" /><span>{t("editor.command.slower.label")}</span></span>
             <span class="aqe-help-description">{t("editor.help.slower_desc")}</span>
           </span>
           <span class="aqe-help-item">
-            <span class="aqe-help-command"><EditorCommandIcon icon="fast-forward" /><span>{t("editor.command.faster.label")}</span></span>
+            <span class="aqe-help-command"><EditorCommandIcon icon="hare-running" /><span>{t("editor.command.faster.label")}</span></span>
             <span class="aqe-help-description">{t("editor.help.faster_desc")}</span>
           </span>
           <span class="aqe-help-item">

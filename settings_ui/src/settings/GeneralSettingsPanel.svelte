@@ -100,21 +100,21 @@
     </label>
     <label>
       <span class="label-with-icon">
-        <CommandIcon className="settings-label-icon" icon="fast-forward" />
+        <CommandIcon className="settings-label-icon" icon="hare-running" />
         <span>{t("settings.speed_step")}</span>
       </span>
       <input type="number" min="0.01" step="0.01" bind:value={config.speed_step} />
     </label>
     <label>
       <span class="label-with-icon">
-        <CommandIcon className="settings-label-icon" icon="rewind" />
+        <CommandIcon className="settings-label-icon" icon="snail" />
         <span>{t("settings.min_speed")}</span>
       </span>
       <input type="number" min="0.1" step="0.05" bind:value={config.min_speed} />
     </label>
     <label>
       <span class="label-with-icon">
-        <CommandIcon className="settings-label-icon" icon="fast-forward" />
+        <CommandIcon className="settings-label-icon" icon="hare-running" />
         <span>{t("settings.max_speed")}</span>
       </span>
       <input type="number" min="0.1" step="0.05" bind:value={config.max_speed} />

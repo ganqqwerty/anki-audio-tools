@@ -46,13 +46,13 @@ export function commandButtons(): readonly ButtonSpec[] {
     },
     {
       command: "aqe:slower",
-      icon: "rewind",
+      icon: "snail",
       label: t("editor.command.slower.label"),
       title: t("editor.command.slower.title"),
     },
     {
       command: "aqe:faster",
-      icon: "fast-forward",
+      icon: "hare-running",
       label: t("editor.command.faster.label"),
       title: t("editor.command.faster.title"),
     },
