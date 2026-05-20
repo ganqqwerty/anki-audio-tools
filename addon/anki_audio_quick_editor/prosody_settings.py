@@ -20,6 +20,7 @@ VOICE_RANGES: dict[str, tuple[float, float]] = {
 RECORDING_CONDITIONS = frozenset({"auto", "very_noisy", "noisy", "normal", "clean", "studio"})
 SMOOTHNESSES = frozenset({"raw", "balanced", "smooth", "very_smooth"})
 VOICE_LOCKS = frozenset({"loose", "balanced", "stable"})
+MAX_GRAPH_CONNECT_SHORT_DROPOUTS_MS = 500
 
 
 @dataclass(frozen=True)
@@ -60,7 +61,9 @@ def sanitize_graph_settings(raw: Any) -> dict[str, object]:
         settings["graph_voice_lock"] = voice_lock
     dropout_ms = _int_or_none(raw.get("connectShortDropoutsMs"))
     if dropout_ms is not None:
-        settings["graph_connect_short_dropouts_ms"] = min(150, max(0, dropout_ms))
+        settings["graph_connect_short_dropouts_ms"] = min(
+            MAX_GRAPH_CONNECT_SHORT_DROPOUTS_MS, max(0, dropout_ms)
+        )
     return settings
 
 
@@ -151,7 +154,10 @@ def graph_voice_lock(config: AudioProcessingConfig) -> str:
 
 def graph_connect_short_dropouts_ms(config: AudioProcessingConfig) -> int:
     """Return bounded graph dropout-connection window in milliseconds."""
-    return min(150, max(0, int(config.graph_connect_short_dropouts_ms)))
+    return min(
+        MAX_GRAPH_CONNECT_SHORT_DROPOUTS_MS,
+        max(0, int(config.graph_connect_short_dropouts_ms)),
+    )
 
 
 def postprocess_points(points: list[ProsodyPoint], config: AudioProcessingConfig) -> list[ProsodyPoint]:
@@ -196,7 +202,9 @@ def _config_key_settings(settings: dict[str, object]) -> dict[str, object]:
         sanitized["graph_voice_lock"] = voice_lock
     dropout_ms = _int_or_none(settings.get("graph_connect_short_dropouts_ms"))
     if dropout_ms is not None:
-        sanitized["graph_connect_short_dropouts_ms"] = min(150, max(0, dropout_ms))
+        sanitized["graph_connect_short_dropouts_ms"] = min(
+            MAX_GRAPH_CONNECT_SHORT_DROPOUTS_MS, max(0, dropout_ms)
+        )
     return sanitized
 
 

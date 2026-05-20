@@ -61,7 +61,7 @@
       data-testid="graph-connect-short-dropouts-ms"
       type="number"
       min="0"
-      max="150"
+      max="500"
       step="30"
       bind:value={config.graph_connect_short_dropouts_ms}
     />

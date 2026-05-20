@@ -93,7 +93,7 @@ describe("split button state", () => {
     expect(formatGraphVoiceLock("stable")).toBe("Stable");
     expect(clampGraphConnectShortDropoutsMs(-10)).toBe(0);
     expect(clampGraphConnectShortDropoutsMs(44)).toBe(30);
-    expect(clampGraphConnectShortDropoutsMs(999)).toBe(150);
+    expect(clampGraphConnectShortDropoutsMs(999)).toBe(500);
   });
 
   it("initializes field state from editor runtime defaults", () => {

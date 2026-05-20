@@ -28,7 +28,7 @@ def test_sanitize_graph_settings_accepts_known_values_and_bounds_numbers() -> No
         "graph_voice_range": "bass",
         "graph_recording_condition": "noisy",
         "graph_smoothness": "very_smooth",
-        "graph_connect_short_dropouts_ms": 150,
+        "graph_connect_short_dropouts_ms": 500,
         "graph_voice_lock": "stable",
     }
 

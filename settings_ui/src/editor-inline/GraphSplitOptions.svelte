@@ -108,7 +108,7 @@
       data-testid={`aqe-split-${targetOrd}-${slug}-connect-dropouts`}
       type="range"
       min="0"
-      max="150"
+      max="500"
       step="30"
       value={connectShortDropoutsMs}
       oninput={(event) => onConnectShortDropouts((event.currentTarget as HTMLInputElement).valueAsNumber)}

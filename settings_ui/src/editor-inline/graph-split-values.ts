@@ -12,7 +12,7 @@ const DEFAULT_GRAPH_SMOOTHNESS: GraphSmoothness = "balanced";
 const DEFAULT_GRAPH_VOICE_LOCK: GraphVoiceLock = "balanced";
 const DEFAULT_GRAPH_VOICE_RANGE: GraphVoiceRange = "general";
 const MIN_GRAPH_DROPOUT_MS = 0;
-const MAX_GRAPH_DROPOUT_MS = 150;
+const MAX_GRAPH_DROPOUT_MS = 500;
 const GRAPH_DROPOUT_STEP_MS = 30;
 
 export const GRAPH_VOICE_RANGES = ["bass", "low", "general", "high", "child"] as const;
