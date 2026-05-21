@@ -95,6 +95,62 @@ def test_dpdfnet_replaces_current_media_and_resets_state(tmp_path: Path, monkeyp
     editor.loadNote.assert_called_once_with(focusTo=0)
 
 
+def test_dpdfnet_uses_field_local_aggressiveness_override(tmp_path: Path, monkeypatch) -> None:
+    media_dir = tmp_path / "media"
+    media_dir.mkdir()
+    source = media_dir / "clip.mp3"
+    source.write_bytes(b"source")
+    captured: list[float] = []
+
+    def fake_render_dpdfnet_audio(
+        _source_path: Path,
+        config: AudioProcessingConfig,
+        output_path: Path,
+        **_kwargs,
+    ) -> None:
+        captured.append(config.dpdfnet_attn_limit_db)
+        output_path.write_bytes(b"denoised")
+
+    def fake_write_data(desired_name: str, data: bytes) -> str:
+        saved_path = media_dir / desired_name
+        saved_path.write_bytes(data)
+        return desired_name
+
+    editor = Editor()
+    editor.currentField = 0
+    editor.note = SimpleNamespace(fields=["[sound:clip.mp3]"])
+    editor.web = MagicMock()
+    editor.loadNote = MagicMock()
+    editor.mw = SimpleNamespace(
+        taskman=SimpleNamespace(run_on_main=lambda callback: callback()),
+        addonManager=SimpleNamespace(
+            addonFromModule=MagicMock(return_value="addon"),
+            getConfig=MagicMock(return_value={"dpdfnet_attn_limit_db": 12.0}),
+        ),
+        col=SimpleNamespace(
+            media=SimpleNamespace(
+                dir=MagicMock(return_value=str(media_dir)),
+                write_data=MagicMock(side_effect=fake_write_data),
+            )
+        ),
+    )
+
+    monkeypatch.setattr("anki_audio_quick_editor.editor_dependencies.threading.Thread", ImmediateThread)
+    monkeypatch.setattr(
+        "anki_audio_quick_editor.editor_dependencies.render_dpdfnet_audio",
+        fake_render_dpdfnet_audio,
+    )
+    monkeypatch.setattr("anki_audio_quick_editor.editor_runtime.stop_audio_playback", lambda: None)
+
+    _handle_bridge_command(
+        editor,
+        '{"command":"aqe:dpdfnet","fieldOrd":0,'
+        '"overrides":{"denoiseAlgorithm":"dpdfnet","dpdfnetAttnLimitDb":18}}',
+    )
+
+    assert captured == [18.0]
+
+
 def test_dpdfnet_cancels_graph_analysis_busy_state_before_render(tmp_path: Path, monkeypatch) -> None:
     media_dir = tmp_path / "media"
     media_dir.mkdir()

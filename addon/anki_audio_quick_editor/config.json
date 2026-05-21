@@ -1,6 +1,6 @@
 {
   "$schema": "./config.schema.json",
-  "_config_version": 13,
+  "_config_version": 14,
   "enabled": true,
   "debug_logging": false,
   "show_ffmpeg_commands": false,

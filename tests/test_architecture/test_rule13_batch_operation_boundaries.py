@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from anki_audio_quick_editor.audio_operations import (
     BATCH_OPERATIONS,
+    OP_DENOISE,
     OP_GRAPH,
     TRANSFORM_OPERATIONS,
 )
@@ -14,8 +15,9 @@ from .contracts import MODULE_CONTRACTS
 
 
 def test_batch_transform_operations_are_covered_by_editor_mapping() -> None:
-    assert set(BRIDGE_COMMAND_TO_OPERATION.values()) == set(TRANSFORM_OPERATIONS)
+    assert set(BRIDGE_COMMAND_TO_OPERATION.values()) == set(TRANSFORM_OPERATIONS) - {OP_DENOISE}
     assert OP_GRAPH in BATCH_OPERATIONS
+    assert OP_DENOISE in BATCH_OPERATIONS
 
 
 def test_batch_core_modules_avoid_editor_bridge_strings() -> None:

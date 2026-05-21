@@ -4,6 +4,7 @@ from anki_audio_quick_editor.audio_operation_params import (
     parameters_from_raw,
 )
 from anki_audio_quick_editor.audio_operations import (
+    OP_DENOISE,
     OP_FASTER,
     OP_GRAPH,
     OP_REMOVE_PAUSES,
@@ -18,12 +19,16 @@ def test_parameters_from_raw_clamps_editor_matching_ranges() -> None:
         volume_step_db=99,
         speed_step=0.001,
         pause_aggressiveness="invalid",
+        denoise_algorithm="invalid",
+        dpdfnet_attn_limit_db=17.4,
     )
 
     assert params.trim_step_ms == 50
     assert params.volume_step_db == 12.0
     assert params.speed_step == 0.01
     assert params.pause_aggressiveness is None
+    assert params.denoise_algorithm is None
+    assert params.dpdfnet_attn_limit_db == 18.0
 
 
 def test_effective_config_uses_volume_override_without_mutating_config() -> None:
@@ -61,6 +66,17 @@ def test_effective_config_uses_pause_aggressiveness_override() -> None:
     assert effective.internal_pause_silence_threshold_db == -50
     assert effective.internal_pause_threshold_ms == 180
     assert effective.internal_pause_target_gap_ms == 60
+
+
+def test_effective_config_uses_denoise_parameter_overrides() -> None:
+    config = AudioProcessingConfig(denoise_algorithm="standard", dpdfnet_attn_limit_db=12.0)
+    params = AudioOperationParameters(denoise_algorithm="dpdfnet", dpdfnet_attn_limit_db=18.0)
+
+    effective = effective_config_for_operation(OP_DENOISE, config, params)
+
+    assert effective.denoise_algorithm == "dpdfnet"
+    assert effective.dpdfnet_attn_limit_db == 18.0
+    assert config.denoise_algorithm == "standard"
 
 
 def test_effective_config_ignores_parameters_for_graph() -> None:

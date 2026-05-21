@@ -1,5 +1,9 @@
 <script lang="ts">
   import CommandIcon from "$lib/CommandIcon.svelte";
+  import {
+    DPDFNET_ATTENUATION_LIMIT_DB_VALUES,
+    formatDpdfnetAggressiveness,
+  } from "$lib/audio-operation-parameters.js";
   import { t } from "$lib/i18n.js";
   import GraphSettingsFields from "./GraphSettingsFields.svelte";
   import type { Config } from "$lib/types.js";
@@ -85,13 +89,14 @@
   </label>
   <label class="field-row">
     <span>{t("settings.dpdfnet_attn_limit_db")}</span>
-    <input
+    <select
       data-testid="dpdfnet-attn-limit-db"
-      type="number"
-      min="0"
-      step="0.5"
       bind:value={config.dpdfnet_attn_limit_db}
-    />
+    >
+      {#each DPDFNET_ATTENUATION_LIMIT_DB_VALUES as value}
+        <option value={value}>{formatDpdfnetAggressiveness(value)}</option>
+      {/each}
+    </select>
   </label>
   <div class="settings-grid">
     <label>

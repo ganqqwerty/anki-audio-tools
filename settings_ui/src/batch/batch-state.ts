@@ -3,9 +3,14 @@ import {
   BatchParameterKind,
   BatchParameterName,
   BatchPauseAggressiveness,
+  DenoiseAlgorithm,
   Direction,
 } from "$lib/types.js";
-import { clampSpeedStep, clampVolumeStepDb } from "$lib/audio-operation-parameters.js";
+import {
+  clampDpdfnetAttnLimitDb,
+  clampSpeedStep,
+  clampVolumeStepDb,
+} from "$lib/audio-operation-parameters.js";
 import type {
   BatchInitialState,
   BatchOperationOption,
@@ -19,6 +24,8 @@ export interface BatchFormState {
   speedStep: number;
   volumeStepDb: number;
   pauseAggressiveness: BatchPauseAggressiveness;
+  denoiseAlgorithm: DenoiseAlgorithm;
+  dpdfnetAttnLimitDb: number;
 }
 
 export const FALLBACK_BATCH_INITIAL_STATE: BatchInitialState = {
@@ -30,6 +37,13 @@ export const FALLBACK_BATCH_INITIAL_STATE: BatchInitialState = {
       requires_target_field: true,
       parameter_kind: BatchParameterKind.None,
       parameter_name: BatchParameterName.None,
+    },
+    {
+      operation: BatchOperationName.Denoise,
+      label: "Denoise",
+      requires_target_field: false,
+      parameter_kind: BatchParameterKind.Denoise,
+      parameter_name: BatchParameterName.DenoiseAlgorithm,
     },
     {
       operation: BatchOperationName.RemovePauses,
@@ -72,6 +86,8 @@ export const FALLBACK_BATCH_INITIAL_STATE: BatchInitialState = {
     speed_step: 0.05,
     volume_step_db: 3,
     pause_aggressiveness: BatchPauseAggressiveness.Normal,
+    denoise_algorithm: DenoiseAlgorithm.Standard,
+    dpdfnet_attn_limit_db: 12,
   },
   locale: "en",
   direction: Direction.LTR,
@@ -92,6 +108,8 @@ export function initialFormState(state: BatchInitialState): BatchFormState {
     speedStep: state.defaults.speed_step,
     volumeStepDb: state.defaults.volume_step_db,
     pauseAggressiveness: state.defaults.pause_aggressiveness,
+    denoiseAlgorithm: state.defaults.denoise_algorithm,
+    dpdfnetAttnLimitDb: clampDpdfnetAttnLimitDb(state.defaults.dpdfnet_attn_limit_db),
   };
 }
 
@@ -130,6 +148,12 @@ export function batchStartRequest(
   }
   if (operation?.parameter_name === BatchParameterName.PauseAggressiveness) {
     request.parameters.pause_aggressiveness = form.pauseAggressiveness;
+  }
+  if (operation?.parameter_name === BatchParameterName.DenoiseAlgorithm) {
+    request.parameters.denoise_algorithm = form.denoiseAlgorithm;
+    if (form.denoiseAlgorithm === DenoiseAlgorithm.Dpdfnet) {
+      request.parameters.dpdfnet_attn_limit_db = clampDpdfnetAttnLimitDb(form.dpdfnetAttnLimitDb);
+    }
   }
   return request;
 }

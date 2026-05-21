@@ -73,7 +73,7 @@ def test_injection_script_embeds_split_button_defaults() -> None:
             "repeatPauseSeconds": 2.0,
             "pauseAggressiveness": "normal",
             "denoiseAlgorithm": "standard",
-            "dpdfnetAttnLimitDb": 8.5,
+            "dpdfnetAttnLimitDb": 18.0,
         },
     )
 
@@ -84,7 +84,7 @@ def test_injection_script_embeds_split_button_defaults() -> None:
         "repeatPauseSeconds": 2.0,
         "pauseAggressiveness": "normal",
         "denoiseAlgorithm": "standard",
-        "dpdfnetAttnLimitDb": 8.5,
+        "dpdfnetAttnLimitDb": 18.0,
     }
 
 

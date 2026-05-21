@@ -3,11 +3,13 @@ import { beforeEach, describe, expect, it } from "vitest";
 import {
   buildSplitCommandPayload,
   buildTrimCommandPayload,
+  clampDpdfnetAttnLimitDb,
   clampRepeatPauseSeconds,
   clampSpeedStep,
   clampTrimStepMs,
   clampVolumeStepDb,
   formatDenoiseAlgorithm,
+  formatDpdfnetAggressiveness,
   formatPauseAggressiveness,
   formatRepeatPauseSeconds,
   formatSpeedStep,
@@ -15,6 +17,7 @@ import {
   formatVolumeDb,
   getSplitButtonState,
   setDenoiseAlgorithmForField,
+  setDpdfnetAttnLimitDbForField,
   setPauseAggressivenessForField,
   setRepeatPauseSecondsForField,
   setSpeedStepForField,
@@ -86,6 +89,10 @@ describe("split button state", () => {
     expect(formatDenoiseAlgorithm("rnnoise")).toBe("RNNoise");
     expect(formatDenoiseAlgorithm("dpdfnet")).toBe("DPDFNet");
     expect(formatDenoiseAlgorithm("voice_only")).toBe("Voice Only");
+    expect(formatDpdfnetAggressiveness(6)).toBe("Gentle");
+    expect(formatDpdfnetAggressiveness(12)).toBe("Normal");
+    expect(formatDpdfnetAggressiveness(18)).toBe("Aggressive");
+    expect(clampDpdfnetAttnLimitDb(17.4)).toBe(18);
   });
 
   it("formats and clamps graph split values", () => {
@@ -103,6 +110,7 @@ describe("split button state", () => {
       audioFieldIndices: [0],
       splitButtonDefaults: {
         denoiseAlgorithm: "standard",
+        dpdfnetAttnLimitDb: 18,
         graphConnectShortDropoutsMs: 60,
         graphRecordingCondition: "noisy",
         graphSmoothness: "smooth",
@@ -122,6 +130,7 @@ describe("split button state", () => {
     expect(getSplitButtonState(0).repeatPauseSeconds).toBe(1.5);
     expect(getSplitButtonState(0).pauseAggressiveness).toBe("normal");
     expect(getSplitButtonState(0).denoiseAlgorithm).toBe("standard");
+    expect(getSplitButtonState(0).dpdfnetAttnLimitDb).toBe(18);
     expect(getSplitButtonState(0).graphVoiceRange).toBe("bass");
     expect(getSplitButtonState(0).graphRecordingCondition).toBe("noisy");
     expect(getSplitButtonState(0).graphSmoothness).toBe("smooth");
@@ -197,11 +206,13 @@ describe("split button state", () => {
     });
 
     setDenoiseAlgorithmForField(0, "dpdfnet");
+    setDpdfnetAttnLimitDbForField(0, 18);
     expect(buildSplitCommandPayload("aqe:rnnoise", 0)).toEqual({
       command: "aqe:dpdfnet",
       fieldOrd: 0,
       overrides: {
         denoiseAlgorithm: "dpdfnet",
+        dpdfnetAttnLimitDb: 18,
       },
     });
   });

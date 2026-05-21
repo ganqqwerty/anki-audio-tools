@@ -7,6 +7,7 @@ import type {
 import { t } from "../lib/i18n.js";
 import {
   clampRepeatPauseSeconds,
+  clampDpdfnetAttnLimitDb,
   clampSpeedStep,
   clampTrimStepMs,
   clampVolumeStepDb,
@@ -21,10 +22,12 @@ import {
 } from "./graph-split-values.js";
 export {
   clampRepeatPauseSeconds,
+  clampDpdfnetAttnLimitDb,
   clampSpeedStep,
   clampTrimStepMs,
   clampVolumeStepDb,
   formatPauseAggressiveness,
+  formatDpdfnetAggressiveness,
   formatRepeatPauseSeconds,
   formatSpeedStep,
   formatTrimMs,
@@ -75,6 +78,7 @@ export function getSplitButtonState(ord: number): FieldSplitButtonState {
   const defaultRepeatPauseSeconds = clampRepeatPauseSeconds(defaults.repeatPauseSeconds);
   const defaultPauseAggressiveness = defaults.pauseAggressiveness;
   const defaultDenoiseAlgorithm = defaults.denoiseAlgorithm;
+  const defaultDpdfnetAttnLimitDb = clampDpdfnetAttnLimitDb(defaults.dpdfnetAttnLimitDb);
   const states = fieldStates();
   const existing = states[ord];
   if (existing) {
@@ -107,6 +111,10 @@ export function getSplitButtonState(ord: number): FieldSplitButtonState {
       existing.defaultDenoiseAlgorithm = defaultDenoiseAlgorithm;
       existing.denoiseAlgorithm = defaultDenoiseAlgorithm;
     }
+    if (!existing.dpdfnetEdited && existing.defaultDpdfnetAttnLimitDb !== defaultDpdfnetAttnLimitDb) {
+      existing.defaultDpdfnetAttnLimitDb = defaultDpdfnetAttnLimitDb;
+      existing.dpdfnetAttnLimitDb = defaultDpdfnetAttnLimitDb;
+    }
     if (!existing.graphEdited) {
       if (existing.defaultGraphVoiceRange !== defaultGraphVoiceRange) {
         existing.defaultGraphVoiceRange = defaultGraphVoiceRange;
@@ -133,6 +141,7 @@ export function getSplitButtonState(ord: number): FieldSplitButtonState {
   }
   const state = {
     defaultDenoiseAlgorithm,
+    defaultDpdfnetAttnLimitDb,
     defaultGraphConnectShortDropoutsMs,
     defaultGraphRecordingCondition,
     defaultGraphSmoothness,
@@ -145,6 +154,8 @@ export function getSplitButtonState(ord: number): FieldSplitButtonState {
     defaultSpeedStep,
     denoiseAlgorithm: defaultDenoiseAlgorithm,
     denoiseEdited: false,
+    dpdfnetAttnLimitDb: defaultDpdfnetAttnLimitDb,
+    dpdfnetEdited: false,
     graphConnectShortDropoutsMs: defaultGraphConnectShortDropoutsMs,
     graphEdited: false,
     graphRecordingCondition: defaultGraphRecordingCondition,
@@ -214,6 +225,13 @@ export function setDenoiseAlgorithmForField(
   return state;
 }
 
+export function setDpdfnetAttnLimitDbForField(ord: number, value: number): FieldSplitButtonState {
+  const state = getSplitButtonState(ord);
+  state.dpdfnetEdited = true;
+  state.dpdfnetAttnLimitDb = clampDpdfnetAttnLimitDb(value);
+  return state;
+}
+
 export function buildTrimCommandPayload(command: EditorCommand, ord: number): EditorCommandPayload {
   return {
     command,
@@ -249,7 +267,11 @@ export function buildSplitCommandPayload(command: EditorCommand, ord: number): E
         : state.denoiseAlgorithm === "voice_only"
           ? "aqe:voice-only"
           : "aqe:denoise-standard";
-    return { command: selectedCommand, fieldOrd: ord, overrides: { denoiseAlgorithm: state.denoiseAlgorithm } };
+    const overrides: EditorCommandPayload["overrides"] = { denoiseAlgorithm: state.denoiseAlgorithm };
+    if (state.denoiseAlgorithm === "dpdfnet") {
+      overrides.dpdfnetAttnLimitDb = state.dpdfnetAttnLimitDb;
+    }
+    return { command: selectedCommand, fieldOrd: ord, overrides };
   }
   if (command === "aqe:analyze") {
     return {

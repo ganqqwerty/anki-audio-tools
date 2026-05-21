@@ -71,6 +71,7 @@ export interface EditorCommandPayload {
   fieldOrd: number;
   overrides?: {
     denoiseAlgorithm?: DenoiseAlgorithm;
+    dpdfnetAttnLimitDb?: number;
     pauseAggressiveness?: "gentle" | "normal" | "aggressive";
     speedStep?: number;
     trimStepMs?: number;
@@ -87,12 +88,15 @@ export interface FieldSplitButtonState {
   defaultGraphVoiceLock: GraphVoiceLock;
   defaultGraphVoiceRange: GraphVoiceRange;
   defaultPauseAggressiveness: "gentle" | "normal" | "aggressive";
+  defaultDpdfnetAttnLimitDb: number;
   defaultRepeatPauseSeconds: number;
   defaultTrimStepMs: number;
   defaultSpeedStep: number;
   defaultVolumeStepDb: number;
   denoiseAlgorithm: DenoiseAlgorithm;
   denoiseEdited: boolean;
+  dpdfnetAttnLimitDb: number;
+  dpdfnetEdited: boolean;
   graphConnectShortDropoutsMs: number;
   graphEdited: boolean;
   graphRecordingCondition: GraphRecordingCondition;

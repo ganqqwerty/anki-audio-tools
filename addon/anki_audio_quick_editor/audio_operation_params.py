@@ -6,6 +6,7 @@ from dataclasses import dataclass, replace
 from typing import Any
 
 from .audio_state import AudioProcessingConfig
+from .dpdfnet_settings import normalize_dpdfnet_attn_limit_db
 
 MIN_TRIM_OVERRIDE_MS = 50
 MAX_TRIM_OVERRIDE_MS = 10_000
@@ -14,6 +15,7 @@ MAX_VOLUME_STEP_DB = 12.0
 MIN_SPEED_STEP = 0.01
 MAX_SPEED_STEP = 0.25
 PAUSE_AGGRESSIVENESS = frozenset({"gentle", "normal", "aggressive"})
+DENOISE_ALGORITHMS = frozenset({"standard", "rnnoise", "dpdfnet", "voice_only"})
 
 
 @dataclass(frozen=True)
@@ -24,6 +26,8 @@ class AudioOperationParameters:
     volume_step_db: float | None = None
     speed_step: float | None = None
     pause_aggressiveness: str | None = None
+    denoise_algorithm: str | None = None
+    dpdfnet_attn_limit_db: float | None = None
 
 
 def parameters_from_raw(
@@ -32,6 +36,8 @@ def parameters_from_raw(
     volume_step_db: Any = None,
     speed_step: Any = None,
     pause_aggressiveness: Any = None,
+    denoise_algorithm: Any = None,
+    dpdfnet_attn_limit_db: Any = None,
 ) -> AudioOperationParameters:
     """Normalize raw UI values into clamped operation parameters."""
     return AudioOperationParameters(
@@ -47,6 +53,8 @@ def parameters_from_raw(
             MAX_SPEED_STEP,
         ),
         pause_aggressiveness=_pause_aggressiveness_or_none(pause_aggressiveness),
+        denoise_algorithm=_denoise_algorithm_or_none(denoise_algorithm),
+        dpdfnet_attn_limit_db=_dpdfnet_attn_limit_or_none(dpdfnet_attn_limit_db),
     )
 
 
@@ -62,6 +70,12 @@ def effective_config_for_operation(
         config,
         volume_step_db=parameters.volume_step_db or config.volume_step_db,
         speed_step=parameters.speed_step or config.speed_step,
+        denoise_algorithm=parameters.denoise_algorithm or config.denoise_algorithm,
+        dpdfnet_attn_limit_db=(
+            parameters.dpdfnet_attn_limit_db
+            if parameters.dpdfnet_attn_limit_db is not None
+            else config.dpdfnet_attn_limit_db
+        ),
     )
     if operation == "remove_pauses":
         return config_for_pause_aggressiveness(
@@ -129,3 +143,18 @@ def _pause_aggressiveness_or_none(value: Any) -> str | None:
     if not isinstance(value, str):
         return None
     return value if value in PAUSE_AGGRESSIVENESS else None
+
+
+def _denoise_algorithm_or_none(value: Any) -> str | None:
+    if not isinstance(value, str):
+        return None
+    return value if value in DENOISE_ALGORITHMS else None
+
+
+def _dpdfnet_attn_limit_or_none(value: Any) -> float | None:
+    if isinstance(value, bool) or value is None:
+        return None
+    try:
+        return normalize_dpdfnet_attn_limit_db(value)
+    except (TypeError, ValueError):
+        return None

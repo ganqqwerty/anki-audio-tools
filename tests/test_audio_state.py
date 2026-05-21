@@ -142,6 +142,12 @@ def test_processing_config_reads_deep_filter_settings() -> None:
 
 
 def test_processing_config_reads_dpdfnet_settings() -> None:
+    config = AudioProcessingConfig.from_config({"dpdfnet_attn_limit_db": 18.0})
+
+    assert config.dpdfnet_attn_limit_db == 18.0
+
+
+def test_processing_config_snaps_legacy_dpdfnet_setting_to_supported_value() -> None:
     config = AudioProcessingConfig.from_config({"dpdfnet_attn_limit_db": 8.5})
 
-    assert config.dpdfnet_attn_limit_db == 8.5
+    assert config.dpdfnet_attn_limit_db == 6.0

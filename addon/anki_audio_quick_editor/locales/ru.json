@@ -180,6 +180,7 @@
   "batch.window_title": "Запустить пакетную операцию аудио",
   "batch.instructions": "Выберите операцию и поля для выбранных заметок.",
   "batch.operation": "Операция",
+  "batch.suppressor": "Шумоподавитель",
   "batch.source_field": "Исходное поле",
   "batch.target_field": "Целевое поле",
   "batch.start": "Старт",
@@ -200,6 +201,7 @@
   "batch.result.fail": "ОШИБКА",
   "batch.result.line": "{prefix} заметка {note_id}{audio}: {message}",
   "operation.graph": "График",
+  "operation.denoise": "Шумоподавление",
   "operation.remove_pauses": "Сократить паузы",
   "operation.slower": "Медленнее",
   "operation.faster": "Быстрее",
@@ -242,9 +244,10 @@
   "settings.support.collecting_environment": "Сбор сведений об окружении",
   "settings.support.checking_external_tools": "Проверка внешних инструментов",
   "settings.support.reading_recent_logs": "Чтение последних журналов",
+  "settings.dpdfnet_attn_limit_db": "Агрессивность DPDFNet",
   "settings.denoise_algorithm.dpdfnet": "DPDFNet",
   "editor.command.dpdfnet.label": "DPDFNet",
-  "editor.command.dpdfnet.title": "Удалить шум речи через DPDFNet, предел ослабления {db} дБ",
+  "editor.command.dpdfnet.title": "Удалить шум речи через DPDFNet, агрессивность: {level}",
   "editor.status.denoising_dpdfnet": "Шумоподавление DPDFNet",
   "settings.health.checking_dpdfnet": "Проверка DPDFNet"
 }

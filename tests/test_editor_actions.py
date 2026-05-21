@@ -158,6 +158,16 @@ def test_decode_processing_command_accepts_pause_aggressiveness_override() -> No
     assert decoded.overrides.pause_aggressiveness == "aggressive"
 
 
+def test_decode_command_accepts_dpdfnet_aggressiveness_override() -> None:
+    decoded = decode_editor_command_payload(
+        '{"command":"aqe:dpdfnet","fieldOrd":0,'
+        '"overrides":{"denoiseAlgorithm":"dpdfnet","dpdfnetAttnLimitDb":18}}'
+    )
+
+    assert decoded.overrides.denoise_algorithm == "dpdfnet"
+    assert decoded.overrides.dpdfnet_attn_limit_db == 18.0
+
+
 def test_apply_processing_command_uses_pause_aggressiveness_without_mutating_config() -> None:
     config = AudioProcessingConfig(
         internal_pause_silence_threshold_db=-45,

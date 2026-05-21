@@ -172,6 +172,24 @@ class TestMigrateConfig:
         assert migrated["_config_version"] == CURRENT_CONFIG_VERSION
         assert changed is True
 
+    def test_snaps_legacy_dpdfnet_attenuation_to_supported_aggressiveness(self) -> None:
+        user = {
+            "_config_version": 13,
+            "enabled": True,
+            "dpdfnet_attn_limit_db": 8.5,
+        }
+        defaults = {
+            "_config_version": CURRENT_CONFIG_VERSION,
+            "enabled": True,
+            "dpdfnet_attn_limit_db": 12.0,
+        }
+
+        migrated, changed = migrate_config(user, defaults)
+
+        assert migrated["dpdfnet_attn_limit_db"] == 6.0
+        assert migrated["_config_version"] == CURRENT_CONFIG_VERSION
+        assert changed is True
+
     def test_removes_deleted_edge_silence_keys(self) -> None:
         user = {
             "_config_version": 6,
