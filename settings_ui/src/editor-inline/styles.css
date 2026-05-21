@@ -1,5 +1,10 @@
 .aqe-controls {
   --aqe-floating-z-index: 10000;
+  --aqe-progress-color: #7a1600;
+  --aqe-progress-halo: rgb(193 72 8 / 0.34);
+  --aqe-progress-inner-halo: rgb(255 255 255 / 70%);
+  --aqe-progress-surface: Canvas;
+  --aqe-resize-halo: rgb(18 14 11 / 38%);
 
   align-items: center;
   border: 1px solid;
@@ -13,6 +18,15 @@
   justify-content: flex-start;
   margin: 4px 0 10px;
   padding: 6px 8px;
+}
+
+@media (prefers-color-scheme: dark) {
+  .aqe-controls {
+    --aqe-progress-color: #fb3d03;
+    --aqe-progress-halo: rgb(232 201 170 / 36%);
+    --aqe-progress-inner-halo: rgb(255 255 255 / 18%);
+    --aqe-resize-halo: rgb(0 0 0 / 58%);
+  }
 }
 
 .aqe-button {
@@ -457,15 +471,22 @@
 .aqe-selection-resize-handle {
   cursor: ew-resize;
   fill: ButtonFace;
+  filter: none;
   opacity: 0.96;
   pointer-events: auto;
   stroke: currentColor;
   stroke-width: 1.25;
   vector-effect: non-scaling-stroke;
+  opacity: 0.82;
 }
 
 .aqe-selection-resize-handle:hover {
-  stroke: Highlight;
+  filter: drop-shadow(0 0 5px var(--aqe-resize-halo));
+}
+
+.aqe-selection-resize-handle.aqe-selection-resize-dragging,
+.aqe-selection-resize-grip.aqe-selection-resize-dragging {
+  opacity: 0.42;
 }
 
 .aqe-selection-resize-grip {
@@ -487,17 +508,23 @@
 }
 
 .aqe-cursor {
-  opacity: 0.9;
+  filter:
+    drop-shadow(0 0 2px var(--aqe-progress-inner-halo))
+    drop-shadow(0 0 6px var(--aqe-progress-halo));
+  opacity: 0.95;
   pointer-events: none;
-  stroke: currentColor;
+  stroke: var(--aqe-progress-color);
   stroke-width: 1.5;
 }
 
 .aqe-cursor-pitch-marker {
-  fill: Canvas;
-  opacity: 0.96;
+  fill: var(--aqe-progress-surface);
+  filter:
+    drop-shadow(0 0 2px var(--aqe-progress-inner-halo))
+    drop-shadow(0 0 7px var(--aqe-progress-halo));
+  opacity: 0.98;
   pointer-events: none;
-  stroke: currentColor;
+  stroke: var(--aqe-progress-color);
   stroke-width: 2;
   vector-effect: non-scaling-stroke;
 }
@@ -508,14 +535,17 @@
 
 .aqe-cursor-flag-box,
 .aqe-cursor-flag-notch {
-  fill: Canvas;
-  stroke: currentColor;
+  fill: var(--aqe-progress-surface);
+  filter:
+    drop-shadow(0 0 2px var(--aqe-progress-inner-halo))
+    drop-shadow(0 0 6px var(--aqe-progress-halo));
+  stroke: var(--aqe-progress-color);
   stroke-width: 1;
   vector-effect: non-scaling-stroke;
 }
 
 .aqe-cursor-flag-text {
-  fill: currentColor;
+  fill: var(--aqe-progress-color);
   font-size: 10px;
   font-weight: 700;
   text-anchor: middle;

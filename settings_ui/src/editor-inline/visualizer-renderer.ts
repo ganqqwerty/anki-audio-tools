@@ -18,7 +18,7 @@ const CURSOR_FLAG_HALF_WIDTH = CURSOR_FLAG_WIDTH / 2;
 const CURSOR_FLAG_BOX_HEIGHT = 20;
 const CURSOR_FLAG_NOTCH_HEIGHT = 6;
 const CURSOR_FLAG_Y = PLOT.top - CURSOR_FLAG_BOX_HEIGHT - CURSOR_FLAG_NOTCH_HEIGHT;
-const CURSOR_FLAG_NOTCH_MAX_OFFSET = CURSOR_FLAG_HALF_WIDTH - 5;
+const CURSOR_FLAG_NOTCH_MAX_OFFSET = CURSOR_FLAG_HALF_WIDTH;
 
 export function renderGraphRequested(visualizer: VisualizerElement): void {
   visualizer.hidden = false;
@@ -88,8 +88,12 @@ export function renderSelection(
     endEdge?.setAttribute("visibility", "hidden");
     startHandle?.setAttribute("visibility", "hidden");
     endHandle?.setAttribute("visibility", "hidden");
+    startHandle?.classList.remove("aqe-selection-resize-dragging");
+    endHandle?.classList.remove("aqe-selection-resize-dragging");
     startGrip?.setAttribute("visibility", "hidden");
     endGrip?.setAttribute("visibility", "hidden");
+    startGrip?.classList.remove("aqe-selection-resize-dragging");
+    endGrip?.classList.remove("aqe-selection-resize-dragging");
     return;
   }
   const startX = xForMs(activeSelection.startMs, durationMs);
@@ -114,14 +118,17 @@ export function renderSelection(
     edge.setAttribute("y1", String(plotTop));
     edge.setAttribute("y2", String(plotBottom));
   }
-  const showHandles = selection !== null && draftSelection === null;
+  const showHandles = selection !== null;
+  const handlesDragging = selection !== null && draftSelection !== null;
   for (const [handle, grip, x] of [[startHandle, startGrip, startX], [endHandle, endGrip, endX]] as const) {
     handle?.setAttribute("visibility", showHandles ? "visible" : "hidden");
+    handle?.classList.toggle("aqe-selection-resize-dragging", handlesDragging);
     handle?.setAttribute("x", (x - 5).toFixed(2));
     handle?.setAttribute("y", handleY.toFixed(2));
     handle?.setAttribute("width", "10");
     handle?.setAttribute("height", handleHeight.toFixed(2));
     grip?.setAttribute("visibility", showHandles ? "visible" : "hidden");
+    grip?.classList.toggle("aqe-selection-resize-dragging", handlesDragging);
     grip?.setAttribute("transform", `translate(${x.toFixed(2)} ${handleCenterY.toFixed(2)})`);
   }
 }

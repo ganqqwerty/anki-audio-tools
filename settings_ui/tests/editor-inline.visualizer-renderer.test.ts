@@ -56,6 +56,17 @@ describe("editor inline visualizer renderer", () => {
     expect(marker).toHaveAttribute("cx", String(PLOT.left));
     expect(marker).toHaveAttribute("cy", String(PLOT.height - PLOT.bottom));
   });
+
+  it("aligns the cursor line with the current-position flag notch at the start", () => {
+    const visualizer = mountVisualizer(voicedTrack);
+    const cursor = visualizer.querySelector<SVGLineElement>(".aqe-cursor")!;
+    const flag = visualizer.querySelector<SVGGElement>(".aqe-cursor-flag")!;
+    const notch = visualizer.querySelector<SVGPathElement>(".aqe-cursor-flag-notch")!;
+
+    renderCursor(visualizer, 0, voicedTrack.durationMs);
+
+    expect(globalNotchX(flag, notch)).toBe(Number(cursor.getAttribute("x1")));
+  });
 });
 
 function mountVisualizer(track: NormalizedProsodyTrack): VisualizerElement {
@@ -80,4 +91,14 @@ function mountVisualizer(track: NormalizedProsodyTrack): VisualizerElement {
   if (!visualizer) throw new Error("visualizer fixture did not mount");
   visualizer.__aqeTrack = track;
   return visualizer;
+}
+
+function globalNotchX(flag: SVGGElement, notch: SVGPathElement): number {
+  return translateX(flag) + translateX(notch);
+}
+
+function translateX(element: SVGElement): number {
+  const transform = element.getAttribute("transform") ?? "";
+  const match = /translate\((-?\d+(?:\.\d+)?)/.exec(transform);
+  return match ? Number(match[1]) : 0;
 }
