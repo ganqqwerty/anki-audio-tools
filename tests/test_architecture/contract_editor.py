@@ -135,6 +135,7 @@ EDITOR_CONTRACTS: dict[str, ModuleContract] = {
             "errors",
             "i18n",
             "media_paths",
+            "prosody_settings",
             "sound_refs",
             "support",
         ),

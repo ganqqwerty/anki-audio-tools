@@ -1,6 +1,6 @@
 {
   "$schema": "./config.schema.json",
-  "_config_version": 14,
+  "_config_version": 15,
   "enabled": true,
   "debug_logging": false,
   "show_ffmpeg_commands": false,
@@ -29,5 +29,6 @@
   "deep_filter_path": "",
   "deep_filter_post_filter": true,
   "dpdfnet_attn_limit_db": 12.0,
-  "denoise_algorithm": "standard"
+  "denoise_algorithm": "standard",
+  "pitch_hum_mode": "direct"
 }

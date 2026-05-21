@@ -6,7 +6,7 @@ import logging
 import shutil
 from dataclasses import replace
 from pathlib import Path
-from typing import Any, Callable
+from typing import Any, Callable, cast
 
 from .audio_state import AudioEditState, AudioProcessingConfig
 from .diagnostics_runtime import capture_exception, new_operation_id, record_breadcrumb
@@ -19,6 +19,7 @@ from .editor_session import EditorSession
 from .errors import AudioProcessingError
 from .i18n import t
 from .media_paths import existing_media_file_path
+from .prosody_settings import config_with_graph_settings
 from .sound_refs import (
     replace_sound_reference,
     select_first_sound_reference,
@@ -252,6 +253,36 @@ def voice_only_async(editor: Any, deps: Any) -> None:
     )
 
 
+def pitch_hum_async(
+    editor: Any,
+    command: EditorCommandPayload | None = None,
+    deps: Any = None,
+) -> None:
+    """Start Praat-guided pitch hum resynthesis for the current media."""
+    if deps is None:
+        deps = command
+        command = None
+    config = AudioProcessingConfig.from_config(deps.config(editor))
+    deps.run_special_audio_transform_async(
+        editor,
+        label=t("editor.status.pitch_hum"),
+        failure_log_label="pitch hum failed",
+        renderer=_pitch_hum_renderer(command, deps, config.pitch_hum_mode),
+        command=command,
+    )
+
+
+def _pitch_hum_renderer(
+    command: EditorCommandPayload | None,
+    deps: Any,
+    default_mode: str,
+) -> Callable[..., Any]:
+    mode = command.overrides.pitch_hum_mode if command is not None else None
+    if (mode or default_mode) == "pitch_tier":
+        return cast(Callable[..., Any], deps.render_pitch_tier_hum_audio)
+    return cast(Callable[..., Any], deps.render_pitch_hum_audio)
+
+
 def run_special_audio_transform_async(
     editor: Any,
     *,
@@ -271,9 +302,7 @@ def run_special_audio_transform_async(
         return
     session, current_path = deps.current_media_path(editor)
     _cancel_graph_analysis_for_processing(editor, session, deps)
-    config = AudioProcessingConfig.from_config(deps.config(editor))
-    if command is not None and command.overrides.dpdfnet_attn_limit_db is not None:
-        config = replace(config, dpdfnet_attn_limit_db=command.overrides.dpdfnet_attn_limit_db)
+    config = _special_transform_config(AudioProcessingConfig.from_config(deps.config(editor)), command)
     deps.stop_session_playback(session)
     session.post_edit_playback_generation += 1
     session.processing = True
@@ -337,6 +366,19 @@ def run_special_audio_transform_async(
                 shutil.rmtree(output_path.parent, ignore_errors=True)
 
     deps.threading.Thread(target=_run, daemon=True).start()
+
+
+def _special_transform_config(
+    config: AudioProcessingConfig,
+    command: EditorCommandPayload | None,
+) -> AudioProcessingConfig:
+    if command is None:
+        return config
+    if command.overrides.dpdfnet_attn_limit_db is not None:
+        config = replace(config, dpdfnet_attn_limit_db=command.overrides.dpdfnet_attn_limit_db)
+    if command.command == "aqe:pitch-hum":
+        return config_with_graph_settings(config, command.graph_settings)
+    return config
 
 
 def replace_current_field_after_noise_removal(editor: Any, saved_name: str, deps: Any) -> None:

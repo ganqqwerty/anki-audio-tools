@@ -11,6 +11,7 @@ import {
   formatDenoiseAlgorithm,
   formatDpdfnetAggressiveness,
   formatPauseAggressiveness,
+  formatPitchHumMode,
   formatRepeatPauseSeconds,
   formatSpeedStep,
   formatTrimMs,
@@ -19,6 +20,7 @@ import {
   setDenoiseAlgorithmForField,
   setDpdfnetAttnLimitDbForField,
   setPauseAggressivenessForField,
+  setPitchHumModeForField,
   setRepeatPauseSecondsForField,
   setSpeedStepForField,
   setTrimStepForField,
@@ -89,6 +91,8 @@ describe("split button state", () => {
     expect(formatDenoiseAlgorithm("rnnoise")).toBe("RNNoise");
     expect(formatDenoiseAlgorithm("dpdfnet")).toBe("DPDFNet");
     expect(formatDenoiseAlgorithm("voice_only")).toBe("Voice Only");
+    expect(formatPitchHumMode("direct")).toBe("Pitch-to-hum");
+    expect(formatPitchHumMode("pitch_tier")).toBe("PitchTier");
     expect(formatDpdfnetAggressiveness(6)).toBe("Gentle");
     expect(formatDpdfnetAggressiveness(12)).toBe("Normal");
     expect(formatDpdfnetAggressiveness(18)).toBe("Aggressive");
@@ -117,6 +121,7 @@ describe("split button state", () => {
         graphVoiceLock: "stable",
         graphVoiceRange: "bass",
         pauseAggressiveness: "normal",
+        pitchHumMode: "pitch_tier",
         repeatPauseSeconds: 1.5,
         speedStep: 0.05,
         trimStepMs: 250,
@@ -136,6 +141,7 @@ describe("split button state", () => {
     expect(getSplitButtonState(0).graphSmoothness).toBe("smooth");
     expect(getSplitButtonState(0).graphConnectShortDropoutsMs).toBe(60);
     expect(getSplitButtonState(0).graphVoiceLock).toBe("stable");
+    expect(getSplitButtonState(0).pitchHumMode).toBe("pitch_tier");
   });
 
   it("keeps trim state isolated per field", () => {
@@ -233,6 +239,25 @@ describe("split button state", () => {
         smoothness: "very_smooth",
         voiceLock: "stable",
         voiceRange: "child",
+      },
+    });
+  });
+
+  it("builds pitch hum payloads from local field state", () => {
+    setPitchHumModeForField(0, "pitch_tier");
+
+    expect(buildSplitCommandPayload("aqe:pitch-hum", 0)).toEqual({
+      command: "aqe:pitch-hum",
+      fieldOrd: 0,
+      graphSettings: {
+        connectShortDropoutsMs: 240,
+        recordingCondition: "auto",
+        smoothness: "very_smooth",
+        voiceLock: "balanced",
+        voiceRange: "general",
+      },
+      overrides: {
+        pitchHumMode: "pitch_tier",
       },
     });
   });

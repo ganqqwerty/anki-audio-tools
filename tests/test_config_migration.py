@@ -190,6 +190,20 @@ class TestMigrateConfig:
         assert migrated["_config_version"] == CURRENT_CONFIG_VERSION
         assert changed is True
 
+    def test_picks_up_pitch_hum_mode_default(self) -> None:
+        user = {"_config_version": 14, "enabled": True}
+        defaults = {
+            "_config_version": CURRENT_CONFIG_VERSION,
+            "enabled": True,
+            "pitch_hum_mode": "direct",
+        }
+
+        migrated, changed = migrate_config(user, defaults)
+
+        assert migrated["pitch_hum_mode"] == "direct"
+        assert migrated["_config_version"] == CURRENT_CONFIG_VERSION
+        assert changed is True
+
     def test_removes_deleted_edge_silence_keys(self) -> None:
         user = {
             "_config_version": 6,

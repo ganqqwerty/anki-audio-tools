@@ -18,6 +18,7 @@ from .editor_actions import (
     CMD_DELETE_SELECTION,
     CMD_DENOISE_STANDARD,
     CMD_DPDFNET,
+    CMD_PITCH_HUM,
     CMD_REDO,
     CMD_RNNOISE,
     CMD_SETTINGS,
@@ -110,6 +111,9 @@ def handle_non_processing_command(editor: Any, command: str | EditorCommandPaylo
         return True
     if payload.command == CMD_DPDFNET:
         deps.dpdfnet_async(editor, payload)
+        return True
+    if payload.command == CMD_PITCH_HUM:
+        deps.pitch_hum_async(editor, payload)
         return True
     handlers = {
         CMD_ANALYZE_FIELD: deps.analyze_field_from_frontend,

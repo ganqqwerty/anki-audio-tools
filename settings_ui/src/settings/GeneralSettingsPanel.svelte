@@ -199,6 +199,16 @@
         <option value="voice_only">{t("settings.denoise_algorithm.voice_only")}</option>
       </select>
     </label>
+    <label>
+      <span class="label-with-icon">
+        <CommandIcon className="settings-label-icon" icon="waves" />
+        <span>{t("settings.pitch_hum_mode")}</span>
+      </span>
+      <select data-testid="pitch-hum-mode" bind:value={config.pitch_hum_mode}>
+        <option value="direct">{t("settings.pitch_hum_mode.direct")}</option>
+        <option value="pitch_tier">{t("settings.pitch_hum_mode.pitch_tier")}</option>
+      </select>
+    </label>
   </div>
   {#if saveError}
     <p class="error" data-testid="save-error">{saveError}</p>

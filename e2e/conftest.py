@@ -26,7 +26,7 @@ LOCAL_DPDFNET_BUILD = Path("/Users/iuriikatkov/IdeaProjects/DPDFNet/dist/lite/dp
 
 def _default_config() -> dict:
     return {
-        "_config_version": 14,
+        "_config_version": 15,
         "enabled": True,
         "debug_logging": False,
         "show_ffmpeg_commands": False,
@@ -50,6 +50,7 @@ def _default_config() -> dict:
         "deep_filter_post_filter": True,
         "dpdfnet_attn_limit_db": 12.0,
         "denoise_algorithm": "standard",
+        "pitch_hum_mode": "direct",
         "pause_aggressiveness": "normal",
     }
 

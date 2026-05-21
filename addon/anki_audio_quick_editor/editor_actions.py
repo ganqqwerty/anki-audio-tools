@@ -32,6 +32,7 @@ CMD_DENOISE_STANDARD = "aqe:denoise-standard"
 CMD_RNNOISE = "aqe:rnnoise"
 CMD_DPDFNET = "aqe:dpdfnet"
 CMD_VOICE_ONLY = "aqe:voice-only"
+CMD_PITCH_HUM = "aqe:pitch-hum"
 CMD_DELETE_SELECTION = "aqe:delete-selection"
 CMD_DELETE_REST = "aqe:delete-rest"
 CMD_ANALYZE_FIELD = "aqe:analyze-field"
@@ -60,6 +61,7 @@ BRIDGE_COMMANDS = (
     CMD_RNNOISE,
     CMD_DPDFNET,
     CMD_VOICE_ONLY,
+    CMD_PITCH_HUM,
     CMD_DELETE_SELECTION,
     CMD_DELETE_REST,
     "aqe:undo",
@@ -96,6 +98,7 @@ class EditorCommandOverrides:
     pause_aggressiveness: str | None = None
     denoise_algorithm: str | None = None
     dpdfnet_attn_limit_db: float | None = None
+    pitch_hum_mode: str | None = None
 
 
 @dataclass(frozen=True)
@@ -136,6 +139,7 @@ def _overrides_from_raw(raw: Any) -> EditorCommandOverrides:
         pause_aggressiveness=params.pause_aggressiveness,
         denoise_algorithm=params.denoise_algorithm,
         dpdfnet_attn_limit_db=params.dpdfnet_attn_limit_db,
+        pitch_hum_mode=_pitch_hum_mode_or_none(raw.get("pitchHumMode")),
     )
 
 
@@ -143,6 +147,11 @@ def _graph_settings_from_raw(raw: Any) -> dict[str, object] | None:
     if not isinstance(raw, dict):
         return None
     return dict(raw)
+
+
+def _pitch_hum_mode_or_none(value: Any) -> str | None:
+    text = str(value)
+    return text if text in {"direct", "pitch_tier"} else None
 
 
 def decode_editor_command_payload(raw_command: str | EditorCommandPayload) -> EditorCommandPayload:

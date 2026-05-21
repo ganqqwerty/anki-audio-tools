@@ -7,6 +7,7 @@ import {
   GraphVoiceRange,
   OutputFormat,
   PauseAggressiveness,
+  PitchHumMode,
 } from "$lib/types.js";
 import type { Config, InitialState } from "$lib/types.js";
 
@@ -14,7 +15,7 @@ export type SettingsTab = "general" | "diagnostics";
 
 export const FALLBACK_INITIAL_STATE: InitialState = {
   config: {
-    _config_version: 13,
+    _config_version: 15,
     enabled: true,
     debug_logging: false,
     show_ffmpeg_commands: false,
@@ -44,6 +45,7 @@ export const FALLBACK_INITIAL_STATE: InitialState = {
     deep_filter_post_filter: true,
     dpdfnet_attn_limit_db: 12.0,
     denoise_algorithm: DenoiseAlgorithm.Standard,
+    pitch_hum_mode: PitchHumMode.Direct,
   },
   version: "",
   addon_dir: "",

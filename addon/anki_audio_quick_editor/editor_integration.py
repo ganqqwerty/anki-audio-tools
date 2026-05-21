@@ -119,6 +119,7 @@ _denoise_standard_async = editor_callbacks._denoise_standard_async
 _rnnoise_async = editor_callbacks._rnnoise_async
 _dpdfnet_async = editor_callbacks._dpdfnet_async
 _voice_only_async = editor_callbacks._voice_only_async
+_pitch_hum_async = editor_callbacks._pitch_hum_async
 _run_special_audio_transform_async = editor_callbacks._run_special_audio_transform_async
 _delete_selection_from_frontend = editor_callbacks._delete_selection_from_frontend
 _delete_selection_with_request = editor_callbacks._delete_selection_with_request
@@ -217,6 +218,7 @@ def _on_editor_will_load_note(js: str, note: Any, editor: Any) -> str:
             "repeatPauseSeconds": float(config.get("repeat_pause_seconds", 0.0)),
             "pauseAggressiveness": str(config.get("pause_aggressiveness", "normal")),
             "denoiseAlgorithm": str(config.get("denoise_algorithm", "standard")),
+            "pitchHumMode": str(config.get("pitch_hum_mode", "direct")),
             "dpdfnetAttnLimitDb": float(config.get("dpdfnet_attn_limit_db", 12.0)),
             "graphVoiceRange": str(config.get("graph_voice_range", "general")),
             "graphRecordingCondition": str(config.get("graph_recording_condition", "auto")),
