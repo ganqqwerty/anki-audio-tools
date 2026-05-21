@@ -4,6 +4,7 @@
     formatDenoiseAlgorithm,
     formatDpdfnetAggressiveness,
     formatPauseAggressiveness,
+    formatPitchHumMode,
     formatSpeedStep,
     formatTrimMs,
     formatVolumeDb,
@@ -13,6 +14,7 @@
   import type { ButtonSpec, FieldSplitButtonState } from "./types.js";
 
   type DenoiseAlgorithm = FieldSplitButtonState["denoiseAlgorithm"];
+  type PitchHumMode = FieldSplitButtonState["pitchHumMode"];
 
   const {
     button,
@@ -22,10 +24,12 @@
     onDenoiseAlgorithm,
     onDpdfnetAttnLimitDb,
     onPauseAggressiveness,
+    onPitchHumMode,
     onSpeedStep,
     onTrimStep,
     onVolumeStep,
     pauseAggressiveness,
+    pitchHumMode,
     speedStep,
     targetOrd,
     trimStepMs,
@@ -38,10 +42,12 @@
     onDenoiseAlgorithm: (value: DenoiseAlgorithm) => void;
     onDpdfnetAttnLimitDb: (value: number) => void;
     onPauseAggressiveness: (value: "gentle" | "normal" | "aggressive") => void;
+    onPitchHumMode: (value: PitchHumMode) => void;
     onSpeedStep: (value: number) => void;
     onTrimStep: (value: number) => void;
     onVolumeStep: (value: number) => void;
     pauseAggressiveness: "gentle" | "normal" | "aggressive";
+    pitchHumMode: PitchHumMode;
     speedStep: number;
     targetOrd: number;
     trimStepMs: number;
@@ -63,6 +69,7 @@
     ) {
       return formatDenoiseAlgorithm(denoiseAlgorithm);
     }
+    if (button.command === "aqe:pitch-hum") return formatPitchHumMode(pitchHumMode);
     return formatTrimMs(trimStepMs);
   }
 
@@ -121,10 +128,12 @@
     ) {
       return ["standard", "rnnoise", "dpdfnet", "voice_only"];
     }
+    if (button.command === "aqe:pitch-hum") return ["direct", "pitch_tier"];
     return [];
   }
 
   function optionLabel(value: string): string {
+    if (value === "direct" || value === "pitch_tier") return formatPitchHumMode(value);
     if (value === "rnnoise") return "RNNoise";
     if (value === "dpdfnet") return "DPDFNet";
     if (value === "voice_only") return t("settings.denoise_algorithm.voice_only");
@@ -139,12 +148,15 @@
         level: formatDpdfnetAggressiveness(dpdfnetAttnLimitDb),
       });
     }
+    if (value === "pitch_tier") return t("editor.pitch_hum.mode.pitch_tier.title");
+    if (value === "direct") return t("editor.command.pitch_hum.title");
     return optionLabel(value);
   }
 
   function applyOption(value: string): void {
     if (value === "gentle" || value === "normal" || value === "aggressive") onPauseAggressiveness(value);
     if (value === "standard" || value === "rnnoise" || value === "dpdfnet" || value === "voice_only") onDenoiseAlgorithm(value);
+    if (value === "direct" || value === "pitch_tier") onPitchHumMode(value);
     onChange();
   }
 

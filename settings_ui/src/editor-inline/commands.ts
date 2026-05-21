@@ -46,6 +46,12 @@ export function commandButtons(): readonly ButtonSpec[] {
       title: t("editor.command.shorten_pauses.title"),
     },
     {
+      command: "aqe:pitch-hum",
+      icon: "waves",
+      label: t("editor.command.pitch_hum.label"),
+      title: t("editor.command.pitch_hum.title"),
+    },
+    {
       command: "aqe:slower",
       icon: "snail",
       label: t("editor.command.slower.label"),
@@ -138,6 +144,7 @@ export const PROCESSING_COMMANDS = new Set<EditorCommand>([
   "aqe:rnnoise",
   "aqe:dpdfnet",
   "aqe:voice-only",
+  "aqe:pitch-hum",
   "aqe:volume-down",
   "aqe:volume-up",
 ]);
@@ -155,6 +162,7 @@ export const COMMAND_SLUGS: Readonly<Record<EditorCommand, string>> = {
   "aqe:rnnoise": "rnnoise",
   "aqe:dpdfnet": "dpdfnet",
   "aqe:voice-only": "voice-only",
+  "aqe:pitch-hum": "pitch-hum",
   "aqe:slower": "slower",
   "aqe:faster": "faster",
   "aqe:volume-down": "volume-down",
@@ -173,6 +181,7 @@ export function processingMessage(command: EditorCommand): string {
   if (command === "aqe:rnnoise") return `${t("editor.status.denoising_rnnoise")}...`;
   if (command === "aqe:dpdfnet") return `${t("editor.status.denoising_dpdfnet")}...`;
   if (command === "aqe:voice-only") return `${t("editor.status.extracting_voice")}...`;
+  if (command === "aqe:pitch-hum") return `${t("editor.status.pitch_hum")}...`;
   if (command === "aqe:delete-selection") return t("editor.status.deleting_region");
   if (command === "aqe:delete-rest") return t("editor.status.deleting_rest");
   return t("editor.status.processing");

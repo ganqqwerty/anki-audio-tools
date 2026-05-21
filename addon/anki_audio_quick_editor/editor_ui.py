@@ -36,6 +36,7 @@ def injection_script(
             "repeatPauseSeconds": 0.0,
             "pauseAggressiveness": "normal",
             "denoiseAlgorithm": "standard",
+            "pitchHumMode": "direct",
             "dpdfnetAttnLimitDb": 12.0,
             "graphVoiceRange": "general",
             "graphRecordingCondition": "auto",

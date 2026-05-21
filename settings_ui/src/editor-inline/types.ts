@@ -21,6 +21,7 @@ export type EditorCommand =
   | "aqe:rnnoise"
   | "aqe:dpdfnet"
   | "aqe:voice-only"
+  | "aqe:pitch-hum"
   | "aqe:slower"
   | "aqe:faster"
   | "aqe:volume-down"
@@ -60,6 +61,7 @@ export interface SplitButtonDefaults {
   graphVoiceLock?: GraphVoiceLock;
   graphVoiceRange?: GraphVoiceRange;
   pauseAggressiveness: "gentle" | "normal" | "aggressive";
+  pitchHumMode?: PitchHumMode;
   repeatPauseSeconds: number;
   speedStep: number;
   trimStepMs: number;
@@ -73,6 +75,7 @@ export interface EditorCommandPayload {
     denoiseAlgorithm?: DenoiseAlgorithm;
     dpdfnetAttnLimitDb?: number;
     pauseAggressiveness?: "gentle" | "normal" | "aggressive";
+    pitchHumMode?: PitchHumMode;
     speedStep?: number;
     trimStepMs?: number;
     volumeStepDb?: number;
@@ -89,6 +92,7 @@ export interface FieldSplitButtonState {
   defaultGraphVoiceRange: GraphVoiceRange;
   defaultPauseAggressiveness: "gentle" | "normal" | "aggressive";
   defaultDpdfnetAttnLimitDb: number;
+  defaultPitchHumMode: PitchHumMode;
   defaultRepeatPauseSeconds: number;
   defaultTrimStepMs: number;
   defaultSpeedStep: number;
@@ -105,6 +109,8 @@ export interface FieldSplitButtonState {
   graphVoiceRange: GraphVoiceRange;
   pauseAggressiveness: "gentle" | "normal" | "aggressive";
   pauseEdited: boolean;
+  pitchHumEdited: boolean;
+  pitchHumMode: PitchHumMode;
   repeatPauseEdited: boolean;
   repeatPauseSeconds: number;
   speedEdited: boolean;
@@ -172,6 +178,8 @@ export interface RegionDeleteRequest {
 }
 
 type DenoiseAlgorithm = "standard" | "rnnoise" | "dpdfnet" | "voice_only";
+
+type PitchHumMode = "direct" | "pitch_tier";
 
 type RegionDeleteOperation = "delete-selection" | "delete-rest";
 

@@ -257,6 +257,8 @@ source_modules = [
     "anki_audio_quick_editor.audio_external",
     "anki_audio_quick_editor.audio_noise_reduction",
     "anki_audio_quick_editor.audio_pause_pipeline",
+    "anki_audio_quick_editor.audio_pitch_hum",
+    "anki_audio_quick_editor.audio_pitch_hum_frames",
     "anki_audio_quick_editor.audio_processor",
     "anki_audio_quick_editor.audio_rendering",
     "anki_audio_quick_editor.audio_state",

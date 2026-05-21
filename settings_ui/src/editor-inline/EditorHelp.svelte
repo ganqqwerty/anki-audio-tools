@@ -50,6 +50,10 @@
           <span class="aqe-help-description">{t("editor.help.shorten_pauses_desc")}</span>
         </span>
         <span class="aqe-help-item">
+          <span class="aqe-help-command"><EditorCommandIcon icon="waves" /><span>{t("editor.command.pitch_hum.label")}</span></span>
+          <span class="aqe-help-description">{t("editor.help.pitch_hum_desc")}</span>
+        </span>
+        <span class="aqe-help-item">
           <span class="aqe-help-command"><EditorCommandIcon icon="sparkles" /><span>{t("editor.command.denoise.label")}</span></span>
           <span class="aqe-help-description">{t("editor.help.denoise_desc")}</span>
         </span>

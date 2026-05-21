@@ -46,6 +46,7 @@
       "aqe:volume-up",
       "aqe:remove-pauses",
       "aqe:denoise-standard",
+      "aqe:pitch-hum",
     ].includes(command);
   }
   onMount(() => {

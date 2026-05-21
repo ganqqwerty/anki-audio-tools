@@ -46,6 +46,28 @@ AUDIO_CONTRACTS: dict[str, ModuleContract] = {
         ),
         allowed_side_effects=(SideEffect.TEMP_FILESYSTEM_CLEANUP,),
     ),
+    "audio_pitch_hum": contract(
+        "audio_pitch_hum",
+        layer=Layer.IMPORT_SAFE_CORE,
+        allowed_addon_deps=(
+            "audio_commands",
+            "audio_external",
+            "audio_pitch_hum_frames",
+            "audio_state",
+            "audio_tools",
+            "audio_types",
+            "errors",
+            "prosody_settings",
+        ),
+        allowed_side_effects=(
+            SideEffect.SUBPROCESS_RUN,
+            SideEffect.TEMP_FILESYSTEM_CLEANUP,
+        ),
+    ),
+    "audio_pitch_hum_frames": contract(
+        "audio_pitch_hum_frames",
+        layer=Layer.IMPORT_SAFE_CORE,
+    ),
     "audio_pause_pipeline": contract(
         "audio_pause_pipeline",
         layer=Layer.IMPORT_SAFE_CORE,
@@ -71,6 +93,7 @@ AUDIO_CONTRACTS: dict[str, ModuleContract] = {
             "audio_external",
             "audio_noise_reduction",
             "audio_pause_pipeline",
+            "audio_pitch_hum",
             "audio_rendering",
             "audio_state",
             "audio_tools",

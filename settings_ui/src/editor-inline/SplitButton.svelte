@@ -12,6 +12,7 @@
     setDenoiseAlgorithmForField,
     setDpdfnetAttnLimitDbForField,
     setPauseAggressivenessForField,
+    setPitchHumModeForField,
     setSpeedStepForField,
     setTrimStepForField,
     setVolumeStepForField,
@@ -39,6 +40,7 @@
   } from "./types.js";
 
   type DenoiseAlgorithm = FieldSplitButtonState["denoiseAlgorithm"];
+  type PitchHumMode = FieldSplitButtonState["pitchHumMode"];
 
   const POPOVER_GAP_PX = 4;
   const VIEWPORT_MARGIN_PX = 8;
@@ -55,6 +57,7 @@
   let pauseAggressiveness = $state<"gentle" | "normal" | "aggressive">("normal");
   let denoiseAlgorithm = $state<DenoiseAlgorithm>("standard");
   let dpdfnetAttnLimitDb = $state(12);
+  let pitchHumMode = $state<PitchHumMode>("direct");
   let graphVoiceRange = $state<GraphVoiceRange>("general");
   let graphRecordingCondition = $state<GraphRecordingCondition>("auto");
   let graphSmoothness = $state<GraphSmoothness>("very_smooth");
@@ -81,6 +84,9 @@
   }
 
   function primaryTitle(): string {
+    if (button.command === "aqe:pitch-hum") {
+      return pitchHumMode === "pitch_tier" ? t("editor.pitch_hum.mode.pitch_tier.title") : button.title;
+    }
     if (!isDenoiseButton()) return button.title;
     if (denoiseAlgorithm === "rnnoise") return t("editor.command.rnnoise.title");
     if (denoiseAlgorithm === "dpdfnet") {
@@ -123,6 +129,10 @@
 
   function applyDpdfnetAttnLimitDb(value: number): void {
     dpdfnetAttnLimitDb = setDpdfnetAttnLimitDbForField(target.ord, value).dpdfnetAttnLimitDb;
+  }
+
+  function applyPitchHumMode(value: PitchHumMode): void {
+    pitchHumMode = setPitchHumModeForField(target.ord, value).pitchHumMode;
   }
 
   function applyGraphVoiceRange(value: GraphVoiceRange): void {
@@ -220,6 +230,7 @@
     pauseAggressiveness = state.pauseAggressiveness;
     denoiseAlgorithm = state.denoiseAlgorithm;
     dpdfnetAttnLimitDb = state.dpdfnetAttnLimitDb;
+    pitchHumMode = state.pitchHumMode;
     graphVoiceRange = state.graphVoiceRange;
     graphRecordingCondition = state.graphRecordingCondition;
     graphSmoothness = state.graphSmoothness;
@@ -302,11 +313,13 @@
           onDenoiseAlgorithm={applyDenoiseAlgorithm}
           onDpdfnetAttnLimitDb={applyDpdfnetAttnLimitDb}
           onPauseAggressiveness={applyPauseAggressiveness}
+          onPitchHumMode={applyPitchHumMode}
           onSpeedStep={applySpeedStep}
           onTrimStep={applyTrimStep}
           onVolumeStep={applyVolumeStep}
           pauseAggressiveness={pauseAggressiveness}
           dpdfnetAttnLimitDb={dpdfnetAttnLimitDb}
+          pitchHumMode={pitchHumMode}
           speedStep={speedStep}
           targetOrd={target.ord}
           trimStepMs={trimStepMs}

@@ -168,6 +168,14 @@ def test_decode_command_accepts_dpdfnet_aggressiveness_override() -> None:
     assert decoded.overrides.dpdfnet_attn_limit_db == 18.0
 
 
+def test_decode_command_accepts_pitch_hum_mode_override() -> None:
+    decoded = decode_editor_command_payload(
+        '{"command":"aqe:pitch-hum","fieldOrd":0,"overrides":{"pitchHumMode":"pitch_tier"}}'
+    )
+
+    assert decoded.overrides.pitch_hum_mode == "pitch_tier"
+
+
 def test_apply_processing_command_uses_pause_aggressiveness_without_mutating_config() -> None:
     config = AudioProcessingConfig(
         internal_pause_silence_threshold_db=-45,
@@ -241,6 +249,7 @@ def test_play_graph_cursor_and_play_ended_are_not_processing_commands() -> None:
         "aqe:rnnoise",
         "aqe:dpdfnet",
         "aqe:voice-only",
+        "aqe:pitch-hum",
         "aqe:settings",
         "aqe:redo",
         "aqe:trim-silence",
@@ -250,6 +259,7 @@ def test_play_graph_cursor_and_play_ended_are_not_processing_commands() -> None:
     assert "aqe:rnnoise" in BRIDGE_COMMANDS
     assert "aqe:dpdfnet" in BRIDGE_COMMANDS
     assert "aqe:voice-only" in BRIDGE_COMMANDS
+    assert "aqe:pitch-hum" in BRIDGE_COMMANDS
     assert "aqe:settings" in BRIDGE_COMMANDS
     assert "aqe:redo" in BRIDGE_COMMANDS
     assert "aqe:analyze-field" in BRIDGE_COMMANDS

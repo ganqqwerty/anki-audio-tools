@@ -23,6 +23,7 @@ def test_injection_script_embeds_audio_field_indices_and_bundle() -> None:
     assert config["repeatPlaybackByDefault"] is False
     assert config["showGraphByDefault"] is False
     assert config["splitButtonDefaults"]["repeatPauseSeconds"] == 0.0
+    assert config["splitButtonDefaults"]["pitchHumMode"] == "direct"
     assert config["splitButtonDefaults"]["dpdfnetAttnLimitDb"] == 12.0
     assert config["splitButtonDefaults"]["graphVoiceRange"] == "general"
     assert config["splitButtonDefaults"]["graphRecordingCondition"] == "auto"
@@ -73,6 +74,7 @@ def test_injection_script_embeds_split_button_defaults() -> None:
             "repeatPauseSeconds": 2.0,
             "pauseAggressiveness": "normal",
             "denoiseAlgorithm": "standard",
+            "pitchHumMode": "pitch_tier",
             "dpdfnetAttnLimitDb": 18.0,
         },
     )
@@ -84,6 +86,7 @@ def test_injection_script_embeds_split_button_defaults() -> None:
         "repeatPauseSeconds": 2.0,
         "pauseAggressiveness": "normal",
         "denoiseAlgorithm": "standard",
+        "pitchHumMode": "pitch_tier",
         "dpdfnetAttnLimitDb": 18.0,
     }
 

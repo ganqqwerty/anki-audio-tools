@@ -104,6 +104,7 @@ def test_processing_config_from_partial_config_uses_defaults() -> None:
     assert config.deep_filter_path == ""
     assert config.deep_filter_post_filter is True
     assert config.dpdfnet_attn_limit_db == 12.0
+    assert config.pitch_hum_mode == "direct"
     assert config.show_ffmpeg_commands is False
 
 

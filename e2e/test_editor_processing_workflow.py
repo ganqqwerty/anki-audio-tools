@@ -132,6 +132,8 @@ def test_each_processing_button_updates_field_to_new_real_audio(
                     "Options",
                     "Denoise",
                     "Options",
+                    "Pitch Hum",
+                    "Options",
                     "Slower",
                     "Options",
                     "Faster",
@@ -161,6 +163,7 @@ def test_each_processing_button_updates_field_to_new_real_audio(
             "aqe:volume-down",
             "aqe:volume-up",
             "aqe:remove-pauses",
+            "aqe:pitch-hum",
         ):
             wait_for_selector(editor.web, _button_selector(command), timeout=5.0)
             previous_name = _click_and_wait_for_new_file(editor, note, media_dir, command, previous_name)

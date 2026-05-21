@@ -33,7 +33,8 @@
     "deep_filter_path",
     "deep_filter_post_filter",
     "dpdfnet_attn_limit_db",
-    "denoise_algorithm"
+    "denoise_algorithm",
+    "pitch_hum_mode"
   ],
   "properties": {
     "$schema": {
@@ -149,6 +150,10 @@
     "denoise_algorithm": {
       "type": "string",
       "enum": ["standard", "rnnoise", "dpdfnet", "voice_only"]
+    },
+    "pitch_hum_mode": {
+      "type": "string",
+      "enum": ["direct", "pitch_tier"]
     }
   }
 }

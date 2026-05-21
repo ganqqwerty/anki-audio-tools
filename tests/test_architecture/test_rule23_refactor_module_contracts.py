@@ -16,6 +16,8 @@ AUDIO_SPLIT_MODULES = {
     "audio_external",
     "audio_noise_reduction",
     "audio_pause_pipeline",
+    "audio_pitch_hum",
+    "audio_pitch_hum_frames",
     "audio_rendering",
     "audio_tools",
     "audio_types",

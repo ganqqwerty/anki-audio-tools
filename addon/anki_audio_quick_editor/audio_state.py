@@ -39,6 +39,7 @@ class AudioProcessingConfig:
     deep_filter_post_filter: bool = True
     dpdfnet_attn_limit_db: float = DEFAULT_DPDFNET_ATTENUATION_LIMIT_DB
     denoise_algorithm: str = "standard"
+    pitch_hum_mode: str = "direct"
     show_ffmpeg_commands: bool = False
     graph_voice_range: GraphVoiceRange = "general"
     graph_recording_condition: GraphRecordingCondition = "auto"
@@ -83,6 +84,7 @@ class AudioProcessingConfig:
                 config.get("dpdfnet_attn_limit_db", cls.dpdfnet_attn_limit_db)
             ),
             denoise_algorithm=str(config.get("denoise_algorithm", cls.denoise_algorithm)),
+            pitch_hum_mode=str(config.get("pitch_hum_mode", cls.pitch_hum_mode)),
             show_ffmpeg_commands=bool(
                 config.get("show_ffmpeg_commands", cls.show_ffmpeg_commands)
             ),
