@@ -330,18 +330,20 @@ describe("editor inline action workflows", () => {
     const current = flag.querySelector<SVGTextElement>(".aqe-cursor-flag-current")!;
     const pitch = flag.querySelector<SVGTextElement>(".aqe-cursor-flag-pitch")!;
     const expectedX = xForMs(750, 6000).toFixed(2);
+    const expectedFlagY = PLOT.top - 26;
 
     expect(flag).toHaveAttribute("visibility", "visible");
-    expect(flag).toHaveAttribute("transform", `translate(${expectedX} 14)`);
+    expect(flag).toHaveAttribute("transform", `translate(${expectedX} ${expectedFlagY})`);
+    expect(expectedFlagY + 26).toBe(PLOT.top);
     expect(current.textContent).toBe("0.75s");
     expect(pitch.textContent).toBe(" / 200 Hz");
     expect(visualizer.querySelector(".aqe-cursor-label")).toHaveTextContent("0.75s / 200 Hz");
 
     setCursor(visualizer, 0, false);
-    expect(flag).toHaveAttribute("transform", `translate(${(PLOT.left + 41).toFixed(2)} 14)`);
+    expect(flag).toHaveAttribute("transform", `translate(${(PLOT.left + 41).toFixed(2)} ${expectedFlagY})`);
 
     setCursor(visualizer, 6000, false);
-    expect(flag).toHaveAttribute("transform", `translate(${(PLOT.width - PLOT.right - 41).toFixed(2)} 14)`);
+    expect(flag).toHaveAttribute("transform", `translate(${(PLOT.width - PLOT.right - 41).toFixed(2)} ${expectedFlagY})`);
     expect(current.textContent).toBe("6.00s");
   });
 

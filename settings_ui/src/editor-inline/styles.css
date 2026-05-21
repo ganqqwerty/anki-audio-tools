@@ -407,7 +407,8 @@
   color: inherit;
   display: block;
   height: 150px;
-  margin-top: 4px;
+  margin-top: 20px;
+  overflow: visible;
   width: 100%;
 }
 

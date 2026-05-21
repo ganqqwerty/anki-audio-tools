@@ -15,7 +15,9 @@ import type { NormalizedProsodyTrack, VisualizerElement } from "./types.js";
 
 const CURSOR_FLAG_WIDTH = 82;
 const CURSOR_FLAG_HALF_WIDTH = CURSOR_FLAG_WIDTH / 2;
-const CURSOR_FLAG_Y = PLOT.top + 4;
+const CURSOR_FLAG_BOX_HEIGHT = 20;
+const CURSOR_FLAG_NOTCH_HEIGHT = 6;
+const CURSOR_FLAG_Y = PLOT.top - CURSOR_FLAG_BOX_HEIGHT - CURSOR_FLAG_NOTCH_HEIGHT;
 const CURSOR_FLAG_NOTCH_MAX_OFFSET = CURSOR_FLAG_HALF_WIDTH - 5;
 
 export function renderGraphRequested(visualizer: VisualizerElement): void {
