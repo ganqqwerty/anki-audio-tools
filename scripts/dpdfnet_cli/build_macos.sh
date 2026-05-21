@@ -84,6 +84,11 @@ import platform
 print(platform.machine().lower())
 PY
 )"
+python_platform="$("$python_bin" - <<'PY'
+import sysconfig
+print(sysconfig.get_platform().lower())
+PY
+)"
 python_version="$("$python_bin" - <<'PY'
 import sys
 print(f"{sys.version_info.major}.{sys.version_info.minor}")
@@ -100,6 +105,11 @@ fi
 if [[ "$actual_arch" != "$expected_arch" ]]; then
   echo "Python architecture $actual_arch does not match target $target ($expected_arch)." >&2
   echo "Run this script on the matching GitHub Actions macOS runner or use a matching Python." >&2
+  exit 1
+fi
+if [[ "$python_platform" != *"$expected_arch"* ]]; then
+  echo "Python package platform $python_platform does not match target $target ($expected_arch)." >&2
+  echo "Use actions/setup-python with architecture set to arm64 for macos-arm64 or x64 for macos-x86_64." >&2
   exit 1
 fi
 

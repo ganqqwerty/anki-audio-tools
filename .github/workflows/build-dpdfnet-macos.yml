@@ -23,9 +23,11 @@ jobs:
         include:
           - target: macos-arm64
             runner: macos-15
+            python-architecture: arm64
             artifact: dpdfnet-macos-arm64
           - target: macos-x86_64
             runner: macos-15-intel
+            python-architecture: x64
             artifact: dpdfnet-macos-x86_64
 
     steps:
@@ -36,6 +38,7 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: "3.11"
+          architecture: ${{ matrix.python-architecture }}
           cache: pip
 
       - name: Build macOS DPDFNet executable
