@@ -1,0 +1,54 @@
+name: Build macOS DPDFNet
+
+"on":
+  workflow_dispatch:
+    inputs:
+      dpdfnet-version:
+        description: DPDFNet PyPI version to freeze
+        required: true
+        default: "0.5.1"
+      model:
+        description: DPDFNet model to bundle
+        required: true
+        default: dpdfnet4
+
+jobs:
+  build:
+    name: Build dpdfnet for ${{ matrix.target }}
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 60
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - target: macos-arm64
+            runner: macos-15
+            artifact: dpdfnet-macos-arm64
+          - target: macos-x86_64
+            runner: macos-15-intel
+            artifact: dpdfnet-macos-x86_64
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      - name: Build macOS DPDFNet executable
+        run: >
+          ./scripts/dpdfnet_cli/build_macos.sh
+          "${{ matrix.target }}"
+          --python python
+          --version "${{ inputs.dpdfnet-version }}"
+          --model "${{ inputs.model }}"
+
+      - name: Upload executable artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.artifact }}
+          path: .release-assets/bin/${{ matrix.target }}/dpdfnet
+          if-no-files-found: error
