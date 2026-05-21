@@ -3,10 +3,6 @@ name: Build Windows DPDFNet
 "on":
   workflow_dispatch:
     inputs:
-      dpdfnet-version:
-        description: DPDFNet PyPI version to freeze
-        required: true
-        default: "0.5.1"
       model:
         description: DPDFNet model to bundle
         required: true
@@ -25,8 +21,12 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: "3.13"
+          python-version: "3.11"
           cache: pip
+
+      - name: Install FFmpeg
+        shell: pwsh
+        run: choco install ffmpeg -y --no-progress
 
       - name: Build Windows DPDFNet executable
         shell: pwsh
@@ -34,7 +34,6 @@ jobs:
           ./scripts/dpdfnet_cli/build_windows.ps1
           -Target windows-x86_64
           -Python python
-          -Version "${{ inputs.dpdfnet-version }}"
           -Model "${{ inputs.model }}"
 
       - name: Upload executable artifact

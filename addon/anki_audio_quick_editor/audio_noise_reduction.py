@@ -243,6 +243,7 @@ def render_dpdfnet_audio(
             attempted_commands,
             on_command,
             timeout_seconds=DENOISE_EXTERNAL_TIMEOUT_SECONDS,
+            env={"DPDFNET_FFMPEG": str(ffmpeg_path)},
         )
         if dpdfnet_result.returncode != 0:
             raise AudioProcessingError(
@@ -392,11 +393,12 @@ def _run_recorded_external_command(
     on_command: Callable[[tuple[str, ...]], None] | None,
     *,
     timeout_seconds: float | None = None,
+    env: dict[str, str] | None = None,
 ) -> subprocess.CompletedProcess[str]:
     if on_command:
         on_command(command)
     try:
-        result = _run_external_command(command, launch_error_message, timeout_seconds=timeout_seconds)
+        result = _run_external_command(command, launch_error_message, timeout_seconds=timeout_seconds, env=env)
     except AudioProcessingError as exc:
         attempted_commands.append(build_command_record(command, launch_error=str(exc)))
         raise

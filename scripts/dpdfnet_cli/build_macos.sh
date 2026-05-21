@@ -8,7 +8,6 @@ Usage:
 
 Options:
   --python <path>   Python interpreter to use (default: python3)
-  --version <ver>   dpdfnet PyPI version to freeze (default: 0.5.1)
   --model <name>    DPDFNet model to bundle (default: dpdfnet4)
 
 Output:
@@ -41,17 +40,12 @@ case "$target" in
 esac
 
 python_bin="${PYTHON:-python3}"
-version="${DPDFNET_VERSION:-0.5.1}"
 model="${DPDFNET_MODEL:-dpdfnet4}"
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
     --python)
       python_bin="${2:?--python requires a value}"
-      shift 2
-      ;;
-    --version)
-      version="${2:?--version requires a value}"
       shift 2
       ;;
     --model)
@@ -75,8 +69,6 @@ build_dir="$root/.release-assets/build/dpdfnet-$target"
 dist_dir="$build_dir/dist"
 model_dir="$build_dir/models"
 stage_dir="$root/.release-assets/bin/$target"
-entry_path="$build_dir/dpdfnet_frozen_entry.py"
-constraints_path="$build_dir/constraints.txt"
 exe_path="$dist_dir/dpdfnet"
 stage_exe_path="$stage_dir/dpdfnet"
 
@@ -107,74 +99,16 @@ fi
 rm -rf "$build_dir"
 mkdir -p "$build_dir" "$model_dir" "$stage_dir"
 
-cat > "$constraints_path" <<'EOF'
-numpy<2.3
-numba==0.61.2
-llvmlite==0.44.0
-EOF
-
 "$python_bin" -m pip install --upgrade pip
-"$python_bin" -m pip install \
-  --only-binary=numba,llvmlite \
-  -c "$constraints_path" \
-  "dpdfnet==$version" \
-  pyinstaller
-
-entry_points="$("$python_bin" - <<'PY'
-from importlib.metadata import distribution
-
-print("\n".join(
-    f"{ep.name}={ep.value}"
-    for ep in distribution("dpdfnet").entry_points
-    if ep.group == "console_scripts"
-))
-PY
-)"
-if [[ "$entry_points" != *"dpdfnet=dpdfnet.cli:main"* ]]; then
-  echo "Unexpected dpdfnet console_scripts entry points: $entry_points" >&2
-  exit 1
-fi
-
-DPDFNET_MODEL_DIR="$model_dir" "$python_bin" -m dpdfnet.cli download "$model" --quiet
-
-cat > "$entry_path" <<'PY'
-from __future__ import annotations
-
-import os
-from pathlib import Path
-import sys
-
-
-def _runtime_root() -> Path:
-    if getattr(sys, "frozen", False) and hasattr(sys, "_MEIPASS"):
-        return Path(sys._MEIPASS)  # type: ignore[attr-defined]
-    return Path(__file__).resolve().parent
-
-
-os.environ.setdefault("DPDFNET_MODEL_DIR", str(_runtime_root() / "models"))
-
-from dpdfnet.cli import main
-
-
-if __name__ == "__main__":
-    raise SystemExit(main())
-PY
-
-"$python_bin" -m PyInstaller \
-  --clean \
-  --noconfirm \
-  --onefile \
-  --console \
+"$python_bin" -m pip install -r "$root/scripts/dpdfnet_cli/requirements-lite-build.txt"
+"$python_bin" "$root/scripts/dpdfnet_cli/build_lite.py" \
   --name dpdfnet \
-  --target-architecture "$expected_arch" \
-  --distpath "$dist_dir" \
-  --workpath "$build_dir/work" \
-  --specpath "$build_dir" \
-  --collect-all dpdfnet \
-  --collect-all onnxruntime \
-  --collect-all soundfile \
-  --add-data "$model_dir:models" \
-  "$entry_path"
+  --model "$model" \
+  --model-path "$model_dir/$model.tflite" \
+  --dist-dir "$dist_dir" \
+  --work-dir "$build_dir/work" \
+  --spec-dir "$build_dir/spec" \
+  --target-arch "$expected_arch"
 
 if [[ ! -f "$exe_path" ]]; then
   echo "PyInstaller did not create $exe_path" >&2
@@ -188,7 +122,6 @@ if [[ "$artifact_archs" != "$expected_arch" ]]; then
 fi
 
 "$exe_path" --version
-"$exe_path" models
 
 smoke_dir="$build_dir/smoke"
 mkdir -p "$smoke_dir"
@@ -217,7 +150,13 @@ with wave.open(str(path), "wb") as wav:
     wav.writeframes(bytes(frames))
 PY
 
-"$exe_path" enhance "$input_wav" "$output_wav" --model "$model" --attn-limit-db 12
+ffmpeg_path="$(command -v ffmpeg || true)"
+if [[ -z "$ffmpeg_path" ]]; then
+  echo "ffmpeg not found on PATH; the DPDFNet Lite smoke test requires ffmpeg." >&2
+  exit 1
+fi
+
+DPDFNET_FFMPEG="$ffmpeg_path" "$exe_path" enhance "$input_wav" "$output_wav" --attn-limit-db 12
 if [[ ! -f "$output_wav" ]]; then
   echo "DPDFNet smoke test did not create $output_wav" >&2
   exit 1

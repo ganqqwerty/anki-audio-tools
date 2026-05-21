@@ -247,9 +247,10 @@ def _run_external_command(
     command: tuple[str, ...],
     launch_error_message: str,
     timeout_seconds: float | None = None,
+    env: dict[str, str] | None = None,
 ) -> subprocess.CompletedProcess[str]:
     _sync_external_dependencies()
-    return _audio_external._run_external_command(command, launch_error_message, timeout_seconds)
+    return _audio_external._run_external_command(command, launch_error_message, timeout_seconds, env)
 
 
 def _external_command_run_kwargs() -> dict[str, Any]:

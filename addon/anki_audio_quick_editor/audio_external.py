@@ -83,6 +83,7 @@ def _run_external_command(
     command: tuple[str, ...],
     launch_error_message: str,
     timeout_seconds: float | None = None,
+    env: dict[str, str] | None = None,
 ) -> subprocess.CompletedProcess[str]:
     operation_id = new_operation_id("external")
     started = time.monotonic()
@@ -97,6 +98,8 @@ def _run_external_command(
         run_kwargs = _external_command_run_kwargs()
         if timeout_seconds is not None:
             run_kwargs["timeout"] = timeout_seconds
+        if env is not None:
+            run_kwargs["env"] = {**os.environ, **env}
         result = subprocess.run(
             list(command),
             capture_output=True,

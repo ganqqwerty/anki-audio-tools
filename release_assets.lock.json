@@ -334,7 +334,7 @@
     "FFmpeg 8.1.1 and FFprobe are redistributed from third-party GPLv3 static builds: Martin Riedl for macOS and Gyan Doshi for Windows.",
     "DeepFilterNet 0.5.6 executable assets are redistributed under upstream MIT and Apache-2.0 terms.",
     "RNNoise 0.2 is built from upstream source plus scripts/rnnoise_cli/rnnoise_cli.c under BSD-style terms.",
-    "DPDFNet Lite CLI 0.1.0 is built from the local DPDFNet project with the dpdfnet4.tflite model under Apache-2.0 terms.",
+    "DPDFNet Lite CLI 0.1.0 is built from the vendored Lite source with the dpdfnet4.tflite model under Apache-2.0 terms.",
     "Sherpa ONNX source-separation runtime components are redistributed from k2-fsa/sherpa-onnx under Apache-2.0 terms.",
     "Sherpa ONNX Spleeter 2-stems fp16 model files are redistributed from k2-fsa/sherpa-onnx source-separation-models."
   ]
