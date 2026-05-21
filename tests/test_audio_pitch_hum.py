@@ -14,8 +14,10 @@ import pytest
 from anki_audio_quick_editor.audio_pitch_hum import (
     HUM_SAMPLE_RATE,
     PitchHumFrame,
+    _apply_nasal_onsets,
     _synthesize_pitch_hum_pcm,
     _synthesize_pitch_tier_pcm,
+    _voiced_segments,
     render_pitch_hum_audio,
     render_pitch_tier_hum_audio,
 )
@@ -56,6 +58,79 @@ def _region_rms(samples: array[int], sample_rate: int, start_s: float, end_s: fl
     if not region:
         return 0.0
     return math.sqrt(sum(sample * sample for sample in region) / len(region))
+
+
+def test_voiced_segments_merge_short_dropouts_without_merging_real_pauses() -> None:
+    frames = [
+        PitchHumFrame(time_s=0.00, pitch_hz=220.0, intensity_db=50.0),
+        PitchHumFrame(time_s=0.05, pitch_hz=225.0, intensity_db=50.0),
+        PitchHumFrame(time_s=0.10, pitch_hz=None, intensity_db=None),
+        PitchHumFrame(time_s=0.18, pitch_hz=230.0, intensity_db=50.0),
+        PitchHumFrame(time_s=0.30, pitch_hz=None, intensity_db=None),
+        PitchHumFrame(time_s=0.46, pitch_hz=240.0, intensity_db=50.0),
+    ]
+
+    segments = _voiced_segments(frames, 0.60, max_unvoiced_gap_ms=120)
+
+    assert segments == [(0.0, 0.3), (0.46, 0.6)]
+
+
+def test_apply_nasal_onsets_preserves_length_and_does_not_sound_short_dropouts() -> None:
+    sample_rate = 1000
+    frames = [
+        PitchHumFrame(time_s=0.00, pitch_hz=200.0, intensity_db=50.0),
+        PitchHumFrame(time_s=0.10, pitch_hz=None, intensity_db=None),
+        PitchHumFrame(time_s=0.18, pitch_hz=200.0, intensity_db=50.0),
+        PitchHumFrame(time_s=0.32, pitch_hz=None, intensity_db=None),
+        PitchHumFrame(time_s=0.50, pitch_hz=200.0, intensity_db=50.0),
+    ]
+    pcm = array("h", [2000] * 650)
+    for index in range(100, 180):
+        pcm[index] = 0
+    for index in range(320, 500):
+        pcm[index] = 0
+    original = array("h", pcm)
+
+    result = _apply_nasal_onsets(pcm, frames, 0.65, sample_rate=sample_rate)
+
+    assert result is pcm
+    assert len(pcm) == len(original)
+    assert max(abs(sample) for sample in pcm[100:180]) == 0
+    assert pcm[:70] != original[:70]
+    assert pcm[180:250] == original[180:250]
+    assert pcm[500:570] != original[500:570]
+
+
+def test_pitch_hum_and_pitch_tier_synthesis_apply_shared_nasal_onsets(monkeypatch) -> None:
+    frames = [
+        PitchHumFrame(time_s=0.0, pitch_hz=220.0, intensity_db=50.0),
+        PitchHumFrame(time_s=0.02, pitch_hz=220.0, intensity_db=50.0),
+    ]
+    calls: list[tuple[int, float, int]] = []
+
+    def fake_apply(
+        pcm: array[int],
+        _frames,
+        duration_s: float,
+        *,
+        sample_rate: int,
+    ) -> array[int]:
+        calls.append((len(pcm), duration_s, sample_rate))
+        return pcm
+
+    monkeypatch.setattr(
+        "anki_audio_quick_editor.audio_pitch_hum._apply_nasal_onsets",
+        fake_apply,
+    )
+    _synthesize_pitch_hum_pcm(frames, 0.03, sample_rate=HUM_SAMPLE_RATE)
+    pitch_tier_sound = SimpleNamespace(values=[[0.5] * round(0.03 * HUM_SAMPLE_RATE)])
+    _synthesize_pitch_tier_pcm(pitch_tier_sound, frames, 0.03, sample_rate=HUM_SAMPLE_RATE)
+
+    expected_sample_count = round(0.03 * HUM_SAMPLE_RATE)
+    assert calls == [
+        (expected_sample_count, 0.03, HUM_SAMPLE_RATE),
+        (expected_sample_count, 0.03, HUM_SAMPLE_RATE),
+    ]
 
 
 def test_pitch_hum_synthesis_keeps_unvoiced_frames_silent() -> None:
