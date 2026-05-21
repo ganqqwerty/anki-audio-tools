@@ -14,7 +14,6 @@ import {
   getCursorIntent,
   getPlaybackRequest,
   handleHtmlPlaybackCommand,
-  installAudioClockHandlers,
   pauseAudioClock,
   playbackRequest,
   resetGraphAfterEdit,
@@ -34,7 +33,7 @@ import {
 import { mediaUrlForFilename } from "../src/editor-inline/audio-clock.js";
 import { processingMessage } from "../src/editor-inline/commands.js";
 import { visualizerForOrd } from "../src/editor-inline/dom-selectors.js";
-import { PLOT, xForMs } from "../src/editor-inline/plot.js";
+import { PLOT, xForMs, yForPitch } from "../src/editor-inline/plot.js";
 import { commandSlugsForTest } from "../src/editor-inline/test-contract.js";
 import { disposeEditorRuntime, initializeEditorRuntime, scan } from "../src/editor-inline/runtime.js";
 import type { VisualizerElement } from "../src/editor-inline/types.js";
@@ -384,7 +383,10 @@ describe("editor inline action workflows", () => {
 
     expect(flag.querySelector(".aqe-cursor-flag-current")?.textContent).toBe("700 ms");
     expect(flag.querySelector(".aqe-cursor-flag-pitch")?.textContent).toBe(" / 196 Hz");
-    expect(window.__aqeGraphStateForTest?.(0)).toMatchObject({ progressMs: 700 });
+    const state = window.__aqeGraphStateForTest?.(0);
+    expect(state).toMatchObject({ pitchMarkerVisible: true, progressMs: 700 });
+    expect(state?.pitchMarkerX).toBeCloseTo(xForMs(700, 1000));
+    expect(state?.pitchMarkerY).toBeCloseTo(yForPitch(196, 100, 300));
   });
 
   it("loops manual progress clocks at the selected region boundary without play-ended", async () => {

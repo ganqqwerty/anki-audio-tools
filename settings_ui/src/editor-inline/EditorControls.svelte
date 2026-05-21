@@ -265,6 +265,15 @@
         y1={PLOT.top}
         y2={PLOT.height - PLOT.bottom}
       ></line>
+      <circle
+        class="aqe-cursor-pitch-marker"
+        data-testid={`aqe-cursor-pitch-marker-${target.ord}`}
+        cx={PLOT.left}
+        cy={PLOT.height - PLOT.bottom}
+        r="4"
+        visibility="hidden"
+        aria-hidden="true"
+      ></circle>
       <g
         class="aqe-cursor-flag"
         data-testid={`aqe-cursor-flag-${target.ord}`}

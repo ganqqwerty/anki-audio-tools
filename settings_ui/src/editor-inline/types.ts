@@ -209,6 +209,9 @@ export interface GraphStateForTest {
   hidden: boolean;
   intensity: string;
   pitchPaths: number;
+  pitchMarkerVisible: boolean;
+  pitchMarkerX: number | null;
+  pitchMarkerY: number | null;
   buttonIconCount: number;
   buttonIconStrokeValues: string[];
   playButtonLabel: string;
