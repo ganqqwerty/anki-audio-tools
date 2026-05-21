@@ -37,6 +37,9 @@ jobs:
           architecture: ${{ matrix.python-architecture }}
           cache: pip
 
+      - name: Install FFmpeg
+        run: brew install ffmpeg
+
       - name: Build macOS DPDFNet executable
         run: >
           ./scripts/dpdfnet_cli/build_macos.sh
