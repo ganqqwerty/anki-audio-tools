@@ -76,6 +76,7 @@ dist_dir="$build_dir/dist"
 model_dir="$build_dir/models"
 stage_dir="$root/.release-assets/bin/$target"
 entry_path="$build_dir/dpdfnet_frozen_entry.py"
+constraints_path="$build_dir/constraints.txt"
 exe_path="$dist_dir/dpdfnet"
 stage_exe_path="$stage_dir/dpdfnet"
 
@@ -116,8 +117,18 @@ fi
 rm -rf "$build_dir"
 mkdir -p "$build_dir" "$model_dir" "$stage_dir"
 
+cat > "$constraints_path" <<'EOF'
+numpy<2.3
+numba==0.61.2
+llvmlite==0.44.0
+EOF
+
 "$python_bin" -m pip install --upgrade pip
-"$python_bin" -m pip install "dpdfnet==$version" pyinstaller
+"$python_bin" -m pip install \
+  --only-binary=numba,llvmlite \
+  -c "$constraints_path" \
+  "dpdfnet==$version" \
+  pyinstaller
 
 entry_points="$("$python_bin" - <<'PY'
 from importlib.metadata import distribution
