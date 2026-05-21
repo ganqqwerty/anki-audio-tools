@@ -52,6 +52,7 @@ AUDIO_CONTRACTS: dict[str, ModuleContract] = {
         allowed_addon_deps=(
             "audio_commands",
             "audio_external",
+            "audio_pitch_hum_frames",
             "audio_state",
             "audio_tools",
             "audio_types",
@@ -62,6 +63,10 @@ AUDIO_CONTRACTS: dict[str, ModuleContract] = {
             SideEffect.SUBPROCESS_RUN,
             SideEffect.TEMP_FILESYSTEM_CLEANUP,
         ),
+    ),
+    "audio_pitch_hum_frames": contract(
+        "audio_pitch_hum_frames",
+        layer=Layer.IMPORT_SAFE_CORE,
     ),
     "audio_pause_pipeline": contract(
         "audio_pause_pipeline",

@@ -8,7 +8,6 @@ import tempfile
 import wave
 from array import array
 from collections.abc import Callable, Sequence
-from dataclasses import dataclass
 from importlib import import_module
 from importlib.util import find_spec
 from pathlib import Path
@@ -16,6 +15,14 @@ from typing import Any
 
 from .audio_commands import build_mp3_encode_command
 from .audio_external import _external_command_run_kwargs, probe_duration_ms
+from .audio_pitch_hum_frames import (
+    PitchHumFrame,
+    frame_pitch_at,
+    max_voiced_intensity_db,
+    sample_frame_pair,
+    sanitize_pitch_hum_frames,
+    sorted_pitch_frames,
+)
 from .audio_state import AudioProcessingConfig
 from .audio_tools import find_ffmpeg
 from .audio_types import AudioProcessingResult
@@ -24,21 +31,12 @@ from .prosody_settings import resolve_analysis_options
 
 HUM_SAMPLE_RATE = 22_050
 HUM_BASE_AMPLITUDE = 0.24
-HUM_RAMP_MS = 5
+HUM_RAMP_MS = 15
 NASAL_ONSET_MS = 70
 NASAL_FADE_IN_MS = 15
 NASAL_DROPOUT_MERGE_MS = 120
 _HARMONICS = ((1, 0.72), (2, 0.2), (3, 0.08))
 _NASAL_HARMONICS = ((1, 0.88), (2, 0.09), (3, 0.03))
-
-
-@dataclass(frozen=True)
-class PitchHumFrame:
-    """One Praat pitch frame used for neutral hum synthesis."""
-
-    time_s: float
-    pitch_hz: float | None
-    intensity_db: float | None
 
 
 # noinspection PyInconsistentReturns
@@ -174,7 +172,7 @@ def _pitch_hum_frames(sound: Any, config: AudioProcessingConfig) -> list[PitchHu
     )
     intensity_times = list(intensity.xs())
     intensity_values = list(intensity.values[0])
-    return [
+    raw_frames = [
         PitchHumFrame(
             time_s=float(time_s),
             pitch_hz=float(frequency) if frequency and frequency > 0 else None,
@@ -182,6 +180,11 @@ def _pitch_hum_frames(sound: Any, config: AudioProcessingConfig) -> list[PitchHu
         )
         for time_s, frequency in zip(pitch.xs(), pitch.selected_array["frequency"], strict=False)
     ]
+    return sanitize_pitch_hum_frames(
+        raw_frames,
+        pitch_floor_hz=options.pitch_floor_hz,
+        pitch_ceiling_hz=options.pitch_ceiling_hz,
+    )
 
 
 def _write_pitch_hum_wav(
@@ -220,41 +223,9 @@ def _write_pitch_tier_hum_wav(
         wav_file.writeframes(samples.tobytes())
 
 
-def _sorted_pitch_frames(frames: Sequence[PitchHumFrame]) -> list[PitchHumFrame]:
-    return sorted(frames, key=lambda pitch_frame: pitch_frame.time_s)
-
-
-def _max_voiced_intensity_db(frames: Sequence[PitchHumFrame]) -> float | None:
-    voiced_levels = [
-        pitch_frame.intensity_db
-        for pitch_frame in frames
-        if pitch_frame.pitch_hz is not None and pitch_frame.intensity_db is not None
-    ]
-    return max(voiced_levels) if voiced_levels else None
-
-
 def _ramp_step(sample_rate: int) -> float:
     ramp_samples = max(1, round(sample_rate * HUM_RAMP_MS / 1000))
-    return 1 / ramp_samples
-
-
-def _sample_frame_pair(
-    sorted_frames: Sequence[PitchHumFrame],
-    frame_index: int,
-    time_s: float,
-) -> tuple[int, PitchHumFrame | None, PitchHumFrame | None]:
-    while (
-        frame_index + 1 < len(sorted_frames)
-        and sorted_frames[frame_index + 1].time_s <= time_s
-    ):
-        frame_index += 1
-    frame = sorted_frames[frame_index] if sorted_frames else None
-    next_frame = (
-        sorted_frames[frame_index + 1]
-        if frame_index + 1 < len(sorted_frames)
-        else None
-    )
-    return frame_index, frame, next_frame
+    return HUM_BASE_AMPLITUDE / ramp_samples
 
 
 def _frame_amplitude_for_pitch(
@@ -283,26 +254,30 @@ def _synthesize_pitch_hum_pcm(
     pcm = array("h")
     if sample_count == 0:
         return pcm
-    sorted_frames = _sorted_pitch_frames(frames)
-    max_intensity_db = _max_voiced_intensity_db(sorted_frames)
+    sorted_frames = sorted_pitch_frames(frames)
+    max_intensity_db = max_voiced_intensity_db(sorted_frames)
     ramp_step = _ramp_step(sample_rate)
     phase = 0.0
     envelope = 0.0
+    last_pitch_hz: float | None = None
     frame_index = 0
     for sample_index in range(sample_count):
         time_s = sample_index / sample_rate
-        frame_index, frame, next_frame = _sample_frame_pair(
+        frame_index, frame, next_frame = sample_frame_pair(
             sorted_frames,
             frame_index,
             time_s,
         )
-        pitch_hz = _frame_pitch_at(time_s, frame, next_frame)
+        pitch_hz = frame_pitch_at(time_s, frame, next_frame)
         target = _frame_amplitude_for_pitch(frame, pitch_hz, max_intensity_db)
         envelope = _advance_envelope(envelope, target, ramp_step)
-        if pitch_hz is None:
+        if pitch_hz is not None:
+            last_pitch_hz = pitch_hz
+        carrier_pitch_hz = pitch_hz if pitch_hz is not None else last_pitch_hz
+        if carrier_pitch_hz is None or envelope <= 0.0:
             pcm.append(0)
             continue
-        phase = (phase + (2 * math.pi * pitch_hz / sample_rate)) % (2 * math.pi)
+        phase = (phase + (2 * math.pi * carrier_pitch_hz / sample_rate)) % (2 * math.pi)
         sample = sum(weight * math.sin(phase * harmonic) for harmonic, weight in _HARMONICS)
         pcm.append(round(max(-1.0, min(1.0, sample * envelope)) * 32767))
     return _apply_nasal_onsets(pcm, sorted_frames, duration_s, sample_rate=sample_rate)
@@ -320,24 +295,21 @@ def _synthesize_pitch_tier_pcm(
     if sample_count == 0:
         return pcm
     source_samples = _normalized_sound_samples(pitch_tier_sound, sample_count)
-    sorted_frames = _sorted_pitch_frames(frames)
-    max_intensity_db = _max_voiced_intensity_db(sorted_frames)
+    sorted_frames = sorted_pitch_frames(frames)
+    max_intensity_db = max_voiced_intensity_db(sorted_frames)
     ramp_step = _ramp_step(sample_rate)
     envelope = 0.0
     frame_index = 0
     for sample_index, source_sample in enumerate(source_samples):
         time_s = sample_index / sample_rate
-        frame_index, frame, next_frame = _sample_frame_pair(
+        frame_index, frame, next_frame = sample_frame_pair(
             sorted_frames,
             frame_index,
             time_s,
         )
-        pitch_hz = _frame_pitch_at(time_s, frame, next_frame)
+        pitch_hz = frame_pitch_at(time_s, frame, next_frame)
         target = _frame_amplitude_for_pitch(frame, pitch_hz, max_intensity_db)
         envelope = _advance_envelope(envelope, target, ramp_step)
-        if target <= 0.0:
-            pcm.append(0)
-            continue
         sample = max(-1.0, min(1.0, source_sample * envelope))
         pcm.append(round(sample * 32767))
     return _apply_nasal_onsets(pcm, sorted_frames, duration_s, sample_rate=sample_rate)
@@ -349,7 +321,7 @@ def _voiced_segments(
     *,
     max_unvoiced_gap_ms: int = NASAL_DROPOUT_MERGE_MS,
 ) -> list[tuple[float, float]]:
-    sorted_frames = _sorted_pitch_frames(frames)
+    sorted_frames = sorted_pitch_frames(frames)
     duration_s = max(0.0, duration_s)
     max_gap_s = max(0.0, max_unvoiced_gap_ms / 1000)
     segments: list[tuple[float, float]] = []
@@ -379,10 +351,10 @@ def _apply_nasal_onsets(
 ) -> array[int]:
     if not pcm or sample_rate <= 0:
         return pcm
-    sorted_frames = _sorted_pitch_frames(frames)
+    sorted_frames = sorted_pitch_frames(frames)
     if not sorted_frames:
         return pcm
-    max_intensity_db = _max_voiced_intensity_db(sorted_frames)
+    max_intensity_db = max_voiced_intensity_db(sorted_frames)
     onset_samples = max(1, round(sample_rate * NASAL_ONSET_MS / 1000))
     fade_in_samples = max(1, round(sample_rate * NASAL_FADE_IN_MS / 1000))
     for start_s, end_s in _voiced_segments(sorted_frames, duration_s):
@@ -427,7 +399,7 @@ def _apply_nasal_onset(
             if frame_index + 1 < len(sorted_frames)
             else None
         )
-        pitch_hz = _frame_pitch_at(time_s, frame, next_frame)
+        pitch_hz = frame_pitch_at(time_s, frame, next_frame)
         if pitch_hz is None:
             continue
         phase = (phase + (2 * math.pi * pitch_hz / sample_rate)) % (2 * math.pi)
@@ -479,19 +451,6 @@ def _normalized_sound_samples(sound: Any, sample_count: int) -> list[float]:
     if len(samples) < sample_count:
         samples.extend([0.0] * (sample_count - len(samples)))
     return samples
-
-
-def _frame_pitch_at(
-    time_s: float,
-    frame: PitchHumFrame | None,
-    next_frame: PitchHumFrame | None,
-) -> float | None:
-    if frame is None or frame.pitch_hz is None:
-        return None
-    if next_frame is None or next_frame.pitch_hz is None or next_frame.time_s <= frame.time_s:
-        return frame.pitch_hz
-    progress = max(0.0, min(1.0, (time_s - frame.time_s) / (next_frame.time_s - frame.time_s)))
-    return frame.pitch_hz + ((next_frame.pitch_hz - frame.pitch_hz) * progress)
 
 
 def _frame_amplitude(frame: PitchHumFrame, max_intensity_db: float | None) -> float:

@@ -21,6 +21,7 @@ from anki_audio_quick_editor.audio_pitch_hum import (
     render_pitch_hum_audio,
     render_pitch_tier_hum_audio,
 )
+from anki_audio_quick_editor.audio_pitch_hum_frames import sanitize_pitch_hum_frames
 from anki_audio_quick_editor.audio_state import AudioProcessingConfig
 from anki_audio_quick_editor.audio_types import AudioProcessingResult
 from anki_audio_quick_editor.errors import AudioProcessingError
@@ -58,6 +59,61 @@ def _region_rms(samples: array[int], sample_rate: int, start_s: float, end_s: fl
     if not region:
         return 0.0
     return math.sqrt(sum(sample * sample for sample in region) / len(region))
+
+
+def test_sanitize_pitch_hum_frames_clamps_to_pitch_range() -> None:
+    frames = [
+        PitchHumFrame(time_s=0.00, pitch_hz=40.0, intensity_db=50.0),
+        PitchHumFrame(time_s=0.01, pitch_hz=1200.0, intensity_db=50.0),
+        PitchHumFrame(time_s=0.02, pitch_hz=None, intensity_db=None),
+    ]
+
+    sanitized = sanitize_pitch_hum_frames(
+        frames,
+        pitch_floor_hz=75.0,
+        pitch_ceiling_hz=500.0,
+    )
+
+    assert [frame.pitch_hz for frame in sanitized] == [75.0, 500.0, None]
+
+
+def test_sanitize_pitch_hum_frames_drops_octave_spikes() -> None:
+    frames = [
+        PitchHumFrame(time_s=0.00, pitch_hz=220.0, intensity_db=50.0),
+        PitchHumFrame(time_s=0.01, pitch_hz=880.0, intensity_db=50.0),
+        PitchHumFrame(time_s=0.02, pitch_hz=225.0, intensity_db=50.0),
+        PitchHumFrame(time_s=0.03, pitch_hz=230.0, intensity_db=50.0),
+    ]
+
+    sanitized = sanitize_pitch_hum_frames(
+        frames,
+        pitch_floor_hz=75.0,
+        pitch_ceiling_hz=1000.0,
+    )
+
+    assert [frame.pitch_hz for frame in sanitized] == [220.0, None, 225.0, 230.0]
+
+
+def test_sanitize_pitch_hum_frames_drops_short_voiced_islands() -> None:
+    frames = [
+        PitchHumFrame(time_s=0.00, pitch_hz=None, intensity_db=None),
+        PitchHumFrame(time_s=0.01, pitch_hz=200.0, intensity_db=50.0),
+        PitchHumFrame(time_s=0.02, pitch_hz=210.0, intensity_db=50.0),
+        PitchHumFrame(time_s=0.035, pitch_hz=None, intensity_db=None),
+        PitchHumFrame(time_s=0.08, pitch_hz=230.0, intensity_db=50.0),
+        PitchHumFrame(time_s=0.12, pitch_hz=240.0, intensity_db=50.0),
+        PitchHumFrame(time_s=0.16, pitch_hz=250.0, intensity_db=50.0),
+        PitchHumFrame(time_s=0.20, pitch_hz=None, intensity_db=None),
+    ]
+
+    sanitized = sanitize_pitch_hum_frames(
+        frames,
+        pitch_floor_hz=75.0,
+        pitch_ceiling_hz=500.0,
+    )
+
+    assert [frame.pitch_hz for frame in sanitized[:4]] == [None, None, None, None]
+    assert [frame.pitch_hz for frame in sanitized[4:]] == [230.0, 240.0, 250.0, None]
 
 
 def test_voiced_segments_merge_short_dropouts_without_merging_real_pauses() -> None:
@@ -140,14 +196,30 @@ def test_pitch_hum_synthesis_keeps_unvoiced_frames_silent() -> None:
         PitchHumFrame(time_s=0.03, pitch_hz=None, intensity_db=None),
     ]
 
-    pcm = _synthesize_pitch_hum_pcm(frames, 0.04, sample_rate=HUM_SAMPLE_RATE)
+    pcm = _synthesize_pitch_hum_pcm(frames, 0.06, sample_rate=HUM_SAMPLE_RATE)
 
     first_region = pcm[: round(0.009 * HUM_SAMPLE_RATE)]
     voiced_region = pcm[round(0.015 * HUM_SAMPLE_RATE) : round(0.025 * HUM_SAMPLE_RATE)]
-    tail_region = pcm[round(0.036 * HUM_SAMPLE_RATE) :]
+    tail_region = pcm[round(0.050 * HUM_SAMPLE_RATE) :]
     assert max(abs(sample) for sample in first_region) == 0
     assert max(abs(sample) for sample in voiced_region) > 0
     assert max(abs(sample) for sample in tail_region) == 0
+
+
+def test_pitch_hum_synthesis_fades_out_before_silencing_unvoiced_tail() -> None:
+    sample_rate = 1000
+    frames = [
+        PitchHumFrame(time_s=0.00, pitch_hz=100.0, intensity_db=50.0),
+        PitchHumFrame(time_s=0.02, pitch_hz=100.0, intensity_db=50.0),
+        PitchHumFrame(time_s=0.04, pitch_hz=None, intensity_db=None),
+    ]
+
+    pcm = _synthesize_pitch_hum_pcm(frames, 0.07, sample_rate=sample_rate)
+
+    fade_tail = pcm[41:55]
+    silent_tail = pcm[60:]
+    assert max(abs(sample) for sample in fade_tail) > 0
+    assert max(abs(sample) for sample in silent_tail) == 0
 
 
 def test_pitch_hum_synthesis_interpolates_voiced_pitch_without_clicking_to_silence() -> None:
@@ -173,11 +245,32 @@ def test_pitch_tier_synthesis_gates_praat_sine_to_voiced_regions() -> None:
     pcm = _synthesize_pitch_tier_pcm(pitch_tier_sound, frames, 0.06)
 
     first_voiced = pcm[round(0.01 * HUM_SAMPLE_RATE) : round(0.018 * HUM_SAMPLE_RATE)]
-    unvoiced = pcm[round(0.025 * HUM_SAMPLE_RATE) : round(0.035 * HUM_SAMPLE_RATE)]
+    unvoiced = pcm[round(0.036 * HUM_SAMPLE_RATE) : round(0.039 * HUM_SAMPLE_RATE)]
     second_voiced = pcm[round(0.05 * HUM_SAMPLE_RATE) :]
     assert max(abs(sample) for sample in first_voiced) > 0
     assert max(abs(sample) for sample in unvoiced) == 0
     assert max(abs(sample) for sample in second_voiced) > 0
+
+
+def test_pitch_tier_synthesis_fades_source_before_silencing_unvoiced_tail() -> None:
+    sample_rate = 1000
+    frames = [
+        PitchHumFrame(time_s=0.00, pitch_hz=100.0, intensity_db=50.0),
+        PitchHumFrame(time_s=0.03, pitch_hz=None, intensity_db=None),
+    ]
+    pitch_tier_sound = SimpleNamespace(values=[[0.5] * round(0.06 * sample_rate)])
+
+    pcm = _synthesize_pitch_tier_pcm(
+        pitch_tier_sound,
+        frames,
+        0.06,
+        sample_rate=sample_rate,
+    )
+
+    fade_tail = pcm[31:44]
+    silent_tail = pcm[50:]
+    assert max(abs(sample) for sample in fade_tail) > 0
+    assert max(abs(sample) for sample in silent_tail) == 0
 
 
 def test_renderers_preserve_voiced_regions_and_silence_unvoiced_gap(
