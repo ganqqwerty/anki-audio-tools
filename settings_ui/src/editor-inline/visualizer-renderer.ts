@@ -9,12 +9,15 @@ import {
   pathForIntensity,
   pitchHzAtMs,
   xForMs,
+  yForPitch,
 } from "./plot.js";
 import type { NormalizedProsodyTrack, VisualizerElement } from "./types.js";
 
 const CURSOR_FLAG_WIDTH = 82;
 const CURSOR_FLAG_HALF_WIDTH = CURSOR_FLAG_WIDTH / 2;
-const CURSOR_FLAG_Y = PLOT.top + 4;
+const CURSOR_FLAG_BOX_HEIGHT = 20;
+const CURSOR_FLAG_NOTCH_HEIGHT = 6;
+const CURSOR_FLAG_Y = PLOT.top - CURSOR_FLAG_BOX_HEIGHT - CURSOR_FLAG_NOTCH_HEIGHT;
 const CURSOR_FLAG_NOTCH_MAX_OFFSET = CURSOR_FLAG_HALF_WIDTH - 5;
 
 export function renderGraphRequested(visualizer: VisualizerElement): void {
@@ -131,7 +134,10 @@ export function renderCursor(visualizer: VisualizerElement, ms: number, duration
     cursor.setAttribute("x2", x.toFixed(2));
   }
   const currentText = formatTime(ms, durationMs);
-  const pitchText = formatPitchHz(visualizer.__aqeTrack ? pitchHzAtMs(visualizer.__aqeTrack.points, ms) : null);
+  const track = visualizer.__aqeTrack;
+  const pitchHz = track ? pitchHzAtMs(track.points, ms) : null;
+  const pitchText = formatPitchHz(pitchHz);
+  renderCursorPitchMarker(visualizer, x, pitchHz);
   const label = visualizer.querySelector<HTMLElement>(".aqe-cursor-label");
   if (label) label.textContent = `${currentText} / ${pitchText}`;
   const flag = visualizer.querySelector<SVGGElement>(".aqe-cursor-flag");
@@ -164,6 +170,7 @@ export function resetCursorProjection(visualizer: VisualizerElement): void {
     cursor.setAttribute("x1", String(PLOT.left));
     cursor.setAttribute("x2", String(PLOT.left));
   }
+  hideCursorPitchMarker(visualizer);
   const label = visualizer.querySelector<HTMLElement>(".aqe-cursor-label");
   if (label) label.textContent = "0 ms / -- Hz";
   const flag = visualizer.querySelector<SVGGElement>(".aqe-cursor-flag");
@@ -192,6 +199,26 @@ export function graphLogContext(
 function clearText(root: VisualizerElement, selector: string): void {
   const node = root.querySelector<HTMLElement | SVGElement>(selector);
   if (node) node.textContent = "";
+}
+
+function renderCursorPitchMarker(visualizer: VisualizerElement, x: number, pitchHz: number | null): void {
+  const marker = visualizer.querySelector<SVGCircleElement>(".aqe-cursor-pitch-marker");
+  const track = visualizer.__aqeTrack;
+  if (!marker || pitchHz === null || !track || Number(visualizer.dataset.durationMs || "0") <= 0) {
+    hideCursorPitchMarker(visualizer);
+    return;
+  }
+  marker.setAttribute("visibility", "visible");
+  marker.setAttribute("cx", x.toFixed(2));
+  marker.setAttribute("cy", yForPitch(pitchHz, track.pitchMinHz, track.pitchMaxHz).toFixed(2));
+}
+
+function hideCursorPitchMarker(visualizer: VisualizerElement): void {
+  const marker = visualizer.querySelector<SVGCircleElement>(".aqe-cursor-pitch-marker");
+  if (!marker) return;
+  marker.setAttribute("visibility", "hidden");
+  marker.setAttribute("cx", String(PLOT.left));
+  marker.setAttribute("cy", String(PLOT.height - PLOT.bottom));
 }
 
 function clampedCursorFlagX(cursorX: number): number {

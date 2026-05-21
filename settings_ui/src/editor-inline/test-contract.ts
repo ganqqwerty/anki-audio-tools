@@ -132,6 +132,7 @@ export function graphStateForTest(ord: number): GraphStateForTest | null {
   const timecodeFlag = visualizer.querySelector<SVGGElement>(".aqe-cursor-flag");
   const timecodeFlagCurrent = visualizer.querySelector<SVGTextElement>(".aqe-cursor-flag-current");
   const timecodeFlagPitch = visualizer.querySelector<SVGTextElement>(".aqe-cursor-flag-pitch");
+  const pitchMarker = visualizer.querySelector<SVGCircleElement>(".aqe-cursor-pitch-marker");
   return {
     active: visualizer.dataset.graphActive === "true",
     busy: visualizer.dataset.graphBusy === "true",
@@ -182,6 +183,9 @@ export function graphStateForTest(ord: number): GraphStateForTest | null {
     pitchPaths: visualizer.querySelectorAll(".aqe-pitch-path").length,
     intensity: visualizer.querySelector<SVGPathElement>(".aqe-intensity")?.getAttribute("d") || "",
     cursorX: Number(visualizer.querySelector<SVGLineElement>(".aqe-cursor")?.getAttribute("x1") || "0"),
+    pitchMarkerVisible: pitchMarker?.getAttribute("visibility") === "visible",
+    pitchMarkerX: pitchMarker?.getAttribute("cx") ? Number(pitchMarker.getAttribute("cx")) : null,
+    pitchMarkerY: pitchMarker?.getAttribute("cy") ? Number(pitchMarker.getAttribute("cy")) : null,
     timecodeFlagVisible: timecodeFlag?.getAttribute("visibility") === "visible",
     timecodeFlagTransform: timecodeFlag?.getAttribute("transform") || "",
     timecodeFlagCurrent: timecodeFlagCurrent?.textContent || "",
