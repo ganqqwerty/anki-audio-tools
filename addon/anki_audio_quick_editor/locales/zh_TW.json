@@ -181,6 +181,7 @@
   "batch.window_title": "執行音訊批次操作",
   "batch.instructions": "為選取筆記選擇操作與欄位。",
   "batch.operation": "操作",
+  "batch.suppressor": "降噪器",
   "batch.source_field": "來源欄位",
   "batch.target_field": "目標欄位",
   "batch.start": "開始",
@@ -201,6 +202,7 @@
   "batch.result.fail": "失敗",
   "batch.result.line": "{prefix} 筆記 {note_id}{audio}: {message}",
   "operation.graph": "圖表",
+  "operation.denoise": "降噪",
   "operation.remove_pauses": "縮短停頓",
   "operation.slower": "較慢",
   "operation.faster": "較快",
@@ -243,9 +245,10 @@
   "settings.support.collecting_environment": "正在收集環境資訊",
   "settings.support.checking_external_tools": "正在檢查外部工具",
   "settings.support.reading_recent_logs": "正在讀取最近的日誌",
+  "settings.dpdfnet_attn_limit_db": "DPDFNet 強度",
   "settings.denoise_algorithm.dpdfnet": "DPDFNet",
   "editor.command.dpdfnet.label": "DPDFNet",
-  "editor.command.dpdfnet.title": "使用 DPDFNet 對語音降噪，衰減上限 {db} dB",
+  "editor.command.dpdfnet.title": "使用 DPDFNet 對語音降噪，強度：{level}",
   "editor.status.denoising_dpdfnet": "正在使用 DPDFNet 降噪",
   "settings.health.checking_dpdfnet": "正在檢查 DPDFNet"
 }

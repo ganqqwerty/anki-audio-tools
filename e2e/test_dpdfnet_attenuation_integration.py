@@ -1,4 +1,4 @@
-"""E2E tests for DPDFNet attenuation-limit settings integration."""
+"""E2E tests for DPDFNet aggressiveness settings integration."""
 
 from __future__ import annotations
 
@@ -32,7 +32,7 @@ def _split_menu_selector(command: str, ord_: int = 0) -> str:
     return f'[data-testid="aqe-split-{ord_}-{slug}-menu"]'
 
 
-def test_settings_dialog_saves_dpdfnet_attenuation_limit(anki_mw) -> None:
+def test_settings_dialog_saves_dpdfnet_aggressiveness(anki_mw) -> None:
     config = anki_mw.addonManager.getConfig(ADDON_NUMERIC_ID) or {}
     config["dpdfnet_attn_limit_db"] = 12.0
     anki_mw.addonManager.writeConfig(ADDON_NUMERIC_ID, config)
@@ -44,17 +44,17 @@ def test_settings_dialog_saves_dpdfnet_attenuation_limit(anki_mw) -> None:
         dialog,
         f"""
         (() => {{
-          const input = document.querySelector({json.dumps(selector)});
-          input.value = "8.5";
-          input.dispatchEvent(new Event("input", {{ bubbles: true }}));
-          return input.value;
+          const select = document.querySelector({json.dumps(selector)});
+          select.value = "18";
+          select.dispatchEvent(new Event("change", {{ bubbles: true }}));
+          return select.value;
         }})()
         """,
     )
     wait_for_js_condition(
         dialog,
         f"Number(document.querySelector({json.dumps(selector)})?.value)",
-        lambda value: value == 8.5,
+        lambda value: value == 18,
         timeout=5.0,
     )
 
@@ -67,10 +67,10 @@ def test_settings_dialog_saves_dpdfnet_attenuation_limit(anki_mw) -> None:
         wait_for_condition(lambda: mock_write.called, timeout=5.0)
 
     saved_config = mock_write.call_args.args[1]
-    assert saved_config["dpdfnet_attn_limit_db"] == 8.5
+    assert saved_config["dpdfnet_attn_limit_db"] == 18
 
 
-def test_editor_dpdfnet_uses_saved_attenuation_limit(
+def test_editor_dpdfnet_uses_selected_aggressiveness(
     anki_mw,
     ffmpeg_config,
     monkeypatch,
@@ -82,7 +82,7 @@ def test_editor_dpdfnet_uses_saved_attenuation_limit(
     source = media_dir / "editor_dpdfnet_attn_limit_source.wav"
     generate_tone(ffmpeg_config, source, duration_s=1.0)
     note = _basic_audio_note(anki_mw, source.name)
-    _configure_ffmpeg(anki_mw, ffmpeg_config, dpdfnet_attn_limit_db=8.5)
+    _configure_ffmpeg(anki_mw, ffmpeg_config, dpdfnet_attn_limit_db=18.0)
 
     def fake_render_dpdfnet_audio(
         _source_path: Path,
@@ -107,7 +107,7 @@ def test_editor_dpdfnet_uses_saved_attenuation_limit(
             """
             document.querySelector('[data-testid="aqe-split-0-denoise-standard-preset-dpdfnet"]')?.title
             """,
-            lambda value: value == "Denoise speech with DPDFNet, attenuation limit 8.5 dB",
+            lambda value: value == "Denoise speech with DPDFNet, Aggressiveness: Aggressive",
             timeout=5.0,
         )
         click_selector(
@@ -120,21 +120,21 @@ def test_editor_dpdfnet_uses_saved_attenuation_limit(
             """
             document.querySelector('[data-testid="aqe-button-0-denoise-standard"]')?.title
             """,
-            lambda value: value == "Denoise speech with DPDFNet, attenuation limit 8.5 dB",
+            lambda value: value == "Denoise speech with DPDFNet, Aggressiveness: Aggressive",
             timeout=5.0,
         )
         click_selector(editor.web, _button_selector("aqe:denoise-standard"), timeout=5.0)
         wait_for_condition(
-            lambda: captured == [8.5] and _sound_filename(note.fields[0]) != source.name,
+            lambda: captured == [18.0] and _sound_filename(note.fields[0]) != source.name,
             timeout=10.0,
-            message="Editor did not pass saved DPDFNet attenuation limit to renderer",
+            message="Editor did not pass selected DPDFNet aggressiveness to renderer",
         )
     finally:
         editor.set_note(None)
         parent.close()
 
 
-def test_batch_dialog_loads_with_saved_dpdfnet_attenuation_limit(anki_mw, ffmpeg_config) -> None:
+def test_batch_dialog_loads_with_saved_dpdfnet_aggressiveness(anki_mw, ffmpeg_config) -> None:
     from anki_audio_quick_editor.audio_state import AudioProcessingConfig
     from anki_audio_quick_editor.batch_operations import FieldGroup
     from anki_audio_quick_editor.browser_dialog import BatchOperationsDialog
@@ -142,7 +142,7 @@ def test_batch_dialog_loads_with_saved_dpdfnet_attenuation_limit(anki_mw, ffmpeg
     _configure_ffmpeg(
         anki_mw,
         ffmpeg_config,
-        dpdfnet_attn_limit_db=8.5,
+        dpdfnet_attn_limit_db=18.0,
         speed_step=0.1,
         volume_step_db=6.0,
         pause_aggressiveness="aggressive",
@@ -174,7 +174,7 @@ def test_batch_dialog_loads_with_saved_dpdfnet_attenuation_limit(anki_mw, ffmpeg
             timeout=5.0,
         )
         assert "Operation" in " ".join(state["labels"])
-        assert config.dpdfnet_attn_limit_db == 8.5
+        assert config.dpdfnet_attn_limit_db == 18.0
         assert started_requests == []
     finally:
         dialog._dialog.close()

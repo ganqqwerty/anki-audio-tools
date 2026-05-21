@@ -7,6 +7,7 @@ import {
   BatchParameterKind,
   BatchParameterName,
   BatchPauseAggressiveness,
+  DenoiseAlgorithm,
   Direction,
 } from "../src/lib/types.js";
 
@@ -36,6 +37,13 @@ function setInitialState(): void {
         parameter_name: BatchParameterName.SpeedStep,
       },
       {
+        operation: BatchOperationName.Denoise,
+        label: "Denoise",
+        requires_target_field: false,
+        parameter_kind: BatchParameterKind.Denoise,
+        parameter_name: BatchParameterName.DenoiseAlgorithm,
+      },
+      {
         operation: BatchOperationName.VolumeUp,
         label: "Volume +",
         requires_target_field: false,
@@ -48,6 +56,8 @@ function setInitialState(): void {
       speed_step: 0.1,
       volume_step_db: 6,
       pause_aggressiveness: BatchPauseAggressiveness.Aggressive,
+      denoise_algorithm: DenoiseAlgorithm.Standard,
+      dpdfnet_attn_limit_db: 12,
     },
     locale: "en",
     direction: Direction.LTR,
@@ -95,6 +105,15 @@ describe("BatchApp", () => {
     });
     expect(screen.getByLabelText("Shorten pauses level")).toBeInTheDocument();
     expect(screen.queryByLabelText("Speed step")).not.toBeInTheDocument();
+
+    await fireEvent.change(screen.getByLabelText("Operation"), {
+      target: { value: BatchOperationName.Denoise },
+    });
+    expect(screen.getByLabelText("Suppressor")).toBeInTheDocument();
+    await fireEvent.change(screen.getByLabelText("Suppressor"), {
+      target: { value: DenoiseAlgorithm.Dpdfnet },
+    });
+    expect(screen.getByLabelText("DPDFNet Aggressiveness")).toBeInTheDocument();
   });
 
   it("updates progress, log, finish state, and copy log command", async () => {

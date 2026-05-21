@@ -2,12 +2,14 @@
   import { t } from "../lib/i18n.js";
   import {
     formatDenoiseAlgorithm,
+    formatDpdfnetAggressiveness,
     formatPauseAggressiveness,
     formatSpeedStep,
     formatTrimMs,
     formatVolumeDb,
   } from "./split-button-state.js";
   import { COMMAND_SLUGS } from "./commands.js";
+  import { DPDFNET_ATTENUATION_LIMIT_DB_VALUES } from "../lib/audio-operation-parameters.js";
   import type { ButtonSpec, FieldSplitButtonState } from "./types.js";
 
   type DenoiseAlgorithm = FieldSplitButtonState["denoiseAlgorithm"];
@@ -15,8 +17,10 @@
   const {
     button,
     denoiseAlgorithm,
+    dpdfnetAttnLimitDb,
     onChange,
     onDenoiseAlgorithm,
+    onDpdfnetAttnLimitDb,
     onPauseAggressiveness,
     onSpeedStep,
     onTrimStep,
@@ -29,8 +33,10 @@
   }: {
     button: ButtonSpec;
     denoiseAlgorithm: DenoiseAlgorithm;
+    dpdfnetAttnLimitDb: number;
     onChange: () => void;
     onDenoiseAlgorithm: (value: DenoiseAlgorithm) => void;
+    onDpdfnetAttnLimitDb: (value: number) => void;
     onPauseAggressiveness: (value: "gentle" | "normal" | "aggressive") => void;
     onSpeedStep: (value: number) => void;
     onTrimStep: (value: number) => void;
@@ -129,8 +135,9 @@
 
   function optionTitle(value: string): string {
     if (value === "dpdfnet") {
-      const db = window.__AQE_EDITOR_CONFIG__?.splitButtonDefaults?.dpdfnetAttnLimitDb ?? 12;
-      return t("editor.command.dpdfnet.title", { db });
+      return t("editor.command.dpdfnet.title", {
+        level: formatDpdfnetAggressiveness(dpdfnetAttnLimitDb),
+      });
     }
     return optionLabel(value);
   }
@@ -138,6 +145,11 @@
   function applyOption(value: string): void {
     if (value === "gentle" || value === "normal" || value === "aggressive") onPauseAggressiveness(value);
     if (value === "standard" || value === "rnnoise" || value === "dpdfnet" || value === "voice_only") onDenoiseAlgorithm(value);
+    onChange();
+  }
+
+  function applyDpdfnetAggressiveness(value: number): void {
+    onDpdfnetAttnLimitDb(value);
     onChange();
   }
 
@@ -181,6 +193,20 @@
       </button>
     {/each}
   </div>
+  {#if denoiseAlgorithm === "dpdfnet"}
+    <label class="aqe-split-extra-field">
+      <span>{t("settings.dpdfnet_attn_limit_db")}</span>
+      <select
+        data-testid={`aqe-split-${targetOrd}-${slug}-dpdfnet-aggressiveness`}
+        value={dpdfnetAttnLimitDb}
+        onchange={(event) => applyDpdfnetAggressiveness(Number((event.currentTarget as HTMLSelectElement).value))}
+      >
+        {#each DPDFNET_ATTENUATION_LIMIT_DB_VALUES as value}
+          <option value={value}>{formatDpdfnetAggressiveness(value)}</option>
+        {/each}
+      </select>
+    </label>
+  {/if}
 {:else}
   <input
     data-testid={`aqe-split-${targetOrd}-${slug}-slider`}
@@ -209,3 +235,26 @@
     {/each}
   </div>
 {/if}
+
+<style>
+  .aqe-split-extra-field {
+    display: grid;
+    gap: 6px;
+    margin-top: 10px;
+  }
+
+  .aqe-split-extra-field span {
+    font-size: 0.8rem;
+    font-weight: 700;
+  }
+
+  .aqe-split-extra-field select {
+    background: var(--canvas-elevated, Field);
+    border: 1px solid var(--border, ButtonBorder);
+    border-radius: 6px;
+    color: var(--fg, FieldText);
+    font: inherit;
+    min-height: 30px;
+    padding: 4px 8px;
+  }
+</style>

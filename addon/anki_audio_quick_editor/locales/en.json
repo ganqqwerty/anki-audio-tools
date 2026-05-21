@@ -40,7 +40,7 @@
   "settings.deep_filter_path": "DeepFilterNet path",
   "settings.deep_filter_path.placeholder": "Leave blank to use bundled binary, then PATH",
   "settings.deep_filter_post_filter": "Use DeepFilterNet post-filter",
-  "settings.dpdfnet_attn_limit_db": "DPDFNet attenuation limit (dB)",
+  "settings.dpdfnet_attn_limit_db": "DPDFNet Aggressiveness",
   "settings.manual_trim_small_ms": "Small trim step (ms)",
   "settings.manual_trim_large_ms": "Large trim step (ms)",
   "settings.speed_step": "Speed step",
@@ -181,6 +181,7 @@
   "batch.window_title": "Run Audio Batch Operation",
   "batch.instructions": "Choose an operation and fields for the selected notes.",
   "batch.operation": "Operation",
+  "batch.suppressor": "Suppressor",
   "batch.source_field": "Source field",
   "batch.target_field": "Target field",
   "batch.start": "Start",
@@ -201,6 +202,7 @@
   "batch.result.fail": "FAIL",
   "batch.result.line": "{prefix} note {note_id}{audio}: {message}",
   "operation.graph": "Graph",
+  "operation.denoise": "Denoise",
   "operation.remove_pauses": "Shorten Pauses",
   "operation.slower": "Slower",
   "operation.faster": "Faster",
@@ -245,7 +247,7 @@
   "settings.support.reading_recent_logs": "Reading recent logs",
   "settings.denoise_algorithm.dpdfnet": "DPDFNet",
   "editor.command.dpdfnet.label": "DPDFNet",
-  "editor.command.dpdfnet.title": "Denoise speech with DPDFNet, attenuation limit {db} dB",
+  "editor.command.dpdfnet.title": "Denoise speech with DPDFNet, Aggressiveness: {level}",
   "editor.status.denoising_dpdfnet": "Denoising with DPDFNet",
   "settings.health.checking_dpdfnet": "Checking DPDFNet"
 }

@@ -94,6 +94,8 @@ class EditorCommandOverrides:
     volume_step_db: float | None = None
     speed_step: float | None = None
     pause_aggressiveness: str | None = None
+    denoise_algorithm: str | None = None
+    dpdfnet_attn_limit_db: float | None = None
 
 
 @dataclass(frozen=True)
@@ -124,12 +126,16 @@ def _overrides_from_raw(raw: Any) -> EditorCommandOverrides:
         volume_step_db=raw.get("volumeStepDb"),
         speed_step=raw.get("speedStep"),
         pause_aggressiveness=raw.get("pauseAggressiveness"),
+        denoise_algorithm=raw.get("denoiseAlgorithm"),
+        dpdfnet_attn_limit_db=raw.get("dpdfnetAttnLimitDb"),
     )
     return EditorCommandOverrides(
         trim_step_ms=params.trim_step_ms,
         volume_step_db=params.volume_step_db,
         speed_step=params.speed_step,
         pause_aggressiveness=params.pause_aggressiveness,
+        denoise_algorithm=params.denoise_algorithm,
+        dpdfnet_attn_limit_db=params.dpdfnet_attn_limit_db,
     )
 
 

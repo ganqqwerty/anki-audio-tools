@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import logging
 import shutil
+from dataclasses import replace
 from pathlib import Path
 from typing import Any, Callable
 
@@ -104,8 +105,8 @@ def render_and_replace_async(
             desired_name = deps.make_output_filename(source_path.name)
             output_path = deps.temp_final_path(desired_name)
 
-            def _show_command(command: tuple[str, ...]) -> None:
-                rendered = deps.format_ffmpeg_command(command)
+            def _show_command(process_command: tuple[str, ...]) -> None:
+                rendered = deps.format_ffmpeg_command(process_command)
                 status_message = t("editor.status.processing_ffmpeg")
                 command_text = ""
                 if config.show_ffmpeg_commands:
@@ -219,8 +220,15 @@ def rnnoise_async(editor: Any, deps: Any) -> None:
     )
 
 
-def dpdfnet_async(editor: Any, deps: Any) -> None:
+def dpdfnet_async(
+    editor: Any,
+    command: EditorCommandPayload | None = None,
+    deps: Any = None,
+) -> None:
     """Start DPDFNet denoise for the current media."""
+    if deps is None:
+        deps = command
+        command = None
     deps.run_special_audio_transform_async(
         editor,
         label=t("editor.status.denoising_dpdfnet"),
@@ -228,6 +236,7 @@ def dpdfnet_async(editor: Any, deps: Any) -> None:
         renderer=deps.render_dpdfnet_audio,
         support_hint=deps.support_report_hint,
         failure_context_recorder=deps.record_dpdfnet_failure_context,
+        command=command,
     )
 
 
@@ -251,6 +260,7 @@ def run_special_audio_transform_async(
     renderer: Callable[..., Any],
     support_hint: str = "",
     failure_context_recorder: Callable[[Path, AudioProcessingConfig, Exception], None] | None = None,
+    command: EditorCommandPayload | None = None,
     deps: Any,
 ) -> None:
     """Run a denoise transform and replace the current audio on completion."""
@@ -262,6 +272,8 @@ def run_special_audio_transform_async(
     session, current_path = deps.current_media_path(editor)
     _cancel_graph_analysis_for_processing(editor, session, deps)
     config = AudioProcessingConfig.from_config(deps.config(editor))
+    if command is not None and command.overrides.dpdfnet_attn_limit_db is not None:
+        config = replace(config, dpdfnet_attn_limit_db=command.overrides.dpdfnet_attn_limit_db)
     deps.stop_session_playback(session)
     session.post_edit_playback_generation += 1
     session.processing = True
@@ -284,8 +296,8 @@ def run_special_audio_transform_async(
             desired_name = deps.make_output_filename(current_path.name)
             output_path = deps.temp_final_path(desired_name)
 
-            def _show_command(command: tuple[str, ...]) -> None:
-                rendered = deps.format_ffmpeg_command(command)
+            def _show_command(process_command: tuple[str, ...]) -> None:
+                rendered = deps.format_ffmpeg_command(process_command)
                 status_message = label
                 command_text = ""
                 if config.show_ffmpeg_commands:

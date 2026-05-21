@@ -144,7 +144,7 @@
     },
     "dpdfnet_attn_limit_db": {
       "type": "number",
-      "minimum": 0
+      "enum": [6.0, 12.0, 18.0]
     },
     "denoise_algorithm": {
       "type": "string",

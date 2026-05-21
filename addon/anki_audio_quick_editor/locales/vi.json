@@ -181,6 +181,7 @@
   "batch.window_title": "Chạy thao tác âm thanh hàng loạt",
   "batch.instructions": "Chọn thao tác và trường cho các ghi chú đã chọn.",
   "batch.operation": "Thao tác",
+  "batch.suppressor": "Bộ khử nhiễu",
   "batch.source_field": "Trường nguồn",
   "batch.target_field": "Trường đích",
   "batch.start": "Bắt đầu",
@@ -201,6 +202,7 @@
   "batch.result.fail": "LỖI",
   "batch.result.line": "{prefix} ghi chú {note_id}{audio}: {message}",
   "operation.graph": "Biểu đồ",
+  "operation.denoise": "Khử nhiễu",
   "operation.remove_pauses": "Rút ngắn dừng",
   "operation.slower": "Chậm hơn",
   "operation.faster": "Nhanh hơn",
@@ -243,9 +245,10 @@
   "settings.support.collecting_environment": "Đang thu thập môi trường",
   "settings.support.checking_external_tools": "Đang kiểm tra công cụ bên ngoài",
   "settings.support.reading_recent_logs": "Đang đọc nhật ký gần đây",
+  "settings.dpdfnet_attn_limit_db": "Độ mạnh DPDFNet",
   "settings.denoise_algorithm.dpdfnet": "DPDFNet",
   "editor.command.dpdfnet.label": "DPDFNet",
-  "editor.command.dpdfnet.title": "Khử nhiễu giọng nói bằng DPDFNet, giới hạn suy giảm {db} dB",
+  "editor.command.dpdfnet.title": "Khử nhiễu giọng nói bằng DPDFNet, mức mạnh: {level}",
   "editor.status.denoising_dpdfnet": "Đang khử nhiễu bằng DPDFNet",
   "settings.health.checking_dpdfnet": "Đang kiểm tra DPDFNet"
 }

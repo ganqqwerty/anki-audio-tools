@@ -181,6 +181,7 @@
   "batch.window_title": "音声バッチ操作を実行",
   "batch.instructions": "選択したノートの操作とフィールドを選択してください。",
   "batch.operation": "操作",
+  "batch.suppressor": "ノイズ抑制",
   "batch.source_field": "元フィールド",
   "batch.target_field": "対象フィールド",
   "batch.start": "開始",
@@ -201,6 +202,7 @@
   "batch.result.fail": "失敗",
   "batch.result.line": "{prefix} ノート {note_id}{audio}: {message}",
   "operation.graph": "グラフ",
+  "operation.denoise": "ノイズ除去",
   "operation.remove_pauses": "ポーズ短縮",
   "operation.slower": "遅く",
   "operation.faster": "速く",
@@ -243,9 +245,10 @@
   "settings.support.collecting_environment": "環境情報を収集中",
   "settings.support.checking_external_tools": "外部ツールを確認中",
   "settings.support.reading_recent_logs": "最近のログを読み込み中",
+  "settings.dpdfnet_attn_limit_db": "DPDFNet 強度",
   "settings.denoise_algorithm.dpdfnet": "DPDFNet",
   "editor.command.dpdfnet.label": "DPDFNet",
-  "editor.command.dpdfnet.title": "DPDFNet で音声のノイズを除去、減衰上限 {db} dB",
+  "editor.command.dpdfnet.title": "DPDFNet で音声のノイズを除去、強度: {level}",
   "editor.status.denoising_dpdfnet": "DPDFNet でノイズ除去中",
   "settings.health.checking_dpdfnet": "DPDFNet を確認中"
 }

@@ -1,6 +1,10 @@
 <script lang="ts">
   import { t } from "$lib/i18n.js";
-  import { BatchParameterKind, BatchPauseAggressiveness } from "$lib/types.js";
+  import {
+    DPDFNET_ATTENUATION_LIMIT_DB_VALUES,
+    formatDpdfnetAggressiveness,
+  } from "$lib/audio-operation-parameters.js";
+  import { BatchParameterKind, BatchPauseAggressiveness, DenoiseAlgorithm } from "$lib/types.js";
   import type { BatchInitialState, BatchOperationOption } from "$lib/types.js";
   import type { BatchFormState } from "./batch-state.js";
 
@@ -67,6 +71,30 @@
         <option value={BatchPauseAggressiveness.Aggressive}>{t("settings.pause_aggressiveness.aggressive")}</option>
       </select>
     </label>
+  {:else if selected?.parameter_kind === BatchParameterKind.Denoise}
+    <label>
+      <span>{t("batch.suppressor")}</span>
+      <select bind:value={form.denoiseAlgorithm} disabled={disabled}>
+        <option value={DenoiseAlgorithm.Standard}>{t("settings.denoise_algorithm.standard")}</option>
+        <option value={DenoiseAlgorithm.Rnnoise}>{t("settings.denoise_algorithm.rnnoise")}</option>
+        <option value={DenoiseAlgorithm.Dpdfnet}>{t("settings.denoise_algorithm.dpdfnet")}</option>
+        <option value={DenoiseAlgorithm.VoiceOnly}>{t("settings.denoise_algorithm.voice_only")}</option>
+      </select>
+    </label>
+    {#if form.denoiseAlgorithm === DenoiseAlgorithm.Dpdfnet}
+      <label>
+        <span>{t("settings.dpdfnet_attn_limit_db")}</span>
+        <select
+          bind:value={form.dpdfnetAttnLimitDb}
+          data-testid="batch-dpdfnet-attn-limit-db"
+          disabled={disabled}
+        >
+          {#each DPDFNET_ATTENUATION_LIMIT_DB_VALUES as value}
+            <option value={value}>{formatDpdfnetAggressiveness(value)}</option>
+          {/each}
+        </select>
+      </label>
+    {/if}
   {/if}
 </div>
 

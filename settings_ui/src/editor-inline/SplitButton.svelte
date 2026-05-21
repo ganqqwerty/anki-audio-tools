@@ -7,8 +7,10 @@
   import { send } from "./actions.js";
   import {
     buildSplitCommandPayload,
+    formatDpdfnetAggressiveness,
     getSplitButtonState,
     setDenoiseAlgorithmForField,
+    setDpdfnetAttnLimitDbForField,
     setPauseAggressivenessForField,
     setSpeedStepForField,
     setTrimStepForField,
@@ -52,6 +54,7 @@
   let speedStep = $state(0.05);
   let pauseAggressiveness = $state<"gentle" | "normal" | "aggressive">("normal");
   let denoiseAlgorithm = $state<DenoiseAlgorithm>("standard");
+  let dpdfnetAttnLimitDb = $state(12);
   let graphVoiceRange = $state<GraphVoiceRange>("general");
   let graphRecordingCondition = $state<GraphRecordingCondition>("auto");
   let graphSmoothness = $state<GraphSmoothness>("very_smooth");
@@ -81,8 +84,7 @@
     if (!isDenoiseButton()) return button.title;
     if (denoiseAlgorithm === "rnnoise") return t("editor.command.rnnoise.title");
     if (denoiseAlgorithm === "dpdfnet") {
-      const db = window.__AQE_EDITOR_CONFIG__?.splitButtonDefaults?.dpdfnetAttnLimitDb ?? 12;
-      return t("editor.command.dpdfnet.title", { db });
+      return t("editor.command.dpdfnet.title", { level: formatDpdfnetAggressiveness(dpdfnetAttnLimitDb) });
     }
     if (denoiseAlgorithm === "voice_only") return t("editor.command.voice_only.title");
     return t("editor.command.standard.title");
@@ -117,6 +119,10 @@
 
   function applyDenoiseAlgorithm(value: DenoiseAlgorithm): void {
     denoiseAlgorithm = setDenoiseAlgorithmForField(target.ord, value).denoiseAlgorithm;
+  }
+
+  function applyDpdfnetAttnLimitDb(value: number): void {
+    dpdfnetAttnLimitDb = setDpdfnetAttnLimitDbForField(target.ord, value).dpdfnetAttnLimitDb;
   }
 
   function applyGraphVoiceRange(value: GraphVoiceRange): void {
@@ -213,6 +219,7 @@
     speedStep = state.speedStep;
     pauseAggressiveness = state.pauseAggressiveness;
     denoiseAlgorithm = state.denoiseAlgorithm;
+    dpdfnetAttnLimitDb = state.dpdfnetAttnLimitDb;
     graphVoiceRange = state.graphVoiceRange;
     graphRecordingCondition = state.graphRecordingCondition;
     graphSmoothness = state.graphSmoothness;
@@ -293,11 +300,13 @@
           denoiseAlgorithm={denoiseAlgorithm}
           onChange={() => void updatePopoverPlacement()}
           onDenoiseAlgorithm={applyDenoiseAlgorithm}
+          onDpdfnetAttnLimitDb={applyDpdfnetAttnLimitDb}
           onPauseAggressiveness={applyPauseAggressiveness}
           onSpeedStep={applySpeedStep}
           onTrimStep={applyTrimStep}
           onVolumeStep={applyVolumeStep}
           pauseAggressiveness={pauseAggressiveness}
+          dpdfnetAttnLimitDb={dpdfnetAttnLimitDb}
           speedStep={speedStep}
           targetOrd={target.ord}
           trimStepMs={trimStepMs}

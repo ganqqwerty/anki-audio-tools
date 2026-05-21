@@ -181,6 +181,7 @@
   "batch.window_title": "Audio-Stapeloperation ausführen",
   "batch.instructions": "Wähle eine Operation und Felder für die ausgewählten Notizen.",
   "batch.operation": "Operation",
+  "batch.suppressor": "Rauschunterdrücker",
   "batch.source_field": "Quellfeld",
   "batch.target_field": "Zielfeld",
   "batch.start": "Start",
@@ -201,6 +202,7 @@
   "batch.result.fail": "FEHLER",
   "batch.result.line": "{prefix} Notiz {note_id}{audio}: {message}",
   "operation.graph": "Diagramm",
+  "operation.denoise": "Entrauschen",
   "operation.remove_pauses": "Pausen kürzen",
   "operation.slower": "Langsamer",
   "operation.faster": "Schneller",
@@ -243,9 +245,10 @@
   "settings.support.collecting_environment": "Umgebung wird gesammelt",
   "settings.support.checking_external_tools": "Externe Werkzeuge werden geprüft",
   "settings.support.reading_recent_logs": "Aktuelle Protokolle werden gelesen",
+  "settings.dpdfnet_attn_limit_db": "DPDFNet-Aggressivität",
   "settings.denoise_algorithm.dpdfnet": "DPDFNet",
   "editor.command.dpdfnet.label": "DPDFNet",
-  "editor.command.dpdfnet.title": "Sprache mit DPDFNet entrauschen, Dämpfungslimit {db} dB",
+  "editor.command.dpdfnet.title": "Sprache mit DPDFNet entrauschen, Aggressivität: {level}",
   "editor.status.denoising_dpdfnet": "Entrauschen mit DPDFNet",
   "settings.health.checking_dpdfnet": "DPDFNet wird geprüft"
 }

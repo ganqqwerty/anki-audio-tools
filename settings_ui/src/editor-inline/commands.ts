@@ -1,5 +1,6 @@
 import type { ButtonSpec, EditorCommand } from "./types.js";
 import { t } from "../lib/i18n.js";
+import { formatDpdfnetAggressiveness } from "../lib/audio-operation-parameters.js";
 
 export function commandButtons(): readonly ButtonSpec[] {
   const trimMs = window.__AQE_EDITOR_CONFIG__?.splitButtonDefaults?.trimStepMs ?? 100;
@@ -114,7 +115,9 @@ export function denoiseButtons(): readonly ButtonSpec[] {
       command: "aqe:dpdfnet",
       icon: "sparkles",
       label: t("editor.command.dpdfnet.label"),
-      title: t("editor.command.dpdfnet.title", { db: dpdfnetAttnLimitDb }),
+      title: t("editor.command.dpdfnet.title", {
+        level: formatDpdfnetAggressiveness(dpdfnetAttnLimitDb),
+      }),
     },
     {
       command: "aqe:voice-only",

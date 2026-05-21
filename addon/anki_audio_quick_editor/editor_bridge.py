@@ -108,6 +108,9 @@ def handle_non_processing_command(editor: Any, command: str | EditorCommandPaylo
     if payload.command == "aqe:analyze":
         deps.analyze_current_async(editor, graph_settings=payload.graph_settings)
         return True
+    if payload.command == CMD_DPDFNET:
+        deps.dpdfnet_async(editor, payload)
+        return True
     handlers = {
         CMD_ANALYZE_FIELD: deps.analyze_field_from_frontend,
         "aqe:set-cursor": deps.set_cursor_from_web,
@@ -120,7 +123,6 @@ def handle_non_processing_command(editor: Any, command: str | EditorCommandPaylo
         CMD_SETTINGS: deps.open_settings_from_editor,
         CMD_DENOISE_STANDARD: deps.denoise_standard_async,
         CMD_RNNOISE: deps.rnnoise_async,
-        CMD_DPDFNET: deps.dpdfnet_async,
         CMD_VOICE_ONLY: deps.voice_only_async,
         CMD_DELETE_SELECTION: deps.delete_selection_from_frontend,
         CMD_DELETE_REST: deps.delete_selection_from_frontend,
