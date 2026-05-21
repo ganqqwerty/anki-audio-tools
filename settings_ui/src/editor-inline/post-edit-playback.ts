@@ -12,6 +12,10 @@ export function rememberPostEditPlaybackIntent(ord: number): void {
   };
 }
 
+export function forgetPostEditPlaybackIntent(ord: number): void {
+  delete postEditPlaybackIntents()[ord];
+}
+
 export function consumePostEditPlaybackIntent(ord: number): PostEditPlaybackIntent | null {
   const intents = postEditPlaybackIntents();
   const intent = intents[ord] ?? null;

@@ -111,10 +111,9 @@ export function playAfterEdit(ord: number): boolean {
   if (!visualizer) return false;
   if (anyBusy()) return false;
   const intent = consumePostEditPlaybackIntent(ord);
-  if (intent) {
-    setRepeatEnabled(visualizer, intent.repeat);
-    setRepeatPauseSeconds(visualizer, intent.repeatPauseSeconds);
-  }
+  if (!intent) return true;
+  setRepeatEnabled(visualizer, intent.repeat);
+  setRepeatPauseSeconds(visualizer, intent.repeatPauseSeconds);
   window.__aqeActiveField = ord;
   const region = effectivePlaybackRegion(visualizer);
   const request: PlaybackRequest = {

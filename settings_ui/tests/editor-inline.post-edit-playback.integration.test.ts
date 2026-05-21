@@ -113,4 +113,24 @@ describe("editor inline post-edit playback integration", () => {
     expect(window.__aqePostEditPlaybackIntents?.[0]).toBeUndefined();
     expect(bridgeCommands()).toContain("aqe:play");
   });
+
+  it("cancels pending post-edit autoplay when a history command is sent", async () => {
+    initializeEditorRuntime({ audioFieldIndices: [0] });
+    scan({ audioFieldIndices: [0] });
+    await Promise.resolve();
+
+    document.querySelector<HTMLButtonElement>('[data-testid="aqe-button-0-volume-up"]')!.click();
+    expect(window.__aqePostEditPlaybackIntents?.[0]).toBeDefined();
+    window.__aqeSetBusy?.(0, false);
+
+    document.querySelector<HTMLButtonElement>('[data-testid="aqe-button-0-redo"]')!.click();
+
+    expect(window.__aqePostEditPlaybackIntents?.[0]).toBeUndefined();
+    expect(bridgeCommands()).toContain("aqe:redo");
+    window.__aqePendingPlaybackRequest = null;
+    window.__aqeLastPlaybackRequest = null;
+
+    expect(window.__aqePlayAfterEdit?.(0)).toBe(true);
+    expect(window.__aqeLastPlaybackRequest).toBeNull();
+  });
 });

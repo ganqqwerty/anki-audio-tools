@@ -23,6 +23,7 @@ def undo(editor: Any, deps: Any) -> None:
         return
     previous = session.undo_history.pop()
     if previous is None:
+        session.post_edit_playback_generation += 1
         deps.eval_status(editor, t("editor.status.nothing_to_undo"))
         return
     deps.restore_history_entry(
@@ -42,6 +43,7 @@ def redo(editor: Any, deps: Any) -> None:
         return
     next_entry = session.redo_history.pop()
     if next_entry is None:
+        session.post_edit_playback_generation += 1
         deps.eval_status(editor, t("editor.status.nothing_to_redo"))
         return
     deps.restore_history_entry(

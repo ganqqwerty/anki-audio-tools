@@ -13,6 +13,8 @@ coverage.xml
 settings_ui/coverage/
 mutants/
 
+
+contact note - rm adds his name, the person with whom he spoke and about what and on which channel
 # Build artifacts
 dist/
 .release-assets/

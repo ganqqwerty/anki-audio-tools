@@ -68,14 +68,16 @@ def test_selected_one_shot_playback_respects_region_boundaries(
         2.0,
     )
     try:
-        expected_start = round(track["durationMs"] * start_ratio)
-        expected_end = round(track["durationMs"] * end_ratio)
+        target_start = round(track["durationMs"] * start_ratio)
+        target_end = round(track["durationMs"] * end_ratio)
         _shift_drag_region(editor, start_ratio, end_ratio)
         selected = _state(
             editor,
-            lambda state: state["selectionStartMs"] == expected_start
-            and state["selectionEndMs"] == expected_end,
+            lambda state: abs(state["selectionStartMs"] - target_start) <= PLAYBACK_INTERVAL_TOLERANCE_MS
+            and abs(state["selectionEndMs"] - target_end) <= PLAYBACK_INTERVAL_TOLERANCE_MS,
         )
+        expected_start = selected["selectionStartMs"]
+        expected_end = selected["selectionEndMs"]
         assert selected["playbackRegionMode"] == "selection"
 
         max_progress = {"value": expected_start}

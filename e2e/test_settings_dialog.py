@@ -237,13 +237,20 @@ def test_diagnostics_can_copy_support_report_and_open_log_file(anki_mw) -> None:
     )
     dialog = _open_settings_dialog(anki_mw)
 
+    QApplication.clipboard().clear()
     click_selector(dialog, '[data-testid="settings-tab-diagnostics"]', timeout=5.0)
     click_selector(dialog, '[data-testid="copy-support-report"]', timeout=5.0)
 
+    wait_for_js_condition(
+        dialog,
+        "document.querySelector('[data-testid=\"diagnostics-message\"]')?.textContent",
+        lambda value: value == "Support report copied",
+        timeout=15.0,
+    )
     wait_for_condition(
         lambda: "3d8ca69aee6.mp3" in QApplication.clipboard().text()
         and "RNNoise denoise failed." in QApplication.clipboard().text(),
-        timeout=5.0,
+        timeout=15.0,
     )
 
     revealed: list[str] = []

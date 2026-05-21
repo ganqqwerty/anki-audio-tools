@@ -15,7 +15,13 @@ from e2e.editor_note_helpers import (
     _three_audio_field_note,
     _wait_for_generated_mp3,
 )
-from e2e.helpers import generate_tone, run_js, wait_for_js_condition, wait_for_selector
+from e2e.helpers import (
+    generate_tone,
+    run_js,
+    wait_for_condition,
+    wait_for_js_condition,
+    wait_for_selector,
+)
 
 
 def test_fast_clicks_are_ignored_while_processing(anki_mw, ffmpeg_config) -> None:
@@ -102,7 +108,11 @@ def test_three_audio_fields_fast_cross_clicks_lock_globally_and_do_not_corrupt_f
         assert locked["opacity"] < 0.7
         assert locked["borderStyle"] == "dashed"
         assert unlocked["allButtonsDisabled"] is False
-        assert _sound_filename(note.fields[0]) == generated_name
+        wait_for_condition(
+            lambda: _sound_filename(note.fields[0]) == generated_name,
+            timeout=5.0,
+            message="Processed first audio field did not remain on the generated MP3",
+        )
         assert _sound_filename(note.fields[1]) == sources[1].name
         assert _sound_filename(note.fields[2]) == sources[2].name
         assert list(media_dir.glob("editor_three_fields_one__aqe_*.mp3")) == [media_dir / generated_name]

@@ -4,7 +4,7 @@ import { focusAndSendCommand, focusAndSendCommandPayload } from "./bridge.js";
 import { allVisualizers } from "./dom-selectors.js";
 import { logger } from "./logger.js";
 import { requestGraph } from "./graph-actions.js";
-import { rememberPostEditPlaybackIntent } from "./post-edit-playback.js";
+import { forgetPostEditPlaybackIntent, rememberPostEditPlaybackIntent } from "./post-edit-playback.js";
 import {
   handleHtmlPlaybackCommand,
   playbackStateFor,
@@ -43,6 +43,9 @@ export function send(
     focusAndSendCommand(ord, command);
     return;
   }
+  if (isHistoryCommand(command)) {
+    forgetPostEditPlaybackIntent(ord);
+  }
   if (shouldPlayAfterSuccessfulEdit(command)) {
     rememberPostEditPlaybackIntent(ord);
   }
@@ -58,7 +61,11 @@ export function send(
 }
 
 function shouldPlayAfterSuccessfulEdit(command: EditorCommand): boolean {
-  return PROCESSING_COMMANDS.has(command) || command === "aqe:undo" || command === "aqe:redo";
+  return PROCESSING_COMMANDS.has(command);
+}
+
+function isHistoryCommand(command: EditorCommand): boolean {
+  return command === "aqe:undo" || command === "aqe:redo";
 }
 
 function stopAllEditorPlayback(): void {
