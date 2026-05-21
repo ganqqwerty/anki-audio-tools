@@ -29,6 +29,10 @@ EXCLUDED_MODULES = [
     "torch",
     "PyQt5",
 ]
+HIDDEN_IMPORTS = [
+    "ai_edge_litert.interpreter",
+    "numpy.core._multiarray_umath",
+]
 
 
 def sha256_file(path: Path) -> str:
@@ -103,10 +107,10 @@ def build_pyinstaller_args(args: argparse.Namespace, model_path: Path) -> list[s
             "ai_edge_litert",
             "--collect-data",
             "ai_edge_litert",
-            "--hidden-import",
-            "ai_edge_litert.interpreter",
         ]
     )
+    for module in HIDDEN_IMPORTS:
+        command.extend(["--hidden-import", module])
     for module in EXCLUDED_MODULES:
         command.extend(["--exclude-module", module])
     command.append(str(SRC_DIR / "dpdfnet_lite" / "__main__.py"))
