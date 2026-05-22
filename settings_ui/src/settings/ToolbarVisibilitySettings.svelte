@@ -56,8 +56,8 @@
   }
 </script>
 
-<section class="toolbar-visibility" aria-labelledby="toolbar-visibility-title">
-  <div class="toolbar-visibility-header">
+<section class="toolbar-visibility settings-section" aria-labelledby="toolbar-visibility-title">
+  <div class="toolbar-visibility-header settings-section-header">
     <h3 id="toolbar-visibility-title">{t("settings.toolbar_visibility.title")}</h3>
     <p>{t("settings.toolbar_visibility.summary")}</p>
   </div>
@@ -112,16 +112,7 @@
 
 <style>
   .toolbar-visibility {
-    border-top: 1px solid var(--border-subtle, var(--border, currentColor));
-    display: grid;
-    gap: 12px;
-    margin-top: 18px;
-    padding-top: 18px;
-  }
-
-  .toolbar-visibility-header {
-    display: grid;
-    gap: 4px;
+    margin-top: 2px;
   }
 
   h3 {
@@ -136,33 +127,39 @@
 
   .toolbar-button-grid {
     display: grid;
-    gap: 6px;
+    gap: 10px;
     grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
   }
 
   .toolbar-button-card {
     display: grid;
-    gap: 6px;
+    gap: 8px;
   }
 
   .toolbar-button {
     align-items: center;
-    background: var(--button-bg, transparent);
-    border: 1px solid var(--border, currentColor);
-    border-radius: 7px;
+    background: color-mix(in srgb, var(--canvas-inset, transparent) 58%, transparent);
+    border: 1px solid color-mix(in srgb, var(--border-subtle, var(--border, currentColor)) 72%, transparent);
+    border-radius: 18px;
     color: var(--fg, currentColor);
     cursor: pointer;
     display: inline-flex;
     font: inherit;
-    font-size: 0.82rem;
+    font-size: 0.84rem;
     gap: 6px;
-    min-height: 32px;
-    padding: 6px 9px;
+    justify-content: flex-start;
+    min-height: 44px;
+    padding: 10px 12px;
+    transition:
+      background-color 120ms ease,
+      border-color 120ms ease,
+      transform 120ms ease;
   }
 
   .toolbar-button:hover {
     background: var(--button-gradient-start, var(--button-bg, transparent));
     border-color: var(--button-hover-border, var(--border, currentColor));
+    transform: translateY(-1px);
   }
 
   .toolbar-button-off {
@@ -188,28 +185,34 @@
 
   .toolbar-mode-toggle {
     display: grid;
-    gap: 4px;
+    gap: 8px;
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   .toolbar-mode-toggle button {
-    background: var(--button-bg, transparent);
-    border: 1px solid var(--border-subtle, var(--border, currentColor));
-    border-radius: 7px;
+    background: color-mix(in srgb, var(--canvas-inset, transparent) 58%, transparent);
+    border: 1px solid color-mix(in srgb, var(--border-subtle, var(--border, currentColor)) 72%, transparent);
+    border-radius: 14px;
     color: var(--fg, currentColor);
     cursor: pointer;
     font: inherit;
     font-size: 0.76rem;
-    min-height: 28px;
-    padding: 5px 8px;
+    min-height: 38px;
+    padding: 7px 10px;
+    transition:
+      background-color 120ms ease,
+      border-color 120ms ease,
+      transform 120ms ease;
   }
 
   .toolbar-mode-toggle button:hover {
     background: var(--button-gradient-start, var(--button-bg, transparent));
     border-color: var(--button-hover-border, var(--border, currentColor));
+    transform: translateY(-1px);
   }
 
   .toolbar-mode-active {
+    background: color-mix(in srgb, var(--button-gradient-start, var(--button-bg, transparent)) 72%, transparent);
     border-color: var(--border-focus, var(--border, currentColor));
     font-weight: 700;
   }

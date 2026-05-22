@@ -1,0 +1,174 @@
+.settings-card {
+  background:
+    linear-gradient(
+      180deg,
+      color-mix(in srgb, var(--canvas-elevated, Canvas) 84%, white 16%),
+      var(--canvas-elevated, Canvas)
+    );
+  border: 1px solid color-mix(in srgb, var(--border, currentColor) 78%, transparent);
+  border-radius: 24px;
+  box-shadow: 0 12px 32px color-mix(in srgb, black 8%, transparent);
+  color: var(--fg, currentColor);
+  padding: 24px;
+}
+
+.settings-card > h2,
+.settings-card > h3 {
+  margin: 0;
+}
+
+.settings-stack {
+  display: grid;
+  gap: 16px;
+}
+
+.settings-section {
+  display: grid;
+  gap: 12px;
+}
+
+.settings-section + .settings-section {
+  border-top: 1px solid color-mix(in srgb, var(--border-subtle, var(--border, currentColor)) 80%, transparent);
+  padding-top: 18px;
+}
+
+.settings-section-header {
+  display: grid;
+  gap: 4px;
+}
+
+.settings-section-header p {
+  color: var(--fg-subtle, currentColor);
+  margin: 0;
+}
+
+.settings-grid {
+  display: grid;
+  gap: 14px;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+}
+
+.settings-field,
+.settings-grid label,
+.settings-toggle {
+  background: color-mix(in srgb, var(--canvas-inset, transparent) 58%, transparent);
+  border: 1px solid color-mix(in srgb, var(--border-subtle, var(--border, currentColor)) 72%, transparent);
+  border-radius: 18px;
+  box-sizing: border-box;
+}
+
+.settings-field,
+.settings-grid label {
+  display: grid;
+  font-weight: 700;
+  gap: 8px;
+  padding: 14px 16px;
+}
+
+.settings-toggle {
+  align-items: center;
+  display: grid;
+  gap: 12px;
+  grid-template-columns: auto minmax(0, 1fr);
+  padding: 14px 16px;
+}
+
+.settings-toggle input {
+  margin: 0;
+}
+
+.settings-label-with-icon {
+  align-items: center;
+  display: inline-flex;
+  gap: 8px;
+  min-width: 0;
+}
+
+.settings-label-text {
+  display: inline-flex;
+  min-width: 0;
+}
+
+.settings-label-icon {
+  align-items: center;
+  color: var(--fg-subtle, currentColor);
+  display: inline-flex;
+  flex: 0 0 auto;
+}
+
+.settings-input,
+.settings-select {
+  appearance: none;
+  background: var(--canvas, Canvas);
+  border: 1px solid color-mix(in srgb, var(--border, currentColor) 82%, transparent);
+  border-radius: 12px;
+  box-sizing: border-box;
+  color: var(--fg, currentColor);
+  font: inherit;
+  min-height: 42px;
+  padding: 10px 12px;
+  width: 100%;
+}
+
+.settings-input::placeholder {
+  color: color-mix(in srgb, var(--fg-subtle, currentColor) 78%, transparent);
+}
+
+.settings-input:focus,
+.settings-select:focus,
+.settings-button:focus,
+.settings-tab:focus,
+.toolbar-button:focus,
+.toolbar-mode-toggle button:focus {
+  border-color: var(--border-focus, var(--border, currentColor));
+  outline: 2px solid color-mix(in srgb, var(--border-focus, var(--border, currentColor)) 28%, transparent);
+  outline-offset: 2px;
+}
+
+.settings-button {
+  appearance: none;
+  background: var(--button-bg, transparent);
+  border: 1px solid var(--border-subtle, currentColor);
+  border-radius: 999px;
+  color: var(--fg, currentColor);
+  cursor: pointer;
+  font: inherit;
+  min-height: 42px;
+  padding: 10px 16px;
+  transition:
+    background-color 120ms ease,
+    border-color 120ms ease,
+    transform 120ms ease;
+}
+
+.settings-button:hover {
+  background: var(--button-gradient-start, var(--button-bg, transparent));
+  border-color: var(--button-hover-border, var(--border, currentColor));
+  transform: translateY(-1px);
+}
+
+.settings-button-primary {
+  background: color-mix(in srgb, var(--button-gradient-start, var(--button-bg, transparent)) 70%, transparent);
+  border-color: var(--border-focus, var(--border, currentColor));
+  font-weight: 700;
+}
+
+.settings-muted {
+  color: var(--fg-subtle, currentColor);
+}
+
+.settings-error {
+  color: var(--accent-danger, #b42318);
+  margin: 0;
+}
+
+@media (max-width: 720px) {
+  .settings-card {
+    border-radius: 20px;
+    padding: 20px;
+  }
+
+  .settings-grid {
+    grid-template-columns: 1fr;
+  }
+}

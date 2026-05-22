@@ -10,12 +10,12 @@
   const { config = $bindable() }: { config: Config } = $props();
 </script>
 
-<label>
-  <span class="label-with-icon">
+<label class="settings-field">
+  <span class="settings-label-with-icon">
     <CommandIcon className="settings-label-icon" icon="file-audio" />
-    <span>{t("settings.output_format")}</span>
+    <span class="settings-label-text">{t("settings.output_format")}</span>
   </span>
-  <select data-testid="output-format" bind:value={config.output_format}>
+  <select class="settings-select" data-testid="output-format" bind:value={config.output_format}>
     {#each OUTPUT_FORMAT_VALUES as format}
       <option value={format}>{formatOutputFormat(format)}</option>
     {/each}
