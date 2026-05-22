@@ -18,12 +18,13 @@ import {
   GraphVoiceRange,
   OutputFormat,
   PauseAggressiveness,
+  PitchHumMode,
   type Config,
 } from "../src/lib/types.js";
 
 const pycmd = (globalThis as unknown as Record<string, ReturnType<typeof vi.fn>>)["pycmd"]!;
 const config: Config = {
-  _config_version: 13,
+  _config_version: 16,
   enabled: true,
   debug_logging: false,
   show_ffmpeg_commands: false,
@@ -52,6 +53,7 @@ const config: Config = {
   deep_filter_post_filter: true,
   dpdfnet_attn_limit_db: 12.0,
   denoise_algorithm: DenoiseAlgorithm.Standard,
+  pitch_hum_mode: PitchHumMode.Direct,
   pause_aggressiveness: PauseAggressiveness.Normal,
 };
 

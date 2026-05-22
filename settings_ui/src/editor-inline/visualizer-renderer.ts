@@ -9,13 +9,16 @@ import {
   pathForIntensity,
   pitchHzAtMs,
   xForMs,
+  yForPitch,
 } from "./plot.js";
 import type { NormalizedProsodyTrack, VisualizerElement } from "./types.js";
 
 const CURSOR_FLAG_WIDTH = 82;
 const CURSOR_FLAG_HALF_WIDTH = CURSOR_FLAG_WIDTH / 2;
-const CURSOR_FLAG_Y = PLOT.top + 4;
-const CURSOR_FLAG_NOTCH_MAX_OFFSET = CURSOR_FLAG_HALF_WIDTH - 5;
+const CURSOR_FLAG_BOX_HEIGHT = 20;
+const CURSOR_FLAG_NOTCH_HEIGHT = 6;
+const CURSOR_FLAG_Y = PLOT.top - CURSOR_FLAG_BOX_HEIGHT - CURSOR_FLAG_NOTCH_HEIGHT;
+const CURSOR_FLAG_NOTCH_MAX_OFFSET = CURSOR_FLAG_HALF_WIDTH;
 
 export function renderGraphRequested(visualizer: VisualizerElement): void {
   visualizer.hidden = false;
@@ -85,8 +88,12 @@ export function renderSelection(
     endEdge?.setAttribute("visibility", "hidden");
     startHandle?.setAttribute("visibility", "hidden");
     endHandle?.setAttribute("visibility", "hidden");
+    startHandle?.classList.remove("aqe-selection-resize-dragging");
+    endHandle?.classList.remove("aqe-selection-resize-dragging");
     startGrip?.setAttribute("visibility", "hidden");
     endGrip?.setAttribute("visibility", "hidden");
+    startGrip?.classList.remove("aqe-selection-resize-dragging");
+    endGrip?.classList.remove("aqe-selection-resize-dragging");
     clearSelectionOverlayGeometry(visualizer);
     return;
   }
@@ -112,14 +119,17 @@ export function renderSelection(
     edge.setAttribute("y1", String(plotTop));
     edge.setAttribute("y2", String(plotBottom));
   }
-  const showHandles = selection !== null && draftSelection === null;
+  const showHandles = selection !== null;
+  const handlesDragging = selection !== null && draftSelection !== null;
   for (const [handle, grip, x] of [[startHandle, startGrip, startX], [endHandle, endGrip, endX]] as const) {
     handle?.setAttribute("visibility", showHandles ? "visible" : "hidden");
+    handle?.classList.toggle("aqe-selection-resize-dragging", handlesDragging);
     handle?.setAttribute("x", (x - 5).toFixed(2));
     handle?.setAttribute("y", handleY.toFixed(2));
     handle?.setAttribute("width", "10");
     handle?.setAttribute("height", handleHeight.toFixed(2));
     grip?.setAttribute("visibility", showHandles ? "visible" : "hidden");
+    grip?.classList.toggle("aqe-selection-resize-dragging", handlesDragging);
     grip?.setAttribute("transform", `translate(${x.toFixed(2)} ${handleCenterY.toFixed(2)})`);
   }
   setSelectionOverlayGeometry(visualizer, startX, endX, plotTop, plotBottom);
@@ -133,7 +143,10 @@ export function renderCursor(visualizer: VisualizerElement, ms: number, duration
     cursor.setAttribute("x2", x.toFixed(2));
   }
   const currentText = formatTime(ms, durationMs);
-  const pitchText = formatPitchHz(visualizer.__aqeTrack ? pitchHzAtMs(visualizer.__aqeTrack.points, ms) : null);
+  const track = visualizer.__aqeTrack;
+  const pitchHz = track ? pitchHzAtMs(track.points, ms) : null;
+  const pitchText = formatPitchHz(pitchHz);
+  renderCursorPitchMarker(visualizer, x, pitchHz);
   const label = visualizer.querySelector<HTMLElement>(".aqe-cursor-label");
   if (label) label.textContent = `${currentText} / ${pitchText}`;
   const flag = visualizer.querySelector<SVGGElement>(".aqe-cursor-flag");
@@ -166,6 +179,7 @@ export function resetCursorProjection(visualizer: VisualizerElement): void {
     cursor.setAttribute("x1", String(PLOT.left));
     cursor.setAttribute("x2", String(PLOT.left));
   }
+  hideCursorPitchMarker(visualizer);
   const label = visualizer.querySelector<HTMLElement>(".aqe-cursor-label");
   if (label) label.textContent = "0 ms / -- Hz";
   const flag = visualizer.querySelector<SVGGElement>(".aqe-cursor-flag");
@@ -271,6 +285,26 @@ function clearOverlayNodePosition(node: HTMLElement | null): void {
   if (!node) return;
   node.style.removeProperty("left");
   node.style.removeProperty("top");
+}
+
+function renderCursorPitchMarker(visualizer: VisualizerElement, x: number, pitchHz: number | null): void {
+  const marker = visualizer.querySelector<SVGCircleElement>(".aqe-cursor-pitch-marker");
+  const track = visualizer.__aqeTrack;
+  if (!marker || pitchHz === null || !track || Number(visualizer.dataset.durationMs || "0") <= 0) {
+    hideCursorPitchMarker(visualizer);
+    return;
+  }
+  marker.setAttribute("visibility", "visible");
+  marker.setAttribute("cx", x.toFixed(2));
+  marker.setAttribute("cy", yForPitch(pitchHz, track.pitchMinHz, track.pitchMaxHz).toFixed(2));
+}
+
+function hideCursorPitchMarker(visualizer: VisualizerElement): void {
+  const marker = visualizer.querySelector<SVGCircleElement>(".aqe-cursor-pitch-marker");
+  if (!marker) return;
+  marker.setAttribute("visibility", "hidden");
+  marker.setAttribute("cx", String(PLOT.left));
+  marker.setAttribute("cy", String(PLOT.height - PLOT.bottom));
 }
 
 function clampedCursorFlagX(cursorX: number): number {

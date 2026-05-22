@@ -21,6 +21,7 @@ bin/
     ffprobe
     deep-filter
     rnnoise-cli
+    dpdfnet
     sherpa-spleeter
     libonnxruntime.1.24.4.dylib
   windows-x86_64/
@@ -28,6 +29,7 @@ bin/
     ffprobe.exe
     deep-filter.exe
     rnnoise-cli.exe
+    dpdfnet.exe
     sherpa-spleeter.exe
     onnxruntime.dll
     onnxruntime_providers_shared.dll
@@ -41,8 +43,8 @@ The source of truth is `release_assets.lock.json`. Runtime binaries are fetched
 or built into `.release-assets/bin/<target>/`, verified by SHA-256, then copied
 into a temporary release staging tree. FFmpeg/FFprobe use locked third-party
 release archives, RNNoise is locally built from source, DPDFNet is bundled from
-the local standalone TFLite CLI build for supported targets, and Sherpa Spleeter
-is extracted from locked Sherpa ONNX native archives by renaming
+the vendored standalone TFLite CLI source in `scripts/dpdfnet_cli/lite_src/`,
+and Sherpa Spleeter is extracted from locked Sherpa ONNX native archives by renaming
 `sherpa-onnx-offline-source-separation` to `sherpa-spleeter`. The shared
 Spleeter fp16 model files are downloaded once into `.release-assets/shared/`.
 The checked-in `bin/` directory contains only documentation and notices;

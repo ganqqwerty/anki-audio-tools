@@ -23,7 +23,9 @@ def test_injection_script_embeds_audio_field_indices_and_bundle() -> None:
     assert config["repeatPlaybackByDefault"] is False
     assert config["showGraphByDefault"] is False
     assert config["splitButtonDefaults"]["repeatPauseSeconds"] == 0.0
+    assert config["splitButtonDefaults"]["pitchHumMode"] == "direct"
     assert config["splitButtonDefaults"]["dpdfnetAttnLimitDb"] == 12.0
+    assert config["splitButtonDefaults"]["outputFormat"] == "mp3"
     assert config["splitButtonDefaults"]["graphVoiceRange"] == "general"
     assert config["splitButtonDefaults"]["graphRecordingCondition"] == "auto"
     assert config["splitButtonDefaults"]["graphSmoothness"] == "very_smooth"
@@ -32,6 +34,7 @@ def test_injection_script_embeds_audio_field_indices_and_bundle() -> None:
     assert "window.__aqeEditorDispose" in script
     assert "aqe:frontend-log" in script
     assert "aqe:show-file" in script
+    assert "aqe:convert" in script
     assert "aqe:volume-down" in script
     assert "aqe:volume-up" in script
     assert "aqe:denoise-standard" in script
@@ -40,8 +43,8 @@ def test_injection_script_embeds_audio_field_indices_and_bundle() -> None:
     assert "aqe:voice-only" in script
     assert "aqe:redo" in script
     assert "aqe:settings" in script
+    assert "aqe:save-split-defaults" in script
     assert ("aqe:" + "remove" + "-noise") not in script
-    assert "aqe:save" not in script
     assert "aqe:cancel" not in script
 
 
@@ -72,8 +75,10 @@ def test_injection_script_embeds_split_button_defaults() -> None:
             "speedStep": 0.1,
             "repeatPauseSeconds": 2.0,
             "pauseAggressiveness": "normal",
+            "outputFormat": "mp3",
             "denoiseAlgorithm": "standard",
-            "dpdfnetAttnLimitDb": 8.5,
+            "pitchHumMode": "pitch_tier",
+            "dpdfnetAttnLimitDb": 18.0,
         },
     )
 
@@ -83,8 +88,10 @@ def test_injection_script_embeds_split_button_defaults() -> None:
         "speedStep": 0.1,
         "repeatPauseSeconds": 2.0,
         "pauseAggressiveness": "normal",
+        "outputFormat": "mp3",
         "denoiseAlgorithm": "standard",
-        "dpdfnetAttnLimitDb": 8.5,
+        "pitchHumMode": "pitch_tier",
+        "dpdfnetAttnLimitDb": 18.0,
     }
 
 
@@ -111,6 +118,9 @@ def test_injection_script_injects_editor_css() -> None:
     assert ".aqe-button:disabled" in script
     assert "data-busy=true" in script
     assert "border-style:dashed" in script
+    assert "filter:drop-shadow" in script
+    assert ".aqe-selection-draft" in script
+    assert "filter:none" in script
     assert "stroke-dasharray:none" in script
     assert "stroke-opacity:.65" in script
     assert "aqe-spin" in script

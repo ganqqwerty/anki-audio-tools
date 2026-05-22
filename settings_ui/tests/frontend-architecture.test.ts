@@ -49,6 +49,7 @@ const internalWindowStateNames = new Set([
   "__aqeLastPlaybackRequest",
   "__aqePendingCommandPayload",
   "__aqePendingGraphRedrawField",
+  "__aqePendingGraphRedrawSource",
   "__aqePendingPlaybackRequest",
   "__aqeSplitButtonStates",
 ]);

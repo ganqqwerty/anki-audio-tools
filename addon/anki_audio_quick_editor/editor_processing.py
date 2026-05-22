@@ -1,12 +1,13 @@
 """Audio processing and denoise behavior for the editor bridge."""
-
 from __future__ import annotations
 
 import logging
 import shutil
+from dataclasses import replace
 from pathlib import Path
-from typing import Any, Callable
+from typing import Any, Callable, cast
 
+from .audio_formats import DEFAULT_OUTPUT_FORMAT
 from .audio_state import AudioEditState, AudioProcessingConfig
 from .diagnostics_runtime import capture_exception, new_operation_id, record_breadcrumb
 from .editor_actions import (
@@ -14,14 +15,13 @@ from .editor_actions import (
     apply_processing_command,
     processing_config_for_command,
 )
+from .editor_conversion import convert_async as _convert_async
 from .editor_session import EditorSession
 from .errors import AudioProcessingError
 from .i18n import t
 from .media_paths import existing_media_file_path
-from .sound_refs import (
-    replace_sound_reference,
-    select_first_sound_reference,
-)
+from .prosody_settings import config_with_graph_settings
+from .sound_refs import replace_sound_reference, select_first_sound_reference
 from .support import (
     format_denoise_support_log_block,
     format_spleeter_support_log_block,
@@ -32,14 +32,17 @@ from .support import (
 )
 
 logger = logging.getLogger(__name__)
+convert_async = _convert_async
 
 
 def update_state_and_render(editor: Any, command: str | EditorCommandPayload, deps: Any) -> None:
     """Apply a frontend processing command and start the render worker."""
     existing = deps.sessions.get(editor)
-    if existing and _has_blocking_work(existing):
+    if existing and existing.processing:
         deps.eval_status(editor, deps.still_processing_message, kind="processing")
         return
+    if existing and existing.playback_preparing:
+        deps.stop_session_playback(existing)
     session, source_path = deps.session_and_source(editor)
     _cancel_graph_analysis_for_processing(editor, session, deps)
     config = AudioProcessingConfig.from_config(deps.config(editor))
@@ -55,11 +58,6 @@ def update_state_and_render(editor: Any, command: str | EditorCommandPayload, de
         updated_state,
         processing_config_for_command(command, config),
     )
-
-
-def _has_blocking_work(session: EditorSession) -> bool:
-    return session.processing or session.playback_preparing
-
 
 def _cancel_graph_analysis_for_processing(editor: Any, session: EditorSession, deps: Any) -> None:
     if not (session.analysis_busy or session.analysis_busy_fields):
@@ -92,6 +90,7 @@ def render_and_replace_async(
         flush=True,
     )
     deps.stop_session_playback(session)
+    session.post_edit_playback_generation += 1
     session.processing = True
     session.playback_active = False
     session.playback_paused = False
@@ -103,8 +102,8 @@ def render_and_replace_async(
             desired_name = deps.make_output_filename(source_path.name)
             output_path = deps.temp_final_path(desired_name)
 
-            def _show_command(command: tuple[str, ...]) -> None:
-                rendered = deps.format_ffmpeg_command(command)
+            def _show_command(process_command: tuple[str, ...]) -> None:
+                rendered = deps.format_ffmpeg_command(process_command)
                 status_message = t("editor.status.processing_ffmpeg")
                 command_text = ""
                 if config.show_ffmpeg_commands:
@@ -150,14 +149,14 @@ def replace_current_field_after_render(
     deps: Any,
 ) -> None:
     """Replace the current field after a successful standard render."""
-    field_index = deps.current_field_index(editor)
+    session = deps.sessions.get(editor)
+    field_index = int(session.field_index) if session and session.field_index is not None else deps.current_field_index(editor)
     field_html = editor.note.fields[field_index]
     selection = select_first_sound_reference(field_html)
     if selection.selected is None:
         raise AudioProcessingError(deps.current_field_audio_missing)
     deps.dispose_editor_frontend_controls(editor)
     editor.note.fields[field_index] = replace_sound_reference(field_html, selection.selected, saved_name)
-    session = deps.sessions.get(editor)
     should_redraw_graph = False
     if session:
         session.undo_history.push(session.state, session.current_filename)
@@ -179,9 +178,10 @@ def replace_current_field_after_render(
     deps.eval_status(editor, t("editor.status.updated_field", {"filename": saved_name}))
     deps.eval_playback_state(editor, field_index, "stopped", 0)
     if should_redraw_graph:
-        deps.request_graph_redraw(editor)
+        deps.request_graph_redraw(editor, saved_name)
     else:
         deps.set_busy(editor, False)
+    deps.request_playback_after_edit(editor, field_index)
 
 
 def render_failed(editor: Any, message: str, deps: Any) -> None:
@@ -217,8 +217,15 @@ def rnnoise_async(editor: Any, deps: Any) -> None:
     )
 
 
-def dpdfnet_async(editor: Any, deps: Any) -> None:
+def dpdfnet_async(
+    editor: Any,
+    command: EditorCommandPayload | None = None,
+    deps: Any = None,
+) -> None:
     """Start DPDFNet denoise for the current media."""
+    if deps is None:
+        deps = command
+        command = None
     deps.run_special_audio_transform_async(
         editor,
         label=t("editor.status.denoising_dpdfnet"),
@@ -226,6 +233,7 @@ def dpdfnet_async(editor: Any, deps: Any) -> None:
         renderer=deps.render_dpdfnet_audio,
         support_hint=deps.support_report_hint,
         failure_context_recorder=deps.record_dpdfnet_failure_context,
+        command=command,
     )
 
 
@@ -241,6 +249,36 @@ def voice_only_async(editor: Any, deps: Any) -> None:
     )
 
 
+def pitch_hum_async(
+    editor: Any,
+    command: EditorCommandPayload | None = None,
+    deps: Any = None,
+) -> None:
+    """Start Praat-guided pitch hum resynthesis for the current media."""
+    if deps is None:
+        deps = command
+        command = None
+    config = AudioProcessingConfig.from_config(deps.config(editor))
+    deps.run_special_audio_transform_async(
+        editor,
+        label=t("editor.status.pitch_hum"),
+        failure_log_label="pitch hum failed",
+        renderer=_pitch_hum_renderer(command, deps, config.pitch_hum_mode),
+        command=command,
+    )
+
+
+def _pitch_hum_renderer(
+    command: EditorCommandPayload | None,
+    deps: Any,
+    default_mode: str,
+) -> Callable[..., Any]:
+    mode = command.overrides.pitch_hum_mode if command is not None else None
+    if (mode or default_mode) == "pitch_tier":
+        return cast(Callable[..., Any], deps.render_pitch_tier_hum_audio)
+    return cast(Callable[..., Any], deps.render_pitch_hum_audio)
+
+
 def run_special_audio_transform_async(
     editor: Any,
     *,
@@ -249,18 +287,23 @@ def run_special_audio_transform_async(
     renderer: Callable[..., Any],
     support_hint: str = "",
     failure_context_recorder: Callable[[Path, AudioProcessingConfig, Exception], None] | None = None,
+    command: EditorCommandPayload | None = None,
+    output_format: object = DEFAULT_OUTPUT_FORMAT,
     deps: Any,
 ) -> None:
     """Run a denoise transform and replace the current audio on completion."""
     operation_id = new_operation_id("transform")
     existing = deps.sessions.get(editor)
-    if existing and _has_blocking_work(existing):
+    if existing and existing.processing:
         deps.eval_status(editor, deps.still_processing_message, kind="processing")
         return
+    if existing and existing.playback_preparing:
+        deps.stop_session_playback(existing)
     session, current_path = deps.current_media_path(editor)
     _cancel_graph_analysis_for_processing(editor, session, deps)
-    config = AudioProcessingConfig.from_config(deps.config(editor))
+    config = _special_transform_config(AudioProcessingConfig.from_config(deps.config(editor)), command)
     deps.stop_session_playback(session)
+    session.post_edit_playback_generation += 1
     session.processing = True
     session.playback_active = False
     session.playback_paused = False
@@ -278,11 +321,14 @@ def run_special_audio_transform_async(
     def _run() -> None:
         output_path: Path | None = None
         try:
-            desired_name = deps.make_output_filename(current_path.name)
+            desired_name = deps.make_output_filename(
+                current_path.name,
+                output_format=output_format,
+            )
             output_path = deps.temp_final_path(desired_name)
 
-            def _show_command(command: tuple[str, ...]) -> None:
-                rendered = deps.format_ffmpeg_command(command)
+            def _show_command(process_command: tuple[str, ...]) -> None:
+                rendered = deps.format_ffmpeg_command(process_command)
                 status_message = label
                 command_text = ""
                 if config.show_ffmpeg_commands:
@@ -324,16 +370,29 @@ def run_special_audio_transform_async(
     deps.threading.Thread(target=_run, daemon=True).start()
 
 
+def _special_transform_config(
+    config: AudioProcessingConfig,
+    command: EditorCommandPayload | None,
+) -> AudioProcessingConfig:
+    if command is None:
+        return config
+    if command.overrides.dpdfnet_attn_limit_db is not None:
+        config = replace(config, dpdfnet_attn_limit_db=command.overrides.dpdfnet_attn_limit_db)
+    if command.command == "aqe:pitch-hum":
+        return config_with_graph_settings(config, command.graph_settings)
+    return config
+
+
 def replace_current_field_after_noise_removal(editor: Any, saved_name: str, deps: Any) -> None:
     """Replace the current field after a successful denoise transform."""
-    field_index = deps.current_field_index(editor)
+    session = deps.sessions.get(editor)
+    field_index = int(session.field_index) if session and session.field_index is not None else deps.current_field_index(editor)
     field_html = editor.note.fields[field_index]
     selection = select_first_sound_reference(field_html)
     if selection.selected is None:
         raise AudioProcessingError(deps.current_field_audio_missing)
     deps.dispose_editor_frontend_controls(editor)
     editor.note.fields[field_index] = replace_sound_reference(field_html, selection.selected, saved_name)
-    session = deps.sessions.get(editor)
     should_redraw_graph = False
     if session:
         session.undo_history.push(session.state, session.current_filename)
@@ -357,9 +416,10 @@ def replace_current_field_after_noise_removal(editor: Any, saved_name: str, deps
     deps.eval_status(editor, t("editor.status.updated_field", {"filename": saved_name}))
     deps.eval_playback_state(editor, field_index, "stopped", 0)
     if should_redraw_graph:
-        deps.request_graph_redraw(editor)
+        deps.request_graph_redraw(editor, saved_name)
     else:
         deps.set_busy(editor, False)
+    deps.request_playback_after_edit(editor, field_index)
 
 
 def record_rnnoise_failure_context(

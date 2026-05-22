@@ -12,6 +12,16 @@ import time
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
+_VERBOSE = False
+
+
+def set_verbose(verbose: bool) -> None:
+    global _VERBOSE
+    _VERBOSE = verbose
+
+
+def is_verbose() -> bool:
+    return _VERBOSE
 
 
 def _read_seconds_env(name: str, default: float) -> float:
@@ -93,6 +103,18 @@ def _terminate_process_after_idle(process: subprocess.Popen[str], *, idle_for: f
         process.kill()
 
 
+def _format_exit_status(*, rc: int, interrupted_for_idle: bool, verbose: bool) -> str:
+    if interrupted_for_idle:
+        status = "FAILED: terminated after idle timeout"
+    elif rc == 0:
+        status = "finished with exit code 0"
+    else:
+        status = f"FAILED with exit code {rc}"
+    if rc != 0 and not verbose:
+        status = f"{status}; rerun with --verbose for output"
+    return status
+
+
 def _handle_idle_queue_wait(
     *,
     output_queue: queue.Queue[str | None],
@@ -104,6 +126,7 @@ def _handle_idle_queue_wait(
     idle_warning_s: float,
     idle_timeout_s: float,
     terminate_grace_s: float,
+    stream_output: bool,
 ) -> tuple[bool, bool, bool, float, float]:
     try:
         line = output_queue.get(timeout=1)
@@ -127,8 +150,9 @@ def _handle_idle_queue_wait(
         if process.poll() is not None:
             return True, False, True, last_output, next_warning
         return False, False, True, last_output, next_warning
-    sys.stdout.write(line)
-    sys.stdout.flush()
+    if stream_output:
+        sys.stdout.write(line)
+        sys.stdout.flush()
     last_output = time.monotonic()
     next_warning = last_output + idle_warning_s if idle_warning_s else float("inf")
     return False, False, stream_closed, last_output, next_warning
@@ -151,7 +175,10 @@ def _run(
         idle_timeout_s = _read_seconds_env("DEV_IDLE_TIMEOUT_SECS", 300.0)
     terminate_grace_s = _read_seconds_env("DEV_TERMINATE_GRACE_SECS", 5.0)
     rendered_cmd = shlex.join(str(part) for part in cmd)
-    _print_run_header(rendered_cmd, run_cwd, env, label, idle_warning_s, idle_timeout_s)
+    if is_verbose():
+        _print_run_header(rendered_cmd, run_cwd, env, label, idle_warning_s, idle_timeout_s)
+    else:
+        print(f"[dev] {label or rendered_cmd}")
 
     process = subprocess.Popen(
         [str(part) for part in cmd],
@@ -193,6 +220,7 @@ def _run(
             idle_warning_s=idle_warning_s,
             idle_timeout_s=idle_timeout_s,
             terminate_grace_s=terminate_grace_s,
+            stream_output=is_verbose(),
         )
         if timed_out:
             interrupted_for_idle = True
@@ -203,7 +231,7 @@ def _run(
     rc = process.wait()
     reader.join(timeout=1)
     elapsed = time.monotonic() - start
-    status = "terminated after idle timeout" if interrupted_for_idle else f"finished with exit code {rc}"
+    status = _format_exit_status(rc=rc, interrupted_for_idle=interrupted_for_idle, verbose=is_verbose())
     print(f"[dev] {status} in {_format_duration(elapsed)}")
     return rc
 
@@ -218,7 +246,10 @@ def _run_capture(
     run_cwd = cwd or ROOT
     merged_env = {**os.environ, **env} if env else None
     rendered_cmd = shlex.join(str(part) for part in cmd)
-    _print_run_header(rendered_cmd, run_cwd, env, label, idle_warning_s=0.0, idle_timeout_s=0.0)
+    if is_verbose():
+        _print_run_header(rendered_cmd, run_cwd, env, label, idle_warning_s=0.0, idle_timeout_s=0.0)
+    else:
+        print(f"[dev] {label or rendered_cmd}")
 
     start = time.monotonic()
     result = subprocess.run(
@@ -230,9 +261,10 @@ def _run_capture(
         text=True,
     )
     output = result.stdout or ""
-    if output:
+    if output and is_verbose():
         sys.stdout.write(output)
         sys.stdout.flush()
     elapsed = time.monotonic() - start
-    print(f"[dev] finished with exit code {result.returncode} in {_format_duration(elapsed)}")
+    status = _format_exit_status(rc=result.returncode, interrupted_for_idle=False, verbose=is_verbose())
+    print(f"[dev] {status} in {_format_duration(elapsed)}")
     return result.returncode, output

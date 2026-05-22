@@ -4,6 +4,7 @@
   import ChevronDown from "@lucide/svelte/icons/chevron-down";
   import CircleHelp from "@lucide/svelte/icons/circle-help";
   import FastForward from "@lucide/svelte/icons/fast-forward";
+  import FileAudio from "@lucide/svelte/icons/file-audio";
   import FolderOpen from "@lucide/svelte/icons/folder-open";
   import Mic from "@lucide/svelte/icons/mic";
   import Pause from "@lucide/svelte/icons/pause";
@@ -12,6 +13,7 @@
   import RefreshCw from "@lucide/svelte/icons/refresh-cw";
   import Repeat2 from "@lucide/svelte/icons/repeat-2";
   import Rewind from "@lucide/svelte/icons/rewind";
+  import Save from "@lucide/svelte/icons/save";
   import Scissors from "@lucide/svelte/icons/scissors";
   import Settings from "@lucide/svelte/icons/settings";
   import Snail from "@lucide/svelte/icons/snail";
@@ -51,6 +53,8 @@
     <CircleHelp {size} {strokeWidth} />
   {:else if icon === "fast-forward"}
     <FastForward {size} {strokeWidth} />
+  {:else if icon === "file-audio"}
+    <FileAudio {size} {strokeWidth} />
   {:else if icon === "folder-open"}
     <FolderOpen {size} {strokeWidth} />
   {:else if icon === "mic"}
@@ -67,6 +71,8 @@
     <Repeat2 {size} {strokeWidth} />
   {:else if icon === "rewind"}
     <Rewind {size} {strokeWidth} />
+  {:else if icon === "save"}
+    <Save {size} {strokeWidth} />
   {:else if icon === "scissors"}
     <Scissors {size} {strokeWidth} />
   {:else if icon === "settings"}

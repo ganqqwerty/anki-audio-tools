@@ -72,7 +72,7 @@ afterEach(() => {
 
     const help = document.querySelector<HTMLDetailsElement>('[data-testid="aqe-help-0"]')!;
     expect(help.open).toBe(false);
-    expect(help.querySelectorAll(".aqe-help-command")).toHaveLength(14);
+    expect(help.querySelectorAll(".aqe-help-command")).toHaveLength(16);
     expect(help.querySelector(".aqe-help-triangle")).not.toBeNull();
     expect(help).toHaveTextContent("Shift-drag on the graph to select a region.");
     expect(help).toHaveTextContent("Delete Region removes the selected region; Delete the rest keeps only the selected region.");
@@ -97,16 +97,33 @@ afterEach(() => {
     const dpdfnetPreset = document.querySelector<HTMLButtonElement>(
       '[data-testid="aqe-split-0-denoise-standard-preset-dpdfnet"]',
     )!;
-    expect(dpdfnetPreset.title).toBe("Denoise speech with DPDFNet, attenuation limit 8.5 dB");
+    expect(dpdfnetPreset.title).toBe("Denoise speech with DPDFNet, Aggressiveness: Gentle");
     dpdfnetPreset.click();
     await Promise.resolve();
     expect(document.querySelector<HTMLButtonElement>('[data-testid="aqe-button-0-denoise-standard"]')?.title).toBe(
-      "Denoise speech with DPDFNet, attenuation limit 8.5 dB",
+      "Denoise speech with DPDFNet, Aggressiveness: Gentle",
     );
     document.querySelector<HTMLButtonElement>('[data-testid="aqe-button-0-denoise-standard"]')!.click();
     expect(window.__aqePendingCommandPayload?.command).toBe("aqe:dpdfnet");
     expect(window.__aqePendingCommandPayload?.fieldOrd).toBe(0);
     expect(window.__aqePendingCommandPayload?.overrides?.denoiseAlgorithm).toBe("dpdfnet");
+  });
+
+  it.each(["aac", "flac", "m4a", "mp3", "oga", "ogg", "opus", "wav", "webm"])(
+    "detects %s sound references as supported audio",
+    (extension) => {
+      document.body.innerHTML = `<div id="format-field">[sound:clip one.${extension.toUpperCase()}]</div>`;
+
+      expect(audioSourceForNode(document.getElementById("format-field")!)).toBe(
+        `clip one.${extension.toUpperCase()}`,
+      );
+    },
+  );
+
+  it("does not detect mp4 sound references as supported audio", () => {
+    document.body.innerHTML = '<div id="video-field">[sound:clip.mp4]</div>';
+
+    expect(audioSourceForNode(document.getElementById("video-field")!)).toBe("");
   });
 
   it("dispatches graph split requests with field-local graph settings", async () => {
@@ -204,6 +221,41 @@ afterEach(() => {
       fieldOrd: 0,
       overrides: {
         trimStepMs: 200,
+      },
+    });
+  });
+
+  it("dispatches convert commands with the selected output format", async () => {
+    window.__AQE_EDITOR_CONFIG__ = {
+      audioFieldIndices: [0],
+      splitButtonDefaults: {
+        denoiseAlgorithm: "standard",
+        outputFormat: "m4a",
+        pauseAggressiveness: "normal",
+        repeatPauseSeconds: 0,
+        speedStep: 0.05,
+        trimStepMs: 100,
+        volumeStepDb: 3,
+      },
+    };
+    initializeEditorRuntime(window.__AQE_EDITOR_CONFIG__);
+    scan(window.__AQE_EDITOR_CONFIG__);
+
+    document.querySelector<HTMLButtonElement>('[data-testid="aqe-button-0-convert"]')!.click();
+    const defaultPayload = window.__aqePendingCommandPayload as EditorCommandPayload | null | undefined;
+    window.__aqePendingCommandPayload = null;
+    window.__aqeSetBusy?.(0, false);
+    document.querySelector<HTMLButtonElement>('[data-testid="aqe-split-0-convert-menu"]')!.click();
+    await Promise.resolve();
+    document.querySelector<HTMLButtonElement>('[data-testid="aqe-split-0-convert-preset-flac"]')!.click();
+    document.querySelector<HTMLButtonElement>('[data-testid="aqe-button-0-convert"]')!.click();
+
+    expect(defaultPayload?.overrides?.targetFormat).toBe("m4a");
+    expect(window.__aqePendingCommandPayload).toMatchObject({
+      command: "aqe:convert",
+      fieldOrd: 0,
+      overrides: {
+        targetFormat: "flac",
       },
     });
   });

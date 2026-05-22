@@ -14,7 +14,6 @@ import {
   getCursorIntent,
   getPlaybackRequest,
   handleHtmlPlaybackCommand,
-  installAudioClockHandlers,
   pauseAudioClock,
   playbackRequest,
   resetGraphAfterEdit,
@@ -34,7 +33,7 @@ import {
 import { mediaUrlForFilename } from "../src/editor-inline/audio-clock.js";
 import { processingMessage } from "../src/editor-inline/commands.js";
 import { visualizerForOrd } from "../src/editor-inline/dom-selectors.js";
-import { PLOT, xForMs } from "../src/editor-inline/plot.js";
+import { PLOT, xForMs, yForPitch } from "../src/editor-inline/plot.js";
 import { commandSlugsForTest } from "../src/editor-inline/test-contract.js";
 import { disposeEditorRuntime, initializeEditorRuntime, scan } from "../src/editor-inline/runtime.js";
 import type { VisualizerElement } from "../src/editor-inline/types.js";
@@ -94,12 +93,20 @@ describe("editor inline action workflows", () => {
     expect(commandSlugsForTest()["aqe:rnnoise"]).toBe("rnnoise");
     expect(commandSlugsForTest()["aqe:dpdfnet"]).toBe("dpdfnet");
     expect(commandSlugsForTest()["aqe:voice-only"]).toBe("voice-only");
+    expect(commandSlugsForTest()["aqe:convert"]).toBe("convert");
     expect(commandSlugsForTest()["aqe:redo"]).toBe("redo");
     expect(commandSlugsForTest()["aqe:settings"]).toBe("settings");
     expect(processingMessage("aqe:denoise-standard")).toBe("Denoising with Standard...");
     expect(processingMessage("aqe:rnnoise")).toBe("Denoising with RNNoise...");
     expect(processingMessage("aqe:dpdfnet")).toBe("Denoising with DPDFNet...");
     expect(processingMessage("aqe:voice-only")).toBe("Extracting voice...");
+    expect(
+      processingMessage("aqe:convert", {
+        command: "aqe:convert",
+        fieldOrd: 0,
+        overrides: { targetFormat: "flac" },
+      }),
+    ).toBe("Converting to FLAC...");
     expect(processingMessage("aqe:faster")).toBe("Processing...");
   });
 
@@ -331,18 +338,20 @@ describe("editor inline action workflows", () => {
     const current = flag.querySelector<SVGTextElement>(".aqe-cursor-flag-current")!;
     const pitch = flag.querySelector<SVGTextElement>(".aqe-cursor-flag-pitch")!;
     const expectedX = xForMs(750, 6000).toFixed(2);
+    const expectedFlagY = PLOT.top - 26;
 
     expect(flag).toHaveAttribute("visibility", "visible");
-    expect(flag).toHaveAttribute("transform", `translate(${expectedX} 14)`);
+    expect(flag).toHaveAttribute("transform", `translate(${expectedX} ${expectedFlagY})`);
+    expect(expectedFlagY + 26).toBe(PLOT.top);
     expect(current.textContent).toBe("0.75s");
     expect(pitch.textContent).toBe(" / 200 Hz");
     expect(visualizer.querySelector(".aqe-cursor-label")).toHaveTextContent("0.75s / 200 Hz");
 
     setCursor(visualizer, 0, false);
-    expect(flag).toHaveAttribute("transform", `translate(${(PLOT.left + 41).toFixed(2)} 14)`);
+    expect(flag).toHaveAttribute("transform", `translate(${(PLOT.left + 41).toFixed(2)} ${expectedFlagY})`);
 
     setCursor(visualizer, 6000, false);
-    expect(flag).toHaveAttribute("transform", `translate(${(PLOT.width - PLOT.right - 41).toFixed(2)} 14)`);
+    expect(flag).toHaveAttribute("transform", `translate(${(PLOT.width - PLOT.right - 41).toFixed(2)} ${expectedFlagY})`);
     expect(current.textContent).toBe("6.00s");
   });
 
@@ -384,7 +393,10 @@ describe("editor inline action workflows", () => {
 
     expect(flag.querySelector(".aqe-cursor-flag-current")?.textContent).toBe("700 ms");
     expect(flag.querySelector(".aqe-cursor-flag-pitch")?.textContent).toBe(" / 196 Hz");
-    expect(window.__aqeGraphStateForTest?.(0)).toMatchObject({ progressMs: 700 });
+    const state = window.__aqeGraphStateForTest?.(0);
+    expect(state).toMatchObject({ pitchMarkerVisible: true, progressMs: 700 });
+    expect(state?.pitchMarkerX).toBeCloseTo(xForMs(700, 1000));
+    expect(state?.pitchMarkerY).toBeCloseTo(yForPitch(196, 100, 300));
   });
 
   it("loops manual progress clocks at the selected region boundary without play-ended", async () => {

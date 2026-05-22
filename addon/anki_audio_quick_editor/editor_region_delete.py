@@ -210,6 +210,7 @@ def delete_selection_async(
     operation_id = new_operation_id("region")
     started_at = time.monotonic()
     deps.stop_session_playback(session)
+    session.post_edit_playback_generation += 1
     session.processing = True
     session.field_index = request.field_index
     session.playback_active = False
@@ -354,9 +355,10 @@ def replace_current_field_after_region_delete(
         deps.eval_status(editor, t("editor.status.updated_field", {"filename": saved_name}))
         deps.eval_playback_state(editor, field_index, "stopped", 0)
         if should_redraw_graph:
-            deps.request_graph_redraw(editor)
+            deps.request_graph_redraw(editor, saved_name)
         else:
             deps.set_busy_for_field(editor, field_index, False)
+        deps.request_playback_after_edit(editor, field_index)
     except Exception as exc:
         capture_exception(
             "editor.main.region_delete_replacement",

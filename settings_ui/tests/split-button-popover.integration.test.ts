@@ -2,7 +2,7 @@ import { waitFor } from "@testing-library/svelte";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { disposeEditorRuntime, initializeEditorRuntime, scan } from "../src/editor-inline/runtime.js";
-import { muteConsole, renderFields } from "./editor-inline.integration.helpers.js";
+import { bridgeCommands, muteConsole, renderFields } from "./editor-inline.integration.helpers.js";
 
 const DEFAULT_VIEWPORT_WIDTH = window.innerWidth;
 const DEFAULT_VIEWPORT_HEIGHT = window.innerHeight;
@@ -133,5 +133,34 @@ describe("split button popover placement", () => {
     await Promise.resolve();
 
     expect(document.querySelector('[data-testid="aqe-split-0-trim-left-popover"]')).toBeNull();
+  });
+
+  it("queues a split default save request from the popover header", async () => {
+    setViewport(800, 600);
+    mockSplitPopoverBounds(
+      { left: 300, top: 100, width: 60, height: 28 },
+      { left: 0, top: 0, width: 210, height: 140 },
+    );
+    initializeEditorRuntime({ audioFieldIndices: [0] });
+    scan({ audioFieldIndices: [0] });
+    await openTrimPopover();
+
+    const slider = document.querySelector<HTMLInputElement>('[data-testid="aqe-split-0-trim-left-slider"]')!;
+    slider.value = "250";
+    slider.dispatchEvent(new Event("input", { bubbles: true }));
+    const save = document.querySelector<HTMLButtonElement>('[data-testid="aqe-split-0-trim-left-save-default"]')!;
+
+    expect(save.title).toBe("Promote these settings to default");
+    save.click();
+
+    expect(bridgeCommands()).toContain("aqe:save-split-defaults");
+    expect(window.__aqePopPendingSplitDefaultSaveRequest?.()).toEqual({
+      defaults: {
+        trimStepMs: 250,
+      },
+      fieldOrd: 0,
+    });
+    expect(window.__AQE_EDITOR_CONFIG__?.splitButtonDefaults?.trimStepMs).toBe(250);
+    await waitFor(() => expect(save).toHaveClass("aqe-split-default-save-saved"));
   });
 });

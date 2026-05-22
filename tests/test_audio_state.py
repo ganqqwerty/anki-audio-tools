@@ -104,6 +104,7 @@ def test_processing_config_from_partial_config_uses_defaults() -> None:
     assert config.deep_filter_path == ""
     assert config.deep_filter_post_filter is True
     assert config.dpdfnet_attn_limit_db == 12.0
+    assert config.pitch_hum_mode == "direct"
     assert config.show_ffmpeg_commands is False
 
 
@@ -121,6 +122,11 @@ def test_processing_config_reads_show_ffmpeg_commands_flag() -> None:
     config = AudioProcessingConfig.from_config({"show_ffmpeg_commands": True})
 
     assert config.show_ffmpeg_commands is True
+
+
+def test_processing_config_normalizes_output_format() -> None:
+    assert AudioProcessingConfig.from_config({"output_format": " FLAC "}).output_format == "flac"
+    assert AudioProcessingConfig.from_config({"output_format": "aac"}).output_format == "mp3"
 
 
 def test_processing_config_reads_internal_pause_silence_threshold() -> None:
@@ -142,6 +148,12 @@ def test_processing_config_reads_deep_filter_settings() -> None:
 
 
 def test_processing_config_reads_dpdfnet_settings() -> None:
+    config = AudioProcessingConfig.from_config({"dpdfnet_attn_limit_db": 18.0})
+
+    assert config.dpdfnet_attn_limit_db == 18.0
+
+
+def test_processing_config_snaps_legacy_dpdfnet_setting_to_supported_value() -> None:
     config = AudioProcessingConfig.from_config({"dpdfnet_attn_limit_db": 8.5})
 
-    assert config.dpdfnet_attn_limit_db == 8.5
+    assert config.dpdfnet_attn_limit_db == 6.0

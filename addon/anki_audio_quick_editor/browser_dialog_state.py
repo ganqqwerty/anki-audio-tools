@@ -7,6 +7,8 @@ from typing import Any
 from .audio_operation_params import parameters_from_raw
 from .audio_operations import (
     BATCH_OPERATIONS,
+    OP_CONVERT,
+    OP_DENOISE,
     OP_FASTER,
     OP_GRAPH,
     OP_REMOVE_PAUSES,
@@ -45,6 +47,9 @@ def build_batch_initial_state(
             "speed_step": config.speed_step,
             "volume_step_db": config.volume_step_db,
             "pause_aggressiveness": config.pause_aggressiveness,
+            "denoise_algorithm": config.denoise_algorithm,
+            "dpdfnet_attn_limit_db": config.dpdfnet_attn_limit_db,
+            "output_format": config.output_format,
         },
         "locale": i18n["locale"],
         "direction": i18n["direction"],
@@ -64,6 +69,9 @@ def request_from_batch_start_payload(raw_payload: object) -> BatchRunRequest:
             speed_step=params.get("speed_step"),
             volume_step_db=params.get("volume_step_db"),
             pause_aggressiveness=params.get("pause_aggressiveness"),
+            denoise_algorithm=params.get("denoise_algorithm"),
+            dpdfnet_attn_limit_db=params.get("dpdfnet_attn_limit_db"),
+            target_format=params.get("target_format"),
         ),
     )
 
@@ -133,6 +141,10 @@ def _parameter_kind(operation: str) -> str:
         return "volume"
     if operation == OP_REMOVE_PAUSES:
         return "pause"
+    if operation == OP_DENOISE:
+        return "denoise"
+    if operation == OP_CONVERT:
+        return "format"
     if operation == OP_GRAPH:
         return "none"
     return "none"
@@ -145,4 +157,8 @@ def _parameter_name(operation: str) -> str:
         return "volume_step_db"
     if operation == OP_REMOVE_PAUSES:
         return "pause_aggressiveness"
+    if operation == OP_DENOISE:
+        return "denoise_algorithm"
+    if operation == OP_CONVERT:
+        return "target_format"
     return "none"

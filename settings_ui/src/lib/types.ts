@@ -36,6 +36,7 @@ export {
   GraphVoiceRange,
   Level,
   OutputFormat,
+  PitchHumMode,
 } from "./generated/contracts.js";
 
 import type {

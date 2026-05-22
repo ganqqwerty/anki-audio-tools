@@ -1,9 +1,9 @@
 <script lang="ts">
   import CommandIcon from "$lib/CommandIcon.svelte";
 
-  import type { EditorIconName } from "./types.js";
+  import type { CommandIconName } from "../lib/icon-types.js";
 
-  const { className = "", icon }: { className?: string; icon: EditorIconName } = $props();
+  const { className = "", icon }: { className?: string; icon: CommandIconName } = $props();
   const classes = $derived(["aqe-button-icon", className].filter(Boolean).join(" "));
 </script>
 

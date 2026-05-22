@@ -15,7 +15,7 @@ if str(ROOT) not in sys.path:
 
 # isort: off
 from scripts.dev_tasks.coverage import cmd_coverage, cmd_info, cmd_sonar
-from scripts.dev_tasks.process import _run, _run_capture
+from scripts.dev_tasks.process import _run, _run_capture, is_verbose, set_verbose
 from scripts.dev_tasks.pytest_runner import _run_pytest
 from scripts.dev_tasks.python_env import (
     _anki_bin_dir,
@@ -126,7 +126,7 @@ def cmd_arch() -> int:
 
 
 def cmd_architecture_report() -> int:
-    json_mode = "--json" in sys.argv[2:]
+    json_mode = "--json" in _COMMAND_ARGS
     root_str = str(ROOT)
     if root_str not in sys.path:
         sys.path.insert(0, root_str)
@@ -271,7 +271,7 @@ def cmd_qodana() -> int:
 
 def cmd_muttest() -> int:
     anki_python = _find_anki_python()
-    mutmut_args = sys.argv[2:]
+    mutmut_args = _COMMAND_ARGS
     if not mutmut_args or mutmut_args[0].startswith("-"):
         mutmut_args = ["run", *mutmut_args]
     labels = {
@@ -322,17 +322,22 @@ def cmd_check() -> int:
     ]
     failed: list[str] = []
     for index, (name, func) in enumerate(steps, start=1):
-        print(f"\n{'=' * 60}\n  Step {index}/{len(steps)}: {name}\n{'=' * 60}\n")
+        if is_verbose():
+            print(f"\n{'=' * 60}\n  Step {index}/{len(steps)}: {name}\n{'=' * 60}\n")
+        else:
+            print(f"[dev] check {index}/{len(steps)}: {name}")
         rc = func()
         if rc != 0:
             failed.append(name)
-            print(f"\n  FAILED: {name}")
-    print(f"\n{'=' * 60}")
+            print(f"[dev] FAILED: {name}")
+    if is_verbose():
+        print(f"\n{'=' * 60}")
     if failed:
-        print(f"  {len(failed)} step(s) failed: {', '.join(failed)}")
+        print(f"[dev] {len(failed)} check step(s) failed: {', '.join(failed)}")
     else:
-        print("  All checks passed!")
-    print(f"{'=' * 60}")
+        print("[dev] all check steps passed")
+    if is_verbose():
+        print(f"{'=' * 60}")
     return 1 if failed else 0
 
 
@@ -461,6 +466,8 @@ def cmd_help() -> int:
     print("Usage: python3 scripts/dev.py <command>\n")
     print("First time? Run 'setup' to install dev tools:\n")
     print("  python3 scripts/dev.py setup\n")
+    print("Default command output is concise. Add --verbose after any command for live tool output:\n")
+    print("  python3 scripts/dev.py check --verbose\n")
     print("Commands:")
     max_name = max(len(name) for name in COMMANDS)
     for name, (_, desc) in COMMANDS.items():
@@ -469,18 +476,33 @@ def cmd_help() -> int:
     return 0
 
 
+def _split_cli_args(args: list[str]) -> tuple[str | None, list[str], bool]:
+    command: str | None = None
+    command_args: list[str] = []
+    verbose = False
+    for arg in args:
+        if arg == "--verbose":
+            verbose = True
+        elif command is None:
+            command = arg
+        else:
+            command_args.append(arg)
+    return command, command_args, verbose
+
+
 def main() -> None:
-    if len(sys.argv) < 2 or sys.argv[1] in ("help", "--help", "-h"):
+    command, command_args, verbose = _split_cli_args(sys.argv[1:])
+    set_verbose(verbose)
+    if command is None or command in ("help", "--help", "-h"):
         cmd_help()
         raise SystemExit(0)
-    command = sys.argv[1]
     if command not in COMMANDS:
         print(f"Unknown command: {command!r}\n")
         cmd_help()
         raise SystemExit(1)
     global _COMMAND_ARGS
-    _COMMAND_ARGS = sys.argv[2:]
-    print(f"[dev] selected command: {command}")
+    _COMMAND_ARGS = command_args
+    print(f"[dev] selected command: {command}" + (" (verbose)" if verbose else ""))
     func, _ = COMMANDS[command]
     raise SystemExit(func())
 

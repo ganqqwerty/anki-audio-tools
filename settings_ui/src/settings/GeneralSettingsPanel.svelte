@@ -1,13 +1,15 @@
 <script lang="ts">
   import CommandIcon from "$lib/CommandIcon.svelte";
+  import {
+    DPDFNET_ATTENUATION_LIMIT_DB_VALUES,
+    formatDpdfnetAggressiveness,
+  } from "$lib/audio-operation-parameters.js";
   import { t } from "$lib/i18n.js";
   import GraphSettingsFields from "./GraphSettingsFields.svelte";
+  import OutputFormatField from "./OutputFormatField.svelte";
   import type { Config } from "$lib/types.js";
 
-  let {
-    config = $bindable(),
-    saveError,
-  }: {
+  let { config = $bindable(), saveError }: {
     config: Config;
     saveError: string;
   } = $props();
@@ -85,13 +87,14 @@
   </label>
   <label class="field-row">
     <span>{t("settings.dpdfnet_attn_limit_db")}</span>
-    <input
+    <select
       data-testid="dpdfnet-attn-limit-db"
-      type="number"
-      min="0"
-      step="0.5"
       bind:value={config.dpdfnet_attn_limit_db}
-    />
+    >
+      {#each DPDFNET_ATTENUATION_LIMIT_DB_VALUES as value}
+        <option value={value}>{formatDpdfnetAggressiveness(value)}</option>
+      {/each}
+    </select>
   </label>
   <div class="settings-grid">
     <label>
@@ -182,6 +185,7 @@
         <option value="aggressive">{t("settings.pause_aggressiveness.aggressive")}</option>
       </select>
     </label>
+    <OutputFormatField bind:config />
     <label>
       <span class="label-with-icon">
         <CommandIcon className="settings-label-icon" icon="sparkles" />
@@ -192,6 +196,16 @@
         <option value="rnnoise">{t("settings.denoise_algorithm.rnnoise")}</option>
         <option value="dpdfnet">{t("settings.denoise_algorithm.dpdfnet")}</option>
         <option value="voice_only">{t("settings.denoise_algorithm.voice_only")}</option>
+      </select>
+    </label>
+    <label>
+      <span class="label-with-icon">
+        <CommandIcon className="settings-label-icon" icon="waves" />
+        <span>{t("settings.pitch_hum_mode")}</span>
+      </span>
+      <select data-testid="pitch-hum-mode" bind:value={config.pitch_hum_mode}>
+        <option value="direct">{t("settings.pitch_hum_mode.direct")}</option>
+        <option value="pitch_tier">{t("settings.pitch_hum_mode.pitch_tier")}</option>
       </select>
     </label>
   </div>

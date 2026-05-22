@@ -2,26 +2,45 @@
   import { t } from "../lib/i18n.js";
   import {
     formatDenoiseAlgorithm,
+    formatDpdfnetAggressiveness,
+    formatOutputFormat,
     formatPauseAggressiveness,
+    formatPitchHumMode,
     formatSpeedStep,
     formatTrimMs,
     formatVolumeDb,
   } from "./split-button-state.js";
   import { COMMAND_SLUGS } from "./commands.js";
+  import {
+    DPDFNET_ATTENUATION_LIMIT_DB_VALUES,
+    isOutputFormatValue,
+    OUTPUT_FORMAT_VALUES,
+  } from "../lib/audio-operation-parameters.js";
+  import SplitDefaultSaveButton from "./SplitDefaultSaveButton.svelte";
   import type { ButtonSpec, FieldSplitButtonState } from "./types.js";
 
   type DenoiseAlgorithm = FieldSplitButtonState["denoiseAlgorithm"];
+  type OutputFormatValue = FieldSplitButtonState["outputFormat"];
+  type PitchHumMode = FieldSplitButtonState["pitchHumMode"];
 
   const {
     button,
     denoiseAlgorithm,
+    dpdfnetAttnLimitDb,
     onChange,
     onDenoiseAlgorithm,
+    onDpdfnetAttnLimitDb,
+    onOutputFormat,
     onPauseAggressiveness,
+    onPitchHumMode,
+    onSaveDefault,
     onSpeedStep,
     onTrimStep,
     onVolumeStep,
     pauseAggressiveness,
+    outputFormat,
+    pitchHumMode,
+    saveDefaultSaved,
     speedStep,
     targetOrd,
     trimStepMs,
@@ -29,13 +48,21 @@
   }: {
     button: ButtonSpec;
     denoiseAlgorithm: DenoiseAlgorithm;
+    dpdfnetAttnLimitDb: number;
     onChange: () => void;
     onDenoiseAlgorithm: (value: DenoiseAlgorithm) => void;
+    onDpdfnetAttnLimitDb: (value: number) => void;
+    onOutputFormat: (value: OutputFormatValue) => void;
     onPauseAggressiveness: (value: "gentle" | "normal" | "aggressive") => void;
+    onPitchHumMode: (value: PitchHumMode) => void;
+    onSaveDefault: () => void;
     onSpeedStep: (value: number) => void;
     onTrimStep: (value: number) => void;
     onVolumeStep: (value: number) => void;
     pauseAggressiveness: "gentle" | "normal" | "aggressive";
+    outputFormat: OutputFormatValue;
+    pitchHumMode: PitchHumMode;
+    saveDefaultSaved: boolean;
     speedStep: number;
     targetOrd: number;
     trimStepMs: number;
@@ -49,6 +76,7 @@
     if (button.command === "aqe:volume-up" || button.command === "aqe:volume-down") return formatVolumeDb(volumeStepDb);
     if (button.command === "aqe:faster" || button.command === "aqe:slower") return formatSpeedStep(speedStep, button.command);
     if (button.command === "aqe:remove-pauses") return formatPauseAggressiveness(pauseAggressiveness);
+    if (button.command === "aqe:convert") return formatOutputFormat(outputFormat);
     if (
       button.command === "aqe:denoise-standard" ||
       button.command === "aqe:rnnoise" ||
@@ -57,6 +85,7 @@
     ) {
       return formatDenoiseAlgorithm(denoiseAlgorithm);
     }
+    if (button.command === "aqe:pitch-hum") return formatPitchHumMode(pitchHumMode);
     return formatTrimMs(trimStepMs);
   }
 
@@ -115,10 +144,14 @@
     ) {
       return ["standard", "rnnoise", "dpdfnet", "voice_only"];
     }
+    if (button.command === "aqe:convert") return [...OUTPUT_FORMAT_VALUES];
+    if (button.command === "aqe:pitch-hum") return ["direct", "pitch_tier"];
     return [];
   }
 
   function optionLabel(value: string): string {
+    if (isOutputFormatValue(value)) return formatOutputFormat(value);
+    if (value === "direct" || value === "pitch_tier") return formatPitchHumMode(value);
     if (value === "rnnoise") return "RNNoise";
     if (value === "dpdfnet") return "DPDFNet";
     if (value === "voice_only") return t("settings.denoise_algorithm.voice_only");
@@ -129,15 +162,25 @@
 
   function optionTitle(value: string): string {
     if (value === "dpdfnet") {
-      const db = window.__AQE_EDITOR_CONFIG__?.splitButtonDefaults?.dpdfnetAttnLimitDb ?? 12;
-      return t("editor.command.dpdfnet.title", { db });
+      return t("editor.command.dpdfnet.title", {
+        level: formatDpdfnetAggressiveness(dpdfnetAttnLimitDb),
+      });
     }
+    if (value === "pitch_tier") return t("editor.pitch_hum.mode.pitch_tier.title");
+    if (value === "direct") return t("editor.command.pitch_hum.title");
     return optionLabel(value);
   }
 
   function applyOption(value: string): void {
     if (value === "gentle" || value === "normal" || value === "aggressive") onPauseAggressiveness(value);
     if (value === "standard" || value === "rnnoise" || value === "dpdfnet" || value === "voice_only") onDenoiseAlgorithm(value);
+    if (isOutputFormatValue(value)) onOutputFormat(value);
+    if (value === "direct" || value === "pitch_tier") onPitchHumMode(value);
+    onChange();
+  }
+
+  function applyDpdfnetAggressiveness(value: number): void {
+    onDpdfnetAttnLimitDb(value);
     onChange();
   }
 
@@ -148,23 +191,30 @@
   }
 </script>
 
-<div class="aqe-split-popover-header">
-  <strong>{button.label}</strong>
-  {#if options.length}
-    <span>{valueLabel()}</span>
-  {:else}
-    <input
-      class="aqe-split-value-input"
-      data-testid={`aqe-split-${targetOrd}-${slug}-value`}
-      type="number"
-      min={valueInputConfig().min}
-      max={valueInputConfig().max}
-      step={valueInputConfig().step}
-      value={valueInputValue()}
-      aria-label={valueInputConfig().label}
-      oninput={(event) => applyValueInput((event.currentTarget as HTMLInputElement).valueAsNumber)}
-    />
-  {/if}
+<div class="aqe-split-popover-header aqe-split-popover-header-with-action">
+  <span class="aqe-split-popover-title">
+    <strong>{button.label}</strong>
+    {#if options.length}
+      <span>{valueLabel()}</span>
+    {:else}
+      <input
+        class="aqe-split-value-input"
+        data-testid={`aqe-split-${targetOrd}-${slug}-value`}
+        type="number"
+        min={valueInputConfig().min}
+        max={valueInputConfig().max}
+        step={valueInputConfig().step}
+        value={valueInputValue()}
+        aria-label={valueInputConfig().label}
+        oninput={(event) => applyValueInput((event.currentTarget as HTMLInputElement).valueAsNumber)}
+      />
+    {/if}
+  </span>
+  <SplitDefaultSaveButton
+    onSave={onSaveDefault}
+    saved={saveDefaultSaved}
+    testId={`aqe-split-${targetOrd}-${slug}-save-default`}
+  />
 </div>
 {#if options.length}
   <div class="aqe-split-presets">
@@ -181,6 +231,20 @@
       </button>
     {/each}
   </div>
+  {#if denoiseAlgorithm === "dpdfnet"}
+    <label class="aqe-split-extra-field">
+      <span>{t("settings.dpdfnet_attn_limit_db")}</span>
+      <select
+        data-testid={`aqe-split-${targetOrd}-${slug}-dpdfnet-aggressiveness`}
+        value={dpdfnetAttnLimitDb}
+        onchange={(event) => applyDpdfnetAggressiveness(Number((event.currentTarget as HTMLSelectElement).value))}
+      >
+        {#each DPDFNET_ATTENUATION_LIMIT_DB_VALUES as value}
+          <option value={value}>{formatDpdfnetAggressiveness(value)}</option>
+        {/each}
+      </select>
+    </label>
+  {/if}
 {:else}
   <input
     data-testid={`aqe-split-${targetOrd}-${slug}-slider`}
@@ -209,3 +273,26 @@
     {/each}
   </div>
 {/if}
+
+<style>
+  .aqe-split-extra-field {
+    display: grid;
+    gap: 6px;
+    margin-top: 10px;
+  }
+
+  .aqe-split-extra-field span {
+    font-size: 0.8rem;
+    font-weight: 700;
+  }
+
+  .aqe-split-extra-field select {
+    background: var(--canvas-elevated, Field);
+    border: 1px solid var(--border, ButtonBorder);
+    border-radius: 6px;
+    color: var(--fg, FieldText);
+    font: inherit;
+    min-height: 30px;
+    padding: 4px 8px;
+  }
+</style>

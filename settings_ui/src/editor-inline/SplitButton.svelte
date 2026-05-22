@@ -2,14 +2,23 @@
   import { onMount, tick } from "svelte";
 
   import EditorCommandIcon from "./EditorCommandIcon.svelte";
+  import SplitDefaultSaveButton from "./SplitDefaultSaveButton.svelte";
   import GraphSplitOptions from "./GraphSplitOptions.svelte";
   import SplitValueOptions from "./SplitValueOptions.svelte";
   import { send } from "./actions.js";
+  import { sendSplitDefaultSaveRequest } from "./bridge.js";
   import {
     buildSplitCommandPayload,
+    buildSplitDefaultSaveRequest,
+    formatOutputFormat,
+    formatDpdfnetAggressiveness,
     getSplitButtonState,
+    promoteSplitDefaultsForField,
     setDenoiseAlgorithmForField,
+    setDpdfnetAttnLimitDbForField,
+    setOutputFormatForField,
     setPauseAggressivenessForField,
+    setPitchHumModeForField,
     setSpeedStepForField,
     setTrimStepForField,
     setVolumeStepForField,
@@ -24,19 +33,12 @@
   } from "./graph-split-state.js";
   import { COMMAND_SLUGS } from "./commands.js";
   import { t } from "../lib/i18n.js";
-  import type {
-    GraphRecordingCondition,
-    GraphSmoothness,
-    GraphVoiceLock,
-    GraphVoiceRange,
-  } from "./graph-settings.js";
-  import type {
-    ButtonSpec,
-    FieldSplitButtonState,
-    FieldTarget,
-  } from "./types.js";
+  import type { GraphRecordingCondition, GraphSmoothness, GraphVoiceLock, GraphVoiceRange } from "./graph-settings.js";
+  import type { ButtonSpec, FieldSplitButtonState, FieldTarget } from "./types.js";
 
   type DenoiseAlgorithm = FieldSplitButtonState["denoiseAlgorithm"];
+  type OutputFormatValue = FieldSplitButtonState["outputFormat"];
+  type PitchHumMode = FieldSplitButtonState["pitchHumMode"];
 
   const POPOVER_GAP_PX = 4;
   const VIEWPORT_MARGIN_PX = 8;
@@ -52,15 +54,18 @@
   let speedStep = $state(0.05);
   let pauseAggressiveness = $state<"gentle" | "normal" | "aggressive">("normal");
   let denoiseAlgorithm = $state<DenoiseAlgorithm>("standard");
+  let dpdfnetAttnLimitDb = $state(12);
+  let outputFormat = $state<OutputFormatValue>("mp3");
+  let pitchHumMode = $state<PitchHumMode>("direct");
   let graphVoiceRange = $state<GraphVoiceRange>("general");
   let graphRecordingCondition = $state<GraphRecordingCondition>("auto");
   let graphSmoothness = $state<GraphSmoothness>("very_smooth");
   let graphConnectShortDropoutsMs = $state(240);
   let graphVoiceLock = $state<GraphVoiceLock>("balanced");
+  let defaultSaved = $state(false);
+  let defaultSavedTimer: number | undefined;
 
-  function slug(): string {
-    return COMMAND_SLUGS[button.command];
-  }
+  function slug(): string { return COMMAND_SLUGS[button.command]; }
 
   function initialButtonState(): string {
     if (button.command === "aqe:play") return "play";
@@ -78,11 +83,16 @@
   }
 
   function primaryTitle(): string {
+    if (button.command === "aqe:convert") {
+      return t("editor.command.convert.title", { format: formatOutputFormat(outputFormat) });
+    }
+    if (button.command === "aqe:pitch-hum") {
+      return pitchHumMode === "pitch_tier" ? t("editor.pitch_hum.mode.pitch_tier.title") : button.title;
+    }
     if (!isDenoiseButton()) return button.title;
     if (denoiseAlgorithm === "rnnoise") return t("editor.command.rnnoise.title");
     if (denoiseAlgorithm === "dpdfnet") {
-      const db = window.__AQE_EDITOR_CONFIG__?.splitButtonDefaults?.dpdfnetAttnLimitDb ?? 12;
-      return t("editor.command.dpdfnet.title", { db });
+      return t("editor.command.dpdfnet.title", { level: formatDpdfnetAggressiveness(dpdfnetAttnLimitDb) });
     }
     if (denoiseAlgorithm === "voice_only") return t("editor.command.voice_only.title");
     return t("editor.command.standard.title");
@@ -91,6 +101,22 @@
   function close(): void {
     open = false;
     popoverStyle = HIDDEN_POPOVER_STYLE;
+  }
+
+  function syncFromState(state: FieldSplitButtonState): void {
+    trimStepMs = state.trimStepMs;
+    volumeStepDb = state.volumeStepDb;
+    speedStep = state.speedStep;
+    pauseAggressiveness = state.pauseAggressiveness;
+    denoiseAlgorithm = state.denoiseAlgorithm;
+    dpdfnetAttnLimitDb = state.dpdfnetAttnLimitDb;
+    outputFormat = state.outputFormat;
+    pitchHumMode = state.pitchHumMode;
+    graphVoiceRange = state.graphVoiceRange;
+    graphRecordingCondition = state.graphRecordingCondition;
+    graphSmoothness = state.graphSmoothness;
+    graphConnectShortDropoutsMs = state.graphConnectShortDropoutsMs;
+    graphVoiceLock = state.graphVoiceLock;
   }
 
   function toggle(event: MouseEvent): void {
@@ -119,6 +145,18 @@
     denoiseAlgorithm = setDenoiseAlgorithmForField(target.ord, value).denoiseAlgorithm;
   }
 
+  function applyDpdfnetAttnLimitDb(value: number): void {
+    dpdfnetAttnLimitDb = setDpdfnetAttnLimitDbForField(target.ord, value).dpdfnetAttnLimitDb;
+  }
+
+  function applyOutputFormat(value: OutputFormatValue): void {
+    outputFormat = setOutputFormatForField(target.ord, value).outputFormat;
+  }
+
+  function applyPitchHumMode(value: PitchHumMode): void {
+    pitchHumMode = setPitchHumModeForField(target.ord, value).pitchHumMode;
+  }
+
   function applyGraphVoiceRange(value: GraphVoiceRange): void {
     graphVoiceRange = setGraphVoiceRangeForField(target.ord, value).graphVoiceRange;
   }
@@ -142,6 +180,23 @@
   function dispatchPrimary(): void {
     close();
     send(button.command, target.node, target.ord, buildSplitCommandPayload(button.command, target.ord));
+  }
+
+  function showDefaultSaved(): void {
+    defaultSaved = true;
+    if (defaultSavedTimer !== undefined) window.clearTimeout(defaultSavedTimer);
+    defaultSavedTimer = window.setTimeout(() => {
+      defaultSaved = false;
+      defaultSavedTimer = undefined;
+    }, 1400);
+  }
+
+  function saveCurrentDefaults(): void {
+    const request = buildSplitDefaultSaveRequest(button.command, target.ord);
+    sendSplitDefaultSaveRequest(request);
+    syncFromState(promoteSplitDefaultsForField(target.ord, request.defaults));
+    showDefaultSaved();
+    void updatePopoverPlacement();
   }
 
   function clamp(value: number, min: number, max: number): number {
@@ -207,17 +262,7 @@
   });
 
   onMount(() => {
-    const state = getSplitButtonState(target.ord);
-    trimStepMs = state.trimStepMs;
-    volumeStepDb = state.volumeStepDb;
-    speedStep = state.speedStep;
-    pauseAggressiveness = state.pauseAggressiveness;
-    denoiseAlgorithm = state.denoiseAlgorithm;
-    graphVoiceRange = state.graphVoiceRange;
-    graphRecordingCondition = state.graphRecordingCondition;
-    graphSmoothness = state.graphSmoothness;
-    graphConnectShortDropoutsMs = state.graphConnectShortDropoutsMs;
-    graphVoiceLock = state.graphVoiceLock;
+    syncFromState(getSplitButtonState(target.ord));
     document.addEventListener("mousedown", onDocumentPointerDown, true);
     document.addEventListener("keydown", onDocumentKeyDown, true);
     window.addEventListener("resize", onViewportChange);
@@ -227,6 +272,7 @@
       document.removeEventListener("keydown", onDocumentKeyDown, true);
       window.removeEventListener("resize", onViewportChange);
       window.removeEventListener("scroll", onViewportChange, true);
+      if (defaultSavedTimer !== undefined) window.clearTimeout(defaultSavedTimer);
     };
   });
 </script>
@@ -269,9 +315,16 @@
       style={popoverStyle}
     >
       {#if button.command === "aqe:analyze"}
-        <div class="aqe-split-popover-header">
-          <strong>{button.label}</strong>
-          <span>{formatGraphVoiceRange(graphVoiceRange)}</span>
+        <div class="aqe-split-popover-header aqe-split-popover-header-with-action">
+          <span class="aqe-split-popover-title">
+            <strong>{button.label}</strong>
+            <span>{formatGraphVoiceRange(graphVoiceRange)}</span>
+          </span>
+          <SplitDefaultSaveButton
+            onSave={saveCurrentDefaults}
+            saved={defaultSaved}
+            testId={`aqe-split-${target.ord}-${slug()}-save-default`}
+          />
         </div>
         <GraphSplitOptions
           connectShortDropoutsMs={graphConnectShortDropoutsMs}
@@ -293,11 +346,19 @@
           denoiseAlgorithm={denoiseAlgorithm}
           onChange={() => void updatePopoverPlacement()}
           onDenoiseAlgorithm={applyDenoiseAlgorithm}
+          onDpdfnetAttnLimitDb={applyDpdfnetAttnLimitDb}
+          onOutputFormat={applyOutputFormat}
           onPauseAggressiveness={applyPauseAggressiveness}
+          onPitchHumMode={applyPitchHumMode}
+          onSaveDefault={saveCurrentDefaults}
           onSpeedStep={applySpeedStep}
           onTrimStep={applyTrimStep}
           onVolumeStep={applyVolumeStep}
           pauseAggressiveness={pauseAggressiveness}
+          dpdfnetAttnLimitDb={dpdfnetAttnLimitDb}
+          outputFormat={outputFormat}
+          pitchHumMode={pitchHumMode}
+          saveDefaultSaved={defaultSaved}
           speedStep={speedStep}
           targetOrd={target.ord}
           trimStepMs={trimStepMs}

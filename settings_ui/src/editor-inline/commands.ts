@@ -1,8 +1,14 @@
-import type { ButtonSpec, EditorCommand } from "./types.js";
+import type { ButtonSpec, EditorCommand, EditorCommandPayload } from "./types.js";
 import { t } from "../lib/i18n.js";
+import {
+  formatDpdfnetAggressiveness,
+  formatOutputFormat,
+  outputFormatOrDefault,
+} from "../lib/audio-operation-parameters.js";
 
 export function commandButtons(): readonly ButtonSpec[] {
   const trimMs = window.__AQE_EDITOR_CONFIG__?.splitButtonDefaults?.trimStepMs ?? 100;
+  const outputFormat = outputFormatOrDefault(window.__AQE_EDITOR_CONFIG__?.splitButtonDefaults?.outputFormat);
   return [
     {
       activeIcon: "pause",
@@ -27,6 +33,12 @@ export function commandButtons(): readonly ButtonSpec[] {
       title: t("editor.command.folder.title"),
     },
     {
+      command: "aqe:convert",
+      icon: "file-audio",
+      label: t("editor.command.convert.label"),
+      title: t("editor.command.convert.title", { format: formatOutputFormat(outputFormat) }),
+    },
+    {
       command: "aqe:trim-left",
       icon: "scissors",
       label: t("editor.command.trim_left.label"),
@@ -43,6 +55,12 @@ export function commandButtons(): readonly ButtonSpec[] {
       icon: "timer-reset",
       label: t("editor.command.shorten_pauses.label"),
       title: t("editor.command.shorten_pauses.title"),
+    },
+    {
+      command: "aqe:pitch-hum",
+      icon: "waves",
+      label: t("editor.command.pitch_hum.label"),
+      title: t("editor.command.pitch_hum.title"),
     },
     {
       command: "aqe:slower",
@@ -114,7 +132,9 @@ export function denoiseButtons(): readonly ButtonSpec[] {
       command: "aqe:dpdfnet",
       icon: "sparkles",
       label: t("editor.command.dpdfnet.label"),
-      title: t("editor.command.dpdfnet.title", { db: dpdfnetAttnLimitDb }),
+      title: t("editor.command.dpdfnet.title", {
+        level: formatDpdfnetAggressiveness(dpdfnetAttnLimitDb),
+      }),
     },
     {
       command: "aqe:voice-only",
@@ -130,11 +150,13 @@ export const PROCESSING_COMMANDS = new Set<EditorCommand>([
   "aqe:trim-right",
   "aqe:slower",
   "aqe:faster",
+  "aqe:convert",
   "aqe:remove-pauses",
   "aqe:denoise-standard",
   "aqe:rnnoise",
   "aqe:dpdfnet",
   "aqe:voice-only",
+  "aqe:pitch-hum",
   "aqe:volume-down",
   "aqe:volume-up",
 ]);
@@ -143,6 +165,7 @@ export const COMMAND_SLUGS: Readonly<Record<EditorCommand, string>> = {
   "aqe:play": "play",
   "aqe:analyze": "graph",
   "aqe:show-file": "show-file",
+  "aqe:convert": "convert",
   "aqe:delete-selection": "delete-selection",
   "aqe:delete-rest": "delete-rest",
   "aqe:trim-left": "trim-left",
@@ -152,6 +175,7 @@ export const COMMAND_SLUGS: Readonly<Record<EditorCommand, string>> = {
   "aqe:rnnoise": "rnnoise",
   "aqe:dpdfnet": "dpdfnet",
   "aqe:voice-only": "voice-only",
+  "aqe:pitch-hum": "pitch-hum",
   "aqe:slower": "slower",
   "aqe:faster": "faster",
   "aqe:volume-down": "volume-down",
@@ -165,11 +189,18 @@ export function testId(ord: number, command: EditorCommand): string {
   return `aqe-button-${ord}-${COMMAND_SLUGS[command]}`;
 }
 
-export function processingMessage(command: EditorCommand): string {
+export function processingMessage(command: EditorCommand, payload?: EditorCommandPayload): string {
   if (command === "aqe:denoise-standard") return `${t("editor.status.denoising_standard")}...`;
   if (command === "aqe:rnnoise") return `${t("editor.status.denoising_rnnoise")}...`;
   if (command === "aqe:dpdfnet") return `${t("editor.status.denoising_dpdfnet")}...`;
   if (command === "aqe:voice-only") return `${t("editor.status.extracting_voice")}...`;
+  if (command === "aqe:pitch-hum") return `${t("editor.status.pitch_hum")}...`;
+  if (command === "aqe:convert") {
+    const outputFormat = outputFormatOrDefault(
+      payload?.overrides?.targetFormat ?? window.__AQE_EDITOR_CONFIG__?.splitButtonDefaults?.outputFormat,
+    );
+    return `${t("editor.status.converting", { format: formatOutputFormat(outputFormat) })}...`;
+  }
   if (command === "aqe:delete-selection") return t("editor.status.deleting_region");
   if (command === "aqe:delete-rest") return t("editor.status.deleting_rest");
   return t("editor.status.processing");

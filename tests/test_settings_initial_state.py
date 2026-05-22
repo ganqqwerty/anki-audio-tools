@@ -9,7 +9,7 @@ from anki_audio_quick_editor.settings.initial_state import build_initial_state
 
 def _full_config() -> dict[str, object]:
     return {
-        "_config_version": 13,
+        "_config_version": 16,
         "enabled": True,
         "debug_logging": False,
         "show_ffmpeg_commands": False,
@@ -38,6 +38,7 @@ def _full_config() -> dict[str, object]:
         "deep_filter_post_filter": True,
         "dpdfnet_attn_limit_db": 12.0,
         "denoise_algorithm": "standard",
+        "pitch_hum_mode": "direct",
         "pause_aggressiveness": "normal",
     }
 

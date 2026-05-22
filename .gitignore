@@ -43,3 +43,4 @@ node_modules
 .worktrees/
 /addon/anki_audio_quick_editor/anki_audio_quick_editor_events.jsonl
 /addon/anki_audio_quick_editor/anki_audio_quick_editor_session.json
+/addon/anki_audio_quick_editor/anki_audio_quick_editor_events.jsonl.1

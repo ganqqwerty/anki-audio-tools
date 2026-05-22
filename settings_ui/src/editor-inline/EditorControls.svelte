@@ -1,9 +1,9 @@
 <script lang="ts">
   import { onMount } from "svelte";
-
   import { commandButtons, testId } from "./commands.js";
   import { t } from "../lib/i18n.js";
   import EditorCommandIcon from "./EditorCommandIcon.svelte";
+  import EditorHelp from "./EditorHelp.svelte";
   import PlaySplitButton from "./PlaySplitButton.svelte";
   import SelectionToolbar from "./SelectionToolbar.svelte";
   import SplitButton from "./SplitButton.svelte";
@@ -41,12 +41,14 @@
       "aqe:analyze",
       "aqe:trim-left",
       "aqe:trim-right",
+      "aqe:convert",
       "aqe:slower",
       "aqe:faster",
       "aqe:volume-down",
       "aqe:volume-up",
       "aqe:remove-pauses",
       "aqe:denoise-standard",
+      "aqe:pitch-hum",
     ].includes(command);
   }
   onMount(() => {
@@ -96,88 +98,7 @@
     {/if}
   {/each}
   <span class="aqe-status" data-testid={`aqe-status-${target.ord}`}></span>
-  <details class="aqe-help" data-testid={`aqe-help-${target.ord}`}>
-    <summary class="aqe-help-summary" title={t("editor.help.title")}>
-      <span class="aqe-help-triangle" aria-hidden="true"></span>
-      <EditorCommandIcon icon="circle-help" />
-      <span>{t("editor.help.summary")}</span>
-    </summary>
-    <div class="aqe-help-body">
-      <section class="aqe-help-section">
-        <h4 class="aqe-help-title">{t("editor.help.graph_regions")}</h4>
-        <ul class="aqe-help-list">
-          <li>{t("editor.help.shift_drag")}</li>
-          <li>{t("editor.help.play_repeat")}</li>
-          <li>{t("editor.help.delete_region_or_rest")}</li>
-          <li>{t("editor.help.pitch_loudness")}</li>
-        </ul>
-      </section>
-      <section class="aqe-help-section">
-        <h4 class="aqe-help-title">{t("editor.help.buttons")}</h4>
-        <div class="aqe-help-grid">
-          <span class="aqe-help-item">
-            <span class="aqe-help-command"><EditorCommandIcon icon="play" /><span>{t("editor.command.play.label")}</span></span>
-            <span class="aqe-help-description">{t("editor.help.play_desc")}</span>
-          </span>
-          <span class="aqe-help-item">
-            <span class="aqe-help-command"><EditorCommandIcon icon="audio-lines" /><span>{t("editor.command.graph.label")}</span></span>
-            <span class="aqe-help-description">{t("editor.help.graph_desc")}</span>
-          </span>
-          <span class="aqe-help-item">
-            <span class="aqe-help-command"><EditorCommandIcon icon="folder-open" /><span>{t("editor.command.folder.label")}</span></span>
-            <span class="aqe-help-description">{t("editor.help.folder_desc")}</span>
-          </span>
-          <span class="aqe-help-item">
-            <span class="aqe-help-command"><EditorCommandIcon icon="scissors" /><span>-L</span></span>
-            <span class="aqe-help-description">{t("editor.help.trim_left_desc", { ms: window.__AQE_EDITOR_CONFIG__?.splitButtonDefaults?.trimStepMs ?? 100 })}</span>
-          </span>
-          <span class="aqe-help-item">
-            <span class="aqe-help-command"><EditorCommandIcon icon="scissors" /><span>-R</span></span>
-            <span class="aqe-help-description">{t("editor.help.trim_right_desc", { ms: window.__AQE_EDITOR_CONFIG__?.splitButtonDefaults?.trimStepMs ?? 100 })}</span>
-          </span>
-          <span class="aqe-help-item">
-            <span class="aqe-help-command"><EditorCommandIcon icon="timer-reset" /><span>{t("editor.command.shorten_pauses.label")}</span></span>
-            <span class="aqe-help-description">{t("editor.help.shorten_pauses_desc")}</span>
-          </span>
-          <span class="aqe-help-item">
-            <span class="aqe-help-command"><EditorCommandIcon icon="sparkles" /><span>{t("editor.command.denoise.label")}</span></span>
-            <span class="aqe-help-description">{t("editor.help.denoise_desc")}</span>
-          </span>
-          <span class="aqe-help-item">
-            <span class="aqe-help-command"><EditorCommandIcon icon="snail" /><span>{t("editor.command.slower.label")}</span></span>
-            <span class="aqe-help-description">{t("editor.help.slower_desc")}</span>
-          </span>
-          <span class="aqe-help-item">
-            <span class="aqe-help-command"><EditorCommandIcon icon="hare-running" /><span>{t("editor.command.faster.label")}</span></span>
-            <span class="aqe-help-description">{t("editor.help.faster_desc")}</span>
-          </span>
-          <span class="aqe-help-item">
-            <span class="aqe-help-command"><EditorCommandIcon icon="volume-1" /><span>{t("editor.command.volume_down.label")}</span></span>
-            <span class="aqe-help-description">{t("editor.help.volume_down_desc")}</span>
-          </span>
-          <span class="aqe-help-item">
-            <span class="aqe-help-command"><EditorCommandIcon icon="volume-2" /><span>{t("editor.command.volume_up.label")}</span></span>
-            <span class="aqe-help-description">{t("editor.help.volume_up_desc")}</span>
-          </span>
-          <span class="aqe-help-item">
-            <span class="aqe-help-command"><EditorCommandIcon icon="undo-2" /><span>{t("editor.command.undo.label")}</span></span>
-            <span class="aqe-help-description">{t("editor.help.undo_desc")}</span>
-          </span>
-          <span class="aqe-help-item">
-            <span class="aqe-help-command"><EditorCommandIcon icon="redo-2" /><span>{t("editor.command.redo.label")}</span></span>
-            <span class="aqe-help-description">{t("editor.help.redo_desc")}</span>
-          </span>
-          <span class="aqe-help-item">
-            <span class="aqe-help-command"><EditorCommandIcon icon="trash-2" /><span>{t("editor.help.delete_region_or_rest_command")}</span></span>
-            <span class="aqe-help-description">{t("editor.help.delete_region_or_rest_desc")}</span>
-          </span>
-        </div>
-      </section>
-      <p class="aqe-help-note">
-        {t("editor.help.note")}
-      </p>
-    </div>
-  </details>
+  <EditorHelp ord={target.ord} />
   <div
     class="aqe-visualizer"
     data-aqe-field-ord={target.ord}
@@ -318,6 +239,15 @@
         y1={PLOT.top}
         y2={PLOT.height - PLOT.bottom}
       ></line>
+      <circle
+        class="aqe-cursor-pitch-marker"
+        data-testid={`aqe-cursor-pitch-marker-${target.ord}`}
+        cx={PLOT.left}
+        cy={PLOT.height - PLOT.bottom}
+        r="4"
+        visibility="hidden"
+        aria-hidden="true"
+      ></circle>
       <g
         class="aqe-cursor-flag"
         data-testid={`aqe-cursor-flag-${target.ord}`}

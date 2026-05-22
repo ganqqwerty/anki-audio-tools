@@ -7,6 +7,7 @@ from pathlib import Path
 
 from anki_audio_quick_editor.audio_operation_params import AudioOperationParameters
 from anki_audio_quick_editor.audio_operations import (
+    OP_CONVERT,
     OP_FASTER,
     OP_GRAPH,
     OP_REMOVE_PAUSES,
@@ -83,9 +84,11 @@ def test_first_audio_filename_returns_none_for_missing_or_invalid_source() -> No
 def test_batch_run_request_requires_target_field_for_graph_only() -> None:
     graph = BatchRunRequest(operation=OP_GRAPH, source_field="Audio", target_field="Image")
     transform = BatchRunRequest(operation=OP_FASTER, source_field="Audio")
+    convert = BatchRunRequest(operation=OP_CONVERT, source_field="Audio")
 
     assert graph.target_field == "Image"
     assert transform.target_field is None
+    assert convert.target_field is None
 
 
 def test_batch_run_request_rejects_missing_graph_target() -> None:

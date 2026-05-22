@@ -8,6 +8,8 @@ from .audio_state import AudioEditState, AudioProcessingConfig
 from .i18n import format_message
 
 OP_GRAPH = "graph"
+OP_CONVERT = "convert"
+OP_DENOISE = "denoise"
 OP_REMOVE_PAUSES = "remove_pauses"
 OP_SLOWER = "slower"
 OP_FASTER = "faster"
@@ -15,6 +17,8 @@ OP_VOLUME_DOWN = "volume_down"
 OP_VOLUME_UP = "volume_up"
 
 TRANSFORM_OPERATIONS = (
+    OP_CONVERT,
+    OP_DENOISE,
     OP_REMOVE_PAUSES,
     OP_SLOWER,
     OP_FASTER,
@@ -26,6 +30,8 @@ BATCH_OPERATIONS = (OP_GRAPH,) + TRANSFORM_OPERATIONS
 
 OPERATION_LABELS: dict[str, str] = {
     OP_GRAPH: "Graph",
+    OP_CONVERT: "Convert",
+    OP_DENOISE: "Denoise",
     OP_REMOVE_PAUSES: "Shorten Pauses",
     OP_SLOWER: "Slower",
     OP_FASTER: "Faster",
@@ -35,6 +41,8 @@ OPERATION_LABELS: dict[str, str] = {
 
 OPERATION_LABEL_KEYS: dict[str, str] = {
     OP_GRAPH: "operation.graph",
+    OP_CONVERT: "operation.convert",
+    OP_DENOISE: "operation.denoise",
     OP_REMOVE_PAUSES: "operation.remove_pauses",
     OP_SLOWER: "operation.slower",
     OP_FASTER: "operation.faster",

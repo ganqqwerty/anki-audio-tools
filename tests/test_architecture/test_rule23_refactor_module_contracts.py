@@ -16,6 +16,8 @@ AUDIO_SPLIT_MODULES = {
     "audio_external",
     "audio_noise_reduction",
     "audio_pause_pipeline",
+    "audio_pitch_hum",
+    "audio_pitch_hum_frames",
     "audio_rendering",
     "audio_tools",
     "audio_types",
@@ -36,6 +38,7 @@ EDITOR_SPLIT_MODULES = {
     "editor_runtime",
     "editor_session",
     "editor_settings_actions",
+    "editor_split_defaults",
 }
 
 BROWSER_SPLIT_MODULES = {"browser_dialog", "browser_dialog_state", "browser_report"}

@@ -1,4 +1,5 @@
 import type { FrontendLogPayload, ProsodyPayload } from "../lib/generated/contracts.js";
+import type { OutputFormatValue } from "../lib/audio-operation-parameters.js";
 import type { CommandIconName } from "../lib/icon-types.js";
 import type {
   GraphRecordingCondition,
@@ -12,6 +13,7 @@ export type EditorCommand =
   | "aqe:play"
   | "aqe:analyze"
   | "aqe:show-file"
+  | "aqe:convert"
   | "aqe:delete-selection"
   | "aqe:delete-rest"
   | "aqe:trim-left"
@@ -21,6 +23,7 @@ export type EditorCommand =
   | "aqe:rnnoise"
   | "aqe:dpdfnet"
   | "aqe:voice-only"
+  | "aqe:pitch-hum"
   | "aqe:slower"
   | "aqe:faster"
   | "aqe:volume-down"
@@ -29,7 +32,7 @@ export type EditorCommand =
   | "aqe:redo"
   | "aqe:settings";
 
-export type EditorIconName = CommandIconName;
+type EditorIconName = CommandIconName;
 
 export interface ButtonSpec {
   activeIcon?: EditorIconName;
@@ -59,7 +62,9 @@ export interface SplitButtonDefaults {
   graphSmoothness?: GraphSmoothness;
   graphVoiceLock?: GraphVoiceLock;
   graphVoiceRange?: GraphVoiceRange;
+  outputFormat?: OutputFormatValue;
   pauseAggressiveness: "gentle" | "normal" | "aggressive";
+  pitchHumMode?: PitchHumMode;
   repeatPauseSeconds: number;
   speedStep: number;
   trimStepMs: number;
@@ -71,8 +76,11 @@ export interface EditorCommandPayload {
   fieldOrd: number;
   overrides?: {
     denoiseAlgorithm?: DenoiseAlgorithm;
+    dpdfnetAttnLimitDb?: number;
     pauseAggressiveness?: "gentle" | "normal" | "aggressive";
+    pitchHumMode?: PitchHumMode;
     speedStep?: number;
+    targetFormat?: OutputFormatValue;
     trimStepMs?: number;
     volumeStepDb?: number;
   };
@@ -86,21 +94,30 @@ export interface FieldSplitButtonState {
   defaultGraphSmoothness: GraphSmoothness;
   defaultGraphVoiceLock: GraphVoiceLock;
   defaultGraphVoiceRange: GraphVoiceRange;
+  defaultOutputFormat: OutputFormatValue;
   defaultPauseAggressiveness: "gentle" | "normal" | "aggressive";
+  defaultDpdfnetAttnLimitDb: number;
+  defaultPitchHumMode: PitchHumMode;
   defaultRepeatPauseSeconds: number;
   defaultTrimStepMs: number;
   defaultSpeedStep: number;
   defaultVolumeStepDb: number;
   denoiseAlgorithm: DenoiseAlgorithm;
   denoiseEdited: boolean;
+  dpdfnetAttnLimitDb: number;
+  dpdfnetEdited: boolean;
   graphConnectShortDropoutsMs: number;
   graphEdited: boolean;
   graphRecordingCondition: GraphRecordingCondition;
   graphSmoothness: GraphSmoothness;
   graphVoiceLock: GraphVoiceLock;
   graphVoiceRange: GraphVoiceRange;
+  outputFormat: OutputFormatValue;
+  outputFormatEdited: boolean;
   pauseAggressiveness: "gentle" | "normal" | "aggressive";
   pauseEdited: boolean;
+  pitchHumEdited: boolean;
+  pitchHumMode: PitchHumMode;
   repeatPauseEdited: boolean;
   repeatPauseSeconds: number;
   speedEdited: boolean;
@@ -150,6 +167,11 @@ export interface PlaybackRequest {
   regionMode?: "selection" | "full";
 }
 
+export interface PostEditPlaybackIntent {
+  repeat: boolean;
+  repeatPauseSeconds: number;
+}
+
 export interface RegionDeleteRequest {
   cursorMs: number;
   durationMs: number;
@@ -163,6 +185,8 @@ export interface RegionDeleteRequest {
 }
 
 type DenoiseAlgorithm = "standard" | "rnnoise" | "dpdfnet" | "voice_only";
+
+type PitchHumMode = "direct" | "pitch_tier";
 
 type RegionDeleteOperation = "delete-selection" | "delete-rest";
 
@@ -200,6 +224,9 @@ export interface GraphStateForTest {
   hidden: boolean;
   intensity: string;
   pitchPaths: number;
+  pitchMarkerVisible: boolean;
+  pitchMarkerX: number | null;
+  pitchMarkerY: number | null;
   buttonIconCount: number;
   buttonIconStrokeValues: string[];
   playButtonLabel: string;

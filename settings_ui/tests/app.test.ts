@@ -11,10 +11,11 @@ import {
   GraphVoiceRange,
   OutputFormat,
   PauseAggressiveness,
+  PitchHumMode,
 } from "../src/lib/types.js";
 
 const defaultConfig = {
-  _config_version: 13,
+  _config_version: 16,
   enabled: true,
   debug_logging: false,
   show_ffmpeg_commands: false,
@@ -43,6 +44,7 @@ const defaultConfig = {
   deep_filter_post_filter: true,
   dpdfnet_attn_limit_db: 12.0,
   denoise_algorithm: DenoiseAlgorithm.Standard,
+  pitch_hum_mode: PitchHumMode.Direct,
   pause_aggressiveness: PauseAggressiveness.Normal,
 };
 
@@ -104,8 +106,11 @@ describe("App", () => {
     expect(screen.getByText("ffmpeg path")).toBeInTheDocument();
     expect(screen.getByText("DeepFilterNet path")).toBeInTheDocument();
     expect(screen.getByText("Use DeepFilterNet post-filter")).toBeInTheDocument();
+    expect(screen.getByText("DPDFNet Aggressiveness")).toBeInTheDocument();
     expect(screen.getByText("Shorten pauses level")).toBeInTheDocument();
+    expect(screen.getByText("Default convert format")).toBeInTheDocument();
     expect(screen.getByText("Default cleanup action")).toBeInTheDocument();
+    expect(screen.getByText("Default pitch hum mode")).toBeInTheDocument();
     expect(screen.getByText("Volume step (dB)")).toBeInTheDocument();
     expect(screen.getByText("Min volume (dB)")).toBeInTheDocument();
     expect(screen.getByText("Max volume (dB)")).toBeInTheDocument();
@@ -158,6 +163,15 @@ describe("App", () => {
     await fireEvent.change(screen.getByLabelText("Default cleanup action"), {
       target: { value: DenoiseAlgorithm.Dpdfnet },
     });
+    await fireEvent.change(screen.getByTestId("output-format"), {
+      target: { value: OutputFormat.FLAC },
+    });
+    await fireEvent.change(screen.getByLabelText("Default pitch hum mode"), {
+      target: { value: PitchHumMode.PitchTier },
+    });
+    await fireEvent.change(screen.getByLabelText("DPDFNet Aggressiveness"), {
+      target: { value: "18" },
+    });
     await fireEvent.input(screen.getByTestId("repeat-pause-seconds"), {
       target: { value: "2.5" },
     });
@@ -165,11 +179,17 @@ describe("App", () => {
 
     const config = bridgePayload<{
       denoise_algorithm: string;
+      dpdfnet_attn_limit_db: number;
+      output_format: string;
       pause_aggressiveness: string;
+      pitch_hum_mode: string;
       repeat_pause_seconds: number;
     }>("settings.save");
     expect(config.pause_aggressiveness).toBe("aggressive");
+    expect(config.output_format).toBe("flac");
     expect(config.denoise_algorithm).toBe("dpdfnet");
+    expect(config.pitch_hum_mode).toBe("pitch_tier");
+    expect(config.dpdfnet_attn_limit_db).toBe(18);
     expect(config.repeat_pause_seconds).toBe(2.5);
   });
 

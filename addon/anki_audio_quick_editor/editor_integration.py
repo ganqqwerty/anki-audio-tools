@@ -111,14 +111,17 @@ _handle_pending_command_payload = editor_callbacks._handle_pending_command_paylo
 _handle_non_processing_command = editor_callbacks._handle_non_processing_command
 _handle_editor_frontend_log = editor_callbacks._handle_editor_frontend_log
 _log_editor_frontend_payload = editor_callbacks._log_editor_frontend_payload
+_save_split_defaults_from_frontend = editor_callbacks._save_split_defaults_from_frontend
 _update_state_and_render = editor_callbacks._update_state_and_render
 _render_and_replace_async = editor_callbacks._render_and_replace_async
 _replace_current_field_after_render = editor_callbacks._replace_current_field_after_render
 _render_failed = editor_callbacks._render_failed
 _denoise_standard_async = editor_callbacks._denoise_standard_async
+_convert_async = editor_callbacks._convert_async
 _rnnoise_async = editor_callbacks._rnnoise_async
 _dpdfnet_async = editor_callbacks._dpdfnet_async
 _voice_only_async = editor_callbacks._voice_only_async
+_pitch_hum_async = editor_callbacks._pitch_hum_async
 _run_special_audio_transform_async = editor_callbacks._run_special_audio_transform_async
 _delete_selection_from_frontend = editor_callbacks._delete_selection_from_frontend
 _delete_selection_with_request = editor_callbacks._delete_selection_with_request
@@ -217,6 +220,8 @@ def _on_editor_will_load_note(js: str, note: Any, editor: Any) -> str:
             "repeatPauseSeconds": float(config.get("repeat_pause_seconds", 0.0)),
             "pauseAggressiveness": str(config.get("pause_aggressiveness", "normal")),
             "denoiseAlgorithm": str(config.get("denoise_algorithm", "standard")),
+            "pitchHumMode": str(config.get("pitch_hum_mode", "direct")),
+            "outputFormat": str(config.get("output_format", "mp3")),
             "dpdfnetAttnLimitDb": float(config.get("dpdfnet_attn_limit_db", 12.0)),
             "graphVoiceRange": str(config.get("graph_voice_range", "general")),
             "graphRecordingCondition": str(config.get("graph_recording_condition", "auto")),

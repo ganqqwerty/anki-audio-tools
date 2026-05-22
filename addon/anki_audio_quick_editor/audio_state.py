@@ -4,6 +4,11 @@ from __future__ import annotations
 
 from dataclasses import dataclass, replace
 
+from .audio_formats import DEFAULT_OUTPUT_FORMAT, normalize_output_format
+from .dpdfnet_settings import (
+    DEFAULT_DPDFNET_ATTENUATION_LIMIT_DB,
+    normalize_dpdfnet_attn_limit_db,
+)
 from .errors import InvalidEditStateError
 
 ConfigValue = str | int | float | bool
@@ -29,12 +34,13 @@ class AudioProcessingConfig:
     internal_pause_threshold_ms: int = 300
     internal_pause_target_gap_ms: int = 100
     pause_aggressiveness: str = "normal"
-    output_format: str = "mp3"
+    output_format: str = DEFAULT_OUTPUT_FORMAT
     ffmpeg_path: str = ""
     deep_filter_path: str = ""
     deep_filter_post_filter: bool = True
-    dpdfnet_attn_limit_db: float = 12.0
+    dpdfnet_attn_limit_db: float = DEFAULT_DPDFNET_ATTENUATION_LIMIT_DB
     denoise_algorithm: str = "standard"
+    pitch_hum_mode: str = "direct"
     show_ffmpeg_commands: bool = False
     graph_voice_range: GraphVoiceRange = "general"
     graph_recording_condition: GraphRecordingCondition = "auto"
@@ -69,16 +75,17 @@ class AudioProcessingConfig:
             pause_aggressiveness=str(
                 config.get("pause_aggressiveness", cls.pause_aggressiveness)
             ),
-            output_format=str(config.get("output_format", cls.output_format)),
+            output_format=normalize_output_format(config.get("output_format", cls.output_format)),
             ffmpeg_path=str(config.get("ffmpeg_path", cls.ffmpeg_path)),
             deep_filter_path=str(config.get("deep_filter_path", cls.deep_filter_path)),
             deep_filter_post_filter=bool(
                 config.get("deep_filter_post_filter", cls.deep_filter_post_filter)
             ),
-            dpdfnet_attn_limit_db=float(
+            dpdfnet_attn_limit_db=normalize_dpdfnet_attn_limit_db(
                 config.get("dpdfnet_attn_limit_db", cls.dpdfnet_attn_limit_db)
             ),
             denoise_algorithm=str(config.get("denoise_algorithm", cls.denoise_algorithm)),
+            pitch_hum_mode=str(config.get("pitch_hum_mode", cls.pitch_hum_mode)),
             show_ffmpeg_commands=bool(
                 config.get("show_ffmpeg_commands", cls.show_ffmpeg_commands)
             ),

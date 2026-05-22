@@ -42,11 +42,16 @@ def test_render_dpdfnet_audio_runs_denoise_and_encode(
         text: bool,
         check: bool,
         timeout: float,
+        env: dict[str, str] | None = None,
     ) -> SimpleNamespace:
         assert timeout > 0
         calls.append(cmd)
         if cmd[0] == "/bin/dpdfnet":
+            assert env is not None
+            assert env["DPDFNET_FFMPEG"] == "/bin/ffmpeg"
             Path(cmd[5]).write_bytes(b"denoised")
+        else:
+            assert env is None
         return SimpleNamespace(returncode=0, stdout="", stderr="")
 
     monkeypatch.setattr("anki_audio_quick_editor.audio_processor.subprocess.run", fake_run)
@@ -54,7 +59,7 @@ def test_render_dpdfnet_audio_runs_denoise_and_encode(
     output = tmp_path / "denoised.mp3"
     result = render_dpdfnet_audio(
         tmp_path / "source.mp3",
-        AudioProcessingConfig(dpdfnet_attn_limit_db=8.5),
+        AudioProcessingConfig(dpdfnet_attn_limit_db=18.0),
         output_path=output,
         on_command=commands.append,
     )
@@ -63,7 +68,7 @@ def test_render_dpdfnet_audio_runs_denoise_and_encode(
         "/bin/dpdfnet",
         "enhance",
         "--attn-limit-db",
-        "8.5",
+        "18",
         str(tmp_path / "source.mp3"),
         calls[0][5],
     ]

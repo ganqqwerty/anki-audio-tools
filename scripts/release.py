@@ -40,7 +40,7 @@ BASE_REQUIRED_ARCHIVE_FILES = (
     "bin/runtime_manifest.json",
 )
 WARN_ARCHIVE_BYTES = 125 * 1024 * 1024
-FAIL_ARCHIVE_BYTES = 150 * 1024 * 1024
+FAIL_ARCHIVE_BYTES = 200 * 1024 * 1024
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import release_assets  # noqa: E402
@@ -398,7 +398,7 @@ def _validate_notices(zf: zipfile.ZipFile, names: set[str]) -> None:
     if notice_name not in names:
         _validation_error(f"missing required file {notice_name}")
     notice_text = zf.read(notice_name).decode("utf-8", errors="replace")
-    for required in ("FFmpeg", "LAME", "DeepFilterNet", "RNNoise", "Sherpa", "Spleeter"):
+    for required in ("FFmpeg", "LAME", "DeepFilterNet", "RNNoise", "DPDFNet", "Sherpa", "Spleeter"):
         if required not in notice_text:
             _validation_error(f"{notice_name} is missing {required} notice")
 

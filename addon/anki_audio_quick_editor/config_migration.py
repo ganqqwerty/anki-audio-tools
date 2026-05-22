@@ -5,7 +5,10 @@ from __future__ import annotations
 import copy
 from typing import Any
 
-CURRENT_CONFIG_VERSION = 13
+from .audio_formats import normalize_output_format
+from .dpdfnet_settings import normalize_dpdfnet_attn_limit_db
+
+CURRENT_CONFIG_VERSION = 16
 
 REMOVED_CONFIG_KEYS = frozenset(
     {
@@ -35,6 +38,20 @@ def migrate_config(
     for key in REMOVED_CONFIG_KEYS:
         merged.pop(key, None)
     changed = merged != user_config
+
+    if "dpdfnet_attn_limit_db" in merged:
+        normalized_dpdfnet_limit = normalize_dpdfnet_attn_limit_db(
+            merged.get("dpdfnet_attn_limit_db")
+        )
+        if merged.get("dpdfnet_attn_limit_db") != normalized_dpdfnet_limit:
+            merged["dpdfnet_attn_limit_db"] = normalized_dpdfnet_limit
+            changed = True
+
+    if "output_format" in merged:
+        normalized_output_format = normalize_output_format(merged.get("output_format"))
+        if merged.get("output_format") != normalized_output_format:
+            merged["output_format"] = normalized_output_format
+            changed = True
 
     if merged.get("_config_version") != CURRENT_CONFIG_VERSION:
         merged["_config_version"] = CURRENT_CONFIG_VERSION

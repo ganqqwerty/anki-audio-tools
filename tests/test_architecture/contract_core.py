@@ -6,7 +6,12 @@ from .contract_schema import Layer, ModuleContract, SideEffect, contract
 
 CORE_CONTRACTS: dict[str, ModuleContract] = {
     "_version": contract("_version", layer=Layer.IMPORT_SAFE_CORE),
-    "config_migration": contract("config_migration", layer=Layer.IMPORT_SAFE_CORE),
+    "audio_formats": contract("audio_formats", layer=Layer.IMPORT_SAFE_CORE),
+    "config_migration": contract(
+        "config_migration",
+        layer=Layer.IMPORT_SAFE_CORE,
+        allowed_addon_deps=("audio_formats", "dpdfnet_settings"),
+    ),
     "contracts_generated": contract(
         "contracts_generated",
         layer=Layer.IMPORT_SAFE_CORE,
@@ -28,6 +33,7 @@ CORE_CONTRACTS: dict[str, ModuleContract] = {
         layer=Layer.IMPORT_SAFE_CORE,
         notes="Runtime support diagnostics, breadcrumbs, exception hooks, and crash/session files.",
     ),
+    "dpdfnet_settings": contract("dpdfnet_settings", layer=Layer.IMPORT_SAFE_CORE),
     "errors": contract("errors", layer=Layer.IMPORT_SAFE_CORE),
     "frontend_logs": contract(
         "frontend_logs",

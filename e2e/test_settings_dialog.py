@@ -7,7 +7,12 @@ from unittest.mock import patch
 
 from PyQt6.QtWidgets import QApplication
 
-from e2e.helpers import click_selector, wait_for_condition, wait_for_js_condition
+from e2e.helpers import (
+    click_selector,
+    run_js,
+    wait_for_condition,
+    wait_for_js_condition,
+)
 
 
 def _open_settings_dialog(anki_mw):
@@ -155,6 +160,7 @@ def test_save_command_writes_config(anki_mw) -> None:
         "deep_filter_post_filter": True,
         "dpdfnet_attn_limit_db": 12.0,
         "denoise_algorithm": "standard",
+        "pitch_hum_mode": "direct",
         "pause_aggressiveness": "normal",
     }
     eval_calls: list[str] = []
@@ -219,6 +225,55 @@ def test_show_graph_by_default_checkbox_toggles_and_saves_in_one_session(anki_mw
 
     saved_config = mock_write.call_args.args[1]
     assert saved_config["show_graph_by_default"] is True
+
+
+def test_pitch_hum_default_mode_select_saves_in_one_session(anki_mw) -> None:
+    config = anki_mw.addonManager.getConfig("1000000002") or {}
+    config["pitch_hum_mode"] = "direct"
+    anki_mw.addonManager.writeConfig("1000000002", config)
+
+    dialog = _open_settings_dialog(anki_mw)
+    select_selector = '[data-testid="pitch-hum-mode"]'
+    save_selector = '[data-testid="settings-save"]'
+
+    initial = wait_for_js_condition(
+        dialog,
+        f"document.querySelector({json.dumps(select_selector)})?.value",
+        lambda value: value == "direct",
+        timeout=5.0,
+    )
+    assert initial == "direct"
+
+    run_js(
+        dialog,
+        f"""
+        (() => {{
+          const select = document.querySelector({json.dumps(select_selector)});
+          if (!select) return false;
+          select.value = "pitch_tier";
+          select.dispatchEvent(new Event("input", {{ bubbles: true }}));
+          select.dispatchEvent(new Event("change", {{ bubbles: true }}));
+          return true;
+        }})()
+        """,
+    )
+    wait_for_js_condition(
+        dialog,
+        f"document.querySelector({json.dumps(select_selector)})?.value",
+        lambda value: value == "pitch_tier",
+        timeout=5.0,
+    )
+
+    with patch.object(
+        anki_mw.addonManager,
+        "writeConfig",
+        wraps=anki_mw.addonManager.writeConfig,
+    ) as mock_write:
+        click_selector(dialog, save_selector, timeout=5.0)
+        wait_for_condition(lambda: mock_write.called, timeout=5.0)
+
+    saved_config = mock_write.call_args.args[1]
+    assert saved_config["pitch_hum_mode"] == "pitch_tier"
 
 
 def test_diagnostics_can_copy_support_report_and_open_log_file(anki_mw) -> None:

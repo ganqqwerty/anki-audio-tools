@@ -37,6 +37,18 @@ EDITOR_CONTRACTS: dict[str, ModuleContract] = {
         allowed_addon_deps=("diagnostics_runtime", "editor_actions", "errors", "frontend_logs", "i18n"),
         allowed_side_effects=(SideEffect.WEB_EVAL,),
     ),
+    "editor_conversion": contract(
+        "editor_conversion",
+        layer=Layer.UI_ADAPTER,
+        allowed_addon_deps=(
+            "audio_formats",
+            "audio_state",
+            "editor_actions",
+            "editor_session",
+            "i18n",
+        ),
+        allowed_side_effects=(SideEffect.WEB_EVAL,),
+    ),
     "editor_callbacks": contract(
         "editor_callbacks",
         layer=Layer.UI_ADAPTER,
@@ -55,6 +67,7 @@ EDITOR_CONTRACTS: dict[str, ModuleContract] = {
             "editor_runtime",
             "editor_session",
             "editor_settings_actions",
+            "editor_split_defaults",
             "prosody_types",
         ),
         allowed_side_effects=(
@@ -128,13 +141,16 @@ EDITOR_CONTRACTS: dict[str, ModuleContract] = {
         "editor_processing",
         layer=Layer.UI_ADAPTER,
         allowed_addon_deps=(
+            "audio_formats",
             "audio_state",
             "diagnostics_runtime",
             "editor_actions",
+            "editor_conversion",
             "editor_session",
             "errors",
             "i18n",
             "media_paths",
+            "prosody_settings",
             "sound_refs",
             "support",
         ),
@@ -189,6 +205,11 @@ EDITOR_CONTRACTS: dict[str, ModuleContract] = {
         allowed_addon_deps=("file_reveal", "i18n"),
         allowed_side_effects=(SideEffect.WEB_EVAL,),
     ),
+    "editor_split_defaults": contract(
+        "editor_split_defaults",
+        layer=Layer.UI_ADAPTER,
+        allowed_addon_deps=("audio_operation_params", "i18n", "prosody_settings"),
+    ),
     "editor_integration": contract(
         "editor_integration",
         layer=Layer.UI_ADAPTER,
@@ -210,6 +231,7 @@ EDITOR_CONTRACTS: dict[str, ModuleContract] = {
             "editor_runtime",
             "editor_session",
             "editor_settings_actions",
+            "editor_split_defaults",
             "editor_ui",
             "errors",
             "file_reveal",

@@ -1,6 +1,12 @@
 <script lang="ts">
   import { t } from "$lib/i18n.js";
-  import { BatchParameterKind, BatchPauseAggressiveness } from "$lib/types.js";
+  import {
+    DPDFNET_ATTENUATION_LIMIT_DB_VALUES,
+    formatDpdfnetAggressiveness,
+    formatOutputFormat,
+    OUTPUT_FORMAT_VALUES,
+  } from "$lib/audio-operation-parameters.js";
+  import { BatchParameterKind, BatchPauseAggressiveness, DenoiseAlgorithm } from "$lib/types.js";
   import type { BatchInitialState, BatchOperationOption } from "$lib/types.js";
   import type { BatchFormState } from "./batch-state.js";
 
@@ -17,7 +23,7 @@
 <div class="batch-grid">
   <label>
     <span>{t("batch.operation")}</span>
-    <select bind:value={form.operation} disabled={disabled}>
+    <select bind:value={form.operation} data-testid="batch-operation" disabled={disabled}>
       {#each state.operations as operation}
         <option value={operation.operation}>{operation.label}</option>
       {/each}
@@ -67,6 +73,39 @@
         <option value={BatchPauseAggressiveness.Aggressive}>{t("settings.pause_aggressiveness.aggressive")}</option>
       </select>
     </label>
+  {:else if selected?.parameter_kind === BatchParameterKind.Format}
+    <label>
+      <span>{t("settings.output_format")}</span>
+      <select bind:value={form.targetFormat} data-testid="batch-output-format" disabled={disabled}>
+        {#each OUTPUT_FORMAT_VALUES as format}
+          <option value={format}>{formatOutputFormat(format)}</option>
+        {/each}
+      </select>
+    </label>
+  {:else if selected?.parameter_kind === BatchParameterKind.Denoise}
+    <label>
+      <span>{t("batch.suppressor")}</span>
+      <select bind:value={form.denoiseAlgorithm} disabled={disabled}>
+        <option value={DenoiseAlgorithm.Standard}>{t("settings.denoise_algorithm.standard")}</option>
+        <option value={DenoiseAlgorithm.Rnnoise}>{t("settings.denoise_algorithm.rnnoise")}</option>
+        <option value={DenoiseAlgorithm.Dpdfnet}>{t("settings.denoise_algorithm.dpdfnet")}</option>
+        <option value={DenoiseAlgorithm.VoiceOnly}>{t("settings.denoise_algorithm.voice_only")}</option>
+      </select>
+    </label>
+    {#if form.denoiseAlgorithm === DenoiseAlgorithm.Dpdfnet}
+      <label>
+        <span>{t("settings.dpdfnet_attn_limit_db")}</span>
+        <select
+          bind:value={form.dpdfnetAttnLimitDb}
+          data-testid="batch-dpdfnet-attn-limit-db"
+          disabled={disabled}
+        >
+          {#each DPDFNET_ATTENUATION_LIMIT_DB_VALUES as value}
+            <option value={value}>{formatDpdfnetAggressiveness(value)}</option>
+          {/each}
+        </select>
+      </label>
+    {/if}
   {/if}
 </div>
 

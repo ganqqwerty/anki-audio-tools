@@ -2,7 +2,10 @@
 
 from __future__ import annotations
 
+import math
 import subprocess
+import wave
+from array import array
 from pathlib import Path
 
 import pytest
@@ -20,6 +23,108 @@ FORMAT_FIXTURES = (
     ("wav", ("-c:a", "pcm_s16le")),
     ("webm", ("-ar", "48000", "-c:a", "opus", "-strict", "-2", "-f", "webm")),
 )
+
+
+PITCH_HUM_SAMPLE_RATE = 22_050
+
+
+def _write_voiced_silence_voiced_wav(path: Path) -> None:
+    samples = array("h")
+    for duration_s, pitch_hz in ((0.35, 220.0), (0.35, None), (0.35, 330.0)):
+        segment_samples = round(duration_s * PITCH_HUM_SAMPLE_RATE)
+        for sample_index in range(segment_samples):
+            if pitch_hz is None:
+                samples.append(0)
+                continue
+            phase = 2 * math.pi * pitch_hz * sample_index / PITCH_HUM_SAMPLE_RATE
+            samples.append(round(math.sin(phase) * 0.35 * 32767))
+    _write_mono_wav(path, samples)
+
+
+def _write_rich_pitch_wav(path: Path, *, duration_s: float = 0.9) -> None:
+    weights = ((1, 0.38), (2, 0.33), (3, 0.28), (4, 0.24), (5, 0.18))
+    weight_sum = sum(weight for _harmonic, weight in weights)
+    samples = array("h")
+    for sample_index in range(round(duration_s * PITCH_HUM_SAMPLE_RATE)):
+        sample = sum(
+            weight
+            * math.sin(2 * math.pi * 220.0 * harmonic * sample_index / PITCH_HUM_SAMPLE_RATE)
+            for harmonic, weight in weights
+        )
+        samples.append(round(sample / weight_sum * 0.65 * 32767))
+    _write_mono_wav(path, samples)
+
+
+def _write_mono_wav(path: Path, samples: array[int]) -> None:
+    with wave.open(str(path), "wb") as wav_file:
+        wav_file.setnchannels(1)
+        wav_file.setsampwidth(2)
+        wav_file.setframerate(PITCH_HUM_SAMPLE_RATE)
+        wav_file.writeframes(samples.tobytes())
+
+
+def _decode_mono_pcm(ffmpeg_config, path: Path) -> array[int]:
+    result = subprocess.run(
+        [
+            ffmpeg_config.ffmpeg_path,
+            "-i",
+            str(path),
+            "-f",
+            "s16le",
+            "-acodec",
+            "pcm_s16le",
+            "-ac",
+            "1",
+            "-ar",
+            str(PITCH_HUM_SAMPLE_RATE),
+            "-",
+        ],
+        check=True,
+        capture_output=True,
+    )
+    samples = array("h")
+    samples.frombytes(result.stdout)
+    return samples
+
+
+def _read_wav_pcm(path: Path) -> array[int]:
+    with wave.open(str(path), "rb") as wav_file:
+        samples = array("h")
+        samples.frombytes(wav_file.readframes(wav_file.getnframes()))
+    return samples
+
+
+def _region(samples: array[int], start_s: float, end_s: float) -> array[int]:
+    start = round(start_s * PITCH_HUM_SAMPLE_RATE)
+    end = round(end_s * PITCH_HUM_SAMPLE_RATE)
+    return samples[start:end]
+
+
+def _region_rms(samples: array[int], start_s: float, end_s: float) -> float:
+    region = _region(samples, start_s, end_s)
+    if not region:
+        return 0.0
+    return math.sqrt(sum(sample * sample for sample in region) / len(region))
+
+
+def _goertzel_power(samples: array[int], frequency_hz: float) -> float:
+    if not samples:
+        return 0.0
+    coefficient = 2 * math.cos(2 * math.pi * frequency_hz / PITCH_HUM_SAMPLE_RATE)
+    previous = 0.0
+    previous2 = 0.0
+    for sample in samples:
+        current = float(sample) + coefficient * previous - previous2
+        previous2 = previous
+        previous = current
+    return previous2 * previous2 + previous * previous - coefficient * previous * previous2
+
+
+def _upper_harmonic_ratio(samples: array[int], start_s: float, end_s: float) -> float:
+    region = _region(samples, start_s, end_s)
+    fundamental = max(_goertzel_power(region, 220.0), 1.0)
+    upper = sum(_goertzel_power(region, frequency) for frequency in (440.0, 660.0, 880.0))
+    return upper / fundamental
 
 
 def _generate_audio_fixture(ffmpeg_config, path: Path, output_args: tuple[str, ...]) -> None:
@@ -200,6 +305,62 @@ def test_final_save_writes_new_anki_media_without_overwriting_original(
     assert saved_path.is_file()
     assert source.read_bytes() == original_bytes
     assert probe_duration_ms(saved_path, ffmpeg_config) < probe_duration_ms(source, ffmpeg_config)
+
+
+# noinspection PyUnusedLocal
+def test_pitch_hum_algorithms_keep_unvoiced_regions_silent(
+    anki_mw,
+    tmp_path: Path,
+    ffmpeg_config,
+) -> None:
+    pytest.importorskip("parselmouth")
+    from anki_audio_quick_editor.audio_processor import (
+        probe_duration_ms,
+        render_pitch_hum_audio,
+        render_pitch_tier_hum_audio,
+    )
+
+    del anki_mw
+    source = tmp_path / "voiced-silence-voiced.wav"
+    direct = tmp_path / "direct-hum.mp3"
+    pitch_tier = tmp_path / "pitch-tier-hum.mp3"
+    _write_voiced_silence_voiced_wav(source)
+
+    render_pitch_hum_audio(source, ffmpeg_config, output_path=direct)
+    render_pitch_tier_hum_audio(source, ffmpeg_config, output_path=pitch_tier)
+
+    for output in (direct, pitch_tier):
+        samples = _decode_mono_pcm(ffmpeg_config, output)
+        voiced_rms = min(
+            _region_rms(samples, 0.12, 0.28),
+            _region_rms(samples, 0.82, 0.98),
+        )
+        gap_rms = _region_rms(samples, 0.47, 0.63)
+        assert 900 <= probe_duration_ms(output, ffmpeg_config) <= 1250
+        assert voiced_rms > 200
+        assert gap_rms < voiced_rms * 0.25
+
+
+# noinspection PyUnusedLocal
+def test_pitch_tier_hum_removes_original_harmonic_timbre(
+    anki_mw,
+    tmp_path: Path,
+    ffmpeg_config,
+) -> None:
+    pytest.importorskip("parselmouth")
+    from anki_audio_quick_editor.audio_processor import render_pitch_tier_hum_audio
+
+    del anki_mw
+    source = tmp_path / "rich-harmonic-source.wav"
+    pitch_tier = tmp_path / "pitch-tier-hum.mp3"
+    _write_rich_pitch_wav(source)
+
+    render_pitch_tier_hum_audio(source, ffmpeg_config, output_path=pitch_tier)
+
+    source_ratio = _upper_harmonic_ratio(_read_wav_pcm(source), 0.12, 0.72)
+    pitch_tier_ratio = _upper_harmonic_ratio(_decode_mono_pcm(ffmpeg_config, pitch_tier), 0.12, 0.72)
+    assert source_ratio > 0.9
+    assert pitch_tier_ratio < source_ratio * 0.35
 
 
 # noinspection PyUnusedLocal

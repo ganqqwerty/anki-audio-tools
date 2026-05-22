@@ -14,12 +14,15 @@ from .diagnostics_runtime import (
 from .editor_actions import (
     CMD_ANALYZE_FIELD,
     CMD_COMMAND_PAYLOAD,
+    CMD_CONVERT,
     CMD_DELETE_REST,
     CMD_DELETE_SELECTION,
     CMD_DENOISE_STANDARD,
     CMD_DPDFNET,
+    CMD_PITCH_HUM,
     CMD_REDO,
     CMD_RNNOISE,
+    CMD_SAVE_SPLIT_DEFAULTS,
     CMD_SETTINGS,
     CMD_VOICE_ONLY,
     EditorCommandPayload,
@@ -108,11 +111,21 @@ def handle_non_processing_command(editor: Any, command: str | EditorCommandPaylo
     if payload.command == "aqe:analyze":
         deps.analyze_current_async(editor, graph_settings=payload.graph_settings)
         return True
+    if payload.command == CMD_CONVERT:
+        deps.convert_async(editor, payload)
+        return True
+    if payload.command == CMD_DPDFNET:
+        deps.dpdfnet_async(editor, payload)
+        return True
+    if payload.command == CMD_PITCH_HUM:
+        deps.pitch_hum_async(editor, payload)
+        return True
     handlers = {
         CMD_ANALYZE_FIELD: deps.analyze_field_from_frontend,
         "aqe:set-cursor": deps.set_cursor_from_web,
         "aqe:play": deps.play,
         "aqe:frontend-log": deps.handle_editor_frontend_log,
+        CMD_SAVE_SPLIT_DEFAULTS: deps.save_split_defaults_from_frontend,
         "aqe:show-file": deps.show_current_audio_file,
         "aqe:play-ended": deps.play_ended,
         "aqe:undo": deps.undo,
@@ -120,7 +133,6 @@ def handle_non_processing_command(editor: Any, command: str | EditorCommandPaylo
         CMD_SETTINGS: deps.open_settings_from_editor,
         CMD_DENOISE_STANDARD: deps.denoise_standard_async,
         CMD_RNNOISE: deps.rnnoise_async,
-        CMD_DPDFNET: deps.dpdfnet_async,
         CMD_VOICE_ONLY: deps.voice_only_async,
         CMD_DELETE_SELECTION: deps.delete_selection_from_frontend,
         CMD_DELETE_REST: deps.delete_selection_from_frontend,

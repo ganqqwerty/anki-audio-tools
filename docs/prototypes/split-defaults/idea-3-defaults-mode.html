@@ -1,0 +1,189 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Idea 3 - Toolbar Defaults Mode</title>
+    <link rel="stylesheet" href="prototype.css">
+  </head>
+  <body>
+    <main class="page">
+      <header class="prototype-header">
+        <h1>Idea 3: Toolbar Defaults Mode</h1>
+        <p>
+          A dedicated mode separates editing the current audio from editing future defaults.
+          It is heavier, but useful if users often tune several split buttons together.
+        </p>
+      </header>
+      <nav class="prototype-nav" aria-label="Prototype pages">
+        <a href="index.html">Index</a>
+        <a href="idea-1-popover-save.html">1. Popover Save</a>
+        <a href="idea-2-dirty-badge.html">2. Dirty Badge</a>
+        <a aria-current="page" href="idea-3-defaults-mode.html">3. Defaults Mode</a>
+        <a href="idea-4-settings-handoff.html">4. Settings Handoff</a>
+      </nav>
+
+      <section class="stage-board" aria-label="Defaults mode stages">
+        <article class="stage">
+          <header class="stage-header">
+            <h2>Stage 1: Enter defaults mode</h2>
+            <p>The gear menu exposes a mode for editing future quick-setting defaults.</p>
+          </header>
+          <div class="workspace">
+            <div class="toolbar">
+              <span class="split">
+                <button class="btn icon-only"><span class="icon play"></span></button>
+                <button class="btn icon-only"><span class="icon chevron"></span></button>
+              </span>
+              <button class="btn"><span class="icon folder"></span>Folder</button>
+              <span class="split">
+                <button class="btn"><span class="icon wave"></span>Shorten Pauses</button>
+                <button class="btn icon-only"><span class="icon chevron"></span></button>
+              </span>
+              <span class="split">
+                <button class="btn"><span class="icon sparkle"></span>Denoise</button>
+                <button class="btn icon-only"><span class="icon chevron"></span></button>
+              </span>
+              <span class="split">
+                <button class="btn"><span class="icon snail"></span>Slower</button>
+                <button class="btn icon-only"><span class="icon chevron"></span></button>
+              </span>
+              <button class="btn icon-only"><span class="icon undo"></span></button>
+              <button class="btn icon-only"><span class="icon redo"></span></button>
+              <button class="btn icon-only primary-action"><span class="icon gear"></span></button>
+            </div>
+            <div class="editor-lines">
+              <div class="line"></div>
+              <div class="line"></div>
+              <div class="line"></div>
+              <div class="line"></div>
+            </div>
+            <div class="waveform"><span class="selection-handle"></span></div>
+            <aside class="popover denoise-popover">
+              <h3>Quick Settings</h3>
+              <div class="details-row">
+                <strong>Open full settings</strong>
+                <button class="action-btn secondary">Open</button>
+              </div>
+              <div class="details-row">
+                <strong>Edit split defaults</strong>
+                <button class="action-btn primary">Start</button>
+              </div>
+            </aside>
+            <div class="field-title">Arbeit war knapp</div>
+          </div>
+        </article>
+
+        <article class="stage">
+          <header class="stage-header">
+            <h2>Stage 2: Batch-edit defaults</h2>
+            <p>Toolbar buttons show default previews. The user can edit several split buttons before saving.</p>
+          </header>
+          <div class="workspace">
+            <div class="inline-banner">
+              <div>
+                <strong>Editing split-button defaults</strong>
+                <span>Changes affect new editor fields, not the current audio action.</span>
+              </div>
+              <span class="action-row">
+                <button class="action-btn secondary">Cancel</button>
+                <button class="action-btn primary">Save 3 defaults</button>
+              </span>
+            </div>
+            <div class="toolbar">
+              <span class="split">
+                <button class="btn icon-only"><span class="icon play"></span></button>
+                <button class="btn icon-only"><span class="icon chevron"></span></button>
+              </span>
+              <button class="btn"><span class="icon folder"></span>Folder</button>
+              <span class="split">
+                <button class="btn unsaved"><span class="icon wave"></span>Shorten: Aggressive</button>
+                <button class="btn icon-only unsaved"><span class="icon chevron"></span></button>
+              </span>
+              <span class="split">
+                <button class="btn unsaved"><span class="icon sparkle"></span>DPDFNet</button>
+                <button class="btn icon-only unsaved"><span class="icon chevron"></span></button>
+              </span>
+              <span class="split">
+                <button class="btn unsaved"><span class="icon snail"></span>Slower: x0.90</button>
+                <button class="btn icon-only unsaved"><span class="icon chevron"></span></button>
+              </span>
+              <button class="btn icon-only"><span class="icon undo"></span></button>
+              <button class="btn icon-only"><span class="icon redo"></span></button>
+              <button class="btn icon-only default-mode"><span class="icon gear"></span></button>
+            </div>
+            <div class="editor-lines">
+              <div class="line"></div>
+              <div class="line"></div>
+              <div class="line"></div>
+              <div class="line"></div>
+            </div>
+            <div class="waveform"><span class="selection-handle"></span></div>
+            <aside class="popover denoise-popover">
+              <h3>Denoise Default <span class="changed-pill">Changed</span></h3>
+              <div class="preset-row">
+                <button class="preset">Standard</button>
+                <button class="preset">RNNoise</button>
+                <button class="preset selected">DPDFNet</button>
+                <button class="preset">Voice Only</button>
+              </div>
+              <div class="details-row">
+                <strong>Aggressiveness</strong>
+                <span class="value">Aggressive</span>
+              </div>
+              <div class="footer-actions warning">
+                <span class="footer-copy">Staged default, not saved yet</span>
+                <button class="action-btn secondary">Undo change</button>
+              </div>
+            </aside>
+            <div class="field-title">Arbeit war knapp</div>
+          </div>
+        </article>
+
+        <article class="stage">
+          <header class="stage-header">
+            <h2>Stage 3: Exit with confirmation</h2>
+            <p>After saving, the mode exits and the toolbar returns to the normal action surface.</p>
+          </header>
+          <div class="workspace">
+            <div class="toolbar">
+              <span class="split">
+                <button class="btn icon-only"><span class="icon play"></span></button>
+                <button class="btn icon-only"><span class="icon chevron"></span></button>
+              </span>
+              <button class="btn"><span class="icon folder"></span>Folder</button>
+              <span class="split">
+                <button class="btn saved-ring"><span class="icon wave"></span>Shorten Pauses</button>
+                <button class="btn icon-only saved-ring"><span class="icon chevron"></span></button>
+              </span>
+              <span class="split">
+                <button class="btn saved-ring"><span class="icon sparkle"></span>Denoise</button>
+                <button class="btn icon-only saved-ring"><span class="icon chevron"></span></button>
+              </span>
+              <span class="split">
+                <button class="btn saved-ring"><span class="icon snail"></span>Slower</button>
+                <button class="btn icon-only saved-ring"><span class="icon chevron"></span></button>
+              </span>
+              <button class="btn icon-only"><span class="icon undo"></span></button>
+              <button class="btn icon-only"><span class="icon redo"></span></button>
+              <button class="btn icon-only"><span class="icon gear"></span></button>
+            </div>
+            <div class="editor-lines">
+              <div class="line"></div>
+              <div class="line"></div>
+              <div class="line"></div>
+              <div class="line"></div>
+            </div>
+            <div class="waveform"><span class="selection-handle"></span></div>
+            <div class="note-card">
+              <h3>New defaults active</h3>
+              <p>Shorten Pauses defaults to Aggressive, Denoise defaults to DPDFNet, and Slower defaults to x0.90.</p>
+            </div>
+            <div class="toast">3 split defaults saved</div>
+            <div class="field-title">Arbeit war knapp</div>
+          </div>
+        </article>
+      </section>
+    </main>
+  </body>
+</html>

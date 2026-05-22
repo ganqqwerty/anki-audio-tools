@@ -27,7 +27,13 @@
       {t("batch.cancel")}
     </button>
   {/if}
-  <button type="button" class="primary" onclick={onStart} disabled={!canStart || running || finished}>
+  <button
+    type="button"
+    class="primary"
+    data-testid="batch-start"
+    onclick={onStart}
+    disabled={!canStart || running || finished}
+  >
     {t("batch.start")}
   </button>
 </footer>

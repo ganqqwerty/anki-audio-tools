@@ -3,6 +3,8 @@ import { focusAndSendCommand, focusAndSendCommandPayload } from "./bridge.js";
 import { allVisualizers } from "./dom-selectors.js";
 import { logger } from "./logger.js";
 import { requestGraph } from "./graph-actions.js";
+import { buildSplitCommandPayload } from "./split-button-state.js";
+import { rememberPostEditPlaybackIntent } from "./post-edit-playback.js";
 import {
   handleHtmlPlaybackCommand,
   playbackStateFor,
@@ -28,15 +30,23 @@ export function send(
   if (command === "aqe:play" && handleHtmlPlaybackCommand(ord)) {
     return;
   }
+  if (shouldPlayAfterSuccessfulEdit(command)) {
+    rememberPostEditPlaybackIntent(ord);
+  }
   if (PROCESSING_COMMANDS.has(command)) {
     stopAllEditorPlayback();
-    setControlsBusy(ord, true, processingMessage(command));
+    setControlsBusy(ord, true, processingMessage(command, payload));
   }
-  if (payload) {
-    focusAndSendCommandPayload(ord, payload);
+  const effectivePayload = payload ?? (command === "aqe:pitch-hum" ? buildSplitCommandPayload(command, ord) : undefined);
+  if (effectivePayload) {
+    focusAndSendCommandPayload(ord, effectivePayload);
     return;
   }
   focusAndSendCommand(ord, command);
+}
+
+function shouldPlayAfterSuccessfulEdit(command: EditorCommand): boolean {
+  return PROCESSING_COMMANDS.has(command) || command === "aqe:undo" || command === "aqe:redo";
 }
 
 function stopAllEditorPlayback(): void {

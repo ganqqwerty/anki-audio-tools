@@ -7,7 +7,9 @@ import {
   BatchParameterKind,
   BatchParameterName,
   BatchPauseAggressiveness,
+  DenoiseAlgorithm,
   Direction,
+  OutputFormat,
 } from "../src/lib/types.js";
 
 function setInitialState(): void {
@@ -20,6 +22,13 @@ function setInitialState(): void {
         requires_target_field: true,
         parameter_kind: BatchParameterKind.None,
         parameter_name: BatchParameterName.None,
+      },
+      {
+        operation: BatchOperationName.Convert,
+        label: "Convert",
+        requires_target_field: false,
+        parameter_kind: BatchParameterKind.Format,
+        parameter_name: BatchParameterName.TargetFormat,
       },
       {
         operation: BatchOperationName.RemovePauses,
@@ -36,6 +45,13 @@ function setInitialState(): void {
         parameter_name: BatchParameterName.SpeedStep,
       },
       {
+        operation: BatchOperationName.Denoise,
+        label: "Denoise",
+        requires_target_field: false,
+        parameter_kind: BatchParameterKind.Denoise,
+        parameter_name: BatchParameterName.DenoiseAlgorithm,
+      },
+      {
         operation: BatchOperationName.VolumeUp,
         label: "Volume +",
         requires_target_field: false,
@@ -48,6 +64,9 @@ function setInitialState(): void {
       speed_step: 0.1,
       volume_step_db: 6,
       pause_aggressiveness: BatchPauseAggressiveness.Aggressive,
+      denoise_algorithm: DenoiseAlgorithm.Standard,
+      dpdfnet_attn_limit_db: 12,
+      output_format: OutputFormat.Mp3,
     },
     locale: "en",
     direction: Direction.LTR,
@@ -91,10 +110,47 @@ describe("BatchApp", () => {
     expect(screen.getByLabelText("Speed step")).toBeInTheDocument();
 
     await fireEvent.change(screen.getByLabelText("Operation"), {
+      target: { value: BatchOperationName.Convert },
+    });
+    expect(screen.getByLabelText("Default convert format")).toBeInTheDocument();
+    expect(screen.queryByLabelText("Target field")).not.toBeInTheDocument();
+
+    await fireEvent.change(screen.getByLabelText("Operation"), {
       target: { value: BatchOperationName.RemovePauses },
     });
     expect(screen.getByLabelText("Shorten pauses level")).toBeInTheDocument();
     expect(screen.queryByLabelText("Speed step")).not.toBeInTheDocument();
+
+    await fireEvent.change(screen.getByLabelText("Operation"), {
+      target: { value: BatchOperationName.Denoise },
+    });
+    expect(screen.getByLabelText("Suppressor")).toBeInTheDocument();
+    await fireEvent.change(screen.getByLabelText("Suppressor"), {
+      target: { value: DenoiseAlgorithm.Dpdfnet },
+    });
+    expect(screen.getByLabelText("DPDFNet Aggressiveness")).toBeInTheDocument();
+  });
+
+  it("sends a convert start request with the selected format", async () => {
+    setInitialState();
+    render(BatchApp);
+
+    await fireEvent.change(screen.getByTestId("batch-operation"), {
+      target: { value: BatchOperationName.Convert },
+    });
+    await fireEvent.change(screen.getByTestId("batch-output-format"), {
+      target: { value: OutputFormat.FLAC },
+    });
+    await fireEvent.click(screen.getByTestId("batch-start"));
+
+    const call = pycmdMock().mock.calls.find(([command]) => String(command).includes('"batch.start"'))?.[0] as string;
+    const envelope = JSON.parse(call.slice("bridge:".length));
+    expect(envelope.payload).toEqual({
+      operation: BatchOperationName.Convert,
+      source_field: "Audio",
+      target_field: null,
+      parameters: { target_format: "flac" },
+    });
   });
 
   it("updates progress, log, finish state, and copy log command", async () => {

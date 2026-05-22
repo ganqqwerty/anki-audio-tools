@@ -15,6 +15,7 @@ User characteristics:
 - Uses Anki Desktop.
 - Uses note fields containing `[sound:filename.ext]` references.
 - Edits one clip at a time.
+- Sometimes wants to edit clips in a batch
 - Wants quick correction, not a full waveform editor.
 - Wants transformations to be reversible by keeping older media files, not by modifying originals.
 

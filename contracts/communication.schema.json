@@ -195,16 +195,25 @@
       }
     },
     "BatchOperationName": {
-      "enum": ["graph", "remove_pauses", "slower", "faster", "volume_down", "volume_up"]
+      "enum": ["graph", "convert", "denoise", "remove_pauses", "slower", "faster", "volume_down", "volume_up"]
     },
     "BatchParameterKind": {
-      "enum": ["none", "speed", "volume", "pause"]
+      "enum": ["none", "speed", "volume", "pause", "denoise", "format"]
     },
     "BatchParameterName": {
-      "enum": ["none", "speed_step", "volume_step_db", "pause_aggressiveness"]
+      "enum": ["none", "speed_step", "volume_step_db", "pause_aggressiveness", "denoise_algorithm", "target_format"]
     },
     "BatchPauseAggressiveness": {
       "enum": ["gentle", "normal", "aggressive"]
+    },
+    "DenoiseAlgorithm": {
+      "enum": ["standard", "rnnoise", "dpdfnet", "voice_only"]
+    },
+    "OutputFormat": {
+      "enum": ["mp3", "m4a", "wav", "flac"]
+    },
+    "BatchDpdfnetAttnLimitDB": {
+      "enum": [6.0, 12.0, 18.0]
     },
     "BatchOperationParameters": {
       "type": "object",
@@ -212,7 +221,10 @@
       "properties": {
         "speed_step": { "type": "number" },
         "volume_step_db": { "type": "number" },
-        "pause_aggressiveness": { "$ref": "#/definitions/BatchPauseAggressiveness" }
+        "pause_aggressiveness": { "$ref": "#/definitions/BatchPauseAggressiveness" },
+        "denoise_algorithm": { "$ref": "#/definitions/DenoiseAlgorithm" },
+        "dpdfnet_attn_limit_db": { "$ref": "#/definitions/BatchDpdfnetAttnLimitDB" },
+        "target_format": { "$ref": "#/definitions/OutputFormat" }
       }
     },
     "BatchOperationOption": {
@@ -239,11 +251,14 @@
     "BatchDefaults": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["speed_step", "volume_step_db", "pause_aggressiveness"],
+      "required": ["speed_step", "volume_step_db", "pause_aggressiveness", "denoise_algorithm", "dpdfnet_attn_limit_db", "output_format"],
       "properties": {
         "speed_step": { "type": "number" },
         "volume_step_db": { "type": "number" },
-        "pause_aggressiveness": { "$ref": "#/definitions/BatchPauseAggressiveness" }
+        "pause_aggressiveness": { "$ref": "#/definitions/BatchPauseAggressiveness" },
+        "denoise_algorithm": { "$ref": "#/definitions/DenoiseAlgorithm" },
+        "dpdfnet_attn_limit_db": { "$ref": "#/definitions/BatchDpdfnetAttnLimitDB" },
+        "output_format": { "$ref": "#/definitions/OutputFormat" }
       }
     },
     "BatchInitialState": {

@@ -1,0 +1,44 @@
+name: Build Windows DPDFNet
+
+"on":
+  workflow_dispatch:
+    inputs:
+      model:
+        description: DPDFNet model to bundle
+        required: true
+        default: dpdfnet4
+
+jobs:
+  build:
+    name: Build dpdfnet.exe
+    runs-on: windows-latest
+    timeout-minutes: 45
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      - name: Install FFmpeg
+        shell: pwsh
+        run: choco install ffmpeg -y --no-progress
+
+      - name: Build Windows DPDFNet executable
+        shell: pwsh
+        run: >
+          ./scripts/dpdfnet_cli/build_windows.ps1
+          -Target windows-x86_64
+          -Python python
+          -Model "${{ inputs.model }}"
+
+      - name: Upload executable artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: dpdfnet-windows-x86_64
+          path: .release-assets/bin/windows-x86_64/dpdfnet.exe
+          if-no-files-found: error

@@ -50,6 +50,7 @@ Anki Audio Quick Editor keeps the human-facing architecture doc short and puts t
 Shared batchable operations live in `audio_operations.py` and are the only supported cross-UI operation source of truth:
 
 - `graph`
+- `denoise`
 - `remove_pauses` (`Shorten Pauses` in the UI)
 - `slower`
 - `faster`
@@ -87,9 +88,10 @@ The shared `remove_pauses` operation is DeepFilterNet-assisted and speeds long p
 7. Batch execution runs with `mw.taskman.run_in_background(..., uses_collection=True)` and posts progress/log updates back to the WebView on the main thread.
 8. `batch_operations.py` handles import-safe per-note decisions: missing required fields, empty source fields, and unsupported sound references are skips; missing media and analysis/render/write/update exceptions are failures.
 9. For transform operations, only the first supported `[sound:...]` reference in the source field is used. The transformed audio is written to Anki media and replaces that source-field reference in place.
-10. For `graph`, the generated SVG is written to Anki media and appended to the chosen target field as an `<img>` reference.
-11. `prosody_cache.py` shares cached analysis between editor and batch paths, while `prosody_svg.py` renders deterministic UTF-8 SVG media using the current pitch/intensity style.
-12. Successful updates are merged into one custom Anki undo entry where Anki supports it. Cancellation stops before the next note, leaving completed writes intact.
+10. For `denoise`, batch parameters select the suppressor (`standard`, `rnnoise`, `dpdfnet`, or `voice_only`). DPDFNet also accepts the operation-local aggressiveness value that maps to `--attn-limit-db`.
+11. For `graph`, the generated SVG is written to Anki media and appended to the chosen target field as an `<img>` reference.
+12. `prosody_cache.py` shares cached analysis between editor and batch paths, while `prosody_svg.py` renders deterministic UTF-8 SVG media using the current pitch/intensity style.
+13. Successful updates are merged into one custom Anki undo entry where Anki supports it. Cancellation stops before the next note, leaving completed writes intact.
 
 ## Settings Flow
 
@@ -106,13 +108,18 @@ Config defaults are stored in `config.json` and migrated into user config:
 
 ```json
 {
-  "_config_version": 13,
+  "_config_version": 16,
   "enabled": true,
   "debug_logging": false,
   "show_ffmpeg_commands": false,
   "repeat_playback_by_default": false,
   "repeat_pause_seconds": 0.0,
   "show_graph_by_default": false,
+  "graph_voice_range": "general",
+  "graph_recording_condition": "auto",
+  "graph_smoothness": "very_smooth",
+  "graph_connect_short_dropouts_ms": 240,
+  "graph_voice_lock": "balanced",
   "manual_trim_small_ms": 100,
   "manual_trim_large_ms": 500,
   "speed_step": 0.05,
@@ -130,12 +137,13 @@ Config defaults are stored in `config.json` and migrated into user config:
   "deep_filter_path": "",
   "deep_filter_post_filter": true,
   "dpdfnet_attn_limit_db": 12.0,
-  "denoise_algorithm": "standard"
+  "denoise_algorithm": "standard",
+  "pitch_hum_mode": "direct"
 }
 ```
 
 `config_migration.py` deep-merges defaults into user config and stamps the current schema version.
-Editor split-button choices are field-local runtime overrides. Settings provide defaults for trim amount, volume step, speed step, repeat pause, pause aggressiveness, cleanup action, and DPDFNet attenuation limit display, but changing a split-button value in one editor field does not write back to persisted config or other fields.
+Editor split-button choices are field-local runtime overrides. Settings provide defaults for trim amount, volume step, speed step, repeat pause, pause aggressiveness, convert target format, cleanup action, pitch hum mode, and DPDFNet aggressiveness, but changing a split-button value in one editor field does not write back to persisted config or other fields.
 
 ## Source Of Truth
 
