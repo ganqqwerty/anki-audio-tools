@@ -3,7 +3,6 @@ import {
   formatOutputFormat,
   outputFormatOrDefault,
 } from "./audio-operation-parameters.js";
-import { formatDenoiseAlgorithm } from "../editor-inline/split-button-state.js";
 import { t } from "./i18n.js";
 import type { CommandIconName } from "./icon-types.js";
 
@@ -55,6 +54,13 @@ export const DEFAULT_VISIBLE_EDITOR_BUTTONS = [
 ] as const satisfies readonly EditorCommand[];
 
 const DEFAULT_VISIBLE_EDITOR_BUTTON_SET = new Set<EditorCommand>(DEFAULT_VISIBLE_EDITOR_BUTTONS);
+
+function formatDenoiseAlgorithm(algorithm: "standard" | "rnnoise" | "dpdfnet" | "voice_only"): string {
+  if (algorithm === "rnnoise") return t("settings.denoise_algorithm.rnnoise");
+  if (algorithm === "dpdfnet") return t("settings.denoise_algorithm.dpdfnet");
+  if (algorithm === "voice_only") return t("settings.denoise_algorithm.voice_only");
+  return t("settings.denoise_algorithm.standard");
+}
 
 export function commandButtons(): readonly ToolbarButtonSpec[] {
   const outputFormat = outputFormatOrDefault(

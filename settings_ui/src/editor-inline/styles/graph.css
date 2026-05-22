@@ -1,0 +1,120 @@
+.aqe-pitch-path {
+  fill: none;
+  opacity: 0.9;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  filter: drop-shadow(0 0 1px rgb(0 0 0 / 0.18));
+  stroke-width: 3;
+}
+
+.aqe-cursor {
+  filter:
+    drop-shadow(0 0 2px var(--aqe-progress-inner-halo))
+    drop-shadow(0 0 6px var(--aqe-progress-halo));
+  opacity: 0.95;
+  pointer-events: none;
+  stroke: var(--aqe-progress-color);
+  stroke-width: 1.5;
+}
+
+.aqe-cursor-pitch-marker {
+  fill: var(--aqe-progress-surface);
+  filter:
+    drop-shadow(0 0 1px var(--aqe-progress-inner-halo))
+    drop-shadow(0 0 4px var(--aqe-progress-halo));
+  opacity: 0.98;
+  pointer-events: none;
+  stroke: var(--aqe-progress-color);
+  stroke-width: 2;
+  vector-effect: non-scaling-stroke;
+}
+
+.aqe-cursor-flag {
+  pointer-events: none;
+}
+
+.aqe-cursor-flag-box,
+.aqe-cursor-flag-notch {
+  fill: var(--aqe-progress-surface);
+  filter:
+    drop-shadow(0 0 1px var(--aqe-progress-inner-halo))
+    drop-shadow(0 0 3px var(--aqe-progress-halo));
+  stroke: var(--aqe-progress-color);
+  stroke-width: 1;
+  vector-effect: non-scaling-stroke;
+}
+
+.aqe-cursor-flag-text {
+  fill: var(--aqe-progress-color);
+  font-size: 10px;
+  font-weight: 700;
+  text-anchor: middle;
+}
+
+.aqe-cursor-flag-pitch {
+  font-weight: 600;
+  opacity: 0.62;
+}
+
+.aqe-cursor-label {
+  clip: rect(0 0 0 0);
+  clip-path: inset(50%);
+  height: 1px;
+  overflow: hidden;
+  position: absolute;
+  white-space: nowrap;
+  width: 1px;
+}
+
+.aqe-hz-label,
+.aqe-x-label {
+  fill: currentColor;
+  font-size: 11px;
+  opacity: 0.8;
+}
+
+.aqe-x-label {
+  text-anchor: middle;
+}
+
+.aqe-x-tick {
+  opacity: 0.5;
+  stroke: currentColor;
+  stroke-width: 1;
+}
+
+.aqe-visualizer-meta {
+  align-items: center;
+  display: flex;
+  font-size: 12px;
+  gap: 8px;
+  justify-content: flex-start;
+  margin-top: 2px;
+}
+
+.aqe-spinner {
+  animation: aqe-spin 800ms linear infinite;
+  border: 2px solid currentColor;
+  border-right-color: transparent;
+  border-radius: 999px;
+  box-sizing: border-box;
+  display: inline-block;
+  height: 12px;
+  opacity: 0.75;
+  width: 12px;
+}
+
+.aqe-spinner[hidden] {
+  display: none;
+}
+
+.aqe-visualizer-status[data-kind="error"] {
+  font-weight: 700;
+}
+
+@keyframes aqe-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
