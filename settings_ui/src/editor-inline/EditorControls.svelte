@@ -1,6 +1,6 @@
 <script lang="ts">
   import { onMount } from "svelte";
-  import { commandButtons, testId } from "./commands.js";
+  import { testId, toolbarButtons, visibleToolbarButtons } from "./commands.js";
   import { t } from "../lib/i18n.js";
   import EditorCommandIcon from "./EditorCommandIcon.svelte";
   import EditorHelp from "./EditorHelp.svelte";
@@ -18,7 +18,7 @@
   import { visualizerForOrd } from "./dom-selectors.js";
   import { handleVisualizerKeyDown, sendRegionDelete } from "./region-delete.js";
   import { PLOT } from "./plot.js";
-  import type { ButtonSpec, FieldTarget } from "./types.js";
+  import type { FieldTarget } from "./types.js";
 
   const { target }: { target: FieldTarget } = $props();
   const selectionPlotHeight = PLOT.height - PLOT.top - PLOT.bottom;
@@ -27,13 +27,10 @@
   const selectionHandleCenterY = selectionHandleY + selectionHandleHeight / 2;
   const repeatDefault = window.__AQE_EDITOR_CONFIG__?.repeatPlaybackByDefault === true;
   const repeatPauseDefault = window.__AQE_EDITOR_CONFIG__?.splitButtonDefaults?.repeatPauseSeconds ?? 0;
-  const buttons = commandButtons();
-  const denoiseButton: ButtonSpec = {
-    command: "aqe:denoise-standard",
-    icon: "sparkles",
-    label: t("editor.command.denoise.label"),
-    title: t("editor.command.denoise.title"),
-  };
+  const buttons = visibleToolbarButtons(
+    toolbarButtons(),
+    window.__AQE_EDITOR_CONFIG__?.visibleEditorButtons,
+  );
 
   function isSplitCommand(command: string): boolean {
     return [
@@ -90,9 +87,6 @@
         {/if}
         <span class="aqe-button-label">{button.label}</span>
       </button>
-    {/if}
-    {#if button.command === "aqe:remove-pauses"}
-      <SplitButton button={denoiseButton} {target} />
     {/if}
   {/each}
   <button

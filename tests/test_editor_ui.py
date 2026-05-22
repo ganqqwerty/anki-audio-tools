@@ -22,6 +22,7 @@ def test_injection_script_embeds_audio_field_indices_and_bundle() -> None:
     assert config["audioFieldSources"] == {}
     assert config["repeatPlaybackByDefault"] is False
     assert config["showGraphByDefault"] is False
+    assert config["visibleEditorButtons"] is None
     assert config["splitButtonDefaults"]["repeatPauseSeconds"] == 0.0
     assert config["splitButtonDefaults"]["pitchHumMode"] == "direct"
     assert config["splitButtonDefaults"]["dpdfnetAttnLimitDb"] == 12.0
@@ -56,6 +57,12 @@ def test_injection_script_embeds_show_graph_default() -> None:
     script = injection_script([0], show_graph_by_default=True)
 
     assert _embedded_config(script)["showGraphByDefault"] is True
+
+
+def test_injection_script_embeds_visible_editor_buttons() -> None:
+    script = injection_script([0], visible_editor_buttons=["aqe:play", "aqe:settings"])
+
+    assert _embedded_config(script)["visibleEditorButtons"] == ["aqe:play", "aqe:settings"]
 
 
 def test_injection_script_embeds_audio_field_sources() -> None:

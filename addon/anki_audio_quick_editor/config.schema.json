@@ -11,6 +11,7 @@
     "repeat_playback_by_default",
     "repeat_pause_seconds",
     "show_graph_by_default",
+    "visible_editor_buttons",
     "graph_voice_range",
     "graph_recording_condition",
     "graph_smoothness",
@@ -63,6 +64,30 @@
     },
     "show_graph_by_default": {
       "type": "boolean"
+    },
+    "visible_editor_buttons": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "enum": [
+          "aqe:play",
+          "aqe:analyze",
+          "aqe:show-file",
+          "aqe:trim-left",
+          "aqe:trim-right",
+          "aqe:remove-pauses",
+          "aqe:denoise-standard",
+          "aqe:pitch-hum",
+          "aqe:slower",
+          "aqe:faster",
+          "aqe:volume-down",
+          "aqe:volume-up",
+          "aqe:undo",
+          "aqe:redo",
+          "aqe:settings"
+        ]
+      },
+      "uniqueItems": true
     },
     "graph_voice_range": {
       "type": "string",

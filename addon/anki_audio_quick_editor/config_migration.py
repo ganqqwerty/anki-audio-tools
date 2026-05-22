@@ -7,7 +7,7 @@ from typing import Any
 
 from .dpdfnet_settings import normalize_dpdfnet_attn_limit_db
 
-CURRENT_CONFIG_VERSION = 15
+CURRENT_CONFIG_VERSION = 16
 
 REMOVED_CONFIG_KEYS = frozenset(
     {

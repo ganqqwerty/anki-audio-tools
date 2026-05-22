@@ -8,20 +8,40 @@ import {
   OutputFormat,
   PauseAggressiveness,
   PitchHumMode,
+  VisibleEditorButton,
 } from "$lib/types.js";
 import type { Config, InitialState } from "$lib/types.js";
 
 export type SettingsTab = "general" | "diagnostics";
 
+export const DEFAULT_VISIBLE_EDITOR_BUTTONS = [
+  VisibleEditorButton.AqePlay,
+  VisibleEditorButton.AqeAnalyze,
+  VisibleEditorButton.AqeShowFile,
+  VisibleEditorButton.AqeTrimLeft,
+  VisibleEditorButton.AqeTrimRight,
+  VisibleEditorButton.AqeRemovePauses,
+  VisibleEditorButton.AqeDenoiseStandard,
+  VisibleEditorButton.AqePitchHum,
+  VisibleEditorButton.AqeSlower,
+  VisibleEditorButton.AqeFaster,
+  VisibleEditorButton.AqeVolumeDown,
+  VisibleEditorButton.AqeVolumeUp,
+  VisibleEditorButton.AqeUndo,
+  VisibleEditorButton.AqeRedo,
+  VisibleEditorButton.AqeSettings,
+] as const satisfies readonly VisibleEditorButton[];
+
 export const FALLBACK_INITIAL_STATE: InitialState = {
   config: {
-    _config_version: 15,
+    _config_version: 16,
     enabled: true,
     debug_logging: false,
     show_ffmpeg_commands: false,
     repeat_playback_by_default: false,
     repeat_pause_seconds: 0,
     show_graph_by_default: false,
+    visible_editor_buttons: [...DEFAULT_VISIBLE_EDITOR_BUTTONS],
     graph_voice_range: GraphVoiceRange.General,
     graph_recording_condition: GraphRecordingCondition.Auto,
     graph_smoothness: GraphSmoothness.VerySmooth,

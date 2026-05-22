@@ -7,6 +7,7 @@ from unittest.mock import patch
 
 from PyQt6.QtWidgets import QApplication
 
+from e2e.editor_note_helpers import DEFAULT_VISIBLE_EDITOR_BUTTONS
 from e2e.helpers import (
     click_selector,
     run_js,
@@ -138,6 +139,7 @@ def test_save_command_writes_config(anki_mw) -> None:
         "repeat_playback_by_default": False,
         "repeat_pause_seconds": 0.0,
         "show_graph_by_default": False,
+        "visible_editor_buttons": list(DEFAULT_VISIBLE_EDITOR_BUTTONS),
         "graph_voice_range": "general",
         "graph_recording_condition": "auto",
         "graph_smoothness": "very_smooth",

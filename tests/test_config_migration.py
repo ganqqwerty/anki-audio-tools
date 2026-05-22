@@ -150,6 +150,20 @@ class TestMigrateConfig:
         assert migrated["_config_version"] == CURRENT_CONFIG_VERSION
         assert changed is True
 
+    def test_picks_up_visible_editor_buttons_default(self) -> None:
+        user = {"_config_version": 15, "enabled": True}
+        defaults = {
+            "_config_version": CURRENT_CONFIG_VERSION,
+            "enabled": True,
+            "visible_editor_buttons": ["aqe:play", "aqe:settings"],
+        }
+
+        migrated, changed = migrate_config(user, defaults)
+
+        assert migrated["visible_editor_buttons"] == ["aqe:play", "aqe:settings"]
+        assert migrated["_config_version"] == CURRENT_CONFIG_VERSION
+        assert changed is True
+
     def test_picks_up_graph_display_defaults(self) -> None:
         user = {"_config_version": 11, "enabled": True}
         defaults = {

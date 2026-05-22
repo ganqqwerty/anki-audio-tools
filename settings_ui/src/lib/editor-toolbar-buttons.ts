@@ -1,0 +1,241 @@
+import { formatDpdfnetAggressiveness } from "./audio-operation-parameters.js";
+import { t } from "./i18n.js";
+import type { CommandIconName } from "./icon-types.js";
+
+export type EditorCommand =
+  | "aqe:play"
+  | "aqe:analyze"
+  | "aqe:show-file"
+  | "aqe:delete-selection"
+  | "aqe:delete-rest"
+  | "aqe:trim-left"
+  | "aqe:trim-right"
+  | "aqe:remove-pauses"
+  | "aqe:denoise-standard"
+  | "aqe:rnnoise"
+  | "aqe:dpdfnet"
+  | "aqe:voice-only"
+  | "aqe:pitch-hum"
+  | "aqe:slower"
+  | "aqe:faster"
+  | "aqe:volume-down"
+  | "aqe:volume-up"
+  | "aqe:undo"
+  | "aqe:redo"
+  | "aqe:settings";
+
+export interface ToolbarButtonSpec {
+  activeIcon?: CommandIconName;
+  command: EditorCommand;
+  icon: CommandIconName;
+  iconOnly?: boolean;
+  label: string;
+  title: string;
+}
+
+export const DEFAULT_VISIBLE_EDITOR_BUTTONS = [
+  "aqe:play",
+  "aqe:analyze",
+  "aqe:show-file",
+  "aqe:trim-left",
+  "aqe:trim-right",
+  "aqe:remove-pauses",
+  "aqe:denoise-standard",
+  "aqe:pitch-hum",
+  "aqe:slower",
+  "aqe:faster",
+  "aqe:volume-down",
+  "aqe:volume-up",
+  "aqe:undo",
+  "aqe:redo",
+  "aqe:settings",
+] as const satisfies readonly EditorCommand[];
+
+const DEFAULT_VISIBLE_EDITOR_BUTTON_SET = new Set<EditorCommand>(DEFAULT_VISIBLE_EDITOR_BUTTONS);
+
+export function commandButtons(): readonly ToolbarButtonSpec[] {
+  const trimMs = window.__AQE_EDITOR_CONFIG__?.splitButtonDefaults?.trimStepMs ?? 100;
+  return [
+    {
+      activeIcon: "pause",
+      command: "aqe:play",
+      icon: "play",
+      iconOnly: true,
+      label: t("editor.command.play.label"),
+      title: t("editor.command.play.title"),
+    },
+    {
+      activeIcon: "audio-lines",
+      command: "aqe:analyze",
+      icon: "audio-lines",
+      iconOnly: true,
+      label: t("editor.command.graph.label"),
+      title: t("editor.command.graph.title"),
+    },
+    {
+      command: "aqe:show-file",
+      icon: "folder-open",
+      label: t("editor.command.folder.label"),
+      title: t("editor.command.folder.title"),
+    },
+    {
+      command: "aqe:trim-left",
+      icon: "scissors",
+      label: t("editor.command.trim_left.label"),
+      title: t("editor.command.trim_left.title", { ms: trimMs }),
+    },
+    {
+      command: "aqe:trim-right",
+      icon: "scissors",
+      label: t("editor.command.trim_right.label"),
+      title: t("editor.command.trim_right.title", { ms: trimMs }),
+    },
+    {
+      command: "aqe:remove-pauses",
+      icon: "timer-reset",
+      label: t("editor.command.shorten_pauses.label"),
+      title: t("editor.command.shorten_pauses.title"),
+    },
+    {
+      command: "aqe:pitch-hum",
+      icon: "waves",
+      label: t("editor.command.pitch_hum.label"),
+      title: t("editor.command.pitch_hum.title"),
+    },
+    {
+      command: "aqe:slower",
+      icon: "snail",
+      label: t("editor.command.slower.label"),
+      title: t("editor.command.slower.title"),
+    },
+    {
+      command: "aqe:faster",
+      icon: "hare-running",
+      label: t("editor.command.faster.label"),
+      title: t("editor.command.faster.title"),
+    },
+    {
+      command: "aqe:volume-down",
+      icon: "volume-1",
+      iconOnly: true,
+      label: t("editor.command.volume_down.label"),
+      title: t("editor.command.volume_down.title"),
+    },
+    {
+      command: "aqe:volume-up",
+      icon: "volume-2",
+      iconOnly: true,
+      label: t("editor.command.volume_up.label"),
+      title: t("editor.command.volume_up.title"),
+    },
+    {
+      command: "aqe:undo",
+      icon: "undo-2",
+      iconOnly: true,
+      label: t("editor.command.undo.label"),
+      title: t("editor.command.undo.title"),
+    },
+    {
+      command: "aqe:redo",
+      icon: "redo-2",
+      iconOnly: true,
+      label: t("editor.command.redo.label"),
+      title: t("editor.command.redo.title"),
+    },
+    {
+      command: "aqe:settings",
+      icon: "settings",
+      iconOnly: true,
+      label: t("editor.command.settings.label"),
+      title: t("editor.command.settings.title"),
+    },
+  ] as const;
+}
+
+export function denoiseTopLevelButton(): ToolbarButtonSpec {
+  return {
+    command: "aqe:denoise-standard",
+    icon: "sparkles",
+    label: t("editor.command.denoise.label"),
+    title: t("editor.command.denoise.title"),
+  };
+}
+
+export function toolbarButtons(): readonly ToolbarButtonSpec[] {
+  return commandButtons().flatMap((button) =>
+    button.command === "aqe:remove-pauses" ? [button, denoiseTopLevelButton()] : [button],
+  );
+}
+
+export function visibleToolbarButtons(
+  buttons: readonly ToolbarButtonSpec[],
+  visibleCommands: readonly EditorCommand[] | undefined,
+): readonly ToolbarButtonSpec[] {
+  if (!Array.isArray(visibleCommands)) return buttons;
+  const requested = new Set(
+    visibleCommands.filter((command): command is EditorCommand =>
+      DEFAULT_VISIBLE_EDITOR_BUTTON_SET.has(command),
+    ),
+  );
+  return buttons.filter((button) => requested.has(button.command));
+}
+
+export function denoiseButtons(): readonly ToolbarButtonSpec[] {
+  const dpdfnetAttnLimitDb =
+    window.__AQE_EDITOR_CONFIG__?.splitButtonDefaults?.dpdfnetAttnLimitDb ?? 12;
+  return [
+    {
+      command: "aqe:denoise-standard",
+      icon: "volume-x",
+      label: t("editor.command.standard.label"),
+      title: t("editor.command.standard.title"),
+    },
+    {
+      command: "aqe:rnnoise",
+      icon: "waves",
+      label: t("editor.command.rnnoise.label"),
+      title: t("editor.command.rnnoise.title"),
+    },
+    {
+      command: "aqe:dpdfnet",
+      icon: "sparkles",
+      label: t("editor.command.dpdfnet.label"),
+      title: t("editor.command.dpdfnet.title", {
+        level: formatDpdfnetAggressiveness(dpdfnetAttnLimitDb),
+      }),
+    },
+    {
+      command: "aqe:voice-only",
+      icon: "mic",
+      label: t("editor.command.voice_only.label"),
+      title: t("editor.command.voice_only.title"),
+    },
+  ] as const;
+}
+
+export const COMMAND_SLUGS: Readonly<Record<EditorCommand, string>> = {
+  "aqe:play": "play",
+  "aqe:analyze": "graph",
+  "aqe:show-file": "show-file",
+  "aqe:delete-selection": "delete-selection",
+  "aqe:delete-rest": "delete-rest",
+  "aqe:trim-left": "trim-left",
+  "aqe:trim-right": "trim-right",
+  "aqe:remove-pauses": "remove-pauses",
+  "aqe:denoise-standard": "denoise-standard",
+  "aqe:rnnoise": "rnnoise",
+  "aqe:dpdfnet": "dpdfnet",
+  "aqe:voice-only": "voice-only",
+  "aqe:pitch-hum": "pitch-hum",
+  "aqe:slower": "slower",
+  "aqe:faster": "faster",
+  "aqe:volume-down": "volume-down",
+  "aqe:volume-up": "volume-up",
+  "aqe:undo": "undo",
+  "aqe:redo": "redo",
+  "aqe:settings": "settings",
+};
+
+export function testId(ord: number, command: EditorCommand): string {
+  return `aqe-button-${ord}-${COMMAND_SLUGS[command]}`;
+}

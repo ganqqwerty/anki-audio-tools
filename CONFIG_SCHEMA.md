@@ -13,6 +13,12 @@ Audio Quick Editor config lives in [`addon/anki_audio_quick_editor/config.json`]
 | `repeat_playback_by_default` | boolean | Starts each mounted inline editor Repeat checkbox checked when enabled |
 | `repeat_pause_seconds` | number | Default field-local pause between Repeat loop passes, from `0` to `10` seconds |
 | `show_graph_by_default` | boolean | Automatically analyzes and opens inline graphs for all audio fields on note load when enabled |
+| `visible_editor_buttons` | string array | Ordered list of top-level inline editor button commands to render; removing a command hides that button |
+| `graph_voice_range` | string | Default voice range hint for graph pitch extraction: `bass`, `low`, `general`, `high`, or `child` |
+| `graph_recording_condition` | string | Default recording condition hint for graph analysis: `auto`, `very_noisy`, `noisy`, `normal`, `clean`, or `studio` |
+| `graph_smoothness` | string | Default graph smoothing level: `raw`, `balanced`, `smooth`, or `very_smooth` |
+| `graph_connect_short_dropouts_ms` | integer | Maximum short voicing dropout, in milliseconds, that graph rendering reconnects |
+| `graph_voice_lock` | string | Default pitch track stability preference: `loose`, `balanced`, or `stable` |
 | `manual_trim_small_ms` | integer | Default trim step for inline `-L` and `-R` controls |
 | `manual_trim_large_ms` | integer | Reserved larger trim step for future shortcut modifiers |
 | `speed_step` | number | Amount added or removed by Faster/Slower |
@@ -31,9 +37,10 @@ Audio Quick Editor config lives in [`addon/anki_audio_quick_editor/config.json`]
 | `deep_filter_post_filter` | boolean | Enables DeepFilterNet post-filtering for stronger noise suppression and pause-detection analysis |
 | `dpdfnet_attn_limit_db` | number | Discrete DPDFNet aggressiveness value passed as `--attn-limit-db`: `6.0` gentle, `12.0` normal, or `18.0` aggressive |
 | `denoise_algorithm` | string | Default cleanup split-button action: `standard` for DeepFilterNet, `rnnoise` for RNNoise, `dpdfnet` for bundled DPDFNet Lite, or `voice_only` for Sherpa Spleeter vocals extraction |
+| `pitch_hum_mode` | string | Default Pitch Hum split-button mode: `direct` or `pitch_tier` |
 
 ## Access Pattern
 
 Read config through `mw.addonManager.getConfig(addon_id)` in Anki-facing modules. Merge defaults through `config_migration.migrate_config()` during startup.
 
-Pause shortening uses the internal pause keys with DeepFilterNet as an analysis preprocessor. The user-facing `pause_aggressiveness` default maps to concrete threshold/target values when the editor split button sends a local override; persisted settings are not changed by per-field split-button selections. The persisted `repeat_pause_seconds` value is only the editor default; changes made in a repeat split-button menu are field-local and do not write back to config. DPDFNet denoise uses the persisted `dpdfnet_attn_limit_db` value by default, and editor or batch DPDFNet selections can send an operation-local override. Pause shortening stores retained provenance under `<addon_dir>/aqe_artifacts/<run_id>/`; this artifact location is not currently configurable.
+Pause shortening uses the internal pause keys with DeepFilterNet as an analysis preprocessor. The user-facing `pause_aggressiveness` default maps to concrete threshold/target values when the editor split button sends a local override; persisted settings are not changed by per-field split-button selections. The persisted `repeat_pause_seconds` value is only the editor default; changes made in a repeat split-button menu are field-local and do not write back to config. The persisted `visible_editor_buttons` value controls later editor toolbar renders; an empty list hides every top-level toolbar button, including Settings. DPDFNet denoise uses the persisted `dpdfnet_attn_limit_db` value by default, and editor or batch DPDFNet selections can send an operation-local override. Pause shortening stores retained provenance under `<addon_dir>/aqe_artifacts/<run_id>/`; this artifact location is not currently configurable.

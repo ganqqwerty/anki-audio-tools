@@ -1,5 +1,8 @@
 import type { FrontendLogPayload, ProsodyPayload } from "../lib/generated/contracts.js";
-import type { CommandIconName } from "../lib/icon-types.js";
+import type {
+  EditorCommand as SharedEditorCommand,
+  ToolbarButtonSpec,
+} from "../lib/editor-toolbar-buttons.js";
 import type {
   GraphRecordingCondition,
   GraphSettings,
@@ -8,38 +11,9 @@ import type {
   GraphVoiceRange,
 } from "./graph-settings.js";
 
-export type EditorCommand =
-  | "aqe:play"
-  | "aqe:analyze"
-  | "aqe:show-file"
-  | "aqe:delete-selection"
-  | "aqe:delete-rest"
-  | "aqe:trim-left"
-  | "aqe:trim-right"
-  | "aqe:remove-pauses"
-  | "aqe:denoise-standard"
-  | "aqe:rnnoise"
-  | "aqe:dpdfnet"
-  | "aqe:voice-only"
-  | "aqe:pitch-hum"
-  | "aqe:slower"
-  | "aqe:faster"
-  | "aqe:volume-down"
-  | "aqe:volume-up"
-  | "aqe:undo"
-  | "aqe:redo"
-  | "aqe:settings";
+export type EditorCommand = SharedEditorCommand;
 
-type EditorIconName = CommandIconName;
-
-export interface ButtonSpec {
-  activeIcon?: EditorIconName;
-  command: EditorCommand;
-  icon: EditorIconName;
-  iconOnly?: boolean;
-  label: string;
-  title: string;
-}
+export type ButtonSpec = ToolbarButtonSpec;
 
 export interface EditorRuntimeConfig {
   audioFieldIndices: number[];
@@ -50,6 +24,7 @@ export interface EditorRuntimeConfig {
   repeatPlaybackByDefault?: boolean;
   showGraphByDefault?: boolean;
   splitButtonDefaults?: SplitButtonDefaults;
+  visibleEditorButtons?: EditorCommand[];
 }
 
 export interface SplitButtonDefaults {
