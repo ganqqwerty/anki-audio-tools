@@ -100,6 +100,8 @@ def test_editor_controls_and_graph_are_dark_mode_aware(anki_mw, ffmpeg_config) -
                 """
                 (() => {
                   const buttons = Array.from(document.querySelectorAll('.aqe-button'));
+                  const playButton = document.querySelector('[data-testid="aqe-button-0-play"]');
+                  const graphButton = document.querySelector('[data-testid="aqe-button-0-graph"]');
                   return {
                     bodyNight: document.body.classList.contains('nightMode'),
                     htmlNight: document.documentElement.classList.contains('night-mode'),
@@ -107,6 +109,10 @@ def test_editor_controls_and_graph_are_dark_mode_aware(anki_mw, ffmpeg_config) -
                     iconsPerButton: buttons.map((button) => button.querySelectorAll('.aqe-button-icon svg').length),
                     iconStrokeValues: Array.from(document.querySelectorAll('.aqe-button .aqe-button-icon svg'))
                       .map((node) => node.getAttribute('stroke') || getComputedStyle(node).stroke || ''),
+                    playButtonIconCount: playButton?.querySelectorAll('.aqe-button-icon svg').length || 0,
+                    playButtonLabel: playButton?.querySelector('.aqe-button-label')?.textContent?.trim() || "",
+                    graphButtonIconCount: graphButton?.querySelectorAll('.aqe-button-icon svg').length || 0,
+                    graphButtonLabel: graphButton?.querySelector('.aqe-button-label')?.textContent?.trim() || "",
                     graphButtonState: document.querySelector('[data-testid="aqe-button-0-graph"]')?.dataset.aqeButtonState || "",
                     playButtonState: document.querySelector('[data-testid="aqe-button-0-play"]')?.dataset.aqeButtonState || "",
                   };
@@ -117,8 +123,12 @@ def test_editor_controls_and_graph_are_dark_mode_aware(anki_mw, ffmpeg_config) -
                 and value["bodyNight"] is True
                 and value["bsTheme"] == "dark"
                 and value["iconsPerButton"]
-                and all(count >= 1 for count in value["iconsPerButton"])
+                and value["iconStrokeValues"]
                 and all(stroke == "currentColor" for stroke in value["iconStrokeValues"])
+                and value["playButtonIconCount"] == 0
+                and value["playButtonLabel"] == "Play"
+                and value["graphButtonIconCount"] == 0
+                and value["graphButtonLabel"] == "Graph"
                 and value["graphButtonState"] == "graph"
                 and value["playButtonState"] == "play",
                 timeout=10.0,

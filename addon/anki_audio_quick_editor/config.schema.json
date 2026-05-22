@@ -12,6 +12,7 @@
     "repeat_pause_seconds",
     "show_graph_by_default",
     "visible_editor_buttons",
+    "editor_button_modes",
     "graph_voice_range",
     "graph_recording_condition",
     "graph_smoothness",
@@ -86,6 +87,32 @@
         ]
       },
       "uniqueItems": true
+    },
+    "editor_button_modes": {
+      "type": "object",
+      "propertyNames": {
+        "enum": [
+          "aqe:play",
+          "aqe:analyze",
+          "aqe:show-file",
+          "aqe:share",
+          "aqe:convert",
+          "aqe:remove-pauses",
+          "aqe:denoise-standard",
+          "aqe:pitch-hum",
+          "aqe:slower",
+          "aqe:faster",
+          "aqe:volume-down",
+          "aqe:volume-up",
+          "aqe:undo",
+          "aqe:redo",
+          "aqe:settings"
+        ]
+      },
+      "additionalProperties": {
+        "type": "string",
+        "enum": ["text", "icon"]
+      }
     },
     "graph_voice_range": {
       "type": "string",

@@ -5,6 +5,7 @@ import {
 } from "./audio-operation-parameters.js";
 import { t } from "./i18n.js";
 import type { CommandIconName } from "./icon-types.js";
+import { EditorButtonMode } from "./types.js";
 
 export type EditorCommand =
   | "aqe:play"
@@ -27,6 +28,9 @@ export type EditorCommand =
   | "aqe:undo"
   | "aqe:redo"
   | "aqe:settings";
+
+export type EditorButtonDisplayMode = EditorButtonMode;
+export type EditorButtonModes = Partial<Record<EditorCommand, EditorButtonDisplayMode>>;
 
 export interface ToolbarButtonSpec {
   activeIcon?: CommandIconName;
@@ -54,6 +58,24 @@ export const DEFAULT_VISIBLE_EDITOR_BUTTONS = [
   "aqe:redo",
   "aqe:settings",
 ] as const satisfies readonly EditorCommand[];
+
+export const DEFAULT_EDITOR_BUTTON_MODES = {
+  "aqe:play": EditorButtonMode.Text,
+  "aqe:analyze": EditorButtonMode.Text,
+  "aqe:show-file": EditorButtonMode.Text,
+  "aqe:share": EditorButtonMode.Text,
+  "aqe:convert": EditorButtonMode.Text,
+  "aqe:remove-pauses": EditorButtonMode.Text,
+  "aqe:denoise-standard": EditorButtonMode.Text,
+  "aqe:pitch-hum": EditorButtonMode.Text,
+  "aqe:slower": EditorButtonMode.Text,
+  "aqe:faster": EditorButtonMode.Text,
+  "aqe:volume-down": EditorButtonMode.Text,
+  "aqe:volume-up": EditorButtonMode.Text,
+  "aqe:undo": EditorButtonMode.Text,
+  "aqe:redo": EditorButtonMode.Text,
+  "aqe:settings": EditorButtonMode.Text,
+} as const satisfies Record<(typeof DEFAULT_VISIBLE_EDITOR_BUTTONS)[number], EditorButtonDisplayMode>;
 
 const DEFAULT_VISIBLE_EDITOR_BUTTON_SET = new Set<EditorCommand>(DEFAULT_VISIBLE_EDITOR_BUTTONS);
 
@@ -201,6 +223,18 @@ export function visibleToolbarButtons(
     ),
   );
   return buttons.filter((button) => requested.has(button.command));
+}
+
+export function buttonDisplayMode(
+  command: EditorCommand,
+  modes: EditorButtonModes | undefined,
+): EditorButtonDisplayMode {
+  const configuredMode = modes?.[command];
+  if (configuredMode === EditorButtonMode.Icon) return EditorButtonMode.Icon;
+  return (
+    DEFAULT_EDITOR_BUTTON_MODES[command as keyof typeof DEFAULT_EDITOR_BUTTON_MODES] ??
+    EditorButtonMode.Text
+  );
 }
 
 export function denoiseButtons(): readonly ToolbarButtonSpec[] {

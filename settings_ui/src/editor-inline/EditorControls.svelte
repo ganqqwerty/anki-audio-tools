@@ -1,7 +1,9 @@
 <script lang="ts">
   import { onMount } from "svelte";
   import { testId, toolbarButtons, visibleToolbarButtons } from "./commands.js";
+  import { buttonDisplayMode } from "../lib/editor-toolbar-buttons.js";
   import { t } from "../lib/i18n.js";
+  import { EditorButtonMode } from "../lib/types.js";
   import EditorCommandIcon from "./EditorCommandIcon.svelte";
   import EditorHelp from "./EditorHelp.svelte";
   import PlaySplitButton from "./PlaySplitButton.svelte";
@@ -32,6 +34,7 @@
     toolbarButtons(),
     window.__AQE_EDITOR_CONFIG__?.visibleEditorButtons,
   );
+  const buttonModes = window.__AQE_EDITOR_CONFIG__?.editorButtonModes;
 
   function isSplitCommand(command: string): boolean {
     return [
@@ -66,13 +69,23 @@
 >
   {#each buttons as button (button.command)}
     {#if button.command === "aqe:play"}
-      <PlaySplitButton {button} {repeatDefault} {target} />
+      <PlaySplitButton
+        {button}
+        displayMode={buttonDisplayMode(button.command, buttonModes)}
+        {repeatDefault}
+        {target}
+      />
     {:else if isSplitCommand(button.command)}
-      <SplitButton {button} {target} />
+      <SplitButton
+        {button}
+        displayMode={buttonDisplayMode(button.command, buttonModes)}
+        {target}
+      />
     {:else}
+      {@const displayMode = buttonDisplayMode(button.command, buttonModes)}
       <button
         type="button"
-        class:aqe-icon-only={button.iconOnly === true}
+        class:aqe-icon-only={displayMode === EditorButtonMode.Icon}
         class="aqe-button"
         data-aqe-command={button.command}
         data-aqe-button-state={button.command === "aqe:analyze" ? "graph" : "default"}
@@ -82,11 +95,15 @@
         onmousedown={(event) => event.preventDefault()}
         onclick={() => send(button.command, target.node, target.ord)}
       >
-        <EditorCommandIcon className="aqe-button-icon-default" icon={button.icon} />
-        {#if button.activeIcon}
-          <EditorCommandIcon className="aqe-button-icon-active" icon={button.activeIcon} />
+        {#if displayMode === EditorButtonMode.Icon}
+          <EditorCommandIcon className="aqe-button-icon-default" icon={button.icon} />
+          {#if button.activeIcon}
+            <EditorCommandIcon className="aqe-button-icon-active" icon={button.activeIcon} />
+          {/if}
+          <span class="aqe-button-label">{button.label}</span>
+        {:else}
+          <span class="aqe-button-label">{button.label}</span>
         {/if}
-        <span class="aqe-button-label">{button.label}</span>
       </button>
     {/if}
   {/each}

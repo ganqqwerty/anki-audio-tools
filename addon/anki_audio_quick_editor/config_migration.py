@@ -8,7 +8,7 @@ from typing import Any
 from .audio_formats import normalize_output_format
 from .dpdfnet_settings import normalize_dpdfnet_attn_limit_db
 
-CURRENT_CONFIG_VERSION = 18
+CURRENT_CONFIG_VERSION = 19
 
 REMOVED_CONFIG_KEYS = frozenset(
     {
@@ -58,6 +58,9 @@ def migrate_config(
     if _insert_share_button(merged.get("visible_editor_buttons")):
         changed = True
 
+    if _normalize_editor_button_modes(merged.get("editor_button_modes"), defaults):
+        changed = True
+
     if merged.get("_config_version") != CURRENT_CONFIG_VERSION:
         merged["_config_version"] = CURRENT_CONFIG_VERSION
         changed = True
@@ -76,3 +79,25 @@ def _insert_share_button(visible_buttons: Any) -> bool:
     else:
         visible_buttons.insert(show_file_index + 1, "aqe:share")
     return True
+
+
+def _normalize_editor_button_modes(
+    button_modes: Any,
+    defaults: dict[str, Any],
+) -> bool:
+    default_modes = defaults.get("editor_button_modes")
+    if not isinstance(default_modes, dict) or not isinstance(button_modes, dict):
+        return False
+
+    changed = False
+    invalid_keys = [key for key in button_modes if key not in default_modes]
+    for key in invalid_keys:
+        button_modes.pop(key, None)
+        changed = True
+
+    for command, default_mode in default_modes.items():
+        if button_modes.get(command) in {"text", "icon"}:
+            continue
+        button_modes[command] = default_mode
+        changed = True
+    return changed

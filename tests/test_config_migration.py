@@ -166,7 +166,7 @@ class TestMigrateConfig:
 
     def test_adds_share_button_to_visible_editor_buttons_when_missing(self) -> None:
         defaults = {
-            "_config_version": 18,
+            "_config_version": 19,
             "visible_editor_buttons": ["aqe:play", "aqe:show-file", "aqe:share", "aqe:settings"],
         }
         user = {
@@ -177,13 +177,58 @@ class TestMigrateConfig:
         migrated, changed = migrate_config(user, defaults)
 
         assert changed is True
-        assert migrated["_config_version"] == 18
+        assert migrated["_config_version"] == 19
         assert migrated["visible_editor_buttons"] == [
             "aqe:play",
             "aqe:show-file",
             "aqe:share",
             "aqe:settings",
         ]
+
+    def test_picks_up_editor_button_modes_default(self) -> None:
+        user = {"_config_version": 18, "enabled": True}
+        defaults = {
+            "_config_version": CURRENT_CONFIG_VERSION,
+            "enabled": True,
+            "editor_button_modes": {
+                "aqe:play": "text",
+                "aqe:settings": "text",
+            },
+        }
+
+        migrated, changed = migrate_config(user, defaults)
+
+        assert migrated["editor_button_modes"] == {
+            "aqe:play": "text",
+            "aqe:settings": "text",
+        }
+        assert migrated["_config_version"] == CURRENT_CONFIG_VERSION
+        assert changed is True
+
+    def test_normalizes_editor_button_modes(self) -> None:
+        defaults = {
+            "_config_version": CURRENT_CONFIG_VERSION,
+            "editor_button_modes": {
+                "aqe:play": "text",
+                "aqe:settings": "text",
+            },
+        }
+        user = {
+            "_config_version": 18,
+            "editor_button_modes": {
+                "aqe:play": "icon",
+                "aqe:settings": "wide",
+                "aqe:unknown": "icon",
+            },
+        }
+
+        migrated, changed = migrate_config(user, defaults)
+
+        assert changed is True
+        assert migrated["editor_button_modes"] == {
+            "aqe:play": "icon",
+            "aqe:settings": "text",
+        }
 
     def test_picks_up_graph_display_defaults(self) -> None:
         user = {"_config_version": 11, "enabled": True}

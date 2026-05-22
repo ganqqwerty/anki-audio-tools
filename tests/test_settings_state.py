@@ -12,7 +12,7 @@ from anki_audio_quick_editor.settings_state import (
 
 def _full_config() -> dict[str, object]:
     return {
-        "_config_version": 18,
+        "_config_version": 19,
         "enabled": True,
         "debug_logging": False,
         "show_ffmpeg_commands": False,
@@ -36,6 +36,23 @@ def _full_config() -> dict[str, object]:
             "aqe:redo",
             "aqe:settings",
         ],
+        "editor_button_modes": {
+            "aqe:play": "text",
+            "aqe:analyze": "text",
+            "aqe:show-file": "text",
+            "aqe:share": "text",
+            "aqe:convert": "text",
+            "aqe:remove-pauses": "text",
+            "aqe:denoise-standard": "text",
+            "aqe:pitch-hum": "text",
+            "aqe:slower": "text",
+            "aqe:faster": "text",
+            "aqe:volume-down": "text",
+            "aqe:volume-up": "text",
+            "aqe:undo": "text",
+            "aqe:redo": "text",
+            "aqe:settings": "text",
+        },
         "graph_voice_range": "general",
         "graph_recording_condition": "auto",
         "graph_smoothness": "very_smooth",

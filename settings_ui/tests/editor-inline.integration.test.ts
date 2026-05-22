@@ -7,6 +7,7 @@ import {
   initializeEditorRuntime,
   scan,
 } from "../src/editor-inline/runtime.js";
+import { EditorButtonMode } from "../src/lib/types.js";
 import { muteConsole, renderFields } from "./editor-inline.integration.helpers.js";
 
 describe("editor inline Svelte integration", () => {
@@ -39,22 +40,43 @@ describe("editor inline Svelte integration", () => {
     const settingsButton = document.querySelector<HTMLButtonElement>('[data-testid="aqe-button-0-settings"]')!;
     const volumeDownButton = document.querySelector<HTMLButtonElement>('[data-testid="aqe-button-0-volume-down"]')!;
     const volumeUpButton = document.querySelector<HTMLButtonElement>('[data-testid="aqe-button-0-volume-up"]')!;
-    expect(graphButton).toHaveClass("aqe-icon-only");
+    expect(graphButton).not.toHaveClass("aqe-icon-only");
     expect(graphButton).toHaveAttribute("aria-label", "Analyze and show pitch/intensity graph");
-    expect(removePausesButton).toHaveClass("aqe-icon-only");
-    expect(showFileButton).toHaveClass("aqe-icon-only");
-    expect(convertButton).toHaveClass("aqe-icon-only");
-    expect(denoiseButton).toHaveClass("aqe-icon-only");
-    expect(pitchHumButton).toHaveClass("aqe-icon-only");
-    expect(slowerButton).toHaveClass("aqe-icon-only");
-    expect(fasterButton).toHaveClass("aqe-icon-only");
-    expect(settingsButton).toHaveClass("aqe-icon-only");
-    expect(volumeDownButton).toHaveClass("aqe-icon-only");
-    expect(volumeUpButton).toHaveClass("aqe-icon-only");
+    expect(removePausesButton).not.toHaveClass("aqe-icon-only");
+    expect(showFileButton).not.toHaveClass("aqe-icon-only");
+    expect(convertButton).not.toHaveClass("aqe-icon-only");
+    expect(denoiseButton).not.toHaveClass("aqe-icon-only");
+    expect(pitchHumButton).not.toHaveClass("aqe-icon-only");
+    expect(slowerButton).not.toHaveClass("aqe-icon-only");
+    expect(fasterButton).not.toHaveClass("aqe-icon-only");
+    expect(settingsButton).not.toHaveClass("aqe-icon-only");
+    expect(volumeDownButton).not.toHaveClass("aqe-icon-only");
+    expect(volumeUpButton).not.toHaveClass("aqe-icon-only");
     expect(document.querySelector('[data-testid="aqe-button-0-denoise-standard"]')).toHaveTextContent("Denoise");
     expect(document.querySelector('[data-testid="aqe-split-0-denoise-standard-menu"]')).toHaveTextContent("Options");
     expect(audioSourceForNode(document.getElementById("f0")!)).toBe("clip one.mp3");
     expect(fieldIndex(document.getElementById("f0")!, 7)).toBe(0);
+  });
+
+  it("renders configured buttons as icon only", () => {
+    initializeEditorRuntime({
+      audioFieldIndices: [0],
+      editorButtonModes: {
+        "aqe:play": EditorButtonMode.Icon,
+        "aqe:analyze": EditorButtonMode.Icon,
+      },
+    });
+    scan({
+      audioFieldIndices: [0],
+      editorButtonModes: {
+        "aqe:play": EditorButtonMode.Icon,
+        "aqe:analyze": EditorButtonMode.Icon,
+      },
+    });
+
+    expect(document.querySelector('[data-testid="aqe-button-0-play"]')).toHaveClass("aqe-icon-only");
+    expect(document.querySelector('[data-testid="aqe-button-0-graph"]')).toHaveClass("aqe-icon-only");
+    expect(document.querySelector('[data-testid="aqe-button-0-settings"]')).not.toHaveClass("aqe-icon-only");
   });
 
   it("hides toolbar buttons omitted from visible editor button config", () => {

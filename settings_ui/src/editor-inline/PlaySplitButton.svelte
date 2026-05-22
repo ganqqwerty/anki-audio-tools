@@ -13,10 +13,13 @@
     setRepeatPauseSecondsForField,
   } from "./split-button-state.js";
   import { t } from "../lib/i18n.js";
+  import type { EditorButtonDisplayMode } from "../lib/editor-toolbar-buttons.js";
+  import { EditorButtonMode } from "../lib/types.js";
   import type { ButtonSpec, FieldTarget } from "./types.js";
   const PRESETS = [0, 0.5, 2, 10] as const;
-  const { button, repeatDefault, target }: {
+  const { button, displayMode, repeatDefault, target }: {
     button: ButtonSpec;
+    displayMode: EditorButtonDisplayMode;
     repeatDefault: boolean;
     target: FieldTarget;
   } = $props();
@@ -113,7 +116,7 @@
   <span class="aqe-split-button aqe-play-split-button">
     <button
       type="button"
-      class:aqe-icon-only={button.iconOnly === true}
+      class:aqe-icon-only={displayMode === EditorButtonMode.Icon}
       class="aqe-button aqe-split-primary"
       data-aqe-command={button.command}
       data-aqe-button-state="play"
@@ -123,9 +126,11 @@
       onmousedown={(event) => event.preventDefault()}
       onclick={dispatchPrimary}
     >
-      <EditorCommandIcon className="aqe-button-icon-default" icon={button.icon} />
-      {#if button.activeIcon}
-        <EditorCommandIcon className="aqe-button-icon-active" icon={button.activeIcon} />
+      {#if displayMode === EditorButtonMode.Icon}
+        <EditorCommandIcon className="aqe-button-icon-default" icon={button.icon} />
+        {#if button.activeIcon}
+          <EditorCommandIcon className="aqe-button-icon-active" icon={button.activeIcon} />
+        {/if}
       {/if}
       <span class="aqe-button-label">{button.label}</span>
     </button>

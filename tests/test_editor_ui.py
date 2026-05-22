@@ -68,6 +68,18 @@ def test_injection_script_embeds_visible_editor_buttons() -> None:
     assert _embedded_config(script)["visibleEditorButtons"] == ["aqe:play", "aqe:settings"]
 
 
+def test_injection_script_embeds_editor_button_modes() -> None:
+    script = injection_script(
+        [0],
+        editor_button_modes={"aqe:play": "icon", "aqe:settings": "text"},
+    )
+
+    assert _embedded_config(script)["editorButtonModes"] == {
+        "aqe:play": "icon",
+        "aqe:settings": "text",
+    }
+
+
 def test_injection_script_embeds_audio_field_sources() -> None:
     script = injection_script([0, 2], audio_field_sources={0: "front.wav", 2: "back.mp3"})
 
