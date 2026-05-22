@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it } from "vitest";
 
 import {
   buildSplitCommandPayload,
+  buildSplitDefaultSaveRequest,
   buildTrimCommandPayload,
   clampDpdfnetAttnLimitDb,
   clampRepeatPauseSeconds,
@@ -18,6 +19,7 @@ import {
   formatTrimMs,
   formatVolumeDb,
   getSplitButtonState,
+  promoteSplitDefaultsForField,
   setDenoiseAlgorithmForField,
   setDpdfnetAttnLimitDbForField,
   setOutputFormatForField,
@@ -260,6 +262,25 @@ describe("split button state", () => {
     });
   });
 
+  it("builds graph default save requests from local field state", () => {
+    setGraphVoiceRangeForField(0, "low");
+    setGraphRecordingConditionForField(0, "studio");
+    setGraphSmoothnessForField(0, "smooth");
+    setGraphConnectShortDropoutsForField(0, 390);
+    setGraphVoiceLockForField(0, "stable");
+
+    expect(buildSplitDefaultSaveRequest("aqe:analyze", 0)).toEqual({
+      defaults: {
+        graphConnectShortDropoutsMs: 390,
+        graphRecordingCondition: "studio",
+        graphSmoothness: "smooth",
+        graphVoiceLock: "stable",
+        graphVoiceRange: "low",
+      },
+      fieldOrd: 0,
+    });
+  });
+
   it("builds pitch hum payloads from local field state", () => {
     setPitchHumModeForField(0, "pitch_tier");
 
@@ -289,6 +310,20 @@ describe("split button state", () => {
         trimStepMs: 200,
       },
     });
+  });
+
+  it("promotes local split values into runtime defaults", () => {
+    setSpeedStepForField(0, 0.1);
+    setSpeedStepForField(1, 0.2);
+
+    promoteSplitDefaultsForField(0, { speedStep: 0.1 });
+
+    expect(window.__AQE_EDITOR_CONFIG__?.splitButtonDefaults?.speedStep).toBe(0.1);
+    expect(getSplitButtonState(0).speedEdited).toBe(false);
+    expect(getSplitButtonState(0).speedStep).toBe(0.1);
+    expect(getSplitButtonState(1).speedEdited).toBe(true);
+    expect(getSplitButtonState(1).speedStep).toBe(0.2);
+    expect(getSplitButtonState(2).speedStep).toBe(0.1);
   });
 
   it("keeps repeat pause state field-local without changing command payloads", () => {

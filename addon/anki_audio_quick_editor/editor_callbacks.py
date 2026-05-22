@@ -17,6 +17,7 @@ from . import (
     editor_region_delete,
     editor_runtime,
     editor_settings_actions,
+    editor_split_defaults,
 )
 
 _dispose_editor_frontend_controls = editor_frontend_callbacks._dispose_editor_frontend_controls
@@ -106,6 +107,10 @@ _handle_pending_command_payload = _with_deps(editor_bridge.handle_pending_comman
 _handle_non_processing_command = _with_deps(editor_bridge.handle_non_processing_command, _bridge_deps)
 _handle_editor_frontend_log = _with_deps(editor_bridge.handle_editor_frontend_log, _bridge_deps)
 _log_editor_frontend_payload = editor_bridge.log_editor_frontend_payload
+_save_split_defaults_from_frontend = _with_deps(
+    editor_split_defaults.save_split_defaults_from_frontend,
+    _bridge_deps,
+)
 
 _update_state_and_render = _with_deps(editor_processing.update_state_and_render, _processing_deps)
 _render_and_replace_async = _with_deps(editor_processing.render_and_replace_async, _processing_deps)

@@ -31,6 +31,7 @@ describe("editor inline window contract", () => {
       "__aqePopFrontendLog",
       "__aqePopPendingGraphAnalysisRequest",
       "__aqePopPendingRegionDeleteRequest",
+      "__aqePopPendingSplitDefaultSaveRequest",
       "__aqePrepareForNewNote",
       "__aqeResetGraphAfterEdit",
       "__aqeScan",

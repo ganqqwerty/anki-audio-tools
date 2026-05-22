@@ -43,8 +43,8 @@ def test_injection_script_embeds_audio_field_indices_and_bundle() -> None:
     assert "aqe:voice-only" in script
     assert "aqe:redo" in script
     assert "aqe:settings" in script
+    assert "aqe:save-split-defaults" in script
     assert ("aqe:" + "remove" + "-noise") not in script
-    assert "aqe:save" not in script
     assert "aqe:cancel" not in script
 
 

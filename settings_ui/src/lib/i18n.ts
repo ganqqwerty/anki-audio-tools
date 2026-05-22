@@ -1,5 +1,4 @@
-export type Direction = "ltr" | "rtl";
-export type Messages = Record<string, string>;
+export type Direction = "ltr" | "rtl"; export type Messages = Record<string, string>;
 
 const FALLBACK_MESSAGES: Messages = {
   "app.name": "Anki Audio Quick Editor",
@@ -178,6 +177,7 @@ const FALLBACK_MESSAGES: Messages = {
   "editor.command.delete_rest.label": "Delete the rest",
   "editor.command.delete_rest.title": "Delete the rest of the audio",
   "editor.split.options": "Options",
+  "editor.split.save_defaults": "Promote these settings to default",
   "editor.play.options_repeat_on": "Play options: Repeat on",
   "editor.play.options_repeat_off": "Play options: Repeat off",
   "editor.play.repeat_on": "Repeat on",
@@ -248,6 +248,8 @@ const FALLBACK_MESSAGES: Messages = {
   "editor.status.selected_repeat_browser_audio": "Selected repeat playback needs browser audio.",
   "editor.status.settings_unavailable": "Settings are not available.",
   "editor.status.settings_opened": "Opened settings.",
+  "editor.status.split_defaults_saved": "Saved quick settings as defaults.",
+  "editor.status.split_defaults_invalid": "Could not save those quick settings.",
   "editor.status.showing_in_folder": "Showing {filename} in folder",
   "editor.status.current_field_audio_missing": "No [sound:...] reference found in the current field.",
   "editor.status.referenced_audio_missing": "The referenced audio file was not found in Anki's media folder.",

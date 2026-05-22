@@ -13,6 +13,7 @@
   import RefreshCw from "@lucide/svelte/icons/refresh-cw";
   import Repeat2 from "@lucide/svelte/icons/repeat-2";
   import Rewind from "@lucide/svelte/icons/rewind";
+  import Save from "@lucide/svelte/icons/save";
   import Scissors from "@lucide/svelte/icons/scissors";
   import Settings from "@lucide/svelte/icons/settings";
   import Snail from "@lucide/svelte/icons/snail";
@@ -69,6 +70,8 @@
     <Repeat2 {size} {strokeWidth} />
   {:else if icon === "rewind"}
     <Rewind {size} {strokeWidth} />
+  {:else if icon === "save"}
+    <Save {size} {strokeWidth} />
   {:else if icon === "scissors"}
     <Scissors {size} {strokeWidth} />
   {:else if icon === "settings"}

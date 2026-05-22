@@ -314,6 +314,7 @@ forbidden_modules = [
     "anki_audio_quick_editor.editor_region_delete",
     "anki_audio_quick_editor.editor_runtime",
     "anki_audio_quick_editor.editor_settings_actions",
+    "anki_audio_quick_editor.editor_split_defaults",
     "anki_audio_quick_editor.settings",
     "anki_audio_quick_editor.settings.commands",
     "anki_audio_quick_editor.settings.initial_state",

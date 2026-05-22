@@ -70,8 +70,12 @@ describe("editor inline graph queue integration", () => {
     const controls = document.querySelector(".aqe-controls");
 
     window.__aqeSetVisualizer?.(0, { ...track, sourceFilename: "updated.mp3" }, 0);
-    document.getElementById("f0")!.innerHTML = "[sound:updated.mp3]";
-    scan({ audioFieldIndices: [0] });
+    document.getElementById("f0")!.innerHTML = "";
+    window.__AQE_EDITOR_CONFIG__ = {
+      audioFieldIndices: [0],
+      audioFieldSources: { 0: "updated.mp3" },
+    };
+    scan(window.__AQE_EDITOR_CONFIG__);
 
     expect(document.querySelector(".aqe-controls")).toBe(controls);
     expect(window.__aqeGraphStateForTest?.(0)).toMatchObject({
@@ -101,6 +105,35 @@ describe("editor inline graph queue integration", () => {
 
     window.__aqeSetVisualizer?.(0, track, 0);
     expect(window.__aqePendingGraphRedrawField).toBeNull();
+  });
+
+  it("waits for the edited source before replaying a pending graph redraw", () => {
+    initializeEditorRuntime({ audioFieldIndices: [0] });
+    scan({ audioFieldIndices: [0] });
+    window.__aqeSetVisualizer?.(0, track, 0);
+
+    expect(window.__aqeResetGraphAfterEdit?.(0, "updated.mp3")).toBe(false);
+    expect(window.__aqePendingGraphRedrawField).toBe(0);
+    expect(window.__aqePendingGraphRedrawSource).toBe("updated.mp3");
+    expect(bridgeCommands().filter((command) => command === "aqe:analyze-field")).toHaveLength(0);
+
+    document.getElementById("f0")!.innerHTML = "[sound:updated.mp3]";
+    scan({ audioFieldIndices: [0] });
+
+    expect(window.__aqeGraphStateForTest?.(0)).toMatchObject({
+      busy: true,
+      hidden: false,
+    });
+    expect(bridgeCommands().filter((command) => command === "aqe:analyze-field")).toHaveLength(1);
+    expect(window.__aqePopPendingGraphAnalysisRequest?.()).toEqual({
+      graphSettings: defaultGraphSettings,
+      ord: 0,
+      sourceFilename: "updated.mp3",
+    });
+
+    window.__aqeSetVisualizer?.(0, { ...track, sourceFilename: "updated.mp3" }, 0);
+    expect(window.__aqePendingGraphRedrawField).toBeNull();
+    expect(window.__aqePendingGraphRedrawSource).toBeNull();
   });
 
   it("auto-queues default graphs for all mounted audio fields", async () => {

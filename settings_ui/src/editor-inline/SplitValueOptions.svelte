@@ -16,6 +16,7 @@
     isOutputFormatValue,
     OUTPUT_FORMAT_VALUES,
   } from "../lib/audio-operation-parameters.js";
+  import SplitDefaultSaveButton from "./SplitDefaultSaveButton.svelte";
   import type { ButtonSpec, FieldSplitButtonState } from "./types.js";
 
   type DenoiseAlgorithm = FieldSplitButtonState["denoiseAlgorithm"];
@@ -32,12 +33,14 @@
     onOutputFormat,
     onPauseAggressiveness,
     onPitchHumMode,
+    onSaveDefault,
     onSpeedStep,
     onTrimStep,
     onVolumeStep,
     pauseAggressiveness,
     outputFormat,
     pitchHumMode,
+    saveDefaultSaved,
     speedStep,
     targetOrd,
     trimStepMs,
@@ -52,12 +55,14 @@
     onOutputFormat: (value: OutputFormatValue) => void;
     onPauseAggressiveness: (value: "gentle" | "normal" | "aggressive") => void;
     onPitchHumMode: (value: PitchHumMode) => void;
+    onSaveDefault: () => void;
     onSpeedStep: (value: number) => void;
     onTrimStep: (value: number) => void;
     onVolumeStep: (value: number) => void;
     pauseAggressiveness: "gentle" | "normal" | "aggressive";
     outputFormat: OutputFormatValue;
     pitchHumMode: PitchHumMode;
+    saveDefaultSaved: boolean;
     speedStep: number;
     targetOrd: number;
     trimStepMs: number;
@@ -186,23 +191,30 @@
   }
 </script>
 
-<div class="aqe-split-popover-header">
-  <strong>{button.label}</strong>
-  {#if options.length}
-    <span>{valueLabel()}</span>
-  {:else}
-    <input
-      class="aqe-split-value-input"
-      data-testid={`aqe-split-${targetOrd}-${slug}-value`}
-      type="number"
-      min={valueInputConfig().min}
-      max={valueInputConfig().max}
-      step={valueInputConfig().step}
-      value={valueInputValue()}
-      aria-label={valueInputConfig().label}
-      oninput={(event) => applyValueInput((event.currentTarget as HTMLInputElement).valueAsNumber)}
-    />
-  {/if}
+<div class="aqe-split-popover-header aqe-split-popover-header-with-action">
+  <span class="aqe-split-popover-title">
+    <strong>{button.label}</strong>
+    {#if options.length}
+      <span>{valueLabel()}</span>
+    {:else}
+      <input
+        class="aqe-split-value-input"
+        data-testid={`aqe-split-${targetOrd}-${slug}-value`}
+        type="number"
+        min={valueInputConfig().min}
+        max={valueInputConfig().max}
+        step={valueInputConfig().step}
+        value={valueInputValue()}
+        aria-label={valueInputConfig().label}
+        oninput={(event) => applyValueInput((event.currentTarget as HTMLInputElement).valueAsNumber)}
+      />
+    {/if}
+  </span>
+  <SplitDefaultSaveButton
+    onSave={onSaveDefault}
+    saved={saveDefaultSaved}
+    testId={`aqe-split-${targetOrd}-${slug}-save-default`}
+  />
 </div>
 {#if options.length}
   <div class="aqe-split-presets">

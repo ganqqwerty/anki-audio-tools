@@ -355,7 +355,7 @@ def replace_current_field_after_region_delete(
         deps.eval_status(editor, t("editor.status.updated_field", {"filename": saved_name}))
         deps.eval_playback_state(editor, field_index, "stopped", 0)
         if should_redraw_graph:
-            deps.request_graph_redraw(editor)
+            deps.request_graph_redraw(editor, saved_name)
         else:
             deps.set_busy_for_field(editor, field_index, False)
         deps.request_playback_after_edit(editor, field_index)

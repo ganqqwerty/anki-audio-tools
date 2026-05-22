@@ -39,6 +39,7 @@ CMD_DELETE_SELECTION = "aqe:delete-selection"
 CMD_DELETE_REST = "aqe:delete-rest"
 CMD_ANALYZE_FIELD = "aqe:analyze-field"
 CMD_COMMAND_PAYLOAD = "aqe:command-payload"
+CMD_SAVE_SPLIT_DEFAULTS = "aqe:save-split-defaults"
 CMD_SETTINGS = "aqe:settings"
 CMD_REDO = "aqe:redo"
 
@@ -47,6 +48,7 @@ BRIDGE_COMMANDS = (
     "aqe:analyze",
     CMD_ANALYZE_FIELD,
     CMD_COMMAND_PAYLOAD,
+    CMD_SAVE_SPLIT_DEFAULTS,
     "aqe:set-cursor",
     "aqe:play",
     "aqe:play-ended",

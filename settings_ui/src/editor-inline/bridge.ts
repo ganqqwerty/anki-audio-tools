@@ -1,9 +1,17 @@
 import type { FrontendLogPayload } from "../lib/generated/contracts.js";
-import type { CursorIntent, EditorCommandPayload, GraphAnalysisRequest, PlaybackRequest, RegionDeleteRequest } from "./types.js";
+import type {
+  CursorIntent,
+  EditorCommandPayload,
+  GraphAnalysisRequest,
+  PlaybackRequest,
+  RegionDeleteRequest,
+} from "./types.js";
+import type { SplitDefaultSaveRequest } from "./split-default-save-types.js";
 
 const frontendLogs: FrontendLogPayload[] = [];
 let pendingGraphAnalysisRequest: GraphAnalysisRequest | null = null;
 let pendingRegionDeleteRequest: RegionDeleteRequest | null = null;
+let pendingSplitDefaultSaveRequest: SplitDefaultSaveRequest | null = null;
 
 export function sendBridgeCommand(command: string): void {
   if (globalThis.pycmd !== undefined) {
@@ -30,6 +38,11 @@ export function sendGraphAnalysisRequest(request: GraphAnalysisRequest): void {
 export function sendEditorFrontendLog(payload: FrontendLogPayload): void {
   frontendLogs.push(payload);
   sendBridgeCommand("aqe:frontend-log");
+}
+
+export function sendSplitDefaultSaveRequest(request: SplitDefaultSaveRequest): void {
+  pendingSplitDefaultSaveRequest = request;
+  sendBridgeCommand("aqe:save-split-defaults");
 }
 
 export function popEditorFrontendLog(): FrontendLogPayload | null {
@@ -63,6 +76,13 @@ export function popPendingRegionDeleteRequest(): RegionDeleteRequest | null {
   if (!pendingRegionDeleteRequest) return null;
   const request = pendingRegionDeleteRequest;
   pendingRegionDeleteRequest = null;
+  return request;
+}
+
+export function popPendingSplitDefaultSaveRequest(): SplitDefaultSaveRequest | null {
+  if (!pendingSplitDefaultSaveRequest) return null;
+  const request = pendingSplitDefaultSaveRequest;
+  pendingSplitDefaultSaveRequest = null;
   return request;
 }
 
