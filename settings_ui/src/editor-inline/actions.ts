@@ -4,6 +4,8 @@ import {
   repeatButtonForOrd,
   visualizerForOrd,
 } from "./dom-selectors.js";
+import { formatRepeatPauseSeconds } from "../lib/audio-operation-parameters.js";
+import { t } from "../lib/i18n.js";
 import {
   focusAndSendCommand,
   setCursorIntent,
@@ -58,7 +60,6 @@ import {
 export { popEditorFrontendLog, popPendingGraphAnalysisRequest } from "./bridge.js";
 import {
   clearStatus,
-  playRepeatOptionsTitle,
   repeatDefaultFromConfig,
 } from "./control-actions.js";
 export {
@@ -207,7 +208,13 @@ export function setRepeatEnabled(visualizer: VisualizerElement, enabled: boolean
   }
   const menuButton = playRepeatMenuButtonForOrd(ord);
   if (menuButton) {
-    const title = playRepeatOptionsTitle(enabled);
+    const pause = formatRepeatPauseSeconds(Number(visualizer.dataset.repeatPauseSeconds || "0"));
+    const title = t("editor.play.menu_title", {
+      value: t("editor.play.current_value", {
+        pause,
+        repeat: enabled ? t("editor.play.repeat_on") : t("editor.play.repeat_off"),
+      }),
+    });
     menuButton.dataset.aqeButtonState = enabled ? "active" : "default";
     menuButton.title = title;
     menuButton.setAttribute("aria-label", title);

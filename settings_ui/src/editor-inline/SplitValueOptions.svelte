@@ -35,6 +35,7 @@
     onPauseAggressiveness,
     onPitchHumMode,
     onSaveDefault,
+    onRun,
     onShareTarget,
     onSpeedStep,
     onVolumeStep,
@@ -58,6 +59,7 @@
     onPauseAggressiveness: (value: "gentle" | "normal" | "aggressive") => void;
     onPitchHumMode: (value: PitchHumMode) => void;
     onSaveDefault: () => void;
+    onRun: () => void;
     onShareTarget: (value: ShareTarget) => void;
     onSpeedStep: (value: number) => void;
     onVolumeStep: (value: number) => void;
@@ -74,7 +76,14 @@
 
   const slug = $derived(COMMAND_SLUGS[button.command]);
   const options = $derived(optionValues());
-  function valueLabel(): string {
+
+  function descriptionText(): string {
+    return button.command === "aqe:analyze"
+      ? t("editor.split.description_graph", { value: descriptionValueLabel() })
+      : t("editor.split.description", { label: button.label, value: descriptionValueLabel() });
+  }
+
+  function selectedOptionLabel(): string {
     if (button.command === "aqe:volume-up" || button.command === "aqe:volume-down") return formatVolumeDb(volumeStepDb);
     if (button.command === "aqe:faster" || button.command === "aqe:slower") return formatSpeedStep(speedStep, button.command);
     if (button.command === "aqe:remove-pauses") return formatPauseAggressiveness(pauseAggressiveness);
@@ -90,6 +99,17 @@
     }
     if (button.command === "aqe:pitch-hum") return formatPitchHumMode(pitchHumMode);
     return "";
+  }
+
+  function descriptionValueLabel(): string {
+    return denoiseAlgorithm === "dpdfnet" && (
+      button.command === "aqe:denoise-standard" ||
+      button.command === "aqe:rnnoise" ||
+      button.command === "aqe:dpdfnet" ||
+      button.command === "aqe:voice-only"
+    )
+      ? `${selectedOptionLabel()} (${formatDpdfnetAggressiveness(dpdfnetAttnLimitDb)})`
+      : selectedOptionLabel();
   }
 
   function sliderValue(): number {
@@ -200,9 +220,7 @@
 <div class="aqe-split-popover-header aqe-split-popover-header-with-action">
   <span class="aqe-split-popover-title">
     <strong>{button.label}</strong>
-    {#if options.length}
-      <span>{valueLabel()}</span>
-    {:else}
+    {#if !options.length}
       <input
         class="aqe-split-value-input"
         data-testid={`aqe-split-${targetOrd}-${slug}-value`}
@@ -224,6 +242,7 @@
     />
   {/if}
 </div>
+<p class="aqe-split-popover-description">{descriptionText()}</p>
 {#if options.length}
   <div class="aqe-split-presets">
     {#each options as option}
@@ -231,7 +250,7 @@
         type="button"
         class="aqe-button aqe-split-preset"
         data-testid={`aqe-split-${targetOrd}-${slug}-preset-${option}`}
-        aria-pressed={valueLabel() === optionLabel(option) ? "true" : "false"}
+        aria-pressed={selectedOptionLabel() === optionLabel(option) ? "true" : "false"}
         title={optionTitle(option)}
         onclick={() => applyOption(option)}
       >
@@ -281,6 +300,18 @@
     {/each}
   </div>
 {/if}
+<div class="aqe-split-popover-footer">
+  <button
+    type="button"
+    class="aqe-button aqe-split-run-button"
+    data-testid={`aqe-split-${targetOrd}-${slug}-run`}
+    title={t("editor.split.run_title", { label: button.label })}
+    aria-label={t("editor.split.run_title", { label: button.label })}
+    onclick={onRun}
+  >
+    {t("editor.split.run")}
+  </button>
+</div>
 
 <style>
   .aqe-split-extra-field {

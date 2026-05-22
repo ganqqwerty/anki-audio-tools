@@ -42,7 +42,7 @@ describe("editor inline play option integration", () => {
     await Promise.resolve();
 
     const playMenu = document.querySelector<HTMLButtonElement>('[data-testid="aqe-split-0-play-menu"]');
-    expect(playMenu).toHaveAttribute("title", "Play options: Repeat on");
+    expect(playMenu).toHaveAttribute("title", "Play quick settings. Current value: Repeat on, pause 1.5 s.");
     await openPlayOptions();
 
     const repeat = document.querySelector<HTMLButtonElement>('[data-testid="aqe-repeat-0"]');
@@ -53,6 +53,12 @@ describe("editor inline play option integration", () => {
     const input = document.querySelector<HTMLInputElement>('[data-testid="aqe-split-0-repeat-value"]')!;
     const slider = document.querySelector<HTMLInputElement>('[data-testid="aqe-split-0-repeat-slider"]')!;
     expect(document.querySelector('[data-testid="aqe-split-0-play-popover"]')).not.toBeNull();
+    expect(
+      document.querySelector<HTMLElement>('[data-testid="aqe-split-0-play-popover"] .aqe-split-popover-title')?.textContent?.trim(),
+    ).toBe("Play");
+    expect(document.querySelector('[data-testid="aqe-split-0-play-popover"]')).toHaveTextContent(
+      "This changes how Play runs for this field. Current value: Repeat on with a 1.5 s pause between repeats.",
+    );
     expect(input.value).toBe("1.5");
     expect(slider.value).toBe("1.5");
 
@@ -72,6 +78,6 @@ describe("editor inline play option integration", () => {
 
     expect(window.__aqeGraphStateForTest?.(0)?.repeatEnabled).toBe(false);
     expect(repeat).toHaveAttribute("aria-pressed", "false");
-    expect(playMenu).toHaveAttribute("title", "Play options: Repeat off");
+    expect(playMenu).toHaveAttribute("title", "Play quick settings. Current value: Repeat off, pause 0.5 s.");
   });
 });

@@ -1,5 +1,6 @@
 <script lang="ts">
-  import { onMount, tick } from "svelte";
+  import { Popover } from "bits-ui";
+  import { onMount } from "svelte";
 
   import EditorCommandIcon from "./EditorCommandIcon.svelte";
   import SplitDefaultSaveButton from "./SplitDefaultSaveButton.svelte";
@@ -46,15 +47,8 @@
   type PitchHumMode = FieldSplitButtonState["pitchHumMode"];
   type ShareTarget = FieldSplitButtonState["shareTarget"];
 
-  const POPOVER_GAP_PX = 4;
-  const VIEWPORT_MARGIN_PX = 8;
-  const HIDDEN_POPOVER_STYLE = "visibility: hidden;";
-
   const { button, target }: { button: ButtonSpec; target: FieldTarget } = $props();
-  let wrapper = $state<HTMLSpanElement>();
-  let popover = $state<HTMLDivElement>();
   let open = $state(false);
-  let popoverStyle = $state(HIDDEN_POPOVER_STYLE);
   let volumeStepDb = $state(3);
   let speedStep = $state(0.05);
   let pauseAggressiveness = $state<"gentle" | "normal" | "aggressive">("normal");
@@ -98,9 +92,54 @@
 
   const graphSummary = $derived([formatGraphVoiceRange(graphVoiceRange), formatGraphRecordingCondition(graphRecordingCondition), formatGraphSmoothness(graphSmoothness), `${graphConnectShortDropoutsMs} ms`, formatGraphVoiceLock(graphVoiceLock)].join(" · "));
 
+  function currentValueLabel(): string {
+    if (button.command === "aqe:volume-up" || button.command === "aqe:volume-down") return `${volumeStepDb % 1 === 0 ? volumeStepDb.toFixed(0) : volumeStepDb.toFixed(1)} dB`;
+    if (button.command === "aqe:faster" || button.command === "aqe:slower") return `x${(button.command === "aqe:slower" ? 1 - speedStep : 1 + speedStep).toFixed(2)}`;
+    if (button.command === "aqe:remove-pauses") return pauseAggressiveness === "aggressive"
+      ? t("settings.pause_aggressiveness.aggressive")
+      : pauseAggressiveness === "gentle"
+        ? t("settings.pause_aggressiveness.gentle")
+        : t("settings.pause_aggressiveness.normal");
+    if (button.command === "aqe:convert") return formatOutputFormat(outputFormat);
+    if (button.command === "aqe:share") return shareTarget === "litterbox"
+      ? t("editor.share.target.litterbox")
+      : t("editor.share.target.catbox");
+    if (button.command === "aqe:pitch-hum") return pitchHumMode === "pitch_tier"
+      ? t("editor.pitch_hum.mode.pitch_tier")
+      : t("editor.pitch_hum.mode.direct");
+    if (
+      button.command === "aqe:denoise-standard" ||
+      button.command === "aqe:rnnoise" ||
+      button.command === "aqe:dpdfnet" ||
+      button.command === "aqe:voice-only"
+    ) {
+      return denoiseAlgorithm === "dpdfnet"
+        ? `${formatDenoiseAlgorithm(denoiseAlgorithm)} (${t(`settings.pause_aggressiveness.${dpdfnetAttnLimitDb === 6 ? "gentle" : dpdfnetAttnLimitDb === 18 ? "aggressive" : "normal"}`)})`
+        : formatDenoiseAlgorithm(denoiseAlgorithm);
+    }
+    if (button.command === "aqe:analyze") return graphSummary;
+    return "";
+  }
+
+  function menuTitle(): string {
+    return t("editor.split.menu_title", {
+      label: button.label,
+      value: currentValueLabel(),
+    });
+  }
+
+  function popoverDescription(): string {
+    if (button.command === "aqe:analyze") {
+      return t("editor.split.description_graph", { value: graphSummary });
+    }
+    return t("editor.split.description", {
+      label: button.label,
+      value: currentValueLabel(),
+    });
+  }
+
   function close(): void {
     open = false;
-    popoverStyle = HIDDEN_POPOVER_STYLE;
   }
 
   function syncFromState(state: FieldSplitButtonState): void {
@@ -117,12 +156,6 @@
     graphSmoothness = state.graphSmoothness;
     graphConnectShortDropoutsMs = state.graphConnectShortDropoutsMs;
     graphVoiceLock = state.graphVoiceLock;
-  }
-
-  function toggle(event: MouseEvent): void {
-    event.preventDefault();
-    event.stopPropagation();
-    open = !open;
   }
 
   function applyVolumeStep(value: number): void {
@@ -196,129 +229,70 @@
     sendSplitDefaultSaveRequest(request);
     syncFromState(promoteSplitDefaultsForField(target.ord, request.defaults));
     showDefaultSaved();
-    void updatePopoverPlacement();
   }
 
-  function clamp(value: number, min: number, max: number): number {
-    return Math.min(Math.max(value, min), max);
+  function onOpenChange(nextOpen: boolean): void {
+    if (nextOpen) syncFromState(getSplitButtonState(target.ord));
+    open = nextOpen;
   }
-
-  function viewportBounds(): { width: number; height: number } {
-    return {
-      width: window.innerWidth || document.documentElement.clientWidth,
-      height: window.innerHeight || document.documentElement.clientHeight,
-    };
-  }
-
-  function positionPopover(): void {
-    if (!wrapper || !popover) return;
-
-    const anchorRect = wrapper.getBoundingClientRect();
-    const popoverRect = popover.getBoundingClientRect();
-    const viewport = viewportBounds();
-    const maxLeft = Math.max(VIEWPORT_MARGIN_PX, viewport.width - popoverRect.width - VIEWPORT_MARGIN_PX);
-    const maxTop = Math.max(VIEWPORT_MARGIN_PX, viewport.height - popoverRect.height - VIEWPORT_MARGIN_PX);
-    const centeredLeft = anchorRect.left + anchorRect.width / 2 - popoverRect.width / 2;
-    const belowTop = anchorRect.bottom + POPOVER_GAP_PX;
-    const aboveTop = anchorRect.top - popoverRect.height - POPOVER_GAP_PX;
-    const fitsBelow = belowTop + popoverRect.height <= viewport.height - VIEWPORT_MARGIN_PX;
-    const fitsAbove = aboveTop >= VIEWPORT_MARGIN_PX;
-    const preferredTop = !fitsBelow && fitsAbove ? aboveTop : belowTop;
-
-    popoverStyle = [
-      `left: ${clamp(centeredLeft, VIEWPORT_MARGIN_PX, maxLeft)}px;`,
-      `top: ${clamp(preferredTop, VIEWPORT_MARGIN_PX, maxTop)}px;`,
-      `max-height: ${Math.max(80, viewport.height - VIEWPORT_MARGIN_PX * 2)}px;`,
-    ].join(" ");
-  }
-
-  async function updatePopoverPlacement(): Promise<void> {
-    if (!open) return;
-    await tick();
-    if (!open) return;
-    positionPopover();
-  }
-
-  function onViewportChange(): void {
-    void updatePopoverPlacement();
-  }
-
-  function onDocumentPointerDown(event: MouseEvent): void {
-    if (!open || !wrapper) return;
-    if (event.target instanceof Node && wrapper.contains(event.target)) return;
-    close();
-  }
-
-  function onDocumentKeyDown(event: KeyboardEvent): void {
-    if (event.key === "Escape") close();
-  }
-
-  $effect(() => {
-    if (open) {
-      void updatePopoverPlacement();
-    } else {
-      popoverStyle = HIDDEN_POPOVER_STYLE;
-    }
-  });
 
   onMount(() => {
     syncFromState(getSplitButtonState(target.ord));
-    document.addEventListener("mousedown", onDocumentPointerDown, true);
-    document.addEventListener("keydown", onDocumentKeyDown, true);
-    window.addEventListener("resize", onViewportChange);
-    window.addEventListener("scroll", onViewportChange, true);
     return () => {
-      document.removeEventListener("mousedown", onDocumentPointerDown, true);
-      document.removeEventListener("keydown", onDocumentKeyDown, true);
-      window.removeEventListener("resize", onViewportChange);
-      window.removeEventListener("scroll", onViewportChange, true);
       if (defaultSavedTimer !== undefined) window.clearTimeout(defaultSavedTimer);
     };
   });
 </script>
 
-<span class="aqe-split-button" bind:this={wrapper}>
-  <button
-    type="button"
-    class:aqe-icon-only={button.iconOnly === true}
-    class="aqe-button aqe-split-primary"
-    data-aqe-command={button.command}
-    data-aqe-button-state={initialButtonState()}
-    data-testid={`aqe-button-${target.ord}-${slug()}`}
-    title={primaryTitle()}
-    aria-label={primaryTitle()}
-    onmousedown={(event) => event.preventDefault()}
-    onclick={dispatchPrimary}
-  >
-    <EditorCommandIcon icon={button.icon} />
-    <span class="aqe-button-label">{button.label}</span>
-  </button>
-  <button
-    type="button"
-    class="aqe-button aqe-icon-only aqe-split-menu-button"
-    data-testid={`aqe-split-${target.ord}-${slug()}-menu`}
-    title={t("editor.split.options")}
-    aria-label={t("editor.split.options")}
-    aria-expanded={open ? "true" : "false"}
-    onmousedown={(event) => event.preventDefault()}
-    onclick={toggle}
-  >
-    <EditorCommandIcon icon="chevron-down" />
-    <span class="aqe-button-label">{t("editor.split.options")}</span>
-  </button>
-  {#if open}
-    <div
-      bind:this={popover}
-      class="aqe-split-popover"
-      class:aqe-graph-split-popover={button.command === "aqe:analyze"}
-      data-testid={`aqe-split-${target.ord}-${slug()}-popover`}
-      style={popoverStyle}
+<Popover.Root open={open} onOpenChange={onOpenChange}>
+  <span class="aqe-split-button">
+    <button
+      type="button"
+      class:aqe-icon-only={button.iconOnly === true}
+      class="aqe-button aqe-split-primary"
+      data-aqe-command={button.command}
+      data-aqe-button-state={initialButtonState()}
+      data-testid={`aqe-button-${target.ord}-${slug()}`}
+      title={primaryTitle()}
+      aria-label={primaryTitle()}
+      onmousedown={(event) => event.preventDefault()}
+      onclick={dispatchPrimary}
     >
+      <EditorCommandIcon icon={button.icon} />
+      <span class="aqe-button-label">{button.label}</span>
+    </button>
+    <Popover.Trigger
+      class="aqe-button aqe-icon-only aqe-split-menu-button"
+      data-testid={`aqe-split-${target.ord}-${slug()}-menu`}
+      title={menuTitle()}
+      aria-label={menuTitle()}
+      onmousedown={(event) => event.preventDefault()}
+    >
+      <EditorCommandIcon icon="chevron-down" />
+      <span class="aqe-button-label">{t("editor.split.options")}</span>
+    </Popover.Trigger>
+    <Popover.Content
+      align="center"
+      arrowPadding={14}
+      class={`aqe-split-popover${button.command === "aqe:analyze" ? " aqe-graph-split-popover" : ""}`}
+      collisionPadding={8}
+      data-testid={`aqe-split-${target.ord}-${slug()}-popover`}
+      onCloseAutoFocus={(event) => event.preventDefault()}
+      side="bottom"
+      sideOffset={4}
+      strategy="fixed"
+      trapFocus={false}
+    >
+      <Popover.Arrow
+        class="aqe-split-popover-arrow"
+        data-testid={`aqe-split-${target.ord}-${slug()}-arrow`}
+        height={8}
+        width={16}
+      />
       {#if button.command === "aqe:analyze"}
         <div class="aqe-split-popover-header aqe-split-popover-header-with-action">
           <span class="aqe-split-popover-title">
             <strong>{button.label}</strong>
-            <span>{graphSummary}</span>
           </span>
           <SplitDefaultSaveButton
             onSave={saveCurrentDefaults}
@@ -326,6 +300,7 @@
             testId={`aqe-split-${target.ord}-${slug()}-save-default`}
           />
         </div>
+        <p class="aqe-split-popover-description">{popoverDescription()}</p>
         <GraphSplitOptions
           connectShortDropoutsMs={graphConnectShortDropoutsMs}
           onConnectShortDropouts={applyGraphConnectShortDropouts}
@@ -340,16 +315,29 @@
           voiceLock={graphVoiceLock}
           voiceRange={graphVoiceRange}
         />
+        <div class="aqe-split-popover-footer">
+          <button
+            type="button"
+            class="aqe-button aqe-split-run-button"
+            data-testid={`aqe-split-${target.ord}-${slug()}-run`}
+            title={t("editor.split.run_title", { label: button.label })}
+            aria-label={t("editor.split.run_title", { label: button.label })}
+            onclick={dispatchPrimary}
+          >
+            {t("editor.split.run")}
+          </button>
+        </div>
       {:else}
         <SplitValueOptions
           {button}
           denoiseAlgorithm={denoiseAlgorithm}
-          onChange={() => void updatePopoverPlacement()}
+          onChange={() => {}}
           onDenoiseAlgorithm={applyDenoiseAlgorithm}
           onDpdfnetAttnLimitDb={applyDpdfnetAttnLimitDb}
           onOutputFormat={applyOutputFormat}
           onPauseAggressiveness={applyPauseAggressiveness}
           onPitchHumMode={applyPitchHumMode}
+          onRun={dispatchPrimary}
           onSaveDefault={saveCurrentDefaults}
           onShareTarget={applyShareTarget}
           onSpeedStep={applySpeedStep}
@@ -366,6 +354,6 @@
           volumeStepDb={volumeStepDb}
         />
       {/if}
-    </div>
-  {/if}
-</span>
+    </Popover.Content>
+  </span>
+</Popover.Root>

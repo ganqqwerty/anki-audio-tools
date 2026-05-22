@@ -239,7 +239,7 @@ def test_editor_settings_save_refreshes_current_editor_repeat_default(
         wait_for_js_condition(
             editor.web,
             "document.querySelector('[data-testid=\"aqe-split-0-play-menu\"]')?.getAttribute('title')",
-            lambda value: value == "Play options: Repeat off",
+            lambda value: value == "Play quick settings. Current value: Repeat off, pause 0 s.",
             timeout=5.0,
         )
         wait_for_js_condition(
@@ -296,7 +296,7 @@ def test_editor_settings_save_refreshes_current_editor_repeat_default(
         wait_for_js_condition(
             editor.web,
             "document.querySelector('[data-testid=\"aqe-split-0-play-menu\"]')?.getAttribute('title')",
-            lambda value: value == "Play options: Repeat on",
+            lambda value: value == "Play quick settings. Current value: Repeat on, pause 1.5 s.",
             timeout=10.0,
         )
         wait_for_js_condition(

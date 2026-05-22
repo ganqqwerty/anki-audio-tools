@@ -3,6 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { disposeEditorRuntime, initializeEditorRuntime, scan } from "../src/editor-inline/runtime.js";
 import {
   bridgeCommands,
+  clearQueuedAnimationFrames,
   dispatchHandlePointer,
   dispatchGraphPointer,
   dragGraphSelection,
@@ -94,6 +95,7 @@ afterEach(() => {
     setGraphBounds(svg);
     dragGraphSelection(svg, 0.25, 0.75);
     await setRepeatMode(true);
+    clearQueuedAnimationFrames(frames);
     const audio = prepareHtmlAudio();
 
     document.querySelector<HTMLButtonElement>('[data-testid="aqe-button-0-play"]')!.click();
@@ -155,6 +157,7 @@ afterEach(() => {
     setGraphBounds(svg);
     dragGraphSelection(svg, 0.25, 0.75);
     await setRepeatMode(true);
+    clearQueuedAnimationFrames(frames);
     const audio = prepareHtmlAudio();
 
     document.querySelector<HTMLButtonElement>('[data-testid="aqe-button-0-play"]')!.click();
@@ -332,6 +335,7 @@ afterEach(() => {
     setGraphBounds(svg);
     dragGraphSelection(svg, 0.25, 0.75);
     await setRepeatMode(true);
+    clearQueuedAnimationFrames(frames);
     const audio = prepareHtmlAudio();
 
     document.querySelector<HTMLButtonElement>('[data-testid="aqe-button-0-play"]')!.click();

@@ -239,6 +239,50 @@ describe("editor inline split-button command integration", () => {
     expect(speedPayload?.overrides?.speedStep).toBe(0.1);
   });
 
+  it("shows live split hover text and runs from the popover footer", async () => {
+    window.__aqeSplitButtonStates = {};
+    window.__AQE_EDITOR_CONFIG__ = {
+      audioFieldIndices: [0],
+      splitButtonDefaults: {
+        denoiseAlgorithm: "standard",
+        pauseAggressiveness: "normal",
+        repeatPauseSeconds: 0,
+        speedStep: 0.05,
+        volumeStepDb: 3,
+      },
+    };
+    initializeEditorRuntime(window.__AQE_EDITOR_CONFIG__);
+    scan(window.__AQE_EDITOR_CONFIG__);
+
+    const menu = document.querySelector<HTMLButtonElement>('[data-testid="aqe-split-0-volume-up-menu"]')!;
+    expect(menu.title).toBe("Volume + quick settings. Current value: 3 dB.");
+
+    menu.click();
+    await Promise.resolve();
+
+    const header = document.querySelector<HTMLElement>('[data-testid="aqe-split-0-volume-up-popover"] .aqe-split-popover-title')!;
+    expect(header.textContent?.trim()).toBe("Volume +");
+    expect(document.querySelector('[data-testid="aqe-split-0-volume-up-popover"]')).toHaveTextContent(
+      "This changes how Volume + runs for this field. Current value: 3 dB.",
+    );
+
+    document.querySelector<HTMLButtonElement>('[data-testid="aqe-split-0-volume-up-preset-6"]')!.click();
+    await Promise.resolve();
+    expect(menu.title).toBe("Volume + quick settings. Current value: 6 dB.");
+
+    document.querySelector<HTMLButtonElement>('[data-testid="aqe-split-0-volume-up-run"]')!.click();
+
+    expect(window.__aqePendingCommandPayload).toMatchObject({
+      command: "aqe:volume-up",
+      fieldOrd: 0,
+      overrides: {
+        volumeStepDb: 6,
+      },
+    });
+    await Promise.resolve();
+    expect(document.querySelector('[data-testid="aqe-split-0-volume-up-popover"]')).toBeNull();
+  });
+
   it("syncs split tooltip value inputs with sliders", async () => {
     window.__aqeSplitButtonStates = {};
     window.__AQE_EDITOR_CONFIG__ = {

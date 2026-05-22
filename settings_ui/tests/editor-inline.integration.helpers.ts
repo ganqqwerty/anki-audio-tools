@@ -155,17 +155,23 @@ export async function openPlayOptions(ord = 0): Promise<void> {
 
 export async function setRepeatMode(enabled: boolean, ord = 0): Promise<HTMLButtonElement> {
   await openPlayOptions(ord);
-  const menu = document.querySelector<HTMLButtonElement>(`[data-testid="aqe-split-${ord}-play-menu"]`)!;
   const repeat = document.querySelector<HTMLButtonElement>(`[data-testid="aqe-repeat-${ord}"]`)!;
   if ((repeat.getAttribute("aria-pressed") === "true") !== enabled) {
     repeat.click();
     await Promise.resolve();
   }
+  const menu = document.querySelector<HTMLButtonElement>(`[data-testid="aqe-split-${ord}-play-menu"]`)!;
   if (menu.getAttribute("aria-expanded") === "true") {
     menu.click();
     await Promise.resolve();
   }
   return repeat;
+}
+
+export function clearQueuedAnimationFrames(
+  frames: Array<Parameters<typeof window.requestAnimationFrame>[0]>,
+): void {
+  frames.length = 0;
 }
 
 export function mockAnimationFrames(): Array<Parameters<typeof window.requestAnimationFrame>[0]> {

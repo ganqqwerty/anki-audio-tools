@@ -29,12 +29,22 @@
   box-shadow: 0 10px 24px rgb(0 0 0 / 22%);
   display: grid;
   gap: 8px;
+  max-height: calc(100vh - 16px);
   max-width: calc(100vw - 16px);
   min-width: min(210px, calc(100vw - 16px));
   overflow: auto;
   padding: 10px;
-  position: fixed;
   z-index: var(--aqe-floating-z-index, 10000);
+}
+
+.aqe-split-popover-arrow {
+  color: Canvas;
+  display: inline-flex;
+}
+
+.aqe-split-popover-arrow svg {
+  display: block;
+  filter: drop-shadow(0 0 1px ButtonBorder);
 }
 
 .aqe-graph-split-popover {
@@ -81,6 +91,13 @@
 
 .aqe-split-default-save-saved {
   box-shadow: inset 0 0 0 1px ButtonBorder;
+}
+
+.aqe-split-popover-description {
+  color: GrayText;
+  font-size: 11px;
+  line-height: 1.4;
+  margin: 0;
 }
 
 .aqe-split-value-input {
@@ -141,6 +158,17 @@
 
 .aqe-play-split-popover {
   min-width: min(240px, calc(100vw - 16px));
+}
+
+.aqe-split-popover-footer {
+  display: flex;
+  justify-content: flex-end;
+  padding-top: 2px;
+}
+
+.aqe-split-run-button {
+  min-height: 26px;
+  min-width: 62px;
 }
 
 .aqe-repeat-toggle-button {
