@@ -28,7 +28,6 @@ Use this skill after major refactors, module renames, config schema changes, hoo
 - Key facts: Anki version, Python version, symlink path, add-on id
 - Pointers to `DEVELOPMENT.md`, `WEBVIEW_AND_TEMPLATES.md`, `CONFIG_SCHEMA.md`, `ANKI_API.md`, and `TESTING.md`
 - Testing guidance, especially the rule that a feature is not complete until `python3 scripts/dev.py test-e2e` passes
-- GitNexus section, including repo stats, resources, and repo-local Claude Code GitNexus skill paths
 
 ### `ARCHITECTURE.md`
 

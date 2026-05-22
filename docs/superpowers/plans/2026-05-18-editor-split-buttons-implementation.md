@@ -405,10 +405,8 @@ python3 scripts/dev.py check
 python3 scripts/dev.py test-e2e
 ```
 
-- [ ] **Step 4: Run GitNexus change detection**
 
 ```bash
-# MCP equivalent: gitnexus_detect_changes(scope="all")
 ```
 
 - [ ] **Step 5: Commit final fixes**

@@ -104,13 +104,10 @@ Most recent observed result:
 
 The coverage is strong enough to refactor safely, but it is not yet shaped around clean state transitions. Many tests observe behavior through the DOM and the test window contract, which is useful, but the pure business rules are not isolated.
 
-## GitNexus Findings
 
-GitNexus was used to inspect the connected execution flows and impact of key editor symbols.
 
 ### Central Hub
 
-GitNexus query and Cypher inspection both show `settings_ui/src/editor-inline/actions.ts` as the hub for editor-inline behavior. Notable internal connections include:
 
 - `send(...)` reaches graph analysis, HTML playback command handling, processing busy state, and bridge dispatch.
 - `setVisualizer(...)` reaches graph DOM rendering, audio clock configuration, cursor state, selection reset, busy state, and logging.
@@ -120,7 +117,6 @@ GitNexus query and Cypher inspection both show `settings_ui/src/editor-inline/ac
 
 ### Impact Analysis
 
-GitNexus impact analysis showed:
 
 - `startProgressClock(...)`: CRITICAL upstream risk, with direct callers `startEditorHtmlPlayback(...)` and `setPlaybackState(...)`, and affected flows through `handleHtmlPlaybackCommand(...)`, `startSelectionGesture(...)`, `send(...)`, and pointer-up gesture handlers.
 - `playbackRequest(...)`: LOW upstream risk in graph terms, but semantically important because Python playback behavior depends on the returned payload.
@@ -128,7 +124,6 @@ GitNexus impact analysis showed:
 - `setVisualizer(...)`: LOW graph-reported upstream impact because it is installed through the window contract rather than ordinary static calls; semantically it is high value because Python invokes it after prosody analysis.
 - `initializeEditorRuntime(...)`: LOW graph-reported upstream impact because it is the bundle entry behavior and window-mounted, not called through normal application imports.
 
-The mismatch between low static impact and high runtime importance is expected for injected WebView code. The refactor plan must treat `window.__aqe*` functions as public API even when GitNexus sees few static callers.
 
 ## Current Responsibilities By Module
 
@@ -968,15 +963,11 @@ python3 scripts/dev.py test-e2e
 
 Before committing refactor changes:
 
-- run GitNexus impact analysis on every function/class/method being changed, per repository policy
-- run `gitnexus_detect_changes()` and confirm affected symbols/flows match the intended refactor scope
-- if GitNexus reports HIGH or CRITICAL risk, stop and record the mitigation/tests before continuing
 
 ## Risk Register
 
 ### Playback Regressions
 
-Playback is the highest-risk area. GitNexus marked `startProgressClock(...)` as CRITICAL because it is used by HTML playback, Python playback state callbacks, selected-region playback, and command dispatch.
 
 Mitigation:
 
@@ -1049,4 +1040,3 @@ The refactor is complete when:
 - `python3 scripts/dev.py test-svelte` passes.
 - `python3 scripts/dev.py test` passes.
 - `python3 scripts/dev.py test-e2e` passes.
-- GitNexus change detection reports only expected affected frontend/editor flows.

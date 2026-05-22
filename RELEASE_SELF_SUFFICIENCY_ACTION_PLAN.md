@@ -143,7 +143,6 @@ bin/
 
 ### Task 1: Lock The Runtime Asset Contract
 
-Before editing Python symbols in this task, run GitNexus impact on `find_ffmpeg`, `find_ffprobe`, `find_deep_filter`, and `find_rnnoise_bundle`.
 
 - [ ] Create `release_assets.lock.json` with schema version, target list, tool list, source URLs, license obligations, expected archive names, expected executable names, and SHA-256 fields.
 - [ ] Represent unknown locally built checksums as absent keys, not placeholder strings. `scripts/release_assets.py verify` must fail until every target executable has a concrete SHA-256 after the binary build task.
@@ -268,7 +267,6 @@ Expected result: `rnnoise-cli --version` passes and a one-second raw PCM denoise
 
 ### Task 6: Change Runtime Tool Discovery
 
-Before editing `audio_tools.py`, run GitNexus impact for every function changed.
 
 - [ ] Add a typed platform key helper in `audio_tools.py` that maps:
   - `("Darwin", "arm64")` and `("Darwin", "aarch64")` to `macos-arm64`
@@ -293,7 +291,6 @@ Expected result: tests prove bundled paths are chosen with empty config and `PAT
 
 ### Task 7: Make Release Build From A Staged Tree
 
-Before editing `scripts/release.py` functions, run GitNexus impact on `_build_archive`, `_validate_archive`, `_should_include`, and `main`.
 
 - [ ] Stop zipping directly from `addon/anki_audio_quick_editor/`.
 - [ ] Add a temporary staging directory.
@@ -369,7 +366,6 @@ Expected result: source checkout tools and system `PATH` are not needed for smok
 
 ### Task 10: Fix The `DEBUG_ANKI` Startup Dependency
 
-Before editing `__init__.py`, run GitNexus impact on the changed startup helper.
 
 - [ ] Move debug attachment into a helper such as `_maybe_attach_debugger()`.
 - [ ] Catch `ImportError` for `debugpy`.
@@ -484,4 +480,3 @@ The archive is releasable only after `release_acceptance.py` has passed on macOS
 7. Archive validation and smoke tests.
 8. Native platform acceptance scripts.
 9. Docs and third-party notices.
-10. Full QC, e2e, GitNexus `detect_changes`, and release dry run.

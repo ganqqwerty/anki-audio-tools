@@ -7,7 +7,6 @@ Anki Audio Quick Editor keeps the human-facing architecture doc short and puts t
 - architecture contracts live in `tests/test_architecture/contracts.py`
 - architecture observations and reporting live in `tests/test_architecture/inspection.py`
 - pass/fail enforcement happens through `tests/test_architecture/*.py`, `python3 scripts/dev.py architecture-report`, and `python3 scripts/dev.py arch`
-- GitNexus is useful for discovery and blast-radius review, but it is not the enforcement source of truth
 
 ## Runtime Layers
 

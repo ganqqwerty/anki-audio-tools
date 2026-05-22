@@ -36,21 +36,13 @@
 - Existing selected-region playback semantics must stay owned by the playback controller.
 - Existing delete requests must still be built at click time from current visualizer state, not from cached toolbar state.
 
-## GitNexus Baseline
 
-Before editing runtime symbols, run GitNexus impact for the existing symbols touched by this plan if GitNexus MCP tools are available:
 
 ```text
-gitnexus_impact({repo: "anki-audio-tools", target: "syncRegionDeleteControl", direction: "upstream"})
-gitnexus_impact({repo: "anki-audio-tools", target: "regionDeleteRequestFor", direction: "upstream"})
-gitnexus_impact({repo: "anki-audio-tools", target: "renderSelection", direction: "upstream"})
-gitnexus_impact({repo: "anki-audio-tools", target: "setCommandButtonLabel", direction: "upstream"})
-gitnexus_impact({repo: "anki-audio-tools", target: "GraphStateForTest", direction: "upstream"})
 ```
 
 Expected: frontend integration tests, e2e helpers, selection gesture flows, and playback label updates are the main upstream blast radius. No backend Python render path should be affected.
 
-If GitNexus MCP is unavailable in the active session, record that explicitly in the work log and inspect direct callers with `rg` before editing each symbol. Do not silently skip the blast-radius step.
 
 ## Task 1: Write Failing Toolbar Tests
 
@@ -1197,7 +1189,6 @@ Expected: PASS for frontend toolbar behavior. If a positioning assertion fails b
 
 - [ ] **Step 1: Run impact checks for any additional symbols**
 
-If this task touches symbols not covered earlier, run GitNexus impact or document unavailable GitNexus plus `rg` caller inspection before editing.
 
 - [ ] **Step 2: Reset toolbar state on graph redraw and track changes**
 
@@ -1349,17 +1340,13 @@ python3 scripts/dev.py test-e2e
 
 Expected: full e2e suite PASS.
 
-- [ ] **Step 4: Run GitNexus change detection before committing**
 
-If GitNexus is available, run:
 
 ```text
-gitnexus_detect_changes({repo: "anki-audio-tools"})
 ```
 
 Expected: changed symbols are limited to inline-editor toolbar/selection/playback sync, tests, CSS, and e2e helpers. No backend audio rendering flow should be reported.
 
-If GitNexus is unavailable, record that explicitly and include `git diff --stat` plus targeted test results in the final work log.
 
 - [ ] **Step 5: Manual visual verification**
 
@@ -1382,5 +1369,4 @@ Summarize:
 - files changed,
 - tests run and pass/fail output,
 - whether full e2e passed,
-- whether GitNexus was available,
 - any remaining visual or WebEngine compatibility risks.

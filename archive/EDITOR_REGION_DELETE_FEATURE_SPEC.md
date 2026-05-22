@@ -607,7 +607,6 @@ If the implementation changes schema, hooks, package boundaries, or architecture
 
 Before editing code:
 
-- Run GitNexus impact analysis for each function/class/method you plan to modify, per `AGENTS.md`.
 - Read `WEBVIEW_AND_TEMPLATES.md` before editing `settings_ui` or committed editor bundles.
 - Read `ANKI_API.md` before changing Anki bridge/media/player behavior.
 
@@ -624,7 +623,6 @@ Suggested order:
 9. Rebuild frontend bundles through the dev runner.
 10. Run targeted tests, then `python3 scripts/dev.py check`.
 11. Run `python3 scripts/dev.py test-e2e`.
-12. Run `gitnexus_detect_changes()` before any commit.
 
 ## 10. Open Implementation Decisions
 

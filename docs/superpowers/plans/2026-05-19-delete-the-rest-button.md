@@ -40,15 +40,10 @@
 - Modify: `settings_ui/src/editor-inline/EditorControls.svelte`
 - Modify: `settings_ui/src/editor-inline/test-contract.ts`
 
-- [ ] **Step 1: Run GitNexus impact before editing frontend symbols**
 
 Run these MCP calls and record the risk summaries in your work log:
 
 ```text
-gitnexus_impact({repo: "anki-audio-tools", target: "regionDeleteRequestFor", direction: "upstream"})
-gitnexus_impact({repo: "anki-audio-tools", target: "syncRegionDeleteControl", direction: "upstream"})
-gitnexus_impact({repo: "anki-audio-tools", target: "sendRegionDelete", direction: "upstream"})
-gitnexus_impact({repo: "anki-audio-tools", target: "GraphStateForTest", direction: "upstream"})
 ```
 
 Expected: existing frontend tests and e2e helpers are direct consumers; no backend Python symbols are reached by the local TypeScript graph.
@@ -467,10 +462,8 @@ Expected: PASS.
 
 - [ ] **Step 9: Detect changes and commit frontend task**
 
-Run GitNexus change detection before committing:
 
 ```text
-gitnexus_detect_changes({repo: "anki-audio-tools", scope: "all"})
 ```
 
 Expected: changed frontend symbols are limited to the inline editor selection-operation path.
@@ -499,14 +492,10 @@ git commit -m "Add delete-rest frontend request flow"
 - Modify: `addon/anki_audio_quick_editor/audio_rendering.py`
 - Modify: `addon/anki_audio_quick_editor/audio_processor.py`
 
-- [ ] **Step 1: Run GitNexus impact before editing audio symbols**
 
 Run:
 
 ```text
-gitnexus_impact({repo: "anki-audio-tools", target: "build_region_delete_plan", direction: "upstream"})
-gitnexus_impact({repo: "anki-audio-tools", target: "render_audio_region_deleted", direction: "upstream"})
-gitnexus_impact({repo: "anki-audio-tools", target: "RegionDeletePlan", direction: "upstream"})
 ```
 
 Expected: direct consumers include audio rendering tests and editor region-delete rendering; the new keep-selection path should not change existing delete-selection output.
@@ -789,7 +778,6 @@ Expected: PASS.
 Run:
 
 ```text
-gitnexus_detect_changes({repo: "anki-audio-tools", scope: "all"})
 ```
 
 Expected: changed symbols are limited to audio plan/rendering helpers and tests.
@@ -814,15 +802,10 @@ git commit -m "Add keep-selection audio rendering"
 - Modify: `addon/anki_audio_quick_editor/editor_region_delete.py`
 - Modify: `addon/anki_audio_quick_editor/editor_dependencies.py`
 
-- [ ] **Step 1: Run GitNexus impact before editing bridge symbols**
 
 Run:
 
 ```text
-gitnexus_impact({repo: "anki-audio-tools", target: "RegionDeleteRequest", direction: "upstream"})
-gitnexus_impact({repo: "anki-audio-tools", target: "parse_region_delete_request", direction: "upstream"})
-gitnexus_impact({repo: "anki-audio-tools", target: "delete_selection_async", direction: "upstream"})
-gitnexus_impact({repo: "anki-audio-tools", target: "region_delete_log_context", direction: "upstream"})
 ```
 
 Expected: direct consumers include editor callbacks, integration tests, and region-delete replacement flow.
@@ -1146,7 +1129,6 @@ Expected: PASS.
 Run:
 
 ```text
-gitnexus_detect_changes({repo: "anki-audio-tools", scope: "all"})
 ```
 
 Expected: changed symbols are limited to selected-region request parsing/routing and tests.
@@ -1167,13 +1149,10 @@ git commit -m "Route delete-rest region requests"
 - Modify: `e2e/editor_graph_helpers.py`
 - Modify: `e2e/test_editor_region_delete_workflow.py`
 
-- [ ] **Step 1: Run GitNexus impact before editing e2e helpers**
 
 Run:
 
 ```text
-gitnexus_impact({repo: "anki-audio-tools", target: "_visualizer_js", direction: "upstream"})
-gitnexus_impact({repo: "anki-audio-tools", target: "test_delete_region_button_cuts_middle_region_and_redraws_graph", direction: "upstream"})
 ```
 
 Expected: blast radius is limited to e2e tests.
@@ -1279,7 +1258,6 @@ Expected: PASS. This command builds frontend bundles first.
 Run:
 
 ```text
-gitnexus_detect_changes({repo: "anki-audio-tools", scope: "all"})
 ```
 
 Expected: changed symbols are limited to e2e helper/test coverage.
@@ -1337,12 +1315,10 @@ python3 scripts/dev.py check
 
 Expected: PASS. If Qodana or Sonar-specific local prerequisites block the gate, capture the exact failing prerequisite and still report the passing targeted checks from Steps 1-3.
 
-- [ ] **Step 5: Run final GitNexus change detection**
 
 Run:
 
 ```text
-gitnexus_detect_changes({repo: "anki-audio-tools", scope: "all"})
 ```
 
 Expected: affected flows are the selected-region delete/edit flow, audio keep-selection renderer, and e2e tests only.
@@ -1360,10 +1336,8 @@ Expected: only intended source and test files are modified. Existing unrelated l
 
 - [ ] **Step 7: Final commit if any verification fixes were added**
 
-If Step 6 shows additional intended changes since the last task commit, run GitNexus change detection again before committing:
 
 ```text
-gitnexus_detect_changes({repo: "anki-audio-tools", scope: "all"})
 ```
 
 Then commit only the intended files:
