@@ -21,6 +21,7 @@ bin/
     ffprobe
     deep-filter
     rnnoise-cli
+    dpdfnet
     sherpa-spleeter
     libonnxruntime.1.24.4.dylib
   windows-x86_64/
@@ -28,6 +29,7 @@ bin/
     ffprobe.exe
     deep-filter.exe
     rnnoise-cli.exe
+    dpdfnet.exe
     sherpa-spleeter.exe
     onnxruntime.dll
     onnxruntime_providers_shared.dll

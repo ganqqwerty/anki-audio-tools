@@ -37,7 +37,7 @@ If that happens, clear `deep_filter_path` in `addon/anki_audio_quick_editor/meta
 
 Anki add-ons cannot rely on `pip install` at user runtime. Audio Quick Editor uses the Python/Qt runtime bundled with Anki and ships a locked native runtime payload for supported release platforms. The self-sufficient release matrix is macOS arm64, macOS x86_64, and Windows x86_64.
 
-Release archives bundle `ffmpeg`, `ffprobe`, DeepFilterNet's `deep-filter`, `rnnoise-cli`, and Sherpa's `sherpa-spleeter` below `bin/<target>/`, plus shared Spleeter model files below `bin/models/spleeter-2stems-fp16/`. The `macos-arm64` target also bundles DPDFNet Lite as `dpdfnet`; `macos-x86_64` and `windows-x86_64` intentionally do not include DPDFNet until matching Lite binaries are built and locked. Runtime discovery checks user overrides first where supported, bundled tools second, and `PATH` as a compatibility fallback. The settings diagnostics report whether each tool came from config, the bundled payload, or `PATH`.
+Release archives bundle `ffmpeg`, `ffprobe`, DeepFilterNet's `deep-filter`, `rnnoise-cli`, Sherpa's `sherpa-spleeter`, and DPDFNet Lite below `bin/<target>/`, plus shared Spleeter model files below `bin/models/spleeter-2stems-fp16/`. Runtime discovery checks user overrides first where supported, bundled tools second, and `PATH` as a compatibility fallback. The settings diagnostics report whether each tool came from config, the bundled payload, or `PATH`.
 
 Native release assets are not committed into `addon/anki_audio_quick_editor/bin/`. The checked-in `bin/` directory contains documentation and notices only. Use `.release-assets/bin/<target>/` for target executables, `.release-assets/shared/` for shared model files, and `release_assets.lock.json` as the source of truth for expected runtime files, source URLs, diagnostic arguments, and SHA-256 values. Source-tree development uses the same runtime layout as releases: stage any needed generated payload into the add-on `bin/` tree before launching the symlinked add-on.
 
@@ -53,8 +53,9 @@ python3 scripts/dev.py release-assets build-rnnoise --target macos-x86_64
 python3 scripts/dev.py release-assets build-rnnoise --target windows-x86_64
 scripts/dpdfnet_cli/build_macos.sh macos-arm64
 scripts/dpdfnet_cli/build_macos.sh macos-x86_64
+pwsh -File scripts/dpdfnet_cli/build_windows.ps1 -Target windows-x86_64
 python3 scripts/dev.py release-assets verify --target all
-python3 scripts/dev.py release-assets stage --target macos-arm64 --tool dpdfnet --destination addon/anki_audio_quick_editor/bin
+python3 scripts/dev.py release-assets stage --target current --tool dpdfnet --destination addon/anki_audio_quick_editor/bin
 ```
 
 DPDFNet Lite artifacts are prepared through the manual GitHub Actions workflows
@@ -64,8 +65,8 @@ native host. The scripts build the vendored TFLite CLI source in
 smoke-test `enhance`, and upload platform artifacts. After downloading an
 artifact, place it under `.release-assets/bin/<target>/dpdfnet` or
 `.release-assets/bin/windows-x86_64/dpdfnet.exe`, update the lock with
-`python3 scripts/dev.py release-assets lock-checksums`, and only then add
-`dpdfnet` to that target's release/runtime matrix.
+`python3 scripts/dev.py release-assets lock-checksums`, and keep `dpdfnet`
+in that target's release/runtime matrix.
 
 On a Windows host, the equivalent local build command is:
 

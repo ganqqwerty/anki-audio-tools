@@ -37,6 +37,7 @@ def test_lock_contains_supported_target_and_tool_matrix() -> None:
         "ffprobe",
         "rnnoise-cli",
         "sherpa-spleeter",
+        "dpdfnet",
     ]
     assert release_assets.lock_tools(lock, "windows-x86_64") == [
         "deep-filter",
@@ -44,6 +45,7 @@ def test_lock_contains_supported_target_and_tool_matrix() -> None:
         "ffprobe",
         "rnnoise-cli",
         "sherpa-spleeter",
+        "dpdfnet",
     ]
     for target in release_assets.lock_targets(lock):
         sherpa_files = release_assets.tool_runtime_files(lock, target, "sherpa-spleeter")

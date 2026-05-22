@@ -14,8 +14,8 @@ TARGET_KEYS = ["macos-arm64", "macos-x86_64", "windows-x86_64"]
 BASE_TOOL_NAMES = ["deep-filter", "ffmpeg", "ffprobe", "rnnoise-cli", "sherpa-spleeter"]
 TARGET_TOOL_NAMES = {
     "macos-arm64": [*BASE_TOOL_NAMES, "dpdfnet"],
-    "macos-x86_64": BASE_TOOL_NAMES,
-    "windows-x86_64": BASE_TOOL_NAMES,
+    "macos-x86_64": [*BASE_TOOL_NAMES, "dpdfnet"],
+    "windows-x86_64": [*BASE_TOOL_NAMES, "dpdfnet"],
 }
 TOOL_NAMES = sorted({tool for tools in TARGET_TOOL_NAMES.values() for tool in tools})
 SHARED_FILE_NAMES = ["spleeter-vocals", "spleeter-accompaniment"]

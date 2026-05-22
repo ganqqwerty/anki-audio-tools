@@ -36,7 +36,7 @@ def _write_archive(path: Path, names: list[str], executable_names: set[str] | No
             if name in executable_names:
                 content = b"binary"
             elif name == "bin/THIRD_PARTY_NOTICES.md":
-                content = b"FFmpeg LAME DeepFilterNet RNNoise Sherpa Spleeter"
+                content = b"FFmpeg LAME DeepFilterNet RNNoise DPDFNet Sherpa Spleeter"
             else:
                 content = b""
             zf.writestr(info, content)
@@ -48,13 +48,6 @@ def _complete_manifest_names() -> list[str]:
 
 def _complete_executable_names() -> set[str]:
     return set(release.release_runtime_executables(release_assets.load_lock()))
-
-
-def _ffmpeg_archive_names(lock: dict) -> list[str]:
-    return [
-        f"bin/{target}/{lock['targets'][target]['tools']['ffmpeg']['executable']}"
-        for target in release_assets.lock_targets(lock)
-    ]
 
 
 def _lock_with_binary_hashes(content: bytes = b"binary") -> dict:
@@ -107,7 +100,7 @@ def test_release_validates_platform_runtime_payloads(tmp_path, capsys) -> None:
     assert "bin/windows-x86_64/ffmpeg.exe" in capsys.readouterr().out
 
 
-def test_release_archive_includes_all_locked_models_and_ffmpeg_binaries(
+def test_release_archive_includes_all_locked_runtime_assets(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -121,12 +114,18 @@ def test_release_archive_includes_all_locked_models_and_ffmpeg_binaries(
     ) -> list[Path]:
         staged: list[Path] = []
         for target in target_keys or release_assets.lock_targets(lock_arg):
-            executable = lock_arg["targets"][target]["tools"]["ffmpeg"]["executable"]
-            path = destination / target / executable
-            path.parent.mkdir(parents=True, exist_ok=True)
-            path.write_bytes(b"binary")
-            path.chmod(0o755)
-            staged.append(path)
+            for tool_name in release_assets.lock_tools(lock_arg, target):
+                executable = lock_arg["targets"][target]["tools"][tool_name]["executable"]
+                path = destination / target / executable
+                path.parent.mkdir(parents=True, exist_ok=True)
+                path.write_bytes(b"binary")
+                if target.startswith("macos-"):
+                    path.chmod(0o755)
+                staged.append(path)
+                for file_entry in release_assets.tool_runtime_files(lock_arg, target, tool_name):
+                    support_path = destination / target / file_entry["path"]
+                    support_path.write_bytes(b"")
+                    staged.append(support_path)
         for file_name in release_assets.lock_shared_files(lock_arg):
             path = destination / lock_arg["shared_files"][file_name]["path"]
             path.parent.mkdir(parents=True, exist_ok=True)
@@ -148,16 +147,18 @@ def test_release_archive_includes_all_locked_models_and_ffmpeg_binaries(
     expected = {
         "bin/runtime_manifest.json",
         *release.release_runtime_shared_files(lock),
-        *_ffmpeg_archive_names(lock),
+        *release.release_runtime_executables(lock),
+        *release.release_runtime_support_files(lock),
     }
     assert expected <= names
 
 
-def test_release_validation_requires_every_locked_model_and_ffmpeg_binary(tmp_path, capsys) -> None:
+def test_release_validation_requires_every_locked_runtime_asset(tmp_path, capsys) -> None:
     lock = _lock_with_binary_hashes()
     required_runtime_names = [
         *release.release_runtime_shared_files(lock),
-        *_ffmpeg_archive_names(lock),
+        *release.release_runtime_executables(lock),
+        *release.release_runtime_support_files(lock),
     ]
 
     for missing_name in required_runtime_names:

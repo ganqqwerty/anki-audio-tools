@@ -29,9 +29,9 @@ def test_find_dpdfnet_bundle_reports_unsupported_platform(monkeypatch) -> None:
         "anki_audio_quick_editor.audio_tools.expected_bundled_tool_path",
         lambda tool_name: None,
     )
-    monkeypatch.setattr("anki_audio_quick_editor.audio_tools.platform_description", lambda: "Windows x86_64")
+    monkeypatch.setattr("anki_audio_quick_editor.audio_tools.platform_description", lambda: "Linux x86_64")
 
-    with pytest.raises(MissingDpdfnetError, match="DPDFNet is not bundled for Windows x86_64"):
+    with pytest.raises(MissingDpdfnetError, match="DPDFNet is not bundled for Linux x86_64"):
         find_dpdfnet_bundle()
 
 
@@ -49,4 +49,3 @@ def test_find_dpdfnet_bundle_raises_when_bundle_is_incomplete(
 
     with pytest.raises(MissingDpdfnetError, match="bundled dpdfnet executable"):
         find_dpdfnet_bundle()
-
