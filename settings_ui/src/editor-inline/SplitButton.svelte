@@ -12,7 +12,6 @@
     buildSplitDefaultSaveRequest,
     formatOutputFormat,
     formatDenoiseAlgorithm,
-    formatDpdfnetAggressiveness,
     getSplitButtonState,
     promoteSplitDefaultsForField,
     setDenoiseAlgorithmForField,
@@ -94,14 +93,6 @@
       return t("editor.command.convert.title", { format: formatOutputFormat(outputFormat) });
     }
     if (!isDenoiseButton()) return button.title;
-    if (denoiseAlgorithm === "standard") return t("editor.command.standard.title");
-    if (denoiseAlgorithm === "rnnoise") return t("editor.command.rnnoise.title");
-    if (denoiseAlgorithm === "dpdfnet") {
-      return t("editor.command.dpdfnet.title", {
-        level: formatDpdfnetAggressiveness(dpdfnetAttnLimitDb),
-      });
-    }
-    if (denoiseAlgorithm === "voice_only") return t("editor.command.voice_only.title");
     return t("editor.command.denoise.title", { algorithm: formatDenoiseAlgorithm(denoiseAlgorithm) });
   }
 
