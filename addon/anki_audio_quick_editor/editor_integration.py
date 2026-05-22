@@ -116,6 +116,7 @@ _render_and_replace_async = editor_callbacks._render_and_replace_async
 _replace_current_field_after_render = editor_callbacks._replace_current_field_after_render
 _render_failed = editor_callbacks._render_failed
 _denoise_standard_async = editor_callbacks._denoise_standard_async
+_convert_async = editor_callbacks._convert_async
 _rnnoise_async = editor_callbacks._rnnoise_async
 _dpdfnet_async = editor_callbacks._dpdfnet_async
 _voice_only_async = editor_callbacks._voice_only_async
@@ -219,6 +220,7 @@ def _on_editor_will_load_note(js: str, note: Any, editor: Any) -> str:
             "pauseAggressiveness": str(config.get("pause_aggressiveness", "normal")),
             "denoiseAlgorithm": str(config.get("denoise_algorithm", "standard")),
             "pitchHumMode": str(config.get("pitch_hum_mode", "direct")),
+            "outputFormat": str(config.get("output_format", "mp3")),
             "dpdfnetAttnLimitDb": float(config.get("dpdfnet_attn_limit_db", 12.0)),
             "graphVoiceRange": str(config.get("graph_voice_range", "general")),
             "graphRecordingCondition": str(config.get("graph_recording_condition", "auto")),

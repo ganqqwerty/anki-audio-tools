@@ -14,6 +14,7 @@ from .diagnostics_runtime import (
 from .editor_actions import (
     CMD_ANALYZE_FIELD,
     CMD_COMMAND_PAYLOAD,
+    CMD_CONVERT,
     CMD_DELETE_REST,
     CMD_DELETE_SELECTION,
     CMD_DENOISE_STANDARD,
@@ -108,6 +109,9 @@ def handle_non_processing_command(editor: Any, command: str | EditorCommandPaylo
         return True
     if payload.command == "aqe:analyze":
         deps.analyze_current_async(editor, graph_settings=payload.graph_settings)
+        return True
+    if payload.command == CMD_CONVERT:
+        deps.convert_async(editor, payload)
         return True
     if payload.command == CMD_DPDFNET:
         deps.dpdfnet_async(editor, payload)

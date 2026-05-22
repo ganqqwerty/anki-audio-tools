@@ -8,6 +8,7 @@ from dataclasses import replace
 from pathlib import Path
 from typing import Any, Callable, cast
 
+from .audio_formats import DEFAULT_OUTPUT_FORMAT, format_label, is_same_visible_format
 from .audio_state import AudioEditState, AudioProcessingConfig
 from .diagnostics_runtime import capture_exception, new_operation_id, record_breadcrumb
 from .editor_actions import (
@@ -209,6 +210,60 @@ def denoise_standard_async(editor: Any, deps: Any) -> None:
     )
 
 
+def convert_async(
+    editor: Any,
+    command: EditorCommandPayload | None = None,
+    deps: Any = None,
+) -> None:
+    """Start format conversion for the current media."""
+    if deps is None:
+        deps = command
+        command = None
+    existing = deps.sessions.get(editor)
+    if existing and _has_blocking_work(existing):
+        deps.eval_status(editor, deps.still_processing_message, kind="processing")
+        return
+    config = AudioProcessingConfig.from_config(deps.config(editor))
+    target_format = (
+        command.overrides.target_format
+        if command is not None and command.overrides.target_format is not None
+        else config.output_format
+    )
+    session, current_path = deps.current_media_path(editor)
+    if is_same_visible_format(current_path.name, target_format):
+        session.processing = False
+        deps.set_busy(editor, False)
+        deps.eval_status(
+            editor,
+            t("editor.status.already_target_format", {"format": format_label(target_format)}),
+        )
+        return
+
+    def _renderer(
+        source_path: Path,
+        render_config: AudioProcessingConfig,
+        *,
+        output_path: Path,
+        on_command: Callable[[tuple[str, ...]], None] | None = None,
+    ) -> None:
+        deps.render_converted_audio(
+            source_path,
+            render_config,
+            target_format,
+            output_path=output_path,
+            on_command=on_command,
+        )
+
+    deps.run_special_audio_transform_async(
+        editor,
+        label=t("editor.status.converting", {"format": format_label(target_format)}),
+        failure_log_label="convert failed",
+        renderer=_renderer,
+        command=command,
+        output_format=target_format,
+    )
+
+
 def rnnoise_async(editor: Any, deps: Any) -> None:
     """Start RNNoise denoise for the current media."""
     deps.run_special_audio_transform_async(
@@ -292,6 +347,7 @@ def run_special_audio_transform_async(
     support_hint: str = "",
     failure_context_recorder: Callable[[Path, AudioProcessingConfig, Exception], None] | None = None,
     command: EditorCommandPayload | None = None,
+    output_format: object = DEFAULT_OUTPUT_FORMAT,
     deps: Any,
 ) -> None:
     """Run a denoise transform and replace the current audio on completion."""
@@ -322,7 +378,10 @@ def run_special_audio_transform_async(
     def _run() -> None:
         output_path: Path | None = None
         try:
-            desired_name = deps.make_output_filename(current_path.name)
+            desired_name = deps.make_output_filename(
+                current_path.name,
+                output_format=output_format,
+            )
             output_path = deps.temp_final_path(desired_name)
 
             def _show_command(process_command: tuple[str, ...]) -> None:

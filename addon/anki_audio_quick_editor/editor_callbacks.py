@@ -115,6 +115,7 @@ _replace_current_field_after_render = _with_deps(
 )
 _render_failed = _with_deps(editor_processing.render_failed, _processing_deps)
 _denoise_standard_async = _with_deps(editor_processing.denoise_standard_async, _processing_deps)
+_convert_async = _with_deps(editor_processing.convert_async, _processing_deps)
 _rnnoise_async = _with_deps(editor_processing.rnnoise_async, _processing_deps)
 _dpdfnet_async = _with_deps(editor_processing.dpdfnet_async, _processing_deps)
 _voice_only_async = _with_deps(editor_processing.voice_only_async, _processing_deps)
