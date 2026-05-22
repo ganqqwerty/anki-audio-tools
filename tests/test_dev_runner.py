@@ -1,8 +1,86 @@
 from __future__ import annotations
 
+import sys
 from pathlib import Path
 
 import scripts.dev as dev
+from scripts.dev_tasks import process, pytest_runner
+
+
+def test_split_cli_args_treats_verbose_as_global_flag() -> None:
+    command, command_args, verbose = dev._split_cli_args(["test-e2e", "e2e/test_editor.py", "--verbose"])
+
+    assert command == "test-e2e"
+    assert command_args == ["e2e/test_editor.py"]
+    assert verbose is True
+
+
+def test_split_cli_args_accepts_verbose_before_command() -> None:
+    command, command_args, verbose = dev._split_cli_args(["--verbose", "check"])
+
+    assert command == "check"
+    assert command_args == []
+    assert verbose is True
+
+
+def test_pytest_args_are_quiet_by_default() -> None:
+    process.set_verbose(False)
+
+    args = pytest_runner._pytest_args("tests/")
+
+    assert "-q" in args
+    assert "--tb=short" in args
+    assert "-vv" not in args
+    assert "-s" not in args
+    assert "--setup-show" not in args
+
+
+def test_pytest_args_keep_existing_detail_in_verbose_mode() -> None:
+    process.set_verbose(True)
+
+    try:
+        args = pytest_runner._pytest_args("tests/")
+    finally:
+        process.set_verbose(False)
+
+    assert "-vv" in args
+    assert "-s" in args
+    assert "--setup-show" in args
+
+
+def test_process_run_suppresses_subprocess_output_by_default(capsys) -> None:
+    process.set_verbose(False)
+
+    rc = process._run([sys.executable, "-c", "print('hidden subprocess output')"], label="sample command")
+
+    captured = capsys.readouterr()
+    assert rc == 0
+    assert "sample command" in captured.out
+    assert "hidden subprocess output" not in captured.out
+
+
+def test_process_run_reports_failure_as_failure(capsys) -> None:
+    process.set_verbose(False)
+
+    rc = process._run([sys.executable, "-c", "raise SystemExit(7)"], label="failing command")
+
+    captured = capsys.readouterr()
+    assert rc == 7
+    assert "FAILED with exit code 7" in captured.out
+    assert "finished with exit code 7" not in captured.out
+
+
+def test_process_run_streams_subprocess_output_in_verbose_mode(capsys) -> None:
+    process.set_verbose(True)
+
+    try:
+        rc = process._run([sys.executable, "-c", "print('visible subprocess output')"], label="sample command")
+    finally:
+        process.set_verbose(False)
+
+    captured = capsys.readouterr()
+    assert rc == 0
+    assert "visible subprocess output" in captured.out
 
 
 def test_build_ui_generates_contracts_before_frontend_build(monkeypatch, tmp_path: Path) -> None:
@@ -235,6 +313,7 @@ def test_check_includes_python_coverage_gate(monkeypatch) -> None:
         "cmd_config_schema": 0,
         "cmd_contracts_generate": 0,
         "cmd_contracts_check": 0,
+        "cmd_build_ui": 0,
         "cmd_architecture_report": 0,
         "cmd_lint": 0,
         "cmd_file_lines": 0,

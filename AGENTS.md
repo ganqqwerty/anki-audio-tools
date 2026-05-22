@@ -62,6 +62,8 @@ When using any Anki API, read [`ANKI_API.md`](ANKI_API.md) first. Do not rely on
 ## Running Tests And Linter
 
 Use `python3 scripts/dev.py check` for the reusable QC gate. A feature is not complete until `python3 scripts/dev.py test-e2e` passes.
+`scripts/dev.py` output is concise by default. Add `--verbose` when you need live subprocess output or detailed
+failure diagnostics, for example `python3 scripts/dev.py check --verbose`.
 
 | Task | Command |
 |------|---------|
