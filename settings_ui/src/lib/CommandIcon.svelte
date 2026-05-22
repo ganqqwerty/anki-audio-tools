@@ -4,6 +4,7 @@
   import ChevronDown from "@lucide/svelte/icons/chevron-down";
   import CircleHelp from "@lucide/svelte/icons/circle-help";
   import FastForward from "@lucide/svelte/icons/fast-forward";
+  import FileAudio from "@lucide/svelte/icons/file-audio";
   import FolderOpen from "@lucide/svelte/icons/folder-open";
   import Mic from "@lucide/svelte/icons/mic";
   import Pause from "@lucide/svelte/icons/pause";
@@ -50,6 +51,8 @@
     <CircleHelp {size} {strokeWidth} />
   {:else if icon === "fast-forward"}
     <FastForward {size} {strokeWidth} />
+  {:else if icon === "file-audio"}
+    <FileAudio {size} {strokeWidth} />
   {:else if icon === "folder-open"}
     <FolderOpen {size} {strokeWidth} />
   {:else if icon === "mic"}

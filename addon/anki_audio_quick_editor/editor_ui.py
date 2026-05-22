@@ -35,6 +35,7 @@ def injection_script(
             "speedStep": 0.05,
             "repeatPauseSeconds": 0.0,
             "pauseAggressiveness": "normal",
+            "outputFormat": "mp3",
             "denoiseAlgorithm": "standard",
             "pitchHumMode": "direct",
             "dpdfnetAttnLimitDb": 12.0,

@@ -35,7 +35,7 @@ export function send(
   }
   if (PROCESSING_COMMANDS.has(command)) {
     stopAllEditorPlayback();
-    setControlsBusy(ord, true, processingMessage(command));
+    setControlsBusy(ord, true, processingMessage(command, payload));
   }
   const effectivePayload = payload ?? (command === "aqe:pitch-hum" ? buildSplitCommandPayload(command, ord) : undefined);
   if (effectivePayload) {

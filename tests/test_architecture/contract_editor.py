@@ -37,6 +37,18 @@ EDITOR_CONTRACTS: dict[str, ModuleContract] = {
         allowed_addon_deps=("diagnostics_runtime", "editor_actions", "errors", "frontend_logs", "i18n"),
         allowed_side_effects=(SideEffect.WEB_EVAL,),
     ),
+    "editor_conversion": contract(
+        "editor_conversion",
+        layer=Layer.UI_ADAPTER,
+        allowed_addon_deps=(
+            "audio_formats",
+            "audio_state",
+            "editor_actions",
+            "editor_session",
+            "i18n",
+        ),
+        allowed_side_effects=(SideEffect.WEB_EVAL,),
+    ),
     "editor_callbacks": contract(
         "editor_callbacks",
         layer=Layer.UI_ADAPTER,
@@ -132,6 +144,7 @@ EDITOR_CONTRACTS: dict[str, ModuleContract] = {
             "audio_state",
             "diagnostics_runtime",
             "editor_actions",
+            "editor_conversion",
             "editor_session",
             "errors",
             "i18n",

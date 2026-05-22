@@ -17,7 +17,7 @@ def normalize_output_format(value: object, default: OutputFormat = DEFAULT_OUTPU
     """Return a supported output format for permissive settings loading."""
     candidate = str(value).strip().lower() if isinstance(value, str) else ""
     if candidate in _SUPPORTED_FORMAT_SET:
-        return candidate  # type: ignore[return-value]
+        return candidate
     return default
 
 
@@ -25,7 +25,7 @@ def validate_target_format(value: object) -> OutputFormat:
     """Return a supported target format or raise for explicit operation requests."""
     candidate = str(value).strip().lower() if isinstance(value, str) else ""
     if candidate in _SUPPORTED_FORMAT_SET:
-        return candidate  # type: ignore[return-value]
+        return candidate
     raise ValueError(f"Unsupported audio output format: {value!r}")
 
 

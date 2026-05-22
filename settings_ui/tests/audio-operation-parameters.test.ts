@@ -5,9 +5,11 @@ import {
   clampTrimStepMs,
   clampVolumeStepDb,
   formatPauseAggressiveness,
+  formatOutputFormat,
   formatSpeedStep,
   formatTrimMs,
   formatVolumeDb,
+  outputFormatOrDefault,
 } from "../src/lib/audio-operation-parameters.js";
 import { configureI18n } from "../src/lib/i18n.js";
 
@@ -30,5 +32,7 @@ describe("audio-operation-parameters", () => {
     expect(formatSpeedStep(0.1, "faster")).toBe("x1.10");
     expect(formatSpeedStep(0.1, "slower")).toBe("x0.90");
     expect(formatPauseAggressiveness("aggressive")).toBe("Aggressive");
+    expect(formatOutputFormat("flac")).toBe("FLAC");
+    expect(outputFormatOrDefault("aac")).toBe("mp3");
   });
 });

@@ -93,12 +93,20 @@ describe("editor inline action workflows", () => {
     expect(commandSlugsForTest()["aqe:rnnoise"]).toBe("rnnoise");
     expect(commandSlugsForTest()["aqe:dpdfnet"]).toBe("dpdfnet");
     expect(commandSlugsForTest()["aqe:voice-only"]).toBe("voice-only");
+    expect(commandSlugsForTest()["aqe:convert"]).toBe("convert");
     expect(commandSlugsForTest()["aqe:redo"]).toBe("redo");
     expect(commandSlugsForTest()["aqe:settings"]).toBe("settings");
     expect(processingMessage("aqe:denoise-standard")).toBe("Denoising with Standard...");
     expect(processingMessage("aqe:rnnoise")).toBe("Denoising with RNNoise...");
     expect(processingMessage("aqe:dpdfnet")).toBe("Denoising with DPDFNet...");
     expect(processingMessage("aqe:voice-only")).toBe("Extracting voice...");
+    expect(
+      processingMessage("aqe:convert", {
+        command: "aqe:convert",
+        fieldOrd: 0,
+        overrides: { targetFormat: "flac" },
+      }),
+    ).toBe("Converting to FLAC...");
     expect(processingMessage("aqe:faster")).toBe("Processing...");
   });
 

@@ -1,5 +1,4 @@
 """Audio processing and denoise behavior for the editor bridge."""
-
 from __future__ import annotations
 
 import logging
@@ -8,7 +7,7 @@ from dataclasses import replace
 from pathlib import Path
 from typing import Any, Callable, cast
 
-from .audio_formats import DEFAULT_OUTPUT_FORMAT, format_label, is_same_visible_format
+from .audio_formats import DEFAULT_OUTPUT_FORMAT
 from .audio_state import AudioEditState, AudioProcessingConfig
 from .diagnostics_runtime import capture_exception, new_operation_id, record_breadcrumb
 from .editor_actions import (
@@ -16,6 +15,8 @@ from .editor_actions import (
     apply_processing_command,
     processing_config_for_command,
 )
+from .editor_conversion import _has_blocking_work
+from .editor_conversion import convert_async as _convert_async
 from .editor_session import EditorSession
 from .errors import AudioProcessingError
 from .i18n import t
@@ -35,6 +36,7 @@ from .support import (
 )
 
 logger = logging.getLogger(__name__)
+convert_async = _convert_async
 
 
 def update_state_and_render(editor: Any, command: str | EditorCommandPayload, deps: Any) -> None:
@@ -58,10 +60,6 @@ def update_state_and_render(editor: Any, command: str | EditorCommandPayload, de
         updated_state,
         processing_config_for_command(command, config),
     )
-
-
-def _has_blocking_work(session: EditorSession) -> bool:
-    return session.processing or session.playback_preparing
 
 
 def _cancel_graph_analysis_for_processing(editor: Any, session: EditorSession, deps: Any) -> None:
@@ -207,60 +205,6 @@ def denoise_standard_async(editor: Any, deps: Any) -> None:
         label=t("editor.status.denoising_standard"),
         failure_log_label="standard denoise failed",
         renderer=deps.render_noise_reduced_audio,
-    )
-
-
-def convert_async(
-    editor: Any,
-    command: EditorCommandPayload | None = None,
-    deps: Any = None,
-) -> None:
-    """Start format conversion for the current media."""
-    if deps is None:
-        deps = command
-        command = None
-    existing = deps.sessions.get(editor)
-    if existing and _has_blocking_work(existing):
-        deps.eval_status(editor, deps.still_processing_message, kind="processing")
-        return
-    config = AudioProcessingConfig.from_config(deps.config(editor))
-    target_format = (
-        command.overrides.target_format
-        if command is not None and command.overrides.target_format is not None
-        else config.output_format
-    )
-    session, current_path = deps.current_media_path(editor)
-    if is_same_visible_format(current_path.name, target_format):
-        session.processing = False
-        deps.set_busy(editor, False)
-        deps.eval_status(
-            editor,
-            t("editor.status.already_target_format", {"format": format_label(target_format)}),
-        )
-        return
-
-    def _renderer(
-        source_path: Path,
-        render_config: AudioProcessingConfig,
-        *,
-        output_path: Path,
-        on_command: Callable[[tuple[str, ...]], None] | None = None,
-    ) -> None:
-        deps.render_converted_audio(
-            source_path,
-            render_config,
-            target_format,
-            output_path=output_path,
-            on_command=on_command,
-        )
-
-    deps.run_special_audio_transform_async(
-        editor,
-        label=t("editor.status.converting", {"format": format_label(target_format)}),
-        failure_log_label="convert failed",
-        renderer=_renderer,
-        command=command,
-        output_format=target_format,
     )
 
 

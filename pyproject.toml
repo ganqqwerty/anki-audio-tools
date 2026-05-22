@@ -249,6 +249,7 @@ name = "import-safe-no-upper-layers"
 type = "forbidden"
 source_modules = [
     "anki_audio_quick_editor._version",
+    "anki_audio_quick_editor.audio_formats",
     "anki_audio_quick_editor.audio_operation_params",
     "anki_audio_quick_editor.audio_operations",
     "anki_audio_quick_editor.audio_pipeline",
@@ -302,6 +303,7 @@ forbidden_modules = [
     "anki_audio_quick_editor.editor_analysis",
     "anki_audio_quick_editor.editor_bridge",
     "anki_audio_quick_editor.editor_callbacks",
+    "anki_audio_quick_editor.editor_conversion",
     "anki_audio_quick_editor.editor_dependencies",
     "anki_audio_quick_editor.editor_frontend",
     "anki_audio_quick_editor.editor_frontend_callbacks",

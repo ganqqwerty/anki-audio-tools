@@ -1,4 +1,5 @@
 import type { FrontendLogPayload, ProsodyPayload } from "../lib/generated/contracts.js";
+import type { OutputFormatValue } from "../lib/audio-operation-parameters.js";
 import type { CommandIconName } from "../lib/icon-types.js";
 import type {
   GraphRecordingCondition,
@@ -12,6 +13,7 @@ export type EditorCommand =
   | "aqe:play"
   | "aqe:analyze"
   | "aqe:show-file"
+  | "aqe:convert"
   | "aqe:delete-selection"
   | "aqe:delete-rest"
   | "aqe:trim-left"
@@ -60,6 +62,7 @@ export interface SplitButtonDefaults {
   graphSmoothness?: GraphSmoothness;
   graphVoiceLock?: GraphVoiceLock;
   graphVoiceRange?: GraphVoiceRange;
+  outputFormat?: OutputFormatValue;
   pauseAggressiveness: "gentle" | "normal" | "aggressive";
   pitchHumMode?: PitchHumMode;
   repeatPauseSeconds: number;
@@ -77,6 +80,7 @@ export interface EditorCommandPayload {
     pauseAggressiveness?: "gentle" | "normal" | "aggressive";
     pitchHumMode?: PitchHumMode;
     speedStep?: number;
+    targetFormat?: OutputFormatValue;
     trimStepMs?: number;
     volumeStepDb?: number;
   };
@@ -90,6 +94,7 @@ export interface FieldSplitButtonState {
   defaultGraphSmoothness: GraphSmoothness;
   defaultGraphVoiceLock: GraphVoiceLock;
   defaultGraphVoiceRange: GraphVoiceRange;
+  defaultOutputFormat: OutputFormatValue;
   defaultPauseAggressiveness: "gentle" | "normal" | "aggressive";
   defaultDpdfnetAttnLimitDb: number;
   defaultPitchHumMode: PitchHumMode;
@@ -107,6 +112,8 @@ export interface FieldSplitButtonState {
   graphSmoothness: GraphSmoothness;
   graphVoiceLock: GraphVoiceLock;
   graphVoiceRange: GraphVoiceRange;
+  outputFormat: OutputFormatValue;
+  outputFormatEdited: boolean;
   pauseAggressiveness: "gentle" | "normal" | "aggressive";
   pauseEdited: boolean;
   pitchHumEdited: boolean;

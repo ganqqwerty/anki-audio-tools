@@ -46,7 +46,7 @@ def test_validate_target_format_accepts_supported_values(target: str) -> None:
 
 @pytest.mark.parametrize("target", ["aac", "mp4", "", None])
 def test_validate_target_format_rejects_unknown_values(target: object) -> None:
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError, match="Unsupported audio output format"):
         validate_target_format(target)
 
 

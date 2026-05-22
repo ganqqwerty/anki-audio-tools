@@ -3,6 +3,7 @@
   import {
     formatDenoiseAlgorithm,
     formatDpdfnetAggressiveness,
+    formatOutputFormat,
     formatPauseAggressiveness,
     formatPitchHumMode,
     formatSpeedStep,
@@ -10,10 +11,15 @@
     formatVolumeDb,
   } from "./split-button-state.js";
   import { COMMAND_SLUGS } from "./commands.js";
-  import { DPDFNET_ATTENUATION_LIMIT_DB_VALUES } from "../lib/audio-operation-parameters.js";
+  import {
+    DPDFNET_ATTENUATION_LIMIT_DB_VALUES,
+    isOutputFormatValue,
+    OUTPUT_FORMAT_VALUES,
+  } from "../lib/audio-operation-parameters.js";
   import type { ButtonSpec, FieldSplitButtonState } from "./types.js";
 
   type DenoiseAlgorithm = FieldSplitButtonState["denoiseAlgorithm"];
+  type OutputFormatValue = FieldSplitButtonState["outputFormat"];
   type PitchHumMode = FieldSplitButtonState["pitchHumMode"];
 
   const {
@@ -23,12 +29,14 @@
     onChange,
     onDenoiseAlgorithm,
     onDpdfnetAttnLimitDb,
+    onOutputFormat,
     onPauseAggressiveness,
     onPitchHumMode,
     onSpeedStep,
     onTrimStep,
     onVolumeStep,
     pauseAggressiveness,
+    outputFormat,
     pitchHumMode,
     speedStep,
     targetOrd,
@@ -41,12 +49,14 @@
     onChange: () => void;
     onDenoiseAlgorithm: (value: DenoiseAlgorithm) => void;
     onDpdfnetAttnLimitDb: (value: number) => void;
+    onOutputFormat: (value: OutputFormatValue) => void;
     onPauseAggressiveness: (value: "gentle" | "normal" | "aggressive") => void;
     onPitchHumMode: (value: PitchHumMode) => void;
     onSpeedStep: (value: number) => void;
     onTrimStep: (value: number) => void;
     onVolumeStep: (value: number) => void;
     pauseAggressiveness: "gentle" | "normal" | "aggressive";
+    outputFormat: OutputFormatValue;
     pitchHumMode: PitchHumMode;
     speedStep: number;
     targetOrd: number;
@@ -61,6 +71,7 @@
     if (button.command === "aqe:volume-up" || button.command === "aqe:volume-down") return formatVolumeDb(volumeStepDb);
     if (button.command === "aqe:faster" || button.command === "aqe:slower") return formatSpeedStep(speedStep, button.command);
     if (button.command === "aqe:remove-pauses") return formatPauseAggressiveness(pauseAggressiveness);
+    if (button.command === "aqe:convert") return formatOutputFormat(outputFormat);
     if (
       button.command === "aqe:denoise-standard" ||
       button.command === "aqe:rnnoise" ||
@@ -128,11 +139,13 @@
     ) {
       return ["standard", "rnnoise", "dpdfnet", "voice_only"];
     }
+    if (button.command === "aqe:convert") return [...OUTPUT_FORMAT_VALUES];
     if (button.command === "aqe:pitch-hum") return ["direct", "pitch_tier"];
     return [];
   }
 
   function optionLabel(value: string): string {
+    if (isOutputFormatValue(value)) return formatOutputFormat(value);
     if (value === "direct" || value === "pitch_tier") return formatPitchHumMode(value);
     if (value === "rnnoise") return "RNNoise";
     if (value === "dpdfnet") return "DPDFNet";
@@ -156,6 +169,7 @@
   function applyOption(value: string): void {
     if (value === "gentle" || value === "normal" || value === "aggressive") onPauseAggressiveness(value);
     if (value === "standard" || value === "rnnoise" || value === "dpdfnet" || value === "voice_only") onDenoiseAlgorithm(value);
+    if (isOutputFormatValue(value)) onOutputFormat(value);
     if (value === "direct" || value === "pitch_tier") onPitchHumMode(value);
     onChange();
   }

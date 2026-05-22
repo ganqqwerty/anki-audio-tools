@@ -40,6 +40,7 @@
       "aqe:analyze",
       "aqe:trim-left",
       "aqe:trim-right",
+      "aqe:convert",
       "aqe:slower",
       "aqe:faster",
       "aqe:volume-down",

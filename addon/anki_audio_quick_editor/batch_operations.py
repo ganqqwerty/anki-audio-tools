@@ -10,11 +10,11 @@ from dataclasses import dataclass, field
 from datetime import datetime
 from pathlib import Path
 
+from .audio_formats import format_label, is_same_visible_format
 from .audio_operation_params import (
     AudioOperationParameters,
     effective_config_for_operation,
 )
-from .audio_formats import format_label, is_same_visible_format
 from .audio_operations import (
     OP_CONVERT,
     OP_DENOISE,

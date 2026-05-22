@@ -4,6 +4,7 @@ export type CommandIconName =
   | "chevron-down"
   | "circle-help"
   | "fast-forward"
+  | "file-audio"
   | "folder-open"
   | "mic"
   | "pause"

@@ -41,13 +41,14 @@ describe("editor inline denoise integration", () => {
 
     const help = document.querySelector<HTMLDetailsElement>('[data-testid="aqe-help-0"]')!;
     expect(help.open).toBe(false);
-    expect(help.querySelectorAll(".aqe-help-command")).toHaveLength(15);
+    expect(help.querySelectorAll(".aqe-help-command")).toHaveLength(16);
     expect(help.querySelector(".aqe-help-triangle")).not.toBeNull();
     expect(help).toHaveTextContent("Shift-drag on the graph to select a region.");
     expect(help).toHaveTextContent("Delete Region removes the selected region; Delete the rest keeps only the selected region.");
     expect(help).toHaveTextContent("Delete Region / Delete the rest");
     expect(help).toHaveTextContent("Creates a new file that removes the selected region or keeps only that region.");
     expect(help).toHaveTextContent("Creates a new file with louder audio.");
+    expect(help).toHaveTextContent("Creates a new file in the selected format.");
     expect(help).toHaveTextContent("Creates a new file with voiced pitch resynthesized as a neutral hum.");
     expect(help).toHaveTextContent("Every edit creates a new media file and updates the field to point at it.");
     expect(help).toHaveTextContent("grey is loudness and lines are pitch of the voice.");

@@ -10,6 +10,7 @@ import {
   clampVolumeStepDb,
   formatDenoiseAlgorithm,
   formatDpdfnetAggressiveness,
+  formatOutputFormat,
   formatPauseAggressiveness,
   formatPitchHumMode,
   formatRepeatPauseSeconds,
@@ -19,6 +20,7 @@ import {
   getSplitButtonState,
   setDenoiseAlgorithmForField,
   setDpdfnetAttnLimitDbForField,
+  setOutputFormatForField,
   setPauseAggressivenessForField,
   setPitchHumModeForField,
   setRepeatPauseSecondsForField,
@@ -93,6 +95,7 @@ describe("split button state", () => {
     expect(formatDenoiseAlgorithm("voice_only")).toBe("Voice Only");
     expect(formatPitchHumMode("direct")).toBe("Pitch-to-hum");
     expect(formatPitchHumMode("pitch_tier")).toBe("PitchTier");
+    expect(formatOutputFormat("ogg")).toBe("Ogg Vorbis");
     expect(formatDpdfnetAggressiveness(6)).toBe("Gentle");
     expect(formatDpdfnetAggressiveness(12)).toBe("Normal");
     expect(formatDpdfnetAggressiveness(18)).toBe("Aggressive");
@@ -120,6 +123,7 @@ describe("split button state", () => {
         graphSmoothness: "smooth",
         graphVoiceLock: "stable",
         graphVoiceRange: "bass",
+        outputFormat: "flac",
         pauseAggressiveness: "normal",
         pitchHumMode: "pitch_tier",
         repeatPauseSeconds: 1.5,
@@ -141,6 +145,7 @@ describe("split button state", () => {
     expect(getSplitButtonState(0).graphSmoothness).toBe("smooth");
     expect(getSplitButtonState(0).graphConnectShortDropoutsMs).toBe(60);
     expect(getSplitButtonState(0).graphVoiceLock).toBe("stable");
+    expect(getSplitButtonState(0).outputFormat).toBe("flac");
     expect(getSplitButtonState(0).pitchHumMode).toBe("pitch_tier");
   });
 
@@ -219,6 +224,18 @@ describe("split button state", () => {
       overrides: {
         denoiseAlgorithm: "dpdfnet",
         dpdfnetAttnLimitDb: 18,
+      },
+    });
+  });
+
+  it("builds convert payloads from local field state", () => {
+    setOutputFormatForField(0, "wav");
+
+    expect(buildSplitCommandPayload("aqe:convert", 0)).toEqual({
+      command: "aqe:convert",
+      fieldOrd: 0,
+      overrides: {
+        targetFormat: "wav",
       },
     });
   });

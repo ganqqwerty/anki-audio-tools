@@ -12,6 +12,9 @@ const MAX_SPEED_STEP = 0.25;
 const MIN_REPEAT_PAUSE_SECONDS = 0;
 const MAX_REPEAT_PAUSE_SECONDS = 10;
 export const DPDFNET_ATTENUATION_LIMIT_DB_VALUES = [6, 12, 18] as const;
+export const DEFAULT_OUTPUT_FORMAT = "mp3";
+export const OUTPUT_FORMAT_VALUES = ["mp3", "m4a", "ogg", "wav", "flac"] as const;
+export type OutputFormatValue = (typeof OUTPUT_FORMAT_VALUES)[number];
 
 export function clampTrimStepMs(value: number): number {
   if (!Number.isFinite(value)) return 100;
@@ -85,4 +88,17 @@ export function dpdfnetAggressiveness(value: number): DpdfnetAggressiveness {
 
 export function formatDpdfnetAggressiveness(value: number): string {
   return formatPauseAggressiveness(dpdfnetAggressiveness(value));
+}
+
+export function isOutputFormatValue(value: unknown): value is OutputFormatValue {
+  return typeof value === "string" && (OUTPUT_FORMAT_VALUES as readonly string[]).includes(value);
+}
+
+export function outputFormatOrDefault(value: unknown): OutputFormatValue {
+  return isOutputFormatValue(value) ? value : DEFAULT_OUTPUT_FORMAT;
+}
+
+export function formatOutputFormat(value: unknown): string {
+  const outputFormat = outputFormatOrDefault(value);
+  return t(`settings.output_format.${outputFormat}`);
 }

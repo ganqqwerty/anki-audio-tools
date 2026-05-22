@@ -8,9 +8,11 @@ import { t } from "../lib/i18n.js";
 import {
   clampRepeatPauseSeconds,
   clampDpdfnetAttnLimitDb,
+  DEFAULT_OUTPUT_FORMAT,
   clampSpeedStep,
   clampTrimStepMs,
   clampVolumeStepDb,
+  outputFormatOrDefault,
 } from "../lib/audio-operation-parameters.js";
 import {
   clampGraphConnectShortDropoutsMs,
@@ -26,6 +28,7 @@ export {
   clampSpeedStep,
   clampTrimStepMs,
   clampVolumeStepDb,
+  formatOutputFormat,
   formatPauseAggressiveness,
   formatDpdfnetAggressiveness,
   formatRepeatPauseSeconds,
@@ -40,6 +43,7 @@ const DEFAULTS: CompleteSplitButtonDefaults = {
   denoiseAlgorithm: "standard",
   dpdfnetAttnLimitDb: 12,
   ...defaultGraphSplitValues(),
+  outputFormat: DEFAULT_OUTPUT_FORMAT,
   pauseAggressiveness: "normal",
   pitchHumMode: "direct",
   repeatPauseSeconds: 0,
@@ -83,6 +87,7 @@ export function getSplitButtonState(ord: number): FieldSplitButtonState {
   const defaultGraphSmoothness = graphSmoothnessOrDefault(defaults.graphSmoothness);
   const defaultGraphVoiceLock = graphVoiceLockOrDefault(defaults.graphVoiceLock);
   const defaultGraphVoiceRange = graphVoiceRangeOrDefault(defaults.graphVoiceRange);
+  const defaultOutputFormat = outputFormatOrDefault(defaults.outputFormat);
   const defaultTrimStepMs = clampTrimStepMs(defaults.trimStepMs);
   const defaultVolumeStepDb = clampVolumeStepDb(defaults.volumeStepDb);
   const defaultSpeedStep = clampSpeedStep(defaults.speedStep);
@@ -118,6 +123,10 @@ export function getSplitButtonState(ord: number): FieldSplitButtonState {
     if (!existing.pauseEdited && existing.defaultPauseAggressiveness !== defaultPauseAggressiveness) {
       existing.defaultPauseAggressiveness = defaultPauseAggressiveness;
       existing.pauseAggressiveness = defaultPauseAggressiveness;
+    }
+    if (!existing.outputFormatEdited && existing.defaultOutputFormat !== defaultOutputFormat) {
+      existing.defaultOutputFormat = defaultOutputFormat;
+      existing.outputFormat = defaultOutputFormat;
     }
     if (!existing.pitchHumEdited && existing.defaultPitchHumMode !== defaultPitchHumMode) {
       existing.defaultPitchHumMode = defaultPitchHumMode;
@@ -163,6 +172,7 @@ export function getSplitButtonState(ord: number): FieldSplitButtonState {
     defaultGraphSmoothness,
     defaultGraphVoiceLock,
     defaultGraphVoiceRange,
+    defaultOutputFormat,
     defaultPauseAggressiveness,
     defaultPitchHumMode,
     defaultRepeatPauseSeconds,
@@ -179,6 +189,8 @@ export function getSplitButtonState(ord: number): FieldSplitButtonState {
     graphSmoothness: defaultGraphSmoothness,
     graphVoiceLock: defaultGraphVoiceLock,
     graphVoiceRange: defaultGraphVoiceRange,
+    outputFormat: defaultOutputFormat,
+    outputFormatEdited: false,
     pauseAggressiveness: defaultPauseAggressiveness,
     pauseEdited: false,
     pitchHumEdited: false,
@@ -258,6 +270,13 @@ export function setPitchHumModeForField(ord: number, value: PitchHumMode): Field
   return state;
 }
 
+export function setOutputFormatForField(ord: number, value: unknown): FieldSplitButtonState {
+  const state = getSplitButtonState(ord);
+  state.outputFormatEdited = true;
+  state.outputFormat = outputFormatOrDefault(value);
+  return state;
+}
+
 export function buildTrimCommandPayload(command: EditorCommand, ord: number): EditorCommandPayload {
   return {
     command,
@@ -288,6 +307,9 @@ export function buildSplitCommandPayload(command: EditorCommand, ord: number): E
   }
   if (command === "aqe:remove-pauses") {
     return { command, fieldOrd: ord, overrides: { pauseAggressiveness: state.pauseAggressiveness } };
+  }
+  if (command === "aqe:convert") {
+    return { command, fieldOrd: ord, overrides: { targetFormat: state.outputFormat } };
   }
   if (
     command === "aqe:denoise-standard" ||

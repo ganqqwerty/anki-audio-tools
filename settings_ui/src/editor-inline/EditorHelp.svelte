@@ -38,6 +38,10 @@
           <span class="aqe-help-description">{t("editor.help.folder_desc")}</span>
         </span>
         <span class="aqe-help-item">
+          <span class="aqe-help-command"><EditorCommandIcon icon="file-audio" /><span>{t("editor.command.convert.label")}</span></span>
+          <span class="aqe-help-description">{t("editor.help.convert_desc")}</span>
+        </span>
+        <span class="aqe-help-item">
           <span class="aqe-help-command"><EditorCommandIcon icon="scissors" /><span>-L</span></span>
           <span class="aqe-help-description">{t("editor.help.trim_left_desc", { ms: trimStepMs })}</span>
         </span>

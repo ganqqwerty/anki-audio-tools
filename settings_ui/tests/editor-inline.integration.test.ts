@@ -170,6 +170,41 @@ afterEach(() => {
     });
   });
 
+  it("dispatches convert commands with the selected output format", async () => {
+    window.__AQE_EDITOR_CONFIG__ = {
+      audioFieldIndices: [0],
+      splitButtonDefaults: {
+        denoiseAlgorithm: "standard",
+        outputFormat: "m4a",
+        pauseAggressiveness: "normal",
+        repeatPauseSeconds: 0,
+        speedStep: 0.05,
+        trimStepMs: 100,
+        volumeStepDb: 3,
+      },
+    };
+    initializeEditorRuntime(window.__AQE_EDITOR_CONFIG__);
+    scan(window.__AQE_EDITOR_CONFIG__);
+
+    document.querySelector<HTMLButtonElement>('[data-testid="aqe-button-0-convert"]')!.click();
+    const defaultPayload = window.__aqePendingCommandPayload as EditorCommandPayload | null | undefined;
+    window.__aqePendingCommandPayload = null;
+    window.__aqeSetBusy?.(0, false);
+    document.querySelector<HTMLButtonElement>('[data-testid="aqe-split-0-convert-menu"]')!.click();
+    await Promise.resolve();
+    document.querySelector<HTMLButtonElement>('[data-testid="aqe-split-0-convert-preset-flac"]')!.click();
+    document.querySelector<HTMLButtonElement>('[data-testid="aqe-button-0-convert"]')!.click();
+
+    expect(defaultPayload?.overrides?.targetFormat).toBe("m4a");
+    expect(window.__aqePendingCommandPayload).toMatchObject({
+      command: "aqe:convert",
+      fieldOrd: 0,
+      overrides: {
+        targetFormat: "flac",
+      },
+    });
+  });
+
   it("keeps trim split values isolated across audio fields", async () => {
     renderTwoAudioFields();
     window.__AQE_EDITOR_CONFIG__ = {

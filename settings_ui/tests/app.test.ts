@@ -15,7 +15,7 @@ import {
 } from "../src/lib/types.js";
 
 const defaultConfig = {
-  _config_version: 15,
+  _config_version: 16,
   enabled: true,
   debug_logging: false,
   show_ffmpeg_commands: false,
@@ -108,6 +108,7 @@ describe("App", () => {
     expect(screen.getByText("Use DeepFilterNet post-filter")).toBeInTheDocument();
     expect(screen.getByText("DPDFNet Aggressiveness")).toBeInTheDocument();
     expect(screen.getByText("Shorten pauses level")).toBeInTheDocument();
+    expect(screen.getByText("Default convert format")).toBeInTheDocument();
     expect(screen.getByText("Default cleanup action")).toBeInTheDocument();
     expect(screen.getByText("Default pitch hum mode")).toBeInTheDocument();
     expect(screen.getByText("Volume step (dB)")).toBeInTheDocument();
@@ -162,6 +163,9 @@ describe("App", () => {
     await fireEvent.change(screen.getByLabelText("Default cleanup action"), {
       target: { value: DenoiseAlgorithm.Dpdfnet },
     });
+    await fireEvent.change(screen.getByTestId("output-format"), {
+      target: { value: OutputFormat.FLAC },
+    });
     await fireEvent.change(screen.getByLabelText("Default pitch hum mode"), {
       target: { value: PitchHumMode.PitchTier },
     });
@@ -176,11 +180,13 @@ describe("App", () => {
     const config = bridgePayload<{
       denoise_algorithm: string;
       dpdfnet_attn_limit_db: number;
+      output_format: string;
       pause_aggressiveness: string;
       pitch_hum_mode: string;
       repeat_pause_seconds: number;
     }>("settings.save");
     expect(config.pause_aggressiveness).toBe("aggressive");
+    expect(config.output_format).toBe("flac");
     expect(config.denoise_algorithm).toBe("dpdfnet");
     expect(config.pitch_hum_mode).toBe("pitch_tier");
     expect(config.dpdfnet_attn_limit_db).toBe(18);

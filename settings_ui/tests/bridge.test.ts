@@ -24,7 +24,7 @@ import {
 
 const pycmd = (globalThis as unknown as Record<string, ReturnType<typeof vi.fn>>)["pycmd"]!;
 const config: Config = {
-  _config_version: 15,
+  _config_version: 16,
   enabled: true,
   debug_logging: false,
   show_ffmpeg_commands: false,

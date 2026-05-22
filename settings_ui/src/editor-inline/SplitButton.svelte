@@ -7,10 +7,12 @@
   import { send } from "./actions.js";
   import {
     buildSplitCommandPayload,
+    formatOutputFormat,
     formatDpdfnetAggressiveness,
     getSplitButtonState,
     setDenoiseAlgorithmForField,
     setDpdfnetAttnLimitDbForField,
+    setOutputFormatForField,
     setPauseAggressivenessForField,
     setPitchHumModeForField,
     setSpeedStepForField,
@@ -40,6 +42,7 @@
   } from "./types.js";
 
   type DenoiseAlgorithm = FieldSplitButtonState["denoiseAlgorithm"];
+  type OutputFormatValue = FieldSplitButtonState["outputFormat"];
   type PitchHumMode = FieldSplitButtonState["pitchHumMode"];
 
   const POPOVER_GAP_PX = 4;
@@ -57,6 +60,7 @@
   let pauseAggressiveness = $state<"gentle" | "normal" | "aggressive">("normal");
   let denoiseAlgorithm = $state<DenoiseAlgorithm>("standard");
   let dpdfnetAttnLimitDb = $state(12);
+  let outputFormat = $state<OutputFormatValue>("mp3");
   let pitchHumMode = $state<PitchHumMode>("direct");
   let graphVoiceRange = $state<GraphVoiceRange>("general");
   let graphRecordingCondition = $state<GraphRecordingCondition>("auto");
@@ -84,6 +88,9 @@
   }
 
   function primaryTitle(): string {
+    if (button.command === "aqe:convert") {
+      return t("editor.command.convert.title", { format: formatOutputFormat(outputFormat) });
+    }
     if (button.command === "aqe:pitch-hum") {
       return pitchHumMode === "pitch_tier" ? t("editor.pitch_hum.mode.pitch_tier.title") : button.title;
     }
@@ -129,6 +136,10 @@
 
   function applyDpdfnetAttnLimitDb(value: number): void {
     dpdfnetAttnLimitDb = setDpdfnetAttnLimitDbForField(target.ord, value).dpdfnetAttnLimitDb;
+  }
+
+  function applyOutputFormat(value: OutputFormatValue): void {
+    outputFormat = setOutputFormatForField(target.ord, value).outputFormat;
   }
 
   function applyPitchHumMode(value: PitchHumMode): void {
@@ -230,6 +241,7 @@
     pauseAggressiveness = state.pauseAggressiveness;
     denoiseAlgorithm = state.denoiseAlgorithm;
     dpdfnetAttnLimitDb = state.dpdfnetAttnLimitDb;
+    outputFormat = state.outputFormat;
     pitchHumMode = state.pitchHumMode;
     graphVoiceRange = state.graphVoiceRange;
     graphRecordingCondition = state.graphRecordingCondition;
@@ -312,6 +324,7 @@
           onChange={() => void updatePopoverPlacement()}
           onDenoiseAlgorithm={applyDenoiseAlgorithm}
           onDpdfnetAttnLimitDb={applyDpdfnetAttnLimitDb}
+          onOutputFormat={applyOutputFormat}
           onPauseAggressiveness={applyPauseAggressiveness}
           onPitchHumMode={applyPitchHumMode}
           onSpeedStep={applySpeedStep}
@@ -319,6 +332,7 @@
           onVolumeStep={applyVolumeStep}
           pauseAggressiveness={pauseAggressiveness}
           dpdfnetAttnLimitDb={dpdfnetAttnLimitDb}
+          outputFormat={outputFormat}
           pitchHumMode={pitchHumMode}
           speedStep={speedStep}
           targetOrd={target.ord}

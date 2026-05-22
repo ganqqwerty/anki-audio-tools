@@ -5,11 +5,14 @@ import {
   BatchPauseAggressiveness,
   DenoiseAlgorithm,
   Direction,
+  OutputFormat,
 } from "$lib/types.js";
 import {
   clampDpdfnetAttnLimitDb,
   clampSpeedStep,
   clampVolumeStepDb,
+  outputFormatOrDefault,
+  type OutputFormatValue,
 } from "$lib/audio-operation-parameters.js";
 import type {
   BatchInitialState,
@@ -26,6 +29,7 @@ export interface BatchFormState {
   pauseAggressiveness: BatchPauseAggressiveness;
   denoiseAlgorithm: DenoiseAlgorithm;
   dpdfnetAttnLimitDb: number;
+  targetFormat: OutputFormatValue;
 }
 
 export const FALLBACK_BATCH_INITIAL_STATE: BatchInitialState = {
@@ -37,6 +41,13 @@ export const FALLBACK_BATCH_INITIAL_STATE: BatchInitialState = {
       requires_target_field: true,
       parameter_kind: BatchParameterKind.None,
       parameter_name: BatchParameterName.None,
+    },
+    {
+      operation: BatchOperationName.Convert,
+      label: "Convert",
+      requires_target_field: false,
+      parameter_kind: BatchParameterKind.Format,
+      parameter_name: BatchParameterName.TargetFormat,
     },
     {
       operation: BatchOperationName.Denoise,
@@ -88,6 +99,7 @@ export const FALLBACK_BATCH_INITIAL_STATE: BatchInitialState = {
     pause_aggressiveness: BatchPauseAggressiveness.Normal,
     denoise_algorithm: DenoiseAlgorithm.Standard,
     dpdfnet_attn_limit_db: 12,
+    output_format: OutputFormat.Mp3,
   },
   locale: "en",
   direction: Direction.LTR,
@@ -110,6 +122,7 @@ export function initialFormState(state: BatchInitialState): BatchFormState {
     pauseAggressiveness: state.defaults.pause_aggressiveness,
     denoiseAlgorithm: state.defaults.denoise_algorithm,
     dpdfnetAttnLimitDb: clampDpdfnetAttnLimitDb(state.defaults.dpdfnet_attn_limit_db),
+    targetFormat: outputFormatOrDefault(state.defaults.output_format),
   };
 }
 
@@ -154,6 +167,9 @@ export function batchStartRequest(
     if (form.denoiseAlgorithm === DenoiseAlgorithm.Dpdfnet) {
       request.parameters.dpdfnet_attn_limit_db = clampDpdfnetAttnLimitDb(form.dpdfnetAttnLimitDb);
     }
+  }
+  if (operation?.parameter_name === BatchParameterName.TargetFormat) {
+    request.parameters.target_format = outputFormatOrDefault(form.targetFormat) as OutputFormat;
   }
   return request;
 }

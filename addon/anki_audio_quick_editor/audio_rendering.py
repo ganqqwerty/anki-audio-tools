@@ -20,7 +20,11 @@ from .audio_commands import (
     build_region_keep_plan,
 )
 from .audio_external import _external_command_run_kwargs, probe_duration_ms
-from .audio_formats import DEFAULT_OUTPUT_FORMAT, output_extension, validate_target_format
+from .audio_formats import (
+    DEFAULT_OUTPUT_FORMAT,
+    output_extension,
+    validate_target_format,
+)
 from .audio_pause_pipeline import _render_deep_filter_pause_speedup_audio
 from .audio_state import AudioEditState, AudioProcessingConfig
 from .audio_tools import find_ffmpeg
