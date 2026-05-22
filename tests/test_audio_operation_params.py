@@ -16,7 +16,6 @@ from anki_audio_quick_editor.audio_state import AudioProcessingConfig
 
 def test_parameters_from_raw_clamps_editor_matching_ranges() -> None:
     params = parameters_from_raw(
-        trim_step_ms=10,
         volume_step_db=99,
         speed_step=0.001,
         pause_aggressiveness="invalid",
@@ -25,7 +24,6 @@ def test_parameters_from_raw_clamps_editor_matching_ranges() -> None:
         target_format=" FLAC ",
     )
 
-    assert params.trim_step_ms == 50
     assert params.volume_step_db == 12.0
     assert params.speed_step == 0.01
     assert params.pause_aggressiveness is None

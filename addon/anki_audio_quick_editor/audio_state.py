@@ -22,8 +22,6 @@ GraphVoiceLock = str
 class AudioProcessingConfig:
     """Runtime audio processing settings loaded from add-on config."""
 
-    manual_trim_small_ms: int = 100
-    manual_trim_large_ms: int = 500
     speed_step: float = 0.05
     min_speed: float = 0.75
     max_speed: float = 1.5
@@ -52,8 +50,6 @@ class AudioProcessingConfig:
     def from_config(cls, config: dict[str, ConfigValue]) -> "AudioProcessingConfig":
         """Build typed settings from persisted add-on config."""
         return cls(
-            manual_trim_small_ms=int(config.get("manual_trim_small_ms", cls.manual_trim_small_ms)),
-            manual_trim_large_ms=int(config.get("manual_trim_large_ms", cls.manual_trim_large_ms)),
             speed_step=float(config.get("speed_step", cls.speed_step)),
             min_speed=float(config.get("min_speed", cls.min_speed)),
             max_speed=float(config.get("max_speed", cls.max_speed)),

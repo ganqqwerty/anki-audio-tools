@@ -61,7 +61,6 @@ def _split_popover_state_js(command: str, ord_: int = 0) -> str:
 @pytest.mark.parametrize(
     "command",
     [
-        "aqe:trim-left",
         "aqe:faster",
         "aqe:volume-up",
         "aqe:remove-pauses",

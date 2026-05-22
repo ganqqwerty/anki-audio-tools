@@ -99,20 +99,6 @@
   <div class="settings-grid">
     <label>
       <span class="label-with-icon">
-        <CommandIcon className="settings-label-icon" icon="scissors" />
-        <span>{t("settings.manual_trim_small_ms")}</span>
-      </span>
-      <input type="number" min="1" bind:value={config.manual_trim_small_ms} />
-    </label>
-    <label>
-      <span class="label-with-icon">
-        <CommandIcon className="settings-label-icon" icon="scissors" />
-        <span>{t("settings.manual_trim_large_ms")}</span>
-      </span>
-      <input type="number" min="1" bind:value={config.manual_trim_large_ms} />
-    </label>
-    <label>
-      <span class="label-with-icon">
         <CommandIcon className="settings-label-icon" icon="hare-running" />
         <span>{t("settings.speed_step")}</span>
       </span>

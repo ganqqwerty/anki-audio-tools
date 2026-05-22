@@ -70,8 +70,6 @@ def test_each_processing_button_updates_field_to_new_real_audio(
     ffmpeg_config,
     tmp_path,
 ) -> None:
-    from anki_audio_quick_editor.audio_processor import probe_duration_ms
-
     media_dir = Path(anki_mw.col.media.dir())
     source = media_dir / "editor_each_button_source.wav"
     generate_tone(ffmpeg_config, source, duration_s=2.0)
@@ -83,7 +81,7 @@ def test_each_processing_button_updates_field_to_new_real_audio(
 
     editor, parent = _open_editor(anki_mw, note)
     try:
-        wait_for_selector(editor.web, _button_selector("aqe:trim-left"), timeout=10.0)
+        wait_for_selector(editor.web, _button_selector("aqe:faster"), timeout=10.0)
         assert wait_for_js_condition(
             editor.web,
             "Array.from(document.querySelectorAll('[data-aqe-command]')).map((node) => node.dataset.aqeCommand)",
@@ -92,8 +90,6 @@ def test_each_processing_button_updates_field_to_new_real_audio(
                 for hidden_command in (
                     "aqe:save",
                     "aqe:cancel",
-                    "aqe:untrim-left",
-                    "aqe:untrim-right",
                 )
             ),
             timeout=5.0,
@@ -126,10 +122,6 @@ def test_each_processing_button_updates_field_to_new_real_audio(
                     "Folder",
                     "Convert",
                     "Options",
-                    "-L",
-                    "Options",
-                    "-R",
-                    "Options",
                     "Shorten Pauses",
                     "Options",
                     "Denoise",
@@ -158,8 +150,6 @@ def test_each_processing_button_updates_field_to_new_real_audio(
         previous_name = source.name
         generated_names: list[str] = []
         for command in (
-            "aqe:trim-left",
-            "aqe:trim-right",
             "aqe:slower",
             "aqe:faster",
             "aqe:volume-down",
@@ -173,9 +163,6 @@ def test_each_processing_button_updates_field_to_new_real_audio(
 
         assert len(generated_names) == len(set(generated_names))
         assert source.read_bytes() == original_bytes
-        assert probe_duration_ms(media_dir / generated_names[0], ffmpeg_config) < probe_duration_ms(
-            source, ffmpeg_config
-        )
         graph_state = wait_for_js_condition(
             editor.web,
             _graph_state_js(),
@@ -201,8 +188,8 @@ def test_ffmpeg_command_status_respects_settings_flag(anki_mw, ffmpeg_config) ->
     _configure_ffmpeg(anki_mw, ffmpeg_config, show_ffmpeg_commands=False)
     hidden_editor, hidden_parent = _open_editor(anki_mw, hidden_note)
     try:
-        wait_for_selector(hidden_editor.web, _button_selector("aqe:trim-left"), timeout=10.0)
-        click_selector(hidden_editor.web, _button_selector("aqe:trim-left"), timeout=5.0)
+        wait_for_selector(hidden_editor.web, _button_selector("aqe:faster"), timeout=10.0)
+        click_selector(hidden_editor.web, _button_selector("aqe:faster"), timeout=5.0)
         hidden_status = wait_for_js_condition(
             hidden_editor.web,
             _processing_status_js(),
@@ -220,8 +207,8 @@ def test_ffmpeg_command_status_respects_settings_flag(anki_mw, ffmpeg_config) ->
     _configure_ffmpeg(anki_mw, ffmpeg_config, show_ffmpeg_commands=True)
     shown_editor, shown_parent = _open_editor(anki_mw, shown_note)
     try:
-        wait_for_selector(shown_editor.web, _button_selector("aqe:trim-left"), timeout=10.0)
-        click_selector(shown_editor.web, _button_selector("aqe:trim-left"), timeout=5.0)
+        wait_for_selector(shown_editor.web, _button_selector("aqe:faster"), timeout=10.0)
+        click_selector(shown_editor.web, _button_selector("aqe:faster"), timeout=5.0)
         shown_status = wait_for_js_condition(
             shown_editor.web,
             _processing_status_js(),
@@ -246,7 +233,7 @@ def test_undo_restores_previous_generated_reference(anki_mw, ffmpeg_config) -> N
 
     editor, parent = _open_editor(anki_mw, note)
     try:
-        wait_for_selector(editor.web, _button_selector("aqe:trim-left"), timeout=10.0)
+        wait_for_selector(editor.web, _button_selector("aqe:faster"), timeout=10.0)
         _click_graph_and_wait(editor, lambda value: value["sourceFilename"] == source.name)
         with (
             patch.object(av_player, "stop_and_clear_queue", lambda: None),
@@ -260,7 +247,7 @@ def test_undo_restores_previous_generated_reference(anki_mw, ffmpeg_config) -> N
 
         previous_name = source.name
         generated_names: list[str] = []
-        for command in ("aqe:trim-left", "aqe:faster", "aqe:trim-right", "aqe:volume-up"):
+        for command in ("aqe:faster", "aqe:volume-up", "aqe:slower", "aqe:volume-down"):
             previous_name = _click_and_wait_for_new_file(
                 editor, note, media_dir, command, previous_name
             )
@@ -299,14 +286,14 @@ def test_processing_undo_redo_and_new_edit_clears_redo(anki_mw, ffmpeg_config) -
 
     editor, parent = _open_editor(anki_mw, note)
     try:
-        wait_for_selector(editor.web, _button_selector("aqe:trim-left"), timeout=10.0)
+        wait_for_selector(editor.web, _button_selector("aqe:faster"), timeout=10.0)
         _click_graph_and_wait(editor, lambda value: value["sourceFilename"] == source.name)
 
         first_generated = _click_and_wait_for_new_file(
             editor,
             note,
             media_dir,
-            "aqe:trim-left",
+            "aqe:faster",
             source.name,
         )
         _wait_for_visualizer_track(
@@ -355,7 +342,7 @@ def test_processing_undo_redo_and_new_edit_clears_redo(anki_mw, ffmpeg_config) -
             editor,
             note,
             media_dir,
-            "aqe:trim-right",
+            "aqe:volume-up",
             first_generated,
         )
         assert third_generated not in {first_generated, second_generated}

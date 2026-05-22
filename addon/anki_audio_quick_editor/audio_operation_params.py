@@ -9,8 +9,6 @@ from .audio_formats import validate_target_format
 from .audio_state import AudioProcessingConfig
 from .dpdfnet_settings import normalize_dpdfnet_attn_limit_db
 
-MIN_TRIM_OVERRIDE_MS = 50
-MAX_TRIM_OVERRIDE_MS = 10_000
 MIN_VOLUME_STEP_DB = 0.5
 MAX_VOLUME_STEP_DB = 12.0
 MIN_SPEED_STEP = 0.01
@@ -23,7 +21,6 @@ DENOISE_ALGORITHMS = frozenset({"standard", "rnnoise", "dpdfnet", "voice_only"})
 class AudioOperationParameters:
     """Validated optional parameters shared by editor and batch operations."""
 
-    trim_step_ms: int | None = None
     volume_step_db: float | None = None
     speed_step: float | None = None
     pause_aggressiveness: str | None = None
@@ -34,7 +31,6 @@ class AudioOperationParameters:
 
 def parameters_from_raw(
     *,
-    trim_step_ms: Any = None,
     volume_step_db: Any = None,
     speed_step: Any = None,
     pause_aggressiveness: Any = None,
@@ -44,7 +40,6 @@ def parameters_from_raw(
 ) -> AudioOperationParameters:
     """Normalize raw UI values into clamped operation parameters."""
     return AudioOperationParameters(
-        trim_step_ms=_clamp_trim_step_ms(_int_or_none(trim_step_ms)),
         volume_step_db=_clamp_float(
             _float_or_none(volume_step_db),
             MIN_VOLUME_STEP_DB,
@@ -131,12 +126,6 @@ def _float_or_none(value: Any) -> float | None:
     if isinstance(value, int | float):
         return float(value)
     return None
-
-
-def _clamp_trim_step_ms(value: int | None) -> int | None:
-    if value is None:
-        return None
-    return max(MIN_TRIM_OVERRIDE_MS, min(MAX_TRIM_OVERRIDE_MS, value))
 
 
 def _clamp_float(value: float | None, minimum: float, maximum: float) -> float | None:

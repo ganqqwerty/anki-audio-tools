@@ -214,7 +214,6 @@ def _on_editor_will_load_note(js: str, note: Any, editor: Any) -> str:
         repeat_playback_by_default=bool(config.get("repeat_playback_by_default", False)),
         show_graph_by_default=bool(config.get("show_graph_by_default", False)),
         split_button_defaults={
-            "trimStepMs": int(config.get("manual_trim_small_ms", 100)),
             "volumeStepDb": float(config.get("volume_step_db", 3.0)),
             "speedStep": float(config.get("speed_step", 0.05)),
             "repeatPauseSeconds": float(config.get("repeat_pause_seconds", 0.0)),

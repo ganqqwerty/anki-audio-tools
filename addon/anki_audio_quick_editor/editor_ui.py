@@ -30,7 +30,6 @@ def injection_script(
         "showGraphByDefault": bool(show_graph_by_default),
         "splitButtonDefaults": split_button_defaults
         or {
-            "trimStepMs": 100,
             "volumeStepDb": 3.0,
             "speedStep": 0.05,
             "repeatPauseSeconds": 0.0,

@@ -195,7 +195,7 @@ def test_graph_redraw_resets_after_audio_edit_when_active(anki_mw, ffmpeg_config
     try:
         _click_graph_and_wait(editor, lambda value: value["sourceFilename"] == source.name)
         generated_name = _click_and_wait_for_new_file(
-            editor, note, media_dir, "aqe:trim-left", source.name
+            editor, note, media_dir, "aqe:faster", source.name
         )
         track = _click_graph_and_wait(
             editor,

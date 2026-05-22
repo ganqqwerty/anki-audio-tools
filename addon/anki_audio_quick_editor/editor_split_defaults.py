@@ -54,15 +54,12 @@ def split_default_config_updates(raw_payload: Any) -> dict[str, object]:
 def _audio_parameter_updates(raw_defaults: dict[str, object]) -> dict[str, object]:
     updates: dict[str, object] = {}
     params = parameters_from_raw(
-        trim_step_ms=raw_defaults.get("trimStepMs"),
         volume_step_db=raw_defaults.get("volumeStepDb"),
         speed_step=raw_defaults.get("speedStep"),
         pause_aggressiveness=raw_defaults.get("pauseAggressiveness"),
         denoise_algorithm=raw_defaults.get("denoiseAlgorithm"),
         dpdfnet_attn_limit_db=raw_defaults.get("dpdfnetAttnLimitDb"),
     )
-    if params.trim_step_ms is not None:
-        updates["manual_trim_small_ms"] = params.trim_step_ms
     if params.volume_step_db is not None:
         updates["volume_step_db"] = params.volume_step_db
     if params.speed_step is not None:

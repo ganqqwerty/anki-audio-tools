@@ -3,11 +3,9 @@ import { beforeEach, describe, expect, it } from "vitest";
 import {
   buildSplitCommandPayload,
   buildSplitDefaultSaveRequest,
-  buildTrimCommandPayload,
   clampDpdfnetAttnLimitDb,
   clampRepeatPauseSeconds,
   clampSpeedStep,
-  clampTrimStepMs,
   clampVolumeStepDb,
   formatDenoiseAlgorithm,
   formatDpdfnetAggressiveness,
@@ -16,7 +14,6 @@ import {
   formatPitchHumMode,
   formatRepeatPauseSeconds,
   formatSpeedStep,
-  formatTrimMs,
   formatVolumeDb,
   getSplitButtonState,
   promoteSplitDefaultsForField,
@@ -27,7 +24,6 @@ import {
   setPitchHumModeForField,
   setRepeatPauseSecondsForField,
   setSpeedStepForField,
-  setTrimStepForField,
   setVolumeStepForField,
 } from "../src/editor-inline/split-button-state.js";
 import {
@@ -49,19 +45,6 @@ describe("split button state", () => {
   beforeEach(() => {
     delete window.__AQE_EDITOR_CONFIG__;
     delete window.__aqeSplitButtonStates;
-  });
-
-  it("formats trim values for compact display", () => {
-    expect(formatTrimMs(200)).toBe("200 ms");
-    expect(formatTrimMs(999)).toBe("999 ms");
-    expect(formatTrimMs(1000)).toBe("1 s");
-    expect(formatTrimMs(1500)).toBe("1.5 s");
-  });
-
-  it("clamps trim values to the supported slider range", () => {
-    expect(clampTrimStepMs(10)).toBe(50);
-    expect(clampTrimStepMs(200)).toBe(200);
-    expect(clampTrimStepMs(20000)).toBe(10000);
   });
 
   it("formats and clamps volume step values", () => {
@@ -130,12 +113,10 @@ describe("split button state", () => {
         pitchHumMode: "pitch_tier",
         repeatPauseSeconds: 1.5,
         speedStep: 0.05,
-        trimStepMs: 250,
         volumeStepDb: 3,
       },
     };
 
-    expect(getSplitButtonState(0).trimStepMs).toBe(250);
     expect(getSplitButtonState(0).volumeStepDb).toBe(3);
     expect(getSplitButtonState(0).speedStep).toBe(0.05);
     expect(getSplitButtonState(0).repeatPauseSeconds).toBe(1.5);
@@ -151,7 +132,7 @@ describe("split button state", () => {
     expect(getSplitButtonState(0).pitchHumMode).toBe("pitch_tier");
   });
 
-  it("keeps trim state isolated per field", () => {
+  it("keeps volume state isolated per field", () => {
     window.__AQE_EDITOR_CONFIG__ = {
       audioFieldIndices: [0, 1],
       splitButtonDefaults: {
@@ -159,15 +140,14 @@ describe("split button state", () => {
         pauseAggressiveness: "normal",
         repeatPauseSeconds: 0,
         speedStep: 0.05,
-        trimStepMs: 100,
         volumeStepDb: 3,
       },
     };
 
-    setTrimStepForField(0, 200);
+    setVolumeStepForField(0, 6);
 
-    expect(getSplitButtonState(0).trimStepMs).toBe(200);
-    expect(getSplitButtonState(1).trimStepMs).toBe(100);
+    expect(getSplitButtonState(0).volumeStepDb).toBe(6);
+    expect(getSplitButtonState(1).volumeStepDb).toBe(3);
   });
 
   it("builds volume and speed payloads from local field state", () => {
@@ -300,18 +280,6 @@ describe("split button state", () => {
     });
   });
 
-  it("builds trim payloads from local field state", () => {
-    setTrimStepForField(0, 200);
-
-    expect(buildTrimCommandPayload("aqe:trim-left", 0)).toEqual({
-      command: "aqe:trim-left",
-      fieldOrd: 0,
-      overrides: {
-        trimStepMs: 200,
-      },
-    });
-  });
-
   it("promotes local split values into runtime defaults", () => {
     setSpeedStepForField(0, 0.1);
     setSpeedStepForField(1, 0.2);
@@ -335,8 +303,8 @@ describe("split button state", () => {
   });
 
   it("persists local field state across editor bundle reinjection", () => {
-    setTrimStepForField(0, 200);
-    expect(window.__aqeSplitButtonStates?.[0]?.trimStepMs).toBe(200);
-    expect(getSplitButtonState(0).trimStepMs).toBe(200);
+    setVolumeStepForField(0, 6);
+    expect(window.__aqeSplitButtonStates?.[0]?.volumeStepDb).toBe(6);
+    expect(getSplitButtonState(0).volumeStepDb).toBe(6);
   });
 });

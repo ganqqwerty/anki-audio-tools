@@ -144,10 +144,6 @@ Bridge commands:
 - `aqe:analyze`
 - `aqe:set-cursor`
 - `aqe:play`
-- `aqe:trim-left`
-- `aqe:untrim-left`
-- `aqe:trim-right`
-- `aqe:untrim-right`
 - `aqe:slower`
 - `aqe:faster`
 - `aqe:remove-pauses`
@@ -244,29 +240,6 @@ Acceptance criteria:
 - Graph data refreshes after processing buttons generate new media.
 - Dragging the cursor updates editor session state and playback attempts to seek from that offset.
 
-## FR6 - Manual Trim
-
-The add-on must crop time from the beginning or end of the clip.
-
-Controls:
-
-- `-L`: trim configured small step from the left.
-- `+L`: undo configured small step from the left trim in the current edit state.
-- `-R`: trim configured small step from the right.
-- `+R`: undo configured small step from the right trim in the current edit state.
-
-Default increments:
-
-- Small step: `100 ms`.
-- Large step: `500 ms`, reserved for future shortcut/modifier behavior.
-
-Acceptance criteria:
-
-- Trimming from the left makes output duration shorter.
-- Trimming from the right makes output duration shorter.
-- Trim values cannot produce zero or negative-duration output.
-- Untrim buttons cannot reduce trim below zero.
-
 ## FR7 - Speed Adjustment
 
 The add-on must change playback speed while preserving pitch.
@@ -360,12 +333,10 @@ Current config defaults:
 
 ```json
 {
-  "_config_version": 7,
+  "_config_version": 17,
   "enabled": true,
   "debug_logging": false,
   "show_ffmpeg_commands": false,
-  "manual_trim_small_ms": 100,
-  "manual_trim_large_ms": 500,
   "speed_step": 0.05,
   "min_speed": 0.75,
   "max_speed": 1.5,
@@ -408,7 +379,7 @@ The implementation must preserve these boundaries:
 Required automated coverage:
 
 - Unit tests for sound tag parsing, first-reference selection, unsupported extensions, and safe replacement.
-- Unit tests for edit-state bounds, speed clamping, trim/untrim, and invalid zero-duration output.
+- Unit tests for edit-state bounds, speed clamping, and invalid zero-duration output.
 - Unit tests for filename sanitization, long names, non-ASCII smoke coverage, and command construction.
 - ffmpeg tests that render real audio and verify duration changes.
 - E2E tests that open real Anki editor UI, find inline controls, click buttons, and verify generated audio exists.
@@ -416,7 +387,7 @@ Required automated coverage:
 - E2E tests for prosody visualization, graph refresh after each processing button, cursor dragging, playback seek, silence gaps, and visualization failure.
 - E2E tests for fast clicking while processing.
 - E2E tests for Undo after multiple generated outputs.
-- E2E tests for settings-driven behavior such as trim step and ffmpeg command visibility.
+- E2E tests for settings-driven behavior such as ffmpeg command visibility.
 - E2E tests for missing media or processing failure paths where practical.
 
 Current manual smoke expectations:

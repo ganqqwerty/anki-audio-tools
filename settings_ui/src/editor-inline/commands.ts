@@ -7,7 +7,6 @@ import {
 } from "../lib/audio-operation-parameters.js";
 
 export function commandButtons(): readonly ButtonSpec[] {
-  const trimMs = window.__AQE_EDITOR_CONFIG__?.splitButtonDefaults?.trimStepMs ?? 100;
   const outputFormat = outputFormatOrDefault(window.__AQE_EDITOR_CONFIG__?.splitButtonDefaults?.outputFormat);
   return [
     {
@@ -37,18 +36,6 @@ export function commandButtons(): readonly ButtonSpec[] {
       icon: "file-audio",
       label: t("editor.command.convert.label"),
       title: t("editor.command.convert.title", { format: formatOutputFormat(outputFormat) }),
-    },
-    {
-      command: "aqe:trim-left",
-      icon: "scissors",
-      label: t("editor.command.trim_left.label"),
-      title: t("editor.command.trim_left.title", { ms: trimMs }),
-    },
-    {
-      command: "aqe:trim-right",
-      icon: "scissors",
-      label: t("editor.command.trim_right.label"),
-      title: t("editor.command.trim_right.title", { ms: trimMs }),
     },
     {
       command: "aqe:remove-pauses",
@@ -146,8 +133,6 @@ export function denoiseButtons(): readonly ButtonSpec[] {
 }
 
 export const PROCESSING_COMMANDS = new Set<EditorCommand>([
-  "aqe:trim-left",
-  "aqe:trim-right",
   "aqe:slower",
   "aqe:faster",
   "aqe:convert",
@@ -168,8 +153,6 @@ export const COMMAND_SLUGS: Readonly<Record<EditorCommand, string>> = {
   "aqe:convert": "convert",
   "aqe:delete-selection": "delete-selection",
   "aqe:delete-rest": "delete-rest",
-  "aqe:trim-left": "trim-left",
-  "aqe:trim-right": "trim-right",
   "aqe:remove-pauses": "remove-pauses",
   "aqe:denoise-standard": "denoise-standard",
   "aqe:rnnoise": "rnnoise",

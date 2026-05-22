@@ -11,7 +11,6 @@ import {
   clampDpdfnetAttnLimitDb,
   DEFAULT_OUTPUT_FORMAT,
   clampSpeedStep,
-  clampTrimStepMs,
   clampVolumeStepDb,
   outputFormatOrDefault,
 } from "../lib/audio-operation-parameters.js";
@@ -27,14 +26,12 @@ export {
   clampRepeatPauseSeconds,
   clampDpdfnetAttnLimitDb,
   clampSpeedStep,
-  clampTrimStepMs,
   clampVolumeStepDb,
   formatOutputFormat,
   formatPauseAggressiveness,
   formatDpdfnetAggressiveness,
   formatRepeatPauseSeconds,
   formatSpeedStep,
-  formatTrimMs,
   formatVolumeDb,
 } from "../lib/audio-operation-parameters.js";
 
@@ -49,7 +46,6 @@ const DEFAULTS: CompleteSplitButtonDefaults = {
   pitchHumMode: "direct",
   repeatPauseSeconds: 0,
   speedStep: 0.05,
-  trimStepMs: 100,
   volumeStepDb: 3,
 };
 
@@ -89,7 +85,6 @@ export function getSplitButtonState(ord: number): FieldSplitButtonState {
   const defaultGraphVoiceLock = graphVoiceLockOrDefault(defaults.graphVoiceLock);
   const defaultGraphVoiceRange = graphVoiceRangeOrDefault(defaults.graphVoiceRange);
   const defaultOutputFormat = outputFormatOrDefault(defaults.outputFormat);
-  const defaultTrimStepMs = clampTrimStepMs(defaults.trimStepMs);
   const defaultVolumeStepDb = clampVolumeStepDb(defaults.volumeStepDb);
   const defaultSpeedStep = clampSpeedStep(defaults.speedStep);
   const defaultRepeatPauseSeconds = clampRepeatPauseSeconds(defaults.repeatPauseSeconds);
@@ -104,10 +99,6 @@ export function getSplitButtonState(ord: number): FieldSplitButtonState {
       existing.repeatPauseSeconds = defaultRepeatPauseSeconds;
       existing.defaultRepeatPauseSeconds = defaultRepeatPauseSeconds;
       existing.repeatPauseEdited = false;
-    }
-    if (!existing.trimEdited && existing.defaultTrimStepMs !== defaultTrimStepMs) {
-      existing.defaultTrimStepMs = defaultTrimStepMs;
-      existing.trimStepMs = defaultTrimStepMs;
     }
     if (!existing.volumeEdited && existing.defaultVolumeStepDb !== defaultVolumeStepDb) {
       existing.defaultVolumeStepDb = defaultVolumeStepDb;
@@ -177,7 +168,6 @@ export function getSplitButtonState(ord: number): FieldSplitButtonState {
     defaultPauseAggressiveness,
     defaultPitchHumMode,
     defaultRepeatPauseSeconds,
-    defaultTrimStepMs,
     defaultVolumeStepDb,
     defaultSpeedStep,
     denoiseAlgorithm: defaultDenoiseAlgorithm,
@@ -200,8 +190,6 @@ export function getSplitButtonState(ord: number): FieldSplitButtonState {
     repeatPauseSeconds: defaultRepeatPauseSeconds,
     speedEdited: false,
     speedStep: defaultSpeedStep,
-    trimEdited: false,
-    trimStepMs: defaultTrimStepMs,
     volumeEdited: false,
     volumeStepDb: defaultVolumeStepDb,
   };
@@ -241,11 +229,6 @@ function applyPromotedDefaultsToState(
   values: SplitDefaultSaveRequest["defaults"],
   forceCurrentField: boolean,
 ): void {
-  if (values.trimStepMs !== undefined) {
-    state.defaultTrimStepMs = clampTrimStepMs(defaults.trimStepMs);
-    if (forceCurrentField || !state.trimEdited) state.trimStepMs = state.defaultTrimStepMs;
-    if (forceCurrentField) state.trimEdited = false;
-  }
   if (values.volumeStepDb !== undefined) {
     state.defaultVolumeStepDb = clampVolumeStepDb(defaults.volumeStepDb);
     if (forceCurrentField || !state.volumeEdited) state.volumeStepDb = state.defaultVolumeStepDb;
@@ -312,13 +295,6 @@ function applyPromotedGraphDefaultsToState(
   if (forceCurrentField) state.graphEdited = false;
 }
 
-export function setTrimStepForField(ord: number, value: number): FieldSplitButtonState {
-  const state = getSplitButtonState(ord);
-  state.trimEdited = true;
-  state.trimStepMs = clampTrimStepMs(value);
-  return state;
-}
-
 export function setVolumeStepForField(ord: number, value: number): FieldSplitButtonState {
   const state = getSplitButtonState(ord);
   state.volumeEdited = true;
@@ -381,16 +357,6 @@ export function setOutputFormatForField(ord: number, value: unknown): FieldSplit
   return state;
 }
 
-export function buildTrimCommandPayload(command: EditorCommand, ord: number): EditorCommandPayload {
-  return {
-    command,
-    fieldOrd: ord,
-    overrides: {
-      trimStepMs: getSplitButtonState(ord).trimStepMs,
-    },
-  };
-}
-
 function graphSettingsPayload(state: FieldSplitButtonState): NonNullable<EditorCommandPayload["graphSettings"]> {
   return {
     connectShortDropoutsMs: state.graphConnectShortDropoutsMs,
@@ -446,7 +412,7 @@ export function buildSplitCommandPayload(command: EditorCommand, ord: number): E
     }
     return payload;
   }
-  return buildTrimCommandPayload(command, ord);
+  return { command, fieldOrd: ord };
 }
 
 export function buildSplitDefaultSaveRequest(command: EditorCommand, ord: number): SplitDefaultSaveRequest {
@@ -477,8 +443,6 @@ export function buildSplitDefaultSaveRequest(command: EditorCommand, ord: number
     request.defaults.graphVoiceLock = state.graphVoiceLock;
   } else if (command === "aqe:pitch-hum") {
     request.defaults.pitchHumMode = state.pitchHumMode;
-  } else {
-    request.defaults.trimStepMs = state.trimStepMs;
   }
   return request;
 }

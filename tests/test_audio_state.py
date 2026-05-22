@@ -94,7 +94,6 @@ def test_feature_toggles_only_enable_processing_steps() -> None:
 def test_processing_config_from_partial_config_uses_defaults() -> None:
     config = AudioProcessingConfig.from_config({"ffmpeg_path": "/opt/bin/ffmpeg"})
 
-    assert config.manual_trim_small_ms == 100
     assert config.volume_step_db == 3.0
     assert config.min_volume_db == -24.0
     assert config.max_volume_db == 24.0

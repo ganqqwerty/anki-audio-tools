@@ -143,8 +143,6 @@ def test_save_command_writes_config(anki_mw) -> None:
         "graph_smoothness": "very_smooth",
         "graph_connect_short_dropouts_ms": 240,
         "graph_voice_lock": "balanced",
-        "manual_trim_small_ms": 100,
-        "manual_trim_large_ms": 500,
         "speed_step": 0.05,
         "min_speed": 0.75,
         "max_speed": 1.5,

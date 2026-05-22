@@ -20,7 +20,6 @@
     setPauseAggressivenessForField,
     setPitchHumModeForField,
     setSpeedStepForField,
-    setTrimStepForField,
     setVolumeStepForField,
   } from "./split-button-state.js";
   import { formatGraphVoiceRange } from "./graph-split-values.js";
@@ -49,7 +48,6 @@
   let popover = $state<HTMLDivElement>();
   let open = $state(false);
   let popoverStyle = $state(HIDDEN_POPOVER_STYLE);
-  let trimStepMs = $state(100);
   let volumeStepDb = $state(3);
   let speedStep = $state(0.05);
   let pauseAggressiveness = $state<"gentle" | "normal" | "aggressive">("normal");
@@ -104,7 +102,6 @@
   }
 
   function syncFromState(state: FieldSplitButtonState): void {
-    trimStepMs = state.trimStepMs;
     volumeStepDb = state.volumeStepDb;
     speedStep = state.speedStep;
     pauseAggressiveness = state.pauseAggressiveness;
@@ -123,10 +120,6 @@
     event.preventDefault();
     event.stopPropagation();
     open = !open;
-  }
-
-  function applyTrimStep(value: number): void {
-    trimStepMs = setTrimStepForField(target.ord, value).trimStepMs;
   }
 
   function applyVolumeStep(value: number): void {
@@ -352,7 +345,6 @@
           onPitchHumMode={applyPitchHumMode}
           onSaveDefault={saveCurrentDefaults}
           onSpeedStep={applySpeedStep}
-          onTrimStep={applyTrimStep}
           onVolumeStep={applyVolumeStep}
           pauseAggressiveness={pauseAggressiveness}
           dpdfnetAttnLimitDb={dpdfnetAttnLimitDb}
@@ -361,7 +353,6 @@
           saveDefaultSaved={defaultSaved}
           speedStep={speedStep}
           targetOrd={target.ord}
-          trimStepMs={trimStepMs}
           volumeStepDb={volumeStepDb}
         />
       {/if}

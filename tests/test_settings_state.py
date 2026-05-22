@@ -12,7 +12,7 @@ from anki_audio_quick_editor.settings_state import (
 
 def _full_config() -> dict[str, object]:
     return {
-        "_config_version": 16,
+        "_config_version": 17,
         "enabled": True,
         "debug_logging": False,
         "show_ffmpeg_commands": False,
@@ -24,8 +24,6 @@ def _full_config() -> dict[str, object]:
         "graph_smoothness": "very_smooth",
         "graph_connect_short_dropouts_ms": 240,
         "graph_voice_lock": "balanced",
-        "manual_trim_small_ms": 100,
-        "manual_trim_large_ms": 500,
         "speed_step": 0.05,
         "min_speed": 0.75,
         "max_speed": 1.5,

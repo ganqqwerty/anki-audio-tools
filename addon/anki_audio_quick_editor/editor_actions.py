@@ -22,8 +22,6 @@ from .audio_operations import (
 )
 from .audio_state import AudioEditState, AudioProcessingConfig
 
-CMD_TRIM_LEFT = "aqe:trim-left"
-CMD_TRIM_RIGHT = "aqe:trim-right"
 CMD_SLOWER = "aqe:slower"
 CMD_FASTER = "aqe:faster"
 CMD_VOLUME_DOWN = "aqe:volume-down"
@@ -54,8 +52,6 @@ BRIDGE_COMMANDS = (
     "aqe:play-ended",
     "aqe:frontend-log",
     "aqe:show-file",
-    CMD_TRIM_LEFT,
-    CMD_TRIM_RIGHT,
     CMD_SLOWER,
     CMD_FASTER,
     CMD_VOLUME_DOWN,
@@ -75,8 +71,6 @@ BRIDGE_COMMANDS = (
 )
 
 PROCESSING_COMMANDS = (
-    CMD_TRIM_LEFT,
-    CMD_TRIM_RIGHT,
     CMD_SLOWER,
     CMD_FASTER,
     CMD_VOLUME_DOWN,
@@ -98,7 +92,6 @@ BRIDGE_COMMAND_TO_OPERATION = {
 class EditorCommandOverrides:
     """Validated local editor command override values."""
 
-    trim_step_ms: int | None = None
     volume_step_db: float | None = None
     speed_step: float | None = None
     pause_aggressiveness: str | None = None
@@ -132,7 +125,6 @@ def _overrides_from_raw(raw: Any) -> EditorCommandOverrides:
     if not isinstance(raw, dict):
         return EditorCommandOverrides()
     params = parameters_from_raw(
-        trim_step_ms=raw.get("trimStepMs"),
         volume_step_db=raw.get("volumeStepDb"),
         speed_step=raw.get("speedStep"),
         pause_aggressiveness=raw.get("pauseAggressiveness"),
@@ -141,7 +133,6 @@ def _overrides_from_raw(raw: Any) -> EditorCommandOverrides:
         target_format=raw.get("targetFormat"),
     )
     return EditorCommandOverrides(
-        trim_step_ms=params.trim_step_ms,
         volume_step_db=params.volume_step_db,
         speed_step=params.speed_step,
         pause_aggressiveness=params.pause_aggressiveness,
@@ -220,11 +211,6 @@ def apply_processing_command(
     """Return the edit state after applying a processing command."""
     payload = decode_editor_command_payload(command)
     effective_config = processing_config_for_command(payload, config)
-    step = payload.overrides.trim_step_ms or config.manual_trim_small_ms
-    if payload.command == CMD_TRIM_LEFT:
-        return state.trim_left(step)
-    if payload.command == CMD_TRIM_RIGHT:
-        return state.trim_right(step)
     operation = operation_for_command(payload.command)
     if operation is None:
         return None
