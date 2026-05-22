@@ -91,6 +91,7 @@
   "diagnostics.show_log_file": "Показать файл журнала",
   "editor.command.play.label": "Играть",
   "editor.command.play.title": "Воспроизвести или поставить текущее аудио на паузу",
+  "editor.command.play.title_selected": "Воспроизвести или поставить на паузу выбранный фрагмент аудио",
   "editor.command.pause.label": "Пауза",
   "editor.command.graph.label": "График",
   "editor.command.graph.title": "Проанализировать и показать график тона/интенсивности",

@@ -91,6 +91,7 @@
   "diagnostics.show_log_file": "Hiển thị tệp nhật ký",
   "editor.command.play.label": "Phát",
   "editor.command.play.title": "Phát hoặc tạm dừng âm thanh hiện tại",
+  "editor.command.play.title_selected": "Phát hoặc tạm dừng đoạn âm thanh đã chọn",
   "editor.command.pause.label": "Tạm dừng",
   "editor.command.graph.label": "Biểu đồ",
   "editor.command.graph.title": "Phân tích và hiển thị biểu đồ cao độ/cường độ",
