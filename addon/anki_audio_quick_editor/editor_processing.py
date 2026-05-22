@@ -20,10 +20,7 @@ from .errors import AudioProcessingError
 from .i18n import t
 from .media_paths import existing_media_file_path
 from .prosody_settings import config_with_graph_settings
-from .sound_refs import (
-    replace_sound_reference,
-    select_first_sound_reference,
-)
+from .sound_refs import replace_sound_reference, select_first_sound_reference
 from .support import (
     format_denoise_support_log_block,
     format_spleeter_support_log_block,
@@ -39,9 +36,11 @@ logger = logging.getLogger(__name__)
 def update_state_and_render(editor: Any, command: str | EditorCommandPayload, deps: Any) -> None:
     """Apply a frontend processing command and start the render worker."""
     existing = deps.sessions.get(editor)
-    if existing and _has_blocking_work(existing):
+    if existing and existing.processing:
         deps.eval_status(editor, deps.still_processing_message, kind="processing")
         return
+    if existing:
+        _cancel_playback_preparation(existing, deps)
     session, source_path = deps.session_and_source(editor)
     _cancel_graph_analysis_for_processing(editor, session, deps)
     config = AudioProcessingConfig.from_config(deps.config(editor))
@@ -59,8 +58,9 @@ def update_state_and_render(editor: Any, command: str | EditorCommandPayload, de
     )
 
 
-def _has_blocking_work(session: EditorSession) -> bool:
-    return session.processing or session.playback_preparing
+def _cancel_playback_preparation(session: EditorSession, deps: Any) -> None:
+    if session.playback_preparing:
+        deps.stop_session_playback(session)
 
 
 def _cancel_graph_analysis_for_processing(editor: Any, session: EditorSession, deps: Any) -> None:
@@ -182,7 +182,7 @@ def replace_current_field_after_render(
     deps.eval_status(editor, t("editor.status.updated_field", {"filename": saved_name}))
     deps.eval_playback_state(editor, field_index, "stopped", 0)
     if should_redraw_graph:
-        deps.request_graph_redraw(editor)
+        deps.request_graph_redraw(editor, saved_name)
     else:
         deps.set_busy(editor, False)
     deps.request_playback_after_edit(editor, field_index)
@@ -297,9 +297,11 @@ def run_special_audio_transform_async(
     """Run a denoise transform and replace the current audio on completion."""
     operation_id = new_operation_id("transform")
     existing = deps.sessions.get(editor)
-    if existing and _has_blocking_work(existing):
+    if existing and existing.processing:
         deps.eval_status(editor, deps.still_processing_message, kind="processing")
         return
+    if existing:
+        _cancel_playback_preparation(existing, deps)
     session, current_path = deps.current_media_path(editor)
     _cancel_graph_analysis_for_processing(editor, session, deps)
     config = _special_transform_config(AudioProcessingConfig.from_config(deps.config(editor)), command)
@@ -414,7 +416,7 @@ def replace_current_field_after_noise_removal(editor: Any, saved_name: str, deps
     deps.eval_status(editor, t("editor.status.updated_field", {"filename": saved_name}))
     deps.eval_playback_state(editor, field_index, "stopped", 0)
     if should_redraw_graph:
-        deps.request_graph_redraw(editor)
+        deps.request_graph_redraw(editor, saved_name)
     else:
         deps.set_busy(editor, False)
     deps.request_playback_after_edit(editor, field_index)

@@ -81,8 +81,8 @@ def build_interpreter(model_path: Path | None = None):
     if not path.is_file():
         raise FileNotFoundError(f"Bundled TFLite model not found: {path}")
 
-    Interpreter = _load_interpreter_class()
-    interpreter = Interpreter(model_path=str(path))
+    interpreter_class = _load_interpreter_class()
+    interpreter = interpreter_class(model_path=str(path))
     interpreter.allocate_tensors()
     validate_signature(interpreter)
     return interpreter

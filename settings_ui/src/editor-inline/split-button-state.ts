@@ -4,6 +4,7 @@ import type {
   FieldSplitButtonState,
   SplitButtonDefaults,
 } from "./types.js";
+import type { SplitDefaultSaveRequest } from "./split-default-save-types.js";
 import { t } from "../lib/i18n.js";
 import {
   clampRepeatPauseSeconds,
@@ -196,6 +197,109 @@ export function getSplitButtonState(ord: number): FieldSplitButtonState {
   return state;
 }
 
+function replaceSplitButtonDefaults(values: Partial<CompleteSplitButtonDefaults>): CompleteSplitButtonDefaults {
+  const nextDefaults = {
+    ...splitButtonDefaults(),
+    ...values,
+  };
+  window.__AQE_EDITOR_CONFIG__ = {
+    ...(window.__AQE_EDITOR_CONFIG__ ?? { audioFieldIndices: [] }),
+    splitButtonDefaults: nextDefaults,
+  };
+  return nextDefaults;
+}
+
+export function promoteSplitDefaultsForField(
+  ord: number,
+  values: SplitDefaultSaveRequest["defaults"],
+): FieldSplitButtonState {
+  const splitDefaults = { ...values };
+  delete splitDefaults.repeatPlaybackByDefault;
+  const nextDefaults = replaceSplitButtonDefaults(splitDefaults);
+  for (const [rawOrd, state] of Object.entries(fieldStates())) {
+    const forceCurrentField = Number(rawOrd) === ord;
+    applyPromotedDefaultsToState(state, nextDefaults, values, forceCurrentField);
+  }
+  return getSplitButtonState(ord);
+}
+
+function applyPromotedDefaultsToState(
+  state: FieldSplitButtonState,
+  defaults: CompleteSplitButtonDefaults,
+  values: SplitDefaultSaveRequest["defaults"],
+  forceCurrentField: boolean,
+): void {
+  if (values.trimStepMs !== undefined) {
+    state.defaultTrimStepMs = clampTrimStepMs(defaults.trimStepMs);
+    if (forceCurrentField || !state.trimEdited) state.trimStepMs = state.defaultTrimStepMs;
+    if (forceCurrentField) state.trimEdited = false;
+  }
+  if (values.volumeStepDb !== undefined) {
+    state.defaultVolumeStepDb = clampVolumeStepDb(defaults.volumeStepDb);
+    if (forceCurrentField || !state.volumeEdited) state.volumeStepDb = state.defaultVolumeStepDb;
+    if (forceCurrentField) state.volumeEdited = false;
+  }
+  if (values.speedStep !== undefined) {
+    state.defaultSpeedStep = clampSpeedStep(defaults.speedStep);
+    if (forceCurrentField || !state.speedEdited) state.speedStep = state.defaultSpeedStep;
+    if (forceCurrentField) state.speedEdited = false;
+  }
+  if (values.repeatPauseSeconds !== undefined) {
+    state.defaultRepeatPauseSeconds = clampRepeatPauseSeconds(defaults.repeatPauseSeconds);
+    if (forceCurrentField || !state.repeatPauseEdited) state.repeatPauseSeconds = state.defaultRepeatPauseSeconds;
+    if (forceCurrentField) state.repeatPauseEdited = false;
+  }
+  if (values.pauseAggressiveness !== undefined) {
+    state.defaultPauseAggressiveness = defaults.pauseAggressiveness;
+    if (forceCurrentField || !state.pauseEdited) state.pauseAggressiveness = state.defaultPauseAggressiveness;
+    if (forceCurrentField) state.pauseEdited = false;
+  }
+  if (values.denoiseAlgorithm !== undefined) {
+    state.defaultDenoiseAlgorithm = defaults.denoiseAlgorithm;
+    if (forceCurrentField || !state.denoiseEdited) state.denoiseAlgorithm = state.defaultDenoiseAlgorithm;
+    if (forceCurrentField) state.denoiseEdited = false;
+  }
+  if (values.dpdfnetAttnLimitDb !== undefined) {
+    state.defaultDpdfnetAttnLimitDb = clampDpdfnetAttnLimitDb(defaults.dpdfnetAttnLimitDb);
+    if (forceCurrentField || !state.dpdfnetEdited) state.dpdfnetAttnLimitDb = state.defaultDpdfnetAttnLimitDb;
+    if (forceCurrentField) state.dpdfnetEdited = false;
+  }
+  if (values.pitchHumMode !== undefined) {
+    state.defaultPitchHumMode = pitchHumModeOrDefault(defaults.pitchHumMode);
+    if (forceCurrentField || !state.pitchHumEdited) state.pitchHumMode = state.defaultPitchHumMode;
+    if (forceCurrentField) state.pitchHumEdited = false;
+  }
+  applyPromotedGraphDefaultsToState(state, defaults, values, forceCurrentField);
+}
+
+function applyPromotedGraphDefaultsToState(
+  state: FieldSplitButtonState,
+  defaults: CompleteSplitButtonDefaults,
+  values: SplitDefaultSaveRequest["defaults"],
+  forceCurrentField: boolean,
+): void {
+  const graphChanged =
+    values.graphVoiceRange !== undefined ||
+    values.graphRecordingCondition !== undefined ||
+    values.graphSmoothness !== undefined ||
+    values.graphConnectShortDropoutsMs !== undefined ||
+    values.graphVoiceLock !== undefined;
+  if (!graphChanged) return;
+  state.defaultGraphVoiceRange = graphVoiceRangeOrDefault(defaults.graphVoiceRange);
+  state.defaultGraphRecordingCondition = graphRecordingConditionOrDefault(defaults.graphRecordingCondition);
+  state.defaultGraphSmoothness = graphSmoothnessOrDefault(defaults.graphSmoothness);
+  state.defaultGraphConnectShortDropoutsMs = clampGraphConnectShortDropoutsMs(defaults.graphConnectShortDropoutsMs);
+  state.defaultGraphVoiceLock = graphVoiceLockOrDefault(defaults.graphVoiceLock);
+  if (forceCurrentField || !state.graphEdited) {
+    state.graphVoiceRange = state.defaultGraphVoiceRange;
+    state.graphRecordingCondition = state.defaultGraphRecordingCondition;
+    state.graphSmoothness = state.defaultGraphSmoothness;
+    state.graphConnectShortDropoutsMs = state.defaultGraphConnectShortDropoutsMs;
+    state.graphVoiceLock = state.defaultGraphVoiceLock;
+  }
+  if (forceCurrentField) state.graphEdited = false;
+}
+
 export function setTrimStepForField(ord: number, value: number): FieldSplitButtonState {
   const state = getSplitButtonState(ord);
   state.trimEdited = true;
@@ -321,4 +425,38 @@ export function buildSplitCommandPayload(command: EditorCommand, ord: number): E
     return payload;
   }
   return buildTrimCommandPayload(command, ord);
+}
+
+export function buildSplitDefaultSaveRequest(command: EditorCommand, ord: number): SplitDefaultSaveRequest {
+  const state = getSplitButtonState(ord);
+  const request: SplitDefaultSaveRequest = {
+    defaults: {},
+    fieldOrd: ord,
+  };
+  if (command === "aqe:volume-up" || command === "aqe:volume-down") {
+    request.defaults.volumeStepDb = state.volumeStepDb;
+  } else if (command === "aqe:faster" || command === "aqe:slower") {
+    request.defaults.speedStep = state.speedStep;
+  } else if (command === "aqe:remove-pauses") {
+    request.defaults.pauseAggressiveness = state.pauseAggressiveness;
+  } else if (
+    command === "aqe:denoise-standard" ||
+    command === "aqe:rnnoise" ||
+    command === "aqe:dpdfnet" ||
+    command === "aqe:voice-only"
+  ) {
+    request.defaults.denoiseAlgorithm = state.denoiseAlgorithm;
+    request.defaults.dpdfnetAttnLimitDb = state.dpdfnetAttnLimitDb;
+  } else if (command === "aqe:analyze") {
+    request.defaults.graphVoiceRange = state.graphVoiceRange;
+    request.defaults.graphRecordingCondition = state.graphRecordingCondition;
+    request.defaults.graphSmoothness = state.graphSmoothness;
+    request.defaults.graphConnectShortDropoutsMs = state.graphConnectShortDropoutsMs;
+    request.defaults.graphVoiceLock = state.graphVoiceLock;
+  } else if (command === "aqe:pitch-hum") {
+    request.defaults.pitchHumMode = state.pitchHumMode;
+  } else {
+    request.defaults.trimStepMs = state.trimStepMs;
+  }
+  return request;
 }

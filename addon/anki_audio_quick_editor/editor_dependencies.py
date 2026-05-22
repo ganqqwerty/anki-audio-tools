@@ -66,6 +66,7 @@ def bridge_deps(callbacks: Any, frontend_callbacks: Any) -> SimpleNamespace:
         pitch_hum_async=callbacks.pitch_hum_async,
         redo=callbacks.redo,
         rnnoise_async=callbacks.rnnoise_async,
+        save_split_defaults_from_frontend=callbacks.save_split_defaults_from_frontend,
         set_busy=frontend_callbacks.set_busy,
         set_cursor_from_web=callbacks.set_cursor_from_web,
         show_current_audio_file=callbacks.show_current_audio_file,

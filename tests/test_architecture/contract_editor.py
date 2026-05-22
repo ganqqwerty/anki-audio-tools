@@ -55,6 +55,7 @@ EDITOR_CONTRACTS: dict[str, ModuleContract] = {
             "editor_runtime",
             "editor_session",
             "editor_settings_actions",
+            "editor_split_defaults",
             "prosody_types",
         ),
         allowed_side_effects=(
@@ -190,6 +191,11 @@ EDITOR_CONTRACTS: dict[str, ModuleContract] = {
         allowed_addon_deps=("file_reveal", "i18n"),
         allowed_side_effects=(SideEffect.WEB_EVAL,),
     ),
+    "editor_split_defaults": contract(
+        "editor_split_defaults",
+        layer=Layer.UI_ADAPTER,
+        allowed_addon_deps=("audio_operation_params", "i18n", "prosody_settings"),
+    ),
     "editor_integration": contract(
         "editor_integration",
         layer=Layer.UI_ADAPTER,
@@ -211,6 +217,7 @@ EDITOR_CONTRACTS: dict[str, ModuleContract] = {
             "editor_runtime",
             "editor_session",
             "editor_settings_actions",
+            "editor_split_defaults",
             "editor_ui",
             "errors",
             "file_reveal",

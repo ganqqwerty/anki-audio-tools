@@ -12,6 +12,7 @@ export type CommandIconName =
   | "refresh-cw"
   | "repeat-2"
   | "rewind"
+  | "save"
   | "scissors"
   | "settings"
   | "hare-running"

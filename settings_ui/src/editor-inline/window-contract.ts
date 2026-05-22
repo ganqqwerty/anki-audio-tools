@@ -14,7 +14,10 @@ import {
   stopEditorPlayback,
 } from "./actions.js";
 import { playAfterEdit } from "./playback-actions.js";
-import { popPendingRegionDeleteRequest } from "./bridge.js";
+import {
+  popPendingRegionDeleteRequest,
+  popPendingSplitDefaultSaveRequest,
+} from "./bridge.js";
 import { installEditorTestWindowContract } from "./test-contract.js";
 
 export const EDITOR_WINDOW_CONTRACT_NAMES = [
@@ -23,6 +26,7 @@ export const EDITOR_WINDOW_CONTRACT_NAMES = [
   "__aqeGetPlaybackRequest",
   "__aqePopPendingGraphAnalysisRequest",
   "__aqePopPendingRegionDeleteRequest",
+  "__aqePopPendingSplitDefaultSaveRequest",
   "__aqePopFrontendLog",
   "__aqePlayAfterEdit",
   "__aqePrepareForNewNote",
@@ -51,5 +55,6 @@ export function installEditorWindowContract(): void {
   window.__aqePopFrontendLog = popEditorFrontendLog;
   window.__aqePopPendingGraphAnalysisRequest = popPendingGraphAnalysisRequest;
   window.__aqePopPendingRegionDeleteRequest = popPendingRegionDeleteRequest;
+  window.__aqePopPendingSplitDefaultSaveRequest = popPendingSplitDefaultSaveRequest;
   installEditorTestWindowContract();
 }

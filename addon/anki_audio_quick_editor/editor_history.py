@@ -90,5 +90,5 @@ def restore_history_entry(
     deps.eval_status(editor, status)
     deps.eval_playback_state(editor, field_index, "stopped", 0)
     if field_index in session.graph_active_fields:
-        deps.request_graph_redraw(editor)
+        deps.request_graph_redraw(editor, entry.filename)
     deps.request_playback_after_edit(editor, field_index)

@@ -2,13 +2,17 @@
   import { onMount, tick } from "svelte";
 
   import EditorCommandIcon from "./EditorCommandIcon.svelte";
+  import SplitDefaultSaveButton from "./SplitDefaultSaveButton.svelte";
   import GraphSplitOptions from "./GraphSplitOptions.svelte";
   import SplitValueOptions from "./SplitValueOptions.svelte";
   import { send } from "./actions.js";
+  import { sendSplitDefaultSaveRequest } from "./bridge.js";
   import {
     buildSplitCommandPayload,
+    buildSplitDefaultSaveRequest,
     formatDpdfnetAggressiveness,
     getSplitButtonState,
+    promoteSplitDefaultsForField,
     setDenoiseAlgorithmForField,
     setDpdfnetAttnLimitDbForField,
     setPauseAggressivenessForField,
@@ -63,6 +67,8 @@
   let graphSmoothness = $state<GraphSmoothness>("very_smooth");
   let graphConnectShortDropoutsMs = $state(240);
   let graphVoiceLock = $state<GraphVoiceLock>("balanced");
+  let defaultSaved = $state(false);
+  let defaultSavedTimer: number | undefined;
 
   function slug(): string {
     return COMMAND_SLUGS[button.command];
@@ -99,6 +105,21 @@
   function close(): void {
     open = false;
     popoverStyle = HIDDEN_POPOVER_STYLE;
+  }
+
+  function syncFromState(state: FieldSplitButtonState): void {
+    trimStepMs = state.trimStepMs;
+    volumeStepDb = state.volumeStepDb;
+    speedStep = state.speedStep;
+    pauseAggressiveness = state.pauseAggressiveness;
+    denoiseAlgorithm = state.denoiseAlgorithm;
+    dpdfnetAttnLimitDb = state.dpdfnetAttnLimitDb;
+    pitchHumMode = state.pitchHumMode;
+    graphVoiceRange = state.graphVoiceRange;
+    graphRecordingCondition = state.graphRecordingCondition;
+    graphSmoothness = state.graphSmoothness;
+    graphConnectShortDropoutsMs = state.graphConnectShortDropoutsMs;
+    graphVoiceLock = state.graphVoiceLock;
   }
 
   function toggle(event: MouseEvent): void {
@@ -158,6 +179,23 @@
   function dispatchPrimary(): void {
     close();
     send(button.command, target.node, target.ord, buildSplitCommandPayload(button.command, target.ord));
+  }
+
+  function showDefaultSaved(): void {
+    defaultSaved = true;
+    if (defaultSavedTimer !== undefined) window.clearTimeout(defaultSavedTimer);
+    defaultSavedTimer = window.setTimeout(() => {
+      defaultSaved = false;
+      defaultSavedTimer = undefined;
+    }, 1400);
+  }
+
+  function saveCurrentDefaults(): void {
+    const request = buildSplitDefaultSaveRequest(button.command, target.ord);
+    sendSplitDefaultSaveRequest(request);
+    syncFromState(promoteSplitDefaultsForField(target.ord, request.defaults));
+    showDefaultSaved();
+    void updatePopoverPlacement();
   }
 
   function clamp(value: number, min: number, max: number): number {
@@ -223,19 +261,7 @@
   });
 
   onMount(() => {
-    const state = getSplitButtonState(target.ord);
-    trimStepMs = state.trimStepMs;
-    volumeStepDb = state.volumeStepDb;
-    speedStep = state.speedStep;
-    pauseAggressiveness = state.pauseAggressiveness;
-    denoiseAlgorithm = state.denoiseAlgorithm;
-    dpdfnetAttnLimitDb = state.dpdfnetAttnLimitDb;
-    pitchHumMode = state.pitchHumMode;
-    graphVoiceRange = state.graphVoiceRange;
-    graphRecordingCondition = state.graphRecordingCondition;
-    graphSmoothness = state.graphSmoothness;
-    graphConnectShortDropoutsMs = state.graphConnectShortDropoutsMs;
-    graphVoiceLock = state.graphVoiceLock;
+    syncFromState(getSplitButtonState(target.ord));
     document.addEventListener("mousedown", onDocumentPointerDown, true);
     document.addEventListener("keydown", onDocumentKeyDown, true);
     window.addEventListener("resize", onViewportChange);
@@ -245,6 +271,7 @@
       document.removeEventListener("keydown", onDocumentKeyDown, true);
       window.removeEventListener("resize", onViewportChange);
       window.removeEventListener("scroll", onViewportChange, true);
+      if (defaultSavedTimer !== undefined) window.clearTimeout(defaultSavedTimer);
     };
   });
 </script>
@@ -287,9 +314,16 @@
       style={popoverStyle}
     >
       {#if button.command === "aqe:analyze"}
-        <div class="aqe-split-popover-header">
-          <strong>{button.label}</strong>
-          <span>{formatGraphVoiceRange(graphVoiceRange)}</span>
+        <div class="aqe-split-popover-header aqe-split-popover-header-with-action">
+          <span class="aqe-split-popover-title">
+            <strong>{button.label}</strong>
+            <span>{formatGraphVoiceRange(graphVoiceRange)}</span>
+          </span>
+          <SplitDefaultSaveButton
+            onSave={saveCurrentDefaults}
+            saved={defaultSaved}
+            testId={`aqe-split-${target.ord}-${slug()}-save-default`}
+          />
         </div>
         <GraphSplitOptions
           connectShortDropoutsMs={graphConnectShortDropoutsMs}
@@ -314,12 +348,14 @@
           onDpdfnetAttnLimitDb={applyDpdfnetAttnLimitDb}
           onPauseAggressiveness={applyPauseAggressiveness}
           onPitchHumMode={applyPitchHumMode}
+          onSaveDefault={saveCurrentDefaults}
           onSpeedStep={applySpeedStep}
           onTrimStep={applyTrimStep}
           onVolumeStep={applyVolumeStep}
           pauseAggressiveness={pauseAggressiveness}
           dpdfnetAttnLimitDb={dpdfnetAttnLimitDb}
           pitchHumMode={pitchHumMode}
+          saveDefaultSaved={defaultSaved}
           speedStep={speedStep}
           targetOrd={target.ord}
           trimStepMs={trimStepMs}

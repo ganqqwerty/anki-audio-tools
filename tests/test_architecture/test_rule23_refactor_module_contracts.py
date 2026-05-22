@@ -38,6 +38,7 @@ EDITOR_SPLIT_MODULES = {
     "editor_runtime",
     "editor_session",
     "editor_settings_actions",
+    "editor_split_defaults",
 }
 
 BROWSER_SPLIT_MODULES = {"browser_dialog", "browser_dialog_state", "browser_report"}

@@ -2,12 +2,15 @@
   import { onMount, tick } from "svelte";
 
   import EditorCommandIcon from "./EditorCommandIcon.svelte";
+  import SplitDefaultSaveButton from "./SplitDefaultSaveButton.svelte";
   import { setRepeatEnabledForOrd, setRepeatPauseSecondsForOrd, send } from "./actions.js";
+  import { sendSplitDefaultSaveRequest } from "./bridge.js";
   import { playRepeatOptionsTitle } from "./control-actions.js";
   import { visualizerForOrd } from "./dom-selectors.js";
   import {
     formatRepeatPauseSeconds,
     getSplitButtonState,
+    promoteSplitDefaultsForField,
     setRepeatPauseSecondsForField,
   } from "./split-button-state.js";
   import { t } from "../lib/i18n.js";
@@ -29,6 +32,8 @@
   let popoverStyle = $state(HIDDEN_POPOVER_STYLE);
   let pressed = $state(false);
   let repeatPauseSeconds = $state(0);
+  let defaultSaved = $state(false);
+  let defaultSavedTimer: number | undefined;
   const menuTitle = $derived(playRepeatOptionsTitle(pressed));
 
   function close(): void {
@@ -58,11 +63,13 @@
   function toggleRepeat(event: MouseEvent): void {
     const button = event.currentTarget as HTMLButtonElement;
     const enabled = button.ariaPressed !== "true";
+    defaultSaved = false;
     pressed = enabled;
     setRepeatEnabledForOrd(target.ord, enabled);
   }
 
   function applyValue(value: number): void {
+    defaultSaved = false;
     const state = setRepeatPauseSecondsForField(target.ord, value);
     repeatPauseSeconds = state.repeatPauseSeconds;
     setRepeatPauseSecondsForOrd(target.ord, repeatPauseSeconds);
@@ -72,6 +79,34 @@
   function dispatchPrimary(): void {
     close();
     send(button.command, target.node, target.ord);
+  }
+
+  function showDefaultSaved(): void {
+    defaultSaved = true;
+    if (defaultSavedTimer !== undefined) window.clearTimeout(defaultSavedTimer);
+    defaultSavedTimer = window.setTimeout(() => {
+      defaultSaved = false;
+      defaultSavedTimer = undefined;
+    }, 1400);
+  }
+
+  function saveCurrentDefaults(): void {
+    const request = {
+      defaults: {
+        repeatPauseSeconds,
+        repeatPlaybackByDefault: pressed,
+      },
+      fieldOrd: target.ord,
+    };
+    sendSplitDefaultSaveRequest(request);
+    window.__AQE_EDITOR_CONFIG__ = {
+      ...(window.__AQE_EDITOR_CONFIG__ ?? { audioFieldIndices: [] }),
+      repeatPlaybackByDefault: pressed,
+    };
+    repeatPauseSeconds = promoteSplitDefaultsForField(target.ord, request.defaults).repeatPauseSeconds;
+    setRepeatPauseSecondsForOrd(target.ord, repeatPauseSeconds);
+    showDefaultSaved();
+    void updatePopoverPlacement();
   }
 
   function clamp(value: number, min: number, max: number): number {
@@ -147,6 +182,7 @@
       document.removeEventListener("keydown", onDocumentKeyDown, true);
       window.removeEventListener("resize", onViewportChange);
       window.removeEventListener("scroll", onViewportChange, true);
+      if (defaultSavedTimer !== undefined) window.clearTimeout(defaultSavedTimer);
     };
   });
 </script>
@@ -191,9 +227,16 @@
       data-testid={`aqe-split-${target.ord}-play-popover`}
       style={popoverStyle}
     >
-      <div class="aqe-split-popover-header">
-        <strong>{t("editor.command.play.label")}</strong>
-        <span>{pressed ? t("editor.play.repeat_on") : t("editor.play.repeat_off")}</span>
+      <div class="aqe-split-popover-header aqe-split-popover-header-with-action">
+        <span class="aqe-split-popover-title">
+          <strong>{t("editor.command.play.label")}</strong>
+          <span>{pressed ? t("editor.play.repeat_on") : t("editor.play.repeat_off")}</span>
+        </span>
+        <SplitDefaultSaveButton
+          onSave={saveCurrentDefaults}
+          saved={defaultSaved}
+          testId={`aqe-split-${target.ord}-play-save-default`}
+        />
       </div>
       <button
         type="button"
