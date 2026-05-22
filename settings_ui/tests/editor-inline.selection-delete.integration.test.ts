@@ -6,6 +6,7 @@ import {
   dragGraphSelection,
   muteConsole,
   renderFields,
+  selectionToolbarButton,
   setGraphBounds,
   track,
 } from "./editor-inline.integration.helpers.js";
@@ -29,23 +30,25 @@ describe("editor inline selection delete integration", () => {
     scan({ audioFieldIndices: [0] });
     window.__aqeSetVisualizer?.(0, track, 250);
     const svg = document.querySelector<SVGSVGElement>('[data-testid="aqe-graph-svg-0"]')!;
-    const button = document.querySelector<HTMLButtonElement>('[data-testid="aqe-button-0-delete-selection"]')!;
     setGraphBounds(svg);
 
     expect(window.__aqeGraphStateForTest?.(0)).toMatchObject({
       selectionActive: true,
       selectionStartMs: 0,
       selectionEndMs: 1000,
-      regionDeleteButtonHidden: false,
+      selectionToolbarHidden: true,
+      regionDeleteButtonHidden: true,
       regionDeleteButtonDisabled: true,
     });
 
     dragGraphSelection(svg, 0.2, 0.6);
     expect(window.__aqeGraphStateForTest?.(0)).toMatchObject({
+      selectionToolbarHidden: false,
       regionDeleteButtonHidden: false,
       regionDeleteButtonDisabled: false,
     });
 
+    const button = selectionToolbarButton("delete-region");
     button.click();
 
     expect(window.__aqePopPendingRegionDeleteRequest?.()).toEqual({
@@ -73,23 +76,25 @@ describe("editor inline selection delete integration", () => {
     scan({ audioFieldIndices: [0] });
     window.__aqeSetVisualizer?.(0, track, 250);
     const svg = document.querySelector<SVGSVGElement>('[data-testid="aqe-graph-svg-0"]')!;
-    const button = document.querySelector<HTMLButtonElement>('[data-testid="aqe-button-0-delete-rest"]')!;
     setGraphBounds(svg);
 
     expect(window.__aqeGraphStateForTest?.(0)).toMatchObject({
       selectionActive: true,
       selectionStartMs: 0,
       selectionEndMs: 1000,
-      regionDeleteRestButtonHidden: false,
+      selectionToolbarHidden: true,
+      regionDeleteRestButtonHidden: true,
       regionDeleteRestButtonDisabled: true,
     });
 
     dragGraphSelection(svg, 0.2, 0.6);
     expect(window.__aqeGraphStateForTest?.(0)).toMatchObject({
+      selectionToolbarHidden: false,
       regionDeleteRestButtonHidden: false,
       regionDeleteRestButtonDisabled: false,
     });
 
+    const button = selectionToolbarButton("delete-rest");
     button.click();
 
     expect(window.__aqePopPendingRegionDeleteRequest?.()).toEqual({
@@ -151,9 +156,10 @@ describe("editor inline selection delete integration", () => {
     dragGraphSelection(svg, 0, 1);
     expect(window.__aqeGraphStateForTest?.(0)).toMatchObject({
       selectionActive: true,
-      regionDeleteButtonHidden: false,
+      selectionToolbarHidden: true,
+      regionDeleteButtonHidden: true,
       regionDeleteButtonDisabled: true,
-      regionDeleteRestButtonHidden: false,
+      regionDeleteRestButtonHidden: true,
       regionDeleteRestButtonDisabled: true,
     });
 

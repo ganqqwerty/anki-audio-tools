@@ -40,6 +40,7 @@
   "settings.deep_filter_path": "Đường dẫn DeepFilterNet",
   "settings.deep_filter_path.placeholder": "Để trống để dùng tệp nhị phân đi kèm, rồi PATH",
   "settings.deep_filter_post_filter": "Dùng hậu lọc DeepFilterNet",
+  "settings.dpdfnet_attn_limit_db": "Giới hạn suy giảm DPDFNet (dB)",
   "settings.manual_trim_small_ms": "Bước cắt nhỏ (ms)",
   "settings.manual_trim_large_ms": "Bước cắt lớn (ms)",
   "settings.speed_step": "Bước tốc độ",

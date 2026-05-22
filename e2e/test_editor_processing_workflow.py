@@ -341,6 +341,11 @@ def test_processing_undo_redo_and_new_edit_clears_redo(anki_mw, ffmpeg_config) -
             timeout=5.0,
             message="Second undo did not restore the previous generated reference",
         )
+        _wait_for_visualizer_track(
+            editor,
+            lambda value: value["sourceFilename"] == first_generated,
+            timeout=10.0,
+        )
         third_generated = _click_and_wait_for_new_file(
             editor,
             note,

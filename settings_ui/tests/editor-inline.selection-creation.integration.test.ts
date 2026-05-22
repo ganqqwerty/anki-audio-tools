@@ -42,9 +42,10 @@ describe("editor inline selection creation integration", () => {
       playbackEndMs: 1000,
       selectionStartHandleVisible: true,
       selectionEndHandleVisible: true,
-      regionDeleteButtonHidden: false,
+      selectionToolbarHidden: true,
+      regionDeleteButtonHidden: true,
       regionDeleteButtonDisabled: true,
-      regionDeleteRestButtonHidden: false,
+      regionDeleteRestButtonHidden: true,
       regionDeleteRestButtonDisabled: true,
     });
     expect(document.querySelector('[data-testid="aqe-selection-0"]')).toHaveAttribute("visibility", "visible");

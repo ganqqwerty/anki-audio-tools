@@ -54,23 +54,6 @@ afterEach(() => {
     expect(fieldIndex(document.getElementById("f0")!, 7)).toBe(0);
   });
 
-  it.each(["aac", "flac", "m4a", "mp3", "oga", "ogg", "opus", "wav", "webm"])(
-    "detects %s sound references as supported audio",
-    (extension) => {
-      document.body.innerHTML = `<div id="format-field">[sound:clip one.${extension.toUpperCase()}]</div>`;
-
-      expect(audioSourceForNode(document.getElementById("format-field")!)).toBe(
-        `clip one.${extension.toUpperCase()}`,
-      );
-    },
-  );
-
-  it("does not detect mp4 sound references as supported audio", () => {
-    document.body.innerHTML = '<div id="video-field">[sound:clip.mp4]</div>';
-
-    expect(audioSourceForNode(document.getElementById("video-field")!)).toBe("");
-  });
-
   it("dispatches denoise split commands and renders collapsed help", async () => {
     const config = {
       audioFieldIndices: [0],

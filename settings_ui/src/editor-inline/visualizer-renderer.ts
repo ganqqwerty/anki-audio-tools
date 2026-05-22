@@ -87,6 +87,7 @@ export function renderSelection(
     endHandle?.setAttribute("visibility", "hidden");
     startGrip?.setAttribute("visibility", "hidden");
     endGrip?.setAttribute("visibility", "hidden");
+    clearSelectionOverlayGeometry(visualizer);
     return;
   }
   const startX = xForMs(activeSelection.startMs, durationMs);
@@ -121,6 +122,7 @@ export function renderSelection(
     grip?.setAttribute("visibility", showHandles ? "visible" : "hidden");
     grip?.setAttribute("transform", `translate(${x.toFixed(2)} ${handleCenterY.toFixed(2)})`);
   }
+  setSelectionOverlayGeometry(visualizer, startX, endX, plotTop, plotBottom);
 }
 
 export function renderCursor(visualizer: VisualizerElement, ms: number, durationMs: number): void {
@@ -192,6 +194,83 @@ export function graphLogContext(
 function clearText(root: VisualizerElement, selector: string): void {
   const node = root.querySelector<HTMLElement | SVGElement>(selector);
   if (node) node.textContent = "";
+}
+
+function plotWrapperFor(visualizer: VisualizerElement): HTMLElement | null {
+  return visualizer.querySelector<HTMLElement>(".aqe-visualizer-plot");
+}
+
+function setSelectionOverlayGeometry(
+  visualizer: VisualizerElement,
+  startX: number,
+  endX: number,
+  plotTop: number,
+  plotBottom: number,
+): void {
+  const wrapper = plotWrapperFor(visualizer);
+  const svg = visualizer.querySelector<SVGSVGElement>(".aqe-visualizer-svg");
+  if (!wrapper || !svg) return;
+  const rect = svg.getBoundingClientRect();
+  const rectWidth = Number(rect.width) || PLOT.width;
+  const rectHeight = Number(rect.height) || PLOT.height;
+  const scale = Math.min(rectWidth / PLOT.width, rectHeight / PLOT.height) || 1;
+  const startPx = startX * scale;
+  const endPx = endX * scale;
+  const plotTopPx = plotTop * scale;
+  const plotBottomPx = plotBottom * scale;
+  const plotHeightPx = Math.max(0, plotBottomPx - plotTopPx);
+  const plotLeftPx = PLOT.left * scale;
+  const plotRightEdgePx = (PLOT.width - PLOT.right) * scale;
+  const plotRightPx = Math.max(0, rectWidth - plotRightEdgePx);
+  const contentHeightPx = PLOT.height * scale;
+  const toolbarLeftPx = Math.max(plotLeftPx, Math.min(endPx, plotRightEdgePx - 6));
+  const toolbarTopPx = Math.max(plotTopPx, Math.min(plotBottomPx, contentHeightPx - 34));
+
+  wrapper.dataset.selectionOverlayReady = "true";
+  wrapper.style.setProperty("--aqe-selection-start-px", `${startPx.toFixed(2)}px`);
+  wrapper.style.setProperty("--aqe-selection-end-px", `${endPx.toFixed(2)}px`);
+  wrapper.style.setProperty("--aqe-selection-bottom-px", `${plotBottomPx.toFixed(2)}px`);
+  wrapper.style.setProperty("--aqe-selection-toolbar-left-px", `${toolbarLeftPx.toFixed(2)}px`);
+  wrapper.style.setProperty("--aqe-selection-toolbar-top-px", `${toolbarTopPx.toFixed(2)}px`);
+  wrapper.style.setProperty("--aqe-plot-left-px", `${plotLeftPx.toFixed(2)}px`);
+  wrapper.style.setProperty("--aqe-plot-right-px", `${plotRightPx.toFixed(2)}px`);
+  wrapper.style.setProperty("--aqe-plot-top-px", `${plotTopPx.toFixed(2)}px`);
+  wrapper.style.setProperty("--aqe-plot-height-px", `${plotHeightPx.toFixed(2)}px`);
+  setOverlayNodePosition(wrapper.querySelector<HTMLElement>(".aqe-selection-toolbar"), toolbarLeftPx, toolbarTopPx);
+  setOverlayNodePosition(wrapper.querySelector<HTMLElement>(".aqe-selection-toolbar-dot"), toolbarLeftPx, toolbarTopPx);
+}
+
+function clearSelectionOverlayGeometry(visualizer: VisualizerElement): void {
+  const wrapper = plotWrapperFor(visualizer);
+  if (!wrapper) return;
+  wrapper.dataset.selectionOverlayReady = "false";
+  for (const property of [
+    "--aqe-selection-start-px",
+    "--aqe-selection-end-px",
+    "--aqe-selection-bottom-px",
+    "--aqe-selection-toolbar-left-px",
+    "--aqe-selection-toolbar-top-px",
+    "--aqe-plot-left-px",
+    "--aqe-plot-right-px",
+    "--aqe-plot-top-px",
+    "--aqe-plot-height-px",
+  ]) {
+    wrapper.style.removeProperty(property);
+  }
+  clearOverlayNodePosition(wrapper.querySelector<HTMLElement>(".aqe-selection-toolbar"));
+  clearOverlayNodePosition(wrapper.querySelector<HTMLElement>(".aqe-selection-toolbar-dot"));
+}
+
+function setOverlayNodePosition(node: HTMLElement | null, leftPx: number, topPx: number): void {
+  if (!node) return;
+  node.style.left = `${leftPx.toFixed(2)}px`;
+  node.style.top = `${topPx.toFixed(2)}px`;
+}
+
+function clearOverlayNodePosition(node: HTMLElement | null): void {
+  if (!node) return;
+  node.style.removeProperty("left");
+  node.style.removeProperty("top");
 }
 
 function clampedCursorFlagX(cursorX: number): number {

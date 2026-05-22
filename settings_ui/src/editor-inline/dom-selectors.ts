@@ -9,6 +9,18 @@ export function visualizerForOrd(ord: number): VisualizerElement | null {
   return document.querySelector<VisualizerElement>(`.aqe-visualizer[data-aqe-field-ord="${ord}"]`);
 }
 
+export function visualizerPlotForOrd(ord: number): HTMLElement | null {
+  return visualizerForOrd(ord)?.querySelector<HTMLElement>(".aqe-visualizer-plot") ?? null;
+}
+
+export function selectionToolbarForOrd(ord: number): HTMLElement | null {
+  return visualizerForOrd(ord)?.querySelector<HTMLElement>(".aqe-selection-toolbar") ?? null;
+}
+
+export function selectionToolbarDotForOrd(ord: number): HTMLButtonElement | null {
+  return visualizerForOrd(ord)?.querySelector<HTMLButtonElement>(".aqe-selection-toolbar-dot") ?? null;
+}
+
 export function currentAudioSourceForOrd(ord: number): string {
   const container = document.querySelector<HTMLElement>(`.field-container[data-index="${ord}"]`);
   const node = container?.querySelector<HTMLElement>('[contenteditable="true"]') ?? container;

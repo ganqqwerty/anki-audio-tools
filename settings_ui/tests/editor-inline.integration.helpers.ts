@@ -96,16 +96,42 @@ export function dragSelectionHandle(svg: SVGSVGElement, edge: "end" | "start", e
   dispatchHandlePointer(handle, "pointerup", graphClientX(svg, endRatio));
 }
 
-export function setGraphBounds(svg: SVGSVGElement): void {
+export function selectionToolbarButton(
+  kind: "collapse" | "delete-region" | "delete-rest" | "play",
+  ord = 0,
+): HTMLButtonElement {
+  return document.querySelector<HTMLButtonElement>(`[data-testid="aqe-selection-toolbar-${kind}-${ord}"]`)!;
+}
+
+export function selectionToolbarDot(ord = 0): HTMLButtonElement {
+  return document.querySelector<HTMLButtonElement>(`[data-testid="aqe-selection-toolbar-dot-${ord}"]`)!;
+}
+
+export function hoverToolbarButton(button: HTMLElement): void {
+  button.dispatchEvent(new MouseEvent("mouseenter", { bubbles: true }));
+}
+
+export function leaveToolbarButton(button: HTMLElement): void {
+  button.dispatchEvent(new MouseEvent("mouseleave", { bubbles: true }));
+}
+
+export function setGraphBounds(
+  svg: SVGSVGElement,
+  bounds: Partial<{ height: number; left: number; top: number; width: number }> = {},
+): void {
+  const height = bounds.height ?? 150;
+  const left = bounds.left ?? 0;
+  const top = bounds.top ?? 0;
+  const width = bounds.width ?? 620;
   svg.getBoundingClientRect = () => ({
-    bottom: 150,
-    height: 150,
-    left: 0,
-    right: 620,
-    top: 0,
-    width: 620,
-    x: 0,
-    y: 0,
+    bottom: top + height,
+    height,
+    left,
+    right: left + width,
+    top,
+    width,
+    x: left,
+    y: top,
     toJSON: () => ({}),
   });
 }

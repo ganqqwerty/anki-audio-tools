@@ -23,4 +23,5 @@ export type CommandIconName =
   | "undo-2"
   | "volume-1"
   | "volume-2"
-  | "volume-x";
+  | "volume-x"
+  | "x";

@@ -40,6 +40,7 @@
   "settings.deep_filter_path": "Путь к DeepFilterNet",
   "settings.deep_filter_path.placeholder": "Оставьте пустым, чтобы использовать встроенный файл, затем PATH",
   "settings.deep_filter_post_filter": "Использовать постфильтр DeepFilterNet",
+  "settings.dpdfnet_attn_limit_db": "Предел ослабления DPDFNet (дБ)",
   "settings.manual_trim_small_ms": "Малый шаг обрезки (мс)",
   "settings.manual_trim_large_ms": "Большой шаг обрезки (мс)",
   "settings.speed_step": "Шаг скорости",

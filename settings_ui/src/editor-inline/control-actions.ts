@@ -7,7 +7,7 @@ import {
   playButton,
 } from "./dom-selectors.js";
 import { continueDefaultGraphQueue } from "./default-graph-queue.js";
-import { syncAllRegionDeleteControls } from "./region-delete-state.js";
+import { syncAllSelectionToolbars } from "./selection-toolbar-state.js";
 import type { EditorCommand } from "./types.js";
 import { defaultGraphQueueDependencies } from "./graph-actions.js";
 
@@ -31,7 +31,7 @@ export function setControlsBusy(ord: number, busy: boolean, message = "", comman
   allButtons().forEach((button) => {
     button.disabled = !!busy;
   });
-  syncAllRegionDeleteControls();
+  syncAllSelectionToolbars();
   if (!busy) {
     queueMicrotask(() => continueDefaultGraphQueue(defaultGraphQueueDependencies()));
   }

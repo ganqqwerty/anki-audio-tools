@@ -25,9 +25,7 @@ import type {
   PlaybackState,
   VisualizerElement,
 } from "./types.js";
-import {
-  syncRegionDeleteControl,
-} from "./region-delete-state.js";
+import { syncSelectionToolbar } from "./selection-toolbar-state.js";
 import {
   shouldTreatSelectionGestureAsClick as isClickLikeSelectionGesture,
   type SelectionResizeEdge,
@@ -242,6 +240,7 @@ export function clearSelectionDraft(
   options: { redraw?: boolean } = {},
 ): void {
   clearSelectionDraftFromController(visualizer, options);
+  syncSelectionToolbar(visualizer);
 }
 
 export function setSelectionDraft(
@@ -250,7 +249,9 @@ export function setSelectionDraft(
   endMs: number,
   options: { redraw?: boolean } = {},
 ): boolean {
-  return setSelectionDraftFromController(visualizer, startMs, endMs, options);
+  const drafted = setSelectionDraftFromController(visualizer, startMs, endMs, options);
+  syncSelectionToolbar(visualizer);
+  return drafted;
 }
 
 export function commitSelectionDraft(
@@ -258,7 +259,7 @@ export function commitSelectionDraft(
   options: { updateCursor?: boolean } = {},
 ): boolean {
   const committed = commitSelectionDraftFromController(visualizer, selectionControllerDependencies(), options);
-  syncRegionDeleteControl(visualizer);
+  syncSelectionToolbar(visualizer);
   return committed;
 }
 
@@ -267,7 +268,7 @@ export function clearSelection(
   options: { resetPlaybackRegion?: boolean } = {},
 ): void {
   clearSelectionFromController(visualizer, options);
-  syncRegionDeleteControl(visualizer);
+  syncSelectionToolbar(visualizer);
 }
 
 export function setSelection(
@@ -277,7 +278,7 @@ export function setSelection(
   options: { updateCursor?: boolean } = {},
 ): boolean {
   const selected = setSelectionFromController(visualizer, startMs, endMs, selectionControllerDependencies(), options);
-  syncRegionDeleteControl(visualizer);
+  syncSelectionToolbar(visualizer);
   return selected;
 }
 

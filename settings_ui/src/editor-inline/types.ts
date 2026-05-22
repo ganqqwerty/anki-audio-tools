@@ -230,6 +230,18 @@ export interface GraphStateForTest {
   selectionStartHandleVisible: boolean;
   selectionStartHandleX: number | null;
   selectionStartMs: number | null;
+  selectionToolbarCollapsed: boolean;
+  selectionToolbarDeleteRegionDisabled: boolean;
+  selectionToolbarDeleteRegionHidden: boolean;
+  selectionToolbarDeleteRestDisabled: boolean;
+  selectionToolbarDeleteRestHidden: boolean;
+  selectionToolbarDotHidden: boolean;
+  selectionToolbarHidden: boolean;
+  selectionToolbarLeftPx: number | null;
+  selectionToolbarPlayAriaLabel: string;
+  selectionToolbarPlayState: "pause" | "play";
+  selectionToolbarPreview: "none" | "region" | "rest";
+  selectionToolbarTopPx: number | null;
   sourceFilename: string;
   spinnerVisible: boolean;
   timecodeFlagCurrent: string;

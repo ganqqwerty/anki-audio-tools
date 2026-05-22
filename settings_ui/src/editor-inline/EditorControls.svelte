@@ -5,6 +5,7 @@
   import { t } from "../lib/i18n.js";
   import EditorCommandIcon from "./EditorCommandIcon.svelte";
   import PlaySplitButton from "./PlaySplitButton.svelte";
+  import SelectionToolbar from "./SelectionToolbar.svelte";
   import SplitButton from "./SplitButton.svelte";
   import {
     configureAudioClock,
@@ -16,7 +17,7 @@
     startSelectionResizeGesture,
   } from "./actions.js";
   import { visualizerForOrd } from "./dom-selectors.js";
-  import { handleVisualizerKeyDown, sendRegionDelete } from "./region-delete.js";
+  import { handleVisualizerKeyDown } from "./region-delete.js";
   import { PLOT } from "./plot.js";
   import type { ButtonSpec, FieldTarget } from "./types.js";
 
@@ -94,36 +95,6 @@
       <SplitButton button={denoiseButton} {target} />
     {/if}
   {/each}
-  <button
-    type="button"
-    class="aqe-button aqe-delete-region-button"
-    data-aqe-command="aqe:delete-selection"
-    data-aqe-button-state="default"
-    data-testid={testId(target.ord, "aqe:delete-selection")}
-    title={t("editor.command.delete_region.title")}
-    aria-label={t("editor.command.delete_region.title")}
-    hidden
-    onmousedown={(event) => event.preventDefault()}
-    onclick={() => sendRegionDelete("button", target.node, target.ord)}
-  >
-    <EditorCommandIcon icon="trash-2" />
-    <span class="aqe-button-label">{t("editor.command.delete_region.label")}</span>
-  </button>
-  <button
-    type="button"
-    class="aqe-button aqe-delete-rest-button"
-    data-aqe-command="aqe:delete-rest"
-    data-aqe-button-state="default"
-    data-testid={testId(target.ord, "aqe:delete-rest")}
-    title={t("editor.command.delete_rest.title")}
-    aria-label={t("editor.command.delete_rest.title")}
-    hidden
-    onmousedown={(event) => event.preventDefault()}
-    onclick={() => sendRegionDelete("button", target.node, target.ord, "delete-rest")}
-  >
-    <EditorCommandIcon icon="trash-2" />
-    <span class="aqe-button-label">{t("editor.command.delete_rest.label")}</span>
-  </button>
   <span class="aqe-status" data-testid={`aqe-status-${target.ord}`}></span>
   <details class="aqe-help" data-testid={`aqe-help-${target.ord}`}>
     <summary class="aqe-help-summary" title={t("editor.help.title")}>
@@ -244,15 +215,16 @@
       preload="metadata"
       hidden
     ></audio>
-    <svg
-      class="aqe-visualizer-svg"
-      data-testid={`aqe-graph-svg-${target.ord}`}
-      viewBox={`0 0 ${PLOT.width} ${PLOT.height}`}
-      preserveAspectRatio="xMinYMin meet"
-      role="img"
-      aria-label={t("editor.graph.image_aria")}
-      onpointerdown={(event) => handleVisualizerPointerDown(event, target.ord)}
-    >
+    <div class="aqe-visualizer-plot" data-testid={`aqe-visualizer-plot-${target.ord}`}>
+      <svg
+        class="aqe-visualizer-svg"
+        data-testid={`aqe-graph-svg-${target.ord}`}
+        viewBox={`0 0 ${PLOT.width} ${PLOT.height}`}
+        preserveAspectRatio="xMinYMin meet"
+        role="img"
+        aria-label={t("editor.graph.image_aria")}
+        onpointerdown={(event) => handleVisualizerPointerDown(event, target.ord)}
+      >
       <rect
         class="aqe-selection"
         data-testid={`aqe-selection-${target.ord}`}
@@ -359,7 +331,9 @@
           <tspan class="aqe-cursor-flag-pitch"> / -- Hz</tspan>
         </text>
       </g>
-    </svg>
+      </svg>
+      <SelectionToolbar {target} />
+    </div>
     <div class="aqe-visualizer-meta">
       <span
         class="aqe-spinner"

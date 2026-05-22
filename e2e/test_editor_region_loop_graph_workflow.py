@@ -54,9 +54,9 @@ def test_graph_render_selects_full_region_and_outside_click_expands_boundaries(
             and state["selectionStartMs"] == 0
             and state["selectionEndMs"] == 2000
             and state["playbackRegionMode"] == "selection"
-            and state["regionDeleteButtonHidden"] is False
+            and state["regionDeleteButtonHidden"] is True
             and state["regionDeleteButtonDisabled"] is True
-            and state["regionDeleteRestButtonHidden"] is False
+            and state["regionDeleteRestButtonHidden"] is True
             and state["regionDeleteRestButtonDisabled"] is True,
         )
         assert initial["playbackStartMs"] == 0

@@ -23,6 +23,7 @@
   import Volume2 from "@lucide/svelte/icons/volume-2";
   import VolumeX from "@lucide/svelte/icons/volume-x";
   import Waves from "@lucide/svelte/icons/waves";
+  import X from "@lucide/svelte/icons/x";
 
   import type { CommandIconName } from "./icon-types.js";
 
@@ -96,5 +97,7 @@
     <VolumeX {size} {strokeWidth} />
   {:else if icon === "waves"}
     <Waves {size} {strokeWidth} />
+  {:else if icon === "x"}
+    <X {size} {strokeWidth} />
   {/if}
 </span>
