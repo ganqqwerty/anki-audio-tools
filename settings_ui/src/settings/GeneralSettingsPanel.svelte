@@ -7,6 +7,7 @@
   import { t } from "$lib/i18n.js";
   import GraphSettingsFields from "./GraphSettingsFields.svelte";
   import OutputFormatField from "./OutputFormatField.svelte";
+  import ToolbarVisibilitySettings from "./ToolbarVisibilitySettings.svelte";
   import type { Config } from "$lib/types.js";
 
   let { config = $bindable(), saveError }: {
@@ -61,6 +62,7 @@
       <span>{t("settings.show_graph_by_default")}</span>
     </span>
   </label>
+  <ToolbarVisibilitySettings bind:config />
   <GraphSettingsFields bind:config />
   <label class="field-row">
     <span>{t("settings.ffmpeg_path")}</span>
@@ -224,9 +226,7 @@
     padding: 24px;
   }
 
-  h2 {
-    margin-top: 0;
-  }
+  h2 { margin-top: 0; }
 
   .toggle {
     align-items: center;
@@ -291,8 +291,5 @@
     outline: 1px solid var(--border-focus, currentColor);
   }
 
-  .error {
-    color: var(--accent-danger, currentColor);
-    font-weight: 600;
-  }
+  .error { color: var(--accent-danger, currentColor); font-weight: 600; }
 </style>

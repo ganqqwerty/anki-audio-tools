@@ -12,6 +12,9 @@ const FALLBACK_MESSAGES: Messages = {
   "settings.repeat_playback_by_default": "Repeat playback by default",
   "settings.repeat_pause_seconds": "Pause between repeats (s)",
   "settings.show_graph_by_default": "Show graph by default",
+  "settings.toolbar_visibility.title": "Editor toolbar buttons",
+  "settings.toolbar_visibility.summary": "Choose which quick editor buttons are shown beside audio fields.",
+  "settings.toolbar_visibility.off": "Off",
   "settings.graph_voice_range": "Graph voice range",
   "settings.graph_voice_range.bass": "Bass",
   "settings.graph_voice_range.low": "Low",
@@ -291,10 +294,6 @@ export function t(key: string, values: Record<string, unknown> = {}): string {
   });
 }
 
-export function locale(): string {
-  return activeLocale;
-}
+export function locale(): string { return activeLocale; }
 
-export function direction(): Direction {
-  return activeDirection;
-}
+export function direction(): Direction { return activeDirection; }

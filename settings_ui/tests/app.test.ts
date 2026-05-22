@@ -12,6 +12,7 @@ import {
   OutputFormat,
   PauseAggressiveness,
   PitchHumMode,
+  VisibleEditorButton,
 } from "../src/lib/types.js";
 
 const defaultConfig = {
@@ -22,6 +23,24 @@ const defaultConfig = {
   repeat_playback_by_default: false,
   repeat_pause_seconds: 0,
   show_graph_by_default: false,
+  visible_editor_buttons: [
+    VisibleEditorButton.AqePlay,
+    VisibleEditorButton.AqeAnalyze,
+    VisibleEditorButton.AqeShowFile,
+    VisibleEditorButton.AqeConvert,
+    VisibleEditorButton.AqeTrimLeft,
+    VisibleEditorButton.AqeTrimRight,
+    VisibleEditorButton.AqeRemovePauses,
+    VisibleEditorButton.AqeDenoiseStandard,
+    VisibleEditorButton.AqePitchHum,
+    VisibleEditorButton.AqeSlower,
+    VisibleEditorButton.AqeFaster,
+    VisibleEditorButton.AqeVolumeDown,
+    VisibleEditorButton.AqeVolumeUp,
+    VisibleEditorButton.AqeUndo,
+    VisibleEditorButton.AqeRedo,
+    VisibleEditorButton.AqeSettings,
+  ],
   graph_voice_range: GraphVoiceRange.General,
   graph_recording_condition: GraphRecordingCondition.Auto,
   graph_smoothness: GraphSmoothness.VerySmooth,
@@ -98,6 +117,8 @@ describe("App", () => {
     expect(screen.getByText("Repeat playback by default")).toBeInTheDocument();
     expect(screen.getByText("Pause between repeats (s)")).toBeInTheDocument();
     expect(screen.getByText("Show graph by default")).toBeInTheDocument();
+    expect(screen.getByText("Editor toolbar buttons")).toBeInTheDocument();
+    expect(screen.getByTestId("toolbar-visibility-settings")).toHaveAttribute("aria-pressed", "true");
     expect(screen.getByText("Graph voice range")).toBeInTheDocument();
     expect(screen.getByText("Graph recording condition")).toBeInTheDocument();
     expect(screen.getByText("Graph smoothness")).toBeInTheDocument();
@@ -151,6 +172,21 @@ describe("App", () => {
     expect(config.volume_step_db).toBe(1.5);
     expect(config.min_volume_db).toBe(-18);
     expect(config.max_volume_db).toBe(12);
+  });
+
+  it("saves toolbar visibility when Settings is turned off", async () => {
+    setInitialState();
+
+    render(App);
+    const settingsButton = screen.getByTestId("toolbar-visibility-settings");
+    await fireEvent.click(settingsButton);
+    await fireEvent.click(screen.getByRole("button", { name: "Save" }));
+
+    expect(settingsButton).toHaveAttribute("aria-pressed", "false");
+    expect(settingsButton).toHaveClass("toolbar-button-off");
+    const config = bridgePayload<{ visible_editor_buttons: string[] }>("settings.save");
+    expect(config.visible_editor_buttons).toContain("aqe:play");
+    expect(config.visible_editor_buttons).not.toContain("aqe:settings");
   });
 
   it("saves split button default settings", async () => {

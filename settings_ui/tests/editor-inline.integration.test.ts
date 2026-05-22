@@ -43,6 +43,23 @@ describe("editor inline Svelte integration", () => {
     expect(fieldIndex(document.getElementById("f0")!, 7)).toBe(0);
   });
 
+  it("hides toolbar buttons omitted from visible editor button config", () => {
+    initializeEditorRuntime({
+      audioFieldIndices: [0],
+      visibleEditorButtons: ["aqe:play", "aqe:analyze", "aqe:trim-left"],
+    });
+    scan({
+      audioFieldIndices: [0],
+      visibleEditorButtons: ["aqe:play", "aqe:analyze", "aqe:trim-left"],
+    });
+
+    expect(document.querySelector('[data-testid="aqe-button-0-play"]')).toBeInTheDocument();
+    expect(document.querySelector('[data-testid="aqe-button-0-graph"]')).toBeInTheDocument();
+    expect(document.querySelector('[data-testid="aqe-button-0-trim-left"]')).toBeInTheDocument();
+    expect(document.querySelector('[data-testid="aqe-button-0-settings"]')).not.toBeInTheDocument();
+    expect(document.querySelector('[data-testid="aqe-button-0-denoise-standard"]')).not.toBeInTheDocument();
+  });
+
   it.each(["aac", "flac", "m4a", "mp3", "oga", "ogg", "opus", "wav", "webm"])(
     "detects %s sound references as supported audio",
     (extension) => {

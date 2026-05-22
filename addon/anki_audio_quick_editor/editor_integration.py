@@ -208,11 +208,15 @@ def _on_editor_will_load_note(js: str, note: Any, editor: Any) -> str:
     _SESSIONS.setdefault(editor, EditorSession()).note_id = getattr(note, "id", None)
     config = _config(editor)
     audio_field_sources = _audio_field_sources(note)
+    visible_editor_buttons = config.get("visible_editor_buttons", [])
+    if not isinstance(visible_editor_buttons, list):
+        visible_editor_buttons = []
     script = injection_script(
         list(audio_field_sources),
         audio_field_sources=audio_field_sources,
         repeat_playback_by_default=bool(config.get("repeat_playback_by_default", False)),
         show_graph_by_default=bool(config.get("show_graph_by_default", False)),
+        visible_editor_buttons=[str(command) for command in visible_editor_buttons],
         split_button_defaults={
             "trimStepMs": int(config.get("manual_trim_small_ms", 100)),
             "volumeStepDb": float(config.get("volume_step_db", 3.0)),

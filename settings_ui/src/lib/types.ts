@@ -37,6 +37,7 @@ export {
   Level,
   OutputFormat,
   PitchHumMode,
+  VisibleEditorButton,
 } from "./generated/contracts.js";
 
 import type {
