@@ -623,21 +623,22 @@
   box-sizing: border-box;
   color: #2f80ed;
   cursor: pointer;
-  height: 22px;
+  height: 16px;
   left: var(--aqe-selection-toolbar-left-px, 0px);
   overflow: visible;
   position: absolute;
   top: var(--aqe-selection-toolbar-top-px, 0px);
-  transform: translate(-50%, 6px);
-  width: 22px;
+  transform: translate(-50%, 8px);
+  width: 16px;
   z-index: 4;
 }
 
 .aqe-selection-toolbar-dot-halo {
+  animation: aqe-selection-toolbar-dot-pulse 6s ease-in-out infinite;
   fill: none;
-  opacity: 0.24;
+  opacity: 0.2;
   stroke: currentColor;
-  stroke-width: 4;
+  stroke-width: 3.25;
 }
 
 .aqe-selection-toolbar-dot-ring {
@@ -648,12 +649,39 @@
 
 .aqe-selection-toolbar-dot:hover .aqe-selection-toolbar-dot-halo,
 .aqe-selection-toolbar-dot:focus-visible .aqe-selection-toolbar-dot-halo {
-  opacity: 0.34;
-  stroke-width: 7;
+  animation-name: aqe-selection-toolbar-dot-pulse-strong;
+  opacity: 0.38;
+  stroke-width: 5.5;
 }
 
 .aqe-selection-toolbar-dot:focus-visible .aqe-selection-toolbar-dot-ring {
   stroke-width: 3;
+}
+
+@keyframes aqe-selection-toolbar-dot-pulse {
+  0%,
+  100% {
+    opacity: 0.15;
+    stroke-width: 2.75;
+  }
+
+  50% {
+    opacity: 0.28;
+    stroke-width: 4.25;
+  }
+}
+
+@keyframes aqe-selection-toolbar-dot-pulse-strong {
+  0%,
+  100% {
+    opacity: 0.28;
+    stroke-width: 4;
+  }
+
+  50% {
+    opacity: 0.48;
+    stroke-width: 6;
+  }
 }
 
 .aqe-pitch-path {

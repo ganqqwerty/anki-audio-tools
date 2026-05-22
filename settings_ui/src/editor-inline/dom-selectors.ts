@@ -27,6 +27,20 @@ export function currentAudioSourceForOrd(ord: number): string {
   return audioSourceForNode(node) || audioSourceForNode(container);
 }
 
+export function fieldPreferenceNodeForOrd(ord: number): HTMLElement | null {
+  const container = document.querySelector<HTMLElement>(`.field-container[data-index="${ord}"]`);
+  if (container) {
+    return container.querySelector<HTMLElement>('[contenteditable="true"]') || container;
+  }
+  return document.querySelector<HTMLElement>(
+    `[data-field-ord="${ord}"], [data-ord="${ord}"], [data-index="${ord}"]`,
+  );
+}
+
+export function allFieldPreferenceNodes(): HTMLElement[] {
+  return Array.from(document.querySelectorAll<HTMLElement>("[data-aqe-selection-toolbar-preferred-collapsed]"));
+}
+
 export function buttonFor(ord: number, command: EditorCommand): HTMLButtonElement | null {
   const controls = controlsForOrd(ord);
   return controls?.querySelector<HTMLButtonElement>(`[data-aqe-command="${command}"]`) ?? null;

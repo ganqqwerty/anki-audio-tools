@@ -2,6 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { setControlsBusy } from "../src/editor-inline/actions.js";
 import { disposeEditorRuntime, initializeEditorRuntime, scan } from "../src/editor-inline/runtime.js";
+import { resetSelectionToolbarPreferences } from "../src/editor-inline/selection-toolbar-state.js";
 import {
   dispatchGraphPointer,
   dragGraphSelection,
@@ -27,6 +28,7 @@ describe("editor inline selection toolbar integration", () => {
 
   afterEach(() => {
     disposeEditorRuntime();
+    resetSelectionToolbarPreferences();
     restoreConsole();
     vi.restoreAllMocks();
   });
@@ -135,7 +137,7 @@ describe("editor inline selection toolbar integration", () => {
     }
   });
 
-  it("collapses to a dot, expands from the dot, and resets collapse for a new selection", () => {
+  it("keeps collapse preference across selection changes until the dot is expanded", () => {
     initializeEditorRuntime({ audioFieldIndices: [0] });
     scan({ audioFieldIndices: [0] });
     window.__aqeSetVisualizer?.(0, track, 250);
@@ -153,6 +155,15 @@ describe("editor inline selection toolbar integration", () => {
     expect(selectionToolbarDot()).toBeInstanceOf(SVGSVGElement);
     expect(selectionToolbarDot().querySelector(".aqe-selection-toolbar-dot-ring")).not.toBeNull();
 
+    dragGraphSelection(svg, 0.3, 0.7);
+    expect(window.__aqeGraphStateForTest?.(0)).toMatchObject({
+      selectionStartMs: 300,
+      selectionEndMs: 700,
+      selectionToolbarCollapsed: true,
+      selectionToolbarHidden: true,
+      selectionToolbarDotHidden: false,
+    });
+
     selectionToolbarDot().dispatchEvent(new MouseEvent("click", { bubbles: true }));
     expect(window.__aqeGraphStateForTest?.(0)).toMatchObject({
       selectionToolbarCollapsed: false,
@@ -160,13 +171,51 @@ describe("editor inline selection toolbar integration", () => {
       selectionToolbarDotHidden: true,
     });
 
-    selectionToolbarButton("collapse").click();
-    dragGraphSelection(svg, 0.3, 0.7);
+    dragGraphSelection(svg, 0.2, 0.5);
     expect(window.__aqeGraphStateForTest?.(0)).toMatchObject({
-      selectionStartMs: 300,
-      selectionEndMs: 700,
+      selectionStartMs: 200,
+      selectionEndMs: 500,
       selectionToolbarCollapsed: false,
       selectionToolbarHidden: false,
+    });
+  });
+
+  it("preserves toolbar preference across graph redraws after transformations", () => {
+    initializeEditorRuntime({ audioFieldIndices: [0] });
+    scan({ audioFieldIndices: [0] });
+    window.__aqeSetVisualizer?.(0, track, 250);
+    const svg = document.querySelector<SVGSVGElement>('[data-testid="aqe-graph-svg-0"]')!;
+    setGraphBounds(svg);
+    dragGraphSelection(svg, 0.2, 0.6);
+
+    window.__aqeSetVisualizer?.(0, { ...track, sourceFilename: "transformed-visible.mp3" }, 0);
+    dragGraphSelection(svg, 0.3, 0.7);
+    expect(window.__aqeGraphStateForTest?.(0)).toMatchObject({
+      selectionToolbarCollapsed: false,
+      selectionToolbarHidden: false,
+      selectionToolbarDotHidden: true,
+    });
+
+    selectionToolbarButton("collapse").click();
+    window.__aqeSetVisualizer?.(0, { ...track, sourceFilename: "transformed-collapsed.mp3" }, 0);
+    dragGraphSelection(svg, 0.25, 0.5);
+    expect(window.__aqeGraphStateForTest?.(0)).toMatchObject({
+      selectionToolbarCollapsed: true,
+      selectionToolbarHidden: true,
+      selectionToolbarDotHidden: false,
+    });
+
+    disposeEditorRuntime();
+    initializeEditorRuntime({ audioFieldIndices: [0] });
+    scan({ audioFieldIndices: [0] });
+    window.__aqeSetVisualizer?.(0, { ...track, sourceFilename: "transformed-remount.mp3" }, 0);
+    const remountedSvg = document.querySelector<SVGSVGElement>('[data-testid="aqe-graph-svg-0"]')!;
+    setGraphBounds(remountedSvg);
+    dragGraphSelection(remountedSvg, 0.35, 0.55);
+    expect(window.__aqeGraphStateForTest?.(0)).toMatchObject({
+      selectionToolbarCollapsed: true,
+      selectionToolbarHidden: true,
+      selectionToolbarDotHidden: false,
     });
   });
 

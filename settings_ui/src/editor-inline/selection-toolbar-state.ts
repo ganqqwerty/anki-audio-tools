@@ -1,4 +1,9 @@
-import { allVisualizers, visualizerForOrd } from "./dom-selectors.js";
+import {
+  allFieldPreferenceNodes,
+  allVisualizers,
+  fieldPreferenceNodeForOrd,
+  visualizerForOrd,
+} from "./dom-selectors.js";
 import { t } from "../lib/i18n.js";
 import { draftSelectionForVisualizer } from "./selection-controller.js";
 import {
@@ -12,6 +17,9 @@ export type SelectionToolbarPreview = "none" | "region" | "rest";
 const DELETE_REST_TOOLBAR_TITLE = "Delete audio outside selected region";
 const PLAY_SELECTION_TITLE = "Play selection";
 const PAUSE_SELECTION_TITLE = "Pause selection";
+const FIELD_PREFERENCE_DATASET_KEY = "aqeSelectionToolbarPreferredCollapsed";
+
+const fieldCollapsePreferences = new Map<number, boolean>();
 
 function anyBusy(): boolean {
   return document.body.dataset.aqeBusy === "true";
@@ -56,7 +64,7 @@ export function syncSelectionToolbar(visualizer: VisualizerElement): void {
   const currentSelectionKey = availability.hasSelection ? selectionKey(visualizer) : "";
 
   if (currentSelectionKey !== visualizer.dataset.selectionToolbarSelectionKey) {
-    visualizer.dataset.selectionToolbarCollapsed = "false";
+    visualizer.dataset.selectionToolbarCollapsed = preferredCollapsed(visualizer) ? "true" : "false";
     visualizer.dataset.selectionToolbarSelectionKey = currentSelectionKey;
   }
 
@@ -86,12 +94,14 @@ export function syncAllSelectionToolbars(): void {
 }
 
 export function collapseSelectionToolbar(visualizer: VisualizerElement): void {
+  setPreferredCollapsed(visualizer, true);
   visualizer.dataset.selectionToolbarCollapsed = "true";
   setSelectionToolbarPreview(visualizer, "none");
   syncSelectionToolbar(visualizer);
 }
 
 export function expandSelectionToolbar(visualizer: VisualizerElement): void {
+  setPreferredCollapsed(visualizer, false);
   visualizer.dataset.selectionToolbarCollapsed = "false";
   syncSelectionToolbar(visualizer);
 }
@@ -118,6 +128,13 @@ export function setSelectionToolbarPreviewForOrd(ord: number, preview: Selection
   if (visualizer) setSelectionToolbarPreview(visualizer, preview);
 }
 
+export function resetSelectionToolbarPreferences(): void {
+  fieldCollapsePreferences.clear();
+  allFieldPreferenceNodes().forEach((node) => {
+    delete node.dataset[FIELD_PREFERENCE_DATASET_KEY];
+  });
+}
+
 function hideToolbar(toolbar: HTMLElement | null, dot: SVGSVGElement | null): void {
   if (toolbar) {
     toolbar.hidden = true;
@@ -129,6 +146,46 @@ function hideToolbar(toolbar: HTMLElement | null, dot: SVGSVGElement | null): vo
     dot.setAttribute("aria-hidden", "true");
     dot.setAttribute("aria-disabled", "true");
   }
+}
+
+function preferredCollapsed(visualizer: VisualizerElement): boolean {
+  const ord = fieldOrdFor(visualizer);
+  if (ord !== null) {
+    const fieldPreference = fieldPreferenceForOrd(ord);
+    if (fieldPreference !== null) {
+      fieldCollapsePreferences.set(ord, fieldPreference);
+      visualizer.dataset.selectionToolbarPreferredCollapsed = fieldPreference ? "true" : "false";
+      return fieldPreference;
+    }
+    const storedPreference = fieldCollapsePreferences.get(ord);
+    if (storedPreference !== undefined) {
+      visualizer.dataset.selectionToolbarPreferredCollapsed = storedPreference ? "true" : "false";
+      return storedPreference;
+    }
+  }
+  return visualizer.dataset.selectionToolbarPreferredCollapsed === "true";
+}
+
+function setPreferredCollapsed(visualizer: VisualizerElement, collapsed: boolean): void {
+  const value = collapsed ? "true" : "false";
+  visualizer.dataset.selectionToolbarPreferredCollapsed = value;
+  const ord = fieldOrdFor(visualizer);
+  if (ord === null) return;
+  fieldCollapsePreferences.set(ord, collapsed);
+  const fieldNode = fieldPreferenceNodeForOrd(ord);
+  if (fieldNode) fieldNode.dataset[FIELD_PREFERENCE_DATASET_KEY] = value;
+}
+
+function fieldPreferenceForOrd(ord: number): boolean | null {
+  const raw = fieldPreferenceNodeForOrd(ord)?.dataset[FIELD_PREFERENCE_DATASET_KEY];
+  if (raw === "true") return true;
+  if (raw === "false") return false;
+  return null;
+}
+
+function fieldOrdFor(visualizer: VisualizerElement): number | null {
+  const raw = visualizer.dataset.aqeFieldOrd;
+  return raw && /^\d+$/.test(raw) ? Number(raw) : null;
 }
 
 function syncSelectionToolbarButtons(

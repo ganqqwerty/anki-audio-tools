@@ -101,7 +101,7 @@
 <svg
   class="aqe-selection-toolbar-dot"
   data-testid={`aqe-selection-toolbar-dot-${target.ord}`}
-  viewBox="0 0 22 22"
+  viewBox="0 0 18 18"
   role="button"
   tabindex="0"
   aria-label="Expand selection actions"
@@ -112,6 +112,6 @@
   aria-hidden="true"
 >
   <title>Expand selection actions</title>
-  <circle class="aqe-selection-toolbar-dot-halo" cx="11" cy="11" r="8"></circle>
-  <circle class="aqe-selection-toolbar-dot-ring" cx="11" cy="11" r="6.5"></circle>
+  <circle class="aqe-selection-toolbar-dot-halo" cx="9" cy="9" r="6.25"></circle>
+  <circle class="aqe-selection-toolbar-dot-ring" cx="9" cy="9" r="4.75"></circle>
 </svg>

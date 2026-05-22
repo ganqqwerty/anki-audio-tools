@@ -150,6 +150,38 @@ def test_selection_toolbar_appears_collapses_and_expands(anki_mw, ffmpeg_config)
         )
         assert collapsed["selectionActive"] is True
 
+        _shift_drag_region(editor, 0.3, 0.7)
+        wait_for_js_condition(
+            editor.web,
+            _graph_state_js(),
+            lambda state: state is not None
+            and state["selectionStartMs"] == 600
+            and state["selectionEndMs"] == 1400
+            and state["selectionToolbarCollapsed"] is True
+            and state["selectionToolbarHidden"] is True
+            and state["selectionToolbarDotHidden"] is False,
+            timeout=5.0,
+        )
+
+        previous_name = _sound_filename(note.fields[0])
+        click_selector(editor.web, '[data-testid="aqe-button-0-volume-up"]', timeout=5.0)
+        generated_name = _wait_for_generated_mp3(note, media_dir, previous_name)
+        _wait_for_visualizer_track(
+            editor,
+            lambda value: value["sourceFilename"] == generated_name,
+            timeout=10.0,
+        )
+        _shift_drag_region(editor, 0.25, 0.5)
+        wait_for_js_condition(
+            editor.web,
+            _graph_state_js(),
+            lambda state: state is not None
+            and state["selectionToolbarCollapsed"] is True
+            and state["selectionToolbarHidden"] is True
+            and state["selectionToolbarDotHidden"] is False,
+            timeout=5.0,
+        )
+
         _dispatch_toolbar_event(editor, "dot", "click")
         expanded = _wait_for_toolbar(
             editor,
@@ -157,6 +189,13 @@ def test_selection_toolbar_appears_collapses_and_expands(anki_mw, ffmpeg_config)
             and state["selectionToolbarDotHidden"] is True,
         )
         assert expanded["selectionActive"] is True
+
+        _shift_drag_region(editor, 0.2, 0.4)
+        _wait_for_toolbar(
+            editor,
+            lambda state: state["selectionToolbarCollapsed"] is False
+            and state["selectionToolbarDotHidden"] is True,
+        )
     finally:
         editor.set_note(None)
         parent.close()
@@ -281,6 +320,13 @@ def test_selection_toolbar_delete_rest_keeps_selected_audio(anki_mw, ffmpeg_conf
         assert generated_name.startswith("editor_toolbar_delete_rest_source__aqe_")
         assert 600 <= generated_duration <= 900
         assert redrawn["playbackState"] == "stopped"
+
+        _shift_drag_region(editor, 0.1, 0.8)
+        _wait_for_toolbar(
+            editor,
+            lambda state: state["selectionToolbarCollapsed"] is False
+            and state["selectionToolbarDotHidden"] is True,
+        )
     finally:
         editor.set_note(None)
         parent.close()
