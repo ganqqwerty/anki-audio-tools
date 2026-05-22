@@ -109,7 +109,7 @@
   onmousedown={(event) => event.preventDefault()}
   onkeydown={expandCollapsedToolbarFromKeyboard}
   onclick={expandCollapsedToolbar}
-  hidden
+  aria-hidden="true"
 >
   <title>Expand selection actions</title>
   <circle class="aqe-selection-toolbar-dot-halo" cx="11" cy="11" r="8"></circle>

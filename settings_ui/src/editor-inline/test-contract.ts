@@ -176,7 +176,9 @@ export function graphStateForTest(ord: number): GraphStateForTest | null {
     selectionToolbarDeleteRegionHidden: regionDelete ? !!regionDelete.hidden : true,
     selectionToolbarDeleteRestDisabled: !!regionDeleteRest?.disabled,
     selectionToolbarDeleteRestHidden: regionDeleteRest ? !!regionDeleteRest.hidden : true,
-    selectionToolbarDotHidden: selectionToolbarDot ? selectionToolbarDot.hasAttribute("hidden") : true,
+    selectionToolbarDotHidden: selectionToolbarDot
+      ? selectionToolbarDot.hasAttribute("hidden") || selectionToolbarDot.getAttribute("aria-hidden") === "true"
+      : true,
     selectionToolbarHidden: selectionToolbar ? !!selectionToolbar.hidden : true,
     selectionToolbarLeftPx: selectionToolbar ? cssPixelNumber(selectionToolbar.style.left) : null,
     selectionToolbarPlayAriaLabel: selectionToolbarPlay?.getAttribute("aria-label") || "",

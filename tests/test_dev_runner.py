@@ -4,7 +4,7 @@ import sys
 from pathlib import Path
 
 import scripts.dev as dev
-from scripts.dev_tasks import process, pytest_runner
+from scripts.dev_tasks import frontend, process, pytest_runner, quality_tools
 
 
 def test_split_cli_args_treats_verbose_as_global_flag() -> None:
@@ -88,12 +88,12 @@ def test_build_ui_generates_contracts_before_frontend_build(monkeypatch, tmp_pat
     settings_ui.mkdir()
     calls: list[str] = []
 
-    monkeypatch.setattr(dev, "SETTINGS_UI_DIR", settings_ui)
-    monkeypatch.setattr(dev.shutil, "which", lambda name: "/usr/bin/npm" if name == "npm" else None)
-    monkeypatch.setattr(dev, "cmd_contracts_generate", lambda: calls.append("contracts-generate") or 0)
-    monkeypatch.setattr(dev, "_run", lambda cmd, **kwargs: calls.append(" ".join(cmd)) or 0)
+    monkeypatch.setattr(frontend, "SETTINGS_UI_DIR", settings_ui)
+    monkeypatch.setattr(frontend.shutil, "which", lambda name: "/usr/bin/npm" if name == "npm" else None)
+    monkeypatch.setattr(frontend, "cmd_contracts_generate", lambda: calls.append("contracts-generate") or 0)
+    monkeypatch.setattr(frontend, "_run", lambda cmd, **kwargs: calls.append(" ".join(cmd)) or 0)
 
-    assert dev.cmd_build_ui() == 0
+    assert frontend.cmd_build_ui() == 0
     assert calls == ["contracts-generate", "npm run build"]
 
 
@@ -101,16 +101,16 @@ def test_build_ui_stops_when_contract_generation_fails(monkeypatch, tmp_path: Pa
     settings_ui = tmp_path / "settings_ui"
     settings_ui.mkdir()
 
-    monkeypatch.setattr(dev, "SETTINGS_UI_DIR", settings_ui)
-    monkeypatch.setattr(dev.shutil, "which", lambda name: "/usr/bin/npm" if name == "npm" else None)
-    monkeypatch.setattr(dev, "cmd_contracts_generate", lambda: 19)
+    monkeypatch.setattr(frontend, "SETTINGS_UI_DIR", settings_ui)
+    monkeypatch.setattr(frontend.shutil, "which", lambda name: "/usr/bin/npm" if name == "npm" else None)
+    monkeypatch.setattr(frontend, "cmd_contracts_generate", lambda: 19)
     monkeypatch.setattr(
-        dev,
+        frontend,
         "_run",
         lambda *_args, **_kwargs: (_ for _ in ()).throw(AssertionError("frontend build should not run")),
     )
 
-    assert dev.cmd_build_ui() == 19
+    assert frontend.cmd_build_ui() == 19
 
 
 def test_python_test_command_generates_contracts_before_pytest(monkeypatch) -> None:
@@ -168,16 +168,16 @@ def test_test_svelte_builds_frontend_before_validation(monkeypatch, tmp_path: Pa
     (settings_ui / "node_modules").mkdir(parents=True)
     calls: list[str] = []
 
-    monkeypatch.setattr(dev, "SETTINGS_UI_DIR", settings_ui)
-    monkeypatch.setattr(dev.shutil, "which", lambda name: "/usr/bin/npm" if name == "npm" else None)
-    monkeypatch.setattr(dev, "cmd_build_ui", lambda: calls.append("build") or 0)
+    monkeypatch.setattr(frontend, "SETTINGS_UI_DIR", settings_ui)
+    monkeypatch.setattr(frontend.shutil, "which", lambda name: "/usr/bin/npm" if name == "npm" else None)
+    monkeypatch.setattr(frontend, "cmd_build_ui", lambda: calls.append("build") or 0)
     monkeypatch.setattr(
-        dev,
+        frontend,
         "_run",
         lambda cmd, **kwargs: calls.append(" ".join(cmd)) or 0,
     )
 
-    assert dev.cmd_test_svelte() == 0
+    assert frontend.cmd_test_svelte() == 0
     assert calls == ["build", "npm run lint -- --fix", "npm run validate"]
 
 
@@ -186,17 +186,17 @@ def test_test_svelte_stops_when_lint_autofix_fails(monkeypatch, tmp_path: Path) 
     (settings_ui / "node_modules").mkdir(parents=True)
     calls: list[str] = []
 
-    monkeypatch.setattr(dev, "SETTINGS_UI_DIR", settings_ui)
-    monkeypatch.setattr(dev.shutil, "which", lambda name: "/usr/bin/npm" if name == "npm" else None)
-    monkeypatch.setattr(dev, "cmd_build_ui", lambda: calls.append("build") or 0)
+    monkeypatch.setattr(frontend, "SETTINGS_UI_DIR", settings_ui)
+    monkeypatch.setattr(frontend.shutil, "which", lambda name: "/usr/bin/npm" if name == "npm" else None)
+    monkeypatch.setattr(frontend, "cmd_build_ui", lambda: calls.append("build") or 0)
 
     def fake_run(cmd: list[str], **_kwargs: object) -> int:
         calls.append(" ".join(cmd))
         return 31
 
-    monkeypatch.setattr(dev, "_run", fake_run)
+    monkeypatch.setattr(frontend, "_run", fake_run)
 
-    assert dev.cmd_test_svelte() == 31
+    assert frontend.cmd_test_svelte() == 31
     assert calls == ["build", "npm run lint -- --fix"]
 
 
@@ -204,16 +204,16 @@ def test_test_svelte_stops_when_frontend_build_fails(monkeypatch, tmp_path: Path
     settings_ui = tmp_path / "settings_ui"
     (settings_ui / "node_modules").mkdir(parents=True)
 
-    monkeypatch.setattr(dev, "SETTINGS_UI_DIR", settings_ui)
-    monkeypatch.setattr(dev.shutil, "which", lambda name: "/usr/bin/npm" if name == "npm" else None)
-    monkeypatch.setattr(dev, "cmd_build_ui", lambda: 17)
+    monkeypatch.setattr(frontend, "SETTINGS_UI_DIR", settings_ui)
+    monkeypatch.setattr(frontend.shutil, "which", lambda name: "/usr/bin/npm" if name == "npm" else None)
+    monkeypatch.setattr(frontend, "cmd_build_ui", lambda: 17)
     monkeypatch.setattr(
-        dev,
+        frontend,
         "_run",
         lambda *_args, **_kwargs: (_ for _ in ()).throw(AssertionError("validation should not run")),
     )
 
-    assert dev.cmd_test_svelte() == 17
+    assert frontend.cmd_test_svelte() == 17
 
 
 def test_test_e2e_builds_frontend_before_pytest(monkeypatch) -> None:
@@ -272,14 +272,14 @@ def test_test_e2e_stops_when_frontend_build_fails(monkeypatch) -> None:
 def test_qodana_runs_with_committed_config(monkeypatch) -> None:
     calls: list[tuple[list[str], dict[str, object]]] = []
 
-    monkeypatch.setattr(dev.shutil, "which", lambda name: "/usr/local/bin/qodana" if name == "qodana" else None)
+    monkeypatch.setattr(quality_tools.shutil, "which", lambda name: "/usr/local/bin/qodana" if name == "qodana" else None)
     monkeypatch.setattr(
-        dev,
+        quality_tools,
         "_run",
         lambda cmd, **kwargs: calls.append((cmd, kwargs)) or 0,
     )
 
-    assert dev.cmd_qodana() == 0
+    assert quality_tools.cmd_qodana() == 0
     assert calls == [
         (
             [
@@ -289,7 +289,7 @@ def test_qodana_runs_with_committed_config(monkeypatch) -> None:
                 "--config",
                 "qodana.yaml",
                 "--project-dir",
-                str(dev.ROOT),
+                str(quality_tools.ROOT),
                 "--print-problems",
             ],
             {"label": "qodana code quality"},
@@ -298,9 +298,9 @@ def test_qodana_runs_with_committed_config(monkeypatch) -> None:
 
 
 def test_qodana_reports_missing_cli(monkeypatch, capsys) -> None:
-    monkeypatch.setattr(dev.shutil, "which", lambda name: None)
+    monkeypatch.setattr(quality_tools.shutil, "which", lambda name: None)
 
-    assert dev.cmd_qodana() == 1
+    assert quality_tools.cmd_qodana() == 1
 
     captured = capsys.readouterr()
     assert "qodana not found" in captured.err

@@ -584,7 +584,8 @@
 }
 
 .aqe-selection-toolbar[hidden],
-.aqe-selection-toolbar-dot[hidden] {
+.aqe-selection-toolbar-dot[hidden],
+.aqe-selection-toolbar-dot[aria-hidden="true"] {
   display: none;
 }
 

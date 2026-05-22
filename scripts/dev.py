@@ -4,7 +4,6 @@
 from __future__ import annotations
 
 import json
-import shutil
 import sys
 from collections.abc import Callable
 from pathlib import Path
@@ -14,61 +13,29 @@ if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
 # isort: off
-from scripts.dev_tasks.coverage import cmd_coverage, cmd_info, cmd_sonar
+from scripts.dev_tasks.contracts import cmd_config_schema, cmd_contracts_check, cmd_contracts_generate
+from scripts.dev_tasks.coverage import PYTHON_COVERAGE_FAIL_UNDER, cmd_coverage, cmd_info, cmd_sonar
+from scripts.dev_tasks.frontend import cmd_build, cmd_build_ui, cmd_test_svelte
 from scripts.dev_tasks.process import _run, _run_capture, is_verbose, set_verbose
 from scripts.dev_tasks.pytest_runner import _run_pytest
 from scripts.dev_tasks.python_env import (
     _anki_bin_dir,
     _die,
     _find_anki_python,
-    _setup_addon_symlink,
 )
+from scripts.dev_tasks.quality_tools import cmd_qodana
 from scripts.dev_tasks.quality import (
     _mutmut_fix_stats_prefix_mismatch,
     _radon_complexity_violations,
     _radon_maintainability_violations,
 )
+from scripts.dev_tasks.repository import cmd_file_lines
+from scripts.dev_tasks.setup import cmd_setup
 # isort: on
 
 ADDON_DIR = ROOT / "addon" / "anki_audio_quick_editor"
-SETTINGS_UI_DIR = ROOT / "settings_ui"
-PYTHON_COVERAGE_FAIL_UNDER = 80
 RADON_FAIL_MIN_RANK = "C"
-DEV_DEPS = [
-    "pytest>=9.0.2",
-    "pytest-cov",
-    "pytest-qt",
-    "ruff",
-    "mypy",
-    "radon",
-    "import-linter",
-    "deptry",
-    "vulture",
-    "bandit",
-    "pytest-randomly",
-    "mutmut",
-    "jsonschema",
-    "praat-parselmouth>=0.4.7",
-]
 _COMMAND_ARGS: list[str] = []
-
-
-def cmd_setup() -> int:
-    anki_python = _find_anki_python()
-    print(f"Anki Python: {anki_python}")
-    pip_rc = _run([str(anki_python), "-m", "pip", "install", *DEV_DEPS], label="installing Python dev dependencies")
-    if pip_rc == 0:
-        print(f"  Installed: {', '.join(DEV_DEPS)}")
-    _setup_addon_symlink()
-    npm_rc = 0
-    if SETTINGS_UI_DIR.is_dir() and shutil.which("npm"):
-        npm_cmd = ["npm", "ci", "--legacy-peer-deps"]
-        if not (SETTINGS_UI_DIR / "package-lock.json").is_file():
-            npm_cmd = ["npm", "install", "--legacy-peer-deps"]
-        npm_rc = _run(npm_cmd, cwd=SETTINGS_UI_DIR, label="settings UI npm install")
-    if pip_rc != 0:
-        return pip_rc
-    return npm_rc
 
 
 def cmd_test() -> int:
@@ -249,26 +216,6 @@ def cmd_deps() -> int:
     return _run([str(anki_python), "-m", "deptry", "."], label="deptry dependency check")
 
 
-def cmd_qodana() -> int:
-    qodana = shutil.which("qodana")
-    if not qodana:
-        print("ERROR: qodana not found. Install the Qodana CLI and ensure it is on PATH.", file=sys.stderr)
-        return 1
-    return _run(
-        [
-            qodana,
-            "--disable-update-checks",
-            "scan",
-            "--config",
-            "qodana.yaml",
-            "--project-dir",
-            str(ROOT),
-            "--print-problems",
-        ],
-        label="qodana code quality",
-    )
-
-
 def cmd_muttest() -> int:
     anki_python = _find_anki_python()
     mutmut_args = _COMMAND_ARGS
@@ -339,67 +286,6 @@ def cmd_check() -> int:
     if is_verbose():
         print(f"{'=' * 60}")
     return 1 if failed else 0
-
-
-def cmd_config_schema() -> int:
-    anki_python = _find_anki_python()
-    return _run([str(anki_python), "scripts/config_schema_validate.py"], label="config schema validation")
-
-
-def cmd_contracts_generate() -> int:
-    return _run([sys.executable, "scripts/generate_contracts.py", "--write"], label="contract generation")
-
-
-def cmd_contracts_check() -> int:
-    return _run([sys.executable, "scripts/generate_contracts.py", "--check"], label="contract staleness check")
-
-
-def cmd_file_lines() -> int:
-    root_str = str(ROOT)
-    if root_str not in sys.path:
-        sys.path.insert(0, root_str)
-    from scripts.dev_tasks.file_lines import (
-        format_python_file_length_report,
-        scan_python_file_lengths,
-    )
-
-    report = scan_python_file_lengths(ROOT)
-    print(format_python_file_length_report(report))
-    return report.exit_code
-
-
-def cmd_build_ui() -> int:
-    if not SETTINGS_UI_DIR.is_dir():
-        _die("settings_ui/ directory not found.")
-    if not shutil.which("npm"):
-        _die("npm not found. Install Node.js 18+.")
-    contracts_rc = cmd_contracts_generate()
-    if contracts_rc != 0:
-        return contracts_rc
-    return _run(["npm", "run", "build"], cwd=SETTINGS_UI_DIR, label="frontend webview bundle build")
-
-
-def cmd_build() -> int:
-    return cmd_build_ui()
-
-
-def cmd_test_svelte() -> int:
-    if not SETTINGS_UI_DIR.is_dir():
-        print("ERROR: settings_ui/ not found; cannot validate frontend.", file=sys.stderr)
-        return 1
-    if not shutil.which("npm"):
-        print("ERROR: npm not found. Install Node.js 18+.", file=sys.stderr)
-        return 1
-    if not (SETTINGS_UI_DIR / "node_modules").is_dir():
-        print("ERROR: settings_ui/node_modules not found. Run: python3 scripts/dev.py setup", file=sys.stderr)
-        return 1
-    build_rc = cmd_build_ui()
-    if build_rc != 0:
-        return build_rc
-    lint_fix_rc = _run(["npm", "run", "lint", "--", "--fix"], cwd=SETTINGS_UI_DIR, label="frontend UI lint autofix")
-    if lint_fix_rc != 0:
-        return lint_fix_rc
-    return _run(["npm", "run", "validate"], cwd=SETTINGS_UI_DIR, label="frontend UI validation")
 
 
 def cmd_release() -> int:
