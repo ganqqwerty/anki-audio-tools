@@ -124,6 +124,11 @@ def test_processing_config_reads_show_ffmpeg_commands_flag() -> None:
     assert config.show_ffmpeg_commands is True
 
 
+def test_processing_config_normalizes_output_format() -> None:
+    assert AudioProcessingConfig.from_config({"output_format": " FLAC "}).output_format == "flac"
+    assert AudioProcessingConfig.from_config({"output_format": "aac"}).output_format == "mp3"
+
+
 def test_processing_config_reads_internal_pause_silence_threshold() -> None:
     config = AudioProcessingConfig.from_config({"internal_pause_silence_threshold_db": -42})
 

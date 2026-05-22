@@ -126,7 +126,7 @@ AUDIO_CONTRACTS: dict[str, ModuleContract] = {
     "audio_state": contract(
         "audio_state",
         layer=Layer.IMPORT_SAFE_CORE,
-        allowed_addon_deps=("dpdfnet_settings", "errors"),
+        allowed_addon_deps=("audio_formats", "dpdfnet_settings", "errors"),
     ),
     "batch_operations": contract(
         "batch_operations",

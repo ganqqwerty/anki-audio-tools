@@ -204,6 +204,42 @@ class TestMigrateConfig:
         assert migrated["_config_version"] == CURRENT_CONFIG_VERSION
         assert changed is True
 
+    def test_normalizes_output_format(self) -> None:
+        user = {
+            "_config_version": 15,
+            "enabled": True,
+            "output_format": " FLAC ",
+        }
+        defaults = {
+            "_config_version": CURRENT_CONFIG_VERSION,
+            "enabled": True,
+            "output_format": "mp3",
+        }
+
+        migrated, changed = migrate_config(user, defaults)
+
+        assert migrated["output_format"] == "flac"
+        assert migrated["_config_version"] == CURRENT_CONFIG_VERSION
+        assert changed is True
+
+    def test_snaps_unknown_output_format_to_default(self) -> None:
+        user = {
+            "_config_version": 15,
+            "enabled": True,
+            "output_format": "aac",
+        }
+        defaults = {
+            "_config_version": CURRENT_CONFIG_VERSION,
+            "enabled": True,
+            "output_format": "mp3",
+        }
+
+        migrated, changed = migrate_config(user, defaults)
+
+        assert migrated["output_format"] == "mp3"
+        assert migrated["_config_version"] == CURRENT_CONFIG_VERSION
+        assert changed is True
+
     def test_removes_deleted_edge_silence_keys(self) -> None:
         user = {
             "_config_version": 6,

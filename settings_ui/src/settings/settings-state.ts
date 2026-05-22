@@ -15,7 +15,7 @@ export type SettingsTab = "general" | "diagnostics";
 
 export const FALLBACK_INITIAL_STATE: InitialState = {
   config: {
-    _config_version: 15,
+    _config_version: 16,
     enabled: true,
     debug_logging: false,
     show_ffmpeg_commands: false,

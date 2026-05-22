@@ -132,7 +132,7 @@
     },
     "output_format": {
       "type": "string",
-      "const": "mp3"
+      "enum": ["mp3", "m4a", "ogg", "wav", "flac"]
     },
     "ffmpeg_path": {
       "type": "string"

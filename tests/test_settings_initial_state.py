@@ -9,7 +9,7 @@ from anki_audio_quick_editor.settings.initial_state import build_initial_state
 
 def _full_config() -> dict[str, object]:
     return {
-        "_config_version": 15,
+        "_config_version": 16,
         "enabled": True,
         "debug_logging": False,
         "show_ffmpeg_commands": False,

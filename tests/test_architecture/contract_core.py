@@ -6,10 +6,11 @@ from .contract_schema import Layer, ModuleContract, SideEffect, contract
 
 CORE_CONTRACTS: dict[str, ModuleContract] = {
     "_version": contract("_version", layer=Layer.IMPORT_SAFE_CORE),
+    "audio_formats": contract("audio_formats", layer=Layer.IMPORT_SAFE_CORE),
     "config_migration": contract(
         "config_migration",
         layer=Layer.IMPORT_SAFE_CORE,
-        allowed_addon_deps=("dpdfnet_settings",),
+        allowed_addon_deps=("audio_formats", "dpdfnet_settings"),
     ),
     "contracts_generated": contract(
         "contracts_generated",
