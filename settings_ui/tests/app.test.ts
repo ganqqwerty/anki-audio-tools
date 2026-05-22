@@ -28,8 +28,6 @@ const defaultConfig = {
     VisibleEditorButton.AqeAnalyze,
     VisibleEditorButton.AqeShowFile,
     VisibleEditorButton.AqeConvert,
-    VisibleEditorButton.AqeTrimLeft,
-    VisibleEditorButton.AqeTrimRight,
     VisibleEditorButton.AqeRemovePauses,
     VisibleEditorButton.AqeDenoiseStandard,
     VisibleEditorButton.AqePitchHum,

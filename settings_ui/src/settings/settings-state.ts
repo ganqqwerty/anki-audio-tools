@@ -19,8 +19,6 @@ export const DEFAULT_VISIBLE_EDITOR_BUTTONS = [
   VisibleEditorButton.AqeAnalyze,
   VisibleEditorButton.AqeShowFile,
   VisibleEditorButton.AqeConvert,
-  VisibleEditorButton.AqeTrimLeft,
-  VisibleEditorButton.AqeTrimRight,
   VisibleEditorButton.AqeRemovePauses,
   VisibleEditorButton.AqeDenoiseStandard,
   VisibleEditorButton.AqePitchHum,
