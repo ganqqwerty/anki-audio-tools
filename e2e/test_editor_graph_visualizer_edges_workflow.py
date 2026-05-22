@@ -195,7 +195,7 @@ def test_visualizer_failure_is_non_mutating_and_edit_buttons_still_work(
             timeout=10.0,
         )
         generated_name = _click_and_wait_for_new_file(
-            editor, note, media_dir, "aqe:trim-left", source.name
+            editor, note, media_dir, "aqe:faster", source.name
         )
 
         assert generated_name != source.name

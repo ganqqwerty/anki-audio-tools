@@ -17,8 +17,6 @@
     "graph_smoothness",
     "graph_connect_short_dropouts_ms",
     "graph_voice_lock",
-    "manual_trim_small_ms",
-    "manual_trim_large_ms",
     "speed_step",
     "min_speed",
     "max_speed",
@@ -74,8 +72,6 @@
           "aqe:analyze",
           "aqe:show-file",
           "aqe:convert",
-          "aqe:trim-left",
-          "aqe:trim-right",
           "aqe:remove-pauses",
           "aqe:denoise-standard",
           "aqe:pitch-hum",
@@ -110,14 +106,6 @@
     "graph_voice_lock": {
       "type": "string",
       "enum": ["loose", "balanced", "stable"]
-    },
-    "manual_trim_small_ms": {
-      "type": "integer",
-      "minimum": 1
-    },
-    "manual_trim_large_ms": {
-      "type": "integer",
-      "minimum": 1
     },
     "speed_step": {
       "type": "number",

@@ -27,7 +27,7 @@ def test_fast_clicks_are_ignored_while_processing(anki_mw, ffmpeg_config) -> Non
 
     editor, parent = _open_editor(anki_mw, note)
     try:
-        selector = _button_selector("aqe:trim-left")
+        selector = _button_selector("aqe:faster")
         wait_for_selector(editor.web, selector, timeout=10.0)
         run_js(
             editor.web,
@@ -63,21 +63,21 @@ def test_three_audio_fields_fast_cross_clicks_lock_globally_and_do_not_corrupt_f
 
     editor, parent = _open_editor(anki_mw, note)
     try:
-        wait_for_selector(editor.web, _button_selector("aqe:trim-left", 0), timeout=10.0)
+        wait_for_selector(editor.web, _button_selector("aqe:faster", 0), timeout=10.0)
         wait_for_selector(editor.web, _button_selector("aqe:faster", 1), timeout=10.0)
-        wait_for_selector(editor.web, _button_selector("aqe:trim-right", 2), timeout=10.0)
+        wait_for_selector(editor.web, _button_selector("aqe:volume-up", 2), timeout=10.0)
         locked = wait_for_js_condition(
             editor.web,
             """
             (() => {
-              document.querySelector('[data-testid="aqe-button-0-trim-left"]').click();
+              document.querySelector('[data-testid="aqe-button-0-faster"]').click();
               const lockedAfterFirst = Array.from(document.querySelectorAll('.aqe-button')).every((button) => button.disabled);
-              const firstButton = document.querySelector('[data-testid="aqe-button-0-trim-left"]');
+              const firstButton = document.querySelector('[data-testid="aqe-button-0-faster"]');
               const controls = document.querySelector('[data-testid="aqe-controls-0"]');
               const buttonStyle = getComputedStyle(firstButton);
               const controlsStyle = getComputedStyle(controls);
               document.querySelector('[data-testid="aqe-button-1-faster"]').click();
-              document.querySelector('[data-testid="aqe-button-2-trim-right"]').click();
+              document.querySelector('[data-testid="aqe-button-2-volume-up"]').click();
               return {
                 lockedAfterFirst,
                 cursor: buttonStyle.cursor,

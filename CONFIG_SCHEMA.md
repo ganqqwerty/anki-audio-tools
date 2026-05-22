@@ -19,8 +19,6 @@ Audio Quick Editor config lives in [`addon/anki_audio_quick_editor/config.json`]
 | `graph_smoothness` | string | Default graph smoothing level: `raw`, `balanced`, `smooth`, or `very_smooth` |
 | `graph_connect_short_dropouts_ms` | integer | Maximum short voicing dropout, in milliseconds, that graph rendering reconnects |
 | `graph_voice_lock` | string | Default pitch track stability preference: `loose`, `balanced`, or `stable` |
-| `manual_trim_small_ms` | integer | Default trim step for inline `-L` and `-R` controls |
-| `manual_trim_large_ms` | integer | Reserved larger trim step for future shortcut modifiers |
 | `speed_step` | number | Amount added or removed by Faster/Slower |
 | `min_speed` | number | Lower bound for pitch-preserving speed changes |
 | `max_speed` | number | Upper bound for pitch-preserving speed changes |

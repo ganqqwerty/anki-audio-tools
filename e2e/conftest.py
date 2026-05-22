@@ -26,7 +26,7 @@ LOCAL_DPDFNET_BUILD = Path("/Users/iuriikatkov/IdeaProjects/DPDFNet/dist/lite/dp
 
 def _default_config() -> dict:
     return {
-        "_config_version": 16,
+        "_config_version": 17,
         "enabled": True,
         "debug_logging": False,
         "show_ffmpeg_commands": False,
@@ -38,8 +38,6 @@ def _default_config() -> dict:
             "aqe:analyze",
             "aqe:show-file",
             "aqe:convert",
-            "aqe:trim-left",
-            "aqe:trim-right",
             "aqe:remove-pauses",
             "aqe:denoise-standard",
             "aqe:pitch-hum",
@@ -51,8 +49,6 @@ def _default_config() -> dict:
             "aqe:redo",
             "aqe:settings",
         ],
-        "manual_trim_small_ms": 100,
-        "manual_trim_large_ms": 500,
         "speed_step": 0.05,
         "min_speed": 0.75,
         "max_speed": 1.5,

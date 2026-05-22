@@ -37,7 +37,6 @@ describe("editor inline split-button command integration", () => {
         pauseAggressiveness: "normal" as const,
         repeatPauseSeconds: 0,
         speedStep: 0.05,
-        trimStepMs: 100,
         volumeStepDb: 3,
       },
     };
@@ -46,7 +45,7 @@ describe("editor inline split-button command integration", () => {
 
     const help = document.querySelector<HTMLDetailsElement>('[data-testid="aqe-help-0"]')!;
     expect(help.open).toBe(false);
-    expect(help.querySelectorAll(".aqe-help-command")).toHaveLength(16);
+    expect(help.querySelectorAll(".aqe-help-command")).toHaveLength(14);
     expect(help.querySelector(".aqe-help-triangle")).not.toBeNull();
     expect(help).toHaveTextContent("Shift-drag on the graph to select a region.");
     expect(help).toHaveTextContent("Delete Region removes the selected region; Delete the rest keeps only the selected region.");
@@ -96,7 +95,6 @@ describe("editor inline split-button command integration", () => {
         pauseAggressiveness: "normal" as const,
         repeatPauseSeconds: 0,
         speedStep: 0.05,
-        trimStepMs: 100,
         volumeStepDb: 3,
       },
     };
@@ -154,34 +152,6 @@ describe("editor inline split-button command integration", () => {
     expect(payload?.graphSettings).toMatchObject({ smoothness: expect.any(String) });
   });
 
-  it("dispatches trim commands with the field-local split value", () => {
-    window.__AQE_EDITOR_CONFIG__ = {
-      audioFieldIndices: [0],
-      splitButtonDefaults: {
-        denoiseAlgorithm: "standard",
-        pauseAggressiveness: "normal",
-        repeatPauseSeconds: 0,
-        speedStep: 0.05,
-        trimStepMs: 200,
-        volumeStepDb: 3,
-      },
-    };
-    initializeEditorRuntime(window.__AQE_EDITOR_CONFIG__);
-    scan(window.__AQE_EDITOR_CONFIG__);
-
-    document.querySelector<HTMLButtonElement>('[data-testid="aqe-button-0-trim-left"]')!.click();
-
-    expect(bridgeCommands()).toContain("focus:0");
-    expect(bridgeCommands()).toContain("aqe:command-payload");
-    expect(window.__aqePendingCommandPayload).toEqual({
-      command: "aqe:trim-left",
-      fieldOrd: 0,
-      overrides: {
-        trimStepMs: 200,
-      },
-    });
-  });
-
   it("dispatches convert commands with the selected output format", async () => {
     window.__AQE_EDITOR_CONFIG__ = {
       audioFieldIndices: [0],
@@ -191,7 +161,6 @@ describe("editor inline split-button command integration", () => {
         pauseAggressiveness: "normal",
         repeatPauseSeconds: 0,
         speedStep: 0.05,
-        trimStepMs: 100,
         volumeStepDb: 3,
       },
     };
@@ -217,36 +186,6 @@ describe("editor inline split-button command integration", () => {
     });
   });
 
-  it("keeps trim split values isolated across audio fields", async () => {
-    renderTwoAudioFields();
-    window.__AQE_EDITOR_CONFIG__ = {
-      audioFieldIndices: [0, 1],
-      splitButtonDefaults: {
-        denoiseAlgorithm: "standard",
-        pauseAggressiveness: "normal",
-        repeatPauseSeconds: 0,
-        speedStep: 0.05,
-        trimStepMs: 100,
-        volumeStepDb: 3,
-      },
-    };
-    initializeEditorRuntime(window.__AQE_EDITOR_CONFIG__);
-    scan(window.__AQE_EDITOR_CONFIG__);
-
-    document.querySelector<HTMLButtonElement>('[data-testid="aqe-split-0-trim-left-menu"]')!.click();
-    await Promise.resolve();
-    document.querySelector<HTMLButtonElement>('[data-testid="aqe-split-0-trim-left-preset-200"]')!.click();
-    document.querySelector<HTMLButtonElement>('[data-testid="aqe-button-0-trim-left"]')!.click();
-    const firstPayload = window.__aqePendingCommandPayload;
-    window.__aqePendingCommandPayload = null;
-    window.__aqeSetBusy?.(0, false);
-    document.querySelector<HTMLButtonElement>('[data-testid="aqe-button-1-trim-left"]')!.click();
-    const secondPayload = window.__aqePendingCommandPayload;
-
-    expect(bridgeCommands().filter((command) => command === "aqe:command-payload")).toHaveLength(2);
-    expect([firstPayload, secondPayload].map((payload) => payload?.overrides?.trimStepMs)).toEqual([200, 100]);
-  });
-
   it("dispatches volume and speed split payloads with local values", async () => {
     window.__AQE_EDITOR_CONFIG__ = {
       audioFieldIndices: [0],
@@ -255,7 +194,6 @@ describe("editor inline split-button command integration", () => {
         pauseAggressiveness: "normal",
         repeatPauseSeconds: 0,
         speedStep: 0.05,
-        trimStepMs: 100,
         volumeStepDb: 3,
       },
     };
@@ -289,29 +227,11 @@ describe("editor inline split-button command integration", () => {
         pauseAggressiveness: "normal",
         repeatPauseSeconds: 0,
         speedStep: 0.05,
-        trimStepMs: 100,
         volumeStepDb: 3,
       },
     };
     initializeEditorRuntime(window.__AQE_EDITOR_CONFIG__);
     scan(window.__AQE_EDITOR_CONFIG__);
-
-    document.querySelector<HTMLButtonElement>('[data-testid="aqe-split-0-trim-left-menu"]')!.click();
-    await Promise.resolve();
-    const trimInput = document.querySelector<HTMLInputElement>('[data-testid="aqe-split-0-trim-left-value"]')!;
-    const trimSlider = document.querySelector<HTMLInputElement>('[data-testid="aqe-split-0-trim-left-slider"]')!;
-    trimSlider.value = "250";
-    trimSlider.dispatchEvent(new Event("input", { bubbles: true }));
-    await Promise.resolve();
-    expect(trimInput.value).toBe("250");
-    trimInput.value = "350";
-    trimInput.dispatchEvent(new Event("input", { bubbles: true }));
-    await Promise.resolve();
-    expect(trimSlider.value).toBe("350");
-    document.querySelector<HTMLButtonElement>('[data-testid="aqe-button-0-trim-left"]')!.click();
-    expect(window.__aqePendingCommandPayload?.overrides?.trimStepMs).toBe(350);
-    window.__aqePendingCommandPayload = null;
-    window.__aqeSetBusy?.(0, false);
 
     document.querySelector<HTMLButtonElement>('[data-testid="aqe-split-0-volume-up-menu"]')!.click();
     await Promise.resolve();
@@ -349,7 +269,6 @@ describe("editor inline split-button command integration", () => {
         pauseAggressiveness: "normal",
         repeatPauseSeconds: 0,
         speedStep: 0.05,
-        trimStepMs: 100,
         volumeStepDb: 3,
       },
     };

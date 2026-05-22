@@ -8,12 +8,14 @@ from typing import Any
 from .audio_formats import normalize_output_format
 from .dpdfnet_settings import normalize_dpdfnet_attn_limit_db
 
-CURRENT_CONFIG_VERSION = 16
+CURRENT_CONFIG_VERSION = 17
 
 REMOVED_CONFIG_KEYS = frozenset(
     {
         "edge_silence_threshold_db",
         "edge_silence_min_ms",
+        "manual_trim_small_ms",
+        "manual_trim_large_ms",
     }
 )
 

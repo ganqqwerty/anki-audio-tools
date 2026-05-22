@@ -43,11 +43,11 @@ function mockSplitPopoverBounds(anchor: TestRect, popover: TestRect): void {
   });
 }
 
-async function openTrimPopover(): Promise<HTMLDivElement> {
-  document.querySelector<HTMLButtonElement>('[data-testid="aqe-split-0-trim-left-menu"]')!.click();
+async function openVolumePopover(): Promise<HTMLDivElement> {
+  document.querySelector<HTMLButtonElement>('[data-testid="aqe-split-0-volume-up-menu"]')!.click();
   let popover: HTMLDivElement | null = null;
   await waitFor(() => {
-    popover = document.querySelector<HTMLDivElement>('[data-testid="aqe-split-0-trim-left-popover"]');
+    popover = document.querySelector<HTMLDivElement>('[data-testid="aqe-split-0-volume-up-popover"]');
     expect(popover).not.toBeNull();
     expect(popover!.style.left).not.toBe("");
     expect(popover!.style.top).not.toBe("");
@@ -83,7 +83,7 @@ describe("split button popover placement", () => {
     initializeEditorRuntime({ audioFieldIndices: [0] });
     scan({ audioFieldIndices: [0] });
 
-    const popover = await openTrimPopover();
+    const popover = await openVolumePopover();
 
     expect(numericStyle(popover, "left")).toBe(225);
     expect(numericStyle(popover, "top")).toBe(132);
@@ -98,7 +98,7 @@ describe("split button popover placement", () => {
     initializeEditorRuntime({ audioFieldIndices: [0] });
     scan({ audioFieldIndices: [0] });
 
-    const popover = await openTrimPopover();
+    const popover = await openVolumePopover();
 
     expect(numericStyle(popover, "left")).toBe(102);
     expect(numericStyle(popover, "left") + 210).toBeLessThanOrEqual(312);
@@ -113,7 +113,7 @@ describe("split button popover placement", () => {
     initializeEditorRuntime({ audioFieldIndices: [0] });
     scan({ audioFieldIndices: [0] });
 
-    const popover = await openTrimPopover();
+    const popover = await openVolumePopover();
 
     expect(numericStyle(popover, "top")).toBe(56);
     expect(numericStyle(popover, "top") + 140).toBeLessThanOrEqual(232);
@@ -127,12 +127,12 @@ describe("split button popover placement", () => {
     );
     initializeEditorRuntime({ audioFieldIndices: [0] });
     scan({ audioFieldIndices: [0] });
-    await openTrimPopover();
+    await openVolumePopover();
 
     document.body.dispatchEvent(new MouseEvent("mousedown", { bubbles: true }));
     await Promise.resolve();
 
-    expect(document.querySelector('[data-testid="aqe-split-0-trim-left-popover"]')).toBeNull();
+    expect(document.querySelector('[data-testid="aqe-split-0-volume-up-popover"]')).toBeNull();
   });
 
   it("queues a split default save request from the popover header", async () => {
@@ -143,12 +143,12 @@ describe("split button popover placement", () => {
     );
     initializeEditorRuntime({ audioFieldIndices: [0] });
     scan({ audioFieldIndices: [0] });
-    await openTrimPopover();
+    await openVolumePopover();
 
-    const slider = document.querySelector<HTMLInputElement>('[data-testid="aqe-split-0-trim-left-slider"]')!;
-    slider.value = "250";
+    const slider = document.querySelector<HTMLInputElement>('[data-testid="aqe-split-0-volume-up-slider"]')!;
+    slider.value = "6";
     slider.dispatchEvent(new Event("input", { bubbles: true }));
-    const save = document.querySelector<HTMLButtonElement>('[data-testid="aqe-split-0-trim-left-save-default"]')!;
+    const save = document.querySelector<HTMLButtonElement>('[data-testid="aqe-split-0-volume-up-save-default"]')!;
 
     expect(save.title).toBe("Promote these settings to default");
     save.click();
@@ -156,11 +156,11 @@ describe("split button popover placement", () => {
     expect(bridgeCommands()).toContain("aqe:save-split-defaults");
     expect(window.__aqePopPendingSplitDefaultSaveRequest?.()).toEqual({
       defaults: {
-        trimStepMs: 250,
+        volumeStepDb: 6,
       },
       fieldOrd: 0,
     });
-    expect(window.__AQE_EDITOR_CONFIG__?.splitButtonDefaults?.trimStepMs).toBe(250);
+    expect(window.__AQE_EDITOR_CONFIG__?.splitButtonDefaults?.volumeStepDb).toBe(6);
     await waitFor(() => expect(save).toHaveClass("aqe-split-default-save-saved"));
   });
 });

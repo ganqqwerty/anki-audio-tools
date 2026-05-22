@@ -41,7 +41,6 @@ export interface SplitButtonDefaults {
   pitchHumMode?: PitchHumMode;
   repeatPauseSeconds: number;
   speedStep: number;
-  trimStepMs: number;
   volumeStepDb: number;
 }
 
@@ -55,7 +54,6 @@ export interface EditorCommandPayload {
     pitchHumMode?: PitchHumMode;
     speedStep?: number;
     targetFormat?: OutputFormatValue;
-    trimStepMs?: number;
     volumeStepDb?: number;
   };
   graphSettings?: GraphSettings;
@@ -73,7 +71,6 @@ export interface FieldSplitButtonState {
   defaultDpdfnetAttnLimitDb: number;
   defaultPitchHumMode: PitchHumMode;
   defaultRepeatPauseSeconds: number;
-  defaultTrimStepMs: number;
   defaultSpeedStep: number;
   defaultVolumeStepDb: number;
   denoiseAlgorithm: DenoiseAlgorithm;
@@ -96,8 +93,6 @@ export interface FieldSplitButtonState {
   repeatPauseSeconds: number;
   speedEdited: boolean;
   speedStep: number;
-  trimEdited: boolean;
-  trimStepMs: number;
   volumeEdited: boolean;
   volumeStepDb: number;
 }

@@ -39,8 +39,6 @@ Add a config key:
   "aqe:play",
   "aqe:analyze",
   "aqe:show-file",
-  "aqe:trim-left",
-  "aqe:trim-right",
   "aqe:remove-pauses",
   "aqe:denoise-standard",
   "aqe:pitch-hum",

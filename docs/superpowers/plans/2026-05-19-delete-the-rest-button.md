@@ -163,8 +163,6 @@ export type EditorCommand =
   | "aqe:show-file"
   | "aqe:delete-selection"
   | "aqe:delete-rest"
-  | "aqe:trim-left"
-  | "aqe:trim-right"
   | "aqe:remove-pauses"
   | "aqe:denoise-standard"
   | "aqe:rnnoise"
@@ -207,8 +205,6 @@ export const COMMAND_SLUGS: Readonly<Record<EditorCommand, string>> = {
   "aqe:show-file": "show-file",
   "aqe:delete-selection": "delete-selection",
   "aqe:delete-rest": "delete-rest",
-  "aqe:trim-left": "trim-left",
-  "aqe:trim-right": "trim-right",
   "aqe:remove-pauses": "remove-pauses",
   "aqe:denoise-standard": "denoise-standard",
   "aqe:rnnoise": "rnnoise",

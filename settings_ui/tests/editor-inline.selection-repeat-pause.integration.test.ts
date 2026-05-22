@@ -21,7 +21,6 @@ function repeatPauseConfig(seconds: number) {
       pauseAggressiveness: "normal" as const,
       repeatPauseSeconds: seconds,
       speedStep: 0.05,
-      trimStepMs: 100,
       volumeStepDb: 3,
     },
   };

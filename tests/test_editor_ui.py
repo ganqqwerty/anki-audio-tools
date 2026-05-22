@@ -77,7 +77,6 @@ def test_injection_script_embeds_split_button_defaults() -> None:
     script = injection_script(
         [0],
         split_button_defaults={
-            "trimStepMs": 250,
             "volumeStepDb": 2.5,
             "speedStep": 0.1,
             "repeatPauseSeconds": 2.0,
@@ -90,7 +89,6 @@ def test_injection_script_embeds_split_button_defaults() -> None:
     )
 
     assert _embedded_config(script)["splitButtonDefaults"] == {
-        "trimStepMs": 250,
         "volumeStepDb": 2.5,
         "speedStep": 0.1,
         "repeatPauseSeconds": 2.0,

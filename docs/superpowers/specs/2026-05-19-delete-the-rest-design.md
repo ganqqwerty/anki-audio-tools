@@ -157,7 +157,6 @@ The existing button styling and dark/light mode behavior should be reused. The n
 
 A separate backend path would make the new behavior independently named, but it would duplicate validation, media replacement, Undo/Redo handling, graph redraw, and error recovery. It was rejected because this feature is a sibling of **Delete Region**, not a new subsystem.
 
-### Reuse Trim Left And Trim Right Commands
 
 The action could be modeled as trimming right to the selection end and trimming left to the selection start. This was rejected because it would likely generate multiple files, create multiple Undo entries, and make redraw/status behavior harder to reason about.
 

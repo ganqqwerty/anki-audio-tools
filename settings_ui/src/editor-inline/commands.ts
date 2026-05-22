@@ -17,8 +17,6 @@ export {
 } from "../lib/editor-toolbar-buttons.js";
 
 export const PROCESSING_COMMANDS = new Set<EditorCommand>([
-  "aqe:trim-left",
-  "aqe:trim-right",
   "aqe:slower",
   "aqe:faster",
   "aqe:convert",

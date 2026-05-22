@@ -19,7 +19,6 @@ from anki_audio_quick_editor.editor_actions import (
     PROCESSING_COMMANDS,
     apply_processing_command,
     decode_editor_command_payload,
-    operation_for_command,
     processing_config_for_command,
 )
 
@@ -37,27 +36,16 @@ def test_batchable_processing_commands_map_to_shared_operations() -> None:
         "aqe:remove-pauses": OP_REMOVE_PAUSES,
         "aqe:convert": OP_CONVERT,
     }
-    assert operation_for_command("aqe:trim-left") is None
-    assert operation_for_command("aqe:trim-right") is None
-
-
-def test_apply_processing_command_uses_configured_trim_step() -> None:
-    config = AudioProcessingConfig(manual_trim_small_ms=250)
-    state = AudioEditState("clip.mp3")
-
-    updated = apply_processing_command("aqe:trim-left", state, config)
-
-    assert updated == AudioEditState("clip.mp3", left_trim_ms=250)
 
 
 def test_decode_processing_command_accepts_json_payload() -> None:
     decoded = decode_editor_command_payload(
-        '{"command":"aqe:trim-left","fieldOrd":0,"overrides":{"trimStepMs":200}}'
+        '{"command":"aqe:volume-up","fieldOrd":0,"overrides":{"volumeStepDb":6}}'
     )
 
-    assert decoded.command == "aqe:trim-left"
+    assert decoded.command == "aqe:volume-up"
     assert decoded.field_ord == 0
-    assert decoded.overrides.trim_step_ms == 200
+    assert decoded.overrides.volume_step_db == 6
 
 
 def test_decode_graph_command_accepts_graph_settings() -> None:
@@ -69,37 +57,6 @@ def test_decode_graph_command_accepts_graph_settings() -> None:
     assert decoded.command == "aqe:analyze"
     assert decoded.field_ord == 1
     assert decoded.graph_settings == {"voiceRange": "bass", "smoothness": "very_smooth"}
-
-
-def test_apply_processing_command_uses_trim_override_without_mutating_config() -> None:
-    config = AudioProcessingConfig(manual_trim_small_ms=500)
-    state = AudioEditState("clip.mp3")
-    decoded = decode_editor_command_payload(
-        '{"command":"aqe:trim-left","fieldOrd":0,"overrides":{"trimStepMs":200}}'
-    )
-
-    updated = apply_processing_command(decoded, state, config)
-
-    assert updated == AudioEditState("clip.mp3", left_trim_ms=200)
-    assert config.manual_trim_small_ms == 500
-
-
-def test_apply_processing_command_clamps_trim_override() -> None:
-    config = AudioProcessingConfig(manual_trim_small_ms=500)
-    state = AudioEditState("clip.mp3")
-    low = decode_editor_command_payload(
-        '{"command":"aqe:trim-left","fieldOrd":0,"overrides":{"trimStepMs":10}}'
-    )
-    high = decode_editor_command_payload(
-        '{"command":"aqe:trim-right","fieldOrd":0,"overrides":{"trimStepMs":20000}}'
-    )
-
-    assert apply_processing_command(low, state, config) == AudioEditState(
-        "clip.mp3", left_trim_ms=50
-    )
-    assert apply_processing_command(high, state, config) == AudioEditState(
-        "clip.mp3", right_trim_ms=10000
-    )
 
 
 def test_apply_processing_command_handles_speed_and_feature_toggles() -> None:
@@ -282,9 +239,3 @@ def test_play_graph_cursor_and_play_ended_are_not_processing_commands() -> None:
     assert "aqe:analyze-field" in BRIDGE_COMMANDS
     assert ("aqe:" + "si" + "don") not in BRIDGE_COMMANDS
 
-
-def test_untrim_commands_are_not_registered() -> None:
-    assert "aqe:untrim-left" not in BRIDGE_COMMANDS
-    assert "aqe:untrim-right" not in BRIDGE_COMMANDS
-    assert "aqe:untrim-left" not in PROCESSING_COMMANDS
-    assert "aqe:untrim-right" not in PROCESSING_COMMANDS

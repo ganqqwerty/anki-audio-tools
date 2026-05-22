@@ -8,7 +8,6 @@ The popover is centered below the trigger, closes on outside click or Escape, an
 
 ## User-Facing Behavior
 
-- Trim left and trim right use a millisecond slider from 50 ms to 10 s.
 - Volume actions use a decibel slider.
 - Speed actions use a multiplier/step slider within configured speed bounds.
 - Shorten Pauses exposes Gentle, Normal, and Aggressive levels.

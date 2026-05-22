@@ -3,7 +3,6 @@
   import EditorCommandIcon from "./EditorCommandIcon.svelte";
 
   const { ord }: { ord: number } = $props();
-  const trimStepMs = window.__AQE_EDITOR_CONFIG__?.splitButtonDefaults?.trimStepMs ?? 100;
 </script>
 
 <details class="aqe-help" data-testid={`aqe-help-${ord}`}>
@@ -40,14 +39,6 @@
         <span class="aqe-help-item">
           <span class="aqe-help-command"><EditorCommandIcon icon="file-audio" /><span>{t("editor.command.convert.label")}</span></span>
           <span class="aqe-help-description">{t("editor.help.convert_desc")}</span>
-        </span>
-        <span class="aqe-help-item">
-          <span class="aqe-help-command"><EditorCommandIcon icon="scissors" /><span>-L</span></span>
-          <span class="aqe-help-description">{t("editor.help.trim_left_desc", { ms: trimStepMs })}</span>
-        </span>
-        <span class="aqe-help-item">
-          <span class="aqe-help-command"><EditorCommandIcon icon="scissors" /><span>-R</span></span>
-          <span class="aqe-help-description">{t("editor.help.trim_right_desc", { ms: trimStepMs })}</span>
         </span>
         <span class="aqe-help-item">
           <span class="aqe-help-command"><EditorCommandIcon icon="timer-reset" /><span>{t("editor.command.shorten_pauses.label")}</span></span>

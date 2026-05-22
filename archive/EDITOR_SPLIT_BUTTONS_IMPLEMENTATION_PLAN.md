@@ -22,7 +22,6 @@ Commit: `0b7d0dd Add editor command override payload parsing for trims`
 
 - Add normalized editor command payload decoding.
 - Keep plain string commands compatible.
-- Add `trimStepMs` override validation/clamping.
 - Prove trim overrides apply locally without mutating `AudioProcessingConfig`.
 
 Tests:
@@ -50,7 +49,6 @@ Commit: `0b3ee3e Add trim split buttons with field-local millisecond controls`
 - Add reusable split-button UI with primary and attached option segments.
 - Add floating popover positioning under the trigger.
 - Add outside-click and Escape close behavior.
-- Add trim-left and trim-right sliders from 50 ms to 10 s.
 - Add per-field local state and payload building.
 
 Tests:

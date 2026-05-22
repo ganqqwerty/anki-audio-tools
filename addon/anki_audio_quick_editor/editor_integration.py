@@ -218,7 +218,6 @@ def _on_editor_will_load_note(js: str, note: Any, editor: Any) -> str:
         show_graph_by_default=bool(config.get("show_graph_by_default", False)),
         visible_editor_buttons=[str(command) for command in visible_editor_buttons],
         split_button_defaults={
-            "trimStepMs": int(config.get("manual_trim_small_ms", 100)),
             "volumeStepDb": float(config.get("volume_step_db", 3.0)),
             "speedStep": float(config.get("speed_step", 0.05)),
             "repeatPauseSeconds": float(config.get("repeat_pause_seconds", 0.0)),

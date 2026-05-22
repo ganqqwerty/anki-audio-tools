@@ -1433,7 +1433,6 @@ Add:
         pauseAggressiveness: "normal",
         repeatPauseSeconds: 0,
         speedStep: 0.05,
-        trimStepMs: 100,
         volumeStepDb: 3,
       },
     };

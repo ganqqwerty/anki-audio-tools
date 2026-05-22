@@ -13,8 +13,6 @@ export type EditorCommand =
   | "aqe:convert"
   | "aqe:delete-selection"
   | "aqe:delete-rest"
-  | "aqe:trim-left"
-  | "aqe:trim-right"
   | "aqe:remove-pauses"
   | "aqe:denoise-standard"
   | "aqe:rnnoise"
@@ -43,8 +41,6 @@ export const DEFAULT_VISIBLE_EDITOR_BUTTONS = [
   "aqe:analyze",
   "aqe:show-file",
   "aqe:convert",
-  "aqe:trim-left",
-  "aqe:trim-right",
   "aqe:remove-pauses",
   "aqe:denoise-standard",
   "aqe:pitch-hum",
@@ -60,7 +56,6 @@ export const DEFAULT_VISIBLE_EDITOR_BUTTONS = [
 const DEFAULT_VISIBLE_EDITOR_BUTTON_SET = new Set<EditorCommand>(DEFAULT_VISIBLE_EDITOR_BUTTONS);
 
 export function commandButtons(): readonly ToolbarButtonSpec[] {
-  const trimMs = window.__AQE_EDITOR_CONFIG__?.splitButtonDefaults?.trimStepMs ?? 100;
   const outputFormat = outputFormatOrDefault(
     window.__AQE_EDITOR_CONFIG__?.splitButtonDefaults?.outputFormat,
   );
@@ -92,18 +87,6 @@ export function commandButtons(): readonly ToolbarButtonSpec[] {
       icon: "file-audio",
       label: t("editor.command.convert.label"),
       title: t("editor.command.convert.title", { format: formatOutputFormat(outputFormat) }),
-    },
-    {
-      command: "aqe:trim-left",
-      icon: "scissors",
-      label: t("editor.command.trim_left.label"),
-      title: t("editor.command.trim_left.title", { ms: trimMs }),
-    },
-    {
-      command: "aqe:trim-right",
-      icon: "scissors",
-      label: t("editor.command.trim_right.label"),
-      title: t("editor.command.trim_right.title", { ms: trimMs }),
     },
     {
       command: "aqe:remove-pauses",
@@ -235,8 +218,6 @@ export const COMMAND_SLUGS: Readonly<Record<EditorCommand, string>> = {
   "aqe:convert": "convert",
   "aqe:delete-selection": "delete-selection",
   "aqe:delete-rest": "delete-rest",
-  "aqe:trim-left": "trim-left",
-  "aqe:trim-right": "trim-right",
   "aqe:remove-pauses": "remove-pauses",
   "aqe:denoise-standard": "denoise-standard",
   "aqe:rnnoise": "rnnoise",

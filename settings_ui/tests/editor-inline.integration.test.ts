@@ -46,16 +46,16 @@ describe("editor inline Svelte integration", () => {
   it("hides toolbar buttons omitted from visible editor button config", () => {
     initializeEditorRuntime({
       audioFieldIndices: [0],
-      visibleEditorButtons: ["aqe:play", "aqe:analyze", "aqe:trim-left"],
+      visibleEditorButtons: ["aqe:play", "aqe:analyze", "aqe:convert"],
     });
     scan({
       audioFieldIndices: [0],
-      visibleEditorButtons: ["aqe:play", "aqe:analyze", "aqe:trim-left"],
+      visibleEditorButtons: ["aqe:play", "aqe:analyze", "aqe:convert"],
     });
 
     expect(document.querySelector('[data-testid="aqe-button-0-play"]')).toBeInTheDocument();
     expect(document.querySelector('[data-testid="aqe-button-0-graph"]')).toBeInTheDocument();
-    expect(document.querySelector('[data-testid="aqe-button-0-trim-left"]')).toBeInTheDocument();
+    expect(document.querySelector('[data-testid="aqe-button-0-convert"]')).toBeInTheDocument();
     expect(document.querySelector('[data-testid="aqe-button-0-settings"]')).not.toBeInTheDocument();
     expect(document.querySelector('[data-testid="aqe-button-0-denoise-standard"]')).not.toBeInTheDocument();
   });

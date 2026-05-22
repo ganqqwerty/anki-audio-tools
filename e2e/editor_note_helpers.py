@@ -19,8 +19,6 @@ DEFAULT_VISIBLE_EDITOR_BUTTONS = (
     "aqe:analyze",
     "aqe:show-file",
     "aqe:convert",
-    "aqe:trim-left",
-    "aqe:trim-right",
     "aqe:remove-pauses",
     "aqe:denoise-standard",
     "aqe:pitch-hum",

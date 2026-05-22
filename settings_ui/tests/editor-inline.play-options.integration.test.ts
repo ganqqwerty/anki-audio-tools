@@ -34,7 +34,6 @@ describe("editor inline play option integration", () => {
         pauseAggressiveness: "normal" as const,
         repeatPauseSeconds: 1.5,
         speedStep: 0.05,
-        trimStepMs: 100,
         volumeStepDb: 3,
       },
     };

@@ -501,7 +501,6 @@ def _overrides_from_raw(raw: Any) -> EditorCommandOverrides:
     if not isinstance(raw, dict):
         return EditorCommandOverrides()
     params = parameters_from_raw(
-        trim_step_ms=raw.get("trimStepMs"),
         volume_step_db=raw.get("volumeStepDb"),
         speed_step=raw.get("speedStep"),
         pause_aggressiveness=raw.get("pauseAggressiveness"),
@@ -536,7 +535,6 @@ def processing_config_for_command(
     )
 ```
 
-Keep trim handling in `apply_processing_command()` because trim-left/right are editor commands, not shared `audio_operations` transforms.
 
 - [ ] **Step 4: Run editor and architecture tests**
 
@@ -1175,7 +1173,6 @@ Expected: changed symbols are limited to Browser hook/dialog wiring, shared oper
 
 ## Deferred Scope
 
-- Adding batch trim-left/trim-right operations.
 - Adding batch denoise operations.
 - Converting batch dialog to Svelte/WebView UI.
 - Remembering last-used batch parameter choices independently from settings.

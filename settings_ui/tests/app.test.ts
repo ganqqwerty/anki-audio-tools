@@ -16,7 +16,7 @@ import {
 } from "../src/lib/types.js";
 
 const defaultConfig = {
-  _config_version: 16,
+  _config_version: 17,
   enabled: true,
   debug_logging: false,
   show_ffmpeg_commands: false,
@@ -46,8 +46,6 @@ const defaultConfig = {
   graph_smoothness: GraphSmoothness.VerySmooth,
   graph_connect_short_dropouts_ms: 240,
   graph_voice_lock: GraphVoiceLock.Balanced,
-  manual_trim_small_ms: 100,
-  manual_trim_large_ms: 500,
   speed_step: 0.05,
   min_speed: 0.75,
   max_speed: 1.5,

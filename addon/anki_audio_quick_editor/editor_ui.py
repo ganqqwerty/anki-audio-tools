@@ -32,7 +32,6 @@ def injection_script(
         "visibleEditorButtons": visible_editor_buttons,
         "splitButtonDefaults": split_button_defaults
         or {
-            "trimStepMs": 100,
             "volumeStepDb": 3.0,
             "speedStep": 0.05,
             "repeatPauseSeconds": 0.0,
