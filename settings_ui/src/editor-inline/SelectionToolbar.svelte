@@ -11,6 +11,17 @@
   import type { FieldTarget } from "./types.js";
 
   const { target }: { target: FieldTarget } = $props();
+
+  function expandCollapsedToolbar(): void {
+    expandSelectionToolbarForOrd(target.ord);
+  }
+
+  function expandCollapsedToolbarFromKeyboard(event: KeyboardEvent): void {
+    if (event.key !== "Enter" && event.key !== " ") return;
+    event.preventDefault();
+    event.stopPropagation();
+    expandCollapsedToolbar();
+  }
 </script>
 
 <div class="aqe-selection-rest-preview aqe-selection-rest-preview-before" aria-hidden="true"></div>
@@ -87,14 +98,20 @@
     <EditorCommandIcon icon="x" />
   </button>
 </div>
-<button
-  type="button"
+<svg
   class="aqe-selection-toolbar-dot"
   data-testid={`aqe-selection-toolbar-dot-${target.ord}`}
-  title="Expand selection actions"
+  viewBox="0 0 22 22"
+  role="button"
+  tabindex="0"
   aria-label="Expand selection actions"
   onpointerdown={(event) => event.stopPropagation()}
   onmousedown={(event) => event.preventDefault()}
-  onclick={() => expandSelectionToolbarForOrd(target.ord)}
+  onkeydown={expandCollapsedToolbarFromKeyboard}
+  onclick={expandCollapsedToolbar}
   hidden
-></button>
+>
+  <title>Expand selection actions</title>
+  <circle class="aqe-selection-toolbar-dot-halo" cx="11" cy="11" r="8"></circle>
+  <circle class="aqe-selection-toolbar-dot-ring" cx="11" cy="11" r="6.5"></circle>
+</svg>

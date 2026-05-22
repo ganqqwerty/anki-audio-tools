@@ -103,8 +103,8 @@ export function selectionToolbarButton(
   return document.querySelector<HTMLButtonElement>(`[data-testid="aqe-selection-toolbar-${kind}-${ord}"]`)!;
 }
 
-export function selectionToolbarDot(ord = 0): HTMLButtonElement {
-  return document.querySelector<HTMLButtonElement>(`[data-testid="aqe-selection-toolbar-dot-${ord}"]`)!;
+export function selectionToolbarDot(ord = 0): SVGSVGElement {
+  return document.querySelector<SVGSVGElement>(`[data-testid="aqe-selection-toolbar-dot-${ord}"]`)!;
 }
 
 export function hoverToolbarButton(button: HTMLElement): void {

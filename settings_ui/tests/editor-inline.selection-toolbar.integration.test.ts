@@ -150,8 +150,10 @@ describe("editor inline selection toolbar integration", () => {
       selectionToolbarHidden: true,
       selectionToolbarDotHidden: false,
     });
+    expect(selectionToolbarDot()).toBeInstanceOf(SVGSVGElement);
+    expect(selectionToolbarDot().querySelector(".aqe-selection-toolbar-dot-ring")).not.toBeNull();
 
-    selectionToolbarDot().click();
+    selectionToolbarDot().dispatchEvent(new MouseEvent("click", { bubbles: true }));
     expect(window.__aqeGraphStateForTest?.(0)).toMatchObject({
       selectionToolbarCollapsed: false,
       selectionToolbarHidden: false,
@@ -165,6 +167,27 @@ describe("editor inline selection toolbar integration", () => {
       selectionEndMs: 700,
       selectionToolbarCollapsed: false,
       selectionToolbarHidden: false,
+    });
+  });
+
+  it("expands the collapsed svg circle from the keyboard", () => {
+    initializeEditorRuntime({ audioFieldIndices: [0] });
+    scan({ audioFieldIndices: [0] });
+    window.__aqeSetVisualizer?.(0, track, 250);
+    const svg = document.querySelector<SVGSVGElement>('[data-testid="aqe-graph-svg-0"]')!;
+    setGraphBounds(svg);
+    dragGraphSelection(svg, 0.2, 0.6);
+
+    selectionToolbarButton("collapse").click();
+    const dot = selectionToolbarDot();
+    expect(dot.getAttribute("role")).toBe("button");
+    expect(dot.getAttribute("tabindex")).toBe("0");
+    dot.dispatchEvent(new KeyboardEvent("keydown", { bubbles: true, key: "Enter" }));
+
+    expect(window.__aqeGraphStateForTest?.(0)).toMatchObject({
+      selectionToolbarCollapsed: false,
+      selectionToolbarHidden: false,
+      selectionToolbarDotHidden: true,
     });
   });
 

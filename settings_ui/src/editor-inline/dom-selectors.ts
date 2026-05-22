@@ -17,8 +17,8 @@ export function selectionToolbarForOrd(ord: number): HTMLElement | null {
   return visualizerForOrd(ord)?.querySelector<HTMLElement>(".aqe-selection-toolbar") ?? null;
 }
 
-export function selectionToolbarDotForOrd(ord: number): HTMLButtonElement | null {
-  return visualizerForOrd(ord)?.querySelector<HTMLButtonElement>(".aqe-selection-toolbar-dot") ?? null;
+export function selectionToolbarDotForOrd(ord: number): SVGSVGElement | null {
+  return visualizerForOrd(ord)?.querySelector<SVGSVGElement>(".aqe-selection-toolbar-dot") ?? null;
 }
 
 export function currentAudioSourceForOrd(ord: number): string {

@@ -150,7 +150,7 @@ def test_selection_toolbar_appears_collapses_and_expands(anki_mw, ffmpeg_config)
         )
         assert collapsed["selectionActive"] is True
 
-        click_selector(editor.web, _toolbar_selector("dot"), timeout=5.0)
+        _dispatch_toolbar_event(editor, "dot", "click")
         expanded = _wait_for_toolbar(
             editor,
             lambda state: state["selectionToolbarCollapsed"] is False

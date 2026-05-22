@@ -68,7 +68,7 @@ def _visualizer_js(ord_: int = 0) -> str:
         repeatEnabled: visualizer.dataset.repeatEnabled === "true",
         selectionToolbarHidden: toolbar ? toolbar.hidden : true,
         selectionToolbarCollapsed: visualizer.dataset.selectionToolbarCollapsed === "true",
-        selectionToolbarDotHidden: toolbarDot ? toolbarDot.hidden : true,
+        selectionToolbarDotHidden: toolbarDot ? toolbarDot.hasAttribute("hidden") : true,
         selectionToolbarPreview: (
           visualizer.dataset.selectionToolbarPreview === "region"
           || visualizer.dataset.selectionToolbarPreview === "rest"

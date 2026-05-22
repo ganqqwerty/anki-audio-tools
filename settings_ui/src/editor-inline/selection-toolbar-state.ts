@@ -30,8 +30,8 @@ function toolbarFor(visualizer: VisualizerElement): HTMLElement | null {
   return visualizer.querySelector<HTMLElement>(".aqe-selection-toolbar");
 }
 
-function dotFor(visualizer: VisualizerElement): HTMLButtonElement | null {
-  return visualizer.querySelector<HTMLButtonElement>(".aqe-selection-toolbar-dot");
+function dotFor(visualizer: VisualizerElement): SVGSVGElement | null {
+  return visualizer.querySelector<SVGSVGElement>(".aqe-selection-toolbar-dot");
 }
 
 function playButtonFor(visualizer: VisualizerElement): HTMLButtonElement | null {
@@ -74,10 +74,10 @@ export function syncSelectionToolbar(visualizer: VisualizerElement): void {
     toolbar.setAttribute("aria-hidden", collapsed ? "true" : "false");
   }
   if (dot) {
-    dot.hidden = !collapsed;
-    dot.disabled = busy;
+    dot.toggleAttribute("hidden", !collapsed);
+    dot.setAttribute("tabindex", collapsed ? "0" : "-1");
     dot.setAttribute("aria-hidden", collapsed ? "false" : "true");
-    dot.setAttribute("aria-disabled", dot.disabled ? "true" : "false");
+    dot.setAttribute("aria-disabled", busy ? "true" : "false");
   }
 }
 
@@ -118,14 +118,14 @@ export function setSelectionToolbarPreviewForOrd(ord: number, preview: Selection
   if (visualizer) setSelectionToolbarPreview(visualizer, preview);
 }
 
-function hideToolbar(toolbar: HTMLElement | null, dot: HTMLButtonElement | null): void {
+function hideToolbar(toolbar: HTMLElement | null, dot: SVGSVGElement | null): void {
   if (toolbar) {
     toolbar.hidden = true;
     toolbar.setAttribute("aria-hidden", "true");
   }
   if (dot) {
-    dot.hidden = true;
-    dot.disabled = true;
+    dot.setAttribute("hidden", "");
+    dot.setAttribute("tabindex", "-1");
     dot.setAttribute("aria-hidden", "true");
     dot.setAttribute("aria-disabled", "true");
   }

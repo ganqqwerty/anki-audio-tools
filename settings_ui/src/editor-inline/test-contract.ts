@@ -130,7 +130,7 @@ export function graphStateForTest(ord: number): GraphStateForTest | null {
   const startHandle = visualizer.querySelector<SVGRectElement>(".aqe-selection-resize-start");
   const endHandle = visualizer.querySelector<SVGRectElement>(".aqe-selection-resize-end");
   const selectionToolbar = visualizer.querySelector<HTMLElement>(".aqe-selection-toolbar");
-  const selectionToolbarDot = visualizer.querySelector<HTMLButtonElement>(".aqe-selection-toolbar-dot");
+  const selectionToolbarDot = visualizer.querySelector<SVGSVGElement>(".aqe-selection-toolbar-dot");
   const selectionToolbarPlay = visualizer.querySelector<HTMLButtonElement>(".aqe-selection-toolbar-play");
   const selectionToolbarPreview = visualizer.dataset.selectionToolbarPreview;
   const timecodeFlag = visualizer.querySelector<SVGGElement>(".aqe-cursor-flag");
@@ -175,7 +175,7 @@ export function graphStateForTest(ord: number): GraphStateForTest | null {
     selectionToolbarDeleteRegionHidden: regionDelete ? !!regionDelete.hidden : true,
     selectionToolbarDeleteRestDisabled: !!regionDeleteRest?.disabled,
     selectionToolbarDeleteRestHidden: regionDeleteRest ? !!regionDeleteRest.hidden : true,
-    selectionToolbarDotHidden: selectionToolbarDot ? !!selectionToolbarDot.hidden : true,
+    selectionToolbarDotHidden: selectionToolbarDot ? selectionToolbarDot.hasAttribute("hidden") : true,
     selectionToolbarHidden: selectionToolbar ? !!selectionToolbar.hidden : true,
     selectionToolbarLeftPx: selectionToolbar ? cssPixelNumber(selectionToolbar.style.left) : null,
     selectionToolbarPlayAriaLabel: selectionToolbarPlay?.getAttribute("aria-label") || "",

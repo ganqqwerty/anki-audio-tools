@@ -548,10 +548,13 @@
   text-decoration: none;
 }
 
-.aqe-selection-toolbar-button:focus-visible,
-.aqe-selection-toolbar-dot:focus-visible {
+.aqe-selection-toolbar-button:focus-visible {
   outline: 2px solid Highlight;
   outline-offset: 2px;
+}
+
+.aqe-selection-toolbar-dot:focus-visible {
+  outline: none;
 }
 
 .aqe-selection-toolbar-button[disabled] {
@@ -560,14 +563,12 @@
 }
 
 .aqe-selection-toolbar-dot {
-  background: #2f80ed;
-  border: 2px solid Canvas;
-  border-radius: 999px;
-  box-shadow: 0 0 0 4px rgb(47 128 237 / 24%);
   box-sizing: border-box;
+  color: #2f80ed;
+  cursor: pointer;
   height: 22px;
   left: var(--aqe-selection-toolbar-left-px, 0px);
-  padding: 0;
+  overflow: visible;
   position: absolute;
   top: var(--aqe-selection-toolbar-top-px, 0px);
   transform: translate(-50%, 6px);
@@ -575,9 +576,27 @@
   z-index: 4;
 }
 
-.aqe-selection-toolbar-dot:hover,
-.aqe-selection-toolbar-dot:focus-visible {
-  box-shadow: 0 0 0 7px rgb(47 128 237 / 34%);
+.aqe-selection-toolbar-dot-halo {
+  fill: none;
+  opacity: 0.24;
+  stroke: currentColor;
+  stroke-width: 4;
+}
+
+.aqe-selection-toolbar-dot-ring {
+  fill: Canvas;
+  stroke: currentColor;
+  stroke-width: 2.25;
+}
+
+.aqe-selection-toolbar-dot:hover .aqe-selection-toolbar-dot-halo,
+.aqe-selection-toolbar-dot:focus-visible .aqe-selection-toolbar-dot-halo {
+  opacity: 0.34;
+  stroke-width: 7;
+}
+
+.aqe-selection-toolbar-dot:focus-visible .aqe-selection-toolbar-dot-ring {
+  stroke-width: 3;
 }
 
 .aqe-pitch-path {
