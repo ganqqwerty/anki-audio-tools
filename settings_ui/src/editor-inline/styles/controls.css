@@ -45,6 +45,10 @@
   padding: 4px 8px;
 }
 
+.aqe-button-tooltip-target {
+  display: inline-flex;
+}
+
 .aqe-icon-only {
   gap: 0;
   justify-content: center;

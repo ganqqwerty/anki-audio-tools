@@ -56,6 +56,21 @@ def eval_playback_state(
     )
 
 
+def eval_history_availability(
+    editor: Any,
+    field_index: int | None,
+    can_undo: bool,
+    can_redo: bool,
+) -> None:
+    """Update undo/redo availability for a specific editor field."""
+    if field_index is None:
+        return
+    editor.web.eval(
+        "window.__aqeSetHistoryAvailability && window.__aqeSetHistoryAvailability("
+        f"{json.dumps(int(field_index))}, {json.dumps(bool(can_undo))}, {json.dumps(bool(can_redo))})"
+    )
+
+
 def request_graph_redraw(editor: Any, deps: Any, expected_filename: str | None = None) -> None:
     """Schedule graph redraw attempts after field contents are reloaded."""
     field_index = getattr(editor, "currentField", None)

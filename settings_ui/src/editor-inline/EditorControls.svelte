@@ -12,6 +12,7 @@
   import {
     configureAudioClock,
     handleVisualizerPointerDown,
+    historyAvailability,
     initializePlaybackRegionState,
     installAudioClockHandlers,
     resetAudioClockState,
@@ -50,6 +51,24 @@
       "aqe:pitch-hum",
     ].includes(command);
   }
+
+  function disabledTitle(command: string): string | undefined {
+    if (command === "aqe:undo") return t("editor.command.undo.disabled_title");
+    if (command === "aqe:redo") return t("editor.command.redo.disabled_title");
+    return undefined;
+  }
+
+  function initialButtonDisabled(command: string): boolean {
+    const availability = historyAvailability(target.ord);
+    if (command === "aqe:undo") return !availability.canUndo;
+    if (command === "aqe:redo") return !availability.canRedo;
+    return false;
+  }
+
+  function initialButtonTitle(button: { command: string; title: string }): string {
+    const unavailableTitle = disabledTitle(button.command);
+    return initialButtonDisabled(button.command) && unavailableTitle ? unavailableTitle : button.title;
+  }
   onMount(() => {
     const visualizer = visualizerForOrd(target.ord);
     if (!visualizer) return;
@@ -83,28 +102,37 @@
       />
     {:else}
       {@const displayMode = buttonDisplayMode(button.command, buttonModes)}
-      <button
-        type="button"
-        class:aqe-icon-only={displayMode === EditorButtonMode.Icon}
-        class="aqe-button"
-        data-aqe-command={button.command}
-        data-aqe-button-state={button.command === "aqe:analyze" ? "graph" : "default"}
-        data-testid={testId(target.ord, button.command)}
-        title={button.title}
-        aria-label={button.title}
-        onmousedown={(event) => event.preventDefault()}
-        onclick={() => send(button.command, target.node, target.ord)}
+      <span
+        class="aqe-button-tooltip-target"
+        title={initialButtonTitle(button)}
+        aria-label={initialButtonTitle(button)}
       >
-        {#if displayMode === EditorButtonMode.Icon}
-          <EditorCommandIcon className="aqe-button-icon-default" icon={button.icon} />
-          {#if button.activeIcon}
-            <EditorCommandIcon className="aqe-button-icon-active" icon={button.activeIcon} />
+        <button
+          type="button"
+          class:aqe-icon-only={displayMode === EditorButtonMode.Icon}
+          class="aqe-button"
+          data-aqe-command={button.command}
+          data-aqe-button-state={button.command === "aqe:analyze" ? "graph" : "default"}
+          data-aqe-disabled-title={disabledTitle(button.command)}
+          data-aqe-enabled-title={button.title}
+          data-testid={testId(target.ord, button.command)}
+          disabled={initialButtonDisabled(button.command)}
+          title={initialButtonTitle(button)}
+          aria-label={initialButtonTitle(button)}
+          onmousedown={(event) => event.preventDefault()}
+          onclick={() => send(button.command, target.node, target.ord)}
+        >
+          {#if displayMode === EditorButtonMode.Icon}
+            <EditorCommandIcon className="aqe-button-icon-default" icon={button.icon} />
+            {#if button.activeIcon}
+              <EditorCommandIcon className="aqe-button-icon-active" icon={button.activeIcon} />
+            {/if}
+            <span class="aqe-button-label">{button.label}</span>
+          {:else}
+            <span class="aqe-button-label">{button.label}</span>
           {/if}
-          <span class="aqe-button-label">{button.label}</span>
-        {:else}
-          <span class="aqe-button-label">{button.label}</span>
-        {/if}
-      </button>
+        </button>
+      </span>
     {/if}
   {/each}
   <span class="aqe-status" data-testid={`aqe-status-${target.ord}`}></span>

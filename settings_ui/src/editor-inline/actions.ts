@@ -65,9 +65,11 @@ import {
 export {
   anyBusy,
   clearStatus,
+  historyAvailability,
   repeatDefaultFromConfig,
   setCommandButtonLabel,
   setControlsBusy,
+  setHistoryAvailability,
   setStatus,
 } from "./control-actions.js";
 export { send } from "./command-actions.js";

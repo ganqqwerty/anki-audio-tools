@@ -7,6 +7,7 @@ import {
   prepareForNewNote,
   resetGraphAfterEdit,
   setControlsBusy,
+  setHistoryAvailability,
   setPlaybackState,
   setStatus,
   setVisualizer,
@@ -32,6 +33,7 @@ export const EDITOR_WINDOW_CONTRACT_NAMES = [
   "__aqePrepareForNewNote",
   "__aqeResetGraphAfterEdit",
   "__aqeSetBusy",
+  "__aqeSetHistoryAvailability",
   "__aqeSetPlaybackState",
   "__aqeSetStatus",
   "__aqeSetVisualizer",
@@ -41,6 +43,7 @@ export const EDITOR_WINDOW_CONTRACT_NAMES = [
 
 export function installEditorWindowContract(): void {
   window.__aqeSetBusy = setControlsBusy;
+  window.__aqeSetHistoryAvailability = setHistoryAvailability;
   window.__aqeSetStatus = setStatus;
   window.__aqeSetVisualizer = setVisualizer;
   window.__aqeSetVisualizerStatus = setVisualizerStatusFromPython;

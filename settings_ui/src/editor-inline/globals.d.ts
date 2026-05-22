@@ -25,6 +25,7 @@ declare global {
     __aqeGetCursorMs?: (() => number) | undefined;
     __aqeGetPlaybackRequest?: (() => PlaybackRequest) | undefined;
     __aqeGraphStateForTest?: ((ord: number) => GraphStateForTest | null) | undefined;
+    __aqeHistoryAvailabilityByField?: Record<number, { canRedo: boolean; canUndo: boolean }> | undefined;
     __aqeInstallAudioPlaybackTestDriverForTest?: ((ord: number) => boolean) | undefined;
     __aqeLastCursorIntent?: CursorIntent | null;
     __aqeLastPlaybackRequest?: PlaybackRequest | null;
@@ -45,6 +46,7 @@ declare global {
     __aqeSetBusy?: ((ord: number, busy: boolean, message?: string, command?: string) => void) | undefined;
     __aqeSetCursorByClientXForTest?: ((ord: number, clientX: number, notifyPython: boolean) => CursorPositionForTest | null) | undefined;
     __aqeSetCursorForTest?: ((ord: number, ms: number, notifyPython: boolean) => boolean) | undefined;
+    __aqeSetHistoryAvailability?: ((ord: number, canUndo: boolean, canRedo: boolean) => void) | undefined;
     __aqeSetPlaybackState?: ((ord: number, state: PlaybackState, cursorMs: number) => void) | undefined;
     __aqeSetStatus?: ((message: string, kind?: string) => void) | undefined;
     __aqeSetVisualizer?: ((ord: number, track: ProsodyPayload, cursorMs: number) => void) | undefined;

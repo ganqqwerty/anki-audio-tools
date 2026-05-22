@@ -119,6 +119,9 @@ def test_editor_undo_and_redo_restore_audio_references_without_processing(
     assert session.current_filename == "clip__aqe_first.mp3"
     assert session.undo_history.pop().filename == "clip.mp3"
     assert editor.loadNote.call_count == 2
+    evals = [call.args[0] for call in editor.web.eval.call_args_list]
+    assert any("window.__aqeSetHistoryAvailability && window.__aqeSetHistoryAvailability(0, false, true)" in call for call in evals)
+    assert any("window.__aqeSetHistoryAvailability && window.__aqeSetHistoryAvailability(0, true, false)" in call for call in evals)
     assert sum("__aqePlayAfterEdit" in call.args[0] for call in editor.web.evalWithCallback.call_args_list) == 2
 
 

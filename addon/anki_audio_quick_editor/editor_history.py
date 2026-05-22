@@ -15,6 +15,16 @@ from .sound_refs import (
 )
 
 
+def sync_history_availability(editor: Any, session: EditorSession, deps: Any) -> None:
+    """Reflect current undo/redo availability into the editor toolbar."""
+    deps.eval_history_availability(
+        editor,
+        session.field_index,
+        bool(session.undo_history.entries),
+        bool(session.redo_history.entries),
+    )
+
+
 def undo(editor: Any, deps: Any) -> None:
     """Restore the previous generated audio reference for the current field."""
     session, _source_path = deps.session_and_source(editor)
@@ -87,6 +97,7 @@ def restore_history_entry(
     restored_path = existing_media_file_path(Path(editor.mw.col.media.dir()), entry.filename)
     session.source_mtime_ns = restored_path.stat().st_mtime_ns if restored_path is not None else None
     editor.loadNote(focusTo=field_index)
+    sync_history_availability(editor, session, deps)
     deps.eval_status(editor, status)
     deps.eval_playback_state(editor, field_index, "stopped", 0)
     if field_index in session.graph_active_fields:

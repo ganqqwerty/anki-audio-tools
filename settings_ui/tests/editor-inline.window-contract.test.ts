@@ -38,6 +38,7 @@ describe("editor inline window contract", () => {
       "__aqeSetBusy",
       "__aqeSetCursorByClientXForTest",
       "__aqeSetCursorForTest",
+      "__aqeSetHistoryAvailability",
       "__aqeSetPlaybackState",
       "__aqeSetStatus",
       "__aqeSetVisualizer",

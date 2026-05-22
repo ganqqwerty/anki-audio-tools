@@ -22,6 +22,7 @@ from . import (
 )
 
 _dispose_editor_frontend_controls = editor_frontend_callbacks._dispose_editor_frontend_controls
+_eval_history_availability = editor_frontend_callbacks._eval_history_availability
 _eval_playback_state = editor_frontend_callbacks._eval_playback_state
 _eval_status = editor_frontend_callbacks._eval_status
 _eval_visualizer_status = editor_frontend_callbacks._eval_visualizer_status

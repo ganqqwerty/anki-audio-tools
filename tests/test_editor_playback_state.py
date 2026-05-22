@@ -25,6 +25,7 @@ def test_note_load_reset_clears_note_specific_session_state(monkeypatch) -> None
         pass
 
     editor = Editor()
+    editor.web = MagicMock()
     source_path = Path("/tmp/playback.mp3")
     session = EditorSession(
         note_id=10,
@@ -79,6 +80,8 @@ def test_note_load_reset_clears_note_specific_session_state(monkeypatch) -> None
     assert session.playback_generation == 5
     assert session.temp_playback_path is None
     assert session.undo_history.pop() is None
+    evals = [call.args[0] for call in editor.web.eval.call_args_list]
+    assert any("window.__aqeSetHistoryAvailability && window.__aqeSetHistoryAvailability(ord, false, false)" in call for call in evals)
 
 
 def test_is_busy_includes_playback_preparation() -> None:

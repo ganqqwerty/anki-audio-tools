@@ -117,6 +117,7 @@ def test_injection_script_keeps_python_window_contract() -> None:
     script = injection_script([0])
 
     assert "__aqeSetBusy" in script
+    assert "__aqeSetHistoryAvailability" in script
     assert "__aqeSetStatus" in script
     assert "__aqeSetVisualizer" in script
     assert "__aqeSetVisualizerStatus" in script

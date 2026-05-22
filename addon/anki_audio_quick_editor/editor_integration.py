@@ -256,3 +256,14 @@ def _reset_editor_session_for_note_load(editor: Any, note_id: int | None = None)
     if not reset_for_note_load(session, note_id):
         return
     _stop_session_playback(session)
+    if not hasattr(editor, "web"):
+        return
+    editor.web.eval(
+        "(() => {"
+        "window.__aqeHistoryAvailabilityByField = {};"
+        "document.querySelectorAll('.aqe-controls').forEach((controls) => {"
+        "const ord = Number(controls.dataset.aqeFieldOrd || '0');"
+        "window.__aqeSetHistoryAvailability && window.__aqeSetHistoryAvailability(ord, false, false);"
+        "});"
+        "})()"
+    )

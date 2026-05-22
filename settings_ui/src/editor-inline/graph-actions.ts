@@ -31,6 +31,7 @@ import {
   repeatDefaultFromConfig,
   setCommandButtonLabel,
   setControlsBusy,
+  setHistoryAvailability,
 } from "./control-actions.js";
 import { graphSettingsForField } from "./graph-split-state.js";
 
@@ -172,18 +173,21 @@ export function prepareForNewNote(): void {
   document.body.dataset.aqeBusy = "false";
   window.__aqeActiveField = null;
   window.__aqeLastCursorIntent = null;
+  window.__aqeHistoryAvailabilityByField = {};
   document.querySelectorAll<HTMLElement>(".aqe-controls").forEach((controls) => {
     controls.dataset.busy = "false";
     controls.dataset.aqeSourceFilename = "";
+    const ord = Number(controls.dataset.aqeFieldOrd || "0");
     controls.querySelectorAll<HTMLButtonElement>(".aqe-button").forEach((button) => {
-      button.disabled = false;
+      button.disabled = button.dataset.aqeCommand === "aqe:undo" || button.dataset.aqeCommand === "aqe:redo";
       if (button.dataset.aqeCommand === "aqe:analyze") {
-        setCommandButtonLabel(Number(controls.dataset.aqeFieldOrd || "0"), "aqe:analyze", "Graph");
+        setCommandButtonLabel(ord, "aqe:analyze", "Graph");
       }
       if (button.dataset.aqeCommand === "aqe:play") {
-        setCommandButtonLabel(Number(controls.dataset.aqeFieldOrd || "0"), "aqe:play", "Play");
+        setCommandButtonLabel(ord, "aqe:play", "Play");
       }
     });
+    setHistoryAvailability(ord, false, false);
     const status = controls.querySelector<HTMLElement>(".aqe-status");
     if (status) {
       status.textContent = "";

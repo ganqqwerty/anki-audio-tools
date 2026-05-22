@@ -35,6 +35,17 @@ logger = logging.getLogger(__name__)
 convert_async = _convert_async
 
 
+def _sync_history_availability(editor: Any, session: EditorSession | None, deps: Any) -> None:
+    if session is None:
+        return
+    deps.eval_history_availability(
+        editor,
+        session.field_index,
+        bool(session.undo_history.entries),
+        bool(session.redo_history.entries),
+    )
+
+
 def update_state_and_render(editor: Any, command: str | EditorCommandPayload, deps: Any) -> None:
     """Apply a frontend processing command and start the render worker."""
     existing = deps.sessions.get(editor)
@@ -175,6 +186,7 @@ def replace_current_field_after_render(
             session.visualized_filenames_by_field.pop(field_index, None)
             session.visualized_durations_by_field.pop(field_index, None)
     editor.loadNote(focusTo=field_index)
+    _sync_history_availability(editor, session, deps)
     deps.eval_status(editor, t("editor.status.updated_field", {"filename": saved_name}))
     deps.eval_playback_state(editor, field_index, "stopped", 0)
     if should_redraw_graph:

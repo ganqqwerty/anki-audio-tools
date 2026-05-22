@@ -55,6 +55,15 @@ def _eval_playback_state(
     editor_frontend.eval_playback_state(editor, field_index, state, cursor_ms)
 
 
+def _eval_history_availability(
+    editor: Any,
+    field_index: int | None,
+    can_undo: bool,
+    can_redo: bool,
+) -> None:
+    editor_frontend.eval_history_availability(editor, field_index, can_undo, can_redo)
+
+
 def _request_graph_redraw(editor: Any, expected_filename: str | None = None) -> None:
     editor_frontend.request_graph_redraw(editor, _frontend_deps(), expected_filename)
 

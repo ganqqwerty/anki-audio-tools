@@ -58,6 +58,30 @@ describe("editor inline Svelte integration", () => {
     expect(fieldIndex(document.getElementById("f0")!, 7)).toBe(0);
   });
 
+  it("disables undo and redo until history becomes available and updates their tooltips", () => {
+    initializeEditorRuntime({ audioFieldIndices: [0] });
+    scan({ audioFieldIndices: [0] });
+
+    const undoButton = document.querySelector<HTMLButtonElement>('[data-testid="aqe-button-0-undo"]')!;
+    const redoButton = document.querySelector<HTMLButtonElement>('[data-testid="aqe-button-0-redo"]')!;
+    const undoTooltip = undoButton.closest<HTMLElement>(".aqe-button-tooltip-target");
+    const redoTooltip = redoButton.closest<HTMLElement>(".aqe-button-tooltip-target");
+
+    expect(undoButton).toBeDisabled();
+    expect(redoButton).toBeDisabled();
+    expect(undoButton).toHaveAttribute("title", "Nothing to undo yet");
+    expect(redoButton).toHaveAttribute("title", "Nothing to redo yet");
+    expect(undoTooltip).toHaveAttribute("title", "Nothing to undo yet");
+    expect(redoTooltip).toHaveAttribute("title", "Nothing to redo yet");
+
+    window.__aqeSetHistoryAvailability?.(0, true, false);
+
+    expect(undoButton).not.toBeDisabled();
+    expect(redoButton).toBeDisabled();
+    expect(undoButton).toHaveAttribute("title", "Undo the last action and restore the previous file");
+    expect(redoButton).toHaveAttribute("title", "Nothing to redo yet");
+  });
+
   it("renders configured buttons as icon only", () => {
     initializeEditorRuntime({
       audioFieldIndices: [0],
