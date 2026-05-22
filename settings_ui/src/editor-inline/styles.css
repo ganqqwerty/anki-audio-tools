@@ -499,6 +499,43 @@
   stroke-opacity: 0.9;
 }
 
+.aqe-selection-region-preview-halo {
+  background: radial-gradient(
+    ellipse at 50% 50%,
+    rgb(255 255 255 / 0.34),
+    rgb(255 255 255 / 0.14) 38%,
+    rgb(255 255 255 / 0.04) 62%,
+    transparent 82%
+  );
+  border-radius: 999px;
+  display: none;
+  filter: blur(1.2px);
+  height: 24px;
+  left: var(--aqe-selection-start-px, 44px);
+  opacity: 0;
+  pointer-events: none;
+  position: absolute;
+  width: max(0px, calc(var(--aqe-selection-end-px, 44px) - var(--aqe-selection-start-px, 44px)));
+  z-index: 3;
+}
+
+.aqe-visualizer[data-selection-toolbar-preview="region"] .aqe-selection-region-preview-halo {
+  display: block;
+}
+
+.aqe-selection-region-preview-halo-top,
+.aqe-selection-region-preview-halo-bottom {
+  top: calc(var(--aqe-plot-top-px, 10px) + (var(--aqe-plot-height-px, 106px) / 2) - 12px);
+}
+
+.aqe-visualizer[data-selection-toolbar-preview="region"] .aqe-selection-region-preview-halo-top {
+  animation: aqe-selection-region-halo-up 5.2s linear infinite;
+}
+
+.aqe-visualizer[data-selection-toolbar-preview="region"] .aqe-selection-region-preview-halo-bottom {
+  animation: aqe-selection-region-halo-down 5.2s linear infinite;
+}
+
 .aqe-selection-edge {
   opacity: 0.65;
   pointer-events: none;
@@ -684,13 +721,38 @@
   }
 }
 
+@keyframes aqe-selection-region-halo-up {
+  0% {
+    opacity: 0.28;
+    transform: translateY(0) scaleX(1.02) scaleY(1.16);
+  }
+
+  100% {
+    opacity: 0;
+    transform: translateY(-28px) scaleX(0.98) scaleY(0.86);
+  }
+}
+
+@keyframes aqe-selection-region-halo-down {
+  0% {
+    opacity: 0.28;
+    transform: translateY(0) scaleX(1.02) scaleY(1.16);
+  }
+
+  100% {
+    opacity: 0;
+    transform: translateY(28px) scaleX(0.98) scaleY(0.86);
+  }
+}
+
 .aqe-pitch-path {
   fill: none;
   opacity: 0.9;
   stroke: currentColor;
   stroke-linecap: round;
   stroke-linejoin: round;
-  stroke-width: 2;
+  filter: drop-shadow(0 0 1px rgb(0 0 0 / 0.18));
+  stroke-width: 3;
 }
 
 .aqe-cursor {
@@ -706,8 +768,8 @@
 .aqe-cursor-pitch-marker {
   fill: var(--aqe-progress-surface);
   filter:
-    drop-shadow(0 0 2px var(--aqe-progress-inner-halo))
-    drop-shadow(0 0 7px var(--aqe-progress-halo));
+    drop-shadow(0 0 1px var(--aqe-progress-inner-halo))
+    drop-shadow(0 0 4px var(--aqe-progress-halo));
   opacity: 0.98;
   pointer-events: none;
   stroke: var(--aqe-progress-color);
@@ -723,8 +785,8 @@
 .aqe-cursor-flag-notch {
   fill: var(--aqe-progress-surface);
   filter:
-    drop-shadow(0 0 2px var(--aqe-progress-inner-halo))
-    drop-shadow(0 0 6px var(--aqe-progress-halo));
+    drop-shadow(0 0 1px var(--aqe-progress-inner-halo))
+    drop-shadow(0 0 3px var(--aqe-progress-halo));
   stroke: var(--aqe-progress-color);
   stroke-width: 1;
   vector-effect: non-scaling-stroke;

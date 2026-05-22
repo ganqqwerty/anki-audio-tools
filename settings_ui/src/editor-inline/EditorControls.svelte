@@ -129,6 +129,8 @@
       hidden
     ></audio>
     <div class="aqe-visualizer-plot" data-testid={`aqe-visualizer-plot-${target.ord}`}>
+      <div class="aqe-selection-region-preview-halo aqe-selection-region-preview-halo-top" aria-hidden="true"></div>
+      <div class="aqe-selection-region-preview-halo aqe-selection-region-preview-halo-bottom" aria-hidden="true"></div>
       <svg
         class="aqe-visualizer-svg"
         data-testid={`aqe-graph-svg-${target.ord}`}
