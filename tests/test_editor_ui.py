@@ -35,6 +35,7 @@ def test_injection_script_embeds_audio_field_indices_and_bundle() -> None:
     assert "window.__aqeEditorDispose" in script
     assert "aqe:frontend-log" in script
     assert "aqe:show-file" in script
+    assert "aqe:share" in script
     assert "aqe:convert" in script
     assert "aqe:volume-down" in script
     assert "aqe:volume-up" in script

@@ -37,6 +37,10 @@
           <span class="aqe-help-description">{t("editor.help.folder_desc")}</span>
         </span>
         <span class="aqe-help-item">
+          <span class="aqe-help-command"><EditorCommandIcon icon="share-2" /><span>{t("editor.command.share.label")}</span></span>
+          <span class="aqe-help-description">{t("editor.help.share_desc")}</span>
+        </span>
+        <span class="aqe-help-item">
           <span class="aqe-help-command"><EditorCommandIcon icon="file-audio" /><span>{t("editor.command.convert.label")}</span></span>
           <span class="aqe-help-description">{t("editor.help.convert_desc")}</span>
         </span>

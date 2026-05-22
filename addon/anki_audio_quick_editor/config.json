@@ -1,6 +1,6 @@
 {
   "$schema": "./config.schema.json",
-  "_config_version": 17,
+  "_config_version": 18,
   "enabled": true,
   "debug_logging": false,
   "show_ffmpeg_commands": false,
@@ -11,6 +11,7 @@
     "aqe:play",
     "aqe:analyze",
     "aqe:show-file",
+    "aqe:share",
     "aqe:convert",
     "aqe:remove-pauses",
     "aqe:denoise-standard",

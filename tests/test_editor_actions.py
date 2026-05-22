@@ -59,6 +59,16 @@ def test_decode_graph_command_accepts_graph_settings() -> None:
     assert decoded.graph_settings == {"voiceRange": "bass", "smoothness": "very_smooth"}
 
 
+def test_decode_command_accepts_share_target_payload() -> None:
+    decoded = decode_editor_command_payload(
+        '{"command":"aqe:share","fieldOrd":0,"shareTarget":"litterbox"}'
+    )
+
+    assert decoded.command == "aqe:share"
+    assert decoded.field_ord == 0
+    assert decoded.share_target == "litterbox"
+
+
 def test_apply_processing_command_handles_speed_and_feature_toggles() -> None:
     config = AudioProcessingConfig(speed_step=0.1)
     state = AudioEditState("clip.mp3")
@@ -216,6 +226,7 @@ def test_play_graph_cursor_and_play_ended_are_not_processing_commands() -> None:
         "aqe:play",
         "aqe:play-ended",
         "aqe:show-file",
+        "aqe:share",
         "aqe:analyze",
         "aqe:analyze-field",
         "aqe:set-cursor",
@@ -239,3 +250,7 @@ def test_play_graph_cursor_and_play_ended_are_not_processing_commands() -> None:
     assert "aqe:analyze-field" in BRIDGE_COMMANDS
     assert ("aqe:" + "si" + "don") not in BRIDGE_COMMANDS
 
+
+def test_share_command_is_registered_but_not_processing() -> None:
+    assert "aqe:share" in BRIDGE_COMMANDS
+    assert "aqe:share" not in PROCESSING_COMMANDS

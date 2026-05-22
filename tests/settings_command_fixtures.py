@@ -24,7 +24,7 @@ def _capture_eval() -> tuple[list[str], callable]:
 
 def _full_config() -> dict[str, object]:
     return {
-        "_config_version": 17,
+        "_config_version": 18,
         "enabled": True,
         "debug_logging": False,
         "show_ffmpeg_commands": False,
@@ -35,6 +35,7 @@ def _full_config() -> dict[str, object]:
             "aqe:play",
             "aqe:analyze",
             "aqe:show-file",
+            "aqe:share",
             "aqe:convert",
             "aqe:remove-pauses",
             "aqe:denoise-standard",
@@ -70,8 +71,6 @@ def _full_config() -> dict[str, object]:
         "pitch_hum_mode": "direct",
         "pause_aggressiveness": "normal",
     }
-
-
 
 def _parse_callback(js: str, name: str) -> dict:
     prefix = f"window.{name}("

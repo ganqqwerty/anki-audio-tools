@@ -37,6 +37,7 @@ export {
 
 type CompleteSplitButtonDefaults = Required<SplitButtonDefaults>;
 type PitchHumMode = FieldSplitButtonState["pitchHumMode"];
+type ShareTarget = FieldSplitButtonState["shareTarget"];
 const DEFAULTS: CompleteSplitButtonDefaults = {
   denoiseAlgorithm: "standard",
   dpdfnetAttnLimitDb: 12,
@@ -73,6 +74,10 @@ export function formatPitchHumMode(value: PitchHumMode): string {
   return t("editor.pitch_hum.mode.direct");
 }
 
+export function formatShareTarget(value: ShareTarget): string {
+  return value === "litterbox" ? t("editor.share.target.litterbox") : t("editor.share.target.catbox");
+}
+
 function pitchHumModeOrDefault(value: unknown): PitchHumMode {
   return value === "pitch_tier" ? "pitch_tier" : "direct";
 }
@@ -95,10 +100,14 @@ export function getSplitButtonState(ord: number): FieldSplitButtonState {
   const states = fieldStates();
   const existing = states[ord];
   if (existing) {
+    const runtimeState = existing as FieldSplitButtonState & { shareTarget?: ShareTarget };
     if (!Number.isFinite(existing.repeatPauseSeconds)) {
       existing.repeatPauseSeconds = defaultRepeatPauseSeconds;
       existing.defaultRepeatPauseSeconds = defaultRepeatPauseSeconds;
       existing.repeatPauseEdited = false;
+    }
+    if (runtimeState.shareTarget !== "catbox" && runtimeState.shareTarget !== "litterbox") {
+      runtimeState.shareTarget = "litterbox";
     }
     if (!existing.volumeEdited && existing.defaultVolumeStepDb !== defaultVolumeStepDb) {
       existing.defaultVolumeStepDb = defaultVolumeStepDb;
@@ -156,7 +165,7 @@ export function getSplitButtonState(ord: number): FieldSplitButtonState {
     }
     return existing;
   }
-  const state = {
+  const state: FieldSplitButtonState = {
     defaultDenoiseAlgorithm,
     defaultDpdfnetAttnLimitDb,
     defaultGraphConnectShortDropoutsMs,
@@ -188,6 +197,7 @@ export function getSplitButtonState(ord: number): FieldSplitButtonState {
     pitchHumMode: defaultPitchHumMode,
     repeatPauseEdited: false,
     repeatPauseSeconds: defaultRepeatPauseSeconds,
+    shareTarget: "litterbox",
     speedEdited: false,
     speedStep: defaultSpeedStep,
     volumeEdited: false,
@@ -350,6 +360,12 @@ export function setPitchHumModeForField(ord: number, value: PitchHumMode): Field
   return state;
 }
 
+export function setShareTargetForField(ord: number, value: ShareTarget): FieldSplitButtonState {
+  const state = getSplitButtonState(ord);
+  state.shareTarget = value;
+  return state;
+}
+
 export function setOutputFormatForField(ord: number, value: unknown): FieldSplitButtonState {
   const state = getSplitButtonState(ord);
   state.outputFormatEdited = true;
@@ -380,6 +396,9 @@ export function buildSplitCommandPayload(command: EditorCommand, ord: number): E
   }
   if (command === "aqe:convert") {
     return { command, fieldOrd: ord, overrides: { targetFormat: state.outputFormat } };
+  }
+  if (command === "aqe:share") {
+    return { command, fieldOrd: ord, shareTarget: state.shareTarget };
   }
   if (
     command === "aqe:denoise-standard" ||

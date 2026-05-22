@@ -18,6 +18,7 @@ DEFAULT_VISIBLE_EDITOR_BUTTONS = (
     "aqe:play",
     "aqe:analyze",
     "aqe:show-file",
+    "aqe:share",
     "aqe:convert",
     "aqe:remove-pauses",
     "aqe:denoise-standard",

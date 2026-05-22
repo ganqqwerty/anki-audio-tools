@@ -10,6 +10,7 @@ export type EditorCommand =
   | "aqe:play"
   | "aqe:analyze"
   | "aqe:show-file"
+  | "aqe:share"
   | "aqe:convert"
   | "aqe:delete-selection"
   | "aqe:delete-rest"
@@ -40,6 +41,7 @@ export const DEFAULT_VISIBLE_EDITOR_BUTTONS = [
   "aqe:play",
   "aqe:analyze",
   "aqe:show-file",
+  "aqe:share",
   "aqe:convert",
   "aqe:remove-pauses",
   "aqe:denoise-standard",
@@ -55,10 +57,10 @@ export const DEFAULT_VISIBLE_EDITOR_BUTTONS = [
 
 const DEFAULT_VISIBLE_EDITOR_BUTTON_SET = new Set<EditorCommand>(DEFAULT_VISIBLE_EDITOR_BUTTONS);
 
-function formatDenoiseAlgorithm(algorithm: "standard" | "rnnoise" | "dpdfnet" | "voice_only"): string {
-  if (algorithm === "rnnoise") return t("settings.denoise_algorithm.rnnoise");
-  if (algorithm === "dpdfnet") return t("settings.denoise_algorithm.dpdfnet");
-  if (algorithm === "voice_only") return t("settings.denoise_algorithm.voice_only");
+function formatDenoiseAlgorithm(value: "standard" | "rnnoise" | "dpdfnet" | "voice_only"): string {
+  if (value === "rnnoise") return t("settings.denoise_algorithm.rnnoise");
+  if (value === "dpdfnet") return t("settings.denoise_algorithm.dpdfnet");
+  if (value === "voice_only") return t("settings.denoise_algorithm.voice_only");
   return t("settings.denoise_algorithm.standard");
 }
 
@@ -89,6 +91,13 @@ export function commandButtons(): readonly ToolbarButtonSpec[] {
       iconOnly: true,
       label: t("editor.command.folder.label"),
       title: t("editor.command.folder.title"),
+    },
+    {
+      command: "aqe:share",
+      icon: "share-2",
+      iconOnly: true,
+      label: t("editor.command.share.label"),
+      title: t("editor.command.share.title"),
     },
     {
       command: "aqe:convert",
@@ -231,6 +240,7 @@ export const COMMAND_SLUGS: Readonly<Record<EditorCommand, string>> = {
   "aqe:play": "play",
   "aqe:analyze": "graph",
   "aqe:show-file": "show-file",
+  "aqe:share": "share",
   "aqe:convert": "convert",
   "aqe:delete-selection": "delete-selection",
   "aqe:delete-rest": "delete-rest",

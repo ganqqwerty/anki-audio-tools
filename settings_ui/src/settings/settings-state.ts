@@ -18,6 +18,7 @@ export const DEFAULT_VISIBLE_EDITOR_BUTTONS = [
   VisibleEditorButton.AqePlay,
   VisibleEditorButton.AqeAnalyze,
   VisibleEditorButton.AqeShowFile,
+  VisibleEditorButton.AqeShare,
   VisibleEditorButton.AqeConvert,
   VisibleEditorButton.AqeRemovePauses,
   VisibleEditorButton.AqeDenoiseStandard,
@@ -33,7 +34,7 @@ export const DEFAULT_VISIBLE_EDITOR_BUTTONS = [
 
 export const FALLBACK_INITIAL_STATE: InitialState = {
   config: {
-    _config_version: 17,
+    _config_version: 18,
     enabled: true,
     debug_logging: false,
     show_ffmpeg_commands: false,

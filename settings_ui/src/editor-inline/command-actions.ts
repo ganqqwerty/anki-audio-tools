@@ -1,4 +1,4 @@
-import { PROCESSING_COMMANDS, processingMessage } from "./commands.js";
+import { BUSY_COMMANDS, PROCESSING_COMMANDS, processingMessage } from "./commands.js";
 import { focusAndSendCommand, focusAndSendCommandPayload } from "./bridge.js";
 import { allVisualizers } from "./dom-selectors.js";
 import { logger } from "./logger.js";
@@ -33,11 +33,15 @@ export function send(
   if (shouldPlayAfterSuccessfulEdit(command)) {
     rememberPostEditPlaybackIntent(ord);
   }
-  if (PROCESSING_COMMANDS.has(command)) {
+  if (BUSY_COMMANDS.has(command)) {
     stopAllEditorPlayback();
     setControlsBusy(ord, true, processingMessage(command, payload));
   }
-  const effectivePayload = payload ?? (command === "aqe:pitch-hum" ? buildSplitCommandPayload(command, ord) : undefined);
+  const effectivePayload =
+    payload ??
+    (command === "aqe:pitch-hum" || command === "aqe:share"
+      ? buildSplitCommandPayload(command, ord)
+      : undefined);
   if (effectivePayload) {
     focusAndSendCommandPayload(ord, effectivePayload);
     return;

@@ -160,9 +160,30 @@ class TestMigrateConfig:
 
         migrated, changed = migrate_config(user, defaults)
 
-        assert migrated["visible_editor_buttons"] == ["aqe:play", "aqe:settings"]
+        assert migrated["visible_editor_buttons"] == ["aqe:play", "aqe:settings", "aqe:share"]
         assert migrated["_config_version"] == CURRENT_CONFIG_VERSION
         assert changed is True
+
+    def test_adds_share_button_to_visible_editor_buttons_when_missing(self) -> None:
+        defaults = {
+            "_config_version": 18,
+            "visible_editor_buttons": ["aqe:play", "aqe:show-file", "aqe:share", "aqe:settings"],
+        }
+        user = {
+            "_config_version": 17,
+            "visible_editor_buttons": ["aqe:play", "aqe:show-file", "aqe:settings"],
+        }
+
+        migrated, changed = migrate_config(user, defaults)
+
+        assert changed is True
+        assert migrated["_config_version"] == 18
+        assert migrated["visible_editor_buttons"] == [
+            "aqe:play",
+            "aqe:show-file",
+            "aqe:share",
+            "aqe:settings",
+        ]
 
     def test_picks_up_graph_display_defaults(self) -> None:
         user = {"_config_version": 11, "enabled": True}

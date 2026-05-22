@@ -16,7 +16,7 @@ import {
 } from "../src/lib/types.js";
 
 const defaultConfig = {
-  _config_version: 17,
+  _config_version: 18,
   enabled: true,
   debug_logging: false,
   show_ffmpeg_commands: false,
@@ -27,6 +27,7 @@ const defaultConfig = {
     VisibleEditorButton.AqePlay,
     VisibleEditorButton.AqeAnalyze,
     VisibleEditorButton.AqeShowFile,
+    VisibleEditorButton.AqeShare,
     VisibleEditorButton.AqeConvert,
     VisibleEditorButton.AqeRemovePauses,
     VisibleEditorButton.AqeDenoiseStandard,

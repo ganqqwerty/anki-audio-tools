@@ -120,7 +120,7 @@ def test_editor_dpdfnet_uses_selected_aggressiveness(
             """
             document.querySelector('[data-testid="aqe-button-0-denoise-standard"]')?.title
             """,
-            lambda value: value == "Denoise speech with DPDFNet, Aggressiveness: Aggressive",
+            lambda value: value == "Remove noise and music using DPDFNet",
             timeout=5.0,
         )
         click_selector(editor.web, _button_selector("aqe:denoise-standard"), timeout=5.0)

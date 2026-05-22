@@ -23,6 +23,7 @@ import {
   setPauseAggressivenessForField,
   setPitchHumModeForField,
   setRepeatPauseSecondsForField,
+  setShareTargetForField,
   setSpeedStepForField,
   setVolumeStepForField,
 } from "../src/editor-inline/split-button-state.js";
@@ -130,6 +131,7 @@ describe("split button state", () => {
     expect(getSplitButtonState(0).graphVoiceLock).toBe("stable");
     expect(getSplitButtonState(0).outputFormat).toBe("flac");
     expect(getSplitButtonState(0).pitchHumMode).toBe("pitch_tier");
+    expect(getSplitButtonState(0).shareTarget).toBe("litterbox");
   });
 
   it("keeps volume state isolated per field", () => {
@@ -220,6 +222,23 @@ describe("split button state", () => {
         targetFormat: "wav",
       },
     });
+  });
+
+  it("builds share payloads from field-local share target state", () => {
+    setShareTargetForField(0, "catbox");
+
+    expect(buildSplitCommandPayload("aqe:share", 0)).toEqual({
+      command: "aqe:share",
+      fieldOrd: 0,
+      shareTarget: "catbox",
+    });
+  });
+
+  it("keeps share target isolated per field", () => {
+    setShareTargetForField(0, "catbox");
+
+    expect(getSplitButtonState(0).shareTarget).toBe("catbox");
+    expect(getSplitButtonState(1).shareTarget).toBe("litterbox");
   });
 
   it("builds graph payloads from local field state", () => {

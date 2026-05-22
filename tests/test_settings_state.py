@@ -12,7 +12,7 @@ from anki_audio_quick_editor.settings_state import (
 
 def _full_config() -> dict[str, object]:
     return {
-        "_config_version": 17,
+        "_config_version": 18,
         "enabled": True,
         "debug_logging": False,
         "show_ffmpeg_commands": False,
@@ -23,6 +23,7 @@ def _full_config() -> dict[str, object]:
             "aqe:play",
             "aqe:analyze",
             "aqe:show-file",
+            "aqe:share",
             "aqe:convert",
             "aqe:remove-pauses",
             "aqe:denoise-standard",

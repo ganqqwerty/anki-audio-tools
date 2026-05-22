@@ -16,6 +16,7 @@
   import Save from "@lucide/svelte/icons/save";
   import Scissors from "@lucide/svelte/icons/scissors";
   import Settings from "@lucide/svelte/icons/settings";
+  import Share2 from "@lucide/svelte/icons/share-2";
   import Snail from "@lucide/svelte/icons/snail";
   import Sparkles from "@lucide/svelte/icons/sparkles";
   import TimerReset from "@lucide/svelte/icons/timer-reset";
@@ -77,6 +78,8 @@
     <Scissors {size} {strokeWidth} />
   {:else if icon === "settings"}
     <Settings {size} {strokeWidth} />
+  {:else if icon === "share-2"}
+    <Share2 {size} {strokeWidth} />
   {:else if icon === "hare-running"}
     <!-- Framework7 hare, MIT. Modified with outline motion lines. -->
     <svg xmlns="http://www.w3.org/2000/svg" width={Math.round(size * 1.35)} height={size} viewBox="0 0 76 56" fill="none" stroke="currentColor" aria-hidden="true">

@@ -17,6 +17,7 @@ from . import (
     editor_region_delete,
     editor_runtime,
     editor_settings_actions,
+    editor_sharing,
     editor_split_defaults,
 )
 
@@ -80,6 +81,10 @@ def _settings_action_deps() -> SimpleNamespace:
 
 def _analysis_deps() -> SimpleNamespace:
     return _deps(editor_dependencies.analysis_deps)
+
+
+def _share_deps() -> SimpleNamespace:
+    return _deps(editor_dependencies.share_deps)
 
 
 def _with_deps(func: Callable[..., Any], deps_builder: Callable[[], SimpleNamespace]) -> Callable[..., Any]:
@@ -190,6 +195,10 @@ def _refresh_editor_after_settings_save(editor: Any) -> None:
 def _show_current_audio_file(editor: Any) -> None:
     editor_settings_actions.show_current_audio_file(editor, _settings_action_deps())
 
+
+_share_current_audio_file = _with_deps(editor_sharing.share_current_audio_file, _share_deps)
+_finish_shared_audio = _with_deps(editor_sharing.finish_shared_audio, _share_deps)
+_share_failed = _with_deps(editor_sharing.share_failed, _share_deps)
 
 _analyze_current_async = _with_deps(editor_analysis.analyze_current_async, _analysis_deps)
 _analyze_field_from_frontend = _with_deps(editor_analysis.analyze_field_from_frontend, _analysis_deps)
