@@ -1,5 +1,9 @@
 <script lang="ts">
   import CommandIcon from "$lib/CommandIcon.svelte";
+  import {
+    buttonDisplayMode,
+    DEFAULT_EDITOR_BUTTON_MODES,
+  } from "$lib/editor-toolbar-buttons.js";
   import { t } from "$lib/i18n.js";
   import type { Config } from "$lib/types.js";
   import {
@@ -7,7 +11,11 @@
     DEFAULT_VISIBLE_EDITOR_BUTTONS,
     toolbarButtons,
   } from "$lib/editor-toolbar-buttons.js";
-  import type { EditorCommand } from "$lib/editor-toolbar-buttons.js";
+  import { EditorButtonMode } from "$lib/types.js";
+  import type {
+    EditorButtonDisplayMode,
+    EditorCommand,
+  } from "$lib/editor-toolbar-buttons.js";
 
   const { config = $bindable() }: { config: Config } = $props();
   const buttons = toolbarButtons();
@@ -34,6 +42,18 @@
       "visible_editor_buttons"
     ];
   }
+
+  function displayMode(command: EditorCommand): EditorButtonDisplayMode {
+    return buttonDisplayMode(command, config.editor_button_modes);
+  }
+
+  function setDisplayMode(command: EditorCommand, mode: EditorButtonDisplayMode): void {
+    config.editor_button_modes = {
+      ...DEFAULT_EDITOR_BUTTON_MODES,
+      ...(config.editor_button_modes ?? {}),
+      [command]: mode,
+    };
+  }
 </script>
 
 <section class="toolbar-visibility" aria-labelledby="toolbar-visibility-title">
@@ -44,23 +64,48 @@
   <div class="toolbar-button-grid" data-testid="toolbar-visibility-buttons">
     {#each buttons as button (button.command)}
       {@const visible = isVisible(button.command)}
-      <button
-        type="button"
-        class:toolbar-button-off={!visible}
-        class:toolbar-icon-only={button.iconOnly === true}
-        class="toolbar-button"
-        data-command={button.command}
-        data-testid={`toolbar-visibility-${COMMAND_SLUGS[button.command]}`}
-        aria-pressed={visible ? "true" : "false"}
-        title={button.title}
-        onclick={() => toggle(button.command)}
-      >
-        <CommandIcon className="toolbar-button-icon" icon={button.icon} />
-        <span class="toolbar-button-label">{button.label}</span>
-        {#if !visible}
-          <span class="toolbar-button-off-label">{t("settings.toolbar_visibility.off")}</span>
-        {/if}
-      </button>
+      {@const mode = displayMode(button.command)}
+      <div class="toolbar-button-card" data-command={button.command}>
+        <button
+          type="button"
+          class:toolbar-button-off={!visible}
+          class="toolbar-button"
+          data-testid={`toolbar-visibility-${COMMAND_SLUGS[button.command]}`}
+          aria-pressed={visible ? "true" : "false"}
+          title={button.title}
+          onclick={() => toggle(button.command)}
+        >
+          {#if mode === EditorButtonMode.Icon}
+            <CommandIcon className="toolbar-button-icon" icon={button.icon} />
+            <span class="toolbar-button-label">{button.label}</span>
+          {:else}
+            <span class="toolbar-button-label">{button.label}</span>
+          {/if}
+          {#if !visible}
+            <span class="toolbar-button-off-label">{t("settings.toolbar_visibility.off")}</span>
+          {/if}
+        </button>
+        <div class="toolbar-mode-toggle" role="group" aria-label={button.label}>
+          <button
+            type="button"
+            class:toolbar-mode-active={mode === EditorButtonMode.Text}
+            data-testid={`toolbar-mode-${COMMAND_SLUGS[button.command]}-text`}
+            aria-pressed={mode === EditorButtonMode.Text ? "true" : "false"}
+            onclick={() => setDisplayMode(button.command, EditorButtonMode.Text)}
+          >
+            {t("settings.toolbar_visibility.text_only")}
+          </button>
+          <button
+            type="button"
+            class:toolbar-mode-active={mode === EditorButtonMode.Icon}
+            data-testid={`toolbar-mode-${COMMAND_SLUGS[button.command]}-icon`}
+            aria-pressed={mode === EditorButtonMode.Icon ? "true" : "false"}
+            onclick={() => setDisplayMode(button.command, EditorButtonMode.Icon)}
+          >
+            {t("settings.toolbar_visibility.icon_only")}
+          </button>
+        </div>
+      </div>
     {/each}
   </div>
 </section>
@@ -90,8 +135,13 @@
   }
 
   .toolbar-button-grid {
-    display: flex;
-    flex-wrap: wrap;
+    display: grid;
+    gap: 6px;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  }
+
+  .toolbar-button-card {
+    display: grid;
     gap: 6px;
   }
 
@@ -127,24 +177,6 @@
     flex: 0 0 auto;
   }
 
-  .toolbar-icon-only {
-    gap: 0;
-    justify-content: center;
-    min-width: 34px;
-    padding-left: 8px;
-    padding-right: 8px;
-  }
-
-  .toolbar-icon-only .toolbar-button-label {
-    clip: rect(0 0 0 0);
-    clip-path: inset(50%);
-    height: 1px;
-    overflow: hidden;
-    position: absolute;
-    white-space: nowrap;
-    width: 1px;
-  }
-
   .toolbar-button-off-label {
     border: 1px solid currentColor;
     border-radius: 999px;
@@ -152,5 +184,33 @@
     font-weight: 700;
     line-height: 1;
     padding: 2px 5px;
+  }
+
+  .toolbar-mode-toggle {
+    display: grid;
+    gap: 4px;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .toolbar-mode-toggle button {
+    background: var(--button-bg, transparent);
+    border: 1px solid var(--border-subtle, var(--border, currentColor));
+    border-radius: 7px;
+    color: var(--fg, currentColor);
+    cursor: pointer;
+    font: inherit;
+    font-size: 0.76rem;
+    min-height: 28px;
+    padding: 5px 8px;
+  }
+
+  .toolbar-mode-toggle button:hover {
+    background: var(--button-gradient-start, var(--button-bg, transparent));
+    border-color: var(--button-hover-border, var(--border, currentColor));
+  }
+
+  .toolbar-mode-active {
+    border-color: var(--border-focus, var(--border, currentColor));
+    font-weight: 700;
   }
 </style>

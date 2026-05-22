@@ -140,6 +140,23 @@ def test_save_command_writes_config(anki_mw) -> None:
         "repeat_pause_seconds": 0.0,
         "show_graph_by_default": False,
         "visible_editor_buttons": list(DEFAULT_VISIBLE_EDITOR_BUTTONS),
+        "editor_button_modes": {
+            "aqe:play": "text",
+            "aqe:analyze": "text",
+            "aqe:show-file": "text",
+            "aqe:share": "text",
+            "aqe:convert": "text",
+            "aqe:remove-pauses": "text",
+            "aqe:denoise-standard": "text",
+            "aqe:pitch-hum": "text",
+            "aqe:slower": "text",
+            "aqe:faster": "text",
+            "aqe:volume-down": "text",
+            "aqe:volume-up": "text",
+            "aqe:undo": "text",
+            "aqe:redo": "text",
+            "aqe:settings": "text",
+        },
         "graph_voice_range": "general",
         "graph_recording_condition": "auto",
         "graph_smoothness": "very_smooth",
@@ -274,6 +291,57 @@ def test_pitch_hum_default_mode_select_saves_in_one_session(anki_mw) -> None:
 
     saved_config = mock_write.call_args.args[1]
     assert saved_config["pitch_hum_mode"] == "pitch_tier"
+
+
+def test_toolbar_button_mode_toggle_saves_in_one_session(anki_mw) -> None:
+    config = anki_mw.addonManager.getConfig("1000000002") or {}
+    config["editor_button_modes"] = {
+        **config.get("editor_button_modes", {}),
+        "aqe:play": "text",
+        "aqe:settings": "text",
+    }
+    anki_mw.addonManager.writeConfig("1000000002", config)
+
+    dialog = _open_settings_dialog(anki_mw)
+    play_icon_selector = '[data-testid="toolbar-mode-play-icon"]'
+    settings_icon_selector = '[data-testid="toolbar-mode-settings-icon"]'
+    save_selector = '[data-testid="settings-save"]'
+
+    wait_for_js_condition(
+        dialog,
+        f"document.querySelector({json.dumps(play_icon_selector)})?.getAttribute('aria-pressed')",
+        lambda value: value == "false",
+        timeout=5.0,
+    )
+    click_selector(dialog, play_icon_selector, timeout=5.0)
+    click_selector(dialog, settings_icon_selector, timeout=5.0)
+    wait_for_js_condition(
+        dialog,
+        f"""
+        (() => {{
+          const play = document.querySelector({json.dumps(play_icon_selector)});
+          const settings = document.querySelector({json.dumps(settings_icon_selector)});
+          return play && settings ? {{
+            play: play.getAttribute("aria-pressed"),
+            settings: settings.getAttribute("aria-pressed"),
+          }} : null;
+        }})()
+        """,
+        lambda value: value == {"play": "true", "settings": "true"},
+        timeout=5.0,
+    )
+
+    with patch.object(
+        anki_mw.addonManager,
+        "writeConfig",
+        wraps=anki_mw.addonManager.writeConfig,
+    ) as mock_write:
+        click_selector(dialog, save_selector, timeout=5.0)
+        wait_for_condition(lambda: mock_write.called, timeout=5.0)
+
+    saved_config = mock_write.call_args.args[1]
+    assert saved_config["editor_button_modes"]["aqe:play"] == "icon"
+    assert saved_config["editor_button_modes"]["aqe:settings"] == "icon"
 
 
 def test_diagnostics_can_copy_support_report_and_open_log_file(anki_mw) -> None:

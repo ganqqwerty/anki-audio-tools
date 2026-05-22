@@ -30,6 +30,7 @@ export {
   BatchPauseAggressiveness as PauseAggressiveness,
   DenoiseAlgorithm,
   Direction,
+  EditorButtonMode,
   GraphRecordingCondition,
   GraphSmoothness,
   GraphVoiceLock,

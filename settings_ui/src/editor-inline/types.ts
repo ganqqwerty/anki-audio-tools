@@ -1,6 +1,7 @@
 import type { FrontendLogPayload, ProsodyPayload } from "../lib/generated/contracts.js";
 import type { OutputFormatValue } from "../lib/audio-operation-parameters.js";
 import type {
+  EditorButtonModes,
   EditorCommand as SharedEditorCommand,
   ToolbarButtonSpec,
 } from "../lib/editor-toolbar-buttons.js";
@@ -26,6 +27,7 @@ export interface EditorRuntimeConfig {
   showGraphByDefault?: boolean;
   splitButtonDefaults?: SplitButtonDefaults;
   visibleEditorButtons?: EditorCommand[];
+  editorButtonModes?: EditorButtonModes;
 }
 
 export interface SplitButtonDefaults {

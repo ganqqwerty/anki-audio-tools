@@ -15,6 +15,8 @@ const FALLBACK_MESSAGES: Messages = {
   "settings.toolbar_visibility.title": "Editor toolbar buttons",
   "settings.toolbar_visibility.summary": "Choose which quick editor buttons are shown beside audio fields.",
   "settings.toolbar_visibility.off": "Off",
+  "settings.toolbar_visibility.text_only": "Text only",
+  "settings.toolbar_visibility.icon_only": "Icon only",
   "settings.graph_voice_range": "Graph voice range",
   "settings.graph_voice_range.bass": "Bass",
   "settings.graph_voice_range.low": "Low",
@@ -295,5 +297,4 @@ export function t(key: string, values: Record<string, unknown> = {}): string {
 }
 
 export function locale(): string { return activeLocale; }
-
 export function direction(): Direction { return activeDirection; }

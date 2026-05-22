@@ -38,6 +38,8 @@
   } from "./graph-split-state.js";
   import { COMMAND_SLUGS } from "./commands.js";
   import { t } from "../lib/i18n.js";
+  import type { EditorButtonDisplayMode } from "../lib/editor-toolbar-buttons.js";
+  import { EditorButtonMode } from "../lib/types.js";
   import type { GraphRecordingCondition, GraphSmoothness, GraphVoiceLock, GraphVoiceRange } from "./graph-settings.js";
   import type { ButtonSpec, FieldSplitButtonState, FieldTarget } from "./types.js";
 
@@ -50,7 +52,7 @@
   const VIEWPORT_MARGIN_PX = 8;
   const HIDDEN_POPOVER_STYLE = "visibility: hidden;";
 
-  const { button, target }: { button: ButtonSpec; target: FieldTarget } = $props();
+  const { button, displayMode, target }: { button: ButtonSpec; displayMode: EditorButtonDisplayMode; target: FieldTarget } = $props();
   let wrapper = $state<HTMLSpanElement>();
   let popover = $state<HTMLDivElement>();
   let open = $state(false);
@@ -70,15 +72,12 @@
   let graphVoiceLock = $state<GraphVoiceLock>("balanced");
   let defaultSaved = $state(false);
   let defaultSavedTimer: number | undefined;
-
   function slug(): string { return COMMAND_SLUGS[button.command]; }
-
   function initialButtonState(): string {
     if (button.command === "aqe:play") return "play";
     if (button.command === "aqe:analyze") return "graph";
     return "default";
   }
-
   function isDenoiseButton(): boolean {
     return (
       button.command === "aqe:denoise-standard" ||
@@ -87,7 +86,6 @@
       button.command === "aqe:voice-only"
     );
   }
-
   function primaryTitle(): string {
     if (button.command === "aqe:convert") {
       return t("editor.command.convert.title", { format: formatOutputFormat(outputFormat) });
@@ -95,7 +93,6 @@
     if (!isDenoiseButton()) return button.title;
     return t("editor.command.denoise.title", { algorithm: formatDenoiseAlgorithm(denoiseAlgorithm) });
   }
-
   const graphSummary = $derived([formatGraphVoiceRange(graphVoiceRange), formatGraphRecordingCondition(graphRecordingCondition), formatGraphSmoothness(graphSmoothness), `${graphConnectShortDropoutsMs} ms`, formatGraphVoiceLock(graphVoiceLock)].join(" · "));
 
   function close(): void {
@@ -280,7 +277,7 @@
 <span class="aqe-split-button" bind:this={wrapper}>
   <button
     type="button"
-    class:aqe-icon-only={button.iconOnly === true}
+    class:aqe-icon-only={displayMode === EditorButtonMode.Icon}
     class="aqe-button aqe-split-primary"
     data-aqe-command={button.command}
     data-aqe-button-state={initialButtonState()}
@@ -290,8 +287,12 @@
     onmousedown={(event) => event.preventDefault()}
     onclick={dispatchPrimary}
   >
-    <EditorCommandIcon icon={button.icon} />
-    <span class="aqe-button-label">{button.label}</span>
+    {#if displayMode === EditorButtonMode.Icon}
+      <EditorCommandIcon icon={button.icon} />
+      <span class="aqe-button-label">{button.label}</span>
+    {:else}
+      <span class="aqe-button-label">{button.label}</span>
+    {/if}
   </button>
   <button
     type="button"

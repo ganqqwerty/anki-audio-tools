@@ -9,6 +9,7 @@
  */
 
 import { afterEach, describe, expect, it, vi } from "vitest";
+import { DEFAULT_EDITOR_BUTTON_MODES } from "../src/lib/editor-toolbar-buttons.js";
 import {
   _clearPendingForTest,
   handleAsyncDone,
@@ -29,7 +30,7 @@ import {
 
 const pycmd = (globalThis as unknown as Record<string, ReturnType<typeof vi.fn>>)["pycmd"]!;
 const config = {
-  _config_version: 18,
+  _config_version: 19,
   enabled: true,
   debug_logging: false,
   show_ffmpeg_commands: false,
@@ -53,6 +54,7 @@ const config = {
     VisibleEditorButton.AqeRedo,
     VisibleEditorButton.AqeSettings,
   ],
+  editor_button_modes: { ...DEFAULT_EDITOR_BUTTON_MODES },
   graph_voice_range: GraphVoiceRange.General,
   graph_recording_condition: GraphRecordingCondition.Auto,
   graph_smoothness: GraphSmoothness.VerySmooth,

@@ -142,7 +142,9 @@ def test_each_processing_button_updates_field_to_new_real_audio(
                     "Redo",
                     "Settings",
                 ]
-                and all(count >= 1 for count in state["iconsPerButton"])
+                and state["iconsPerButton"] == [
+                    1 if label == "Options" else 0 for label in state["labels"]
+                ]
                 and state["iconStrokeValues"]
                 and all(stroke == "currentColor" for stroke in state["iconStrokeValues"])
             ),

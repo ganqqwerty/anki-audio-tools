@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 
+import { DEFAULT_EDITOR_BUTTON_MODES } from "../src/lib/editor-toolbar-buttons.js";
 import { saveConfigPayload } from "../src/settings/settings-state.js";
 import {
   DenoiseAlgorithm,
@@ -15,7 +16,7 @@ import {
 } from "../src/lib/types.js";
 
 const config: Config = {
-  _config_version: 18,
+  _config_version: 19,
   enabled: false,
   debug_logging: false,
   show_ffmpeg_commands: false,
@@ -39,6 +40,7 @@ const config: Config = {
     VisibleEditorButton.AqeRedo,
     VisibleEditorButton.AqeSettings,
   ],
+  editor_button_modes: { ...DEFAULT_EDITOR_BUTTON_MODES },
   graph_voice_range: GraphVoiceRange.General,
   graph_recording_condition: GraphRecordingCondition.Auto,
   graph_smoothness: GraphSmoothness.VerySmooth,

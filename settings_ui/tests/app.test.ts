@@ -2,6 +2,7 @@ import { fireEvent, render, screen, waitFor } from "@testing-library/svelte";
 import { describe, expect, it, vi } from "vitest";
 
 import App from "../src/App.svelte";
+import { DEFAULT_EDITOR_BUTTON_MODES } from "../src/lib/editor-toolbar-buttons.js";
 import {
   DenoiseAlgorithm,
   Direction,
@@ -16,7 +17,7 @@ import {
 } from "../src/lib/types.js";
 
 const defaultConfig = {
-  _config_version: 18,
+  _config_version: 19,
   enabled: true,
   debug_logging: false,
   show_ffmpeg_commands: false,
@@ -40,6 +41,7 @@ const defaultConfig = {
     VisibleEditorButton.AqeRedo,
     VisibleEditorButton.AqeSettings,
   ],
+  editor_button_modes: { ...DEFAULT_EDITOR_BUTTON_MODES },
   graph_voice_range: GraphVoiceRange.General,
   graph_recording_condition: GraphRecordingCondition.Auto,
   graph_smoothness: GraphSmoothness.VerySmooth,
@@ -184,6 +186,18 @@ describe("App", () => {
     const config = bridgePayload<{ visible_editor_buttons: string[] }>("settings.save");
     expect(config.visible_editor_buttons).toContain("aqe:play");
     expect(config.visible_editor_buttons).not.toContain("aqe:settings");
+  });
+
+  it("saves editor button display mode changes", async () => {
+    setInitialState();
+
+    render(App);
+    await fireEvent.click(screen.getByTestId("toolbar-mode-play-icon"));
+    await fireEvent.click(screen.getByRole("button", { name: "Save" }));
+
+    const config = bridgePayload<{ editor_button_modes: Record<string, string> }>("settings.save");
+    expect(config.editor_button_modes["aqe:play"]).toBe("icon");
+    expect(config.editor_button_modes["aqe:settings"]).toBe("text");
   });
 
   it("saves split button default settings", async () => {
