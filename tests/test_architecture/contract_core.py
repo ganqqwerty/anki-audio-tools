@@ -57,6 +57,7 @@ CORE_CONTRACTS: dict[str, ModuleContract] = {
         ),
         allow_any_anki_imports=True,
     ),
+    "file_sharing": contract("file_sharing", layer=Layer.IMPORT_SAFE_CORE),
     "media_paths": contract(
         "media_paths",
         layer=Layer.IMPORT_SAFE_CORE,

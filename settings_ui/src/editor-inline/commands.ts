@@ -30,12 +30,23 @@ export const PROCESSING_COMMANDS = new Set<EditorCommand>([
   "aqe:volume-up",
 ]);
 
+export const BUSY_COMMANDS = new Set<EditorCommand>([
+  ...PROCESSING_COMMANDS,
+  "aqe:share",
+]);
+
 export function processingMessage(command: EditorCommand, payload?: EditorCommandPayload): string {
   if (command === "aqe:denoise-standard") return `${t("editor.status.denoising_standard")}...`;
   if (command === "aqe:rnnoise") return `${t("editor.status.denoising_rnnoise")}...`;
   if (command === "aqe:dpdfnet") return `${t("editor.status.denoising_dpdfnet")}...`;
   if (command === "aqe:voice-only") return `${t("editor.status.extracting_voice")}...`;
   if (command === "aqe:pitch-hum") return `${t("editor.status.pitch_hum")}...`;
+  if (command === "aqe:share") {
+    const shareTarget = payload?.shareTarget ?? "litterbox";
+    return shareTarget === "litterbox"
+      ? `${t("editor.status.sharing_litterbox")}...`
+      : `${t("editor.status.sharing_catbox")}...`;
+  }
   if (command === "aqe:convert") {
     const outputFormat = outputFormatOrDefault(
       payload?.overrides?.targetFormat ??

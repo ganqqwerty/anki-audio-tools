@@ -19,6 +19,7 @@
     setOutputFormatForField,
     setPauseAggressivenessForField,
     setPitchHumModeForField,
+    setShareTargetForField,
     setSpeedStepForField,
     setVolumeStepForField,
   } from "./split-button-state.js";
@@ -43,6 +44,7 @@
   type DenoiseAlgorithm = FieldSplitButtonState["denoiseAlgorithm"];
   type OutputFormatValue = FieldSplitButtonState["outputFormat"];
   type PitchHumMode = FieldSplitButtonState["pitchHumMode"];
+  type ShareTarget = FieldSplitButtonState["shareTarget"];
 
   const POPOVER_GAP_PX = 4;
   const VIEWPORT_MARGIN_PX = 8;
@@ -60,6 +62,7 @@
   let dpdfnetAttnLimitDb = $state(12);
   let outputFormat = $state<OutputFormatValue>("mp3");
   let pitchHumMode = $state<PitchHumMode>("direct");
+  let shareTarget = $state<ShareTarget>("litterbox");
   let graphVoiceRange = $state<GraphVoiceRange>("general");
   let graphRecordingCondition = $state<GraphRecordingCondition>("auto");
   let graphSmoothness = $state<GraphSmoothness>("very_smooth");
@@ -108,6 +111,7 @@
     dpdfnetAttnLimitDb = state.dpdfnetAttnLimitDb;
     outputFormat = state.outputFormat;
     pitchHumMode = state.pitchHumMode;
+    shareTarget = state.shareTarget;
     graphVoiceRange = state.graphVoiceRange;
     graphRecordingCondition = state.graphRecordingCondition;
     graphSmoothness = state.graphSmoothness;
@@ -147,6 +151,10 @@
 
   function applyPitchHumMode(value: PitchHumMode): void {
     pitchHumMode = setPitchHumModeForField(target.ord, value).pitchHumMode;
+  }
+
+  function applyShareTarget(value: ShareTarget): void {
+    shareTarget = setShareTargetForField(target.ord, value).shareTarget;
   }
 
   function applyGraphVoiceRange(value: GraphVoiceRange): void {
@@ -343,6 +351,7 @@
           onPauseAggressiveness={applyPauseAggressiveness}
           onPitchHumMode={applyPitchHumMode}
           onSaveDefault={saveCurrentDefaults}
+          onShareTarget={applyShareTarget}
           onSpeedStep={applySpeedStep}
           onVolumeStep={applyVolumeStep}
           pauseAggressiveness={pauseAggressiveness}
@@ -350,6 +359,8 @@
           outputFormat={outputFormat}
           pitchHumMode={pitchHumMode}
           saveDefaultSaved={defaultSaved}
+          shareTarget={shareTarget}
+          showSaveDefault={button.command !== "aqe:share"}
           speedStep={speedStep}
           targetOrd={target.ord}
           volumeStepDb={volumeStepDb}

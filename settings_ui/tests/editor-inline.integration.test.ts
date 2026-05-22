@@ -74,6 +74,20 @@ describe("editor inline Svelte integration", () => {
     expect(document.querySelector('[data-testid="aqe-button-0-denoise-standard"]')).not.toBeInTheDocument();
   });
 
+  it("mounts the share split button in the default toolbar", () => {
+    initializeEditorRuntime({ audioFieldIndices: [0] });
+    scan({ audioFieldIndices: [0] });
+
+    const shareButton = document.querySelector<HTMLButtonElement>('[data-testid="aqe-button-0-share"]');
+    const shareMenuButton = document.querySelector<HTMLButtonElement>(
+      '[data-testid="aqe-split-0-share-menu"]',
+    );
+
+    expect(shareButton).toBeInTheDocument();
+    expect(shareMenuButton).toBeInTheDocument();
+    expect(shareButton).toHaveAttribute("aria-label", "Upload the current audio and copy a public link");
+  });
+
   it.each(["aac", "flac", "m4a", "mp3", "oga", "ogg", "opus", "wav", "webm"])(
     "detects %s sound references as supported audio",
     (extension) => {

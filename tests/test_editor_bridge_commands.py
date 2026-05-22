@@ -108,6 +108,29 @@ def test_bridge_passes_local_pause_aggressiveness_to_renderer(tmp_path: Path, mo
     assert persisted_config["pause_aggressiveness"] == "normal"
 
 
+def test_bridge_routes_share_payload_to_editor_sharing(monkeypatch) -> None:
+    class Editor:
+        pass
+
+    editor = Editor()
+    editor.currentField = 0
+    editor.web = MagicMock()
+    called: dict[str, object] = {}
+
+    monkeypatch.setattr(
+        "anki_audio_quick_editor.editor_callbacks._share_current_audio_file",
+        lambda _editor, payload: called.update(editor=_editor, payload=payload),
+    )
+
+    _handle_bridge_command(
+        editor,
+        '{"command":"aqe:share","fieldOrd":0,"shareTarget":"catbox"}',
+    )
+
+    assert called["editor"] is editor
+    assert called["payload"].share_target == "catbox"
+
+
 def test_bridge_keeps_plain_processing_commands(tmp_path: Path, monkeypatch) -> None:
     class Editor:
         pass

@@ -25,7 +25,7 @@ import {
 
 const pycmd = (globalThis as unknown as Record<string, ReturnType<typeof vi.fn>>)["pycmd"]!;
 const config: Config = {
-  _config_version: 17,
+  _config_version: 18,
   enabled: true,
   debug_logging: false,
   show_ffmpeg_commands: false,
@@ -36,6 +36,7 @@ const config: Config = {
     VisibleEditorButton.AqePlay,
     VisibleEditorButton.AqeAnalyze,
     VisibleEditorButton.AqeShowFile,
+    VisibleEditorButton.AqeShare,
     VisibleEditorButton.AqeConvert,
     VisibleEditorButton.AqeRemovePauses,
     VisibleEditorButton.AqeDenoiseStandard,

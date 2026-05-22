@@ -40,6 +40,7 @@ CMD_COMMAND_PAYLOAD = "aqe:command-payload"
 CMD_SAVE_SPLIT_DEFAULTS = "aqe:save-split-defaults"
 CMD_SETTINGS = "aqe:settings"
 CMD_REDO = "aqe:redo"
+CMD_SHARE = "aqe:share"
 
 BRIDGE_COMMANDS = (
     "aqe:scan",
@@ -52,6 +53,7 @@ BRIDGE_COMMANDS = (
     "aqe:play-ended",
     "aqe:frontend-log",
     "aqe:show-file",
+    CMD_SHARE,
     CMD_SLOWER,
     CMD_FASTER,
     CMD_VOLUME_DOWN,
@@ -109,6 +111,7 @@ class EditorCommandPayload:
     field_ord: int | None = None
     overrides: EditorCommandOverrides = EditorCommandOverrides()
     graph_settings: dict[str, object] | None = None
+    share_target: str | None = None
 
 
 def _int_or_none(value: Any) -> int | None:
@@ -154,6 +157,11 @@ def _pitch_hum_mode_or_none(value: Any) -> str | None:
     return text if text in {"direct", "pitch_tier"} else None
 
 
+def _share_target_or_none(value: Any) -> str | None:
+    text = str(value)
+    return text if text in {"catbox", "litterbox"} else None
+
+
 def decode_editor_command_payload(raw_command: str | EditorCommandPayload) -> EditorCommandPayload:
     """Return normalized editor command data from a bridge string or JSON payload."""
     if isinstance(raw_command, EditorCommandPayload):
@@ -174,6 +182,7 @@ def decode_editor_command_payload(raw_command: str | EditorCommandPayload) -> Ed
         field_ord=_int_or_none(raw_payload.get("fieldOrd")),
         overrides=_overrides_from_raw(raw_payload.get("overrides")),
         graph_settings=_graph_settings_from_raw(raw_payload.get("graphSettings")),
+        share_target=_share_target_or_none(raw_payload.get("shareTarget")),
     )
 
 

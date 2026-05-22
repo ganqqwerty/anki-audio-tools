@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import logging
 import threading
 from types import SimpleNamespace
 from typing import Any
@@ -71,10 +72,31 @@ def bridge_deps(callbacks: Any, frontend_callbacks: Any) -> SimpleNamespace:
         save_split_defaults_from_frontend=callbacks.save_split_defaults_from_frontend,
         set_busy=frontend_callbacks.set_busy,
         set_cursor_from_web=callbacks.set_cursor_from_web,
+        share_current_audio_file=callbacks.share_current_audio_file,
         show_current_audio_file=callbacks.show_current_audio_file,
         undo=callbacks.undo,
         update_state_and_render=callbacks.update_state_and_render,
         voice_only_async=callbacks.voice_only_async,
+    )
+
+
+def share_deps(callbacks: Any, frontend_callbacks: Any) -> SimpleNamespace:
+    from . import editor_runtime
+    from .file_sharing import upload_file
+    from .i18n import t
+
+    return SimpleNamespace(
+        current_media_path=editor_runtime.current_media_path,
+        eval_status=frontend_callbacks.eval_status,
+        finish_shared_audio=callbacks.finish_shared_audio,
+        is_busy=editor_runtime.is_busy,
+        logger=logging.getLogger("anki_audio_quick_editor.editor_sharing"),
+        main=frontend_callbacks.main,
+        set_busy=frontend_callbacks.set_busy,
+        share_failed=callbacks.share_failed,
+        still_processing_message=editor_runtime.STILL_PROCESSING_MESSAGE,
+        t=t,
+        upload_file=upload_file,
     )
 
 

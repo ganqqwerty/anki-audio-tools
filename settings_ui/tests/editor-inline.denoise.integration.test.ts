@@ -40,7 +40,7 @@ describe("editor inline denoise integration", () => {
 
     const help = document.querySelector<HTMLDetailsElement>('[data-testid="aqe-help-0"]')!;
     expect(help.open).toBe(false);
-    expect(help.querySelectorAll(".aqe-help-command")).toHaveLength(14);
+    expect(help.querySelectorAll(".aqe-help-command")).toHaveLength(15);
     expect(help.querySelector(".aqe-help-triangle")).not.toBeNull();
     expect(help).toHaveTextContent("Shift-drag on the graph to select a region.");
     expect(help).toHaveTextContent("Delete Region removes the selected region; Delete the rest keeps only the selected region.");

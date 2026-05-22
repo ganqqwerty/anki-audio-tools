@@ -24,6 +24,7 @@ from .editor_actions import (
     CMD_RNNOISE,
     CMD_SAVE_SPLIT_DEFAULTS,
     CMD_SETTINGS,
+    CMD_SHARE,
     CMD_VOICE_ONLY,
     EditorCommandPayload,
     decode_editor_command_payload,
@@ -119,6 +120,9 @@ def handle_non_processing_command(editor: Any, command: str | EditorCommandPaylo
         return True
     if payload.command == CMD_PITCH_HUM:
         deps.pitch_hum_async(editor, payload)
+        return True
+    if payload.command == CMD_SHARE:
+        deps.share_current_audio_file(editor, payload)
         return True
     handlers = {
         CMD_ANALYZE_FIELD: deps.analyze_field_from_frontend,

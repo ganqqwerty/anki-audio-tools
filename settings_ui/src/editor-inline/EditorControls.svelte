@@ -36,6 +36,7 @@
   function isSplitCommand(command: string): boolean {
     return [
       "aqe:analyze",
+      "aqe:share",
       "aqe:convert",
       "aqe:slower",
       "aqe:faster",

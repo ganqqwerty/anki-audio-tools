@@ -77,7 +77,7 @@ def test_render_prosody_svg_contains_finite_intensity_pitch_and_labels() -> None
     assert "@media (prefers-color-scheme: dark)" in svg
     assert ".aqe-bg { fill: #ffffff; }" in svg
     assert ".aqe-bg { fill: #1f2329; }" in svg
-    assert ".aqe-pitch-path { stroke: #4ade80; }" in svg
+    assert ".aqe-pitch-path { stroke: #4ade80; filter: drop-shadow(0 0 1px #f8fafc); }" in svg
     assert f'<rect class="aqe-bg" x="0" y="0" width="{PLOT.width}" height="{PLOT.height}" />' in svg
     assert 'fill="#ffffff"' not in svg
     assert f'y2="{PLOT.height - PLOT.bottom}"' in svg

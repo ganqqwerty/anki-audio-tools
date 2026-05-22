@@ -8,7 +8,7 @@ from typing import Any
 from .audio_formats import normalize_output_format
 from .dpdfnet_settings import normalize_dpdfnet_attn_limit_db
 
-CURRENT_CONFIG_VERSION = 17
+CURRENT_CONFIG_VERSION = 18
 
 REMOVED_CONFIG_KEYS = frozenset(
     {
@@ -55,8 +55,24 @@ def migrate_config(
             merged["output_format"] = normalized_output_format
             changed = True
 
+    if _insert_share_button(merged.get("visible_editor_buttons")):
+        changed = True
+
     if merged.get("_config_version") != CURRENT_CONFIG_VERSION:
         merged["_config_version"] = CURRENT_CONFIG_VERSION
         changed = True
 
     return merged, changed
+
+
+def _insert_share_button(visible_buttons: Any) -> bool:
+    if not isinstance(visible_buttons, list) or "aqe:share" in visible_buttons:
+        return False
+    show_file_index = (
+        visible_buttons.index("aqe:show-file") if "aqe:show-file" in visible_buttons else None
+    )
+    if show_file_index is None:
+        visible_buttons.append("aqe:share")
+    else:
+        visible_buttons.insert(show_file_index + 1, "aqe:share")
+    return True

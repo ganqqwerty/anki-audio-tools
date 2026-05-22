@@ -16,6 +16,7 @@ export type CommandIconName =
   | "save"
   | "scissors"
   | "settings"
+  | "share-2"
   | "hare-running"
   | "snail"
   | "sparkles"

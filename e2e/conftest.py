@@ -26,7 +26,7 @@ LOCAL_DPDFNET_BUILD = Path("/Users/iuriikatkov/IdeaProjects/DPDFNet/dist/lite/dp
 
 def _default_config() -> dict:
     return {
-        "_config_version": 17,
+        "_config_version": 18,
         "enabled": True,
         "debug_logging": False,
         "show_ffmpeg_commands": False,
@@ -37,6 +37,7 @@ def _default_config() -> dict:
             "aqe:play",
             "aqe:analyze",
             "aqe:show-file",
+            "aqe:share",
             "aqe:convert",
             "aqe:remove-pauses",
             "aqe:denoise-standard",

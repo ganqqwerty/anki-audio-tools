@@ -47,6 +47,7 @@ export interface SplitButtonDefaults {
 export interface EditorCommandPayload {
   command: EditorCommand;
   fieldOrd: number;
+  shareTarget?: "catbox" | "litterbox";
   overrides?: {
     denoiseAlgorithm?: DenoiseAlgorithm;
     dpdfnetAttnLimitDb?: number;
@@ -91,6 +92,7 @@ export interface FieldSplitButtonState {
   pitchHumMode: PitchHumMode;
   repeatPauseEdited: boolean;
   repeatPauseSeconds: number;
+  shareTarget: "catbox" | "litterbox";
   speedEdited: boolean;
   speedStep: number;
   volumeEdited: boolean;

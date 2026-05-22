@@ -6,6 +6,7 @@
     formatOutputFormat,
     formatPauseAggressiveness,
     formatPitchHumMode,
+    formatShareTarget,
     formatSpeedStep,
     formatVolumeDb,
   } from "./split-button-state.js";
@@ -21,6 +22,7 @@
   type DenoiseAlgorithm = FieldSplitButtonState["denoiseAlgorithm"];
   type OutputFormatValue = FieldSplitButtonState["outputFormat"];
   type PitchHumMode = FieldSplitButtonState["pitchHumMode"];
+  type ShareTarget = FieldSplitButtonState["shareTarget"];
 
   const {
     button,
@@ -33,12 +35,15 @@
     onPauseAggressiveness,
     onPitchHumMode,
     onSaveDefault,
+    onShareTarget,
     onSpeedStep,
     onVolumeStep,
     pauseAggressiveness,
     outputFormat,
     pitchHumMode,
     saveDefaultSaved,
+    shareTarget,
+    showSaveDefault,
     speedStep,
     targetOrd,
     volumeStepDb,
@@ -53,12 +58,15 @@
     onPauseAggressiveness: (value: "gentle" | "normal" | "aggressive") => void;
     onPitchHumMode: (value: PitchHumMode) => void;
     onSaveDefault: () => void;
+    onShareTarget: (value: ShareTarget) => void;
     onSpeedStep: (value: number) => void;
     onVolumeStep: (value: number) => void;
     pauseAggressiveness: "gentle" | "normal" | "aggressive";
     outputFormat: OutputFormatValue;
     pitchHumMode: PitchHumMode;
     saveDefaultSaved: boolean;
+    shareTarget: ShareTarget;
+    showSaveDefault: boolean;
     speedStep: number;
     targetOrd: number;
     volumeStepDb: number;
@@ -66,12 +74,12 @@
 
   const slug = $derived(COMMAND_SLUGS[button.command]);
   const options = $derived(optionValues());
-
   function valueLabel(): string {
     if (button.command === "aqe:volume-up" || button.command === "aqe:volume-down") return formatVolumeDb(volumeStepDb);
     if (button.command === "aqe:faster" || button.command === "aqe:slower") return formatSpeedStep(speedStep, button.command);
     if (button.command === "aqe:remove-pauses") return formatPauseAggressiveness(pauseAggressiveness);
     if (button.command === "aqe:convert") return formatOutputFormat(outputFormat);
+    if (button.command === "aqe:share") return formatShareTarget(shareTarget);
     if (
       button.command === "aqe:denoise-standard" ||
       button.command === "aqe:rnnoise" ||
@@ -139,11 +147,14 @@
       return ["standard", "rnnoise", "dpdfnet", "voice_only"];
     }
     if (button.command === "aqe:convert") return [...OUTPUT_FORMAT_VALUES];
+    if (button.command === "aqe:share") return ["catbox", "litterbox"];
     if (button.command === "aqe:pitch-hum") return ["direct", "pitch_tier"];
     return [];
   }
 
   function optionLabel(value: string): string {
+    if (value === "catbox") return t("editor.share.target.catbox");
+    if (value === "litterbox") return t("editor.share.target.litterbox");
     if (isOutputFormatValue(value)) return formatOutputFormat(value);
     if (value === "direct" || value === "pitch_tier") return formatPitchHumMode(value);
     if (value === "rnnoise") return "RNNoise";
@@ -166,6 +177,7 @@
   }
 
   function applyOption(value: string): void {
+    if (value === "catbox" || value === "litterbox") onShareTarget(value);
     if (value === "gentle" || value === "normal" || value === "aggressive") onPauseAggressiveness(value);
     if (value === "standard" || value === "rnnoise" || value === "dpdfnet" || value === "voice_only") onDenoiseAlgorithm(value);
     if (isOutputFormatValue(value)) onOutputFormat(value);
@@ -204,11 +216,13 @@
       />
     {/if}
   </span>
-  <SplitDefaultSaveButton
-    onSave={onSaveDefault}
-    saved={saveDefaultSaved}
-    testId={`aqe-split-${targetOrd}-${slug}-save-default`}
-  />
+  {#if showSaveDefault}
+    <SplitDefaultSaveButton
+      onSave={onSaveDefault}
+      saved={saveDefaultSaved}
+      testId={`aqe-split-${targetOrd}-${slug}-save-default`}
+    />
+  {/if}
 </div>
 {#if options.length}
   <div class="aqe-split-presets">

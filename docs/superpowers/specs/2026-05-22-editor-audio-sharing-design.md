@@ -46,7 +46,7 @@ The control should follow the current split-button pattern:
   - `Catbox`
   - `Litterbox (3 days)`
 - The popover should not show the normal split-button "save default" affordance, because v1 does not persist a default host.
-- The initial target for every newly mounted field is `Catbox`.
+- The initial target for every newly mounted field is `Litterbox`.
 - Choosing a target updates only that field's local state.
 - Choosing a target does not write config and does not affect other fields.
 

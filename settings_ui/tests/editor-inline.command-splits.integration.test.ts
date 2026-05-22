@@ -45,13 +45,14 @@ describe("editor inline split-button command integration", () => {
 
     const help = document.querySelector<HTMLDetailsElement>('[data-testid="aqe-help-0"]')!;
     expect(help.open).toBe(false);
-    expect(help.querySelectorAll(".aqe-help-command")).toHaveLength(14);
+    expect(help.querySelectorAll(".aqe-help-command")).toHaveLength(15);
     expect(help.querySelector(".aqe-help-triangle")).not.toBeNull();
     expect(help).toHaveTextContent("Shift-drag on the graph to select a region.");
     expect(help).toHaveTextContent("Delete Region removes the selected region; Delete the rest keeps only the selected region.");
     expect(help).toHaveTextContent("Delete Region / Delete the rest");
     expect(help).toHaveTextContent("Creates a new file that removes the selected region or keeps only that region.");
     expect(help).toHaveTextContent("Creates a new file with louder audio.");
+    expect(help).toHaveTextContent("Uploads the current audio and copies a public link without changing the note.");
     expect(help).toHaveTextContent("Every edit creates a new media file and updates the field to point at it.");
     expect(help).toHaveTextContent("grey is loudness and lines are pitch of the voice.");
     expect(document.querySelector<HTMLButtonElement>('[data-testid="aqe-button-0-denoise-standard"]')?.title).toBe(
@@ -183,6 +184,26 @@ describe("editor inline split-button command integration", () => {
       overrides: {
         targetFormat: "flac",
       },
+    });
+  });
+
+  it("dispatches share commands with the selected host and no save-default button", async () => {
+    initializeEditorRuntime({ audioFieldIndices: [0] });
+    scan({ audioFieldIndices: [0] });
+
+    document.querySelector<HTMLButtonElement>('[data-testid="aqe-split-0-share-menu"]')!.click();
+    await Promise.resolve();
+
+    expect(document.querySelector('[data-testid="aqe-split-0-share-save-default"]')).toBeNull();
+
+    document.querySelector<HTMLButtonElement>('[data-testid="aqe-split-0-share-preset-catbox"]')!.click();
+    document.querySelector<HTMLButtonElement>('[data-testid="aqe-button-0-share"]')!.click();
+
+    expect(bridgeCommands()).toContain("aqe:command-payload");
+    expect(window.__aqePendingCommandPayload).toMatchObject({
+      command: "aqe:share",
+      fieldOrd: 0,
+      shareTarget: "catbox",
     });
   });
 

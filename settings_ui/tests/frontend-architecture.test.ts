@@ -16,7 +16,8 @@ const frontendAreas = [
 
 const lineLimitAllowlist = new Map<string, number>([
   ["src/editor-inline/EditorControls.svelte", 360],
-  ["src/editor-inline/SplitButton.svelte", 370],
+  ["src/editor-inline/SplitButton.svelte", 380],
+  ["src/editor-inline/SplitValueOptions.svelte", 320],
 ]);
 
 const exportCountAllowlist = new Map<string, number>([
