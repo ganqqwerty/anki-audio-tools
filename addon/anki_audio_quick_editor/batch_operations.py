@@ -14,7 +14,9 @@ from .audio_operation_params import (
     AudioOperationParameters,
     effective_config_for_operation,
 )
+from .audio_formats import format_label, is_same_visible_format
 from .audio_operations import (
+    OP_CONVERT,
     OP_DENOISE,
     OP_GRAPH,
     apply_audio_operation,
@@ -25,6 +27,7 @@ from .audio_operations import (
 from .audio_processor import (
     make_output_filename,
     render_audio,
+    render_converted_audio,
     render_dpdfnet_audio,
     render_noise_reduced_audio,
     render_rnnoise_audio,
@@ -311,23 +314,41 @@ def _process_transform_operation(
             config,
             request.parameters,
         )
-        desired_name = make_output_filename(audio_filename)
-        output_path = temp_final_path(desired_name)
-        if request.operation == OP_DENOISE:
-            _render_batch_denoise(source_path, effective_config, output_path)
-        else:
-            updated_state = apply_audio_operation(
-                request.operation,
-                AudioEditState(source_file=audio_filename),
-                effective_config,
-            )
-            render_audio(
+        if request.operation == OP_CONVERT:
+            target_format = effective_config.output_format
+            if is_same_visible_format(audio_filename, target_format):
+                return BatchNoteResult(
+                    note_id=note.note_id,
+                    status="skipped",
+                    message=f"already in {format_label(target_format)} format",
+                    audio_filename=audio_filename,
+                )
+            desired_name = make_output_filename(audio_filename, output_format=target_format)
+            output_path = temp_final_path(desired_name)
+            render_converted_audio(
                 source_path,
-                updated_state,
                 effective_config,
+                target_format,
                 output_path=output_path,
-                artifact_root=artifact_root,
             )
+        else:
+            desired_name = make_output_filename(audio_filename)
+            output_path = temp_final_path(desired_name)
+            if request.operation == OP_DENOISE:
+                _render_batch_denoise(source_path, effective_config, output_path)
+            else:
+                updated_state = apply_audio_operation(
+                    request.operation,
+                    AudioEditState(source_file=audio_filename),
+                    effective_config,
+                )
+                render_audio(
+                    source_path,
+                    updated_state,
+                    effective_config,
+                    output_path=output_path,
+                    artifact_root=artifact_root,
+                )
         with output_path.open("rb") as file:
             saved_name = media_writer(desired_name, file.read())
         replaced_html = replace_sound_reference(source_html, selection, saved_name)

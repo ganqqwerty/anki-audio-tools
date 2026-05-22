@@ -13,7 +13,7 @@ AUDIO_CONTRACTS: dict[str, ModuleContract] = {
     "audio_operation_params": contract(
         "audio_operation_params",
         layer=Layer.IMPORT_SAFE_CORE,
-        allowed_addon_deps=("audio_state", "dpdfnet_settings"),
+        allowed_addon_deps=("audio_formats", "audio_state", "dpdfnet_settings"),
     ),
     "audio_pipeline": contract("audio_pipeline", layer=Layer.IMPORT_SAFE_CORE),
     "audio_artifacts": contract(
@@ -24,7 +24,7 @@ AUDIO_CONTRACTS: dict[str, ModuleContract] = {
     "audio_commands": contract(
         "audio_commands",
         layer=Layer.IMPORT_SAFE_CORE,
-        allowed_addon_deps=("audio_state", "audio_types", "errors"),
+        allowed_addon_deps=("audio_formats", "audio_state", "audio_types", "errors"),
     ),
     "audio_external": contract(
         "audio_external",
@@ -106,6 +106,7 @@ AUDIO_CONTRACTS: dict[str, ModuleContract] = {
         allowed_addon_deps=(
             "audio_commands",
             "audio_external",
+            "audio_formats",
             "audio_pause_pipeline",
             "audio_state",
             "audio_tools",
@@ -133,6 +134,7 @@ AUDIO_CONTRACTS: dict[str, ModuleContract] = {
         layer=Layer.IMPORT_SAFE_CORE,
         allowed_addon_deps=(
             "audio_operation_params",
+            "audio_formats",
             "audio_operations",
             "audio_processor",
             "audio_state",

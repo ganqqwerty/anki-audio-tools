@@ -12,6 +12,7 @@ from .audio_operation_params import (
     parameters_from_raw,
 )
 from .audio_operations import (
+    OP_CONVERT,
     OP_FASTER,
     OP_REMOVE_PAUSES,
     OP_SLOWER,
@@ -28,6 +29,7 @@ CMD_FASTER = "aqe:faster"
 CMD_VOLUME_DOWN = "aqe:volume-down"
 CMD_VOLUME_UP = "aqe:volume-up"
 CMD_REMOVE_PAUSES = "aqe:remove-pauses"
+CMD_CONVERT = "aqe:convert"
 CMD_DENOISE_STANDARD = "aqe:denoise-standard"
 CMD_RNNOISE = "aqe:rnnoise"
 CMD_DPDFNET = "aqe:dpdfnet"
@@ -57,6 +59,7 @@ BRIDGE_COMMANDS = (
     CMD_VOLUME_DOWN,
     CMD_VOLUME_UP,
     CMD_REMOVE_PAUSES,
+    CMD_CONVERT,
     CMD_DENOISE_STANDARD,
     CMD_RNNOISE,
     CMD_DPDFNET,
@@ -85,6 +88,7 @@ BRIDGE_COMMAND_TO_OPERATION = {
     CMD_VOLUME_DOWN: OP_VOLUME_DOWN,
     CMD_VOLUME_UP: OP_VOLUME_UP,
     CMD_REMOVE_PAUSES: OP_REMOVE_PAUSES,
+    CMD_CONVERT: OP_CONVERT,
 }
 
 
@@ -98,6 +102,7 @@ class EditorCommandOverrides:
     pause_aggressiveness: str | None = None
     denoise_algorithm: str | None = None
     dpdfnet_attn_limit_db: float | None = None
+    target_format: str | None = None
     pitch_hum_mode: str | None = None
 
 
@@ -131,6 +136,7 @@ def _overrides_from_raw(raw: Any) -> EditorCommandOverrides:
         pause_aggressiveness=raw.get("pauseAggressiveness"),
         denoise_algorithm=raw.get("denoiseAlgorithm"),
         dpdfnet_attn_limit_db=raw.get("dpdfnetAttnLimitDb"),
+        target_format=raw.get("targetFormat"),
     )
     return EditorCommandOverrides(
         trim_step_ms=params.trim_step_ms,
@@ -139,6 +145,7 @@ def _overrides_from_raw(raw: Any) -> EditorCommandOverrides:
         pause_aggressiveness=params.pause_aggressiveness,
         denoise_algorithm=params.denoise_algorithm,
         dpdfnet_attn_limit_db=params.dpdfnet_attn_limit_db,
+        target_format=params.target_format,
         pitch_hum_mode=_pitch_hum_mode_or_none(raw.get("pitchHumMode")),
     )
 
@@ -198,6 +205,7 @@ def processing_config_for_command(
             volume_step_db=payload.overrides.volume_step_db,
             speed_step=payload.overrides.speed_step,
             pause_aggressiveness=payload.overrides.pause_aggressiveness,
+            target_format=payload.overrides.target_format,
         ),
     )
 
@@ -217,5 +225,7 @@ def apply_processing_command(
         return state.trim_right(step)
     operation = operation_for_command(payload.command)
     if operation is None:
+        return None
+    if operation == OP_CONVERT:
         return None
     return apply_audio_operation(operation, state, effective_config)

@@ -5,6 +5,7 @@ from __future__ import annotations
 from dataclasses import dataclass, replace
 from typing import Any
 
+from .audio_formats import validate_target_format
 from .audio_state import AudioProcessingConfig
 from .dpdfnet_settings import normalize_dpdfnet_attn_limit_db
 
@@ -28,6 +29,7 @@ class AudioOperationParameters:
     pause_aggressiveness: str | None = None
     denoise_algorithm: str | None = None
     dpdfnet_attn_limit_db: float | None = None
+    target_format: str | None = None
 
 
 def parameters_from_raw(
@@ -38,6 +40,7 @@ def parameters_from_raw(
     pause_aggressiveness: Any = None,
     denoise_algorithm: Any = None,
     dpdfnet_attn_limit_db: Any = None,
+    target_format: Any = None,
 ) -> AudioOperationParameters:
     """Normalize raw UI values into clamped operation parameters."""
     return AudioOperationParameters(
@@ -55,6 +58,7 @@ def parameters_from_raw(
         pause_aggressiveness=_pause_aggressiveness_or_none(pause_aggressiveness),
         denoise_algorithm=_denoise_algorithm_or_none(denoise_algorithm),
         dpdfnet_attn_limit_db=_dpdfnet_attn_limit_or_none(dpdfnet_attn_limit_db),
+        target_format=_target_format_or_none(target_format),
     )
 
 
@@ -66,6 +70,8 @@ def effective_config_for_operation(
     """Return the render config after applying operation-local parameters."""
     if operation == "graph":
         return config
+    if operation == "convert":
+        return replace(config, output_format=parameters.target_format or config.output_format)
     effective = replace(
         config,
         volume_step_db=parameters.volume_step_db or config.volume_step_db,
@@ -157,4 +163,11 @@ def _dpdfnet_attn_limit_or_none(value: Any) -> float | None:
     try:
         return normalize_dpdfnet_attn_limit_db(value)
     except (TypeError, ValueError):
+        return None
+
+
+def _target_format_or_none(value: Any) -> str | None:
+    try:
+        return validate_target_format(value)
+    except ValueError:
         return None

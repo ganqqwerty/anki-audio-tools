@@ -12,6 +12,7 @@ from pathlib import Path
 
 from .audio_commands import (
     build_audio_filters,
+    build_convert_audio_command,
     build_ffmpeg_command,
     build_playback_segment_filters,
     build_region_delete_command,
@@ -19,6 +20,7 @@ from .audio_commands import (
     build_region_keep_plan,
 )
 from .audio_external import _external_command_run_kwargs, probe_duration_ms
+from .audio_formats import DEFAULT_OUTPUT_FORMAT, output_extension, validate_target_format
 from .audio_pause_pipeline import _render_deep_filter_pause_speedup_audio
 from .audio_state import AudioEditState, AudioProcessingConfig
 from .audio_tools import find_ffmpeg
@@ -67,6 +69,40 @@ def render_audio(
     )  # nosec B603
     if result.returncode != 0:
         raise AudioProcessingError(result.stderr.strip() or "Audio processing failed.")
+    return AudioProcessingResult(
+        output_path=output_path,
+        command=cmd,
+        duration_ms=probe_duration_ms(output_path, config),
+    )
+
+
+def render_converted_audio(
+    source_path: Path,
+    config: AudioProcessingConfig,
+    target_format: object,
+    output_path: Path | None = None,
+    on_command: Callable[[tuple[str, ...]], None] | None = None,
+) -> AudioProcessingResult:
+    """Convert ``source_path`` to a supported output format without edit filters."""
+    target = validate_target_format(target_format)
+    ffmpeg_path = find_ffmpeg(config.ffmpeg_path)
+    if output_path is None:
+        output_path = Path(
+            tempfile.mkstemp(prefix="aqe_convert_", suffix=output_extension(target))[1]
+        )
+
+    cmd = build_convert_audio_command(ffmpeg_path, source_path, output_path, target)
+    if on_command:
+        on_command(cmd)
+    result = subprocess.run(
+        list(cmd),
+        capture_output=True,
+        text=True,
+        check=False,
+        **_external_command_run_kwargs(),
+    )  # nosec B603
+    if result.returncode != 0:
+        raise AudioProcessingError(result.stderr.strip() or "Audio conversion failed.")
     return AudioProcessingResult(
         output_path=output_path,
         command=cmd,
@@ -180,13 +216,15 @@ def make_output_filename(
     source_filename: str,
     now: datetime | None = None,
     token: str | None = None,
+    *,
+    output_format: object = DEFAULT_OUTPUT_FORMAT,
 ) -> str:
-    """Return the preferred generated MP3 filename for a final save."""
+    """Return the preferred generated filename for a final save."""
     now = now or datetime.now()
     token = token or uuid.uuid4().hex[:8]
     stem = Path(source_filename).stem or "audio"
     safe_stem = _safe_filename_stem(stem)
-    suffix = f"__aqe_{now:%Y%m%d_%H%M%S_%f}_{token}.mp3"
+    suffix = f"__aqe_{now:%Y%m%d_%H%M%S_%f}_{token}{output_extension(output_format)}"
     max_stem_length = max(1, 120 - len(suffix))  # pragma: no mutate
     return f"{safe_stem[:max_stem_length]}{suffix}"
 

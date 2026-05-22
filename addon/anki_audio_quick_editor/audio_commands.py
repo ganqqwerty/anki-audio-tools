@@ -6,12 +6,45 @@ import math
 import shlex
 from pathlib import Path
 
+from .audio_formats import OutputFormat, validate_target_format
 from .audio_state import AudioEditState
 from .audio_types import RegionDeletePlan, RegionKeepPlan
 from .errors import AudioProcessingError
 
 FFMPEG_AUDIO_CODEC_ARG = "-codec:a"
 WAV_MIME_TYPE = "audio/wav"
+
+_CONVERT_CODEC_ARGS: dict[OutputFormat, tuple[str, ...]] = {
+    "mp3": (FFMPEG_AUDIO_CODEC_ARG, "libmp3lame", "-q:a", "4"),
+    "m4a": (FFMPEG_AUDIO_CODEC_ARG, "aac", "-b:a", "192k"),
+    "ogg": (FFMPEG_AUDIO_CODEC_ARG, "libvorbis", "-q:a", "5"),
+    "wav": (FFMPEG_AUDIO_CODEC_ARG, "pcm_s16le"),
+    "flac": (FFMPEG_AUDIO_CODEC_ARG, "flac", "-compression_level", "5"),
+}
+
+
+def conversion_codec_args(target_format: object) -> tuple[str, ...]:
+    """Return ffmpeg codec arguments for a supported conversion target."""
+    return _CONVERT_CODEC_ARGS[validate_target_format(target_format)]
+
+
+def build_convert_audio_command(
+    ffmpeg_path: Path,
+    source_path: Path,
+    output_path: Path,
+    target_format: object,
+) -> tuple[str, ...]:
+    """Build an ffmpeg command that converts audio without applying edit filters."""
+    return (
+        str(ffmpeg_path),
+        "-y",
+        "-i",
+        str(source_path),
+        "-vn",
+        *conversion_codec_args(target_format),
+        str(output_path),
+    )
+
 
 def build_region_delete_plan(
     selection_start_ms: int,

@@ -5,6 +5,7 @@ from __future__ import annotations
 from unittest.mock import patch
 
 from anki_audio_quick_editor.audio_operations import (
+    OP_CONVERT,
     OP_FASTER,
     OP_REMOVE_PAUSES,
     OP_SLOWER,
@@ -34,6 +35,7 @@ def test_batchable_processing_commands_map_to_shared_operations() -> None:
         "aqe:volume-down": OP_VOLUME_DOWN,
         "aqe:volume-up": OP_VOLUME_UP,
         "aqe:remove-pauses": OP_REMOVE_PAUSES,
+        "aqe:convert": OP_CONVERT,
     }
     assert operation_for_command("aqe:trim-left") is None
     assert operation_for_command("aqe:trim-right") is None
@@ -168,6 +170,14 @@ def test_decode_command_accepts_dpdfnet_aggressiveness_override() -> None:
     assert decoded.overrides.dpdfnet_attn_limit_db == 18.0
 
 
+def test_decode_command_accepts_convert_target_format_override() -> None:
+    decoded = decode_editor_command_payload(
+        '{"command":"aqe:convert","fieldOrd":0,"overrides":{"targetFormat":"flac"}}'
+    )
+
+    assert decoded.overrides.target_format == "flac"
+
+
 def test_decode_command_accepts_pitch_hum_mode_override() -> None:
     decoded = decode_editor_command_payload(
         '{"command":"aqe:pitch-hum","fieldOrd":0,"overrides":{"pitchHumMode":"pitch_tier"}}'
@@ -235,6 +245,13 @@ def test_apply_processing_command_returns_none_for_non_processing_command() -> N
     state = AudioEditState("clip.mp3")
 
     assert apply_processing_command("aqe:play", state, config) is None
+
+
+def test_apply_processing_command_returns_none_for_convert_command() -> None:
+    config = AudioProcessingConfig()
+    state = AudioEditState("clip.mp3")
+
+    assert apply_processing_command("aqe:convert", state, config) is None
 
 
 def test_play_graph_cursor_and_play_ended_are_not_processing_commands() -> None:

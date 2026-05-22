@@ -7,6 +7,7 @@ import pytest
 from anki_audio_quick_editor.audio_processor import (
     _atempo_filters,
     build_audio_filters,
+    build_convert_audio_command,
     build_deep_filter_command,
     build_deep_filter_prepare_command,
     build_dpdfnet_command,
@@ -98,6 +99,39 @@ def test_build_silencedetect_command_uses_exact_pause_threshold_and_gap_values(t
         "-f",
         "null",
         "-",
+    )
+
+
+@pytest.mark.parametrize(
+    ("target_format", "codec_args"),
+    [
+        ("mp3", ("-codec:a", "libmp3lame", "-q:a", "4")),
+        ("m4a", ("-codec:a", "aac", "-b:a", "192k")),
+        ("ogg", ("-codec:a", "libvorbis", "-q:a", "5")),
+        ("wav", ("-codec:a", "pcm_s16le")),
+        ("flac", ("-codec:a", "flac", "-compression_level", "5")),
+    ],
+)
+def test_build_convert_audio_command_uses_format_codec_args(
+    target_format: str,
+    codec_args: tuple[str, ...],
+    tmp_path: Path,
+) -> None:
+    command = build_convert_audio_command(
+        Path("/bin/ffmpeg"),
+        tmp_path / "source.wav",
+        tmp_path / f"converted.{target_format}",
+        target_format,
+    )
+
+    assert command == (
+        "/bin/ffmpeg",
+        "-y",
+        "-i",
+        str(tmp_path / "source.wav"),
+        "-vn",
+        *codec_args,
+        str(tmp_path / f"converted.{target_format}"),
     )
 
 
