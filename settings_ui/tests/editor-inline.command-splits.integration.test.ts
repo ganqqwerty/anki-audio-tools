@@ -56,7 +56,7 @@ describe("editor inline split-button command integration", () => {
     expect(help).toHaveTextContent("Every edit creates a new media file and updates the field to point at it.");
     expect(help).toHaveTextContent("grey is loudness and lines are pitch of the voice.");
     expect(document.querySelector<HTMLButtonElement>('[data-testid="aqe-button-0-denoise-standard"]')?.title).toBe(
-      "Denoise speech with DeepFilterNet",
+      "Remove noise and music using Standard",
     );
 
     document.querySelector<HTMLButtonElement>('[data-testid="aqe-button-0-denoise-standard"]')!.click();
@@ -75,7 +75,7 @@ describe("editor inline split-button command integration", () => {
     dpdfnetPreset.click();
     await Promise.resolve();
     expect(document.querySelector<HTMLButtonElement>('[data-testid="aqe-button-0-denoise-standard"]')?.title).toBe(
-      "Denoise speech with DPDFNet, Aggressiveness: Gentle",
+      "Remove noise and music using DPDFNet",
     );
     document.querySelector<HTMLButtonElement>('[data-testid="aqe-button-0-denoise-standard"]')!.click();
     expect(window.__aqePendingCommandPayload?.command).toBe("aqe:dpdfnet");

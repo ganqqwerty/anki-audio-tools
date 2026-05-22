@@ -93,6 +93,7 @@
   "diagnostics.show_log_file": "顯示記錄檔",
   "editor.command.play.label": "播放",
   "editor.command.play.title": "播放或暫停目前音訊",
+  "editor.command.play.title_selected": "播放或暫停所選音訊片段",
   "editor.command.pause.label": "暫停",
   "editor.command.graph.label": "圖表",
   "editor.command.graph.title": "分析並顯示音高/強度圖表",

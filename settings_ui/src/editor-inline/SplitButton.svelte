@@ -11,7 +11,7 @@
     buildSplitCommandPayload,
     buildSplitDefaultSaveRequest,
     formatOutputFormat,
-    formatDpdfnetAggressiveness,
+    formatDenoiseAlgorithm,
     getSplitButtonState,
     promoteSplitDefaultsForField,
     setDenoiseAlgorithmForField,
@@ -23,7 +23,12 @@
     setTrimStepForField,
     setVolumeStepForField,
   } from "./split-button-state.js";
-  import { formatGraphVoiceRange } from "./graph-split-values.js";
+  import {
+    formatGraphRecordingCondition,
+    formatGraphSmoothness,
+    formatGraphVoiceLock,
+    formatGraphVoiceRange,
+  } from "./graph-split-values.js";
   import {
     setGraphConnectShortDropoutsForField,
     setGraphRecordingConditionForField,
@@ -86,17 +91,11 @@
     if (button.command === "aqe:convert") {
       return t("editor.command.convert.title", { format: formatOutputFormat(outputFormat) });
     }
-    if (button.command === "aqe:pitch-hum") {
-      return pitchHumMode === "pitch_tier" ? t("editor.pitch_hum.mode.pitch_tier.title") : button.title;
-    }
     if (!isDenoiseButton()) return button.title;
-    if (denoiseAlgorithm === "rnnoise") return t("editor.command.rnnoise.title");
-    if (denoiseAlgorithm === "dpdfnet") {
-      return t("editor.command.dpdfnet.title", { level: formatDpdfnetAggressiveness(dpdfnetAttnLimitDb) });
-    }
-    if (denoiseAlgorithm === "voice_only") return t("editor.command.voice_only.title");
-    return t("editor.command.standard.title");
+    return t("editor.command.denoise.title", { algorithm: formatDenoiseAlgorithm(denoiseAlgorithm) });
   }
+
+  const graphSummary = $derived([formatGraphVoiceRange(graphVoiceRange), formatGraphRecordingCondition(graphRecordingCondition), formatGraphSmoothness(graphSmoothness), `${graphConnectShortDropoutsMs} ms`, formatGraphVoiceLock(graphVoiceLock)].join(" · "));
 
   function close(): void {
     open = false;
@@ -318,7 +317,7 @@
         <div class="aqe-split-popover-header aqe-split-popover-header-with-action">
           <span class="aqe-split-popover-title">
             <strong>{button.label}</strong>
-            <span>{formatGraphVoiceRange(graphVoiceRange)}</span>
+            <span>{graphSummary}</span>
           </span>
           <SplitDefaultSaveButton
             onSave={saveCurrentDefaults}

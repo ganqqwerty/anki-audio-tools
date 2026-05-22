@@ -93,6 +93,7 @@
   "diagnostics.show_log_file": "Protokolldatei anzeigen",
   "editor.command.play.label": "Abspielen",
   "editor.command.play.title": "Aktuelles Audio abspielen oder pausieren",
+  "editor.command.play.title_selected": "Ausgewähltes Audiofragment abspielen oder pausieren",
   "editor.command.pause.label": "Pause",
   "editor.command.graph.label": "Diagramm",
   "editor.command.graph.title": "Tonhöhen-/Intensitätsdiagramm analysieren und anzeigen",

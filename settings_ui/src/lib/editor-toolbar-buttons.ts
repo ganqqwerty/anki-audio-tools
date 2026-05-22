@@ -3,6 +3,7 @@ import {
   formatOutputFormat,
   outputFormatOrDefault,
 } from "./audio-operation-parameters.js";
+import { formatDenoiseAlgorithm } from "../editor-inline/split-button-state.js";
 import { t } from "./i18n.js";
 import type { CommandIconName } from "./icon-types.js";
 
@@ -84,12 +85,14 @@ export function commandButtons(): readonly ToolbarButtonSpec[] {
     {
       command: "aqe:show-file",
       icon: "folder-open",
+      iconOnly: true,
       label: t("editor.command.folder.label"),
       title: t("editor.command.folder.title"),
     },
     {
       command: "aqe:convert",
       icon: "file-audio",
+      iconOnly: true,
       label: t("editor.command.convert.label"),
       title: t("editor.command.convert.title", { format: formatOutputFormat(outputFormat) }),
     },
@@ -108,24 +111,28 @@ export function commandButtons(): readonly ToolbarButtonSpec[] {
     {
       command: "aqe:remove-pauses",
       icon: "timer-reset",
+      iconOnly: true,
       label: t("editor.command.shorten_pauses.label"),
       title: t("editor.command.shorten_pauses.title"),
     },
     {
       command: "aqe:pitch-hum",
       icon: "waves",
+      iconOnly: true,
       label: t("editor.command.pitch_hum.label"),
       title: t("editor.command.pitch_hum.title"),
     },
     {
       command: "aqe:slower",
       icon: "snail",
+      iconOnly: true,
       label: t("editor.command.slower.label"),
       title: t("editor.command.slower.title"),
     },
     {
       command: "aqe:faster",
       icon: "hare-running",
+      iconOnly: true,
       label: t("editor.command.faster.label"),
       title: t("editor.command.faster.title"),
     },
@@ -171,8 +178,11 @@ export function denoiseTopLevelButton(): ToolbarButtonSpec {
   return {
     command: "aqe:denoise-standard",
     icon: "sparkles",
+    iconOnly: true,
     label: t("editor.command.denoise.label"),
-    title: t("editor.command.denoise.title"),
+    title: t("editor.command.denoise.title", {
+      algorithm: formatDenoiseAlgorithm("standard"),
+    }),
   };
 }
 

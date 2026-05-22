@@ -29,11 +29,25 @@ describe("editor inline Svelte integration", () => {
 
     expect(document.querySelectorAll(".aqe-controls")).toHaveLength(1);
     const graphButton = document.querySelector<HTMLButtonElement>('[data-testid="aqe-button-0-graph"]')!;
+    const removePausesButton = document.querySelector<HTMLButtonElement>('[data-testid="aqe-button-0-remove-pauses"]')!;
+    const showFileButton = document.querySelector<HTMLButtonElement>('[data-testid="aqe-button-0-show-file"]')!;
+    const convertButton = document.querySelector<HTMLButtonElement>('[data-testid="aqe-button-0-convert"]')!;
+    const denoiseButton = document.querySelector<HTMLButtonElement>('[data-testid="aqe-button-0-denoise-standard"]')!;
+    const pitchHumButton = document.querySelector<HTMLButtonElement>('[data-testid="aqe-button-0-pitch-hum"]')!;
+    const slowerButton = document.querySelector<HTMLButtonElement>('[data-testid="aqe-button-0-slower"]')!;
+    const fasterButton = document.querySelector<HTMLButtonElement>('[data-testid="aqe-button-0-faster"]')!;
     const settingsButton = document.querySelector<HTMLButtonElement>('[data-testid="aqe-button-0-settings"]')!;
     const volumeDownButton = document.querySelector<HTMLButtonElement>('[data-testid="aqe-button-0-volume-down"]')!;
     const volumeUpButton = document.querySelector<HTMLButtonElement>('[data-testid="aqe-button-0-volume-up"]')!;
     expect(graphButton).toHaveClass("aqe-icon-only");
     expect(graphButton).toHaveAttribute("aria-label", "Analyze and show pitch/intensity graph");
+    expect(removePausesButton).toHaveClass("aqe-icon-only");
+    expect(showFileButton).toHaveClass("aqe-icon-only");
+    expect(convertButton).toHaveClass("aqe-icon-only");
+    expect(denoiseButton).toHaveClass("aqe-icon-only");
+    expect(pitchHumButton).toHaveClass("aqe-icon-only");
+    expect(slowerButton).toHaveClass("aqe-icon-only");
+    expect(fasterButton).toHaveClass("aqe-icon-only");
     expect(settingsButton).toHaveClass("aqe-icon-only");
     expect(volumeDownButton).toHaveClass("aqe-icon-only");
     expect(volumeUpButton).toHaveClass("aqe-icon-only");

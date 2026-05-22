@@ -1,6 +1,5 @@
 <script lang="ts">
   import { onMount, tick } from "svelte";
-
   import EditorCommandIcon from "./EditorCommandIcon.svelte";
   import SplitDefaultSaveButton from "./SplitDefaultSaveButton.svelte";
   import { setRepeatEnabledForOrd, setRepeatPauseSecondsForOrd, send } from "./actions.js";
@@ -15,12 +14,10 @@
   } from "./split-button-state.js";
   import { t } from "../lib/i18n.js";
   import type { ButtonSpec, FieldTarget } from "./types.js";
-
   const POPOVER_GAP_PX = 4;
   const VIEWPORT_MARGIN_PX = 8;
   const HIDDEN_POPOVER_STYLE = "visibility: hidden;";
   const PRESETS = [0, 0.5, 2, 10] as const;
-
   const { button, repeatDefault, target }: {
     button: ButtonSpec;
     repeatDefault: boolean;
@@ -34,13 +31,13 @@
   let repeatPauseSeconds = $state(0);
   let defaultSaved = $state(false);
   let defaultSavedTimer: number | undefined;
+  let playSelection = $state(false);
   const menuTitle = $derived(playRepeatOptionsTitle(pressed));
-
+  const title = $derived(playSelection ? t("editor.command.play.title_selected") : t("editor.command.play.title"));
   function close(): void {
     open = false;
     popoverStyle = HIDDEN_POPOVER_STYLE;
   }
-
   function syncRepeatState(): void {
     const visualizer = visualizerForOrd(target.ord);
     pressed = visualizer ? visualizer.dataset.repeatEnabled === "true" : repeatDefault;
@@ -48,7 +45,6 @@
     repeatPauseSeconds = state.repeatPauseSeconds;
     setRepeatPauseSecondsForOrd(target.ord, repeatPauseSeconds);
   }
-
   function toggleMenu(event: MouseEvent): void {
     event.preventDefault();
     event.stopPropagation();
@@ -59,7 +55,6 @@
     syncRepeatState();
     open = true;
   }
-
   function toggleRepeat(event: MouseEvent): void {
     const button = event.currentTarget as HTMLButtonElement;
     const enabled = button.ariaPressed !== "true";
@@ -67,7 +62,6 @@
     pressed = enabled;
     setRepeatEnabledForOrd(target.ord, enabled);
   }
-
   function applyValue(value: number): void {
     defaultSaved = false;
     const state = setRepeatPauseSecondsForField(target.ord, value);
@@ -75,12 +69,10 @@
     setRepeatPauseSecondsForOrd(target.ord, repeatPauseSeconds);
     void updatePopoverPlacement();
   }
-
   function dispatchPrimary(): void {
     close();
     send(button.command, target.node, target.ord);
   }
-
   function showDefaultSaved(): void {
     defaultSaved = true;
     if (defaultSavedTimer !== undefined) window.clearTimeout(defaultSavedTimer);
@@ -89,7 +81,6 @@
       defaultSavedTimer = undefined;
     }, 1400);
   }
-
   function saveCurrentDefaults(): void {
     const request = {
       defaults: {
@@ -108,21 +99,17 @@
     showDefaultSaved();
     void updatePopoverPlacement();
   }
-
   function clamp(value: number, min: number, max: number): number {
     return Math.min(Math.max(value, min), max);
   }
-
   function viewportBounds(): { width: number; height: number } {
     return {
       width: window.innerWidth || document.documentElement.clientWidth,
       height: window.innerHeight || document.documentElement.clientHeight,
     };
   }
-
   function positionPopover(): void {
     if (!wrapper || !popover) return;
-
     const anchorRect = wrapper.getBoundingClientRect();
     const popoverRect = popover.getBoundingClientRect();
     const viewport = viewportBounds();
@@ -134,35 +121,29 @@
     const fitsBelow = belowTop + popoverRect.height <= viewport.height - VIEWPORT_MARGIN_PX;
     const fitsAbove = aboveTop >= VIEWPORT_MARGIN_PX;
     const preferredTop = !fitsBelow && fitsAbove ? aboveTop : belowTop;
-
     popoverStyle = [
       `left: ${clamp(centeredLeft, VIEWPORT_MARGIN_PX, maxLeft)}px;`,
       `top: ${clamp(preferredTop, VIEWPORT_MARGIN_PX, maxTop)}px;`,
       `max-height: ${Math.max(80, viewport.height - VIEWPORT_MARGIN_PX * 2)}px;`,
     ].join(" ");
   }
-
   async function updatePopoverPlacement(): Promise<void> {
     if (!open) return;
     await tick();
     if (!open) return;
     positionPopover();
   }
-
   function onViewportChange(): void {
     void updatePopoverPlacement();
   }
-
   function onDocumentPointerDown(event: MouseEvent): void {
     if (!open || !wrapper) return;
     if (event.target instanceof Node && wrapper.contains(event.target)) return;
     close();
   }
-
   function onDocumentKeyDown(event: KeyboardEvent): void {
     if (event.key === "Escape") close();
   }
-
   $effect(() => {
     if (open) {
       void updatePopoverPlacement();
@@ -170,14 +151,26 @@
       popoverStyle = HIDDEN_POPOVER_STYLE;
     }
   });
-
   onMount(() => {
     syncRepeatState();
+    const visualizer = visualizerForOrd(target.ord);
+    playSelection = visualizer?.dataset.selectionActive === "true";
+    let observer: MutationObserver | null = null;
+    if (visualizer) {
+      observer = new MutationObserver(() => {
+        playSelection = visualizer.dataset.selectionActive === "true";
+      });
+      observer.observe(visualizer, {
+        attributes: true,
+        attributeFilter: ["data-selection-active", "data-selection-draft-active"],
+      });
+    }
     document.addEventListener("mousedown", onDocumentPointerDown, true);
     document.addEventListener("keydown", onDocumentKeyDown, true);
     window.addEventListener("resize", onViewportChange);
     window.addEventListener("scroll", onViewportChange, true);
     return () => {
+      observer?.disconnect();
       document.removeEventListener("mousedown", onDocumentPointerDown, true);
       document.removeEventListener("keydown", onDocumentKeyDown, true);
       window.removeEventListener("resize", onViewportChange);
@@ -186,7 +179,6 @@
     };
   });
 </script>
-
 <span class="aqe-split-button aqe-play-split-button" bind:this={wrapper}>
   <button
     type="button"
@@ -195,8 +187,8 @@
     data-aqe-command={button.command}
     data-aqe-button-state="play"
     data-testid={`aqe-button-${target.ord}-play`}
-    title={button.title}
-    aria-label={button.title}
+    title={title}
+    aria-label={title}
     onmousedown={(event) => event.preventDefault()}
     onclick={dispatchPrimary}
   >
@@ -254,17 +246,20 @@
       </button>
       <div class="aqe-split-popover-header">
         <strong>{t("editor.repeat.pause_seconds")}</strong>
-        <input
-          class="aqe-split-value-input"
-          data-testid={`aqe-split-${target.ord}-repeat-value`}
-          type="number"
-          min="0"
-          max="10"
-          step="0.1"
-          value={repeatPauseSeconds}
-          aria-label={t("editor.repeat.pause_seconds")}
-          oninput={(event) => applyValue((event.currentTarget as HTMLInputElement).valueAsNumber)}
-        />
+        <span style="align-items: center; display: inline-flex; gap: 4px; justify-content: flex-end;">
+          <input
+            class="aqe-split-value-input"
+            data-testid={`aqe-split-${target.ord}-repeat-value`}
+            type="number"
+            min="0"
+            max="10"
+            step="0.1"
+            value={repeatPauseSeconds}
+            aria-label={t("editor.repeat.pause_seconds")}
+            oninput={(event) => applyValue((event.currentTarget as HTMLInputElement).valueAsNumber)}
+          />
+          <span style="font-size: 11px; white-space: nowrap;"> s</span>
+        </span>
       </div>
       <input
         data-testid={`aqe-split-${target.ord}-repeat-slider`}

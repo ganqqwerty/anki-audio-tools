@@ -93,6 +93,7 @@
   "diagnostics.show_log_file": "ログファイルを表示",
   "editor.command.play.label": "再生",
   "editor.command.play.title": "現在の音声を再生または一時停止",
+  "editor.command.play.title_selected": "選択された音声フラグメントを再生または一時停止",
   "editor.command.pause.label": "一時停止",
   "editor.command.graph.label": "グラフ",
   "editor.command.graph.title": "ピッチ/強度グラフを解析して表示",
