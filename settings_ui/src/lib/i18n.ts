@@ -60,7 +60,6 @@ const FALLBACK_MESSAGES: Messages = {
   "settings.output_format": "Default convert format",
   "settings.output_format.mp3": "MP3",
   "settings.output_format.m4a": "M4A",
-  "settings.output_format.ogg": "Ogg Vorbis",
   "settings.output_format.wav": "WAV",
   "settings.output_format.flac": "FLAC",
   "settings.denoise_algorithm": "Default cleanup action",

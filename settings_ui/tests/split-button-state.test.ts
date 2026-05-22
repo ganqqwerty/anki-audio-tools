@@ -95,7 +95,7 @@ describe("split button state", () => {
     expect(formatDenoiseAlgorithm("voice_only")).toBe("Voice Only");
     expect(formatPitchHumMode("direct")).toBe("Pitch-to-hum");
     expect(formatPitchHumMode("pitch_tier")).toBe("PitchTier");
-    expect(formatOutputFormat("ogg")).toBe("Ogg Vorbis");
+    expect(formatOutputFormat("ogg")).toBe("MP3");
     expect(formatDpdfnetAggressiveness(6)).toBe("Gentle");
     expect(formatDpdfnetAggressiveness(12)).toBe("Normal");
     expect(formatDpdfnetAggressiveness(18)).toBe("Aggressive");

@@ -2,7 +2,7 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Add a shared non-destructive `convert` audio operation with editor split-button and Browser batch support for `mp3`, `m4a`, `ogg`, `wav`, and `flac`, including same-extension no-op notifications.
+**Goal:** Add a shared non-destructive `convert` audio operation with editor split-button and Browser batch support for `mp3`, `m4a`, `wav`, and `flac`, including same-extension no-op notifications.
 
 **Architecture:** Add one import-safe format helper, one ffmpeg command builder, and one renderer used by editor and batch flows. Treat format selection as an operation parameter, not separate operations. Same-extension conversion is handled before renderer invocation so no temp file, media write, undo entry, or field replacement occurs.
 
@@ -83,7 +83,7 @@ from anki_audio_quick_editor.audio_formats import (
 
 
 def test_supported_output_formats_are_the_requested_main_formats() -> None:
-    assert SUPPORTED_OUTPUT_FORMATS == ("mp3", "m4a", "ogg", "wav", "flac")
+    assert SUPPORTED_OUTPUT_FORMATS == ("mp3", "m4a", "wav", "flac")
     assert DEFAULT_OUTPUT_FORMAT == "mp3"
 
 
@@ -92,7 +92,7 @@ def test_supported_output_formats_are_the_requested_main_formats() -> None:
     [
         ("mp3", "mp3"),
         ("M4A", "m4a"),
-        ("ogg", "ogg"),
+        ("ogg", "mp3"),
         ("WAV", "wav"),
         (" flac ", "flac"),
         ("bad", "mp3"),
@@ -113,10 +113,8 @@ def test_validate_target_format_is_strict_for_explicit_conversion_requests() -> 
 def test_format_extension_and_label_are_stable() -> None:
     assert format_extension("mp3") == ".mp3"
     assert format_extension("m4a") == ".m4a"
-    assert format_extension("ogg") == ".ogg"
     assert format_extension("wav") == ".wav"
     assert format_extension("flac") == ".flac"
-    assert format_label("ogg") == "Ogg/Opus"
 
 
 def test_source_matches_target_format_uses_visible_extension_case_insensitively() -> None:
@@ -149,12 +147,11 @@ from pathlib import Path
 from typing import Any
 
 DEFAULT_OUTPUT_FORMAT = "mp3"
-SUPPORTED_OUTPUT_FORMATS = ("mp3", "m4a", "ogg", "wav", "flac")
+SUPPORTED_OUTPUT_FORMATS = ("mp3", "m4a", "wav", "flac")
 
 _FORMAT_LABELS = {
     "mp3": "MP3",
     "m4a": "M4A",
-    "ogg": "Ogg/Opus",
     "wav": "WAV",
     "flac": "FLAC",
 }
@@ -236,7 +233,7 @@ Modify `addon/anki_audio_quick_editor/config.schema.json`:
 ```json
     "output_format": {
       "type": "string",
-      "enum": ["mp3", "m4a", "ogg", "wav", "flac"]
+      "enum": ["mp3", "m4a", "wav", "flac"]
     },
 ```
 
@@ -356,11 +353,10 @@ Add tests:
 
 ```python
 @pytest.mark.parametrize(
-    ("target_format", "codec_args"),
+        ("target_format", "codec_args"),
     [
         ("mp3", ("-codec:a", "libmp3lame", "-q:a", "2")),
         ("m4a", ("-codec:a", "aac", "-b:a", "256k")),
-        ("ogg", ("-codec:a", "libopus", "-b:a", "192k")),
         ("wav", ("-codec:a", "pcm_s16le")),
         ("flac", ("-codec:a", "flac")),
     ],
@@ -413,7 +409,6 @@ Add:
 _CONVERT_CODEC_ARGS: dict[str, tuple[str, ...]] = {
     "mp3": (FFMPEG_AUDIO_CODEC_ARG, "libmp3lame", "-q:a", "2"),
     "m4a": (FFMPEG_AUDIO_CODEC_ARG, "aac", "-b:a", "256k"),
-    "ogg": (FFMPEG_AUDIO_CODEC_ARG, "libopus", "-b:a", "192k"),
     "wav": (FFMPEG_AUDIO_CODEC_ARG, "pcm_s16le"),
     "flac": (FFMPEG_AUDIO_CODEC_ARG, "flac"),
 }
@@ -609,7 +604,7 @@ def render_converted_audio(
 In `e2e/test_audio_processing_ffmpeg.py`, add:
 
 ```python
-@pytest.mark.parametrize("target_format", ("mp3", "m4a", "ogg", "wav", "flac"))
+@pytest.mark.parametrize("target_format", ("mp3", "m4a", "wav", "flac"))
 def test_convert_audio_renders_supported_target_format(
     anki_mw,
     tmp_path: Path,
@@ -839,7 +834,7 @@ Modify `contracts/communication.schema.json`:
       "enum": ["none", "speed_step", "volume_step_db", "pause_aggressiveness", "denoise_algorithm", "target_format"]
     },
     "OutputFormat": {
-      "enum": ["mp3", "m4a", "ogg", "wav", "flac"]
+      "enum": ["mp3", "m4a", "wav", "flac"]
     },
 ```
 
@@ -1415,7 +1410,6 @@ Add:
   it("formats supported output formats", () => {
     expect(formatOutputFormat("mp3")).toBe("MP3");
     expect(formatOutputFormat("m4a")).toBe("M4A");
-    expect(formatOutputFormat("ogg")).toBe("Ogg/Opus");
     expect(formatOutputFormat("wav")).toBe("WAV");
     expect(formatOutputFormat("flac")).toBe("FLAC");
   });
@@ -1473,8 +1467,8 @@ Expected: FAIL with missing output format state helpers.
 In `settings_ui/src/lib/audio-operation-parameters.ts`, add:
 
 ```ts
-export type OutputFormatValue = "mp3" | "m4a" | "ogg" | "wav" | "flac";
-export const OUTPUT_FORMAT_VALUES: readonly OutputFormatValue[] = ["mp3", "m4a", "ogg", "wav", "flac"] as const;
+export type OutputFormatValue = "mp3" | "m4a" | "wav" | "flac";
+export const OUTPUT_FORMAT_VALUES: readonly OutputFormatValue[] = ["mp3", "m4a", "wav", "flac"] as const;
 
 export function outputFormatOrDefault(value: unknown): OutputFormatValue {
   return typeof value === "string" && OUTPUT_FORMAT_VALUES.includes(value as OutputFormatValue)
@@ -1484,7 +1478,6 @@ export function outputFormatOrDefault(value: unknown): OutputFormatValue {
 
 export function formatOutputFormat(value: OutputFormatValue): string {
   if (value === "m4a") return "M4A";
-  if (value === "ogg") return "Ogg/Opus";
   if (value === "wav") return "WAV";
   if (value === "flac") return "FLAC";
   return "MP3";
@@ -1502,7 +1495,7 @@ In `settings_ui/src/editor-inline/types.ts`, add `"aqe:convert"` to `EditorComma
 Use:
 
 ```ts
-type OutputFormat = "mp3" | "m4a" | "ogg" | "wav" | "flac";
+type OutputFormat = "mp3" | "m4a" | "wav" | "flac";
 ```
 
 - [ ] **Step 4: Add split-button state support**
@@ -1674,13 +1667,13 @@ Update `valueLabel()`, `optionValues()`, `optionLabel()`, `optionTitle()`, and `
 ```
 
 ```ts
-    if (value === "mp3" || value === "m4a" || value === "ogg" || value === "wav" || value === "flac") {
+    if (value === "mp3" || value === "m4a" || value === "wav" || value === "flac") {
       return formatOutputFormat(value);
     }
 ```
 
 ```ts
-    if (value === "mp3" || value === "m4a" || value === "ogg" || value === "wav" || value === "flac") {
+    if (value === "mp3" || value === "m4a" || value === "wav" || value === "flac") {
       onOutputFormat(value);
     }
 ```

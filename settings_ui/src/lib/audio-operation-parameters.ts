@@ -13,7 +13,7 @@ const MIN_REPEAT_PAUSE_SECONDS = 0;
 const MAX_REPEAT_PAUSE_SECONDS = 10;
 export const DPDFNET_ATTENUATION_LIMIT_DB_VALUES = [6, 12, 18] as const;
 export const DEFAULT_OUTPUT_FORMAT = "mp3";
-export const OUTPUT_FORMAT_VALUES = ["mp3", "m4a", "ogg", "wav", "flac"] as const;
+export const OUTPUT_FORMAT_VALUES = ["mp3", "m4a", "wav", "flac"] as const;
 export type OutputFormatValue = (typeof OUTPUT_FORMAT_VALUES)[number];
 
 export function clampTrimStepMs(value: number): number {

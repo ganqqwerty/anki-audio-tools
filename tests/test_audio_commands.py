@@ -107,7 +107,6 @@ def test_build_silencedetect_command_uses_exact_pause_threshold_and_gap_values(t
     [
         ("mp3", ("-codec:a", "libmp3lame", "-q:a", "4")),
         ("m4a", ("-codec:a", "aac", "-b:a", "192k")),
-        ("ogg", ("-codec:a", "libvorbis", "-q:a", "5")),
         ("wav", ("-codec:a", "pcm_s16le")),
         ("flac", ("-codec:a", "flac", "-compression_level", "5")),
     ],

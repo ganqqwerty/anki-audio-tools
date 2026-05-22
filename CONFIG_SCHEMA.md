@@ -25,7 +25,7 @@ Audio Quick Editor config lives in [`addon/anki_audio_quick_editor/config.json`]
 | `internal_pause_threshold_ms` | integer | Internal silence duration that qualifies for pause speed-up |
 | `internal_pause_target_gap_ms` | integer | Target duration for sped-up pause segments |
 | `pause_aggressiveness` | string | Default user-facing Shorten Pauses split-button level: `gentle`, `normal`, or `aggressive` |
-| `output_format` | string | Default target for Convert operations: `mp3`, `m4a`, `ogg`, `wav`, or `flac` |
+| `output_format` | string | Default target for Convert operations: `mp3`, `m4a`, `wav`, or `flac` |
 | `ffmpeg_path` | string | Optional explicit path to `ffmpeg`; blank uses PATH |
 | `deep_filter_path` | string | Optional explicit path to DeepFilterNet `deep-filter`; blank uses a bundled platform binary when available, then PATH |
 | `deep_filter_post_filter` | boolean | Enables DeepFilterNet post-filtering for stronger noise suppression and pause-detection analysis |

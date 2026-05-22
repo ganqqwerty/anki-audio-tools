@@ -5,9 +5,9 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Literal
 
-OutputFormat = Literal["mp3", "m4a", "ogg", "wav", "flac"]
+OutputFormat = Literal["mp3", "m4a", "wav", "flac"]
 
-SUPPORTED_OUTPUT_FORMATS: tuple[OutputFormat, ...] = ("mp3", "m4a", "ogg", "wav", "flac")
+SUPPORTED_OUTPUT_FORMATS: tuple[OutputFormat, ...] = ("mp3", "m4a", "wav", "flac")
 DEFAULT_OUTPUT_FORMAT: OutputFormat = "mp3"
 
 _SUPPORTED_FORMAT_SET = frozenset(SUPPORTED_OUTPUT_FORMATS)

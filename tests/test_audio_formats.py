@@ -17,7 +17,7 @@ from anki_audio_quick_editor.audio_formats import (
 
 
 def test_supported_formats_cover_main_audio_targets() -> None:
-    assert SUPPORTED_OUTPUT_FORMATS == ("mp3", "m4a", "ogg", "wav", "flac")
+    assert SUPPORTED_OUTPUT_FORMATS == ("mp3", "m4a", "wav", "flac")
     assert DEFAULT_OUTPUT_FORMAT == "mp3"
 
 
@@ -27,7 +27,7 @@ def test_supported_formats_cover_main_audio_targets() -> None:
         ("mp3", "mp3"),
         (" MP3 ", "mp3"),
         ("m4a", "m4a"),
-        ("ogg", "ogg"),
+        ("ogg", "mp3"),
         ("wav", "wav"),
         ("flac", "flac"),
         (None, "mp3"),
@@ -39,7 +39,7 @@ def test_normalize_output_format_falls_back_for_settings(raw: object, expected: 
     assert normalize_output_format(raw) == expected
 
 
-@pytest.mark.parametrize("target", ["mp3", "M4A", " ogg ", "wav", "flac"])
+@pytest.mark.parametrize("target", ["mp3", "M4A", "wav", "flac"])
 def test_validate_target_format_accepts_supported_values(target: str) -> None:
     assert validate_target_format(target) == target.strip().lower()
 
@@ -55,7 +55,6 @@ def test_validate_target_format_rejects_unknown_values(target: object) -> None:
     [
         ("mp3", ".mp3", "MP3"),
         ("m4a", ".m4a", "M4A"),
-        ("ogg", ".ogg", "OGG"),
         ("wav", ".wav", "WAV"),
         ("flac", ".flac", "FLAC"),
     ],

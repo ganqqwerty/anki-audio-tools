@@ -78,7 +78,7 @@ def test_render_converted_audio_uses_default_error_message_for_blank_stderr(
         )
 
 
-@pytest.mark.parametrize("target_format", ["mp3", "m4a", "ogg", "wav", "flac"])
+@pytest.mark.parametrize("target_format", ["mp3", "m4a", "wav", "flac"])
 @pytest.mark.skipif(
     not FFMPEG_AVAILABLE,
     reason=FFMPEG_SKIP_REASON,

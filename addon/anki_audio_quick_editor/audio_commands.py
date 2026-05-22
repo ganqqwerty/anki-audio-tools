@@ -17,7 +17,6 @@ WAV_MIME_TYPE = "audio/wav"
 _CONVERT_CODEC_ARGS: dict[OutputFormat, tuple[str, ...]] = {
     "mp3": (FFMPEG_AUDIO_CODEC_ARG, "libmp3lame", "-q:a", "4"),
     "m4a": (FFMPEG_AUDIO_CODEC_ARG, "aac", "-b:a", "192k"),
-    "ogg": (FFMPEG_AUDIO_CODEC_ARG, "libvorbis", "-q:a", "5"),
     "wav": (FFMPEG_AUDIO_CODEC_ARG, "pcm_s16le"),
     "flac": (FFMPEG_AUDIO_CODEC_ARG, "flac", "-compression_level", "5"),
 }
