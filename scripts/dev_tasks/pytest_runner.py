@@ -5,6 +5,7 @@ from __future__ import annotations
 import os
 import subprocess
 import sys
+import tempfile
 import textwrap
 from pathlib import Path
 
@@ -14,7 +15,7 @@ from .python_env import _find_anki_python
 ROOT = Path(__file__).resolve().parents[2]
 
 
-def _pytest_args(target: str, *, collect_only: bool = False) -> list[str]:
+def _pytest_args(target: str, *, collect_only: bool = False, cache_dir: Path | None = None) -> list[str]:
     target_args = [target]
     if target == "e2e/":
         target_args = ["--pyargs", "e2e"]
@@ -33,6 +34,8 @@ def _pytest_args(target: str, *, collect_only: bool = False) -> list[str]:
         )
     else:
         args.extend(["-q", "--tb=short", "-rfE"])
+    if cache_dir is not None:
+        args.extend(["-o", f"cache_dir={cache_dir}"])
     if collect_only:
         args.append("--collect-only")
     elif is_verbose():
@@ -103,13 +106,18 @@ def _run_pytest(target: str, *, label: str) -> int:
     anki_python = _find_anki_python()
     collect_warning_s = _read_seconds_env("DEV_PYTEST_COLLECT_WARNING_SECS", 10.0)
     collect_timeout_s = _read_seconds_env("DEV_PYTEST_COLLECT_TIMEOUT_SECS", 60.0)
-    rc = _run(
-        [str(anki_python), "-m", *_pytest_args(target, collect_only=True)],
-        label=f"{label} (collect)",
-        idle_warning_s=collect_warning_s,
-        idle_timeout_s=collect_timeout_s,
-    )
-    if rc != 0:
-        _probe_import_sequence(target, label=label, anki_python=anki_python)
-        return rc
-    return _run([str(anki_python), "-m", *_pytest_args(target)], label=f"{label} (run)")
+    with tempfile.TemporaryDirectory(prefix="aqe-pytest-cache-") as cache_dir:
+        pytest_cache_dir = Path(cache_dir)
+        rc = _run(
+            [str(anki_python), "-m", *_pytest_args(target, collect_only=True, cache_dir=pytest_cache_dir)],
+            label=f"{label} (collect)",
+            idle_warning_s=collect_warning_s,
+            idle_timeout_s=collect_timeout_s,
+        )
+        if rc != 0:
+            _probe_import_sequence(target, label=label, anki_python=anki_python)
+            return rc
+        return _run(
+            [str(anki_python), "-m", *_pytest_args(target, cache_dir=pytest_cache_dir)],
+            label=f"{label} (run)",
+        )

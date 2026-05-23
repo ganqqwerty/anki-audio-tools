@@ -3,8 +3,11 @@
 
 from __future__ import annotations
 
+import concurrent.futures
 import json
+import os
 import sys
+import traceback
 from collections.abc import Callable
 from pathlib import Path
 
@@ -36,12 +39,10 @@ from scripts.dev_tasks.setup import cmd_setup
 ADDON_DIR = ROOT / "addon" / "anki_audio_quick_editor"
 RADON_FAIL_MIN_RANK = "C"
 _COMMAND_ARGS: list[str] = []
+CheckStep = tuple[str, Callable[[], int]]
 
 
-def cmd_test() -> int:
-    contracts_rc = cmd_contracts_generate()
-    if contracts_rc != 0:
-        return contracts_rc
+def _run_test_targets() -> int:
     targets = _COMMAND_ARGS or ["tests/"]
     for target in targets:
         label = f"python tests: {target}" if _COMMAND_ARGS else "python tests"
@@ -49,6 +50,13 @@ def cmd_test() -> int:
         if rc != 0:
             return rc
     return 0
+
+
+def cmd_test() -> int:
+    contracts_rc = cmd_contracts_generate()
+    if contracts_rc != 0:
+        return contracts_rc
+    return _run_test_targets()
 
 
 def cmd_test_anki_api() -> int:
@@ -80,6 +88,10 @@ def cmd_typecheck() -> int:
     contracts_rc = cmd_contracts_generate()
     if contracts_rc != 0:
         return contracts_rc
+    return _run_typecheck()
+
+
+def _run_typecheck() -> int:
     anki_python = _find_anki_python()
     return _run([str(anki_python), "-m", "mypy"], label="mypy typecheck")
 
@@ -247,36 +259,24 @@ def cmd_muttest() -> int:
 
 
 def cmd_check() -> int:
-    steps: list[tuple[str, Callable[[], int]]] = [
-        ("config-schema", cmd_config_schema),
-        ("contracts-generate", cmd_contracts_generate),
-        ("contracts-check", cmd_contracts_check),
-        ("build-ui", cmd_build_ui),
-        ("architecture-report", cmd_architecture_report),
-        ("lint", cmd_lint),
-        ("file-lines", cmd_file_lines),
-        ("typecheck", cmd_typecheck),
-        ("security", cmd_security),
-        ("deadcode", cmd_deadcode),
-        ("deps", cmd_deps),
-        ("complexity", cmd_quality_metrics),
-        ("qodana", cmd_qodana),
-        ("arch", cmd_arch),
-        ("test-anki-api", cmd_test_anki_api),
-        ("test", cmd_test),
-        ("coverage", cmd_coverage),
-        ("test-svelte", cmd_test_svelte),
-    ]
-    failed: list[str] = []
-    for index, (name, func) in enumerate(steps, start=1):
-        if is_verbose():
-            print(f"\n{'=' * 60}\n  Step {index}/{len(steps)}: {name}\n{'=' * 60}\n")
-        else:
-            print(f"[dev] check {index}/{len(steps)}: {name}")
-        rc = func()
-        if rc != 0:
-            failed.append(name)
-            print(f"[dev] FAILED: {name}")
+    if is_verbose():
+        preflight_steps = _check_preflight_steps()
+        phases = _check_post_preflight_groups(contracts_prepared=False)
+        steps = [*preflight_steps, *(step for _phase_name, phase_steps in phases for step in phase_steps)]
+        failed = _run_check_steps_sequential(steps)
+    else:
+        preflight_steps = _check_preflight_steps()
+        failed = _run_check_steps_sequential(preflight_steps)
+        failed_preflight = set(failed)
+        contracts_prepared = "contracts-generate" not in failed_preflight and "contracts-check" not in failed_preflight
+        phases = _check_post_preflight_groups(contracts_prepared=contracts_prepared)
+        steps = [*preflight_steps, *(step for _phase_name, phase_steps in phases for step in phase_steps)]
+        for phase_name, phase_steps in phases:
+            if phase_name == "parallel":
+                failed.extend(_run_check_steps_parallel(phase_steps))
+            else:
+                failed.extend(_run_check_steps_sequential(phase_steps))
+    failed = [name for name, _func in steps if name in set(failed)]
     if is_verbose():
         print(f"\n{'=' * 60}")
     if failed:
@@ -286,6 +286,105 @@ def cmd_check() -> int:
     if is_verbose():
         print(f"{'=' * 60}")
     return 1 if failed else 0
+
+
+def _check_preflight_steps() -> list[CheckStep]:
+    return [
+        ("config-schema", cmd_config_schema),
+        ("contracts-generate", cmd_contracts_generate),
+        ("contracts-check", cmd_contracts_check),
+        ("build-ui", cmd_build_ui),
+        ("lint", cmd_lint),
+    ]
+
+
+def _check_post_preflight_groups(*, contracts_prepared: bool) -> list[tuple[str, list[CheckStep]]]:
+    parallel_steps: list[CheckStep] = [
+        ("architecture-report", cmd_architecture_report),
+        ("file-lines", cmd_file_lines),
+    ]
+    if contracts_prepared:
+        parallel_steps.append(("typecheck", _run_typecheck))
+    parallel_steps.extend(
+        [
+            ("security", cmd_security),
+            ("deadcode", cmd_deadcode),
+            ("deps", cmd_deps),
+            ("complexity", cmd_quality_metrics),
+            ("qodana", cmd_qodana),
+            ("arch", cmd_arch),
+            ("test-anki-api", cmd_test_anki_api),
+        ],
+    )
+    if contracts_prepared:
+        parallel_steps.append(("test", _run_test_targets))
+    parallel_steps.append(("coverage", cmd_coverage))
+    if contracts_prepared:
+        tail_steps: list[CheckStep] = [("test-svelte", cmd_test_svelte)]
+    else:
+        tail_steps = [("typecheck", cmd_typecheck), ("test", cmd_test), ("test-svelte", cmd_test_svelte)]
+    return [
+        ("parallel", parallel_steps),
+        ("tail", tail_steps),
+    ]
+
+def _check_worker_count(step_count: int) -> int:
+    default_workers = 4
+    raw = os.environ.get("DEV_CHECK_JOBS")
+    if raw is None:
+        return max(1, min(default_workers, step_count))
+    try:
+        workers = int(raw)
+    except ValueError:
+        workers = default_workers
+    return max(1, min(workers, step_count))
+
+
+def _run_check_steps_sequential(steps: list[CheckStep]) -> list[str]:
+    failed: list[str] = []
+    total_steps = len(steps)
+    for index, (name, func) in enumerate(steps, start=1):
+        if is_verbose():
+            print(f"\n{'=' * 60}\n  Step {index}/{total_steps}: {name}\n{'=' * 60}\n")
+        else:
+            print(f"[dev] check {index}/{total_steps}: {name}")
+        rc = _run_check_step(name, func)
+        if rc != 0:
+            failed.append(name)
+            print(f"[dev] FAILED: {name}")
+    return failed
+
+
+def _run_check_steps_parallel(steps: list[CheckStep]) -> list[str]:
+    if not steps:
+        return []
+    workers = _check_worker_count(len(steps))
+    print(f"[dev] check parallel phase: {len(steps)} step(s), {workers} worker(s)")
+    failed: list[str] = []
+    with concurrent.futures.ThreadPoolExecutor(max_workers=workers) as executor:
+        future_to_name = {
+            executor.submit(_run_check_step, name, func): name
+            for name, func in steps
+        }
+        results: dict[str, int] = {}
+        for future in concurrent.futures.as_completed(future_to_name):
+            name = future_to_name[future]
+            rc = future.result()
+            results[name] = rc
+            if rc != 0:
+                failed.append(name)
+                print(f"[dev] FAILED: {name}")
+    return [name for name, _func in steps if results.get(name, 0) != 0]
+
+
+def _run_check_step(name: str, func: Callable[[], int]) -> int:
+    try:
+        return func()
+    except Exception as exc:
+        print(f"[dev] exception in check step {name}: {exc}", file=sys.stderr)
+        if is_verbose():
+            traceback.print_exc()
+        return 1
 
 
 def cmd_release() -> int:

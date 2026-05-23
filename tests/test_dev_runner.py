@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import sys
+import threading
+import time
 from pathlib import Path
 
 import scripts.dev as dev
@@ -47,6 +49,15 @@ def test_pytest_args_keep_existing_detail_in_verbose_mode() -> None:
     assert "-vv" in args
     assert "-s" in args
     assert "--setup-show" in args
+
+
+def test_pytest_args_can_override_cache_dir() -> None:
+    cache_dir = Path("/tmp/aqe-pytest-cache")
+
+    args = pytest_runner._pytest_args("tests/", cache_dir=cache_dir)
+
+    assert "-o" in args
+    assert f"cache_dir={cache_dir}" in args
 
 
 def test_process_run_suppresses_subprocess_output_by_default(capsys) -> None:
@@ -308,35 +319,67 @@ def test_qodana_reports_missing_cli(monkeypatch, capsys) -> None:
 
 
 def test_check_includes_python_coverage_gate(monkeypatch) -> None:
-    calls: list[str] = []
+    phases: list[tuple[str, list[str]]] = []
 
-    command_results = {
-        "cmd_config_schema": 0,
-        "cmd_contracts_generate": 0,
-        "cmd_contracts_check": 0,
-        "cmd_build_ui": 0,
-        "cmd_architecture_report": 0,
-        "cmd_lint": 0,
-        "cmd_file_lines": 0,
-        "cmd_typecheck": 0,
-        "cmd_security": 0,
-        "cmd_deadcode": 0,
-        "cmd_deps": 0,
-        "cmd_quality_metrics": 0,
-        "cmd_qodana": 0,
-        "cmd_arch": 0,
-        "cmd_test_anki_api": 0,
-        "cmd_test": 0,
-        "cmd_coverage": 0,
-        "cmd_test_svelte": 0,
-    }
-
-    for name, result in command_results.items():
-        monkeypatch.setattr(dev, name, lambda name=name, result=result: calls.append(name) or result)
+    monkeypatch.setattr(dev, "_run_check_steps_sequential", lambda steps: phases.append(("sequential", [name for name, _func in steps])) or [])
+    monkeypatch.setattr(dev, "_run_check_steps_parallel", lambda steps: phases.append(("parallel", [name for name, _func in steps])) or [])
 
     assert dev.cmd_check() == 0
-    assert "cmd_coverage" in calls
-    assert calls.index("cmd_coverage") > calls.index("cmd_test")
-    assert calls.index("cmd_coverage") < calls.index("cmd_test_svelte")
-    assert calls.index("cmd_qodana") > calls.index("cmd_quality_metrics")
-    assert calls.index("cmd_qodana") < calls.index("cmd_arch")
+    assert phases == [
+        (
+            "sequential",
+            ["config-schema", "contracts-generate", "contracts-check", "build-ui", "lint"],
+        ),
+        (
+            "parallel",
+            [
+                "architecture-report",
+                "file-lines",
+                "typecheck",
+                "security",
+                "deadcode",
+                "deps",
+                "complexity",
+                "qodana",
+                "arch",
+                "test-anki-api",
+                "test",
+                "coverage",
+            ],
+        ),
+        (
+            "sequential",
+            ["test-svelte"],
+        ),
+    ]
+
+
+def test_check_parallel_executor_runs_multiple_steps_concurrently(monkeypatch) -> None:
+    monkeypatch.setenv("DEV_CHECK_JOBS", "2")
+    active = 0
+    max_active = 0
+    lock = threading.Lock()
+
+    def make_step() -> int:
+        nonlocal active, max_active
+        with lock:
+            active += 1
+            max_active = max(max_active, active)
+        time.sleep(0.05)
+        with lock:
+            active -= 1
+        return 0
+
+    failed = dev._run_check_steps_parallel([("one", make_step), ("two", make_step)])
+
+    assert failed == []
+    assert max_active == 2
+
+
+def test_check_parallel_executor_treats_exceptions_as_failures() -> None:
+    def explode() -> int:
+        raise RuntimeError("boom")
+
+    failed = dev._run_check_steps_parallel([("explode", explode)])
+
+    assert failed == ["explode"]
