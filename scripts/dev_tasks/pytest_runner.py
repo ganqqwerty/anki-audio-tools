@@ -32,7 +32,7 @@ def _pytest_args(target: str, *, collect_only: bool = False) -> list[str]:
             ]
         )
     else:
-        args.extend(["-q", "--tb=short"])
+        args.extend(["-q", "--tb=short", "-rfE"])
     if collect_only:
         args.append("--collect-only")
     elif is_verbose():

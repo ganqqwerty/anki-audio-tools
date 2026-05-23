@@ -30,6 +30,7 @@ def test_pytest_args_are_quiet_by_default() -> None:
 
     assert "-q" in args
     assert "--tb=short" in args
+    assert "-rfE" in args
     assert "-vv" not in args
     assert "-s" not in args
     assert "--setup-show" not in args
