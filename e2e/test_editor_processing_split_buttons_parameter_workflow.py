@@ -27,7 +27,7 @@ from e2e.helpers import (
 from e2e.test_editor_processing_split_buttons_workflow import _split_menu_selector
 
 
-def test_volume_and_speed_split_buttons_apply_local_values_without_changing_settings(
+def test_grouped_volume_and_speed_split_buttons_apply_local_values_without_changing_settings(
     anki_mw,
     ffmpeg_config,
 ) -> None:
@@ -46,55 +46,82 @@ def test_volume_and_speed_split_buttons_apply_local_values_without_changing_sett
         click_selector(editor.web, _split_menu_selector("aqe:volume-up"), timeout=5.0)
         click_selector(
             editor.web,
-            '[data-testid="aqe-split-0-volume-up-preset-6"]',
+            '[data-testid="aqe-split-0-volume-preset-6"]',
             timeout=5.0,
         )
-        volume_name = _click_and_wait_for_new_file(
+        volume_down_name = _click_and_wait_for_new_file(
             editor,
             note,
             media_dir,
-            "aqe:volume-up",
+            "aqe:volume-down",
             source.name,
         )
         wait_for_condition(
             lambda: (
                 (session := _SESSIONS.get(editor)) is not None
                 and session.state is not None
-                and session.state.volume_db == 6
+                and session.state.volume_db == -6
             ),
             timeout=5.0,
-            message="Volume split button did not apply the local 6 dB value",
+            message="Grouped volume menu did not apply the local 6 dB value to Volume -",
+        )
+        volume_name = _click_and_wait_for_new_file(
+            editor,
+            note,
+            media_dir,
+            "aqe:volume-up",
+            volume_down_name,
+        )
+        wait_for_condition(
+            lambda: (
+                (session := _SESSIONS.get(editor)) is not None
+                and session.state is not None
+                and session.state.volume_db == 0
+            ),
+            timeout=5.0,
+            message="Grouped volume menu did not apply the local 6 dB value to Volume +",
         )
 
         wait_for_selector(editor.web, _button_selector("aqe:faster"), timeout=10.0)
         click_selector(editor.web, _split_menu_selector("aqe:faster"), timeout=5.0)
         click_selector(
             editor.web,
-            '[data-testid="aqe-split-0-faster-preset-0.1"]',
+            '[data-testid="aqe-split-0-speed-preset-0.1"]',
             timeout=5.0,
         )
-        speed_name = _click_and_wait_for_new_file(
+        slower_name = _click_and_wait_for_new_file(
             editor,
             note,
             media_dir,
-            "aqe:faster",
+            "aqe:slower",
             volume_name,
         )
         wait_for_condition(
             lambda: (
                 (session := _SESSIONS.get(editor)) is not None
                 and session.state is not None
-                and session.state.speed == 1.1
+                and session.state.speed == 0.9
             ),
             timeout=5.0,
-            message="Speed split button did not apply the local x1.10 value",
+            message="Grouped speed menu did not apply the local x0.90 value to Slower",
+        )
+        speed_name = _click_and_wait_for_new_file(
+            editor,
+            note,
+            media_dir,
+            "aqe:faster",
+            slower_name,
         )
 
         config = anki_mw.addonManager.getConfig(ADDON_NUMERIC_ID)
         assert config["volume_step_db"] == 3
         assert config["speed_step"] == 0.05
-        assert probe_duration_ms(media_dir / speed_name, ffmpeg_config) < probe_duration_ms(
+        assert probe_duration_ms(media_dir / slower_name, ffmpeg_config) > probe_duration_ms(
             media_dir / volume_name,
+            ffmpeg_config,
+        )
+        assert probe_duration_ms(media_dir / speed_name, ffmpeg_config) < probe_duration_ms(
+            media_dir / slower_name,
             ffmpeg_config,
         )
     finally:

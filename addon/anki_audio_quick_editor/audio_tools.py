@@ -44,6 +44,8 @@ _TOOL_EXECUTABLES = {
     },
     "dpdfnet": {
         "macos-arm64": "dpdfnet",
+        "macos-x86_64": "dpdfnet",
+        "windows-x86_64": "dpdfnet.exe",
     },
     "sherpa-spleeter": {
         "macos-arm64": "sherpa-spleeter",

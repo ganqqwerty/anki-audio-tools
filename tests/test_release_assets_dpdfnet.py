@@ -32,17 +32,26 @@ def test_stage_copies_macos_arm64_dpdfnet_binary(tmp_path: Path) -> None:
     assert staged[0].stat().st_mode & stat.S_IXUSR
 
 
-def test_stage_rejects_dpdfnet_for_unsupported_targets(tmp_path: Path) -> None:
+def test_stage_copies_windows_dpdfnet_binary(tmp_path: Path) -> None:
     lock = release_assets.load_lock()
+    locked = copy.deepcopy(lock)
+    binary = tmp_path / "cache" / "bin" / "windows-x86_64" / "dpdfnet.exe"
+    binary.parent.mkdir(parents=True)
+    binary.write_bytes(b"dpdfnet.exe")
+    locked["targets"]["windows-x86_64"]["tools"]["dpdfnet"]["sha256"] = hashlib.sha256(
+        b"dpdfnet.exe"
+    ).hexdigest()
 
-    with pytest.raises(release_assets.ReleaseAssetError, match="unknown tool: dpdfnet"):
-        release_assets.stage_assets(
-            lock,
-            cache_dir=tmp_path / "cache",
-            destination=tmp_path / "stage",
-            target_keys=["macos-x86_64"],
-            tool_names=["dpdfnet"],
-        )
+    staged = release_assets.stage_assets(
+        locked,
+        cache_dir=tmp_path / "cache",
+        destination=tmp_path / "stage",
+        target_keys=["windows-x86_64"],
+        tool_names=["dpdfnet"],
+    )
+
+    assert staged == [tmp_path / "stage" / "windows-x86_64" / "dpdfnet.exe"]
+    assert staged[0].read_bytes() == b"dpdfnet.exe"
 
 
 def test_stage_cli_accepts_dpdfnet_tool_filter(

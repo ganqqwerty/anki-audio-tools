@@ -154,6 +154,12 @@ BROAD_EXCEPTION_ALLOWLIST: tuple[BroadExceptionAllowance, ...] = (
         "Main-thread field replacement boundary keeps failed region deletes non-mutating and user-visible.",
     ),
     BroadExceptionAllowance(
+        "editor_sharing",
+        "share_current_audio_file._run",
+        1,
+        "Background upload worker boundary reports Catbox/Litterbox failures on the main thread.",
+    ),
+    BroadExceptionAllowance(
         "editor_playback",
         "stop_audio_playback",
         1,

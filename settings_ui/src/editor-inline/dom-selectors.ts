@@ -13,10 +13,36 @@ export function visualizerForOrd(ord: number): VisualizerElement | null {
   return document.querySelector<VisualizerElement>(`.aqe-visualizer[data-aqe-field-ord="${ord}"]`);
 }
 
+export function visualizerPlotForOrd(ord: number): HTMLElement | null {
+  return visualizerForOrd(ord)?.querySelector<HTMLElement>(".aqe-visualizer-plot") ?? null;
+}
+
+export function selectionToolbarForOrd(ord: number): HTMLElement | null {
+  return visualizerForOrd(ord)?.querySelector<HTMLElement>(".aqe-selection-toolbar") ?? null;
+}
+
+export function selectionToolbarDotForOrd(ord: number): SVGSVGElement | null {
+  return visualizerForOrd(ord)?.querySelector<SVGSVGElement>(".aqe-selection-toolbar-dot") ?? null;
+}
+
 export function currentAudioSourceForOrd(ord: number): string {
   const container = document.querySelector<HTMLElement>(`.field-container[data-index="${ord}"]`);
   const node = container?.querySelector<HTMLElement>('[contenteditable="true"]') ?? container;
   return audioSourceForNode(node) || audioSourceForNode(container);
+}
+
+export function fieldPreferenceNodeForOrd(ord: number): HTMLElement | null {
+  const container = document.querySelector<HTMLElement>(`.field-container[data-index="${ord}"]`);
+  if (container) {
+    return container.querySelector<HTMLElement>('[contenteditable="true"]') || container;
+  }
+  return document.querySelector<HTMLElement>(
+    `[data-field-ord="${ord}"], [data-ord="${ord}"], [data-index="${ord}"]`,
+  );
+}
+
+export function allFieldPreferenceNodes(): HTMLElement[] {
+  return Array.from(document.querySelectorAll<HTMLElement>("[data-aqe-selection-toolbar-preferred-collapsed]"));
 }
 
 export function buttonFor(ord: number, command: EditorCommand): HTMLButtonElement | null {

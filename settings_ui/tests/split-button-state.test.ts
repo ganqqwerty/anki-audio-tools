@@ -2,26 +2,29 @@ import { beforeEach, describe, expect, it } from "vitest";
 
 import {
   buildSplitCommandPayload,
-  buildTrimCommandPayload,
+  buildSplitDefaultSaveRequest,
   clampDpdfnetAttnLimitDb,
   clampRepeatPauseSeconds,
   clampSpeedStep,
-  clampTrimStepMs,
   clampVolumeStepDb,
   formatDenoiseAlgorithm,
   formatDpdfnetAggressiveness,
+  formatOutputFormat,
   formatPauseAggressiveness,
+  formatPitchHumMode,
   formatRepeatPauseSeconds,
   formatSpeedStep,
-  formatTrimMs,
   formatVolumeDb,
   getSplitButtonState,
+  promoteSplitDefaultsForField,
   setDenoiseAlgorithmForField,
   setDpdfnetAttnLimitDbForField,
+  setOutputFormatForField,
   setPauseAggressivenessForField,
+  setPitchHumModeForField,
   setRepeatPauseSecondsForField,
+  setShareTargetForField,
   setSpeedStepForField,
-  setTrimStepForField,
   setVolumeStepForField,
 } from "../src/editor-inline/split-button-state.js";
 import {
@@ -43,19 +46,6 @@ describe("split button state", () => {
   beforeEach(() => {
     delete window.__AQE_EDITOR_CONFIG__;
     delete window.__aqeSplitButtonStates;
-  });
-
-  it("formats trim values for compact display", () => {
-    expect(formatTrimMs(200)).toBe("200 ms");
-    expect(formatTrimMs(999)).toBe("999 ms");
-    expect(formatTrimMs(1000)).toBe("1 s");
-    expect(formatTrimMs(1500)).toBe("1.5 s");
-  });
-
-  it("clamps trim values to the supported slider range", () => {
-    expect(clampTrimStepMs(10)).toBe(50);
-    expect(clampTrimStepMs(200)).toBe(200);
-    expect(clampTrimStepMs(20000)).toBe(10000);
   });
 
   it("formats and clamps volume step values", () => {
@@ -89,6 +79,9 @@ describe("split button state", () => {
     expect(formatDenoiseAlgorithm("rnnoise")).toBe("RNNoise");
     expect(formatDenoiseAlgorithm("dpdfnet")).toBe("DPDFNet");
     expect(formatDenoiseAlgorithm("voice_only")).toBe("Voice Only");
+    expect(formatPitchHumMode("direct")).toBe("Pitch-to-hum");
+    expect(formatPitchHumMode("pitch_tier")).toBe("PitchTier");
+    expect(formatOutputFormat("ogg")).toBe("MP3");
     expect(formatDpdfnetAggressiveness(6)).toBe("Gentle");
     expect(formatDpdfnetAggressiveness(12)).toBe("Normal");
     expect(formatDpdfnetAggressiveness(18)).toBe("Aggressive");
@@ -96,7 +89,7 @@ describe("split button state", () => {
   });
 
   it("formats and clamps graph split values", () => {
-    expect(formatGraphVoiceRange("child")).toBe("Child / falsetto");
+    expect(formatGraphVoiceRange("child")).toBe("Child/falcetto");
     expect(formatGraphRecordingCondition("very_noisy")).toBe("Very noisy");
     expect(formatGraphSmoothness("very_smooth")).toBe("Very smooth");
     expect(formatGraphVoiceLock("stable")).toBe("Stable");
@@ -116,15 +109,15 @@ describe("split button state", () => {
         graphSmoothness: "smooth",
         graphVoiceLock: "stable",
         graphVoiceRange: "bass",
+        outputFormat: "flac",
         pauseAggressiveness: "normal",
+        pitchHumMode: "pitch_tier",
         repeatPauseSeconds: 1.5,
         speedStep: 0.05,
-        trimStepMs: 250,
         volumeStepDb: 3,
       },
     };
 
-    expect(getSplitButtonState(0).trimStepMs).toBe(250);
     expect(getSplitButtonState(0).volumeStepDb).toBe(3);
     expect(getSplitButtonState(0).speedStep).toBe(0.05);
     expect(getSplitButtonState(0).repeatPauseSeconds).toBe(1.5);
@@ -136,9 +129,12 @@ describe("split button state", () => {
     expect(getSplitButtonState(0).graphSmoothness).toBe("smooth");
     expect(getSplitButtonState(0).graphConnectShortDropoutsMs).toBe(60);
     expect(getSplitButtonState(0).graphVoiceLock).toBe("stable");
+    expect(getSplitButtonState(0).outputFormat).toBe("flac");
+    expect(getSplitButtonState(0).pitchHumMode).toBe("pitch_tier");
+    expect(getSplitButtonState(0).shareTarget).toBe("litterbox");
   });
 
-  it("keeps trim state isolated per field", () => {
+  it("keeps volume state isolated per field", () => {
     window.__AQE_EDITOR_CONFIG__ = {
       audioFieldIndices: [0, 1],
       splitButtonDefaults: {
@@ -146,15 +142,14 @@ describe("split button state", () => {
         pauseAggressiveness: "normal",
         repeatPauseSeconds: 0,
         speedStep: 0.05,
-        trimStepMs: 100,
         volumeStepDb: 3,
       },
     };
 
-    setTrimStepForField(0, 200);
+    setVolumeStepForField(0, 6);
 
-    expect(getSplitButtonState(0).trimStepMs).toBe(200);
-    expect(getSplitButtonState(1).trimStepMs).toBe(100);
+    expect(getSplitButtonState(0).volumeStepDb).toBe(6);
+    expect(getSplitButtonState(1).volumeStepDb).toBe(3);
   });
 
   it("builds volume and speed payloads from local field state", () => {
@@ -217,6 +212,35 @@ describe("split button state", () => {
     });
   });
 
+  it("builds convert payloads from local field state", () => {
+    setOutputFormatForField(0, "wav");
+
+    expect(buildSplitCommandPayload("aqe:convert", 0)).toEqual({
+      command: "aqe:convert",
+      fieldOrd: 0,
+      overrides: {
+        targetFormat: "wav",
+      },
+    });
+  });
+
+  it("builds share payloads from field-local share target state", () => {
+    setShareTargetForField(0, "catbox");
+
+    expect(buildSplitCommandPayload("aqe:share", 0)).toEqual({
+      command: "aqe:share",
+      fieldOrd: 0,
+      shareTarget: "catbox",
+    });
+  });
+
+  it("keeps share target isolated per field", () => {
+    setShareTargetForField(0, "catbox");
+
+    expect(getSplitButtonState(0).shareTarget).toBe("catbox");
+    expect(getSplitButtonState(1).shareTarget).toBe("litterbox");
+  });
+
   it("builds graph payloads from local field state", () => {
     setGraphVoiceRangeForField(0, "child");
     setGraphRecordingConditionForField(0, "studio");
@@ -237,16 +261,56 @@ describe("split button state", () => {
     });
   });
 
-  it("builds trim payloads from local field state", () => {
-    setTrimStepForField(0, 200);
+  it("builds graph default save requests from local field state", () => {
+    setGraphVoiceRangeForField(0, "low");
+    setGraphRecordingConditionForField(0, "studio");
+    setGraphSmoothnessForField(0, "smooth");
+    setGraphConnectShortDropoutsForField(0, 390);
+    setGraphVoiceLockForField(0, "stable");
 
-    expect(buildTrimCommandPayload("aqe:trim-left", 0)).toEqual({
-      command: "aqe:trim-left",
+    expect(buildSplitDefaultSaveRequest("aqe:analyze", 0)).toEqual({
+      defaults: {
+        graphConnectShortDropoutsMs: 390,
+        graphRecordingCondition: "studio",
+        graphSmoothness: "smooth",
+        graphVoiceLock: "stable",
+        graphVoiceRange: "low",
+      },
       fieldOrd: 0,
+    });
+  });
+
+  it("builds pitch hum payloads from local field state", () => {
+    setPitchHumModeForField(0, "pitch_tier");
+
+    expect(buildSplitCommandPayload("aqe:pitch-hum", 0)).toEqual({
+      command: "aqe:pitch-hum",
+      fieldOrd: 0,
+      graphSettings: {
+        connectShortDropoutsMs: 240,
+        recordingCondition: "auto",
+        smoothness: "very_smooth",
+        voiceLock: "balanced",
+        voiceRange: "general",
+      },
       overrides: {
-        trimStepMs: 200,
+        pitchHumMode: "pitch_tier",
       },
     });
+  });
+
+  it("promotes local split values into runtime defaults", () => {
+    setSpeedStepForField(0, 0.1);
+    setSpeedStepForField(1, 0.2);
+
+    promoteSplitDefaultsForField(0, { speedStep: 0.1 });
+
+    expect(window.__AQE_EDITOR_CONFIG__?.splitButtonDefaults?.speedStep).toBe(0.1);
+    expect(getSplitButtonState(0).speedEdited).toBe(false);
+    expect(getSplitButtonState(0).speedStep).toBe(0.1);
+    expect(getSplitButtonState(1).speedEdited).toBe(true);
+    expect(getSplitButtonState(1).speedStep).toBe(0.2);
+    expect(getSplitButtonState(2).speedStep).toBe(0.1);
   });
 
   it("keeps repeat pause state field-local without changing command payloads", () => {
@@ -258,8 +322,8 @@ describe("split button state", () => {
   });
 
   it("persists local field state across editor bundle reinjection", () => {
-    setTrimStepForField(0, 200);
-    expect(window.__aqeSplitButtonStates?.[0]?.trimStepMs).toBe(200);
-    expect(getSplitButtonState(0).trimStepMs).toBe(200);
+    setVolumeStepForField(0, 6);
+    expect(window.__aqeSplitButtonStates?.[0]?.volumeStepDb).toBe(6);
+    expect(getSplitButtonState(0).volumeStepDb).toBe(6);
   });
 });

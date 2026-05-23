@@ -105,6 +105,34 @@ def test_external_command_forwards_window_visibility_kwargs(tmp_path, monkeypatc
     assert run_kwargs == [{"creationflags": 0x08000000}]
 
 
+def test_external_command_merges_environment_overrides(tmp_path, monkeypatch) -> None:
+    diagnostics_runtime.configure_runtime(tmp_path, debug_enabled=True)
+    run_kwargs: list[dict[str, object]] = []
+
+    def fake_run(
+        _cmd: list[str],
+        *,
+        capture_output: bool,
+        text: bool,
+        check: bool,
+        **kwargs: object,
+    ) -> subprocess.CompletedProcess[str]:
+        assert capture_output is True
+        assert text is True
+        assert check is False
+        run_kwargs.append(kwargs)
+        return subprocess.CompletedProcess(["dpdfnet"], 0, stdout="ok", stderr="")
+
+    monkeypatch.setattr("anki_audio_quick_editor.audio_external.subprocess.run", fake_run)
+
+    _run_external_command(("dpdfnet", "--version"), "launch failed", env={"DPDFNET_FFMPEG": "/bin/ffmpeg"})
+
+    assert run_kwargs
+    env = run_kwargs[0]["env"]
+    assert isinstance(env, dict)
+    assert env["DPDFNET_FFMPEG"] == "/bin/ffmpeg"
+
+
 def test_probe_duration_forwards_window_visibility_kwargs(tmp_path, monkeypatch) -> None:
     diagnostics_runtime.configure_runtime(tmp_path, debug_enabled=False)
     run_kwargs: list[dict[str, object]] = []

@@ -163,12 +163,11 @@ Recommended workflow:
 
 When changing module boundaries or side effects, use this order:
 
-1. Refresh the local GitNexus index if policy and environment allow it.
-2. Run `python3 scripts/dev.py test-e2e` to establish baseline runtime behavior.
-3. Run `python3 scripts/dev.py architecture-report`.
-4. Run `python3 scripts/dev.py arch`.
-5. Run `python3 scripts/dev.py test-anki-api`.
-6. Run `python3 scripts/dev.py test`.
+1. Run `python3 scripts/dev.py test-e2e` to establish baseline runtime behavior.
+2. Run `python3 scripts/dev.py architecture-report`.
+3. Run `python3 scripts/dev.py arch`.
+4. Run `python3 scripts/dev.py test-anki-api`.
+5. Run `python3 scripts/dev.py test`.
 
 If `test-e2e` fails before the architecture change, treat that as a baseline bug to classify before tightening contracts.
 

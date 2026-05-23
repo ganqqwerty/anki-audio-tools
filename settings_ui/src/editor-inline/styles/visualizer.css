@@ -1,0 +1,46 @@
+.aqe-visualizer {
+  align-self: stretch;
+  flex: 1 0 100%;
+  max-width: none;
+  min-width: 0;
+  width: 100%;
+}
+
+.aqe-visualizer[hidden] {
+  display: none;
+}
+
+.aqe-visualizer[data-has-track="false"] .aqe-visualizer-svg,
+.aqe-visualizer[data-has-track="false"] .aqe-cursor-label {
+  display: none;
+}
+
+.aqe-visualizer-plot {
+  margin-top: 20px;
+  position: relative;
+}
+
+.aqe-visualizer-svg {
+  border: 1px solid;
+  border-color: ButtonBorder;
+  border-radius: 8px;
+  color: inherit;
+  display: block;
+  height: 150px;
+  overflow: visible;
+  width: 100%;
+}
+
+.aqe-visualizer:focus {
+  outline: none;
+}
+
+.aqe-visualizer:focus .aqe-visualizer-svg {
+  box-shadow: 0 0 0 2px Highlight;
+}
+
+.aqe-intensity {
+  fill: currentColor;
+  opacity: 0.12;
+  stroke: none;
+}

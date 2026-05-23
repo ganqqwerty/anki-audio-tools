@@ -15,14 +15,14 @@
 </script>
 
 <footer class="footer">
-  <button type="button" class="btn btn-secondary" data-testid="settings-reset-defaults" onclick={onResetDefaults}>
+  <button type="button" class="settings-button" data-testid="settings-reset-defaults" onclick={onResetDefaults}>
     {t("settings.footer.reset_defaults")}
   </button>
   <div class="footer-actions">
-    <button type="button" class="btn btn-secondary" data-testid="settings-cancel" onclick={onCancel}>
+    <button type="button" class="settings-button" data-testid="settings-cancel" onclick={onCancel}>
       {t("settings.footer.cancel")}
     </button>
-    <button type="button" class="btn btn-primary" data-testid="settings-save" onclick={onSave}>
+    <button type="button" class="settings-button settings-button-primary" data-testid="settings-save" onclick={onSave}>
       {t("settings.footer.save")}
     </button>
   </div>
@@ -33,34 +33,13 @@
     display: flex;
     gap: 16px;
     justify-content: space-between;
-    margin: 18px auto 0;
+    margin: 20px auto 0;
     max-width: 920px;
   }
 
   .footer-actions {
     display: flex;
     gap: 10px;
-  }
-
-  .btn {
-    appearance: none;
-    background: var(--button-bg, transparent);
-    border: 1px solid var(--border-subtle, currentColor);
-    border-radius: 999px;
-    color: var(--fg, currentColor);
-    cursor: pointer;
-    font: inherit;
-    padding: 10px 16px;
-  }
-
-  .btn:hover {
-    background: var(--button-gradient-start, var(--button-bg, transparent));
-    border-color: var(--button-hover-border, var(--border, currentColor));
-  }
-
-  .btn-primary {
-    border-color: var(--border-focus, var(--border, currentColor));
-    font-weight: 700;
   }
 
   @media (max-width: 720px) {
@@ -72,8 +51,8 @@
       width: 100%;
     }
 
-    .footer-actions .btn,
-    .footer > .btn {
+    .footer-actions :global(.settings-button),
+    .footer > :global(.settings-button) {
       flex: 1;
     }
   }

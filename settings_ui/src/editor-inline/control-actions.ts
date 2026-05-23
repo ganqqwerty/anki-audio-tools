@@ -2,6 +2,7 @@ import { PROCESSING_COMMANDS, processingMessage } from "./commands.js";
 import { t } from "../lib/i18n.js";
 import {
   allButtons,
+  buttonFor,
   controlsForOrd,
   graphButton,
   playButton,
@@ -9,6 +10,7 @@ import {
 import { continueDefaultGraphQueue } from "./default-graph-queue.js";
 import { syncAllRegionDeleteControls } from "./region-delete-state.js";
 import { syncAllRecordingControls } from "./recording-actions.js";
+import { syncAllSelectionToolbars } from "./selection-toolbar-state.js";
 import type { EditorCommand } from "./types.js";
 import { defaultGraphQueueDependencies } from "./graph-actions.js";
 
@@ -29,11 +31,10 @@ export function setControlsBusy(ord: number, busy: boolean, message = "", comman
   document.querySelectorAll<HTMLElement>(".aqe-controls").forEach((controls) => {
     controls.dataset.busy = busy ? "true" : "false";
   });
-  allButtons().forEach((button) => {
-    button.disabled = !!busy;
-  });
+  allButtons().forEach(updateButtonDisabledState);
   syncAllRegionDeleteControls();
   syncAllRecordingControls();
+  syncAllSelectionToolbars();
   if (!busy) {
     queueMicrotask(() => continueDefaultGraphQueue(defaultGraphQueueDependencies()));
   }
@@ -88,6 +89,24 @@ export function setCommandButtonLabel(ord: number, command: EditorCommand, label
   }
 }
 
+export function setHistoryAvailability(ord: number, canUndo: boolean, canRedo: boolean): void {
+  if (!window.__aqeHistoryAvailabilityByField) {
+    window.__aqeHistoryAvailabilityByField = {};
+  }
+  window.__aqeHistoryAvailabilityByField[ord] = { canRedo: !!canRedo, canUndo: !!canUndo };
+  const controls = controlsForOrd(ord);
+  if (controls) {
+    controls.dataset.aqeCanUndo = canUndo ? "true" : "false";
+    controls.dataset.aqeCanRedo = canRedo ? "true" : "false";
+  }
+  updateHistoryButtonState(ord, "aqe:undo");
+  updateHistoryButtonState(ord, "aqe:redo");
+}
+
+export function historyAvailability(ord: number): { canRedo: boolean; canUndo: boolean } {
+  return window.__aqeHistoryAvailabilityByField?.[ord] ?? { canRedo: false, canUndo: false };
+}
+
 function localizedButtonLabel(command: EditorCommand, label: string): string {
   if (command === "aqe:play" && label === "Pause") return t("editor.command.pause.label");
   if (command === "aqe:play" && label === "Play") return t("editor.command.play.label");
@@ -98,4 +117,36 @@ function localizedButtonLabel(command: EditorCommand, label: string): string {
 
 export function processingBusyMessage(command: EditorCommand): string {
   return PROCESSING_COMMANDS.has(command) ? processingMessage(command) : "";
+}
+
+function updateHistoryButtonState(ord: number, command: "aqe:redo" | "aqe:undo"): void {
+  const button = buttonFor(ord, command);
+  if (!button) return;
+  updateButtonDisabledState(button);
+  const enabledTitle = button.dataset.aqeEnabledTitle || button.title || "";
+  const disabledTitle = button.dataset.aqeDisabledTitle || enabledTitle;
+  const available = command === "aqe:undo" ? historyAvailability(ord).canUndo : historyAvailability(ord).canRedo;
+  const title = available ? enabledTitle : disabledTitle;
+  button.title = title;
+  button.setAttribute("aria-label", title);
+  const tooltipTarget = button.closest<HTMLElement>(".aqe-button-tooltip-target");
+  if (tooltipTarget) {
+    tooltipTarget.title = title;
+    tooltipTarget.setAttribute("aria-label", title);
+  }
+}
+
+function updateButtonDisabledState(button: HTMLButtonElement): void {
+  const ord = Number(button.closest<HTMLElement>(".aqe-controls")?.dataset.aqeFieldOrd || "0");
+  const busy = anyBusy();
+  const command = button.dataset.aqeCommand;
+  if (command === "aqe:undo") {
+    button.disabled = busy || !historyAvailability(ord).canUndo;
+    return;
+  }
+  if (command === "aqe:redo") {
+    button.disabled = busy || !historyAvailability(ord).canRedo;
+    return;
+  }
+  button.disabled = busy;
 }

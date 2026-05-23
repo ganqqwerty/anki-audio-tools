@@ -165,6 +165,8 @@
   "editor.recording.stopping": "停止中...",
   "editor.recording.ready": "準備完了",
   "editor.recording.failed": "録音に失敗しました。",
+  "editor.status.converting": "{format} に変換中",
+  "editor.status.already_target_format": "すでに {format} 形式です。",
   "editor.status.processing_ffmpeg": "ffmpeg で処理中",
   "editor.status.denoising_standard": "標準でノイズ除去中",
   "editor.status.denoising_rnnoise": "RNNoise でノイズ除去中",

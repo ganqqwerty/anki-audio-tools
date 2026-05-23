@@ -165,6 +165,8 @@
   "editor.recording.stopping": "Đang dừng...",
   "editor.recording.ready": "Sẵn sàng",
   "editor.recording.failed": "Ghi âm thất bại.",
+  "editor.status.converting": "Đang chuyển đổi sang {format}",
+  "editor.status.already_target_format": "Đã ở định dạng {format}.",
   "editor.status.processing_ffmpeg": "Đang xử lý bằng ffmpeg",
   "editor.status.denoising_standard": "Đang khử nhiễu bằng Standard",
   "editor.status.denoising_rnnoise": "Đang khử nhiễu bằng RNNoise",

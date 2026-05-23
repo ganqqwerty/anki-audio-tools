@@ -4,6 +4,7 @@ from anki_audio_quick_editor.audio_operation_params import (
     parameters_from_raw,
 )
 from anki_audio_quick_editor.audio_operations import (
+    OP_CONVERT,
     OP_DENOISE,
     OP_FASTER,
     OP_GRAPH,
@@ -15,20 +16,20 @@ from anki_audio_quick_editor.audio_state import AudioProcessingConfig
 
 def test_parameters_from_raw_clamps_editor_matching_ranges() -> None:
     params = parameters_from_raw(
-        trim_step_ms=10,
         volume_step_db=99,
         speed_step=0.001,
         pause_aggressiveness="invalid",
         denoise_algorithm="invalid",
         dpdfnet_attn_limit_db=17.4,
+        target_format=" FLAC ",
     )
 
-    assert params.trim_step_ms == 50
     assert params.volume_step_db == 12.0
     assert params.speed_step == 0.01
     assert params.pause_aggressiveness is None
     assert params.denoise_algorithm is None
     assert params.dpdfnet_attn_limit_db == 18.0
+    assert params.target_format == "flac"
 
 
 def test_effective_config_uses_volume_override_without_mutating_config() -> None:
@@ -88,3 +89,13 @@ def test_effective_config_ignores_parameters_for_graph() -> None:
     )
 
     assert effective_config_for_operation(OP_GRAPH, config, params) == config
+
+
+def test_effective_config_uses_convert_target_format() -> None:
+    config = AudioProcessingConfig(output_format="mp3")
+    params = AudioOperationParameters(target_format="flac")
+
+    effective = effective_config_for_operation(OP_CONVERT, config, params)
+
+    assert effective.output_format == "flac"
+    assert config.output_format == "mp3"

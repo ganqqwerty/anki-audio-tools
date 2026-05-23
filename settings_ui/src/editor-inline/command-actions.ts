@@ -1,9 +1,10 @@
-import { PROCESSING_COMMANDS, processingMessage } from "./commands.js";
+import { BUSY_COMMANDS, PROCESSING_COMMANDS, processingMessage } from "./commands.js";
 import { t } from "../lib/i18n.js";
 import { focusAndSendCommand, focusAndSendCommandPayload } from "./bridge.js";
 import { allVisualizers } from "./dom-selectors.js";
 import { logger } from "./logger.js";
 import { requestGraph } from "./graph-actions.js";
+import { buildSplitCommandPayload } from "./split-button-state.js";
 import { forgetPostEditPlaybackIntent, rememberPostEditPlaybackIntent } from "./post-edit-playback.js";
 import {
   handleHtmlPlaybackCommand,
@@ -49,12 +50,17 @@ export function send(
   if (shouldPlayAfterSuccessfulEdit(command)) {
     rememberPostEditPlaybackIntent(ord);
   }
-  if (PROCESSING_COMMANDS.has(command)) {
+  if (BUSY_COMMANDS.has(command)) {
     stopAllEditorPlayback();
-    setControlsBusy(ord, true, processingMessage(command));
+    setControlsBusy(ord, true, processingMessage(command, payload));
   }
-  if (payload) {
-    focusAndSendCommandPayload(ord, payload);
+  const effectivePayload =
+    payload ??
+    (command === "aqe:pitch-hum" || command === "aqe:share"
+      ? buildSplitCommandPayload(command, ord)
+      : undefined);
+  if (effectivePayload) {
+    focusAndSendCommandPayload(ord, effectivePayload);
     return;
   }
   focusAndSendCommand(ord, command);

@@ -8,6 +8,12 @@ import { isPlaybackState } from "./types.js";
 
 type RegionDeleteOperation = RegionDeleteRequest["operation"];
 
+export interface RegionDeleteAvailability {
+  hasSelection: boolean;
+  valid: boolean;
+  wholeSelection: boolean;
+}
+
 function anyBusy(): boolean {
   return document.body.dataset.aqeBusy === "true";
 }
@@ -28,7 +34,7 @@ function isValidRegionDeleteSelection(region: PlaybackRegion | null, durationMs:
   return !!region && region.endMs > region.startMs && !isWholeSelection(region, durationMs);
 }
 
-function titleForOperation(operation: RegionDeleteOperation, valid: boolean): string {
+export function titleForOperation(operation: RegionDeleteOperation, valid: boolean): string {
   if (operation === "delete-rest") {
     return valid ? t("editor.command.delete_rest.title") : t("editor.status.keep_whole_clip");
   }
@@ -38,25 +44,32 @@ function titleForOperation(operation: RegionDeleteOperation, valid: boolean): st
 function syncRegionDeleteButton(
   button: HTMLButtonElement | null,
   operation: RegionDeleteOperation,
-  hasSelection: boolean,
   valid: boolean,
 ): void {
   if (!button) return;
-  button.hidden = !hasSelection;
+  button.hidden = !valid;
   button.disabled = anyBusy() || !valid;
   button.dataset.aqeButtonState = valid ? "default" : "unavailable";
   button.title = titleForOperation(operation, valid);
   button.setAttribute("aria-disabled", button.disabled ? "true" : "false");
 }
 
-export function syncRegionDeleteControl(visualizer: VisualizerElement): void {
-  const ord = Number(visualizer.dataset.aqeFieldOrd || "0");
+export function regionDeleteAvailabilityFor(visualizer: VisualizerElement): RegionDeleteAvailability {
   const region = selectionForVisualizer(visualizer);
   const durationMs = Number(visualizer.dataset.durationMs || "0");
-  const hasSelection = region !== null;
-  const valid = isValidRegionDeleteSelection(region, durationMs);
-  syncRegionDeleteButton(regionDeleteButtonForOrd(ord), "delete-selection", hasSelection, valid);
-  syncRegionDeleteButton(regionDeleteRestButtonForOrd(ord), "delete-rest", hasSelection, valid);
+  const wholeSelection = !!region && isWholeSelection(region, durationMs);
+  return {
+    hasSelection: region !== null,
+    valid: isValidRegionDeleteSelection(region, durationMs),
+    wholeSelection,
+  };
+}
+
+export function syncRegionDeleteControl(visualizer: VisualizerElement): void {
+  const ord = Number(visualizer.dataset.aqeFieldOrd || "0");
+  const { valid } = regionDeleteAvailabilityFor(visualizer);
+  syncRegionDeleteButton(regionDeleteButtonForOrd(ord), "delete-selection", valid);
+  syncRegionDeleteButton(regionDeleteRestButtonForOrd(ord), "delete-rest", valid);
 }
 
 export function syncAllRegionDeleteControls(): void {
@@ -71,8 +84,9 @@ export function regionDeleteRequestFor(
   const ord = Number(visualizer.dataset.aqeFieldOrd || "0");
   const durationMs = Number(visualizer.dataset.durationMs || "0") || 0;
   const region = selectionForVisualizer(visualizer);
-  if (!region || !isValidRegionDeleteSelection(region, durationMs)) {
-    if (region && isWholeSelection(region, durationMs)) {
+  const availability = regionDeleteAvailabilityFor(visualizer);
+  if (!region || !availability.valid) {
+    if (region && availability.wholeSelection) {
       logger.warn("region delete rejected whole clip", {
         ord,
         sourceFilename: visualizer.dataset.sourceFilename || "",

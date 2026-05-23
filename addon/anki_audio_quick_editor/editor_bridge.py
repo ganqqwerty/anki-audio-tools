@@ -14,15 +14,19 @@ from .diagnostics_runtime import (
 from .editor_actions import (
     CMD_ANALYZE_FIELD,
     CMD_COMMAND_PAYLOAD,
+    CMD_CONVERT,
     CMD_DELETE_REST,
     CMD_DELETE_SELECTION,
     CMD_DENOISE_STANDARD,
     CMD_DPDFNET,
     CMD_PLAY_RECORDING,
+    CMD_PITCH_HUM,
     CMD_RECORD_VOICE,
     CMD_REDO,
     CMD_RNNOISE,
+    CMD_SAVE_SPLIT_DEFAULTS,
     CMD_SETTINGS,
+    CMD_SHARE,
     CMD_VOICE_ONLY,
     EditorCommandPayload,
     decode_editor_command_payload,
@@ -110,11 +114,20 @@ def handle_non_processing_command(editor: Any, command: str | EditorCommandPaylo
     if payload.command == "aqe:analyze":
         deps.analyze_current_async(editor, graph_settings=payload.graph_settings)
         return True
+    if payload.command == CMD_CONVERT:
+        deps.convert_async(editor, payload)
+        return True
     if payload.command == CMD_DPDFNET:
         deps.dpdfnet_async(editor, payload)
         return True
     if payload.command == CMD_RECORD_VOICE:
         deps.record_learner_voice(editor, graph_settings=payload.graph_settings)
+        return True
+    if payload.command == CMD_PITCH_HUM:
+        deps.pitch_hum_async(editor, payload)
+        return True
+    if payload.command == CMD_SHARE:
+        deps.share_current_audio_file(editor, payload)
         return True
     handlers = {
         CMD_ANALYZE_FIELD: deps.analyze_field_from_frontend,
@@ -122,6 +135,7 @@ def handle_non_processing_command(editor: Any, command: str | EditorCommandPaylo
         "aqe:play": deps.play,
         CMD_PLAY_RECORDING: deps.play_learner_recording,
         "aqe:frontend-log": deps.handle_editor_frontend_log,
+        CMD_SAVE_SPLIT_DEFAULTS: deps.save_split_defaults_from_frontend,
         "aqe:show-file": deps.show_current_audio_file,
         "aqe:play-ended": deps.play_ended,
         "aqe:undo": deps.undo,

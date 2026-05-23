@@ -18,22 +18,29 @@ from . import (
     editor_region_delete,
     editor_runtime,
     editor_settings_actions,
+    editor_sharing,
+    editor_split_defaults,
 )
 
 _dispose_editor_frontend_controls = editor_frontend_callbacks._dispose_editor_frontend_controls
+_eval_history_availability = editor_frontend_callbacks._eval_history_availability
 _eval_playback_state = editor_frontend_callbacks._eval_playback_state
 _eval_status = editor_frontend_callbacks._eval_status
 _eval_visualizer_status = editor_frontend_callbacks._eval_visualizer_status
 _eval_visualizer_status_for_field = editor_frontend_callbacks._eval_visualizer_status_for_field
 _eval_with_callback = editor_frontend_callbacks._eval_with_callback
 _graph_redraw_expression = editor_frontend_callbacks._graph_redraw_expression
+_history_availability_expression = editor_frontend_callbacks._history_availability_expression
 _main = editor_frontend_callbacks._main
 _playback_after_edit_expression = editor_frontend_callbacks._playback_after_edit_expression
+_request_history_availability_after_edit = editor_frontend_callbacks._request_history_availability_after_edit
 _request_playback_after_edit = editor_frontend_callbacks._request_playback_after_edit
 _request_graph_redraw = editor_frontend_callbacks._request_graph_redraw
+_retry_history_availability = editor_frontend_callbacks._retry_history_availability
 _retry_playback_after_edit = editor_frontend_callbacks._retry_playback_after_edit
 _retry_graph_redraw = editor_frontend_callbacks._retry_graph_redraw
 _schedule_graph_redraw_attempt = editor_frontend_callbacks._schedule_graph_redraw_attempt
+_schedule_history_availability_attempt = editor_frontend_callbacks._schedule_history_availability_attempt
 _schedule_playback_after_edit_attempt = editor_frontend_callbacks._schedule_playback_after_edit_attempt
 _set_busy = editor_frontend_callbacks._set_busy
 _set_busy_for_field = editor_frontend_callbacks._set_busy_for_field
@@ -86,6 +93,10 @@ def _analysis_deps() -> SimpleNamespace:
     return _deps(editor_dependencies.analysis_deps)
 
 
+def _share_deps() -> SimpleNamespace:
+    return _deps(editor_dependencies.share_deps)
+
+
 def _with_deps(func: Callable[..., Any], deps_builder: Callable[[], SimpleNamespace]) -> Callable[..., Any]:
     @wraps(func)
     def _wrapper(*args: Any, **kwargs: Any) -> Any:
@@ -111,6 +122,10 @@ _handle_pending_command_payload = _with_deps(editor_bridge.handle_pending_comman
 _handle_non_processing_command = _with_deps(editor_bridge.handle_non_processing_command, _bridge_deps)
 _handle_editor_frontend_log = _with_deps(editor_bridge.handle_editor_frontend_log, _bridge_deps)
 _log_editor_frontend_payload = editor_bridge.log_editor_frontend_payload
+_save_split_defaults_from_frontend = _with_deps(
+    editor_split_defaults.save_split_defaults_from_frontend,
+    _bridge_deps,
+)
 
 _update_state_and_render = _with_deps(editor_processing.update_state_and_render, _processing_deps)
 _render_and_replace_async = _with_deps(editor_processing.render_and_replace_async, _processing_deps)
@@ -120,9 +135,11 @@ _replace_current_field_after_render = _with_deps(
 )
 _render_failed = _with_deps(editor_processing.render_failed, _processing_deps)
 _denoise_standard_async = _with_deps(editor_processing.denoise_standard_async, _processing_deps)
+_convert_async = _with_deps(editor_processing.convert_async, _processing_deps)
 _rnnoise_async = _with_deps(editor_processing.rnnoise_async, _processing_deps)
 _dpdfnet_async = _with_deps(editor_processing.dpdfnet_async, _processing_deps)
 _voice_only_async = _with_deps(editor_processing.voice_only_async, _processing_deps)
+_pitch_hum_async = _with_deps(editor_processing.pitch_hum_async, _processing_deps)
 _run_special_audio_transform_async = _with_keyword_deps(
     editor_processing.run_special_audio_transform_async,
     _processing_deps,
@@ -191,6 +208,10 @@ def _refresh_editor_after_settings_save(editor: Any) -> None:
 def _show_current_audio_file(editor: Any) -> None:
     editor_settings_actions.show_current_audio_file(editor, _settings_action_deps())
 
+
+_share_current_audio_file = _with_deps(editor_sharing.share_current_audio_file, _share_deps)
+_finish_shared_audio = _with_deps(editor_sharing.finish_shared_audio, _share_deps)
+_share_failed = _with_deps(editor_sharing.share_failed, _share_deps)
 
 _analyze_current_async = _with_deps(editor_analysis.analyze_current_async, _analysis_deps)
 _analyze_field_from_frontend = _with_deps(editor_analysis.analyze_field_from_frontend, _analysis_deps)

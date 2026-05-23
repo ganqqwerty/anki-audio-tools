@@ -106,6 +106,10 @@ def test_standard_denoise_replaces_current_media_and_resets_state(tmp_path: Path
     assert session.current_filename == saved_name
     assert session.processing is False
     editor.loadNote.assert_called_once_with(focusTo=0)
+    assert any(
+        "__aqeSetHistoryAvailability(0, true, false)" in call.args[0]
+        for call in editor.web.evalWithCallback.call_args_list
+    )
     assert "__aqePlayAfterEdit(0)" in editor.web.evalWithCallback.call_args.args[0]
 
 def test_rnnoise_replaces_current_media_and_resets_state(tmp_path: Path, monkeypatch) -> None:
@@ -176,6 +180,10 @@ def test_rnnoise_replaces_current_media_and_resets_state(tmp_path: Path, monkeyp
     assert session.current_filename == saved_name
     assert session.processing is False
     editor.loadNote.assert_called_once_with(focusTo=0)
+    assert any(
+        "window.__aqeSetHistoryAvailability && window.__aqeSetHistoryAvailability(0, true, false)" in call.args[0]
+        for call in editor.web.eval.call_args_list
+    )
 
 
 def test_voice_only_replaces_current_media_and_resets_state(tmp_path: Path, monkeypatch) -> None:
@@ -246,6 +254,10 @@ def test_voice_only_replaces_current_media_and_resets_state(tmp_path: Path, monk
     assert session.current_filename == saved_name
     assert session.processing is False
     editor.loadNote.assert_called_once_with(focusTo=0)
+    assert any(
+        "window.__aqeSetHistoryAvailability && window.__aqeSetHistoryAvailability(0, true, false)" in call.args[0]
+        for call in editor.web.eval.call_args_list
+    )
 
 
 @pytest.mark.parametrize(

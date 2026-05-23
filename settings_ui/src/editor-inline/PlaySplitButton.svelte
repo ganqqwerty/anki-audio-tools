@@ -1,41 +1,44 @@
 <script lang="ts">
-  import { onMount, tick } from "svelte";
-
+  import { Popover } from "bits-ui";
+  import { onMount } from "svelte";
   import EditorCommandIcon from "./EditorCommandIcon.svelte";
+  import SplitDefaultSaveButton from "./SplitDefaultSaveButton.svelte";
   import { setRepeatEnabledForOrd, setRepeatPauseSecondsForOrd, send } from "./actions.js";
-  import { playRepeatOptionsTitle } from "./control-actions.js";
+  import { sendSplitDefaultSaveRequest } from "./bridge.js";
   import { visualizerForOrd } from "./dom-selectors.js";
   import {
     formatRepeatPauseSeconds,
     getSplitButtonState,
+    promoteSplitDefaultsForField,
     setRepeatPauseSecondsForField,
   } from "./split-button-state.js";
   import { t } from "../lib/i18n.js";
+  import type { EditorButtonDisplayMode } from "../lib/editor-toolbar-buttons.js";
+  import { EditorButtonMode } from "../lib/types.js";
   import type { ButtonSpec, FieldTarget } from "./types.js";
-
-  const POPOVER_GAP_PX = 4;
-  const VIEWPORT_MARGIN_PX = 8;
-  const HIDDEN_POPOVER_STYLE = "visibility: hidden;";
   const PRESETS = [0, 0.5, 2, 10] as const;
-
-  const { button, repeatDefault, target }: {
+  const { button, displayMode, repeatDefault, target }: {
     button: ButtonSpec;
+    displayMode: EditorButtonDisplayMode;
     repeatDefault: boolean;
     target: FieldTarget;
   } = $props();
-  let wrapper = $state<HTMLSpanElement>();
-  let popover = $state<HTMLDivElement>();
   let open = $state(false);
-  let popoverStyle = $state(HIDDEN_POPOVER_STYLE);
   let pressed = $state(false);
   let repeatPauseSeconds = $state(0);
-  const menuTitle = $derived(playRepeatOptionsTitle(pressed));
-
+  let defaultSaved = $state(false);
+  let defaultSavedTimer: number | undefined;
+  let playSelection = $state(false);
+  const menuTitle = $derived(t("editor.play.menu_title", {
+    value: t("editor.play.current_value", {
+      pause: formatRepeatPauseSeconds(repeatPauseSeconds),
+      repeat: pressed ? t("editor.play.repeat_on") : t("editor.play.repeat_off"),
+    }),
+  }));
+  const title = $derived(playSelection ? t("editor.command.play.title_selected") : t("editor.command.play.title"));
   function close(): void {
     open = false;
-    popoverStyle = HIDDEN_POPOVER_STYLE;
   }
-
   function syncRepeatState(): void {
     const visualizer = visualizerForOrd(target.ord);
     pressed = visualizer ? visualizer.dataset.repeatEnabled === "true" : repeatDefault;
@@ -43,158 +46,139 @@
     repeatPauseSeconds = state.repeatPauseSeconds;
     setRepeatPauseSecondsForOrd(target.ord, repeatPauseSeconds);
   }
-
-  function toggleMenu(event: MouseEvent): void {
-    event.preventDefault();
-    event.stopPropagation();
-    if (open) {
-      close();
-      return;
-    }
-    syncRepeatState();
-    open = true;
-  }
-
   function toggleRepeat(event: MouseEvent): void {
     const button = event.currentTarget as HTMLButtonElement;
     const enabled = button.ariaPressed !== "true";
+    defaultSaved = false;
     pressed = enabled;
     setRepeatEnabledForOrd(target.ord, enabled);
   }
-
   function applyValue(value: number): void {
+    defaultSaved = false;
     const state = setRepeatPauseSecondsForField(target.ord, value);
     repeatPauseSeconds = state.repeatPauseSeconds;
     setRepeatPauseSecondsForOrd(target.ord, repeatPauseSeconds);
-    void updatePopoverPlacement();
   }
-
   function dispatchPrimary(): void {
     close();
     send(button.command, target.node, target.ord);
   }
-
-  function clamp(value: number, min: number, max: number): number {
-    return Math.min(Math.max(value, min), max);
+  function showDefaultSaved(): void {
+    defaultSaved = true;
+    if (defaultSavedTimer !== undefined) window.clearTimeout(defaultSavedTimer);
+    defaultSavedTimer = window.setTimeout(() => {
+      defaultSaved = false;
+      defaultSavedTimer = undefined;
+    }, 1400);
   }
-
-  function viewportBounds(): { width: number; height: number } {
-    return {
-      width: window.innerWidth || document.documentElement.clientWidth,
-      height: window.innerHeight || document.documentElement.clientHeight,
+  function saveCurrentDefaults(): void {
+    const request = {
+      defaults: {
+        repeatPauseSeconds,
+        repeatPlaybackByDefault: pressed,
+      },
+      fieldOrd: target.ord,
     };
+    sendSplitDefaultSaveRequest(request);
+    window.__AQE_EDITOR_CONFIG__ = {
+      ...(window.__AQE_EDITOR_CONFIG__ ?? { audioFieldIndices: [] }),
+      repeatPlaybackByDefault: pressed,
+    };
+    repeatPauseSeconds = promoteSplitDefaultsForField(target.ord, request.defaults).repeatPauseSeconds;
+    setRepeatPauseSecondsForOrd(target.ord, repeatPauseSeconds);
+    showDefaultSaved();
   }
-
-  function positionPopover(): void {
-    if (!wrapper || !popover) return;
-
-    const anchorRect = wrapper.getBoundingClientRect();
-    const popoverRect = popover.getBoundingClientRect();
-    const viewport = viewportBounds();
-    const maxLeft = Math.max(VIEWPORT_MARGIN_PX, viewport.width - popoverRect.width - VIEWPORT_MARGIN_PX);
-    const maxTop = Math.max(VIEWPORT_MARGIN_PX, viewport.height - popoverRect.height - VIEWPORT_MARGIN_PX);
-    const centeredLeft = anchorRect.left + anchorRect.width / 2 - popoverRect.width / 2;
-    const belowTop = anchorRect.bottom + POPOVER_GAP_PX;
-    const aboveTop = anchorRect.top - popoverRect.height - POPOVER_GAP_PX;
-    const fitsBelow = belowTop + popoverRect.height <= viewport.height - VIEWPORT_MARGIN_PX;
-    const fitsAbove = aboveTop >= VIEWPORT_MARGIN_PX;
-    const preferredTop = !fitsBelow && fitsAbove ? aboveTop : belowTop;
-
-    popoverStyle = [
-      `left: ${clamp(centeredLeft, VIEWPORT_MARGIN_PX, maxLeft)}px;`,
-      `top: ${clamp(preferredTop, VIEWPORT_MARGIN_PX, maxTop)}px;`,
-      `max-height: ${Math.max(80, viewport.height - VIEWPORT_MARGIN_PX * 2)}px;`,
-    ].join(" ");
+  function onOpenChange(nextOpen: boolean): void {
+    if (nextOpen) syncRepeatState();
+    open = nextOpen;
   }
-
-  async function updatePopoverPlacement(): Promise<void> {
-    if (!open) return;
-    await tick();
-    if (!open) return;
-    positionPopover();
-  }
-
-  function onViewportChange(): void {
-    void updatePopoverPlacement();
-  }
-
-  function onDocumentPointerDown(event: MouseEvent): void {
-    if (!open || !wrapper) return;
-    if (event.target instanceof Node && wrapper.contains(event.target)) return;
-    close();
-  }
-
-  function onDocumentKeyDown(event: KeyboardEvent): void {
-    if (event.key === "Escape") close();
-  }
-
-  $effect(() => {
-    if (open) {
-      void updatePopoverPlacement();
-    } else {
-      popoverStyle = HIDDEN_POPOVER_STYLE;
-    }
-  });
-
   onMount(() => {
     syncRepeatState();
-    document.addEventListener("mousedown", onDocumentPointerDown, true);
-    document.addEventListener("keydown", onDocumentKeyDown, true);
-    window.addEventListener("resize", onViewportChange);
-    window.addEventListener("scroll", onViewportChange, true);
+    const visualizer = visualizerForOrd(target.ord);
+    playSelection = visualizer?.dataset.selectionActive === "true";
+    let observer: MutationObserver | null = null;
+    if (visualizer) {
+      observer = new MutationObserver(() => {
+        playSelection = visualizer.dataset.selectionActive === "true";
+      });
+      observer.observe(visualizer, {
+        attributes: true,
+        attributeFilter: ["data-selection-active", "data-selection-draft-active"],
+      });
+    }
     return () => {
-      document.removeEventListener("mousedown", onDocumentPointerDown, true);
-      document.removeEventListener("keydown", onDocumentKeyDown, true);
-      window.removeEventListener("resize", onViewportChange);
-      window.removeEventListener("scroll", onViewportChange, true);
+      observer?.disconnect();
+      if (defaultSavedTimer !== undefined) window.clearTimeout(defaultSavedTimer);
     };
   });
 </script>
-
-<span class="aqe-split-button aqe-play-split-button" bind:this={wrapper}>
-  <button
-    type="button"
-    class:aqe-icon-only={button.iconOnly === true}
-    class="aqe-button aqe-split-primary"
-    data-aqe-command={button.command}
-    data-aqe-button-state="play"
-    data-testid={`aqe-button-${target.ord}-play`}
-    title={button.title}
-    aria-label={button.title}
-    onmousedown={(event) => event.preventDefault()}
-    onclick={dispatchPrimary}
-  >
-    <EditorCommandIcon className="aqe-button-icon-default" icon={button.icon} />
-    {#if button.activeIcon}
-      <EditorCommandIcon className="aqe-button-icon-active" icon={button.activeIcon} />
-    {/if}
-    <span class="aqe-button-label">{button.label}</span>
-  </button>
-  <button
-    type="button"
-    class="aqe-button aqe-icon-only aqe-split-menu-button aqe-play-repeat-menu-button"
-    data-aqe-button-state={pressed ? "active" : "default"}
-    data-testid={`aqe-split-${target.ord}-play-menu`}
-    title={menuTitle}
-    aria-label={menuTitle}
-    aria-expanded={open ? "true" : "false"}
-    onmousedown={(event) => event.preventDefault()}
-    onclick={toggleMenu}
-  >
-    <EditorCommandIcon icon="chevron-down" />
-    <span class="aqe-button-label">{t("editor.split.options")}</span>
-  </button>
-  {#if open}
-    <div
-      bind:this={popover}
-      class="aqe-split-popover aqe-play-split-popover"
-      data-testid={`aqe-split-${target.ord}-play-popover`}
-      style={popoverStyle}
+<Popover.Root open={open} onOpenChange={onOpenChange}>
+  <span class="aqe-split-button aqe-play-split-button">
+    <button
+      type="button"
+      class:aqe-icon-only={displayMode === EditorButtonMode.Icon}
+      class="aqe-button aqe-split-primary"
+      data-aqe-command={button.command}
+      data-aqe-button-state="play"
+      data-testid={`aqe-button-${target.ord}-play`}
+      title={title}
+      aria-label={title}
+      onmousedown={(event) => event.preventDefault()}
+      onclick={dispatchPrimary}
     >
-      <div class="aqe-split-popover-header">
-        <strong>{t("editor.command.play.label")}</strong>
-        <span>{pressed ? t("editor.play.repeat_on") : t("editor.play.repeat_off")}</span>
+      {#if displayMode === EditorButtonMode.Icon}
+        <EditorCommandIcon className="aqe-button-icon-default" icon={button.icon} />
+        {#if button.activeIcon}
+          <EditorCommandIcon className="aqe-button-icon-active" icon={button.activeIcon} />
+        {/if}
+      {/if}
+      <span class="aqe-button-label">{button.label}</span>
+    </button>
+    <Popover.Trigger
+      class="aqe-button aqe-icon-only aqe-split-menu-button aqe-play-repeat-menu-button"
+      data-aqe-button-state={pressed ? "active" : "default"}
+      data-testid={`aqe-split-${target.ord}-play-menu`}
+      title={menuTitle}
+      aria-label={menuTitle}
+      onmousedown={(event) => event.preventDefault()}
+    >
+      <EditorCommandIcon icon="chevron-down" />
+      <span class="aqe-button-label">{t("editor.split.options")}</span>
+    </Popover.Trigger>
+    <Popover.Content
+      align="center"
+      arrowPadding={14}
+      class="aqe-split-popover aqe-play-split-popover"
+      collisionPadding={8}
+      data-testid={`aqe-split-${target.ord}-play-popover`}
+      onCloseAutoFocus={(event) => event.preventDefault()}
+      side="bottom"
+      sideOffset={4}
+      strategy="fixed"
+      trapFocus={false}
+    >
+      <Popover.Arrow
+        class="aqe-split-popover-arrow"
+        data-testid={`aqe-split-${target.ord}-play-arrow`}
+        height={8}
+        width={16}
+      />
+      <div class="aqe-split-popover-header aqe-split-popover-header-with-action">
+        <span class="aqe-split-popover-title">
+          <strong>{t("editor.command.play.label")}</strong>
+        </span>
+        <SplitDefaultSaveButton
+          onSave={saveCurrentDefaults}
+          saved={defaultSaved}
+          testId={`aqe-split-${target.ord}-play-save-default`}
+        />
       </div>
+      <p class="aqe-split-popover-description">
+        {t("editor.play.description", {
+          pause: formatRepeatPauseSeconds(repeatPauseSeconds),
+          repeat: pressed ? t("editor.play.repeat_on") : t("editor.play.repeat_off"),
+        })}
+      </p>
       <button
         type="button"
         class="aqe-button aqe-repeat-button aqe-repeat-toggle-button"
@@ -211,17 +195,20 @@
       </button>
       <div class="aqe-split-popover-header">
         <strong>{t("editor.repeat.pause_seconds")}</strong>
-        <input
-          class="aqe-split-value-input"
-          data-testid={`aqe-split-${target.ord}-repeat-value`}
-          type="number"
-          min="0"
-          max="10"
-          step="0.1"
-          value={repeatPauseSeconds}
-          aria-label={t("editor.repeat.pause_seconds")}
-          oninput={(event) => applyValue((event.currentTarget as HTMLInputElement).valueAsNumber)}
-        />
+        <span style="align-items: center; display: inline-flex; gap: 4px; justify-content: flex-end;">
+          <input
+            class="aqe-split-value-input"
+            data-testid={`aqe-split-${target.ord}-repeat-value`}
+            type="number"
+            min="0"
+            max="10"
+            step="0.1"
+            value={repeatPauseSeconds}
+            aria-label={t("editor.repeat.pause_seconds")}
+            oninput={(event) => applyValue((event.currentTarget as HTMLInputElement).valueAsNumber)}
+          />
+          <span style="font-size: 11px; white-space: nowrap;"> s</span>
+        </span>
       </div>
       <input
         data-testid={`aqe-split-${target.ord}-repeat-slider`}
@@ -249,6 +236,18 @@
           </button>
         {/each}
       </div>
-    </div>
-  {/if}
-</span>
+      <div class="aqe-split-popover-footer">
+        <button
+          type="button"
+          class="aqe-button aqe-split-run-button"
+          data-testid={`aqe-split-${target.ord}-play-run`}
+          title={t("editor.split.run_title", { label: t("editor.command.play.label") })}
+          aria-label={t("editor.split.run_title", { label: t("editor.command.play.label") })}
+          onclick={dispatchPrimary}
+        >
+          {t("editor.split.run")}
+        </button>
+      </div>
+    </Popover.Content>
+  </span>
+</Popover.Root>

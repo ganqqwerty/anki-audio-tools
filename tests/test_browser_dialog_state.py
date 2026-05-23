@@ -1,4 +1,5 @@
 from anki_audio_quick_editor.audio_operations import (
+    OP_CONVERT,
     OP_DENOISE,
     OP_FASTER,
     OP_GRAPH,
@@ -26,6 +27,7 @@ def test_build_batch_initial_state_contains_operations_fields_defaults_and_i18n(
             pause_aggressiveness="aggressive",
             denoise_algorithm="dpdfnet",
             dpdfnet_attn_limit_db=18.0,
+            output_format="flac",
         ),
     )
 
@@ -37,11 +39,13 @@ def test_build_batch_initial_state_contains_operations_fields_defaults_and_i18n(
         "pause_aggressiveness": "aggressive",
         "denoise_algorithm": "dpdfnet",
         "dpdfnet_attn_limit_db": 18.0,
+        "output_format": "flac",
     }
     graph = next(item for item in state["operations"] if item["operation"] == OP_GRAPH)
     faster = next(item for item in state["operations"] if item["operation"] == OP_FASTER)
     pause = next(item for item in state["operations"] if item["operation"] == OP_REMOVE_PAUSES)
     denoise = next(item for item in state["operations"] if item["operation"] == OP_DENOISE)
+    convert = next(item for item in state["operations"] if item["operation"] == OP_CONVERT)
     assert graph["requires_target_field"] is True
     assert graph["parameter_kind"] == "none"
     assert graph["parameter_name"] == "none"
@@ -51,6 +55,8 @@ def test_build_batch_initial_state_contains_operations_fields_defaults_and_i18n(
     assert pause["parameter_name"] == "pause_aggressiveness"
     assert denoise["parameter_kind"] == "denoise"
     assert denoise["parameter_name"] == "denoise_algorithm"
+    assert convert["parameter_kind"] == "format"
+    assert convert["parameter_name"] == "target_format"
     assert state["locale"] == "en"
     assert state["direction"] == "ltr"
     assert "batch.start" in state["messages"]
@@ -88,6 +94,20 @@ def test_request_from_batch_start_payload_builds_denoise_parameters() -> None:
     assert request.operation == "denoise"
     assert request.parameters.denoise_algorithm == "dpdfnet"
     assert request.parameters.dpdfnet_attn_limit_db == 18.0
+
+
+def test_request_from_batch_start_payload_builds_convert_parameters() -> None:
+    request = request_from_batch_start_payload(
+        {
+            "operation": "convert",
+            "source_field": "Audio",
+            "target_field": None,
+            "parameters": {"target_format": "flac"},
+        }
+    )
+
+    assert request.operation == "convert"
+    assert request.parameters.target_format == "flac"
 
 
 def test_request_from_batch_start_payload_rejects_missing_graph_target() -> None:

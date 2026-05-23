@@ -1,6 +1,10 @@
 import type { FrontendLogPayload, ProsodyPayload } from "../lib/generated/contracts.js";
-import type { CommandIconName } from "../lib/icon-types.js";
-import type { LearnerRecordingStatus } from "./recording-state.js";
+import type { OutputFormatValue } from "../lib/audio-operation-parameters.js";
+import type {
+  EditorButtonModes,
+  EditorCommand as SharedEditorCommand,
+  ToolbarButtonSpec,
+} from "../lib/editor-toolbar-buttons.js";
 import type {
   GraphRecordingCondition,
   GraphSettings,
@@ -8,40 +12,11 @@ import type {
   GraphVoiceLock,
   GraphVoiceRange,
 } from "./graph-settings.js";
+import type { LearnerRecordingStatus } from "./recording-state.js";
 
-export type EditorCommand =
-  | "aqe:play"
-  | "aqe:analyze"
-  | "aqe:show-file"
-  | "aqe:delete-selection"
-  | "aqe:delete-rest"
-  | "aqe:record-voice"
-  | "aqe:play-recording"
-  | "aqe:trim-left"
-  | "aqe:trim-right"
-  | "aqe:remove-pauses"
-  | "aqe:denoise-standard"
-  | "aqe:rnnoise"
-  | "aqe:dpdfnet"
-  | "aqe:voice-only"
-  | "aqe:slower"
-  | "aqe:faster"
-  | "aqe:volume-down"
-  | "aqe:volume-up"
-  | "aqe:undo"
-  | "aqe:redo"
-  | "aqe:settings";
+export type EditorCommand = SharedEditorCommand;
 
-type EditorIconName = CommandIconName;
-
-export interface ButtonSpec {
-  activeIcon?: EditorIconName;
-  command: EditorCommand;
-  icon: EditorIconName;
-  iconOnly?: boolean;
-  label: string;
-  title: string;
-}
+export type ButtonSpec = ToolbarButtonSpec;
 
 export interface EditorRuntimeConfig {
   audioFieldIndices: number[];
@@ -52,6 +27,8 @@ export interface EditorRuntimeConfig {
   repeatPlaybackByDefault?: boolean;
   showGraphByDefault?: boolean;
   splitButtonDefaults?: SplitButtonDefaults;
+  visibleEditorButtons?: EditorCommand[];
+  editorButtonModes?: EditorButtonModes;
 }
 
 export interface SplitButtonDefaults {
@@ -62,22 +39,25 @@ export interface SplitButtonDefaults {
   graphSmoothness?: GraphSmoothness;
   graphVoiceLock?: GraphVoiceLock;
   graphVoiceRange?: GraphVoiceRange;
+  outputFormat?: OutputFormatValue;
   pauseAggressiveness: "gentle" | "normal" | "aggressive";
+  pitchHumMode?: PitchHumMode;
   repeatPauseSeconds: number;
   speedStep: number;
-  trimStepMs: number;
   volumeStepDb: number;
 }
 
 export interface EditorCommandPayload {
   command: EditorCommand;
   fieldOrd: number;
+  shareTarget?: "catbox" | "litterbox";
   overrides?: {
     denoiseAlgorithm?: DenoiseAlgorithm;
     dpdfnetAttnLimitDb?: number;
     pauseAggressiveness?: "gentle" | "normal" | "aggressive";
+    pitchHumMode?: PitchHumMode;
     speedStep?: number;
-    trimStepMs?: number;
+    targetFormat?: OutputFormatValue;
     volumeStepDb?: number;
   };
   graphSettings?: GraphSettings;
@@ -90,10 +70,11 @@ export interface FieldSplitButtonState {
   defaultGraphSmoothness: GraphSmoothness;
   defaultGraphVoiceLock: GraphVoiceLock;
   defaultGraphVoiceRange: GraphVoiceRange;
+  defaultOutputFormat: OutputFormatValue;
   defaultPauseAggressiveness: "gentle" | "normal" | "aggressive";
   defaultDpdfnetAttnLimitDb: number;
+  defaultPitchHumMode: PitchHumMode;
   defaultRepeatPauseSeconds: number;
-  defaultTrimStepMs: number;
   defaultSpeedStep: number;
   defaultVolumeStepDb: number;
   denoiseAlgorithm: DenoiseAlgorithm;
@@ -106,14 +87,17 @@ export interface FieldSplitButtonState {
   graphSmoothness: GraphSmoothness;
   graphVoiceLock: GraphVoiceLock;
   graphVoiceRange: GraphVoiceRange;
+  outputFormat: OutputFormatValue;
+  outputFormatEdited: boolean;
   pauseAggressiveness: "gentle" | "normal" | "aggressive";
   pauseEdited: boolean;
+  pitchHumEdited: boolean;
+  pitchHumMode: PitchHumMode;
   repeatPauseEdited: boolean;
   repeatPauseSeconds: number;
+  shareTarget: "catbox" | "litterbox";
   speedEdited: boolean;
   speedStep: number;
-  trimEdited: boolean;
-  trimStepMs: number;
   volumeEdited: boolean;
   volumeStepDb: number;
 }
@@ -176,6 +160,8 @@ export interface RegionDeleteRequest {
 
 type DenoiseAlgorithm = "standard" | "rnnoise" | "dpdfnet" | "voice_only";
 
+type PitchHumMode = "direct" | "pitch_tier";
+
 type RegionDeleteOperation = "delete-selection" | "delete-rest";
 
 export interface CursorIntent {
@@ -214,6 +200,9 @@ export interface GraphStateForTest {
   learnerIntensityPaths: number;
   learnerPitchPaths: number;
   pitchPaths: number;
+  pitchMarkerVisible: boolean;
+  pitchMarkerX: number | null;
+  pitchMarkerY: number | null;
   buttonIconCount: number;
   buttonIconStrokeValues: string[];
   playButtonLabel: string;
@@ -248,6 +237,18 @@ export interface GraphStateForTest {
   selectionStartHandleVisible: boolean;
   selectionStartHandleX: number | null;
   selectionStartMs: number | null;
+  selectionToolbarCollapsed: boolean;
+  selectionToolbarDeleteRegionDisabled: boolean;
+  selectionToolbarDeleteRegionHidden: boolean;
+  selectionToolbarDeleteRestDisabled: boolean;
+  selectionToolbarDeleteRestHidden: boolean;
+  selectionToolbarDotHidden: boolean;
+  selectionToolbarHidden: boolean;
+  selectionToolbarLeftPx: number | null;
+  selectionToolbarPlayAriaLabel: string;
+  selectionToolbarPlayState: "pause" | "play";
+  selectionToolbarPreview: "none" | "region" | "rest";
+  selectionToolbarTopPx: number | null;
   sourceFilename: string;
   spinnerVisible: boolean;
   timecodeFlagCurrent: string;

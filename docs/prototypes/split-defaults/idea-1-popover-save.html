@@ -1,0 +1,252 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Idea 1 - Popover Save Button</title>
+    <link rel="stylesheet" href="prototype.css">
+  </head>
+  <body>
+    <main class="page">
+      <header class="prototype-header">
+        <h1>Idea 1: Icon-Only Default Save</h1>
+        <p>
+          The split-button tooltip owns the save action. A small icon-only button sits in the top right;
+          its tooltip reads "Promote these settings to default".
+        </p>
+      </header>
+      <nav class="prototype-nav" aria-label="Prototype pages">
+        <a href="index.html">Index</a>
+        <a aria-current="page" href="idea-1-popover-save.html">1. Popover Save</a>
+        <a href="idea-2-dirty-badge.html">2. Dirty Badge</a>
+        <a href="idea-3-defaults-mode.html">3. Defaults Mode</a>
+        <a href="idea-4-settings-handoff.html">4. Settings Handoff</a>
+      </nav>
+
+      <section class="stage-board" aria-label="Popover save stages">
+        <article class="stage">
+          <header class="stage-header">
+            <h2>Stage 1: Open quick settings</h2>
+            <p>The current graph settings match saved defaults, so the save icon is present but muted.</p>
+          </header>
+          <div class="workspace">
+            <div class="toolbar">
+              <span class="split">
+                <button class="btn icon-only"><span class="icon play"></span></button>
+                <button class="btn icon-only"><span class="icon chevron"></span></button>
+              </span>
+              <span class="split">
+                <button class="btn primary-action"><span class="icon slider"></span>Graph</button>
+                <button class="btn icon-only"><span class="icon chevron"></span></button>
+              </span>
+              <button class="btn"><span class="icon folder"></span>Folder</button>
+              <span class="split">
+                <button class="btn"><span class="icon scissors"></span>-L</button>
+                <button class="btn icon-only"><span class="icon chevron"></span></button>
+              </span>
+              <span class="split">
+                <button class="btn"><span class="icon wave"></span>Shorten Pauses</button>
+                <button class="btn icon-only"><span class="icon chevron"></span></button>
+              </span>
+              <span class="split">
+                <button class="btn"><span class="icon sparkle"></span>Denoise</button>
+                <button class="btn icon-only"><span class="icon chevron"></span></button>
+              </span>
+              <span class="split">
+                <button class="btn"><span class="icon wave"></span>Pitch Hum</button>
+                <button class="btn icon-only"><span class="icon chevron"></span></button>
+              </span>
+            </div>
+            <div class="editor-lines">
+              <div class="line"></div>
+              <div class="line"></div>
+              <div class="line"></div>
+              <div class="line"></div>
+            </div>
+            <div class="waveform"><span class="selection-handle"></span></div>
+            <aside class="popover graph-popover">
+              <h3>
+                <span class="popover-title">Graph <span class="current-label">General</span></span>
+                <button class="popover-save-button" type="button" title="Promote these settings to default" disabled>
+                  <span class="icon save"></span>
+                  <span class="visually-hidden">Promote these settings to default</span>
+                </button>
+              </h3>
+              <div class="control">
+                <div class="control-row"><strong>Voice range</strong><span class="value">General</span></div>
+                <div class="track" style="--fill: 50%"></div>
+              </div>
+              <div class="control">
+                <div class="control-row"><strong>Recording condition</strong><span class="value">Auto</span></div>
+                <div class="track" style="--fill: 0%"></div>
+              </div>
+              <div class="control">
+                <div class="control-row"><strong>Smoothness</strong><span class="value">Very smooth</span></div>
+                <div class="track" style="--fill: 100%"></div>
+              </div>
+              <div class="control">
+                <div class="control-row"><strong>Connect short dropouts</strong><span class="value">240 ms</span></div>
+                <div class="track" style="--fill: 48%"></div>
+              </div>
+              <div class="footer-actions saved">
+                <span class="footer-copy">Matches saved default</span>
+                <button class="action-btn secondary">Reset local</button>
+              </div>
+            </aside>
+            <div class="field-title">Arbeit war knapp</div>
+          </div>
+        </article>
+
+        <article class="stage">
+          <header class="stage-header">
+            <h2>Stage 2: Hover save icon</h2>
+            <p>After slider edits, the icon becomes active. Hover shows the exact tooltip text.</p>
+          </header>
+          <div class="workspace">
+            <div class="toolbar">
+              <span class="split">
+                <button class="btn icon-only"><span class="icon play"></span></button>
+                <button class="btn icon-only"><span class="icon chevron"></span></button>
+              </span>
+              <span class="split">
+                <button class="btn primary-action unsaved"><span class="icon slider"></span>Graph</button>
+                <button class="btn icon-only unsaved"><span class="icon chevron"></span></button>
+              </span>
+              <button class="btn"><span class="icon folder"></span>Folder</button>
+              <span class="split">
+                <button class="btn"><span class="icon scissors"></span>-L</button>
+                <button class="btn icon-only"><span class="icon chevron"></span></button>
+              </span>
+              <span class="split">
+                <button class="btn"><span class="icon wave"></span>Shorten Pauses</button>
+                <button class="btn icon-only"><span class="icon chevron"></span></button>
+              </span>
+              <span class="split">
+                <button class="btn"><span class="icon sparkle"></span>Denoise</button>
+                <button class="btn icon-only"><span class="icon chevron"></span></button>
+              </span>
+              <span class="split">
+                <button class="btn"><span class="icon wave"></span>Pitch Hum</button>
+                <button class="btn icon-only"><span class="icon chevron"></span></button>
+              </span>
+            </div>
+            <div class="editor-lines">
+              <div class="line"></div>
+              <div class="line"></div>
+              <div class="line"></div>
+              <div class="line"></div>
+            </div>
+            <div class="waveform"><span class="selection-handle"></span></div>
+            <aside class="popover graph-popover">
+              <h3>
+                <span class="popover-title">Graph <span class="changed-pill">2 changed</span></span>
+                <button class="popover-save-button active" type="button" title="Promote these settings to default">
+                  <span class="icon save"></span>
+                  <span class="visually-hidden">Promote these settings to default</span>
+                </button>
+                <span class="prototype-tooltip">Promote these settings to default</span>
+              </h3>
+              <div class="control">
+                <div class="control-row"><strong>Voice range</strong><span class="value">Low</span></div>
+                <div class="track" style="--fill: 25%"></div>
+              </div>
+              <div class="control">
+                <div class="control-row"><strong>Recording condition</strong><span class="value">Auto</span></div>
+                <div class="track" style="--fill: 0%"></div>
+              </div>
+              <div class="control">
+                <div class="control-row"><strong>Smoothness</strong><span class="value">Very smooth</span></div>
+                <div class="track" style="--fill: 100%"></div>
+              </div>
+              <div class="control">
+                <div class="control-row"><strong>Connect short dropouts</strong><span class="value">390 ms</span></div>
+                <div class="track" style="--fill: 78%"></div>
+              </div>
+              <div class="footer-actions warning">
+                <span class="footer-copy">Local values differ from default</span>
+                <span class="action-row">
+                  <button class="action-btn secondary">Reset local</button>
+                </span>
+              </div>
+            </aside>
+            <div class="field-title">Arbeit war knapp</div>
+          </div>
+        </article>
+
+        <article class="stage">
+          <header class="stage-header">
+            <h2>Stage 3: Default saved</h2>
+            <p>The popover confirms the save and the next editor field will use the new values.</p>
+          </header>
+          <div class="workspace">
+            <div class="toolbar">
+              <span class="split">
+                <button class="btn icon-only"><span class="icon play"></span></button>
+                <button class="btn icon-only"><span class="icon chevron"></span></button>
+              </span>
+              <span class="split">
+                <button class="btn primary-action saved-ring"><span class="icon slider"></span>Graph</button>
+                <button class="btn icon-only saved-ring"><span class="icon chevron"></span></button>
+              </span>
+              <button class="btn"><span class="icon folder"></span>Folder</button>
+              <span class="split">
+                <button class="btn"><span class="icon scissors"></span>-L</button>
+                <button class="btn icon-only"><span class="icon chevron"></span></button>
+              </span>
+              <span class="split">
+                <button class="btn"><span class="icon wave"></span>Shorten Pauses</button>
+                <button class="btn icon-only"><span class="icon chevron"></span></button>
+              </span>
+              <span class="split">
+                <button class="btn"><span class="icon sparkle"></span>Denoise</button>
+                <button class="btn icon-only"><span class="icon chevron"></span></button>
+              </span>
+              <span class="split">
+                <button class="btn"><span class="icon wave"></span>Pitch Hum</button>
+                <button class="btn icon-only"><span class="icon chevron"></span></button>
+              </span>
+            </div>
+            <div class="editor-lines">
+              <div class="line"></div>
+              <div class="line"></div>
+              <div class="line"></div>
+              <div class="line"></div>
+            </div>
+            <div class="waveform"><span class="selection-handle"></span></div>
+            <aside class="popover graph-popover">
+              <h3>
+                <span class="popover-title">Graph <span class="saved-pill">Saved</span></span>
+                <button class="popover-save-button saved" type="button" title="Promote these settings to default">
+                  <span class="icon save"></span>
+                  <span class="visually-hidden">Promote these settings to default</span>
+                </button>
+              </h3>
+              <div class="control">
+                <div class="control-row"><strong>Voice range</strong><span class="value">Low</span></div>
+                <div class="track" style="--fill: 25%"></div>
+              </div>
+              <div class="control">
+                <div class="control-row"><strong>Recording condition</strong><span class="value">Auto</span></div>
+                <div class="track" style="--fill: 0%"></div>
+              </div>
+              <div class="control">
+                <div class="control-row"><strong>Smoothness</strong><span class="value">Very smooth</span></div>
+                <div class="track" style="--fill: 100%"></div>
+              </div>
+              <div class="control">
+                <div class="control-row"><strong>Connect short dropouts</strong><span class="value">390 ms</span></div>
+                <div class="track" style="--fill: 78%"></div>
+              </div>
+              <div class="footer-actions saved">
+                <span class="footer-copy">New default for future graph analyses</span>
+                <button class="action-btn saved">Saved</button>
+              </div>
+            </aside>
+            <div class="toast">Default saved</div>
+            <div class="field-title">Arbeit war knapp</div>
+          </div>
+        </article>
+      </section>
+    </main>
+  </body>
+</html>

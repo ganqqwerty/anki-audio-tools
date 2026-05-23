@@ -150,6 +150,86 @@ class TestMigrateConfig:
         assert migrated["_config_version"] == CURRENT_CONFIG_VERSION
         assert changed is True
 
+    def test_picks_up_visible_editor_buttons_default(self) -> None:
+        user = {"_config_version": 15, "enabled": True}
+        defaults = {
+            "_config_version": CURRENT_CONFIG_VERSION,
+            "enabled": True,
+            "visible_editor_buttons": ["aqe:play", "aqe:settings"],
+        }
+
+        migrated, changed = migrate_config(user, defaults)
+
+        assert migrated["visible_editor_buttons"] == ["aqe:play", "aqe:settings", "aqe:share"]
+        assert migrated["_config_version"] == CURRENT_CONFIG_VERSION
+        assert changed is True
+
+    def test_adds_share_button_to_visible_editor_buttons_when_missing(self) -> None:
+        defaults = {
+            "_config_version": 19,
+            "visible_editor_buttons": ["aqe:play", "aqe:show-file", "aqe:share", "aqe:settings"],
+        }
+        user = {
+            "_config_version": 17,
+            "visible_editor_buttons": ["aqe:play", "aqe:show-file", "aqe:settings"],
+        }
+
+        migrated, changed = migrate_config(user, defaults)
+
+        assert changed is True
+        assert migrated["_config_version"] == 19
+        assert migrated["visible_editor_buttons"] == [
+            "aqe:play",
+            "aqe:show-file",
+            "aqe:share",
+            "aqe:settings",
+        ]
+
+    def test_picks_up_editor_button_modes_default(self) -> None:
+        user = {"_config_version": 18, "enabled": True}
+        defaults = {
+            "_config_version": CURRENT_CONFIG_VERSION,
+            "enabled": True,
+            "editor_button_modes": {
+                "aqe:play": "text",
+                "aqe:settings": "text",
+            },
+        }
+
+        migrated, changed = migrate_config(user, defaults)
+
+        assert migrated["editor_button_modes"] == {
+            "aqe:play": "text",
+            "aqe:settings": "text",
+        }
+        assert migrated["_config_version"] == CURRENT_CONFIG_VERSION
+        assert changed is True
+
+    def test_normalizes_editor_button_modes(self) -> None:
+        defaults = {
+            "_config_version": CURRENT_CONFIG_VERSION,
+            "editor_button_modes": {
+                "aqe:play": "text",
+                "aqe:settings": "text",
+            },
+        }
+        user = {
+            "_config_version": 18,
+            "editor_button_modes": {
+                "aqe:play": "icon",
+                "aqe:settings": "wide",
+                "aqe:unknown": "icon",
+            },
+        }
+
+        migrated, changed = migrate_config(user, defaults)
+
+        assert changed is True
+        assert migrated["editor_button_modes"] == {
+            "aqe:play": "icon",
+            "aqe:settings": "text",
+        }
+
     def test_picks_up_graph_display_defaults(self) -> None:
         user = {"_config_version": 11, "enabled": True}
         defaults = {
@@ -187,6 +267,56 @@ class TestMigrateConfig:
         migrated, changed = migrate_config(user, defaults)
 
         assert migrated["dpdfnet_attn_limit_db"] == 6.0
+        assert migrated["_config_version"] == CURRENT_CONFIG_VERSION
+        assert changed is True
+
+    def test_picks_up_pitch_hum_mode_default(self) -> None:
+        user = {"_config_version": 14, "enabled": True}
+        defaults = {
+            "_config_version": CURRENT_CONFIG_VERSION,
+            "enabled": True,
+            "pitch_hum_mode": "direct",
+        }
+
+        migrated, changed = migrate_config(user, defaults)
+
+        assert migrated["pitch_hum_mode"] == "direct"
+        assert migrated["_config_version"] == CURRENT_CONFIG_VERSION
+        assert changed is True
+
+    def test_normalizes_output_format(self) -> None:
+        user = {
+            "_config_version": 15,
+            "enabled": True,
+            "output_format": " FLAC ",
+        }
+        defaults = {
+            "_config_version": CURRENT_CONFIG_VERSION,
+            "enabled": True,
+            "output_format": "mp3",
+        }
+
+        migrated, changed = migrate_config(user, defaults)
+
+        assert migrated["output_format"] == "flac"
+        assert migrated["_config_version"] == CURRENT_CONFIG_VERSION
+        assert changed is True
+
+    def test_snaps_unknown_output_format_to_default(self) -> None:
+        user = {
+            "_config_version": 15,
+            "enabled": True,
+            "output_format": "aac",
+        }
+        defaults = {
+            "_config_version": CURRENT_CONFIG_VERSION,
+            "enabled": True,
+            "output_format": "mp3",
+        }
+
+        migrated, changed = migrate_config(user, defaults)
+
+        assert migrated["output_format"] == "mp3"
         assert migrated["_config_version"] == CURRENT_CONFIG_VERSION
         assert changed is True
 

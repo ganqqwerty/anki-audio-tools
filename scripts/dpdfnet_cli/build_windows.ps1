@@ -2,7 +2,6 @@ param(
     [ValidateSet("windows-x86_64")]
     [string]$Target = "windows-x86_64",
     [string]$Python = "python",
-    [string]$Version = "0.5.1",
     [string]$Model = "dpdfnet4"
 )
 
@@ -13,7 +12,8 @@ $BuildDir = Join-Path $Root ".release-assets\build\dpdfnet-windows"
 $DistDir = Join-Path $BuildDir "dist"
 $ModelDir = Join-Path $BuildDir "models"
 $StageDir = Join-Path $Root ".release-assets\bin\$Target"
-$EntryPath = Join-Path $BuildDir "dpdfnet_frozen_entry.py"
+$BuildScript = Join-Path $Root "scripts\dpdfnet_cli\build_lite.py"
+$RequirementsPath = Join-Path $Root "scripts\dpdfnet_cli\requirements-lite-build.txt"
 $ExePath = Join-Path $DistDir "dpdfnet.exe"
 $StageExePath = Join-Path $StageDir "dpdfnet.exe"
 
@@ -21,60 +21,20 @@ Remove-Item -Recurse -Force $BuildDir -ErrorAction SilentlyContinue
 New-Item -ItemType Directory -Force $BuildDir, $ModelDir, $StageDir | Out-Null
 
 & $Python -m pip install --upgrade pip
-& $Python -m pip install "dpdfnet==$Version" pyinstaller
-
-$entryPoints = & $Python -c "from importlib.metadata import distribution; print('\n'.join(f'{ep.name}={ep.value}' for ep in distribution('dpdfnet').entry_points if ep.group == 'console_scripts'))"
-if ($entryPoints -notmatch "dpdfnet=dpdfnet\.cli:main") {
-    throw "Unexpected dpdfnet console_scripts entry points: $entryPoints"
-}
-
-$env:DPDFNET_MODEL_DIR = $ModelDir
-& $Python -m dpdfnet.cli download $Model --quiet
-
-@'
-from __future__ import annotations
-
-import os
-from pathlib import Path
-import sys
-
-
-def _runtime_root() -> Path:
-    if getattr(sys, "frozen", False) and hasattr(sys, "_MEIPASS"):
-        return Path(sys._MEIPASS)  # type: ignore[attr-defined]
-    return Path(__file__).resolve().parent
-
-
-os.environ.setdefault("DPDFNET_MODEL_DIR", str(_runtime_root() / "models"))
-
-from dpdfnet.cli import main
-
-
-if __name__ == "__main__":
-    raise SystemExit(main())
-'@ | Set-Content -Encoding UTF8 $EntryPath
-
-& $Python -m PyInstaller `
-    --clean `
-    --noconfirm `
-    --onefile `
-    --console `
+& $Python -m pip install -r $RequirementsPath
+& $Python $BuildScript `
     --name dpdfnet `
-    --distpath $DistDir `
-    --workpath (Join-Path $BuildDir "work") `
-    --specpath $BuildDir `
-    --collect-all dpdfnet `
-    --collect-all onnxruntime `
-    --collect-all soundfile `
-    --add-data "${ModelDir};models" `
-    $EntryPath
+    --model $Model `
+    --model-path (Join-Path $ModelDir "$Model.tflite") `
+    --dist-dir $DistDir `
+    --work-dir (Join-Path $BuildDir "work") `
+    --spec-dir (Join-Path $BuildDir "spec")
 
 if (!(Test-Path $ExePath)) {
     throw "PyInstaller did not create $ExePath"
 }
 
 & $ExePath --version
-& $ExePath models
 
 $SmokeDir = Join-Path $BuildDir "smoke"
 New-Item -ItemType Directory -Force $SmokeDir | Out-Null
@@ -104,7 +64,13 @@ with wave.open(str(path), "wb") as wav:
     wav.writeframes(bytes(frames))
 '@
 
-& $ExePath enhance $InputWav $OutputWav --model $Model --attn-limit-db 12
+$Ffmpeg = Get-Command ffmpeg -ErrorAction SilentlyContinue
+if ($null -eq $Ffmpeg) {
+    throw "ffmpeg not found on PATH; the DPDFNet Lite smoke test requires ffmpeg."
+}
+$env:DPDFNET_FFMPEG = $Ffmpeg.Source
+& $ExePath enhance $InputWav $OutputWav --attn-limit-db 12
+Remove-Item Env:\DPDFNET_FFMPEG -ErrorAction SilentlyContinue
 if (!(Test-Path $OutputWav)) {
     throw "DPDFNet smoke test did not create $OutputWav"
 }

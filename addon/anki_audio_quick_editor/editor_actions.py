@@ -12,6 +12,7 @@ from .audio_operation_params import (
     parameters_from_raw,
 )
 from .audio_operations import (
+    OP_CONVERT,
     OP_FASTER,
     OP_REMOVE_PAUSES,
     OP_SLOWER,
@@ -21,25 +22,27 @@ from .audio_operations import (
 )
 from .audio_state import AudioEditState, AudioProcessingConfig
 
-CMD_TRIM_LEFT = "aqe:trim-left"
-CMD_TRIM_RIGHT = "aqe:trim-right"
 CMD_SLOWER = "aqe:slower"
 CMD_FASTER = "aqe:faster"
 CMD_VOLUME_DOWN = "aqe:volume-down"
 CMD_VOLUME_UP = "aqe:volume-up"
 CMD_REMOVE_PAUSES = "aqe:remove-pauses"
+CMD_CONVERT = "aqe:convert"
 CMD_DENOISE_STANDARD = "aqe:denoise-standard"
 CMD_RNNOISE = "aqe:rnnoise"
 CMD_DPDFNET = "aqe:dpdfnet"
 CMD_VOICE_ONLY = "aqe:voice-only"
+CMD_PITCH_HUM = "aqe:pitch-hum"
 CMD_DELETE_SELECTION = "aqe:delete-selection"
 CMD_DELETE_REST = "aqe:delete-rest"
 CMD_ANALYZE_FIELD = "aqe:analyze-field"
 CMD_RECORD_VOICE = "aqe:record-voice"
 CMD_PLAY_RECORDING = "aqe:play-recording"
 CMD_COMMAND_PAYLOAD = "aqe:command-payload"
+CMD_SAVE_SPLIT_DEFAULTS = "aqe:save-split-defaults"
 CMD_SETTINGS = "aqe:settings"
 CMD_REDO = "aqe:redo"
+CMD_SHARE = "aqe:share"
 
 BRIDGE_COMMANDS = (
     "aqe:scan",
@@ -48,22 +51,24 @@ BRIDGE_COMMANDS = (
     CMD_RECORD_VOICE,
     CMD_PLAY_RECORDING,
     CMD_COMMAND_PAYLOAD,
+    CMD_SAVE_SPLIT_DEFAULTS,
     "aqe:set-cursor",
     "aqe:play",
     "aqe:play-ended",
     "aqe:frontend-log",
     "aqe:show-file",
-    CMD_TRIM_LEFT,
-    CMD_TRIM_RIGHT,
+    CMD_SHARE,
     CMD_SLOWER,
     CMD_FASTER,
     CMD_VOLUME_DOWN,
     CMD_VOLUME_UP,
     CMD_REMOVE_PAUSES,
+    CMD_CONVERT,
     CMD_DENOISE_STANDARD,
     CMD_RNNOISE,
     CMD_DPDFNET,
     CMD_VOICE_ONLY,
+    CMD_PITCH_HUM,
     CMD_DELETE_SELECTION,
     CMD_DELETE_REST,
     "aqe:undo",
@@ -72,8 +77,6 @@ BRIDGE_COMMANDS = (
 )
 
 PROCESSING_COMMANDS = (
-    CMD_TRIM_LEFT,
-    CMD_TRIM_RIGHT,
     CMD_SLOWER,
     CMD_FASTER,
     CMD_VOLUME_DOWN,
@@ -87,6 +90,7 @@ BRIDGE_COMMAND_TO_OPERATION = {
     CMD_VOLUME_DOWN: OP_VOLUME_DOWN,
     CMD_VOLUME_UP: OP_VOLUME_UP,
     CMD_REMOVE_PAUSES: OP_REMOVE_PAUSES,
+    CMD_CONVERT: OP_CONVERT,
 }
 
 
@@ -94,12 +98,13 @@ BRIDGE_COMMAND_TO_OPERATION = {
 class EditorCommandOverrides:
     """Validated local editor command override values."""
 
-    trim_step_ms: int | None = None
     volume_step_db: float | None = None
     speed_step: float | None = None
     pause_aggressiveness: str | None = None
     denoise_algorithm: str | None = None
     dpdfnet_attn_limit_db: float | None = None
+    target_format: str | None = None
+    pitch_hum_mode: str | None = None
 
 
 @dataclass(frozen=True)
@@ -110,6 +115,7 @@ class EditorCommandPayload:
     field_ord: int | None = None
     overrides: EditorCommandOverrides = EditorCommandOverrides()
     graph_settings: dict[str, object] | None = None
+    share_target: str | None = None
 
 
 def _int_or_none(value: Any) -> int | None:
@@ -126,20 +132,21 @@ def _overrides_from_raw(raw: Any) -> EditorCommandOverrides:
     if not isinstance(raw, dict):
         return EditorCommandOverrides()
     params = parameters_from_raw(
-        trim_step_ms=raw.get("trimStepMs"),
         volume_step_db=raw.get("volumeStepDb"),
         speed_step=raw.get("speedStep"),
         pause_aggressiveness=raw.get("pauseAggressiveness"),
         denoise_algorithm=raw.get("denoiseAlgorithm"),
         dpdfnet_attn_limit_db=raw.get("dpdfnetAttnLimitDb"),
+        target_format=raw.get("targetFormat"),
     )
     return EditorCommandOverrides(
-        trim_step_ms=params.trim_step_ms,
         volume_step_db=params.volume_step_db,
         speed_step=params.speed_step,
         pause_aggressiveness=params.pause_aggressiveness,
         denoise_algorithm=params.denoise_algorithm,
         dpdfnet_attn_limit_db=params.dpdfnet_attn_limit_db,
+        target_format=params.target_format,
+        pitch_hum_mode=_pitch_hum_mode_or_none(raw.get("pitchHumMode")),
     )
 
 
@@ -147,6 +154,16 @@ def _graph_settings_from_raw(raw: Any) -> dict[str, object] | None:
     if not isinstance(raw, dict):
         return None
     return dict(raw)
+
+
+def _pitch_hum_mode_or_none(value: Any) -> str | None:
+    text = str(value)
+    return text if text in {"direct", "pitch_tier"} else None
+
+
+def _share_target_or_none(value: Any) -> str | None:
+    text = str(value)
+    return text if text in {"catbox", "litterbox"} else None
 
 
 def decode_editor_command_payload(raw_command: str | EditorCommandPayload) -> EditorCommandPayload:
@@ -169,6 +186,7 @@ def decode_editor_command_payload(raw_command: str | EditorCommandPayload) -> Ed
         field_ord=_int_or_none(raw_payload.get("fieldOrd")),
         overrides=_overrides_from_raw(raw_payload.get("overrides")),
         graph_settings=_graph_settings_from_raw(raw_payload.get("graphSettings")),
+        share_target=_share_target_or_none(raw_payload.get("shareTarget")),
     )
 
 
@@ -193,6 +211,7 @@ def processing_config_for_command(
             volume_step_db=payload.overrides.volume_step_db,
             speed_step=payload.overrides.speed_step,
             pause_aggressiveness=payload.overrides.pause_aggressiveness,
+            target_format=payload.overrides.target_format,
         ),
     )
 
@@ -205,12 +224,9 @@ def apply_processing_command(
     """Return the edit state after applying a processing command."""
     payload = decode_editor_command_payload(command)
     effective_config = processing_config_for_command(payload, config)
-    step = payload.overrides.trim_step_ms or config.manual_trim_small_ms
-    if payload.command == CMD_TRIM_LEFT:
-        return state.trim_left(step)
-    if payload.command == CMD_TRIM_RIGHT:
-        return state.trim_right(step)
     operation = operation_for_command(payload.command)
     if operation is None:
+        return None
+    if operation == OP_CONVERT:
         return None
     return apply_audio_operation(operation, state, effective_config)

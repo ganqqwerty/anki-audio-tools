@@ -42,6 +42,10 @@ def test_standard_render_replacement_schedules_post_edit_playback(
     _replace_current_field_after_render(editor, AudioEditState("clip.mp3", volume_db=3.0), "clip__aqe.mp3")
 
     assert editor.note.fields == ["[sound:clip__aqe.mp3]"]
+    assert any(
+        "__aqeSetHistoryAvailability(0, true, false)" in call.args[0]
+        for call in editor.web.evalWithCallback.call_args_list
+    )
     assert "__aqePlayAfterEdit(0)" in editor.web.evalWithCallback.call_args.args[0]
 
 
@@ -74,6 +78,10 @@ def test_standard_render_replacement_uses_session_field_when_focus_changes(
 
     assert editor.note.fields == ["[sound:first.mp3]", "[sound:second__aqe.mp3]"]
     assert editor.loadNote.call_args.kwargs == {"focusTo": 1}
+    assert any(
+        "__aqeSetHistoryAvailability(1, true, false)" in call.args[0]
+        for call in editor.web.evalWithCallback.call_args_list
+    )
     assert "__aqePlayAfterEdit(1)" in editor.web.evalWithCallback.call_args.args[0]
 
 

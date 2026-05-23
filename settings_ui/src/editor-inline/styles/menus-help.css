@@ -1,0 +1,146 @@
+.aqe-menu {
+  position: relative;
+}
+
+.aqe-menu-summary {
+  list-style: none;
+}
+
+.aqe-menu-summary::-webkit-details-marker {
+  display: none;
+}
+
+.aqe-menu-chevron {
+  margin-left: 1px;
+}
+
+.aqe-menu-items {
+  background: Canvas;
+  border: 1px solid;
+  border-color: ButtonBorder;
+  border-radius: 7px;
+  box-shadow: 0 8px 18px rgb(0 0 0 / 18%);
+  display: grid;
+  gap: 4px;
+  left: 0;
+  min-width: 150px;
+  padding: 5px;
+  position: absolute;
+  top: calc(100% + 4px);
+  z-index: var(--aqe-floating-z-index, 10000);
+}
+
+.aqe-menu-item {
+  justify-content: flex-start;
+  width: 100%;
+}
+
+.aqe-help {
+  flex: 1 0 100%;
+  font-size: 12px;
+  max-width: min(980px, 100%);
+}
+
+.aqe-help-summary {
+  align-items: center;
+  cursor: pointer;
+  display: inline-flex;
+  font-weight: 700;
+  gap: 5px;
+  list-style: none;
+}
+
+.aqe-help-summary::-webkit-details-marker {
+  display: none;
+}
+
+.aqe-help-triangle {
+  border-bottom: 4px solid transparent;
+  border-left: 6px solid currentColor;
+  border-top: 4px solid transparent;
+  height: 0;
+  transform-origin: 35% 50%;
+  transition: transform 120ms ease;
+  width: 0;
+}
+
+.aqe-help[open] .aqe-help-triangle {
+  transform: rotate(90deg);
+}
+
+.aqe-help-body {
+  border-top: 1px solid;
+  border-color: ButtonBorder;
+  display: grid;
+  gap: 10px;
+  margin-top: 6px;
+  padding-top: 6px;
+}
+
+.aqe-help-body p,
+.aqe-help-body ul,
+.aqe-help-body h4 {
+  margin: 0;
+}
+
+.aqe-help-section {
+  display: grid;
+  gap: 5px;
+}
+
+.aqe-help-title {
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.aqe-help-list {
+  display: grid;
+  gap: 3px;
+  padding-left: 18px;
+}
+
+.aqe-help-list kbd {
+  border: 1px solid;
+  border-color: ButtonBorder;
+  border-radius: 4px;
+  font: inherit;
+  padding: 0 4px;
+}
+
+.aqe-help-grid {
+  display: grid;
+  gap: 7px 14px;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr));
+}
+
+.aqe-help-item {
+  align-items: start;
+  display: grid;
+  gap: 5px;
+  grid-template-columns: minmax(0, 142px) minmax(0, 1fr);
+}
+
+.aqe-help-command {
+  align-items: center;
+  border: 1px solid;
+  border-color: ButtonBorder;
+  border-radius: 7px;
+  display: inline-flex;
+  gap: 5px;
+  min-height: 24px;
+  min-width: 0;
+  padding: 2px 6px;
+}
+
+.aqe-help-command span:last-child {
+  overflow-wrap: anywhere;
+}
+
+.aqe-help-description {
+  line-height: 1.35;
+}
+
+.aqe-help-note {
+  border-left: 3px solid ButtonBorder;
+  padding-left: 8px;
+}

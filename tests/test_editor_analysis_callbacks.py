@@ -49,7 +49,10 @@ def test_stale_analysis_completion_is_ignored_after_note_load_reset() -> None:
 
     assert session.analysis_generation == 3
     assert session.visualized_duration_ms is None
-    editor.web.eval.assert_not_called()
+    evals = [call.args[0] for call in editor.web.eval.call_args_list]
+    assert len(evals) == 1
+    assert "__aqeSetHistoryAvailability" in evals[0]
+    assert "__aqeSetVisualizer(0," not in evals[0]
 
 
 def test_analysis_completion_renders_requested_field_when_session_tracks_another_field() -> None:

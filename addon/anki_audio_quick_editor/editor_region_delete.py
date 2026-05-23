@@ -22,6 +22,29 @@ from .sound_refs import (
 
 logger = logging.getLogger(__name__)
 
+
+def _sync_history_availability(editor: Any, session: Any, deps: Any) -> None:
+    if session is None:
+        return
+    deps.eval_history_availability(
+        editor,
+        session.field_index,
+        bool(session.undo_history.entries),
+        bool(session.redo_history.entries),
+    )
+
+
+def _request_history_availability_after_edit(editor: Any, session: Any, deps: Any) -> None:
+    if session is None:
+        return
+    deps.request_history_availability_after_edit(
+        editor,
+        session.field_index,
+        bool(session.undo_history.entries),
+        bool(session.redo_history.entries),
+    )
+
+
 REGION_DELETE_OPERATION: RegionDeleteOperation = "delete-selection"
 REGION_KEEP_OPERATION: RegionDeleteOperation = "delete-rest"
 REGION_DELETE_OPERATIONS = {REGION_DELETE_OPERATION, REGION_KEEP_OPERATION}
@@ -352,10 +375,12 @@ def replace_current_field_after_region_delete(
             flush=True,
         )
         editor.loadNote(focusTo=field_index)
+        _sync_history_availability(editor, session, deps)
+        _request_history_availability_after_edit(editor, session, deps)
         deps.eval_status(editor, t("editor.status.updated_field", {"filename": saved_name}))
         deps.eval_playback_state(editor, field_index, "stopped", 0)
         if should_redraw_graph:
-            deps.request_graph_redraw(editor)
+            deps.request_graph_redraw(editor, saved_name)
         else:
             deps.set_busy_for_field(editor, field_index, False)
         deps.request_playback_after_edit(editor, field_index)

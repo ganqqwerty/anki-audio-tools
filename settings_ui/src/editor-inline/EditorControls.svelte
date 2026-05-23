@@ -1,14 +1,18 @@
 <script lang="ts">
   import { onMount } from "svelte";
-  import { commandButtons, testId } from "./commands.js";
+  import { testId, toolbarButtons, visibleToolbarButtons } from "./commands.js";
+  import { buttonDisplayMode } from "../lib/editor-toolbar-buttons.js";
   import { t } from "../lib/i18n.js";
+  import { EditorButtonMode } from "../lib/types.js";
   import EditorCommandIcon from "./EditorCommandIcon.svelte";
   import EditorHelp from "./EditorHelp.svelte";
   import PlaySplitButton from "./PlaySplitButton.svelte";
+  import SelectionToolbar from "./SelectionToolbar.svelte";
   import SplitButton from "./SplitButton.svelte";
   import {
     configureAudioClock,
     handleVisualizerPointerDown,
+    historyAvailability,
     initializePlaybackRegionState,
     installAudioClockHandlers,
     resetAudioClockState,
@@ -16,9 +20,18 @@
     startSelectionResizeGesture,
   } from "./actions.js";
   import { visualizerForOrd } from "./dom-selectors.js";
-  import { handleVisualizerKeyDown, sendRegionDelete } from "./region-delete.js";
+  import { handleVisualizerKeyDown } from "./region-delete.js";
   import { PLOT } from "./plot.js";
   import type { ButtonSpec, FieldTarget } from "./types.js";
+
+  type ToolbarRenderItem =
+    | { button: ButtonSpec; kind: "button" }
+    | {
+      buttons: readonly [ButtonSpec, ButtonSpec];
+      kind: "group";
+      menuLabel: string;
+      menuSlug: "speed" | "volume";
+    };
 
   const { target }: { target: FieldTarget } = $props();
   const selectionPlotHeight = PLOT.height - PLOT.top - PLOT.bottom;
@@ -27,32 +40,81 @@
   const selectionHandleCenterY = selectionHandleY + selectionHandleHeight / 2;
   const repeatDefault = window.__AQE_EDITOR_CONFIG__?.repeatPlaybackByDefault === true;
   const repeatPauseDefault = window.__AQE_EDITOR_CONFIG__?.splitButtonDefaults?.repeatPauseSeconds ?? 0;
-  const buttons = commandButtons();
-  const denoiseButton: ButtonSpec = {
-    command: "aqe:denoise-standard",
-    icon: "sparkles",
-    label: t("editor.command.denoise.label"),
-    title: t("editor.command.denoise.title"),
-  };
+  const buttons = visibleToolbarButtons(
+    toolbarButtons(),
+    window.__AQE_EDITOR_CONFIG__?.visibleEditorButtons,
+  );
+  const buttonModes = window.__AQE_EDITOR_CONFIG__?.editorButtonModes;
+  const renderItems = buildToolbarRenderItems(buttons);
 
   function isSplitCommand(command: string): boolean {
     return [
       "aqe:analyze",
-      "aqe:trim-left",
-      "aqe:trim-right",
+      "aqe:share",
+      "aqe:convert",
       "aqe:slower",
       "aqe:faster",
       "aqe:volume-down",
       "aqe:volume-up",
       "aqe:remove-pauses",
       "aqe:denoise-standard",
+      "aqe:pitch-hum",
     ].includes(command);
+  }
+
+  function disabledTitle(command: string): string | undefined {
+    if (command === "aqe:undo") return t("editor.command.undo.disabled_title");
+    if (command === "aqe:redo") return t("editor.command.redo.disabled_title");
+    return undefined;
   }
 
   function isRecordingCommand(command: string): boolean {
     return command === "aqe:record-voice" || command === "aqe:play-recording";
   }
 
+  function initialButtonDisabled(command: string): boolean {
+    const availability = historyAvailability(target.ord);
+    if (command === "aqe:undo") return !availability.canUndo;
+    if (command === "aqe:redo") return !availability.canRedo;
+    if (isRecordingCommand(command)) return true;
+    return false;
+  }
+
+  function initialButtonTitle(button: { command: string; title: string }): string {
+    const unavailableTitle = disabledTitle(button.command);
+    return initialButtonDisabled(button.command) && unavailableTitle ? unavailableTitle : button.title;
+  }
+
+  function buildToolbarRenderItems(buttons: readonly ButtonSpec[]): readonly ToolbarRenderItem[] {
+    const items: ToolbarRenderItem[] = [];
+    for (let index = 0; index < buttons.length; index += 1) {
+      const button = buttons[index];
+      if (!button) continue;
+      const next = buttons[index + 1];
+      if (button.command === "aqe:slower" && next?.command === "aqe:faster") {
+        items.push({
+          buttons: [button, next],
+          kind: "group",
+          menuLabel: t("editor.split.group.speed"),
+          menuSlug: "speed",
+        });
+        index += 1;
+        continue;
+      }
+      if (button.command === "aqe:volume-down" && next?.command === "aqe:volume-up") {
+        items.push({
+          buttons: [button, next],
+          kind: "group",
+          menuLabel: t("editor.split.group.volume"),
+          menuSlug: "volume",
+        });
+        index += 1;
+        continue;
+      }
+      items.push({ button, kind: "button" });
+    }
+    return items;
+  }
   onMount(() => {
     const visualizer = visualizerForOrd(target.ord);
     if (!visualizer) return;
@@ -70,67 +132,82 @@
   data-aqe-source-filename={target.sourceFilename}
   data-testid={`aqe-controls-${target.ord}`}
 >
-  {#each buttons as button (button.command)}
-    {#if button.command === "aqe:play"}
-      <PlaySplitButton {button} {repeatDefault} {target} />
-    {:else if isSplitCommand(button.command)}
-      <SplitButton {button} {target} />
+  {#each renderItems as item (item.kind === "group" ? `${item.menuSlug}:${item.buttons[0].command}` : item.button.command)}
+    {#if item.kind === "group"}
+      <span class="aqe-split-group">
+        <SplitButton
+          button={item.buttons[0]}
+          displayMode={buttonDisplayMode(item.buttons[0].command, buttonModes)}
+          primaryGroupPosition="start"
+          showMenu={false}
+          {target}
+        />
+        <SplitButton
+          button={item.buttons[1]}
+          displayMode={buttonDisplayMode(item.buttons[1].command, buttonModes)}
+          primaryGroupPosition="middle"
+          showMenu={false}
+          {target}
+        />
+        <SplitButton
+          button={item.buttons[1]}
+          displayMode={buttonDisplayMode(item.buttons[1].command, buttonModes)}
+          groupLabel={item.menuLabel}
+          groupSlug={item.menuSlug}
+          showPrimary={false}
+          showRunButton={false}
+          {target}
+        />
+      </span>
+    {:else if item.button.command === "aqe:play"}
+      <PlaySplitButton
+        button={item.button}
+        displayMode={buttonDisplayMode(item.button.command, buttonModes)}
+        {repeatDefault}
+        {target}
+      />
+    {:else if isSplitCommand(item.button.command)}
+      <SplitButton
+        button={item.button}
+        displayMode={buttonDisplayMode(item.button.command, buttonModes)}
+        {target}
+      />
     {:else}
-      <button
-        type="button"
-        class:aqe-icon-only={button.iconOnly === true}
-        class:aqe-recording-button={isRecordingCommand(button.command)}
-        class="aqe-button"
-        data-aqe-command={button.command}
-        data-aqe-button-state={button.command === "aqe:analyze" ? "graph" : "default"}
-        data-testid={testId(target.ord, button.command)}
-        disabled={isRecordingCommand(button.command)}
-        title={button.title}
-        aria-label={button.title}
-        onmousedown={(event) => event.preventDefault()}
-        onclick={() => send(button.command, target.node, target.ord)}
+      {@const button = item.button}
+      {@const displayMode = buttonDisplayMode(button.command, buttonModes)}
+      <span
+        class="aqe-button-tooltip-target"
+        title={initialButtonTitle(button)}
+        aria-label={initialButtonTitle(button)}
       >
-        <EditorCommandIcon className="aqe-button-icon-default" icon={button.icon} />
-        {#if button.activeIcon}
-          <EditorCommandIcon className="aqe-button-icon-active" icon={button.activeIcon} />
-        {/if}
-        <span class="aqe-button-label">{button.label}</span>
-      </button>
-    {/if}
-    {#if button.command === "aqe:remove-pauses"}
-      <SplitButton button={denoiseButton} {target} />
+        <button
+          type="button"
+          class:aqe-icon-only={displayMode === EditorButtonMode.Icon}
+          class="aqe-button"
+          data-aqe-command={button.command}
+          data-aqe-button-state={button.command === "aqe:analyze" ? "graph" : "default"}
+          data-aqe-disabled-title={disabledTitle(button.command)}
+          data-aqe-enabled-title={button.title}
+          data-testid={testId(target.ord, button.command)}
+          disabled={initialButtonDisabled(button.command)}
+          title={initialButtonTitle(button)}
+          aria-label={initialButtonTitle(button)}
+          onmousedown={(event) => event.preventDefault()}
+          onclick={() => send(button.command, target.node, target.ord)}
+        >
+          {#if displayMode === EditorButtonMode.Icon}
+            <EditorCommandIcon className="aqe-button-icon-default" icon={button.icon} />
+            {#if button.activeIcon}
+              <EditorCommandIcon className="aqe-button-icon-active" icon={button.activeIcon} />
+            {/if}
+            <span class="aqe-button-label">{button.label}</span>
+          {:else}
+            <span class="aqe-button-label">{button.label}</span>
+          {/if}
+        </button>
+      </span>
     {/if}
   {/each}
-  <button
-    type="button"
-    class="aqe-button aqe-delete-region-button"
-    data-aqe-command="aqe:delete-selection"
-    data-aqe-button-state="default"
-    data-testid={testId(target.ord, "aqe:delete-selection")}
-    title={t("editor.command.delete_region.title")}
-    aria-label={t("editor.command.delete_region.title")}
-    hidden
-    onmousedown={(event) => event.preventDefault()}
-    onclick={() => sendRegionDelete("button", target.node, target.ord)}
-  >
-    <EditorCommandIcon icon="trash-2" />
-    <span class="aqe-button-label">{t("editor.command.delete_region.label")}</span>
-  </button>
-  <button
-    type="button"
-    class="aqe-button aqe-delete-rest-button"
-    data-aqe-command="aqe:delete-rest"
-    data-aqe-button-state="default"
-    data-testid={testId(target.ord, "aqe:delete-rest")}
-    title={t("editor.command.delete_rest.title")}
-    aria-label={t("editor.command.delete_rest.title")}
-    hidden
-    onmousedown={(event) => event.preventDefault()}
-    onclick={() => sendRegionDelete("button", target.node, target.ord, "delete-rest")}
-  >
-    <EditorCommandIcon icon="trash-2" />
-    <span class="aqe-button-label">{t("editor.command.delete_rest.label")}</span>
-  </button>
   <span class="aqe-status" data-testid={`aqe-status-${target.ord}`}></span>
   <span
     class="aqe-recording-status"
@@ -175,15 +252,18 @@
       preload="metadata"
       hidden
     ></audio>
-    <svg
-      class="aqe-visualizer-svg"
-      data-testid={`aqe-graph-svg-${target.ord}`}
-      viewBox={`0 0 ${PLOT.width} ${PLOT.height}`}
-      preserveAspectRatio="xMinYMin meet"
-      role="img"
-      aria-label={t("editor.graph.image_aria")}
-      onpointerdown={(event) => handleVisualizerPointerDown(event, target.ord)}
-    >
+    <div class="aqe-visualizer-plot" data-testid={`aqe-visualizer-plot-${target.ord}`}>
+      <div class="aqe-selection-region-preview-halo aqe-selection-region-preview-halo-top" aria-hidden="true"></div>
+      <div class="aqe-selection-region-preview-halo aqe-selection-region-preview-halo-bottom" aria-hidden="true"></div>
+      <svg
+        class="aqe-visualizer-svg"
+        data-testid={`aqe-graph-svg-${target.ord}`}
+        viewBox={`0 0 ${PLOT.width} ${PLOT.height}`}
+        preserveAspectRatio="xMinYMin meet"
+        role="img"
+        aria-label={t("editor.graph.image_aria")}
+        onpointerdown={(event) => handleVisualizerPointerDown(event, target.ord)}
+      >
       <rect
         class="aqe-selection"
         data-testid={`aqe-selection-${target.ord}`}
@@ -278,6 +358,15 @@
         y1={PLOT.top}
         y2={PLOT.height - PLOT.bottom}
       ></line>
+      <circle
+        class="aqe-cursor-pitch-marker"
+        data-testid={`aqe-cursor-pitch-marker-${target.ord}`}
+        cx={PLOT.left}
+        cy={PLOT.height - PLOT.bottom}
+        r="4"
+        visibility="hidden"
+        aria-hidden="true"
+      ></circle>
       <g
         class="aqe-cursor-flag"
         data-testid={`aqe-cursor-flag-${target.ord}`}
@@ -291,7 +380,9 @@
           <tspan class="aqe-cursor-flag-pitch"> / -- Hz</tspan>
         </text>
       </g>
-    </svg>
+      </svg>
+      <SelectionToolbar {target} />
+    </div>
     <div class="aqe-visualizer-meta">
       <span
         class="aqe-spinner"

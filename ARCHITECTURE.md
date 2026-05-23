@@ -7,7 +7,6 @@ Anki Audio Quick Editor keeps the human-facing architecture doc short and puts t
 - architecture contracts live in `tests/test_architecture/contracts.py`
 - architecture observations and reporting live in `tests/test_architecture/inspection.py`
 - pass/fail enforcement happens through `tests/test_architecture/*.py`, `python3 scripts/dev.py architecture-report`, and `python3 scripts/dev.py arch`
-- GitNexus is useful for discovery and blast-radius review, but it is not the enforcement source of truth
 
 ## Runtime Layers
 
@@ -39,7 +38,7 @@ Anki Audio Quick Editor keeps the human-facing architecture doc short and puts t
 3. `editor_ui.py` injects the committed editor Svelte bundle near fields containing supported `[sound:...]` tags through `editor_will_load_note`.
 4. The editor bundle mounts one compact Svelte control surface per audio field, including an SVG prosody visualizer, and requests async analysis for the current referenced media.
 5. `prosody_analyzer.py` uses optional Parselmouth/Praat when available and falls back to ffmpeg-decoded PCM pitch/intensity analysis otherwise.
-6. Processing button presses update an `AudioEditState` for the current field, including manual trim, speed, volume, and pause-shortening edits, then render a new MP3 with `audio_processor.py`.
+6. Processing button presses update an `AudioEditState` for the current field, including speed, volume, and pause-shortening edits, then render a new MP3 with `audio_processor.py`.
 7. Special transform controls call bundled or configured external cleanup tools through `audio_processor.py`, including DeepFilterNet, RNNoise, DPDFNet Lite, and Sherpa Spleeter voice extraction.
 8. `editor_integration.py` writes the result through Anki's media manager and replaces the first supported sound reference in the field.
 9. Playback uses Anki's audio player against the latest generated reference, stopping any previous playback first and seeking to the visualizer cursor when set.
@@ -73,7 +72,7 @@ The shared `remove_pauses` operation is DeepFilterNet-assisted and speeds long p
 1. `audio_processor.py` remains the side-effect boundary for ffmpeg, DeepFilterNet, and artifact filesystem writes.
 2. `audio_pipeline.py` is import-safe planning code for parsing `silencedetect` output, building pause timelines, generating filter scripts, and naming retained runs.
 3. Editor and Browser adapters pass `<addon_dir>/aqe_artifacts` into `render_audio(...)` so each pause-shortening run keeps its own provenance directory.
-4. The pipeline renders `01_working_original.wav` from the original source with manual trims, prepares `02_analysis_input_48k_mono.wav`, runs DeepFilterNet into `03_deep_filter_output/`, detects silence on the cleaned analysis audio, and renders the final MP3 from `01_working_original.wav`.
+4. The pipeline renders `01_working_original.wav` from the original source, prepares `02_analysis_input_48k_mono.wav`, runs DeepFilterNet into `03_deep_filter_output/`, detects silence on the cleaned analysis audio, and renders the final MP3 from `01_working_original.wav`.
 5. The artifact directory retains the working WAV, analysis WAV, DeepFilter output, raw silence metadata, parsed interval JSON, timeline JSON, generated `filter_complex` script, final MP3 copy, and `manifest.json`.
 6. DeepFilterNet is required for this operation. Failures keep the partial artifact directory, record a pause-pipeline support incident, and leave the note unchanged.
 
@@ -108,7 +107,7 @@ Config defaults are stored in `config.json` and migrated into user config:
 
 ```json
 {
-  "_config_version": 14,
+  "_config_version": 17,
   "enabled": true,
   "debug_logging": false,
   "show_ffmpeg_commands": false,
@@ -120,8 +119,6 @@ Config defaults are stored in `config.json` and migrated into user config:
   "graph_smoothness": "very_smooth",
   "graph_connect_short_dropouts_ms": 240,
   "graph_voice_lock": "balanced",
-  "manual_trim_small_ms": 100,
-  "manual_trim_large_ms": 500,
   "speed_step": 0.05,
   "min_speed": 0.75,
   "max_speed": 1.5,
@@ -137,12 +134,13 @@ Config defaults are stored in `config.json` and migrated into user config:
   "deep_filter_path": "",
   "deep_filter_post_filter": true,
   "dpdfnet_attn_limit_db": 12.0,
-  "denoise_algorithm": "standard"
+  "denoise_algorithm": "standard",
+  "pitch_hum_mode": "direct"
 }
 ```
 
 `config_migration.py` deep-merges defaults into user config and stamps the current schema version.
-Editor split-button choices are field-local runtime overrides. Settings provide defaults for trim amount, volume step, speed step, repeat pause, pause aggressiveness, cleanup action, and DPDFNet aggressiveness, but changing a split-button value in one editor field does not write back to persisted config or other fields.
+Editor split-button choices are field-local runtime overrides. Settings provide defaults for trim amount, volume step, speed step, repeat pause, pause aggressiveness, convert target format, cleanup action, pitch hum mode, and DPDFNet aggressiveness, but changing a split-button value in one editor field does not write back to persisted config or other fields.
 
 ## Source Of Truth
 

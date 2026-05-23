@@ -28,11 +28,13 @@ import {
   setRepeatPauseSeconds,
 } from "./actions.js";
 import { anyBusy, setCommandButtonLabel, setStatus } from "./control-actions.js";
+import { syncSelectionToolbar } from "./selection-toolbar-state.js";
 import { t } from "../lib/i18n.js";
 
 export function setPlaybackButtonLabel(visualizer: VisualizerElement, label: string): void {
   const ord = Number(visualizer.dataset.aqeFieldOrd || "0");
   setCommandButtonLabel(ord, "aqe:play", label);
+  syncSelectionToolbar(visualizer);
 }
 
 export function manualProgressMs(visualizer: VisualizerElement): number {

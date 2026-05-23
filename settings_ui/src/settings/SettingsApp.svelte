@@ -1,5 +1,6 @@
 <script lang="ts">
   import { onMount } from "svelte";
+  import "./styles.css";
 
   import { handleAsyncDone, handleAsyncProgress, startAsyncOp } from "$lib/async-jobs.js";
   import {
@@ -116,6 +117,7 @@
 
   <div class="tab-nav" role="tablist" aria-label={t("settings.tabs.label")}>
     <button
+      class="settings-tab"
       class:active={activeTab === "general"}
       role="tab"
       aria-selected={activeTab === "general"}
@@ -125,6 +127,7 @@
       {t("settings.tab.general")}
     </button>
     <button
+      class="settings-tab"
       class:active={activeTab === "diagnostics"}
       data-testid="settings-tab-diagnostics"
       role="tab"
@@ -170,7 +173,9 @@
   }
 
   .settings-root {
-    background: var(--canvas, Canvas);
+    background:
+      radial-gradient(circle at top, color-mix(in srgb, var(--canvas-elevated, Canvas) 74%, transparent), transparent 48%),
+      var(--canvas, Canvas);
     box-sizing: border-box;
     color: var(--fg, CanvasText);
     min-height: 100vh;
@@ -189,7 +194,7 @@
     display: flex;
     gap: 16px;
     justify-content: space-between;
-    margin-bottom: 20px;
+    margin-bottom: 24px;
   }
 
   .eyebrow {
@@ -212,8 +217,8 @@
   }
 
   .version-pill {
-    background: var(--canvas-elevated, transparent);
-    border: 1px solid var(--border, currentColor);
+    background: color-mix(in srgb, var(--canvas-elevated, Canvas) 88%, transparent);
+    border: 1px solid color-mix(in srgb, var(--border, currentColor) 76%, transparent);
     border-radius: 999px;
     font-weight: 600;
     padding: 10px 14px;
@@ -222,37 +227,44 @@
   .tab-nav {
     display: flex;
     gap: 10px;
-    margin-bottom: 18px;
+    margin-bottom: 20px;
   }
 
-  .tab-nav button {
+  .settings-tab {
     appearance: none;
-    background: var(--button-bg, transparent);
-    border: 1px solid var(--border-subtle, currentColor);
+    background: color-mix(in srgb, var(--canvas-elevated, Canvas) 72%, transparent);
+    border: 1px solid color-mix(in srgb, var(--border-subtle, var(--border, currentColor)) 80%, transparent);
     border-radius: 999px;
     color: var(--fg, currentColor);
     cursor: pointer;
     font: inherit;
+    min-height: 42px;
     padding: 10px 16px;
+    transition:
+      background-color 120ms ease,
+      border-color 120ms ease,
+      transform 120ms ease;
   }
 
-  .tab-nav button:hover {
+  .settings-tab:hover {
     background: var(--button-gradient-start, var(--button-bg, transparent));
     border-color: var(--button-hover-border, var(--border, currentColor));
+    transform: translateY(-1px);
   }
 
-  .tab-nav button.active {
+  .settings-tab.active {
+    background: color-mix(in srgb, var(--button-gradient-start, var(--button-bg, transparent)) 72%, transparent);
     border-color: var(--border-focus, var(--border, currentColor));
     font-weight: 700;
-    text-decoration: underline;
   }
 
   @media (max-width: 720px) {
     .settings-root {
-      padding: 16px;
+      padding: 20px;
     }
 
     .hero {
+      align-items: stretch;
       flex-direction: column;
     }
 

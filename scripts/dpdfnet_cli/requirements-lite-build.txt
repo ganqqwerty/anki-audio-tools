@@ -1,0 +1,6 @@
+ai-edge-litert==2.1.5; platform_system == "Windows"
+ai-edge-litert==2.1.5; platform_system == "Darwin" and platform_machine == "arm64"
+ai-edge-litert==1.0.1; platform_system == "Darwin" and platform_machine == "x86_64"
+numpy>=1.26,<2; platform_system == "Darwin" and platform_machine == "x86_64"
+numpy>=1.26,<3; platform_system != "Darwin" or platform_machine != "x86_64"
+pyinstaller>=6.10,<7

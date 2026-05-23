@@ -14,6 +14,43 @@ from e2e.helpers import click_selector, wait_for_condition
 
 ADDON_NUMERIC_ID = "1000000002"
 
+DEFAULT_VISIBLE_EDITOR_BUTTONS = (
+    "aqe:play",
+    "aqe:analyze",
+    "aqe:show-file",
+    "aqe:share",
+    "aqe:convert",
+    "aqe:remove-pauses",
+    "aqe:denoise-standard",
+    "aqe:pitch-hum",
+    "aqe:slower",
+    "aqe:faster",
+    "aqe:volume-down",
+    "aqe:volume-up",
+    "aqe:undo",
+    "aqe:redo",
+    "aqe:settings",
+)
+
+DEFAULT_EDITOR_BUTTON_MODES = {
+    "aqe:play": "text",
+    "aqe:analyze": "text",
+    "aqe:show-file": "text",
+    "aqe:share": "text",
+    "aqe:convert": "text",
+    "aqe:remove-pauses": "text",
+    "aqe:denoise-standard": "text",
+    "aqe:pitch-hum": "text",
+    "aqe:slower": "text",
+    "aqe:faster": "text",
+    "aqe:volume-down": "text",
+    "aqe:volume-up": "text",
+    "aqe:undo": "text",
+    "aqe:redo": "text",
+    "aqe:settings": "text",
+}
+
+
 def _basic_audio_note(anki_mw, audio_filename: str):
     notetype = anki_mw.col.models.by_name("Basic")
     assert notetype is not None
@@ -60,6 +97,8 @@ def _configure_ffmpeg(anki_mw, ffmpeg_config, **overrides: Any) -> None:
             "repeat_playback_by_default": False,
             "repeat_pause_seconds": 0.0,
             "show_graph_by_default": False,
+            "visible_editor_buttons": list(DEFAULT_VISIBLE_EDITOR_BUTTONS),
+            "editor_button_modes": dict(DEFAULT_EDITOR_BUTTON_MODES),
             **overrides,
         }
     )

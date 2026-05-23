@@ -8,7 +8,7 @@ import sys
 import textwrap
 from pathlib import Path
 
-from .process import _read_seconds_env, _run
+from .process import _read_seconds_env, _run, is_verbose
 from .python_env import _find_anki_python
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -21,14 +21,21 @@ def _pytest_args(target: str, *, collect_only: bool = False) -> list[str]:
     args = [
         "pytest",
         *target_args,
-        "-vv",
-        "--durations=20",
-        "-o",
-        "console_output_style=progress-even-when-capture-no",
     ]
+    if is_verbose():
+        args.extend(
+            [
+                "-vv",
+                "--durations=20",
+                "-o",
+                "console_output_style=progress-even-when-capture-no",
+            ]
+        )
+    else:
+        args.extend(["-q", "--tb=short", "-rfE"])
     if collect_only:
         args.append("--collect-only")
-    else:
+    elif is_verbose():
         args.extend(["-s", "--setup-show", "-o", "log_cli=true", "-o", "log_cli_level=INFO"])
     return args
 

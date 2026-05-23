@@ -25,7 +25,7 @@
   } = $props();
 </script>
 
-<div class="card">
+<div class="settings-card settings-stack">
   <h2>{t("diagnostics.title")}</h2>
   <dl class="meta-grid">
     <div>
@@ -49,7 +49,7 @@
   <div class="actions">
     <button
       type="button"
-      class="btn btn-primary"
+      class="settings-button settings-button-primary"
       data-testid="run-health-check"
       onclick={onRunHealthCheck}
     >
@@ -57,7 +57,7 @@
     </button>
     <button
       type="button"
-      class="btn btn-secondary"
+      class="settings-button"
       data-testid="copy-support-report"
       onclick={onCopySupportReport}
     >
@@ -65,21 +65,21 @@
     </button>
     <button
       type="button"
-      class="btn btn-secondary"
+      class="settings-button"
       data-testid="show-log-file"
       onclick={onShowLogFile}
     >
       {t("diagnostics.show_log_file")}
     </button>
     {#if healthProgress}
-      <p class="muted" data-testid="health-progress">
+      <p class="settings-muted progress-message" data-testid="health-progress">
         {healthProgress.progress}% - {healthProgress.message}
       </p>
     {/if}
   </div>
 
-  <p class="muted" data-testid="health-message">{healthMessage}</p>
-  <p class="muted" data-testid="diagnostics-message">{diagnosticsMessage}</p>
+  <p class="settings-muted" data-testid="health-message">{healthMessage}</p>
+  <p class="settings-muted" data-testid="diagnostics-message">{diagnosticsMessage}</p>
 
   {#if healthReport}
     <pre class="report" data-testid="health-report">{JSON.stringify(healthReport, null, 2)}</pre>
@@ -87,23 +87,21 @@
 </div>
 
 <style>
-  .card {
-    background: var(--canvas-elevated, transparent);
-    border: 1px solid var(--border, currentColor);
-    border-radius: 24px;
-    box-shadow: none;
-    color: var(--fg, currentColor);
-    padding: 24px;
-  }
-
   h2 {
     margin-top: 0;
   }
 
   .meta-grid {
     display: grid;
-    gap: 16px;
+    gap: 14px;
     grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  }
+
+  .meta-grid > div {
+    background: color-mix(in srgb, var(--canvas-inset, transparent) 58%, transparent);
+    border: 1px solid color-mix(in srgb, var(--border-subtle, var(--border, currentColor)) 72%, transparent);
+    border-radius: 18px;
+    padding: 14px 16px;
   }
 
   dt {
@@ -121,33 +119,8 @@
   .actions {
     align-items: center;
     display: flex;
-    gap: 14px;
-    margin-top: 18px;
-  }
-
-  .btn {
-    appearance: none;
-    background: var(--button-bg, transparent);
-    border: 1px solid var(--border-subtle, currentColor);
-    border-radius: 999px;
-    color: var(--fg, currentColor);
-    cursor: pointer;
-    font: inherit;
-    padding: 10px 16px;
-  }
-
-  .btn:hover {
-    background: var(--button-gradient-start, var(--button-bg, transparent));
-    border-color: var(--button-hover-border, var(--border, currentColor));
-  }
-
-  .btn-primary {
-    border-color: var(--border-focus, var(--border, currentColor));
-    font-weight: 700;
-  }
-
-  .muted {
-    color: var(--fg-subtle, currentColor);
+    flex-wrap: wrap;
+    gap: 12px;
   }
 
   .report {
@@ -158,5 +131,9 @@
     margin-top: 16px;
     overflow: auto;
     padding: 16px;
+  }
+
+  .progress-message {
+    margin: 0;
   }
 </style>

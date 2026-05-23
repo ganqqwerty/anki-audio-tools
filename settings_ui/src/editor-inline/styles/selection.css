@@ -1,0 +1,289 @@
+.aqe-selection {
+  fill: Highlight;
+  fill-opacity: 0.2;
+  filter:
+    drop-shadow(0 0 2px rgb(255 255 255 / 70%))
+    drop-shadow(0 0 8px rgb(72 145 255 / 52%));
+  pointer-events: none;
+  stroke: Highlight;
+  stroke-opacity: 0.65;
+  stroke-width: 1;
+  vector-effect: non-scaling-stroke;
+}
+
+.aqe-selection-draft {
+  fill: currentColor;
+  fill-opacity: 0.24;
+  filter: none;
+  stroke: currentColor;
+}
+
+.aqe-visualizer[data-selection-toolbar-preview="region"] .aqe-selection {
+  fill: rgb(225 29 72 / 42%);
+  stroke: rgb(255 182 193 / 52%);
+  stroke-opacity: 1;
+  stroke-width: 1;
+  filter: saturate(1.04) brightness(1.02);
+}
+
+.aqe-selection-region-preview-halo {
+  background: radial-gradient(
+    ellipse at 50% 50%,
+    rgb(255 255 255 / 0.34),
+    rgb(255 255 255 / 0.14) 38%,
+    rgb(255 255 255 / 0.04) 62%,
+    transparent 82%
+  );
+  border-radius: 999px;
+  display: none;
+  filter: blur(1.2px);
+  height: 24px;
+  left: var(--aqe-selection-start-px, 44px);
+  opacity: 0;
+  pointer-events: none;
+  position: absolute;
+  width: max(0px, calc(var(--aqe-selection-end-px, 44px) - var(--aqe-selection-start-px, 44px)));
+  z-index: 3;
+}
+
+.aqe-visualizer[data-selection-toolbar-preview="region"] .aqe-selection-region-preview-halo {
+  display: block;
+}
+
+.aqe-selection-region-preview-halo-top,
+.aqe-selection-region-preview-halo-bottom {
+  top: calc(var(--aqe-plot-top-px, 10px) + (var(--aqe-plot-height-px, 106px) / 2) - 12px);
+}
+
+.aqe-visualizer[data-selection-toolbar-preview="region"] .aqe-selection-region-preview-halo-top {
+  animation: aqe-selection-region-halo-up 5.2s linear infinite;
+}
+
+.aqe-visualizer[data-selection-toolbar-preview="region"] .aqe-selection-region-preview-halo-bottom {
+  animation: aqe-selection-region-halo-down 5.2s linear infinite;
+}
+
+.aqe-selection-edge {
+  opacity: 0.65;
+  pointer-events: none;
+  stroke: currentColor;
+  stroke-dasharray: none;
+  stroke-width: 1;
+}
+
+.aqe-selection-resize-handle {
+  cursor: ew-resize;
+  fill: ButtonFace;
+  filter: none;
+  opacity: 0.96;
+  pointer-events: auto;
+  stroke: currentColor;
+  stroke-width: 1.25;
+  vector-effect: non-scaling-stroke;
+  opacity: 0.82;
+}
+
+.aqe-selection-resize-handle:hover {
+  filter: drop-shadow(0 0 5px var(--aqe-resize-halo));
+}
+
+.aqe-selection-resize-handle.aqe-selection-resize-dragging,
+.aqe-selection-resize-grip.aqe-selection-resize-dragging {
+  opacity: 0.42;
+}
+
+.aqe-selection-resize-grip {
+  opacity: 0.48;
+  pointer-events: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-width: 1;
+  vector-effect: non-scaling-stroke;
+}
+
+.aqe-selection-rest-preview {
+  background: linear-gradient(180deg, rgb(225 29 72 / 48%), rgb(225 29 72 / 20%));
+  border-color: rgb(255 182 193 / 45%);
+  display: none;
+  height: var(--aqe-plot-height-px, 106px);
+  pointer-events: none;
+  position: absolute;
+  top: var(--aqe-plot-top-px, 10px);
+  z-index: 3;
+}
+
+.aqe-visualizer[data-selection-toolbar-preview="rest"] .aqe-selection-rest-preview {
+  display: block;
+}
+
+.aqe-selection-rest-preview-before {
+  border-right: 1px solid;
+  left: var(--aqe-plot-left-px, 44px);
+  width: max(0px, calc(var(--aqe-selection-start-px, 44px) - var(--aqe-plot-left-px, 44px)));
+}
+
+.aqe-selection-rest-preview-after {
+  border-left: 1px solid;
+  left: var(--aqe-selection-end-px, 0px);
+  right: var(--aqe-plot-right-px, 10px);
+}
+
+.aqe-selection-toolbar {
+  align-items: center;
+  background: Canvas;
+  border: 1px solid;
+  border-color: ButtonBorder;
+  border-radius: 8px;
+  box-shadow: 0 3px 10px rgb(0 0 0 / 20%);
+  box-sizing: border-box;
+  display: flex;
+  gap: 2px;
+  height: 30px;
+  left: var(--aqe-selection-toolbar-left-px, 0px);
+  padding: 2px;
+  position: absolute;
+  top: var(--aqe-selection-toolbar-top-px, 0px);
+  transform: translate(calc(-100% + 6px), 4px);
+  z-index: 4;
+}
+
+.aqe-selection-toolbar[hidden],
+.aqe-selection-toolbar-dot[hidden],
+.aqe-selection-toolbar-dot[aria-hidden="true"] {
+  display: none;
+}
+
+.aqe-selection-toolbar-button {
+  border-radius: 6px;
+  box-sizing: border-box;
+  gap: 0;
+  height: 26px;
+  justify-content: center;
+  min-height: 26px;
+  min-width: 26px;
+  padding: 0;
+  width: 26px;
+}
+
+.aqe-selection-toolbar-button:hover {
+  text-decoration: none;
+}
+
+.aqe-selection-toolbar-button:focus-visible {
+  outline: 2px solid Highlight;
+  outline-offset: 2px;
+}
+
+.aqe-selection-toolbar-dot:focus-visible {
+  outline: none;
+}
+
+.aqe-selection-toolbar-button[disabled] {
+  cursor: default;
+  opacity: 0.55;
+}
+
+.aqe-selection-toolbar-dot {
+  box-sizing: border-box;
+  color: #2f80ed;
+  cursor: pointer;
+  height: 16px;
+  left: var(--aqe-selection-toolbar-left-px, 0px);
+  overflow: visible;
+  position: absolute;
+  top: var(--aqe-selection-toolbar-top-px, 0px);
+  transform: translate(-50%, 8px);
+  width: 16px;
+  z-index: 4;
+}
+
+.aqe-selection-toolbar-dot-halo {
+  animation: aqe-selection-toolbar-dot-pulse 6s ease-in-out infinite;
+  fill: none;
+  opacity: 0.2;
+  stroke: currentColor;
+  stroke-width: 3.25;
+}
+
+.aqe-selection-toolbar-dot-ring {
+  fill: Canvas;
+  stroke: currentColor;
+  stroke-width: 2.25;
+}
+
+.aqe-selection-toolbar-dot:hover .aqe-selection-toolbar-dot-halo,
+.aqe-selection-toolbar-dot:focus-visible .aqe-selection-toolbar-dot-halo {
+  animation-name: aqe-selection-toolbar-dot-pulse-strong;
+  opacity: 0.38;
+  stroke-width: 5.5;
+}
+
+.aqe-selection-toolbar-dot:focus-visible .aqe-selection-toolbar-dot-ring {
+  stroke-width: 3;
+}
+
+@keyframes aqe-selection-toolbar-dot-pulse {
+  0%,
+  100% {
+    opacity: 0.15;
+    stroke-width: 2.75;
+  }
+
+  50% {
+    opacity: 0.28;
+    stroke-width: 4.25;
+  }
+}
+
+@keyframes aqe-selection-toolbar-dot-pulse-strong {
+  0%,
+  100% {
+    opacity: 0.28;
+    stroke-width: 4;
+  }
+
+  50% {
+    opacity: 0.48;
+    stroke-width: 6;
+  }
+}
+
+@keyframes aqe-selection-region-halo-up {
+  0% {
+    opacity: 0;
+    transform: translateY(0) scaleX(1.02) scaleY(1.08);
+  }
+
+  12% {
+    opacity: 0.34;
+  }
+
+  70% {
+    opacity: 0.12;
+  }
+
+  100% {
+    opacity: 0;
+    transform: translateY(-34px) scaleX(1) scaleY(1);
+  }
+}
+
+@keyframes aqe-selection-region-halo-down {
+  0% {
+    opacity: 0;
+    transform: translateY(0) scaleX(1.02) scaleY(1.08);
+  }
+
+  12% {
+    opacity: 0.34;
+  }
+
+  70% {
+    opacity: 0.12;
+  }
+
+  100% {
+    opacity: 0;
+    transform: translateY(34px) scaleX(1) scaleY(1);
+  }
+}

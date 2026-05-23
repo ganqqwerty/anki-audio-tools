@@ -1,0 +1,188 @@
+.aqe-split-button {
+  display: inline-flex;
+  position: relative;
+}
+
+.aqe-split-group {
+  display: inline-flex;
+}
+
+.aqe-split-primary {
+  border-bottom-right-radius: 0;
+  border-right-width: 0;
+  border-top-right-radius: 0;
+  gap: 2px;
+  padding-left: 6px;
+  padding-right: 6px;
+}
+
+.aqe-split-primary-middle {
+  border-bottom-left-radius: 0;
+  border-top-left-radius: 0;
+}
+
+.aqe-split-menu-button {
+  border-bottom-left-radius: 0;
+  border-top-left-radius: 0;
+  min-width: 18px;
+  padding-left: 0;
+  padding-right: 0;
+}
+
+.aqe-split-popover {
+  background: Canvas;
+  border: 1px solid;
+  border-color: ButtonBorder;
+  border-radius: 8px;
+  box-sizing: border-box;
+  box-shadow: 0 10px 24px rgb(0 0 0 / 22%);
+  display: grid;
+  gap: 8px;
+  max-height: calc(100vh - 16px);
+  max-width: calc(100vw - 16px);
+  min-width: min(210px, calc(100vw - 16px));
+  overflow: auto;
+  padding: 10px;
+  z-index: var(--aqe-floating-z-index, 10000);
+}
+
+.aqe-split-popover-arrow {
+  color: Canvas;
+  display: inline-flex;
+}
+
+.aqe-split-popover-arrow svg {
+  display: block;
+  filter: drop-shadow(0 0 1px ButtonBorder);
+}
+
+.aqe-graph-split-popover {
+  min-width: min(300px, calc(100vw - 16px));
+}
+
+.aqe-split-popover-header,
+.aqe-split-range-labels,
+.aqe-split-presets {
+  align-items: center;
+  display: flex;
+}
+
+.aqe-split-popover-header,
+.aqe-split-range-labels {
+  justify-content: space-between;
+}
+
+.aqe-split-popover-header-with-action {
+  gap: 8px;
+}
+
+.aqe-split-popover-title {
+  align-items: center;
+  display: inline-flex;
+  flex: 1 1 auto;
+  font-size: 12px;
+  gap: 8px;
+  justify-content: space-between;
+  min-width: 0;
+}
+
+.aqe-split-popover-header span,
+.aqe-split-range-labels {
+  font-size: 11px;
+}
+
+.aqe-split-default-save {
+  flex: 0 0 auto;
+  min-height: 24px;
+  min-width: 24px;
+  padding: 3px;
+}
+
+.aqe-split-default-save-saved {
+  box-shadow: inset 0 0 0 1px ButtonBorder;
+}
+
+.aqe-split-popover-description {
+  color: GrayText;
+  font-size: 11px;
+  line-height: 1.4;
+  margin: 0;
+}
+
+.aqe-split-value-input {
+  background: Field;
+  border: 1px solid;
+  border-color: ButtonBorder;
+  border-radius: 5px;
+  box-sizing: border-box;
+  color: FieldText;
+  font: inherit;
+  font-size: 11px;
+  min-height: 24px;
+  padding: 2px 4px;
+  text-align: right;
+  width: 66px;
+}
+
+.aqe-split-presets {
+  gap: 5px;
+}
+
+.aqe-split-preset {
+  font-size: 11px;
+  min-height: 24px;
+  padding: 3px 6px;
+}
+
+.aqe-split-preset[aria-pressed="true"] {
+  box-shadow: inset 0 0 0 1px ButtonBorder;
+}
+
+.aqe-split-preset[aria-checked="true"] {
+  box-shadow: inset 0 0 0 1px ButtonBorder;
+}
+
+.aqe-graph-options {
+  display: grid;
+  gap: 10px;
+}
+
+.aqe-graph-option {
+  display: grid;
+  gap: 4px;
+}
+
+.aqe-graph-option-group {
+  flex-wrap: wrap;
+}
+
+.aqe-graph-option > span:first-child {
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.aqe-graph-option-value {
+  color: GrayText;
+  font-size: 11px;
+  justify-self: end;
+}
+
+.aqe-play-split-popover {
+  min-width: min(240px, calc(100vw - 16px));
+}
+
+.aqe-split-popover-footer {
+  display: flex;
+  justify-content: flex-end;
+  padding-top: 2px;
+}
+
+.aqe-split-run-button {
+  min-height: 26px;
+  min-width: 62px;
+}
+
+.aqe-repeat-toggle-button {
+  justify-content: flex-start;
+  width: 100%;
+}

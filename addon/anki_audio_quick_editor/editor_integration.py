@@ -111,14 +111,17 @@ _handle_pending_command_payload = editor_callbacks._handle_pending_command_paylo
 _handle_non_processing_command = editor_callbacks._handle_non_processing_command
 _handle_editor_frontend_log = editor_callbacks._handle_editor_frontend_log
 _log_editor_frontend_payload = editor_callbacks._log_editor_frontend_payload
+_save_split_defaults_from_frontend = editor_callbacks._save_split_defaults_from_frontend
 _update_state_and_render = editor_callbacks._update_state_and_render
 _render_and_replace_async = editor_callbacks._render_and_replace_async
 _replace_current_field_after_render = editor_callbacks._replace_current_field_after_render
 _render_failed = editor_callbacks._render_failed
 _denoise_standard_async = editor_callbacks._denoise_standard_async
+_convert_async = editor_callbacks._convert_async
 _rnnoise_async = editor_callbacks._rnnoise_async
 _dpdfnet_async = editor_callbacks._dpdfnet_async
 _voice_only_async = editor_callbacks._voice_only_async
+_pitch_hum_async = editor_callbacks._pitch_hum_async
 _run_special_audio_transform_async = editor_callbacks._run_special_audio_transform_async
 _delete_selection_from_frontend = editor_callbacks._delete_selection_from_frontend
 _delete_selection_with_request = editor_callbacks._delete_selection_with_request
@@ -148,6 +151,9 @@ _restore_history_entry = editor_callbacks._restore_history_entry
 _open_settings_from_editor = editor_callbacks._open_settings_from_editor
 _refresh_editor_after_settings_save = editor_callbacks._refresh_editor_after_settings_save
 _show_current_audio_file = editor_callbacks._show_current_audio_file
+_share_current_audio_file = editor_callbacks._share_current_audio_file
+_finish_shared_audio = editor_callbacks._finish_shared_audio
+_share_failed = editor_callbacks._share_failed
 _record_rnnoise_failure_context = editor_callbacks._record_rnnoise_failure_context
 _record_dpdfnet_failure_context = editor_callbacks._record_dpdfnet_failure_context
 _record_spleeter_failure_context = editor_callbacks._record_spleeter_failure_context
@@ -205,18 +211,31 @@ def _on_editor_will_load_note(js: str, note: Any, editor: Any) -> str:
     _SESSIONS.setdefault(editor, EditorSession()).note_id = getattr(note, "id", None)
     config = _config(editor)
     audio_field_sources = _audio_field_sources(note)
+    visible_editor_buttons = config.get("visible_editor_buttons", [])
+    if not isinstance(visible_editor_buttons, list):
+        visible_editor_buttons = []
+    editor_button_modes = config.get("editor_button_modes", {})
+    if not isinstance(editor_button_modes, dict):
+        editor_button_modes = {}
     script = injection_script(
         list(audio_field_sources),
         audio_field_sources=audio_field_sources,
         repeat_playback_by_default=bool(config.get("repeat_playback_by_default", False)),
         show_graph_by_default=bool(config.get("show_graph_by_default", False)),
+        visible_editor_buttons=[str(command) for command in visible_editor_buttons],
+        editor_button_modes={
+            str(command): str(mode)
+            for command, mode in editor_button_modes.items()
+            if isinstance(command, str) and isinstance(mode, str)
+        },
         split_button_defaults={
-            "trimStepMs": int(config.get("manual_trim_small_ms", 100)),
             "volumeStepDb": float(config.get("volume_step_db", 3.0)),
             "speedStep": float(config.get("speed_step", 0.05)),
             "repeatPauseSeconds": float(config.get("repeat_pause_seconds", 0.0)),
             "pauseAggressiveness": str(config.get("pause_aggressiveness", "normal")),
             "denoiseAlgorithm": str(config.get("denoise_algorithm", "standard")),
+            "pitchHumMode": str(config.get("pitch_hum_mode", "direct")),
+            "outputFormat": str(config.get("output_format", "mp3")),
             "dpdfnetAttnLimitDb": float(config.get("dpdfnet_attn_limit_db", 12.0)),
             "graphVoiceRange": str(config.get("graph_voice_range", "general")),
             "graphRecordingCondition": str(config.get("graph_recording_condition", "auto")),
@@ -237,3 +256,14 @@ def _reset_editor_session_for_note_load(editor: Any, note_id: int | None = None)
     if not reset_for_note_load(session, note_id):
         return
     _stop_session_playback(session)
+    if not hasattr(editor, "web"):
+        return
+    editor.web.eval(
+        "(() => {"
+        "window.__aqeHistoryAvailabilityByField = {};"
+        "document.querySelectorAll('.aqe-controls').forEach((controls) => {"
+        "const ord = Number(controls.dataset.aqeFieldOrd || '0');"
+        "window.__aqeSetHistoryAvailability && window.__aqeSetHistoryAvailability(ord, false, false);"
+        "});"
+        "})()"
+    )

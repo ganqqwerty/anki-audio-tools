@@ -3,7 +3,6 @@
   import EditorCommandIcon from "./EditorCommandIcon.svelte";
 
   const { ord }: { ord: number } = $props();
-  const trimStepMs = window.__AQE_EDITOR_CONFIG__?.splitButtonDefaults?.trimStepMs ?? 100;
 </script>
 
 <details class="aqe-help" data-testid={`aqe-help-${ord}`}>
@@ -38,16 +37,20 @@
           <span class="aqe-help-description">{t("editor.help.folder_desc")}</span>
         </span>
         <span class="aqe-help-item">
-          <span class="aqe-help-command"><EditorCommandIcon icon="scissors" /><span>-L</span></span>
-          <span class="aqe-help-description">{t("editor.help.trim_left_desc", { ms: trimStepMs })}</span>
+          <span class="aqe-help-command"><EditorCommandIcon icon="share-2" /><span>{t("editor.command.share.label")}</span></span>
+          <span class="aqe-help-description">{t("editor.help.share_desc")}</span>
         </span>
         <span class="aqe-help-item">
-          <span class="aqe-help-command"><EditorCommandIcon icon="scissors" /><span>-R</span></span>
-          <span class="aqe-help-description">{t("editor.help.trim_right_desc", { ms: trimStepMs })}</span>
+          <span class="aqe-help-command"><EditorCommandIcon icon="file-audio" /><span>{t("editor.command.convert.label")}</span></span>
+          <span class="aqe-help-description">{t("editor.help.convert_desc")}</span>
         </span>
         <span class="aqe-help-item">
           <span class="aqe-help-command"><EditorCommandIcon icon="timer-reset" /><span>{t("editor.command.shorten_pauses.label")}</span></span>
           <span class="aqe-help-description">{t("editor.help.shorten_pauses_desc")}</span>
+        </span>
+        <span class="aqe-help-item">
+          <span class="aqe-help-command"><EditorCommandIcon icon="waves" /><span>{t("editor.command.pitch_hum.label")}</span></span>
+          <span class="aqe-help-description">{t("editor.help.pitch_hum_desc")}</span>
         </span>
         <span class="aqe-help-item">
           <span class="aqe-help-command"><EditorCommandIcon icon="sparkles" /><span>{t("editor.command.denoise.label")}</span></span>

@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, replace
 
+from .audio_formats import DEFAULT_OUTPUT_FORMAT, normalize_output_format
 from .dpdfnet_settings import (
     DEFAULT_DPDFNET_ATTENUATION_LIMIT_DB,
     normalize_dpdfnet_attn_limit_db,
@@ -21,8 +22,6 @@ GraphVoiceLock = str
 class AudioProcessingConfig:
     """Runtime audio processing settings loaded from add-on config."""
 
-    manual_trim_small_ms: int = 100
-    manual_trim_large_ms: int = 500
     speed_step: float = 0.05
     min_speed: float = 0.75
     max_speed: float = 1.5
@@ -33,12 +32,13 @@ class AudioProcessingConfig:
     internal_pause_threshold_ms: int = 300
     internal_pause_target_gap_ms: int = 100
     pause_aggressiveness: str = "normal"
-    output_format: str = "mp3"
+    output_format: str = DEFAULT_OUTPUT_FORMAT
     ffmpeg_path: str = ""
     deep_filter_path: str = ""
     deep_filter_post_filter: bool = True
     dpdfnet_attn_limit_db: float = DEFAULT_DPDFNET_ATTENUATION_LIMIT_DB
     denoise_algorithm: str = "standard"
+    pitch_hum_mode: str = "direct"
     show_ffmpeg_commands: bool = False
     graph_voice_range: GraphVoiceRange = "general"
     graph_recording_condition: GraphRecordingCondition = "auto"
@@ -50,8 +50,6 @@ class AudioProcessingConfig:
     def from_config(cls, config: dict[str, ConfigValue]) -> "AudioProcessingConfig":
         """Build typed settings from persisted add-on config."""
         return cls(
-            manual_trim_small_ms=int(config.get("manual_trim_small_ms", cls.manual_trim_small_ms)),
-            manual_trim_large_ms=int(config.get("manual_trim_large_ms", cls.manual_trim_large_ms)),
             speed_step=float(config.get("speed_step", cls.speed_step)),
             min_speed=float(config.get("min_speed", cls.min_speed)),
             max_speed=float(config.get("max_speed", cls.max_speed)),
@@ -73,7 +71,7 @@ class AudioProcessingConfig:
             pause_aggressiveness=str(
                 config.get("pause_aggressiveness", cls.pause_aggressiveness)
             ),
-            output_format=str(config.get("output_format", cls.output_format)),
+            output_format=normalize_output_format(config.get("output_format", cls.output_format)),
             ffmpeg_path=str(config.get("ffmpeg_path", cls.ffmpeg_path)),
             deep_filter_path=str(config.get("deep_filter_path", cls.deep_filter_path)),
             deep_filter_post_filter=bool(
@@ -83,6 +81,7 @@ class AudioProcessingConfig:
                 config.get("dpdfnet_attn_limit_db", cls.dpdfnet_attn_limit_db)
             ),
             denoise_algorithm=str(config.get("denoise_algorithm", cls.denoise_algorithm)),
+            pitch_hum_mode=str(config.get("pitch_hum_mode", cls.pitch_hum_mode)),
             show_ffmpeg_commands=bool(
                 config.get("show_ffmpeg_commands", cls.show_ffmpeg_commands)
             ),

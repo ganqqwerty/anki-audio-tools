@@ -6,7 +6,6 @@
 
 **Architecture:** Keep Browser/UI wiring, batch execution, and editor bridge command decoding separated. Add a small import-safe shared parameter module that owns validation, clamping, and effective `AudioProcessingConfig` construction; then have `editor_actions.py` and `batch_operations.py` depend on that module instead of depending on each other. The Browser dialog becomes an adapter that presents Qt controls and serializes selected values into `BatchRunRequest`.
 
-**Tech Stack:** Python 3.13, Anki 25.09 Browser hooks, Qt widgets from `aqt.qt`, pytest architecture/unit tests, GitNexus impact checks, existing `python3 scripts/dev.py check` QC gate.
 
 ---
 
@@ -45,8 +44,6 @@
 - New shared parameter code must be import-safe and must depend only on `audio_state.py`.
 - The legacy `batch_visualization.process_note_visualization()` wrapper must continue to work without passing explicit parameters.
 - Existing plain-string editor commands must keep working.
-- GitNexus impact checks must be run before modifying any function, class, or method touched by the implementation.
-- `gitnexus_detect_changes(scope="all")` must be run before any commit.
 - Architecture tests are a hard requirement. The implementation is not acceptable until the affected architecture tests, the full `tests/test_architecture` suite, and the import-linter architecture gate pass.
 - E2E tests are a hard requirement. The feature is not complete until `python3 scripts/dev.py test-e2e` passes.
 - A focused unit-test pass alone is insufficient for completion, even if the changed behavior is covered by unit tests.
@@ -83,7 +80,6 @@
 - `browser_integration.py`
   - No new dependency required; it already imports `audio_state` and can pass `AudioProcessingConfig` to the dialog.
 
-### GitNexus Findings Already Collected
 
 - `register_browser_hooks` upstream impact: LOW risk, one direct caller: `_setup_browser_integration`.
 - `BatchOperationsDialog` upstream impact: LOW risk, direct import from `browser_integration.py`.
@@ -125,8 +121,6 @@
 Run:
 
 ```text
-gitnexus_impact({repo: "anki-audio-tools", target: "register_browser_hooks", file_path: "addon/anki_audio_quick_editor/browser_integration.py", direction: "upstream", includeTests: true})
-gitnexus_impact({repo: "anki-audio-tools", target: "_on_browser_will_show_context_menu", file_path: "addon/anki_audio_quick_editor/browser_integration.py", direction: "upstream", includeTests: true})
 ```
 
 Expected: LOW risk. Direct test consumers should be in `tests/test_browser_integration.py`.
@@ -470,9 +464,6 @@ Expected: PASS.
 Run:
 
 ```text
-gitnexus_impact({repo: "anki-audio-tools", target: "decode_editor_command_payload", file_path: "addon/anki_audio_quick_editor/editor_actions.py", direction: "upstream", includeTests: true})
-gitnexus_impact({repo: "anki-audio-tools", target: "processing_config_for_command", file_path: "addon/anki_audio_quick_editor/editor_actions.py", direction: "upstream", includeTests: true})
-gitnexus_impact({repo: "anki-audio-tools", target: "apply_processing_command", file_path: "addon/anki_audio_quick_editor/editor_actions.py", direction: "upstream", includeTests: true})
 ```
 
 Expected: editor processing tests and bridge tests are direct consumers.
@@ -510,7 +501,6 @@ def _overrides_from_raw(raw: Any) -> EditorCommandOverrides:
     if not isinstance(raw, dict):
         return EditorCommandOverrides()
     params = parameters_from_raw(
-        trim_step_ms=raw.get("trimStepMs"),
         volume_step_db=raw.get("volumeStepDb"),
         speed_step=raw.get("speedStep"),
         pause_aggressiveness=raw.get("pauseAggressiveness"),
@@ -545,7 +535,6 @@ def processing_config_for_command(
     )
 ```
 
-Keep trim handling in `apply_processing_command()` because trim-left/right are editor commands, not shared `audio_operations` transforms.
 
 - [ ] **Step 4: Run editor and architecture tests**
 
@@ -569,9 +558,6 @@ Expected: PASS, with no `aqe:` strings introduced into batch core modules.
 Run:
 
 ```text
-gitnexus_impact({repo: "anki-audio-tools", target: "BatchRunRequest", file_path: "addon/anki_audio_quick_editor/batch_operations.py", direction: "upstream", includeTests: true})
-gitnexus_impact({repo: "anki-audio-tools", target: "process_note_batch_operation", file_path: "addon/anki_audio_quick_editor/batch_operations.py", direction: "upstream", includeTests: true})
-gitnexus_impact({repo: "anki-audio-tools", target: "_process_transform_operation", file_path: "addon/anki_audio_quick_editor/batch_operations.py", direction: "upstream", includeTests: true})
 ```
 
 Expected: LOW to MEDIUM risk. Direct consumers are browser integration, batch visualization wrapper, and batch tests.
@@ -725,8 +711,6 @@ Expected: PASS.
 Run:
 
 ```text
-gitnexus_impact({repo: "anki-audio-tools", target: "BatchOperationsDialog", file_path: "addon/anki_audio_quick_editor/browser_dialog.py", direction: "upstream", includeTests: true})
-gitnexus_impact({repo: "anki-audio-tools", target: "_create_dialog", file_path: "addon/anki_audio_quick_editor/browser_integration.py", direction: "upstream", includeTests: true})
 ```
 
 Expected: LOW risk. Browser integration is the only production constructor.
@@ -1159,12 +1143,10 @@ python3 scripts/dev.py test-e2e
 
 Expected: PASS.
 
-- [ ] **Step 7: Run GitNexus changed-flow detection before committing**
 
 Run:
 
 ```text
-gitnexus_detect_changes({repo: "anki-audio-tools", scope: "all"})
 ```
 
 Expected: changed symbols are limited to Browser hook/dialog wiring, shared operation parameters, editor action delegation, batch operation request/execution, tests, and locale strings.
@@ -1191,7 +1173,6 @@ Expected: changed symbols are limited to Browser hook/dialog wiring, shared oper
 
 ## Deferred Scope
 
-- Adding batch trim-left/trim-right operations.
 - Adding batch denoise operations.
 - Converting batch dialog to Svelte/WebView UI.
 - Remembering last-used batch parameter choices independently from settings.

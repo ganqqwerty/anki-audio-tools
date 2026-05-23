@@ -6,7 +6,6 @@
 
 **Architecture:** Keep the feature inside the existing inline-editor frontend. Add pure resize math to selection state, render SVG handles beside the selected region edges, and route handle pointer events through a resize gesture that reuses draft/commit selection state and existing playback controls.
 
-**Tech Stack:** Svelte 5 inline editor, TypeScript, Vitest/jsdom frontend tests, Python e2e tests against Anki/Qt, GitNexus for pre-edit and pre-commit impact checks.
 
 ---
 
@@ -27,7 +26,6 @@
 - Modify `e2e/editor_region_loop_helpers.py`: add handle drag helpers that dispatch pointer events to the SVG handle elements.
 - Add `e2e/test_editor_region_resize_workflow.py`: selected-region resize e2e coverage including playback and delete-region consumers.
 
-## GitNexus Baseline
 
 Pre-plan impact checks already run on 2026-05-19:
 
@@ -37,7 +35,6 @@ Pre-plan impact checks already run on 2026-05-19:
 - `setSelection` in `settings_ui/src/editor-inline/selection-controller.ts`: LOW risk, 1 direct caller (`commitSelectionDraft`).
 - `normalizeSelectionRange` in `settings_ui/src/editor-inline/selection-state.ts`: LOW risk, 4 direct callers plus `commitDraftSelectionState`.
 
-If implementation changes any additional function, class, or method not listed above, run `mcp__gitnexus__.impact` on that symbol before editing it.
 
 ### Task 1: Pure Resize Math
 
@@ -45,9 +42,7 @@ If implementation changes any additional function, class, or method not listed a
 - Modify: `settings_ui/tests/selection-state.test.ts`
 - Modify: `settings_ui/src/editor-inline/selection-state.ts`
 
-- [ ] **Step 1: Run pre-edit GitNexus impact for the existing selection math symbol**
 
-Use the GitNexus MCP tool:
 
 ```json
 {
@@ -182,9 +177,7 @@ npm run test -- selection-state.test.ts
 
 Expected: PASS for all `selection-state.test.ts` tests.
 
-- [ ] **Step 6: Run GitNexus change detection before committing**
 
-Use the GitNexus MCP tool:
 
 ```json
 {
@@ -212,9 +205,7 @@ git commit -m "Add selection resize range math"
 - Modify: `settings_ui/src/editor-inline/test-contract.ts`
 - Modify: `settings_ui/tests/editor-inline.selection.integration.test.ts`
 
-- [ ] **Step 1: Run pre-edit GitNexus impact for the renderer symbol**
 
-Use the GitNexus MCP tool:
 
 ```json
 {
@@ -446,9 +437,7 @@ npm run check
 
 Expected: PASS.
 
-- [ ] **Step 10: Run GitNexus change detection before committing**
 
-Use the GitNexus MCP tool:
 
 ```json
 {
@@ -474,9 +463,7 @@ git commit -m "Show selected region resize handles"
 - Modify: `settings_ui/src/editor-inline/actions.ts`
 - Modify: `settings_ui/src/editor-inline/selection-gestures.ts`
 
-- [ ] **Step 1: Run pre-edit GitNexus impact for gesture symbols**
 
-Use the GitNexus MCP tool twice:
 
 ```json
 {
@@ -786,9 +773,7 @@ npm run check
 
 Expected: PASS.
 
-- [ ] **Step 9: Run GitNexus change detection before committing**
 
-Use the GitNexus MCP tool:
 
 ```json
 {
@@ -982,9 +967,7 @@ npm run test -- editor-inline.selection-playback.integration.test.ts editor-inli
 
 Expected: PASS.
 
-- [ ] **Step 5: Run GitNexus change detection before committing**
 
-Use the GitNexus MCP tool:
 
 ```json
 {
@@ -1319,9 +1302,7 @@ python3 scripts/dev.py test-e2e e2e/test_editor_region_loop_workflow.py e2e/test
 
 Expected: PASS.
 
-- [ ] **Step 7: Run GitNexus change detection before committing**
 
-Use the GitNexus MCP tool:
 
 ```json
 {
@@ -1376,9 +1357,7 @@ python3 scripts/dev.py check
 
 Expected: PASS.
 
-- [ ] **Step 4: Run GitNexus change detection before final commit or PR**
 
-Use the GitNexus MCP tool:
 
 ```json
 {
@@ -1391,14 +1370,12 @@ Expected: changed symbols and affected flows match inline-editor selected region
 
 - [ ] **Step 5: Summarize implementation state**
 
-If Step 1, 2, or 3 fails, do not make an unspecific verification commit from this task. Return to the task that introduced the failing file, apply a concrete fix there, rerun that task's tests, rerun GitNexus change detection, and commit with that task's exact staged files.
 
 Report:
 
 ```text
 Implemented visible resize handles for selected audio regions.
 Verified frontend validation and focused e2e region resize/playback/delete workflows.
-GitNexus change detection showed only expected inline-editor selection/playback flows.
 ```
 
 ## Self-Review Notes

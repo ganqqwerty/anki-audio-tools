@@ -33,6 +33,17 @@ def test_make_output_filename_is_mp3_and_timestamped() -> None:
     assert filename == "my_sentence__aqe_20260514_090807_000000_abc12345.mp3"
 
 
+def test_make_output_filename_respects_output_format() -> None:
+    filename = make_output_filename(
+        "my sentence.wav",
+        datetime(2026, 5, 14, 9, 8, 7),
+        "abc12345",
+        output_format="flac",
+    )
+
+    assert filename == "my_sentence__aqe_20260514_090807_000000_abc12345.flac"
+
+
 def test_make_output_filename_sanitizes_and_bounds_problematic_names() -> None:
     filename = make_output_filename(
         "../??? " + ("very long " * 30) + ".wav",

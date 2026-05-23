@@ -63,14 +63,14 @@ def render_prosody_svg(track: ProsodyTrack) -> bytes:
   <style>
     .aqe-bg {{ fill: #ffffff; }}
     .aqe-intensity {{ fill: #4f6f8f; opacity: 0.18; stroke: none; }}
-    .aqe-pitch-path {{ fill: none; stroke: #1f7a5c; stroke-linecap: round; stroke-linejoin: round; stroke-width: 2; }}
+    .aqe-pitch-path {{ fill: none; stroke: #1f7a5c; stroke-linecap: round; stroke-linejoin: round; stroke-width: 3; filter: drop-shadow(0 0 1px #8a8f94); }}
     .aqe-axis, .aqe-cursor {{ stroke: #4b5563; stroke-width: 1; opacity: 0.65; }}
     .aqe-label {{ fill: #374151; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; font-size: 11px; }}
     .aqe-meta {{ fill: #6b7280; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; font-size: 10px; }}
     @media (prefers-color-scheme: dark) {{
       .aqe-bg {{ fill: #1f2329; }}
       .aqe-intensity {{ fill: #93c5fd; opacity: 0.24; }}
-      .aqe-pitch-path {{ stroke: #4ade80; }}
+      .aqe-pitch-path {{ stroke: #4ade80; filter: drop-shadow(0 0 1px #f8fafc); }}
       .aqe-axis, .aqe-cursor {{ stroke: #cbd5e1; opacity: 0.7; }}
       .aqe-label {{ fill: #e5e7eb; }}
       .aqe-meta {{ fill: #cbd5e1; }}

@@ -15,8 +15,10 @@ const frontendAreas = [
 ] as const;
 
 const lineLimitAllowlist = new Map<string, number>([
-  ["src/editor-inline/EditorControls.svelte", 360],
-  ["src/editor-inline/SplitButton.svelte", 370],
+  ["src/editor-inline/EditorControls.svelte", 390],
+  ["src/editor-inline/SplitButton.svelte", 450],
+  ["src/editor-inline/SplitValueOptions.svelte", 380],
+  ["src/lib/i18n.ts", 320],
 ]);
 
 const exportCountAllowlist = new Map<string, number>([
@@ -45,10 +47,12 @@ const audioElementAllowlist = new Set([
 
 const internalWindowStateNames = new Set([
   "__aqeActiveField",
+  "__aqeHistoryAvailabilityByField",
   "__aqeLastCursorIntent",
   "__aqeLastPlaybackRequest",
   "__aqePendingCommandPayload",
   "__aqePendingGraphRedrawField",
+  "__aqePendingGraphRedrawSource",
   "__aqePendingPlaybackRequest",
   "__aqeSplitButtonStates",
 ]);

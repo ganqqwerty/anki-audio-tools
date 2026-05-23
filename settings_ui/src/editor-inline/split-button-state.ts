@@ -4,13 +4,15 @@ import type {
   FieldSplitButtonState,
   SplitButtonDefaults,
 } from "./types.js";
+import type { SplitDefaultSaveRequest } from "./split-default-save-types.js";
 import { t } from "../lib/i18n.js";
 import {
   clampRepeatPauseSeconds,
   clampDpdfnetAttnLimitDb,
+  DEFAULT_OUTPUT_FORMAT,
   clampSpeedStep,
-  clampTrimStepMs,
   clampVolumeStepDb,
+  outputFormatOrDefault,
 } from "../lib/audio-operation-parameters.js";
 import {
   clampGraphConnectShortDropoutsMs,
@@ -24,25 +26,27 @@ export {
   clampRepeatPauseSeconds,
   clampDpdfnetAttnLimitDb,
   clampSpeedStep,
-  clampTrimStepMs,
   clampVolumeStepDb,
+  formatOutputFormat,
   formatPauseAggressiveness,
   formatDpdfnetAggressiveness,
   formatRepeatPauseSeconds,
   formatSpeedStep,
-  formatTrimMs,
   formatVolumeDb,
 } from "../lib/audio-operation-parameters.js";
 
 type CompleteSplitButtonDefaults = Required<SplitButtonDefaults>;
+type PitchHumMode = FieldSplitButtonState["pitchHumMode"];
+type ShareTarget = FieldSplitButtonState["shareTarget"];
 const DEFAULTS: CompleteSplitButtonDefaults = {
   denoiseAlgorithm: "standard",
   dpdfnetAttnLimitDb: 12,
   ...defaultGraphSplitValues(),
+  outputFormat: DEFAULT_OUTPUT_FORMAT,
   pauseAggressiveness: "normal",
+  pitchHumMode: "direct",
   repeatPauseSeconds: 0,
   speedStep: 0.05,
-  trimStepMs: 100,
   volumeStepDb: 3,
 };
 
@@ -65,6 +69,19 @@ export function formatDenoiseAlgorithm(value: FieldSplitButtonState["denoiseAlgo
   return t("settings.denoise_algorithm.standard");
 }
 
+export function formatPitchHumMode(value: PitchHumMode): string {
+  if (value === "pitch_tier") return t("editor.pitch_hum.mode.pitch_tier");
+  return t("editor.pitch_hum.mode.direct");
+}
+
+export function formatShareTarget(value: ShareTarget): string {
+  return value === "litterbox" ? t("editor.share.target.litterbox") : t("editor.share.target.catbox");
+}
+
+function pitchHumModeOrDefault(value: unknown): PitchHumMode {
+  return value === "pitch_tier" ? "pitch_tier" : "direct";
+}
+
 export function getSplitButtonState(ord: number): FieldSplitButtonState {
   const defaults = splitButtonDefaults();
   const defaultGraphConnectShortDropoutsMs = clampGraphConnectShortDropoutsMs(defaults.graphConnectShortDropoutsMs);
@@ -72,24 +89,25 @@ export function getSplitButtonState(ord: number): FieldSplitButtonState {
   const defaultGraphSmoothness = graphSmoothnessOrDefault(defaults.graphSmoothness);
   const defaultGraphVoiceLock = graphVoiceLockOrDefault(defaults.graphVoiceLock);
   const defaultGraphVoiceRange = graphVoiceRangeOrDefault(defaults.graphVoiceRange);
-  const defaultTrimStepMs = clampTrimStepMs(defaults.trimStepMs);
+  const defaultOutputFormat = outputFormatOrDefault(defaults.outputFormat);
   const defaultVolumeStepDb = clampVolumeStepDb(defaults.volumeStepDb);
   const defaultSpeedStep = clampSpeedStep(defaults.speedStep);
   const defaultRepeatPauseSeconds = clampRepeatPauseSeconds(defaults.repeatPauseSeconds);
   const defaultPauseAggressiveness = defaults.pauseAggressiveness;
+  const defaultPitchHumMode = pitchHumModeOrDefault(defaults.pitchHumMode);
   const defaultDenoiseAlgorithm = defaults.denoiseAlgorithm;
   const defaultDpdfnetAttnLimitDb = clampDpdfnetAttnLimitDb(defaults.dpdfnetAttnLimitDb);
   const states = fieldStates();
   const existing = states[ord];
   if (existing) {
+    const runtimeState = existing as FieldSplitButtonState & { shareTarget?: ShareTarget };
     if (!Number.isFinite(existing.repeatPauseSeconds)) {
       existing.repeatPauseSeconds = defaultRepeatPauseSeconds;
       existing.defaultRepeatPauseSeconds = defaultRepeatPauseSeconds;
       existing.repeatPauseEdited = false;
     }
-    if (!existing.trimEdited && existing.defaultTrimStepMs !== defaultTrimStepMs) {
-      existing.defaultTrimStepMs = defaultTrimStepMs;
-      existing.trimStepMs = defaultTrimStepMs;
+    if (runtimeState.shareTarget !== "catbox" && runtimeState.shareTarget !== "litterbox") {
+      runtimeState.shareTarget = "litterbox";
     }
     if (!existing.volumeEdited && existing.defaultVolumeStepDb !== defaultVolumeStepDb) {
       existing.defaultVolumeStepDb = defaultVolumeStepDb;
@@ -106,6 +124,14 @@ export function getSplitButtonState(ord: number): FieldSplitButtonState {
     if (!existing.pauseEdited && existing.defaultPauseAggressiveness !== defaultPauseAggressiveness) {
       existing.defaultPauseAggressiveness = defaultPauseAggressiveness;
       existing.pauseAggressiveness = defaultPauseAggressiveness;
+    }
+    if (!existing.outputFormatEdited && existing.defaultOutputFormat !== defaultOutputFormat) {
+      existing.defaultOutputFormat = defaultOutputFormat;
+      existing.outputFormat = defaultOutputFormat;
+    }
+    if (!existing.pitchHumEdited && existing.defaultPitchHumMode !== defaultPitchHumMode) {
+      existing.defaultPitchHumMode = defaultPitchHumMode;
+      existing.pitchHumMode = defaultPitchHumMode;
     }
     if (!existing.denoiseEdited && existing.defaultDenoiseAlgorithm !== defaultDenoiseAlgorithm) {
       existing.defaultDenoiseAlgorithm = defaultDenoiseAlgorithm;
@@ -139,7 +165,7 @@ export function getSplitButtonState(ord: number): FieldSplitButtonState {
     }
     return existing;
   }
-  const state = {
+  const state: FieldSplitButtonState = {
     defaultDenoiseAlgorithm,
     defaultDpdfnetAttnLimitDb,
     defaultGraphConnectShortDropoutsMs,
@@ -147,9 +173,10 @@ export function getSplitButtonState(ord: number): FieldSplitButtonState {
     defaultGraphSmoothness,
     defaultGraphVoiceLock,
     defaultGraphVoiceRange,
+    defaultOutputFormat,
     defaultPauseAggressiveness,
+    defaultPitchHumMode,
     defaultRepeatPauseSeconds,
-    defaultTrimStepMs,
     defaultVolumeStepDb,
     defaultSpeedStep,
     denoiseAlgorithm: defaultDenoiseAlgorithm,
@@ -162,14 +189,17 @@ export function getSplitButtonState(ord: number): FieldSplitButtonState {
     graphSmoothness: defaultGraphSmoothness,
     graphVoiceLock: defaultGraphVoiceLock,
     graphVoiceRange: defaultGraphVoiceRange,
+    outputFormat: defaultOutputFormat,
+    outputFormatEdited: false,
     pauseAggressiveness: defaultPauseAggressiveness,
     pauseEdited: false,
+    pitchHumEdited: false,
+    pitchHumMode: defaultPitchHumMode,
     repeatPauseEdited: false,
     repeatPauseSeconds: defaultRepeatPauseSeconds,
+    shareTarget: "litterbox",
     speedEdited: false,
     speedStep: defaultSpeedStep,
-    trimEdited: false,
-    trimStepMs: defaultTrimStepMs,
     volumeEdited: false,
     volumeStepDb: defaultVolumeStepDb,
   };
@@ -177,11 +207,102 @@ export function getSplitButtonState(ord: number): FieldSplitButtonState {
   return state;
 }
 
-export function setTrimStepForField(ord: number, value: number): FieldSplitButtonState {
-  const state = getSplitButtonState(ord);
-  state.trimEdited = true;
-  state.trimStepMs = clampTrimStepMs(value);
-  return state;
+function replaceSplitButtonDefaults(values: Partial<CompleteSplitButtonDefaults>): CompleteSplitButtonDefaults {
+  const nextDefaults = {
+    ...splitButtonDefaults(),
+    ...values,
+  };
+  window.__AQE_EDITOR_CONFIG__ = {
+    ...(window.__AQE_EDITOR_CONFIG__ ?? { audioFieldIndices: [] }),
+    splitButtonDefaults: nextDefaults,
+  };
+  return nextDefaults;
+}
+
+export function promoteSplitDefaultsForField(
+  ord: number,
+  values: SplitDefaultSaveRequest["defaults"],
+): FieldSplitButtonState {
+  const splitDefaults = { ...values };
+  delete splitDefaults.repeatPlaybackByDefault;
+  const nextDefaults = replaceSplitButtonDefaults(splitDefaults);
+  for (const [rawOrd, state] of Object.entries(fieldStates())) {
+    const forceCurrentField = Number(rawOrd) === ord;
+    applyPromotedDefaultsToState(state, nextDefaults, values, forceCurrentField);
+  }
+  return getSplitButtonState(ord);
+}
+
+function applyPromotedDefaultsToState(
+  state: FieldSplitButtonState,
+  defaults: CompleteSplitButtonDefaults,
+  values: SplitDefaultSaveRequest["defaults"],
+  forceCurrentField: boolean,
+): void {
+  if (values.volumeStepDb !== undefined) {
+    state.defaultVolumeStepDb = clampVolumeStepDb(defaults.volumeStepDb);
+    if (forceCurrentField || !state.volumeEdited) state.volumeStepDb = state.defaultVolumeStepDb;
+    if (forceCurrentField) state.volumeEdited = false;
+  }
+  if (values.speedStep !== undefined) {
+    state.defaultSpeedStep = clampSpeedStep(defaults.speedStep);
+    if (forceCurrentField || !state.speedEdited) state.speedStep = state.defaultSpeedStep;
+    if (forceCurrentField) state.speedEdited = false;
+  }
+  if (values.repeatPauseSeconds !== undefined) {
+    state.defaultRepeatPauseSeconds = clampRepeatPauseSeconds(defaults.repeatPauseSeconds);
+    if (forceCurrentField || !state.repeatPauseEdited) state.repeatPauseSeconds = state.defaultRepeatPauseSeconds;
+    if (forceCurrentField) state.repeatPauseEdited = false;
+  }
+  if (values.pauseAggressiveness !== undefined) {
+    state.defaultPauseAggressiveness = defaults.pauseAggressiveness;
+    if (forceCurrentField || !state.pauseEdited) state.pauseAggressiveness = state.defaultPauseAggressiveness;
+    if (forceCurrentField) state.pauseEdited = false;
+  }
+  if (values.denoiseAlgorithm !== undefined) {
+    state.defaultDenoiseAlgorithm = defaults.denoiseAlgorithm;
+    if (forceCurrentField || !state.denoiseEdited) state.denoiseAlgorithm = state.defaultDenoiseAlgorithm;
+    if (forceCurrentField) state.denoiseEdited = false;
+  }
+  if (values.dpdfnetAttnLimitDb !== undefined) {
+    state.defaultDpdfnetAttnLimitDb = clampDpdfnetAttnLimitDb(defaults.dpdfnetAttnLimitDb);
+    if (forceCurrentField || !state.dpdfnetEdited) state.dpdfnetAttnLimitDb = state.defaultDpdfnetAttnLimitDb;
+    if (forceCurrentField) state.dpdfnetEdited = false;
+  }
+  if (values.pitchHumMode !== undefined) {
+    state.defaultPitchHumMode = pitchHumModeOrDefault(defaults.pitchHumMode);
+    if (forceCurrentField || !state.pitchHumEdited) state.pitchHumMode = state.defaultPitchHumMode;
+    if (forceCurrentField) state.pitchHumEdited = false;
+  }
+  applyPromotedGraphDefaultsToState(state, defaults, values, forceCurrentField);
+}
+
+function applyPromotedGraphDefaultsToState(
+  state: FieldSplitButtonState,
+  defaults: CompleteSplitButtonDefaults,
+  values: SplitDefaultSaveRequest["defaults"],
+  forceCurrentField: boolean,
+): void {
+  const graphChanged =
+    values.graphVoiceRange !== undefined ||
+    values.graphRecordingCondition !== undefined ||
+    values.graphSmoothness !== undefined ||
+    values.graphConnectShortDropoutsMs !== undefined ||
+    values.graphVoiceLock !== undefined;
+  if (!graphChanged) return;
+  state.defaultGraphVoiceRange = graphVoiceRangeOrDefault(defaults.graphVoiceRange);
+  state.defaultGraphRecordingCondition = graphRecordingConditionOrDefault(defaults.graphRecordingCondition);
+  state.defaultGraphSmoothness = graphSmoothnessOrDefault(defaults.graphSmoothness);
+  state.defaultGraphConnectShortDropoutsMs = clampGraphConnectShortDropoutsMs(defaults.graphConnectShortDropoutsMs);
+  state.defaultGraphVoiceLock = graphVoiceLockOrDefault(defaults.graphVoiceLock);
+  if (forceCurrentField || !state.graphEdited) {
+    state.graphVoiceRange = state.defaultGraphVoiceRange;
+    state.graphRecordingCondition = state.defaultGraphRecordingCondition;
+    state.graphSmoothness = state.defaultGraphSmoothness;
+    state.graphConnectShortDropoutsMs = state.defaultGraphConnectShortDropoutsMs;
+    state.graphVoiceLock = state.defaultGraphVoiceLock;
+  }
+  if (forceCurrentField) state.graphEdited = false;
 }
 
 export function setVolumeStepForField(ord: number, value: number): FieldSplitButtonState {
@@ -232,13 +353,33 @@ export function setDpdfnetAttnLimitDbForField(ord: number, value: number): Field
   return state;
 }
 
-export function buildTrimCommandPayload(command: EditorCommand, ord: number): EditorCommandPayload {
+export function setPitchHumModeForField(ord: number, value: PitchHumMode): FieldSplitButtonState {
+  const state = getSplitButtonState(ord);
+  state.pitchHumEdited = true;
+  state.pitchHumMode = pitchHumModeOrDefault(value);
+  return state;
+}
+
+export function setShareTargetForField(ord: number, value: ShareTarget): FieldSplitButtonState {
+  const state = getSplitButtonState(ord);
+  state.shareTarget = value;
+  return state;
+}
+
+export function setOutputFormatForField(ord: number, value: unknown): FieldSplitButtonState {
+  const state = getSplitButtonState(ord);
+  state.outputFormatEdited = true;
+  state.outputFormat = outputFormatOrDefault(value);
+  return state;
+}
+
+function graphSettingsPayload(state: FieldSplitButtonState): NonNullable<EditorCommandPayload["graphSettings"]> {
   return {
-    command,
-    fieldOrd: ord,
-    overrides: {
-      trimStepMs: getSplitButtonState(ord).trimStepMs,
-    },
+    connectShortDropoutsMs: state.graphConnectShortDropoutsMs,
+    recordingCondition: state.graphRecordingCondition,
+    smoothness: state.graphSmoothness,
+    voiceLock: state.graphVoiceLock,
+    voiceRange: state.graphVoiceRange,
   };
 }
 
@@ -252,6 +393,12 @@ export function buildSplitCommandPayload(command: EditorCommand, ord: number): E
   }
   if (command === "aqe:remove-pauses") {
     return { command, fieldOrd: ord, overrides: { pauseAggressiveness: state.pauseAggressiveness } };
+  }
+  if (command === "aqe:convert") {
+    return { command, fieldOrd: ord, overrides: { targetFormat: state.outputFormat } };
+  }
+  if (command === "aqe:share") {
+    return { command, fieldOrd: ord, shareTarget: state.shareTarget };
   }
   if (
     command === "aqe:denoise-standard" ||
@@ -273,18 +420,48 @@ export function buildSplitCommandPayload(command: EditorCommand, ord: number): E
     }
     return { command: selectedCommand, fieldOrd: ord, overrides };
   }
-  if (command === "aqe:analyze") {
-    return {
+  if (command === "aqe:analyze" || command === "aqe:pitch-hum") {
+    const payload: EditorCommandPayload = {
       command,
       fieldOrd: ord,
-      graphSettings: {
-        connectShortDropoutsMs: state.graphConnectShortDropoutsMs,
-        recordingCondition: state.graphRecordingCondition,
-        smoothness: state.graphSmoothness,
-        voiceLock: state.graphVoiceLock,
-        voiceRange: state.graphVoiceRange,
-      },
+      graphSettings: graphSettingsPayload(state),
     };
+    if (command === "aqe:pitch-hum") {
+      payload.overrides = { pitchHumMode: state.pitchHumMode };
+    }
+    return payload;
   }
-  return buildTrimCommandPayload(command, ord);
+  return { command, fieldOrd: ord };
+}
+
+export function buildSplitDefaultSaveRequest(command: EditorCommand, ord: number): SplitDefaultSaveRequest {
+  const state = getSplitButtonState(ord);
+  const request: SplitDefaultSaveRequest = {
+    defaults: {},
+    fieldOrd: ord,
+  };
+  if (command === "aqe:volume-up" || command === "aqe:volume-down") {
+    request.defaults.volumeStepDb = state.volumeStepDb;
+  } else if (command === "aqe:faster" || command === "aqe:slower") {
+    request.defaults.speedStep = state.speedStep;
+  } else if (command === "aqe:remove-pauses") {
+    request.defaults.pauseAggressiveness = state.pauseAggressiveness;
+  } else if (
+    command === "aqe:denoise-standard" ||
+    command === "aqe:rnnoise" ||
+    command === "aqe:dpdfnet" ||
+    command === "aqe:voice-only"
+  ) {
+    request.defaults.denoiseAlgorithm = state.denoiseAlgorithm;
+    request.defaults.dpdfnetAttnLimitDb = state.dpdfnetAttnLimitDb;
+  } else if (command === "aqe:analyze") {
+    request.defaults.graphVoiceRange = state.graphVoiceRange;
+    request.defaults.graphRecordingCondition = state.graphRecordingCondition;
+    request.defaults.graphSmoothness = state.graphSmoothness;
+    request.defaults.graphConnectShortDropoutsMs = state.graphConnectShortDropoutsMs;
+    request.defaults.graphVoiceLock = state.graphVoiceLock;
+  } else if (command === "aqe:pitch-hum") {
+    request.defaults.pitchHumMode = state.pitchHumMode;
+  }
+  return request;
 }

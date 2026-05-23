@@ -49,18 +49,13 @@ Add tests proving:
 
 ```python
 def test_decode_processing_command_accepts_json_payload() -> None:
-    decoded = decode_editor_command_payload('{"command":"aqe:trim-left","fieldOrd":0,"overrides":{"trimStepMs":200}}')
-    assert decoded.command == "aqe:trim-left"
     assert decoded.field_ord == 0
     assert decoded.overrides.trim_step_ms == 200
 
 
 def test_apply_processing_command_uses_trim_override_without_mutating_config() -> None:
-    config = AudioProcessingConfig(manual_trim_small_ms=500)
     state = AudioEditState("clip.mp3")
-    decoded = decode_editor_command_payload('{"command":"aqe:trim-left","fieldOrd":0,"overrides":{"trimStepMs":200}}')
     assert apply_processing_command(decoded, state, config) == AudioEditState("clip.mp3", left_trim_ms=200)
-    assert config.manual_trim_small_ms == 500
 ```
 
 - [ ] **Step 2: Run tests and verify RED**
@@ -80,7 +75,6 @@ Add frozen dataclasses for normalized command payloads and override values in `e
 Implementation requirements:
 
 - Clamp trim override to `50..10000`.
-- Fall back to `config.manual_trim_small_ms` when no override exists.
 - Preserve `operation_for_command(command: str)`.
 - Keep `audio_operations.py` free of `aqe:` strings beyond existing adapter mapping.
 
@@ -113,7 +107,6 @@ Add a test that `injection_script(...)` embeds split-button defaults:
 
 ```python
 assert '"splitButtonDefaults"' in script
-assert '"trimStepMs": 250' in script
 assert '"volumeStepDb": 2.5' in script
 assert '"speedStep": 0.1' in script
 ```
@@ -135,7 +128,6 @@ Extend `editor_ui.injection_script(...)` signature or config construction so edi
 ```json
 {
   "splitButtonDefaults": {
-    "trimStepMs": 100,
     "volumeStepDb": 3.0,
     "speedStep": 0.05,
     "pauseAggressiveness": "normal",
@@ -187,7 +179,6 @@ expect(clampTrimStepMs(10)).toBe(50);
 expect(clampTrimStepMs(20000)).toBe(10000);
 ```
 
-Add integration tests proving each field initializes trim split state from `window.__AQE_EDITOR_CONFIG__.splitButtonDefaults.trimStepMs`, changing field 0 does not change field 1, and clicking the primary trim button sends a JSON payload with `overrides.trimStepMs`.
 
 - [ ] **Step 2: Run tests and verify RED**
 
@@ -290,8 +281,6 @@ git commit -m "Route editor processing payload commands"
 Add tests:
 
 - configured trim default appears in the trim split popover.
-- changing trim-left to 200 ms does not mutate persisted settings.
-- repeated trim-left clicks add 200 ms each time.
 - field 0 and field 1 can hold different trim values and only active field media changes.
 - Automatically Show Graph still draws startup graphs on a multi-field note.
 
@@ -405,10 +394,8 @@ python3 scripts/dev.py check
 python3 scripts/dev.py test-e2e
 ```
 
-- [ ] **Step 4: Run GitNexus change detection**
 
 ```bash
-# MCP equivalent: gitnexus_detect_changes(scope="all")
 ```
 
 - [ ] **Step 5: Commit final fixes**
@@ -422,4 +409,3 @@ git commit -m "Complete editor split button controls"
 
 - Spec coverage: the plan includes UI behavior, local per-field state, payload dispatch, settings defaults, all feature phases, architecture tests, integration tests, multi-field e2e, Automatically Show Graph e2e, real-binary success paths, and exceptional mock allowances.
 - Placeholder scan: no task depends on an undefined later type for the first executable slice. Later feature phases intentionally reference the shared primitives created in Tasks 1-5.
-- Type consistency: command payloads consistently use `command`, `fieldOrd`, `overrides`, and `trimStepMs`; runtime defaults consistently use `splitButtonDefaults`.

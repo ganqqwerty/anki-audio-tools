@@ -94,7 +94,6 @@ def test_feature_toggles_only_enable_processing_steps() -> None:
 def test_processing_config_from_partial_config_uses_defaults() -> None:
     config = AudioProcessingConfig.from_config({"ffmpeg_path": "/opt/bin/ffmpeg"})
 
-    assert config.manual_trim_small_ms == 100
     assert config.volume_step_db == 3.0
     assert config.min_volume_db == -24.0
     assert config.max_volume_db == 24.0
@@ -104,6 +103,7 @@ def test_processing_config_from_partial_config_uses_defaults() -> None:
     assert config.deep_filter_path == ""
     assert config.deep_filter_post_filter is True
     assert config.dpdfnet_attn_limit_db == 12.0
+    assert config.pitch_hum_mode == "direct"
     assert config.show_ffmpeg_commands is False
 
 
@@ -121,6 +121,11 @@ def test_processing_config_reads_show_ffmpeg_commands_flag() -> None:
     config = AudioProcessingConfig.from_config({"show_ffmpeg_commands": True})
 
     assert config.show_ffmpeg_commands is True
+
+
+def test_processing_config_normalizes_output_format() -> None:
+    assert AudioProcessingConfig.from_config({"output_format": " FLAC "}).output_format == "flac"
+    assert AudioProcessingConfig.from_config({"output_format": "aac"}).output_format == "mp3"
 
 
 def test_processing_config_reads_internal_pause_silence_threshold() -> None:

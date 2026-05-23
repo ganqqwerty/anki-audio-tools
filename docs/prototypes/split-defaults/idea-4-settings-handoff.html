@@ -1,0 +1,195 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Idea 4 - Settings Handoff</title>
+    <link rel="stylesheet" href="prototype.css">
+  </head>
+  <body>
+    <main class="page">
+      <header class="prototype-header">
+        <h1>Idea 4: Settings Handoff</h1>
+        <p>
+          The editor stays lightweight. Saving defaults routes through a settings-style review panel,
+          which is safer when several config fields can be affected.
+        </p>
+      </header>
+      <nav class="prototype-nav" aria-label="Prototype pages">
+        <a href="index.html">Index</a>
+        <a href="idea-1-popover-save.html">1. Popover Save</a>
+        <a href="idea-2-dirty-badge.html">2. Dirty Badge</a>
+        <a href="idea-3-defaults-mode.html">3. Defaults Mode</a>
+        <a aria-current="page" href="idea-4-settings-handoff.html">4. Settings Handoff</a>
+      </nav>
+
+      <section class="stage-board" aria-label="Settings handoff stages">
+        <article class="stage">
+          <header class="stage-header">
+            <h2>Stage 1: Editor offers a handoff</h2>
+            <p>The split popover can send the current values into a review flow instead of saving immediately.</p>
+          </header>
+          <div class="workspace">
+            <div class="toolbar">
+              <span class="split">
+                <button class="btn icon-only"><span class="icon play"></span></button>
+                <button class="btn icon-only"><span class="icon chevron"></span></button>
+              </span>
+              <button class="btn"><span class="icon folder"></span>Folder</button>
+              <span class="split">
+                <button class="btn"><span class="icon wave"></span>Shorten Pauses</button>
+                <button class="btn icon-only"><span class="icon chevron"></span></button>
+              </span>
+              <span class="split">
+                <button class="btn"><span class="icon sparkle"></span>Denoise</button>
+                <button class="btn icon-only"><span class="icon chevron"></span></button>
+              </span>
+              <span class="split">
+                <button class="btn"><span class="icon wave"></span>Pitch Hum</button>
+                <button class="btn icon-only"><span class="icon chevron"></span></button>
+              </span>
+              <span class="split">
+                <button class="btn"><span class="icon volume"></span></button>
+                <button class="btn icon-only"><span class="icon chevron"></span></button>
+              </span>
+            </div>
+            <div class="editor-lines">
+              <div class="line"></div>
+              <div class="line"></div>
+              <div class="line"></div>
+              <div class="line"></div>
+            </div>
+            <div class="waveform"><span class="selection-handle"></span></div>
+            <aside class="popover pitch-popover">
+              <h3>Pitch Hum <span class="changed-pill">PitchTier</span></h3>
+              <div class="preset-row">
+                <button class="preset">Pitch-to-hum</button>
+                <button class="preset selected">PitchTier</button>
+              </div>
+              <div class="details-row">
+                <strong>Current default</strong>
+                <span class="value">Pitch-to-hum</span>
+              </div>
+              <div class="footer-actions warning">
+                <span class="footer-copy">Review before saving</span>
+                <button class="action-btn primary">Use in settings...</button>
+              </div>
+            </aside>
+            <div class="field-title">Arbeit war knapp</div>
+          </div>
+        </article>
+
+        <article class="stage">
+          <header class="stage-header">
+            <h2>Stage 2: Review affected defaults</h2>
+            <p>A settings-style panel lists each proposed config change and lets the user opt out.</p>
+          </header>
+          <div class="workspace">
+            <div class="toolbar">
+              <span class="split">
+                <button class="btn icon-only"><span class="icon play"></span></button>
+                <button class="btn icon-only"><span class="icon chevron"></span></button>
+              </span>
+              <button class="btn"><span class="icon folder"></span>Folder</button>
+              <span class="split">
+                <button class="btn unsaved"><span class="icon wave"></span>Pitch Hum</button>
+                <button class="btn icon-only unsaved"><span class="icon chevron"></span></button>
+              </span>
+              <button class="btn icon-only"><span class="icon gear"></span></button>
+            </div>
+            <div class="editor-lines">
+              <div class="line"></div>
+              <div class="line"></div>
+              <div class="line"></div>
+              <div class="line"></div>
+            </div>
+            <div class="waveform"><span class="selection-handle"></span></div>
+            <section class="settings-panel" aria-label="Save quick settings as defaults">
+              <header>
+                <h3>Save Quick Settings as Defaults</h3>
+                <p>Only checked rows will update future editor defaults.</p>
+              </header>
+              <table>
+                <thead>
+                  <tr>
+                    <th>Save</th>
+                    <th>Setting</th>
+                    <th>Current default</th>
+                    <th>New default</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td><input type="checkbox" checked></td>
+                    <td>Pitch hum mode</td>
+                    <td>Pitch-to-hum</td>
+                    <td>PitchTier</td>
+                  </tr>
+                  <tr>
+                    <td><input type="checkbox"></td>
+                    <td>Graph voice range</td>
+                    <td>General</td>
+                    <td>Low</td>
+                  </tr>
+                  <tr>
+                    <td><input type="checkbox"></td>
+                    <td>Graph smoothness</td>
+                    <td>Very smooth</td>
+                    <td>Smooth</td>
+                  </tr>
+                </tbody>
+              </table>
+              <footer>
+                <button class="action-btn secondary">Cancel</button>
+                <button class="action-btn primary">Save checked defaults</button>
+              </footer>
+            </section>
+            <div class="field-title">Arbeit war knapp</div>
+          </div>
+        </article>
+
+        <article class="stage">
+          <header class="stage-header">
+            <h2>Stage 3: Return to editor</h2>
+            <p>The confirmation names what changed and offers a path to full settings if needed.</p>
+          </header>
+          <div class="workspace">
+            <div class="toolbar">
+              <span class="split">
+                <button class="btn icon-only"><span class="icon play"></span></button>
+                <button class="btn icon-only"><span class="icon chevron"></span></button>
+              </span>
+              <button class="btn"><span class="icon folder"></span>Folder</button>
+              <span class="split">
+                <button class="btn saved-ring"><span class="icon wave"></span>Pitch Hum</button>
+                <button class="btn icon-only saved-ring"><span class="icon chevron"></span></button>
+              </span>
+              <span class="split">
+                <button class="btn"><span class="icon volume"></span></button>
+                <button class="btn icon-only"><span class="icon chevron"></span></button>
+              </span>
+              <button class="btn icon-only"><span class="icon gear"></span></button>
+            </div>
+            <div class="editor-lines">
+              <div class="line"></div>
+              <div class="line"></div>
+              <div class="line"></div>
+              <div class="line"></div>
+            </div>
+            <div class="waveform"><span class="selection-handle"></span></div>
+            <div class="note-card">
+              <h3>Pitch hum default changed</h3>
+              <p>Future Pitch Hum actions will use PitchTier unless changed again in quick settings or full settings.</p>
+              <div class="preset-row">
+                <button class="action-btn secondary">Open settings</button>
+                <button class="action-btn secondary">Undo default change</button>
+              </div>
+            </div>
+            <div class="toast">Pitch hum default saved</div>
+            <div class="field-title">Arbeit war knapp</div>
+          </div>
+        </article>
+      </section>
+    </main>
+  </body>
+</html>

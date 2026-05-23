@@ -30,12 +30,15 @@ export {
   BatchPauseAggressiveness as PauseAggressiveness,
   DenoiseAlgorithm,
   Direction,
+  EditorButtonMode,
   GraphRecordingCondition,
   GraphSmoothness,
   GraphVoiceLock,
   GraphVoiceRange,
   Level,
   OutputFormat,
+  PitchHumMode,
+  VisibleEditorButton,
 } from "./generated/contracts.js";
 
 import type {

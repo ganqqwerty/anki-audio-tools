@@ -1,0 +1,2451 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Audio Quick Editor Graph Selection Action Prototypes</title>
+    <style>
+      :root {
+        color-scheme: light dark;
+        --bg: #edf0f2;
+        --fg: #202428;
+        --muted: #65717a;
+        --panel: #ffffff;
+        --panel-soft: #f8fafb;
+        --line: #ccd4db;
+        --plot: #fbfcfd;
+        --grid: #dfe6eb;
+        --pitch: #2457d6;
+        --intensity: #c56f14;
+        --accent: #0b766f;
+        --accent-strong: #075f59;
+        --accent-soft: rgb(11 118 111 / 14%);
+        --accent-mid: rgb(11 118 111 / 32%);
+        --danger: #b42318;
+        --danger-soft: rgb(180 35 24 / 13%);
+        --focus: #6b4eff;
+        --shadow: 0 14px 34px rgb(30 38 44 / 12%);
+        --float-shadow: 0 12px 28px rgb(18 24 31 / 18%);
+        font-family:
+          Inter,
+          ui-sans-serif,
+          system-ui,
+          -apple-system,
+          BlinkMacSystemFont,
+          "Segoe UI",
+          sans-serif;
+      }
+
+      @media (prefers-color-scheme: dark) {
+        :root {
+          --bg: #171b1f;
+          --fg: #e8ecef;
+          --muted: #9ba7b0;
+          --panel: #242a30;
+          --panel-soft: #1f252a;
+          --line: #3c4650;
+          --plot: #1d2328;
+          --grid: #303942;
+          --pitch: #8aa4ff;
+          --intensity: #f2a84f;
+          --accent: #34c5b6;
+          --accent-strong: #70e5db;
+          --accent-soft: rgb(52 197 182 / 16%);
+          --accent-mid: rgb(52 197 182 / 34%);
+          --danger: #ff8a7e;
+          --danger-soft: rgb(255 138 126 / 15%);
+          --shadow: 0 14px 34px rgb(0 0 0 / 30%);
+          --float-shadow: 0 12px 28px rgb(0 0 0 / 38%);
+        }
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        background: var(--bg);
+        color: var(--fg);
+        font-size: 13px;
+      }
+
+      main {
+        max-width: 1380px;
+        margin: 0 auto;
+        padding: 24px;
+      }
+
+      header {
+        display: grid;
+        gap: 8px;
+        margin-bottom: 18px;
+      }
+
+      h1 {
+        margin: 0;
+        font-size: 24px;
+        font-weight: 720;
+        letter-spacing: 0;
+      }
+
+      .intro {
+        max-width: 860px;
+        margin: 0;
+        color: var(--muted);
+        line-height: 1.5;
+      }
+
+      .option-nav {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin-top: 10px;
+      }
+
+      .option-nav a {
+        border: 1px solid var(--line);
+        border-radius: 7px;
+        color: var(--fg);
+        font-size: 12px;
+        font-weight: 700;
+        padding: 7px 10px;
+        text-decoration: none;
+      }
+
+      .option-nav a:hover {
+        background: color-mix(in srgb, var(--accent) 10%, transparent);
+        border-color: color-mix(in srgb, var(--accent) 36%, var(--line));
+        color: var(--accent-strong);
+      }
+
+      .prototype-grid {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 24px;
+      }
+
+      .prototype {
+        align-content: start;
+        display: grid;
+        min-width: 0;
+        min-height: calc(100vh - 48px);
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        background: var(--panel);
+        box-shadow: var(--shadow);
+        padding: 22px;
+        scroll-margin-top: 16px;
+      }
+
+      .prototype h2 {
+        display: flex;
+        align-items: baseline;
+        justify-content: space-between;
+        gap: 12px;
+        margin: 0 0 8px;
+        font-size: 20px;
+        font-weight: 740;
+        letter-spacing: 0;
+      }
+
+      .prototype h2 span {
+        color: var(--muted);
+        font-size: 12px;
+        font-weight: 600;
+        white-space: nowrap;
+      }
+
+      .prototype p {
+        max-width: 900px;
+        margin: 0 0 18px;
+        color: var(--muted);
+        line-height: 1.45;
+      }
+
+      .states {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 14px;
+      }
+
+      .state {
+        min-width: 0;
+      }
+
+      .state-title {
+        align-items: center;
+        color: var(--muted);
+        display: flex;
+        font-size: 12px;
+        font-weight: 650;
+        justify-content: flex-start;
+        gap: 10px;
+        min-height: 22px;
+        margin-bottom: 7px;
+      }
+
+      .state-title b {
+        color: var(--fg);
+        font-size: 12px;
+      }
+
+      .plot {
+        --start: 29%;
+        --end: 66%;
+        --cursor-x: 66%;
+        --cursor-y: 38%;
+        --toolbar-x: 47.5%;
+        --toolbar-y: 30px;
+        --chip-x: 67%;
+        --chip-y: 42%;
+        position: relative;
+        height: min(54vh, 520px);
+        min-height: 380px;
+        overflow: hidden;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        background:
+          linear-gradient(
+            to right,
+            transparent 0 12%,
+            var(--grid) 12% 12.5%,
+            transparent 12.5% 100%
+          ),
+          linear-gradient(
+            to bottom,
+            transparent 0 25%,
+            var(--grid) 25% 25.6%,
+            transparent 25.6% 100%
+          ),
+          var(--plot);
+        background-size:
+          64px 100%,
+          100% 40px,
+          auto;
+        user-select: none;
+      }
+
+      .trace {
+        position: absolute;
+        inset: 16px 12px 26px;
+        width: calc(100% - 24px);
+        height: calc(100% - 42px);
+        pointer-events: none;
+      }
+
+      .pitch {
+        fill: none;
+        stroke: var(--pitch);
+        stroke-linecap: round;
+        stroke-linejoin: round;
+        stroke-width: 2.8;
+      }
+
+      .intensity {
+        fill: none;
+        opacity: 0.9;
+        stroke: var(--intensity);
+        stroke-linecap: round;
+        stroke-linejoin: round;
+        stroke-width: 2.2;
+      }
+
+      .timebar {
+        align-items: center;
+        bottom: 5px;
+        color: var(--muted);
+        display: flex;
+        font-size: 10px;
+        inset-inline: 10px;
+        justify-content: space-between;
+        position: absolute;
+      }
+
+      .selection {
+        position: absolute;
+        top: 26px;
+        bottom: 29px;
+        left: var(--start);
+        width: calc(var(--end) - var(--start));
+        background: var(--accent-soft);
+        border-inline: 2px solid var(--accent);
+        pointer-events: none;
+      }
+
+      .selection.is-dragging {
+        background: transparent;
+        border: 2px dashed var(--accent);
+      }
+
+      .selection.is-focus {
+        box-shadow: inset 0 0 0 1px var(--accent-mid);
+      }
+
+      .selection.is-danger {
+        background: var(--danger-soft);
+        border-color: var(--danger);
+      }
+
+      .range-label {
+        background: var(--accent-strong);
+        border-radius: 6px;
+        color: #ffffff;
+        font-size: 10px;
+        font-weight: 700;
+        left: 50%;
+        line-height: 1;
+        padding: 4px 6px;
+        position: absolute;
+        top: 4px;
+        transform: translateX(-50%);
+        white-space: nowrap;
+      }
+
+      .cursor {
+        border: 2px solid var(--danger);
+        border-radius: 50%;
+        height: 11px;
+        left: var(--cursor-x);
+        pointer-events: none;
+        position: absolute;
+        top: var(--cursor-y);
+        transform: translate(-50%, -50%);
+        width: 11px;
+        z-index: 5;
+      }
+
+      .cursor::after {
+        background: var(--danger);
+        border-radius: 999px;
+        content: "";
+        height: 5px;
+        left: 50%;
+        position: absolute;
+        top: 50%;
+        transform: translate(-50%, -50%);
+        width: 5px;
+      }
+
+      .action-row,
+      .action-stack,
+      .action-chip,
+      .command-puck,
+      .edge-rail,
+      .confirm-popover {
+        background: color-mix(in srgb, var(--panel) 94%, transparent);
+        border: 1px solid color-mix(in srgb, var(--line) 78%, transparent);
+        box-shadow: var(--float-shadow);
+        color: var(--fg);
+        position: absolute;
+        z-index: 7;
+      }
+
+      .action-row {
+        align-items: center;
+        border-radius: 8px;
+        display: flex;
+        gap: 4px;
+        left: var(--toolbar-x);
+        padding: 4px;
+        top: var(--toolbar-y);
+        transform: translate(-50%, -100%);
+      }
+
+      .action-row.below {
+        top: auto;
+        bottom: 20px;
+        transform: translateX(-50%);
+      }
+
+      .action-stack {
+        border-radius: 8px;
+        display: grid;
+        gap: 4px;
+        left: calc(var(--start) + 2%);
+        padding: 4px;
+        top: 34px;
+      }
+
+      .action-chip {
+        align-items: center;
+        border-radius: 8px;
+        display: flex;
+        gap: 4px;
+        left: var(--chip-x);
+        padding: 4px;
+        top: var(--chip-y);
+        transform: translate(10px, 8px);
+      }
+
+      .action-chip.left {
+        transform: translate(calc(-100% - 10px), 8px);
+      }
+
+      .action-chip.menu-up .menu {
+        bottom: calc(100% + 5px);
+        top: auto;
+      }
+
+      .command-puck {
+        align-items: center;
+        border-radius: 8px;
+        display: flex;
+        gap: 4px;
+        left: var(--chip-x);
+        padding: 3px;
+        top: var(--chip-y);
+        transform: translate(9px, -50%);
+      }
+
+      .command-puck.left {
+        transform: translate(calc(-100% - 9px), -50%);
+      }
+
+      .edge-rail {
+        border-radius: 8px;
+        display: grid;
+        gap: 4px;
+        padding: 4px;
+        right: calc(100% - var(--end) + 6px);
+        top: 48px;
+      }
+
+      .confirm-popover {
+        border-radius: 8px;
+        display: grid;
+        gap: 6px;
+        padding: 8px;
+        right: calc(100% - var(--end) + 7px);
+        top: 38px;
+        width: 112px;
+      }
+
+      .confirm-popover strong {
+        font-size: 11px;
+        line-height: 1.2;
+      }
+
+      .confirm-actions {
+        display: flex;
+        gap: 5px;
+      }
+
+      button {
+        font: inherit;
+      }
+
+      .icon-button,
+      .text-button {
+        align-items: center;
+        background: transparent;
+        border: 1px solid transparent;
+        border-radius: 6px;
+        color: inherit;
+        cursor: default;
+        display: inline-flex;
+        justify-content: center;
+        min-height: 28px;
+      }
+
+      .icon-button {
+        flex: 0 0 auto;
+        padding: 0;
+        width: 30px;
+      }
+
+      .text-button {
+        font-size: 11px;
+        font-weight: 700;
+        padding: 5px 8px;
+      }
+
+      .action-button {
+        align-items: center;
+        background: transparent;
+        border: 1px solid transparent;
+        border-radius: 6px;
+        color: inherit;
+        display: inline-flex;
+        font-size: 11px;
+        font-weight: 740;
+        gap: 5px;
+        min-height: 30px;
+        padding: 5px 8px;
+        white-space: nowrap;
+      }
+
+      .action-button svg {
+        display: block;
+        flex: 0 0 auto;
+        height: 14px;
+        stroke: currentColor;
+        width: 14px;
+      }
+
+      .action-button.is-icon {
+        justify-content: center;
+        padding: 0;
+        width: 30px;
+      }
+
+      .action-button.is-danger {
+        color: var(--danger);
+      }
+
+      .action-button.is-hover,
+      .action-button:hover {
+        background: color-mix(in srgb, var(--accent) 13%, transparent);
+        border-color: color-mix(in srgb, var(--accent) 42%, transparent);
+        color: var(--accent-strong);
+      }
+
+      .action-button.is-danger.is-hover,
+      .action-button.is-danger:hover {
+        background: var(--danger-soft);
+        border-color: color-mix(in srgb, var(--danger) 42%, transparent);
+        color: var(--danger);
+      }
+
+      .action-button.is-active {
+        background: var(--accent);
+        border-color: var(--accent);
+        color: #ffffff;
+      }
+
+      .icon-button svg {
+        display: block;
+        height: 15px;
+        stroke: currentColor;
+        width: 15px;
+      }
+
+      .icon-button:hover,
+      .icon-button.is-hover,
+      .text-button.is-hover {
+        background: color-mix(in srgb, var(--accent) 13%, transparent);
+        border-color: color-mix(in srgb, var(--accent) 42%, transparent);
+        color: var(--accent-strong);
+      }
+
+      .icon-button.is-danger,
+      .text-button.is-danger {
+        color: var(--danger);
+      }
+
+      .icon-button.is-danger.is-hover,
+      .text-button.is-danger.is-hover {
+        background: var(--danger-soft);
+        border-color: color-mix(in srgb, var(--danger) 42%, transparent);
+      }
+
+      .text-button.is-primary {
+        background: var(--accent);
+        border-color: var(--accent);
+        color: #ffffff;
+      }
+
+      .menu {
+        background: color-mix(in srgb, var(--panel) 97%, transparent);
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        box-shadow: var(--float-shadow);
+        display: grid;
+        gap: 2px;
+        left: 50%;
+        min-width: 122px;
+        padding: 5px;
+        position: absolute;
+        top: calc(100% + 5px);
+        transform: translateX(-50%);
+      }
+
+      .menu .text-button {
+        justify-content: flex-start;
+        width: 100%;
+      }
+
+      .corner-close {
+        align-items: center;
+        background: var(--panel);
+        border: 1px solid color-mix(in srgb, var(--danger) 44%, var(--line));
+        border-radius: 8px;
+        box-shadow: var(--float-shadow);
+        color: var(--danger);
+        display: flex;
+        height: 30px;
+        justify-content: center;
+        pointer-events: auto;
+        position: absolute;
+        right: -15px;
+        top: -15px;
+        width: 30px;
+        z-index: 7;
+      }
+
+      .corner-close.is-hover {
+        background: var(--danger-soft);
+        border-color: var(--danger);
+      }
+
+      .corner-close svg {
+        height: 15px;
+        stroke: currentColor;
+        width: 15px;
+      }
+
+      .handle {
+        background: var(--panel);
+        border: 2px solid var(--accent);
+        border-radius: 999px;
+        box-shadow: var(--float-shadow);
+        height: 18px;
+        position: absolute;
+        top: 50%;
+        transform: translate(-50%, -50%);
+        width: 18px;
+      }
+
+      .handle.start {
+        left: 0;
+      }
+
+      .handle.end {
+        left: 100%;
+      }
+
+      .handle.is-active {
+        border-color: var(--focus);
+      }
+
+      .selection-header {
+        align-items: center;
+        background: color-mix(in srgb, var(--accent) 90%, black);
+        border-radius: 0 0 7px 7px;
+        color: #ffffff;
+        display: flex;
+        gap: 4px;
+        height: 28px;
+        inset-inline: 0;
+        justify-content: space-between;
+        padding: 3px 4px 3px 7px;
+        position: absolute;
+        top: 0;
+      }
+
+      .selection-header span {
+        font-size: 10px;
+        font-weight: 700;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      .selection-header .icon-button {
+        color: #ffffff;
+        min-height: 22px;
+        width: 24px;
+      }
+
+      .selection-header.is-outside {
+        left: 100%;
+        min-width: 118px;
+        right: auto;
+        top: 10px;
+        width: max-content;
+      }
+
+      .selection-header.is-danger {
+        background: color-mix(in srgb, var(--danger) 86%, black);
+      }
+
+      .distance-line {
+        border-top: 1px dashed color-mix(in srgb, var(--danger) 72%, transparent);
+        height: 0;
+        left: var(--cursor-x);
+        pointer-events: none;
+        position: absolute;
+        top: calc(var(--cursor-y) + 8px);
+        transform-origin: left center;
+        width: 52px;
+        z-index: 4;
+      }
+
+      .keyboard-hint {
+        background: color-mix(in srgb, var(--panel) 92%, transparent);
+        border: 1px solid var(--line);
+        border-radius: 6px;
+        color: var(--muted);
+        font-size: 10px;
+        font-weight: 700;
+        padding: 3px 5px;
+      }
+
+      .local-rail,
+      .local-dock,
+      .radial-menu,
+      .inline-action-band,
+      .shortcut-card,
+      .shortcut-strip,
+      .hint-orb,
+      .hint-expanded {
+        background: color-mix(in srgb, var(--panel) 94%, transparent);
+        border: 1px solid color-mix(in srgb, var(--line) 78%, transparent);
+        box-shadow: var(--float-shadow);
+        color: var(--fg);
+        position: absolute;
+        z-index: 8;
+      }
+
+      .local-rail {
+        border-radius: 8px;
+        display: grid;
+        gap: 4px;
+        padding: 4px;
+        right: calc(100% - var(--end) + 8px);
+        top: 42px;
+      }
+
+      .local-rail.outside {
+        left: calc(var(--end) + 8px);
+        right: auto;
+      }
+
+      .local-dock {
+        align-items: center;
+        border-radius: 8px;
+        display: flex;
+        gap: 5px;
+        left: var(--toolbar-x);
+        padding: 5px;
+        top: 18px;
+        transform: translateX(-50%);
+      }
+
+      .local-dock.bottom {
+        bottom: 34px;
+        top: auto;
+      }
+
+      .radial-menu {
+        background: transparent;
+        border: 0;
+        box-shadow: none;
+        height: 132px;
+        left: var(--chip-x);
+        top: var(--chip-y);
+        transform: translate(-50%, -50%);
+        width: 132px;
+      }
+
+      .radial-core {
+        align-items: center;
+        background: var(--accent);
+        border: 2px solid color-mix(in srgb, var(--panel) 80%, transparent);
+        border-radius: 999px;
+        box-shadow: var(--float-shadow);
+        color: #ffffff;
+        display: flex;
+        font-size: 10px;
+        font-weight: 760;
+        height: 44px;
+        justify-content: center;
+        left: 50%;
+        position: absolute;
+        text-align: center;
+        top: 50%;
+        transform: translate(-50%, -50%);
+        width: 44px;
+      }
+
+      .radial-item {
+        align-items: center;
+        background: color-mix(in srgb, var(--panel) 96%, transparent);
+        border: 1px solid color-mix(in srgb, var(--line) 80%, transparent);
+        border-radius: 999px;
+        box-shadow: var(--float-shadow);
+        color: var(--fg);
+        display: flex;
+        font-size: 10px;
+        font-weight: 740;
+        gap: 4px;
+        min-height: 30px;
+        padding: 5px 8px;
+        position: absolute;
+        white-space: nowrap;
+      }
+
+      .radial-item svg {
+        height: 13px;
+        stroke: currentColor;
+        width: 13px;
+      }
+
+      .radial-item.region {
+        color: var(--danger);
+        left: 50%;
+        top: 0;
+        transform: translate(-50%, -10%);
+      }
+
+      .radial-item.rest {
+        right: 0;
+        top: 58%;
+        transform: translate(16%, -50%);
+      }
+
+      .radial-item.play {
+        bottom: 0;
+        left: 0;
+        transform: translate(-10%, 10%);
+      }
+
+      .radial-item.is-hover {
+        background: color-mix(in srgb, var(--accent) 12%, var(--panel));
+        border-color: color-mix(in srgb, var(--accent) 40%, var(--line));
+        color: var(--accent-strong);
+      }
+
+      .radial-item.region.is-hover {
+        background: var(--danger-soft);
+        border-color: color-mix(in srgb, var(--danger) 44%, var(--line));
+        color: var(--danger);
+      }
+
+      .arc-menu {
+        border: 1px solid color-mix(in srgb, var(--line) 78%, transparent);
+        border-radius: 999px 999px 12px 12px;
+        height: 88px;
+        left: 50%;
+        overflow: visible;
+        position: absolute;
+        top: -44px;
+        transform: translateX(-50%);
+        width: 260px;
+        z-index: 8;
+      }
+
+      .arc-menu .radial-item {
+        position: absolute;
+      }
+
+      .arc-menu .region {
+        left: 6px;
+        top: 42px;
+        transform: none;
+      }
+
+      .arc-menu .rest {
+        left: 96px;
+        right: auto;
+        top: 10px;
+        transform: none;
+      }
+
+      .arc-menu .play {
+        bottom: auto;
+        left: auto;
+        right: 6px;
+        top: 42px;
+        transform: none;
+      }
+
+      .inline-action-band {
+        align-items: center;
+        border-radius: 0 0 7px 7px;
+        display: flex;
+        gap: 4px;
+        inset-inline: 0;
+        justify-content: center;
+        padding: 4px;
+        top: 0;
+      }
+
+      .inline-action-band.outside {
+        border-radius: 8px;
+        left: 100%;
+        min-width: max-content;
+        right: auto;
+        top: 16px;
+      }
+
+      .inline-action-band.vertical {
+        border-radius: 8px;
+        display: grid;
+        inset-inline: auto;
+        left: calc(100% + 8px);
+        top: 10px;
+      }
+
+      .selection-label {
+        background: color-mix(in srgb, var(--panel) 93%, transparent);
+        border: 1px solid var(--line);
+        border-radius: 6px;
+        color: var(--muted);
+        font-size: 10px;
+        font-weight: 760;
+        left: 50%;
+        padding: 4px 6px;
+        position: absolute;
+        top: calc(100% + 6px);
+        transform: translateX(-50%);
+        white-space: nowrap;
+      }
+
+      .shortcut-card {
+        border-radius: 8px;
+        display: grid;
+        gap: 6px;
+        left: var(--toolbar-x);
+        padding: 8px;
+        top: 22px;
+        transform: translateX(-50%);
+      }
+
+      .shortcut-row,
+      .shortcut-strip {
+        align-items: center;
+        display: flex;
+        gap: 6px;
+      }
+
+      .shortcut-card .shortcut-row {
+        justify-content: space-between;
+      }
+
+      .keycap {
+        background: color-mix(in srgb, var(--panel-soft) 90%, var(--panel));
+        border: 1px solid var(--line);
+        border-bottom-width: 2px;
+        border-radius: 6px;
+        color: var(--fg);
+        font-size: 10px;
+        font-weight: 780;
+        min-width: 28px;
+        padding: 4px 6px;
+        text-align: center;
+      }
+
+      .shortcut-label {
+        color: var(--muted);
+        font-size: 10px;
+        font-weight: 700;
+        white-space: nowrap;
+      }
+
+      .shortcut-strip {
+        border-radius: 8px;
+        left: var(--toolbar-x);
+        padding: 5px;
+        top: 20px;
+        transform: translateX(-50%);
+      }
+
+      .hint-orb {
+        align-items: center;
+        border-radius: 999px;
+        display: flex;
+        font-size: 11px;
+        font-weight: 800;
+        height: 34px;
+        justify-content: center;
+        left: var(--chip-x);
+        top: var(--chip-y);
+        transform: translate(-50%, -50%);
+        width: 34px;
+      }
+
+      .hint-expanded {
+        border-radius: 8px;
+        display: flex;
+        gap: 5px;
+        left: var(--chip-x);
+        padding: 5px;
+        top: var(--chip-y);
+        transform: translate(18px, -50%);
+      }
+
+      .chosen-demo {
+        --start: 28%;
+        --end: 70%;
+      }
+
+      .chosen-demo .selection {
+        transition:
+          background 140ms ease,
+          border-color 140ms ease,
+          box-shadow 140ms ease;
+      }
+
+      .chosen-demo.is-region-preview .selection {
+        background: var(--danger-soft);
+        border-color: var(--danger);
+      }
+
+      .chosen-demo.is-playing .selection {
+        box-shadow:
+          inset 0 0 0 1px var(--accent-mid),
+          0 0 0 1px color-mix(in srgb, var(--accent) 30%, transparent);
+      }
+
+      .rest-preview {
+        background: color-mix(in srgb, var(--danger) 10%, transparent);
+        border: 1px dashed color-mix(in srgb, var(--danger) 40%, transparent);
+        bottom: 29px;
+        opacity: 0;
+        pointer-events: none;
+        position: absolute;
+        top: 26px;
+        transition: opacity 140ms ease;
+        z-index: 4;
+      }
+
+      .rest-preview.left {
+        left: 0;
+        width: var(--start);
+      }
+
+      .rest-preview.right {
+        left: var(--end);
+        right: 0;
+      }
+
+      .chosen-demo.is-rest-preview .rest-preview {
+        opacity: 1;
+      }
+
+      .chosen-toolbar {
+        align-items: center;
+        background: color-mix(in srgb, var(--panel) 96%, transparent);
+        border: 1px solid color-mix(in srgb, var(--line) 82%, transparent);
+        border-radius: 8px;
+        bottom: 31px;
+        box-shadow: var(--float-shadow);
+        color: var(--fg);
+        display: flex;
+        gap: 3px;
+        padding: 3px;
+        position: absolute;
+        right: calc(100% - var(--end) + 6px);
+        transform-origin: right bottom;
+        transition:
+          opacity 140ms ease,
+          transform 140ms ease;
+        z-index: 10;
+      }
+
+      .chosen-button {
+        align-items: center;
+        background: transparent;
+        border: 1px solid transparent;
+        border-radius: 6px;
+        color: inherit;
+        display: inline-flex;
+        height: 25px;
+        justify-content: center;
+        padding: 0;
+        position: relative;
+        width: 25px;
+      }
+
+      .chosen-button svg {
+        display: block;
+        height: 14px;
+        stroke: currentColor;
+        width: 14px;
+      }
+
+      .chosen-button:hover,
+      .chosen-button.is-hover {
+        background: color-mix(in srgb, var(--accent) 13%, transparent);
+        border-color: color-mix(in srgb, var(--accent) 38%, transparent);
+        color: var(--accent-strong);
+      }
+
+      .chosen-button.is-danger {
+        color: var(--danger);
+      }
+
+      .chosen-button.is-danger:hover,
+      .chosen-button.is-danger.is-hover {
+        background: var(--danger-soft);
+        border-color: color-mix(in srgb, var(--danger) 42%, transparent);
+        color: var(--danger);
+      }
+
+      .chosen-demo.is-playing [data-play-toggle] {
+        background: var(--accent);
+        border-color: var(--accent);
+        color: #ffffff;
+      }
+
+      .chosen-demo.is-playing .play-icon,
+      .chosen-demo:not(.is-playing) .pause-icon {
+        display: none;
+      }
+
+      .chosen-close {
+        color: var(--muted);
+      }
+
+      .chosen-collapse-dot {
+        align-items: center;
+        background: #2563eb;
+        border: 2px solid color-mix(in srgb, var(--panel) 92%, transparent);
+        border-radius: 999px;
+        bottom: 29px;
+        box-shadow:
+          0 0 0 6px rgb(37 99 235 / 15%),
+          0 8px 18px rgb(37 99 235 / 22%);
+        color: #ffffff;
+        display: flex;
+        height: 22px;
+        justify-content: center;
+        opacity: 0;
+        padding: 0;
+        pointer-events: none;
+        position: absolute;
+        right: calc(100% - var(--end));
+        transform: translate(50%, 50%) scale(0.92);
+        transition:
+          box-shadow 140ms ease,
+          opacity 140ms ease,
+          transform 140ms ease;
+        width: 22px;
+        z-index: 11;
+      }
+
+      .chosen-collapse-dot svg {
+        height: 11px;
+        stroke: currentColor;
+        width: 11px;
+      }
+
+      .chosen-collapse-dot:hover,
+      .chosen-collapse-dot.is-hover {
+        box-shadow:
+          0 0 0 10px rgb(37 99 235 / 23%),
+          0 10px 24px rgb(37 99 235 / 34%);
+        transform: translate(50%, 50%) scale(1);
+      }
+
+      .chosen-demo.is-collapsed .chosen-toolbar {
+        opacity: 0;
+        pointer-events: none;
+        transform: translateY(6px) scale(0.96);
+      }
+
+      .chosen-demo.is-collapsed .chosen-collapse-dot {
+        opacity: 1;
+        pointer-events: auto;
+        transform: translate(50%, 50%) scale(1);
+      }
+
+      .chosen-button::after,
+      .chosen-collapse-dot::after {
+        background: #1f2933;
+        border-radius: 6px;
+        bottom: calc(100% + 7px);
+        color: #ffffff;
+        content: attr(data-tooltip);
+        font-size: 10px;
+        font-weight: 720;
+        opacity: 0;
+        padding: 4px 6px;
+        pointer-events: none;
+        position: absolute;
+        right: 0;
+        transform: translateY(2px);
+        transition:
+          opacity 120ms ease,
+          transform 120ms ease;
+        white-space: nowrap;
+      }
+
+      .chosen-button::before,
+      .chosen-collapse-dot::before {
+        border: 5px solid transparent;
+        border-top-color: #1f2933;
+        bottom: calc(100% - 2px);
+        content: "";
+        opacity: 0;
+        pointer-events: none;
+        position: absolute;
+        right: 8px;
+        transform: translateY(2px);
+        transition:
+          opacity 120ms ease,
+          transform 120ms ease;
+      }
+
+      .chosen-button:hover::after,
+      .chosen-button:hover::before,
+      .chosen-collapse-dot:hover::after,
+      .chosen-collapse-dot:hover::before {
+        opacity: 1;
+        transform: translateY(0);
+      }
+
+      .sr-only {
+        clip: rect(0 0 0 0);
+        clip-path: inset(50%);
+        height: 1px;
+        overflow: hidden;
+        position: absolute;
+        white-space: nowrap;
+        width: 1px;
+      }
+
+      @media (max-width: 1180px) {
+        .plot {
+          min-height: 320px;
+        }
+      }
+
+      @media (max-width: 760px) {
+        main {
+          padding: 16px;
+        }
+
+        .states {
+          grid-template-columns: 1fr;
+        }
+
+        .prototype {
+          min-height: auto;
+        }
+
+        .plot {
+          height: 340px;
+          min-height: 340px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <header>
+        <h1>Graph Selection Action Prototypes</h1>
+        <p class="intro">
+          A focused live prototype for the selected floating toolbar direction, followed by
+          the earlier static comparison options. The focused version uses icon-only controls
+          for play/pause, delete region, delete rest, and collapse/expand.
+        </p>
+        <nav class="option-nav" aria-label="Prototype options">
+          <a href="#chosen-floating-toolbar">Chosen toolbar</a>
+          <a href="#floating-toolbar-a">Floating A</a>
+          <a href="#floating-toolbar-b">Floating B</a>
+          <a href="#selection-handle-a">Handle A</a>
+          <a href="#selection-handle-b">Handle B</a>
+          <a href="#cursor-chip-a">Cursor A</a>
+          <a href="#cursor-chip-b">Cursor B</a>
+          <a href="#graph-rail-a">Rail A</a>
+          <a href="#graph-rail-b">Rail B</a>
+          <a href="#radial-menu-a">Radial A</a>
+          <a href="#radial-menu-b">Radial B</a>
+          <a href="#inline-primary-a">Inline A</a>
+          <a href="#inline-primary-b">Inline B</a>
+          <a href="#keyboard-hint-a">Keys A</a>
+          <a href="#keyboard-hint-b">Keys B</a>
+        </nav>
+      </header>
+
+      <section class="prototype-grid" aria-label="Graph action prototypes">
+        <article class="prototype" id="chosen-floating-toolbar">
+          <h2>Chosen floating toolbar <span>bottom-right of selection</span></h2>
+          <p>
+            Live interaction prototype for the selected direction. The toolbar sits at the
+            bottom of the selected region and right-aligns to the selection edge. Close
+            collapses it into a blue halo dot; hovering the dot strengthens the halo, and
+            clicking the dot expands the toolbar again.
+          </p>
+          <div class="plot chosen-demo" data-chosen-demo style="--start: 30%; --end: 68%;">
+            <svg class="trace" viewBox="0 0 300 120" aria-hidden="true">
+              <path class="pitch" d="M3 70 C31 44 58 47 86 65 S134 91 162 59 207 26 236 45 275 79 298 52" />
+              <path class="intensity" d="M4 92 C36 80 61 90 90 75 S136 44 166 54 210 87 240 71 274 50 297 65" />
+            </svg>
+            <div class="rest-preview left"></div>
+            <div class="rest-preview right"></div>
+            <div class="selection is-focus"></div>
+            <div class="chosen-toolbar" data-chosen-toolbar aria-label="Selection actions">
+              <button
+                class="chosen-button"
+                type="button"
+                data-play-toggle
+                data-tooltip="Play/Pause"
+                title="Play/Pause"
+                aria-label="Play/Pause"
+                aria-pressed="false"
+              >
+                <svg class="play-icon" viewBox="0 0 24 24" aria-hidden="true">
+                  <path d="M8 5v14l10-7z" fill="currentColor" stroke="none" />
+                </svg>
+                <svg class="pause-icon" viewBox="0 0 24 24" aria-hidden="true">
+                  <path d="M8 5h3v14H8zM13 5h3v14h-3z" fill="currentColor" stroke="none" />
+                </svg>
+              </button>
+              <button
+                class="chosen-button is-danger"
+                type="button"
+                data-preview="region"
+                data-tooltip="Delete region"
+                title="Delete region"
+                aria-label="Delete region"
+              >
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                  <path d="M6 6l12 12M18 6L6 18" fill="none" stroke-width="2" stroke-linecap="round" />
+                </svg>
+              </button>
+              <button
+                class="chosen-button"
+                type="button"
+                data-preview="rest"
+                data-tooltip="Delete rest"
+                title="Delete rest"
+                aria-label="Delete rest"
+              >
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                  <path d="M4 12h5M15 12h5M9 7l-5 5 5 5M15 7l5 5-5 5" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+                </svg>
+              </button>
+              <button
+                class="chosen-button chosen-close"
+                type="button"
+                data-collapse-toolbar
+                data-tooltip="Collapse"
+                title="Collapse"
+                aria-label="Collapse toolbar"
+              >
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                  <path d="M7 7l10 10M17 7L7 17" fill="none" stroke-width="2" stroke-linecap="round" />
+                </svg>
+              </button>
+            </div>
+            <button
+              class="chosen-collapse-dot"
+              type="button"
+              data-expand-toolbar
+              data-tooltip="Expand actions"
+              title="Expand actions"
+              aria-label="Expand selection actions"
+            >
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M12 5v14M5 12h14" fill="none" stroke-width="2" stroke-linecap="round" />
+              </svg>
+            </button>
+            <div class="timebar"><span>0.0</span><span>1.8</span><span>3.6s</span></div>
+          </div>
+        </article>
+
+        <article class="prototype" id="floating-toolbar-a">
+          <h2>Floating toolbar A <span>centered above selection</span></h2>
+          <p>
+            A compact toolbar appears above the selected span. It keeps several actions nearby
+            while preserving a familiar horizontal button layout.
+          </p>
+          <div class="states">
+            <div class="state">
+              <div class="state-title"><b>1</b><span>Drag range</span></div>
+              <div class="plot" style="--start: 30%; --end: 57%;">
+                <svg class="trace" viewBox="0 0 300 120" aria-hidden="true">
+                  <path class="pitch" d="M3 74 C32 48 54 42 80 60 S128 91 154 62 199 24 231 44 276 80 297 51" />
+                  <path class="intensity" d="M4 92 C36 84 58 91 84 78 S132 42 164 52 207 88 238 72 272 49 297 67" />
+                </svg>
+                <div class="selection is-dragging"></div>
+                <span class="range-label">selecting</span>
+                <div class="timebar"><span>0.0</span><span>1.8</span><span>3.6s</span></div>
+              </div>
+            </div>
+            <div class="state">
+              <div class="state-title"><b>2</b><span>Selected</span></div>
+              <div class="plot" style="--start: 30%; --end: 66%; --toolbar-x: 48%;">
+                <svg class="trace" viewBox="0 0 300 120" aria-hidden="true">
+                  <path class="pitch" d="M3 74 C32 48 54 42 80 60 S128 91 154 62 199 24 231 44 276 80 297 51" />
+                  <path class="intensity" d="M4 92 C36 84 58 91 84 78 S132 42 164 52 207 88 238 72 272 49 297 67" />
+                </svg>
+                <div class="selection is-focus"></div>
+                <div class="action-row" aria-label="Selection actions">
+                  <button class="icon-button is-danger" title="Delete region">
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" fill="none" stroke-width="2" stroke-linecap="round" /></svg>
+                    <span class="sr-only">Delete region</span>
+                  </button>
+                  <button class="icon-button" title="Play/Pause">
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5v14l11-7z" fill="currentColor" stroke="none" /></svg>
+                    <span class="sr-only">Play/Pause</span>
+                  </button>
+                  <button class="icon-button" title="Delete silence">
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12h16M9 7l-5 5 5 5M15 7l5 5-5 5" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" /></svg>
+                    <span class="sr-only">Delete silence</span>
+                  </button>
+                </div>
+                <div class="timebar"><span>0.0</span><span>1.8</span><span>3.6s</span></div>
+              </div>
+            </div>
+            <div class="state">
+              <div class="state-title"><b>3</b><span>Delete region hover</span></div>
+              <div class="plot" style="--start: 30%; --end: 66%; --toolbar-x: 48%;">
+                <svg class="trace" viewBox="0 0 300 120" aria-hidden="true">
+                  <path class="pitch" d="M3 74 C32 48 54 42 80 60 S128 91 154 62 199 24 231 44 276 80 297 51" />
+                  <path class="intensity" d="M4 92 C36 84 58 91 84 78 S132 42 164 52 207 88 238 72 272 49 297 67" />
+                </svg>
+                <div class="selection is-danger"></div>
+                <div class="action-row" aria-label="Selection actions">
+                  <button class="icon-button is-danger is-hover" title="Delete region">
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" fill="none" stroke-width="2" stroke-linecap="round" /></svg>
+                    <span class="sr-only">Delete region</span>
+                  </button>
+                  <button class="icon-button" title="Play/Pause">
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5v14l11-7z" fill="currentColor" stroke="none" /></svg>
+                    <span class="sr-only">Play/Pause</span>
+                  </button>
+                  <button class="icon-button" title="Delete silence">
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12h16M9 7l-5 5 5 5M15 7l5 5-5 5" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" /></svg>
+                    <span class="sr-only">Delete silence</span>
+                  </button>
+                </div>
+                <div class="timebar"><span>0.0</span><span>1.8</span><span>3.6s</span></div>
+              </div>
+            </div>
+          </div>
+        </article>
+
+        <article class="prototype" id="floating-toolbar-b">
+          <h2>Floating toolbar B <span>edge-aware compact stack</span></h2>
+          <p>
+            The delete-region button stays first, with secondary actions in a short stack or overflow.
+            This version is more resilient when the selection is near an edge.
+          </p>
+          <div class="states">
+            <div class="state">
+              <div class="state-title"><b>1</b><span>Left-edge range</span></div>
+              <div class="plot" style="--start: 6%; --end: 34%;">
+                <svg class="trace" viewBox="0 0 300 120" aria-hidden="true">
+                  <path class="pitch" d="M3 76 C38 42 67 48 94 69 S140 88 171 57 215 30 241 49 276 76 297 54" />
+                  <path class="intensity" d="M4 90 C34 82 62 86 92 72 S141 44 169 56 207 84 239 75 272 47 297 63" />
+                </svg>
+                <div class="selection is-focus"></div>
+                <div class="action-stack" aria-label="Selection actions">
+                  <button class="icon-button is-danger" title="Delete region">
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" fill="none" stroke-width="2" stroke-linecap="round" /></svg>
+                    <span class="sr-only">Delete region</span>
+                  </button>
+                  <button class="icon-button" title="Play/Pause">
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5v14l11-7z" fill="currentColor" stroke="none" /></svg>
+                    <span class="sr-only">Play/Pause</span>
+                  </button>
+                </div>
+                <div class="timebar"><span>0.0</span><span>1.8</span><span>3.6s</span></div>
+              </div>
+            </div>
+            <div class="state">
+              <div class="state-title"><b>2</b><span>Overflow open</span></div>
+              <div class="plot" style="--start: 36%; --end: 64%; --toolbar-x: 50%;">
+                <svg class="trace" viewBox="0 0 300 120" aria-hidden="true">
+                  <path class="pitch" d="M3 76 C38 42 67 48 94 69 S140 88 171 57 215 30 241 49 276 76 297 54" />
+                  <path class="intensity" d="M4 90 C34 82 62 86 92 72 S141 44 169 56 207 84 239 75 272 47 297 63" />
+                </svg>
+                <div class="selection is-focus"></div>
+                <div class="action-row" aria-label="Selection actions">
+                  <button class="icon-button is-danger" title="Delete region">
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" fill="none" stroke-width="2" stroke-linecap="round" /></svg>
+                    <span class="sr-only">Delete region</span>
+                  </button>
+                  <button class="icon-button" title="More actions">
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 12h.01M12 12h.01M18 12h.01" fill="none" stroke-width="3" stroke-linecap="round" /></svg>
+                    <span class="sr-only">More actions</span>
+                  </button>
+                  <div class="menu" aria-label="More actions menu">
+                    <button class="text-button">Play/Pause</button>
+                    <button class="text-button">Keep only</button>
+                    <button class="text-button">Split here</button>
+                  </div>
+                </div>
+                <div class="timebar"><span>0.0</span><span>1.8</span><span>3.6s</span></div>
+              </div>
+            </div>
+            <div class="state">
+              <div class="state-title"><b>3</b><span>Flipped below</span></div>
+              <div class="plot" style="--start: 47%; --end: 82%; --toolbar-x: 64.5%;">
+                <svg class="trace" viewBox="0 0 300 120" aria-hidden="true">
+                  <path class="pitch" d="M3 76 C38 42 67 48 94 69 S140 88 171 57 215 30 241 49 276 76 297 54" />
+                  <path class="intensity" d="M4 90 C34 82 62 86 92 72 S141 44 169 56 207 84 239 75 272 47 297 63" />
+                </svg>
+                <div class="selection is-focus"></div>
+                <div class="action-row below" aria-label="Selection actions">
+                  <button class="icon-button is-danger is-hover" title="Delete region">
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" fill="none" stroke-width="2" stroke-linecap="round" /></svg>
+                    <span class="sr-only">Delete region</span>
+                  </button>
+                  <button class="icon-button" title="Play/Pause">
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5v14l11-7z" fill="currentColor" stroke="none" /></svg>
+                    <span class="sr-only">Play/Pause</span>
+                  </button>
+                </div>
+                <div class="timebar"><span>0.0</span><span>1.8</span><span>3.6s</span></div>
+              </div>
+            </div>
+          </div>
+        </article>
+
+        <article class="prototype" id="selection-handle-a">
+          <h2>Selection handle A <span>corner delete badge</span></h2>
+          <p>
+            The selected range owns its delete-region action. The visible badge is hard to miss and
+            does not add a second toolbar surface.
+          </p>
+          <div class="states">
+            <div class="state">
+              <div class="state-title"><b>1</b><span>Selection ready</span></div>
+              <div class="plot" style="--start: 25%; --end: 68%;">
+                <svg class="trace" viewBox="0 0 300 120" aria-hidden="true">
+                  <path class="pitch" d="M2 63 C31 42 57 53 82 72 S132 89 157 60 197 30 226 47 268 80 298 50" />
+                  <path class="intensity" d="M4 92 C39 77 61 91 91 75 S135 42 163 53 208 88 238 70 276 50 297 66" />
+                </svg>
+                <div class="selection is-focus">
+                  <button class="corner-close" title="Delete region">
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" fill="none" stroke-width="2" stroke-linecap="round" /></svg>
+                    <span class="sr-only">Delete region</span>
+                  </button>
+                </div>
+                <div class="timebar"><span>0.0</span><span>1.8</span><span>3.6s</span></div>
+              </div>
+            </div>
+            <div class="state">
+              <div class="state-title"><b>2</b><span>Badge hover</span></div>
+              <div class="plot" style="--start: 25%; --end: 68%;">
+                <svg class="trace" viewBox="0 0 300 120" aria-hidden="true">
+                  <path class="pitch" d="M2 63 C31 42 57 53 82 72 S132 89 157 60 197 30 226 47 268 80 298 50" />
+                  <path class="intensity" d="M4 92 C39 77 61 91 91 75 S135 42 163 53 208 88 238 70 276 50 297 66" />
+                </svg>
+                <div class="selection is-danger">
+                  <button class="corner-close is-hover" title="Delete region">
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" fill="none" stroke-width="2" stroke-linecap="round" /></svg>
+                    <span class="sr-only">Delete region</span>
+                  </button>
+                </div>
+                <div class="timebar"><span>0.0</span><span>1.8</span><span>3.6s</span></div>
+              </div>
+            </div>
+            <div class="state">
+              <div class="state-title"><b>3</b><span>Resize active</span></div>
+              <div class="plot" style="--start: 25%; --end: 72%;">
+                <svg class="trace" viewBox="0 0 300 120" aria-hidden="true">
+                  <path class="pitch" d="M2 63 C31 42 57 53 82 72 S132 89 157 60 197 30 226 47 268 80 298 50" />
+                  <path class="intensity" d="M4 92 C39 77 61 91 91 75 S135 42 163 53 208 88 238 70 276 50 297 66" />
+                </svg>
+                <div class="selection is-focus">
+                  <span class="handle start"></span>
+                  <span class="handle end is-active"></span>
+                  <button class="corner-close" title="Delete region">
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" fill="none" stroke-width="2" stroke-linecap="round" /></svg>
+                    <span class="sr-only">Delete region</span>
+                  </button>
+                </div>
+                <div class="timebar"><span>0.0</span><span>1.8</span><span>3.6s</span></div>
+              </div>
+            </div>
+          </div>
+        </article>
+
+        <article class="prototype" id="selection-handle-b">
+          <h2>Selection handle B <span>inline header strip</span></h2>
+          <p>
+            A small header bar labels the selection and groups actions inside the region. The
+            narrow-range state shows how it can move outside when space is tight.
+          </p>
+          <div class="states">
+            <div class="state">
+              <div class="state-title"><b>1</b><span>Wide range</span></div>
+              <div class="plot" style="--start: 22%; --end: 72%;">
+                <svg class="trace" viewBox="0 0 300 120" aria-hidden="true">
+                  <path class="pitch" d="M3 70 C34 43 59 47 86 64 S132 92 162 58 209 22 238 44 275 77 298 51" />
+                  <path class="intensity" d="M4 94 C38 80 62 90 88 76 S134 43 165 54 209 87 240 71 272 49 297 64" />
+                </svg>
+                <div class="selection is-focus">
+                  <div class="selection-header">
+                    <span>1.26s selected</span>
+                    <button class="icon-button" title="Delete region">
+                      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" fill="none" stroke-width="2" stroke-linecap="round" /></svg>
+                      <span class="sr-only">Delete region</span>
+                    </button>
+                  </div>
+                </div>
+                <div class="timebar"><span>0.0</span><span>1.8</span><span>3.6s</span></div>
+              </div>
+            </div>
+            <div class="state">
+              <div class="state-title"><b>2</b><span>Narrow range</span></div>
+              <div class="plot" style="--start: 45%; --end: 53%;">
+                <svg class="trace" viewBox="0 0 300 120" aria-hidden="true">
+                  <path class="pitch" d="M3 70 C34 43 59 47 86 64 S132 92 162 58 209 22 238 44 275 77 298 51" />
+                  <path class="intensity" d="M4 94 C38 80 62 90 88 76 S134 43 165 54 209 87 240 71 272 49 297 64" />
+                </svg>
+                <div class="selection is-focus">
+                  <div class="selection-header is-outside">
+                    <span>0.24s</span>
+                    <button class="icon-button" title="Delete region">
+                      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" fill="none" stroke-width="2" stroke-linecap="round" /></svg>
+                      <span class="sr-only">Delete region</span>
+                    </button>
+                  </div>
+                </div>
+                <div class="timebar"><span>0.0</span><span>1.8</span><span>3.6s</span></div>
+              </div>
+            </div>
+            <div class="state">
+              <div class="state-title"><b>3</b><span>Delete region intent</span></div>
+              <div class="plot" style="--start: 25%; --end: 70%;">
+                <svg class="trace" viewBox="0 0 300 120" aria-hidden="true">
+                  <path class="pitch" d="M3 70 C34 43 59 47 86 64 S132 92 162 58 209 22 238 44 275 77 298 51" />
+                  <path class="intensity" d="M4 94 C38 80 62 90 88 76 S134 43 165 54 209 87 240 71 272 49 297 64" />
+                </svg>
+                <div class="selection is-danger">
+                  <div class="selection-header is-danger">
+                    <span>delete region?</span>
+                    <button class="icon-button is-hover" title="Delete region">
+                      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" fill="none" stroke-width="2" stroke-linecap="round" /></svg>
+                      <span class="sr-only">Delete region</span>
+                    </button>
+                  </div>
+                </div>
+                <div class="confirm-popover" aria-label="Delete confirmation">
+                  <strong>Delete region?</strong>
+                  <div class="confirm-actions">
+                    <button class="text-button is-primary">Yes</button>
+                    <button class="text-button">No</button>
+                  </div>
+                </div>
+                <div class="timebar"><span>0.0</span><span>1.8</span><span>3.6s</span></div>
+              </div>
+            </div>
+          </div>
+        </article>
+
+        <article class="prototype" id="cursor-chip-a">
+          <h2>Cursor chip A <span>release-point action chip</span></h2>
+          <p>
+            The chip appears where the mouse finishes the selection. It is the shortest pointer
+            path, especially for people repeatedly selecting and closing regions.
+          </p>
+          <div class="states">
+            <div class="state">
+              <div class="state-title"><b>1</b><span>Release point</span></div>
+              <div class="plot" style="--start: 31%; --end: 63%; --cursor-x: 63%; --cursor-y: 43%; --chip-x: 63%; --chip-y: 43%;">
+                <svg class="trace" viewBox="0 0 300 120" aria-hidden="true">
+                  <path class="pitch" d="M3 66 C31 40 56 48 84 69 S130 91 158 61 201 28 230 46 272 78 298 52" />
+                  <path class="intensity" d="M4 91 C36 82 60 89 87 74 S134 45 164 53 208 86 238 72 274 50 297 65" />
+                </svg>
+                <div class="selection is-focus"></div>
+                <div class="cursor"></div>
+                <div class="distance-line"></div>
+                <div class="action-chip left" aria-label="Selection actions">
+                  <button class="icon-button is-danger" title="Delete region">
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" fill="none" stroke-width="2" stroke-linecap="round" /></svg>
+                    <span class="sr-only">Delete region</span>
+                  </button>
+                  <button class="icon-button" title="Play/Pause">
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5v14l11-7z" fill="currentColor" stroke="none" /></svg>
+                    <span class="sr-only">Play/Pause</span>
+                  </button>
+                </div>
+                <div class="timebar"><span>0.0</span><span>1.8</span><span>3.6s</span></div>
+              </div>
+            </div>
+            <div class="state">
+              <div class="state-title"><b>2</b><span>Delete region hover</span></div>
+              <div class="plot" style="--start: 31%; --end: 63%; --cursor-x: 67%; --cursor-y: 49%; --chip-x: 63%; --chip-y: 43%;">
+                <svg class="trace" viewBox="0 0 300 120" aria-hidden="true">
+                  <path class="pitch" d="M3 66 C31 40 56 48 84 69 S130 91 158 61 201 28 230 46 272 78 298 52" />
+                  <path class="intensity" d="M4 91 C36 82 60 89 87 74 S134 45 164 53 208 86 238 72 274 50 297 65" />
+                </svg>
+                <div class="selection is-danger"></div>
+                <div class="cursor"></div>
+                <div class="action-chip left" aria-label="Selection actions">
+                  <button class="icon-button is-danger is-hover" title="Delete region">
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" fill="none" stroke-width="2" stroke-linecap="round" /></svg>
+                    <span class="sr-only">Delete region</span>
+                  </button>
+                  <button class="icon-button" title="Play/Pause">
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5v14l11-7z" fill="currentColor" stroke="none" /></svg>
+                    <span class="sr-only">Play/Pause</span>
+                  </button>
+                </div>
+                <div class="timebar"><span>0.0</span><span>1.8</span><span>3.6s</span></div>
+              </div>
+            </div>
+            <div class="state">
+              <div class="state-title"><b>3</b><span>More actions</span></div>
+              <div class="plot" style="--start: 26%; --end: 58%; --cursor-x: 58%; --cursor-y: 64%; --chip-x: 58%; --chip-y: 64%;">
+                <svg class="trace" viewBox="0 0 300 120" aria-hidden="true">
+                  <path class="pitch" d="M3 66 C31 40 56 48 84 69 S130 91 158 61 201 28 230 46 272 78 298 52" />
+                  <path class="intensity" d="M4 91 C36 82 60 89 87 74 S134 45 164 53 208 86 238 72 274 50 297 65" />
+                </svg>
+                <div class="selection is-focus"></div>
+                <div class="cursor"></div>
+                <div class="action-chip left menu-up" aria-label="Selection actions">
+                  <button class="icon-button is-danger" title="Delete region">
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" fill="none" stroke-width="2" stroke-linecap="round" /></svg>
+                    <span class="sr-only">Delete region</span>
+                  </button>
+                  <button class="icon-button" title="More actions">
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 12h.01M12 12h.01M18 12h.01" fill="none" stroke-width="3" stroke-linecap="round" /></svg>
+                    <span class="sr-only">More actions</span>
+                  </button>
+                  <div class="menu" aria-label="More actions menu">
+                    <button class="text-button">Play</button>
+                    <button class="text-button">Keep only</button>
+                    <button class="text-button">Split</button>
+                  </div>
+                </div>
+                <div class="timebar"><span>0.0</span><span>1.8</span><span>3.6s</span></div>
+              </div>
+            </div>
+          </div>
+        </article>
+
+        <article class="prototype" id="cursor-chip-b">
+          <h2>Cursor chip B <span>magnetic action puck</span></h2>
+          <p>
+            A compact action puck appears near the cursor and can reveal secondary commands.
+            It minimizes visual weight while keeping the main commands nearby.
+          </p>
+          <div class="states">
+            <div class="state">
+              <div class="state-title"><b>1</b><span>Delete region</span></div>
+              <div class="plot" style="--start: 34%; --end: 69%; --cursor-x: 69%; --cursor-y: 36%; --chip-x: 69%; --chip-y: 36%;">
+                <svg class="trace" viewBox="0 0 300 120" aria-hidden="true">
+                  <path class="pitch" d="M3 72 C34 43 58 47 86 63 S135 91 162 61 203 28 232 45 274 78 298 52" />
+                  <path class="intensity" d="M4 94 C36 80 61 89 89 76 S136 42 166 54 207 87 239 71 274 50 297 65" />
+                </svg>
+                <div class="selection is-focus"></div>
+                <div class="cursor"></div>
+                <div class="command-puck left" aria-label="Selection actions">
+                  <button class="icon-button is-danger" title="Delete region">
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" fill="none" stroke-width="2" stroke-linecap="round" /></svg>
+                    <span class="sr-only">Delete region</span>
+                  </button>
+                  <span class="keyboard-hint">Esc</span>
+                </div>
+                <div class="timebar"><span>0.0</span><span>1.8</span><span>3.6s</span></div>
+              </div>
+            </div>
+            <div class="state">
+              <div class="state-title"><b>2</b><span>Expanded puck</span></div>
+              <div class="plot" style="--start: 34%; --end: 69%; --cursor-x: 75%; --cursor-y: 43%; --chip-x: 69%; --chip-y: 36%;">
+                <svg class="trace" viewBox="0 0 300 120" aria-hidden="true">
+                  <path class="pitch" d="M3 72 C34 43 58 47 86 63 S135 91 162 61 203 28 232 45 274 78 298 52" />
+                  <path class="intensity" d="M4 94 C36 80 61 89 89 76 S136 42 166 54 207 87 239 71 274 50 297 65" />
+                </svg>
+                <div class="selection is-focus"></div>
+                <div class="cursor"></div>
+                <div class="command-puck left" aria-label="Selection actions">
+                  <button class="icon-button is-danger is-hover" title="Delete region">
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" fill="none" stroke-width="2" stroke-linecap="round" /></svg>
+                    <span class="sr-only">Delete region</span>
+                  </button>
+                  <button class="icon-button" title="Play/Pause">
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5v14l11-7z" fill="currentColor" stroke="none" /></svg>
+                    <span class="sr-only">Play/Pause</span>
+                  </button>
+                  <button class="icon-button" title="More actions">
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 12h.01M12 12h.01M18 12h.01" fill="none" stroke-width="3" stroke-linecap="round" /></svg>
+                    <span class="sr-only">More actions</span>
+                  </button>
+                </div>
+                <div class="timebar"><span>0.0</span><span>1.8</span><span>3.6s</span></div>
+              </div>
+            </div>
+            <div class="state">
+              <div class="state-title"><b>3</b><span>Edge rail fallback</span></div>
+              <div class="plot" style="--start: 59%; --end: 92%; --cursor-x: 91%; --cursor-y: 40%; --chip-x: 86%; --chip-y: 40%;">
+                <svg class="trace" viewBox="0 0 300 120" aria-hidden="true">
+                  <path class="pitch" d="M3 72 C34 43 58 47 86 63 S135 91 162 61 203 28 232 45 274 78 298 52" />
+                  <path class="intensity" d="M4 94 C36 80 61 89 89 76 S136 42 166 54 207 87 239 71 274 50 297 65" />
+                </svg>
+                <div class="selection is-focus"></div>
+                <div class="cursor"></div>
+                <div class="edge-rail" aria-label="Selection actions">
+                  <button class="icon-button is-danger" title="Delete region">
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" fill="none" stroke-width="2" stroke-linecap="round" /></svg>
+                    <span class="sr-only">Delete region</span>
+                  </button>
+                  <button class="icon-button" title="Play/Pause">
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5v14l11-7z" fill="currentColor" stroke="none" /></svg>
+                    <span class="sr-only">Play/Pause</span>
+                  </button>
+                </div>
+                <div class="timebar"><span>0.0</span><span>1.8</span><span>3.6s</span></div>
+              </div>
+            </div>
+          </div>
+        </article>
+
+        <article class="prototype" id="graph-rail-a">
+          <h2>Graph rail A <span>selection-following vertical rail</span></h2>
+          <p>
+            A compact rail follows the nearest edge of the selection. The graph remains the
+            interaction surface, while all three commands stay within a short vertical movement.
+          </p>
+          <div class="states">
+            <div class="state">
+              <div class="state-title"><b>1</b><span>Rail appears</span></div>
+              <div class="plot" style="--start: 30%; --end: 64%;">
+                <svg class="trace" viewBox="0 0 300 120" aria-hidden="true">
+                  <path class="pitch" d="M3 70 C30 45 56 49 84 68 S132 91 160 60 204 27 233 45 274 78 298 52" />
+                  <path class="intensity" d="M4 92 C35 82 60 89 88 74 S134 44 165 54 209 87 239 72 274 50 297 65" />
+                </svg>
+                <div class="selection is-focus"></div>
+                <div class="local-rail" aria-label="Selection actions">
+                  <button class="action-button is-icon is-danger" title="Delete region">
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" fill="none" stroke-width="2" stroke-linecap="round" /></svg>
+                    <span class="sr-only">Delete region</span>
+                  </button>
+                  <button class="action-button is-icon" title="Delete rest">
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12h5M15 12h5M9 7l-5 5 5 5M15 7l5 5-5 5" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" /></svg>
+                    <span class="sr-only">Delete rest</span>
+                  </button>
+                  <button class="action-button is-icon" title="Play/Pause">
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5v14l10-7z" fill="currentColor" stroke="none" /></svg>
+                    <span class="sr-only">Play/Pause</span>
+                  </button>
+                </div>
+                <div class="timebar"><span>0.0</span><span>1.8</span><span>3.6s</span></div>
+              </div>
+            </div>
+            <div class="state">
+              <div class="state-title"><b>2</b><span>Delete rest hover</span></div>
+              <div class="plot" style="--start: 30%; --end: 64%;">
+                <svg class="trace" viewBox="0 0 300 120" aria-hidden="true">
+                  <path class="pitch" d="M3 70 C30 45 56 49 84 68 S132 91 160 60 204 27 233 45 274 78 298 52" />
+                  <path class="intensity" d="M4 92 C35 82 60 89 88 74 S134 44 165 54 209 87 239 72 274 50 297 65" />
+                </svg>
+                <div class="selection is-focus"></div>
+                <div class="local-rail" aria-label="Selection actions">
+                  <button class="action-button is-icon is-danger" title="Delete region">
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" fill="none" stroke-width="2" stroke-linecap="round" /></svg>
+                    <span class="sr-only">Delete region</span>
+                  </button>
+                  <button class="action-button is-icon is-hover" title="Delete rest">
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12h5M15 12h5M9 7l-5 5 5 5M15 7l5 5-5 5" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" /></svg>
+                    <span class="sr-only">Delete rest</span>
+                  </button>
+                  <button class="action-button is-icon" title="Play/Pause">
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5v14l10-7z" fill="currentColor" stroke="none" /></svg>
+                    <span class="sr-only">Play/Pause</span>
+                  </button>
+                </div>
+                <div class="timebar"><span>0.0</span><span>1.8</span><span>3.6s</span></div>
+              </div>
+            </div>
+            <div class="state">
+              <div class="state-title"><b>3</b><span>Right edge</span></div>
+              <div class="plot" style="--start: 62%; --end: 91%;">
+                <svg class="trace" viewBox="0 0 300 120" aria-hidden="true">
+                  <path class="pitch" d="M3 70 C30 45 56 49 84 68 S132 91 160 60 204 27 233 45 274 78 298 52" />
+                  <path class="intensity" d="M4 92 C35 82 60 89 88 74 S134 44 165 54 209 87 239 72 274 50 297 65" />
+                </svg>
+                <div class="selection is-focus"></div>
+                <div class="local-rail" aria-label="Selection actions">
+                  <button class="action-button is-icon is-danger" title="Delete region">
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" fill="none" stroke-width="2" stroke-linecap="round" /></svg>
+                    <span class="sr-only">Delete region</span>
+                  </button>
+                  <button class="action-button is-icon" title="Delete rest">
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12h5M15 12h5M9 7l-5 5 5 5M15 7l5 5-5 5" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" /></svg>
+                    <span class="sr-only">Delete rest</span>
+                  </button>
+                  <button class="action-button is-icon is-active" title="Pause">
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5h3v14H8zM13 5h3v14h-3z" fill="currentColor" stroke="none" /></svg>
+                    <span class="sr-only">Pause</span>
+                  </button>
+                </div>
+                <div class="timebar"><span>0.0</span><span>1.8</span><span>3.6s</span></div>
+              </div>
+            </div>
+          </div>
+        </article>
+
+        <article class="prototype" id="graph-rail-b">
+          <h2>Graph rail B <span>selection-aligned local dock</span></h2>
+          <p>
+            A horizontal dock stays inside the plot and aligns to the selected span. It favors
+            visible labels over minimum footprint, which helps when the action set has three commands.
+          </p>
+          <div class="states">
+            <div class="state">
+              <div class="state-title"><b>1</b><span>Dock above range</span></div>
+              <div class="plot" style="--start: 24%; --end: 66%; --toolbar-x: 45%;">
+                <svg class="trace" viewBox="0 0 300 120" aria-hidden="true">
+                  <path class="pitch" d="M4 73 C34 44 58 46 86 64 S132 91 162 59 206 25 236 46 274 80 298 51" />
+                  <path class="intensity" d="M4 91 C37 79 62 90 90 75 S136 43 165 54 209 87 240 70 274 49 297 65" />
+                </svg>
+                <div class="selection is-focus"></div>
+                <div class="local-dock" aria-label="Selection actions">
+                  <button class="action-button is-danger">
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" fill="none" stroke-width="2" stroke-linecap="round" /></svg>
+                    Delete region
+                  </button>
+                  <button class="action-button">
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12h5M15 12h5M9 7l-5 5 5 5M15 7l5 5-5 5" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" /></svg>
+                    Delete rest
+                  </button>
+                  <button class="action-button">
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5v14l10-7z" fill="currentColor" stroke="none" /></svg>
+                    Play
+                  </button>
+                </div>
+                <div class="timebar"><span>0.0</span><span>1.8</span><span>3.6s</span></div>
+              </div>
+            </div>
+            <div class="state">
+              <div class="state-title"><b>2</b><span>Pause active</span></div>
+              <div class="plot" style="--start: 24%; --end: 66%; --toolbar-x: 45%;">
+                <svg class="trace" viewBox="0 0 300 120" aria-hidden="true">
+                  <path class="pitch" d="M4 73 C34 44 58 46 86 64 S132 91 162 59 206 25 236 46 274 80 298 51" />
+                  <path class="intensity" d="M4 91 C37 79 62 90 90 75 S136 43 165 54 209 87 240 70 274 49 297 65" />
+                </svg>
+                <div class="selection is-focus"></div>
+                <div class="local-dock" aria-label="Selection actions">
+                  <button class="action-button is-danger">
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" fill="none" stroke-width="2" stroke-linecap="round" /></svg>
+                    Delete region
+                  </button>
+                  <button class="action-button">
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12h5M15 12h5M9 7l-5 5 5 5M15 7l5 5-5 5" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" /></svg>
+                    Delete rest
+                  </button>
+                  <button class="action-button is-active">
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5h3v14H8zM13 5h3v14h-3z" fill="currentColor" stroke="none" /></svg>
+                    Pause
+                  </button>
+                </div>
+                <div class="timebar"><span>0.0</span><span>1.8</span><span>3.6s</span></div>
+              </div>
+            </div>
+            <div class="state">
+              <div class="state-title"><b>3</b><span>Low placement</span></div>
+              <div class="plot" style="--start: 36%; --end: 77%; --toolbar-x: 56.5%;">
+                <svg class="trace" viewBox="0 0 300 120" aria-hidden="true">
+                  <path class="pitch" d="M4 73 C34 44 58 46 86 64 S132 91 162 59 206 25 236 46 274 80 298 51" />
+                  <path class="intensity" d="M4 91 C37 79 62 90 90 75 S136 43 165 54 209 87 240 70 274 49 297 65" />
+                </svg>
+                <div class="selection is-danger"></div>
+                <div class="local-dock bottom" aria-label="Selection actions">
+                  <button class="action-button is-danger is-hover">
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" fill="none" stroke-width="2" stroke-linecap="round" /></svg>
+                    Delete region
+                  </button>
+                  <button class="action-button">
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12h5M15 12h5M9 7l-5 5 5 5M15 7l5 5-5 5" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" /></svg>
+                    Delete rest
+                  </button>
+                  <button class="action-button">
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5v14l10-7z" fill="currentColor" stroke="none" /></svg>
+                    Play
+                  </button>
+                </div>
+                <div class="timebar"><span>0.0</span><span>1.8</span><span>3.6s</span></div>
+              </div>
+            </div>
+          </div>
+        </article>
+
+        <article class="prototype" id="radial-menu-a">
+          <h2>Radial menu A <span>cursor-centered three command pie</span></h2>
+          <p>
+            A radial menu opens at mouse release. The three commands are equidistant from the
+            cursor, trading familiarity for the shortest repeated movement.
+          </p>
+          <div class="states">
+            <div class="state">
+              <div class="state-title"><b>1</b><span>Release opens menu</span></div>
+              <div class="plot" style="--start: 29%; --end: 64%; --cursor-x: 64%; --cursor-y: 42%; --chip-x: 64%; --chip-y: 42%;">
+                <svg class="trace" viewBox="0 0 300 120" aria-hidden="true">
+                  <path class="pitch" d="M3 68 C33 43 59 48 87 66 S134 90 162 58 206 26 235 45 274 79 298 52" />
+                  <path class="intensity" d="M4 93 C37 81 62 90 91 75 S137 43 166 54 210 87 240 71 274 50 297 65" />
+                </svg>
+                <div class="selection is-focus"></div>
+                <div class="cursor"></div>
+                <div class="radial-menu" aria-label="Selection actions">
+                  <div class="radial-core">actions</div>
+                  <button class="radial-item region">
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" fill="none" stroke-width="2" stroke-linecap="round" /></svg>
+                    Delete region
+                  </button>
+                  <button class="radial-item rest">
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12h5M15 12h5M9 7l-5 5 5 5M15 7l5 5-5 5" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" /></svg>
+                    Delete rest
+                  </button>
+                  <button class="radial-item play">
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5v14l10-7z" fill="currentColor" stroke="none" /></svg>
+                    Play
+                  </button>
+                </div>
+                <div class="timebar"><span>0.0</span><span>1.8</span><span>3.6s</span></div>
+              </div>
+            </div>
+            <div class="state">
+              <div class="state-title"><b>2</b><span>Delete region hover</span></div>
+              <div class="plot" style="--start: 29%; --end: 64%; --cursor-x: 63%; --cursor-y: 34%; --chip-x: 64%; --chip-y: 42%;">
+                <svg class="trace" viewBox="0 0 300 120" aria-hidden="true">
+                  <path class="pitch" d="M3 68 C33 43 59 48 87 66 S134 90 162 58 206 26 235 45 274 79 298 52" />
+                  <path class="intensity" d="M4 93 C37 81 62 90 91 75 S137 43 166 54 210 87 240 71 274 50 297 65" />
+                </svg>
+                <div class="selection is-danger"></div>
+                <div class="cursor"></div>
+                <div class="radial-menu" aria-label="Selection actions">
+                  <div class="radial-core">actions</div>
+                  <button class="radial-item region is-hover">
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" fill="none" stroke-width="2" stroke-linecap="round" /></svg>
+                    Delete region
+                  </button>
+                  <button class="radial-item rest">
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12h5M15 12h5M9 7l-5 5 5 5M15 7l5 5-5 5" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" /></svg>
+                    Delete rest
+                  </button>
+                  <button class="radial-item play">
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5v14l10-7z" fill="currentColor" stroke="none" /></svg>
+                    Play
+                  </button>
+                </div>
+                <div class="timebar"><span>0.0</span><span>1.8</span><span>3.6s</span></div>
+              </div>
+            </div>
+            <div class="state">
+              <div class="state-title"><b>3</b><span>Pause command</span></div>
+              <div class="plot" style="--start: 31%; --end: 65%; --cursor-x: 50%; --cursor-y: 66%; --chip-x: 52%; --chip-y: 55%;">
+                <svg class="trace" viewBox="0 0 300 120" aria-hidden="true">
+                  <path class="pitch" d="M3 68 C33 43 59 48 87 66 S134 90 162 58 206 26 235 45 274 79 298 52" />
+                  <path class="intensity" d="M4 93 C37 81 62 90 91 75 S137 43 166 54 210 87 240 71 274 50 297 65" />
+                </svg>
+                <div class="selection is-focus"></div>
+                <div class="cursor"></div>
+                <div class="radial-menu" aria-label="Selection actions">
+                  <div class="radial-core">playing</div>
+                  <button class="radial-item region">
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" fill="none" stroke-width="2" stroke-linecap="round" /></svg>
+                    Delete region
+                  </button>
+                  <button class="radial-item rest">
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12h5M15 12h5M9 7l-5 5 5 5M15 7l5 5-5 5" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" /></svg>
+                    Delete rest
+                  </button>
+                  <button class="radial-item play is-hover">
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5h3v14H8zM13 5h3v14h-3z" fill="currentColor" stroke="none" /></svg>
+                    Pause
+                  </button>
+                </div>
+                <div class="timebar"><span>0.0</span><span>1.8</span><span>3.6s</span></div>
+              </div>
+            </div>
+          </div>
+        </article>
+
+        <article class="prototype" id="radial-menu-b">
+          <h2>Radial menu B <span>selection-top arc menu</span></h2>
+          <p>
+            The actions form a shallow arc attached to the selection instead of the cursor.
+            This keeps the menu visually tied to the selected region while still reducing travel.
+          </p>
+          <div class="states">
+            <div class="state">
+              <div class="state-title"><b>1</b><span>Wide arc</span></div>
+              <div class="plot" style="--start: 23%; --end: 72%;">
+                <svg class="trace" viewBox="0 0 300 120" aria-hidden="true">
+                  <path class="pitch" d="M3 72 C34 42 60 46 88 63 S134 92 162 59 206 25 236 46 274 78 298 52" />
+                  <path class="intensity" d="M4 93 C36 81 61 89 90 76 S136 44 166 55 210 87 240 72 274 50 297 65" />
+                </svg>
+                <div class="selection is-focus">
+                  <div class="arc-menu" aria-label="Selection actions">
+                    <button class="radial-item region">
+                      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" fill="none" stroke-width="2" stroke-linecap="round" /></svg>
+                      Delete region
+                    </button>
+                    <button class="radial-item rest">
+                      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12h5M15 12h5M9 7l-5 5 5 5M15 7l5 5-5 5" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" /></svg>
+                      Delete rest
+                    </button>
+                    <button class="radial-item play">
+                      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5v14l10-7z" fill="currentColor" stroke="none" /></svg>
+                      Play
+                    </button>
+                  </div>
+                </div>
+                <div class="timebar"><span>0.0</span><span>1.8</span><span>3.6s</span></div>
+              </div>
+            </div>
+            <div class="state">
+              <div class="state-title"><b>2</b><span>Delete rest hover</span></div>
+              <div class="plot" style="--start: 23%; --end: 72%;">
+                <svg class="trace" viewBox="0 0 300 120" aria-hidden="true">
+                  <path class="pitch" d="M3 72 C34 42 60 46 88 63 S134 92 162 59 206 25 236 46 274 78 298 52" />
+                  <path class="intensity" d="M4 93 C36 81 61 89 90 76 S136 44 166 55 210 87 240 72 274 50 297 65" />
+                </svg>
+                <div class="selection is-focus">
+                  <div class="arc-menu" aria-label="Selection actions">
+                    <button class="radial-item region">
+                      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" fill="none" stroke-width="2" stroke-linecap="round" /></svg>
+                      Delete region
+                    </button>
+                    <button class="radial-item rest is-hover">
+                      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12h5M15 12h5M9 7l-5 5 5 5M15 7l5 5-5 5" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" /></svg>
+                      Delete rest
+                    </button>
+                    <button class="radial-item play">
+                      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5v14l10-7z" fill="currentColor" stroke="none" /></svg>
+                      Play
+                    </button>
+                  </div>
+                </div>
+                <div class="timebar"><span>0.0</span><span>1.8</span><span>3.6s</span></div>
+              </div>
+            </div>
+            <div class="state">
+              <div class="state-title"><b>3</b><span>Narrow arc</span></div>
+              <div class="plot" style="--start: 43%; --end: 55%;">
+                <svg class="trace" viewBox="0 0 300 120" aria-hidden="true">
+                  <path class="pitch" d="M3 72 C34 42 60 46 88 63 S134 92 162 59 206 25 236 46 274 78 298 52" />
+                  <path class="intensity" d="M4 93 C36 81 61 89 90 76 S136 44 166 55 210 87 240 72 274 50 297 65" />
+                </svg>
+                <div class="selection is-focus">
+                  <div class="arc-menu" aria-label="Selection actions">
+                    <button class="radial-item region">
+                      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" fill="none" stroke-width="2" stroke-linecap="round" /></svg>
+                      Delete region
+                    </button>
+                    <button class="radial-item rest">
+                      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12h5M15 12h5M9 7l-5 5 5 5M15 7l5 5-5 5" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" /></svg>
+                      Delete rest
+                    </button>
+                    <button class="radial-item play is-hover">
+                      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5h3v14H8zM13 5h3v14h-3z" fill="currentColor" stroke="none" /></svg>
+                      Pause
+                    </button>
+                  </div>
+                </div>
+                <div class="timebar"><span>0.0</span><span>1.8</span><span>3.6s</span></div>
+              </div>
+            </div>
+          </div>
+        </article>
+
+        <article class="prototype" id="inline-primary-a">
+          <h2>Inline primary A <span>selection header with three actions</span></h2>
+          <p>
+            The selection itself carries the controls in a compact header. This is the most
+            direct treatment, but it consumes graph area when the selection is short.
+          </p>
+          <div class="states">
+            <div class="state">
+              <div class="state-title"><b>1</b><span>Wide selection</span></div>
+              <div class="plot" style="--start: 20%; --end: 75%;">
+                <svg class="trace" viewBox="0 0 300 120" aria-hidden="true">
+                  <path class="pitch" d="M3 69 C33 43 58 49 86 67 S134 91 162 59 207 26 236 45 275 79 298 52" />
+                  <path class="intensity" d="M4 92 C36 80 61 89 90 75 S136 44 166 54 210 87 240 71 274 50 297 66" />
+                </svg>
+                <div class="selection is-focus">
+                  <div class="inline-action-band" aria-label="Selection actions">
+                    <button class="action-button is-danger">
+                      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" fill="none" stroke-width="2" stroke-linecap="round" /></svg>
+                      Delete region
+                    </button>
+                    <button class="action-button">
+                      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12h5M15 12h5M9 7l-5 5 5 5M15 7l5 5-5 5" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" /></svg>
+                      Delete rest
+                    </button>
+                    <button class="action-button">
+                      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5v14l10-7z" fill="currentColor" stroke="none" /></svg>
+                      Play
+                    </button>
+                  </div>
+                </div>
+                <div class="timebar"><span>0.0</span><span>1.8</span><span>3.6s</span></div>
+              </div>
+            </div>
+            <div class="state">
+              <div class="state-title"><b>2</b><span>Delete hover</span></div>
+              <div class="plot" style="--start: 20%; --end: 75%;">
+                <svg class="trace" viewBox="0 0 300 120" aria-hidden="true">
+                  <path class="pitch" d="M3 69 C33 43 58 49 86 67 S134 91 162 59 207 26 236 45 275 79 298 52" />
+                  <path class="intensity" d="M4 92 C36 80 61 89 90 75 S136 44 166 54 210 87 240 71 274 50 297 66" />
+                </svg>
+                <div class="selection is-danger">
+                  <div class="inline-action-band" aria-label="Selection actions">
+                    <button class="action-button is-danger is-hover">
+                      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" fill="none" stroke-width="2" stroke-linecap="round" /></svg>
+                      Delete region
+                    </button>
+                    <button class="action-button">
+                      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12h5M15 12h5M9 7l-5 5 5 5M15 7l5 5-5 5" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" /></svg>
+                      Delete rest
+                    </button>
+                    <button class="action-button">
+                      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5v14l10-7z" fill="currentColor" stroke="none" /></svg>
+                      Play
+                    </button>
+                  </div>
+                </div>
+                <div class="timebar"><span>0.0</span><span>1.8</span><span>3.6s</span></div>
+              </div>
+            </div>
+            <div class="state">
+              <div class="state-title"><b>3</b><span>Narrow fallback</span></div>
+              <div class="plot" style="--start: 42%; --end: 55%;">
+                <svg class="trace" viewBox="0 0 300 120" aria-hidden="true">
+                  <path class="pitch" d="M3 69 C33 43 58 49 86 67 S134 91 162 59 207 26 236 45 275 79 298 52" />
+                  <path class="intensity" d="M4 92 C36 80 61 89 90 75 S136 44 166 54 210 87 240 71 274 50 297 66" />
+                </svg>
+                <div class="selection is-focus">
+                  <div class="inline-action-band outside" aria-label="Selection actions">
+                    <button class="action-button is-danger">Delete region</button>
+                    <button class="action-button">Delete rest</button>
+                    <button class="action-button is-active">Pause</button>
+                  </div>
+                </div>
+                <div class="timebar"><span>0.0</span><span>1.8</span><span>3.6s</span></div>
+              </div>
+            </div>
+          </div>
+        </article>
+
+        <article class="prototype" id="inline-primary-b">
+          <h2>Inline primary B <span>outside vertical action strip</span></h2>
+          <p>
+            This keeps the selection visually clean and places a vertical action strip just
+            outside the selected range. It behaves like handles, but with command semantics.
+          </p>
+          <div class="states">
+            <div class="state">
+              <div class="state-title"><b>1</b><span>Strip attached</span></div>
+              <div class="plot" style="--start: 24%; --end: 62%;">
+                <svg class="trace" viewBox="0 0 300 120" aria-hidden="true">
+                  <path class="pitch" d="M3 71 C33 43 59 47 86 65 S134 90 162 58 207 26 236 46 275 79 298 53" />
+                  <path class="intensity" d="M4 93 C36 81 61 89 90 76 S136 43 166 54 210 88 240 72 274 51 297 65" />
+                </svg>
+                <div class="selection is-focus">
+                  <span class="selection-label">1.37s</span>
+                  <div class="inline-action-band vertical" aria-label="Selection actions">
+                    <button class="action-button is-icon is-danger" title="Delete region">
+                      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" fill="none" stroke-width="2" stroke-linecap="round" /></svg>
+                      <span class="sr-only">Delete region</span>
+                    </button>
+                    <button class="action-button is-icon" title="Delete rest">
+                      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12h5M15 12h5M9 7l-5 5 5 5M15 7l5 5-5 5" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" /></svg>
+                      <span class="sr-only">Delete rest</span>
+                    </button>
+                    <button class="action-button is-icon" title="Play/Pause">
+                      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5v14l10-7z" fill="currentColor" stroke="none" /></svg>
+                      <span class="sr-only">Play/Pause</span>
+                    </button>
+                  </div>
+                </div>
+                <div class="timebar"><span>0.0</span><span>1.8</span><span>3.6s</span></div>
+              </div>
+            </div>
+            <div class="state">
+              <div class="state-title"><b>2</b><span>Play active</span></div>
+              <div class="plot" style="--start: 24%; --end: 62%;">
+                <svg class="trace" viewBox="0 0 300 120" aria-hidden="true">
+                  <path class="pitch" d="M3 71 C33 43 59 47 86 65 S134 90 162 58 207 26 236 46 275 79 298 53" />
+                  <path class="intensity" d="M4 93 C36 81 61 89 90 76 S136 43 166 54 210 88 240 72 274 51 297 65" />
+                </svg>
+                <div class="selection is-focus">
+                  <span class="selection-label">playing</span>
+                  <div class="inline-action-band vertical" aria-label="Selection actions">
+                    <button class="action-button is-icon is-danger" title="Delete region">
+                      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" fill="none" stroke-width="2" stroke-linecap="round" /></svg>
+                      <span class="sr-only">Delete region</span>
+                    </button>
+                    <button class="action-button is-icon" title="Delete rest">
+                      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12h5M15 12h5M9 7l-5 5 5 5M15 7l5 5-5 5" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" /></svg>
+                      <span class="sr-only">Delete rest</span>
+                    </button>
+                    <button class="action-button is-icon is-active" title="Pause">
+                      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5h3v14H8zM13 5h3v14h-3z" fill="currentColor" stroke="none" /></svg>
+                      <span class="sr-only">Pause</span>
+                    </button>
+                  </div>
+                </div>
+                <div class="timebar"><span>0.0</span><span>1.8</span><span>3.6s</span></div>
+              </div>
+            </div>
+            <div class="state">
+              <div class="state-title"><b>3</b><span>Delete rest hover</span></div>
+              <div class="plot" style="--start: 35%; --end: 71%;">
+                <svg class="trace" viewBox="0 0 300 120" aria-hidden="true">
+                  <path class="pitch" d="M3 71 C33 43 59 47 86 65 S134 90 162 58 207 26 236 46 275 79 298 53" />
+                  <path class="intensity" d="M4 93 C36 81 61 89 90 76 S136 43 166 54 210 88 240 72 274 51 297 65" />
+                </svg>
+                <div class="selection is-focus">
+                  <span class="selection-label">1.09s</span>
+                  <div class="inline-action-band vertical" aria-label="Selection actions">
+                    <button class="action-button is-icon is-danger" title="Delete region">
+                      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" fill="none" stroke-width="2" stroke-linecap="round" /></svg>
+                      <span class="sr-only">Delete region</span>
+                    </button>
+                    <button class="action-button is-icon is-hover" title="Delete rest">
+                      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12h5M15 12h5M9 7l-5 5 5 5M15 7l5 5-5 5" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" /></svg>
+                      <span class="sr-only">Delete rest</span>
+                    </button>
+                    <button class="action-button is-icon" title="Play/Pause">
+                      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5v14l10-7z" fill="currentColor" stroke="none" /></svg>
+                      <span class="sr-only">Play/Pause</span>
+                    </button>
+                  </div>
+                </div>
+                <div class="timebar"><span>0.0</span><span>1.8</span><span>3.6s</span></div>
+              </div>
+            </div>
+          </div>
+        </article>
+
+        <article class="prototype" id="keyboard-hint-a">
+          <h2>Keyboard hint A <span>shortcut card plus buttons</span></h2>
+          <p>
+            The nearest visible surface teaches keyboard actions but still offers mouse targets.
+            This is low clutter after users learn that Delete, Shift+Delete, and Space map to the commands.
+          </p>
+          <div class="states">
+            <div class="state">
+              <div class="state-title"><b>1</b><span>Shortcut card</span></div>
+              <div class="plot" style="--start: 27%; --end: 67%; --toolbar-x: 47%;">
+                <svg class="trace" viewBox="0 0 300 120" aria-hidden="true">
+                  <path class="pitch" d="M3 68 C33 42 59 48 87 66 S135 91 163 59 207 27 236 45 275 79 298 52" />
+                  <path class="intensity" d="M4 92 C36 81 61 89 90 75 S136 44 166 54 210 87 240 72 274 50 297 65" />
+                </svg>
+                <div class="selection is-focus"></div>
+                <div class="shortcut-card" aria-label="Selection shortcuts">
+                  <div class="shortcut-row"><span class="keycap">Del</span><span class="shortcut-label">Delete region</span></div>
+                  <div class="shortcut-row"><span class="keycap">Shift Del</span><span class="shortcut-label">Delete rest</span></div>
+                  <div class="shortcut-row"><span class="keycap">Space</span><span class="shortcut-label">Play/Pause</span></div>
+                </div>
+                <div class="timebar"><span>0.0</span><span>1.8</span><span>3.6s</span></div>
+              </div>
+            </div>
+            <div class="state">
+              <div class="state-title"><b>2</b><span>Mouse reveal</span></div>
+              <div class="plot" style="--start: 27%; --end: 67%; --toolbar-x: 47%;">
+                <svg class="trace" viewBox="0 0 300 120" aria-hidden="true">
+                  <path class="pitch" d="M3 68 C33 42 59 48 87 66 S135 91 163 59 207 27 236 45 275 79 298 52" />
+                  <path class="intensity" d="M4 92 C36 81 61 89 90 75 S136 44 166 54 210 87 240 72 274 50 297 65" />
+                </svg>
+                <div class="selection is-focus"></div>
+                <div class="shortcut-strip" aria-label="Selection actions">
+                  <button class="action-button is-danger">Delete region</button>
+                  <button class="action-button">Delete rest</button>
+                  <button class="action-button">Play</button>
+                </div>
+                <div class="timebar"><span>0.0</span><span>1.8</span><span>3.6s</span></div>
+              </div>
+            </div>
+            <div class="state">
+              <div class="state-title"><b>3</b><span>Space pressed</span></div>
+              <div class="plot" style="--start: 27%; --end: 67%; --toolbar-x: 47%;">
+                <svg class="trace" viewBox="0 0 300 120" aria-hidden="true">
+                  <path class="pitch" d="M3 68 C33 42 59 48 87 66 S135 91 163 59 207 27 236 45 275 79 298 52" />
+                  <path class="intensity" d="M4 92 C36 81 61 89 90 75 S136 44 166 54 210 87 240 72 274 50 297 65" />
+                </svg>
+                <div class="selection is-focus"></div>
+                <div class="shortcut-card" aria-label="Selection shortcuts">
+                  <div class="shortcut-row"><span class="keycap">Del</span><span class="shortcut-label">Delete region</span></div>
+                  <div class="shortcut-row"><span class="keycap">Shift Del</span><span class="shortcut-label">Delete rest</span></div>
+                  <div class="shortcut-row"><span class="keycap">Space</span><span class="shortcut-label">Pause</span></div>
+                </div>
+                <div class="timebar"><span>0.0</span><span>1.8</span><span>3.6s</span></div>
+              </div>
+            </div>
+          </div>
+        </article>
+
+        <article class="prototype" id="keyboard-hint-b">
+          <h2>Keyboard hint B <span>small hint orb expands to actions</span></h2>
+          <p>
+            A low-noise hint sits near the release point and expands into the same three buttons.
+            This gives keyboard users a reminder without committing permanent toolbar space.
+          </p>
+          <div class="states">
+            <div class="state">
+              <div class="state-title"><b>1</b><span>Hint orb</span></div>
+              <div class="plot" style="--start: 34%; --end: 70%; --cursor-x: 70%; --cursor-y: 42%; --chip-x: 70%; --chip-y: 42%;">
+                <svg class="trace" viewBox="0 0 300 120" aria-hidden="true">
+                  <path class="pitch" d="M3 69 C33 43 58 48 86 66 S134 90 162 59 207 26 236 45 275 79 298 52" />
+                  <path class="intensity" d="M4 92 C36 81 61 89 90 76 S136 44 166 54 210 87 240 71 274 50 297 65" />
+                </svg>
+                <div class="selection is-focus"></div>
+                <div class="cursor"></div>
+                <div class="hint-orb" aria-label="Selection shortcut hint">K</div>
+                <div class="timebar"><span>0.0</span><span>1.8</span><span>3.6s</span></div>
+              </div>
+            </div>
+            <div class="state">
+              <div class="state-title"><b>2</b><span>Expanded actions</span></div>
+              <div class="plot" style="--start: 34%; --end: 70%; --cursor-x: 70%; --cursor-y: 42%; --chip-x: 70%; --chip-y: 42%;">
+                <svg class="trace" viewBox="0 0 300 120" aria-hidden="true">
+                  <path class="pitch" d="M3 69 C33 43 58 48 86 66 S134 90 162 59 207 26 236 45 275 79 298 52" />
+                  <path class="intensity" d="M4 92 C36 81 61 89 90 76 S136 44 166 54 210 87 240 71 274 50 297 65" />
+                </svg>
+                <div class="selection is-focus"></div>
+                <div class="cursor"></div>
+                <div class="hint-expanded" aria-label="Selection actions">
+                  <button class="action-button is-danger">Delete region</button>
+                  <button class="action-button">Delete rest</button>
+                  <button class="action-button">Play</button>
+                </div>
+                <div class="timebar"><span>0.0</span><span>1.8</span><span>3.6s</span></div>
+              </div>
+            </div>
+            <div class="state">
+              <div class="state-title"><b>3</b><span>Delete rest hover</span></div>
+              <div class="plot" style="--start: 34%; --end: 70%; --cursor-x: 70%; --cursor-y: 42%; --chip-x: 70%; --chip-y: 42%;">
+                <svg class="trace" viewBox="0 0 300 120" aria-hidden="true">
+                  <path class="pitch" d="M3 69 C33 43 58 48 86 66 S134 90 162 59 207 26 236 45 275 79 298 52" />
+                  <path class="intensity" d="M4 92 C36 81 61 89 90 76 S136 44 166 54 210 87 240 71 274 50 297 65" />
+                </svg>
+                <div class="selection is-focus"></div>
+                <div class="cursor"></div>
+                <div class="hint-expanded" aria-label="Selection actions">
+                  <button class="action-button is-danger">Delete region</button>
+                  <button class="action-button is-hover">Delete rest</button>
+                  <button class="action-button is-active">Pause</button>
+                </div>
+                <div class="timebar"><span>0.0</span><span>1.8</span><span>3.6s</span></div>
+              </div>
+            </div>
+          </div>
+        </article>
+      </section>
+    </main>
+    <script>
+      document.querySelectorAll("[data-chosen-demo]").forEach((demo) => {
+        const playToggle = demo.querySelector("[data-play-toggle]");
+        const collapseButton = demo.querySelector("[data-collapse-toolbar]");
+        const expandButton = demo.querySelector("[data-expand-toolbar]");
+        const previewButtons = demo.querySelectorAll("[data-preview]");
+
+        playToggle?.addEventListener("click", () => {
+          const isPlaying = demo.classList.toggle("is-playing");
+          playToggle.setAttribute("aria-pressed", String(isPlaying));
+        });
+
+        collapseButton?.addEventListener("click", () => {
+          demo.classList.add("is-collapsed");
+        });
+
+        expandButton?.addEventListener("click", () => {
+          demo.classList.remove("is-collapsed");
+        });
+
+        previewButtons.forEach((button) => {
+          const preview = button.getAttribute("data-preview");
+          const className =
+            preview === "rest" ? "is-rest-preview" : "is-region-preview";
+
+          button.addEventListener("mouseenter", () => demo.classList.add(className));
+          button.addEventListener("focus", () => demo.classList.add(className));
+          button.addEventListener("mouseleave", () => demo.classList.remove(className));
+          button.addEventListener("blur", () => demo.classList.remove(className));
+        });
+      });
+    </script>
+  </body>
+</html>

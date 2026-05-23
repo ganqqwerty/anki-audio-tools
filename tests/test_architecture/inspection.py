@@ -294,25 +294,27 @@ def format_architecture_report_text() -> str:
     report = build_architecture_report()
     rows = report["modules"]
     assert isinstance(rows, list)
+    violations = report["violations"]
+    assert isinstance(violations, list)
+    if not violations:
+        return f"PASS: architecture report is clean ({len(rows)} modules, 0 violations)."
+
     lines = ["Architecture Report", ""]
     for row in rows:
         assert isinstance(row, dict)
+        row_violations = row["violations"]
+        assert isinstance(row_violations, list)
+        if not row_violations:
+            continue
         lines.append(f"{row['module']} [{row['layer']}]")
         lines.append(f"  addon deps: {', '.join(row['addon_deps']) or '-'}")
         lines.append(f"  side effects: {', '.join(row['side_effects']) or '-'}")
         module_level = ", ".join(row["module_level_anki_imports"]) or "-"
         any_level = ", ".join(row["any_anki_imports"]) or "-"
         lines.append(f"  anki imports: module-level={module_level}; anywhere={any_level}")
-        row_violations = row["violations"]
-        assert isinstance(row_violations, list)
-        if row_violations:
-            for item in row_violations:
-                assert isinstance(item, dict)
-                lines.append(f"  VIOLATION {item['kind']}: {item['detail']}")
-        else:
-            lines.append("  violations: none")
+        for item in row_violations:
+            assert isinstance(item, dict)
+            lines.append(f"  VIOLATION {item['kind']}: {item['detail']}")
         lines.append("")
-    violations = report["violations"]
-    assert isinstance(violations, list)
     lines.append(f"Summary: {len(rows)} modules, {len(violations)} violations.")
     return "\n".join(lines)

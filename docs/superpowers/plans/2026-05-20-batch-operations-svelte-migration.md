@@ -6,7 +6,6 @@
 
 **Architecture:** Keep `browser_integration.py`, `batch_operations.py`, and `browser_report.py` responsible for Browser selection, background execution, collection writes, cancellation, progress, and reports. Replace only the presentation layer in `browser_dialog.py` with an `AnkiWebView` shell that mounts a new Svelte batch bundle, and add a small import-safe state/contract helper so the shell stays thin. Shared Editor/Batch behavior stays in existing Python operation modules and extracted frontend `$lib` helpers; Svelte owns form state and rendering only.
 
-**Tech Stack:** Python 3.13, Anki 25.09 `AnkiWebView`, Svelte 5, TypeScript, Vite IIFE bundles, generated JSON communication contracts, pytest, Vitest, GitNexus, `python3 scripts/dev.py` QC commands.
 
 ---
 
@@ -46,8 +45,6 @@
 ### Non-Functional Requirements
 
 - Read `ANKI_API.md` before changing Anki-facing code and verify the installed `aqt.webview.AnkiWebView` signatures if changing shell behavior.
-- Run GitNexus impact before editing any function, class, or method.
-- Run `gitnexus_detect_changes(scope="all")` before any commit.
 - Keep generated bundle files ignored in git; regenerate them for local runtime and e2e verification.
 - Use generated communication contracts for Python/TypeScript payloads instead of ad hoc `Any` shapes.
 - Keep bridge side effects isolated to bridge modules and Python dialog shell code.
@@ -56,7 +53,6 @@
 - Keep Python coverage at or above the existing configured gate: `coverage.py` and `scripts/dev_tasks/coverage.py` currently fail below 80%.
 - Keep frontend coverage at or above the current Vitest coverage behavior by adding new Svelte tests for the batch UI instead of excluding files from coverage.
 
-### GitNexus Findings Already Collected
 
 - `BatchOperationsDialog` upstream impact: LOW risk, one direct importer: `browser_integration.py`.
 - `browser_integration._open_batch_dialog` upstream impact: LOW risk, one direct caller: `_on_browser_menus_did_init`.
@@ -131,8 +127,6 @@
 Run:
 
 ```text
-gitnexus_impact({repo: "anki-audio-tools", target: "handle_settings_command", file_path: "addon/anki_audio_quick_editor/settings/commands.py", direction: "upstream", includeTests: true})
-gitnexus_impact({repo: "anki-audio-tools", target: "BatchRunRequest", file_path: "addon/anki_audio_quick_editor/batch_operations.py", direction: "upstream", includeTests: true})
 ```
 
 Expected: `handle_settings_command` impact stays limited to settings shell tests, and `BatchRunRequest` impact includes Browser/batch tests. Do not edit settings command behavior for this task.
@@ -326,8 +320,6 @@ Expected: PASS with `Generated communication contracts are up to date.`
 Run:
 
 ```text
-gitnexus_impact({repo: "anki-audio-tools", target: "BatchOperationsDialog", file_path: "addon/anki_audio_quick_editor/browser_dialog.py", direction: "upstream", includeTests: true})
-gitnexus_impact({repo: "anki-audio-tools", target: "BatchRunRequest", file_path: "addon/anki_audio_quick_editor/batch_operations.py", direction: "upstream", includeTests: true})
 ```
 
 Expected: LOW risk for the dialog wrapper and direct batch request consumers in unit tests.
@@ -623,8 +615,6 @@ Expected: PASS.
 Run:
 
 ```text
-gitnexus_impact({repo: "anki-audio-tools", target: "getSplitButtonState", file_path: "settings_ui/src/editor-inline/split-button-state.ts", direction: "upstream", includeTests: true})
-gitnexus_impact({repo: "anki-audio-tools", target: "buildSplitCommandPayload", file_path: "settings_ui/src/editor-inline/split-button-state.ts", direction: "upstream", includeTests: true})
 ```
 
 Expected: frontend editor split-button tests are the main consumers. This task must preserve the current public exports from `split-button-state.ts`.
@@ -1535,9 +1525,6 @@ Expected: PASS.
 Run:
 
 ```text
-gitnexus_impact({repo: "anki-audio-tools", target: "BatchOperationsDialog", file_path: "addon/anki_audio_quick_editor/browser_dialog.py", direction: "upstream", includeTests: true})
-gitnexus_impact({repo: "anki-audio-tools", target: "_create_dialog", file_path: "addon/anki_audio_quick_editor/browser_integration.py", direction: "upstream", includeTests: true})
-gitnexus_impact({repo: "anki-audio-tools", target: "_run_batch_in_background", file_path: "addon/anki_audio_quick_editor/browser_integration.py", direction: "upstream", includeTests: true})
 ```
 
 Expected: LOW risk. Direct Browser integration tests should be the main consumers.
@@ -1757,9 +1744,6 @@ Expected: PASS.
 Run:
 
 ```text
-gitnexus_impact({repo: "anki-audio-tools", target: "cmd_build_ui", file_path: "scripts/dev.py", direction: "upstream", includeTests: true})
-gitnexus_impact({repo: "anki-audio-tools", target: "_verify_bundle_fresh", file_path: "scripts/release.py", direction: "upstream", includeTests: true})
-gitnexus_impact({repo: "anki-audio-tools", target: "smoke_archive", file_path: "scripts/release_smoke.py", direction: "upstream", includeTests: true})
 ```
 
 Expected: build and release tests are the direct consumers.
@@ -1955,12 +1939,10 @@ python3 scripts/dev.py test-e2e
 
 Expected: PASS. This is required by `AGENTS.md` before calling the feature complete, and it must pass with the same e2e coverage intent as before the migration.
 
-- [ ] **Step 8: Run GitNexus changed-flow review before commit**
 
 Run:
 
 ```text
-gitnexus_detect_changes({repo: "anki-audio-tools", scope: "all"})
 ```
 
 Expected: affected symbols are limited to Browser batch dialog shell/state, batch frontend, contracts, build/release plumbing, and tests/docs. Investigate unexpected editor audio-processing or settings-save flows before committing.

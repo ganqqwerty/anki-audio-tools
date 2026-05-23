@@ -1,0 +1,197 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Idea 2 - Dirty Badge and Confirm Row</title>
+    <link rel="stylesheet" href="prototype.css">
+  </head>
+  <body>
+    <main class="page">
+      <header class="prototype-header">
+        <h1>Idea 2: Dirty Badge + Confirm Row</h1>
+        <p>
+          Edited quick settings are visible even after the popover closes. The user can keep working,
+          then review and save only the changed default.
+        </p>
+      </header>
+      <nav class="prototype-nav" aria-label="Prototype pages">
+        <a href="index.html">Index</a>
+        <a href="idea-1-popover-save.html">1. Popover Save</a>
+        <a aria-current="page" href="idea-2-dirty-badge.html">2. Dirty Badge</a>
+        <a href="idea-3-defaults-mode.html">3. Defaults Mode</a>
+        <a href="idea-4-settings-handoff.html">4. Settings Handoff</a>
+      </nav>
+
+      <section class="stage-board" aria-label="Dirty badge stages">
+        <article class="stage">
+          <header class="stage-header">
+            <h2>Stage 1: Existing default</h2>
+            <p>The split menu shows the active value and the saved default in a subdued row.</p>
+          </header>
+          <div class="workspace">
+            <div class="toolbar">
+              <span class="split">
+                <button class="btn icon-only"><span class="icon play"></span></button>
+                <button class="btn icon-only"><span class="icon chevron"></span></button>
+              </span>
+              <button class="btn"><span class="icon folder"></span>Folder</button>
+              <span class="split">
+                <button class="btn"><span class="icon wave"></span>Shorten Pauses</button>
+                <button class="btn icon-only"><span class="icon chevron"></span></button>
+              </span>
+              <span class="split">
+                <button class="btn"><span class="icon sparkle"></span>Denoise</button>
+                <button class="btn icon-only"><span class="icon chevron"></span></button>
+              </span>
+              <span class="split">
+                <button class="btn"><span class="icon snail"></span>Slower</button>
+                <button class="btn icon-only"><span class="icon chevron"></span></button>
+              </span>
+              <span class="split">
+                <button class="btn"><span class="icon hare"></span>Faster</button>
+                <button class="btn icon-only"><span class="icon chevron"></span></button>
+              </span>
+            </div>
+            <div class="editor-lines">
+              <div class="line"></div>
+              <div class="line"></div>
+              <div class="line"></div>
+              <div class="line"></div>
+            </div>
+            <div class="waveform"><span class="selection-handle"></span></div>
+            <aside class="popover short-popover">
+              <h3>Shorten Pauses <span class="current-label">Normal</span></h3>
+              <div class="preset-row">
+                <button class="preset">Gentle</button>
+                <button class="preset selected">Normal</button>
+                <button class="preset">Aggressive</button>
+              </div>
+              <div class="details-row">
+                <strong>Saved default</strong>
+                <span class="value">Normal</span>
+              </div>
+            </aside>
+            <div class="field-title">Arbeit war knapp</div>
+          </div>
+        </article>
+
+        <article class="stage">
+          <header class="stage-header">
+            <h2>Stage 2: Popover closes with a badge</h2>
+            <p>The local value is now Aggressive. The badge keeps the change visible on the toolbar.</p>
+          </header>
+          <div class="workspace">
+            <div class="toolbar-review">
+              <span><strong>1 quick setting differs from default</strong></span>
+              <span class="action-row">
+                <button class="action-btn secondary">Review</button>
+                <button class="action-btn primary">Save default</button>
+              </span>
+            </div>
+            <div class="toolbar">
+              <span class="split">
+                <button class="btn icon-only"><span class="icon play"></span></button>
+                <button class="btn icon-only"><span class="icon chevron"></span></button>
+              </span>
+              <button class="btn"><span class="icon folder"></span>Folder</button>
+              <span class="split">
+                <button class="btn unsaved"><span class="icon wave"></span>Shorten Pauses</button>
+                <button class="btn icon-only unsaved"><span class="icon chevron"></span></button>
+              </span>
+              <span class="split">
+                <button class="btn"><span class="icon sparkle"></span>Denoise</button>
+                <button class="btn icon-only"><span class="icon chevron"></span></button>
+              </span>
+              <span class="split">
+                <button class="btn"><span class="icon snail"></span>Slower</button>
+                <button class="btn icon-only"><span class="icon chevron"></span></button>
+              </span>
+              <span class="split">
+                <button class="btn"><span class="icon hare"></span>Faster</button>
+                <button class="btn icon-only"><span class="icon chevron"></span></button>
+              </span>
+            </div>
+            <div class="editor-lines">
+              <div class="line"></div>
+              <div class="line"></div>
+              <div class="line"></div>
+              <div class="line"></div>
+            </div>
+            <div class="waveform"><span class="selection-handle"></span></div>
+            <div class="note-card">
+              <h3>Local quick setting</h3>
+              <p>Shorten Pauses will run as Aggressive for this editor field until saved, reset, or the field reloads.</p>
+            </div>
+            <div class="field-title">Arbeit war knapp</div>
+          </div>
+        </article>
+
+        <article class="stage">
+          <header class="stage-header">
+            <h2>Stage 3: Confirm inside the popover</h2>
+            <p>Reopening the menu shows a compact before/after row and an explicit save action.</p>
+          </header>
+          <div class="workspace">
+            <div class="toolbar">
+              <span class="split">
+                <button class="btn icon-only"><span class="icon play"></span></button>
+                <button class="btn icon-only"><span class="icon chevron"></span></button>
+              </span>
+              <button class="btn"><span class="icon folder"></span>Folder</button>
+              <span class="split">
+                <button class="btn unsaved"><span class="icon wave"></span>Shorten Pauses</button>
+                <button class="btn icon-only unsaved"><span class="icon chevron"></span></button>
+              </span>
+              <span class="split">
+                <button class="btn"><span class="icon sparkle"></span>Denoise</button>
+                <button class="btn icon-only"><span class="icon chevron"></span></button>
+              </span>
+              <span class="split">
+                <button class="btn"><span class="icon snail"></span>Slower</button>
+                <button class="btn icon-only"><span class="icon chevron"></span></button>
+              </span>
+              <span class="split">
+                <button class="btn"><span class="icon hare"></span>Faster</button>
+                <button class="btn icon-only"><span class="icon chevron"></span></button>
+              </span>
+            </div>
+            <div class="editor-lines">
+              <div class="line"></div>
+              <div class="line"></div>
+              <div class="line"></div>
+              <div class="line"></div>
+            </div>
+            <div class="waveform"><span class="selection-handle"></span></div>
+            <aside class="popover short-popover">
+              <h3>Shorten Pauses <span class="review-pill">Changed</span></h3>
+              <div class="preset-row">
+                <button class="preset">Gentle</button>
+                <button class="preset">Normal</button>
+                <button class="preset selected">Aggressive</button>
+              </div>
+              <div class="compare-grid">
+                <div class="compare-row">
+                  <strong>Current quick setting</strong>
+                  <span>Aggressive</span>
+                </div>
+                <div class="compare-row">
+                  <strong>Saved default</strong>
+                  <span>Normal</span>
+                </div>
+              </div>
+              <div class="footer-actions warning">
+                <span class="footer-copy">Promote Aggressive to default</span>
+                <span class="action-row">
+                  <button class="action-btn secondary">Keep local</button>
+                  <button class="action-btn primary">Save default</button>
+                </span>
+              </div>
+            </aside>
+            <div class="field-title">Arbeit war knapp</div>
+          </div>
+        </article>
+      </section>
+    </main>
+  </body>
+</html>

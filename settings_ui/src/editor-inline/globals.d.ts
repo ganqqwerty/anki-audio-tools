@@ -13,6 +13,7 @@ import type {
   PostEditPlaybackIntent,
   RegionDeleteRequest,
 } from "./types.js";
+import type { SplitDefaultSaveRequest } from "./split-default-save-types.js";
 
 declare global {
   var pycmd: ((cmd: string) => void) | undefined;
@@ -25,10 +26,12 @@ declare global {
     __aqeGetCursorMs?: (() => number) | undefined;
     __aqeGetPlaybackRequest?: (() => PlaybackRequest) | undefined;
     __aqeGraphStateForTest?: ((ord: number) => GraphStateForTest | null) | undefined;
+    __aqeHistoryAvailabilityByField?: Record<number, { canRedo: boolean; canUndo: boolean }> | undefined;
     __aqeInstallAudioPlaybackTestDriverForTest?: ((ord: number) => boolean) | undefined;
     __aqeLastCursorIntent?: CursorIntent | null;
     __aqeLastPlaybackRequest?: PlaybackRequest | null;
     __aqePendingGraphRedrawField?: number | null;
+    __aqePendingGraphRedrawSource?: string | null;
     __aqePendingCommandPayload?: EditorCommandPayload | null;
     __aqePendingPlaybackRequest?: PlaybackRequest | null;
     __aqePostEditPlaybackIntents?: Record<number, PostEditPlaybackIntent> | undefined;
@@ -36,13 +39,15 @@ declare global {
     __aqePlayAfterEdit?: ((ord: number) => boolean) | undefined;
     __aqePopPendingGraphAnalysisRequest?: (() => GraphAnalysisRequest | null) | undefined;
     __aqePopPendingRegionDeleteRequest?: (() => RegionDeleteRequest | null) | undefined;
+    __aqePopPendingSplitDefaultSaveRequest?: (() => SplitDefaultSaveRequest | null) | undefined;
     __aqePopFrontendLog?: (() => FrontendLogPayload | null) | undefined;
     __aqePrepareForNewNote?: (() => void) | undefined;
-    __aqeResetGraphAfterEdit?: ((ord: number) => boolean) | undefined;
+    __aqeResetGraphAfterEdit?: ((ord: number, sourceFilename?: string | null) => boolean) | undefined;
     __aqeScan?: (() => void) | undefined;
     __aqeSetBusy?: ((ord: number, busy: boolean, message?: string, command?: string) => void) | undefined;
     __aqeSetCursorByClientXForTest?: ((ord: number, clientX: number, notifyPython: boolean) => CursorPositionForTest | null) | undefined;
     __aqeSetCursorForTest?: ((ord: number, ms: number, notifyPython: boolean) => boolean) | undefined;
+    __aqeSetHistoryAvailability?: ((ord: number, canUndo: boolean, canRedo: boolean) => void) | undefined;
     __aqeSetLearnerRecordingState?: ((payload: LearnerRecordingStatePayload) => void) | undefined;
     __aqeSetLearnerVisualizer?: ((ord: number, track: ProsodyPayload) => void) | undefined;
     __aqeSetPlaybackState?: ((ord: number, state: PlaybackState, cursorMs: number) => void) | undefined;

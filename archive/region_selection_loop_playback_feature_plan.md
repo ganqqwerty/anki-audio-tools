@@ -808,9 +808,7 @@ The feature is complete when:
 
 ### Verification
 
-- Pre-edit GitNexus impact checks for touched symbols, especially `startProgressClock` which currently shows HIGH risk.
 - Fast checks: targeted Python tests, targeted Vitest editor-inline tests, `contracts-check`, and `config-schema`.
-- Final gates: `python3 scripts/dev.py check`, `python3 scripts/dev.py test-e2e`, then `gitnexus_detect_changes(scope="all")`.
 
 ### Assumptions
 

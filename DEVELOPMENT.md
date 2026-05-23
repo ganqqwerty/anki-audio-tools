@@ -37,7 +37,7 @@ If that happens, clear `deep_filter_path` in `addon/anki_audio_quick_editor/meta
 
 Anki add-ons cannot rely on `pip install` at user runtime. Audio Quick Editor uses the Python/Qt runtime bundled with Anki and ships a locked native runtime payload for supported release platforms. The self-sufficient release matrix is macOS arm64, macOS x86_64, and Windows x86_64.
 
-Release archives bundle `ffmpeg`, `ffprobe`, DeepFilterNet's `deep-filter`, `rnnoise-cli`, and Sherpa's `sherpa-spleeter` below `bin/<target>/`, plus shared Spleeter model files below `bin/models/spleeter-2stems-fp16/`. The `macos-arm64` target also bundles DPDFNet Lite as `dpdfnet`; `macos-x86_64` and `windows-x86_64` intentionally do not include DPDFNet until matching binaries are built and locked. Runtime discovery checks user overrides first where supported, bundled tools second, and `PATH` as a compatibility fallback. The settings diagnostics report whether each tool came from config, the bundled payload, or `PATH`.
+Release archives bundle `ffmpeg`, `ffprobe`, DeepFilterNet's `deep-filter`, `rnnoise-cli`, Sherpa's `sherpa-spleeter`, and DPDFNet Lite below `bin/<target>/`, plus shared Spleeter model files below `bin/models/spleeter-2stems-fp16/`. Runtime discovery checks user overrides first where supported, bundled tools second, and `PATH` as a compatibility fallback. The settings diagnostics report whether each tool came from config, the bundled payload, or `PATH`.
 
 Native release assets are not committed into `addon/anki_audio_quick_editor/bin/`. The checked-in `bin/` directory contains documentation and notices only. Use `.release-assets/bin/<target>/` for target executables, `.release-assets/shared/` for shared model files, and `release_assets.lock.json` as the source of truth for expected runtime files, source URLs, diagnostic arguments, and SHA-256 values. Source-tree development uses the same runtime layout as releases: stage any needed generated payload into the add-on `bin/` tree before launching the symlinked add-on.
 
@@ -51,18 +51,28 @@ python3 scripts/dev.py release-assets fetch-spleeter-models
 python3 scripts/dev.py release-assets build-rnnoise --target macos-arm64
 python3 scripts/dev.py release-assets build-rnnoise --target macos-x86_64
 python3 scripts/dev.py release-assets build-rnnoise --target windows-x86_64
+scripts/dpdfnet_cli/build_macos.sh macos-arm64
+scripts/dpdfnet_cli/build_macos.sh macos-x86_64
+pwsh -File scripts/dpdfnet_cli/build_windows.ps1 -Target windows-x86_64
 python3 scripts/dev.py release-assets verify --target all
-python3 scripts/dev.py release-assets stage --target macos-arm64 --tool dpdfnet --destination addon/anki_audio_quick_editor/bin
+python3 scripts/dev.py release-assets stage --target current --tool dpdfnet --destination addon/anki_audio_quick_editor/bin
 ```
 
-Windows DPDFNet is prepared through the manual GitHub Actions workflow
-`Build Windows DPDFNet`. The workflow runs on `windows-latest`, freezes the
-PyPI `dpdfnet` CLI with the `dpdfnet4` ONNX model bundled into `dpdfnet.exe`,
-smoke-tests `enhance`, and uploads a `dpdfnet-windows-x86_64` artifact. After
-downloading the artifact, place `dpdfnet.exe` at
+DPDFNet Lite artifacts are prepared through the manual GitHub Actions workflows
+`Build macOS DPDFNet` and `Build Windows DPDFNet`, or locally on a matching
+native host. The scripts build the vendored TFLite CLI source in
+`scripts/dpdfnet_cli/lite_src/`, bundle the locked `dpdfnet4.tflite` model,
+smoke-test `enhance`, and upload platform artifacts. After downloading an
+artifact, place it under `.release-assets/bin/<target>/dpdfnet` or
 `.release-assets/bin/windows-x86_64/dpdfnet.exe`, update the lock with
-`python3 scripts/dev.py release-assets lock-checksums`, and only then add
-`dpdfnet` to the Windows release/runtime matrix.
+`python3 scripts/dev.py release-assets lock-checksums`, and keep `dpdfnet`
+in that target's release/runtime matrix.
+
+On a Windows host, the equivalent local build command is:
+
+```powershell
+.\scripts\dpdfnet_cli\build_windows.ps1 -Target windows-x86_64
+```
 
 FFmpeg and FFprobe are fetched from locked third-party static release archives: Martin Riedl's macOS builds and Gyan Doshi's Windows essentials build. The lock records both the provider archive SHA-256 and the extracted executable SHA-256. RNNoise is still built locally from source; Windows RNNoise can be cross-built from macOS when `x86_64-w64-mingw32-gcc` is available. A release is not approved until native acceptance has run on each supported platform.
 
@@ -118,8 +128,6 @@ Do not treat `settings_ui/src/` as the runtime artifact. During Anki and e2e run
 
 Settings and Browser batch WebView commands use the shared `bridge:{ command, payload }` JSON envelope. Add new settings or batch bridge commands through `settings_ui/src/lib/bridge.ts` or `settings_ui/src/batch/bridge.ts`, decode them with `webview_bridge.py`, and keep payload shapes contract-backed when they cross the Python/TypeScript boundary.
 
-The generated webview bundles are runtime artifacts, but they should not be committed or indexed as source code by GitNexus. Keep `addon/anki_audio_quick_editor/templates/*/*_bundle.{js,css}` in `.gitignore` and `.gitnexusignore` so change detection stays focused on the TypeScript, Svelte, Python, schema, and test sources that produced them. If ignored bundle symbols still appear after changing `.gitnexusignore`, run a forced rebuild of the local index rather than relying on an incremental "already up to date" analyze pass.
-
 `quicktype` is pinned as a settings UI dev dependency and installed from `settings_ui/package-lock.json`. It is used only for development-time JSON contract generation and is not bundled into the Anki add-on runtime.
 
 Frontend quality checks run through:
@@ -138,16 +146,6 @@ python3 scripts/dev.py contracts-check
 ```
 
 `python3 scripts/dev.py check` generates contracts before checking them, and the frontend bundle build also generates contracts first. Generated contract files are ignored by git.
-
-## GitNexus Local Index Notes
-
-The repo hook currently pins GitNexus through `GITNEXUS_VERSION` in `scripts/gitnexus_auto_analyze.sh`. Prefer the pinned version when refreshing the index manually:
-
-```bash
-npx -y gitnexus@1.6.4 analyze --force --skip-agents-md --no-stats
-```
-
-Using bare `npx gitnexus ...` may pick a newer package than the repo hook. If the latest package fails with a CLI/runtime error, retry the pinned version before treating GitNexus as unavailable.
 
 ## Type And Exception Policy
 

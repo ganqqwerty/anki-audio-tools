@@ -165,6 +165,8 @@
   "editor.recording.stopping": "Остановка...",
   "editor.recording.ready": "Готово",
   "editor.recording.failed": "Запись не удалась.",
+  "editor.status.converting": "Конвертация в {format}",
+  "editor.status.already_target_format": "Уже в формате {format}.",
   "editor.status.processing_ffmpeg": "Обработка через ffmpeg",
   "editor.status.denoising_standard": "Шумоподавление Standard",
   "editor.status.denoising_rnnoise": "Шумоподавление RNNoise",

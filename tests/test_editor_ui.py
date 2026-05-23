@@ -22,8 +22,11 @@ def test_injection_script_embeds_audio_field_indices_and_bundle() -> None:
     assert config["audioFieldSources"] == {}
     assert config["repeatPlaybackByDefault"] is False
     assert config["showGraphByDefault"] is False
+    assert config["visibleEditorButtons"] is None
     assert config["splitButtonDefaults"]["repeatPauseSeconds"] == 0.0
+    assert config["splitButtonDefaults"]["pitchHumMode"] == "direct"
     assert config["splitButtonDefaults"]["dpdfnetAttnLimitDb"] == 12.0
+    assert config["splitButtonDefaults"]["outputFormat"] == "mp3"
     assert config["splitButtonDefaults"]["graphVoiceRange"] == "general"
     assert config["splitButtonDefaults"]["graphRecordingCondition"] == "auto"
     assert config["splitButtonDefaults"]["graphSmoothness"] == "very_smooth"
@@ -32,6 +35,8 @@ def test_injection_script_embeds_audio_field_indices_and_bundle() -> None:
     assert "window.__aqeEditorDispose" in script
     assert "aqe:frontend-log" in script
     assert "aqe:show-file" in script
+    assert "aqe:share" in script
+    assert "aqe:convert" in script
     assert "aqe:volume-down" in script
     assert "aqe:volume-up" in script
     assert "aqe:denoise-standard" in script
@@ -40,8 +45,8 @@ def test_injection_script_embeds_audio_field_indices_and_bundle() -> None:
     assert "aqe:voice-only" in script
     assert "aqe:redo" in script
     assert "aqe:settings" in script
+    assert "aqe:save-split-defaults" in script
     assert ("aqe:" + "remove" + "-noise") not in script
-    assert "aqe:save" not in script
     assert "aqe:cancel" not in script
 
 
@@ -57,6 +62,24 @@ def test_injection_script_embeds_show_graph_default() -> None:
     assert _embedded_config(script)["showGraphByDefault"] is True
 
 
+def test_injection_script_embeds_visible_editor_buttons() -> None:
+    script = injection_script([0], visible_editor_buttons=["aqe:play", "aqe:settings"])
+
+    assert _embedded_config(script)["visibleEditorButtons"] == ["aqe:play", "aqe:settings"]
+
+
+def test_injection_script_embeds_editor_button_modes() -> None:
+    script = injection_script(
+        [0],
+        editor_button_modes={"aqe:play": "icon", "aqe:settings": "text"},
+    )
+
+    assert _embedded_config(script)["editorButtonModes"] == {
+        "aqe:play": "icon",
+        "aqe:settings": "text",
+    }
+
+
 def test_injection_script_embeds_audio_field_sources() -> None:
     script = injection_script([0, 2], audio_field_sources={0: "front.wav", 2: "back.mp3"})
 
@@ -67,23 +90,25 @@ def test_injection_script_embeds_split_button_defaults() -> None:
     script = injection_script(
         [0],
         split_button_defaults={
-            "trimStepMs": 250,
             "volumeStepDb": 2.5,
             "speedStep": 0.1,
             "repeatPauseSeconds": 2.0,
             "pauseAggressiveness": "normal",
+            "outputFormat": "mp3",
             "denoiseAlgorithm": "standard",
+            "pitchHumMode": "pitch_tier",
             "dpdfnetAttnLimitDb": 18.0,
         },
     )
 
     assert _embedded_config(script)["splitButtonDefaults"] == {
-        "trimStepMs": 250,
         "volumeStepDb": 2.5,
         "speedStep": 0.1,
         "repeatPauseSeconds": 2.0,
         "pauseAggressiveness": "normal",
+        "outputFormat": "mp3",
         "denoiseAlgorithm": "standard",
+        "pitchHumMode": "pitch_tier",
         "dpdfnetAttnLimitDb": 18.0,
     }
 
@@ -92,6 +117,7 @@ def test_injection_script_keeps_python_window_contract() -> None:
     script = injection_script([0])
 
     assert "__aqeSetBusy" in script
+    assert "__aqeSetHistoryAvailability" in script
     assert "__aqeSetStatus" in script
     assert "__aqeSetVisualizer" in script
     assert "__aqeSetVisualizerStatus" in script

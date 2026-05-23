@@ -3,7 +3,8 @@ import { focusAndSendCommand, setPendingRegionDeleteRequest } from "./bridge.js"
 import { logger } from "./logger.js";
 import { rememberPostEditPlaybackIntent } from "./post-edit-playback.js";
 import { setControlsBusy, stopProgressClock } from "./actions.js";
-import { regionDeleteRequestFor, syncRegionDeleteControl } from "./region-delete-state.js";
+import { regionDeleteRequestFor } from "./region-delete-state.js";
+import { syncSelectionToolbar } from "./selection-toolbar-state.js";
 import { visualizerForOrd } from "./dom-selectors.js";
 import type { RegionDeleteRequest } from "./types.js";
 
@@ -27,7 +28,7 @@ export function sendRegionDelete(
   const visualizer = visualizerForOrd(ord);
   if (!visualizer) return;
   const request = regionDeleteRequestFor(visualizer, trigger, operation);
-  syncRegionDeleteControl(visualizer);
+  syncSelectionToolbar(visualizer);
   if (!request) return;
   const command = commandForOperation(operation);
   if (typeof node.focus === "function") node.focus();
@@ -54,7 +55,7 @@ export function handleVisualizerKeyDown(event: KeyboardEvent, ord: number): void
   const visualizer = visualizerForOrd(ord);
   if (!visualizer || document.activeElement !== visualizer || anyBusy()) return;
   if (!regionDeleteRequestFor(visualizer, "backspace")) {
-    syncRegionDeleteControl(visualizer);
+    syncSelectionToolbar(visualizer);
     return;
   }
   event.preventDefault();

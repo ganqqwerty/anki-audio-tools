@@ -38,11 +38,9 @@ One file currently sits in the warning band:
 
 Generated files are explicitly excluded from line-length enforcement. Current generated examples include `addon/anki_audio_quick_editor/contracts_generated.py` at 559 lines and `settings_ui/src/lib/generated/contracts.ts`.
 
-GitNexus impact notes:
 
 - `audio_processor.py` has MEDIUM upstream file impact with direct production importers: `prosody_praat.py`, `prosody_fallback.py`, `editor_integration.py`, `diagnostics.py`, and `batch_operations.py`. Keep `audio_processor.py` as a facade during the split.
 - `editor_integration.py` and `browser_integration.py` have LOW file-level impact because `__init__.py` is the direct production importer. Internal symbol movement is still risky because tests and e2e cover many callback flows.
-- GitNexus did not map all TypeScript import edges for `actions.ts`; `rg` shows direct users in `EditorControls.svelte`, `SplitButton.svelte`, `runtime.ts`, `window-contract.ts`, `region-delete.ts`, `test-contract.ts`, and frontend tests.
 
 ## Design Rules
 
@@ -470,7 +468,6 @@ When a test is classified as a brittle internal-detail dependency, rewrite it to
 - [ ] Run `cd settings_ui && npm run lint:max-lines`; expected result is pass.
 - [ ] Run `python3 scripts/dev.py check`.
 - [ ] Run `python3 scripts/dev.py test-e2e`.
-- [ ] Run `gitnexus_detect_changes(scope="all")` before any commit to verify affected flows are expected.
 
 ## Refactor Order
 

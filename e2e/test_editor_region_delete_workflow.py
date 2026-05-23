@@ -84,6 +84,7 @@ def test_delete_region_button_cuts_middle_region_and_redraws_graph(
             _graph_state_js(),
             lambda state: state is not None
             and state["selectionActive"] is True
+            and state["selectionToolbarHidden"] is False
             and state["regionDeleteButtonHidden"] is False
             and state["regionDeleteButtonDisabled"] is False,
             timeout=5.0,
@@ -142,6 +143,7 @@ def test_delete_rest_button_keeps_selected_middle_region_and_redraws_graph(
             _graph_state_js(),
             lambda state: state is not None
             and state["selectionActive"] is True
+            and state["selectionToolbarHidden"] is False
             and state["regionDeleteRestButtonHidden"] is False
             and state["regionDeleteRestButtonDisabled"] is False,
             timeout=5.0,

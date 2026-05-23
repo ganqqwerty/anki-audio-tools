@@ -3,6 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { disposeEditorRuntime, initializeEditorRuntime, scan } from "../src/editor-inline/runtime.js";
 import {
   bridgeCommands,
+  clearQueuedAnimationFrames,
   dispatchHandlePointer,
   dispatchGraphPointer,
   dragGraphSelection,
@@ -12,6 +13,7 @@ import {
   muteConsole,
   prepareHtmlAudio,
   renderFields,
+  selectionToolbarButton,
   setRepeatMode,
   setGraphBounds,
   track,
@@ -93,6 +95,7 @@ afterEach(() => {
     setGraphBounds(svg);
     dragGraphSelection(svg, 0.25, 0.75);
     await setRepeatMode(true);
+    clearQueuedAnimationFrames(frames);
     const audio = prepareHtmlAudio();
 
     document.querySelector<HTMLButtonElement>('[data-testid="aqe-button-0-play"]')!.click();
@@ -112,6 +115,38 @@ afterEach(() => {
     expect(bridgeCommands()).not.toContain("aqe:play-ended");
   });
 
+  it("plays and pauses selected HTML playback from the floating toolbar", async () => {
+    initializeEditorRuntime({ audioFieldIndices: [0] });
+    scan({ audioFieldIndices: [0] });
+    await Promise.resolve();
+    window.__aqeSetVisualizer?.(0, track, 100);
+    const svg = document.querySelector<SVGSVGElement>('[data-testid="aqe-graph-svg-0"]')!;
+    setGraphBounds(svg);
+    dragGraphSelection(svg, 0.2, 0.6);
+    prepareHtmlAudio();
+
+    selectionToolbarButton("play").click();
+    await Promise.resolve();
+
+    expect(window.__aqeGraphStateForTest?.(0)).toMatchObject({
+      playbackState: "playing",
+      playbackRegionMode: "selection",
+      playbackStartMs: 200,
+      playbackEndMs: 600,
+      selectionToolbarPlayState: "pause",
+      selectionToolbarPlayAriaLabel: "Pause selection",
+    });
+
+    selectionToolbarButton("play").click();
+    await Promise.resolve();
+
+    expect(window.__aqeGraphStateForTest?.(0)).toMatchObject({
+      playbackState: "paused",
+      selectionToolbarPlayState: "play",
+      selectionToolbarPlayAriaLabel: "Play selection",
+    });
+  });
+
   it("stops at the selected boundary after repeat is unchecked during playback", async () => {
     const frames = mockAnimationFrames();
     initializeEditorRuntime({ audioFieldIndices: [0] });
@@ -122,6 +157,7 @@ afterEach(() => {
     setGraphBounds(svg);
     dragGraphSelection(svg, 0.25, 0.75);
     await setRepeatMode(true);
+    clearQueuedAnimationFrames(frames);
     const audio = prepareHtmlAudio();
 
     document.querySelector<HTMLButtonElement>('[data-testid="aqe-button-0-play"]')!.click();
@@ -299,6 +335,7 @@ afterEach(() => {
     setGraphBounds(svg);
     dragGraphSelection(svg, 0.25, 0.75);
     await setRepeatMode(true);
+    clearQueuedAnimationFrames(frames);
     const audio = prepareHtmlAudio();
 
     document.querySelector<HTMLButtonElement>('[data-testid="aqe-button-0-play"]')!.click();

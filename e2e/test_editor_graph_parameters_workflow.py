@@ -117,24 +117,9 @@ def test_graph_smoothness_changes_real_ffmpeg_pcm_rendered_pitch_density(
 
 def _set_graph_range_option(editor, option_slug: str, value: int) -> None:
     click_selector(editor.web, '[data-testid="aqe-split-0-graph-menu"]', timeout=5.0)
-    selector = f'[data-testid="aqe-split-0-graph-{option_slug}"]'
+    selector = _graph_option_selector(option_slug, value)
     wait_for_selector(editor.web, selector, timeout=5.0)
-    wait_for_js_condition(
-        editor.web,
-        """
-        (() => {
-          const input = document.querySelector(__SELECTOR__);
-          if (!(input instanceof HTMLInputElement)) return false;
-          input.value = __VALUE__;
-          input.dispatchEvent(new Event("input", { bubbles: true }));
-          return input.value;
-        })()
-        """
-        .replace("__SELECTOR__", json.dumps(selector))
-        .replace("__VALUE__", json.dumps(str(value))),
-        lambda result: result == str(value),
-        timeout=5.0,
-    )
+    click_selector(editor.web, selector, timeout=5.0)
     state_key, expected = _expected_graph_state(option_slug, value)
     wait_for_js_condition(
         editor.web,
@@ -152,6 +137,13 @@ def _set_graph_range_option(editor, option_slug: str, value: int) -> None:
 def _expected_graph_state(option_slug: str, value: int) -> tuple[str, str | int]:
     if option_slug == "smoothness":
         return "graphSmoothness", ["raw", "balanced", "smooth", "very_smooth"][value]
+    raise AssertionError(f"Unsupported graph option {option_slug!r}")
+
+
+def _graph_option_selector(option_slug: str, value: int) -> str:
+    if option_slug == "smoothness":
+        option = ["raw", "balanced", "smooth", "very_smooth"][value]
+        return f'[data-testid="aqe-split-0-graph-smoothness-{option}"]'
     raise AssertionError(f"Unsupported graph option {option_slug!r}")
 
 

@@ -165,6 +165,8 @@
   "editor.recording.stopping": "Stoppt...",
   "editor.recording.ready": "Bereit",
   "editor.recording.failed": "Aufnahme fehlgeschlagen.",
+  "editor.status.converting": "Konvertiere in {format}",
+  "editor.status.already_target_format": "Bereits im Format {format}.",
   "editor.status.processing_ffmpeg": "Verarbeitung mit ffmpeg",
   "editor.status.denoising_standard": "Entrauschen mit Standard",
   "editor.status.denoising_rnnoise": "Entrauschen mit RNNoise",

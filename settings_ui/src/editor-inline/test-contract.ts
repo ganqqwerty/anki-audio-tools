@@ -133,9 +133,14 @@ export function graphStateForTest(ord: number): GraphStateForTest | null {
   const draftSelection = draftSelectionForVisualizer(visualizer);
   const startHandle = visualizer.querySelector<SVGRectElement>(".aqe-selection-resize-start");
   const endHandle = visualizer.querySelector<SVGRectElement>(".aqe-selection-resize-end");
+  const selectionToolbar = visualizer.querySelector<HTMLElement>(".aqe-selection-toolbar");
+  const selectionToolbarDot = visualizer.querySelector<SVGSVGElement>(".aqe-selection-toolbar-dot");
+  const selectionToolbarPlay = visualizer.querySelector<HTMLButtonElement>(".aqe-selection-toolbar-play");
+  const selectionToolbarPreview = visualizer.dataset.selectionToolbarPreview;
   const timecodeFlag = visualizer.querySelector<SVGGElement>(".aqe-cursor-flag");
   const timecodeFlagCurrent = visualizer.querySelector<SVGTextElement>(".aqe-cursor-flag-current");
   const timecodeFlagPitch = visualizer.querySelector<SVGTextElement>(".aqe-cursor-flag-pitch");
+  const pitchMarker = visualizer.querySelector<SVGCircleElement>(".aqe-cursor-pitch-marker");
   return {
     active: visualizer.dataset.graphActive === "true",
     busy: visualizer.dataset.graphBusy === "true",
@@ -171,6 +176,22 @@ export function graphStateForTest(ord: number): GraphStateForTest | null {
     regionDeleteButtonHidden: regionDelete ? !!regionDelete.hidden : true,
     regionDeleteRestButtonDisabled: !!regionDeleteRest?.disabled,
     regionDeleteRestButtonHidden: regionDeleteRest ? !!regionDeleteRest.hidden : true,
+    selectionToolbarCollapsed: visualizer.dataset.selectionToolbarCollapsed === "true",
+    selectionToolbarDeleteRegionDisabled: !!regionDelete?.disabled,
+    selectionToolbarDeleteRegionHidden: regionDelete ? !!regionDelete.hidden : true,
+    selectionToolbarDeleteRestDisabled: !!regionDeleteRest?.disabled,
+    selectionToolbarDeleteRestHidden: regionDeleteRest ? !!regionDeleteRest.hidden : true,
+    selectionToolbarDotHidden: selectionToolbarDot
+      ? selectionToolbarDot.hasAttribute("hidden") || selectionToolbarDot.getAttribute("aria-hidden") === "true"
+      : true,
+    selectionToolbarHidden: selectionToolbar ? !!selectionToolbar.hidden : true,
+    selectionToolbarLeftPx: selectionToolbar ? cssPixelNumber(selectionToolbar.style.left) : null,
+    selectionToolbarPlayAriaLabel: selectionToolbarPlay?.getAttribute("aria-label") || "",
+    selectionToolbarPlayState: selectionToolbarPlay?.dataset.aqeButtonState === "pause" ? "pause" : "play",
+    selectionToolbarPreview: selectionToolbarPreview === "region" || selectionToolbarPreview === "rest"
+      ? selectionToolbarPreview
+      : "none",
+    selectionToolbarTopPx: selectionToolbar ? cssPixelNumber(selectionToolbar.style.top) : null,
     playbackStartMs: Number(visualizer.dataset.playbackStartMs || "0"),
     playbackEndMs: Number(visualizer.dataset.playbackEndMs || "0"),
     playbackRegionMode: visualizer.dataset.playbackRegionMode === "selection" ? "selection" : "full",
@@ -192,6 +213,9 @@ export function graphStateForTest(ord: number): GraphStateForTest | null {
     learnerIntensityPaths: visualizer.querySelectorAll(".aqe-learner-intensity").length,
     intensity: visualizer.querySelector<SVGPathElement>(".aqe-intensity")?.getAttribute("d") || "",
     cursorX: Number(visualizer.querySelector<SVGLineElement>(".aqe-cursor")?.getAttribute("x1") || "0"),
+    pitchMarkerVisible: pitchMarker?.getAttribute("visibility") === "visible",
+    pitchMarkerX: pitchMarker?.getAttribute("cx") ? Number(pitchMarker.getAttribute("cx")) : null,
+    pitchMarkerY: pitchMarker?.getAttribute("cy") ? Number(pitchMarker.getAttribute("cy")) : null,
     timecodeFlagVisible: timecodeFlag?.getAttribute("visibility") === "visible",
     timecodeFlagTransform: timecodeFlag?.getAttribute("transform") || "",
     timecodeFlagCurrent: timecodeFlagCurrent?.textContent || "",
@@ -237,4 +261,10 @@ function recordingStatusForTest(controls: HTMLElement | null): GraphStateForTest
     return status;
   }
   return "";
+}
+
+function cssPixelNumber(value: string): number | null {
+  if (!value.endsWith("px")) return null;
+  const parsed = Number(value.slice(0, -2));
+  return Number.isFinite(parsed) ? parsed : null;
 }

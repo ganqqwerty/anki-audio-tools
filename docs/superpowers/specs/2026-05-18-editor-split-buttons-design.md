@@ -8,7 +8,6 @@ Add split-button parameter controls to the inline editor toolbar so users can tu
 
 In scope:
 
-- Trim left and trim right amount.
 - Volume adjustment amount.
 - Slower and faster speed multiplier or step.
 - Shorten Pauses aggressiveness.
@@ -34,11 +33,9 @@ Each eligible command becomes a split button:
 - Only one popover can be open at a time.
 - The popover closes on outside click, Escape, opening another popover, or dispatching a command.
 
-The main button always uses the current local value for that field. For example, if field 0 trim-left is set to 200 ms, clicking Trim Left three times adds 200 ms each time. Field 1 still uses its own local value.
 
 ## Controls
 
-Trim left and trim right:
 
 - Slider range: 50 ms to 10 s.
 - Display formatted values as milliseconds below 1000 ms and seconds at or above 1000 ms.
@@ -94,10 +91,8 @@ Expected shape:
 
 ```json
 {
-  "command": "aqe:trim-left",
   "fieldOrd": 0,
   "overrides": {
-    "trimStepMs": 200
   }
 }
 ```
@@ -210,7 +205,6 @@ Tests:
 - E2E smoke test that the editor toolbar still mounts for single-field and multi-field notes.
 - E2E test that the Automatically Show Graph setting still renders startup graphs with split-button controls present.
 
-### Phase 2: Trim Left And Trim Right
 
 Settings:
 
@@ -219,8 +213,6 @@ Settings:
 
 Implementation:
 
-- Add trim left and trim right split buttons.
-- Apply local `trimStepMs` overrides per command.
 - Ensure repeated clicks accumulate the selected trim amount.
 
 Tests:

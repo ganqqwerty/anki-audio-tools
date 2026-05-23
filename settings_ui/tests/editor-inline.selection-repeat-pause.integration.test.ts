@@ -3,6 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { disposeEditorRuntime, initializeEditorRuntime, scan } from "../src/editor-inline/runtime.js";
 import {
   bridgeCommands,
+  clearQueuedAnimationFrames,
   dragGraphSelection,
   mockAnimationFrames,
   muteConsole,
@@ -21,7 +22,6 @@ function repeatPauseConfig(seconds: number) {
       pauseAggressiveness: "normal" as const,
       repeatPauseSeconds: seconds,
       speedStep: 0.05,
-      trimStepMs: 100,
       volumeStepDb: 3,
     },
   };
@@ -39,6 +39,7 @@ async function startSelectedRepeatWithPause(seconds: number) {
   setGraphBounds(svg);
   dragGraphSelection(svg, 0.25, 0.75);
   await setRepeatMode(true);
+  clearQueuedAnimationFrames(frames);
   const audio = prepareHtmlAudio();
 
   document.querySelector<HTMLButtonElement>('[data-testid="aqe-button-0-play"]')!.click();

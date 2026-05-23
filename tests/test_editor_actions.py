@@ -5,6 +5,7 @@ from __future__ import annotations
 from unittest.mock import patch
 
 from anki_audio_quick_editor.audio_operations import (
+    OP_CONVERT,
     OP_FASTER,
     OP_REMOVE_PAUSES,
     OP_SLOWER,
@@ -20,7 +21,6 @@ from anki_audio_quick_editor.editor_actions import (
     PROCESSING_COMMANDS,
     apply_processing_command,
     decode_editor_command_payload,
-    operation_for_command,
     processing_config_for_command,
 )
 
@@ -43,28 +43,18 @@ def test_batchable_processing_commands_map_to_shared_operations() -> None:
         "aqe:volume-down": OP_VOLUME_DOWN,
         "aqe:volume-up": OP_VOLUME_UP,
         "aqe:remove-pauses": OP_REMOVE_PAUSES,
+        "aqe:convert": OP_CONVERT,
     }
-    assert operation_for_command("aqe:trim-left") is None
-    assert operation_for_command("aqe:trim-right") is None
-
-
-def test_apply_processing_command_uses_configured_trim_step() -> None:
-    config = AudioProcessingConfig(manual_trim_small_ms=250)
-    state = AudioEditState("clip.mp3")
-
-    updated = apply_processing_command("aqe:trim-left", state, config)
-
-    assert updated == AudioEditState("clip.mp3", left_trim_ms=250)
 
 
 def test_decode_processing_command_accepts_json_payload() -> None:
     decoded = decode_editor_command_payload(
-        '{"command":"aqe:trim-left","fieldOrd":0,"overrides":{"trimStepMs":200}}'
+        '{"command":"aqe:volume-up","fieldOrd":0,"overrides":{"volumeStepDb":6}}'
     )
 
-    assert decoded.command == "aqe:trim-left"
+    assert decoded.command == "aqe:volume-up"
     assert decoded.field_ord == 0
-    assert decoded.overrides.trim_step_ms == 200
+    assert decoded.overrides.volume_step_db == 6
 
 
 def test_decode_graph_command_accepts_graph_settings() -> None:
@@ -78,35 +68,14 @@ def test_decode_graph_command_accepts_graph_settings() -> None:
     assert decoded.graph_settings == {"voiceRange": "bass", "smoothness": "very_smooth"}
 
 
-def test_apply_processing_command_uses_trim_override_without_mutating_config() -> None:
-    config = AudioProcessingConfig(manual_trim_small_ms=500)
-    state = AudioEditState("clip.mp3")
+def test_decode_command_accepts_share_target_payload() -> None:
     decoded = decode_editor_command_payload(
-        '{"command":"aqe:trim-left","fieldOrd":0,"overrides":{"trimStepMs":200}}'
+        '{"command":"aqe:share","fieldOrd":0,"shareTarget":"litterbox"}'
     )
 
-    updated = apply_processing_command(decoded, state, config)
-
-    assert updated == AudioEditState("clip.mp3", left_trim_ms=200)
-    assert config.manual_trim_small_ms == 500
-
-
-def test_apply_processing_command_clamps_trim_override() -> None:
-    config = AudioProcessingConfig(manual_trim_small_ms=500)
-    state = AudioEditState("clip.mp3")
-    low = decode_editor_command_payload(
-        '{"command":"aqe:trim-left","fieldOrd":0,"overrides":{"trimStepMs":10}}'
-    )
-    high = decode_editor_command_payload(
-        '{"command":"aqe:trim-right","fieldOrd":0,"overrides":{"trimStepMs":20000}}'
-    )
-
-    assert apply_processing_command(low, state, config) == AudioEditState(
-        "clip.mp3", left_trim_ms=50
-    )
-    assert apply_processing_command(high, state, config) == AudioEditState(
-        "clip.mp3", right_trim_ms=10000
-    )
+    assert decoded.command == "aqe:share"
+    assert decoded.field_ord == 0
+    assert decoded.share_target == "litterbox"
 
 
 def test_apply_processing_command_handles_speed_and_feature_toggles() -> None:
@@ -177,6 +146,22 @@ def test_decode_command_accepts_dpdfnet_aggressiveness_override() -> None:
     assert decoded.overrides.dpdfnet_attn_limit_db == 18.0
 
 
+def test_decode_command_accepts_convert_target_format_override() -> None:
+    decoded = decode_editor_command_payload(
+        '{"command":"aqe:convert","fieldOrd":0,"overrides":{"targetFormat":"flac"}}'
+    )
+
+    assert decoded.overrides.target_format == "flac"
+
+
+def test_decode_command_accepts_pitch_hum_mode_override() -> None:
+    decoded = decode_editor_command_payload(
+        '{"command":"aqe:pitch-hum","fieldOrd":0,"overrides":{"pitchHumMode":"pitch_tier"}}'
+    )
+
+    assert decoded.overrides.pitch_hum_mode == "pitch_tier"
+
+
 def test_apply_processing_command_uses_pause_aggressiveness_without_mutating_config() -> None:
     config = AudioProcessingConfig(
         internal_pause_silence_threshold_db=-45,
@@ -238,11 +223,19 @@ def test_apply_processing_command_returns_none_for_non_processing_command() -> N
     assert apply_processing_command("aqe:play", state, config) is None
 
 
+def test_apply_processing_command_returns_none_for_convert_command() -> None:
+    config = AudioProcessingConfig()
+    state = AudioEditState("clip.mp3")
+
+    assert apply_processing_command("aqe:convert", state, config) is None
+
+
 def test_play_graph_cursor_and_play_ended_are_not_processing_commands() -> None:
     assert {
         "aqe:play",
         "aqe:play-ended",
         "aqe:show-file",
+        "aqe:share",
         "aqe:analyze",
         "aqe:analyze-field",
         "aqe:set-cursor",
@@ -250,6 +243,7 @@ def test_play_graph_cursor_and_play_ended_are_not_processing_commands() -> None:
         "aqe:rnnoise",
         "aqe:dpdfnet",
         "aqe:voice-only",
+        "aqe:pitch-hum",
         "aqe:settings",
         "aqe:redo",
         "aqe:trim-silence",
@@ -259,14 +253,13 @@ def test_play_graph_cursor_and_play_ended_are_not_processing_commands() -> None:
     assert "aqe:rnnoise" in BRIDGE_COMMANDS
     assert "aqe:dpdfnet" in BRIDGE_COMMANDS
     assert "aqe:voice-only" in BRIDGE_COMMANDS
+    assert "aqe:pitch-hum" in BRIDGE_COMMANDS
     assert "aqe:settings" in BRIDGE_COMMANDS
     assert "aqe:redo" in BRIDGE_COMMANDS
     assert "aqe:analyze-field" in BRIDGE_COMMANDS
     assert ("aqe:" + "si" + "don") not in BRIDGE_COMMANDS
 
 
-def test_untrim_commands_are_not_registered() -> None:
-    assert "aqe:untrim-left" not in BRIDGE_COMMANDS
-    assert "aqe:untrim-right" not in BRIDGE_COMMANDS
-    assert "aqe:untrim-left" not in PROCESSING_COMMANDS
-    assert "aqe:untrim-right" not in PROCESSING_COMMANDS
+def test_share_command_is_registered_but_not_processing() -> None:
+    assert "aqe:share" in BRIDGE_COMMANDS
+    assert "aqe:share" not in PROCESSING_COMMANDS

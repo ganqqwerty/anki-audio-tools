@@ -2,6 +2,7 @@ import { fireEvent, render, screen, waitFor } from "@testing-library/svelte";
 import { describe, expect, it, vi } from "vitest";
 
 import App from "../src/App.svelte";
+import { DEFAULT_EDITOR_BUTTON_MODES } from "../src/lib/editor-toolbar-buttons.js";
 import {
   DenoiseAlgorithm,
   Direction,
@@ -11,23 +12,41 @@ import {
   GraphVoiceRange,
   OutputFormat,
   PauseAggressiveness,
+  PitchHumMode,
+  VisibleEditorButton,
 } from "../src/lib/types.js";
 
 const defaultConfig = {
-  _config_version: 13,
+  _config_version: 19,
   enabled: true,
   debug_logging: false,
   show_ffmpeg_commands: false,
   repeat_playback_by_default: false,
   repeat_pause_seconds: 0,
   show_graph_by_default: false,
+  visible_editor_buttons: [
+    VisibleEditorButton.AqePlay,
+    VisibleEditorButton.AqeAnalyze,
+    VisibleEditorButton.AqeShowFile,
+    VisibleEditorButton.AqeShare,
+    VisibleEditorButton.AqeConvert,
+    VisibleEditorButton.AqeRemovePauses,
+    VisibleEditorButton.AqeDenoiseStandard,
+    VisibleEditorButton.AqePitchHum,
+    VisibleEditorButton.AqeSlower,
+    VisibleEditorButton.AqeFaster,
+    VisibleEditorButton.AqeVolumeDown,
+    VisibleEditorButton.AqeVolumeUp,
+    VisibleEditorButton.AqeUndo,
+    VisibleEditorButton.AqeRedo,
+    VisibleEditorButton.AqeSettings,
+  ],
+  editor_button_modes: { ...DEFAULT_EDITOR_BUTTON_MODES },
   graph_voice_range: GraphVoiceRange.General,
   graph_recording_condition: GraphRecordingCondition.Auto,
   graph_smoothness: GraphSmoothness.VerySmooth,
   graph_connect_short_dropouts_ms: 240,
   graph_voice_lock: GraphVoiceLock.Balanced,
-  manual_trim_small_ms: 100,
-  manual_trim_large_ms: 500,
   speed_step: 0.05,
   min_speed: 0.75,
   max_speed: 1.5,
@@ -43,6 +62,7 @@ const defaultConfig = {
   deep_filter_post_filter: true,
   dpdfnet_attn_limit_db: 12.0,
   denoise_algorithm: DenoiseAlgorithm.Standard,
+  pitch_hum_mode: PitchHumMode.Direct,
   pause_aggressiveness: PauseAggressiveness.Normal,
 };
 
@@ -96,6 +116,8 @@ describe("App", () => {
     expect(screen.getByText("Repeat playback by default")).toBeInTheDocument();
     expect(screen.getByText("Pause between repeats (s)")).toBeInTheDocument();
     expect(screen.getByText("Show graph by default")).toBeInTheDocument();
+    expect(screen.getByText("Editor toolbar buttons")).toBeInTheDocument();
+    expect(screen.getByTestId("toolbar-visibility-settings")).toHaveAttribute("aria-pressed", "true");
     expect(screen.getByText("Graph voice range")).toBeInTheDocument();
     expect(screen.getByText("Graph recording condition")).toBeInTheDocument();
     expect(screen.getByText("Graph smoothness")).toBeInTheDocument();
@@ -106,7 +128,9 @@ describe("App", () => {
     expect(screen.getByText("Use DeepFilterNet post-filter")).toBeInTheDocument();
     expect(screen.getByText("DPDFNet Aggressiveness")).toBeInTheDocument();
     expect(screen.getByText("Shorten pauses level")).toBeInTheDocument();
+    expect(screen.getByText("Default convert format")).toBeInTheDocument();
     expect(screen.getByText("Default cleanup action")).toBeInTheDocument();
+    expect(screen.getByText("Default pitch hum mode")).toBeInTheDocument();
     expect(screen.getByText("Volume step (dB)")).toBeInTheDocument();
     expect(screen.getByText("Min volume (dB)")).toBeInTheDocument();
     expect(screen.getByText("Max volume (dB)")).toBeInTheDocument();
@@ -149,6 +173,33 @@ describe("App", () => {
     expect(config.max_volume_db).toBe(12);
   });
 
+  it("saves toolbar visibility when Settings is turned off", async () => {
+    setInitialState();
+
+    render(App);
+    const settingsButton = screen.getByTestId("toolbar-visibility-settings");
+    await fireEvent.click(settingsButton);
+    await fireEvent.click(screen.getByRole("button", { name: "Save" }));
+
+    expect(settingsButton).toHaveAttribute("aria-pressed", "false");
+    expect(settingsButton).toHaveClass("toolbar-button-off");
+    const config = bridgePayload<{ visible_editor_buttons: string[] }>("settings.save");
+    expect(config.visible_editor_buttons).toContain("aqe:play");
+    expect(config.visible_editor_buttons).not.toContain("aqe:settings");
+  });
+
+  it("saves editor button display mode changes", async () => {
+    setInitialState();
+
+    render(App);
+    await fireEvent.click(screen.getByTestId("toolbar-mode-play-icon"));
+    await fireEvent.click(screen.getByRole("button", { name: "Save" }));
+
+    const config = bridgePayload<{ editor_button_modes: Record<string, string> }>("settings.save");
+    expect(config.editor_button_modes["aqe:play"]).toBe("icon");
+    expect(config.editor_button_modes["aqe:settings"]).toBe("text");
+  });
+
   it("saves split button default settings", async () => {
     setInitialState();
 
@@ -158,6 +209,12 @@ describe("App", () => {
     });
     await fireEvent.change(screen.getByLabelText("Default cleanup action"), {
       target: { value: DenoiseAlgorithm.Dpdfnet },
+    });
+    await fireEvent.change(screen.getByTestId("output-format"), {
+      target: { value: OutputFormat.FLAC },
+    });
+    await fireEvent.change(screen.getByLabelText("Default pitch hum mode"), {
+      target: { value: PitchHumMode.PitchTier },
     });
     await fireEvent.change(screen.getByLabelText("DPDFNet Aggressiveness"), {
       target: { value: "18" },
@@ -170,11 +227,15 @@ describe("App", () => {
     const config = bridgePayload<{
       denoise_algorithm: string;
       dpdfnet_attn_limit_db: number;
+      output_format: string;
       pause_aggressiveness: string;
+      pitch_hum_mode: string;
       repeat_pause_seconds: number;
     }>("settings.save");
     expect(config.pause_aggressiveness).toBe("aggressive");
+    expect(config.output_format).toBe("flac");
     expect(config.denoise_algorithm).toBe("dpdfnet");
+    expect(config.pitch_hum_mode).toBe("pitch_tier");
     expect(config.dpdfnet_attn_limit_db).toBe(18);
     expect(config.repeat_pause_seconds).toBe(2.5);
   });

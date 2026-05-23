@@ -21,6 +21,11 @@ def _visualizer_js(ord_: int = 0) -> str:
       const recordingStatus = document.querySelector(`[data-testid="aqe-recording-status-${ord}"]`);
       const visualizer = document.querySelector(`.aqe-visualizer[data-aqe-field-ord="${ord}"]`);
       if (!visualizer) return null;
+      const toolbar = visualizer.querySelector('.aqe-selection-toolbar');
+      const toolbarDot = visualizer.querySelector('.aqe-selection-toolbar-dot');
+      const toolbarPlay = visualizer.querySelector('.aqe-selection-toolbar-play');
+      const toolbarDelete = visualizer.querySelector('.aqe-delete-region-button');
+      const toolbarDeleteRest = visualizer.querySelector('.aqe-delete-rest-button');
       const labels = Array.from(visualizer.querySelectorAll('.aqe-hz-label')).map((node) => node.textContent);
       const flag = visualizer.querySelector('.aqe-cursor-flag');
       const flagCurrent = visualizer.querySelector('.aqe-cursor-flag-current');
@@ -70,10 +75,23 @@ def _visualizer_js(ord_: int = 0) -> str:
         selectionDraftStartMs: visualizer.dataset.selectionDraftStartMs ? Number(visualizer.dataset.selectionDraftStartMs) : null,
         selectionDraftEndMs: visualizer.dataset.selectionDraftEndMs ? Number(visualizer.dataset.selectionDraftEndMs) : null,
         repeatEnabled: visualizer.dataset.repeatEnabled === "true",
-        regionDeleteButtonDisabled: deleteButton ? deleteButton.disabled : true,
-        regionDeleteButtonHidden: deleteButton ? deleteButton.hidden : true,
-        regionDeleteRestButtonDisabled: deleteRestButton ? deleteRestButton.disabled : true,
-        regionDeleteRestButtonHidden: deleteRestButton ? deleteRestButton.hidden : true,
+        selectionToolbarHidden: toolbar ? toolbar.hidden : true,
+        selectionToolbarCollapsed: visualizer.dataset.selectionToolbarCollapsed === "true",
+        selectionToolbarDotHidden: toolbarDot ? toolbarDot.hasAttribute("hidden") : true,
+        selectionToolbarPreview: (
+          visualizer.dataset.selectionToolbarPreview === "region"
+          || visualizer.dataset.selectionToolbarPreview === "rest"
+        ) ? visualizer.dataset.selectionToolbarPreview : "none",
+        selectionToolbarPlayState: toolbarPlay?.dataset.aqeButtonState || "",
+        selectionToolbarPlayAriaLabel: toolbarPlay?.getAttribute("aria-label") || "",
+        selectionToolbarDeleteRegionDisabled: toolbarDelete ? toolbarDelete.disabled : true,
+        selectionToolbarDeleteRegionHidden: toolbarDelete ? toolbarDelete.hidden : true,
+        selectionToolbarDeleteRestDisabled: toolbarDeleteRest ? toolbarDeleteRest.disabled : true,
+        selectionToolbarDeleteRestHidden: toolbarDeleteRest ? toolbarDeleteRest.hidden : true,
+        regionDeleteButtonDisabled: (toolbarDelete || deleteButton) ? (toolbarDelete || deleteButton).disabled : true,
+        regionDeleteButtonHidden: (toolbarDelete || deleteButton) ? (toolbarDelete || deleteButton).hidden : true,
+        regionDeleteRestButtonDisabled: (toolbarDeleteRest || deleteRestButton) ? (toolbarDeleteRest || deleteRestButton).disabled : true,
+        regionDeleteRestButtonHidden: (toolbarDeleteRest || deleteRestButton) ? (toolbarDeleteRest || deleteRestButton).hidden : true,
         allButtonsDisabled: Array.from(document.querySelectorAll('.aqe-button')).every((button) => button.disabled),
       };
     })()

@@ -119,6 +119,9 @@ def test_editor_undo_and_redo_restore_audio_references_without_processing(
     assert session.current_filename == "clip__aqe_first.mp3"
     assert session.undo_history.pop().filename == "clip.mp3"
     assert editor.loadNote.call_count == 2
+    evals = [call.args[0] for call in editor.web.eval.call_args_list]
+    assert any("window.__aqeSetHistoryAvailability && window.__aqeSetHistoryAvailability(0, false, true)" in call for call in evals)
+    assert any("window.__aqeSetHistoryAvailability && window.__aqeSetHistoryAvailability(0, true, false)" in call for call in evals)
     assert sum("__aqePlayAfterEdit" in call.args[0] for call in editor.web.evalWithCallback.call_args_list) == 2
 
 
@@ -370,6 +373,10 @@ def test_region_delete_replacement_updates_only_requested_field_and_history(
     assert session.redo_history.pop() is None
     assert session.undo_history.pop().filename == "clip.mp3"
     assert editor.loadNote.call_args.kwargs == {"focusTo": 1}
+    assert any(
+        "__aqeSetHistoryAvailability(1, true, false)" in call.args[0]
+        for call in editor.web.evalWithCallback.call_args_list
+    )
     assert "__aqePlayAfterEdit(1)" in editor.web.evalWithCallback.call_args.args[0]
 
 

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import logging
 import threading
 from types import SimpleNamespace
 from typing import Any
@@ -12,8 +13,11 @@ from .audio_processor import (
     render_audio,
     render_audio_region_deleted,
     render_audio_region_kept,
+    render_converted_audio,
     render_dpdfnet_audio,
     render_noise_reduced_audio,
+    render_pitch_hum_audio,
+    render_pitch_tier_hum_audio,
     render_playback_segment,
     render_rnnoise_audio,
     render_voice_only_audio,
@@ -45,10 +49,14 @@ def frontend_deps(frontend_callbacks: Any) -> SimpleNamespace:
     return SimpleNamespace(
         eval_with_callback=frontend_callbacks.eval_with_callback,
         graph_redraw_expression=frontend_callbacks.graph_redraw_expression,
+        history_availability_expression=frontend_callbacks.history_availability_expression,
         playback_after_edit_expression=frontend_callbacks.playback_after_edit_expression,
+        request_history_availability_after_edit=frontend_callbacks.request_history_availability_after_edit,
+        retry_history_availability=frontend_callbacks.retry_history_availability,
         retry_playback_after_edit=frontend_callbacks.retry_playback_after_edit,
         retry_graph_redraw=frontend_callbacks.retry_graph_redraw,
         schedule_graph_redraw_attempt=frontend_callbacks.schedule_graph_redraw_attempt,
+        schedule_history_availability_attempt=frontend_callbacks.schedule_history_availability_attempt,
         schedule_playback_after_edit_attempt=frontend_callbacks.schedule_playback_after_edit_attempt,
         sessions=editor_runtime.SESSIONS,
         set_busy_for_field=frontend_callbacks.set_busy_for_field,
@@ -61,6 +69,7 @@ def bridge_deps(callbacks: Any, frontend_callbacks: Any) -> SimpleNamespace:
         analyze_field_from_frontend=callbacks.analyze_field_from_frontend,
         delete_selection_from_frontend=callbacks.delete_selection_from_frontend,
         denoise_standard_async=callbacks.denoise_standard_async,
+        convert_async=callbacks.convert_async,
         dpdfnet_async=callbacks.dpdfnet_async,
         eval_status=frontend_callbacks.eval_status,
         eval_with_callback=frontend_callbacks.eval_with_callback,
@@ -73,11 +82,14 @@ def bridge_deps(callbacks: Any, frontend_callbacks: Any) -> SimpleNamespace:
         play=callbacks.play,
         play_learner_recording=callbacks.play_learner_recording,
         play_ended=callbacks.play_ended,
+        pitch_hum_async=callbacks.pitch_hum_async,
         record_learner_voice=callbacks.record_learner_voice,
         redo=callbacks.redo,
         rnnoise_async=callbacks.rnnoise_async,
+        save_split_defaults_from_frontend=callbacks.save_split_defaults_from_frontend,
         set_busy=frontend_callbacks.set_busy,
         set_cursor_from_web=callbacks.set_cursor_from_web,
+        share_current_audio_file=callbacks.share_current_audio_file,
         show_current_audio_file=callbacks.show_current_audio_file,
         undo=callbacks.undo,
         update_state_and_render=callbacks.update_state_and_render,
@@ -106,6 +118,26 @@ def recording_deps(_callbacks: Any, frontend_callbacks: Any) -> SimpleNamespace:
     )
 
 
+def share_deps(callbacks: Any, frontend_callbacks: Any) -> SimpleNamespace:
+    from . import editor_runtime
+    from .file_sharing import upload_file
+    from .i18n import t
+
+    return SimpleNamespace(
+        current_media_path=editor_runtime.current_media_path,
+        eval_status=frontend_callbacks.eval_status,
+        finish_shared_audio=callbacks.finish_shared_audio,
+        is_busy=editor_runtime.is_busy,
+        logger=logging.getLogger("anki_audio_quick_editor.editor_sharing"),
+        main=frontend_callbacks.main,
+        set_busy=frontend_callbacks.set_busy,
+        share_failed=callbacks.share_failed,
+        still_processing_message=editor_runtime.STILL_PROCESSING_MESSAGE,
+        t=t,
+        upload_file=upload_file,
+    )
+
+
 def history_deps(callbacks: Any, frontend_callbacks: Any) -> SimpleNamespace:
     from . import editor_runtime
 
@@ -113,9 +145,11 @@ def history_deps(callbacks: Any, frontend_callbacks: Any) -> SimpleNamespace:
         current_field_audio_missing=editor_runtime.CURRENT_FIELD_AUDIO_MISSING,
         current_field_index=current_field_index,
         dispose_editor_frontend_controls=frontend_callbacks.dispose_editor_frontend_controls,
+        eval_history_availability=frontend_callbacks.eval_history_availability,
         eval_playback_state=frontend_callbacks.eval_playback_state,
         eval_status=frontend_callbacks.eval_status,
         is_busy=editor_runtime.is_busy,
+        request_history_availability_after_edit=frontend_callbacks.request_history_availability_after_edit,
         request_playback_after_edit=frontend_callbacks.request_playback_after_edit,
         request_graph_redraw=frontend_callbacks.request_graph_redraw,
         restore_history_entry=callbacks.restore_history_entry,
@@ -135,6 +169,7 @@ def processing_deps(callbacks: Any, frontend_callbacks: Any) -> SimpleNamespace:
         current_field_index=current_field_index,
         current_media_path=editor_runtime.current_media_path,
         dispose_editor_frontend_controls=frontend_callbacks.dispose_editor_frontend_controls,
+        eval_history_availability=frontend_callbacks.eval_history_availability,
         eval_playback_state=frontend_callbacks.eval_playback_state,
         eval_status=frontend_callbacks.eval_status,
         format_ffmpeg_command=format_ffmpeg_command,
@@ -147,13 +182,17 @@ def processing_deps(callbacks: Any, frontend_callbacks: Any) -> SimpleNamespace:
         record_spleeter_failure_context=callbacks.record_spleeter_failure_context,
         render_and_replace_async=callbacks.render_and_replace_async,
         render_audio=render_audio,
+        render_converted_audio=render_converted_audio,
         render_failed=callbacks.render_failed,
         render_dpdfnet_audio=render_dpdfnet_audio,
         render_noise_reduced_audio=render_noise_reduced_audio,
+        render_pitch_hum_audio=render_pitch_hum_audio,
+        render_pitch_tier_hum_audio=render_pitch_tier_hum_audio,
         render_rnnoise_audio=render_rnnoise_audio,
         render_voice_only_audio=render_voice_only_audio,
         replace_current_field_after_noise_removal=callbacks.replace_current_field_after_noise_removal,
         replace_current_field_after_render=callbacks.replace_current_field_after_render,
+        request_history_availability_after_edit=frontend_callbacks.request_history_availability_after_edit,
         request_playback_after_edit=frontend_callbacks.request_playback_after_edit,
         request_graph_redraw=frontend_callbacks.request_graph_redraw,
         run_special_audio_transform_async=callbacks.run_special_audio_transform_async,
@@ -253,6 +292,7 @@ def region_delete_deps(callbacks: Any, frontend_callbacks: Any) -> SimpleNamespa
         current_media_path=editor_runtime.current_media_path,
         delete_selection_with_request=callbacks.delete_selection_with_request,
         dispose_editor_frontend_controls=frontend_callbacks.dispose_editor_frontend_controls,
+        eval_history_availability=frontend_callbacks.eval_history_availability,
         eval_playback_state=frontend_callbacks.eval_playback_state,
         eval_status=frontend_callbacks.eval_status,
         eval_with_callback=frontend_callbacks.eval_with_callback,
@@ -264,6 +304,7 @@ def region_delete_deps(callbacks: Any, frontend_callbacks: Any) -> SimpleNamespa
         render_audio_region_kept=render_audio_region_kept,
         render_failed=callbacks.render_failed,
         replace_current_field_after_region_delete=callbacks.replace_current_field_after_region_delete,
+        request_history_availability_after_edit=frontend_callbacks.request_history_availability_after_edit,
         request_playback_after_edit=frontend_callbacks.request_playback_after_edit,
         request_graph_redraw=frontend_callbacks.request_graph_redraw,
         resolve_requested_field_media=resolve_requested_field_media,

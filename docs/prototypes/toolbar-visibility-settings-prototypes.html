@@ -1,0 +1,514 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Audio Quick Editor Toolbar Visibility Prototypes</title>
+    <style>
+      :root {
+        color-scheme: light dark;
+        --bg: #eef1f3;
+        --fg: #202428;
+        --muted: #66727d;
+        --panel: #ffffff;
+        --panel-soft: #f7f9fa;
+        --line: #cbd3da;
+        --line-strong: #9aa7b2;
+        --accent: #0b766f;
+        --accent-soft: rgb(11 118 111 / 12%);
+        --off: #a43d31;
+        --off-soft: rgb(164 61 49 / 11%);
+        --warning: #8a5a00;
+        --warning-soft: rgb(138 90 0 / 12%);
+        --shadow: 0 14px 36px rgb(30 38 44 / 12%);
+        font-family:
+          Inter,
+          ui-sans-serif,
+          system-ui,
+          -apple-system,
+          BlinkMacSystemFont,
+          "Segoe UI",
+          sans-serif;
+      }
+
+      @media (prefers-color-scheme: dark) {
+        :root {
+          --bg: #171b1f;
+          --fg: #e8ecef;
+          --muted: #9ba7b0;
+          --panel: #242a30;
+          --panel-soft: #1d2328;
+          --line: #3c4650;
+          --line-strong: #65717c;
+          --accent: #34c5b6;
+          --accent-soft: rgb(52 197 182 / 14%);
+          --off: #ff8a7b;
+          --off-soft: rgb(255 138 123 / 13%);
+          --warning: #f2b84b;
+          --warning-soft: rgb(242 184 75 / 14%);
+          --shadow: 0 14px 36px rgb(0 0 0 / 32%);
+        }
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        background: var(--bg);
+        color: var(--fg);
+        font-size: 14px;
+      }
+
+      main {
+        max-width: 1240px;
+        margin: 0 auto;
+        padding: 26px;
+      }
+
+      h1 {
+        margin: 0 0 8px;
+        font-size: 30px;
+        font-weight: 740;
+        letter-spacing: 0;
+        line-height: 1.1;
+      }
+
+      h2,
+      h3 {
+        letter-spacing: 0;
+      }
+
+      .intro {
+        max-width: 820px;
+        margin: 0 0 22px;
+        color: var(--muted);
+        line-height: 1.5;
+      }
+
+      .grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 16px;
+      }
+
+      .prototype {
+        min-width: 0;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        background: var(--panel);
+        box-shadow: var(--shadow);
+        overflow: hidden;
+      }
+
+      .prototype-header {
+        display: grid;
+        gap: 8px;
+        border-bottom: 1px solid var(--line);
+        background: var(--panel-soft);
+        padding: 16px;
+      }
+
+      .prototype-header h2 {
+        margin: 0;
+        font-size: 17px;
+        font-weight: 740;
+      }
+
+      .prototype-header p {
+        margin: 0;
+        color: var(--muted);
+        line-height: 1.45;
+      }
+
+      .prototype-body {
+        display: grid;
+        gap: 16px;
+        padding: 16px;
+      }
+
+      .section {
+        display: grid;
+        gap: 8px;
+      }
+
+      .section-title {
+        align-items: baseline;
+        display: flex;
+        justify-content: space-between;
+        gap: 10px;
+      }
+
+      .section-title h3 {
+        margin: 0;
+        font-size: 13px;
+        font-weight: 740;
+        text-transform: uppercase;
+      }
+
+      .section-title span {
+        color: var(--muted);
+        font-size: 12px;
+      }
+
+      .button-panel,
+      .editor-card {
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        background: var(--panel-soft);
+        padding: 12px;
+      }
+
+      .button-panel {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+      }
+
+      .toolbar {
+        align-items: center;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+        min-height: 38px;
+      }
+
+      .toolbar-spacer {
+        flex: 1 1 100%;
+        height: 1px;
+      }
+
+      button {
+        font: inherit;
+      }
+
+      .tool-button {
+        align-items: center;
+        appearance: none;
+        border: 1px solid var(--line);
+        border-radius: 7px;
+        background: var(--panel);
+        color: var(--fg);
+        cursor: pointer;
+        display: inline-flex;
+        gap: 6px;
+        min-height: 34px;
+        min-width: 34px;
+        padding: 7px 9px;
+      }
+
+      .tool-button:hover {
+        border-color: color-mix(in srgb, var(--accent) 58%, var(--line));
+        background: color-mix(in srgb, var(--accent) 9%, var(--panel));
+      }
+
+      .tool-button[aria-pressed="false"] {
+        border-color: color-mix(in srgb, var(--off) 45%, var(--line));
+        background: var(--off-soft);
+        color: color-mix(in srgb, var(--off) 72%, var(--fg));
+        opacity: 0.72;
+      }
+
+      .tool-button[data-locked="true"] {
+        border-color: color-mix(in srgb, var(--accent) 50%, var(--line));
+        background: var(--accent-soft);
+        cursor: default;
+      }
+
+      .tool-button[data-icon-only="true"] .label {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        overflow: hidden;
+        clip: rect(0 0 0 0);
+        white-space: nowrap;
+      }
+
+      .icon {
+        align-items: center;
+        display: inline-flex;
+        flex: 0 0 auto;
+        justify-content: center;
+        width: 16px;
+      }
+
+      .split {
+        display: inline-flex;
+      }
+
+      .split .tool-button:first-child {
+        border-bottom-right-radius: 0;
+        border-top-right-radius: 0;
+      }
+
+      .split .tool-button:last-child {
+        border-bottom-left-radius: 0;
+        border-left: 0;
+        border-top-left-radius: 0;
+        padding-inline: 7px;
+      }
+
+      .split .tool-button[aria-pressed="false"] + .tool-button {
+        border-color: color-mix(in srgb, var(--off) 45%, var(--line));
+        background: var(--off-soft);
+        color: color-mix(in srgb, var(--off) 72%, var(--fg));
+        opacity: 0.72;
+      }
+
+      .empty-state,
+      .warning {
+        border: 1px dashed var(--line-strong);
+        border-radius: 8px;
+        color: var(--muted);
+        padding: 10px 12px;
+      }
+
+      .warning {
+        border-color: color-mix(in srgb, var(--warning) 58%, var(--line));
+        background: var(--warning-soft);
+        color: color-mix(in srgb, var(--warning) 70%, var(--fg));
+      }
+
+      .field-shell {
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        background: var(--panel);
+        padding: 12px;
+      }
+
+      .field-title {
+        color: var(--muted);
+        font-size: 12px;
+        margin: 0 0 8px;
+      }
+
+      .sound-row {
+        align-items: center;
+        display: flex;
+        gap: 8px;
+        margin-top: 10px;
+        color: var(--muted);
+        font-size: 12px;
+      }
+
+      .audio-pill {
+        border: 1px solid var(--line);
+        border-radius: 999px;
+        background: var(--panel-soft);
+        color: var(--fg);
+        padding: 5px 9px;
+      }
+
+      .state-summary {
+        display: grid;
+        gap: 5px;
+        color: var(--muted);
+        font-size: 12px;
+        line-height: 1.4;
+      }
+
+      .state-summary strong {
+        color: var(--fg);
+      }
+
+      @media (max-width: 900px) {
+        main {
+          padding: 16px;
+        }
+
+        .grid {
+          grid-template-columns: 1fr;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <h1>Toolbar Visibility Settings Prototypes</h1>
+      <p class="intro">
+        Both prototypes use a settings copy of the editor panel. Click a button in the settings copy to mark it on or off by color, then compare the resulting editor toolbar underneath.
+      </p>
+
+      <div class="grid">
+        <article class="prototype" data-policy="settings-locked">
+          <header class="prototype-header">
+            <h2>Option A: Settings always visible</h2>
+            <p>
+              All normal toolbar buttons can be hidden. Settings stays enabled as the recovery path from the editor.
+            </p>
+          </header>
+          <div class="prototype-body">
+            <section class="section">
+              <div class="section-title">
+                <h3>Settings panel copy</h3>
+                <span>Settings is locked on</span>
+              </div>
+              <div class="button-panel" data-role="picker"></div>
+            </section>
+            <section class="section">
+              <div class="section-title">
+                <h3>Editor result</h3>
+                <span data-role="count"></span>
+              </div>
+              <div class="editor-card">
+                <div class="field-shell">
+                  <p class="field-title">Front</p>
+                  <div class="toolbar" data-role="toolbar"></div>
+                  <div class="sound-row">
+                    <span class="audio-pill">[sound:example.mp3]</span>
+                    <span>Quick controls render beside the field.</span>
+                  </div>
+                </div>
+              </div>
+            </section>
+            <div class="state-summary" data-role="summary"></div>
+          </div>
+        </article>
+
+        <article class="prototype" data-policy="all-hideable">
+          <header class="prototype-header">
+            <h2>Option B: Every button hideable</h2>
+            <p>
+              The settings copy treats Settings like any other button, so users can remove every editor control.
+            </p>
+          </header>
+          <div class="prototype-body">
+            <section class="section">
+              <div class="section-title">
+                <h3>Settings panel copy</h3>
+                <span>Settings can be turned off</span>
+              </div>
+              <div class="button-panel" data-role="picker"></div>
+            </section>
+            <section class="section">
+              <div class="section-title">
+                <h3>Editor result</h3>
+                <span data-role="count"></span>
+              </div>
+              <div class="editor-card">
+                <div class="field-shell">
+                  <p class="field-title">Front</p>
+                  <div class="toolbar" data-role="toolbar"></div>
+                  <div class="sound-row">
+                    <span class="audio-pill">[sound:example.mp3]</span>
+                    <span>Quick controls render beside the field.</span>
+                  </div>
+                </div>
+              </div>
+            </section>
+            <div class="state-summary" data-role="summary"></div>
+          </div>
+        </article>
+      </div>
+    </main>
+
+    <script>
+      const buttonSpecs = [
+        { id: "play", label: "Play", icon: ">", iconOnly: true, split: true },
+        { id: "graph", label: "Graph", icon: "~", iconOnly: true, split: true },
+        { id: "folder", label: "Folder", icon: "[]", defaultOn: false },
+        { id: "pauses", label: "Shorten Pauses", icon: "||", split: true },
+        { id: "denoise", label: "Denoise", icon: "x", split: true },
+        { id: "pitch-hum", label: "Pitch Hum", icon: "~", split: true },
+        { id: "slower", label: "Slower", icon: "-", defaultOn: false, split: true },
+        { id: "faster", label: "Faster", icon: "+", defaultOn: false, split: true },
+        { id: "volume-down", label: "Volume -", icon: "-", defaultOn: false, iconOnly: true, split: true },
+        { id: "volume-up", label: "Volume +", icon: "+", defaultOn: false, iconOnly: true, split: true },
+        { id: "undo", label: "Undo", icon: "U", iconOnly: true },
+        { id: "redo", label: "Redo", icon: "R", iconOnly: true },
+        { id: "settings", label: "Settings", icon: "*", iconOnly: true },
+      ];
+
+      const policies = {
+        "settings-locked": {
+          locked: new Set(["settings"]),
+          states: Object.fromEntries(buttonSpecs.map((button) => [button.id, button.defaultOn !== false])),
+        },
+        "all-hideable": {
+          locked: new Set(),
+          states: Object.fromEntries(buttonSpecs.map((button) => [button.id, button.defaultOn !== false])),
+        },
+      };
+
+      function makeToolButton(button, on, options = {}) {
+        const element = document.createElement("button");
+        element.type = "button";
+        element.className = "tool-button";
+        element.dataset.buttonId = button.id;
+        if (button.iconOnly) element.dataset.iconOnly = "true";
+        if (options.locked) element.dataset.locked = "true";
+        element.setAttribute("aria-pressed", on ? "true" : "false");
+        element.title = options.locked ? `${button.label} stays visible` : `${button.label}: ${on ? "on" : "off"}`;
+        element.innerHTML = `<span class="icon" aria-hidden="true">${button.icon}</span><span class="label">${button.label}</span>`;
+        return element;
+      }
+
+      function makeSplitButton(button, on) {
+        const split = document.createElement("span");
+        split.className = "split";
+        split.append(makeToolButton(button, on));
+        const menu = makeToolButton({ ...button, label: `${button.label} options`, icon: "v" }, on);
+        menu.dataset.iconOnly = "true";
+        split.append(menu);
+        return split;
+      }
+
+      function renderPolicy(root) {
+        const policyName = root.dataset.policy;
+        const policy = policies[policyName];
+        const picker = root.querySelector('[data-role="picker"]');
+        const toolbar = root.querySelector('[data-role="toolbar"]');
+        const count = root.querySelector('[data-role="count"]');
+        const summary = root.querySelector('[data-role="summary"]');
+
+        picker.replaceChildren();
+        toolbar.replaceChildren();
+
+        for (const button of buttonSpecs) {
+          const locked = policy.locked.has(button.id);
+          const on = locked || policy.states[button.id];
+          const pickerButton = makeToolButton(button, on, { locked });
+          pickerButton.addEventListener("click", () => {
+            if (locked) return;
+            policy.states[button.id] = !policy.states[button.id];
+            renderPolicy(root);
+          });
+          picker.append(pickerButton);
+        }
+
+        const visibleButtons = buttonSpecs.filter((button) => policy.locked.has(button.id) || policy.states[button.id]);
+        for (const button of visibleButtons) {
+          toolbar.append(button.split ? makeSplitButton(button, true) : makeToolButton(button, true));
+        }
+
+        if (visibleButtons.length === 0) {
+          const empty = document.createElement("div");
+          empty.className = "empty-state";
+          empty.textContent = "No quick editor buttons are visible in the editor.";
+          toolbar.append(empty);
+        }
+
+        count.textContent = `${visibleButtons.length} of ${buttonSpecs.length} visible`;
+
+        const hiddenLabels = buttonSpecs
+          .filter((button) => !policy.locked.has(button.id) && !policy.states[button.id])
+          .map((button) => button.label);
+
+        const lines = [
+          `<span><strong>Hidden:</strong> ${hiddenLabels.length ? hiddenLabels.join(", ") : "none"}</span>`,
+        ];
+        if (policyName === "settings-locked") {
+          lines.push("<span><strong>Recovery:</strong> Settings remains reachable from every editor field.</span>");
+        } else if (!policy.states.settings) {
+          lines.push('<span class="warning"><strong>Recovery risk:</strong> Settings is hidden from the editor. Users need the Anki add-on menu to get back here.</span>');
+        } else {
+          lines.push("<span><strong>Recovery:</strong> Settings is currently visible, but it can be hidden.</span>");
+        }
+        summary.innerHTML = lines.join("");
+      }
+
+      document.querySelectorAll(".prototype").forEach(renderPolicy);
+    </script>
+  </body>
+</html>

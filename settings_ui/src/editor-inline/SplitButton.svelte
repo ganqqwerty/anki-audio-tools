@@ -1,22 +1,37 @@
 <script lang="ts">
-  import { onMount, tick } from "svelte";
+  import { Popover } from "bits-ui";
+  import { onMount } from "svelte";
 
   import EditorCommandIcon from "./EditorCommandIcon.svelte";
+  import SplitDefaultSaveButton from "./SplitDefaultSaveButton.svelte";
   import GraphSplitOptions from "./GraphSplitOptions.svelte";
   import SplitValueOptions from "./SplitValueOptions.svelte";
   import { send } from "./actions.js";
+  import { sendSplitDefaultSaveRequest } from "./bridge.js";
   import {
     buildSplitCommandPayload,
-    formatDpdfnetAggressiveness,
+    buildSplitDefaultSaveRequest,
+    formatDenoiseAlgorithm,
+    formatOutputFormat,
+    formatSpeedStep,
+    formatVolumeDb,
     getSplitButtonState,
+    promoteSplitDefaultsForField,
     setDenoiseAlgorithmForField,
     setDpdfnetAttnLimitDbForField,
+    setOutputFormatForField,
     setPauseAggressivenessForField,
+    setPitchHumModeForField,
+    setShareTargetForField,
     setSpeedStepForField,
-    setTrimStepForField,
     setVolumeStepForField,
   } from "./split-button-state.js";
-  import { formatGraphVoiceRange } from "./graph-split-values.js";
+  import {
+    formatGraphRecordingCondition,
+    formatGraphSmoothness,
+    formatGraphVoiceLock,
+    formatGraphVoiceRange,
+  } from "./graph-split-values.js";
   import {
     setGraphConnectShortDropoutsForField,
     setGraphRecordingConditionForField,
@@ -26,43 +41,79 @@
   } from "./graph-split-state.js";
   import { COMMAND_SLUGS } from "./commands.js";
   import { t } from "../lib/i18n.js";
-  import type {
-    GraphRecordingCondition,
-    GraphSmoothness,
-    GraphVoiceLock,
-    GraphVoiceRange,
-  } from "./graph-settings.js";
-  import type {
-    ButtonSpec,
-    FieldSplitButtonState,
-    FieldTarget,
-  } from "./types.js";
+  import type { EditorButtonDisplayMode } from "../lib/editor-toolbar-buttons.js";
+  import { EditorButtonMode } from "../lib/types.js";
+  import type { GraphRecordingCondition, GraphSmoothness, GraphVoiceLock, GraphVoiceRange } from "./graph-settings.js";
+  import type { ButtonSpec, FieldSplitButtonState, FieldTarget } from "./types.js";
 
   type DenoiseAlgorithm = FieldSplitButtonState["denoiseAlgorithm"];
+  type OutputFormatValue = FieldSplitButtonState["outputFormat"];
+  type PitchHumMode = FieldSplitButtonState["pitchHumMode"];
+  type PrimaryGroupPosition = "middle" | "start";
+  type ShareTarget = FieldSplitButtonState["shareTarget"];
+  const CLOSE_SPLIT_MENUS_EVENT = "aqe-ui:close-split-menus";
 
-  const POPOVER_GAP_PX = 4;
-  const VIEWPORT_MARGIN_PX = 8;
-  const HIDDEN_POPOVER_STYLE = "visibility: hidden;";
+  const {
+    button,
+    displayMode,
+    groupLabel,
+    groupSlug,
+    primaryGroupPosition = "start",
+    showMenu = true,
+    showPrimary = true,
+    showRunButton = true,
+    target,
+  }: {
+    button: ButtonSpec;
+    displayMode: EditorButtonDisplayMode;
+    groupLabel?: string;
+    groupSlug?: "speed" | "volume";
+    primaryGroupPosition?: PrimaryGroupPosition;
+    showMenu?: boolean;
+    showPrimary?: boolean;
+    showRunButton?: boolean;
+    target: FieldTarget;
+  } = $props();
 
-  const { button, target }: { button: ButtonSpec; target: FieldTarget } = $props();
-  let wrapper = $state<HTMLSpanElement>();
-  let popover = $state<HTMLDivElement>();
   let open = $state(false);
-  let popoverStyle = $state(HIDDEN_POPOVER_STYLE);
-  let trimStepMs = $state(100);
   let volumeStepDb = $state(3);
   let speedStep = $state(0.05);
   let pauseAggressiveness = $state<"gentle" | "normal" | "aggressive">("normal");
   let denoiseAlgorithm = $state<DenoiseAlgorithm>("standard");
   let dpdfnetAttnLimitDb = $state(12);
+  let outputFormat = $state<OutputFormatValue>("mp3");
+  let pitchHumMode = $state<PitchHumMode>("direct");
+  let shareTarget = $state<ShareTarget>("litterbox");
   let graphVoiceRange = $state<GraphVoiceRange>("general");
   let graphRecordingCondition = $state<GraphRecordingCondition>("auto");
   let graphSmoothness = $state<GraphSmoothness>("very_smooth");
   let graphConnectShortDropoutsMs = $state(240);
   let graphVoiceLock = $state<GraphVoiceLock>("balanced");
+  let defaultSaved = $state(false);
+  let defaultSavedTimer: number | undefined;
 
   function slug(): string {
     return COMMAND_SLUGS[button.command];
+  }
+
+  function menuSlug(): string {
+    return groupSlug ?? slug();
+  }
+
+  function menuTextLabel(): string {
+    return groupLabel ?? button.label;
+  }
+
+  function isGroupedVolumeMenu(): boolean {
+    return groupSlug === "volume";
+  }
+
+  function isGroupedSpeedMenu(): boolean {
+    return groupSlug === "speed";
+  }
+
+  function groupedSpeedValueLabel(): string {
+    return `${formatSpeedStep(speedStep, "aqe:faster")} / ${formatSpeedStep(speedStep, "aqe:slower")}`;
   }
 
   function initialButtonState(): string {
@@ -81,28 +132,83 @@
   }
 
   function primaryTitle(): string {
-    if (!isDenoiseButton()) return button.title;
-    if (denoiseAlgorithm === "rnnoise") return t("editor.command.rnnoise.title");
-    if (denoiseAlgorithm === "dpdfnet") {
-      return t("editor.command.dpdfnet.title", { level: formatDpdfnetAggressiveness(dpdfnetAttnLimitDb) });
+    if (button.command === "aqe:convert") {
+      return t("editor.command.convert.title", { format: formatOutputFormat(outputFormat) });
     }
-    if (denoiseAlgorithm === "voice_only") return t("editor.command.voice_only.title");
-    return t("editor.command.standard.title");
+    if (!isDenoiseButton()) return button.title;
+    return t("editor.command.denoise.title", { algorithm: formatDenoiseAlgorithm(denoiseAlgorithm) });
+  }
+
+  function primaryClass(): string {
+    return primaryGroupPosition === "middle"
+      ? "aqe-button aqe-split-primary aqe-split-primary-middle"
+      : "aqe-button aqe-split-primary";
+  }
+
+  const graphSummary = $derived([
+    formatGraphVoiceRange(graphVoiceRange),
+    formatGraphRecordingCondition(graphRecordingCondition),
+    formatGraphSmoothness(graphSmoothness),
+    `${graphConnectShortDropoutsMs} ms`,
+    formatGraphVoiceLock(graphVoiceLock),
+  ].join(" · "));
+
+  function currentValueLabel(): string {
+    if (isGroupedVolumeMenu()) return formatVolumeDb(volumeStepDb);
+    if (isGroupedSpeedMenu()) return groupedSpeedValueLabel();
+    if (button.command === "aqe:volume-up" || button.command === "aqe:volume-down") return formatVolumeDb(volumeStepDb);
+    if (button.command === "aqe:faster" || button.command === "aqe:slower") return formatSpeedStep(speedStep, button.command);
+    if (button.command === "aqe:remove-pauses") return pauseAggressiveness === "aggressive"
+      ? t("settings.pause_aggressiveness.aggressive")
+      : pauseAggressiveness === "gentle"
+        ? t("settings.pause_aggressiveness.gentle")
+        : t("settings.pause_aggressiveness.normal");
+    if (button.command === "aqe:convert") return formatOutputFormat(outputFormat);
+    if (button.command === "aqe:share") return shareTarget === "litterbox"
+      ? t("editor.share.target.litterbox")
+      : t("editor.share.target.catbox");
+    if (button.command === "aqe:pitch-hum") return pitchHumMode === "pitch_tier"
+      ? t("editor.pitch_hum.mode.pitch_tier")
+      : t("editor.pitch_hum.mode.direct");
+    if (
+      button.command === "aqe:denoise-standard" ||
+      button.command === "aqe:rnnoise" ||
+      button.command === "aqe:dpdfnet" ||
+      button.command === "aqe:voice-only"
+    ) {
+      return denoiseAlgorithm === "dpdfnet"
+        ? `${formatDenoiseAlgorithm(denoiseAlgorithm)} (${t(`settings.pause_aggressiveness.${dpdfnetAttnLimitDb === 6 ? "gentle" : dpdfnetAttnLimitDb === 18 ? "aggressive" : "normal"}`)})`
+        : formatDenoiseAlgorithm(denoiseAlgorithm);
+    }
+    if (button.command === "aqe:analyze") return graphSummary;
+    return "";
+  }
+
+  function menuTitle(): string {
+    return t("editor.split.menu_title", {
+      label: menuTextLabel(),
+      value: currentValueLabel(),
+    });
   }
 
   function close(): void {
     open = false;
-    popoverStyle = HIDDEN_POPOVER_STYLE;
   }
 
-  function toggle(event: MouseEvent): void {
-    event.preventDefault();
-    event.stopPropagation();
-    open = !open;
-  }
-
-  function applyTrimStep(value: number): void {
-    trimStepMs = setTrimStepForField(target.ord, value).trimStepMs;
+  function syncFromState(state: FieldSplitButtonState): void {
+    volumeStepDb = state.volumeStepDb;
+    speedStep = state.speedStep;
+    pauseAggressiveness = state.pauseAggressiveness;
+    denoiseAlgorithm = state.denoiseAlgorithm;
+    dpdfnetAttnLimitDb = state.dpdfnetAttnLimitDb;
+    outputFormat = state.outputFormat;
+    pitchHumMode = state.pitchHumMode;
+    shareTarget = state.shareTarget;
+    graphVoiceRange = state.graphVoiceRange;
+    graphRecordingCondition = state.graphRecordingCondition;
+    graphSmoothness = state.graphSmoothness;
+    graphConnectShortDropoutsMs = state.graphConnectShortDropoutsMs;
+    graphVoiceLock = state.graphVoiceLock;
   }
 
   function applyVolumeStep(value: number): void {
@@ -123,6 +229,18 @@
 
   function applyDpdfnetAttnLimitDb(value: number): void {
     dpdfnetAttnLimitDb = setDpdfnetAttnLimitDbForField(target.ord, value).dpdfnetAttnLimitDb;
+  }
+
+  function applyOutputFormat(value: OutputFormatValue): void {
+    outputFormat = setOutputFormatForField(target.ord, value).outputFormat;
+  }
+
+  function applyPitchHumMode(value: PitchHumMode): void {
+    pitchHumMode = setPitchHumModeForField(target.ord, value).pitchHumMode;
+  }
+
+  function applyShareTarget(value: ShareTarget): void {
+    shareTarget = setShareTargetForField(target.ord, value).shareTarget;
   }
 
   function applyGraphVoiceRange(value: GraphVoiceRange): void {
@@ -146,103 +264,167 @@
   }
 
   function dispatchPrimary(): void {
+    window.dispatchEvent(new Event(CLOSE_SPLIT_MENUS_EVENT));
     close();
     send(button.command, target.node, target.ord, buildSplitCommandPayload(button.command, target.ord));
   }
 
-  function clamp(value: number, min: number, max: number): number {
-    return Math.min(Math.max(value, min), max);
+  function showDefaultSaved(): void {
+    defaultSaved = true;
+    if (defaultSavedTimer !== undefined) window.clearTimeout(defaultSavedTimer);
+    defaultSavedTimer = window.setTimeout(() => {
+      defaultSaved = false;
+      defaultSavedTimer = undefined;
+    }, 1400);
   }
 
-  function viewportBounds(): { width: number; height: number } {
-    return {
-      width: window.innerWidth || document.documentElement.clientWidth,
-      height: window.innerHeight || document.documentElement.clientHeight,
-    };
+  function saveCurrentDefaults(): void {
+    const request = buildSplitDefaultSaveRequest(button.command, target.ord);
+    sendSplitDefaultSaveRequest(request);
+    syncFromState(promoteSplitDefaultsForField(target.ord, request.defaults));
+    showDefaultSaved();
   }
 
-  function positionPopover(): void {
-    if (!wrapper || !popover) return;
-
-    const anchorRect = wrapper.getBoundingClientRect();
-    const popoverRect = popover.getBoundingClientRect();
-    const viewport = viewportBounds();
-    const maxLeft = Math.max(VIEWPORT_MARGIN_PX, viewport.width - popoverRect.width - VIEWPORT_MARGIN_PX);
-    const maxTop = Math.max(VIEWPORT_MARGIN_PX, viewport.height - popoverRect.height - VIEWPORT_MARGIN_PX);
-    const centeredLeft = anchorRect.left + anchorRect.width / 2 - popoverRect.width / 2;
-    const belowTop = anchorRect.bottom + POPOVER_GAP_PX;
-    const aboveTop = anchorRect.top - popoverRect.height - POPOVER_GAP_PX;
-    const fitsBelow = belowTop + popoverRect.height <= viewport.height - VIEWPORT_MARGIN_PX;
-    const fitsAbove = aboveTop >= VIEWPORT_MARGIN_PX;
-    const preferredTop = !fitsBelow && fitsAbove ? aboveTop : belowTop;
-
-    popoverStyle = [
-      `left: ${clamp(centeredLeft, VIEWPORT_MARGIN_PX, maxLeft)}px;`,
-      `top: ${clamp(preferredTop, VIEWPORT_MARGIN_PX, maxTop)}px;`,
-      `max-height: ${Math.max(80, viewport.height - VIEWPORT_MARGIN_PX * 2)}px;`,
-    ].join(" ");
+  function onOpenChange(nextOpen: boolean): void {
+    if (nextOpen) syncFromState(getSplitButtonState(target.ord));
+    open = nextOpen;
   }
-
-  async function updatePopoverPlacement(): Promise<void> {
-    if (!open) return;
-    await tick();
-    if (!open) return;
-    positionPopover();
-  }
-
-  function onViewportChange(): void {
-    void updatePopoverPlacement();
-  }
-
-  function onDocumentPointerDown(event: MouseEvent): void {
-    if (!open || !wrapper) return;
-    if (event.target instanceof Node && wrapper.contains(event.target)) return;
-    close();
-  }
-
-  function onDocumentKeyDown(event: KeyboardEvent): void {
-    if (event.key === "Escape") close();
-  }
-
-  $effect(() => {
-    if (open) {
-      void updatePopoverPlacement();
-    } else {
-      popoverStyle = HIDDEN_POPOVER_STYLE;
-    }
-  });
 
   onMount(() => {
-    const state = getSplitButtonState(target.ord);
-    trimStepMs = state.trimStepMs;
-    volumeStepDb = state.volumeStepDb;
-    speedStep = state.speedStep;
-    pauseAggressiveness = state.pauseAggressiveness;
-    denoiseAlgorithm = state.denoiseAlgorithm;
-    dpdfnetAttnLimitDb = state.dpdfnetAttnLimitDb;
-    graphVoiceRange = state.graphVoiceRange;
-    graphRecordingCondition = state.graphRecordingCondition;
-    graphSmoothness = state.graphSmoothness;
-    graphConnectShortDropoutsMs = state.graphConnectShortDropoutsMs;
-    graphVoiceLock = state.graphVoiceLock;
-    document.addEventListener("mousedown", onDocumentPointerDown, true);
-    document.addEventListener("keydown", onDocumentKeyDown, true);
-    window.addEventListener("resize", onViewportChange);
-    window.addEventListener("scroll", onViewportChange, true);
+    syncFromState(getSplitButtonState(target.ord));
+    window.addEventListener(CLOSE_SPLIT_MENUS_EVENT, close);
     return () => {
-      document.removeEventListener("mousedown", onDocumentPointerDown, true);
-      document.removeEventListener("keydown", onDocumentKeyDown, true);
-      window.removeEventListener("resize", onViewportChange);
-      window.removeEventListener("scroll", onViewportChange, true);
+      window.removeEventListener(CLOSE_SPLIT_MENUS_EVENT, close);
+      if (defaultSavedTimer !== undefined) window.clearTimeout(defaultSavedTimer);
     };
   });
 </script>
 
-<span class="aqe-split-button" bind:this={wrapper}>
+{#if showMenu}
+  <Popover.Root open={open} onOpenChange={onOpenChange}>
+    <span class="aqe-split-button">
+      {#if showPrimary}
+        <button
+          type="button"
+          class:aqe-icon-only={displayMode === EditorButtonMode.Icon}
+          class={primaryClass()}
+          data-aqe-command={button.command}
+          data-aqe-button-state={initialButtonState()}
+          data-testid={`aqe-button-${target.ord}-${slug()}`}
+          title={primaryTitle()}
+          aria-label={primaryTitle()}
+          onmousedown={(event) => event.preventDefault()}
+          onclick={dispatchPrimary}
+        >
+          {#if displayMode === EditorButtonMode.Icon}
+            <EditorCommandIcon icon={button.icon} />
+          {/if}
+          <span class="aqe-button-label">{button.label}</span>
+        </button>
+      {/if}
+      <Popover.Trigger
+        class="aqe-button aqe-icon-only aqe-split-menu-button"
+        data-testid={`aqe-split-${target.ord}-${menuSlug()}-menu`}
+        title={menuTitle()}
+        aria-label={menuTitle()}
+        onmousedown={(event) => event.preventDefault()}
+      >
+        <EditorCommandIcon icon="chevron-down" />
+        <span class="aqe-button-label">{t("editor.split.options")}</span>
+      </Popover.Trigger>
+      <Popover.Content
+        align="center"
+        arrowPadding={14}
+        class={`aqe-split-popover${button.command === "aqe:analyze" ? " aqe-graph-split-popover" : ""}`}
+        collisionPadding={8}
+        data-testid={`aqe-split-${target.ord}-${menuSlug()}-popover`}
+        onCloseAutoFocus={(event) => event.preventDefault()}
+        side="bottom"
+        sideOffset={4}
+        strategy="fixed"
+        trapFocus={false}
+      >
+        <Popover.Arrow
+          class="aqe-split-popover-arrow"
+          data-testid={`aqe-split-${target.ord}-${menuSlug()}-arrow`}
+          height={8}
+          width={16}
+        />
+        {#if button.command === "aqe:analyze"}
+          <div class="aqe-split-popover-header aqe-split-popover-header-with-action">
+            <span class="aqe-split-popover-title">
+              <strong>{menuTextLabel()}</strong>
+            </span>
+            <SplitDefaultSaveButton
+              onSave={saveCurrentDefaults}
+              saved={defaultSaved}
+              testId={`aqe-split-${target.ord}-${menuSlug()}-save-default`}
+            />
+          </div>
+          <GraphSplitOptions
+            connectShortDropoutsMs={graphConnectShortDropoutsMs}
+            onConnectShortDropouts={applyGraphConnectShortDropouts}
+            onRecordingCondition={applyGraphRecordingCondition}
+            onSmoothness={applyGraphSmoothness}
+            onVoiceLock={applyGraphVoiceLock}
+            onVoiceRange={applyGraphVoiceRange}
+            recordingCondition={graphRecordingCondition}
+            slug={menuSlug()}
+            smoothness={graphSmoothness}
+            targetOrd={target.ord}
+            voiceLock={graphVoiceLock}
+            voiceRange={graphVoiceRange}
+          />
+          <div class="aqe-split-popover-footer">
+            <button
+              type="button"
+              class="aqe-button aqe-split-run-button"
+              data-testid={`aqe-split-${target.ord}-${menuSlug()}-run`}
+              title={t("editor.split.run_title", { label: menuTextLabel() })}
+              aria-label={t("editor.split.run_title", { label: menuTextLabel() })}
+              onclick={dispatchPrimary}
+            >
+              {t("editor.split.run")}
+            </button>
+          </div>
+        {:else}
+          <SplitValueOptions
+            {button}
+            denoiseAlgorithm={denoiseAlgorithm}
+            dpdfnetAttnLimitDb={dpdfnetAttnLimitDb}
+            {groupSlug}
+            menuLabel={menuTextLabel()}
+            onChange={() => {}}
+            onDenoiseAlgorithm={applyDenoiseAlgorithm}
+            onDpdfnetAttnLimitDb={applyDpdfnetAttnLimitDb}
+            onOutputFormat={applyOutputFormat}
+            onPauseAggressiveness={applyPauseAggressiveness}
+            onPitchHumMode={applyPitchHumMode}
+            onRun={dispatchPrimary}
+            onSaveDefault={saveCurrentDefaults}
+            onShareTarget={applyShareTarget}
+            onSpeedStep={applySpeedStep}
+            onVolumeStep={applyVolumeStep}
+            pauseAggressiveness={pauseAggressiveness}
+            outputFormat={outputFormat}
+            pitchHumMode={pitchHumMode}
+            saveDefaultSaved={defaultSaved}
+            shareTarget={shareTarget}
+            {showRunButton}
+            showSaveDefault={button.command !== "aqe:share"}
+            speedStep={speedStep}
+            targetOrd={target.ord}
+            volumeStepDb={volumeStepDb}
+          />
+        {/if}
+      </Popover.Content>
+    </span>
+  </Popover.Root>
+{:else if showPrimary}
   <button
     type="button"
-    class:aqe-icon-only={button.iconOnly === true}
-    class="aqe-button aqe-split-primary"
+    class:aqe-icon-only={displayMode === EditorButtonMode.Icon}
+    class={primaryClass()}
     data-aqe-command={button.command}
     data-aqe-button-state={initialButtonState()}
     data-testid={`aqe-button-${target.ord}-${slug()}`}
@@ -251,68 +433,9 @@
     onmousedown={(event) => event.preventDefault()}
     onclick={dispatchPrimary}
   >
-    <EditorCommandIcon icon={button.icon} />
+    {#if displayMode === EditorButtonMode.Icon}
+      <EditorCommandIcon icon={button.icon} />
+    {/if}
     <span class="aqe-button-label">{button.label}</span>
   </button>
-  <button
-    type="button"
-    class="aqe-button aqe-icon-only aqe-split-menu-button"
-    data-testid={`aqe-split-${target.ord}-${slug()}-menu`}
-    title={t("editor.split.options")}
-    aria-label={t("editor.split.options")}
-    aria-expanded={open ? "true" : "false"}
-    onmousedown={(event) => event.preventDefault()}
-    onclick={toggle}
-  >
-    <EditorCommandIcon icon="chevron-down" />
-    <span class="aqe-button-label">{t("editor.split.options")}</span>
-  </button>
-  {#if open}
-    <div
-      bind:this={popover}
-      class="aqe-split-popover"
-      class:aqe-graph-split-popover={button.command === "aqe:analyze"}
-      data-testid={`aqe-split-${target.ord}-${slug()}-popover`}
-      style={popoverStyle}
-    >
-      {#if button.command === "aqe:analyze"}
-        <div class="aqe-split-popover-header">
-          <strong>{button.label}</strong>
-          <span>{formatGraphVoiceRange(graphVoiceRange)}</span>
-        </div>
-        <GraphSplitOptions
-          connectShortDropoutsMs={graphConnectShortDropoutsMs}
-          onConnectShortDropouts={applyGraphConnectShortDropouts}
-          onRecordingCondition={applyGraphRecordingCondition}
-          onSmoothness={applyGraphSmoothness}
-          onVoiceLock={applyGraphVoiceLock}
-          onVoiceRange={applyGraphVoiceRange}
-          recordingCondition={graphRecordingCondition}
-          slug={slug()}
-          smoothness={graphSmoothness}
-          targetOrd={target.ord}
-          voiceLock={graphVoiceLock}
-          voiceRange={graphVoiceRange}
-        />
-      {:else}
-        <SplitValueOptions
-          {button}
-          denoiseAlgorithm={denoiseAlgorithm}
-          onChange={() => void updatePopoverPlacement()}
-          onDenoiseAlgorithm={applyDenoiseAlgorithm}
-          onDpdfnetAttnLimitDb={applyDpdfnetAttnLimitDb}
-          onPauseAggressiveness={applyPauseAggressiveness}
-          onSpeedStep={applySpeedStep}
-          onTrimStep={applyTrimStep}
-          onVolumeStep={applyVolumeStep}
-          pauseAggressiveness={pauseAggressiveness}
-          dpdfnetAttnLimitDb={dpdfnetAttnLimitDb}
-          speedStep={speedStep}
-          targetOrd={target.ord}
-          trimStepMs={trimStepMs}
-          volumeStepDb={volumeStepDb}
-        />
-      {/if}
-    </div>
-  {/if}
-</span>
+{/if}

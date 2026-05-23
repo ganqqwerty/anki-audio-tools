@@ -27,8 +27,16 @@ from e2e.helpers import (
 from e2e.test_settings_dialog import _open_settings_dialog
 
 
+def _split_slug(command: str) -> str:
+    if command in {"aqe:volume-up", "aqe:volume-down"}:
+        return "volume"
+    if command in {"aqe:faster", "aqe:slower"}:
+        return "speed"
+    return command.removeprefix("aqe:")
+
+
 def _split_menu_selector(command: str, ord_: int = 0) -> str:
-    slug = command.removeprefix("aqe:")
+    slug = _split_slug(command)
     return f'[data-testid="aqe-split-{ord_}-{slug}-menu"]'
 
 
@@ -120,7 +128,7 @@ def test_editor_dpdfnet_uses_selected_aggressiveness(
             """
             document.querySelector('[data-testid="aqe-button-0-denoise-standard"]')?.title
             """,
-            lambda value: value == "Denoise speech with DPDFNet, Aggressiveness: Aggressive",
+            lambda value: value == "Remove noise and music using DPDFNet",
             timeout=5.0,
         )
         click_selector(editor.web, _button_selector("aqe:denoise-standard"), timeout=5.0)

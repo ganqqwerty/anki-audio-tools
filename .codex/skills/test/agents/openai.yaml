@@ -1,4 +1,4 @@
 interface:
   display_name: "Test"
   short_description: "Run the repo QC suite and e2e verification"
-  default_prompt: "Run the repository quality checks through scripts/dev.py, summarize failures clearly, assess coverage gaps, and report whether e2e passed."
+  default_prompt: "Run the repository quality checks through scripts/dev.py in the default concise mode, rerun failing commands with --verbose only when diagnostic output is needed, summarize failures clearly, assess coverage gaps, and report whether e2e passed."

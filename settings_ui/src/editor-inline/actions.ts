@@ -4,6 +4,8 @@ import {
   repeatButtonForOrd,
   visualizerForOrd,
 } from "./dom-selectors.js";
+import { formatRepeatPauseSeconds } from "../lib/audio-operation-parameters.js";
+import { t } from "../lib/i18n.js";
 import {
   focusAndSendCommand,
   setCursorIntent,
@@ -25,9 +27,7 @@ import type {
   PlaybackState,
   VisualizerElement,
 } from "./types.js";
-import {
-  syncRegionDeleteControl,
-} from "./region-delete-state.js";
+import { syncSelectionToolbar } from "./selection-toolbar-state.js";
 import {
   shouldTreatSelectionGestureAsClick as isClickLikeSelectionGesture,
   type SelectionResizeEdge,
@@ -60,15 +60,16 @@ import {
 export { popEditorFrontendLog, popPendingGraphAnalysisRequest } from "./bridge.js";
 import {
   clearStatus,
-  playRepeatOptionsTitle,
   repeatDefaultFromConfig,
 } from "./control-actions.js";
 export {
   anyBusy,
   clearStatus,
+  historyAvailability,
   repeatDefaultFromConfig,
   setCommandButtonLabel,
   setControlsBusy,
+  setHistoryAvailability,
   setStatus,
 } from "./control-actions.js";
 export { send } from "./command-actions.js";
@@ -209,7 +210,13 @@ export function setRepeatEnabled(visualizer: VisualizerElement, enabled: boolean
   }
   const menuButton = playRepeatMenuButtonForOrd(ord);
   if (menuButton) {
-    const title = playRepeatOptionsTitle(enabled);
+    const pause = formatRepeatPauseSeconds(Number(visualizer.dataset.repeatPauseSeconds || "0"));
+    const title = t("editor.play.menu_title", {
+      value: t("editor.play.current_value", {
+        pause,
+        repeat: enabled ? t("editor.play.repeat_on") : t("editor.play.repeat_off"),
+      }),
+    });
     menuButton.dataset.aqeButtonState = enabled ? "active" : "default";
     menuButton.title = title;
     menuButton.setAttribute("aria-label", title);
@@ -242,6 +249,7 @@ export function clearSelectionDraft(
   options: { redraw?: boolean } = {},
 ): void {
   clearSelectionDraftFromController(visualizer, options);
+  syncSelectionToolbar(visualizer);
 }
 
 export function setSelectionDraft(
@@ -250,7 +258,9 @@ export function setSelectionDraft(
   endMs: number,
   options: { redraw?: boolean } = {},
 ): boolean {
-  return setSelectionDraftFromController(visualizer, startMs, endMs, options);
+  const drafted = setSelectionDraftFromController(visualizer, startMs, endMs, options);
+  syncSelectionToolbar(visualizer);
+  return drafted;
 }
 
 export function commitSelectionDraft(
@@ -258,7 +268,7 @@ export function commitSelectionDraft(
   options: { updateCursor?: boolean } = {},
 ): boolean {
   const committed = commitSelectionDraftFromController(visualizer, selectionControllerDependencies(), options);
-  syncRegionDeleteControl(visualizer);
+  syncSelectionToolbar(visualizer);
   return committed;
 }
 
@@ -267,7 +277,7 @@ export function clearSelection(
   options: { resetPlaybackRegion?: boolean } = {},
 ): void {
   clearSelectionFromController(visualizer, options);
-  syncRegionDeleteControl(visualizer);
+  syncSelectionToolbar(visualizer);
 }
 
 export function setSelection(
@@ -277,7 +287,7 @@ export function setSelection(
   options: { updateCursor?: boolean } = {},
 ): boolean {
   const selected = setSelectionFromController(visualizer, startMs, endMs, selectionControllerDependencies(), options);
-  syncRegionDeleteControl(visualizer);
+  syncSelectionToolbar(visualizer);
   return selected;
 }
 

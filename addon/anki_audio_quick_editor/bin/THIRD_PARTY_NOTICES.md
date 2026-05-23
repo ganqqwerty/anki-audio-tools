@@ -46,7 +46,7 @@ release packaging.
 - Source: https://github.com/ceva-ip/DPDFNet
 - License: Apache-2.0.
 - Distribution note: `dpdfnet` is built as a standalone TFLite command-line
-  tool from the local DPDFNet project for supported release targets.
+  tool from the vendored Lite source in `scripts/dpdfnet_cli/lite_src/`.
 
 ## Sherpa ONNX Spleeter
 

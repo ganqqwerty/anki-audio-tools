@@ -4,6 +4,7 @@
   import ChevronDown from "@lucide/svelte/icons/chevron-down";
   import CircleHelp from "@lucide/svelte/icons/circle-help";
   import FastForward from "@lucide/svelte/icons/fast-forward";
+  import FileAudio from "@lucide/svelte/icons/file-audio";
   import FolderOpen from "@lucide/svelte/icons/folder-open";
   import Mic from "@lucide/svelte/icons/mic";
   import Pause from "@lucide/svelte/icons/pause";
@@ -12,8 +13,10 @@
   import RefreshCw from "@lucide/svelte/icons/refresh-cw";
   import Repeat2 from "@lucide/svelte/icons/repeat-2";
   import Rewind from "@lucide/svelte/icons/rewind";
+  import Save from "@lucide/svelte/icons/save";
   import Scissors from "@lucide/svelte/icons/scissors";
   import Settings from "@lucide/svelte/icons/settings";
+  import Share2 from "@lucide/svelte/icons/share-2";
   import Snail from "@lucide/svelte/icons/snail";
   import Sparkles from "@lucide/svelte/icons/sparkles";
   import TimerReset from "@lucide/svelte/icons/timer-reset";
@@ -23,6 +26,7 @@
   import Volume2 from "@lucide/svelte/icons/volume-2";
   import VolumeX from "@lucide/svelte/icons/volume-x";
   import Waves from "@lucide/svelte/icons/waves";
+  import X from "@lucide/svelte/icons/x";
 
   import type { CommandIconName } from "./icon-types.js";
 
@@ -50,6 +54,8 @@
     <CircleHelp {size} {strokeWidth} />
   {:else if icon === "fast-forward"}
     <FastForward {size} {strokeWidth} />
+  {:else if icon === "file-audio"}
+    <FileAudio {size} {strokeWidth} />
   {:else if icon === "folder-open"}
     <FolderOpen {size} {strokeWidth} />
   {:else if icon === "mic"}
@@ -66,10 +72,14 @@
     <Repeat2 {size} {strokeWidth} />
   {:else if icon === "rewind"}
     <Rewind {size} {strokeWidth} />
+  {:else if icon === "save"}
+    <Save {size} {strokeWidth} />
   {:else if icon === "scissors"}
     <Scissors {size} {strokeWidth} />
   {:else if icon === "settings"}
     <Settings {size} {strokeWidth} />
+  {:else if icon === "share-2"}
+    <Share2 {size} {strokeWidth} />
   {:else if icon === "hare-running"}
     <!-- Framework7 hare, MIT. Modified with outline motion lines. -->
     <svg xmlns="http://www.w3.org/2000/svg" width={Math.round(size * 1.35)} height={size} viewBox="0 0 76 56" fill="none" stroke="currentColor" aria-hidden="true">
@@ -96,5 +106,7 @@
     <VolumeX {size} {strokeWidth} />
   {:else if icon === "waves"}
     <Waves {size} {strokeWidth} />
+  {:else if icon === "x"}
+    <X {size} {strokeWidth} />
   {/if}
 </span>

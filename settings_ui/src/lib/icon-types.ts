@@ -4,6 +4,7 @@ export type CommandIconName =
   | "chevron-down"
   | "circle-help"
   | "fast-forward"
+  | "file-audio"
   | "folder-open"
   | "mic"
   | "pause"
@@ -12,8 +13,10 @@ export type CommandIconName =
   | "refresh-cw"
   | "repeat-2"
   | "rewind"
+  | "save"
   | "scissors"
   | "settings"
+  | "share-2"
   | "hare-running"
   | "snail"
   | "sparkles"
@@ -23,4 +26,5 @@ export type CommandIconName =
   | "undo-2"
   | "volume-1"
   | "volume-2"
-  | "volume-x";
+  | "volume-x"
+  | "x";

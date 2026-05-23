@@ -42,11 +42,16 @@ def test_render_dpdfnet_audio_runs_denoise_and_encode(
         text: bool,
         check: bool,
         timeout: float,
+        env: dict[str, str] | None = None,
     ) -> SimpleNamespace:
         assert timeout > 0
         calls.append(cmd)
         if cmd[0] == "/bin/dpdfnet":
+            assert env is not None
+            assert env["DPDFNET_FFMPEG"] == "/bin/ffmpeg"
             Path(cmd[5]).write_bytes(b"denoised")
+        else:
+            assert env is None
         return SimpleNamespace(returncode=0, stdout="", stderr="")
 
     monkeypatch.setattr("anki_audio_quick_editor.audio_processor.subprocess.run", fake_run)

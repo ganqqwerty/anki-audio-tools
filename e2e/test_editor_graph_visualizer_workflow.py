@@ -55,6 +55,27 @@ def test_visualizer_renders_pitch_intensity_labels_and_cursor(anki_mw, ffmpeg_co
         assert track["cursorX"]
         assert track["graphButtonLabel"] == "Redraw"
         assert any(label.endswith("ms") for label in track["xAxisLabels"])
+
+        flag_geometry = wait_for_js_condition(
+            editor.web,
+            """
+            (() => {
+              const svg = document.querySelector('.aqe-visualizer-svg');
+              const notch = document.querySelector('.aqe-cursor-flag-notch');
+              if (!svg || !notch) return null;
+              const svgRect = svg.getBoundingClientRect();
+              const notchRect = notch.getBoundingClientRect();
+              const scale = Math.min(svgRect.width / 620, svgRect.height / 150) || 1;
+              return {
+                notchBottom: notchRect.bottom,
+                plotTop: svgRect.top + 10 * scale,
+              };
+            })()
+            """,
+            lambda value: value is not None and abs(value["notchBottom"] - value["plotTop"]) <= 2,
+            timeout=5.0,
+        )
+        assert abs(flag_geometry["notchBottom"] - flag_geometry["plotTop"]) <= 2
     finally:
         editor.set_note(None)
         parent.close()
@@ -79,6 +100,8 @@ def test_editor_controls_and_graph_are_dark_mode_aware(anki_mw, ffmpeg_config) -
                 """
                 (() => {
                   const buttons = Array.from(document.querySelectorAll('.aqe-button'));
+                  const playButton = document.querySelector('[data-testid="aqe-button-0-play"]');
+                  const graphButton = document.querySelector('[data-testid="aqe-button-0-graph"]');
                   return {
                     bodyNight: document.body.classList.contains('nightMode'),
                     htmlNight: document.documentElement.classList.contains('night-mode'),
@@ -86,6 +109,10 @@ def test_editor_controls_and_graph_are_dark_mode_aware(anki_mw, ffmpeg_config) -
                     iconsPerButton: buttons.map((button) => button.querySelectorAll('.aqe-button-icon svg').length),
                     iconStrokeValues: Array.from(document.querySelectorAll('.aqe-button .aqe-button-icon svg'))
                       .map((node) => node.getAttribute('stroke') || getComputedStyle(node).stroke || ''),
+                    playButtonIconCount: playButton?.querySelectorAll('.aqe-button-icon svg').length || 0,
+                    playButtonLabel: playButton?.querySelector('.aqe-button-label')?.textContent?.trim() || "",
+                    graphButtonIconCount: graphButton?.querySelectorAll('.aqe-button-icon svg').length || 0,
+                    graphButtonLabel: graphButton?.querySelector('.aqe-button-label')?.textContent?.trim() || "",
                     graphButtonState: document.querySelector('[data-testid="aqe-button-0-graph"]')?.dataset.aqeButtonState || "",
                     playButtonState: document.querySelector('[data-testid="aqe-button-0-play"]')?.dataset.aqeButtonState || "",
                   };
@@ -96,8 +123,12 @@ def test_editor_controls_and_graph_are_dark_mode_aware(anki_mw, ffmpeg_config) -
                 and value["bodyNight"] is True
                 and value["bsTheme"] == "dark"
                 and value["iconsPerButton"]
-                and all(count >= 1 for count in value["iconsPerButton"])
+                and value["iconStrokeValues"]
                 and all(stroke == "currentColor" for stroke in value["iconStrokeValues"])
+                and value["playButtonIconCount"] == 0
+                and value["playButtonLabel"] == "Play"
+                and value["graphButtonIconCount"] == 0
+                and value["graphButtonLabel"] == "Graph"
                 and value["graphButtonState"] == "graph"
                 and value["playButtonState"] == "play",
                 timeout=10.0,
@@ -174,7 +205,7 @@ def test_graph_redraw_resets_after_audio_edit_when_active(anki_mw, ffmpeg_config
     try:
         _click_graph_and_wait(editor, lambda value: value["sourceFilename"] == source.name)
         generated_name = _click_and_wait_for_new_file(
-            editor, note, media_dir, "aqe:trim-left", source.name
+            editor, note, media_dir, "aqe:faster", source.name
         )
         track = _click_graph_and_wait(
             editor,
