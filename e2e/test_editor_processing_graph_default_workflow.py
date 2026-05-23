@@ -18,6 +18,7 @@ from e2e.editor_note_helpers import (
     _open_editor,
     _sound_filename,
     _three_audio_field_note,
+    _wait_for_status_flow,
 )
 from e2e.helpers import (
     click_selector,
@@ -84,6 +85,15 @@ def _click_latest_enabled_button_js(command: str, ord_: int = 0) -> str:
     }})()
     """
 
+
+def _expected_processing_status(command: str) -> str:
+    return {
+        "aqe:faster": "Increased speed to x1.05.",
+        "aqe:volume-up": "Increased volume by 3 dB.",
+        "aqe:remove-pauses": "Shortened pauses with Normal level.",
+        "aqe:rnnoise": "Cleaned audio with RNNoise.",
+    }[command]
+
 @pytest.mark.parametrize(
     "command",
     [
@@ -148,6 +158,11 @@ def test_multi_field_processing_undo_redo_survives_graph_default_auto_analysis(
             click_command,
             sources[0].name,
         )
+        _wait_for_status_flow(
+            editor,
+            lambda status: status["text"] == _expected_processing_status(command),
+            timeout=10.0,
+        )
         _wait_for_visualizer_track(
             editor,
             lambda value: value["sourceFilename"] == sources[2].name,
@@ -166,6 +181,11 @@ def test_multi_field_processing_undo_redo_survives_graph_default_auto_analysis(
             timeout=5.0,
             message=f"Undo after {command} failed after graph-default auto-analysis crossed fields",
         )
+        _wait_for_status_flow(
+            editor,
+            lambda status: status["text"] == "Undid: Original audio.",
+            timeout=10.0,
+        )
         _wait_for_visualizer_track(
             editor,
             lambda value: value["sourceFilename"] == sources[2].name,
@@ -182,6 +202,11 @@ def test_multi_field_processing_undo_redo_survives_graph_default_auto_analysis(
             lambda: _sound_filename(note.fields[0]) == generated_name,
             timeout=5.0,
             message=f"Redo after {command} failed after graph-default auto-analysis crossed fields",
+        )
+        _wait_for_status_flow(
+            editor,
+            lambda status: status["text"] == f"Redid: {_expected_processing_status(command)}",
+            timeout=10.0,
         )
 
         assert _sound_filename(note.fields[1]) == sources[1].name

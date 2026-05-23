@@ -93,6 +93,12 @@
   margin-top: 2px;
 }
 
+.aqe-visualizer-meta .aqe-status {
+  flex: 1 1 auto;
+  margin-left: 0;
+  min-width: 0;
+}
+
 .aqe-spinner {
   animation: aqe-spin 800ms linear infinite;
   border: 2px solid currentColor;
@@ -109,7 +115,7 @@
   display: none;
 }
 
-.aqe-visualizer-status[data-kind="error"] {
+.aqe-visualizer-meta .aqe-status[data-kind="error"] {
   font-weight: 700;
 }
 

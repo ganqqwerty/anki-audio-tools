@@ -33,6 +33,7 @@ def stop_session_playback(session: EditorSession, deps: Any) -> None:
     session.playback_preparing = False
     session.playback_active = False
     session.playback_paused = False
+    session.preserve_status_during_playback = False
     deps.stop_audio_playback()
     deps.cleanup_temp_playback(session)
 
@@ -65,14 +66,17 @@ def play(editor: Any, deps: Any) -> None:
 def play_ended(editor: Any, deps: Any) -> None:
     """Handle the frontend/native playback-ended callback."""
     session = deps.sessions.get(editor)
+    preserve_status = False
     if session:
         field_index = session.field_index if session.field_index is not None else 0
         cursor_ms = session.cursor_ms
+        preserve_status = session.preserve_status_during_playback
         deps.stop_session_playback(session)
         deps.eval_playback_state(editor, field_index, "stopped", cursor_ms)
     else:
         deps.stop_audio_playback()
-    deps.eval_status(editor, "")
+    if not preserve_status:
+        deps.eval_status(editor, "")
 
 
 def play_with_request(editor: Any, request: Any, deps: Any) -> None:
@@ -80,20 +84,29 @@ def play_with_request(editor: Any, request: Any, deps: Any) -> None:
     if getattr(editor, "note", None) is None:
         return
     session, source_path = deps.session_and_source(editor)
-    if deps.is_busy(session):
-        deps.eval_status(editor, deps.still_processing_message, kind="processing")
-        return
     field_index = deps.current_field_index(editor)
-    action, engine, cursor_ms, end_ms, region_mode = playback_request_values(session, request, field_index, deps)
+    action, engine, cursor_ms, end_ms, region_mode, source = playback_request_values(session, request, field_index, deps)
+    if deps.is_busy(session):
+        if source != "post_edit":
+            deps.eval_status(editor, deps.still_processing_message, kind="processing")
+        return
     session.cursor_ms = cursor_ms
     if engine == "html":
-        apply_html_playback_request(editor, session, field_index, action, cursor_ms, deps)
+        apply_html_playback_request(editor, session, field_index, action, cursor_ms, source, deps)
         return
     if toggle_native_pause_resume(editor, session, field_index, action, cursor_ms, deps):
         return
 
     selected_end_ms = end_ms if region_mode == "selection" else None
-    deps.start_playback_from_cursor(editor, session, source_path, field_index, cursor_ms, selected_end_ms)
+    deps.start_playback_from_cursor(
+        editor,
+        session,
+        source_path,
+        field_index,
+        cursor_ms,
+        selected_end_ms,
+        source=source,
+    )
 
 
 def playback_request_values(
@@ -101,17 +114,18 @@ def playback_request_values(
     request: Any,
     field_index: int,
     deps: Any,
-) -> tuple[str, str, int, int | None, str]:
+) -> tuple[str, str, int, int | None, str, str]:
     """Normalize action, engine, cursor, and selected-region end values from a playback payload."""
     if not isinstance(request, dict):
-        return "start", "native", session.cursor_ms, None, "full"
+        return "start", "native", session.cursor_ms, None, "full", "user"
     action = str(request.get("action") or "start")
     engine = str(request.get("engine") or "native")
     duration_ms = deps.visualized_duration_for_field(session, field_index, session.current_filename)
     end_ms = _requested_end_ms(request.get("endMs"), duration_ms)
     cursor_ms = clamp_cursor_ms(request.get("cursorMs"), end_ms if end_ms is not None else duration_ms)
     region_mode = "selection" if request.get("regionMode") == "selection" else "full"
-    return action, engine, cursor_ms, end_ms, region_mode
+    source = "post_edit" if request.get("source") == "post_edit" else "user"
+    return action, engine, cursor_ms, end_ms, region_mode, source
 
 
 def toggle_native_pause_resume(
@@ -146,6 +160,7 @@ def apply_html_playback_request(
     field_index: int,
     action: str,
     cursor_ms: int,
+    source: str,
     deps: Any,
 ) -> None:
     """Update backend state for frontend-owned HTML audio playback."""
@@ -154,6 +169,7 @@ def apply_html_playback_request(
         session.playback_preparing = False
         session.playback_active = True
         session.playback_paused = True
+        session.preserve_status_during_playback = False
         deps.set_busy(editor, False)
         deps.eval_status(editor, t("editor.playback.paused"))
         return
@@ -166,7 +182,10 @@ def apply_html_playback_request(
     session.playback_preparing = False
     session.playback_active = True
     session.playback_paused = False
+    session.preserve_status_during_playback = source == "post_edit"
     deps.set_busy(editor, False)
+    if session.preserve_status_during_playback:
+        return
     if cursor_ms > 0 and action == "start":
         deps.eval_status(editor, t("editor.playback.playing_from", {"seconds": f"{max(0.0, cursor_ms / 1000):.2f}"}))
     else:
@@ -181,6 +200,7 @@ def start_playback_from_cursor(
     cursor_ms: int,
     end_ms: int | None,
     deps: Any,
+    source: str = "user",
 ) -> None:
     """Start native playback, rendering a temporary segment when seeking or trimming is needed."""
     from anki.sound import SoundOrVideoTag
@@ -208,8 +228,10 @@ def start_playback_from_cursor(
         av_player.play_tags([SoundOrVideoTag(str(play_path))])
         session.playback_active = True
         session.playback_paused = False
+        session.preserve_status_during_playback = source == "post_edit"
         deps.eval_playback_state(editor, field_index, "playing", session.cursor_ms)
-        deps.eval_status(editor, t("editor.playback.playing"))
+        if not session.preserve_status_during_playback:
+            deps.eval_status(editor, t("editor.playback.playing"))
         return
 
     config = AudioProcessingConfig.from_config(deps.config(editor))
@@ -218,9 +240,11 @@ def start_playback_from_cursor(
     session.playback_preparing = True
     session.playback_active = True
     session.playback_paused = False
+    session.preserve_status_during_playback = source == "post_edit"
     playback_cursor_ms = session.cursor_ms
     playback_end_context = playback_end_ms
-    deps.set_busy(editor, True, t("editor.playback.preparing"))
+    if not session.preserve_status_during_playback:
+        deps.set_busy(editor, True, t("editor.playback.preparing"))
     deps.eval_playback_state(editor, field_index, "stopped", session.cursor_ms)
     record_breadcrumb(
         "editor.playback.segment_render_started",
@@ -246,7 +270,8 @@ def start_playback_from_cursor(
                 if config.show_ffmpeg_commands:
                     status_message = f"{status_message}: {rendered}"
                     command_text = rendered
-                deps.main(editor, lambda: deps.set_busy(editor, True, status_message, command_text))
+                if not session.preserve_status_during_playback:
+                    deps.main(editor, lambda: deps.set_busy(editor, True, status_message, command_text))
 
             result = deps.render_playback_segment(
                 play_path,
@@ -308,8 +333,11 @@ def playback_segment_ready(
     session.playback_paused = False
     av_player.stop_and_clear_queue()
     av_player.play_tags([SoundOrVideoTag(str(playback_path))])
-    deps.set_busy(editor, False)
+    if not session.preserve_status_during_playback:
+        deps.set_busy(editor, False)
     deps.eval_playback_state(editor, field_index, "playing", cursor_ms)
+    if session.preserve_status_during_playback:
+        return
     if cursor_ms > 0:
         deps.eval_status(editor, t("editor.playback.playing_from", {"seconds": f"{max(0.0, cursor_ms / 1000):.2f}"}))
     else:

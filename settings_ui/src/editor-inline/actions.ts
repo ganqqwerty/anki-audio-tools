@@ -62,12 +62,14 @@ export { popEditorFrontendLog, popPendingGraphAnalysisRequest } from "./bridge.j
 import {
   clearStatus,
   repeatDefaultFromConfig,
+  restoreStatusForOrd,
 } from "./control-actions.js";
 export {
   anyBusy,
   clearStatus,
   historyAvailability,
   repeatDefaultFromConfig,
+  restoreStatusForOrd,
   setCommandButtonLabel,
   setControlsBusy,
   setHistoryAvailability,
@@ -346,6 +348,7 @@ export function playbackControllerDependencies(): PlaybackControllerDependencies
     focusAndSendCommand,
     playbackEngineFor,
     repeatEnabledFor,
+    restoreStatus: restoreStatusForOrd,
     setCursor,
     setPlaybackButtonLabel,
     stopOtherPlayback,

@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import weakref
 from collections.abc import Callable
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
@@ -16,6 +17,7 @@ from .editor_media import (
 )
 from .editor_playback import cleanup_temp_playback, stop_audio_playback
 from .editor_session import EditorSession
+from .editor_status import original_audio_status_summary
 from .errors import AudioProcessingError, MissingMediaError
 from .i18n import t
 from .media_paths import existing_media_file_path
@@ -23,7 +25,17 @@ from .media_paths import existing_media_file_path
 CURRENT_FIELD_AUDIO_MISSING = t("editor.status.current_field_audio_missing")
 REFERENCED_AUDIO_MISSING = t("editor.status.referenced_audio_missing")
 STILL_PROCESSING_MESSAGE = t("editor.status.still_processing")
-SettingsOpener = Callable[[Callable[[], None] | None], None]
+
+
+@dataclass(frozen=True)
+class SettingsLifecycleCallbacks:
+    """Optional settings lifecycle hooks for editor-owned dialogs."""
+
+    on_closed: Callable[[], None] | None = None
+    on_saved: Callable[[], None] | None = None
+
+
+SettingsOpener = Callable[[SettingsLifecycleCallbacks | None], None]
 SETTINGS_OPENER: SettingsOpener | None = None
 
 SESSIONS: "weakref.WeakKeyDictionary[Any, EditorSession]" = weakref.WeakKeyDictionary()
@@ -76,6 +88,9 @@ def reset_session_for_media(
     session.playback_paused = False
     session.playback_preparing = False
     session.post_edit_playback_generation += 1
+    session.next_status_summary = ""
+    session.status_summary = original_audio_status_summary()
+    session.pending_status = None
 
 
 def current_media_path(editor: Any) -> tuple[EditorSession, Path]:

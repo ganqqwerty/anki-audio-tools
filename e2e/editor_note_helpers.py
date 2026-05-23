@@ -10,7 +10,7 @@ from typing import Any
 
 from PyQt6.QtWidgets import QWidget
 
-from e2e.helpers import click_selector, wait_for_condition
+from e2e.helpers import click_selector, wait_for_condition, wait_for_js_condition
 
 ADDON_NUMERIC_ID = "1000000002"
 
@@ -162,14 +162,61 @@ def _click_and_wait_for_new_file(
     return _wait_for_generated_mp3(note, media_dir, previous_name, field_index)
 
 
-def _processing_status_js() -> str:
+def _status_js(ord_: int = 0) -> str:
     return """
     (() => {
-      const status = document.querySelector('.aqe-controls[data-aqe-field-ord="0"] .aqe-status');
+      const status = document.querySelector('[data-testid="aqe-status-__ORD__"]');
       return status ? {
         text: status.textContent,
         title: status.getAttribute('data-aqe-tooltip-content') || "",
         kind: status.dataset.kind || "",
       } : null;
     })()
-    """
+    """.replace("__ORD__", str(ord_))
+
+
+def _processing_status_js() -> str:
+    return _status_js()
+
+
+def _wait_for_status(
+    editor,
+    predicate,
+    timeout: float = 10.0,
+    ord_: int = 0,
+):
+    return wait_for_js_condition(
+        editor.web,
+        _status_js(ord_),
+        predicate,
+        timeout=timeout,
+    )
+
+
+def _wait_for_status_flow(
+    editor,
+    final_predicate,
+    *,
+    processing_predicate=None,
+    timeout: float = 10.0,
+    ord_: int = 0,
+):
+    try:
+        _wait_for_status(
+            editor,
+            lambda status: status is not None
+            and status["kind"] == "processing"
+            and (processing_predicate(status) if processing_predicate else True),
+            timeout=min(2.0, timeout),
+            ord_=ord_,
+        )
+    except TimeoutError:
+        pass
+    return _wait_for_status(
+        editor,
+        lambda status: status is not None
+        and status["kind"] != "processing"
+        and final_predicate(status),
+        timeout=timeout,
+        ord_=ord_,
+    )

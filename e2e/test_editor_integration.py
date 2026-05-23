@@ -15,6 +15,8 @@ from e2e.editor_note_helpers import (
     _button_selector,
     _configure_ffmpeg,
     _open_editor,
+    _wait_for_status,
+    _wait_for_status_flow,
 )
 from e2e.helpers import (
     click_selector,
@@ -114,6 +116,21 @@ def test_editor_settings_save_refreshes_current_editor_button_modes(
             and anki_audio_quick_editor._settings_dialog.isVisible(),
             timeout=5.0,
         )
+        _wait_for_status(
+            editor,
+            lambda status: status["text"] == "Opened settings.",
+            timeout=10.0,
+        )
+        wait_for_condition(
+            lambda: isinstance(anki_audio_quick_editor._settings_dialog, SettingsDialog)
+            and anki_audio_quick_editor._settings_dialog.isVisible(),
+            timeout=1.0,
+        )
+        assert _wait_for_status(
+            editor,
+            lambda status: status["text"] == "Opened settings.",
+            timeout=2.0,
+        )["text"] == "Opened settings."
         dialog = anki_audio_quick_editor._settings_dialog
 
         click_selector(dialog, '[data-testid="toolbar-mode-settings-icon"]', timeout=5.0)
@@ -131,6 +148,11 @@ def test_editor_settings_save_refreshes_current_editor_button_modes(
         ) as mock_write:
             click_selector(dialog, '[data-testid="settings-save"]', timeout=5.0)
             wait_for_condition(lambda: mock_write.called, timeout=5.0)
+        _wait_for_status_flow(
+            editor,
+            lambda status: status["text"] == "Closed settings.",
+            timeout=10.0,
+        )
 
         wait_for_js_condition(
             editor.web,
@@ -159,3 +181,48 @@ def test_editor_settings_save_refreshes_current_editor_button_modes(
         editor.set_note(None)
         parent.close()
         anki_mw.addonManager.writeConfig(ADDON_NUMERIC_ID, original_config)
+
+
+def test_editor_settings_close_without_save_reports_closed_status(
+    anki_mw,
+    ffmpeg_config,
+) -> None:
+    import anki_audio_quick_editor
+    from anki_audio_quick_editor.settings import SettingsDialog
+
+    media_dir = Path(anki_mw.col.media.dir())
+    source = media_dir / "editor_settings_close_status_source.wav"
+    generate_tone(ffmpeg_config, source, duration_s=0.5)
+    _configure_ffmpeg(anki_mw, ffmpeg_config)
+    note = _basic_audio_note(anki_mw, source.name)
+    editor, parent = _open_editor(anki_mw, note)
+    try:
+        wait_for_selector(editor.web, _button_selector("aqe:settings"), timeout=10.0)
+        click_selector(editor.web, _button_selector("aqe:settings"), timeout=5.0)
+        QApplication.processEvents()
+        wait_for_condition(
+            lambda: isinstance(anki_audio_quick_editor._settings_dialog, SettingsDialog)
+            and anki_audio_quick_editor._settings_dialog.isVisible(),
+            timeout=5.0,
+        )
+        _wait_for_status(
+            editor,
+            lambda status: status["text"] == "Opened settings.",
+            timeout=10.0,
+        )
+        dialog = anki_audio_quick_editor._settings_dialog
+
+        click_selector(dialog, '[data-testid="settings-cancel"]', timeout=5.0)
+        wait_for_condition(
+            lambda: not dialog.isVisible(),
+            timeout=5.0,
+            message="Timed out waiting for settings dialog to close after cancel",
+        )
+        _wait_for_status_flow(
+            editor,
+            lambda status: status["text"] == "Closed settings.",
+            timeout=10.0,
+        )
+    finally:
+        editor.set_note(None)
+        parent.close()

@@ -7,10 +7,23 @@ import type {
   SaveErrorPayload,
 } from "./types.js";
 
-export function sendBridgeCommand(command: string): void {
-  if (globalThis.pycmd !== undefined) {
-    globalThis.pycmd(command);
+const BRIDGE_RETRY_DELAY_MS = 25;
+const BRIDGE_MAX_ATTEMPTS = 40;
+
+function bridgeSender(): ((cmd: string) => void) | null {
+  return typeof globalThis.pycmd === "function" ? globalThis.pycmd : null;
+}
+
+export function sendBridgeCommand(command: string, attempt = 0): void {
+  const sender = bridgeSender();
+  if (sender) {
+    sender(command);
+    return;
   }
+  if (attempt >= BRIDGE_MAX_ATTEMPTS) {
+    return;
+  }
+  window.setTimeout(() => sendBridgeCommand(command, attempt + 1), BRIDGE_RETRY_DELAY_MS);
 }
 
 export interface BridgeEnvelope<TPayload = unknown> {

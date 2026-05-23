@@ -7,10 +7,15 @@ import logging.handlers
 import os
 import sys
 from collections.abc import Callable
+from importlib import import_module
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 from ._version import __version__ as __version__
 from .diagnostics_runtime import capture_exception, configure_runtime, set_debug_enabled
+
+if TYPE_CHECKING:
+    from .editor_runtime import SettingsLifecycleCallbacks
 
 logging.basicConfig(level=logging.INFO, format="%(name)s: %(levelname)s: %(message)s")
 logger = logging.getLogger("anki_audio_quick_editor")
@@ -105,14 +110,28 @@ def _apply_log_level() -> None:
     set_debug_enabled(bool(config.get("debug_logging", False)))
 
 
-def _show_settings_dialog(on_saved: Callable[[], None] | None = None) -> None:
+def _show_settings_dialog(callbacks: SettingsLifecycleCallbacks | None = None) -> None:
     """Open the settings dialog and optionally run a callback after Save."""
-    from .settings import SettingsDialog
-
     global _settings_dialog
-    _settings_dialog = SettingsDialog(mw)
-    if on_saved is not None:
-        qconnect(_settings_dialog.accepted, on_saved)
+    settings_module = import_module(f"{__name__}.settings")
+    settings_dialog_class = settings_module.SettingsDialog
+    _settings_dialog = settings_dialog_class(mw)
+    if callbacks is not None:
+        close_notified = False
+
+        def _notify_closed() -> None:
+            nonlocal close_notified
+            if close_notified or callbacks.on_closed is None:
+                return
+            close_notified = True
+            callbacks.on_closed()
+
+        if callbacks.on_saved is not None:
+            qconnect(_settings_dialog.accepted, callbacks.on_saved)
+        qconnect(
+            _settings_dialog.finished,
+            lambda result: _notify_closed() if int(result) == 0 else None,
+        )
     _settings_dialog.show()
     _settings_dialog.raise_()
     _settings_dialog.activateWindow()
@@ -126,16 +145,15 @@ def _open_settings() -> bool:
 
 def _setup_editor_integration() -> None:
     """Register editor hooks for inline audio controls."""
-    from .editor_integration import register_editor_hooks
-
-    register_editor_hooks(gui_hooks, settings_opener=_show_settings_dialog)
+    import_module(f"{__name__}.editor_integration").register_editor_hooks(
+        gui_hooks,
+        settings_opener=_show_settings_dialog,
+    )
 
 
 def _setup_browser_integration() -> None:
     """Register browser hooks for batch visualization generation."""
-    from .browser_integration import register_browser_hooks
-
-    register_browser_hooks(gui_hooks)
+    import_module(f"{__name__}.browser_integration").register_browser_hooks(gui_hooks)
 
 
 def _setup_menu() -> None:

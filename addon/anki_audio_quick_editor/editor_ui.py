@@ -17,6 +17,7 @@ def injection_script(
     audio_field_indices: list[int] | None = None,
     *,
     audio_field_sources: dict[int, str] | None = None,
+    initial_status_by_field: dict[int, dict[str, str]] | None = None,
     repeat_playback_by_default: bool = False,
     show_graph_by_default: bool = False,
     split_button_defaults: dict[str, object] | None = None,
@@ -28,6 +29,7 @@ def injection_script(
     config = {
         "audioFieldIndices": audio_field_indices or [],
         "audioFieldSources": audio_field_sources or {},
+        "initialStatusByField": initial_status_by_field or {},
         "repeatPlaybackByDefault": bool(repeat_playback_by_default),
         "showGraphByDefault": bool(show_graph_by_default),
         "visibleEditorButtons": visible_editor_buttons,

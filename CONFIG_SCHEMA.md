@@ -9,7 +9,7 @@ Audio Quick Editor config lives in [`addon/anki_audio_quick_editor/config.json`]
 | `_config_version` | integer | Schema version used by migrations |
 | `enabled` | boolean | Master on/off flag for inline editor controls |
 | `debug_logging` | boolean | Raises package logger verbosity |
-| `show_ffmpeg_commands` | boolean | Shows the exact ffmpeg command in inline processing status when enabled |
+| `show_ffmpeg_commands` | boolean | Shows debug command details for external tools in inline processing status when enabled |
 | `repeat_playback_by_default` | boolean | Starts each mounted inline editor Repeat checkbox checked when enabled |
 | `repeat_pause_seconds` | number | Default field-local pause between Repeat loop passes, from `0` to `10` seconds |
 | `show_graph_by_default` | boolean | Automatically analyzes and opens inline graphs for all audio fields on note load when enabled |

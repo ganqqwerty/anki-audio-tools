@@ -14,8 +14,16 @@ from e2e.editor_note_helpers import (
     _sound_filename,
     _three_audio_field_note,
     _wait_for_generated_mp3,
+    _wait_for_status,
+    _wait_for_status_flow,
 )
-from e2e.helpers import generate_tone, run_js, wait_for_js_condition, wait_for_selector
+from e2e.helpers import (
+    click_selector,
+    generate_tone,
+    run_js,
+    wait_for_js_condition,
+    wait_for_selector,
+)
 
 
 def test_fast_clicks_are_ignored_while_processing(anki_mw, ffmpeg_config) -> None:
@@ -106,6 +114,43 @@ def test_three_audio_fields_fast_cross_clicks_lock_globally_and_do_not_corrupt_f
         assert _sound_filename(note.fields[1]) == sources[1].name
         assert _sound_filename(note.fields[2]) == sources[2].name
         assert list(media_dir.glob("editor_three_fields_one__aqe_*.mp3")) == [media_dir / generated_name]
+    finally:
+        editor.set_note(None)
+        parent.close()
+
+
+def test_still_processing_status_is_replaced_after_mid_render_undo_request(
+    anki_mw,
+    ffmpeg_config,
+) -> None:
+    media_dir = Path(anki_mw.col.media.dir())
+    source = media_dir / "editor_still_processing_volume_undo.wav"
+    generate_tone(ffmpeg_config, source, duration_s=2.0)
+    note = _basic_audio_note(anki_mw, source.name)
+    _configure_ffmpeg(anki_mw, ffmpeg_config)
+
+    editor, parent = _open_editor(anki_mw, note)
+    try:
+        wait_for_selector(editor.web, _button_selector("aqe:volume-up"), timeout=10.0)
+        click_selector(editor.web, _button_selector("aqe:volume-up"), timeout=5.0)
+        editor.onBridgeCmd("aqe:undo")
+
+        _wait_for_status(
+            editor,
+            lambda status: status is not None
+            and status["kind"] == "processing"
+            and status["text"] == "Still processing. Please wait.",
+            timeout=10.0,
+        )
+        generated_name = _wait_for_generated_mp3(note, media_dir, source.name)
+        final_status = _wait_for_status_flow(
+            editor,
+            lambda status: status["text"] == "Increased volume by 3 dB.",
+            timeout=10.0,
+        )
+
+        assert generated_name != source.name
+        assert final_status["text"] == "Increased volume by 3 dB."
     finally:
         editor.set_note(None)
         parent.close()

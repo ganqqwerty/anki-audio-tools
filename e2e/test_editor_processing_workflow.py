@@ -22,6 +22,7 @@ from e2e.editor_note_helpers import (
     _processing_status_js,
     _sound_filename,
     _wait_for_generated_mp3,
+    _wait_for_status_flow,
 )
 from e2e.helpers import (
     click_selector,
@@ -71,6 +72,17 @@ def _split_popover_state_js(command: str, ord_: int = 0) -> str:
       }};
     }})()
     """
+
+
+def _expected_final_status(command: str) -> str:
+    return {
+        "aqe:slower": "Decreased speed to x0.95.",
+        "aqe:faster": "Increased speed to x1.05.",
+        "aqe:volume-down": "Decreased volume by 3 dB.",
+        "aqe:volume-up": "Increased volume by 3 dB.",
+        "aqe:remove-pauses": "Shortened pauses with Normal level.",
+        "aqe:pitch-hum": "Rendered pitch hum with Pitch-to-hum mode.",
+    }[command]
 
 
 def test_each_processing_button_updates_field_to_new_real_audio(
@@ -167,9 +179,17 @@ def test_each_processing_button_updates_field_to_new_real_audio(
             "aqe:remove-pauses",
             "aqe:pitch-hum",
         ):
+            expected_status = _expected_final_status(command)
             wait_for_selector(editor.web, _button_selector(command), timeout=5.0)
-            previous_name = _click_and_wait_for_new_file(editor, note, media_dir, command, previous_name)
+            click_selector(editor.web, _button_selector(command), timeout=5.0)
+            previous_name = _wait_for_generated_mp3(note, media_dir, previous_name)
+            status = _wait_for_status_flow(
+                editor,
+                lambda value, expected=expected_status: value["text"] == expected,
+                timeout=10.0,
+            )
             generated_names.append(previous_name)
+            assert status["text"] == expected_status
 
         assert len(generated_names) == len(set(generated_names))
         assert source.read_bytes() == original_bytes
@@ -209,6 +229,12 @@ def test_ffmpeg_command_status_respects_settings_flag(anki_mw, ffmpeg_config) ->
         assert " -i " not in hidden_status["text"]
         assert hidden_status["title"] == ""
         _wait_for_generated_mp3(hidden_note, media_dir, hidden_source.name)
+        final_status = _wait_for_status_flow(
+            hidden_editor,
+            lambda status: status["text"] == "Increased speed to x1.05.",
+            timeout=10.0,
+        )
+        assert final_status["title"] == ""
     finally:
         hidden_editor.set_note(None)
         hidden_parent.close()
@@ -227,6 +253,12 @@ def test_ffmpeg_command_status_respects_settings_flag(anki_mw, ffmpeg_config) ->
         )
         assert shown_status["title"].startswith(ffmpeg_config.ffmpeg_path)
         _wait_for_generated_mp3(shown_note, media_dir, shown_source.name)
+        final_status = _wait_for_status_flow(
+            shown_editor,
+            lambda status: status["text"] == "Increased speed to x1.05.",
+            timeout=10.0,
+        )
+        assert final_status["title"] == ""
     finally:
         shown_editor.set_note(None)
         shown_parent.close()
@@ -274,6 +306,11 @@ def test_undo_restores_previous_generated_reference(anki_mw, ffmpeg_config) -> N
             timeout=5.0,
             message="Undo did not restore the previous generated audio reference",
         )
+        undo_status = _wait_for_status_flow(
+            editor,
+            lambda status: status["text"] == "Undid: Decreased speed to x0.95.",
+            timeout=10.0,
+        )
         restored_track = _wait_for_visualizer_track(
             editor,
             lambda value: value["sourceFilename"] == generated_names[-2],
@@ -282,6 +319,7 @@ def test_undo_restores_previous_generated_reference(anki_mw, ffmpeg_config) -> N
 
         assert len(generated_names) == len(set(generated_names))
         assert restored_track["sourceFilename"] == generated_names[-2]
+        assert undo_status["text"] == "Undid: Decreased speed to x0.95."
         assert all((media_dir / name).is_file() for name in generated_names)
     finally:
         editor.set_note(None)
@@ -299,24 +337,24 @@ def test_processing_undo_redo_and_new_edit_clears_redo(anki_mw, ffmpeg_config) -
         wait_for_selector(editor.web, _button_selector("aqe:faster"), timeout=10.0)
         _click_graph_and_wait(editor, lambda value: value["sourceFilename"] == source.name)
 
-        first_generated = _click_and_wait_for_new_file(
+        click_selector(editor.web, _button_selector("aqe:faster"), timeout=5.0)
+        first_generated = _wait_for_generated_mp3(note, media_dir, source.name)
+        _wait_for_status_flow(
             editor,
-            note,
-            media_dir,
-            "aqe:faster",
-            source.name,
+            lambda status: status["text"] == "Increased speed to x1.05.",
+            timeout=10.0,
         )
         _wait_for_visualizer_track(
             editor,
             lambda value: value["sourceFilename"] == first_generated,
             timeout=10.0,
         )
-        second_generated = _click_and_wait_for_new_file(
+        click_selector(editor.web, _button_selector("aqe:volume-up"), timeout=5.0)
+        second_generated = _wait_for_generated_mp3(note, media_dir, first_generated)
+        _wait_for_status_flow(
             editor,
-            note,
-            media_dir,
-            "aqe:volume-up",
-            first_generated,
+            lambda status: status["text"] == "Increased volume by 3 dB.",
+            timeout=10.0,
         )
         _wait_for_visualizer_track(
             editor,
@@ -330,11 +368,21 @@ def test_processing_undo_redo_and_new_edit_clears_redo(anki_mw, ffmpeg_config) -
             timeout=5.0,
             message="Undo did not restore the previous generated reference",
         )
+        _wait_for_status_flow(
+            editor,
+            lambda status: status["text"] == "Undid: Increased speed to x1.05.",
+            timeout=10.0,
+        )
         click_selector(editor.web, _button_selector("aqe:redo"), timeout=5.0)
         wait_for_condition(
             lambda: _sound_filename(note.fields[0]) == second_generated,
             timeout=5.0,
             message="Redo did not restore the undone generated reference",
+        )
+        _wait_for_status_flow(
+            editor,
+            lambda status: status["text"] == "Redid: Increased volume by 3 dB.",
+            timeout=10.0,
         )
 
         click_selector(editor.web, _button_selector("aqe:undo"), timeout=5.0)
@@ -343,17 +391,22 @@ def test_processing_undo_redo_and_new_edit_clears_redo(anki_mw, ffmpeg_config) -
             timeout=5.0,
             message="Second undo did not restore the previous generated reference",
         )
+        _wait_for_status_flow(
+            editor,
+            lambda status: status["text"] == "Undid: Increased speed to x1.05.",
+            timeout=10.0,
+        )
         _wait_for_visualizer_track(
             editor,
             lambda value: value["sourceFilename"] == first_generated,
             timeout=10.0,
         )
-        third_generated = _click_and_wait_for_new_file(
+        click_selector(editor.web, _button_selector("aqe:volume-up"), timeout=5.0)
+        third_generated = _wait_for_generated_mp3(note, media_dir, first_generated)
+        _wait_for_status_flow(
             editor,
-            note,
-            media_dir,
-            "aqe:volume-up",
-            first_generated,
+            lambda status: status["text"] == "Increased volume by 3 dB.",
+            timeout=10.0,
         )
         assert third_generated not in {first_generated, second_generated}
         wait_for_js_condition(

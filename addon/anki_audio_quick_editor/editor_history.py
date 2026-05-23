@@ -5,7 +5,12 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any
 
-from .editor_session import EditorSession, UndoEntry
+from .editor_session import EditorSession, PendingEditorStatus, UndoEntry
+from .editor_status import (
+    redo_status_message,
+    restored_status_summary,
+    undo_status_message,
+)
 from .errors import AudioProcessingError
 from .i18n import t
 from .media_paths import existing_media_file_path
@@ -50,7 +55,7 @@ def undo(editor: Any, deps: Any) -> None:
         session,
         previous,
         redo_current=True,
-        status=f"Undid last edit; restored {previous.filename}",
+        status=undo_status_message(previous),
     )
 
 
@@ -69,7 +74,7 @@ def redo(editor: Any, deps: Any) -> None:
         session,
         next_entry,
         redo_current=False,
-        status=f"Redid edit; restored {next_entry.filename}",
+        status=redo_status_message(next_entry),
     )
 
 
@@ -95,21 +100,32 @@ def restore_history_entry(
     deps.dispose_editor_frontend_controls(editor)
     editor.note.fields[field_index] = replace_sound_reference(field_html, selection.selected, entry.filename)
     if redo_current:
-        session.redo_history.push(current_state, current_filename)
+        session.redo_history.push(
+            current_state,
+            current_filename,
+            status_summary=session.status_summary,
+        )
     else:
-        session.undo_history.push(current_state, current_filename)
+        session.undo_history.push(
+            current_state,
+            current_filename,
+            status_summary=session.status_summary,
+        )
     session.state = entry.state
     session.current_filename = entry.filename
     session.field_index = field_index
+    session.status_summary = restored_status_summary(entry)
+    session.next_status_summary = ""
+    session.pending_status = PendingEditorStatus(field_index, message=status)
     session.cursor_ms = 0
     session.playback_active = False
     session.playback_paused = False
     restored_path = existing_media_file_path(Path(editor.mw.col.media.dir()), entry.filename)
     session.source_mtime_ns = restored_path.stat().st_mtime_ns if restored_path is not None else None
     editor.loadNote(focusTo=field_index)
+    session.pending_status = None
     sync_history_availability(editor, session, deps)
     request_history_availability_after_edit(editor, session, deps)
-    deps.eval_status(editor, status)
     deps.eval_playback_state(editor, field_index, "stopped", 0)
     if field_index in session.graph_active_fields:
         deps.request_graph_redraw(editor, entry.filename)

@@ -10,7 +10,13 @@ from typing import Any, cast
 
 from .audio_state import AudioEditState, AudioProcessingConfig
 from .diagnostics_runtime import capture_exception, new_operation_id, record_breadcrumb
-from .editor_session import EditorSession, RegionDeleteOperation, RegionDeleteRequest
+from .editor_session import (
+    EditorSession,
+    PendingEditorStatus,
+    RegionDeleteOperation,
+    RegionDeleteRequest,
+)
+from .editor_status import region_operation_status_summary
 from .errors import AudioProcessingError
 from .i18n import t
 from .media_paths import existing_media_file_path, media_filenames_match
@@ -336,11 +342,18 @@ def replace_current_field_after_region_delete(
         session = deps.sessions.get(editor)
         should_redraw_graph = False
         if session:
-            session.undo_history.push(session.state, session.current_filename)
+            session.undo_history.push(
+                session.state,
+                session.current_filename,
+                status_summary=session.status_summary,
+            )
             session.redo_history.clear()
             session.state = AudioEditState(source_file=saved_name)
             session.current_filename = saved_name
             session.field_index = field_index
+            session.status_summary = region_operation_status_summary(request)
+            session.next_status_summary = ""
+            session.pending_status = PendingEditorStatus(field_index, message=session.status_summary)
             saved_path = existing_media_file_path(Path(editor.mw.col.media.dir()), saved_name)
             session.source_mtime_ns = saved_path.stat().st_mtime_ns if saved_path is not None else None
             session.processing = False
@@ -375,9 +388,10 @@ def replace_current_field_after_region_delete(
             flush=True,
         )
         editor.loadNote(focusTo=field_index)
+        if session:
+            session.pending_status = None
         _sync_history_availability(editor, session, deps)
         _request_history_availability_after_edit(editor, session, deps)
-        deps.eval_status(editor, t("editor.status.updated_field", {"filename": saved_name}))
         deps.eval_playback_state(editor, field_index, "stopped", 0)
         if should_redraw_graph:
             deps.request_graph_redraw(editor, saved_name)

@@ -113,7 +113,7 @@ EDITOR_CONTRACTS: dict[str, ModuleContract] = {
     "editor_history": contract(
         "editor_history",
         layer=Layer.UI_ADAPTER,
-        allowed_addon_deps=("editor_session", "errors", "i18n", "media_paths", "sound_refs"),
+        allowed_addon_deps=("editor_session", "editor_status", "errors", "i18n", "media_paths", "sound_refs"),
         allowed_side_effects=(SideEffect.WEB_EVAL,),
     ),
     "editor_media": contract(
@@ -150,6 +150,7 @@ EDITOR_CONTRACTS: dict[str, ModuleContract] = {
             "editor_actions",
             "editor_conversion",
             "editor_session",
+            "editor_status",
             "errors",
             "i18n",
             "media_paths",
@@ -171,6 +172,7 @@ EDITOR_CONTRACTS: dict[str, ModuleContract] = {
             "audio_state",
             "diagnostics_runtime",
             "editor_session",
+            "editor_status",
             "errors",
             "i18n",
             "media_paths",
@@ -196,6 +198,7 @@ EDITOR_CONTRACTS: dict[str, ModuleContract] = {
             "editor_media",
             "editor_playback",
             "editor_session",
+            "editor_status",
             "errors",
             "i18n",
             "media_paths",
@@ -205,8 +208,20 @@ EDITOR_CONTRACTS: dict[str, ModuleContract] = {
     "editor_settings_actions": contract(
         "editor_settings_actions",
         layer=Layer.UI_ADAPTER,
-        allowed_addon_deps=("file_reveal", "i18n"),
+        allowed_addon_deps=("editor_runtime", "editor_session", "file_reveal", "i18n"),
         allowed_side_effects=(SideEffect.WEB_EVAL,),
+    ),
+    "editor_status": contract(
+        "editor_status",
+        layer=Layer.UI_ADAPTER,
+        allowed_addon_deps=(
+            "audio_formats",
+            "audio_state",
+            "dpdfnet_settings",
+            "editor_actions",
+            "editor_session",
+            "i18n",
+        ),
     ),
     "editor_sharing": contract(
         "editor_sharing",
@@ -245,6 +260,7 @@ EDITOR_CONTRACTS: dict[str, ModuleContract] = {
             "editor_runtime",
             "editor_session",
             "editor_settings_actions",
+            "editor_status",
             "editor_split_defaults",
             "editor_ui",
             "errors",

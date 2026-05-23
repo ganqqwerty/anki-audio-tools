@@ -112,7 +112,7 @@ describe("App", () => {
 
     expect(screen.getByText("Audio Quick Editor Settings")).toBeInTheDocument();
     expect(screen.queryByText("Enable inline editor controls")).not.toBeInTheDocument();
-    expect(screen.getByText("Show ffmpeg commands while processing")).toBeInTheDocument();
+    expect(screen.getByText("Show debug information while processing")).toBeInTheDocument();
     expect(screen.getByText("Repeat playback by default")).toBeInTheDocument();
     expect(screen.getByText("Pause between repeats (s)")).toBeInTheDocument();
     expect(screen.getByText("Show graph by default")).toBeInTheDocument();
@@ -377,12 +377,12 @@ describe("App", () => {
   it("renders translated settings labels from initial messages", () => {
     setInitialState(defaultConfig, {
       "settings.title": "Audio-Schnelleditor Einstellungen",
-      "settings.show_ffmpeg_commands": "ffmpeg-Befehle anzeigen",
+      "settings.show_ffmpeg_commands": "Debug-Informationen anzeigen",
     });
 
     render(App);
 
     expect(screen.getByText("Audio-Schnelleditor Einstellungen")).toBeInTheDocument();
-    expect(screen.getByText("ffmpeg-Befehle anzeigen")).toBeInTheDocument();
+    expect(screen.getByText("Debug-Informationen anzeigen")).toBeInTheDocument();
   });
 });

@@ -1,6 +1,5 @@
 import type { ProsodyPayload } from "../lib/generated/contracts.js";
 import { t } from "../lib/i18n.js";
-import { setTooltipContent } from "../lib/rich-tooltip.js";
 import { focusAndSendCommandPayload, sendGraphAnalysisRequest } from "./bridge.js";
 import { finishDefaultGraphRequest } from "./default-graph-queue.js";
 import { currentAudioSourceForOrd, visualizerForOrd } from "./dom-selectors.js";
@@ -33,6 +32,8 @@ import {
   setCommandButtonLabel,
   setControlsBusy,
   setHistoryAvailability,
+  setStatusForOrd,
+  clearStatus,
 } from "./control-actions.js";
 import { graphSettingsForField } from "./graph-split-state.js";
 
@@ -112,6 +113,7 @@ export function setVisualizerStatus(ord: number, message: string, kind = "info")
   const visualizer = visualizerForOrd(ord);
   if (!visualizer) return;
   renderVisualizerStatus(visualizer, message, kind);
+  setStatusForOrd(ord, message, kind);
 }
 
 export function setVisualizer(ord: number, rawTrack: ProsodyPayload, cursorMs: number): void {
@@ -131,7 +133,7 @@ export function setVisualizer(ord: number, rawTrack: ProsodyPayload, cursorMs: n
   if (audioClockReady(visualizer)) {
     seekAudioClock(visualizer, cursorMs || 0);
   }
-  setVisualizerStatus(ord, track.analyzerName || "", "info");
+  renderVisualizerStatus(visualizer, "", "info");
   setControlsBusy(ord, false, "", "");
   finishDefaultGraphRequest(ord, defaultGraphQueueDependencies());
   logger.info("graph rendered", graphLogContext(ord, track));
@@ -189,12 +191,7 @@ export function prepareForNewNote(): void {
       }
     });
     setHistoryAvailability(ord, false, false);
-    const status = controls.querySelector<HTMLElement>(".aqe-status");
-    if (status) {
-      status.textContent = "";
-      status.dataset.kind = "info";
-      setTooltipContent(status, "");
-    }
+    clearStatus(ord);
     const visualizer = controls.querySelector<VisualizerElement>(".aqe-visualizer");
     if (!visualizer) return;
     clearPlaybackFrame(visualizer);
@@ -222,11 +219,7 @@ export function prepareForNewNote(): void {
     clearSelection(visualizer);
     resetVisualizerPlot(visualizer);
     resetCursorProjection(visualizer);
-    const graphStatus = visualizer.querySelector<HTMLElement>(".aqe-visualizer-status");
-    if (graphStatus) {
-      graphStatus.textContent = "";
-      graphStatus.dataset.kind = "info";
-    }
+    visualizer.dataset.statusMessage = "";
     const spinner = visualizer.querySelector<HTMLElement>(".aqe-spinner");
     if (spinner) spinner.hidden = true;
   });

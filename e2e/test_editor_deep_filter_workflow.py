@@ -18,6 +18,7 @@ from e2e.editor_note_helpers import (
     _sound_filename,
     _three_audio_field_note,
     _wait_for_generated_mp3,
+    _wait_for_status_flow,
 )
 from e2e.helpers import (
     click_selector,
@@ -57,6 +58,11 @@ def test_standard_denoise_menu_runs_deep_filter_and_is_undoable(
         _click_graph_and_wait(editor, lambda value: value["sourceFilename"] == source.name)
         click_selector(editor.web, _button_selector("aqe:denoise-standard"), timeout=5.0)
         generated_name = _wait_for_generated_mp3(note, media_dir, source.name)
+        _wait_for_status_flow(
+            editor,
+            lambda status: status["text"] == "Cleaned audio with Standard.",
+            timeout=10.0,
+        )
 
         generated_path = media_dir / generated_name
         assert generated_path.is_file()
@@ -84,6 +90,11 @@ def test_standard_denoise_menu_runs_deep_filter_and_is_undoable(
             lambda: _sound_filename(note.fields[0]) == source.name,
             timeout=5.0,
             message="Undo did not restore the original audio reference after standard denoise",
+        )
+        _wait_for_status_flow(
+            editor,
+            lambda status: status["text"] == "Undid: Original audio.",
+            timeout=10.0,
         )
     finally:
         editor.set_note(None)
@@ -118,6 +129,11 @@ def test_standard_denoise_menu_click_then_undo_and_redo_restores_reference(
         )
         click_selector(editor.web, _button_selector("aqe:denoise-standard"), timeout=5.0)
         generated_name = _wait_for_generated_mp3(note, media_dir, source.name)
+        _wait_for_status_flow(
+            editor,
+            lambda status: status["text"] == "Cleaned audio with Standard.",
+            timeout=10.0,
+        )
 
         click_selector(editor.web, _button_selector("aqe:undo"), timeout=5.0)
         wait_for_condition(
@@ -125,12 +141,22 @@ def test_standard_denoise_menu_click_then_undo_and_redo_restores_reference(
             timeout=5.0,
             message="Undo after Denoise > Standard reported nothing to undo",
         )
+        _wait_for_status_flow(
+            editor,
+            lambda status: status["text"] == "Undid: Original audio.",
+            timeout=10.0,
+        )
 
         click_selector(editor.web, _button_selector("aqe:redo"), timeout=5.0)
         wait_for_condition(
             lambda: _sound_filename(note.fields[0]) == generated_name,
             timeout=5.0,
             message="Redo did not restore the Standard denoise output",
+        )
+        _wait_for_status_flow(
+            editor,
+            lambda status: status["text"] == "Redid: Cleaned audio with Standard.",
+            timeout=10.0,
         )
     finally:
         editor.set_note(None)

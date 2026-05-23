@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
+import { completePlayback } from "../src/editor-inline/actions.js";
 import { disposeEditorRuntime, initializeEditorRuntime, scan } from "../src/editor-inline/runtime.js";
 import {
   bridgeCommands,
@@ -43,6 +44,83 @@ afterEach(() => {
     expect(window.__aqeGraphStateForTest?.(0)?.allButtonsDisabled).toBe(false);
     expect(window.__aqeGraphStateForTest?.(0)?.repeatControlDisabled).toBe(false);
     expect(document.querySelector('[data-testid="aqe-status-0"]')).toHaveTextContent("");
+  });
+
+  it("restores the last final status when busy processing clears", () => {
+    initializeEditorRuntime({
+      audioFieldIndices: [0],
+      initialStatusByField: {
+        0: { kind: "info", message: "Closed settings." },
+      },
+    });
+    scan({
+      audioFieldIndices: [0],
+      initialStatusByField: {
+        0: { kind: "info", message: "Closed settings." },
+      },
+    });
+
+    window.__aqeSetBusy?.(0, true, "Still processing. Please wait.");
+    expect(document.querySelector('[data-testid="aqe-status-0"]')).toHaveTextContent("Still processing. Please wait.");
+
+    window.__aqeSetBusy?.(0, false);
+
+    expect(document.querySelector('[data-testid="aqe-status-0"]')).toHaveTextContent("Closed settings.");
+  });
+
+  it("keeps the final edit summary after a successful graph redraw", async () => {
+    initializeEditorRuntime({
+      audioFieldIndices: [0],
+      initialStatusByField: {
+        0: { kind: "info", message: "Increased volume by 3 dB." },
+      },
+    });
+    scan({
+      audioFieldIndices: [0],
+      initialStatusByField: {
+        0: { kind: "info", message: "Increased volume by 3 dB." },
+      },
+    });
+
+    await Promise.resolve();
+    window.__aqeSetVisualizerStatus?.(0, "Analyzing...", "processing");
+    expect(document.querySelector('[data-testid="aqe-status-0"]')).toHaveTextContent("Analyzing...");
+
+    window.__aqeSetVisualizer?.(0, track, 400);
+
+    expect(document.querySelector('[data-testid="aqe-status-0"]')).toHaveTextContent(
+      "Increased volume by 3 dB.",
+    );
+  });
+
+  it("restores the stable status after post-edit playback completes", async () => {
+    initializeEditorRuntime({
+      audioFieldIndices: [0],
+      initialStatusByField: {
+        0: { kind: "info", message: "Undid: Increased speed to x1.05." },
+      },
+    });
+    scan({
+      audioFieldIndices: [0],
+      initialStatusByField: {
+        0: { kind: "info", message: "Undid: Increased speed to x1.05." },
+      },
+    });
+
+    await Promise.resolve();
+    window.__aqeSetVisualizer?.(0, track, 400);
+
+    expect(window.__aqePlayAfterEdit?.(0)).toBe(true);
+
+    const visualizer = document.querySelector('[data-testid="aqe-graph-0"]') as Parameters<typeof completePlayback>[0] | null;
+    expect(visualizer).not.toBeNull();
+
+    completePlayback(visualizer!);
+
+    expect(document.querySelector('[data-testid="aqe-status-0"]')).toHaveTextContent(
+      "Undid: Increased speed to x1.05.",
+    );
+    expect(bridgeCommands()).toContain("aqe:play-ended");
   });
 
   it("uses HTML audio playback and queues the Python bridge request", async () => {

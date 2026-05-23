@@ -127,6 +127,7 @@ export function playAfterEdit(ord: number): boolean {
     loop: repeatEnabledFor(visualizer),
     ord,
     regionMode: region.mode,
+    source: "post_edit",
   };
   if (request.engine === "html") {
     return startEditorHtmlPlayback(visualizer, request);
@@ -156,6 +157,7 @@ export function sendPlaybackRequest(request: PlaybackRequest): void {
   const visualizer = visualizerForOrd(request.ord);
   if (visualizer) {
     visualizer.dataset.playbackEngine = request.engine || "";
+    visualizer.dataset.preserveStatusOnPlaybackEnd = request.source === "post_edit" ? "true" : "false";
   }
   setPendingPlaybackRequest(request);
   window.__aqeActiveField = request.ord;
@@ -164,6 +166,7 @@ export function sendPlaybackRequest(request: PlaybackRequest): void {
 }
 
 export function startEditorHtmlPlayback(visualizer: VisualizerElement, request: PlaybackRequest): boolean {
+  visualizer.dataset.preserveStatusOnPlaybackEnd = request.source === "post_edit" ? "true" : "false";
   startProgressClock(visualizer, request.cursorMs, {
     engine: "html",
     manualFallback: false,
@@ -233,6 +236,7 @@ export function getPlaybackRequest(): PlaybackRequest {
   const visualizer = visualizerForOrd(ord);
   if (visualizer) {
     visualizer.dataset.playbackEngine = request.engine || "";
+    visualizer.dataset.preserveStatusOnPlaybackEnd = request.source === "post_edit" ? "true" : "false";
   }
   return request;
 }

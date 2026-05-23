@@ -22,6 +22,7 @@ export interface PlaybackControllerDependencies {
   focusAndSendCommand: (ord: number, command: string) => void;
   playbackEngineFor: (visualizer: VisualizerElement | null) => "html" | "native";
   repeatEnabledFor: (visualizer: VisualizerElement) => boolean;
+  restoreStatus: (ord: number) => void;
   setCursor: (
     visualizer: VisualizerElement,
     ms: number,
@@ -97,12 +98,18 @@ export function completePlayback(visualizer: VisualizerElement, deps: PlaybackCo
   const anchorMs = visualizer.dataset.playbackRegionMode === "selection"
     ? region.startMs
     : Number(visualizer.dataset.anchorMs || "0");
+  const preserveStatus = visualizer.dataset.preserveStatusOnPlaybackEnd === "true";
   stopProgressClock(visualizer, deps);
   deps.setCursor(visualizer, anchorMs, false, { updateAnchor: false });
   if (audioClockReady(visualizer)) {
     seekAudioClock(visualizer, anchorMs, Number(visualizer.dataset.durationMs || "0"));
   }
-  deps.clearStatus(ord);
+  if (preserveStatus) {
+    deps.restoreStatus(ord);
+  } else {
+    deps.clearStatus(ord);
+  }
+  visualizer.dataset.preserveStatusOnPlaybackEnd = "false";
   window.__aqeActiveField = ord;
   deps.focusAndSendCommand(ord, "aqe:play-ended");
 }
