@@ -55,6 +55,7 @@ Config schema changes usually have several consumers. When adding, renaming, or 
 
 - Settings dialogs should render through Anki `AnkiWebView.stdHtml()` so Anki owns theme classes such as `html.night-mode`, `body.nightMode`, `data-bs-theme`, bundled webview CSS variables, and live theme updates. Settings Svelte styles should prefer Anki variables such as `--canvas`, `--canvas-elevated`, `--canvas-inset`, `--fg`, `--fg-subtle`, `--border`, and button variables.
 - Inline editor toolbar icons use Lucide Svelte with `currentColor`, so buttons inherit Anki/editor foreground color in light and dark modes. Keep button state changes scoped to `.aqe-button-label` and `data-aqe-button-state` so icon DOM stays intact.
+- Live settings and editor tooltips should use `settings_ui/src/lib/AqeTooltip.svelte` plus `AqeTooltipProvider.svelte`, backed by Bits UI with zero open delay. Do not rely on native HTML `title` attributes or SVG `<title>` nodes for shipped tooltip behavior.
 - Generated prosody SVG media must be self-contained. They are usually loaded as standalone image files, so use embedded light defaults plus `@media (prefers-color-scheme: dark)` rather than relying on card body classes.
 - Scripts inserted via `innerHTML` do not execute.
 - Functions used by inline handlers must be attached to `window`.

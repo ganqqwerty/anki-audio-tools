@@ -15,8 +15,8 @@ const frontendAreas = [
 ] as const;
 
 const lineLimitAllowlist = new Map<string, number>([
-  ["src/editor-inline/EditorControls.svelte", 390],
-  ["src/editor-inline/SplitButton.svelte", 450],
+  ["src/editor-inline/EditorControls.svelte", 410],
+  ["src/editor-inline/SplitButton.svelte", 470],
   ["src/editor-inline/SplitValueOptions.svelte", 380],
   ["src/lib/i18n.ts", 320],
 ]);

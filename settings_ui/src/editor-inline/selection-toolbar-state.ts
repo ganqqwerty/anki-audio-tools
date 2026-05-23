@@ -10,6 +10,7 @@ import {
   regionDeleteAvailabilityFor,
   titleForOperation,
 } from "./region-delete-state.js";
+import { setButtonTooltipContent } from "../lib/rich-tooltip.js";
 import type { VisualizerElement } from "./types.js";
 
 export type SelectionToolbarPreview = "none" | "region" | "rest";
@@ -217,8 +218,7 @@ function syncToolbarPlayButton(visualizer: VisualizerElement, busy: boolean): vo
   const title = playing ? PAUSE_SELECTION_TITLE : PLAY_SELECTION_TITLE;
   play.disabled = busy;
   play.dataset.aqeButtonState = playing ? "pause" : "play";
-  play.title = title;
-  play.setAttribute("aria-label", title);
+  setButtonTooltipContent(play, title);
   play.setAttribute("aria-disabled", play.disabled ? "true" : "false");
 }
 
@@ -233,7 +233,6 @@ function syncToolbarDeleteButton(
   button.hidden = !valid;
   button.disabled = busy || !valid;
   button.dataset.aqeButtonState = valid ? "default" : "unavailable";
-  button.title = valid ? validTitle : invalidTitle;
-  button.setAttribute("aria-label", button.title);
+  setButtonTooltipContent(button, valid ? validTitle : invalidTitle);
   button.setAttribute("aria-disabled", button.disabled ? "true" : "false");
 }

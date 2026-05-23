@@ -166,6 +166,10 @@ def _processing_status_js() -> str:
     return """
     (() => {
       const status = document.querySelector('.aqe-controls[data-aqe-field-ord="0"] .aqe-status');
-      return status ? { text: status.textContent, title: status.title, kind: status.dataset.kind || "" } : null;
+      return status ? {
+        text: status.textContent,
+        title: status.getAttribute('data-aqe-tooltip-content') || "",
+        kind: status.dataset.kind || "",
+      } : null;
     })()
     """

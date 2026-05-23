@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import os
+import shutil
 import subprocess
 import sys
 import tempfile
@@ -106,8 +107,8 @@ def _run_pytest(target: str, *, label: str) -> int:
     anki_python = _find_anki_python()
     collect_warning_s = _read_seconds_env("DEV_PYTEST_COLLECT_WARNING_SECS", 10.0)
     collect_timeout_s = _read_seconds_env("DEV_PYTEST_COLLECT_TIMEOUT_SECS", 60.0)
-    with tempfile.TemporaryDirectory(prefix="aqe-pytest-cache-") as cache_dir:
-        pytest_cache_dir = Path(cache_dir)
+    pytest_cache_dir = Path(tempfile.mkdtemp(prefix="aqe-pytest-cache-"))
+    try:
         rc = _run(
             [str(anki_python), "-m", *_pytest_args(target, collect_only=True, cache_dir=pytest_cache_dir)],
             label=f"{label} (collect)",
@@ -121,3 +122,5 @@ def _run_pytest(target: str, *, label: str) -> int:
             [str(anki_python), "-m", *_pytest_args(target, cache_dir=pytest_cache_dir)],
             label=f"{label} (run)",
         )
+    finally:
+        shutil.rmtree(pytest_cache_dir, ignore_errors=True)

@@ -69,17 +69,19 @@ describe("editor inline Svelte integration", () => {
 
     expect(undoButton).toBeDisabled();
     expect(redoButton).toBeDisabled();
-    expect(undoButton).toHaveAttribute("title", "Nothing to undo yet");
-    expect(redoButton).toHaveAttribute("title", "Nothing to redo yet");
-    expect(undoTooltip).toHaveAttribute("title", "Nothing to undo yet");
-    expect(redoTooltip).toHaveAttribute("title", "Nothing to redo yet");
+    expect(undoButton).toHaveAttribute("aria-label", "Nothing to undo yet");
+    expect(redoButton).toHaveAttribute("aria-label", "Nothing to redo yet");
+    expect(undoTooltip).toHaveAttribute("data-aqe-tooltip-content", "Nothing to undo yet");
+    expect(redoTooltip).toHaveAttribute("data-aqe-tooltip-content", "Nothing to redo yet");
 
     window.__aqeSetHistoryAvailability?.(0, true, false);
 
     expect(undoButton).not.toBeDisabled();
     expect(redoButton).toBeDisabled();
-    expect(undoButton).toHaveAttribute("title", "Undo the last action and restore the previous file");
-    expect(redoButton).toHaveAttribute("title", "Nothing to redo yet");
+    expect(undoButton).toHaveAttribute("aria-label", "Undo the last action and restore the previous file");
+    expect(redoButton).toHaveAttribute("aria-label", "Nothing to redo yet");
+    expect(undoTooltip).toHaveAttribute("data-aqe-tooltip-content", "Undo the last action and restore the previous file");
+    expect(redoTooltip).toHaveAttribute("data-aqe-tooltip-content", "Nothing to redo yet");
   });
 
   it("renders configured buttons as icon only", () => {

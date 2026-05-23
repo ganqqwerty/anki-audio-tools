@@ -1,6 +1,7 @@
 <script lang="ts">
   import { Popover } from "bits-ui";
   import { onMount } from "svelte";
+  import AqeTooltip from "../lib/AqeTooltip.svelte";
   import EditorCommandIcon from "./EditorCommandIcon.svelte";
   import SplitDefaultSaveButton from "./SplitDefaultSaveButton.svelte";
   import { setRepeatEnabledForOrd, setRepeatPauseSecondsForOrd, send } from "./actions.js";
@@ -114,37 +115,47 @@
 </script>
 <Popover.Root open={open} onOpenChange={onOpenChange}>
   <span class="aqe-split-button aqe-play-split-button">
-    <button
-      type="button"
-      class:aqe-icon-only={displayMode === EditorButtonMode.Icon}
-      class="aqe-button aqe-split-primary"
-      data-aqe-command={button.command}
-      data-aqe-button-state="play"
-      data-testid={`aqe-button-${target.ord}-play`}
-      title={title}
-      aria-label={title}
-      onmousedown={(event) => event.preventDefault()}
-      onclick={dispatchPrimary}
-    >
-      {#if displayMode === EditorButtonMode.Icon}
-        <EditorCommandIcon className="aqe-button-icon-default" icon={button.icon} />
-        {#if button.activeIcon}
-          <EditorCommandIcon className="aqe-button-icon-active" icon={button.activeIcon} />
-        {/if}
-      {/if}
-      <span class="aqe-button-label">{button.label}</span>
-    </button>
-    <Popover.Trigger
-      class="aqe-button aqe-icon-only aqe-split-menu-button aqe-play-repeat-menu-button"
-      data-aqe-button-state={pressed ? "active" : "default"}
-      data-testid={`aqe-split-${target.ord}-play-menu`}
-      title={menuTitle}
-      aria-label={menuTitle}
-      onmousedown={(event) => event.preventDefault()}
-    >
-      <EditorCommandIcon icon="chevron-down" />
-      <span class="aqe-button-label">{t("editor.split.options")}</span>
-    </Popover.Trigger>
+    <AqeTooltip>
+      {#snippet trigger({ props })}
+        <button
+          {...props}
+          type="button"
+          class:aqe-icon-only={displayMode === EditorButtonMode.Icon}
+          class="aqe-button aqe-split-primary aqe-tooltip-target"
+          data-aqe-command={button.command}
+          data-aqe-button-state="play"
+          data-aqe-tooltip-content={title}
+          data-testid={`aqe-button-${target.ord}-play`}
+          aria-label={title}
+          onmousedown={(event) => event.preventDefault()}
+          onclick={dispatchPrimary}
+        >
+          {#if displayMode === EditorButtonMode.Icon}
+            <EditorCommandIcon className="aqe-button-icon-default" icon={button.icon} />
+            {#if button.activeIcon}
+              <EditorCommandIcon className="aqe-button-icon-active" icon={button.activeIcon} />
+            {/if}
+          {/if}
+          <span class="aqe-button-label">{button.label}</span>
+        </button>
+      {/snippet}
+    </AqeTooltip>
+    <AqeTooltip>
+      {#snippet trigger({ props })}
+        <Popover.Trigger
+          {...props}
+          class="aqe-button aqe-icon-only aqe-split-menu-button aqe-play-repeat-menu-button aqe-tooltip-target"
+          data-aqe-button-state={pressed ? "active" : "default"}
+          data-aqe-tooltip-content={menuTitle}
+          data-testid={`aqe-split-${target.ord}-play-menu`}
+          aria-label={menuTitle}
+          onmousedown={(event) => event.preventDefault()}
+        >
+          <EditorCommandIcon icon="chevron-down" />
+          <span class="aqe-button-label">{t("editor.split.options")}</span>
+        </Popover.Trigger>
+      {/snippet}
+    </AqeTooltip>
     <Popover.Content
       align="center"
       arrowPadding={14}
@@ -179,20 +190,25 @@
           repeat: pressed ? t("editor.play.repeat_on") : t("editor.play.repeat_off"),
         })}
       </p>
-      <button
-        type="button"
-        class="aqe-button aqe-repeat-button aqe-repeat-toggle-button"
-        data-aqe-button-state={pressed ? "active" : "default"}
-        data-testid={`aqe-repeat-${target.ord}`}
-        title={t("editor.repeat.title")}
-        aria-label={t("editor.repeat.aria")}
-        aria-pressed={pressed ? "true" : "false"}
-        onmousedown={(event) => event.preventDefault()}
-        onclick={toggleRepeat}
-      >
-        <EditorCommandIcon icon="repeat-2" />
-        <span class="aqe-button-label">{t("editor.repeat.label")}</span>
-      </button>
+      <AqeTooltip>
+        {#snippet trigger({ props })}
+          <button
+            {...props}
+            type="button"
+            class="aqe-button aqe-repeat-button aqe-repeat-toggle-button aqe-tooltip-target"
+            data-aqe-button-state={pressed ? "active" : "default"}
+            data-aqe-tooltip-content={t("editor.repeat.title")}
+            data-testid={`aqe-repeat-${target.ord}`}
+            aria-label={t("editor.repeat.aria")}
+            aria-pressed={pressed ? "true" : "false"}
+            onmousedown={(event) => event.preventDefault()}
+            onclick={toggleRepeat}
+          >
+            <EditorCommandIcon icon="repeat-2" />
+            <span class="aqe-button-label">{t("editor.repeat.label")}</span>
+          </button>
+        {/snippet}
+      </AqeTooltip>
       <div class="aqe-split-popover-header">
         <strong>{t("editor.repeat.pause_seconds")}</strong>
         <span style="align-items: center; display: inline-flex; gap: 4px; justify-content: flex-end;">
@@ -237,16 +253,21 @@
         {/each}
       </div>
       <div class="aqe-split-popover-footer">
-        <button
-          type="button"
-          class="aqe-button aqe-split-run-button"
-          data-testid={`aqe-split-${target.ord}-play-run`}
-          title={t("editor.split.run_title", { label: t("editor.command.play.label") })}
-          aria-label={t("editor.split.run_title", { label: t("editor.command.play.label") })}
-          onclick={dispatchPrimary}
-        >
-          {t("editor.split.run")}
-        </button>
+        <AqeTooltip>
+          {#snippet trigger({ props })}
+            <button
+              {...props}
+              type="button"
+              class="aqe-button aqe-split-run-button aqe-tooltip-target"
+              data-aqe-tooltip-content={t("editor.split.run_title", { label: t("editor.command.play.label") })}
+              data-testid={`aqe-split-${target.ord}-play-run`}
+              aria-label={t("editor.split.run_title", { label: t("editor.command.play.label") })}
+              onclick={dispatchPrimary}
+            >
+              {t("editor.split.run")}
+            </button>
+          {/snippet}
+        </AqeTooltip>
       </div>
     </Popover.Content>
   </span>

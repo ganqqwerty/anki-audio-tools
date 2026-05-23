@@ -50,6 +50,7 @@ Read [`DEVELOPMENT.md`](DEVELOPMENT.md) before changing dependencies or troubles
 ## Templates & WebView
 
 When working on settings or editor webview bundles, read [`WEBVIEW_AND_TEMPLATES.md`](WEBVIEW_AND_TEMPLATES.md).
+Live Svelte UI tooltips should use `settings_ui/src/lib/AqeTooltip.svelte` and `settings_ui/src/lib/AqeTooltipProvider.svelte` (Bits UI). Do not add native HTML `title` or SVG `<title>` tooltips to shipped webview UI.
 
 ## Config Schema
 

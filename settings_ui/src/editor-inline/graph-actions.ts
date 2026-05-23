@@ -1,5 +1,6 @@
 import type { ProsodyPayload } from "../lib/generated/contracts.js";
 import { t } from "../lib/i18n.js";
+import { setTooltipContent } from "../lib/rich-tooltip.js";
 import { focusAndSendCommandPayload, sendGraphAnalysisRequest } from "./bridge.js";
 import { finishDefaultGraphRequest } from "./default-graph-queue.js";
 import { currentAudioSourceForOrd, visualizerForOrd } from "./dom-selectors.js";
@@ -192,7 +193,7 @@ export function prepareForNewNote(): void {
     if (status) {
       status.textContent = "";
       status.dataset.kind = "info";
-      status.title = "";
+      setTooltipContent(status, "");
     }
     const visualizer = controls.querySelector<VisualizerElement>(".aqe-visualizer");
     if (!visualizer) return;

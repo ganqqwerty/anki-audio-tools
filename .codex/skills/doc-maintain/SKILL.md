@@ -57,6 +57,7 @@ Use this skill after major refactors, module renames, config schema changes, hoo
 
 - Template file list
 - Story generator architecture, entry points, and dialog class names
+- Shared Bits UI tooltip guidance for live settings/editor UI, including the rule to avoid native `title`/SVG `<title>` tooltips
 
 ### `DEVELOPMENT.md`
 

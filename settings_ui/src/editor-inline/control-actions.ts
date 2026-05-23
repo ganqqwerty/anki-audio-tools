@@ -9,6 +9,7 @@ import {
 } from "./dom-selectors.js";
 import { continueDefaultGraphQueue } from "./default-graph-queue.js";
 import { syncAllSelectionToolbars } from "./selection-toolbar-state.js";
+import { setButtonTooltipContent, setTooltipContent } from "../lib/rich-tooltip.js";
 import type { EditorCommand } from "./types.js";
 import { defaultGraphQueueDependencies } from "./graph-actions.js";
 
@@ -39,7 +40,7 @@ export function setControlsBusy(ord: number, busy: boolean, message = "", comman
   if (!status) return;
   status.textContent = message || "";
   status.dataset.kind = busy ? "processing" : "info";
-  status.title = command || "";
+  setTooltipContent(status, command || "");
 }
 
 export function setStatus(message: string, kind = "info"): void {
@@ -57,7 +58,7 @@ export function clearStatus(ord: number): void {
   if (!status) return;
   status.textContent = "";
   status.dataset.kind = "info";
-  status.title = "";
+  setTooltipContent(status, "");
 }
 
 export function setCommandButtonLabel(ord: number, command: EditorCommand, label: string): void {
@@ -80,8 +81,7 @@ export function setCommandButtonLabel(ord: number, command: EditorCommand, label
   if (command === "aqe:analyze") {
     button.dataset.aqeButtonState = label === "Redraw" ? "redraw" : "graph";
     const title = label === "Redraw" ? t("editor.command.redraw.title") : t("editor.command.graph.title");
-    button.title = title;
-    button.setAttribute("aria-label", title);
+    setButtonTooltipContent(button, title);
   }
 }
 
@@ -119,17 +119,12 @@ function updateHistoryButtonState(ord: number, command: "aqe:redo" | "aqe:undo")
   const button = buttonFor(ord, command);
   if (!button) return;
   updateButtonDisabledState(button);
-  const enabledTitle = button.dataset.aqeEnabledTitle || button.title || "";
-  const disabledTitle = button.dataset.aqeDisabledTitle || enabledTitle;
+  const enabledTitle = button.dataset.aqeEnabledTitle || "";
+  const fallbackTitle = button.getAttribute("aria-label") || "";
+  const disabledTitle = button.dataset.aqeDisabledTitle || enabledTitle || fallbackTitle;
   const available = command === "aqe:undo" ? historyAvailability(ord).canUndo : historyAvailability(ord).canRedo;
-  const title = available ? enabledTitle : disabledTitle;
-  button.title = title;
-  button.setAttribute("aria-label", title);
-  const tooltipTarget = button.closest<HTMLElement>(".aqe-button-tooltip-target");
-  if (tooltipTarget) {
-    tooltipTarget.title = title;
-    tooltipTarget.setAttribute("aria-label", title);
-  }
+  const title = available ? (enabledTitle || fallbackTitle) : disabledTitle;
+  setButtonTooltipContent(button, title);
 }
 
 function updateButtonDisabledState(button: HTMLButtonElement): void {

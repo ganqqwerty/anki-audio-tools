@@ -113,7 +113,8 @@ def test_editor_dpdfnet_uses_selected_aggressiveness(
         wait_for_js_condition(
             editor.web,
             """
-            document.querySelector('[data-testid="aqe-split-0-denoise-standard-preset-dpdfnet"]')?.title
+            document.querySelector('[data-testid="aqe-split-0-denoise-standard-preset-dpdfnet"]')
+              ?.getAttribute('data-aqe-tooltip-content')
             """,
             lambda value: value == "Denoise speech with DPDFNet, Aggressiveness: Aggressive",
             timeout=5.0,
@@ -126,7 +127,8 @@ def test_editor_dpdfnet_uses_selected_aggressiveness(
         wait_for_js_condition(
             editor.web,
             """
-            document.querySelector('[data-testid="aqe-button-0-denoise-standard"]')?.title
+            document.querySelector('[data-testid="aqe-button-0-denoise-standard"]')
+              ?.getAttribute('data-aqe-tooltip-content')
             """,
             lambda value: value == "Remove noise and music using DPDFNet",
             timeout=5.0,

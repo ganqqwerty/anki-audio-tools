@@ -1,5 +1,7 @@
 <script lang="ts">
   import { onMount } from "svelte";
+  import AqeTooltip from "../lib/AqeTooltip.svelte";
+  import AqeTooltipProvider from "../lib/AqeTooltipProvider.svelte";
   import { testId, toolbarButtons, visibleToolbarButtons } from "./commands.js";
   import { buttonDisplayMode } from "../lib/editor-toolbar-buttons.js";
   import { t } from "../lib/i18n.js";
@@ -121,139 +123,151 @@
   });
 </script>
 
-<div
-  class="aqe-controls"
-  data-aqe-field-ord={target.ord}
-  data-aqe-source-filename={target.sourceFilename}
-  data-testid={`aqe-controls-${target.ord}`}
->
-  {#each renderItems as item (item.kind === "group" ? `${item.menuSlug}:${item.buttons[0].command}` : item.button.command)}
-    {#if item.kind === "group"}
-      <span class="aqe-split-group">
-        <SplitButton
-          button={item.buttons[0]}
-          displayMode={buttonDisplayMode(item.buttons[0].command, buttonModes)}
-          primaryGroupPosition="start"
-          showMenu={false}
-          {target}
-        />
-        <SplitButton
-          button={item.buttons[1]}
-          displayMode={buttonDisplayMode(item.buttons[1].command, buttonModes)}
-          primaryGroupPosition="middle"
-          showMenu={false}
-          {target}
-        />
-        <SplitButton
-          button={item.buttons[1]}
-          displayMode={buttonDisplayMode(item.buttons[1].command, buttonModes)}
-          groupLabel={item.menuLabel}
-          groupSlug={item.menuSlug}
-          showPrimary={false}
-          showRunButton={false}
-          {target}
-        />
-      </span>
-    {:else if item.button.command === "aqe:play"}
-      <PlaySplitButton
-        button={item.button}
-        displayMode={buttonDisplayMode(item.button.command, buttonModes)}
-        {repeatDefault}
-        {target}
-      />
-    {:else if isSplitCommand(item.button.command)}
-      <SplitButton
-        button={item.button}
-        displayMode={buttonDisplayMode(item.button.command, buttonModes)}
-        {target}
-      />
-    {:else}
-      {@const button = item.button}
-      {@const displayMode = buttonDisplayMode(button.command, buttonModes)}
-      <span
-        class="aqe-button-tooltip-target"
-        title={initialButtonTitle(button)}
-        aria-label={initialButtonTitle(button)}
-      >
-        <button
-          type="button"
-          class:aqe-icon-only={displayMode === EditorButtonMode.Icon}
-          class="aqe-button"
-          data-aqe-command={button.command}
-          data-aqe-button-state={button.command === "aqe:analyze" ? "graph" : "default"}
-          data-aqe-disabled-title={disabledTitle(button.command)}
-          data-aqe-enabled-title={button.title}
-          data-testid={testId(target.ord, button.command)}
-          disabled={initialButtonDisabled(button.command)}
-          title={initialButtonTitle(button)}
-          aria-label={initialButtonTitle(button)}
-          onmousedown={(event) => event.preventDefault()}
-          onclick={() => send(button.command, target.node, target.ord)}
-        >
-          {#if displayMode === EditorButtonMode.Icon}
-            <EditorCommandIcon className="aqe-button-icon-default" icon={button.icon} />
-            {#if button.activeIcon}
-              <EditorCommandIcon className="aqe-button-icon-active" icon={button.activeIcon} />
-            {/if}
-            <span class="aqe-button-label">{button.label}</span>
-          {:else}
-            <span class="aqe-button-label">{button.label}</span>
-          {/if}
-        </button>
-      </span>
-    {/if}
-  {/each}
-  <span class="aqe-status" data-testid={`aqe-status-${target.ord}`}></span>
-  <EditorHelp ord={target.ord} />
+<AqeTooltipProvider>
   <div
-    class="aqe-visualizer"
+    class="aqe-controls"
     data-aqe-field-ord={target.ord}
-    data-anchor-ms="0"
-    data-cursor-ms="0"
-    data-progress-ms="0"
-    data-graph-active="false"
-    data-graph-busy="false"
-    data-has-track="false"
-    data-playback-state="stopped"
-    data-playback-engine=""
-    data-playback-start-ms="0"
-    data-playback-end-ms="0"
-    data-playback-region-mode="full"
-    data-resume-requires-restart="false"
-    data-selection-active="false"
-    data-selection-start-ms=""
-    data-selection-end-ms=""
-    data-selection-draft-active="false"
-    data-selection-draft-start-ms=""
-    data-selection-draft-end-ms=""
-    data-repeat-enabled={repeatDefault ? "true" : "false"}
-    data-repeat-pause-seconds={repeatPauseDefault}
-    data-repeat-pause-waiting="false"
-    data-testid={`aqe-graph-${target.ord}`}
-    role="button"
-    aria-label={t("editor.graph.aria")}
-    tabindex="0"
-    onkeydown={(event) => handleVisualizerKeyDown(event, target.ord)}
-    hidden
+    data-aqe-source-filename={target.sourceFilename}
+    data-testid={`aqe-controls-${target.ord}`}
   >
-    <audio
-      class="aqe-audio-clock"
-      data-testid={`aqe-audio-clock-${target.ord}`}
-      preload="metadata"
+    {#each renderItems as item (item.kind === "group" ? `${item.menuSlug}:${item.buttons[0].command}` : item.button.command)}
+      {#if item.kind === "group"}
+        <span class="aqe-split-group">
+          <SplitButton
+            button={item.buttons[0]}
+            displayMode={buttonDisplayMode(item.buttons[0].command, buttonModes)}
+            primaryGroupPosition="start"
+            showMenu={false}
+            {target}
+          />
+          <SplitButton
+            button={item.buttons[1]}
+            displayMode={buttonDisplayMode(item.buttons[1].command, buttonModes)}
+            primaryGroupPosition="middle"
+            showMenu={false}
+            {target}
+          />
+          <SplitButton
+            button={item.buttons[1]}
+            displayMode={buttonDisplayMode(item.buttons[1].command, buttonModes)}
+            groupLabel={item.menuLabel}
+            groupSlug={item.menuSlug}
+            showPrimary={false}
+            showRunButton={false}
+            {target}
+          />
+        </span>
+      {:else if item.button.command === "aqe:play"}
+        <PlaySplitButton
+          button={item.button}
+          displayMode={buttonDisplayMode(item.button.command, buttonModes)}
+          {repeatDefault}
+          {target}
+        />
+      {:else if isSplitCommand(item.button.command)}
+        <SplitButton
+          button={item.button}
+          displayMode={buttonDisplayMode(item.button.command, buttonModes)}
+          {target}
+        />
+      {:else}
+        {@const button = item.button}
+        {@const displayMode = buttonDisplayMode(button.command, buttonModes)}
+        <AqeTooltip>
+          {#snippet trigger({ props })}
+            <span
+              {...props}
+              class="aqe-button-tooltip-target aqe-tooltip-target"
+              data-aqe-tooltip-content={initialButtonTitle(button)}
+            >
+              <button
+                type="button"
+                class:aqe-icon-only={displayMode === EditorButtonMode.Icon}
+                class="aqe-button"
+                data-aqe-command={button.command}
+                data-aqe-button-state={button.command === "aqe:analyze" ? "graph" : "default"}
+                data-aqe-disabled-title={disabledTitle(button.command)}
+                data-aqe-enabled-title={button.title}
+                data-testid={testId(target.ord, button.command)}
+                disabled={initialButtonDisabled(button.command)}
+                aria-label={initialButtonTitle(button)}
+                onmousedown={(event) => event.preventDefault()}
+                onclick={() => send(button.command, target.node, target.ord)}
+              >
+                {#if displayMode === EditorButtonMode.Icon}
+                  <EditorCommandIcon className="aqe-button-icon-default" icon={button.icon} />
+                  {#if button.activeIcon}
+                    <EditorCommandIcon className="aqe-button-icon-active" icon={button.activeIcon} />
+                  {/if}
+                  <span class="aqe-button-label">{button.label}</span>
+                {:else}
+                  <span class="aqe-button-label">{button.label}</span>
+                {/if}
+              </button>
+            </span>
+          {/snippet}
+        </AqeTooltip>
+      {/if}
+    {/each}
+    <AqeTooltip>
+      {#snippet trigger({ props })}
+        <span
+          {...props}
+          class="aqe-status aqe-tooltip-target"
+          data-testid={`aqe-status-${target.ord}`}
+        ></span>
+      {/snippet}
+    </AqeTooltip>
+    <EditorHelp ord={target.ord} />
+    <div
+      class="aqe-visualizer"
+      data-aqe-field-ord={target.ord}
+      data-anchor-ms="0"
+      data-cursor-ms="0"
+      data-progress-ms="0"
+      data-graph-active="false"
+      data-graph-busy="false"
+      data-has-track="false"
+      data-playback-state="stopped"
+      data-playback-engine=""
+      data-playback-start-ms="0"
+      data-playback-end-ms="0"
+      data-playback-region-mode="full"
+      data-resume-requires-restart="false"
+      data-selection-active="false"
+      data-selection-start-ms=""
+      data-selection-end-ms=""
+      data-selection-draft-active="false"
+      data-selection-draft-start-ms=""
+      data-selection-draft-end-ms=""
+      data-repeat-enabled={repeatDefault ? "true" : "false"}
+      data-repeat-pause-seconds={repeatPauseDefault}
+      data-repeat-pause-waiting="false"
+      data-testid={`aqe-graph-${target.ord}`}
+      role="button"
+      aria-label={t("editor.graph.aria")}
+      tabindex="0"
+      onkeydown={(event) => handleVisualizerKeyDown(event, target.ord)}
       hidden
-    ></audio>
-    <div class="aqe-visualizer-plot" data-testid={`aqe-visualizer-plot-${target.ord}`}>
-      <div class="aqe-selection-region-preview-halo aqe-selection-region-preview-halo-top" aria-hidden="true"></div>
-      <div class="aqe-selection-region-preview-halo aqe-selection-region-preview-halo-bottom" aria-hidden="true"></div>
-      <svg
-        class="aqe-visualizer-svg"
-        data-testid={`aqe-graph-svg-${target.ord}`}
-        viewBox={`0 0 ${PLOT.width} ${PLOT.height}`}
-        preserveAspectRatio="xMinYMin meet"
-        role="img"
-        aria-label={t("editor.graph.image_aria")}
-        onpointerdown={(event) => handleVisualizerPointerDown(event, target.ord)}
-      >
+    >
+      <audio
+        class="aqe-audio-clock"
+        data-testid={`aqe-audio-clock-${target.ord}`}
+        preload="metadata"
+        hidden
+      ></audio>
+      <div class="aqe-visualizer-plot" data-testid={`aqe-visualizer-plot-${target.ord}`}>
+        <div class="aqe-selection-region-preview-halo aqe-selection-region-preview-halo-top" aria-hidden="true"></div>
+        <div class="aqe-selection-region-preview-halo aqe-selection-region-preview-halo-bottom" aria-hidden="true"></div>
+        <svg
+          class="aqe-visualizer-svg"
+          data-testid={`aqe-graph-svg-${target.ord}`}
+          viewBox={`0 0 ${PLOT.width} ${PLOT.height}`}
+          preserveAspectRatio="xMinYMin meet"
+          role="img"
+          aria-label={t("editor.graph.image_aria")}
+          onpointerdown={(event) => handleVisualizerPointerDown(event, target.ord)}
+        >
       <rect
         class="aqe-selection"
         data-testid={`aqe-selection-${target.ord}`}
@@ -369,18 +383,19 @@
           <tspan class="aqe-cursor-flag-pitch"> / -- Hz</tspan>
         </text>
       </g>
-      </svg>
-      <SelectionToolbar {target} />
-    </div>
-    <div class="aqe-visualizer-meta">
-      <span
-        class="aqe-spinner"
-        data-testid={`aqe-graph-spinner-${target.ord}`}
-        hidden
-        aria-hidden="true"
-      ></span>
-      <span class="aqe-cursor-label" data-testid={`aqe-progress-label-${target.ord}`}>0 ms</span>
-      <span class="aqe-visualizer-status" data-testid={`aqe-graph-status-${target.ord}`}></span>
+        </svg>
+        <SelectionToolbar {target} />
+      </div>
+      <div class="aqe-visualizer-meta">
+        <span
+          class="aqe-spinner"
+          data-testid={`aqe-graph-spinner-${target.ord}`}
+          hidden
+          aria-hidden="true"
+        ></span>
+        <span class="aqe-cursor-label" data-testid={`aqe-progress-label-${target.ord}`}>0 ms</span>
+        <span class="aqe-visualizer-status" data-testid={`aqe-graph-status-${target.ord}`}></span>
+      </div>
     </div>
   </div>
-</div>
+</AqeTooltipProvider>
