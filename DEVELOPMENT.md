@@ -93,6 +93,17 @@ python3 scripts/release.py --target macos-x86_64
 python3 scripts/release.py --target windows-x86_64
 ```
 
+If you need a smaller variant that keeps FFmpeg external, build:
+
+```bash
+python3 scripts/release.py --target macos-arm64 --no-bundle-ffmpeg
+python3 scripts/release.py --target macos-x86_64 --no-bundle-ffmpeg
+python3 scripts/release.py --target windows-x86_64 --no-bundle-ffmpeg
+```
+
+Those archives use an `-external-ffmpeg.ankiaddon` suffix, omit bundled
+`ffmpeg`/`ffprobe`, and expect users to provide them via settings or `PATH`.
+
 The universal `--target all` archive still works for direct distribution when
 called with `--allow-large-archive "<reason>"`, but third-party static FFmpeg
 pushes it above the normal compressed-size gate.

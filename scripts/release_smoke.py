@@ -88,20 +88,25 @@ def smoke_archive(archive: Path) -> None:
             raise RuntimeError("current platform is not in the release target matrix")
         manifest = json.loads((package_dir / "bin" / "runtime_manifest.json").read_text(encoding="utf-8"))
         tools = manifest["targets"][platform_key]["tools"]
-        ffmpeg = audio_tools.find_ffmpeg("")
-        ffprobe = audio_tools.find_ffprobe(ffmpeg)
         deep_filter = audio_tools.find_deep_filter("")
         rnnoise = audio_tools.find_rnnoise_bundle()
-        for tool_name, path in {
-            "ffmpeg": ffmpeg,
-            "ffprobe": ffprobe,
+        bundled_tools = {
             "deep-filter": deep_filter,
             "rnnoise-cli": rnnoise,
-        }.items():
+        }
+        if "ffmpeg" in tools:
+            ffmpeg = audio_tools.find_ffmpeg("")
+            ffprobe = audio_tools.find_ffprobe(ffmpeg)
+            bundled_tools.update({
+                "ffmpeg": ffmpeg,
+                "ffprobe": ffprobe,
+            })
+        for tool_name, path in bundled_tools.items():
             if str(package_dir) not in str(path):
                 raise RuntimeError(f"{tool_name} did not resolve inside extracted archive: {path}")
-        _run_tool(ffmpeg, tools["ffmpeg"].get("diagnostic_args", ["-version"]))
-        _run_tool(ffprobe, tools["ffprobe"].get("diagnostic_args", ["-version"]))
+        if "ffmpeg" in tools:
+            _run_tool(ffmpeg, tools["ffmpeg"].get("diagnostic_args", ["-version"]))
+            _run_tool(ffprobe, tools["ffprobe"].get("diagnostic_args", ["-version"]))
         _run_tool(deep_filter, tools["deep-filter"].get("diagnostic_args", ["--version"]))
         _run_tool(rnnoise, tools["rnnoise-cli"].get("diagnostic_args", ["--version"]))
 

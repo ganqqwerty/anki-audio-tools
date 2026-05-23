@@ -162,6 +162,14 @@ def tool_uses_cached_binary(tool_name: str) -> bool:
     return tool_name in CACHED_TOOL_NAMES
 
 
+def bundled_tool_names(tool_names: list[str], *, include_ffmpeg: bool) -> list[str]:
+    """Return runtime tool names included in a packaged archive."""
+
+    if include_ffmpeg:
+        return list(tool_names)
+    return [tool_name for tool_name in tool_names if not tool_uses_cached_binary(tool_name)]
+
+
 def tracked_tool_binary_path(addon_bin_dir: Path, target: str, entry: dict[str, Any]) -> Path:
     """Return the canonical tracked source path for a target executable entry."""
 

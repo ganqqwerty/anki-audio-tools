@@ -48,6 +48,7 @@ The local development add-on ID is `1000000002`.
 python3 scripts/dev.py release-assets verify --target all
 python3 scripts/dev.py release-assets verify --target current --diagnostics
 python3 scripts/release.py --target current
+python3 scripts/release.py --target current --no-bundle-ffmpeg
 python3 scripts/dev.py release-smoke dist/anki-audio-quick-editor-<version>-<target>.ankiaddon
 ```
 
@@ -62,3 +63,7 @@ payload makes them too large for the normal release size gate unless an explicit
 `release-assets verify` checks presence and checksums by default. Add
 `--diagnostics` when you also want current-host runtime probes before release
 smoke or native acceptance.
+
+`--no-bundle-ffmpeg` builds a distinct `-external-ffmpeg.ankiaddon` variant
+that omits bundled `ffmpeg` and `ffprobe`. That variant expects users to supply
+those tools via config or `PATH`.

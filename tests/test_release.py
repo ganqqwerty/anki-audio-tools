@@ -9,7 +9,7 @@ import zipfile
 from pathlib import Path
 
 import pytest
-from scripts import release, release_assets
+from scripts import release, release_asset_common, release_assets
 
 
 def test_release_excludes_retained_pause_pipeline_artifacts() -> None:
@@ -48,6 +48,14 @@ def _complete_manifest_names() -> list[str]:
 
 def _complete_executable_names() -> set[str]:
     return set(release.release_runtime_executables(release_assets.load_lock()))
+
+
+def _external_ffmpeg_manifest_names() -> list[str]:
+    return release.release_manifest_files(release_assets.load_lock(), include_ffmpeg=False)
+
+
+def _external_ffmpeg_executable_names() -> set[str]:
+    return set(release.release_runtime_executables(release_assets.load_lock(), include_ffmpeg=False))
 
 
 def _lock_with_binary_hashes(content: bytes = b"binary") -> dict:
@@ -111,10 +119,14 @@ def test_release_archive_includes_all_locked_runtime_assets(
         *,
         destination: Path,
         target_keys: list[str] | None = None,
+        include_ffmpeg: bool = True,
     ) -> list[Path]:
         staged: list[Path] = []
         for target in target_keys or release_assets.lock_targets(lock_arg):
-            for tool_name in release_assets.lock_tools(lock_arg, target):
+            for tool_name in release_asset_common.bundled_tool_names(
+                release_assets.lock_tools(lock_arg, target),
+                include_ffmpeg=include_ffmpeg,
+            ):
                 executable = lock_arg["targets"][target]["tools"][tool_name]["executable"]
                 path = destination / target / executable
                 path.parent.mkdir(parents=True, exist_ok=True)
@@ -232,6 +244,20 @@ def test_release_manifest_files_can_be_limited_to_single_runtime_target() -> Non
     assert "bin/windows-x86_64/onnxruntime.dll" not in names
 
 
+def test_release_manifest_files_can_exclude_ffmpeg_tools() -> None:
+    names = release.release_manifest_files(
+        release_assets.load_lock(),
+        target_keys=["macos-arm64"],
+        include_ffmpeg=False,
+    )
+
+    assert "bin/macos-arm64/ffmpeg" not in names
+    assert "bin/macos-arm64/ffprobe" not in names
+    assert "bin/macos-arm64/deep-filter" in names
+    assert "bin/macos-arm64/libonnxruntime.1.24.4.dylib" in names
+    assert "bin/models/spleeter-2stems-fp16/vocals.fp16.onnx" in names
+
+
 def test_runtime_manifest_can_be_limited_to_single_runtime_target(tmp_path) -> None:
     lock = release_assets.load_lock()
 
@@ -243,6 +269,17 @@ def test_runtime_manifest_can_be_limited_to_single_runtime_target(tmp_path) -> N
     assert manifest["shared_files"]["spleeter-vocals"]["path"] == "models/spleeter-2stems-fp16/vocals.fp16.onnx"
 
 
+def test_runtime_manifest_can_exclude_ffmpeg_tools(tmp_path: Path) -> None:
+    lock = release_assets.load_lock()
+
+    release._write_runtime_manifest(tmp_path, lock, target_keys=["macos-arm64"], include_ffmpeg=False)
+
+    manifest = json.loads((tmp_path / "runtime_manifest.json").read_text(encoding="utf-8"))
+    assert "ffmpeg" not in manifest["targets"]["macos-arm64"]["tools"]
+    assert "ffprobe" not in manifest["targets"]["macos-arm64"]["tools"]
+    assert "deep-filter" in manifest["targets"]["macos-arm64"]["tools"]
+
+
 def test_runtime_manifest_includes_locked_diagnostic_args(tmp_path) -> None:
     lock = release_assets.load_lock()
 
@@ -250,3 +287,23 @@ def test_runtime_manifest_includes_locked_diagnostic_args(tmp_path) -> None:
 
     manifest = json.loads((tmp_path / "runtime_manifest.json").read_text(encoding="utf-8"))
     assert manifest["targets"]["macos-arm64"]["tools"]["ffmpeg"]["diagnostic_args"] == ["-version"]
+
+
+def test_release_validation_can_exclude_ffmpeg_runtime_payloads(tmp_path: Path) -> None:
+    archive = tmp_path / "external-ffmpeg.ankiaddon"
+    lock = _lock_with_binary_hashes()
+    _write_archive(archive, _external_ffmpeg_manifest_names(), _external_ffmpeg_executable_names())
+
+    release._validate_archive(archive, allow_large_archive=False, lock=lock, include_ffmpeg=False)
+
+
+def test_release_archive_name_marks_external_ffmpeg_variant(tmp_path: Path) -> None:
+    monkeypatch_dist = tmp_path / "dist"
+    original = release.DIST_DIR
+    release.DIST_DIR = monkeypatch_dist
+    try:
+        archive = release._build_archive("1.2.3", tmp_path, target_label="macos-arm64", include_ffmpeg=False)
+    finally:
+        release.DIST_DIR = original
+
+    assert archive.name == "anki-audio-quick-editor-1.2.3-macos-arm64-external-ffmpeg.ankiaddon"

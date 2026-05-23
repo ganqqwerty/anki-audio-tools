@@ -192,10 +192,19 @@ def release_runtime_executables(
     lock: dict | None = None,
     *,
     target_keys: list[str] | None = None,
+    include_ffmpeg: bool = True,
 ) -> list[str]:
     """Return required runtime executable archive paths from the asset lock."""
-
-    return release_asset_common.release_runtime_executables(lock or release_assets.load_lock(), target_keys=target_keys)
+    lock = lock or release_assets.load_lock()
+    names: list[str] = []
+    for target in target_keys or release_assets.lock_targets(lock):
+        for tool_name in release_asset_common.bundled_tool_names(
+            release_assets.lock_tools(lock, target),
+            include_ffmpeg=include_ffmpeg,
+        ):
+            executable = lock["targets"][target]["tools"][tool_name]["executable"]
+            names.append(f"bin/{target}/{executable}")
+    return sorted(names)
 
 
 def release_runtime_shared_files(lock: dict | None = None) -> list[str]:
@@ -217,10 +226,11 @@ def release_manifest_files(
     lock: dict | None = None,
     *,
     target_keys: list[str] | None = None,
+    include_ffmpeg: bool = True,
 ) -> list[str]:
     """Return archive files required for a self-sufficient release."""
     required = set(BASE_REQUIRED_ARCHIVE_FILES)
-    required.update(release_runtime_executables(lock, target_keys=target_keys))
+    required.update(release_runtime_executables(lock, target_keys=target_keys, include_ffmpeg=include_ffmpeg))
     required.update(release_runtime_support_files(lock, target_keys=target_keys))
     required.update(release_runtime_shared_files(lock))
     for path in ADDON_DIR.rglob("*"):
@@ -242,6 +252,7 @@ def _write_runtime_manifest(
     lock: dict,
     *,
     target_keys: list[str] | None = None,
+    include_ffmpeg: bool = True,
 ) -> None:
     selected_targets = target_keys or release_assets.lock_targets(lock)
     manifest = {
@@ -262,7 +273,10 @@ def _write_runtime_manifest(
                             for file_entry in release_assets.tool_runtime_files(lock, target, tool_name)
                         ],
                     }
-                    for tool_name in release_assets.lock_tools(lock, target)
+                    for tool_name in release_asset_common.bundled_tool_names(
+                        release_assets.lock_tools(lock, target),
+                        include_ffmpeg=include_ffmpeg,
+                    )
                 }
             }
             for target in selected_targets
@@ -286,16 +300,30 @@ def _stage_release_tree(
     *,
     lock: dict,
     target_keys: list[str] | None = None,
+    include_ffmpeg: bool = True,
 ) -> None:
     _stage_source_tree(staging_dir)
     staging_bin_dir = staging_dir / "bin"
-    release_assets.stage_assets(lock, destination=staging_bin_dir, target_keys=target_keys)
-    _write_runtime_manifest(staging_bin_dir, lock, target_keys=target_keys)
+    release_assets.stage_assets(
+        lock,
+        destination=staging_bin_dir,
+        target_keys=target_keys,
+        include_ffmpeg=include_ffmpeg,
+    )
+    _write_runtime_manifest(staging_bin_dir, lock, target_keys=target_keys, include_ffmpeg=include_ffmpeg)
 
 
-def _build_archive(version: str, staging_dir: Path, *, target_label: str = "all") -> Path:
+def _build_archive(
+    version: str,
+    staging_dir: Path,
+    *,
+    target_label: str = "all",
+    include_ffmpeg: bool = True,
+) -> Path:
     DIST_DIR.mkdir(exist_ok=True)
     suffix = "" if target_label == "all" else f"-{target_label}"
+    if not include_ffmpeg:
+        suffix = f"{suffix}-external-ffmpeg" if suffix else "-external-ffmpeg"
     archive = DIST_DIR / f"anki-audio-quick-editor-{version}{suffix}.ankiaddon"
     with zipfile.ZipFile(archive, "w", zipfile.ZIP_DEFLATED) as zf:
         for path in sorted(staging_dir.rglob("*")):
@@ -310,21 +338,22 @@ def _validate_archive(
     allow_large_archive: bool = False,
     lock: dict | None = None,
     target_keys: list[str] | None = None,
+    include_ffmpeg: bool = True,
 ) -> None:
     lock = lock or release_assets.load_lock()
     with zipfile.ZipFile(archive, "r") as zf:
         infos = {info.filename: info for info in zf.infolist()}
         names = set(infos)
-        for required in release_manifest_files(lock, target_keys=target_keys):
+        for required in release_manifest_files(lock, target_keys=target_keys, include_ffmpeg=include_ffmpeg):
             if required not in names:
                 _validation_error(f"missing required file {required}")
         for name in sorted(names):
             if _is_forbidden_archive_name(name):
                 _validation_error(f"unexpected file {name}")
-        _validate_runtime_matrix(zf, infos, lock, target_keys=target_keys)
+        _validate_runtime_matrix(zf, infos, lock, target_keys=target_keys, include_ffmpeg=include_ffmpeg)
         _validate_runtime_support_files(zf, infos, lock, target_keys=target_keys)
         _validate_shared_runtime_files(zf, infos, lock)
-        _validate_notices(zf, names)
+        _validate_notices(zf, names, include_ffmpeg=include_ffmpeg)
     _validate_archive_size(archive, allow_large_archive=allow_large_archive)
 
 
@@ -334,9 +363,13 @@ def _validate_runtime_matrix(
     lock: dict,
     *,
     target_keys: list[str] | None = None,
+    include_ffmpeg: bool = True,
 ) -> None:
     for target in target_keys or release_assets.lock_targets(lock):
-        for tool_name in release_assets.lock_tools(lock, target):
+        for tool_name in release_asset_common.bundled_tool_names(
+            release_assets.lock_tools(lock, target),
+            include_ffmpeg=include_ffmpeg,
+        ):
             entry = lock["targets"][target]["tools"][tool_name]
             executable = entry["executable"]
             name = f"bin/{target}/{executable}"
@@ -393,12 +426,15 @@ def _validate_runtime_support_files(
                     _validation_error(f"{name} checksum mismatch")
 
 
-def _validate_notices(zf: zipfile.ZipFile, names: set[str]) -> None:
+def _validate_notices(zf: zipfile.ZipFile, names: set[str], *, include_ffmpeg: bool) -> None:
     notice_name = "bin/THIRD_PARTY_NOTICES.md"
     if notice_name not in names:
         _validation_error(f"missing required file {notice_name}")
     notice_text = zf.read(notice_name).decode("utf-8", errors="replace")
-    for required in ("FFmpeg", "LAME", "DeepFilterNet", "RNNoise", "DPDFNet", "Sherpa", "Spleeter"):
+    required_notices = ["DeepFilterNet", "RNNoise", "DPDFNet", "Sherpa", "Spleeter"]
+    if include_ffmpeg:
+        required_notices[:0] = ["FFmpeg", "LAME"]
+    for required in required_notices:
         if required not in notice_text:
             _validation_error(f"{notice_name} is missing {required} notice")
 
@@ -462,6 +498,11 @@ def main() -> None:
         "--target", default="all",
         help="Release target to package: all, current, macos-arm64, macos-x86_64, or windows-x86_64",
     )
+    parser.add_argument(
+        "--no-bundle-ffmpeg",
+        action="store_true",
+        help="Build a release variant that omits bundled ffmpeg and ffprobe and expects external binaries",
+    )
     args = parser.parse_args()
     skip_quality_checks = args.skip_quality_checks or args.skip_checks
     if skip_quality_checks and args.full:
@@ -478,17 +519,24 @@ def main() -> None:
     _build_required_artifacts()
     lock = release_assets.load_lock()
     target_keys, target_label = _selected_release_targets(args.target, lock)
+    include_ffmpeg = not args.no_bundle_ffmpeg
 
     with tempfile.TemporaryDirectory(prefix="anki-audio-release-") as tmp:
         staging_dir = Path(tmp) / "addon"
         try:
-            _stage_release_tree(staging_dir, lock=lock, target_keys=target_keys)
+            _stage_release_tree(staging_dir, lock=lock, target_keys=target_keys, include_ffmpeg=include_ffmpeg)
         except release_assets.ReleaseAssetError as exc:
             # noinspection PyStringConversionWithoutDunderMethod
             print(f"ERROR: {exc}")
             sys.exit(1)
-        archive = _build_archive(version, staging_dir, target_label=target_label)
-    _validate_archive(archive, allow_large_archive=bool(args.allow_large_archive), lock=lock, target_keys=target_keys)
+        archive = _build_archive(version, staging_dir, target_label=target_label, include_ffmpeg=include_ffmpeg)
+    _validate_archive(
+        archive,
+        allow_large_archive=bool(args.allow_large_archive),
+        lock=lock,
+        target_keys=target_keys,
+        include_ffmpeg=include_ffmpeg,
+    )
     print(f"Done: {archive}")
 
 

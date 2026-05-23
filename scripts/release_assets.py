@@ -18,6 +18,7 @@ if __package__ in {None, ""}:  # pragma: no cover - used in direct script mode
     sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from scripts.release_asset_common import (
+    bundled_tool_names,
     SHARED_FILE_NAMES,
     TARGET_KEYS,
     TOOL_NAMES,
@@ -204,6 +205,7 @@ def stage_assets(
     target_keys: list[str] | None = None,
     tool_names: list[str] | None = None,
     include_shared: bool | None = None,
+    include_ffmpeg: bool = True,
 ) -> list[Path]:
     """Copy verified runtime executables into a staged ``bin`` directory."""
 
@@ -212,7 +214,7 @@ def stage_assets(
     selected_targets = target_keys or TARGET_KEYS
     for target in selected_targets:
         _validate_target(target)
-        target_tools = lock_tools(lock, target)
+        target_tools = bundled_tool_names(lock_tools(lock, target), include_ffmpeg=include_ffmpeg)
         for tool_name in tool_names or target_tools:
             if tool_name not in target_tools:
                 raise ReleaseAssetError(f"unknown tool: {tool_name}")
@@ -527,3 +529,4 @@ def main(argv: list[str] | None = None) -> int:
 
 if __name__ == "__main__":
     raise SystemExit(main())
+    bundled_tool_names,
