@@ -55,6 +55,7 @@ scripts/dpdfnet_cli/build_macos.sh macos-arm64
 scripts/dpdfnet_cli/build_macos.sh macos-x86_64
 pwsh -File scripts/dpdfnet_cli/build_windows.ps1 -Target windows-x86_64
 python3 scripts/dev.py release-assets verify --target all
+python3 scripts/dev.py release-assets verify --target current --diagnostics
 python3 scripts/dev.py release-assets lock-checksums
 ```
 
@@ -75,6 +76,12 @@ On a Windows host, the equivalent local build command is:
 ```
 
 FFmpeg and FFprobe are fetched from locked third-party static release archives into `.release-assets/bin/<target>/`: Martin Riedl's macOS builds and Gyan Doshi's Windows essentials build. The lock records both the provider archive SHA-256 and the extracted executable SHA-256. RNNoise is still built locally from source; Windows RNNoise can be cross-built from macOS when `x86_64-w64-mingw32-gcc` is available. The default maintainer workflow for non-FFmpeg assets is regenerate externally, copy the verified artifact into `addon/anki_audio_quick_editor/bin/`, refresh checksums, and commit. A release is not approved until native acceptance has run on each supported platform.
+
+`python3 scripts/dev.py release-assets verify` is intentionally file-focused:
+it fails on missing or checksum-mismatched runtime payloads, but does not run
+host-specific runtime probes unless you add `--diagnostics`. Use
+`release-smoke`, native acceptance, or explicit `--diagnostics` runs when you
+need executable behavior checks on the current host.
 
 Sherpa Spleeter is fetched from locked `sherpa-onnx` native archives. Packaging renames the upstream `sherpa-onnx-offline-source-separation` executable to `sherpa-spleeter`, stages the target-specific ONNX Runtime libraries beside it, and reads the committed shared Spleeter 2-stems fp16 model files from `addon/anki_audio_quick_editor/bin/models/`.
 

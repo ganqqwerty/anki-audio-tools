@@ -173,6 +173,59 @@ def test_verify_runs_current_sherpa_spleeter_smoke(
     assert any("sherpa-spleeter: smoke ok" in report for report in result.reports)
 
 
+def test_cmd_verify_skips_diagnostics_by_default(monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]) -> None:
+    monkeypatch.setattr(release_assets, "load_lock", lambda: {"schema_version": 1})
+    seen: dict[str, object] = {}
+
+    def fake_verify_assets(
+        lock: dict,
+        *,
+        target_keys: list[str] | None,
+        run_diagnostics: bool,
+    ) -> release_asset_common.VerificationResult:
+        seen["lock"] = lock
+        seen["target_keys"] = target_keys
+        seen["run_diagnostics"] = run_diagnostics
+        return release_asset_common.VerificationResult(errors=[], reports=["ok"])
+
+    monkeypatch.setattr(release_assets, "verify_assets", fake_verify_assets)
+    monkeypatch.setattr(release_assets, "_target_selection", lambda value: [value])
+
+    exit_code = release_assets._cmd_verify(SimpleNamespace(target="current", diagnostics=False))
+
+    assert exit_code == 0
+    assert seen["target_keys"] == ["current"]
+    assert seen["run_diagnostics"] is False
+    assert capsys.readouterr().out.strip() == "ok"
+
+
+def test_cmd_verify_enables_diagnostics_when_requested(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(release_assets, "load_lock", lambda: {"schema_version": 1})
+    seen: dict[str, object] = {}
+
+    def fake_verify_assets(
+        lock: dict,
+        *,
+        target_keys: list[str] | None,
+        run_diagnostics: bool,
+    ) -> release_asset_common.VerificationResult:
+        seen["lock"] = lock
+        seen["target_keys"] = target_keys
+        seen["run_diagnostics"] = run_diagnostics
+        return release_asset_common.VerificationResult(errors=[], reports=[])
+
+    monkeypatch.setattr(release_assets, "verify_assets", fake_verify_assets)
+    monkeypatch.setattr(release_assets, "_target_selection", lambda value: [value])
+
+    exit_code = release_assets._cmd_verify(SimpleNamespace(target="current", diagnostics=True))
+
+    assert exit_code == 0
+    assert seen["target_keys"] == ["current"]
+    assert seen["run_diagnostics"] is True
+
+
 def test_stage_rejects_path_traversal_from_lock(tmp_path: Path) -> None:
     lock = release_assets.load_lock()
     unsafe = copy.deepcopy(lock)

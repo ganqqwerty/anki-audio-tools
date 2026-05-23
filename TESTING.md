@@ -86,6 +86,7 @@ Release self-sufficiency has its own checks:
 | Task | Command |
 |------|---------|
 | Verify tracked runtime payloads plus cached FFmpeg | `python3 scripts/dev.py release-assets verify --target all` |
+| Run current-host runtime probes after verification | `python3 scripts/dev.py release-assets verify --target current --diagnostics` |
 | Fast current-platform packaging without expensive QC | `python3 scripts/release.py --skip-quality-checks --target current` |
 | Extracted archive smoke test | `python3 scripts/dev.py release-smoke dist/anki-audio-quick-editor-<version>-<target>.ankiaddon` |
 | Native platform acceptance | `python3 scripts/release_acceptance.py --archive dist/anki-audio-quick-editor-<version>-<target>.ankiaddon --target current` |

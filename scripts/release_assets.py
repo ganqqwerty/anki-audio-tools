@@ -410,7 +410,11 @@ def _run_build_script(script: Path, target: str) -> None:
 
 def _cmd_verify(args: argparse.Namespace) -> int:
     lock = load_lock()
-    result = verify_assets(lock, target_keys=_target_selection(args.target))
+    result = verify_assets(
+        lock,
+        target_keys=_target_selection(args.target),
+        run_diagnostics=bool(args.diagnostics),
+    )
     for report in result.reports:
         print(report)
     for error in result.errors:
@@ -495,6 +499,12 @@ def main(argv: list[str] | None = None) -> int:
     ):
         subparser = subparsers.add_parser(name)
         subparser.add_argument("--target", default="current")
+        if name == "verify":
+            subparser.add_argument(
+                "--diagnostics",
+                action="store_true",
+                help="Also run current-host runtime diagnostics after checksum verification",
+            )
         subparser.set_defaults(func=func)
 
     subparsers.add_parser("fetch-spleeter-models").set_defaults(func=_cmd_fetch_spleeter_models)

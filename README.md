@@ -46,6 +46,7 @@ The local development add-on ID is `1000000002`.
 
 ```bash
 python3 scripts/dev.py release-assets verify --target all
+python3 scripts/dev.py release-assets verify --target current --diagnostics
 python3 scripts/release.py --target current
 python3 scripts/dev.py release-smoke dist/anki-audio-quick-editor-<version>-<target>.ankiaddon
 ```
@@ -57,3 +58,7 @@ the archive manifest, and produces a platform-targeted archive such as
 archives remain available with `--target all`, but the third-party FFmpeg
 payload makes them too large for the normal release size gate unless an explicit
 `--allow-large-archive` reason is supplied.
+
+`release-assets verify` checks presence and checksums by default. Add
+`--diagnostics` when you also want current-host runtime probes before release
+smoke or native acceptance.
