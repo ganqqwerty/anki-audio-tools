@@ -11,6 +11,7 @@
     healthProgress,
     diagnosticsMessage,
     onRunHealthCheck,
+    onCheckMedia,
     onCopySupportReport,
     onShowLogFile,
   }: {
@@ -19,6 +20,7 @@
     healthProgress: AsyncProgressPayload | null;
     healthReport: HealthReport | null;
     initialState: InitialState;
+    onCheckMedia: DiagnosticsAction;
     onCopySupportReport: DiagnosticsAction;
     onRunHealthCheck: DiagnosticsAction;
     onShowLogFile: DiagnosticsAction;
@@ -54,6 +56,14 @@
       onclick={onRunHealthCheck}
     >
       {t("diagnostics.run_health_check")}
+    </button>
+    <button
+      type="button"
+      class="settings-button"
+      data-testid="check-media"
+      onclick={onCheckMedia}
+    >
+      {t("diagnostics.check_media")}
     </button>
     <button
       type="button"

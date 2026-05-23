@@ -366,6 +366,16 @@ describe("App", () => {
     );
   });
 
+  it("opens Check Media from diagnostics", async () => {
+    setInitialState();
+
+    render(App);
+    await fireEvent.click(screen.getByRole("tab", { name: "Diagnostics & About" }));
+    await fireEvent.click(screen.getByRole("button", { name: "Check Media" }));
+
+    expect(bridgeEnvelopes()).toContainEqual({ command: "settings.check_media" });
+  });
+
   it("renders translated settings labels from initial messages", () => {
     setInitialState(defaultConfig, {
       "settings.title": "Audio-Schnelleditor Einstellungen",

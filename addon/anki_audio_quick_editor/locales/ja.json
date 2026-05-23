@@ -89,6 +89,7 @@
   "diagnostics.addon_folder": "アドオンフォルダー",
   "diagnostics.log_file": "ログファイル",
   "diagnostics.run_health_check": "ヘルスチェックを実行",
+  "diagnostics.check_media": "メディアをチェック",
   "diagnostics.copy_support_report": "サポートレポートをコピー",
   "diagnostics.show_log_file": "ログファイルを表示",
   "editor.command.play.label": "再生",

@@ -378,3 +378,14 @@ def test_diagnostics_can_copy_support_report_and_open_log_file(anki_mw) -> None:
         wait_for_condition(lambda: bool(revealed), timeout=5.0)
 
     assert revealed[0].endswith("anki_audio_quick_editor.log")
+
+
+def test_diagnostics_can_open_check_media(anki_mw) -> None:
+    dialog = _open_settings_dialog(anki_mw)
+
+    with patch("aqt.mediacheck.check_media_db") as check_media_db:
+        click_selector(dialog, '[data-testid="settings-tab-diagnostics"]', timeout=5.0)
+        click_selector(dialog, '[data-testid="check-media"]', timeout=5.0)
+        wait_for_condition(lambda: check_media_db.called, timeout=5.0)
+
+    check_media_db.assert_called_once_with(anki_mw)

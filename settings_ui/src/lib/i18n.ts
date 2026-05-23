@@ -127,6 +127,7 @@ const FALLBACK_MESSAGES: Messages = {
   "diagnostics.addon_folder": "Add-on folder",
   "diagnostics.log_file": "Log file",
   "diagnostics.run_health_check": "Run Health Check",
+  "diagnostics.check_media": "Check Media",
   "diagnostics.copy_support_report": "Copy Support Report",
   "diagnostics.show_log_file": "Show Log File",
   "editor.command.play.label": "Play",

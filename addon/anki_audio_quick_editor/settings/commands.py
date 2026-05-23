@@ -67,6 +67,9 @@ def handle_settings_command(
     if command_name in {"settings.save", "settings_save"}:
         _handle_settings_save(command, eval_fn, dialog)
         return True
+    if command_name in {"settings.check_media", "settings_check_media"}:
+        _handle_check_media()
+        return True
     if command_name in {"settings.async", "async_cmd"}:
         _handle_async_cmd(command, eval_fn)
         return True
@@ -145,6 +148,13 @@ def _handle_reset_defaults(dialog: Any) -> None:
 
     mw.addonManager.writeConfig(addon_id, defaults)
     dialog.reject()
+
+
+def _handle_check_media() -> None:
+    from aqt import mw
+    from aqt.mediacheck import check_media_db
+
+    check_media_db(mw)
 
 
 def _handle_async_cmd(command: WebviewBridgeCommand, eval_fn: Callable[[str], None]) -> None:

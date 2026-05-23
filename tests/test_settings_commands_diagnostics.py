@@ -2,6 +2,8 @@ from __future__ import annotations
 
 import json
 import logging
+import sys
+import types
 from pathlib import Path
 from unittest.mock import patch
 
@@ -105,6 +107,27 @@ def test_async_command_logs_invalid_json_without_callback(caplog: pytest.LogCapt
 
     assert calls == []
     assert "async_cmd: invalid JSON payload" in caplog.text
+
+
+def test_check_media_command_opens_anki_media_checker() -> None:
+    dialog = _make_dialog()
+    _, eval_fn = _capture_eval()
+    mediacheck = types.ModuleType("aqt.mediacheck")
+    mediacheck.check_media_db = lambda _mw: None
+
+    with (
+        patch.dict(sys.modules, {"aqt.mediacheck": mediacheck}),
+        patch("aqt.mediacheck.check_media_db") as check_media_db,
+    ):
+        assert handle_settings_command(
+            'bridge:{"command":"settings.check_media"}',
+            eval_fn,
+            dialog,
+        ) is True
+
+    check_media_db.assert_called_once()
+    assert dialog.accepted is False
+    assert dialog.rejected is False
 
 
 def test_async_command_reports_unknown_operation() -> None:

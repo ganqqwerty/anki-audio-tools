@@ -89,6 +89,7 @@
   "diagnostics.addon_folder": "插件文件夹",
   "diagnostics.log_file": "日志文件",
   "diagnostics.run_health_check": "运行健康检查",
+  "diagnostics.check_media": "检查媒体",
   "diagnostics.copy_support_report": "复制支持报告",
   "diagnostics.show_log_file": "显示日志文件",
   "editor.command.play.label": "播放",

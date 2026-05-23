@@ -89,6 +89,7 @@
   "diagnostics.addon_folder": "Папка дополнения",
   "diagnostics.log_file": "Файл журнала",
   "diagnostics.run_health_check": "Запустить проверку состояния",
+  "diagnostics.check_media": "Проверить медиа",
   "diagnostics.copy_support_report": "Скопировать отчет поддержки",
   "diagnostics.show_log_file": "Показать файл журнала",
   "editor.command.play.label": "Играть",

@@ -7,6 +7,7 @@
     copySupportReport,
     registerCallbacks,
     settingsCancel,
+    settingsCheckMedia,
     settingsResetDefaults,
     settingsSave,
   } from "$lib/bridge.js";
@@ -150,6 +151,7 @@
         healthProgress={healthProgress}
         diagnosticsMessage={diagnosticsMessage}
         onRunHealthCheck={runHealthCheck}
+        onCheckMedia={settingsCheckMedia}
         onCopySupportReport={copyLatestSupportReport}
         onShowLogFile={showLogFile}
       />
