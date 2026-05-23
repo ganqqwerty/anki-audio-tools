@@ -30,11 +30,20 @@
 
 <style>
   .footer {
+    backdrop-filter: blur(10px);
+    background: color-mix(in srgb, var(--canvas-elevated, Canvas) 92%, transparent);
+    border: 1px solid color-mix(in srgb, var(--border, currentColor) 78%, transparent);
+    border-radius: 20px;
+    bottom: 16px;
+    box-shadow: 0 12px 32px color-mix(in srgb, black 10%, transparent);
     display: flex;
     gap: 16px;
     justify-content: space-between;
     margin: 20px auto 0;
     max-width: 920px;
+    padding: 16px 18px;
+    position: sticky;
+    z-index: 10;
   }
 
   .footer-actions {
@@ -44,7 +53,9 @@
 
   @media (max-width: 720px) {
     .footer {
+      bottom: 12px;
       flex-direction: column;
+      padding: 14px;
     }
 
     .footer-actions {
