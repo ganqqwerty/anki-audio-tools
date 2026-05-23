@@ -179,7 +179,7 @@
     box-sizing: border-box;
     color: var(--fg, CanvasText);
     min-height: 100vh;
-    padding: 28px;
+    padding: 28px 28px 120px;
   }
 
   .hero,
