@@ -118,6 +118,10 @@ describe("App", () => {
     expect(screen.getByText("Show graph by default")).toBeInTheDocument();
     expect(screen.getByText("Editor toolbar buttons")).toBeInTheDocument();
     expect(screen.getByTestId("toolbar-visibility-settings")).toHaveAttribute("aria-pressed", "true");
+    expect(screen.getByTestId("toolbar-visibility-play")).toHaveAttribute(
+      "data-aqe-tooltip-content",
+      "Play or pause the current audio",
+    );
     expect(screen.getByText("Graph voice range")).toBeInTheDocument();
     expect(screen.getByText("Graph recording condition")).toBeInTheDocument();
     expect(screen.getByText("Graph smoothness")).toBeInTheDocument();

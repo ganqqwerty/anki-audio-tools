@@ -6,6 +6,7 @@ import {
 } from "./dom-selectors.js";
 import { formatRepeatPauseSeconds } from "../lib/audio-operation-parameters.js";
 import { t } from "../lib/i18n.js";
+import { setButtonTooltipContent } from "../lib/rich-tooltip.js";
 import {
   focusAndSendCommand,
   setCursorIntent,
@@ -218,8 +219,7 @@ export function setRepeatEnabled(visualizer: VisualizerElement, enabled: boolean
       }),
     });
     menuButton.dataset.aqeButtonState = enabled ? "active" : "default";
-    menuButton.title = title;
-    menuButton.setAttribute("aria-label", title);
+    setButtonTooltipContent(menuButton, title);
   }
   if (!enabled && visualizer.dataset.repeatPauseWaiting === "true") {
     completePlayback(visualizer);

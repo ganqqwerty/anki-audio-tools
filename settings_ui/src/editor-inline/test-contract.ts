@@ -149,7 +149,7 @@ export function graphStateForTest(ord: number): GraphStateForTest | null {
     sourceFilename: visualizer.dataset.sourceFilename || "",
     graphButtonLabel: buttonLabel(graph),
     graphButtonState: graph?.dataset.aqeButtonState || "",
-    graphButtonTitle: graph?.title || "",
+    graphButtonTitle: graph?.getAttribute("data-aqe-tooltip-content") || "",
     playButtonLabel: buttonLabel(play),
     playButtonState: play?.dataset.aqeButtonState || "",
     playbackState: playbackStateFor(visualizer),

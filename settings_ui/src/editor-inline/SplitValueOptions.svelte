@@ -1,4 +1,5 @@
 <script lang="ts">
+  import AqeTooltip from "../lib/AqeTooltip.svelte";
   import { t } from "../lib/i18n.js";
   import {
     formatDenoiseAlgorithm,
@@ -11,17 +12,12 @@
     formatVolumeDb,
   } from "./split-button-state.js";
   import { COMMAND_SLUGS } from "./commands.js";
-  import {
-    DPDFNET_ATTENUATION_LIMIT_DB_VALUES,
-    isOutputFormatValue,
-    OUTPUT_FORMAT_VALUES,
-  } from "../lib/audio-operation-parameters.js";
+  import { DPDFNET_ATTENUATION_LIMIT_DB_VALUES, isOutputFormatValue, OUTPUT_FORMAT_VALUES } from "../lib/audio-operation-parameters.js";
   import SplitDefaultSaveButton from "./SplitDefaultSaveButton.svelte";
   import type { ButtonSpec, FieldSplitButtonState } from "./types.js";
 
   type DenoiseAlgorithm = FieldSplitButtonState["denoiseAlgorithm"];
-  type OutputFormatValue = FieldSplitButtonState["outputFormat"];
-  type PitchHumMode = FieldSplitButtonState["pitchHumMode"];
+  type OutputFormatValue = FieldSplitButtonState["outputFormat"]; type PitchHumMode = FieldSplitButtonState["pitchHumMode"];
   type ShareTarget = FieldSplitButtonState["shareTarget"];
 
   const {
@@ -78,9 +74,7 @@
   const options = $derived(optionValues());
 
   function descriptionText(): string {
-    return button.command === "aqe:analyze"
-      ? t("editor.split.description_graph", { value: descriptionValueLabel() })
-      : t("editor.split.description", { label: button.label, value: descriptionValueLabel() });
+    return button.command === "aqe:analyze" ? t("editor.split.description_graph", { value: descriptionValueLabel() }) : t("editor.split.description", { label: button.label, value: descriptionValueLabel() });
   }
 
   function selectedOptionLabel(): string {
@@ -158,12 +152,7 @@
 
   function optionValues(): string[] {
     if (button.command === "aqe:remove-pauses") return ["gentle", "normal", "aggressive"];
-    if (
-      button.command === "aqe:denoise-standard" ||
-      button.command === "aqe:rnnoise" ||
-      button.command === "aqe:dpdfnet" ||
-      button.command === "aqe:voice-only"
-    ) {
+    if (button.command === "aqe:denoise-standard" || button.command === "aqe:rnnoise" || button.command === "aqe:dpdfnet" || button.command === "aqe:voice-only") {
       return ["standard", "rnnoise", "dpdfnet", "voice_only"];
     }
     if (button.command === "aqe:convert") return [...OUTPUT_FORMAT_VALUES];
@@ -186,11 +175,7 @@
   }
 
   function optionTitle(value: string): string {
-    if (value === "dpdfnet") {
-      return t("editor.command.dpdfnet.title", {
-        level: formatDpdfnetAggressiveness(dpdfnetAttnLimitDb),
-      });
-    }
+    if (value === "dpdfnet") return t("editor.command.dpdfnet.title", { level: formatDpdfnetAggressiveness(dpdfnetAttnLimitDb) });
     if (value === "pitch_tier") return t("editor.pitch_hum.mode.pitch_tier.title");
     if (value === "direct") return t("editor.command.pitch_hum.title");
     return optionLabel(value);
@@ -246,16 +231,21 @@
 {#if options.length}
   <div class="aqe-split-presets">
     {#each options as option}
-      <button
-        type="button"
-        class="aqe-button aqe-split-preset"
-        data-testid={`aqe-split-${targetOrd}-${slug}-preset-${option}`}
-        aria-pressed={selectedOptionLabel() === optionLabel(option) ? "true" : "false"}
-        title={optionTitle(option)}
-        onclick={() => applyOption(option)}
-      >
-        {optionLabel(option)}
-      </button>
+      <AqeTooltip>
+        {#snippet trigger({ props })}
+          <button
+            {...props}
+            type="button"
+            class="aqe-button aqe-split-preset aqe-tooltip-target"
+            data-aqe-tooltip-content={optionTitle(option)}
+            data-testid={`aqe-split-${targetOrd}-${slug}-preset-${option}`}
+            aria-pressed={selectedOptionLabel() === optionLabel(option) ? "true" : "false"}
+            onclick={() => applyOption(option)}
+          >
+            {optionLabel(option)}
+          </button>
+        {/snippet}
+      </AqeTooltip>
     {/each}
   </div>
   {#if denoiseAlgorithm === "dpdfnet"}
@@ -301,16 +291,21 @@
   </div>
 {/if}
 <div class="aqe-split-popover-footer">
-  <button
-    type="button"
-    class="aqe-button aqe-split-run-button"
-    data-testid={`aqe-split-${targetOrd}-${slug}-run`}
-    title={t("editor.split.run_title", { label: button.label })}
-    aria-label={t("editor.split.run_title", { label: button.label })}
-    onclick={onRun}
-  >
-    {t("editor.split.run")}
-  </button>
+  <AqeTooltip>
+    {#snippet trigger({ props })}
+      <button
+        {...props}
+        type="button"
+        class="aqe-button aqe-split-run-button aqe-tooltip-target"
+        data-aqe-tooltip-content={t("editor.split.run_title", { label: button.label })}
+        data-testid={`aqe-split-${targetOrd}-${slug}-run`}
+        aria-label={t("editor.split.run_title", { label: button.label })}
+        onclick={onRun}
+      >
+        {t("editor.split.run")}
+      </button>
+    {/snippet}
+  </AqeTooltip>
 </div>
 
 <style>

@@ -74,7 +74,7 @@ describe("split button popover behavior", () => {
     slider.dispatchEvent(new Event("input", { bubbles: true }));
     const save = document.querySelector<HTMLButtonElement>('[data-testid="aqe-split-0-volume-up-save-default"]')!;
 
-    expect(save.title).toBe("Promote these settings to default");
+    expect(save.getAttribute("data-aqe-tooltip-content")).toBe("Promote these settings to default");
     save.click();
 
     expect(bridgeCommands()).toContain("aqe:save-split-defaults");

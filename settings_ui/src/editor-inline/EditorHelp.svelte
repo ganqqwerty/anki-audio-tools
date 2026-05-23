@@ -1,4 +1,5 @@
 <script lang="ts">
+  import AqeTooltip from "../lib/AqeTooltip.svelte";
   import { t } from "../lib/i18n.js";
   import EditorCommandIcon from "./EditorCommandIcon.svelte";
 
@@ -6,11 +7,19 @@
 </script>
 
 <details class="aqe-help" data-testid={`aqe-help-${ord}`}>
-  <summary class="aqe-help-summary" title={t("editor.help.title")}>
-    <span class="aqe-help-triangle" aria-hidden="true"></span>
-    <EditorCommandIcon icon="circle-help" />
-    <span>{t("editor.help.summary")}</span>
-  </summary>
+  <AqeTooltip>
+    {#snippet trigger({ props })}
+      <summary
+        {...props}
+        class="aqe-help-summary aqe-tooltip-target"
+        data-aqe-tooltip-content={t("editor.help.title")}
+      >
+        <span class="aqe-help-triangle" aria-hidden="true"></span>
+        <EditorCommandIcon icon="circle-help" />
+        <span>{t("editor.help.summary")}</span>
+      </summary>
+    {/snippet}
+  </AqeTooltip>
   <div class="aqe-help-body">
     <section class="aqe-help-section">
       <h4 class="aqe-help-title">{t("editor.help.graph_regions")}</h4>

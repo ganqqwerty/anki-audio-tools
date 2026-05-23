@@ -1,4 +1,6 @@
 <script lang="ts">
+  import AqeTooltip from "$lib/AqeTooltip.svelte";
+  import AqeTooltipProvider from "$lib/AqeTooltipProvider.svelte";
   import CommandIcon from "$lib/CommandIcon.svelte";
   import {
     buttonDisplayMode,
@@ -56,59 +58,66 @@
   }
 </script>
 
-<section class="toolbar-visibility settings-section" aria-labelledby="toolbar-visibility-title">
-  <div class="toolbar-visibility-header settings-section-header">
-    <h3 id="toolbar-visibility-title">{t("settings.toolbar_visibility.title")}</h3>
-    <p>{t("settings.toolbar_visibility.summary")}</p>
-  </div>
-  <div class="toolbar-button-grid" data-testid="toolbar-visibility-buttons">
-    {#each buttons as button (button.command)}
-      {@const visible = isVisible(button.command)}
-      {@const mode = displayMode(button.command)}
-      <div class="toolbar-button-card" data-command={button.command}>
-        <button
-          type="button"
-          class:toolbar-button-off={!visible}
-          class="toolbar-button"
-          data-testid={`toolbar-visibility-${COMMAND_SLUGS[button.command]}`}
-          aria-pressed={visible ? "true" : "false"}
-          title={button.title}
-          onclick={() => toggle(button.command)}
-        >
-          {#if mode === EditorButtonMode.Icon}
-            <CommandIcon className="toolbar-button-icon" icon={button.icon} />
-            <span class="toolbar-button-label">{button.label}</span>
-          {:else}
-            <span class="toolbar-button-label">{button.label}</span>
-          {/if}
-          {#if !visible}
-            <span class="toolbar-button-off-label">{t("settings.toolbar_visibility.off")}</span>
-          {/if}
-        </button>
-        <div class="toolbar-mode-toggle" role="group" aria-label={button.label}>
-          <button
-            type="button"
-            class:toolbar-mode-active={mode === EditorButtonMode.Text}
-            data-testid={`toolbar-mode-${COMMAND_SLUGS[button.command]}-text`}
-            aria-pressed={mode === EditorButtonMode.Text ? "true" : "false"}
-            onclick={() => setDisplayMode(button.command, EditorButtonMode.Text)}
-          >
-            {t("settings.toolbar_visibility.text_only")}
-          </button>
-          <button
-            type="button"
-            class:toolbar-mode-active={mode === EditorButtonMode.Icon}
-            data-testid={`toolbar-mode-${COMMAND_SLUGS[button.command]}-icon`}
-            aria-pressed={mode === EditorButtonMode.Icon ? "true" : "false"}
-            onclick={() => setDisplayMode(button.command, EditorButtonMode.Icon)}
-          >
-            {t("settings.toolbar_visibility.icon_only")}
-          </button>
+<AqeTooltipProvider>
+  <section class="toolbar-visibility settings-section" aria-labelledby="toolbar-visibility-title">
+    <div class="toolbar-visibility-header settings-section-header">
+      <h3 id="toolbar-visibility-title">{t("settings.toolbar_visibility.title")}</h3>
+      <p>{t("settings.toolbar_visibility.summary")}</p>
+    </div>
+    <div class="toolbar-button-grid" data-testid="toolbar-visibility-buttons">
+      {#each buttons as button (button.command)}
+        {@const visible = isVisible(button.command)}
+        {@const mode = displayMode(button.command)}
+        <div class="toolbar-button-card" data-command={button.command}>
+          <AqeTooltip>
+            {#snippet trigger({ props })}
+              <button
+                {...props}
+                type="button"
+                class:toolbar-button-off={!visible}
+                class="toolbar-button aqe-tooltip-target"
+                data-aqe-tooltip-content={button.title}
+                data-testid={`toolbar-visibility-${COMMAND_SLUGS[button.command]}`}
+                aria-pressed={visible ? "true" : "false"}
+                onclick={() => toggle(button.command)}
+              >
+                {#if mode === EditorButtonMode.Icon}
+                  <CommandIcon className="toolbar-button-icon" icon={button.icon} />
+                  <span class="toolbar-button-label">{button.label}</span>
+                {:else}
+                  <span class="toolbar-button-label">{button.label}</span>
+                {/if}
+                {#if !visible}
+                  <span class="toolbar-button-off-label">{t("settings.toolbar_visibility.off")}</span>
+                {/if}
+              </button>
+            {/snippet}
+          </AqeTooltip>
+          <div class="toolbar-mode-toggle" role="group" aria-label={button.label}>
+            <button
+              type="button"
+              class:toolbar-mode-active={mode === EditorButtonMode.Text}
+              data-testid={`toolbar-mode-${COMMAND_SLUGS[button.command]}-text`}
+              aria-pressed={mode === EditorButtonMode.Text ? "true" : "false"}
+              onclick={() => setDisplayMode(button.command, EditorButtonMode.Text)}
+            >
+              {t("settings.toolbar_visibility.text_only")}
+            </button>
+            <button
+              type="button"
+              class:toolbar-mode-active={mode === EditorButtonMode.Icon}
+              data-testid={`toolbar-mode-${COMMAND_SLUGS[button.command]}-icon`}
+              aria-pressed={mode === EditorButtonMode.Icon ? "true" : "false"}
+              onclick={() => setDisplayMode(button.command, EditorButtonMode.Icon)}
+            >
+              {t("settings.toolbar_visibility.icon_only")}
+            </button>
+          </div>
         </div>
-      </div>
-    {/each}
-  </div>
-</section>
+      {/each}
+    </div>
+  </section>
+ </AqeTooltipProvider>
 
 <style>
   .toolbar-visibility {

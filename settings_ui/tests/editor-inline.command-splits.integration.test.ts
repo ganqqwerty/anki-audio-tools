@@ -55,7 +55,7 @@ describe("editor inline split-button command integration", () => {
     expect(help).toHaveTextContent("Uploads the current audio and copies a public link without changing the note.");
     expect(help).toHaveTextContent("Every edit creates a new media file and updates the field to point at it.");
     expect(help).toHaveTextContent("grey is loudness and lines are pitch of the voice.");
-    expect(document.querySelector<HTMLButtonElement>('[data-testid="aqe-button-0-denoise-standard"]')?.title).toBe(
+    expect(document.querySelector<HTMLButtonElement>('[data-testid="aqe-button-0-denoise-standard"]')?.getAttribute("data-aqe-tooltip-content")).toBe(
       "Remove noise and music using Standard",
     );
 
@@ -71,10 +71,10 @@ describe("editor inline split-button command integration", () => {
     const dpdfnetPreset = document.querySelector<HTMLButtonElement>(
       '[data-testid="aqe-split-0-denoise-standard-preset-dpdfnet"]',
     )!;
-    expect(dpdfnetPreset.title).toBe("Denoise speech with DPDFNet, Aggressiveness: Gentle");
+    expect(dpdfnetPreset.getAttribute("data-aqe-tooltip-content")).toBe("Denoise speech with DPDFNet, Aggressiveness: Gentle");
     dpdfnetPreset.click();
     await Promise.resolve();
-    expect(document.querySelector<HTMLButtonElement>('[data-testid="aqe-button-0-denoise-standard"]')?.title).toBe(
+    expect(document.querySelector<HTMLButtonElement>('[data-testid="aqe-button-0-denoise-standard"]')?.getAttribute("data-aqe-tooltip-content")).toBe(
       "Remove noise and music using DPDFNet",
     );
     document.querySelector<HTMLButtonElement>('[data-testid="aqe-button-0-denoise-standard"]')!.click();
@@ -256,7 +256,7 @@ describe("editor inline split-button command integration", () => {
     scan(window.__AQE_EDITOR_CONFIG__);
 
     const menu = document.querySelector<HTMLButtonElement>('[data-testid="aqe-split-0-volume-up-menu"]')!;
-    expect(menu.title).toBe("Volume + quick settings.");
+    expect(menu.getAttribute("data-aqe-tooltip-content")).toBe("Volume + quick settings.");
 
     menu.click();
     await Promise.resolve();
@@ -269,7 +269,7 @@ describe("editor inline split-button command integration", () => {
 
     document.querySelector<HTMLButtonElement>('[data-testid="aqe-split-0-volume-up-preset-6"]')!.click();
     await Promise.resolve();
-    expect(menu.title).toBe("Volume + quick settings.");
+    expect(menu.getAttribute("data-aqe-tooltip-content")).toBe("Volume + quick settings.");
 
     document.querySelector<HTMLButtonElement>('[data-testid="aqe-split-0-volume-up-run"]')!.click();
 

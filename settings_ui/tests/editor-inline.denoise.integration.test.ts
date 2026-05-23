@@ -51,7 +51,7 @@ describe("editor inline denoise integration", () => {
     expect(help).toHaveTextContent("Creates a new file with voiced pitch resynthesized as a neutral hum.");
     expect(help).toHaveTextContent("Every edit creates a new media file and updates the field to point at it.");
     expect(help).toHaveTextContent("grey is loudness and lines are pitch of the voice.");
-    expect(document.querySelector<HTMLButtonElement>('[data-testid="aqe-button-0-denoise-standard"]')?.title).toBe(
+    expect(document.querySelector<HTMLButtonElement>('[data-testid="aqe-button-0-denoise-standard"]')?.getAttribute("data-aqe-tooltip-content")).toBe(
       "Remove noise and music using Standard",
     );
 
@@ -74,7 +74,7 @@ describe("editor inline denoise integration", () => {
     const pitchTierPreset = document.querySelector<HTMLButtonElement>(
       '[data-testid="aqe-split-0-pitch-hum-preset-pitch_tier"]',
     )!;
-    expect(pitchTierPreset.title).toBe("Resynthesize pitch with Praat Manipulation and PitchTier");
+    expect(pitchTierPreset.getAttribute("data-aqe-tooltip-content")).toBe("Resynthesize pitch with Praat Manipulation and PitchTier");
     pitchTierPreset.click();
     await Promise.resolve();
     document.querySelector<HTMLButtonElement>('[data-testid="aqe-button-0-pitch-hum"]')!.click();
@@ -94,7 +94,7 @@ describe("editor inline denoise integration", () => {
     const dpdfnetPreset = document.querySelector<HTMLButtonElement>(
       '[data-testid="aqe-split-0-denoise-standard-preset-dpdfnet"]',
     )!;
-    expect(dpdfnetPreset.title).toBe("Denoise speech with DPDFNet, Aggressiveness: Aggressive");
+    expect(dpdfnetPreset.getAttribute("data-aqe-tooltip-content")).toBe("Denoise speech with DPDFNet, Aggressiveness: Aggressive");
     dpdfnetPreset.click();
     await Promise.resolve();
     expect(
@@ -102,7 +102,7 @@ describe("editor inline denoise integration", () => {
         '[data-testid="aqe-split-0-denoise-standard-dpdfnet-aggressiveness"]',
       )?.value,
     ).toBe("18");
-    expect(document.querySelector<HTMLButtonElement>('[data-testid="aqe-button-0-denoise-standard"]')?.title).toBe(
+    expect(document.querySelector<HTMLButtonElement>('[data-testid="aqe-button-0-denoise-standard"]')?.getAttribute("data-aqe-tooltip-content")).toBe(
       "Remove noise and music using DPDFNet",
     );
     document.querySelector<HTMLButtonElement>('[data-testid="aqe-button-0-denoise-standard"]')!.click();

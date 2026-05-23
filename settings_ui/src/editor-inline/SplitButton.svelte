@@ -1,6 +1,7 @@
 <script lang="ts">
   import { Popover } from "bits-ui";
   import { onMount } from "svelte";
+  import AqeTooltip from "../lib/AqeTooltip.svelte";
 
   import EditorCommandIcon from "./EditorCommandIcon.svelte";
   import SplitDefaultSaveButton from "./SplitDefaultSaveButton.svelte";
@@ -237,33 +238,43 @@
 
 <Popover.Root open={open} onOpenChange={onOpenChange}>
   <span class="aqe-split-button">
-    <button
-      type="button"
-      class:aqe-icon-only={displayMode === EditorButtonMode.Icon}
-      class="aqe-button aqe-split-primary"
-      data-aqe-command={button.command}
-      data-aqe-button-state={initialButtonState()}
-      data-testid={`aqe-button-${target.ord}-${slug()}`}
-      title={primaryTitle()}
-      aria-label={primaryTitle()}
-      onmousedown={(event) => event.preventDefault()}
-      onclick={dispatchPrimary}
-    >
-      {#if displayMode === EditorButtonMode.Icon}
-        <EditorCommandIcon icon={button.icon} />
-      {/if}
-      <span class="aqe-button-label">{button.label}</span>
-    </button>
-    <Popover.Trigger
-      class="aqe-button aqe-icon-only aqe-split-menu-button"
-      data-testid={`aqe-split-${target.ord}-${slug()}-menu`}
-      title={menuTitle()}
-      aria-label={menuTitle()}
-      onmousedown={(event) => event.preventDefault()}
-    >
-      <EditorCommandIcon icon="chevron-down" />
-      <span class="aqe-button-label">{t("editor.split.options")}</span>
-    </Popover.Trigger>
+    <AqeTooltip>
+      {#snippet trigger({ props })}
+        <button
+          {...props}
+          type="button"
+          class:aqe-icon-only={displayMode === EditorButtonMode.Icon}
+          class="aqe-button aqe-split-primary aqe-tooltip-target"
+          data-aqe-command={button.command}
+          data-aqe-button-state={initialButtonState()}
+          data-aqe-tooltip-content={primaryTitle()}
+          data-testid={`aqe-button-${target.ord}-${slug()}`}
+          aria-label={primaryTitle()}
+          onmousedown={(event) => event.preventDefault()}
+          onclick={dispatchPrimary}
+        >
+          {#if displayMode === EditorButtonMode.Icon}
+            <EditorCommandIcon icon={button.icon} />
+          {/if}
+          <span class="aqe-button-label">{button.label}</span>
+        </button>
+      {/snippet}
+    </AqeTooltip>
+    <AqeTooltip>
+      {#snippet trigger({ props })}
+        <Popover.Trigger
+          {...props}
+          class="aqe-button aqe-icon-only aqe-split-menu-button aqe-tooltip-target"
+          data-aqe-tooltip-content={menuTitle()}
+          data-testid={`aqe-split-${target.ord}-${slug()}-menu`}
+          aria-label={menuTitle()}
+          onmousedown={(event) => event.preventDefault()}
+        >
+          <EditorCommandIcon icon="chevron-down" />
+          <span class="aqe-button-label">{t("editor.split.options")}</span>
+        </Popover.Trigger>
+      {/snippet}
+    </AqeTooltip>
     <Popover.Content
       align="center"
       arrowPadding={14}
@@ -308,16 +319,21 @@
           voiceRange={graphVoiceRange}
         />
         <div class="aqe-split-popover-footer">
-          <button
-            type="button"
-            class="aqe-button aqe-split-run-button"
-            data-testid={`aqe-split-${target.ord}-${slug()}-run`}
-            title={t("editor.split.run_title", { label: button.label })}
-            aria-label={t("editor.split.run_title", { label: button.label })}
-            onclick={dispatchPrimary}
-          >
-            {t("editor.split.run")}
-          </button>
+          <AqeTooltip>
+            {#snippet trigger({ props })}
+              <button
+                {...props}
+                type="button"
+                class="aqe-button aqe-split-run-button aqe-tooltip-target"
+                data-aqe-tooltip-content={t("editor.split.run_title", { label: button.label })}
+                data-testid={`aqe-split-${target.ord}-${slug()}-run`}
+                aria-label={t("editor.split.run_title", { label: button.label })}
+                onclick={dispatchPrimary}
+              >
+                {t("editor.split.run")}
+              </button>
+            {/snippet}
+          </AqeTooltip>
         </div>
       {:else}
         <SplitValueOptions
