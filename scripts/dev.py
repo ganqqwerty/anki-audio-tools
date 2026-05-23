@@ -28,6 +28,8 @@ from scripts.dev_tasks.python_env import (
 )
 from scripts.dev_tasks.quality_tools import cmd_qodana
 from scripts.dev_tasks.quality import (
+    format_locale_catalog_report,
+    locale_catalog_violations,
     _mutmut_fix_stats_prefix_mismatch,
     _radon_complexity_violations,
     _radon_maintainability_violations,
@@ -191,6 +193,12 @@ def cmd_quality_metrics() -> int:
     return cmd_maintainability()
 
 
+def cmd_i18n() -> int:
+    violations = locale_catalog_violations()
+    print(format_locale_catalog_report(violations))
+    return 1 if violations else 0
+
+
 def cmd_deadcode() -> int:
     anki_python = _find_anki_python()
     paths = ["addon/anki_audio_quick_editor/"]
@@ -295,6 +303,7 @@ def _check_preflight_steps() -> list[CheckStep]:
         ("contracts-check", cmd_contracts_check),
         ("build-ui", cmd_build_ui),
         ("lint", cmd_lint),
+        ("i18n", cmd_i18n),
     ]
 
 
@@ -417,6 +426,7 @@ COMMANDS: dict[str, tuple[Callable[[], int], str]] = {
     "arch": (cmd_arch, "Run import-linter architecture contracts"),
     "test-anki-api": (cmd_test_anki_api, "Run real Anki API compatibility tests"),
     "complexity": (cmd_quality_metrics, "Run radon complexity and maintainability checks"),
+    "i18n": (cmd_i18n, "Check that locale catalogs exactly match en.json keys"),
     "deadcode": (cmd_deadcode, "Find dead code (vulture)"),
     "security": (cmd_security, "Run bandit security linter"),
     "deps": (cmd_deps, "Check dependencies (deptry)"),
@@ -424,8 +434,8 @@ COMMANDS: dict[str, tuple[Callable[[], int], str]] = {
     "check": (
         cmd_check,
         "Full QC: config-schema + contracts-generate + contracts-check + architecture-report + lint + typecheck + "
-        "file-lines + security + deadcode + deps + complexity + qodana + arch + test-anki-api + test + coverage + "
-        "frontend validate",
+        "i18n + file-lines + security + deadcode + deps + complexity + qodana + arch + test-anki-api + test + "
+        "coverage + frontend validate",
     ),
     "coverage": (cmd_coverage, f"Run tests with branch coverage report (fail under {PYTHON_COVERAGE_FAIL_UNDER}%)"),
     "sonar": (cmd_sonar, "Optional SonarQube analysis (needs SONAR_TOKEN)"),

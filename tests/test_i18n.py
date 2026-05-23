@@ -6,6 +6,8 @@ import json
 from pathlib import Path
 from types import SimpleNamespace
 
+from scripts.dev_tasks.quality import locale_catalog_violations
+
 from anki_audio_quick_editor import i18n
 
 
@@ -41,10 +43,11 @@ def test_format_message_interpolates_values_and_preserves_missing_placeholders()
     )
 
 
-def test_non_english_catalogs_have_the_same_keys_as_english() -> None:
+def test_locale_catalogs_have_the_same_keys_as_english() -> None:
     locale_dir = Path(i18n.__file__).parent / "locales"
     english_keys = set(json.loads((locale_dir / "en.json").read_text(encoding="utf-8")))
 
+    assert locale_catalog_violations(locale_dir) == []
     for path in sorted(locale_dir.glob("*.json")):
         keys = set(json.loads(path.read_text(encoding="utf-8")))
         assert keys == english_keys, path.name

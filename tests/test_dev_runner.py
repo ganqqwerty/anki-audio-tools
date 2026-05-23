@@ -328,7 +328,7 @@ def test_check_includes_python_coverage_gate(monkeypatch) -> None:
     assert phases == [
         (
             "sequential",
-            ["config-schema", "contracts-generate", "contracts-check", "build-ui", "lint"],
+            ["config-schema", "contracts-generate", "contracts-check", "build-ui", "lint", "i18n"],
         ),
         (
             "parallel",
@@ -352,6 +352,16 @@ def test_check_includes_python_coverage_gate(monkeypatch) -> None:
             ["test-svelte"],
         ),
     ]
+
+
+def test_cmd_i18n_reports_failures(monkeypatch, capsys) -> None:
+    monkeypatch.setattr(dev, "locale_catalog_violations", lambda: ["de.json missing keys: beta"])
+
+    assert dev.cmd_i18n() == 1
+
+    captured = capsys.readouterr()
+    assert "FAIL: locale catalogs differ from en.json:" in captured.out
+    assert "de.json missing keys: beta" in captured.out
 
 
 def test_check_parallel_executor_runs_multiple_steps_concurrently(monkeypatch) -> None:
