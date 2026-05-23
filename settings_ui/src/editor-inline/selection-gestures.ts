@@ -11,7 +11,6 @@ import type { PlaybackRequest, PlaybackState, VisualizerElement } from "./types.
 import {
   readVisualizerCursorMs,
   readVisualizerDurationMs,
-  readVisualizerRepeatEnabled,
   setVisualizerResumeRequiresRestart,
 } from "./visualizer-state.js";
 
@@ -314,7 +313,7 @@ function scrubMsFromEvent(
 ): number {
   const rawMs = cursorMsFromEvent(event, svg, durationMs);
   const selection = deps.selectionForVisualizer(visualizer);
-  if (selection && readVisualizerRepeatEnabled(visualizer)) {
+  if (selection) {
     return clampMsToRegion(rawMs, selection);
   }
   return rawMs;

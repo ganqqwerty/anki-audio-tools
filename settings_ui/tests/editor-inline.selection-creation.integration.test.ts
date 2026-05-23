@@ -141,7 +141,7 @@ describe("editor inline selection creation integration", () => {
     expect(band).not.toHaveClass("aqe-selection-draft");
   });
 
-  it("expands selections with outside plain clicks and keeps plain drags stable", () => {
+  it("expands selections with outside plain clicks and clamps plain drags to the active selection", () => {
     initializeEditorRuntime({ audioFieldIndices: [0] });
     scan({ audioFieldIndices: [0] });
     window.__aqeSetVisualizer?.(0, track, 100);
@@ -177,14 +177,56 @@ describe("editor inline selection creation integration", () => {
       cursorMs: 500,
     });
 
-    dispatchGraphPointer(svg, "pointerdown", graphClientX(svg, 0.1));
+    dispatchGraphPointer(svg, "pointerdown", graphClientX(svg, 0.5));
     dispatchGraphPointer(svg, "pointermove", graphClientX(svg, 0.9));
     dispatchGraphPointer(svg, "pointerup", graphClientX(svg, 0.9));
 
     expect(window.__aqeGraphStateForTest?.(0)).toMatchObject({
       selectionStartMs: 100,
       selectionEndMs: 800,
-      cursorMs: 900,
+      cursorMs: 800,
+    });
+  });
+
+  it("keeps the progress indicator inside the selection while dragging toward either outside edge", () => {
+    initializeEditorRuntime({ audioFieldIndices: [0] });
+    scan({ audioFieldIndices: [0] });
+    window.__aqeSetVisualizer?.(0, track, 100);
+    const svg = document.querySelector<SVGSVGElement>('[data-testid="aqe-graph-svg-0"]')!;
+    setGraphBounds(svg);
+
+    dragGraphSelection(svg, 0.2, 0.6);
+
+    dispatchGraphPointer(svg, "pointerdown", graphClientX(svg, 0.4));
+    dispatchGraphPointer(svg, "pointermove", graphClientX(svg, 0.9));
+    expect(window.__aqeGraphStateForTest?.(0)).toMatchObject({
+      selectionStartMs: 200,
+      selectionEndMs: 600,
+      cursorMs: 600,
+      progressMs: 600,
+    });
+    dispatchGraphPointer(svg, "pointerup", graphClientX(svg, 0.9));
+    expect(window.__aqeGraphStateForTest?.(0)).toMatchObject({
+      selectionStartMs: 200,
+      selectionEndMs: 600,
+      cursorMs: 600,
+      progressMs: 600,
+    });
+
+    dispatchGraphPointer(svg, "pointerdown", graphClientX(svg, 0.4));
+    dispatchGraphPointer(svg, "pointermove", graphClientX(svg, 0.1));
+    expect(window.__aqeGraphStateForTest?.(0)).toMatchObject({
+      selectionStartMs: 200,
+      selectionEndMs: 600,
+      cursorMs: 200,
+      progressMs: 200,
+    });
+    dispatchGraphPointer(svg, "pointerup", graphClientX(svg, 0.1));
+    expect(window.__aqeGraphStateForTest?.(0)).toMatchObject({
+      selectionStartMs: 200,
+      selectionEndMs: 600,
+      cursorMs: 200,
+      progressMs: 200,
     });
   });
 

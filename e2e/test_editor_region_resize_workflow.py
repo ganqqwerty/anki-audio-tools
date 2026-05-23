@@ -73,8 +73,11 @@ def test_resize_handles_update_stopped_selection_and_preserve_graph_gestures(
         )
         assert resized_start["playbackStartMs"] == 250
 
-        _normal_drag(editor, 0.85, 0.9)
-        scrubbed = _state(editor, lambda state: 1750 <= state["cursorMs"] <= 1850)
+        _normal_drag(editor, 0.425, 0.9)
+        scrubbed = _state(
+            editor,
+            lambda state: 1450 <= state["cursorMs"] <= 1550,
+        )
         assert scrubbed["selectionStartMs"] == 250
         assert scrubbed["selectionEndMs"] == 1500
 
