@@ -22,7 +22,16 @@
   import { visualizerForOrd } from "./dom-selectors.js";
   import { handleVisualizerKeyDown } from "./region-delete.js";
   import { PLOT } from "./plot.js";
-  import type { FieldTarget } from "./types.js";
+  import type { ButtonSpec, FieldTarget } from "./types.js";
+
+  type ToolbarRenderItem =
+    | { button: ButtonSpec; kind: "button" }
+    | {
+      buttons: readonly [ButtonSpec, ButtonSpec];
+      kind: "group";
+      menuLabel: string;
+      menuSlug: "speed" | "volume";
+    };
 
   const { target }: { target: FieldTarget } = $props();
   const selectionPlotHeight = PLOT.height - PLOT.top - PLOT.bottom;
@@ -36,6 +45,7 @@
     window.__AQE_EDITOR_CONFIG__?.visibleEditorButtons,
   );
   const buttonModes = window.__AQE_EDITOR_CONFIG__?.editorButtonModes;
+  const renderItems = buildToolbarRenderItems(buttons);
 
   function isSplitCommand(command: string): boolean {
     return [
@@ -69,6 +79,37 @@
     const unavailableTitle = disabledTitle(button.command);
     return initialButtonDisabled(button.command) && unavailableTitle ? unavailableTitle : button.title;
   }
+
+  function buildToolbarRenderItems(buttons: readonly ButtonSpec[]): readonly ToolbarRenderItem[] {
+    const items: ToolbarRenderItem[] = [];
+    for (let index = 0; index < buttons.length; index += 1) {
+      const button = buttons[index];
+      if (!button) continue;
+      const next = buttons[index + 1];
+      if (button.command === "aqe:slower" && next?.command === "aqe:faster") {
+        items.push({
+          buttons: [button, next],
+          kind: "group",
+          menuLabel: t("editor.split.group.speed"),
+          menuSlug: "speed",
+        });
+        index += 1;
+        continue;
+      }
+      if (button.command === "aqe:volume-down" && next?.command === "aqe:volume-up") {
+        items.push({
+          buttons: [button, next],
+          kind: "group",
+          menuLabel: t("editor.split.group.volume"),
+          menuSlug: "volume",
+        });
+        index += 1;
+        continue;
+      }
+      items.push({ button, kind: "button" });
+    }
+    return items;
+  }
   onMount(() => {
     const visualizer = visualizerForOrd(target.ord);
     if (!visualizer) return;
@@ -86,21 +127,48 @@
   data-aqe-source-filename={target.sourceFilename}
   data-testid={`aqe-controls-${target.ord}`}
 >
-  {#each buttons as button (button.command)}
-    {#if button.command === "aqe:play"}
+  {#each renderItems as item (item.kind === "group" ? `${item.menuSlug}:${item.buttons[0].command}` : item.button.command)}
+    {#if item.kind === "group"}
+      <span class="aqe-split-group">
+        <SplitButton
+          button={item.buttons[0]}
+          displayMode={buttonDisplayMode(item.buttons[0].command, buttonModes)}
+          primaryGroupPosition="start"
+          showMenu={false}
+          {target}
+        />
+        <SplitButton
+          button={item.buttons[1]}
+          displayMode={buttonDisplayMode(item.buttons[1].command, buttonModes)}
+          primaryGroupPosition="middle"
+          showMenu={false}
+          {target}
+        />
+        <SplitButton
+          button={item.buttons[1]}
+          displayMode={buttonDisplayMode(item.buttons[1].command, buttonModes)}
+          groupLabel={item.menuLabel}
+          groupSlug={item.menuSlug}
+          showPrimary={false}
+          showRunButton={false}
+          {target}
+        />
+      </span>
+    {:else if item.button.command === "aqe:play"}
       <PlaySplitButton
-        {button}
-        displayMode={buttonDisplayMode(button.command, buttonModes)}
+        button={item.button}
+        displayMode={buttonDisplayMode(item.button.command, buttonModes)}
         {repeatDefault}
         {target}
       />
-    {:else if isSplitCommand(button.command)}
+    {:else if isSplitCommand(item.button.command)}
       <SplitButton
-        {button}
-        displayMode={buttonDisplayMode(button.command, buttonModes)}
+        button={item.button}
+        displayMode={buttonDisplayMode(item.button.command, buttonModes)}
         {target}
       />
     {:else}
+      {@const button = item.button}
       {@const displayMode = buttonDisplayMode(button.command, buttonModes)}
       <span
         class="aqe-button-tooltip-target"

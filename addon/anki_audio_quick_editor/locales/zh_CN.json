@@ -266,6 +266,8 @@
   "editor.processing_failed_note_unchanged": "音频处理失败。笔记未更改。({error})",
   "editor.split.options": "选项",
   "editor.split.save_defaults": "将这些设置设为默认值",
+  "editor.split.group.volume": "音量",
+  "editor.split.group.speed": "速度",
   "editor.split.menu_title": "{label} 快速设置。",
   "editor.split.description": "这会更改 {label} 在此字段上的运行方式。当前值：{value}。",
   "editor.split.description_graph": "这会更改此字段的图表渲染方式。当前设置：{value}。",

@@ -23,16 +23,25 @@ from e2e.helpers import (
     click_selector,
     generate_tone,
     wait_for_condition,
+    wait_for_js_condition,
 )
 
 
+def _split_slug(command: str) -> str:
+    if command in {"aqe:volume-up", "aqe:volume-down"}:
+        return "volume"
+    if command in {"aqe:faster", "aqe:slower"}:
+        return "speed"
+    return command.removeprefix("aqe:")
+
+
 def _split_menu_selector(command: str, ord_: int = 0) -> str:
-    slug = command.removeprefix("aqe:")
+    slug = _split_slug(command)
     return f'[data-testid="aqe-split-{ord_}-{slug}-menu"]'
 
 
 def _split_popover_state_js(command: str, ord_: int = 0) -> str:
-    slug = command.removeprefix("aqe:")
+    slug = _split_slug(command)
     return f"""
     (() => {{
       const popover = document.querySelector('[data-testid="aqe-split-{ord_}-{slug}-popover"]');
@@ -55,6 +64,23 @@ def _split_popover_state_js(command: str, ord_: int = 0) -> str:
           popoverRect.left + popoverRect.width / 2 - (anchorRect.left + anchorRect.width / 2)
         )
       }};
+    }})()
+    """
+
+
+def _click_latest_enabled_button_js(command: str, ord_: int = 0) -> str:
+    selector = _button_selector(command, ord_)
+    return f"""
+    (() => {{
+      const nodes = Array.from(document.querySelectorAll({selector!r}));
+      const node = nodes.reverse().find((candidate) => (
+        candidate instanceof HTMLButtonElement &&
+        candidate.disabled !== true &&
+        candidate.getAttribute("aria-disabled") !== "true"
+      ));
+      if (!node) return false;
+      node.click();
+      return true;
     }})()
     """
 
@@ -129,7 +155,12 @@ def test_multi_field_processing_undo_redo_survives_graph_default_auto_analysis(
             timeout=10.0,
         )
 
-        click_selector(editor.web, _button_selector("aqe:undo"), timeout=5.0)
+        wait_for_js_condition(
+            editor.web,
+            _click_latest_enabled_button_js("aqe:undo"),
+            lambda value: value is True,
+            timeout=5.0,
+        )
         wait_for_condition(
             lambda: _sound_filename(note.fields[0]) == sources[0].name,
             timeout=5.0,
@@ -141,7 +172,12 @@ def test_multi_field_processing_undo_redo_survives_graph_default_auto_analysis(
             ord_=2,
             timeout=10.0,
         )
-        click_selector(editor.web, _button_selector("aqe:redo"), timeout=5.0)
+        wait_for_js_condition(
+            editor.web,
+            _click_latest_enabled_button_js("aqe:redo"),
+            lambda value: value is True,
+            timeout=5.0,
+        )
         wait_for_condition(
             lambda: _sound_filename(note.fields[0]) == generated_name,
             timeout=5.0,

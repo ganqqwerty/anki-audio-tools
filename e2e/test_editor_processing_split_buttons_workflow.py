@@ -22,13 +22,21 @@ from e2e.helpers import (
 )
 
 
+def _split_slug(command: str) -> str:
+    if command in {"aqe:volume-up", "aqe:volume-down"}:
+        return "volume"
+    if command in {"aqe:faster", "aqe:slower"}:
+        return "speed"
+    return command.removeprefix("aqe:")
+
+
 def _split_menu_selector(command: str, ord_: int = 0) -> str:
-    slug = command.removeprefix("aqe:")
+    slug = _split_slug(command)
     return f'[data-testid="aqe-split-{ord_}-{slug}-menu"]'
 
 
 def _split_value_state_js(command: str, ord_: int = 0) -> str:
-    slug = command.removeprefix("aqe:")
+    slug = _split_slug(command)
     return f"""
     (() => {{
       const input = document.querySelector('[data-testid="aqe-split-{ord_}-{slug}-value"]');
@@ -45,7 +53,7 @@ def _split_value_state_js(command: str, ord_: int = 0) -> str:
 
 
 def _set_split_value_input_js(command: str, value: str, ord_: int = 0) -> str:
-    slug = command.removeprefix("aqe:")
+    slug = _split_slug(command)
     return f"""
     (() => {{
       const input = document.querySelector('[data-testid="aqe-split-{ord_}-{slug}-value"]');
@@ -58,7 +66,7 @@ def _set_split_value_input_js(command: str, value: str, ord_: int = 0) -> str:
 
 
 def _set_split_slider_js(command: str, value: str, ord_: int = 0) -> str:
-    slug = command.removeprefix("aqe:")
+    slug = _split_slug(command)
     return f"""
     (() => {{
       const slider = document.querySelector('[data-testid="aqe-split-{ord_}-{slug}-slider"]');
@@ -146,7 +154,7 @@ def test_split_tooltip_save_icon_promotes_local_volume_value_to_settings(
         )
         click_selector(
             editor.web,
-            '[data-testid="aqe-split-0-volume-up-save-default"]',
+            '[data-testid="aqe-split-0-volume-save-default"]',
             timeout=5.0,
         )
 

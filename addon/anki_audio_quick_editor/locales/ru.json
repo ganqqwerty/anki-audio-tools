@@ -266,6 +266,8 @@
   "editor.processing_failed_note_unchanged": "Обработка аудио не выполнена. Заметка не изменена. ({error})",
   "editor.split.options": "Параметры",
   "editor.split.save_defaults": "Сделать эти настройки значениями по умолчанию",
+  "editor.split.group.volume": "Громкость",
+  "editor.split.group.speed": "Скорость",
   "editor.split.menu_title": "Быстрые настройки для {label}.",
   "editor.split.description": "Здесь можно изменить, как {label} выполняется для этого поля. Текущее значение: {value}.",
   "editor.split.description_graph": "Здесь можно изменить, как график отображается для этого поля. Текущие настройки: {value}.",

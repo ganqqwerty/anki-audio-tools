@@ -266,6 +266,8 @@
   "editor.processing_failed_note_unchanged": "音訊處理失敗。筆記未變更。({error})",
   "editor.split.options": "選項",
   "editor.split.save_defaults": "將這些設定設為預設值",
+  "editor.split.group.volume": "音量",
+  "editor.split.group.speed": "速度",
   "editor.split.menu_title": "{label} 快速設定。",
   "editor.split.description": "這會變更 {label} 在此欄位上的執行方式。目前值：{value}。",
   "editor.split.description_graph": "這會變更此欄位的圖表呈現方式。目前設定：{value}。",

@@ -5,12 +5,12 @@ import { disposeEditorRuntime, initializeEditorRuntime, scan } from "../src/edit
 import { bridgeCommands, muteConsole, renderFields } from "./editor-inline.integration.helpers.js";
 
 async function openVolumePopover(): Promise<HTMLDivElement> {
-  const menu = document.querySelector<HTMLButtonElement>('[data-testid="aqe-split-0-volume-up-menu"]')!;
+  const menu = document.querySelector<HTMLButtonElement>('[data-testid="aqe-split-0-volume-menu"]')!;
   menu.click();
 
   let popover: HTMLDivElement | null = null;
   await waitFor(() => {
-    popover = document.querySelector<HTMLDivElement>('[data-testid="aqe-split-0-volume-up-popover"]');
+    popover = document.querySelector<HTMLDivElement>('[data-testid="aqe-split-0-volume-popover"]');
     expect(popover).not.toBeNull();
     expect(popover!.dataset.side).toBeTruthy();
   });
@@ -36,11 +36,11 @@ describe("split button popover behavior", () => {
     initializeEditorRuntime({ audioFieldIndices: [0] });
     scan({ audioFieldIndices: [0] });
 
-    const menu = document.querySelector<HTMLButtonElement>('[data-testid="aqe-split-0-volume-up-menu"]')!;
+    const menu = document.querySelector<HTMLButtonElement>('[data-testid="aqe-split-0-volume-menu"]')!;
     expect(menu).toHaveAttribute("aria-expanded", "false");
 
     const popover = await openVolumePopover();
-    const arrow = document.querySelector<HTMLElement>('[data-testid="aqe-split-0-volume-up-arrow"]');
+    const arrow = document.querySelector<HTMLElement>('[data-testid="aqe-split-0-volume-arrow"]');
 
     expect(menu).toHaveAttribute("aria-expanded", "true");
     expect(popover).toHaveAttribute("data-align", "center");
@@ -53,13 +53,13 @@ describe("split button popover behavior", () => {
     initializeEditorRuntime({ audioFieldIndices: [0] });
     scan({ audioFieldIndices: [0] });
 
-    const menu = document.querySelector<HTMLButtonElement>('[data-testid="aqe-split-0-volume-up-menu"]')!;
+    const menu = document.querySelector<HTMLButtonElement>('[data-testid="aqe-split-0-volume-menu"]')!;
     await openVolumePopover();
 
     document.dispatchEvent(new KeyboardEvent("keydown", { bubbles: true, key: "Escape" }));
 
     await waitFor(() => {
-      expect(document.querySelector('[data-testid="aqe-split-0-volume-up-popover"]')).toBeNull();
+      expect(document.querySelector('[data-testid="aqe-split-0-volume-popover"]')).toBeNull();
       expect(menu).toHaveAttribute("aria-expanded", "false");
     });
   });
@@ -69,10 +69,10 @@ describe("split button popover behavior", () => {
     scan({ audioFieldIndices: [0] });
     await openVolumePopover();
 
-    const slider = document.querySelector<HTMLInputElement>('[data-testid="aqe-split-0-volume-up-slider"]')!;
+    const slider = document.querySelector<HTMLInputElement>('[data-testid="aqe-split-0-volume-slider"]')!;
     slider.value = "6";
     slider.dispatchEvent(new Event("input", { bubbles: true }));
-    const save = document.querySelector<HTMLButtonElement>('[data-testid="aqe-split-0-volume-up-save-default"]')!;
+    const save = document.querySelector<HTMLButtonElement>('[data-testid="aqe-split-0-volume-save-default"]')!;
 
     expect(save.title).toBe("Promote these settings to default");
     save.click();

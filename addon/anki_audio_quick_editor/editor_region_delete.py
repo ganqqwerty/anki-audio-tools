@@ -33,6 +33,18 @@ def _sync_history_availability(editor: Any, session: Any, deps: Any) -> None:
         bool(session.redo_history.entries),
     )
 
+
+def _request_history_availability_after_edit(editor: Any, session: Any, deps: Any) -> None:
+    if session is None:
+        return
+    deps.request_history_availability_after_edit(
+        editor,
+        session.field_index,
+        bool(session.undo_history.entries),
+        bool(session.redo_history.entries),
+    )
+
+
 REGION_DELETE_OPERATION: RegionDeleteOperation = "delete-selection"
 REGION_KEEP_OPERATION: RegionDeleteOperation = "delete-rest"
 REGION_DELETE_OPERATIONS = {REGION_DELETE_OPERATION, REGION_KEEP_OPERATION}
@@ -364,6 +376,7 @@ def replace_current_field_after_region_delete(
         )
         editor.loadNote(focusTo=field_index)
         _sync_history_availability(editor, session, deps)
+        _request_history_availability_after_edit(editor, session, deps)
         deps.eval_status(editor, t("editor.status.updated_field", {"filename": saved_name}))
         deps.eval_playback_state(editor, field_index, "stopped", 0)
         if should_redraw_graph:

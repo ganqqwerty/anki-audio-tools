@@ -373,6 +373,10 @@ def test_region_delete_replacement_updates_only_requested_field_and_history(
     assert session.redo_history.pop() is None
     assert session.undo_history.pop().filename == "clip.mp3"
     assert editor.loadNote.call_args.kwargs == {"focusTo": 1}
+    assert any(
+        "__aqeSetHistoryAvailability(1, true, false)" in call.args[0]
+        for call in editor.web.evalWithCallback.call_args_list
+    )
     assert "__aqePlayAfterEdit(1)" in editor.web.evalWithCallback.call_args.args[0]
 
 

@@ -184,6 +184,8 @@ const FALLBACK_MESSAGES: Messages = {
   "editor.command.delete_rest.title": "Delete the rest of the audio",
   "editor.split.options": "Options",
   "editor.split.save_defaults": "Promote these settings to default",
+  "editor.split.group.volume": "Volume",
+  "editor.split.group.speed": "Speed",
   "editor.split.menu_title": "{label} quick settings.",
   "editor.split.description": "This changes how {label} runs for this field. Current value: {value}.",
   "editor.split.description_graph": "This changes how the graph is rendered for this field. Current settings: {value}.",

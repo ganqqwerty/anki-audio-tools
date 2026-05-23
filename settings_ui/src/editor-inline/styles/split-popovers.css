@@ -3,6 +3,10 @@
   position: relative;
 }
 
+.aqe-split-group {
+  display: inline-flex;
+}
+
 .aqe-split-primary {
   border-bottom-right-radius: 0;
   border-right-width: 0;
@@ -10,6 +14,11 @@
   gap: 2px;
   padding-left: 6px;
   padding-right: 6px;
+}
+
+.aqe-split-primary-middle {
+  border-bottom-left-radius: 0;
+  border-top-left-radius: 0;
 }
 
 .aqe-split-menu-button {

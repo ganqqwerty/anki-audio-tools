@@ -25,6 +25,16 @@ def sync_history_availability(editor: Any, session: EditorSession, deps: Any) ->
     )
 
 
+def request_history_availability_after_edit(editor: Any, session: EditorSession, deps: Any) -> None:
+    """Retry history availability sync after the editor remounts controls."""
+    deps.request_history_availability_after_edit(
+        editor,
+        session.field_index,
+        bool(session.undo_history.entries),
+        bool(session.redo_history.entries),
+    )
+
+
 def undo(editor: Any, deps: Any) -> None:
     """Restore the previous generated audio reference for the current field."""
     session, _source_path = deps.session_and_source(editor)
@@ -98,6 +108,7 @@ def restore_history_entry(
     session.source_mtime_ns = restored_path.stat().st_mtime_ns if restored_path is not None else None
     editor.loadNote(focusTo=field_index)
     sync_history_availability(editor, session, deps)
+    request_history_availability_after_edit(editor, session, deps)
     deps.eval_status(editor, status)
     deps.eval_playback_state(editor, field_index, "stopped", 0)
     if field_index in session.graph_active_fields:

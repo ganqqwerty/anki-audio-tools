@@ -28,6 +28,8 @@
     button,
     denoiseAlgorithm,
     dpdfnetAttnLimitDb,
+    groupSlug,
+    menuLabel,
     onChange,
     onDenoiseAlgorithm,
     onDpdfnetAttnLimitDb,
@@ -44,6 +46,7 @@
     pitchHumMode,
     saveDefaultSaved,
     shareTarget,
+    showRunButton,
     showSaveDefault,
     speedStep,
     targetOrd,
@@ -52,6 +55,8 @@
     button: ButtonSpec;
     denoiseAlgorithm: DenoiseAlgorithm;
     dpdfnetAttnLimitDb: number;
+    groupSlug?: "speed" | "volume" | undefined;
+    menuLabel: string;
     onChange: () => void;
     onDenoiseAlgorithm: (value: DenoiseAlgorithm) => void;
     onDpdfnetAttnLimitDb: (value: number) => void;
@@ -68,24 +73,42 @@
     pitchHumMode: PitchHumMode;
     saveDefaultSaved: boolean;
     shareTarget: ShareTarget;
+    showRunButton: boolean;
     showSaveDefault: boolean;
     speedStep: number;
     targetOrd: number;
     volumeStepDb: number;
   } = $props();
 
-  const slug = $derived(COMMAND_SLUGS[button.command]);
+  const slug = $derived(groupSlug ?? COMMAND_SLUGS[button.command]);
   const options = $derived(optionValues());
+
+  function isVolumeControl(): boolean {
+    return (
+      groupSlug === "volume" ||
+      button.command === "aqe:volume-up" ||
+      button.command === "aqe:volume-down"
+    );
+  }
+
+  function isSpeedControl(): boolean {
+    return groupSlug === "speed" || button.command === "aqe:faster" || button.command === "aqe:slower";
+  }
+
+  function groupedSpeedLabel(value: number): string {
+    return `${formatSpeedStep(value, "aqe:faster")} / ${formatSpeedStep(value, "aqe:slower")}`;
+  }
 
   function descriptionText(): string {
     return button.command === "aqe:analyze"
       ? t("editor.split.description_graph", { value: descriptionValueLabel() })
-      : t("editor.split.description", { label: button.label, value: descriptionValueLabel() });
+      : t("editor.split.description", { label: menuLabel, value: descriptionValueLabel() });
   }
 
   function selectedOptionLabel(): string {
-    if (button.command === "aqe:volume-up" || button.command === "aqe:volume-down") return formatVolumeDb(volumeStepDb);
-    if (button.command === "aqe:faster" || button.command === "aqe:slower") return formatSpeedStep(speedStep, button.command);
+    if (isVolumeControl()) return formatVolumeDb(volumeStepDb);
+    if (groupSlug === "speed") return groupedSpeedLabel(speedStep);
+    if (isSpeedControl()) return formatSpeedStep(speedStep, button.command);
     if (button.command === "aqe:remove-pauses") return formatPauseAggressiveness(pauseAggressiveness);
     if (button.command === "aqe:convert") return formatOutputFormat(outputFormat);
     if (button.command === "aqe:share") return formatShareTarget(shareTarget);
@@ -113,31 +136,44 @@
   }
 
   function sliderValue(): number {
-    if (button.command === "aqe:volume-up" || button.command === "aqe:volume-down") return volumeStepDb;
-    if (button.command === "aqe:faster" || button.command === "aqe:slower") return speedStep;
+    if (isVolumeControl()) return volumeStepDb;
+    if (isSpeedControl()) return speedStep;
     return 0;
   }
 
   function sliderConfig(): { min: string; max: string; step: string; labels: string[]; presets: number[] } {
-    if (button.command === "aqe:volume-up" || button.command === "aqe:volume-down") {
+    if (isVolumeControl()) {
       return { min: "0.5", max: "12", step: "0.5", labels: ["0.5 dB", "12 dB"], presets: [1, 3, 6, 9] };
     }
-    if (button.command === "aqe:faster" || button.command === "aqe:slower") {
+    if (groupSlug === "speed") {
+      return {
+        min: "0.01",
+        max: "0.25",
+        step: "0.01",
+        labels: [groupedSpeedLabel(0.01), groupedSpeedLabel(0.25)],
+        presets: [0.03, 0.05, 0.1, 0.2],
+      };
+    }
+    if (isSpeedControl()) {
       return { min: "0.01", max: "0.25", step: "0.01", labels: ["x1.01", "x1.25"], presets: [0.03, 0.05, 0.1, 0.2] };
     }
     return { min: "0", max: "0", step: "1", labels: ["", ""], presets: [] };
   }
 
   function valueInputConfig(): { min: string; max: string; step: string; label: string } {
-    if (button.command === "aqe:volume-up" || button.command === "aqe:volume-down") {
-      return { min: "0.5", max: "12", step: "0.5", label: "Volume step in dB" };
+    if (isVolumeControl()) {
+      return { min: "0.5", max: "12", step: "0.5", label: t("settings.volume_step_db") };
     }
-    if (button.command === "aqe:faster") return { min: "1.01", max: "1.25", step: "0.01", label: "Faster speed multiplier" };
-    if (button.command === "aqe:slower") return { min: "0.75", max: "0.99", step: "0.01", label: "Slower speed multiplier" };
+    if (groupSlug === "speed") {
+      return { min: "0.01", max: "0.25", step: "0.01", label: t("settings.speed_step") };
+    }
+    if (button.command === "aqe:faster") return { min: "1.01", max: "1.25", step: "0.01", label: t("settings.speed_step") };
+    if (button.command === "aqe:slower") return { min: "0.75", max: "0.99", step: "0.01", label: t("settings.speed_step") };
     return { min: "0", max: "0", step: "1", label: "" };
   }
 
   function valueInputValue(): number {
+    if (groupSlug === "speed") return speedStep;
     if (button.command === "aqe:faster") return Number((1 + speedStep).toFixed(2));
     if (button.command === "aqe:slower") return Number((1 - speedStep).toFixed(2));
     return sliderValue();
@@ -145,14 +181,18 @@
 
   function applyValueInput(value: number): void {
     if (!Number.isFinite(value)) return;
+    if (groupSlug === "speed") {
+      applyValue(value);
+      return;
+    }
     if (button.command === "aqe:faster") applyValue(value - 1);
     else if (button.command === "aqe:slower") applyValue(1 - value);
     else applyValue(value);
   }
 
   function applyValue(value: number): void {
-    if (button.command === "aqe:volume-up" || button.command === "aqe:volume-down") onVolumeStep(value);
-    else if (button.command === "aqe:faster" || button.command === "aqe:slower") onSpeedStep(value);
+    if (isVolumeControl()) onVolumeStep(value);
+    else if (isSpeedControl()) onSpeedStep(value);
     onChange();
   }
 
@@ -211,15 +251,16 @@
   }
 
   function presetLabel(value: number): string {
-    if (button.command === "aqe:volume-up" || button.command === "aqe:volume-down") return formatVolumeDb(value);
-    if (button.command === "aqe:faster" || button.command === "aqe:slower") return formatSpeedStep(value, button.command);
+    if (isVolumeControl()) return formatVolumeDb(value);
+    if (groupSlug === "speed") return groupedSpeedLabel(value);
+    if (isSpeedControl()) return formatSpeedStep(value, button.command);
     return "";
   }
 </script>
 
 <div class="aqe-split-popover-header aqe-split-popover-header-with-action">
   <span class="aqe-split-popover-title">
-    <strong>{button.label}</strong>
+    <strong>{menuLabel}</strong>
     {#if !options.length}
       <input
         class="aqe-split-value-input"
@@ -300,18 +341,20 @@
     {/each}
   </div>
 {/if}
-<div class="aqe-split-popover-footer">
-  <button
-    type="button"
-    class="aqe-button aqe-split-run-button"
-    data-testid={`aqe-split-${targetOrd}-${slug}-run`}
-    title={t("editor.split.run_title", { label: button.label })}
-    aria-label={t("editor.split.run_title", { label: button.label })}
-    onclick={onRun}
-  >
-    {t("editor.split.run")}
-  </button>
-</div>
+{#if showRunButton}
+  <div class="aqe-split-popover-footer">
+    <button
+      type="button"
+      class="aqe-button aqe-split-run-button"
+      data-testid={`aqe-split-${targetOrd}-${slug}-run`}
+      title={t("editor.split.run_title", { label: menuLabel })}
+      aria-label={t("editor.split.run_title", { label: menuLabel })}
+      onclick={onRun}
+    >
+      {t("editor.split.run")}
+    </button>
+  </div>
+{/if}
 
 <style>
   .aqe-split-extra-field {

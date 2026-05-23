@@ -222,25 +222,43 @@ describe("editor inline split-button command integration", () => {
     initializeEditorRuntime(window.__AQE_EDITOR_CONFIG__);
     scan(window.__AQE_EDITOR_CONFIG__);
 
-    document.querySelector<HTMLButtonElement>('[data-testid="aqe-split-0-volume-up-menu"]')!.click();
+    document.querySelector<HTMLButtonElement>('[data-testid="aqe-split-0-volume-menu"]')!.click();
     await Promise.resolve();
-    document.querySelector<HTMLButtonElement>('[data-testid="aqe-split-0-volume-up-preset-6"]')!.click();
+    document.querySelector<HTMLButtonElement>('[data-testid="aqe-split-0-volume-preset-6"]')!.click();
+    expect(document.querySelector('[data-testid="aqe-split-0-volume-up-menu"]')).toBeNull();
+    expect(document.querySelector('[data-testid="aqe-split-0-volume-down-menu"]')).toBeNull();
+    document.querySelector<HTMLButtonElement>('[data-testid="aqe-button-0-volume-down"]')!.click();
+    const quieterPayload = window.__aqePendingCommandPayload as EditorCommandPayload | null | undefined;
+    window.__aqePendingCommandPayload = null;
+    window.__aqeSetBusy?.(0, false);
     document.querySelector<HTMLButtonElement>('[data-testid="aqe-button-0-volume-up"]')!.click();
-    const volumePayload = window.__aqePendingCommandPayload as EditorCommandPayload | null | undefined;
+    const louderPayload = window.__aqePendingCommandPayload as EditorCommandPayload | null | undefined;
     window.__aqePendingCommandPayload = null;
     window.__aqeSetBusy?.(0, false);
 
-    document.querySelector<HTMLButtonElement>('[data-testid="aqe-split-0-faster-menu"]')!.click();
+    document.querySelector<HTMLButtonElement>('[data-testid="aqe-split-0-speed-menu"]')!.click();
     await Promise.resolve();
-    document.querySelector<HTMLButtonElement>('[data-testid="aqe-split-0-faster-preset-0.1"]')!.click();
+    document.querySelector<HTMLButtonElement>('[data-testid="aqe-split-0-speed-preset-0.1"]')!.click();
+    expect(document.querySelector('[data-testid="aqe-split-0-faster-menu"]')).toBeNull();
+    expect(document.querySelector('[data-testid="aqe-split-0-slower-menu"]')).toBeNull();
+    document.querySelector<HTMLButtonElement>('[data-testid="aqe-button-0-slower"]')!.click();
+    const slowerPayload = window.__aqePendingCommandPayload as EditorCommandPayload | null | undefined;
+    window.__aqePendingCommandPayload = null;
+    window.__aqeSetBusy?.(0, false);
     document.querySelector<HTMLButtonElement>('[data-testid="aqe-button-0-faster"]')!.click();
 
-    expect(volumePayload?.overrides?.volumeStepDb).toBe(6);
-    const speedPayload = window.__aqePendingCommandPayload as EditorCommandPayload | null | undefined;
-    expect(speedPayload?.overrides?.speedStep).toBe(0.1);
+    expect(quieterPayload?.command).toBe("aqe:volume-down");
+    expect(quieterPayload?.overrides?.volumeStepDb).toBe(6);
+    expect(louderPayload?.command).toBe("aqe:volume-up");
+    expect(louderPayload?.overrides?.volumeStepDb).toBe(6);
+    expect(slowerPayload?.command).toBe("aqe:slower");
+    expect(slowerPayload?.overrides?.speedStep).toBe(0.1);
+    const fasterPayload = window.__aqePendingCommandPayload as EditorCommandPayload | null | undefined;
+    expect(fasterPayload?.command).toBe("aqe:faster");
+    expect(fasterPayload?.overrides?.speedStep).toBe(0.1);
   });
 
-  it("shows live split hover text and runs from the popover footer", async () => {
+  it("shows grouped split hover text and keeps volume execution on the primary buttons", async () => {
     window.__aqeSplitButtonStates = {};
     window.__AQE_EDITOR_CONFIG__ = {
       audioFieldIndices: [0],
@@ -255,23 +273,24 @@ describe("editor inline split-button command integration", () => {
     initializeEditorRuntime(window.__AQE_EDITOR_CONFIG__);
     scan(window.__AQE_EDITOR_CONFIG__);
 
-    const menu = document.querySelector<HTMLButtonElement>('[data-testid="aqe-split-0-volume-up-menu"]')!;
-    expect(menu.title).toBe("Volume + quick settings.");
+    const menu = document.querySelector<HTMLButtonElement>('[data-testid="aqe-split-0-volume-menu"]')!;
+    expect(menu.title).toBe("Volume quick settings.");
 
     menu.click();
     await Promise.resolve();
 
-    const header = document.querySelector<HTMLElement>('[data-testid="aqe-split-0-volume-up-popover"] .aqe-split-popover-title')!;
-    expect(header.textContent?.trim()).toBe("Volume +");
-    expect(document.querySelector('[data-testid="aqe-split-0-volume-up-popover"]')).toHaveTextContent(
-      "This changes how Volume + runs for this field. Current value: 3 dB.",
+    const header = document.querySelector<HTMLElement>('[data-testid="aqe-split-0-volume-popover"] .aqe-split-popover-title')!;
+    expect(header.textContent?.trim()).toBe("Volume");
+    expect(document.querySelector('[data-testid="aqe-split-0-volume-popover"]')).toHaveTextContent(
+      "This changes how Volume runs for this field. Current value: 3 dB.",
     );
+    expect(document.querySelector('[data-testid="aqe-split-0-volume-run"]')).toBeNull();
 
-    document.querySelector<HTMLButtonElement>('[data-testid="aqe-split-0-volume-up-preset-6"]')!.click();
+    document.querySelector<HTMLButtonElement>('[data-testid="aqe-split-0-volume-preset-6"]')!.click();
     await Promise.resolve();
-    expect(menu.title).toBe("Volume + quick settings.");
+    expect(menu.title).toBe("Volume quick settings.");
 
-    document.querySelector<HTMLButtonElement>('[data-testid="aqe-split-0-volume-up-run"]')!.click();
+    document.querySelector<HTMLButtonElement>('[data-testid="aqe-button-0-volume-up"]')!.click();
 
     expect(window.__aqePendingCommandPayload).toMatchObject({
       command: "aqe:volume-up",
@@ -281,7 +300,7 @@ describe("editor inline split-button command integration", () => {
       },
     });
     await Promise.resolve();
-    expect(document.querySelector('[data-testid="aqe-split-0-volume-up-popover"]')).toBeNull();
+    expect(document.querySelector('[data-testid="aqe-split-0-volume-popover"]')).toBeNull();
   });
 
   it("syncs split tooltip value inputs with sliders", async () => {
@@ -299,10 +318,10 @@ describe("editor inline split-button command integration", () => {
     initializeEditorRuntime(window.__AQE_EDITOR_CONFIG__);
     scan(window.__AQE_EDITOR_CONFIG__);
 
-    document.querySelector<HTMLButtonElement>('[data-testid="aqe-split-0-volume-up-menu"]')!.click();
+    document.querySelector<HTMLButtonElement>('[data-testid="aqe-split-0-volume-menu"]')!.click();
     await Promise.resolve();
-    const volumeInput = document.querySelector<HTMLInputElement>('[data-testid="aqe-split-0-volume-up-value"]')!;
-    const volumeSlider = document.querySelector<HTMLInputElement>('[data-testid="aqe-split-0-volume-up-slider"]')!;
+    const volumeInput = document.querySelector<HTMLInputElement>('[data-testid="aqe-split-0-volume-value"]')!;
+    const volumeSlider = document.querySelector<HTMLInputElement>('[data-testid="aqe-split-0-volume-slider"]')!;
     volumeInput.value = "6.5";
     volumeInput.dispatchEvent(new Event("input", { bubbles: true }));
     await Promise.resolve();
@@ -313,15 +332,15 @@ describe("editor inline split-button command integration", () => {
     window.__aqePendingCommandPayload = null;
     window.__aqeSetBusy?.(0, false);
 
-    document.querySelector<HTMLButtonElement>('[data-testid="aqe-split-0-slower-menu"]')!.click();
+    document.querySelector<HTMLButtonElement>('[data-testid="aqe-split-0-speed-menu"]')!.click();
     await Promise.resolve();
-    const slowerInput = document.querySelector<HTMLInputElement>('[data-testid="aqe-split-0-slower-value"]')!;
-    const slowerSlider = document.querySelector<HTMLInputElement>('[data-testid="aqe-split-0-slower-slider"]')!;
-    expect(slowerInput.value).toBe("0.95");
-    slowerInput.value = "0.88";
-    slowerInput.dispatchEvent(new Event("input", { bubbles: true }));
+    const speedInput = document.querySelector<HTMLInputElement>('[data-testid="aqe-split-0-speed-value"]')!;
+    const speedSlider = document.querySelector<HTMLInputElement>('[data-testid="aqe-split-0-speed-slider"]')!;
+    expect(speedInput.value).toBe("0.05");
+    speedInput.value = "0.12";
+    speedInput.dispatchEvent(new Event("input", { bubbles: true }));
     await Promise.resolve();
-    expect(slowerSlider.value).toBe("0.12");
+    expect(speedSlider.value).toBe("0.12");
     document.querySelector<HTMLButtonElement>('[data-testid="aqe-button-0-slower"]')!.click();
     const speedPayload = window.__aqePendingCommandPayload as EditorCommandPayload | null | undefined;
     expect(speedPayload?.overrides?.speedStep).toBe(0.12);

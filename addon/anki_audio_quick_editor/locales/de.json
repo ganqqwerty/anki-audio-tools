@@ -266,6 +266,8 @@
   "editor.processing_failed_note_unchanged": "Audioverarbeitung fehlgeschlagen. Die Notiz wurde nicht geändert. ({error})",
   "editor.split.options": "Optionen",
   "editor.split.save_defaults": "Diese Einstellungen als Standard übernehmen",
+  "editor.split.group.volume": "Lautstärke",
+  "editor.split.group.speed": "Geschwindigkeit",
   "editor.split.menu_title": "{label}-Schnelleinstellungen.",
   "editor.split.description": "Hiermit ändern Sie, wie {label} für dieses Feld ausgeführt wird. Aktueller Wert: {value}.",
   "editor.split.description_graph": "Hiermit ändern Sie, wie der Graph für dieses Feld gerendert wird. Aktuelle Einstellungen: {value}.",

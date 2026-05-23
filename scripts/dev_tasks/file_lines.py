@@ -71,8 +71,13 @@ PYTHON_FILE_LINE_ALLOWLIST: tuple[FileLineAllowance, ...] = (
     ),
     FileLineAllowance(
         relative_path="addon/anki_audio_quick_editor/editor_processing.py",
-        max_lines=511,
-        reason="Editor processing callbacks still need a dedicated refactor pass.",
+        max_lines=530,
+        reason="Editor processing callbacks and post-edit resync paths still need a dedicated refactor pass.",
+    ),
+    FileLineAllowance(
+        relative_path="addon/anki_audio_quick_editor/editor_region_delete.py",
+        max_lines=420,
+        reason="Region-delete callbacks still share remount and playback orchestration in one module.",
     ),
     FileLineAllowance(
         relative_path="addon/anki_audio_quick_editor/support.py",
@@ -121,13 +126,13 @@ PYTHON_FILE_LINE_ALLOWLIST: tuple[FileLineAllowance, ...] = (
     ),
     FileLineAllowance(
         relative_path="tests/test_editor_integration.py",
-        max_lines=443,
-        reason="Editor integration smoke coverage is still bundled together.",
+        max_lines=450,
+        reason="Editor integration smoke coverage and remount regressions are still bundled together.",
     ),
     FileLineAllowance(
         relative_path="tests/test_editor_noise_reduction_callbacks.py",
-        max_lines=500,
-        reason="Noise-reduction callback matrix is still maintained in one test file.",
+        max_lines=520,
+        reason="Noise-reduction callback matrix and remount regressions are still maintained in one test file.",
     ),
     FileLineAllowance(
         relative_path="tests/test_release_assets.py",

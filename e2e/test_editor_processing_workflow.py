@@ -32,13 +32,21 @@ from e2e.helpers import (
 )
 
 
+def _split_slug(command: str) -> str:
+    if command in {"aqe:volume-up", "aqe:volume-down"}:
+        return "volume"
+    if command in {"aqe:faster", "aqe:slower"}:
+        return "speed"
+    return command.removeprefix("aqe:")
+
+
 def _split_menu_selector(command: str, ord_: int = 0) -> str:
-    slug = command.removeprefix("aqe:")
+    slug = _split_slug(command)
     return f'[data-testid="aqe-split-{ord_}-{slug}-menu"]'
 
 
 def _split_popover_state_js(command: str, ord_: int = 0) -> str:
-    slug = command.removeprefix("aqe:")
+    slug = _split_slug(command)
     return f"""
     (() => {{
       const popover = document.querySelector('[data-testid="aqe-split-{ord_}-{slug}-popover"]');
@@ -131,11 +139,9 @@ def test_each_processing_button_updates_field_to_new_real_audio(
                     "Pitch Hum",
                     "Options",
                     "Slower",
-                    "Options",
                     "Faster",
                     "Options",
                     "Volume -",
-                    "Options",
                     "Volume +",
                     "Options",
                     "Undo",
@@ -358,21 +364,12 @@ def test_processing_undo_redo_and_new_edit_clears_redo(anki_mw, ffmpeg_config) -
               const redo = document.querySelector({_button_selector("aqe:redo")!r});
               return controls?.dataset.aqeSourceFilename === {third_generated!r}
                 && redo !== null
-                && redo.disabled === false;
+                && redo.disabled === true;
             }})()
             """,
             lambda value: value is True,
             timeout=5.0,
         )
-
-        click_selector(editor.web, _button_selector("aqe:redo"), timeout=5.0)
-        redo_status = wait_for_js_condition(
-            editor.web,
-            _processing_status_js(),
-            lambda value: value is not None and value["text"] == "Nothing to redo.",
-            timeout=5.0,
-        )
-        assert redo_status["kind"] == "info"
         assert _sound_filename(note.fields[0]) == third_generated
     finally:
         editor.set_note(None)

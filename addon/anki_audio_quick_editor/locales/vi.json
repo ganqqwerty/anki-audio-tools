@@ -266,6 +266,8 @@
   "editor.processing_failed_note_unchanged": "Xử lý âm thanh thất bại. Ghi chú chưa được thay đổi. ({error})",
   "editor.split.options": "Tùy chọn",
   "editor.split.save_defaults": "Đặt các cài đặt này làm mặc định",
+  "editor.split.group.volume": "Âm lượng",
+  "editor.split.group.speed": "Tốc độ",
   "editor.split.menu_title": "Thiết lập nhanh cho {label}.",
   "editor.split.description": "Thay đổi cách {label} chạy cho trường này. Giá trị hiện tại: {value}.",
   "editor.split.description_graph": "Thay đổi cách đồ thị được hiển thị cho trường này. Thiết lập hiện tại: {value}.",
