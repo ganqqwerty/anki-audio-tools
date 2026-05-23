@@ -129,16 +129,6 @@
     });
   }
 
-  function popoverDescription(): string {
-    if (button.command === "aqe:analyze") {
-      return t("editor.split.description_graph", { value: graphSummary });
-    }
-    return t("editor.split.description", {
-      label: button.label,
-      value: currentValueLabel(),
-    });
-  }
-
   function close(): void {
     open = false;
   }
@@ -303,7 +293,6 @@
             testId={`aqe-split-${target.ord}-${slug()}-save-default`}
           />
         </div>
-        <p class="aqe-split-popover-description">{popoverDescription()}</p>
         <GraphSplitOptions
           connectShortDropoutsMs={graphConnectShortDropoutsMs}
           onConnectShortDropouts={applyGraphConnectShortDropouts}

@@ -89,7 +89,7 @@ describe("split button state", () => {
   });
 
   it("formats and clamps graph split values", () => {
-    expect(formatGraphVoiceRange("child")).toBe("Child / falsetto");
+    expect(formatGraphVoiceRange("child")).toBe("Child/falcetto");
     expect(formatGraphRecordingCondition("very_noisy")).toBe("Very noisy");
     expect(formatGraphSmoothness("very_smooth")).toBe("Very smooth");
     expect(formatGraphVoiceLock("stable")).toBe("Stable");

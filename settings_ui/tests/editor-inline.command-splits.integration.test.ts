@@ -106,17 +106,18 @@ describe("editor inline split-button command integration", () => {
 
     document.querySelector<HTMLButtonElement>('[data-testid="aqe-split-0-graph-menu"]')!.click();
     await Promise.resolve();
-    for (const [slug, value] of [
-      ["voice-range", "4"],
-      ["recording-condition", "5"],
-      ["smoothness", "3"],
-      ["connect-dropouts", "90"],
-      ["voice-lock", "2"],
-    ] as const) {
-      const input = document.querySelector<HTMLInputElement>(`[data-testid="aqe-split-0-graph-${slug}"]`)!;
-      input.value = value;
-      input.dispatchEvent(new Event("input", { bubbles: true }));
-    }
+    expect(document.querySelector('[data-testid="aqe-split-0-graph-popover"]')).not.toHaveTextContent("Current settings:");
+    document.querySelector<HTMLButtonElement>('[data-testid="aqe-split-0-graph-voice-range-child"]')!.click();
+    document.querySelector<HTMLButtonElement>('[data-testid="aqe-split-0-graph-voice-lock-stable"]')!.click();
+    document.querySelector<HTMLButtonElement>('[data-testid="aqe-split-0-graph-smoothness-very_smooth"]')!.click();
+    const recordingConditionInput = document.querySelector<HTMLInputElement>(
+      '[data-testid="aqe-split-0-graph-recording-condition"]',
+    )!;
+    recordingConditionInput.value = "5";
+    recordingConditionInput.dispatchEvent(new Event("input", { bubbles: true }));
+    const connectDropoutsInput = document.querySelector<HTMLInputElement>('[data-testid="aqe-split-0-graph-connect-dropouts"]')!;
+    connectDropoutsInput.value = "90";
+    connectDropoutsInput.dispatchEvent(new Event("input", { bubbles: true }));
     await Promise.resolve();
 
     document.querySelector<HTMLButtonElement>('[data-testid="aqe-button-0-graph"]')!.click();
@@ -255,7 +256,7 @@ describe("editor inline split-button command integration", () => {
     scan(window.__AQE_EDITOR_CONFIG__);
 
     const menu = document.querySelector<HTMLButtonElement>('[data-testid="aqe-split-0-volume-up-menu"]')!;
-    expect(menu.title).toBe("Volume + quick settings. Current value: 3 dB.");
+    expect(menu.title).toBe("Volume + quick settings.");
 
     menu.click();
     await Promise.resolve();
@@ -268,7 +269,7 @@ describe("editor inline split-button command integration", () => {
 
     document.querySelector<HTMLButtonElement>('[data-testid="aqe-split-0-volume-up-preset-6"]')!.click();
     await Promise.resolve();
-    expect(menu.title).toBe("Volume + quick settings. Current value: 6 dB.");
+    expect(menu.title).toBe("Volume + quick settings.");
 
     document.querySelector<HTMLButtonElement>('[data-testid="aqe-split-0-volume-up-run"]')!.click();
 

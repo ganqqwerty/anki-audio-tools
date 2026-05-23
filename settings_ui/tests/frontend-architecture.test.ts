@@ -47,6 +47,7 @@ const audioElementAllowlist = new Set([
 
 const internalWindowStateNames = new Set([
   "__aqeActiveField",
+  "__aqeHistoryAvailabilityByField",
   "__aqeLastCursorIntent",
   "__aqeLastPlaybackRequest",
   "__aqePendingCommandPayload",
