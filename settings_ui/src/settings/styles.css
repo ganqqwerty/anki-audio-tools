@@ -89,11 +89,52 @@
   min-width: 0;
 }
 
+.settings-field-note {
+  color: var(--fg-subtle, currentColor);
+  font-size: 0.82rem;
+  font-weight: 500;
+  line-height: 1.35;
+}
+
 .settings-label-icon {
   align-items: center;
   color: var(--fg-subtle, currentColor);
   display: inline-flex;
   flex: 0 0 auto;
+}
+
+.settings-choice-group {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.settings-choice-button {
+  appearance: none;
+  background: var(--canvas, Canvas);
+  border: 1px solid color-mix(in srgb, var(--border, currentColor) 82%, transparent);
+  border-radius: 999px;
+  color: var(--fg, currentColor);
+  cursor: pointer;
+  font: inherit;
+  font-size: 0.84rem;
+  min-height: 34px;
+  padding: 7px 12px;
+  transition:
+    background-color 120ms ease,
+    border-color 120ms ease,
+    transform 120ms ease;
+}
+
+.settings-choice-button:hover {
+  border-color: var(--border-focus, var(--border, currentColor));
+  transform: translateY(-1px);
+}
+
+.settings-choice-button[aria-checked="true"] {
+  background: color-mix(in srgb, var(--canvas-elevated, Canvas) 70%, transparent);
+  border-color: var(--border-focus, var(--border, currentColor));
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--border-focus, var(--border, currentColor)) 68%, transparent);
 }
 
 .settings-input,
@@ -118,6 +159,7 @@
 .settings-select:focus,
 .settings-button:focus,
 .settings-tab:focus,
+.settings-choice-button:focus,
 .toolbar-button:focus,
 .toolbar-mode-toggle button:focus {
   border-color: var(--border-focus, var(--border, currentColor));

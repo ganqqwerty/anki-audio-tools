@@ -126,7 +126,19 @@ def click_selector(target, selector: str, timeout: float = DEFAULT_E2E_TIMEOUT) 
           const node = document.querySelector({json.dumps(selector)});
           if (!node) return false;
           if (node.disabled === true || node.getAttribute("aria-disabled") === "true") return false;
-          node.click();
+          const rect = node.getBoundingClientRect();
+          const clientX = rect.left + Math.min(rect.width / 2, Math.max(rect.width - 1, 1));
+          const clientY = rect.top + Math.min(rect.height / 2, Math.max(rect.height - 1, 1));
+          const base = {{ bubbles: true, button: 0, buttons: 1, clientX, clientY, composed: true }};
+          if (typeof PointerEvent === "function") {{
+            node.dispatchEvent(new PointerEvent("pointerdown", {{ ...base, pointerId: 1, pointerType: "mouse" }}));
+          }}
+          node.dispatchEvent(new MouseEvent("mousedown", base));
+          if (typeof PointerEvent === "function") {{
+            node.dispatchEvent(new PointerEvent("pointerup", {{ ...base, buttons: 0, pointerId: 1, pointerType: "mouse" }}));
+          }}
+          node.dispatchEvent(new MouseEvent("mouseup", {{ ...base, buttons: 0 }}));
+          node.dispatchEvent(new MouseEvent("click", {{ ...base, buttons: 0, detail: 1 }}));
           return true;
         }})()
         """,

@@ -328,21 +328,15 @@
           {/snippet}
         </AqeTooltip>
       {/if}
-      <AqeTooltip>
-        {#snippet trigger({ props })}
-          <Popover.Trigger
-            {...props}
-            class="aqe-button aqe-icon-only aqe-split-menu-button aqe-tooltip-target"
-            data-aqe-tooltip-content={menuTitle()}
-            data-testid={`aqe-split-${target.ord}-${menuSlug()}-menu`}
-            aria-label={menuTitle()}
-            onmousedown={(event) => event.preventDefault()}
-          >
-            <EditorCommandIcon icon="chevron-down" />
-            <span class="aqe-button-label">{t("editor.split.options")}</span>
-          </Popover.Trigger>
-        {/snippet}
-      </AqeTooltip>
+      <Popover.Trigger
+        class="aqe-button aqe-icon-only aqe-split-menu-button"
+        data-aqe-tooltip-content={menuTitle()}
+        data-testid={`aqe-split-${target.ord}-${menuSlug()}-menu`}
+        aria-label={menuTitle()}
+      >
+        <EditorCommandIcon icon="chevron-down" />
+        <span class="aqe-button-label">{t("editor.split.options")}</span>
+      </Popover.Trigger>
       <Popover.Content
         align="center"
         arrowPadding={14}

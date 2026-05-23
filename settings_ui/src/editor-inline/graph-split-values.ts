@@ -1,4 +1,13 @@
-import { t } from "../lib/i18n.js";
+import {
+  formatGraphRecordingCondition,
+  formatGraphSmoothness,
+  formatGraphVoiceLock,
+  formatGraphVoiceRange,
+  GRAPH_RECORDING_CONDITIONS,
+  GRAPH_SMOOTHNESSES,
+  GRAPH_VOICE_LOCKS,
+  GRAPH_VOICE_RANGES,
+} from "../lib/graph-option-copy.js";
 import type {
   GraphRecordingCondition,
   GraphSmoothness,
@@ -14,11 +23,6 @@ const DEFAULT_GRAPH_VOICE_RANGE: GraphVoiceRange = "general";
 const MIN_GRAPH_DROPOUT_MS = 0;
 const MAX_GRAPH_DROPOUT_MS = 500;
 const GRAPH_DROPOUT_STEP_MS = 30;
-
-export const GRAPH_VOICE_RANGES = ["bass", "low", "general", "high", "child"] as const;
-export const GRAPH_RECORDING_CONDITIONS = ["auto", "very_noisy", "noisy", "normal", "clean", "studio"] as const;
-export const GRAPH_SMOOTHNESSES = ["raw", "balanced", "smooth", "very_smooth"] as const;
-export const GRAPH_VOICE_LOCKS = ["loose", "balanced", "stable"] as const;
 
 export function defaultGraphSplitValues(): {
   graphConnectShortDropoutsMs: number;
@@ -67,18 +71,13 @@ export function graphVoiceLockOrDefault(value: unknown): GraphVoiceLock {
     : DEFAULT_GRAPH_VOICE_LOCK;
 }
 
-export function formatGraphVoiceRange(value: GraphVoiceRange): string {
-  return t(`settings.graph_voice_range.${value}`);
-}
-
-export function formatGraphRecordingCondition(value: GraphRecordingCondition): string {
-  return t(`settings.graph_recording_condition.${value}`);
-}
-
-export function formatGraphSmoothness(value: GraphSmoothness): string {
-  return t(`settings.graph_smoothness.${value}`);
-}
-
-export function formatGraphVoiceLock(value: GraphVoiceLock): string {
-  return t(`settings.graph_voice_lock.${value}`);
-}
+export {
+  formatGraphRecordingCondition,
+  formatGraphSmoothness,
+  formatGraphVoiceLock,
+  formatGraphVoiceRange,
+  GRAPH_RECORDING_CONDITIONS,
+  GRAPH_SMOOTHNESSES,
+  GRAPH_VOICE_LOCKS,
+  GRAPH_VOICE_RANGES,
+};

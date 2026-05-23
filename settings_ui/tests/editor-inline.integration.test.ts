@@ -133,7 +133,10 @@ describe("editor inline Svelte integration", () => {
 
     expect(shareButton).toBeInTheDocument();
     expect(shareMenuButton).toBeInTheDocument();
-    expect(shareButton).toHaveAttribute("aria-label", "Upload the current audio and copy a public link");
+    expect(shareButton).toHaveAttribute(
+      "aria-label",
+      "Upload the current audio to Catbox or Litterbox and copy a public link",
+    );
   });
 
   it.each(["aac", "flac", "m4a", "mp3", "oga", "ogg", "opus", "wav", "webm"])(

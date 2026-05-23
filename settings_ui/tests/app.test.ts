@@ -122,11 +122,11 @@ describe("App", () => {
       "data-aqe-tooltip-content",
       "Play or pause the current audio",
     );
-    expect(screen.getByText("Graph voice range")).toBeInTheDocument();
-    expect(screen.getByText("Graph recording condition")).toBeInTheDocument();
+    expect(screen.getByText("Speaker's voice")).toBeInTheDocument();
+    expect(screen.getByText("Recording condition")).toBeInTheDocument();
     expect(screen.getByText("Graph smoothness")).toBeInTheDocument();
-    expect(screen.getByText("Connect graph dropouts shorter than (ms)")).toBeInTheDocument();
-    expect(screen.getByText("Graph voice lock")).toBeInTheDocument();
+    expect(screen.getByText("Connect holes in graph shorter than (ms)")).toBeInTheDocument();
+    expect(screen.getByText("Voice lock")).toBeInTheDocument();
     expect(screen.getByText("ffmpeg path")).toBeInTheDocument();
     expect(screen.getByText("DeepFilterNet path")).toBeInTheDocument();
     expect(screen.getByText("Use DeepFilterNet post-filter")).toBeInTheDocument();
@@ -248,21 +248,15 @@ describe("App", () => {
     setInitialState();
 
     render(App);
-    await fireEvent.change(screen.getByTestId("graph-voice-range"), {
-      target: { value: GraphVoiceRange.Child },
-    });
-    await fireEvent.change(screen.getByTestId("graph-recording-condition"), {
-      target: { value: GraphRecordingCondition.Studio },
-    });
+    await fireEvent.click(screen.getByTestId(`graph-voice-range-${GraphVoiceRange.Child}`));
+    await fireEvent.click(screen.getByTestId(`graph-recording-condition-${GraphRecordingCondition.Studio}`));
     await fireEvent.change(screen.getByTestId("graph-smoothness"), {
       target: { value: GraphSmoothness.VerySmooth },
     });
     await fireEvent.input(screen.getByTestId("graph-connect-short-dropouts-ms"), {
       target: { value: "90" },
     });
-    await fireEvent.change(screen.getByTestId("graph-voice-lock"), {
-      target: { value: GraphVoiceLock.Stable },
-    });
+    await fireEvent.click(screen.getByTestId(`graph-voice-lock-${GraphVoiceLock.Stable}`));
     await fireEvent.click(screen.getByRole("button", { name: "Save" }));
 
     const config = bridgePayload<{

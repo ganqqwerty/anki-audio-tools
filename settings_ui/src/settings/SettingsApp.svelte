@@ -2,6 +2,7 @@
   import { onMount } from "svelte";
   import "./styles.css";
 
+  import AqeTooltipProvider from "$lib/AqeTooltipProvider.svelte";
   import { handleAsyncDone, handleAsyncProgress, startAsyncOp } from "$lib/async-jobs.js";
   import {
     copySupportReport,
@@ -104,66 +105,68 @@
   }
 </script>
 
-<div class="settings-root" dir={initialState.direction} lang={initialState.locale}>
-  <header class="hero">
-    <div>
-      <p class="eyebrow">{t("app.name")}</p>
-      <h1>{t("settings.title")}</h1>
-      <p class="summary">
-        {t("settings.summary")}
-      </p>
+<AqeTooltipProvider>
+  <div class="settings-root" dir={initialState.direction} lang={initialState.locale}>
+    <header class="hero">
+      <div>
+        <p class="eyebrow">{t("app.name")}</p>
+        <h1>{t("settings.title")}</h1>
+        <p class="summary">
+          {t("settings.summary")}
+        </p>
+      </div>
+      <div class="version-pill">v{initialState.version}</div>
+    </header>
+
+    <div class="tab-nav" role="tablist" aria-label={t("settings.tabs.label")}>
+      <button
+        class="settings-tab"
+        class:active={activeTab === "general"}
+        role="tab"
+        aria-selected={activeTab === "general"}
+        type="button"
+        onclick={() => (activeTab = "general")}
+      >
+        {t("settings.tab.general")}
+      </button>
+      <button
+        class="settings-tab"
+        class:active={activeTab === "diagnostics"}
+        data-testid="settings-tab-diagnostics"
+        role="tab"
+        aria-selected={activeTab === "diagnostics"}
+        type="button"
+        onclick={() => (activeTab = "diagnostics")}
+      >
+        {t("settings.tab.diagnostics")}
+      </button>
     </div>
-    <div class="version-pill">v{initialState.version}</div>
-  </header>
 
-  <div class="tab-nav" role="tablist" aria-label={t("settings.tabs.label")}>
-    <button
-      class="settings-tab"
-      class:active={activeTab === "general"}
-      role="tab"
-      aria-selected={activeTab === "general"}
-      type="button"
-      onclick={() => (activeTab = "general")}
-    >
-      {t("settings.tab.general")}
-    </button>
-    <button
-      class="settings-tab"
-      class:active={activeTab === "diagnostics"}
-      data-testid="settings-tab-diagnostics"
-      role="tab"
-      aria-selected={activeTab === "diagnostics"}
-      type="button"
-      onclick={() => (activeTab = "diagnostics")}
-    >
-      {t("settings.tab.diagnostics")}
-    </button>
+    <section class="panel" role="tabpanel">
+      {#if activeTab === "general"}
+        <GeneralSettingsPanel bind:config saveError={saveError} />
+      {:else}
+        <DiagnosticsPanel
+          initialState={initialState}
+          healthMessage={healthMessage}
+          healthReport={healthReport}
+          healthProgress={healthProgress}
+          diagnosticsMessage={diagnosticsMessage}
+          onRunHealthCheck={runHealthCheck}
+          onCheckMedia={settingsCheckMedia}
+          onCopySupportReport={copyLatestSupportReport}
+          onShowLogFile={showLogFile}
+        />
+      {/if}
+    </section>
+
+    <SettingsFooter
+      onResetDefaults={settingsResetDefaults}
+      onCancel={settingsCancel}
+      onSave={saveConfig}
+    />
   </div>
-
-  <section class="panel" role="tabpanel">
-    {#if activeTab === "general"}
-      <GeneralSettingsPanel bind:config saveError={saveError} />
-    {:else}
-      <DiagnosticsPanel
-        initialState={initialState}
-        healthMessage={healthMessage}
-        healthReport={healthReport}
-        healthProgress={healthProgress}
-        diagnosticsMessage={diagnosticsMessage}
-        onRunHealthCheck={runHealthCheck}
-        onCheckMedia={settingsCheckMedia}
-        onCopySupportReport={copyLatestSupportReport}
-        onShowLogFile={showLogFile}
-      />
-    {/if}
-  </section>
-
-  <SettingsFooter
-    onResetDefaults={settingsResetDefaults}
-    onCancel={settingsCancel}
-    onSave={saveConfig}
-  />
-</div>
+</AqeTooltipProvider>
 
 <style>
   :global(body) {

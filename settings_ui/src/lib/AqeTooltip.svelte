@@ -82,7 +82,7 @@
     max-width: min(32ch, calc(100vw - 24px));
     padding: 6px 8px;
     pointer-events: none;
-    white-space: normal;
+    white-space: pre-line;
     z-index: 12000;
   }
 
