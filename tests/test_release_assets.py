@@ -78,12 +78,30 @@ def test_release_ready_lock_requires_runtime_file_checksums() -> None:
         release_assets.validate_lock(release_ready_lock)
 
 
-def test_verify_target_reports_missing_runtime_binary(tmp_path: Path) -> None:
+def test_verify_target_reports_missing_tracked_runtime_binary(tmp_path: Path) -> None:
     lock = release_assets.load_lock()
 
     result = release_assets.verify_assets(
         lock,
         cache_dir=tmp_path,
+        addon_bin_dir=tmp_path / "addon-bin",
+        target_keys=["macos-arm64"],
+        run_diagnostics=False,
+    )
+
+    assert result.ok is False
+    assert "macos-arm64/deep-filter" in "\n".join(result.errors)
+
+
+def test_verify_target_reports_missing_cached_ffmpeg_binary(tmp_path: Path) -> None:
+    lock = release_assets.load_lock()
+    addon_bin_dir = tmp_path / "addon-bin"
+    _write_verified_target_tracked_files(lock, addon_bin_dir, "macos-arm64")
+
+    result = release_assets.verify_assets(
+        lock,
+        cache_dir=tmp_path / "cache",
+        addon_bin_dir=addon_bin_dir,
         target_keys=["macos-arm64"],
         run_diagnostics=False,
     )
@@ -95,15 +113,16 @@ def test_verify_target_reports_missing_runtime_binary(tmp_path: Path) -> None:
 def test_verify_target_reports_checksum_mismatch(tmp_path: Path) -> None:
     lock = release_assets.load_lock()
     locked = copy.deepcopy(lock)
-    entry = locked["targets"]["macos-arm64"]["tools"]["ffmpeg"]
+    entry = locked["targets"]["macos-arm64"]["tools"]["deep-filter"]
     entry["sha256"] = hashlib.sha256(b"expected").hexdigest()
-    binary = tmp_path / "bin" / "macos-arm64" / "ffmpeg"
+    binary = tmp_path / "addon-bin" / "macos-arm64" / "deep-filter"
     binary.parent.mkdir(parents=True)
     binary.write_bytes(b"actual")
 
     result = release_assets.verify_assets(
         locked,
         cache_dir=tmp_path,
+        addon_bin_dir=tmp_path / "addon-bin",
         target_keys=["macos-arm64"],
         run_diagnostics=False,
     )
@@ -118,7 +137,7 @@ def test_verify_runs_current_sherpa_spleeter_smoke(
 ) -> None:
     lock = copy.deepcopy(release_assets.load_lock())
     current_target = "macos-arm64"
-    _write_verified_target_cache(lock, tmp_path, current_target)
+    _write_verified_target_sources(lock, tmp_path / "cache", tmp_path / "addon-bin", current_target)
     monkeypatch.setattr(release_assets, "current_target_key", lambda: current_target)
     monkeypatch.setattr(release_assets, "_append_diagnostic_report", lambda *_args: None)
     commands: list[tuple[str, ...]] = []
@@ -143,7 +162,8 @@ def test_verify_runs_current_sherpa_spleeter_smoke(
 
     result = release_assets.verify_assets(
         lock,
-        cache_dir=tmp_path,
+        cache_dir=tmp_path / "cache",
+        addon_bin_dir=tmp_path / "addon-bin",
         target_keys=[current_target],
         run_diagnostics=True,
     )
@@ -178,6 +198,7 @@ def test_stage_copies_verified_runtime_binary(tmp_path: Path) -> None:
     staged = release_assets.stage_assets(
         locked,
         cache_dir=tmp_path / "cache",
+        addon_bin_dir=tmp_path / "addon-bin",
         destination=tmp_path / "stage",
         target_keys=["macos-arm64"],
         tool_names=["ffmpeg"],
@@ -191,7 +212,7 @@ def test_stage_copies_shared_model_files_when_staging_full_runtime(tmp_path: Pat
     lock = release_assets.load_lock()
     locked = copy.deepcopy(lock)
     binary = tmp_path / "cache" / "bin" / "macos-arm64" / "ffmpeg"
-    vocals = tmp_path / "cache" / "shared" / "models" / "spleeter-2stems-fp16" / "vocals.fp16.onnx"
+    vocals = tmp_path / "addon-bin" / "models" / "spleeter-2stems-fp16" / "vocals.fp16.onnx"
     accompaniment = vocals.parent / "accompaniment.fp16.onnx"
     binary.parent.mkdir(parents=True)
     vocals.parent.mkdir(parents=True)
@@ -205,6 +226,7 @@ def test_stage_copies_shared_model_files_when_staging_full_runtime(tmp_path: Pat
     staged = release_assets.stage_assets(
         locked,
         cache_dir=tmp_path / "cache",
+        addon_bin_dir=tmp_path / "addon-bin",
         destination=tmp_path / "stage",
         target_keys=["macos-arm64"],
         tool_names=["ffmpeg"],
@@ -220,17 +242,22 @@ def test_lock_checksums_writes_present_binary_hashes(tmp_path: Path) -> None:
     lock = release_assets.load_lock()
     lock_path.write_text(json.dumps(lock), encoding="utf-8")
     binary = tmp_path / "cache" / "bin" / "macos-arm64" / "ffmpeg"
-    dpdfnet_binary = tmp_path / "cache" / "bin" / "macos-arm64" / "dpdfnet"
-    runtime_file = tmp_path / "cache" / "bin" / "macos-arm64" / "libonnxruntime.1.24.4.dylib"
-    vocals = tmp_path / "cache" / "shared" / "models" / "spleeter-2stems-fp16" / "vocals.fp16.onnx"
+    dpdfnet_binary = tmp_path / "addon-bin" / "macos-arm64" / "dpdfnet"
+    runtime_file = tmp_path / "addon-bin" / "macos-arm64" / "libonnxruntime.1.24.4.dylib"
+    vocals = tmp_path / "addon-bin" / "models" / "spleeter-2stems-fp16" / "vocals.fp16.onnx"
     binary.parent.mkdir(parents=True)
+    dpdfnet_binary.parent.mkdir(parents=True, exist_ok=True)
     vocals.parent.mkdir(parents=True)
     binary.write_bytes(b"ffmpeg")
     dpdfnet_binary.write_bytes(b"dpdfnet")
     runtime_file.write_bytes(b"onnxruntime")
     vocals.write_bytes(b"vocals")
 
-    release_assets.lock_checksums(lock_path=lock_path, cache_dir=tmp_path / "cache")
+    release_assets.lock_checksums(
+        lock_path=lock_path,
+        cache_dir=tmp_path / "cache",
+        addon_bin_dir=tmp_path / "addon-bin",
+    )
 
     updated = json.loads(lock_path.read_text(encoding="utf-8"))
     assert updated["targets"]["macos-arm64"]["tools"]["ffmpeg"]["sha256"] == hashlib.sha256(
@@ -415,22 +442,46 @@ def _write_tar_bz2(path: Path, files: dict[str, bytes]) -> None:
             tf.addfile(info, io.BytesIO(payload))
 
 
-def _write_verified_target_cache(lock: dict, cache_dir: Path, target: str) -> None:
+def _write_verified_target_sources(lock: dict, cache_dir: Path, addon_bin_dir: Path, target: str) -> None:
     for tool_name in release_assets.lock_tools(lock, target):
         entry = lock["targets"][target]["tools"][tool_name]
         payload = f"{target}/{tool_name}".encode()
-        _write_locked_file(release_assets.asset_binary_path(cache_dir, target, entry), payload, entry)
+        _write_locked_file(
+            release_assets.source_tool_binary_path(cache_dir, addon_bin_dir, target, tool_name, entry),
+            payload,
+            entry,
+        )
         for file_entry in release_assets.tool_runtime_files(lock, target, tool_name):
             runtime_payload = f"{target}/{tool_name}/{file_entry['path']}".encode()
             _write_locked_file(
-                release_assets.runtime_file_path(cache_dir, target, file_entry),
+                release_assets.tracked_runtime_file_path(addon_bin_dir, target, file_entry),
                 runtime_payload,
                 file_entry,
             )
     for file_name in release_assets.SHARED_FILE_NAMES:
         entry = lock["shared_files"][file_name]
         payload = f"shared/{file_name}".encode()
-        _write_locked_file(release_assets.shared_asset_path(cache_dir, entry), payload, entry)
+        _write_locked_file(release_assets.tracked_shared_asset_path(addon_bin_dir, entry), payload, entry)
+
+
+def _write_verified_target_tracked_files(lock: dict, addon_bin_dir: Path, target: str) -> None:
+    for tool_name in release_assets.lock_tools(lock, target):
+        if tool_name in {"ffmpeg", "ffprobe"}:
+            continue
+        entry = lock["targets"][target]["tools"][tool_name]
+        payload = f"{target}/{tool_name}".encode()
+        _write_locked_file(release_assets.tracked_tool_binary_path(addon_bin_dir, target, entry), payload, entry)
+        for file_entry in release_assets.tool_runtime_files(lock, target, tool_name):
+            runtime_payload = f"{target}/{tool_name}/{file_entry['path']}".encode()
+            _write_locked_file(
+                release_assets.tracked_runtime_file_path(addon_bin_dir, target, file_entry),
+                runtime_payload,
+                file_entry,
+            )
+    for file_name in release_assets.SHARED_FILE_NAMES:
+        entry = lock["shared_files"][file_name]
+        payload = f"shared/{file_name}".encode()
+        _write_locked_file(release_assets.tracked_shared_asset_path(addon_bin_dir, entry), payload, entry)
 
 
 def _write_locked_file(path: Path, payload: bytes, entry: dict) -> None:

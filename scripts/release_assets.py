@@ -38,7 +38,11 @@ from scripts.release_asset_common import (
     runtime_file_path,
     sha256_file,
     shared_asset_path,
+    tool_uses_cached_binary,
     tool_runtime_files,
+    tracked_runtime_file_path,
+    tracked_shared_asset_path,
+    tracked_tool_binary_path,
     validate_lock,
 )
 from scripts.release_asset_common import (
@@ -59,6 +63,7 @@ from scripts.release_sherpa_assets import (
 ROOT = Path(__file__).resolve().parent.parent
 LOCK_PATH = ROOT / "release_assets.lock.json"
 CACHE_DIR = ROOT / ".release-assets"
+ADDON_BIN_DIR = ROOT / "addon" / "anki_audio_quick_editor" / "bin"
 
 
 def load_lock(path: Path = LOCK_PATH) -> dict[str, Any]:
@@ -89,6 +94,7 @@ def verify_assets(
     lock: dict[str, Any],
     *,
     cache_dir: Path = CACHE_DIR,
+    addon_bin_dir: Path = ADDON_BIN_DIR,
     target_keys: list[str] | None = None,
     run_diagnostics: bool = True,
 ) -> VerificationResult:
@@ -101,14 +107,15 @@ def verify_assets(
     for target in selected_targets:
         _validate_target(target)
         for tool_name in lock_tools(lock, target):
-            _verify_tool_asset(lock, cache_dir, reports, errors, target, tool_name, run_diagnostics)
-            _verify_tool_runtime_files(lock, cache_dir, reports, errors, target, tool_name)
+            _verify_tool_asset(lock, cache_dir, addon_bin_dir, reports, errors, target, tool_name, run_diagnostics)
+            _verify_tool_runtime_files(lock, addon_bin_dir, reports, errors, target, tool_name)
     for file_name in SHARED_FILE_NAMES:
-        _verify_shared_asset(lock, cache_dir, reports, errors, file_name)
+        _verify_shared_asset(lock, addon_bin_dir, reports, errors, file_name)
     if run_diagnostics:
         append_sherpa_spleeter_smoke_report(
             lock,
             cache_dir=cache_dir,
+            addon_bin_dir=addon_bin_dir,
             target_keys=selected_targets,
             current_target=current_target_key(),
             reports=reports,
@@ -120,6 +127,7 @@ def verify_assets(
 def _verify_tool_asset(
     lock: dict[str, Any],
     cache_dir: Path,
+    addon_bin_dir: Path,
     reports: list[str],
     errors: list[str],
     target: str,
@@ -127,7 +135,7 @@ def _verify_tool_asset(
     run_diagnostics: bool,
 ) -> None:
     entry = _tool_entry(lock, target, tool_name)
-    path = asset_binary_path(cache_dir, target, entry)
+    path = source_tool_binary_path(cache_dir, addon_bin_dir, target, tool_name, entry)
     expected_sha = entry.get("sha256")
     actual_sha = _verified_asset_sha(path, expected_sha, errors, f"{target}/{tool_name}", "binary")
     if actual_sha is None:
@@ -139,13 +147,13 @@ def _verify_tool_asset(
 
 def _verify_shared_asset(
     lock: dict[str, Any],
-    cache_dir: Path,
+    addon_bin_dir: Path,
     reports: list[str],
     errors: list[str],
     file_name: str,
 ) -> None:
     entry = _shared_file_entry(lock, file_name)
-    path = shared_asset_path(cache_dir, entry)
+    path = tracked_shared_asset_path(addon_bin_dir, entry)
     actual_sha = _verified_asset_sha(path, entry.get("sha256"), errors, f"shared/{file_name}", "file")
     if actual_sha is not None:
         reports.append(f"shared/{file_name}: {path} sha256={actual_sha}")
@@ -153,7 +161,7 @@ def _verify_shared_asset(
 
 def _verify_tool_runtime_files(
     lock: dict[str, Any],
-    cache_dir: Path,
+    addon_bin_dir: Path,
     reports: list[str],
     errors: list[str],
     target: str,
@@ -161,7 +169,7 @@ def _verify_tool_runtime_files(
 ) -> None:
     for file_entry in tool_runtime_files(lock, target, tool_name):
         label = f"{target}/{tool_name}/{file_entry['path']}"
-        path = runtime_file_path(cache_dir, target, file_entry)
+        path = tracked_runtime_file_path(addon_bin_dir, target, file_entry)
         actual_sha = _verified_asset_sha(path, file_entry.get("sha256"), errors, label, "file")
         if actual_sha is not None:
             reports.append(f"{label}: {path} sha256={actual_sha}")
@@ -191,6 +199,7 @@ def stage_assets(
     lock: dict[str, Any],
     *,
     cache_dir: Path = CACHE_DIR,
+    addon_bin_dir: Path = ADDON_BIN_DIR,
     destination: Path,
     target_keys: list[str] | None = None,
     tool_names: list[str] | None = None,
@@ -212,7 +221,7 @@ def stage_assets(
             expected_sha = entry.get("sha256")
             if not expected_sha:
                 raise ReleaseAssetError(f"{target}/{tool_name}: missing sha256 in release_assets.lock.json")
-            source = asset_binary_path(cache_dir, target, entry)
+            source = source_tool_binary_path(cache_dir, addon_bin_dir, target, tool_name, entry)
             if not source.is_file():
                 raise ReleaseAssetError(f"{target}/{tool_name}: missing binary at {source}")
             actual_sha = sha256_file(source)
@@ -227,7 +236,7 @@ def stage_assets(
             staged.extend(
                 _stage_tool_runtime_files(
                     lock,
-                    cache_dir=cache_dir,
+                    source_dir=addon_bin_dir,
                     destination=destination,
                     target=target,
                     tool_name=tool_name,
@@ -235,28 +244,33 @@ def stage_assets(
             )
     should_stage_shared = tool_names is None if include_shared is None else include_shared
     if should_stage_shared:
-        staged.extend(_stage_shared_files(lock, cache_dir=cache_dir, destination=destination))
+        staged.extend(_stage_shared_files(lock, source_dir=addon_bin_dir, destination=destination))
     return staged
 
 
-def lock_checksums(*, lock_path: Path = LOCK_PATH, cache_dir: Path = CACHE_DIR) -> dict[str, Any]:
-    """Update lock-file checksums for cached binaries that are present."""
+def lock_checksums(
+    *,
+    lock_path: Path = LOCK_PATH,
+    cache_dir: Path = CACHE_DIR,
+    addon_bin_dir: Path = ADDON_BIN_DIR,
+) -> dict[str, Any]:
+    """Update lock-file checksums for the mixed tracked/cache runtime layout."""
 
     lock = load_lock(lock_path)
     validate_lock(lock)
     for target in TARGET_KEYS:
         for tool_name in lock_tools(lock, target):
             entry = _tool_entry(lock, target, tool_name)
-            path = asset_binary_path(cache_dir, target, entry)
+            path = source_tool_binary_path(cache_dir, addon_bin_dir, target, tool_name, entry)
             if path.is_file():
                 entry["sha256"] = sha256_file(path)
             for file_entry in tool_runtime_files(lock, target, tool_name):
-                runtime_path = runtime_file_path(cache_dir, target, file_entry)
+                runtime_path = tracked_runtime_file_path(addon_bin_dir, target, file_entry)
                 if runtime_path.is_file():
                     file_entry["sha256"] = sha256_file(runtime_path)
     for file_name in SHARED_FILE_NAMES:
         entry = _shared_file_entry(lock, file_name)
-        path = shared_asset_path(cache_dir, entry)
+        path = tracked_shared_asset_path(addon_bin_dir, entry)
         if path.is_file():
             entry["sha256"] = sha256_file(path)
     lock_path.write_text(json.dumps(lock, indent=2, sort_keys=False) + "\n", encoding="utf-8")
@@ -332,6 +346,20 @@ def asset_binary_path(cache_dir: Path, target: str, entry: dict[str, Any]) -> Pa
 
     executable = _safe_relative_executable(entry["executable"])
     return cache_dir / "bin" / target / executable
+
+
+def source_tool_binary_path(
+    cache_dir: Path,
+    addon_bin_dir: Path,
+    target: str,
+    tool_name: str,
+    entry: dict[str, Any],
+) -> Path:
+    """Return the canonical source path for a runtime executable."""
+
+    if tool_uses_cached_binary(tool_name):
+        return asset_binary_path(cache_dir, target, entry)
+    return tracked_tool_binary_path(addon_bin_dir, target, entry)
 
 
 def _target_selection(value: str) -> list[str]:

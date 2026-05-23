@@ -25,6 +25,10 @@ python3 scripts/dev.py release-assets lock-checksums
 python3 scripts/dev.py release-assets verify --target current
 ```
 
+Only `ffmpeg` and `ffprobe` stay in `.release-assets`. All other runtime
+payloads now live in `addon/anki_audio_quick_editor/bin/` and should be copied
+there before refreshing checksums.
+
 macOS builds should verify `file`, `codesign -dv`, `otool -L`, and `xattr -l`.
 Windows builds can run on a Windows x86_64 machine or via the macOS cross-build
 script when `x86_64-w64-mingw32-gcc` is installed, then verify

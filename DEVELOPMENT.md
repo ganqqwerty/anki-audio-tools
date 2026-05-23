@@ -39,7 +39,7 @@ Anki add-ons cannot rely on `pip install` at user runtime. Audio Quick Editor us
 
 Release archives bundle `ffmpeg`, `ffprobe`, DeepFilterNet's `deep-filter`, `rnnoise-cli`, Sherpa's `sherpa-spleeter`, and DPDFNet Lite below `bin/<target>/`, plus shared Spleeter model files below `bin/models/spleeter-2stems-fp16/`. Runtime discovery checks user overrides first where supported, bundled tools second, and `PATH` as a compatibility fallback. The settings diagnostics report whether each tool came from config, the bundled payload, or `PATH`.
 
-Native release assets are not committed into `addon/anki_audio_quick_editor/bin/`. The checked-in `bin/` directory contains documentation and notices only. Use `.release-assets/bin/<target>/` for target executables, `.release-assets/shared/` for shared model files, and `release_assets.lock.json` as the source of truth for expected runtime files, source URLs, diagnostic arguments, and SHA-256 values. Source-tree development uses the same runtime layout as releases: stage any needed generated payload into the add-on `bin/` tree before launching the symlinked add-on.
+`release_assets.lock.json` remains the source of truth for the runtime matrix, source URLs, diagnostic arguments, and SHA-256 values, but the files now come from two places. Commit all non-FFmpeg runtime payloads directly under `addon/anki_audio_quick_editor/bin/<target>/` and `addon/anki_audio_quick_editor/bin/models/`. Keep only `ffmpeg` and `ffprobe` external in `.release-assets/bin/<target>/`. Source-tree development uses the same canonical layout as releases, so runtime lookups keep reading from the add-on `bin/` tree.
 
 Release asset workflow:
 
@@ -55,7 +55,7 @@ scripts/dpdfnet_cli/build_macos.sh macos-arm64
 scripts/dpdfnet_cli/build_macos.sh macos-x86_64
 pwsh -File scripts/dpdfnet_cli/build_windows.ps1 -Target windows-x86_64
 python3 scripts/dev.py release-assets verify --target all
-python3 scripts/dev.py release-assets stage --target current --tool dpdfnet --destination addon/anki_audio_quick_editor/bin
+python3 scripts/dev.py release-assets lock-checksums
 ```
 
 DPDFNet Lite artifacts are prepared through the manual GitHub Actions workflows
@@ -63,10 +63,10 @@ DPDFNet Lite artifacts are prepared through the manual GitHub Actions workflows
 native host. The scripts build the vendored TFLite CLI source in
 `scripts/dpdfnet_cli/lite_src/`, bundle the locked `dpdfnet4.tflite` model,
 smoke-test `enhance`, and upload platform artifacts. After downloading an
-artifact, place it under `.release-assets/bin/<target>/dpdfnet` or
-`.release-assets/bin/windows-x86_64/dpdfnet.exe`, update the lock with
-`python3 scripts/dev.py release-assets lock-checksums`, and keep `dpdfnet`
-in that target's release/runtime matrix.
+artifact, copy it into `addon/anki_audio_quick_editor/bin/<target>/dpdfnet` or
+`addon/anki_audio_quick_editor/bin/windows-x86_64/dpdfnet.exe`, refresh the
+lock with `python3 scripts/dev.py release-assets lock-checksums`, and keep
+`dpdfnet` embedded-only in that target's release/runtime matrix.
 
 On a Windows host, the equivalent local build command is:
 
@@ -74,9 +74,9 @@ On a Windows host, the equivalent local build command is:
 .\scripts\dpdfnet_cli\build_windows.ps1 -Target windows-x86_64
 ```
 
-FFmpeg and FFprobe are fetched from locked third-party static release archives: Martin Riedl's macOS builds and Gyan Doshi's Windows essentials build. The lock records both the provider archive SHA-256 and the extracted executable SHA-256. RNNoise is still built locally from source; Windows RNNoise can be cross-built from macOS when `x86_64-w64-mingw32-gcc` is available. A release is not approved until native acceptance has run on each supported platform.
+FFmpeg and FFprobe are fetched from locked third-party static release archives into `.release-assets/bin/<target>/`: Martin Riedl's macOS builds and Gyan Doshi's Windows essentials build. The lock records both the provider archive SHA-256 and the extracted executable SHA-256. RNNoise is still built locally from source; Windows RNNoise can be cross-built from macOS when `x86_64-w64-mingw32-gcc` is available. The default maintainer workflow for non-FFmpeg assets is regenerate externally, copy the verified artifact into `addon/anki_audio_quick_editor/bin/`, refresh checksums, and commit. A release is not approved until native acceptance has run on each supported platform.
 
-Sherpa Spleeter is fetched from locked `sherpa-onnx` native archives. Packaging renames the upstream `sherpa-onnx-offline-source-separation` executable to `sherpa-spleeter`, stages the target-specific ONNX Runtime libraries beside it, and downloads the shared Spleeter 2-stems fp16 model archive once.
+Sherpa Spleeter is fetched from locked `sherpa-onnx` native archives. Packaging renames the upstream `sherpa-onnx-offline-source-separation` executable to `sherpa-spleeter`, stages the target-specific ONNX Runtime libraries beside it, and reads the committed shared Spleeter 2-stems fp16 model files from `addon/anki_audio_quick_editor/bin/models/`.
 
 Package one platform at a time for normal distribution:
 

@@ -17,10 +17,12 @@ mutants/
 dist/
 .release-assets/
 /addon/anki_audio_quick_editor/bin/runtime_manifest.json
-/addon/anki_audio_quick_editor/bin/macos-arm64/
-/addon/anki_audio_quick_editor/bin/macos-x86_64/
-/addon/anki_audio_quick_editor/bin/windows-x86_64/
-/addon/anki_audio_quick_editor/bin/models/
+/addon/anki_audio_quick_editor/bin/macos-arm64/ffmpeg
+/addon/anki_audio_quick_editor/bin/macos-arm64/ffprobe
+/addon/anki_audio_quick_editor/bin/macos-x86_64/ffmpeg
+/addon/anki_audio_quick_editor/bin/macos-x86_64/ffprobe
+/addon/anki_audio_quick_editor/bin/windows-x86_64/ffmpeg.exe
+/addon/anki_audio_quick_editor/bin/windows-x86_64/ffprobe.exe
 
 # Generated source and webview artifacts
 /addon/anki_audio_quick_editor/contracts_generated.py

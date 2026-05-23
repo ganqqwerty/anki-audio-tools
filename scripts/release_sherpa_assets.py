@@ -27,6 +27,8 @@ from scripts.release_asset_common import (
     runtime_file_path,
     sha256_file,
     shared_asset_path,
+    tracked_shared_asset_path,
+    tracked_tool_binary_path,
     tool_runtime_files,
     validate_lock,
 )
@@ -88,6 +90,7 @@ def append_sherpa_spleeter_smoke_report(
     lock: dict[str, Any],
     *,
     cache_dir: Path,
+    addon_bin_dir: Path,
     target_keys: list[str],
     current_target: str,
     reports: list[str],
@@ -97,7 +100,7 @@ def append_sherpa_spleeter_smoke_report(
 
     if current_target not in target_keys:
         return
-    paths = _spleeter_smoke_paths(lock, cache_dir, current_target)
+    paths = _spleeter_smoke_paths(lock, cache_dir, addon_bin_dir, current_target)
     missing = [label for label, path in paths.items() if not path.is_file()]
     if missing:
         return
@@ -129,12 +132,12 @@ def _fetch_sherpa_runtime_files(
     return fetched
 
 
-def _spleeter_smoke_paths(lock: dict[str, Any], cache_dir: Path, target: str) -> dict[str, Path]:
+def _spleeter_smoke_paths(lock: dict[str, Any], cache_dir: Path, addon_bin_dir: Path, target: str) -> dict[str, Path]:
     return {
         "ffmpeg": _asset_binary_path(cache_dir, target, _tool_entry(lock, target, "ffmpeg")),
-        "sherpa-spleeter": _asset_binary_path(cache_dir, target, _tool_entry(lock, target, "sherpa-spleeter")),
-        "vocals-model": shared_asset_path(cache_dir, _shared_file_entry(lock, "spleeter-vocals")),
-        "accompaniment-model": shared_asset_path(cache_dir, _shared_file_entry(lock, "spleeter-accompaniment")),
+        "sherpa-spleeter": tracked_tool_binary_path(addon_bin_dir, target, _tool_entry(lock, target, "sherpa-spleeter")),
+        "vocals-model": tracked_shared_asset_path(addon_bin_dir, _shared_file_entry(lock, "spleeter-vocals")),
+        "accompaniment-model": tracked_shared_asset_path(addon_bin_dir, _shared_file_entry(lock, "spleeter-accompaniment")),
     }
 
 

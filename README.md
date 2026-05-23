@@ -50,9 +50,9 @@ python3 scripts/release.py --target current
 python3 scripts/dev.py release-smoke dist/anki-audio-quick-editor-<version>-<target>.ankiaddon
 ```
 
-This validates the repo, regenerates contracts and webview bundles, stages locked
-native runtime payloads, validates the archive manifest, and produces a
-platform-targeted archive such as
+This validates the repo, regenerates contracts and webview bundles, stages
+tracked non-FFmpeg runtime payloads plus cached `ffmpeg`/`ffprobe`, validates
+the archive manifest, and produces a platform-targeted archive such as
 `dist/anki-audio-quick-editor-<version>-macos-arm64.ankiaddon`. Universal
 archives remain available with `--target all`, but the third-party FFmpeg
 payload makes them too large for the normal release size gate unless an explicit

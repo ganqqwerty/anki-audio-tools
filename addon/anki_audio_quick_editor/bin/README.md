@@ -39,16 +39,23 @@ bin/
       accompaniment.fp16.onnx
 ```
 
-The source of truth is `release_assets.lock.json`. Runtime binaries are fetched
-or built into `.release-assets/bin/<target>/`, verified by SHA-256, then copied
-into a temporary release staging tree. FFmpeg/FFprobe use locked third-party
-release archives, RNNoise is locally built from source, DPDFNet is bundled from
-the vendored standalone TFLite CLI source in `scripts/dpdfnet_cli/lite_src/`,
-and Sherpa Spleeter is extracted from locked Sherpa ONNX native archives by renaming
-`sherpa-onnx-offline-source-separation` to `sherpa-spleeter`. The shared
-Spleeter fp16 model files are downloaded once into `.release-assets/shared/`.
-The checked-in `bin/` directory contains only documentation and notices;
-generated release payloads are not committed here.
+The source of truth is split by asset class and enforced by
+`release_assets.lock.json`. This checked-in `bin/` tree is the canonical home
+for all non-FFmpeg runtime payloads:
+
+- target-specific `deep-filter`, `rnnoise-cli`, `dpdfnet`, `sherpa-spleeter`,
+  and Sherpa runtime libraries live under `bin/<target>/`
+- shared Spleeter fp16 model files live under `bin/models/`
+- `runtime_manifest.json` is generated during packaging and is not committed
+
+`ffmpeg` and `ffprobe` remain external. Packaging and `release-assets verify`
+read them from `.release-assets/bin/<target>/`, verify their SHA-256 checksums,
+and assemble a target-specific release staging tree with the tracked non-FFmpeg
+payloads from this directory. FFmpeg/FFprobe use locked third-party release
+archives, RNNoise is locally built from source, DPDFNet is bundled from the
+vendored standalone TFLite CLI source in `scripts/dpdfnet_cli/lite_src/`, and
+Sherpa Spleeter is extracted from locked Sherpa ONNX native archives by
+renaming `sherpa-onnx-offline-source-separation` to `sherpa-spleeter`.
 
 Runtime discovery uses user-configured overrides first, bundled executables
 second, and `PATH` as a compatibility fallback where supported.

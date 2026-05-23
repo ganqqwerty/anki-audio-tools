@@ -19,6 +19,7 @@ TARGET_TOOL_NAMES = {
 }
 TOOL_NAMES = sorted({tool for tools in TARGET_TOOL_NAMES.values() for tool in tools})
 SHARED_FILE_NAMES = ["spleeter-vocals", "spleeter-accompaniment"]
+CACHED_TOOL_NAMES = {"ffmpeg", "ffprobe"}
 
 
 class ReleaseAssetError(RuntimeError):
@@ -155,6 +156,31 @@ def release_runtime_support_files(
     return sorted(names)
 
 
+def tool_uses_cached_binary(tool_name: str) -> bool:
+    """Return whether ``tool_name`` is sourced from the external cache."""
+
+    return tool_name in CACHED_TOOL_NAMES
+
+
+def tracked_tool_binary_path(addon_bin_dir: Path, target: str, entry: dict[str, Any]) -> Path:
+    """Return the canonical tracked source path for a target executable entry."""
+
+    executable = _safe_relative_executable(entry["executable"])
+    return addon_bin_dir / target / executable
+
+
+def tracked_runtime_file_path(addon_bin_dir: Path, target: str, entry: dict[str, Any]) -> Path:
+    """Return the canonical tracked source path for a target runtime support file entry."""
+
+    return addon_bin_dir / target / _safe_relative_file(entry["path"])
+
+
+def tracked_shared_asset_path(addon_bin_dir: Path, entry: dict[str, Any]) -> Path:
+    """Return the canonical tracked source path for a shared runtime asset entry."""
+
+    return addon_bin_dir / _safe_relative_file(entry["path"])
+
+
 def _validate_target_tool_matrix(lock: dict[str, Any], target: str) -> None:
     tools = _target_tools(lock, target)
     expected_tools = TARGET_TOOL_NAMES[target]
@@ -277,7 +303,7 @@ def _extract_zip_member(archive_path: Path, archive_member: str, destination: Pa
 def _stage_shared_files(
     lock: dict[str, Any],
     *,
-    cache_dir: Path,
+    source_dir: Path,
     destination: Path,
 ) -> list[Path]:
     staged: list[Path] = []
@@ -286,7 +312,7 @@ def _stage_shared_files(
         expected_sha = entry.get("sha256")
         if not expected_sha:
             raise ReleaseAssetError(f"shared/{file_name}: missing sha256 in release_assets.lock.json")
-        source = shared_asset_path(cache_dir, entry)
+        source = tracked_shared_asset_path(source_dir, entry)
         if not source.is_file():
             raise ReleaseAssetError(f"shared/{file_name}: missing file at {source}")
         actual_sha = sha256_file(source)
@@ -302,7 +328,7 @@ def _stage_shared_files(
 def _stage_tool_runtime_files(
     lock: dict[str, Any],
     *,
-    cache_dir: Path,
+    source_dir: Path,
     destination: Path,
     target: str,
     tool_name: str,
@@ -312,7 +338,7 @@ def _stage_tool_runtime_files(
         expected_sha = file_entry.get("sha256")
         if not expected_sha:
             raise ReleaseAssetError(f"{target}/{tool_name}/{file_entry['path']}: missing sha256")
-        source = runtime_file_path(cache_dir, target, file_entry)
+        source = tracked_runtime_file_path(source_dir, target, file_entry)
         if not source.is_file():
             raise ReleaseAssetError(f"{target}/{tool_name}/{file_entry['path']}: missing file at {source}")
         actual_sha = sha256_file(source)
