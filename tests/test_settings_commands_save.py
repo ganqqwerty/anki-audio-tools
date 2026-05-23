@@ -102,11 +102,15 @@ def test_settings_reset_defaults_respects_no_confirmation() -> None:
     assert dialog.rejected is False
 
 
-def test_settings_reset_defaults_writes_defaults_and_closes_on_yes() -> None:
+def test_settings_reset_defaults_writes_defaults_and_closes_on_yes(monkeypatch) -> None:
     from aqt import mw
     from aqt.qt import QMessageBox
 
     defaults = {"enabled": True, "debug_logging": False}
+    monkeypatch.setattr(
+        "anki_audio_quick_editor.ffmpeg_defaults.default_ffmpeg_path",
+        lambda: "/opt/homebrew/bin/ffmpeg",
+    )
     QMessageBox.StandardButton = SimpleNamespace(Yes=1, No=2)
     QMessageBox.warning.return_value = QMessageBox.StandardButton.Yes
     mw.addonManager.addonConfigDefaults.return_value = defaults
@@ -115,7 +119,10 @@ def test_settings_reset_defaults_writes_defaults_and_closes_on_yes() -> None:
 
     assert handle_settings_command("settings_reset_defaults", eval_fn, dialog) is True
 
-    mw.addonManager.writeConfig.assert_called_once_with("anki_audio_quick_editor", defaults)
+    mw.addonManager.writeConfig.assert_called_once_with(
+        "anki_audio_quick_editor",
+        {"enabled": True, "debug_logging": False, "ffmpeg_path": "/opt/homebrew/bin/ffmpeg"},
+    )
     assert dialog.rejected is True
 
 def test_unknown_command_returns_false() -> None:

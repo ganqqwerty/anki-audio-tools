@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from "@testing-library/svelte";
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/svelte";
 import { describe, expect, it, vi } from "vitest";
 
 import App from "../src/App.svelte";
@@ -17,7 +17,7 @@ import {
 } from "../src/lib/types.js";
 
 const defaultConfig = {
-  _config_version: 19,
+  _config_version: 20,
   enabled: true,
   debug_logging: false,
   show_ffmpeg_commands: false,
@@ -29,14 +29,10 @@ const defaultConfig = {
     VisibleEditorButton.AqeAnalyze,
     VisibleEditorButton.AqeShowFile,
     VisibleEditorButton.AqeShare,
-    VisibleEditorButton.AqeConvert,
     VisibleEditorButton.AqeRemovePauses,
     VisibleEditorButton.AqeDenoiseStandard,
-    VisibleEditorButton.AqePitchHum,
     VisibleEditorButton.AqeSlower,
     VisibleEditorButton.AqeFaster,
-    VisibleEditorButton.AqeVolumeDown,
-    VisibleEditorButton.AqeVolumeUp,
     VisibleEditorButton.AqeUndo,
     VisibleEditorButton.AqeRedo,
     VisibleEditorButton.AqeSettings,
@@ -57,8 +53,7 @@ const defaultConfig = {
   internal_pause_threshold_ms: 300,
   internal_pause_target_gap_ms: 100,
   output_format: OutputFormat.Mp3,
-  ffmpeg_path: "",
-  deep_filter_path: "",
+  ffmpeg_path: "/opt/homebrew/bin/ffmpeg",
   deep_filter_post_filter: true,
   dpdfnet_attn_limit_db: 12.0,
   denoise_algorithm: DenoiseAlgorithm.Standard,
@@ -112,28 +107,24 @@ describe("App", () => {
 
     expect(screen.getByText("Audio Quick Editor Settings")).toBeInTheDocument();
     expect(screen.queryByText("Enable inline editor controls")).not.toBeInTheDocument();
-    expect(screen.getByText("Show debug information while processing")).toBeInTheDocument();
     expect(screen.getByText("Repeat playback by default")).toBeInTheDocument();
     expect(screen.getByText("Pause between repeats (s)")).toBeInTheDocument();
     expect(screen.getByText("Show graph by default")).toBeInTheDocument();
     expect(screen.getByText("Editor toolbar buttons")).toBeInTheDocument();
-    expect(screen.getByTestId("toolbar-visibility-settings")).toHaveAttribute("aria-pressed", "true");
-    expect(screen.getByTestId("toolbar-visibility-play")).toHaveAttribute(
-      "data-aqe-tooltip-content",
-      "Play or pause the current audio",
-    );
+    expect(screen.getByTestId("button-settings-settings")).toBeInTheDocument();
+    expect(screen.getByTestId("button-settings-play")).toBeInTheDocument();
     expect(screen.getByText("Speaker's voice")).toBeInTheDocument();
     expect(screen.getByText("Recording condition")).toBeInTheDocument();
     expect(screen.getByText("Graph smoothness")).toBeInTheDocument();
     expect(screen.getByText("Connect holes in graph shorter than (ms)")).toBeInTheDocument();
     expect(screen.getByText("Voice lock")).toBeInTheDocument();
-    expect(screen.getByText("ffmpeg path")).toBeInTheDocument();
-    expect(screen.getByText("DeepFilterNet path")).toBeInTheDocument();
+    expect(screen.queryByText("ffmpeg path")).not.toBeInTheDocument();
+    expect(screen.queryByText("DeepFilterNet path")).not.toBeInTheDocument();
     expect(screen.getByText("Use DeepFilterNet post-filter")).toBeInTheDocument();
     expect(screen.getByText("DPDFNet Aggressiveness")).toBeInTheDocument();
     expect(screen.getByText("Shorten pauses level")).toBeInTheDocument();
     expect(screen.getByText("Default convert format")).toBeInTheDocument();
-    expect(screen.getByText("Default cleanup action")).toBeInTheDocument();
+    expect(screen.getByText("Default denoise algorithm")).toBeInTheDocument();
     expect(screen.getByText("Default pitch hum mode")).toBeInTheDocument();
     expect(screen.getByText("Volume step (dB)")).toBeInTheDocument();
     expect(screen.getByText("Min volume (dB)")).toBeInTheDocument();
@@ -181,12 +172,10 @@ describe("App", () => {
     setInitialState();
 
     render(App);
-    const settingsButton = screen.getByTestId("toolbar-visibility-settings");
-    await fireEvent.click(settingsButton);
+    const settingsCard = screen.getByTestId("button-settings-settings");
+    await fireEvent.click(within(settingsCard).getByRole("checkbox", { name: "Show" }));
     await fireEvent.click(screen.getByRole("button", { name: "Save" }));
 
-    expect(settingsButton).toHaveAttribute("aria-pressed", "false");
-    expect(settingsButton).toHaveClass("toolbar-button-off");
     const config = bridgePayload<{ visible_editor_buttons: string[] }>("settings.save");
     expect(config.visible_editor_buttons).toContain("aqe:play");
     expect(config.visible_editor_buttons).not.toContain("aqe:settings");
@@ -196,33 +185,24 @@ describe("App", () => {
     setInitialState();
 
     render(App);
-    await fireEvent.click(screen.getByTestId("toolbar-mode-play-icon"));
+    const playCard = screen.getByTestId("button-settings-play");
+    await fireEvent.click(within(playCard).getByRole("checkbox", { name: "Icon" }));
     await fireEvent.click(screen.getByRole("button", { name: "Save" }));
 
     const config = bridgePayload<{ editor_button_modes: Record<string, string> }>("settings.save");
-    expect(config.editor_button_modes["aqe:play"]).toBe("icon");
-    expect(config.editor_button_modes["aqe:settings"]).toBe("text");
+    expect(config.editor_button_modes["aqe:play"]).toBe("text");
+    expect(config.editor_button_modes["aqe:settings"]).toBe("icon");
   });
 
   it("saves split button default settings", async () => {
     setInitialState();
 
     render(App);
-    await fireEvent.change(screen.getByLabelText("Shorten pauses level"), {
-      target: { value: PauseAggressiveness.Aggressive },
-    });
-    await fireEvent.change(screen.getByLabelText("Default cleanup action"), {
-      target: { value: DenoiseAlgorithm.Dpdfnet },
-    });
-    await fireEvent.change(screen.getByTestId("output-format"), {
-      target: { value: OutputFormat.FLAC },
-    });
-    await fireEvent.change(screen.getByLabelText("Default pitch hum mode"), {
-      target: { value: PitchHumMode.PitchTier },
-    });
-    await fireEvent.change(screen.getByLabelText("DPDFNet Aggressiveness"), {
-      target: { value: "18" },
-    });
+    await fireEvent.click(screen.getByTestId(`pause-aggressiveness-${PauseAggressiveness.Aggressive}`));
+    await fireEvent.click(screen.getByTestId(`denoise-algorithm-${DenoiseAlgorithm.Dpdfnet}`));
+    await fireEvent.click(screen.getByTestId(`output-format-${OutputFormat.FLAC}`));
+    await fireEvent.click(screen.getByTestId(`pitch-hum-mode-${PitchHumMode.PitchTier}`));
+    await fireEvent.click(screen.getByTestId("dpdfnet-attn-limit-db-18"));
     await fireEvent.input(screen.getByTestId("repeat-pause-seconds"), {
       target: { value: "2.5" },
     });
@@ -250,9 +230,7 @@ describe("App", () => {
     render(App);
     await fireEvent.click(screen.getByTestId(`graph-voice-range-${GraphVoiceRange.Child}`));
     await fireEvent.click(screen.getByTestId(`graph-recording-condition-${GraphRecordingCondition.Studio}`));
-    await fireEvent.change(screen.getByTestId("graph-smoothness"), {
-      target: { value: GraphSmoothness.VerySmooth },
-    });
+    await fireEvent.click(screen.getByTestId(`graph-smoothness-${GraphSmoothness.VerySmooth}`));
     await fireEvent.input(screen.getByTestId("graph-connect-short-dropouts-ms"), {
       target: { value: "90" },
     });
@@ -374,7 +352,7 @@ describe("App", () => {
     expect(bridgeEnvelopes()).toContainEqual({ command: "settings.check_media" });
   });
 
-  it("renders translated settings labels from initial messages", () => {
+  it("renders translated settings labels from initial messages", async () => {
     setInitialState(defaultConfig, {
       "settings.title": "Audio-Schnelleditor Einstellungen",
       "settings.show_ffmpeg_commands": "Debug-Informationen anzeigen",
@@ -383,6 +361,7 @@ describe("App", () => {
     render(App);
 
     expect(screen.getByText("Audio-Schnelleditor Einstellungen")).toBeInTheDocument();
+    await fireEvent.click(screen.getByRole("tab", { name: "Diagnostics & About" }));
     expect(screen.getByText("Debug-Informationen anzeigen")).toBeInTheDocument();
   });
 });

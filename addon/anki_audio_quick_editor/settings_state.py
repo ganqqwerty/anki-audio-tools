@@ -7,6 +7,7 @@ import os
 from typing import Any
 
 from .contracts_generated import InitialState
+from .ffmpeg_defaults import with_platform_ffmpeg_default
 
 
 def build_initial_state_payload(
@@ -21,8 +22,10 @@ def build_initial_state_payload(
     messages: dict[str, str],
 ) -> dict[str, Any]:
     """Build the JSON-serializable state consumed by the settings webview."""
+    settings_config = with_platform_ffmpeg_default(config)
+    settings_config.pop("deep_filter_path", None)
     return {
-        "config": config,
+        "config": settings_config,
         "version": version,
         "addon_dir": addon_dir,
         "log_file_path": os.path.join(addon_dir, "anki_audio_quick_editor.log"),

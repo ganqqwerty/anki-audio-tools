@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass, replace
+from dataclasses import dataclass, field, replace
 
 from .audio_formats import DEFAULT_OUTPUT_FORMAT, normalize_output_format
 from .dpdfnet_settings import (
@@ -10,6 +10,7 @@ from .dpdfnet_settings import (
     normalize_dpdfnet_attn_limit_db,
 )
 from .errors import InvalidEditStateError
+from .ffmpeg_defaults import default_ffmpeg_path
 
 ConfigValue = str | int | float | bool
 GraphVoiceRange = str
@@ -33,8 +34,7 @@ class AudioProcessingConfig:
     internal_pause_target_gap_ms: int = 100
     pause_aggressiveness: str = "normal"
     output_format: str = DEFAULT_OUTPUT_FORMAT
-    ffmpeg_path: str = ""
-    deep_filter_path: str = ""
+    ffmpeg_path: str = field(default_factory=default_ffmpeg_path)
     deep_filter_post_filter: bool = True
     dpdfnet_attn_limit_db: float = DEFAULT_DPDFNET_ATTENUATION_LIMIT_DB
     denoise_algorithm: str = "standard"
@@ -72,8 +72,7 @@ class AudioProcessingConfig:
                 config.get("pause_aggressiveness", cls.pause_aggressiveness)
             ),
             output_format=normalize_output_format(config.get("output_format", cls.output_format)),
-            ffmpeg_path=str(config.get("ffmpeg_path", cls.ffmpeg_path)),
-            deep_filter_path=str(config.get("deep_filter_path", cls.deep_filter_path)),
+            ffmpeg_path=str(config.get("ffmpeg_path", default_ffmpeg_path())),
             deep_filter_post_filter=bool(
                 config.get("deep_filter_post_filter", cls.deep_filter_post_filter)
             ),

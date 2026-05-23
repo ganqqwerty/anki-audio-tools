@@ -20,7 +20,6 @@ from e2e.editor_note_helpers import (
 from e2e.helpers import (
     click_selector,
     generate_tone,
-    run_js,
     wait_for_condition,
     wait_for_js_condition,
     wait_for_selector,
@@ -47,23 +46,13 @@ def test_settings_dialog_saves_dpdfnet_aggressiveness(anki_mw) -> None:
     anki_mw.addonManager.writeConfig(ADDON_NUMERIC_ID, config)
 
     dialog = _open_settings_dialog(anki_mw)
-    selector = '[data-testid="dpdfnet-attn-limit-db"]'
+    selector = '[data-testid="dpdfnet-attn-limit-db-18"]'
     wait_for_selector(dialog, selector, timeout=5.0)
-    run_js(
-        dialog,
-        f"""
-        (() => {{
-          const select = document.querySelector({json.dumps(selector)});
-          select.value = "18";
-          select.dispatchEvent(new Event("change", {{ bubbles: true }}));
-          return select.value;
-        }})()
-        """,
-    )
+    click_selector(dialog, selector, timeout=5.0)
     wait_for_js_condition(
         dialog,
-        f"Number(document.querySelector({json.dumps(selector)})?.value)",
-        lambda value: value == 18,
+        f"document.querySelector({json.dumps(selector)})?.getAttribute('aria-checked')",
+        lambda value: value == "true",
         timeout=5.0,
     )
 

@@ -67,7 +67,6 @@ def test_standard_denoise_replaces_current_media_and_resets_state(tmp_path: Path
             addonFromModule=MagicMock(return_value="addon"),
             getConfig=MagicMock(
                 return_value={
-                    "deep_filter_path": "/bin/deep-filter",
                     "deep_filter_post_filter": True,
                 }
             ),

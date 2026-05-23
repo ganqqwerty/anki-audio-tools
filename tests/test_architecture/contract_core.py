@@ -35,6 +35,7 @@ CORE_CONTRACTS: dict[str, ModuleContract] = {
     ),
     "dpdfnet_settings": contract("dpdfnet_settings", layer=Layer.IMPORT_SAFE_CORE),
     "errors": contract("errors", layer=Layer.IMPORT_SAFE_CORE),
+    "ffmpeg_defaults": contract("ffmpeg_defaults", layer=Layer.IMPORT_SAFE_CORE),
     "frontend_logs": contract(
         "frontend_logs",
         layer=Layer.IMPORT_SAFE_CORE,
@@ -103,7 +104,7 @@ CORE_CONTRACTS: dict[str, ModuleContract] = {
     "settings_state": contract(
         "settings_state",
         layer=Layer.IMPORT_SAFE_CORE,
-        allowed_addon_deps=("contracts_generated",),
+        allowed_addon_deps=("contracts_generated", "ffmpeg_defaults"),
     ),
     "sound_refs": contract(
         "sound_refs",

@@ -29,15 +29,15 @@ The local development install is a symlink from Anki's `addons21/1000000002` to 
 
 The real Anki development add-on follows the symlink in the main checkout. If you are working from a feature worktree such as `.worktrees/<name>`, launching real Anki will not show that worktree's code unless you first merge the worktree back into the main checkout or temporarily repoint `~/Library/Application Support/Anki2/addons21/1000000002` at the worktree's `addon/anki_audio_quick_editor/`. Repoint it back before switching tasks so manual testing does not accidentally exercise an old worktree.
 
-E2E tests must copy the add-on into their temporary `ANKI_BASE` instead of symlinking back to the repo. Otherwise, test-only config writes can leak into the real development add-on. The most visible symptom is manual Anki clicks on `Shorten Pauses` or `Denoise > Standard` failing with `fake deep-filter failed`, because an E2E fake `deep-filter` path was written into `addon/anki_audio_quick_editor/meta.json`.
+E2E tests must copy the add-on into their temporary `ANKI_BASE` instead of symlinking back to the repo. Otherwise, test-only config writes can leak into the real development add-on. The most visible symptom is manual Anki clicks behaving differently from defaults because test settings were written into `addon/anki_audio_quick_editor/meta.json`.
 
-If that happens, clear `deep_filter_path` in `addon/anki_audio_quick_editor/meta.json` or use the settings dialog to reset the DeepFilterNet path. The E2E fixture should keep excluding `meta.json`, logs, caches, and artifact directories from the copied add-on tree.
+If that happens, remove `addon/anki_audio_quick_editor/meta.json` or use the settings dialog to reset defaults. The E2E fixture should keep excluding `meta.json`, logs, caches, and artifact directories from the copied add-on tree.
 
 ## Runtime Dependencies
 
 Anki add-ons cannot rely on `pip install` at user runtime. Audio Quick Editor uses the Python/Qt runtime bundled with Anki and ships a locked native runtime payload for supported release platforms. The self-sufficient release matrix is macOS arm64, macOS x86_64, and Windows x86_64.
 
-Release archives bundle `ffmpeg`, `ffprobe`, DeepFilterNet's `deep-filter`, `rnnoise-cli`, Sherpa's `sherpa-spleeter`, and DPDFNet Lite below `bin/<target>/`, plus shared Spleeter model files below `bin/models/spleeter-2stems-fp16/`. Runtime discovery checks user overrides first where supported, bundled tools second, and `PATH` as a compatibility fallback. The settings diagnostics report whether each tool came from config, the bundled payload, or `PATH`.
+Release archives bundle `ffmpeg`, `ffprobe`, DeepFilterNet's `deep-filter`, `rnnoise-cli`, Sherpa's `sherpa-spleeter`, and DPDFNet Lite below `bin/<target>/`, plus shared Spleeter model files below `bin/models/spleeter-2stems-fp16/`. Runtime discovery checks the configured ffmpeg path where supported, bundled tools second, and `PATH` as a compatibility fallback. The settings diagnostics report whether each tool came from config, the bundled payload, or `PATH`.
 
 `release_assets.lock.json` remains the source of truth for the runtime matrix, source URLs, diagnostic arguments, and SHA-256 values, but the files now come from two places. Commit all non-FFmpeg runtime payloads directly under `addon/anki_audio_quick_editor/bin/<target>/` and `addon/anki_audio_quick_editor/bin/models/`. Keep only `ffmpeg` and `ffprobe` external in `.release-assets/bin/<target>/`. Source-tree development uses the same canonical layout as releases, so runtime lookups keep reading from the add-on `bin/` tree.
 

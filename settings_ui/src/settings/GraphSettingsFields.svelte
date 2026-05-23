@@ -25,6 +25,7 @@
     GraphVoiceRange,
   } from "$lib/types.js";
   import type { Config } from "$lib/types.js";
+  import SettingsChoiceGroup from "./SettingsChoiceGroup.svelte";
 
   const { config = $bindable() }: { config: Config } = $props();
 </script>
@@ -91,11 +92,16 @@
       <CommandIcon className="settings-label-icon" icon="audio-lines" />
       <span class="settings-label-text">{t("settings.graph_smoothness")}</span>
     </span>
-    <select class="settings-select" data-testid="graph-smoothness" bind:value={config.graph_smoothness}>
-      {#each GRAPH_SMOOTHNESSES as option}
-        <option value={option as GraphSmoothness}>{t(`settings.graph_smoothness.${option}`)}</option>
-      {/each}
-    </select>
+    <SettingsChoiceGroup
+      ariaLabel={t("settings.graph_smoothness")}
+      options={GRAPH_SMOOTHNESSES.map((option) => ({
+        label: t(`settings.graph_smoothness.${option}`),
+        value: option,
+      }))}
+      testId="graph-smoothness"
+      value={config.graph_smoothness}
+      onSelect={(value) => (config.graph_smoothness = value as GraphSmoothness)}
+    />
   </div>
 
   <div class="settings-field">

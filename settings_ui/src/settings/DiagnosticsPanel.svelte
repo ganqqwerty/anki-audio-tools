@@ -1,6 +1,6 @@
 <script lang="ts">
   import { t } from "$lib/i18n.js";
-  import type { AsyncProgressPayload, HealthReport, InitialState } from "$lib/types.js";
+  import type { AsyncProgressPayload, Config, HealthReport, InitialState } from "$lib/types.js";
 
   type DiagnosticsAction = () => void | Promise<void>;
 
@@ -10,12 +10,14 @@
     healthReport,
     healthProgress,
     diagnosticsMessage,
+    config = $bindable(),
     onRunHealthCheck,
     onCheckMedia,
     onCopySupportReport,
     onShowLogFile,
   }: {
     diagnosticsMessage: string;
+    config: Config;
     healthMessage: string;
     healthProgress: AsyncProgressPayload | null;
     healthReport: HealthReport | null;
@@ -29,6 +31,22 @@
 
 <div class="settings-card settings-stack">
   <h2>{t("diagnostics.title")}</h2>
+  <div class="settings-section settings-grid">
+    <label class="settings-toggle">
+      <input type="checkbox" bind:checked={config.debug_logging} />
+      <span class="settings-label-text">{t("settings.debug_logging")}</span>
+    </label>
+    <label class="settings-toggle">
+      <input type="checkbox" bind:checked={config.show_ffmpeg_commands} />
+      <span class="settings-label-text">{t("settings.show_ffmpeg_commands")}</span>
+    </label>
+    <label class="settings-field">
+      <span>{t("settings.ffmpeg_path")}</span>
+      <input class="settings-input" type="text" bind:value={config.ffmpeg_path} />
+      <span class="settings-muted">{t("settings.ffmpeg_path.help")}</span>
+    </label>
+  </div>
+
   <dl class="meta-grid">
     <div>
       <dt>{t("diagnostics.addon_id")}</dt>

@@ -30,7 +30,7 @@ import {
 
 const pycmd = (globalThis as unknown as Record<string, ReturnType<typeof vi.fn>>)["pycmd"]!;
 const config = {
-  _config_version: 19,
+  _config_version: 20,
   enabled: true,
   debug_logging: false,
   show_ffmpeg_commands: false,
@@ -42,14 +42,10 @@ const config = {
     VisibleEditorButton.AqeAnalyze,
     VisibleEditorButton.AqeShowFile,
     VisibleEditorButton.AqeShare,
-    VisibleEditorButton.AqeConvert,
     VisibleEditorButton.AqeRemovePauses,
     VisibleEditorButton.AqeDenoiseStandard,
-    VisibleEditorButton.AqePitchHum,
     VisibleEditorButton.AqeSlower,
     VisibleEditorButton.AqeFaster,
-    VisibleEditorButton.AqeVolumeDown,
-    VisibleEditorButton.AqeVolumeUp,
     VisibleEditorButton.AqeUndo,
     VisibleEditorButton.AqeRedo,
     VisibleEditorButton.AqeSettings,
@@ -70,8 +66,7 @@ const config = {
   internal_pause_threshold_ms: 300,
   internal_pause_target_gap_ms: 100,
   output_format: OutputFormat.Mp3,
-  ffmpeg_path: "",
-  deep_filter_path: "",
+  ffmpeg_path: "/opt/homebrew/bin/ffmpeg",
   deep_filter_post_filter: true,
   dpdfnet_attn_limit_db: 12.0,
   denoise_algorithm: DenoiseAlgorithm.Standard,

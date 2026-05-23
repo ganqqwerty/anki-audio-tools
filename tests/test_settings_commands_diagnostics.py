@@ -193,7 +193,7 @@ def test_async_health_check_reports_deep_filter_version() -> None:
         {
             "id": "job-1",
             "op": "health_check",
-            "payload": {"config": {**_full_config(), "deep_filter_path": "/custom/deep-filter"}},
+            "payload": {"config": _full_config()},
         }
     )
 
@@ -201,7 +201,7 @@ def test_async_health_check_reports_deep_filter_version() -> None:
         patch("threading.Thread", _ImmediateThread),
         patch(
             "anki_audio_quick_editor.audio_processor.find_deep_filter",
-            return_value=Path("/custom/deep-filter"),
+            return_value=Path("/addon/bin/deep-filter"),
         ),
         patch("anki_audio_quick_editor.diagnostics.subprocess.run") as run,
     ):
@@ -214,8 +214,8 @@ def test_async_health_check_reports_deep_filter_version() -> None:
     result = _parse_callback(done_calls[0], "onAsyncDone")
     assert result["result"]["deep_filter"] == {
         "available": True,
-        "path": "/custom/deep-filter",
-        "source": "config",
+        "path": "/addon/bin/deep-filter",
+        "source": "PATH",
         "version": "deep-filter 0.5.6",
         "error": "",
     }

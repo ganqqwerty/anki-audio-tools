@@ -60,10 +60,11 @@ def _addon_loggers() -> tuple[logging.Logger, ...]:
 def _migrate_config() -> None:
     """Deep-merge defaults into the user's config and stamp the schema version."""
     from .config_migration import migrate_config
+    from .ffmpeg_defaults import with_platform_ffmpeg_default
 
     addon_id = mw.addonManager.addonFromModule(__name__)
     user_config = mw.addonManager.getConfig(addon_id) or {}
-    defaults = mw.addonManager.addonConfigDefaults(addon_id) or {}
+    defaults = with_platform_ffmpeg_default(mw.addonManager.addonConfigDefaults(addon_id) or {})
     migrated, changed = migrate_config(user_config, defaults)
     if changed:
         mw.addonManager.writeConfig(addon_id, migrated)

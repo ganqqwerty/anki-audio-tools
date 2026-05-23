@@ -79,19 +79,33 @@ class TestMigrateConfig:
         assert migrated["debug_logging"] is False
         assert changed is True
 
-    def test_picks_up_deep_filter_defaults(self) -> None:
+    def test_picks_up_deep_filter_post_filter_default(self) -> None:
         user = {"_config_version": 4, "enabled": True}
         defaults = {
             "_config_version": CURRENT_CONFIG_VERSION,
             "enabled": True,
-            "deep_filter_path": "",
             "deep_filter_post_filter": True,
         }
 
         migrated, changed = migrate_config(user, defaults)
 
-        assert migrated["deep_filter_path"] == ""
         assert migrated["deep_filter_post_filter"] is True
+        assert changed is True
+
+    def test_removes_deep_filter_path_from_unsupported_config(self) -> None:
+        user = {
+            "_config_version": CURRENT_CONFIG_VERSION,
+            "enabled": True,
+            "deep_filter_path": "/custom/deep-filter",
+        }
+        defaults = {
+            "_config_version": CURRENT_CONFIG_VERSION,
+            "enabled": True,
+        }
+
+        migrated, changed = migrate_config(user, defaults)
+
+        assert "deep_filter_path" not in migrated
         assert changed is True
 
     def test_picks_up_internal_pause_silence_threshold_default(self) -> None:
@@ -177,7 +191,7 @@ class TestMigrateConfig:
         migrated, changed = migrate_config(user, defaults)
 
         assert changed is True
-        assert migrated["_config_version"] == 19
+        assert migrated["_config_version"] == CURRENT_CONFIG_VERSION
         assert migrated["visible_editor_buttons"] == [
             "aqe:play",
             "aqe:show-file",

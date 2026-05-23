@@ -124,6 +124,7 @@ def _handle_reset_defaults(dialog: Any) -> None:
     from aqt import mw
     from aqt.qt import QMessageBox
 
+    from ..ffmpeg_defaults import with_platform_ffmpeg_default
     from ..i18n import t
 
     addon_id = mw.addonManager.addonFromModule(__name__)
@@ -146,7 +147,7 @@ def _handle_reset_defaults(dialog: Any) -> None:
     if result != QMessageBox.StandardButton.Yes:
         return
 
-    mw.addonManager.writeConfig(addon_id, defaults)
+    mw.addonManager.writeConfig(addon_id, with_platform_ffmpeg_default(defaults))
     dialog.reject()
 
 

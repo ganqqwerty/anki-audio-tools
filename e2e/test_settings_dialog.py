@@ -173,7 +173,6 @@ def test_save_command_writes_config(anki_mw) -> None:
         "internal_pause_target_gap_ms": 100,
         "output_format": "mp3",
         "ffmpeg_path": "",
-        "deep_filter_path": "",
         "deep_filter_post_filter": True,
         "dpdfnet_attn_limit_db": 12.0,
         "denoise_algorithm": "standard",
@@ -250,34 +249,23 @@ def test_pitch_hum_default_mode_select_saves_in_one_session(anki_mw) -> None:
     anki_mw.addonManager.writeConfig("1000000002", config)
 
     dialog = _open_settings_dialog(anki_mw)
-    select_selector = '[data-testid="pitch-hum-mode"]'
+    direct_selector = '[data-testid="pitch-hum-mode-direct"]'
+    pitch_tier_selector = '[data-testid="pitch-hum-mode-pitch_tier"]'
     save_selector = '[data-testid="settings-save"]'
 
     initial = wait_for_js_condition(
         dialog,
-        f"document.querySelector({json.dumps(select_selector)})?.value",
-        lambda value: value == "direct",
+        f"document.querySelector({json.dumps(direct_selector)})?.getAttribute('aria-checked')",
+        lambda value: value == "true",
         timeout=5.0,
     )
-    assert initial == "direct"
+    assert initial == "true"
 
-    run_js(
-        dialog,
-        f"""
-        (() => {{
-          const select = document.querySelector({json.dumps(select_selector)});
-          if (!select) return false;
-          select.value = "pitch_tier";
-          select.dispatchEvent(new Event("input", {{ bubbles: true }}));
-          select.dispatchEvent(new Event("change", {{ bubbles: true }}));
-          return true;
-        }})()
-        """,
-    )
+    click_selector(dialog, pitch_tier_selector, timeout=5.0)
     wait_for_js_condition(
         dialog,
-        f"document.querySelector({json.dumps(select_selector)})?.value",
-        lambda value: value == "pitch_tier",
+        f"document.querySelector({json.dumps(pitch_tier_selector)})?.getAttribute('aria-checked')",
+        lambda value: value == "true",
         timeout=5.0,
     )
 
@@ -303,14 +291,14 @@ def test_toolbar_button_mode_toggle_saves_in_one_session(anki_mw) -> None:
     anki_mw.addonManager.writeConfig("1000000002", config)
 
     dialog = _open_settings_dialog(anki_mw)
-    play_icon_selector = '[data-testid="toolbar-mode-play-icon"]'
-    settings_icon_selector = '[data-testid="toolbar-mode-settings-icon"]'
+    play_icon_selector = '[data-testid="button-settings-play-mode-icon"]'
+    settings_icon_selector = '[data-testid="button-settings-settings-mode-icon"]'
     save_selector = '[data-testid="settings-save"]'
 
     wait_for_js_condition(
         dialog,
-        f"document.querySelector({json.dumps(play_icon_selector)})?.getAttribute('aria-pressed')",
-        lambda value: value == "false",
+        f"document.querySelector({json.dumps(play_icon_selector)})?.checked",
+        lambda value: value is False,
         timeout=5.0,
     )
     click_selector(dialog, play_icon_selector, timeout=5.0)
@@ -322,12 +310,12 @@ def test_toolbar_button_mode_toggle_saves_in_one_session(anki_mw) -> None:
           const play = document.querySelector({json.dumps(play_icon_selector)});
           const settings = document.querySelector({json.dumps(settings_icon_selector)});
           return play && settings ? {{
-            play: play.getAttribute("aria-pressed"),
-            settings: settings.getAttribute("aria-pressed"),
+            play: play.checked,
+            settings: settings.checked,
           }} : null;
         }})()
         """,
-        lambda value: value == {"play": "true", "settings": "true"},
+        lambda value: value == {"play": True, "settings": True},
         timeout=5.0,
     )
 

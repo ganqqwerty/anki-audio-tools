@@ -147,6 +147,7 @@
         <GeneralSettingsPanel bind:config saveError={saveError} />
       {:else}
         <DiagnosticsPanel
+          bind:config
           initialState={initialState}
           healthMessage={healthMessage}
           healthReport={healthReport}
@@ -183,6 +184,8 @@
       var(--canvas, Canvas);
     box-sizing: border-box;
     color: var(--fg, CanvasText);
+    font-family: inherit;
+    font-size: 12px;
     min-height: 100vh;
     padding: 28px 28px 120px;
   }
@@ -231,35 +234,31 @@
 
   .tab-nav {
     display: flex;
-    gap: 10px;
+    gap: 5px;
     margin-bottom: 20px;
   }
 
   .settings-tab {
     appearance: none;
-    background: color-mix(in srgb, var(--canvas-elevated, Canvas) 72%, transparent);
-    border: 1px solid color-mix(in srgb, var(--border-subtle, var(--border, currentColor)) 80%, transparent);
-    border-radius: 999px;
-    color: var(--fg, currentColor);
+    background: transparent;
+    border: 1px solid;
+    border-color: ButtonBorder;
+    border-radius: 7px;
+    color: inherit;
     cursor: pointer;
     font: inherit;
-    min-height: 42px;
-    padding: 10px 16px;
-    transition:
-      background-color 120ms ease,
-      border-color 120ms ease,
-      transform 120ms ease;
+    font-size: 12px;
+    font-weight: 400;
+    min-height: 27px;
+    padding: 4px 8px;
   }
 
   .settings-tab:hover {
-    background: var(--button-gradient-start, var(--button-bg, transparent));
-    border-color: var(--button-hover-border, var(--border, currentColor));
-    transform: translateY(-1px);
+    text-decoration: underline;
   }
 
   .settings-tab.active {
-    background: color-mix(in srgb, var(--button-gradient-start, var(--button-bg, transparent)) 72%, transparent);
-    border-color: var(--border-focus, var(--border, currentColor));
+    box-shadow: inset 0 0 0 1px ButtonBorder;
     font-weight: 700;
   }
 

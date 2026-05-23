@@ -39,7 +39,7 @@ Anki Audio Quick Editor keeps the human-facing architecture doc short and puts t
 4. The editor bundle mounts one compact Svelte control surface per audio field, including an SVG prosody visualizer, and requests async analysis for the current referenced media.
 5. `prosody_analyzer.py` uses optional Parselmouth/Praat when available and falls back to ffmpeg-decoded PCM pitch/intensity analysis otherwise.
 6. Processing button presses update an `AudioEditState` for the current field, including speed, volume, and pause-shortening edits, then render a new MP3 with `audio_processor.py`.
-7. Special transform controls call bundled or configured external cleanup tools through `audio_processor.py`, including DeepFilterNet, RNNoise, DPDFNet Lite, and Sherpa Spleeter voice extraction.
+7. Special transform controls call external cleanup tools through `audio_processor.py`, including bundled DeepFilterNet, RNNoise, DPDFNet Lite, and Sherpa Spleeter voice extraction.
 8. `editor_integration.py` writes the result through Anki's media manager and replaces the first supported sound reference in the field.
 9. Playback uses Anki's audio player against the latest generated reference, stopping any previous playback first and seeking to the visualizer cursor when set.
 10. Undo restores the previous generated reference and edit state without deleting generated media.
@@ -107,13 +107,43 @@ Config defaults are stored in `config.json` and migrated into user config:
 
 ```json
 {
-  "_config_version": 17,
+  "_config_version": 20,
   "enabled": true,
   "debug_logging": false,
   "show_ffmpeg_commands": false,
   "repeat_playback_by_default": false,
   "repeat_pause_seconds": 0.0,
   "show_graph_by_default": false,
+  "visible_editor_buttons": [
+    "aqe:play",
+    "aqe:analyze",
+    "aqe:show-file",
+    "aqe:share",
+    "aqe:remove-pauses",
+    "aqe:denoise-standard",
+    "aqe:slower",
+    "aqe:faster",
+    "aqe:undo",
+    "aqe:redo",
+    "aqe:settings"
+  ],
+  "editor_button_modes": {
+    "aqe:play": "icon",
+    "aqe:analyze": "icon",
+    "aqe:show-file": "icon",
+    "aqe:share": "icon",
+    "aqe:convert": "text",
+    "aqe:remove-pauses": "text",
+    "aqe:denoise-standard": "text",
+    "aqe:pitch-hum": "text",
+    "aqe:slower": "icon",
+    "aqe:faster": "icon",
+    "aqe:volume-down": "icon",
+    "aqe:volume-up": "icon",
+    "aqe:undo": "icon",
+    "aqe:redo": "icon",
+    "aqe:settings": "icon"
+  },
   "graph_voice_range": "general",
   "graph_recording_condition": "auto",
   "graph_smoothness": "very_smooth",
@@ -130,8 +160,7 @@ Config defaults are stored in `config.json` and migrated into user config:
   "internal_pause_target_gap_ms": 100,
   "pause_aggressiveness": "normal",
   "output_format": "mp3",
-  "ffmpeg_path": "",
-  "deep_filter_path": "",
+  "ffmpeg_path": "/opt/homebrew/bin/ffmpeg",
   "deep_filter_post_filter": true,
   "dpdfnet_attn_limit_db": 12.0,
   "denoise_algorithm": "standard",
@@ -140,7 +169,7 @@ Config defaults are stored in `config.json` and migrated into user config:
 ```
 
 `config_migration.py` deep-merges defaults into user config and stamps the current schema version.
-Editor split-button choices are field-local runtime overrides. Settings provide defaults for trim amount, volume step, speed step, repeat pause, pause aggressiveness, convert target format, cleanup action, pitch hum mode, and DPDFNet aggressiveness, but changing a split-button value in one editor field does not write back to persisted config or other fields.
+Editor split-button choices are field-local runtime overrides. Settings provide defaults for toolbar visibility/display mode, trim amount, volume step, speed step, repeat pause, pause aggressiveness, convert target format, cleanup action, pitch hum mode, and DPDFNet aggressiveness, but changing a split-button value in one editor field does not write back to persisted config or other fields.
 
 ## Source Of Truth
 

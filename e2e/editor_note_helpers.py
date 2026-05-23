@@ -91,6 +91,11 @@ def _sound_filename(field_html: str) -> str:
 def _configure_ffmpeg(anki_mw, ffmpeg_config, **overrides: Any) -> None:
     config = anki_mw.addonManager.getConfig(ADDON_NUMERIC_ID) or {}
     config.update(asdict(ffmpeg_config))
+    deep_filter_path = overrides.pop("deep_filter_path", None)
+    if deep_filter_path:
+        _replace_bundled_deep_filter_for_e2e(Path(str(deep_filter_path)))
+    else:
+        _restore_bundled_deep_filter_for_e2e()
     config.update(
         {
             "ffmpeg_path": ffmpeg_config.ffmpeg_path,
@@ -103,6 +108,35 @@ def _configure_ffmpeg(anki_mw, ffmpeg_config, **overrides: Any) -> None:
         }
     )
     anki_mw.addonManager.writeConfig(ADDON_NUMERIC_ID, config)
+
+
+def _replace_bundled_deep_filter_for_e2e(source: Path) -> None:
+    from anki_audio_quick_editor.audio_tools import expected_bundled_tool_path
+
+    target = expected_bundled_tool_path("deep-filter")
+    assert target is not None
+    target.parent.mkdir(parents=True, exist_ok=True)
+    backup = _deep_filter_backup_path(target)
+    if target.is_file() and not backup.is_file():
+        shutil.copyfile(target, backup)
+    shutil.copyfile(source, target)
+    target.chmod(0o755)
+
+
+def _restore_bundled_deep_filter_for_e2e() -> None:
+    from anki_audio_quick_editor.audio_tools import expected_bundled_tool_path
+
+    target = expected_bundled_tool_path("deep-filter")
+    if target is None:
+        return
+    backup = _deep_filter_backup_path(target)
+    if backup.is_file():
+        shutil.copyfile(backup, target)
+        target.chmod(0o755)
+
+
+def _deep_filter_backup_path(target: Path) -> Path:
+    return target.with_name(f"{target.name}.aqe-e2e-original")
 
 
 def _artifact_root(anki_mw) -> Path:

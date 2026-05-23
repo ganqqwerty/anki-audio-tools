@@ -100,7 +100,6 @@ def test_processing_config_from_partial_config_uses_defaults() -> None:
     assert config.internal_pause_silence_threshold_db == -45
     assert config.output_format == "mp3"
     assert config.ffmpeg_path == "/opt/bin/ffmpeg"
-    assert config.deep_filter_path == ""
     assert config.deep_filter_post_filter is True
     assert config.dpdfnet_attn_limit_db == 12.0
     assert config.pitch_hum_mode == "direct"
@@ -134,15 +133,9 @@ def test_processing_config_reads_internal_pause_silence_threshold() -> None:
     assert config.internal_pause_silence_threshold_db == -42
 
 
-def test_processing_config_reads_deep_filter_settings() -> None:
-    config = AudioProcessingConfig.from_config(
-        {
-            "deep_filter_path": "/opt/bin/deep-filter",
-            "deep_filter_post_filter": False,
-        }
-    )
+def test_processing_config_reads_deep_filter_post_filter_setting() -> None:
+    config = AudioProcessingConfig.from_config({"deep_filter_post_filter": False})
 
-    assert config.deep_filter_path == "/opt/bin/deep-filter"
     assert config.deep_filter_post_filter is False
 
 

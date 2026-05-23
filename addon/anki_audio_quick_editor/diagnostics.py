@@ -14,18 +14,17 @@ def build_deep_filter_health(config: dict[str, Any]) -> dict[str, Any]:
         tool_source_label,
     )
 
-    configured_path = str(config.get("deep_filter_path", ""))
     try:
-        deep_filter_path = find_deep_filter(configured_path)
+        deep_filter_path = find_deep_filter()
     except Exception as exc:
         return {
             "available": False,
-            "path": configured_path,
-            "source": "config" if configured_path else "",
+            "path": "",
+            "source": "",
             "version": "",
             "error": str(exc),
         }
-    source = tool_source_label(deep_filter_path, configured_path=configured_path)
+    source = tool_source_label(deep_filter_path, configured_path="")
 
     command = (str(deep_filter_path), "--version")
     try:
