@@ -161,6 +161,12 @@
   font-weight: 700;
 }
 
+.aqe-graph-option-note {
+  color: GrayText;
+  font-size: 11px;
+  line-height: 1.35;
+}
+
 .aqe-graph-option-value {
   color: GrayText;
   font-size: 11px;
@@ -184,5 +190,5 @@
 
 .aqe-repeat-toggle-button {
   justify-content: flex-start;
-  width: 100%;
+  width: fit-content;
 }

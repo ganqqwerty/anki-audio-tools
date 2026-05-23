@@ -52,7 +52,7 @@ describe("editor inline split-button command integration", () => {
     expect(help).toHaveTextContent("Delete Region / Delete the rest");
     expect(help).toHaveTextContent("Creates a new file that removes the selected region or keeps only that region.");
     expect(help).toHaveTextContent("Creates a new file with louder audio.");
-    expect(help).toHaveTextContent("Uploads the current audio and copies a public link without changing the note.");
+    expect(help).toHaveTextContent("Uploads the current audio to Catbox or Litterbox and copies a public link without changing the note.");
     expect(help).toHaveTextContent("Every edit creates a new media file and updates the field to point at it.");
     expect(help).toHaveTextContent("grey is loudness and lines are pitch of the voice.");
     expect(document.querySelector<HTMLButtonElement>('[data-testid="aqe-button-0-denoise-standard"]')?.getAttribute("data-aqe-tooltip-content")).toBe(
@@ -108,13 +108,9 @@ describe("editor inline split-button command integration", () => {
     await Promise.resolve();
     expect(document.querySelector('[data-testid="aqe-split-0-graph-popover"]')).not.toHaveTextContent("Current settings:");
     document.querySelector<HTMLButtonElement>('[data-testid="aqe-split-0-graph-voice-range-child"]')!.click();
+    document.querySelector<HTMLButtonElement>('[data-testid="aqe-split-0-graph-recording-condition-studio"]')!.click();
     document.querySelector<HTMLButtonElement>('[data-testid="aqe-split-0-graph-voice-lock-stable"]')!.click();
     document.querySelector<HTMLButtonElement>('[data-testid="aqe-split-0-graph-smoothness-very_smooth"]')!.click();
-    const recordingConditionInput = document.querySelector<HTMLInputElement>(
-      '[data-testid="aqe-split-0-graph-recording-condition"]',
-    )!;
-    recordingConditionInput.value = "5";
-    recordingConditionInput.dispatchEvent(new Event("input", { bubbles: true }));
     const connectDropoutsInput = document.querySelector<HTMLInputElement>('[data-testid="aqe-split-0-graph-connect-dropouts"]')!;
     connectDropoutsInput.value = "90";
     connectDropoutsInput.dispatchEvent(new Event("input", { bubbles: true }));

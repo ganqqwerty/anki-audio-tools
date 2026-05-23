@@ -16,7 +16,7 @@
   import Save from "@lucide/svelte/icons/save";
   import Scissors from "@lucide/svelte/icons/scissors";
   import Settings from "@lucide/svelte/icons/settings";
-  import Share2 from "@lucide/svelte/icons/share-2";
+  import Share from "@lucide/svelte/icons/share";
   import Snail from "@lucide/svelte/icons/snail";
   import Sparkles from "@lucide/svelte/icons/sparkles";
   import TimerReset from "@lucide/svelte/icons/timer-reset";
@@ -41,6 +41,9 @@
     size?: number;
     strokeWidth?: number;
   } = $props();
+  const iconUid = Math.random().toString(36).slice(2, 10);
+  const insidePatternId = `aqe-selection-inside-${iconUid}`;
+  const outsidePatternId = `aqe-selection-outside-${iconUid}`;
 </script>
 
 <span class={className} aria-hidden="true">
@@ -76,10 +79,47 @@
     <Save {size} {strokeWidth} />
   {:else if icon === "scissors"}
     <Scissors {size} {strokeWidth} />
+  {:else if icon === "selection-remove-inside"}
+    <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width={strokeWidth} stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+      <defs>
+        <pattern
+          id={insidePatternId}
+          patternUnits="userSpaceOnUse"
+          width="4"
+          height="4"
+          patternTransform="rotate(45)"
+        >
+          <line x1="0" y1="0" x2="0" y2="4" stroke="currentColor" stroke-width="1" />
+        </pattern>
+      </defs>
+      <rect width="18" height="18" x="3" y="3" rx="2" />
+      <path d="M9 3v18" />
+      <path d="M15 3v18" />
+      <rect x="9" y="3" width="6" height="18" fill={`url(#${insidePatternId})`} stroke="none" />
+    </svg>
+  {:else if icon === "selection-remove-outside"}
+    <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width={strokeWidth} stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+      <defs>
+        <pattern
+          id={outsidePatternId}
+          patternUnits="userSpaceOnUse"
+          width="4"
+          height="4"
+          patternTransform="rotate(45)"
+        >
+          <line x1="0" y1="0" x2="0" y2="4" stroke="currentColor" stroke-width="1" />
+        </pattern>
+      </defs>
+      <rect width="18" height="18" x="3" y="3" rx="2" />
+      <path d="M9 3v18" />
+      <path d="M15 3v18" />
+      <rect x="3" y="3" width="6" height="18" fill={`url(#${outsidePatternId})`} stroke="none" />
+      <rect x="15" y="3" width="6" height="18" fill={`url(#${outsidePatternId})`} stroke="none" />
+    </svg>
   {:else if icon === "settings"}
     <Settings {size} {strokeWidth} />
-  {:else if icon === "share-2"}
-    <Share2 {size} {strokeWidth} />
+  {:else if icon === "share"}
+    <Share {size} {strokeWidth} />
   {:else if icon === "hare-running"}
     <!-- Framework7 hare, MIT. Modified with outline motion lines. -->
     <svg xmlns="http://www.w3.org/2000/svg" width={Math.round(size * 1.35)} height={size} viewBox="0 0 76 56" fill="none" stroke="currentColor" aria-hidden="true">

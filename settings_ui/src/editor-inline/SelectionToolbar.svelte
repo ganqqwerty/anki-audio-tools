@@ -73,7 +73,7 @@
         onmouseleave={() => setSelectionToolbarPreviewForOrd(target.ord, "none")}
         onclick={() => sendRegionDelete("button", target.node, target.ord)}
       >
-        <EditorCommandIcon icon="trash-2" />
+        <EditorCommandIcon icon="selection-remove-inside" />
       </button>
     {/snippet}
   </AqeTooltip>
@@ -97,7 +97,7 @@
         onmouseleave={() => setSelectionToolbarPreviewForOrd(target.ord, "none")}
         onclick={() => sendRegionDelete("button", target.node, target.ord, "delete-rest")}
       >
-        <EditorCommandIcon icon="trash-2" />
+        <EditorCommandIcon icon="selection-remove-outside" />
       </button>
     {/snippet}
   </AqeTooltip>

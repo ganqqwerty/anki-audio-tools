@@ -100,9 +100,9 @@ export function commandButtons(): readonly ToolbarButtonSpec[] {
       title: t("editor.command.play.title"),
     },
     {
-      activeIcon: "audio-lines",
+      activeIcon: "chart-line",
       command: "aqe:analyze",
-      icon: "audio-lines",
+      icon: "chart-line",
       iconOnly: true,
       label: t("editor.command.graph.label"),
       title: t("editor.command.graph.title"),
@@ -116,7 +116,7 @@ export function commandButtons(): readonly ToolbarButtonSpec[] {
     },
     {
       command: "aqe:share",
-      icon: "share-2",
+      icon: "share",
       iconOnly: true,
       label: t("editor.command.share.label"),
       title: t("editor.command.share.title"),

@@ -38,7 +38,7 @@
           <span class="aqe-help-description">{t("editor.help.play_desc")}</span>
         </span>
         <span class="aqe-help-item">
-          <span class="aqe-help-command"><EditorCommandIcon icon="audio-lines" /><span>{t("editor.command.graph.label")}</span></span>
+          <span class="aqe-help-command"><EditorCommandIcon icon="chart-line" /><span>{t("editor.command.graph.label")}</span></span>
           <span class="aqe-help-description">{t("editor.help.graph_desc")}</span>
         </span>
         <span class="aqe-help-item">
@@ -46,7 +46,7 @@
           <span class="aqe-help-description">{t("editor.help.folder_desc")}</span>
         </span>
         <span class="aqe-help-item">
-          <span class="aqe-help-command"><EditorCommandIcon icon="share-2" /><span>{t("editor.command.share.label")}</span></span>
+          <span class="aqe-help-command"><EditorCommandIcon icon="share" /><span>{t("editor.command.share.label")}</span></span>
           <span class="aqe-help-description">{t("editor.help.share_desc")}</span>
         </span>
         <span class="aqe-help-item">

@@ -1,4 +1,14 @@
 <script lang="ts">
+  import AqeTooltip from "../lib/AqeTooltip.svelte";
+  import {
+    graphConnectDropoutsNote,
+    graphRecordingConditionNote,
+    graphRecordingConditionTooltip,
+    graphVoiceLockNote,
+    graphVoiceLockTooltip,
+    graphVoiceRangeNote,
+    graphVoiceRangeTooltip,
+  } from "../lib/graph-option-copy.js";
   import { t } from "../lib/i18n.js";
   import {
     formatGraphRecordingCondition,
@@ -44,61 +54,99 @@
     voiceLock: GraphVoiceLock;
     voiceRange: GraphVoiceRange;
   } = $props();
-
-  function optionIndex<T extends string>(values: readonly T[], value: T): number {
-    return Math.max(0, values.indexOf(value));
-  }
-
-  function optionAt<T extends string>(values: readonly T[], index: number): T {
-    return (values[Math.max(0, Math.min(values.length - 1, Math.round(index)))] ?? values[0]) as T;
-  }
 </script>
 
 <div class="aqe-graph-options">
   <div class="aqe-graph-option">
     <span>{t("editor.graph.options.voice_range")}</span>
+    <span class="aqe-graph-option-note">{graphVoiceRangeNote()}</span>
     <div
       class="aqe-split-presets aqe-graph-option-group"
       role="radiogroup"
       aria-label={t("editor.graph.options.voice_range")}
     >
       {#each GRAPH_VOICE_RANGES as option}
-        <button
-          type="button"
-          class="aqe-button aqe-split-preset"
-          data-testid={`aqe-split-${targetOrd}-${slug}-voice-range-${option}`}
-          role="radio"
-          aria-checked={voiceRange === option ? "true" : "false"}
-          tabindex={voiceRange === option ? 0 : -1}
-          onclick={() => onVoiceRange(option)}
-        >
-          {formatGraphVoiceRange(option)}
-        </button>
+        <AqeTooltip>
+          {#snippet trigger({ props })}
+            <button
+              {...props}
+              type="button"
+              class="aqe-button aqe-split-preset aqe-tooltip-target"
+              data-testid={`aqe-split-${targetOrd}-${slug}-voice-range-${option}`}
+              data-aqe-tooltip-content={graphVoiceRangeTooltip(option)}
+              role="radio"
+              aria-checked={voiceRange === option ? "true" : "false"}
+              tabindex={voiceRange === option ? 0 : -1}
+              onclick={() => onVoiceRange(option)}
+            >
+              {formatGraphVoiceRange(option)}
+            </button>
+          {/snippet}
+        </AqeTooltip>
       {/each}
     </div>
   </div>
+
+  <div class="aqe-graph-option">
+    <span>{t("editor.graph.options.recording_condition")}</span>
+    <span class="aqe-graph-option-note">{graphRecordingConditionNote()}</span>
+    <div
+      class="aqe-split-presets aqe-graph-option-group"
+      role="radiogroup"
+      aria-label={t("editor.graph.options.recording_condition")}
+    >
+      {#each GRAPH_RECORDING_CONDITIONS as option}
+        <AqeTooltip>
+          {#snippet trigger({ props })}
+            <button
+              {...props}
+              type="button"
+              class="aqe-button aqe-split-preset aqe-tooltip-target"
+              data-testid={`aqe-split-${targetOrd}-${slug}-recording-condition-${option}`}
+              data-aqe-tooltip-content={graphRecordingConditionTooltip(option)}
+              role="radio"
+              aria-checked={recordingCondition === option ? "true" : "false"}
+              tabindex={recordingCondition === option ? 0 : -1}
+              onclick={() => onRecordingCondition(option)}
+            >
+              {formatGraphRecordingCondition(option)}
+            </button>
+          {/snippet}
+        </AqeTooltip>
+      {/each}
+    </div>
+  </div>
+
   <div class="aqe-graph-option">
     <span>{t("editor.graph.options.voice_lock")}</span>
+    <span class="aqe-graph-option-note">{graphVoiceLockNote()}</span>
     <div
       class="aqe-split-presets aqe-graph-option-group"
       role="radiogroup"
       aria-label={t("editor.graph.options.voice_lock")}
     >
       {#each GRAPH_VOICE_LOCKS as option}
-        <button
-          type="button"
-          class="aqe-button aqe-split-preset"
-          data-testid={`aqe-split-${targetOrd}-${slug}-voice-lock-${option}`}
-          role="radio"
-          aria-checked={voiceLock === option ? "true" : "false"}
-          tabindex={voiceLock === option ? 0 : -1}
-          onclick={() => onVoiceLock(option)}
-        >
-          {formatGraphVoiceLock(option)}
-        </button>
+        <AqeTooltip>
+          {#snippet trigger({ props })}
+            <button
+              {...props}
+              type="button"
+              class="aqe-button aqe-split-preset aqe-tooltip-target"
+              data-testid={`aqe-split-${targetOrd}-${slug}-voice-lock-${option}`}
+              data-aqe-tooltip-content={graphVoiceLockTooltip(option)}
+              role="radio"
+              aria-checked={voiceLock === option ? "true" : "false"}
+              tabindex={voiceLock === option ? 0 : -1}
+              onclick={() => onVoiceLock(option)}
+            >
+              {formatGraphVoiceLock(option)}
+            </button>
+          {/snippet}
+        </AqeTooltip>
       {/each}
     </div>
   </div>
+
   <div class="aqe-graph-option">
     <span>{t("editor.graph.options.smoothness")}</span>
     <div
@@ -121,8 +169,10 @@
       {/each}
     </div>
   </div>
+
   <label class="aqe-graph-option">
     <span>{t("editor.graph.options.connect_dropouts")}</span>
+    <span class="aqe-graph-option-note">{graphConnectDropoutsNote()}</span>
     <input
       data-testid={`aqe-split-${targetOrd}-${slug}-connect-dropouts`}
       type="range"
@@ -133,22 +183,5 @@
       oninput={(event) => onConnectShortDropouts((event.currentTarget as HTMLInputElement).valueAsNumber)}
     />
     <span class="aqe-graph-option-value">{connectShortDropoutsMs} ms</span>
-  </label>
-  <label class="aqe-graph-option">
-    <span>{t("editor.graph.options.recording_condition")}</span>
-    <input
-      data-testid={`aqe-split-${targetOrd}-${slug}-recording-condition`}
-      type="range"
-      min="0"
-      max={GRAPH_RECORDING_CONDITIONS.length - 1}
-      step="1"
-      value={optionIndex(GRAPH_RECORDING_CONDITIONS, recordingCondition)}
-      oninput={(event) => {
-        onRecordingCondition(
-          optionAt(GRAPH_RECORDING_CONDITIONS, (event.currentTarget as HTMLInputElement).valueAsNumber),
-        );
-      }}
-    />
-    <span class="aqe-graph-option-value">{formatGraphRecordingCondition(recordingCondition)}</span>
   </label>
 </div>

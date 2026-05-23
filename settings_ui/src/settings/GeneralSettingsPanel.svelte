@@ -60,7 +60,7 @@
         bind:checked={config.show_graph_by_default}
       />
       <span class="settings-label-with-icon">
-        <CommandIcon className="settings-label-icon" icon="audio-lines" />
+        <CommandIcon className="settings-label-icon" icon="chart-line" />
         <span class="settings-label-text">{t("settings.show_graph_by_default")}</span>
       </span>
     </label>
