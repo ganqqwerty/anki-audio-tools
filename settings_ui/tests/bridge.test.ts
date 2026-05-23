@@ -7,6 +7,7 @@ import {
   sendAsyncCmd,
   sendBridgeCommand,
   settingsCancel,
+  settingsCheckMedia,
   settingsResetDefaults,
   settingsSave,
 } from "../src/lib/bridge.js";
@@ -110,6 +111,11 @@ describe("lifecycle commands", () => {
   it("sends settings.reset_defaults", () => {
     settingsResetDefaults();
     expect(pycmd).toHaveBeenCalledWith('bridge:{"command":"settings.reset_defaults"}');
+  });
+
+  it("sends settings.check_media", () => {
+    settingsCheckMedia();
+    expect(pycmd).toHaveBeenCalledWith('bridge:{"command":"settings.check_media"}');
   });
 });
 

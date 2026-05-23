@@ -89,6 +89,7 @@
   "diagnostics.addon_folder": "Add-on-Ordner",
   "diagnostics.log_file": "Protokolldatei",
   "diagnostics.run_health_check": "Integritätsprüfung ausführen",
+  "diagnostics.check_media": "Medien prüfen",
   "diagnostics.copy_support_report": "Supportbericht kopieren",
   "diagnostics.show_log_file": "Protokolldatei anzeigen",
   "editor.command.play.label": "Abspielen",

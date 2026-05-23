@@ -89,6 +89,7 @@
   "diagnostics.addon_folder": "附加元件資料夾",
   "diagnostics.log_file": "記錄檔",
   "diagnostics.run_health_check": "執行健康檢查",
+  "diagnostics.check_media": "檢查媒體",
   "diagnostics.copy_support_report": "複製支援報告",
   "diagnostics.show_log_file": "顯示記錄檔",
   "editor.command.play.label": "播放",

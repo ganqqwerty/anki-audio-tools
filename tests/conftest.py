@@ -272,6 +272,9 @@ _aqt_browser.Browser = _named_mock("aqt.browser.Browser")
 _aqt_sound = types.ModuleType("aqt.sound")
 _aqt_sound.av_player = _named_mock("aqt.sound.av_player")
 
+_aqt_mediacheck = types.ModuleType("aqt.mediacheck")
+_aqt_mediacheck.check_media_db = _named_mock("aqt.mediacheck.check_media_db")
+
 _anki = types.ModuleType("anki")
 _anki_collection = types.ModuleType("anki.collection")
 _anki_collection.Collection = _Collection
@@ -311,6 +314,7 @@ _aqt.sound = _aqt_sound
 _aqt.taskman = _aqt_taskman
 _aqt.utils = _aqt_utils
 _aqt.webview = _webview
+_aqt.mediacheck = _aqt_mediacheck
 
 sys.modules["aqt"] = _aqt
 sys.modules["aqt.addons"] = _aqt_addons
@@ -321,6 +325,7 @@ sys.modules["aqt.utils"] = _aqt_utils
 sys.modules["aqt.gui_hooks"] = _aqt_gui_hooks
 sys.modules["aqt.browser"] = _aqt_browser
 sys.modules["aqt.main"] = _aqt_main
+sys.modules["aqt.mediacheck"] = _aqt_mediacheck
 sys.modules["aqt.sound"] = _aqt_sound
 sys.modules["aqt.taskman"] = _aqt_taskman
 sys.modules["anki"] = _anki

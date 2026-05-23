@@ -42,6 +42,10 @@ export function settingsResetDefaults(): void {
   sendBridgeEnvelope("settings.reset_defaults");
 }
 
+export function settingsCheckMedia(): void {
+  sendBridgeEnvelope("settings.check_media");
+}
+
 export function sendAsyncCmd<TOp extends AsyncOperationName>(
   id: string,
   op: TOp,

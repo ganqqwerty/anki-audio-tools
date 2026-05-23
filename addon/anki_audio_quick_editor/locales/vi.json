@@ -89,6 +89,7 @@
   "diagnostics.addon_folder": "Thư mục tiện ích",
   "diagnostics.log_file": "Tệp nhật ký",
   "diagnostics.run_health_check": "Chạy kiểm tra sức khỏe",
+  "diagnostics.check_media": "Kiểm tra media",
   "diagnostics.copy_support_report": "Sao chép báo cáo hỗ trợ",
   "diagnostics.show_log_file": "Hiển thị tệp nhật ký",
   "editor.command.play.label": "Phát",
