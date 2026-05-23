@@ -35,30 +35,58 @@ export function setControlsBusy(ord: number, busy: boolean, message = "", comman
   if (!busy) {
     queueMicrotask(() => continueDefaultGraphQueue(defaultGraphQueueDependencies()));
   }
-  const controls = controlsForOrd(ord);
-  const status = controls?.querySelector<HTMLElement>(".aqe-status");
+  const status = statusForOrd(ord);
   if (!status) return;
-  status.textContent = message || "";
-  status.dataset.kind = busy ? "processing" : "info";
-  setTooltipContent(status, command || "");
+  if (busy) {
+    renderStatus(status, message || "", "processing", command || "");
+    return;
+  }
+  if (message || command) {
+    setStatusForOrd(ord, message, "info", command);
+    return;
+  }
+  restoreStableStatus(status);
 }
 
 export function setStatus(message: string, kind = "info"): void {
   const ord = Number(window.__aqeActiveField ?? 0);
-  const controls = controlsForOrd(ord);
-  const status = controls?.querySelector<HTMLElement>(".aqe-status");
+  setStatusForOrd(ord, message, kind);
+}
+
+export function setStatusForOrd(ord: number, message: string, kind = "info", command = ""): void {
+  const status = statusForOrd(ord);
   if (!status) return;
-  status.textContent = message || "";
-  status.dataset.kind = kind || "info";
+  if (kind !== "processing") {
+    status.dataset.stableMessage = message || "";
+    status.dataset.stableKind = kind || "info";
+    status.dataset.stableCommand = command || "";
+  }
+  renderStatus(status, message || "", kind || "info", command || "");
 }
 
 export function clearStatus(ord: number): void {
-  const controls = controlsForOrd(ord);
-  const status = controls?.querySelector<HTMLElement>(".aqe-status");
+  const status = statusForOrd(ord);
   if (!status) return;
-  status.textContent = "";
-  status.dataset.kind = "info";
-  setTooltipContent(status, "");
+  status.dataset.stableMessage = "";
+  status.dataset.stableKind = "info";
+  status.dataset.stableCommand = "";
+  renderStatus(status, "", "info", "");
+}
+
+export function restoreStatusForOrd(ord: number): void {
+  const status = statusForOrd(ord);
+  if (!status) return;
+  restoreStableStatus(status);
+}
+
+export function applyInitialStatusForOrd(ord: number): void {
+  const initialStatuses = window.__AQE_EDITOR_CONFIG__?.initialStatusByField;
+  const initialStatus = initialStatuses?.[ord];
+  if (!initialStatus?.message) return;
+  setStatusForOrd(ord, initialStatus.message, initialStatus.kind || "info");
+  if (initialStatuses) {
+    delete initialStatuses[ord];
+  }
 }
 
 export function setCommandButtonLabel(ord: number, command: EditorCommand, label: string): void {
@@ -113,6 +141,25 @@ function localizedButtonLabel(command: EditorCommand, label: string): string {
 
 export function processingBusyMessage(command: EditorCommand): string {
   return PROCESSING_COMMANDS.has(command) ? processingMessage(command) : "";
+}
+
+function statusForOrd(ord: number): HTMLElement | null {
+  return controlsForOrd(ord)?.querySelector<HTMLElement>(".aqe-status") ?? null;
+}
+
+function renderStatus(status: HTMLElement, message: string, kind: string, command: string): void {
+  status.textContent = message;
+  status.dataset.kind = kind;
+  setTooltipContent(status, command);
+}
+
+function restoreStableStatus(status: HTMLElement): void {
+  renderStatus(
+    status,
+    status.dataset.stableMessage || "",
+    status.dataset.stableKind || "info",
+    status.dataset.stableCommand || "",
+  );
 }
 
 function updateHistoryButtonState(ord: number, command: "aqe:redo" | "aqe:undo"): void {

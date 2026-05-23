@@ -209,15 +209,6 @@
         </AqeTooltip>
       {/if}
     {/each}
-    <AqeTooltip>
-      {#snippet trigger({ props })}
-        <span
-          {...props}
-          class="aqe-status aqe-tooltip-target"
-          data-testid={`aqe-status-${target.ord}`}
-        ></span>
-      {/snippet}
-    </AqeTooltip>
     <EditorHelp ord={target.ord} />
     <div
       class="aqe-visualizer"
@@ -394,7 +385,15 @@
           aria-hidden="true"
         ></span>
         <span class="aqe-cursor-label" data-testid={`aqe-progress-label-${target.ord}`}>0 ms</span>
-        <span class="aqe-visualizer-status" data-testid={`aqe-graph-status-${target.ord}`}></span>
+        <AqeTooltip>
+          {#snippet trigger({ props })}
+            <span
+              {...props}
+              class="aqe-status aqe-tooltip-target"
+              data-testid={`aqe-status-${target.ord}`}
+            ></span>
+          {/snippet}
+        </AqeTooltip>
       </div>
     </div>
   </div>

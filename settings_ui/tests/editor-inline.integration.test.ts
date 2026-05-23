@@ -58,6 +58,29 @@ describe("editor inline Svelte integration", () => {
     expect(fieldIndex(document.getElementById("f0")!, 7)).toBe(0);
   });
 
+  it("renders one canonical status element in the visualizer meta row", () => {
+    initializeEditorRuntime({
+      audioFieldIndices: [0],
+      initialStatusByField: {
+        0: { kind: "info", message: "Closed settings." },
+      },
+    });
+    scan({
+      audioFieldIndices: [0],
+      initialStatusByField: {
+        0: { kind: "info", message: "Closed settings." },
+      },
+    });
+
+    const controls = document.querySelector<HTMLElement>('[data-testid="aqe-controls-0"]')!;
+    const status = document.querySelector<HTMLElement>('[data-testid="aqe-status-0"]')!;
+    const meta = controls.querySelector<HTMLElement>(".aqe-visualizer-meta")!;
+
+    expect(controls.querySelectorAll(".aqe-status")).toHaveLength(1);
+    expect(meta.querySelector('[data-testid="aqe-status-0"]')).toBe(status);
+    expect(status).toHaveTextContent("Closed settings.");
+  });
+
   it("disables undo and redo until history becomes available and updates their tooltips", () => {
     initializeEditorRuntime({ audioFieldIndices: [0] });
     scan({ audioFieldIndices: [0] });

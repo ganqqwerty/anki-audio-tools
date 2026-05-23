@@ -52,6 +52,7 @@ describe("editor inline post-edit playback integration", () => {
       loop: true,
       ord: 0,
       regionMode: "full",
+      source: "post_edit",
     });
     expect(window.__aqePostEditPlaybackIntents?.[0]).toBeUndefined();
     expect(window.__aqeGraphStateForTest?.(0)).toMatchObject({

@@ -56,14 +56,11 @@ export function renderVisualizerTrack(visualizer: VisualizerElement, track: Norm
 }
 
 export function renderVisualizerStatus(visualizer: VisualizerElement, message: string, kind = "info"): void {
-  const status = visualizer.querySelector<HTMLElement>(".aqe-visualizer-status");
   const spinner = visualizer.querySelector<HTMLElement>(".aqe-spinner");
   const processing = kind === "processing";
   visualizer.dataset.graphBusy = processing ? "true" : "false";
+  visualizer.dataset.statusMessage = message || "";
   if (spinner) spinner.hidden = !processing;
-  if (!status) return;
-  status.textContent = message || "";
-  status.dataset.kind = kind || "info";
 }
 
 export function renderSelection(

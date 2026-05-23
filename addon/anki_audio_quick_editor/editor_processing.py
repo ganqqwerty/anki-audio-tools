@@ -16,7 +16,8 @@ from .editor_actions import (
     processing_config_for_command,
 )
 from .editor_conversion import convert_async as _convert_async
-from .editor_session import EditorSession
+from .editor_session import EditorSession, PendingEditorStatus
+from .editor_status import command_status_summary
 from .errors import AudioProcessingError
 from .i18n import t
 from .media_paths import existing_media_file_path
@@ -71,8 +72,10 @@ def update_state_and_render(editor: Any, command: str | EditorCommandPayload, de
     state = session.state or AudioEditState(source_file=source_path.name)
     updated_state = apply_processing_command(command, state, config)
     if updated_state is None:
+        session.next_status_summary = ""
         deps.set_busy(editor, False)
         return
+    session.next_status_summary = command_status_summary(command, config)
     deps.render_and_replace_async(
         editor,
         session,
@@ -181,11 +184,18 @@ def replace_current_field_after_render(
     editor.note.fields[field_index] = replace_sound_reference(field_html, selection.selected, saved_name)
     should_redraw_graph = False
     if session:
-        session.undo_history.push(session.state, session.current_filename)
+        session.undo_history.push(
+            session.state,
+            session.current_filename,
+            status_summary=session.status_summary,
+        )
         session.redo_history.clear()
         session.state = updated_state
         session.current_filename = saved_name
         session.field_index = field_index
+        session.status_summary = session.next_status_summary or session.status_summary
+        session.next_status_summary = ""
+        session.pending_status = PendingEditorStatus(field_index, message=session.status_summary)
         session.processing = False
         session.cursor_ms = 0
         session.playback_active = False
@@ -197,9 +207,10 @@ def replace_current_field_after_render(
             session.visualized_filenames_by_field.pop(field_index, None)
             session.visualized_durations_by_field.pop(field_index, None)
     editor.loadNote(focusTo=field_index)
+    if session:
+        session.pending_status = None
     _sync_history_availability(editor, session, deps)
     _request_history_availability_after_edit(editor, session, deps)
-    deps.eval_status(editor, t("editor.status.updated_field", {"filename": saved_name}))
     deps.eval_playback_state(editor, field_index, "stopped", 0)
     if should_redraw_graph:
         deps.request_graph_redraw(editor, saved_name)
@@ -215,6 +226,8 @@ def render_failed(editor: Any, message: str, deps: Any) -> None:
         session.processing = False
         session.playback_active = False
         session.playback_paused = False
+        session.next_status_summary = ""
+        session.pending_status = None
     deps.set_busy(editor, False)
     deps.eval_status(editor, message, kind="error")
 
@@ -226,6 +239,7 @@ def denoise_standard_async(editor: Any, deps: Any) -> None:
         label=t("editor.status.denoising_standard"),
         failure_log_label="standard denoise failed",
         renderer=deps.render_noise_reduced_audio,
+        command=EditorCommandPayload(command="aqe:denoise-standard"),
     )
 
 
@@ -238,6 +252,7 @@ def rnnoise_async(editor: Any, deps: Any) -> None:
         renderer=deps.render_rnnoise_audio,
         support_hint=deps.support_report_hint,
         failure_context_recorder=deps.record_rnnoise_failure_context,
+        command=EditorCommandPayload(command="aqe:rnnoise"),
     )
 
 
@@ -249,7 +264,7 @@ def dpdfnet_async(
     """Start DPDFNet denoise for the current media."""
     if deps is None:
         deps = command
-        command = None
+        command = EditorCommandPayload(command="aqe:dpdfnet")
     deps.run_special_audio_transform_async(
         editor,
         label=t("editor.status.denoising_dpdfnet"),
@@ -270,6 +285,7 @@ def voice_only_async(editor: Any, deps: Any) -> None:
         renderer=deps.render_voice_only_audio,
         support_hint=deps.support_report_hint,
         failure_context_recorder=deps.record_spleeter_failure_context,
+        command=EditorCommandPayload(command="aqe:voice-only"),
     )
 
 
@@ -281,7 +297,7 @@ def pitch_hum_async(
     """Start Praat-guided pitch hum resynthesis for the current media."""
     if deps is None:
         deps = command
-        command = None
+        command = EditorCommandPayload(command="aqe:pitch-hum")
     config = AudioProcessingConfig.from_config(deps.config(editor))
     deps.run_special_audio_transform_async(
         editor,
@@ -328,6 +344,10 @@ def run_special_audio_transform_async(
     config = _special_transform_config(AudioProcessingConfig.from_config(deps.config(editor)), command)
     deps.stop_session_playback(session)
     session.post_edit_playback_generation += 1
+    session.next_status_summary = command_status_summary(
+        command or EditorCommandPayload(command=""),
+        config,
+    )
     session.processing = True
     session.playback_active = False
     session.playback_paused = False
@@ -410,42 +430,71 @@ def _special_transform_config(
 def replace_current_field_after_noise_removal(editor: Any, saved_name: str, deps: Any) -> None:
     """Replace the current field after a successful denoise transform."""
     session = deps.sessions.get(editor)
-    field_index = int(session.field_index) if session and session.field_index is not None else deps.current_field_index(editor)
+    field_index = _resolved_field_index(session, editor, deps)
     field_html = editor.note.fields[field_index]
     selection = select_first_sound_reference(field_html)
     if selection.selected is None:
         raise AudioProcessingError(deps.current_field_audio_missing)
     deps.dispose_editor_frontend_controls(editor)
     editor.note.fields[field_index] = replace_sound_reference(field_html, selection.selected, saved_name)
-    should_redraw_graph = False
-    if session:
-        session.undo_history.push(session.state, session.current_filename)
-        session.redo_history.clear()
-        session.state = AudioEditState(source_file=saved_name)
-        session.current_filename = saved_name
-        session.field_index = field_index
-        saved_path = existing_media_file_path(Path(editor.mw.col.media.dir()), saved_name)
-        session.source_mtime_ns = saved_path.stat().st_mtime_ns if saved_path is not None else None
-        session.processing = False
-        session.cursor_ms = 0
-        session.playback_active = False
-        session.playback_paused = False
-        should_redraw_graph = field_index in session.graph_active_fields or session.visualized_filename is not None
-        if should_redraw_graph:
-            session.visualized_filename = None
-            session.visualized_duration_ms = None
-            session.visualized_filenames_by_field.pop(field_index, None)
-            session.visualized_durations_by_field.pop(field_index, None)
+    should_redraw_graph = _replace_noise_reduction_session_state(editor, session, field_index, saved_name)
     editor.loadNote(focusTo=field_index)
+    if session:
+        session.pending_status = None
     _sync_history_availability(editor, session, deps)
     _request_history_availability_after_edit(editor, session, deps)
-    deps.eval_status(editor, t("editor.status.updated_field", {"filename": saved_name}))
     deps.eval_playback_state(editor, field_index, "stopped", 0)
     if should_redraw_graph:
         deps.request_graph_redraw(editor, saved_name)
     else:
         deps.set_busy(editor, False)
     deps.request_playback_after_edit(editor, field_index)
+
+
+def _resolved_field_index(session: EditorSession | None, editor: Any, deps: Any) -> int:
+    if session is not None and session.field_index is not None:
+        return int(session.field_index)
+    return int(deps.current_field_index(editor))
+
+
+def _replace_noise_reduction_session_state(
+    editor: Any,
+    session: EditorSession | None,
+    field_index: int,
+    saved_name: str,
+) -> bool:
+    if session is None:
+        return False
+
+    session.undo_history.push(
+        session.state,
+        session.current_filename,
+        status_summary=session.status_summary,
+    )
+    session.redo_history.clear()
+    session.state = AudioEditState(source_file=saved_name)
+    session.current_filename = saved_name
+    session.field_index = field_index
+    session.status_summary = session.next_status_summary or session.status_summary
+    session.next_status_summary = ""
+    session.pending_status = PendingEditorStatus(field_index, message=session.status_summary)
+    saved_path = existing_media_file_path(Path(editor.mw.col.media.dir()), saved_name)
+    session.source_mtime_ns = saved_path.stat().st_mtime_ns if saved_path is not None else None
+    session.processing = False
+    session.cursor_ms = 0
+    session.playback_active = False
+    session.playback_paused = False
+    should_redraw_graph = field_index in session.graph_active_fields or session.visualized_filename is not None
+    if should_redraw_graph:
+        _reset_session_visualized_graph(session, field_index)
+    return should_redraw_graph
+
+
+def _reset_session_visualized_graph(session: EditorSession, field_index: int) -> None:
+    session.visualized_filename = None
+    session.visualized_duration_ms = None
+    session.visualized_filenames_by_field.pop(field_index, None)
+    session.visualized_durations_by_field.pop(field_index, None)
 
 
 def record_rnnoise_failure_context(

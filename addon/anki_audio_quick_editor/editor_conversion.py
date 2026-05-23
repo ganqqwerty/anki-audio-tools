@@ -20,7 +20,7 @@ def convert_async(
     """Start format conversion for the current media."""
     if deps is None:
         deps = command
-        command = None
+        command = EditorCommandPayload(command="aqe:convert")
     existing = deps.sessions.get(editor)
     if existing and _has_blocking_work(existing):
         deps.eval_status(editor, deps.still_processing_message, kind="processing")

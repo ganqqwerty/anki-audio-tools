@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import importlib
-from collections.abc import Callable
 from pathlib import Path
 from types import SimpleNamespace
 from unittest.mock import MagicMock
@@ -16,6 +15,7 @@ from anki_audio_quick_editor.editor_integration import (
     UndoHistory,
     _audio_field_indices,
     _handle_bridge_command,
+    _initial_status_by_field,
     _parse_region_delete_request,
     _replace_current_field_after_region_delete,
     _set_busy,
@@ -89,16 +89,18 @@ def test_editor_undo_and_redo_restore_audio_references_without_processing(
     editor.currentField = 0
     editor.note = SimpleNamespace(fields=["[sound:clip__aqe_first.mp3]"])
     editor.web = MagicMock()
-    editor.loadNote = MagicMock()
+    reload_statuses: list[dict[int, dict[str, str]]] = []
+    editor.loadNote = MagicMock(side_effect=lambda **_kwargs: reload_statuses.append(_initial_status_by_field(session)))
     editor.mw = SimpleNamespace(col=SimpleNamespace(media=SimpleNamespace(dir=lambda: str(media_dir))))
     generated_state = AudioEditState("clip.mp3", speed=1.1)
     session = EditorSession(
         state=generated_state,
         field_index=0,
         current_filename="clip__aqe_first.mp3",
+        status_summary="Increased speed to x1.10.",
         source_mtime_ns=generated.stat().st_mtime_ns,
     )
-    session.undo_history.push(AudioEditState("clip.mp3"), "clip.mp3")
+    session.undo_history.push(AudioEditState("clip.mp3"), "clip.mp3", status_summary="Original audio.")
     _SESSIONS[editor] = session
 
     monkeypatch.setattr("anki_audio_quick_editor.editor_runtime.stop_audio_playback", lambda: None)
@@ -110,8 +112,13 @@ def test_editor_undo_and_redo_restore_audio_references_without_processing(
     assert session.state == AudioEditState("clip.mp3")
     assert session.current_filename == "clip.mp3"
     assert session.redo_history.pop().filename == "clip__aqe_first.mp3"
+    assert reload_statuses[0] == {0: {"kind": "info", "message": "Undid: Original audio."}}
 
-    session.redo_history.push(generated_state, "clip__aqe_first.mp3")
+    session.redo_history.push(
+        generated_state,
+        "clip__aqe_first.mp3",
+        status_summary="Increased speed to x1.10.",
+    )
     _handle_bridge_command(editor, "aqe:redo")
 
     assert editor.note.fields == ["[sound:clip__aqe_first.mp3]"]
@@ -119,6 +126,7 @@ def test_editor_undo_and_redo_restore_audio_references_without_processing(
     assert session.current_filename == "clip__aqe_first.mp3"
     assert session.undo_history.pop().filename == "clip.mp3"
     assert editor.loadNote.call_count == 2
+    assert reload_statuses[1] == {0: {"kind": "info", "message": "Redid: Increased speed to x1.10."}}
     evals = [call.args[0] for call in editor.web.eval.call_args_list]
     assert any("window.__aqeSetHistoryAvailability && window.__aqeSetHistoryAvailability(0, false, true)" in call for call in evals)
     assert any("window.__aqeSetHistoryAvailability && window.__aqeSetHistoryAvailability(0, true, false)" in call for call in evals)
@@ -387,7 +395,7 @@ def test_editor_settings_command_opens_settings_and_refreshes_after_save(
     media_dir = tmp_path / "media"
     media_dir.mkdir()
     (media_dir / "clip.mp3").write_bytes(b"audio")
-    callbacks: list[Callable[[], None]] = []
+    callbacks: list[object] = []
     class Editor:
         pass
 
@@ -395,7 +403,7 @@ def test_editor_settings_command_opens_settings_and_refreshes_after_save(
     editor.currentField = 0
     editor.note = SimpleNamespace(fields=["[sound:clip.mp3]"])
     editor.web = MagicMock()
-    editor.loadNote = MagicMock()
+    reload_statuses: list[dict[int, dict[str, str]]] = []
     editor.mw = SimpleNamespace(col=SimpleNamespace(media=SimpleNamespace(dir=lambda: str(media_dir))))
     session = EditorSession(
         state=AudioEditState("clip.mp3"),
@@ -406,6 +414,7 @@ def test_editor_settings_command_opens_settings_and_refreshes_after_save(
         playback_paused=True,
         playback_preparing=True,
     )
+    editor.loadNote = MagicMock(side_effect=lambda **_kwargs: reload_statuses.append(_initial_status_by_field(session)))
     _SESSIONS[editor] = session
 
     def fake_settings_opener(callback):
@@ -419,7 +428,7 @@ def test_editor_settings_command_opens_settings_and_refreshes_after_save(
     assert len(callbacks) == 1
     assert any("Opened settings." in call.args[0] for call in editor.web.eval.call_args_list)
 
-    callbacks[0]()
+    callbacks[0].on_saved()
 
     assert session.analysis_generation == 1
     assert session.processing is False
@@ -427,9 +436,47 @@ def test_editor_settings_command_opens_settings_and_refreshes_after_save(
     assert session.playback_active is False
     assert session.playback_paused is False
     assert session.playback_preparing is False
+    assert reload_statuses == [{0: {"kind": "info", "message": "Closed settings."}}]
     assert editor.loadNote.call_args.args == ()
     assert editor.loadNote.call_args.kwargs == {"focusTo": 0}
     assert any("window.__aqeEditorDispose" in call.args[0] for call in editor.web.eval.call_args_list)
+
+
+def test_editor_settings_command_reports_closed_settings_without_refresh_on_close(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    media_dir = tmp_path / "media"
+    media_dir.mkdir()
+    (media_dir / "clip.mp3").write_bytes(b"audio")
+    callbacks: list[object] = []
+
+    class Editor:
+        pass
+
+    editor = Editor()
+    editor.currentField = 0
+    editor.note = SimpleNamespace(fields=["[sound:clip.mp3]"])
+    editor.web = MagicMock()
+    editor.loadNote = MagicMock()
+    editor.mw = SimpleNamespace(col=SimpleNamespace(media=SimpleNamespace(dir=lambda: str(media_dir))))
+    _SESSIONS[editor] = EditorSession(
+        state=AudioEditState("clip.mp3"),
+        field_index=0,
+        current_filename="clip.mp3",
+    )
+
+    monkeypatch.setattr(
+        "anki_audio_quick_editor.editor_runtime.SETTINGS_OPENER",
+        lambda callback: callbacks.append(callback),
+    )
+
+    _handle_bridge_command(editor, "aqe:settings")
+    callbacks[0].on_closed()
+
+    assert any("Opened settings." in call.args[0] for call in editor.web.eval.call_args_list)
+    assert any("Closed settings." in call.args[0] for call in editor.web.eval.call_args_list)
+    editor.loadNote.assert_not_called()
 
 
 def test_set_busy_falls_back_to_session_field_index() -> None:

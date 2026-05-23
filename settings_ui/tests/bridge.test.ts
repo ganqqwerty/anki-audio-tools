@@ -81,6 +81,25 @@ describe("sendBridgeCommand", () => {
     sendBridgeCommand("test-command");
     expect(pycmd).toHaveBeenCalledWith("test-command");
   });
+
+  it("retries until pycmd becomes available", () => {
+    vi.useFakeTimers();
+    const original = globalThis.pycmd;
+    globalThis.pycmd = undefined;
+
+    try {
+      sendBridgeCommand("delayed-command");
+      expect(pycmd).not.toHaveBeenCalled();
+
+      globalThis.pycmd = pycmd;
+      vi.advanceTimersByTime(25);
+
+      expect(pycmd).toHaveBeenCalledWith("delayed-command");
+    } finally {
+      globalThis.pycmd = original;
+      vi.useRealTimers();
+    }
+  });
 });
 
 describe("encodeBridgeCommand", () => {

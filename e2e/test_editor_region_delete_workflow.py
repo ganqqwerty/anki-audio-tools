@@ -16,6 +16,7 @@ from e2e.editor_note_helpers import (
     _open_editor,
     _sound_filename,
     _wait_for_generated_mp3,
+    _wait_for_status_flow,
 )
 from e2e.helpers import click_selector, generate_tone, run_js, wait_for_js_condition
 
@@ -95,6 +96,11 @@ def test_delete_region_button_cuts_middle_region_and_redraws_graph(
         previous_name = _sound_filename(note.fields[0])
         click_selector(editor.web, _button_selector("aqe:delete-selection"), timeout=5.0)
         generated_name = _wait_for_generated_mp3(note, media_dir, previous_name)
+        _wait_for_status_flow(
+            editor,
+            lambda status: status["text"] == "Deleted selection 500-1250 ms.",
+            timeout=10.0,
+        )
         redrawn = _wait_for_visualizer_track(
             editor,
             lambda value: value["sourceFilename"] == generated_name
@@ -154,6 +160,11 @@ def test_delete_rest_button_keeps_selected_middle_region_and_redraws_graph(
         previous_name = _sound_filename(note.fields[0])
         click_selector(editor.web, _button_selector("aqe:delete-rest"), timeout=5.0)
         generated_name = _wait_for_generated_mp3(note, media_dir, previous_name)
+        _wait_for_status_flow(
+            editor,
+            lambda status: status["text"] == "Kept only selection 500-1250 ms.",
+            timeout=10.0,
+        )
         redrawn = _wait_for_visualizer_track(
             editor,
             lambda value: value["sourceFilename"] == generated_name

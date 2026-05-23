@@ -38,6 +38,7 @@ EDITOR_SPLIT_MODULES = {
     "editor_runtime",
     "editor_session",
     "editor_settings_actions",
+    "editor_status",
     "editor_split_defaults",
 }
 

@@ -143,13 +143,10 @@ def test_manual_graph_after_clearing_default_graph_field_shows_error_without_ana
             editor.web,
             """
             (() => {
-              const status = document.querySelector('.aqe-controls[data-aqe-field-ord="0"] .aqe-status');
-              const graphStatus = document.querySelector('[data-testid="aqe-graph-status-0"]');
+              const status = document.querySelector('[data-testid="aqe-status-0"]');
               return {
                 status: status?.textContent || "",
                 statusKind: status?.dataset.kind || "",
-                graphStatus: graphStatus?.textContent || "",
-                graphStatusKind: graphStatus?.dataset.kind || "",
               };
             })()
             """,
@@ -159,8 +156,7 @@ def test_manual_graph_after_clearing_default_graph_field_shows_error_without_ana
             timeout=10.0,
         )
 
-        assert state["graphStatus"] != "Analyzing..."
-        assert state["graphStatusKind"] != "processing"
+        assert state["status"] != "Analyzing..."
     finally:
         editor.set_note(None)
         parent.close()

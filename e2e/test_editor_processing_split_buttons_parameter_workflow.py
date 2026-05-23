@@ -17,6 +17,7 @@ from e2e.editor_note_helpers import (
     _configure_ffmpeg,
     _open_editor,
     _sound_filename,
+    _wait_for_status_flow,
 )
 from e2e.helpers import (
     click_selector,
@@ -56,6 +57,11 @@ def test_grouped_volume_and_speed_split_buttons_apply_local_values_without_chang
             "aqe:volume-down",
             source.name,
         )
+        _wait_for_status_flow(
+            editor,
+            lambda status: status["text"] == "Decreased volume by 6 dB.",
+            timeout=10.0,
+        )
         wait_for_condition(
             lambda: (
                 (session := _SESSIONS.get(editor)) is not None
@@ -71,6 +77,11 @@ def test_grouped_volume_and_speed_split_buttons_apply_local_values_without_chang
             media_dir,
             "aqe:volume-up",
             volume_down_name,
+        )
+        _wait_for_status_flow(
+            editor,
+            lambda status: status["text"] == "Increased volume by 6 dB.",
+            timeout=10.0,
         )
         wait_for_condition(
             lambda: (
@@ -96,6 +107,11 @@ def test_grouped_volume_and_speed_split_buttons_apply_local_values_without_chang
             "aqe:slower",
             volume_name,
         )
+        _wait_for_status_flow(
+            editor,
+            lambda status: status["text"] == "Decreased speed to x0.90.",
+            timeout=10.0,
+        )
         wait_for_condition(
             lambda: (
                 (session := _SESSIONS.get(editor)) is not None
@@ -111,6 +127,11 @@ def test_grouped_volume_and_speed_split_buttons_apply_local_values_without_chang
             media_dir,
             "aqe:faster",
             slower_name,
+        )
+        _wait_for_status_flow(
+            editor,
+            lambda status: status["text"] == "Increased speed to x1.10.",
+            timeout=10.0,
         )
 
         config = anki_mw.addonManager.getConfig(ADDON_NUMERIC_ID)
@@ -166,6 +187,11 @@ def test_pause_split_button_applies_local_aggressiveness_without_changing_settin
             media_dir,
             "aqe:remove-pauses",
             source.name,
+        )
+        _wait_for_status_flow(
+            editor,
+            lambda status: status["text"] == "Shortened pauses with Aggressive level.",
+            timeout=10.0,
         )
         wait_for_condition(
             lambda: len(_artifact_dirs_for_source(artifact_root, source) - before_artifacts) == 1,

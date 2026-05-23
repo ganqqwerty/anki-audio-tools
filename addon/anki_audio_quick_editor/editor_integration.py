@@ -40,6 +40,7 @@ from .editor_runtime import (
     CURRENT_FIELD_AUDIO_MISSING,
     REFERENCED_AUDIO_MISSING,
     STILL_PROCESSING_MESSAGE,
+    SettingsLifecycleCallbacks,
 )
 from .editor_runtime import (
     SESSIONS as _SESSIONS,
@@ -76,7 +77,7 @@ from .editor_ui import injection_script
 
 logger = logging.getLogger(__name__)
 
-SettingsOpener = Callable[[Callable[[], None] | None], None]
+SettingsOpener = Callable[[SettingsLifecycleCallbacks | None], None]
 _SETTINGS_OPENER: SettingsOpener | None = None
 __all__ = [
     "BRIDGE_COMMANDS",
@@ -220,6 +221,7 @@ def _on_editor_will_load_note(js: str, note: Any, editor: Any) -> str:
     script = injection_script(
         list(audio_field_sources),
         audio_field_sources=audio_field_sources,
+        initial_status_by_field=_initial_status_by_field(_SESSIONS.get(editor)),
         repeat_playback_by_default=bool(config.get("repeat_playback_by_default", False)),
         show_graph_by_default=bool(config.get("show_graph_by_default", False)),
         visible_editor_buttons=[str(command) for command in visible_editor_buttons],
@@ -247,6 +249,18 @@ def _on_editor_will_load_note(js: str, note: Any, editor: Any) -> str:
         },
     )
     return f"{js}\n{script}"
+
+
+def _initial_status_by_field(session: EditorSession | None) -> dict[int, dict[str, str]]:
+    if session is None or session.pending_status is None:
+        return {}
+    pending = session.pending_status
+    return {
+        int(pending.field_index): {
+            "kind": pending.kind,
+            "message": pending.message,
+        }
+    }
 
 
 def _reset_editor_session_for_note_load(editor: Any, note_id: int | None = None) -> None:

@@ -17,6 +17,16 @@ class UndoEntry:
 
     state: AudioEditState
     filename: str
+    status_summary: str = ""
+
+
+@dataclass(frozen=True)
+class PendingEditorStatus:
+    """One status message to reapply after the editor controls remount."""
+
+    field_index: int
+    kind: str = "info"
+    message: str = ""
 
 
 @dataclass
@@ -25,10 +35,15 @@ class UndoHistory:
 
     entries: list[UndoEntry] = field(default_factory=list)
 
-    def push(self, state: AudioEditState | None, filename: str | None) -> None:
+    def push(
+        self,
+        state: AudioEditState | None,
+        filename: str | None,
+        status_summary: str = "",
+    ) -> None:
         """Remember the current generated/reference state before rendering."""
         if state is not None and filename:
-            self.entries.append(UndoEntry(state, filename))
+            self.entries.append(UndoEntry(state, filename, status_summary=status_summary))
 
     def pop(self) -> UndoEntry | None:
         """Return the previous state to restore, if one exists."""
@@ -91,9 +106,13 @@ class EditorSession:
     playback_active: bool = False
     playback_paused: bool = False
     playback_preparing: bool = False
+    preserve_status_during_playback: bool = False
     playback_generation: int = 0
     post_edit_playback_generation: int = 0
     temp_playback_path: Path | None = None
+    next_status_summary: str = ""
+    status_summary: str = ""
+    pending_status: PendingEditorStatus | None = None
 
 
 def reset_for_note_load(session: EditorSession, note_id: int | None) -> bool:
@@ -121,5 +140,9 @@ def reset_for_note_load(session: EditorSession, note_id: int | None) -> bool:
     session.playback_active = False
     session.playback_paused = False
     session.playback_preparing = False
+    session.preserve_status_during_playback = False
     session.post_edit_playback_generation += 1
+    session.next_status_summary = ""
+    session.status_summary = ""
+    session.pending_status = None
     return True

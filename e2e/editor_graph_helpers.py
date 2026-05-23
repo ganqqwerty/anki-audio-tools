@@ -23,6 +23,7 @@ def _visualizer_js(ord_: int = 0) -> str:
       const toolbarPlay = visualizer.querySelector('.aqe-selection-toolbar-play');
       const toolbarDelete = visualizer.querySelector('.aqe-delete-region-button');
       const toolbarDeleteRest = visualizer.querySelector('.aqe-delete-rest-button');
+      const status = document.querySelector(`[data-testid="aqe-status-${ord}"]`);
       const labels = Array.from(visualizer.querySelectorAll('.aqe-hz-label')).map((node) => node.textContent);
       const flag = visualizer.querySelector('.aqe-cursor-flag');
       const flagCurrent = visualizer.querySelector('.aqe-cursor-flag-current');
@@ -49,8 +50,8 @@ def _visualizer_js(ord_: int = 0) -> str:
         timecodeFlagTransform: flag?.getAttribute('transform') || "",
         timecodeFlagCurrent: flagCurrent?.textContent || "",
         timecodeFlagPitch: flagPitch?.textContent || "",
-        status: visualizer.querySelector('.aqe-visualizer-status')?.textContent || "",
-        statusKind: visualizer.querySelector('.aqe-visualizer-status')?.dataset.kind || "",
+        status: status?.textContent || "",
+        statusKind: status?.dataset.kind || "",
         graphButtonLabel: buttonLabel(graphButton),
         graphButtonState: graphButton?.dataset.aqeButtonState || "",
         playButtonLabel: buttonLabel(playButton),

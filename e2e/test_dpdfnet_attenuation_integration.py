@@ -15,6 +15,7 @@ from e2e.editor_note_helpers import (
     _configure_ffmpeg,
     _open_editor,
     _sound_filename,
+    _wait_for_status_flow,
 )
 from e2e.helpers import (
     click_selector,
@@ -138,6 +139,11 @@ def test_editor_dpdfnet_uses_selected_aggressiveness(
             lambda: captured == [18.0] and _sound_filename(note.fields[0]) != source.name,
             timeout=10.0,
             message="Editor did not pass selected DPDFNet aggressiveness to renderer",
+        )
+        _wait_for_status_flow(
+            editor,
+            lambda status: status["text"] == "Cleaned audio with DPDFNet at Aggressive aggressiveness.",
+            timeout=10.0,
         )
     finally:
         editor.set_note(None)

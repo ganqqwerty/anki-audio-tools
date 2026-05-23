@@ -151,6 +151,37 @@ def test_html_playback_request_updates_session_without_native_segment(tmp_path: 
     assert any("Playing from 0.70s" in call for call in evals)
 
 
+def test_post_edit_playback_request_does_not_replace_status_while_analysis_is_busy(tmp_path: Path) -> None:
+    class Editor:
+        pass
+
+    media_dir = tmp_path / "media"
+    media_dir.mkdir()
+    source = media_dir / "clip.mp3"
+    source.write_bytes(b"audio")
+    editor = Editor()
+    editor.currentField = 0
+    editor.note = SimpleNamespace(fields=["[sound:clip.mp3]"])
+    editor.web = MagicMock()
+    editor.mw = SimpleNamespace(col=SimpleNamespace(media=SimpleNamespace(dir=lambda: str(media_dir))))
+    session = EditorSession(
+        state=AudioEditState("clip.mp3"),
+        field_index=0,
+        current_filename="clip.mp3",
+        source_mtime_ns=source.stat().st_mtime_ns,
+        visualized_duration_ms=2000,
+        analysis_busy=True,
+        analysis_busy_fields={1},
+    )
+    _SESSIONS[editor] = session
+
+    _play_with_request(editor, {"engine": "native", "action": "start", "cursorMs": 0, "source": "post_edit"})
+
+    editor.web.eval.assert_not_called()
+    assert session.playback_active is False
+    assert session.playback_preparing is False
+
+
 def test_native_selected_playback_renders_segment_from_cursor_to_selection_end(tmp_path: Path, monkeypatch) -> None:
     class ImmediateThread:
         def __init__(self, target, daemon=True):

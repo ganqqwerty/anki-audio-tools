@@ -21,6 +21,7 @@ export interface EditorRuntimeConfig {
   audioFieldIndices: number[];
   audioFieldSources?: Record<number, string>;
   direction?: "ltr" | "rtl";
+  initialStatusByField?: Record<number, { kind?: string; message: string }>;
   locale?: string;
   messages?: Record<string, string>;
   repeatPlaybackByDefault?: boolean;
@@ -138,6 +139,7 @@ export interface PlaybackRequest {
   loop?: boolean;
   ord: number;
   regionMode?: "selection" | "full";
+  source?: "post_edit" | "user";
 }
 
 export interface PostEditPlaybackIntent {
