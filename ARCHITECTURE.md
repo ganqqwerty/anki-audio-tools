@@ -44,6 +44,8 @@ Anki Audio Quick Editor keeps the human-facing architecture doc short and puts t
 9. Playback uses Anki's audio player against the latest generated reference, stopping any previous playback first and seeking to the visualizer cursor when set.
 10. Undo restores the previous generated reference and edit state without deleting generated media.
 
+The editor modification-button contract, quick-setting defaults, known exceptions, and e2e coverage map live in [`EDITOR_MODIFICATION_BUTTON_BEHAVIOR_RULES.md`](EDITOR_MODIFICATION_BUTTON_BEHAVIOR_RULES.md).
+
 ## Batchable Operations
 
 Shared batchable operations live in `audio_operations.py` and are the only supported cross-UI operation source of truth:
@@ -169,7 +171,7 @@ Config defaults are stored in `config.json` and migrated into user config:
 ```
 
 `config_migration.py` deep-merges defaults into user config and stamps the current schema version.
-Editor split-button choices are field-local runtime overrides. Settings provide defaults for toolbar visibility/display mode, trim amount, volume step, speed step, repeat pause, pause aggressiveness, convert target format, cleanup action, pitch hum mode, and DPDFNet aggressiveness, but changing a split-button value in one editor field does not write back to persisted config or other fields.
+Editor split-button choices are field-local runtime overrides. Settings provide defaults for toolbar visibility/display mode, repeat playback and pause, prosody graph options, volume step, speed step, pause aggressiveness, convert target format, denoise algorithm, DPDFNet aggressiveness, and pitch hum mode, but changing a split-button value in one editor field does not write back to persisted config or other fields. See [`EDITOR_MODIFICATION_BUTTON_BEHAVIOR_RULES.md`](EDITOR_MODIFICATION_BUTTON_BEHAVIOR_RULES.md) for button defaults and non-persisted command choices.
 
 ## Source Of Truth
 

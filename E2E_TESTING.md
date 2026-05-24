@@ -48,3 +48,5 @@ When changing editor field replacement, undo, processing, or frontend runtime mo
 - Add or update jsdom integration tests in `settings_ui/tests/editor-inline.integration.test.ts` before relying only on e2e. They are faster and can deterministically catch orphan controls and canceled delayed scans.
 
 Symptoms of this class of bug include two visualizers for one field, a hidden old visualizer receiving playback/graph state, buttons becoming enabled during processing, or graph state reverting shortly after an apparently successful e2e step.
+
+When changing inline editor toolbar commands or quick settings, update [`EDITOR_MODIFICATION_BUTTON_BEHAVIOR_RULES.md`](EDITOR_MODIFICATION_BUTTON_BEHAVIOR_RULES.md) with the corresponding e2e behavior source and any intentional exceptions.

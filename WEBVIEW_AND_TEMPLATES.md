@@ -48,6 +48,7 @@ Config schema changes usually have several consumers. When adding, renaming, or 
 - Frontend logging reuses `FrontendLogPayload`. Settings and batch send `frontend.log` through the shared envelope; the editor bundle queues payloads on `window.__aqePopFrontendLog()` and notifies Python with `aqe:frontend-log`. Python records all three paths through `frontend_logs.py`.
 - Always `json.dumps()` values before interpolating them into `webview.eval(...)`.
 - Inline editor controls are injected from Python via `editor_ui.py`, which embeds the generated editor bundle and field-index config.
+- Inline editor modification-button behavior, quick-setting persistence rules, generated-file expectations, and known exceptions are documented in [`EDITOR_MODIFICATION_BUTTON_BEHAVIOR_RULES.md`](EDITOR_MODIFICATION_BUTTON_BEHAVIOR_RULES.md).
 - Settings and Browser batch dialogs use `webview_shell.py` to embed initial state, generated bundle contents, and a shared uncaught-error reporter.
 - Browser batch operation progress and logging are Svelte/WebView content served by `browser_dialog.py`.
 
