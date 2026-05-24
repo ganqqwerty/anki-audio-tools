@@ -12,7 +12,12 @@ from pathlib import Path
 from typing import TYPE_CHECKING
 
 from ._version import __version__ as __version__
-from .diagnostics_runtime import capture_exception, configure_runtime, set_debug_enabled
+from .diagnostics_runtime import (
+    capture_exception,
+    configure_runtime,
+    release_runtime_files,
+    set_debug_enabled,
+)
 
 if TYPE_CHECKING:
     from .editor_runtime import SettingsLifecycleCallbacks
@@ -48,6 +53,7 @@ from aqt import gui_hooks, mw  # noqa: E402
 from aqt.qt import qconnect  # noqa: E402
 
 _settings_dialog = None
+_file_log_handler: logging.Handler | None = None
 
 
 def _addon_loggers() -> tuple[logging.Logger, ...]:
@@ -73,6 +79,9 @@ def _migrate_config() -> None:
 
 def _setup_file_logging() -> None:
     """Attach a rotating file handler inside the add-on directory."""
+    global _file_log_handler
+
+    _release_file_logging()
     addon_id = mw.addonManager.addonFromModule(__name__)
     addon_dir = Path(mw.addonManager.addonsFolder(addon_id))
     addon_dir.mkdir(parents=True, exist_ok=True)
@@ -90,7 +99,53 @@ def _setup_file_logging() -> None:
     )
     for target_logger in _addon_loggers():
         target_logger.addHandler(handler)
+    _file_log_handler = handler
     logger.debug("file logging initialized at %s", log_file)
+
+
+def _release_file_logging() -> None:
+    """Detach and close the add-on file logger before Anki replaces the folder."""
+    global _file_log_handler
+
+    handler = _file_log_handler
+    if handler is None:
+        return
+    for target_logger in _addon_loggers():
+        if handler in target_logger.handlers:
+            target_logger.removeHandler(handler)
+    try:
+        handler.flush()
+    except (OSError, ValueError):
+        pass
+    try:
+        handler.close()
+    except (OSError, ValueError):
+        pass
+    _file_log_handler = None
+
+
+def _is_this_addon(module: str, manager: object) -> bool:
+    try:
+        return bool(module == manager.addonFromModule(__name__))  # type: ignore[attr-defined]
+    except (AttributeError, TypeError):
+        return module == __name__.split(".", 1)[0]
+
+
+def _release_install_blocking_files(manager: object, module: str) -> None:
+    """Release open files before Anki deletes this add-on during install."""
+    if not _is_this_addon(module, manager):
+        return
+    _release_file_logging()
+    release_runtime_files()
+
+
+def _restore_install_logging(manager: object, module: str) -> None:
+    """Restore runtime logging after Anki has replaced this add-on's files."""
+    if not _is_this_addon(module, manager):
+        return
+    _setup_file_logging()
+    _setup_diagnostics()
+    _apply_log_level()
 
 
 def _setup_diagnostics() -> None:
@@ -189,6 +244,8 @@ gui_hooks.main_window_did_init.append(_with_hook_boundary("apply_log_level", _ap
 gui_hooks.main_window_did_init.append(_with_hook_boundary("setup_editor_integration", _setup_editor_integration))
 gui_hooks.main_window_did_init.append(_with_hook_boundary("setup_browser_integration", _setup_browser_integration))
 gui_hooks.main_window_did_init.append(_with_hook_boundary("setup_menu", _setup_menu))
+gui_hooks.addon_manager_will_install_addon.append(_release_install_blocking_files)
+gui_hooks.addon_manager_did_install_addon.append(_restore_install_logging)
 mw.addonManager.setConfigAction(__name__, _open_settings)
 
 logger.info("audio quick editor add-on loaded")

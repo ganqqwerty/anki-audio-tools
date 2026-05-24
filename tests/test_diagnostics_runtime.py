@@ -113,6 +113,20 @@ def test_support_report_context_includes_crash_paths_and_dirty_session(tmp_path)
     assert context["crash_forensics"]["crash_log_path"].endswith("anki_audio_quick_editor_crash.log")
 
 
+def test_release_runtime_files_closes_crash_log_handle(tmp_path) -> None:
+    diagnostics.configure_runtime(tmp_path, debug_enabled=False)
+    handle = diagnostics._STATE.crash_file_handle
+
+    assert handle is not None
+    assert handle.closed is False
+
+    diagnostics.release_runtime_files()
+    diagnostics.release_runtime_files()
+
+    assert handle.closed is True
+    assert diagnostics._STATE.crash_file_handle is None
+
+
 def test_process_hooks_log_uncaught_exceptions(tmp_path, caplog: pytest.LogCaptureFixture, monkeypatch) -> None:
     monkeypatch.setattr(sys, "excepthook", sys.__excepthook__)
     monkeypatch.setattr(threading, "excepthook", threading.__excepthook__)

@@ -305,6 +305,26 @@ def mark_session_clean() -> None:
                 pass
 
 
+def release_runtime_files() -> None:
+    """Close diagnostics files that would block add-on replacement on Windows."""
+    with _STATE.lock:
+        if _STATE.crash_file_handle is None:
+            return
+        try:
+            faulthandler.disable()
+        except RuntimeError:
+            pass
+        try:
+            _STATE.crash_file_handle.flush()
+        except OSError:
+            pass
+        try:
+            _STATE.crash_file_handle.close()
+        except OSError:
+            pass
+        _STATE.crash_file_handle = None
+
+
 def flush_logging() -> None:
     """Flush handlers for add-on loggers."""
     seen: set[int] = set()
@@ -342,4 +362,3 @@ def reset_for_tests() -> None:
             except OSError:
                 pass
         _STATE = _DiagnosticsState()
-

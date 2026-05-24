@@ -255,6 +255,8 @@ _GUI_HOOK_NAMES = (
     "overview_did_refresh",
     "overview_will_render_bottom",
     "main_window_did_init",
+    "addon_manager_will_install_addon",
+    "addon_manager_did_install_addon",
     "editor_did_init",
     "editor_will_load_note",
     "browser_menus_did_init",
