@@ -79,7 +79,7 @@ describe("editor inline visualizer renderer", () => {
     expect(cursor).toHaveAttribute("x1", xForMs(0, voicedTrack.durationMs).toFixed(2));
     expect(current.textContent).toBe("0 ms");
 
-    renderPlaybackCursor(visualizer, 100, voicedTrack.durationMs, 40);
+    renderPlaybackCursor(visualizer, 100, voicedTrack.durationMs, 17);
 
     expect(cursor).toHaveAttribute("x1", xForMs(100, voicedTrack.durationMs).toFixed(2));
     expect(current.textContent).toBe("0 ms");
@@ -88,6 +88,22 @@ describe("editor inline visualizer renderer", () => {
 
     expect(cursor).toHaveAttribute("x1", xForMs(200, voicedTrack.durationMs).toFixed(2));
     expect(current.textContent).toBe("200 ms");
+  });
+
+  it("keeps playback pitch marker x synchronized with cursor geometry between text updates", () => {
+    const visualizer = mountVisualizer(voicedTrack);
+    const cursor = visualizer.querySelector<SVGLineElement>(".aqe-cursor")!;
+    const marker = visualizer.querySelector<SVGCircleElement>(".aqe-cursor-pitch-marker")!;
+    const current = visualizer.querySelector<SVGTextElement>(".aqe-cursor-flag-current")!;
+
+    renderPlaybackCursor(visualizer, 0, voicedTrack.durationMs, 0);
+    renderPlaybackCursor(visualizer, 100, voicedTrack.durationMs, 17);
+
+    const cursorX = xForMs(100, voicedTrack.durationMs).toFixed(2);
+    expect(cursor).toHaveAttribute("x1", cursorX);
+    expect(marker).toHaveAttribute("cx", cursorX);
+    expect(marker).toHaveAttribute("cy", yForPitch(120, 100, 300).toFixed(2));
+    expect(current.textContent).toBe("0 ms");
   });
 
   it("reuses cached cursor nodes during repeated playback paints", () => {

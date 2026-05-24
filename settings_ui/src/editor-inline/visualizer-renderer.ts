@@ -21,7 +21,7 @@ const CURSOR_FLAG_BOX_HEIGHT = 20;
 const CURSOR_FLAG_NOTCH_HEIGHT = 6;
 const CURSOR_FLAG_Y = PLOT.top - CURSOR_FLAG_BOX_HEIGHT - CURSOR_FLAG_NOTCH_HEIGHT;
 const CURSOR_FLAG_NOTCH_MAX_OFFSET = CURSOR_FLAG_HALF_WIDTH;
-const PLAYBACK_CURSOR_PAINT_INTERVAL_MS = 1000 / 30;
+const PLAYBACK_CURSOR_PAINT_INTERVAL_MS = 1000 / 60;
 const PLAYBACK_TEXT_PAINT_INTERVAL_MS = 100;
 
 export function renderGraphRequested(visualizer: VisualizerElement): void {
@@ -174,6 +174,7 @@ function renderCursorProjection(
     nodes.cursor.setAttribute("x1", x.toFixed(2));
     nodes.cursor.setAttribute("x2", x.toFixed(2));
   }
+  if (options.geometry) renderCursorPitchMarkerX(nodes, x);
   if (options.text) {
     const currentText = formatTime(ms, durationMs);
     const track = visualizer.__aqeTrack;
@@ -353,6 +354,12 @@ function renderCursorPitchMarker(
   marker.setAttribute("visibility", "visible");
   marker.setAttribute("cx", x.toFixed(2));
   marker.setAttribute("cy", yForPitch(pitchHz, track.pitchMinHz, track.pitchMaxHz).toFixed(2));
+}
+
+function renderCursorPitchMarkerX(nodes: CursorRenderCache, x: number): void {
+  const marker = nodes.marker;
+  if (!marker || marker.getAttribute("visibility") === "hidden") return;
+  marker.setAttribute("cx", x.toFixed(2));
 }
 
 function hideCursorPitchMarker(nodes: CursorRenderCache): void {
