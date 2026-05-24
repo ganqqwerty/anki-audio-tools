@@ -50,7 +50,7 @@ function syncRegionDeleteButton(
   if (!button) return;
   button.hidden = !valid;
   button.disabled = anyBusy() || !valid;
-  button.dataset.aqeButtonState = valid ? "default" : "unavailable";
+  button.dataset.aqeButtonState = valid ? "destructive" : "unavailable";
   setButtonTooltipContent(button, titleForOperation(operation, valid));
   button.setAttribute("aria-disabled", button.disabled ? "true" : "false");
 }

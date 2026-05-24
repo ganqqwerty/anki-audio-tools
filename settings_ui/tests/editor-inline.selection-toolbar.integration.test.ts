@@ -130,6 +130,8 @@ describe("editor inline selection toolbar integration", () => {
     expect(play.getAttribute("aria-label")).toBe("Play selection");
     expect(deleteRegion.getAttribute("data-aqe-tooltip-content")).toBe("Delete selected region");
     expect(deleteRest.getAttribute("data-aqe-tooltip-content")).toBe("Delete audio outside selected region");
+    expect(deleteRegion.getAttribute("data-aqe-button-state")).toBe("destructive");
+    expect(deleteRest.getAttribute("data-aqe-button-state")).toBe("destructive");
     expect(collapse.getAttribute("data-aqe-tooltip-content")).toBe("Collapse selection actions");
     for (const button of [play, deleteRegion, deleteRest, collapse]) {
       expect(button.querySelector(".aqe-button-label")).toBeNull();
@@ -247,6 +249,8 @@ describe("editor inline selection toolbar integration", () => {
     const svg = document.querySelector<SVGSVGElement>('[data-testid="aqe-graph-svg-0"]')!;
     setGraphBounds(svg);
     dragGraphSelection(svg, 0.2, 0.6);
+    const restPreviewBefore = document.querySelector<HTMLElement>(".aqe-selection-rest-preview-before");
+    const restPreviewAfter = document.querySelector<HTMLElement>(".aqe-selection-rest-preview-after");
 
     const deleteRegion = selectionToolbarButton("delete-region");
     hoverToolbarButton(deleteRegion);
@@ -257,6 +261,10 @@ describe("editor inline selection toolbar integration", () => {
     const deleteRest = selectionToolbarButton("delete-rest");
     deleteRest.focus();
     expect(window.__aqeGraphStateForTest?.(0)?.selectionToolbarPreview).toBe("rest");
+    expect(restPreviewBefore).not.toBeNull();
+    expect(restPreviewAfter).not.toBeNull();
+    expect(window.getComputedStyle(restPreviewBefore!).display).toBe("block");
+    expect(window.getComputedStyle(restPreviewAfter!).display).toBe("block");
     deleteRest.blur();
     expect(window.__aqeGraphStateForTest?.(0)?.selectionToolbarPreview).toBe("none");
   });

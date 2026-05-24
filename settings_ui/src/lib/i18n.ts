@@ -21,6 +21,7 @@ const FALLBACK_MESSAGES: Messages = {
   "settings.toolbar_visibility.icon": "Icon",
   "settings.toolbar_visibility.text_only": "Text only",
   "settings.toolbar_visibility.icon_only": "Icon only",
+  "settings.toolbar_visibility.no_extra_settings": "No extra settings",
   "settings.graph_voice_range": "Speaker's voice",
   "settings.graph_voice_range.bass": "Bass voice",
   "settings.graph_voice_range.low": "Low voice",

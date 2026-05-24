@@ -65,6 +65,21 @@
       [command]: mode,
     };
   }
+
+  function hasSettings(command: EditorCommand): boolean {
+    return (
+      command === "aqe:play" ||
+      command === "aqe:analyze" ||
+      command === "aqe:convert" ||
+      command === "aqe:remove-pauses" ||
+      command === "aqe:denoise-standard" ||
+      command === "aqe:pitch-hum" ||
+      command === "aqe:slower" ||
+      command === "aqe:faster" ||
+      command === "aqe:volume-down" ||
+      command === "aqe:volume-up"
+    );
+  }
 </script>
 
 <section class="toolbar-visibility settings-section" aria-labelledby="toolbar-visibility-title">
@@ -78,6 +93,7 @@
       {@const visible = isVisible(button.command)}
       {@const mode = displayMode(button.command)}
       <ButtonSettingsCard
+        hasSettings={hasSettings(button.command)}
         icon={button.icon}
         mode={mode}
         onSetMode={(nextMode) => setDisplayMode(button.command, nextMode)}
