@@ -9,6 +9,7 @@ import {
   visualizerForOrd,
 } from "./dom-selectors.js";
 import {
+  currentProgressMs,
   draftSelectionForVisualizer,
   playbackEngineFor,
   selectionForVisualizer,
@@ -145,7 +146,7 @@ export function graphStateForTest(ord: number): GraphStateForTest | null {
     durationMs: Number(visualizer.dataset.durationMs || "0"),
     anchorMs: Number(visualizer.dataset.anchorMs || "0"),
     cursorMs: Number(visualizer.dataset.cursorMs || "0"),
-    progressMs: Number(visualizer.dataset.progressMs || "0"),
+    progressMs: Math.round(currentProgressMs(visualizer) ?? Number(visualizer.dataset.progressMs || "0")),
     sourceFilename: visualizer.dataset.sourceFilename || "",
     graphButtonLabel: buttonLabel(graph),
     graphButtonState: graph?.dataset.aqeButtonState || "",

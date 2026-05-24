@@ -1,7 +1,7 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 
 import { PLOT, xForMs, yForPitch } from "../src/editor-inline/plot.js";
-import { renderCursor, resetCursorProjection } from "../src/editor-inline/visualizer-renderer.js";
+import { renderCursor, renderPlaybackCursor, resetCursorProjection } from "../src/editor-inline/visualizer-renderer.js";
 import type { NormalizedProsodyTrack, VisualizerElement } from "../src/editor-inline/types.js";
 
 const voicedTrack: NormalizedProsodyTrack = {
@@ -66,6 +66,51 @@ describe("editor inline visualizer renderer", () => {
     renderCursor(visualizer, 0, voicedTrack.durationMs);
 
     expect(globalNotchX(flag, notch)).toBe(Number(cursor.getAttribute("x1")));
+  });
+
+  it("throttles playback cursor text separately from cursor position", () => {
+    const visualizer = mountVisualizer(voicedTrack);
+    const cursor = visualizer.querySelector<SVGLineElement>(".aqe-cursor")!;
+    const current = visualizer.querySelector<SVGTextElement>(".aqe-cursor-flag-current")!;
+
+    renderPlaybackCursor(visualizer, 0, voicedTrack.durationMs, 0);
+    renderPlaybackCursor(visualizer, 100, voicedTrack.durationMs, 10);
+
+    expect(cursor).toHaveAttribute("x1", xForMs(0, voicedTrack.durationMs).toFixed(2));
+    expect(current.textContent).toBe("0 ms");
+
+    renderPlaybackCursor(visualizer, 100, voicedTrack.durationMs, 40);
+
+    expect(cursor).toHaveAttribute("x1", xForMs(100, voicedTrack.durationMs).toFixed(2));
+    expect(current.textContent).toBe("0 ms");
+
+    renderPlaybackCursor(visualizer, 200, voicedTrack.durationMs, 110);
+
+    expect(cursor).toHaveAttribute("x1", xForMs(200, voicedTrack.durationMs).toFixed(2));
+    expect(current.textContent).toBe("200 ms");
+  });
+
+  it("reuses cached cursor nodes during repeated playback paints", () => {
+    const visualizer = mountVisualizer(voicedTrack);
+    const querySpy = vi.spyOn(visualizer, "querySelector");
+
+    renderPlaybackCursor(visualizer, 100, voicedTrack.durationMs, 0);
+    const firstPaintQueries = querySpy.mock.calls.length;
+    renderPlaybackCursor(visualizer, 200, voicedTrack.durationMs, 110);
+
+    expect(firstPaintQueries).toBeGreaterThan(0);
+    expect(querySpy.mock.calls).toHaveLength(firstPaintQueries);
+  });
+
+  it("keeps direct cursor renders immediate after playback throttling", () => {
+    const visualizer = mountVisualizer(voicedTrack);
+    const current = visualizer.querySelector<SVGTextElement>(".aqe-cursor-flag-current")!;
+
+    renderPlaybackCursor(visualizer, 100, voicedTrack.durationMs, 0);
+    renderPlaybackCursor(visualizer, 200, voicedTrack.durationMs, 40);
+    renderCursor(visualizer, 700, voicedTrack.durationMs);
+
+    expect(current.textContent).toBe("700 ms");
   });
 });
 

@@ -110,6 +110,7 @@ def test_drag_while_playing_restarts_playback_from_released_cursor(anki_mw, ffmp
 
         assert playback.attempts == []
         assert restarted["playButtonLabel"] == "Pause"
+        assert abs(restarted["progressMs"] - restarted["audioClockCurrentMs"]) <= PLAYBACK_INTERVAL_TOLERANCE_MS * 2
     finally:
         editor.set_note(None)
         parent.close()

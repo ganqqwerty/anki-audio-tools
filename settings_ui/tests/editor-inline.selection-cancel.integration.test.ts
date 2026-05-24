@@ -91,6 +91,8 @@ describe("editor inline selection cancel integration", () => {
 
   it("discards draft selection with Escape while preserving interrupted playback", async () => {
     const frames = mockAnimationFrames();
+    let now = 1000;
+    vi.spyOn(performance, "now").mockImplementation(() => now);
     initializeEditorRuntime({ audioFieldIndices: [0] });
     scan({ audioFieldIndices: [0] });
     await Promise.resolve();
@@ -102,8 +104,9 @@ describe("editor inline selection cancel integration", () => {
 
     document.querySelector<HTMLButtonElement>('[data-testid="aqe-button-0-play"]')!.click();
     await Promise.resolve();
-    audio.currentTime = 0.3;
-    frames.shift()?.(performance.now() + 300);
+    await Promise.resolve();
+    now = 1100;
+    frames.shift()?.(now);
 
     dispatchGraphPointer(svg, "pointerdown", graphClientX(svg, 0.7), true);
     dispatchGraphPointer(svg, "pointermove", graphClientX(svg, 0.9), true);

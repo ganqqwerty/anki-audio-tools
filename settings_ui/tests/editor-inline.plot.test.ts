@@ -53,9 +53,12 @@ describe("editor inline plot helpers", () => {
   });
 
   it("interpolates the pitch under the cursor and returns no pitch across unvoiced gaps", () => {
+    expect(pitchHzAtMs(track.points, -50)).toBe(120);
+    expect(pitchHzAtMs(track.points, 100)).toBe(140);
     expect(pitchHzAtMs(track.points, 50)).toBeCloseTo(130);
     expect(pitchHzAtMs(track.points, 250)).toBeNull();
     expect(pitchHzAtMs(track.points, 350)).toBeCloseTo(250);
+    expect(pitchHzAtMs(track.points, 1000)).toBe(260);
   });
 
   it("draws pitch paths, hertz labels, and x axis labels", () => {

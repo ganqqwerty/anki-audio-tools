@@ -335,7 +335,7 @@ describe("editor inline action workflows", () => {
 
     expect(visualizer.dataset.playbackState).toBe("playing");
     expect(currentProgressMs(visualizer)).toBeGreaterThanOrEqual(900);
-    frames.shift()?.(performance.now() + 200);
+    frames.shift()?.(performance.now() + 50);
     expect(Number(visualizer.dataset.progressMs)).toBeGreaterThanOrEqual(900);
   });
 

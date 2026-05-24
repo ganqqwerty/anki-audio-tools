@@ -33,23 +33,30 @@ export function formatPitchHz(pitchHz: number | null): string {
 export function pitchHzAtMs(points: readonly ProsodyPoint[], ms: number): number | null {
   if (!points.length) return null;
   const targetMs = Number.isFinite(ms) ? ms : 0;
-  let previous: ProsodyPoint | null = null;
-  for (const point of points) {
-    const pointMs = point[0];
-    if (pointMs === targetMs) return voicedPitch(point);
-    if (pointMs > targetMs) {
-      const nextPitch = voicedPitch(point);
-      if (!previous) return nextPitch;
-      const previousPitch = voicedPitch(previous);
-      if (previousPitch === null || nextPitch === null) return null;
-      const spanMs = pointMs - previous[0];
-      if (spanMs <= 0) return nextPitch;
-      const ratio = (targetMs - previous[0]) / spanMs;
-      return previousPitch + (nextPitch - previousPitch) * ratio;
+  let low = 0;
+  let high = points.length - 1;
+  while (low <= high) {
+    const mid = Math.floor((low + high) / 2);
+    const point = points[mid];
+    if (!point) break;
+    if (point[0] === targetMs) return voicedPitch(point);
+    if (point[0] < targetMs) {
+      low = mid + 1;
+    } else {
+      high = mid - 1;
     }
-    previous = point;
   }
-  return previous ? voicedPitch(previous) : null;
+  const next = points[low] ?? null;
+  const previous = points[low - 1] ?? null;
+  if (!next) return previous ? voicedPitch(previous) : null;
+  const nextPitch = voicedPitch(next);
+  if (!previous) return nextPitch;
+  const previousPitch = voicedPitch(previous);
+  if (previousPitch === null || nextPitch === null) return null;
+  const spanMs = next[0] - previous[0];
+  if (spanMs <= 0) return nextPitch;
+  const ratio = (targetMs - previous[0]) / spanMs;
+  return previousPitch + (nextPitch - previousPitch) * ratio;
 }
 
 export function pathForIntensity(points: readonly ProsodyPoint[], durationMs: number): string {

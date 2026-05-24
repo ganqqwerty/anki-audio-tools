@@ -13,12 +13,16 @@ import {
 } from "./plot.js";
 import type { NormalizedProsodyTrack, VisualizerElement } from "./types.js";
 
+type CursorRenderCache = NonNullable<VisualizerElement["__aqeCursorRenderCache"]>;
+
 const CURSOR_FLAG_WIDTH = 82;
 const CURSOR_FLAG_HALF_WIDTH = CURSOR_FLAG_WIDTH / 2;
 const CURSOR_FLAG_BOX_HEIGHT = 20;
 const CURSOR_FLAG_NOTCH_HEIGHT = 6;
 const CURSOR_FLAG_Y = PLOT.top - CURSOR_FLAG_BOX_HEIGHT - CURSOR_FLAG_NOTCH_HEIGHT;
 const CURSOR_FLAG_NOTCH_MAX_OFFSET = CURSOR_FLAG_HALF_WIDTH;
+const PLAYBACK_CURSOR_PAINT_INTERVAL_MS = 1000 / 30;
+const PLAYBACK_TEXT_PAINT_INTERVAL_MS = 100;
 
 export function renderGraphRequested(visualizer: VisualizerElement): void {
   visualizer.hidden = false;
@@ -35,6 +39,8 @@ export function renderGraphRequested(visualizer: VisualizerElement): void {
   visualizer.dataset.playbackStartMs = "0";
   visualizer.dataset.playbackEndMs = "0";
   visualizer.dataset.playbackRegionMode = "full";
+  delete visualizer.__aqeCursorPaintedAtMs;
+  delete visualizer.__aqeCursorTextPaintedAtMs;
   delete visualizer.__aqeTrack;
   resetVisualizerPlot(visualizer);
 }
@@ -133,34 +139,65 @@ export function renderSelection(
 }
 
 export function renderCursor(visualizer: VisualizerElement, ms: number, durationMs: number): void {
+  renderCursorProjection(visualizer, ms, durationMs, { geometry: true, text: true });
+  delete visualizer.__aqeCursorPaintedAtMs;
+  delete visualizer.__aqeCursorTextPaintedAtMs;
+}
+
+export function renderPlaybackCursor(
+  visualizer: VisualizerElement,
+  ms: number,
+  durationMs: number,
+  nowMs: number,
+): void {
+  const lastCursorPaintedAtMs = visualizer.__aqeCursorPaintedAtMs;
+  const lastTextPaintedAtMs = visualizer.__aqeCursorTextPaintedAtMs;
+  const geometry = lastCursorPaintedAtMs === undefined
+    || nowMs - lastCursorPaintedAtMs >= PLAYBACK_CURSOR_PAINT_INTERVAL_MS;
+  const text = lastTextPaintedAtMs === undefined
+    || nowMs - lastTextPaintedAtMs >= PLAYBACK_TEXT_PAINT_INTERVAL_MS;
+  if (!geometry && !text) return;
+  renderCursorProjection(visualizer, ms, durationMs, { geometry, text });
+  if (geometry) visualizer.__aqeCursorPaintedAtMs = nowMs;
+  if (text) visualizer.__aqeCursorTextPaintedAtMs = nowMs;
+}
+
+function renderCursorProjection(
+  visualizer: VisualizerElement,
+  ms: number,
+  durationMs: number,
+  options: { geometry: boolean; text: boolean },
+): void {
+  const nodes = cursorRenderCache(visualizer);
   const x = xForMs(ms, durationMs);
-  const cursor = visualizer.querySelector<SVGLineElement>(".aqe-cursor");
-  if (cursor) {
-    cursor.setAttribute("x1", x.toFixed(2));
-    cursor.setAttribute("x2", x.toFixed(2));
+  if (options.geometry && nodes.cursor) {
+    nodes.cursor.setAttribute("x1", x.toFixed(2));
+    nodes.cursor.setAttribute("x2", x.toFixed(2));
   }
-  const currentText = formatTime(ms, durationMs);
-  const track = visualizer.__aqeTrack;
-  const pitchHz = track ? pitchHzAtMs(track.points, ms) : null;
-  const pitchText = formatPitchHz(pitchHz);
-  renderCursorPitchMarker(visualizer, x, pitchHz);
-  const label = visualizer.querySelector<HTMLElement>(".aqe-cursor-label");
-  if (label) label.textContent = `${currentText} / ${pitchText}`;
-  const flag = visualizer.querySelector<SVGGElement>(".aqe-cursor-flag");
-  if (!flag) return;
-  if (durationMs <= 0) {
-    flag.setAttribute("visibility", "hidden");
+  if (options.text) {
+    const currentText = formatTime(ms, durationMs);
+    const track = visualizer.__aqeTrack;
+    const pitchHz = track ? pitchHzAtMs(track.points, ms) : null;
+    const pitchText = formatPitchHz(pitchHz);
+    renderCursorPitchMarker(nodes, visualizer, x, pitchHz);
+    if (nodes.label) nodes.label.textContent = `${currentText} / ${pitchText}`;
+    if (nodes.flagCurrent) nodes.flagCurrent.textContent = currentText;
+    if (nodes.flagPitch) nodes.flagPitch.textContent = ` / ${pitchText}`;
+  }
+  if (!nodes.flag) return;
+  if (durationMs <= 0 && options.geometry) {
+    nodes.flag.setAttribute("visibility", "hidden");
     return;
   }
   const flagX = clampedCursorFlagX(x);
-  flag.setAttribute("visibility", "visible");
-  flag.setAttribute("transform", `translate(${flagX.toFixed(2)} ${CURSOR_FLAG_Y})`);
-  flag.querySelector<SVGTextElement>(".aqe-cursor-flag-current")!.textContent = currentText;
-  flag.querySelector<SVGTextElement>(".aqe-cursor-flag-pitch")!.textContent = ` / ${pitchText}`;
-  flag.querySelector<SVGPathElement>(".aqe-cursor-flag-notch")?.setAttribute(
-    "transform",
-    `translate(${cursorFlagNotchOffset(x, flagX).toFixed(2)} 0)`,
-  );
+  if (options.geometry) {
+    nodes.flag.setAttribute("visibility", "visible");
+    nodes.flag.setAttribute("transform", `translate(${flagX.toFixed(2)} ${CURSOR_FLAG_Y})`);
+    nodes.flagNotch?.setAttribute(
+      "transform",
+      `translate(${cursorFlagNotchOffset(x, flagX).toFixed(2)} 0)`,
+    );
+  }
 }
 
 export function resetVisualizerPlot(visualizer: VisualizerElement): void {
@@ -171,22 +208,22 @@ export function resetVisualizerPlot(visualizer: VisualizerElement): void {
 }
 
 export function resetCursorProjection(visualizer: VisualizerElement): void {
-  const cursor = visualizer.querySelector<SVGLineElement>(".aqe-cursor");
-  if (cursor) {
-    cursor.setAttribute("x1", String(PLOT.left));
-    cursor.setAttribute("x2", String(PLOT.left));
+  const nodes = cursorRenderCache(visualizer);
+  if (nodes.cursor) {
+    nodes.cursor.setAttribute("x1", String(PLOT.left));
+    nodes.cursor.setAttribute("x2", String(PLOT.left));
   }
-  hideCursorPitchMarker(visualizer);
-  const label = visualizer.querySelector<HTMLElement>(".aqe-cursor-label");
-  if (label) label.textContent = "0 ms / -- Hz";
-  const flag = visualizer.querySelector<SVGGElement>(".aqe-cursor-flag");
-  if (flag) {
-    flag.setAttribute("visibility", "hidden");
-    flag.setAttribute("transform", `translate(${PLOT.left + CURSOR_FLAG_HALF_WIDTH} ${CURSOR_FLAG_Y})`);
-    flag.querySelector<SVGTextElement>(".aqe-cursor-flag-current")!.textContent = "0 ms";
-    flag.querySelector<SVGTextElement>(".aqe-cursor-flag-pitch")!.textContent = " / -- Hz";
-    flag.querySelector<SVGPathElement>(".aqe-cursor-flag-notch")?.removeAttribute("transform");
+  hideCursorPitchMarker(nodes);
+  if (nodes.label) nodes.label.textContent = "0 ms / -- Hz";
+  if (nodes.flag) {
+    nodes.flag.setAttribute("visibility", "hidden");
+    nodes.flag.setAttribute("transform", `translate(${PLOT.left + CURSOR_FLAG_HALF_WIDTH} ${CURSOR_FLAG_Y})`);
+    if (nodes.flagCurrent) nodes.flagCurrent.textContent = "0 ms";
+    if (nodes.flagPitch) nodes.flagPitch.textContent = " / -- Hz";
+    nodes.flagNotch?.removeAttribute("transform");
   }
+  delete visualizer.__aqeCursorPaintedAtMs;
+  delete visualizer.__aqeCursorTextPaintedAtMs;
 }
 
 export function graphLogContext(
@@ -284,11 +321,33 @@ function clearOverlayNodePosition(node: HTMLElement | null): void {
   node.style.removeProperty("top");
 }
 
-function renderCursorPitchMarker(visualizer: VisualizerElement, x: number, pitchHz: number | null): void {
-  const marker = visualizer.querySelector<SVGCircleElement>(".aqe-cursor-pitch-marker");
+function cursorRenderCache(visualizer: VisualizerElement): CursorRenderCache {
+  const cached = visualizer.__aqeCursorRenderCache;
+  if (cached) return cached;
+  const flag = visualizer.querySelector<SVGGElement>(".aqe-cursor-flag");
+  const cache: CursorRenderCache = {
+    cursor: visualizer.querySelector<SVGLineElement>(".aqe-cursor"),
+    flag,
+    flagCurrent: flag?.querySelector<SVGTextElement>(".aqe-cursor-flag-current") ?? null,
+    flagNotch: flag?.querySelector<SVGPathElement>(".aqe-cursor-flag-notch") ?? null,
+    flagPitch: flag?.querySelector<SVGTextElement>(".aqe-cursor-flag-pitch") ?? null,
+    label: visualizer.querySelector<HTMLElement>(".aqe-cursor-label"),
+    marker: visualizer.querySelector<SVGCircleElement>(".aqe-cursor-pitch-marker"),
+  };
+  visualizer.__aqeCursorRenderCache = cache;
+  return cache;
+}
+
+function renderCursorPitchMarker(
+  nodes: CursorRenderCache,
+  visualizer: VisualizerElement,
+  x: number,
+  pitchHz: number | null,
+): void {
+  const marker = nodes.marker;
   const track = visualizer.__aqeTrack;
   if (!marker || pitchHz === null || !track || Number(visualizer.dataset.durationMs || "0") <= 0) {
-    hideCursorPitchMarker(visualizer);
+    hideCursorPitchMarker(nodes);
     return;
   }
   marker.setAttribute("visibility", "visible");
@@ -296,8 +355,8 @@ function renderCursorPitchMarker(visualizer: VisualizerElement, x: number, pitch
   marker.setAttribute("cy", yForPitch(pitchHz, track.pitchMinHz, track.pitchMaxHz).toFixed(2));
 }
 
-function hideCursorPitchMarker(visualizer: VisualizerElement): void {
-  const marker = visualizer.querySelector<SVGCircleElement>(".aqe-cursor-pitch-marker");
+function hideCursorPitchMarker(nodes: CursorRenderCache): void {
+  const marker = nodes.marker;
   if (!marker) return;
   marker.setAttribute("visibility", "hidden");
   marker.setAttribute("cx", String(PLOT.left));

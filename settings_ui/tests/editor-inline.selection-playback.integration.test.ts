@@ -85,6 +85,49 @@ afterEach(() => {
     });
   });
 
+  it("restarts from a playing cursor drag release and ignores stale playback frames", async () => {
+    const frames = mockAnimationFrames();
+    let now = 1000;
+    vi.spyOn(performance, "now").mockImplementation(() => now);
+    initializeEditorRuntime({ audioFieldIndices: [0] });
+    scan({ audioFieldIndices: [0] });
+    await Promise.resolve();
+    window.__aqeSetVisualizer?.(0, track, 0);
+    const svg = document.querySelector<SVGSVGElement>('[data-testid="aqe-graph-svg-0"]')!;
+    setGraphBounds(svg);
+    prepareHtmlAudio();
+
+    document.querySelector<HTMLButtonElement>('[data-testid="aqe-button-0-play"]')!.click();
+    await Promise.resolve();
+    await Promise.resolve();
+    now = 1250;
+    frames.shift()?.(now);
+    expect(window.__aqeGraphStateForTest?.(0)?.progressMs).toBe(250);
+    const staleFrame = frames.shift();
+
+    dispatchGraphPointer(svg, "pointerdown", graphClientX(svg, 0.75));
+    dispatchGraphPointer(svg, "pointermove", graphClientX(svg, 0.75));
+    dispatchGraphPointer(svg, "pointerup", graphClientX(svg, 0.75));
+    await Promise.resolve();
+    await Promise.resolve();
+    now = 1300;
+    staleFrame?.(now);
+
+    expect(window.__aqeGraphStateForTest?.(0)).toMatchObject({
+      cursorMs: 750,
+      playbackState: "playing",
+      progressMs: 800,
+    });
+
+    now = 1350;
+    frames.shift()?.(now);
+
+    expect(window.__aqeGraphStateForTest?.(0)).toMatchObject({
+      cursorMs: 750,
+      progressMs: 850,
+    });
+  });
+
   it("keeps selected repeat playback running across an HTML loop boundary", async () => {
     const frames = mockAnimationFrames();
     initializeEditorRuntime({ audioFieldIndices: [0] });
@@ -210,6 +253,8 @@ afterEach(() => {
 
   it("freezes active selected playback during resize and restarts from the resized start", async () => {
     const frames = mockAnimationFrames();
+    let now = 1000;
+    vi.spyOn(performance, "now").mockImplementation(() => now);
     initializeEditorRuntime({ audioFieldIndices: [0] });
     scan({ audioFieldIndices: [0] });
     await Promise.resolve();
@@ -221,8 +266,9 @@ afterEach(() => {
 
     document.querySelector<HTMLButtonElement>('[data-testid="aqe-button-0-play"]')!.click();
     await Promise.resolve();
-    audio.currentTime = 0.5;
-    frames.shift()?.(performance.now() + 500);
+    await Promise.resolve();
+    now = 1250;
+    frames.shift()?.(now);
     const handle = document.querySelector('[data-testid="aqe-selection-resize-end-0"]')!;
 
     dispatchHandlePointer(handle, "pointerdown", graphClientX(svg, 0.75));
@@ -255,6 +301,8 @@ afterEach(() => {
 
   it("cancels active resize playback at the interrupted progress", async () => {
     const frames = mockAnimationFrames();
+    let now = 1000;
+    vi.spyOn(performance, "now").mockImplementation(() => now);
     initializeEditorRuntime({ audioFieldIndices: [0] });
     scan({ audioFieldIndices: [0] });
     await Promise.resolve();
@@ -266,8 +314,9 @@ afterEach(() => {
 
     document.querySelector<HTMLButtonElement>('[data-testid="aqe-button-0-play"]')!.click();
     await Promise.resolve();
-    audio.currentTime = 0.5;
-    frames.shift()?.(performance.now() + 500);
+    await Promise.resolve();
+    now = 1250;
+    frames.shift()?.(now);
     const handle = document.querySelector('[data-testid="aqe-selection-resize-end-0"]')!;
 
     dispatchHandlePointer(handle, "pointerdown", graphClientX(svg, 0.75));

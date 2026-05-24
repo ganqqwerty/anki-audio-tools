@@ -12,6 +12,7 @@ import type {
   GraphVoiceLock,
   GraphVoiceRange,
 } from "./graph-settings.js";
+import type { PlaybackProgressPlan } from "./playback-progress-clock.js";
 
 export type EditorCommand = SharedEditorCommand;
 
@@ -276,10 +277,26 @@ export type VisualizerElement = HTMLElement & {
   __aqeAudioClockAvailable?: boolean;
   __aqeAudioClockFallback?: boolean;
   __aqeAudioClockLastSeekedMs?: number;
+  __aqeCursorPaintedAtMs?: number;
+  __aqeCursorRenderCache?: CursorRenderCache;
+  __aqeCursorTextPaintedAtMs?: number;
+  __aqeLiveProgressMs?: number;
+  __aqePlaybackGeneration?: number;
+  __aqePlaybackPlan?: PlaybackProgressPlan;
   __aqeTrack?: NormalizedProsodyTrack;
   __aqePlaybackTimer?: number | null;
   __aqeRepeatPauseTimer?: number | null;
 };
+
+interface CursorRenderCache {
+  cursor: SVGLineElement | null;
+  flag: SVGGElement | null;
+  flagCurrent: SVGTextElement | null;
+  flagNotch: SVGPathElement | null;
+  flagPitch: SVGTextElement | null;
+  label: HTMLElement | null;
+  marker: SVGCircleElement | null;
+}
 
 export interface MountedField {
   component: Record<string, unknown>;

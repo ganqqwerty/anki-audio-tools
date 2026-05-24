@@ -114,6 +114,8 @@ describe("editor inline selection resize edge cases", () => {
 
   it("restarts active playback from selection start when resized end moves before progress", async () => {
     const frames = mockAnimationFrames();
+    let now = 1000;
+    vi.spyOn(performance, "now").mockImplementation(() => now);
     initializeEditorRuntime({ audioFieldIndices: [0] });
     scan({ audioFieldIndices: [0] });
     await Promise.resolve();
@@ -125,13 +127,15 @@ describe("editor inline selection resize edge cases", () => {
 
     document.querySelector<HTMLButtonElement>('[data-testid="aqe-button-0-play"]')!.click();
     await Promise.resolve();
-    audio.currentTime = 0.7;
-    frames.shift()?.(performance.now() + 700);
+    await Promise.resolve();
+    now = 1450;
+    frames.shift()?.(now);
     const handle = document.querySelector('[data-testid="aqe-selection-resize-end-0"]')!;
 
     dispatchHandlePointer(handle, "pointerdown", graphClientX(svg, 0.75));
     dispatchHandlePointer(handle, "pointermove", graphClientX(svg, 0.6));
     dispatchHandlePointer(handle, "pointerup", graphClientX(svg, 0.6));
+    await Promise.resolve();
     await Promise.resolve();
 
     expect(window.__aqeGraphStateForTest?.(0)).toMatchObject({
