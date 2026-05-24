@@ -4,19 +4,25 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from .editor_playback_helpers import (
-    PLAYBACK_INTERVAL_TOLERANCE_MS,
-    _basic_audio_note,
-    _button_selector,
+from .editor_graph_helpers import (
     _click_graph_and_wait,
-    _configure_ffmpeg,
     _drag_cursor_to_ratio,
     _graph_state_js,
     _install_html_audio_test_driver,
+    _wait_for_html_playback,
+)
+from .editor_note_helpers import (
+    _basic_audio_note,
+    _button_selector,
+    _configure_ffmpeg,
     _open_editor,
+)
+from .editor_playback_helpers import (
+    PLAYBACK_INTERVAL_TOLERANCE_MS,
     _record_fake_playback,
     _shift_click_region,
-    _wait_for_html_playback,
+)
+from .helpers import (
     click_selector,
     generate_tone,
     run_js,
