@@ -67,6 +67,7 @@ def test_visualizer_renders_pitch_intensity_labels_and_cursor(anki_mw, ffmpeg_co
                 cursorVisible: getComputedStyle(cursor).display !== 'none',
                 hasNotch: Boolean(document.querySelector('.aqe-css-cursor-flag-notch')),
                 hasPitchMarker: Boolean(document.querySelector('.aqe-css-cursor-pitch-marker')),
+                hasLegacySvgCursor: Boolean(document.querySelector('.aqe-cursor, .aqe-cursor-flag, .aqe-cursor-pitch-marker')),
               };
             })()
             """,
@@ -75,6 +76,7 @@ def test_visualizer_renders_pitch_intensity_labels_and_cursor(anki_mw, ffmpeg_co
         )
         assert cursor_overlay["hasNotch"] is False
         assert cursor_overlay["hasPitchMarker"] is False
+        assert cursor_overlay["hasLegacySvgCursor"] is False
     finally:
         editor.set_note(None)
         parent.close()

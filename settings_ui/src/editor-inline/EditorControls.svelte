@@ -344,36 +344,6 @@
         <line x1="-3" x2="3" y1="0" y2="0"></line>
         <line x1="-3" x2="3" y1="10" y2="10"></line>
       </g>
-      <line
-        class="aqe-cursor"
-        data-testid={`aqe-cursor-${target.ord}`}
-        x1={PLOT.left}
-        x2={PLOT.left}
-        y1={PLOT.top}
-        y2={PLOT.height - PLOT.bottom}
-      ></line>
-      <circle
-        class="aqe-cursor-pitch-marker"
-        data-testid={`aqe-cursor-pitch-marker-${target.ord}`}
-        cx={PLOT.left}
-        cy={PLOT.height - PLOT.bottom}
-        r="4"
-        visibility="hidden"
-        aria-hidden="true"
-      ></circle>
-      <g
-        class="aqe-cursor-flag"
-        data-testid={`aqe-cursor-flag-${target.ord}`}
-        visibility="hidden"
-        aria-hidden="true"
-      >
-        <rect class="aqe-cursor-flag-box" x="-41" y="0" width="82" height="20" rx="4"></rect>
-        <path class="aqe-cursor-flag-notch" d="M -5 20 L 0 26 L 5 20 Z"></path>
-        <text class="aqe-cursor-flag-text" x="0" y="14">
-          <tspan class="aqe-cursor-flag-current">0 ms</tspan>
-          <tspan class="aqe-cursor-flag-pitch"> / -- Hz</tspan>
-        </text>
-      </g>
         </svg>
         <div class="aqe-css-cursor" data-testid={`aqe-css-cursor-${target.ord}`} aria-hidden="true">
           <div class="aqe-css-cursor-line"></div>

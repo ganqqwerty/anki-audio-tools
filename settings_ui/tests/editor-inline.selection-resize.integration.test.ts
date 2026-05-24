@@ -97,7 +97,7 @@ describe("editor inline selection resize integration", () => {
     setGraphBounds(svg);
     dragGraphSelection(svg, 0.2, 0.6);
     const handle = document.querySelector('[data-testid="aqe-selection-resize-start-0"]')!;
-    const flag = document.querySelector<SVGGElement>('[data-testid="aqe-cursor-flag-0"]')!;
+    const flag = document.querySelector<HTMLElement>('[data-testid="aqe-css-cursor-0"] .aqe-css-cursor-flag')!;
 
     dispatchHandlePointer(handle, "pointerdown", graphClientX(svg, 0.2));
     dispatchHandlePointer(handle, "pointermove", graphClientX(svg, 0.1));
@@ -109,8 +109,8 @@ describe("editor inline selection resize integration", () => {
       selectionDraftStartMs: 100,
       selectionDraftEndMs: 600,
     });
-    expect(flag.querySelector(".aqe-cursor-flag-current")?.textContent).toBe("100 ms");
-    expect(flag.querySelector(".aqe-cursor-flag-pitch")?.textContent).toBe(" / 150 Hz");
+    expect(flag.querySelector(".aqe-css-cursor-flag-current")?.textContent).toBe("100 ms");
+    expect(flag.querySelector(".aqe-css-cursor-flag-pitch")?.textContent).toBe(" / 150 Hz");
   });
 
   it("cancels resize drafts without replacing the committed selection", () => {

@@ -87,8 +87,6 @@ def test_cursor_drag_updates_session_and_play_uses_html_audio(anki_mw, ffmpeg_co
                 and state["timecodeFlagPitch"].endswith(" Hz")
                 and state["timecodeFlagCurrent"].endswith("s")
                 and state["pitchMarkerVisible"] is False
-                and state["pitchMarkerX"] is not None
-                and state["pitchMarkerY"] is not None
                 and state["progressMs"] >= progressed["progressMs"],
                 timeout=5.0,
             )
@@ -124,8 +122,6 @@ def test_cursor_drag_updates_session_and_play_uses_html_audio(anki_mw, ffmpeg_co
         assert progressed["playButtonLabel"] == "Pause"
         assert progressed["audioClockMuted"] is False
         assert timecoded["timecodeFlagTransform"].startswith("translate3d(")
-        assert timecoded["pitchMarkerX"] > 0
-        assert timecoded["pitchMarkerY"] > 0
         assert abs(frozen["progressMs"] - paused_progress) < 80
         assert playback.toggle_count == 0
     finally:

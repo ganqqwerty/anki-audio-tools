@@ -300,24 +300,25 @@ describe("editor inline action workflows", () => {
   it("renders a timecode flag at the cursor and clamps it inside the plot", async () => {
     const visualizer = await mountTrack(0);
     window.__aqeSetVisualizer?.(0, { ...track, durationMs: 6000 }, 750);
-    const flag = visualizer.querySelector<SVGGElement>('[data-testid="aqe-cursor-flag-0"]')!;
-    const current = flag.querySelector<SVGTextElement>(".aqe-cursor-flag-current")!;
-    const pitch = flag.querySelector<SVGTextElement>(".aqe-cursor-flag-pitch")!;
-    const expectedX = xForMs(750, 6000).toFixed(2);
-    const expectedFlagY = PLOT.top - 26;
+    const cursor = visualizer.querySelector<HTMLElement>('[data-testid="aqe-css-cursor-0"]')!;
+    const flag = cursor.querySelector<HTMLElement>(".aqe-css-cursor-flag")!;
+    const current = flag.querySelector<HTMLElement>(".aqe-css-cursor-flag-current")!;
+    const pitch = flag.querySelector<HTMLElement>(".aqe-css-cursor-flag-pitch")!;
 
-    expect(flag).toHaveAttribute("visibility", "visible");
-    expect(flag).toHaveAttribute("transform", `translate(${expectedX} ${expectedFlagY})`);
-    expect(expectedFlagY + 26).toBe(PLOT.top);
+    expect(cursor.style.display).toBe("block");
+    expect(cursor.style.transform).toBe(`translate3d(${xForMs(750, 6000).toFixed(2)}px, 0, 0)`);
+    expect(flag.style.transform).toBe("translateX(-41.00px)");
     expect(current.textContent).toBe("0.75s");
     expect(pitch.textContent).toBe(" / 200 Hz");
     expect(visualizer.querySelector(".aqe-cursor-label")).toHaveTextContent("0.75s / 200 Hz");
 
     setCursor(visualizer, 0, false);
-    expect(flag).toHaveAttribute("transform", `translate(${(PLOT.left + 41).toFixed(2)} ${expectedFlagY})`);
+    expect(cursor.style.transform).toBe(`translate3d(${PLOT.left.toFixed(2)}px, 0, 0)`);
+    expect(flag.style.transform).toBe("translateX(0.00px)");
 
     setCursor(visualizer, 6000, false);
-    expect(flag).toHaveAttribute("transform", `translate(${(PLOT.width - PLOT.right - 41).toFixed(2)} ${expectedFlagY})`);
+    expect(cursor.style.transform).toBe(`translate3d(${(PLOT.width - PLOT.right).toFixed(2)}px, 0, 0)`);
+    expect(flag.style.transform).toBe("translateX(-82.00px)");
     expect(current.textContent).toBe("6.00s");
   });
 

@@ -109,7 +109,7 @@ export function setCursorByClientXForTest(ord: number, clientX: number, notifyPy
   setCursor(visualizer, ms, !!notifyPython);
   return {
     cursorMs: Number(visualizer.dataset.cursorMs || "0"),
-    cursorX: Number(visualizer.querySelector<SVGLineElement>(".aqe-cursor")?.getAttribute("x1") || "0"),
+    cursorX: cssCursorViewBoxX(visualizer),
     bounds: graphPixelBounds(svg),
   };
 }
@@ -203,14 +203,10 @@ export function graphStateForTest(ord: number): GraphStateForTest | null {
     xAxisLabels: Array.from(visualizer.querySelectorAll<SVGTextElement>(".aqe-x-label")).map((node) => node.textContent || ""),
     pitchPaths: visualizer.querySelectorAll(".aqe-pitch-path").length,
     intensity: visualizer.querySelector<SVGPathElement>(".aqe-intensity")?.getAttribute("d") || "",
-    cursorX: Number(visualizer.querySelector<SVGLineElement>(".aqe-cursor")?.getAttribute("x1") || "0"),
+    cursorX: cssCursorViewBoxX(visualizer),
     pitchMarkerVisible: false,
-    pitchMarkerX: visualizer.querySelector<SVGCircleElement>(".aqe-cursor-pitch-marker")?.getAttribute("cx")
-      ? Number(visualizer.querySelector<SVGCircleElement>(".aqe-cursor-pitch-marker")?.getAttribute("cx"))
-      : null,
-    pitchMarkerY: visualizer.querySelector<SVGCircleElement>(".aqe-cursor-pitch-marker")?.getAttribute("cy")
-      ? Number(visualizer.querySelector<SVGCircleElement>(".aqe-cursor-pitch-marker")?.getAttribute("cy"))
-      : null,
+    pitchMarkerX: null,
+    pitchMarkerY: null,
     timecodeFlagVisible: cssCursor?.style.display === "block",
     timecodeFlagTransform: cssCursor?.style.transform || timecodeFlag?.style.transform || "",
     timecodeFlagCurrent: timecodeFlagCurrent?.textContent || "",
@@ -246,4 +242,13 @@ function cssPixelNumber(value: string): number | null {
   if (!value.endsWith("px")) return null;
   const parsed = Number(value.slice(0, -2));
   return Number.isFinite(parsed) ? parsed : null;
+}
+
+function cssCursorViewBoxX(visualizer: VisualizerElement): number {
+  const cursor = visualizer.querySelector<HTMLElement>(".aqe-css-cursor");
+  const transform = cursor?.style.transform || "";
+  const match = /translate3d\((-?\d+(?:\.\d+)?)px/.exec(transform);
+  const x = match ? Number(match[1]) : 0;
+  const scale = Number(visualizer.dataset.cssCursorScale || "1") || 1;
+  return x / scale;
 }

@@ -8,35 +8,6 @@
   stroke-width: 3;
 }
 
-.aqe-cursor {
-  display: none;
-  filter:
-    drop-shadow(0 0 2px var(--aqe-progress-inner-halo))
-    drop-shadow(0 0 6px var(--aqe-progress-halo));
-  opacity: 0.95;
-  pointer-events: none;
-  stroke: var(--aqe-progress-color);
-  stroke-width: 1.5;
-}
-
-.aqe-cursor-pitch-marker {
-  display: none;
-  fill: var(--aqe-progress-surface);
-  filter:
-    drop-shadow(0 0 1px var(--aqe-progress-inner-halo))
-    drop-shadow(0 0 4px var(--aqe-progress-halo));
-  opacity: 0.98;
-  pointer-events: none;
-  stroke: var(--aqe-progress-color);
-  stroke-width: 2;
-  vector-effect: non-scaling-stroke;
-}
-
-.aqe-cursor-flag {
-  display: none;
-  pointer-events: none;
-}
-
 .aqe-css-cursor {
   display: none;
   left: 0;
@@ -50,9 +21,6 @@
 
 .aqe-css-cursor-line {
   background: var(--aqe-progress-color);
-  box-shadow:
-    0 0 2px var(--aqe-progress-inner-halo),
-    0 0 6px var(--aqe-progress-halo);
   opacity: 0.95;
   position: absolute;
   width: 1.5px;
@@ -64,15 +32,9 @@
 }
 
 .aqe-css-cursor-flag-box {
+  align-items: center;
   background: var(--aqe-progress-surface);
   border: 1px solid var(--aqe-progress-color);
-  box-shadow:
-    0 0 1px var(--aqe-progress-inner-halo),
-    0 0 3px var(--aqe-progress-halo);
-}
-
-.aqe-css-cursor-flag-box {
-  align-items: center;
   border-radius: 4px;
   box-sizing: border-box;
   color: var(--aqe-progress-color);
@@ -86,29 +48,6 @@
 }
 
 .aqe-css-cursor-flag-pitch {
-  font-weight: 600;
-  opacity: 0.62;
-}
-
-.aqe-cursor-flag-box,
-.aqe-cursor-flag-notch {
-  fill: var(--aqe-progress-surface);
-  filter:
-    drop-shadow(0 0 1px var(--aqe-progress-inner-halo))
-    drop-shadow(0 0 3px var(--aqe-progress-halo));
-  stroke: var(--aqe-progress-color);
-  stroke-width: 1;
-  vector-effect: non-scaling-stroke;
-}
-
-.aqe-cursor-flag-text {
-  fill: var(--aqe-progress-color);
-  font-size: 10px;
-  font-weight: 700;
-  text-anchor: middle;
-}
-
-.aqe-cursor-flag-pitch {
   font-weight: 600;
   opacity: 0.62;
 }

@@ -28,6 +28,7 @@ def _visualizer_js(ord_: int = 0) -> str:
       const flag = visualizer.querySelector('.aqe-css-cursor');
       const flagCurrent = visualizer.querySelector('.aqe-css-cursor-flag-current');
       const flagPitch = visualizer.querySelector('.aqe-css-cursor-flag-pitch');
+      const cursorMatch = /translate3d\\((-?\\d+(?:\\.\\d+)?)px/.exec(flag?.style.transform || "");
       return {
         active: visualizer.dataset.graphActive === "true",
         busy: visualizer.dataset.graphBusy === "true",
@@ -45,7 +46,7 @@ def _visualizer_js(ord_: int = 0) -> str:
         pitchPaths: visualizer.querySelectorAll('.aqe-pitch-path').length,
         xAxisLabels: Array.from(visualizer.querySelectorAll('.aqe-x-label')).map((node) => node.textContent),
         labels,
-        cursorX: visualizer.querySelector('.aqe-cursor')?.getAttribute('x1') || "",
+        cursorX: cursorMatch ? cursorMatch[1] : "",
         timecodeFlagVisible: flag?.style.display === 'block',
         timecodeFlagTransform: flag?.style.transform || "",
         timecodeFlagCurrent: flagCurrent?.textContent || "",

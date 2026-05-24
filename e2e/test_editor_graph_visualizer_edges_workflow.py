@@ -98,8 +98,7 @@ def test_cursor_normalization_matches_pointer_position_at_multiple_widths(
                     const targetX = renderedPlotLeft + renderedPlotWidth * ratio;
                     const result = window.__aqeSetCursorByClientXForTest(ord, targetX, false);
                     if (!result || !result.bounds) return 999;
-                    const cursorX = Number(document.querySelector('[data-testid="aqe-cursor-0"]').getAttribute('x1'));
-                    const pixelX = renderedViewBoxLeft + cursorX * scale;
+                    const pixelX = renderedViewBoxLeft + result.cursorX * scale;
                     return Math.abs(pixelX - targetX);
                   }));
                 })()

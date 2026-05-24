@@ -9,7 +9,6 @@ import {
   pathForIntensity,
   pitchHzAtMs,
   xForMs,
-  yForPitch,
 } from "./plot.js";
 import type { NormalizedProsodyTrack, VisualizerElement } from "./types.js";
 
@@ -18,9 +17,6 @@ type CursorRenderCache = NonNullable<VisualizerElement["__aqeCursorRenderCache"]
 const CURSOR_FLAG_WIDTH = 82;
 const CURSOR_FLAG_HALF_WIDTH = CURSOR_FLAG_WIDTH / 2;
 const CURSOR_FLAG_BOX_HEIGHT = 20;
-const CURSOR_FLAG_NOTCH_HEIGHT = 6;
-const CURSOR_FLAG_Y = PLOT.top - CURSOR_FLAG_BOX_HEIGHT - CURSOR_FLAG_NOTCH_HEIGHT;
-const CURSOR_FLAG_NOTCH_MAX_OFFSET = CURSOR_FLAG_HALF_WIDTH;
 const PLAYBACK_TEXT_PAINT_INTERVAL_MS = 100;
 
 export function renderGraphRequested(visualizer: VisualizerElement): void {
@@ -188,19 +184,15 @@ function renderCursorProjection(
   const x = xForMs(ms, durationMs);
   if (options.geometry) {
     renderCssCursorGeometry(visualizer, nodes, x);
-    renderLegacySvgCursorGeometry(nodes, x, durationMs);
   }
   if (options.text) {
     const currentText = formatTime(ms, durationMs);
     const track = visualizer.__aqeTrack;
     const pitchHz = track ? pitchHzAtMs(track.points, ms) : null;
     const pitchText = formatPitchHz(pitchHz);
-    renderCursorPitchMarker(nodes, visualizer, x, pitchHz);
     if (nodes.label) nodes.label.textContent = `${currentText} / ${pitchText}`;
     if (nodes.cssFlagCurrent) nodes.cssFlagCurrent.textContent = currentText;
     if (nodes.cssFlagPitch) nodes.cssFlagPitch.textContent = ` / ${pitchText}`;
-    if (nodes.flagCurrent) nodes.flagCurrent.textContent = currentText;
-    if (nodes.flagPitch) nodes.flagPitch.textContent = ` / ${pitchText}`;
   }
 }
 
@@ -215,7 +207,6 @@ export function resetCursorProjection(visualizer: VisualizerElement): void {
   const nodes = cursorRenderCache(visualizer);
   stopPlaybackCursorTransition(visualizer);
   renderCssCursorGeometry(visualizer, nodes, PLOT.left);
-  hideCursorPitchMarker(nodes);
   if (nodes.label) nodes.label.textContent = "0 ms / -- Hz";
   if (nodes.cssFlagCurrent) nodes.cssFlagCurrent.textContent = "0 ms";
   if (nodes.cssFlagPitch) nodes.cssFlagPitch.textContent = " / -- Hz";
@@ -321,21 +312,14 @@ function clearOverlayNodePosition(node: HTMLElement | null): void {
 function cursorRenderCache(visualizer: VisualizerElement): CursorRenderCache {
   const cached = visualizer.__aqeCursorRenderCache;
   if (cached) return cached;
-  const flag = visualizer.querySelector<SVGGElement>(".aqe-cursor-flag");
   const cssFlag = visualizer.querySelector<HTMLElement>(".aqe-css-cursor-flag");
   const cache: CursorRenderCache = {
-    cursor: visualizer.querySelector<SVGLineElement>(".aqe-cursor"),
     cssCursor: visualizer.querySelector<HTMLElement>(".aqe-css-cursor"),
     cssFlag,
     cssFlagCurrent: cssFlag?.querySelector<HTMLElement>(".aqe-css-cursor-flag-current") ?? null,
     cssFlagPitch: cssFlag?.querySelector<HTMLElement>(".aqe-css-cursor-flag-pitch") ?? null,
     cssLine: visualizer.querySelector<HTMLElement>(".aqe-css-cursor-line"),
-    flag,
-    flagCurrent: flag?.querySelector<SVGTextElement>(".aqe-cursor-flag-current") ?? null,
-    flagNotch: flag?.querySelector<SVGPathElement>(".aqe-cursor-flag-notch") ?? null,
-    flagPitch: flag?.querySelector<SVGTextElement>(".aqe-cursor-flag-pitch") ?? null,
     label: visualizer.querySelector<HTMLElement>(".aqe-cursor-label"),
-    marker: visualizer.querySelector<SVGCircleElement>(".aqe-cursor-pitch-marker"),
   };
   visualizer.__aqeCursorRenderCache = cache;
   return cache;
@@ -360,59 +344,10 @@ function renderCssCursorGeometry(visualizer: VisualizerElement, nodes: CursorRen
   }
 }
 
-function renderLegacySvgCursorGeometry(nodes: CursorRenderCache, cursorX: number, durationMs: number): void {
-  if (nodes.cursor) {
-    nodes.cursor.setAttribute("x1", cursorX.toFixed(2));
-    nodes.cursor.setAttribute("x2", cursorX.toFixed(2));
-  }
-  if (!nodes.flag) return;
-  if (durationMs <= 0) {
-    nodes.flag.setAttribute("visibility", "hidden");
-    return;
-  }
-  const flagX = clampedCursorFlagX(cursorX);
-  nodes.flag.setAttribute("visibility", "visible");
-  nodes.flag.setAttribute("transform", `translate(${flagX.toFixed(2)} ${CURSOR_FLAG_Y})`);
-  nodes.flagNotch?.setAttribute(
-    "transform",
-    `translate(${cursorFlagNotchOffset(cursorX, flagX).toFixed(2)} 0)`,
-  );
-}
-
-function renderCursorPitchMarker(
-  nodes: CursorRenderCache,
-  visualizer: VisualizerElement,
-  x: number,
-  pitchHz: number | null,
-): void {
-  const track = visualizer.__aqeTrack;
-  if (pitchHz === null || !track || Number(visualizer.dataset.durationMs || "0") <= 0) {
-    hideCursorPitchMarker(nodes);
-    return;
-  }
-  if (nodes.marker) {
-    nodes.marker.setAttribute("visibility", "visible");
-    nodes.marker.setAttribute("cx", x.toFixed(2));
-    nodes.marker.setAttribute("cy", yForPitch(pitchHz, track.pitchMinHz, track.pitchMaxHz).toFixed(2));
-  }
-}
-
-function hideCursorPitchMarker(nodes: CursorRenderCache): void {
-  if (nodes.marker) {
-    nodes.marker.setAttribute("visibility", "hidden");
-    nodes.marker.setAttribute("cx", String(PLOT.left));
-    nodes.marker.setAttribute("cy", String(PLOT.height - PLOT.bottom));
-  }
-}
-
 function clampedCursorFlagX(cursorX: number): number {
   const minX = PLOT.left + CURSOR_FLAG_HALF_WIDTH;
   const maxX = PLOT.width - PLOT.right - CURSOR_FLAG_HALF_WIDTH;
   return Math.max(minX, Math.min(cursorX, maxX));
-}
-
-function cursorFlagNotchOffset(cursorX: number, flagX: number): number {
-  return Math.max(-CURSOR_FLAG_NOTCH_MAX_OFFSET, Math.min(cursorX - flagX, CURSOR_FLAG_NOTCH_MAX_OFFSET));
 }
 
 function cssXForViewBoxX(visualizer: VisualizerElement, x: number): number {
