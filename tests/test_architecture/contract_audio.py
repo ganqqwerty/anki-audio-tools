@@ -24,7 +24,12 @@ AUDIO_CONTRACTS: dict[str, ModuleContract] = {
     "audio_commands": contract(
         "audio_commands",
         layer=Layer.IMPORT_SAFE_CORE,
-        allowed_addon_deps=("audio_formats", "audio_state", "audio_types", "errors"),
+        allowed_addon_deps=("audio_commands_runtime", "audio_formats", "audio_state", "audio_types", "errors"),
+    ),
+    "audio_commands_runtime": contract(
+        "audio_commands_runtime",
+        layer=Layer.IMPORT_SAFE_CORE,
+        allowed_addon_deps=("audio_commands",),
     ),
     "audio_external": contract(
         "audio_external",
@@ -38,6 +43,7 @@ AUDIO_CONTRACTS: dict[str, ModuleContract] = {
         allowed_addon_deps=(
             "audio_commands",
             "audio_external",
+            "audio_noise_reduction_bundled",
             "audio_state",
             "audio_tools",
             "audio_types",
@@ -46,12 +52,30 @@ AUDIO_CONTRACTS: dict[str, ModuleContract] = {
         ),
         allowed_side_effects=(SideEffect.TEMP_FILESYSTEM_CLEANUP,),
     ),
+    "audio_noise_reduction_bundled": contract(
+        "audio_noise_reduction_bundled",
+        layer=Layer.IMPORT_SAFE_CORE,
+        allowed_addon_deps=(
+            "audio_commands",
+            "audio_external",
+            "audio_state",
+            "audio_tools",
+            "audio_types",
+            "errors",
+            "support",
+        ),
+        allowed_side_effects=(
+            SideEffect.SUBPROCESS_RUN,
+            SideEffect.TEMP_FILESYSTEM_CLEANUP,
+        ),
+    ),
     "audio_pitch_hum": contract(
         "audio_pitch_hum",
         layer=Layer.IMPORT_SAFE_CORE,
         allowed_addon_deps=(
             "audio_commands",
             "audio_external",
+            "audio_pitch_hum_synthesis",
             "audio_pitch_hum_frames",
             "audio_state",
             "audio_tools",
@@ -67,6 +91,11 @@ AUDIO_CONTRACTS: dict[str, ModuleContract] = {
     "audio_pitch_hum_frames": contract(
         "audio_pitch_hum_frames",
         layer=Layer.IMPORT_SAFE_CORE,
+    ),
+    "audio_pitch_hum_synthesis": contract(
+        "audio_pitch_hum_synthesis",
+        layer=Layer.IMPORT_SAFE_CORE,
+        allowed_addon_deps=("audio_pitch_hum_frames",),
     ),
     "audio_pause_pipeline": contract(
         "audio_pause_pipeline",
@@ -94,11 +123,22 @@ AUDIO_CONTRACTS: dict[str, ModuleContract] = {
             "audio_noise_reduction",
             "audio_pause_pipeline",
             "audio_pitch_hum",
+            "audio_processor_rendering_portal",
+            "audio_processor_runtime",
             "audio_rendering",
             "audio_state",
             "audio_tools",
             "audio_types",
         ),
+    ),
+    "audio_processor_rendering_portal": contract(
+        "audio_processor_rendering_portal",
+        layer=Layer.IMPORT_SAFE_CORE,
+        allowed_addon_deps=("audio_processor", "audio_state", "audio_types"),
+    ),
+    "audio_processor_runtime": contract(
+        "audio_processor_runtime",
+        layer=Layer.IMPORT_SAFE_CORE,
     ),
     "audio_rendering": contract(
         "audio_rendering",
@@ -138,6 +178,7 @@ AUDIO_CONTRACTS: dict[str, ModuleContract] = {
             "audio_operations",
             "audio_processor",
             "audio_state",
+            "batch_operations_helpers",
             "diagnostics_runtime",
             "errors",
             "media_paths",
@@ -146,6 +187,11 @@ AUDIO_CONTRACTS: dict[str, ModuleContract] = {
             "sound_refs",
         ),
         allowed_side_effects=(SideEffect.TEMP_FILESYSTEM_CLEANUP,),
+    ),
+    "batch_operations_helpers": contract(
+        "batch_operations_helpers",
+        layer=Layer.IMPORT_SAFE_CORE,
+        allowed_addon_deps=("audio_processor", "audio_state", "audio_types", "batch_operations"),
     ),
     "batch_visualization": contract(
         "batch_visualization",

@@ -47,7 +47,7 @@ def test_scan_python_file_lengths_ignores_generated_and_runtime_artifacts(tmp_pa
     assert report.exit_code == 0
 
 
-def test_scan_python_file_lengths_honors_explicit_allowlist_limits(tmp_path: Path) -> None:
+def test_scan_python_file_lengths_treats_warning_band_as_warning(tmp_path: Path) -> None:
     root = tmp_path
     addon = root / "addon" / "anki_audio_quick_editor"
     addon.mkdir(parents=True)
@@ -56,11 +56,10 @@ def test_scan_python_file_lengths_honors_explicit_allowlist_limits(tmp_path: Pat
 
     report = file_lines.scan_python_file_lengths(root)
 
-    assert report.warnings == []
+    assert [(item.relative_path, item.lines) for item in report.warnings] == [
+        ("addon/anki_audio_quick_editor/audio_commands.py", 453),
+    ]
     assert report.errors == []
-    allowance = file_lines.python_file_line_allowance(root, path)
-    assert allowance is not None
-    assert allowance.max_lines == 453
 
 
 def test_generated_python_file_predicate_is_explicit(tmp_path: Path) -> None:
@@ -74,14 +73,6 @@ def test_generated_python_file_predicate_is_explicit(tmp_path: Path) -> None:
         root,
         root / "addon" / "anki_audio_quick_editor" / "audio_processor.py",
     )
-
-
-def test_python_file_line_allowlist_entries_have_reasons_and_existing_paths() -> None:
-    root = Path(__file__).resolve().parents[1]
-
-    for allowance in file_lines.PYTHON_FILE_LINE_ALLOWLIST:
-        assert allowance.reason
-        assert (root / allowance.relative_path).exists()
 
 
 def test_format_python_file_length_report_includes_warning_and_failure(tmp_path: Path) -> None:

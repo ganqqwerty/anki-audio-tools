@@ -21,7 +21,6 @@ def stop_audio_playback() -> None:
     """Stop Anki audio playback on a best-effort basis."""
     try:
         from aqt.sound import av_player
-
         av_player.stop_and_clear_queue()
     except Exception as exc:  # pragma: no cover - depends on active Anki audio backend
         logger.info("audio stop failed: %s", exc)
@@ -140,7 +139,6 @@ def toggle_native_pause_resume(
     if action not in {"pause", "resume"} or not session.playback_active:
         return False
     from aqt.sound import av_player
-
     try:
         av_player.toggle_pause()
     except Exception as exc:  # pragma: no cover - depends on active Anki audio backend
@@ -173,10 +171,8 @@ def apply_html_playback_request(
         deps.set_busy(editor, False)
         deps.eval_status(editor, t("editor.playback.paused"))
         return
-
     if action == "start":
         deps.stop_session_playback(session)
-
     session.cursor_ms = cursor_ms
     session.field_index = field_index
     session.playback_preparing = False
@@ -205,7 +201,6 @@ def start_playback_from_cursor(
     """Start native playback, rendering a temporary segment when seeking or trimming is needed."""
     from anki.sound import SoundOrVideoTag
     from aqt.sound import av_player
-
     operation_id = new_operation_id("playback")
     filename = session.current_filename or source_path.name
     play_path = existing_media_file_path(Path(editor.mw.col.media.dir()), filename) or source_path
@@ -326,7 +321,6 @@ def playback_segment_ready(
         return
     from anki.sound import SoundOrVideoTag
     from aqt.sound import av_player
-
     session.playback_preparing = False
     session.temp_playback_path = playback_path
     session.playback_active = True

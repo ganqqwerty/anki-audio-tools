@@ -6,84 +6,27 @@ import subprocess  # nosec B404
 import tempfile
 import uuid
 from collections.abc import Callable
-from datetime import datetime
 from pathlib import Path
 from typing import Any, cast
 
+from . import audio_commands as _audio_commands
 from . import audio_external as _audio_external
 from . import audio_noise_reduction as _audio_noise_reduction
 from . import audio_pause_pipeline as _audio_pause_pipeline
 from . import audio_pitch_hum as _audio_pitch_hum
+from . import audio_processor_rendering_portal as _render_portal
 from . import audio_rendering as _audio_rendering
 from . import audio_tools as _audio_tools
-from .audio_artifacts import (
-    _artifact_record,
-    _build_pause_pipeline_manifest,
-    _create_pause_pipeline_run_dir,
-    _pause_pipeline_config_snapshot,
-    _sha256_file,
-    _source_file_record,
+from .audio_processor_runtime import (
+    sync_external_dependencies,
+    sync_noise_dependencies,
+    sync_pause_dependencies,
+    sync_pitch_hum_dependencies,
+    sync_rendering_dependencies,
+    sync_tool_dependencies,
 )
-from .audio_commands import (
-    FFMPEG_AUDIO_CODEC_ARG,
-    WAV_MIME_TYPE,
-    _atempo_filters,
-    build_audio_filters,
-    build_convert_audio_command,
-    build_deep_filter_command,
-    build_deep_filter_prepare_command,
-    build_dpdfnet_command,
-    build_ffmpeg_command,
-    build_filter_complex_render_command,
-    build_mp3_encode_command,
-    build_playback_segment_filters,
-    build_region_delete_command,
-    build_region_delete_plan,
-    build_region_keep_plan,
-    build_rnnoise_command,
-    build_rnnoise_encode_command,
-    build_rnnoise_prepare_command,
-    build_silencedetect_command,
-    build_spleeter_command,
-    build_spleeter_prepare_command,
-    build_wav_filter_command,
-    build_working_original_filters,
-    conversion_codec_args,
-    format_ffmpeg_command,
-)
-from .audio_noise_reduction import (
-    _record_rnnoise_failure,
-    _run_audio_stage,
-    _run_recorded_external_command,
-    select_deep_filter_output,
-)
-from .audio_pause_pipeline import _run_pipeline_stage
-from .audio_rendering import _safe_filename_stem
 from .audio_state import AudioEditState, AudioProcessingConfig
-from .audio_types import AudioProcessingResult, RegionDeletePlan, RegionKeepPlan
-
-__all__ = [
-    "BUNDLED_DEEP_FILTER_VERSION", "BUNDLED_DPDFNET_VERSION", "BUNDLED_RNNOISE_VERSION", "FFMPEG_AUDIO_CODEC_ARG",
-    "WAV_MIME_TYPE", "AudioProcessingResult", "RegionDeletePlan", "RegionKeepPlan", "_BUNDLED_DEEP_FILTER_VERSION",
-    "_PACKAGE_DIR", "_artifact_record", "_atempo_filters", "_build_pause_pipeline_manifest",
-    "_bundled_deep_filter_path", "_create_pause_pipeline_run_dir", "_external_command_run_kwargs",
-    "_pause_pipeline_config_snapshot", "_record_rnnoise_failure", "_render_deep_filter_pause_speedup_audio",
-    "_render_external_error_message", "_run_audio_stage", "_run_external_command", "_run_pipeline_stage",
-    "_run_recorded_external_command", "_safe_filename_stem", "_sha256_file", "_source_file_record",
-    "build_audio_filters", "build_deep_filter_command", "build_deep_filter_prepare_command",
-    "build_convert_audio_command", "build_dpdfnet_command", "build_ffmpeg_command",
-    "build_filter_complex_render_command", "build_mp3_encode_command", "build_playback_segment_filters",
-    "build_region_delete_command", "build_region_delete_plan", "build_region_keep_plan", "build_rnnoise_command",
-    "build_rnnoise_encode_command", "build_rnnoise_prepare_command", "build_silencedetect_command",
-    "build_spleeter_command", "build_spleeter_prepare_command", "build_wav_filter_command",
-    "build_working_original_filters", "bundled_tool_path", "conversion_codec_args", "current_platform_key",
-    "expected_bundled_rnnoise_dir", "expected_bundled_spleeter_model_path", "expected_bundled_tool_path",
-    "find_deep_filter", "find_dpdfnet_bundle", "find_ffmpeg", "find_ffprobe", "find_rnnoise_bundle",
-    "find_spleeter_bundle", "format_ffmpeg_command", "make_output_filename", "make_playback_segment_filename",
-    "probe_duration_ms", "render_audio", "render_audio_region_deleted", "render_audio_region_kept",
-    "render_noise_reduced_audio", "render_converted_audio", "render_dpdfnet_audio", "render_playback_segment",
-    "render_pitch_hum_audio", "render_pitch_tier_hum_audio", "render_rnnoise_audio", "render_voice_only_audio",
-    "select_deep_filter_output", "temp_final_path", "temp_playback_path", "tool_source_label"]
+from .audio_types import AudioProcessingResult
 
 _BUNDLED_DEEP_FILTER_VERSION = _audio_tools.BUNDLED_DEEP_FILTER_VERSION
 BUNDLED_DEEP_FILTER_VERSION = _audio_tools.BUNDLED_DEEP_FILTER_VERSION
@@ -95,6 +38,30 @@ _ORIGINAL_EXPECTED_BUNDLED_RNNOISE_DIR = _audio_tools.expected_bundled_rnnoise_d
 _ORIGINAL_EXPECTED_BUNDLED_SPLEETER_MODEL_PATH = _audio_tools.expected_bundled_spleeter_model_path
 _ORIGINAL_EXPECTED_BUNDLED_TOOL_PATH = _audio_tools.expected_bundled_tool_path
 _ORIGINAL_MAKE_PLAYBACK_SEGMENT_FILENAME = _audio_rendering.make_playback_segment_filename
+_safe_filename_stem = _audio_rendering._safe_filename_stem
+build_audio_filters = _audio_commands.build_audio_filters
+build_convert_audio_command = _audio_commands.build_convert_audio_command
+build_region_delete_plan = _audio_commands.build_region_delete_plan
+build_region_keep_plan = _audio_commands.build_region_keep_plan
+build_silencedetect_command = _audio_commands.build_silencedetect_command
+build_working_original_filters = _audio_commands.build_working_original_filters
+format_ffmpeg_command = _audio_commands.format_ffmpeg_command
+make_output_filename = _render_portal.make_output_filename
+make_playback_segment_filename = _render_portal.make_playback_segment_filename
+render_audio = _render_portal.render_audio
+render_audio_region_deleted = _render_portal.render_audio_region_deleted
+render_audio_region_kept = _render_portal.render_audio_region_kept
+render_converted_audio = _render_portal.render_converted_audio
+render_dpdfnet_audio = _render_portal.render_dpdfnet_audio
+render_noise_reduced_audio = _render_portal.render_noise_reduced_audio
+render_pitch_hum_audio = _render_portal.render_pitch_hum_audio
+render_pitch_tier_hum_audio = _render_portal.render_pitch_tier_hum_audio
+render_playback_segment = _render_portal.render_playback_segment
+render_rnnoise_audio = _render_portal.render_rnnoise_audio
+render_voice_only_audio = _render_portal.render_voice_only_audio
+select_deep_filter_output = _audio_noise_reduction.select_deep_filter_output
+temp_final_path = _render_portal.temp_final_path
+temp_playback_path = _render_portal.temp_playback_path
 
 
 def _bundled_deep_filter_path() -> Path | None:
@@ -102,10 +69,11 @@ def _bundled_deep_filter_path() -> Path | None:
 
 
 def _sync_tool_dependencies() -> None:
-    audio_tools = cast(Any, _audio_tools)
-    audio_tools.Path = Path
-    audio_tools.shutil = shutil
-    audio_tools._bundled_deep_filter_path = _bundled_deep_filter_path
+    sync_tool_dependencies(
+        cast(Any, _audio_tools),
+        shutil_module=shutil,
+        bundled_deep_filter_path=_bundled_deep_filter_path,
+    )
 
 
 def current_platform_key() -> str | None:
@@ -181,10 +149,12 @@ def find_spleeter_bundle() -> tuple[Path, Path, Path]:
 
 
 def _sync_external_dependencies() -> None:
-    audio_external = cast(Any, _audio_external)
-    audio_external.subprocess = subprocess
-    audio_external.find_ffmpeg = find_ffmpeg
-    audio_external.find_ffprobe = find_ffprobe
+    sync_external_dependencies(
+        cast(Any, _audio_external),
+        subprocess_module=subprocess,
+        find_ffmpeg=find_ffmpeg,
+        find_ffprobe=find_ffprobe,
+    )
 
 
 def probe_duration_ms(source_path: Path, config: AudioProcessingConfig) -> int:
@@ -215,11 +185,13 @@ def _render_external_error_message(
 
 
 def _sync_pause_dependencies() -> None:
-    audio_pause_pipeline = cast(Any, _audio_pause_pipeline)
-    audio_pause_pipeline.find_deep_filter = find_deep_filter
-    audio_pause_pipeline.probe_duration_ms = probe_duration_ms
-    audio_pause_pipeline._run_external_command = _run_external_command
-    audio_pause_pipeline._render_external_error_message = _render_external_error_message
+    sync_pause_dependencies(
+        cast(Any, _audio_pause_pipeline),
+        find_deep_filter=find_deep_filter,
+        probe_duration_ms=probe_duration_ms,
+        run_external_command=_run_external_command,
+        render_external_error_message=_render_external_error_message,
+    )
 
 
 def _render_deep_filter_pause_speedup_audio(
@@ -244,257 +216,43 @@ def _render_deep_filter_pause_speedup_audio(
         artifact_root=artifact_root,
         source_duration_ms=source_duration_ms,
     )
-
-
 def _sync_rendering_dependencies() -> None:
-    audio_rendering = cast(Any, _audio_rendering)
-    audio_rendering.find_ffmpeg = find_ffmpeg
-    audio_rendering.probe_duration_ms = probe_duration_ms
-    audio_rendering.build_audio_filters = build_audio_filters
-    audio_rendering.build_convert_audio_command = build_convert_audio_command
-    audio_rendering._render_deep_filter_pause_speedup_audio = _render_deep_filter_pause_speedup_audio
-    audio_rendering._external_command_run_kwargs = _external_command_run_kwargs
-    audio_rendering.subprocess = subprocess
-    audio_rendering.tempfile = tempfile
-    audio_rendering.uuid = uuid
-    audio_rendering.make_playback_segment_filename = make_playback_segment_filename
-
-
-def render_audio(
-    source_path: Path,
-    state: AudioEditState,
-    config: AudioProcessingConfig,
-    output_path: Path | None = None,
-    on_command: Callable[[tuple[str, ...]], None] | None = None,
-    artifact_root: Path | None = None,
-) -> AudioProcessingResult:
-    _sync_rendering_dependencies()
-    return _audio_rendering.render_audio(
-        source_path,
-        state,
-        config,
-        output_path,
-        on_command,
-        artifact_root,
+    sync_rendering_dependencies(
+        cast(Any, _audio_rendering),
+        build_audio_filters=build_audio_filters,
+        build_convert_audio_command=build_convert_audio_command,
+        external_command_run_kwargs=_external_command_run_kwargs,
+        find_ffmpeg=find_ffmpeg,
+        make_playback_segment_filename=make_playback_segment_filename,
+        probe_duration_ms=probe_duration_ms,
+        render_deep_filter_pause_speedup_audio=_render_deep_filter_pause_speedup_audio,
+        subprocess_module=subprocess,
+        tempfile_module=tempfile,
+        uuid_module=uuid,
     )
-
-
-def render_converted_audio(
-    source_path: Path,
-    config: AudioProcessingConfig,
-    target_format: object,
-    output_path: Path | None = None,
-    on_command: Callable[[tuple[str, ...]], None] | None = None,
-) -> AudioProcessingResult:
-    _sync_rendering_dependencies()
-    return _audio_rendering.render_converted_audio(
-        source_path,
-        config,
-        target_format,
-        output_path,
-        on_command,
-    )
-
-
-def render_audio_region_deleted(
-    source_path: Path,
-    selection_start_ms: int,
-    selection_end_ms: int,
-    config: AudioProcessingConfig,
-    output_path: Path | None = None,
-    on_command: Callable[[tuple[str, ...]], None] | None = None,
-) -> AudioProcessingResult:
-    _sync_rendering_dependencies()
-    return _audio_rendering.render_audio_region_deleted(
-        source_path,
-        selection_start_ms,
-        selection_end_ms,
-        config,
-        output_path,
-        on_command,
-    )
-
-
-def render_audio_region_kept(
-    source_path: Path,
-    selection_start_ms: int,
-    selection_end_ms: int,
-    config: AudioProcessingConfig,
-    output_path: Path | None = None,
-    on_command: Callable[[tuple[str, ...]], None] | None = None,
-) -> AudioProcessingResult:
-    _sync_rendering_dependencies()
-    return _audio_rendering.render_audio_region_kept(
-        source_path,
-        selection_start_ms,
-        selection_end_ms,
-        config,
-        output_path,
-        on_command,
-    )
-
-
-def render_playback_segment(
-    source_path: Path,
-    start_ms: int,
-    config: AudioProcessingConfig,
-    output_path: Path | None = None,
-    on_command: Callable[[tuple[str, ...]], None] | None = None,
-    end_ms: int | None = None,
-) -> AudioProcessingResult:
-    _sync_rendering_dependencies()
-    return _audio_rendering.render_playback_segment(
-        source_path,
-        start_ms,
-        config,
-        output_path,
-        on_command,
-        end_ms,
-    )
-
-
-def make_output_filename(
-    source_filename: str,
-    now: datetime | None = None,
-    token: str | None = None,
-    *,
-    output_format: object = "mp3",
-) -> str:
-    _sync_rendering_dependencies()
-    return _audio_rendering.make_output_filename(
-        source_filename,
-        now,
-        token,
-        output_format=output_format,
-    )
-
-
-def temp_final_path(filename: str) -> Path:
-    _sync_rendering_dependencies()
-    return _audio_rendering.temp_final_path(filename)
-
-
-def make_playback_segment_filename(
-    source_filename: str,
-    start_ms: int,
-    token: str | None = None,
-) -> str:
-    cast(Any, _audio_rendering).uuid = uuid
-    return _ORIGINAL_MAKE_PLAYBACK_SEGMENT_FILENAME(source_filename, start_ms, token)
-
-
-def temp_playback_path(source_filename: str, start_ms: int) -> Path:
-    _sync_rendering_dependencies()
-    return _audio_rendering.temp_playback_path(source_filename, start_ms)
 
 
 def _sync_noise_dependencies() -> None:
-    audio_noise_reduction = cast(Any, _audio_noise_reduction)
-    audio_noise_reduction.find_ffmpeg = find_ffmpeg
-    audio_noise_reduction.find_deep_filter = find_deep_filter
-    audio_noise_reduction.find_rnnoise_bundle = find_rnnoise_bundle
-    audio_noise_reduction.find_dpdfnet_bundle = find_dpdfnet_bundle
-    audio_noise_reduction.find_spleeter_bundle = find_spleeter_bundle
-    audio_noise_reduction.probe_duration_ms = probe_duration_ms
-    audio_noise_reduction._run_external_command = _run_external_command
-    audio_noise_reduction._render_external_error_message = _render_external_error_message
-    audio_noise_reduction.tempfile = tempfile
-    audio_noise_reduction.shutil = shutil
+    sync_noise_dependencies(
+        cast(Any, _audio_noise_reduction),
+        find_deep_filter=find_deep_filter,
+        find_dpdfnet_bundle=find_dpdfnet_bundle,
+        find_ffmpeg=find_ffmpeg,
+        find_rnnoise_bundle=find_rnnoise_bundle,
+        find_spleeter_bundle=find_spleeter_bundle,
+        probe_duration_ms=probe_duration_ms,
+        render_external_error_message=_render_external_error_message,
+        run_external_command=_run_external_command,
+        shutil_module=shutil,
+        tempfile_module=tempfile,
+    )
 
 
 def _sync_pitch_hum_dependencies() -> None:
-    audio_pitch_hum = cast(Any, _audio_pitch_hum)
-    audio_pitch_hum.find_ffmpeg = find_ffmpeg
-    audio_pitch_hum.probe_duration_ms = probe_duration_ms
-    audio_pitch_hum.subprocess = subprocess
-    audio_pitch_hum.tempfile = tempfile
-
-
-def render_noise_reduced_audio(
-    source_path: Path,
-    config: AudioProcessingConfig,
-    output_path: Path | None = None,
-    on_command: Callable[[tuple[str, ...]], None] | None = None,
-) -> AudioProcessingResult:
-    _sync_noise_dependencies()
-    return _audio_noise_reduction.render_noise_reduced_audio(
-        source_path,
-        config,
-        output_path,
-        on_command,
-    )
-
-
-def render_pitch_hum_audio(
-    source_path: Path,
-    config: AudioProcessingConfig,
-    output_path: Path | None = None,
-    on_command: Callable[[tuple[str, ...]], None] | None = None,
-) -> AudioProcessingResult:
-    _sync_pitch_hum_dependencies()
-    return _audio_pitch_hum.render_pitch_hum_audio(
-        source_path,
-        config,
-        output_path,
-        on_command,
-    )
-
-
-def render_pitch_tier_hum_audio(
-    source_path: Path,
-    config: AudioProcessingConfig,
-    output_path: Path | None = None,
-    on_command: Callable[[tuple[str, ...]], None] | None = None,
-) -> AudioProcessingResult:
-    _sync_pitch_hum_dependencies()
-    return _audio_pitch_hum.render_pitch_tier_hum_audio(
-        source_path,
-        config,
-        output_path,
-        on_command,
-    )
-
-
-def render_rnnoise_audio(
-    source_path: Path,
-    config: AudioProcessingConfig,
-    output_path: Path | None = None,
-    on_command: Callable[[tuple[str, ...]], None] | None = None,
-) -> AudioProcessingResult:
-    _sync_noise_dependencies()
-    return _audio_noise_reduction.render_rnnoise_audio(
-        source_path,
-        config,
-        output_path,
-        on_command,
-    )
-
-
-def render_dpdfnet_audio(
-    source_path: Path,
-    config: AudioProcessingConfig,
-    output_path: Path | None = None,
-    on_command: Callable[[tuple[str, ...]], None] | None = None,
-) -> AudioProcessingResult:
-    _sync_noise_dependencies()
-    return _audio_noise_reduction.render_dpdfnet_audio(
-        source_path,
-        config,
-        output_path,
-        on_command,
-    )
-
-
-def render_voice_only_audio(
-    source_path: Path,
-    config: AudioProcessingConfig,
-    output_path: Path | None = None,
-    on_command: Callable[[tuple[str, ...]], None] | None = None,
-) -> AudioProcessingResult:
-    _sync_noise_dependencies()
-    return _audio_noise_reduction.render_voice_only_audio(
-        source_path,
-        config,
-        output_path,
-        on_command,
+    sync_pitch_hum_dependencies(
+        cast(Any, _audio_pitch_hum),
+        find_ffmpeg=find_ffmpeg,
+        probe_duration_ms=probe_duration_ms,
+        subprocess_module=subprocess,
+        tempfile_module=tempfile,
     )

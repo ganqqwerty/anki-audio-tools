@@ -24,6 +24,7 @@ from e2e.editor_note_helpers import (
     _wait_for_generated_mp3,
     _wait_for_status_flow,
 )
+from e2e.editor_processing_workflow_helpers import expected_final_status
 from e2e.helpers import (
     click_selector,
     generate_tone,
@@ -31,58 +32,6 @@ from e2e.helpers import (
     wait_for_js_condition,
     wait_for_selector,
 )
-
-
-def _split_slug(command: str) -> str:
-    if command in {"aqe:volume-up", "aqe:volume-down"}:
-        return "volume"
-    if command in {"aqe:faster", "aqe:slower"}:
-        return "speed"
-    return command.removeprefix("aqe:")
-
-
-def _split_menu_selector(command: str, ord_: int = 0) -> str:
-    slug = _split_slug(command)
-    return f'[data-testid="aqe-split-{ord_}-{slug}-menu"]'
-
-
-def _split_popover_state_js(command: str, ord_: int = 0) -> str:
-    slug = _split_slug(command)
-    return f"""
-    (() => {{
-      const popover = document.querySelector('[data-testid="aqe-split-{ord_}-{slug}-popover"]');
-      const slider = document.querySelector('[data-testid="aqe-split-{ord_}-{slug}-slider"]');
-      const anchor = document.querySelector('[data-testid="aqe-split-{ord_}-{slug}-menu"]')?.closest('.aqe-split-button');
-      if (!popover || !slider || !anchor) return null;
-      const popoverRect = popover.getBoundingClientRect();
-      const anchorRect = anchor.getBoundingClientRect();
-      return {{
-        text: popover.textContent,
-        sliderValue: slider.value,
-        bottom: popoverRect.bottom,
-        left: popoverRect.left,
-        right: popoverRect.right,
-        top: popoverRect.top,
-        buttonBottom: anchorRect.bottom,
-        viewportHeight: window.innerHeight,
-        viewportWidth: window.innerWidth,
-        centerDelta: Math.abs(
-          popoverRect.left + popoverRect.width / 2 - (anchorRect.left + anchorRect.width / 2)
-        )
-      }};
-    }})()
-    """
-
-
-def _expected_final_status(command: str) -> str:
-    return {
-        "aqe:slower": "Decreased speed to x0.95.",
-        "aqe:faster": "Increased speed to x1.05.",
-        "aqe:volume-down": "Decreased volume by 3 dB.",
-        "aqe:volume-up": "Increased volume by 3 dB.",
-        "aqe:remove-pauses": "Shortened pauses with Normal level.",
-        "aqe:pitch-hum": "Rendered pitch hum with Pitch-to-hum mode.",
-    }[command]
 
 
 def test_each_processing_button_updates_field_to_new_real_audio(
@@ -179,7 +128,7 @@ def test_each_processing_button_updates_field_to_new_real_audio(
             "aqe:remove-pauses",
             "aqe:pitch-hum",
         ):
-            expected_status = _expected_final_status(command)
+            expected_status = expected_final_status(command)
             wait_for_selector(editor.web, _button_selector(command), timeout=5.0)
             click_selector(editor.web, _button_selector(command), timeout=5.0)
             previous_name = _wait_for_generated_mp3(note, media_dir, previous_name)

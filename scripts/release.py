@@ -4,11 +4,9 @@
 from __future__ import annotations
 
 import argparse
-import hashlib
 import json
 import re
 import shutil
-import subprocess
 import sys
 import tempfile
 import zipfile
@@ -45,6 +43,8 @@ FAIL_ARCHIVE_BYTES = 200 * 1024 * 1024
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import release_assets  # noqa: E402
 import scripts.release_asset_common as release_asset_common  # noqa: E402
+import scripts.release_bundle_freshness as release_bundle_freshness  # noqa: E402
+import scripts.release_validation as release_validation  # noqa: E402
 from dev import _find_anki_python  # noqa: E402
 
 
@@ -79,98 +79,12 @@ def _verify_versions(version: str) -> None:
         sys.exit(1)
 
 
-def _run_dev_command(*command: str) -> None:
-    result = subprocess.run(
-        [sys.executable, "scripts/dev.py", *command],
-        cwd=ROOT,
-        text=True,
-    )
-    if result.returncode != 0:
-        sys.exit(result.returncode)
-
-
 def _run_checks(*, full: bool) -> None:
-    _run_dev_command("check")
-    if not full:
-        return
-    _run_dev_command("test-e2e")
-    _run_dev_command("sonar")
-
-
-def _source_mtime(paths: list[Path]) -> float:
-    newest = 0.0
-    for path in paths:
-        if path.is_file() and path.suffix in {".svelte", ".ts"}:
-            newest = max(newest, path.stat().st_mtime)
-        elif path.is_dir():
-            newest = max(
-                newest,
-                max(
-                    (child.stat().st_mtime for child in path.rglob("*") if child.suffix in {".svelte", ".ts"}),
-                    default=0.0,
-                ),
-            )
-    return newest
-
-
-def _verify_bundle_fresh() -> None:
-    src_dir = ROOT / "settings_ui" / "src"
-    if not src_dir.is_dir():
-        return
-    bundle_specs = [
-        (
-            "settings",
-            [
-                src_dir / "App.svelte",
-                src_dir / "main.ts",
-                src_dir / "lib",
-            ],
-            [
-                ADDON_DIR / "templates" / "settings" / "settings_bundle.js",
-                ADDON_DIR / "templates" / "settings" / "settings_bundle.css",
-            ],
-        ),
-        (
-            "editor",
-            [
-                src_dir / "editor-inline",
-                src_dir / "lib",
-            ],
-            [
-                ADDON_DIR / "templates" / "editor" / "editor_bundle.js",
-                ADDON_DIR / "templates" / "editor" / "editor_bundle.css",
-            ],
-        ),
-        (
-            "batch",
-            [
-                src_dir / "batch",
-                src_dir / "lib",
-            ],
-            [
-                ADDON_DIR / "templates" / "batch" / "batch_bundle.js",
-                ADDON_DIR / "templates" / "batch" / "batch_bundle.css",
-            ],
-        ),
-    ]
-    for label, source_paths, bundles in bundle_specs:
-        missing = [bundle for bundle in bundles if not bundle.exists()]
-        if missing:
-            missing_paths = ", ".join(str(path.relative_to(ROOT)) for path in missing)
-            print(f"ERROR: {label} bundle missing files: {missing_paths}. Run: python3 scripts/dev.py build")
-            sys.exit(1)
-        newest_source = _source_mtime(source_paths)
-        stale = [bundle for bundle in bundles if newest_source > bundle.stat().st_mtime]
-        if stale:
-            stale_paths = ", ".join(str(path.relative_to(ROOT)) for path in stale)
-            print(f"ERROR: {label} bundle is stale: {stale_paths}. Run: python3 scripts/dev.py build")
-            sys.exit(1)
+    release_bundle_freshness.run_checks(ROOT, full=full)
 
 
 def _build_required_artifacts() -> None:
-    _run_dev_command("contracts-generate")
-    _run_dev_command("build-ui")
-    _verify_bundle_fresh()
+    release_bundle_freshness.build_required_artifacts(ROOT, ADDON_DIR)
 
 
 def _should_include(path: Path) -> bool:
@@ -340,147 +254,20 @@ def _validate_archive(
     target_keys: list[str] | None = None,
     include_ffmpeg: bool = True,
 ) -> None:
-    lock = lock or release_assets.load_lock()
-    with zipfile.ZipFile(archive, "r") as zf:
-        infos = {info.filename: info for info in zf.infolist()}
-        names = set(infos)
-        for required in release_manifest_files(lock, target_keys=target_keys, include_ffmpeg=include_ffmpeg):
-            if required not in names:
-                _validation_error(f"missing required file {required}")
-        for name in sorted(names):
-            if _is_forbidden_archive_name(name):
-                _validation_error(f"unexpected file {name}")
-        _validate_runtime_matrix(zf, infos, lock, target_keys=target_keys, include_ffmpeg=include_ffmpeg)
-        _validate_runtime_support_files(zf, infos, lock, target_keys=target_keys)
-        _validate_shared_runtime_files(zf, infos, lock)
-        _validate_notices(zf, names, include_ffmpeg=include_ffmpeg)
-    _validate_archive_size(archive, allow_large_archive=allow_large_archive)
-
-
-def _validate_runtime_matrix(
-    zf: zipfile.ZipFile,
-    infos: dict[str, zipfile.ZipInfo],
-    lock: dict,
-    *,
-    target_keys: list[str] | None = None,
-    include_ffmpeg: bool = True,
-) -> None:
-    for target in target_keys or release_assets.lock_targets(lock):
-        for tool_name in release_asset_common.bundled_tool_names(
-            release_assets.lock_tools(lock, target),
-            include_ffmpeg=include_ffmpeg,
-        ):
-            entry = lock["targets"][target]["tools"][tool_name]
-            executable = entry["executable"]
-            name = f"bin/{target}/{executable}"
-            if target.startswith("windows-") and not executable.endswith(".exe"):
-                _validation_error(f"{name} must use a .exe filename for Windows")
-            if target.startswith("macos-") and executable.endswith(".exe"):
-                _validation_error(f"{name} must not use a .exe filename for macOS")
-            if target.startswith("macos-") and not _zipinfo_has_executable_bit(infos[name]):
-                _validation_error(f"{name} is missing executable mode bits")
-            expected_sha = entry.get("sha256")
-            if not expected_sha:
-                _validation_error(f"{name} is missing sha256 in release_assets.lock.json")
-            actual_sha = hashlib.sha256(zf.read(name)).hexdigest()
-            if actual_sha != expected_sha:
-                _validation_error(f"{name} checksum mismatch")
-
-
-def _validate_shared_runtime_files(
-    zf: zipfile.ZipFile,
-    infos: dict[str, zipfile.ZipInfo],
-    lock: dict,
-) -> None:
-    for file_name in release_assets.lock_shared_files(lock):
-        entry = lock["shared_files"][file_name]
-        name = f"bin/{entry['path']}"
-        if name not in infos:
-            _validation_error(f"missing required file {name}")
-        expected_sha = entry.get("sha256")
-        if not expected_sha:
-            _validation_error(f"{name} is missing sha256 in release_assets.lock.json")
-        actual_sha = hashlib.sha256(zf.read(name)).hexdigest()
-        if actual_sha != expected_sha:
-            _validation_error(f"{name} checksum mismatch")
-
-
-def _validate_runtime_support_files(
-    zf: zipfile.ZipFile,
-    infos: dict[str, zipfile.ZipInfo],
-    lock: dict,
-    *,
-    target_keys: list[str] | None = None,
-) -> None:
-    for target in target_keys or release_assets.lock_targets(lock):
-        for tool_name in release_assets.lock_tools(lock, target):
-            for file_entry in release_assets.tool_runtime_files(lock, target, tool_name):
-                name = f"bin/{target}/{file_entry['path']}"
-                if name not in infos:
-                    _validation_error(f"missing required file {name}")
-                expected_sha = file_entry.get("sha256")
-                if not expected_sha:
-                    _validation_error(f"{name} is missing sha256 in release_assets.lock.json")
-                actual_sha = hashlib.sha256(zf.read(name)).hexdigest()
-                if actual_sha != expected_sha:
-                    _validation_error(f"{name} checksum mismatch")
-
-
-def _validate_notices(zf: zipfile.ZipFile, names: set[str], *, include_ffmpeg: bool) -> None:
-    notice_name = "bin/THIRD_PARTY_NOTICES.md"
-    if notice_name not in names:
-        _validation_error(f"missing required file {notice_name}")
-    notice_text = zf.read(notice_name).decode("utf-8", errors="replace")
-    required_notices = ["DeepFilterNet", "RNNoise", "DPDFNet", "Sherpa", "Spleeter"]
-    if include_ffmpeg:
-        required_notices[:0] = ["FFmpeg", "LAME"]
-    for required in required_notices:
-        if required not in notice_text:
-            _validation_error(f"{notice_name} is missing {required} notice")
-
-
-def _validate_archive_size(archive: Path, *, allow_large_archive: bool) -> None:
-    size = archive.stat().st_size
-    if size > FAIL_ARCHIVE_BYTES and not allow_large_archive:
-        _validation_error(
-            f"archive is {size} bytes, above the {FAIL_ARCHIVE_BYTES} byte release gate"
-        )
-    if size > WARN_ARCHIVE_BYTES:
-        print(f"WARNING: archive is {size} bytes, above the {WARN_ARCHIVE_BYTES} byte warning gate")
-
-
-def _zipinfo_has_executable_bit(info: zipfile.ZipInfo) -> bool:
-    mode = (info.external_attr >> 16) & 0o777
-    return bool(mode & 0o111)
-
-
-def _is_forbidden_archive_name(name: str) -> bool:
-    parts = Path(name).parts
-    if name == ".DS_Store" or name.endswith(".DS_Store"):
-        return True
-    if "node_modules" in parts or "__pycache__" in parts or "aqe_artifacts" in parts:
-        return True
-    if ".release-assets" in parts or name == "meta.json":
-        return True
-    return name.endswith((".pyc", ".so", ".pyd", ".tar", ".tar.gz", ".zip"))
-
-
-def _validation_error(message: str) -> None:
-    print(f"VALIDATION ERROR: {message}")
-    sys.exit(1)
+    release_validation.validate_archive(
+        archive,
+        allow_large_archive=allow_large_archive,
+        lock=lock,
+        target_keys=target_keys,
+        include_ffmpeg=include_ffmpeg,
+        release_manifest_files=release_manifest_files,
+        warn_archive_bytes=WARN_ARCHIVE_BYTES,
+        fail_archive_bytes=FAIL_ARCHIVE_BYTES,
+    )
 
 
 def _selected_release_targets(value: str, lock: dict) -> tuple[list[str] | None, str]:
-    if value == "all":
-        return None, "all"
-    if value == "current":
-        target = release_assets.current_target_key()
-        return [target], target
-    if value not in release_assets.lock_targets(lock):
-        choices = ", ".join(["all", "current", *release_assets.lock_targets(lock)])
-        print(f"ERROR: unknown release target {value!r}; expected one of {choices}")
-        sys.exit(1)
-    return [value], value
+    return release_validation.selected_release_targets(value, lock)
 
 
 def main() -> None:

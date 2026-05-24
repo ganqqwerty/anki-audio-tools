@@ -37,6 +37,7 @@ EDITOR_SPLIT_MODULES = {
     "editor_region_delete",
     "editor_runtime",
     "editor_session",
+    "editor_special_transforms",
     "editor_settings_actions",
     "editor_status",
     "editor_split_defaults",

@@ -2,14 +2,18 @@ from __future__ import annotations
 
 import math
 import random
-import shutil
 import subprocess
 import sys
 import wave
 from array import array
 from pathlib import Path
 
-from anki_audio_quick_editor.audio_processor import find_deep_filter
+from anki_audio_quick_editor.audio_processor import (
+    find_deep_filter,
+    find_ffmpeg,
+    find_ffprobe,
+)
+from anki_audio_quick_editor.audio_state import AudioProcessingConfig
 from anki_audio_quick_editor.errors import MissingDeepFilterError
 
 FFMPEG_SKIP_REASON = "ffmpeg and ffprobe are required for audio rendering smoke tests"
@@ -55,8 +59,23 @@ def _fake_deep_filter_executable(tmp_path: Path, *, fail: bool = False) -> Path:
     return executable
 
 
-FFMPEG_AVAILABLE = shutil.which("ffmpeg") is not None and shutil.which("ffprobe") is not None
 DEEP_FILTER_AVAILABLE = _deep_filter_available()
+
+
+def _ffmpeg_paths() -> tuple[Path, Path]:
+    ffmpeg_path = find_ffmpeg(AudioProcessingConfig().ffmpeg_path)
+    return ffmpeg_path, find_ffprobe(ffmpeg_path)
+
+
+def _ffmpeg_available() -> bool:
+    try:
+        _ffmpeg_paths()
+    except Exception:
+        return False
+    return True
+
+
+FFMPEG_AVAILABLE = _ffmpeg_available()
 
 def _generate_short_pause_clip(path: Path) -> None:
     _run_ffmpeg(
@@ -161,9 +180,10 @@ def _generate_noisy_speech_like_clip(path: Path) -> None:
 
 
 def _decode_mono_pcm16(path: Path, sample_rate: int = 48_000) -> list[int]:
+    ffmpeg_path, _ = _ffmpeg_paths()
     result = subprocess.run(
         [
-            "ffmpeg",
+            str(ffmpeg_path),
             "-v",
             "error",
             "-i",
@@ -204,8 +224,9 @@ def _db_drop(before: float, after: float) -> float:
 
 
 def _run_ffmpeg(*args: str) -> None:
+    ffmpeg_path, _ = _ffmpeg_paths()
     subprocess.run(
-        ["ffmpeg", "-y", *args],
+        [str(ffmpeg_path), "-y", *args],
         check=True,
         capture_output=True,
         text=True,

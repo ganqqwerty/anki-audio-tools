@@ -1,13 +1,13 @@
 """Audio processing and denoise behavior for the editor bridge."""
+
 from __future__ import annotations
 
 import logging
 import shutil
-from dataclasses import replace
 from pathlib import Path
-from typing import Any, Callable, cast
+from typing import Any, cast
 
-from .audio_formats import DEFAULT_OUTPUT_FORMAT
+from . import editor_special_transforms as _special_transforms
 from .audio_state import AudioEditState, AudioProcessingConfig
 from .diagnostics_runtime import capture_exception, new_operation_id, record_breadcrumb
 from .editor_actions import (
@@ -16,46 +16,34 @@ from .editor_actions import (
     processing_config_for_command,
 )
 from .editor_conversion import convert_async as _convert_async
+from .editor_processing_shared import (
+    cancel_graph_analysis_for_processing as _cancel_graph_analysis_for_processing,
+)
+from .editor_processing_shared import (
+    request_history_availability_after_edit as _request_history_availability_after_edit,
+)
+from .editor_processing_shared import (
+    sync_history_availability as _sync_history_availability,
+)
 from .editor_session import EditorSession, PendingEditorStatus
 from .editor_status import command_status_summary
 from .errors import AudioProcessingError
 from .i18n import t
-from .media_paths import existing_media_file_path
-from .prosody_settings import config_with_graph_settings
 from .sound_refs import replace_sound_reference, select_first_sound_reference
-from .support import (
-    format_denoise_support_log_block,
-    format_spleeter_support_log_block,
-    latest_denoise_support_incident,
-    latest_spleeter_support_incident,
-    record_latest_denoise_support_incident,
-    record_latest_spleeter_support_incident,
-)
 
 logger = logging.getLogger(__name__)
 convert_async = _convert_async
-
-
-def _sync_history_availability(editor: Any, session: EditorSession | None, deps: Any) -> None:
-    if session is None:
-        return
-    deps.eval_history_availability(
-        editor,
-        session.field_index,
-        bool(session.undo_history.entries),
-        bool(session.redo_history.entries),
-    )
-
-
-def _request_history_availability_after_edit(editor: Any, session: EditorSession | None, deps: Any) -> None:
-    if session is None:
-        return
-    deps.request_history_availability_after_edit(
-        editor,
-        session.field_index,
-        bool(session.undo_history.entries),
-        bool(session.redo_history.entries),
-    )
+denoise_standard_async = _special_transforms.denoise_standard_async
+dpdfnet_async = _special_transforms.dpdfnet_async
+log_special_transform_failure = _special_transforms.log_special_transform_failure
+pitch_hum_async = _special_transforms.pitch_hum_async
+record_dpdfnet_failure_context = _special_transforms.record_dpdfnet_failure_context
+record_rnnoise_failure_context = _special_transforms.record_rnnoise_failure_context
+record_spleeter_failure_context = _special_transforms.record_spleeter_failure_context
+replace_current_field_after_noise_removal = _special_transforms.replace_current_field_after_noise_removal
+rnnoise_async = _special_transforms.rnnoise_async
+run_special_audio_transform_async = _special_transforms.run_special_audio_transform_async
+voice_only_async = _special_transforms.voice_only_async
 
 
 def update_state_and_render(editor: Any, command: str | EditorCommandPayload, deps: Any) -> None:
@@ -83,17 +71,6 @@ def update_state_and_render(editor: Any, command: str | EditorCommandPayload, de
         updated_state,
         processing_config_for_command(command, config),
     )
-
-def _cancel_graph_analysis_for_processing(editor: Any, session: EditorSession, deps: Any) -> None:
-    if not (session.analysis_busy or session.analysis_busy_fields):
-        return
-    busy_fields = set(session.analysis_busy_fields)
-    session.analysis_generation += 1
-    session.analysis_generations_by_field.clear()
-    session.analysis_busy_fields.clear()
-    session.analysis_busy = False
-    for field_index in busy_fields:
-        deps.set_busy_for_field(editor, field_index, False)
 
 
 def render_and_replace_async(
@@ -134,10 +111,7 @@ def render_and_replace_async(
                 if config.show_ffmpeg_commands:
                     status_message = f"{status_message}: {rendered}"
                     command_text = rendered
-                deps.main(
-                    editor,
-                    lambda: deps.set_busy(editor, True, status_message, command_text),
-                )
+                deps.main(editor, lambda: deps.set_busy(editor, True, status_message, command_text))
 
             deps.render_audio(
                 source_path,
@@ -147,8 +121,7 @@ def render_and_replace_async(
                 on_command=_show_command,
                 artifact_root=deps.artifact_root(editor),
             )
-            with output_path.open("rb") as file:
-                saved_name = editor.mw.col.media.write_data(desired_name, file.read())
+            saved_name = deps.write_generated_media(editor, desired_name, output_path)
             deps.main(editor, lambda: deps.replace_current_field_after_render(editor, updated_state, saved_name))
             shutil.rmtree(output_path.parent, ignore_errors=True)
         except Exception as exc:
@@ -184,11 +157,7 @@ def replace_current_field_after_render(
     editor.note.fields[field_index] = replace_sound_reference(field_html, selection.selected, saved_name)
     should_redraw_graph = False
     if session:
-        session.undo_history.push(
-            session.state,
-            session.current_filename,
-            status_summary=session.status_summary,
-        )
+        session.undo_history.push(session.state, session.current_filename, status_summary=session.status_summary)
         session.redo_history.clear()
         session.state = updated_state
         session.current_filename = saved_name
@@ -219,6 +188,13 @@ def replace_current_field_after_render(
     deps.request_playback_after_edit(editor, field_index)
 
 
+# noinspection PyInconsistentReturns
+def write_generated_media(editor: Any, desired_name: str, output_path: Path, _deps: Any) -> str:
+    """Persist a rendered media file through Anki's media manager."""
+    with output_path.open("rb") as file:
+        return cast(str, editor.mw.col.media.write_data(desired_name, file.read()))
+
+
 def render_failed(editor: Any, message: str, deps: Any) -> None:
     """Reset editor processing state and report a render failure."""
     session = deps.sessions.get(editor)
@@ -230,345 +206,3 @@ def render_failed(editor: Any, message: str, deps: Any) -> None:
         session.pending_status = None
     deps.set_busy(editor, False)
     deps.eval_status(editor, message, kind="error")
-
-
-def denoise_standard_async(editor: Any, deps: Any) -> None:
-    """Start standard DeepFilter denoise for the current media."""
-    deps.run_special_audio_transform_async(
-        editor,
-        label=t("editor.status.denoising_standard"),
-        failure_log_label="standard denoise failed",
-        renderer=deps.render_noise_reduced_audio,
-        command=EditorCommandPayload(command="aqe:denoise-standard"),
-    )
-
-
-def rnnoise_async(editor: Any, deps: Any) -> None:
-    """Start RNNoise denoise for the current media."""
-    deps.run_special_audio_transform_async(
-        editor,
-        label=t("editor.status.denoising_rnnoise"),
-        failure_log_label="rnnoise denoise failed",
-        renderer=deps.render_rnnoise_audio,
-        support_hint=deps.support_report_hint,
-        failure_context_recorder=deps.record_rnnoise_failure_context,
-        command=EditorCommandPayload(command="aqe:rnnoise"),
-    )
-
-
-def dpdfnet_async(
-    editor: Any,
-    command: EditorCommandPayload | None = None,
-    deps: Any = None,
-) -> None:
-    """Start DPDFNet denoise for the current media."""
-    if deps is None:
-        deps = command
-        command = EditorCommandPayload(command="aqe:dpdfnet")
-    deps.run_special_audio_transform_async(
-        editor,
-        label=t("editor.status.denoising_dpdfnet"),
-        failure_log_label="dpdfnet denoise failed",
-        renderer=deps.render_dpdfnet_audio,
-        support_hint=deps.support_report_hint,
-        failure_context_recorder=deps.record_dpdfnet_failure_context,
-        command=command,
-    )
-
-
-def voice_only_async(editor: Any, deps: Any) -> None:
-    """Start voice-only source separation for the current media."""
-    deps.run_special_audio_transform_async(
-        editor,
-        label=t("editor.status.extracting_voice"),
-        failure_log_label="voice only failed",
-        renderer=deps.render_voice_only_audio,
-        support_hint=deps.support_report_hint,
-        failure_context_recorder=deps.record_spleeter_failure_context,
-        command=EditorCommandPayload(command="aqe:voice-only"),
-    )
-
-
-def pitch_hum_async(
-    editor: Any,
-    command: EditorCommandPayload | None = None,
-    deps: Any = None,
-) -> None:
-    """Start Praat-guided pitch hum resynthesis for the current media."""
-    if deps is None:
-        deps = command
-        command = EditorCommandPayload(command="aqe:pitch-hum")
-    config = AudioProcessingConfig.from_config(deps.config(editor))
-    deps.run_special_audio_transform_async(
-        editor,
-        label=t("editor.status.pitch_hum"),
-        failure_log_label="pitch hum failed",
-        renderer=_pitch_hum_renderer(command, deps, config.pitch_hum_mode),
-        command=command,
-    )
-
-
-def _pitch_hum_renderer(
-    command: EditorCommandPayload | None,
-    deps: Any,
-    default_mode: str,
-) -> Callable[..., Any]:
-    mode = command.overrides.pitch_hum_mode if command is not None else None
-    if (mode or default_mode) == "pitch_tier":
-        return cast(Callable[..., Any], deps.render_pitch_tier_hum_audio)
-    return cast(Callable[..., Any], deps.render_pitch_hum_audio)
-
-
-def run_special_audio_transform_async(
-    editor: Any,
-    *,
-    label: str,
-    failure_log_label: str,
-    renderer: Callable[..., Any],
-    support_hint: str = "",
-    failure_context_recorder: Callable[[Path, AudioProcessingConfig, Exception], None] | None = None,
-    command: EditorCommandPayload | None = None,
-    output_format: object = DEFAULT_OUTPUT_FORMAT,
-    deps: Any,
-) -> None:
-    """Run a denoise transform and replace the current audio on completion."""
-    operation_id = new_operation_id("transform")
-    existing = deps.sessions.get(editor)
-    if existing and existing.processing:
-        deps.eval_status(editor, deps.still_processing_message, kind="processing")
-        return
-    if existing and existing.playback_preparing:
-        deps.stop_session_playback(existing)
-    session, current_path = deps.current_media_path(editor)
-    _cancel_graph_analysis_for_processing(editor, session, deps)
-    config = _special_transform_config(AudioProcessingConfig.from_config(deps.config(editor)), command)
-    deps.stop_session_playback(session)
-    session.post_edit_playback_generation += 1
-    session.next_status_summary = command_status_summary(
-        command or EditorCommandPayload(command=""),
-        config,
-    )
-    session.processing = True
-    session.playback_active = False
-    session.playback_paused = False
-    deps.set_busy(editor, True, f"{label}...")
-    deps.eval_playback_state(editor, session.field_index, "stopped", session.cursor_ms)
-    record_breadcrumb(
-        "editor.special_transform.started",
-        source="editor",
-        operation=f"editor.{failure_log_label}",
-        operation_id=operation_id,
-        context={"label": label, "source_filename": current_path.name},
-        flush=True,
-    )
-
-    def _run() -> None:
-        output_path: Path | None = None
-        try:
-            desired_name = deps.make_output_filename(
-                current_path.name,
-                output_format=output_format,
-            )
-            output_path = deps.temp_final_path(desired_name)
-
-            def _show_command(process_command: tuple[str, ...]) -> None:
-                rendered = deps.format_ffmpeg_command(process_command)
-                status_message = label
-                command_text = ""
-                if config.show_ffmpeg_commands:
-                    status_message = f"{status_message}: {rendered}"
-                    command_text = rendered
-                deps.main(editor, lambda: deps.set_busy(editor, True, status_message, command_text))
-
-            renderer(
-                current_path,
-                config,
-                output_path=output_path,
-                on_command=_show_command,
-            )
-            with output_path.open("rb") as file:
-                saved_name = editor.mw.col.media.write_data(desired_name, file.read())
-            deps.main(editor, lambda: deps.replace_current_field_after_noise_removal(editor, saved_name))
-        except Exception as exc:
-            message = str(exc)
-            rendered_message = message
-            if failure_context_recorder is not None:
-                failure_context_recorder(current_path, config, exc)
-            deps.log_special_transform_failure(failure_log_label, message)
-            capture_exception(
-                f"editor.worker.{failure_log_label}",
-                exc,
-                operation=f"editor.{failure_log_label}",
-                operation_id=operation_id,
-                user_message=message,
-                context={"source_path": str(current_path), "label": label},
-                log=logger,
-            )
-            if support_hint:
-                rendered_message = f"{message} {support_hint}"
-            deps.main(editor, lambda: deps.render_failed(editor, rendered_message))
-        finally:
-            if output_path is not None:
-                shutil.rmtree(output_path.parent, ignore_errors=True)
-
-    deps.threading.Thread(target=_run, daemon=True).start()
-
-
-def _special_transform_config(
-    config: AudioProcessingConfig,
-    command: EditorCommandPayload | None,
-) -> AudioProcessingConfig:
-    if command is None:
-        return config
-    if command.overrides.dpdfnet_attn_limit_db is not None:
-        config = replace(config, dpdfnet_attn_limit_db=command.overrides.dpdfnet_attn_limit_db)
-    if command.command == "aqe:pitch-hum":
-        return config_with_graph_settings(config, command.graph_settings)
-    return config
-
-
-def replace_current_field_after_noise_removal(editor: Any, saved_name: str, deps: Any) -> None:
-    """Replace the current field after a successful denoise transform."""
-    session = deps.sessions.get(editor)
-    field_index = _resolved_field_index(session, editor, deps)
-    field_html = editor.note.fields[field_index]
-    selection = select_first_sound_reference(field_html)
-    if selection.selected is None:
-        raise AudioProcessingError(deps.current_field_audio_missing)
-    deps.dispose_editor_frontend_controls(editor)
-    editor.note.fields[field_index] = replace_sound_reference(field_html, selection.selected, saved_name)
-    should_redraw_graph = _replace_noise_reduction_session_state(editor, session, field_index, saved_name)
-    editor.loadNote(focusTo=field_index)
-    if session:
-        session.pending_status = None
-    _sync_history_availability(editor, session, deps)
-    _request_history_availability_after_edit(editor, session, deps)
-    deps.eval_playback_state(editor, field_index, "stopped", 0)
-    if should_redraw_graph:
-        deps.request_graph_redraw(editor, saved_name)
-    else:
-        deps.set_busy(editor, False)
-    deps.request_playback_after_edit(editor, field_index)
-
-
-def _resolved_field_index(session: EditorSession | None, editor: Any, deps: Any) -> int:
-    if session is not None and session.field_index is not None:
-        return int(session.field_index)
-    return int(deps.current_field_index(editor))
-
-
-def _replace_noise_reduction_session_state(
-    editor: Any,
-    session: EditorSession | None,
-    field_index: int,
-    saved_name: str,
-) -> bool:
-    if session is None:
-        return False
-
-    session.undo_history.push(
-        session.state,
-        session.current_filename,
-        status_summary=session.status_summary,
-    )
-    session.redo_history.clear()
-    session.state = AudioEditState(source_file=saved_name)
-    session.current_filename = saved_name
-    session.field_index = field_index
-    session.status_summary = session.next_status_summary or session.status_summary
-    session.next_status_summary = ""
-    session.pending_status = PendingEditorStatus(field_index, message=session.status_summary)
-    saved_path = existing_media_file_path(Path(editor.mw.col.media.dir()), saved_name)
-    session.source_mtime_ns = saved_path.stat().st_mtime_ns if saved_path is not None else None
-    session.processing = False
-    session.cursor_ms = 0
-    session.playback_active = False
-    session.playback_paused = False
-    should_redraw_graph = field_index in session.graph_active_fields or session.visualized_filename is not None
-    if should_redraw_graph:
-        _reset_session_visualized_graph(session, field_index)
-    return should_redraw_graph
-
-
-def _reset_session_visualized_graph(session: EditorSession, field_index: int) -> None:
-    session.visualized_filename = None
-    session.visualized_duration_ms = None
-    session.visualized_filenames_by_field.pop(field_index, None)
-    session.visualized_durations_by_field.pop(field_index, None)
-
-
-def record_rnnoise_failure_context(
-    source_path: Path,
-    config: AudioProcessingConfig,
-    exc: Exception,
-) -> None:
-    """Record enough RNNoise failure context for the diagnostics report."""
-    record_latest_denoise_support_incident(
-        operation="rnnoise_denoise",
-        media_filename=source_path.name,
-        source_path=str(source_path.resolve()),
-        user_message=str(exc),
-        exception_type=type(exc).__name__,
-        ffmpeg_path=config.ffmpeg_path,
-    )
-
-
-def record_dpdfnet_failure_context(
-    source_path: Path,
-    config: AudioProcessingConfig,
-    exc: Exception,
-) -> None:
-    """Record enough DPDFNet failure context for the diagnostics report."""
-    record_latest_denoise_support_incident(
-        operation="dpdfnet_denoise",
-        media_filename=source_path.name,
-        source_path=str(source_path.resolve()),
-        user_message=str(exc),
-        exception_type=type(exc).__name__,
-        ffmpeg_path=config.ffmpeg_path,
-    )
-
-
-def record_spleeter_failure_context(
-    source_path: Path,
-    config: AudioProcessingConfig,
-    exc: Exception,
-) -> None:
-    """Record enough Sherpa Spleeter failure context for the diagnostics report."""
-    record_latest_spleeter_support_incident(
-        operation="voice_only",
-        media_filename=source_path.name,
-        source_path=str(source_path.resolve()),
-        user_message=str(exc),
-        exception_type=type(exc).__name__,
-        ffmpeg_path=config.ffmpeg_path,
-    )
-
-
-def log_special_transform_failure(failure_log_label: str, message: str) -> None:
-    """Log denoise and source-separation failures with diagnostics when available."""
-    if failure_log_label in {"rnnoise denoise failed", "dpdfnet denoise failed"}:
-        incident = latest_denoise_support_incident()
-        if incident:
-            logger.exception(
-                "%s: %s\n%s",
-                failure_log_label,
-                message,
-                format_denoise_support_log_block(incident),
-            )
-            return
-        logger.exception("%s: %s", failure_log_label, message)
-        return
-    if failure_log_label == "voice only failed":
-        incident = latest_spleeter_support_incident()
-        if incident:
-            logger.exception(
-                "%s: %s\n%s",
-                failure_log_label,
-                message,
-                format_spleeter_support_log_block(incident),
-            )
-            return
-        logger.exception("%s: %s", failure_log_label, message)
-        return
-    logger.exception("%s: %s", failure_log_label, message)

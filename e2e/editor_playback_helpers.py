@@ -156,3 +156,11 @@ def _assert_interval(
 def _playback_segment_start_ms(filename: str) -> int | None:
     match = re.search(r"__from_(\d+)ms_", filename)
     return int(match.group(1)) if match else None
+
+
+def _shift_click_region(editor, ratio: float, ord_: int = 0) -> None:
+    from e2e.editor_region_loop_helpers import (
+        _shift_click_region as _region_shift_click,
+    )
+
+    _region_shift_click(editor, ratio, ord_)

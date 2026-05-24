@@ -171,6 +171,7 @@ def processing_deps(callbacks: Any, frontend_callbacks: Any) -> SimpleNamespace:
         support_report_hint=SUPPORT_REPORT_HINT,
         temp_final_path=temp_final_path,
         threading=threading,
+        write_generated_media=callbacks.write_generated_media,
     )
 
 

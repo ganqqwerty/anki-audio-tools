@@ -10,7 +10,6 @@ from PyQt6.QtWidgets import QApplication
 from e2e.editor_note_helpers import DEFAULT_VISIBLE_EDITOR_BUTTONS
 from e2e.helpers import (
     click_selector,
-    run_js,
     wait_for_condition,
     wait_for_js_condition,
 )

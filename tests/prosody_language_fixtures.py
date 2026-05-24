@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import shutil
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -234,7 +233,18 @@ LANGUAGE_CONTOUR_SPECS: dict[str, ContourSpec] = {
 def require_praat_and_ffmpeg() -> None:
     pytest.importorskip("parselmouth", reason=PRAAT_SKIP_REASON)
     pytest.importorskip("numpy", reason=PRAAT_SKIP_REASON)
-    if shutil.which("ffmpeg") is None or shutil.which("ffprobe") is None:
+    try:
+        from anki_audio_quick_editor.audio_processor import find_ffmpeg, find_ffprobe
+        from anki_audio_quick_editor.audio_state import AudioProcessingConfig
+
+        ffmpeg_path = find_ffmpeg(AudioProcessingConfig().ffmpeg_path)
+        find_ffprobe(ffmpeg_path)
+    except ModuleNotFoundError:
+        import shutil
+
+        if shutil.which("ffmpeg") is None or shutil.which("ffprobe") is None:
+            pytest.skip(FFMPEG_SKIP_REASON)
+    except Exception:
         pytest.skip(FFMPEG_SKIP_REASON)
 
 

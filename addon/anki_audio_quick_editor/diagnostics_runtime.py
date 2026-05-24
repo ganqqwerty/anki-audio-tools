@@ -5,9 +5,7 @@ from __future__ import annotations
 import atexit
 import copy
 import faulthandler
-import json
 import logging
-import os
 import sys
 import threading
 import traceback
@@ -16,8 +14,28 @@ from collections import deque
 from collections.abc import Callable
 from datetime import UTC, datetime
 from pathlib import Path
-from types import TracebackType
 from typing import Any
+
+from .diagnostics_runtime_json import safe_json as _safe_json
+from .diagnostics_runtime_json import source_from_boundary as _source_from_boundary
+from .diagnostics_runtime_storage import (
+    append_event as _append_event,
+)
+from .diagnostics_runtime_storage import (
+    enable_faulthandler as _enable_faulthandler,
+)
+from .diagnostics_runtime_storage import (
+    install_process_hooks as _install_process_hooks,
+)
+from .diagnostics_runtime_storage import (
+    read_dirty_session as _read_dirty_session,
+)
+from .diagnostics_runtime_storage import (
+    resize_breadcrumb_ring as _resize_breadcrumb_ring,
+)
+from .diagnostics_runtime_storage import (
+    write_session_marker as _write_session_marker,
+)
 
 DEFAULT_BREADCRUMB_CAPACITY = 100
 DEBUG_BREADCRUMB_CAPACITY = 2000
@@ -71,9 +89,9 @@ def configure_runtime(addon_dir: str | Path, *, debug_enabled: bool) -> None:
         _STATE.session_marker_path = root / "anki_audio_quick_editor_session.json"
         set_debug_enabled(debug_enabled)
         _STATE.previous_dirty_session = _read_dirty_session(_STATE.session_marker_path)
-        _write_session_marker(clean_exit=False)
-        _enable_faulthandler()
-        _install_process_hooks()
+        _write_session_marker(_STATE, clean_exit=False, utc_now=_utc_now, logger=logger)
+        _enable_faulthandler(_STATE, logger=logger)
+        _install_process_hooks(_STATE, capture_exception=capture_exception, logger=logger)
         if not _STATE.atexit_registered:
             atexit.register(mark_session_clean)
             _STATE.atexit_registered = True
@@ -92,7 +110,7 @@ def set_debug_enabled(enabled: bool) -> None:
     """Update debug-mode breadcrumb behavior."""
     with _STATE.lock:
         _STATE.debug_enabled = bool(enabled)
-        _resize_breadcrumb_ring(DEBUG_BREADCRUMB_CAPACITY if enabled else DEFAULT_BREADCRUMB_CAPACITY)
+        _resize_breadcrumb_ring(_STATE, DEBUG_BREADCRUMB_CAPACITY if enabled else DEFAULT_BREADCRUMB_CAPACITY)
 
 
 def is_debug_enabled() -> bool:
@@ -139,9 +157,9 @@ def record_breadcrumb(
         _STATE.breadcrumbs.append(copy.deepcopy(entry))
         should_flush = flush or level in {"error", "critical", "warning"}
         if _STATE.debug_enabled:
-            _append_event(entry)
+            _append_event(_STATE, entry, event_log_max_bytes=EVENT_LOG_MAX_BYTES, logger=logger)
         if should_flush:
-            _write_session_marker(clean_exit=False)
+            _write_session_marker(_STATE, clean_exit=False, utc_now=_utc_now, logger=logger)
             flush_logging()
     return copy.deepcopy(entry)
 
@@ -279,7 +297,7 @@ def support_report_context() -> dict[str, Any]:
 def mark_session_clean() -> None:
     """Mark the diagnostics session as cleanly closed when possible."""
     with _STATE.lock:
-        _write_session_marker(clean_exit=True)
+        _write_session_marker(_STATE, clean_exit=True, utc_now=_utc_now, logger=logger)
         if _STATE.crash_file_handle is not None:
             try:
                 _STATE.crash_file_handle.flush()
@@ -325,157 +343,3 @@ def reset_for_tests() -> None:
                 pass
         _STATE = _DiagnosticsState()
 
-
-def _install_process_hooks() -> None:
-    if _STATE.hooks_installed:
-        return
-    _STATE.previous_sys_hook = sys.excepthook
-    _STATE.previous_thread_hook = threading.excepthook
-
-    def _sys_hook(
-        exc_type: type[BaseException],
-        exc: BaseException,
-        tb: TracebackType | None,
-    ) -> None:
-        if exc.__traceback__ is None and tb is not None:
-            exc = exc.with_traceback(tb)
-        capture_exception("process.sys_excepthook", exc, operation="process", log=logger)
-        previous = _STATE.previous_sys_hook
-        if previous is not None and previous is not sys.__excepthook__ and previous is not _sys_hook:
-            previous(exc_type, exc, tb)
-
-    def _thread_hook(args: threading.ExceptHookArgs) -> None:
-        exc = args.exc_value
-        if exc is not None:
-            capture_exception(
-                "process.threading_excepthook",
-                exc,
-                operation="process.thread",
-                context={"thread_name": getattr(args.thread, "name", "")},
-                log=logger,
-            )
-        previous = _STATE.previous_thread_hook
-        if previous is not None and previous is not threading.__excepthook__ and previous is not _thread_hook:
-            previous(args)
-
-    sys.excepthook = _sys_hook
-    threading.excepthook = _thread_hook
-    _STATE.hooks_installed = True
-
-
-def _enable_faulthandler() -> None:
-    if _STATE.crash_log_path is None:
-        return
-    try:
-        if _STATE.crash_file_handle is not None:
-            _STATE.crash_file_handle.close()
-        _STATE.crash_file_handle = _STATE.crash_log_path.open("a", encoding="utf-8")
-        faulthandler.enable(file=_STATE.crash_file_handle, all_threads=True)
-    except (OSError, RuntimeError) as exc:
-        logger.warning("could not enable faulthandler diagnostics: %s", exc)
-
-
-def _append_event(entry: dict[str, Any]) -> None:
-    path = _STATE.event_log_path
-    if path is None:
-        return
-    try:
-        if path.exists() and path.stat().st_size > EVENT_LOG_MAX_BYTES:
-            rotated = path.with_suffix(path.suffix + ".1")
-            path.replace(rotated)
-        with path.open("a", encoding="utf-8") as file:
-            file.write(json.dumps(entry, sort_keys=True) + "\n")
-            file.flush()
-    except OSError as exc:
-        logger.warning("could not write diagnostics event log: %s", exc)
-
-
-def _read_dirty_session(path: Path | None) -> dict[str, Any] | None:
-    if path is None or not path.exists():
-        return None
-    try:
-        raw = json.loads(path.read_text(encoding="utf-8"))
-    except (OSError, json.JSONDecodeError):
-        return None
-    if isinstance(raw, dict) and raw.get("clean_exit") is False:
-        safe = _safe_json(raw)
-        return safe if isinstance(safe, dict) else None
-    return None
-
-
-def _write_session_marker(*, clean_exit: bool) -> None:
-    path = _STATE.session_marker_path
-    if path is None:
-        return
-    payload = {
-        "session_id": _STATE.session_id,
-        "pid": os.getpid(),
-        "started_at": _STATE.started_at,
-        "updated_at": _utc_now(),
-        "clean_exit": clean_exit,
-        "last_event_seq": _STATE.seq,
-    }
-    try:
-        tmp = path.with_suffix(path.suffix + ".tmp")
-        tmp.write_text(json.dumps(payload, indent=2, sort_keys=True), encoding="utf-8")
-        tmp.replace(path)
-    except OSError as exc:
-        logger.warning("could not write diagnostics session marker: %s", exc)
-
-
-def _resize_breadcrumb_ring(capacity: int) -> None:
-    if _STATE.breadcrumbs.maxlen == capacity:
-        return
-    _STATE.breadcrumbs = deque(list(_STATE.breadcrumbs)[-capacity:], maxlen=capacity)
-
-
-def _safe_json(value: Any, *, depth: int = 0) -> Any:
-    if _is_json_scalar(value):
-        return _truncate_string(value) if isinstance(value, str) else value
-    if isinstance(value, Path):
-        return str(value)
-    if isinstance(value, BaseException):
-        return {"type": type(value).__name__, "message": str(value)}
-    if depth >= 4:
-        return _fallback_label(value)
-    if isinstance(value, dict):
-        return _safe_json_mapping(value, depth=depth)
-    if isinstance(value, (list, tuple, set)):
-        return _safe_json_sequence(value, depth=depth)
-    return _fallback_label(value)
-
-
-def _is_json_scalar(value: Any) -> bool:
-    return value is None or isinstance(value, bool | int | float | str)
-
-
-def _safe_json_mapping(value: dict[Any, Any], *, depth: int) -> dict[str, Any]:
-    result: dict[str, Any] = {}
-    for index, (key, item) in enumerate(value.items()):
-        if index >= 50:
-            result["..."] = "truncated"
-            break
-        result[str(key)] = _safe_json(item, depth=depth + 1)
-    return result
-
-
-def _safe_json_sequence(value: list[Any] | tuple[Any, ...] | set[Any], *, depth: int) -> list[Any]:
-    items = list(value)
-    rendered = [_safe_json(item, depth=depth + 1) for item in items[:50]]
-    if len(items) > 50:
-        rendered.append("truncated")
-    return rendered
-
-
-def _truncate_string(value: str, limit: int = 4000) -> str:
-    if len(value) <= limit:
-        return value
-    return f"{value[:limit]}... [truncated {len(value) - limit} chars]"
-
-
-def _fallback_label(value: Any) -> str:
-    return f"[{type(value).__name__}]"
-
-
-def _source_from_boundary(boundary: str) -> str:
-    return boundary.split(".", 1)[0] if boundary else "diagnostics"

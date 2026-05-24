@@ -2,13 +2,13 @@
 
 from __future__ import annotations
 
-import shutil
 import subprocess
 from pathlib import Path
 from types import SimpleNamespace
 
 import pytest
 
+from anki_audio_quick_editor.audio_processor import find_ffmpeg, find_ffprobe
 from anki_audio_quick_editor.audio_state import AudioProcessingConfig
 from anki_audio_quick_editor.prosody_fallback import (
     _decode_pcm,
@@ -16,8 +16,23 @@ from anki_audio_quick_editor.prosody_fallback import (
 )
 from anki_audio_quick_editor.prosody_settings import resolve_analysis_options
 
-FFMPEG_AVAILABLE = shutil.which("ffmpeg") is not None and shutil.which("ffprobe") is not None
 FFMPEG_SKIP_REASON = "ffmpeg and ffprobe are required for fallback prosody tests"
+
+
+def _ffmpeg_paths() -> tuple[Path, Path]:
+    ffmpeg_path = find_ffmpeg(AudioProcessingConfig().ffmpeg_path)
+    return ffmpeg_path, find_ffprobe(ffmpeg_path)
+
+
+def _ffmpeg_available() -> bool:
+    try:
+        _ffmpeg_paths()
+    except Exception:
+        return False
+    return True
+
+
+FFMPEG_AVAILABLE = _ffmpeg_available()
 
 
 def test_decode_pcm_forwards_window_visibility_kwargs(monkeypatch, tmp_path: Path) -> None:
@@ -218,9 +233,9 @@ def _generate_tone_silence_tone(path: Path) -> None:
 
 
 def _run_ffmpeg(*args: str) -> None:
-    assert shutil.which("ffmpeg") is not None
+    ffmpeg_path, _ = _ffmpeg_paths()
     subprocess.run(
-        ["ffmpeg", "-y", *args],
+        [str(ffmpeg_path), "-y", *args],
         check=True,
         capture_output=True,
         text=True,

@@ -7,6 +7,7 @@ from types import SimpleNamespace
 import pytest
 
 from anki_audio_quick_editor.audio_processor import (
+    find_ffmpeg,
     probe_duration_ms,
     render_converted_audio,
 )
@@ -89,10 +90,11 @@ def test_render_converted_audio_smoke_for_supported_formats(
 ) -> None:
     source = tmp_path / "source.wav"
     output = tmp_path / f"converted.{target_format}"
+    ffmpeg_path = find_ffmpeg(AudioProcessingConfig().ffmpeg_path)
 
     subprocess.run(
         [
-            "ffmpeg",
+            str(ffmpeg_path),
             "-y",
             "-f",
             "lavfi",

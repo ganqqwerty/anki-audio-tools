@@ -14,14 +14,16 @@ import pytest
 from anki_audio_quick_editor.audio_pitch_hum import (
     HUM_SAMPLE_RATE,
     PitchHumFrame,
-    _apply_nasal_onsets,
     _synthesize_pitch_hum_pcm,
     _synthesize_pitch_tier_pcm,
-    _voiced_segments,
     render_pitch_hum_audio,
     render_pitch_tier_hum_audio,
 )
 from anki_audio_quick_editor.audio_pitch_hum_frames import sanitize_pitch_hum_frames
+from anki_audio_quick_editor.audio_pitch_hum_synthesis import (
+    _apply_nasal_onsets,
+    _voiced_segments,
+)
 from anki_audio_quick_editor.audio_state import AudioProcessingConfig
 from anki_audio_quick_editor.audio_types import AudioProcessingResult
 from anki_audio_quick_editor.errors import AudioProcessingError

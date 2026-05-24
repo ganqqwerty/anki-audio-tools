@@ -6,7 +6,7 @@ import subprocess  # nosec B404
 from typing import Any
 
 
-def build_deep_filter_health(config: dict[str, Any]) -> dict[str, Any]:
+def build_deep_filter_health(_config: dict[str, Any]) -> dict[str, Any]:
     """Return DeepFilterNet executable availability and version details."""
     from .audio_processor import (
         _external_command_run_kwargs,

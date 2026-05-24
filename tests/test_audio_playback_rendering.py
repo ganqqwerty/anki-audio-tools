@@ -8,6 +8,7 @@ from types import SimpleNamespace
 import pytest
 
 from anki_audio_quick_editor.audio_processor import (
+    find_ffmpeg,
     format_ffmpeg_command,
     make_playback_segment_filename,
     probe_duration_ms,
@@ -266,10 +267,11 @@ def test_render_playback_segment_uses_exact_end_of_audio_message(monkeypatch, tm
 def test_render_playback_segment_from_70_percent_is_shorter(tmp_path: Path) -> None:
     source = tmp_path / "cursor source.wav"
     output = tmp_path / "cursor segment.mp3"
+    ffmpeg_path = find_ffmpeg(AudioProcessingConfig().ffmpeg_path)
 
     subprocess.run(
         [
-            "ffmpeg",
+            str(ffmpeg_path),
             "-y",
             "-f",
             "lavfi",

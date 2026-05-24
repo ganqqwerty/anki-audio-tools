@@ -35,6 +35,7 @@ from .audio_processor import (
     temp_final_path,
 )
 from .audio_state import AudioEditState, AudioProcessingConfig
+from .batch_operations_helpers import render_batch_denoise, skipped_batch_note
 from .diagnostics_runtime import capture_exception, new_operation_id, record_breadcrumb
 from .errors import AudioQuickEditorError
 from .media_paths import existing_media_file_path
@@ -50,6 +51,12 @@ from .sound_refs import (
 MediaWriter = Callable[[str, bytes], str]
 NowProvider = Callable[[], datetime]
 logger = logging.getLogger(__name__)
+BATCH_DENOISE_RENDERERS = {
+    "standard": render_noise_reduced_audio,
+    "rnnoise": render_rnnoise_audio,
+    "dpdfnet": render_dpdfnet_audio,
+    "voice_only": render_voice_only_audio,
+}
 
 
 @dataclass(frozen=True)
@@ -182,16 +189,16 @@ def process_note_batch_operation(
         },
     )
     if request.source_field not in note.fields:
-        return _skipped(note, f"missing source field {request.source_field!r}")
+        return skipped_batch_note(note.note_id, f"missing source field {request.source_field!r}")
 
     source_html = note.fields[request.source_field]
     try:
         selection = select_first_sound_reference(source_html)
     except AudioQuickEditorError as exc:
-        return _skipped(note, str(exc))
+        return skipped_batch_note(note.note_id, str(exc))
     if selection.selected is None:
-        return _skipped(
-            note,
+        return skipped_batch_note(
+            note.note_id,
             f"source field {request.source_field!r} has no supported sound reference",
         )
 
@@ -200,7 +207,7 @@ def process_note_batch_operation(
         target_field = request.target_field
         assert target_field is not None
         if target_field not in note.fields:
-            return _skipped(note, f"missing target field {target_field!r}")
+            return skipped_batch_note(note.note_id, f"missing target field {target_field!r}")
     source_path = existing_media_file_path(media_dir, audio_filename)
     if source_path is None:
         return BatchNoteResult(
@@ -335,7 +342,7 @@ def _process_transform_operation(
             desired_name = make_output_filename(audio_filename)
             output_path = temp_final_path(desired_name)
             if request.operation == OP_DENOISE:
-                _render_batch_denoise(source_path, effective_config, output_path)
+                render_batch_denoise(source_path, effective_config, output_path)
             else:
                 updated_state = apply_audio_operation(
                     request.operation,
@@ -385,25 +392,3 @@ def _process_transform_operation(
         audio_filename=audio_filename,
         written_filename=saved_name,
     )
-
-
-def _render_batch_denoise(
-    source_path: Path,
-    config: AudioProcessingConfig,
-    output_path: Path,
-) -> None:
-    renderers = {
-        "standard": render_noise_reduced_audio,
-        "rnnoise": render_rnnoise_audio,
-        "dpdfnet": render_dpdfnet_audio,
-        "voice_only": render_voice_only_audio,
-    }
-    renderers.get(config.denoise_algorithm, render_noise_reduced_audio)(
-        source_path,
-        config,
-        output_path=output_path,
-    )
-
-
-def _skipped(note: BatchNoteSnapshot, message: str) -> BatchNoteResult:
-    return BatchNoteResult(note_id=note.note_id, status="skipped", message=message)

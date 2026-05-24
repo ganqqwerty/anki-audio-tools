@@ -34,19 +34,19 @@ BROAD_EXCEPTION_ALLOWLIST: tuple[BroadExceptionAllowance, ...] = (
         "External DeepFilterNet rendering boundary records support context before surfacing an add-on error.",
     ),
     BroadExceptionAllowance(
-        "audio_noise_reduction",
+        "audio_noise_reduction_bundled",
         "render_rnnoise_audio",
         1,
         "External RNNoise runtime boundary records support context before surfacing an add-on error.",
     ),
     BroadExceptionAllowance(
-        "audio_noise_reduction",
+        "audio_noise_reduction_bundled",
         "render_dpdfnet_audio",
         1,
         "External DPDFNet runtime boundary records support context before surfacing an add-on error.",
     ),
     BroadExceptionAllowance(
-        "audio_noise_reduction",
+        "audio_noise_reduction_bundled",
         "render_voice_only_audio",
         1,
         "External Sherpa Spleeter boundary records model and command context before surfacing an add-on error.",
@@ -136,7 +136,7 @@ BROAD_EXCEPTION_ALLOWLIST: tuple[BroadExceptionAllowance, ...] = (
         "Background render worker boundary reports failed audio generation on the main thread.",
     ),
     BroadExceptionAllowance(
-        "editor_processing",
+        "editor_special_transforms",
         "run_special_audio_transform_async._run",
         1,
         "Background special-transform worker boundary records support context and reports failure.",

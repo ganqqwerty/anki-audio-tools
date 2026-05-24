@@ -31,7 +31,14 @@ CORE_CONTRACTS: dict[str, ModuleContract] = {
     "diagnostics_runtime": contract(
         "diagnostics_runtime",
         layer=Layer.IMPORT_SAFE_CORE,
+        allowed_addon_deps=("diagnostics_runtime_json", "diagnostics_runtime_storage"),
         notes="Runtime support diagnostics, breadcrumbs, exception hooks, and crash/session files.",
+    ),
+    "diagnostics_runtime_json": contract("diagnostics_runtime_json", layer=Layer.IMPORT_SAFE_CORE),
+    "diagnostics_runtime_storage": contract(
+        "diagnostics_runtime_storage",
+        layer=Layer.IMPORT_SAFE_CORE,
+        allowed_addon_deps=("diagnostics_runtime_json",),
     ),
     "dpdfnet_settings": contract("dpdfnet_settings", layer=Layer.IMPORT_SAFE_CORE),
     "errors": contract("errors", layer=Layer.IMPORT_SAFE_CORE),
@@ -111,7 +118,8 @@ CORE_CONTRACTS: dict[str, ModuleContract] = {
         layer=Layer.IMPORT_SAFE_CORE,
         allowed_addon_deps=("errors",),
     ),
-    "support": contract("support", layer=Layer.IMPORT_SAFE_CORE, allowed_addon_deps=("i18n",)),
+    "support": contract("support", layer=Layer.IMPORT_SAFE_CORE, allowed_addon_deps=("i18n", "support_reporting")),
+    "support_reporting": contract("support_reporting", layer=Layer.IMPORT_SAFE_CORE),
     "webview_bridge": contract("webview_bridge", layer=Layer.IMPORT_SAFE_CORE),
     "webview_shell": contract("webview_shell", layer=Layer.IMPORT_SAFE_CORE),
 }
