@@ -56,26 +56,25 @@ def test_visualizer_renders_pitch_intensity_labels_and_cursor(anki_mw, ffmpeg_co
         assert track["graphButtonLabel"] == "Redraw"
         assert any(label.endswith("ms") for label in track["xAxisLabels"])
 
-        flag_geometry = wait_for_js_condition(
+        cursor_overlay = wait_for_js_condition(
             editor.web,
             """
             (() => {
-              const svg = document.querySelector('.aqe-visualizer-svg');
-              const notch = document.querySelector('.aqe-cursor-flag-notch');
-              if (!svg || !notch) return null;
-              const svgRect = svg.getBoundingClientRect();
-              const notchRect = notch.getBoundingClientRect();
-              const scale = Math.min(svgRect.width / 620, svgRect.height / 150) || 1;
+              const cursor = document.querySelector('.aqe-css-cursor');
+              const flag = document.querySelector('.aqe-css-cursor-flag-box');
+              if (!cursor || !flag) return null;
               return {
-                notchBottom: notchRect.bottom,
-                plotTop: svgRect.top + 10 * scale,
+                cursorVisible: getComputedStyle(cursor).display !== 'none',
+                hasNotch: Boolean(document.querySelector('.aqe-css-cursor-flag-notch')),
+                hasPitchMarker: Boolean(document.querySelector('.aqe-css-cursor-pitch-marker')),
               };
             })()
             """,
-            lambda value: value is not None and abs(value["notchBottom"] - value["plotTop"]) <= 2,
+            lambda value: value is not None and value["cursorVisible"] is True,
             timeout=5.0,
         )
-        assert abs(flag_geometry["notchBottom"] - flag_geometry["plotTop"]) <= 2
+        assert cursor_overlay["hasNotch"] is False
+        assert cursor_overlay["hasPitchMarker"] is False
     finally:
         editor.set_note(None)
         parent.close()

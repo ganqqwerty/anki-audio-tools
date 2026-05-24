@@ -48,7 +48,7 @@ describe("editor inline action progress clocks", () => {
     expect(flag.querySelector(".aqe-cursor-flag-current")?.textContent).toBe("700 ms");
     expect(flag.querySelector(".aqe-cursor-flag-pitch")?.textContent).toBe(" / 196 Hz");
     const state = window.__aqeGraphStateForTest?.(0);
-    expect(state).toMatchObject({ pitchMarkerVisible: true, progressMs: 700 });
+    expect(state).toMatchObject({ pitchMarkerVisible: false, progressMs: 700 });
     expect(state?.pitchMarkerX).toBeCloseTo(xForMs(700, 1000));
     expect(state?.pitchMarkerY).toBeCloseTo(yForPitch(196, 100, 300));
   });

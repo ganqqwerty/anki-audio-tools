@@ -290,6 +290,11 @@ export type VisualizerElement = HTMLElement & {
 
 interface CursorRenderCache {
   cursor: SVGLineElement | null;
+  cssCursor: HTMLElement | null;
+  cssFlag: HTMLElement | null;
+  cssFlagCurrent: HTMLElement | null;
+  cssFlagPitch: HTMLElement | null;
+  cssLine: HTMLElement | null;
   flag: SVGGElement | null;
   flagCurrent: SVGTextElement | null;
   flagNotch: SVGPathElement | null;

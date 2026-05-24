@@ -21,7 +21,6 @@ const CURSOR_FLAG_BOX_HEIGHT = 20;
 const CURSOR_FLAG_NOTCH_HEIGHT = 6;
 const CURSOR_FLAG_Y = PLOT.top - CURSOR_FLAG_BOX_HEIGHT - CURSOR_FLAG_NOTCH_HEIGHT;
 const CURSOR_FLAG_NOTCH_MAX_OFFSET = CURSOR_FLAG_HALF_WIDTH;
-const PLAYBACK_CURSOR_PAINT_INTERVAL_MS = 1000 / 60;
 const PLAYBACK_TEXT_PAINT_INTERVAL_MS = 100;
 
 export function renderGraphRequested(visualizer: VisualizerElement): void {
@@ -150,16 +149,33 @@ export function renderPlaybackCursor(
   durationMs: number,
   nowMs: number,
 ): void {
-  const lastCursorPaintedAtMs = visualizer.__aqeCursorPaintedAtMs;
   const lastTextPaintedAtMs = visualizer.__aqeCursorTextPaintedAtMs;
-  const geometry = lastCursorPaintedAtMs === undefined
-    || nowMs - lastCursorPaintedAtMs >= PLAYBACK_CURSOR_PAINT_INTERVAL_MS;
   const text = lastTextPaintedAtMs === undefined
     || nowMs - lastTextPaintedAtMs >= PLAYBACK_TEXT_PAINT_INTERVAL_MS;
-  if (!geometry && !text) return;
-  renderCursorProjection(visualizer, ms, durationMs, { geometry, text });
-  if (geometry) visualizer.__aqeCursorPaintedAtMs = nowMs;
+  if (!text) return;
+  renderCursorProjection(visualizer, ms, durationMs, { geometry: false, text });
   if (text) visualizer.__aqeCursorTextPaintedAtMs = nowMs;
+}
+
+export function startPlaybackCursorTransition(
+  visualizer: VisualizerElement,
+  startMs: number,
+  endMs: number,
+): void {
+  const durationMs = Number(visualizer.dataset.durationMs || "0");
+  const nodes = cursorRenderCache(visualizer);
+  if (!nodes.cssCursor || !durationMs || endMs <= startMs) return;
+  renderCursorProjection(visualizer, startMs, durationMs, { geometry: true, text: true });
+  const endX = cssXForViewBoxX(visualizer, xForMs(endMs, durationMs));
+  nodes.cssCursor.style.transition = "none";
+  void nodes.cssCursor.offsetWidth;
+  nodes.cssCursor.style.transition = `transform ${Math.max(0, endMs - startMs).toFixed(0)}ms linear`;
+  nodes.cssCursor.style.transform = `translate3d(${endX.toFixed(2)}px, 0, 0)`;
+}
+
+export function stopPlaybackCursorTransition(visualizer: VisualizerElement): void {
+  const cursor = cursorRenderCache(visualizer).cssCursor;
+  if (cursor) cursor.style.transition = "none";
 }
 
 function renderCursorProjection(
@@ -170,11 +186,10 @@ function renderCursorProjection(
 ): void {
   const nodes = cursorRenderCache(visualizer);
   const x = xForMs(ms, durationMs);
-  if (options.geometry && nodes.cursor) {
-    nodes.cursor.setAttribute("x1", x.toFixed(2));
-    nodes.cursor.setAttribute("x2", x.toFixed(2));
+  if (options.geometry) {
+    renderCssCursorGeometry(visualizer, nodes, x);
+    renderLegacySvgCursorGeometry(nodes, x, durationMs);
   }
-  if (options.geometry) renderCursorPitchMarkerX(nodes, x);
   if (options.text) {
     const currentText = formatTime(ms, durationMs);
     const track = visualizer.__aqeTrack;
@@ -182,22 +197,10 @@ function renderCursorProjection(
     const pitchText = formatPitchHz(pitchHz);
     renderCursorPitchMarker(nodes, visualizer, x, pitchHz);
     if (nodes.label) nodes.label.textContent = `${currentText} / ${pitchText}`;
+    if (nodes.cssFlagCurrent) nodes.cssFlagCurrent.textContent = currentText;
+    if (nodes.cssFlagPitch) nodes.cssFlagPitch.textContent = ` / ${pitchText}`;
     if (nodes.flagCurrent) nodes.flagCurrent.textContent = currentText;
     if (nodes.flagPitch) nodes.flagPitch.textContent = ` / ${pitchText}`;
-  }
-  if (!nodes.flag) return;
-  if (durationMs <= 0 && options.geometry) {
-    nodes.flag.setAttribute("visibility", "hidden");
-    return;
-  }
-  const flagX = clampedCursorFlagX(x);
-  if (options.geometry) {
-    nodes.flag.setAttribute("visibility", "visible");
-    nodes.flag.setAttribute("transform", `translate(${flagX.toFixed(2)} ${CURSOR_FLAG_Y})`);
-    nodes.flagNotch?.setAttribute(
-      "transform",
-      `translate(${cursorFlagNotchOffset(x, flagX).toFixed(2)} 0)`,
-    );
   }
 }
 
@@ -210,19 +213,12 @@ export function resetVisualizerPlot(visualizer: VisualizerElement): void {
 
 export function resetCursorProjection(visualizer: VisualizerElement): void {
   const nodes = cursorRenderCache(visualizer);
-  if (nodes.cursor) {
-    nodes.cursor.setAttribute("x1", String(PLOT.left));
-    nodes.cursor.setAttribute("x2", String(PLOT.left));
-  }
+  stopPlaybackCursorTransition(visualizer);
+  renderCssCursorGeometry(visualizer, nodes, PLOT.left);
   hideCursorPitchMarker(nodes);
   if (nodes.label) nodes.label.textContent = "0 ms / -- Hz";
-  if (nodes.flag) {
-    nodes.flag.setAttribute("visibility", "hidden");
-    nodes.flag.setAttribute("transform", `translate(${PLOT.left + CURSOR_FLAG_HALF_WIDTH} ${CURSOR_FLAG_Y})`);
-    if (nodes.flagCurrent) nodes.flagCurrent.textContent = "0 ms";
-    if (nodes.flagPitch) nodes.flagPitch.textContent = " / -- Hz";
-    nodes.flagNotch?.removeAttribute("transform");
-  }
+  if (nodes.cssFlagCurrent) nodes.cssFlagCurrent.textContent = "0 ms";
+  if (nodes.cssFlagPitch) nodes.cssFlagPitch.textContent = " / -- Hz";
   delete visualizer.__aqeCursorPaintedAtMs;
   delete visualizer.__aqeCursorTextPaintedAtMs;
 }
@@ -326,8 +322,14 @@ function cursorRenderCache(visualizer: VisualizerElement): CursorRenderCache {
   const cached = visualizer.__aqeCursorRenderCache;
   if (cached) return cached;
   const flag = visualizer.querySelector<SVGGElement>(".aqe-cursor-flag");
+  const cssFlag = visualizer.querySelector<HTMLElement>(".aqe-css-cursor-flag");
   const cache: CursorRenderCache = {
     cursor: visualizer.querySelector<SVGLineElement>(".aqe-cursor"),
+    cssCursor: visualizer.querySelector<HTMLElement>(".aqe-css-cursor"),
+    cssFlag,
+    cssFlagCurrent: cssFlag?.querySelector<HTMLElement>(".aqe-css-cursor-flag-current") ?? null,
+    cssFlagPitch: cssFlag?.querySelector<HTMLElement>(".aqe-css-cursor-flag-pitch") ?? null,
+    cssLine: visualizer.querySelector<HTMLElement>(".aqe-css-cursor-line"),
     flag,
     flagCurrent: flag?.querySelector<SVGTextElement>(".aqe-cursor-flag-current") ?? null,
     flagNotch: flag?.querySelector<SVGPathElement>(".aqe-cursor-flag-notch") ?? null,
@@ -339,35 +341,68 @@ function cursorRenderCache(visualizer: VisualizerElement): CursorRenderCache {
   return cache;
 }
 
+function renderCssCursorGeometry(visualizer: VisualizerElement, nodes: CursorRenderCache, cursorX: number): void {
+  const scale = cssScaleFor(visualizer);
+  const cursor = nodes.cssCursor;
+  if (!cursor) return;
+  cursor.style.display = "block";
+  cursor.style.transition = "none";
+  cursor.style.transform = `translate3d(${cssXForViewBoxX(visualizer, cursorX).toFixed(2)}px, 0, 0)`;
+  if (nodes.cssLine) {
+    nodes.cssLine.style.top = `${(PLOT.top * scale).toFixed(2)}px`;
+    nodes.cssLine.style.height = `${((PLOT.height - PLOT.top - PLOT.bottom) * scale).toFixed(2)}px`;
+  }
+  if (nodes.cssFlag) {
+    const flagX = clampedCursorFlagX(cursorX);
+    const flagOffsetPx = (flagX - cursorX) * scale - CURSOR_FLAG_HALF_WIDTH;
+    nodes.cssFlag.style.top = `${(PLOT.top * scale - CURSOR_FLAG_BOX_HEIGHT).toFixed(2)}px`;
+    nodes.cssFlag.style.transform = `translateX(${flagOffsetPx.toFixed(2)}px)`;
+  }
+}
+
+function renderLegacySvgCursorGeometry(nodes: CursorRenderCache, cursorX: number, durationMs: number): void {
+  if (nodes.cursor) {
+    nodes.cursor.setAttribute("x1", cursorX.toFixed(2));
+    nodes.cursor.setAttribute("x2", cursorX.toFixed(2));
+  }
+  if (!nodes.flag) return;
+  if (durationMs <= 0) {
+    nodes.flag.setAttribute("visibility", "hidden");
+    return;
+  }
+  const flagX = clampedCursorFlagX(cursorX);
+  nodes.flag.setAttribute("visibility", "visible");
+  nodes.flag.setAttribute("transform", `translate(${flagX.toFixed(2)} ${CURSOR_FLAG_Y})`);
+  nodes.flagNotch?.setAttribute(
+    "transform",
+    `translate(${cursorFlagNotchOffset(cursorX, flagX).toFixed(2)} 0)`,
+  );
+}
+
 function renderCursorPitchMarker(
   nodes: CursorRenderCache,
   visualizer: VisualizerElement,
   x: number,
   pitchHz: number | null,
 ): void {
-  const marker = nodes.marker;
   const track = visualizer.__aqeTrack;
-  if (!marker || pitchHz === null || !track || Number(visualizer.dataset.durationMs || "0") <= 0) {
+  if (pitchHz === null || !track || Number(visualizer.dataset.durationMs || "0") <= 0) {
     hideCursorPitchMarker(nodes);
     return;
   }
-  marker.setAttribute("visibility", "visible");
-  marker.setAttribute("cx", x.toFixed(2));
-  marker.setAttribute("cy", yForPitch(pitchHz, track.pitchMinHz, track.pitchMaxHz).toFixed(2));
-}
-
-function renderCursorPitchMarkerX(nodes: CursorRenderCache, x: number): void {
-  const marker = nodes.marker;
-  if (!marker || marker.getAttribute("visibility") === "hidden") return;
-  marker.setAttribute("cx", x.toFixed(2));
+  if (nodes.marker) {
+    nodes.marker.setAttribute("visibility", "visible");
+    nodes.marker.setAttribute("cx", x.toFixed(2));
+    nodes.marker.setAttribute("cy", yForPitch(pitchHz, track.pitchMinHz, track.pitchMaxHz).toFixed(2));
+  }
 }
 
 function hideCursorPitchMarker(nodes: CursorRenderCache): void {
-  const marker = nodes.marker;
-  if (!marker) return;
-  marker.setAttribute("visibility", "hidden");
-  marker.setAttribute("cx", String(PLOT.left));
-  marker.setAttribute("cy", String(PLOT.height - PLOT.bottom));
+  if (nodes.marker) {
+    nodes.marker.setAttribute("visibility", "hidden");
+    nodes.marker.setAttribute("cx", String(PLOT.left));
+    nodes.marker.setAttribute("cy", String(PLOT.height - PLOT.bottom));
+  }
 }
 
 function clampedCursorFlagX(cursorX: number): number {
@@ -378,4 +413,20 @@ function clampedCursorFlagX(cursorX: number): number {
 
 function cursorFlagNotchOffset(cursorX: number, flagX: number): number {
   return Math.max(-CURSOR_FLAG_NOTCH_MAX_OFFSET, Math.min(cursorX - flagX, CURSOR_FLAG_NOTCH_MAX_OFFSET));
+}
+
+function cssXForViewBoxX(visualizer: VisualizerElement, x: number): number {
+  return x * cssScaleFor(visualizer);
+}
+
+function cssScaleFor(visualizer: VisualizerElement): number {
+  const cached = Number(visualizer.dataset.cssCursorScale || "0");
+  if (cached > 0) return cached;
+  const svg = visualizer.querySelector<SVGSVGElement>(".aqe-visualizer-svg");
+  const rect = svg?.getBoundingClientRect();
+  const rectWidth = Number(rect?.width) || PLOT.width;
+  const rectHeight = Number(rect?.height) || PLOT.height;
+  const scale = Math.min(rectWidth / PLOT.width, rectHeight / PLOT.height) || 1;
+  visualizer.dataset.cssCursorScale = String(scale);
+  return scale;
 }

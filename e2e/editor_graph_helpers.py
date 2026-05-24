@@ -25,9 +25,9 @@ def _visualizer_js(ord_: int = 0) -> str:
       const toolbarDeleteRest = visualizer.querySelector('.aqe-delete-rest-button');
       const status = document.querySelector(`[data-testid="aqe-status-${ord}"]`);
       const labels = Array.from(visualizer.querySelectorAll('.aqe-hz-label')).map((node) => node.textContent);
-      const flag = visualizer.querySelector('.aqe-cursor-flag');
-      const flagCurrent = visualizer.querySelector('.aqe-cursor-flag-current');
-      const flagPitch = visualizer.querySelector('.aqe-cursor-flag-pitch');
+      const flag = visualizer.querySelector('.aqe-css-cursor');
+      const flagCurrent = visualizer.querySelector('.aqe-css-cursor-flag-current');
+      const flagPitch = visualizer.querySelector('.aqe-css-cursor-flag-pitch');
       return {
         active: visualizer.dataset.graphActive === "true",
         busy: visualizer.dataset.graphBusy === "true",
@@ -46,8 +46,8 @@ def _visualizer_js(ord_: int = 0) -> str:
         xAxisLabels: Array.from(visualizer.querySelectorAll('.aqe-x-label')).map((node) => node.textContent),
         labels,
         cursorX: visualizer.querySelector('.aqe-cursor')?.getAttribute('x1') || "",
-        timecodeFlagVisible: flag?.getAttribute('visibility') === 'visible',
-        timecodeFlagTransform: flag?.getAttribute('transform') || "",
+        timecodeFlagVisible: flag?.style.display === 'block',
+        timecodeFlagTransform: flag?.style.transform || "",
         timecodeFlagCurrent: flagCurrent?.textContent || "",
         timecodeFlagPitch: flagPitch?.textContent || "",
         status: status?.textContent || "",

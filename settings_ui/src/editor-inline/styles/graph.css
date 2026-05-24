@@ -9,6 +9,7 @@
 }
 
 .aqe-cursor {
+  display: none;
   filter:
     drop-shadow(0 0 2px var(--aqe-progress-inner-halo))
     drop-shadow(0 0 6px var(--aqe-progress-halo));
@@ -19,6 +20,7 @@
 }
 
 .aqe-cursor-pitch-marker {
+  display: none;
   fill: var(--aqe-progress-surface);
   filter:
     drop-shadow(0 0 1px var(--aqe-progress-inner-halo))
@@ -31,7 +33,61 @@
 }
 
 .aqe-cursor-flag {
+  display: none;
   pointer-events: none;
+}
+
+.aqe-css-cursor {
+  display: none;
+  left: 0;
+  pointer-events: none;
+  position: absolute;
+  top: 0;
+  transform: translate3d(44px, 0, 0);
+  will-change: transform;
+  z-index: 9;
+}
+
+.aqe-css-cursor-line {
+  background: var(--aqe-progress-color);
+  box-shadow:
+    0 0 2px var(--aqe-progress-inner-halo),
+    0 0 6px var(--aqe-progress-halo);
+  opacity: 0.95;
+  position: absolute;
+  width: 1.5px;
+}
+
+.aqe-css-cursor-flag {
+  position: absolute;
+  transform: translateX(-41px);
+}
+
+.aqe-css-cursor-flag-box {
+  background: var(--aqe-progress-surface);
+  border: 1px solid var(--aqe-progress-color);
+  box-shadow:
+    0 0 1px var(--aqe-progress-inner-halo),
+    0 0 3px var(--aqe-progress-halo);
+}
+
+.aqe-css-cursor-flag-box {
+  align-items: center;
+  border-radius: 4px;
+  box-sizing: border-box;
+  color: var(--aqe-progress-color);
+  display: flex;
+  font-size: 10px;
+  font-weight: 700;
+  height: 20px;
+  justify-content: center;
+  white-space: nowrap;
+  width: 82px;
+}
+
+.aqe-css-cursor-flag-pitch {
+  font-weight: 600;
+  opacity: 0.62;
 }
 
 .aqe-cursor-flag-box,

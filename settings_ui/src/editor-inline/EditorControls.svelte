@@ -375,6 +375,15 @@
         </text>
       </g>
         </svg>
+        <div class="aqe-css-cursor" data-testid={`aqe-css-cursor-${target.ord}`} aria-hidden="true">
+          <div class="aqe-css-cursor-line"></div>
+          <div class="aqe-css-cursor-flag">
+            <div class="aqe-css-cursor-flag-box">
+              <span class="aqe-css-cursor-flag-current">0 ms</span>
+              <span class="aqe-css-cursor-flag-pitch"> / -- Hz</span>
+            </div>
+          </div>
+        </div>
         <SelectionToolbar {target} />
       </div>
       <div class="aqe-visualizer-meta">

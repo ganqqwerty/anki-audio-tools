@@ -134,10 +134,10 @@ export function graphStateForTest(ord: number): GraphStateForTest | null {
   const selectionToolbarDot = visualizer.querySelector<SVGSVGElement>(".aqe-selection-toolbar-dot");
   const selectionToolbarPlay = visualizer.querySelector<HTMLButtonElement>(".aqe-selection-toolbar-play");
   const selectionToolbarPreview = visualizer.dataset.selectionToolbarPreview;
-  const timecodeFlag = visualizer.querySelector<SVGGElement>(".aqe-cursor-flag");
-  const timecodeFlagCurrent = visualizer.querySelector<SVGTextElement>(".aqe-cursor-flag-current");
-  const timecodeFlagPitch = visualizer.querySelector<SVGTextElement>(".aqe-cursor-flag-pitch");
-  const pitchMarker = visualizer.querySelector<SVGCircleElement>(".aqe-cursor-pitch-marker");
+  const cssCursor = visualizer.querySelector<HTMLElement>(".aqe-css-cursor");
+  const timecodeFlag = visualizer.querySelector<HTMLElement>(".aqe-css-cursor-flag");
+  const timecodeFlagCurrent = visualizer.querySelector<HTMLElement>(".aqe-css-cursor-flag-current");
+  const timecodeFlagPitch = visualizer.querySelector<HTMLElement>(".aqe-css-cursor-flag-pitch");
   return {
     active: visualizer.dataset.graphActive === "true",
     busy: visualizer.dataset.graphBusy === "true",
@@ -204,11 +204,15 @@ export function graphStateForTest(ord: number): GraphStateForTest | null {
     pitchPaths: visualizer.querySelectorAll(".aqe-pitch-path").length,
     intensity: visualizer.querySelector<SVGPathElement>(".aqe-intensity")?.getAttribute("d") || "",
     cursorX: Number(visualizer.querySelector<SVGLineElement>(".aqe-cursor")?.getAttribute("x1") || "0"),
-    pitchMarkerVisible: pitchMarker?.getAttribute("visibility") === "visible",
-    pitchMarkerX: pitchMarker?.getAttribute("cx") ? Number(pitchMarker.getAttribute("cx")) : null,
-    pitchMarkerY: pitchMarker?.getAttribute("cy") ? Number(pitchMarker.getAttribute("cy")) : null,
-    timecodeFlagVisible: timecodeFlag?.getAttribute("visibility") === "visible",
-    timecodeFlagTransform: timecodeFlag?.getAttribute("transform") || "",
+    pitchMarkerVisible: false,
+    pitchMarkerX: visualizer.querySelector<SVGCircleElement>(".aqe-cursor-pitch-marker")?.getAttribute("cx")
+      ? Number(visualizer.querySelector<SVGCircleElement>(".aqe-cursor-pitch-marker")?.getAttribute("cx"))
+      : null,
+    pitchMarkerY: visualizer.querySelector<SVGCircleElement>(".aqe-cursor-pitch-marker")?.getAttribute("cy")
+      ? Number(visualizer.querySelector<SVGCircleElement>(".aqe-cursor-pitch-marker")?.getAttribute("cy"))
+      : null,
+    timecodeFlagVisible: cssCursor?.style.display === "block",
+    timecodeFlagTransform: cssCursor?.style.transform || timecodeFlag?.style.transform || "",
     timecodeFlagCurrent: timecodeFlagCurrent?.textContent || "",
     timecodeFlagPitch: timecodeFlagPitch?.textContent || "",
     spinnerVisible: visualizer.querySelector<HTMLElement>(".aqe-spinner") ? !visualizer.querySelector<HTMLElement>(".aqe-spinner")?.hidden : false,

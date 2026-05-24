@@ -12,7 +12,11 @@ import {
 } from "./playback-progress-clock.js";
 import type { PlaybackRegion } from "./playback-state.js";
 import type { PlaybackState, VisualizerElement } from "./types.js";
-import { renderPlaybackCursor } from "./visualizer-renderer.js";
+import {
+  renderPlaybackCursor,
+  startPlaybackCursorTransition,
+  stopPlaybackCursorTransition,
+} from "./visualizer-renderer.js";
 
 export interface ProgressClockOptions {
   engine?: "html" | "native" | "";
@@ -403,6 +407,7 @@ function startPlaybackPlan(visualizer: VisualizerElement, startMs: number, endMs
   visualizer.dataset.playStartedAt = String(nowMs);
   visualizer.dataset.playStartMs = String(Math.round(plan.startMs));
   visualizer.dataset.progressMs = String(Math.round(plan.startMs));
+  startPlaybackCursorTransition(visualizer, plan.startMs, plan.endMs);
 }
 
 function liveProgressMs(visualizer: VisualizerElement, nowMs: number = performance.now()): number | null {
@@ -419,6 +424,7 @@ function clearPlaybackPlan(visualizer: VisualizerElement): void {
   delete visualizer.__aqeLiveProgressMs;
   delete visualizer.__aqeCursorPaintedAtMs;
   delete visualizer.__aqeCursorTextPaintedAtMs;
+  stopPlaybackCursorTransition(visualizer);
 }
 
 function invalidatePlaybackFrames(visualizer: VisualizerElement): void {

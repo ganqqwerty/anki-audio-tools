@@ -31,12 +31,14 @@
       height="4"
       patternTransform="rotate(45)"
     >
-      <line x1="0" y1="0" x2="0" y2="4" stroke="currentColor" stroke-width="1" />
+      <line x1="0" y1="0" x2="0" y2="4" stroke="currentColor" stroke-width="1.35" />
     </pattern>
   </defs>
+  <rect x="3" y="3" width="6" height="18" fill="currentColor" fill-opacity="0.2" stroke="none" />
+  <rect x="15" y="3" width="6" height="18" fill="currentColor" fill-opacity="0.2" stroke="none" />
+  <rect x="3" y="3" width="6" height="18" fill={`url(#${patternId})`} stroke="none" />
+  <rect x="15" y="3" width="6" height="18" fill={`url(#${patternId})`} stroke="none" />
   <rect width="18" height="18" x="3" y="3" rx="2" />
   <path d="M9 3v18" />
   <path d="M15 3v18" />
-  <rect x="3" y="3" width="6" height="18" fill={`url(#${patternId})`} stroke="none" />
-  <rect x="15" y="3" width="6" height="18" fill={`url(#${patternId})`} stroke="none" />
 </svg>

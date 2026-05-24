@@ -1,7 +1,12 @@
 import { describe, expect, it, vi } from "vitest";
 
 import { PLOT, xForMs, yForPitch } from "../src/editor-inline/plot.js";
-import { renderCursor, renderPlaybackCursor, resetCursorProjection } from "../src/editor-inline/visualizer-renderer.js";
+import {
+  renderCursor,
+  renderPlaybackCursor,
+  resetCursorProjection,
+  startPlaybackCursorTransition,
+} from "../src/editor-inline/visualizer-renderer.js";
 import type { NormalizedProsodyTrack, VisualizerElement } from "../src/editor-inline/types.js";
 
 const voicedTrack: NormalizedProsodyTrack = {
@@ -76,34 +81,47 @@ describe("editor inline visualizer renderer", () => {
     renderPlaybackCursor(visualizer, 0, voicedTrack.durationMs, 0);
     renderPlaybackCursor(visualizer, 100, voicedTrack.durationMs, 10);
 
-    expect(cursor).toHaveAttribute("x1", xForMs(0, voicedTrack.durationMs).toFixed(2));
+    expect(cursor).toHaveAttribute("x1", String(PLOT.left));
     expect(current.textContent).toBe("0 ms");
 
     renderPlaybackCursor(visualizer, 100, voicedTrack.durationMs, 17);
 
-    expect(cursor).toHaveAttribute("x1", xForMs(100, voicedTrack.durationMs).toFixed(2));
+    expect(cursor).toHaveAttribute("x1", String(PLOT.left));
     expect(current.textContent).toBe("0 ms");
 
     renderPlaybackCursor(visualizer, 200, voicedTrack.durationMs, 110);
 
-    expect(cursor).toHaveAttribute("x1", xForMs(200, voicedTrack.durationMs).toFixed(2));
+    expect(cursor).toHaveAttribute("x1", String(PLOT.left));
     expect(current.textContent).toBe("200 ms");
   });
 
-  it("keeps playback pitch marker x synchronized with cursor geometry between text updates", () => {
+  it("starts compositor cursor playback transitions without per-frame SVG geometry writes", () => {
     const visualizer = mountVisualizer(voicedTrack);
     const cursor = visualizer.querySelector<SVGLineElement>(".aqe-cursor")!;
+    const cssCursor = visualizer.querySelector<HTMLElement>(".aqe-css-cursor")!;
+
+    startPlaybackCursorTransition(visualizer, 100, 900);
+
+    expect(cursor).toHaveAttribute("x1", xForMs(100, voicedTrack.durationMs).toFixed(2));
+    expect(cssCursor.style.transition).toBe("transform 800ms linear");
+    expect(cssCursor.style.transform).toBe(`translate3d(${xForMs(900, voicedTrack.durationMs).toFixed(2)}px, 0, 0)`);
+  });
+
+  it("keeps pitch state off the visible CSS cursor", () => {
+    const visualizer = mountVisualizer(voicedTrack);
+    const cssCursor = visualizer.querySelector<HTMLElement>(".aqe-css-cursor")!;
     const marker = visualizer.querySelector<SVGCircleElement>(".aqe-cursor-pitch-marker")!;
-    const current = visualizer.querySelector<SVGTextElement>(".aqe-cursor-flag-current")!;
 
-    renderPlaybackCursor(visualizer, 0, voicedTrack.durationMs, 0);
-    renderPlaybackCursor(visualizer, 100, voicedTrack.durationMs, 17);
+    renderCursor(visualizer, 500, voicedTrack.durationMs);
 
-    const cursorX = xForMs(100, voicedTrack.durationMs).toFixed(2);
-    expect(cursor).toHaveAttribute("x1", cursorX);
-    expect(marker).toHaveAttribute("cx", cursorX);
-    expect(marker).toHaveAttribute("cy", yForPitch(120, 100, 300).toFixed(2));
-    expect(current.textContent).toBe("0 ms");
+    expect(visualizer.querySelector(".aqe-css-cursor-pitch-marker")).toBeNull();
+    expect(marker).toHaveAttribute("visibility", "visible");
+    expect(cssCursor.style.transform).toBe(`translate3d(${xForMs(500, voicedTrack.durationMs).toFixed(2)}px, 0, 0)`);
+
+    startPlaybackCursorTransition(visualizer, 500, 900);
+
+    expect(visualizer.querySelector(".aqe-css-cursor-pitch-marker")).toBeNull();
+    expect(cssCursor.style.transform).toBe(`translate3d(${xForMs(900, voicedTrack.durationMs).toFixed(2)}px, 0, 0)`);
   });
 
   it("reuses cached cursor nodes during repeated playback paints", () => {
@@ -145,6 +163,15 @@ function mountVisualizer(track: NormalizedProsodyTrack): VisualizerElement {
           </text>
         </g>
       </svg>
+      <div class="aqe-css-cursor">
+        <div class="aqe-css-cursor-line"></div>
+        <div class="aqe-css-cursor-flag">
+          <div class="aqe-css-cursor-flag-box">
+            <span class="aqe-css-cursor-flag-current">0 ms</span>
+            <span class="aqe-css-cursor-flag-pitch"> / -- Hz</span>
+          </div>
+        </div>
+      </div>
       <span class="aqe-cursor-label"></span>
     </div>
   `;
