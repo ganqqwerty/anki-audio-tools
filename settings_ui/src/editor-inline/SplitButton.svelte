@@ -4,6 +4,7 @@
   import AqeTooltip from "../lib/AqeTooltip.svelte";
 
   import EditorCommandIcon from "./EditorCommandIcon.svelte";
+  import SplitButtonPrimary from "./SplitButtonPrimary.svelte";
   import SplitDefaultSaveButton from "./SplitDefaultSaveButton.svelte";
   import GraphSplitOptions from "./GraphSplitOptions.svelte";
   import SplitValueOptions from "./SplitValueOptions.svelte";
@@ -12,10 +13,6 @@
   import {
     buildSplitCommandPayload,
     buildSplitDefaultSaveRequest,
-    formatDenoiseAlgorithm,
-    formatOutputFormat,
-    formatSpeedStep,
-    formatVolumeDb,
     getSplitButtonState,
     promoteSplitDefaultsForField,
     setDenoiseAlgorithmForField,
@@ -28,22 +25,16 @@
     setVolumeStepForField,
   } from "./split-button-state.js";
   import {
-    formatGraphRecordingCondition,
-    formatGraphSmoothness,
-    formatGraphVoiceLock,
-    formatGraphVoiceRange,
-  } from "./graph-split-values.js";
-  import {
     setGraphConnectShortDropoutsForField,
     setGraphRecordingConditionForField,
     setGraphSmoothnessForField,
     setGraphVoiceLockForField,
     setGraphVoiceRangeForField,
   } from "./graph-split-state.js";
+  import { currentValueLabel, primaryTitle } from "./split-button-presenter.js";
   import { COMMAND_SLUGS } from "./commands.js";
   import { t } from "../lib/i18n.js";
   import type { EditorButtonDisplayMode } from "../lib/editor-toolbar-buttons.js";
-  import { EditorButtonMode } from "../lib/types.js";
   import type { GraphRecordingCondition, GraphSmoothness, GraphVoiceLock, GraphVoiceRange } from "./graph-settings.js";
   import type { ButtonSpec, FieldSplitButtonState, FieldTarget } from "./types.js";
 
@@ -105,90 +96,33 @@
     return groupLabel ?? button.label;
   }
 
-  function isGroupedVolumeMenu(): boolean {
-    return groupSlug === "volume";
-  }
-
-  function isGroupedSpeedMenu(): boolean {
-    return groupSlug === "speed";
-  }
-
-  function groupedSpeedValueLabel(): string {
-    return `${formatSpeedStep(speedStep, "aqe:faster")} / ${formatSpeedStep(speedStep, "aqe:slower")}`;
-  }
-
-  function initialButtonState(): string {
-    if (button.command === "aqe:play") return "play";
-    if (button.command === "aqe:analyze") return "graph";
-    return "default";
-  }
-
-  function isDenoiseButton(): boolean {
-    return (
-      button.command === "aqe:denoise-standard" ||
-      button.command === "aqe:rnnoise" ||
-      button.command === "aqe:dpdfnet" ||
-      button.command === "aqe:voice-only"
-    );
-  }
-
-  function primaryTitle(): string {
-    if (button.command === "aqe:convert") {
-      return t("editor.command.convert.title", { format: formatOutputFormat(outputFormat) });
-    }
-    if (!isDenoiseButton()) return button.title;
-    return t("editor.command.denoise.title", { algorithm: formatDenoiseAlgorithm(denoiseAlgorithm) });
-  }
-
   function primaryClass(): string {
     return primaryGroupPosition === "middle"
       ? "aqe-button aqe-split-primary aqe-split-primary-middle"
       : "aqe-button aqe-split-primary";
   }
 
-  const graphSummary = $derived([
-    formatGraphVoiceRange(graphVoiceRange),
-    formatGraphRecordingCondition(graphRecordingCondition),
-    formatGraphSmoothness(graphSmoothness),
-    `${graphConnectShortDropoutsMs} ms`,
-    formatGraphVoiceLock(graphVoiceLock),
-  ].join(" · "));
-
-  function currentValueLabel(): string {
-    if (isGroupedVolumeMenu()) return formatVolumeDb(volumeStepDb);
-    if (isGroupedSpeedMenu()) return groupedSpeedValueLabel();
-    if (button.command === "aqe:volume-up" || button.command === "aqe:volume-down") return formatVolumeDb(volumeStepDb);
-    if (button.command === "aqe:faster" || button.command === "aqe:slower") return formatSpeedStep(speedStep, button.command);
-    if (button.command === "aqe:remove-pauses") return pauseAggressiveness === "aggressive"
-      ? t("settings.pause_aggressiveness.aggressive")
-      : pauseAggressiveness === "gentle"
-        ? t("settings.pause_aggressiveness.gentle")
-        : t("settings.pause_aggressiveness.normal");
-    if (button.command === "aqe:convert") return formatOutputFormat(outputFormat);
-    if (button.command === "aqe:share") return shareTarget === "litterbox"
-      ? t("editor.share.target.litterbox")
-      : t("editor.share.target.catbox");
-    if (button.command === "aqe:pitch-hum") return pitchHumMode === "pitch_tier"
-      ? t("editor.pitch_hum.mode.pitch_tier")
-      : t("editor.pitch_hum.mode.direct");
-    if (
-      button.command === "aqe:denoise-standard" ||
-      button.command === "aqe:rnnoise" ||
-      button.command === "aqe:dpdfnet" ||
-      button.command === "aqe:voice-only"
-    ) {
-      return denoiseAlgorithm === "dpdfnet"
-        ? `${formatDenoiseAlgorithm(denoiseAlgorithm)} (${t(`settings.pause_aggressiveness.${dpdfnetAttnLimitDb === 6 ? "gentle" : dpdfnetAttnLimitDb === 18 ? "aggressive" : "normal"}`)})`
-        : formatDenoiseAlgorithm(denoiseAlgorithm);
-    }
-    if (button.command === "aqe:analyze") return graphSummary;
-    return "";
-  }
+  const currentPrimaryTitle = $derived(primaryTitle(button, outputFormat, denoiseAlgorithm));
+  const currentValue = $derived(currentValueLabel(button, groupSlug, {
+    denoiseAlgorithm,
+    dpdfnetAttnLimitDb,
+    graphConnectShortDropoutsMs,
+    graphRecordingCondition,
+    graphSmoothness,
+    graphVoiceLock,
+    graphVoiceRange,
+    outputFormat,
+    pauseAggressiveness,
+    pitchHumMode,
+    shareTarget,
+    speedStep,
+    volumeStepDb,
+  }));
 
   function menuTitle(): string {
     return t("editor.split.menu_title", {
       label: menuTextLabel(),
-      value: currentValueLabel(),
+      value: currentValue,
     });
   }
 
@@ -305,28 +239,18 @@
   <Popover.Root open={open} onOpenChange={onOpenChange}>
     <span class="aqe-split-button">
       {#if showPrimary}
-        <AqeTooltip>
-          {#snippet trigger({ props })}
-            <button
-              {...props}
-              type="button"
-              class:aqe-icon-only={displayMode === EditorButtonMode.Icon}
-              class={`${primaryClass()} aqe-tooltip-target`}
-              data-aqe-command={button.command}
-              data-aqe-button-state={initialButtonState()}
-              data-aqe-tooltip-content={primaryTitle()}
-              data-testid={`aqe-button-${target.ord}-${slug()}`}
-              aria-label={primaryTitle()}
-              onmousedown={(event) => event.preventDefault()}
-              onclick={dispatchPrimary}
-            >
-              {#if displayMode === EditorButtonMode.Icon}
-                <EditorCommandIcon icon={button.icon} />
-              {/if}
-              <span class="aqe-button-label">{button.label}</span>
-            </button>
-          {/snippet}
-        </AqeTooltip>
+        <SplitButtonPrimary
+          ariaLabel={currentPrimaryTitle}
+          command={button.command}
+          {displayMode}
+          icon={button.icon}
+          label={button.label}
+          onClick={dispatchPrimary}
+          ord={target.ord}
+          primaryClass={primaryClass()}
+          slug={slug()}
+          title={currentPrimaryTitle}
+        />
       {/if}
       <Popover.Trigger
         class="aqe-button aqe-icon-only aqe-split-menu-button"
@@ -431,26 +355,16 @@
     </span>
   </Popover.Root>
 {:else if showPrimary}
-  <AqeTooltip>
-    {#snippet trigger({ props })}
-      <button
-        {...props}
-        type="button"
-        class:aqe-icon-only={displayMode === EditorButtonMode.Icon}
-        class={`${primaryClass()} aqe-tooltip-target`}
-        data-aqe-command={button.command}
-        data-aqe-button-state={initialButtonState()}
-        data-aqe-tooltip-content={primaryTitle()}
-        data-testid={`aqe-button-${target.ord}-${slug()}`}
-        aria-label={primaryTitle()}
-        onmousedown={(event) => event.preventDefault()}
-        onclick={dispatchPrimary}
-      >
-        {#if displayMode === EditorButtonMode.Icon}
-          <EditorCommandIcon icon={button.icon} />
-        {/if}
-        <span class="aqe-button-label">{button.label}</span>
-      </button>
-    {/snippet}
-  </AqeTooltip>
+  <SplitButtonPrimary
+    ariaLabel={currentPrimaryTitle}
+    command={button.command}
+    {displayMode}
+    icon={button.icon}
+    label={button.label}
+    onClick={dispatchPrimary}
+    ord={target.ord}
+    primaryClass={primaryClass()}
+    slug={slug()}
+    title={currentPrimaryTitle}
+  />
 {/if}

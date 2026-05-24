@@ -32,44 +32,10 @@ import {
 } from "../src/editor-inline/actions.js";
 import { mediaUrlForFilename } from "../src/editor-inline/audio-clock.js";
 import { processingMessage } from "../src/editor-inline/commands.js";
-import { visualizerForOrd } from "../src/editor-inline/dom-selectors.js";
-import { PLOT, xForMs, yForPitch } from "../src/editor-inline/plot.js";
+import { PLOT, xForMs } from "../src/editor-inline/plot.js";
 import { commandSlugsForTest } from "../src/editor-inline/test-contract.js";
-import { disposeEditorRuntime, initializeEditorRuntime, scan } from "../src/editor-inline/runtime.js";
-import type { VisualizerElement } from "../src/editor-inline/types.js";
-import { pycmdMock } from "./setup.js";
-
-const track = {
-  analyzerName: "praat",
-  durationMs: 1000,
-  pitchMaxHz: 300,
-  pitchMinHz: 100,
-  points: [
-    [0, 120, 0.1, true],
-    [500, 180, 0.8, true],
-    [1000, 220, 0.6, true],
-  ],
-  sourceFilename: "nested/clip two.mp3",
-};
-
-async function mountTrack(cursorMs = 250): Promise<VisualizerElement> {
-  document.body.innerHTML = `
-    <div class="field-container" data-index="0">
-      <div contenteditable="true" id="audio0">[sound:nested/clip two.mp3]</div>
-    </div>
-  `;
-  initializeEditorRuntime({ audioFieldIndices: [0] });
-  scan({ audioFieldIndices: [0] });
-  await Promise.resolve();
-  window.__aqeSetVisualizer?.(0, track, cursorMs);
-  const visualizer = visualizerForOrd(0);
-  if (!visualizer) throw new Error("visualizer not mounted");
-  return visualizer;
-}
-
-function bridgeCommands(): string[] {
-  return pycmdMock.mock.calls.map(([command]) => command);
-}
+import { disposeEditorRuntime } from "../src/editor-inline/runtime.js";
+import { bridgeCommands, mountTrack, track } from "./editor-inline.actions.helpers.js";
 
 describe("editor inline action workflows", () => {
   let warnSpy: ReturnType<typeof vi.spyOn>;
@@ -373,53 +339,4 @@ describe("editor inline action workflows", () => {
     expect(Number(visualizer.dataset.progressMs)).toBeGreaterThanOrEqual(900);
   });
 
-  it("updates the timecode flag during progress clock ticks", async () => {
-    const frames: Array<(time: number) => void> = [];
-    vi.spyOn(window, "requestAnimationFrame").mockImplementation((callback) => {
-      frames.push(callback);
-      return frames.length;
-    });
-    vi.spyOn(window, "cancelAnimationFrame").mockImplementation(() => undefined);
-    let now = 1000;
-    vi.spyOn(performance, "now").mockImplementation(() => now);
-    const visualizer = await mountTrack(0);
-    const audio = visualizer.querySelector<HTMLAudioElement>(".aqe-audio-clock")!;
-    const flag = visualizer.querySelector<SVGGElement>(".aqe-cursor-flag")!;
-    audio.pause = vi.fn<() => void>(() => undefined);
-
-    startManualProgressClock(visualizer, 300);
-    now = 1400;
-    frames.shift()?.(now);
-
-    expect(flag.querySelector(".aqe-cursor-flag-current")?.textContent).toBe("700 ms");
-    expect(flag.querySelector(".aqe-cursor-flag-pitch")?.textContent).toBe(" / 196 Hz");
-    const state = window.__aqeGraphStateForTest?.(0);
-    expect(state).toMatchObject({ pitchMarkerVisible: true, progressMs: 700 });
-    expect(state?.pitchMarkerX).toBeCloseTo(xForMs(700, 1000));
-    expect(state?.pitchMarkerY).toBeCloseTo(yForPitch(196, 100, 300));
-  });
-
-  it("loops manual progress clocks at the selected region boundary without play-ended", async () => {
-    const frames: Array<(time: number) => void> = [];
-    vi.spyOn(window, "requestAnimationFrame").mockImplementation((callback) => {
-      frames.push(callback);
-      return frames.length;
-    });
-    vi.spyOn(window, "cancelAnimationFrame").mockImplementation(() => undefined);
-    let now = 1000;
-    vi.spyOn(performance, "now").mockImplementation(() => now);
-    const visualizer = await mountTrack(0);
-    const audio = visualizer.querySelector<HTMLAudioElement>(".aqe-audio-clock")!;
-    audio.pause = vi.fn<() => void>(() => undefined);
-    setSelection(visualizer, 200, 400);
-    setRepeatEnabled(visualizer, true);
-
-    startManualProgressClock(visualizer, 350);
-    now = 1100;
-    frames.shift()?.(now);
-
-    expect(visualizer.dataset.playbackState).toBe("playing");
-    expect(visualizer.dataset.cursorMs).toBe("200");
-    expect(bridgeCommands()).not.toContain("aqe:play-ended");
-  });
 });
