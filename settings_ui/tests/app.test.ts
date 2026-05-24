@@ -194,6 +194,18 @@ describe("App", () => {
     expect(config.editor_button_modes["aqe:settings"]).toBe("icon");
   });
 
+  it("shows a placeholder for toolbar buttons without extra settings", () => {
+    setInitialState();
+
+    render(App);
+
+    const folderCard = screen.getByTestId("button-settings-show-file");
+    const shareCard = screen.getByTestId("button-settings-share");
+
+    expect(within(folderCard).getByText("No extra settings")).toBeInTheDocument();
+    expect(within(shareCard).getByText("No extra settings")).toBeInTheDocument();
+  });
+
   it("saves split button default settings", async () => {
     setInitialState();
 

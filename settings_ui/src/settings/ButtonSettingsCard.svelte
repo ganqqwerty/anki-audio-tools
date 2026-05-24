@@ -7,6 +7,7 @@
   import type { Snippet } from "svelte";
 
   const {
+    hasSettings = true,
     icon,
     mode,
     onSetMode,
@@ -17,6 +18,7 @@
     children,
   }: {
     children?: Snippet;
+    hasSettings?: boolean;
     icon: CommandIconName;
     mode: EditorButtonDisplayMode;
     onSetMode: (mode: EditorButtonDisplayMode) => void;
@@ -60,21 +62,24 @@
     </span>
   </header>
 
-  <div class="button-settings-card-body">
-    {#if children}
+  <div class:button-settings-card-body-empty={!hasSettings} class="button-settings-card-body">
+    {#if hasSettings && children}
       {@render children()}
+    {:else}
+      <p class="button-settings-card-placeholder">{t("settings.toolbar_visibility.no_extra_settings")}</p>
     {/if}
   </div>
 </section>
 
 <style>
   .button-settings-card {
+    border-top: 1px solid var(--border, rgba(0, 0, 0, 0.12));
     align-content: start;
     align-self: start;
     display: grid;
-    gap: 8px 16px;
+    gap: 12px 16px;
     grid-template-columns: minmax(130px, 190px) minmax(0, 1fr);
-    padding: 10px 0 12px;
+    padding: 16px 0 18px;
   }
 
   .button-settings-card-hidden {
@@ -84,7 +89,7 @@
   .button-settings-card-header {
     align-content: start;
     display: grid;
-    gap: 6px;
+    gap: 8px;
     min-height: 27px;
   }
 
@@ -129,13 +134,23 @@
   }
 
   .button-settings-card-body {
+    border-top: 1px solid var(--border, rgba(0, 0, 0, 0.12));
     display: grid;
+    align-content: start;
     grid-column: 2;
-    gap: 12px;
+    gap: 14px;
+    padding-top: 14px;
   }
 
-  .button-settings-card-body:empty {
-    display: none;
+  .button-settings-card-body-empty {
+    min-height: 27px;
+  }
+
+  .button-settings-card-placeholder {
+    color: var(--fg-subtle, currentColor);
+    font-size: 0.85rem;
+    line-height: 1.4;
+    margin: 0;
   }
 
   @media (max-width: 720px) {

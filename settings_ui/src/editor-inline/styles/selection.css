@@ -1,5 +1,6 @@
 .aqe-selection {
   --aqe-destructive-preview-fill: rgb(225 29 72 / 42%);
+  --aqe-destructive-preview-border: rgb(255 182 193 / 45%);
 
   fill: Highlight;
   fill-opacity: 0.2;
@@ -71,8 +72,8 @@
 }
 
 .aqe-selection-rest-preview {
-  background: var(--aqe-destructive-preview-fill);
-  border-color: var(--aqe-destructive-preview-fill);
+  background: linear-gradient(180deg, rgb(225 29 72 / 48%), rgb(225 29 72 / 20%));
+  border-color: var(--aqe-destructive-preview-border);
   display: none;
   height: var(--aqe-plot-height-px, 106px);
   pointer-events: none;
