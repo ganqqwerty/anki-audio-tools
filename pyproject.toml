@@ -303,6 +303,7 @@ source_modules = [
     "anki_audio_quick_editor.prosody_settings",
     "anki_audio_quick_editor.prosody_svg",
     "anki_audio_quick_editor.prosody_types",
+    "anki_audio_quick_editor.release_info",
     "anki_audio_quick_editor.settings_state",
     "anki_audio_quick_editor.sound_refs",
     "anki_audio_quick_editor.support",

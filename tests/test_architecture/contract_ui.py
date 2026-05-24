@@ -16,6 +16,7 @@ UI_CONTRACTS: dict[str, ModuleContract] = {
             "editor_integration",
             "ffmpeg_defaults",
             "i18n",
+            "release_info",
             "settings",
         ),
         allowed_side_effects=(
@@ -111,6 +112,7 @@ UI_CONTRACTS: dict[str, ModuleContract] = {
             "file_reveal",
             "frontend_logs",
             "i18n",
+            "release_info",
             "support",
             "webview_bridge",
         ),
@@ -125,7 +127,7 @@ UI_CONTRACTS: dict[str, ModuleContract] = {
     "settings.initial_state": contract(
         "settings.initial_state",
         layer=Layer.SETTINGS_BACKEND,
-        allowed_addon_deps=("_version", "i18n", "settings_state"),
+        allowed_addon_deps=("_version", "i18n", "release_info", "settings_state"),
         allowed_side_effects=(SideEffect.ANKI_IMPORTS_ANYWHERE,),
         allow_any_anki_imports=True,
     ),

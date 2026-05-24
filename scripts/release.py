@@ -7,6 +7,7 @@ import argparse
 import json
 import re
 import shutil
+import subprocess
 import sys
 import tempfile
 import zipfile
@@ -24,6 +25,7 @@ EXCLUDE_DIRS = {"aqe_artifacts"}
 BASE_REQUIRED_ARCHIVE_FILES = (
     "__init__.py",
     "manifest.json",
+    "release_info.json",
     "config.json",
     "config.schema.json",
     "contracts_generated.py",
@@ -168,6 +170,7 @@ def _write_runtime_manifest(
     target_keys: list[str] | None = None,
     include_ffmpeg: bool = True,
 ) -> None:
+    staging_bin_dir.mkdir(parents=True, exist_ok=True)
     selected_targets = target_keys or release_assets.lock_targets(lock)
     manifest = {
         "schema_version": lock["schema_version"],
@@ -209,6 +212,38 @@ def _write_runtime_manifest(
     )
 
 
+def _latest_commit_info() -> dict[str, object]:
+    result = subprocess.run(
+        ["git", "show", "-s", "--format=%H%n%B", "HEAD"],
+        cwd=ROOT,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    if result.returncode != 0:
+        detail = (result.stderr or result.stdout).strip()
+        print(f"ERROR: Could not read latest git commit metadata{': ' + detail if detail else ''}")
+        sys.exit(1)
+    commit_hash, _, commit_message = result.stdout.partition("\n")
+    commit_message = commit_message.strip()
+    if not commit_hash or not commit_message:
+        print("ERROR: Latest git commit metadata is incomplete")
+        sys.exit(1)
+    return {
+        "schema_version": 1,
+        "commit_hash": commit_hash,
+        "commit_message": commit_message,
+    }
+
+
+def _write_release_info(staging_dir: Path) -> None:
+    staging_dir.mkdir(parents=True, exist_ok=True)
+    (staging_dir / "release_info.json").write_text(
+        json.dumps(_latest_commit_info(), indent=2) + "\n",
+        encoding="utf-8",
+    )
+
+
 def _stage_release_tree(
     staging_dir: Path,
     *,
@@ -217,6 +252,7 @@ def _stage_release_tree(
     include_ffmpeg: bool = True,
 ) -> None:
     _stage_source_tree(staging_dir)
+    _write_release_info(staging_dir)
     staging_bin_dir = staging_dir / "bin"
     release_assets.stage_assets(
         lock,

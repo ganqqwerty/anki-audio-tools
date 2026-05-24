@@ -70,6 +70,10 @@ export const FALLBACK_INITIAL_STATE: InitialState = {
   diagnostics: {
     addon_id: "",
     collection_available: false,
+    release_info: {
+      commit_hash: "",
+      commit_message: "",
+    },
   },
   locale: "en",
   direction: Direction.LTR,

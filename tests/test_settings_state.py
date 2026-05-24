@@ -104,6 +104,10 @@ def test_build_initial_state_payload_has_settings_webview_shape() -> None:
         "diagnostics": {
             "addon_id": "anki_audio_quick_editor",
             "collection_available": True,
+            "release_info": {
+                "commit_hash": "",
+                "commit_message": "",
+            },
         },
     }
 

@@ -85,6 +85,7 @@ def test_initial_state_has_required_keys() -> None:
         "diagnostics",
     }
     assert state["diagnostics"]["addon_id"] == "anki_audio_quick_editor"
+    assert state["diagnostics"]["release_info"] == {"commit_hash": "", "commit_message": ""}
     assert state["locale"] == "en"
     assert state["direction"] == "ltr"
     assert "settings.title" in state["messages"]

@@ -1,5 +1,4 @@
 export type Direction = "ltr" | "rtl"; export type Messages = Record<string, string>;
-
 const FALLBACK_MESSAGES: Messages = {
   "app.name": "Anki Audio Quick Editor",
   "settings.title": "Audio Quick Editor Settings",
@@ -138,6 +137,8 @@ const FALLBACK_MESSAGES: Messages = {
   "diagnostics.no": "No",
   "diagnostics.addon_folder": "Add-on folder",
   "diagnostics.log_file": "Log file",
+  "diagnostics.release_commit": "Release commit",
+  "diagnostics.release_message": "Release message",
   "diagnostics.run_health_check": "Run Health Check",
   "diagnostics.check_media": "Check Media",
   "diagnostics.copy_support_report": "Copy Support Report",

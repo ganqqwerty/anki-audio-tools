@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import hashlib
+import json
 import sys
 import zipfile
 from pathlib import Path
@@ -33,6 +34,7 @@ def validate_archive(
         for name in sorted(names):
             if _is_forbidden_archive_name(name):
                 _validation_error(f"unexpected file {name}")
+        _validate_release_info(zf, names)
         _validate_runtime_matrix(zf, infos, lock, target_keys=target_keys, include_ffmpeg=include_ffmpeg)
         _validate_runtime_support_files(zf, infos, lock, target_keys=target_keys)
         _validate_shared_runtime_files(zf, infos, lock)
@@ -130,6 +132,32 @@ def _validate_notices(zf: zipfile.ZipFile, names: set[str], *, include_ffmpeg: b
     for required in required_notices:
         if required not in notice_text:
             _validation_error(f"{notice_name} is missing {required} notice")
+
+
+def _validate_release_info(zf: zipfile.ZipFile, names: set[str]) -> None:
+    name = "release_info.json"
+    if name not in names:
+        _validation_error(f"missing required file {name}")
+    try:
+        data = json.loads(zf.read(name).decode("utf-8"))
+    except (json.JSONDecodeError, UnicodeDecodeError):
+        _validation_error(f"{name} must be valid UTF-8 JSON")
+        return
+    if not isinstance(data, dict):
+        _validation_error(f"{name} must contain a JSON object")
+        return
+    if data.get("schema_version") != 1:
+        _validation_error(f"{name} must declare schema_version 1")
+    commit_hash = data.get("commit_hash")
+    if not isinstance(commit_hash, str) or not _is_git_hash(commit_hash):
+        _validation_error(f"{name} must include a full git commit_hash")
+    commit_message = data.get("commit_message")
+    if not isinstance(commit_message, str) or not commit_message.strip():
+        _validation_error(f"{name} must include commit_message")
+
+
+def _is_git_hash(value: str) -> bool:
+    return len(value) in {40, 64} and all(char in "0123456789abcdef" for char in value.lower())
 
 
 def _validate_archive_size(

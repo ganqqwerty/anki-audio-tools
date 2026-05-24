@@ -50,10 +50,20 @@
     "DiagnosticsState": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["addon_id", "collection_available"],
+      "required": ["addon_id", "collection_available", "release_info"],
       "properties": {
         "addon_id": { "type": "string" },
-        "collection_available": { "type": "boolean" }
+        "collection_available": { "type": "boolean" },
+        "release_info": { "$ref": "#/definitions/ReleaseInfo" }
+      }
+    },
+    "ReleaseInfo": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["commit_hash", "commit_message"],
+      "properties": {
+        "commit_hash": { "type": "string" },
+        "commit_message": { "type": "string" }
       }
     },
     "InitialState": {

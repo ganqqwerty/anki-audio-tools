@@ -109,6 +109,8 @@
   "diagnostics.no": "否",
   "diagnostics.addon_folder": "插件文件夹",
   "diagnostics.log_file": "日志文件",
+  "diagnostics.release_commit": "发布提交",
+  "diagnostics.release_message": "发布消息",
   "diagnostics.run_health_check": "运行健康检查",
   "diagnostics.check_media": "检查媒体",
   "diagnostics.copy_support_report": "复制支持报告",

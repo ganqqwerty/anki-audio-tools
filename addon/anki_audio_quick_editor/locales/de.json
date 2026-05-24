@@ -109,6 +109,8 @@
   "diagnostics.no": "Nein",
   "diagnostics.addon_folder": "Add-on-Ordner",
   "diagnostics.log_file": "Protokolldatei",
+  "diagnostics.release_commit": "Release-Commit",
+  "diagnostics.release_message": "Release-Nachricht",
   "diagnostics.run_health_check": "Integritätsprüfung ausführen",
   "diagnostics.check_media": "Medien prüfen",
   "diagnostics.copy_support_report": "Supportbericht kopieren",

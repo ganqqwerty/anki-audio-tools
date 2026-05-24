@@ -84,6 +84,16 @@ def test_async_support_report_returns_incident_and_log_tail(tmp_path: Path) -> N
     addon_dir.mkdir()
     log_path = addon_dir / "anki_audio_quick_editor.log"
     log_path.write_text("line-1\nline-2\n", encoding="utf-8")
+    (addon_dir / "release_info.json").write_text(
+        json.dumps(
+            {
+                "schema_version": 1,
+                "commit_hash": "b" * 40,
+                "commit_message": "Ship release diagnostics",
+            }
+        ),
+        encoding="utf-8",
+    )
     dialog = _make_dialog()
     calls, eval_fn = _capture_eval()
     payload = json.dumps({"id": "job-1", "op": "support_report", "payload": {"config": _full_config()}})
@@ -109,6 +119,8 @@ def test_async_support_report_returns_incident_and_log_tail(tmp_path: Path) -> N
     assert "/bin/sherpa-spleeter --json" in report_text
     assert "0.2" in report_text
     assert "0.1.0" in report_text
+    assert "Release commit: " + "b" * 40 in report_text
+    assert "Release message: Ship release diagnostics" in report_text
     assert "/addon/aqe_artifacts/clip__run/manifest.json" in report_text
     assert "line-1" in report_text
     assert str(log_path) in report_text

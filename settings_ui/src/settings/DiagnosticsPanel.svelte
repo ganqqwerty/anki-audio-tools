@@ -68,6 +68,14 @@
         <dt>{t("diagnostics.log_file")}</dt>
         <dd>{initialState.log_file_path}</dd>
       </div>
+      <div class="meta-row">
+        <dt>{t("diagnostics.release_commit")}</dt>
+        <dd>{initialState.diagnostics.release_info.commit_hash || "n/a"}</dd>
+      </div>
+      <div class="meta-row">
+        <dt>{t("diagnostics.release_message")}</dt>
+        <dd>{initialState.diagnostics.release_info.commit_message || "n/a"}</dd>
+      </div>
     </dl>
   </section>
 

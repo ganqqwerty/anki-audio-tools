@@ -109,6 +109,8 @@
   "diagnostics.no": "Không",
   "diagnostics.addon_folder": "Thư mục tiện ích",
   "diagnostics.log_file": "Tệp nhật ký",
+  "diagnostics.release_commit": "Commit bản phát hành",
+  "diagnostics.release_message": "Thông điệp bản phát hành",
   "diagnostics.run_health_check": "Chạy kiểm tra sức khỏe",
   "diagnostics.check_media": "Kiểm tra media",
   "diagnostics.copy_support_report": "Sao chép báo cáo hỗ trợ",

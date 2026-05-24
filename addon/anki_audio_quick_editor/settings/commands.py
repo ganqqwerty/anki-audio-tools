@@ -275,10 +275,7 @@ def _op_health_check(
     return HealthReport.from_dict(report).to_dict()
 
 
-def _op_support_report(
-    payload: dict[str, Any],
-    progress_fn: Callable[[int, str], None],
-) -> Any:
+def _op_support_report(payload: dict[str, Any], progress_fn: Callable[[int, str], None]) -> Any:
     from aqt import mw
 
     from .._version import __version__
@@ -289,6 +286,7 @@ def _op_support_report(
         build_spleeter_health,
     )
     from ..i18n import t
+    from ..release_info import read_release_info
     from ..support import (
         addon_log_path,
         build_support_report_text,
@@ -323,6 +321,7 @@ def _op_support_report(
         spleeter_health=spleeter_health,
         spleeter_incident=latest_spleeter_support_incident(),
         diagnostics_context=support_report_context(),
+        release_info=read_release_info(addon_dir),
     )
     progress_fn(100, t("settings.async.done"))
     return SupportReportResult(report_text).to_dict()

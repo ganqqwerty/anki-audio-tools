@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 import logging
 from pathlib import Path
 from types import SimpleNamespace
@@ -34,6 +35,38 @@ def test_file_logging_captures_runtime_addon_package_logs(tmp_path: Path, monkey
         addon._release_file_logging()
         _remove_added_handlers(runtime_logger, existing_runtime_handlers)
         _remove_added_handlers(static_logger, existing_static_handlers)
+
+
+def test_file_logging_records_packaged_release_info(tmp_path: Path, monkeypatch) -> None:
+    import anki_audio_quick_editor as addon
+
+    static_logger = logging.getLogger("anki_audio_quick_editor")
+    existing_handlers = list(static_logger.handlers)
+    monkeypatch.setattr(addon.mw.addonManager, "addonFromModule", lambda _module: "anki_audio_quick_editor")
+    monkeypatch.setattr(addon.mw.addonManager, "addonsFolder", lambda _addon_id: str(tmp_path))
+    monkeypatch.setattr(addon.mw.addonManager, "getConfig", lambda _addon_id: {"debug_logging": False})
+    (tmp_path / "release_info.json").write_text(
+        json.dumps(
+            {
+                "schema_version": 1,
+                "commit_hash": "c" * 40,
+                "commit_message": "Ship release diagnostics",
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    try:
+        addon._setup_file_logging()
+        for handler in static_logger.handlers:
+            handler.flush()
+
+        log_text = (tmp_path / "anki_audio_quick_editor.log").read_text(encoding="utf-8")
+        assert "release provenance: commit=cccccccccccccccccccccccccccccccccccccccc" in log_text
+        assert "message=Ship release diagnostics" in log_text
+    finally:
+        addon._release_file_logging()
+        _remove_added_handlers(static_logger, existing_handlers)
 
 
 def test_file_logging_release_closes_tracked_handler(tmp_path: Path, monkeypatch) -> None:

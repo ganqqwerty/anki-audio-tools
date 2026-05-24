@@ -107,12 +107,16 @@ def build_support_report_text(
     spleeter_health: dict[str, Any] | None = None,
     spleeter_incident: dict[str, Any] | None = None,
     diagnostics_context: dict[str, Any] | None = None,
+    release_info: dict[str, Any] | None = None,
 ) -> str:
     """Build a support report suitable for copying into a bug report."""
+    release_info = release_info or {}
     sections = [
         "Anki Audio Quick Editor Support Report",
         f"Generated: {datetime.now(UTC).isoformat()}",
         f"Add-on version: {version}",
+        f"Release commit: {release_info.get('commit_hash') or 'n/a'}",
+        f"Release message: {release_info.get('commit_message') or 'n/a'}",
         f"Add-on folder: {addon_dir}",
         f"Log file: {log_file_path}",
     ]

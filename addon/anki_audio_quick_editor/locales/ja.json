@@ -109,6 +109,8 @@
   "diagnostics.no": "いいえ",
   "diagnostics.addon_folder": "アドオンフォルダー",
   "diagnostics.log_file": "ログファイル",
+  "diagnostics.release_commit": "リリースコミット",
+  "diagnostics.release_message": "リリースメッセージ",
   "diagnostics.run_health_check": "ヘルスチェックを実行",
   "diagnostics.check_media": "メディアをチェック",
   "diagnostics.copy_support_report": "サポートレポートをコピー",

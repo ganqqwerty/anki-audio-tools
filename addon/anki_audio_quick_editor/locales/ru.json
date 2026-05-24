@@ -109,6 +109,8 @@
   "diagnostics.no": "Нет",
   "diagnostics.addon_folder": "Папка дополнения",
   "diagnostics.log_file": "Файл журнала",
+  "diagnostics.release_commit": "Коммит релиза",
+  "diagnostics.release_message": "Сообщение релиза",
   "diagnostics.run_health_check": "Запустить проверку состояния",
   "diagnostics.check_media": "Проверить медиа",
   "diagnostics.copy_support_report": "Скопировать отчет поддержки",

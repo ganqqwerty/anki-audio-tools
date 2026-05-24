@@ -108,6 +108,7 @@ CORE_CONTRACTS: dict[str, ModuleContract] = {
         allowed_addon_deps=("prosody_types",),
     ),
     "prosody_types": contract("prosody_types", layer=Layer.IMPORT_SAFE_CORE),
+    "release_info": contract("release_info", layer=Layer.IMPORT_SAFE_CORE),
     "settings_state": contract(
         "settings_state",
         layer=Layer.IMPORT_SAFE_CORE,

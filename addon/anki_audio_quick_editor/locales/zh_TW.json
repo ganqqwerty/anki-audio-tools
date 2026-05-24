@@ -109,6 +109,8 @@
   "diagnostics.no": "否",
   "diagnostics.addon_folder": "附加元件資料夾",
   "diagnostics.log_file": "記錄檔",
+  "diagnostics.release_commit": "發布提交",
+  "diagnostics.release_message": "發布訊息",
   "diagnostics.run_health_check": "執行健康檢查",
   "diagnostics.check_media": "檢查媒體",
   "diagnostics.copy_support_report": "複製支援報告",

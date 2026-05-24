@@ -11,6 +11,7 @@ def build_initial_state(config: dict[str, Any]) -> str:
 
     from .._version import __version__
     from ..i18n import active_context
+    from ..release_info import read_release_info
     from ..settings_state import build_initial_state_payload, encode_initial_state
 
     addon_id = mw.addonManager.addonFromModule(__name__)
@@ -25,5 +26,6 @@ def build_initial_state(config: dict[str, Any]) -> str:
         locale=str(i18n["locale"]),
         direction=str(i18n["direction"]),
         messages=dict(i18n["messages"]),
+        release_info=read_release_info(addon_dir),
     )
     return encode_initial_state(state)

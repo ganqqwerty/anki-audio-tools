@@ -18,6 +18,7 @@ from .diagnostics_runtime import (
     release_runtime_files,
     set_debug_enabled,
 )
+from .release_info import read_release_info
 
 if TYPE_CHECKING:
     from .editor_runtime import SettingsLifecycleCallbacks
@@ -101,6 +102,7 @@ def _setup_file_logging() -> None:
         target_logger.addHandler(handler)
     _file_log_handler = handler
     logger.debug("file logging initialized at %s", log_file)
+    _log_release_info(addon_dir)
 
 
 def _release_file_logging() -> None:
@@ -122,6 +124,17 @@ def _release_file_logging() -> None:
     except (OSError, ValueError):
         pass
     _file_log_handler = None
+
+
+def _log_release_info(addon_dir: Path) -> None:
+    """Log packaged release provenance when available."""
+    provenance = read_release_info(addon_dir)
+    commit_hash = provenance["commit_hash"]
+    commit_message = provenance["commit_message"]
+    if commit_hash:
+        logger.info("release provenance: commit=%s message=%s", commit_hash, commit_message)
+    else:
+        logger.info("release provenance: release_info.json not available")
 
 
 def _is_this_addon(module: str, manager: object) -> bool:

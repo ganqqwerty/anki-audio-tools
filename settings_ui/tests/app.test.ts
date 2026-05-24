@@ -97,7 +97,11 @@ function setInitialState(config = defaultConfig, messages: Record<string, string
     locale: "en",
     direction: Direction.LTR,
     messages,
-    diagnostics: { addon_id: "anki_audio_quick_editor", collection_available: true },
+    diagnostics: {
+      addon_id: "anki_audio_quick_editor",
+      collection_available: true,
+      release_info: { commit_hash: "", commit_message: "" },
+    },
   };
 }
 

@@ -11,6 +11,13 @@ from pathlib import Path
 import pytest
 from scripts import release, release_asset_common, release_assets
 
+FAKE_COMMIT_HASH = "a" * 40
+FAKE_RELEASE_INFO = {
+    "schema_version": 1,
+    "commit_hash": FAKE_COMMIT_HASH,
+    "commit_message": "Package release metadata",
+}
+
 
 def test_release_excludes_retained_pause_pipeline_artifacts() -> None:
     artifact_manifest = (
@@ -27,7 +34,13 @@ def test_release_keeps_committed_config_json() -> None:
     assert release._should_include(release.ADDON_DIR / "config.json") is True
 
 
-def _write_archive(path: Path, names: list[str], executable_names: set[str] | None = None) -> None:
+def _write_archive(
+    path: Path,
+    names: list[str],
+    executable_names: set[str] | None = None,
+    *,
+    release_info: bytes | None = None,
+) -> None:
     executable_names = executable_names or set()
     with zipfile.ZipFile(path, "w", zipfile.ZIP_DEFLATED) as zf:
         for name in names:
@@ -37,6 +50,8 @@ def _write_archive(path: Path, names: list[str], executable_names: set[str] | No
                 content = b"binary"
             elif name == "bin/THIRD_PARTY_NOTICES.md":
                 content = b"FFmpeg LAME DeepFilterNet RNNoise DPDFNet Sherpa Spleeter"
+            elif name == "release_info.json":
+                content = release_info or (json.dumps(FAKE_RELEASE_INFO) + "\n").encode()
             else:
                 content = b""
             zf.writestr(info, content)
@@ -146,6 +161,7 @@ def test_release_archive_includes_all_locked_runtime_assets(
         return staged
 
     monkeypatch.setattr(release, "_stage_source_tree", lambda _staging_dir: None)
+    monkeypatch.setattr(release, "_latest_commit_info", lambda: FAKE_RELEASE_INFO)
     monkeypatch.setattr(release.release_assets, "stage_assets", fake_stage_assets)
     monkeypatch.setattr(release, "DIST_DIR", tmp_path / "dist")
 
@@ -157,12 +173,37 @@ def test_release_archive_includes_all_locked_runtime_assets(
         names = set(zf.namelist())
 
     expected = {
+        "release_info.json",
         "bin/runtime_manifest.json",
         *release.release_runtime_shared_files(lock),
         *release.release_runtime_executables(lock),
         *release.release_runtime_support_files(lock),
     }
     assert expected <= names
+
+
+def test_release_archive_includes_latest_commit_info(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(release, "_stage_source_tree", lambda _staging_dir: None)
+    monkeypatch.setattr(release, "_latest_commit_info", lambda: FAKE_RELEASE_INFO)
+    monkeypatch.setattr(release.release_assets, "stage_assets", lambda *_args, **_kwargs: [])
+    monkeypatch.setattr(release, "DIST_DIR", tmp_path / "dist")
+
+    staging_dir = tmp_path / "staging"
+    release._stage_release_tree(
+        staging_dir,
+        lock=release_assets.load_lock(),
+        target_keys=["macos-arm64"],
+        include_ffmpeg=False,
+    )
+    archive = release._build_archive("0.0.0-test", staging_dir)
+
+    with zipfile.ZipFile(archive, "r") as zf:
+        release_info = json.loads(zf.read("release_info.json").decode())
+
+    assert release_info == FAKE_RELEASE_INFO
 
 
 def test_release_validation_requires_every_locked_runtime_asset(tmp_path, capsys) -> None:
@@ -229,6 +270,27 @@ def test_release_requires_runtime_payload_checksums(tmp_path, capsys) -> None:
     output = capsys.readouterr().out
     assert "bin/macos-arm64/ffmpeg" in output
     assert "missing sha256" in output
+
+
+def test_release_validation_requires_valid_release_info(tmp_path: Path, capsys) -> None:
+    archive = tmp_path / "bad-release-info.ankiaddon"
+    invalid_release_info = json.dumps(
+        {
+            "schema_version": 1,
+            "commit_hash": FAKE_COMMIT_HASH,
+        }
+    ).encode()
+    _write_archive(
+        archive,
+        _complete_manifest_names(),
+        _complete_executable_names(),
+        release_info=invalid_release_info,
+    )
+
+    with pytest.raises(SystemExit):
+        release._validate_archive(archive, allow_large_archive=False, lock=_lock_with_binary_hashes())
+
+    assert "commit_message" in capsys.readouterr().out
 
 
 def test_release_manifest_files_can_be_limited_to_single_runtime_target() -> None:
