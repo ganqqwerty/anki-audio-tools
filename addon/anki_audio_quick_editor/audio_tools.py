@@ -173,8 +173,7 @@ def find_deep_filter(configured_path: str = "") -> Path:
         return Path(found)
     raise MissingDeepFilterError(
         "DeepFilterNet's deep-filter executable is required for Standard denoise and Shorten Pauses. "
-        "Install DeepFilterNet and make sure deep-filter is available in PATH, or configure its "
-        "path in add-on settings."
+        "Install DeepFilterNet and make sure deep-filter is available in PATH."
     )
 
 

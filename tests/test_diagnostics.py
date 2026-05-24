@@ -16,21 +16,20 @@ from anki_audio_quick_editor.diagnostics import (
 from anki_audio_quick_editor.errors import MissingDeepFilterError
 
 
-def test_deep_filter_health_reports_missing_configured_executable(monkeypatch) -> None:
-    def fake_find_deep_filter(configured_path: str) -> Path:
-        assert configured_path == "/missing/deep filter"
+def test_deep_filter_health_reports_missing_executable(monkeypatch) -> None:
+    def fake_find_deep_filter() -> Path:
         raise MissingDeepFilterError("deep-filter is missing")
 
     monkeypatch.setattr("anki_audio_quick_editor.audio_processor.find_deep_filter", fake_find_deep_filter)
     run_calls: list[object] = []
     monkeypatch.setattr("anki_audio_quick_editor.diagnostics.subprocess.run", lambda *args, **kwargs: run_calls.append((args, kwargs)))
 
-    health = build_deep_filter_health({"deep_filter_path": "/missing/deep filter"})
+    health = build_deep_filter_health({})
 
     assert health == {
         "available": False,
-        "path": "/missing/deep filter",
-        "source": "config",
+        "path": "",
+        "source": "",
         "version": "",
         "error": "deep-filter is missing",
     }
@@ -40,7 +39,7 @@ def test_deep_filter_health_reports_missing_configured_executable(monkeypatch) -
 def test_deep_filter_health_reports_os_error(monkeypatch) -> None:
     monkeypatch.setattr(
         "anki_audio_quick_editor.audio_processor.find_deep_filter",
-        lambda _configured_path: Path("/tools/deep-filter"),
+        lambda: Path("/tools/deep-filter"),
     )
 
     def fake_run(*_args, **_kwargs) -> None:
@@ -60,7 +59,7 @@ def test_deep_filter_health_reports_os_error(monkeypatch) -> None:
 def test_deep_filter_health_reports_timeout(monkeypatch) -> None:
     monkeypatch.setattr(
         "anki_audio_quick_editor.audio_processor.find_deep_filter",
-        lambda _configured_path: Path("/tools/deep-filter"),
+        lambda: Path("/tools/deep-filter"),
     )
 
     def fake_run(cmd, *_args, **_kwargs) -> None:
@@ -82,7 +81,7 @@ def test_deep_filter_health_reports_timeout(monkeypatch) -> None:
 def test_deep_filter_health_reports_nonzero_version_stderr_with_problematic_filename(monkeypatch) -> None:
     monkeypatch.setattr(
         "anki_audio_quick_editor.audio_processor.find_deep_filter",
-        lambda _configured_path: Path("/tools/deep-filter"),
+        lambda: Path("/tools/deep-filter"),
     )
 
     def fake_run(cmd, capture_output: bool, text: bool, check: bool, timeout: int) -> SimpleNamespace:
@@ -114,7 +113,7 @@ def test_health_checks_forward_window_visibility_kwargs(monkeypatch) -> None:
     run_kwargs: list[dict[str, object]] = []
     monkeypatch.setattr(
         "anki_audio_quick_editor.audio_processor.find_deep_filter",
-        lambda _configured_path: Path("/tools/deep-filter"),
+        lambda: Path("/tools/deep-filter"),
     )
     monkeypatch.setattr(
         "anki_audio_quick_editor.audio_processor.expected_bundled_tool_path",

@@ -99,7 +99,7 @@ def _render_deep_filter_pause_speedup_audio(
     artifacts.append(_artifact_record("source", source_path, "input"))
     artifacts.append({"id": "manifest", "path": str(manifest_path), "kind": "manifest", "exists": True})
     try:
-        deep_filter_path = find_deep_filter(config.deep_filter_path)
+        deep_filter_path = find_deep_filter()
         manifest["deep_filter_path"] = str(deep_filter_path)
         write_manifest()
         working_filters = build_working_original_filters(source_duration_ms, state)

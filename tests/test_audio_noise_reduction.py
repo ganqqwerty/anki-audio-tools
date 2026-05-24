@@ -53,7 +53,7 @@ def test_render_noise_reduced_audio_runs_prepare_deep_filter_and_encode(
     monkeypatch.setattr("anki_audio_quick_editor.audio_processor.find_ffmpeg", lambda _path: Path("/bin/ffmpeg"))
     monkeypatch.setattr(
         "anki_audio_quick_editor.audio_processor.find_deep_filter",
-        lambda _path: Path("/bin/deep-filter"),
+        lambda *_args: Path("/bin/deep-filter"),
     )
     monkeypatch.setattr("anki_audio_quick_editor.audio_processor.probe_duration_ms", lambda *_args: 1000)
 
@@ -70,7 +70,7 @@ def test_render_noise_reduced_audio_runs_prepare_deep_filter_and_encode(
     output = tmp_path / "cleaned.mp3"
     result = render_noise_reduced_audio(
         tmp_path / "source.mp3",
-        AudioProcessingConfig(deep_filter_path="/custom/deep-filter", deep_filter_post_filter=True),
+        AudioProcessingConfig(deep_filter_post_filter=True),
         output_path=output,
         on_command=commands.append,
     )
@@ -103,7 +103,7 @@ def test_render_noise_reduced_audio_reports_deep_filter_parameter_errors(
     monkeypatch.setattr("anki_audio_quick_editor.audio_processor.find_ffmpeg", lambda _path: Path("/bin/ffmpeg"))
     monkeypatch.setattr(
         "anki_audio_quick_editor.audio_processor.find_deep_filter",
-        lambda _path: Path("/bin/deep-filter"),
+        lambda *_args: Path("/bin/deep-filter"),
     )
 
     def fake_run(cmd: list[str], capture_output: bool, text: bool, check: bool) -> SimpleNamespace:
@@ -128,7 +128,7 @@ def test_render_noise_reduced_audio_reports_deep_filter_launch_errors(
     monkeypatch.setattr("anki_audio_quick_editor.audio_processor.find_ffmpeg", lambda _path: Path("/bin/ffmpeg"))
     monkeypatch.setattr(
         "anki_audio_quick_editor.audio_processor.find_deep_filter",
-        lambda _path: Path("/bin/deep-filter"),
+        lambda *_args: Path("/bin/deep-filter"),
     )
 
     def fake_run(cmd: list[str], capture_output: bool, text: bool, check: bool) -> SimpleNamespace:
@@ -155,7 +155,7 @@ def test_render_noise_reduced_audio_reports_prepare_failure_before_deep_filter(
     monkeypatch.setattr("anki_audio_quick_editor.audio_processor.find_ffmpeg", lambda _path: Path("/bin/ffmpeg"))
     monkeypatch.setattr(
         "anki_audio_quick_editor.audio_processor.find_deep_filter",
-        lambda _path: Path("/bin/deep-filter"),
+        lambda *_args: Path("/bin/deep-filter"),
     )
 
     def fake_run(cmd: list[str], capture_output: bool, text: bool, check: bool) -> SimpleNamespace:
@@ -185,7 +185,7 @@ def test_render_noise_reduced_audio_reports_encode_failure_after_deep_filter(
     monkeypatch.setattr("anki_audio_quick_editor.audio_processor.find_ffmpeg", lambda _path: Path("/bin/ffmpeg"))
     monkeypatch.setattr(
         "anki_audio_quick_editor.audio_processor.find_deep_filter",
-        lambda _path: Path("/bin/deep-filter"),
+        lambda *_args: Path("/bin/deep-filter"),
     )
 
     def fake_run(cmd: list[str], capture_output: bool, text: bool, check: bool) -> SimpleNamespace:
@@ -218,7 +218,7 @@ def test_render_noise_reduced_audio_uses_default_temp_output_path(
     monkeypatch.setattr("anki_audio_quick_editor.audio_processor.find_ffmpeg", lambda _path: Path("/bin/ffmpeg"))
     monkeypatch.setattr(
         "anki_audio_quick_editor.audio_processor.find_deep_filter",
-        lambda _path: Path("/bin/deep-filter"),
+        lambda *_args: Path("/bin/deep-filter"),
     )
     monkeypatch.setattr("anki_audio_quick_editor.audio_processor.probe_duration_ms", lambda *_args: 1234)
 

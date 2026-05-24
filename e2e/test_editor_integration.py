@@ -133,11 +133,12 @@ def test_editor_settings_save_refreshes_current_editor_button_modes(
         )["text"] == "Opened settings."
         dialog = anki_audio_quick_editor._settings_dialog
 
-        click_selector(dialog, '[data-testid="toolbar-mode-settings-icon"]', timeout=5.0)
+        settings_icon_selector = '[data-testid="button-settings-settings-mode-icon"]'
+        click_selector(dialog, settings_icon_selector, timeout=5.0)
         wait_for_js_condition(
             dialog,
-            "document.querySelector('[data-testid=\"toolbar-mode-settings-icon\"]')?.getAttribute('aria-pressed')",
-            lambda value: value == "true",
+            f"document.querySelector({json.dumps(settings_icon_selector)})?.checked",
+            lambda value: value is True,
             timeout=5.0,
         )
 

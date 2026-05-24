@@ -61,7 +61,7 @@ def render_noise_reduced_audio(
 ) -> AudioProcessingResult:
     """Render a noise-reduced MP3 using the external DeepFilterNet executable."""
     ffmpeg_path = find_ffmpeg(config.ffmpeg_path)
-    deep_filter_path = find_deep_filter(config.deep_filter_path)
+    deep_filter_path = find_deep_filter()
     if output_path is None:
         output_path = Path(tempfile.mkstemp(prefix="aqe_denoised_", suffix=".mp3")[1])
 

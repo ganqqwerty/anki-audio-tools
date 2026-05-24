@@ -30,7 +30,6 @@
     "pause_aggressiveness",
     "output_format",
     "ffmpeg_path",
-    "deep_filter_path",
     "deep_filter_post_filter",
     "dpdfnet_attn_limit_db",
     "denoise_algorithm",
@@ -177,9 +176,6 @@
       "enum": ["mp3", "m4a", "wav", "flac"]
     },
     "ffmpeg_path": {
-      "type": "string"
-    },
-    "deep_filter_path": {
       "type": "string"
     },
     "deep_filter_post_filter": {

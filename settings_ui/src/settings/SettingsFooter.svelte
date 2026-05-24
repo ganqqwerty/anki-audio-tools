@@ -30,18 +30,16 @@
 
 <style>
   .footer {
-    backdrop-filter: blur(10px);
-    background: color-mix(in srgb, var(--canvas-elevated, Canvas) 92%, transparent);
-    border: 1px solid color-mix(in srgb, var(--border, currentColor) 78%, transparent);
-    border-radius: 20px;
-    bottom: 16px;
-    box-shadow: 0 12px 32px color-mix(in srgb, black 10%, transparent);
+    align-items: center;
+    background: var(--canvas, Canvas);
+    border-top: 1px solid color-mix(in srgb, var(--border, currentColor) 78%, transparent);
     display: flex;
     gap: 16px;
     justify-content: space-between;
     margin: 20px auto 0;
     max-width: 920px;
-    padding: 16px 18px;
+    padding: 14px 0 0;
+    bottom: 0;
     position: sticky;
     z-index: 10;
   }
@@ -53,9 +51,8 @@
 
   @media (max-width: 720px) {
     .footer {
-      bottom: 12px;
       flex-direction: column;
-      padding: 14px;
+      padding-top: 12px;
     }
 
     .footer-actions {

@@ -40,7 +40,7 @@ def test_render_audio_pause_pipeline_records_launch_error_for_out_of_disk(
     monkeypatch.setattr("anki_audio_quick_editor.audio_processor.find_ffmpeg", lambda _path: Path("/bin/ffmpeg"))
     monkeypatch.setattr(
         "anki_audio_quick_editor.audio_processor.find_deep_filter",
-        lambda _path: Path("/bin/deep-filter"),
+        lambda *_args: Path("/bin/deep-filter"),
     )
     monkeypatch.setattr("anki_audio_quick_editor.audio_processor.probe_duration_ms", lambda *_args: 1000)
 
@@ -74,18 +74,22 @@ def test_render_audio_pause_pipeline_records_launch_error_for_out_of_disk(
     not FFMPEG_AVAILABLE,
     reason=FFMPEG_SKIP_REASON,
 )
-def test_render_audio_remove_pauses_preserves_short_pause(tmp_path: Path) -> None:
+def test_render_audio_remove_pauses_preserves_short_pause(monkeypatch, tmp_path: Path) -> None:
     source = tmp_path / "short_pause.wav"
     output = tmp_path / "short_pause.mp3"
     artifact_root = tmp_path / "artifacts"
     fake_deep_filter = _fake_deep_filter_executable(tmp_path)
+    monkeypatch.setattr(
+        "anki_audio_quick_editor.audio_processor.find_deep_filter",
+        lambda *_args: fake_deep_filter,
+    )
     _generate_short_pause_clip(source)
     source_duration_ms = probe_duration_ms(source, AudioProcessingConfig())
 
     result = render_audio(
         source,
         AudioEditState("short_pause.wav", remove_internal_pauses_enabled=True),
-        AudioProcessingConfig(deep_filter_path=str(fake_deep_filter)),
+        AudioProcessingConfig(),
         output_path=output,
         artifact_root=artifact_root,
     )
@@ -109,18 +113,22 @@ def test_render_audio_remove_pauses_preserves_short_pause(tmp_path: Path) -> Non
     not FFMPEG_AVAILABLE,
     reason=FFMPEG_SKIP_REASON,
 )
-def test_render_audio_remove_pauses_compresses_obvious_long_pause(tmp_path: Path) -> None:
+def test_render_audio_remove_pauses_compresses_obvious_long_pause(monkeypatch, tmp_path: Path) -> None:
     source = tmp_path / "long_pause.wav"
     output = tmp_path / "long_pause.mp3"
     artifact_root = tmp_path / "artifacts"
     fake_deep_filter = _fake_deep_filter_executable(tmp_path)
+    monkeypatch.setattr(
+        "anki_audio_quick_editor.audio_processor.find_deep_filter",
+        lambda *_args: fake_deep_filter,
+    )
     _generate_long_pause_clip(source)
     source_duration_ms = probe_duration_ms(source, AudioProcessingConfig())
 
     result = render_audio(
         source,
         AudioEditState("long_pause.wav", remove_internal_pauses_enabled=True),
-        AudioProcessingConfig(deep_filter_path=str(fake_deep_filter)),
+        AudioProcessingConfig(),
         output_path=output,
         artifact_root=artifact_root,
     )
@@ -155,6 +163,7 @@ def test_render_audio_remove_pauses_compresses_obvious_long_pause(tmp_path: Path
     reason=FFMPEG_SKIP_REASON,
 )
 def test_render_audio_remove_pauses_keeps_partial_manifest_on_deep_filter_failure(
+    monkeypatch,
     tmp_path: Path,
 ) -> None:
     clear_latest_pause_pipeline_support_incident()
@@ -162,13 +171,17 @@ def test_render_audio_remove_pauses_keeps_partial_manifest_on_deep_filter_failur
     output = tmp_path / "long_pause.mp3"
     artifact_root = tmp_path / "artifacts"
     fake_deep_filter = _fake_deep_filter_executable(tmp_path, fail=True)
+    monkeypatch.setattr(
+        "anki_audio_quick_editor.audio_processor.find_deep_filter",
+        lambda *_args: fake_deep_filter,
+    )
     _generate_long_pause_clip(source)
 
     with pytest.raises(AudioProcessingError, match="fake deep-filter failed"):
         render_audio(
             source,
             AudioEditState("long_pause.wav", remove_internal_pauses_enabled=True),
-            AudioProcessingConfig(deep_filter_path=str(fake_deep_filter)),
+            AudioProcessingConfig(),
             output_path=output,
             artifact_root=artifact_root,
         )
@@ -195,18 +208,23 @@ def test_render_audio_remove_pauses_keeps_partial_manifest_on_deep_filter_failur
     reason=FFMPEG_SKIP_REASON,
 )
 def test_render_audio_remove_pauses_preserves_quiet_micro_word_between_pauses(
+    monkeypatch,
     tmp_path: Path,
 ) -> None:
     source = tmp_path / "quiet_micro_word.wav"
     output = tmp_path / "quiet_micro_word.mp3"
     fake_deep_filter = _fake_deep_filter_executable(tmp_path)
+    monkeypatch.setattr(
+        "anki_audio_quick_editor.audio_processor.find_deep_filter",
+        lambda *_args: fake_deep_filter,
+    )
     _generate_quiet_micro_word_clip(source)
     source_duration_ms = probe_duration_ms(source, AudioProcessingConfig())
 
     result = render_audio(
         source,
         AudioEditState("quiet_micro_word.wav", remove_internal_pauses_enabled=True),
-        AudioProcessingConfig(deep_filter_path=str(fake_deep_filter)),
+        AudioProcessingConfig(),
         output_path=output,
         artifact_root=tmp_path / "artifacts",
     )

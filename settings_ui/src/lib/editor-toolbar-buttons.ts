@@ -46,38 +46,32 @@ export const DEFAULT_VISIBLE_EDITOR_BUTTONS = [
   "aqe:analyze",
   "aqe:show-file",
   "aqe:share",
-  "aqe:convert",
   "aqe:remove-pauses",
   "aqe:denoise-standard",
-  "aqe:pitch-hum",
   "aqe:slower",
   "aqe:faster",
-  "aqe:volume-down",
-  "aqe:volume-up",
   "aqe:undo",
   "aqe:redo",
   "aqe:settings",
 ] as const satisfies readonly EditorCommand[];
 
 export const DEFAULT_EDITOR_BUTTON_MODES = {
-  "aqe:play": EditorButtonMode.Text,
-  "aqe:analyze": EditorButtonMode.Text,
-  "aqe:show-file": EditorButtonMode.Text,
-  "aqe:share": EditorButtonMode.Text,
+  "aqe:play": EditorButtonMode.Icon,
+  "aqe:analyze": EditorButtonMode.Icon,
+  "aqe:show-file": EditorButtonMode.Icon,
+  "aqe:share": EditorButtonMode.Icon,
   "aqe:convert": EditorButtonMode.Text,
   "aqe:remove-pauses": EditorButtonMode.Text,
   "aqe:denoise-standard": EditorButtonMode.Text,
   "aqe:pitch-hum": EditorButtonMode.Text,
-  "aqe:slower": EditorButtonMode.Text,
-  "aqe:faster": EditorButtonMode.Text,
-  "aqe:volume-down": EditorButtonMode.Text,
-  "aqe:volume-up": EditorButtonMode.Text,
-  "aqe:undo": EditorButtonMode.Text,
-  "aqe:redo": EditorButtonMode.Text,
-  "aqe:settings": EditorButtonMode.Text,
-} as const satisfies Record<(typeof DEFAULT_VISIBLE_EDITOR_BUTTONS)[number], EditorButtonDisplayMode>;
-
-const DEFAULT_VISIBLE_EDITOR_BUTTON_SET = new Set<EditorCommand>(DEFAULT_VISIBLE_EDITOR_BUTTONS);
+  "aqe:slower": EditorButtonMode.Icon,
+  "aqe:faster": EditorButtonMode.Icon,
+  "aqe:volume-down": EditorButtonMode.Icon,
+  "aqe:volume-up": EditorButtonMode.Icon,
+  "aqe:undo": EditorButtonMode.Icon,
+  "aqe:redo": EditorButtonMode.Icon,
+  "aqe:settings": EditorButtonMode.Icon,
+} as const satisfies EditorButtonModes;
 
 function formatDenoiseAlgorithm(value: "standard" | "rnnoise" | "dpdfnet" | "voice_only"): string {
   if (value === "rnnoise") return t("settings.denoise_algorithm.rnnoise");
@@ -217,9 +211,10 @@ export function visibleToolbarButtons(
   visibleCommands: readonly EditorCommand[] | undefined,
 ): readonly ToolbarButtonSpec[] {
   if (!Array.isArray(visibleCommands)) return buttons;
+  const availableCommands = new Set(buttons.map((button) => button.command));
   const requested = new Set(
     visibleCommands.filter((command): command is EditorCommand =>
-      DEFAULT_VISIBLE_EDITOR_BUTTON_SET.has(command),
+      availableCommands.has(command),
     ),
   );
   return buttons.filter((button) => requested.has(button.command));
@@ -231,6 +226,7 @@ export function buttonDisplayMode(
 ): EditorButtonDisplayMode {
   const configuredMode = modes?.[command];
   if (configuredMode === EditorButtonMode.Icon) return EditorButtonMode.Icon;
+  if (configuredMode === EditorButtonMode.Text) return EditorButtonMode.Text;
   return (
     DEFAULT_EDITOR_BUTTON_MODES[command as keyof typeof DEFAULT_EDITOR_BUTTON_MODES] ??
     EditorButtonMode.Text

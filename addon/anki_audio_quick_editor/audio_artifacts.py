@@ -72,7 +72,6 @@ def _source_file_record(source_path: Path, duration_ms: int) -> dict[str, object
 def _pause_pipeline_config_snapshot(config: AudioProcessingConfig) -> dict[str, object]:
     return {
         "ffmpeg_path": config.ffmpeg_path,
-        "deep_filter_path": config.deep_filter_path,
         "deep_filter_post_filter": config.deep_filter_post_filter,
         "internal_pause_silence_threshold_db": config.internal_pause_silence_threshold_db,
         "internal_pause_threshold_ms": config.internal_pause_threshold_ms,
@@ -106,4 +105,3 @@ def _sha256_file(path: Path) -> str:
         for chunk in iter(lambda: file.read(1024 * 1024), b""):
             digest.update(chunk)
     return digest.hexdigest()
-
