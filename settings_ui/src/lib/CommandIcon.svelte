@@ -27,6 +27,7 @@
   import VolumeX from "@lucide/svelte/icons/volume-x";
   import Waves from "@lucide/svelte/icons/waves";
   import X from "@lucide/svelte/icons/x";
+  import SelectionRemoveOutsideIcon from "./icons/SelectionRemoveOutsideIcon.svelte";
 
   import type { CommandIconName } from "./icon-types.js";
 
@@ -41,9 +42,6 @@
     size?: number;
     strokeWidth?: number;
   } = $props();
-  const iconUid = Math.random().toString(36).slice(2, 10);
-  const insidePatternId = `aqe-selection-inside-${iconUid}`;
-  const outsidePatternId = `aqe-selection-outside-${iconUid}`;
 </script>
 
 <span class={className} aria-hidden="true">
@@ -80,42 +78,9 @@
   {:else if icon === "scissors"}
     <Scissors {size} {strokeWidth} />
   {:else if icon === "selection-remove-inside"}
-    <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width={strokeWidth} stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-      <defs>
-        <pattern
-          id={insidePatternId}
-          patternUnits="userSpaceOnUse"
-          width="4"
-          height="4"
-          patternTransform="rotate(45)"
-        >
-          <line x1="0" y1="0" x2="0" y2="4" stroke="currentColor" stroke-width="1" />
-        </pattern>
-      </defs>
-      <rect width="18" height="18" x="3" y="3" rx="2" />
-      <path d="M9 3v18" />
-      <path d="M15 3v18" />
-      <rect x="9" y="3" width="6" height="18" fill={`url(#${insidePatternId})`} stroke="none" />
-    </svg>
+    <Scissors {size} {strokeWidth} />
   {:else if icon === "selection-remove-outside"}
-    <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width={strokeWidth} stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-      <defs>
-        <pattern
-          id={outsidePatternId}
-          patternUnits="userSpaceOnUse"
-          width="4"
-          height="4"
-          patternTransform="rotate(45)"
-        >
-          <line x1="0" y1="0" x2="0" y2="4" stroke="currentColor" stroke-width="1" />
-        </pattern>
-      </defs>
-      <rect width="18" height="18" x="3" y="3" rx="2" />
-      <path d="M9 3v18" />
-      <path d="M15 3v18" />
-      <rect x="3" y="3" width="6" height="18" fill={`url(#${outsidePatternId})`} stroke="none" />
-      <rect x="15" y="3" width="6" height="18" fill={`url(#${outsidePatternId})`} stroke="none" />
-    </svg>
+    <SelectionRemoveOutsideIcon {size} {strokeWidth} />
   {:else if icon === "settings"}
     <Settings {size} {strokeWidth} />
   {:else if icon === "share"}
