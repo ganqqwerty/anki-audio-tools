@@ -10,6 +10,7 @@ from pathlib import Path
 
 import pytest
 
+from e2e.conftest import import_runtime_addon_module
 from e2e.helpers import generate_tone
 
 FORMAT_FIXTURES = (
@@ -156,22 +157,22 @@ def test_trim_left_renders_shorter_recording(
     tmp_path: Path,
     ffmpeg_config,
 ) -> None:
-    from anki_audio_quick_editor.audio_processor import probe_duration_ms, render_audio
-    from anki_audio_quick_editor.audio_state import AudioEditState
+    audio_processor = import_runtime_addon_module(".audio_processor")
+    AudioEditState = import_runtime_addon_module(".audio_state").AudioEditState
 
     del anki_mw
     source = tmp_path / "sentence with spaces.wav"
     output = tmp_path / "trimmed.mp3"
     generate_tone(ffmpeg_config, source, duration_s=2.0)
 
-    original_duration_ms = probe_duration_ms(source, ffmpeg_config)
-    render_audio(
+    original_duration_ms = audio_processor.probe_duration_ms(source, ffmpeg_config)
+    audio_processor.render_audio(
         source,
         AudioEditState(source_file=source.name, left_trim_ms=500),
         ffmpeg_config,
         output_path=output,
     )
-    trimmed_duration_ms = probe_duration_ms(output, ffmpeg_config)
+    trimmed_duration_ms = audio_processor.probe_duration_ms(output, ffmpeg_config)
 
     assert 1900 <= original_duration_ms <= 2100
     assert 1350 <= trimmed_duration_ms <= 1650
@@ -184,22 +185,22 @@ def test_speed_up_renders_shorter_mp3(
     tmp_path: Path,
     ffmpeg_config,
 ) -> None:
-    from anki_audio_quick_editor.audio_processor import probe_duration_ms, render_audio
-    from anki_audio_quick_editor.audio_state import AudioEditState
+    audio_processor = import_runtime_addon_module(".audio_processor")
+    AudioEditState = import_runtime_addon_module(".audio_state").AudioEditState
 
     del anki_mw
     source = tmp_path / "speed-source.wav"
     output = tmp_path / "faster.mp3"
     generate_tone(ffmpeg_config, source, duration_s=2.0)
 
-    original_duration_ms = probe_duration_ms(source, ffmpeg_config)
-    render_audio(
+    original_duration_ms = audio_processor.probe_duration_ms(source, ffmpeg_config)
+    audio_processor.render_audio(
         source,
         AudioEditState(source_file=source.name, speed=1.25),
         ffmpeg_config,
         output_path=output,
     )
-    faster_duration_ms = probe_duration_ms(output, ffmpeg_config)
+    faster_duration_ms = audio_processor.probe_duration_ms(output, ffmpeg_config)
 
     assert 1500 <= faster_duration_ms <= 1750
     assert faster_duration_ms < original_duration_ms - 250
@@ -211,11 +212,8 @@ def test_volume_gain_renders_new_mp3_with_db_filter(
     tmp_path: Path,
     ffmpeg_config,
 ) -> None:
-    from anki_audio_quick_editor.audio_processor import (
-        format_ffmpeg_command,
-        render_audio,
-    )
-    from anki_audio_quick_editor.audio_state import AudioEditState
+    audio_processor = import_runtime_addon_module(".audio_processor")
+    AudioEditState = import_runtime_addon_module(".audio_state").AudioEditState
 
     del anki_mw
     source = tmp_path / "volume-source.wav"
@@ -223,13 +221,13 @@ def test_volume_gain_renders_new_mp3_with_db_filter(
     quieter = tmp_path / "quieter.mp3"
     generate_tone(ffmpeg_config, source, duration_s=1.0)
 
-    louder_result = render_audio(
+    louder_result = audio_processor.render_audio(
         source,
         AudioEditState(source_file=source.name, volume_db=6.0),
         ffmpeg_config,
         output_path=louder,
     )
-    quieter_result = render_audio(
+    quieter_result = audio_processor.render_audio(
         source,
         AudioEditState(source_file=source.name, volume_db=-6.0),
         ffmpeg_config,
@@ -238,8 +236,8 @@ def test_volume_gain_renders_new_mp3_with_db_filter(
 
     assert louder.is_file()
     assert quieter.is_file()
-    assert "volume=6.00dB" in format_ffmpeg_command(louder_result.command)
-    assert "volume=-6.00dB" in format_ffmpeg_command(quieter_result.command)
+    assert "volume=6.00dB" in audio_processor.format_ffmpeg_command(louder_result.command)
+    assert "volume=-6.00dB" in audio_processor.format_ffmpeg_command(quieter_result.command)
 
 
 # noinspection PyUnusedLocal
@@ -251,15 +249,15 @@ def test_common_audio_input_format_renders_to_mp3(
     extension: str,
     output_args: tuple[str, ...],
 ) -> None:
-    from anki_audio_quick_editor.audio_processor import probe_duration_ms, render_audio
-    from anki_audio_quick_editor.audio_state import AudioEditState
+    audio_processor = import_runtime_addon_module(".audio_processor")
+    AudioEditState = import_runtime_addon_module(".audio_state").AudioEditState
 
     del anki_mw
     source = tmp_path / f"common-input.{extension}"
     output = tmp_path / f"rendered-{extension}.mp3"
     _generate_audio_fixture(ffmpeg_config, source, output_args)
 
-    result = render_audio(
+    result = audio_processor.render_audio(
         source,
         AudioEditState(source_file=source.name, volume_db=-1.0),
         ffmpeg_config,
@@ -270,29 +268,24 @@ def test_common_audio_input_format_renders_to_mp3(
     assert result.output_path == output
     assert result.output_path.suffix == ".mp3"
     assert "libmp3lame" in result.command
-    assert probe_duration_ms(output, ffmpeg_config) > 0
+    assert audio_processor.probe_duration_ms(output, ffmpeg_config) > 0
 
 
 def test_final_save_writes_new_anki_media_without_overwriting_original(
     anki_mw,
     ffmpeg_config,
 ) -> None:
-    from anki_audio_quick_editor.audio_processor import (
-        make_output_filename,
-        probe_duration_ms,
-        render_audio,
-        temp_final_path,
-    )
-    from anki_audio_quick_editor.audio_state import AudioEditState
+    audio_processor = import_runtime_addon_module(".audio_processor")
+    AudioEditState = import_runtime_addon_module(".audio_state").AudioEditState
 
     media_dir = Path(anki_mw.col.media.dir())
     source = media_dir / "original_sentence.wav"
     generate_tone(ffmpeg_config, source, duration_s=1.5)
     original_bytes = source.read_bytes()
 
-    desired_name = make_output_filename(source.name)
-    rendered_path = temp_final_path(desired_name)
-    render_audio(
+    desired_name = audio_processor.make_output_filename(source.name)
+    rendered_path = audio_processor.temp_final_path(desired_name)
+    audio_processor.render_audio(
         source,
         AudioEditState(source_file=source.name, left_trim_ms=400),
         ffmpeg_config,
@@ -304,7 +297,7 @@ def test_final_save_writes_new_anki_media_without_overwriting_original(
     assert saved_name.endswith(".mp3")
     assert saved_path.is_file()
     assert source.read_bytes() == original_bytes
-    assert probe_duration_ms(saved_path, ffmpeg_config) < probe_duration_ms(source, ffmpeg_config)
+    assert audio_processor.probe_duration_ms(saved_path, ffmpeg_config) < audio_processor.probe_duration_ms(source, ffmpeg_config)
 
 
 # noinspection PyUnusedLocal
@@ -314,11 +307,7 @@ def test_pitch_hum_algorithms_keep_unvoiced_regions_silent(
     ffmpeg_config,
 ) -> None:
     pytest.importorskip("parselmouth")
-    from anki_audio_quick_editor.audio_processor import (
-        probe_duration_ms,
-        render_pitch_hum_audio,
-        render_pitch_tier_hum_audio,
-    )
+    audio_processor = import_runtime_addon_module(".audio_processor")
 
     del anki_mw
     source = tmp_path / "voiced-silence-voiced.wav"
@@ -326,8 +315,8 @@ def test_pitch_hum_algorithms_keep_unvoiced_regions_silent(
     pitch_tier = tmp_path / "pitch-tier-hum.mp3"
     _write_voiced_silence_voiced_wav(source)
 
-    render_pitch_hum_audio(source, ffmpeg_config, output_path=direct)
-    render_pitch_tier_hum_audio(source, ffmpeg_config, output_path=pitch_tier)
+    audio_processor.render_pitch_hum_audio(source, ffmpeg_config, output_path=direct)
+    audio_processor.render_pitch_tier_hum_audio(source, ffmpeg_config, output_path=pitch_tier)
 
     for output in (direct, pitch_tier):
         samples = _decode_mono_pcm(ffmpeg_config, output)
@@ -336,7 +325,7 @@ def test_pitch_hum_algorithms_keep_unvoiced_regions_silent(
             _region_rms(samples, 0.82, 0.98),
         )
         gap_rms = _region_rms(samples, 0.47, 0.63)
-        assert 900 <= probe_duration_ms(output, ffmpeg_config) <= 1250
+        assert 900 <= audio_processor.probe_duration_ms(output, ffmpeg_config) <= 1250
         assert voiced_rms > 200
         assert gap_rms < voiced_rms * 0.25
 
@@ -348,14 +337,14 @@ def test_pitch_tier_hum_removes_original_harmonic_timbre(
     ffmpeg_config,
 ) -> None:
     pytest.importorskip("parselmouth")
-    from anki_audio_quick_editor.audio_processor import render_pitch_tier_hum_audio
+    audio_processor = import_runtime_addon_module(".audio_processor")
 
     del anki_mw
     source = tmp_path / "rich-harmonic-source.wav"
     pitch_tier = tmp_path / "pitch-tier-hum.mp3"
     _write_rich_pitch_wav(source)
 
-    render_pitch_tier_hum_audio(source, ffmpeg_config, output_path=pitch_tier)
+    audio_processor.render_pitch_tier_hum_audio(source, ffmpeg_config, output_path=pitch_tier)
 
     source_ratio = _upper_harmonic_ratio(_read_wav_pcm(source), 0.12, 0.72)
     pitch_tier_ratio = _upper_harmonic_ratio(_decode_mono_pcm(ffmpeg_config, pitch_tier), 0.12, 0.72)
@@ -369,28 +358,23 @@ def test_dpdfnet_renders_from_locked_source_release_asset(
     tmp_path: Path,
     ffmpeg_config,
 ) -> None:
-    from anki_audio_quick_editor.audio_processor import (
-        current_platform_key,
-        find_dpdfnet_bundle,
-        probe_duration_ms,
-        render_dpdfnet_audio,
-    )
+    audio_processor = import_runtime_addon_module(".audio_processor")
 
     del anki_mw
-    if current_platform_key() != "macos-arm64":
+    if audio_processor.current_platform_key() != "macos-arm64":
         pytest.skip("DPDFNet Lite is bundled for macos-arm64 only in v1.")
 
-    dpdfnet_path = find_dpdfnet_bundle()
+    dpdfnet_path = audio_processor.find_dpdfnet_bundle()
     assert dpdfnet_path.parts[-3:] == ("bin", "macos-arm64", "dpdfnet")
 
     source = tmp_path / "dpdfnet-source.wav"
     output = tmp_path / "dpdfnet-rendered.mp3"
     generate_tone(ffmpeg_config, source, duration_s=0.8)
 
-    result = render_dpdfnet_audio(source, ffmpeg_config, output_path=output)
+    result = audio_processor.render_dpdfnet_audio(source, ffmpeg_config, output_path=output)
 
     assert result.output_path == output
     assert result.command[:2] == (str(dpdfnet_path), "enhance")
     assert output.is_file()
     assert output.suffix == ".mp3"
-    assert probe_duration_ms(output, ffmpeg_config) > 0
+    assert audio_processor.probe_duration_ms(output, ffmpeg_config) > 0

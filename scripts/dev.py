@@ -19,7 +19,7 @@ from scripts.dev_tasks.coverage import PYTHON_COVERAGE_FAIL_UNDER, cmd_coverage,
 from scripts.dev_tasks.frontend import cmd_build, cmd_build_ui, cmd_test_svelte
 from scripts.dev_tasks.process import _run, _run_capture, set_verbose
 from scripts.dev_tasks.pytest_runner import _run_pytest
-from scripts.dev_tasks.python_env import _anki_bin_dir, _die, _find_anki_python
+from scripts.dev_tasks.python_env import _anki_bin_dir, _die, _find_anki_python, cmd_link_addon
 from scripts.dev_tasks.quality import format_locale_catalog_report, locale_catalog_violations, _mutmut_fix_stats_prefix_mismatch, _radon_complexity_violations, _radon_maintainability_violations
 from scripts.dev_tasks.quality_tools import cmd_qodana
 from scripts.dev_tasks.repository import cmd_file_lines
@@ -319,6 +319,7 @@ def cmd_release_smoke() -> int:
 
 COMMANDS: dict[str, tuple[Callable[[], int], str]] = {
     "setup": (cmd_setup, "One-time setup: install dev deps, create symlink, npm install"),
+    "link-addon": (cmd_link_addon, "Point Anki's local numeric add-on symlink at this worktree"),
     "architecture-report": (cmd_architecture_report, "Inspect executable architecture contracts and report violations"),
     "test": (cmd_test, "Run unit + architecture tests"),
     "test-e2e": (cmd_test_e2e, "Build frontend bundles, then run e2e tests (requires Anki runtime)"),

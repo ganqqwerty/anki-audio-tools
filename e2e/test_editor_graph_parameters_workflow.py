@@ -9,6 +9,7 @@ from pathlib import Path
 import pytest
 from tests.prosody_language_fixtures import PRAAT_SKIP_REASON
 
+from e2e.conftest import import_runtime_addon_module
 from e2e.editor_graph_helpers import _click_graph_and_wait
 from e2e.editor_language_helpers import _rendered_pitch_points_js
 from e2e.editor_note_helpers import (
@@ -71,7 +72,7 @@ def test_graph_smoothness_changes_real_ffmpeg_pcm_rendered_pitch_density(
     ffmpeg_config,
     monkeypatch,
 ) -> None:
-    from anki_audio_quick_editor import prosody_analyzer
+    prosody_analyzer = import_runtime_addon_module(".prosody_analyzer")
 
     monkeypatch.setattr(prosody_analyzer, "is_praat_available", lambda: False)
     media_dir = Path(anki_mw.col.media.dir())

@@ -5,6 +5,7 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
+from e2e.conftest import import_runtime_addon_module
 from e2e.editor_audio_generation_helpers import _fake_deep_filter_executable
 from e2e.editor_note_helpers import (
     ADDON_NUMERIC_ID,
@@ -32,8 +33,8 @@ def test_grouped_volume_and_speed_split_buttons_apply_local_values_without_chang
     anki_mw,
     ffmpeg_config,
 ) -> None:
-    from anki_audio_quick_editor.audio_processor import probe_duration_ms
-    from anki_audio_quick_editor.editor_integration import _SESSIONS
+    probe_duration_ms = import_runtime_addon_module(".audio_processor").probe_duration_ms
+    _SESSIONS = import_runtime_addon_module(".editor_integration")._SESSIONS
 
     media_dir = Path(anki_mw.col.media.dir())
     source = media_dir / "editor_split_volume_speed_source.wav"

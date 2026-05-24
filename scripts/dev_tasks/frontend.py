@@ -8,7 +8,7 @@ from pathlib import Path
 
 from scripts.dev_tasks.contracts import cmd_contracts_generate
 from scripts.dev_tasks.process import _run
-from scripts.dev_tasks.python_env import _die
+from scripts.dev_tasks.python_env import _die, _warn_if_addon_symlink_mismatch
 
 ROOT = Path(__file__).resolve().parents[2]
 SETTINGS_UI_DIR = ROOT / "settings_ui"
@@ -22,7 +22,10 @@ def cmd_build_ui() -> int:
     contracts_rc = cmd_contracts_generate()
     if contracts_rc != 0:
         return contracts_rc
-    return _run(["npm", "run", "build"], cwd=SETTINGS_UI_DIR, label="frontend webview bundle build")
+    rc = _run(["npm", "run", "build"], cwd=SETTINGS_UI_DIR, label="frontend webview bundle build")
+    if rc == 0:
+        _warn_if_addon_symlink_mismatch()
+    return rc
 
 
 def cmd_build() -> int:

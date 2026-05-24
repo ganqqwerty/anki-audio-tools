@@ -5,6 +5,7 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
+from e2e.conftest import import_runtime_addon_module
 from e2e.editor_note_helpers import (
     ADDON_NUMERIC_ID,
     _basic_audio_note,
@@ -82,7 +83,7 @@ def test_volume_split_button_uses_settings_default_and_local_value(
     anki_mw,
     ffmpeg_config,
 ) -> None:
-    from anki_audio_quick_editor.editor_integration import _SESSIONS
+    _SESSIONS = import_runtime_addon_module(".editor_integration")._SESSIONS
 
     media_dir = Path(anki_mw.col.media.dir())
     source = media_dir / "editor_split_volume_source.wav"

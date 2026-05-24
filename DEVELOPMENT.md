@@ -27,11 +27,23 @@ This:
 
 The local development install is a symlink from Anki's `addons21/1000000002` to `addon/anki_audio_quick_editor/`. Anki stores per-add-on user config in `meta.json` inside the add-on folder, and `meta.json` is intentionally git-ignored.
 
-The real Anki development add-on follows the symlink in the main checkout. If you are working from a feature worktree such as `.worktrees/<name>`, launching real Anki will not show that worktree's code unless you first merge the worktree back into the main checkout or temporarily repoint `~/Library/Application Support/Anki2/addons21/1000000002` at the worktree's `addon/anki_audio_quick_editor/`. Repoint it back before switching tasks so manual testing does not accidentally exercise an old worktree.
+The real Anki development add-on follows the symlink target. If you are working from a feature worktree, run:
+
+```bash
+python3 scripts/dev.py link-addon
+```
+
+This repoints `~/Library/Application Support/Anki2/addons21/1000000002` at the current worktree's `addon/anki_audio_quick_editor/` and refuses to overwrite a real directory. Repoint it again when you switch worktrees so manual testing does not accidentally exercise old code. `python3 scripts/dev.py info` and frontend builds warn when the live Anki symlink target differs from the current worktree.
+
+## Runtime Package Name
+
+Anki imports add-ons by installed folder name. In local development and AnkiWeb installs, that name is numeric, such as `1000000002`, even though this source tree keeps the friendly package path `addon/anki_audio_quick_editor/`.
+
+Runtime code that lazily imports sibling modules must use package-relative imports such as `import_module(".audio_processor", package=__package__)`. Do not add production `sys.path` hacks or a canonical `sys.modules["anki_audio_quick_editor"]` alias; those can create duplicate module state under real Anki. Unit tests may keep importing `anki_audio_quick_editor` directly because they exercise the source package. E2E tests should import runtime add-on modules through `e2e.conftest.import_runtime_addon_module(...)`.
 
 E2E tests must copy the add-on into their temporary `ANKI_BASE` instead of symlinking back to the repo. Otherwise, test-only config writes can leak into the real development add-on. The most visible symptom is manual Anki clicks behaving differently from defaults because test settings were written into `addon/anki_audio_quick_editor/meta.json`.
 
-If that happens, remove `addon/anki_audio_quick_editor/meta.json` or use the settings dialog to reset defaults. The E2E fixture should keep excluding `meta.json`, logs, caches, and artifact directories from the copied add-on tree.
+If that happens, remove `addon/anki_audio_quick_editor/meta.json` or use the settings dialog to reset defaults. The E2E fixture should keep excluding `meta.json`, logs, caches, and artifact directories from the copied add-on tree, and should keep the temporary copy installed under `1000000002` so numeric-package runtime bugs are visible.
 
 ## Runtime Dependencies
 

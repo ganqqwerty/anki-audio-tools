@@ -82,22 +82,104 @@ def _anki_bin_dir(anki_python: Path) -> Path:
     return anki_python.parent
 
 
-def _setup_addon_symlink() -> None:
+def _anki_addons_dir() -> Path | None:
     system = platform.system()
     if system == "Darwin":
-        addons_dir = Path.home() / "Library" / "Application Support" / "Anki2" / "addons21"
-    elif system == "Linux":
-        addons_dir = Path.home() / ".local" / "share" / "Anki2" / "addons21"
-    else:
-        addons_dir = None
+        return Path.home() / "Library" / "Application Support" / "Anki2" / "addons21"
+    if system == "Linux":
+        return Path.home() / ".local" / "share" / "Anki2" / "addons21"
+    return None
+
+
+def _addon_symlink_path() -> Path | None:
+    addons_dir = _anki_addons_dir()
+    if addons_dir is None:
+        return None
+    return addons_dir / ADDON_SYMLINK_ID
+
+
+def _resolved_addon_dir() -> Path:
+    return ADDON_DIR.resolve()
+
+
+def _symlink_target(link: Path) -> Path | None:
+    if not link.is_symlink():
+        return None
+    return link.resolve(strict=False)
+
+
+def _format_addon_link_status() -> str:
+    link = _addon_symlink_path()
+    if link is None:
+        return f"unsupported on {platform.system()}"
+    if not link.exists() and not link.is_symlink():
+        return f"missing at {link}"
+    if not link.is_symlink():
+        return f"real filesystem entry at {link}"
+    target = _symlink_target(link)
+    return f"{link} -> {target}"
+
+
+def _warn_if_addon_symlink_mismatch() -> None:
+    link = _addon_symlink_path()
+    if link is None or not link.is_symlink():
+        return
+    target = _symlink_target(link)
+    current = _resolved_addon_dir()
+    if target != current:
+        print(
+            "WARNING: live Anki add-on "
+            f"{ADDON_SYMLINK_ID} points at {target}, not this worktree's add-on {current}."
+        )
+        print("         Run: python3 scripts/dev.py link-addon")
+
+
+def _print_addon_symlink_info() -> None:
+    print(f"Anki add-on:  {_format_addon_link_status()}")
+    _warn_if_addon_symlink_mismatch()
+
+
+def _setup_addon_symlink() -> None:
+    addons_dir = _anki_addons_dir()
     if addons_dir and addons_dir.is_dir():
         link = addons_dir / ADDON_SYMLINK_ID
-        if link.is_symlink() or link.exists():
+        if link.is_symlink():
+            print(f"  Already exists: {link} -> {_symlink_target(link)}")
+            _warn_if_addon_symlink_mismatch()
+            return
+        if link.exists():
             print(f"  Already exists: {link}")
-        else:
-            link.symlink_to(ADDON_DIR)
-            print(f"  Created: {link} -> {ADDON_DIR}")
+            return
+        link.symlink_to(ADDON_DIR)
+        print(f"  Created: {link} -> {ADDON_DIR}")
     elif addons_dir:
         print(f"  Skipped: {addons_dir} does not exist (launch Anki once first)")
     else:
-        print(f"  Skipped: symlink creation not supported on {system}")
+        print(f"  Skipped: symlink creation not supported on {platform.system()}")
+
+
+def cmd_link_addon() -> int:
+    link = _addon_symlink_path()
+    if link is None:
+        print(f"ERROR: add-on symlink creation is not supported on {platform.system()}", file=sys.stderr)
+        return 1
+    if not link.parent.is_dir():
+        print(f"ERROR: {link.parent} does not exist. Launch Anki once first.", file=sys.stderr)
+        return 1
+    current = _resolved_addon_dir()
+    if link.is_symlink():
+        target = _symlink_target(link)
+        if target == current:
+            print(f"Already linked: {link} -> {current}")
+            return 0
+        link.unlink()
+        link.symlink_to(ADDON_DIR)
+        print(f"Repointed: {link} -> {current}")
+        print(f"Previous target: {target}")
+        return 0
+    if link.exists():
+        print(f"ERROR: refusing to overwrite non-symlink add-on path: {link}", file=sys.stderr)
+        return 1
+    link.symlink_to(ADDON_DIR)
+    print(f"Created: {link} -> {current}")
+    return 0

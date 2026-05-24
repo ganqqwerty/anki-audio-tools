@@ -6,6 +6,7 @@ import subprocess
 import time
 from pathlib import Path
 
+from e2e.conftest import runtime_addon_import_path
 from e2e.editor_audio_generation_helpers import _generate_tone_silence_tone
 from e2e.editor_graph_helpers import (
     _click_graph_and_wait,
@@ -179,7 +180,7 @@ def test_visualizer_failure_is_non_mutating_and_edit_buttons_still_work(
     note = _basic_audio_note(anki_mw, source.name)
     _configure_ffmpeg(anki_mw, ffmpeg_config)
     monkeypatch.setattr(
-        "anki_audio_quick_editor.prosody_cache.analyze_prosody",
+        runtime_addon_import_path(".prosody_cache", "analyze_prosody"),
         lambda *_args: (_ for _ in ()).throw(RuntimeError("visualizer exploded")),
     )
 

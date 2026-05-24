@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import time
 
+from e2e.conftest import import_runtime_addon_module
 from e2e.editor_graph_helpers import (
     _wait_for_html_playback,
 )
@@ -241,9 +242,7 @@ def test_delete_region_after_resize_uses_resized_range(
     anki_mw,
     ffmpeg_config,
 ) -> None:
-    from anki_audio_quick_editor.audio_processor import (
-        probe_duration_ms,
-    )
+    probe_duration_ms = import_runtime_addon_module(".audio_processor").probe_duration_ms
 
     media_dir, _source, note, editor, parent, _track = _open_tone_editor(
         anki_mw,

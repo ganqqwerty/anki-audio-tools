@@ -5,6 +5,7 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
+from e2e.conftest import import_runtime_addon_module
 from e2e.editor_audio_generation_helpers import (
     _fake_deep_filter_executable,
     _generate_noisy_pause_and_clean_analysis,
@@ -29,7 +30,7 @@ def test_shorten_pauses_uses_deep_filter_analysis_and_retains_artifacts(
     ffmpeg_config,
     tmp_path,
 ) -> None:
-    from anki_audio_quick_editor.audio_processor import probe_duration_ms
+    probe_duration_ms = import_runtime_addon_module(".audio_processor").probe_duration_ms
 
     media_dir = Path(anki_mw.col.media.dir())
     source = media_dir / "editor_shorten_pause_source.wav"
@@ -108,10 +109,11 @@ def test_shorten_pauses_failure_leaves_note_unchanged_and_records_manifest(
     ffmpeg_config,
     tmp_path,
 ) -> None:
-    from anki_audio_quick_editor.support import (
-        clear_latest_pause_pipeline_support_incident,
-        latest_pause_pipeline_support_incident,
+    support = import_runtime_addon_module(".support")
+    clear_latest_pause_pipeline_support_incident = (
+        support.clear_latest_pause_pipeline_support_incident
     )
+    latest_pause_pipeline_support_incident = support.latest_pause_pipeline_support_incident
 
     media_dir = Path(anki_mw.col.media.dir())
     source = media_dir / "editor_shorten_pause_failure_source.wav"

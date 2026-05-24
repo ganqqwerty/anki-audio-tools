@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
+from e2e.conftest import import_runtime_addon_module
 from e2e.editor_graph_helpers import (
     _click_graph_and_wait,
     _graph_state_js,
@@ -62,10 +63,9 @@ def test_delete_region_button_cuts_middle_region_and_redraws_graph(
     anki_mw,
     ffmpeg_config,
 ) -> None:
-    from anki_audio_quick_editor.audio_processor import (
-        AudioProcessingConfig,
-        probe_duration_ms,
-    )
+    audio_processor = import_runtime_addon_module(".audio_processor")
+    AudioProcessingConfig = audio_processor.AudioProcessingConfig
+    probe_duration_ms = audio_processor.probe_duration_ms
 
     media_dir = Path(anki_mw.col.media.dir())
     source = media_dir / "editor_region_delete_middle.wav"
@@ -126,10 +126,9 @@ def test_delete_rest_button_keeps_selected_middle_region_and_redraws_graph(
     anki_mw,
     ffmpeg_config,
 ) -> None:
-    from anki_audio_quick_editor.audio_processor import (
-        AudioProcessingConfig,
-        probe_duration_ms,
-    )
+    audio_processor = import_runtime_addon_module(".audio_processor")
+    AudioProcessingConfig = audio_processor.AudioProcessingConfig
+    probe_duration_ms = audio_processor.probe_duration_ms
 
     media_dir = Path(anki_mw.col.media.dir())
     source = media_dir / "editor_delete_rest_middle.wav"
