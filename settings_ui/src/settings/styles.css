@@ -1,15 +1,9 @@
 .settings-card {
-  background:
-    linear-gradient(
-      180deg,
-      color-mix(in srgb, var(--canvas-elevated, Canvas) 84%, white 16%),
-      var(--canvas-elevated, Canvas)
-    );
-  border: 1px solid color-mix(in srgb, var(--border, currentColor) 78%, transparent);
-  border-radius: 24px;
-  box-shadow: 0 12px 32px color-mix(in srgb, black 8%, transparent);
+  background: transparent;
+  border: 0;
+  border-radius: 0;
   color: var(--fg, currentColor);
-  padding: 24px;
+  padding: 0;
 }
 
 .settings-card > h2,
@@ -212,11 +206,6 @@
 }
 
 @media (max-width: 720px) {
-  .settings-card {
-    border-radius: 20px;
-    padding: 20px;
-  }
-
   .settings-grid {
     grid-template-columns: 1fr;
   }

@@ -179,9 +179,7 @@
   }
 
   .settings-root {
-    background:
-      radial-gradient(circle at top, color-mix(in srgb, var(--canvas-elevated, Canvas) 74%, transparent), transparent 48%),
-      var(--canvas, Canvas);
+    background: var(--canvas, Canvas);
     box-sizing: border-box;
     color: var(--fg, CanvasText);
     font-family: inherit;
@@ -225,11 +223,10 @@
   }
 
   .version-pill {
-    background: color-mix(in srgb, var(--canvas-elevated, Canvas) 88%, transparent);
     border: 1px solid color-mix(in srgb, var(--border, currentColor) 76%, transparent);
-    border-radius: 999px;
+    border-radius: 7px;
     font-weight: 600;
-    padding: 10px 14px;
+    padding: 4px 8px;
   }
 
   .tab-nav {
