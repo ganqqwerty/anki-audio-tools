@@ -11,6 +11,7 @@ const FALLBACK_MESSAGES: Messages = {
   "settings.show_ffmpeg_commands": "Show ffmpeg commands while processing",
   "settings.repeat_playback_by_default": "Repeat playback by default",
   "settings.repeat_pause_seconds": "Pause between repeats (s)",
+  "settings.share_target": "Default share target",
   "settings.show_graph_by_default": "Show graph by default",
   "settings.toolbar_visibility.title": "Editor toolbar buttons",
   "settings.toolbar_visibility.summary": "Choose which quick editor buttons are shown beside audio fields.",

@@ -100,6 +100,8 @@ export function buildSplitDefaultSaveRequestFromState(
     request.defaults.graphVoiceLock = state.graphVoiceLock;
   } else if (command === "aqe:pitch-hum") {
     request.defaults.pitchHumMode = state.pitchHumMode;
+  } else if (command === "aqe:share") {
+    request.defaults.shareTarget = state.shareTarget;
   }
   return request;
 }

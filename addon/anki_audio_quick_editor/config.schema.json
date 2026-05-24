@@ -10,6 +10,7 @@
     "show_ffmpeg_commands",
     "repeat_playback_by_default",
     "repeat_pause_seconds",
+    "share_target",
     "show_graph_by_default",
     "visible_editor_buttons",
     "editor_button_modes",
@@ -59,6 +60,10 @@
       "type": "number",
       "minimum": 0,
       "maximum": 10
+    },
+    "share_target": {
+      "type": "string",
+      "enum": ["catbox", "litterbox"]
     },
     "show_graph_by_default": {
       "type": "boolean"

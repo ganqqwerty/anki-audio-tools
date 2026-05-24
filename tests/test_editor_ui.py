@@ -24,6 +24,7 @@ def test_injection_script_embeds_audio_field_indices_and_bundle() -> None:
     assert config["showGraphByDefault"] is False
     assert config["visibleEditorButtons"] is None
     assert config["splitButtonDefaults"]["repeatPauseSeconds"] == 0.0
+    assert config["splitButtonDefaults"]["shareTarget"] == "litterbox"
     assert config["splitButtonDefaults"]["pitchHumMode"] == "direct"
     assert config["splitButtonDefaults"]["dpdfnetAttnLimitDb"] == 12.0
     assert config["splitButtonDefaults"]["outputFormat"] == "mp3"

@@ -184,14 +184,14 @@ describe("editor inline split-button command integration", () => {
     });
   });
 
-  it("dispatches share commands with the selected host and no save-default button", async () => {
+  it("dispatches share commands with the selected host and exposes save-default", async () => {
     initializeEditorRuntime({ audioFieldIndices: [0] });
     scan({ audioFieldIndices: [0] });
 
     document.querySelector<HTMLButtonElement>('[data-testid="aqe-split-0-share-menu"]')!.click();
     await Promise.resolve();
 
-    expect(document.querySelector('[data-testid="aqe-split-0-share-save-default"]')).toBeNull();
+    expect(document.querySelector('[data-testid="aqe-split-0-share-save-default"]')).not.toBeNull();
 
     document.querySelector<HTMLButtonElement>('[data-testid="aqe-split-0-share-preset-catbox"]')!.click();
     document.querySelector<HTMLButtonElement>('[data-testid="aqe-button-0-share"]')!.click();
@@ -202,6 +202,29 @@ describe("editor inline split-button command integration", () => {
       fieldOrd: 0,
       shareTarget: "catbox",
     });
+  });
+
+  it("promotes the selected share host to defaults", async () => {
+    window.__aqeSplitButtonStates = {};
+    initializeEditorRuntime({ audioFieldIndices: [0, 1] });
+    scan({ audioFieldIndices: [0, 1] });
+
+    document.querySelector<HTMLButtonElement>('[data-testid="aqe-split-1-share-menu"]')!.click();
+    await Promise.resolve();
+    document.querySelector<HTMLButtonElement>('[data-testid="aqe-split-1-share-preset-catbox"]')!.click();
+    document.querySelector<HTMLButtonElement>('[data-testid="aqe-split-1-share-save-default"]')!.click();
+    await Promise.resolve();
+
+    expect(bridgeCommands()).toContain("aqe:save-split-defaults");
+    expect(window.__aqePopPendingSplitDefaultSaveRequest?.()).toEqual({
+      defaults: {
+        shareTarget: "catbox",
+      },
+      fieldOrd: 1,
+    });
+    expect(window.__AQE_EDITOR_CONFIG__?.splitButtonDefaults?.shareTarget).toBe("catbox");
+    expect(window.__aqeSplitButtonStates?.[0]?.shareTarget).toBe("catbox");
+    expect(window.__aqeSplitButtonStates?.[1]?.shareTarget).toBe("catbox");
   });
 
   it("dispatches volume and speed split payloads with local values", async () => {

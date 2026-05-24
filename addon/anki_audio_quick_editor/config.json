@@ -1,11 +1,12 @@
 {
   "$schema": "./config.schema.json",
-  "_config_version": 20,
+  "_config_version": 21,
   "enabled": true,
   "debug_logging": false,
   "show_ffmpeg_commands": false,
   "repeat_playback_by_default": false,
   "repeat_pause_seconds": 0.0,
+  "share_target": "litterbox",
   "show_graph_by_default": false,
   "visible_editor_buttons": [
     "aqe:play",

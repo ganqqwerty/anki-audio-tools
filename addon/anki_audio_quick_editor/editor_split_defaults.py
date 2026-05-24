@@ -10,6 +10,7 @@ from .prosody_settings import sanitize_graph_settings
 
 MAX_REPEAT_PAUSE_SECONDS = 10.0
 PITCH_HUM_MODES = frozenset({"direct", "pitch_tier"})
+SHARE_TARGETS = frozenset({"catbox", "litterbox"})
 
 
 def save_split_defaults_from_frontend(editor: Any, deps: Any) -> None:
@@ -47,6 +48,7 @@ def split_default_config_updates(raw_payload: Any) -> dict[str, object]:
     updates.update(_audio_parameter_updates(raw_defaults))
     updates.update(_repeat_updates(raw_defaults))
     updates.update(_pitch_hum_updates(raw_defaults))
+    updates.update(_share_updates(raw_defaults))
     updates.update(_graph_updates(raw_defaults))
     return updates
 
@@ -89,6 +91,11 @@ def _repeat_updates(raw_defaults: dict[str, object]) -> dict[str, object]:
 def _pitch_hum_updates(raw_defaults: dict[str, object]) -> dict[str, object]:
     pitch_hum_mode = _enum_or_none(raw_defaults.get("pitchHumMode"), PITCH_HUM_MODES)
     return {"pitch_hum_mode": pitch_hum_mode} if pitch_hum_mode is not None else {}
+
+
+def _share_updates(raw_defaults: dict[str, object]) -> dict[str, object]:
+    share_target = _enum_or_none(raw_defaults.get("shareTarget"), SHARE_TARGETS)
+    return {"share_target": share_target} if share_target is not None else {}
 
 
 def _graph_updates(raw_defaults: dict[str, object]) -> dict[str, object]:

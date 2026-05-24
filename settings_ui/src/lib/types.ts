@@ -38,6 +38,7 @@ export {
   Level,
   OutputFormat,
   PitchHumMode,
+  ShareTarget,
   VisibleEditorButton,
 } from "./generated/contracts.js";
 

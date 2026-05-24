@@ -13,16 +13,18 @@ import {
   OutputFormat,
   PauseAggressiveness,
   PitchHumMode,
+  ShareTarget,
   VisibleEditorButton,
 } from "../src/lib/types.js";
 
 const defaultConfig = {
-  _config_version: 20,
+  _config_version: 21,
   enabled: true,
   debug_logging: false,
   show_ffmpeg_commands: false,
   repeat_playback_by_default: false,
   repeat_pause_seconds: 0,
+  share_target: ShareTarget.Litterbox,
   show_graph_by_default: false,
   visible_editor_buttons: [
     VisibleEditorButton.AqePlay,
@@ -200,16 +202,15 @@ describe("App", () => {
     render(App);
 
     const folderCard = screen.getByTestId("button-settings-show-file");
-    const shareCard = screen.getByTestId("button-settings-share");
 
     expect(within(folderCard).getByText("No extra settings")).toBeInTheDocument();
-    expect(within(shareCard).getByText("No extra settings")).toBeInTheDocument();
   });
 
   it("saves split button default settings", async () => {
     setInitialState();
 
     render(App);
+    await fireEvent.click(screen.getByTestId("share-target-catbox"));
     await fireEvent.click(screen.getByTestId(`pause-aggressiveness-${PauseAggressiveness.Aggressive}`));
     await fireEvent.click(screen.getByTestId(`denoise-algorithm-${DenoiseAlgorithm.Dpdfnet}`));
     await fireEvent.click(screen.getByTestId(`output-format-${OutputFormat.FLAC}`));
@@ -227,8 +228,10 @@ describe("App", () => {
       pause_aggressiveness: string;
       pitch_hum_mode: string;
       repeat_pause_seconds: number;
+      share_target: string;
     }>("settings.save");
     expect(config.pause_aggressiveness).toBe("aggressive");
+    expect(config.share_target).toBe("catbox");
     expect(config.output_format).toBe("flac");
     expect(config.denoise_algorithm).toBe("dpdfnet");
     expect(config.pitch_hum_mode).toBe("pitch_tier");

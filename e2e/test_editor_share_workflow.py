@@ -80,6 +80,46 @@ def test_share_button_uploads_to_litterbox_then_catbox_without_mutating_note(
         parent.close()
 
 
+def test_share_button_uses_saved_default_target(
+    anki_mw,
+    ffmpeg_config,
+    monkeypatch,
+) -> None:
+    from aqt.qt import QApplication
+
+    from anki_audio_quick_editor import file_sharing
+
+    uploads: list[tuple[str, str]] = []
+
+    def fake_upload(path: Path, target: str, timeout_s: float = 60.0) -> str:
+        assert timeout_s == 60.0
+        uploads.append((path.name, target))
+        return f"https://example.invalid/{target}/{path.name}"
+
+    monkeypatch.setattr(file_sharing, "upload_file", fake_upload)
+
+    media_dir = Path(anki_mw.col.media.dir())
+    source = media_dir / "editor_share_saved_default.wav"
+    generate_tone(ffmpeg_config, source, duration_s=0.5)
+    note = _basic_audio_note(anki_mw, source.name)
+    _configure_ffmpeg(anki_mw, ffmpeg_config, share_target="catbox")
+
+    editor, parent = _open_editor(anki_mw, note)
+    try:
+        wait_for_selector(editor.web, _button_selector("aqe:share"), timeout=10.0)
+        click_selector(editor.web, _button_selector("aqe:share"), timeout=5.0)
+        wait_for_condition(
+            lambda: QApplication.clipboard().text() == f"https://example.invalid/catbox/{source.name}",
+            timeout=5.0,
+            message="Share did not use the saved Catbox default",
+        )
+
+        assert uploads == [(source.name, "catbox")]
+    finally:
+        editor.set_note(None)
+        parent.close()
+
+
 def test_share_target_state_is_isolated_per_field(
     anki_mw,
     ffmpeg_config,

@@ -43,6 +43,7 @@ export interface SplitButtonDefaults {
   pauseAggressiveness: "gentle" | "normal" | "aggressive";
   pitchHumMode?: PitchHumMode;
   repeatPauseSeconds: number;
+  shareTarget?: "catbox" | "litterbox";
   speedStep: number;
   volumeStepDb: number;
 }
@@ -95,6 +96,7 @@ export interface FieldSplitButtonState {
   pitchHumMode: PitchHumMode;
   repeatPauseEdited: boolean;
   repeatPauseSeconds: number;
+  shareEdited: boolean;
   shareTarget: "catbox" | "litterbox";
   speedEdited: boolean;
   speedStep: number;
