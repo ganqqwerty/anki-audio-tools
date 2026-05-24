@@ -50,6 +50,7 @@ const DEFAULTS: CompleteSplitButtonDefaults = {
   pauseAggressiveness: "normal",
   pitchHumMode: "direct",
   repeatPauseSeconds: 0,
+  shareTarget: "litterbox",
   speedStep: 0.05,
   volumeStepDb: 3,
 };
@@ -86,6 +87,10 @@ function pitchHumModeOrDefault(value: unknown): PitchHumMode {
   return value === "pitch_tier" ? "pitch_tier" : "direct";
 }
 
+function shareTargetOrDefault(value: unknown): ShareTarget {
+  return value === "catbox" ? "catbox" : "litterbox";
+}
+
 export function getSplitButtonState(ord: number): FieldSplitButtonState {
   const defaults = splitButtonDefaults();
   const defaultGraphConnectShortDropoutsMs = clampGraphConnectShortDropoutsMs(defaults.graphConnectShortDropoutsMs);
@@ -101,6 +106,7 @@ export function getSplitButtonState(ord: number): FieldSplitButtonState {
   const defaultPitchHumMode = pitchHumModeOrDefault(defaults.pitchHumMode);
   const defaultDenoiseAlgorithm = defaults.denoiseAlgorithm;
   const defaultDpdfnetAttnLimitDb = clampDpdfnetAttnLimitDb(defaults.dpdfnetAttnLimitDb);
+  const defaultShareTarget = shareTargetOrDefault(defaults.shareTarget);
   const states = fieldStates();
   const existing = states[ord];
   if (existing) {
@@ -111,7 +117,11 @@ export function getSplitButtonState(ord: number): FieldSplitButtonState {
       existing.repeatPauseEdited = false;
     }
     if (runtimeState.shareTarget !== "catbox" && runtimeState.shareTarget !== "litterbox") {
-      runtimeState.shareTarget = "litterbox";
+      runtimeState.shareTarget = defaultShareTarget;
+      existing.shareEdited = false;
+    }
+    if (!existing.shareEdited && existing.shareTarget !== defaultShareTarget) {
+      existing.shareTarget = defaultShareTarget;
     }
     if (!existing.volumeEdited && existing.defaultVolumeStepDb !== defaultVolumeStepDb) {
       existing.defaultVolumeStepDb = defaultVolumeStepDb;
@@ -201,7 +211,8 @@ export function getSplitButtonState(ord: number): FieldSplitButtonState {
     pitchHumMode: defaultPitchHumMode,
     repeatPauseEdited: false,
     repeatPauseSeconds: defaultRepeatPauseSeconds,
-    shareTarget: "litterbox",
+    shareEdited: false,
+    shareTarget: defaultShareTarget,
     speedEdited: false,
     speedStep: defaultSpeedStep,
     volumeEdited: false,
@@ -277,6 +288,11 @@ function applyPromotedDefaultsToState(
     state.defaultPitchHumMode = pitchHumModeOrDefault(defaults.pitchHumMode);
     if (forceCurrentField || !state.pitchHumEdited) state.pitchHumMode = state.defaultPitchHumMode;
     if (forceCurrentField) state.pitchHumEdited = false;
+  }
+  if (values.shareTarget !== undefined) {
+    const nextShareTarget = shareTargetOrDefault(defaults.shareTarget);
+    if (forceCurrentField || !state.shareEdited) state.shareTarget = nextShareTarget;
+    if (forceCurrentField) state.shareEdited = false;
   }
   applyPromotedGraphDefaultsToState(state, defaults, values, forceCurrentField);
 }
@@ -366,6 +382,7 @@ export function setPitchHumModeForField(ord: number, value: PitchHumMode): Field
 
 export function setShareTargetForField(ord: number, value: ShareTarget): FieldSplitButtonState {
   const state = getSplitButtonState(ord);
+  state.shareEdited = true;
   state.shareTarget = value;
   return state;
 }

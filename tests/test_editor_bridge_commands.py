@@ -13,11 +13,19 @@ from anki_audio_quick_editor.editor_integration import (
     EditorSession,
     _handle_bridge_command,
 )
+from anki_audio_quick_editor.editor_split_defaults import split_default_config_updates
 
 
 def test_callback_wrappers_do_not_require_runtime_package_facades() -> None:
     assert not hasattr(editor_callbacks, "_facade")
     assert not hasattr(editor_frontend_callbacks, "_facade")
+
+
+def test_split_default_updates_accept_and_reject_share_target() -> None:
+    assert split_default_config_updates({"defaults": {"shareTarget": "catbox"}}) == {
+        "share_target": "catbox"
+    }
+    assert split_default_config_updates({"defaults": {"shareTarget": "invalid"}}) == {}
 
 
 def test_bridge_accepts_processing_json_payload(tmp_path: Path, monkeypatch) -> None:
@@ -246,6 +254,7 @@ def test_bridge_saves_split_button_defaults_from_pending_payload() -> None:
                         "pitchHumMode": "pitch_tier",
                         "repeatPauseSeconds": 20,
                         "repeatPlaybackByDefault": True,
+                        "shareTarget": "catbox",
                         "speedStep": 0.5,
                         "volumeStepDb": 20,
                     },
@@ -286,6 +295,7 @@ def test_bridge_saves_split_button_defaults_from_pending_payload() -> None:
         "pitch_hum_mode": "pitch_tier",
         "repeat_pause_seconds": 10.0,
         "repeat_playback_by_default": True,
+        "share_target": "catbox",
         "speed_step": 0.25,
         "volume_step_db": 12.0,
     }
@@ -383,4 +393,3 @@ def test_processing_command_cancels_graph_analysis_busy_state(tmp_path: Path, mo
     assert session.analysis_generations_by_field == {}
     assert session.analysis_generation == 5
     assert any("window.__aqeSetBusy" in call.args[0] and "(0, false" in call.args[0] for call in editor.web.eval.call_args_list)
-

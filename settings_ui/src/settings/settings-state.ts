@@ -8,6 +8,7 @@ import {
   OutputFormat,
   PauseAggressiveness,
   PitchHumMode,
+  ShareTarget,
   VisibleEditorButton,
 } from "$lib/types.js";
 import { DEFAULT_EDITOR_BUTTON_MODES } from "$lib/editor-toolbar-buttons.js";
@@ -31,12 +32,13 @@ export const DEFAULT_VISIBLE_EDITOR_BUTTONS = [
 
 export const FALLBACK_INITIAL_STATE: InitialState = {
   config: {
-    _config_version: 20,
+    _config_version: 21,
     enabled: true,
     debug_logging: false,
     show_ffmpeg_commands: false,
     repeat_playback_by_default: false,
     repeat_pause_seconds: 0,
+    share_target: ShareTarget.Litterbox,
     show_graph_by_default: false,
     visible_editor_buttons: [...DEFAULT_VISIBLE_EDITOR_BUTTONS],
     editor_button_modes: { ...DEFAULT_EDITOR_BUTTON_MODES },

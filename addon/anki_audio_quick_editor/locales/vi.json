@@ -11,6 +11,7 @@
   "settings.show_ffmpeg_commands": "Hiển thị thông tin gỡ lỗi trong khi xử lý",
   "settings.repeat_playback_by_default": "Lặp phát lại theo mặc định",
   "settings.repeat_pause_seconds": "Tạm dừng giữa các lần lặp (giây)",
+  "settings.share_target": "Default share target",
   "settings.show_graph_by_default": "Hiển thị biểu đồ theo mặc định",
   "settings.toolbar_visibility.title": "Editor toolbar buttons",
   "settings.toolbar_visibility.summary": "Choose which quick editor buttons are shown beside audio fields.",

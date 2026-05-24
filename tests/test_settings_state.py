@@ -12,12 +12,13 @@ from anki_audio_quick_editor.settings_state import (
 
 def _full_config() -> dict[str, object]:
     return {
-        "_config_version": 20,
+        "_config_version": 21,
         "enabled": True,
         "debug_logging": False,
         "show_ffmpeg_commands": False,
         "repeat_playback_by_default": False,
         "repeat_pause_seconds": 0.0,
+        "share_target": "litterbox",
         "show_graph_by_default": False,
         "visible_editor_buttons": [
             "aqe:play",

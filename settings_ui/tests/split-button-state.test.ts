@@ -113,6 +113,7 @@ describe("split button state", () => {
         pauseAggressiveness: "normal",
         pitchHumMode: "pitch_tier",
         repeatPauseSeconds: 1.5,
+        shareTarget: "catbox",
         speedStep: 0.05,
         volumeStepDb: 3,
       },
@@ -131,7 +132,7 @@ describe("split button state", () => {
     expect(getSplitButtonState(0).graphVoiceLock).toBe("stable");
     expect(getSplitButtonState(0).outputFormat).toBe("flac");
     expect(getSplitButtonState(0).pitchHumMode).toBe("pitch_tier");
-    expect(getSplitButtonState(0).shareTarget).toBe("litterbox");
+    expect(getSplitButtonState(0).shareTarget).toBe("catbox");
   });
 
   it("keeps volume state isolated per field", () => {
@@ -241,6 +242,17 @@ describe("split button state", () => {
     expect(getSplitButtonState(1).shareTarget).toBe("litterbox");
   });
 
+  it("builds share default save requests from local field state", () => {
+    setShareTargetForField(0, "catbox");
+
+    expect(buildSplitDefaultSaveRequest("aqe:share", 0)).toEqual({
+      defaults: {
+        shareTarget: "catbox",
+      },
+      fieldOrd: 0,
+    });
+  });
+
   it("builds graph payloads from local field state", () => {
     setGraphVoiceRangeForField(0, "child");
     setGraphRecordingConditionForField(0, "studio");
@@ -311,6 +323,20 @@ describe("split button state", () => {
     expect(getSplitButtonState(1).speedEdited).toBe(true);
     expect(getSplitButtonState(1).speedStep).toBe(0.2);
     expect(getSplitButtonState(2).speedStep).toBe(0.1);
+  });
+
+  it("promotes share target into runtime defaults", () => {
+    setShareTargetForField(0, "catbox");
+    setShareTargetForField(1, "litterbox");
+
+    promoteSplitDefaultsForField(0, { shareTarget: "catbox" });
+
+    expect(window.__AQE_EDITOR_CONFIG__?.splitButtonDefaults?.shareTarget).toBe("catbox");
+    expect(getSplitButtonState(0).shareEdited).toBe(false);
+    expect(getSplitButtonState(0).shareTarget).toBe("catbox");
+    expect(getSplitButtonState(1).shareEdited).toBe(true);
+    expect(getSplitButtonState(1).shareTarget).toBe("litterbox");
+    expect(getSplitButtonState(2).shareTarget).toBe("catbox");
   });
 
   it("keeps repeat pause state field-local without changing command payloads", () => {

@@ -137,6 +137,7 @@ def test_save_command_writes_config(anki_mw) -> None:
         "show_ffmpeg_commands": False,
         "repeat_playback_by_default": False,
         "repeat_pause_seconds": 0.0,
+        "share_target": "litterbox",
         "show_graph_by_default": False,
         "visible_editor_buttons": list(DEFAULT_VISIBLE_EDITOR_BUTTONS),
         "editor_button_modes": {
@@ -278,6 +279,44 @@ def test_pitch_hum_default_mode_select_saves_in_one_session(anki_mw) -> None:
 
     saved_config = mock_write.call_args.args[1]
     assert saved_config["pitch_hum_mode"] == "pitch_tier"
+
+
+def test_share_target_select_saves_in_one_session(anki_mw) -> None:
+    config = anki_mw.addonManager.getConfig("1000000002") or {}
+    config["share_target"] = "litterbox"
+    anki_mw.addonManager.writeConfig("1000000002", config)
+
+    dialog = _open_settings_dialog(anki_mw)
+    litterbox_selector = '[data-testid="share-target-litterbox"]'
+    catbox_selector = '[data-testid="share-target-catbox"]'
+    save_selector = '[data-testid="settings-save"]'
+
+    initial = wait_for_js_condition(
+        dialog,
+        f"document.querySelector({json.dumps(litterbox_selector)})?.getAttribute('aria-checked')",
+        lambda value: value == "true",
+        timeout=5.0,
+    )
+    assert initial == "true"
+
+    click_selector(dialog, catbox_selector, timeout=5.0)
+    wait_for_js_condition(
+        dialog,
+        f"document.querySelector({json.dumps(catbox_selector)})?.getAttribute('aria-checked')",
+        lambda value: value == "true",
+        timeout=5.0,
+    )
+
+    with patch.object(
+        anki_mw.addonManager,
+        "writeConfig",
+        wraps=anki_mw.addonManager.writeConfig,
+    ) as mock_write:
+        click_selector(dialog, save_selector, timeout=5.0)
+        wait_for_condition(lambda: mock_write.called, timeout=5.0)
+
+    saved_config = mock_write.call_args.args[1]
+    assert saved_config["share_target"] == "catbox"
 
 
 def test_toolbar_button_mode_toggle_saves_in_one_session(anki_mw) -> None:

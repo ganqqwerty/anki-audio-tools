@@ -70,6 +70,7 @@
     return (
       command === "aqe:play" ||
       command === "aqe:analyze" ||
+      command === "aqe:share" ||
       command === "aqe:convert" ||
       command === "aqe:remove-pauses" ||
       command === "aqe:denoise-standard" ||
@@ -133,6 +134,20 @@
             <span class="settings-label-text">{t("settings.show_graph_by_default")}</span>
           </label>
           <GraphSettingsFields bind:config />
+        {:else if button.command === "aqe:share"}
+          <label class="settings-field">
+            <span>{t("settings.share_target")}</span>
+            <SettingsChoiceGroup
+              ariaLabel={t("settings.share_target")}
+              options={["litterbox", "catbox"].map((value) => ({
+                label: t(`editor.share.target.${value}`),
+                value,
+              }))}
+              testId="share-target"
+              value={config.share_target}
+              onSelect={(value) => (config.share_target = value as Config["share_target"])}
+            />
+          </label>
         {:else if button.command === "aqe:convert"}
           <OutputFormatField bind:config />
         {:else if button.command === "aqe:remove-pauses"}

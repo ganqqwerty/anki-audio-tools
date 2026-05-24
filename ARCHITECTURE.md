@@ -109,12 +109,13 @@ Config defaults are stored in `config.json` and migrated into user config:
 
 ```json
 {
-  "_config_version": 20,
+  "_config_version": 21,
   "enabled": true,
   "debug_logging": false,
   "show_ffmpeg_commands": false,
   "repeat_playback_by_default": false,
   "repeat_pause_seconds": 0.0,
+  "share_target": "litterbox",
   "show_graph_by_default": false,
   "visible_editor_buttons": [
     "aqe:play",
@@ -171,7 +172,7 @@ Config defaults are stored in `config.json` and migrated into user config:
 ```
 
 `config_migration.py` deep-merges defaults into user config and stamps the current schema version.
-Editor split-button choices are field-local runtime overrides. Settings provide defaults for toolbar visibility/display mode, repeat playback and pause, prosody graph options, volume step, speed step, pause aggressiveness, convert target format, denoise algorithm, DPDFNet aggressiveness, and pitch hum mode, but changing a split-button value in one editor field does not write back to persisted config or other fields. See [`EDITOR_MODIFICATION_BUTTON_BEHAVIOR_RULES.md`](EDITOR_MODIFICATION_BUTTON_BEHAVIOR_RULES.md) for button defaults and non-persisted command choices.
+Editor split-button choices are field-local runtime overrides. Settings provide defaults for toolbar visibility/display mode, repeat playback and pause, Share target, prosody graph options, volume step, speed step, pause aggressiveness, convert target format, denoise algorithm, DPDFNet aggressiveness, and pitch hum mode, but changing a split-button value in one editor field does not write back to persisted config or other fields unless the user promotes that field's quick setting to defaults. See [`EDITOR_MODIFICATION_BUTTON_BEHAVIOR_RULES.md`](EDITOR_MODIFICATION_BUTTON_BEHAVIOR_RULES.md) for button defaults and non-persisted command choices.
 
 ## Source Of Truth
 

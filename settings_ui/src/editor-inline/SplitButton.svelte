@@ -345,7 +345,7 @@
             saveDefaultSaved={defaultSaved}
             shareTarget={shareTarget}
             {showRunButton}
-            showSaveDefault={button.command !== "aqe:share"}
+            showSaveDefault={true}
             speedStep={speedStep}
             targetOrd={target.ord}
             volumeStepDb={volumeStepDb}

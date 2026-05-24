@@ -20,6 +20,7 @@ import {
   OutputFormat,
   PauseAggressiveness,
   PitchHumMode,
+  ShareTarget,
   VisibleEditorButton,
   type Config,
 } from "../src/lib/types.js";
@@ -27,12 +28,13 @@ import { DEFAULT_EDITOR_BUTTON_MODES as DEFAULT_BUTTON_MODES } from "../src/lib/
 
 const pycmd = (globalThis as unknown as Record<string, ReturnType<typeof vi.fn>>)["pycmd"]!;
 const config: Config = {
-  _config_version: 20,
+  _config_version: 21,
   enabled: true,
   debug_logging: false,
   show_ffmpeg_commands: false,
   repeat_playback_by_default: false,
   repeat_pause_seconds: 0,
+  share_target: ShareTarget.Litterbox,
   show_graph_by_default: false,
   visible_editor_buttons: [
     VisibleEditorButton.AqePlay,

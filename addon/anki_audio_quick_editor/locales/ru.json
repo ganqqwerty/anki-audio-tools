@@ -11,6 +11,7 @@
   "settings.show_ffmpeg_commands": "Показывать отладочную информацию во время обработки",
   "settings.repeat_playback_by_default": "Повторять воспроизведение по умолчанию",
   "settings.repeat_pause_seconds": "Пауза между повторами (с)",
+  "settings.share_target": "Default share target",
   "settings.show_graph_by_default": "Показывать график по умолчанию",
   "settings.toolbar_visibility.title": "Editor toolbar buttons",
   "settings.toolbar_visibility.summary": "Choose which quick editor buttons are shown beside audio fields.",

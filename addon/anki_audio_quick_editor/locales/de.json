@@ -11,6 +11,7 @@
   "settings.show_ffmpeg_commands": "Debug-Informationen während der Verarbeitung anzeigen",
   "settings.repeat_playback_by_default": "Wiedergabe standardmäßig wiederholen",
   "settings.repeat_pause_seconds": "Pause zwischen Wiederholungen (s)",
+  "settings.share_target": "Default share target",
   "settings.show_graph_by_default": "Diagramm standardmäßig anzeigen",
   "settings.toolbar_visibility.title": "Editor toolbar buttons",
   "settings.toolbar_visibility.summary": "Choose which quick editor buttons are shown beside audio fields.",

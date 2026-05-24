@@ -11,6 +11,7 @@
   "settings.show_ffmpeg_commands": "處理時顯示除錯資訊",
   "settings.repeat_playback_by_default": "預設重複播放",
   "settings.repeat_pause_seconds": "重複之間暫停 (秒)",
+  "settings.share_target": "Default share target",
   "settings.show_graph_by_default": "預設顯示圖表",
   "settings.toolbar_visibility.title": "Editor toolbar buttons",
   "settings.toolbar_visibility.summary": "Choose which quick editor buttons are shown beside audio fields.",

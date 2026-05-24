@@ -46,7 +46,7 @@ Current split-button shapes:
 Every split quick setting must have a Settings default unless it is explicitly documented as a field-local-only choice.
 
 - Settings values initialize split-button quick settings when editor controls are created or refreshed.
-- Field-local quick setting changes never write back to persisted settings.
+- Field-local quick setting changes never write back to persisted settings unless the user clicks the promote-default control.
 - Changing Settings updates unedited field-local values when practical, but it must not overwrite a value the user already changed in that editor field.
 - Most split defaults are injected through `window.__AQE_EDITOR_CONFIG__.splitButtonDefaults`; `repeatPlaybackByDefault` is injected as a top-level editor runtime flag.
 - Python config schema, generated contracts, Settings UI, and editor runtime config must stay in sync for every persisted default.
@@ -57,6 +57,7 @@ Current split-button defaults include:
 |---------------|----------------|
 | Play repeat enabled | `repeat_playback_by_default` |
 | Play repeat pause | `repeat_pause_seconds` |
+| Share target | `share_target` |
 | Graph voice range | `graph_voice_range` |
 | Graph recording condition | `graph_recording_condition` |
 | Graph smoothness | `graph_smoothness` |
@@ -70,7 +71,7 @@ Current split-button defaults include:
 | Convert output format | `output_format` |
 | Pitch Hum mode | `pitch_hum_mode` |
 
-Share target is intentionally not persisted. The Share split menu defaults to Litterbox per field, lets the user pick Catbox or Litterbox locally, and does not expose a save-default control.
+Share target is persisted as a Settings default. The Share split menu initializes from `share_target`, lets the user pick Catbox or Litterbox locally per field, and exposes the same promote-default control as other split buttons.
 
 ## Editor And Batch Parity
 
@@ -187,7 +188,7 @@ These buttons are current UI surfaces that do not fully follow this modification
 |--------|------------------|--------------------------------------|
 | `aqe:play` | Split button for playback and repeat settings. It may use the current selection region and repeat pause values. | It does not render, replace media, write history, or update note fields. |
 | `aqe:analyze` | Split button for graph/prosody settings. It analyzes the current audio and renders an inline graph; Browser batch `graph` appends an SVG to a target field. | Editor Graph is analysis state, not a generated-audio modification. It does not replace the field's sound reference or push undo/redo history. |
-| `aqe:share` | Split button for Catbox/Litterbox upload. It uploads the current audio, copies a URL, keeps the note unchanged, and has no save-default control. | It has field-local quick settings and busy state, but it intentionally does not create generated media or mutate the note. |
+| `aqe:share` | Split button for Catbox/Litterbox upload. It uploads the current audio, copies a URL, keeps the note unchanged, initializes from the `share_target` Settings default, and can promote the field-local target to the default. | It has field-local quick settings and busy state, but it intentionally does not create generated media or mutate the note. |
 | `aqe:show-file` | Opens/reveals the current media file through the OS. | It has an external shell/file-manager side effect but no audio rendering, field replacement, or history behavior. |
 | `aqe:settings` | Opens the add-on Settings dialog. | It configures defaults and toolbar visibility, but it is not an audio-field modification. |
 | `aqe:convert` same-format request | Reports that the file is already in the target format and leaves the note unchanged. | This is an accepted no-op path for a modification button, so the normal render/replace/history/playback rules do not run. |
