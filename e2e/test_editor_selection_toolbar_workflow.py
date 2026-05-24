@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
+from e2e.conftest import import_runtime_addon_module
 from e2e.editor_graph_helpers import (
     _click_graph_and_wait,
     _graph_state_js,
@@ -282,10 +283,9 @@ def test_selection_toolbar_play_pause_uses_selected_html_audio(anki_mw, ffmpeg_c
 
 
 def test_selection_toolbar_delete_rest_keeps_selected_audio(anki_mw, ffmpeg_config) -> None:
-    from anki_audio_quick_editor.audio_processor import (
-        AudioProcessingConfig,
-        probe_duration_ms,
-    )
+    audio_processor = import_runtime_addon_module(".audio_processor")
+    AudioProcessingConfig = audio_processor.AudioProcessingConfig
+    probe_duration_ms = audio_processor.probe_duration_ms
 
     media_dir = Path(anki_mw.col.media.dir())
     source = media_dir / "editor_toolbar_delete_rest_source.wav"

@@ -6,6 +6,7 @@ import json
 import shutil
 from pathlib import Path
 
+from e2e.conftest import import_runtime_addon_module
 from e2e.editor_audio_generation_helpers import (
     _fake_deep_filter_executable,
 )
@@ -37,7 +38,7 @@ def test_standard_denoise_menu_runs_deep_filter_and_is_undoable(
     ffmpeg_config,
     tmp_path,
 ) -> None:
-    from anki_audio_quick_editor.audio_processor import probe_duration_ms
+    probe_duration_ms = import_runtime_addon_module(".audio_processor").probe_duration_ms
 
     media_dir = Path(anki_mw.col.media.dir())
     source = media_dir / "editor_standard_denoise_source.wav"

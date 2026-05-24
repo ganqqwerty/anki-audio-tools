@@ -10,6 +10,7 @@ from typing import Any
 
 from PyQt6.QtWidgets import QWidget
 
+from e2e.conftest import import_runtime_addon_module
 from e2e.helpers import click_selector, wait_for_condition, wait_for_js_condition
 
 ADDON_NUMERIC_ID = "1000000002"
@@ -112,8 +113,9 @@ def _configure_ffmpeg(anki_mw, ffmpeg_config, **overrides: Any) -> None:
 
 
 def _replace_bundled_deep_filter_for_e2e(source: Path) -> None:
-    from anki_audio_quick_editor.audio_tools import expected_bundled_tool_path
-
+    expected_bundled_tool_path = import_runtime_addon_module(
+        ".audio_tools"
+    ).expected_bundled_tool_path
     target = expected_bundled_tool_path("deep-filter")
     assert target is not None
     target.parent.mkdir(parents=True, exist_ok=True)
@@ -125,8 +127,9 @@ def _replace_bundled_deep_filter_for_e2e(source: Path) -> None:
 
 
 def _restore_bundled_deep_filter_for_e2e() -> None:
-    from anki_audio_quick_editor.audio_tools import expected_bundled_tool_path
-
+    expected_bundled_tool_path = import_runtime_addon_module(
+        ".audio_tools"
+    ).expected_bundled_tool_path
     target = expected_bundled_tool_path("deep-filter")
     if target is None:
         return

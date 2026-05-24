@@ -26,7 +26,7 @@ def render_batch_denoise(
     config: AudioProcessingConfig,
     output_path: Path,
 ) -> AudioProcessingResult:
-    facade = import_module("anki_audio_quick_editor.batch_operations")
+    facade = import_module(".batch_operations", package=__package__)
     renderers = {
         "standard": getattr(facade, "render_noise_reduced_audio", render_noise_reduced_audio),
         "rnnoise": getattr(facade, "render_rnnoise_audio", render_rnnoise_audio),
@@ -41,6 +41,6 @@ def render_batch_denoise(
 
 
 def skipped_batch_note(note_id: int, message: str) -> BatchNoteResult:
-    facade = import_module("anki_audio_quick_editor.batch_operations")
+    facade = import_module(".batch_operations", package=__package__)
     result_type = cast(Any, facade.BatchNoteResult)
     return cast(BatchNoteResult, result_type(note_id=note_id, status="skipped", message=message))

@@ -9,6 +9,7 @@ from unittest.mock import patch
 
 from PyQt6.QtWidgets import QApplication
 
+from e2e.conftest import import_runtime_addon_module
 from e2e.editor_graph_helpers import _graph_state_js, _wait_for_visualizer_track
 from e2e.editor_note_helpers import (
     _basic_audio_note,
@@ -215,8 +216,8 @@ def test_editor_settings_save_refreshes_current_editor_repeat_default(
     anki_mw,
     ffmpeg_config,
 ) -> None:
-    import anki_audio_quick_editor
-    from anki_audio_quick_editor.settings import SettingsDialog
+    runtime_addon = import_runtime_addon_module()
+    SettingsDialog = import_runtime_addon_module(".settings").SettingsDialog
 
     media_dir = Path(anki_mw.col.media.dir())
     source = media_dir / "editor_settings_repeat_source.wav"
@@ -247,11 +248,11 @@ def test_editor_settings_save_refreshes_current_editor_repeat_default(
         click_selector(editor.web, _button_selector("aqe:settings"), timeout=5.0)
         QApplication.processEvents()
         wait_for_condition(
-            lambda: isinstance(anki_audio_quick_editor._settings_dialog, SettingsDialog)
-            and anki_audio_quick_editor._settings_dialog.isVisible(),
+            lambda: isinstance(runtime_addon._settings_dialog, SettingsDialog)
+            and runtime_addon._settings_dialog.isVisible(),
             timeout=5.0,
         )
-        dialog = anki_audio_quick_editor._settings_dialog
+        dialog = runtime_addon._settings_dialog
         checkbox_selector = '[data-testid="repeat-playback-by-default"]'
         pause_selector = '[data-testid="repeat-pause-seconds"]'
         save_selector = '[data-testid="settings-save"]'

@@ -7,6 +7,7 @@ from pathlib import Path
 
 import pytest
 
+from e2e.conftest import runtime_addon_import_path
 from e2e.editor_audio_generation_helpers import _fake_deep_filter_executable
 from e2e.editor_graph_helpers import (
     _wait_for_visualizer_track,
@@ -123,7 +124,7 @@ def test_multi_field_processing_undo_redo_survives_graph_default_auto_analysis(
     fake_deep_filter, _deep_filter_log = _fake_deep_filter_executable(tmp_path)
     if command == "aqe:rnnoise":
         monkeypatch.setattr(
-            "anki_audio_quick_editor.editor_dependencies.render_rnnoise_audio",
+            runtime_addon_import_path(".editor_dependencies", "render_rnnoise_audio"),
             _fake_special_renderer,
         )
     _configure_ffmpeg(

@@ -8,6 +8,8 @@ import subprocess
 import sys
 from pathlib import Path
 
+from e2e.conftest import import_runtime_addon_module
+
 
 def _fake_deep_filter_executable(
     tmp_path: Path,
@@ -77,10 +79,10 @@ def _render_direct_deep_filter_reference(
     *,
     post_filter: bool,
 ) -> None:
-    from anki_audio_quick_editor.audio_processor import find_deep_filter
     from e2e.editor_note_helpers import _restore_bundled_deep_filter_for_e2e
 
     _restore_bundled_deep_filter_for_e2e()
+    find_deep_filter = import_runtime_addon_module(".audio_processor").find_deep_filter
     deep_filter = find_deep_filter("")
     work_dir = output_path.parent / "direct_deep_filter_work"
     input_wav = work_dir / "input_48k_mono.wav"

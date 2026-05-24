@@ -8,6 +8,7 @@ from unittest.mock import patch
 
 from PyQt6.QtWidgets import QApplication
 
+from e2e.conftest import import_runtime_addon_module
 from e2e.editor_note_helpers import (
     ADDON_NUMERIC_ID,
     DEFAULT_VISIBLE_EDITOR_BUTTONS,
@@ -65,8 +66,8 @@ def test_editor_settings_save_refreshes_current_editor_button_modes(
     anki_mw,
     ffmpeg_config,
 ) -> None:
-    import anki_audio_quick_editor
-    from anki_audio_quick_editor.settings import SettingsDialog
+    runtime_addon = import_runtime_addon_module()
+    SettingsDialog = import_runtime_addon_module(".settings").SettingsDialog
 
     original_config = anki_mw.addonManager.getConfig(ADDON_NUMERIC_ID) or {}
     media_dir = Path(anki_mw.col.media.dir())
@@ -112,8 +113,8 @@ def test_editor_settings_save_refreshes_current_editor_button_modes(
         click_selector(editor.web, _button_selector("aqe:settings"), timeout=5.0)
         QApplication.processEvents()
         wait_for_condition(
-            lambda: isinstance(anki_audio_quick_editor._settings_dialog, SettingsDialog)
-            and anki_audio_quick_editor._settings_dialog.isVisible(),
+            lambda: isinstance(runtime_addon._settings_dialog, SettingsDialog)
+            and runtime_addon._settings_dialog.isVisible(),
             timeout=5.0,
         )
         _wait_for_status(
@@ -122,8 +123,8 @@ def test_editor_settings_save_refreshes_current_editor_button_modes(
             timeout=10.0,
         )
         wait_for_condition(
-            lambda: isinstance(anki_audio_quick_editor._settings_dialog, SettingsDialog)
-            and anki_audio_quick_editor._settings_dialog.isVisible(),
+            lambda: isinstance(runtime_addon._settings_dialog, SettingsDialog)
+            and runtime_addon._settings_dialog.isVisible(),
             timeout=1.0,
         )
         assert _wait_for_status(
@@ -131,7 +132,7 @@ def test_editor_settings_save_refreshes_current_editor_button_modes(
             lambda status: status["text"] == "Opened settings.",
             timeout=2.0,
         )["text"] == "Opened settings."
-        dialog = anki_audio_quick_editor._settings_dialog
+        dialog = runtime_addon._settings_dialog
 
         settings_icon_selector = '[data-testid="button-settings-settings-mode-icon"]'
         click_selector(dialog, settings_icon_selector, timeout=5.0)
@@ -188,8 +189,8 @@ def test_editor_settings_close_without_save_reports_closed_status(
     anki_mw,
     ffmpeg_config,
 ) -> None:
-    import anki_audio_quick_editor
-    from anki_audio_quick_editor.settings import SettingsDialog
+    runtime_addon = import_runtime_addon_module()
+    SettingsDialog = import_runtime_addon_module(".settings").SettingsDialog
 
     media_dir = Path(anki_mw.col.media.dir())
     source = media_dir / "editor_settings_close_status_source.wav"
@@ -202,8 +203,8 @@ def test_editor_settings_close_without_save_reports_closed_status(
         click_selector(editor.web, _button_selector("aqe:settings"), timeout=5.0)
         QApplication.processEvents()
         wait_for_condition(
-            lambda: isinstance(anki_audio_quick_editor._settings_dialog, SettingsDialog)
-            and anki_audio_quick_editor._settings_dialog.isVisible(),
+            lambda: isinstance(runtime_addon._settings_dialog, SettingsDialog)
+            and runtime_addon._settings_dialog.isVisible(),
             timeout=5.0,
         )
         _wait_for_status(
@@ -211,7 +212,7 @@ def test_editor_settings_close_without_save_reports_closed_status(
             lambda status: status["text"] == "Opened settings.",
             timeout=10.0,
         )
-        dialog = anki_audio_quick_editor._settings_dialog
+        dialog = runtime_addon._settings_dialog
 
         click_selector(dialog, '[data-testid="settings-cancel"]', timeout=5.0)
         wait_for_condition(

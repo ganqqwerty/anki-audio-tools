@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
+from e2e.conftest import import_runtime_addon_module
 from e2e.editor_note_helpers import (
     _basic_audio_note,
     _button_selector,
@@ -31,7 +32,7 @@ def test_share_button_uploads_to_litterbox_then_catbox_without_mutating_note(
 ) -> None:
     from aqt.qt import QApplication
 
-    from anki_audio_quick_editor import file_sharing
+    file_sharing = import_runtime_addon_module(".file_sharing")
 
     uploads: list[tuple[str, str]] = []
 
@@ -87,7 +88,7 @@ def test_share_button_uses_saved_default_target(
 ) -> None:
     from aqt.qt import QApplication
 
-    from anki_audio_quick_editor import file_sharing
+    file_sharing = import_runtime_addon_module(".file_sharing")
 
     uploads: list[tuple[str, str]] = []
 
@@ -127,7 +128,7 @@ def test_share_target_state_is_isolated_per_field(
 ) -> None:
     from aqt.qt import QApplication
 
-    from anki_audio_quick_editor import file_sharing
+    file_sharing = import_runtime_addon_module(".file_sharing")
 
     uploads: list[tuple[str, str]] = []
 

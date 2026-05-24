@@ -7,6 +7,7 @@ from unittest.mock import patch
 
 from PyQt6.QtWidgets import QApplication
 
+from e2e.conftest import import_runtime_addon_module
 from e2e.editor_note_helpers import DEFAULT_VISIBLE_EDITOR_BUTTONS
 from e2e.helpers import (
     click_selector,
@@ -16,8 +17,8 @@ from e2e.helpers import (
 
 
 def _open_settings_dialog(anki_mw):
-    import anki_audio_quick_editor
-    from anki_audio_quick_editor.settings import SettingsDialog
+    runtime_addon = import_runtime_addon_module()
+    SettingsDialog = import_runtime_addon_module(".settings").SettingsDialog
 
     submenu = next(
         action.menu()
@@ -29,11 +30,11 @@ def _open_settings_dialog(anki_mw):
     QApplication.processEvents()
 
     wait_for_condition(
-        lambda: isinstance(anki_audio_quick_editor._settings_dialog, SettingsDialog)
-        and anki_audio_quick_editor._settings_dialog.isVisible(),
+        lambda: isinstance(runtime_addon._settings_dialog, SettingsDialog)
+        and runtime_addon._settings_dialog.isVisible(),
         timeout=5.0,
     )
-    return anki_audio_quick_editor._settings_dialog
+    return runtime_addon._settings_dialog
 
 
 def test_tools_menu_action_opens_settings_dialog(anki_mw, qtbot) -> None:
@@ -97,7 +98,7 @@ def test_settings_dialog_uses_anki_dark_theme_classes_and_readable_colors(anki_m
 
 
 def test_initial_state_is_embedded(anki_mw) -> None:
-    from anki_audio_quick_editor.settings import _render_settings_html
+    _render_settings_html = import_runtime_addon_module(".settings")._render_settings_html
 
     config = anki_mw.addonManager.getConfig("1000000002") or {}
     html = _render_settings_html(config)
@@ -105,7 +106,7 @@ def test_initial_state_is_embedded(anki_mw) -> None:
 
 
 def test_initial_state_shape(anki_mw) -> None:
-    from anki_audio_quick_editor.settings.initial_state import build_initial_state
+    build_initial_state = import_runtime_addon_module(".settings.initial_state").build_initial_state
 
     config = anki_mw.addonManager.getConfig("1000000002") or {}
     state = json.loads(build_initial_state(config))
@@ -127,8 +128,8 @@ def test_initial_state_shape(anki_mw) -> None:
 def test_save_command_writes_config(anki_mw) -> None:
     from unittest.mock import patch
 
-    from anki_audio_quick_editor.config_migration import CURRENT_CONFIG_VERSION
-    from anki_audio_quick_editor.settings.commands import handle_settings_command
+    CURRENT_CONFIG_VERSION = import_runtime_addon_module(".config_migration").CURRENT_CONFIG_VERSION
+    handle_settings_command = import_runtime_addon_module(".settings.commands").handle_settings_command
 
     config = {
         "_config_version": CURRENT_CONFIG_VERSION,
@@ -371,13 +372,10 @@ def test_toolbar_button_mode_toggle_saves_in_one_session(anki_mw) -> None:
 
 
 def test_diagnostics_can_copy_support_report_and_open_log_file(anki_mw) -> None:
-    from anki_audio_quick_editor.support import (
-        clear_latest_denoise_support_incident,
-        record_latest_denoise_support_incident,
-    )
+    support = import_runtime_addon_module(".support")
 
-    clear_latest_denoise_support_incident()
-    record_latest_denoise_support_incident(
+    support.clear_latest_denoise_support_incident()
+    support.record_latest_denoise_support_incident(
         operation="rnnoise_denoise",
         media_filename="3d8ca69aee6.mp3",
         source_path="/tmp/3d8ca69aee6.mp3",
@@ -396,10 +394,8 @@ def test_diagnostics_can_copy_support_report_and_open_log_file(anki_mw) -> None:
     )
 
     revealed: list[str] = []
-    with patch(
-        "anki_audio_quick_editor.file_reveal.reveal_file",
-        lambda path, **_kwargs: revealed.append(str(path)),
-    ):
+    file_reveal = import_runtime_addon_module(".file_reveal")
+    with patch.object(file_reveal, "reveal_file", lambda path, **_kwargs: revealed.append(str(path))):
         click_selector(dialog, '[data-testid="show-log-file"]', timeout=5.0)
         wait_for_condition(lambda: bool(revealed), timeout=5.0)
 

@@ -5,6 +5,7 @@ from __future__ import annotations
 import time
 from pathlib import Path
 
+from e2e.conftest import import_runtime_addon_module
 from e2e.editor_graph_helpers import (
     _click_graph_and_wait,
     _drag_cursor_to_ratio,
@@ -33,7 +34,7 @@ from e2e.helpers import (
 
 
 def test_cursor_drag_updates_session_and_play_uses_html_audio(anki_mw, ffmpeg_config) -> None:
-    from anki_audio_quick_editor.editor_integration import _SESSIONS
+    _SESSIONS = import_runtime_addon_module(".editor_integration")._SESSIONS
 
     media_dir = Path(anki_mw.col.media.dir())
     source = media_dir / "editor_cursor_source.wav"
@@ -338,4 +339,3 @@ def test_pause_drag_then_play_restarts_from_dragged_cursor(anki_mw, ffmpeg_confi
     finally:
         editor.set_note(None)
         parent.close()
-

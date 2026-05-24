@@ -13,7 +13,7 @@ from .audio_types import AudioProcessingResult
 
 
 def _facade() -> Any:
-    return import_module("anki_audio_quick_editor.audio_processor")
+    return import_module(".audio_processor", package=__package__)
 
 
 def _sync(facade: Any, name: str) -> None:

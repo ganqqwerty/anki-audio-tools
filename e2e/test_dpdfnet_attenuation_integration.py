@@ -8,6 +8,7 @@ from unittest.mock import patch
 
 from PyQt6.QtWidgets import QApplication
 
+from e2e.conftest import import_runtime_addon_module, runtime_addon_import_path
 from e2e.editor_note_helpers import (
     ADDON_NUMERIC_ID,
     _basic_audio_note,
@@ -73,7 +74,7 @@ def test_editor_dpdfnet_uses_selected_aggressiveness(
     ffmpeg_config,
     monkeypatch,
 ) -> None:
-    from anki_audio_quick_editor.audio_state import AudioProcessingConfig
+    AudioProcessingConfig = import_runtime_addon_module(".audio_state").AudioProcessingConfig
 
     captured: list[float] = []
     media_dir = Path(anki_mw.col.media.dir())
@@ -92,7 +93,7 @@ def test_editor_dpdfnet_uses_selected_aggressiveness(
         output_path.write_bytes(b"denoised")
 
     monkeypatch.setattr(
-        "anki_audio_quick_editor.editor_dependencies.render_dpdfnet_audio",
+        runtime_addon_import_path(".editor_dependencies", "render_dpdfnet_audio"),
         fake_render_dpdfnet_audio,
     )
 
@@ -140,9 +141,9 @@ def test_editor_dpdfnet_uses_selected_aggressiveness(
 
 
 def test_batch_dialog_loads_with_saved_dpdfnet_aggressiveness(anki_mw, ffmpeg_config) -> None:
-    from anki_audio_quick_editor.audio_state import AudioProcessingConfig
-    from anki_audio_quick_editor.batch_operations import FieldGroup
-    from anki_audio_quick_editor.browser_dialog import BatchOperationsDialog
+    AudioProcessingConfig = import_runtime_addon_module(".audio_state").AudioProcessingConfig
+    FieldGroup = import_runtime_addon_module(".batch_operations").FieldGroup
+    BatchOperationsDialog = import_runtime_addon_module(".browser_dialog").BatchOperationsDialog
 
     _configure_ffmpeg(
         anki_mw,

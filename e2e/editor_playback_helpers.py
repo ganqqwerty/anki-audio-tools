@@ -10,6 +10,8 @@ from pathlib import Path
 from typing import Any
 from unittest.mock import patch
 
+from e2e.conftest import import_runtime_addon_module
+
 PLAYBACK_INTERVAL_TOLERANCE_MS = 75
 
 
@@ -80,7 +82,7 @@ class FakePlaybackRecorder:
         if duration_ms is not None:
             return duration_ms
         if self.ffmpeg_config is not None and path.is_file():
-            from anki_audio_quick_editor.audio_processor import probe_duration_ms
+            probe_duration_ms = import_runtime_addon_module(".audio_processor").probe_duration_ms
 
             return probe_duration_ms(path, self.ffmpeg_config)
         self.unknown_filenames.append(path.name)

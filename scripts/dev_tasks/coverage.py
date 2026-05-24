@@ -9,7 +9,12 @@ import sys
 from pathlib import Path
 
 from scripts.dev_tasks.process import _run
-from scripts.dev_tasks.python_env import _die, _find_anki_python, _load_dotenv
+from scripts.dev_tasks.python_env import (
+    _die,
+    _find_anki_python,
+    _load_dotenv,
+    _print_addon_symlink_info,
+)
 
 ROOT = Path(__file__).resolve().parents[2]
 SETTINGS_UI_DIR = ROOT / "settings_ui"
@@ -140,4 +145,5 @@ def cmd_info() -> int:
         print("npm:          not found")
     print(f"Project root: {ROOT}")
     print(f"Add-on dir:   {ROOT / 'addon' / 'anki_audio_quick_editor'}")
+    _print_addon_symlink_info()
     return 0

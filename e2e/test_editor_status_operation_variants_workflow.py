@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
+from e2e.conftest import import_runtime_addon_module, runtime_addon_import_path
 from e2e.editor_note_helpers import (
     _basic_audio_note,
     _button_selector,
@@ -46,7 +47,7 @@ def test_convert_status_reports_selected_output_format(
     ffmpeg_config,
     monkeypatch,
 ) -> None:
-    from anki_audio_quick_editor.audio_state import AudioProcessingConfig
+    AudioProcessingConfig = import_runtime_addon_module(".audio_state").AudioProcessingConfig
 
     captured: list[tuple[str, str, str]] = []
     media_dir = Path(anki_mw.col.media.dir())
@@ -66,7 +67,7 @@ def test_convert_status_reports_selected_output_format(
         output_path.write_bytes(b"converted")
 
     monkeypatch.setattr(
-        "anki_audio_quick_editor.editor_dependencies.render_converted_audio",
+        runtime_addon_import_path(".editor_dependencies", "render_converted_audio"),
         fake_render_converted_audio,
     )
 
@@ -100,7 +101,7 @@ def test_voice_only_status_reports_selected_cleanup_variant(
     ffmpeg_config,
     monkeypatch,
 ) -> None:
-    from anki_audio_quick_editor.audio_state import AudioProcessingConfig
+    AudioProcessingConfig = import_runtime_addon_module(".audio_state").AudioProcessingConfig
 
     captured: list[str] = []
     media_dir = Path(anki_mw.col.media.dir())
@@ -119,7 +120,7 @@ def test_voice_only_status_reports_selected_cleanup_variant(
         output_path.write_bytes(b"voice-only")
 
     monkeypatch.setattr(
-        "anki_audio_quick_editor.editor_dependencies.render_voice_only_audio",
+        runtime_addon_import_path(".editor_dependencies", "render_voice_only_audio"),
         fake_render_voice_only_audio,
     )
 
@@ -155,7 +156,7 @@ def test_pitch_hum_status_reports_selected_pitchtier_mode(
     ffmpeg_config,
     monkeypatch,
 ) -> None:
-    from anki_audio_quick_editor.audio_state import AudioProcessingConfig
+    AudioProcessingConfig = import_runtime_addon_module(".audio_state").AudioProcessingConfig
 
     captured: list[str] = []
     media_dir = Path(anki_mw.col.media.dir())
@@ -174,11 +175,11 @@ def test_pitch_hum_status_reports_selected_pitchtier_mode(
         output_path.write_bytes(b"pitch-tier")
 
     monkeypatch.setattr(
-        "anki_audio_quick_editor.editor_dependencies.render_pitch_tier_hum_audio",
+        runtime_addon_import_path(".editor_dependencies", "render_pitch_tier_hum_audio"),
         fake_render_pitch_tier_hum_audio,
     )
     monkeypatch.setattr(
-        "anki_audio_quick_editor.editor_dependencies.render_pitch_hum_audio",
+        runtime_addon_import_path(".editor_dependencies", "render_pitch_hum_audio"),
         lambda *_args, **_kwargs: (_ for _ in ()).throw(AssertionError("PitchTier selection used direct hum renderer")),
     )
 

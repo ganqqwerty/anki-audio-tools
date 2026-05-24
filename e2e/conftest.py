@@ -24,6 +24,19 @@ ADDON_NUMERIC_ID = "1000000002"
 LOCAL_DPDFNET_BUILD = Path("/Users/iuriikatkov/IdeaProjects/DPDFNet/dist/lite/dpdfnet")
 
 
+def import_runtime_addon_module(module_suffix: str = ""):
+    """Import the add-on as Anki loads it, using the installed numeric package id."""
+    if module_suffix and not module_suffix.startswith("."):
+        raise ValueError("module_suffix must be empty or start with '.'")
+    return importlib.import_module(f"{ADDON_NUMERIC_ID}{module_suffix}")
+
+
+def runtime_addon_import_path(module_suffix: str, attr: str | None = None) -> str:
+    """Return a dotted import path rooted at the runtime numeric add-on package."""
+    path = f"{ADDON_NUMERIC_ID}{module_suffix}"
+    return f"{path}.{attr}" if attr else path
+
+
 def _default_config() -> dict:
     return {
         "_config_version": 21,
@@ -244,15 +257,9 @@ def anki_app(anki_base, qapp):
         ".editor_integration",
     ):
         try:
-            importlib.import_module(f"{ADDON_NUMERIC_ID}{suffix}")
+            import_runtime_addon_module(suffix)
         except Exception:
             pass
-
-    for key in list(sys.modules.keys()):
-        if key == ADDON_NUMERIC_ID or key.startswith(ADDON_NUMERIC_ID + "."):
-            alias = "anki_audio_quick_editor" + key[len(ADDON_NUMERIC_ID):]
-            if alias not in sys.modules:
-                sys.modules[alias] = sys.modules[key]
 
     addon_manager = aqt.mw.addonManager
     addon_manager.writeConfig(ADDON_NUMERIC_ID, _default_config())
@@ -267,7 +274,7 @@ def anki_mw(anki_app):
 @pytest.fixture
 def ffmpeg_config():
     """Return config that points at real ffmpeg, or skip when unavailable."""
-    from anki_audio_quick_editor.audio_state import AudioProcessingConfig
+    AudioProcessingConfig = import_runtime_addon_module(".audio_state").AudioProcessingConfig
 
     ffmpeg = _find_ffmpeg()
     if ffmpeg is None or not ffmpeg.with_name("ffprobe").is_file():
