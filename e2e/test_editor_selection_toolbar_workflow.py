@@ -284,7 +284,7 @@ def test_selection_toolbar_play_pause_uses_selected_html_audio(anki_mw, ffmpeg_c
 
 def test_selection_toolbar_delete_rest_keeps_selected_audio(anki_mw, ffmpeg_config) -> None:
     audio_processor = import_runtime_addon_module(".audio_processor")
-    AudioProcessingConfig = audio_processor.AudioProcessingConfig
+    audio_processing_config = audio_processor.AudioProcessingConfig
     probe_duration_ms = audio_processor.probe_duration_ms
 
     media_dir = Path(anki_mw.col.media.dir())
@@ -315,7 +315,7 @@ def test_selection_toolbar_delete_rest_keeps_selected_audio(anki_mw, ffmpeg_conf
             timeout=10.0,
         )
 
-        generated_duration = probe_duration_ms(media_dir / generated_name, AudioProcessingConfig.from_config({}))
+        generated_duration = probe_duration_ms(media_dir / generated_name, audio_processing_config.from_config({}))
         assert source.read_bytes() == original_bytes
         assert generated_name.startswith("editor_toolbar_delete_rest_source__aqe_")
         assert 600 <= generated_duration <= 900

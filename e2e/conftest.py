@@ -274,12 +274,12 @@ def anki_mw(anki_app):
 @pytest.fixture
 def ffmpeg_config():
     """Return config that points at real ffmpeg, or skip when unavailable."""
-    AudioProcessingConfig = import_runtime_addon_module(".audio_state").AudioProcessingConfig
+    audio_processing_config = import_runtime_addon_module(".audio_state").AudioProcessingConfig
 
     ffmpeg = _find_ffmpeg()
     if ffmpeg is None or not ffmpeg.with_name("ffprobe").is_file():
         pytest.skip("ffmpeg and ffprobe are required for audio processing e2e tests")
-    return AudioProcessingConfig(ffmpeg_path=str(ffmpeg))
+    return audio_processing_config(ffmpeg_path=str(ffmpeg))
 
 
 # noinspection PyUnusedLocal

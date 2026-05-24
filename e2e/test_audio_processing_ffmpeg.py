@@ -158,7 +158,7 @@ def test_trim_left_renders_shorter_recording(
     ffmpeg_config,
 ) -> None:
     audio_processor = import_runtime_addon_module(".audio_processor")
-    AudioEditState = import_runtime_addon_module(".audio_state").AudioEditState
+    audio_edit_state = import_runtime_addon_module(".audio_state").AudioEditState
 
     del anki_mw
     source = tmp_path / "sentence with spaces.wav"
@@ -168,7 +168,7 @@ def test_trim_left_renders_shorter_recording(
     original_duration_ms = audio_processor.probe_duration_ms(source, ffmpeg_config)
     audio_processor.render_audio(
         source,
-        AudioEditState(source_file=source.name, left_trim_ms=500),
+        audio_edit_state(source_file=source.name, left_trim_ms=500),
         ffmpeg_config,
         output_path=output,
     )
@@ -186,7 +186,7 @@ def test_speed_up_renders_shorter_mp3(
     ffmpeg_config,
 ) -> None:
     audio_processor = import_runtime_addon_module(".audio_processor")
-    AudioEditState = import_runtime_addon_module(".audio_state").AudioEditState
+    audio_edit_state = import_runtime_addon_module(".audio_state").AudioEditState
 
     del anki_mw
     source = tmp_path / "speed-source.wav"
@@ -196,7 +196,7 @@ def test_speed_up_renders_shorter_mp3(
     original_duration_ms = audio_processor.probe_duration_ms(source, ffmpeg_config)
     audio_processor.render_audio(
         source,
-        AudioEditState(source_file=source.name, speed=1.25),
+        audio_edit_state(source_file=source.name, speed=1.25),
         ffmpeg_config,
         output_path=output,
     )
@@ -213,7 +213,7 @@ def test_volume_gain_renders_new_mp3_with_db_filter(
     ffmpeg_config,
 ) -> None:
     audio_processor = import_runtime_addon_module(".audio_processor")
-    AudioEditState = import_runtime_addon_module(".audio_state").AudioEditState
+    audio_edit_state = import_runtime_addon_module(".audio_state").AudioEditState
 
     del anki_mw
     source = tmp_path / "volume-source.wav"
@@ -223,13 +223,13 @@ def test_volume_gain_renders_new_mp3_with_db_filter(
 
     louder_result = audio_processor.render_audio(
         source,
-        AudioEditState(source_file=source.name, volume_db=6.0),
+        audio_edit_state(source_file=source.name, volume_db=6.0),
         ffmpeg_config,
         output_path=louder,
     )
     quieter_result = audio_processor.render_audio(
         source,
-        AudioEditState(source_file=source.name, volume_db=-6.0),
+        audio_edit_state(source_file=source.name, volume_db=-6.0),
         ffmpeg_config,
         output_path=quieter,
     )
@@ -250,7 +250,7 @@ def test_common_audio_input_format_renders_to_mp3(
     output_args: tuple[str, ...],
 ) -> None:
     audio_processor = import_runtime_addon_module(".audio_processor")
-    AudioEditState = import_runtime_addon_module(".audio_state").AudioEditState
+    audio_edit_state = import_runtime_addon_module(".audio_state").AudioEditState
 
     del anki_mw
     source = tmp_path / f"common-input.{extension}"
@@ -259,7 +259,7 @@ def test_common_audio_input_format_renders_to_mp3(
 
     result = audio_processor.render_audio(
         source,
-        AudioEditState(source_file=source.name, volume_db=-1.0),
+        audio_edit_state(source_file=source.name, volume_db=-1.0),
         ffmpeg_config,
         output_path=output,
     )
@@ -276,7 +276,7 @@ def test_final_save_writes_new_anki_media_without_overwriting_original(
     ffmpeg_config,
 ) -> None:
     audio_processor = import_runtime_addon_module(".audio_processor")
-    AudioEditState = import_runtime_addon_module(".audio_state").AudioEditState
+    audio_edit_state = import_runtime_addon_module(".audio_state").AudioEditState
 
     media_dir = Path(anki_mw.col.media.dir())
     source = media_dir / "original_sentence.wav"
@@ -287,7 +287,7 @@ def test_final_save_writes_new_anki_media_without_overwriting_original(
     rendered_path = audio_processor.temp_final_path(desired_name)
     audio_processor.render_audio(
         source,
-        AudioEditState(source_file=source.name, left_trim_ms=400),
+        audio_edit_state(source_file=source.name, left_trim_ms=400),
         ffmpeg_config,
         output_path=rendered_path,
     )

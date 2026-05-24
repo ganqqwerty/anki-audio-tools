@@ -18,7 +18,7 @@ from e2e.helpers import (
 
 def _open_settings_dialog(anki_mw):
     runtime_addon = import_runtime_addon_module()
-    SettingsDialog = import_runtime_addon_module(".settings").SettingsDialog
+    settings_dialog = import_runtime_addon_module(".settings").SettingsDialog
 
     submenu = next(
         action.menu()
@@ -30,7 +30,7 @@ def _open_settings_dialog(anki_mw):
     QApplication.processEvents()
 
     wait_for_condition(
-        lambda: isinstance(runtime_addon._settings_dialog, SettingsDialog)
+        lambda: isinstance(runtime_addon._settings_dialog, settings_dialog)
         and runtime_addon._settings_dialog.isVisible(),
         timeout=5.0,
     )
@@ -128,11 +128,11 @@ def test_initial_state_shape(anki_mw) -> None:
 def test_save_command_writes_config(anki_mw) -> None:
     from unittest.mock import patch
 
-    CURRENT_CONFIG_VERSION = import_runtime_addon_module(".config_migration").CURRENT_CONFIG_VERSION
+    current_config_version = import_runtime_addon_module(".config_migration").CURRENT_CONFIG_VERSION
     handle_settings_command = import_runtime_addon_module(".settings.commands").handle_settings_command
 
     config = {
-        "_config_version": CURRENT_CONFIG_VERSION,
+        "_config_version": current_config_version,
         "enabled": False,
         "debug_logging": True,
         "show_ffmpeg_commands": False,

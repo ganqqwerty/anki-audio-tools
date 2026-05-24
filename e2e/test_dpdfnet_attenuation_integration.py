@@ -74,7 +74,7 @@ def test_editor_dpdfnet_uses_selected_aggressiveness(
     ffmpeg_config,
     monkeypatch,
 ) -> None:
-    AudioProcessingConfig = import_runtime_addon_module(".audio_state").AudioProcessingConfig
+    audio_processing_config = import_runtime_addon_module(".audio_state").AudioProcessingConfig
 
     captured: list[float] = []
     media_dir = Path(anki_mw.col.media.dir())
@@ -85,7 +85,7 @@ def test_editor_dpdfnet_uses_selected_aggressiveness(
 
     def fake_render_dpdfnet_audio(
         _source_path: Path,
-        config: AudioProcessingConfig,
+        config: audio_processing_config,
         output_path: Path,
         **_kwargs,
     ) -> None:
@@ -141,9 +141,9 @@ def test_editor_dpdfnet_uses_selected_aggressiveness(
 
 
 def test_batch_dialog_loads_with_saved_dpdfnet_aggressiveness(anki_mw, ffmpeg_config) -> None:
-    AudioProcessingConfig = import_runtime_addon_module(".audio_state").AudioProcessingConfig
-    FieldGroup = import_runtime_addon_module(".batch_operations").FieldGroup
-    BatchOperationsDialog = import_runtime_addon_module(".browser_dialog").BatchOperationsDialog
+    audio_processing_config = import_runtime_addon_module(".audio_state").AudioProcessingConfig
+    field_group = import_runtime_addon_module(".batch_operations").FieldGroup
+    batch_operations_dialog = import_runtime_addon_module(".browser_dialog").BatchOperationsDialog
 
     _configure_ffmpeg(
         anki_mw,
@@ -153,14 +153,14 @@ def test_batch_dialog_loads_with_saved_dpdfnet_aggressiveness(anki_mw, ffmpeg_co
         volume_step_db=6.0,
         pause_aggressiveness="aggressive",
     )
-    config = AudioProcessingConfig.from_config(
+    config = audio_processing_config.from_config(
         anki_mw.addonManager.getConfig(ADDON_NUMERIC_ID) or {}
     )
     started_requests = []
-    dialog = BatchOperationsDialog(
+    dialog = batch_operations_dialog(
         anki_mw,
         [1, 2],
-        (FieldGroup("Basic", ("Front", "Back")),),
+        (field_group("Basic", ("Front", "Back")),),
         config,
         lambda _browser, _dialog, _note_ids, request: started_requests.append(request),
     )

@@ -217,7 +217,7 @@ def test_editor_settings_save_refreshes_current_editor_repeat_default(
     ffmpeg_config,
 ) -> None:
     runtime_addon = import_runtime_addon_module()
-    SettingsDialog = import_runtime_addon_module(".settings").SettingsDialog
+    settings_dialog = import_runtime_addon_module(".settings").SettingsDialog
 
     media_dir = Path(anki_mw.col.media.dir())
     source = media_dir / "editor_settings_repeat_source.wav"
@@ -248,7 +248,7 @@ def test_editor_settings_save_refreshes_current_editor_repeat_default(
         click_selector(editor.web, _button_selector("aqe:settings"), timeout=5.0)
         QApplication.processEvents()
         wait_for_condition(
-            lambda: isinstance(runtime_addon._settings_dialog, SettingsDialog)
+            lambda: isinstance(runtime_addon._settings_dialog, settings_dialog)
             and runtime_addon._settings_dialog.isVisible(),
             timeout=5.0,
         )

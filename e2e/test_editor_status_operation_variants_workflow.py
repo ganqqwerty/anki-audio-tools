@@ -47,7 +47,7 @@ def test_convert_status_reports_selected_output_format(
     ffmpeg_config,
     monkeypatch,
 ) -> None:
-    AudioProcessingConfig = import_runtime_addon_module(".audio_state").AudioProcessingConfig
+    audio_processing_config = import_runtime_addon_module(".audio_state").AudioProcessingConfig
 
     captured: list[tuple[str, str, str]] = []
     media_dir = Path(anki_mw.col.media.dir())
@@ -58,7 +58,7 @@ def test_convert_status_reports_selected_output_format(
 
     def fake_render_converted_audio(
         source_path: Path,
-        _config: AudioProcessingConfig,
+        _config: audio_processing_config,
         target_format: str,
         output_path: Path,
         **_kwargs,
@@ -101,7 +101,7 @@ def test_voice_only_status_reports_selected_cleanup_variant(
     ffmpeg_config,
     monkeypatch,
 ) -> None:
-    AudioProcessingConfig = import_runtime_addon_module(".audio_state").AudioProcessingConfig
+    audio_processing_config = import_runtime_addon_module(".audio_state").AudioProcessingConfig
 
     captured: list[str] = []
     media_dir = Path(anki_mw.col.media.dir())
@@ -112,7 +112,7 @@ def test_voice_only_status_reports_selected_cleanup_variant(
 
     def fake_render_voice_only_audio(
         source_path: Path,
-        _config: AudioProcessingConfig,
+        _config: audio_processing_config,
         output_path: Path,
         **_kwargs,
     ) -> None:
@@ -156,7 +156,7 @@ def test_pitch_hum_status_reports_selected_pitchtier_mode(
     ffmpeg_config,
     monkeypatch,
 ) -> None:
-    AudioProcessingConfig = import_runtime_addon_module(".audio_state").AudioProcessingConfig
+    audio_processing_config = import_runtime_addon_module(".audio_state").AudioProcessingConfig
 
     captured: list[str] = []
     media_dir = Path(anki_mw.col.media.dir())
@@ -167,7 +167,7 @@ def test_pitch_hum_status_reports_selected_pitchtier_mode(
 
     def fake_render_pitch_tier_hum_audio(
         source_path: Path,
-        _config: AudioProcessingConfig,
+        _config: audio_processing_config,
         output_path: Path,
         **_kwargs,
     ) -> None:

@@ -64,7 +64,7 @@ def test_delete_region_button_cuts_middle_region_and_redraws_graph(
     ffmpeg_config,
 ) -> None:
     audio_processor = import_runtime_addon_module(".audio_processor")
-    AudioProcessingConfig = audio_processor.AudioProcessingConfig
+    audio_processing_config = audio_processor.AudioProcessingConfig
     probe_duration_ms = audio_processor.probe_duration_ms
 
     media_dir = Path(anki_mw.col.media.dir())
@@ -111,7 +111,7 @@ def test_delete_region_button_cuts_middle_region_and_redraws_graph(
             timeout=10.0,
         )
 
-        generated_duration = probe_duration_ms(media_dir / generated_name, AudioProcessingConfig.from_config({}))
+        generated_duration = probe_duration_ms(media_dir / generated_name, audio_processing_config.from_config({}))
         assert source.read_bytes() == original_bytes
         assert generated_name.startswith("editor_region_delete_middle__aqe_")
         assert 1050 <= generated_duration <= 1450
@@ -127,7 +127,7 @@ def test_delete_rest_button_keeps_selected_middle_region_and_redraws_graph(
     ffmpeg_config,
 ) -> None:
     audio_processor = import_runtime_addon_module(".audio_processor")
-    AudioProcessingConfig = audio_processor.AudioProcessingConfig
+    audio_processing_config = audio_processor.AudioProcessingConfig
     probe_duration_ms = audio_processor.probe_duration_ms
 
     media_dir = Path(anki_mw.col.media.dir())
@@ -174,7 +174,7 @@ def test_delete_rest_button_keeps_selected_middle_region_and_redraws_graph(
             timeout=10.0,
         )
 
-        generated_duration = probe_duration_ms(media_dir / generated_name, AudioProcessingConfig.from_config({}))
+        generated_duration = probe_duration_ms(media_dir / generated_name, audio_processing_config.from_config({}))
         assert source.read_bytes() == original_bytes
         assert generated_name.startswith("editor_delete_rest_middle__aqe_")
         assert 600 <= generated_duration <= 900
