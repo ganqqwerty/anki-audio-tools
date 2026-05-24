@@ -45,9 +45,29 @@ def test_format_message_interpolates_values_and_preserves_missing_placeholders()
 
 def test_locale_catalogs_have_the_same_keys_as_english() -> None:
     locale_dir = Path(i18n.__file__).parent / "locales"
-    english_keys = set(json.loads((locale_dir / "en.json").read_text(encoding="utf-8")))
+    english_messages = json.loads((locale_dir / "en.json").read_text(encoding="utf-8"))
+    english_keys = set(english_messages)
 
     assert locale_catalog_violations(locale_dir) == []
     for path in sorted(locale_dir.glob("*.json")):
         keys = set(json.loads(path.read_text(encoding="utf-8")))
         assert keys == english_keys, path.name
+
+
+def test_non_english_locale_catalogs_do_not_use_english_fallback_values() -> None:
+    locale_dir = Path(i18n.__file__).parent / "locales"
+    english_messages = json.loads((locale_dir / "en.json").read_text(encoding="utf-8"))
+
+    fallback_values: list[str] = []
+    for path in sorted(locale_dir.glob("*.json")):
+        if path.name == "en.json":
+            continue
+
+        messages = json.loads(path.read_text(encoding="utf-8"))
+        fallback_values.extend(
+            f"{path.name}:{key}"
+            for key, value in messages.items()
+            if value == english_messages[key]
+        )
+
+    assert fallback_values == []

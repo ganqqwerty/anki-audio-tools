@@ -38,8 +38,8 @@ def injection_script(
         or {
             "volumeStepDb": 3.0,
             "speedStep": 0.05,
-            "repeatPauseSeconds": 0.0,
             "shareTarget": "litterbox",
+            "repeatPauseSeconds": 0.0,
             "pauseAggressiveness": "normal",
             "outputFormat": "mp3",
             "denoiseAlgorithm": "standard",
