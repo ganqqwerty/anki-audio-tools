@@ -18,7 +18,6 @@ if __package__ in {None, ""}:  # pragma: no cover - used in direct script mode
     sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from scripts.release_asset_common import (
-    bundled_tool_names,
     SHARED_FILE_NAMES,
     TARGET_KEYS,
     TOOL_NAMES,
@@ -36,11 +35,10 @@ from scripts.release_asset_common import (
     _stage_tool_runtime_files,
     _tool_entry,
     _validate_target,
-    runtime_file_path,
+    bundled_tool_names,
     sha256_file,
-    shared_asset_path,
-    tool_uses_cached_binary,
     tool_runtime_files,
+    tool_uses_cached_binary,
     tracked_runtime_file_path,
     tracked_shared_asset_path,
     tracked_tool_binary_path,

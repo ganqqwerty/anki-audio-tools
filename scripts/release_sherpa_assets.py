@@ -27,9 +27,9 @@ from scripts.release_asset_common import (
     runtime_file_path,
     sha256_file,
     shared_asset_path,
+    tool_runtime_files,
     tracked_shared_asset_path,
     tracked_tool_binary_path,
-    tool_runtime_files,
     validate_lock,
 )
 
