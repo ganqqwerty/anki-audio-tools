@@ -5,6 +5,11 @@
   --aqe-progress-inner-halo: rgb(255 255 255 / 70%);
   --aqe-progress-surface: Canvas;
   --aqe-resize-halo: rgb(18 14 11 / 38%);
+  --aqe-destructive-fill: rgb(225 29 72 / 42%);
+  --aqe-destructive-border: rgb(255 182 193 / 45%);
+  --aqe-destructive-preview-top: rgb(225 29 72 / 48%);
+  --aqe-destructive-preview-bottom: rgb(225 29 72 / 20%);
+  --aqe-destructive-text: rgb(159 18 57);
 
   align-items: center;
   border: 1px solid;
@@ -26,6 +31,11 @@
     --aqe-progress-halo: rgb(232 201 170 / 36%);
     --aqe-progress-inner-halo: rgb(255 255 255 / 18%);
     --aqe-resize-halo: rgb(0 0 0 / 58%);
+    --aqe-destructive-fill: rgb(251 113 133 / 34%);
+    --aqe-destructive-border: rgb(251 113 133 / 55%);
+    --aqe-destructive-preview-top: rgb(251 113 133 / 42%);
+    --aqe-destructive-preview-bottom: rgb(251 113 133 / 18%);
+    --aqe-destructive-text: rgb(254 205 211);
   }
 }
 
@@ -95,6 +105,16 @@
 
 .aqe-button:hover {
   text-decoration: underline;
+}
+
+.aqe-button[data-aqe-button-state="destructive"] {
+  border-color: var(--aqe-destructive-border);
+  color: var(--aqe-destructive-text);
+}
+
+.aqe-button[data-aqe-button-state="destructive"]:hover,
+.aqe-button[data-aqe-button-state="destructive"]:focus-visible {
+  background: var(--aqe-destructive-fill);
 }
 
 .aqe-controls[data-busy="true"] {

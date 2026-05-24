@@ -232,7 +232,7 @@ function syncToolbarDeleteButton(
   if (!button) return;
   button.hidden = !valid;
   button.disabled = busy || !valid;
-  button.dataset.aqeButtonState = valid ? "default" : "unavailable";
+  button.dataset.aqeButtonState = valid ? "destructive" : "unavailable";
   setButtonTooltipContent(button, valid ? validTitle : invalidTitle);
   button.setAttribute("aria-disabled", button.disabled ? "true" : "false");
 }

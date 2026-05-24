@@ -130,6 +130,8 @@ describe("editor inline selection toolbar integration", () => {
     expect(play.getAttribute("aria-label")).toBe("Play selection");
     expect(deleteRegion.getAttribute("data-aqe-tooltip-content")).toBe("Delete selected region");
     expect(deleteRest.getAttribute("data-aqe-tooltip-content")).toBe("Delete audio outside selected region");
+    expect(deleteRegion.getAttribute("data-aqe-button-state")).toBe("destructive");
+    expect(deleteRest.getAttribute("data-aqe-button-state")).toBe("destructive");
     expect(collapse.getAttribute("data-aqe-tooltip-content")).toBe("Collapse selection actions");
     for (const button of [play, deleteRegion, deleteRest, collapse]) {
       expect(button.querySelector(".aqe-button-label")).toBeNull();

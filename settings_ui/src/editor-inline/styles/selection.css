@@ -1,7 +1,4 @@
 .aqe-selection {
-  --aqe-destructive-preview-fill: rgb(225 29 72 / 42%);
-  --aqe-destructive-preview-border: rgb(255 182 193 / 45%);
-
   fill: Highlight;
   fill-opacity: 0.2;
   filter:
@@ -22,8 +19,9 @@
 }
 
 .aqe-visualizer[data-selection-toolbar-preview="region"] .aqe-selection {
-  fill: var(--aqe-destructive-preview-fill);
-  stroke: var(--aqe-destructive-preview-fill);
+  fill: var(--aqe-destructive-fill);
+  fill-opacity: 1;
+  stroke: var(--aqe-destructive-fill);
   stroke-opacity: 1;
   stroke-width: 1;
   filter: none;
@@ -72,8 +70,8 @@
 }
 
 .aqe-selection-rest-preview {
-  background: linear-gradient(180deg, rgb(225 29 72 / 48%), rgb(225 29 72 / 20%));
-  border-color: var(--aqe-destructive-preview-border);
+  background: linear-gradient(180deg, var(--aqe-destructive-preview-top), var(--aqe-destructive-preview-bottom));
+  border-color: var(--aqe-destructive-border);
   display: none;
   height: var(--aqe-plot-height-px, 106px);
   pointer-events: none;
