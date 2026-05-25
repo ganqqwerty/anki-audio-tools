@@ -1,0 +1,46 @@
+Anki Audio Quick Editor
+Copyright (C) 2026 Iurii Katkov
+
+This program is free software: you can redistribute it and/or modify it under
+the terms of the GNU Affero General Public License as published by the Free
+Software Foundation, either version 3 of the License, or, at your option, any
+later version, subject to the additional attribution term below.
+
+This program is distributed in the hope that it will be useful, but WITHOUT ANY
+WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A
+PARTICULAR PURPOSE. See the GNU Affero General Public License for more details.
+
+You should have received a copy of the GNU Affero General Public License along
+with this program. If not, see <https://www.gnu.org/licenses/>.
+
+SPDX-License-Identifier: AGPL-3.0-or-later
+
+Additional Attribution Term
+===========================
+
+Under section 7(b) of the GNU Affero General Public License version 3, the
+following reasonable author attribution must be preserved.
+
+If you distribute, convey, or make available over a network a modified version,
+combined work, or extracted portion of this Program, and that work has an
+interactive user interface, you must preserve the following attribution in a
+reasonably visible legal notice, credits, About, Help, Settings, or equivalent
+notice area:
+
+    Includes code from Anki Audio Quick Editor by Iurii Katkov.
+
+This attribution must not be removed, obscured, or misrepresented. Modified
+versions may add their own attribution and may identify their own changes, but
+must not imply that the original author endorses the modified version.
+
+If the work has no interactive user interface, this additional attribution term
+does not require creating one. All copyright notices, license notices, warranty
+disclaimers, and source-code obligations under the GNU Affero General Public
+License still apply.
+
+Full License Text
+=================
+
+The full text of the GNU Affero General Public License version 3 is included
+in the repository as COPYING and is also available at
+<https://www.gnu.org/licenses/agpl-3.0.txt>.
