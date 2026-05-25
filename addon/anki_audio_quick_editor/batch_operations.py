@@ -39,6 +39,7 @@ from .batch_operations_helpers import render_batch_denoise, skipped_batch_note
 from .diagnostics_runtime import capture_exception, new_operation_id, record_breadcrumb
 from .errors import AudioQuickEditorError
 from .media_paths import existing_media_file_path
+from .permission_guidance import message_with_macos_permission_guidance
 from .prosody_cache import analyze_prosody_cached
 from .prosody_svg import make_visualization_filename, render_prosody_svg
 from .sound_refs import (
@@ -268,12 +269,18 @@ def _process_graph_operation(
         )
         saved_name = media_writer(desired_name, svg_bytes)
     except Exception as exc:
+        raw_message = str(exc)
+        message = (
+            message_with_macos_permission_guidance(raw_message, exc)
+            if raw_message
+            else "visualization generation failed"
+        )
         capture_exception(
             "browser.batch.note_graph",
             exc,
             operation="browser.batch.graph",
             operation_id=operation_id,
-            user_message=str(exc) or "visualization generation failed",
+            user_message=message,
             context={
                 "note_id": note.note_id,
                 "source_field": request.source_field,
@@ -285,7 +292,7 @@ def _process_graph_operation(
         return BatchNoteResult(
             note_id=note.note_id,
             status="failed",
-            message=str(exc) or "visualization generation failed",
+            message=message,
             audio_filename=audio_filename,
         )
 
@@ -360,12 +367,18 @@ def _process_transform_operation(
             saved_name = media_writer(desired_name, file.read())
         replaced_html = replace_sound_reference(source_html, selection, saved_name)
     except Exception as exc:
+        raw_message = str(exc)
+        message = (
+            message_with_macos_permission_guidance(raw_message, exc)
+            if raw_message
+            else "audio transformation failed"
+        )
         capture_exception(
             "browser.batch.note_transform",
             exc,
             operation=f"browser.batch.{request.operation}",
             operation_id=operation_id,
-            user_message=str(exc) or "audio transformation failed",
+            user_message=message,
             context={
                 "note_id": note.note_id,
                 "source_field": request.source_field,
@@ -376,7 +389,7 @@ def _process_transform_operation(
         return BatchNoteResult(
             note_id=note.note_id,
             status="failed",
-            message=str(exc) or "audio transformation failed",
+            message=message,
             audio_filename=audio_filename,
         )
     finally:

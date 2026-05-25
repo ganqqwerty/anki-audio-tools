@@ -56,7 +56,8 @@ export function renderVisualizerTrack(visualizer: VisualizerElement, track: Norm
 }
 
 export function renderVisualizerStatus(visualizer: VisualizerElement, message: string, kind = "info"): void {
-  const spinner = visualizer.querySelector<HTMLElement>(".aqe-spinner");
+  const spinner = visualizer.closest<HTMLElement>(".aqe-controls")?.querySelector<HTMLElement>(".aqe-spinner")
+    ?? visualizer.querySelector<HTMLElement>(".aqe-spinner");
   const processing = kind === "processing";
   visualizer.dataset.graphBusy = processing ? "true" : "false";
   visualizer.dataset.statusMessage = message || "";

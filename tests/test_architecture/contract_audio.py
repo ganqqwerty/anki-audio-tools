@@ -34,7 +34,7 @@ AUDIO_CONTRACTS: dict[str, ModuleContract] = {
     "audio_external": contract(
         "audio_external",
         layer=Layer.IMPORT_SAFE_CORE,
-        allowed_addon_deps=("audio_state", "audio_tools", "diagnostics_runtime", "errors"),
+        allowed_addon_deps=("audio_state", "audio_tools", "diagnostics_runtime", "errors", "permission_guidance"),
         allowed_side_effects=(SideEffect.SUBPROCESS_RUN,),
     ),
     "audio_noise_reduction": contract(
@@ -81,6 +81,7 @@ AUDIO_CONTRACTS: dict[str, ModuleContract] = {
             "audio_tools",
             "audio_types",
             "errors",
+            "permission_guidance",
             "prosody_settings",
         ),
         allowed_side_effects=(
@@ -152,6 +153,7 @@ AUDIO_CONTRACTS: dict[str, ModuleContract] = {
             "audio_tools",
             "audio_types",
             "errors",
+            "permission_guidance",
         ),
         allowed_side_effects=(
             SideEffect.SUBPROCESS_RUN,
@@ -182,6 +184,7 @@ AUDIO_CONTRACTS: dict[str, ModuleContract] = {
             "diagnostics_runtime",
             "errors",
             "media_paths",
+            "permission_guidance",
             "prosody_cache",
             "prosody_svg",
             "sound_refs",

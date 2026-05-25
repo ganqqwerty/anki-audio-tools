@@ -15,6 +15,7 @@ from .audio_processor import (
 )
 from .audio_state import AudioProcessingConfig
 from .errors import AudioProcessingError
+from .permission_guidance import launch_error_message
 from .prosody_settings import (
     ProsodyAnalysisOptions,
     postprocess_points,
@@ -83,12 +84,15 @@ def _decode_pcm(source_path: Path, config: AudioProcessingConfig) -> list[float]
         "s16le",
         "pipe:1",
     ]
-    result = subprocess.run(
-        command,
-        capture_output=True,
-        check=False,
-        **_external_command_run_kwargs(),
-    )  # nosec B603
+    try:
+        result = subprocess.run(
+            command,
+            capture_output=True,
+            check=False,
+            **_external_command_run_kwargs(),
+        )  # nosec B603
+    except OSError as exc:
+        raise AudioProcessingError(launch_error_message("Could not start audio decoding for visualization.", exc)) from exc
     if result.returncode != 0:
         message = result.stderr.decode("utf-8", errors="replace").strip()
         raise AudioProcessingError(message or "Could not decode audio for visualization.")

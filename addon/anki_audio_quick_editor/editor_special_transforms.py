@@ -24,6 +24,7 @@ from .editor_status import command_status_summary
 from .errors import AudioProcessingError
 from .i18n import t
 from .media_paths import existing_media_file_path
+from .permission_guidance import message_with_macos_permission_guidance
 from .prosody_settings import config_with_graph_settings
 from .sound_refs import replace_sound_reference, select_first_sound_reference
 from .support import (
@@ -178,7 +179,7 @@ def run_special_audio_transform_async(
             saved_name = deps.write_generated_media(editor, desired_name, output_path)
             deps.main(editor, lambda: deps.replace_current_field_after_noise_removal(editor, saved_name))
         except Exception as exc:
-            message = str(exc)
+            message = message_with_macos_permission_guidance(str(exc), exc)
             rendered_message = message
             if failure_context_recorder is not None:
                 failure_context_recorder(current_path, config, exc)
@@ -271,7 +272,7 @@ def record_rnnoise_failure_context(source_path: Path, config: AudioProcessingCon
         operation="rnnoise_denoise",
         media_filename=source_path.name,
         source_path=str(source_path.resolve()),
-        user_message=str(exc),
+        user_message=message_with_macos_permission_guidance(str(exc), exc),
         exception_type=type(exc).__name__,
         ffmpeg_path=config.ffmpeg_path,
     )
@@ -282,7 +283,7 @@ def record_dpdfnet_failure_context(source_path: Path, config: AudioProcessingCon
         operation="dpdfnet_denoise",
         media_filename=source_path.name,
         source_path=str(source_path.resolve()),
-        user_message=str(exc),
+        user_message=message_with_macos_permission_guidance(str(exc), exc),
         exception_type=type(exc).__name__,
         ffmpeg_path=config.ffmpeg_path,
     )
@@ -293,7 +294,7 @@ def record_spleeter_failure_context(source_path: Path, config: AudioProcessingCo
         operation="voice_only",
         media_filename=source_path.name,
         source_path=str(source_path.resolve()),
-        user_message=str(exc),
+        user_message=message_with_macos_permission_guidance(str(exc), exc),
         exception_type=type(exc).__name__,
         ffmpeg_path=config.ffmpeg_path,
     )

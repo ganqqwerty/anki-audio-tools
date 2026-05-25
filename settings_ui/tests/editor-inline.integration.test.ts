@@ -58,7 +58,7 @@ describe("editor inline Svelte integration", () => {
     expect(fieldIndex(document.getElementById("f0")!, 7)).toBe(0);
   });
 
-  it("renders one canonical status element in the visualizer meta row", () => {
+  it("renders one canonical status element after the visualizer", () => {
     initializeEditorRuntime({
       audioFieldIndices: [0],
       initialStatusByField: {
@@ -74,10 +74,13 @@ describe("editor inline Svelte integration", () => {
 
     const controls = document.querySelector<HTMLElement>('[data-testid="aqe-controls-0"]')!;
     const status = document.querySelector<HTMLElement>('[data-testid="aqe-status-0"]')!;
-    const meta = controls.querySelector<HTMLElement>(".aqe-visualizer-meta")!;
+    const statusRow = controls.querySelector<HTMLElement>(".aqe-status-row")!;
+    const visualizer = controls.querySelector<HTMLElement>(".aqe-visualizer")!;
 
     expect(controls.querySelectorAll(".aqe-status")).toHaveLength(1);
-    expect(meta.querySelector('[data-testid="aqe-status-0"]')).toBe(status);
+    expect(statusRow.querySelector('[data-testid="aqe-status-0"]')).toBe(status);
+    expect(visualizer.querySelector('[data-testid="aqe-status-0"]')).toBeNull();
+    expect(visualizer.hidden).toBe(true);
     expect(status).toHaveTextContent("Closed settings.");
   });
 

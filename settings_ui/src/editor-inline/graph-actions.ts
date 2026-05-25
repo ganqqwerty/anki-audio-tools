@@ -220,7 +220,7 @@ export function prepareForNewNote(): void {
     resetVisualizerPlot(visualizer);
     resetCursorProjection(visualizer);
     visualizer.dataset.statusMessage = "";
-    const spinner = visualizer.querySelector<HTMLElement>(".aqe-spinner");
+    const spinner = controls.querySelector<HTMLElement>(".aqe-spinner");
     if (spinner) spinner.hidden = true;
   });
 }

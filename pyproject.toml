@@ -296,6 +296,7 @@ source_modules = [
     "anki_audio_quick_editor.file_reveal",
     "anki_audio_quick_editor.i18n",
     "anki_audio_quick_editor.media_paths",
+    "anki_audio_quick_editor.permission_guidance",
     "anki_audio_quick_editor.prosody_analyzer",
     "anki_audio_quick_editor.prosody_cache",
     "anki_audio_quick_editor.prosody_fallback",

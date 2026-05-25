@@ -30,6 +30,7 @@ from .audio_state import AudioEditState, AudioProcessingConfig
 from .audio_tools import find_ffmpeg
 from .audio_types import AudioProcessingResult
 from .errors import AudioProcessingError
+from .permission_guidance import launch_error_message
 
 
 def render_audio(
@@ -64,13 +65,7 @@ def render_audio(
     cmd = build_ffmpeg_command(ffmpeg_path, source_path, filters, output_path)
     if on_command:
         on_command(cmd)
-    result = subprocess.run(
-        list(cmd),
-        capture_output=True,
-        text=True,
-        check=False,
-        **_external_command_run_kwargs(),
-    )  # nosec B603
+    result = _run_render_command(cmd, "Could not start audio processing.")
     if result.returncode != 0:
         raise AudioProcessingError(result.stderr.strip() or "Audio processing failed.")
     return AudioProcessingResult(
@@ -98,13 +93,7 @@ def render_converted_audio(
     cmd = build_convert_audio_command(ffmpeg_path, source_path, output_path, target)
     if on_command:
         on_command(cmd)
-    result = subprocess.run(
-        list(cmd),
-        capture_output=True,
-        text=True,
-        check=False,
-        **_external_command_run_kwargs(),
-    )  # nosec B603
+    result = _run_render_command(cmd, "Could not start audio conversion.")
     if result.returncode != 0:
         raise AudioProcessingError(result.stderr.strip() or "Audio conversion failed.")
     return AudioProcessingResult(
@@ -143,13 +132,7 @@ def _render_region_filter_complex(
     cmd = build_region_delete_command(ffmpeg_path, source_path, filter_complex, output_path)
     if on_command:
         on_command(cmd)
-    result = subprocess.run(
-        list(cmd),
-        capture_output=True,
-        text=True,
-        check=False,
-        **_external_command_run_kwargs(),
-    )  # nosec B603
+    result = _run_render_command(cmd, "Could not start selected-region rendering.")
     if result.returncode != 0:
         raise AudioProcessingError(result.stderr.strip() or "Audio processing failed.")
     return AudioProcessingResult(
@@ -200,13 +183,7 @@ def render_playback_segment(
     cmd = build_ffmpeg_command(ffmpeg_path, source_path, filters, output_path)
     if on_command:
         on_command(cmd)
-    result = subprocess.run(
-        list(cmd),
-        capture_output=True,
-        text=True,
-        check=False,
-        **_external_command_run_kwargs(),
-    )  # nosec B603
+    result = _run_render_command(cmd, "Could not start playback segment rendering.")
     if result.returncode != 0:
         raise AudioProcessingError(result.stderr.strip() or "Playback segment rendering failed.")
     return AudioProcessingResult(
@@ -231,6 +208,19 @@ def make_output_filename(
     suffix = f"__aqe_{now:%Y%m%d_%H%M%S_%f}_{token}{output_extension(output_format)}"
     max_stem_length = max(1, 120 - len(suffix))  # pragma: no mutate
     return f"{safe_stem[:max_stem_length]}{suffix}"
+
+
+def _run_render_command(command: tuple[str, ...], launch_error: str) -> subprocess.CompletedProcess[str]:
+    try:
+        return subprocess.run(
+            list(command),
+            capture_output=True,
+            text=True,
+            check=False,
+            **_external_command_run_kwargs(),
+        )  # nosec B603
+    except OSError as exc:
+        raise AudioProcessingError(launch_error_message(launch_error, exc)) from exc
 
 
 def _safe_filename_stem(stem: str) -> str:
