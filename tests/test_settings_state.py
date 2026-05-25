@@ -18,6 +18,7 @@ def _full_config() -> dict[str, object]:
         "show_ffmpeg_commands": False,
         "repeat_playback_by_default": True,
         "repeat_pause_seconds": 0.0,
+        "voice_recording_countdown_seconds": 3,
         "share_target": "litterbox",
         "show_graph_by_default": True,
         "visible_editor_buttons": [
@@ -36,6 +37,8 @@ def _full_config() -> dict[str, object]:
         "editor_button_modes": {
             "aqe:play": "icon",
             "aqe:analyze": "icon",
+            "aqe:record-voice": "icon",
+            "aqe:play-recording": "icon",
             "aqe:show-file": "icon",
             "aqe:share": "icon",
             "aqe:convert": "text",

@@ -14,6 +14,10 @@ import {
   setVisualizerStatusFromPython,
   stopEditorPlayback,
 } from "./actions.js";
+import {
+  setLearnerRecordingState,
+  setLearnerVisualizer,
+} from "./recording-actions.js";
 import { playAfterEdit } from "./playback-actions.js";
 import {
   popPendingRegionDeleteRequest,
@@ -34,6 +38,8 @@ export const EDITOR_WINDOW_CONTRACT_NAMES = [
   "__aqeResetGraphAfterEdit",
   "__aqeSetBusy",
   "__aqeSetHistoryAvailability",
+  "__aqeSetLearnerRecordingState",
+  "__aqeSetLearnerVisualizer",
   "__aqeSetPlaybackState",
   "__aqeSetStatus",
   "__aqeSetVisualizer",
@@ -44,6 +50,8 @@ export const EDITOR_WINDOW_CONTRACT_NAMES = [
 export function installEditorWindowContract(): void {
   window.__aqeSetBusy = setControlsBusy;
   window.__aqeSetHistoryAvailability = setHistoryAvailability;
+  window.__aqeSetLearnerRecordingState = setLearnerRecordingState;
+  window.__aqeSetLearnerVisualizer = setLearnerVisualizer;
   window.__aqeSetStatus = setStatus;
   window.__aqeSetVisualizer = setVisualizer;
   window.__aqeSetVisualizerStatus = setVisualizerStatusFromPython;

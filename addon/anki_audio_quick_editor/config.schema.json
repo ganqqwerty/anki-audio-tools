@@ -11,6 +11,7 @@
     "repeat_playback_by_default",
     "repeat_pause_seconds",
     "share_target",
+    "voice_recording_countdown_seconds",
     "show_graph_by_default",
     "visible_editor_buttons",
     "editor_button_modes",
@@ -65,6 +66,11 @@
       "type": "string",
       "enum": ["catbox", "litterbox"]
     },
+    "voice_recording_countdown_seconds": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 10
+    },
     "show_graph_by_default": {
       "type": "boolean"
     },
@@ -75,6 +81,8 @@
         "enum": [
           "aqe:play",
           "aqe:analyze",
+          "aqe:record-voice",
+          "aqe:play-recording",
           "aqe:show-file",
           "aqe:share",
           "aqe:convert",
@@ -98,6 +106,8 @@
         "enum": [
           "aqe:play",
           "aqe:analyze",
+          "aqe:record-voice",
+          "aqe:play-recording",
           "aqe:show-file",
           "aqe:share",
           "aqe:convert",

@@ -9,6 +9,7 @@ from .i18n import t
 from .prosody_settings import sanitize_graph_settings
 
 MAX_REPEAT_PAUSE_SECONDS = 10.0
+MAX_RECORDING_COUNTDOWN_SECONDS = 10
 PITCH_HUM_MODES = frozenset({"direct", "pitch_tier"})
 SHARE_TARGETS = frozenset({"catbox", "litterbox"})
 
@@ -47,6 +48,7 @@ def split_default_config_updates(raw_payload: Any) -> dict[str, object]:
     updates: dict[str, object] = {}
     updates.update(_audio_parameter_updates(raw_defaults))
     updates.update(_repeat_updates(raw_defaults))
+    updates.update(_recording_updates(raw_defaults))
     updates.update(_pitch_hum_updates(raw_defaults))
     updates.update(_share_updates(raw_defaults))
     updates.update(_graph_updates(raw_defaults))
@@ -88,6 +90,15 @@ def _repeat_updates(raw_defaults: dict[str, object]) -> dict[str, object]:
     return updates
 
 
+def _recording_updates(raw_defaults: dict[str, object]) -> dict[str, object]:
+    countdown_seconds = _recording_countdown_seconds_or_none(
+        raw_defaults.get("voiceRecordingCountdownSeconds")
+    )
+    if countdown_seconds is None:
+        return {}
+    return {"voice_recording_countdown_seconds": countdown_seconds}
+
+
 def _pitch_hum_updates(raw_defaults: dict[str, object]) -> dict[str, object]:
     pitch_hum_mode = _enum_or_none(raw_defaults.get("pitchHumMode"), PITCH_HUM_MODES)
     return {"pitch_hum_mode": pitch_hum_mode} if pitch_hum_mode is not None else {}
@@ -119,3 +130,9 @@ def _repeat_pause_seconds_or_none(value: object) -> float | None:
     if isinstance(value, bool) or not isinstance(value, int | float):
         return None
     return max(0.0, min(MAX_REPEAT_PAUSE_SECONDS, round(float(value), 1)))
+
+
+def _recording_countdown_seconds_or_none(value: object) -> int | None:
+    if isinstance(value, bool) or not isinstance(value, int | float):
+        return None
+    return max(0, min(MAX_RECORDING_COUNTDOWN_SECONDS, int(value)))

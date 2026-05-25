@@ -34,6 +34,8 @@ EDITOR_SPLIT_MODULES = {
     "editor_media",
     "editor_playback",
     "editor_processing",
+    "editor_recording",
+    "editor_recording_frontend",
     "editor_region_delete",
     "editor_runtime",
     "editor_session",

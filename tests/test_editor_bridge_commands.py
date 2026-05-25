@@ -256,6 +256,7 @@ def test_bridge_saves_split_button_defaults_from_pending_payload() -> None:
                         "repeatPlaybackByDefault": True,
                         "shareTarget": "catbox",
                         "speedStep": 9,
+                        "voiceRecordingCountdownSeconds": 20,
                         "volumeStepDb": 99,
                     },
                     "fieldOrd": 0,
@@ -297,6 +298,7 @@ def test_bridge_saves_split_button_defaults_from_pending_payload() -> None:
         "repeat_playback_by_default": True,
         "share_target": "catbox",
         "speed_step": 5.0,
+        "voice_recording_countdown_seconds": 10,
         "volume_step_db": 40.0,
     }
     assert any("Saved quick settings as defaults." in call for call in editor.web.eval_calls)

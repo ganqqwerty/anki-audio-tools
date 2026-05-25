@@ -21,6 +21,7 @@ def test_composed_contract_schema_uses_config_schema_source() -> None:
     assert "deep_filter_post_filter" in config["properties"]
     assert "repeat_playback_by_default" in config["properties"]
     assert "repeat_pause_seconds" in config["properties"]
+    assert "voice_recording_countdown_seconds" in config["properties"]
     assert "show_graph_by_default" in config["properties"]
     assert "graph_voice_range" in config["properties"]
     assert "graph_recording_condition" in config["properties"]

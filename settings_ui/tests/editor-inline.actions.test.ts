@@ -237,6 +237,7 @@ describe("editor inline action workflows", () => {
     expect(visualizer.dataset.playbackEngine).toBe(request.engine);
 
     visualizer.dataset.durationMs = "0";
+    visualizer.dataset.targetDurationMs = "0";
     expect(setSelection(visualizer, 0, 200)).toBe(false);
   });
 

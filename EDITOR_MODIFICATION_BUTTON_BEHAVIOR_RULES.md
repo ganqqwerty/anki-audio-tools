@@ -4,7 +4,7 @@ This document is the shared behavior contract for inline editor buttons that mod
 
 Ground truth for this document is the current toolbar registry in `settings_ui/src/lib/editor-toolbar-buttons.ts`, editor dispatch in `settings_ui/src/editor-inline/` and `addon/anki_audio_quick_editor/editor_*.py`, shared operation definitions in `audio_operations.py`, and the editor e2e tests under `e2e/`.
 
-Available editor button commands are not the same as default-visible commands. The default config currently shows Play, Graph, Folder, Share, Shorten Pauses, Denoise, Slower, Faster, Undo, Redo, and Settings. Convert, Pitch Hum, Volume -, and Volume + are available toolbar commands but are hidden by the default `visible_editor_buttons` list unless the user enables them.
+Available editor button commands are not the same as default-visible commands. The default config currently shows Play, Graph, Folder, Share, Shorten Pauses, Denoise, Slower, Faster, Undo, Redo, and Settings. Convert, Pitch Hum, Volume -, Volume +, Record, and Play yours are available toolbar commands but are hidden by the default `visible_editor_buttons` list unless the user enables them.
 
 ## Current Command Inventory
 
@@ -12,8 +12,9 @@ Available editor button commands are not the same as default-visible commands. T
 |----------|----------|-----------------|
 | Generated-file modification commands | `aqe:convert`, `aqe:remove-pauses`, `aqe:denoise-standard`, `aqe:rnnoise`, `aqe:dpdfnet`, `aqe:voice-only`, `aqe:pitch-hum`, `aqe:slower`, `aqe:faster`, `aqe:volume-down`, `aqe:volume-up`, `aqe:delete-selection`, `aqe:delete-rest` | Covered by this document, except explicit no-op cases such as same-format Convert. |
 | Generated-file history commands | `aqe:undo`, `aqe:redo` | Covered by this document where they restore/select generated media instead of rendering a new file. |
-| Non-mutating split buttons | `aqe:play`, `aqe:analyze`, `aqe:share` | Not covered by the modification contract; see "Buttons Outside Or Diverging From This Contract". |
-| Non-mutating plain buttons | `aqe:show-file`, `aqe:settings` | Not covered by the modification contract. |
+| Non-mutating split buttons | `aqe:play`, `aqe:analyze`, `aqe:record-voice`, `aqe:share` | Not covered by the modification contract; see "Buttons Outside Or Diverging From This Contract". |
+| Non-mutating plain buttons | `aqe:play-recording`, `aqe:show-file`, `aqe:settings` | Not covered by the modification contract. |
+| Recording lifecycle bridge commands | `aqe:stop-recording` | Not a standalone visible button. It is dispatched by the Record split button primary segment while a learner recording is active. |
 | Internal bridge commands | `aqe:command-payload`, `aqe:save-split-defaults`, `aqe:analyze-field`, `aqe:set-cursor`, `aqe:play-ended`, `aqe:frontend-log`, `aqe:scan` | Not buttons. They are bridge plumbing and must not be documented as user-facing modification commands. |
 
 `aqe:rnnoise`, `aqe:dpdfnet`, and `aqe:voice-only` are command payload variants selected from the Denoise split menu. They are not separate top-level toolbar buttons in the current UI.
@@ -35,7 +36,7 @@ Current split-button shapes:
 
 | Shape | Commands |
 |-------|----------|
-| Individual split buttons | `aqe:play`, `aqe:analyze`, `aqe:share`, `aqe:convert`, `aqe:remove-pauses`, `aqe:denoise-standard`, `aqe:pitch-hum` |
+| Individual split buttons | `aqe:play`, `aqe:analyze`, `aqe:record-voice`, `aqe:share`, `aqe:convert`, `aqe:remove-pauses`, `aqe:denoise-standard`, `aqe:pitch-hum` |
 | Grouped split buttons | `aqe:slower` + `aqe:faster` share one Speed quick-settings menu; `aqe:volume-down` + `aqe:volume-up` share one Volume quick-settings menu. |
 | Plain modification buttons | `aqe:delete-selection`, `aqe:delete-rest`, `aqe:undo`, `aqe:redo` |
 
@@ -70,6 +71,7 @@ Current split-button defaults include:
 | DPDFNet aggressiveness | `dpdfnet_attn_limit_db` |
 | Convert output format | `output_format` |
 | Pitch Hum mode | `pitch_hum_mode` |
+| Voice recording countdown | `voice_recording_countdown_seconds` |
 
 Share target is persisted as a Settings default. The Share split menu initializes from `share_target`, lets the user pick Catbox or Litterbox locally per field, and exposes the same promote-default control as other split buttons.
 
@@ -91,7 +93,7 @@ Current shared batch/editor operations:
 Editor-only behavior:
 
 - `aqe:pitch-hum`, `aqe:delete-selection`, `aqe:delete-rest`, `aqe:undo`, and `aqe:redo` are editor-only today.
-- `aqe:play`, `aqe:share`, `aqe:show-file`, and `aqe:settings` are not batch operations.
+- `aqe:play`, `aqe:record-voice`, `aqe:stop-recording`, `aqe:play-recording`, `aqe:share`, `aqe:show-file`, and `aqe:settings` are not batch operations.
 - Selection-sensitive region deletion must not be added to Browser batch without a separate design, because it depends on editor graph selection state.
 
 ## Non-Destructive Media
@@ -188,6 +190,8 @@ These buttons are current UI surfaces that do not fully follow this modification
 |--------|------------------|--------------------------------------|
 | `aqe:play` | Split button for playback and repeat settings. It may use the current selection region and repeat pause values. | It does not render, replace media, write history, or update note fields. |
 | `aqe:analyze` | Split button for graph/prosody settings. It analyzes the current audio and renders an inline graph; Browser batch `graph` appends an SVG to a target field. | Editor Graph is analysis state, not a generated-audio modification. It does not replace the field's sound reference or push undo/redo history. |
+| `aqe:record-voice` / `aqe:stop-recording` | Record is an opt-in split button for learner voice capture. It defaults to icon mode but follows the standard editor button display-mode setting. It requires an existing target graph, stops target playback, clears any old learner overlay, shows the configured countdown, starts native recording, and toggles the primary action to Stop while recording. Stop finalizes the learner attempt, analyzes it, and overlays learner pitch only. | It creates sidecar learner media and analysis state for comparison, but intentionally does not replace the note field's sound reference, push undo/redo history, or trigger post-modification playback. |
+| `aqe:play-recording` | Opt-in button grouped next to Record when both commands are visible. It defaults to icon mode but follows the standard editor button display-mode setting. It plays the latest ready learner recording through native playback and is disabled until a learner attempt is ready. | It plays sidecar learner media only. It does not render new target media, replace fields, write history, or update note data. |
 | `aqe:share` | Split button for Catbox/Litterbox upload. It uploads the current audio, copies a URL, keeps the note unchanged, initializes from the `share_target` Settings default, and can promote the field-local target to the default. | It has field-local quick settings and busy state, but it intentionally does not create generated media or mutate the note. |
 | `aqe:show-file` | Opens/reveals the current media file through the OS. | It has an external shell/file-manager side effect but no audio rendering, field replacement, or history behavior. |
 | `aqe:settings` | Opens the add-on Settings dialog. | It configures defaults and toolbar visibility, but it is not an audio-field modification. |
@@ -232,6 +236,7 @@ Current e2e behavior references:
 | Region delete and delete-rest | `e2e/test_editor_region_delete_workflow.py`, `e2e/test_editor_region_resize_workflow.py`, `settings_ui/tests/editor-inline.selection-delete.integration.test.ts` |
 | Graph redraw after edits and graph parameter behavior | `e2e/test_editor_graph_visualizer_workflow.py`, `e2e/test_editor_graph_visualizer_edges_workflow.py`, `e2e/test_editor_graph_parameters_workflow.py` |
 | Playback, repeat, and post-edit playback | `e2e/test_editor_playback_workflow.py`, `e2e/test_editor_region_loop_playback_workflow.py`, `settings_ui/tests/editor-inline.post-edit-playback.integration.test.ts` |
+| Learner recording comparison | `e2e/test_editor_voice_recording_comparison_workflow.py`, `settings_ui/tests/editor-inline.recording.integration.test.ts`, `tests/test_audio_recording.py`, `tests/test_editor_recording.py`, `tests/test_editor_recording_state.py` |
 | Share non-mutation and per-field target state | `e2e/test_editor_share_workflow.py`, `settings_ui/tests/editor-inline.command-splits.integration.test.ts` |
 
 ## New Button Checklist

@@ -19,6 +19,7 @@
   import Share from "@lucide/svelte/icons/share";
   import Snail from "@lucide/svelte/icons/snail";
   import Sparkles from "@lucide/svelte/icons/sparkles";
+  import Square from "@lucide/svelte/icons/square";
   import TimerReset from "@lucide/svelte/icons/timer-reset";
   import Trash2 from "@lucide/svelte/icons/trash-2";
   import Undo2 from "@lucide/svelte/icons/undo-2";
@@ -97,6 +98,8 @@
     <Snail {size} {strokeWidth} />
   {:else if icon === "sparkles"}
     <Sparkles {size} {strokeWidth} />
+  {:else if icon === "square"}
+    <Square {size} {strokeWidth} />
   {:else if icon === "timer-reset"}
     <TimerReset {size} {strokeWidth} />
   {:else if icon === "trash-2"}

@@ -146,6 +146,9 @@ _apply_html_playback_request = editor_callbacks._apply_html_playback_request
 _start_playback_from_cursor = editor_callbacks._start_playback_from_cursor
 _playback_segment_ready = editor_callbacks._playback_segment_ready
 _playback_segment_failed = editor_callbacks._playback_segment_failed
+_record_learner_voice = editor_callbacks._record_learner_voice
+_stop_learner_recording = editor_callbacks._stop_learner_recording
+_play_learner_recording = editor_callbacks._play_learner_recording
 _undo = editor_callbacks._undo
 _redo = editor_callbacks._redo
 _restore_history_entry = editor_callbacks._restore_history_entry
@@ -234,6 +237,9 @@ def _on_editor_will_load_note(js: str, note: Any, editor: Any) -> str:
             "volumeStepDb": float(config.get("volume_step_db", 15.0)),
             "speedStep": float(config.get("speed_step", 1.5)),
             "repeatPauseSeconds": float(config.get("repeat_pause_seconds", 0.0)),
+            "voiceRecordingCountdownSeconds": int(
+                config.get("voice_recording_countdown_seconds", 3)
+            ),
             "shareTarget": str(config.get("share_target", "litterbox")),
             "pauseAggressiveness": str(config.get("pause_aggressiveness", "normal")),
             "denoiseAlgorithm": str(config.get("denoise_algorithm", "standard")),

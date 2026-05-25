@@ -14,6 +14,7 @@ from . import (
     editor_history,
     editor_playback,
     editor_processing,
+    editor_recording,
     editor_region_delete,
     editor_runtime,
     editor_settings_actions,
@@ -86,6 +87,10 @@ def _settings_action_deps() -> SimpleNamespace:
 
 def _analysis_deps() -> SimpleNamespace:
     return _deps(editor_dependencies.analysis_deps)
+
+
+def _recording_deps() -> SimpleNamespace:
+    return _deps(editor_dependencies.recording_deps)
 
 
 def _share_deps() -> SimpleNamespace:
@@ -180,6 +185,19 @@ _apply_html_playback_request = _with_deps(editor_playback.apply_html_playback_re
 _start_playback_from_cursor = _with_deps(editor_playback.start_playback_from_cursor, _playback_deps)
 _playback_segment_ready = _with_deps(editor_playback.playback_segment_ready, _playback_deps)
 _playback_segment_failed = _with_deps(editor_playback.playback_segment_failed, _playback_deps)
+
+_record_learner_voice = _with_keyword_deps(
+    editor_recording.record_learner_voice,
+    _recording_deps,
+)
+_stop_learner_recording = _with_deps(
+    editor_recording.stop_learner_recording,
+    _recording_deps,
+)
+_play_learner_recording = _with_deps(
+    editor_recording.play_learner_recording,
+    _recording_deps,
+)
 
 _undo = _with_deps(editor_history.undo, _history_deps)
 _redo = _with_deps(editor_history.redo, _history_deps)

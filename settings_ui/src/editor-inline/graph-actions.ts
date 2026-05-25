@@ -14,6 +14,7 @@ import {
   resetCursorProjection,
   resetVisualizerPlot,
 } from "./visualizer-renderer.js";
+import { resetLearnerRecordingState } from "./recording-actions.js";
 import {
   audioClockReady,
   clearAudioClockSource,
@@ -80,6 +81,7 @@ function prepareGraphRequest(ord: number): boolean {
   const visualizer = visualizerForOrd(ord);
   if (!visualizer) return false;
   stopProgressClock(visualizer, { clearAudio: true });
+  resetLearnerRecordingState(ord);
   renderGraphRequested(visualizer);
   clearSelection(visualizer);
   setCursor(visualizer, 0, false);
@@ -207,6 +209,9 @@ export function prepareForNewNote(): void {
     visualizer.dataset.playbackEngine = "";
     visualizer.dataset.resumeRequiresRestart = "false";
     visualizer.dataset.durationMs = "0";
+    visualizer.dataset.targetDurationMs = "0";
+    visualizer.dataset.learnerDurationMs = "0";
+    visualizer.dataset.learnerRecordingStatus = "idle";
     visualizer.dataset.sourceFilename = "";
     visualizer.dataset.analyzerName = "";
     visualizer.dataset.playStartedAt = "0";
@@ -219,6 +224,7 @@ export function prepareForNewNote(): void {
     clearSelection(visualizer);
     resetVisualizerPlot(visualizer);
     resetCursorProjection(visualizer);
+    resetLearnerRecordingState(ord);
     visualizer.dataset.statusMessage = "";
     const spinner = controls.querySelector<HTMLElement>(".aqe-spinner");
     if (spinner) spinner.hidden = true;

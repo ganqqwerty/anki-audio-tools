@@ -9,7 +9,9 @@
 
   const {
     ariaLabel,
+    activeIcon,
     command,
+    disabled = false,
     displayMode,
     icon,
     label,
@@ -20,7 +22,9 @@
     ord,
   }: {
     ariaLabel: string;
+    activeIcon?: CommandIconName | undefined;
     command: string;
+    disabled?: boolean;
     displayMode: EditorButtonDisplayMode;
     icon: CommandIconName;
     label: string;
@@ -43,12 +47,16 @@
       data-aqe-button-state={command === "aqe:play" ? "play" : command === "aqe:analyze" ? "graph" : "default"}
       data-aqe-tooltip-content={title}
       data-testid={`aqe-button-${ord}-${slug}`}
+      {disabled}
       aria-label={ariaLabel}
       onmousedown={(event) => event.preventDefault()}
       onclick={onClick}
     >
       {#if displayMode === EditorButtonMode.Icon}
-        <EditorCommandIcon {icon} />
+        <EditorCommandIcon className="aqe-button-icon-default" {icon} />
+        {#if activeIcon}
+          <EditorCommandIcon className="aqe-button-icon-active" icon={activeIcon} />
+        {/if}
       {/if}
       <span class="aqe-button-label">{label}</span>
     </button>

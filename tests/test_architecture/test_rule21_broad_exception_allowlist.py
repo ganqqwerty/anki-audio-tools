@@ -184,6 +184,12 @@ BROAD_EXCEPTION_ALLOWLIST: tuple[BroadExceptionAllowance, ...] = (
         "Background prosody analysis worker boundary reports analyzer failures on the main thread.",
     ),
     BroadExceptionAllowance(
+        "editor_recording",
+        "analyze_learner_recording_async._run",
+        1,
+        "Background learner-recording analysis worker reports analyzer failures on the main thread.",
+    ),
+    BroadExceptionAllowance(
         "file_reveal",
         "_open_parent_folder",
         1,

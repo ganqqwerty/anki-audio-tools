@@ -6,6 +6,7 @@ import {
   clampDpdfnetAttnLimitDb,
   clampRepeatPauseSeconds,
   clampSpeedStep,
+  clampVoiceRecordingCountdownSeconds,
   clampVolumeStepDb,
   formatDenoiseAlgorithm,
   formatDpdfnetAggressiveness,
@@ -14,6 +15,7 @@ import {
   formatPitchHumMode,
   formatRepeatPauseSeconds,
   formatSpeedStep,
+  formatVoiceRecordingCountdownSeconds,
   formatVolumeDb,
   getSplitButtonState,
   promoteSplitDefaultsForField,
@@ -25,6 +27,7 @@ import {
   setRepeatPauseSecondsForField,
   setShareTargetForField,
   setSpeedStepForField,
+  setVoiceRecordingCountdownSecondsForField,
   setVolumeStepForField,
 } from "../src/editor-inline/split-button-state.js";
 import {
@@ -71,6 +74,13 @@ describe("split button state", () => {
     expect(clampRepeatPauseSeconds(0.56)).toBe(0.6);
   });
 
+  it("formats and clamps voice recording countdown values", () => {
+    expect(formatVoiceRecordingCountdownSeconds(3)).toBe("3s");
+    expect(clampVoiceRecordingCountdownSeconds(-1)).toBe(0);
+    expect(clampVoiceRecordingCountdownSeconds(20)).toBe(10);
+    expect(clampVoiceRecordingCountdownSeconds(2.4)).toBe(2);
+  });
+
   it("formats option split values for pause and denoise controls", () => {
     expect(formatPauseAggressiveness("gentle")).toBe("Gentle");
     expect(formatPauseAggressiveness("normal")).toBe("Normal");
@@ -115,6 +125,7 @@ describe("split button state", () => {
         repeatPauseSeconds: 1.5,
         shareTarget: "catbox",
         speedStep: 1.5,
+        voiceRecordingCountdownSeconds: 5,
         volumeStepDb: 15,
       },
     };
@@ -133,6 +144,7 @@ describe("split button state", () => {
     expect(getSplitButtonState(0).outputFormat).toBe("flac");
     expect(getSplitButtonState(0).pitchHumMode).toBe("pitch_tier");
     expect(getSplitButtonState(0).shareTarget).toBe("catbox");
+    expect(getSplitButtonState(0).voiceRecordingCountdownSeconds).toBe(5);
   });
 
   it("keeps volume state isolated per field", () => {
@@ -270,6 +282,28 @@ describe("split button state", () => {
         voiceLock: "stable",
         voiceRange: "child",
       },
+    });
+  });
+
+  it("builds record voice payload and default save requests from local field state", () => {
+    setVoiceRecordingCountdownSecondsForField(0, 0);
+
+    expect(buildSplitCommandPayload("aqe:record-voice", 0)).toEqual({
+      command: "aqe:record-voice",
+      fieldOrd: 0,
+      graphSettings: {
+        connectShortDropoutsMs: 240,
+        recordingCondition: "auto",
+        smoothness: "very_smooth",
+        voiceLock: "balanced",
+        voiceRange: "general",
+      },
+    });
+    expect(buildSplitDefaultSaveRequest("aqe:record-voice", 0)).toEqual({
+      defaults: {
+        voiceRecordingCountdownSeconds: 0,
+      },
+      fieldOrd: 0,
     });
   });
 

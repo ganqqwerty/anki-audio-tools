@@ -8,6 +8,15 @@
   stroke-width: 3;
 }
 
+.aqe-learner-pitch-path {
+  fill: none;
+  opacity: 0.86;
+  stroke: #0f766e;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 2.5;
+}
+
 .aqe-css-cursor {
   display: none;
   left: 0;

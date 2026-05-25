@@ -10,7 +10,7 @@ import {
 import type { PlaybackRequest, PlaybackState, VisualizerElement } from "./types.js";
 import {
   readVisualizerCursorMs,
-  readVisualizerDurationMs,
+  readVisualizerTargetDurationMs,
   setVisualizerResumeRequiresRestart,
 } from "./visualizer-state.js";
 
@@ -68,7 +68,7 @@ export function startCursorDrag(
   event.preventDefault();
   const previousPlaybackState = deps.playbackStateFor(visualizer);
   const svg = visualizer.querySelector<SVGSVGElement>(".aqe-visualizer-svg");
-  const durationMs = readVisualizerDurationMs(visualizer);
+  const durationMs = readVisualizerTargetDurationMs(visualizer);
   if (!svg || !durationMs) return;
   const startEvent = { clientX: event.clientX };
   const startMs = cursorMsFromEvent(event, svg, durationMs);
@@ -141,7 +141,7 @@ export function startSelectionGesture(
 ): void {
   event.preventDefault();
   const svg = visualizer.querySelector<SVGSVGElement>(".aqe-visualizer-svg");
-  const durationMs = readVisualizerDurationMs(visualizer);
+  const durationMs = readVisualizerTargetDurationMs(visualizer);
   if (!svg || !durationMs) return;
   const previousPlaybackState = deps.playbackStateFor(visualizer);
   let frozenProgressMs = deps.currentProgressMs(visualizer) ?? readVisualizerCursorMs(visualizer);
@@ -214,7 +214,7 @@ export function startSelectionResizeGesture(
   event.preventDefault();
   event.stopPropagation();
   const svg = visualizer.querySelector<SVGSVGElement>(".aqe-visualizer-svg");
-  const durationMs = readVisualizerDurationMs(visualizer);
+  const durationMs = readVisualizerTargetDurationMs(visualizer);
   const selection = deps.selectionForVisualizer(visualizer);
   if (!svg || !durationMs || !selection) return;
   const previousPlaybackState = deps.playbackStateFor(visualizer);

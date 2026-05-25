@@ -10,6 +10,7 @@
     hasSettings = true,
     icon,
     mode,
+    modeLocked = false,
     onSetMode,
     onToggle,
     testId,
@@ -21,6 +22,7 @@
     hasSettings?: boolean;
     icon: CommandIconName;
     mode: EditorButtonDisplayMode;
+    modeLocked?: boolean;
     onSetMode: (mode: EditorButtonDisplayMode) => void;
     onToggle: () => void;
     testId: string;
@@ -53,6 +55,7 @@
         <input
           checked={mode === EditorButtonMode.Icon}
           data-testid={`${testId}-mode-icon`}
+          disabled={modeLocked}
           type="checkbox"
           onchange={(event) =>
             onSetMode((event.currentTarget as HTMLInputElement).checked ? EditorButtonMode.Icon : EditorButtonMode.Text)}

@@ -6,6 +6,12 @@ export function readVisualizerDurationMs(visualizer: VisualizerElement): number 
   return Number(visualizer.dataset.durationMs || "0") || 0;
 }
 
+export function readVisualizerTargetDurationMs(visualizer: VisualizerElement): number {
+  const targetDurationMs = Number(visualizer.dataset.targetDurationMs || "0") || 0;
+  if (targetDurationMs > 0) return targetDurationMs;
+  return readVisualizerDurationMs(visualizer);
+}
+
 export function readVisualizerCursorMs(visualizer: VisualizerElement): number {
   return Number(visualizer.dataset.cursorMs || "0") || 0;
 }

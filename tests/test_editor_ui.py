@@ -24,6 +24,7 @@ def test_injection_script_embeds_audio_field_indices_and_bundle() -> None:
     assert config["showGraphByDefault"] is True
     assert config["visibleEditorButtons"] is None
     assert config["splitButtonDefaults"]["repeatPauseSeconds"] == 0.0
+    assert config["splitButtonDefaults"]["voiceRecordingCountdownSeconds"] == 3
     assert config["splitButtonDefaults"]["shareTarget"] == "litterbox"
     assert config["splitButtonDefaults"]["pitchHumMode"] == "direct"
     assert config["splitButtonDefaults"]["dpdfnetAttnLimitDb"] == 12.0
@@ -121,6 +122,8 @@ def test_injection_script_keeps_python_window_contract() -> None:
     assert "__aqeSetHistoryAvailability" in script
     assert "__aqeSetStatus" in script
     assert "__aqeSetVisualizer" in script
+    assert "__aqeSetLearnerRecordingState" in script
+    assert "__aqeSetLearnerVisualizer" in script
     assert "__aqeSetVisualizerStatus" in script
     assert "__aqeGetPlaybackRequest" in script
     assert "__aqeGetCursorIntent" in script

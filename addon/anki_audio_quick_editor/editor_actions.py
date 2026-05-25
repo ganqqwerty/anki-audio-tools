@@ -42,6 +42,9 @@ CMD_SETTINGS = "aqe:settings"
 CMD_REDO = "aqe:redo"
 CMD_SHARE = "aqe:share"
 CMD_OPEN_URL = "aqe:open-url"
+CMD_RECORD_VOICE = "aqe:record-voice"
+CMD_STOP_RECORDING = "aqe:stop-recording"
+CMD_PLAY_RECORDING = "aqe:play-recording"
 
 ALLOWED_EXTERNAL_URLS = frozenset(
     {
@@ -76,6 +79,9 @@ BRIDGE_COMMANDS = (
     "aqe:show-file",
     CMD_SHARE,
     CMD_OPEN_URL,
+    CMD_RECORD_VOICE,
+    CMD_STOP_RECORDING,
+    CMD_PLAY_RECORDING,
     CMD_SLOWER,
     CMD_FASTER,
     CMD_VOLUME_DOWN,

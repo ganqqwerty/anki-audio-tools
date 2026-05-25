@@ -12,6 +12,7 @@ import { syncAllSelectionToolbars } from "./selection-toolbar-state.js";
 import { setButtonTooltipContent, setTooltipContent } from "../lib/rich-tooltip.js";
 import type { EditorCommand } from "./types.js";
 import { defaultGraphQueueDependencies } from "./graph-actions.js";
+import { syncAllRecordingControls, syncRecordingControls } from "./recording-actions.js";
 
 export function anyBusy(): boolean {
   return document.body.dataset.aqeBusy === "true";
@@ -31,6 +32,7 @@ export function setControlsBusy(ord: number, busy: boolean, message = "", comman
     controls.dataset.busy = busy ? "true" : "false";
   });
   allButtons().forEach(updateButtonDisabledState);
+  syncAllRecordingControls();
   syncAllSelectionToolbars();
   if (!busy) {
     queueMicrotask(() => continueDefaultGraphQueue(defaultGraphQueueDependencies()));
@@ -125,6 +127,7 @@ export function setHistoryAvailability(ord: number, canUndo: boolean, canRedo: b
   }
   updateHistoryButtonState(ord, "aqe:undo");
   updateHistoryButtonState(ord, "aqe:redo");
+  syncRecordingControls(ord);
 }
 
 export function historyAvailability(ord: number): { canRedo: boolean; canUndo: boolean } {

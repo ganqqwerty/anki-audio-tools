@@ -55,7 +55,7 @@ export function buildSplitCommandPayloadFromState(
     }
     return { command: selectedCommand, fieldOrd: ord, overrides };
   }
-  if (command === "aqe:analyze" || command === "aqe:pitch-hum") {
+  if (command === "aqe:analyze" || command === "aqe:pitch-hum" || command === "aqe:record-voice") {
     const payload: EditorCommandPayload = {
       command,
       fieldOrd: ord,
@@ -102,6 +102,8 @@ export function buildSplitDefaultSaveRequestFromState(
     request.defaults.pitchHumMode = state.pitchHumMode;
   } else if (command === "aqe:share") {
     request.defaults.shareTarget = state.shareTarget;
+  } else if (command === "aqe:record-voice") {
+    request.defaults.voiceRecordingCountdownSeconds = state.voiceRecordingCountdownSeconds;
   }
   return request;
 }

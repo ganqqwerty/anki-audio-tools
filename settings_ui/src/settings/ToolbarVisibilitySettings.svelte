@@ -70,6 +70,7 @@
     return (
       command === "aqe:play" ||
       command === "aqe:analyze" ||
+      command === "aqe:record-voice" ||
       command === "aqe:share" ||
       command === "aqe:convert" ||
       command === "aqe:remove-pauses" ||
@@ -134,6 +135,19 @@
             <span class="settings-label-text">{t("settings.show_graph_by_default")}</span>
           </label>
           <GraphSettingsFields bind:config />
+        {:else if button.command === "aqe:record-voice"}
+          <label class="settings-field">
+            <span>{t("settings.voice_recording_countdown_seconds")}</span>
+            <input
+              class="settings-input"
+              data-testid="voice-recording-countdown-seconds"
+              type="number"
+              min="0"
+              max="10"
+              step="1"
+              bind:value={config.voice_recording_countdown_seconds}
+            />
+          </label>
         {:else if button.command === "aqe:share"}
           <label class="settings-field">
             <span>{t("settings.share_target")}</span>

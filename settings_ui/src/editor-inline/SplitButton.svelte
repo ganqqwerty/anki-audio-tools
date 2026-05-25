@@ -4,11 +4,13 @@
   import AqeTooltip from "../lib/AqeTooltip.svelte";
 
   import EditorCommandIcon from "./EditorCommandIcon.svelte";
+  import RecordingSplitOptions from "./RecordingSplitOptions.svelte";
   import SplitButtonPrimary from "./SplitButtonPrimary.svelte";
   import SplitDefaultSaveButton from "./SplitDefaultSaveButton.svelte";
   import GraphSplitOptions from "./GraphSplitOptions.svelte";
   import SplitValueOptions from "./SplitValueOptions.svelte";
   import { send } from "./actions.js";
+  import { dispatchLearnerRecordingPrimary } from "./recording-actions.js";
   import { openEditorExternalLink } from "./external-links.js";
   import { sendSplitDefaultSaveRequest } from "./bridge.js";
   import {
@@ -23,6 +25,7 @@
     setPitchHumModeForField,
     setShareTargetForField,
     setSpeedStepForField,
+    setVoiceRecordingCountdownSecondsForField,
     setVolumeStepForField,
   } from "./split-button-state.js";
   import {
@@ -83,6 +86,7 @@
   let graphSmoothness = $state<GraphSmoothness>("very_smooth");
   let graphConnectShortDropoutsMs = $state(240);
   let graphVoiceLock = $state<GraphVoiceLock>("balanced");
+  let voiceRecordingCountdownSeconds = $state(3);
   let defaultSaved = $state(false);
   let defaultSavedTimer: number | undefined;
 
@@ -104,6 +108,10 @@
       : "aqe-button aqe-split-primary";
   }
 
+  function primaryInitiallyDisabled(): boolean {
+    return button.command === "aqe:record-voice" || button.command === "aqe:play-recording";
+  }
+
   const currentPrimaryTitle = $derived(primaryTitle(button, outputFormat, denoiseAlgorithm));
   const currentValue = $derived(currentValueLabel(button, groupSlug, {
     denoiseAlgorithm,
@@ -118,6 +126,7 @@
     pitchHumMode,
     shareTarget,
     speedStep,
+    voiceRecordingCountdownSeconds,
     volumeStepDb,
   }));
 
@@ -146,6 +155,7 @@
     graphSmoothness = state.graphSmoothness;
     graphConnectShortDropoutsMs = state.graphConnectShortDropoutsMs;
     graphVoiceLock = state.graphVoiceLock;
+    voiceRecordingCountdownSeconds = state.voiceRecordingCountdownSeconds;
   }
 
   function applyVolumeStep(value: number): void {
@@ -200,13 +210,27 @@
     graphVoiceLock = setGraphVoiceLockForField(target.ord, value).graphVoiceLock;
   }
 
+  function applyVoiceRecordingCountdownSeconds(value: number): void {
+    voiceRecordingCountdownSeconds = setVoiceRecordingCountdownSecondsForField(
+      target.ord,
+      value,
+    ).voiceRecordingCountdownSeconds;
+  }
+
   function dispatchCommand(command: ButtonSpec["command"]): void {
     window.dispatchEvent(new Event(CLOSE_SPLIT_MENUS_EVENT));
     close();
-    send(command, target.node, target.ord, buildSplitCommandPayload(command, target.ord));
+    const payload = command === "aqe:play-recording" ? undefined : buildSplitCommandPayload(command, target.ord);
+    send(command, target.node, target.ord, payload);
   }
 
   function dispatchPrimary(): void {
+    if (button.command === "aqe:record-voice") {
+      window.dispatchEvent(new Event(CLOSE_SPLIT_MENUS_EVENT));
+      close();
+      dispatchLearnerRecordingPrimary(target.node, target.ord);
+      return;
+    }
     dispatchCommand(button.command);
   }
 
@@ -247,7 +271,9 @@
       {#if showPrimary}
         <SplitButtonPrimary
           ariaLabel={currentPrimaryTitle}
+          activeIcon={button.activeIcon}
           command={button.command}
+          disabled={primaryInitiallyDisabled()}
           {displayMode}
           icon={button.icon}
           label={button.label}
@@ -340,34 +366,45 @@
             </AqeTooltip>
           </div>
         {:else}
-          <SplitValueOptions
-            {button}
-            denoiseAlgorithm={denoiseAlgorithm}
-            dpdfnetAttnLimitDb={dpdfnetAttnLimitDb}
-            {groupSlug}
-            menuLabel={menuTextLabel()}
-            onChange={() => {}}
-            onDenoiseAlgorithm={applyDenoiseAlgorithm}
-            onDpdfnetAttnLimitDb={applyDpdfnetAttnLimitDb}
-            onOutputFormat={applyOutputFormat}
-            onPauseAggressiveness={applyPauseAggressiveness}
-            onPitchHumMode={applyPitchHumMode}
-            onRunCommand={dispatchCommand}
-            onSaveDefault={saveCurrentDefaults}
-            onShareTarget={applyShareTarget}
-            onSpeedStep={applySpeedStep}
-            onVolumeStep={applyVolumeStep}
-            pauseAggressiveness={pauseAggressiveness}
-            outputFormat={outputFormat}
-            pitchHumMode={pitchHumMode}
-            saveDefaultSaved={defaultSaved}
-            shareTarget={shareTarget}
-            {showRunButton}
-            showSaveDefault={true}
-            speedStep={speedStep}
-            targetOrd={target.ord}
-            volumeStepDb={volumeStepDb}
-          />
+          {#if button.command === "aqe:record-voice"}
+            <RecordingSplitOptions
+              countdownSeconds={voiceRecordingCountdownSeconds}
+              onCountdownSeconds={applyVoiceRecordingCountdownSeconds}
+              onSaveDefault={saveCurrentDefaults}
+              saveDefaultSaved={defaultSaved}
+              slug={menuSlug()}
+              targetOrd={target.ord}
+            />
+          {:else}
+            <SplitValueOptions
+              {button}
+              denoiseAlgorithm={denoiseAlgorithm}
+              dpdfnetAttnLimitDb={dpdfnetAttnLimitDb}
+              {groupSlug}
+              menuLabel={menuTextLabel()}
+              onChange={() => {}}
+              onDenoiseAlgorithm={applyDenoiseAlgorithm}
+              onDpdfnetAttnLimitDb={applyDpdfnetAttnLimitDb}
+              onOutputFormat={applyOutputFormat}
+              onPauseAggressiveness={applyPauseAggressiveness}
+              onPitchHumMode={applyPitchHumMode}
+              onRunCommand={dispatchCommand}
+              onSaveDefault={saveCurrentDefaults}
+              onShareTarget={applyShareTarget}
+              onSpeedStep={applySpeedStep}
+              onVolumeStep={applyVolumeStep}
+              pauseAggressiveness={pauseAggressiveness}
+              outputFormat={outputFormat}
+              pitchHumMode={pitchHumMode}
+              saveDefaultSaved={defaultSaved}
+              shareTarget={shareTarget}
+              {showRunButton}
+              showSaveDefault={true}
+              speedStep={speedStep}
+              targetOrd={target.ord}
+              volumeStepDb={volumeStepDb}
+            />
+          {/if}
         {/if}
       </Popover.Content>
     </span>
@@ -375,7 +412,9 @@
 {:else if showPrimary}
   <SplitButtonPrimary
     ariaLabel={currentPrimaryTitle}
+    activeIcon={button.activeIcon}
     command={button.command}
+    disabled={primaryInitiallyDisabled()}
     {displayMode}
     icon={button.icon}
     label={button.label}

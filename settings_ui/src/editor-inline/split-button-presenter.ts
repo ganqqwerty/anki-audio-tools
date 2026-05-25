@@ -1,6 +1,12 @@
 import { t } from "../lib/i18n.js";
 import { formatGraphRecordingCondition, formatGraphSmoothness, formatGraphVoiceLock, formatGraphVoiceRange } from "./graph-split-values.js";
-import { formatDenoiseAlgorithm, formatOutputFormat, formatSpeedStep, formatVolumeDb } from "./split-button-state.js";
+import {
+  formatDenoiseAlgorithm,
+  formatOutputFormat,
+  formatSpeedStep,
+  formatVoiceRecordingCountdownSeconds,
+  formatVolumeDb,
+} from "./split-button-state.js";
 import type { GraphRecordingCondition, GraphSmoothness, GraphVoiceLock, GraphVoiceRange } from "./graph-settings.js";
 import type { ButtonSpec, FieldSplitButtonState } from "./types.js";
 
@@ -22,6 +28,7 @@ type SplitButtonValueState = {
   pitchHumMode: PitchHumMode;
   shareTarget: ShareTarget;
   speedStep: number;
+  voiceRecordingCountdownSeconds: number;
   volumeStepDb: number;
 };
 
@@ -96,5 +103,8 @@ export function currentValueLabel(
     return denoiseValueLabel(state.denoiseAlgorithm, state.dpdfnetAttnLimitDb);
   }
   if (button.command === "aqe:analyze") return graphSummary(state);
+  if (button.command === "aqe:record-voice") {
+    return formatVoiceRecordingCountdownSeconds(state.voiceRecordingCountdownSeconds);
+  }
   return "";
 }

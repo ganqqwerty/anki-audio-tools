@@ -4,11 +4,12 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Literal
+from typing import Any, Literal
 
 from .audio_state import AudioEditState
 
 RegionDeleteOperation = Literal["delete-selection", "delete-rest"]
+LearnerRecordingStatus = Literal["idle", "recording", "stopping", "analyzing", "ready", "failed"]
 
 
 @dataclass(frozen=True)
@@ -27,6 +28,24 @@ class PendingEditorStatus:
     field_index: int
     kind: str = "info"
     message: str = ""
+
+
+@dataclass(frozen=True)
+class LearnerRecordingState:
+    """Learner recording attempt state owned by Python."""
+
+    status: LearnerRecordingStatus = "idle"
+    field_index: int | None = None
+    generation: int = 0
+    source_filename: str | None = None
+    media_filename: str | None = None
+    media_path: Path | None = None
+    target_duration_ms: int | None = None
+    recording_started_at_monotonic: float | None = None
+    recording_duration_ms: int | None = None
+    prosody_payload: dict[str, object] | None = None
+    failure_message: str | None = None
+    graph_settings: dict[str, object] | None = None
 
 
 @dataclass
@@ -113,6 +132,8 @@ class EditorSession:
     next_status_summary: str = ""
     status_summary: str = ""
     pending_status: PendingEditorStatus | None = None
+    learner_recording: LearnerRecordingState = field(default_factory=LearnerRecordingState)
+    learner_recording_controller: Any | None = None
 
 
 def reset_for_note_load(session: EditorSession, note_id: int | None) -> bool:
@@ -145,4 +166,57 @@ def reset_for_note_load(session: EditorSession, note_id: int | None) -> bool:
     session.next_status_summary = ""
     session.status_summary = ""
     session.pending_status = None
+    clear_learner_recording_state(session)
     return True
+
+
+def begin_learner_recording_state(
+    session: EditorSession,
+    *,
+    field_index: int,
+    source_filename: str,
+    target_duration_ms: int,
+    media_filename: str,
+    media_path: Path,
+    graph_settings: dict[str, object] | None = None,
+    started_at: float | None = None,
+) -> LearnerRecordingState:
+    """Start a new learner recording generation."""
+    generation = session.learner_recording.generation + 1
+    state = LearnerRecordingState(
+        status="recording",
+        field_index=field_index,
+        generation=generation,
+        source_filename=source_filename,
+        media_filename=media_filename,
+        media_path=media_path,
+        target_duration_ms=target_duration_ms,
+        recording_started_at_monotonic=started_at,
+        graph_settings=graph_settings,
+    )
+    session.learner_recording = state
+    return state
+
+
+def clear_learner_recording_state(session: EditorSession) -> LearnerRecordingState:
+    """Clear learner recording state and invalidate pending callbacks."""
+    state = LearnerRecordingState(generation=session.learner_recording.generation + 1)
+    session.learner_recording = state
+    session.learner_recording_controller = None
+    return state
+
+
+def learner_recording_is_current(
+    session: EditorSession,
+    *,
+    generation: int,
+    field_index: int,
+    source_filename: str,
+) -> bool:
+    """Return whether a learner recording callback still matches the active attempt."""
+    state = session.learner_recording
+    return (
+        state.generation == generation
+        and state.field_index == field_index
+        and state.source_filename == source_filename
+    )

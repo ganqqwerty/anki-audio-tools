@@ -25,6 +25,7 @@ const defaultConfig = {
   show_ffmpeg_commands: false,
   repeat_playback_by_default: true,
   repeat_pause_seconds: 0,
+  voice_recording_countdown_seconds: 3,
   share_target: ShareTarget.Litterbox,
   show_graph_by_default: true,
   visible_editor_buttons: [
@@ -269,6 +270,39 @@ describe("App", () => {
     expect(config.graph_smoothness).toBe("very_smooth");
     expect(config.graph_connect_short_dropouts_ms).toBe(90);
     expect(config.graph_voice_lock).toBe("stable");
+  });
+
+  it("enables learner recording buttons with separate visibility and display settings", async () => {
+    setInitialState();
+
+    render(App);
+
+    const recordCard = screen.getByTestId("button-settings-record-voice");
+    const playYoursCard = screen.getByTestId("button-settings-play-recording");
+    const recordIconMode = within(recordCard).getByTestId("button-settings-record-voice-mode-icon");
+    const playYoursIconMode = within(playYoursCard).getByTestId("button-settings-play-recording-mode-icon");
+    expect(recordIconMode).toBeEnabled();
+    expect(playYoursIconMode).toBeEnabled();
+
+    await fireEvent.click(within(recordCard).getByTestId("button-settings-record-voice-visibility-show"));
+    await fireEvent.click(within(playYoursCard).getByTestId("button-settings-play-recording-visibility-show"));
+    await fireEvent.click(recordIconMode);
+    await fireEvent.click(playYoursIconMode);
+    await fireEvent.input(screen.getByTestId("voice-recording-countdown-seconds"), {
+      target: { value: "0" },
+    });
+    await fireEvent.click(screen.getByRole("button", { name: "Save" }));
+
+    const config = bridgePayload<{
+      editor_button_modes: Record<string, string>;
+      visible_editor_buttons: string[];
+      voice_recording_countdown_seconds: number;
+    }>("settings.save");
+    expect(config.visible_editor_buttons).toContain("aqe:record-voice");
+    expect(config.visible_editor_buttons).toContain("aqe:play-recording");
+    expect(config.editor_button_modes["aqe:record-voice"]).toBe("text");
+    expect(config.editor_button_modes["aqe:play-recording"]).toBe("text");
+    expect(config.voice_recording_countdown_seconds).toBe(0);
   });
 
   it("shows diagnostics data and runs a health check", async () => {

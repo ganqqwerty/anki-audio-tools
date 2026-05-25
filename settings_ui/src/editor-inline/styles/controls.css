@@ -94,11 +94,13 @@
 }
 
 .aqe-button[data-aqe-button-state="pause"] .aqe-button-icon-default,
+.aqe-button[data-aqe-button-state="recording"] .aqe-button-icon-default,
 .aqe-button[data-aqe-button-state="redraw"] .aqe-button-icon-default {
   display: none;
 }
 
 .aqe-button[data-aqe-button-state="pause"] .aqe-button-icon-active,
+.aqe-button[data-aqe-button-state="recording"] .aqe-button-icon-active,
 .aqe-button[data-aqe-button-state="redraw"] .aqe-button-icon-active {
   display: inline-flex;
 }
