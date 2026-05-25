@@ -16,6 +16,7 @@ if str(ROOT) not in sys.path:
 from scripts import dev_check as _dev_check
 from scripts.dev_tasks.contracts import cmd_config_schema, cmd_contracts_check, cmd_contracts_generate
 from scripts.dev_tasks.coverage import PYTHON_COVERAGE_FAIL_UNDER, cmd_coverage, cmd_info, cmd_sonar
+from scripts.dev_tasks.e2e_parallel import cmd_test_e2e_parallel as _cmd_test_e2e_parallel
 from scripts.dev_tasks.frontend import cmd_build, cmd_build_ui, cmd_test_svelte
 from scripts.dev_tasks.process import _run, _run_capture, set_verbose
 from scripts.dev_tasks.pytest_runner import _run_pytest
@@ -66,6 +67,13 @@ def cmd_test_e2e() -> int:
         if rc != 0:
             return rc
     return 0
+
+
+def cmd_test_e2e_parallel() -> int:
+    build_rc = cmd_build_ui()
+    if build_rc != 0:
+        return build_rc
+    return _cmd_test_e2e_parallel(_COMMAND_ARGS)
 
 
 def cmd_lint() -> int:
@@ -323,6 +331,10 @@ COMMANDS: dict[str, tuple[Callable[[], int], str]] = {
     "architecture-report": (cmd_architecture_report, "Inspect executable architecture contracts and report violations"),
     "test": (cmd_test, "Run unit + architecture tests"),
     "test-e2e": (cmd_test_e2e, "Build frontend bundles, then run e2e tests (requires Anki runtime)"),
+    "test-e2e-parallel": (
+        cmd_test_e2e_parallel,
+        "Build frontend bundles, then run e2e tests in isolated local shards",
+    ),
     "lint": (cmd_lint, "Run ruff safe autofix, then ruff linter"),
     "typecheck": (cmd_typecheck, "Run mypy type checker"),
     "arch": (cmd_arch, "Run import-linter architecture contracts"),

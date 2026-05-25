@@ -152,7 +152,19 @@ The settings dialog, inline editor UI, and Browser batch UI use Svelte 5 and Vit
 python3 scripts/dev.py build
 ```
 
-`python3 scripts/dev.py test-svelte` and `python3 scripts/dev.py test-e2e` also run the frontend bundle build before their tests. Keep that dependency in `scripts/dev.py` so test callers do not need to remember it.
+`python3 scripts/dev.py test-svelte`, `python3 scripts/dev.py test-e2e`, and
+`python3 scripts/dev.py test-e2e-parallel` also run the frontend bundle build
+before their tests. Keep that dependency in `scripts/dev.py` so test callers do
+not need to remember it.
+
+`test-e2e` is the canonical serial Anki runtime gate. `test-e2e-parallel` is an
+opt-in local feedback command that shards e2e files across isolated pytest
+subprocesses, each with its own temporary Anki base. It defaults to up to three
+workers and can be adjusted with `DEV_E2E_JOBS`, for example:
+
+```bash
+DEV_E2E_JOBS=2 python3 scripts/dev.py test-e2e-parallel
+```
 
 Do not treat `settings_ui/src/` as the runtime artifact. During Anki and e2e runs, the add-on reads `addon/anki_audio_quick_editor/templates/settings/settings_bundle.{js,css}`, `addon/anki_audio_quick_editor/templates/editor/editor_bundle.{js,css}`, and `addon/anki_audio_quick_editor/templates/batch/batch_bundle.{js,css}`. Build output changes after `check`, `test-svelte`, or `test-e2e` are expected when source changed, but those generated files are ignored by git.
 
