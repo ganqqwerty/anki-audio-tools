@@ -145,12 +145,12 @@ def test_still_processing_status_is_replaced_after_mid_render_undo_request(
         generated_name = _wait_for_generated_mp3(note, media_dir, source.name)
         final_status = _wait_for_status_flow(
             editor,
-            lambda status: status["text"] == "Increased volume by 3 dB.",
+            lambda status: status["text"] == "Increased volume by 15 dB.",
             timeout=10.0,
         )
 
         assert generated_name != source.name
-        assert final_status["text"] == "Increased volume by 3 dB."
+        assert final_status["text"] == "Increased volume by 15 dB."
     finally:
         editor.set_note(None)
         parent.close()

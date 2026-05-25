@@ -39,14 +39,14 @@ def test_processing_status_summaries_include_operation_parameters() -> None:
         output_format="mp3",
         pause_aggressiveness="normal",
         pitch_hum_mode="direct",
-        speed_step=0.05,
-        volume_step_db=3,
+        speed_step=1.5,
+        volume_step_db=15,
     )
 
-    assert command_status_summary(CMD_VOLUME_UP, config) == "Increased volume by 3 dB."
-    assert command_status_summary(CMD_VOLUME_DOWN, config) == "Decreased volume by 3 dB."
-    assert command_status_summary(CMD_FASTER, config) == "Increased speed to x1.05."
-    assert command_status_summary(CMD_SLOWER, config) == "Decreased speed to x0.95."
+    assert command_status_summary(CMD_VOLUME_UP, config) == "Increased volume by 15 dB."
+    assert command_status_summary(CMD_VOLUME_DOWN, config) == "Decreased volume by 15 dB."
+    assert command_status_summary(CMD_FASTER, config) == "Increased speed to x1.5."
+    assert command_status_summary(CMD_SLOWER, config) == "Decreased speed to x1.5."
     assert command_status_summary(CMD_REMOVE_PAUSES, config) == "Shortened pauses with Normal level."
     assert command_status_summary(
         EditorCommandPayload(
@@ -106,12 +106,12 @@ def test_undo_and_redo_status_messages_use_stored_summaries() -> None:
     entry = UndoEntry(
         state=AudioEditState("clip.wav", speed=1.1),
         filename="clip__aqe_1.mp3",
-        status_summary="Increased speed to x1.10.",
+        status_summary="Increased speed to x1.5.",
     )
 
-    assert restored_status_summary(entry) == "Increased speed to x1.10."
-    assert undo_status_message(entry) == "Undid: Increased speed to x1.10."
-    assert redo_status_message(entry) == "Redid: Increased speed to x1.10."
+    assert restored_status_summary(entry) == "Increased speed to x1.5."
+    assert undo_status_message(entry) == "Undid: Increased speed to x1.5."
+    assert redo_status_message(entry) == "Redid: Increased speed to x1.5."
 
 
 def test_restored_status_summary_falls_back_to_original_audio_or_filename() -> None:

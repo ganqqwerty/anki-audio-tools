@@ -24,7 +24,7 @@ def test_process_note_batch_operation_requires_exact_non_windows_case(tmp_path: 
         note,
         request=BatchRunRequest(operation=OP_FASTER, source_field="Audio"),
         media_dir=tmp_path,
-        config=AudioProcessingConfig(speed_step=0.1),
+        config=AudioProcessingConfig(speed_step=1.5),
         media_writer=lambda name, data: name,
     )
     assert not result.written

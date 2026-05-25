@@ -18,8 +18,8 @@ def injection_script(
     *,
     audio_field_sources: dict[int, str] | None = None,
     initial_status_by_field: dict[int, dict[str, str]] | None = None,
-    repeat_playback_by_default: bool = False,
-    show_graph_by_default: bool = False,
+    repeat_playback_by_default: bool = True,
+    show_graph_by_default: bool = True,
     split_button_defaults: dict[str, object] | None = None,
     visible_editor_buttons: list[str] | None = None,
     editor_button_modes: dict[str, str] | None = None,
@@ -36,8 +36,8 @@ def injection_script(
         "editorButtonModes": editor_button_modes,
         "splitButtonDefaults": split_button_defaults
         or {
-            "volumeStepDb": 3.0,
-            "speedStep": 0.05,
+            "volumeStepDb": 15.0,
+            "speedStep": 1.5,
             "shareTarget": "litterbox",
             "repeatPauseSeconds": 0.0,
             "pauseAggressiveness": "normal",

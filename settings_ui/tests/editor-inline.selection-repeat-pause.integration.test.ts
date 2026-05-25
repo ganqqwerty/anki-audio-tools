@@ -21,8 +21,8 @@ function repeatPauseConfig(seconds: number) {
       denoiseAlgorithm: "standard" as const,
       pauseAggressiveness: "normal" as const,
       repeatPauseSeconds: seconds,
-      speedStep: 0.05,
-      volumeStepDb: 3,
+      speedStep: 1.5,
+      volumeStepDb: 15,
     },
   };
 }

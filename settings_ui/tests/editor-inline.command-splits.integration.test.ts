@@ -36,8 +36,8 @@ describe("editor inline split-button command integration", () => {
         dpdfnetAttnLimitDb: 8.5,
         pauseAggressiveness: "normal" as const,
         repeatPauseSeconds: 0,
-        speedStep: 0.05,
-        volumeStepDb: 3,
+        speedStep: 1.5,
+        volumeStepDb: 15,
       },
     };
     initializeEditorRuntime(config);
@@ -52,11 +52,11 @@ describe("editor inline split-button command integration", () => {
     expect(help).toHaveTextContent("Delete Region / Delete the rest");
     expect(help).toHaveTextContent("Creates a new file that removes the selected region or keeps only that region.");
     expect(help).toHaveTextContent("Creates a new file with louder audio.");
-    expect(help).toHaveTextContent("Uploads the current audio to Catbox or Litterbox and copies a public link without changing the note.");
+    expect(help).toHaveTextContent("Share this file online. The link will be copied to the clipboard.");
     expect(help).toHaveTextContent("Every edit creates a new media file and updates the field to point at it.");
     expect(help).toHaveTextContent("grey is loudness and lines are pitch of the voice.");
     expect(document.querySelector<HTMLButtonElement>('[data-testid="aqe-button-0-denoise-standard"]')?.getAttribute("data-aqe-tooltip-content")).toBe(
-      "Remove noise and music using Standard",
+      "Create a new file cleaned with Standard",
     );
 
     document.querySelector<HTMLButtonElement>('[data-testid="aqe-button-0-denoise-standard"]')!.click();
@@ -71,11 +71,11 @@ describe("editor inline split-button command integration", () => {
     const dpdfnetPreset = document.querySelector<HTMLButtonElement>(
       '[data-testid="aqe-split-0-denoise-standard-preset-dpdfnet"]',
     )!;
-    expect(dpdfnetPreset.getAttribute("data-aqe-tooltip-content")).toBe("Denoise speech with DPDFNet, Aggressiveness: Gentle");
+    expect(dpdfnetPreset.getAttribute("data-aqe-tooltip-content")).toBe("Create a new file cleaned with DPDFNet, Aggressiveness: Gentle");
     dpdfnetPreset.click();
     await Promise.resolve();
     expect(document.querySelector<HTMLButtonElement>('[data-testid="aqe-button-0-denoise-standard"]')?.getAttribute("data-aqe-tooltip-content")).toBe(
-      "Remove noise and music using DPDFNet",
+      "Create a new file cleaned with DPDFNet",
     );
     document.querySelector<HTMLButtonElement>('[data-testid="aqe-button-0-denoise-standard"]')!.click();
     expect(window.__aqePendingCommandPayload?.command).toBe("aqe:dpdfnet");
@@ -95,8 +95,8 @@ describe("editor inline split-button command integration", () => {
         graphVoiceRange: "general" as const,
         pauseAggressiveness: "normal" as const,
         repeatPauseSeconds: 0,
-        speedStep: 0.05,
-        volumeStepDb: 3,
+        speedStep: 1.5,
+        volumeStepDb: 15,
       },
     };
     initializeEditorRuntime(config);
@@ -158,8 +158,8 @@ describe("editor inline split-button command integration", () => {
         outputFormat: "m4a",
         pauseAggressiveness: "normal",
         repeatPauseSeconds: 0,
-        speedStep: 0.05,
-        volumeStepDb: 3,
+        speedStep: 1.5,
+        volumeStepDb: 15,
       },
     };
     initializeEditorRuntime(window.__AQE_EDITOR_CONFIG__);
@@ -234,8 +234,8 @@ describe("editor inline split-button command integration", () => {
         denoiseAlgorithm: "standard",
         pauseAggressiveness: "normal",
         repeatPauseSeconds: 0,
-        speedStep: 0.05,
-        volumeStepDb: 3,
+        speedStep: 1.5,
+        volumeStepDb: 15,
       },
     };
     initializeEditorRuntime(window.__AQE_EDITOR_CONFIG__);
@@ -257,7 +257,7 @@ describe("editor inline split-button command integration", () => {
 
     document.querySelector<HTMLButtonElement>('[data-testid="aqe-split-0-speed-menu"]')!.click();
     await Promise.resolve();
-    document.querySelector<HTMLButtonElement>('[data-testid="aqe-split-0-speed-preset-0.1"]')!.click();
+    document.querySelector<HTMLButtonElement>('[data-testid="aqe-split-0-speed-preset-2"]')!.click();
     expect(document.querySelector('[data-testid="aqe-split-0-faster-menu"]')).toBeNull();
     expect(document.querySelector('[data-testid="aqe-split-0-slower-menu"]')).toBeNull();
     document.querySelector<HTMLButtonElement>('[data-testid="aqe-button-0-slower"]')!.click();
@@ -271,10 +271,10 @@ describe("editor inline split-button command integration", () => {
     expect(louderPayload?.command).toBe("aqe:volume-up");
     expect(louderPayload?.overrides?.volumeStepDb).toBe(6);
     expect(slowerPayload?.command).toBe("aqe:slower");
-    expect(slowerPayload?.overrides?.speedStep).toBe(0.1);
+    expect(slowerPayload?.overrides?.speedStep).toBe(2);
     const fasterPayload = window.__aqePendingCommandPayload as EditorCommandPayload | null | undefined;
     expect(fasterPayload?.command).toBe("aqe:faster");
-    expect(fasterPayload?.overrides?.speedStep).toBe(0.1);
+    expect(fasterPayload?.overrides?.speedStep).toBe(2);
   });
 
   it("shows grouped split hover text and keeps volume execution on the primary buttons", async () => {
@@ -285,8 +285,8 @@ describe("editor inline split-button command integration", () => {
         denoiseAlgorithm: "standard",
         pauseAggressiveness: "normal",
         repeatPauseSeconds: 0,
-        speedStep: 0.05,
-        volumeStepDb: 3,
+        speedStep: 1.5,
+        volumeStepDb: 15,
       },
     };
     initializeEditorRuntime(window.__AQE_EDITOR_CONFIG__);
@@ -301,9 +301,11 @@ describe("editor inline split-button command integration", () => {
     const header = document.querySelector<HTMLElement>('[data-testid="aqe-split-0-volume-popover"] .aqe-split-popover-title')!;
     expect(header.textContent?.trim()).toBe("Volume");
     expect(document.querySelector('[data-testid="aqe-split-0-volume-popover"]')).toHaveTextContent(
-      "This changes how Volume runs for this field. Current value: 3 dB.",
+      "How much louder or quieter to make the audio.",
     );
     expect(document.querySelector('[data-testid="aqe-split-0-volume-run"]')).toBeNull();
+    expect(document.querySelector('[data-testid="aqe-split-0-volume-run-volume-down"]')).not.toBeNull();
+    expect(document.querySelector('[data-testid="aqe-split-0-volume-run-volume-up"]')).not.toBeNull();
 
     document.querySelector<HTMLButtonElement>('[data-testid="aqe-split-0-volume-preset-6"]')!.click();
     await Promise.resolve();
@@ -330,8 +332,8 @@ describe("editor inline split-button command integration", () => {
         denoiseAlgorithm: "standard",
         pauseAggressiveness: "normal",
         repeatPauseSeconds: 0,
-        speedStep: 0.05,
-        volumeStepDb: 3,
+        speedStep: 1.5,
+        volumeStepDb: 15,
       },
     };
     initializeEditorRuntime(window.__AQE_EDITOR_CONFIG__);
@@ -355,14 +357,14 @@ describe("editor inline split-button command integration", () => {
     await Promise.resolve();
     const speedInput = document.querySelector<HTMLInputElement>('[data-testid="aqe-split-0-speed-value"]')!;
     const speedSlider = document.querySelector<HTMLInputElement>('[data-testid="aqe-split-0-speed-slider"]')!;
-    expect(speedInput.value).toBe("0.05");
-    speedInput.value = "0.12";
+    expect(speedInput.value).toBe("1.5");
+    speedInput.value = "2";
     speedInput.dispatchEvent(new Event("input", { bubbles: true }));
     await Promise.resolve();
-    expect(speedSlider.value).toBe("0.12");
+    expect(speedSlider.value).toBe("2");
     document.querySelector<HTMLButtonElement>('[data-testid="aqe-button-0-slower"]')!.click();
     const speedPayload = window.__aqePendingCommandPayload as EditorCommandPayload | null | undefined;
-    expect(speedPayload?.overrides?.speedStep).toBe(0.12);
+    expect(speedPayload?.overrides?.speedStep).toBe(2);
   });
 
   it("dispatches pause aggressiveness split payloads with local values", async () => {
@@ -372,8 +374,8 @@ describe("editor inline split-button command integration", () => {
         denoiseAlgorithm: "standard",
         pauseAggressiveness: "normal",
         repeatPauseSeconds: 0,
-        speedStep: 0.05,
-        volumeStepDb: 3,
+        speedStep: 1.5,
+        volumeStepDb: 15,
       },
     };
     initializeEditorRuntime(window.__AQE_EDITOR_CONFIG__);

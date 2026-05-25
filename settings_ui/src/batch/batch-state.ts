@@ -94,8 +94,8 @@ export const FALLBACK_BATCH_INITIAL_STATE: BatchInitialState = {
   ],
   field_groups: [],
   defaults: {
-    speed_step: 0.05,
-    volume_step_db: 3,
+    speed_step: 1.5,
+    volume_step_db: 15,
     pause_aggressiveness: BatchPauseAggressiveness.Normal,
     denoise_algorithm: DenoiseAlgorithm.Standard,
     dpdfnet_attn_limit_db: 12,

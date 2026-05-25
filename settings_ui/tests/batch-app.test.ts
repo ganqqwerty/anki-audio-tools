@@ -107,7 +107,7 @@ describe("BatchApp", () => {
       target: { value: BatchOperationName.Faster },
     });
     expect(screen.queryByLabelText("Target field")).not.toBeInTheDocument();
-    expect(screen.getByLabelText("Speed step")).toBeInTheDocument();
+    expect(screen.getByLabelText("Speed factor")).toBeInTheDocument();
 
     await fireEvent.change(screen.getByLabelText("Operation"), {
       target: { value: BatchOperationName.Convert },
@@ -119,7 +119,7 @@ describe("BatchApp", () => {
       target: { value: BatchOperationName.RemovePauses },
     });
     expect(screen.getByLabelText("Shorten pauses level")).toBeInTheDocument();
-    expect(screen.queryByLabelText("Speed step")).not.toBeInTheDocument();
+    expect(screen.queryByLabelText("Speed factor")).not.toBeInTheDocument();
 
     await fireEvent.change(screen.getByLabelText("Operation"), {
       target: { value: BatchOperationName.Denoise },

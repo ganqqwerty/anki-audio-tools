@@ -20,8 +20,8 @@ def test_injection_script_embeds_audio_field_indices_and_bundle() -> None:
 
     assert config["audioFieldIndices"] == [1, 3]
     assert config["audioFieldSources"] == {}
-    assert config["repeatPlaybackByDefault"] is False
-    assert config["showGraphByDefault"] is False
+    assert config["repeatPlaybackByDefault"] is True
+    assert config["showGraphByDefault"] is True
     assert config["visibleEditorButtons"] is None
     assert config["splitButtonDefaults"]["repeatPauseSeconds"] == 0.0
     assert config["splitButtonDefaults"]["shareTarget"] == "litterbox"

@@ -45,10 +45,10 @@ def split_popover_state_js(command: str, ord_: int = 0) -> str:
 
 def expected_final_status(command: str) -> str:
     return {
-        "aqe:slower": "Decreased speed to x0.95.",
-        "aqe:faster": "Increased speed to x1.05.",
-        "aqe:volume-down": "Decreased volume by 3 dB.",
-        "aqe:volume-up": "Increased volume by 3 dB.",
+        "aqe:slower": "Decreased speed to x1.5.",
+        "aqe:faster": "Increased speed to x1.5.",
+        "aqe:volume-down": "Decreased volume by 15 dB.",
+        "aqe:volume-up": "Increased volume by 15 dB.",
         "aqe:remove-pauses": "Shortened pauses with Normal level.",
         "aqe:pitch-hum": "Rendered pitch hum with Pitch-to-hum mode.",
     }[command]

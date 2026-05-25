@@ -95,7 +95,7 @@ def test_editor_undo_and_redo_restore_audio_references_without_processing(
         state=generated_state,
         field_index=0,
         current_filename="clip__aqe_first.mp3",
-        status_summary="Increased speed to x1.10.",
+        status_summary="Increased speed to x1.5.",
         source_mtime_ns=generated.stat().st_mtime_ns,
     )
     session.undo_history.push(AudioEditState("clip.mp3"), "clip.mp3", status_summary="Original audio.")
@@ -115,7 +115,7 @@ def test_editor_undo_and_redo_restore_audio_references_without_processing(
     session.redo_history.push(
         generated_state,
         "clip__aqe_first.mp3",
-        status_summary="Increased speed to x1.10.",
+        status_summary="Increased speed to x1.5.",
     )
     _handle_bridge_command(editor, "aqe:redo")
 
@@ -124,7 +124,7 @@ def test_editor_undo_and_redo_restore_audio_references_without_processing(
     assert session.current_filename == "clip__aqe_first.mp3"
     assert session.undo_history.pop().filename == "clip.mp3"
     assert editor.loadNote.call_count == 2
-    assert reload_statuses[1] == {0: {"kind": "info", "message": "Redid: Increased speed to x1.10."}}
+    assert reload_statuses[1] == {0: {"kind": "info", "message": "Redid: Increased speed to x1.5."}}
     evals = [call.args[0] for call in editor.web.eval.call_args_list]
     assert any("window.__aqeSetHistoryAvailability && window.__aqeSetHistoryAvailability(0, false, true)" in call for call in evals)
     assert any("window.__aqeSetHistoryAvailability && window.__aqeSetHistoryAvailability(0, true, false)" in call for call in evals)

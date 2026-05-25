@@ -51,8 +51,8 @@ const DEFAULTS: CompleteSplitButtonDefaults = {
   pitchHumMode: "direct",
   repeatPauseSeconds: 0,
   shareTarget: "litterbox",
-  speedStep: 0.05,
-  volumeStepDb: 3,
+  speedStep: 1.5,
+  volumeStepDb: 15,
 };
 
 function fieldStates(): Record<number, FieldSplitButtonState> {

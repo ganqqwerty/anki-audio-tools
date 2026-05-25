@@ -49,17 +49,17 @@ describe("split button state", () => {
   });
 
   it("formats and clamps volume step values", () => {
-    expect(formatVolumeDb(3)).toBe("3 dB");
+    expect(formatVolumeDb(15)).toBe("15 dB");
     expect(formatVolumeDb(2.5)).toBe("2.5 dB");
-    expect(clampVolumeStepDb(0.1)).toBe(0.5);
-    expect(clampVolumeStepDb(20)).toBe(12);
+    expect(clampVolumeStepDb(0.1)).toBe(1);
+    expect(clampVolumeStepDb(99)).toBe(40);
   });
 
   it("formats and clamps speed step values", () => {
-    expect(formatSpeedStep(0.05, "aqe:faster")).toBe("x1.05");
-    expect(formatSpeedStep(0.1, "aqe:slower")).toBe("x0.90");
-    expect(clampSpeedStep(0.001)).toBe(0.01);
-    expect(clampSpeedStep(1)).toBe(0.25);
+    expect(formatSpeedStep(1.25, "aqe:faster")).toBe("x1.25");
+    expect(formatSpeedStep(1.5, "aqe:slower")).toBe("x1.5");
+    expect(clampSpeedStep(0.001)).toBe(1.01);
+    expect(clampSpeedStep(99)).toBe(5);
   });
 
   it("formats and clamps repeat pause values", () => {
@@ -114,13 +114,13 @@ describe("split button state", () => {
         pitchHumMode: "pitch_tier",
         repeatPauseSeconds: 1.5,
         shareTarget: "catbox",
-        speedStep: 0.05,
-        volumeStepDb: 3,
+        speedStep: 1.5,
+        volumeStepDb: 15,
       },
     };
 
-    expect(getSplitButtonState(0).volumeStepDb).toBe(3);
-    expect(getSplitButtonState(0).speedStep).toBe(0.05);
+    expect(getSplitButtonState(0).volumeStepDb).toBe(15);
+    expect(getSplitButtonState(0).speedStep).toBe(1.5);
     expect(getSplitButtonState(0).repeatPauseSeconds).toBe(1.5);
     expect(getSplitButtonState(0).pauseAggressiveness).toBe("normal");
     expect(getSplitButtonState(0).denoiseAlgorithm).toBe("standard");
@@ -142,20 +142,20 @@ describe("split button state", () => {
         denoiseAlgorithm: "standard",
         pauseAggressiveness: "normal",
         repeatPauseSeconds: 0,
-        speedStep: 0.05,
-        volumeStepDb: 3,
+        speedStep: 1.5,
+        volumeStepDb: 15,
       },
     };
 
     setVolumeStepForField(0, 6);
 
     expect(getSplitButtonState(0).volumeStepDb).toBe(6);
-    expect(getSplitButtonState(1).volumeStepDb).toBe(3);
+    expect(getSplitButtonState(1).volumeStepDb).toBe(15);
   });
 
   it("builds volume and speed payloads from local field state", () => {
     setVolumeStepForField(0, 6);
-    setSpeedStepForField(0, 0.1);
+    setSpeedStepForField(0, 2);
 
     expect(buildSplitCommandPayload("aqe:volume-up", 0)).toEqual({
       command: "aqe:volume-up",
@@ -168,7 +168,7 @@ describe("split button state", () => {
       command: "aqe:faster",
       fieldOrd: 0,
       overrides: {
-        speedStep: 0.1,
+        speedStep: 2,
       },
     });
   });
@@ -312,17 +312,17 @@ describe("split button state", () => {
   });
 
   it("promotes local split values into runtime defaults", () => {
-    setSpeedStepForField(0, 0.1);
-    setSpeedStepForField(1, 0.2);
+    setSpeedStepForField(0, 2);
+    setSpeedStepForField(1, 3);
 
-    promoteSplitDefaultsForField(0, { speedStep: 0.1 });
+    promoteSplitDefaultsForField(0, { speedStep: 2 });
 
-    expect(window.__AQE_EDITOR_CONFIG__?.splitButtonDefaults?.speedStep).toBe(0.1);
+    expect(window.__AQE_EDITOR_CONFIG__?.splitButtonDefaults?.speedStep).toBe(2);
     expect(getSplitButtonState(0).speedEdited).toBe(false);
-    expect(getSplitButtonState(0).speedStep).toBe(0.1);
+    expect(getSplitButtonState(0).speedStep).toBe(2);
     expect(getSplitButtonState(1).speedEdited).toBe(true);
-    expect(getSplitButtonState(1).speedStep).toBe(0.2);
-    expect(getSplitButtonState(2).speedStep).toBe(0.1);
+    expect(getSplitButtonState(1).speedStep).toBe(3);
+    expect(getSplitButtonState(2).speedStep).toBe(2);
   });
 
   it("promotes share target into runtime defaults", () => {

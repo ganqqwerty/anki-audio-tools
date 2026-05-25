@@ -41,7 +41,7 @@ describe("editor inline Svelte integration", () => {
     const volumeDownButton = document.querySelector<HTMLButtonElement>('[data-testid="aqe-button-0-volume-down"]')!;
     const volumeUpButton = document.querySelector<HTMLButtonElement>('[data-testid="aqe-button-0-volume-up"]')!;
     expect(graphButton).toHaveClass("aqe-icon-only");
-    expect(graphButton).toHaveAttribute("aria-label", "Analyze and show pitch/intensity graph");
+    expect(graphButton).toHaveAttribute("aria-label", "Draw a pitch/intensity graph");
     expect(removePausesButton).not.toHaveClass("aqe-icon-only");
     expect(showFileButton).toHaveClass("aqe-icon-only");
     expect(convertButton).not.toHaveClass("aqe-icon-only");
@@ -158,7 +158,7 @@ describe("editor inline Svelte integration", () => {
     expect(shareMenuButton).toBeInTheDocument();
     expect(shareButton).toHaveAttribute(
       "aria-label",
-      "Upload the current audio to Catbox or Litterbox and copy a public link",
+      "Share this file online and copy the link to the clipboard",
     );
   });
 

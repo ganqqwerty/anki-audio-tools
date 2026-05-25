@@ -33,8 +33,8 @@ describe("editor inline play option integration", () => {
         denoiseAlgorithm: "standard" as const,
         pauseAggressiveness: "normal" as const,
         repeatPauseSeconds: 1.5,
-        speedStep: 0.05,
-        volumeStepDb: 3,
+        speedStep: 1.5,
+        volumeStepDb: 15,
       },
     };
     initializeEditorRuntime(config);
@@ -57,7 +57,7 @@ describe("editor inline play option integration", () => {
       document.querySelector<HTMLElement>('[data-testid="aqe-split-0-play-popover"] .aqe-split-popover-title')?.textContent?.trim(),
     ).toBe("Play");
     expect(document.querySelector('[data-testid="aqe-split-0-play-popover"]')).toHaveTextContent(
-      "This changes how Play runs for this field. Current value: Repeat on with a 1.5 s pause between repeats.",
+      "Playback and repeat options for this field.",
     );
     expect(input.value).toBe("1.5");
     expect(slider.value).toBe("1.5");

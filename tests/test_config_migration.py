@@ -127,12 +127,12 @@ class TestMigrateConfig:
         defaults = {
             "_config_version": CURRENT_CONFIG_VERSION,
             "enabled": True,
-            "repeat_playback_by_default": False,
+            "repeat_playback_by_default": True,
         }
 
         migrated, changed = migrate_config(user, defaults)
 
-        assert migrated["repeat_playback_by_default"] is False
+        assert migrated["repeat_playback_by_default"] is True
         assert migrated["_config_version"] == CURRENT_CONFIG_VERSION
         assert changed is True
 
@@ -169,13 +169,61 @@ class TestMigrateConfig:
         defaults = {
             "_config_version": CURRENT_CONFIG_VERSION,
             "enabled": True,
-            "show_graph_by_default": False,
+            "show_graph_by_default": True,
         }
 
         migrated, changed = migrate_config(user, defaults)
 
-        assert migrated["show_graph_by_default"] is False
+        assert migrated["show_graph_by_default"] is True
         assert migrated["_config_version"] == CURRENT_CONFIG_VERSION
+        assert changed is True
+
+    def test_migrates_legacy_speed_volume_defaults_to_factor_ranges(self) -> None:
+        user = {
+            "_config_version": 21,
+            "speed_step": 0.05,
+            "min_speed": 0.75,
+            "max_speed": 1.5,
+            "volume_step_db": 3.0,
+            "min_volume_db": -24.0,
+            "max_volume_db": 24.0,
+            "show_graph_by_default": False,
+        }
+        defaults = {
+            "_config_version": CURRENT_CONFIG_VERSION,
+            "speed_step": 1.5,
+            "min_speed": 0.2,
+            "max_speed": 5.0,
+            "volume_step_db": 15.0,
+            "min_volume_db": -40.0,
+            "max_volume_db": 40.0,
+            "show_graph_by_default": True,
+        }
+
+        migrated, changed = migrate_config(user, defaults)
+
+        assert migrated["speed_step"] == 1.5
+        assert migrated["min_speed"] == 0.2
+        assert migrated["max_speed"] == 5.0
+        assert migrated["volume_step_db"] == 15.0
+        assert migrated["min_volume_db"] == -40.0
+        assert migrated["max_volume_db"] == 40.0
+        assert migrated["show_graph_by_default"] is True
+        assert changed is True
+
+    def test_migrates_custom_legacy_speed_step_to_factor(self) -> None:
+        user = {
+            "_config_version": 21,
+            "speed_step": 0.2,
+        }
+        defaults = {
+            "_config_version": CURRENT_CONFIG_VERSION,
+            "speed_step": 1.5,
+        }
+
+        migrated, changed = migrate_config(user, defaults)
+
+        assert migrated["speed_step"] == 1.2
         assert changed is True
 
     def test_picks_up_visible_editor_buttons_default(self) -> None:

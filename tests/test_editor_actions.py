@@ -70,13 +70,13 @@ def test_decode_command_accepts_share_target_payload() -> None:
 
 
 def test_apply_processing_command_handles_speed_and_feature_toggles() -> None:
-    config = AudioProcessingConfig(speed_step=0.1)
+    config = AudioProcessingConfig(speed_step=1.5)
     state = AudioEditState("clip.mp3")
 
     faster = apply_processing_command("aqe:faster", state, config)
     pauses_shortened = apply_processing_command("aqe:remove-pauses", state, config)
 
-    assert faster == AudioEditState("clip.mp3", speed=1.1)
+    assert faster == AudioEditState("clip.mp3", speed=1.5)
     assert pauses_shortened == AudioEditState("clip.mp3", remove_internal_pauses_enabled=True)
 
 
@@ -106,17 +106,17 @@ def test_apply_processing_command_uses_volume_override_without_mutating_config()
 
 
 def test_apply_processing_command_uses_speed_override_without_mutating_config() -> None:
-    config = AudioProcessingConfig(speed_step=0.05)
+    config = AudioProcessingConfig(speed_step=1.5)
     state = AudioEditState("clip.mp3")
     decoded = decode_editor_command_payload(
-        '{"command":"aqe:faster","fieldOrd":0,"overrides":{"speedStep":0.1}}'
+        '{"command":"aqe:faster","fieldOrd":0,"overrides":{"speedStep":2}}'
     )
 
     updated = apply_processing_command(decoded, state, config)
 
-    assert decoded.overrides.speed_step == 0.1
-    assert updated == AudioEditState("clip.mp3", speed=1.1)
-    assert config.speed_step == 0.05
+    assert decoded.overrides.speed_step == 2
+    assert updated == AudioEditState("clip.mp3", speed=2.0)
+    assert config.speed_step == 1.5
 
 
 def test_decode_processing_command_accepts_pause_aggressiveness_override() -> None:
@@ -184,8 +184,8 @@ def test_apply_processing_command_uses_pause_aggressiveness_without_mutating_con
 
 def test_processing_config_for_command_returns_render_config_with_local_overrides() -> None:
     config = AudioProcessingConfig(
-        volume_step_db=3,
-        speed_step=0.05,
+        volume_step_db=15,
+        speed_step=1.5,
         pause_aggressiveness="normal",
         internal_pause_silence_threshold_db=-45,
         internal_pause_threshold_ms=300,
@@ -193,13 +193,13 @@ def test_processing_config_for_command_returns_render_config_with_local_override
     )
     decoded = decode_editor_command_payload(
         '{"command":"aqe:remove-pauses","fieldOrd":0,'
-        '"overrides":{"pauseAggressiveness":"aggressive","volumeStepDb":6,"speedStep":0.1}}'
+        '"overrides":{"pauseAggressiveness":"aggressive","volumeStepDb":6,"speedStep":2}}'
     )
 
     effective = processing_config_for_command(decoded, config)
 
     assert effective.volume_step_db == 6
-    assert effective.speed_step == 0.1
+    assert effective.speed_step == 2
     assert effective.pause_aggressiveness == "aggressive"
     assert effective.internal_pause_silence_threshold_db == -50
     assert effective.internal_pause_threshold_ms == 180

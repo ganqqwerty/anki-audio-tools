@@ -191,8 +191,9 @@ def _format_db(value: float) -> str:
 
 
 def _format_speed_multiplier(command: str, speed_step: float) -> str:
-    multiplier = 1 - speed_step if command == CMD_SLOWER else 1 + speed_step
-    return f"x{multiplier:.2f}"
+    del command
+    multiplier = round(float(speed_step), 2)
+    return f"x{multiplier:.0f}" if multiplier.is_integer() else f"x{multiplier:g}"
 
 
 def _selection_range(start_ms: int, end_ms: int) -> str:
