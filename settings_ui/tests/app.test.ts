@@ -18,7 +18,7 @@ import {
 } from "../src/lib/types.js";
 
 const defaultConfig = {
-  _config_version: 21,
+  _config_version: 1,
   enabled: true,
   debug_logging: false,
   show_ffmpeg_commands: false,

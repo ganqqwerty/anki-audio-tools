@@ -109,7 +109,7 @@ Config defaults are stored in `config.json` and migrated into user config:
 
 ```json
 {
-  "_config_version": 21,
+  "_config_version": 1,
   "enabled": true,
   "debug_logging": false,
   "show_ffmpeg_commands": false,
