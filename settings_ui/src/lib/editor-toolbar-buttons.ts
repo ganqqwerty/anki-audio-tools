@@ -248,9 +248,6 @@ export function buttonDisplayMode(
   command: EditorCommand,
   modes: EditorButtonModes | undefined,
 ): EditorButtonDisplayMode {
-  if (command === "aqe:record-voice" || command === "aqe:play-recording") {
-    return EditorButtonMode.Icon;
-  }
   const configuredMode = modes?.[command];
   if (configuredMode === EditorButtonMode.Icon) return EditorButtonMode.Icon;
   if (configuredMode === EditorButtonMode.Text) return EditorButtonMode.Text;

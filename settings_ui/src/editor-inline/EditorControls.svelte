@@ -181,34 +181,25 @@
           <SplitButton
             button={item.record}
             displayMode={buttonDisplayMode(item.record.command, buttonModes)}
+            primaryGroupPosition="start"
+            showMenu={false}
             {target}
           />
-          <AqeTooltip>
-            {#snippet trigger({ props })}
-              <span
-                {...props}
-                class="aqe-button-tooltip-target aqe-tooltip-target"
-                data-aqe-tooltip-content={initialButtonTitle(playRecording)}
-              >
-                <button
-                  type="button"
-                  class="aqe-button aqe-icon-only aqe-recording-play-button"
-                  data-aqe-command={playRecording.command}
-                  data-aqe-button-state="default"
-                  data-aqe-disabled-title={disabledTitle(playRecording.command)}
-                  data-aqe-enabled-title={playRecording.title}
-                  data-testid={testId(target.ord, playRecording.command)}
-                  disabled={initialButtonDisabled(playRecording.command)}
-                  aria-label={initialButtonTitle(playRecording)}
-                  onmousedown={(event) => event.preventDefault()}
-                  onclick={() => send(playRecording.command, target.node, target.ord)}
-                >
-                  <EditorCommandIcon className="aqe-button-icon-default" icon={playRecording.icon} />
-                  <span class="aqe-button-label">{playRecording.label}</span>
-                </button>
-              </span>
-            {/snippet}
-          </AqeTooltip>
+          <SplitButton
+            button={playRecording}
+            displayMode={buttonDisplayMode(playRecording.command, buttonModes)}
+            primaryGroupPosition="middle"
+            showMenu={false}
+            {target}
+          />
+          <SplitButton
+            button={item.record}
+            displayMode={buttonDisplayMode(item.record.command, buttonModes)}
+            groupLabel={t("editor.command.record_group.label")}
+            showPrimary={false}
+            showRunButton={false}
+            {target}
+          />
         </span>
       {:else if item.button.command === "aqe:play"}
         <PlaySplitButton

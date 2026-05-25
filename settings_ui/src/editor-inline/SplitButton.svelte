@@ -108,6 +108,10 @@
       : "aqe-button aqe-split-primary";
   }
 
+  function primaryInitiallyDisabled(): boolean {
+    return button.command === "aqe:record-voice" || button.command === "aqe:play-recording";
+  }
+
   const currentPrimaryTitle = $derived(primaryTitle(button, outputFormat, denoiseAlgorithm));
   const currentValue = $derived(currentValueLabel(button, groupSlug, {
     denoiseAlgorithm,
@@ -216,7 +220,8 @@
   function dispatchCommand(command: ButtonSpec["command"]): void {
     window.dispatchEvent(new Event(CLOSE_SPLIT_MENUS_EVENT));
     close();
-    send(command, target.node, target.ord, buildSplitCommandPayload(command, target.ord));
+    const payload = command === "aqe:play-recording" ? undefined : buildSplitCommandPayload(command, target.ord);
+    send(command, target.node, target.ord, payload);
   }
 
   function dispatchPrimary(): void {
@@ -268,7 +273,7 @@
           ariaLabel={currentPrimaryTitle}
           activeIcon={button.activeIcon}
           command={button.command}
-          disabled={button.command === "aqe:record-voice"}
+          disabled={primaryInitiallyDisabled()}
           {displayMode}
           icon={button.icon}
           label={button.label}
@@ -409,7 +414,7 @@
     ariaLabel={currentPrimaryTitle}
     activeIcon={button.activeIcon}
     command={button.command}
-    disabled={button.command === "aqe:record-voice"}
+    disabled={primaryInitiallyDisabled()}
     {displayMode}
     icon={button.icon}
     label={button.label}

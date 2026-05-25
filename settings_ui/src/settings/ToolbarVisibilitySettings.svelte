@@ -30,7 +30,6 @@
   let { config = $bindable() }: { config: Config } = $props();
   const buttons = toolbarButtons();
   const buttonOrder = buttons.map((button) => button.command);
-  const RECORDING_COMMANDS = ["aqe:record-voice", "aqe:play-recording"] as const satisfies readonly EditorCommand[];
 
   function visibleSet(): Set<EditorCommand> {
     if (!Array.isArray(config.visible_editor_buttons)) {
@@ -40,25 +39,11 @@
   }
 
   function isVisible(command: EditorCommand): boolean {
-    if (isRecordingCommand(command)) {
-      return RECORDING_COMMANDS.every((item) => visibleSet().has(item));
-    }
     return visibleSet().has(command);
   }
 
   function toggle(command: EditorCommand): void {
     const visible = visibleSet();
-    if (isRecordingCommand(command)) {
-      const groupVisible = RECORDING_COMMANDS.every((item) => visible.has(item));
-      RECORDING_COMMANDS.forEach((item) => {
-        if (groupVisible) visible.delete(item);
-        else visible.add(item);
-      });
-      config.visible_editor_buttons = buttonOrder.filter((item) => visible.has(item)) as Config[
-        "visible_editor_buttons"
-      ];
-      return;
-    }
     if (visible.has(command)) {
       visible.delete(command);
     } else {
@@ -74,7 +59,6 @@
   }
 
   function setDisplayMode(command: EditorCommand, mode: EditorButtonDisplayMode): void {
-    if (isRecordingCommand(command)) return;
     config.editor_button_modes = {
       ...DEFAULT_EDITOR_BUTTON_MODES,
       ...(config.editor_button_modes ?? {}),
@@ -98,10 +82,6 @@
       command === "aqe:volume-up"
     );
   }
-
-  function isRecordingCommand(command: EditorCommand): boolean {
-    return command === "aqe:record-voice" || command === "aqe:play-recording";
-  }
 </script>
 
 <section class="toolbar-visibility settings-section" aria-labelledby="toolbar-visibility-title">
@@ -112,18 +92,16 @@
 
   <div class="button-settings-grid" data-testid="toolbar-visibility-buttons">
     {#each buttons as button (button.command)}
-      {#if button.command !== "aqe:play-recording"}
       {@const visible = isVisible(button.command)}
       {@const mode = displayMode(button.command)}
       <ButtonSettingsCard
         hasSettings={hasSettings(button.command)}
         icon={button.icon}
         mode={mode}
-        modeLocked={isRecordingCommand(button.command)}
         onSetMode={(nextMode) => setDisplayMode(button.command, nextMode)}
         onToggle={() => toggle(button.command)}
         testId={`button-settings-${COMMAND_SLUGS[button.command]}`}
-        title={button.command === "aqe:record-voice" ? t("editor.command.record_group.label") : button.label}
+        title={button.label}
         {visible}
       >
         {#if button.command === "aqe:play"}
@@ -296,7 +274,6 @@
           </label>
         {/if}
       </ButtonSettingsCard>
-      {/if}
     {/each}
   </div>
 </section>

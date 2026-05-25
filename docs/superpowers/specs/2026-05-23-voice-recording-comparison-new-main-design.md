@@ -110,10 +110,10 @@ Do not assume the old toolbar code, contract names, or graph rendering hooks sti
 
 ### Recording Control Model
 
-Use one visible control that toggles between:
+Use two adjacent opt-in controls when both commands are visible:
 
-- `Record`
-- `Stop`
+- `Record`, which toggles to `Stop` during active recording
+- `Play yours`, which is disabled until a learner recording is ready
 
 The backend should still expose explicit commands:
 

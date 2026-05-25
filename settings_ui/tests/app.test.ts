@@ -272,17 +272,22 @@ describe("App", () => {
     expect(config.graph_voice_lock).toBe("stable");
   });
 
-  it("enables learner recording as one icon-only toolbar group", async () => {
+  it("enables learner recording buttons with separate visibility and display settings", async () => {
     setInitialState();
 
     render(App);
 
-    expect(screen.queryByTestId("button-settings-play-recording")).toBeNull();
-    const card = screen.getByTestId("button-settings-record-voice");
-    const iconMode = within(card).getByTestId("button-settings-record-voice-mode-icon");
-    expect(iconMode).toBeDisabled();
+    const recordCard = screen.getByTestId("button-settings-record-voice");
+    const playYoursCard = screen.getByTestId("button-settings-play-recording");
+    const recordIconMode = within(recordCard).getByTestId("button-settings-record-voice-mode-icon");
+    const playYoursIconMode = within(playYoursCard).getByTestId("button-settings-play-recording-mode-icon");
+    expect(recordIconMode).toBeEnabled();
+    expect(playYoursIconMode).toBeEnabled();
 
-    await fireEvent.click(within(card).getByTestId("button-settings-record-voice-visibility-show"));
+    await fireEvent.click(within(recordCard).getByTestId("button-settings-record-voice-visibility-show"));
+    await fireEvent.click(within(playYoursCard).getByTestId("button-settings-play-recording-visibility-show"));
+    await fireEvent.click(recordIconMode);
+    await fireEvent.click(playYoursIconMode);
     await fireEvent.input(screen.getByTestId("voice-recording-countdown-seconds"), {
       target: { value: "0" },
     });
@@ -295,8 +300,8 @@ describe("App", () => {
     }>("settings.save");
     expect(config.visible_editor_buttons).toContain("aqe:record-voice");
     expect(config.visible_editor_buttons).toContain("aqe:play-recording");
-    expect(config.editor_button_modes["aqe:record-voice"]).toBe("icon");
-    expect(config.editor_button_modes["aqe:play-recording"]).toBe("icon");
+    expect(config.editor_button_modes["aqe:record-voice"]).toBe("text");
+    expect(config.editor_button_modes["aqe:play-recording"]).toBe("text");
     expect(config.voice_recording_countdown_seconds).toBe(0);
   });
 

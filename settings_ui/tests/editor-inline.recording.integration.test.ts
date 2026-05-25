@@ -11,6 +11,7 @@ import {
   renderFields,
   track,
 } from "./editor-inline.integration.helpers.js";
+import { EditorButtonMode } from "../src/lib/types.js";
 import type { EditorRuntimeConfig } from "../src/editor-inline/types.js";
 
 function recordingConfig(): EditorRuntimeConfig {
@@ -29,6 +30,16 @@ function recordingConfig(): EditorRuntimeConfig {
       "aqe:record-voice",
       "aqe:play-recording",
     ],
+  };
+}
+
+function textRecordingConfig(): EditorRuntimeConfig {
+  return {
+    ...recordingConfig(),
+    editorButtonModes: {
+      "aqe:play-recording": EditorButtonMode.Text,
+      "aqe:record-voice": EditorButtonMode.Text,
+    },
   };
 }
 
@@ -55,7 +66,7 @@ describe("editor inline learner recording integration", () => {
     expect(document.querySelector('[data-testid="aqe-button-0-play-recording"]')).toBeNull();
   });
 
-  it("renders the opt-in icon-only group and dispatches record after the configured countdown", async () => {
+  it("renders the opt-in grouped buttons and dispatches record after the configured countdown", async () => {
     initializeEditorRuntime(recordingConfig());
     scan(recordingConfig());
 
@@ -65,6 +76,7 @@ describe("editor inline learner recording integration", () => {
     expect(group).not.toBeNull();
     expect(recordButton.classList.contains("aqe-icon-only")).toBe(true);
     expect(playYoursButton.classList.contains("aqe-icon-only")).toBe(true);
+    expect(document.querySelector('[data-testid="aqe-split-0-record-voice-menu"]')).not.toBeNull();
     expect(recordButton.disabled).toBe(true);
     expect(playYoursButton.disabled).toBe(true);
 
@@ -89,6 +101,18 @@ describe("editor inline learner recording integration", () => {
       fieldOrd: 0,
       graphSettings: { smoothness: expect.any(String) },
     });
+  });
+
+  it("renders the recording group in text mode when configured", () => {
+    initializeEditorRuntime(textRecordingConfig());
+    scan(textRecordingConfig());
+
+    const recordButton = document.querySelector<HTMLButtonElement>('[data-testid="aqe-button-0-record-voice"]')!;
+    const playYoursButton = document.querySelector<HTMLButtonElement>('[data-testid="aqe-button-0-play-recording"]')!;
+    expect(recordButton.classList.contains("aqe-icon-only")).toBe(false);
+    expect(playYoursButton.classList.contains("aqe-icon-only")).toBe(false);
+    expect(recordButton.textContent).toContain("Record");
+    expect(playYoursButton.textContent).toContain("Play yours");
   });
 
   it("toggles Record to Stop while recording and enables Play yours only when ready", async () => {
