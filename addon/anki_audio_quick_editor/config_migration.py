@@ -17,6 +17,13 @@ OLD_DEFAULT_MAX_SPEED = 1.5
 OLD_DEFAULT_VOLUME_STEP_DB = 3.0
 OLD_DEFAULT_MIN_VOLUME_DB = -24.0
 OLD_DEFAULT_MAX_VOLUME_DB = 24.0
+LEGACY_FLOAT_DEFAULTS = (
+    ("min_speed", OLD_DEFAULT_MIN_SPEED),
+    ("max_speed", OLD_DEFAULT_MAX_SPEED),
+    ("volume_step_db", OLD_DEFAULT_VOLUME_STEP_DB),
+    ("min_volume_db", OLD_DEFAULT_MIN_VOLUME_DB),
+    ("max_volume_db", OLD_DEFAULT_MAX_VOLUME_DB),
+)
 
 REMOVED_CONFIG_KEYS = frozenset(
     {
@@ -50,38 +57,85 @@ def migrate_config(
     for key in REMOVED_CONFIG_KEYS:
         merged.pop(key, None)
     changed = merged != user_config
-
-    if "dpdfnet_attn_limit_db" in merged:
-        normalized_dpdfnet_limit = normalize_dpdfnet_attn_limit_db(
-            merged.get("dpdfnet_attn_limit_db")
-        )
-        if merged.get("dpdfnet_attn_limit_db") != normalized_dpdfnet_limit:
-            merged["dpdfnet_attn_limit_db"] = normalized_dpdfnet_limit
-            changed = True
-
-    if "output_format" in merged:
-        normalized_output_format = normalize_output_format(merged.get("output_format"))
-        if merged.get("output_format") != normalized_output_format:
-            merged["output_format"] = normalized_output_format
-            changed = True
-
-    if _insert_share_button(merged.get("visible_editor_buttons")):
-        changed = True
-
-    if _normalize_editor_button_modes(merged.get("editor_button_modes"), defaults):
-        changed = True
-
-    if _migrate_speed_volume_defaults(merged, defaults, original_version):
-        changed = True
-
-    if _migrate_play_repeat_default(merged, defaults, original_version):
-        changed = True
-
-    if merged.get("_config_version") != CURRENT_CONFIG_VERSION:
-        merged["_config_version"] = CURRENT_CONFIG_VERSION
-        changed = True
+    changed = _apply_post_merge_migrations(merged, defaults, original_version) or changed
+    changed = _stamp_current_config_version(merged) or changed
 
     return merged, changed
+
+
+def _apply_post_merge_migrations(
+    merged: dict[str, Any],
+    defaults: dict[str, Any],
+    original_version: int,
+) -> bool:
+    changed = False
+    for migration in (
+        _normalize_dpdfnet_limit_setting,
+        _normalize_output_format_setting,
+        _insert_share_button_setting,
+        _normalize_editor_button_mode_settings,
+        _migrate_speed_volume_defaults,
+        _migrate_play_repeat_default,
+    ):
+        changed = migration(merged, defaults, original_version) or changed
+    return changed
+
+
+def _normalize_dpdfnet_limit_setting(
+    merged: dict[str, Any],
+    defaults: dict[str, Any],
+    original_version: int,
+) -> bool:
+    del defaults, original_version
+    if "dpdfnet_attn_limit_db" not in merged:
+        return False
+    normalized_dpdfnet_limit = normalize_dpdfnet_attn_limit_db(
+        merged.get("dpdfnet_attn_limit_db")
+    )
+    if merged.get("dpdfnet_attn_limit_db") == normalized_dpdfnet_limit:
+        return False
+    merged["dpdfnet_attn_limit_db"] = normalized_dpdfnet_limit
+    return True
+
+
+def _normalize_output_format_setting(
+    merged: dict[str, Any],
+    defaults: dict[str, Any],
+    original_version: int,
+) -> bool:
+    del defaults, original_version
+    if "output_format" not in merged:
+        return False
+    normalized_output_format = normalize_output_format(merged.get("output_format"))
+    if merged.get("output_format") == normalized_output_format:
+        return False
+    merged["output_format"] = normalized_output_format
+    return True
+
+
+def _insert_share_button_setting(
+    merged: dict[str, Any],
+    defaults: dict[str, Any],
+    original_version: int,
+) -> bool:
+    del defaults, original_version
+    return _insert_share_button(merged.get("visible_editor_buttons"))
+
+
+def _normalize_editor_button_mode_settings(
+    merged: dict[str, Any],
+    defaults: dict[str, Any],
+    original_version: int,
+) -> bool:
+    del original_version
+    return _normalize_editor_button_modes(merged.get("editor_button_modes"), defaults)
+
+
+def _stamp_current_config_version(merged: dict[str, Any]) -> bool:
+    if merged.get("_config_version") == CURRENT_CONFIG_VERSION:
+        return False
+    merged["_config_version"] = CURRENT_CONFIG_VERSION
+    return True
 
 
 def _insert_share_button(visible_buttons: Any) -> bool:
@@ -143,52 +197,39 @@ def _migrate_speed_volume_defaults(
     if original_version >= SPEED_FACTOR_CONFIG_VERSION:
         return False
 
-    changed = False
+    changed = _migrate_speed_step_default(merged, defaults)
+    for key, old_default in LEGACY_FLOAT_DEFAULTS:
+        changed = _replace_legacy_default(merged, defaults, key, old_default) or changed
+
+    return _migrate_show_graph_default(merged, defaults) or changed
+
+
+def _migrate_speed_step_default(
+    merged: dict[str, Any],
+    defaults: dict[str, Any],
+) -> bool:
     speed_step = _float_value(merged.get("speed_step"))
-    if speed_step is not None:
-        if _same_float(speed_step, OLD_DEFAULT_SPEED_STEP):
-            merged["speed_step"] = defaults.get("speed_step", 1.5)
-            changed = True
-        elif 0 < speed_step < 1:
-            merged["speed_step"] = round(1 + speed_step, 2)
-            changed = True
+    if speed_step is None:
+        return False
+    if _same_float(speed_step, OLD_DEFAULT_SPEED_STEP):
+        merged["speed_step"] = defaults.get("speed_step", 1.5)
+        return True
+    if 0 < speed_step < 1:
+        merged["speed_step"] = round(1 + speed_step, 2)
+        return True
+    return False
 
-    changed = _replace_legacy_default(
-        merged,
-        defaults,
-        "min_speed",
-        OLD_DEFAULT_MIN_SPEED,
-    ) or changed
-    changed = _replace_legacy_default(
-        merged,
-        defaults,
-        "max_speed",
-        OLD_DEFAULT_MAX_SPEED,
-    ) or changed
-    changed = _replace_legacy_default(
-        merged,
-        defaults,
-        "volume_step_db",
-        OLD_DEFAULT_VOLUME_STEP_DB,
-    ) or changed
-    changed = _replace_legacy_default(
-        merged,
-        defaults,
-        "min_volume_db",
-        OLD_DEFAULT_MIN_VOLUME_DB,
-    ) or changed
-    changed = _replace_legacy_default(
-        merged,
-        defaults,
-        "max_volume_db",
-        OLD_DEFAULT_MAX_VOLUME_DB,
-    ) or changed
 
-    if merged.get("show_graph_by_default") is False and defaults.get("show_graph_by_default") is True:
-        merged["show_graph_by_default"] = True
-        changed = True
-
-    return changed
+def _migrate_show_graph_default(
+    merged: dict[str, Any],
+    defaults: dict[str, Any],
+) -> bool:
+    if merged.get("show_graph_by_default") is not False:
+        return False
+    if defaults.get("show_graph_by_default") is not True:
+        return False
+    merged["show_graph_by_default"] = True
+    return True
 
 
 def _replace_legacy_default(
