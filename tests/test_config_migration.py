@@ -261,6 +261,21 @@ class TestMigrateConfig:
             "aqe:settings",
         ]
 
+    def test_removes_stale_visible_editor_buttons(self) -> None:
+        defaults = {
+            "_config_version": CURRENT_CONFIG_VERSION,
+            "visible_editor_buttons": ["aqe:play", "aqe:share", "aqe:settings"],
+        }
+        user = {
+            "_config_version": CURRENT_CONFIG_VERSION,
+            "visible_editor_buttons": ["aqe:play", "aqe:record-voice", "aqe:settings"],
+        }
+
+        migrated, changed = migrate_config(user, defaults)
+
+        assert changed is True
+        assert migrated["visible_editor_buttons"] == ["aqe:play", "aqe:settings", "aqe:share"]
+
     def test_picks_up_editor_button_modes_default(self) -> None:
         user = {"_config_version": 18, "enabled": True}
         defaults = {

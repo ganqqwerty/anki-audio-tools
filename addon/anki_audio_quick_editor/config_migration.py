@@ -71,6 +71,7 @@ def _apply_post_merge_migrations(
     changed = False
     changed = _normalize_dpdfnet_limit_setting(merged) or changed
     changed = _normalize_output_format_setting(merged) or changed
+    changed = _normalize_visible_editor_buttons_setting(merged, defaults) or changed
     changed = _insert_share_button_setting(merged) or changed
     changed = _normalize_editor_button_mode_settings(merged, defaults) or changed
     changed = _migrate_speed_volume_defaults(merged, defaults, original_version) or changed
@@ -101,6 +102,23 @@ def _normalize_output_format_setting(merged: dict[str, Any]) -> bool:
 
 def _insert_share_button_setting(merged: dict[str, Any]) -> bool:
     return _insert_share_button(merged.get("visible_editor_buttons"))
+
+
+def _normalize_visible_editor_buttons_setting(
+    merged: dict[str, Any],
+    defaults: dict[str, Any],
+) -> bool:
+    visible_buttons = merged.get("visible_editor_buttons")
+    default_buttons = defaults.get("visible_editor_buttons")
+    if not isinstance(visible_buttons, list) or not isinstance(default_buttons, list):
+        return False
+
+    allowed_buttons = set(default_buttons)
+    normalized = [button for button in visible_buttons if button in allowed_buttons]
+    if normalized == visible_buttons:
+        return False
+    merged["visible_editor_buttons"] = normalized
+    return True
 
 
 def _normalize_editor_button_mode_settings(

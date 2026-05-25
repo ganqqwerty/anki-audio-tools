@@ -19,6 +19,7 @@ from ..contracts_generated import (
     RuntimeStatus,
     ShowLogFileResult,
     SupportReportResult,
+    VisibleEditorButton,
 )
 from ..diagnostics_runtime import (
     capture_exception,
@@ -96,6 +97,7 @@ def _handle_settings_save(
         payload = json.dumps({"error": "Invalid JSON payload"})
         eval_fn(f"window.onSaveError({payload})")
         return
+    _sanitize_settings_payload(raw_config)
     try:
         config = Config.from_dict(raw_config).to_dict()
     except CONTRACT_DECODE_ERRORS:
@@ -119,6 +121,17 @@ def _handle_settings_save(
         flush=True,
     )
     dialog.accept()
+
+
+def _sanitize_settings_payload(raw_config: Any) -> None:
+    if not isinstance(raw_config, dict):
+        return
+    visible_buttons = raw_config.get("visible_editor_buttons")
+    if isinstance(visible_buttons, list):
+        allowed_buttons = {button.value for button in VisibleEditorButton}
+        raw_config["visible_editor_buttons"] = [
+            button for button in visible_buttons if button in allowed_buttons
+        ]
 
 
 def _handle_reset_defaults(dialog: Any) -> None:

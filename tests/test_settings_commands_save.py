@@ -52,6 +52,24 @@ def test_settings_save_accepts_bridge_envelope() -> None:
     assert dialog.accepted is True
 
 
+def test_settings_save_drops_stale_visible_editor_buttons() -> None:
+    from aqt import mw
+
+    dialog = _make_dialog()
+    _, eval_fn = _capture_eval()
+    config = {
+        **_full_config(),
+        "visible_editor_buttons": ["aqe:play", "aqe:record-voice", "aqe:settings"],
+    }
+    command = "bridge:" + json.dumps({"command": "settings.save", "payload": config})
+
+    assert handle_settings_command(command, eval_fn, dialog) is True
+
+    saved_config = mw.addonManager.writeConfig.call_args.args[1]
+    assert saved_config["visible_editor_buttons"] == ["aqe:play", "aqe:settings"]
+    assert dialog.accepted is True
+
+
 def test_settings_save_reports_invalid_json() -> None:
     dialog = _make_dialog()
     calls, eval_fn = _capture_eval()
