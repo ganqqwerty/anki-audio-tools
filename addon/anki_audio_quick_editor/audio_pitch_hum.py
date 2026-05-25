@@ -33,6 +33,7 @@ from .audio_state import AudioProcessingConfig
 from .audio_tools import find_ffmpeg
 from .audio_types import AudioProcessingResult
 from .errors import AudioProcessingError
+from .permission_guidance import launch_error_message
 from .prosody_settings import resolve_analysis_options
 
 
@@ -122,13 +123,16 @@ def _encode_pitch_hum_wav(
     command = build_mp3_encode_command(ffmpeg_path, wav_path, output_path)
     if on_command:
         on_command(command)
-    result = subprocess.run(
-        list(command),
-        capture_output=True,
-        text=True,
-        check=False,
-        **_external_command_run_kwargs(),
-    )  # nosec B603
+    try:
+        result = subprocess.run(
+            list(command),
+            capture_output=True,
+            text=True,
+            check=False,
+            **_external_command_run_kwargs(),
+        )  # nosec B603
+    except OSError as exc:
+        raise AudioProcessingError(launch_error_message("Could not start pitch hum MP3 encoding.", exc)) from exc
     if result.returncode != 0:
         raise AudioProcessingError(result.stderr.strip() or failure_message)
     return AudioProcessingResult(

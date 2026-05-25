@@ -356,24 +356,24 @@
         </div>
         <SelectionToolbar {target} />
       </div>
-      <div class="aqe-visualizer-meta">
-        <span
-          class="aqe-spinner"
-          data-testid={`aqe-graph-spinner-${target.ord}`}
-          hidden
-          aria-hidden="true"
-        ></span>
-        <span class="aqe-cursor-label" data-testid={`aqe-progress-label-${target.ord}`}>0 ms</span>
-        <AqeTooltip>
-          {#snippet trigger({ props })}
-            <span
-              {...props}
-              class="aqe-status aqe-tooltip-target"
-              data-testid={`aqe-status-${target.ord}`}
-            ></span>
-          {/snippet}
-        </AqeTooltip>
-      </div>
+      <span class="aqe-cursor-label" data-testid={`aqe-progress-label-${target.ord}`}>0 ms</span>
+    </div>
+    <div class="aqe-status-row" data-testid={`aqe-status-row-${target.ord}`}>
+      <span
+        class="aqe-spinner"
+        data-testid={`aqe-graph-spinner-${target.ord}`}
+        hidden
+        aria-hidden="true"
+      ></span>
+      <AqeTooltip>
+        {#snippet trigger({ props })}
+          <span
+            {...props}
+            class="aqe-status aqe-tooltip-target"
+            data-testid={`aqe-status-${target.ord}`}
+          ></span>
+        {/snippet}
+      </AqeTooltip>
     </div>
   </div>
 </AqeTooltipProvider>

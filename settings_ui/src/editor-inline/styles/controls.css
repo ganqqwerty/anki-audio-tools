@@ -151,3 +151,21 @@
 .aqe-status[data-kind="error"] {
   font-weight: 700;
 }
+
+.aqe-status-row {
+  align-items: center;
+  display: flex;
+  flex: 1 0 100%;
+  font-size: 12px;
+  gap: 8px;
+  justify-content: flex-start;
+  margin-top: 2px;
+  min-width: 0;
+}
+
+.aqe-status-row .aqe-status {
+  flex: 1 1 auto;
+  margin-left: 0;
+  min-width: 0;
+  white-space: pre-wrap;
+}

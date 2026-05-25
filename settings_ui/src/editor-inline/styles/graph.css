@@ -79,21 +79,6 @@
   stroke-width: 1;
 }
 
-.aqe-visualizer-meta {
-  align-items: center;
-  display: flex;
-  font-size: 12px;
-  gap: 8px;
-  justify-content: flex-start;
-  margin-top: 2px;
-}
-
-.aqe-visualizer-meta .aqe-status {
-  flex: 1 1 auto;
-  margin-left: 0;
-  min-width: 0;
-}
-
 .aqe-spinner {
   animation: aqe-spin 800ms linear infinite;
   border: 2px solid currentColor;
@@ -108,10 +93,6 @@
 
 .aqe-spinner[hidden] {
   display: none;
-}
-
-.aqe-visualizer-meta .aqe-status[data-kind="error"] {
-  font-weight: 700;
 }
 
 @keyframes aqe-spin {

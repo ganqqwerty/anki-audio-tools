@@ -138,6 +138,8 @@ export function graphStateForTest(ord: number): GraphStateForTest | null {
   const timecodeFlag = visualizer.querySelector<HTMLElement>(".aqe-css-cursor-flag");
   const timecodeFlagCurrent = visualizer.querySelector<HTMLElement>(".aqe-css-cursor-flag-current");
   const timecodeFlagPitch = visualizer.querySelector<HTMLElement>(".aqe-css-cursor-flag-pitch");
+  const spinner = visualizer.closest<HTMLElement>(".aqe-controls")?.querySelector<HTMLElement>(".aqe-spinner")
+    ?? visualizer.querySelector<HTMLElement>(".aqe-spinner");
   return {
     active: visualizer.dataset.graphActive === "true",
     busy: visualizer.dataset.graphBusy === "true",
@@ -211,7 +213,7 @@ export function graphStateForTest(ord: number): GraphStateForTest | null {
     timecodeFlagTransform: cssCursor?.style.transform || timecodeFlag?.style.transform || "",
     timecodeFlagCurrent: timecodeFlagCurrent?.textContent || "",
     timecodeFlagPitch: timecodeFlagPitch?.textContent || "",
-    spinnerVisible: visualizer.querySelector<HTMLElement>(".aqe-spinner") ? !visualizer.querySelector<HTMLElement>(".aqe-spinner")?.hidden : false,
+    spinnerVisible: spinner ? !spinner.hidden : false,
     allButtonsDisabled: allButtons().every((button) => button.disabled),
     anyButtonDisabled: allButtons().some((button) => button.disabled),
     buttonIconCount: buttonIcons.length,

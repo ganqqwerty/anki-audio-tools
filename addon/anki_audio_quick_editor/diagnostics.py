@@ -5,6 +5,8 @@ from __future__ import annotations
 import subprocess  # nosec B404
 from typing import Any
 
+from .permission_guidance import message_with_macos_permission_guidance
+
 
 def build_deep_filter_health(_config: dict[str, Any]) -> dict[str, Any]:
     """Return DeepFilterNet executable availability and version details."""
@@ -22,7 +24,7 @@ def build_deep_filter_health(_config: dict[str, Any]) -> dict[str, Any]:
             "path": "",
             "source": "",
             "version": "",
-            "error": str(exc),
+            "error": _diagnostic_error_message(exc),
         }
     source = tool_source_label(deep_filter_path, configured_path="")
 
@@ -42,7 +44,7 @@ def build_deep_filter_health(_config: dict[str, Any]) -> dict[str, Any]:
             "path": str(deep_filter_path),
             "source": source,
             "version": "",
-            "error": str(exc),
+            "error": _diagnostic_error_message(exc),
         }
     except subprocess.TimeoutExpired:
         return {
@@ -80,7 +82,7 @@ def build_rnnoise_health() -> dict[str, Any]:
             "path": str(expected_path) if expected_path is not None else "",
             "source": "bundled" if expected_path is not None else "",
             "version": "",
-            "error": str(exc),
+            "error": _diagnostic_error_message(exc),
         }
 
     command = (str(rnnoise_path), "--version")
@@ -99,7 +101,7 @@ def build_rnnoise_health() -> dict[str, Any]:
             "path": str(rnnoise_path),
             "source": "bundled",
             "version": "",
-            "error": str(exc),
+            "error": _diagnostic_error_message(exc),
         }
     except subprocess.TimeoutExpired:
         return {
@@ -137,7 +139,7 @@ def build_dpdfnet_health() -> dict[str, Any]:
             "path": str(expected_path) if expected_path is not None else "",
             "source": "bundled" if expected_path is not None else "",
             "version": "",
-            "error": str(exc),
+            "error": _diagnostic_error_message(exc),
         }
 
     command = (str(dpdfnet_path), "--version")
@@ -156,7 +158,7 @@ def build_dpdfnet_health() -> dict[str, Any]:
             "path": str(dpdfnet_path),
             "source": "bundled",
             "version": "",
-            "error": str(exc),
+            "error": _diagnostic_error_message(exc),
         }
     except subprocess.TimeoutExpired:
         return {
@@ -252,3 +254,7 @@ def _spleeter_probe_summary(probe_output: str) -> str:
         (line.strip() for line in probe_output.splitlines() if "source separation" in line.lower()),
         "",
     ) or next((line.strip() for line in probe_output.splitlines() if line.strip()), "")
+
+
+def _diagnostic_error_message(exc: BaseException) -> str:
+    return message_with_macos_permission_guidance(str(exc), exc)

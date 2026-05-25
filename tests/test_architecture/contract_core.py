@@ -25,7 +25,7 @@ CORE_CONTRACTS: dict[str, ModuleContract] = {
     "diagnostics": contract(
         "diagnostics",
         layer=Layer.IMPORT_SAFE_CORE,
-        allowed_addon_deps=("audio_processor",),
+        allowed_addon_deps=("audio_processor", "permission_guidance"),
         allowed_side_effects=(SideEffect.SUBPROCESS_RUN,),
     ),
     "diagnostics_runtime": contract(
@@ -71,6 +71,7 @@ CORE_CONTRACTS: dict[str, ModuleContract] = {
         layer=Layer.IMPORT_SAFE_CORE,
         allowed_addon_deps=("sound_refs",),
     ),
+    "permission_guidance": contract("permission_guidance", layer=Layer.IMPORT_SAFE_CORE),
     "prosody_analyzer": contract(
         "prosody_analyzer",
         layer=Layer.IMPORT_SAFE_CORE,
@@ -89,7 +90,14 @@ CORE_CONTRACTS: dict[str, ModuleContract] = {
     "prosody_fallback": contract(
         "prosody_fallback",
         layer=Layer.IMPORT_SAFE_CORE,
-        allowed_addon_deps=("audio_processor", "audio_state", "errors", "prosody_settings", "prosody_types"),
+        allowed_addon_deps=(
+            "audio_processor",
+            "audio_state",
+            "errors",
+            "permission_guidance",
+            "prosody_settings",
+            "prosody_types",
+        ),
         allowed_side_effects=(SideEffect.SUBPROCESS_RUN,),
     ),
     "prosody_praat": contract(

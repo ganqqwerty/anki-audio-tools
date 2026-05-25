@@ -13,6 +13,7 @@ from .audio_state import AudioProcessingConfig
 from .audio_tools import find_ffmpeg, find_ffprobe
 from .diagnostics_runtime import is_debug_enabled, new_operation_id, record_breadcrumb
 from .errors import AudioProcessingError
+from .permission_guidance import launch_error_message as format_launch_error_message
 
 
 def _is_windows() -> bool:
@@ -48,13 +49,16 @@ def probe_duration_ms(source_path: Path, config: AudioProcessingConfig) -> int:
         operation_id=operation_id,
         context={"argv": cmd, "source_path": str(source_path)},
     )
-    result = subprocess.run(
-        cmd,
-        capture_output=True,
-        text=True,
-        check=False,
-        **_external_command_run_kwargs(),
-    )  # nosec B603
+    try:
+        result = subprocess.run(
+            cmd,
+            capture_output=True,
+            text=True,
+            check=False,
+            **_external_command_run_kwargs(),
+        )  # nosec B603
+    except OSError as exc:
+        raise AudioProcessingError(format_launch_error_message("Could not start ffprobe.", exc)) from exc
     record_breadcrumb(
         "external.command.finished",
         source="external",
@@ -156,7 +160,7 @@ def _run_external_command(
             },
             flush=True,
         )
-        raise AudioProcessingError(f"{launch_error_message} {exc}") from exc
+        raise AudioProcessingError(format_launch_error_message(launch_error_message, exc)) from exc
 
 
 def _render_external_error_message(
