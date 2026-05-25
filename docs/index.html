@@ -1,0 +1,156 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta
+      name="description"
+      content="Anki Audio Quick Editor is an Anki desktop add-on for quick, non-destructive audio edits inside the note editor."
+    >
+    <title>Anki Audio Quick Editor</title>
+    <link rel="stylesheet" href="assets/site.css">
+  </head>
+  <body>
+    <header class="site-header">
+      <div class="page-shell top-line">
+        <a class="brand" href="#overview" aria-label="Anki Audio Quick Editor home">
+          <span class="brand-mark" aria-hidden="true">A</span>
+          <span>Anki Audio Quick Editor</span>
+        </a>
+        <a class="source-link" href="https://github.com/ganqqwerty/anki-audio-tools">Source on GitHub</a>
+      </div>
+    </header>
+
+    <div class="page-shell layout">
+      <nav class="contents" aria-label="Page contents">
+        <details open>
+          <summary>Contents</summary>
+          <ol>
+            <li><a href="#overview">Overview</a></li>
+            <li><a href="#inline-editing">Inline Editing</a></li>
+            <li><a href="#prosody-visualization">Prosody Visualization</a></li>
+            <li><a href="#batch-tools">Batch Tools</a></li>
+            <li><a href="#non-destructive-workflow">Non-Destructive Workflow</a></li>
+            <li><a href="#install">Install</a></li>
+            <li><a href="#requirements">Requirements</a></li>
+            <li><a href="#source-and-support">Source And Support</a></li>
+          </ol>
+        </details>
+      </nav>
+
+      <main class="content">
+        <section class="hero" id="overview">
+          <p class="eyebrow">Anki desktop add-on</p>
+          <h1>Quick, non-destructive audio edits inside Anki.</h1>
+          <p class="lead">
+            Trim sentence-mining clips, adjust speed and volume, shorten long pauses, denoise recordings,
+            and inspect prosody without leaving the note editor.
+          </p>
+          <div class="actions" aria-label="Primary actions">
+            <a class="button" href="https://github.com/ganqqwerty/anki-audio-tools/releases">
+              Download from GitHub Releases
+            </a>
+            <a class="button secondary" href="#requirements">View requirements</a>
+          </div>
+          <div class="screenshot-slot" role="img" aria-label="Reserved space for an inline editor screenshot">
+            <span>
+              <strong>Inline editor screenshot</strong>
+              Replace this area with a real Anki editor capture later.
+            </span>
+          </div>
+        </section>
+
+        <section class="section" id="inline-editing">
+          <h2>Inline Editing</h2>
+          <p>
+            Focus a field with a supported <code>[sound:...]</code> reference and use editor controls directly
+            beside the audio. Common actions include playback, speed changes, volume changes, conversion,
+            pause shortening, denoise processing, file reveal, sharing, undo, and redo.
+          </p>
+          <ul class="feature-list">
+            <li>Works from the Anki note editor instead of a separate audio program.</li>
+            <li>Targets short study clips and sentence-mining audio.</li>
+            <li>Provides settings for which toolbar buttons are shown and how processing defaults behave.</li>
+          </ul>
+        </section>
+
+        <section class="section" id="prosody-visualization">
+          <h2>Prosody Visualization</h2>
+          <p>
+            The add-on can render inline prosody views that show pitch, intensity, and playback position.
+            These views help compare pronunciation, inspect rhythm, and navigate useful regions of an audio clip.
+          </p>
+          <div class="screenshot-slot" role="img" aria-label="Reserved space for a prosody visualization screenshot">
+            <span>
+              <strong>Prosody visualization screenshot</strong>
+              Replace this area with a waveform, pitch, and intensity capture later.
+            </span>
+          </div>
+        </section>
+
+        <section class="section" id="batch-tools">
+          <h2>Batch Tools</h2>
+          <p>
+            Browser actions support batch prosody visualization generation for selected notes. This is useful
+            when you want visual aids prepared across a group of audio cards instead of generating each one by hand.
+          </p>
+        </section>
+
+        <section class="section" id="non-destructive-workflow">
+          <h2>Non-Destructive Workflow</h2>
+          <p>
+            Edits render to new MP3 files and update the field reference. The original media file remains in
+            place, so experiments and cleanup work do not overwrite the source audio.
+          </p>
+          <div class="note">
+            The page intentionally links to GitHub Releases rather than a direct asset file, so versioned and
+            platform-specific archive names can change without breaking the main install button.
+          </div>
+        </section>
+
+        <section class="section" id="install">
+          <h2>Install</h2>
+          <p>
+            Download the latest <code>.ankiaddon</code> archive from GitHub Releases, then install it in Anki
+            through the desktop add-on manager.
+          </p>
+          <div class="actions">
+            <a class="button" href="https://github.com/ganqqwerty/anki-audio-tools/releases">
+              Open GitHub Releases
+            </a>
+          </div>
+        </section>
+
+        <section class="section" id="requirements">
+          <h2>Requirements</h2>
+          <ul class="requirements-list">
+            <li>Anki desktop 25.09 or later.</li>
+            <li>Desktop Anki only; not AnkiMobile or AnkiDroid.</li>
+            <li>Release archives bundle audio helper tools for macOS arm64, macOS x86_64, and Windows x86_64.</li>
+            <li>Advanced users can override audio tool paths, including <code>ffmpeg</code> and <code>ffprobe</code>, where needed.</li>
+          </ul>
+        </section>
+
+        <section class="section" id="source-and-support">
+          <h2>Source And Support</h2>
+          <p>
+            Source code, development notes, and release assets live in the GitHub repository. Use the repository
+            issue tracker for reproducible problems and include Anki version, operating system, and the relevant
+            audio file workflow.
+          </p>
+          <div class="actions">
+            <a class="button secondary" href="https://github.com/ganqqwerty/anki-audio-tools">
+              View repository
+            </a>
+          </div>
+        </section>
+      </main>
+    </div>
+
+    <footer class="site-footer">
+      <div class="page-shell">
+        Anki Audio Quick Editor is an independent Anki desktop add-on.
+      </div>
+    </footer>
+  </body>
+</html>
