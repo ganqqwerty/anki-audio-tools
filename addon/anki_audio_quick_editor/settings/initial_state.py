@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from pathlib import Path
 from typing import Any
 
 
@@ -12,6 +13,7 @@ def build_initial_state(config: dict[str, Any]) -> str:
     from .._version import __version__
     from ..i18n import active_context
     from ..release_info import read_release_info
+    from ..runtime_manager import runtime_status
     from ..settings_state import build_initial_state_payload, encode_initial_state
 
     addon_id = mw.addonManager.addonFromModule(__name__)
@@ -27,5 +29,6 @@ def build_initial_state(config: dict[str, Any]) -> str:
         direction=str(i18n["direction"]),
         messages=dict(i18n["messages"]),
         release_info=read_release_info(addon_dir),
+        runtime_status=runtime_status(Path(addon_dir)),
     )
     return encode_initial_state(state)

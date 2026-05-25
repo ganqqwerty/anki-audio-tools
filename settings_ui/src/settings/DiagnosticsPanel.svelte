@@ -1,6 +1,6 @@
 <script lang="ts">
   import { t } from "$lib/i18n.js";
-  import type { AsyncProgressPayload, Config, HealthReport, InitialState } from "$lib/types.js";
+  import type { AsyncProgressPayload, Config, HealthReport, InitialState, RuntimeStatus } from "$lib/types.js";
   import DiagnosticsLinks from "./DiagnosticsLinks.svelte";
 
   type DiagnosticsAction = () => void | Promise<void>;
@@ -10,9 +10,11 @@
     healthMessage,
     healthReport,
     healthProgress,
+    runtimeStatus,
     diagnosticsMessage,
     config = $bindable(),
     onRunHealthCheck,
+    onInstallRuntime,
     onCheckMedia,
     onCopySupportReport,
     onShowLogFile,
@@ -23,11 +25,15 @@
     healthProgress: AsyncProgressPayload | null;
     healthReport: HealthReport | null;
     initialState: InitialState;
+    runtimeStatus: RuntimeStatus;
     onCheckMedia: DiagnosticsAction;
     onCopySupportReport: DiagnosticsAction;
+    onInstallRuntime: DiagnosticsAction;
     onRunHealthCheck: DiagnosticsAction;
     onShowLogFile: DiagnosticsAction;
   } = $props();
+
+  const runtimePhaseLabel = $derived(runtimeStatus.error || runtimeStatus.message || runtimeStatus.phase);
 </script>
 
 <div class="settings-card settings-stack diagnostics-panel">
@@ -77,6 +83,18 @@
         <dt>{t("diagnostics.release_message")}</dt>
         <dd>{initialState.diagnostics.release_info.commit_message || "n/a"}</dd>
       </div>
+      <div class="meta-row">
+        <dt>{t("diagnostics.runtime_status")}</dt>
+        <dd data-testid="runtime-status">{runtimePhaseLabel}</dd>
+      </div>
+      <div class="meta-row">
+        <dt>{t("diagnostics.runtime_platform")}</dt>
+        <dd>{runtimeStatus.platform || "n/a"}</dd>
+      </div>
+      <div class="meta-row">
+        <dt>{t("diagnostics.runtime_root")}</dt>
+        <dd>{runtimeStatus.runtime_root || "n/a"}</dd>
+      </div>
     </dl>
   </section>
 
@@ -89,6 +107,14 @@
         onclick={onRunHealthCheck}
       >
         {t("diagnostics.run_health_check")}
+      </button>
+      <button
+        type="button"
+        class="settings-button"
+        data-testid="install-runtime"
+        onclick={onInstallRuntime}
+      >
+        {t("diagnostics.install_runtime")}
       </button>
       <button
         type="button"

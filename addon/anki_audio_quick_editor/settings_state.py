@@ -21,6 +21,7 @@ def build_initial_state_payload(
     direction: str,
     messages: dict[str, str],
     release_info: dict[str, str] | None = None,
+    runtime_status: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     """Build the JSON-serializable state consumed by the settings webview."""
     settings_config = with_platform_ffmpeg_default(config)
@@ -37,6 +38,15 @@ def build_initial_state_payload(
             "addon_id": addon_id,
             "collection_available": collection_available,
             "release_info": release_info or {"commit_hash": "", "commit_message": ""},
+            "runtime": runtime_status or {
+                "phase": "missing",
+                "runtime_manifest_id": "",
+                "platform": "",
+                "runtime_root": "",
+                "progress": 0,
+                "message": "",
+                "error": "",
+            },
         },
     }
 

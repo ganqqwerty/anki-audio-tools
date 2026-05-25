@@ -47,11 +47,13 @@ If that happens, remove `addon/anki_audio_quick_editor/meta.json` or use the set
 
 ## Runtime Dependencies
 
-Anki add-ons cannot rely on `pip install` at user runtime. Audio Quick Editor uses the Python/Qt runtime bundled with Anki and ships a locked native runtime payload for supported release platforms. The self-sufficient release matrix is macOS arm64, macOS x86_64, and Windows x86_64.
+Anki add-ons cannot rely on `pip install` at user runtime. Audio Quick Editor uses the Python/Qt runtime bundled with Anki and downloads a locked native runtime payload for supported release platforms. The managed runtime matrix is macOS arm64, macOS x86_64, and Windows x86_64.
 
-Release archives bundle `ffmpeg`, `ffprobe`, DeepFilterNet's `deep-filter`, `rnnoise-cli`, Sherpa's `sherpa-spleeter`, and DPDFNet Lite below `bin/<target>/`, plus shared Spleeter model files below `bin/models/spleeter-2stems-fp16/`. Runtime discovery checks the configured ffmpeg path where supported, bundled tools second, and `PATH` as a compatibility fallback. The settings diagnostics report whether each tool came from config, the bundled payload, or `PATH`.
+Public release archives are thin. They include `bin/runtime_manifest.json`, but they do not embed `ffmpeg`, `ffprobe`, DeepFilterNet's `deep-filter`, `rnnoise-cli`, Sherpa's `sherpa-spleeter`, DPDFNet Lite, or shared Spleeter model files. On first load, startup schedules a background managed-runtime install into `user_files/runtime/<runtime_manifest_id>/<platform>/` and records state in `user_files/runtime_state.json`.
 
-`release_assets.lock.json` remains the source of truth for the runtime matrix, source URLs, diagnostic arguments, and SHA-256 values, but the files now come from two places. Commit all non-FFmpeg runtime payloads directly under `addon/anki_audio_quick_editor/bin/<target>/` and `addon/anki_audio_quick_editor/bin/models/`. Keep only `ffmpeg` and `ffprobe` external in `.release-assets/bin/<target>/`. Source-tree development uses the same canonical layout as releases, so runtime lookups keep reading from the add-on `bin/` tree.
+Runtime discovery checks the configured ffmpeg path where supported, the managed downloaded runtime, package `bin/` as a source-tree development fallback, and `PATH` as a compatibility fallback for `ffmpeg`, `ffprobe`, and `deep-filter`. The settings diagnostics report whether each tool came from config, the managed runtime, the development fallback, or `PATH`.
+
+`release_assets.lock.json` remains the source of truth for the runtime matrix, source URLs, diagnostic arguments, and SHA-256 values. Keep runtime payloads available under the same staged source layout used by release scripts: non-FFmpeg runtime payloads under `addon/anki_audio_quick_editor/bin/<target>/` and `addon/anki_audio_quick_editor/bin/models/`, with cached `ffmpeg` and `ffprobe` under `.release-assets/bin/<target>/`. The release script stages those files, builds one runtime pack zip per target, computes pack metadata, and writes version-pinned GitHub Release URLs into `bin/runtime_manifest.json`.
 
 Release asset workflow:
 
@@ -97,28 +99,21 @@ need executable behavior checks on the current host.
 
 Sherpa Spleeter is fetched from locked `sherpa-onnx` native archives. Packaging renames the upstream `sherpa-onnx-offline-source-separation` executable to `sherpa-spleeter`, stages the target-specific ONNX Runtime libraries beside it, and reads the committed shared Spleeter 2-stems fp16 model files from `addon/anki_audio_quick_editor/bin/models/`.
 
-Package one platform at a time for normal distribution:
+Package all runtime targets for public AnkiWeb distribution:
 
 ```bash
-python3 scripts/release.py --target macos-arm64
-python3 scripts/release.py --target macos-x86_64
-python3 scripts/release.py --target windows-x86_64
+python3 scripts/release.py --target all
 ```
 
-If you need a smaller variant that keeps FFmpeg external, build:
+This builds `dist/anki-audio-quick-editor-<version>.ankiaddon` plus runtime packs named `aqe-runtime-<version>-<target>.zip`. Pass `--upload-assets` to upload those packs with `gh release upload`, or use the printed command when `gh` is unavailable. After upload, run:
 
 ```bash
-python3 scripts/release.py --target macos-arm64 --no-bundle-ffmpeg
-python3 scripts/release.py --target macos-x86_64 --no-bundle-ffmpeg
-python3 scripts/release.py --target windows-x86_64 --no-bundle-ffmpeg
+python3 scripts/release.py --verify-runtime-urls
 ```
 
-Those archives use an `-external-ffmpeg.ankiaddon` suffix, omit bundled
-`ffmpeg`/`ffprobe`, and expect users to provide them via settings or `PATH`.
+`--verify-runtime-urls` downloads each manifest URL and verifies the runtime pack SHA-256, so it must run only after the versioned GitHub Release assets exist. Use `--runtime-base-url` for a private release location. Platform-limited `--target current` or single-target builds are for testing/private distribution, not public AnkiWeb release.
 
-The universal `--target all` archive still works for direct distribution when
-called with `--allow-large-archive "<reason>"`, but third-party static FFmpeg
-pushes it above the normal compressed-size gate.
+Use `--embed-runtime` for local/offline validation builds that intentionally include runtime payloads in the `.ankiaddon`. The legacy `--no-bundle-ffmpeg` option is only valid with `--embed-runtime`; public thin releases always put `ffmpeg` and `ffprobe` in the runtime packs.
 
 Pause-shortening runs retain provenance under `<addon_dir>/aqe_artifacts/<run_id>/`, including intermediate WAV files, raw silence metadata, timeline JSON, filter script, final output copy, and `manifest.json`. The directory is intentionally unbounded for now, so clean it manually during local testing if it grows large.
 

@@ -37,7 +37,7 @@ def test_entrypoint_registers_editor_startup_hook() -> None:
 
     importlib.reload(anki_audio_quick_editor)
 
-    assert aqt.gui_hooks.main_window_did_init.append.call_count == 7
+    assert aqt.gui_hooks.main_window_did_init.append.call_count == 8
 
 
 def test_editor_init_registers_all_bridge_commands(tmp_path: Path) -> None:

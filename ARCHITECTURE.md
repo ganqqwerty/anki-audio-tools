@@ -27,6 +27,7 @@ Anki Audio Quick Editor keeps the human-facing architecture doc short and puts t
 - `_apply_log_level`
 - `_setup_editor_integration`
 - `_setup_browser_integration`
+- `_setup_managed_runtime`
 - `_setup_menu`
 
 `editor_integration.py` registers editor hooks for field control injection and bridge commands. `browser_integration.py` registers `browser_menus_did_init` and `browser_will_show_context_menu` so the batch action is available from the Browser Cards menu and row context menu.
@@ -39,7 +40,7 @@ Anki Audio Quick Editor keeps the human-facing architecture doc short and puts t
 4. The editor bundle mounts one compact Svelte control surface per audio field, including an SVG prosody visualizer, and requests async analysis for the current referenced media.
 5. `prosody_analyzer.py` uses optional Parselmouth/Praat when available and falls back to ffmpeg-decoded PCM pitch/intensity analysis otherwise.
 6. Processing button presses update an `AudioEditState` for the current field, including speed, volume, and pause-shortening edits, then render a new MP3 with `audio_processor.py`.
-7. Special transform controls call external cleanup tools through `audio_processor.py`, including bundled DeepFilterNet, RNNoise, DPDFNet Lite, and Sherpa Spleeter voice extraction.
+7. Special transform controls call external cleanup tools through `audio_processor.py`, including DeepFilterNet, RNNoise, DPDFNet Lite, and Sherpa Spleeter voice extraction from the managed runtime or development fallback.
 8. `editor_integration.py` writes the result through Anki's media manager and replaces the first supported sound reference in the field.
 9. Playback uses Anki's audio player against the latest generated reference, stopping any previous playback first and seeking to the visualizer cursor when set.
 10. Undo restores the previous generated reference and edit state without deleting generated media.
@@ -78,6 +79,19 @@ The shared `remove_pauses` operation is DeepFilterNet-assisted and speeds long p
 5. The artifact directory retains the working WAV, analysis WAV, DeepFilter output, raw silence metadata, parsed interval JSON, timeline JSON, generated `filter_complex` script, final MP3 copy, and `manifest.json`.
 6. DeepFilterNet is required for this operation. Failures keep the partial artifact directory, record a pause-pipeline support incident, and leave the note unchanged.
 
+## Managed Runtime Assets
+
+Release add-ons are thin. `bin/runtime_manifest.json` ships with supported targets, a runtime manifest ID, version-pinned GitHub Release asset URLs, runtime pack SHA-256 values, pack sizes, and the expected extracted file list with sizes, hashes, and executable-bit metadata.
+
+Runtime installation is managed by `runtime_manager.py` and `runtime_manifest.py`:
+
+1. Startup schedules `ensure_runtime_async()` after diagnostics and logging are initialized.
+2. Runtime files are extracted under `user_files/runtime/<runtime_manifest_id>/<platform>/`, while persisted state lives in `user_files/runtime_state.json`.
+3. The manifest ID is derived from required payload metadata instead of the add-on version, so add-on updates reuse an unchanged runtime.
+4. Downloads use `*.download` temp files, verify the runtime pack SHA-256, extract only manifest-listed paths, reject unknown or unsafe zip members, verify extracted file hashes, set executable bits where needed, and promote the runtime atomically.
+5. Runtime lookup order is configured path, managed downloaded runtime, package `bin/` development fallback, then `PATH` for `ffmpeg`, `ffprobe`, and `deep-filter`.
+6. Startup and Diagnostics share status through `runtime_status`; manual repair uses the `runtime_install` async operation.
+
 ## Browser Batch Operations Flow
 
 1. `browser_integration.py` adds `Run Audio Batch Operation...` to the Browser Cards menu and context menu.
@@ -101,7 +115,8 @@ The shared `remove_pauses` operation is DeepFilterNet-assisted and speeds long p
 3. The app sends commands through the shared `bridge:{ command, payload }` envelope in `settings_ui/src/lib/bridge.ts`.
 4. `settings/commands.py` decodes commands with `webview_bridge.py` and handles save/reset/log/async operations.
 5. Python sends async completion events back via `webview.eval(...)`.
-6. Settings, editor, and batch frontend diagnostics all pass through `frontend_logs.py` before being recorded in runtime diagnostics.
+6. Diagnostics exposes managed runtime status plus an Install/Repair Runtime action backed by `runtime_status` and `runtime_install`.
+7. Settings, editor, and batch frontend diagnostics all pass through `frontend_logs.py` before being recorded in runtime diagnostics.
 
 ## Config
 
@@ -189,7 +204,7 @@ The canonical module contracts and allowed side effects are defined in `tests/te
 
 | Contract | Source modules | Forbidden modules |
 |----------|----------------|-------------------|
-| `import-safe-no-upper-layers` | Import-safe helper modules, including batch visualization, Browser batch state, shared WebView bridge/shell helpers, frontend log handling, and prosody rendering/cache modules | Browser/editor UI modules and settings backend modules |
+| `import-safe-no-upper-layers` | Import-safe helper modules, including batch visualization, Browser batch state, runtime asset management, shared WebView bridge/shell helpers, frontend log handling, and prosody rendering/cache modules | Browser/editor UI modules and settings backend modules |
 | `settings-backend-no-ui` | `settings.commands`, `settings.initial_state` | `editor_integration` |
 
 ## Enforced Rules

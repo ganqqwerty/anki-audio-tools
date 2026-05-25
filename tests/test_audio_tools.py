@@ -58,8 +58,9 @@ def test_find_ffmpeg_raises_exact_message_when_missing_and_unconfigured(monkeypa
         find_ffmpeg()
 
     assert str(exc_info.value) == (
-        "Audio Quick Editor requires ffmpeg. Reinstall the add-on to restore the bundled "
-        "runtime, configure an ffmpeg path, or make ffmpeg available in PATH."
+        "Audio Quick Editor requires ffmpeg. The managed runtime may still be downloading "
+        "or missing; open Settings > Diagnostics to install or repair it, configure an "
+        "ffmpeg path, or make ffmpeg available in PATH."
     )
 
 

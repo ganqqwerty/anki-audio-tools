@@ -15,6 +15,7 @@ from ._version import __version__ as __version__
 from .diagnostics_runtime import (
     capture_exception,
     configure_runtime,
+    record_breadcrumb,
     release_runtime_files,
     set_debug_enabled,
 )
@@ -159,6 +160,7 @@ def _restore_install_logging(manager: object, module: str) -> None:
     _setup_file_logging()
     _setup_diagnostics()
     _apply_log_level()
+    _setup_managed_runtime()
 
 
 def _setup_diagnostics() -> None:
@@ -177,6 +179,56 @@ def _apply_log_level() -> None:
     for target_logger in _addon_loggers():
         target_logger.setLevel(level)
     set_debug_enabled(bool(config.get("debug_logging", False)))
+
+
+def _setup_managed_runtime() -> None:
+    """Start managed runtime installation after Anki has initialized the add-on."""
+    from aqt.utils import tooltip
+
+    from . import runtime_manager
+
+    addon_id = mw.addonManager.addonFromModule(__name__)
+    addon_dir = Path(mw.addonManager.addonsFolder(addon_id))
+
+    def _notify(runtime_status_payload: dict[str, object]) -> None:
+        phase = str(runtime_status_payload.get("phase", ""))
+        raw_progress = runtime_status_payload.get("progress", 0)
+        progress = raw_progress if isinstance(raw_progress, int) else 0
+        record_breadcrumb(
+            "runtime.status",
+            source="runtime",
+            operation="runtime.ensure",
+            context={
+                "phase": phase,
+                "platform": runtime_status_payload.get("platform", ""),
+                "runtime_manifest_id": runtime_status_payload.get("runtime_manifest_id", ""),
+                "error": runtime_status_payload.get("error", ""),
+            },
+            flush=phase in {"ready", "error"},
+        )
+        if phase == runtime_manager.RUNTIME_PHASE_DOWNLOADING and progress:
+            return
+        message = _runtime_notice_message(runtime_status_payload)
+        if not message:
+            return
+        mw.taskman.run_on_main(lambda: tooltip(message, period=5000))
+
+    startup_status = runtime_manager.ensure_runtime_async(addon_dir, notify=_notify)
+    if startup_status.get("phase") == runtime_manager.RUNTIME_PHASE_ERROR and startup_status.get("runtime_manifest_id"):
+        _notify(startup_status)
+
+
+def _runtime_notice_message(status: dict[str, object]) -> str:
+    phase = str(status.get("phase", ""))
+    if phase == "downloading":
+        return "Audio Quick Editor is downloading runtime assets in the background."
+    if phase == "ready":
+        return "Audio Quick Editor runtime assets are ready."
+    if phase == "error":
+        error = str(status.get("error", "")).strip()
+        suffix = f": {error}" if error else "."
+        return f"Audio Quick Editor runtime install failed{suffix}"
+    return ""
 
 
 def _show_settings_dialog(callbacks: SettingsLifecycleCallbacks | None = None) -> None:
@@ -254,6 +306,7 @@ gui_hooks.main_window_did_init.append(_with_hook_boundary("migrate_config", _mig
 gui_hooks.main_window_did_init.append(_with_hook_boundary("setup_file_logging", _setup_file_logging))
 gui_hooks.main_window_did_init.append(_with_hook_boundary("setup_diagnostics", _setup_diagnostics))
 gui_hooks.main_window_did_init.append(_with_hook_boundary("apply_log_level", _apply_log_level))
+gui_hooks.main_window_did_init.append(_with_hook_boundary("setup_managed_runtime", _setup_managed_runtime))
 gui_hooks.main_window_did_init.append(_with_hook_boundary("setup_editor_integration", _setup_editor_integration))
 gui_hooks.main_window_did_init.append(_with_hook_boundary("setup_browser_integration", _setup_browser_integration))
 gui_hooks.main_window_did_init.append(_with_hook_boundary("setup_menu", _setup_menu))

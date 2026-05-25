@@ -15,7 +15,7 @@ from anki_audio_quick_editor.editor_runtime import SettingsLifecycleCallbacks
 def test_entrypoint_registers_hooks_and_config_action() -> None:
     importlib.reload(anki_audio_quick_editor)
 
-    assert aqt.gui_hooks.main_window_did_init.append.call_count == 7
+    assert aqt.gui_hooks.main_window_did_init.append.call_count == 8
     aqt.gui_hooks.addon_manager_will_install_addon.append.assert_called_once_with(
         anki_audio_quick_editor._release_install_blocking_files
     )

@@ -16,6 +16,7 @@ from ..contracts_generated import (
     Config,
     CopySupportReportPayload,
     HealthReport,
+    RuntimeStatus,
     ShowLogFileResult,
     SupportReportResult,
 )
@@ -242,6 +243,10 @@ def _dispatch_op(
         return _op_support_report(payload, progress_fn)
     if op == "show_log_file":
         return _op_show_log_file(progress_fn)
+    if op == "runtime_status":
+        return _op_runtime_status()
+    if op == "runtime_install":
+        return _op_runtime_install(progress_fn)
     raise SettingsCommandError(f"Unknown async operation: {op}")
 
 
@@ -271,6 +276,7 @@ def _op_health_check(
     report["dpdfnet"] = build_dpdfnet_health()
     progress_fn(95, t("settings.health.checking_spleeter"))
     report["spleeter"] = build_spleeter_health()
+    report["runtime"] = _runtime_status_for_settings()
     progress_fn(100, t("settings.async.done"))
     return HealthReport.from_dict(report).to_dict()
 
@@ -308,6 +314,8 @@ def _op_support_report(payload: dict[str, Any], progress_fn: Callable[[int, str]
     dpdfnet_health = build_dpdfnet_health()
     spleeter_health = build_spleeter_health()
     progress_fn(75, t("settings.support.reading_recent_logs"))
+    diagnostics_context = support_report_context()
+    diagnostics_context["runtime"] = _runtime_status_for_settings()
     report_text = build_support_report_text(
         version=__version__,
         addon_dir=addon_dir,
@@ -320,7 +328,7 @@ def _op_support_report(payload: dict[str, Any], progress_fn: Callable[[int, str]
         log_tail=read_log_tail(log_path),
         spleeter_health=spleeter_health,
         spleeter_incident=latest_spleeter_support_incident(),
-        diagnostics_context=support_report_context(),
+        diagnostics_context=diagnostics_context,
         release_info=read_release_info(addon_dir),
     )
     progress_fn(100, t("settings.async.done"))
@@ -344,6 +352,23 @@ def _op_show_log_file(
     reveal_file(log_path, missing_message=t("settings.log.missing"))
     progress_fn(100, t("settings.async.done"))
     return ShowLogFileResult(str(log_path)).to_dict()
+
+
+def _op_runtime_status() -> Any:
+    return RuntimeStatus.from_dict(_runtime_status_for_settings()).to_dict()
+
+
+def _op_runtime_install(progress_fn: Callable[[int, str], None]) -> Any:
+    from .. import runtime_manager
+    from ..i18n import t
+
+    def _progress(progress_status: dict[str, Any]) -> None:
+        progress_fn(int(progress_status.get("progress", 0) or 0), str(progress_status.get("message", "")))
+
+    progress_fn(1, t("settings.runtime.installing"))
+    status = runtime_manager.ensure_runtime(_addon_dir_for_settings(), progress=_progress)
+    progress_fn(100, status.get("message") or status.get("error") or t("settings.async.done"))
+    return RuntimeStatus.from_dict(status).to_dict()
 
 
 def _handle_frontend_log(raw_payload: Any) -> None:
@@ -397,3 +422,18 @@ def _config_payload(payload: dict[str, Any]) -> dict[str, Any]:
         return Config.from_dict(raw_config).to_dict()
     except CONTRACT_DECODE_ERRORS:
         return {}
+
+
+def _runtime_status_for_settings() -> dict[str, Any]:
+    from ..runtime_manager import runtime_status
+
+    return runtime_status(_addon_dir_for_settings())
+
+
+def _addon_dir_for_settings() -> Any:
+    from pathlib import Path
+
+    from aqt import mw
+
+    addon_id = mw.addonManager.addonFromModule(__name__)
+    return Path(mw.addonManager.addonsFolder(addon_id))

@@ -159,6 +159,7 @@ def cmd_test_e2e_parallel(command_args: Sequence[str]) -> int:
             f"{', '.join(shard.files)}"
         )
 
+    results: list[_ShardResult] = []
     if worker_count == 1:
         results = [_run_shard(anki_python, shard) for shard in shards]
     else:

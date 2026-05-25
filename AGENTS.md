@@ -40,7 +40,7 @@ After major refactors, package renames, config schema changes, hook changes, or 
 - Anki on this machine is version 25.09 and uses Python 3.13.5.
 - Add-ons directory: `~/Library/Application Support/Anki2/addons21/`
 - The local development add-on ID is `1000000002`.
-- MVP audio processing requires system `ffmpeg` and `ffprobe`.
+- Release builds are thin by default: the add-on downloads a verified managed runtime pack after install/update. Configured tool paths still win where supported, package `bin/` is the dev fallback, and `PATH` remains a compatibility fallback for `ffmpeg`, `ffprobe`, and `deep-filter`.
 - There is no Python build step. Anki loads `__init__.py` directly.
 
 ## Development Setup & Dependencies
@@ -91,7 +91,7 @@ Plans should specify tests (including extensive e2e tests) before implementation
 python3 scripts/release.py
 ```
 
-This builds `dist/anki-audio-quick-editor-<version>.ankiaddon`.
+This builds a thin `dist/anki-audio-quick-editor-<version>.ankiaddon` plus platform runtime pack zips. Use `--embed-runtime` only for local/offline validation builds.
 
 ## Debugging
 

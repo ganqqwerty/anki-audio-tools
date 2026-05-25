@@ -237,6 +237,15 @@ def _append_general_diagnostics_sections(
     diagnostics_context: dict[str, Any] | None,
 ) -> None:
     context = diagnostics_context or {}
+    runtime_status = context.get("runtime")
+    if isinstance(runtime_status, dict):
+        sections.extend(
+            [
+                "",
+                "Managed runtime",
+                json.dumps(runtime_status, indent=2, sort_keys=True),
+            ]
+        )
     _append_latest_error_section(sections, _dict_or_none(context.get("latest_error")))
     recent_events = context.get("recent_events")
     _append_recent_events_section(sections, recent_events if isinstance(recent_events, list) else [])

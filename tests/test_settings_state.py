@@ -86,6 +86,18 @@ def _payload_args() -> dict[str, object]:
     }
 
 
+def _missing_runtime_status() -> dict[str, object]:
+    return {
+        "phase": "missing",
+        "runtime_manifest_id": "",
+        "platform": "",
+        "runtime_root": "",
+        "progress": 0,
+        "message": "",
+        "error": "",
+    }
+
+
 def test_build_initial_state_payload_has_settings_webview_shape() -> None:
     config = _full_config()
     payload = build_initial_state_payload(
@@ -108,6 +120,7 @@ def test_build_initial_state_payload_has_settings_webview_shape() -> None:
                 "commit_hash": "",
                 "commit_message": "",
             },
+            "runtime": _missing_runtime_status(),
         },
     }
 

@@ -18,6 +18,7 @@
     AsyncDonePayload,
     AsyncProgressPayload,
     HealthReport,
+    RuntimeStatus,
     SaveErrorPayload,
   } from "$lib/types.js";
   import DiagnosticsPanel from "./DiagnosticsPanel.svelte";
@@ -41,6 +42,7 @@
   let healthReport = $state<HealthReport | null>(null);
   let healthProgress = $state<AsyncProgressPayload | null>(null);
   let diagnosticsMessage = $state("");
+  let runtimeStatus = $state<RuntimeStatus>(initialState.diagnostics.runtime);
 
   onMount(() => {
     registerCallbacks({
@@ -56,6 +58,7 @@
       },
     });
     logger.info("audio quick editor settings UI mounted", { version: initialState.version });
+    void refreshRuntimeStatus();
   });
 
   async function runHealthCheck(): Promise<void> {
@@ -97,6 +100,29 @@
       const message = messageFromError(error);
       diagnosticsMessage = message;
       logger.error("show log file failed", { message });
+    }
+  }
+
+  async function refreshRuntimeStatus(): Promise<void> {
+    try {
+      runtimeStatus = await startAsyncOp("runtime_status", {});
+    } catch (error) {
+      const message = messageFromError(error);
+      diagnosticsMessage = message;
+      logger.error("runtime status failed", { message });
+    }
+  }
+
+  async function installRuntime(): Promise<void> {
+    diagnosticsMessage = t("settings.runtime.installing");
+    healthProgress = null;
+    try {
+      runtimeStatus = await startAsyncOp("runtime_install", {});
+      diagnosticsMessage = runtimeStatus.error || runtimeStatus.message || t("settings.async.done");
+    } catch (error) {
+      const message = messageFromError(error);
+      diagnosticsMessage = message;
+      logger.error("runtime install failed", { message });
     }
   }
 
@@ -152,8 +178,10 @@
           healthMessage={healthMessage}
           healthReport={healthReport}
           healthProgress={healthProgress}
+          runtimeStatus={runtimeStatus}
           diagnosticsMessage={diagnosticsMessage}
           onRunHealthCheck={runHealthCheck}
+          onInstallRuntime={installRuntime}
           onCheckMedia={settingsCheckMedia}
           onCopySupportReport={copyLatestSupportReport}
           onShowLogFile={showLogFile}
