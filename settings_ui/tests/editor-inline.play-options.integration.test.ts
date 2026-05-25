@@ -5,6 +5,7 @@ import {
   initializeEditorRuntime,
   scan,
 } from "../src/editor-inline/runtime.js";
+import { PRODUCT_LINKS } from "../src/lib/product-links.js";
 import {
   muteConsole,
   openPlayOptions,
@@ -59,6 +60,9 @@ describe("editor inline play option integration", () => {
     expect(document.querySelector('[data-testid="aqe-split-0-play-popover"]')).toHaveTextContent(
       "Playback and repeat options for this field.",
     );
+    expect(
+      document.querySelector<HTMLAnchorElement>('[data-testid="aqe-split-0-play-popover"] .aqe-split-video-link'),
+    ).toHaveAttribute("href", PRODUCT_LINKS.editorVideos.playback);
     expect(input.value).toBe("1.5");
     expect(slider.value).toBe("1.5");
 

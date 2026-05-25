@@ -33,6 +33,18 @@ def reveal_file(
     _open_parent_folder(resolved.parent)
 
 
+def open_external_url(url: str) -> None:
+    """Open an external URL with the platform browser."""
+    try:
+        from aqt.qt import QDesktopServices, QUrl
+
+        if QDesktopServices.openUrl(QUrl(url)):
+            return
+    except Exception as exc:
+        logger.info("Qt URL open failed: %s", exc)
+    raise AudioProcessingError(t("external_link.open_failed"))
+
+
 def _windows_explorer_select_command(path: Path) -> str:
     return f'explorer.exe /select,"{path}"'
 

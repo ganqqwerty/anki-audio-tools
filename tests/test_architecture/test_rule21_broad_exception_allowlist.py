@@ -190,6 +190,12 @@ BROAD_EXCEPTION_ALLOWLIST: tuple[BroadExceptionAllowance, ...] = (
         "Best-effort OS file reveal bridge converts platform failures into an add-on error.",
     ),
     BroadExceptionAllowance(
+        "file_reveal",
+        "open_external_url",
+        1,
+        "Best-effort Qt browser bridge converts platform failures into an add-on error.",
+    ),
+    BroadExceptionAllowance(
         "prosody_analyzer",
         "analyze_prosody",
         1,

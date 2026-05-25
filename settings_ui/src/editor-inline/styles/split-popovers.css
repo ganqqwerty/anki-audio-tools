@@ -39,7 +39,7 @@
   display: grid;
   gap: 8px;
   max-height: calc(100vh - 16px);
-  max-width: calc(100vw - 16px);
+  max-width: min(300px, calc(100vw - 16px));
   min-width: min(210px, calc(100vw - 16px));
   overflow: auto;
   padding: 10px;
@@ -107,6 +107,13 @@
   font-size: 11px;
   line-height: 1.4;
   margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.aqe-split-video-link {
+  display: inline-block;
+  margin-left: 6px;
+  white-space: nowrap;
 }
 
 .aqe-split-value-input {
@@ -126,12 +133,32 @@
 
 .aqe-split-presets {
   gap: 5px;
+  flex-wrap: wrap;
 }
 
 .aqe-split-preset {
+  align-items: flex-start;
+  display: inline-grid;
   font-size: 11px;
+  gap: 2px;
+  justify-items: start;
+  max-width: 100%;
   min-height: 24px;
   padding: 3px 6px;
+  text-align: left;
+  white-space: normal;
+}
+
+.aqe-split-preset-label {
+  font-weight: 700;
+}
+
+.aqe-split-preset-description {
+  color: GrayText;
+  font-size: 10px;
+  line-height: 1.3;
+  max-width: 250px;
+  overflow-wrap: anywhere;
 }
 
 .aqe-split-preset[aria-pressed="true"] {

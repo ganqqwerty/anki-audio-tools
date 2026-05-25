@@ -67,6 +67,7 @@ def bridge_deps(callbacks: Any, frontend_callbacks: Any) -> SimpleNamespace:
         handle_non_processing_command=callbacks.handle_non_processing_command,
         handle_pending_command_payload=callbacks.handle_pending_command_payload,
         log_editor_frontend_payload=callbacks.log_editor_frontend_payload,
+        open_external_url=callbacks.open_external_url,
         open_settings_from_editor=callbacks.open_settings_from_editor,
         play=callbacks.play,
         play_ended=callbacks.play_ended,

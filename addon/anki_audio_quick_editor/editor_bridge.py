@@ -19,6 +19,7 @@ from .editor_actions import (
     CMD_DELETE_SELECTION,
     CMD_DENOISE_STANDARD,
     CMD_DPDFNET,
+    CMD_OPEN_URL,
     CMD_PITCH_HUM,
     CMD_REDO,
     CMD_RNNOISE,
@@ -123,6 +124,12 @@ def handle_non_processing_command(editor: Any, command: str | EditorCommandPaylo
         return True
     if payload.command == CMD_SHARE:
         deps.share_current_audio_file(editor, payload)
+        return True
+    if payload.command == CMD_OPEN_URL:
+        if payload.url is None:
+            deps.eval_status(editor, t("external_link.open_failed"), kind="error")
+            return True
+        deps.open_external_url(payload.url)
         return True
     handlers = {
         CMD_ANALYZE_FIELD: deps.analyze_field_from_frontend,

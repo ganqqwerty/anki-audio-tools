@@ -50,8 +50,9 @@ export interface SplitButtonDefaults {
 }
 
 export interface EditorCommandPayload {
-  command: EditorCommand;
-  fieldOrd: number;
+  command: EditorCommand | "aqe:open-url";
+  fieldOrd?: number;
+  url?: string;
   shareTarget?: "catbox" | "litterbox";
   overrides?: {
     denoiseAlgorithm?: DenoiseAlgorithm;
