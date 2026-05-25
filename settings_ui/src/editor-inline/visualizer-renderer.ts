@@ -2,6 +2,7 @@ import type { PlaybackRegion } from "./playback-state.js";
 import {
   PLOT,
   drawLabels,
+  drawLearnerPitch,
   drawPitch,
   drawXAxis,
   formatPitchHz,
@@ -25,6 +26,9 @@ export function renderGraphRequested(visualizer: VisualizerElement): void {
   visualizer.dataset.graphBusy = "true";
   visualizer.dataset.hasTrack = "false";
   visualizer.dataset.durationMs = "0";
+  visualizer.dataset.targetDurationMs = "0";
+  visualizer.dataset.learnerDurationMs = "0";
+  visualizer.dataset.learnerRecordingStatus = "idle";
   visualizer.dataset.sourceFilename = "";
   visualizer.dataset.anchorMs = "0";
   visualizer.dataset.cursorMs = "0";
@@ -36,6 +40,7 @@ export function renderGraphRequested(visualizer: VisualizerElement): void {
   visualizer.dataset.playbackRegionMode = "full";
   delete visualizer.__aqeCursorPaintedAtMs;
   delete visualizer.__aqeCursorTextPaintedAtMs;
+  delete visualizer.__aqeLearnerTrack;
   delete visualizer.__aqeTrack;
   resetVisualizerPlot(visualizer);
 }
@@ -46,14 +51,20 @@ export function renderVisualizerTrack(visualizer: VisualizerElement, track: Norm
   visualizer.dataset.graphBusy = "false";
   visualizer.dataset.hasTrack = "true";
   visualizer.dataset.durationMs = String(track.durationMs || 0);
+  visualizer.dataset.targetDurationMs = String(track.durationMs || 0);
+  visualizer.dataset.learnerDurationMs = "0";
   visualizer.dataset.analyzerName = track.analyzerName || "";
   visualizer.dataset.sourceFilename = track.sourceFilename || "";
+  delete visualizer.__aqeLearnerTrack;
   visualizer.__aqeTrack = track;
-  const intensity = visualizer.querySelector<SVGPathElement>(".aqe-intensity");
-  if (intensity) intensity.setAttribute("d", pathForIntensity(track.points, track.durationMs));
-  drawPitch(visualizer, track);
-  drawLabels(visualizer, track);
-  drawXAxis(visualizer, track.durationMs || 0);
+  renderProsodyTracks(visualizer);
+}
+
+export function renderLearnerVisualizerTrack(visualizer: VisualizerElement, track: NormalizedProsodyTrack): void {
+  if (visualizer.dataset.hasTrack !== "true" || !visualizer.__aqeTrack) return;
+  visualizer.__aqeLearnerTrack = track;
+  visualizer.dataset.learnerDurationMs = String(track.durationMs || 0);
+  renderProsodyTracks(visualizer);
 }
 
 export function renderVisualizerStatus(visualizer: VisualizerElement, message: string, kind = "info"): void {
@@ -200,8 +211,13 @@ function renderCursorProjection(
 export function resetVisualizerPlot(visualizer: VisualizerElement): void {
   visualizer.querySelector<SVGPathElement>(".aqe-intensity")?.setAttribute("d", "");
   clearText(visualizer, ".aqe-pitch");
+  clearLearnerVisualizerTrack(visualizer);
   clearText(visualizer, ".aqe-labels");
   clearText(visualizer, ".aqe-x-axis");
+}
+
+export function clearLearnerVisualizerTrack(visualizer: VisualizerElement): void {
+  clearText(visualizer, ".aqe-learner-pitch");
 }
 
 export function resetCursorProjection(visualizer: VisualizerElement): void {
@@ -231,6 +247,54 @@ export function graphLogContext(
 function clearText(root: VisualizerElement, selector: string): void {
   const node = root.querySelector<HTMLElement | SVGElement>(selector);
   if (node) node.textContent = "";
+}
+
+function renderProsodyTracks(visualizer: VisualizerElement): void {
+  const target = visualizer.__aqeTrack;
+  if (!target) return;
+  const learner = visualizer.__aqeLearnerTrack;
+  const durationMs = Math.max(target.durationMs || 0, learner?.durationMs || 0);
+  const pitchRange = combinedPitchRange(target, learner);
+  visualizer.dataset.durationMs = String(durationMs);
+  visualizer.dataset.targetDurationMs = String(target.durationMs || 0);
+  visualizer.dataset.learnerDurationMs = String(learner?.durationMs || 0);
+  const intensity = visualizer.querySelector<SVGPathElement>(".aqe-intensity");
+  if (intensity) intensity.setAttribute("d", pathForIntensity(target.points, durationMs));
+  drawPitch(visualizer, target, {
+    durationMs,
+    pitchMaxHz: pitchRange.maxHz,
+    pitchMinHz: pitchRange.minHz,
+  });
+  if (learner) {
+    drawLearnerPitch(visualizer, learner, {
+      durationMs,
+      pitchMaxHz: pitchRange.maxHz,
+      pitchMinHz: pitchRange.minHz,
+    });
+  } else {
+    clearLearnerVisualizerTrack(visualizer);
+  }
+  drawLabels(visualizer, target, {
+    pitchMaxHz: pitchRange.maxHz,
+    pitchMinHz: pitchRange.minHz,
+  });
+  drawXAxis(visualizer, durationMs);
+}
+
+function combinedPitchRange(
+  target: NormalizedProsodyTrack,
+  learner?: NormalizedProsodyTrack,
+): { maxHz: number | null; minHz: number | null } {
+  const mins = [target.pitchMinHz, learner?.pitchMinHz].filter(isFiniteNumber);
+  const maxes = [target.pitchMaxHz, learner?.pitchMaxHz].filter(isFiniteNumber);
+  return {
+    minHz: mins.length ? Math.min(...mins) : null,
+    maxHz: maxes.length ? Math.max(...maxes) : null,
+  };
+}
+
+function isFiniteNumber(value: number | null | undefined): value is number {
+  return typeof value === "number" && Number.isFinite(value);
 }
 
 function plotWrapperFor(visualizer: VisualizerElement): HTMLElement | null {

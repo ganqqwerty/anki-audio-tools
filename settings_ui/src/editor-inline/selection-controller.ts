@@ -11,8 +11,8 @@ import { renderSelection } from "./visualizer-renderer.js";
 import {
   clearVisualizerSelection,
   clearVisualizerSelectionDraft,
-  readVisualizerDurationMs,
   readVisualizerSelectionState,
+  readVisualizerTargetDurationMs,
   setVisualizerPlaybackRegion,
   setVisualizerSelection,
   setVisualizerSelectionDraft,
@@ -34,12 +34,12 @@ export interface SelectionControllerDependencies {
 
 export function selectionForVisualizer(visualizer: VisualizerElement | null): PlaybackRegion | null {
   if (!visualizer) return null;
-  return selectionRegion(readVisualizerSelectionState(visualizer), readVisualizerDurationMs(visualizer));
+  return selectionRegion(readVisualizerSelectionState(visualizer), readVisualizerTargetDurationMs(visualizer));
 }
 
 export function draftSelectionForVisualizer(visualizer: VisualizerElement | null): PlaybackRegion | null {
   if (!visualizer) return null;
-  return draftSelectionRegion(readVisualizerSelectionState(visualizer), readVisualizerDurationMs(visualizer));
+  return draftSelectionRegion(readVisualizerSelectionState(visualizer), readVisualizerTargetDurationMs(visualizer));
 }
 
 export function effectivePlaybackRegion(visualizer: VisualizerElement): PlaybackRegion {
@@ -47,7 +47,7 @@ export function effectivePlaybackRegion(visualizer: VisualizerElement): Playback
   if (selection) return selection;
   return {
     startMs: 0,
-    endMs: readVisualizerDurationMs(visualizer),
+    endMs: readVisualizerTargetDurationMs(visualizer),
     mode: "full",
   };
 }
@@ -68,7 +68,7 @@ export function setSelectionDraft(
   endMs: number,
   options: { redraw?: boolean } = {},
 ): boolean {
-  const durationMs = readVisualizerDurationMs(visualizer);
+  const durationMs = readVisualizerTargetDurationMs(visualizer);
   const selection = setDraftSelectionRange(emptySelectionState(), startMs, endMs, durationMs);
   if (!selection.draftActive || selection.draftStartMs === null || selection.draftEndMs === null) {
     clearSelectionDraft(visualizer, options);
@@ -117,7 +117,7 @@ export function setSelection(
   deps: SelectionControllerDependencies,
   options: { updateCursor?: boolean } = {},
 ): boolean {
-  const durationMs = readVisualizerDurationMs(visualizer);
+  const durationMs = readVisualizerTargetDurationMs(visualizer);
   const selection = setSelectionRange(emptySelectionState(), startMs, endMs, durationMs);
   if (!selection.active || selection.startMs === null || selection.endMs === null) {
     clearSelection(visualizer);

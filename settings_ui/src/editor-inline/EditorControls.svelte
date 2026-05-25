@@ -21,6 +21,7 @@
     send,
     startSelectionResizeGesture,
   } from "./actions.js";
+  import { syncRecordingControls } from "./recording-actions.js";
   import { visualizerForOrd } from "./dom-selectors.js";
   import { handleVisualizerKeyDown } from "./region-delete.js";
   import { PLOT } from "./plot.js";
@@ -33,6 +34,11 @@
       kind: "group";
       menuLabel: string;
       menuSlug: "speed" | "volume";
+    }
+    | {
+      playRecording: ButtonSpec;
+      record: ButtonSpec;
+      kind: "recording-group";
     };
 
   const { target }: { target: FieldTarget } = $props();
@@ -52,6 +58,7 @@
   function isSplitCommand(command: string): boolean {
     return [
       "aqe:analyze",
+      "aqe:record-voice",
       "aqe:share",
       "aqe:convert",
       "aqe:slower",
@@ -74,6 +81,7 @@
     const availability = historyAvailability(target.ord);
     if (command === "aqe:undo") return !availability.canUndo;
     if (command === "aqe:redo") return !availability.canRedo;
+    if (command === "aqe:record-voice" || command === "aqe:play-recording") return true;
     return false;
   }
 
@@ -88,6 +96,15 @@
       const button = buttons[index];
       if (!button) continue;
       const next = buttons[index + 1];
+      if (button.command === "aqe:record-voice" && next?.command === "aqe:play-recording") {
+        items.push({
+          kind: "recording-group",
+          playRecording: next,
+          record: button,
+        });
+        index += 1;
+        continue;
+      }
       if (button.command === "aqe:slower" && next?.command === "aqe:faster") {
         items.push({
           buttons: [button, next],
@@ -120,6 +137,7 @@
     installAudioClockHandlers(visualizer);
     visualizer.dataset.sourceFilename = target.sourceFilename || "";
     configureAudioClock(visualizer, target.sourceFilename || "");
+    syncRecordingControls(target.ord);
   });
 </script>
 
@@ -130,7 +148,7 @@
     data-aqe-source-filename={target.sourceFilename}
     data-testid={`aqe-controls-${target.ord}`}
   >
-    {#each renderItems as item (item.kind === "group" ? `${item.menuSlug}:${item.buttons[0].command}` : item.button.command)}
+    {#each renderItems as item (item.kind === "group" ? `${item.menuSlug}:${item.buttons[0].command}` : item.kind === "recording-group" ? `recording:${item.record.command}` : item.button.command)}
       {#if item.kind === "group"}
         <span class="aqe-split-group">
           <SplitButton
@@ -156,6 +174,41 @@
             showRunButton={false}
             {target}
           />
+        </span>
+      {:else if item.kind === "recording-group"}
+        {@const playRecording = item.playRecording}
+        <span class="aqe-split-group aqe-recording-group">
+          <SplitButton
+            button={item.record}
+            displayMode={buttonDisplayMode(item.record.command, buttonModes)}
+            {target}
+          />
+          <AqeTooltip>
+            {#snippet trigger({ props })}
+              <span
+                {...props}
+                class="aqe-button-tooltip-target aqe-tooltip-target"
+                data-aqe-tooltip-content={initialButtonTitle(playRecording)}
+              >
+                <button
+                  type="button"
+                  class="aqe-button aqe-icon-only aqe-recording-play-button"
+                  data-aqe-command={playRecording.command}
+                  data-aqe-button-state="default"
+                  data-aqe-disabled-title={disabledTitle(playRecording.command)}
+                  data-aqe-enabled-title={playRecording.title}
+                  data-testid={testId(target.ord, playRecording.command)}
+                  disabled={initialButtonDisabled(playRecording.command)}
+                  aria-label={initialButtonTitle(playRecording)}
+                  onmousedown={(event) => event.preventDefault()}
+                  onclick={() => send(playRecording.command, target.node, target.ord)}
+                >
+                  <EditorCommandIcon className="aqe-button-icon-default" icon={playRecording.icon} />
+                  <span class="aqe-button-label">{playRecording.label}</span>
+                </button>
+              </span>
+            {/snippet}
+          </AqeTooltip>
         </span>
       {:else if item.button.command === "aqe:play"}
         <PlaySplitButton
@@ -216,6 +269,9 @@
       data-anchor-ms="0"
       data-cursor-ms="0"
       data-progress-ms="0"
+      data-target-duration-ms="0"
+      data-learner-duration-ms="0"
+      data-learner-recording-status="idle"
       data-graph-active="false"
       data-graph-busy="false"
       data-has-track="false"
@@ -270,6 +326,7 @@
       ></rect>
       <path class="aqe-intensity" data-testid={`aqe-intensity-${target.ord}`} d=""></path>
       <g class="aqe-pitch" data-testid={`aqe-pitch-${target.ord}`}></g>
+      <g class="aqe-learner-pitch" data-testid={`aqe-learner-pitch-${target.ord}`}></g>
       <g class="aqe-labels"></g>
       <g class="aqe-x-axis" data-testid={`aqe-x-axis-${target.ord}`}></g>
       <line

@@ -7,6 +7,12 @@
   display: inline-flex;
 }
 
+.aqe-recording-play-button {
+  border-bottom-left-radius: 0;
+  border-left-width: 0;
+  border-top-left-radius: 0;
+}
+
 .aqe-split-primary {
   border-bottom-right-radius: 0;
   border-right-width: 0;

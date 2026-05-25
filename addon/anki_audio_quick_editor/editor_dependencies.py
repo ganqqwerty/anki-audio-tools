@@ -23,6 +23,7 @@ from .audio_processor import (
     render_voice_only_audio,
     temp_final_path,
 )
+from .audio_recording import NativeRecordingController
 from .editor_media import (
     current_field_index,
     resolve_requested_field_media,
@@ -30,6 +31,11 @@ from .editor_media import (
 )
 from .prosody_cache import analyze_prosody_cached
 from .support import SUPPORT_REPORT_HINT
+
+
+def _native_recorder_factory(output_path: Any, mw: Any, parent: Any) -> NativeRecordingController:
+    """Build the native recorder through a patchable test seam."""
+    return NativeRecordingController(output_path, mw=mw, parent=parent)
 
 
 def frontend_deps(frontend_callbacks: Any) -> SimpleNamespace:
@@ -66,12 +72,14 @@ def bridge_deps(callbacks: Any, frontend_callbacks: Any) -> SimpleNamespace:
         handle_editor_frontend_log=callbacks.handle_editor_frontend_log,
         handle_non_processing_command=callbacks.handle_non_processing_command,
         handle_pending_command_payload=callbacks.handle_pending_command_payload,
+        play_learner_recording=callbacks.play_learner_recording,
         log_editor_frontend_payload=callbacks.log_editor_frontend_payload,
         open_external_url=callbacks.open_external_url,
         open_settings_from_editor=callbacks.open_settings_from_editor,
         play=callbacks.play,
         play_ended=callbacks.play_ended,
         pitch_hum_async=callbacks.pitch_hum_async,
+        record_learner_voice=callbacks.record_learner_voice,
         redo=callbacks.redo,
         rnnoise_async=callbacks.rnnoise_async,
         save_split_defaults_from_frontend=callbacks.save_split_defaults_from_frontend,
@@ -79,9 +87,31 @@ def bridge_deps(callbacks: Any, frontend_callbacks: Any) -> SimpleNamespace:
         set_cursor_from_web=callbacks.set_cursor_from_web,
         share_current_audio_file=callbacks.share_current_audio_file,
         show_current_audio_file=callbacks.show_current_audio_file,
+        stop_learner_recording=callbacks.stop_learner_recording,
         undo=callbacks.undo,
         update_state_and_render=callbacks.update_state_and_render,
         voice_only_async=callbacks.voice_only_async,
+    )
+
+
+def recording_deps(_callbacks: Any, frontend_callbacks: Any) -> SimpleNamespace:
+    from . import editor_runtime
+    from .editor_media import current_field_index, resolve_requested_field_media
+
+    return SimpleNamespace(
+        analyze_prosody_cached=analyze_prosody_cached,
+        config=editor_runtime.config,
+        current_field_index=current_field_index,
+        eval_status=frontend_callbacks.eval_status,
+        is_busy=editor_runtime.is_busy,
+        main=frontend_callbacks.main,
+        recorder_factory=_native_recorder_factory,
+        resolve_requested_field_media=resolve_requested_field_media,
+        sessions=editor_runtime.SESSIONS,
+        set_busy_for_field=frontend_callbacks.set_busy_for_field,
+        still_processing_message=editor_runtime.STILL_PROCESSING_MESSAGE,
+        stop_session_playback=editor_runtime.stop_session_playback,
+        threading=threading,
     )
 
 

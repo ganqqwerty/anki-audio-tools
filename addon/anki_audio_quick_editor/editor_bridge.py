@@ -21,11 +21,14 @@ from .editor_actions import (
     CMD_DPDFNET,
     CMD_OPEN_URL,
     CMD_PITCH_HUM,
+    CMD_PLAY_RECORDING,
+    CMD_RECORD_VOICE,
     CMD_REDO,
     CMD_RNNOISE,
     CMD_SAVE_SPLIT_DEFAULTS,
     CMD_SETTINGS,
     CMD_SHARE,
+    CMD_STOP_RECORDING,
     CMD_VOICE_ONLY,
     EditorCommandPayload,
     decode_editor_command_payload,
@@ -110,20 +113,7 @@ def handle_non_processing_command(editor: Any, command: str | EditorCommandPaylo
         deps.eval_status(editor, "")
         editor.web.eval("window.__aqeScan && window.__aqeScan()")
         return True
-    if payload.command == "aqe:analyze":
-        deps.analyze_current_async(editor, graph_settings=payload.graph_settings)
-        return True
-    if payload.command == CMD_CONVERT:
-        deps.convert_async(editor, payload)
-        return True
-    if payload.command == CMD_DPDFNET:
-        deps.dpdfnet_async(editor, payload)
-        return True
-    if payload.command == CMD_PITCH_HUM:
-        deps.pitch_hum_async(editor, payload)
-        return True
-    if payload.command == CMD_SHARE:
-        deps.share_current_audio_file(editor, payload)
+    if handle_payload_command(editor, payload, deps):
         return True
     if payload.command == CMD_OPEN_URL:
         if payload.url is None:
@@ -136,6 +126,8 @@ def handle_non_processing_command(editor: Any, command: str | EditorCommandPaylo
         "aqe:set-cursor": deps.set_cursor_from_web,
         "aqe:play": deps.play,
         "aqe:frontend-log": deps.handle_editor_frontend_log,
+        CMD_STOP_RECORDING: deps.stop_learner_recording,
+        CMD_PLAY_RECORDING: deps.play_learner_recording,
         CMD_SAVE_SPLIT_DEFAULTS: deps.save_split_defaults_from_frontend,
         "aqe:show-file": deps.show_current_audio_file,
         "aqe:play-ended": deps.play_ended,
@@ -152,6 +144,23 @@ def handle_non_processing_command(editor: Any, command: str | EditorCommandPaylo
     if handler is None:
         return False
     handler(editor)
+    return True
+
+
+def handle_payload_command(editor: Any, payload: EditorCommandPayload, deps: Any) -> bool:
+    """Handle non-processing commands that need the decoded payload."""
+    handlers = {
+        "aqe:analyze": lambda: deps.analyze_current_async(editor, graph_settings=payload.graph_settings),
+        CMD_CONVERT: lambda: deps.convert_async(editor, payload),
+        CMD_DPDFNET: lambda: deps.dpdfnet_async(editor, payload),
+        CMD_PITCH_HUM: lambda: deps.pitch_hum_async(editor, payload),
+        CMD_SHARE: lambda: deps.share_current_audio_file(editor, payload),
+        CMD_RECORD_VOICE: lambda: deps.record_learner_voice(editor, graph_settings=payload.graph_settings),
+    }
+    handler = handlers.get(payload.command)
+    if handler is None:
+        return False
+    handler()
     return True
 
 

@@ -12,6 +12,7 @@ import type {
   PostEditPlaybackIntent,
   RegionDeleteRequest,
 } from "./types.js";
+import type { LearnerRecordingStatePayload } from "./recording-state.js";
 import type { SplitDefaultSaveRequest } from "./split-default-save-types.js";
 
 declare global {
@@ -47,6 +48,8 @@ declare global {
     __aqeSetCursorByClientXForTest?: ((ord: number, clientX: number, notifyPython: boolean) => CursorPositionForTest | null) | undefined;
     __aqeSetCursorForTest?: ((ord: number, ms: number, notifyPython: boolean) => boolean) | undefined;
     __aqeSetHistoryAvailability?: ((ord: number, canUndo: boolean, canRedo: boolean) => void) | undefined;
+    __aqeSetLearnerRecordingState?: ((payload: LearnerRecordingStatePayload) => void) | undefined;
+    __aqeSetLearnerVisualizer?: ((ord: number, track: ProsodyPayload) => void) | undefined;
     __aqeSetPlaybackState?: ((ord: number, state: PlaybackState, cursorMs: number) => void) | undefined;
     __aqeSetStatus?: ((message: string, kind?: string) => void) | undefined;
     __aqeSetVisualizer?: ((ord: number, track: ProsodyPayload, cursorMs: number) => void) | undefined;

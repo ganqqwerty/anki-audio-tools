@@ -40,6 +40,7 @@ def injection_script(
             "speedStep": 1.5,
             "shareTarget": "litterbox",
             "repeatPauseSeconds": 0.0,
+            "voiceRecordingCountdownSeconds": 3,
             "pauseAggressiveness": "normal",
             "outputFormat": "mp3",
             "denoiseAlgorithm": "standard",

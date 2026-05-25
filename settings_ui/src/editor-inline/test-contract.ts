@@ -16,6 +16,7 @@ import {
   setCursor,
 } from "./actions.js";
 import { cursorMsFromEvent, graphPixelBounds } from "./plot.js";
+import { readVisualizerTargetDurationMs } from "./visualizer-state.js";
 import type {
   CursorPositionForTest,
   EditorCommand,
@@ -146,6 +147,9 @@ export function graphStateForTest(ord: number): GraphStateForTest | null {
     hidden: !!visualizer.hidden,
     hasTrack: visualizer.dataset.hasTrack === "true",
     durationMs: Number(visualizer.dataset.durationMs || "0"),
+    targetDurationMs: readVisualizerTargetDurationMs(visualizer),
+    learnerDurationMs: Number(visualizer.dataset.learnerDurationMs || "0"),
+    learnerRecordingStatus: visualizer.dataset.learnerRecordingStatus || "idle",
     anchorMs: Number(visualizer.dataset.anchorMs || "0"),
     cursorMs: Number(visualizer.dataset.cursorMs || "0"),
     progressMs: Math.round(currentProgressMs(visualizer) ?? Number(visualizer.dataset.progressMs || "0")),
@@ -204,6 +208,8 @@ export function graphStateForTest(ord: number): GraphStateForTest | null {
     progressClockMode: progressClockModeFor(visualizer),
     xAxisLabels: Array.from(visualizer.querySelectorAll<SVGTextElement>(".aqe-x-label")).map((node) => node.textContent || ""),
     pitchPaths: visualizer.querySelectorAll(".aqe-pitch-path").length,
+    learnerIntensityPaths: visualizer.querySelectorAll(".aqe-learner-intensity-path").length,
+    learnerPitchPaths: visualizer.querySelectorAll(".aqe-learner-pitch-path").length,
     intensity: visualizer.querySelector<SVGPathElement>(".aqe-intensity")?.getAttribute("d") || "",
     cursorX: cssCursorViewBoxX(visualizer),
     pitchMarkerVisible: false,

@@ -9,6 +9,7 @@ Reintroduce learner voice recording and pitch comparison into the editor on top 
 In scope:
 
 - Record a learner attempt from the inline editor after a target graph exists.
+- Before user starts recording, open the graph and have clear countdown (3s by default, configurable in split menu and settings)
 - Use native Anki/Qt recording, not browser recording APIs.
 - Save learner audio into Anki media without changing the note field.
 - Show learner pitch overlaid on the same graph as the target.
@@ -19,6 +20,7 @@ In scope:
 - Extend the graph x-axis to the longer of the target duration and learner duration.
 - Preserve stale-callback protection, field isolation, and note-switch safety.
 - Add unit, integration, frontend, contract, and e2e coverage.
+- When the user is recording, keep the graph open and simulate the cursor (progress line) indicator, so that he knows where he is on the original recording.
 
 Out of scope:
 
@@ -34,7 +36,7 @@ Out of scope:
 
 ## Background
 
-The feature was already designed and implemented once on earlier local branches, but that work never landed on the current `main`.
+The preliminary version of the feature was already designed and implemented once on earlier local branches, but that work never landed on the current `main`.
 
 Since then, `main` has moved substantially:
 

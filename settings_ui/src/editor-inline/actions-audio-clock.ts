@@ -48,6 +48,9 @@ export function installAudioClockHandlers(visualizer: VisualizerElement): void {
     onLoadedMetadata(durationMs) {
       if (visualizer.dataset.hasTrack === "true") return;
       visualizer.dataset.durationMs = String(durationMs);
+      if ((Number(visualizer.dataset.targetDurationMs || "0") || 0) <= 0) {
+        visualizer.dataset.targetDurationMs = String(durationMs);
+      }
       visualizer.dataset.playbackEndMs = String(durationMs);
       renderCursor(visualizer, Number(visualizer.dataset.cursorMs || "0"), durationMs);
     },

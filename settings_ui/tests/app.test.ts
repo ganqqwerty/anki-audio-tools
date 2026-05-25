@@ -25,6 +25,7 @@ const defaultConfig = {
   show_ffmpeg_commands: false,
   repeat_playback_by_default: true,
   repeat_pause_seconds: 0,
+  voice_recording_countdown_seconds: 3,
   share_target: ShareTarget.Litterbox,
   show_graph_by_default: true,
   visible_editor_buttons: [
@@ -269,6 +270,34 @@ describe("App", () => {
     expect(config.graph_smoothness).toBe("very_smooth");
     expect(config.graph_connect_short_dropouts_ms).toBe(90);
     expect(config.graph_voice_lock).toBe("stable");
+  });
+
+  it("enables learner recording as one icon-only toolbar group", async () => {
+    setInitialState();
+
+    render(App);
+
+    expect(screen.queryByTestId("button-settings-play-recording")).toBeNull();
+    const card = screen.getByTestId("button-settings-record-voice");
+    const iconMode = within(card).getByTestId("button-settings-record-voice-mode-icon");
+    expect(iconMode).toBeDisabled();
+
+    await fireEvent.click(within(card).getByTestId("button-settings-record-voice-visibility-show"));
+    await fireEvent.input(screen.getByTestId("voice-recording-countdown-seconds"), {
+      target: { value: "0" },
+    });
+    await fireEvent.click(screen.getByRole("button", { name: "Save" }));
+
+    const config = bridgePayload<{
+      editor_button_modes: Record<string, string>;
+      visible_editor_buttons: string[];
+      voice_recording_countdown_seconds: number;
+    }>("settings.save");
+    expect(config.visible_editor_buttons).toContain("aqe:record-voice");
+    expect(config.visible_editor_buttons).toContain("aqe:play-recording");
+    expect(config.editor_button_modes["aqe:record-voice"]).toBe("icon");
+    expect(config.editor_button_modes["aqe:play-recording"]).toBe("icon");
+    expect(config.voice_recording_countdown_seconds).toBe(0);
   });
 
   it("shows diagnostics data and runs a health check", async () => {

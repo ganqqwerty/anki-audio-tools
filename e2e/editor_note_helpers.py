@@ -36,6 +36,8 @@ DEFAULT_VISIBLE_EDITOR_BUTTONS = (
 DEFAULT_EDITOR_BUTTON_MODES = {
     "aqe:play": "text",
     "aqe:analyze": "text",
+    "aqe:record-voice": "icon",
+    "aqe:play-recording": "icon",
     "aqe:show-file": "text",
     "aqe:share": "text",
     "aqe:convert": "text",
@@ -102,6 +104,7 @@ def _configure_ffmpeg(anki_mw, ffmpeg_config, **overrides: Any) -> None:
             "ffmpeg_path": ffmpeg_config.ffmpeg_path,
             "repeat_playback_by_default": False,
             "repeat_pause_seconds": 0.0,
+            "voice_recording_countdown_seconds": 3,
             "share_target": "litterbox",
             "show_graph_by_default": False,
             "visible_editor_buttons": list(DEFAULT_VISIBLE_EDITOR_BUTTONS),

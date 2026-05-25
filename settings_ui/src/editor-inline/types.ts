@@ -46,6 +46,7 @@ export interface SplitButtonDefaults {
   repeatPauseSeconds: number;
   shareTarget?: "catbox" | "litterbox";
   speedStep: number;
+  voiceRecordingCountdownSeconds?: number;
   volumeStepDb: number;
 }
 
@@ -79,6 +80,7 @@ export interface FieldSplitButtonState {
   defaultPitchHumMode: PitchHumMode;
   defaultRepeatPauseSeconds: number;
   defaultSpeedStep: number;
+  defaultVoiceRecordingCountdownSeconds: number;
   defaultVolumeStepDb: number;
   denoiseAlgorithm: DenoiseAlgorithm;
   denoiseEdited: boolean;
@@ -102,6 +104,8 @@ export interface FieldSplitButtonState {
   shareTarget: "catbox" | "litterbox";
   speedEdited: boolean;
   speedStep: number;
+  voiceRecordingCountdownEdited: boolean;
+  voiceRecordingCountdownSeconds: number;
   volumeEdited: boolean;
   volumeStepDb: number;
 }
@@ -202,6 +206,10 @@ export interface GraphStateForTest {
   hasTrack: boolean;
   hidden: boolean;
   intensity: string;
+  learnerDurationMs: number;
+  learnerIntensityPaths: number;
+  learnerPitchPaths: number;
+  learnerRecordingStatus: string;
   pitchPaths: number;
   pitchMarkerVisible: boolean;
   pitchMarkerX: number | null;
@@ -225,6 +233,7 @@ export interface GraphStateForTest {
   repeatEnabled: boolean;
   repeatPauseSeconds: number;
   repeatPauseWaiting: boolean;
+  targetDurationMs: number;
   resumeRequiresRestart: boolean;
   selectionActive: boolean;
   selectionDraftActive: boolean;
@@ -284,6 +293,10 @@ export type VisualizerElement = HTMLElement & {
   __aqeLiveProgressMs?: number;
   __aqePlaybackGeneration?: number;
   __aqePlaybackPlan?: PlaybackProgressPlan;
+  __aqeLearnerTrack?: NormalizedProsodyTrack;
+  __aqeRecordingCursorFrame?: number | null;
+  __aqeRecordingStartedAt?: number | null;
+  __aqeRecordCountdownTimer?: number | null;
   __aqeTrack?: NormalizedProsodyTrack;
   __aqePlaybackTimer?: number | null;
   __aqeRepeatPauseTimer?: number | null;

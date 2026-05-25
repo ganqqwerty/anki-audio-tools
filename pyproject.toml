@@ -314,6 +314,7 @@ source_modules = [
     "anki_audio_quick_editor.webview_shell",
 ]
 forbidden_modules = [
+    "anki_audio_quick_editor.audio_recording",
     "anki_audio_quick_editor.browser_dialog",
     "anki_audio_quick_editor.browser_integration",
     "anki_audio_quick_editor.editor_analysis",
@@ -327,6 +328,8 @@ forbidden_modules = [
     "anki_audio_quick_editor.editor_integration",
     "anki_audio_quick_editor.editor_playback",
     "anki_audio_quick_editor.editor_processing",
+    "anki_audio_quick_editor.editor_recording",
+    "anki_audio_quick_editor.editor_recording_frontend",
     "anki_audio_quick_editor.editor_region_delete",
     "anki_audio_quick_editor.editor_runtime",
     "anki_audio_quick_editor.editor_settings_actions",

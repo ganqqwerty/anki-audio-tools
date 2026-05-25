@@ -15,10 +15,12 @@ const frontendAreas = [
 ] as const;
 
 const lineLimitAllowlist = new Map<string, number>([
-  ["src/editor-inline/EditorControls.svelte", 410],
+  ["src/editor-inline/EditorControls.svelte", 440],
   ["src/editor-inline/SplitButton.svelte", 470],
   ["src/editor-inline/SplitValueOptions.svelte", 380],
-  ["src/lib/i18n.ts", 340],
+  ["src/lib/editor-toolbar-buttons.ts", 330],
+  ["src/lib/i18n.ts", 360],
+  ["src/settings/ToolbarVisibilitySettings.svelte", 330],
 ]);
 
 const exportCountAllowlist = new Map<string, number>([
@@ -36,6 +38,7 @@ const querySelectorAllowlist = new Set([
 
 const requestAnimationFrameAllowlist = new Set([
   "src/editor-inline/playback-controller.ts",
+  "src/editor-inline/recording-actions.ts",
   "src/editor-inline/test-contract.ts",
 ]);
 

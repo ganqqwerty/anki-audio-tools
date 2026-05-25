@@ -39,6 +39,7 @@ export const FALLBACK_INITIAL_STATE: InitialState = {
     repeat_playback_by_default: true,
     repeat_pause_seconds: 0,
     share_target: ShareTarget.Litterbox,
+    voice_recording_countdown_seconds: 3,
     show_graph_by_default: true,
     visible_editor_buttons: [...DEFAULT_VISIBLE_EDITOR_BUTTONS],
     editor_button_modes: { ...DEFAULT_EDITOR_BUTTON_MODES },

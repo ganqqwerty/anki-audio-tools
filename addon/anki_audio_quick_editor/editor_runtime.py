@@ -16,7 +16,7 @@ from .editor_media import (
     sound_reference_for_field,
 )
 from .editor_playback import cleanup_temp_playback, stop_audio_playback
-from .editor_session import EditorSession
+from .editor_session import EditorSession, clear_learner_recording_state
 from .editor_status import original_audio_status_summary
 from .errors import AudioProcessingError, MissingMediaError
 from .i18n import t
@@ -91,6 +91,7 @@ def reset_session_for_media(
     session.next_status_summary = ""
     session.status_summary = original_audio_status_summary()
     session.pending_status = None
+    clear_learner_recording_state(session)
 
 
 def current_media_path(editor: Any) -> tuple[EditorSession, Path]:
@@ -112,6 +113,7 @@ def is_busy(session: EditorSession) -> bool:
         or session.analysis_busy
         or bool(session.analysis_busy_fields)
         or session.playback_preparing
+        or session.learner_recording.status in {"recording", "stopping", "analyzing"}
     )
 
 

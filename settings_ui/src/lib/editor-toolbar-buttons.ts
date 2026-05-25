@@ -10,6 +10,9 @@ import { EditorButtonMode } from "./types.js";
 export type EditorCommand =
   | "aqe:play"
   | "aqe:analyze"
+  | "aqe:record-voice"
+  | "aqe:stop-recording"
+  | "aqe:play-recording"
   | "aqe:show-file"
   | "aqe:share"
   | "aqe:convert"
@@ -58,6 +61,8 @@ export const DEFAULT_VISIBLE_EDITOR_BUTTONS = [
 export const DEFAULT_EDITOR_BUTTON_MODES = {
   "aqe:play": EditorButtonMode.Icon,
   "aqe:analyze": EditorButtonMode.Icon,
+  "aqe:record-voice": EditorButtonMode.Icon,
+  "aqe:play-recording": EditorButtonMode.Icon,
   "aqe:show-file": EditorButtonMode.Icon,
   "aqe:share": EditorButtonMode.Icon,
   "aqe:convert": EditorButtonMode.Text,
@@ -100,6 +105,21 @@ export function commandButtons(): readonly ToolbarButtonSpec[] {
       iconOnly: true,
       label: t("editor.command.graph.label"),
       title: t("editor.command.graph.title"),
+    },
+    {
+      activeIcon: "square",
+      command: "aqe:record-voice",
+      icon: "mic",
+      iconOnly: true,
+      label: t("editor.command.record_voice.label"),
+      title: t("editor.command.record_voice.title"),
+    },
+    {
+      command: "aqe:play-recording",
+      icon: "audio-lines",
+      iconOnly: true,
+      label: t("editor.command.play_recording.label"),
+      title: t("editor.command.play_recording.title"),
     },
     {
       command: "aqe:show-file",
@@ -210,7 +230,11 @@ export function visibleToolbarButtons(
   buttons: readonly ToolbarButtonSpec[],
   visibleCommands: readonly EditorCommand[] | undefined,
 ): readonly ToolbarButtonSpec[] {
-  if (!Array.isArray(visibleCommands)) return buttons;
+  if (!Array.isArray(visibleCommands)) {
+    return buttons.filter(
+      (button) => button.command !== "aqe:record-voice" && button.command !== "aqe:play-recording",
+    );
+  }
   const availableCommands = new Set(buttons.map((button) => button.command));
   const requested = new Set(
     visibleCommands.filter((command): command is EditorCommand =>
@@ -224,6 +248,9 @@ export function buttonDisplayMode(
   command: EditorCommand,
   modes: EditorButtonModes | undefined,
 ): EditorButtonDisplayMode {
+  if (command === "aqe:record-voice" || command === "aqe:play-recording") {
+    return EditorButtonMode.Icon;
+  }
   const configuredMode = modes?.[command];
   if (configuredMode === EditorButtonMode.Icon) return EditorButtonMode.Icon;
   if (configuredMode === EditorButtonMode.Text) return EditorButtonMode.Text;
@@ -269,6 +296,9 @@ export function denoiseButtons(): readonly ToolbarButtonSpec[] {
 export const COMMAND_SLUGS: Readonly<Record<EditorCommand, string>> = {
   "aqe:play": "play",
   "aqe:analyze": "graph",
+  "aqe:record-voice": "record-voice",
+  "aqe:stop-recording": "stop-recording",
+  "aqe:play-recording": "play-recording",
   "aqe:show-file": "show-file",
   "aqe:share": "share",
   "aqe:convert": "convert",

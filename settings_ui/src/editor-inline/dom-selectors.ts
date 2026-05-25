@@ -68,6 +68,10 @@ export function allButtons(): HTMLButtonElement[] {
   return Array.from(document.querySelectorAll<HTMLButtonElement>(".aqe-button"));
 }
 
+export function allControls(): HTMLElement[] {
+  return Array.from(document.querySelectorAll<HTMLElement>(".aqe-controls"));
+}
+
 export function allRepeatButtons(): HTMLButtonElement[] {
   return Array.from(document.querySelectorAll<HTMLButtonElement>(".aqe-repeat-button"));
 }

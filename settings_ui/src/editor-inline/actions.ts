@@ -41,6 +41,9 @@ import {
   renderCursor,
 } from "./visualizer-renderer.js";
 import {
+  readVisualizerTargetDurationMs,
+} from "./visualizer-state.js";
+import {
   clearPlaybackFrame as clearPlaybackFrameFromController,
   type PlaybackControllerDependencies,
 } from "./playback-controller.js";
@@ -297,7 +300,7 @@ export function playbackRequestForStart(
 }
 
 export function seekAudioClock(visualizer: VisualizerElement, ms: number): boolean {
-  return seekAudioClockElement(visualizer, ms, Number(visualizer.dataset.durationMs || "0"));
+  return seekAudioClockElement(visualizer, ms, readVisualizerTargetDurationMs(visualizer));
 }
 
 export function setCursor(
@@ -312,7 +315,8 @@ export function setCursor(
   } = {},
 ): void {
   const durationMs = Number(visualizer.dataset.durationMs || "0");
-  const clamped = Math.max(0, Math.min(Number(ms) || 0, durationMs || 0));
+  const targetDurationMs = readVisualizerTargetDurationMs(visualizer);
+  const clamped = Math.max(0, Math.min(Number(ms) || 0, targetDurationMs || 0));
   visualizer.dataset.cursorMs = String(Math.round(clamped));
   visualizer.dataset.progressMs = String(Math.round(clamped));
   if (options.updateAnchor !== false) {

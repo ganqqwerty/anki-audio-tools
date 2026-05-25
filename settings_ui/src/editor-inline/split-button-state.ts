@@ -5,6 +5,7 @@ import type {
   SplitButtonDefaults,
 } from "./types.js";
 import type { SplitDefaultSaveRequest } from "./split-default-save-types.js";
+import { t } from "../lib/i18n.js";
 import {
   clampRepeatPauseSeconds,
   clampDpdfnetAttnLimitDb,
@@ -56,6 +57,7 @@ const DEFAULTS: CompleteSplitButtonDefaults = {
   repeatPauseSeconds: 0,
   shareTarget: "litterbox",
   speedStep: 1.5,
+  voiceRecordingCountdownSeconds: 3,
   volumeStepDb: 15,
 };
 
@@ -69,6 +71,17 @@ export function splitButtonDefaults(): CompleteSplitButtonDefaults {
     ...DEFAULTS,
     ...window.__AQE_EDITOR_CONFIG__?.splitButtonDefaults,
   };
+}
+
+export function clampVoiceRecordingCountdownSeconds(value: unknown): number {
+  if (typeof value === "boolean" || typeof value !== "number" || !Number.isFinite(value)) {
+    return 3;
+  }
+  return Math.max(0, Math.min(10, Math.round(value)));
+}
+
+export function formatVoiceRecordingCountdownSeconds(seconds: number): string {
+  return t("editor.recording.countdown_seconds", { seconds: clampVoiceRecordingCountdownSeconds(seconds) });
 }
 
 function pitchHumModeOrDefault(value: unknown): PitchHumMode {
@@ -90,6 +103,9 @@ export function getSplitButtonState(ord: number): FieldSplitButtonState {
   const defaultVolumeStepDb = clampVolumeStepDb(defaults.volumeStepDb);
   const defaultSpeedStep = clampSpeedStep(defaults.speedStep);
   const defaultRepeatPauseSeconds = clampRepeatPauseSeconds(defaults.repeatPauseSeconds);
+  const defaultVoiceRecordingCountdownSeconds = clampVoiceRecordingCountdownSeconds(
+    defaults.voiceRecordingCountdownSeconds,
+  );
   const defaultPauseAggressiveness = defaults.pauseAggressiveness;
   const defaultPitchHumMode = pitchHumModeOrDefault(defaults.pitchHumMode);
   const defaultDenoiseAlgorithm = defaults.denoiseAlgorithm;
@@ -103,6 +119,11 @@ export function getSplitButtonState(ord: number): FieldSplitButtonState {
       existing.repeatPauseSeconds = defaultRepeatPauseSeconds;
       existing.defaultRepeatPauseSeconds = defaultRepeatPauseSeconds;
       existing.repeatPauseEdited = false;
+    }
+    if (!Number.isFinite(existing.voiceRecordingCountdownSeconds)) {
+      existing.voiceRecordingCountdownSeconds = defaultVoiceRecordingCountdownSeconds;
+      existing.defaultVoiceRecordingCountdownSeconds = defaultVoiceRecordingCountdownSeconds;
+      existing.voiceRecordingCountdownEdited = false;
     }
     if (runtimeState.shareTarget !== "catbox" && runtimeState.shareTarget !== "litterbox") {
       runtimeState.shareTarget = defaultShareTarget;
@@ -122,6 +143,13 @@ export function getSplitButtonState(ord: number): FieldSplitButtonState {
     if (!existing.repeatPauseEdited && existing.defaultRepeatPauseSeconds !== defaultRepeatPauseSeconds) {
       existing.defaultRepeatPauseSeconds = defaultRepeatPauseSeconds;
       existing.repeatPauseSeconds = defaultRepeatPauseSeconds;
+    }
+    if (
+      !existing.voiceRecordingCountdownEdited
+      && existing.defaultVoiceRecordingCountdownSeconds !== defaultVoiceRecordingCountdownSeconds
+    ) {
+      existing.defaultVoiceRecordingCountdownSeconds = defaultVoiceRecordingCountdownSeconds;
+      existing.voiceRecordingCountdownSeconds = defaultVoiceRecordingCountdownSeconds;
     }
     if (!existing.pauseEdited && existing.defaultPauseAggressiveness !== defaultPauseAggressiveness) {
       existing.defaultPauseAggressiveness = defaultPauseAggressiveness;
@@ -179,6 +207,7 @@ export function getSplitButtonState(ord: number): FieldSplitButtonState {
     defaultPauseAggressiveness,
     defaultPitchHumMode,
     defaultRepeatPauseSeconds,
+    defaultVoiceRecordingCountdownSeconds,
     defaultVolumeStepDb,
     defaultSpeedStep,
     denoiseAlgorithm: defaultDenoiseAlgorithm,
@@ -203,6 +232,8 @@ export function getSplitButtonState(ord: number): FieldSplitButtonState {
     shareTarget: defaultShareTarget,
     speedEdited: false,
     speedStep: defaultSpeedStep,
+    voiceRecordingCountdownEdited: false,
+    voiceRecordingCountdownSeconds: defaultVoiceRecordingCountdownSeconds,
     volumeEdited: false,
     volumeStepDb: defaultVolumeStepDb,
   };
@@ -256,6 +287,15 @@ function applyPromotedDefaultsToState(
     state.defaultRepeatPauseSeconds = clampRepeatPauseSeconds(defaults.repeatPauseSeconds);
     if (forceCurrentField || !state.repeatPauseEdited) state.repeatPauseSeconds = state.defaultRepeatPauseSeconds;
     if (forceCurrentField) state.repeatPauseEdited = false;
+  }
+  if (values.voiceRecordingCountdownSeconds !== undefined) {
+    state.defaultVoiceRecordingCountdownSeconds = clampVoiceRecordingCountdownSeconds(
+      defaults.voiceRecordingCountdownSeconds,
+    );
+    if (forceCurrentField || !state.voiceRecordingCountdownEdited) {
+      state.voiceRecordingCountdownSeconds = state.defaultVoiceRecordingCountdownSeconds;
+    }
+    if (forceCurrentField) state.voiceRecordingCountdownEdited = false;
   }
   if (values.pauseAggressiveness !== undefined) {
     state.defaultPauseAggressiveness = defaults.pauseAggressiveness;
@@ -331,6 +371,13 @@ export function setRepeatPauseSecondsForField(ord: number, value: number): Field
   const state = getSplitButtonState(ord);
   state.repeatPauseEdited = true;
   state.repeatPauseSeconds = clampRepeatPauseSeconds(value);
+  return state;
+}
+
+export function setVoiceRecordingCountdownSecondsForField(ord: number, value: number): FieldSplitButtonState {
+  const state = getSplitButtonState(ord);
+  state.voiceRecordingCountdownEdited = true;
+  state.voiceRecordingCountdownSeconds = clampVoiceRecordingCountdownSeconds(value);
   return state;
 }
 
