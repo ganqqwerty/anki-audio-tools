@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { disposeEditorRuntime, initializeEditorRuntime, scan } from "../src/editor-inline/runtime.js";
+import { PRODUCT_LINKS } from "../src/lib/product-links.js";
 import { bridgeCommands, muteConsole, renderFields } from "./editor-inline.integration.helpers.js";
 
 describe("editor inline denoise integration", () => {
@@ -74,6 +75,13 @@ describe("editor inline denoise integration", () => {
     const pitchTierPreset = document.querySelector<HTMLButtonElement>(
       '[data-testid="aqe-split-0-pitch-hum-preset-pitch_tier"]',
     )!;
+    const pitchHumPopover = document.querySelector<HTMLElement>('[data-testid="aqe-split-0-pitch-hum-popover"]')!;
+    expect(pitchHumPopover).toHaveTextContent("Fast mode that follows detected pitch directly.");
+    expect(pitchHumPopover).toHaveTextContent("Uses Praat PitchTier resynthesis when available.");
+    expect(pitchHumPopover.querySelector<HTMLAnchorElement>(".aqe-split-video-link")).toHaveAttribute(
+      "href",
+      PRODUCT_LINKS.editorVideos.pitchHum,
+    );
     expect(pitchTierPreset.getAttribute("data-aqe-tooltip-content")).toBe("Resynthesize pitch with Praat Manipulation and PitchTier");
     pitchTierPreset.click();
     await Promise.resolve();
@@ -94,6 +102,11 @@ describe("editor inline denoise integration", () => {
     const dpdfnetPreset = document.querySelector<HTMLButtonElement>(
       '[data-testid="aqe-split-0-denoise-standard-preset-dpdfnet"]',
     )!;
+    expect(
+      document.querySelector<HTMLAnchorElement>(
+        `[data-testid="aqe-split-0-denoise-standard-popover"] .aqe-split-video-link`,
+      ),
+    ).toHaveAttribute("href", PRODUCT_LINKS.editorVideos.denoise);
     expect(dpdfnetPreset.getAttribute("data-aqe-tooltip-content")).toBe("Create a new file cleaned with DPDFNet, Aggressiveness: Aggressive");
     dpdfnetPreset.click();
     await Promise.resolve();

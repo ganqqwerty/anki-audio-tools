@@ -41,6 +41,27 @@ CMD_SAVE_SPLIT_DEFAULTS = "aqe:save-split-defaults"
 CMD_SETTINGS = "aqe:settings"
 CMD_REDO = "aqe:redo"
 CMD_SHARE = "aqe:share"
+CMD_OPEN_URL = "aqe:open-url"
+
+ALLOWED_EXTERNAL_URLS = frozenset(
+    {
+        "https://discord.gg/qkg52pp2",
+        "https://ganqqwerty.github.io/anki-audio-tools/",
+        "https://ganqqwerty.github.io/anki-audio-tools/#video-convert",
+        "https://ganqqwerty.github.io/anki-audio-tools/#video-denoise",
+        "https://ganqqwerty.github.io/anki-audio-tools/#video-graph",
+        "https://ganqqwerty.github.io/anki-audio-tools/#video-pitch-hum",
+        "https://ganqqwerty.github.io/anki-audio-tools/#video-play",
+        "https://ganqqwerty.github.io/anki-audio-tools/#video-share",
+        "https://ganqqwerty.github.io/anki-audio-tools/#video-shorten-pauses",
+        "https://ganqqwerty.github.io/anki-audio-tools/#video-speed",
+        "https://ganqqwerty.github.io/anki-audio-tools/#video-volume",
+        "https://patreon.com/YuriAnker",
+        "https://t.me/immersionjp",
+        "https://tally.so/r/2EDlxA",
+        "https://tally.so/r/zx1Gr8",
+    }
+)
 
 BRIDGE_COMMANDS = (
     "aqe:scan",
@@ -54,6 +75,7 @@ BRIDGE_COMMANDS = (
     "aqe:frontend-log",
     "aqe:show-file",
     CMD_SHARE,
+    CMD_OPEN_URL,
     CMD_SLOWER,
     CMD_FASTER,
     CMD_VOLUME_DOWN,
@@ -112,6 +134,7 @@ class EditorCommandPayload:
     overrides: EditorCommandOverrides = EditorCommandOverrides()
     graph_settings: dict[str, object] | None = None
     share_target: str | None = None
+    url: str | None = None
 
 
 def _int_or_none(value: Any) -> int | None:
@@ -162,6 +185,10 @@ def _share_target_or_none(value: Any) -> str | None:
     return text if text in {"catbox", "litterbox"} else None
 
 
+def _external_url_or_none(value: Any) -> str | None:
+    return value if isinstance(value, str) and value in ALLOWED_EXTERNAL_URLS else None
+
+
 def decode_editor_command_payload(raw_command: str | EditorCommandPayload) -> EditorCommandPayload:
     """Return normalized editor command data from a bridge string or JSON payload."""
     if isinstance(raw_command, EditorCommandPayload):
@@ -183,6 +210,7 @@ def decode_editor_command_payload(raw_command: str | EditorCommandPayload) -> Ed
         overrides=_overrides_from_raw(raw_payload.get("overrides")),
         graph_settings=_graph_settings_from_raw(raw_payload.get("graphSettings")),
         share_target=_share_target_or_none(raw_payload.get("shareTarget")),
+        url=_external_url_or_none(raw_payload.get("url")),
     )
 
 

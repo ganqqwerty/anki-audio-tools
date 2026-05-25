@@ -12,13 +12,23 @@
     formatVolumeDb,
   } from "./split-button-state.js";
   import { COMMAND_SLUGS } from "./commands.js";
-  import { DPDFNET_ATTENUATION_LIMIT_DB_VALUES, isOutputFormatValue, OUTPUT_FORMAT_VALUES } from "../lib/audio-operation-parameters.js";
+  import { openEditorExternalLink } from "./external-links.js";
+  import { DPDFNET_ATTENUATION_LIMIT_DB_VALUES, isOutputFormatValue } from "../lib/audio-operation-parameters.js";
+  import {
+    splitMenuDescription,
+    splitMenuVideoLink,
+    splitOptionDescription,
+    splitOptionLabel,
+    splitOptionTitle,
+    splitOptionValues,
+  } from "./split-menu-content.js";
   import SplitDefaultSaveButton from "./SplitDefaultSaveButton.svelte";
   import SplitRunButtons from "./SplitRunButtons.svelte";
   import type { ButtonSpec, FieldSplitButtonState } from "./types.js";
 
   type DenoiseAlgorithm = FieldSplitButtonState["denoiseAlgorithm"];
-  type OutputFormatValue = FieldSplitButtonState["outputFormat"]; type PitchHumMode = FieldSplitButtonState["pitchHumMode"];
+  type OutputFormatValue = FieldSplitButtonState["outputFormat"];
+  type PitchHumMode = FieldSplitButtonState["pitchHumMode"];
   type ShareTarget = FieldSplitButtonState["shareTarget"];
 
   const {
@@ -79,6 +89,7 @@
 
   const slug = $derived(groupSlug ?? COMMAND_SLUGS[button.command]);
   const options = $derived(optionValues());
+  const videoLink = $derived(splitMenuVideoLink(button.command, groupSlug));
   const SPEED_RUN_COMMANDS = ["aqe:slower", "aqe:faster"] as const satisfies readonly ButtonSpec["command"][];
   const VOLUME_RUN_COMMANDS = ["aqe:volume-down", "aqe:volume-up"] as const satisfies readonly ButtonSpec["command"][];
 
@@ -99,21 +110,7 @@
   }
 
   function descriptionText(): string {
-    if (groupSlug === "speed") return t("editor.split.description_speed");
-    if (groupSlug === "volume") return t("editor.split.description_volume");
-    if (button.command === "aqe:share") return t("editor.split.description_share");
-    if (button.command === "aqe:convert") return t("editor.split.description_convert");
-    if (button.command === "aqe:remove-pauses") return t("editor.split.description_shorten_pauses");
-    if (button.command === "aqe:pitch-hum") return t("editor.split.description_pitch_hum");
-    if (
-      button.command === "aqe:denoise-standard" ||
-      button.command === "aqe:rnnoise" ||
-      button.command === "aqe:dpdfnet" ||
-      button.command === "aqe:voice-only"
-    ) {
-      return t("editor.split.description_denoise");
-    }
-    return t("editor.split.description", { label: menuLabel });
+    return splitMenuDescription(button.command, groupSlug, menuLabel);
   }
 
   function selectedOptionLabel(): string {
@@ -188,34 +185,15 @@
   }
 
   function optionValues(): string[] {
-    if (button.command === "aqe:remove-pauses") return ["gentle", "normal", "aggressive"];
-    if (button.command === "aqe:denoise-standard" || button.command === "aqe:rnnoise" || button.command === "aqe:dpdfnet" || button.command === "aqe:voice-only") {
-      return ["standard", "rnnoise", "dpdfnet", "voice_only"];
-    }
-    if (button.command === "aqe:convert") return [...OUTPUT_FORMAT_VALUES];
-    if (button.command === "aqe:share") return ["catbox", "litterbox"];
-    if (button.command === "aqe:pitch-hum") return ["direct", "pitch_tier"];
-    return [];
+    return splitOptionValues(button.command);
   }
 
   function optionLabel(value: string): string {
-    if (value === "catbox") return t("editor.share.target.catbox");
-    if (value === "litterbox") return t("editor.share.target.litterbox");
-    if (isOutputFormatValue(value)) return formatOutputFormat(value);
-    if (value === "direct" || value === "pitch_tier") return formatPitchHumMode(value);
-    if (value === "rnnoise") return "RNNoise";
-    if (value === "dpdfnet") return "DPDFNet";
-    if (value === "voice_only") return t("settings.denoise_algorithm.voice_only");
-    if (value === "aggressive") return t("settings.pause_aggressiveness.aggressive");
-    if (value === "gentle") return t("settings.pause_aggressiveness.gentle");
-    return value === "standard" ? t("settings.denoise_algorithm.standard") : t("settings.pause_aggressiveness.normal");
+    return splitOptionLabel(value);
   }
 
   function optionTitle(value: string): string {
-    if (value === "dpdfnet") return t("editor.command.dpdfnet.title", { level: formatDpdfnetAggressiveness(dpdfnetAttnLimitDb) });
-    if (value === "pitch_tier") return t("editor.pitch_hum.mode.pitch_tier.title");
-    if (value === "direct") return t("editor.command.pitch_hum.title");
-    return optionLabel(value);
+    return splitOptionTitle(value, dpdfnetAttnLimitDb);
   }
 
   function applyOption(value: string): void {
@@ -301,7 +279,20 @@
     />
   {/if}
 </div>
-<p class="aqe-split-popover-description">{descriptionText()}</p>
+<p class="aqe-split-popover-description">
+  {descriptionText()}
+  {#if videoLink}
+    <a
+      class="aqe-split-video-link"
+      href={videoLink}
+      onclick={(event) => openEditorExternalLink(event, videoLink)}
+      target="_blank"
+      rel="noopener noreferrer"
+    >
+      {t("links.see_video")}
+    </a>
+  {/if}
+</p>
 {#if options.length}
   <div class="aqe-split-presets">
     {#each options as option}
@@ -316,7 +307,10 @@
             aria-pressed={selectedOptionLabel() === optionLabel(option) ? "true" : "false"}
             onclick={() => applyOption(option)}
           >
-            {optionLabel(option)}
+            <span class="aqe-split-preset-label">{optionLabel(option)}</span>
+            {#if splitOptionDescription(option)}
+              <span class="aqe-split-preset-description">{splitOptionDescription(option)}</span>
+            {/if}
           </button>
         {/snippet}
       </AqeTooltip>

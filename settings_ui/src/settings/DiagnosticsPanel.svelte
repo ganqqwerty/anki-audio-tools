@@ -1,6 +1,7 @@
 <script lang="ts">
   import { t } from "$lib/i18n.js";
   import type { AsyncProgressPayload, Config, HealthReport, InitialState } from "$lib/types.js";
+  import DiagnosticsLinks from "./DiagnosticsLinks.svelte";
 
   type DiagnosticsAction = () => void | Promise<void>;
 
@@ -125,6 +126,8 @@
       <p class="settings-muted" data-testid="diagnostics-message">{diagnosticsMessage}</p>
     </div>
   </section>
+
+  <DiagnosticsLinks />
 
   {#if healthReport}
     <section class="settings-section">

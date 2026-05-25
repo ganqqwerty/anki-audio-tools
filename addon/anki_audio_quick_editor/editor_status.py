@@ -130,7 +130,7 @@ def _volume_status_summary(command: str, config: AudioProcessingConfig) -> str:
 
 def _speed_status_summary(command: str, config: AudioProcessingConfig) -> str:
     key = "editor.status.operation.faster" if command == CMD_FASTER else "editor.status.operation.slower"
-    return t(key, {"value": _format_speed_multiplier(command, config.speed_step)})
+    return t(key, {"value": _format_speed_multiplier(config.speed_step)})
 
 
 def _is_denoise_command(command: str) -> bool:
@@ -190,8 +190,7 @@ def _format_db(value: float) -> str:
     return f"{rounded:.0f} dB" if rounded.is_integer() else f"{rounded:.1f} dB"
 
 
-def _format_speed_multiplier(command: str, speed_step: float) -> str:
-    del command
+def _format_speed_multiplier(speed_step: float) -> str:
     multiplier = round(float(speed_step), 2)
     return f"x{multiplier:.0f}" if multiplier.is_integer() else f"x{multiplier:g}"
 

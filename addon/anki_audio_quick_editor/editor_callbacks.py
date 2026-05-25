@@ -202,6 +202,10 @@ def _show_current_audio_file(editor: Any) -> None:
     editor_settings_actions.show_current_audio_file(editor, _settings_action_deps())
 
 
+def _open_external_url(url: str) -> None:
+    editor_settings_actions.open_external_url(url)
+
+
 _share_current_audio_file = _with_deps(editor_sharing.share_current_audio_file, _share_deps)
 _finish_shared_audio = _with_deps(editor_sharing.finish_shared_audio, _share_deps)
 _share_failed = _with_deps(editor_sharing.share_failed, _share_deps)

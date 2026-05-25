@@ -2,6 +2,7 @@ import { fireEvent, render, screen, waitFor } from "@testing-library/svelte";
 import { describe, expect, it, vi } from "vitest";
 
 import BatchApp from "../src/batch/BatchApp.svelte";
+import { PRODUCT_LINKS } from "../src/lib/product-links.js";
 import {
   BatchOperationName,
   BatchParameterKind,
@@ -85,6 +86,18 @@ describe("BatchApp", () => {
 
     expect(screen.getByText("Choose an operation and fields for the selected notes.")).toBeInTheDocument();
     expect(screen.getByLabelText("Target field")).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "GitHub Pages" })).toHaveAttribute(
+      "href",
+      PRODUCT_LINKS.githubPages,
+    );
+    expect(screen.getByRole("link", { name: "Report a bug" })).toHaveAttribute(
+      "href",
+      PRODUCT_LINKS.bugReport,
+    );
+    expect(screen.getByRole("link", { name: "Request an idea" })).toHaveAttribute(
+      "href",
+      PRODUCT_LINKS.ideaRequest,
+    );
 
     await fireEvent.click(screen.getByRole("button", { name: "Start" }));
 

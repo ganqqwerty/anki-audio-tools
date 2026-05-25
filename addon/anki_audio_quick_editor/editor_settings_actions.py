@@ -6,6 +6,7 @@ from typing import Any, Callable
 
 from .editor_runtime import SettingsLifecycleCallbacks
 from .editor_session import PendingEditorStatus
+from .file_reveal import open_external_url as open_url
 from .file_reveal import reveal_file
 from .i18n import t
 
@@ -67,3 +68,8 @@ def show_current_audio_file(editor: Any, deps: Any) -> None:
         return
     reveal_file(media_path)
     deps.eval_status(editor, t("editor.status.showing_in_folder", {"filename": media_path.name}))
+
+
+def open_external_url(url: str) -> None:
+    """Open a trusted external URL from the editor webview."""
+    open_url(url)

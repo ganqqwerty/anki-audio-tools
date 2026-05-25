@@ -69,24 +69,15 @@ def _apply_post_merge_migrations(
     original_version: int,
 ) -> bool:
     changed = False
-    for migration in (
-        _normalize_dpdfnet_limit_setting,
-        _normalize_output_format_setting,
-        _insert_share_button_setting,
-        _normalize_editor_button_mode_settings,
-        _migrate_speed_volume_defaults,
-        _migrate_play_repeat_default,
-    ):
-        changed = migration(merged, defaults, original_version) or changed
-    return changed
+    changed = _normalize_dpdfnet_limit_setting(merged) or changed
+    changed = _normalize_output_format_setting(merged) or changed
+    changed = _insert_share_button_setting(merged) or changed
+    changed = _normalize_editor_button_mode_settings(merged, defaults) or changed
+    changed = _migrate_speed_volume_defaults(merged, defaults, original_version) or changed
+    return _migrate_play_repeat_default(merged, defaults, original_version) or changed
 
 
-def _normalize_dpdfnet_limit_setting(
-    merged: dict[str, Any],
-    defaults: dict[str, Any],
-    original_version: int,
-) -> bool:
-    del defaults, original_version
+def _normalize_dpdfnet_limit_setting(merged: dict[str, Any]) -> bool:
     if "dpdfnet_attn_limit_db" not in merged:
         return False
     normalized_dpdfnet_limit = normalize_dpdfnet_attn_limit_db(
@@ -98,12 +89,7 @@ def _normalize_dpdfnet_limit_setting(
     return True
 
 
-def _normalize_output_format_setting(
-    merged: dict[str, Any],
-    defaults: dict[str, Any],
-    original_version: int,
-) -> bool:
-    del defaults, original_version
+def _normalize_output_format_setting(merged: dict[str, Any]) -> bool:
     if "output_format" not in merged:
         return False
     normalized_output_format = normalize_output_format(merged.get("output_format"))
@@ -113,21 +99,14 @@ def _normalize_output_format_setting(
     return True
 
 
-def _insert_share_button_setting(
-    merged: dict[str, Any],
-    defaults: dict[str, Any],
-    original_version: int,
-) -> bool:
-    del defaults, original_version
+def _insert_share_button_setting(merged: dict[str, Any]) -> bool:
     return _insert_share_button(merged.get("visible_editor_buttons"))
 
 
 def _normalize_editor_button_mode_settings(
     merged: dict[str, Any],
     defaults: dict[str, Any],
-    original_version: int,
 ) -> bool:
-    del original_version
     return _normalize_editor_button_modes(merged.get("editor_button_modes"), defaults)
 
 

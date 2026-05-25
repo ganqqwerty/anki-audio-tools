@@ -30,6 +30,11 @@ export function focusAndSendCommandPayload(ord: number, payload: EditorCommandPa
   sendBridgeCommand("aqe:command-payload");
 }
 
+export function sendExternalLinkRequest(url: string): void {
+  window.__aqePendingCommandPayload = { command: "aqe:open-url", url };
+  sendBridgeCommand("aqe:command-payload");
+}
+
 export function sendGraphAnalysisRequest(request: GraphAnalysisRequest): void {
   pendingGraphAnalysisRequest = request;
   sendBridgeCommand("aqe:analyze-field");

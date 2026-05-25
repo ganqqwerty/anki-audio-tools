@@ -42,7 +42,7 @@
   footer {
     display: flex;
     flex-wrap: wrap;
-    gap: 10px;
+    gap: 8px;
     justify-content: flex-end;
   }
 
@@ -52,8 +52,9 @@
     border-radius: 6px;
     cursor: pointer;
     font: inherit;
-    min-height: 36px;
-    padding: 7px 14px;
+    font-size: 12px;
+    min-height: 27px;
+    padding: 4px 8px;
   }
 
   button:disabled {

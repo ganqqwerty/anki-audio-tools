@@ -140,6 +140,47 @@
   line-height: 1.35;
 }
 
+.aqe-help-text-link {
+  color: inherit;
+  margin-left: 4px;
+  text-decoration: underline;
+  text-decoration-color: color-mix(in srgb, currentColor 55%, transparent);
+  text-underline-offset: 2px;
+}
+
+.aqe-help-text-link:hover {
+  color: LinkText;
+  text-decoration-thickness: 2px;
+}
+
+.aqe-help-link-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 12px;
+}
+
+.aqe-help-link {
+  align-items: center;
+  border: 1px solid;
+  border-color: ButtonBorder;
+  border-radius: 7px;
+  color: inherit;
+  display: inline-flex;
+  gap: 6px;
+  min-height: 24px;
+  padding: 2px 6px;
+  text-decoration: none;
+}
+
+.aqe-help-link:hover {
+  text-decoration: underline;
+}
+
+.aqe-help-link-icon {
+  display: inline-flex;
+  flex: 0 0 auto;
+}
+
 .aqe-help-note {
   border-left: 3px solid ButtonBorder;
   padding-left: 8px;

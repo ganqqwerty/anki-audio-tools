@@ -9,6 +9,7 @@
   import GraphSplitOptions from "./GraphSplitOptions.svelte";
   import SplitValueOptions from "./SplitValueOptions.svelte";
   import { send } from "./actions.js";
+  import { openEditorExternalLink } from "./external-links.js";
   import { sendSplitDefaultSaveRequest } from "./bridge.js";
   import {
     buildSplitCommandPayload,
@@ -34,6 +35,7 @@
   import { currentValueLabel, primaryTitle } from "./split-button-presenter.js";
   import { COMMAND_SLUGS } from "./commands.js";
   import { t } from "../lib/i18n.js";
+  import { PRODUCT_LINKS } from "../lib/product-links.js";
   import type { EditorButtonDisplayMode } from "../lib/editor-toolbar-buttons.js";
   import type { GraphRecordingCondition, GraphSmoothness, GraphVoiceLock, GraphVoiceRange } from "./graph-settings.js";
   import type { ButtonSpec, FieldSplitButtonState, FieldTarget } from "./types.js";
@@ -294,7 +296,18 @@
               testId={`aqe-split-${target.ord}-${menuSlug()}-save-default`}
             />
           </div>
-          <p class="aqe-split-popover-description">{t("editor.split.description_graph")}</p>
+          <p class="aqe-split-popover-description">
+            {t("editor.split.description_graph")}
+            <a
+              class="aqe-split-video-link"
+              href={PRODUCT_LINKS.editorVideos.graph}
+              onclick={(event) => openEditorExternalLink(event, PRODUCT_LINKS.editorVideos.graph)}
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              {t("links.see_video")}
+            </a>
+          </p>
           <GraphSplitOptions
             connectShortDropoutsMs={graphConnectShortDropoutsMs}
             onConnectShortDropouts={applyGraphConnectShortDropouts}

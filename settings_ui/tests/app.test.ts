@@ -3,6 +3,7 @@ import { describe, expect, it, vi } from "vitest";
 
 import App from "../src/App.svelte";
 import { DEFAULT_EDITOR_BUTTON_MODES } from "../src/lib/editor-toolbar-buttons.js";
+import { PRODUCT_LINKS } from "../src/lib/product-links.js";
 import {
   DenoiseAlgorithm,
   Direction,
@@ -361,14 +362,28 @@ describe("App", () => {
     );
   });
 
-  it("opens Check Media from diagnostics", async () => {
+  it("opens Clear unused audios from diagnostics", async () => {
     setInitialState();
 
     render(App);
     await fireEvent.click(screen.getByRole("tab", { name: "Diagnostics & About" }));
-    await fireEvent.click(screen.getByRole("button", { name: "Check Media" }));
+    await fireEvent.click(screen.getByRole("button", { name: "Clear unused audios" }));
 
     expect(bridgeEnvelopes()).toContainEqual({ command: "settings.check_media" });
+  });
+
+  it("renders resource and feedback links in diagnostics", async () => {
+    setInitialState(); render(App);
+    await fireEvent.click(screen.getByRole("tab", { name: "Diagnostics & About" }));
+    for (const [name, href] of [
+      ["GitHub Pages", PRODUCT_LINKS.githubPages],
+      ["Discord: Yuri's cool software", PRODUCT_LINKS.discord],
+      ["Support on Patreon", PRODUCT_LINKS.patreon],
+      [/Telegram: Immersoshnaya/, PRODUCT_LINKS.telegram],
+      ["Report a bug", PRODUCT_LINKS.bugReport],
+      ["Request an idea", PRODUCT_LINKS.ideaRequest],
+    ] as const)
+      expect(screen.getByRole("link", { name })).toHaveAttribute("href", href);
   });
 
   it("renders translated settings labels from initial messages", async () => {
@@ -376,7 +391,6 @@ describe("App", () => {
       "settings.title": "Audio-Schnelleditor Einstellungen",
       "settings.show_ffmpeg_commands": "Debug-Informationen anzeigen",
     });
-
     render(App);
 
     expect(screen.getByText("Audio-Schnelleditor Einstellungen")).toBeInTheDocument();

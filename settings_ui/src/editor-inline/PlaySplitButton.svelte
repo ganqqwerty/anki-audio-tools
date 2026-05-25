@@ -3,6 +3,8 @@
   import { onMount } from "svelte";
   import AqeTooltip from "../lib/AqeTooltip.svelte";
   import EditorCommandIcon from "./EditorCommandIcon.svelte";
+  import { openEditorExternalLink } from "./external-links.js";
+  import { PRODUCT_LINKS } from "../lib/product-links.js";
   import SplitDefaultSaveButton from "./SplitDefaultSaveButton.svelte";
   import { setRepeatEnabledForOrd, setRepeatPauseSecondsForOrd, send } from "./actions.js";
   import { sendSplitDefaultSaveRequest } from "./bridge.js";
@@ -180,6 +182,15 @@
       </div>
       <p class="aqe-split-popover-description">
         {t("editor.play.description")}
+        <a
+          class="aqe-split-video-link"
+          href={PRODUCT_LINKS.editorVideos.playback}
+          onclick={(event) => openEditorExternalLink(event, PRODUCT_LINKS.editorVideos.playback)}
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          {t("links.see_video")}
+        </a>
       </p>
       <AqeTooltip>
         {#snippet trigger({ props })}
