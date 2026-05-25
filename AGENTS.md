@@ -131,6 +131,7 @@ Before implementing:
 - If you write 200 lines and it could be 50 lines of readable code, rewrite it.
 - Keep functions self-documenting.
 - Add docstrings for public APIs.
+- decompose the source file to multiple files before you hit the 350 lines soft limit. Split semantically, not to just be blow the limit, but to increase clarity.
 
 Ask yourself: "Would a senior engineer say this is overcomplicated?" If yes, simplify.
 
@@ -180,5 +181,6 @@ Strong success criteria let you loop independently. Weak criteria ("make it work
 
 - Write a short imperative subject line.
 - Keep the subject focused and specific.
-- Use the body when you need to explain why the change matters.
-- Explain the intent, behavior and system impact, not the touched files.
+- Use the body to explain why the change matters and why certain design choices took place. Developers will look at gitblame and ask the question "why"
+- In the body, explain the intent, behavior and system impact, not the touched files.
+- mention in the commit was done without full check and e2e routines being run 
