@@ -8,6 +8,7 @@ import subprocess
 import sys
 import tempfile
 import textwrap
+from collections.abc import Sequence
 from pathlib import Path
 
 from .process import _read_seconds_env, _run, is_verbose
@@ -16,15 +17,22 @@ from .python_env import _find_anki_python
 ROOT = Path(__file__).resolve().parents[2]
 
 
-def _pytest_args(target: str, *, collect_only: bool = False, cache_dir: Path | None = None) -> list[str]:
-    target_args = [target]
-    if target == "e2e/":
+def _pytest_args(
+    target: str | Sequence[str],
+    *,
+    collect_only: bool = False,
+    cache_dir: Path | None = None,
+    force_quiet: bool = False,
+) -> list[str]:
+    targets = [target] if isinstance(target, str) else list(target)
+    target_args = targets
+    if targets == ["e2e/"]:
         target_args = ["--pyargs", "e2e"]
     args = [
         "pytest",
         *target_args,
     ]
-    if is_verbose():
+    if is_verbose() and not force_quiet:
         args.extend(
             [
                 "-vv",

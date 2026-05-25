@@ -10,6 +10,7 @@ python3 scripts/dev.py coverage
 python3 scripts/dev.py qodana
 python3 scripts/dev.py sonar
 python3 scripts/dev.py test-e2e
+python3 scripts/dev.py test-e2e-parallel
 ```
 
 ## What Gets Tested
@@ -31,11 +32,17 @@ python3 scripts/dev.py test-e2e
 
 A feature is not complete until `python3 scripts/dev.py test-e2e` passes. The e2e command rebuilds the frontend bundles first so Anki tests never depend on stale webview output.
 
+`python3 scripts/dev.py test-e2e-parallel` is available for faster local e2e
+feedback. It rebuilds the frontend once, collects e2e tests once, then runs
+balanced file shards in isolated pytest subprocesses. Clipboard-using tests stay
+in one shared-desktop shard. `DEV_E2E_JOBS=N` controls the worker count; invalid
+values fall back to the default of up to three workers.
+
 ## Frontend Build Notes
 
 The settings, inline editor, and Browser batch frontends are compiled into ignored generated files under `addon/anki_audio_quick_editor/templates/`. Anki e2e tests load those generated bundles, not the TypeScript or Svelte source in `settings_ui/src/`.
 
-Use `python3 scripts/dev.py test-svelte` for frontend work and `python3 scripts/dev.py test-e2e` for Anki runtime checks. Both commands intentionally run `python3 scripts/dev.py build` first. Do not commit generated `templates/*_bundle.{js,css}` files.
+Use `python3 scripts/dev.py test-svelte` for frontend work and `python3 scripts/dev.py test-e2e` for canonical Anki runtime checks. Use `python3 scripts/dev.py test-e2e-parallel` for faster local e2e feedback before the serial gate. These commands intentionally run `python3 scripts/dev.py build` first. Do not commit generated `templates/*_bundle.{js,css}` files.
 
 Avoid running `npm run validate` or `pytest e2e` directly as the only verification after frontend changes. Direct commands are useful for focused debugging, but they bypass the repository rule that bundle freshness is part of the test command.
 
@@ -61,6 +68,7 @@ Avoid running `npm run validate` or `pytest e2e` directly as the only verificati
 | Complexity | `python3 scripts/dev.py complexity` |
 | Frontend validation | `python3 scripts/dev.py test-svelte` |
 | E2E tests with frontend rebuild | `python3 scripts/dev.py test-e2e` |
+| Parallel local e2e feedback | `python3 scripts/dev.py test-e2e-parallel` |
 | Python branch coverage | `python3 scripts/dev.py coverage` |
 | Qodana code quality | `python3 scripts/dev.py qodana` |
 | SonarQube quality gate | `python3 scripts/dev.py sonar` |
