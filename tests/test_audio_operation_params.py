@@ -24,8 +24,8 @@ def test_parameters_from_raw_clamps_editor_matching_ranges() -> None:
         target_format=" FLAC ",
     )
 
-    assert params.volume_step_db == 12.0
-    assert params.speed_step == 0.01
+    assert params.volume_step_db == 40.0
+    assert params.speed_step == 1.01
     assert params.pause_aggressiveness is None
     assert params.denoise_algorithm is None
     assert params.dpdfnet_attn_limit_db == 18.0
@@ -43,13 +43,13 @@ def test_effective_config_uses_volume_override_without_mutating_config() -> None
 
 
 def test_effective_config_uses_speed_override_without_mutating_config() -> None:
-    config = AudioProcessingConfig(speed_step=0.05)
-    params = AudioOperationParameters(speed_step=0.1)
+    config = AudioProcessingConfig(speed_step=1.5)
+    params = AudioOperationParameters(speed_step=2.0)
 
     effective = effective_config_for_operation(OP_FASTER, config, params)
 
-    assert effective.speed_step == 0.1
-    assert config.speed_step == 0.05
+    assert effective.speed_step == 2.0
+    assert config.speed_step == 1.5
 
 
 def test_effective_config_uses_pause_aggressiveness_override() -> None:

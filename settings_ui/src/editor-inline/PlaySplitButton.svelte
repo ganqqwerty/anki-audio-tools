@@ -179,10 +179,7 @@
         />
       </div>
       <p class="aqe-split-popover-description">
-        {t("editor.play.description", {
-          pause: formatRepeatPauseSeconds(repeatPauseSeconds),
-          repeat: pressed ? t("editor.play.repeat_on") : t("editor.play.repeat_off"),
-        })}
+        {t("editor.play.description")}
       </p>
       <AqeTooltip>
         {#snippet trigger({ props })}
@@ -253,12 +250,12 @@
               {...props}
               type="button"
               class="aqe-button aqe-split-run-button aqe-tooltip-target"
-              data-aqe-tooltip-content={t("editor.split.run_title", { label: t("editor.command.play.label") })}
+              data-aqe-tooltip-content={t("editor.command.play.title")}
               data-testid={`aqe-split-${target.ord}-play-run`}
-              aria-label={t("editor.split.run_title", { label: t("editor.command.play.label") })}
+              aria-label={t("editor.command.play.title")}
               onclick={dispatchPrimary}
             >
-              {t("editor.split.run")}
+              {t("editor.play.play_audio")}
             </button>
           {/snippet}
         </AqeTooltip>

@@ -22,7 +22,7 @@ def test_build_batch_initial_state_contains_operations_fields_defaults_and_i18n(
         note_count=3,
         groups=(FieldGroup("Basic", ("Audio", "Image")),),
         config=AudioProcessingConfig(
-            speed_step=0.1,
+            speed_step=2.0,
             volume_step_db=6.0,
             pause_aggressiveness="aggressive",
             denoise_algorithm="dpdfnet",
@@ -34,7 +34,7 @@ def test_build_batch_initial_state_contains_operations_fields_defaults_and_i18n(
     assert state["note_count"] == 3
     assert state["field_groups"] == [{"notetype_name": "Basic", "fields": ["Audio", "Image"]}]
     assert state["defaults"] == {
-        "speed_step": 0.1,
+        "speed_step": 2.0,
         "volume_step_db": 6.0,
         "pause_aggressiveness": "aggressive",
         "denoise_algorithm": "dpdfnet",
@@ -68,14 +68,14 @@ def test_request_from_batch_start_payload_builds_batch_run_request() -> None:
             "operation": "faster",
             "source_field": "Audio",
             "target_field": None,
-            "parameters": {"speed_step": 0.2},
+            "parameters": {"speed_step": 2},
         }
     )
 
     assert request.operation == "faster"
     assert request.source_field == "Audio"
     assert request.target_field is None
-    assert request.parameters.speed_step == 0.2
+    assert request.parameters.speed_step == 2
 
 
 def test_request_from_batch_start_payload_builds_denoise_parameters() -> None:

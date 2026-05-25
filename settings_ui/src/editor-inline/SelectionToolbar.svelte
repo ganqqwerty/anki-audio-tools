@@ -85,9 +85,9 @@
         class="aqe-button aqe-selection-toolbar-button aqe-delete-rest-button aqe-tooltip-target"
         data-aqe-command="aqe:delete-rest"
         data-aqe-button-state="default"
-        data-aqe-tooltip-content="Delete audio outside selected region"
+        data-aqe-tooltip-content={t("editor.command.delete_rest.title")}
         data-testid={`aqe-selection-toolbar-delete-rest-${target.ord}`}
-        aria-label="Delete audio outside selected region"
+        aria-label={t("editor.command.delete_rest.title")}
         hidden
         onpointerdown={(event) => event.stopPropagation()}
         onmousedown={(event) => event.preventDefault()}

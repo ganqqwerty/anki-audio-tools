@@ -141,25 +141,33 @@
     },
     "speed_step": {
       "type": "number",
-      "exclusiveMinimum": 0
+      "minimum": 1.01,
+      "maximum": 5
     },
     "min_speed": {
       "type": "number",
-      "exclusiveMinimum": 0
+      "minimum": 0.2,
+      "maximum": 5
     },
     "max_speed": {
       "type": "number",
-      "exclusiveMinimum": 0
+      "minimum": 0.2,
+      "maximum": 5
     },
     "volume_step_db": {
       "type": "number",
-      "exclusiveMinimum": 0
+      "minimum": 1,
+      "maximum": 40
     },
     "min_volume_db": {
-      "type": "number"
+      "type": "number",
+      "minimum": -40,
+      "maximum": 40
     },
     "max_volume_db": {
-      "type": "number"
+      "type": "number",
+      "minimum": -40,
+      "maximum": 40
     },
     "internal_pause_silence_threshold_db": {
       "type": "integer"

@@ -134,12 +134,10 @@
   }
 
   .button-settings-card-body {
-    border-top: 1px solid var(--border, rgba(0, 0, 0, 0.12));
     display: grid;
     align-content: start;
     grid-column: 2;
     gap: 14px;
-    padding-top: 14px;
   }
 
   .button-settings-card-body-empty {

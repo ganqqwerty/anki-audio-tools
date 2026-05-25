@@ -184,7 +184,7 @@ def test_process_note_batch_operation_replaces_audio_reference_for_transform(
         note,
         request=BatchRunRequest(operation=OP_FASTER, source_field="Audio"),
         media_dir=tmp_path,
-        config=AudioProcessingConfig(speed_step=0.1),
+        config=AudioProcessingConfig(speed_step=1.5),
         media_writer=media_writer,
         artifact_root=artifact_root,
     )
@@ -196,7 +196,7 @@ def test_process_note_batch_operation_replaces_audio_reference_for_transform(
     assert result.written_filename is not None
     assert "[sound:clip.mp3]" not in result.target_html
     assert result.written_filename in result.target_html
-    assert render_calls == [("clip.mp3", 1.1)]
+    assert render_calls == [("clip.mp3", 1.5)]
     assert writes[0][1] == b"rendered"
 
 
@@ -229,15 +229,15 @@ def test_process_note_batch_operation_uses_speed_parameter_for_transform(
         request=BatchRunRequest(
             operation=OP_FASTER,
             source_field="Audio",
-            parameters=AudioOperationParameters(speed_step=0.2),
+            parameters=AudioOperationParameters(speed_step=2),
         ),
         media_dir=tmp_path,
-        config=AudioProcessingConfig(speed_step=0.05),
+        config=AudioProcessingConfig(speed_step=1.5),
         media_writer=lambda name, data: name,
     )
 
     assert result.written
-    assert speeds == [1.2]
+    assert speeds == [2.0]
 
 
 def test_process_note_batch_operation_uses_pause_aggressiveness_parameter(
@@ -311,10 +311,9 @@ def test_process_note_batch_operation_resolves_windows_case_variant(
         note,
         request=BatchRunRequest(operation=OP_FASTER, source_field="Audio"),
         media_dir=tmp_path,
-        config=AudioProcessingConfig(speed_step=0.1),
+        config=AudioProcessingConfig(speed_step=1.5),
         media_writer=lambda name, data: name,
     )
 
     assert result.written
     assert render_calls == [source]
-

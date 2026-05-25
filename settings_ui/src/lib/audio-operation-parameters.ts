@@ -3,10 +3,10 @@ import { t } from "./i18n.js";
 export type PauseAggressiveness = "gentle" | "normal" | "aggressive";
 export type DpdfnetAggressiveness = "gentle" | "normal" | "aggressive";
 
-const MIN_VOLUME_STEP_DB = 0.5;
-const MAX_VOLUME_STEP_DB = 12;
-const MIN_SPEED_STEP = 0.01;
-const MAX_SPEED_STEP = 0.25;
+const MIN_VOLUME_STEP_DB = 1;
+const MAX_VOLUME_STEP_DB = 40;
+const MIN_SPEED_STEP = 1.01;
+const MAX_SPEED_STEP = 5;
 const MIN_REPEAT_PAUSE_SECONDS = 0;
 const MAX_REPEAT_PAUSE_SECONDS = 10;
 export const DPDFNET_ATTENUATION_LIMIT_DB_VALUES = [6, 12, 18] as const;
@@ -15,12 +15,12 @@ export const OUTPUT_FORMAT_VALUES = ["mp3", "m4a", "wav", "flac"] as const;
 export type OutputFormatValue = (typeof OUTPUT_FORMAT_VALUES)[number];
 
 export function clampVolumeStepDb(value: number): number {
-  if (!Number.isFinite(value)) return 3;
+  if (!Number.isFinite(value)) return 15;
   return Math.max(MIN_VOLUME_STEP_DB, Math.min(MAX_VOLUME_STEP_DB, Math.round(value * 10) / 10));
 }
 
 export function clampSpeedStep(value: number): number {
-  if (!Number.isFinite(value)) return 0.05;
+  if (!Number.isFinite(value)) return 1.5;
   return Math.max(MIN_SPEED_STEP, Math.min(MAX_SPEED_STEP, Math.round(value * 100) / 100));
 }
 
@@ -49,9 +49,8 @@ export function formatVolumeDb(value: number): string {
 }
 
 export function formatSpeedStep(value: number, operation: string): string {
-  const step = clampSpeedStep(value);
-  const multiplier = operation === "aqe:slower" || operation === "slower" ? 1 - step : 1 + step;
-  return `x${multiplier.toFixed(2)}`;
+  void operation;
+  return `x${formatMultiplier(clampSpeedStep(value))}`;
 }
 
 export function formatRepeatPauseSeconds(value: number): string {
@@ -87,4 +86,8 @@ export function outputFormatOrDefault(value: unknown): OutputFormatValue {
 export function formatOutputFormat(value: unknown): string {
   const outputFormat = outputFormatOrDefault(value);
   return t(`settings.output_format.${outputFormat}`);
+}
+
+function formatMultiplier(value: number): string {
+  return Number.isInteger(value) ? value.toFixed(0) : value.toFixed(2).replace(/0+$/, "").replace(/\.$/, "");
 }

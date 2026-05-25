@@ -142,6 +142,27 @@
   box-shadow: inset 0 0 0 1px ButtonBorder;
 }
 
+.aqe-split-extra-field {
+  display: grid;
+  gap: 6px;
+  margin-top: 10px;
+}
+
+.aqe-split-extra-field span {
+  font-size: 0.8rem;
+  font-weight: 700;
+}
+
+.aqe-split-extra-field select {
+  background: var(--canvas-elevated, Field);
+  border: 1px solid var(--border, ButtonBorder);
+  border-radius: 6px;
+  color: var(--fg, FieldText);
+  font: inherit;
+  min-height: 30px;
+  padding: 4px 8px;
+}
+
 .aqe-graph-options {
   display: grid;
   gap: 10px;
@@ -179,6 +200,8 @@
 
 .aqe-split-popover-footer {
   display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
   justify-content: flex-end;
   padding-top: 2px;
 }

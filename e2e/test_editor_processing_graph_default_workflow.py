@@ -89,8 +89,8 @@ def _click_latest_enabled_button_js(command: str, ord_: int = 0) -> str:
 
 def _expected_processing_status(command: str) -> str:
     return {
-        "aqe:faster": "Increased speed to x1.05.",
-        "aqe:volume-up": "Increased volume by 3 dB.",
+        "aqe:faster": "Increased speed to x1.5.",
+        "aqe:volume-up": "Increased volume by 15 dB.",
         "aqe:remove-pauses": "Shortened pauses with Normal level.",
         "aqe:rnnoise": "Cleaned audio with RNNoise.",
     }[command]

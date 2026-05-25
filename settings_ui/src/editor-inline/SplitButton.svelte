@@ -198,10 +198,14 @@
     graphVoiceLock = setGraphVoiceLockForField(target.ord, value).graphVoiceLock;
   }
 
-  function dispatchPrimary(): void {
+  function dispatchCommand(command: ButtonSpec["command"]): void {
     window.dispatchEvent(new Event(CLOSE_SPLIT_MENUS_EVENT));
     close();
-    send(button.command, target.node, target.ord, buildSplitCommandPayload(button.command, target.ord));
+    send(command, target.node, target.ord, buildSplitCommandPayload(command, target.ord));
+  }
+
+  function dispatchPrimary(): void {
+    dispatchCommand(button.command);
   }
 
   function showDefaultSaved(): void {
@@ -290,6 +294,7 @@
               testId={`aqe-split-${target.ord}-${menuSlug()}-save-default`}
             />
           </div>
+          <p class="aqe-split-popover-description">{t("editor.split.description_graph")}</p>
           <GraphSplitOptions
             connectShortDropoutsMs={graphConnectShortDropoutsMs}
             onConnectShortDropouts={applyGraphConnectShortDropouts}
@@ -311,12 +316,12 @@
                   {...props}
                   type="button"
                   class="aqe-button aqe-split-run-button aqe-tooltip-target"
-                  data-aqe-tooltip-content={t("editor.split.run_title", { label: menuTextLabel() })}
+                  data-aqe-tooltip-content={t("editor.command.graph.title")}
                   data-testid={`aqe-split-${target.ord}-${menuSlug()}-run`}
-                  aria-label={t("editor.split.run_title", { label: menuTextLabel() })}
+                  aria-label={t("editor.command.graph.title")}
                   onclick={dispatchPrimary}
                 >
-                  {t("editor.split.run")}
+                  {t("editor.split.draw")}
                 </button>
               {/snippet}
             </AqeTooltip>
@@ -334,7 +339,7 @@
             onOutputFormat={applyOutputFormat}
             onPauseAggressiveness={applyPauseAggressiveness}
             onPitchHumMode={applyPitchHumMode}
-            onRun={dispatchPrimary}
+            onRunCommand={dispatchCommand}
             onSaveDefault={saveCurrentDefaults}
             onShareTarget={applyShareTarget}
             onSpeedStep={applySpeedStep}

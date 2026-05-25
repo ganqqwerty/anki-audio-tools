@@ -18,20 +18,20 @@ def test_trim_and_untrim_are_bounded_at_zero() -> None:
 
 
 def test_speed_changes_are_clamped_to_configured_range() -> None:
-    config = AudioProcessingConfig(speed_step=0.05, min_speed=0.75, max_speed=1.5)
+    config = AudioProcessingConfig(speed_step=1.5, min_speed=0.2, max_speed=5.0)
 
-    fast = AudioEditState("clip.mp3", speed=1.48).faster(config)
-    slow = AudioEditState("clip.mp3", speed=0.77).slower(config)
+    fast = AudioEditState("clip.mp3", speed=4.9).faster(config)
+    slow = AudioEditState("clip.mp3", speed=0.25).slower(config)
 
-    assert fast.speed == 1.5
-    assert slow.speed == 0.75
+    assert fast.speed == 5.0
+    assert slow.speed == 0.2
 
 
 def test_speed_changes_are_noops_once_at_clamp() -> None:
-    config = AudioProcessingConfig(speed_step=0.05, min_speed=0.75, max_speed=1.5)
+    config = AudioProcessingConfig(speed_step=1.5, min_speed=0.2, max_speed=5.0)
 
-    assert AudioEditState("clip.mp3", speed=1.5).faster(config).speed == 1.5
-    assert AudioEditState("clip.mp3", speed=0.75).slower(config).speed == 0.75
+    assert AudioEditState("clip.mp3", speed=5.0).faster(config).speed == 5.0
+    assert AudioEditState("clip.mp3", speed=0.2).slower(config).speed == 0.2
 
 
 def test_volume_changes_are_clamped_to_configured_range() -> None:
@@ -72,14 +72,14 @@ def test_validate_rejects_trim_exactly_at_no_audio_boundary() -> None:
 
 
 def test_validate_rejects_invalid_speed() -> None:
-    state = AudioEditState("clip.mp3", speed=2.0)
+    state = AudioEditState("clip.mp3", speed=6.0)
 
     with pytest.raises(InvalidEditStateError):
         state.validate(duration_ms=1000, config=AudioProcessingConfig())
 
 
 def test_validate_rejects_invalid_volume() -> None:
-    state = AudioEditState("clip.mp3", volume_db=30.0)
+    state = AudioEditState("clip.mp3", volume_db=50.0)
 
     with pytest.raises(InvalidEditStateError):
         state.validate(duration_ms=1000, config=AudioProcessingConfig())
@@ -94,9 +94,12 @@ def test_feature_toggles_only_enable_processing_steps() -> None:
 def test_processing_config_from_partial_config_uses_defaults() -> None:
     config = AudioProcessingConfig.from_config({"ffmpeg_path": "/opt/bin/ffmpeg"})
 
-    assert config.volume_step_db == 3.0
-    assert config.min_volume_db == -24.0
-    assert config.max_volume_db == 24.0
+    assert config.speed_step == 1.5
+    assert config.min_speed == 0.2
+    assert config.max_speed == 5.0
+    assert config.volume_step_db == 15.0
+    assert config.min_volume_db == -40.0
+    assert config.max_volume_db == 40.0
     assert config.internal_pause_silence_threshold_db == -45
     assert config.output_format == "mp3"
     assert config.ffmpeg_path == "/opt/bin/ffmpeg"

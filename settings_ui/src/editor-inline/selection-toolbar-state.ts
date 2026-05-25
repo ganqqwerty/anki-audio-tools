@@ -15,7 +15,6 @@ import type { VisualizerElement } from "./types.js";
 
 export type SelectionToolbarPreview = "none" | "region" | "rest";
 
-const DELETE_REST_TOOLBAR_TITLE = "Delete audio outside selected region";
 const PLAY_SELECTION_TITLE = "Play selection";
 const PAUSE_SELECTION_TITLE = "Pause selection";
 const FIELD_PREFERENCE_DATASET_KEY = "aqeSelectionToolbarPreferredCollapsed";
@@ -206,7 +205,7 @@ function syncSelectionToolbarButtons(
     deleteRestButtonFor(visualizer),
     validDeleteSelection,
     busy,
-    DELETE_REST_TOOLBAR_TITLE,
+    t("editor.command.delete_rest.title"),
     titleForOperation("delete-rest", false),
   );
 }

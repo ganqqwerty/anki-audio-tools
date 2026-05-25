@@ -31,8 +31,8 @@ describe("editor inline denoise integration", () => {
         pauseAggressiveness: "normal" as const,
         pitchHumMode: "direct" as const,
         repeatPauseSeconds: 0,
-        speedStep: 0.05,
-        volumeStepDb: 3,
+        speedStep: 1.5,
+        volumeStepDb: 15,
       },
     };
     initializeEditorRuntime(config);
@@ -47,12 +47,12 @@ describe("editor inline denoise integration", () => {
     expect(help).toHaveTextContent("Delete Region / Delete the rest");
     expect(help).toHaveTextContent("Creates a new file that removes the selected region or keeps only that region.");
     expect(help).toHaveTextContent("Creates a new file with louder audio.");
-    expect(help).toHaveTextContent("Creates a new file in the selected format.");
-    expect(help).toHaveTextContent("Creates a new file with voiced pitch resynthesized as a neutral hum.");
+    expect(help).toHaveTextContent("Creates a new file in a different format.");
+    expect(help).toHaveTextContent("Creates a new pitch-preserving hum file for intonation practice.");
     expect(help).toHaveTextContent("Every edit creates a new media file and updates the field to point at it.");
     expect(help).toHaveTextContent("grey is loudness and lines are pitch of the voice.");
     expect(document.querySelector<HTMLButtonElement>('[data-testid="aqe-button-0-denoise-standard"]')?.getAttribute("data-aqe-tooltip-content")).toBe(
-      "Remove noise and music using Standard",
+      "Create a new file cleaned with Standard",
     );
 
     document.querySelector<HTMLButtonElement>('[data-testid="aqe-button-0-pitch-hum"]')!.click();
@@ -94,7 +94,7 @@ describe("editor inline denoise integration", () => {
     const dpdfnetPreset = document.querySelector<HTMLButtonElement>(
       '[data-testid="aqe-split-0-denoise-standard-preset-dpdfnet"]',
     )!;
-    expect(dpdfnetPreset.getAttribute("data-aqe-tooltip-content")).toBe("Denoise speech with DPDFNet, Aggressiveness: Aggressive");
+    expect(dpdfnetPreset.getAttribute("data-aqe-tooltip-content")).toBe("Create a new file cleaned with DPDFNet, Aggressiveness: Aggressive");
     dpdfnetPreset.click();
     await Promise.resolve();
     expect(
@@ -103,7 +103,7 @@ describe("editor inline denoise integration", () => {
       )?.value,
     ).toBe("18");
     expect(document.querySelector<HTMLButtonElement>('[data-testid="aqe-button-0-denoise-standard"]')?.getAttribute("data-aqe-tooltip-content")).toBe(
-      "Remove noise and music using DPDFNet",
+      "Create a new file cleaned with DPDFNet",
     );
     document.querySelector<HTMLButtonElement>('[data-testid="aqe-button-0-denoise-standard"]')!.click();
     expect(window.__aqePendingCommandPayload?.command).toBe("aqe:dpdfnet");

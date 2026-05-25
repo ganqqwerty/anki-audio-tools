@@ -9,10 +9,10 @@ from .audio_formats import validate_target_format
 from .audio_state import AudioProcessingConfig
 from .dpdfnet_settings import normalize_dpdfnet_attn_limit_db
 
-MIN_VOLUME_STEP_DB = 0.5
-MAX_VOLUME_STEP_DB = 12.0
-MIN_SPEED_STEP = 0.01
-MAX_SPEED_STEP = 0.25
+MIN_VOLUME_STEP_DB = 1.0
+MAX_VOLUME_STEP_DB = 40.0
+MIN_SPEED_STEP = 1.01
+MAX_SPEED_STEP = 5.0
 PAUSE_AGGRESSIVENESS = frozenset({"gentle", "normal", "aggressive"})
 DENOISE_ALGORITHMS = frozenset({"standard", "rnnoise", "dpdfnet", "voice_only"})
 

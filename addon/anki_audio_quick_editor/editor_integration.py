@@ -222,8 +222,8 @@ def _on_editor_will_load_note(js: str, note: Any, editor: Any) -> str:
         list(audio_field_sources),
         audio_field_sources=audio_field_sources,
         initial_status_by_field=_initial_status_by_field(_SESSIONS.get(editor)),
-        repeat_playback_by_default=bool(config.get("repeat_playback_by_default", False)),
-        show_graph_by_default=bool(config.get("show_graph_by_default", False)),
+        repeat_playback_by_default=bool(config.get("repeat_playback_by_default", True)),
+        show_graph_by_default=bool(config.get("show_graph_by_default", True)),
         visible_editor_buttons=[str(command) for command in visible_editor_buttons],
         editor_button_modes={
             str(command): str(mode)
@@ -231,8 +231,8 @@ def _on_editor_will_load_note(js: str, note: Any, editor: Any) -> str:
             if isinstance(command, str) and isinstance(mode, str)
         },
         split_button_defaults={
-            "volumeStepDb": float(config.get("volume_step_db", 3.0)),
-            "speedStep": float(config.get("speed_step", 0.05)),
+            "volumeStepDb": float(config.get("volume_step_db", 15.0)),
+            "speedStep": float(config.get("speed_step", 1.5)),
             "repeatPauseSeconds": float(config.get("repeat_pause_seconds", 0.0)),
             "shareTarget": str(config.get("share_target", "litterbox")),
             "pauseAggressiveness": str(config.get("pause_aggressiveness", "normal")),

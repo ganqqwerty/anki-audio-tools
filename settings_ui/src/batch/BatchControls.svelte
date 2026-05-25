@@ -57,12 +57,12 @@
   {#if selected?.parameter_kind === BatchParameterKind.Speed}
     <label>
       <span>{t("settings.speed_step")}</span>
-      <input bind:value={form.speedStep} disabled={disabled} max="0.25" min="0.01" step="0.01" type="number" />
+      <input bind:value={form.speedStep} disabled={disabled} max="5" min="1.01" step="0.01" type="number" />
     </label>
   {:else if selected?.parameter_kind === BatchParameterKind.Volume}
     <label>
       <span>{t("settings.volume_step_db")}</span>
-      <input bind:value={form.volumeStepDb} disabled={disabled} max="12" min="0.5" step="0.5" type="number" />
+      <input bind:value={form.volumeStepDb} disabled={disabled} max="40" min="1" step="0.5" type="number" />
     </label>
   {:else if selected?.parameter_kind === BatchParameterKind.Pause}
     <label>

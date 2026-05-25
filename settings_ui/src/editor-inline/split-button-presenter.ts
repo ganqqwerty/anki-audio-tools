@@ -57,7 +57,7 @@ export function primaryTitle(
 }
 
 function groupedSpeedValueLabel(speedStep: number): string {
-  return `${formatSpeedStep(speedStep, "aqe:faster")} / ${formatSpeedStep(speedStep, "aqe:slower")}`;
+  return formatSpeedStep(speedStep, "aqe:faster");
 }
 
 function denoiseValueLabel(denoiseAlgorithm: DenoiseAlgorithm, dpdfnetAttnLimitDb: number): string {

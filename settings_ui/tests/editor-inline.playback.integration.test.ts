@@ -72,13 +72,13 @@ afterEach(() => {
     initializeEditorRuntime({
       audioFieldIndices: [0],
       initialStatusByField: {
-        0: { kind: "info", message: "Increased volume by 3 dB." },
+        0: { kind: "info", message: "Increased volume by 15 dB." },
       },
     });
     scan({
       audioFieldIndices: [0],
       initialStatusByField: {
-        0: { kind: "info", message: "Increased volume by 3 dB." },
+        0: { kind: "info", message: "Increased volume by 15 dB." },
       },
     });
 
@@ -89,7 +89,7 @@ afterEach(() => {
     window.__aqeSetVisualizer?.(0, track, 400);
 
     expect(document.querySelector('[data-testid="aqe-status-0"]')).toHaveTextContent(
-      "Increased volume by 3 dB.",
+      "Increased volume by 15 dB.",
     );
   });
 
@@ -97,13 +97,13 @@ afterEach(() => {
     initializeEditorRuntime({
       audioFieldIndices: [0],
       initialStatusByField: {
-        0: { kind: "info", message: "Undid: Increased speed to x1.05." },
+        0: { kind: "info", message: "Undid: Increased speed to x1.5." },
       },
     });
     scan({
       audioFieldIndices: [0],
       initialStatusByField: {
-        0: { kind: "info", message: "Undid: Increased speed to x1.05." },
+        0: { kind: "info", message: "Undid: Increased speed to x1.5." },
       },
     });
 
@@ -118,7 +118,7 @@ afterEach(() => {
     completePlayback(visualizer!);
 
     expect(document.querySelector('[data-testid="aqe-status-0"]')).toHaveTextContent(
-      "Undid: Increased speed to x1.05.",
+      "Undid: Increased speed to x1.5.",
     );
     expect(bridgeCommands()).toContain("aqe:play-ended");
   });

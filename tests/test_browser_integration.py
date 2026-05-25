@@ -84,7 +84,7 @@ def test_open_batch_dialog_builds_field_groups_from_selected_notes(monkeypatch) 
     addon_manager = SimpleNamespace(
         addonFromModule=lambda _module: "anki_audio_quick_editor",
         getConfig=lambda _addon_id: {
-            "speed_step": 0.1,
+            "speed_step": 2.0,
             "volume_step_db": 6.0,
             "pause_aggressiveness": "aggressive",
         },
@@ -103,7 +103,7 @@ def test_open_batch_dialog_builds_field_groups_from_selected_notes(monkeypatch) 
     assert groups[0].notetype_name == "Basic"
     assert groups[0].fields == ("Audio", "Image")
     config = dialog_calls[0][2]
-    assert config.speed_step == 0.1
+    assert config.speed_step == 2.0
     assert config.volume_step_db == 6.0
     assert config.pause_aggressiveness == "aggressive"
     assert dialog_calls[1] == ("exec", ())
@@ -286,7 +286,7 @@ def test_run_batch_logs_transform_parameters(monkeypatch, tmp_path: Path) -> Non
         BatchRunRequest(
             operation=OP_FASTER,
             source_field="Audio",
-            parameters=AudioOperationParameters(speed_step=0.1),
+            parameters=AudioOperationParameters(speed_step=2),
         ),
         tmp_path,
         AudioProcessingConfig(),
@@ -296,7 +296,7 @@ def test_run_batch_logs_transform_parameters(monkeypatch, tmp_path: Path) -> Non
     )
 
     assert "parameters=" in logs[0]
-    assert "speed_step=0.1" in logs[0]
+    assert "speed_step=2" in logs[0]
 
 
 def test_run_batch_in_background_publishes_changes_and_finishes_dialog(monkeypatch, tmp_path: Path) -> None:

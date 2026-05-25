@@ -101,8 +101,8 @@ def test_volume_split_button_uses_settings_default_and_local_value(
             lambda value: value is not None and value["inputValue"] == "6",
             timeout=5.0,
         )
-        assert state["inputMin"] == "0.5"
-        assert state["inputMax"] == "12"
+        assert state["inputMin"] == "1"
+        assert state["inputMax"] == "40"
         assert state["inputStep"] == "0.5"
 
         wait_for_js_condition(

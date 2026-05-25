@@ -22,10 +22,10 @@ const defaultConfig = {
   enabled: true,
   debug_logging: false,
   show_ffmpeg_commands: false,
-  repeat_playback_by_default: false,
+  repeat_playback_by_default: true,
   repeat_pause_seconds: 0,
   share_target: ShareTarget.Litterbox,
-  show_graph_by_default: false,
+  show_graph_by_default: true,
   visible_editor_buttons: [
     VisibleEditorButton.AqePlay,
     VisibleEditorButton.AqeAnalyze,
@@ -45,12 +45,12 @@ const defaultConfig = {
   graph_smoothness: GraphSmoothness.VerySmooth,
   graph_connect_short_dropouts_ms: 240,
   graph_voice_lock: GraphVoiceLock.Balanced,
-  speed_step: 0.05,
-  min_speed: 0.75,
-  max_speed: 1.5,
-  volume_step_db: 3.0,
-  min_volume_db: -24.0,
-  max_volume_db: 24.0,
+  speed_step: 1.5,
+  min_speed: 0.2,
+  max_speed: 5.0,
+  volume_step_db: 15.0,
+  min_volume_db: -40.0,
+  max_volume_db: 40.0,
   internal_pause_silence_threshold_db: -45,
   internal_pause_threshold_ms: 300,
   internal_pause_target_gap_ms: 100,
@@ -283,9 +283,9 @@ describe("App", () => {
       payload: { config: typeof defaultConfig };
     }>("settings.async");
     expect(payload.config.deep_filter_post_filter).toBe(true);
-    expect(payload.config.repeat_playback_by_default).toBe(false);
+    expect(payload.config.repeat_playback_by_default).toBe(true);
     expect(payload.config.repeat_pause_seconds).toBe(0);
-    expect(payload.config.show_graph_by_default).toBe(false);
+    expect(payload.config.show_graph_by_default).toBe(true);
     window.onAsyncProgress?.({ id, progress: 100, message: "Done" });
     window.onAsyncDone?.({
       id,

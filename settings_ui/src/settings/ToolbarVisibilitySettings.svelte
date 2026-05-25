@@ -233,30 +233,30 @@
         {:else if button.command === "aqe:slower"}
           <label class="settings-field">
             <span>{t("settings.speed_step")}</span>
-            <input class="settings-input" type="number" min="0.01" step="0.01" bind:value={config.speed_step} />
+            <input class="settings-input" type="number" min="1.01" max="5" step="0.01" bind:value={config.speed_step} />
           </label>
           <label class="settings-field">
             <span>{t("settings.min_speed")}</span>
-            <input class="settings-input" type="number" min="0.1" step="0.05" bind:value={config.min_speed} />
+            <input class="settings-input" type="number" min="0.2" max="5" step="0.05" bind:value={config.min_speed} />
           </label>
         {:else if button.command === "aqe:faster"}
           <label class="settings-field">
             <span>{t("settings.max_speed")}</span>
-            <input class="settings-input" type="number" min="0.1" step="0.05" bind:value={config.max_speed} />
+            <input class="settings-input" type="number" min="0.2" max="5" step="0.05" bind:value={config.max_speed} />
           </label>
         {:else if button.command === "aqe:volume-down"}
           <label class="settings-field">
             <span>{t("settings.volume_step_db")}</span>
-            <input class="settings-input" type="number" min="0.1" step="0.1" bind:value={config.volume_step_db} />
+            <input class="settings-input" type="number" min="1" max="40" step="0.5" bind:value={config.volume_step_db} />
           </label>
           <label class="settings-field">
             <span>{t("settings.min_volume_db")}</span>
-            <input class="settings-input" type="number" step="0.1" bind:value={config.min_volume_db} />
+            <input class="settings-input" type="number" min="-40" max="40" step="0.5" bind:value={config.min_volume_db} />
           </label>
         {:else if button.command === "aqe:volume-up"}
           <label class="settings-field">
             <span>{t("settings.max_volume_db")}</span>
-            <input class="settings-input" type="number" step="0.1" bind:value={config.max_volume_db} />
+            <input class="settings-input" type="number" min="-40" max="40" step="0.5" bind:value={config.max_volume_db} />
           </label>
         {/if}
       </ButtonSettingsCard>

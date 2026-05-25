@@ -155,7 +155,7 @@ def test_bridge_keeps_plain_processing_commands(tmp_path: Path, monkeypatch) -> 
     )
     monkeypatch.setattr(
         "anki_audio_quick_editor.editor_runtime.config",
-        lambda _editor: {"speed_step": 0.1},
+        lambda _editor: {"speed_step": 2},
     )
     monkeypatch.setattr(
         "anki_audio_quick_editor.editor_callbacks._render_and_replace_async",
@@ -166,7 +166,7 @@ def test_bridge_keeps_plain_processing_commands(tmp_path: Path, monkeypatch) -> 
 
     _handle_bridge_command(editor, "aqe:faster")
 
-    assert rendered["state"] == AudioEditState("clip.mp3", speed=1.1)
+    assert rendered["state"] == AudioEditState("clip.mp3", speed=2.0)
 
 
 def test_bridge_defers_pending_payload_from_web_callback(tmp_path: Path, monkeypatch) -> None:
@@ -255,8 +255,8 @@ def test_bridge_saves_split_button_defaults_from_pending_payload() -> None:
                         "repeatPauseSeconds": 20,
                         "repeatPlaybackByDefault": True,
                         "shareTarget": "catbox",
-                        "speedStep": 0.5,
-                        "volumeStepDb": 20,
+                        "speedStep": 9,
+                        "volumeStepDb": 99,
                     },
                     "fieldOrd": 0,
                 }
@@ -270,7 +270,7 @@ def test_bridge_saves_split_button_defaults_from_pending_payload() -> None:
     addon_manager.getConfig.return_value = {
         "denoise_algorithm": "standard",
         "graph_voice_range": "general",
-        "speed_step": 0.05,
+        "speed_step": 1.5,
     }
     editor = Editor()
     editor.currentField = 0
@@ -296,8 +296,8 @@ def test_bridge_saves_split_button_defaults_from_pending_payload() -> None:
         "repeat_pause_seconds": 10.0,
         "repeat_playback_by_default": True,
         "share_target": "catbox",
-        "speed_step": 0.25,
-        "volume_step_db": 12.0,
+        "speed_step": 5.0,
+        "volume_step_db": 40.0,
     }
     assert any("Saved quick settings as defaults." in call for call in editor.web.eval_calls)
 
@@ -343,7 +343,7 @@ def test_processing_command_cancels_playback_preparation(tmp_path: Path, monkeyp
     rendered: dict[str, AudioEditState] = {}
 
     monkeypatch.setattr("anki_audio_quick_editor.editor_runtime.session_and_source", lambda _editor: (session, source))
-    monkeypatch.setattr("anki_audio_quick_editor.editor_runtime.config", lambda _editor: {"speed_step": 0.1})
+    monkeypatch.setattr("anki_audio_quick_editor.editor_runtime.config", lambda _editor: {"speed_step": 2})
     monkeypatch.setattr("anki_audio_quick_editor.editor_runtime.stop_audio_playback", lambda: None)
     monkeypatch.setattr(
         "anki_audio_quick_editor.editor_callbacks._render_and_replace_async",
@@ -352,7 +352,7 @@ def test_processing_command_cancels_playback_preparation(tmp_path: Path, monkeyp
 
     _handle_bridge_command(editor, "aqe:faster")
 
-    assert rendered["state"] == AudioEditState("clip.mp3", speed=1.1)
+    assert rendered["state"] == AudioEditState("clip.mp3", speed=2.0)
     assert session.playback_preparing is False
     assert session.playback_active is False
     assert session.playback_generation == 8
@@ -379,7 +379,7 @@ def test_processing_command_cancels_graph_analysis_busy_state(tmp_path: Path, mo
     rendered: dict[str, AudioEditState] = {}
 
     monkeypatch.setattr("anki_audio_quick_editor.editor_runtime.session_and_source", lambda _editor: (session, source))
-    monkeypatch.setattr("anki_audio_quick_editor.editor_runtime.config", lambda _editor: {"speed_step": 0.1})
+    monkeypatch.setattr("anki_audio_quick_editor.editor_runtime.config", lambda _editor: {"speed_step": 2})
     monkeypatch.setattr(
         "anki_audio_quick_editor.editor_callbacks._render_and_replace_async",
         lambda _editor, _session, _source_path, updated_state, _config: rendered.update(state=updated_state),
@@ -387,7 +387,7 @@ def test_processing_command_cancels_graph_analysis_busy_state(tmp_path: Path, mo
 
     _handle_bridge_command(editor, "aqe:faster")
 
-    assert rendered["state"] == AudioEditState("clip.mp3", speed=1.1)
+    assert rendered["state"] == AudioEditState("clip.mp3", speed=2.0)
     assert session.analysis_busy is False
     assert session.analysis_busy_fields == set()
     assert session.analysis_generations_by_field == {}

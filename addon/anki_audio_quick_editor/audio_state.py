@@ -23,12 +23,12 @@ GraphVoiceLock = str
 class AudioProcessingConfig:
     """Runtime audio processing settings loaded from add-on config."""
 
-    speed_step: float = 0.05
-    min_speed: float = 0.75
-    max_speed: float = 1.5
-    volume_step_db: float = 3.0
-    min_volume_db: float = -24.0
-    max_volume_db: float = 24.0
+    speed_step: float = 1.5
+    min_speed: float = 0.2
+    max_speed: float = 5.0
+    volume_step_db: float = 15.0
+    min_volume_db: float = -40.0
+    max_volume_db: float = 40.0
     internal_pause_silence_threshold_db: int = -45
     internal_pause_threshold_ms: int = 300
     internal_pause_target_gap_ms: int = 100
@@ -127,12 +127,12 @@ class AudioEditState:
         return replace(self, right_trim_ms=max(0, self.right_trim_ms - step_ms))
 
     def faster(self, config: AudioProcessingConfig) -> "AudioEditState":
-        """Return a state with speed increased by the configured step."""
-        return replace(self, speed=round(min(config.max_speed, self.speed + config.speed_step), 2))
+        """Return a state with speed multiplied by the configured factor."""
+        return replace(self, speed=round(min(config.max_speed, self.speed * config.speed_step), 2))
 
     def slower(self, config: AudioProcessingConfig) -> "AudioEditState":
-        """Return a state with speed decreased by the configured step."""
-        return replace(self, speed=round(max(config.min_speed, self.speed - config.speed_step), 2))
+        """Return a state with speed divided by the configured factor."""
+        return replace(self, speed=round(max(config.min_speed, self.speed / config.speed_step), 2))
 
     def volume_up(self, config: AudioProcessingConfig) -> "AudioEditState":
         """Return a state with volume increased by the configured dB step."""
