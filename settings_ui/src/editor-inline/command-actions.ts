@@ -55,8 +55,9 @@ function shouldPlayAfterSuccessfulEdit(command: EditorCommand): boolean {
 
 function stopAllEditorPlayback(): void {
   for (const visualizer of allVisualizers()) {
-    if (playbackStateFor(visualizer as VisualizerElement) !== "stopped") {
-      stopProgressClock(visualizer as VisualizerElement);
-    }
+    const editorVisualizer = visualizer as VisualizerElement;
+    if (playbackStateFor(editorVisualizer) === "stopped") continue;
+    stopProgressClock(editorVisualizer);
+    focusAndSendCommand(Number(editorVisualizer.dataset.aqeFieldOrd || "0"), "aqe:stop-playback");
   }
 }

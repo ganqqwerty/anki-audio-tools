@@ -395,3 +395,44 @@ def test_processing_command_cancels_graph_analysis_busy_state(tmp_path: Path, mo
     assert session.analysis_generations_by_field == {}
     assert session.analysis_generation == 5
     assert any("window.__aqeSetBusy" in call.args[0] and "(0, false" in call.args[0] for call in editor.web.eval.call_args_list)
+
+
+def test_stop_playback_command_stops_session_without_clearing_status() -> None:
+    class Editor:
+        pass
+
+    editor = Editor()
+    editor.currentField = 0
+    editor.web = MagicMock()
+    session = EditorSession(
+        state=AudioEditState("clip.mp3"),
+        field_index=0,
+        playback_active=True,
+        playback_paused=True,
+        playback_generation=4,
+    )
+    _SESSIONS[editor] = session
+
+    _handle_bridge_command(editor, "aqe:stop-playback")
+
+    assert session.playback_active is False
+    assert session.playback_paused is False
+    assert session.playback_generation == 5
+    assert any("window.__aqeSetPlaybackState" in call.args[0] and "(0, \"stopped\"" in call.args[0] for call in editor.web.eval.call_args_list)
+    assert not any("window.__aqeSetStatus" in call.args[0] for call in editor.web.eval.call_args_list)
+
+
+def test_stop_playback_command_without_session_stops_audio(monkeypatch) -> None:
+    class Editor:
+        pass
+
+    editor = Editor()
+    editor.currentField = 0
+    editor.web = MagicMock()
+    stop_audio = MagicMock()
+    monkeypatch.setattr("anki_audio_quick_editor.editor_callbacks._stop_audio_playback", stop_audio)
+
+    _handle_bridge_command(editor, "aqe:stop-playback")
+
+    stop_audio.assert_called_once_with()
+    assert not any("window.__aqeSetStatus" in call.args[0] for call in editor.web.eval.call_args_list)

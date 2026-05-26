@@ -178,6 +178,7 @@ _stop_session_playback = editor_runtime.stop_session_playback
 _cleanup_temp_playback = editor_playback.cleanup_temp_playback
 _play = _with_deps(editor_playback.play, _playback_deps)
 _play_ended = _with_deps(editor_playback.play_ended, _playback_deps)
+_stop_playback = _with_deps(editor_playback.stop_playback, _playback_deps)
 _play_with_request = _with_deps(editor_playback.play_with_request, _playback_deps)
 _playback_request_values = _with_deps(editor_playback.playback_request_values, _playback_deps)
 _toggle_native_pause_resume = _with_deps(editor_playback.toggle_native_pause_resume, _playback_deps)
