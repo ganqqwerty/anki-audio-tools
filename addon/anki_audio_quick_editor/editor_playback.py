@@ -9,6 +9,7 @@ from typing import Any
 
 from .audio_state import AudioProcessingConfig
 from .diagnostics_runtime import capture_exception, new_operation_id, record_breadcrumb
+from .editor_playback_bounds import native_playback_end_ms, requested_end_ms
 from .editor_session import EditorSession
 from .i18n import t
 from .media_paths import existing_media_file_path
@@ -127,7 +128,7 @@ def playback_request_values(
     action = str(request.get("action") or "start")
     engine = str(request.get("engine") or "native")
     duration_ms = deps.visualized_duration_for_field(session, field_index, session.current_filename)
-    end_ms = _requested_end_ms(request.get("endMs"), duration_ms)
+    end_ms = requested_end_ms(request.get("endMs"), duration_ms)
     cursor_ms = clamp_cursor_ms(request.get("cursorMs"), end_ms if end_ms is not None else duration_ms)
     region_mode = "selection" if request.get("regionMode") == "selection" else "full"
     source = "post_edit" if request.get("source") == "post_edit" else "user"
@@ -213,7 +214,7 @@ def start_playback_from_cursor(
     play_path = existing_media_file_path(Path(editor.mw.col.media.dir()), filename) or source_path
     deps.stop_session_playback(session)
     source_duration_ms = deps.visualized_duration_for_field(session, field_index, filename)
-    playback_end_ms = _native_playback_end_ms(end_ms, source_duration_ms)
+    playback_end_ms = native_playback_end_ms(end_ms, source_duration_ms)
     session.cursor_ms = clamp_cursor_ms(cursor_ms, playback_end_ms if playback_end_ms is not None else source_duration_ms)
     offset_seconds = max(0.0, session.cursor_ms / 1000)
     bounded_to_selection = playback_end_ms is not None and (
@@ -375,7 +376,7 @@ def set_cursor_from_web(editor: Any, deps: Any) -> None:
                 session.playback_paused = False
                 return
             end_ms = (
-                _requested_end_ms(value.get("endMs"), duration_ms)
+                requested_end_ms(value.get("endMs"), duration_ms)
                 if value.get("regionMode") == "selection" and value.get("endMs") is not None
                 else None
             )
@@ -387,21 +388,3 @@ def set_cursor_from_web(editor: Any, deps: Any) -> None:
         "(window.__aqeGetCursorMs ? window.__aqeGetCursorMs() : 0)",
         _apply,
     )
-
-
-def _requested_end_ms(value: Any, duration_ms: int | None) -> int | None:
-    if value is None:
-        return duration_ms
-    try:
-        requested_end_ms = int(round(float(value)))
-    except (TypeError, ValueError):
-        requested_end_ms = 0
-    upper_ms = duration_ms if duration_ms is not None else requested_end_ms
-    return clamp_cursor_ms(requested_end_ms, upper_ms)
-
-
-def _native_playback_end_ms(end_ms: int | None, source_duration_ms: int | None) -> int | None:
-    if end_ms is None:
-        return None
-    upper = source_duration_ms if source_duration_ms is not None else max(0, int(end_ms))
-    return clamp_cursor_ms(end_ms, upper)

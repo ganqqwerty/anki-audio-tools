@@ -14,27 +14,7 @@ from e2e.helpers import (
     wait_for_condition,
     wait_for_js_condition,
 )
-
-
-def _open_settings_dialog(anki_mw):
-    runtime_addon = import_runtime_addon_module()
-    settings_dialog = import_runtime_addon_module(".settings").SettingsDialog
-
-    submenu = next(
-        action.menu()
-        for action in anki_mw.form.menuTools.actions()
-        if action.menu() and action.menu().title() == "Anki Audio Quick Editor"
-    )
-    settings_action = next(action for action in submenu.actions() if action.text() == "Settings")
-    settings_action.trigger()
-    QApplication.processEvents()
-
-    wait_for_condition(
-        lambda: isinstance(runtime_addon._settings_dialog, settings_dialog)
-        and runtime_addon._settings_dialog.isVisible(),
-        timeout=5.0,
-    )
-    return runtime_addon._settings_dialog
+from e2e.settings_dialog_helpers import open_settings_dialog
 
 
 def _bridge_command(command: str, payload: object) -> str:
@@ -42,7 +22,7 @@ def _bridge_command(command: str, payload: object) -> str:
 
 
 def test_tools_menu_action_opens_settings_dialog(anki_mw, qtbot) -> None:
-    dialog = _open_settings_dialog(anki_mw)
+    dialog = open_settings_dialog(anki_mw)
     qtbot.waitUntil(lambda: dialog.isVisible(), timeout=5000)
 
 
@@ -53,7 +33,7 @@ def test_settings_dialog_uses_anki_dark_theme_classes_and_readable_colors(anki_m
     try:
         anki_mw.set_theme(Theme.DARK)
         QApplication.processEvents()
-        dialog = _open_settings_dialog(anki_mw)
+        dialog = open_settings_dialog(anki_mw)
 
         theme_state = wait_for_js_condition(
             dialog,
@@ -211,7 +191,7 @@ def test_show_graph_by_default_checkbox_toggles_and_saves_in_one_session(anki_mw
     config["show_graph_by_default"] = False
     anki_mw.addonManager.writeConfig("1000000002", config)
 
-    dialog = _open_settings_dialog(anki_mw)
+    dialog = open_settings_dialog(anki_mw)
     checkbox_selector = '[data-testid="show-graph-by-default"]'
     save_selector = '[data-testid="settings-save"]'
 
@@ -256,7 +236,7 @@ def test_pitch_hum_default_mode_select_saves_in_one_session(anki_mw) -> None:
     config["pitch_hum_mode"] = "direct"
     anki_mw.addonManager.writeConfig("1000000002", config)
 
-    dialog = _open_settings_dialog(anki_mw)
+    dialog = open_settings_dialog(anki_mw)
     direct_selector = '[data-testid="pitch-hum-mode-direct"]'
     pitch_tier_selector = '[data-testid="pitch-hum-mode-pitch_tier"]'
     save_selector = '[data-testid="settings-save"]'
@@ -294,7 +274,7 @@ def test_share_target_select_saves_in_one_session(anki_mw) -> None:
     config["share_target"] = "litterbox"
     anki_mw.addonManager.writeConfig("1000000002", config)
 
-    dialog = _open_settings_dialog(anki_mw)
+    dialog = open_settings_dialog(anki_mw)
     litterbox_selector = '[data-testid="share-target-litterbox"]'
     catbox_selector = '[data-testid="share-target-catbox"]'
     save_selector = '[data-testid="settings-save"]'
@@ -336,7 +316,7 @@ def test_toolbar_button_mode_toggle_saves_in_one_session(anki_mw) -> None:
     }
     anki_mw.addonManager.writeConfig("1000000002", config)
 
-    dialog = _open_settings_dialog(anki_mw)
+    dialog = open_settings_dialog(anki_mw)
     play_icon_selector = '[data-testid="button-settings-play-mode-icon"]'
     settings_icon_selector = '[data-testid="button-settings-settings-mode-icon"]'
     save_selector = '[data-testid="settings-save"]'
@@ -376,45 +356,3 @@ def test_toolbar_button_mode_toggle_saves_in_one_session(anki_mw) -> None:
     saved_config = mock_write.call_args.args[1]
     assert saved_config["editor_button_modes"]["aqe:play"] == "icon"
     assert saved_config["editor_button_modes"]["aqe:settings"] == "icon"
-
-
-def test_diagnostics_can_copy_support_report_and_open_log_file(anki_mw) -> None:
-    support = import_runtime_addon_module(".support")
-
-    support.clear_latest_denoise_support_incident()
-    support.record_latest_denoise_support_incident(
-        operation="rnnoise_denoise",
-        media_filename="3d8ca69aee6.mp3",
-        source_path="/tmp/3d8ca69aee6.mp3",
-        user_message="RNNoise denoise failed.",
-        exception_type="AudioProcessingError",
-    )
-    dialog = _open_settings_dialog(anki_mw)
-
-    click_selector(dialog, '[data-testid="settings-tab-diagnostics"]', timeout=5.0)
-    click_selector(dialog, '[data-testid="copy-support-report"]', timeout=5.0)
-
-    wait_for_condition(
-        lambda: "3d8ca69aee6.mp3" in QApplication.clipboard().text()
-        and "RNNoise denoise failed." in QApplication.clipboard().text(),
-        timeout=5.0,
-    )
-
-    revealed: list[str] = []
-    file_reveal = import_runtime_addon_module(".file_reveal")
-    with patch.object(file_reveal, "reveal_file", lambda path, **_kwargs: revealed.append(str(path))):
-        click_selector(dialog, '[data-testid="show-log-file"]', timeout=5.0)
-        wait_for_condition(lambda: bool(revealed), timeout=5.0)
-
-    assert revealed[0].endswith("anki_audio_quick_editor.log")
-
-
-def test_diagnostics_can_open_check_media(anki_mw) -> None:
-    dialog = _open_settings_dialog(anki_mw)
-
-    with patch("aqt.mediacheck.check_media_db") as check_media_db:
-        click_selector(dialog, '[data-testid="settings-tab-diagnostics"]', timeout=5.0)
-        click_selector(dialog, '[data-testid="check-media"]', timeout=5.0)
-        wait_for_condition(lambda: check_media_db.called, timeout=5.0)
-
-    check_media_db.assert_called_once_with(anki_mw)

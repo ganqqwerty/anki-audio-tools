@@ -14,6 +14,7 @@ if str(ROOT) not in sys.path:
 
 # isort: off
 from scripts import dev_check as _dev_check
+from scripts.dev_cli import print_help, split_cli_args
 from scripts.dev_tasks.contracts import cmd_config_schema, cmd_contracts_check, cmd_contracts_generate
 from scripts.dev_tasks.coverage import PYTHON_COVERAGE_FAIL_UNDER, cmd_coverage, cmd_info, cmd_sonar
 from scripts.dev_tasks.e2e_parallel import cmd_test_e2e_parallel as _cmd_test_e2e_parallel
@@ -364,35 +365,15 @@ COMMANDS: dict[str, tuple[Callable[[], int], str]] = {
 
 
 def cmd_help() -> int:
-    print("Usage: python3 scripts/dev.py <command>\n")
-    print("First time? Run 'setup' to install dev tools:\n")
-    print("  python3 scripts/dev.py setup\n")
-    print("Default command output is concise. Add --verbose after any command for live tool output:\n")
-    print("  python3 scripts/dev.py check --verbose\n")
-    print("Commands:")
-    max_name = max(len(name) for name in COMMANDS)
-    for name, (_, desc) in COMMANDS.items():
-        print(f"  {name:<{max_name}}  {desc}")
-    print(f"\n  {'help':<{max_name}}  Show this help message")
+    print_help(COMMANDS)
     return 0
 
 
-def _split_cli_args(args: list[str]) -> tuple[str | None, list[str], bool]:
-    command: str | None = None
-    command_args: list[str] = []
-    verbose = False
-    for arg in args:
-        if arg == "--verbose":
-            verbose = True
-        elif command is None:
-            command = arg
-        else:
-            command_args.append(arg)
-    return command, command_args, verbose
+_split_cli_args = split_cli_args
 
 
 def main() -> None:
-    command, command_args, verbose = _split_cli_args(sys.argv[1:])
+    command, command_args, verbose = split_cli_args(sys.argv[1:])
     set_verbose(verbose)
     if command is None or command in ("help", "--help", "-h"):
         cmd_help()
