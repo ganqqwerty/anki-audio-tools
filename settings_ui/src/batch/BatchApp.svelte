@@ -4,6 +4,7 @@
   import { configureI18n, t } from "$lib/i18n.js";
   import { createLogger } from "$lib/logger.js";
   import { PRODUCT_LINKS } from "$lib/product-links.js";
+  import AqeTooltipProvider from "$lib/AqeTooltipProvider.svelte";
   import ProductLinkIcon from "$lib/ProductLinkIcon.svelte";
   import type { BatchErrorPayload, BatchFinishPayload, BatchProgressPayload } from "$lib/types.js";
   import BatchControls from "./BatchControls.svelte";
@@ -81,25 +82,26 @@
   }
 </script>
 
-<main class="batch-root" dir={batchState.direction} lang={batchState.locale}>
-  <header>
-    <h1>{t("batch.window_title")}</h1>
-    <p>{status}</p>
-    <nav class="resource-links" aria-label={t("batch.links.label")}>
-      <a href={PRODUCT_LINKS.githubPages} target="_blank" rel="noopener noreferrer">
-        <ProductLinkIcon className="resource-link-icon" icon="external-link" />
-        <span>{t("links.github_pages")}</span>
-      </a>
-      <a href={PRODUCT_LINKS.bugReport} target="_blank" rel="noopener noreferrer">
-        <ProductLinkIcon className="resource-link-icon" icon="bug" />
-        <span>{t("links.report_bug")}</span>
-      </a>
-      <a href={PRODUCT_LINKS.ideaRequest} target="_blank" rel="noopener noreferrer">
-        <ProductLinkIcon className="resource-link-icon" icon="idea" />
-        <span>{t("links.request_idea")}</span>
-      </a>
-    </nav>
-  </header>
+<AqeTooltipProvider>
+  <main class="batch-root" dir={batchState.direction} lang={batchState.locale}>
+    <header>
+      <h1>{t("batch.window_title")}</h1>
+      <p>{status}</p>
+      <nav class="resource-links" aria-label={t("batch.links.label")}>
+        <a href={PRODUCT_LINKS.githubPages} target="_blank" rel="noopener noreferrer">
+          <ProductLinkIcon className="resource-link-icon" icon="external-link" />
+          <span>{t("links.github_pages")}</span>
+        </a>
+        <a href={PRODUCT_LINKS.bugReport} target="_blank" rel="noopener noreferrer">
+          <ProductLinkIcon className="resource-link-icon" icon="bug" />
+          <span>{t("links.report_bug")}</span>
+        </a>
+        <a href={PRODUCT_LINKS.ideaRequest} target="_blank" rel="noopener noreferrer">
+          <ProductLinkIcon className="resource-link-icon" icon="idea" />
+          <span>{t("links.request_idea")}</span>
+        </a>
+      </nav>
+    </header>
 
   <BatchControls state={batchState} bind:form selected={selected} disabled={running} />
 
@@ -122,7 +124,8 @@
     onCopyLog={batchCopyLog}
     canStart={canStart}
   />
-</main>
+  </main>
+</AqeTooltipProvider>
 
 <style>
   :global(body) {

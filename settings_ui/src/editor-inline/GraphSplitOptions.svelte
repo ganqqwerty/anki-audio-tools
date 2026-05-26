@@ -4,6 +4,7 @@
     graphConnectDropoutsNote,
     graphRecordingConditionNote,
     graphRecordingConditionTooltip,
+    graphSmoothnessTooltip,
     graphVoiceLockNote,
     graphVoiceLockTooltip,
     graphVoiceRangeNote,
@@ -155,17 +156,23 @@
       aria-label={t("editor.graph.options.smoothness")}
     >
       {#each GRAPH_SMOOTHNESSES as option}
-        <button
-          type="button"
-          class="aqe-button aqe-split-preset"
-          data-testid={`aqe-split-${targetOrd}-${slug}-smoothness-${option}`}
-          role="radio"
-          aria-checked={smoothness === option ? "true" : "false"}
-          tabindex={smoothness === option ? 0 : -1}
-          onclick={() => onSmoothness(option)}
-        >
-          {formatGraphSmoothness(option)}
-        </button>
+        <AqeTooltip>
+          {#snippet trigger({ props })}
+            <button
+              {...props}
+              type="button"
+              class="aqe-button aqe-split-preset aqe-tooltip-target"
+              data-testid={`aqe-split-${targetOrd}-${slug}-smoothness-${option}`}
+              data-aqe-tooltip-content={graphSmoothnessTooltip(option)}
+              role="radio"
+              aria-checked={smoothness === option ? "true" : "false"}
+              tabindex={smoothness === option ? 0 : -1}
+              onclick={() => onSmoothness(option)}
+            >
+              {formatGraphSmoothness(option)}
+            </button>
+          {/snippet}
+        </AqeTooltip>
       {/each}
     </div>
   </div>

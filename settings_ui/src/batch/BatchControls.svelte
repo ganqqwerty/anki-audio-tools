@@ -1,14 +1,27 @@
 <script lang="ts">
+  import AqeTooltip from "$lib/AqeTooltip.svelte";
   import { t } from "$lib/i18n.js";
   import {
     DPDFNET_ATTENUATION_LIMIT_DB_VALUES,
     formatDpdfnetAggressiveness,
+    formatPauseAggressiveness,
     formatOutputFormat,
     formatPauseDetectionAlgorithm,
     OUTPUT_FORMAT_VALUES,
-    PAUSE_DETECTION_ALGORITHM_VALUES,
   } from "$lib/audio-operation-parameters.js";
-  import { BatchParameterKind, BatchPauseAggressiveness, DenoiseAlgorithm } from "$lib/types.js";
+  import {
+    choiceTooltip,
+    denoiseAlgorithmTooltip,
+    dpdfnetAggressivenessTooltip,
+    pauseAggressivenessTooltip,
+    pauseDetectionAlgorithmTooltip,
+  } from "$lib/audio-option-tooltips.js";
+  import {
+    BatchParameterKind,
+    BatchPauseAggressiveness,
+    BatchPauseDetectionAlgorithm,
+    DenoiseAlgorithm,
+  } from "$lib/types.js";
   import type { BatchInitialState, BatchOperationOption } from "$lib/types.js";
   import type { BatchFormState } from "./batch-state.js";
 
@@ -69,19 +82,59 @@
   {:else if selected?.parameter_kind === BatchParameterKind.Pause}
     <label>
       <span>{t("settings.pause_aggressiveness")}</span>
-      <select bind:value={form.pauseAggressiveness} disabled={disabled}>
-        <option value={BatchPauseAggressiveness.Gentle}>{t("settings.pause_aggressiveness.gentle")}</option>
-        <option value={BatchPauseAggressiveness.Normal}>{t("settings.pause_aggressiveness.normal")}</option>
-        <option value={BatchPauseAggressiveness.Aggressive}>{t("settings.pause_aggressiveness.aggressive")}</option>
-      </select>
+      <div class="batch-choice-group" role="radiogroup" aria-label={t("settings.pause_aggressiveness")}>
+        {#each [BatchPauseAggressiveness.Gentle, BatchPauseAggressiveness.Normal, BatchPauseAggressiveness.Aggressive] as value}
+          <AqeTooltip>
+            {#snippet trigger({ props })}
+              <button
+                {...props}
+                type="button"
+                class="batch-choice-button aqe-tooltip-target"
+                disabled={disabled}
+                data-testid={`batch-pause-aggressiveness-${value}`}
+                data-aqe-tooltip-content={choiceTooltip(formatPauseAggressiveness(value), pauseAggressivenessTooltip(value))}
+                role="radio"
+                aria-checked={form.pauseAggressiveness === value ? "true" : "false"}
+                onclick={() => (form.pauseAggressiveness = value)}
+              >
+                {formatPauseAggressiveness(value)}
+              </button>
+            {/snippet}
+          </AqeTooltip>
+        {/each}
+      </div>
     </label>
     <label>
       <span>{t("settings.pause_detection_algorithm")}</span>
-      <select bind:value={form.pauseDetectionAlgorithm} data-testid="batch-pause-detection-algorithm" disabled={disabled}>
-        {#each PAUSE_DETECTION_ALGORITHM_VALUES as value}
-          <option value={value}>{formatPauseDetectionAlgorithm(value)}</option>
+      <div
+        class="batch-choice-group"
+        data-testid="batch-pause-detection-algorithm"
+        role="radiogroup"
+        aria-label={t("settings.pause_detection_algorithm")}
+      >
+        {#each [BatchPauseDetectionAlgorithm.DeepFilter, BatchPauseDetectionAlgorithm.SileroVad] as value}
+          <AqeTooltip>
+            {#snippet trigger({ props })}
+              <button
+                {...props}
+                type="button"
+                class="batch-choice-button aqe-tooltip-target"
+                disabled={disabled}
+                data-testid={`batch-pause-detection-algorithm-${value}`}
+                data-aqe-tooltip-content={choiceTooltip(
+                  formatPauseDetectionAlgorithm(value),
+                  pauseDetectionAlgorithmTooltip(value),
+                )}
+                role="radio"
+                aria-checked={form.pauseDetectionAlgorithm === value ? "true" : "false"}
+                onclick={() => (form.pauseDetectionAlgorithm = value)}
+              >
+                {formatPauseDetectionAlgorithm(value)}
+              </button>
+            {/snippet}
+          </AqeTooltip>
         {/each}
-      </select>
+      </div>
     </label>
   {:else if selected?.parameter_kind === BatchParameterKind.Format}
     <label>
@@ -95,25 +148,63 @@
   {:else if selected?.parameter_kind === BatchParameterKind.Denoise}
     <label>
       <span>{t("batch.suppressor")}</span>
-      <select bind:value={form.denoiseAlgorithm} disabled={disabled}>
-        <option value={DenoiseAlgorithm.Standard}>{t("settings.denoise_algorithm.standard")}</option>
-        <option value={DenoiseAlgorithm.Rnnoise}>{t("settings.denoise_algorithm.rnnoise")}</option>
-        <option value={DenoiseAlgorithm.Dpdfnet}>{t("settings.denoise_algorithm.dpdfnet")}</option>
-        <option value={DenoiseAlgorithm.VoiceOnly}>{t("settings.denoise_algorithm.voice_only")}</option>
-      </select>
+      <div class="batch-choice-group batch-choice-group-wrap" role="radiogroup" aria-label={t("batch.suppressor")}>
+        {#each [DenoiseAlgorithm.Standard, DenoiseAlgorithm.Rnnoise, DenoiseAlgorithm.Dpdfnet, DenoiseAlgorithm.VoiceOnly] as value}
+          <AqeTooltip>
+            {#snippet trigger({ props })}
+              <button
+                {...props}
+                type="button"
+                class="batch-choice-button aqe-tooltip-target"
+                disabled={disabled}
+                data-testid={`batch-denoise-algorithm-${value}`}
+                data-aqe-tooltip-content={choiceTooltip(
+                  t(`settings.denoise_algorithm.${value}`),
+                  denoiseAlgorithmTooltip(value),
+                )}
+                role="radio"
+                aria-checked={form.denoiseAlgorithm === value ? "true" : "false"}
+                onclick={() => (form.denoiseAlgorithm = value)}
+              >
+                {t(`settings.denoise_algorithm.${value}`)}
+              </button>
+            {/snippet}
+          </AqeTooltip>
+        {/each}
+      </div>
     </label>
     {#if form.denoiseAlgorithm === DenoiseAlgorithm.Dpdfnet}
       <label>
         <span>{t("settings.dpdfnet_attn_limit_db")}</span>
-        <select
-          bind:value={form.dpdfnetAttnLimitDb}
+        <div
+          class="batch-choice-group"
           data-testid="batch-dpdfnet-attn-limit-db"
-          disabled={disabled}
+          role="radiogroup"
+          aria-label={t("settings.dpdfnet_attn_limit_db")}
         >
           {#each DPDFNET_ATTENUATION_LIMIT_DB_VALUES as value}
-            <option value={value}>{formatDpdfnetAggressiveness(value)}</option>
+            <AqeTooltip>
+              {#snippet trigger({ props })}
+                <button
+                  {...props}
+                  type="button"
+                  class="batch-choice-button aqe-tooltip-target"
+                  disabled={disabled}
+                  data-testid={`batch-dpdfnet-attn-limit-db-${value}`}
+                  data-aqe-tooltip-content={choiceTooltip(
+                    formatDpdfnetAggressiveness(value),
+                    dpdfnetAggressivenessTooltip(value),
+                  )}
+                  role="radio"
+                  aria-checked={form.dpdfnetAttnLimitDb === value ? "true" : "false"}
+                  onclick={() => (form.dpdfnetAttnLimitDb = value)}
+                >
+                  {formatDpdfnetAggressiveness(value)}
+                </button>
+              {/snippet}
+            </AqeTooltip>
           {/each}
-        </select>
+        </div>
       </label>
     {/if}
   {/if}
@@ -152,6 +243,38 @@
 
   select:disabled,
   input:disabled {
+    opacity: 0.7;
+  }
+
+  .batch-choice-group {
+    display: inline-flex;
+    flex-wrap: nowrap;
+    gap: 6px;
+    min-width: 0;
+  }
+
+  .batch-choice-group-wrap {
+    flex-wrap: wrap;
+  }
+
+  .batch-choice-button {
+    background: var(--canvas-elevated, ButtonFace);
+    border: 1px solid var(--border, ButtonBorder);
+    border-radius: 6px;
+    color: var(--fg, ButtonText);
+    cursor: pointer;
+    font: inherit;
+    min-height: 34px;
+    padding: 6px 10px;
+  }
+
+  .batch-choice-button[aria-checked="true"] {
+    box-shadow: inset 0 0 0 1px ButtonBorder;
+    font-weight: 700;
+  }
+
+  .batch-choice-button:disabled {
+    cursor: not-allowed;
     opacity: 0.7;
   }
 </style>

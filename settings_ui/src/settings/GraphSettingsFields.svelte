@@ -5,6 +5,7 @@
     graphConnectDropoutsNote,
     graphRecordingConditionNote,
     graphRecordingConditionTooltip,
+    graphSmoothnessTooltip,
     graphVoiceLockNote,
     graphVoiceLockTooltip,
     graphVoiceRangeNote,
@@ -96,6 +97,7 @@
       ariaLabel={t("settings.graph_smoothness")}
       options={GRAPH_SMOOTHNESSES.map((option) => ({
         label: t(`settings.graph_smoothness.${option}`),
+        tooltip: graphSmoothnessTooltip(option),
         value: option,
       }))}
       testId="graph-smoothness"

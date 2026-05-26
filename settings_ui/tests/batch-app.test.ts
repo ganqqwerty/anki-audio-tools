@@ -133,17 +133,15 @@ describe("BatchApp", () => {
     await fireEvent.change(screen.getByLabelText("Operation"), {
       target: { value: BatchOperationName.RemovePauses },
     });
-    expect(screen.getByLabelText("Shorten pauses level")).toBeInTheDocument();
+    expect(screen.getByTestId("batch-pause-aggressiveness-aggressive")).toBeInTheDocument();
     expect(screen.queryByLabelText("Speed factor")).not.toBeInTheDocument();
 
     await fireEvent.change(screen.getByLabelText("Operation"), {
       target: { value: BatchOperationName.Denoise },
     });
-    expect(screen.getByLabelText("Suppressor")).toBeInTheDocument();
-    await fireEvent.change(screen.getByLabelText("Suppressor"), {
-      target: { value: DenoiseAlgorithm.Dpdfnet },
-    });
-    expect(screen.getByLabelText("DPDFNet Aggressiveness")).toBeInTheDocument();
+    expect(screen.getByTestId(`batch-denoise-algorithm-${DenoiseAlgorithm.Standard}`)).toBeInTheDocument();
+    await fireEvent.click(screen.getByTestId(`batch-denoise-algorithm-${DenoiseAlgorithm.Dpdfnet}`));
+    expect(screen.getByTestId("batch-dpdfnet-attn-limit-db")).toBeInTheDocument();
   });
 
   it("sends a convert start request with the selected format", async () => {

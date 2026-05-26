@@ -45,6 +45,10 @@ export function graphRecordingConditionTooltip(value: string): string {
   return t(`graph.recording_condition.${value}.tooltip`);
 }
 
+export function graphSmoothnessTooltip(value: string): string {
+  return t(`graph.smoothness.${value}.tooltip`);
+}
+
 export function graphVoiceLockTooltip(value: string): string {
   return t(`graph.voice_lock.${value}.tooltip`);
 }

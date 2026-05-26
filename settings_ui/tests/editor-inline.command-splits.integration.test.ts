@@ -72,7 +72,9 @@ describe("editor inline split-button command integration", () => {
     const dpdfnetPreset = document.querySelector<HTMLButtonElement>(
       '[data-testid="aqe-split-0-denoise-standard-preset-dpdfnet"]',
     )!;
-    expect(dpdfnetPreset.getAttribute("data-aqe-tooltip-content")).toBe("Create a new file cleaned with DPDFNet, Aggressiveness: Gentle");
+    expect(dpdfnetPreset.getAttribute("data-aqe-tooltip-content")).toContain(
+      "Create a new file cleaned with DPDFNet, Aggressiveness: Gentle",
+    );
     dpdfnetPreset.click();
     await Promise.resolve();
     expect(document.querySelector<HTMLButtonElement>('[data-testid="aqe-button-0-denoise-standard"]')?.getAttribute("data-aqe-tooltip-content")).toBe(

@@ -395,5 +395,20 @@
   "editor.command.dpdfnet.label": "DPDFNet ノイズ除去",
   "editor.command.dpdfnet.title": "DPDFNet でクリーンアップした新しいファイルを作成、強度: {level}",
   "editor.status.denoising_dpdfnet": "DPDFNet でノイズ除去中",
-  "settings.health.checking_dpdfnet": "DPDFNet を確認中"
+  "settings.health.checking_dpdfnet": "DPDFNet を確認中",
+  "settings.share_target.catbox.tooltip": "Catbox が保持している間は公開リンクとして使えるアップロードです。\n長く残したいリンクに向いています。",
+  "settings.share_target.litterbox.tooltip": "約 3 日で期限切れになる一時的な公開アップロードです。\n長く残す必要がない共有に使います。",
+  "graph.smoothness.raw.tooltip": "最も平滑化しないグラフです。\n細部は多く見えますが、ピッチ線に鋭い角が増えます。",
+  "graph.smoothness.balanced.tooltip": "多くの音声に向く既定値です。\n見える細部を残しつつ、小さなギザギザを減らします。",
+  "graph.smoothness.smooth.tooltip": "全体のイントネーションを読みやすい、すっきりしたグラフです。\n細かな曲がりや角を多めに隠します。",
+  "graph.smoothness.very_smooth.tooltip": "最もなめらかなグラフです。\n小さな角ではなく、大きなピッチの動きだけ見たいときに使います。",
+  "settings.dpdfnet_attn_limit_db.gentle.tooltip": "軽いクリーニングです。\n録音がすでに明瞭で、アーティファクトを少なくしたいときに使います。",
+  "settings.dpdfnet_attn_limit_db.normal.tooltip": "バランス型のクリーニングです。\nノイズはあるが声がまだ明瞭な場合の既定値です。",
+  "settings.dpdfnet_attn_limit_db.aggressive.tooltip": "強いクリーニングです。\nノイズが邪魔なときに使いますが、金属的なアーティファクトが出やすくなります。",
+  "settings.pause_detection_algorithm.deep_filter.tooltip": "既存の音声クリーンアップ処理を使ってポーズを探します。\nDeepFilterNet をすでに使う流れではよい既定値です。",
+  "settings.pause_detection_algorithm.silero_vad.tooltip": "声と無音を分ける音声検出器を使います。\n通常の発話クリップでは速く、扱いやすいことが多いです。",
+  "settings.denoise_algorithm.standard.tooltip": "日常的な背景ノイズ向けの汎用クリーニングです。\nほとんどの録音ではここから始めます。",
+  "settings.denoise_algorithm.rnnoise.tooltip": "軽くて速い音声ノイズ除去です。\nヒス、ファン音、低スペック環境に向いています。",
+  "settings.denoise_algorithm.voice_only.tooltip": "声のステムを取り出し、音楽や楽器を減らせます。\n背景音に声が混ざっているクリップに使います。",
+  "settings.denoise_algorithm.dpdfnet.tooltip": "強めの現代的なノイズ除去で、強さを調整できます。\nStandard でノイズが残りすぎるときに使います。"
 }

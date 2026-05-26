@@ -41,17 +41,17 @@ describe("editor inline split-menu content", () => {
   it("shows format and pause aggressiveness descriptions", async () => {
     const convertPopover = await openSplitPopover("convert");
 
-    expect(convertPopover).toHaveTextContent("Most portable. Guaranteed to work in AnkiMobile");
-    expect(convertPopover).toHaveTextContent("Small modern file with good quality");
-    expect(convertPopover).toHaveTextContent("Uncompressed and large");
-    expect(convertPopover).toHaveTextContent("Lossless and smaller than WAV");
+    expect(optionTooltip(convertPopover, "convert", "mp3")).toContain("Most portable. Guaranteed to work in AnkiMobile");
+    expect(optionTooltip(convertPopover, "convert", "m4a")).toContain("Small modern file with good quality");
+    expect(optionTooltip(convertPopover, "convert", "wav")).toContain("Uncompressed and large");
+    expect(optionTooltip(convertPopover, "convert", "flac")).toContain("Lossless and smaller than WAV");
 
     const pausePopover = await openSplitPopover("remove-pauses");
 
-    expect(pausePopover).toHaveTextContent("700 ms");
-    expect(pausePopover).toHaveTextContent("450 ms");
-    expect(pausePopover).toHaveTextContent("250 ms");
-    expect(pausePopover).toHaveTextContent("rushed");
+    expect(optionTooltip(pausePopover, "remove-pauses", "gentle")).toContain("700 ms");
+    expect(optionTooltip(pausePopover, "remove-pauses", "normal")).toContain("450 ms");
+    expect(optionTooltip(pausePopover, "remove-pauses", "aggressive")).toContain("250 ms");
+    expect(optionTooltip(pausePopover, "remove-pauses", "aggressive")).toContain("rushed");
   });
 
   it("shows corresponding video links for command and grouped split menus", async () => {
@@ -76,4 +76,12 @@ async function openSplitPopover(slug: string): Promise<HTMLElement> {
   document.querySelector<HTMLButtonElement>(`[data-testid="aqe-split-0-${slug}-menu"]`)!.click();
   await Promise.resolve();
   return document.querySelector<HTMLElement>(`[data-testid="aqe-split-0-${slug}-popover"]`)!;
+}
+
+function optionTooltip(popover: HTMLElement, slug: string, value: string): string {
+  return (
+    popover
+      .querySelector<HTMLButtonElement>(`[data-testid="aqe-split-0-${slug}-preset-${value}"]`)
+      ?.getAttribute("data-aqe-tooltip-content") ?? ""
+  );
 }

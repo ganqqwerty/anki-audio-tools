@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { choiceTooltip, denoiseAlgorithmTooltip, dpdfnetAggressivenessTooltip, pauseAggressivenessTooltip, pauseDetectionAlgorithmTooltip, pitchHumModeTooltip, shareTargetTooltip } from "$lib/audio-option-tooltips.js";
   import {
     DPDFNET_ATTENUATION_LIMIT_DB_VALUES,
     formatDpdfnetAggressiveness,
@@ -14,16 +15,8 @@
     toolbarButtons,
   } from "$lib/editor-toolbar-buttons.js";
   import { t } from "$lib/i18n.js";
-  import {
-    DenoiseAlgorithm,
-    PauseAggressiveness,
-    PitchHumMode,
-    type Config,
-  } from "$lib/types.js";
-  import type {
-    EditorButtonDisplayMode,
-    EditorCommand,
-  } from "$lib/editor-toolbar-buttons.js";
+  import { DenoiseAlgorithm, PauseAggressiveness, PitchHumMode, type Config } from "$lib/types.js";
+  import type { EditorButtonDisplayMode, EditorCommand } from "$lib/editor-toolbar-buttons.js";
   import ButtonSettingsCard from "./ButtonSettingsCard.svelte";
   import GraphSettingsFields from "./GraphSettingsFields.svelte";
   import OutputFormatField from "./OutputFormatField.svelte";
@@ -157,6 +150,7 @@
               ariaLabel={t("settings.share_target")}
               options={["litterbox", "catbox"].map((value) => ({
                 label: t(`editor.share.target.${value}`),
+                tooltip: choiceTooltip(t(`editor.share.target.${value}`), shareTargetTooltip(value)),
                 value,
               }))}
               testId="share-target"
@@ -189,6 +183,7 @@
                 PauseAggressiveness.Aggressive,
               ].map((value) => ({
                 label: formatPauseAggressiveness(value),
+                tooltip: choiceTooltip(formatPauseAggressiveness(value), pauseAggressivenessTooltip(value)),
                 value,
               }))}
               testId="pause-aggressiveness"
@@ -202,6 +197,7 @@
               ariaLabel={t("settings.pause_detection_algorithm")}
               options={PAUSE_DETECTION_ALGORITHM_VALUES.map((value) => ({
                 label: formatPauseDetectionAlgorithm(value),
+                tooltip: choiceTooltip(formatPauseDetectionAlgorithm(value), pauseDetectionAlgorithmTooltip(value)),
                 value,
               }))}
               testId="pause-detection-algorithm"
@@ -223,6 +219,7 @@
                 DenoiseAlgorithm.VoiceOnly,
               ].map((value) => ({
                 label: t(`settings.denoise_algorithm.${value}`),
+                tooltip: choiceTooltip(t(`settings.denoise_algorithm.${value}`), denoiseAlgorithmTooltip(value)),
                 value,
               }))}
               testId="denoise-algorithm"
@@ -236,6 +233,7 @@
               ariaLabel={t("settings.dpdfnet_attn_limit_db")}
               options={DPDFNET_ATTENUATION_LIMIT_DB_VALUES.map((value) => ({
                 label: formatDpdfnetAggressiveness(value),
+                tooltip: choiceTooltip(formatDpdfnetAggressiveness(value), dpdfnetAggressivenessTooltip(value)),
                 value,
               }))}
               testId="dpdfnet-attn-limit-db"
@@ -254,6 +252,7 @@
               ariaLabel={t("settings.pitch_hum_mode")}
               options={[PitchHumMode.Direct, PitchHumMode.PitchTier].map((value) => ({
                 label: t(`settings.pitch_hum_mode.${value}`),
+                tooltip: choiceTooltip(t(`settings.pitch_hum_mode.${value}`), pitchHumModeTooltip(value)),
                 value,
               }))}
               testId="pitch-hum-mode"

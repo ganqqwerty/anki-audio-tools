@@ -395,5 +395,20 @@
   "editor.command.dpdfnet.label": "khử nhiễu DPDFNet",
   "editor.command.dpdfnet.title": "Tạo tệp mới được làm sạch bằng DPDFNet, mức mạnh: {level}",
   "editor.status.denoising_dpdfnet": "Đang khử nhiễu bằng DPDFNet",
-  "settings.health.checking_dpdfnet": "Đang kiểm tra DPDFNet"
+  "settings.health.checking_dpdfnet": "Đang kiểm tra DPDFNet",
+  "settings.share_target.catbox.tooltip": "Tải lên công khai không có hạn cố định khi Catbox còn giữ tệp.\nDùng khi bạn muốn liên kết tồn tại lâu hơn.",
+  "settings.share_target.litterbox.tooltip": "Tải lên công khai tạm thời, hết hạn sau khoảng 3 ngày.\nDùng để chia sẻ nhanh khi liên kết không cần tồn tại lâu.",
+  "graph.smoothness.raw.tooltip": "Biểu đồ ít làm mượt nhất.\nHiển thị nhiều chi tiết nhất, nhưng đường cao độ có thể có nhiều góc gắt.",
+  "graph.smoothness.balanced.tooltip": "Mặc định tốt cho hầu hết lời nói.\nGiữ chi tiết nhìn thấy được và giảm các đoạn răng cưa nhỏ.",
+  "graph.smoothness.smooth.tooltip": "Biểu đồ sạch hơn để đọc ngữ điệu tổng thể.\nẨn nhiều đoạn uốn và góc nhỏ hơn.",
+  "graph.smoothness.very_smooth.tooltip": "Biểu đồ mượt nhất.\nTốt khi bạn chỉ cần hướng cao độ lớn, không cần từng góc nhỏ.",
+  "settings.dpdfnet_attn_limit_db.gentle.tooltip": "Làm sạch nhẹ.\nDùng khi bản ghi đã khá rõ và bạn muốn ít méo tiếng hơn.",
+  "settings.dpdfnet_attn_limit_db.normal.tooltip": "Làm sạch cân bằng.\nMặc định tốt khi có nhiễu nhưng giọng vẫn rõ.",
+  "settings.dpdfnet_attn_limit_db.aggressive.tooltip": "Làm sạch mạnh.\nDùng khi nhiễu gây khó chịu, nhưng dễ có âm sắc kim loại hơn.",
+  "settings.pause_detection_algorithm.deep_filter.tooltip": "Dùng quy trình làm sạch âm thanh hiện có để tìm khoảng dừng.\nMặc định tốt khi bạn đã dựa vào DeepFilterNet.",
+  "settings.pause_detection_algorithm.silero_vad.tooltip": "Dùng bộ phát hiện lời nói để tách giọng khỏi im lặng.\nThường nhanh hơn và tốt hơn cho clip lời nói bình thường.",
+  "settings.denoise_algorithm.standard.tooltip": "Làm sạch chung cho tiếng ồn nền hằng ngày.\nHãy bắt đầu ở đây với hầu hết bản ghi.",
+  "settings.denoise_algorithm.rnnoise.tooltip": "Khử nhiễu lời nói nhẹ và nhanh.\nDùng cho tiếng xì, quạt hoặc máy yếu.",
+  "settings.denoise_algorithm.voice_only.tooltip": "Tách phần giọng và có thể loại nhạc hoặc nhạc cụ.\nDùng khi lời nói bị trộn với âm thanh nền.",
+  "settings.denoise_algorithm.dpdfnet.tooltip": "Khử nhiễu hiện đại mạnh hơn, có chỉnh mức mạnh.\nDùng khi Standard còn để lại quá nhiều nhiễu."
 }

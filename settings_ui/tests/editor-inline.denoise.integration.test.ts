@@ -76,13 +76,16 @@ describe("editor inline denoise integration", () => {
       '[data-testid="aqe-split-0-pitch-hum-preset-pitch_tier"]',
     )!;
     const pitchHumPopover = document.querySelector<HTMLElement>('[data-testid="aqe-split-0-pitch-hum-popover"]')!;
-    expect(pitchHumPopover).toHaveTextContent("Fast mode that follows detected pitch directly.");
-    expect(pitchHumPopover).toHaveTextContent("Uses Praat PitchTier resynthesis when available.");
+    expect(pitchTierPreset.getAttribute("data-aqe-tooltip-content")).toContain(
+      "Uses Praat PitchTier resynthesis when available.",
+    );
     expect(pitchHumPopover.querySelector<HTMLAnchorElement>(".aqe-split-video-link")).toHaveAttribute(
       "href",
       PRODUCT_LINKS.editorVideos.pitchHum,
     );
-    expect(pitchTierPreset.getAttribute("data-aqe-tooltip-content")).toBe("Resynthesize pitch with Praat Manipulation and PitchTier");
+    expect(pitchTierPreset.getAttribute("data-aqe-tooltip-content")).toContain(
+      "Resynthesize pitch with Praat Manipulation and PitchTier",
+    );
     pitchTierPreset.click();
     await Promise.resolve();
     document.querySelector<HTMLButtonElement>('[data-testid="aqe-button-0-pitch-hum"]')!.click();
@@ -107,14 +110,16 @@ describe("editor inline denoise integration", () => {
         `[data-testid="aqe-split-0-denoise-standard-popover"] .aqe-split-video-link`,
       ),
     ).toHaveAttribute("href", PRODUCT_LINKS.editorVideos.denoise);
-    expect(dpdfnetPreset.getAttribute("data-aqe-tooltip-content")).toBe("Create a new file cleaned with DPDFNet, Aggressiveness: Aggressive");
+    expect(dpdfnetPreset.getAttribute("data-aqe-tooltip-content")).toContain(
+      "Create a new file cleaned with DPDFNet, Aggressiveness: Aggressive",
+    );
     dpdfnetPreset.click();
     await Promise.resolve();
     expect(
-      document.querySelector<HTMLSelectElement>(
-        '[data-testid="aqe-split-0-denoise-standard-dpdfnet-aggressiveness"]',
-      )?.value,
-    ).toBe("18");
+      document
+        .querySelector<HTMLButtonElement>('[data-testid="aqe-split-0-denoise-standard-dpdfnet-aggressiveness-18"]')
+        ?.getAttribute("aria-checked"),
+    ).toBe("true");
     expect(document.querySelector<HTMLButtonElement>('[data-testid="aqe-button-0-denoise-standard"]')?.getAttribute("data-aqe-tooltip-content")).toBe(
       "Create a new file cleaned with DPDFNet",
     );

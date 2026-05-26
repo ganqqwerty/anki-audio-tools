@@ -1,4 +1,10 @@
 <script lang="ts">
+  import AqeTooltip from "../lib/AqeTooltip.svelte";
+  import {
+    choiceTooltip,
+    dpdfnetAggressivenessTooltip,
+    pauseDetectionAlgorithmTooltip,
+  } from "../lib/audio-option-tooltips.js";
   import { t } from "../lib/i18n.js";
   import {
     DPDFNET_ATTENUATION_LIMIT_DB_VALUES,
@@ -51,28 +57,68 @@
 {#if denoiseAlgorithm === "dpdfnet"}
   <label class="aqe-split-extra-field">
     <span>{t("settings.dpdfnet_attn_limit_db")}</span>
-    <select
+    <div
+      class="aqe-split-presets aqe-split-extra-choice-group"
       data-testid={`aqe-split-${targetOrd}-${slug}-dpdfnet-aggressiveness`}
-      value={dpdfnetAttnLimitDb}
-      onchange={(event) => applyDpdfnetAggressiveness(Number((event.currentTarget as HTMLSelectElement).value))}
+      role="radiogroup"
+      aria-label={t("settings.dpdfnet_attn_limit_db")}
     >
       {#each DPDFNET_ATTENUATION_LIMIT_DB_VALUES as value}
-        <option value={value}>{formatDpdfnetAggressiveness(value)}</option>
+        <AqeTooltip>
+          {#snippet trigger({ props })}
+            <button
+              {...props}
+              type="button"
+              class="aqe-button aqe-split-preset aqe-tooltip-target"
+              data-testid={`aqe-split-${targetOrd}-${slug}-dpdfnet-aggressiveness-${value}`}
+              data-aqe-tooltip-content={choiceTooltip(
+                formatDpdfnetAggressiveness(value),
+                dpdfnetAggressivenessTooltip(value),
+              )}
+              role="radio"
+              aria-checked={dpdfnetAttnLimitDb === value ? "true" : "false"}
+              tabindex={dpdfnetAttnLimitDb === value ? 0 : -1}
+              onclick={() => applyDpdfnetAggressiveness(value)}
+            >
+              {formatDpdfnetAggressiveness(value)}
+            </button>
+          {/snippet}
+        </AqeTooltip>
       {/each}
-    </select>
+    </div>
   </label>
 {/if}
 {#if command === "aqe:remove-pauses"}
   <label class="aqe-split-extra-field">
     <span>{t("settings.pause_detection_algorithm")}</span>
-    <select
+    <div
+      class="aqe-split-presets aqe-split-extra-choice-group"
       data-testid={`aqe-split-${targetOrd}-${slug}-pause-detection-algorithm`}
-      value={pauseDetectionAlgorithm}
-      onchange={(event) => applyPauseDetectionAlgorithm((event.currentTarget as HTMLSelectElement).value)}
+      role="radiogroup"
+      aria-label={t("settings.pause_detection_algorithm")}
     >
       {#each PAUSE_DETECTION_ALGORITHM_VALUES as value}
-        <option value={value}>{formatPauseDetectionAlgorithm(value)}</option>
+        <AqeTooltip>
+          {#snippet trigger({ props })}
+            <button
+              {...props}
+              type="button"
+              class="aqe-button aqe-split-preset aqe-tooltip-target"
+              data-testid={`aqe-split-${targetOrd}-${slug}-pause-detection-algorithm-${value}`}
+              data-aqe-tooltip-content={choiceTooltip(
+                formatPauseDetectionAlgorithm(value),
+                pauseDetectionAlgorithmTooltip(value),
+              )}
+              role="radio"
+              aria-checked={pauseDetectionAlgorithm === value ? "true" : "false"}
+              tabindex={pauseDetectionAlgorithm === value ? 0 : -1}
+              onclick={() => applyPauseDetectionAlgorithm(value)}
+            >
+              {formatPauseDetectionAlgorithm(value)}
+            </button>
+          {/snippet}
+        </AqeTooltip>
       {/each}
-    </select>
+    </div>
   </label>
 {/if}

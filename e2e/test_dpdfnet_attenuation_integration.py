@@ -107,7 +107,8 @@ def test_editor_dpdfnet_uses_selected_aggressiveness(
             document.querySelector('[data-testid="aqe-split-0-denoise-standard-preset-dpdfnet"]')
               ?.getAttribute('data-aqe-tooltip-content')
             """,
-            lambda value: value == "Create a new file cleaned with DPDFNet, Aggressiveness: Aggressive",
+            lambda value: isinstance(value, str)
+            and value.startswith("Create a new file cleaned with DPDFNet, Aggressiveness: Aggressive"),
             timeout=5.0,
         )
         click_selector(

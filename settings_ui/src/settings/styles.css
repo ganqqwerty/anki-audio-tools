@@ -121,7 +121,7 @@
 }
 
 .settings-choice-button:hover {
-  text-decoration: underline;
+  text-decoration: none;
 }
 
 .settings-choice-button[aria-checked="true"] {

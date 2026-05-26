@@ -1,4 +1,11 @@
 import { isOutputFormatValue, OUTPUT_FORMAT_VALUES } from "../lib/audio-operation-parameters.js";
+import {
+  choiceTooltip,
+  denoiseAlgorithmTooltip,
+  pauseAggressivenessTooltip,
+  pitchHumModeTooltip,
+  shareTargetTooltip,
+} from "../lib/audio-option-tooltips.js";
 import { t } from "../lib/i18n.js";
 import { PRODUCT_LINKS } from "../lib/product-links.js";
 import type { EditorCommand } from "../lib/editor-toolbar-buttons.js";
@@ -71,12 +78,22 @@ export function splitOptionDescription(value: string): string {
     return t(`editor.split.option.output_format.${value}.description`);
   }
   if (value === "aggressive" || value === "gentle" || value === "normal") {
-    return t(`editor.split.option.pause.${value}.description`);
+    return pauseAggressivenessTooltip(value);
   }
   if (value === "direct" || value === "pitch_tier") {
-    return t(`editor.split.option.pitch_hum.${value}.description`);
+    return pitchHumModeTooltip(value);
+  }
+  if (value === "standard" || value === "rnnoise" || value === "dpdfnet" || value === "voice_only") {
+    return denoiseAlgorithmTooltip(value);
+  }
+  if (value === "catbox" || value === "litterbox") {
+    return shareTargetTooltip(value);
   }
   return "";
+}
+
+export function splitOptionTooltip(value: string, dpdfnetAttnLimitDb: number): string {
+  return choiceTooltip(splitOptionTitle(value, dpdfnetAttnLimitDb), splitOptionDescription(value));
 }
 
 export function splitOptionTitle(value: string, dpdfnetAttnLimitDb: number): string {

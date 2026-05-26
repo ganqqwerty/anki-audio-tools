@@ -395,5 +395,20 @@
   "editor.command.dpdfnet.label": "DPDFNet 降噪",
   "editor.command.dpdfnet.title": "创建使用 DPDFNet 清理过的新文件，强度：{level}",
   "editor.status.denoising_dpdfnet": "正在使用 DPDFNet 降噪",
-  "settings.health.checking_dpdfnet": "正在检查 DPDFNet"
+  "settings.health.checking_dpdfnet": "正在检查 DPDFNet",
+  "settings.share_target.catbox.tooltip": "公开上传，没有固定过期时间，取决于 Catbox 是否继续保留文件。\n适合需要较长期链接的情况。",
+  "settings.share_target.litterbox.tooltip": "临时公开上传，约 3 天后过期。\n适合快速分享、不需要长期保留链接的情况。",
+  "graph.smoothness.raw.tooltip": "最少平滑的图表。\n细节最多，但音高线可能会有很多尖锐折角。",
+  "graph.smoothness.balanced.tooltip": "多数语音的良好默认值。\n保留可见细节，同时减少小的锯齿变化。",
+  "graph.smoothness.smooth.tooltip": "更便于阅读整体语调的干净图表。\n会隐藏更多细小弯折和角度。",
+  "graph.smoothness.very_smooth.tooltip": "最平滑的图表。\n适合只看整体音高走向，而不关心每个小转角。",
+  "settings.dpdfnet_attn_limit_db.gentle.tooltip": "轻度清理。\n录音已经较清楚、希望减少处理痕迹时使用。",
+  "settings.dpdfnet_attn_limit_db.normal.tooltip": "均衡清理。\n有噪声但人声仍清楚时的默认选择。",
+  "settings.dpdfnet_attn_limit_db.aggressive.tooltip": "强力清理。\n噪声很烦人时使用，但更可能产生金属感处理痕迹。",
+  "settings.pause_detection_algorithm.deep_filter.tooltip": "使用现有音频清理流程来寻找停顿。\n如果已经依赖 DeepFilterNet，这是合适的默认选择。",
+  "settings.pause_detection_algorithm.silero_vad.tooltip": "使用语音检测器区分人声和静音。\n对普通语音片段通常更快，也更合适。",
+  "settings.denoise_algorithm.standard.tooltip": "用于日常背景噪声的通用清理。\n大多数录音可以先从这里开始。",
+  "settings.denoise_algorithm.rnnoise.tooltip": "轻量、快速的语音降噪。\n适合嘶声、风扇声或性能较低的机器。",
+  "settings.denoise_algorithm.voice_only.tooltip": "提取人声声部，可去除音乐或乐器。\n适合语音混在背景音中的片段。",
+  "settings.denoise_algorithm.dpdfnet.tooltip": "更强的现代降噪，并带有强度控制。\n当 Standard 仍留下太多噪声时使用。"
 }

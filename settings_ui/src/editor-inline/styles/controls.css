@@ -106,7 +106,7 @@
 }
 
 .aqe-button:hover {
-  text-decoration: underline;
+  text-decoration: none;
 }
 
 .aqe-button[data-aqe-button-state="destructive"] {

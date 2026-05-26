@@ -5,6 +5,7 @@ from pathlib import Path
 
 import pytest
 
+from anki_audio_quick_editor.audio_pause_pipeline_steps import _silero_vad_parameters
 from anki_audio_quick_editor.audio_processor import (
     probe_duration_ms,
     render_audio,
@@ -25,6 +26,16 @@ from tests.audio_fixtures import (
     _generate_quiet_micro_word_clip,
     _generate_short_pause_clip,
 )
+
+
+def test_silero_aggressive_pause_parameters_are_tuned_for_shorter_gaps() -> None:
+    params = _silero_vad_parameters(AudioProcessingConfig(pause_aggressiveness="aggressive"))
+
+    assert params == {
+        "threshold": 0.4,
+        "min_silence_seconds": 0.2,
+        "min_speech_seconds": 0.06,
+    }
 
 
 def test_render_audio_pause_pipeline_records_launch_error_for_out_of_disk(

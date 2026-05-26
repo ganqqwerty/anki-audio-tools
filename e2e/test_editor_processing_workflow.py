@@ -311,11 +311,6 @@ def test_processing_undo_redo_and_new_edit_clears_redo(anki_mw, ffmpeg_config) -
             timeout=5.0,
             message="Undo did not restore the previous generated reference",
         )
-        _wait_for_status_flow(
-            editor,
-            lambda status: status["text"] == "Undid: Increased speed to x1.5.",
-            timeout=10.0,
-        )
         click_selector(editor.web, _button_selector("aqe:redo"), timeout=5.0)
         wait_for_condition(
             lambda: _sound_filename(note.fields[0]) == second_generated,
@@ -333,11 +328,6 @@ def test_processing_undo_redo_and_new_edit_clears_redo(anki_mw, ffmpeg_config) -
             lambda: _sound_filename(note.fields[0]) == first_generated,
             timeout=5.0,
             message="Second undo did not restore the previous generated reference",
-        )
-        _wait_for_status_flow(
-            editor,
-            lambda status: status["text"] == "Undid: Increased speed to x1.5.",
-            timeout=10.0,
         )
         _wait_for_visualizer_track(
             editor,

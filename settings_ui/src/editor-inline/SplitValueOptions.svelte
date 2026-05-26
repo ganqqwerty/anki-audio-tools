@@ -16,9 +16,8 @@
   import {
     splitMenuDescription,
     splitMenuVideoLink,
-    splitOptionDescription,
     splitOptionLabel,
-    splitOptionTitle,
+    splitOptionTooltip,
     splitOptionValues,
   } from "./split-menu-content.js";
   import SplitDefaultSaveButton from "./SplitDefaultSaveButton.svelte";
@@ -197,10 +196,6 @@
     return splitOptionLabel(value);
   }
 
-  function optionTitle(value: string): string {
-    return splitOptionTitle(value, dpdfnetAttnLimitDb);
-  }
-
   function applyOption(value: string): void {
     if (value === "catbox" || value === "litterbox") onShareTarget(value);
     if (value === "gentle" || value === "normal" || value === "aggressive") onPauseAggressiveness(value);
@@ -302,15 +297,12 @@
             {...props}
             type="button"
             class="aqe-button aqe-split-preset aqe-tooltip-target"
-            data-aqe-tooltip-content={optionTitle(option)}
+            data-aqe-tooltip-content={splitOptionTooltip(option, dpdfnetAttnLimitDb)}
             data-testid={`aqe-split-${targetOrd}-${slug}-preset-${option}`}
             aria-pressed={selectedOptionLabel() === optionLabel(option) ? "true" : "false"}
             onclick={() => applyOption(option)}
           >
             <span class="aqe-split-preset-label">{optionLabel(option)}</span>
-            {#if splitOptionDescription(option)}
-              <span class="aqe-split-preset-description">{splitOptionDescription(option)}</span>
-            {/if}
           </button>
         {/snippet}
       </AqeTooltip>

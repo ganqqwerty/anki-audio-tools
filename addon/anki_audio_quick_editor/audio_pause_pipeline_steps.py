@@ -350,7 +350,7 @@ def _silero_vad_parameters(config: AudioProcessingConfig) -> dict[str, float]:
     if config.pause_aggressiveness == "gentle":
         return {"threshold": 0.55, "min_silence_seconds": 0.7, "min_speech_seconds": 0.12}
     if config.pause_aggressiveness == "aggressive":
-        return {"threshold": 0.45, "min_silence_seconds": 0.25, "min_speech_seconds": 0.08}
+        return {"threshold": 0.4, "min_silence_seconds": 0.2, "min_speech_seconds": 0.06}
     return {"threshold": 0.5, "min_silence_seconds": 0.45, "min_speech_seconds": 0.1}
 
 

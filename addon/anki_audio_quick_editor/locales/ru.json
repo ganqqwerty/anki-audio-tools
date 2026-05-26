@@ -395,5 +395,20 @@
   "editor.command.dpdfnet.label": "очистка DPDFNet",
   "editor.command.dpdfnet.title": "Создать новый файл, очищенный с помощью DPDFNet, агрессивность: {level}",
   "editor.status.denoising_dpdfnet": "Шумоподавление DPDFNet",
-  "settings.health.checking_dpdfnet": "Проверка DPDFNet"
+  "settings.health.checking_dpdfnet": "Проверка DPDFNet",
+  "settings.share_target.catbox.tooltip": "Публичная загрузка без заданного срока, пока Catbox хранит файл.\nИспользуйте, когда ссылка должна жить дольше.",
+  "settings.share_target.litterbox.tooltip": "Временная публичная загрузка, которая истекает примерно через 3 дня.\nПодходит для быстрой отправки без долгого хранения ссылки.",
+  "graph.smoothness.raw.tooltip": "Минимальное сглаживание графика.\nПоказывает больше деталей, но линия высоты может иметь много резких углов.",
+  "graph.smoothness.balanced.tooltip": "Хороший вариант по умолчанию для речи.\nОставляет заметные детали и уменьшает мелкую зубчатость.",
+  "graph.smoothness.smooth.tooltip": "Более чистый график для чтения общей интонации.\nСкрывает больше мелких изгибов и углов.",
+  "graph.smoothness.very_smooth.tooltip": "Самое сильное сглаживание.\nЛучше, когда нужна общая траектория высоты, а не каждый мелкий угол.",
+  "settings.dpdfnet_attn_limit_db.gentle.tooltip": "Легкая очистка.\nИспользуйте для уже чистой записи, когда важно меньше артефактов.",
+  "settings.dpdfnet_attn_limit_db.normal.tooltip": "Сбалансированная очистка.\nХороший вариант, когда шум есть, но голос остается ясным.",
+  "settings.dpdfnet_attn_limit_db.aggressive.tooltip": "Сильная очистка.\nИспользуйте при заметном шуме, но возможны металлические артефакты.",
+  "settings.pause_detection_algorithm.deep_filter.tooltip": "Использует существующий конвейер очистки аудио для поиска пауз.\nХороший вариант, если вы уже полагаетесь на DeepFilterNet.",
+  "settings.pause_detection_algorithm.silero_vad.tooltip": "Использует детектор речи, отделяющий голос от тишины.\nЧасто быстрее и лучше для обычных речевых клипов.",
+  "settings.denoise_algorithm.standard.tooltip": "Общая очистка от повседневного фонового шума.\nНачинайте с нее для большинства записей.",
+  "settings.denoise_algorithm.rnnoise.tooltip": "Легкое и быстрое подавление шума речи.\nПодходит для шипения, вентилятора и слабых компьютеров.",
+  "settings.denoise_algorithm.voice_only.tooltip": "Извлекает голосовую дорожку и может убрать музыку или инструменты.\nИспользуйте, когда речь смешана с фоновым аудио.",
+  "settings.denoise_algorithm.dpdfnet.tooltip": "Более сильное современное шумоподавление с настройкой агрессивности.\nИспользуйте, если Standard оставляет слишком много шума."
 }
