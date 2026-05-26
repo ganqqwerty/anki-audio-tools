@@ -8,7 +8,7 @@
   "repeat_pause_seconds": 0.0,
   "share_target": "litterbox",
   "voice_recording_countdown_seconds": 3,
-  "show_graph_by_default": true,
+  "show_graph_by_default": false,
   "visible_editor_buttons": [
     "aqe:play",
     "aqe:analyze",
