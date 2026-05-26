@@ -149,6 +149,8 @@ class BatchOperationsDialog:
         return False
 
     def _handle_batch_start(self, command: WebviewBridgeCommand) -> bool:
+        if self._running:
+            return True
         try:
             request = request_from_batch_start_payload(command.payload)
         except (AssertionError, TypeError) as exc:

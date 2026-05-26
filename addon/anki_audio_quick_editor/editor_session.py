@@ -48,6 +48,16 @@ class LearnerRecordingState:
     graph_settings: dict[str, object] | None = None
 
 
+@dataclass(frozen=True)
+class EditorProcessingGuard:
+    """Identity for one async editor operation that may later mutate the note."""
+
+    generation: int
+    note_id: int | None
+    field_index: int
+    source_filename: str
+
+
 @dataclass
 class UndoHistory:
     """Undo stack for generated audio references."""
@@ -115,6 +125,7 @@ class EditorSession:
     analysis_busy_fields: set[int] = field(default_factory=set)
     source_mtime_ns: int | None = None
     cursor_ms: int = 0
+    processing_generation: int = 0
     analysis_generation: int = 0
     analysis_generations_by_field: dict[int, int] = field(default_factory=dict)
     graph_active_fields: set[int] = field(default_factory=set)
@@ -141,6 +152,7 @@ def reset_for_note_load(session: EditorSession, note_id: int | None) -> bool:
     if session.note_id == note_id:
         return False
     session.analysis_generation += 1
+    session.processing_generation += 1
     session.note_id = note_id
     session.state = None
     session.field_index = None
@@ -167,6 +179,65 @@ def reset_for_note_load(session: EditorSession, note_id: int | None) -> bool:
     session.status_summary = ""
     session.pending_status = None
     clear_learner_recording_state(session)
+    return True
+
+
+def begin_processing_guard(
+    session: EditorSession,
+    *,
+    field_index: int,
+    source_filename: str,
+) -> EditorProcessingGuard:
+    """Start a guarded editor mutation generation."""
+    session.processing_generation += 1
+    session.field_index = int(field_index)
+    return EditorProcessingGuard(
+        generation=session.processing_generation,
+        note_id=session.note_id,
+        field_index=int(field_index),
+        source_filename=source_filename,
+    )
+
+
+def invalidate_processing_guard(session: EditorSession) -> None:
+    """Invalidate pending editor processing completions."""
+    session.processing_generation += 1
+
+
+def is_current_processing_guard(session: EditorSession, guard: EditorProcessingGuard) -> bool:
+    """Return whether an async processing completion still targets the same editor state."""
+    return (
+        session.processing_generation == guard.generation
+        and session.note_id == guard.note_id
+        and session.field_index == guard.field_index
+        and session.current_filename == guard.source_filename
+    )
+
+
+def processing_guard_matches_editor(
+    editor: Any,
+    session: EditorSession | None,
+    guard: EditorProcessingGuard,
+    deps: Any,
+) -> bool:
+    """Return whether a guarded completion still matches session and focused field."""
+    if session is None or not is_current_processing_guard(session, guard):
+        return False
+    current_field_index = getattr(deps, "current_field_index", None)
+    if not callable(current_field_index):
+        return True
+    return int(current_field_index(editor)) == guard.field_index
+
+
+def clear_processing_for_stale_guard(session: EditorSession | None, guard: EditorProcessingGuard) -> bool:
+    """Clear stale processing state only when no newer processing generation exists."""
+    if session is None or session.processing_generation != guard.generation:
+        return False
+    session.processing = False
+    session.playback_active = False
+    session.playback_paused = False
+    session.next_status_summary = ""
+    session.pending_status = None
     return True
 
 

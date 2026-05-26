@@ -155,6 +155,7 @@ EDITOR_CONTRACTS: dict[str, ModuleContract] = {
             "editor_conversion",
             "editor_processing_shared",
             "editor_special_transforms",
+            "editor_special_transform_worker",
             "editor_session",
             "editor_status",
             "errors",
@@ -183,7 +184,9 @@ EDITOR_CONTRACTS: dict[str, ModuleContract] = {
         allowed_addon_deps=(
             "audio_state",
             "diagnostics_runtime",
+            "editor_processing_shared",
             "editor_region_delete_request",
+            "editor_region_delete_worker",
             "editor_session",
             "editor_status",
             "errors",
@@ -203,6 +206,21 @@ EDITOR_CONTRACTS: dict[str, ModuleContract] = {
         "editor_region_delete_request",
         layer=Layer.IMPORT_SAFE_CORE,
         allowed_addon_deps=("editor_session", "i18n", "sound_refs"),
+    ),
+    "editor_region_delete_worker": contract(
+        "editor_region_delete_worker",
+        layer=Layer.UI_ADAPTER,
+        allowed_addon_deps=(
+            "audio_state",
+            "diagnostics_runtime",
+            "editor_region_delete_request",
+            "editor_session",
+            "permission_guidance",
+        ),
+        allowed_side_effects=(
+            SideEffect.WEB_EVAL,
+            SideEffect.TEMP_FILESYSTEM_CLEANUP,
+        ),
     ),
     "editor_recording": contract(
         "editor_recording",
@@ -292,6 +310,7 @@ EDITOR_CONTRACTS: dict[str, ModuleContract] = {
             "editor_actions",
             "editor_processing_shared",
             "editor_session",
+            "editor_special_transform_worker",
             "editor_status",
             "errors",
             "i18n",
@@ -303,6 +322,20 @@ EDITOR_CONTRACTS: dict[str, ModuleContract] = {
         ),
         allowed_side_effects=(
             SideEffect.THREAD_SPAWN,
+            SideEffect.WEB_EVAL,
+            SideEffect.TEMP_FILESYSTEM_CLEANUP,
+        ),
+    ),
+    "editor_special_transform_worker": contract(
+        "editor_special_transform_worker",
+        layer=Layer.UI_ADAPTER,
+        allowed_addon_deps=(
+            "audio_state",
+            "diagnostics_runtime",
+            "editor_session",
+            "permission_guidance",
+        ),
+        allowed_side_effects=(
             SideEffect.WEB_EVAL,
             SideEffect.TEMP_FILESYSTEM_CLEANUP,
         ),

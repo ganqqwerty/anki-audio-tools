@@ -3,24 +3,39 @@
 from __future__ import annotations
 
 import logging
-import shutil
 import time
 from pathlib import Path
-from typing import Any
+from typing import Any, cast
 
 from . import editor_region_delete_request as _request
 from .audio_state import AudioEditState, AudioProcessingConfig
 from .diagnostics_runtime import capture_exception, new_operation_id, record_breadcrumb
-from .editor_region_delete_request import (
-    REGION_KEEP_OPERATION,
+from .editor_processing_shared import (
+    request_history_availability_after_edit as _request_history_availability_after_edit,
+)
+from .editor_processing_shared import (
+    sync_history_availability as _sync_history_availability,
 )
 from .editor_region_delete_request import (
     parse_region_delete_request as _parse_region_delete_request,
 )
+from .editor_region_delete_worker import (
+    region_delete_log_context as _region_delete_log_context,
+)
+from .editor_region_delete_worker import (
+    render_region_operation as _render_region_operation,
+)
+from .editor_region_delete_worker import (
+    run_region_delete_worker,
+)
 from .editor_session import (
+    EditorProcessingGuard,
     EditorSession,
     PendingEditorStatus,
     RegionDeleteRequest,
+    begin_processing_guard,
+    clear_processing_for_stale_guard,
+    processing_guard_matches_editor,
 )
 from .editor_status import region_operation_status_summary
 from .errors import AudioProcessingError
@@ -34,31 +49,12 @@ parse_region_delete_request = _request.parse_region_delete_request
 required_region_delete_values = _request.required_region_delete_values
 region_delete_source_filename = _request.region_delete_source_filename
 region_delete_trigger = _request.region_delete_trigger
+region_delete_log_context = _region_delete_log_context
+render_region_operation = _render_region_operation
 region_operation_busy_message = _request.region_operation_busy_message
 region_operation_command_status = _request.region_operation_command_status
 region_operation_whole_clip_message = _request.region_operation_whole_clip_message
 
-
-def _sync_history_availability(editor: Any, session: Any, deps: Any) -> None:
-    if session is None:
-        return
-    deps.eval_history_availability(
-        editor,
-        session.field_index,
-        bool(session.undo_history.entries),
-        bool(session.redo_history.entries),
-    )
-
-
-def _request_history_availability_after_edit(editor: Any, session: Any, deps: Any) -> None:
-    if session is None:
-        return
-    deps.request_history_availability_after_edit(
-        editor,
-        session.field_index,
-        bool(session.undo_history.entries),
-        bool(session.redo_history.entries),
-    )
 
 def delete_selection_from_frontend(editor: Any, deps: Any) -> None:
     """Pop and process a pending frontend region-delete request."""
@@ -110,33 +106,6 @@ def delete_selection_with_request(editor: Any, request: Any, deps: Any) -> None:
         deps,
     )
 
-
-
-
-def render_region_operation(
-    deps: Any,
-    source_path: Path,
-    request: RegionDeleteRequest,
-    config: AudioProcessingConfig,
-    output_path: Path,
-    on_command: Any,
-) -> Any:
-    """Render the requested selected-region operation."""
-    renderer = (
-        deps.render_audio_region_kept
-        if request.operation == REGION_KEEP_OPERATION
-        else deps.render_audio_region_deleted
-    )
-    return renderer(
-        source_path,
-        request.selection_start_ms,
-        request.selection_end_ms,
-        config,
-        output_path=output_path,
-        on_command=on_command,
-    )
-
-
 def delete_selection_async(
     editor: Any,
     session: EditorSession,
@@ -152,6 +121,11 @@ def delete_selection_async(
     session.post_edit_playback_generation += 1
     session.processing = True
     session.field_index = request.field_index
+    guard = begin_processing_guard(
+        session,
+        field_index=request.field_index,
+        source_filename=request.source_filename,
+    )
     session.playback_active = False
     session.playback_paused = False
     session.cursor_ms = request.cursor_ms
@@ -168,64 +142,7 @@ def delete_selection_async(
     )
 
     def _run() -> None:
-        output_path: Path | None = None
-        try:
-            desired_name = deps.make_output_filename(source_path.name)
-            output_path = deps.temp_final_path(desired_name)
-
-            def _show_command(command: tuple[str, ...]) -> None:
-                rendered = deps.format_ffmpeg_command(command)
-                status_message = region_operation_command_status(request)
-                command_text = ""
-                if config.show_ffmpeg_commands:
-                    status_message = f"{status_message}: {rendered}"
-                    command_text = rendered
-                deps.main(
-                    editor,
-                    lambda: deps.set_busy_for_field(
-                        editor,
-                        request.field_index,
-                        True,
-                        status_message,
-                        command_text,
-                    ),
-                )
-
-            result = render_region_operation(
-                deps,
-                source_path,
-                request,
-                config,
-                output_path,
-                _show_command,
-            )
-            with output_path.open("rb") as file:
-                saved_name = editor.mw.col.media.write_data(desired_name, file.read())
-            deps.main(
-                editor,
-                lambda: deps.replace_current_field_after_region_delete(
-                    editor,
-                    request,
-                    saved_name,
-                    result.duration_ms,
-                    started_at,
-                ),
-            )
-        except Exception as exc:
-            message = message_with_permission_guidance(str(exc), exc)
-            capture_exception(
-                "editor.worker.region_delete",
-                exc,
-                operation="editor.region_delete",
-                operation_id=operation_id,
-                user_message=message,
-                context=region_delete_log_context(request),
-                log=logger,
-            )
-            deps.main(editor, lambda: deps.render_failed(editor, message))
-        finally:
-            if output_path is not None:
-                shutil.rmtree(output_path.parent, ignore_errors=True)
+        run_region_delete_worker(editor, session, source_path, request, config, guard, started_at, operation_id, deps)
 
     deps.threading.Thread(target=_run, daemon=True).start()
 
@@ -237,9 +154,16 @@ def replace_current_field_after_region_delete(
     output_duration_ms: int | None,
     started_at: float,
     deps: Any,
+    *,
+    guard: EditorProcessingGuard | None = None,
+    output_path: Path | None = None,
 ) -> None:
     """Replace the field after a successful region-delete render."""
+    session = deps.sessions.get(editor)
+    if not _accept_guarded_region_replacement(editor, session, guard, deps):
+        return
     try:
+        saved_name = _persist_region_delete_output(editor, saved_name, output_path)
         field_index = request.field_index
         field_html = editor.note.fields[field_index]
         selection = select_first_sound_reference(field_html)
@@ -249,33 +173,7 @@ def replace_current_field_after_region_delete(
             raise AudioProcessingError(t("editor.status.graph_audio_mismatch"))
         deps.dispose_editor_frontend_controls(editor)
         editor.note.fields[field_index] = replace_sound_reference(field_html, selection.selected, saved_name)
-        session = deps.sessions.get(editor)
-        should_redraw_graph = False
-        if session:
-            session.undo_history.push(
-                session.state,
-                session.current_filename,
-                status_summary=session.status_summary,
-            )
-            session.redo_history.clear()
-            session.state = AudioEditState(source_file=saved_name)
-            session.current_filename = saved_name
-            session.field_index = field_index
-            session.status_summary = region_operation_status_summary(request)
-            session.next_status_summary = ""
-            session.pending_status = PendingEditorStatus(field_index, message=session.status_summary)
-            saved_path = existing_media_file_path(Path(editor.mw.col.media.dir()), saved_name)
-            session.source_mtime_ns = saved_path.stat().st_mtime_ns if saved_path is not None else None
-            session.processing = False
-            session.cursor_ms = 0
-            session.playback_active = False
-            session.playback_paused = False
-            should_redraw_graph = field_index in session.graph_active_fields or session.visualized_filename is not None
-            if should_redraw_graph:
-                session.visualized_filename = None
-                session.visualized_duration_ms = None
-                session.visualized_filenames_by_field.pop(field_index, None)
-                session.visualized_durations_by_field.pop(field_index, None)
+        should_redraw_graph = _replace_region_delete_session_state(editor, session, field_index, saved_name, request)
         logger.info(
             "region delete completed: %s",
             {
@@ -321,15 +219,52 @@ def replace_current_field_after_region_delete(
         deps.render_failed(editor, message)
 
 
-def region_delete_log_context(request: RegionDeleteRequest) -> dict[str, object]:
-    """Return structured logging context for a region-delete request."""
-    return {
-        "field_index": request.field_index,
-        "source_filename": request.source_filename,
-        "selection_start_ms": request.selection_start_ms,
-        "selection_end_ms": request.selection_end_ms,
-        "duration_ms": request.duration_ms,
-        "trigger": request.trigger,
-        "playback_active": request.playback_active,
-        "operation": request.operation,
-    }
+def _accept_guarded_region_replacement(
+    editor: Any,
+    session: EditorSession | None,
+    guard: EditorProcessingGuard | None,
+    deps: Any,
+) -> bool:
+    if guard is None or processing_guard_matches_editor(editor, session, guard, deps):
+        return True
+    if clear_processing_for_stale_guard(session, guard):
+        deps.set_busy_for_field(editor, guard.field_index, False)
+    return False
+
+
+def _persist_region_delete_output(editor: Any, saved_name: str, output_path: Path | None) -> str:
+    if output_path is None:
+        return saved_name
+    return cast(str, editor.mw.col.media.write_data(saved_name, output_path.read_bytes()))
+
+
+def _replace_region_delete_session_state(
+    editor: Any,
+    session: EditorSession | None,
+    field_index: int,
+    saved_name: str,
+    request: RegionDeleteRequest,
+) -> bool:
+    if session is None:
+        return False
+    session.undo_history.push(session.state, session.current_filename, status_summary=session.status_summary)
+    session.redo_history.clear()
+    session.state = AudioEditState(source_file=saved_name)
+    session.current_filename = saved_name
+    session.field_index = field_index
+    session.status_summary = region_operation_status_summary(request)
+    session.next_status_summary = ""
+    session.pending_status = PendingEditorStatus(field_index, message=session.status_summary)
+    saved_path = existing_media_file_path(Path(editor.mw.col.media.dir()), saved_name)
+    session.source_mtime_ns = saved_path.stat().st_mtime_ns if saved_path is not None else None
+    session.processing = False
+    session.cursor_ms = 0
+    session.playback_active = False
+    session.playback_paused = False
+    should_redraw_graph = field_index in session.graph_active_fields or session.visualized_filename is not None
+    if should_redraw_graph:
+        session.visualized_filename = None
+        session.visualized_duration_ms = None
+        session.visualized_filenames_by_field.pop(field_index, None)
+        session.visualized_durations_by_field.pop(field_index, None)
+    return should_redraw_graph

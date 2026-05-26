@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import sys
 import threading
-import time
 from pathlib import Path
 
 import scripts.dev as dev
@@ -368,6 +367,7 @@ def test_check_parallel_executor_runs_multiple_steps_concurrently(monkeypatch) -
     monkeypatch.setenv("DEV_CHECK_JOBS", "2")
     active = 0
     max_active = 0
+    barrier = threading.Barrier(2, timeout=2)
     lock = threading.Lock()
 
     def make_step() -> int:
@@ -375,7 +375,7 @@ def test_check_parallel_executor_runs_multiple_steps_concurrently(monkeypatch) -
         with lock:
             active += 1
             max_active = max(max_active, active)
-        time.sleep(0.05)
+        barrier.wait()
         with lock:
             active -= 1
         return 0

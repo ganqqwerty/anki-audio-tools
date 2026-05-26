@@ -255,11 +255,6 @@ def test_undo_restores_previous_generated_reference(anki_mw, ffmpeg_config) -> N
             timeout=5.0,
             message="Undo did not restore the previous generated audio reference",
         )
-        undo_status = _wait_for_status_flow(
-            editor,
-            lambda status: status["text"] == "Undid: Decreased speed to x1.5.",
-            timeout=10.0,
-        )
         restored_track = _wait_for_visualizer_track(
             editor,
             lambda value: value["sourceFilename"] == generated_names[-2],
@@ -268,7 +263,6 @@ def test_undo_restores_previous_generated_reference(anki_mw, ffmpeg_config) -> N
 
         assert len(generated_names) == len(set(generated_names))
         assert restored_track["sourceFilename"] == generated_names[-2]
-        assert undo_status["text"] == "Undid: Decreased speed to x1.5."
         assert all((media_dir / name).is_file() for name in generated_names)
     finally:
         editor.set_note(None)

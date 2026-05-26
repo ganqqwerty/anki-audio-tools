@@ -1,6 +1,10 @@
 import type { ProsodyPayload } from "../lib/generated/contracts.js";
 import { t } from "../lib/i18n.js";
-import { focusAndSendCommandPayload, sendGraphAnalysisRequest } from "./bridge.js";
+import {
+  clearPendingNoteScopedBridgeRequests,
+  focusAndSendCommandPayload,
+  sendGraphAnalysisRequest,
+} from "./bridge.js";
 import { finishDefaultGraphRequest } from "./default-graph-queue.js";
 import { currentAudioSourceForOrd, visualizerForOrd } from "./dom-selectors.js";
 import type { GraphSettings } from "./graph-settings.js";
@@ -175,6 +179,7 @@ function pendingGraphRedrawMatches(ord: number, sourceFilename: string): boolean
 }
 
 export function prepareForNewNote(): void {
+  clearPendingNoteScopedBridgeRequests();
   document.body.dataset.aqeBusy = "false";
   window.__aqeActiveField = null;
   window.__aqeLastCursorIntent = null;

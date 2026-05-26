@@ -300,8 +300,19 @@ def _process_note(
             audio_filename=current_audio,
             image_filename=result.image_filename,
             written_filename=result.written_filename,
+            original_target_html=result.original_target_html,
         )
     return result
+
+
+def _note_field_value(note: Any, field_name: str) -> str:
+    try:
+        return str(note[field_name])
+    except (KeyError, TypeError, AttributeError):
+        fields = getattr(note, "fields", None)
+        if isinstance(fields, dict):
+            return str(fields[field_name])
+        raise
 
 
 def _apply_result(
@@ -315,6 +326,21 @@ def _apply_result(
             note = col.get_note(result.note_id)
             assert result.target_field is not None
             assert result.target_html is not None
+            if result.original_target_html is not None:
+                current_html = _note_field_value(note, result.target_field)
+                if current_html != result.original_target_html:
+                    report.failures += 1
+                    return BatchNoteResult(
+                        note_id=result.note_id,
+                        status="failed",
+                        message=f"target field {result.target_field!r} changed during batch processing",
+                        target_field=result.target_field,
+                        target_html=result.target_html,
+                        audio_filename=result.audio_filename,
+                        image_filename=result.image_filename,
+                        written_filename=result.written_filename,
+                        original_target_html=result.original_target_html,
+                    )
             note[result.target_field] = result.target_html
             col.update_note(note)
             report.written += 1
@@ -343,6 +369,7 @@ def _apply_result(
                 audio_filename=result.audio_filename,
                 image_filename=result.image_filename,
                 written_filename=result.written_filename,
+                original_target_html=result.original_target_html,
             )
         return result
     if result.failure:

@@ -24,6 +24,7 @@ from e2e.editor_note_helpers import (
 from e2e.helpers import (
     click_selector,
     generate_tone,
+    run_js,
     wait_for_condition,
     wait_for_js_condition,
 )
@@ -71,7 +72,12 @@ def _split_popover_state_js(command: str, ord_: int = 0) -> str:
 
 
 def _click_latest_enabled_button_js(command: str, ord_: int = 0) -> str:
+    return _latest_enabled_button_js(command, ord_, click=True)
+
+
+def _latest_enabled_button_js(command: str, ord_: int = 0, *, click: bool = False) -> str:
     selector = _button_selector(command, ord_)
+    click_statement = "node.click();" if click else ""
     return f"""
     (() => {{
       const nodes = Array.from(document.querySelectorAll({selector!r}));
@@ -81,10 +87,20 @@ def _click_latest_enabled_button_js(command: str, ord_: int = 0) -> str:
         candidate.getAttribute("aria-disabled") !== "true"
       ));
       if (!node) return false;
-      node.click();
+      {click_statement}
       return true;
     }})()
     """
+
+
+def _click_latest_enabled_button_once(editor, command: str, ord_: int = 0) -> None:
+    wait_for_js_condition(
+        editor.web,
+        _latest_enabled_button_js(command, ord_),
+        lambda value: value is True,
+        timeout=5.0,
+    )
+    run_js(editor.web, _click_latest_enabled_button_js(command, ord_))
 
 
 def _expected_processing_status(command: str) -> str:
@@ -171,12 +187,7 @@ def test_multi_field_processing_undo_redo_survives_graph_default_auto_analysis(
             timeout=10.0,
         )
 
-        wait_for_js_condition(
-            editor.web,
-            _click_latest_enabled_button_js("aqe:undo"),
-            lambda value: value is True,
-            timeout=5.0,
-        )
+        _click_latest_enabled_button_once(editor, "aqe:undo")
         wait_for_condition(
             lambda: _sound_filename(note.fields[0]) == sources[0].name,
             timeout=5.0,
@@ -193,12 +204,7 @@ def test_multi_field_processing_undo_redo_survives_graph_default_auto_analysis(
             ord_=2,
             timeout=10.0,
         )
-        wait_for_js_condition(
-            editor.web,
-            _click_latest_enabled_button_js("aqe:redo"),
-            lambda value: value is True,
-            timeout=5.0,
-        )
+        _click_latest_enabled_button_once(editor, "aqe:redo")
         wait_for_condition(
             lambda: _sound_filename(note.fields[0]) == generated_name,
             timeout=5.0,

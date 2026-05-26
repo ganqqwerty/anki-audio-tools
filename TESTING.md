@@ -38,6 +38,26 @@ balanced file shards in isolated pytest subprocesses. Clipboard-using tests stay
 in one shared-desktop shard. `DEV_E2E_JOBS=N` controls the worker count; invalid
 values fall back to the default of up to three workers.
 
+## Race Condition Hardening Tests
+
+Race-sensitive workflows use targeted tests with barrier-controlled fake workers. Run these before and after changing editor async processing, Browser batch execution, prosody analysis caching, or editor bridge pending-request handling.
+
+Use the focused checks while developing:
+
+```bash
+python3 scripts/dev.py test tests/test_editor_async_race_guards.py tests/test_browser_integration.py tests/test_prosody_cache.py
+cd settings_ui && npm test -- editor-inline.bridge-queue-race.test.ts --run
+python3 scripts/dev.py test-e2e e2e/test_editor_async_race_workflow.py
+python3 scripts/dev.py test-e2e e2e/test_browser_batch_race_workflow.py
+```
+
+Before merging race-condition mitigation work, run:
+
+```bash
+python3 scripts/dev.py check
+python3 scripts/dev.py test-e2e
+```
+
 ## Frontend Build Notes
 
 The settings, inline editor, and Browser batch frontends are compiled into ignored generated files under `addon/anki_audio_quick_editor/templates/`. Anki e2e tests load those generated bundles, not the TypeScript or Svelte source in `settings_ui/src/`.
@@ -207,7 +227,7 @@ The inline editor has an additional in-between integration layer in `settings_ui
 
 When adding or changing editor toolbar buttons, update [`EDITOR_MODIFICATION_BUTTON_BEHAVIOR_RULES.md`](EDITOR_MODIFICATION_BUTTON_BEHAVIOR_RULES.md). It maps current editor commands to behavior expectations, e2e/unit coverage, and known buttons that intentionally diverge from standard modification-button rules.
 
-Browser batch operations are covered by Python unit tests for hook registration, WebView shell behavior, state/contract decoding, batch progress/cancel semantics, SVG media writes, denoise parameter routing, skip/failure handling, and target-field appends. The Svelte batch UI is covered in `settings_ui/tests/`. There is still no dedicated real Browser batch dialog e2e workflow, so add one before making risky executor or Browser-selection changes.
+Browser batch operations are covered by Python unit tests for hook registration, WebView shell behavior, state/contract decoding, batch progress/cancel semantics, SVG media writes, denoise parameter routing, skip/failure handling, and target-field appends. The Svelte batch UI is covered in `settings_ui/tests/`. Direct real-WebView batch dialog race coverage lives in `e2e/test_browser_batch_race_workflow.py`; there is still no full Browser-selection-to-dialog e2e workflow, so add one before making risky Browser selection or context-menu changes.
 
 Playback interval e2e tests patch Anki's `av_player` with a fake recorder instead of relying on speakers, microphone capture, or an audio-listening model. The recorder observes `play_tags()`, `seek_relative()`, `stop_and_clear_queue()`, and `toggle_pause()`, and derives the effective original-file `start_ms`/`end_ms` interval AQE asked Anki to play. Cursor playback should use temporary `aqe_playback_*__from_<ms>ms_*.mp3` segments instead of relative seek.
 

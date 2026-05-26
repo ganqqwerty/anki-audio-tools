@@ -107,6 +107,7 @@ class BatchNoteResult:
     audio_filename: str | None = None
     image_filename: str | None = None
     written_filename: str | None = None
+    original_target_html: str | None = None
 
     @property
     def written(self) -> bool:
@@ -302,6 +303,7 @@ def _process_graph_operation(
         message=f"appended {saved_name}",
         target_field=target_field,
         target_html=append_image_reference(note.fields[target_field], saved_name),
+        original_target_html=note.fields[target_field],
         audio_filename=audio_filename,
         image_filename=saved_name,
         written_filename=saved_name,
@@ -402,6 +404,7 @@ def _process_transform_operation(
         message=f"replaced audio with {saved_name}",
         target_field=request.source_field,
         target_html=replaced_html,
+        original_target_html=source_html,
         audio_filename=audio_filename,
         written_filename=saved_name,
     )
