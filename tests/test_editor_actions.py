@@ -225,6 +225,7 @@ def test_play_graph_cursor_and_play_ended_are_not_processing_commands() -> None:
     assert {
         "aqe:play",
         "aqe:play-ended",
+        "aqe:stop-playback",
         "aqe:show-file",
         "aqe:share",
         "aqe:analyze",

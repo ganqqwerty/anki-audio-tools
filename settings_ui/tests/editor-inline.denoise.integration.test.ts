@@ -2,7 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { disposeEditorRuntime, initializeEditorRuntime, scan } from "../src/editor-inline/runtime.js";
 import { PRODUCT_LINKS } from "../src/lib/product-links.js";
-import { bridgeCommands, muteConsole, renderFields } from "./editor-inline.integration.helpers.js";
+import { bridgeCommands, muteConsole, renderFields, track } from "./editor-inline.integration.helpers.js";
 
 describe("editor inline denoise integration", () => {
   let restoreConsole: () => void;
@@ -123,5 +123,36 @@ describe("editor inline denoise integration", () => {
     expect(window.__aqePendingCommandPayload?.fieldOrd).toBe(0);
     expect(window.__aqePendingCommandPayload?.overrides?.denoiseAlgorithm).toBe("dpdfnet");
     expect(window.__aqePendingCommandPayload?.overrides?.dpdfnetAttnLimitDb).toBe(18);
+  });
+
+  it("stops active playback before dispatching a denoise command", async () => {
+    const config = {
+      audioFieldIndices: [0],
+      splitButtonDefaults: {
+        denoiseAlgorithm: "standard" as const,
+        pauseAggressiveness: "normal" as const,
+        repeatPauseSeconds: 0,
+        speedStep: 1.5,
+        volumeStepDb: 15,
+      },
+    };
+    initializeEditorRuntime(config);
+    scan(config);
+    await Promise.resolve();
+    window.__aqeSetVisualizer?.(0, track, 250);
+    const visualizer = document.querySelector<HTMLElement>('[data-testid="aqe-graph-0"]')!;
+    visualizer.dataset.playbackState = "playing";
+    visualizer.dataset.playbackEngine = "native";
+    visualizer.dataset.progressClockMode = "manual";
+
+    document.querySelector<HTMLButtonElement>('[data-testid="aqe-button-0-denoise-standard"]')!.click();
+    await Promise.resolve();
+
+    const commands = bridgeCommands();
+    const stopIndex = commands.indexOf("aqe:stop-playback");
+    const payloadIndex = commands.indexOf("aqe:command-payload");
+    expect(stopIndex).toBeGreaterThanOrEqual(0);
+    expect(payloadIndex).toBeGreaterThan(stopIndex);
+    expect(window.__aqeGraphStateForTest?.(0)?.playbackState).toBe("stopped");
   });
 });

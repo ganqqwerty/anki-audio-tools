@@ -65,6 +65,13 @@ def play(editor: Any, deps: Any) -> None:
 
 def play_ended(editor: Any, deps: Any) -> None:
     """Handle the frontend/native playback-ended callback."""
+    preserve_status = stop_playback(editor, deps)
+    if not preserve_status:
+        deps.eval_status(editor, "")
+
+
+def stop_playback(editor: Any, deps: Any) -> bool:
+    """Stop active playback without clearing editor status text."""
     session = deps.sessions.get(editor)
     preserve_status = False
     if session:
@@ -75,8 +82,7 @@ def play_ended(editor: Any, deps: Any) -> None:
         deps.eval_playback_state(editor, field_index, "stopped", cursor_ms)
     else:
         deps.stop_audio_playback()
-    if not preserve_status:
-        deps.eval_status(editor, "")
+    return preserve_status
 
 
 def play_with_request(editor: Any, request: Any, deps: Any) -> None:

@@ -87,6 +87,7 @@ def bridge_deps(callbacks: Any, frontend_callbacks: Any) -> SimpleNamespace:
         set_cursor_from_web=callbacks.set_cursor_from_web,
         share_current_audio_file=callbacks.share_current_audio_file,
         show_current_audio_file=callbacks.show_current_audio_file,
+        stop_playback=callbacks.stop_playback,
         stop_learner_recording=callbacks.stop_learner_recording,
         undo=callbacks.undo,
         update_state_and_render=callbacks.update_state_and_render,
