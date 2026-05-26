@@ -95,6 +95,7 @@ def _full_config() -> dict[str, object]:
         "denoise_algorithm": "standard",
         "pitch_hum_mode": "direct",
         "pause_aggressiveness": "normal",
+        "pause_detection_algorithm": "deep_filter",
     }
 
 def _parse_callback(js: str, name: str) -> dict:

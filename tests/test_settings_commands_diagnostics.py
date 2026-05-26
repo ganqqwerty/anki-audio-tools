@@ -184,6 +184,7 @@ def test_async_health_check_reports_result() -> None:
     assert "rnnoise" in result["result"]
     assert "dpdfnet" in result["result"]
     assert "spleeter" in result["result"]
+    assert "silero_vad" in result["result"]
 
 
 def test_async_health_check_reports_deep_filter_version() -> None:
@@ -318,5 +319,41 @@ def test_async_health_check_reports_spleeter_probe() -> None:
         "path": "/addon/bin/macos-arm64/sherpa-spleeter",
         "source": "bundled",
         "version": "Non-streaming source separation with sherpa-onnx.",
+        "error": "",
+    }
+
+
+def test_async_health_check_reports_silero_vad_probe() -> None:
+    dialog = _make_dialog()
+    calls, eval_fn = _capture_eval()
+    payload = {
+        "id": "job-1",
+        "op": "health_check",
+        "payload": {"config": _full_config()},
+    }
+
+    with (
+        patch("threading.Thread", _ImmediateThread),
+        patch(
+            "anki_audio_quick_editor.audio_processor.find_silero_vad_bundle",
+            return_value=(
+                Path("/addon/bin/macos-arm64/silero-vad"),
+                Path("/addon/bin/models/silero-vad/silero_vad.onnx"),
+            ),
+        ),
+        patch("anki_audio_quick_editor.diagnostics.subprocess.run") as run,
+    ):
+        run.return_value.returncode = 0
+        run.return_value.stdout = "VAD in sherpa-onnx.\n"
+        run.return_value.stderr = ""
+        handle_settings_command(_bridge_command("settings.async", payload), eval_fn, dialog)
+
+    done_calls = [call for call in calls if call.startswith("window.onAsyncDone(")]
+    result = _parse_callback(done_calls[0], "onAsyncDone")
+    assert result["result"]["silero_vad"] == {
+        "available": True,
+        "path": "/addon/bin/macos-arm64/silero-vad",
+        "source": "bundled",
+        "version": "VAD in sherpa-onnx.",
         "error": "",
     }

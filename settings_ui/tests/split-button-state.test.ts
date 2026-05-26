@@ -194,6 +194,7 @@ describe("split button state", () => {
       fieldOrd: 0,
       overrides: {
         pauseAggressiveness: "aggressive",
+        pauseDetectionAlgorithm: "deep_filter",
       },
     });
     expect(buildSplitCommandPayload("aqe:denoise-standard", 0)).toEqual({

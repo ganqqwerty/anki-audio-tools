@@ -1,13 +1,10 @@
-"""DeepFilter-assisted pause speed-up orchestration."""
+"""DeepFilter- and Silero-assisted pause speed-up orchestration."""
 
 from __future__ import annotations
 
 import json
-import shlex
-import shutil
-import subprocess  # nosec B404
-import time
 from collections.abc import Callable
+from dataclasses import dataclass
 from pathlib import Path
 
 from .audio_artifacts import (
@@ -17,31 +14,36 @@ from .audio_artifacts import (
 )
 from .audio_commands import (
     WAV_MIME_TYPE,
-    build_deep_filter_command,
-    build_deep_filter_prepare_command,
-    build_filter_complex_render_command,
-    build_silencedetect_command,
     build_wav_filter_command,
     build_working_original_filters,
 )
-from .audio_external import (
-    _render_external_error_message,
-    _run_external_command,
-    probe_duration_ms,
-)
-from .audio_noise_reduction import select_deep_filter_output
-from .audio_pipeline import (
-    build_filter_complex_script,
-    intervals_to_json,
-    parse_silencedetect_intervals,
-    plan_pause_timeline,
-    timeline_to_json,
+from .audio_external import probe_duration_ms
+from .audio_pause_pipeline_steps import (
+    _render_deep_filter_analysis_pause_speedup_audio,
+    _render_silero_vad_pause_speedup_audio,
+    _run_pipeline_stage,
 )
 from .audio_state import AudioEditState, AudioProcessingConfig
-from .audio_tools import find_deep_filter
+from .audio_tools import find_deep_filter, find_silero_vad_bundle
 from .audio_types import AudioProcessingResult
-from .errors import AudioProcessingError
-from .support import build_command_record, record_latest_pause_pipeline_support_incident
+from .support import record_latest_pause_pipeline_support_incident
+
+
+@dataclass(frozen=True)
+class _PauseDetectionRuntime:
+    deep_filter_path: Path | None = None
+    silero_vad_path: Path | None = None
+    silero_model_path: Path | None = None
+
+
+@dataclass(frozen=True)
+class _PausePipelinePaths:
+    analysis_input: Path
+    deep_filter_output_dir: Path
+    raw_silence_path: Path
+    intervals_path: Path
+    timeline_path: Path
+    filter_script_path: Path
 
 
 def _render_deep_filter_pause_speedup_audio(
@@ -55,7 +57,7 @@ def _render_deep_filter_pause_speedup_audio(
     artifact_root: Path | None,
     source_duration_ms: int,
 ) -> AudioProcessingResult:
-    deep_filter_path: Path | None = None
+    runtime = _PauseDetectionRuntime()
     run_dir = _create_pause_pipeline_run_dir(source_path, artifact_root)
     manifest_path = run_dir / "manifest.json"
     attempted_commands: list[dict[str, object]] = []
@@ -63,16 +65,9 @@ def _render_deep_filter_pause_speedup_audio(
     artifacts: list[dict[str, object]] = []
     warnings: list[str] = []
     errors: list[str] = []
-    final_duration_ms: int | None = None
     working_original = run_dir / "01_working_original.wav"
-    analysis_input = run_dir / "02_analysis_input_48k_mono.wav"
-    deep_filter_output_dir = run_dir / "03_deep_filter_output"
-    raw_silence_path = run_dir / "04_silencedetect_stderr.txt"
-    intervals_path = run_dir / "04_silence_intervals.json"
-    timeline_path = run_dir / "05_timeline.json"
-    filter_script_path = run_dir / "06_filter_complex.ffscript"
     final_copy_path = run_dir / "07_final_output.mp3"
-    deep_filter_output_dir.mkdir(parents=True, exist_ok=True)
+    paths = _pause_pipeline_artifact_paths(run_dir)
 
     manifest = _build_pause_pipeline_manifest(
         run_dir,
@@ -99,169 +94,64 @@ def _render_deep_filter_pause_speedup_audio(
     artifacts.append(_artifact_record("source", source_path, "input"))
     artifacts.append({"id": "manifest", "path": str(manifest_path), "kind": "manifest", "exists": True})
     try:
-        deep_filter_path = find_deep_filter()
-        manifest["deep_filter_path"] = str(deep_filter_path)
+        runtime = _resolve_pause_detection_runtime(config, manifest)
         write_manifest()
-        working_filters = build_working_original_filters(source_duration_ms, state)
-        working_cmd = build_wav_filter_command(
-            ffmpeg_path,
+        working_duration_ms = _render_working_original(
             source_path,
-            working_filters,
+            state,
+            config,
+            ffmpeg_path,
+            source_duration_ms,
             working_original,
-        )
-        _run_pipeline_stage(
-            "render_working_original",
-            working_cmd,
-            "Could not start working-audio preparation.",
-            "Could not prepare working audio for pause shortening.",
             stages,
             attempted_commands,
+            artifacts,
             on_command,
         )
-        artifacts.append(_artifact_record("working_original", working_original, WAV_MIME_TYPE))
-        working_duration_ms = probe_duration_ms(working_original, config)
         manifest["working_duration_ms"] = working_duration_ms
         write_manifest()
 
-        prepare_cmd = build_deep_filter_prepare_command(ffmpeg_path, working_original, analysis_input)
-        _run_pipeline_stage(
-            "prepare_deep_filter_input",
-            prepare_cmd,
-            "Could not start DeepFilterNet analysis preparation.",
-            "Could not prepare audio for DeepFilterNet pause analysis.",
-            stages,
-            attempted_commands,
-            on_command,
-        )
-        artifacts.append(_artifact_record("analysis_input", analysis_input, WAV_MIME_TYPE))
-        write_manifest()
-
-        deep_filter_cmd = build_deep_filter_command(
-            deep_filter_path,
-            analysis_input,
-            deep_filter_output_dir,
-            post_filter=config.deep_filter_post_filter,
-        )
-        _run_pipeline_stage(
-            "deep_filter_analysis",
-            deep_filter_cmd,
-            "Could not start DeepFilterNet pause analysis.",
-            "DeepFilterNet pause analysis failed.",
-            stages,
-            attempted_commands,
-            on_command,
-        )
-        cleaned_analysis_wav = select_deep_filter_output(deep_filter_output_dir)
-        artifacts.append(_artifact_record("deep_filter_output", cleaned_analysis_wav, WAV_MIME_TYPE))
-        write_manifest()
-
-        silence_cmd = build_silencedetect_command(
+        return _render_selected_pause_detection_pipeline(
+            state,
+            config,
             ffmpeg_path,
-            cleaned_analysis_wav,
-            threshold_db=config.internal_pause_silence_threshold_db,
-            min_duration_ms=config.internal_pause_threshold_ms,
-        )
-        silence_result = _run_pipeline_stage(
-            "detect_silence",
-            silence_cmd,
-            "Could not start pause detection.",
-            "Pause detection failed.",
-            stages,
-            attempted_commands,
-            on_command,
-        )
-        raw_silence_path.write_text(silence_result.stderr, encoding="utf-8")
-        silence_intervals = parse_silencedetect_intervals(
-            silence_result.stderr,
-            working_duration_ms,
-        )
-        intervals_json = intervals_to_json(silence_intervals)
-        intervals_path.write_text(
-            json.dumps(intervals_json, indent=2, sort_keys=True),
-            encoding="utf-8",
-        )
-        manifest["silence_intervals"] = intervals_json
-        artifacts.extend(
-            [
-                _artifact_record("silencedetect_stderr", raw_silence_path, "text/plain"),
-                _artifact_record("silence_intervals", intervals_path, "application/json"),
-            ]
-        )
-        write_manifest()
-
-        timeline = plan_pause_timeline(
-            working_duration_ms,
-            silence_intervals,
-            min_pause_ms=config.internal_pause_threshold_ms,
-            target_gap_ms=config.internal_pause_target_gap_ms,
-        )
-        timeline_json = timeline_to_json(timeline)
-        timeline_path.write_text(
-            json.dumps(timeline_json, indent=2, sort_keys=True),
-            encoding="utf-8",
-        )
-        filter_script = build_filter_complex_script(
-            timeline,
-            volume_db=state.volume_db,
-            speed=state.speed,
-        )
-        filter_script_path.write_text(filter_script, encoding="utf-8")
-        manifest["timeline"] = timeline_json
-        artifacts.extend(
-            [
-                _artifact_record("timeline", timeline_path, "application/json"),
-                _artifact_record("filter_complex_script", filter_script_path, "text/plain"),
-            ]
-        )
-        write_manifest()
-
-        render_cmd = build_filter_complex_render_command(
-            ffmpeg_path,
-            working_original,
-            filter_script_path,
             output_path,
-        )
-        _run_pipeline_stage(
-            "render_final_output",
-            render_cmd,
-            "Could not start pause-shortened audio rendering.",
-            "Could not render pause-shortened audio.",
-            stages,
-            attempted_commands,
             on_command,
-        )
-        if output_path.resolve() != final_copy_path.resolve():
-            shutil.copyfile(output_path, final_copy_path)
-        artifacts.append(_artifact_record("final_output", final_copy_path, "audio/mpeg"))
-        final_duration_ms = probe_duration_ms(output_path, config)
-        manifest["final_output"] = {
-            "path": str(output_path),
-            "artifact_path": str(final_copy_path),
-            "duration_ms": final_duration_ms,
-        }
-        write_manifest()
-        return AudioProcessingResult(
-            output_path=output_path,
-            command=deep_filter_cmd,
-            duration_ms=final_duration_ms,
-            artifact_manifest_path=manifest_path,
+            manifest_path=manifest_path,
+            manifest=manifest,
+            stages=stages,
+            attempted_commands=attempted_commands,
+            artifacts=artifacts,
+            write_manifest=write_manifest,
+            run_dir=run_dir,
+            working_original=working_original,
+            working_duration_ms=working_duration_ms,
+            final_copy_path=final_copy_path,
+            runtime=runtime,
+            analysis_input=paths.analysis_input,
+            deep_filter_output_dir=paths.deep_filter_output_dir,
+            raw_silence_path=paths.raw_silence_path,
+            intervals_path=paths.intervals_path,
+            timeline_path=paths.timeline_path,
+            filter_script_path=paths.filter_script_path,
         )
     except Exception as exc:
         errors.append(str(exc) or type(exc).__name__)
         manifest["final_output"] = {
             "path": str(output_path),
             "artifact_path": str(final_copy_path),
-            "duration_ms": final_duration_ms,
+            "duration_ms": None,
         }
         write_manifest()
         record_latest_pause_pipeline_support_incident(
-            operation="deep_filter_pause_speedup",
+            operation=str(manifest.get("operation") or "deep_filter_pause_speedup"),
             media_filename=source_path.name,
             source_path=str(source_path.resolve()),
             user_message=str(exc),
             exception_type=type(exc).__name__,
             ffmpeg_path=str(ffmpeg_path),
-            deep_filter_path=str(deep_filter_path) if deep_filter_path is not None else "",
+            deep_filter_path=str(runtime.deep_filter_path) if runtime.deep_filter_path is not None else "",
+            silero_vad_path=str(runtime.silero_vad_path) if runtime.silero_vad_path is not None else "",
             manifest_path=str(manifest_path),
             artifact_dir=str(run_dir),
             attempted_commands=attempted_commands,
@@ -269,49 +159,134 @@ def _render_deep_filter_pause_speedup_audio(
         raise
 
 
-def _run_pipeline_stage(
-    name: str,
-    command: tuple[str, ...],
-    launch_error_message: str,
-    failure_message: str,
+def _pause_pipeline_artifact_paths(run_dir: Path) -> _PausePipelinePaths:
+    deep_filter_output_dir = run_dir / "03_deep_filter_output"
+    deep_filter_output_dir.mkdir(parents=True, exist_ok=True)
+    return _PausePipelinePaths(
+        analysis_input=run_dir / "02_analysis_input_48k_mono.wav",
+        deep_filter_output_dir=deep_filter_output_dir,
+        raw_silence_path=run_dir / "04_silencedetect_stderr.txt",
+        intervals_path=run_dir / "04_silence_intervals.json",
+        timeline_path=run_dir / "05_timeline.json",
+        filter_script_path=run_dir / "06_filter_complex.ffscript",
+    )
+
+
+def _resolve_pause_detection_runtime(
+    config: AudioProcessingConfig,
+    manifest: dict[str, object],
+) -> _PauseDetectionRuntime:
+    if config.pause_detection_algorithm == "silero_vad":
+        silero_vad_path, silero_model_path = find_silero_vad_bundle()
+        manifest["operation"] = "silero_vad_pause_speedup"
+        manifest["silero_vad_path"] = str(silero_vad_path)
+        manifest["silero_vad_model_path"] = str(silero_model_path)
+        return _PauseDetectionRuntime(
+            silero_vad_path=silero_vad_path,
+            silero_model_path=silero_model_path,
+        )
+    deep_filter_path = find_deep_filter()
+    manifest["deep_filter_path"] = str(deep_filter_path)
+    return _PauseDetectionRuntime(deep_filter_path=deep_filter_path)
+
+
+def _render_working_original(
+    source_path: Path,
+    state: AudioEditState,
+    config: AudioProcessingConfig,
+    ffmpeg_path: Path,
+    source_duration_ms: int,
+    working_original: Path,
     stages: list[dict[str, object]],
     attempted_commands: list[dict[str, object]],
+    artifacts: list[dict[str, object]],
     on_command: Callable[[tuple[str, ...]], None] | None,
-) -> subprocess.CompletedProcess[str]:
-    if on_command:
-        on_command(command)
-    started = time.monotonic()
-    stage: dict[str, object] = {
-        "name": name,
-        "argv": list(command),
-        "command": shlex.join(command),
-    }
-    try:
-        result = _run_external_command(command, launch_error_message)
-    except AudioProcessingError as exc:
-        stage["duration_seconds"] = round(time.monotonic() - started, 6)
-        stage["launch_error"] = str(exc)
-        stages.append(stage)
-        attempted_commands.append(build_command_record(command, launch_error=str(exc)))
-        raise
+) -> int:
+    working_filters = build_working_original_filters(source_duration_ms, state)
+    working_cmd = build_wav_filter_command(
+        ffmpeg_path,
+        source_path,
+        working_filters,
+        working_original,
+    )
+    _run_pipeline_stage(
+        "render_working_original",
+        working_cmd,
+        "Could not start working-audio preparation.",
+        "Could not prepare working audio for pause shortening.",
+        stages,
+        attempted_commands,
+        on_command,
+    )
+    artifacts.append(_artifact_record("working_original", working_original, WAV_MIME_TYPE))
+    return probe_duration_ms(working_original, config)
 
-    stage.update(
-        {
-            "duration_seconds": round(time.monotonic() - started, 6),
-            "returncode": result.returncode,
-            "stdout": result.stdout.strip(),
-            "stderr": result.stderr.strip(),
-        }
-    )
-    stages.append(stage)
-    attempted_commands.append(
-        build_command_record(
-            command,
-            returncode=result.returncode,
-            stdout=result.stdout,
-            stderr=result.stderr,
+
+def _render_selected_pause_detection_pipeline(
+    state: AudioEditState,
+    config: AudioProcessingConfig,
+    ffmpeg_path: Path,
+    output_path: Path,
+    on_command: Callable[[tuple[str, ...]], None] | None,
+    *,
+    manifest_path: Path,
+    manifest: dict[str, object],
+    stages: list[dict[str, object]],
+    attempted_commands: list[dict[str, object]],
+    artifacts: list[dict[str, object]],
+    write_manifest: Callable[[], None],
+    run_dir: Path,
+    working_original: Path,
+    working_duration_ms: int,
+    analysis_input: Path,
+    deep_filter_output_dir: Path,
+    raw_silence_path: Path,
+    intervals_path: Path,
+    timeline_path: Path,
+    filter_script_path: Path,
+    final_copy_path: Path,
+    runtime: _PauseDetectionRuntime,
+) -> AudioProcessingResult:
+    if runtime.silero_vad_path is not None and runtime.silero_model_path is not None:
+        return _render_silero_vad_pause_speedup_audio(
+            state,
+            config,
+            ffmpeg_path,
+            output_path,
+            on_command,
+            run_dir=run_dir,
+            manifest_path=manifest_path,
+            manifest=manifest,
+            stages=stages,
+            attempted_commands=attempted_commands,
+            artifacts=artifacts,
+            write_manifest=write_manifest,
+            working_original=working_original,
+            working_duration_ms=working_duration_ms,
+            silero_vad_path=runtime.silero_vad_path,
+            silero_model_path=runtime.silero_model_path,
         )
+    assert runtime.deep_filter_path is not None
+    return _render_deep_filter_analysis_pause_speedup_audio(
+        state,
+        config,
+        ffmpeg_path,
+        output_path,
+        on_command,
+        manifest_path=manifest_path,
+        manifest=manifest,
+        stages=stages,
+        attempted_commands=attempted_commands,
+        artifacts=artifacts,
+        write_manifest=write_manifest,
+        working_original=working_original,
+        working_duration_ms=working_duration_ms,
+        analysis_input=analysis_input,
+        deep_filter_output_dir=deep_filter_output_dir,
+        raw_silence_path=raw_silence_path,
+        intervals_path=intervals_path,
+        timeline_path=timeline_path,
+        filter_script_path=filter_script_path,
+        final_copy_path=final_copy_path,
+        deep_filter_path=runtime.deep_filter_path,
     )
-    if result.returncode != 0:
-        raise AudioProcessingError(_render_external_error_message(result, failure_message))
-    return result

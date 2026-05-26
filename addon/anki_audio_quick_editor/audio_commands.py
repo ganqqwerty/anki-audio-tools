@@ -260,6 +260,8 @@ def _atempo_filters(speed: float) -> list[str]:
 
 build_deep_filter_prepare_command = _runtime.build_deep_filter_prepare_command
 build_deep_filter_command = _runtime.build_deep_filter_command
+build_silero_vad_prepare_command = _runtime.build_silero_vad_prepare_command
+build_silero_vad_command = _runtime.build_silero_vad_command
 build_rnnoise_prepare_command = _runtime.build_rnnoise_prepare_command
 build_rnnoise_command = _runtime.build_rnnoise_command
 build_dpdfnet_command = _runtime.build_dpdfnet_command

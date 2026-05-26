@@ -3,6 +3,8 @@
     DPDFNET_ATTENUATION_LIMIT_DB_VALUES,
     formatDpdfnetAggressiveness,
     formatPauseAggressiveness,
+    formatPauseDetectionAlgorithm,
+    PAUSE_DETECTION_ALGORITHM_VALUES,
   } from "$lib/audio-operation-parameters.js";
   import {
     buttonDisplayMode,
@@ -192,6 +194,21 @@
               testId="pause-aggressiveness"
               value={config.pause_aggressiveness}
               onSelect={(value) => (config.pause_aggressiveness = value as PauseAggressiveness)}
+            />
+          </label>
+          <label class="settings-field">
+            <span>{t("settings.pause_detection_algorithm")}</span>
+            <SettingsChoiceGroup
+              ariaLabel={t("settings.pause_detection_algorithm")}
+              options={PAUSE_DETECTION_ALGORITHM_VALUES.map((value) => ({
+                label: formatPauseDetectionAlgorithm(value),
+                value,
+              }))}
+              testId="pause-detection-algorithm"
+              value={config.pause_detection_algorithm}
+              onSelect={(value) => {
+                config.pause_detection_algorithm = value as Config["pause_detection_algorithm"];
+              }}
             />
           </label>
         {:else if button.command === "aqe:denoise-standard"}

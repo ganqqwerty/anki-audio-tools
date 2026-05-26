@@ -153,6 +153,7 @@ function _isHealthReport(value: unknown): value is HealthReport {
     (value.rnnoise === undefined || _isExternalToolHealth(value.rnnoise)) &&
     (value.dpdfnet === undefined || _isExternalToolHealth(value.dpdfnet)) &&
     (value.spleeter === undefined || _isExternalToolHealth(value.spleeter)) &&
+    (value.silero_vad === undefined || _isExternalToolHealth(value.silero_vad)) &&
     (value.runtime === undefined || _isRuntimeStatus(value.runtime))
   );
 }

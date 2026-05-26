@@ -43,8 +43,22 @@ def cmd_fetch_sherpa_spleeter(args: argparse.Namespace, *, load_lock, fetch_sher
     return 0
 
 
+def cmd_fetch_silero_vad(args: argparse.Namespace, *, load_lock, fetch_silero_vad, target_selection) -> int:
+    lock = load_lock()
+    for path in fetch_silero_vad(lock, target_keys=target_selection(args.target)):
+        print(path)
+    return 0
+
+
 def cmd_fetch_spleeter_models(_args: argparse.Namespace, *, load_lock, fetch_spleeter_models) -> int:
     lock = load_lock()
     for path in fetch_spleeter_models(lock):
+        print(path)
+    return 0
+
+
+def cmd_fetch_silero_vad_model(_args: argparse.Namespace, *, load_lock, fetch_silero_vad_model) -> int:
+    lock = load_lock()
+    for path in fetch_silero_vad_model(lock):
         print(path)
     return 0

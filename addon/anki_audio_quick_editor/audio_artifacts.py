@@ -73,6 +73,7 @@ def _pause_pipeline_config_snapshot(config: AudioProcessingConfig) -> dict[str, 
     return {
         "ffmpeg_path": config.ffmpeg_path,
         "deep_filter_post_filter": config.deep_filter_post_filter,
+        "pause_detection_algorithm": config.pause_detection_algorithm,
         "internal_pause_silence_threshold_db": config.internal_pause_silence_threshold_db,
         "internal_pause_threshold_ms": config.internal_pause_threshold_ms,
         "internal_pause_target_gap_ms": config.internal_pause_target_gap_ms,

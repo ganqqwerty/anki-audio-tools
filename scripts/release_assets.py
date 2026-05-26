@@ -19,6 +19,7 @@ from scripts import release_asset_common as _asset_common
 from scripts import release_assets_commands as _cmds
 from scripts import release_assets_runtime_ops as _runtime_ops
 from scripts import release_sherpa_assets as _sherpa_assets
+from scripts import release_silero_assets as _silero_assets
 from scripts.release_asset_common import (
     SHARED_FILE_NAMES,
     TARGET_KEYS,
@@ -230,6 +231,34 @@ def fetch_spleeter_models(lock: dict[str, Any], *, cache_dir: Path = CACHE_DIR) 
     return _sherpa_assets.fetch_spleeter_models(lock, cache_dir=cache_dir)
 
 
+def fetch_silero_vad(
+    lock: dict[str, Any],
+    *,
+    target_keys: list[str],
+    cache_dir: Path = CACHE_DIR,
+    addon_bin_dir: Path = ADDON_BIN_DIR,
+) -> list[Path]:
+    """Fetch locked Sherpa ONNX VAD executable assets."""
+    validate_lock(lock)
+    return _silero_assets.fetch_silero_vad(
+        lock,
+        target_keys=target_keys,
+        cache_dir=cache_dir,
+        addon_bin_dir=addon_bin_dir,
+    )
+
+
+def fetch_silero_vad_model(
+    lock: dict[str, Any],
+    *,
+    cache_dir: Path = CACHE_DIR,
+    addon_bin_dir: Path = ADDON_BIN_DIR,
+) -> list[Path]:
+    """Fetch locked shared Silero VAD model asset."""
+    validate_lock(lock)
+    return _silero_assets.fetch_silero_vad_model(lock, cache_dir=cache_dir, addon_bin_dir=addon_bin_dir)
+
+
 def current_target_key() -> str:
     """Return the release target key for this native platform."""
     return _runtime_ops.current_target_key()
@@ -347,6 +376,23 @@ def _cmd_fetch_spleeter_models(_args: argparse.Namespace) -> int:
     )
 
 
+def _cmd_fetch_silero_vad(args: argparse.Namespace) -> int:
+    return _cmds.cmd_fetch_silero_vad(
+        args,
+        load_lock=load_lock,
+        fetch_silero_vad=fetch_silero_vad,
+        target_selection=_target_selection,
+    )
+
+
+def _cmd_fetch_silero_vad_model(_args: argparse.Namespace) -> int:
+    return _cmds.cmd_fetch_silero_vad_model(
+        _args,
+        load_lock=load_lock,
+        fetch_silero_vad_model=fetch_silero_vad_model,
+    )
+
+
 def _cmd_lock_checksums(_args: argparse.Namespace) -> int:
     lock_checksums()
     print(f"updated {LOCK_PATH.relative_to(ROOT)}")
@@ -368,9 +414,11 @@ def main(argv: list[str] | None = None) -> int:
         cmd_fetch_deepfilter=_cmd_fetch_deepfilter,
         cmd_fetch_ffmpeg=_cmd_fetch_ffmpeg,
         cmd_fetch_sherpa_spleeter=_cmd_fetch_sherpa_spleeter,
+        cmd_fetch_silero_vad=_cmd_fetch_silero_vad,
         cmd_build_rnnoise=_cmd_build_rnnoise,
         cmd_verify=_cmd_verify,
         cmd_fetch_spleeter_models=_cmd_fetch_spleeter_models,
+        cmd_fetch_silero_vad_model=_cmd_fetch_silero_vad_model,
         cmd_lock_checksums=_cmd_lock_checksums,
         cmd_stage=_cmd_stage,
         tool_names=TOOL_NAMES,

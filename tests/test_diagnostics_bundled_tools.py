@@ -10,6 +10,7 @@ from unittest.mock import MagicMock
 from anki_audio_quick_editor.diagnostics import (
     build_dpdfnet_health,
     build_rnnoise_health,
+    build_silero_vad_health,
     build_spleeter_health,
 )
 
@@ -256,5 +257,32 @@ def test_spleeter_health_reports_successful_help_probe(monkeypatch) -> None:
         "path": "/addon/bin/macos-arm64/sherpa-spleeter",
         "source": "bundled",
         "version": "Non-streaming source separation with sherpa-onnx.",
+        "error": "",
+    }
+
+
+def test_silero_vad_health_reports_successful_help_probe(monkeypatch) -> None:
+    monkeypatch.setattr(
+        "anki_audio_quick_editor.audio_processor.expected_bundled_tool_path",
+        lambda tool_name: Path("/addon/bin/macos-arm64/silero-vad") if tool_name == "silero-vad" else None,
+    )
+    monkeypatch.setattr(
+        "anki_audio_quick_editor.audio_processor.find_silero_vad_bundle",
+        lambda: (
+            Path("/addon/bin/macos-arm64/silero-vad"),
+            Path("/addon/bin/models/silero-vad/silero_vad.onnx"),
+        ),
+    )
+
+    def fake_run(cmd, capture_output: bool, text: bool, check: bool, timeout: int) -> SimpleNamespace:
+        assert cmd == ["/addon/bin/macos-arm64/silero-vad", "--help"]
+        return SimpleNamespace(returncode=0, stdout="VAD in sherpa-onnx.\n", stderr="")
+
+    monkeypatch.setattr("anki_audio_quick_editor.diagnostics.subprocess.run", fake_run)
+    assert build_silero_vad_health() == {
+        "available": True,
+        "path": "/addon/bin/macos-arm64/silero-vad",
+        "source": "bundled",
+        "version": "VAD in sherpa-onnx.",
         "error": "",
     }

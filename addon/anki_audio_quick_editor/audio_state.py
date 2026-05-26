@@ -33,6 +33,7 @@ class AudioProcessingConfig:
     internal_pause_threshold_ms: int = 300
     internal_pause_target_gap_ms: int = 100
     pause_aggressiveness: str = "normal"
+    pause_detection_algorithm: str = "deep_filter"
     output_format: str = DEFAULT_OUTPUT_FORMAT
     ffmpeg_path: str = field(default_factory=default_ffmpeg_path)
     deep_filter_post_filter: bool = True
@@ -70,6 +71,9 @@ class AudioProcessingConfig:
             ),
             pause_aggressiveness=str(
                 config.get("pause_aggressiveness", cls.pause_aggressiveness)
+            ),
+            pause_detection_algorithm=str(
+                config.get("pause_detection_algorithm", cls.pause_detection_algorithm)
             ),
             output_format=normalize_output_format(config.get("output_format", cls.output_format)),
             ffmpeg_path=str(config.get("ffmpeg_path", default_ffmpeg_path())),

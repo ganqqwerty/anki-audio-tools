@@ -242,6 +242,9 @@ def _on_editor_will_load_note(js: str, note: Any, editor: Any) -> str:
             ),
             "shareTarget": str(config.get("share_target", "litterbox")),
             "pauseAggressiveness": str(config.get("pause_aggressiveness", "normal")),
+            "pauseDetectionAlgorithm": str(
+                config.get("pause_detection_algorithm", "deep_filter")
+            ),
             "denoiseAlgorithm": str(config.get("denoise_algorithm", "standard")),
             "pitchHumMode": str(config.get("pitch_hum_mode", "direct")),
             "outputFormat": str(config.get("output_format", "mp3")),

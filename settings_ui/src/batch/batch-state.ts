@@ -3,6 +3,7 @@ import {
   BatchParameterKind,
   BatchParameterName,
   BatchPauseAggressiveness,
+  BatchPauseDetectionAlgorithm,
   DenoiseAlgorithm,
   Direction,
   OutputFormat,
@@ -27,6 +28,7 @@ export interface BatchFormState {
   speedStep: number;
   volumeStepDb: number;
   pauseAggressiveness: BatchPauseAggressiveness;
+  pauseDetectionAlgorithm: BatchPauseDetectionAlgorithm;
   denoiseAlgorithm: DenoiseAlgorithm;
   dpdfnetAttnLimitDb: number;
   targetFormat: OutputFormatValue;
@@ -97,6 +99,7 @@ export const FALLBACK_BATCH_INITIAL_STATE: BatchInitialState = {
     speed_step: 1.5,
     volume_step_db: 15,
     pause_aggressiveness: BatchPauseAggressiveness.Normal,
+    pause_detection_algorithm: BatchPauseDetectionAlgorithm.DeepFilter,
     denoise_algorithm: DenoiseAlgorithm.Standard,
     dpdfnet_attn_limit_db: 12,
     output_format: OutputFormat.Mp3,
@@ -120,6 +123,7 @@ export function initialFormState(state: BatchInitialState): BatchFormState {
     speedStep: state.defaults.speed_step,
     volumeStepDb: state.defaults.volume_step_db,
     pauseAggressiveness: state.defaults.pause_aggressiveness,
+    pauseDetectionAlgorithm: state.defaults.pause_detection_algorithm,
     denoiseAlgorithm: state.defaults.denoise_algorithm,
     dpdfnetAttnLimitDb: clampDpdfnetAttnLimitDb(state.defaults.dpdfnet_attn_limit_db),
     targetFormat: outputFormatOrDefault(state.defaults.output_format),
@@ -161,6 +165,7 @@ export function batchStartRequest(
   }
   if (operation?.parameter_name === BatchParameterName.PauseAggressiveness) {
     request.parameters.pause_aggressiveness = form.pauseAggressiveness;
+    request.parameters.pause_detection_algorithm = form.pauseDetectionAlgorithm;
   }
   if (operation?.parameter_name === BatchParameterName.DenoiseAlgorithm) {
     request.parameters.denoise_algorithm = form.denoiseAlgorithm;

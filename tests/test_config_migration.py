@@ -283,6 +283,24 @@ class TestMigrateConfig:
         assert migrated["_config_version"] == CURRENT_CONFIG_VERSION
         assert changed is True
 
+    def test_snaps_unknown_pause_detection_algorithm_to_default(self) -> None:
+        user = {
+            "_config_version": 15,
+            "enabled": True,
+            "pause_detection_algorithm": "unknown",
+        }
+        defaults = {
+            "_config_version": CURRENT_CONFIG_VERSION,
+            "enabled": True,
+            "pause_detection_algorithm": "deep_filter",
+        }
+
+        migrated, changed = migrate_config(user, defaults)
+
+        assert migrated["pause_detection_algorithm"] == "deep_filter"
+        assert migrated["_config_version"] == CURRENT_CONFIG_VERSION
+        assert changed is True
+
     def test_current_version_only_marks_change_when_defaults_add_values(self) -> None:
         user = {"_config_version": CURRENT_CONFIG_VERSION, "enabled": False}
         defaults = {

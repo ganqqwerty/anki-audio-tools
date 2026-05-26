@@ -25,6 +25,7 @@ def test_build_batch_initial_state_contains_operations_fields_defaults_and_i18n(
             speed_step=2.0,
             volume_step_db=6.0,
             pause_aggressiveness="aggressive",
+            pause_detection_algorithm="silero_vad",
             denoise_algorithm="dpdfnet",
             dpdfnet_attn_limit_db=18.0,
             output_format="flac",
@@ -37,6 +38,7 @@ def test_build_batch_initial_state_contains_operations_fields_defaults_and_i18n(
         "speed_step": 2.0,
         "volume_step_db": 6.0,
         "pause_aggressiveness": "aggressive",
+        "pause_detection_algorithm": "silero_vad",
         "denoise_algorithm": "dpdfnet",
         "dpdfnet_attn_limit_db": 18.0,
         "output_format": "flac",
@@ -94,6 +96,24 @@ def test_request_from_batch_start_payload_builds_denoise_parameters() -> None:
     assert request.operation == "denoise"
     assert request.parameters.denoise_algorithm == "dpdfnet"
     assert request.parameters.dpdfnet_attn_limit_db == 18.0
+
+
+def test_request_from_batch_start_payload_builds_pause_parameters() -> None:
+    request = request_from_batch_start_payload(
+        {
+            "operation": "remove_pauses",
+            "source_field": "Audio",
+            "target_field": None,
+            "parameters": {
+                "pause_aggressiveness": "gentle",
+                "pause_detection_algorithm": "silero_vad",
+            },
+        }
+    )
+
+    assert request.operation == "remove_pauses"
+    assert request.parameters.pause_aggressiveness == "gentle"
+    assert request.parameters.pause_detection_algorithm == "silero_vad"
 
 
 def test_request_from_batch_start_payload_builds_convert_parameters() -> None:

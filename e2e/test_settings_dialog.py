@@ -166,6 +166,7 @@ def test_save_command_writes_config(anki_mw) -> None:
         "denoise_algorithm": "standard",
         "pitch_hum_mode": "direct",
         "pause_aggressiveness": "normal",
+        "pause_detection_algorithm": "deep_filter",
     }
     eval_calls: list[str] = []
     dialog = type("Dialog", (), {"accept": lambda self: None, "reject": lambda self: None})()

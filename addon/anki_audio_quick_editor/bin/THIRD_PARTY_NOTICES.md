@@ -62,3 +62,16 @@ release packaging.
   stages the required ONNX Runtime libraries beside it, and shares
   `vocals.fp16.onnx` and `accompaniment.fp16.onnx` once under
   `bin/models/spleeter-2stems-fp16/`.
+
+## Sherpa ONNX Silero VAD
+
+- Version: Sherpa ONNX 1.13.2 runtime plus `silero_vad.onnx`.
+- Runtime source: https://github.com/k2-fsa/sherpa-onnx/releases/tag/v1.13.2
+- Model source: https://github.com/k2-fsa/sherpa-onnx/releases/tag/asr-models
+- License posture: Sherpa ONNX runtime assets are published under Apache-2.0
+  terms; the Silero VAD model follows the upstream model release terms tracked
+  in `release_assets.lock.json`.
+- Distribution note: release packaging extracts the upstream
+  `sherpa-onnx-vad` executable as `silero-vad`, stages the required ONNX
+  Runtime libraries beside it, and shares `silero_vad.onnx` once under
+  `bin/models/silero-vad/`.

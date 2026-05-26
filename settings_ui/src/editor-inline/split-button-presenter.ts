@@ -3,6 +3,7 @@ import { formatGraphRecordingCondition, formatGraphSmoothness, formatGraphVoiceL
 import {
   formatDenoiseAlgorithm,
   formatOutputFormat,
+  formatPauseDetectionAlgorithm,
   formatSpeedStep,
   formatVoiceRecordingCountdownSeconds,
   formatVolumeDb,
@@ -25,6 +26,7 @@ type SplitButtonValueState = {
   graphVoiceRange: GraphVoiceRange;
   outputFormat: OutputFormatValue;
   pauseAggressiveness: FieldSplitButtonState["pauseAggressiveness"];
+  pauseDetectionAlgorithm: FieldSplitButtonState["pauseDetectionAlgorithm"];
   pitchHumMode: PitchHumMode;
   shareTarget: ShareTarget;
   speedStep: number;
@@ -86,11 +88,12 @@ export function currentValueLabel(
   if (button.command === "aqe:volume-up" || button.command === "aqe:volume-down") return formatVolumeDb(state.volumeStepDb);
   if (button.command === "aqe:faster" || button.command === "aqe:slower") return formatSpeedStep(state.speedStep, button.command);
   if (button.command === "aqe:remove-pauses") {
-    return state.pauseAggressiveness === "aggressive"
+    const level = state.pauseAggressiveness === "aggressive"
       ? t("settings.pause_aggressiveness.aggressive")
       : state.pauseAggressiveness === "gentle"
         ? t("settings.pause_aggressiveness.gentle")
         : t("settings.pause_aggressiveness.normal");
+    return `${level} · ${formatPauseDetectionAlgorithm(state.pauseDetectionAlgorithm)}`;
   }
   if (button.command === "aqe:convert") return formatOutputFormat(state.outputFormat);
   if (button.command === "aqe:share") {

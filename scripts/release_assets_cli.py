@@ -11,9 +11,11 @@ def build_parser(
     cmd_fetch_deepfilter: Callable[[argparse.Namespace], int],
     cmd_fetch_ffmpeg: Callable[[argparse.Namespace], int],
     cmd_fetch_sherpa_spleeter: Callable[[argparse.Namespace], int],
+    cmd_fetch_silero_vad: Callable[[argparse.Namespace], int],
     cmd_build_rnnoise: Callable[[argparse.Namespace], int],
     cmd_verify: Callable[[argparse.Namespace], int],
     cmd_fetch_spleeter_models: Callable[[argparse.Namespace], int],
+    cmd_fetch_silero_vad_model: Callable[[argparse.Namespace], int],
     cmd_lock_checksums: Callable[[argparse.Namespace], int],
     cmd_stage: Callable[[argparse.Namespace], int],
     tool_names: list[str],
@@ -24,6 +26,7 @@ def build_parser(
         ("fetch-deepfilter", cmd_fetch_deepfilter),
         ("fetch-ffmpeg", cmd_fetch_ffmpeg),
         ("fetch-sherpa-spleeter", cmd_fetch_sherpa_spleeter),
+        ("fetch-silero-vad", cmd_fetch_silero_vad),
         ("build-rnnoise", cmd_build_rnnoise),
         ("verify", cmd_verify),
     ):
@@ -37,6 +40,7 @@ def build_parser(
             )
         subparser.set_defaults(func=func)
     subparsers.add_parser("fetch-spleeter-models").set_defaults(func=cmd_fetch_spleeter_models)
+    subparsers.add_parser("fetch-silero-vad-model").set_defaults(func=cmd_fetch_silero_vad_model)
     subparsers.add_parser("lock-checksums").set_defaults(func=cmd_lock_checksums)
     stage = subparsers.add_parser("stage")
     stage.add_argument("--target", default="all")

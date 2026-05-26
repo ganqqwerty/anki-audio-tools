@@ -212,6 +212,84 @@ def build_spleeter_health() -> dict[str, Any]:
     }
 
 
+def build_silero_vad_health() -> dict[str, Any]:
+    """Return bundled Silero VAD availability and probe details."""
+    from .audio_processor import (
+        _external_command_run_kwargs,
+        expected_bundled_tool_path,
+        find_silero_vad_bundle,
+    )
+    from .audio_tools import expected_managed_tool_path
+
+    expected_path = expected_managed_tool_path("silero-vad") or expected_bundled_tool_path("silero-vad")
+    try:
+        silero_path, _ = find_silero_vad_bundle()
+    except Exception as exc:
+        return _missing_bundled_silero_health(expected_path, exc)
+
+    result = _run_silero_help_probe(silero_path, _external_command_run_kwargs())
+    if isinstance(result, dict):
+        return result
+
+    probe_output = (result.stdout or result.stderr).strip()
+    version = _silero_probe_summary(probe_output)
+    return {
+        "available": result.returncode == 0,
+        "path": str(silero_path),
+        "source": _managed_or_bundled_source(silero_path),
+        "version": version if result.returncode == 0 else "",
+        "error": "" if result.returncode == 0 else probe_output or "silero-vad --help failed.",
+    }
+
+
+def _missing_bundled_silero_health(expected_path: Any, exc: Exception) -> dict[str, Any]:
+    return {
+        "available": False,
+        "path": str(expected_path) if expected_path is not None else "",
+        "source": _runtime_source_for_expected_path(expected_path),
+        "version": "",
+        "error": str(exc),
+    }
+
+
+def _run_silero_help_probe(
+    silero_path: Any,
+    run_kwargs: dict[str, Any],
+) -> subprocess.CompletedProcess[str] | dict[str, Any]:
+    try:
+        return subprocess.run(
+            [str(silero_path), "--help"],
+            capture_output=True,
+            text=True,
+            check=False,
+            timeout=10,
+            **run_kwargs,
+        )  # nosec B603
+    except OSError as exc:
+        return {
+            "available": False,
+            "path": str(silero_path),
+            "source": _managed_or_bundled_source(silero_path),
+            "version": "",
+            "error": str(exc),
+        }
+    except subprocess.TimeoutExpired:
+        return {
+            "available": False,
+            "path": str(silero_path),
+            "source": _managed_or_bundled_source(silero_path),
+            "version": "",
+            "error": "silero-vad --help timed out.",
+        }
+
+
+def _silero_probe_summary(probe_output: str) -> str:
+    return next(
+        (line.strip() for line in probe_output.splitlines() if "vad in sherpa-onnx" in line.lower()),
+        "",
+    ) or next((line.strip() for line in probe_output.splitlines() if line.strip()), "")
+
+
 def _missing_bundled_spleeter_health(expected_path: Any, exc: Exception) -> dict[str, Any]:
     return {
         "available": False,

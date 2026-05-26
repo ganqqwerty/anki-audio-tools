@@ -12,6 +12,7 @@ from .errors import (
     MissingDpdfnetError,
     MissingFfmpegError,
     MissingRnnoiseError,
+    MissingSileroVadError,
     MissingSpleeterError,
 )
 
@@ -52,6 +53,11 @@ _TOOL_EXECUTABLES = {
         "macos-arm64": "sherpa-spleeter",
         "macos-x86_64": "sherpa-spleeter",
         "windows-x86_64": "sherpa-spleeter.exe",
+    },
+    "silero-vad": {
+        "macos-arm64": "silero-vad",
+        "macos-x86_64": "silero-vad",
+        "windows-x86_64": "silero-vad.exe",
     },
 }
 def current_platform_key() -> str | None:
@@ -279,6 +285,39 @@ def find_spleeter_bundle() -> tuple[Path, Path, Path]:
     )
 
 
+def expected_bundled_silero_vad_model_path() -> Path | None:
+    """Return the expected bundled Silero VAD model path."""
+    if current_platform_key() is None:
+        return None
+    return _PACKAGE_DIR / "bin" / "models" / "silero-vad" / "silero_vad.onnx"
+
+
+def find_silero_vad_bundle() -> tuple[Path, Path]:
+    """Return bundled Sherpa ONNX Silero VAD executable and model paths."""
+    managed_executable = managed_tool_path("silero-vad")
+    managed_model = runtime_manager.managed_silero_vad_model_path(_PACKAGE_DIR)
+    if managed_executable is not None and managed_model is not None:
+        return managed_executable, managed_model
+    if managed_executable is not None:
+        expected_model = runtime_manager.expected_managed_silero_vad_model_path(_PACKAGE_DIR)
+        raise MissingSileroVadError(
+            f"Silero VAD requires the managed model at {expected_model}. "
+            "The runtime may still be downloading or missing; open Settings > Diagnostics to install or repair it."
+        )
+
+    managed_expected = expected_managed_tool_path("silero-vad")
+    bundled_expected = expected_bundled_tool_path("silero-vad")
+    if bundled_expected is not None and bundled_expected.is_file():
+        return bundled_expected, _required_silero_vad_model()
+    executable_path = managed_expected or bundled_expected
+    if executable_path is None:
+        raise MissingSileroVadError(f"Silero VAD is not bundled for {platform_description()}.")
+    raise MissingSileroVadError(
+        f"Silero VAD requires the managed or bundled silero-vad executable at {executable_path}. "
+        "The runtime may still be downloading or missing; open Settings > Diagnostics to install or repair it."
+    )
+
+
 def _required_spleeter_model(model_name: str) -> Path:
     model_path = expected_bundled_spleeter_model_path(model_name)
     if model_path is None:
@@ -286,6 +325,18 @@ def _required_spleeter_model(model_name: str) -> Path:
     if not model_path.is_file():
         raise MissingSpleeterError(
             f"Voice Only requires the managed or bundled Sherpa Spleeter model at {model_path}. "
+            "The runtime may still be downloading or missing; open Settings > Diagnostics to install or repair it."
+        )
+    return model_path
+
+
+def _required_silero_vad_model() -> Path:
+    model_path = expected_bundled_silero_vad_model_path()
+    if model_path is None:
+        raise MissingSileroVadError(f"Silero VAD model is not bundled for {platform_description()}.")
+    if not model_path.is_file():
+        raise MissingSileroVadError(
+            f"Silero VAD requires the managed or bundled model at {model_path}. "
             "The runtime may still be downloading or missing; open Settings > Diagnostics to install or repair it."
         )
     return model_path

@@ -270,7 +270,7 @@ def _validate_notices(zf: zipfile.ZipFile, names: set[str], *, include_ffmpeg: b
     if notice_name not in names:
         _validation_error(f"missing required file {notice_name}")
     notice_text = zf.read(notice_name).decode("utf-8", errors="replace")
-    required_notices = ["DeepFilterNet", "RNNoise", "DPDFNet", "Sherpa", "Spleeter"]
+    required_notices = ["DeepFilterNet", "RNNoise", "DPDFNet", "Sherpa", "Spleeter", "Silero"]
     if include_ffmpeg:
         required_notices[:0] = ["FFmpeg", "LAME"]
     for required in required_notices:

@@ -127,6 +127,7 @@ class EditorCommandOverrides:
     volume_step_db: float | None = None
     speed_step: float | None = None
     pause_aggressiveness: str | None = None
+    pause_detection_algorithm: str | None = None
     denoise_algorithm: str | None = None
     dpdfnet_attn_limit_db: float | None = None
     target_format: str | None = None
@@ -162,6 +163,7 @@ def _overrides_from_raw(raw: Any) -> EditorCommandOverrides:
         volume_step_db=raw.get("volumeStepDb"),
         speed_step=raw.get("speedStep"),
         pause_aggressiveness=raw.get("pauseAggressiveness"),
+        pause_detection_algorithm=raw.get("pauseDetectionAlgorithm"),
         denoise_algorithm=raw.get("denoiseAlgorithm"),
         dpdfnet_attn_limit_db=raw.get("dpdfnetAttnLimitDb"),
         target_format=raw.get("targetFormat"),
@@ -170,6 +172,7 @@ def _overrides_from_raw(raw: Any) -> EditorCommandOverrides:
         volume_step_db=params.volume_step_db,
         speed_step=params.speed_step,
         pause_aggressiveness=params.pause_aggressiveness,
+        pause_detection_algorithm=params.pause_detection_algorithm,
         denoise_algorithm=params.denoise_algorithm,
         dpdfnet_attn_limit_db=params.dpdfnet_attn_limit_db,
         target_format=params.target_format,
@@ -243,6 +246,7 @@ def processing_config_for_command(
             volume_step_db=payload.overrides.volume_step_db,
             speed_step=payload.overrides.speed_step,
             pause_aggressiveness=payload.overrides.pause_aggressiveness,
+            pause_detection_algorithm=payload.overrides.pause_detection_algorithm,
             target_format=payload.overrides.target_format,
         ),
     )

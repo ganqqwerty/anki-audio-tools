@@ -4,8 +4,11 @@ from __future__ import annotations
 
 import logging
 import shutil
+from collections.abc import Callable
+from datetime import datetime
 from importlib import import_module
 from pathlib import Path
+from typing import Any
 
 from .audio_formats import format_label, is_same_visible_format
 from .audio_operation_params import effective_config_for_operation
@@ -25,7 +28,7 @@ from .sound_refs import SoundReference, replace_sound_reference
 logger = logging.getLogger(__name__)
 
 
-def _facade_attr(name: str):
+def _facade_attr(name: str) -> Any:
     facade = import_module(".batch_operations", package=__package__)
     return getattr(facade, name)
 
@@ -37,10 +40,10 @@ def process_graph_operation(
     source_path: Path,
     audio_filename: str,
     config: AudioProcessingConfig,
-    media_writer,
-    now_provider,
+    media_writer: Callable[[str, bytes], str],
+    now_provider: Callable[[], datetime] | None,
     operation_id: str,
-    append_image_reference,
+    append_image_reference: Callable[[str, str], str],
 ) -> BatchNoteResult:
     target_field = request.target_field
     assert target_field is not None
@@ -102,7 +105,7 @@ def process_transform_operation(
     selection: SoundReference,
     audio_filename: str,
     config: AudioProcessingConfig,
-    media_writer,
+    media_writer: Callable[[str, bytes], str],
     artifact_root: Path | None,
     operation_id: str,
 ) -> BatchNoteResult:

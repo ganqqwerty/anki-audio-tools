@@ -42,6 +42,7 @@ export interface SplitButtonDefaults {
   graphVoiceRange?: GraphVoiceRange;
   outputFormat?: OutputFormatValue;
   pauseAggressiveness: "gentle" | "normal" | "aggressive";
+  pauseDetectionAlgorithm?: PauseDetectionAlgorithm;
   pitchHumMode?: PitchHumMode;
   repeatPauseSeconds: number;
   shareTarget?: "catbox" | "litterbox";
@@ -59,6 +60,7 @@ export interface EditorCommandPayload {
     denoiseAlgorithm?: DenoiseAlgorithm;
     dpdfnetAttnLimitDb?: number;
     pauseAggressiveness?: "gentle" | "normal" | "aggressive";
+    pauseDetectionAlgorithm?: PauseDetectionAlgorithm;
     pitchHumMode?: PitchHumMode;
     speedStep?: number;
     targetFormat?: OutputFormatValue;
@@ -76,6 +78,7 @@ export interface FieldSplitButtonState {
   defaultGraphVoiceRange: GraphVoiceRange;
   defaultOutputFormat: OutputFormatValue;
   defaultPauseAggressiveness: "gentle" | "normal" | "aggressive";
+  defaultPauseDetectionAlgorithm: PauseDetectionAlgorithm;
   defaultDpdfnetAttnLimitDb: number;
   defaultPitchHumMode: PitchHumMode;
   defaultRepeatPauseSeconds: number;
@@ -95,6 +98,7 @@ export interface FieldSplitButtonState {
   outputFormat: OutputFormatValue;
   outputFormatEdited: boolean;
   pauseAggressiveness: "gentle" | "normal" | "aggressive";
+  pauseDetectionAlgorithm: PauseDetectionAlgorithm;
   pauseEdited: boolean;
   pitchHumEdited: boolean;
   pitchHumMode: PitchHumMode;
@@ -168,6 +172,7 @@ export interface RegionDeleteRequest {
 }
 
 type DenoiseAlgorithm = "standard" | "rnnoise" | "dpdfnet" | "voice_only";
+type PauseDetectionAlgorithm = "deep_filter" | "silero_vad";
 
 type PitchHumMode = "direct" | "pitch_tier";
 

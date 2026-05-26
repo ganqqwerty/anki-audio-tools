@@ -12,12 +12,14 @@ from anki_audio_quick_editor.audio_processor import (
     find_ffmpeg,
     find_ffprobe,
     find_rnnoise_bundle,
+    find_silero_vad_bundle,
     find_spleeter_bundle,
 )
 from anki_audio_quick_editor.errors import (
     MissingDeepFilterError,
     MissingFfmpegError,
     MissingRnnoiseError,
+    MissingSileroVadError,
     MissingSpleeterError,
 )
 
@@ -261,6 +263,51 @@ def test_find_spleeter_bundle_reports_missing_model(
 
     with pytest.raises(MissingSpleeterError, match="accompaniment.fp16.onnx"):
         find_spleeter_bundle()
+
+
+def test_find_silero_vad_bundle_uses_bundled_executable_and_model(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    executable = tmp_path / "bin" / "macos-arm64" / "silero-vad"
+    model = tmp_path / "bin" / "models" / "silero-vad" / "silero_vad.onnx"
+    executable.parent.mkdir(parents=True)
+    model.parent.mkdir(parents=True)
+    executable.write_text("")
+    model.write_text("")
+
+    monkeypatch.setattr(
+        "anki_audio_quick_editor.audio_processor.expected_bundled_tool_path",
+        lambda tool_name: executable if tool_name == "silero-vad" else None,
+    )
+    monkeypatch.setattr(
+        "anki_audio_quick_editor.audio_processor.expected_bundled_silero_vad_model_path",
+        lambda: model,
+    )
+
+    assert find_silero_vad_bundle() == (executable, model)
+
+
+def test_find_silero_vad_bundle_reports_missing_model(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    executable = tmp_path / "bin" / "macos-arm64" / "silero-vad"
+    model = tmp_path / "bin" / "models" / "silero-vad" / "silero_vad.onnx"
+    executable.parent.mkdir(parents=True)
+    executable.write_text("")
+
+    monkeypatch.setattr(
+        "anki_audio_quick_editor.audio_processor.expected_bundled_tool_path",
+        lambda tool_name: executable if tool_name == "silero-vad" else None,
+    )
+    monkeypatch.setattr(
+        "anki_audio_quick_editor.audio_processor.expected_bundled_silero_vad_model_path",
+        lambda: model,
+    )
+
+    with pytest.raises(MissingSileroVadError, match="silero_vad.onnx"):
+        find_silero_vad_bundle()
 
 
 def test_find_ffprobe_prefers_sibling_binary(tmp_path: Path, monkeypatch) -> None:

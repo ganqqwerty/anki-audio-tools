@@ -24,7 +24,7 @@ def write_verified_target_sources(lock: dict, cache_dir: Path, addon_bin_dir: Pa
         payload = f"{target}/{tool_name}".encode()
         write_locked_file(release_assets.source_tool_binary_path(cache_dir, addon_bin_dir, target, tool_name, entry), payload, entry)
         for file_entry in release_assets.tool_runtime_files(lock, target, tool_name):
-            runtime_payload = f"{target}/{tool_name}/{file_entry['path']}".encode()
+            runtime_payload = f"{target}/{file_entry['path']}".encode()
             write_locked_file(release_assets.tracked_runtime_file_path(addon_bin_dir, target, file_entry), runtime_payload, file_entry)
     for file_name in release_assets.SHARED_FILE_NAMES:
         entry = lock["shared_files"][file_name]
@@ -38,7 +38,7 @@ def write_verified_target_tracked_files(lock: dict, addon_bin_dir: Path, target:
         entry = lock["targets"][target]["tools"][tool_name]
         write_locked_file(release_assets.tracked_tool_binary_path(addon_bin_dir, target, entry), f"{target}/{tool_name}".encode(), entry)
         for file_entry in release_assets.tool_runtime_files(lock, target, tool_name):
-            runtime_payload = f"{target}/{tool_name}/{file_entry['path']}".encode()
+            runtime_payload = f"{target}/{file_entry['path']}".encode()
             write_locked_file(release_assets.tracked_runtime_file_path(addon_bin_dir, target, file_entry), runtime_payload, file_entry)
     for file_name in release_assets.SHARED_FILE_NAMES:
         entry = lock["shared_files"][file_name]

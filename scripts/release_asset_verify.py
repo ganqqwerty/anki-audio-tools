@@ -16,6 +16,7 @@ from scripts.release_asset_common import (
     tracked_shared_asset_path,
 )
 from scripts.release_sherpa_assets import append_sherpa_spleeter_smoke_report
+from scripts.release_silero_assets import append_silero_vad_smoke_report
 
 
 def verify_assets(
@@ -56,6 +57,14 @@ def verify_assets(
         append_sherpa_spleeter_smoke_report(
             lock,
             cache_dir=cache_dir,
+            addon_bin_dir=addon_bin_dir,
+            target_keys=target_keys,
+            current_target=current_target_key(),
+            reports=reports,
+            errors=errors,
+        )
+        append_silero_vad_smoke_report(
+            lock,
             addon_bin_dir=addon_bin_dir,
             target_keys=target_keys,
             current_target=current_target_key(),

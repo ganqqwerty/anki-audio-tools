@@ -10,6 +10,7 @@ from anki_audio_quick_editor.diagnostics import (
     build_deep_filter_health,
     build_dpdfnet_health,
     build_rnnoise_health,
+    build_silero_vad_health,
     build_spleeter_health,
 )
 from anki_audio_quick_editor.errors import MissingDeepFilterError
@@ -126,7 +127,7 @@ def test_health_checks_forward_window_visibility_kwargs(monkeypatch) -> None:
         "anki_audio_quick_editor.audio_processor.expected_bundled_tool_path",
         lambda tool_name: (
             Path(f"/addon/bin/{tool_name}")
-            if tool_name in {"rnnoise-cli", "dpdfnet", "sherpa-spleeter"}
+            if tool_name in {"rnnoise-cli", "dpdfnet", "sherpa-spleeter", "silero-vad"}
             else None
         ),
     )
@@ -140,6 +141,13 @@ def test_health_checks_forward_window_visibility_kwargs(monkeypatch) -> None:
             Path("/addon/bin/sherpa-spleeter"),
             Path("/addon/bin/models/spleeter-2stems-fp16/vocals.fp16.onnx"),
             Path("/addon/bin/models/spleeter-2stems-fp16/accompaniment.fp16.onnx"),
+        ),
+    )
+    monkeypatch.setattr(
+        "anki_audio_quick_editor.audio_processor.find_silero_vad_bundle",
+        lambda: (
+            Path("/addon/bin/silero-vad"),
+            Path("/addon/bin/models/silero-vad/silero_vad.onnx"),
         ),
     )
     monkeypatch.setattr(
@@ -169,10 +177,11 @@ def test_health_checks_forward_window_visibility_kwargs(monkeypatch) -> None:
     assert build_rnnoise_health()["available"] is True
     assert build_dpdfnet_health()["available"] is True
     assert build_spleeter_health()["available"] is True
+    assert build_silero_vad_health()["available"] is True
     assert run_kwargs == [
         {"creationflags": 0x08000000},
         {"creationflags": 0x08000000},
         {"creationflags": 0x08000000},
         {"creationflags": 0x08000000},
+        {"creationflags": 0x08000000},
     ]
-

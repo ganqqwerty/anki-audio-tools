@@ -27,6 +27,7 @@ def test_injection_script_embeds_audio_field_indices_and_bundle() -> None:
     assert config["splitButtonDefaults"]["voiceRecordingCountdownSeconds"] == 3
     assert config["splitButtonDefaults"]["shareTarget"] == "litterbox"
     assert config["splitButtonDefaults"]["pitchHumMode"] == "direct"
+    assert config["splitButtonDefaults"]["pauseDetectionAlgorithm"] == "deep_filter"
     assert config["splitButtonDefaults"]["dpdfnetAttnLimitDb"] == 12.0
     assert config["splitButtonDefaults"]["outputFormat"] == "mp3"
     assert config["splitButtonDefaults"]["graphVoiceRange"] == "general"
@@ -96,6 +97,7 @@ def test_injection_script_embeds_split_button_defaults() -> None:
             "speedStep": 0.1,
             "repeatPauseSeconds": 2.0,
             "pauseAggressiveness": "normal",
+            "pauseDetectionAlgorithm": "silero_vad",
             "outputFormat": "mp3",
             "denoiseAlgorithm": "standard",
             "pitchHumMode": "pitch_tier",
@@ -108,6 +110,7 @@ def test_injection_script_embeds_split_button_defaults() -> None:
         "speedStep": 0.1,
         "repeatPauseSeconds": 2.0,
         "pauseAggressiveness": "normal",
+        "pauseDetectionAlgorithm": "silero_vad",
         "outputFormat": "mp3",
         "denoiseAlgorithm": "standard",
         "pitchHumMode": "pitch_tier",

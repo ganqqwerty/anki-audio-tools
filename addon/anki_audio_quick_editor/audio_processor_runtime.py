@@ -18,8 +18,17 @@ def sync_external_dependencies(audio_external: Any, *, subprocess_module: Any, f
     audio_external.find_ffprobe = find_ffprobe
 
 
-def sync_pause_dependencies(audio_pause_pipeline: Any, *, find_deep_filter: Any, probe_duration_ms: Any, run_external_command: Any, render_external_error_message: Any) -> None:
+def sync_pause_dependencies(
+    audio_pause_pipeline: Any,
+    *,
+    find_deep_filter: Any,
+    find_silero_vad_bundle: Any,
+    probe_duration_ms: Any,
+    run_external_command: Any,
+    render_external_error_message: Any,
+) -> None:
     audio_pause_pipeline.find_deep_filter = find_deep_filter
+    audio_pause_pipeline.find_silero_vad_bundle = find_silero_vad_bundle
     audio_pause_pipeline.probe_duration_ms = probe_duration_ms
     audio_pause_pipeline._run_external_command = run_external_command
     audio_pause_pipeline._render_external_error_message = render_external_error_message
@@ -58,6 +67,7 @@ def sync_noise_dependencies(
     find_dpdfnet_bundle: Any,
     find_ffmpeg: Any,
     find_rnnoise_bundle: Any,
+    find_silero_vad_bundle: Any,
     find_spleeter_bundle: Any,
     probe_duration_ms: Any,
     render_external_error_message: Any,
@@ -68,6 +78,7 @@ def sync_noise_dependencies(
     audio_noise_reduction.find_ffmpeg = find_ffmpeg
     audio_noise_reduction.find_deep_filter = find_deep_filter
     audio_noise_reduction.find_rnnoise_bundle = find_rnnoise_bundle
+    audio_noise_reduction.find_silero_vad_bundle = find_silero_vad_bundle
     audio_noise_reduction.find_dpdfnet_bundle = find_dpdfnet_bundle
     audio_noise_reduction.find_spleeter_bundle = find_spleeter_bundle
     audio_noise_reduction.probe_duration_ms = probe_duration_ms
@@ -79,6 +90,7 @@ def sync_noise_dependencies(
     if bundled is not None:
         bundled.find_ffmpeg = find_ffmpeg
         bundled.find_rnnoise_bundle = find_rnnoise_bundle
+        bundled.find_silero_vad_bundle = find_silero_vad_bundle
         bundled.find_dpdfnet_bundle = find_dpdfnet_bundle
         bundled.find_spleeter_bundle = find_spleeter_bundle
         bundled.probe_duration_ms = probe_duration_ms

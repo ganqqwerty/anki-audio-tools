@@ -105,6 +105,7 @@ def test_processing_config_from_partial_config_uses_defaults() -> None:
     assert config.ffmpeg_path == "/opt/bin/ffmpeg"
     assert config.deep_filter_post_filter is True
     assert config.dpdfnet_attn_limit_db == 12.0
+    assert config.pause_detection_algorithm == "deep_filter"
     assert config.pitch_hum_mode == "direct"
     assert config.show_ffmpeg_commands is False
 
@@ -140,6 +141,12 @@ def test_processing_config_reads_deep_filter_post_filter_setting() -> None:
     config = AudioProcessingConfig.from_config({"deep_filter_post_filter": False})
 
     assert config.deep_filter_post_filter is False
+
+
+def test_processing_config_reads_pause_detection_algorithm() -> None:
+    config = AudioProcessingConfig.from_config({"pause_detection_algorithm": "silero_vad"})
+
+    assert config.pause_detection_algorithm == "silero_vad"
 
 
 def test_processing_config_reads_dpdfnet_settings() -> None:

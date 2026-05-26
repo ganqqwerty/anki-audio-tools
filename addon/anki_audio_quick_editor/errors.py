@@ -29,6 +29,10 @@ class MissingSpleeterError(AudioQuickEditorError):
     """Raised when the bundled Sherpa Spleeter runtime cannot be found."""
 
 
+class MissingSileroVadError(AudioQuickEditorError):
+    """Raised when the bundled Silero VAD runtime cannot be found."""
+
+
 class MissingMediaError(AudioQuickEditorError):
     """Raised when a referenced Anki media file does not exist."""
 

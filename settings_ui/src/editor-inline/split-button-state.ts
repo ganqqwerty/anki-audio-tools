@@ -13,6 +13,7 @@ import {
   clampSpeedStep,
   clampVolumeStepDb,
   outputFormatOrDefault,
+  pauseDetectionAlgorithmOrDefault,
 } from "../lib/audio-operation-parameters.js";
 import {
   clampGraphConnectShortDropoutsMs,
@@ -33,6 +34,7 @@ export {
   clampVolumeStepDb,
   formatOutputFormat,
   formatPauseAggressiveness,
+  formatPauseDetectionAlgorithm,
   formatDpdfnetAggressiveness,
   formatRepeatPauseSeconds,
   formatSpeedStep,
@@ -53,6 +55,7 @@ const DEFAULTS: CompleteSplitButtonDefaults = {
   ...defaultGraphSplitValues(),
   outputFormat: DEFAULT_OUTPUT_FORMAT,
   pauseAggressiveness: "normal",
+  pauseDetectionAlgorithm: "deep_filter",
   pitchHumMode: "direct",
   repeatPauseSeconds: 0,
   shareTarget: "litterbox",
@@ -107,6 +110,7 @@ export function getSplitButtonState(ord: number): FieldSplitButtonState {
     defaults.voiceRecordingCountdownSeconds,
   );
   const defaultPauseAggressiveness = defaults.pauseAggressiveness;
+  const defaultPauseDetectionAlgorithm = pauseDetectionAlgorithmOrDefault(defaults.pauseDetectionAlgorithm);
   const defaultPitchHumMode = pitchHumModeOrDefault(defaults.pitchHumMode);
   const defaultDenoiseAlgorithm = defaults.denoiseAlgorithm;
   const defaultDpdfnetAttnLimitDb = clampDpdfnetAttnLimitDb(defaults.dpdfnetAttnLimitDb);
@@ -114,7 +118,11 @@ export function getSplitButtonState(ord: number): FieldSplitButtonState {
   const states = fieldStates();
   const existing = states[ord];
   if (existing) {
-    const runtimeState = existing as FieldSplitButtonState & { shareTarget?: ShareTarget };
+    const runtimeState = existing as FieldSplitButtonState & {
+      defaultPauseDetectionAlgorithm?: unknown;
+      pauseDetectionAlgorithm?: unknown;
+      shareTarget?: ShareTarget;
+    };
     if (!Number.isFinite(existing.repeatPauseSeconds)) {
       existing.repeatPauseSeconds = defaultRepeatPauseSeconds;
       existing.defaultRepeatPauseSeconds = defaultRepeatPauseSeconds;
@@ -128,6 +136,20 @@ export function getSplitButtonState(ord: number): FieldSplitButtonState {
     if (runtimeState.shareTarget !== "catbox" && runtimeState.shareTarget !== "litterbox") {
       runtimeState.shareTarget = defaultShareTarget;
       existing.shareEdited = false;
+    }
+    if (
+      runtimeState.pauseDetectionAlgorithm !== "deep_filter" &&
+      runtimeState.pauseDetectionAlgorithm !== "silero_vad"
+    ) {
+      existing.pauseDetectionAlgorithm = defaultPauseDetectionAlgorithm;
+      existing.defaultPauseDetectionAlgorithm = defaultPauseDetectionAlgorithm;
+      existing.pauseEdited = false;
+    }
+    if (
+      runtimeState.defaultPauseDetectionAlgorithm !== "deep_filter" &&
+      runtimeState.defaultPauseDetectionAlgorithm !== "silero_vad"
+    ) {
+      existing.defaultPauseDetectionAlgorithm = defaultPauseDetectionAlgorithm;
     }
     if (!existing.shareEdited && existing.shareTarget !== defaultShareTarget) {
       existing.shareTarget = defaultShareTarget;
@@ -154,6 +176,10 @@ export function getSplitButtonState(ord: number): FieldSplitButtonState {
     if (!existing.pauseEdited && existing.defaultPauseAggressiveness !== defaultPauseAggressiveness) {
       existing.defaultPauseAggressiveness = defaultPauseAggressiveness;
       existing.pauseAggressiveness = defaultPauseAggressiveness;
+    }
+    if (!existing.pauseEdited && existing.defaultPauseDetectionAlgorithm !== defaultPauseDetectionAlgorithm) {
+      existing.defaultPauseDetectionAlgorithm = defaultPauseDetectionAlgorithm;
+      existing.pauseDetectionAlgorithm = defaultPauseDetectionAlgorithm;
     }
     if (!existing.outputFormatEdited && existing.defaultOutputFormat !== defaultOutputFormat) {
       existing.defaultOutputFormat = defaultOutputFormat;
@@ -205,6 +231,7 @@ export function getSplitButtonState(ord: number): FieldSplitButtonState {
     defaultGraphVoiceRange,
     defaultOutputFormat,
     defaultPauseAggressiveness,
+    defaultPauseDetectionAlgorithm,
     defaultPitchHumMode,
     defaultRepeatPauseSeconds,
     defaultVoiceRecordingCountdownSeconds,
@@ -223,6 +250,7 @@ export function getSplitButtonState(ord: number): FieldSplitButtonState {
     outputFormat: defaultOutputFormat,
     outputFormatEdited: false,
     pauseAggressiveness: defaultPauseAggressiveness,
+    pauseDetectionAlgorithm: defaultPauseDetectionAlgorithm,
     pauseEdited: false,
     pitchHumEdited: false,
     pitchHumMode: defaultPitchHumMode,
@@ -300,6 +328,13 @@ function applyPromotedDefaultsToState(
   if (values.pauseAggressiveness !== undefined) {
     state.defaultPauseAggressiveness = defaults.pauseAggressiveness;
     if (forceCurrentField || !state.pauseEdited) state.pauseAggressiveness = state.defaultPauseAggressiveness;
+    if (forceCurrentField) state.pauseEdited = false;
+  }
+  if (values.pauseDetectionAlgorithm !== undefined) {
+    state.defaultPauseDetectionAlgorithm = pauseDetectionAlgorithmOrDefault(defaults.pauseDetectionAlgorithm);
+    if (forceCurrentField || !state.pauseEdited) {
+      state.pauseDetectionAlgorithm = state.defaultPauseDetectionAlgorithm;
+    }
     if (forceCurrentField) state.pauseEdited = false;
   }
   if (values.denoiseAlgorithm !== undefined) {
@@ -388,6 +423,16 @@ export function setPauseAggressivenessForField(
   const state = getSplitButtonState(ord);
   state.pauseEdited = true;
   state.pauseAggressiveness = value;
+  return state;
+}
+
+export function setPauseDetectionAlgorithmForField(
+  ord: number,
+  value: FieldSplitButtonState["pauseDetectionAlgorithm"],
+): FieldSplitButtonState {
+  const state = getSplitButtonState(ord);
+  state.pauseEdited = true;
+  state.pauseDetectionAlgorithm = pauseDetectionAlgorithmOrDefault(value);
   return state;
 }
 

@@ -57,14 +57,14 @@ def runtime_file_path(cache_dir: Path, target: str, entry: dict[str, Any]) -> Pa
     return _asset_io.runtime_file_path(cache_dir, target, entry)
 
 TARGET_KEYS = ["macos-arm64", "macos-x86_64", "windows-x86_64"]
-BASE_TOOL_NAMES = ["deep-filter", "ffmpeg", "ffprobe", "rnnoise-cli", "sherpa-spleeter"]
+BASE_TOOL_NAMES = ["deep-filter", "ffmpeg", "ffprobe", "rnnoise-cli", "sherpa-spleeter", "silero-vad"]
 TARGET_TOOL_NAMES = {
     "macos-arm64": [*BASE_TOOL_NAMES, "dpdfnet"],
     "macos-x86_64": [*BASE_TOOL_NAMES, "dpdfnet"],
     "windows-x86_64": [*BASE_TOOL_NAMES, "dpdfnet"],
 }
 TOOL_NAMES = sorted({tool for tools in TARGET_TOOL_NAMES.values() for tool in tools})
-SHARED_FILE_NAMES = ["spleeter-vocals", "spleeter-accompaniment"]
+SHARED_FILE_NAMES = ["spleeter-vocals", "spleeter-accompaniment", "silero-vad-model"]
 CACHED_TOOL_NAMES = {"ffmpeg", "ffprobe"}
 
 

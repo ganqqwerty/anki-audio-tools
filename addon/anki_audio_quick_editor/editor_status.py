@@ -106,9 +106,13 @@ def _simple_command_status_summary(
     if payload.command in {CMD_FASTER, CMD_SLOWER}:
         return _speed_status_summary(payload.command, effective_config)
     if payload.command == CMD_REMOVE_PAUSES:
+        algorithm = payload.overrides.pause_detection_algorithm or config.pause_detection_algorithm
         return t(
             "editor.status.operation.remove_pauses",
-            {"level": _pause_aggressiveness_label(effective_config.pause_aggressiveness)},
+            {
+                "level": _pause_aggressiveness_label(effective_config.pause_aggressiveness),
+                "algorithm": _pause_detection_algorithm_label(algorithm),
+            },
         )
     if payload.command == CMD_CONVERT:
         return t(
@@ -177,6 +181,12 @@ def _pause_aggressiveness_label(value: str) -> str:
     if value == "aggressive":
         return t("settings.pause_aggressiveness.aggressive")
     return t("settings.pause_aggressiveness.normal")
+
+
+def _pause_detection_algorithm_label(value: str) -> str:
+    if value == "silero_vad":
+        return t("settings.pause_detection_algorithm.silero_vad")
+    return t("settings.pause_detection_algorithm.deep_filter")
 
 
 def _pitch_hum_mode_label(value: str) -> str:

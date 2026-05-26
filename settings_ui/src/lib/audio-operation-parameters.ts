@@ -2,6 +2,8 @@ import { t } from "./i18n.js";
 
 export type PauseAggressiveness = "gentle" | "normal" | "aggressive";
 export type DpdfnetAggressiveness = "gentle" | "normal" | "aggressive";
+export const PAUSE_DETECTION_ALGORITHM_VALUES = ["deep_filter", "silero_vad"] as const;
+export type PauseDetectionAlgorithmValue = (typeof PAUSE_DETECTION_ALGORITHM_VALUES)[number];
 
 const MIN_VOLUME_STEP_DB = 1;
 const MAX_VOLUME_STEP_DB = 40;
@@ -62,6 +64,19 @@ export function formatPauseAggressiveness(value: PauseAggressiveness): string {
   if (value === "aggressive") return t("settings.pause_aggressiveness.aggressive");
   if (value === "gentle") return t("settings.pause_aggressiveness.gentle");
   return t("settings.pause_aggressiveness.normal");
+}
+
+export function isPauseDetectionAlgorithmValue(value: unknown): value is PauseDetectionAlgorithmValue {
+  return typeof value === "string" && (PAUSE_DETECTION_ALGORITHM_VALUES as readonly string[]).includes(value);
+}
+
+export function pauseDetectionAlgorithmOrDefault(value: unknown): PauseDetectionAlgorithmValue {
+  return isPauseDetectionAlgorithmValue(value) ? value : "deep_filter";
+}
+
+export function formatPauseDetectionAlgorithm(value: unknown): string {
+  const algorithm = pauseDetectionAlgorithmOrDefault(value);
+  return t(`settings.pause_detection_algorithm.${algorithm}`);
 }
 
 export function dpdfnetAggressiveness(value: number): DpdfnetAggressiveness {

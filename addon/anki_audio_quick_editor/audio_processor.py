@@ -35,6 +35,7 @@ BUNDLED_RNNOISE_VERSION = _audio_tools.BUNDLED_RNNOISE_VERSION
 _PACKAGE_DIR = _audio_tools.PACKAGE_DIR
 _ORIGINAL_BUNDLED_DEEP_FILTER_PATH = _audio_tools._bundled_deep_filter_path
 _ORIGINAL_EXPECTED_BUNDLED_RNNOISE_DIR = _audio_tools.expected_bundled_rnnoise_dir
+_ORIGINAL_EXPECTED_BUNDLED_SILERO_VAD_MODEL_PATH = _audio_tools.expected_bundled_silero_vad_model_path
 _ORIGINAL_EXPECTED_BUNDLED_SPLEETER_MODEL_PATH = _audio_tools.expected_bundled_spleeter_model_path
 _ORIGINAL_EXPECTED_BUNDLED_TOOL_PATH = _audio_tools.expected_bundled_tool_path
 _ORIGINAL_MAKE_PLAYBACK_SEGMENT_FILENAME = _audio_rendering.make_playback_segment_filename
@@ -90,6 +91,10 @@ def expected_bundled_tool_path(tool_name: str) -> Path | None:
 
 def expected_bundled_spleeter_model_path(model_name: str) -> Path | None:
     return _ORIGINAL_EXPECTED_BUNDLED_SPLEETER_MODEL_PATH(model_name)
+
+
+def expected_bundled_silero_vad_model_path() -> Path | None:
+    return _ORIGINAL_EXPECTED_BUNDLED_SILERO_VAD_MODEL_PATH()
 
 
 def tool_source_label(tool_path: Path, *, configured_path: str = "") -> str:
@@ -148,6 +153,20 @@ def find_spleeter_bundle() -> tuple[Path, Path, Path]:
         audio_tools.expected_bundled_spleeter_model_path = original_model_path
 
 
+def find_silero_vad_bundle() -> tuple[Path, Path]:
+    _sync_tool_dependencies()
+    audio_tools = cast(Any, _audio_tools)
+    original_tool_path = audio_tools.expected_bundled_tool_path
+    original_model_path = audio_tools.expected_bundled_silero_vad_model_path
+    audio_tools.expected_bundled_tool_path = expected_bundled_tool_path
+    audio_tools.expected_bundled_silero_vad_model_path = expected_bundled_silero_vad_model_path
+    try:
+        return _audio_tools.find_silero_vad_bundle()
+    finally:
+        audio_tools.expected_bundled_tool_path = original_tool_path
+        audio_tools.expected_bundled_silero_vad_model_path = original_model_path
+
+
 def _sync_external_dependencies() -> None:
     sync_external_dependencies(
         cast(Any, _audio_external),
@@ -188,6 +207,7 @@ def _sync_pause_dependencies() -> None:
     sync_pause_dependencies(
         cast(Any, _audio_pause_pipeline),
         find_deep_filter=find_deep_filter,
+        find_silero_vad_bundle=find_silero_vad_bundle,
         probe_duration_ms=probe_duration_ms,
         run_external_command=_run_external_command,
         render_external_error_message=_render_external_error_message,
@@ -240,6 +260,7 @@ def _sync_noise_dependencies() -> None:
         find_ffmpeg=find_ffmpeg,
         find_rnnoise_bundle=find_rnnoise_bundle,
         find_spleeter_bundle=find_spleeter_bundle,
+        find_silero_vad_bundle=find_silero_vad_bundle,
         probe_duration_ms=probe_duration_ms,
         render_external_error_message=_render_external_error_message,
         run_external_command=_run_external_command,

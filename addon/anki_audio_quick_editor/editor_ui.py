@@ -42,6 +42,7 @@ def injection_script(
             "repeatPauseSeconds": 0.0,
             "voiceRecordingCountdownSeconds": 3,
             "pauseAggressiveness": "normal",
+            "pauseDetectionAlgorithm": "deep_filter",
             "outputFormat": "mp3",
             "denoiseAlgorithm": "standard",
             "pitchHumMode": "direct",

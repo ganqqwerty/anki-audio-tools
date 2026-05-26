@@ -106,6 +106,7 @@ def test_async_support_report_returns_incident_and_log_tail(tmp_path: Path) -> N
         patch("anki_audio_quick_editor.diagnostics.build_rnnoise_health", return_value={"available": True, "path": "/bin/rnnoise-cli", "version": "0.2", "error": ""}),
         patch("anki_audio_quick_editor.diagnostics.build_dpdfnet_health", return_value={"available": True, "path": "/bin/dpdfnet", "version": "0.1.0", "error": ""}),
         patch("anki_audio_quick_editor.diagnostics.build_spleeter_health", return_value={"available": True, "path": "/bin/sherpa-spleeter", "version": "1.13.2", "error": ""}),
+        patch("anki_audio_quick_editor.diagnostics.build_silero_vad_health", return_value={"available": True, "path": "/bin/silero-vad", "version": "VAD in sherpa-onnx.", "error": ""}),
     ):
         handle_settings_command(_bridge_command("settings.async", payload), eval_fn, dialog)
 
@@ -120,6 +121,7 @@ def test_async_support_report_returns_incident_and_log_tail(tmp_path: Path) -> N
     assert "/bin/sherpa-spleeter --json" in report_text
     assert "0.2" in report_text
     assert "0.1.0" in report_text
+    assert "VAD in sherpa-onnx." in report_text
     assert "Release commit: " + "b" * 40 in report_text
     assert "Release message: Ship release diagnostics" in report_text
     assert "/addon/aqe_artifacts/clip__run/manifest.json" in report_text

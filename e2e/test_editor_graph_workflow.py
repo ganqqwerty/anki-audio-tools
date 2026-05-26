@@ -26,11 +26,11 @@ from e2e.helpers import (
     wait_for_js_condition,
     wait_for_selector,
 )
-from e2e.test_settings_dialog import _open_settings_dialog
+from e2e.settings_dialog_helpers import open_settings_dialog
 
 
 def _set_show_graph_by_default_from_settings(anki_mw, enabled: bool) -> None:
-    dialog = _open_settings_dialog(anki_mw)
+    dialog = open_settings_dialog(anki_mw)
     checkbox_selector = '[data-testid="show-graph-by-default"]'
     save_selector = '[data-testid="settings-save"]'
     current = wait_for_js_condition(

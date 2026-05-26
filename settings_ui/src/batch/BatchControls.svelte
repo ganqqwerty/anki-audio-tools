@@ -4,7 +4,9 @@
     DPDFNET_ATTENUATION_LIMIT_DB_VALUES,
     formatDpdfnetAggressiveness,
     formatOutputFormat,
+    formatPauseDetectionAlgorithm,
     OUTPUT_FORMAT_VALUES,
+    PAUSE_DETECTION_ALGORITHM_VALUES,
   } from "$lib/audio-operation-parameters.js";
   import { BatchParameterKind, BatchPauseAggressiveness, DenoiseAlgorithm } from "$lib/types.js";
   import type { BatchInitialState, BatchOperationOption } from "$lib/types.js";
@@ -71,6 +73,14 @@
         <option value={BatchPauseAggressiveness.Gentle}>{t("settings.pause_aggressiveness.gentle")}</option>
         <option value={BatchPauseAggressiveness.Normal}>{t("settings.pause_aggressiveness.normal")}</option>
         <option value={BatchPauseAggressiveness.Aggressive}>{t("settings.pause_aggressiveness.aggressive")}</option>
+      </select>
+    </label>
+    <label>
+      <span>{t("settings.pause_detection_algorithm")}</span>
+      <select bind:value={form.pauseDetectionAlgorithm} data-testid="batch-pause-detection-algorithm" disabled={disabled}>
+        {#each PAUSE_DETECTION_ALGORITHM_VALUES as value}
+          <option value={value}>{formatPauseDetectionAlgorithm(value)}</option>
+        {/each}
       </select>
     </label>
   {:else if selected?.parameter_kind === BatchParameterKind.Format}

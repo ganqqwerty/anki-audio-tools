@@ -13,6 +13,7 @@ import {
   GraphVoiceRange,
   OutputFormat,
   PauseAggressiveness,
+  PauseDetectionAlgorithm,
   Phase,
   PitchHumMode,
   ShareTarget,
@@ -64,6 +65,7 @@ const defaultConfig = {
   denoise_algorithm: DenoiseAlgorithm.Standard,
   pitch_hum_mode: PitchHumMode.Direct,
   pause_aggressiveness: PauseAggressiveness.Normal,
+  pause_detection_algorithm: PauseDetectionAlgorithm.DeepFilter,
 };
 
 function pycmdMock(): ReturnType<typeof vi.fn> {

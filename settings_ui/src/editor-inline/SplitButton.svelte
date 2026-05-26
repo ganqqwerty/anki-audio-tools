@@ -22,6 +22,7 @@
     setDpdfnetAttnLimitDbForField,
     setOutputFormatForField,
     setPauseAggressivenessForField,
+    setPauseDetectionAlgorithmForField,
     setPitchHumModeForField,
     setShareTargetForField,
     setSpeedStepForField,
@@ -45,6 +46,7 @@
 
   type DenoiseAlgorithm = FieldSplitButtonState["denoiseAlgorithm"];
   type OutputFormatValue = FieldSplitButtonState["outputFormat"];
+  type PauseDetectionAlgorithm = FieldSplitButtonState["pauseDetectionAlgorithm"];
   type PitchHumMode = FieldSplitButtonState["pitchHumMode"];
   type PrimaryGroupPosition = "middle" | "start";
   type ShareTarget = FieldSplitButtonState["shareTarget"];
@@ -76,6 +78,7 @@
   let volumeStepDb = $state(3);
   let speedStep = $state(0.05);
   let pauseAggressiveness = $state<"gentle" | "normal" | "aggressive">("normal");
+  let pauseDetectionAlgorithm = $state<PauseDetectionAlgorithm>("deep_filter");
   let denoiseAlgorithm = $state<DenoiseAlgorithm>("standard");
   let dpdfnetAttnLimitDb = $state(12);
   let outputFormat = $state<OutputFormatValue>("mp3");
@@ -123,6 +126,7 @@
     graphVoiceRange,
     outputFormat,
     pauseAggressiveness,
+    pauseDetectionAlgorithm,
     pitchHumMode,
     shareTarget,
     speedStep,
@@ -145,6 +149,7 @@
     volumeStepDb = state.volumeStepDb;
     speedStep = state.speedStep;
     pauseAggressiveness = state.pauseAggressiveness;
+    pauseDetectionAlgorithm = state.pauseDetectionAlgorithm;
     denoiseAlgorithm = state.denoiseAlgorithm;
     dpdfnetAttnLimitDb = state.dpdfnetAttnLimitDb;
     outputFormat = state.outputFormat;
@@ -168,6 +173,10 @@
 
   function applyPauseAggressiveness(value: "gentle" | "normal" | "aggressive"): void {
     pauseAggressiveness = setPauseAggressivenessForField(target.ord, value).pauseAggressiveness;
+  }
+
+  function applyPauseDetectionAlgorithm(value: PauseDetectionAlgorithm): void {
+    pauseDetectionAlgorithm = setPauseDetectionAlgorithmForField(target.ord, value).pauseDetectionAlgorithm;
   }
 
   function applyDenoiseAlgorithm(value: DenoiseAlgorithm): void {
@@ -387,6 +396,7 @@
               onDpdfnetAttnLimitDb={applyDpdfnetAttnLimitDb}
               onOutputFormat={applyOutputFormat}
               onPauseAggressiveness={applyPauseAggressiveness}
+              onPauseDetectionAlgorithm={applyPauseDetectionAlgorithm}
               onPitchHumMode={applyPitchHumMode}
               onRunCommand={dispatchCommand}
               onSaveDefault={saveCurrentDefaults}
@@ -394,6 +404,7 @@
               onSpeedStep={applySpeedStep}
               onVolumeStep={applyVolumeStep}
               pauseAggressiveness={pauseAggressiveness}
+              pauseDetectionAlgorithm={pauseDetectionAlgorithm}
               outputFormat={outputFormat}
               pitchHumMode={pitchHumMode}
               saveDefaultSaved={defaultSaved}

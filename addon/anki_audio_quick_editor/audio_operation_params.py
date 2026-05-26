@@ -14,6 +14,7 @@ MAX_VOLUME_STEP_DB = 40.0
 MIN_SPEED_STEP = 1.01
 MAX_SPEED_STEP = 5.0
 PAUSE_AGGRESSIVENESS = frozenset({"gentle", "normal", "aggressive"})
+PAUSE_DETECTION_ALGORITHMS = frozenset({"deep_filter", "silero_vad"})
 DENOISE_ALGORITHMS = frozenset({"standard", "rnnoise", "dpdfnet", "voice_only"})
 
 
@@ -24,6 +25,7 @@ class AudioOperationParameters:
     volume_step_db: float | None = None
     speed_step: float | None = None
     pause_aggressiveness: str | None = None
+    pause_detection_algorithm: str | None = None
     denoise_algorithm: str | None = None
     dpdfnet_attn_limit_db: float | None = None
     target_format: str | None = None
@@ -34,6 +36,7 @@ def parameters_from_raw(
     volume_step_db: Any = None,
     speed_step: Any = None,
     pause_aggressiveness: Any = None,
+    pause_detection_algorithm: Any = None,
     denoise_algorithm: Any = None,
     dpdfnet_attn_limit_db: Any = None,
     target_format: Any = None,
@@ -51,6 +54,7 @@ def parameters_from_raw(
             MAX_SPEED_STEP,
         ),
         pause_aggressiveness=_pause_aggressiveness_or_none(pause_aggressiveness),
+        pause_detection_algorithm=_pause_detection_algorithm_or_none(pause_detection_algorithm),
         denoise_algorithm=_denoise_algorithm_or_none(denoise_algorithm),
         dpdfnet_attn_limit_db=_dpdfnet_attn_limit_or_none(dpdfnet_attn_limit_db),
         target_format=_target_format_or_none(target_format),
@@ -66,29 +70,50 @@ def effective_config_for_operation(
     if operation == "graph":
         return config
     if operation == "convert":
-        return replace(config, output_format=parameters.target_format or config.output_format)
-    effective = replace(
+        return _config_for_convert_operation(config, parameters)
+    effective = _config_with_shared_operation_parameters(config, parameters)
+    if operation != "remove_pauses":
+        return effective
+    return config_for_pause_aggressiveness(
+        effective,
+        parameters.pause_aggressiveness or config.pause_aggressiveness,
+        parameters.pause_detection_algorithm or config.pause_detection_algorithm,
+    )
+
+
+def _config_for_convert_operation(
+    config: AudioProcessingConfig,
+    parameters: AudioOperationParameters,
+) -> AudioProcessingConfig:
+    return replace(config, output_format=parameters.target_format or config.output_format)
+
+
+def _config_with_shared_operation_parameters(
+    config: AudioProcessingConfig,
+    parameters: AudioOperationParameters,
+) -> AudioProcessingConfig:
+    return replace(
         config,
         volume_step_db=parameters.volume_step_db or config.volume_step_db,
         speed_step=parameters.speed_step or config.speed_step,
         denoise_algorithm=parameters.denoise_algorithm or config.denoise_algorithm,
-        dpdfnet_attn_limit_db=(
-            parameters.dpdfnet_attn_limit_db
-            if parameters.dpdfnet_attn_limit_db is not None
-            else config.dpdfnet_attn_limit_db
-        ),
+        dpdfnet_attn_limit_db=_operation_dpdfnet_attn_limit_db(config, parameters),
     )
-    if operation == "remove_pauses":
-        return config_for_pause_aggressiveness(
-            effective,
-            parameters.pause_aggressiveness or config.pause_aggressiveness,
-        )
-    return effective
+
+
+def _operation_dpdfnet_attn_limit_db(
+    config: AudioProcessingConfig,
+    parameters: AudioOperationParameters,
+) -> float:
+    if parameters.dpdfnet_attn_limit_db is None:
+        return config.dpdfnet_attn_limit_db
+    return parameters.dpdfnet_attn_limit_db
 
 
 def config_for_pause_aggressiveness(
     config: AudioProcessingConfig,
     aggressiveness: str,
+    pause_detection_algorithm: str | None = None,
 ) -> AudioProcessingConfig:
     """Return pause detection thresholds for one supported aggressiveness level."""
     if aggressiveness == "gentle":
@@ -98,6 +123,7 @@ def config_for_pause_aggressiveness(
             internal_pause_threshold_ms=450,
             internal_pause_target_gap_ms=180,
             pause_aggressiveness=aggressiveness,
+            pause_detection_algorithm=pause_detection_algorithm or config.pause_detection_algorithm,
         )
     if aggressiveness == "aggressive":
         return replace(
@@ -106,8 +132,13 @@ def config_for_pause_aggressiveness(
             internal_pause_threshold_ms=180,
             internal_pause_target_gap_ms=60,
             pause_aggressiveness=aggressiveness,
+            pause_detection_algorithm=pause_detection_algorithm or config.pause_detection_algorithm,
         )
-    return replace(config, pause_aggressiveness="normal")
+    return replace(
+        config,
+        pause_aggressiveness="normal",
+        pause_detection_algorithm=pause_detection_algorithm or config.pause_detection_algorithm,
+    )
 
 
 def _int_or_none(value: Any) -> int | None:
@@ -138,6 +169,12 @@ def _pause_aggressiveness_or_none(value: Any) -> str | None:
     if not isinstance(value, str):
         return None
     return value if value in PAUSE_AGGRESSIVENESS else None
+
+
+def _pause_detection_algorithm_or_none(value: Any) -> str | None:
+    if not isinstance(value, str):
+        return None
+    return value if value in PAUSE_DETECTION_ALGORITHMS else None
 
 
 def _denoise_algorithm_or_none(value: Any) -> str | None:

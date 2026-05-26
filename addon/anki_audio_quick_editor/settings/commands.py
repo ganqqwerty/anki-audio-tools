@@ -264,6 +264,7 @@ def _op_health_check(
         build_deep_filter_health,
         build_dpdfnet_health,
         build_rnnoise_health,
+        build_silero_vad_health,
         build_spleeter_health,
     )
     from ..i18n import t
@@ -279,6 +280,7 @@ def _op_health_check(
     report["dpdfnet"] = build_dpdfnet_health()
     progress_fn(95, t("settings.health.checking_spleeter"))
     report["spleeter"] = build_spleeter_health()
+    report["silero_vad"] = build_silero_vad_health()
     report["runtime"] = _runtime_status_for_settings()
     progress_fn(100, t("settings.async.done"))
     return HealthReport.from_dict(report).to_dict()
@@ -292,6 +294,7 @@ def _op_support_report(payload: dict[str, Any], progress_fn: Callable[[int, str]
         build_deep_filter_health,
         build_dpdfnet_health,
         build_rnnoise_health,
+        build_silero_vad_health,
         build_spleeter_health,
     )
     from ..i18n import t
@@ -316,6 +319,7 @@ def _op_support_report(payload: dict[str, Any], progress_fn: Callable[[int, str]
     rnnoise_health = build_rnnoise_health()
     dpdfnet_health = build_dpdfnet_health()
     spleeter_health = build_spleeter_health()
+    silero_vad_health = build_silero_vad_health()
     progress_fn(75, t("settings.support.reading_recent_logs"))
     diagnostics_context = support_report_context()
     diagnostics_context["runtime"] = _runtime_status_for_settings()
@@ -326,6 +330,7 @@ def _op_support_report(payload: dict[str, Any], progress_fn: Callable[[int, str]
         deep_filter_health=deep_filter_health,
         rnnoise_health=rnnoise_health,
         dpdfnet_health=dpdfnet_health,
+        silero_vad_health=silero_vad_health,
         denoise_incident=latest_denoise_support_incident(),
         pause_pipeline_incident=latest_pause_pipeline_support_incident(),
         log_tail=read_log_tail(log_path),

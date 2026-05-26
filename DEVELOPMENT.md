@@ -49,7 +49,7 @@ If that happens, remove `addon/anki_audio_quick_editor/meta.json` or use the set
 
 Anki add-ons cannot rely on `pip install` at user runtime. Audio Quick Editor uses the Python/Qt runtime bundled with Anki and downloads a locked native runtime payload for supported release platforms. The managed runtime matrix is macOS arm64, macOS x86_64, and Windows x86_64.
 
-Public release archives are thin. They include `bin/runtime_manifest.json`, but they do not embed `ffmpeg`, `ffprobe`, DeepFilterNet's `deep-filter`, `rnnoise-cli`, Sherpa's `sherpa-spleeter`, DPDFNet Lite, or shared Spleeter model files. On first load, startup schedules a background managed-runtime install into `user_files/runtime/<runtime_manifest_id>/<platform>/` and records state in `user_files/runtime_state.json`.
+Public release archives are thin. They include `bin/runtime_manifest.json`, but they do not embed `ffmpeg`, `ffprobe`, DeepFilterNet's `deep-filter`, `rnnoise-cli`, Sherpa's `sherpa-spleeter`, Sherpa's `silero-vad`, DPDFNet Lite, or shared Spleeter/Silero model files. On first load, startup schedules a background managed-runtime install into `user_files/runtime/<runtime_manifest_id>/<platform>/` and records state in `user_files/runtime_state.json`.
 
 Runtime discovery checks the configured ffmpeg path where supported, the managed downloaded runtime, package `bin/` as a source-tree development fallback, and `PATH` as a compatibility fallback for `ffmpeg`, `ffprobe`, and `deep-filter`. The settings diagnostics report whether each tool came from config, the managed runtime, the development fallback, or `PATH`.
 
@@ -62,6 +62,8 @@ python3 scripts/dev.py release-assets fetch-deepfilter --target all
 python3 scripts/dev.py release-assets fetch-ffmpeg --target all
 python3 scripts/dev.py release-assets fetch-sherpa-spleeter --target all
 python3 scripts/dev.py release-assets fetch-spleeter-models
+python3 scripts/dev.py release-assets fetch-silero-vad --target all
+python3 scripts/dev.py release-assets fetch-silero-vad-model
 python3 scripts/dev.py release-assets build-rnnoise --target macos-arm64
 python3 scripts/dev.py release-assets build-rnnoise --target macos-x86_64
 python3 scripts/dev.py release-assets build-rnnoise --target windows-x86_64
@@ -97,7 +99,7 @@ host-specific runtime probes unless you add `--diagnostics`. Use
 `release-smoke`, native acceptance, or explicit `--diagnostics` runs when you
 need executable behavior checks on the current host.
 
-Sherpa Spleeter is fetched from locked `sherpa-onnx` native archives. Packaging renames the upstream `sherpa-onnx-offline-source-separation` executable to `sherpa-spleeter`, stages the target-specific ONNX Runtime libraries beside it, and reads the committed shared Spleeter 2-stems fp16 model files from `addon/anki_audio_quick_editor/bin/models/`.
+Sherpa Spleeter and Silero VAD are fetched from locked `sherpa-onnx` native archives. Packaging renames the upstream `sherpa-onnx-offline-source-separation` executable to `sherpa-spleeter` and `sherpa-onnx-vad` to `silero-vad`, stages the target-specific ONNX Runtime libraries beside them once per runtime pack path, and reads the committed shared Spleeter 2-stems fp16 model files plus `silero_vad.onnx` from `addon/anki_audio_quick_editor/bin/models/`.
 
 Package all runtime targets for public AnkiWeb distribution:
 

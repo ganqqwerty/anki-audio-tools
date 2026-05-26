@@ -61,6 +61,7 @@ def _audio_parameter_updates(raw_defaults: dict[str, object]) -> dict[str, objec
         volume_step_db=raw_defaults.get("volumeStepDb"),
         speed_step=raw_defaults.get("speedStep"),
         pause_aggressiveness=raw_defaults.get("pauseAggressiveness"),
+        pause_detection_algorithm=raw_defaults.get("pauseDetectionAlgorithm"),
         denoise_algorithm=raw_defaults.get("denoiseAlgorithm"),
         dpdfnet_attn_limit_db=raw_defaults.get("dpdfnetAttnLimitDb"),
     )
@@ -70,6 +71,8 @@ def _audio_parameter_updates(raw_defaults: dict[str, object]) -> dict[str, objec
         updates["speed_step"] = params.speed_step
     if params.pause_aggressiveness is not None:
         updates["pause_aggressiveness"] = params.pause_aggressiveness
+    if params.pause_detection_algorithm is not None:
+        updates["pause_detection_algorithm"] = params.pause_detection_algorithm
     if params.denoise_algorithm is not None:
         updates["denoise_algorithm"] = params.denoise_algorithm
     if params.dpdfnet_attn_limit_db is not None:

@@ -52,14 +52,14 @@ BROAD_EXCEPTION_ALLOWLIST: tuple[BroadExceptionAllowance, ...] = (
         "External Sherpa Spleeter boundary records model and command context before surfacing an add-on error.",
     ),
     BroadExceptionAllowance(
-        "batch_operations",
-        "_process_graph_operation",
+        "batch_operation_processing",
+        "process_graph_operation",
         1,
         "Per-note batch isolation converts graph generation failures into a failed row.",
     ),
     BroadExceptionAllowance(
-        "batch_operations",
-        "_process_transform_operation",
+        "batch_operation_processing",
+        "process_transform_operation",
         1,
         "Per-note batch isolation converts audio transformation failures into a failed row.",
     ),
@@ -116,6 +116,12 @@ BROAD_EXCEPTION_ALLOWLIST: tuple[BroadExceptionAllowance, ...] = (
         "build_spleeter_health",
         1,
         "Diagnostic source-separation probe reports Sherpa Spleeter availability instead of raising.",
+    ),
+    BroadExceptionAllowance(
+        "diagnostics",
+        "build_silero_vad_health",
+        1,
+        "Diagnostic Silero VAD probe reports availability instead of raising.",
     ),
     BroadExceptionAllowance(
         "diagnostics_runtime",

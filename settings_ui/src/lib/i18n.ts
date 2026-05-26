@@ -72,6 +72,9 @@ const FALLBACK_MESSAGES: Messages = {
   "settings.pause_aggressiveness.gentle": "Gentle",
   "settings.pause_aggressiveness.normal": "Normal",
   "settings.pause_aggressiveness.aggressive": "Aggressive",
+  "settings.pause_detection_algorithm": "Pause detection",
+  "settings.pause_detection_algorithm.deep_filter": "DeepFilterNet",
+  "settings.pause_detection_algorithm.silero_vad": "Silero VAD",
   "settings.output_format": "Default convert format",
   "settings.output_format.mp3": "MP3",
   "settings.output_format.m4a": "M4A",
@@ -329,7 +332,6 @@ const FALLBACK_MESSAGES: Messages = {
   "external_link.open_failed": "Could not open that link.",
   "editor.processing_failed_note_unchanged": "Audio processing failed. The note was not changed. ({error})",
 };
-
 let activeLocale = "en";
 let activeDirection: Direction = "ltr";
 let activeMessages: Messages = {};

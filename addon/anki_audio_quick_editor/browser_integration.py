@@ -252,6 +252,8 @@ def _format_parameters(request: BatchRunRequest) -> str:
         values.append(f"volume_step_db={params.volume_step_db}")
     if request.operation == "remove_pauses" and params.pause_aggressiveness is not None:
         values.append(f"pause_aggressiveness={params.pause_aggressiveness}")
+    if request.operation == "remove_pauses" and params.pause_detection_algorithm is not None:
+        values.append(f"pause_detection_algorithm={params.pause_detection_algorithm}")
     return ", ".join(values) if values else "defaults"
 
 

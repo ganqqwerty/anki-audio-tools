@@ -19,6 +19,7 @@ def test_parameters_from_raw_clamps_editor_matching_ranges() -> None:
         volume_step_db=99,
         speed_step=0.001,
         pause_aggressiveness="invalid",
+        pause_detection_algorithm="invalid",
         denoise_algorithm="invalid",
         dpdfnet_attn_limit_db=17.4,
         target_format=" FLAC ",
@@ -27,6 +28,7 @@ def test_parameters_from_raw_clamps_editor_matching_ranges() -> None:
     assert params.volume_step_db == 40.0
     assert params.speed_step == 1.01
     assert params.pause_aggressiveness is None
+    assert params.pause_detection_algorithm is None
     assert params.denoise_algorithm is None
     assert params.dpdfnet_attn_limit_db == 18.0
     assert params.target_format == "flac"
@@ -67,6 +69,22 @@ def test_effective_config_uses_pause_aggressiveness_override() -> None:
     assert effective.internal_pause_silence_threshold_db == -50
     assert effective.internal_pause_threshold_ms == 180
     assert effective.internal_pause_target_gap_ms == 60
+
+
+def test_effective_config_uses_pause_detection_algorithm_override() -> None:
+    config = AudioProcessingConfig(
+        pause_aggressiveness="normal",
+        pause_detection_algorithm="deep_filter",
+    )
+    params = AudioOperationParameters(
+        pause_aggressiveness="gentle",
+        pause_detection_algorithm="silero_vad",
+    )
+
+    effective = effective_config_for_operation(OP_REMOVE_PAUSES, config, params)
+
+    assert effective.pause_aggressiveness == "gentle"
+    assert effective.pause_detection_algorithm == "silero_vad"
 
 
 def test_effective_config_uses_denoise_parameter_overrides() -> None:

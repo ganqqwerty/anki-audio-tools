@@ -30,6 +30,7 @@
     "internal_pause_threshold_ms",
     "internal_pause_target_gap_ms",
     "pause_aggressiveness",
+    "pause_detection_algorithm",
     "output_format",
     "ffmpeg_path",
     "deep_filter_post_filter",
@@ -193,6 +194,10 @@
     "pause_aggressiveness": {
       "type": "string",
       "enum": ["gentle", "normal", "aggressive"]
+    },
+    "pause_detection_algorithm": {
+      "type": "string",
+      "enum": ["deep_filter", "silero_vad"]
     },
     "output_format": {
       "type": "string",

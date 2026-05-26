@@ -25,7 +25,7 @@ from e2e.helpers import (
     wait_for_js_condition,
     wait_for_selector,
 )
-from e2e.test_settings_dialog import _open_settings_dialog
+from e2e.settings_dialog_helpers import open_settings_dialog
 
 
 def _split_slug(command: str) -> str:
@@ -46,7 +46,7 @@ def test_settings_dialog_saves_dpdfnet_aggressiveness(anki_mw) -> None:
     config["dpdfnet_attn_limit_db"] = 12.0
     anki_mw.addonManager.writeConfig(ADDON_NUMERIC_ID, config)
 
-    dialog = _open_settings_dialog(anki_mw)
+    dialog = open_settings_dialog(anki_mw)
     selector = '[data-testid="dpdfnet-attn-limit-db-18"]'
     wait_for_selector(dialog, selector, timeout=5.0)
     click_selector(dialog, selector, timeout=5.0)

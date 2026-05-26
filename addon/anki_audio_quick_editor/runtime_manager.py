@@ -72,6 +72,11 @@ _TOOL_EXECUTABLES = {
         "macos-x86_64": "sherpa-spleeter",
         "windows-x86_64": "sherpa-spleeter.exe",
     },
+    "silero-vad": {
+        "macos-arm64": "silero-vad",
+        "macos-x86_64": "silero-vad",
+        "windows-x86_64": "silero-vad.exe",
+    },
 }
 
 _STATE_LOCK = threading.RLock()
@@ -151,19 +156,39 @@ def expected_managed_tool_path(addon_dir: Path, tool_name: str) -> Path | None:
 
 def managed_spleeter_model_path(addon_dir: Path, model_name: str) -> Path | None:
     """Return a verified managed Spleeter model path when available."""
-    manifest = load_manifest(addon_dir)
-    if manifest is None or not is_runtime_ready(addon_dir, manifest=manifest):
-        return None
-    path = managed_runtime_root(addon_dir, manifest.manifest_id) / "models" / "spleeter-2stems-fp16" / model_name
-    return path if path.is_file() else None
+    return managed_model_path(addon_dir, "spleeter-2stems-fp16", model_name)
 
 
 def expected_managed_spleeter_model_path(addon_dir: Path, model_name: str) -> Path | None:
     """Return the expected managed Spleeter model path, even if missing."""
+    return expected_managed_model_path(addon_dir, "spleeter-2stems-fp16", model_name)
+
+
+def managed_silero_vad_model_path(addon_dir: Path) -> Path | None:
+    """Return a verified managed Silero VAD model path when available."""
+    return managed_model_path(addon_dir, "silero-vad", "silero_vad.onnx")
+
+
+def expected_managed_silero_vad_model_path(addon_dir: Path) -> Path | None:
+    """Return the expected managed Silero VAD model path, even if missing."""
+    return expected_managed_model_path(addon_dir, "silero-vad", "silero_vad.onnx")
+
+
+def managed_model_path(addon_dir: Path, model_dir: str, model_name: str) -> Path | None:
+    """Return a verified managed shared model path when available."""
+    manifest = load_manifest(addon_dir)
+    if manifest is None or not is_runtime_ready(addon_dir, manifest=manifest):
+        return None
+    path = managed_runtime_root(addon_dir, manifest.manifest_id) / "models" / model_dir / model_name
+    return path if path.is_file() else None
+
+
+def expected_managed_model_path(addon_dir: Path, model_dir: str, model_name: str) -> Path | None:
+    """Return the expected managed shared model path, even if missing."""
     manifest = load_manifest(addon_dir)
     if manifest is None or current_platform_key() is None:
         return None
-    return managed_runtime_root(addon_dir, manifest.manifest_id) / "models" / "spleeter-2stems-fp16" / model_name
+    return managed_runtime_root(addon_dir, manifest.manifest_id) / "models" / model_dir / model_name
 
 
 def runtime_status(addon_dir: Path) -> dict[str, Any]:

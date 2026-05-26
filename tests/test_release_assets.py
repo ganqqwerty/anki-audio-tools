@@ -34,6 +34,7 @@ def test_lock_contains_supported_target_and_tool_matrix() -> None:
         "ffprobe",
         "rnnoise-cli",
         "sherpa-spleeter",
+        "silero-vad",
         "dpdfnet",
     ]
     assert release_assets.lock_tools(lock, "macos-x86_64") == [
@@ -42,6 +43,7 @@ def test_lock_contains_supported_target_and_tool_matrix() -> None:
         "ffprobe",
         "rnnoise-cli",
         "sherpa-spleeter",
+        "silero-vad",
         "dpdfnet",
     ]
     assert release_assets.lock_tools(lock, "windows-x86_64") == [
@@ -50,16 +52,21 @@ def test_lock_contains_supported_target_and_tool_matrix() -> None:
         "ffprobe",
         "rnnoise-cli",
         "sherpa-spleeter",
+        "silero-vad",
         "dpdfnet",
     ]
     for target in release_assets.lock_targets(lock):
         sherpa_files = release_assets.tool_runtime_files(lock, target, "sherpa-spleeter")
         assert sherpa_files
+        silero_files = release_assets.tool_runtime_files(lock, target, "silero-vad")
+        assert silero_files == sherpa_files
     assert release_assets.lock_shared_files(lock) == [
         "spleeter-vocals",
         "spleeter-accompaniment",
+        "silero-vad-model",
     ]
     assert any("DPDFNet Lite CLI" in notice for notice in lock["notices"])
+    assert any("Silero VAD" in notice for notice in lock["notices"])
 
 
 def test_release_ready_lock_requires_every_binary_checksum() -> None:
@@ -159,6 +166,8 @@ def test_verify_runs_current_sherpa_spleeter_smoke(
             Path(command[-1]).write_bytes(b"input wav")
         elif command[0].endswith("sherpa-spleeter"):
             _write_spleeter_smoke_outputs(command)
+        elif command[0].endswith("silero-vad"):
+            Path(command[-1]).write_bytes(b"vad wav")
         else:  # pragma: no cover - protects the test if a new command is added
             raise AssertionError(command)
         return SimpleNamespace(returncode=0, stdout="ok", stderr="")
@@ -175,7 +184,9 @@ def test_verify_runs_current_sherpa_spleeter_smoke(
 
     assert result.ok is True
     assert commands[1][-1] == "--num-threads=1"
+    assert commands[2][0].endswith("silero-vad")
     assert any("sherpa-spleeter: smoke ok" in report for report in result.reports)
+    assert any("silero-vad: smoke ok" in report for report in result.reports)
 
 
 def test_cmd_verify_skips_diagnostics_by_default(monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]) -> None:
@@ -272,14 +283,18 @@ def test_stage_copies_shared_model_files_when_staging_full_runtime(tmp_path: Pat
     binary = tmp_path / "cache" / "bin" / "macos-arm64" / "ffmpeg"
     vocals = tmp_path / "addon-bin" / "models" / "spleeter-2stems-fp16" / "vocals.fp16.onnx"
     accompaniment = vocals.parent / "accompaniment.fp16.onnx"
+    silero_model = tmp_path / "addon-bin" / "models" / "silero-vad" / "silero_vad.onnx"
     binary.parent.mkdir(parents=True)
     vocals.parent.mkdir(parents=True)
+    silero_model.parent.mkdir(parents=True)
     binary.write_bytes(b"ffmpeg")
     vocals.write_bytes(b"vocals")
     accompaniment.write_bytes(b"accompaniment")
+    silero_model.write_bytes(b"silero")
     locked["targets"]["macos-arm64"]["tools"]["ffmpeg"]["sha256"] = hashlib.sha256(b"ffmpeg").hexdigest()
     locked["shared_files"]["spleeter-vocals"]["sha256"] = hashlib.sha256(b"vocals").hexdigest()
     locked["shared_files"]["spleeter-accompaniment"]["sha256"] = hashlib.sha256(b"accompaniment").hexdigest()
+    locked["shared_files"]["silero-vad-model"]["sha256"] = hashlib.sha256(b"silero").hexdigest()
 
     staged = release_assets.stage_assets(
         locked,
@@ -293,6 +308,7 @@ def test_stage_copies_shared_model_files_when_staging_full_runtime(tmp_path: Pat
 
     assert tmp_path / "stage" / "models" / "spleeter-2stems-fp16" / "vocals.fp16.onnx" in staged
     assert tmp_path / "stage" / "models" / "spleeter-2stems-fp16" / "accompaniment.fp16.onnx" in staged
+    assert tmp_path / "stage" / "models" / "silero-vad" / "silero_vad.onnx" in staged
 
 
 def test_lock_checksums_writes_present_binary_hashes(tmp_path: Path) -> None:
@@ -301,15 +317,20 @@ def test_lock_checksums_writes_present_binary_hashes(tmp_path: Path) -> None:
     lock_path.write_text(json.dumps(lock), encoding="utf-8")
     binary = tmp_path / "cache" / "bin" / "macos-arm64" / "ffmpeg"
     dpdfnet_binary = tmp_path / "addon-bin" / "macos-arm64" / "dpdfnet"
+    silero_binary = tmp_path / "addon-bin" / "macos-arm64" / "silero-vad"
     runtime_file = tmp_path / "addon-bin" / "macos-arm64" / "libonnxruntime.1.24.4.dylib"
     vocals = tmp_path / "addon-bin" / "models" / "spleeter-2stems-fp16" / "vocals.fp16.onnx"
+    silero_model = tmp_path / "addon-bin" / "models" / "silero-vad" / "silero_vad.onnx"
     binary.parent.mkdir(parents=True)
     dpdfnet_binary.parent.mkdir(parents=True, exist_ok=True)
     vocals.parent.mkdir(parents=True)
+    silero_model.parent.mkdir(parents=True)
     binary.write_bytes(b"ffmpeg")
     dpdfnet_binary.write_bytes(b"dpdfnet")
+    silero_binary.write_bytes(b"silero-vad")
     runtime_file.write_bytes(b"onnxruntime")
     vocals.write_bytes(b"vocals")
+    silero_model.write_bytes(b"silero-model")
 
     release_assets.lock_checksums(
         lock_path=lock_path,
@@ -324,7 +345,14 @@ def test_lock_checksums_writes_present_binary_hashes(tmp_path: Path) -> None:
     assert updated["targets"]["macos-arm64"]["tools"]["dpdfnet"]["sha256"] == hashlib.sha256(
         b"dpdfnet"
     ).hexdigest()
+    assert updated["targets"]["macos-arm64"]["tools"]["silero-vad"]["sha256"] == hashlib.sha256(
+        b"silero-vad"
+    ).hexdigest()
     sherpa_files = updated["targets"]["macos-arm64"]["tools"]["sherpa-spleeter"]["runtime_files"]
     assert sherpa_files[0]["sha256"] == hashlib.sha256(b"onnxruntime").hexdigest()
+    silero_files = updated["targets"]["macos-arm64"]["tools"]["silero-vad"]["runtime_files"]
+    assert silero_files[0]["sha256"] == hashlib.sha256(b"onnxruntime").hexdigest()
     assert updated["shared_files"]["spleeter-vocals"]["sha256"] == hashlib.sha256(b"vocals").hexdigest()
-
+    assert updated["shared_files"]["silero-vad-model"]["sha256"] == hashlib.sha256(
+        b"silero-model"
+    ).hexdigest()

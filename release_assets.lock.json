@@ -107,6 +107,29 @@
             "Apache-2.0"
           ],
           "sha256": "b9329b7989b30cfd38705ece9ffee2f09fb13ef2ffc7bb08c792aeefee4479f3"
+        },
+        "silero-vad": {
+          "version": "1.13.2",
+          "source_url": "https://github.com/k2-fsa/sherpa-onnx/releases/tag/v1.13.2",
+          "core_archive_url": "https://github.com/k2-fsa/sherpa-onnx/releases/download/v1.13.2/sherpa-onnx-v1.13.2-osx-arm64-shared-no-tts.tar.bz2",
+          "core_archive_sha256": "d880aaa79d36b784168a0398b278813d57ba8e135f468894b8f134b664e2e225",
+          "archive_member": "sherpa-onnx-v1.13.2-osx-arm64-shared-no-tts/bin/sherpa-onnx-vad",
+          "build": "third-party-sherpa-vad",
+          "executable": "silero-vad",
+          "diagnostic_args": [
+            "--help"
+          ],
+          "runtime_files": [
+            {
+              "archive_member": "sherpa-onnx-v1.13.2-osx-arm64-shared-no-tts/lib/libonnxruntime.1.24.4.dylib",
+              "path": "libonnxruntime.1.24.4.dylib",
+              "sha256": "3b76ed91e19443f04b79d53bf415d5fe66dd81211e3b7787ba48009e49e2d04d"
+            }
+          ],
+          "licenses": [
+            "Apache-2.0"
+          ],
+          "sha256": "5376b0152602fe3ccb739988b70c52fd6910b88a11732c8b69e8f0a7589705a1"
         }
       }
     },
@@ -215,6 +238,29 @@
             "Apache-2.0"
           ],
           "sha256": "7caf0d633d54460606bdebb857b3a104ef57d38ee483d9f56b1190194fef0c1b"
+        },
+        "silero-vad": {
+          "version": "1.13.2",
+          "source_url": "https://github.com/k2-fsa/sherpa-onnx/releases/tag/v1.13.2",
+          "core_archive_url": "https://github.com/k2-fsa/sherpa-onnx/releases/download/v1.13.2/sherpa-onnx-v1.13.2-osx-x64-shared-no-tts.tar.bz2",
+          "core_archive_sha256": "d1819cce38390d5b51ff38cb15a1b32e47c6ffe15882926211054b1f95e01357",
+          "archive_member": "sherpa-onnx-v1.13.2-osx-x64-shared-no-tts/bin/sherpa-onnx-vad",
+          "build": "third-party-sherpa-vad",
+          "executable": "silero-vad",
+          "diagnostic_args": [
+            "--help"
+          ],
+          "runtime_files": [
+            {
+              "archive_member": "sherpa-onnx-v1.13.2-osx-x64-shared-no-tts/lib/libonnxruntime.1.24.4.dylib",
+              "path": "libonnxruntime.1.24.4.dylib",
+              "sha256": "4cdc3fbfbe6da4d941ed0db63dd8b8014dd2fb73f929ef7dd99bc7eb0b9a632b"
+            }
+          ],
+          "licenses": [
+            "Apache-2.0"
+          ],
+          "sha256": "713d08121ebdad0d951dfd36b1bea69f8a90489bb7e723cd356320c1d3912100"
         }
       }
     },
@@ -328,6 +374,34 @@
             "Apache-2.0"
           ],
           "sha256": "df9a77e66be7009d4f4ea4e133ea83e8bc012700a620ecc87096cad0dcd7cdd1"
+        },
+        "silero-vad": {
+          "version": "1.13.2",
+          "source_url": "https://github.com/k2-fsa/sherpa-onnx/releases/tag/v1.13.2",
+          "core_archive_url": "https://github.com/k2-fsa/sherpa-onnx/releases/download/v1.13.2/sherpa-onnx-v1.13.2-win-x64-shared-MT-Release-no-tts.tar.bz2",
+          "core_archive_sha256": "c0ad48e0b80544bb7b05031ac8a8760b9e0279832176d749fcf131c8a139e658",
+          "archive_member": "sherpa-onnx-v1.13.2-win-x64-shared-MT-Release-no-tts/bin/sherpa-onnx-vad.exe",
+          "build": "third-party-sherpa-vad",
+          "executable": "silero-vad.exe",
+          "diagnostic_args": [
+            "--help"
+          ],
+          "runtime_files": [
+            {
+              "archive_member": "sherpa-onnx-v1.13.2-win-x64-shared-MT-Release-no-tts/bin/onnxruntime.dll",
+              "path": "onnxruntime.dll",
+              "sha256": "756c938b0f2d14c45c7ad469c6429041d7e905ee6c6ad6049aa67ce937567e97"
+            },
+            {
+              "archive_member": "sherpa-onnx-v1.13.2-win-x64-shared-MT-Release-no-tts/bin/onnxruntime_providers_shared.dll",
+              "path": "onnxruntime_providers_shared.dll",
+              "sha256": "62f865e9fbe497f15d5a589b644d41e4723501e352a83571697fcd1f191c8db8"
+            }
+          ],
+          "licenses": [
+            "Apache-2.0"
+          ],
+          "sha256": "fc82da1df861ee8beb043c637ad78d617d8030e15b06169499659daddb0cf71f"
         }
       }
     }
@@ -356,6 +430,17 @@
         "MIT"
       ],
       "sha256": "d14cea55793cc531a5875f5f4da08207d1c5ab9292e8e0099a104eecb014fcc0"
+    },
+    "silero-vad-model": {
+      "version": "sherpa-onnx-asr-models-silero-vad",
+      "source_url": "https://github.com/k2-fsa/sherpa-onnx/releases/tag/asr-models",
+      "download_url": "https://github.com/k2-fsa/sherpa-onnx/releases/download/asr-models/silero_vad.onnx",
+      "download_sha256": "9e2449e1087496d8d4caba907f23e0bd3f78d91fa552479bb9c23ac09cbb1fd6",
+      "path": "models/silero-vad/silero_vad.onnx",
+      "licenses": [
+        "MIT"
+      ],
+      "sha256": "9e2449e1087496d8d4caba907f23e0bd3f78d91fa552479bb9c23ac09cbb1fd6"
     }
   },
   "notices": [
@@ -364,6 +449,8 @@
     "RNNoise 0.2 is built from upstream source plus scripts/rnnoise_cli/rnnoise_cli.c under BSD-style terms.",
     "DPDFNet Lite CLI 0.1.0 is built from the vendored Lite source with the dpdfnet4.tflite model under Apache-2.0 terms.",
     "Sherpa ONNX source-separation runtime components are redistributed from k2-fsa/sherpa-onnx under Apache-2.0 terms.",
-    "Sherpa ONNX Spleeter 2-stems fp16 model files are redistributed from k2-fsa/sherpa-onnx source-separation-models."
+    "Sherpa ONNX Spleeter 2-stems fp16 model files are redistributed from k2-fsa/sherpa-onnx source-separation-models.",
+    "Sherpa ONNX VAD executable is redistributed from k2-fsa/sherpa-onnx under Apache-2.0 terms.",
+    "Silero VAD ONNX model is redistributed through the k2-fsa/sherpa-onnx asr-models release under MIT terms."
   ]
 }

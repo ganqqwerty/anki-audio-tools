@@ -12,7 +12,6 @@ from typing import Any
 from urllib.parse import urlparse
 
 from scripts.release_asset_common import (
-    SHARED_FILE_NAMES,
     ReleaseAssetError,
     _download_verified,
     _is_sha256,
@@ -72,7 +71,7 @@ def fetch_spleeter_models(lock: dict[str, Any], *, cache_dir: Path = CACHE_DIR) 
 
     validate_lock(lock)
     fetched: list[Path] = []
-    for file_name in SHARED_FILE_NAMES:
+    for file_name in ("spleeter-vocals", "spleeter-accompaniment"):
         entry = _shared_file_entry(lock, file_name)
         archive_url = _required_shared_https_url(entry, "download_url", file_name)
         archive_sha = _required_shared_sha256(entry, "download_sha256", file_name)

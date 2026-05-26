@@ -234,6 +234,7 @@
         "rnnoise": { "$ref": "#/definitions/ExternalToolHealth" },
         "dpdfnet": { "$ref": "#/definitions/ExternalToolHealth" },
         "spleeter": { "$ref": "#/definitions/ExternalToolHealth" },
+        "silero_vad": { "$ref": "#/definitions/ExternalToolHealth" },
         "runtime": { "$ref": "#/definitions/RuntimeStatus" }
       }
     },
@@ -265,6 +266,9 @@
     "BatchPauseAggressiveness": {
       "enum": ["gentle", "normal", "aggressive"]
     },
+    "BatchPauseDetectionAlgorithm": {
+      "enum": ["deep_filter", "silero_vad"]
+    },
     "DenoiseAlgorithm": {
       "enum": ["standard", "rnnoise", "dpdfnet", "voice_only"]
     },
@@ -281,6 +285,7 @@
         "speed_step": { "type": "number" },
         "volume_step_db": { "type": "number" },
         "pause_aggressiveness": { "$ref": "#/definitions/BatchPauseAggressiveness" },
+        "pause_detection_algorithm": { "$ref": "#/definitions/BatchPauseDetectionAlgorithm" },
         "denoise_algorithm": { "$ref": "#/definitions/DenoiseAlgorithm" },
         "dpdfnet_attn_limit_db": { "$ref": "#/definitions/BatchDpdfnetAttnLimitDB" },
         "target_format": { "$ref": "#/definitions/OutputFormat" }
@@ -310,11 +315,12 @@
     "BatchDefaults": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["speed_step", "volume_step_db", "pause_aggressiveness", "denoise_algorithm", "dpdfnet_attn_limit_db", "output_format"],
+      "required": ["speed_step", "volume_step_db", "pause_aggressiveness", "pause_detection_algorithm", "denoise_algorithm", "dpdfnet_attn_limit_db", "output_format"],
       "properties": {
         "speed_step": { "type": "number" },
         "volume_step_db": { "type": "number" },
         "pause_aggressiveness": { "$ref": "#/definitions/BatchPauseAggressiveness" },
+        "pause_detection_algorithm": { "$ref": "#/definitions/BatchPauseDetectionAlgorithm" },
         "denoise_algorithm": { "$ref": "#/definitions/DenoiseAlgorithm" },
         "dpdfnet_attn_limit_db": { "$ref": "#/definitions/BatchDpdfnetAttnLimitDB" },
         "output_format": { "$ref": "#/definitions/OutputFormat" }

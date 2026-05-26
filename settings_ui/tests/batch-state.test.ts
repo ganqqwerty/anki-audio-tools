@@ -10,8 +10,26 @@ import {
 import {
   BatchOperationName,
   BatchPauseAggressiveness,
+  BatchPauseDetectionAlgorithm,
   DenoiseAlgorithm,
 } from "../src/lib/types.js";
+import type { BatchFormState } from "../src/batch/batch-state.js";
+
+function form(overrides: Partial<BatchFormState> = {}): BatchFormState {
+  return {
+    operation: BatchOperationName.Graph,
+    sourceField: "Audio",
+    targetField: "Image",
+    speedStep: 1.5,
+    volumeStepDb: 6,
+    pauseAggressiveness: BatchPauseAggressiveness.Aggressive,
+    pauseDetectionAlgorithm: BatchPauseDetectionAlgorithm.DeepFilter,
+    denoiseAlgorithm: DenoiseAlgorithm.Standard,
+    dpdfnetAttnLimitDb: 12,
+    targetFormat: "mp3",
+    ...overrides,
+  };
+}
 
 describe("batch-state", () => {
   it("selects the current operation and target visibility", () => {
@@ -30,49 +48,27 @@ describe("batch-state", () => {
 
     expect(
       canStartBatch(
-        {
+        form({
           operation: BatchOperationName.Graph,
-          sourceField: "Audio",
-          targetField: "Image",
-          speedStep: 1.5,
-          volumeStepDb: 6,
-          pauseAggressiveness: BatchPauseAggressiveness.Aggressive,
-          denoiseAlgorithm: DenoiseAlgorithm.Standard,
-          dpdfnetAttnLimitDb: 12,
-          targetFormat: "mp3",
-        },
+        }),
         graph,
       ),
     ).toBe(true);
     expect(
       canStartBatch(
-        {
+        form({
           operation: BatchOperationName.Graph,
-          sourceField: "Audio",
           targetField: "",
-          speedStep: 1.5,
-          volumeStepDb: 6,
-          pauseAggressiveness: BatchPauseAggressiveness.Aggressive,
-          denoiseAlgorithm: DenoiseAlgorithm.Standard,
-          dpdfnetAttnLimitDb: 12,
-          targetFormat: "mp3",
-        },
+        }),
         graph,
       ),
     ).toBe(false);
     expect(
       canStartBatch(
-        {
+        form({
           operation: BatchOperationName.Faster,
-          sourceField: "Audio",
           targetField: "",
-          speedStep: 1.5,
-          volumeStepDb: 6,
-          pauseAggressiveness: BatchPauseAggressiveness.Aggressive,
-          denoiseAlgorithm: DenoiseAlgorithm.Standard,
-          dpdfnetAttnLimitDb: 12,
-          targetFormat: "mp3",
-        },
+        }),
         faster,
       ),
     ).toBe(true);
@@ -81,17 +77,9 @@ describe("batch-state", () => {
   it("builds graph start requests with target field and no parameters", () => {
     const graph = selectedOperation(FALLBACK_BATCH_INITIAL_STATE, BatchOperationName.Graph);
     expect(
-      batchStartRequest({
+      batchStartRequest(form({
         operation: BatchOperationName.Graph,
-        sourceField: "Audio",
-        targetField: "Image",
-        speedStep: 1.5,
-        volumeStepDb: 6,
-        pauseAggressiveness: BatchPauseAggressiveness.Aggressive,
-        denoiseAlgorithm: DenoiseAlgorithm.Standard,
-        dpdfnetAttnLimitDb: 12,
-        targetFormat: "mp3",
-      }, graph),
+      }), graph),
     ).toEqual({
       operation: BatchOperationName.Graph,
       source_field: "Audio",
@@ -106,17 +94,10 @@ describe("batch-state", () => {
     const denoise = selectedOperation(FALLBACK_BATCH_INITIAL_STATE, BatchOperationName.Denoise);
     const convert = selectedOperation(FALLBACK_BATCH_INITIAL_STATE, BatchOperationName.Convert);
     expect(
-      batchStartRequest({
+      batchStartRequest(form({
         operation: BatchOperationName.Faster,
-        sourceField: "Audio",
-        targetField: "Image",
         speedStep: 2,
-        volumeStepDb: 6,
-        pauseAggressiveness: BatchPauseAggressiveness.Aggressive,
-        denoiseAlgorithm: DenoiseAlgorithm.Standard,
-        dpdfnetAttnLimitDb: 12,
-        targetFormat: "mp3",
-      }, faster),
+      }), faster),
     ).toEqual({
       operation: BatchOperationName.Faster,
       source_field: "Audio",
@@ -125,36 +106,27 @@ describe("batch-state", () => {
     });
 
     expect(
-      batchStartRequest({
+      batchStartRequest(form({
         operation: BatchOperationName.RemovePauses,
-        sourceField: "Audio",
-        targetField: "Image",
-        speedStep: 2,
-        volumeStepDb: 6,
         pauseAggressiveness: BatchPauseAggressiveness.Gentle,
-        denoiseAlgorithm: DenoiseAlgorithm.Standard,
-        dpdfnetAttnLimitDb: 12,
-        targetFormat: "mp3",
-      }, pause),
+      }), pause),
     ).toEqual({
       operation: BatchOperationName.RemovePauses,
       source_field: "Audio",
       target_field: null,
-      parameters: { pause_aggressiveness: "gentle" },
+      parameters: {
+        pause_aggressiveness: "gentle",
+        pause_detection_algorithm: "deep_filter",
+      },
     });
 
     expect(
-      batchStartRequest({
+      batchStartRequest(form({
         operation: BatchOperationName.Denoise,
-        sourceField: "Audio",
-        targetField: "Image",
-        speedStep: 2,
-        volumeStepDb: 6,
         pauseAggressiveness: BatchPauseAggressiveness.Gentle,
         denoiseAlgorithm: DenoiseAlgorithm.Dpdfnet,
         dpdfnetAttnLimitDb: 18,
-        targetFormat: "mp3",
-      }, denoise),
+      }), denoise),
     ).toEqual({
       operation: BatchOperationName.Denoise,
       source_field: "Audio",
@@ -163,17 +135,11 @@ describe("batch-state", () => {
     });
 
     expect(
-      batchStartRequest({
+      batchStartRequest(form({
         operation: BatchOperationName.Convert,
-        sourceField: "Audio",
-        targetField: "Image",
-        speedStep: 2,
-        volumeStepDb: 6,
         pauseAggressiveness: BatchPauseAggressiveness.Gentle,
-        denoiseAlgorithm: DenoiseAlgorithm.Standard,
-        dpdfnetAttnLimitDb: 12,
         targetFormat: "flac",
-      }, convert),
+      }), convert),
     ).toEqual({
       operation: BatchOperationName.Convert,
       source_field: "Audio",

@@ -27,7 +27,14 @@ export function buildSplitCommandPayloadFromState(
     return { command, fieldOrd: ord, overrides: { speedStep: state.speedStep } };
   }
   if (command === "aqe:remove-pauses") {
-    return { command, fieldOrd: ord, overrides: { pauseAggressiveness: state.pauseAggressiveness } };
+    return {
+      command,
+      fieldOrd: ord,
+      overrides: {
+        pauseAggressiveness: state.pauseAggressiveness,
+        pauseDetectionAlgorithm: state.pauseDetectionAlgorithm,
+      },
+    };
   }
   if (command === "aqe:convert") {
     return { command, fieldOrd: ord, overrides: { targetFormat: state.outputFormat } };
@@ -84,6 +91,7 @@ export function buildSplitDefaultSaveRequestFromState(
     request.defaults.speedStep = state.speedStep;
   } else if (command === "aqe:remove-pauses") {
     request.defaults.pauseAggressiveness = state.pauseAggressiveness;
+    request.defaults.pauseDetectionAlgorithm = state.pauseDetectionAlgorithm;
   } else if (
     command === "aqe:denoise-standard" ||
     command === "aqe:rnnoise" ||

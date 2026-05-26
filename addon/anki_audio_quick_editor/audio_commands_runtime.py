@@ -29,6 +29,52 @@ def build_deep_filter_prepare_command(
     )
 
 
+def build_silero_vad_prepare_command(
+    ffmpeg_path: Path,
+    source_path: Path,
+    output_wav_path: Path,
+) -> tuple[str, ...]:
+    """Build the ffmpeg command that prepares 16 kHz mono WAV for Silero VAD."""
+    return (
+        str(ffmpeg_path),
+        "-y",
+        "-i",
+        str(source_path),
+        "-vn",
+        "-ac",
+        "1",
+        "-ar",
+        "16000",
+        FFMPEG_AUDIO_CODEC_ARG,
+        "pcm_s16le",
+        str(output_wav_path),
+    )
+
+
+def build_silero_vad_command(
+    silero_vad_path: Path,
+    model_path: Path,
+    input_wav_path: Path,
+    output_wav_path: Path,
+    *,
+    threshold: float,
+    min_silence_seconds: float,
+    min_speech_seconds: float,
+) -> tuple[str, ...]:
+    """Build the Sherpa ONNX Silero VAD command for one prepared WAV file."""
+    return (
+        str(silero_vad_path),
+        f"--silero-vad-model={model_path}",
+        f"--silero-vad-threshold={threshold:g}",
+        f"--silero-vad-min-silence-duration={min_silence_seconds:g}",
+        f"--silero-vad-min-speech-duration={min_speech_seconds:g}",
+        "--vad-num-threads=1",
+        "--print-args=false",
+        str(input_wav_path),
+        str(output_wav_path),
+    )
+
+
 def build_deep_filter_command(
     deep_filter_path: Path,
     input_wav_path: Path,

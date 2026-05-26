@@ -19,3 +19,8 @@ export function formatPitchHumMode(value: PitchHumMode): string {
 export function formatShareTarget(value: ShareTarget): string {
   return value === "litterbox" ? t("editor.share.target.litterbox") : t("editor.share.target.catbox");
 }
+
+export function formatPauseDetectionAlgorithm(value: FieldSplitButtonState["pauseDetectionAlgorithm"]): string {
+  if (value === "silero_vad") return t("settings.pause_detection_algorithm.silero_vad");
+  return t("settings.pause_detection_algorithm.deep_filter");
+}

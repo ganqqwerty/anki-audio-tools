@@ -3,7 +3,6 @@
   import { t } from "../lib/i18n.js";
   import {
     formatDenoiseAlgorithm,
-    formatDpdfnetAggressiveness,
     formatOutputFormat,
     formatPauseAggressiveness,
     formatPitchHumMode,
@@ -13,7 +12,7 @@
   } from "./split-button-state.js";
   import { COMMAND_SLUGS } from "./commands.js";
   import { openEditorExternalLink } from "./external-links.js";
-  import { DPDFNET_ATTENUATION_LIMIT_DB_VALUES, isOutputFormatValue } from "../lib/audio-operation-parameters.js";
+  import { isOutputFormatValue } from "../lib/audio-operation-parameters.js";
   import {
     splitMenuDescription,
     splitMenuVideoLink,
@@ -23,11 +22,13 @@
     splitOptionValues,
   } from "./split-menu-content.js";
   import SplitDefaultSaveButton from "./SplitDefaultSaveButton.svelte";
+  import SplitExtraFields from "./SplitExtraFields.svelte";
   import SplitRunButtons from "./SplitRunButtons.svelte";
   import type { ButtonSpec, FieldSplitButtonState } from "./types.js";
 
   type DenoiseAlgorithm = FieldSplitButtonState["denoiseAlgorithm"];
   type OutputFormatValue = FieldSplitButtonState["outputFormat"];
+  type PauseDetectionAlgorithm = FieldSplitButtonState["pauseDetectionAlgorithm"];
   type PitchHumMode = FieldSplitButtonState["pitchHumMode"];
   type ShareTarget = FieldSplitButtonState["shareTarget"];
 
@@ -42,6 +43,7 @@
     onDpdfnetAttnLimitDb,
     onOutputFormat,
     onPauseAggressiveness,
+    onPauseDetectionAlgorithm,
     onPitchHumMode,
     onSaveDefault,
     onRunCommand,
@@ -49,6 +51,7 @@
     onSpeedStep,
     onVolumeStep,
     pauseAggressiveness,
+    pauseDetectionAlgorithm,
     outputFormat,
     pitchHumMode,
     saveDefaultSaved,
@@ -69,6 +72,7 @@
     onDpdfnetAttnLimitDb: (value: number) => void;
     onOutputFormat: (value: OutputFormatValue) => void;
     onPauseAggressiveness: (value: "gentle" | "normal" | "aggressive") => void;
+    onPauseDetectionAlgorithm: (value: PauseDetectionAlgorithm) => void;
     onPitchHumMode: (value: PitchHumMode) => void;
     onSaveDefault: () => void;
     onRunCommand: (command: ButtonSpec["command"]) => void;
@@ -76,6 +80,7 @@
     onSpeedStep: (value: number) => void;
     onVolumeStep: (value: number) => void;
     pauseAggressiveness: "gentle" | "normal" | "aggressive";
+    pauseDetectionAlgorithm: PauseDetectionAlgorithm;
     outputFormat: OutputFormatValue;
     pitchHumMode: PitchHumMode;
     saveDefaultSaved: boolean;
@@ -205,11 +210,6 @@
     onChange();
   }
 
-  function applyDpdfnetAggressiveness(value: number): void {
-    onDpdfnetAttnLimitDb(value);
-    onChange();
-  }
-
   function presetLabel(value: number): string {
     if (isVolumeControl()) return formatVolumeDb(value);
     if (groupSlug === "speed") return groupedSpeedLabel(value);
@@ -316,20 +316,17 @@
       </AqeTooltip>
     {/each}
   </div>
-  {#if denoiseAlgorithm === "dpdfnet"}
-    <label class="aqe-split-extra-field">
-      <span>{t("settings.dpdfnet_attn_limit_db")}</span>
-      <select
-        data-testid={`aqe-split-${targetOrd}-${slug}-dpdfnet-aggressiveness`}
-        value={dpdfnetAttnLimitDb}
-        onchange={(event) => applyDpdfnetAggressiveness(Number((event.currentTarget as HTMLSelectElement).value))}
-      >
-        {#each DPDFNET_ATTENUATION_LIMIT_DB_VALUES as value}
-          <option value={value}>{formatDpdfnetAggressiveness(value)}</option>
-        {/each}
-      </select>
-    </label>
-  {/if}
+  <SplitExtraFields
+    command={button.command}
+    {denoiseAlgorithm}
+    {dpdfnetAttnLimitDb}
+    {onChange}
+    {onDpdfnetAttnLimitDb}
+    {onPauseDetectionAlgorithm}
+    {pauseDetectionAlgorithm}
+    {slug}
+    {targetOrd}
+  />
 {:else}
   <input
     data-testid={`aqe-split-${targetOrd}-${slug}-slider`}

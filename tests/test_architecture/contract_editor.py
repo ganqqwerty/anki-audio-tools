@@ -130,6 +130,7 @@ EDITOR_CONTRACTS: dict[str, ModuleContract] = {
         allowed_addon_deps=(
             "audio_state",
             "diagnostics_runtime",
+            "editor_playback_bounds",
             "editor_session",
             "i18n",
             "media_paths",
@@ -143,6 +144,11 @@ EDITOR_CONTRACTS: dict[str, ModuleContract] = {
             SideEffect.TEMP_FILESYSTEM_CLEANUP,
         ),
         allow_any_anki_imports=True,
+    ),
+    "editor_playback_bounds": contract(
+        "editor_playback_bounds",
+        layer=Layer.IMPORT_SAFE_CORE,
+        allowed_addon_deps=("prosody_types",),
     ),
     "editor_processing": contract(
         "editor_processing",

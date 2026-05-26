@@ -24,6 +24,7 @@ import {
   GraphVoiceRange,
   OutputFormat,
   PauseAggressiveness,
+  PauseDetectionAlgorithm,
   PitchHumMode,
   ShareTarget,
   VisibleEditorButton,
@@ -75,6 +76,7 @@ const config = {
   denoise_algorithm: DenoiseAlgorithm.Standard,
   pitch_hum_mode: PitchHumMode.Direct,
   pause_aggressiveness: PauseAggressiveness.Normal,
+  pause_detection_algorithm: PauseDetectionAlgorithm.DeepFilter,
 };
 
 afterEach(() => {

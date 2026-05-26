@@ -9,7 +9,7 @@ import zipfile
 from pathlib import Path
 
 import pytest
-from scripts import release, release_asset_common, release_assets
+from scripts import release, release_asset_common, release_assets, release_runtime
 
 FAKE_COMMIT_HASH = "a" * 40
 FAKE_RELEASE_INFO = {
@@ -50,7 +50,7 @@ def _write_archive(
             if name in executable_names:
                 content = b"binary"
             elif name == "bin/THIRD_PARTY_NOTICES.md":
-                content = b"FFmpeg LAME DeepFilterNet RNNoise DPDFNet Sherpa Spleeter"
+                content = b"FFmpeg LAME DeepFilterNet RNNoise DPDFNet Sherpa Spleeter Silero"
             elif name == "release_info.json":
                 content = release_info or (json.dumps(FAKE_RELEASE_INFO) + "\n").encode()
             elif name == "bin/runtime_manifest.json":
@@ -363,8 +363,10 @@ def test_release_manifest_files_can_be_limited_to_single_runtime_target() -> Non
     )
 
     assert "bin/macos-arm64/ffmpeg" in names
+    assert "bin/macos-arm64/silero-vad" in names
     assert "bin/macos-arm64/libonnxruntime.1.24.4.dylib" in names
     assert "bin/models/spleeter-2stems-fp16/vocals.fp16.onnx" in names
+    assert "bin/models/silero-vad/silero_vad.onnx" in names
     assert "bin/windows-x86_64/ffmpeg.exe" not in names
     assert "bin/windows-x86_64/onnxruntime.dll" not in names
 
@@ -379,6 +381,7 @@ def test_release_manifest_files_default_to_thin_archive() -> None:
     assert "bin/macos-arm64/ffmpeg" not in names
     assert "bin/macos-arm64/libonnxruntime.1.24.4.dylib" not in names
     assert "bin/models/spleeter-2stems-fp16/vocals.fp16.onnx" not in names
+    assert "bin/models/silero-vad/silero_vad.onnx" not in names
 
 
 def test_release_manifest_files_can_exclude_ffmpeg_tools() -> None:
@@ -392,8 +395,10 @@ def test_release_manifest_files_can_exclude_ffmpeg_tools() -> None:
     assert "bin/macos-arm64/ffmpeg" not in names
     assert "bin/macos-arm64/ffprobe" not in names
     assert "bin/macos-arm64/deep-filter" in names
+    assert "bin/macos-arm64/silero-vad" in names
     assert "bin/macos-arm64/libonnxruntime.1.24.4.dylib" in names
     assert "bin/models/spleeter-2stems-fp16/vocals.fp16.onnx" in names
+    assert "bin/models/silero-vad/silero_vad.onnx" in names
 
 
 def test_thin_release_validation_rejects_embedded_runtime_payload(tmp_path: Path, capsys) -> None:
@@ -417,7 +422,9 @@ def test_runtime_manifest_can_be_limited_to_single_runtime_target(tmp_path) -> N
     manifest = json.loads((tmp_path / "runtime_manifest.json").read_text(encoding="utf-8"))
     assert list(manifest["targets"]) == ["windows-x86_64"]
     assert manifest["targets"]["windows-x86_64"]["tools"]["sherpa-spleeter"]["runtime_files"]
+    assert manifest["targets"]["windows-x86_64"]["tools"]["silero-vad"]["runtime_files"]
     assert manifest["shared_files"]["spleeter-vocals"]["path"] == "models/spleeter-2stems-fp16/vocals.fp16.onnx"
+    assert manifest["shared_files"]["silero-vad-model"]["path"] == "models/silero-vad/silero_vad.onnx"
 
 
 def test_runtime_manifest_can_exclude_ffmpeg_tools(tmp_path: Path) -> None:
@@ -438,6 +445,21 @@ def test_runtime_manifest_includes_locked_diagnostic_args(tmp_path) -> None:
 
     manifest = json.loads((tmp_path / "runtime_manifest.json").read_text(encoding="utf-8"))
     assert manifest["targets"]["macos-arm64"]["tools"]["ffmpeg"]["diagnostic_args"] == ["-version"]
+    assert manifest["targets"]["macos-arm64"]["tools"]["silero-vad"]["diagnostic_args"] == ["--help"]
+
+
+def test_runtime_pack_entries_deduplicate_shared_onnxruntime_support_files() -> None:
+    lock = release_assets.load_lock()
+
+    entries = release_runtime._runtime_pack_entries(
+        lock,
+        "macos-arm64",
+        source_bin_dir=release.ADDON_DIR / "bin",
+        include_ffmpeg=False,
+    )
+    paths = [entry["path"] for entry in entries]
+
+    assert paths.count("macos-arm64/libonnxruntime.1.24.4.dylib") == 1
 
 
 def test_release_validation_can_exclude_ffmpeg_runtime_payloads(tmp_path: Path) -> None:
