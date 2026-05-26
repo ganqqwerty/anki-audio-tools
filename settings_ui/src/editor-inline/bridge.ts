@@ -9,9 +9,10 @@ import type {
 import type { SplitDefaultSaveRequest } from "./split-default-save-types.js";
 
 const frontendLogs: FrontendLogPayload[] = [];
-let pendingGraphAnalysisRequest: GraphAnalysisRequest | null = null;
-let pendingRegionDeleteRequest: RegionDeleteRequest | null = null;
-let pendingSplitDefaultSaveRequest: SplitDefaultSaveRequest | null = null;
+const pendingGraphAnalysisRequests: GraphAnalysisRequest[] = [];
+const pendingPlaybackRequests: PlaybackRequest[] = [];
+const pendingRegionDeleteRequests: RegionDeleteRequest[] = [];
+const pendingSplitDefaultSaveRequests: SplitDefaultSaveRequest[] = [];
 
 export function sendBridgeCommand(command: string): void {
   if (globalThis.pycmd !== undefined) {
@@ -36,7 +37,7 @@ export function sendExternalLinkRequest(url: string): void {
 }
 
 export function sendGraphAnalysisRequest(request: GraphAnalysisRequest): void {
-  pendingGraphAnalysisRequest = request;
+  pendingGraphAnalysisRequests.push(request);
   sendBridgeCommand("aqe:analyze-field");
 }
 
@@ -46,7 +47,7 @@ export function sendEditorFrontendLog(payload: FrontendLogPayload): void {
 }
 
 export function sendSplitDefaultSaveRequest(request: SplitDefaultSaveRequest): void {
-  pendingSplitDefaultSaveRequest = request;
+  pendingSplitDefaultSaveRequests.push(request);
   sendBridgeCommand("aqe:save-split-defaults");
 }
 
@@ -55,40 +56,39 @@ export function popEditorFrontendLog(): FrontendLogPayload | null {
 }
 
 export function setPendingPlaybackRequest(request: PlaybackRequest): void {
+  pendingPlaybackRequests.push(request);
   window.__aqePendingPlaybackRequest = request;
   window.__aqeLastPlaybackRequest = request;
 }
 
 export function popPendingPlaybackRequest(): PlaybackRequest | null {
-  if (!window.__aqePendingPlaybackRequest) return null;
-  const request = window.__aqePendingPlaybackRequest;
-  window.__aqePendingPlaybackRequest = null;
+  const request = pendingPlaybackRequests.shift() ?? null;
+  window.__aqePendingPlaybackRequest = pendingPlaybackRequests[0] ?? null;
   return request;
+}
+
+export function clearPendingNoteScopedBridgeRequests(): void {
+  pendingGraphAnalysisRequests.length = 0;
+  pendingPlaybackRequests.length = 0;
+  pendingRegionDeleteRequests.length = 0;
+  window.__aqePendingPlaybackRequest = null;
+  window.__aqeLastPlaybackRequest = null;
 }
 
 export function popPendingGraphAnalysisRequest(): GraphAnalysisRequest | null {
-  if (!pendingGraphAnalysisRequest) return null;
-  const request = pendingGraphAnalysisRequest;
-  pendingGraphAnalysisRequest = null;
-  return request;
+  return pendingGraphAnalysisRequests.shift() ?? null;
 }
 
 export function setPendingRegionDeleteRequest(request: RegionDeleteRequest): void {
-  pendingRegionDeleteRequest = request;
+  pendingRegionDeleteRequests.push(request);
 }
 
 export function popPendingRegionDeleteRequest(): RegionDeleteRequest | null {
-  if (!pendingRegionDeleteRequest) return null;
-  const request = pendingRegionDeleteRequest;
-  pendingRegionDeleteRequest = null;
-  return request;
+  return pendingRegionDeleteRequests.shift() ?? null;
 }
 
 export function popPendingSplitDefaultSaveRequest(): SplitDefaultSaveRequest | null {
-  if (!pendingSplitDefaultSaveRequest) return null;
-  const request = pendingSplitDefaultSaveRequest;
-  pendingSplitDefaultSaveRequest = null;
-  return request;
+  return pendingSplitDefaultSaveRequests.shift() ?? null;
 }
 
 export function setCursorIntent(intent: CursorIntent): void {

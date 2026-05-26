@@ -150,6 +150,8 @@ class BatchOperationsDialog:
         return False
 
     def _handle_batch_start(self, command: WebviewBridgeCommand) -> bool:
+        if self._running:
+            return True
         try:
             raw_payload = legacy_json_payload(command)
             request = request_from_batch_start_payload(raw_payload)

@@ -3,14 +3,13 @@
 from __future__ import annotations
 
 import logging
-import shutil
 from dataclasses import replace
 from pathlib import Path
 from typing import Any, Callable, cast
 
 from .audio_formats import DEFAULT_OUTPUT_FORMAT
 from .audio_state import AudioEditState, AudioProcessingConfig
-from .diagnostics_runtime import capture_exception, new_operation_id, record_breadcrumb
+from .diagnostics_runtime import new_operation_id, record_breadcrumb
 from .editor_actions import EditorCommandPayload
 from .editor_processing_shared import (
     cancel_graph_analysis_for_processing,
@@ -19,7 +18,15 @@ from .editor_processing_shared import (
     resolved_field_index,
     sync_history_availability,
 )
-from .editor_session import EditorSession, PendingEditorStatus
+from .editor_session import (
+    EditorProcessingGuard,
+    EditorSession,
+    PendingEditorStatus,
+    begin_processing_guard,
+    clear_processing_for_stale_guard,
+    processing_guard_matches_editor,
+)
+from .editor_special_transform_worker import run_special_transform_worker
 from .editor_status import command_status_summary
 from .errors import AudioProcessingError
 from .i18n import t
@@ -147,10 +154,16 @@ def run_special_audio_transform_async(
     session.post_edit_playback_generation += 1
     session.next_status_summary = command_status_summary(command or EditorCommandPayload(command=""), config)
     session.processing = True
+    field_index = session.field_index if session.field_index is not None else getattr(editor, "currentField", 0)
+    guard = begin_processing_guard(
+        session,
+        field_index=int(field_index),
+        source_filename=current_path.name,
+    )
     session.playback_active = False
     session.playback_paused = False
     deps.set_busy(editor, True, f"{label}...")
-    deps.eval_playback_state(editor, session.field_index, "stopped", session.cursor_ms)
+    deps.eval_playback_state(editor, guard.field_index, "stopped", session.cursor_ms)
     record_breadcrumb(
         "editor.special_transform.started",
         source="editor",
@@ -161,44 +174,21 @@ def run_special_audio_transform_async(
     )
 
     def _run() -> None:
-        output_path: Path | None = None
-        try:
-            desired_name = deps.make_output_filename(current_path.name, output_format=output_format)
-            output_path = deps.temp_final_path(desired_name)
-
-            def _show_command(process_command: tuple[str, ...]) -> None:
-                rendered = deps.format_ffmpeg_command(process_command)
-                status_message = label
-                command_text = ""
-                if config.show_ffmpeg_commands:
-                    status_message = f"{status_message}: {rendered}"
-                    command_text = rendered
-                deps.main(editor, lambda: deps.set_busy(editor, True, status_message, command_text))
-
-            renderer(current_path, config, output_path=output_path, on_command=_show_command)
-            saved_name = deps.write_generated_media(editor, desired_name, output_path)
-            deps.main(editor, lambda: deps.replace_current_field_after_noise_removal(editor, saved_name))
-        except Exception as exc:
-            message = message_with_macos_permission_guidance(str(exc), exc)
-            rendered_message = message
-            if failure_context_recorder is not None:
-                failure_context_recorder(current_path, config, exc)
-            deps.log_special_transform_failure(failure_log_label, message)
-            capture_exception(
-                f"editor.worker.{failure_log_label}",
-                exc,
-                operation=f"editor.{failure_log_label}",
-                operation_id=operation_id,
-                user_message=message,
-                context={"source_path": str(current_path), "label": label},
-                log=logger,
-            )
-            if support_hint:
-                rendered_message = f"{message} {support_hint}"
-            deps.main(editor, lambda: deps.render_failed(editor, rendered_message))
-        finally:
-            if output_path is not None:
-                shutil.rmtree(output_path.parent, ignore_errors=True)
+        run_special_transform_worker(
+            editor,
+            session,
+            current_path,
+            config,
+            label,
+            failure_log_label,
+            renderer,
+            failure_context_recorder,
+            support_hint,
+            output_format,
+            guard,
+            operation_id,
+            deps,
+        )
 
     deps.threading.Thread(target=_run, daemon=True).start()
 
@@ -216,8 +206,21 @@ def _special_transform_config(
     return config
 
 
-def replace_current_field_after_noise_removal(editor: Any, saved_name: str, deps: Any) -> None:
+def replace_current_field_after_noise_removal(
+    editor: Any,
+    saved_name: str,
+    deps: Any,
+    *,
+    guard: EditorProcessingGuard | None = None,
+    output_path: Path | None = None,
+) -> None:
     session = deps.sessions.get(editor)
+    if guard is not None and not processing_guard_matches_editor(editor, session, guard, deps):
+        if clear_processing_for_stale_guard(session, guard):
+            deps.set_busy(editor, False)
+        return
+    if output_path is not None:
+        saved_name = deps.write_generated_media(editor, saved_name, output_path)
     field_index = resolved_field_index(session, editor, deps)
     field_html = editor.note.fields[field_index]
     selection = select_first_sound_reference(field_html)
