@@ -29,7 +29,7 @@ from .editor_session import (
 )
 from .errors import AudioProcessingError, AudioQuickEditorError
 from .i18n import t
-from .permission_guidance import message_with_macos_permission_guidance
+from .permission_guidance import message_with_permission_guidance
 from .prosody_settings import config_with_graph_settings
 from .prosody_types import ProsodyTrack
 from .sound_refs import safe_media_basename
@@ -276,7 +276,7 @@ def analyze_learner_recording_async(
                 lambda: learner_recording_analysis_finished(editor, generation, request, track, deps),
             )
         except Exception as exc:
-            message = message_with_macos_permission_guidance(str(exc), exc)
+            message = message_with_permission_guidance(str(exc), exc)
             capture_exception(
                 "editor.worker.learner_recording_analysis",
                 exc,

@@ -59,7 +59,7 @@ def test_settings_save_drops_stale_visible_editor_buttons() -> None:
     _, eval_fn = _capture_eval()
     config = {
         **_full_config(),
-        "visible_editor_buttons": ["aqe:play", "aqe:record-voice", "aqe:settings"],
+        "visible_editor_buttons": ["aqe:play", "aqe:stale-button", "aqe:settings"],
     }
     command = _bridge_command("settings.save", config)
 
