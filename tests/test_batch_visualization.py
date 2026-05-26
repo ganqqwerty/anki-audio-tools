@@ -22,7 +22,6 @@ from anki_audio_quick_editor.batch_operations import (
     process_note_batch_operation,
     unique_note_ids,
 )
-from anki_audio_quick_editor.batch_visualization import process_note_visualization
 from anki_audio_quick_editor.prosody_types import ProsodyPoint, ProsodyTrack
 
 
@@ -98,7 +97,7 @@ def test_batch_run_request_rejects_missing_graph_target() -> None:
         raise AssertionError("expected missing target field to fail")
 
 
-def test_process_note_visualization_appends_generated_media(
+def test_process_note_batch_operation_appends_generated_graph_media(
     tmp_path: Path,
     monkeypatch,
 ) -> None:
@@ -127,10 +126,9 @@ def test_process_note_visualization_appends_generated_media(
         writes.append((name, data))
         return name
 
-    result = process_note_visualization(
+    result = process_note_batch_operation(
         note,
-        source_field="Audio",
-        target_field="Image",
+        request=BatchRunRequest(operation=OP_GRAPH, source_field="Audio", target_field="Image"),
         media_dir=tmp_path,
         config=config,
         media_writer=media_writer,

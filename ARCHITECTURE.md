@@ -97,7 +97,7 @@ Runtime installation is managed by `runtime_manager.py` and `runtime_manifest.py
 1. `browser_integration.py` adds `Run Audio Batch Operation...` to the Browser Cards menu and context menu.
 2. The Browser selection is deduplicated to note IDs before processing.
 3. `browser_dialog.py` hosts an `AnkiWebView` shell for the committed Browser batch Svelte bundle through `webview_shell.py`, while `browser_dialog_state.py` builds import-safe initial state and decodes generated contract payloads.
-4. Batch bridge commands use the shared `bridge:{ command, payload }` envelope decoded by `webview_bridge.py`; legacy `name:json` commands are accepted only as compatibility input.
+4. Batch bridge commands use the shared `bridge:{ command, payload }` envelope decoded by `webview_bridge.py`.
 5. The Svelte app renders the operation selector plus source and target field controls from the union of selected-note fields, grouped by note type. Operation target and parameter behavior comes from Python-provided operation metadata, not frontend operation-name conditionals.
 6. Source field selection is always required. Target field selection is required only for operations whose metadata requires it.
 7. Batch execution runs with `mw.taskman.run_in_background(..., uses_collection=True)` and posts progress/log updates back to the WebView on the main thread.

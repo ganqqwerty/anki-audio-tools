@@ -107,26 +107,6 @@ def test_bundled_tool_path_uses_normalized_platform_layout(
     assert bundled_tool_path("ffmpeg") == ffmpeg
 
 
-def test_find_deep_filter_accepts_legacy_macos_arm64_bundle(
-    tmp_path: Path,
-    monkeypatch,
-) -> None:
-    legacy = tmp_path / "bin" / "deep-filter-0.5.6-aarch64-apple-darwin"
-    legacy.parent.mkdir(parents=True)
-    legacy.write_text("")
-    calls: list[str] = []
-
-    monkeypatch.setattr("anki_audio_quick_editor.audio_tools._PACKAGE_DIR", tmp_path)
-    monkeypatch.setattr("anki_audio_quick_editor.audio_tools.current_platform_key", lambda: "macos-arm64")
-    monkeypatch.setattr(
-        "anki_audio_quick_editor.audio_processor.shutil.which",
-        lambda name: calls.append(name) or None,
-    )
-
-    assert find_deep_filter() == legacy
-    assert calls == []
-
-
 def test_find_ffmpeg_uses_bundled_binary_before_path_lookup(
     tmp_path: Path,
     monkeypatch,
@@ -213,20 +193,6 @@ def test_find_rnnoise_bundle_uses_bundled_executable_when_complete(
     )
 
     assert find_rnnoise_bundle() == rnnoise_path
-
-
-def test_find_rnnoise_bundle_accepts_legacy_macos_arm64_bundle(
-    tmp_path: Path,
-    monkeypatch,
-) -> None:
-    legacy = tmp_path / "bin" / "rnnoise-cli-macos-arm64" / "bin" / "rnnoise-cli"
-    legacy.parent.mkdir(parents=True)
-    legacy.write_text("")
-
-    monkeypatch.setattr("anki_audio_quick_editor.audio_tools._PACKAGE_DIR", tmp_path)
-    monkeypatch.setattr("anki_audio_quick_editor.audio_tools.current_platform_key", lambda: "macos-arm64")
-
-    assert find_rnnoise_bundle() == legacy
 
 
 def test_find_rnnoise_bundle_raises_when_bundle_is_incomplete(

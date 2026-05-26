@@ -2,7 +2,7 @@
  * Structured logger for the settings UI.
  *
  * Always logs to the browser console at the appropriate level.
- * Also sends a `frontend_log` pycmd to Python (fire-and-forget, fails silently).
+ * Also sends a `frontend.log` bridge command to Python (fire-and-forget, fails silently).
  *
  * Architecture rule TS-A: pycmd() is called here via the bridge module.
  * All other files must use this logger instead of console.log/warn/error.

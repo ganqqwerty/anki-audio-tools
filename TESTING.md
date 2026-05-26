@@ -116,7 +116,7 @@ Thin archives are size-gated separately from runtime packs. Runtime packs have w
 | Browser menu/context integration | `tests/test_browser_integration.py` |
 | Browser batch WebView shell/state | `tests/test_browser_dialog.py`, `tests/test_browser_dialog_state.py` |
 | Shared WebView bridge/shell/log helpers | `tests/test_webview_bridge.py`, `tests/test_webview_shell.py`, `tests/test_frontend_logs.py` |
-| Pause shortening pipeline | `tests/test_audio_pipeline.py`, `tests/test_audio_processor.py` |
+| Pause shortening pipeline | `tests/test_audio_pipeline.py`, `tests/test_audio_pause_pipeline.py` |
 | Prosody SVG media rendering | `tests/test_prosody_svg.py` |
 | Shared prosody analysis/cache and editor integration | `tests/test_prosody_analyzer.py`, `tests/test_prosody_fallback.py`, `tests/test_editor_integration.py` |
 | JSON contract generation | `tests/test_contract_generation.py` |
@@ -134,7 +134,6 @@ Current first-wave mutation scope:
 - `config_migration.py`
 - `sound_refs.py`
 - `settings_state.py`
-- `batch_visualization.py`
 - `prosody_svg.py`
 - `audio_processor.py`
 

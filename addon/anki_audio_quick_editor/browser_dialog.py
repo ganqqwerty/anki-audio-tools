@@ -24,7 +24,6 @@ from .i18n import active_context, format_message
 from .webview_bridge import (
     WebviewBridgeCommand,
     decode_webview_bridge_command,
-    legacy_json_payload,
 )
 from .webview_shell import render_webview_content
 
@@ -133,27 +132,26 @@ class BatchOperationsDialog:
             logger.warning("invalid batch bridge command: %s", exc)
             return False
 
-        if command.name in {"batch.start", "batch_start"}:
+        if command.name == "batch.start":
             return self._handle_batch_start(command)
-        if command.name in {"batch.cancel", "batch_cancel"}:
+        if command.name == "batch.cancel":
             self._cancel_or_close()
             return True
-        if command.name in {"batch.close", "batch_close"}:
+        if command.name == "batch.close":
             self._dialog.reject()
             return True
-        if command.name in {"batch.copy_log", "batch_copy_log"}:
+        if command.name == "batch.copy_log":
             _clipboard_set_text("\n".join(self._log_lines))
             return True
-        if command.name in {"frontend.log", "frontend_log"}:
-            _handle_frontend_log(command.legacy_payload if command.is_legacy else command.payload)
+        if command.name == "frontend.log":
+            _handle_frontend_log(command.payload)
             return True
         return False
 
     def _handle_batch_start(self, command: WebviewBridgeCommand) -> bool:
         try:
-            raw_payload = legacy_json_payload(command)
-            request = request_from_batch_start_payload(raw_payload)
-        except (json.JSONDecodeError, AssertionError, TypeError) as exc:
+            request = request_from_batch_start_payload(command.payload)
+        except (AssertionError, TypeError) as exc:
             message = self.tr("batch.failed", {"error": "Invalid batch request"})
             self.finish_with_error(message)
             logger.warning("invalid batch start payload: %s", exc)

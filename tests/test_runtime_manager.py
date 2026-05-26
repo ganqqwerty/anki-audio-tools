@@ -198,27 +198,3 @@ def test_changed_manifest_id_installs_new_runtime_without_deleting_old_first(
 
     assert status["phase"] == "ready"
     assert (addon_dir / "user_files" / "runtime" / "runtime-test-2").is_dir()
-
-
-def test_expected_files_accepts_legacy_executable_entries_without_path() -> None:
-    manifest = runtime_manager.RuntimeManifest(
-        manifest_id="legacy",
-        schema_version=1,
-        targets={
-            "macos-arm64": {
-                "tools": {
-                    "ffmpeg": {
-                        "executable": "ffmpeg",
-                        "sha256": "a" * 64,
-                        "size": 6,
-                        "runtime_files": [],
-                    }
-                },
-                "shared_files": {},
-            }
-        },
-    )
-
-    assert runtime_manager.expected_files(manifest, "macos-arm64") == [
-        runtime_manager.RuntimeFile("macos-arm64/ffmpeg", "a" * 64, size=6)
-    ]

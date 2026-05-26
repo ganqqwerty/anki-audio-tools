@@ -74,11 +74,6 @@ def message_with_permission_guidance(message: str, exc: BaseException) -> str:
     return f"{rendered}\n\n{guidance}"
 
 
-def message_with_macos_permission_guidance(message: str, exc: BaseException) -> str:
-    """Backward-compatible wrapper for platform permission guidance."""
-    return message_with_permission_guidance(message, exc)
-
-
 def launch_error_message(prefix: str, exc: BaseException) -> str:
     """Return a launch failure message, adding repair guidance when useful."""
     return message_with_permission_guidance(f"{prefix} {exc}", exc)

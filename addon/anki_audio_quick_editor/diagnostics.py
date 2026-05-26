@@ -6,7 +6,7 @@ import subprocess  # nosec B404
 from pathlib import Path
 from typing import Any
 
-from .permission_guidance import message_with_macos_permission_guidance
+from .permission_guidance import message_with_permission_guidance
 
 
 def build_deep_filter_health(_config: dict[str, Any]) -> dict[str, Any]:
@@ -278,4 +278,4 @@ def _managed_or_bundled_source(path: Any) -> str:
 
 
 def _diagnostic_error_message(exc: BaseException) -> str:
-    return message_with_macos_permission_guidance(str(exc), exc)
+    return message_with_permission_guidance(str(exc), exc)

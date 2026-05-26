@@ -29,7 +29,7 @@ from .editor_session import EditorSession, PendingEditorStatus
 from .editor_status import command_status_summary
 from .errors import AudioProcessingError
 from .i18n import t
-from .permission_guidance import message_with_macos_permission_guidance
+from .permission_guidance import message_with_permission_guidance
 from .sound_refs import replace_sound_reference, select_first_sound_reference
 
 logger = logging.getLogger(__name__)
@@ -126,7 +126,7 @@ def render_and_replace_async(
             deps.main(editor, lambda: deps.replace_current_field_after_render(editor, updated_state, saved_name))
             shutil.rmtree(output_path.parent, ignore_errors=True)
         except Exception as exc:
-            message = message_with_macos_permission_guidance(str(exc), exc)
+            message = message_with_permission_guidance(str(exc), exc)
             capture_exception(
                 "editor.worker.render",
                 exc,

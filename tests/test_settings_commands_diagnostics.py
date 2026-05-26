@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import json
 import logging
 import sys
 import types
@@ -15,6 +14,7 @@ from anki_audio_quick_editor.settings.commands import (
     handle_settings_command,
 )
 from tests.settings_command_fixtures import (
+    _bridge_command,
     _capture_eval,
     _full_config,
     _make_dialog,
@@ -30,13 +30,13 @@ class _ImmediateThread:
         self._target()
 
 
-def test_frontend_log_handles_invalid_json(caplog: pytest.LogCaptureFixture) -> None:
+def test_frontend_log_handles_invalid_payload(caplog: pytest.LogCaptureFixture) -> None:
     dialog = _make_dialog()
     _, eval_fn = _capture_eval()
 
     caplog.set_level(logging.WARNING, logger="anki_audio_quick_editor.settings.commands")
 
-    assert handle_settings_command("frontend_log:not-json", eval_fn, dialog) is True
+    assert handle_settings_command(_bridge_command("frontend.log", "not-json"), eval_fn, dialog) is True
     assert "frontend_log: invalid payload" in caplog.text
 
 
@@ -58,9 +58,9 @@ def test_frontend_log_renders_level_message_and_context(
     dialog = _make_dialog()
     _, eval_fn = _capture_eval()
     caplog.set_level(logging.DEBUG, logger="anki_audio_quick_editor.settings.commands")
-    payload = json.dumps({"level": level, "message": "loaded", "context": {"tab": "diagnostics"}})
+    payload = {"level": level, "message": "loaded", "context": {"tab": "diagnostics"}}
 
-    assert handle_settings_command(f"frontend_log:{payload}", eval_fn, dialog) is True
+    assert handle_settings_command(_bridge_command("frontend.log", payload), eval_fn, dialog) is True
 
     record = caplog.records[-1]
     assert record.levelno == expected_level
@@ -79,17 +79,15 @@ def test_frontend_error_payload_records_stack_for_support_report(
     dialog = _make_dialog()
     _, eval_fn = _capture_eval()
     caplog.set_level(logging.ERROR, logger="anki_audio_quick_editor.settings.commands")
-    payload = json.dumps(
-        {
-            "scope": "settings",
-            "level": "error",
-            "message": "frontend exploded",
-            "stack": "Error: frontend exploded\n    at SettingsApp",
-            "context": {"tab": "diagnostics"},
-        }
-    )
+    payload = {
+        "scope": "settings",
+        "level": "error",
+        "message": "frontend exploded",
+        "stack": "Error: frontend exploded\n    at SettingsApp",
+        "context": {"tab": "diagnostics"},
+    }
 
-    assert handle_settings_command(f"frontend_log:{payload}", eval_fn, dialog) is True
+    assert handle_settings_command(_bridge_command("frontend.log", payload), eval_fn, dialog) is True
 
     assert "Error: frontend exploded" in caplog.text
     incident = latest_incident()
@@ -98,15 +96,17 @@ def test_frontend_error_payload_records_stack_for_support_report(
     assert incident["traceback"] == "Error: frontend exploded\n    at SettingsApp"
 
 
-def test_async_command_logs_invalid_json_without_callback(caplog: pytest.LogCaptureFixture) -> None:
+def test_async_command_reports_invalid_payload(caplog: pytest.LogCaptureFixture) -> None:
     dialog = _make_dialog()
     calls, eval_fn = _capture_eval()
-    caplog.set_level(logging.ERROR, logger="anki_audio_quick_editor.settings.commands")
+    caplog.set_level(logging.WARNING, logger="anki_audio_quick_editor.settings.commands")
 
-    assert handle_settings_command("async_cmd:not-json", eval_fn, dialog) is True
+    assert handle_settings_command(_bridge_command("settings.async", "not-json"), eval_fn, dialog) is True
 
-    assert calls == []
-    assert "async_cmd: invalid JSON payload" in caplog.text
+    result = _parse_callback(calls[-1], "onAsyncDone")
+    assert result["ok"] is False
+    assert result["error"] == "Invalid async command payload"
+    assert "settings.async: invalid payload shape" in caplog.text
 
 
 def test_check_media_command_opens_anki_media_checker() -> None:
@@ -133,10 +133,10 @@ def test_check_media_command_opens_anki_media_checker() -> None:
 def test_async_command_reports_unknown_operation() -> None:
     dialog = _make_dialog()
     calls, eval_fn = _capture_eval()
-    payload = json.dumps({"id": "job-unknown", "op": "explode", "payload": {}})
+    payload = {"id": "job-unknown", "op": "explode", "payload": {}}
 
     with patch("threading.Thread", _ImmediateThread):
-        assert handle_settings_command(f"async_cmd:{payload}", eval_fn, dialog) is True
+        assert handle_settings_command(_bridge_command("settings.async", payload), eval_fn, dialog) is True
 
     result = _parse_callback(calls[-1], "onAsyncDone")
     assert result == {
@@ -154,9 +154,9 @@ def test_unknown_async_operation_uses_settings_command_error() -> None:
 def test_async_health_check_rejects_non_dict_payload_config() -> None:
     dialog = _make_dialog()
     calls, eval_fn = _capture_eval()
-    payload = json.dumps({"id": "job-1", "op": "health_check", "payload": {"config": "/not/a/dict"}})
+    payload = {"id": "job-1", "op": "health_check", "payload": {"config": "/not/a/dict"}}
 
-    assert handle_settings_command(f"async_cmd:{payload}", eval_fn, dialog) is True
+    assert handle_settings_command(_bridge_command("settings.async", payload), eval_fn, dialog) is True
 
     result = _parse_callback(calls[-1], "onAsyncDone")
     assert result == {
@@ -169,10 +169,10 @@ def test_async_health_check_rejects_non_dict_payload_config() -> None:
 def test_async_health_check_reports_result() -> None:
     dialog = _make_dialog()
     calls, eval_fn = _capture_eval()
-    payload = json.dumps({"id": "job-1", "op": "health_check", "payload": {"config": _full_config()}})
+    payload = {"id": "job-1", "op": "health_check", "payload": {"config": _full_config()}}
 
     with patch("threading.Thread", _ImmediateThread):
-        handle_settings_command(f"async_cmd:{payload}", eval_fn, dialog)
+        handle_settings_command(_bridge_command("settings.async", payload), eval_fn, dialog)
 
     done_calls = [call for call in calls if call.startswith("window.onAsyncDone(")]
     assert done_calls
@@ -189,13 +189,11 @@ def test_async_health_check_reports_result() -> None:
 def test_async_health_check_reports_deep_filter_version() -> None:
     dialog = _make_dialog()
     calls, eval_fn = _capture_eval()
-    payload = json.dumps(
-        {
-            "id": "job-1",
-            "op": "health_check",
-            "payload": {"config": _full_config()},
-        }
-    )
+    payload = {
+        "id": "job-1",
+        "op": "health_check",
+        "payload": {"config": _full_config()},
+    }
 
     with (
         patch("threading.Thread", _ImmediateThread),
@@ -208,7 +206,7 @@ def test_async_health_check_reports_deep_filter_version() -> None:
         run.return_value.returncode = 0
         run.return_value.stdout = "deep-filter 0.5.6\n"
         run.return_value.stderr = ""
-        handle_settings_command(f"async_cmd:{payload}", eval_fn, dialog)
+        handle_settings_command(_bridge_command("settings.async", payload), eval_fn, dialog)
 
     done_calls = [call for call in calls if call.startswith("window.onAsyncDone(")]
     result = _parse_callback(done_calls[0], "onAsyncDone")
@@ -224,32 +222,30 @@ def test_async_health_check_reports_deep_filter_version() -> None:
 def test_async_health_check_reports_rnnoise_version() -> None:
     dialog = _make_dialog()
     calls, eval_fn = _capture_eval()
-    payload = json.dumps(
-        {
-            "id": "job-1",
-            "op": "health_check",
-            "payload": {"config": _full_config()},
-        }
-    )
+    payload = {
+        "id": "job-1",
+        "op": "health_check",
+        "payload": {"config": _full_config()},
+    }
 
     with (
         patch("threading.Thread", _ImmediateThread),
         patch(
             "anki_audio_quick_editor.audio_processor.find_rnnoise_bundle",
-            return_value=Path("/addon/bin/rnnoise-cli-macos-arm64/bin/rnnoise-cli"),
+            return_value=Path("/addon/bin/macos-arm64/rnnoise-cli"),
         ),
         patch("anki_audio_quick_editor.diagnostics.subprocess.run") as run,
     ):
         run.return_value.returncode = 0
         run.return_value.stdout = "rnnoise-cli 0.2\n"
         run.return_value.stderr = ""
-        handle_settings_command(f"async_cmd:{payload}", eval_fn, dialog)
+        handle_settings_command(_bridge_command("settings.async", payload), eval_fn, dialog)
 
     done_calls = [call for call in calls if call.startswith("window.onAsyncDone(")]
     result = _parse_callback(done_calls[0], "onAsyncDone")
     assert result["result"]["rnnoise"] == {
         "available": True,
-        "path": "/addon/bin/rnnoise-cli-macos-arm64/bin/rnnoise-cli",
+        "path": "/addon/bin/macos-arm64/rnnoise-cli",
         "source": "bundled",
         "version": "rnnoise-cli 0.2",
         "error": "",
@@ -259,13 +255,11 @@ def test_async_health_check_reports_rnnoise_version() -> None:
 def test_async_health_check_reports_dpdfnet_version() -> None:
     dialog = _make_dialog()
     calls, eval_fn = _capture_eval()
-    payload = json.dumps(
-        {
-            "id": "job-1",
-            "op": "health_check",
-            "payload": {"config": _full_config()},
-        }
-    )
+    payload = {
+        "id": "job-1",
+        "op": "health_check",
+        "payload": {"config": _full_config()},
+    }
 
     with (
         patch("threading.Thread", _ImmediateThread),
@@ -278,7 +272,7 @@ def test_async_health_check_reports_dpdfnet_version() -> None:
         run.return_value.returncode = 0
         run.return_value.stdout = "dpdfnet-lite 0.1.0\n"
         run.return_value.stderr = ""
-        handle_settings_command(f"async_cmd:{payload}", eval_fn, dialog)
+        handle_settings_command(_bridge_command("settings.async", payload), eval_fn, dialog)
 
     done_calls = [call for call in calls if call.startswith("window.onAsyncDone(")]
     result = _parse_callback(done_calls[0], "onAsyncDone")
@@ -294,13 +288,11 @@ def test_async_health_check_reports_dpdfnet_version() -> None:
 def test_async_health_check_reports_spleeter_probe() -> None:
     dialog = _make_dialog()
     calls, eval_fn = _capture_eval()
-    payload = json.dumps(
-        {
-            "id": "job-1",
-            "op": "health_check",
-            "payload": {"config": _full_config()},
-        }
-    )
+    payload = {
+        "id": "job-1",
+        "op": "health_check",
+        "payload": {"config": _full_config()},
+    }
 
     with (
         patch("threading.Thread", _ImmediateThread),
@@ -317,7 +309,7 @@ def test_async_health_check_reports_spleeter_probe() -> None:
         run.return_value.returncode = 0
         run.return_value.stdout = "Non-streaming source separation with sherpa-onnx.\n"
         run.return_value.stderr = ""
-        handle_settings_command(f"async_cmd:{payload}", eval_fn, dialog)
+        handle_settings_command(_bridge_command("settings.async", payload), eval_fn, dialog)
 
     done_calls = [call for call in calls if call.startswith("window.onAsyncDone(")]
     result = _parse_callback(done_calls[0], "onAsyncDone")

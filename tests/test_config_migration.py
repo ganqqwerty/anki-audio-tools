@@ -92,22 +92,6 @@ class TestMigrateConfig:
         assert migrated["deep_filter_post_filter"] is True
         assert changed is True
 
-    def test_removes_deep_filter_path_from_unsupported_config(self) -> None:
-        user = {
-            "_config_version": CURRENT_CONFIG_VERSION,
-            "enabled": True,
-            "deep_filter_path": "/custom/deep-filter",
-        }
-        defaults = {
-            "_config_version": CURRENT_CONFIG_VERSION,
-            "enabled": True,
-        }
-
-        migrated, changed = migrate_config(user, defaults)
-
-        assert "deep_filter_path" not in migrated
-        assert changed is True
-
     def test_picks_up_internal_pause_silence_threshold_default(self) -> None:
         user = {"_config_version": 5, "enabled": True}
         defaults = {
@@ -178,54 +162,6 @@ class TestMigrateConfig:
         assert migrated["_config_version"] == CURRENT_CONFIG_VERSION
         assert changed is True
 
-    def test_migrates_legacy_speed_volume_defaults_to_factor_ranges(self) -> None:
-        user = {
-            "_config_version": 21,
-            "speed_step": 0.05,
-            "min_speed": 0.75,
-            "max_speed": 1.5,
-            "volume_step_db": 3.0,
-            "min_volume_db": -24.0,
-            "max_volume_db": 24.0,
-            "show_graph_by_default": False,
-        }
-        defaults = {
-            "_config_version": CURRENT_CONFIG_VERSION,
-            "speed_step": 1.5,
-            "min_speed": 0.2,
-            "max_speed": 5.0,
-            "volume_step_db": 15.0,
-            "min_volume_db": -40.0,
-            "max_volume_db": 40.0,
-            "show_graph_by_default": True,
-        }
-
-        migrated, changed = migrate_config(user, defaults)
-
-        assert migrated["speed_step"] == 1.5
-        assert migrated["min_speed"] == 0.2
-        assert migrated["max_speed"] == 5.0
-        assert migrated["volume_step_db"] == 15.0
-        assert migrated["min_volume_db"] == -40.0
-        assert migrated["max_volume_db"] == 40.0
-        assert migrated["show_graph_by_default"] is True
-        assert changed is True
-
-    def test_migrates_custom_legacy_speed_step_to_factor(self) -> None:
-        user = {
-            "_config_version": 21,
-            "speed_step": 0.2,
-        }
-        defaults = {
-            "_config_version": CURRENT_CONFIG_VERSION,
-            "speed_step": 1.5,
-        }
-
-        migrated, changed = migrate_config(user, defaults)
-
-        assert migrated["speed_step"] == 1.2
-        assert changed is True
-
     def test_picks_up_visible_editor_buttons_default(self) -> None:
         user = {"_config_version": 15, "enabled": True}
         defaults = {
@@ -236,30 +172,9 @@ class TestMigrateConfig:
 
         migrated, changed = migrate_config(user, defaults)
 
-        assert migrated["visible_editor_buttons"] == ["aqe:play", "aqe:settings", "aqe:share"]
+        assert migrated["visible_editor_buttons"] == ["aqe:play", "aqe:settings"]
         assert migrated["_config_version"] == CURRENT_CONFIG_VERSION
         assert changed is True
-
-    def test_adds_share_button_to_visible_editor_buttons_when_missing(self) -> None:
-        defaults = {
-            "_config_version": 19,
-            "visible_editor_buttons": ["aqe:play", "aqe:show-file", "aqe:share", "aqe:settings"],
-        }
-        user = {
-            "_config_version": 17,
-            "visible_editor_buttons": ["aqe:play", "aqe:show-file", "aqe:settings"],
-        }
-
-        migrated, changed = migrate_config(user, defaults)
-
-        assert changed is True
-        assert migrated["_config_version"] == CURRENT_CONFIG_VERSION
-        assert migrated["visible_editor_buttons"] == [
-            "aqe:play",
-            "aqe:show-file",
-            "aqe:share",
-            "aqe:settings",
-        ]
 
     def test_removes_stale_visible_editor_buttons(self) -> None:
         defaults = {
@@ -274,7 +189,7 @@ class TestMigrateConfig:
         migrated, changed = migrate_config(user, defaults)
 
         assert changed is True
-        assert migrated["visible_editor_buttons"] == ["aqe:play", "aqe:settings", "aqe:share"]
+        assert migrated["visible_editor_buttons"] == ["aqe:play", "aqe:settings"]
 
     def test_picks_up_editor_button_modes_default(self) -> None:
         user = {"_config_version": 18, "enabled": True}
@@ -408,25 +323,6 @@ class TestMigrateConfig:
         migrated, changed = migrate_config(user, defaults)
 
         assert migrated["output_format"] == "mp3"
-        assert migrated["_config_version"] == CURRENT_CONFIG_VERSION
-        assert changed is True
-
-    def test_removes_deleted_edge_silence_keys(self) -> None:
-        user = {
-            "_config_version": 6,
-            "enabled": True,
-            "edge_silence_threshold_db": -35,
-            "edge_silence_min_ms": 100,
-        }
-        defaults = {
-            "_config_version": CURRENT_CONFIG_VERSION,
-            "enabled": True,
-        }
-
-        migrated, changed = migrate_config(user, defaults)
-
-        assert "edge_silence_threshold_db" not in migrated
-        assert "edge_silence_min_ms" not in migrated
         assert migrated["_config_version"] == CURRENT_CONFIG_VERSION
         assert changed is True
 

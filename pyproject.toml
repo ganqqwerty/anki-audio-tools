@@ -273,7 +273,6 @@ source_modules = [
     "anki_audio_quick_editor.audio_types",
     "anki_audio_quick_editor.batch_operations",
     "anki_audio_quick_editor.batch_operations_helpers",
-    "anki_audio_quick_editor.batch_visualization",
     "anki_audio_quick_editor.browser_dialog_state",
     "anki_audio_quick_editor.browser_report",
     "anki_audio_quick_editor.config_migration",
@@ -431,5 +430,5 @@ pytest_add_cli_args_test_selection = [
     "tests/test_settings_state.py",
     "tests/test_batch_visualization.py",
     "tests/test_prosody_svg.py",
-    "tests/test_audio_processor.py",
+    "tests/test_audio_tools.py",
 ]

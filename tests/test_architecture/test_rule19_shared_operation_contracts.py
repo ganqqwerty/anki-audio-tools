@@ -8,7 +8,6 @@ from .inspection import ADDON_DIR
 BROWSER_INTEGRATION = ADDON_DIR / "browser_integration.py"
 BROWSER_DIALOG = ADDON_DIR / "browser_dialog.py"
 BATCH_OPERATIONS = ADDON_DIR / "batch_operations.py"
-BATCH_VISUALIZATION = ADDON_DIR / "batch_visualization.py"
 
 
 def test_browser_batch_adapter_uses_shared_registry_and_executor() -> None:
@@ -59,13 +58,5 @@ def test_browser_batch_adapter_uses_shared_registry_and_executor() -> None:
 
 
 def test_batch_core_stays_free_of_editor_bridge_strings() -> None:
-    for path in (BATCH_OPERATIONS, BATCH_VISUALIZATION):
+    for path in (BATCH_OPERATIONS,):
         assert "aqe:" not in path.read_text(encoding="utf-8"), path.name
-
-
-def test_batch_visualization_remains_a_thin_wrapper() -> None:
-    text = BATCH_VISUALIZATION.read_text(encoding="utf-8")
-    assert "from .batch_operations import (" in text
-    assert "process_note_batch_operation" in text
-    assert "render_audio(" not in text
-    assert "analyze_prosody_cached(" not in text

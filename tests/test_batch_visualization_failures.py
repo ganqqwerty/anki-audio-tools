@@ -4,14 +4,13 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from anki_audio_quick_editor.audio_operations import OP_FASTER, OP_VOLUME_DOWN
+from anki_audio_quick_editor.audio_operations import OP_FASTER, OP_GRAPH, OP_VOLUME_DOWN
 from anki_audio_quick_editor.audio_state import AudioProcessingConfig
 from anki_audio_quick_editor.batch_operations import (
     BatchNoteSnapshot,
     BatchRunRequest,
     process_note_batch_operation,
 )
-from anki_audio_quick_editor.batch_visualization import process_note_visualization
 from anki_audio_quick_editor.errors import AudioProcessingError
 
 
@@ -32,37 +31,33 @@ def test_process_note_batch_operation_requires_exact_non_windows_case(tmp_path: 
     assert result.message == "media file not found: clip.mp3"
 
 
-def test_process_note_visualization_skips_expected_missing_inputs(tmp_path: Path) -> None:
+def test_process_note_batch_operation_graph_skips_expected_missing_inputs(tmp_path: Path) -> None:
     writer = lambda name, data: name
     config = AudioProcessingConfig()
-    missing_source = process_note_visualization(
+    missing_source = process_note_batch_operation(
         BatchNoteSnapshot(1, "Basic", {"Image": ""}),
-        source_field="Audio",
-        target_field="Image",
+        request=BatchRunRequest(operation=OP_GRAPH, source_field="Audio", target_field="Image"),
         media_dir=tmp_path,
         config=config,
         media_writer=writer,
     )
-    empty_source = process_note_visualization(
+    empty_source = process_note_batch_operation(
         BatchNoteSnapshot(2, "Basic", {"Audio": "", "Image": ""}),
-        source_field="Audio",
-        target_field="Image",
+        request=BatchRunRequest(operation=OP_GRAPH, source_field="Audio", target_field="Image"),
         media_dir=tmp_path,
         config=config,
         media_writer=writer,
     )
-    unsupported = process_note_visualization(
+    unsupported = process_note_batch_operation(
         BatchNoteSnapshot(3, "Basic", {"Audio": "[sound:movie.mp4]", "Image": ""}),
-        source_field="Audio",
-        target_field="Image",
+        request=BatchRunRequest(operation=OP_GRAPH, source_field="Audio", target_field="Image"),
         media_dir=tmp_path,
         config=config,
         media_writer=writer,
     )
-    missing_target = process_note_visualization(
+    missing_target = process_note_batch_operation(
         BatchNoteSnapshot(4, "Basic", {"Audio": "[sound:clip.mp3]"}),
-        source_field="Audio",
-        target_field="Image",
+        request=BatchRunRequest(operation=OP_GRAPH, source_field="Audio", target_field="Image"),
         media_dir=tmp_path,
         config=config,
         media_writer=writer,
@@ -93,11 +88,10 @@ def test_process_note_batch_operation_skips_missing_transform_source_field(tmp_p
     assert result.message == "missing source field 'Audio'"
 
 
-def test_process_note_visualization_counts_missing_media_as_failure(tmp_path: Path) -> None:
-    result = process_note_visualization(
+def test_process_note_batch_operation_graph_counts_missing_media_as_failure(tmp_path: Path) -> None:
+    result = process_note_batch_operation(
         BatchNoteSnapshot(1, "Basic", {"Audio": "[sound:missing.mp3]", "Image": ""}),
-        source_field="Audio",
-        target_field="Image",
+        request=BatchRunRequest(operation=OP_GRAPH, source_field="Audio", target_field="Image"),
         media_dir=tmp_path,
         config=AudioProcessingConfig(),
         media_writer=lambda name, data: name,
@@ -136,7 +130,7 @@ def test_process_note_batch_operation_preserves_failure_payload_when_transform_r
     assert result.written_filename is None
 
 
-def test_process_note_visualization_preserves_failure_payload_when_generation_raises(
+def test_process_note_batch_operation_graph_preserves_failure_payload_when_generation_raises(
     tmp_path: Path,
     monkeypatch,
 ) -> None:
@@ -148,10 +142,9 @@ def test_process_note_visualization_preserves_failure_payload_when_generation_ra
         lambda *_args, **_kwargs: (_ for _ in ()).throw(RuntimeError("boom")),
     )
 
-    result = process_note_visualization(
+    result = process_note_batch_operation(
         note,
-        source_field="Audio",
-        target_field="Image",
+        request=BatchRunRequest(operation=OP_GRAPH, source_field="Audio", target_field="Image"),
         media_dir=tmp_path,
         config=AudioProcessingConfig(),
         media_writer=lambda name, data: name,

@@ -132,8 +132,9 @@ def test_settings_dialog_wires_webview_bridge_and_html(monkeypatch, request) -> 
     assert dialog.layout.widgets == [dialog._webview]
     assert dialog._webview.requiresCol is False
     assert "window.__INITIAL_STATE__" in dialog._webview.html
-    assert dialog._webview.bridge("settings_cancel") is True
-    assert handled == [("settings_cancel", dialog)]
+    command = 'bridge:{"command":"settings.cancel"}'
+    assert dialog._webview.bridge(command) is True
+    assert handled == [(command, dialog)]
 
 
 def test_settings_dialog_run_js_uses_eval_and_page_callback(monkeypatch, request) -> None:

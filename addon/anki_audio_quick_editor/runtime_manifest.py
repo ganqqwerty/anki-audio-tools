@@ -124,8 +124,6 @@ def _expected_single_tool_files(entry: dict[str, Any], platform_key: str) -> lis
     path = entry.get("path")
     if isinstance(path, str):
         files.append(_runtime_file_from_entry(entry, path))
-    elif isinstance(entry.get("executable"), str):
-        files.append(_runtime_file_from_entry(entry, f"{platform_key}/{entry['executable']}"))
     runtime_files = entry.get("runtime_files", [])
     if isinstance(runtime_files, list):
         files.extend(_expected_runtime_support_files(runtime_files, platform_key))

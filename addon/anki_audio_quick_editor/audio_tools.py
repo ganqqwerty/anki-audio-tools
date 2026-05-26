@@ -54,20 +54,6 @@ _TOOL_EXECUTABLES = {
         "windows-x86_64": "sherpa-spleeter.exe",
     },
 }
-_LEGACY_TOOL_PATHS = {
-    "deep-filter": {
-        "macos-arm64": ("bin/deep-filter-0.5.6-aarch64-apple-darwin",),
-        "macos-x86_64": ("bin/deep-filter-0.5.6-x86_64-apple-darwin",),
-        "windows-x86_64": ("bin/deep-filter-0.5.6-x86_64-pc-windows-msvc.exe",),
-    },
-    "rnnoise-cli": {
-        "macos-arm64": ("bin/rnnoise-cli-macos-arm64/bin/rnnoise-cli",),
-        "macos-x86_64": ("bin/rnnoise-cli-macos-x86_64/bin/rnnoise-cli",),
-        "windows-x86_64": ("bin/rnnoise-cli-windows-x86_64/rnnoise-cli.exe",),
-    }
-}
-
-
 def current_platform_key() -> str | None:
     """Return the supported release target key for this runtime platform."""
     system = platform.system()
@@ -97,10 +83,6 @@ def bundled_tool_path(tool_name: str) -> Path | None:
     path = _PACKAGE_DIR / "bin" / platform_key / executable
     if path.is_file():
         return path
-    for legacy_path in _LEGACY_TOOL_PATHS.get(tool_name, {}).get(platform_key, ()):
-        path = _PACKAGE_DIR / legacy_path
-        if path.is_file():
-            return path
     return None
 
 

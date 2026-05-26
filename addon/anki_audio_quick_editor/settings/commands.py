@@ -33,7 +33,6 @@ from ..frontend_logs import handle_frontend_log_payload
 from ..webview_bridge import (
     WebviewBridgeCommand,
     decode_webview_bridge_command,
-    legacy_json_payload,
 )
 
 logger = logging.getLogger(__name__)
@@ -60,25 +59,25 @@ def handle_settings_command(
         operation_id=new_operation_id("settings"),
         context={"command": command_name},
     )
-    if command_name in {"settings.cancel", "settings_cancel"}:
+    if command_name == "settings.cancel":
         dialog.reject()
         return True
-    if command_name in {"settings.reset_defaults", "settings_reset_defaults"}:
+    if command_name == "settings.reset_defaults":
         _handle_reset_defaults(dialog)
         return True
-    if command_name in {"settings.save", "settings_save"}:
+    if command_name == "settings.save":
         _handle_settings_save(command, eval_fn, dialog)
         return True
-    if command_name in {"settings.check_media", "settings_check_media"}:
+    if command_name == "settings.check_media":
         _handle_check_media()
         return True
-    if command_name in {"settings.async", "async_cmd"}:
+    if command_name == "settings.async":
         _handle_async_cmd(command, eval_fn)
         return True
-    if command_name in {"frontend.log", "frontend_log"}:
-        _handle_frontend_log(command.legacy_payload if command.is_legacy else command.payload)
+    if command_name == "frontend.log":
+        _handle_frontend_log(command.payload)
         return True
-    if command_name in {"support.copy_report", "copy_support_report"}:
+    if command_name == "support.copy_report":
         _handle_copy_support_report(command)
         return True
     return False
@@ -91,12 +90,7 @@ def _handle_settings_save(
 ) -> None:
     from aqt import mw
 
-    try:
-        raw_config = legacy_json_payload(command)
-    except json.JSONDecodeError:
-        payload = json.dumps({"error": "Invalid JSON payload"})
-        eval_fn(f"window.onSaveError({payload})")
-        return
+    raw_config = command.payload
     _sanitize_settings_payload(raw_config)
     try:
         config = Config.from_dict(raw_config).to_dict()
@@ -175,11 +169,7 @@ def _handle_check_media() -> None:
 def _handle_async_cmd(command: WebviewBridgeCommand, eval_fn: Callable[[str], None]) -> None:
     from aqt import mw
 
-    try:
-        raw_payload = legacy_json_payload(command)
-    except json.JSONDecodeError:
-        logger.error("async_cmd: invalid JSON payload")
-        return
+    raw_payload = command.payload
     raw_job_id = _raw_job_id(raw_payload)
 
     try:
@@ -189,7 +179,7 @@ def _handle_async_cmd(command: WebviewBridgeCommand, eval_fn: Callable[[str], No
             AsyncDonePayload(raw_job_id, False, error="Invalid async command payload").to_dict()
         )
         mw.taskman.run_on_main(lambda: eval_fn(f"window.onAsyncDone({invalid_done_payload_json})"))
-        logger.warning("async_cmd: invalid payload shape: %s", invalid_payload_error)
+        logger.warning("settings.async: invalid payload shape: %s", invalid_payload_error)
         return
 
     job_id = async_command.id
@@ -398,23 +388,19 @@ def _handle_frontend_log(raw_payload: Any) -> None:
 def _handle_copy_support_report(command: WebviewBridgeCommand) -> None:
     from aqt.qt import QApplication
 
-    try:
-        raw_payload = legacy_json_payload(command)
-    except json.JSONDecodeError:
-        logger.warning("copy_support_report: invalid payload")
-        return
+    raw_payload = command.payload
     try:
         payload = CopySupportReportPayload.from_dict(raw_payload)
     except CONTRACT_DECODE_ERRORS:
         if isinstance(raw_payload, dict) and not isinstance(raw_payload.get("text"), str):
-            logger.warning("copy_support_report: missing text payload")
+            logger.warning("support.copy_report: missing text payload")
         else:
-            logger.warning("copy_support_report: invalid payload")
+            logger.warning("support.copy_report: invalid payload")
         return
 
     clipboard = QApplication.clipboard()
     if clipboard is None:
-        logger.warning("copy_support_report: clipboard unavailable")
+        logger.warning("support.copy_report: clipboard unavailable")
         return
     clipboard.setText(payload.text)
 
