@@ -115,6 +115,8 @@ python3 scripts/release.py --verify-runtime-urls
 
 `--verify-runtime-urls` downloads each manifest URL and verifies the runtime pack SHA-256, so it must run only after the versioned GitHub Release assets exist. Use `--runtime-base-url` for a private release location. Platform-limited `--target current` or single-target builds are for testing/private distribution, not public AnkiWeb release.
 
+Run `release-smoke` with Anki's Python 3.13 runtime when validating a built archive. The smoke script imports the packaged add-on, so system Python versions older than Anki's runtime can fail on supported runtime APIs such as `datetime.UTC`.
+
 Use `--embed-runtime` for local/offline validation builds that intentionally include runtime payloads in the `.ankiaddon`. The legacy `--no-bundle-ffmpeg` option is only valid with `--embed-runtime`; public thin releases always put `ffmpeg` and `ffprobe` in the runtime packs.
 
 Pause-shortening runs retain provenance under `<addon_dir>/aqe_artifacts/<run_id>/`, including intermediate WAV files, raw silence metadata, timeline JSON, filter script, final output copy, and `manifest.json`. The directory is intentionally unbounded for now, so clean it manually during local testing if it grows large.

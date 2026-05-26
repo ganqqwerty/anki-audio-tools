@@ -125,6 +125,8 @@ Release runtime packaging has its own checks:
 
 `--skip-quality-checks` still regenerates contracts and webview bundles, stages locked runtime assets, builds runtime packs in thin mode, validates the archive manifest, and enforces the native payload matrix. It only skips the expensive quality suite. A public release is not approved until runtime pack URLs are verified and native acceptance logs exist for each supported platform.
 
+Run archive smoke tests with Anki's Python 3.13 runtime, not the macOS system Python. The add-on can use APIs that exist in Anki's supported runtime, such as `datetime.UTC`, and `python3 scripts/dev.py release-smoke ...` may fail under Apple's older Python even when the archive is valid for Anki.
+
 Thin archives are size-gated separately from runtime packs. Runtime packs have warning thresholds, while the `.ankiaddon` hard size gate continues to apply to the AnkiWeb artifact.
 
 ## Focused Test Files
