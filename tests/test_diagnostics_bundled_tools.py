@@ -15,7 +15,7 @@ from anki_audio_quick_editor.diagnostics import (
 
 
 def test_rnnoise_health_reports_missing_bundle_at_expected_path(monkeypatch, tmp_path: Path) -> None:
-    expected_dir = tmp_path / "rnnoise-cli-macos-arm64"
+    expected_dir = tmp_path / "bin" / "macos-arm64"
     expected_path = expected_dir / "rnnoise-cli"
     monkeypatch.setattr(
         "anki_audio_quick_editor.audio_processor.expected_bundled_tool_path",

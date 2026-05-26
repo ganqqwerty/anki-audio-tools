@@ -16,6 +16,7 @@ import type {
   AsyncProgressPayload,
   ExternalToolHealth,
   HealthReport,
+  RuntimeStatus,
   ShowLogFileResult,
   SupportReportResult,
 } from "./types.js";
@@ -118,6 +119,9 @@ function _narrowResult(
   if (op === "show_log_file" && _isShowLogFileResult(result)) {
     return { ok: true, result };
   }
+  if ((op === "runtime_status" || op === "runtime_install") && _isRuntimeStatus(result)) {
+    return { ok: true, result };
+  }
   return {
     ok: false,
     error: `Invalid async result payload for ${op}`,
@@ -148,7 +152,8 @@ function _isHealthReport(value: unknown): value is HealthReport {
     (value.deep_filter === undefined || _isExternalToolHealth(value.deep_filter)) &&
     (value.rnnoise === undefined || _isExternalToolHealth(value.rnnoise)) &&
     (value.dpdfnet === undefined || _isExternalToolHealth(value.dpdfnet)) &&
-    (value.spleeter === undefined || _isExternalToolHealth(value.spleeter))
+    (value.spleeter === undefined || _isExternalToolHealth(value.spleeter)) &&
+    (value.runtime === undefined || _isRuntimeStatus(value.runtime))
   );
 }
 
@@ -158,4 +163,17 @@ function _isSupportReportResult(value: unknown): value is SupportReportResult {
 
 function _isShowLogFileResult(value: unknown): value is ShowLogFileResult {
   return _isRecord(value) && typeof value.logFilePath === "string";
+}
+
+function _isRuntimeStatus(value: unknown): value is RuntimeStatus {
+  if (!_isRecord(value)) return false;
+  return (
+    typeof value.phase === "string" &&
+    typeof value.runtime_manifest_id === "string" &&
+    typeof value.platform === "string" &&
+    typeof value.runtime_root === "string" &&
+    typeof value.progress === "number" &&
+    typeof value.message === "string" &&
+    typeof value.error === "string"
+  );
 }

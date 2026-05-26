@@ -3,6 +3,15 @@ from __future__ import annotations
 import json
 from unittest.mock import MagicMock
 
+_NO_PAYLOAD = object()
+
+
+def _bridge_command(command: str, payload: object = _NO_PAYLOAD) -> str:
+    envelope = {"command": command}
+    if payload is not _NO_PAYLOAD:
+        envelope["payload"] = payload
+    return "bridge:" + json.dumps(envelope)
+
 
 def _make_dialog() -> MagicMock:
     dialog = MagicMock()

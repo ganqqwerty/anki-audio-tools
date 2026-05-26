@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import json
 from pathlib import Path
 from unittest.mock import patch
 
@@ -12,6 +11,7 @@ from anki_audio_quick_editor.support import (
     clear_latest_pause_pipeline_support_incident,
 )
 from tests.settings_command_fixtures import (
+    _bridge_command,
     _capture_eval,
     _full_config,
     _make_dialog,
@@ -32,10 +32,10 @@ def test_async_support_report_handles_missing_log_file() -> None:
     clear_latest_denoise_support_incident()
     dialog = _make_dialog()
     calls, eval_fn = _capture_eval()
-    payload = json.dumps({"id": "job-1", "op": "support_report", "payload": {"config": _full_config()}})
+    payload = {"id": "job-1", "op": "support_report", "payload": {"config": _full_config()}}
 
     with patch("threading.Thread", _ImmediateThread):
-        handle_settings_command(f"async_cmd:{payload}", eval_fn, dialog)
+        handle_settings_command(_bridge_command("settings.async", payload), eval_fn, dialog)
 
     done_calls = [call for call in calls if call.startswith("window.onAsyncDone(")]
     result = _parse_callback(done_calls[0], "onAsyncDone")
@@ -54,14 +54,14 @@ def test_async_show_log_file_reveals_path(tmp_path: Path) -> None:
     log_path.write_text("log", encoding="utf-8")
     dialog = _make_dialog()
     calls, eval_fn = _capture_eval()
-    payload = json.dumps({"id": "job-1", "op": "show_log_file", "payload": {}})
+    payload = {"id": "job-1", "op": "show_log_file", "payload": {}}
 
     with (
         patch("threading.Thread", _ImmediateThread),
         patch.object(mw.addonManager, "addonsFolder", return_value=str(addon_dir)),
         patch("anki_audio_quick_editor.file_reveal.reveal_file") as reveal_file,
     ):
-        handle_settings_command(f"async_cmd:{payload}", eval_fn, dialog)
+        handle_settings_command(_bridge_command("settings.async", payload), eval_fn, dialog)
 
     reveal_file.assert_called_once_with(
         log_path,
@@ -79,14 +79,14 @@ def test_async_show_log_file_reports_reveal_failure(tmp_path: Path) -> None:
     addon_dir.mkdir()
     dialog = _make_dialog()
     calls, eval_fn = _capture_eval()
-    payload = json.dumps({"id": "job-log", "op": "show_log_file", "payload": {}})
+    payload = {"id": "job-log", "op": "show_log_file", "payload": {}}
 
     with (
         patch("threading.Thread", _ImmediateThread),
         patch.object(mw.addonManager, "addonsFolder", return_value=str(addon_dir)),
         patch("anki_audio_quick_editor.file_reveal.reveal_file", side_effect=RuntimeError("missing log")),
     ):
-        assert handle_settings_command(f"async_cmd:{payload}", eval_fn, dialog) is True
+        assert handle_settings_command(_bridge_command("settings.async", payload), eval_fn, dialog) is True
 
     result = _parse_callback(calls[-1], "onAsyncDone")
     assert result == {

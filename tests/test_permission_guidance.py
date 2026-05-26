@@ -5,7 +5,6 @@ from __future__ import annotations
 from anki_audio_quick_editor.permission_guidance import (
     bin_folder_path,
     chmod_bin_command,
-    message_with_macos_permission_guidance,
     message_with_permission_guidance,
 )
 
@@ -19,17 +18,6 @@ def test_permission_guidance_adds_full_chmod_command_on_macos(monkeypatch) -> No
     )
 
     assert "close Anki, open Terminal" in message
-    assert chmod_bin_command() in message
-
-
-def test_legacy_macos_permission_guidance_wrapper_still_appends_guidance(monkeypatch) -> None:
-    monkeypatch.setattr("anki_audio_quick_editor.permission_guidance.platform.system", lambda: "Darwin")
-
-    message = message_with_macos_permission_guidance(
-        "[Errno 13] Permission denied: '/addon/bin/macos-arm64/ffmpeg'",
-        PermissionError(13, "Permission denied", "/addon/bin/macos-arm64/ffmpeg"),
-    )
-
     assert chmod_bin_command() in message
 
 

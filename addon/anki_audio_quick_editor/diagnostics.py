@@ -3,9 +3,10 @@
 from __future__ import annotations
 
 import subprocess  # nosec B404
+from pathlib import Path
 from typing import Any
 
-from .permission_guidance import message_with_macos_permission_guidance
+from .permission_guidance import message_with_permission_guidance
 
 
 def build_deep_filter_health(_config: dict[str, Any]) -> dict[str, Any]:
@@ -72,15 +73,16 @@ def build_rnnoise_health() -> dict[str, Any]:
         expected_bundled_tool_path,
         find_rnnoise_bundle,
     )
+    from .audio_tools import expected_managed_tool_path
 
-    expected_path = expected_bundled_tool_path("rnnoise-cli")
+    expected_path = expected_managed_tool_path("rnnoise-cli") or expected_bundled_tool_path("rnnoise-cli")
     try:
         rnnoise_path = find_rnnoise_bundle()
     except Exception as exc:
         return {
             "available": False,
             "path": str(expected_path) if expected_path is not None else "",
-            "source": "bundled" if expected_path is not None else "",
+            "source": _runtime_source_for_expected_path(expected_path),
             "version": "",
             "error": _diagnostic_error_message(exc),
         }
@@ -99,7 +101,7 @@ def build_rnnoise_health() -> dict[str, Any]:
         return {
             "available": False,
             "path": str(rnnoise_path),
-            "source": "bundled",
+            "source": _managed_or_bundled_source(rnnoise_path),
             "version": "",
             "error": _diagnostic_error_message(exc),
         }
@@ -107,7 +109,7 @@ def build_rnnoise_health() -> dict[str, Any]:
         return {
             "available": False,
             "path": str(rnnoise_path),
-            "source": "bundled",
+            "source": _managed_or_bundled_source(rnnoise_path),
             "version": "",
             "error": "rnnoise-cli --version timed out.",
         }
@@ -116,7 +118,7 @@ def build_rnnoise_health() -> dict[str, Any]:
     return {
         "available": result.returncode == 0,
         "path": str(rnnoise_path),
-        "source": "bundled",
+        "source": _managed_or_bundled_source(rnnoise_path),
         "version": version if result.returncode == 0 else "",
         "error": "" if result.returncode == 0 else version or "rnnoise-cli --version failed.",
     }
@@ -129,15 +131,16 @@ def build_dpdfnet_health() -> dict[str, Any]:
         expected_bundled_tool_path,
         find_dpdfnet_bundle,
     )
+    from .audio_tools import expected_managed_tool_path
 
-    expected_path = expected_bundled_tool_path("dpdfnet")
+    expected_path = expected_managed_tool_path("dpdfnet") or expected_bundled_tool_path("dpdfnet")
     try:
         dpdfnet_path = find_dpdfnet_bundle()
     except Exception as exc:
         return {
             "available": False,
             "path": str(expected_path) if expected_path is not None else "",
-            "source": "bundled" if expected_path is not None else "",
+            "source": _runtime_source_for_expected_path(expected_path),
             "version": "",
             "error": _diagnostic_error_message(exc),
         }
@@ -156,7 +159,7 @@ def build_dpdfnet_health() -> dict[str, Any]:
         return {
             "available": False,
             "path": str(dpdfnet_path),
-            "source": "bundled",
+            "source": _managed_or_bundled_source(dpdfnet_path),
             "version": "",
             "error": _diagnostic_error_message(exc),
         }
@@ -164,7 +167,7 @@ def build_dpdfnet_health() -> dict[str, Any]:
         return {
             "available": False,
             "path": str(dpdfnet_path),
-            "source": "bundled",
+            "source": _managed_or_bundled_source(dpdfnet_path),
             "version": "",
             "error": "dpdfnet --version timed out.",
         }
@@ -173,7 +176,7 @@ def build_dpdfnet_health() -> dict[str, Any]:
     return {
         "available": result.returncode == 0,
         "path": str(dpdfnet_path),
-        "source": "bundled",
+        "source": _managed_or_bundled_source(dpdfnet_path),
         "version": version if result.returncode == 0 else "",
         "error": "" if result.returncode == 0 else version or "dpdfnet --version failed.",
     }
@@ -186,8 +189,9 @@ def build_spleeter_health() -> dict[str, Any]:
         expected_bundled_tool_path,
         find_spleeter_bundle,
     )
+    from .audio_tools import expected_managed_tool_path
 
-    expected_path = expected_bundled_tool_path("sherpa-spleeter")
+    expected_path = expected_managed_tool_path("sherpa-spleeter") or expected_bundled_tool_path("sherpa-spleeter")
     try:
         spleeter_path, _, _ = find_spleeter_bundle()
     except Exception as exc:
@@ -202,7 +206,7 @@ def build_spleeter_health() -> dict[str, Any]:
     return {
         "available": result.returncode == 0,
         "path": str(spleeter_path),
-        "source": "bundled",
+        "source": _managed_or_bundled_source(spleeter_path),
         "version": version if result.returncode == 0 else "",
         "error": "" if result.returncode == 0 else probe_output or "sherpa-spleeter --help failed.",
     }
@@ -212,7 +216,7 @@ def _missing_bundled_spleeter_health(expected_path: Any, exc: Exception) -> dict
     return {
         "available": False,
         "path": str(expected_path) if expected_path is not None else "",
-        "source": "bundled" if expected_path is not None else "",
+        "source": _runtime_source_for_expected_path(expected_path),
         "version": "",
         "error": str(exc),
     }
@@ -235,7 +239,7 @@ def _run_spleeter_help_probe(
         return {
             "available": False,
             "path": str(spleeter_path),
-            "source": "bundled",
+            "source": _managed_or_bundled_source(spleeter_path),
             "version": "",
             "error": str(exc),
         }
@@ -256,5 +260,22 @@ def _spleeter_probe_summary(probe_output: str) -> str:
     ) or next((line.strip() for line in probe_output.splitlines() if line.strip()), "")
 
 
+def _runtime_source_for_expected_path(path: Any) -> str:
+    if path is None:
+        return ""
+    return _managed_or_bundled_source(path)
+
+
+def _managed_or_bundled_source(path: Any) -> str:
+    from . import runtime_manager
+    from .audio_tools import PACKAGE_DIR
+
+    try:
+        Path(path).relative_to(runtime_manager.runtime_base_dir(PACKAGE_DIR))
+    except (TypeError, ValueError):
+        return "bundled"
+    return runtime_manager.RUNTIME_SOURCE_MANAGED
+
+
 def _diagnostic_error_message(exc: BaseException) -> str:
-    return message_with_macos_permission_guidance(str(exc), exc)
+    return message_with_permission_guidance(str(exc), exc)

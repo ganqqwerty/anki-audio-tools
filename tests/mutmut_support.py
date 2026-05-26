@@ -36,7 +36,6 @@ def configure_mutmut_package_aliases() -> None:
         "addon.anki_audio_quick_editor",
         "addon.anki_audio_quick_editor.audio_state",
         "addon.anki_audio_quick_editor.audio_processor",
-        "addon.anki_audio_quick_editor.batch_visualization",
         "addon.anki_audio_quick_editor.config_migration",
         "addon.anki_audio_quick_editor.errors",
         "addon.anki_audio_quick_editor.prosody_cache",

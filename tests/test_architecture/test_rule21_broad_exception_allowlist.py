@@ -208,6 +208,18 @@ BROAD_EXCEPTION_ALLOWLIST: tuple[BroadExceptionAllowance, ...] = (
         "Optional Parselmouth backend boundary falls back to the bundled analyzer when unavailable.",
     ),
     BroadExceptionAllowance(
+        "runtime_manager",
+        "_download_extract_promote",
+        1,
+        "Runtime install promotion cleans rejected download/extract artifacts before re-raising.",
+    ),
+    BroadExceptionAllowance(
+        "runtime_manager",
+        "ensure_runtime",
+        1,
+        "Runtime install boundary converts download, disk, and archive failures into a diagnostics status.",
+    ),
+    BroadExceptionAllowance(
         "settings.commands",
         "_handle_async_cmd._run",
         1,

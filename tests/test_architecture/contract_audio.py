@@ -174,7 +174,7 @@ AUDIO_CONTRACTS: dict[str, ModuleContract] = {
     "audio_tools": contract(
         "audio_tools",
         layer=Layer.IMPORT_SAFE_CORE,
-        allowed_addon_deps=("errors",),
+        allowed_addon_deps=("errors", "runtime_manager"),
     ),
     "audio_types": contract("audio_types", layer=Layer.IMPORT_SAFE_CORE),
     "audio_state": contract(
@@ -206,11 +206,5 @@ AUDIO_CONTRACTS: dict[str, ModuleContract] = {
         "batch_operations_helpers",
         layer=Layer.IMPORT_SAFE_CORE,
         allowed_addon_deps=("audio_processor", "audio_state", "audio_types", "batch_operations"),
-    ),
-    "batch_visualization": contract(
-        "batch_visualization",
-        layer=Layer.IMPORT_SAFE_CORE,
-        allowed_addon_deps=("audio_operations", "batch_operations"),
-        notes="Compatibility wrapper over shared batch operations; must stay thin.",
     ),
 }

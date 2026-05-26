@@ -39,7 +39,7 @@ from .batch_operations_helpers import render_batch_denoise, skipped_batch_note
 from .diagnostics_runtime import capture_exception, new_operation_id, record_breadcrumb
 from .errors import AudioQuickEditorError
 from .media_paths import existing_media_file_path
-from .permission_guidance import message_with_macos_permission_guidance
+from .permission_guidance import message_with_permission_guidance
 from .prosody_cache import analyze_prosody_cached
 from .prosody_svg import make_visualization_filename, render_prosody_svg
 from .sound_refs import (
@@ -271,7 +271,7 @@ def _process_graph_operation(
     except Exception as exc:
         raw_message = str(exc)
         message = (
-            message_with_macos_permission_guidance(raw_message, exc)
+            message_with_permission_guidance(raw_message, exc)
             if raw_message
             else "visualization generation failed"
         )
@@ -369,7 +369,7 @@ def _process_transform_operation(
     except Exception as exc:
         raw_message = str(exc)
         message = (
-            message_with_macos_permission_guidance(raw_message, exc)
+            message_with_permission_guidance(raw_message, exc)
             if raw_message
             else "audio transformation failed"
         )

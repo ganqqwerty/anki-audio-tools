@@ -16,8 +16,10 @@ from ..contracts_generated import (
     Config,
     CopySupportReportPayload,
     HealthReport,
+    RuntimeStatus,
     ShowLogFileResult,
     SupportReportResult,
+    VisibleEditorButton,
 )
 from ..diagnostics_runtime import (
     capture_exception,
@@ -31,7 +33,6 @@ from ..frontend_logs import handle_frontend_log_payload
 from ..webview_bridge import (
     WebviewBridgeCommand,
     decode_webview_bridge_command,
-    legacy_json_payload,
 )
 
 logger = logging.getLogger(__name__)
@@ -58,25 +59,25 @@ def handle_settings_command(
         operation_id=new_operation_id("settings"),
         context={"command": command_name},
     )
-    if command_name in {"settings.cancel", "settings_cancel"}:
+    if command_name == "settings.cancel":
         dialog.reject()
         return True
-    if command_name in {"settings.reset_defaults", "settings_reset_defaults"}:
+    if command_name == "settings.reset_defaults":
         _handle_reset_defaults(dialog)
         return True
-    if command_name in {"settings.save", "settings_save"}:
+    if command_name == "settings.save":
         _handle_settings_save(command, eval_fn, dialog)
         return True
-    if command_name in {"settings.check_media", "settings_check_media"}:
+    if command_name == "settings.check_media":
         _handle_check_media()
         return True
-    if command_name in {"settings.async", "async_cmd"}:
+    if command_name == "settings.async":
         _handle_async_cmd(command, eval_fn)
         return True
-    if command_name in {"frontend.log", "frontend_log"}:
-        _handle_frontend_log(command.legacy_payload if command.is_legacy else command.payload)
+    if command_name == "frontend.log":
+        _handle_frontend_log(command.payload)
         return True
-    if command_name in {"support.copy_report", "copy_support_report"}:
+    if command_name == "support.copy_report":
         _handle_copy_support_report(command)
         return True
     return False
@@ -89,12 +90,8 @@ def _handle_settings_save(
 ) -> None:
     from aqt import mw
 
-    try:
-        raw_config = legacy_json_payload(command)
-    except json.JSONDecodeError:
-        payload = json.dumps({"error": "Invalid JSON payload"})
-        eval_fn(f"window.onSaveError({payload})")
-        return
+    raw_config = command.payload
+    _sanitize_settings_payload(raw_config)
     try:
         config = Config.from_dict(raw_config).to_dict()
     except CONTRACT_DECODE_ERRORS:
@@ -118,6 +115,17 @@ def _handle_settings_save(
         flush=True,
     )
     dialog.accept()
+
+
+def _sanitize_settings_payload(raw_config: Any) -> None:
+    if not isinstance(raw_config, dict):
+        return
+    visible_buttons = raw_config.get("visible_editor_buttons")
+    if isinstance(visible_buttons, list):
+        allowed_buttons = {button.value for button in VisibleEditorButton}
+        raw_config["visible_editor_buttons"] = [
+            button for button in visible_buttons if button in allowed_buttons
+        ]
 
 
 def _handle_reset_defaults(dialog: Any) -> None:
@@ -161,11 +169,7 @@ def _handle_check_media() -> None:
 def _handle_async_cmd(command: WebviewBridgeCommand, eval_fn: Callable[[str], None]) -> None:
     from aqt import mw
 
-    try:
-        raw_payload = legacy_json_payload(command)
-    except json.JSONDecodeError:
-        logger.error("async_cmd: invalid JSON payload")
-        return
+    raw_payload = command.payload
     raw_job_id = _raw_job_id(raw_payload)
 
     try:
@@ -175,7 +179,7 @@ def _handle_async_cmd(command: WebviewBridgeCommand, eval_fn: Callable[[str], No
             AsyncDonePayload(raw_job_id, False, error="Invalid async command payload").to_dict()
         )
         mw.taskman.run_on_main(lambda: eval_fn(f"window.onAsyncDone({invalid_done_payload_json})"))
-        logger.warning("async_cmd: invalid payload shape: %s", invalid_payload_error)
+        logger.warning("settings.async: invalid payload shape: %s", invalid_payload_error)
         return
 
     job_id = async_command.id
@@ -242,6 +246,10 @@ def _dispatch_op(
         return _op_support_report(payload, progress_fn)
     if op == "show_log_file":
         return _op_show_log_file(progress_fn)
+    if op == "runtime_status":
+        return _op_runtime_status()
+    if op == "runtime_install":
+        return _op_runtime_install(progress_fn)
     raise SettingsCommandError(f"Unknown async operation: {op}")
 
 
@@ -271,6 +279,7 @@ def _op_health_check(
     report["dpdfnet"] = build_dpdfnet_health()
     progress_fn(95, t("settings.health.checking_spleeter"))
     report["spleeter"] = build_spleeter_health()
+    report["runtime"] = _runtime_status_for_settings()
     progress_fn(100, t("settings.async.done"))
     return HealthReport.from_dict(report).to_dict()
 
@@ -308,6 +317,8 @@ def _op_support_report(payload: dict[str, Any], progress_fn: Callable[[int, str]
     dpdfnet_health = build_dpdfnet_health()
     spleeter_health = build_spleeter_health()
     progress_fn(75, t("settings.support.reading_recent_logs"))
+    diagnostics_context = support_report_context()
+    diagnostics_context["runtime"] = _runtime_status_for_settings()
     report_text = build_support_report_text(
         version=__version__,
         addon_dir=addon_dir,
@@ -320,7 +331,7 @@ def _op_support_report(payload: dict[str, Any], progress_fn: Callable[[int, str]
         log_tail=read_log_tail(log_path),
         spleeter_health=spleeter_health,
         spleeter_incident=latest_spleeter_support_incident(),
-        diagnostics_context=support_report_context(),
+        diagnostics_context=diagnostics_context,
         release_info=read_release_info(addon_dir),
     )
     progress_fn(100, t("settings.async.done"))
@@ -346,6 +357,23 @@ def _op_show_log_file(
     return ShowLogFileResult(str(log_path)).to_dict()
 
 
+def _op_runtime_status() -> Any:
+    return RuntimeStatus.from_dict(_runtime_status_for_settings()).to_dict()
+
+
+def _op_runtime_install(progress_fn: Callable[[int, str], None]) -> Any:
+    from .. import runtime_manager
+    from ..i18n import t
+
+    def _progress(progress_status: dict[str, Any]) -> None:
+        progress_fn(int(progress_status.get("progress", 0) or 0), str(progress_status.get("message", "")))
+
+    progress_fn(1, t("settings.runtime.installing"))
+    status = runtime_manager.ensure_runtime(_addon_dir_for_settings(), progress=_progress)
+    progress_fn(100, status.get("message") or status.get("error") or t("settings.async.done"))
+    return RuntimeStatus.from_dict(status).to_dict()
+
+
 def _handle_frontend_log(raw_payload: Any) -> None:
     handle_frontend_log_payload(
         raw_payload,
@@ -360,23 +388,19 @@ def _handle_frontend_log(raw_payload: Any) -> None:
 def _handle_copy_support_report(command: WebviewBridgeCommand) -> None:
     from aqt.qt import QApplication
 
-    try:
-        raw_payload = legacy_json_payload(command)
-    except json.JSONDecodeError:
-        logger.warning("copy_support_report: invalid payload")
-        return
+    raw_payload = command.payload
     try:
         payload = CopySupportReportPayload.from_dict(raw_payload)
     except CONTRACT_DECODE_ERRORS:
         if isinstance(raw_payload, dict) and not isinstance(raw_payload.get("text"), str):
-            logger.warning("copy_support_report: missing text payload")
+            logger.warning("support.copy_report: missing text payload")
         else:
-            logger.warning("copy_support_report: invalid payload")
+            logger.warning("support.copy_report: invalid payload")
         return
 
     clipboard = QApplication.clipboard()
     if clipboard is None:
-        logger.warning("copy_support_report: clipboard unavailable")
+        logger.warning("support.copy_report: clipboard unavailable")
         return
     clipboard.setText(payload.text)
 
@@ -397,3 +421,18 @@ def _config_payload(payload: dict[str, Any]) -> dict[str, Any]:
         return Config.from_dict(raw_config).to_dict()
     except CONTRACT_DECODE_ERRORS:
         return {}
+
+
+def _runtime_status_for_settings() -> dict[str, Any]:
+    from ..runtime_manager import runtime_status
+
+    return runtime_status(_addon_dir_for_settings())
+
+
+def _addon_dir_for_settings() -> Any:
+    from pathlib import Path
+
+    from aqt import mw
+
+    addon_id = mw.addonManager.addonFromModule(__name__)
+    return Path(mw.addonManager.addonsFolder(addon_id))

@@ -19,6 +19,7 @@ from anki_audio_quick_editor.support import (
     record_latest_spleeter_support_incident,
 )
 from tests.settings_command_fixtures import (
+    _bridge_command,
     _capture_eval,
     _full_config,
     _make_dialog,
@@ -96,7 +97,7 @@ def test_async_support_report_returns_incident_and_log_tail(tmp_path: Path) -> N
     )
     dialog = _make_dialog()
     calls, eval_fn = _capture_eval()
-    payload = json.dumps({"id": "job-1", "op": "support_report", "payload": {"config": _full_config()}})
+    payload = {"id": "job-1", "op": "support_report", "payload": {"config": _full_config()}}
 
     with (
         patch("threading.Thread", _ImmediateThread),
@@ -106,7 +107,7 @@ def test_async_support_report_returns_incident_and_log_tail(tmp_path: Path) -> N
         patch("anki_audio_quick_editor.diagnostics.build_dpdfnet_health", return_value={"available": True, "path": "/bin/dpdfnet", "version": "0.1.0", "error": ""}),
         patch("anki_audio_quick_editor.diagnostics.build_spleeter_health", return_value={"available": True, "path": "/bin/sherpa-spleeter", "version": "1.13.2", "error": ""}),
     ):
-        handle_settings_command(f"async_cmd:{payload}", eval_fn, dialog)
+        handle_settings_command(_bridge_command("settings.async", payload), eval_fn, dialog)
 
     done_calls = [call for call in calls if call.startswith("window.onAsyncDone(")]
     result = _parse_callback(done_calls[0], "onAsyncDone")
@@ -131,24 +132,24 @@ def test_copy_support_report_updates_clipboard() -> None:
     clipboard = MagicMock()
     dialog = _make_dialog()
     _, eval_fn = _capture_eval()
-    payload = json.dumps({"text": "support text"})
+    payload = {"text": "support text"}
 
     with patch("aqt.qt.QApplication.clipboard", return_value=clipboard):
-        assert handle_settings_command(f"copy_support_report:{payload}", eval_fn, dialog) is True
+        assert handle_settings_command(_bridge_command("support.copy_report", payload), eval_fn, dialog) is True
 
     clipboard.setText.assert_called_once_with("support text")
 
 
-def test_copy_support_report_logs_invalid_json_without_clipboard(caplog: pytest.LogCaptureFixture) -> None:
+def test_copy_support_report_logs_invalid_payload_without_clipboard(caplog: pytest.LogCaptureFixture) -> None:
     dialog = _make_dialog()
     _, eval_fn = _capture_eval()
     caplog.set_level(logging.WARNING, logger="anki_audio_quick_editor.settings.commands")
 
     with patch("aqt.qt.QApplication.clipboard") as clipboard:
-        assert handle_settings_command("copy_support_report:not-json", eval_fn, dialog) is True
+        assert handle_settings_command(_bridge_command("support.copy_report", "not-a-report"), eval_fn, dialog) is True
 
     clipboard.assert_not_called()
-    assert "copy_support_report: invalid payload" in caplog.text
+    assert "support.copy_report: invalid payload" in caplog.text
 
 
 def test_copy_support_report_logs_missing_text_without_clipboard(caplog: pytest.LogCaptureFixture) -> None:
@@ -157,17 +158,17 @@ def test_copy_support_report_logs_missing_text_without_clipboard(caplog: pytest.
     caplog.set_level(logging.WARNING, logger="anki_audio_quick_editor.settings.commands")
 
     with patch("aqt.qt.QApplication.clipboard") as clipboard:
-        assert handle_settings_command("copy_support_report:{}", eval_fn, dialog) is True
+        assert handle_settings_command(_bridge_command("support.copy_report", {}), eval_fn, dialog) is True
 
     clipboard.assert_not_called()
-    assert "copy_support_report: missing text payload" in caplog.text
+    assert "support.copy_report: missing text payload" in caplog.text
 
 
 def test_copy_support_report_logs_unavailable_clipboard(caplog: pytest.LogCaptureFixture) -> None:
     dialog = _make_dialog()
     _, eval_fn = _capture_eval()
     caplog.set_level(logging.WARNING, logger="anki_audio_quick_editor.settings.commands")
-    payload = json.dumps({"text": "support text"})
+    payload = {"text": "support text"}
 
     with patch("aqt.qt.QApplication.clipboard", return_value=None):
-        assert handle_settings_command(f"copy_support_report:{payload}", eval_fn, dialog) is True
+        assert handle_settings_command(_bridge_command("support.copy_report", payload), eval_fn, dialog) is True

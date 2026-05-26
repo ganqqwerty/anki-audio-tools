@@ -12,7 +12,7 @@ from .diagnostics_runtime import capture_exception, new_operation_id, record_bre
 from .editor_session import EditorSession
 from .i18n import t
 from .media_paths import existing_media_file_path
-from .permission_guidance import message_with_macos_permission_guidance
+from .permission_guidance import message_with_permission_guidance
 from .prosody_types import clamp_cursor_ms
 
 logger = logging.getLogger(__name__)
@@ -287,7 +287,7 @@ def start_playback_from_cursor(
                 ),
             )
         except Exception as exc:
-            message = message_with_macos_permission_guidance(str(exc), exc)
+            message = message_with_permission_guidance(str(exc), exc)
             capture_exception(
                 "editor.worker.playback_segment",
                 exc,

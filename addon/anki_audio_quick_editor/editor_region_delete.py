@@ -26,7 +26,7 @@ from .editor_status import region_operation_status_summary
 from .errors import AudioProcessingError
 from .i18n import t
 from .media_paths import existing_media_file_path, media_filenames_match
-from .permission_guidance import message_with_macos_permission_guidance
+from .permission_guidance import message_with_permission_guidance
 from .sound_refs import replace_sound_reference, select_first_sound_reference
 
 logger = logging.getLogger(__name__)
@@ -212,7 +212,7 @@ def delete_selection_async(
                 ),
             )
         except Exception as exc:
-            message = message_with_macos_permission_guidance(str(exc), exc)
+            message = message_with_permission_guidance(str(exc), exc)
             capture_exception(
                 "editor.worker.region_delete",
                 exc,
@@ -309,7 +309,7 @@ def replace_current_field_after_region_delete(
             deps.set_busy_for_field(editor, field_index, False)
         deps.request_playback_after_edit(editor, field_index)
     except Exception as exc:
-        message = message_with_macos_permission_guidance(str(exc), exc)
+        message = message_with_permission_guidance(str(exc), exc)
         capture_exception(
             "editor.main.region_delete_replacement",
             exc,

@@ -15,7 +15,7 @@ python3 scripts/dev.py test-e2e-parallel
 
 ## What Gets Tested
 
-- `tests/` covers sound-reference parsing, edit-state validation, ffmpeg filter construction, DeepFilter-assisted pause pipeline planning and artifacts, external denoiser command/render/error paths for DeepFilterNet, RNNoise, and DPDFNet, prosody analysis and serialization, SVG rendering, batch visualization decisions, Browser hook wiring, config migration, bootstrap behavior, editor bridge wiring, and settings command/state logic.
+- `tests/` covers sound-reference parsing, edit-state validation, ffmpeg filter construction, managed runtime download/extract/verify behavior, thin release/runtime-pack packaging, DeepFilter-assisted pause pipeline planning and artifacts, external denoiser command/render/error paths for DeepFilterNet, RNNoise, and DPDFNet, prosody analysis and serialization, SVG rendering, batch visualization decisions, Browser hook wiring, config migration, bootstrap behavior, editor bridge wiring, and settings command/state logic.
 - `anki_api_contract/` discovers the Anki API surface from production add-on code and checks it against the real installed Anki Python runtime without launching a full Anki app.
 - `tests/test_architecture/` enforces layer boundaries, module classification, Anki-import-safe helper modules, import-safe runtime modules, editor bridge command sync, prosody dependency isolation, shell-thin settings rules, and DB access isolation.
 - `tests/test_runtime_package_imports.py` and the runtime-import architecture rule guard against hard-coded lazy imports of the friendly source package name, which would fail when Anki loads the add-on as a numeric package.
@@ -88,25 +88,24 @@ Python coverage uses branch coverage and fails below 80%. Frontend coverage thre
 
 SonarQube is opt-in because it needs `sonar-scanner` and `SONAR_TOKEN`, but when run it is a hard gate: coverage reports must be freshly generated and the scanner waits for the server quality gate. Generated contracts are excluded from Sonar issue and coverage accounting. The inline editor bundle intentionally keeps the browser `window.__aqe*` bridge contract, so Sonar's `typescript:S7764` global-object preference is ignored only under `settings_ui/src/editor-inline/**`.
 
-`python3 scripts/release.py --full` runs the normal release checks plus `test-e2e` and Sonar before packaging. Plain `python3 scripts/release.py` keeps the faster release path: `check`, required artifact generation, runtime asset staging, archive creation, and archive validation.
+`python3 scripts/release.py --full` runs the normal release checks plus `test-e2e` and Sonar before packaging. Plain `python3 scripts/release.py` keeps the faster release path: `check`, required artifact generation, runtime asset staging, runtime pack creation, thin archive creation, and archive validation.
 
-Release self-sufficiency has its own checks:
+Release runtime packaging has its own checks:
 
 | Task | Command |
 |------|---------|
-| Verify tracked runtime payloads plus cached FFmpeg | `python3 scripts/dev.py release-assets verify --target all` |
+| Verify runtime source payloads plus cached FFmpeg | `python3 scripts/dev.py release-assets verify --target all` |
 | Run current-host runtime probes after verification | `python3 scripts/dev.py release-assets verify --target current --diagnostics` |
 | Fast current-platform packaging without expensive QC | `python3 scripts/release.py --skip-quality-checks --target current` |
-| Fast current-platform packaging without bundled FFmpeg | `python3 scripts/release.py --skip-quality-checks --target current --no-bundle-ffmpeg` |
-| Extracted archive smoke test | `python3 scripts/dev.py release-smoke dist/anki-audio-quick-editor-<version>-<target>.ankiaddon` |
-| Native platform acceptance | `python3 scripts/release_acceptance.py --archive dist/anki-audio-quick-editor-<version>-<target>.ankiaddon --target current` |
+| Public thin packaging with all runtime packs | `python3 scripts/release.py --target all` |
+| Verify uploaded runtime URLs | `python3 scripts/release.py --verify-runtime-urls` |
+| Local/offline embedded-runtime packaging | `python3 scripts/release.py --skip-quality-checks --target current --embed-runtime` |
+| Extracted archive smoke test | `python3 scripts/dev.py release-smoke dist/anki-audio-quick-editor-<version>.ankiaddon` |
+| Native platform acceptance | `python3 scripts/release_acceptance.py --archive dist/anki-audio-quick-editor-<version>.ankiaddon --target current` |
 
-`--skip-quality-checks` still regenerates contracts and webview bundles, stages locked runtime assets, validates the archive manifest, and enforces the native payload matrix. It only skips the expensive quality suite. A platform-targeted release is not approved until native acceptance logs exist for each platform archive in the release set.
+`--skip-quality-checks` still regenerates contracts and webview bundles, stages locked runtime assets, builds runtime packs in thin mode, validates the archive manifest, and enforces the native payload matrix. It only skips the expensive quality suite. A public release is not approved until runtime pack URLs are verified and native acceptance logs exist for each supported platform.
 
-Third-party static FFmpeg makes the universal `--target all` archive larger
-than the normal size gate. Build platform-targeted archives for standard
-distribution; use `--allow-large-archive "<reason>"` only for intentional direct
-distribution of a universal archive.
+Thin archives are size-gated separately from runtime packs. Runtime packs have warning thresholds, while the `.ankiaddon` hard size gate continues to apply to the AnkiWeb artifact.
 
 ## Focused Test Files
 
@@ -117,10 +116,12 @@ distribution of a universal archive.
 | Browser menu/context integration | `tests/test_browser_integration.py` |
 | Browser batch WebView shell/state | `tests/test_browser_dialog.py`, `tests/test_browser_dialog_state.py` |
 | Shared WebView bridge/shell/log helpers | `tests/test_webview_bridge.py`, `tests/test_webview_shell.py`, `tests/test_frontend_logs.py` |
-| Pause shortening pipeline | `tests/test_audio_pipeline.py`, `tests/test_audio_processor.py` |
+| Pause shortening pipeline | `tests/test_audio_pipeline.py`, `tests/test_audio_pause_pipeline.py` |
 | Prosody SVG media rendering | `tests/test_prosody_svg.py` |
 | Shared prosody analysis/cache and editor integration | `tests/test_prosody_analyzer.py`, `tests/test_prosody_fallback.py`, `tests/test_editor_integration.py` |
 | JSON contract generation | `tests/test_contract_generation.py` |
+| Managed runtime assets | `tests/test_runtime_manager.py` |
+| Release packaging | `tests/test_release.py` |
 | Architecture boundaries | `tests/test_architecture/*.py` |
 
 ## Mutation Testing
@@ -133,7 +134,6 @@ Current first-wave mutation scope:
 - `config_migration.py`
 - `sound_refs.py`
 - `settings_state.py`
-- `batch_visualization.py`
 - `prosody_svg.py`
 - `audio_processor.py`
 

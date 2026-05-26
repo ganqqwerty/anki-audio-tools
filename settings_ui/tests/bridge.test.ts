@@ -154,7 +154,7 @@ describe("sendAsyncCmd", () => {
 });
 
 describe("copySupportReport", () => {
-  it("sends a copy_support_report payload", () => {
+  it("sends a support.copy_report payload", () => {
     copySupportReport("support text");
     const call = pycmd.mock.calls[0]?.[0] ?? "";
     expect(JSON.parse(call.slice("bridge:".length))).toEqual({

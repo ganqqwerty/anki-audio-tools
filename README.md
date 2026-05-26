@@ -19,8 +19,8 @@ Anki desktop add-on for quickly editing audio references from the note editor. I
 
 - Anki 25.09 or later
 - Python 3.13 as bundled by Anki
-- Release archives bundle `ffmpeg`, `ffprobe`, DeepFilterNet, and RNNoise runtimes for macOS arm64, macOS x86_64, and Windows x86_64
-- Optional advanced overrides: explicit `ffmpeg_path` and `deep_filter_path` settings still take precedence over bundled tools
+- Public release archives are thin. On first load, the add-on downloads the verified runtime pack for macOS arm64, macOS x86_64, or Windows x86_64.
+- Optional advanced overrides: explicit `ffmpeg_path` and `deep_filter_path` settings still take precedence over managed runtime tools
 - Optional: `praat-parselmouth` in Anki's Python for preferred pitch/intensity analysis; the add-on falls back to ffmpeg-decoded PCM without it
 - Node.js 18+ for editing or rebuilding the settings/editor frontend bundles
 
@@ -47,23 +47,23 @@ The local development add-on ID is `1000000002`.
 ```bash
 python3 scripts/dev.py release-assets verify --target all
 python3 scripts/dev.py release-assets verify --target current --diagnostics
-python3 scripts/release.py --target current
-python3 scripts/release.py --target current --no-bundle-ffmpeg
-python3 scripts/dev.py release-smoke dist/anki-audio-quick-editor-<version>-<target>.ankiaddon
+python3 scripts/release.py --target all
+python3 scripts/release.py --verify-runtime-urls
+python3 scripts/dev.py release-smoke dist/anki-audio-quick-editor-<version>.ankiaddon
 ```
 
 This validates the repo, regenerates contracts and webview bundles, stages
-tracked non-FFmpeg runtime payloads plus cached `ffmpeg`/`ffprobe`, validates
-the archive manifest, and produces a platform-targeted archive such as
-`dist/anki-audio-quick-editor-<version>-macos-arm64.ankiaddon`. Universal
-archives remain available with `--target all`, but the third-party FFmpeg
-payload makes them too large for the normal release size gate unless an explicit
-`--allow-large-archive` reason is supplied.
+locked runtime payloads, builds platform runtime pack zips, writes version-pinned
+runtime-pack metadata into `bin/runtime_manifest.json`, validates the thin add-on
+archive, and produces `dist/anki-audio-quick-editor-<version>.ankiaddon`.
+Public AnkiWeb releases should use `--target all`; `--target current` and
+single-platform targets are for local/private validation.
 
 `release-assets verify` checks presence and checksums by default. Add
 `--diagnostics` when you also want current-host runtime probes before release
 smoke or native acceptance.
 
-`--no-bundle-ffmpeg` builds a distinct `-external-ffmpeg.ankiaddon` variant
-that omits bundled `ffmpeg` and `ffprobe`. That variant expects users to supply
-those tools via config or `PATH`.
+Use `--upload-assets` to upload generated runtime packs with `gh release upload`,
+or run the printed command manually when `gh` is unavailable. Use `--embed-runtime`
+for local/offline validation builds that intentionally include runtime payloads in
+the `.ankiaddon`.

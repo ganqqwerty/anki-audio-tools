@@ -20,6 +20,7 @@ def validate_archive(
     lock: dict | None,
     target_keys: list[str] | None,
     include_ffmpeg: bool,
+    embed_runtime: bool,
     release_manifest_files: Callable[..., list[str]],
     warn_archive_bytes: int,
     fail_archive_bytes: int,
@@ -28,16 +29,25 @@ def validate_archive(
     with zipfile.ZipFile(archive, "r") as zf:
         infos = {info.filename: info for info in zf.infolist()}
         names = set(infos)
-        for required in release_manifest_files(lock, target_keys=target_keys, include_ffmpeg=include_ffmpeg):
+        for required in release_manifest_files(
+            lock,
+            target_keys=target_keys,
+            include_ffmpeg=include_ffmpeg,
+            embed_runtime=embed_runtime,
+        ):
             if required not in names:
                 _validation_error(f"missing required file {required}")
         for name in sorted(names):
             if _is_forbidden_archive_name(name):
                 _validation_error(f"unexpected file {name}")
         _validate_release_info(zf, names)
-        _validate_runtime_matrix(zf, infos, lock, target_keys=target_keys, include_ffmpeg=include_ffmpeg)
-        _validate_runtime_support_files(zf, infos, lock, target_keys=target_keys)
-        _validate_shared_runtime_files(zf, infos, lock)
+        _validate_runtime_manifest(zf, names, lock, target_keys=target_keys, thin_mode=not embed_runtime)
+        if embed_runtime:
+            _validate_runtime_matrix(zf, infos, lock, target_keys=target_keys, include_ffmpeg=include_ffmpeg)
+            _validate_runtime_support_files(zf, infos, lock, target_keys=target_keys)
+            _validate_shared_runtime_files(zf, infos, lock)
+        else:
+            _validate_thin_archive_excludes_runtime_payloads(names, lock)
         _validate_notices(zf, names, include_ffmpeg=include_ffmpeg)
     _validate_archive_size(archive, allow_large_archive=allow_large_archive, warn_archive_bytes=warn_archive_bytes, fail_archive_bytes=fail_archive_bytes)
 
@@ -53,6 +63,140 @@ def selected_release_targets(value: str, lock: dict) -> tuple[list[str] | None, 
         print(f"ERROR: unknown release target {value!r}; expected one of {choices}")
         sys.exit(1)
     return [value], value
+
+
+def _validate_runtime_manifest(
+    zf: zipfile.ZipFile,
+    names: set[str],
+    lock: dict,
+    *,
+    target_keys: list[str] | None,
+    thin_mode: bool,
+) -> None:
+    manifest_name = "bin/runtime_manifest.json"
+    if manifest_name not in names:
+        _validation_error(f"missing required file {manifest_name}")
+    try:
+        manifest = json.loads(zf.read(manifest_name).decode("utf-8"))
+    except (json.JSONDecodeError, UnicodeDecodeError):
+        _validation_error(f"{manifest_name} must be valid UTF-8 JSON")
+        return
+    if not isinstance(manifest, dict):
+        _validation_error(f"{manifest_name} must contain a JSON object")
+        return
+    if manifest.get("schema_version") != 1:
+        _validation_error(f"{manifest_name} must declare schema_version 1")
+    manifest_id = manifest.get("runtime_manifest_id")
+    if not isinstance(manifest_id, str) or not manifest_id:
+        _validation_error(f"{manifest_name} must include runtime_manifest_id")
+    targets = manifest.get("targets")
+    if not isinstance(targets, dict):
+        _validation_error(f"{manifest_name} must include targets")
+        return
+    selected_targets = target_keys or release_assets.lock_targets(lock)
+    for target in selected_targets:
+        target_entry = targets.get(target)
+        if not isinstance(target_entry, dict):
+            _validation_error(f"{manifest_name} missing target {target}")
+            continue
+        if thin_mode:
+            _validate_runtime_pack_metadata(manifest_name, target, target_entry)
+        _validate_runtime_manifest_files(manifest_name, target, target_entry)
+
+
+def _validate_runtime_pack_metadata(manifest_name: str, target: str, target_entry: dict) -> None:
+    pack = target_entry.get("runtime_pack")
+    if not isinstance(pack, dict):
+        _validation_error(f"{manifest_name}:{target} missing runtime_pack")
+        return
+    for key in ("name", "url", "sha256", "size"):
+        if key not in pack:
+            _validation_error(f"{manifest_name}:{target}.runtime_pack missing {key}")
+    name = pack.get("name")
+    if not isinstance(name, str) or not name.endswith(".zip"):
+        _validation_error(f"{manifest_name}:{target}.runtime_pack.name must be a zip asset name")
+    url = pack.get("url")
+    if not isinstance(url, str) or not url.startswith("https://"):
+        _validation_error(f"{manifest_name}:{target}.runtime_pack.url must be an https URL")
+    sha256 = pack.get("sha256")
+    if not isinstance(sha256, str) or not _is_sha256(sha256):
+        _validation_error(f"{manifest_name}:{target}.runtime_pack.sha256 must be a SHA-256 digest")
+    size = pack.get("size")
+    if not isinstance(size, int) or size <= 0:
+        _validation_error(f"{manifest_name}:{target}.runtime_pack.size must be a positive integer")
+
+
+def _validate_runtime_manifest_files(manifest_name: str, target: str, target_entry: dict) -> None:
+    tools = target_entry.get("tools")
+    if not isinstance(tools, dict) or not tools:
+        _validation_error(f"{manifest_name}:{target} must include tools")
+        return
+    for tool_name, tool_entry in tools.items():
+        if not isinstance(tool_entry, dict):
+            _validation_error(f"{manifest_name}:{target}.{tool_name} must be an object")
+            continue
+        _validate_file_manifest_entry(
+            manifest_name,
+            f"{target}.{tool_name}",
+            tool_entry,
+            require_size=True,
+            require_path=True,
+        )
+        runtime_files = tool_entry.get("runtime_files", [])
+        if not isinstance(runtime_files, list):
+            _validation_error(f"{manifest_name}:{target}.{tool_name}.runtime_files must be a list")
+            continue
+        for index, file_entry in enumerate(runtime_files):
+            _validate_file_manifest_entry(
+                manifest_name,
+                f"{target}.{tool_name}.runtime_files[{index}]",
+                file_entry,
+                require_size=True,
+                require_path=True,
+            )
+    shared_files = target_entry.get("shared_files")
+    if not isinstance(shared_files, dict) or not shared_files:
+        _validation_error(f"{manifest_name}:{target} must include shared_files")
+        return
+    for file_name, file_entry in shared_files.items():
+        _validate_file_manifest_entry(
+            manifest_name,
+            f"{target}.shared_files.{file_name}",
+            file_entry,
+            require_size=True,
+            require_path=True,
+        )
+
+
+def _validate_file_manifest_entry(
+    manifest_name: str,
+    label: str,
+    entry: object,
+    *,
+    require_size: bool,
+    require_path: bool,
+) -> None:
+    if not isinstance(entry, dict):
+        _validation_error(f"{manifest_name}:{label} must be an object")
+        return
+    if require_path and not isinstance(entry.get("path"), str):
+        _validation_error(f"{manifest_name}:{label}.path must be a string")
+    sha256 = entry.get("sha256")
+    if not isinstance(sha256, str) or not _is_sha256(sha256):
+        _validation_error(f"{manifest_name}:{label}.sha256 must be a SHA-256 digest")
+    size = entry.get("size")
+    if require_size and (not isinstance(size, int) or size < 0):
+        _validation_error(f"{manifest_name}:{label}.size must be an integer")
+
+
+def _validate_thin_archive_excludes_runtime_payloads(names: set[str], lock: dict) -> None:
+    forbidden = set()
+    forbidden.update(release_asset_common.release_runtime_executables(lock))
+    forbidden.update(release_asset_common.release_runtime_support_files(lock))
+    forbidden.update(release_asset_common.release_runtime_shared_files(lock))
+    present = sorted(forbidden & names)
+    if present:
+        _validation_error(f"thin archive embeds runtime payload {present[0]}")
 
 
 def _validate_runtime_matrix(
@@ -158,6 +302,10 @@ def _validate_release_info(zf: zipfile.ZipFile, names: set[str]) -> None:
 
 def _is_git_hash(value: str) -> bool:
     return len(value) in {40, 64} and all(char in "0123456789abcdef" for char in value.lower())
+
+
+def _is_sha256(value: str) -> bool:
+    return len(value) == 64 and all(char in "0123456789abcdef" for char in value.lower())
 
 
 def _validate_archive_size(

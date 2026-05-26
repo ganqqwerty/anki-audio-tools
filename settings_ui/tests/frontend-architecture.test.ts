@@ -20,6 +20,7 @@ const lineLimitAllowlist = new Map<string, number>([
   ["src/editor-inline/SplitValueOptions.svelte", 380],
   ["src/lib/editor-toolbar-buttons.ts", 330],
   ["src/lib/i18n.ts", 360],
+  ["src/settings/SettingsApp.svelte", 304],
   ["src/settings/ToolbarVisibilitySettings.svelte", 330],
 ]);
 

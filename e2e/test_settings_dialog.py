@@ -37,6 +37,10 @@ def _open_settings_dialog(anki_mw):
     return runtime_addon._settings_dialog
 
 
+def _bridge_command(command: str, payload: object) -> str:
+    return "bridge:" + json.dumps({"command": command, "payload": payload})
+
+
 def test_tools_menu_action_opens_settings_dialog(anki_mw, qtbot) -> None:
     dialog = _open_settings_dialog(anki_mw)
     qtbot.waitUntil(lambda: dialog.isVisible(), timeout=5000)
@@ -192,7 +196,7 @@ def test_save_command_writes_config(anki_mw) -> None:
         wraps=anki_mw.addonManager.writeConfig,
     ) as mock_write:
         handle_settings_command(
-            f"settings_save:{json.dumps(config)}",
+            _bridge_command("settings.save", config),
             lambda js: eval_calls.append(js),
             dialog,
         )

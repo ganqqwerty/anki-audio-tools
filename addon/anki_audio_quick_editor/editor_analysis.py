@@ -14,7 +14,7 @@ from .editor_session import EditorSession
 from .errors import AudioQuickEditorError
 from .i18n import t
 from .media_paths import existing_media_file_path
-from .permission_guidance import message_with_macos_permission_guidance
+from .permission_guidance import message_with_permission_guidance
 from .prosody_settings import config_with_graph_settings, sanitize_graph_settings
 from .prosody_types import ProsodyTrack, clamp_cursor_ms
 from .sound_refs import safe_media_basename
@@ -152,7 +152,7 @@ def start_field_analysis_async(
             track = deps.analyze_prosody_cached(media_path, config)
             deps.main(editor, lambda: deps.analysis_finished(editor, generation, field_index, track))
         except Exception as exc:
-            message = message_with_macos_permission_guidance(str(exc), exc)
+            message = message_with_permission_guidance(str(exc), exc)
             capture_exception(
                 "editor.worker.graph_analysis",
                 exc,

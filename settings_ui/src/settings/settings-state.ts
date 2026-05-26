@@ -7,6 +7,7 @@ import {
   GraphVoiceRange,
   OutputFormat,
   PauseAggressiveness,
+  Phase,
   PitchHumMode,
   ShareTarget,
   VisibleEditorButton,
@@ -74,6 +75,15 @@ export const FALLBACK_INITIAL_STATE: InitialState = {
     release_info: {
       commit_hash: "",
       commit_message: "",
+    },
+    runtime: {
+      phase: Phase.Missing,
+      runtime_manifest_id: "",
+      platform: "",
+      runtime_root: "",
+      progress: 0,
+      message: "",
+      error: "",
     },
   },
   locale: "en",

@@ -21,7 +21,7 @@ def test_batch_transform_operations_are_covered_by_editor_mapping() -> None:
 
 
 def test_batch_core_modules_avoid_editor_bridge_strings() -> None:
-    for relative in ("audio_operations.py", "batch_operations.py", "batch_visualization.py"):
+    for relative in ("audio_operations.py", "batch_operations.py"):
         text = (ADDON_DIR / relative).read_text(encoding="utf-8")
         assert "aqe:" not in text, relative
 

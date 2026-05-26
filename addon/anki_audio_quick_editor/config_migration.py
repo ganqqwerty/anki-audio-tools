@@ -9,31 +9,6 @@ from .audio_formats import normalize_output_format
 from .dpdfnet_settings import normalize_dpdfnet_attn_limit_db
 
 CURRENT_CONFIG_VERSION = 1
-SPEED_FACTOR_CONFIG_VERSION = 22
-PLAY_REPEAT_DEFAULT_CONFIG_VERSION = 23
-OLD_DEFAULT_SPEED_STEP = 0.05
-OLD_DEFAULT_MIN_SPEED = 0.75
-OLD_DEFAULT_MAX_SPEED = 1.5
-OLD_DEFAULT_VOLUME_STEP_DB = 3.0
-OLD_DEFAULT_MIN_VOLUME_DB = -24.0
-OLD_DEFAULT_MAX_VOLUME_DB = 24.0
-LEGACY_FLOAT_DEFAULTS = (
-    ("min_speed", OLD_DEFAULT_MIN_SPEED),
-    ("max_speed", OLD_DEFAULT_MAX_SPEED),
-    ("volume_step_db", OLD_DEFAULT_VOLUME_STEP_DB),
-    ("min_volume_db", OLD_DEFAULT_MIN_VOLUME_DB),
-    ("max_volume_db", OLD_DEFAULT_MAX_VOLUME_DB),
-)
-
-REMOVED_CONFIG_KEYS = frozenset(
-    {
-        "edge_silence_threshold_db",
-        "edge_silence_min_ms",
-        "manual_trim_small_ms",
-        "manual_trim_large_ms",
-        "deep_filter_path",
-    }
-)
 
 
 def deep_merge(defaults: dict[str, Any], user: dict[str, Any]) -> dict[str, Any]:
@@ -52,12 +27,9 @@ def migrate_config(
     defaults: dict[str, Any],
 ) -> tuple[dict[str, Any], bool]:
     """Merge defaults into user config and stamp the current schema version."""
-    original_version = _config_version(user_config.get("_config_version"))
     merged = deep_merge(defaults, user_config)
-    for key in REMOVED_CONFIG_KEYS:
-        merged.pop(key, None)
     changed = merged != user_config
-    changed = _apply_post_merge_migrations(merged, defaults, original_version) or changed
+    changed = _apply_post_merge_migrations(merged, defaults) or changed
     changed = _stamp_current_config_version(merged) or changed
 
     return merged, changed
@@ -66,15 +38,12 @@ def migrate_config(
 def _apply_post_merge_migrations(
     merged: dict[str, Any],
     defaults: dict[str, Any],
-    original_version: int,
 ) -> bool:
     changed = False
     changed = _normalize_dpdfnet_limit_setting(merged) or changed
     changed = _normalize_output_format_setting(merged) or changed
-    changed = _insert_share_button_setting(merged) or changed
-    changed = _normalize_editor_button_mode_settings(merged, defaults) or changed
-    changed = _migrate_speed_volume_defaults(merged, defaults, original_version) or changed
-    return _migrate_play_repeat_default(merged, defaults, original_version) or changed
+    changed = _normalize_visible_editor_buttons_setting(merged, defaults) or changed
+    return _normalize_editor_button_mode_settings(merged, defaults) or changed
 
 
 def _normalize_dpdfnet_limit_setting(merged: dict[str, Any]) -> bool:
@@ -99,8 +68,21 @@ def _normalize_output_format_setting(merged: dict[str, Any]) -> bool:
     return True
 
 
-def _insert_share_button_setting(merged: dict[str, Any]) -> bool:
-    return _insert_share_button(merged.get("visible_editor_buttons"))
+def _normalize_visible_editor_buttons_setting(
+    merged: dict[str, Any],
+    defaults: dict[str, Any],
+) -> bool:
+    visible_buttons = merged.get("visible_editor_buttons")
+    default_buttons = defaults.get("visible_editor_buttons")
+    if not isinstance(visible_buttons, list) or not isinstance(default_buttons, list):
+        return False
+
+    allowed_buttons = set(default_buttons)
+    normalized = [button for button in visible_buttons if button in allowed_buttons]
+    if normalized == visible_buttons:
+        return False
+    merged["visible_editor_buttons"] = normalized
+    return True
 
 
 def _normalize_editor_button_mode_settings(
@@ -114,19 +96,6 @@ def _stamp_current_config_version(merged: dict[str, Any]) -> bool:
     if merged.get("_config_version") == CURRENT_CONFIG_VERSION:
         return False
     merged["_config_version"] = CURRENT_CONFIG_VERSION
-    return True
-
-
-def _insert_share_button(visible_buttons: Any) -> bool:
-    if not isinstance(visible_buttons, list) or "aqe:share" in visible_buttons:
-        return False
-    show_file_index = (
-        visible_buttons.index("aqe:show-file") if "aqe:show-file" in visible_buttons else None
-    )
-    if show_file_index is None:
-        visible_buttons.append("aqe:share")
-    else:
-        visible_buttons.insert(show_file_index + 1, "aqe:share")
     return True
 
 
@@ -150,91 +119,3 @@ def _normalize_editor_button_modes(
         button_modes[command] = default_mode
         changed = True
     return changed
-
-
-def _migrate_play_repeat_default(
-    merged: dict[str, Any],
-    defaults: dict[str, Any],
-    original_version: int,
-) -> bool:
-    if original_version <= CURRENT_CONFIG_VERSION or original_version >= PLAY_REPEAT_DEFAULT_CONFIG_VERSION:
-        return False
-    if (
-        merged.get("repeat_playback_by_default") is False
-        and defaults.get("repeat_playback_by_default") is True
-    ):
-        merged["repeat_playback_by_default"] = True
-        return True
-    return False
-
-
-def _migrate_speed_volume_defaults(
-    merged: dict[str, Any],
-    defaults: dict[str, Any],
-    original_version: int,
-) -> bool:
-    if original_version >= SPEED_FACTOR_CONFIG_VERSION:
-        return False
-
-    changed = _migrate_speed_step_default(merged, defaults)
-    for key, old_default in LEGACY_FLOAT_DEFAULTS:
-        changed = _replace_legacy_default(merged, defaults, key, old_default) or changed
-
-    return _migrate_show_graph_default(merged, defaults) or changed
-
-
-def _migrate_speed_step_default(
-    merged: dict[str, Any],
-    defaults: dict[str, Any],
-) -> bool:
-    speed_step = _float_value(merged.get("speed_step"))
-    if speed_step is None:
-        return False
-    if _same_float(speed_step, OLD_DEFAULT_SPEED_STEP):
-        merged["speed_step"] = defaults.get("speed_step", 1.5)
-        return True
-    if 0 < speed_step < 1:
-        merged["speed_step"] = round(1 + speed_step, 2)
-        return True
-    return False
-
-
-def _migrate_show_graph_default(
-    merged: dict[str, Any],
-    defaults: dict[str, Any],
-) -> bool:
-    if merged.get("show_graph_by_default") is not False:
-        return False
-    if defaults.get("show_graph_by_default") is not True:
-        return False
-    merged["show_graph_by_default"] = True
-    return True
-
-
-def _replace_legacy_default(
-    merged: dict[str, Any],
-    defaults: dict[str, Any],
-    key: str,
-    old_default: float,
-) -> bool:
-    value = _float_value(merged.get(key))
-    if value is None or not _same_float(value, old_default):
-        return False
-    merged[key] = defaults[key]
-    return True
-
-
-def _config_version(value: Any) -> int:
-    return value if isinstance(value, int) and not isinstance(value, bool) else 0
-
-
-def _float_value(value: Any) -> float | None:
-    if isinstance(value, bool):
-        return None
-    if isinstance(value, int | float):
-        return float(value)
-    return None
-
-
-def _same_float(value: float, expected: float) -> bool:
-    return abs(value - expected) < 0.000001

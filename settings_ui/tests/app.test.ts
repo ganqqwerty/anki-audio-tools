@@ -13,6 +13,7 @@ import {
   GraphVoiceRange,
   OutputFormat,
   PauseAggressiveness,
+  Phase,
   PitchHumMode,
   ShareTarget,
   VisibleEditorButton,
@@ -90,6 +91,16 @@ function bridgePayload<T>(commandName: string): T {
   return envelope.payload as T;
 }
 
+function asyncPayload<T>(op: string): T {
+  const envelope = bridgeEnvelopes().find(
+    (item) => item.command === "settings.async" && (item.payload as { op?: string }).op === op,
+  );
+  if (!envelope) {
+    throw new Error(`Async operation not found: ${op}`);
+  }
+  return envelope.payload as T;
+}
+
 function setInitialState(config = defaultConfig, messages: Record<string, string> = {}): void {
   window.__INITIAL_STATE__ = {
     config,
@@ -103,6 +114,15 @@ function setInitialState(config = defaultConfig, messages: Record<string, string
       addon_id: "anki_audio_quick_editor",
       collection_available: true,
       release_info: { commit_hash: "", commit_message: "" },
+      runtime: {
+        phase: Phase.Missing,
+        runtime_manifest_id: "",
+        platform: "",
+        runtime_root: "",
+        progress: 0,
+        message: "",
+        error: "",
+      },
     },
   };
 }
@@ -312,11 +332,11 @@ describe("App", () => {
     await fireEvent.click(screen.getByRole("tab", { name: "Diagnostics & About" }));
     await fireEvent.click(screen.getByRole("button", { name: "Run Health Check" }));
 
-    const { id, payload } = bridgePayload<{
+    const { id, payload } = asyncPayload<{
       id: string;
       op: string;
       payload: { config: typeof defaultConfig };
-    }>("settings.async");
+    }>("health_check");
     expect(payload.config.deep_filter_post_filter).toBe(true);
     expect(payload.config.repeat_playback_by_default).toBe(true);
     expect(payload.config.repeat_pause_seconds).toBe(0);
@@ -346,7 +366,7 @@ describe("App", () => {
     await fireEvent.click(screen.getByRole("tab", { name: "Diagnostics & About" }));
     await fireEvent.click(screen.getByRole("button", { name: "Copy Support Report" }));
 
-    const { id } = bridgePayload<{ id: string }>("settings.async");
+    const { id } = asyncPayload<{ id: string }>("support_report");
 
     window.onAsyncDone?.({
       id,
@@ -379,7 +399,7 @@ describe("App", () => {
     await fireEvent.click(screen.getByRole("tab", { name: "Diagnostics & About" }));
     await fireEvent.click(screen.getByRole("button", { name: "Show Log File" }));
 
-    const { id } = bridgePayload<{ id: string }>("settings.async");
+    const { id } = asyncPayload<{ id: string }>("show_log_file");
 
     window.onAsyncDone?.({
       id,

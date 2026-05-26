@@ -42,7 +42,7 @@ Config schema changes usually have several consumers. When adding, renaming, or 
 - Settings JavaScript -> Python commands go through `settings_ui/src/lib/bridge.ts` as `bridge:{ command, payload }` JSON envelopes.
 - Inline editor JavaScript -> Python commands go through `settings_ui/src/editor-inline/bridge.ts`.
 - Browser batch JavaScript -> Python commands go through `settings_ui/src/batch/bridge.ts` as the same `bridge:{ command, payload }` envelope.
-- Python decodes settings and batch envelopes through `webview_bridge.py`; legacy `name:json` commands are accepted only as compatibility input.
+- Python decodes settings and batch envelopes through `webview_bridge.py`; commands must use the shared JSON envelope.
 - All Python -> JavaScript async callbacks use `window.onAsyncProgress(...)`, `window.onAsyncDone(...)`, or `window.onSaveError(...)`.
 - Settings bridge payloads and callback payloads should use the generated contract types rather than ad hoc `Any`/`unknown` shapes.
 - Frontend logging reuses `FrontendLogPayload`. Settings and batch send `frontend.log` through the shared envelope; the editor bundle queues payloads on `window.__aqePopFrontendLog()` and notifies Python with `aqe:frontend-log`. Python records all three paths through `frontend_logs.py`.

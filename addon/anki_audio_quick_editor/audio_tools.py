@@ -6,6 +6,7 @@ import platform
 import shutil
 from pathlib import Path
 
+from . import runtime_manager
 from .errors import (
     MissingDeepFilterError,
     MissingDpdfnetError,
@@ -53,20 +54,6 @@ _TOOL_EXECUTABLES = {
         "windows-x86_64": "sherpa-spleeter.exe",
     },
 }
-_LEGACY_TOOL_PATHS = {
-    "deep-filter": {
-        "macos-arm64": ("bin/deep-filter-0.5.6-aarch64-apple-darwin",),
-        "macos-x86_64": ("bin/deep-filter-0.5.6-x86_64-apple-darwin",),
-        "windows-x86_64": ("bin/deep-filter-0.5.6-x86_64-pc-windows-msvc.exe",),
-    },
-    "rnnoise-cli": {
-        "macos-arm64": ("bin/rnnoise-cli-macos-arm64/bin/rnnoise-cli",),
-        "macos-x86_64": ("bin/rnnoise-cli-macos-x86_64/bin/rnnoise-cli",),
-        "windows-x86_64": ("bin/rnnoise-cli-windows-x86_64/rnnoise-cli.exe",),
-    }
-}
-
-
 def current_platform_key() -> str | None:
     """Return the supported release target key for this runtime platform."""
     system = platform.system()
@@ -96,11 +83,17 @@ def bundled_tool_path(tool_name: str) -> Path | None:
     path = _PACKAGE_DIR / "bin" / platform_key / executable
     if path.is_file():
         return path
-    for legacy_path in _LEGACY_TOOL_PATHS.get(tool_name, {}).get(platform_key, ()):
-        path = _PACKAGE_DIR / legacy_path
-        if path.is_file():
-            return path
     return None
+
+
+def managed_tool_path(tool_name: str) -> Path | None:
+    """Return a managed downloaded tool path for the current platform when ready."""
+    return runtime_manager.managed_tool_path(_PACKAGE_DIR, tool_name)
+
+
+def expected_managed_tool_path(tool_name: str) -> Path | None:
+    """Return the expected managed path for diagnostics, even when missing."""
+    return runtime_manager.expected_managed_tool_path(_PACKAGE_DIR, tool_name)
 
 
 def expected_bundled_tool_path(tool_name: str) -> Path | None:
@@ -119,6 +112,12 @@ def tool_source_label(tool_path: Path, *, configured_path: str = "") -> str:
     if configured_path and Path(configured_path).expanduser() == tool_path:
         return "config"
     try:
+        tool_path.relative_to(runtime_manager.runtime_base_dir(_PACKAGE_DIR))
+    except ValueError:
+        pass
+    else:
+        return runtime_manager.RUNTIME_SOURCE_MANAGED
+    try:
         tool_path.relative_to(_PACKAGE_DIR / "bin")
     except ValueError:
         return "PATH"
@@ -131,6 +130,9 @@ def find_ffmpeg(configured_path: str = "") -> Path:  # pragma: no mutate
         path = Path(configured_path).expanduser()
         if path.is_file():
             return path
+    managed = managed_tool_path("ffmpeg")
+    if managed is not None:
+        return managed
     bundled = bundled_tool_path("ffmpeg")
     if bundled is not None:
         return bundled
@@ -138,8 +140,9 @@ def find_ffmpeg(configured_path: str = "") -> Path:  # pragma: no mutate
     if found:
         return Path(found)
     raise MissingFfmpegError(
-        "Audio Quick Editor requires ffmpeg. Reinstall the add-on to restore the bundled "
-        "runtime, configure an ffmpeg path, or make ffmpeg available in PATH."
+        "Audio Quick Editor requires ffmpeg. The managed runtime may still be downloading "
+        "or missing; open Settings > Diagnostics to install or repair it, configure an "
+        "ffmpeg path, or make ffmpeg available in PATH."
     )
 
 
@@ -148,6 +151,9 @@ def find_ffprobe(ffmpeg_path: Path) -> Path:
     sibling = ffmpeg_path.with_name("ffprobe" + ffmpeg_path.suffix)
     if sibling.is_file():
         return sibling
+    managed = managed_tool_path("ffprobe")
+    if managed is not None:
+        return managed
     bundled = bundled_tool_path("ffprobe")
     if bundled is not None:
         return bundled
@@ -165,6 +171,9 @@ def find_deep_filter(configured_path: str = "") -> Path:
         path = Path(configured_path).expanduser()
         if path.is_file():
             return path
+    managed = managed_tool_path("deep-filter")
+    if managed is not None:
+        return managed
     bundled = _bundled_deep_filter_path()
     if bundled is not None:
         return bundled
@@ -173,7 +182,8 @@ def find_deep_filter(configured_path: str = "") -> Path:
         return Path(found)
     raise MissingDeepFilterError(
         "DeepFilterNet's deep-filter executable is required for Standard denoise and Shorten Pauses. "
-        "Install DeepFilterNet and make sure deep-filter is available in PATH."
+        "The managed runtime may still be downloading or missing; open Settings > Diagnostics "
+        "to install or repair it, or make deep-filter available in PATH."
     )
 
 
@@ -191,30 +201,40 @@ def expected_bundled_rnnoise_dir() -> Path | None:
 
 def find_rnnoise_bundle() -> Path:
     """Return the bundled RNNoise executable path."""
-    rnnoise_path = expected_bundled_tool_path("rnnoise-cli")
+    managed = managed_tool_path("rnnoise-cli")
+    if managed is not None:
+        return managed
+    managed_expected = expected_managed_tool_path("rnnoise-cli")
+    bundled_expected = expected_bundled_tool_path("rnnoise-cli")
+    if bundled_expected is not None and bundled_expected.is_file():
+        return bundled_expected
+    rnnoise_path = managed_expected or bundled_expected
     if rnnoise_path is None:
         raise MissingRnnoiseError(f"RNNoise is not bundled for {platform_description()}.")
-    if rnnoise_path.is_file():
-        return rnnoise_path
     bundled = bundled_tool_path("rnnoise-cli")
     if bundled is not None:
         return bundled
     raise MissingRnnoiseError(
-        f"RNNoise requires the bundled rnnoise-cli executable at {rnnoise_path}. "
-        "Reinstall the add-on to restore it."
+        f"RNNoise requires the managed or bundled rnnoise-cli executable at {rnnoise_path}. "
+        "The runtime may still be downloading or missing; open Settings > Diagnostics to install or repair it."
     )
 
 
 def find_dpdfnet_bundle() -> Path:
     """Return the bundled DPDFNet executable path."""
-    dpdfnet_path = expected_bundled_tool_path("dpdfnet")
+    managed = managed_tool_path("dpdfnet")
+    if managed is not None:
+        return managed
+    managed_expected = expected_managed_tool_path("dpdfnet")
+    bundled_expected = expected_bundled_tool_path("dpdfnet")
+    if bundled_expected is not None and bundled_expected.is_file():
+        return bundled_expected
+    dpdfnet_path = managed_expected or bundled_expected
     if dpdfnet_path is None:
         raise MissingDpdfnetError(f"DPDFNet is not bundled for {platform_description()}.")
-    if dpdfnet_path.is_file():
-        return dpdfnet_path
     raise MissingDpdfnetError(
-        f"DPDFNet requires the bundled dpdfnet executable at {dpdfnet_path}. "
-        "Reinstall the add-on to restore it."
+        f"DPDFNet requires the managed or bundled dpdfnet executable at {dpdfnet_path}. "
+        "The runtime may still be downloading or missing; open Settings > Diagnostics to install or repair it."
     )
 
 
@@ -227,19 +247,30 @@ def expected_bundled_spleeter_model_path(model_name: str) -> Path | None:
 
 def find_spleeter_bundle() -> tuple[Path, Path, Path]:
     """Return bundled Sherpa Spleeter executable and model paths."""
-    executable_path = expected_bundled_tool_path("sherpa-spleeter")
+    managed_executable = managed_tool_path("sherpa-spleeter")
+    managed_vocals = runtime_manager.managed_spleeter_model_path(_PACKAGE_DIR, "vocals.fp16.onnx")
+    managed_accompaniment = runtime_manager.managed_spleeter_model_path(_PACKAGE_DIR, "accompaniment.fp16.onnx")
+    if managed_executable is not None and managed_vocals is not None and managed_accompaniment is not None:
+        return managed_executable, managed_vocals, managed_accompaniment
+
+    managed_expected = expected_managed_tool_path("sherpa-spleeter")
+    bundled_expected = expected_bundled_tool_path("sherpa-spleeter")
+    if bundled_expected is not None and bundled_expected.is_file():
+        return (
+            bundled_expected,
+            _required_spleeter_model("vocals.fp16.onnx"),
+            _required_spleeter_model("accompaniment.fp16.onnx"),
+        )
+    executable_path = managed_expected or bundled_expected
     if executable_path is None:
         raise MissingSpleeterError(f"Sherpa Spleeter is not bundled for {platform_description()}.")
-    if executable_path.is_file():
-        spleeter_path = executable_path
-    else:
-        bundled = bundled_tool_path("sherpa-spleeter")
-        if bundled is None:
-            raise MissingSpleeterError(
-                f"Voice Only requires the bundled sherpa-spleeter executable at {executable_path}. "
-                "Reinstall the add-on to restore it."
-            )
-        spleeter_path = bundled
+    bundled = bundled_tool_path("sherpa-spleeter")
+    if bundled is None:
+        raise MissingSpleeterError(
+            f"Voice Only requires the managed or bundled sherpa-spleeter executable at {executable_path}. "
+            "The runtime may still be downloading or missing; open Settings > Diagnostics to install or repair it."
+        )
+    spleeter_path = bundled
 
     return (
         spleeter_path,
@@ -254,7 +285,7 @@ def _required_spleeter_model(model_name: str) -> Path:
         raise MissingSpleeterError(f"Sherpa Spleeter models are not bundled for {platform_description()}.")
     if not model_path.is_file():
         raise MissingSpleeterError(
-            f"Voice Only requires the bundled Sherpa Spleeter model at {model_path}. "
-            "Reinstall the add-on to restore it."
+            f"Voice Only requires the managed or bundled Sherpa Spleeter model at {model_path}. "
+            "The runtime may still be downloading or missing; open Settings > Diagnostics to install or repair it."
         )
     return model_path

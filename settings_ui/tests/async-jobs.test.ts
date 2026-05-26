@@ -2,7 +2,7 @@
  * Tests for src/lib/async-jobs.ts
  *
  * Verifies that startAsyncOp:
- *  - sends the correct async_cmd pycmd
+ *  - sends the correct settings.async bridge command
  *  - returns a Promise that resolves when onAsyncDone fires with ok=true
  *  - returns a Promise that rejects when onAsyncDone fires with ok=false
  *  - calls the progress callback on onAsyncProgress
@@ -92,7 +92,7 @@ function asyncCommandAt(index: number): { id: string; op: string; payload: unkno
 }
 
 describe("startAsyncOp", () => {
-  it("calls pycmd with async_cmd containing op and payload", () => {
+  it("calls pycmd with settings.async containing op and payload", () => {
     void startAsyncOp("health_check", { config });
     const call = pycmd.mock.calls[0]?.[0] ?? "";
     expect(call).toMatch(/^bridge:/);
