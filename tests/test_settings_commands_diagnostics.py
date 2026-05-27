@@ -9,10 +9,8 @@ from unittest.mock import patch
 import pytest
 
 from anki_audio_quick_editor.errors import SettingsCommandError
-from anki_audio_quick_editor.settings.commands import (
-    _dispatch_op,
-    handle_settings_command,
-)
+from anki_audio_quick_editor.settings.async_operations import dispatch_settings_async_op
+from anki_audio_quick_editor.settings.commands import handle_settings_command
 from tests.settings_command_fixtures import (
     _bridge_command,
     _capture_eval,
@@ -148,7 +146,7 @@ def test_async_command_reports_unknown_operation() -> None:
 
 def test_unknown_async_operation_uses_settings_command_error() -> None:
     with pytest.raises(SettingsCommandError, match="Unknown async operation: explode"):
-        _dispatch_op("explode", {}, lambda _pct, _message: None)
+        dispatch_settings_async_op("explode", {}, lambda _pct, _message: None)
 
 
 def test_async_health_check_rejects_non_dict_payload_config() -> None:

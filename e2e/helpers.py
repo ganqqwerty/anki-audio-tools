@@ -118,8 +118,27 @@ def wait_for_selector(target, selector: str, timeout: float = DEFAULT_E2E_TIMEOU
 
 
 def click_selector(target, selector: str, timeout: float = DEFAULT_E2E_TIMEOUT) -> None:
-    """Wait for a selector, then click it in the webview."""
+    """Wait for a selector, then dispatch exactly one click in the webview."""
     wait_for_js_condition(
+        target,
+        f"""
+        (() => {{
+          const node = document.querySelector({json.dumps(selector)});
+          if (!node) return false;
+          if (node.disabled === true || node.getAttribute("aria-disabled") === "true") return false;
+          return true;
+        }})()
+        """,
+        lambda value: value is True,
+        timeout=timeout,
+    )
+
+    clicked: list[bool | None] = [None]
+
+    def _capture(value):
+        clicked[0] = value is True
+
+    run_js(
         target,
         f"""
         (() => {{
@@ -142,9 +161,13 @@ def click_selector(target, selector: str, timeout: float = DEFAULT_E2E_TIMEOUT) 
           return true;
         }})()
         """,
-        lambda value: value is True,
-        timeout=timeout,
+        _capture,
     )
+    deadline = time.time() + timeout
+    while clicked[0] is None and time.time() < deadline:
+        _run_event_loop_step()
+    if clicked[0] is not True:
+        raise TimeoutError(f"Timed out clicking selector: {selector}")
     _run_event_loop_step()
 
 
