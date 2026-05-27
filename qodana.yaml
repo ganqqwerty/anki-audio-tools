@@ -31,3 +31,11 @@ exclude:
   - name: PyUnusedImportsInspection
     paths:
       - scripts/config_schema_validate.py
+
+  # Generated quicktype contracts intentionally use incremental dict assembly and nested lambdas.
+  - name: PyDictCreationInspection
+    paths:
+      - addon/anki_audio_quick_editor/contracts_generated.py
+  - name: PyShadowingNamesInspection
+    paths:
+      - addon/anki_audio_quick_editor/contracts_generated.py

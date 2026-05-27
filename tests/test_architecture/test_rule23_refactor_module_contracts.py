@@ -47,7 +47,20 @@ EDITOR_SPLIT_MODULES = {
     "editor_split_defaults",
 }
 
-BROWSER_SPLIT_MODULES = {"browser_dialog", "browser_dialog_state", "browser_report"}
+BROWSER_SPLIT_MODULES = {
+    "browser_batch_runner",
+    "browser_dialog",
+    "browser_dialog_state",
+    "browser_report",
+}
+
+RUNTIME_SPLIT_MODULES = {
+    "runtime_install",
+    "runtime_lookup",
+    "runtime_paths",
+    "runtime_platform",
+    "runtime_state",
+}
 
 
 def _qualified(module_name: str) -> str:
@@ -68,6 +81,7 @@ def test_split_modules_have_explicit_contract_layers() -> None:
         **{name: Layer.IMPORT_SAFE_CORE for name in AUDIO_SPLIT_MODULES},
         **{
             "browser_dialog": Layer.UI_ADAPTER,
+            "browser_batch_runner": Layer.UI_ADAPTER,
             "browser_dialog_state": Layer.IMPORT_SAFE_CORE,
             "browser_report": Layer.IMPORT_SAFE_CORE,
         },
@@ -76,13 +90,17 @@ def test_split_modules_have_explicit_contract_layers() -> None:
             for name in EDITOR_SPLIT_MODULES
             - {"editor_media", "editor_session"}
         },
+        **{name: Layer.IMPORT_SAFE_CORE for name in RUNTIME_SPLIT_MODULES},
         "editor_media": Layer.IMPORT_SAFE_CORE,
         "editor_session": Layer.IMPORT_SAFE_CORE,
     }
 
     actual_layers = {
         name: MODULE_CONTRACTS[name].layer
-        for name in AUDIO_SPLIT_MODULES | EDITOR_SPLIT_MODULES | BROWSER_SPLIT_MODULES
+        for name in AUDIO_SPLIT_MODULES
+        | EDITOR_SPLIT_MODULES
+        | BROWSER_SPLIT_MODULES
+        | RUNTIME_SPLIT_MODULES
     }
     assert actual_layers == expected_layers
 

@@ -42,8 +42,8 @@ def test_browser_integration_avoids_editor_actions_module() -> None:
         {
             "audio_state",
             "batch_operations",
+            "browser_batch_runner",
             "browser_dialog",
-            "browser_report",
             "diagnostics_runtime",
             "i18n",
         }

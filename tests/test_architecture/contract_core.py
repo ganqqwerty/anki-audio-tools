@@ -122,16 +122,56 @@ CORE_CONTRACTS: dict[str, ModuleContract] = {
         layer=Layer.IMPORT_SAFE_CORE,
         allowed_addon_deps=("runtime_manifest",),
     ),
-    "runtime_manager": contract(
-        "runtime_manager",
+    "runtime_install": contract(
+        "runtime_install",
         layer=Layer.IMPORT_SAFE_CORE,
-        allowed_addon_deps=("runtime_archive", "runtime_manifest"),
+        allowed_addon_deps=(
+            "runtime_archive",
+            "runtime_lookup",
+            "runtime_manifest",
+            "runtime_paths",
+            "runtime_platform",
+            "runtime_state",
+        ),
         allowed_side_effects=(
             SideEffect.THREAD_SPAWN,
             SideEffect.TEMP_FILESYSTEM_CLEANUP,
         ),
     ),
+    "runtime_lookup": contract(
+        "runtime_lookup",
+        layer=Layer.IMPORT_SAFE_CORE,
+        allowed_addon_deps=(
+            "runtime_manifest",
+            "runtime_paths",
+            "runtime_platform",
+            "runtime_state",
+        ),
+    ),
+    "runtime_manager": contract(
+        "runtime_manager",
+        layer=Layer.IMPORT_SAFE_CORE,
+        allowed_addon_deps=(
+            "runtime_install",
+            "runtime_lookup",
+            "runtime_manifest",
+            "runtime_paths",
+            "runtime_platform",
+            "runtime_state",
+        ),
+    ),
     "runtime_manifest": contract("runtime_manifest", layer=Layer.IMPORT_SAFE_CORE),
+    "runtime_paths": contract(
+        "runtime_paths",
+        layer=Layer.IMPORT_SAFE_CORE,
+        allowed_addon_deps=("runtime_manifest",),
+    ),
+    "runtime_platform": contract("runtime_platform", layer=Layer.IMPORT_SAFE_CORE),
+    "runtime_state": contract(
+        "runtime_state",
+        layer=Layer.IMPORT_SAFE_CORE,
+        allowed_addon_deps=("runtime_manifest", "runtime_paths"),
+    ),
     "settings_state": contract(
         "settings_state",
         layer=Layer.IMPORT_SAFE_CORE,

@@ -4,36 +4,25 @@ from __future__ import annotations
 
 import json
 import logging
-import threading
-import uuid
 from collections.abc import Callable
 from typing import Any
 
 from ..contracts_generated import (
-    AsyncCommand,
-    AsyncDonePayload,
-    AsyncProgressPayload,
     Config,
     CopySupportReportPayload,
-    HealthReport,
-    RuntimeStatus,
-    ShowLogFileResult,
-    SupportReportResult,
     VisibleEditorButton,
 )
 from ..diagnostics_runtime import (
-    capture_exception,
     new_operation_id,
     record_breadcrumb,
     set_debug_enabled,
-    support_report_context,
 )
-from ..errors import SettingsCommandError
 from ..frontend_logs import handle_frontend_log_payload
 from ..webview_bridge import (
     WebviewBridgeCommand,
     decode_webview_bridge_command,
 )
+from .async_commands import handle_async_settings_command
 
 logger = logging.getLogger(__name__)
 CONTRACT_DECODE_ERRORS = (AssertionError, TypeError, ValueError)
@@ -72,7 +61,7 @@ def handle_settings_command(
         _handle_check_media()
         return True
     if command_name == "settings.async":
-        _handle_async_cmd(command, eval_fn)
+        handle_async_settings_command(command, eval_fn)
         return True
     if command_name == "frontend.log":
         _handle_frontend_log(command.payload)
@@ -166,219 +155,6 @@ def _handle_check_media() -> None:
     check_media_db(mw)
 
 
-def _handle_async_cmd(command: WebviewBridgeCommand, eval_fn: Callable[[str], None]) -> None:
-    from aqt import mw
-
-    raw_payload = command.payload
-    raw_job_id = _raw_job_id(raw_payload)
-
-    try:
-        async_command = AsyncCommand.from_dict(raw_payload)
-    except CONTRACT_DECODE_ERRORS as invalid_payload_error:
-        invalid_done_payload_json = json.dumps(
-            AsyncDonePayload(raw_job_id, False, error="Invalid async command payload").to_dict()
-        )
-        mw.taskman.run_on_main(lambda: eval_fn(f"window.onAsyncDone({invalid_done_payload_json})"))
-        logger.warning("settings.async: invalid payload shape: %s", invalid_payload_error)
-        return
-
-    job_id = async_command.id
-    op = async_command.op
-    op_payload = async_command.payload.to_dict()
-    operation_id = f"settings-{job_id}"
-    record_breadcrumb(
-        "settings.async.started",
-        source="settings",
-        operation=f"settings.{op}",
-        operation_id=operation_id,
-        context={"op": op},
-        flush=True,
-    )
-
-    def _main_eval(js: str) -> None:
-        mw.taskman.run_on_main(lambda: eval_fn(js))
-
-    def _progress(pct: int, message: str) -> None:
-        progress_payload_json = json.dumps(AsyncProgressPayload(job_id, message, pct).to_dict())
-        _main_eval(f"window.onAsyncProgress({progress_payload_json})")
-
-    def _run() -> None:
-        try:
-            result = _dispatch_op(op, op_payload, _progress)
-            success_done_payload_json = json.dumps(
-                AsyncDonePayload(job_id, True, result=result).to_dict()
-            )
-            record_breadcrumb(
-                "settings.async.succeeded",
-                source="settings",
-                operation=f"settings.{op}",
-                operation_id=operation_id,
-                context={"op": op},
-                flush=True,
-            )
-            _main_eval(f"window.onAsyncDone({success_done_payload_json})")
-        except Exception as async_error:  # pragma: no cover - tested via public callback path
-            capture_exception(
-                "settings.async_worker",
-                async_error,
-                operation=f"settings.{op}",
-                operation_id=operation_id,
-                user_message=str(async_error),
-                context={"op": op, "job_id": job_id},
-                log=logger,
-            )
-            failure_done_payload_json = json.dumps(
-                AsyncDonePayload(job_id, False, error=str(async_error)).to_dict()
-            )
-            _main_eval(f"window.onAsyncDone({failure_done_payload_json})")
-
-    threading.Thread(target=_run, daemon=True).start()
-
-
-def _dispatch_op(
-    op: str,
-    payload: dict[str, Any],
-    progress_fn: Callable[[int, str], None],
-) -> Any:
-    if op == "health_check":
-        return _op_health_check(payload, progress_fn)
-    if op == "support_report":
-        return _op_support_report(payload, progress_fn)
-    if op == "show_log_file":
-        return _op_show_log_file(progress_fn)
-    if op == "runtime_status":
-        return _op_runtime_status()
-    if op == "runtime_install":
-        return _op_runtime_install(progress_fn)
-    raise SettingsCommandError(f"Unknown async operation: {op}")
-
-
-def _op_health_check(
-    payload: dict[str, Any],
-    progress_fn: Callable[[int, str], None],
-) -> Any:
-    from aqt import mw
-
-    from ..db_helpers import build_health_report
-    from ..diagnostics import (
-        build_deep_filter_health,
-        build_dpdfnet_health,
-        build_rnnoise_health,
-        build_silero_vad_health,
-        build_spleeter_health,
-    )
-    from ..i18n import t
-
-    progress_fn(20, t("settings.health.inspecting_collection"))
-    report = build_health_report(mw.col)
-    progress_fn(55, t("settings.health.checking_deep_filter"))
-    config = _config_payload(payload)
-    report["deep_filter"] = build_deep_filter_health(config)
-    progress_fn(75, t("settings.health.checking_rnnoise"))
-    report["rnnoise"] = build_rnnoise_health()
-    progress_fn(85, t("settings.health.checking_dpdfnet"))
-    report["dpdfnet"] = build_dpdfnet_health()
-    progress_fn(95, t("settings.health.checking_spleeter"))
-    report["spleeter"] = build_spleeter_health()
-    report["silero_vad"] = build_silero_vad_health()
-    report["runtime"] = _runtime_status_for_settings()
-    progress_fn(100, t("settings.async.done"))
-    return HealthReport.from_dict(report).to_dict()
-
-
-def _op_support_report(payload: dict[str, Any], progress_fn: Callable[[int, str], None]) -> Any:
-    from aqt import mw
-
-    from .._version import __version__
-    from ..diagnostics import (
-        build_deep_filter_health,
-        build_dpdfnet_health,
-        build_rnnoise_health,
-        build_silero_vad_health,
-        build_spleeter_health,
-    )
-    from ..i18n import t
-    from ..release_info import read_release_info
-    from ..support import (
-        addon_log_path,
-        build_support_report_text,
-        latest_denoise_support_incident,
-        latest_pause_pipeline_support_incident,
-        latest_spleeter_support_incident,
-        read_log_tail,
-    )
-
-    record_breadcrumb("settings.support_report.collect", source="settings", operation="settings.support_report")
-    progress_fn(20, t("settings.support.collecting_environment"))
-    config = _config_payload(payload)
-    addon_id = mw.addonManager.addonFromModule(__name__)
-    addon_dir = mw.addonManager.addonsFolder(addon_id)
-    log_path = addon_log_path(addon_dir)
-    progress_fn(50, t("settings.support.checking_external_tools"))
-    deep_filter_health = build_deep_filter_health(config)
-    rnnoise_health = build_rnnoise_health()
-    dpdfnet_health = build_dpdfnet_health()
-    spleeter_health = build_spleeter_health()
-    silero_vad_health = build_silero_vad_health()
-    progress_fn(75, t("settings.support.reading_recent_logs"))
-    diagnostics_context = support_report_context()
-    diagnostics_context["runtime"] = _runtime_status_for_settings()
-    report_text = build_support_report_text(
-        version=__version__,
-        addon_dir=addon_dir,
-        log_file_path=str(log_path),
-        deep_filter_health=deep_filter_health,
-        rnnoise_health=rnnoise_health,
-        dpdfnet_health=dpdfnet_health,
-        silero_vad_health=silero_vad_health,
-        denoise_incident=latest_denoise_support_incident(),
-        pause_pipeline_incident=latest_pause_pipeline_support_incident(),
-        log_tail=read_log_tail(log_path),
-        spleeter_health=spleeter_health,
-        spleeter_incident=latest_spleeter_support_incident(),
-        diagnostics_context=diagnostics_context,
-        release_info=read_release_info(addon_dir),
-    )
-    progress_fn(100, t("settings.async.done"))
-    return SupportReportResult(report_text).to_dict()
-
-
-def _op_show_log_file(
-    progress_fn: Callable[[int, str], None],
-) -> Any:
-    from aqt import mw
-
-    from ..file_reveal import reveal_file
-    from ..i18n import t
-    from ..support import addon_log_path
-
-    progress_fn(25, t("settings.log.locating"))
-    addon_id = mw.addonManager.addonFromModule(__name__)
-    addon_dir = mw.addonManager.addonsFolder(addon_id)
-    log_path = addon_log_path(addon_dir)
-    progress_fn(75, t("settings.log.opening"))
-    reveal_file(log_path, missing_message=t("settings.log.missing"))
-    progress_fn(100, t("settings.async.done"))
-    return ShowLogFileResult(str(log_path)).to_dict()
-
-
-def _op_runtime_status() -> Any:
-    return RuntimeStatus.from_dict(_runtime_status_for_settings()).to_dict()
-
-
-def _op_runtime_install(progress_fn: Callable[[int, str], None]) -> Any:
-    from .. import runtime_manager
-    from ..i18n import t
-
-    def _progress(progress_status: dict[str, Any]) -> None:
-        progress_fn(int(progress_status.get("progress", 0) or 0), str(progress_status.get("message", "")))
-
-    progress_fn(1, t("settings.runtime.installing"))
-    status = runtime_manager.ensure_runtime(_addon_dir_for_settings(), progress=_progress)
-    progress_fn(100, status.get("message") or status.get("error") or t("settings.async.done"))
-    return RuntimeStatus.from_dict(status).to_dict()
-
-
 def _handle_frontend_log(raw_payload: Any) -> None:
     handle_frontend_log_payload(
         raw_payload,
@@ -409,35 +185,3 @@ def _handle_copy_support_report(command: WebviewBridgeCommand) -> None:
         return
     clipboard.setText(payload.text)
 
-
-def _raw_job_id(payload: Any) -> str:
-    if isinstance(payload, dict):
-        job_id = payload.get("id")
-        if isinstance(job_id, str):
-            return job_id
-    return str(uuid.uuid4())
-
-
-def _config_payload(payload: dict[str, Any]) -> dict[str, Any]:
-    raw_config = payload.get("config")
-    if not isinstance(raw_config, dict):
-        return {}
-    try:
-        return Config.from_dict(raw_config).to_dict()
-    except CONTRACT_DECODE_ERRORS:
-        return {}
-
-
-def _runtime_status_for_settings() -> dict[str, Any]:
-    from ..runtime_manager import runtime_status
-
-    return runtime_status(_addon_dir_for_settings())
-
-
-def _addon_dir_for_settings() -> Any:
-    from pathlib import Path
-
-    from aqt import mw
-
-    addon_id = mw.addonManager.addonFromModule(__name__)
-    return Path(mw.addonManager.addonsFolder(addon_id))

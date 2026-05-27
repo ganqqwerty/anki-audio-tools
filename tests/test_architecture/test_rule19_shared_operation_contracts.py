@@ -6,6 +6,7 @@ from .contracts import MODULE_CONTRACTS
 from .inspection import ADDON_DIR
 
 BROWSER_INTEGRATION = ADDON_DIR / "browser_integration.py"
+BROWSER_BATCH_RUNNER = ADDON_DIR / "browser_batch_runner.py"
 BROWSER_DIALOG = ADDON_DIR / "browser_dialog.py"
 BATCH_OPERATIONS = ADDON_DIR / "batch_operations.py"
 
@@ -13,17 +14,28 @@ BATCH_OPERATIONS = ADDON_DIR / "batch_operations.py"
 def test_browser_batch_adapter_uses_shared_registry_and_executor() -> None:
     dialog_text = BROWSER_DIALOG.read_text(encoding="utf-8")
     integration_text = BROWSER_INTEGRATION.read_text(encoding="utf-8")
+    runner_text = BROWSER_BATCH_RUNNER.read_text(encoding="utf-8")
     assert "build_batch_initial_state" in dialog_text
     assert "request_from_batch_start_payload" in dialog_text
     assert "batch_progress_payload" in dialog_text
     assert "batch_finish_payload" in dialog_text
     assert "BatchRunRequest" in dialog_text
-    assert "process_note_batch_operation" in integration_text
+    assert "process_note_batch_operation" not in integration_text
+    assert "process_note_batch_operation" in runner_text
     assert MODULE_CONTRACTS["browser_integration"].allowed_addon_deps == frozenset(
         {
             "audio_state",
             "batch_operations",
+            "browser_batch_runner",
             "browser_dialog",
+            "diagnostics_runtime",
+            "i18n",
+        }
+    )
+    assert MODULE_CONTRACTS["browser_batch_runner"].allowed_addon_deps == frozenset(
+        {
+            "audio_state",
+            "batch_operations",
             "browser_report",
             "diagnostics_runtime",
             "i18n",

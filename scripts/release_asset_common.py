@@ -28,6 +28,9 @@ def _download_verified(url: str, destination: Path, expected_sha: str) -> None:
     download(url, destination, expected_sha)
 
 
+download_verified = _download_verified
+
+
 def _extract_zip_member(archive_path: Path, member: str, destination: Path) -> None:
     extract = _module_member(_asset_io, "_extract_zip_member")
     extract(archive_path, member, destination)
@@ -70,6 +73,9 @@ CACHED_TOOL_NAMES = {"ffmpeg", "ffprobe"}
 
 class ReleaseAssetError(RuntimeError):
     """Raised when release asset preparation cannot continue."""
+
+    def __str__(self) -> str:
+        return str(self.args[0]) if self.args else self.__class__.__name__
 
 
 @dataclass(frozen=True)
