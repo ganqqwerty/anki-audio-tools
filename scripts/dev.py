@@ -14,7 +14,7 @@ if str(ROOT) not in sys.path:
 
 # isort: off
 from scripts import dev_check as _dev_check
-from scripts.dev_cli import print_help, split_cli_args
+from scripts.dev_cli import build_parser, parse_cli_args
 from scripts.dev_tasks.contracts import cmd_config_schema, cmd_contracts_check, cmd_contracts_generate
 from scripts.dev_tasks.coverage import PYTHON_COVERAGE_FAIL_UNDER, cmd_coverage, cmd_info, cmd_sonar
 from scripts.dev_tasks.e2e_parallel import cmd_test_e2e_parallel as _cmd_test_e2e_parallel
@@ -365,23 +365,19 @@ COMMANDS: dict[str, tuple[Callable[[], int], str]] = {
 
 
 def cmd_help() -> int:
-    print_help(COMMANDS)
+    build_parser(COMMANDS).print_help()
     return 0
 
 
-_split_cli_args = split_cli_args
+_parse_cli_args = parse_cli_args
 
 
 def main() -> None:
-    command, command_args, verbose = split_cli_args(sys.argv[1:])
+    command, command_args, verbose = parse_cli_args(sys.argv[1:], COMMANDS)
     set_verbose(verbose)
     if command is None or command in ("help", "--help", "-h"):
         cmd_help()
         raise SystemExit(0)
-    if command not in COMMANDS:
-        print(f"Unknown command: {command!r}\n")
-        cmd_help()
-        raise SystemExit(1)
     global _COMMAND_ARGS
     _COMMAND_ARGS = command_args
     print(f"[dev] selected command: {command}" + (" (verbose)" if verbose else ""))

@@ -11,6 +11,7 @@ from scripts.dev_tasks.python_env import _find_anki_python, _setup_addon_symlink
 ROOT = Path(__file__).resolve().parents[2]
 SETTINGS_UI_DIR = ROOT / "settings_ui"
 DEV_DEPS = [
+    "argcomplete",
     "pytest>=9.0.2",
     "pytest-cov",
     "pytest-qt",

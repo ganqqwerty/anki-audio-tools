@@ -23,6 +23,20 @@ This:
 - creates the add-on symlink in `addons21/1000000002`
 - runs `npm ci` in `settings_ui/` when `package-lock.json` is present, otherwise `npm install`
 
+## Zsh Completion
+
+The development runner supports `argcomplete` for zsh/oh-my-zsh command completion.
+Install the Python package for the system `python3` that launches `scripts/dev.py`,
+then register the executable command in `~/.zshrc` after `compinit` is loaded:
+
+```zsh
+python3 -m pip install --user argcomplete
+eval "$($(python3 -m site --user-base)/bin/register-python-argcomplete --shell zsh scripts/dev.py)"
+```
+
+The registration is tied to the exact command name. Run the task runner as
+`scripts/dev.py <command>` from the repository root to use this completion.
+
 ## E2E Add-on Config Isolation
 
 The local development install is a symlink from Anki's `addons21/1000000002` to `addon/anki_audio_quick_editor/`. Anki stores per-add-on user config in `meta.json` inside the add-on folder, and `meta.json` is intentionally git-ignored.
