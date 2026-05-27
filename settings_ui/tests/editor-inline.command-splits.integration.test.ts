@@ -386,6 +386,10 @@ describe("editor inline split-button command integration", () => {
 
     document.querySelector<HTMLButtonElement>('[data-testid="aqe-split-0-remove-pauses-menu"]')!.click();
     await Promise.resolve();
+    const popover = document.querySelector<HTMLElement>('[data-testid="aqe-split-0-remove-pauses-popover"]')!;
+    expect(popover).toHaveTextContent(/How quiet audio must be before ffmpeg treats it as silence/);
+    expect(popover).toHaveTextContent(/The shortest speech or sound island/);
+    expect(popover).toHaveTextContent(/Runs denoise before detection only/);
     document.querySelector<HTMLButtonElement>('[data-testid="aqe-split-0-remove-pauses-preset-aggressive"]')!.click();
     document.querySelector<HTMLButtonElement>('[data-testid="aqe-button-0-remove-pauses"]')!.click();
 

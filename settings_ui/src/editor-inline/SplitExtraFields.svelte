@@ -125,18 +125,6 @@
       {/each}
     </div>
   </label>
-  <PauseAdvancedParamsFields
-    algorithm={pauseDetectionAlgorithmOrDefault(pauseDetectionAlgorithm)}
-    threshold={pauseThreshold}
-    minSilenceSeconds={pauseMinSilenceSeconds}
-    minSpeechSeconds={pauseMinSpeechSeconds}
-    preprocessDenoise={pausePreprocessDenoise}
-    onThreshold={applyPauseThreshold}
-    onMinSilenceSeconds={applyPauseMinSilenceSeconds}
-    onMinSpeechSeconds={applyPauseMinSpeechSeconds}
-    onPreprocessDenoise={applyPausePreprocessDenoise}
-    testPrefix={`aqe-split-${targetOrd}-${slug}-pause`}
-  />
 {/if}
 {#if command === "aqe:remove-pauses"}
   <label class="aqe-split-extra-field">
@@ -171,4 +159,16 @@
       {/each}
     </div>
   </label>
+  <PauseAdvancedParamsFields
+    algorithm={pauseDetectionAlgorithmOrDefault(pauseDetectionAlgorithm)}
+    threshold={pauseThreshold}
+    minSilenceSeconds={pauseMinSilenceSeconds}
+    minSpeechSeconds={pauseMinSpeechSeconds}
+    preprocessDenoise={pausePreprocessDenoise}
+    onThreshold={applyPauseThreshold}
+    onMinSilenceSeconds={applyPauseMinSilenceSeconds}
+    onMinSpeechSeconds={applyPauseMinSpeechSeconds}
+    onPreprocessDenoise={applyPausePreprocessDenoise}
+    testPrefix={`aqe-split-${targetOrd}-${slug}-pause`}
+  />
 {/if}

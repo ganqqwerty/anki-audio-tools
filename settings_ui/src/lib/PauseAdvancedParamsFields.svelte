@@ -35,6 +35,12 @@
     onThreshold,
     testPrefix = "pause",
   }: Props = $props();
+
+  const thresholdDescriptionKey = $derived(
+    algorithm === "silero_vad"
+      ? "settings.pause_threshold_probability.help"
+      : "settings.pause_threshold_db.help",
+  );
 </script>
 
 <details class="advanced-params" data-testid={`${testPrefix}-advanced-params`}>
@@ -42,6 +48,7 @@
   <div class="advanced-params-grid">
     <label>
       <span>{pauseThresholdLabel(algorithm)}</span>
+      <p>{t(thresholdDescriptionKey)}</p>
       <input
         bind:value={threshold}
         data-testid={`${testPrefix}-threshold`}
@@ -55,6 +62,7 @@
     </label>
     <label>
       <span>{t("settings.pause_min_silence_seconds")}</span>
+      <p>{t("settings.pause_min_silence_seconds.help")}</p>
       <input
         bind:value={minSilenceSeconds}
         data-testid={`${testPrefix}-min-silence-seconds`}
@@ -68,6 +76,7 @@
     </label>
     <label>
       <span>{t("settings.pause_min_speech_seconds")}</span>
+      <p>{t("settings.pause_min_speech_seconds.help")}</p>
       <input
         bind:value={minSpeechSeconds}
         data-testid={`${testPrefix}-min-speech-seconds`}
@@ -87,7 +96,10 @@
         type="checkbox"
         onchange={(event) => onPreprocessDenoise?.((event.currentTarget as HTMLInputElement).checked)}
       />
-      <span>{t("settings.pause_preprocess_denoise")}</span>
+      <div>
+        <span>{t("settings.pause_preprocess_denoise")}</span>
+        <p>{t("settings.pause_preprocess_denoise.help")}</p>
+      </div>
     </label>
   </div>
 </details>
@@ -120,6 +132,14 @@
     color: var(--fg-subtle, currentColor);
     font-size: 0.85rem;
     font-weight: 600;
+  }
+
+  p {
+    color: var(--fg-subtle, currentColor);
+    font-size: 0.78rem;
+    font-weight: 400;
+    line-height: 1.35;
+    margin: 0;
   }
 
   input {

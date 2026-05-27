@@ -160,6 +160,10 @@ describe("App", () => {
     expect(screen.getByText("Pause detection")).toBeInTheDocument();
     expect(screen.getByText("Shorten pauses level")).toBeInTheDocument();
     expect(screen.getByText("Advanced Params")).toBeInTheDocument();
+    expect(screen.getByText(/How quiet audio must be before ffmpeg treats it as silence/)).toBeInTheDocument();
+    expect(screen.getByText(/The shortest detected pause that can be removed/)).toBeInTheDocument();
+    expect(screen.getByText(/The shortest speech or sound island/)).toBeInTheDocument();
+    expect(screen.getByText(/Runs denoise before detection only/)).toBeInTheDocument();
     expect(screen.getByText("Default convert format")).toBeInTheDocument();
     expect(screen.getByText("Default denoise algorithm")).toBeInTheDocument();
     expect(screen.getByText("Default pitch hum mode")).toBeInTheDocument();
@@ -169,6 +173,19 @@ describe("App", () => {
     expect(screen.queryByText("Edge silence threshold (dB)")).not.toBeInTheDocument();
     expect(screen.queryByText("Internal pause silence threshold (dB)")).not.toBeInTheDocument();
     expect(screen.getByTestId("settings-pause-advanced-params")).not.toHaveAttribute("open");
+  });
+
+  it("switches pause threshold explanations with the selected algorithm", async () => {
+    setInitialState();
+
+    render(App);
+    expect(screen.getByText(/How quiet audio must be before ffmpeg treats it as silence/)).toBeInTheDocument();
+    expect(screen.queryByText(/How confident Silero must be that a frame is speech/)).not.toBeInTheDocument();
+
+    await fireEvent.click(screen.getByTestId("pause-detection-algorithm-silero_vad"));
+
+    expect(screen.getByText(/How confident Silero must be that a frame is speech/)).toBeInTheDocument();
+    expect(screen.queryByText(/How quiet audio must be before ffmpeg treats it as silence/)).not.toBeInTheDocument();
   });
 
   it("always saves inline editor controls as enabled", async () => {
