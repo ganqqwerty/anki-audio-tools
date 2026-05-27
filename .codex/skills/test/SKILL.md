@@ -9,8 +9,9 @@ metadata:
 
 Use the repo task runner instead of calling tools like `pytest`, `ruff`, or `mypy` directly.
 
-`scripts/dev.py` is concise by default to keep agent transcripts small. If a check fails or you need live tool
-output, rerun the specific command with `--verbose`, for example `python3 scripts/dev.py test --verbose`.
+`scripts/dev.py` is concise by default to keep agent transcripts small. Pytest-backed commands print failure-only
+diagnostics in concise mode. Use `--verbose`, for example `python3 scripts/dev.py test --verbose`, only when you
+need live tool output or full command diagnostics.
 
 ## Setup
 
@@ -36,8 +37,7 @@ Run each step in order. If one step fails, note it and continue so the user gets
 13. SonarQube if requested or already part of the workflow
 14. `python3 scripts/dev.py test-e2e`
 
-Run the default concise form first. Add `--verbose` only when the concise output is insufficient to diagnose a
-failure.
+Run the default concise form first. Add `--verbose` only when the concise failure diagnostics are insufficient.
 
 `python3 scripts/dev.py complexity` fails on any hand-maintained add-on function or class at Radon rank C or worse; generated contract output is ignored by that fail decision.
 `python3 scripts/dev.py coverage` uses branch coverage and fails below the configured threshold.

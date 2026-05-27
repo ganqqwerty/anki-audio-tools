@@ -103,14 +103,20 @@ def _terminate_process_after_idle(process: subprocess.Popen[str], *, idle_for: f
         process.kill()
 
 
-def _format_exit_status(*, rc: int, interrupted_for_idle: bool, verbose: bool) -> str:
+def _format_exit_status(
+    *,
+    rc: int,
+    interrupted_for_idle: bool,
+    verbose: bool,
+    failure_output_available: bool = False,
+) -> str:
     if interrupted_for_idle:
         status = "FAILED: terminated after idle timeout"
     elif rc == 0:
         status = "finished with exit code 0"
     else:
         status = f"FAILED with exit code {rc}"
-    if rc != 0 and not verbose:
+    if rc != 0 and not verbose and not failure_output_available:
         status = f"{status}; rerun with --verbose for output"
     return status
 
@@ -127,6 +133,7 @@ def _handle_idle_queue_wait(
     idle_timeout_s: float,
     terminate_grace_s: float,
     stream_output: bool,
+    buffered_output: list[str] | None,
 ) -> tuple[bool, bool, bool, float, float]:
     try:
         line = output_queue.get(timeout=1)
@@ -153,9 +160,21 @@ def _handle_idle_queue_wait(
     if stream_output:
         sys.stdout.write(line)
         sys.stdout.flush()
+    elif buffered_output is not None:
+        buffered_output.append(line)
     last_output = time.monotonic()
     next_warning = last_output + idle_warning_s if idle_warning_s else float("inf")
     return False, False, stream_closed, last_output, next_warning
+
+
+def _print_failed_output(output: str) -> bool:
+    if not output:
+        return False
+    print("[dev] output from failed command:")
+    sys.stdout.write(output)
+    if not output.endswith("\n"):
+        print()
+    return True
 
 
 def _run(
@@ -166,6 +185,7 @@ def _run(
     label: str | None = None,
     idle_warning_s: float | None = None,
     idle_timeout_s: float | None = None,
+    show_output_on_failure: bool = False,
 ) -> int:
     run_cwd = cwd or ROOT
     merged_env = {**os.environ, **env} if env else None
@@ -208,6 +228,7 @@ def _run(
     next_warning = start + idle_warning_s if idle_warning_s else float("inf")
     stream_closed = False
     interrupted_for_idle = False
+    buffered_output: list[str] | None = [] if show_output_on_failure and not is_verbose() else None
 
     while True:
         should_break, timed_out, stream_closed, last_output, next_warning = _handle_idle_queue_wait(
@@ -221,6 +242,7 @@ def _run(
             idle_timeout_s=idle_timeout_s,
             terminate_grace_s=terminate_grace_s,
             stream_output=is_verbose(),
+            buffered_output=buffered_output,
         )
         if timed_out:
             interrupted_for_idle = True
@@ -231,7 +253,15 @@ def _run(
     rc = process.wait()
     reader.join(timeout=1)
     elapsed = time.monotonic() - start
-    status = _format_exit_status(rc=rc, interrupted_for_idle=interrupted_for_idle, verbose=is_verbose())
+    failure_output_available = False
+    if rc != 0 and buffered_output is not None:
+        failure_output_available = _print_failed_output("".join(buffered_output))
+    status = _format_exit_status(
+        rc=rc,
+        interrupted_for_idle=interrupted_for_idle,
+        verbose=is_verbose(),
+        failure_output_available=failure_output_available,
+    )
     print(f"[dev] {status} in {_format_duration(elapsed)}")
     return rc
 
@@ -242,6 +272,7 @@ def _run_capture(
     cwd: Path | None = None,
     *,
     label: str | None = None,
+    show_output_on_failure: bool = False,
 ) -> tuple[int, str]:
     run_cwd = cwd or ROOT
     merged_env = {**os.environ, **env} if env else None
@@ -265,6 +296,14 @@ def _run_capture(
         sys.stdout.write(output)
         sys.stdout.flush()
     elapsed = time.monotonic() - start
-    status = _format_exit_status(rc=result.returncode, interrupted_for_idle=False, verbose=is_verbose())
+    failure_output_available = False
+    if result.returncode != 0 and show_output_on_failure and not is_verbose():
+        failure_output_available = _print_failed_output(output)
+    status = _format_exit_status(
+        rc=result.returncode,
+        interrupted_for_idle=False,
+        verbose=is_verbose(),
+        failure_output_available=failure_output_available,
+    )
     print(f"[dev] {status} in {_format_duration(elapsed)}")
     return result.returncode, output

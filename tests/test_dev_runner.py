@@ -1,11 +1,10 @@
 from __future__ import annotations
 
-import sys
 import threading
 from pathlib import Path
 
 import scripts.dev as dev
-from scripts.dev_tasks import frontend, process, pytest_runner, quality_tools
+from scripts.dev_tasks import coverage, frontend, process, pytest_runner, quality_tools
 
 
 def test_split_cli_args_treats_verbose_as_global_flag() -> None:
@@ -31,6 +30,7 @@ def test_pytest_args_are_quiet_by_default() -> None:
 
     assert "-q" in args
     assert "--tb=short" in args
+    assert "--show-capture=all" in args
     assert "-rfE" in args
     assert "-vv" not in args
     assert "-s" not in args
@@ -59,39 +59,19 @@ def test_pytest_args_can_override_cache_dir() -> None:
     assert f"cache_dir={cache_dir}" in args
 
 
-def test_process_run_suppresses_subprocess_output_by_default(capsys) -> None:
-    process.set_verbose(False)
+def test_run_pytest_shows_output_on_collect_and_run_failures(monkeypatch) -> None:
+    calls: list[dict[str, object]] = []
 
-    rc = process._run([sys.executable, "-c", "print('hidden subprocess output')"], label="sample command")
+    monkeypatch.setattr(pytest_runner, "_find_anki_python", lambda: Path("/anki/python"))
 
-    captured = capsys.readouterr()
-    assert rc == 0
-    assert "sample command" in captured.out
-    assert "hidden subprocess output" not in captured.out
+    def fake_run(_cmd: list[str], **kwargs: object) -> int:
+        calls.append(kwargs)
+        return 0
 
+    monkeypatch.setattr(pytest_runner, "_run", fake_run)
 
-def test_process_run_reports_failure_as_failure(capsys) -> None:
-    process.set_verbose(False)
-
-    rc = process._run([sys.executable, "-c", "raise SystemExit(7)"], label="failing command")
-
-    captured = capsys.readouterr()
-    assert rc == 7
-    assert "FAILED with exit code 7" in captured.out
-    assert "finished with exit code 7" not in captured.out
-
-
-def test_process_run_streams_subprocess_output_in_verbose_mode(capsys) -> None:
-    process.set_verbose(True)
-
-    try:
-        rc = process._run([sys.executable, "-c", "print('visible subprocess output')"], label="sample command")
-    finally:
-        process.set_verbose(False)
-
-    captured = capsys.readouterr()
-    assert rc == 0
-    assert "visible subprocess output" in captured.out
+    assert pytest_runner._run_pytest("tests/", label="python tests") == 0
+    assert [call["show_output_on_failure"] for call in calls] == [True, True]
 
 
 def test_build_ui_generates_contracts_before_frontend_build(monkeypatch, tmp_path: Path) -> None:
@@ -278,6 +258,20 @@ def test_test_e2e_stops_when_frontend_build_fails(monkeypatch) -> None:
     )
 
     assert dev.cmd_test_e2e() == 23
+
+
+def test_coverage_pytest_shows_output_on_failure(monkeypatch) -> None:
+    calls: list[tuple[list[str], dict[str, object]]] = []
+
+    monkeypatch.setattr(coverage, "_find_anki_python", lambda: Path("/anki/python"))
+    monkeypatch.setattr(
+        coverage,
+        "_run",
+        lambda cmd, **kwargs: calls.append((cmd, kwargs)) or 0,
+    )
+
+    assert coverage.cmd_coverage() == 0
+    assert calls[0][1]["show_output_on_failure"] is True
 
 
 def test_qodana_runs_with_committed_config(monkeypatch) -> None:

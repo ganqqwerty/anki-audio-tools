@@ -37,6 +37,7 @@ def cmd_coverage() -> int:
             f"--cov-fail-under={PYTHON_COVERAGE_FAIL_UNDER}",
         ],
         label=f"python coverage (fail under {PYTHON_COVERAGE_FAIL_UNDER}%)",
+        show_output_on_failure=True,
     )
 
 
@@ -92,6 +93,7 @@ def cmd_sonar() -> int:
             f"--cov-fail-under={PYTHON_COVERAGE_FAIL_UNDER}",
         ],
         label=f"python coverage for sonar (fail under {PYTHON_COVERAGE_FAIL_UNDER}%)",
+        show_output_on_failure=True,
     )
     if python_rc != 0:
         return python_rc

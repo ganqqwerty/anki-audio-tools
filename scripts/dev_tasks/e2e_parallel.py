@@ -184,6 +184,7 @@ def _collect_nodeids(anki_python: Path, targets: Sequence[str], cache_dir: Path)
             *_pytest_args(targets, collect_only=True, cache_dir=cache_dir, force_quiet=True),
         ],
         label="python e2e tests (parallel collect)",
+        show_output_on_failure=True,
     )
     if rc != 0:
         return None
@@ -209,6 +210,7 @@ def _run_shard(anki_python: Path, shard: E2EShard) -> _ShardResult:
         rc = _run(
             [str(anki_python), "-m", *_pytest_args(shard.nodeids, cache_dir=cache_dir)],
             label=label,
+            show_output_on_failure=True,
         )
     finally:
         shutil.rmtree(cache_dir, ignore_errors=True)
