@@ -261,6 +261,8 @@ source_modules = [
     "anki_audio_quick_editor.audio_noise_reduction",
     "anki_audio_quick_editor.audio_noise_reduction_bundled",
     "anki_audio_quick_editor.audio_pause_pipeline",
+    "anki_audio_quick_editor.audio_pause_pipeline_detection",
+    "anki_audio_quick_editor.audio_pause_pipeline_stage",
     "anki_audio_quick_editor.audio_pause_pipeline_steps",
     "anki_audio_quick_editor.audio_pause_settings",
     "anki_audio_quick_editor.audio_pitch_hum",

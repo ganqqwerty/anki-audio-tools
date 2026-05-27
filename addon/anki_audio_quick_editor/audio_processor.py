@@ -13,6 +13,7 @@ from . import audio_commands as _audio_commands
 from . import audio_external as _audio_external
 from . import audio_noise_reduction as _audio_noise_reduction
 from . import audio_pause_pipeline as _audio_pause_pipeline
+from . import audio_pause_pipeline_stage as _audio_pause_pipeline_stage
 from . import audio_pause_pipeline_steps as _audio_pause_pipeline_steps
 from . import audio_pitch_hum as _audio_pitch_hum
 from . import audio_processor_rendering_portal as _render_portal
@@ -208,6 +209,7 @@ def _sync_pause_dependencies() -> None:
     sync_pause_dependencies(
         cast(Any, _audio_pause_pipeline),
         cast(Any, _audio_pause_pipeline_steps),
+        cast(Any, _audio_pause_pipeline_stage),
         find_dpdfnet_bundle=find_dpdfnet_bundle,
         find_silero_vad_bundle=find_silero_vad_bundle,
         probe_duration_ms=probe_duration_ms,

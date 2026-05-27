@@ -18,9 +18,9 @@ from .audio_commands import (
     build_working_original_filters,
 )
 from .audio_external import probe_duration_ms
+from .audio_pause_pipeline_stage import run_pipeline_stage
 from .audio_pause_pipeline_steps import (
     _render_pause_removal_audio,
-    _run_pipeline_stage,
 )
 from .audio_state import AudioEditState, AudioProcessingConfig
 from .audio_tools import find_dpdfnet_bundle, find_silero_vad_bundle
@@ -215,7 +215,7 @@ def _render_working_original(
         working_filters,
         working_original,
     )
-    _run_pipeline_stage(
+    run_pipeline_stage(
         "render_working_original",
         working_cmd,
         "Could not start working-audio preparation.",

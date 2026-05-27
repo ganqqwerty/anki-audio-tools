@@ -108,7 +108,7 @@ def test_silero_pipeline_cuts_pauses_and_renders_from_original_audio(
         raise AssertionError(f"unexpected stage: {stage_name}")
 
     monkeypatch.setattr(
-        "anki_audio_quick_editor.audio_pause_pipeline_steps._run_pipeline_stage",
+        "anki_audio_quick_editor.audio_pause_pipeline_stage.run_pipeline_stage",
         fake_run_pipeline_stage,
     )
     monkeypatch.setattr(
@@ -226,7 +226,7 @@ def test_denoise_preprocessing_changes_detection_input_not_render_source(
         raise AssertionError(f"unexpected stage: {stage_name}")
 
     monkeypatch.setattr(
-        "anki_audio_quick_editor.audio_pause_pipeline_steps._run_pipeline_stage",
+        "anki_audio_quick_editor.audio_pause_pipeline_stage.run_pipeline_stage",
         fake_run_pipeline_stage,
     )
     monkeypatch.setattr(
