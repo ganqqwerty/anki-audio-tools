@@ -8,10 +8,11 @@ from .conftest import ADDON_DIR, _imports_addon_modules, get_all_imports
 from .contracts import MODULE_CONTRACTS, SideEffect
 
 BROWSER_INTEGRATION = ADDON_DIR / "browser_integration.py"
+BROWSER_BATCH_RUNNER = ADDON_DIR / "browser_batch_runner.py"
 BROWSER_DIALOG = ADDON_DIR / "browser_dialog.py"
 BROWSER_DIALOG_STATE = ADDON_DIR / "browser_dialog_state.py"
 ALLOWED_PERSISTENCE_FILES = {
-    "browser_integration.py",
+    "browser_batch_runner.py",
     "editor_integration.py",
     "editor_processing.py",
     "editor_region_delete.py",
@@ -55,6 +56,8 @@ def test_browser_integration_avoids_low_level_transform_mechanics_modules() -> N
     }
     hits = _imports_addon_modules(get_all_imports(BROWSER_INTEGRATION), forbidden, BROWSER_INTEGRATION)
     assert hits == []
+    runner_hits = _imports_addon_modules(get_all_imports(BROWSER_BATCH_RUNNER), forbidden, BROWSER_BATCH_RUNNER)
+    assert runner_hits == []
 
     text = BROWSER_INTEGRATION.read_text(encoding="utf-8")
     assert "AudioEditState" not in text
@@ -77,7 +80,7 @@ def test_direct_media_and_note_persistence_are_isolated_to_ui_adapters() -> None
                 violations.append(f"{relative}:{line_no}: {line.strip()}")
 
     assert violations == [], "\n".join(violations)
-    assert MODULE_CONTRACTS["browser_integration"].allowed_side_effects >= frozenset(
+    assert MODULE_CONTRACTS["browser_batch_runner"].allowed_side_effects >= frozenset(
         {SideEffect.MEDIA_WRITE, SideEffect.NOTE_UPDATE, SideEffect.UNDO_MERGE}
     )
     assert MODULE_CONTRACTS["editor_integration"].allowed_side_effects >= frozenset({SideEffect.MEDIA_WRITE})

@@ -314,8 +314,13 @@ source_modules = [
     "anki_audio_quick_editor.prosody_types",
     "anki_audio_quick_editor.release_info",
     "anki_audio_quick_editor.runtime_archive",
+    "anki_audio_quick_editor.runtime_install",
+    "anki_audio_quick_editor.runtime_lookup",
     "anki_audio_quick_editor.runtime_manager",
     "anki_audio_quick_editor.runtime_manifest",
+    "anki_audio_quick_editor.runtime_paths",
+    "anki_audio_quick_editor.runtime_platform",
+    "anki_audio_quick_editor.runtime_state",
     "anki_audio_quick_editor.settings_state",
     "anki_audio_quick_editor.sound_refs",
     "anki_audio_quick_editor.support",
@@ -325,6 +330,7 @@ source_modules = [
 ]
 forbidden_modules = [
     "anki_audio_quick_editor.audio_recording",
+    "anki_audio_quick_editor.browser_batch_runner",
     "anki_audio_quick_editor.browser_dialog",
     "anki_audio_quick_editor.browser_integration",
     "anki_audio_quick_editor.editor_analysis",
@@ -350,6 +356,8 @@ forbidden_modules = [
     "anki_audio_quick_editor.editor_sharing",
     "anki_audio_quick_editor.editor_split_defaults",
     "anki_audio_quick_editor.settings",
+    "anki_audio_quick_editor.settings.async_commands",
+    "anki_audio_quick_editor.settings.async_operations",
     "anki_audio_quick_editor.settings.commands",
     "anki_audio_quick_editor.settings.initial_state",
 ]
@@ -358,6 +366,8 @@ forbidden_modules = [
 name = "settings-backend-no-ui"
 type = "forbidden"
 source_modules = [
+    "anki_audio_quick_editor.settings.async_commands",
+    "anki_audio_quick_editor.settings.async_operations",
     "anki_audio_quick_editor.settings.commands",
     "anki_audio_quick_editor.settings.initial_state",
 ]

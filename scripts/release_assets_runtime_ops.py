@@ -10,7 +10,6 @@ from urllib.parse import urlparse
 
 from scripts.release_asset_common import (
     ReleaseAssetError,
-    _download_verified,
     _extract_zip_member,
     _required_https_url,
     _required_sha256,
@@ -21,6 +20,9 @@ from scripts.release_asset_common import (
     sha256_file,
     tool_uses_cached_binary,
     tracked_tool_binary_path,
+)
+from scripts.release_asset_common import (
+    download_verified as _download_verified,
 )
 
 
