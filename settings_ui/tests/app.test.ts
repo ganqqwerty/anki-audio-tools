@@ -229,9 +229,22 @@ describe("App", () => {
 
   it("saves toolbar visibility when Settings is turned off", async () => {
     setInitialState();
-
     render(App);
+    expect(screen.queryByTestId("settings-hidden-warning")).not.toBeInTheDocument();
     const settingsCard = screen.getByTestId("button-settings-settings");
+    await fireEvent.click(within(settingsCard).getByRole("checkbox", { name: "Show" }));
+    const warning = screen.getByTestId("settings-hidden-warning");
+    expect(warning).toHaveTextContent("Settings remain available from Tools -> Anki Audio Quick Editor -> Settings.");
+    expect(settingsCard).toContainElement(warning);
+    const image = within(warning).getByTestId("settings-hidden-warning-thumbnail-image");
+    const thumbnail = within(warning).getByRole("button", { name: "Expand hidden Settings warning image" });
+    expect(image).toHaveAttribute("src");
+    expect(thumbnail).toHaveAttribute("aria-expanded", "false");
+    await fireEvent.click(thumbnail);
+    expect(thumbnail).toHaveAttribute("aria-expanded", "true");
+    expect(within(warning).getByTestId("settings-hidden-warning-expanded-image")).toHaveAttribute("src", image.getAttribute("src"));
+    await fireEvent.click(within(settingsCard).getByRole("checkbox", { name: "Show" }));
+    expect(screen.queryByTestId("settings-hidden-warning")).not.toBeInTheDocument();
     await fireEvent.click(within(settingsCard).getByRole("checkbox", { name: "Show" }));
     await fireEvent.click(screen.getByRole("button", { name: "Save" }));
 

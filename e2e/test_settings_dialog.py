@@ -26,6 +26,43 @@ def test_tools_menu_action_opens_settings_dialog(anki_mw, qtbot) -> None:
     qtbot.waitUntil(lambda: dialog.isVisible(), timeout=5000)
 
 
+def test_hidden_settings_warning_expands_thumbnail_in_qt_webview(anki_mw) -> None:
+    config = anki_mw.addonManager.getConfig("1000000002") or {}
+    config["visible_editor_buttons"] = [
+        button for button in DEFAULT_VISIBLE_EDITOR_BUTTONS if button != "aqe:settings"
+    ]
+    anki_mw.addonManager.writeConfig("1000000002", config)
+
+    dialog = open_settings_dialog(anki_mw)
+
+    assert wait_for_js_condition(
+        dialog,
+        """
+        (() => {
+          const card = document.querySelector('[data-testid="button-settings-settings"]');
+          const warning = document.querySelector('[data-testid="settings-hidden-warning"]');
+          return Boolean(card && warning && card.contains(warning));
+        })()
+        """,
+        lambda value: value is True,
+        timeout=5.0,
+    ) is True
+
+    click_selector(dialog, '[data-testid="settings-hidden-warning-thumbnail"]', timeout=5.0)
+    assert wait_for_js_condition(
+        dialog,
+        """
+        (() => {
+          const thumbnail = document.querySelector('[data-testid="settings-hidden-warning-thumbnail"]');
+          const expanded = document.querySelector('[data-testid="settings-hidden-warning-expanded-image"]');
+          return Boolean(thumbnail && expanded && thumbnail.getAttribute("aria-expanded") === "true");
+        })()
+        """,
+        lambda value: value is True,
+        timeout=5.0,
+    ) is True
+
+
 def test_settings_dialog_uses_anki_dark_theme_classes_and_readable_colors(anki_mw) -> None:
     from aqt.theme import Theme
 

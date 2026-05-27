@@ -24,6 +24,7 @@
   import GraphSettingsFields from "./GraphSettingsFields.svelte";
   import OutputFormatField from "./OutputFormatField.svelte";
   import SettingsChoiceGroup from "./SettingsChoiceGroup.svelte";
+  import SettingsHiddenWarning from "./SettingsHiddenWarning.svelte";
 
   let { config = $bindable() }: { config: Config } = $props();
   const buttons = toolbarButtons();
@@ -114,7 +115,7 @@
       {@const visible = isVisible(button.command)}
       {@const mode = displayMode(button.command)}
       <ButtonSettingsCard
-        hasSettings={hasSettings(button.command)}
+        hasSettings={hasSettings(button.command) || (button.command === "aqe:settings" && !visible)}
         icon={button.icon}
         mode={mode}
         onSetMode={(nextMode) => setDisplayMode(button.command, nextMode)}
@@ -319,6 +320,8 @@
             <span>{t("settings.max_volume_db")}</span>
             <input class="settings-input" type="number" min="-40" max="40" step="0.5" bind:value={config.max_volume_db} />
           </label>
+        {:else if button.command === "aqe:settings" && !visible}
+          <SettingsHiddenWarning />
         {/if}
       </ButtonSettingsCard>
     {/each}
