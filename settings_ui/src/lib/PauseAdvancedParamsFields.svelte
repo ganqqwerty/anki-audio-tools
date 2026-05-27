@@ -12,6 +12,7 @@
 
   interface Props {
     algorithm: PauseDetectionAlgorithmValue;
+    compact?: boolean;
     threshold: number;
     minSilenceSeconds: number;
     minSpeechSeconds: number;
@@ -26,6 +27,7 @@
 
   let {
     algorithm,
+    compact = false,
     threshold = $bindable(),
     minSilenceSeconds = $bindable(),
     minSpeechSeconds = $bindable(),
@@ -46,7 +48,11 @@
 
 </script>
 
-<details class="advanced-params" data-testid={`${testPrefix}-advanced-params`}>
+<details
+  class:advanced-params-compact={compact}
+  class="advanced-params"
+  data-testid={`${testPrefix}-advanced-params`}
+>
   <summary>{t("settings.pause_advanced_params")}</summary>
   <div class="advanced-params-grid">
     <label>
@@ -226,12 +232,53 @@
   }
 
   .help-icon-button {
+    appearance: none;
     align-items: center;
     background: none;
     border: 0;
+    border-radius: 4px;
+    box-shadow: none;
     color: var(--fg-subtle, currentColor);
     cursor: help;
     display: inline-flex;
+    outline: none;
     padding: 0;
+  }
+
+  .help-icon-button:hover {
+    background: none;
+    border-color: transparent;
+    box-shadow: none;
+  }
+
+  .help-icon-button:focus-visible {
+    outline: 1px solid Highlight;
+    outline-offset: 2px;
+  }
+
+  .advanced-params-compact summary,
+  .advanced-params-compact span {
+    font-size: 11px;
+  }
+
+  .advanced-params-compact .advanced-params-grid {
+    gap: 8px;
+    grid-template-columns: repeat(auto-fit, minmax(112px, 1fr));
+  }
+
+  .advanced-params-compact label {
+    gap: 4px;
+  }
+
+  .advanced-params-compact input {
+    border-radius: 5px;
+    font-size: 11px;
+    min-height: 24px;
+    padding: 2px 4px;
+  }
+
+  .advanced-params-compact .advanced-params-toggle {
+    gap: 6px;
+    min-height: 24px;
   }
 </style>

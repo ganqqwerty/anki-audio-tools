@@ -161,6 +161,7 @@
   </label>
   <PauseAdvancedParamsFields
     algorithm={pauseDetectionAlgorithmOrDefault(pauseDetectionAlgorithm)}
+    compact={true}
     threshold={pauseThreshold}
     minSilenceSeconds={pauseMinSilenceSeconds}
     minSpeechSeconds={pauseMinSpeechSeconds}
