@@ -2,6 +2,9 @@ from __future__ import annotations
 
 from scripts.dev_tasks.e2e_parallel import (
     E2EFileGroup,
+    E2EShard,
+    _collect_nodeids,
+    _run_shard,
     collect_targets,
     group_nodeids_by_file,
     plan_shards,
@@ -105,3 +108,46 @@ def test_collect_args_can_force_nodeid_output_when_dev_runner_is_verbose() -> No
     assert "-q" in args
     assert "-vv" not in args
     assert "--collect-only" in args
+
+
+def test_parallel_collection_shows_output_on_failure(monkeypatch, tmp_path) -> None:
+    calls: list[dict[str, object]] = []
+
+    def fake_run_capture(_cmd, **kwargs):
+        calls.append(kwargs)
+        return 0, "e2e/test_audio_processing_ffmpeg.py::test_example\n"
+
+    monkeypatch.setattr("scripts.dev_tasks.e2e_parallel._run_capture", fake_run_capture)
+
+    nodeids = _collect_nodeids(
+        tmp_path / "python",
+        ["e2e/test_audio_processing_ffmpeg.py"],
+        tmp_path / "cache",
+    )
+
+    assert nodeids == ("e2e/test_audio_processing_ffmpeg.py::test_example",)
+    assert calls[0]["show_output_on_failure"] is True
+
+
+def test_parallel_shard_run_shows_output_on_failure(monkeypatch, tmp_path) -> None:
+    calls: list[dict[str, object]] = []
+    shard = E2EShard(
+        "e2e-1",
+        (
+            E2EFileGroup(
+                "e2e/test_audio_processing_ffmpeg.py",
+                ("e2e/test_audio_processing_ffmpeg.py::test_example",),
+            ),
+        ),
+    )
+
+    def fake_run(_cmd, **kwargs):
+        calls.append(kwargs)
+        return 0
+
+    monkeypatch.setattr("scripts.dev_tasks.e2e_parallel._run", fake_run)
+
+    result = _run_shard(tmp_path / "python", shard)
+
+    assert result.returncode == 0
+    assert calls[0]["show_output_on_failure"] is True

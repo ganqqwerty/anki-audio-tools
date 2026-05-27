@@ -42,7 +42,7 @@ def _pytest_args(
             ]
         )
     else:
-        args.extend(["-q", "--tb=short", "-rfE"])
+        args.extend(["-q", "--tb=short", "--show-capture=all", "-rfE"])
     if cache_dir is not None:
         args.extend(["-o", f"cache_dir={cache_dir}"])
     if collect_only:
@@ -122,6 +122,7 @@ def _run_pytest(target: str, *, label: str) -> int:
             label=f"{label} (collect)",
             idle_warning_s=collect_warning_s,
             idle_timeout_s=collect_timeout_s,
+            show_output_on_failure=True,
         )
         if rc != 0:
             _probe_import_sequence(target, label=label, anki_python=anki_python)
@@ -129,6 +130,7 @@ def _run_pytest(target: str, *, label: str) -> int:
         return _run(
             [str(anki_python), "-m", *_pytest_args(target, cache_dir=pytest_cache_dir)],
             label=f"{label} (run)",
+            show_output_on_failure=True,
         )
     finally:
         shutil.rmtree(pytest_cache_dir, ignore_errors=True)
