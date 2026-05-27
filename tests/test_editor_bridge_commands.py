@@ -107,9 +107,9 @@ def test_bridge_passes_local_pause_aggressiveness_to_renderer(tmp_path: Path, mo
     )
 
     assert rendered["config"].pause_aggressiveness == "aggressive"
-    assert rendered["config"].internal_pause_silence_threshold_db == -50
-    assert rendered["config"].internal_pause_threshold_ms == 180
-    assert rendered["config"].internal_pause_target_gap_ms == 60
+    assert rendered["config"].internal_pause_silence_threshold_db == -52
+    assert rendered["config"].internal_pause_threshold_ms == 140
+    assert rendered["config"].internal_pause_target_gap_ms == 45
     assert persisted_config["pause_aggressiveness"] == "normal"
 
 

@@ -175,9 +175,9 @@ def test_apply_processing_command_uses_pause_aggressiveness_without_mutating_con
 
     assert updated == AudioEditState("clip.mp3", remove_internal_pauses_enabled=True)
     assert captured["config"].pause_aggressiveness == "aggressive"
-    assert captured["config"].internal_pause_silence_threshold_db == -50
-    assert captured["config"].internal_pause_threshold_ms == 180
-    assert captured["config"].internal_pause_target_gap_ms == 60
+    assert captured["config"].internal_pause_silence_threshold_db == -52
+    assert captured["config"].internal_pause_threshold_ms == 140
+    assert captured["config"].internal_pause_target_gap_ms == 45
     assert config.pause_aggressiveness == "normal"
     assert config.internal_pause_threshold_ms == 300
 
@@ -201,9 +201,9 @@ def test_processing_config_for_command_returns_render_config_with_local_override
     assert effective.volume_step_db == 6
     assert effective.speed_step == 2
     assert effective.pause_aggressiveness == "aggressive"
-    assert effective.internal_pause_silence_threshold_db == -50
-    assert effective.internal_pause_threshold_ms == 180
-    assert effective.internal_pause_target_gap_ms == 60
+    assert effective.internal_pause_silence_threshold_db == -52
+    assert effective.internal_pause_threshold_ms == 140
+    assert effective.internal_pause_target_gap_ms == 45
     assert config.pause_aggressiveness == "normal"
 
 

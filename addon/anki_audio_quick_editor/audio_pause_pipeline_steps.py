@@ -31,7 +31,9 @@ from .audio_pipeline import (
     build_filter_complex_script,
     intervals_to_json,
     parse_silencedetect_intervals,
+    parse_silero_vad_speech_intervals,
     plan_pause_timeline,
+    speech_intervals_to_silence_intervals,
     timeline_to_json,
 )
 from .audio_state import AudioEditState, AudioProcessingConfig
@@ -182,9 +184,12 @@ def _render_silero_vad_pause_speedup_audio(
 ) -> AudioProcessingResult:
     silero_input = run_dir / "02_silero_input_16k_mono.wav"
     silero_output = run_dir / "03_silero_vad_output.wav"
-    timeline_path = run_dir / "04_timeline.json"
-    filter_script_path = run_dir / "05_filter_complex.ffscript"
-    final_copy_path = run_dir / "06_final_output.mp3"
+    raw_silero_path = run_dir / "04_silero_vad_stderr.txt"
+    speech_intervals_path = run_dir / "04_silero_speech_intervals.json"
+    silence_intervals_path = run_dir / "04_silence_intervals.json"
+    timeline_path = run_dir / "05_timeline.json"
+    filter_script_path = run_dir / "06_filter_complex.ffscript"
+    final_copy_path = run_dir / "07_final_output.mp3"
 
     params = _silero_vad_parameters(config)
     manifest["silero_vad_parameters"] = params
@@ -210,7 +215,7 @@ def _render_silero_vad_pause_speedup_audio(
         min_silence_seconds=float(params["min_silence_seconds"]),
         min_speech_seconds=float(params["min_speech_seconds"]),
     )
-    _run_pipeline_stage(
+    silero_result = _run_pipeline_stage(
         "silero_vad_analysis",
         silero_cmd,
         "Could not start Silero VAD pause analysis.",
@@ -220,15 +225,34 @@ def _render_silero_vad_pause_speedup_audio(
         on_command,
     )
     artifacts.append(_artifact_record("silero_vad_output", silero_output, WAV_MIME_TYPE))
-    silero_duration_ms = probe_duration_ms(silero_output, config)
-    manifest["silero_vad_duration_ms"] = silero_duration_ms
+    raw_silero_path.write_text(silero_result.stderr.strip(), encoding="utf-8")
+    speech_intervals = parse_silero_vad_speech_intervals(silero_result.stderr, working_duration_ms)
+    silence_intervals = speech_intervals_to_silence_intervals(speech_intervals, working_duration_ms)
+    speech_intervals_path.write_text(
+        json.dumps(intervals_to_json(speech_intervals), indent=2, sort_keys=True),
+        encoding="utf-8",
+    )
+    silence_intervals_path.write_text(
+        json.dumps(intervals_to_json(silence_intervals), indent=2, sort_keys=True),
+        encoding="utf-8",
+    )
+    manifest["silero_vad_input_duration_ms"] = working_duration_ms
+    manifest["silero_vad_speech_intervals"] = intervals_to_json(speech_intervals)
+    manifest["silence_intervals"] = intervals_to_json(silence_intervals)
+    artifacts.extend(
+        [
+            _artifact_record("silero_vad_stderr", raw_silero_path, "text/plain"),
+            _artifact_record("silero_speech_intervals", speech_intervals_path, "application/json"),
+            _artifact_record("silence_intervals", silence_intervals_path, "application/json"),
+        ]
+    )
     write_manifest()
 
     _write_pause_timeline_artifacts(
         state,
         config,
-        silero_duration_ms,
-        (),
+        working_duration_ms,
+        silence_intervals,
         timeline_path,
         filter_script_path,
         manifest,
@@ -238,7 +262,7 @@ def _render_silero_vad_pause_speedup_audio(
 
     render_cmd = build_filter_complex_render_command(
         ffmpeg_path,
-        silero_output,
+        working_original,
         filter_script_path,
         output_path,
     )
@@ -350,7 +374,7 @@ def _silero_vad_parameters(config: AudioProcessingConfig) -> dict[str, float]:
     if config.pause_aggressiveness == "gentle":
         return {"threshold": 0.55, "min_silence_seconds": 0.7, "min_speech_seconds": 0.12}
     if config.pause_aggressiveness == "aggressive":
-        return {"threshold": 0.4, "min_silence_seconds": 0.2, "min_speech_seconds": 0.06}
+        return {"threshold": 0.85, "min_silence_seconds": 0.15, "min_speech_seconds": 0.04}
     return {"threshold": 0.5, "min_silence_seconds": 0.45, "min_speech_seconds": 0.1}
 
 

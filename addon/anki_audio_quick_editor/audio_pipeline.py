@@ -13,6 +13,7 @@ PAUSE_PIPELINE_MANIFEST_VERSION = 1
 _SILENCE_START_RE = re.compile(r"silence_start:\s*(-?\d+(?:\.\d+)?)")
 _SILENCE_END_RE = re.compile(r"silence_end:\s*(-?\d+(?:\.\d+)?)")
 _SILENCE_DURATION_RE = re.compile(r"silence_duration:\s*(-?\d+(?:\.\d+)?)")
+_SILERO_SPEECH_RE = re.compile(r"^\s*(-?\d+(?:\.\d+)?)\s+--\s*(-?\d+(?:\.\d+)?)\s*$")
 
 
 @dataclass(frozen=True)
@@ -84,6 +85,38 @@ def parse_silencedetect_intervals(stderr: str, duration_ms: int) -> tuple[Silenc
     if open_start_ms is not None:
         intervals.append(_clamped_interval(open_start_ms, duration_ms, duration_ms))
 
+    return tuple(_merge_intervals(intervals))
+
+
+def parse_silero_vad_speech_intervals(stderr: str, duration_ms: int) -> tuple[SilenceInterval, ...]:
+    """Parse Sherpa ONNX Silero VAD stderr into clamped speech intervals."""
+    intervals: list[SilenceInterval] = []
+    for line in stderr.splitlines():
+        match = _SILERO_SPEECH_RE.match(line)
+        if not match:
+            continue
+        start_ms = _seconds_to_ms(float(match.group(1)))
+        end_ms = _seconds_to_ms(float(match.group(2)))
+        intervals.append(_clamped_interval(start_ms, end_ms, duration_ms))
+    return tuple(_merge_intervals(intervals))
+
+
+def speech_intervals_to_silence_intervals(
+    speech_intervals: tuple[SilenceInterval, ...],
+    duration_ms: int,
+) -> tuple[SilenceInterval, ...]:
+    """Return non-speech gaps for a set of speech intervals."""
+    duration_ms = max(0, int(duration_ms))
+    intervals: list[SilenceInterval] = []
+    cursor_ms = 0
+    for speech in _merge_intervals(list(speech_intervals)):
+        start_ms = max(0, min(speech.start_ms, duration_ms))
+        end_ms = max(start_ms, min(speech.end_ms, duration_ms))
+        if start_ms > cursor_ms:
+            intervals.append(_clamped_interval(cursor_ms, start_ms, duration_ms))
+        cursor_ms = max(cursor_ms, end_ms)
+    if cursor_ms < duration_ms:
+        intervals.append(_clamped_interval(cursor_ms, duration_ms, duration_ms))
     return tuple(_merge_intervals(intervals))
 
 

@@ -66,9 +66,9 @@ def test_effective_config_uses_pause_aggressiveness_override() -> None:
     effective = effective_config_for_operation(OP_REMOVE_PAUSES, config, params)
 
     assert effective.pause_aggressiveness == "aggressive"
-    assert effective.internal_pause_silence_threshold_db == -50
-    assert effective.internal_pause_threshold_ms == 180
-    assert effective.internal_pause_target_gap_ms == 60
+    assert effective.internal_pause_silence_threshold_db == -52
+    assert effective.internal_pause_threshold_ms == 140
+    assert effective.internal_pause_target_gap_ms == 45
 
 
 def test_effective_config_uses_pause_detection_algorithm_override() -> None:

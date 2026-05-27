@@ -210,7 +210,7 @@ const FALLBACK_MESSAGES: Messages = {
   "editor.split.option.output_format.mp3.description": "Most portable. Guaranteed to work in AnkiMobile and broadly supported everywhere.", "editor.split.option.output_format.m4a.description": "Small modern file with good quality, especially on Apple devices.",
   "editor.split.option.output_format.wav.description": "Uncompressed and large. Best for temporary editing, not daily review media.", "editor.split.option.output_format.flac.description": "Lossless and smaller than WAV. Good for archiving, but less portable than MP3.",
   "editor.split.option.pause.gentle.description": "Removes only longer silences, usually above about 700 ms. Lowest risk of clipping natural rhythm.", "editor.split.option.pause.normal.description": "Shortens common sentence gaps, usually above about 450 ms. Good default for review clips.",
-  "editor.split.option.pause.aggressive.description": "Cuts shorter pauses too, often above about 250 ms. Can make speech feel rushed.", "editor.split.option.pitch_hum.direct.description": "Fast mode that follows detected pitch directly.",
+  "editor.split.option.pause.aggressive.description": "Cuts shorter pauses too, often above about 150 ms. Can make speech feel rushed.", "editor.split.option.pitch_hum.direct.description": "Fast mode that follows detected pitch directly.",
   "editor.split.option.pitch_hum.pitch_tier.description": "Uses Praat PitchTier resynthesis when available. More controlled, but slower.",
   "editor.split.run": "Run", "editor.split.run_title": "Run {label} with these quick settings",
   "editor.split.draw": "Draw", "editor.split.action.make_slower": "Make slower",

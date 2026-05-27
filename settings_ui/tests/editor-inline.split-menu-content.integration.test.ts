@@ -50,7 +50,7 @@ describe("editor inline split-menu content", () => {
 
     expect(optionTooltip(pausePopover, "remove-pauses", "gentle")).toContain("700 ms");
     expect(optionTooltip(pausePopover, "remove-pauses", "normal")).toContain("450 ms");
-    expect(optionTooltip(pausePopover, "remove-pauses", "aggressive")).toContain("250 ms");
+    expect(optionTooltip(pausePopover, "remove-pauses", "aggressive")).toContain("150 ms");
     expect(optionTooltip(pausePopover, "remove-pauses", "aggressive")).toContain("rushed");
   });
 

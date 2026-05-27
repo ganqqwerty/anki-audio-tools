@@ -362,7 +362,7 @@
   "editor.split.option.output_format.flac.description": "Không mất dữ liệu và nhỏ hơn WAV. Tốt để lưu trữ, nhưng kém linh hoạt hơn MP3.",
   "editor.split.option.pause.gentle.description": "Chỉ xóa khoảng lặng dài, thường trên khoảng 700 ms. Ít làm hỏng nhịp tự nhiên nhất.",
   "editor.split.option.pause.normal.description": "Rút ngắn khoảng nghỉ thường gặp giữa câu, thường trên khoảng 450 ms. Mặc định tốt cho audio ôn tập.",
-  "editor.split.option.pause.aggressive.description": "Cắt cả khoảng nghỉ ngắn, thường trên khoảng 250 ms. Có thể làm lời nói nghe quá vội.",
+  "editor.split.option.pause.aggressive.description": "Cắt cả khoảng nghỉ ngắn, thường trên khoảng 150 ms. Có thể làm lời nói nghe quá vội.",
   "editor.split.option.pitch_hum.direct.description": "Chế độ nhanh, bám trực tiếp theo cao độ phát hiện được.",
   "editor.split.option.pitch_hum.pitch_tier.description": "Dùng tái tổng hợp Praat PitchTier khi có. Kiểm soát tốt hơn nhưng chậm hơn.",
   "editor.split.run": "Chạy",

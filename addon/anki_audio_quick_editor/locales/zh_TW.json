@@ -362,7 +362,7 @@
   "editor.split.option.output_format.flac.description": "無損且比 WAV 小。適合封存，但不如 MP3 通用。",
   "editor.split.option.pause.gentle.description": "只移除較長靜音，通常約 700 ms 以上。最不容易破壞自然節奏。",
   "editor.split.option.pause.normal.description": "縮短常見句間停頓，通常約 450 ms 以上。適合複習音訊的預設選擇。",
-  "editor.split.option.pause.aggressive.description": "也會裁掉較短停頓，通常約 250 ms 以上。可能讓語音顯得過急。",
+  "editor.split.option.pause.aggressive.description": "也會裁掉較短停頓，通常約 150 ms 以上。可能讓語音顯得過急。",
   "editor.split.option.pitch_hum.direct.description": "快速模式，直接跟隨偵測到的音高。",
   "editor.split.option.pitch_hum.pitch_tier.description": "可用時使用 Praat PitchTier 重合成。控制更好，但速度較慢。",
   "editor.split.run": "執行",

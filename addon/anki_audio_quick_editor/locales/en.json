@@ -376,7 +376,7 @@
   "editor.split.option.output_format.flac.description": "Lossless and smaller than WAV. Good for archiving, but less portable than MP3.",
   "editor.split.option.pause.gentle.description": "Removes only longer silences, usually above about 700 ms. Lowest risk of clipping natural rhythm.",
   "editor.split.option.pause.normal.description": "Shortens common sentence gaps, usually above about 450 ms. Good default for review clips.",
-  "editor.split.option.pause.aggressive.description": "Cuts shorter pauses too, often above about 250 ms. Can make speech feel rushed.",
+  "editor.split.option.pause.aggressive.description": "Cuts shorter pauses too, often above about 150 ms. Can make speech feel rushed.",
   "editor.split.option.pitch_hum.direct.description": "Fast mode that follows detected pitch directly.",
   "editor.split.option.pitch_hum.pitch_tier.description": "Uses Praat PitchTier resynthesis when available. More controlled, but slower.",
   "editor.split.run": "Run",

@@ -376,7 +376,7 @@
   "editor.split.option.output_format.flac.description": "Verlustfrei und kleiner als WAV. Gut zum Archivieren, aber weniger portabel als MP3.",
   "editor.split.option.pause.gentle.description": "Entfernt nur längere Stille, meist ab etwa 700 ms. Niedrigstes Risiko für unnatürlichen Rhythmus.",
   "editor.split.option.pause.normal.description": "Kürzt typische Satzpausen, meist ab etwa 450 ms. Gute Standardeinstellung für Lernclips.",
-  "editor.split.option.pause.aggressive.description": "Schneidet auch kürzere Pausen, oft ab etwa 250 ms. Kann Sprache gehetzt wirken lassen.",
+  "editor.split.option.pause.aggressive.description": "Schneidet auch kürzere Pausen, oft ab etwa 150 ms. Kann Sprache gehetzt wirken lassen.",
   "editor.split.option.pitch_hum.direct.description": "Schneller Modus, der der erkannten Tonhöhe direkt folgt.",
   "editor.split.option.pitch_hum.pitch_tier.description": "Nutzt Praat-PitchTier-Resynthese, wenn verfügbar. Kontrollierter, aber langsamer.",
   "editor.split.run": "Ausführen",

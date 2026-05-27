@@ -362,7 +362,7 @@
   "editor.split.option.output_format.flac.description": "Без потерь и меньше WAV. Хорош для архива, но менее совместим, чем MP3.",
   "editor.split.option.pause.gentle.description": "Удаляет только длинную тишину, обычно от 700 мс. Минимальный риск испортить естественный ритм.",
   "editor.split.option.pause.normal.description": "Сокращает обычные паузы между фразами, обычно от 450 мс. Хороший вариант по умолчанию.",
-  "editor.split.option.pause.aggressive.description": "Режет и короткие паузы, часто от 250 мс. Речь может звучать слишком спешно.",
+  "editor.split.option.pause.aggressive.description": "Режет и короткие паузы, часто от 150 мс. Речь может звучать слишком спешно.",
   "editor.split.option.pitch_hum.direct.description": "Быстрый режим, напрямую следующий найденной высоте тона.",
   "editor.split.option.pitch_hum.pitch_tier.description": "Использует ресинтез Praat PitchTier, если доступен. Точнее, но медленнее.",
   "editor.split.run": "Запустить",

@@ -128,9 +128,9 @@ def config_for_pause_aggressiveness(
     if aggressiveness == "aggressive":
         return replace(
             config,
-            internal_pause_silence_threshold_db=-50,
-            internal_pause_threshold_ms=180,
-            internal_pause_target_gap_ms=60,
+            internal_pause_silence_threshold_db=-52,
+            internal_pause_threshold_ms=140,
+            internal_pause_target_gap_ms=45,
             pause_aggressiveness=aggressiveness,
             pause_detection_algorithm=pause_detection_algorithm or config.pause_detection_algorithm,
         )

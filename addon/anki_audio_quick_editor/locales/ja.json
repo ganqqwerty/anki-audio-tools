@@ -362,7 +362,7 @@
   "editor.split.option.output_format.flac.description": "可逆圧縮で WAV より小さめです。保存用にはよいですが MP3 より互換性は低めです。",
   "editor.split.option.pause.gentle.description": "通常 700 ms 前後より長い無音だけを削ります。自然なリズムを壊しにくい設定です。",
   "editor.split.option.pause.normal.description": "通常 450 ms 前後より長い文間の間を短くします。レビュー音声の標準設定です。",
-  "editor.split.option.pause.aggressive.description": "通常 250 ms 前後の短い間も削ります。話し方が急ぎすぎに聞こえることがあります。",
+  "editor.split.option.pause.aggressive.description": "通常 150 ms 前後の短い間も削ります。話し方が急ぎすぎに聞こえることがあります。",
   "editor.split.option.pitch_hum.direct.description": "検出したピッチを直接たどる高速モードです。",
   "editor.split.option.pitch_hum.pitch_tier.description": "利用可能なら Praat PitchTier で再合成します。より制御しやすい分、遅くなります。",
   "editor.split.run": "実行",
