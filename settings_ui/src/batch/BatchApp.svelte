@@ -103,27 +103,27 @@
       </nav>
     </header>
 
-  <BatchControls state={batchState} bind:form selected={selected} disabled={running} />
+    <BatchControls state={batchState} bind:form selected={selected} disabled={running} />
 
-  <section class="progress-panel" aria-live="polite">
-    <div class="progress-meta">
-      <span>{processed}/{total}</span>
-      <span>{t("batch.progress", { processed, total, audio: t("batch.no_audio"), failures })}</span>
-    </div>
-    <progress max={Math.max(total, 1)} value={processed} aria-valuenow={processed}></progress>
-  </section>
+    <section class="progress-panel" aria-live="polite">
+      <div class="progress-meta">
+        <span>{processed}/{total}</span>
+        <span>{t("batch.progress", { processed, total, audio: t("batch.no_audio"), failures })}</span>
+      </div>
+      <progress max={Math.max(total, 1)} value={processed} aria-valuenow={processed}></progress>
+    </section>
 
-  <pre aria-label="Batch log">{logLines.join("\n")}</pre>
+    <pre aria-label="Batch log">{logLines.join("\n")}</pre>
 
-  <BatchFooter
-    running={running}
-    finished={finished}
-    onStart={start}
-    onCancel={cancel}
-    onClose={batchClose}
-    onCopyLog={batchCopyLog}
-    canStart={canStart}
-  />
+    <BatchFooter
+      running={running}
+      finished={finished}
+      onStart={start}
+      onCancel={cancel}
+      onClose={batchClose}
+      onCopyLog={batchCopyLog}
+      canStart={canStart}
+    />
   </main>
 </AqeTooltipProvider>
 
@@ -142,6 +142,8 @@
     color: var(--fg, CanvasText);
     display: grid;
     gap: 18px;
+    font-family: inherit;
+    font-size: 12px;
     min-height: 100vh;
     padding: 22px;
   }
@@ -157,8 +159,8 @@
   }
 
   h1 {
-    font-size: 1.4rem;
-    line-height: 1.2;
+    font-size: 1.8rem;
+    line-height: 1.15;
   }
 
   p,
@@ -169,7 +171,6 @@
   .resource-links {
     display: flex;
     flex-wrap: wrap;
-    font-size: 12px;
     gap: 8px;
   }
 
@@ -202,7 +203,7 @@
   .progress-meta {
     display: flex;
     flex-wrap: wrap;
-    font-size: 0.9rem;
+    font-size: 11px;
     gap: 10px;
     justify-content: space-between;
   }

@@ -264,21 +264,28 @@
 
   span {
     color: var(--fg-subtle, currentColor);
-    font-size: 0.85rem;
-    font-weight: 600;
+    font-size: 11px;
+    font-weight: 700;
   }
 
   select,
   input {
     background: var(--canvas-elevated, Field);
     border: 1px solid var(--border, ButtonBorder);
-    border-radius: 6px;
+    border-radius: 5px;
     box-sizing: border-box;
     color: var(--fg, FieldText);
     font: inherit;
-    min-height: 34px;
-    padding: 6px 8px;
+    font-size: 11px;
+    min-height: 24px;
+    padding: 2px 4px;
     width: 100%;
+  }
+
+  select {
+    border-radius: 6px;
+    min-height: 30px;
+    padding: 4px 8px;
   }
 
   select:disabled,
@@ -289,7 +296,7 @@
   .batch-choice-group {
     display: inline-flex;
     flex-wrap: nowrap;
-    gap: 6px;
+    gap: 5px;
     min-width: 0;
   }
 
@@ -298,14 +305,23 @@
   }
 
   .batch-choice-button {
+    align-items: center;
+    appearance: none;
     background: var(--canvas-elevated, ButtonFace);
     border: 1px solid var(--border, ButtonBorder);
-    border-radius: 6px;
+    border-radius: 7px;
     color: var(--fg, ButtonText);
     cursor: pointer;
+    display: inline-flex;
     font: inherit;
-    min-height: 34px;
-    padding: 6px 10px;
+    font-size: 11px;
+    font-weight: 400;
+    min-height: 24px;
+    padding: 3px 6px;
+  }
+
+  .batch-choice-button:hover {
+    text-decoration: none;
   }
 
   .batch-choice-button[aria-checked="true"] {
