@@ -1,4 +1,6 @@
 <script lang="ts">
+  import AqeTooltip from "$lib/AqeTooltip.svelte";
+  import CommandIcon from "$lib/CommandIcon.svelte";
   import {
     pauseThresholdLabel,
     pauseThresholdMax,
@@ -41,14 +43,30 @@
       ? "settings.pause_threshold_probability.help"
       : "settings.pause_threshold_db.help",
   );
+
 </script>
 
 <details class="advanced-params" data-testid={`${testPrefix}-advanced-params`}>
   <summary>{t("settings.pause_advanced_params")}</summary>
   <div class="advanced-params-grid">
     <label>
-      <span>{pauseThresholdLabel(algorithm)}</span>
-      <p>{t(thresholdDescriptionKey)}</p>
+      <div class="field-label-row">
+        <span>{pauseThresholdLabel(algorithm)}</span>
+        <AqeTooltip>
+          {#snippet trigger({ props })}
+            <button
+              {...props}
+              type="button"
+              class="help-icon-button aqe-tooltip-target"
+              data-testid={`${testPrefix}-threshold-help`}
+              data-aqe-tooltip-content={t(thresholdDescriptionKey)}
+              aria-label={`${pauseThresholdLabel(algorithm)} help`}
+            >
+              <CommandIcon icon="circle-help" size={14} />
+            </button>
+          {/snippet}
+        </AqeTooltip>
+      </div>
       <input
         bind:value={threshold}
         data-testid={`${testPrefix}-threshold`}
@@ -61,8 +79,23 @@
       />
     </label>
     <label>
-      <span>{t("settings.pause_min_silence_seconds")}</span>
-      <p>{t("settings.pause_min_silence_seconds.help")}</p>
+      <div class="field-label-row">
+        <span>{t("settings.pause_min_silence_seconds")}</span>
+        <AqeTooltip>
+          {#snippet trigger({ props })}
+            <button
+              {...props}
+              type="button"
+              class="help-icon-button aqe-tooltip-target"
+              data-testid={`${testPrefix}-min-silence-seconds-help`}
+              data-aqe-tooltip-content={t("settings.pause_min_silence_seconds.help")}
+              aria-label={`${t("settings.pause_min_silence_seconds")} help`}
+            >
+              <CommandIcon icon="circle-help" size={14} />
+            </button>
+          {/snippet}
+        </AqeTooltip>
+      </div>
       <input
         bind:value={minSilenceSeconds}
         data-testid={`${testPrefix}-min-silence-seconds`}
@@ -75,8 +108,23 @@
       />
     </label>
     <label>
-      <span>{t("settings.pause_min_speech_seconds")}</span>
-      <p>{t("settings.pause_min_speech_seconds.help")}</p>
+      <div class="field-label-row">
+        <span>{t("settings.pause_min_speech_seconds")}</span>
+        <AqeTooltip>
+          {#snippet trigger({ props })}
+            <button
+              {...props}
+              type="button"
+              class="help-icon-button aqe-tooltip-target"
+              data-testid={`${testPrefix}-min-speech-seconds-help`}
+              data-aqe-tooltip-content={t("settings.pause_min_speech_seconds.help")}
+              aria-label={`${t("settings.pause_min_speech_seconds")} help`}
+            >
+              <CommandIcon icon="circle-help" size={14} />
+            </button>
+          {/snippet}
+        </AqeTooltip>
+      </div>
       <input
         bind:value={minSpeechSeconds}
         data-testid={`${testPrefix}-min-speech-seconds`}
@@ -96,9 +144,22 @@
         type="checkbox"
         onchange={(event) => onPreprocessDenoise?.((event.currentTarget as HTMLInputElement).checked)}
       />
-      <div>
+      <div class="field-label-row">
         <span>{t("settings.pause_preprocess_denoise")}</span>
-        <p>{t("settings.pause_preprocess_denoise.help")}</p>
+        <AqeTooltip>
+          {#snippet trigger({ props })}
+            <button
+              {...props}
+              type="button"
+              class="help-icon-button aqe-tooltip-target"
+              data-testid={`${testPrefix}-preprocess-denoise-help`}
+              data-aqe-tooltip-content={t("settings.pause_preprocess_denoise.help")}
+              aria-label={`${t("settings.pause_preprocess_denoise")} help`}
+            >
+              <CommandIcon icon="circle-help" size={14} />
+            </button>
+          {/snippet}
+        </AqeTooltip>
       </div>
     </label>
   </div>
@@ -128,18 +189,16 @@
     gap: 6px;
   }
 
+  .field-label-row {
+    align-items: center;
+    display: flex;
+    gap: 6px;
+  }
+
   span {
     color: var(--fg-subtle, currentColor);
     font-size: 0.85rem;
     font-weight: 600;
-  }
-
-  p {
-    color: var(--fg-subtle, currentColor);
-    font-size: 0.78rem;
-    font-weight: 400;
-    line-height: 1.35;
-    margin: 0;
   }
 
   input {
@@ -164,5 +223,15 @@
   .advanced-params-toggle input {
     min-height: auto;
     width: auto;
+  }
+
+  .help-icon-button {
+    align-items: center;
+    background: none;
+    border: 0;
+    color: var(--fg-subtle, currentColor);
+    cursor: help;
+    display: inline-flex;
+    padding: 0;
   }
 </style>

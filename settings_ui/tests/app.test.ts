@@ -160,10 +160,10 @@ describe("App", () => {
     expect(screen.getByText("Pause detection")).toBeInTheDocument();
     expect(screen.getByText("Shorten pauses level")).toBeInTheDocument();
     expect(screen.getByText("Advanced Params")).toBeInTheDocument();
-    expect(screen.getByText(/How quiet audio must be before ffmpeg treats it as silence/)).toBeInTheDocument();
-    expect(screen.getByText(/The shortest detected pause that can be removed/)).toBeInTheDocument();
-    expect(screen.getByText(/The shortest speech or sound island/)).toBeInTheDocument();
-    expect(screen.getByText(/Runs denoise before detection only/)).toBeInTheDocument();
+    expect(screen.getByTestId("settings-pause-threshold-help")).toBeInTheDocument();
+    expect(screen.getByTestId("settings-pause-min-silence-seconds-help")).toBeInTheDocument();
+    expect(screen.getByTestId("settings-pause-min-speech-seconds-help")).toBeInTheDocument();
+    expect(screen.getByTestId("settings-pause-preprocess-denoise-help")).toBeInTheDocument();
     expect(screen.getByText("Default convert format")).toBeInTheDocument();
     expect(screen.getByText("Default denoise algorithm")).toBeInTheDocument();
     expect(screen.getByText("Default pitch hum mode")).toBeInTheDocument();
@@ -179,13 +179,17 @@ describe("App", () => {
     setInitialState();
 
     render(App);
-    expect(screen.getByText(/How quiet audio must be before ffmpeg treats it as silence/)).toBeInTheDocument();
-    expect(screen.queryByText(/How confident Silero must be that a frame is speech/)).not.toBeInTheDocument();
+    expect(screen.getByTestId("settings-pause-threshold-help")).toHaveAttribute(
+      "data-aqe-tooltip-content",
+      expect.stringMatching(/How quiet audio must be before ffmpeg treats it as silence/),
+    );
 
     await fireEvent.click(screen.getByTestId("pause-detection-algorithm-silero_vad"));
 
-    expect(screen.getByText(/How confident Silero must be that a frame is speech/)).toBeInTheDocument();
-    expect(screen.queryByText(/How quiet audio must be before ffmpeg treats it as silence/)).not.toBeInTheDocument();
+    expect(screen.getByTestId("settings-pause-threshold-help")).toHaveAttribute(
+      "data-aqe-tooltip-content",
+      expect.stringMatching(/How confident Silero must be that a frame is speech/),
+    );
   });
 
   it("always saves inline editor controls as enabled", async () => {

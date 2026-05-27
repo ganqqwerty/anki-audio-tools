@@ -143,9 +143,9 @@ describe("BatchApp", () => {
     });
     expect(screen.getByTestId("batch-pause-aggressiveness-aggressive")).toBeInTheDocument();
     expect(screen.getByTestId("batch-pause-advanced-params")).toBeInTheDocument();
-    expect(screen.getByText(/How quiet audio must be before ffmpeg treats it as silence/)).toBeInTheDocument();
-    expect(screen.getByText(/The shortest detected pause that can be removed/)).toBeInTheDocument();
-    expect(screen.getByText(/Runs denoise before detection only/)).toBeInTheDocument();
+    expect(screen.getByTestId("batch-pause-threshold-help")).toBeInTheDocument();
+    expect(screen.getByTestId("batch-pause-min-silence-seconds-help")).toBeInTheDocument();
+    expect(screen.getByTestId("batch-pause-preprocess-denoise-help")).toBeInTheDocument();
     expect(screen.queryByLabelText("Speed factor")).not.toBeInTheDocument();
 
     await fireEvent.change(screen.getByLabelText("Operation"), {
