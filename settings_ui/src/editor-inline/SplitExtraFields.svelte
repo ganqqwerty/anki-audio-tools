@@ -9,7 +9,9 @@
   import {
     DPDFNET_ATTENUATION_LIMIT_DB_VALUES,
     PAUSE_DETECTION_ALGORITHM_VALUES,
+    pauseDetectionAlgorithmOrDefault,
   } from "../lib/audio-operation-parameters.js";
+  import PauseAdvancedParamsFields from "../lib/PauseAdvancedParamsFields.svelte";
   import {
     formatDpdfnetAggressiveness,
     formatPauseDetectionAlgorithm,
@@ -26,6 +28,14 @@
     onChange,
     onDpdfnetAttnLimitDb,
     onPauseDetectionAlgorithm,
+    onPauseMinSilenceSeconds,
+    onPauseMinSpeechSeconds,
+    onPausePreprocessDenoise,
+    onPauseThreshold,
+    pauseMinSilenceSeconds,
+    pauseMinSpeechSeconds,
+    pausePreprocessDenoise,
+    pauseThreshold,
     pauseDetectionAlgorithm,
     slug,
     targetOrd,
@@ -36,6 +46,14 @@
     onChange: () => void;
     onDpdfnetAttnLimitDb: (value: number) => void;
     onPauseDetectionAlgorithm: (value: PauseDetectionAlgorithm) => void;
+    onPauseMinSilenceSeconds: (value: number) => void;
+    onPauseMinSpeechSeconds: (value: number) => void;
+    onPausePreprocessDenoise: (value: boolean) => void;
+    onPauseThreshold: (value: number) => void;
+    pauseMinSilenceSeconds: number;
+    pauseMinSpeechSeconds: number;
+    pausePreprocessDenoise: boolean;
+    pauseThreshold: number;
     pauseDetectionAlgorithm: PauseDetectionAlgorithm;
     slug: string;
     targetOrd: number;
@@ -47,10 +65,30 @@
   }
 
   function applyPauseDetectionAlgorithm(value: string): void {
-    if (value === "deep_filter" || value === "silero_vad") {
+    if (value === "silencedetect" || value === "silero_vad") {
       onPauseDetectionAlgorithm(value);
       onChange();
     }
+  }
+
+  function applyPauseThreshold(value: number): void {
+    onPauseThreshold(value);
+    onChange();
+  }
+
+  function applyPauseMinSilenceSeconds(value: number): void {
+    onPauseMinSilenceSeconds(value);
+    onChange();
+  }
+
+  function applyPauseMinSpeechSeconds(value: number): void {
+    onPauseMinSpeechSeconds(value);
+    onChange();
+  }
+
+  function applyPausePreprocessDenoise(value: boolean): void {
+    onPausePreprocessDenoise(value);
+    onChange();
   }
 </script>
 
@@ -87,6 +125,18 @@
       {/each}
     </div>
   </label>
+  <PauseAdvancedParamsFields
+    algorithm={pauseDetectionAlgorithmOrDefault(pauseDetectionAlgorithm)}
+    threshold={pauseThreshold}
+    minSilenceSeconds={pauseMinSilenceSeconds}
+    minSpeechSeconds={pauseMinSpeechSeconds}
+    preprocessDenoise={pausePreprocessDenoise}
+    onThreshold={applyPauseThreshold}
+    onMinSilenceSeconds={applyPauseMinSilenceSeconds}
+    onMinSpeechSeconds={applyPauseMinSpeechSeconds}
+    onPreprocessDenoise={applyPausePreprocessDenoise}
+    testPrefix={`aqe-split-${targetOrd}-${slug}-pause`}
+  />
 {/if}
 {#if command === "aqe:remove-pauses"}
   <label class="aqe-split-extra-field">

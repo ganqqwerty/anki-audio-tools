@@ -49,7 +49,7 @@ def test_build_audio_filters_omits_atempo_when_speed_is_unchanged() -> None:
     assert "atempo=" not in filters
 
 
-def test_build_working_original_filters_omits_volume_speed_and_internal_pause_processing() -> None:
+def test_build_working_original_filters_omits_volume_speed_and_pause_removal() -> None:
     filters = build_working_original_filters(
         3000,
         AudioEditState(
@@ -65,16 +65,15 @@ def test_build_working_original_filters_omits_volume_speed_and_internal_pause_pr
 
 def test_build_silencedetect_command_uses_exact_pause_threshold_and_gap_values(tmp_path: Path) -> None:
     config = AudioProcessingConfig(
-        internal_pause_silence_threshold_db=-41,
-        internal_pause_threshold_ms=275,
-        internal_pause_target_gap_ms=125,
+        pause_silencedetect_threshold_db=-41,
+        pause_silencedetect_min_silence_seconds=0.275,
     )
 
     command = build_silencedetect_command(
         Path("/bin/ffmpeg"),
         tmp_path / "analysis.wav",
-        threshold_db=config.internal_pause_silence_threshold_db,
-        min_duration_ms=config.internal_pause_threshold_ms,
+        threshold_db=config.pause_silencedetect_threshold_db,
+        min_duration_ms=round(config.pause_silencedetect_min_silence_seconds * 1000),
     )
 
     assert command == (
@@ -124,9 +123,8 @@ def test_build_convert_audio_command_uses_format_codec_args(
 
 def test_build_audio_filters_omits_edge_silence_filter_parameters() -> None:
     config = AudioProcessingConfig(
-        internal_pause_silence_threshold_db=-47,
-        internal_pause_threshold_ms=509,
-        internal_pause_target_gap_ms=509,
+        pause_silencedetect_threshold_db=-47,
+        pause_silencedetect_min_silence_seconds=0.509,
     )
     state = AudioEditState(
         "clip.mp3",
@@ -134,7 +132,7 @@ def test_build_audio_filters_omits_edge_silence_filter_parameters() -> None:
     )
 
     filters = build_audio_filters(3000, state)
-    pause_threshold = f"{config.internal_pause_silence_threshold_db}dB"
+    pause_threshold = f"{config.pause_silencedetect_threshold_db:g}dB"
 
     assert "silenceremove" not in filters
     assert "start_duration=0.509" not in filters
@@ -200,4 +198,3 @@ def test_build_region_keep_plan_rejects_empty_and_whole_audio_selection() -> Non
         build_region_keep_plan(500, 500, 2000)
     with pytest.raises(AudioProcessingError, match="already covers the whole audio clip"):
         build_region_keep_plan(0, 2000, 2000)
-

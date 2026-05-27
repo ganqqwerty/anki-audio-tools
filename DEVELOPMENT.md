@@ -119,7 +119,7 @@ Run `release-smoke` with Anki's Python 3.13 runtime when validating a built arch
 
 Use `--embed-runtime` for local/offline validation builds that intentionally include runtime payloads in the `.ankiaddon`. The legacy `--no-bundle-ffmpeg` option is only valid with `--embed-runtime`; public thin releases always put `ffmpeg` and `ffprobe` in the runtime packs.
 
-Pause-shortening runs retain provenance under `<addon_dir>/aqe_artifacts/<run_id>/`, including intermediate WAV files, raw silence metadata, timeline JSON, filter script, final output copy, and `manifest.json`. The directory is intentionally unbounded for now, so clean it manually during local testing if it grows large.
+Pause-shortening runs retain provenance under `<addon_dir>/aqe_artifacts/<run_id>/`, including the original working WAV, detector analysis input, optional denoised analysis WAV, raw detector metadata, detected and removed interval JSON, cut-only timeline JSON, filter script, final output copy, and `manifest.json`. The directory is intentionally unbounded for now, so clean it manually during local testing if it grows large.
 
 RNNoise denoising uses ffmpeg to convert arbitrary source audio to raw 48 kHz mono signed 16-bit PCM, runs RNNoise over that raw stream, then uses ffmpeg to encode the result as MP3.
 

@@ -29,7 +29,7 @@ BROAD_EXCEPTION_ALLOWLIST: tuple[BroadExceptionAllowance, ...] = (
     ),
     BroadExceptionAllowance(
         "audio_pause_pipeline",
-        "_render_deep_filter_pause_speedup_audio",
+        "_render_pause_removal_pipeline_audio",
         1,
         "External DeepFilterNet rendering boundary records support context before surfacing an add-on error.",
     ),

@@ -15,7 +15,7 @@ python3 scripts/dev.py test-e2e-parallel
 
 ## What Gets Tested
 
-- `tests/` covers sound-reference parsing, edit-state validation, ffmpeg filter construction, managed runtime download/extract/verify behavior, thin release/runtime-pack packaging, DeepFilter-assisted pause pipeline planning and artifacts, external denoiser command/render/error paths for DeepFilterNet, RNNoise, and DPDFNet, prosody analysis and serialization, SVG rendering, batch visualization decisions, Browser hook wiring, config migration, bootstrap behavior, editor bridge wiring, and settings command/state logic.
+- `tests/` covers sound-reference parsing, edit-state validation, ffmpeg filter construction, managed runtime download/extract/verify behavior, thin release/runtime-pack packaging, unified Silencedetect/Silero pause-removal planning and artifacts, external denoiser command/render/error paths for DeepFilterNet, RNNoise, and DPDFNet, prosody analysis and serialization, SVG rendering, batch visualization decisions, Browser hook wiring, config migration, bootstrap behavior, editor bridge wiring, and settings command/state logic.
 - `anki_api_contract/` discovers the Anki API surface from production add-on code and checks it against the real installed Anki Python runtime without launching a full Anki app.
 - `tests/test_architecture/` enforces layer boundaries, module classification, Anki-import-safe helper modules, import-safe runtime modules, editor bridge command sync, prosody dependency isolation, shell-thin settings rules, and DB access isolation.
 - `tests/test_runtime_package_imports.py` and the runtime-import architecture rule guard against hard-coded lazy imports of the friendly source package name, which would fail when Anki loads the add-on as a numeric package.
@@ -145,6 +145,15 @@ Thin archives are size-gated separately from runtime packs. Runtime packs have w
 | Managed runtime assets | `tests/test_runtime_manager.py` |
 | Release packaging | `tests/test_release.py` |
 | Architecture boundaries | `tests/test_architecture/*.py` |
+
+## Pause Shortening Invariants
+
+Pause removal has focused unit tests because it combines detector-specific commands with shared timeline planning:
+
+- `tests/test_audio_operation_params.py` verifies preset values, active operation-local overrides, clamping, and config immutability.
+- `tests/test_audio_pipeline.py` verifies interval invariants: `min_silence_seconds` is the minimum removable duration, `min_speech_seconds` merges only too-short speech islands, generated keep segments are non-negative/non-overlapping/in bounds, empty detections leave the render plan unchanged, and full-clip pause detection keeps a minimal valid segment.
+- `tests/test_audio_pause_pipeline.py` verifies both algorithms render final audio from `working_original`, optional DPDFNet preprocessing changes detector input only, Silencedetect receives threshold/min-silence and post-processes min-speech, Silero receives threshold/min-silence/min-speech and inverts speech intervals at clip boundaries, output timelines contain only cut/keep segments with no sped-up pauses, and manifests record algorithm, active params, preprocessing, detected intervals, removed intervals, timeline, and output.
+- `settings_ui/tests/` verifies Settings, inline editor quick settings, and Browser Bulk keep Advanced Params collapsed by default, preserve algorithm-specific values across detector switches, apply preset clicks to active params, and include manual advanced edits in editor/Bulk command payloads.
 
 ## Mutation Testing
 

@@ -42,10 +42,10 @@ def test_async_support_report_returns_incident_and_log_tail(tmp_path: Path) -> N
     clear_latest_rnnoise_support_incident()
     clear_latest_spleeter_support_incident()
     record_latest_pause_pipeline_support_incident(
-        operation="deep_filter_pause_speedup",
+        operation="pause_removal",
         media_filename="clip.mp3",
         source_path="/media/clip.mp3",
-        user_message="DeepFilterNet pause analysis failed.",
+        user_message="Pause removal analysis failed.",
         exception_type="AudioProcessingError",
         ffmpeg_path="/bin/ffmpeg",
         deep_filter_path="/bin/deep-filter",
@@ -114,7 +114,7 @@ def test_async_support_report_returns_incident_and_log_tail(tmp_path: Path) -> N
     result = _parse_callback(done_calls[0], "onAsyncDone")
     report_text = result["result"]["reportText"]
     assert "Anki Audio Quick Editor Support Report" in report_text
-    assert "DeepFilterNet pause analysis failed." in report_text
+    assert "Pause removal analysis failed." in report_text
     assert "RNNoise denoise failed." in report_text
     assert "Voice Only extraction failed." in report_text
     assert "/bin/rnnoise-cli denoise --input in.s16le" in report_text

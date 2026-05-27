@@ -20,18 +20,20 @@ def sync_external_dependencies(audio_external: Any, *, subprocess_module: Any, f
 
 def sync_pause_dependencies(
     audio_pause_pipeline: Any,
+    audio_pause_pipeline_steps: Any,
     *,
-    find_deep_filter: Any,
+    find_dpdfnet_bundle: Any,
     find_silero_vad_bundle: Any,
     probe_duration_ms: Any,
     run_external_command: Any,
     render_external_error_message: Any,
 ) -> None:
-    audio_pause_pipeline.find_deep_filter = find_deep_filter
+    audio_pause_pipeline.find_dpdfnet_bundle = find_dpdfnet_bundle
     audio_pause_pipeline.find_silero_vad_bundle = find_silero_vad_bundle
     audio_pause_pipeline.probe_duration_ms = probe_duration_ms
-    audio_pause_pipeline._run_external_command = run_external_command
-    audio_pause_pipeline._render_external_error_message = render_external_error_message
+    audio_pause_pipeline_steps.probe_duration_ms = probe_duration_ms
+    audio_pause_pipeline_steps._run_external_command = run_external_command
+    audio_pause_pipeline_steps._render_external_error_message = render_external_error_message
 
 
 def sync_rendering_dependencies(
@@ -43,7 +45,7 @@ def sync_rendering_dependencies(
     find_ffmpeg: Any,
     make_playback_segment_filename: Any,
     probe_duration_ms: Any,
-    render_deep_filter_pause_speedup_audio: Any,
+    render_pause_removal_pipeline_audio: Any,
     subprocess_module: Any,
     tempfile_module: Any,
     uuid_module: Any,
@@ -52,7 +54,7 @@ def sync_rendering_dependencies(
     audio_rendering.probe_duration_ms = probe_duration_ms
     audio_rendering.build_audio_filters = build_audio_filters
     audio_rendering.build_convert_audio_command = build_convert_audio_command
-    audio_rendering._render_deep_filter_pause_speedup_audio = render_deep_filter_pause_speedup_audio
+    audio_rendering._render_pause_removal_pipeline_audio = render_pause_removal_pipeline_audio
     audio_rendering._external_command_run_kwargs = external_command_run_kwargs
     audio_rendering.subprocess = subprocess_module
     audio_rendering.tempfile = tempfile_module

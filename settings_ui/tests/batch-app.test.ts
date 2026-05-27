@@ -66,7 +66,15 @@ function setInitialState(): void {
       speed_step: 0.1,
       volume_step_db: 6,
       pause_aggressiveness: BatchPauseAggressiveness.Aggressive,
-      pause_detection_algorithm: BatchPauseDetectionAlgorithm.DeepFilter,
+      pause_detection_algorithm: BatchPauseDetectionAlgorithm.Silencedetect,
+      pause_silencedetect_threshold_db: -52,
+      pause_silencedetect_min_silence_seconds: 0.14,
+      pause_silencedetect_min_speech_seconds: 0.04,
+      pause_silencedetect_preprocess_denoise: true,
+      pause_silero_threshold: 0.85,
+      pause_silero_min_silence_seconds: 0.15,
+      pause_silero_min_speech_seconds: 0.04,
+      pause_silero_preprocess_denoise: false,
       denoise_algorithm: DenoiseAlgorithm.Standard,
       dpdfnet_attn_limit_db: 12,
       output_format: OutputFormat.Mp3,
@@ -134,6 +142,7 @@ describe("BatchApp", () => {
       target: { value: BatchOperationName.RemovePauses },
     });
     expect(screen.getByTestId("batch-pause-aggressiveness-aggressive")).toBeInTheDocument();
+    expect(screen.getByTestId("batch-pause-advanced-params")).toBeInTheDocument();
     expect(screen.queryByLabelText("Speed factor")).not.toBeInTheDocument();
 
     await fireEvent.change(screen.getByLabelText("Operation"), {

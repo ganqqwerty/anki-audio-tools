@@ -64,9 +64,14 @@ def _full_config() -> dict[str, object]:
         "volume_step_db": 15.0,
         "min_volume_db": -40.0,
         "max_volume_db": 40.0,
-        "internal_pause_silence_threshold_db": -45,
-        "internal_pause_threshold_ms": 300,
-        "internal_pause_target_gap_ms": 100,
+        "pause_silencedetect_threshold_db": -45.0,
+        "pause_silencedetect_min_silence_seconds": 0.3,
+        "pause_silencedetect_min_speech_seconds": 0.1,
+        "pause_silencedetect_preprocess_denoise": True,
+        "pause_silero_threshold": 0.5,
+        "pause_silero_min_silence_seconds": 0.45,
+        "pause_silero_min_speech_seconds": 0.1,
+        "pause_silero_preprocess_denoise": False,
         "output_format": "mp3",
         "ffmpeg_path": "/opt/homebrew/bin/ffmpeg",
         "deep_filter_post_filter": True,
@@ -74,7 +79,7 @@ def _full_config() -> dict[str, object]:
         "denoise_algorithm": "standard",
         "pitch_hum_mode": "direct",
         "pause_aggressiveness": "normal",
-        "pause_detection_algorithm": "deep_filter",
+        "pause_detection_algorithm": "silencedetect",
     }
 
 

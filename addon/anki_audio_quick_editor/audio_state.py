@@ -5,6 +5,14 @@ from __future__ import annotations
 from dataclasses import dataclass, field, replace
 
 from .audio_formats import DEFAULT_OUTPUT_FORMAT, normalize_output_format
+from .audio_pause_settings import (
+    bool_or_default,
+    clamp_pause_seconds,
+    clamp_pause_threshold,
+    pause_aggressiveness_or_default,
+    pause_detection_algorithm_or_default,
+    preset_for_pause_detection,
+)
 from .dpdfnet_settings import (
     DEFAULT_DPDFNET_ATTENUATION_LIMIT_DB,
     normalize_dpdfnet_attn_limit_db,
@@ -29,11 +37,16 @@ class AudioProcessingConfig:
     volume_step_db: float = 15.0
     min_volume_db: float = -40.0
     max_volume_db: float = 40.0
-    internal_pause_silence_threshold_db: int = -45
-    internal_pause_threshold_ms: int = 300
-    internal_pause_target_gap_ms: int = 100
     pause_aggressiveness: str = "normal"
-    pause_detection_algorithm: str = "deep_filter"
+    pause_detection_algorithm: str = "silencedetect"
+    pause_silencedetect_threshold_db: float = -45.0
+    pause_silencedetect_min_silence_seconds: float = 0.30
+    pause_silencedetect_min_speech_seconds: float = 0.10
+    pause_silencedetect_preprocess_denoise: bool = True
+    pause_silero_threshold: float = 0.50
+    pause_silero_min_silence_seconds: float = 0.45
+    pause_silero_min_speech_seconds: float = 0.10
+    pause_silero_preprocess_denoise: bool = False
     output_format: str = DEFAULT_OUTPUT_FORMAT
     ffmpeg_path: str = field(default_factory=default_ffmpeg_path)
     deep_filter_post_filter: bool = True
@@ -50,6 +63,14 @@ class AudioProcessingConfig:
     @classmethod
     def from_config(cls, config: dict[str, ConfigValue]) -> "AudioProcessingConfig":
         """Build typed settings from persisted add-on config."""
+        pause_aggressiveness = pause_aggressiveness_or_default(
+            config.get("pause_aggressiveness", cls.pause_aggressiveness)
+        )
+        pause_detection_algorithm = pause_detection_algorithm_or_default(
+            config.get("pause_detection_algorithm", cls.pause_detection_algorithm)
+        )
+        silencedetect_preset = preset_for_pause_detection("silencedetect", pause_aggressiveness)
+        silero_preset = preset_for_pause_detection("silero_vad", pause_aggressiveness)
         return cls(
             speed_step=float(config.get("speed_step", cls.speed_step)),
             min_speed=float(config.get("min_speed", cls.min_speed)),
@@ -57,23 +78,62 @@ class AudioProcessingConfig:
             volume_step_db=float(config.get("volume_step_db", cls.volume_step_db)),
             min_volume_db=float(config.get("min_volume_db", cls.min_volume_db)),
             max_volume_db=float(config.get("max_volume_db", cls.max_volume_db)),
-            internal_pause_silence_threshold_db=int(
+            pause_aggressiveness=pause_aggressiveness,
+            pause_detection_algorithm=pause_detection_algorithm,
+            pause_silencedetect_threshold_db=clamp_pause_threshold(
+                "silencedetect",
                 config.get(
-                    "internal_pause_silence_threshold_db",
-                    cls.internal_pause_silence_threshold_db,
-                )
+                    "pause_silencedetect_threshold_db",
+                    silencedetect_preset.threshold,
+                ),
+                silencedetect_preset.threshold,
             ),
-            internal_pause_threshold_ms=int(
-                config.get("internal_pause_threshold_ms", cls.internal_pause_threshold_ms)
+            pause_silencedetect_min_silence_seconds=clamp_pause_seconds(
+                config.get(
+                    "pause_silencedetect_min_silence_seconds",
+                    silencedetect_preset.min_silence_seconds,
+                ),
+                silencedetect_preset.min_silence_seconds,
             ),
-            internal_pause_target_gap_ms=int(
-                config.get("internal_pause_target_gap_ms", cls.internal_pause_target_gap_ms)
+            pause_silencedetect_min_speech_seconds=clamp_pause_seconds(
+                config.get(
+                    "pause_silencedetect_min_speech_seconds",
+                    silencedetect_preset.min_speech_seconds,
+                ),
+                silencedetect_preset.min_speech_seconds,
             ),
-            pause_aggressiveness=str(
-                config.get("pause_aggressiveness", cls.pause_aggressiveness)
+            pause_silencedetect_preprocess_denoise=bool_or_default(
+                config.get(
+                    "pause_silencedetect_preprocess_denoise",
+                    silencedetect_preset.preprocess_denoise,
+                ),
+                silencedetect_preset.preprocess_denoise,
             ),
-            pause_detection_algorithm=str(
-                config.get("pause_detection_algorithm", cls.pause_detection_algorithm)
+            pause_silero_threshold=clamp_pause_threshold(
+                "silero_vad",
+                config.get("pause_silero_threshold", silero_preset.threshold),
+                silero_preset.threshold,
+            ),
+            pause_silero_min_silence_seconds=clamp_pause_seconds(
+                config.get(
+                    "pause_silero_min_silence_seconds",
+                    silero_preset.min_silence_seconds,
+                ),
+                silero_preset.min_silence_seconds,
+            ),
+            pause_silero_min_speech_seconds=clamp_pause_seconds(
+                config.get(
+                    "pause_silero_min_speech_seconds",
+                    silero_preset.min_speech_seconds,
+                ),
+                silero_preset.min_speech_seconds,
+            ),
+            pause_silero_preprocess_denoise=bool_or_default(
+                config.get(
+                    "pause_silero_preprocess_denoise",
+                    silero_preset.preprocess_denoise,
+                ),
+                silero_preset.preprocess_denoise,
             ),
             output_format=normalize_output_format(config.get("output_format", cls.output_format)),
             ffmpeg_path=str(config.get("ffmpeg_path", default_ffmpeg_path())),
@@ -153,7 +213,7 @@ class AudioEditState:
         )
 
     def toggle_internal_pauses(self) -> "AudioEditState":
-        """Return a state with internal pause compression enabled."""
+        """Return a state with internal pause removal enabled."""
         return replace(self, remove_internal_pauses_enabled=True)
 
     def validate(self, duration_ms: int, config: AudioProcessingConfig) -> None:

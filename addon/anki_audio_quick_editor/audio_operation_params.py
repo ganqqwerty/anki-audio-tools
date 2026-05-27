@@ -6,6 +6,17 @@ from dataclasses import dataclass, replace
 from typing import Any
 
 from .audio_formats import validate_target_format
+from .audio_pause_settings import (
+    MIN_PAUSE_SECONDS,
+    PAUSE_AGGRESSIVENESS,
+    PAUSE_DETECTION_ALGORITHMS,
+    PauseDetectionPreset,
+    bool_or_default,
+    clamp_pause_seconds,
+    clamp_pause_threshold,
+    pause_detection_algorithm_or_default,
+    preset_for_pause_detection,
+)
 from .audio_state import AudioProcessingConfig
 from .dpdfnet_settings import normalize_dpdfnet_attn_limit_db
 
@@ -13,8 +24,6 @@ MIN_VOLUME_STEP_DB = 1.0
 MAX_VOLUME_STEP_DB = 40.0
 MIN_SPEED_STEP = 1.01
 MAX_SPEED_STEP = 5.0
-PAUSE_AGGRESSIVENESS = frozenset({"gentle", "normal", "aggressive"})
-PAUSE_DETECTION_ALGORITHMS = frozenset({"deep_filter", "silero_vad"})
 DENOISE_ALGORITHMS = frozenset({"standard", "rnnoise", "dpdfnet", "voice_only"})
 
 
@@ -26,6 +35,10 @@ class AudioOperationParameters:
     speed_step: float | None = None
     pause_aggressiveness: str | None = None
     pause_detection_algorithm: str | None = None
+    pause_threshold: float | None = None
+    pause_min_silence_seconds: float | None = None
+    pause_min_speech_seconds: float | None = None
+    pause_preprocess_denoise: bool | None = None
     denoise_algorithm: str | None = None
     dpdfnet_attn_limit_db: float | None = None
     target_format: str | None = None
@@ -37,6 +50,10 @@ def parameters_from_raw(
     speed_step: Any = None,
     pause_aggressiveness: Any = None,
     pause_detection_algorithm: Any = None,
+    pause_threshold: Any = None,
+    pause_min_silence_seconds: Any = None,
+    pause_min_speech_seconds: Any = None,
+    pause_preprocess_denoise: Any = None,
     denoise_algorithm: Any = None,
     dpdfnet_attn_limit_db: Any = None,
     target_format: Any = None,
@@ -55,6 +72,10 @@ def parameters_from_raw(
         ),
         pause_aggressiveness=_pause_aggressiveness_or_none(pause_aggressiveness),
         pause_detection_algorithm=_pause_detection_algorithm_or_none(pause_detection_algorithm),
+        pause_threshold=_pause_threshold_or_none(pause_detection_algorithm, pause_threshold),
+        pause_min_silence_seconds=_pause_seconds_or_none(pause_min_silence_seconds),
+        pause_min_speech_seconds=_pause_seconds_or_none(pause_min_speech_seconds),
+        pause_preprocess_denoise=_bool_or_none(pause_preprocess_denoise),
         denoise_algorithm=_denoise_algorithm_or_none(denoise_algorithm),
         dpdfnet_attn_limit_db=_dpdfnet_attn_limit_or_none(dpdfnet_attn_limit_db),
         target_format=_target_format_or_none(target_format),
@@ -74,11 +95,7 @@ def effective_config_for_operation(
     effective = _config_with_shared_operation_parameters(config, parameters)
     if operation != "remove_pauses":
         return effective
-    return config_for_pause_aggressiveness(
-        effective,
-        parameters.pause_aggressiveness or config.pause_aggressiveness,
-        parameters.pause_detection_algorithm or config.pause_detection_algorithm,
-    )
+    return config_for_pause_parameters(effective, parameters)
 
 
 def _config_for_convert_operation(
@@ -110,45 +127,121 @@ def _operation_dpdfnet_attn_limit_db(
     return parameters.dpdfnet_attn_limit_db
 
 
-def config_for_pause_aggressiveness(
+def config_for_pause_parameters(
     config: AudioProcessingConfig,
-    aggressiveness: str,
-    pause_detection_algorithm: str | None = None,
+    parameters: AudioOperationParameters,
 ) -> AudioProcessingConfig:
-    """Return pause detection thresholds for one supported aggressiveness level."""
-    if aggressiveness == "gentle":
-        return replace(
+    """Return config with operation-local pause detector parameters applied."""
+    algorithm = pause_detection_algorithm_or_default(
+        parameters.pause_detection_algorithm or config.pause_detection_algorithm
+    )
+    aggressiveness = parameters.pause_aggressiveness or config.pause_aggressiveness
+    explicit_params = (
+        parameters.pause_threshold is not None
+        or parameters.pause_min_silence_seconds is not None
+        or parameters.pause_min_speech_seconds is not None
+        or parameters.pause_preprocess_denoise is not None
+    )
+    preset = preset_for_pause_detection(algorithm, aggressiveness)
+    if algorithm == "silero_vad":
+        return _config_with_silero_pause_parameters(
             config,
-            internal_pause_silence_threshold_db=-42,
-            internal_pause_threshold_ms=450,
-            internal_pause_target_gap_ms=180,
-            pause_aggressiveness=aggressiveness,
-            pause_detection_algorithm=pause_detection_algorithm or config.pause_detection_algorithm,
+            aggressiveness,
+            parameters,
+            preset if not explicit_params else None,
         )
-    if aggressiveness == "aggressive":
-        return replace(
-            config,
-            internal_pause_silence_threshold_db=-52,
-            internal_pause_threshold_ms=140,
-            internal_pause_target_gap_ms=45,
-            pause_aggressiveness=aggressiveness,
-            pause_detection_algorithm=pause_detection_algorithm or config.pause_detection_algorithm,
-        )
-    return replace(
+    return _config_with_silencedetect_pause_parameters(
         config,
-        pause_aggressiveness="normal",
-        pause_detection_algorithm=pause_detection_algorithm or config.pause_detection_algorithm,
+        aggressiveness,
+        parameters,
+        preset if not explicit_params else None,
     )
 
 
-def _int_or_none(value: Any) -> int | None:
-    if isinstance(value, bool):
-        return None
-    if isinstance(value, int):
-        return value
-    if isinstance(value, float) and value.is_integer():
-        return int(value)
-    return None
+def _config_with_silencedetect_pause_parameters(
+    config: AudioProcessingConfig,
+    aggressiveness: str,
+    parameters: AudioOperationParameters,
+    preset: PauseDetectionPreset | None,
+) -> AudioProcessingConfig:
+    return replace(
+        config,
+        pause_aggressiveness=aggressiveness,
+        pause_detection_algorithm="silencedetect",
+        pause_silencedetect_threshold_db=clamp_pause_threshold(
+            "silencedetect",
+            preset.threshold
+            if preset is not None
+            else (
+                parameters.pause_threshold
+                if parameters.pause_threshold is not None
+                else config.pause_silencedetect_threshold_db
+            ),
+            config.pause_silencedetect_threshold_db,
+        ),
+        pause_silencedetect_min_silence_seconds=(
+            preset.min_silence_seconds
+            if preset is not None
+            else parameters.pause_min_silence_seconds
+            or config.pause_silencedetect_min_silence_seconds
+        ),
+        pause_silencedetect_min_speech_seconds=(
+            preset.min_speech_seconds
+            if preset is not None
+            else parameters.pause_min_speech_seconds
+            or config.pause_silencedetect_min_speech_seconds
+        ),
+        pause_silencedetect_preprocess_denoise=(
+            preset.preprocess_denoise
+            if preset is not None
+            else bool_or_default(
+                parameters.pause_preprocess_denoise,
+                config.pause_silencedetect_preprocess_denoise,
+            )
+        ),
+    )
+
+
+def _config_with_silero_pause_parameters(
+    config: AudioProcessingConfig,
+    aggressiveness: str,
+    parameters: AudioOperationParameters,
+    preset: PauseDetectionPreset | None,
+) -> AudioProcessingConfig:
+    return replace(
+        config,
+        pause_aggressiveness=aggressiveness,
+        pause_detection_algorithm="silero_vad",
+        pause_silero_threshold=clamp_pause_threshold(
+            "silero_vad",
+            preset.threshold
+            if preset is not None
+            else (
+                parameters.pause_threshold
+                if parameters.pause_threshold is not None
+                else config.pause_silero_threshold
+            ),
+            config.pause_silero_threshold,
+        ),
+        pause_silero_min_silence_seconds=(
+            preset.min_silence_seconds
+            if preset is not None
+            else parameters.pause_min_silence_seconds or config.pause_silero_min_silence_seconds
+        ),
+        pause_silero_min_speech_seconds=(
+            preset.min_speech_seconds
+            if preset is not None
+            else parameters.pause_min_speech_seconds or config.pause_silero_min_speech_seconds
+        ),
+        pause_silero_preprocess_denoise=(
+            preset.preprocess_denoise
+            if preset is not None
+            else bool_or_default(
+                parameters.pause_preprocess_denoise,
+                config.pause_silero_preprocess_denoise,
+            )
+        ),
+    )
 
 
 def _float_or_none(value: Any) -> float | None:
@@ -175,6 +268,27 @@ def _pause_detection_algorithm_or_none(value: Any) -> str | None:
     if not isinstance(value, str):
         return None
     return value if value in PAUSE_DETECTION_ALGORITHMS else None
+
+
+def _pause_threshold_or_none(algorithm: Any, value: Any) -> float | None:
+    if isinstance(value, bool) or value is None:
+        return None
+    parsed = _float_or_none(value)
+    if parsed is None:
+        return None
+    if isinstance(algorithm, str) and algorithm in PAUSE_DETECTION_ALGORITHMS:
+        return clamp_pause_threshold(algorithm, parsed, parsed)
+    return parsed
+
+
+def _pause_seconds_or_none(value: Any) -> float | None:
+    if isinstance(value, bool) or value is None:
+        return None
+    return clamp_pause_seconds(value, MIN_PAUSE_SECONDS)
+
+
+def _bool_or_none(value: Any) -> bool | None:
+    return value if isinstance(value, bool) else None
 
 
 def _denoise_algorithm_or_none(value: Any) -> str | None:

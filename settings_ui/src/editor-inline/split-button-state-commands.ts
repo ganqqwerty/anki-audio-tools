@@ -15,6 +15,27 @@ function graphSettingsPayload(state: FieldSplitButtonState): NonNullable<EditorC
   };
 }
 
+function activePauseOverrides(state: FieldSplitButtonState): NonNullable<EditorCommandPayload["overrides"]> {
+  if (state.pauseDetectionAlgorithm === "silero_vad") {
+    return {
+      pauseAggressiveness: state.pauseAggressiveness,
+      pauseDetectionAlgorithm: state.pauseDetectionAlgorithm,
+      pauseThreshold: state.pauseSileroThreshold,
+      pauseMinSilenceSeconds: state.pauseSileroMinSilenceSeconds,
+      pauseMinSpeechSeconds: state.pauseSileroMinSpeechSeconds,
+      pausePreprocessDenoise: state.pauseSileroPreprocessDenoise,
+    };
+  }
+  return {
+    pauseAggressiveness: state.pauseAggressiveness,
+    pauseDetectionAlgorithm: state.pauseDetectionAlgorithm,
+    pauseThreshold: state.pauseSilencedetectThresholdDb,
+    pauseMinSilenceSeconds: state.pauseSilencedetectMinSilenceSeconds,
+    pauseMinSpeechSeconds: state.pauseSilencedetectMinSpeechSeconds,
+    pausePreprocessDenoise: state.pauseSilencedetectPreprocessDenoise,
+  };
+}
+
 export function buildSplitCommandPayloadFromState(
   command: EditorCommand,
   ord: number,
@@ -30,10 +51,7 @@ export function buildSplitCommandPayloadFromState(
     return {
       command,
       fieldOrd: ord,
-      overrides: {
-        pauseAggressiveness: state.pauseAggressiveness,
-        pauseDetectionAlgorithm: state.pauseDetectionAlgorithm,
-      },
+      overrides: activePauseOverrides(state),
     };
   }
   if (command === "aqe:convert") {
@@ -92,6 +110,14 @@ export function buildSplitDefaultSaveRequestFromState(
   } else if (command === "aqe:remove-pauses") {
     request.defaults.pauseAggressiveness = state.pauseAggressiveness;
     request.defaults.pauseDetectionAlgorithm = state.pauseDetectionAlgorithm;
+    request.defaults.pauseSilencedetectThresholdDb = state.pauseSilencedetectThresholdDb;
+    request.defaults.pauseSilencedetectMinSilenceSeconds = state.pauseSilencedetectMinSilenceSeconds;
+    request.defaults.pauseSilencedetectMinSpeechSeconds = state.pauseSilencedetectMinSpeechSeconds;
+    request.defaults.pauseSilencedetectPreprocessDenoise = state.pauseSilencedetectPreprocessDenoise;
+    request.defaults.pauseSileroThreshold = state.pauseSileroThreshold;
+    request.defaults.pauseSileroMinSilenceSeconds = state.pauseSileroMinSilenceSeconds;
+    request.defaults.pauseSileroMinSpeechSeconds = state.pauseSileroMinSpeechSeconds;
+    request.defaults.pauseSileroPreprocessDenoise = state.pauseSileroPreprocessDenoise;
   } else if (
     command === "aqe:denoise-standard" ||
     command === "aqe:rnnoise" ||

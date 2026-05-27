@@ -95,10 +95,15 @@ def _configure_ffmpeg(anki_mw, ffmpeg_config, **overrides: Any) -> None:
     config = anki_mw.addonManager.getConfig(ADDON_NUMERIC_ID) or {}
     config.update(asdict(ffmpeg_config))
     deep_filter_path = overrides.pop("deep_filter_path", None)
+    dpdfnet_path = overrides.pop("dpdfnet_path", None)
     if deep_filter_path:
         _replace_bundled_deep_filter_for_e2e(Path(str(deep_filter_path)))
     else:
         _restore_bundled_deep_filter_for_e2e()
+    if dpdfnet_path:
+        _replace_bundled_dpdfnet_for_e2e(Path(str(dpdfnet_path)))
+    else:
+        _restore_bundled_dpdfnet_for_e2e()
     config.update(
         {
             "ffmpeg_path": ffmpeg_config.ffmpeg_path,
@@ -116,33 +121,45 @@ def _configure_ffmpeg(anki_mw, ffmpeg_config, **overrides: Any) -> None:
 
 
 def _replace_bundled_deep_filter_for_e2e(source: Path) -> None:
-    expected_bundled_tool_path = import_runtime_addon_module(
-        ".audio_tools"
-    ).expected_bundled_tool_path
-    target = expected_bundled_tool_path("deep-filter")
+    _replace_bundled_tool_for_e2e("deep-filter", source)
+
+
+def _restore_bundled_deep_filter_for_e2e() -> None:
+    _restore_bundled_tool_for_e2e("deep-filter")
+
+
+def _replace_bundled_dpdfnet_for_e2e(source: Path) -> None:
+    _replace_bundled_tool_for_e2e("dpdfnet", source)
+
+
+def _restore_bundled_dpdfnet_for_e2e() -> None:
+    _restore_bundled_tool_for_e2e("dpdfnet")
+
+
+def _replace_bundled_tool_for_e2e(tool_name: str, source: Path) -> None:
+    expected_bundled_tool_path = import_runtime_addon_module(".audio_tools").expected_bundled_tool_path
+    target = expected_bundled_tool_path(tool_name)
     assert target is not None
     target.parent.mkdir(parents=True, exist_ok=True)
-    backup = _deep_filter_backup_path(target)
+    backup = _tool_backup_path(target)
     if target.is_file() and not backup.is_file():
         shutil.copyfile(target, backup)
     shutil.copyfile(source, target)
     target.chmod(0o755)
 
 
-def _restore_bundled_deep_filter_for_e2e() -> None:
-    expected_bundled_tool_path = import_runtime_addon_module(
-        ".audio_tools"
-    ).expected_bundled_tool_path
-    target = expected_bundled_tool_path("deep-filter")
+def _restore_bundled_tool_for_e2e(tool_name: str) -> None:
+    expected_bundled_tool_path = import_runtime_addon_module(".audio_tools").expected_bundled_tool_path
+    target = expected_bundled_tool_path(tool_name)
     if target is None:
         return
-    backup = _deep_filter_backup_path(target)
+    backup = _tool_backup_path(target)
     if backup.is_file():
         shutil.copyfile(backup, target)
         target.chmod(0o755)
 
 
-def _deep_filter_backup_path(target: Path) -> Path:
+def _tool_backup_path(target: Path) -> Path:
     return target.with_name(f"{target.name}.aqe-e2e-original")
 
 

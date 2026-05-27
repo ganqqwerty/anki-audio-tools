@@ -186,7 +186,7 @@ def _pause_aggressiveness_label(value: str) -> str:
 def _pause_detection_algorithm_label(value: str) -> str:
     if value == "silero_vad":
         return t("settings.pause_detection_algorithm.silero_vad")
-    return t("settings.pause_detection_algorithm.deep_filter")
+    return t("settings.pause_detection_algorithm.silencedetect")
 
 
 def _pitch_hum_mode_label(value: str) -> str:

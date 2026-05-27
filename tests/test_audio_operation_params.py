@@ -56,25 +56,30 @@ def test_effective_config_uses_speed_override_without_mutating_config() -> None:
 
 def test_effective_config_uses_pause_aggressiveness_override() -> None:
     config = AudioProcessingConfig(
-        internal_pause_silence_threshold_db=-45,
-        internal_pause_threshold_ms=300,
-        internal_pause_target_gap_ms=100,
         pause_aggressiveness="normal",
+        pause_detection_algorithm="silencedetect",
+        pause_silencedetect_threshold_db=-45,
+        pause_silencedetect_min_silence_seconds=0.30,
+        pause_silencedetect_min_speech_seconds=0.10,
+        pause_silencedetect_preprocess_denoise=True,
     )
     params = AudioOperationParameters(pause_aggressiveness="aggressive")
 
     effective = effective_config_for_operation(OP_REMOVE_PAUSES, config, params)
 
     assert effective.pause_aggressiveness == "aggressive"
-    assert effective.internal_pause_silence_threshold_db == -52
-    assert effective.internal_pause_threshold_ms == 140
-    assert effective.internal_pause_target_gap_ms == 45
+    assert effective.pause_detection_algorithm == "silencedetect"
+    assert effective.pause_silencedetect_threshold_db == -52
+    assert effective.pause_silencedetect_min_silence_seconds == 0.14
+    assert effective.pause_silencedetect_min_speech_seconds == 0.04
+    assert effective.pause_silencedetect_preprocess_denoise is True
+    assert config.pause_silencedetect_min_silence_seconds == 0.30
 
 
 def test_effective_config_uses_pause_detection_algorithm_override() -> None:
     config = AudioProcessingConfig(
         pause_aggressiveness="normal",
-        pause_detection_algorithm="deep_filter",
+        pause_detection_algorithm="silencedetect",
     )
     params = AudioOperationParameters(
         pause_aggressiveness="gentle",
@@ -85,6 +90,36 @@ def test_effective_config_uses_pause_detection_algorithm_override() -> None:
 
     assert effective.pause_aggressiveness == "gentle"
     assert effective.pause_detection_algorithm == "silero_vad"
+    assert effective.pause_silero_threshold == 0.55
+    assert effective.pause_silero_min_silence_seconds == 0.70
+    assert effective.pause_silero_min_speech_seconds == 0.12
+    assert effective.pause_silero_preprocess_denoise is False
+
+
+def test_effective_config_uses_explicit_pause_params_without_mutating_config() -> None:
+    config = AudioProcessingConfig(
+        pause_detection_algorithm="silero_vad",
+        pause_silero_threshold=0.50,
+        pause_silero_min_silence_seconds=0.45,
+        pause_silero_min_speech_seconds=0.10,
+        pause_silero_preprocess_denoise=False,
+    )
+    params = parameters_from_raw(
+        pause_detection_algorithm="silero_vad",
+        pause_threshold=3.0,
+        pause_min_silence_seconds=-1.0,
+        pause_min_speech_seconds=0.0,
+        pause_preprocess_denoise=True,
+    )
+
+    effective = effective_config_for_operation(OP_REMOVE_PAUSES, config, params)
+
+    assert effective.pause_silero_threshold == 1.0
+    assert effective.pause_silero_min_silence_seconds == 0.01
+    assert effective.pause_silero_min_speech_seconds == 0.01
+    assert effective.pause_silero_preprocess_denoise is True
+    assert config.pause_silero_threshold == 0.50
+    assert config.pause_silero_preprocess_denoise is False
 
 
 def test_effective_config_uses_denoise_parameter_overrides() -> None:

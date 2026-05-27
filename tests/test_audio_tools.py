@@ -176,7 +176,7 @@ def test_find_deep_filter_raises_when_missing(monkeypatch) -> None:
     monkeypatch.setattr("anki_audio_quick_editor.audio_processor._bundled_deep_filter_path", lambda: None)
     monkeypatch.setattr("anki_audio_quick_editor.audio_processor.shutil.which", lambda _name: None)
 
-    with pytest.raises(MissingDeepFilterError, match="DeepFilterNet.*Standard denoise.*Shorten Pauses"):
+    with pytest.raises(MissingDeepFilterError, match="DeepFilterNet.*Standard denoise"):
         find_deep_filter()
 
 

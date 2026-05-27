@@ -22,5 +22,5 @@ export function formatShareTarget(value: ShareTarget): string {
 
 export function formatPauseDetectionAlgorithm(value: FieldSplitButtonState["pauseDetectionAlgorithm"]): string {
   if (value === "silero_vad") return t("settings.pause_detection_algorithm.silero_vad");
-  return t("settings.pause_detection_algorithm.deep_filter");
+  return t("settings.pause_detection_algorithm.silencedetect");
 }

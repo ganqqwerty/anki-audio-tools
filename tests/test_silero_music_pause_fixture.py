@@ -17,7 +17,7 @@ MUSIC_PAUSE_FIXTURE = Path(__file__).parent / "fixtures" / "audio" / "13df7c3d3b
 
 
 @pytest.mark.skipif(not FFMPEG_AVAILABLE, reason=FFMPEG_SKIP_REASON)
-def test_silero_aggressive_removes_music_filled_pause_chunks(
+def test_silero_aggressive_detects_music_filled_pauses_and_removes_min_duration(
     monkeypatch: pytest.MonkeyPatch,
     tmp_path: Path,
 ) -> None:
@@ -36,17 +36,32 @@ def test_silero_aggressive_removes_music_filled_pause_chunks(
         AudioProcessingConfig(
             pause_aggressiveness="aggressive",
             pause_detection_algorithm="silero_vad",
-            internal_pause_threshold_ms=140,
-            internal_pause_target_gap_ms=45,
+            pause_silero_threshold=0.85,
+            pause_silero_min_silence_seconds=0.15,
+            pause_silero_min_speech_seconds=0.04,
         ),
         output_path=tmp_path / "shortened.mp3",
         artifact_root=tmp_path / "artifacts",
     )
     manifest = json.loads(result.artifact_manifest_path.read_text(encoding="utf-8"))
-    pause_segments = [segment for segment in manifest["timeline"] if segment["kind"] == "pause"]
+    detected_segments = manifest["detected_intervals"]
+    removed_segments = manifest["removed_intervals"]
 
-    assert _has_pause_near(pause_segments, start_ms=1800, end_ms=2200)
-    assert _has_pause_near(pause_segments, start_ms=2820, end_ms=2970)
+    assert manifest["operation"] == "silero_vad_pause_removal"
+    assert manifest["pause_detection_parameters"] == {
+        "aggressiveness": "aggressive",
+        "algorithm": "silero_vad",
+        "threshold": 0.85,
+        "min_silence_seconds": 0.15,
+        "min_speech_seconds": 0.04,
+        "preprocess_denoise": False,
+    }
+    assert _has_pause_near(detected_segments, start_ms=1800, end_ms=2200)
+    assert _has_pause_near(detected_segments, start_ms=2820, end_ms=2970)
+    assert _has_pause_near(removed_segments, start_ms=1800, end_ms=2200)
+    assert not _has_pause_near(removed_segments, start_ms=2820, end_ms=2970)
+    assert all(segment["kind"] == "normal" for segment in manifest["timeline"])
+    assert all(segment["speed_factor"] == 1.0 for segment in manifest["timeline"])
 
 
 def _has_pause_near(

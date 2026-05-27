@@ -128,6 +128,10 @@ class EditorCommandOverrides:
     speed_step: float | None = None
     pause_aggressiveness: str | None = None
     pause_detection_algorithm: str | None = None
+    pause_threshold: float | None = None
+    pause_min_silence_seconds: float | None = None
+    pause_min_speech_seconds: float | None = None
+    pause_preprocess_denoise: bool | None = None
     denoise_algorithm: str | None = None
     dpdfnet_attn_limit_db: float | None = None
     target_format: str | None = None
@@ -164,6 +168,10 @@ def _overrides_from_raw(raw: Any) -> EditorCommandOverrides:
         speed_step=raw.get("speedStep"),
         pause_aggressiveness=raw.get("pauseAggressiveness"),
         pause_detection_algorithm=raw.get("pauseDetectionAlgorithm"),
+        pause_threshold=raw.get("pauseThreshold"),
+        pause_min_silence_seconds=raw.get("pauseMinSilenceSeconds"),
+        pause_min_speech_seconds=raw.get("pauseMinSpeechSeconds"),
+        pause_preprocess_denoise=raw.get("pausePreprocessDenoise"),
         denoise_algorithm=raw.get("denoiseAlgorithm"),
         dpdfnet_attn_limit_db=raw.get("dpdfnetAttnLimitDb"),
         target_format=raw.get("targetFormat"),
@@ -173,6 +181,10 @@ def _overrides_from_raw(raw: Any) -> EditorCommandOverrides:
         speed_step=params.speed_step,
         pause_aggressiveness=params.pause_aggressiveness,
         pause_detection_algorithm=params.pause_detection_algorithm,
+        pause_threshold=params.pause_threshold,
+        pause_min_silence_seconds=params.pause_min_silence_seconds,
+        pause_min_speech_seconds=params.pause_min_speech_seconds,
+        pause_preprocess_denoise=params.pause_preprocess_denoise,
         denoise_algorithm=params.denoise_algorithm,
         dpdfnet_attn_limit_db=params.dpdfnet_attn_limit_db,
         target_format=params.target_format,
@@ -247,6 +259,10 @@ def processing_config_for_command(
             speed_step=payload.overrides.speed_step,
             pause_aggressiveness=payload.overrides.pause_aggressiveness,
             pause_detection_algorithm=payload.overrides.pause_detection_algorithm,
+            pause_threshold=payload.overrides.pause_threshold,
+            pause_min_silence_seconds=payload.overrides.pause_min_silence_seconds,
+            pause_min_speech_seconds=payload.overrides.pause_min_speech_seconds,
+            pause_preprocess_denoise=payload.overrides.pause_preprocess_denoise,
             target_format=payload.overrides.target_format,
         ),
     )

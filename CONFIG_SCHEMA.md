@@ -27,14 +27,19 @@ Audio Quick Editor config lives in [`addon/anki_audio_quick_editor/config.json`]
 | `volume_step_db` | number | Decibel amount added or removed by Volume +/- |
 | `min_volume_db` | number | Lower bound for manual gain changes |
 | `max_volume_db` | number | Upper bound for manual gain changes |
-| `internal_pause_silence_threshold_db` | integer | Silence threshold passed to ffmpeg `silencedetect` on DeepFilterNet-cleaned analysis audio |
-| `internal_pause_threshold_ms` | integer | Internal silence duration that qualifies for pause speed-up |
-| `internal_pause_target_gap_ms` | integer | Target duration for sped-up pause segments |
 | `pause_aggressiveness` | string | Default user-facing Shorten Pauses split-button level: `gentle`, `normal`, or `aggressive` |
-| `pause_detection_algorithm` | string | Default pause detection backend: `deep_filter` or `silero_vad` |
+| `pause_detection_algorithm` | string | Default pause detection backend: `silencedetect` or `silero_vad` |
+| `pause_silencedetect_threshold_db` | number | ffmpeg `silencedetect` threshold in dB for the Silencedetect detector |
+| `pause_silencedetect_min_silence_seconds` | number | Minimum removable silence duration for Silencedetect |
+| `pause_silencedetect_min_speech_seconds` | number | Minimum non-silence island that Silencedetect keeps separate instead of merging adjacent pauses |
+| `pause_silencedetect_preprocess_denoise` | boolean | Runs DPDFNet denoise before Silencedetect analysis; final rendering still uses original audio |
+| `pause_silero_threshold` | number | Silero VAD speech probability threshold from `0` to `1` |
+| `pause_silero_min_silence_seconds` | number | Minimum removable pause duration for Silero VAD |
+| `pause_silero_min_speech_seconds` | number | Minimum speech island that Silero VAD keeps separate instead of merging adjacent pauses |
+| `pause_silero_preprocess_denoise` | boolean | Runs DPDFNet denoise before Silero VAD analysis; final rendering still uses original audio |
 | `output_format` | string | Default target for Convert operations: `mp3`, `m4a`, `wav`, or `flac` |
 | `ffmpeg_path` | string | Explicit path to `ffmpeg`, prefilled from the current platform default |
-| `deep_filter_post_filter` | boolean | Enables DeepFilterNet post-filtering for stronger noise suppression and pause-detection analysis |
+| `deep_filter_post_filter` | boolean | Enables DeepFilterNet post-filtering for stronger Standard denoise output |
 | `dpdfnet_attn_limit_db` | number | Discrete DPDFNet aggressiveness value passed as `--attn-limit-db`: `6.0` gentle, `12.0` normal, or `18.0` aggressive |
 | `denoise_algorithm` | string | Default cleanup split-button action: `standard` for DeepFilterNet, `rnnoise` for RNNoise, `dpdfnet` for bundled DPDFNet Lite, or `voice_only` for Sherpa Spleeter vocals extraction |
 | `pitch_hum_mode` | string | Default Pitch Hum split-button mode: `direct` or `pitch_tier` |
@@ -43,6 +48,6 @@ Audio Quick Editor config lives in [`addon/anki_audio_quick_editor/config.json`]
 
 Read config through `mw.addonManager.getConfig(addon_id)` in Anki-facing modules. Merge defaults through `config_migration.migrate_config()` during startup.
 
-Pause shortening uses the internal pause keys with DeepFilterNet as the default analysis preprocessor. `pause_detection_algorithm=silero_vad` switches Shorten Pauses to the bundled Sherpa ONNX Silero VAD executable and model; it removes non-speech using VAD output, while DeepFilterNet remains the default target-gap-preserving path. The user-facing `pause_aggressiveness` default maps to concrete threshold/target values when the editor split button sends a local override; persisted settings are not changed by per-field split-button selections. The persisted `repeat_pause_seconds`, `share_target`, `output_format`, and `editor_button_modes` values are only editor defaults; changes made in split-button menus are field-local until promoted to defaults and do not otherwise write back to config. Batch operations can also send operation-local target format and pause backend values. The persisted `visible_editor_buttons` value controls later editor toolbar renders; an empty list hides every top-level toolbar button, including Settings. DPDFNet denoise uses the persisted `dpdfnet_attn_limit_db` value by default, and editor or batch DPDFNet selections can send an operation-local override. Pause shortening stores retained provenance under `<addon_dir>/aqe_artifacts/<run_id>/`; this artifact location is not currently configurable.
+Pause shortening has one persisted detector choice plus algorithm-specific advanced parameter defaults. The user-facing `pause_aggressiveness` value is a preset layer over those advanced values; Settings, editor quick settings, and Browser Bulk can also send operation-local active values as `pause_threshold`, `pause_min_silence_seconds`, `pause_min_speech_seconds`, and `pause_preprocess_denoise`. Operation-local values do not mutate persisted config. Both Silencedetect and Silero VAD can optionally denoise detector input with DPDFNet, but final edits are always rendered from the original working audio. Detected pauses are omitted/cut from the output rather than sped up to a target gap. The persisted `repeat_pause_seconds`, `share_target`, `output_format`, and `editor_button_modes` values are only editor defaults; changes made in split-button menus are field-local until promoted to defaults and do not otherwise write back to config. Batch operations can also send operation-local target format, denoise, and pause values. The persisted `visible_editor_buttons` value controls later editor toolbar renders; an empty list hides every top-level toolbar button, including Settings. DPDFNet denoise uses the persisted `dpdfnet_attn_limit_db` value by default, and editor or batch DPDFNet selections can send an operation-local override. Pause shortening stores retained provenance under `<addon_dir>/aqe_artifacts/<run_id>/`; this artifact location is not currently configurable.
 
 For the full mapping from persisted defaults to editor buttons, field-local quick settings, generated files, and editor/batch parity expectations, see [`EDITOR_MODIFICATION_BUTTON_BEHAVIOR_RULES.md`](EDITOR_MODIFICATION_BUTTON_BEHAVIOR_RULES.md).

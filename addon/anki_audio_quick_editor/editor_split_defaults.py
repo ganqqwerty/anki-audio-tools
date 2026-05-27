@@ -62,6 +62,10 @@ def _audio_parameter_updates(raw_defaults: dict[str, object]) -> dict[str, objec
         speed_step=raw_defaults.get("speedStep"),
         pause_aggressiveness=raw_defaults.get("pauseAggressiveness"),
         pause_detection_algorithm=raw_defaults.get("pauseDetectionAlgorithm"),
+        pause_threshold=raw_defaults.get("pauseThreshold"),
+        pause_min_silence_seconds=raw_defaults.get("pauseMinSilenceSeconds"),
+        pause_min_speech_seconds=raw_defaults.get("pauseMinSpeechSeconds"),
+        pause_preprocess_denoise=raw_defaults.get("pausePreprocessDenoise"),
         denoise_algorithm=raw_defaults.get("denoiseAlgorithm"),
         dpdfnet_attn_limit_db=raw_defaults.get("dpdfnetAttnLimitDb"),
     )
@@ -73,11 +77,43 @@ def _audio_parameter_updates(raw_defaults: dict[str, object]) -> dict[str, objec
         updates["pause_aggressiveness"] = params.pause_aggressiveness
     if params.pause_detection_algorithm is not None:
         updates["pause_detection_algorithm"] = params.pause_detection_algorithm
+    if params.pause_detection_algorithm == "silero_vad":
+        _apply_silero_pause_updates(updates, params)
+    elif params.pause_detection_algorithm == "silencedetect":
+        _apply_silencedetect_pause_updates(updates, params)
     if params.denoise_algorithm is not None:
         updates["denoise_algorithm"] = params.denoise_algorithm
     if params.dpdfnet_attn_limit_db is not None:
         updates["dpdfnet_attn_limit_db"] = params.dpdfnet_attn_limit_db
     return updates
+
+
+def _apply_silencedetect_pause_updates(
+    updates: dict[str, object],
+    params: Any,
+) -> None:
+    if params.pause_threshold is not None:
+        updates["pause_silencedetect_threshold_db"] = params.pause_threshold
+    if params.pause_min_silence_seconds is not None:
+        updates["pause_silencedetect_min_silence_seconds"] = params.pause_min_silence_seconds
+    if params.pause_min_speech_seconds is not None:
+        updates["pause_silencedetect_min_speech_seconds"] = params.pause_min_speech_seconds
+    if params.pause_preprocess_denoise is not None:
+        updates["pause_silencedetect_preprocess_denoise"] = params.pause_preprocess_denoise
+
+
+def _apply_silero_pause_updates(
+    updates: dict[str, object],
+    params: Any,
+) -> None:
+    if params.pause_threshold is not None:
+        updates["pause_silero_threshold"] = params.pause_threshold
+    if params.pause_min_silence_seconds is not None:
+        updates["pause_silero_min_silence_seconds"] = params.pause_min_silence_seconds
+    if params.pause_min_speech_seconds is not None:
+        updates["pause_silero_min_speech_seconds"] = params.pause_min_speech_seconds
+    if params.pause_preprocess_denoise is not None:
+        updates["pause_silero_preprocess_denoise"] = params.pause_preprocess_denoise
 
 
 def _repeat_updates(raw_defaults: dict[str, object]) -> dict[str, object]:

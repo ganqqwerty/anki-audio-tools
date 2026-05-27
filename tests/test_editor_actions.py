@@ -155,10 +155,11 @@ def test_decode_command_accepts_pitch_hum_mode_override() -> None:
 
 def test_apply_processing_command_uses_pause_aggressiveness_without_mutating_config() -> None:
     config = AudioProcessingConfig(
-        internal_pause_silence_threshold_db=-45,
-        internal_pause_threshold_ms=300,
-        internal_pause_target_gap_ms=100,
         pause_aggressiveness="normal",
+        pause_detection_algorithm="silencedetect",
+        pause_silencedetect_threshold_db=-45,
+        pause_silencedetect_min_silence_seconds=0.30,
+        pause_silencedetect_min_speech_seconds=0.10,
     )
     state = AudioEditState("clip.mp3")
     decoded = decode_editor_command_payload(
@@ -175,11 +176,11 @@ def test_apply_processing_command_uses_pause_aggressiveness_without_mutating_con
 
     assert updated == AudioEditState("clip.mp3", remove_internal_pauses_enabled=True)
     assert captured["config"].pause_aggressiveness == "aggressive"
-    assert captured["config"].internal_pause_silence_threshold_db == -52
-    assert captured["config"].internal_pause_threshold_ms == 140
-    assert captured["config"].internal_pause_target_gap_ms == 45
+    assert captured["config"].pause_silencedetect_threshold_db == -52
+    assert captured["config"].pause_silencedetect_min_silence_seconds == 0.14
+    assert captured["config"].pause_silencedetect_min_speech_seconds == 0.04
     assert config.pause_aggressiveness == "normal"
-    assert config.internal_pause_threshold_ms == 300
+    assert config.pause_silencedetect_min_silence_seconds == 0.30
 
 
 def test_processing_config_for_command_returns_render_config_with_local_overrides() -> None:
@@ -187,9 +188,10 @@ def test_processing_config_for_command_returns_render_config_with_local_override
         volume_step_db=15,
         speed_step=1.5,
         pause_aggressiveness="normal",
-        internal_pause_silence_threshold_db=-45,
-        internal_pause_threshold_ms=300,
-        internal_pause_target_gap_ms=100,
+        pause_detection_algorithm="silencedetect",
+        pause_silencedetect_threshold_db=-45,
+        pause_silencedetect_min_silence_seconds=0.30,
+        pause_silencedetect_min_speech_seconds=0.10,
     )
     decoded = decode_editor_command_payload(
         '{"command":"aqe:remove-pauses","fieldOrd":0,'
@@ -201,9 +203,9 @@ def test_processing_config_for_command_returns_render_config_with_local_override
     assert effective.volume_step_db == 6
     assert effective.speed_step == 2
     assert effective.pause_aggressiveness == "aggressive"
-    assert effective.internal_pause_silence_threshold_db == -52
-    assert effective.internal_pause_threshold_ms == 140
-    assert effective.internal_pause_target_gap_ms == 45
+    assert effective.pause_silencedetect_threshold_db == -52
+    assert effective.pause_silencedetect_min_silence_seconds == 0.14
+    assert effective.pause_silencedetect_min_speech_seconds == 0.04
     assert config.pause_aggressiveness == "normal"
 
 

@@ -33,7 +33,7 @@ from anki_audio_quick_editor.support import (
     [
         (
             MissingDeepFilterError(
-                "DeepFilterNet's deep-filter executable is required for Standard denoise and Shorten Pauses."
+                "DeepFilterNet's deep-filter executable is required for Standard denoise."
             ),
             "DeepFilterNet's deep-filter executable is required",
         ),

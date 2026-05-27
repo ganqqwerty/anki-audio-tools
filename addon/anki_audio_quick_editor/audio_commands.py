@@ -144,7 +144,7 @@ def build_silencedetect_command(
     ffmpeg_path: Path,
     source_path: Path,
     *,
-    threshold_db: int,
+    threshold_db: float,
     min_duration_ms: int,
 ) -> tuple[str, ...]:
     """Build an ffmpeg command that emits silencedetect metadata to stderr."""
@@ -154,7 +154,7 @@ def build_silencedetect_command(
         "-i",
         str(source_path),
         "-af",
-        f"silencedetect=noise={threshold_db}dB:d={max(1, int(min_duration_ms)) / 1000:.3f}",
+        f"silencedetect=noise={threshold_db:g}dB:d={max(1, int(min_duration_ms)) / 1000:.3f}",
         "-f",
         "null",
         "-",
@@ -235,7 +235,7 @@ def build_working_original_filters(
     duration_ms: int,
     state: AudioEditState,
 ) -> str:
-    """Build filters for original-derived audio before pause speed-up analysis."""
+    """Build filters for original-derived audio before pause detection and rendering."""
     filters: list[str] = []
     start_s = state.left_trim_ms / 1000
     end_s = (duration_ms - state.right_trim_ms) / 1000

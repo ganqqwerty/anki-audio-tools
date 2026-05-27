@@ -72,6 +72,66 @@ def _fake_deep_filter_executable(
     return executable, log_path
 
 
+def _fake_dpdfnet_executable(
+    tmp_path: Path,
+    *,
+    fail: bool = False,
+    cleaned_source: Path | None = None,
+) -> tuple[Path, Path]:
+    log_path = tmp_path / "dpdfnet-argv.json"
+    script_path = tmp_path / "fake_dpdfnet.py"
+    cleaned_source_value = str(cleaned_source) if cleaned_source is not None else ""
+    script_path.write_text(
+        "\n".join(
+            [
+                "from __future__ import annotations",
+                "",
+                "import json",
+                "import shutil",
+                "import sys",
+                "from pathlib import Path",
+                "",
+                f"LOG_PATH = Path({str(log_path)!r})",
+                f"FAIL = {fail!r}",
+                f"CLEANED_SOURCE = {cleaned_source_value!r}",
+                "",
+                "args = sys.argv[1:]",
+                "LOG_PATH.write_text(json.dumps(args), encoding='utf-8')",
+                "if FAIL:",
+                "    sys.stderr.write('fake dpdfnet failed')",
+                "    raise SystemExit(12)",
+                "if '--version' in args:",
+                "    print('fake dpdfnet 0.0')",
+                "    raise SystemExit(0)",
+                "if len(args) < 3 or args[0] != 'enhance':",
+                "    sys.stderr.write('unexpected dpdfnet invocation')",
+                "    raise SystemExit(2)",
+                "input_wav = Path(args[-2])",
+                "output_wav = Path(args[-1])",
+                "output_wav.parent.mkdir(parents=True, exist_ok=True)",
+                "source_wav = Path(CLEANED_SOURCE) if CLEANED_SOURCE else input_wav",
+                "shutil.copyfile(source_wav, output_wav)",
+            ]
+        ),
+        encoding="utf-8",
+    )
+    if os.name == "nt":
+        executable = tmp_path / "dpdfnet.cmd"
+        executable.write_text(
+            f'@echo off\n"{sys.executable}" "{script_path}" %*\n',
+            encoding="utf-8",
+        )
+    else:
+        executable = tmp_path / "dpdfnet"
+        executable.write_text(
+            "#!/bin/sh\n"
+            f"exec {shlex.quote(sys.executable)} {shlex.quote(str(script_path))} \"$@\"\n",
+            encoding="utf-8",
+        )
+        executable.chmod(0o755)
+    return executable, log_path
+
+
 def _render_direct_deep_filter_reference(
     ffmpeg_config,
     source: Path,

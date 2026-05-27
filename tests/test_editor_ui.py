@@ -27,7 +27,15 @@ def test_injection_script_embeds_audio_field_indices_and_bundle() -> None:
     assert config["splitButtonDefaults"]["voiceRecordingCountdownSeconds"] == 3
     assert config["splitButtonDefaults"]["shareTarget"] == "litterbox"
     assert config["splitButtonDefaults"]["pitchHumMode"] == "direct"
-    assert config["splitButtonDefaults"]["pauseDetectionAlgorithm"] == "deep_filter"
+    assert config["splitButtonDefaults"]["pauseDetectionAlgorithm"] == "silencedetect"
+    assert config["splitButtonDefaults"]["pauseSilencedetectThresholdDb"] == -45.0
+    assert config["splitButtonDefaults"]["pauseSilencedetectMinSilenceSeconds"] == 0.30
+    assert config["splitButtonDefaults"]["pauseSilencedetectMinSpeechSeconds"] == 0.10
+    assert config["splitButtonDefaults"]["pauseSilencedetectPreprocessDenoise"] is True
+    assert config["splitButtonDefaults"]["pauseSileroThreshold"] == 0.50
+    assert config["splitButtonDefaults"]["pauseSileroMinSilenceSeconds"] == 0.45
+    assert config["splitButtonDefaults"]["pauseSileroMinSpeechSeconds"] == 0.10
+    assert config["splitButtonDefaults"]["pauseSileroPreprocessDenoise"] is False
     assert config["splitButtonDefaults"]["dpdfnetAttnLimitDb"] == 12.0
     assert config["splitButtonDefaults"]["outputFormat"] == "mp3"
     assert config["splitButtonDefaults"]["graphVoiceRange"] == "general"

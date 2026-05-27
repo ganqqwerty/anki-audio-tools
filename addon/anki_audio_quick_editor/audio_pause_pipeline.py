@@ -1,4 +1,4 @@
-"""DeepFilter- and Silero-assisted pause speed-up orchestration."""
+"""Pause-removal orchestration for silencedetect and Silero VAD."""
 
 from __future__ import annotations
 
@@ -19,19 +19,18 @@ from .audio_commands import (
 )
 from .audio_external import probe_duration_ms
 from .audio_pause_pipeline_steps import (
-    _render_deep_filter_analysis_pause_speedup_audio,
-    _render_silero_vad_pause_speedup_audio,
+    _render_pause_removal_audio,
     _run_pipeline_stage,
 )
 from .audio_state import AudioEditState, AudioProcessingConfig
-from .audio_tools import find_deep_filter, find_silero_vad_bundle
+from .audio_tools import find_dpdfnet_bundle, find_silero_vad_bundle
 from .audio_types import AudioProcessingResult
 from .support import record_latest_pause_pipeline_support_incident
 
 
 @dataclass(frozen=True)
 class _PauseDetectionRuntime:
-    deep_filter_path: Path | None = None
+    dpdfnet_path: Path | None = None
     silero_vad_path: Path | None = None
     silero_model_path: Path | None = None
 
@@ -39,14 +38,14 @@ class _PauseDetectionRuntime:
 @dataclass(frozen=True)
 class _PausePipelinePaths:
     analysis_input: Path
-    deep_filter_output_dir: Path
+    denoised_analysis: Path
     raw_silence_path: Path
     intervals_path: Path
     timeline_path: Path
     filter_script_path: Path
 
 
-def _render_deep_filter_pause_speedup_audio(
+def _render_pause_removal_pipeline_audio(
     source_path: Path,
     state: AudioEditState,
     config: AudioProcessingConfig,
@@ -129,7 +128,7 @@ def _render_deep_filter_pause_speedup_audio(
             final_copy_path=final_copy_path,
             runtime=runtime,
             analysis_input=paths.analysis_input,
-            deep_filter_output_dir=paths.deep_filter_output_dir,
+            denoised_analysis=paths.denoised_analysis,
             raw_silence_path=paths.raw_silence_path,
             intervals_path=paths.intervals_path,
             timeline_path=paths.timeline_path,
@@ -144,13 +143,13 @@ def _render_deep_filter_pause_speedup_audio(
         }
         write_manifest()
         record_latest_pause_pipeline_support_incident(
-            operation=str(manifest.get("operation") or "deep_filter_pause_speedup"),
+            operation=str(manifest.get("operation") or "pause_removal"),
             media_filename=source_path.name,
             source_path=str(source_path.resolve()),
             user_message=str(exc),
             exception_type=type(exc).__name__,
             ffmpeg_path=str(ffmpeg_path),
-            deep_filter_path=str(runtime.deep_filter_path) if runtime.deep_filter_path is not None else "",
+            dpdfnet_path=str(runtime.dpdfnet_path) if runtime.dpdfnet_path is not None else "",
             silero_vad_path=str(runtime.silero_vad_path) if runtime.silero_vad_path is not None else "",
             manifest_path=str(manifest_path),
             artifact_dir=str(run_dir),
@@ -160,13 +159,11 @@ def _render_deep_filter_pause_speedup_audio(
 
 
 def _pause_pipeline_artifact_paths(run_dir: Path) -> _PausePipelinePaths:
-    deep_filter_output_dir = run_dir / "03_deep_filter_output"
-    deep_filter_output_dir.mkdir(parents=True, exist_ok=True)
     return _PausePipelinePaths(
-        analysis_input=run_dir / "02_analysis_input_48k_mono.wav",
-        deep_filter_output_dir=deep_filter_output_dir,
-        raw_silence_path=run_dir / "04_silencedetect_stderr.txt",
-        intervals_path=run_dir / "04_silence_intervals.json",
+        analysis_input=run_dir / "02_analysis_input.wav",
+        denoised_analysis=run_dir / "02_denoised_analysis.wav",
+        raw_silence_path=run_dir / "04_detection_stderr.txt",
+        intervals_path=run_dir / "04_removed_intervals.json",
         timeline_path=run_dir / "05_timeline.json",
         filter_script_path=run_dir / "06_filter_complex.ffscript",
     )
@@ -176,18 +173,27 @@ def _resolve_pause_detection_runtime(
     config: AudioProcessingConfig,
     manifest: dict[str, object],
 ) -> _PauseDetectionRuntime:
+    dpdfnet_path = find_dpdfnet_bundle() if _pause_preprocess_enabled(config) else None
+    if dpdfnet_path is not None:
+        manifest["dpdfnet_path"] = str(dpdfnet_path)
     if config.pause_detection_algorithm == "silero_vad":
         silero_vad_path, silero_model_path = find_silero_vad_bundle()
-        manifest["operation"] = "silero_vad_pause_speedup"
+        manifest["operation"] = "silero_vad_pause_removal"
         manifest["silero_vad_path"] = str(silero_vad_path)
         manifest["silero_vad_model_path"] = str(silero_model_path)
         return _PauseDetectionRuntime(
+            dpdfnet_path=dpdfnet_path,
             silero_vad_path=silero_vad_path,
             silero_model_path=silero_model_path,
         )
-    deep_filter_path = find_deep_filter()
-    manifest["deep_filter_path"] = str(deep_filter_path)
-    return _PauseDetectionRuntime(deep_filter_path=deep_filter_path)
+    manifest["operation"] = "silencedetect_pause_removal"
+    return _PauseDetectionRuntime(dpdfnet_path=dpdfnet_path)
+
+
+def _pause_preprocess_enabled(config: AudioProcessingConfig) -> bool:
+    if config.pause_detection_algorithm == "silero_vad":
+        return config.pause_silero_preprocess_denoise
+    return config.pause_silencedetect_preprocess_denoise
 
 
 def _render_working_original(
@@ -239,7 +245,7 @@ def _render_selected_pause_detection_pipeline(
     working_original: Path,
     working_duration_ms: int,
     analysis_input: Path,
-    deep_filter_output_dir: Path,
+    denoised_analysis: Path,
     raw_silence_path: Path,
     intervals_path: Path,
     timeline_path: Path,
@@ -247,27 +253,7 @@ def _render_selected_pause_detection_pipeline(
     final_copy_path: Path,
     runtime: _PauseDetectionRuntime,
 ) -> AudioProcessingResult:
-    if runtime.silero_vad_path is not None and runtime.silero_model_path is not None:
-        return _render_silero_vad_pause_speedup_audio(
-            state,
-            config,
-            ffmpeg_path,
-            output_path,
-            on_command,
-            run_dir=run_dir,
-            manifest_path=manifest_path,
-            manifest=manifest,
-            stages=stages,
-            attempted_commands=attempted_commands,
-            artifacts=artifacts,
-            write_manifest=write_manifest,
-            working_original=working_original,
-            working_duration_ms=working_duration_ms,
-            silero_vad_path=runtime.silero_vad_path,
-            silero_model_path=runtime.silero_model_path,
-        )
-    assert runtime.deep_filter_path is not None
-    return _render_deep_filter_analysis_pause_speedup_audio(
+    return _render_pause_removal_audio(
         state,
         config,
         ffmpeg_path,
@@ -279,14 +265,17 @@ def _render_selected_pause_detection_pipeline(
         attempted_commands=attempted_commands,
         artifacts=artifacts,
         write_manifest=write_manifest,
+        run_dir=run_dir,
         working_original=working_original,
         working_duration_ms=working_duration_ms,
         analysis_input=analysis_input,
-        deep_filter_output_dir=deep_filter_output_dir,
+        denoised_analysis=denoised_analysis,
         raw_silence_path=raw_silence_path,
         intervals_path=intervals_path,
         timeline_path=timeline_path,
         filter_script_path=filter_script_path,
         final_copy_path=final_copy_path,
-        deep_filter_path=runtime.deep_filter_path,
+        dpdfnet_path=runtime.dpdfnet_path,
+        silero_vad_path=runtime.silero_vad_path,
+        silero_model_path=runtime.silero_model_path,
     )

@@ -26,11 +26,16 @@
     "volume_step_db",
     "min_volume_db",
     "max_volume_db",
-    "internal_pause_silence_threshold_db",
-    "internal_pause_threshold_ms",
-    "internal_pause_target_gap_ms",
     "pause_aggressiveness",
     "pause_detection_algorithm",
+    "pause_silencedetect_threshold_db",
+    "pause_silencedetect_min_silence_seconds",
+    "pause_silencedetect_min_speech_seconds",
+    "pause_silencedetect_preprocess_denoise",
+    "pause_silero_threshold",
+    "pause_silero_min_silence_seconds",
+    "pause_silero_min_speech_seconds",
+    "pause_silero_preprocess_denoise",
     "output_format",
     "ffmpeg_path",
     "deep_filter_post_filter",
@@ -180,24 +185,49 @@
       "minimum": -40,
       "maximum": 40
     },
-    "internal_pause_silence_threshold_db": {
-      "type": "integer"
-    },
-    "internal_pause_threshold_ms": {
-      "type": "integer",
-      "minimum": 1
-    },
-    "internal_pause_target_gap_ms": {
-      "type": "integer",
-      "minimum": 1
-    },
     "pause_aggressiveness": {
       "type": "string",
       "enum": ["gentle", "normal", "aggressive"]
     },
     "pause_detection_algorithm": {
       "type": "string",
-      "enum": ["deep_filter", "silero_vad"]
+      "enum": ["silencedetect", "silero_vad"]
+    },
+    "pause_silencedetect_threshold_db": {
+      "type": "number",
+      "minimum": -100,
+      "maximum": 0
+    },
+    "pause_silencedetect_min_silence_seconds": {
+      "type": "number",
+      "minimum": 0.01,
+      "maximum": 10
+    },
+    "pause_silencedetect_min_speech_seconds": {
+      "type": "number",
+      "minimum": 0.01,
+      "maximum": 10
+    },
+    "pause_silencedetect_preprocess_denoise": {
+      "type": "boolean"
+    },
+    "pause_silero_threshold": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 1
+    },
+    "pause_silero_min_silence_seconds": {
+      "type": "number",
+      "minimum": 0.01,
+      "maximum": 10
+    },
+    "pause_silero_min_speech_seconds": {
+      "type": "number",
+      "minimum": 0.01,
+      "maximum": 10
+    },
+    "pause_silero_preprocess_denoise": {
+      "type": "boolean"
     },
     "output_format": {
       "type": "string",

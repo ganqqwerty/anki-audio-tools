@@ -49,17 +49,25 @@ class TestMigrateConfig:
         assert migrated["deep_filter_post_filter"] is True
         assert changed is True
 
-    def test_picks_up_internal_pause_silence_threshold_default(self) -> None:
+    def test_picks_up_pause_detection_defaults(self) -> None:
         user = {"_config_version": 5, "enabled": True}
         defaults = {
             "_config_version": CURRENT_CONFIG_VERSION,
             "enabled": True,
-            "internal_pause_silence_threshold_db": -45,
+            "pause_detection_algorithm": "silencedetect",
+            "pause_silencedetect_threshold_db": -45,
+            "pause_silencedetect_min_silence_seconds": 0.30,
+            "pause_silencedetect_min_speech_seconds": 0.10,
+            "pause_silencedetect_preprocess_denoise": True,
         }
 
         migrated, changed = migrate_config(user, defaults)
 
-        assert migrated["internal_pause_silence_threshold_db"] == -45
+        assert migrated["pause_detection_algorithm"] == "silencedetect"
+        assert migrated["pause_silencedetect_threshold_db"] == -45
+        assert migrated["pause_silencedetect_min_silence_seconds"] == 0.30
+        assert migrated["pause_silencedetect_min_speech_seconds"] == 0.10
+        assert migrated["pause_silencedetect_preprocess_denoise"] is True
         assert migrated["_config_version"] == CURRENT_CONFIG_VERSION
         assert changed is True
 
@@ -292,12 +300,12 @@ class TestMigrateConfig:
         defaults = {
             "_config_version": CURRENT_CONFIG_VERSION,
             "enabled": True,
-            "pause_detection_algorithm": "deep_filter",
+            "pause_detection_algorithm": "silencedetect",
         }
 
         migrated, changed = migrate_config(user, defaults)
 
-        assert migrated["pause_detection_algorithm"] == "deep_filter"
+        assert migrated["pause_detection_algorithm"] == "silencedetect"
         assert migrated["_config_version"] == CURRENT_CONFIG_VERSION
         assert changed is True
 

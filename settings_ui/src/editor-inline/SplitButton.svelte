@@ -23,6 +23,10 @@
     setOutputFormatForField,
     setPauseAggressivenessForField,
     setPauseDetectionAlgorithmForField,
+    setPauseMinSilenceSecondsForField,
+    setPauseMinSpeechSecondsForField,
+    setPausePreprocessDenoiseForField,
+    setPauseThresholdForField,
     setPitchHumModeForField,
     setShareTargetForField,
     setSpeedStepForField,
@@ -78,7 +82,11 @@
   let volumeStepDb = $state(3);
   let speedStep = $state(0.05);
   let pauseAggressiveness = $state<"gentle" | "normal" | "aggressive">("normal");
-  let pauseDetectionAlgorithm = $state<PauseDetectionAlgorithm>("deep_filter");
+  let pauseDetectionAlgorithm = $state<PauseDetectionAlgorithm>("silencedetect");
+  let pauseThreshold = $state(-45);
+  let pauseMinSilenceSeconds = $state(0.3);
+  let pauseMinSpeechSeconds = $state(0.1);
+  let pausePreprocessDenoise = $state(true);
   let denoiseAlgorithm = $state<DenoiseAlgorithm>("standard");
   let dpdfnetAttnLimitDb = $state(12);
   let outputFormat = $state<OutputFormatValue>("mp3");
@@ -149,7 +157,7 @@
     volumeStepDb = state.volumeStepDb;
     speedStep = state.speedStep;
     pauseAggressiveness = state.pauseAggressiveness;
-    pauseDetectionAlgorithm = state.pauseDetectionAlgorithm;
+    syncPauseFromState(state);
     denoiseAlgorithm = state.denoiseAlgorithm;
     dpdfnetAttnLimitDb = state.dpdfnetAttnLimitDb;
     outputFormat = state.outputFormat;
@@ -163,6 +171,21 @@
     voiceRecordingCountdownSeconds = state.voiceRecordingCountdownSeconds;
   }
 
+  function syncPauseFromState(state: FieldSplitButtonState): void {
+    pauseDetectionAlgorithm = state.pauseDetectionAlgorithm;
+    if (state.pauseDetectionAlgorithm === "silero_vad") {
+      pauseThreshold = state.pauseSileroThreshold;
+      pauseMinSilenceSeconds = state.pauseSileroMinSilenceSeconds;
+      pauseMinSpeechSeconds = state.pauseSileroMinSpeechSeconds;
+      pausePreprocessDenoise = state.pauseSileroPreprocessDenoise;
+      return;
+    }
+    pauseThreshold = state.pauseSilencedetectThresholdDb;
+    pauseMinSilenceSeconds = state.pauseSilencedetectMinSilenceSeconds;
+    pauseMinSpeechSeconds = state.pauseSilencedetectMinSpeechSeconds;
+    pausePreprocessDenoise = state.pauseSilencedetectPreprocessDenoise;
+  }
+
   function applyVolumeStep(value: number): void {
     volumeStepDb = setVolumeStepForField(target.ord, value).volumeStepDb;
   }
@@ -172,11 +195,29 @@
   }
 
   function applyPauseAggressiveness(value: "gentle" | "normal" | "aggressive"): void {
-    pauseAggressiveness = setPauseAggressivenessForField(target.ord, value).pauseAggressiveness;
+    const state = setPauseAggressivenessForField(target.ord, value);
+    pauseAggressiveness = state.pauseAggressiveness;
+    syncPauseFromState(state);
   }
 
   function applyPauseDetectionAlgorithm(value: PauseDetectionAlgorithm): void {
-    pauseDetectionAlgorithm = setPauseDetectionAlgorithmForField(target.ord, value).pauseDetectionAlgorithm;
+    syncPauseFromState(setPauseDetectionAlgorithmForField(target.ord, value));
+  }
+
+  function applyPauseThreshold(value: number): void {
+    syncPauseFromState(setPauseThresholdForField(target.ord, value));
+  }
+
+  function applyPauseMinSilenceSeconds(value: number): void {
+    syncPauseFromState(setPauseMinSilenceSecondsForField(target.ord, value));
+  }
+
+  function applyPauseMinSpeechSeconds(value: number): void {
+    syncPauseFromState(setPauseMinSpeechSecondsForField(target.ord, value));
+  }
+
+  function applyPausePreprocessDenoise(value: boolean): void {
+    syncPauseFromState(setPausePreprocessDenoiseForField(target.ord, value));
   }
 
   function applyDenoiseAlgorithm(value: DenoiseAlgorithm): void {
@@ -397,6 +438,10 @@
               onOutputFormat={applyOutputFormat}
               onPauseAggressiveness={applyPauseAggressiveness}
               onPauseDetectionAlgorithm={applyPauseDetectionAlgorithm}
+              onPauseMinSilenceSeconds={applyPauseMinSilenceSeconds}
+              onPauseMinSpeechSeconds={applyPauseMinSpeechSeconds}
+              onPausePreprocessDenoise={applyPausePreprocessDenoise}
+              onPauseThreshold={applyPauseThreshold}
               onPitchHumMode={applyPitchHumMode}
               onRunCommand={dispatchCommand}
               onSaveDefault={saveCurrentDefaults}
@@ -405,6 +450,10 @@
               onVolumeStep={applyVolumeStep}
               pauseAggressiveness={pauseAggressiveness}
               pauseDetectionAlgorithm={pauseDetectionAlgorithm}
+              pauseMinSilenceSeconds={pauseMinSilenceSeconds}
+              pauseMinSpeechSeconds={pauseMinSpeechSeconds}
+              pausePreprocessDenoise={pausePreprocessDenoise}
+              pauseThreshold={pauseThreshold}
               outputFormat={outputFormat}
               pitchHumMode={pitchHumMode}
               saveDefaultSaved={defaultSaved}

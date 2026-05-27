@@ -43,6 +43,14 @@ export interface SplitButtonDefaults {
   outputFormat?: OutputFormatValue;
   pauseAggressiveness: "gentle" | "normal" | "aggressive";
   pauseDetectionAlgorithm?: PauseDetectionAlgorithm;
+  pauseSilencedetectThresholdDb?: number;
+  pauseSilencedetectMinSilenceSeconds?: number;
+  pauseSilencedetectMinSpeechSeconds?: number;
+  pauseSilencedetectPreprocessDenoise?: boolean;
+  pauseSileroThreshold?: number;
+  pauseSileroMinSilenceSeconds?: number;
+  pauseSileroMinSpeechSeconds?: number;
+  pauseSileroPreprocessDenoise?: boolean;
   pitchHumMode?: PitchHumMode;
   repeatPauseSeconds: number;
   shareTarget?: "catbox" | "litterbox";
@@ -61,6 +69,10 @@ export interface EditorCommandPayload {
     dpdfnetAttnLimitDb?: number;
     pauseAggressiveness?: "gentle" | "normal" | "aggressive";
     pauseDetectionAlgorithm?: PauseDetectionAlgorithm;
+    pauseThreshold?: number;
+    pauseMinSilenceSeconds?: number;
+    pauseMinSpeechSeconds?: number;
+    pausePreprocessDenoise?: boolean;
     pitchHumMode?: PitchHumMode;
     speedStep?: number;
     targetFormat?: OutputFormatValue;
@@ -79,6 +91,14 @@ export interface FieldSplitButtonState {
   defaultOutputFormat: OutputFormatValue;
   defaultPauseAggressiveness: "gentle" | "normal" | "aggressive";
   defaultPauseDetectionAlgorithm: PauseDetectionAlgorithm;
+  defaultPauseSilencedetectThresholdDb: number;
+  defaultPauseSilencedetectMinSilenceSeconds: number;
+  defaultPauseSilencedetectMinSpeechSeconds: number;
+  defaultPauseSilencedetectPreprocessDenoise: boolean;
+  defaultPauseSileroThreshold: number;
+  defaultPauseSileroMinSilenceSeconds: number;
+  defaultPauseSileroMinSpeechSeconds: number;
+  defaultPauseSileroPreprocessDenoise: boolean;
   defaultDpdfnetAttnLimitDb: number;
   defaultPitchHumMode: PitchHumMode;
   defaultRepeatPauseSeconds: number;
@@ -99,6 +119,14 @@ export interface FieldSplitButtonState {
   outputFormatEdited: boolean;
   pauseAggressiveness: "gentle" | "normal" | "aggressive";
   pauseDetectionAlgorithm: PauseDetectionAlgorithm;
+  pauseSilencedetectThresholdDb: number;
+  pauseSilencedetectMinSilenceSeconds: number;
+  pauseSilencedetectMinSpeechSeconds: number;
+  pauseSilencedetectPreprocessDenoise: boolean;
+  pauseSileroThreshold: number;
+  pauseSileroMinSilenceSeconds: number;
+  pauseSileroMinSpeechSeconds: number;
+  pauseSileroPreprocessDenoise: boolean;
   pauseEdited: boolean;
   pitchHumEdited: boolean;
   pitchHumMode: PitchHumMode;
@@ -172,7 +200,7 @@ export interface RegionDeleteRequest {
 }
 
 type DenoiseAlgorithm = "standard" | "rnnoise" | "dpdfnet" | "voice_only";
-type PauseDetectionAlgorithm = "deep_filter" | "silero_vad";
+type PauseDetectionAlgorithm = "silencedetect" | "silero_vad";
 
 type PitchHumMode = "direct" | "pitch_tier";
 

@@ -27,6 +27,18 @@ import {
   buildSplitCommandPayloadFromState,
   buildSplitDefaultSaveRequestFromState,
 } from "./split-button-state-commands.js";
+import { applyPromotedGraphDefaultsToState } from "./graph-promoted-defaults.js";
+import {
+  applyPausePresetToState,
+  applyPromotedPauseDefaultsToState,
+  pauseDefaultValues,
+  pauseFieldValuesFromDefaults,
+  setPauseMinSilenceSecondsOnState,
+  setPauseMinSpeechSecondsOnState,
+  setPausePreprocessDenoiseOnState,
+  setPauseThresholdOnState,
+  syncPauseAdvancedDefaults,
+} from "./pause-split-state.js";
 export {
   clampRepeatPauseSeconds,
   clampDpdfnetAttnLimitDb,
@@ -55,7 +67,15 @@ const DEFAULTS: CompleteSplitButtonDefaults = {
   ...defaultGraphSplitValues(),
   outputFormat: DEFAULT_OUTPUT_FORMAT,
   pauseAggressiveness: "normal",
-  pauseDetectionAlgorithm: "deep_filter",
+  pauseDetectionAlgorithm: "silencedetect",
+  pauseSilencedetectThresholdDb: -45,
+  pauseSilencedetectMinSilenceSeconds: 0.3,
+  pauseSilencedetectMinSpeechSeconds: 0.1,
+  pauseSilencedetectPreprocessDenoise: true,
+  pauseSileroThreshold: 0.5,
+  pauseSileroMinSilenceSeconds: 0.45,
+  pauseSileroMinSpeechSeconds: 0.1,
+  pauseSileroPreprocessDenoise: false,
   pitchHumMode: "direct",
   repeatPauseSeconds: 0,
   shareTarget: "litterbox",
@@ -109,8 +129,7 @@ export function getSplitButtonState(ord: number): FieldSplitButtonState {
   const defaultVoiceRecordingCountdownSeconds = clampVoiceRecordingCountdownSeconds(
     defaults.voiceRecordingCountdownSeconds,
   );
-  const defaultPauseAggressiveness = defaults.pauseAggressiveness;
-  const defaultPauseDetectionAlgorithm = pauseDetectionAlgorithmOrDefault(defaults.pauseDetectionAlgorithm);
+  const pauseDefaults = pauseDefaultValues(defaults);
   const defaultPitchHumMode = pitchHumModeOrDefault(defaults.pitchHumMode);
   const defaultDenoiseAlgorithm = defaults.denoiseAlgorithm;
   const defaultDpdfnetAttnLimitDb = clampDpdfnetAttnLimitDb(defaults.dpdfnetAttnLimitDb);
@@ -138,19 +157,20 @@ export function getSplitButtonState(ord: number): FieldSplitButtonState {
       existing.shareEdited = false;
     }
     if (
-      runtimeState.pauseDetectionAlgorithm !== "deep_filter" &&
+      runtimeState.pauseDetectionAlgorithm !== "silencedetect" &&
       runtimeState.pauseDetectionAlgorithm !== "silero_vad"
     ) {
-      existing.pauseDetectionAlgorithm = defaultPauseDetectionAlgorithm;
-      existing.defaultPauseDetectionAlgorithm = defaultPauseDetectionAlgorithm;
+      existing.pauseDetectionAlgorithm = pauseDefaults.defaultPauseDetectionAlgorithm;
+      existing.defaultPauseDetectionAlgorithm = pauseDefaults.defaultPauseDetectionAlgorithm;
       existing.pauseEdited = false;
     }
     if (
-      runtimeState.defaultPauseDetectionAlgorithm !== "deep_filter" &&
+      runtimeState.defaultPauseDetectionAlgorithm !== "silencedetect" &&
       runtimeState.defaultPauseDetectionAlgorithm !== "silero_vad"
     ) {
-      existing.defaultPauseDetectionAlgorithm = defaultPauseDetectionAlgorithm;
+      existing.defaultPauseDetectionAlgorithm = pauseDefaults.defaultPauseDetectionAlgorithm;
     }
+    syncPauseAdvancedDefaults(existing, pauseDefaults);
     if (!existing.shareEdited && existing.shareTarget !== defaultShareTarget) {
       existing.shareTarget = defaultShareTarget;
     }
@@ -173,13 +193,16 @@ export function getSplitButtonState(ord: number): FieldSplitButtonState {
       existing.defaultVoiceRecordingCountdownSeconds = defaultVoiceRecordingCountdownSeconds;
       existing.voiceRecordingCountdownSeconds = defaultVoiceRecordingCountdownSeconds;
     }
-    if (!existing.pauseEdited && existing.defaultPauseAggressiveness !== defaultPauseAggressiveness) {
-      existing.defaultPauseAggressiveness = defaultPauseAggressiveness;
-      existing.pauseAggressiveness = defaultPauseAggressiveness;
+    if (!existing.pauseEdited && existing.defaultPauseAggressiveness !== pauseDefaults.defaultPauseAggressiveness) {
+      existing.defaultPauseAggressiveness = pauseDefaults.defaultPauseAggressiveness;
+      existing.pauseAggressiveness = pauseDefaults.defaultPauseAggressiveness;
     }
-    if (!existing.pauseEdited && existing.defaultPauseDetectionAlgorithm !== defaultPauseDetectionAlgorithm) {
-      existing.defaultPauseDetectionAlgorithm = defaultPauseDetectionAlgorithm;
-      existing.pauseDetectionAlgorithm = defaultPauseDetectionAlgorithm;
+    if (
+      !existing.pauseEdited
+      && existing.defaultPauseDetectionAlgorithm !== pauseDefaults.defaultPauseDetectionAlgorithm
+    ) {
+      existing.defaultPauseDetectionAlgorithm = pauseDefaults.defaultPauseDetectionAlgorithm;
+      existing.pauseDetectionAlgorithm = pauseDefaults.defaultPauseDetectionAlgorithm;
     }
     if (!existing.outputFormatEdited && existing.defaultOutputFormat !== defaultOutputFormat) {
       existing.defaultOutputFormat = defaultOutputFormat;
@@ -230,8 +253,7 @@ export function getSplitButtonState(ord: number): FieldSplitButtonState {
     defaultGraphVoiceLock,
     defaultGraphVoiceRange,
     defaultOutputFormat,
-    defaultPauseAggressiveness,
-    defaultPauseDetectionAlgorithm,
+    ...pauseDefaults,
     defaultPitchHumMode,
     defaultRepeatPauseSeconds,
     defaultVoiceRecordingCountdownSeconds,
@@ -249,8 +271,7 @@ export function getSplitButtonState(ord: number): FieldSplitButtonState {
     graphVoiceRange: defaultGraphVoiceRange,
     outputFormat: defaultOutputFormat,
     outputFormatEdited: false,
-    pauseAggressiveness: defaultPauseAggressiveness,
-    pauseDetectionAlgorithm: defaultPauseDetectionAlgorithm,
+    ...pauseFieldValuesFromDefaults(pauseDefaults),
     pauseEdited: false,
     pitchHumEdited: false,
     pitchHumMode: defaultPitchHumMode,
@@ -325,18 +346,7 @@ function applyPromotedDefaultsToState(
     }
     if (forceCurrentField) state.voiceRecordingCountdownEdited = false;
   }
-  if (values.pauseAggressiveness !== undefined) {
-    state.defaultPauseAggressiveness = defaults.pauseAggressiveness;
-    if (forceCurrentField || !state.pauseEdited) state.pauseAggressiveness = state.defaultPauseAggressiveness;
-    if (forceCurrentField) state.pauseEdited = false;
-  }
-  if (values.pauseDetectionAlgorithm !== undefined) {
-    state.defaultPauseDetectionAlgorithm = pauseDetectionAlgorithmOrDefault(defaults.pauseDetectionAlgorithm);
-    if (forceCurrentField || !state.pauseEdited) {
-      state.pauseDetectionAlgorithm = state.defaultPauseDetectionAlgorithm;
-    }
-    if (forceCurrentField) state.pauseEdited = false;
-  }
+  applyPromotedPauseDefaultsToState(state, defaults, values, forceCurrentField);
   if (values.denoiseAlgorithm !== undefined) {
     state.defaultDenoiseAlgorithm = defaults.denoiseAlgorithm;
     if (forceCurrentField || !state.denoiseEdited) state.denoiseAlgorithm = state.defaultDenoiseAlgorithm;
@@ -358,34 +368,6 @@ function applyPromotedDefaultsToState(
     if (forceCurrentField) state.shareEdited = false;
   }
   applyPromotedGraphDefaultsToState(state, defaults, values, forceCurrentField);
-}
-
-function applyPromotedGraphDefaultsToState(
-  state: FieldSplitButtonState,
-  defaults: CompleteSplitButtonDefaults,
-  values: SplitDefaultSaveRequest["defaults"],
-  forceCurrentField: boolean,
-): void {
-  const graphChanged =
-    values.graphVoiceRange !== undefined ||
-    values.graphRecordingCondition !== undefined ||
-    values.graphSmoothness !== undefined ||
-    values.graphConnectShortDropoutsMs !== undefined ||
-    values.graphVoiceLock !== undefined;
-  if (!graphChanged) return;
-  state.defaultGraphVoiceRange = graphVoiceRangeOrDefault(defaults.graphVoiceRange);
-  state.defaultGraphRecordingCondition = graphRecordingConditionOrDefault(defaults.graphRecordingCondition);
-  state.defaultGraphSmoothness = graphSmoothnessOrDefault(defaults.graphSmoothness);
-  state.defaultGraphConnectShortDropoutsMs = clampGraphConnectShortDropoutsMs(defaults.graphConnectShortDropoutsMs);
-  state.defaultGraphVoiceLock = graphVoiceLockOrDefault(defaults.graphVoiceLock);
-  if (forceCurrentField || !state.graphEdited) {
-    state.graphVoiceRange = state.defaultGraphVoiceRange;
-    state.graphRecordingCondition = state.defaultGraphRecordingCondition;
-    state.graphSmoothness = state.defaultGraphSmoothness;
-    state.graphConnectShortDropoutsMs = state.defaultGraphConnectShortDropoutsMs;
-    state.graphVoiceLock = state.defaultGraphVoiceLock;
-  }
-  if (forceCurrentField) state.graphEdited = false;
 }
 
 export function setVolumeStepForField(ord: number, value: number): FieldSplitButtonState {
@@ -423,6 +405,7 @@ export function setPauseAggressivenessForField(
   const state = getSplitButtonState(ord);
   state.pauseEdited = true;
   state.pauseAggressiveness = value;
+  applyPausePresetToState(state);
   return state;
 }
 
@@ -433,6 +416,34 @@ export function setPauseDetectionAlgorithmForField(
   const state = getSplitButtonState(ord);
   state.pauseEdited = true;
   state.pauseDetectionAlgorithm = pauseDetectionAlgorithmOrDefault(value);
+  return state;
+}
+
+export function setPauseThresholdForField(ord: number, value: number): FieldSplitButtonState {
+  const state = getSplitButtonState(ord);
+  state.pauseEdited = true;
+  setPauseThresholdOnState(state, value);
+  return state;
+}
+
+export function setPauseMinSilenceSecondsForField(ord: number, value: number): FieldSplitButtonState {
+  const state = getSplitButtonState(ord);
+  state.pauseEdited = true;
+  setPauseMinSilenceSecondsOnState(state, value);
+  return state;
+}
+
+export function setPauseMinSpeechSecondsForField(ord: number, value: number): FieldSplitButtonState {
+  const state = getSplitButtonState(ord);
+  state.pauseEdited = true;
+  setPauseMinSpeechSecondsOnState(state, value);
+  return state;
+}
+
+export function setPausePreprocessDenoiseForField(ord: number, value: boolean): FieldSplitButtonState {
+  const state = getSplitButtonState(ord);
+  state.pauseEdited = true;
+  setPausePreprocessDenoiseOnState(state, value);
   return state;
 }
 

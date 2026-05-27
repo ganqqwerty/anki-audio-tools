@@ -243,7 +243,29 @@ def _on_editor_will_load_note(js: str, note: Any, editor: Any) -> str:
             "shareTarget": str(config.get("share_target", "litterbox")),
             "pauseAggressiveness": str(config.get("pause_aggressiveness", "normal")),
             "pauseDetectionAlgorithm": str(
-                config.get("pause_detection_algorithm", "deep_filter")
+                config.get("pause_detection_algorithm", "silencedetect")
+            ),
+            "pauseSilencedetectThresholdDb": float(
+                config.get("pause_silencedetect_threshold_db", -45.0)
+            ),
+            "pauseSilencedetectMinSilenceSeconds": float(
+                config.get("pause_silencedetect_min_silence_seconds", 0.30)
+            ),
+            "pauseSilencedetectMinSpeechSeconds": float(
+                config.get("pause_silencedetect_min_speech_seconds", 0.10)
+            ),
+            "pauseSilencedetectPreprocessDenoise": bool(
+                config.get("pause_silencedetect_preprocess_denoise", True)
+            ),
+            "pauseSileroThreshold": float(config.get("pause_silero_threshold", 0.50)),
+            "pauseSileroMinSilenceSeconds": float(
+                config.get("pause_silero_min_silence_seconds", 0.45)
+            ),
+            "pauseSileroMinSpeechSeconds": float(
+                config.get("pause_silero_min_speech_seconds", 0.10)
+            ),
+            "pauseSileroPreprocessDenoise": bool(
+                config.get("pause_silero_preprocess_denoise", False)
             ),
             "denoiseAlgorithm": str(config.get("denoise_algorithm", "standard")),
             "pitchHumMode": str(config.get("pitch_hum_mode", "direct")),

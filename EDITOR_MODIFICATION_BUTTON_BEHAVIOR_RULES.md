@@ -67,6 +67,9 @@ Current split-button defaults include:
 | Volume step | `volume_step_db` |
 | Speed step | `speed_step` |
 | Shorten Pauses aggressiveness | `pause_aggressiveness` |
+| Shorten Pauses detector | `pause_detection_algorithm` |
+| Shorten Pauses Silencedetect params | `pause_silencedetect_threshold_db`, `pause_silencedetect_min_silence_seconds`, `pause_silencedetect_min_speech_seconds`, `pause_silencedetect_preprocess_denoise` |
+| Shorten Pauses Silero params | `pause_silero_threshold`, `pause_silero_min_silence_seconds`, `pause_silero_min_speech_seconds`, `pause_silero_preprocess_denoise` |
 | Denoise algorithm | `denoise_algorithm` |
 | DPDFNet aggressiveness | `dpdfnet_attn_limit_db` |
 | Convert output format | `output_format` |
@@ -85,7 +88,7 @@ Current shared batch/editor operations:
 |------------------|------------------------|-----------------|
 | Convert | `aqe:convert` with `targetFormat` | `convert` with `target_format` |
 | Denoise | Denoise split menu dispatching `aqe:denoise-standard`, `aqe:rnnoise`, `aqe:dpdfnet`, or `aqe:voice-only` | `denoise` with `denoise_algorithm` and optional `dpdfnet_attn_limit_db` |
-| Shorten Pauses | `aqe:remove-pauses` with `pauseAggressiveness` | `remove_pauses` with `pause_aggressiveness` |
+| Shorten Pauses | `aqe:remove-pauses` with `pauseAggressiveness`, `pauseDetectionAlgorithm`, `pauseThreshold`, `pauseMinSilenceSeconds`, `pauseMinSpeechSeconds`, and `pausePreprocessDenoise` | `remove_pauses` with `pause_aggressiveness`, `pause_detection_algorithm`, `pause_threshold`, `pause_min_silence_seconds`, `pause_min_speech_seconds`, and `pause_preprocess_denoise` |
 | Speed | `aqe:slower`, `aqe:faster` with `speedStep` | `slower`, `faster` with `speed_step` |
 | Volume | `aqe:volume-down`, `aqe:volume-up` with `volumeStepDb` | `volume_down`, `volume_up` with `volume_step_db` |
 | Graph | `aqe:analyze` with graph settings | `graph` appends an SVG to a target field |

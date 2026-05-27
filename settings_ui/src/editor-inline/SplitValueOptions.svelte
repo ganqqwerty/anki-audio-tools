@@ -43,6 +43,10 @@
     onOutputFormat,
     onPauseAggressiveness,
     onPauseDetectionAlgorithm,
+    onPauseMinSilenceSeconds,
+    onPauseMinSpeechSeconds,
+    onPausePreprocessDenoise,
+    onPauseThreshold,
     onPitchHumMode,
     onSaveDefault,
     onRunCommand,
@@ -51,6 +55,10 @@
     onVolumeStep,
     pauseAggressiveness,
     pauseDetectionAlgorithm,
+    pauseMinSilenceSeconds,
+    pauseMinSpeechSeconds,
+    pausePreprocessDenoise,
+    pauseThreshold,
     outputFormat,
     pitchHumMode,
     saveDefaultSaved,
@@ -72,6 +80,10 @@
     onOutputFormat: (value: OutputFormatValue) => void;
     onPauseAggressiveness: (value: "gentle" | "normal" | "aggressive") => void;
     onPauseDetectionAlgorithm: (value: PauseDetectionAlgorithm) => void;
+    onPauseMinSilenceSeconds: (value: number) => void;
+    onPauseMinSpeechSeconds: (value: number) => void;
+    onPausePreprocessDenoise: (value: boolean) => void;
+    onPauseThreshold: (value: number) => void;
     onPitchHumMode: (value: PitchHumMode) => void;
     onSaveDefault: () => void;
     onRunCommand: (command: ButtonSpec["command"]) => void;
@@ -80,6 +92,10 @@
     onVolumeStep: (value: number) => void;
     pauseAggressiveness: "gentle" | "normal" | "aggressive";
     pauseDetectionAlgorithm: PauseDetectionAlgorithm;
+    pauseMinSilenceSeconds: number;
+    pauseMinSpeechSeconds: number;
+    pausePreprocessDenoise: boolean;
+    pauseThreshold: number;
     outputFormat: OutputFormatValue;
     pitchHumMode: PitchHumMode;
     saveDefaultSaved: boolean;
@@ -315,6 +331,14 @@
     {onChange}
     {onDpdfnetAttnLimitDb}
     {onPauseDetectionAlgorithm}
+    {onPauseMinSilenceSeconds}
+    {onPauseMinSpeechSeconds}
+    {onPausePreprocessDenoise}
+    {onPauseThreshold}
+    {pauseMinSilenceSeconds}
+    {pauseMinSpeechSeconds}
+    {pausePreprocessDenoise}
+    {pauseThreshold}
     {pauseDetectionAlgorithm}
     {slug}
     {targetOrd}

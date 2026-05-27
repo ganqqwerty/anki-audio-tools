@@ -13,8 +13,9 @@ AUDIO_CONTRACTS: dict[str, ModuleContract] = {
     "audio_operation_params": contract(
         "audio_operation_params",
         layer=Layer.IMPORT_SAFE_CORE,
-        allowed_addon_deps=("audio_formats", "audio_state", "dpdfnet_settings"),
+        allowed_addon_deps=("audio_formats", "audio_pause_settings", "audio_state", "dpdfnet_settings"),
     ),
+    "audio_pause_settings": contract("audio_pause_settings", layer=Layer.IMPORT_SAFE_CORE),
     "audio_pipeline": contract("audio_pipeline", layer=Layer.IMPORT_SAFE_CORE),
     "audio_artifacts": contract(
         "audio_artifacts",
@@ -119,7 +120,7 @@ AUDIO_CONTRACTS: dict[str, ModuleContract] = {
             "audio_artifacts",
             "audio_commands",
             "audio_external",
-            "audio_noise_reduction",
+            "audio_pause_settings",
             "audio_pipeline",
             "audio_state",
             "audio_types",
@@ -137,6 +138,7 @@ AUDIO_CONTRACTS: dict[str, ModuleContract] = {
             "audio_external",
             "audio_noise_reduction",
             "audio_pause_pipeline",
+            "audio_pause_pipeline_steps",
             "audio_pitch_hum",
             "audio_processor_rendering_portal",
             "audio_processor_runtime",
@@ -194,7 +196,13 @@ AUDIO_CONTRACTS: dict[str, ModuleContract] = {
     "audio_state": contract(
         "audio_state",
         layer=Layer.IMPORT_SAFE_CORE,
-        allowed_addon_deps=("audio_formats", "dpdfnet_settings", "errors", "ffmpeg_defaults"),
+        allowed_addon_deps=(
+            "audio_formats",
+            "audio_pause_settings",
+            "dpdfnet_settings",
+            "errors",
+            "ffmpeg_defaults",
+        ),
     ),
     "batch_operations": contract(
         "batch_operations",

@@ -267,7 +267,7 @@
       "enum": ["gentle", "normal", "aggressive"]
     },
     "BatchPauseDetectionAlgorithm": {
-      "enum": ["deep_filter", "silero_vad"]
+      "enum": ["silencedetect", "silero_vad"]
     },
     "DenoiseAlgorithm": {
       "enum": ["standard", "rnnoise", "dpdfnet", "voice_only"]
@@ -286,6 +286,10 @@
         "volume_step_db": { "type": "number" },
         "pause_aggressiveness": { "$ref": "#/definitions/BatchPauseAggressiveness" },
         "pause_detection_algorithm": { "$ref": "#/definitions/BatchPauseDetectionAlgorithm" },
+        "pause_threshold": { "type": "number" },
+        "pause_min_silence_seconds": { "type": "number" },
+        "pause_min_speech_seconds": { "type": "number" },
+        "pause_preprocess_denoise": { "type": "boolean" },
         "denoise_algorithm": { "$ref": "#/definitions/DenoiseAlgorithm" },
         "dpdfnet_attn_limit_db": { "$ref": "#/definitions/BatchDpdfnetAttnLimitDB" },
         "target_format": { "$ref": "#/definitions/OutputFormat" }
@@ -315,12 +319,36 @@
     "BatchDefaults": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["speed_step", "volume_step_db", "pause_aggressiveness", "pause_detection_algorithm", "denoise_algorithm", "dpdfnet_attn_limit_db", "output_format"],
+      "required": [
+        "speed_step",
+        "volume_step_db",
+        "pause_aggressiveness",
+        "pause_detection_algorithm",
+        "pause_silencedetect_threshold_db",
+        "pause_silencedetect_min_silence_seconds",
+        "pause_silencedetect_min_speech_seconds",
+        "pause_silencedetect_preprocess_denoise",
+        "pause_silero_threshold",
+        "pause_silero_min_silence_seconds",
+        "pause_silero_min_speech_seconds",
+        "pause_silero_preprocess_denoise",
+        "denoise_algorithm",
+        "dpdfnet_attn_limit_db",
+        "output_format"
+      ],
       "properties": {
         "speed_step": { "type": "number" },
         "volume_step_db": { "type": "number" },
         "pause_aggressiveness": { "$ref": "#/definitions/BatchPauseAggressiveness" },
         "pause_detection_algorithm": { "$ref": "#/definitions/BatchPauseDetectionAlgorithm" },
+        "pause_silencedetect_threshold_db": { "type": "number" },
+        "pause_silencedetect_min_silence_seconds": { "type": "number" },
+        "pause_silencedetect_min_speech_seconds": { "type": "number" },
+        "pause_silencedetect_preprocess_denoise": { "type": "boolean" },
+        "pause_silero_threshold": { "type": "number" },
+        "pause_silero_min_silence_seconds": { "type": "number" },
+        "pause_silero_min_speech_seconds": { "type": "number" },
+        "pause_silero_preprocess_denoise": { "type": "boolean" },
         "denoise_algorithm": { "$ref": "#/definitions/DenoiseAlgorithm" },
         "dpdfnet_attn_limit_db": { "$ref": "#/definitions/BatchDpdfnetAttnLimitDB" },
         "output_format": { "$ref": "#/definitions/OutputFormat" }

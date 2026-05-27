@@ -1,4 +1,4 @@
-"""E2E tests for DeepFilter-backed pause shortening."""
+"""E2E tests for DPDFNet-backed pause detection preprocessing."""
 
 from __future__ import annotations
 
@@ -7,7 +7,7 @@ from pathlib import Path
 
 from e2e.conftest import import_runtime_addon_module
 from e2e.editor_audio_generation_helpers import (
-    _fake_deep_filter_executable,
+    _fake_dpdfnet_executable,
     _generate_noisy_pause_and_clean_analysis,
 )
 from e2e.editor_note_helpers import (
@@ -25,7 +25,7 @@ from e2e.editor_note_helpers import (
 from e2e.helpers import click_selector, wait_for_js_condition
 
 
-def test_shorten_pauses_uses_deep_filter_analysis_and_retains_artifacts(
+def test_shorten_pauses_uses_dpdfnet_analysis_and_retains_artifacts(
     anki_mw,
     ffmpeg_config,
     tmp_path,
@@ -37,7 +37,7 @@ def test_shorten_pauses_uses_deep_filter_analysis_and_retains_artifacts(
     cleaned_analysis = tmp_path / "editor_shorten_pause_cleaned.wav"
     _generate_noisy_pause_and_clean_analysis(ffmpeg_config, source, cleaned_analysis)
     original_bytes = source.read_bytes()
-    fake_deep_filter, deep_filter_log = _fake_deep_filter_executable(
+    fake_dpdfnet, dpdfnet_log = _fake_dpdfnet_executable(
         tmp_path,
         cleaned_source=cleaned_analysis,
     )
@@ -45,8 +45,8 @@ def test_shorten_pauses_uses_deep_filter_analysis_and_retains_artifacts(
     _configure_ffmpeg(
         anki_mw,
         ffmpeg_config,
-        deep_filter_path=str(fake_deep_filter),
-        deep_filter_post_filter=True,
+        dpdfnet_path=str(fake_dpdfnet),
+        pause_silencedetect_preprocess_denoise=True,
         show_ffmpeg_commands=True,
     )
     artifact_root = _artifact_root(anki_mw)
@@ -74,10 +74,10 @@ def test_shorten_pauses_uses_deep_filter_analysis_and_retains_artifacts(
 
         for relative_path in (
             "01_working_original.wav",
-            "02_analysis_input_48k_mono.wav",
-            "03_deep_filter_output/clean.wav",
-            "04_silencedetect_stderr.txt",
-            "04_silence_intervals.json",
+            "02_denoised_analysis.wav",
+            "04_detection_stderr.txt",
+            "04_detected_pause_intervals.json",
+            "04_removed_intervals.json",
             "05_timeline.json",
             "06_filter_complex.ffscript",
             "07_final_output.mp3",
@@ -86,18 +86,26 @@ def test_shorten_pauses_uses_deep_filter_analysis_and_retains_artifacts(
             assert (run_dir / relative_path).is_file()
 
         stage_by_name = {stage["name"]: stage for stage in manifest["stages"]}
-        assert "03_deep_filter_output/clean.wav" in " ".join(stage_by_name["detect_silence"]["argv"])
+        assert "02_denoised_analysis.wav" in " ".join(stage_by_name["detect_silence"]["argv"])
         assert "01_working_original.wav" in " ".join(stage_by_name["render_final_output"]["argv"])
         assert "06_filter_complex.ffscript" in " ".join(stage_by_name["render_final_output"]["argv"])
+        assert "01_working_original.wav" in " ".join(
+            stage_by_name["preprocess_pause_analysis_denoise"]["argv"]
+        )
         assert manifest["silence_intervals"]
-        pause_segments = [segment for segment in manifest["timeline"] if segment["kind"] == "pause"]
-        assert len(pause_segments) == 1
-        assert pause_segments[0]["speed_factor"] >= 7.0
+        assert manifest["pause_preprocessing"]["enabled"] is True
+        assert manifest["pause_preprocessing"]["implementation"] == "dpdfnet"
+        assert manifest["pause_detection_parameters"]["algorithm"] == "silencedetect"
+        assert manifest["pause_detection_parameters"]["preprocess_denoise"] is True
+        assert not [segment for segment in manifest["timeline"] if segment["kind"] == "pause"]
+        assert all(segment["speed_factor"] == 1.0 for segment in manifest["timeline"])
 
         filter_script = (run_dir / "06_filter_complex.ffscript").read_text(encoding="utf-8")
-        assert "atempo=" in filter_script
-        deep_filter_args = json.loads(deep_filter_log.read_text(encoding="utf-8"))
-        assert Path(deep_filter_args[-1]).name == "02_analysis_input_48k_mono.wav"
+        assert "atempo=" not in filter_script
+        dpdfnet_args = json.loads(dpdfnet_log.read_text(encoding="utf-8"))
+        assert dpdfnet_args[0] == "enhance"
+        assert Path(dpdfnet_args[-2]).name == "01_working_original.wav"
+        assert Path(dpdfnet_args[-1]).name == "02_denoised_analysis.wav"
     finally:
         editor.set_note(None)
         parent.close()
@@ -120,13 +128,13 @@ def test_shorten_pauses_failure_leaves_note_unchanged_and_records_manifest(
     cleaned_analysis = tmp_path / "editor_shorten_pause_failure_cleaned.wav"
     _generate_noisy_pause_and_clean_analysis(ffmpeg_config, source, cleaned_analysis)
     original_field = f"Prompt [sound:{source.name}]"
-    fake_deep_filter, deep_filter_log = _fake_deep_filter_executable(tmp_path, fail=True)
+    fake_dpdfnet, dpdfnet_log = _fake_dpdfnet_executable(tmp_path, fail=True)
     note = _basic_audio_note(anki_mw, source.name)
     _configure_ffmpeg(
         anki_mw,
         ffmpeg_config,
-        deep_filter_path=str(fake_deep_filter),
-        deep_filter_post_filter=True,
+        dpdfnet_path=str(fake_dpdfnet),
+        pause_silencedetect_preprocess_denoise=True,
     )
     artifact_root = _artifact_root(anki_mw)
     before_artifacts = _artifact_dirs_for_source(artifact_root, source)
@@ -140,15 +148,15 @@ def test_shorten_pauses_failure_leaves_note_unchanged_and_records_manifest(
             _processing_status_js(),
             lambda value: value is not None
             and value["kind"] == "error"
-            and "fake deep-filter failed" in value["text"],
+            and "fake dpdfnet failed" in value["text"],
             timeout=10.0,
         )
 
         assert status["title"] == ""
         assert note.fields[0] == original_field
         assert _sound_filename(note.fields[0]) == source.name
-        assert json.loads(deep_filter_log.read_text(encoding="utf-8"))[-1].endswith(
-            "02_analysis_input_48k_mono.wav"
+        assert json.loads(dpdfnet_log.read_text(encoding="utf-8"))[-2].endswith(
+            "01_working_original.wav"
         )
 
         incident = latest_pause_pipeline_support_incident()
@@ -156,7 +164,7 @@ def test_shorten_pauses_failure_leaves_note_unchanged_and_records_manifest(
         assert incident["manifest_path"].endswith("manifest.json")
         assert Path(incident["manifest_path"]).is_file()
         assert Path(incident["artifact_dir"]).is_dir()
-        assert "fake deep-filter failed" in incident["user_message"]
+        assert "fake dpdfnet failed" in incident["user_message"]
 
         new_artifacts = _artifact_dirs_for_source(artifact_root, source) - before_artifacts
         assert len(new_artifacts) == 1

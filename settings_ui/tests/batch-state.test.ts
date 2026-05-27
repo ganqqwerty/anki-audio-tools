@@ -23,7 +23,15 @@ function form(overrides: Partial<BatchFormState> = {}): BatchFormState {
     speedStep: 1.5,
     volumeStepDb: 6,
     pauseAggressiveness: BatchPauseAggressiveness.Aggressive,
-    pauseDetectionAlgorithm: BatchPauseDetectionAlgorithm.DeepFilter,
+    pauseDetectionAlgorithm: BatchPauseDetectionAlgorithm.Silencedetect,
+    pauseSilencedetectThresholdDb: -52,
+    pauseSilencedetectMinSilenceSeconds: 0.14,
+    pauseSilencedetectMinSpeechSeconds: 0.04,
+    pauseSilencedetectPreprocessDenoise: true,
+    pauseSileroThreshold: 0.85,
+    pauseSileroMinSilenceSeconds: 0.15,
+    pauseSileroMinSpeechSeconds: 0.04,
+    pauseSileroPreprocessDenoise: false,
     denoiseAlgorithm: DenoiseAlgorithm.Standard,
     dpdfnetAttnLimitDb: 12,
     targetFormat: "mp3",
@@ -109,6 +117,9 @@ describe("batch-state", () => {
       batchStartRequest(form({
         operation: BatchOperationName.RemovePauses,
         pauseAggressiveness: BatchPauseAggressiveness.Gentle,
+        pauseSilencedetectThresholdDb: -42,
+        pauseSilencedetectMinSilenceSeconds: 0.45,
+        pauseSilencedetectMinSpeechSeconds: 0.12,
       }), pause),
     ).toEqual({
       operation: BatchOperationName.RemovePauses,
@@ -116,7 +127,11 @@ describe("batch-state", () => {
       target_field: null,
       parameters: {
         pause_aggressiveness: "gentle",
-        pause_detection_algorithm: "deep_filter",
+        pause_detection_algorithm: "silencedetect",
+        pause_min_silence_seconds: 0.45,
+        pause_min_speech_seconds: 0.12,
+        pause_preprocess_denoise: true,
+        pause_threshold: -42,
       },
     });
 

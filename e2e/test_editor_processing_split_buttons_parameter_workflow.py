@@ -6,7 +6,7 @@ import json
 from pathlib import Path
 
 from e2e.conftest import import_runtime_addon_module
-from e2e.editor_audio_generation_helpers import _fake_deep_filter_executable
+from e2e.editor_audio_generation_helpers import _fake_dpdfnet_executable
 from e2e.editor_note_helpers import (
     ADDON_NUMERIC_ID,
     _artifact_dirs_for_source,
@@ -159,16 +159,18 @@ def test_pause_split_button_applies_local_aggressiveness_without_changing_settin
     media_dir = Path(anki_mw.col.media.dir())
     source = media_dir / "editor_split_pause_source.wav"
     generate_tone(ffmpeg_config, source, duration_s=2.0)
-    fake_deep_filter, _deep_filter_log = _fake_deep_filter_executable(tmp_path)
+    fake_dpdfnet, _dpdfnet_log = _fake_dpdfnet_executable(tmp_path)
     note = _basic_audio_note(anki_mw, source.name)
     _configure_ffmpeg(
         anki_mw,
         ffmpeg_config,
-        deep_filter_path=str(fake_deep_filter),
-        internal_pause_silence_threshold_db=-45,
-        internal_pause_threshold_ms=300,
-        internal_pause_target_gap_ms=100,
+        dpdfnet_path=str(fake_dpdfnet),
+        pause_detection_algorithm="silencedetect",
         pause_aggressiveness="normal",
+        pause_silencedetect_threshold_db=-45,
+        pause_silencedetect_min_silence_seconds=0.30,
+        pause_silencedetect_min_speech_seconds=0.10,
+        pause_silencedetect_preprocess_denoise=True,
     )
     artifact_root = _artifact_root(anki_mw)
 
@@ -203,13 +205,17 @@ def test_pause_split_button_applies_local_aggressiveness_without_changing_settin
         manifest = json.loads((new_artifact / "manifest.json").read_text(encoding="utf-8"))
 
         config = anki_mw.addonManager.getConfig(ADDON_NUMERIC_ID)
-        assert manifest["config"]["internal_pause_silence_threshold_db"] == -50
-        assert manifest["config"]["internal_pause_threshold_ms"] == 180
-        assert manifest["config"]["internal_pause_target_gap_ms"] == 60
+        assert manifest["config"]["pause_detection_algorithm"] == "silencedetect"
+        assert manifest["config"]["pause_aggressiveness"] == "aggressive"
+        assert manifest["config"]["pause_silencedetect_threshold_db"] == -52
+        assert manifest["config"]["pause_silencedetect_min_silence_seconds"] == 0.14
+        assert manifest["config"]["pause_silencedetect_min_speech_seconds"] == 0.04
+        assert manifest["config"]["pause_silencedetect_preprocess_denoise"] is True
         assert config["pause_aggressiveness"] == "normal"
-        assert config["internal_pause_silence_threshold_db"] == -45
-        assert config["internal_pause_threshold_ms"] == 300
-        assert config["internal_pause_target_gap_ms"] == 100
+        assert config["pause_silencedetect_threshold_db"] == -45
+        assert config["pause_silencedetect_min_silence_seconds"] == 0.30
+        assert config["pause_silencedetect_min_speech_seconds"] == 0.10
+        assert config["pause_silencedetect_preprocess_denoise"] is True
         assert _sound_filename(note.fields[0]) == generated_name
     finally:
         editor.set_note(None)

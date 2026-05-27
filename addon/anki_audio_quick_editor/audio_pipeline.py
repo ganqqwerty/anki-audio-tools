@@ -27,7 +27,7 @@ class SilenceInterval:
 
 @dataclass(frozen=True)
 class TimelineSegment:
-    """One segment in the pause speed-up render timeline."""
+    """One keep segment in a staged audio render timeline."""
 
     kind: str
     start_ms: int
@@ -120,47 +120,61 @@ def speech_intervals_to_silence_intervals(
     return tuple(_merge_intervals(intervals))
 
 
-def plan_pause_timeline(
+def merge_short_speech_gaps(
+    silence_intervals: tuple[SilenceInterval, ...],
     duration_ms: int,
+    *,
+    min_speech_ms: int,
+) -> tuple[SilenceInterval, ...]:
+    """Merge silence intervals separated by speech shorter than ``min_speech_ms``."""
+    duration_ms = max(0, int(duration_ms))
+    min_speech_ms = max(1, int(min_speech_ms))
+    merged_source = _merge_intervals(list(silence_intervals))
+    if not merged_source:
+        return ()
+
+    merged: list[SilenceInterval] = [merged_source[0]]
+    for interval in merged_source[1:]:
+        previous = merged[-1]
+        speech_gap_ms = max(0, interval.start_ms - previous.end_ms)
+        if speech_gap_ms < min_speech_ms:
+            merged[-1] = _clamped_interval(previous.start_ms, interval.end_ms, duration_ms)
+        else:
+            merged.append(interval)
+    return tuple(merged)
+
+
+def filter_silence_intervals_by_duration(
     silence_intervals: tuple[SilenceInterval, ...],
     *,
-    min_pause_ms: int,
-    target_gap_ms: int,
+    min_silence_ms: int,
+) -> tuple[SilenceInterval, ...]:
+    """Return only silence intervals long enough to remove."""
+    min_silence_ms = max(1, int(min_silence_ms))
+    return tuple(interval for interval in silence_intervals if interval.duration_ms >= min_silence_ms)
+
+
+def plan_pause_removal_timeline(
+    duration_ms: int,
+    silence_intervals: tuple[SilenceInterval, ...],
 ) -> tuple[TimelineSegment, ...]:
-    """Return normal and pause segments for speeding qualifying pauses."""
+    """Return keep-only segments for cutting detected pause intervals."""
     duration_ms = max(0, int(duration_ms))
-    min_pause_ms = max(1, int(min_pause_ms))
-    target_gap_ms = max(1, int(target_gap_ms))
     if duration_ms <= 0:
         return ()
 
     segments: list[TimelineSegment] = []
     cursor_ms = 0
-    for interval in silence_intervals:
+    for interval in _merge_intervals(list(silence_intervals)):
         start_ms = max(0, min(interval.start_ms, duration_ms))
         end_ms = max(start_ms, min(interval.end_ms, duration_ms))
-        pause_duration_ms = end_ms - start_ms
-        if pause_duration_ms < min_pause_ms:
-            continue
         if start_ms > cursor_ms:
             segments.append(_normal_segment(cursor_ms, start_ms))
-        speed_factor = max(1.0, pause_duration_ms / target_gap_ms)
-        segments.append(
-            TimelineSegment(
-                kind="pause",
-                start_ms=start_ms,
-                end_ms=end_ms,
-                speed_factor=round(speed_factor, 6),
-                output_duration_ms=max(1, round(pause_duration_ms / speed_factor)),
-            )
-        )
-        cursor_ms = end_ms
-
+        cursor_ms = max(cursor_ms, end_ms)
     if cursor_ms < duration_ms:
         segments.append(_normal_segment(cursor_ms, duration_ms))
-
     if not segments:
-        return (_normal_segment(0, duration_ms),)
+        return (_normal_segment(0, min(duration_ms, 1)),)
     return tuple(segment for segment in segments if segment.end_ms > segment.start_ms)
 
 
@@ -203,8 +217,6 @@ def _segment_filter_line(source: str, label: str, segment: TimelineSegment) -> s
         f"[{source}]atrim=start={segment.start_ms / 1000:.3f}:end={segment.end_ms / 1000:.3f}",
         "asetpts=PTS-STARTPTS",
     ]
-    if segment.kind == "pause" and not _is_close(segment.speed_factor, 1.0):
-        filters.extend(atempo_filters(segment.speed_factor))
     return f"{','.join(filters)}[{label}]"
 
 

@@ -39,6 +39,14 @@ def test_build_batch_initial_state_contains_operations_fields_defaults_and_i18n(
         "volume_step_db": 6.0,
         "pause_aggressiveness": "aggressive",
         "pause_detection_algorithm": "silero_vad",
+        "pause_silencedetect_threshold_db": -45.0,
+        "pause_silencedetect_min_silence_seconds": 0.3,
+        "pause_silencedetect_min_speech_seconds": 0.1,
+        "pause_silencedetect_preprocess_denoise": True,
+        "pause_silero_threshold": 0.5,
+        "pause_silero_min_silence_seconds": 0.45,
+        "pause_silero_min_speech_seconds": 0.1,
+        "pause_silero_preprocess_denoise": False,
         "denoise_algorithm": "dpdfnet",
         "dpdfnet_attn_limit_db": 18.0,
         "output_format": "flac",
@@ -107,6 +115,10 @@ def test_request_from_batch_start_payload_builds_pause_parameters() -> None:
             "parameters": {
                 "pause_aggressiveness": "gentle",
                 "pause_detection_algorithm": "silero_vad",
+                "pause_threshold": 0.55,
+                "pause_min_silence_seconds": 0.7,
+                "pause_min_speech_seconds": 0.12,
+                "pause_preprocess_denoise": False,
             },
         }
     )
@@ -114,6 +126,10 @@ def test_request_from_batch_start_payload_builds_pause_parameters() -> None:
     assert request.operation == "remove_pauses"
     assert request.parameters.pause_aggressiveness == "gentle"
     assert request.parameters.pause_detection_algorithm == "silero_vad"
+    assert request.parameters.pause_threshold == 0.55
+    assert request.parameters.pause_min_silence_seconds == 0.7
+    assert request.parameters.pause_min_speech_seconds == 0.12
+    assert request.parameters.pause_preprocess_denoise is False
 
 
 def test_request_from_batch_start_payload_builds_convert_parameters() -> None:

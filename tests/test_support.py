@@ -22,7 +22,7 @@ from anki_audio_quick_editor.support import (
 def test_pause_pipeline_incident_ignores_empty_updates_and_keeps_valid_fields() -> None:
     clear_latest_pause_pipeline_support_incident()
     record_latest_pause_pipeline_support_incident(
-        operation="deep_filter_pause_speedup",
+        operation="pause_removal",
         media_filename="clip.mp3",
         user_message="first failure",
         attempted_commands=[build_command_record(("/bin/ffmpeg", "-version"), returncode=0)],
@@ -36,7 +36,7 @@ def test_pause_pipeline_incident_ignores_empty_updates_and_keeps_valid_fields() 
         extra={},
     )
 
-    assert updated["operation"] == "deep_filter_pause_speedup"
+    assert updated["operation"] == "pause_removal"
     assert updated["media_filename"] == "clip.mp3"
     assert updated["user_message"] == "updated failure"
     assert updated["attempted_commands"] == [
@@ -54,7 +54,7 @@ def test_pause_pipeline_incident_ignores_empty_updates_and_keeps_valid_fields() 
 def test_latest_pause_pipeline_incident_returns_deep_copy() -> None:
     clear_latest_pause_pipeline_support_incident()
     incident = record_latest_pause_pipeline_support_incident(
-        operation="deep_filter_pause_speedup",
+        operation="pause_removal",
         attempted_commands=[build_command_record(("/bin/deep-filter", "-D"), returncode=12, stderr="boom")],
     )
 

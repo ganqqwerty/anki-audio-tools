@@ -7,8 +7,10 @@
     formatPauseAggressiveness,
     formatOutputFormat,
     formatPauseDetectionAlgorithm,
+    pausePreset,
     OUTPUT_FORMAT_VALUES,
   } from "$lib/audio-operation-parameters.js";
+  import PauseAdvancedParamsFields from "$lib/PauseAdvancedParamsFields.svelte";
   import {
     choiceTooltip,
     denoiseAlgorithmTooltip,
@@ -23,7 +25,7 @@
     DenoiseAlgorithm,
   } from "$lib/types.js";
   import type { BatchInitialState, BatchOperationOption } from "$lib/types.js";
-  import type { BatchFormState } from "./batch-state.js";
+  import { activeBatchPauseAlgorithm, type BatchFormState } from "./batch-state.js";
 
   interface Props {
     state: BatchInitialState;
@@ -33,6 +35,23 @@
   }
 
   let { state, form = $bindable(), selected, disabled }: Props = $props();
+
+  function applyPausePreset(value: BatchPauseAggressiveness): void {
+    const algorithm = activeBatchPauseAlgorithm(form);
+    const preset = pausePreset(algorithm, value);
+    form.pauseAggressiveness = value;
+    if (algorithm === "silero_vad") {
+      form.pauseSileroThreshold = preset.threshold;
+      form.pauseSileroMinSilenceSeconds = preset.minSilenceSeconds;
+      form.pauseSileroMinSpeechSeconds = preset.minSpeechSeconds;
+      form.pauseSileroPreprocessDenoise = preset.preprocessDenoise;
+      return;
+    }
+    form.pauseSilencedetectThresholdDb = preset.threshold;
+    form.pauseSilencedetectMinSilenceSeconds = preset.minSilenceSeconds;
+    form.pauseSilencedetectMinSpeechSeconds = preset.minSpeechSeconds;
+    form.pauseSilencedetectPreprocessDenoise = preset.preprocessDenoise;
+  }
 </script>
 
 <div class="batch-grid">
@@ -95,7 +114,7 @@
                 data-aqe-tooltip-content={choiceTooltip(formatPauseAggressiveness(value), pauseAggressivenessTooltip(value))}
                 role="radio"
                 aria-checked={form.pauseAggressiveness === value ? "true" : "false"}
-                onclick={() => (form.pauseAggressiveness = value)}
+                onclick={() => applyPausePreset(value)}
               >
                 {formatPauseAggressiveness(value)}
               </button>
@@ -112,7 +131,7 @@
         role="radiogroup"
         aria-label={t("settings.pause_detection_algorithm")}
       >
-        {#each [BatchPauseDetectionAlgorithm.DeepFilter, BatchPauseDetectionAlgorithm.SileroVad] as value}
+        {#each [BatchPauseDetectionAlgorithm.Silencedetect, BatchPauseDetectionAlgorithm.SileroVad] as value}
           <AqeTooltip>
             {#snippet trigger({ props })}
               <button
@@ -136,6 +155,27 @@
         {/each}
       </div>
     </label>
+    {#if activeBatchPauseAlgorithm(form) === "silero_vad"}
+      <PauseAdvancedParamsFields
+        algorithm="silero_vad"
+        bind:threshold={form.pauseSileroThreshold}
+        bind:minSilenceSeconds={form.pauseSileroMinSilenceSeconds}
+        bind:minSpeechSeconds={form.pauseSileroMinSpeechSeconds}
+        bind:preprocessDenoise={form.pauseSileroPreprocessDenoise}
+        {disabled}
+        testPrefix="batch-pause"
+      />
+    {:else}
+      <PauseAdvancedParamsFields
+        algorithm="silencedetect"
+        bind:threshold={form.pauseSilencedetectThresholdDb}
+        bind:minSilenceSeconds={form.pauseSilencedetectMinSilenceSeconds}
+        bind:minSpeechSeconds={form.pauseSilencedetectMinSpeechSeconds}
+        bind:preprocessDenoise={form.pauseSilencedetectPreprocessDenoise}
+        {disabled}
+        testPrefix="batch-pause"
+      />
+    {/if}
   {:else if selected?.parameter_kind === BatchParameterKind.Format}
     <label>
       <span>{t("settings.output_format")}</span>

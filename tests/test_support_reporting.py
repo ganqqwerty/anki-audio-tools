@@ -19,7 +19,7 @@ def test_support_report_renders_pause_pipeline_command_details() -> None:
         denoise_incident=None,
         pause_pipeline_incident={
             "timestamp": "2026-05-17T09:08:07+00:00",
-            "operation": "deep_filter_pause_speedup",
+            "operation": "pause_removal",
             "media_filename": "clip.mp3",
             "source_path": "/media/clip.mp3",
             "user_message": "No space left on device",
@@ -57,7 +57,7 @@ def test_support_report_renders_empty_pause_pipeline_command_report() -> None:
         deep_filter_health={"available": False},
         rnnoise_health={"available": False},
         denoise_incident=None,
-        pause_pipeline_incident={"operation": "deep_filter_pause_speedup"},
+        pause_pipeline_incident={"operation": "pause_removal"},
         log_tail="recent log",
     )
     assert "(no external commands were captured)" in report

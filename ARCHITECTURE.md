@@ -70,14 +70,16 @@ Rules:
 
 ## Pause Shortening Pipeline
 
-The shared `remove_pauses` operation is DeepFilterNet-assisted and speeds long pauses instead of deleting audio chunks.
+The shared `remove_pauses` operation uses one cut-only render pipeline for Silencedetect and Silero VAD. Aggressiveness is a UI preset layer over detector-specific Advanced Params.
 
-1. `audio_processor.py` remains the side-effect boundary for ffmpeg, DeepFilterNet, and artifact filesystem writes.
-2. `audio_pipeline.py` is import-safe planning code for parsing `silencedetect` output, building pause timelines, generating filter scripts, and naming retained runs.
+1. `audio_processor.py` remains the side-effect boundary for ffmpeg, DPDFNet, Silero VAD, and artifact filesystem writes.
+2. `audio_pause_settings.py` owns preset values, clamps, and active-param selection. `audio_pipeline.py` stays import-safe planning code for detector interval parsing, speech-gap merging, cut-only timelines, filter scripts, and retained run names.
 3. Editor and Browser adapters pass `<addon_dir>/aqe_artifacts` into `render_audio(...)` so each pause-shortening run keeps its own provenance directory.
-4. The pipeline renders `01_working_original.wav` from the original source, prepares `02_analysis_input_48k_mono.wav`, runs DeepFilterNet into `03_deep_filter_output/`, detects silence on the cleaned analysis audio, and renders the final MP3 from `01_working_original.wav`.
-5. The artifact directory retains the working WAV, analysis WAV, DeepFilter output, raw silence metadata, parsed interval JSON, timeline JSON, generated `filter_complex` script, final MP3 copy, and `manifest.json`.
-6. DeepFilterNet is required for this operation. Failures keep the partial artifact directory, record a pause-pipeline support incident, and leave the note unchanged.
+4. The pipeline renders `01_working_original.wav` from the original source. Optional DPDFNet preprocessing creates denoised detector input only; the final MP3 is always rendered from `01_working_original.wav`.
+5. Silencedetect receives the configured dB threshold and minimum silence. Silero VAD receives threshold, minimum silence, and minimum speech, then its speech intervals are inverted to removable pause intervals. Shared post-processing merges too-short speech islands and filters too-short silences.
+6. Detected pauses are omitted from the final output. The timeline contains keep segments only, never sped-up pause segments.
+7. The artifact directory retains the working WAV, detector input, optional denoised detector input, raw detector metadata, detected and removed interval JSON, cut timeline JSON, generated `filter_complex` script, final MP3 copy, and `manifest.json`.
+8. Failures keep the partial artifact directory, record a pause-pipeline support incident, and leave the note unchanged.
 
 ## Managed Runtime Assets
 
@@ -128,9 +130,10 @@ Config defaults are stored in `config.json` and migrated into user config:
   "enabled": true,
   "debug_logging": false,
   "show_ffmpeg_commands": false,
-  "repeat_playback_by_default": false,
+  "repeat_playback_by_default": true,
   "repeat_pause_seconds": 0.0,
   "share_target": "litterbox",
+  "voice_recording_countdown_seconds": 3,
   "show_graph_by_default": false,
   "visible_editor_buttons": [
     "aqe:play",
@@ -148,6 +151,8 @@ Config defaults are stored in `config.json` and migrated into user config:
   "editor_button_modes": {
     "aqe:play": "icon",
     "aqe:analyze": "icon",
+    "aqe:record-voice": "icon",
+    "aqe:play-recording": "icon",
     "aqe:show-file": "icon",
     "aqe:share": "icon",
     "aqe:convert": "text",
@@ -167,16 +172,22 @@ Config defaults are stored in `config.json` and migrated into user config:
   "graph_smoothness": "very_smooth",
   "graph_connect_short_dropouts_ms": 240,
   "graph_voice_lock": "balanced",
-  "speed_step": 0.05,
-  "min_speed": 0.75,
-  "max_speed": 1.5,
-  "volume_step_db": 3.0,
-  "min_volume_db": -24.0,
-  "max_volume_db": 24.0,
-  "internal_pause_silence_threshold_db": -45,
-  "internal_pause_threshold_ms": 300,
-  "internal_pause_target_gap_ms": 100,
+  "speed_step": 1.5,
+  "min_speed": 0.2,
+  "max_speed": 5.0,
+  "volume_step_db": 15.0,
+  "min_volume_db": -40.0,
+  "max_volume_db": 40.0,
   "pause_aggressiveness": "normal",
+  "pause_detection_algorithm": "silencedetect",
+  "pause_silencedetect_threshold_db": -45.0,
+  "pause_silencedetect_min_silence_seconds": 0.3,
+  "pause_silencedetect_min_speech_seconds": 0.1,
+  "pause_silencedetect_preprocess_denoise": true,
+  "pause_silero_threshold": 0.5,
+  "pause_silero_min_silence_seconds": 0.45,
+  "pause_silero_min_speech_seconds": 0.1,
+  "pause_silero_preprocess_denoise": false,
   "output_format": "mp3",
   "ffmpeg_path": "/opt/homebrew/bin/ffmpeg",
   "deep_filter_post_filter": true,
@@ -187,7 +198,7 @@ Config defaults are stored in `config.json` and migrated into user config:
 ```
 
 `config_migration.py` deep-merges defaults into user config and stamps the current schema version.
-Editor split-button choices are field-local runtime overrides. Settings provide defaults for toolbar visibility/display mode, repeat playback and pause, Share target, prosody graph options, volume step, speed step, pause aggressiveness, convert target format, denoise algorithm, DPDFNet aggressiveness, and pitch hum mode, but changing a split-button value in one editor field does not write back to persisted config or other fields unless the user promotes that field's quick setting to defaults. See [`EDITOR_MODIFICATION_BUTTON_BEHAVIOR_RULES.md`](EDITOR_MODIFICATION_BUTTON_BEHAVIOR_RULES.md) for button defaults and non-persisted command choices.
+Editor split-button choices are field-local runtime overrides. Settings provide defaults for toolbar visibility/display mode, repeat playback and pause, Share target, prosody graph options, volume step, speed step, pause detector, pause aggressiveness, algorithm-specific pause Advanced Params, convert target format, denoise algorithm, DPDFNet aggressiveness, and pitch hum mode, but changing a split-button value in one editor field does not write back to persisted config or other fields unless the user promotes that field's quick setting to defaults. See [`EDITOR_MODIFICATION_BUTTON_BEHAVIOR_RULES.md`](EDITOR_MODIFICATION_BUTTON_BEHAVIOR_RULES.md) for button defaults and non-persisted command choices.
 
 ## Source Of Truth
 

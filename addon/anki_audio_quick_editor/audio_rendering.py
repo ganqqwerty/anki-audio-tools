@@ -25,7 +25,7 @@ from .audio_formats import (
     output_extension,
     validate_target_format,
 )
-from .audio_pause_pipeline import _render_deep_filter_pause_speedup_audio
+from .audio_pause_pipeline import _render_pause_removal_pipeline_audio
 from .audio_state import AudioEditState, AudioProcessingConfig
 from .audio_tools import find_ffmpeg
 from .audio_types import AudioProcessingResult
@@ -50,7 +50,7 @@ def render_audio(
         output_path = Path(tempfile.mkstemp(prefix="aqe_preview_", suffix=".mp3")[1])
 
     if state.remove_internal_pauses_enabled:
-        return _render_deep_filter_pause_speedup_audio(
+        return _render_pause_removal_pipeline_audio(
             source_path,
             state,
             config,

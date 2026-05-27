@@ -9,11 +9,15 @@ import {
   OutputFormat,
 } from "$lib/types.js";
 import {
+  clampPauseSeconds,
+  clampPauseThreshold,
   clampDpdfnetAttnLimitDb,
   clampSpeedStep,
   clampVolumeStepDb,
   outputFormatOrDefault,
+  pauseDetectionAlgorithmOrDefault,
   type OutputFormatValue,
+  type PauseDetectionAlgorithmValue,
 } from "$lib/audio-operation-parameters.js";
 import type {
   BatchInitialState,
@@ -29,6 +33,14 @@ export interface BatchFormState {
   volumeStepDb: number;
   pauseAggressiveness: BatchPauseAggressiveness;
   pauseDetectionAlgorithm: BatchPauseDetectionAlgorithm;
+  pauseSilencedetectThresholdDb: number;
+  pauseSilencedetectMinSilenceSeconds: number;
+  pauseSilencedetectMinSpeechSeconds: number;
+  pauseSilencedetectPreprocessDenoise: boolean;
+  pauseSileroThreshold: number;
+  pauseSileroMinSilenceSeconds: number;
+  pauseSileroMinSpeechSeconds: number;
+  pauseSileroPreprocessDenoise: boolean;
   denoiseAlgorithm: DenoiseAlgorithm;
   dpdfnetAttnLimitDb: number;
   targetFormat: OutputFormatValue;
@@ -99,7 +111,15 @@ export const FALLBACK_BATCH_INITIAL_STATE: BatchInitialState = {
     speed_step: 1.5,
     volume_step_db: 15,
     pause_aggressiveness: BatchPauseAggressiveness.Normal,
-    pause_detection_algorithm: BatchPauseDetectionAlgorithm.DeepFilter,
+    pause_detection_algorithm: BatchPauseDetectionAlgorithm.Silencedetect,
+    pause_silencedetect_threshold_db: -45,
+    pause_silencedetect_min_silence_seconds: 0.3,
+    pause_silencedetect_min_speech_seconds: 0.1,
+    pause_silencedetect_preprocess_denoise: true,
+    pause_silero_threshold: 0.5,
+    pause_silero_min_silence_seconds: 0.45,
+    pause_silero_min_speech_seconds: 0.1,
+    pause_silero_preprocess_denoise: false,
     denoise_algorithm: DenoiseAlgorithm.Standard,
     dpdfnet_attn_limit_db: 12,
     output_format: OutputFormat.Mp3,
@@ -124,6 +144,14 @@ export function initialFormState(state: BatchInitialState): BatchFormState {
     volumeStepDb: state.defaults.volume_step_db,
     pauseAggressiveness: state.defaults.pause_aggressiveness,
     pauseDetectionAlgorithm: state.defaults.pause_detection_algorithm,
+    pauseSilencedetectThresholdDb: state.defaults.pause_silencedetect_threshold_db,
+    pauseSilencedetectMinSilenceSeconds: state.defaults.pause_silencedetect_min_silence_seconds,
+    pauseSilencedetectMinSpeechSeconds: state.defaults.pause_silencedetect_min_speech_seconds,
+    pauseSilencedetectPreprocessDenoise: state.defaults.pause_silencedetect_preprocess_denoise,
+    pauseSileroThreshold: state.defaults.pause_silero_threshold,
+    pauseSileroMinSilenceSeconds: state.defaults.pause_silero_min_silence_seconds,
+    pauseSileroMinSpeechSeconds: state.defaults.pause_silero_min_speech_seconds,
+    pauseSileroPreprocessDenoise: state.defaults.pause_silero_preprocess_denoise,
     denoiseAlgorithm: state.defaults.denoise_algorithm,
     dpdfnetAttnLimitDb: clampDpdfnetAttnLimitDb(state.defaults.dpdfnet_attn_limit_db),
     targetFormat: outputFormatOrDefault(state.defaults.output_format),
@@ -164,8 +192,13 @@ export function batchStartRequest(
     request.parameters.volume_step_db = clampVolumeStepDb(form.volumeStepDb);
   }
   if (operation?.parameter_name === BatchParameterName.PauseAggressiveness) {
+    const pauseParams = activeBatchPauseParams(form);
     request.parameters.pause_aggressiveness = form.pauseAggressiveness;
     request.parameters.pause_detection_algorithm = form.pauseDetectionAlgorithm;
+    request.parameters.pause_threshold = pauseParams.threshold;
+    request.parameters.pause_min_silence_seconds = pauseParams.minSilenceSeconds;
+    request.parameters.pause_min_speech_seconds = pauseParams.minSpeechSeconds;
+    request.parameters.pause_preprocess_denoise = pauseParams.preprocessDenoise;
   }
   if (operation?.parameter_name === BatchParameterName.DenoiseAlgorithm) {
     request.parameters.denoise_algorithm = form.denoiseAlgorithm;
@@ -177,6 +210,33 @@ export function batchStartRequest(
     request.parameters.target_format = outputFormatOrDefault(form.targetFormat) as OutputFormat;
   }
   return request;
+}
+
+export function activeBatchPauseAlgorithm(form: BatchFormState): PauseDetectionAlgorithmValue {
+  return pauseDetectionAlgorithmOrDefault(form.pauseDetectionAlgorithm);
+}
+
+export function activeBatchPauseParams(form: BatchFormState): {
+  threshold: number;
+  minSilenceSeconds: number;
+  minSpeechSeconds: number;
+  preprocessDenoise: boolean;
+} {
+  const algorithm = activeBatchPauseAlgorithm(form);
+  if (algorithm === "silero_vad") {
+    return {
+      threshold: clampPauseThreshold(algorithm, form.pauseSileroThreshold),
+      minSilenceSeconds: clampPauseSeconds(form.pauseSileroMinSilenceSeconds),
+      minSpeechSeconds: clampPauseSeconds(form.pauseSileroMinSpeechSeconds),
+      preprocessDenoise: form.pauseSileroPreprocessDenoise,
+    };
+  }
+  return {
+    threshold: clampPauseThreshold(algorithm, form.pauseSilencedetectThresholdDb),
+    minSilenceSeconds: clampPauseSeconds(form.pauseSilencedetectMinSilenceSeconds),
+    minSpeechSeconds: clampPauseSeconds(form.pauseSilencedetectMinSpeechSeconds),
+    preprocessDenoise: form.pauseSilencedetectPreprocessDenoise,
+  };
 }
 
 declare global {

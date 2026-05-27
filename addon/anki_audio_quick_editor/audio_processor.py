@@ -13,6 +13,7 @@ from . import audio_commands as _audio_commands
 from . import audio_external as _audio_external
 from . import audio_noise_reduction as _audio_noise_reduction
 from . import audio_pause_pipeline as _audio_pause_pipeline
+from . import audio_pause_pipeline_steps as _audio_pause_pipeline_steps
 from . import audio_pitch_hum as _audio_pitch_hum
 from . import audio_processor_rendering_portal as _render_portal
 from . import audio_rendering as _audio_rendering
@@ -206,7 +207,8 @@ def _render_external_error_message(
 def _sync_pause_dependencies() -> None:
     sync_pause_dependencies(
         cast(Any, _audio_pause_pipeline),
-        find_deep_filter=find_deep_filter,
+        cast(Any, _audio_pause_pipeline_steps),
+        find_dpdfnet_bundle=find_dpdfnet_bundle,
         find_silero_vad_bundle=find_silero_vad_bundle,
         probe_duration_ms=probe_duration_ms,
         run_external_command=_run_external_command,
@@ -214,7 +216,7 @@ def _sync_pause_dependencies() -> None:
     )
 
 
-def _render_deep_filter_pause_speedup_audio(
+def _render_pause_removal_pipeline_audio(
     source_path: Path,
     state: AudioEditState,
     config: AudioProcessingConfig,
@@ -226,7 +228,7 @@ def _render_deep_filter_pause_speedup_audio(
     source_duration_ms: int,
 ) -> AudioProcessingResult:
     _sync_pause_dependencies()
-    return _audio_pause_pipeline._render_deep_filter_pause_speedup_audio(
+    return _audio_pause_pipeline._render_pause_removal_pipeline_audio(
         source_path,
         state,
         config,
@@ -245,7 +247,7 @@ def _sync_rendering_dependencies() -> None:
         find_ffmpeg=find_ffmpeg,
         make_playback_segment_filename=make_playback_segment_filename,
         probe_duration_ms=probe_duration_ms,
-        render_deep_filter_pause_speedup_audio=_render_deep_filter_pause_speedup_audio,
+        render_pause_removal_pipeline_audio=_render_pause_removal_pipeline_audio,
         subprocess_module=subprocess,
         tempfile_module=tempfile,
         uuid_module=uuid,

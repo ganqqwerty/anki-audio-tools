@@ -48,6 +48,20 @@ def build_batch_initial_state(
             "volume_step_db": config.volume_step_db,
             "pause_aggressiveness": config.pause_aggressiveness,
             "pause_detection_algorithm": config.pause_detection_algorithm,
+            "pause_silencedetect_threshold_db": config.pause_silencedetect_threshold_db,
+            "pause_silencedetect_min_silence_seconds": (
+                config.pause_silencedetect_min_silence_seconds
+            ),
+            "pause_silencedetect_min_speech_seconds": (
+                config.pause_silencedetect_min_speech_seconds
+            ),
+            "pause_silencedetect_preprocess_denoise": (
+                config.pause_silencedetect_preprocess_denoise
+            ),
+            "pause_silero_threshold": config.pause_silero_threshold,
+            "pause_silero_min_silence_seconds": config.pause_silero_min_silence_seconds,
+            "pause_silero_min_speech_seconds": config.pause_silero_min_speech_seconds,
+            "pause_silero_preprocess_denoise": config.pause_silero_preprocess_denoise,
             "denoise_algorithm": config.denoise_algorithm,
             "dpdfnet_attn_limit_db": config.dpdfnet_attn_limit_db,
             "output_format": config.output_format,
@@ -71,6 +85,10 @@ def request_from_batch_start_payload(raw_payload: object) -> BatchRunRequest:
             volume_step_db=params.get("volume_step_db"),
             pause_aggressiveness=params.get("pause_aggressiveness"),
             pause_detection_algorithm=params.get("pause_detection_algorithm"),
+            pause_threshold=params.get("pause_threshold"),
+            pause_min_silence_seconds=params.get("pause_min_silence_seconds"),
+            pause_min_speech_seconds=params.get("pause_min_speech_seconds"),
+            pause_preprocess_denoise=params.get("pause_preprocess_denoise"),
             denoise_algorithm=params.get("denoise_algorithm"),
             dpdfnet_attn_limit_db=params.get("dpdfnet_attn_limit_db"),
             target_format=params.get("target_format"),

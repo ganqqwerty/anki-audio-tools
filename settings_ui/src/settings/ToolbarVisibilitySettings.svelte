@@ -5,6 +5,8 @@
     formatDpdfnetAggressiveness,
     formatPauseAggressiveness,
     formatPauseDetectionAlgorithm,
+    pauseDetectionAlgorithmOrDefault,
+    pausePreset,
     PAUSE_DETECTION_ALGORITHM_VALUES,
   } from "$lib/audio-operation-parameters.js";
   import {
@@ -17,6 +19,7 @@
   import { t } from "$lib/i18n.js";
   import { DenoiseAlgorithm, PauseAggressiveness, PitchHumMode, type Config } from "$lib/types.js";
   import type { EditorButtonDisplayMode, EditorCommand } from "$lib/editor-toolbar-buttons.js";
+  import PauseAdvancedParamsFields from "$lib/PauseAdvancedParamsFields.svelte";
   import ButtonSettingsCard from "./ButtonSettingsCard.svelte";
   import GraphSettingsFields from "./GraphSettingsFields.svelte";
   import OutputFormatField from "./OutputFormatField.svelte";
@@ -76,6 +79,27 @@
       command === "aqe:volume-down" ||
       command === "aqe:volume-up"
     );
+  }
+
+  function pauseAlgorithm() {
+    return pauseDetectionAlgorithmOrDefault(config.pause_detection_algorithm);
+  }
+
+  function applyPausePreset(value: PauseAggressiveness): void {
+    const algorithm = pauseAlgorithm();
+    const preset = pausePreset(algorithm, value);
+    config.pause_aggressiveness = value;
+    if (algorithm === "silero_vad") {
+      config.pause_silero_threshold = preset.threshold;
+      config.pause_silero_min_silence_seconds = preset.minSilenceSeconds;
+      config.pause_silero_min_speech_seconds = preset.minSpeechSeconds;
+      config.pause_silero_preprocess_denoise = preset.preprocessDenoise;
+      return;
+    }
+    config.pause_silencedetect_threshold_db = preset.threshold;
+    config.pause_silencedetect_min_silence_seconds = preset.minSilenceSeconds;
+    config.pause_silencedetect_min_speech_seconds = preset.minSpeechSeconds;
+    config.pause_silencedetect_preprocess_denoise = preset.preprocessDenoise;
   }
 </script>
 
@@ -162,16 +186,20 @@
           <OutputFormatField bind:config />
         {:else if button.command === "aqe:remove-pauses"}
           <label class="settings-field">
-            <span>{t("settings.internal_pause_silence_threshold_db")}</span>
-            <input class="settings-input" type="number" bind:value={config.internal_pause_silence_threshold_db} />
-          </label>
-          <label class="settings-field">
-            <span>{t("settings.internal_pause_threshold_ms")}</span>
-            <input class="settings-input" type="number" min="1" bind:value={config.internal_pause_threshold_ms} />
-          </label>
-          <label class="settings-field">
-            <span>{t("settings.internal_pause_target_gap_ms")}</span>
-            <input class="settings-input" type="number" min="1" bind:value={config.internal_pause_target_gap_ms} />
+            <span>{t("settings.pause_detection_algorithm")}</span>
+            <SettingsChoiceGroup
+              ariaLabel={t("settings.pause_detection_algorithm")}
+              options={PAUSE_DETECTION_ALGORITHM_VALUES.map((value) => ({
+                label: formatPauseDetectionAlgorithm(value),
+                tooltip: choiceTooltip(formatPauseDetectionAlgorithm(value), pauseDetectionAlgorithmTooltip(value)),
+                value,
+              }))}
+              testId="pause-detection-algorithm"
+              value={config.pause_detection_algorithm}
+              onSelect={(value) => {
+                config.pause_detection_algorithm = value as Config["pause_detection_algorithm"];
+              }}
+            />
           </label>
           <label class="settings-field">
             <span>{t("settings.pause_aggressiveness")}</span>
@@ -188,25 +216,28 @@
               }))}
               testId="pause-aggressiveness"
               value={config.pause_aggressiveness}
-              onSelect={(value) => (config.pause_aggressiveness = value as PauseAggressiveness)}
+              onSelect={(value) => applyPausePreset(value as PauseAggressiveness)}
             />
           </label>
-          <label class="settings-field">
-            <span>{t("settings.pause_detection_algorithm")}</span>
-            <SettingsChoiceGroup
-              ariaLabel={t("settings.pause_detection_algorithm")}
-              options={PAUSE_DETECTION_ALGORITHM_VALUES.map((value) => ({
-                label: formatPauseDetectionAlgorithm(value),
-                tooltip: choiceTooltip(formatPauseDetectionAlgorithm(value), pauseDetectionAlgorithmTooltip(value)),
-                value,
-              }))}
-              testId="pause-detection-algorithm"
-              value={config.pause_detection_algorithm}
-              onSelect={(value) => {
-                config.pause_detection_algorithm = value as Config["pause_detection_algorithm"];
-              }}
+          {#if pauseAlgorithm() === "silero_vad"}
+            <PauseAdvancedParamsFields
+              algorithm="silero_vad"
+              bind:threshold={config.pause_silero_threshold}
+              bind:minSilenceSeconds={config.pause_silero_min_silence_seconds}
+              bind:minSpeechSeconds={config.pause_silero_min_speech_seconds}
+              bind:preprocessDenoise={config.pause_silero_preprocess_denoise}
+              testPrefix="settings-pause"
             />
-          </label>
+          {:else}
+            <PauseAdvancedParamsFields
+              algorithm="silencedetect"
+              bind:threshold={config.pause_silencedetect_threshold_db}
+              bind:minSilenceSeconds={config.pause_silencedetect_min_silence_seconds}
+              bind:minSpeechSeconds={config.pause_silencedetect_min_speech_seconds}
+              bind:preprocessDenoise={config.pause_silencedetect_preprocess_denoise}
+              testPrefix="settings-pause"
+            />
+          {/if}
         {:else if button.command === "aqe:denoise-standard"}
           <label class="settings-field">
             <span>{t("settings.denoise_algorithm")}</span>

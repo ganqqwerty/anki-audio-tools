@@ -9,7 +9,7 @@ from .audio_formats import normalize_output_format
 from .dpdfnet_settings import normalize_dpdfnet_attn_limit_db
 
 CURRENT_CONFIG_VERSION = 1
-PAUSE_DETECTION_ALGORITHMS = frozenset({"deep_filter", "silero_vad"})
+PAUSE_DETECTION_ALGORITHMS = frozenset({"silencedetect", "silero_vad"})
 
 
 def deep_merge(defaults: dict[str, Any], user: dict[str, Any]) -> dict[str, Any]:
@@ -76,7 +76,7 @@ def _normalize_pause_detection_algorithm_setting(merged: dict[str, Any]) -> bool
     value = merged.get("pause_detection_algorithm")
     if value in PAUSE_DETECTION_ALGORITHMS:
         return False
-    merged["pause_detection_algorithm"] = "deep_filter"
+    merged["pause_detection_algorithm"] = "silencedetect"
     return True
 
 

@@ -34,7 +34,7 @@ def _build_pause_pipeline_manifest(
         "schema_version": PAUSE_PIPELINE_MANIFEST_VERSION,
         "run_id": run_dir.name,
         "created_at": datetime.now().isoformat(),
-        "operation": "deep_filter_pause_speedup",
+        "operation": "pause_removal",
         "artifact_dir": str(run_dir),
         "source": _source_file_record(source_path, source_duration_ms),
         "state": {
@@ -74,9 +74,21 @@ def _pause_pipeline_config_snapshot(config: AudioProcessingConfig) -> dict[str, 
         "ffmpeg_path": config.ffmpeg_path,
         "deep_filter_post_filter": config.deep_filter_post_filter,
         "pause_detection_algorithm": config.pause_detection_algorithm,
-        "internal_pause_silence_threshold_db": config.internal_pause_silence_threshold_db,
-        "internal_pause_threshold_ms": config.internal_pause_threshold_ms,
-        "internal_pause_target_gap_ms": config.internal_pause_target_gap_ms,
+        "pause_aggressiveness": config.pause_aggressiveness,
+        "pause_silencedetect_threshold_db": config.pause_silencedetect_threshold_db,
+        "pause_silencedetect_min_silence_seconds": (
+            config.pause_silencedetect_min_silence_seconds
+        ),
+        "pause_silencedetect_min_speech_seconds": (
+            config.pause_silencedetect_min_speech_seconds
+        ),
+        "pause_silencedetect_preprocess_denoise": (
+            config.pause_silencedetect_preprocess_denoise
+        ),
+        "pause_silero_threshold": config.pause_silero_threshold,
+        "pause_silero_min_silence_seconds": config.pause_silero_min_silence_seconds,
+        "pause_silero_min_speech_seconds": config.pause_silero_min_speech_seconds,
+        "pause_silero_preprocess_denoise": config.pause_silero_preprocess_denoise,
         "speed": {
             "min": config.min_speed,
             "max": config.max_speed,

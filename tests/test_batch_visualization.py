@@ -276,7 +276,8 @@ def test_process_note_batch_operation_uses_pause_aggressiveness_parameter(
 
     assert result.written
     assert configs[0].pause_aggressiveness == "gentle"
-    assert configs[0].internal_pause_threshold_ms == 450
+    assert configs[0].pause_silencedetect_min_silence_seconds == 0.45
+    assert configs[0].pause_silencedetect_min_speech_seconds == 0.12
 
 
 def test_process_note_batch_operation_resolves_windows_case_variant(

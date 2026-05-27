@@ -100,12 +100,19 @@ def test_processing_config_from_partial_config_uses_defaults() -> None:
     assert config.volume_step_db == 15.0
     assert config.min_volume_db == -40.0
     assert config.max_volume_db == 40.0
-    assert config.internal_pause_silence_threshold_db == -45
+    assert config.pause_detection_algorithm == "silencedetect"
+    assert config.pause_silencedetect_threshold_db == -45.0
+    assert config.pause_silencedetect_min_silence_seconds == 0.30
+    assert config.pause_silencedetect_min_speech_seconds == 0.10
+    assert config.pause_silencedetect_preprocess_denoise is True
+    assert config.pause_silero_threshold == 0.50
+    assert config.pause_silero_min_silence_seconds == 0.45
+    assert config.pause_silero_min_speech_seconds == 0.10
+    assert config.pause_silero_preprocess_denoise is False
     assert config.output_format == "mp3"
     assert config.ffmpeg_path == "/opt/bin/ffmpeg"
     assert config.deep_filter_post_filter is True
     assert config.dpdfnet_attn_limit_db == 12.0
-    assert config.pause_detection_algorithm == "deep_filter"
     assert config.pitch_hum_mode == "direct"
     assert config.show_ffmpeg_commands is False
 
@@ -131,10 +138,28 @@ def test_processing_config_normalizes_output_format() -> None:
     assert AudioProcessingConfig.from_config({"output_format": "aac"}).output_format == "mp3"
 
 
-def test_processing_config_reads_internal_pause_silence_threshold() -> None:
-    config = AudioProcessingConfig.from_config({"internal_pause_silence_threshold_db": -42})
+def test_processing_config_reads_algorithm_specific_pause_params() -> None:
+    config = AudioProcessingConfig.from_config(
+        {
+            "pause_silencedetect_threshold_db": -42,
+            "pause_silencedetect_min_silence_seconds": 0.45,
+            "pause_silencedetect_min_speech_seconds": 0.12,
+            "pause_silencedetect_preprocess_denoise": False,
+            "pause_silero_threshold": 0.85,
+            "pause_silero_min_silence_seconds": 0.15,
+            "pause_silero_min_speech_seconds": 0.04,
+            "pause_silero_preprocess_denoise": True,
+        }
+    )
 
-    assert config.internal_pause_silence_threshold_db == -42
+    assert config.pause_silencedetect_threshold_db == -42
+    assert config.pause_silencedetect_min_silence_seconds == 0.45
+    assert config.pause_silencedetect_min_speech_seconds == 0.12
+    assert config.pause_silencedetect_preprocess_denoise is False
+    assert config.pause_silero_threshold == 0.85
+    assert config.pause_silero_min_silence_seconds == 0.15
+    assert config.pause_silero_min_speech_seconds == 0.04
+    assert config.pause_silero_preprocess_denoise is True
 
 
 def test_processing_config_reads_deep_filter_post_filter_setting() -> None:

@@ -55,9 +55,14 @@ const defaultConfig = {
   volume_step_db: 15.0,
   min_volume_db: -40.0,
   max_volume_db: 40.0,
-  internal_pause_silence_threshold_db: -45,
-  internal_pause_threshold_ms: 300,
-  internal_pause_target_gap_ms: 100,
+  pause_silencedetect_threshold_db: -45,
+  pause_silencedetect_min_silence_seconds: 0.3,
+  pause_silencedetect_min_speech_seconds: 0.1,
+  pause_silencedetect_preprocess_denoise: true,
+  pause_silero_threshold: 0.5,
+  pause_silero_min_silence_seconds: 0.45,
+  pause_silero_min_speech_seconds: 0.1,
+  pause_silero_preprocess_denoise: false,
   output_format: OutputFormat.Mp3,
   ffmpeg_path: "/opt/homebrew/bin/ffmpeg",
   deep_filter_post_filter: true,
@@ -65,7 +70,7 @@ const defaultConfig = {
   denoise_algorithm: DenoiseAlgorithm.Standard,
   pitch_hum_mode: PitchHumMode.Direct,
   pause_aggressiveness: PauseAggressiveness.Normal,
-  pause_detection_algorithm: PauseDetectionAlgorithm.DeepFilter,
+  pause_detection_algorithm: PauseDetectionAlgorithm.Silencedetect,
 };
 
 function pycmdMock(): ReturnType<typeof vi.fn> {
@@ -152,7 +157,9 @@ describe("App", () => {
     expect(screen.queryByText("DeepFilterNet path")).not.toBeInTheDocument();
     expect(screen.getByText("Use DeepFilterNet post-filter")).toBeInTheDocument();
     expect(screen.getByText("DPDFNet Aggressiveness")).toBeInTheDocument();
+    expect(screen.getByText("Pause detection")).toBeInTheDocument();
     expect(screen.getByText("Shorten pauses level")).toBeInTheDocument();
+    expect(screen.getByText("Advanced Params")).toBeInTheDocument();
     expect(screen.getByText("Default convert format")).toBeInTheDocument();
     expect(screen.getByText("Default denoise algorithm")).toBeInTheDocument();
     expect(screen.getByText("Default pitch hum mode")).toBeInTheDocument();
@@ -160,7 +167,8 @@ describe("App", () => {
     expect(screen.getByText("Min volume (dB)")).toBeInTheDocument();
     expect(screen.getByText("Max volume (dB)")).toBeInTheDocument();
     expect(screen.queryByText("Edge silence threshold (dB)")).not.toBeInTheDocument();
-    expect(screen.getByText("Internal pause silence threshold (dB)")).toBeInTheDocument();
+    expect(screen.queryByText("Internal pause silence threshold (dB)")).not.toBeInTheDocument();
+    expect(screen.getByTestId("settings-pause-advanced-params")).not.toHaveAttribute("open");
   });
 
   it("always saves inline editor controls as enabled", async () => {
@@ -254,11 +262,13 @@ describe("App", () => {
       dpdfnet_attn_limit_db: number;
       output_format: string;
       pause_aggressiveness: string;
+      pause_silencedetect_threshold_db: number;
       pitch_hum_mode: string;
       repeat_pause_seconds: number;
       share_target: string;
     }>("settings.save");
     expect(config.pause_aggressiveness).toBe("aggressive");
+    expect(config.pause_silencedetect_threshold_db).toBe(-52);
     expect(config.share_target).toBe("catbox");
     expect(config.output_format).toBe("flac");
     expect(config.denoise_algorithm).toBe("dpdfnet");

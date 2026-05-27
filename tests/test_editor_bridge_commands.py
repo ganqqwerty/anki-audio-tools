@@ -80,9 +80,11 @@ def test_bridge_passes_local_pause_aggressiveness_to_renderer(tmp_path: Path, mo
     rendered: dict[str, AudioProcessingConfig] = {}
     persisted_config = {
         "pause_aggressiveness": "normal",
-        "internal_pause_silence_threshold_db": -45,
-        "internal_pause_threshold_ms": 300,
-        "internal_pause_target_gap_ms": 100,
+        "pause_detection_algorithm": "silencedetect",
+        "pause_silencedetect_threshold_db": -45,
+        "pause_silencedetect_min_silence_seconds": 0.30,
+        "pause_silencedetect_min_speech_seconds": 0.10,
+        "pause_silencedetect_preprocess_denoise": True,
     }
 
     monkeypatch.setattr(
@@ -107,9 +109,9 @@ def test_bridge_passes_local_pause_aggressiveness_to_renderer(tmp_path: Path, mo
     )
 
     assert rendered["config"].pause_aggressiveness == "aggressive"
-    assert rendered["config"].internal_pause_silence_threshold_db == -52
-    assert rendered["config"].internal_pause_threshold_ms == 140
-    assert rendered["config"].internal_pause_target_gap_ms == 45
+    assert rendered["config"].pause_silencedetect_threshold_db == -52
+    assert rendered["config"].pause_silencedetect_min_silence_seconds == 0.14
+    assert rendered["config"].pause_silencedetect_min_speech_seconds == 0.04
     assert persisted_config["pause_aggressiveness"] == "normal"
 
 

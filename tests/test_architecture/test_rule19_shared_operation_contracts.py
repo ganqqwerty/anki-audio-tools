@@ -53,7 +53,7 @@ def test_browser_batch_adapter_uses_shared_registry_and_executor() -> None:
         }
     )
     assert MODULE_CONTRACTS["audio_operation_params"].allowed_addon_deps == frozenset(
-        {"audio_formats", "audio_state", "dpdfnet_settings"}
+        {"audio_formats", "audio_pause_settings", "audio_state", "dpdfnet_settings"}
     )
 
 
