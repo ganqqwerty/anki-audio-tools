@@ -5,13 +5,12 @@
     running: boolean;
     finished: boolean;
     onStart: () => void;
-    onCancel: () => void;
     onClose: () => void;
     onCopyLog: () => void;
     canStart: boolean;
   }
 
-  let { running, finished, onStart, onCancel, onClose, onCopyLog, canStart }: Props = $props();
+  let { running, finished, onStart, onClose, onCopyLog, canStart }: Props = $props();
 </script>
 
 <footer class="footer">
@@ -22,10 +21,6 @@
     {#if finished}
       <button type="button" class="batch-button" onclick={onClose}>
         {t("batch.close")}
-      </button>
-    {:else}
-      <button type="button" class="batch-button" onclick={onCancel} disabled={!running}>
-        {t("batch.cancel")}
       </button>
     {/if}
     <button
@@ -45,6 +40,7 @@
     align-items: center;
     border-top: 1px solid color-mix(in srgb, var(--border, currentColor) 78%, transparent);
     display: flex;
+    flex-wrap: wrap;
     gap: 16px;
     justify-content: space-between;
     padding-top: 12px;
@@ -64,10 +60,11 @@
     color: inherit;
     cursor: pointer;
     font: inherit;
-    font-size: 12px;
+    font-size: 11px;
     font-weight: 400;
-    min-height: 27px;
-    padding: 4px 8px;
+    line-height: 1.2;
+    min-height: 24px;
+    padding: 2px 6px;
   }
 
   .batch-button:disabled {
@@ -80,20 +77,4 @@
     font-weight: 700;
   }
 
-  @media (max-width: 720px) {
-    .footer {
-      align-items: stretch;
-      flex-direction: column;
-      gap: 10px;
-    }
-
-    .footer-actions {
-      width: 100%;
-    }
-
-    .footer-actions .batch-button,
-    .footer > .batch-button {
-      flex: 1;
-    }
-  }
 </style>

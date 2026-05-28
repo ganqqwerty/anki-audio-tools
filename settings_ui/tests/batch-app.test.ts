@@ -108,6 +108,7 @@ describe("BatchApp", () => {
       "href",
       PRODUCT_LINKS.ideaRequest,
     );
+    expect(screen.queryByRole("button", { name: "Cancel" })).not.toBeInTheDocument();
 
     await fireEvent.click(screen.getByRole("button", { name: "Start" }));
 
@@ -183,6 +184,7 @@ describe("BatchApp", () => {
     render(BatchApp);
 
     await fireEvent.click(screen.getByRole("button", { name: "Start" }));
+    expect(screen.getByRole("button", { name: "Cancel" })).toBeInTheDocument();
     window.onBatchLog?.({ line: "Starting batch" });
     window.onBatchProgress?.({
       processed: 1,
@@ -191,6 +193,9 @@ describe("BatchApp", () => {
       failures: 0,
       message: "Processed 1/2 notes. Current audio: clip.mp3. Failures: 0.",
     });
+    await fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
+    expect(pycmdMock()).toHaveBeenCalledWith('bridge:{"command":"batch.cancel"}');
+
     window.onBatchFinish?.({
       processed: 2,
       total: 2,
@@ -204,6 +209,7 @@ describe("BatchApp", () => {
     await waitFor(() => expect(screen.getByRole("progressbar")).toHaveAttribute("aria-valuenow", "2"));
     expect(screen.getByText("Starting batch")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Close" })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Cancel" })).not.toBeInTheDocument();
 
     await fireEvent.click(screen.getByRole("button", { name: "Copy Log" }));
     expect(pycmdMock()).toHaveBeenCalledWith('bridge:{"command":"batch.copy_log"}');

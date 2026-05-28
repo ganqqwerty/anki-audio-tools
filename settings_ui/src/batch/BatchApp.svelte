@@ -108,7 +108,12 @@
     <section class="progress-panel" aria-live="polite">
       <div class="progress-meta">
         <span>{processed}/{total}</span>
-        <span>{t("batch.progress", { processed, total, audio: t("batch.no_audio"), failures })}</span>
+        <span class="progress-status">{t("batch.progress", { processed, total, audio: t("batch.no_audio"), failures })}</span>
+        {#if running}
+          <button type="button" class="progress-cancel" onclick={cancel}>
+            {t("batch.cancel")}
+          </button>
+        {/if}
       </div>
       <progress max={Math.max(total, 1)} value={processed} aria-valuenow={processed}></progress>
     </section>
@@ -119,7 +124,6 @@
       running={running}
       finished={finished}
       onStart={start}
-      onCancel={cancel}
       onClose={batchClose}
       onCopyLog={batchCopyLog}
       canStart={canStart}
@@ -171,7 +175,8 @@
   .resource-links {
     display: flex;
     flex-wrap: wrap;
-    gap: 8px;
+    font-size: 11px;
+    gap: 8px 12px;
   }
 
   .resource-links a {
@@ -180,9 +185,9 @@
     border-radius: 7px;
     color: inherit;
     display: inline-flex;
-    gap: 6px;
-    min-height: 27px;
-    padding: 4px 8px;
+    gap: 5px;
+    min-height: 24px;
+    padding: 2px 6px;
     text-decoration: none;
   }
 
@@ -201,11 +206,35 @@
   }
 
   .progress-meta {
+    align-items: center;
     display: flex;
     flex-wrap: wrap;
     font-size: 11px;
     gap: 10px;
     justify-content: space-between;
+  }
+
+  .progress-status {
+    flex: 1 1 auto;
+    text-align: right;
+  }
+
+  .progress-cancel {
+    appearance: none;
+    background: transparent;
+    border: 1px solid ButtonBorder;
+    border-radius: 7px;
+    color: inherit;
+    cursor: pointer;
+    font: inherit;
+    font-size: 11px;
+    line-height: 1.2;
+    min-height: 24px;
+    padding: 2px 6px;
+  }
+
+  .progress-cancel:hover {
+    text-decoration: underline;
   }
 
   progress {
