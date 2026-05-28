@@ -11,6 +11,7 @@ from .audio_state import AudioProcessingConfig
 from .diagnostics_runtime import capture_exception, new_operation_id, record_breadcrumb
 from .editor_playback_bounds import native_playback_end_ms, requested_end_ms
 from .editor_session import EditorSession
+from .error_codes import AQE_PLAYBACK_PREPARE_FAILED, coded_error
 from .i18n import t
 from .media_paths import existing_media_file_path
 from .permission_guidance import message_with_permission_guidance
@@ -356,7 +357,12 @@ def playback_segment_failed(editor: Any, generation: int, message: str, deps: An
     session.playback_paused = False
     deps.set_busy(editor, False)
     deps.eval_playback_state(editor, session.field_index, "stopped", session.cursor_ms)
-    deps.eval_status(editor, message or t("editor.playback.prepare_failed"), kind="error")
+    display_message = message or t("editor.playback.prepare_failed")
+    deps.eval_status(
+        editor,
+        coded_error(AQE_PLAYBACK_PREPARE_FAILED, display_message),
+        kind="error",
+    )
 
 
 def set_cursor_from_web(editor: Any, deps: Any) -> None:

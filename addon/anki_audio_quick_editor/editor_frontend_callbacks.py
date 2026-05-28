@@ -33,18 +33,18 @@ def _dispose_editor_frontend_controls(editor: Any) -> None:
     editor_frontend.dispose_editor_frontend_controls(editor)
 
 
-def _eval_status(editor: Any, message: str, kind: str = "info") -> None:
+def _eval_status(editor: Any, message: editor_frontend.UserStatusPayload, kind: str = "info") -> None:
     editor_frontend.eval_status(editor, message, kind=kind)
 
 
-def _eval_visualizer_status(editor: Any, message: str, kind: str = "info") -> None:
+def _eval_visualizer_status(editor: Any, message: editor_frontend.UserStatusPayload, kind: str = "info") -> None:
     editor_frontend.eval_visualizer_status(editor, message, kind=kind)
 
 
 def _eval_visualizer_status_for_field(
     editor: Any,
     field_index: int,
-    message: str,
+    message: editor_frontend.UserStatusPayload,
     kind: str = "info",
 ) -> None:
     editor_frontend.eval_visualizer_status_for_field(editor, field_index, message, kind=kind)

@@ -261,6 +261,7 @@ def analysis_deps(callbacks: Any, frontend_callbacks: Any) -> SimpleNamespace:
         analyze_prosody_cached=analyze_prosody_cached,
         analyze_requested_field_async=callbacks.analyze_requested_field_async,
         config=editor_runtime.config,
+        current_field_audio_missing=editor_runtime.CURRENT_FIELD_AUDIO_MISSING,
         current_field_index=current_field_index,
         current_sound_reference=editor_runtime.current_sound_reference,
         eval_status=frontend_callbacks.eval_status,

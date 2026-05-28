@@ -35,6 +35,11 @@ from .editor_session import (
     processing_guard_matches_editor,
 )
 from .editor_status import command_status_summary
+from .error_codes import (
+    AQE_AUDIO_PROCESSING_FAILED,
+    AQE_MEDIA_CURRENT_FIELD_AUDIO_MISSING,
+    coded_error,
+)
 from .errors import AudioProcessingError
 from .i18n import t
 from .permission_guidance import message_with_permission_guidance
@@ -338,4 +343,9 @@ def render_failed(
         session.next_status_summary = ""
         session.pending_status = None
     deps.set_busy(editor, False)
-    deps.eval_status(editor, message, kind="error")
+    code = (
+        AQE_MEDIA_CURRENT_FIELD_AUDIO_MISSING
+        if message == deps.current_field_audio_missing
+        else AQE_AUDIO_PROCESSING_FAILED
+    )
+    deps.eval_status(editor, coded_error(code, message), kind="error")

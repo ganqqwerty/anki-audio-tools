@@ -27,6 +27,7 @@ from .editor_session import (
     begin_learner_recording_state,
     learner_recording_is_current,
 )
+from .error_codes import AQE_MEDIA_REFERENCED_AUDIO_MISSING, AQE_RECORDING_FAILED, coded_error
 from .errors import AudioProcessingError, AudioQuickEditorError
 from .i18n import t
 from .permission_guidance import message_with_permission_guidance
@@ -68,10 +69,10 @@ def record_learner_voice(
         request = learner_recording_request(editor, session, graph_settings, deps)
         recorder = deps.recorder_factory(request.output_path, editor.mw, _recording_parent(editor))
     except AudioQuickEditorError as exc:
-        deps.eval_status(editor, str(exc), kind="error")
+        deps.eval_status(editor, coded_error(AQE_RECORDING_FAILED, str(exc)), kind="error")
         return
     except RuntimeError as exc:
-        deps.eval_status(editor, str(exc), kind="error")
+        deps.eval_status(editor, coded_error(AQE_RECORDING_FAILED, str(exc)), kind="error")
         return
 
     deps.stop_session_playback(session)
@@ -112,13 +113,15 @@ def stop_learner_recording(editor: Any, deps: Any) -> None:
     """Stop the active learner recording and process the result."""
     session = deps.sessions.get(editor)
     if session is None:
-        deps.eval_status(editor, t("editor.recording.none_active"), kind="error")
+        message = t("editor.recording.none_active")
+        deps.eval_status(editor, coded_error(AQE_RECORDING_FAILED, message), kind="error")
         return
     state = session.learner_recording
     request = learner_recording_request_from_state(editor, state)
     recorder = session.learner_recording_controller
     if request is None or state.status != "recording" or recorder is None:
-        deps.eval_status(editor, t("editor.recording.none_active"), kind="error")
+        message = t("editor.recording.none_active")
+        deps.eval_status(editor, coded_error(AQE_RECORDING_FAILED, message), kind="error")
         return
 
     session.learner_recording = replace(state, status="stopping")
@@ -353,14 +356,15 @@ def fail_learner_recording(
     )
     deps.set_busy_for_field(editor, request.field_index, False)
     eval_learner_recording_state(editor, session.learner_recording)
-    deps.eval_status(editor, message, kind="error")
+    deps.eval_status(editor, coded_error(AQE_RECORDING_FAILED, message), kind="error")
 
 
 def play_learner_recording(editor: Any, deps: Any) -> None:
     """Play the latest learner recording if one exists."""
     session = deps.sessions.get(editor)
     if session is None:
-        deps.eval_status(editor, t("editor.status.referenced_audio_missing"), kind="error")
+        message = t("editor.status.referenced_audio_missing")
+        deps.eval_status(editor, coded_error(AQE_MEDIA_REFERENCED_AUDIO_MISSING, message), kind="error")
         return
     state = session.learner_recording
     media_path = state.media_path
@@ -371,7 +375,8 @@ def play_learner_recording(editor: Any, deps: Any) -> None:
             failure_message=t("editor.status.referenced_audio_missing"),
         )
         eval_learner_recording_state(editor, session.learner_recording)
-        deps.eval_status(editor, t("editor.status.referenced_audio_missing"), kind="error")
+        message = t("editor.status.referenced_audio_missing")
+        deps.eval_status(editor, coded_error(AQE_MEDIA_REFERENCED_AUDIO_MISSING, message), kind="error")
         return
 
     from anki.sound import SoundOrVideoTag
