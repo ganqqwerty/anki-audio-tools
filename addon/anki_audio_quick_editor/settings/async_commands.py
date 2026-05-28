@@ -29,13 +29,13 @@ def handle_async_settings_command(command: WebviewBridgeCommand, eval_fn: Callab
     try:
         async_command = AsyncCommand.from_dict(raw_payload)
     except CONTRACT_DECODE_ERRORS as invalid_payload_error:
-        message = "Invalid async command payload"
+        invalid_message = "Invalid async command payload"
         invalid_done_payload_json = json.dumps(
             {
                 "id": raw_job_id,
                 "ok": False,
-                "error": message,
-                "user_error": coded_error(AQE_FRONTEND_UNKNOWN_ASYNC_ERROR, message),
+                "error": invalid_message,
+                "user_error": coded_error(AQE_FRONTEND_UNKNOWN_ASYNC_ERROR, invalid_message),
             }
         )
         mw.taskman.run_on_main(lambda: eval_fn(f"window.onAsyncDone({invalid_done_payload_json})"))
@@ -58,8 +58,10 @@ def handle_async_settings_command(command: WebviewBridgeCommand, eval_fn: Callab
     def _main_eval(js: str) -> None:
         mw.taskman.run_on_main(lambda: eval_fn(js))
 
-    def _progress(pct: int, message: str) -> None:
-        progress_payload_json = json.dumps(AsyncProgressPayload(job_id, message, pct).to_dict())
+    def _progress(pct: int, progress_message: str) -> None:
+        progress_payload_json = json.dumps(
+            AsyncProgressPayload(job_id, progress_message, pct).to_dict()
+        )
         _main_eval(f"window.onAsyncProgress({progress_payload_json})")
 
     def _run() -> None:
@@ -87,13 +89,13 @@ def handle_async_settings_command(command: WebviewBridgeCommand, eval_fn: Callab
                 context={"op": op, "job_id": job_id},
                 log=logger,
             )
-            message = str(async_error)
+            failure_message = str(async_error)
             failure_done_payload_json = json.dumps(
                 {
                     "id": job_id,
                     "ok": False,
-                    "error": message,
-                    "user_error": coded_error(AQE_FRONTEND_UNKNOWN_ASYNC_ERROR, message),
+                    "error": failure_message,
+                    "user_error": coded_error(AQE_FRONTEND_UNKNOWN_ASYNC_ERROR, failure_message),
                 }
             )
             _main_eval(f"window.onAsyncDone({failure_done_payload_json})")
