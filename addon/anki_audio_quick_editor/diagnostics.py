@@ -6,7 +6,11 @@ import subprocess  # nosec B404
 from pathlib import Path
 from typing import Any
 
-from .permission_guidance import message_with_permission_guidance
+from .error_codes import AQE_RUNTIME_ASSET_MISSING, format_coded_message
+from .permission_guidance import (
+    external_tool_error_message,
+    message_with_permission_guidance,
+)
 
 
 def build_deep_filter_health(_config: dict[str, Any]) -> dict[str, Any]:
@@ -356,4 +360,6 @@ def _managed_or_bundled_source(path: Any) -> str:
 
 
 def _diagnostic_error_message(exc: BaseException) -> str:
-    return message_with_permission_guidance(str(exc), exc)
+    message = message_with_permission_guidance(str(exc), exc)
+    message = external_tool_error_message(message, tool_name="runtime tool")
+    return format_coded_message(AQE_RUNTIME_ASSET_MISSING, message)

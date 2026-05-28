@@ -13,7 +13,10 @@ from .audio_state import AudioProcessingConfig
 from .audio_tools import find_ffmpeg, find_ffprobe
 from .diagnostics_runtime import is_debug_enabled, new_operation_id, record_breadcrumb
 from .errors import AudioProcessingError
-from .permission_guidance import launch_error_message as format_launch_error_message
+from .permission_guidance import (
+    external_tool_error_message,
+    launch_error_message,
+)
 
 
 def _is_windows() -> bool:
@@ -58,7 +61,7 @@ def probe_duration_ms(source_path: Path, config: AudioProcessingConfig) -> int:
             **_external_command_run_kwargs(),
         )  # nosec B603
     except OSError as exc:
-        raise AudioProcessingError(format_launch_error_message("Could not start ffprobe.", exc)) from exc
+        raise AudioProcessingError(launch_error_message("Could not start ffprobe.", exc)) from exc
     record_breadcrumb(
         "external.command.finished",
         source="external",
@@ -75,7 +78,9 @@ def probe_duration_ms(source_path: Path, config: AudioProcessingConfig) -> int:
         flush=result.returncode != 0,
     )
     if result.returncode != 0:
-        raise AudioProcessingError(result.stderr.strip() or "Could not inspect audio duration.")
+        raise AudioProcessingError(
+            _render_external_error_message(result, "Could not inspect audio duration.")
+        )
     try:
         seconds = float(json.loads(result.stdout)["format"]["duration"])
     except (KeyError, TypeError, ValueError) as exc:
@@ -85,7 +90,7 @@ def probe_duration_ms(source_path: Path, config: AudioProcessingConfig) -> int:
 
 def _run_external_command(
     command: tuple[str, ...],
-    launch_error_message: str,
+    launch_error_prefix: str,
     timeout_seconds: float | None = None,
     env: dict[str, str] | None = None,
 ) -> subprocess.CompletedProcess[str]:
@@ -129,7 +134,7 @@ def _run_external_command(
         return result
     except subprocess.TimeoutExpired as exc:
         timeout_label = "unknown" if timeout_seconds is None else f"{timeout_seconds:g}"
-        timeout_message = f"{launch_error_message} Timed out after {timeout_label} seconds."
+        timeout_message = f"{launch_error_prefix} Timed out after {timeout_label} seconds."
         record_breadcrumb(
             "external.command.timed_out",
             source="external",
@@ -160,23 +165,30 @@ def _run_external_command(
             },
             flush=True,
         )
-        raise AudioProcessingError(format_launch_error_message(launch_error_message, exc)) from exc
+        raise AudioProcessingError(launch_error_message(launch_error_prefix, exc)) from exc
 
 
 def _render_external_error_message(
     result: subprocess.CompletedProcess[str],
     default_message: str,
 ) -> str:
+    tool_name = _tool_name_from_args(getattr(result, "args", None))
     for candidate in (result.stderr.strip(), result.stdout.strip()):
         if not candidate:
             continue
         try:
             parsed = json.loads(candidate)
         except json.JSONDecodeError:
-            return candidate
+            return external_tool_error_message(candidate, tool_name=tool_name)
         if isinstance(parsed, dict):
             error = parsed.get("error")
             if isinstance(error, str) and error.strip():
-                return error.strip()
-        return candidate
-    return default_message
+                return external_tool_error_message(error.strip(), tool_name=tool_name)
+        return external_tool_error_message(candidate, tool_name=tool_name)
+    return external_tool_error_message(default_message, tool_name=tool_name)
+
+
+def _tool_name_from_args(args: object) -> str:
+    if isinstance(args, (list, tuple)) and args:
+        return Path(str(args[0])).name or "external tool"
+    return "external tool"

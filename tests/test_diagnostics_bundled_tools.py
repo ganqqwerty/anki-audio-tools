@@ -30,13 +30,12 @@ def test_rnnoise_health_reports_missing_bundle_at_expected_path(monkeypatch, tmp
     monkeypatch.setattr("anki_audio_quick_editor.diagnostics.subprocess.run", lambda *args, **kwargs: run_calls.append((args, kwargs)))
 
     health = build_rnnoise_health()
-    assert health == {
-        "available": False,
-        "path": str(expected_path),
-        "source": "bundled",
-        "version": "",
-        "error": "rnnoise bundle is incomplete",
-    }
+    assert health["available"] is False
+    assert health["path"] == str(expected_path)
+    assert health["source"] == "bundled"
+    assert health["version"] == ""
+    assert health["error"].startswith("AQE-RUNTIME-003:")
+    assert "rnnoise bundle is incomplete" in health["error"]
     assert run_calls == []
 
 
@@ -90,6 +89,7 @@ def test_rnnoise_health_reports_timeout_and_os_error(monkeypatch) -> None:
     assert health["path"] == str(rnnoise_path)
     assert health["source"] == "bundled"
     assert health["version"] == ""
+    assert health["error"].startswith("AQE-RUNTIME-003:")
     assert "permission denied" in health["error"]
 
 
@@ -129,13 +129,12 @@ def test_dpdfnet_health_reports_missing_bundle_at_expected_path(monkeypatch) -> 
     monkeypatch.setattr("anki_audio_quick_editor.diagnostics.subprocess.run", lambda *args, **kwargs: run_calls.append((args, kwargs)))
 
     health = build_dpdfnet_health()
-    assert health == {
-        "available": False,
-        "path": str(expected_path),
-        "source": "bundled",
-        "version": "",
-        "error": "dpdfnet bundle is incomplete",
-    }
+    assert health["available"] is False
+    assert health["path"] == str(expected_path)
+    assert health["source"] == "bundled"
+    assert health["version"] == ""
+    assert health["error"].startswith("AQE-RUNTIME-003:")
+    assert "dpdfnet bundle is incomplete" in health["error"]
     assert run_calls == []
 
 
@@ -186,6 +185,7 @@ def test_dpdfnet_health_reports_timeout_and_os_error(monkeypatch) -> None:
     assert health["path"] == str(dpdfnet_path)
     assert health["source"] == "bundled"
     assert health["version"] == ""
+    assert health["error"].startswith("AQE-RUNTIME-003:")
     assert "permission denied" in health["error"]
 
 

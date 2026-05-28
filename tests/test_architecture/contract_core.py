@@ -25,7 +25,13 @@ CORE_CONTRACTS: dict[str, ModuleContract] = {
     "diagnostics": contract(
         "diagnostics",
         layer=Layer.IMPORT_SAFE_CORE,
-        allowed_addon_deps=("audio_processor", "audio_tools", "permission_guidance", "runtime_manager"),
+        allowed_addon_deps=(
+            "audio_processor",
+            "audio_tools",
+            "error_codes",
+            "permission_guidance",
+            "runtime_manager",
+        ),
         allowed_side_effects=(SideEffect.SUBPROCESS_RUN,),
     ),
     "diagnostics_runtime": contract(
@@ -127,6 +133,7 @@ CORE_CONTRACTS: dict[str, ModuleContract] = {
         "runtime_install",
         layer=Layer.IMPORT_SAFE_CORE,
         allowed_addon_deps=(
+            "error_codes",
             "runtime_archive",
             "runtime_lookup",
             "runtime_manifest",

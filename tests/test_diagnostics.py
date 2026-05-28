@@ -26,13 +26,12 @@ def test_deep_filter_health_reports_missing_executable(monkeypatch) -> None:
 
     health = build_deep_filter_health({})
 
-    assert health == {
-        "available": False,
-        "path": "",
-        "source": "",
-        "version": "",
-        "error": "deep-filter is missing",
-    }
+    assert health["available"] is False
+    assert health["path"] == ""
+    assert health["source"] == ""
+    assert health["version"] == ""
+    assert health["error"].startswith("AQE-RUNTIME-003:")
+    assert "deep-filter is missing" in health["error"]
     assert run_calls == []
 
 
@@ -53,6 +52,7 @@ def test_deep_filter_health_reports_os_error(monkeypatch) -> None:
     assert health["path"] == "/tools/deep-filter"
     assert health["source"] == "PATH"
     assert health["version"] == ""
+    assert health["error"].startswith("AQE-RUNTIME-003:")
     assert "No space left on device" in health["error"]
 
 

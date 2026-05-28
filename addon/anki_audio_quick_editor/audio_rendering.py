@@ -19,7 +19,11 @@ from .audio_commands import (
     build_region_delete_plan,
     build_region_keep_plan,
 )
-from .audio_external import _external_command_run_kwargs, probe_duration_ms
+from .audio_external import (
+    _external_command_run_kwargs,
+    _render_external_error_message,
+    probe_duration_ms,
+)
 from .audio_formats import (
     DEFAULT_OUTPUT_FORMAT,
     output_extension,
@@ -67,7 +71,9 @@ def render_audio(
         on_command(cmd)
     result = _run_render_command(cmd, "Could not start audio processing.")
     if result.returncode != 0:
-        raise AudioProcessingError(result.stderr.strip() or "Audio processing failed.")
+        raise AudioProcessingError(
+            _render_external_error_message(result, "Audio processing failed.")
+        )
     return AudioProcessingResult(
         output_path=output_path,
         command=cmd,
@@ -95,7 +101,9 @@ def render_converted_audio(
         on_command(cmd)
     result = _run_render_command(cmd, "Could not start audio conversion.")
     if result.returncode != 0:
-        raise AudioProcessingError(result.stderr.strip() or "Audio conversion failed.")
+        raise AudioProcessingError(
+            _render_external_error_message(result, "Audio conversion failed.")
+        )
     return AudioProcessingResult(
         output_path=output_path,
         command=cmd,
@@ -134,7 +142,9 @@ def _render_region_filter_complex(
         on_command(cmd)
     result = _run_render_command(cmd, "Could not start selected-region rendering.")
     if result.returncode != 0:
-        raise AudioProcessingError(result.stderr.strip() or "Audio processing failed.")
+        raise AudioProcessingError(
+            _render_external_error_message(result, "Audio processing failed.")
+        )
     return AudioProcessingResult(
         output_path=output_path,
         command=cmd,
@@ -185,7 +195,9 @@ def render_playback_segment(
         on_command(cmd)
     result = _run_render_command(cmd, "Could not start playback segment rendering.")
     if result.returncode != 0:
-        raise AudioProcessingError(result.stderr.strip() or "Playback segment rendering failed.")
+        raise AudioProcessingError(
+            _render_external_error_message(result, "Playback segment rendering failed.")
+        )
     return AudioProcessingResult(
         output_path=output_path,
         command=cmd,

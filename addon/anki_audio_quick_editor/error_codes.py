@@ -51,3 +51,11 @@ def coded_error(code: str, message: str, *, details: str = "") -> dict[str, str]
 def coded_error_from_message(code: str, message: Any, *, details: str = "") -> dict[str, str]:
     """Return a coded error after normalizing a non-string message."""
     return coded_error(code, str(message), details=details)
+
+
+def format_coded_message(code: str, message: str) -> str:
+    """Return a code-prefixed string for display paths that are not structured yet."""
+    rendered = message.strip()
+    if rendered.startswith(f"{code}:"):
+        return rendered
+    return f"{code}: {rendered} Help: {public_help_url(code)}"

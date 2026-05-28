@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import os
 import shutil
+import socket
 import threading
 import time
 import urllib.error
@@ -12,6 +13,7 @@ from collections.abc import Callable
 from pathlib import Path
 from typing import Any
 
+from .error_codes import AQE_RUNTIME_ASSET_MISSING, format_coded_message
 from .runtime_archive import extract_expected_files, verify_extracted_files
 from .runtime_lookup import is_runtime_ready
 from .runtime_manifest import (
@@ -244,7 +246,7 @@ def _download_pack(
                     )
     except (OSError, urllib.error.URLError) as exc:
         tmp_path.unlink(missing_ok=True)
-        raise RuntimeInstallError(f"Runtime download failed: {exc}") from exc
+        raise RuntimeInstallError(_friendly_download_error(exc)) from exc
     actual_sha = sha256_file(tmp_path)
     if actual_sha != pack.sha256:
         tmp_path.unlink(missing_ok=True)
@@ -269,5 +271,35 @@ def _cleanup_old_runtimes(addon_dir: Path, *, keep_manifest_id: str) -> None:
 
 def _friendly_install_error(exc: BaseException) -> str:
     if isinstance(exc, RuntimeInstallError):
-        return str(exc)
+        return _runtime_asset_error(str(exc))
     return f"{type(exc).__name__}: {exc}"
+
+
+def _friendly_download_error(exc: BaseException) -> str:
+    reason = getattr(exc, "reason", exc)
+    if isinstance(reason, (TimeoutError, socket.timeout)):
+        return _runtime_asset_error(
+            "Runtime download timed out. Check your internet connection and whether a "
+            "firewall, proxy, VPN, antivirus, or organization network policy is blocking "
+            "Audio Quick Editor from downloading its runtime assets."
+        )
+    if isinstance(exc, urllib.error.HTTPError):
+        return _runtime_asset_error(
+            f"Runtime download failed with HTTP {exc.code}. If this keeps happening, "
+            "check whether a firewall, proxy, VPN, antivirus, or organization network "
+            "policy is blocking the runtime asset URL."
+        )
+    if isinstance(reason, OSError) and getattr(reason, "errno", None) in {13, 30}:
+        return _runtime_asset_error(
+            f"Runtime download could not write files: {reason}. Check permissions for "
+            "Anki's add-ons folder and whether security software is blocking the add-on."
+        )
+    return _runtime_asset_error(
+        f"Runtime download failed: {exc}. Check your internet connection and whether a "
+        "firewall, proxy, VPN, antivirus, or organization network policy is blocking "
+        "Audio Quick Editor from downloading its runtime assets."
+    )
+
+
+def _runtime_asset_error(message: str) -> str:
+    return format_coded_message(AQE_RUNTIME_ASSET_MISSING, message)

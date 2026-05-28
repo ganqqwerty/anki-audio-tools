@@ -10,6 +10,7 @@ import pytest
 from anki_audio_quick_editor import diagnostics_runtime
 from anki_audio_quick_editor.audio_external import (
     _external_command_run_kwargs,
+    _render_external_error_message,
     _run_external_command,
     probe_duration_ms,
 )
@@ -198,3 +199,44 @@ def test_external_command_launch_error_records_exception(tmp_path, monkeypatch) 
     events = _jsonl(tmp_path / "anki_audio_quick_editor_events.jsonl")
     assert events[-1]["event"] == "external.command.launch_failed"
     assert events[-1]["context"]["launch_error"] == "permission denied"
+
+
+def test_render_external_error_message_appends_ffmpeg_feature_guidance() -> None:
+    result = subprocess.CompletedProcess(
+        ["/tools/ffmpeg", "-i", "clip.wav"],
+        1,
+        stdout="",
+        stderr="Unknown encoder 'libmp3lame'",
+    )
+
+    message = _render_external_error_message(result, "Audio processing failed.")
+
+    assert "Unknown encoder 'libmp3lame'" in message
+    assert "does not include the codec, encoder, decoder" in message
+    assert "ffmpeg" in message
+
+
+def test_probe_duration_ms_uses_guided_ffprobe_errors(monkeypatch, tmp_path) -> None:
+    monkeypatch.setattr(
+        "anki_audio_quick_editor.audio_external.find_ffmpeg",
+        lambda _path: tmp_path / "ffmpeg",
+    )
+    monkeypatch.setattr(
+        "anki_audio_quick_editor.audio_external.find_ffprobe",
+        lambda _path: tmp_path / "ffprobe",
+    )
+    monkeypatch.setattr(
+        "anki_audio_quick_editor.audio_external.subprocess.run",
+        lambda *_args, **_kwargs: subprocess.CompletedProcess(
+            [str(tmp_path / "ffprobe")],
+            1,
+            stdout="",
+            stderr="Invalid data found when processing input",
+        ),
+    )
+
+    with pytest.raises(AudioProcessingError) as exc_info:
+        probe_duration_ms(tmp_path / "clip.wav", AudioProcessingConfig())
+
+    assert "Invalid data found when processing input" in str(exc_info.value)
+    assert "could not read or write this audio" in str(exc_info.value)

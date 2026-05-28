@@ -2,10 +2,12 @@ from __future__ import annotations
 
 import hashlib
 import json
+import urllib.error
 import zipfile
 from pathlib import Path
 
 from anki_audio_quick_editor import runtime_manager
+from anki_audio_quick_editor.runtime_install import _friendly_download_error
 
 
 def _sha(data: bytes) -> str:
@@ -75,6 +77,23 @@ def _write_runtime_pack(path: Path, payloads: dict[str, bytes]) -> str:
     return runtime_manager.sha256_file(path)
 
 
+def test_friendly_download_error_mentions_firewall_for_timeouts() -> None:
+    message = _friendly_download_error(urllib.error.URLError(TimeoutError("timed out")))
+
+    assert message.startswith("AQE-RUNTIME-003:")
+    assert "Runtime download timed out" in message
+    assert "/errors/AQE-RUNTIME-003/" in message
+    assert "firewall, proxy, VPN, antivirus" in message
+
+
+def test_friendly_download_error_mentions_permissions_for_write_errors() -> None:
+    message = _friendly_download_error(PermissionError(13, "Permission denied"))
+
+    assert message.startswith("AQE-RUNTIME-003:")
+    assert "could not write files" in message
+    assert "security software" in message
+
+
 def test_ensure_runtime_downloads_verifies_and_persists_state(
     tmp_path: Path,
     monkeypatch,
@@ -119,6 +138,7 @@ def test_ensure_runtime_rejects_checksum_mismatch(tmp_path: Path, monkeypatch) -
     status = runtime_manager.ensure_runtime(addon_dir)
 
     assert status["phase"] == "error"
+    assert status["error"].startswith("AQE-RUNTIME-003:")
     assert "checksum mismatch" in status["error"]
     assert not (addon_dir / "user_files" / "runtime_state.json").exists()
 
@@ -146,6 +166,7 @@ def test_ensure_runtime_rejects_unexpected_archive_file(tmp_path: Path, monkeypa
     status = runtime_manager.ensure_runtime(addon_dir)
 
     assert status["phase"] == "error"
+    assert status["error"].startswith("AQE-RUNTIME-003:")
     assert "unexpected file" in status["error"]
 
 
