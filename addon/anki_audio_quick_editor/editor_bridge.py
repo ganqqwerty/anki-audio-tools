@@ -34,6 +34,7 @@ from .editor_actions import (
     EditorCommandPayload,
     decode_editor_command_payload,
 )
+from .error_codes import AQE_AUDIO_PROCESSING_FAILED, coded_error
 from .errors import AudioQuickEditorError
 from .frontend_logs import handle_frontend_log_payload
 from .i18n import t
@@ -73,7 +74,11 @@ def handle_bridge_command(editor: Any, command: str, deps: Any) -> None:
             context={"command": command, "message": str(exc)},
         )
         deps.set_busy(editor, False)
-        deps.eval_status(editor, str(exc), kind="error")
+        deps.eval_status(
+            editor,
+            coded_error(AQE_AUDIO_PROCESSING_FAILED, str(exc)),
+            kind="error",
+        )
     except Exception as exc:  # pragma: no cover - defensive boundary for Anki bridge
         capture_exception(
             "editor.bridge",
@@ -85,7 +90,14 @@ def handle_bridge_command(editor: Any, command: str, deps: Any) -> None:
             log=logger,
         )
         deps.set_busy(editor, False)
-        deps.eval_status(editor, t("editor.processing_failed_note_unchanged", {"error": exc}), kind="error")
+        deps.eval_status(
+            editor,
+            coded_error(
+                AQE_AUDIO_PROCESSING_FAILED,
+                t("editor.processing_failed_note_unchanged", {"error": exc}),
+            ),
+            kind="error",
+        )
 
 
 def handle_pending_command_payload(editor: Any, deps: Any) -> None:
@@ -118,7 +130,11 @@ def handle_non_processing_command(editor: Any, command: str | EditorCommandPaylo
         return True
     if payload.command == CMD_OPEN_URL:
         if payload.url is None:
-            deps.eval_status(editor, t("external_link.open_failed"), kind="error")
+            deps.eval_status(
+                editor,
+                coded_error(AQE_AUDIO_PROCESSING_FAILED, t("external_link.open_failed")),
+                kind="error",
+            )
             return True
         deps.open_external_url(payload.url)
         return True

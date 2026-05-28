@@ -8,6 +8,7 @@ from typing import Any
 
 from .diagnostics_runtime import capture_exception, new_operation_id
 from .editor_actions import EditorCommandPayload, decode_editor_command_payload
+from .error_codes import AQE_AUDIO_PROCESSING_FAILED, coded_error
 
 logger = logging.getLogger(__name__)
 
@@ -21,7 +22,12 @@ def share_current_audio_file(
     payload = decode_editor_command_payload(command)
     if payload.share_target not in {"catbox", "litterbox"}:
         deps.set_busy(editor, False)
-        deps.eval_status(editor, deps.t("editor.status.share_invalid_target"), kind="error")
+        message = deps.t("editor.status.share_invalid_target")
+        deps.eval_status(
+            editor,
+            coded_error(AQE_AUDIO_PROCESSING_FAILED, message),
+            kind="error",
+        )
         return
 
     session, media_path = deps.current_media_path(editor)
@@ -99,4 +105,9 @@ def finish_shared_audio(
 def share_failed(editor: Any, error: str, deps: Any) -> None:
     """Clear the busy state after a failed upload."""
     deps.set_busy(editor, False)
-    deps.eval_status(editor, deps.t("editor.status.share_failed", {"error": error}), kind="error")
+    message = deps.t("editor.status.share_failed", {"error": error})
+    deps.eval_status(
+        editor,
+        coded_error(AQE_AUDIO_PROCESSING_FAILED, message),
+        kind="error",
+    )

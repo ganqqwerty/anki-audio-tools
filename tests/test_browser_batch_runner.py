@@ -65,8 +65,16 @@ def test_run_batch_reports_note_load_and_update_failures(monkeypatch, tmp_path: 
     assert report.written == 0
     assert report.skipped == 0
     assert report.failures == 2
-    assert "FAIL note 1: note disappeared" in logs
-    assert "FAIL note 2 (clip.mp3): database locked" in logs
+    assert any(
+        line.startswith("FAIL note 1: AQE-BATCH-001:")
+        and "note disappeared" in line
+        for line in logs
+    )
+    assert any(
+        line.startswith("FAIL note 2 (clip.mp3): AQE-BATCH-001:")
+        and "database locked" in line
+        for line in logs
+    )
     assert progress == [(1, 2, "", 1), (2, 2, "clip.mp3", 2)]
 
 
@@ -259,7 +267,13 @@ def test_run_batch_in_background_finishes_with_error(tmp_path: Path) -> None:
         BatchRunRequest(operation=OP_GRAPH, source_field="Audio", target_field="Image"),
     )
 
-    dialog.finish_with_error.assert_called_once_with("Batch operation failed: worker exploded")
+    dialog.finish_with_error.assert_called_once_with(
+        "Batch operation failed: worker exploded",
+        user_error={
+            "code": "AQE-BATCH-001",
+            "message": "Batch operation failed: worker exploded",
+        },
+    )
     dialog.finish_with_report.assert_not_called()
     browser.mw.update_undo_actions.assert_not_called()
     aqt.gui_hooks.operation_did_execute.assert_not_called()

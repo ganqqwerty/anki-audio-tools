@@ -30,6 +30,7 @@ from .batch_operation_types import (
 )
 from .batch_operations_helpers import skipped_batch_note
 from .diagnostics_runtime import new_operation_id, record_breadcrumb
+from .error_codes import AQE_MEDIA_REFERENCED_AUDIO_MISSING, format_coded_message
 from .errors import AudioQuickEditorError
 from .media_paths import existing_media_file_path
 from .prosody_cache import analyze_prosody_cached
@@ -158,7 +159,10 @@ def process_note_batch_operation(
         return BatchNoteResult(
             note_id=note.note_id,
             status="failed",
-            message=f"media file not found: {audio_filename}",
+            message=format_coded_message(
+                AQE_MEDIA_REFERENCED_AUDIO_MISSING,
+                f"media file not found: {audio_filename}",
+            ),
             audio_filename=audio_filename,
         )
 

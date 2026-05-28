@@ -38,6 +38,7 @@ def test_browser_batch_adapter_uses_shared_registry_and_executor() -> None:
             "batch_operations",
             "browser_report",
             "diagnostics_runtime",
+            "error_codes",
             "i18n",
         }
     )

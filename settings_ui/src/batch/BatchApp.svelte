@@ -10,6 +10,7 @@
   import type { ErrorDisplayValue } from "$lib/user-facing-error.js";
   import {
     AQE_FRONTEND_UNEXPECTED,
+    frontendUnknownError,
     frontendUserError,
     isUserFacingError,
   } from "$lib/user-facing-error.js";
@@ -72,7 +73,9 @@
       onError: (payload: BatchErrorPayload) => {
         running = false;
         finished = payload.recoverable !== true;
-        status = isUserFacingError(payload.user_error) ? payload.user_error : payload.message;
+        status = isUserFacingError(payload.user_error)
+          ? payload.user_error
+          : frontendUnknownError(payload.message);
       },
     });
     window.addEventListener("error", showFrontendRuntimeError);

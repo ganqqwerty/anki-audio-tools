@@ -55,6 +55,7 @@ UI_CONTRACTS: dict[str, ModuleContract] = {
             "batch_operations",
             "browser_report",
             "diagnostics_runtime",
+            "error_codes",
             "i18n",
         ),
         allowed_side_effects=(

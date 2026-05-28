@@ -45,7 +45,12 @@ def test_share_current_audio_file_rejects_invalid_target_without_upload(tmp_path
 
     share_current_audio_file(editor, EditorCommandPayload(command="aqe:share", field_ord=0), deps)
 
-    assert statuses == [("Unsupported share target.", "error")]
+    assert statuses == [
+        (
+            {"code": "AQE-AUDIO-001", "message": "Unsupported share target."},
+            "error",
+        )
+    ]
 
 
 def test_finish_shared_audio_copies_url_to_clipboard_and_reports_success(monkeypatch) -> None:

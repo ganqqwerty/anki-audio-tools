@@ -127,9 +127,10 @@ class BatchOperationsDialog:
         self._running = False
         self._finished = not recoverable
         self.append_log(message)
+        display_error = user_error or coded_error(AQE_BATCH_INVALID_REQUEST, message)
         self._emit(
             "onBatchError",
-            batch_error_payload(message, recoverable=recoverable, user_error=user_error),
+            batch_error_payload(message, recoverable=recoverable, user_error=display_error),
         )
 
     def _emit(self, callback: str, payload: dict[str, Any]) -> None:
@@ -172,7 +173,12 @@ class BatchOperationsDialog:
             logger.warning("invalid batch start payload: %s", exc)
             return True
         except ValueError as exc:
-            self.finish_with_error(str(exc), recoverable=True)
+            message = str(exc)
+            self.finish_with_error(
+                message,
+                recoverable=True,
+                user_error=coded_error(AQE_BATCH_INVALID_REQUEST, message),
+            )
             return True
 
         self._running = True

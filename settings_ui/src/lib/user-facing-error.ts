@@ -24,6 +24,12 @@ export function frontendUserError(code: string, message: string, details?: strin
   return details ? { code, message, details } : { code, message };
 }
 
+export function frontendUnknownError(error: unknown): UserFacingError {
+  return isUserFacingError(error)
+    ? error
+    : frontendUserError(AQE_FRONTEND_UNKNOWN_ASYNC_ERROR, messageFromUnknownError(error));
+}
+
 export function messageFromUnknownError(error: unknown): string {
   if (isUserFacingError(error)) return error.message;
   if (error instanceof Error) return error.message;

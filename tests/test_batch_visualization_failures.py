@@ -28,7 +28,8 @@ def test_process_note_batch_operation_requires_exact_non_windows_case(tmp_path: 
     )
     assert not result.written
     assert result.status == "failed"
-    assert result.message == "media file not found: clip.mp3"
+    assert result.message.startswith("AQE-MEDIA-002:")
+    assert "media file not found: clip.mp3" in result.message
 
 
 def test_process_note_batch_operation_graph_skips_expected_missing_inputs(tmp_path: Path) -> None:
@@ -99,7 +100,8 @@ def test_process_note_batch_operation_graph_counts_missing_media_as_failure(tmp_
     assert result.failure
     assert result.note_id == 1
     assert result.audio_filename == "missing.mp3"
-    assert result.message == "media file not found: missing.mp3"
+    assert result.message.startswith("AQE-MEDIA-002:")
+    assert "media file not found: missing.mp3" in result.message
 
 
 def test_process_note_batch_operation_preserves_failure_payload_when_transform_render_raises(
@@ -123,7 +125,8 @@ def test_process_note_batch_operation_preserves_failure_payload_when_transform_r
     )
     assert result.note_id == 10
     assert result.status == "failed"
-    assert result.message == "boom"
+    assert result.message.startswith("AQE-AUDIO-001:")
+    assert "boom" in result.message
     assert result.target_field is None
     assert result.target_html is None
     assert result.audio_filename == "clip.mp3"
@@ -151,7 +154,8 @@ def test_process_note_batch_operation_graph_preserves_failure_payload_when_gener
     )
     assert result.note_id == 10
     assert result.status == "failed"
-    assert result.message == "boom"
+    assert result.message.startswith("AQE-GRAPH-001:")
+    assert "boom" in result.message
     assert result.target_field is None
     assert result.target_html is None
     assert result.audio_filename == "clip.mp3"

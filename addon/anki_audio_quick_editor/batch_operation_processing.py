@@ -21,6 +21,11 @@ from .audio_state import AudioEditState, AudioProcessingConfig
 from .batch_operation_types import BatchNoteResult, BatchNoteSnapshot, BatchRunRequest
 from .batch_operations_helpers import render_batch_denoise
 from .diagnostics_runtime import capture_exception
+from .error_codes import (
+    AQE_AUDIO_PROCESSING_FAILED,
+    AQE_GRAPH_ANALYSIS_FAILED,
+    format_coded_message,
+)
 from .permission_guidance import message_with_permission_guidance
 from .prosody_svg import make_visualization_filename, render_prosody_svg
 from .sound_refs import SoundReference, replace_sound_reference
@@ -62,12 +67,13 @@ def process_graph_operation(
             if raw_message
             else "visualization generation failed"
         )
+        display_message = format_coded_message(AQE_GRAPH_ANALYSIS_FAILED, message)
         capture_exception(
             "browser.batch.note_graph",
             exc,
             operation="browser.batch.graph",
             operation_id=operation_id,
-            user_message=message,
+            user_message=display_message,
             context={
                 "note_id": note.note_id,
                 "source_field": request.source_field,
@@ -79,7 +85,7 @@ def process_graph_operation(
         return BatchNoteResult(
             note_id=note.note_id,
             status="failed",
-            message=message,
+            message=display_message,
             audio_filename=audio_filename,
         )
 
@@ -161,12 +167,13 @@ def process_transform_operation(
             if raw_message
             else "audio transformation failed"
         )
+        display_message = format_coded_message(AQE_AUDIO_PROCESSING_FAILED, message)
         capture_exception(
             "browser.batch.note_transform",
             exc,
             operation=f"browser.batch.{request.operation}",
             operation_id=operation_id,
-            user_message=message,
+            user_message=display_message,
             context={
                 "note_id": note.note_id,
                 "source_field": request.source_field,
@@ -177,7 +184,7 @@ def process_transform_operation(
         return BatchNoteResult(
             note_id=note.note_id,
             status="failed",
-            message=message,
+            message=display_message,
             audio_filename=audio_filename,
         )
     finally:

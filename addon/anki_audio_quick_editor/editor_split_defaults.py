@@ -5,6 +5,7 @@ from __future__ import annotations
 from typing import Any
 
 from .audio_operation_params import parameters_from_raw
+from .error_codes import AQE_SETTINGS_INVALID_PAYLOAD, coded_error
 from .i18n import t
 from .prosody_settings import sanitize_graph_settings
 
@@ -27,7 +28,12 @@ def save_split_defaults_from_frontend(editor: Any, deps: Any) -> None:
     def _continue(raw_payload: Any) -> None:
         updates = split_default_config_updates(raw_payload)
         if not updates:
-            deps.eval_status(editor, t("editor.status.split_defaults_invalid"), kind="error")
+            message = t("editor.status.split_defaults_invalid")
+            deps.eval_status(
+                editor,
+                coded_error(AQE_SETTINGS_INVALID_PAYLOAD, message),
+                kind="error",
+            )
             return
         addon_id = editor.mw.addonManager.addonFromModule(__name__)
         config = dict(editor.mw.addonManager.getConfig(addon_id) or {})

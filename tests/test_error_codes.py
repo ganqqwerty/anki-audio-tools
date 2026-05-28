@@ -6,6 +6,7 @@ from anki_audio_quick_editor.error_codes import (
     UserFacingError,
     coded_error,
     format_coded_message,
+    is_coded_message,
     public_help_url,
 )
 
@@ -47,3 +48,8 @@ def test_format_coded_message_does_not_duplicate_existing_code() -> None:
     message = "AQE-RUNTIME-001: ffmpeg missing Help: https://example.invalid"
 
     assert format_coded_message(AQE_RUNTIME_FFMPEG_MISSING, message) == message
+
+
+def test_is_coded_message_accepts_any_aqe_prefix() -> None:
+    assert is_coded_message("AQE-AUDIO-001: failed")
+    assert not is_coded_message("failed")

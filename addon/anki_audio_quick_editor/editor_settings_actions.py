@@ -6,6 +6,7 @@ from typing import Any, Callable
 
 from .editor_runtime import SettingsLifecycleCallbacks
 from .editor_session import PendingEditorStatus
+from .error_codes import AQE_SETTINGS_INVALID_PAYLOAD, coded_error
 from .file_reveal import open_external_url as open_url
 from .file_reveal import reveal_file
 from .i18n import t
@@ -16,7 +17,12 @@ SettingsOpener = Callable[[SettingsLifecycleCallbacks | None], None]
 def open_settings_from_editor(editor: Any, settings_opener: SettingsOpener | None, deps: Any) -> None:
     """Open add-on settings from the editor toolbar command."""
     if settings_opener is None:
-        deps.eval_status(editor, t("editor.status.settings_unavailable"), kind="error")
+        message = t("editor.status.settings_unavailable")
+        deps.eval_status(
+            editor,
+            coded_error(AQE_SETTINGS_INVALID_PAYLOAD, message),
+            kind="error",
+        )
         return
 
     saved = False

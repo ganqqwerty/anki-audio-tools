@@ -38,6 +38,11 @@ from .editor_session import (
     processing_guard_matches_editor,
 )
 from .editor_status import region_operation_status_summary
+from .error_codes import (
+    AQE_AUDIO_PROCESSING_FAILED,
+    AQE_GRAPH_ANALYSIS_FAILED,
+    coded_error,
+)
 from .errors import AudioProcessingError
 from .i18n import t
 from .media_paths import existing_media_file_path, media_filenames_match
@@ -71,7 +76,11 @@ def delete_selection_with_request(editor: Any, request: Any, deps: Any) -> None:
     parsed = _parse_region_delete_request(request)
     if parsed is None:
         deps.set_busy(editor, False)
-        deps.eval_status(editor, t("editor.status.region_read_failed"), kind="error")
+        deps.eval_status(
+            editor,
+            coded_error(AQE_AUDIO_PROCESSING_FAILED, t("editor.status.region_read_failed")),
+            kind="error",
+        )
         return
     existing = deps.sessions.get(editor)
     if existing and deps.is_busy(existing):
@@ -80,17 +89,29 @@ def delete_selection_with_request(editor: Any, request: Any, deps: Any) -> None:
     active_field = deps.current_field_index(editor)
     if active_field != parsed.field_index:
         deps.set_busy_for_field(editor, parsed.field_index, False)
-        deps.eval_status(editor, t("editor.status.graph_inactive"), kind="error")
+        deps.eval_status(
+            editor,
+            coded_error(AQE_GRAPH_ANALYSIS_FAILED, t("editor.status.graph_inactive")),
+            kind="error",
+        )
         return
     resolved = deps.resolve_requested_field_media(editor, parsed.field_index, parsed.source_filename)
     if resolved is None:
         deps.set_busy_for_field(editor, parsed.field_index, False)
-        deps.eval_status(editor, t("editor.status.graph_audio_mismatch"), kind="error")
+        deps.eval_status(
+            editor,
+            coded_error(AQE_GRAPH_ANALYSIS_FAILED, t("editor.status.graph_audio_mismatch")),
+            kind="error",
+        )
         return
     session, current_path = deps.current_media_path(editor)
     if not media_filenames_match(current_path.name, parsed.source_filename):
         deps.set_busy_for_field(editor, parsed.field_index, False)
-        deps.eval_status(editor, t("editor.status.graph_audio_mismatch"), kind="error")
+        deps.eval_status(
+            editor,
+            coded_error(AQE_GRAPH_ANALYSIS_FAILED, t("editor.status.graph_audio_mismatch")),
+            kind="error",
+        )
         return
     if parsed.selection_start_ms <= 0 and parsed.selection_end_ms >= parsed.duration_ms:
         logger.info("region delete rejected whole clip: %s", region_delete_log_context(parsed))

@@ -17,6 +17,7 @@ from .batch_operations import (
 )
 from .browser_report import BatchRunReport, format_result_line
 from .diagnostics_runtime import capture_exception, new_operation_id, record_breadcrumb
+from .error_codes import AQE_BATCH_INVALID_REQUEST, coded_error, format_coded_message
 from .i18n import active_context, format_message
 
 logger = logging.getLogger(__name__)
@@ -89,16 +90,20 @@ def run_batch_in_background(
         try:
             report = future.result()
         except Exception as exc:
+            message = _tr("batch.failed", {"error": exc})
             capture_exception(
                 "browser.batch.worker",
                 exc,
                 operation="browser.batch",
                 operation_id=operation_id,
-                user_message=_tr("batch.failed", {"error": exc}),
+                user_message=format_coded_message(AQE_BATCH_INVALID_REQUEST, message),
                 context={"note_count": len(note_ids), "operation": request.operation},
                 log=logger,
             )
-            dialog.finish_with_error(_tr("batch.failed", {"error": exc}))
+            dialog.finish_with_error(
+                message,
+                user_error=coded_error(AQE_BATCH_INVALID_REQUEST, message),
+            )
             return
         publish_collection_changes(browser, report.changes)
         logger.info("batch operation finished: %s", report.summary)
@@ -189,15 +194,19 @@ def process_note(
         note = col.get_note(note_id)
         snapshot = snapshot_from_note(note)
     except Exception as exc:
+        message = format_coded_message(
+            AQE_BATCH_INVALID_REQUEST,
+            str(exc) or "note load failed",
+        )
         capture_exception(
             "browser.batch.note_load",
             exc,
             operation=f"browser.batch.{request.operation}",
-            user_message=str(exc) or "note load failed",
+            user_message=message,
             context={"note_id": note_id, "source_field": request.source_field},
             log=logger,
         )
-        return BatchNoteResult(note_id=note_id, status="failed", message=str(exc) or "note load failed")
+        return BatchNoteResult(note_id=note_id, status="failed", message=message)
 
     current_audio = first_audio_filename(snapshot, request.source_field) or ""
     result = process_note_batch_operation(
@@ -239,10 +248,14 @@ def apply_result(
                 current_html = _note_field_value(note, result.target_field)
                 if current_html != result.original_target_html:
                     report.failures += 1
+                    message = format_coded_message(
+                        AQE_BATCH_INVALID_REQUEST,
+                        f"target field {result.target_field!r} changed during batch processing",
+                    )
                     return BatchNoteResult(
                         note_id=result.note_id,
                         status="failed",
-                        message=f"target field {result.target_field!r} changed during batch processing",
+                        message=message,
                         target_field=result.target_field,
                         target_html=result.target_html,
                         audio_filename=result.audio_filename,
@@ -254,11 +267,15 @@ def apply_result(
             col.update_note(note)
             report.written += 1
         except Exception as exc:
+            message = format_coded_message(
+                AQE_BATCH_INVALID_REQUEST,
+                str(exc) or f"failed to update target field {fallback_field!r}",
+            )
             capture_exception(
                 "browser.batch.apply_result",
                 exc,
                 operation=f"browser.batch.{result.status}",
-                user_message=str(exc) or f"failed to update target field {fallback_field!r}",
+                user_message=message,
                 context={
                     "note_id": result.note_id,
                     "target_field": result.target_field,
@@ -272,7 +289,7 @@ def apply_result(
             return BatchNoteResult(
                 note_id=result.note_id,
                 status="failed",
-                message=str(exc) or f"failed to update target field {fallback_field!r}",
+                message=message,
                 target_field=result.target_field,
                 target_html=result.target_html,
                 audio_filename=result.audio_filename,

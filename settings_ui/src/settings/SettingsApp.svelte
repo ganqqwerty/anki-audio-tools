@@ -18,6 +18,7 @@
   import type { ErrorDisplayValue } from "$lib/user-facing-error.js";
   import {
     AQE_FRONTEND_UNEXPECTED,
+    frontendUnknownError,
     frontendUserError,
     isUserFacingError,
     messageFromUnknownError,
@@ -68,7 +69,9 @@
         handleAsyncDone(payload);
       },
       onSaveError: (payload: SaveErrorPayload) => {
-        saveError = isUserFacingError(payload.user_error) ? payload.user_error : payload.error;
+        saveError = isUserFacingError(payload.user_error)
+          ? payload.user_error
+          : frontendUnknownError(payload.error);
       },
     });
     window.addEventListener("error", showFrontendRuntimeError);
@@ -91,7 +94,7 @@
       healthMessage = t("settings.health.completed");
     } catch (error) {
       const message = messageFromUnknownError(error);
-      healthMessage = isUserFacingError(error) ? error : message;
+      healthMessage = frontendUnknownError(error);
       logger.error("health check failed", { message });
     }
   }
@@ -105,7 +108,7 @@
       diagnosticsMessage = t("settings.support.copied");
     } catch (error) {
       const message = messageFromUnknownError(error);
-      diagnosticsMessage = isUserFacingError(error) ? error : message;
+      diagnosticsMessage = frontendUnknownError(error);
       logger.error("support report failed", { message });
     }
   }
@@ -118,7 +121,7 @@
       diagnosticsMessage = t("settings.log.opened", { path: result.logFilePath });
     } catch (error) {
       const message = messageFromUnknownError(error);
-      diagnosticsMessage = isUserFacingError(error) ? error : message;
+      diagnosticsMessage = frontendUnknownError(error);
       logger.error("show log file failed", { message });
     }
   }
@@ -128,7 +131,7 @@
       runtimeStatus = await startAsyncOp("runtime_status", {});
     } catch (error) {
       const message = messageFromUnknownError(error);
-      diagnosticsMessage = isUserFacingError(error) ? error : message;
+      diagnosticsMessage = frontendUnknownError(error);
       logger.error("runtime status failed", { message });
     }
   }
@@ -141,7 +144,7 @@
       diagnosticsMessage = runtimeStatus.error || runtimeStatus.message || t("settings.async.done");
     } catch (error) {
       const message = messageFromUnknownError(error);
-      diagnosticsMessage = isUserFacingError(error) ? error : message;
+      diagnosticsMessage = frontendUnknownError(error);
       logger.error("runtime install failed", { message });
     }
   }

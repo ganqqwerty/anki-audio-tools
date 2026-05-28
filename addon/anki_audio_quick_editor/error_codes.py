@@ -56,6 +56,11 @@ def coded_error_from_message(code: str, message: Any, *, details: str = "") -> d
 def format_coded_message(code: str, message: str) -> str:
     """Return a code-prefixed string for display paths that are not structured yet."""
     rendered = message.strip()
-    if rendered.startswith(f"{code}:"):
+    if is_coded_message(rendered):
         return rendered
     return f"{code}: {rendered} Help: {public_help_url(code)}"
+
+
+def is_coded_message(message: str) -> bool:
+    """Return whether ``message`` already starts with an Audio Quick Editor code."""
+    return message.strip().startswith("AQE-")

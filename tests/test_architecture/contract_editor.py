@@ -36,7 +36,14 @@ EDITOR_CONTRACTS: dict[str, ModuleContract] = {
     "editor_bridge": contract(
         "editor_bridge",
         layer=Layer.UI_ADAPTER,
-        allowed_addon_deps=("diagnostics_runtime", "editor_actions", "errors", "frontend_logs", "i18n"),
+        allowed_addon_deps=(
+            "diagnostics_runtime",
+            "editor_actions",
+            "error_codes",
+            "errors",
+            "frontend_logs",
+            "i18n",
+        ),
         allowed_side_effects=(SideEffect.WEB_EVAL,),
     ),
     "editor_conversion": contract(
@@ -84,6 +91,7 @@ EDITOR_CONTRACTS: dict[str, ModuleContract] = {
     "editor_frontend": contract(
         "editor_frontend",
         layer=Layer.UI_ADAPTER,
+        allowed_addon_deps=("error_codes",),
         allowed_side_effects=(
             SideEffect.ANKI_IMPORTS_ANYWHERE,
             SideEffect.WEB_EVAL,
@@ -167,6 +175,7 @@ EDITOR_CONTRACTS: dict[str, ModuleContract] = {
             "editor_special_transform_worker",
             "editor_session",
             "editor_status",
+            "error_codes",
             "errors",
             "i18n",
             "media_paths",
@@ -198,6 +207,7 @@ EDITOR_CONTRACTS: dict[str, ModuleContract] = {
             "editor_region_delete_worker",
             "editor_session",
             "editor_status",
+            "error_codes",
             "errors",
             "i18n",
             "media_paths",
@@ -284,7 +294,13 @@ EDITOR_CONTRACTS: dict[str, ModuleContract] = {
     "editor_settings_actions": contract(
         "editor_settings_actions",
         layer=Layer.UI_ADAPTER,
-        allowed_addon_deps=("editor_runtime", "editor_session", "file_reveal", "i18n"),
+        allowed_addon_deps=(
+            "editor_runtime",
+            "editor_session",
+            "error_codes",
+            "file_reveal",
+            "i18n",
+        ),
         allowed_side_effects=(SideEffect.WEB_EVAL,),
     ),
     "editor_status": contract(
@@ -302,7 +318,7 @@ EDITOR_CONTRACTS: dict[str, ModuleContract] = {
     "editor_sharing": contract(
         "editor_sharing",
         layer=Layer.UI_ADAPTER,
-        allowed_addon_deps=("diagnostics_runtime", "editor_actions"),
+        allowed_addon_deps=("diagnostics_runtime", "editor_actions", "error_codes"),
         allowed_side_effects=(
             SideEffect.ANKI_IMPORTS_ANYWHERE,
             SideEffect.THREAD_SPAWN,
@@ -353,7 +369,12 @@ EDITOR_CONTRACTS: dict[str, ModuleContract] = {
     "editor_split_defaults": contract(
         "editor_split_defaults",
         layer=Layer.UI_ADAPTER,
-        allowed_addon_deps=("audio_operation_params", "i18n", "prosody_settings"),
+        allowed_addon_deps=(
+            "audio_operation_params",
+            "error_codes",
+            "i18n",
+            "prosody_settings",
+        ),
     ),
     "editor_integration": contract(
         "editor_integration",
