@@ -1,37 +1,63 @@
 <script lang="ts">
+  import AqeTooltip from "$lib/AqeTooltip.svelte";
   import { t } from "$lib/i18n.js";
   import { PRODUCT_LINKS } from "$lib/product-links.js";
   import ProductLinkIcon from "$lib/ProductLinkIcon.svelte";
+
+  const telegramTooltip = $derived(`${t("links.telegram")}\n${t("links.telegram_detail")}`);
 </script>
 
-<section class="settings-section">
-  <div class="settings-section-header">
-    <h3>{t("diagnostics.links.title")}</h3>
-    <p>{t("diagnostics.links.summary")}</p>
-  </div>
+<aside class="diagnostics-links" aria-label={t("diagnostics.links.title")}>
+  <h2>{t("diagnostics.links.title")}</h2>
   <div class="diagnostics-link-groups">
     <div class="diagnostics-link-row" aria-label={t("links.resources")}>
       <a class="diagnostics-link" href={PRODUCT_LINKS.githubPages} target="_blank" rel="noopener noreferrer">
-        <ProductLinkIcon className="diagnostics-link-icon" icon="external-link" />
-        <span>{t("links.github_pages")}</span>
+        <span>{t("links.website")}</span>
       </a>
-      <a class="diagnostics-link" href={PRODUCT_LINKS.discord} target="_blank" rel="noopener noreferrer">
-        <ProductLinkIcon className="diagnostics-link-icon" icon="message" />
-        <span>{t("links.discord")}</span>
-      </a>
-      <a class="diagnostics-link" href={PRODUCT_LINKS.patreon} target="_blank" rel="noopener noreferrer">
-        <ProductLinkIcon className="diagnostics-link-icon" icon="heart" />
-        <span>{t("links.patreon")}</span>
-      </a>
+      <AqeTooltip content={t("links.discord")}>
+        {#snippet trigger({ props })}
+          <a
+            {...props}
+            aria-label={t("links.discord")}
+            class="diagnostics-link diagnostics-icon-link"
+            href={PRODUCT_LINKS.discord}
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            <ProductLinkIcon className="diagnostics-link-icon" icon="discord" size={16} />
+          </a>
+        {/snippet}
+      </AqeTooltip>
+      <AqeTooltip content={t("links.patreon")}>
+        {#snippet trigger({ props })}
+          <a
+            {...props}
+            aria-label={t("links.patreon")}
+            class="diagnostics-link diagnostics-icon-link"
+            href={PRODUCT_LINKS.patreon}
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            <ProductLinkIcon className="diagnostics-link-icon" icon="patreon" size={16} />
+          </a>
+        {/snippet}
+      </AqeTooltip>
+      <AqeTooltip content={telegramTooltip}>
+        {#snippet trigger({ props })}
+          <a
+            {...props}
+            aria-label={t("links.telegram")}
+            class="diagnostics-link diagnostics-icon-link"
+            href={PRODUCT_LINKS.telegram}
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            <ProductLinkIcon className="diagnostics-link-icon" icon="send" size={16} />
+          </a>
+        {/snippet}
+      </AqeTooltip>
     </div>
     <div class="diagnostics-link-row">
-      <span class="diagnostics-link-stack">
-        <a class="diagnostics-link" href={PRODUCT_LINKS.telegram} target="_blank" rel="noopener noreferrer">
-          <ProductLinkIcon className="diagnostics-link-icon" icon="send" />
-          <span>{t("links.telegram")}</span>
-        </a>
-        <span class="diagnostics-link-detail">{t("links.telegram_detail")}</span>
-      </span>
       <a class="diagnostics-link" href={PRODUCT_LINKS.bugReport} target="_blank" rel="noopener noreferrer">
         <ProductLinkIcon className="diagnostics-link-icon" icon="bug" />
         <span>{t("links.report_bug")}</span>
@@ -42,10 +68,21 @@
       </a>
     </div>
   </div>
-</section>
+  <p class="diagnostics-credit">{t("diagnostics.links.created_by")}</p>
+  <p class="diagnostics-credit">{t("diagnostics.links.alpha_testers")}</p>
+</aside>
 
 <style>
-  h3 {
+  .diagnostics-links {
+    display: grid;
+    gap: 8px;
+    justify-items: end;
+    max-width: 420px;
+    text-align: right;
+  }
+
+  h2 {
+    font-size: 0.82rem;
     margin: 0;
   }
 
@@ -58,6 +95,7 @@
     display: flex;
     flex-wrap: wrap;
     gap: 8px;
+    justify-content: flex-end;
   }
 
   .diagnostics-link {
@@ -73,24 +111,37 @@
     text-decoration: none;
   }
 
+  .diagnostics-icon-link {
+    flex-wrap: nowrap;
+    justify-content: center;
+    padding: 4px;
+    width: 27px;
+  }
+
   :global(.diagnostics-link-icon) {
     display: inline-flex;
     flex: 0 0 auto;
-  }
-
-  .diagnostics-link-stack {
-    align-items: flex-start;
-    display: inline-flex;
-    flex-direction: column;
-    gap: 3px;
   }
 
   .diagnostics-link:hover {
     text-decoration: underline;
   }
 
-  .diagnostics-link-detail {
+  .diagnostics-credit {
     color: var(--fg-subtle, currentColor);
-    font-size: 11px;
+    line-height: 1.35;
+    margin: 0;
+  }
+
+  @media (max-width: 720px) {
+    .diagnostics-links {
+      justify-items: start;
+      max-width: none;
+      text-align: left;
+    }
+
+    .diagnostics-link-row {
+      justify-content: flex-start;
+    }
   }
 </style>

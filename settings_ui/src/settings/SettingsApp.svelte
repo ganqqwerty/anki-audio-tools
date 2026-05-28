@@ -30,6 +30,7 @@
     RuntimeStatus,
     SaveErrorPayload,
   } from "$lib/types.js";
+  import DiagnosticsLinks from "./DiagnosticsLinks.svelte";
   import DiagnosticsPanel from "./DiagnosticsPanel.svelte";
   import GeneralSettingsPanel from "./GeneralSettingsPanel.svelte";
   import SettingsFooter from "./SettingsFooter.svelte";
@@ -164,7 +165,12 @@
           {t("settings.summary")}
         </p>
       </div>
-      <div class="version-pill">v{initialState.version}</div>
+      <div class="hero-meta">
+        <div class="version-pill">v{initialState.version}</div>
+        {#if activeTab === "diagnostics"}
+          <DiagnosticsLinks />
+        {/if}
+      </div>
     </header>
 
     {#if frontendRuntimeError}

@@ -90,9 +90,18 @@
     onPausePreprocessDenoise(value);
     onChange();
   }
+
+  function isDenoiseCommand(): boolean {
+    return (
+      command === "aqe:denoise-standard" ||
+      command === "aqe:rnnoise" ||
+      command === "aqe:dpdfnet" ||
+      command === "aqe:voice-only"
+    );
+  }
 </script>
 
-{#if denoiseAlgorithm === "dpdfnet"}
+{#if isDenoiseCommand() && denoiseAlgorithm === "dpdfnet"}
   <label class="aqe-split-extra-field">
     <span>{t("settings.dpdfnet_attn_limit_db")}</span>
     <div

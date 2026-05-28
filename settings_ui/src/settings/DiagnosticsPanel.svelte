@@ -3,7 +3,6 @@
   import ErrorMessage from "$lib/ErrorMessage.svelte";
   import type { ErrorDisplayValue } from "$lib/user-facing-error.js";
   import type { AsyncProgressPayload, Config, HealthReport, InitialState, RuntimeStatus } from "$lib/types.js";
-  import DiagnosticsLinks from "./DiagnosticsLinks.svelte";
 
   type DiagnosticsAction = () => void | Promise<void>;
 
@@ -42,7 +41,7 @@
   <h2>{t("diagnostics.title")}</h2>
 
   <section class="settings-section">
-    <div class="settings-grid diagnostics-config-grid">
+    <div class="diagnostics-config-stack">
       <label class="settings-toggle">
         <input type="checkbox" bind:checked={config.debug_logging} />
         <span class="settings-label-text">{t("settings.debug_logging")}</span>
@@ -161,8 +160,6 @@
     </div>
   </section>
 
-  <DiagnosticsLinks />
-
   {#if healthReport}
     <section class="settings-section">
       <pre class="report" data-testid="health-report">{JSON.stringify(healthReport, null, 2)}</pre>
@@ -179,8 +176,10 @@
     gap: 14px;
   }
 
-  .diagnostics-config-grid {
+  .diagnostics-config-stack {
     align-items: start;
+    display: grid;
+    gap: 12px;
   }
 
   .diagnostics-path-field {

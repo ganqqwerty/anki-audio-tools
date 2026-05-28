@@ -357,7 +357,7 @@ describe("App", () => {
     setInitialState(); render(App);
     await fireEvent.click(screen.getByRole("tab", { name: "Diagnostics & About" }));
     for (const [name, href] of [
-      ["GitHub Pages", PRODUCT_LINKS.githubPages],
+      ["Website", PRODUCT_LINKS.githubPages],
       ["Discord: Yuri's cool software", PRODUCT_LINKS.discord],
       ["Support on Patreon", PRODUCT_LINKS.patreon],
       [/Telegram: Immersoshnaya/, PRODUCT_LINKS.telegram],
@@ -365,6 +365,8 @@ describe("App", () => {
       ["Request an idea", PRODUCT_LINKS.ideaRequest],
     ] as const)
       expect(screen.getByRole("link", { name })).toHaveAttribute("href", href);
+    expect(screen.getByText("Created by Yuri Katkov (ganqqwerty).")).toBeInTheDocument();
+    expect(screen.getByText(/Special thanks to alpha testers:/)).toBeInTheDocument();
   });
 
   it("renders translated settings labels from initial messages", async () => {

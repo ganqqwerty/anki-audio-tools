@@ -188,13 +188,25 @@ describe("editor inline split-button command integration", () => {
   });
 
   it("dispatches share commands with the selected host and exposes save-default", async () => {
-    initializeEditorRuntime({ audioFieldIndices: [0] });
-    scan({ audioFieldIndices: [0] });
+    const config = {
+      audioFieldIndices: [0],
+      splitButtonDefaults: {
+        denoiseAlgorithm: "dpdfnet" as const,
+        dpdfnetAttnLimitDb: 18,
+        pauseAggressiveness: "normal" as const,
+        repeatPauseSeconds: 0,
+        speedStep: 1.5,
+        volumeStepDb: 15,
+      },
+    };
+    initializeEditorRuntime(config);
+    scan(config);
 
     document.querySelector<HTMLButtonElement>('[data-testid="aqe-split-0-share-menu"]')!.click();
     await Promise.resolve();
 
     expect(document.querySelector('[data-testid="aqe-split-0-share-save-default"]')).not.toBeNull();
+    expect(document.querySelector('[data-testid="aqe-split-0-share-dpdfnet-aggressiveness"]')).toBeNull();
 
     document.querySelector<HTMLButtonElement>('[data-testid="aqe-split-0-share-preset-catbox"]')!.click();
     document.querySelector<HTMLButtonElement>('[data-testid="aqe-button-0-share"]')!.click();
