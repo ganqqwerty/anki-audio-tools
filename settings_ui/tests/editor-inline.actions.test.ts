@@ -24,6 +24,7 @@ import {
   setSelection,
   setSelectionDraft,
   setPlaybackState,
+  setControlsBusy,
   setCursor,
   setVisualizerStatusFromPython,
   shouldTreatSelectionGestureAsClick,
@@ -364,7 +365,24 @@ describe("editor inline action workflows", () => {
     const link = status.querySelector<HTMLAnchorElement>("a")!;
 
     expect(status).toHaveTextContent("AQE-MEDIA-001: No [sound:...] reference found. Help");
+    expect(status).not.toHaveAttribute("data-aqe-tooltip-content");
     expect(link.href).toBe(`${PRODUCT_LINKS.githubPages}errors/AQE-MEDIA-001/`);
+  });
+
+  it("keeps status tooltips reserved for explicit command details", async () => {
+    const visualizer = await mountTrack(0);
+    const controls = visualizer.closest<HTMLElement>(".aqe-controls")!;
+    const status = controls.querySelector<HTMLElement>(".aqe-status")!;
+
+    setControlsBusy(0, true, "Processing with ffmpeg", "");
+    expect(status).toHaveTextContent("Processing with ffmpeg");
+    expect(status).not.toHaveAttribute("data-aqe-tooltip-content");
+
+    setControlsBusy(0, true, "Processing with ffmpeg: /usr/bin/ffmpeg -i input", "/usr/bin/ffmpeg -i input");
+    expect(status).toHaveAttribute("data-aqe-tooltip-content", "/usr/bin/ffmpeg -i input");
+
+    setControlsBusy(0, false, "Increased speed to x1.5.", "");
+    expect(status).not.toHaveAttribute("data-aqe-tooltip-content");
   });
 
 });

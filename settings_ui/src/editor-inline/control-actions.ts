@@ -185,7 +185,7 @@ function renderStatusContent(status: HTMLElement, message: EditorStatusMessage):
 function renderStatus(status: HTMLElement, message: EditorStatusMessage, kind: string, command: string): void {
   renderStatusContent(status, message);
   status.dataset.kind = kind;
-  setTooltipContent(status, command || statusText(message));
+  setTooltipContent(status, command);
   const spinner = status.closest<HTMLElement>(".aqe-status-row")?.querySelector<HTMLElement>(".aqe-spinner");
   if (spinner) spinner.hidden = kind !== "processing";
 }
