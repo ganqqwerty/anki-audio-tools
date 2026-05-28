@@ -27,7 +27,11 @@ from .editor_session import (
     begin_learner_recording_state,
     learner_recording_is_current,
 )
-from .error_codes import AQE_MEDIA_REFERENCED_AUDIO_MISSING, AQE_RECORDING_FAILED, coded_error
+from .error_codes import (
+    AQE_MEDIA_REFERENCED_AUDIO_MISSING,
+    AQE_RECORDING_FAILED,
+    coded_error,
+)
 from .errors import AudioProcessingError, AudioQuickEditorError
 from .i18n import t
 from .permission_guidance import message_with_permission_guidance
