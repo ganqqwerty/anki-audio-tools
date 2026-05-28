@@ -3,7 +3,15 @@ version = 1
 name = "anki-audio-tools"
 
 [setup]
-script = "cd"
+script = '''
+
+set -euo pipefail
+
+ROOT="$(git rev-parse --show-toplevel)"
+cd "$ROOT"
+
+codegraph init -i
+'''
 
 [setup.darwin]
 script = '''
