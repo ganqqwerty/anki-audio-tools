@@ -77,7 +77,13 @@ def test_settings_save_reports_invalid_payload() -> None:
     handle_settings_command(_bridge_command("settings.save", "not-a-config"), eval_fn, dialog)
 
     payload = _parse_callback(calls[0], "onSaveError")
-    assert payload["error"] == "Invalid settings payload"
+    assert payload == {
+        "error": "Invalid settings payload",
+        "user_error": {
+            "code": "AQE-SETTINGS-001",
+            "message": "Invalid settings payload",
+        },
+    }
     assert dialog.accepted is False
 
 

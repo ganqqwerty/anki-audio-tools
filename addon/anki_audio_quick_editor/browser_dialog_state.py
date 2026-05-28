@@ -127,12 +127,20 @@ def batch_finish_payload(report: BatchRunReport) -> dict[str, Any]:
     }
 
 
-def batch_error_payload(message: str, *, recoverable: bool = False) -> dict[str, Any]:
+def batch_error_payload(
+    message: str,
+    *,
+    recoverable: bool = False,
+    user_error: dict[str, str] | None = None,
+) -> dict[str, Any]:
     """Return the typed error payload sent to Svelte."""
-    return {
+    payload: dict[str, Any] = {
         "message": message,
         "recoverable": recoverable,
     }
+    if user_error is not None:
+        payload["user_error"] = user_error
+    return payload
 
 
 def invalid_start_message() -> str:
