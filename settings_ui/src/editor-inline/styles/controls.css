@@ -171,3 +171,31 @@
   min-width: 0;
   white-space: pre-wrap;
 }
+
+.aqe-youtube-throwaway-grid {
+  display: grid;
+  flex: 1 0 100%;
+  gap: 8px;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  width: 100%;
+}
+
+.aqe-youtube-throwaway-slot {
+  aspect-ratio: 16 / 9;
+  min-height: 110px;
+}
+
+.aqe-youtube-throwaway,
+.aqe-youtube-throwaway-button {
+  height: 100%;
+  width: 100%;
+}
+
+.aqe-youtube-throwaway {
+  border: 1px solid ButtonBorder;
+  border-radius: 7px;
+}
+
+.aqe-youtube-throwaway-button {
+  justify-content: center;
+}

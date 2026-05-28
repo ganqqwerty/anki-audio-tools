@@ -54,6 +54,11 @@
   );
   const buttonModes = window.__AQE_EDITOR_CONFIG__?.editorButtonModes;
   const renderItems = buildToolbarRenderItems(buttons);
+  const throwawayVideos = Array.from({ length: 50 }, (_, index) => ({
+    id: index + 1,
+    videoId: "IA69-CCLtZ8",
+  }));
+  let loadedThrowawayVideos = $state<Set<number>>(new Set());
 
   function isSplitCommand(command: string): boolean {
     return [
@@ -129,6 +134,11 @@
     }
     return items;
   }
+
+  function loadThrowawayVideo(id: number): void {
+    loadedThrowawayVideos = new Set([...loadedThrowawayVideos, id]);
+  }
+
   onMount(() => {
     const visualizer = visualizerForOrd(target.ord);
     if (!visualizer) return;
@@ -422,6 +432,29 @@
           ></span>
         {/snippet}
       </AqeTooltip>
+    </div>
+    <div class="aqe-youtube-throwaway-grid">
+      {#each throwawayVideos as video}
+        <div class="aqe-youtube-throwaway-slot">
+          {#if loadedThrowawayVideos.has(video.id)}
+            <iframe
+              class="aqe-youtube-throwaway"
+              title={`Throwaway YouTube embed ${video.id}`}
+              src={`https://www.youtube.com/embed/${video.videoId}`}
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+              allowfullscreen
+            ></iframe>
+          {:else}
+            <button
+              type="button"
+              class="aqe-button aqe-youtube-throwaway-button"
+              onclick={() => loadThrowawayVideo(video.id)}
+            >
+              Load video {video.id}
+            </button>
+          {/if}
+        </div>
+      {/each}
     </div>
   </div>
 </AqeTooltipProvider>
