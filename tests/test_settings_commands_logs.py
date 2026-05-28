@@ -93,4 +93,8 @@ def test_async_show_log_file_reports_reveal_failure(tmp_path: Path) -> None:
         "id": "job-log",
         "ok": False,
         "error": "missing log",
+        "user_error": {
+            "code": "AQE-FRONTEND-002",
+            "message": "missing log",
+        },
     }
