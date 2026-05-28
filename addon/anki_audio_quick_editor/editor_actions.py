@@ -5,6 +5,7 @@ from __future__ import annotations
 import json
 from dataclasses import dataclass
 from typing import Any
+from urllib.parse import urlparse
 
 from .audio_operation_params import (
     AudioOperationParameters,
@@ -47,25 +48,9 @@ CMD_RECORD_VOICE = "aqe:record-voice"
 CMD_STOP_RECORDING = "aqe:stop-recording"
 CMD_PLAY_RECORDING = "aqe:play-recording"
 
-ALLOWED_EXTERNAL_URLS = frozenset(
-    {
-        "https://discord.gg/qkg52pp2",
-        "https://ganqqwerty.github.io/anki-audio-tools/",
-        "https://ganqqwerty.github.io/anki-audio-tools/#video-convert",
-        "https://ganqqwerty.github.io/anki-audio-tools/#video-denoise",
-        "https://ganqqwerty.github.io/anki-audio-tools/#video-graph",
-        "https://ganqqwerty.github.io/anki-audio-tools/#video-pitch-hum",
-        "https://ganqqwerty.github.io/anki-audio-tools/#video-play",
-        "https://ganqqwerty.github.io/anki-audio-tools/#video-share",
-        "https://ganqqwerty.github.io/anki-audio-tools/#video-shorten-pauses",
-        "https://ganqqwerty.github.io/anki-audio-tools/#video-speed",
-        "https://ganqqwerty.github.io/anki-audio-tools/#video-volume",
-        "https://patreon.com/YuriAnker",
-        "https://t.me/immersionjp",
-        "https://tally.so/r/2EDlxA",
-        "https://tally.so/r/zx1Gr8",
-    }
-)
+TRUSTED_EXTERNAL_URL_HOST = "ganqqwerty.github.io"
+TRUSTED_EXTERNAL_URL_PATH = "/anki-audio-tools"
+TRUSTED_EXTERNAL_URL_PATH_PREFIX = f"{TRUSTED_EXTERNAL_URL_PATH}/"
 
 BRIDGE_COMMANDS = (
     "aqe:scan",
@@ -209,7 +194,18 @@ def _share_target_or_none(value: Any) -> str | None:
 
 
 def _external_url_or_none(value: Any) -> str | None:
-    return value if isinstance(value, str) and value in ALLOWED_EXTERNAL_URLS else None
+    if not isinstance(value, str):
+        return None
+    parsed = urlparse(value)
+    if parsed.scheme != "https":
+        return None
+    if parsed.hostname != TRUSTED_EXTERNAL_URL_HOST:
+        return None
+    if parsed.username is not None or parsed.password is not None:
+        return None
+    if parsed.path != TRUSTED_EXTERNAL_URL_PATH and not parsed.path.startswith(TRUSTED_EXTERNAL_URL_PATH_PREFIX):
+        return None
+    return value
 
 
 def decode_editor_command_payload(raw_command: str | EditorCommandPayload) -> EditorCommandPayload:
