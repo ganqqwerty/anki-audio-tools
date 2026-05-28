@@ -26,6 +26,7 @@
   } from "$lib/types.js";
   import type { BatchInitialState, BatchOperationOption } from "$lib/types.js";
   import { activeBatchPauseAlgorithm, type BatchFormState } from "./batch-state.js";
+  import BatchFieldSelectors from "./BatchFieldSelectors.svelte";
 
   interface Props {
     state: BatchInitialState;
@@ -55,38 +56,7 @@
 </script>
 
 <div class="batch-grid">
-  <label>
-    <span>{t("batch.operation")}</span>
-    <select bind:value={form.operation} data-testid="batch-operation" disabled={disabled}>
-      {#each state.operations as operation}
-        <option value={operation.operation}>{operation.label}</option>
-      {/each}
-    </select>
-  </label>
-
-  <label>
-    <span>{t("batch.source_field")}</span>
-    <select bind:value={form.sourceField} disabled={disabled}>
-      {#each state.field_groups as group}
-        {#each group.fields as field}
-          <option value={field}>{group.notetype_name} / {field}</option>
-        {/each}
-      {/each}
-    </select>
-  </label>
-
-  {#if selected?.requires_target_field}
-    <label>
-      <span>{t("batch.target_field")}</span>
-      <select bind:value={form.targetField} disabled={disabled}>
-        {#each state.field_groups as group}
-          {#each group.fields as field}
-            <option value={field}>{group.notetype_name} / {field}</option>
-          {/each}
-        {/each}
-      </select>
-    </label>
-  {/if}
+  <BatchFieldSelectors {state} bind:form {selected} {disabled} />
 
   {#if selected?.parameter_kind === BatchParameterKind.Speed}
     <label>
