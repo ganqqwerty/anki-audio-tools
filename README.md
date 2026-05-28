@@ -2,6 +2,20 @@
 
 Anki desktop add-on for quickly editing audio references from the note editor. It is optimized for short sentence-mining clips: trim edges, adjust speed, shorten long pauses, and automatically apply each edit as a new MP3 while leaving original media untouched.
 
+## Preview
+
+<p>
+  <img src="docs/assets/editor-prosody-playback.gif" alt="Inline prosody graph playback inside the Anki editor" width="49%">
+  <img src="docs/assets/editor-processing-chain.gif" alt="Applying audio processing actions from the Anki editor toolbar" width="49%">
+</p>
+<p>
+  <img src="docs/assets/browser-card-selection.gif" alt="Selecting cards in the Anki browser before batch audio work" width="49%">
+  <img src="docs/assets/editor-pitch-cursor.gif" alt="Inspecting the pitch cursor in the inline audio graph" width="49%">
+</p>
+<p>
+  <img src="docs/assets/editor-dark-prosody-playback.gif" alt="Inline prosody graph playback in Anki dark mode" width="49%">
+</p>
+
 ## What It Includes
 
 - Inline Anki editor controls for fields containing `[sound:...]` references
