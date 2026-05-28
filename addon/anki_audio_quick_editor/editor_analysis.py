@@ -11,6 +11,12 @@ from .audio_state import AudioProcessingConfig
 from .contracts_generated import ProsodyPayload
 from .diagnostics_runtime import capture_exception, new_operation_id, record_breadcrumb
 from .editor_session import EditorSession
+from .error_codes import (
+    AQE_GRAPH_ANALYSIS_FAILED,
+    AQE_MEDIA_CURRENT_FIELD_AUDIO_MISSING,
+    AQE_MEDIA_REFERENCED_AUDIO_MISSING,
+    coded_error,
+)
 from .errors import AudioQuickEditorError
 from .i18n import t
 from .media_paths import existing_media_file_path
@@ -46,12 +52,16 @@ def analyze_current_async(
     except AudioQuickEditorError as exc:
         message = str(exc)
         deps.fail_field_analysis_without_generation(editor, field_index, message)
-        deps.eval_status(editor, message, kind="error")
+        deps.eval_status(editor, _coded_analysis_error(message, deps), kind="error")
         return
     media_path = existing_media_file_path(Path(editor.mw.col.media.dir()), filename)
     if media_path is None:
         deps.fail_field_analysis_without_generation(editor, field_index, deps.referenced_audio_missing)
-        deps.eval_status(editor, deps.referenced_audio_missing, kind="error")
+        deps.eval_status(
+            editor,
+            coded_error(AQE_MEDIA_REFERENCED_AUDIO_MISSING, deps.referenced_audio_missing),
+            kind="error",
+        )
         return
     deps.start_field_analysis_async(editor, field_index, filename, media_path, graph_settings)
 
@@ -188,10 +198,11 @@ def finish_ignored_field_analysis(editor: Any, field_index: int, deps: Any) -> N
 def fail_field_analysis_without_generation(editor: Any, field_index: int, message: str, deps: Any) -> None:
     """Report analysis failure before a generation is registered."""
     deps.set_busy_for_field(editor, field_index, False)
+    display_message = message or t("editor.graph.failed")
     deps.eval_visualizer_status_for_field(
         editor,
         field_index,
-        message or t("editor.graph.failed"),
+        _coded_analysis_error(display_message, deps),
         kind="error",
     )
 
@@ -232,12 +243,21 @@ def analysis_failed(editor: Any, generation: int, field_index: int, message: str
         return
     end_field_analysis(session, field_index)
     deps.set_busy_for_field(editor, field_index, False)
-    editor.web.eval(
-        "window.__aqeSetVisualizerStatus && window.__aqeSetVisualizerStatus("
-        f"{json.dumps(int(field_index))}, "
-        f"{json.dumps(message or t('editor.graph.failed'))}, "
-        f"{json.dumps('error')})"
+    display_message = message or t("editor.graph.failed")
+    deps.eval_visualizer_status_for_field(
+        editor,
+        field_index,
+        _coded_analysis_error(display_message, deps),
+        kind="error",
     )
+
+
+def _coded_analysis_error(message: str, deps: Any) -> dict[str, str]:
+    if message == deps.current_field_audio_missing:
+        return coded_error(AQE_MEDIA_CURRENT_FIELD_AUDIO_MISSING, message)
+    if message == deps.referenced_audio_missing:
+        return coded_error(AQE_MEDIA_REFERENCED_AUDIO_MISSING, message)
+    return coded_error(AQE_GRAPH_ANALYSIS_FAILED, message)
 
 
 def is_current_field_analysis(

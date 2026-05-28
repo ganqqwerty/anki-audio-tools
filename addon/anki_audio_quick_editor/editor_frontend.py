@@ -5,20 +5,22 @@ from __future__ import annotations
 import json
 from typing import Any
 
+UserStatusPayload = str | dict[str, str]
+
 
 def dispose_editor_frontend_controls(editor: Any) -> None:
     """Dispose the mounted editor frontend controls."""
     editor.web.eval("window.__aqeEditorDispose && window.__aqeEditorDispose()")
 
 
-def eval_status(editor: Any, message: str, kind: str = "info") -> None:
+def eval_status(editor: Any, message: UserStatusPayload, kind: str = "info") -> None:
     """Update the global editor status message."""
     payload = json.dumps(message)
     kind_payload = json.dumps(kind)
     editor.web.eval(f"window.__aqeSetStatus && window.__aqeSetStatus({payload}, {kind_payload})")
 
 
-def eval_visualizer_status(editor: Any, message: str, kind: str = "info") -> None:
+def eval_visualizer_status(editor: Any, message: UserStatusPayload, kind: str = "info") -> None:
     """Update visualizer status for the active editor field."""
     field_index = getattr(editor, "currentField", None)
     if field_index is None:
@@ -31,7 +33,7 @@ def eval_visualizer_status(editor: Any, message: str, kind: str = "info") -> Non
 def eval_visualizer_status_for_field(
     editor: Any,
     field_index: int,
-    message: str,
+    message: UserStatusPayload,
     kind: str = "info",
 ) -> None:
     """Update visualizer status for a specific editor field."""

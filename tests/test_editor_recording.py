@@ -16,10 +16,18 @@ from anki_audio_quick_editor.editor_session import (
     LearnerRecordingState,
     clear_learner_recording_state,
 )
+from anki_audio_quick_editor.error_codes import (
+    AQE_MEDIA_REFERENCED_AUDIO_MISSING,
+    AQE_RECORDING_FAILED,
+)
 from anki_audio_quick_editor.errors import AudioProcessingError
 from anki_audio_quick_editor.prosody_settings import config_with_graph_settings
 from anki_audio_quick_editor.prosody_types import ProsodyPoint, build_prosody_track
 from tests.editor_recording_helpers import _deps, _editor_with_target, _FakeRecorder
+
+
+def _error_status(code: str, message: str) -> tuple[dict[str, str], str]:
+    return ({"code": code, "message": message}, "error")
 
 
 def test_record_and_explicit_stop_persists_media_and_sets_visualizer(
@@ -100,7 +108,7 @@ def test_record_learner_voice_start_failure_sets_failed_state(tmp_path: Path) ->
 
     assert session.learner_recording.status == "failed"
     assert session.learner_recording.failure_message == "microphone unavailable"
-    assert deps.statuses[-1] == ("microphone unavailable", "error")
+    assert deps.statuses[-1] == _error_status(AQE_RECORDING_FAILED, "microphone unavailable")
 
 
 def test_stop_learner_recording_failure_sets_failed_state(tmp_path: Path) -> None:
@@ -116,7 +124,7 @@ def test_stop_learner_recording_failure_sets_failed_state(tmp_path: Path) -> Non
 
     assert session.learner_recording.status == "failed"
     assert session.learner_recording.failure_message == "recorder failed"
-    assert deps.statuses[-1] == ("recorder failed", "error")
+    assert deps.statuses[-1] == _error_status(AQE_RECORDING_FAILED, "recorder failed")
 
 
 def test_stop_learner_recording_empty_file_failure_sets_failed_state(
@@ -203,9 +211,9 @@ def test_play_learner_recording_reports_missing_before_ready(tmp_path: Path) -> 
 
     play_learner_recording(editor, deps)
 
-    assert deps.statuses[-1] == (
+    assert deps.statuses[-1] == _error_status(
+        AQE_MEDIA_REFERENCED_AUDIO_MISSING,
         "The referenced audio file was not found in Anki's media folder.",
-        "error",
     )
     assert deps.stopped == []
     av_player.play_tags.assert_not_called()
@@ -251,9 +259,9 @@ def test_play_learner_recording_reports_missing_media_file(tmp_path: Path) -> No
 
     play_learner_recording(editor, deps)
 
-    assert deps.statuses[-1] == (
+    assert deps.statuses[-1] == _error_status(
+        AQE_MEDIA_REFERENCED_AUDIO_MISSING,
         "The referenced audio file was not found in Anki's media folder.",
-        "error",
     )
     assert deps.stopped == []
     av_player.play_tags.assert_not_called()

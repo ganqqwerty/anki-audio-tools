@@ -1,5 +1,6 @@
 import type { ProsodyPayload } from "../lib/generated/contracts.js";
 import { t } from "../lib/i18n.js";
+import { isUserFacingError, type UserFacingError } from "../lib/user-facing-error.js";
 import {
   clearPendingNoteScopedBridgeRequests,
   focusAndSendCommandPayload,
@@ -41,6 +42,8 @@ import {
   clearStatus,
 } from "./control-actions.js";
 import { graphSettingsForField } from "./graph-split-state.js";
+
+type EditorStatusMessage = string | UserFacingError;
 
 export function requestGraph(
   ord: number,
@@ -115,10 +118,14 @@ export function requestPendingGraphRedraw(): boolean {
   return true;
 }
 
-export function setVisualizerStatus(ord: number, message: string, kind = "info"): void {
+function visualizerStatusText(message: EditorStatusMessage): string {
+  return isUserFacingError(message) ? message.message : message;
+}
+
+export function setVisualizerStatus(ord: number, message: EditorStatusMessage, kind = "info"): void {
   const visualizer = visualizerForOrd(ord);
   if (!visualizer) return;
-  renderVisualizerStatus(visualizer, message, kind);
+  renderVisualizerStatus(visualizer, visualizerStatusText(message), kind);
   setStatusForOrd(ord, message, kind);
 }
 
@@ -145,7 +152,7 @@ export function setVisualizer(ord: number, rawTrack: ProsodyPayload, cursorMs: n
   logger.info("graph rendered", graphLogContext(ord, track));
 }
 
-export function setVisualizerStatusFromPython(ord: number, message: string, kind = "info"): void {
+export function setVisualizerStatusFromPython(ord: number, message: EditorStatusMessage, kind = "info"): void {
   if (kind !== "processing" && window.__aqePendingGraphRedrawField === ord) {
     window.__aqePendingGraphRedrawField = null;
     window.__aqePendingGraphRedrawSource = null;

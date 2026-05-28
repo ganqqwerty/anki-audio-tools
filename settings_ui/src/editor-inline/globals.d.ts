@@ -1,4 +1,5 @@
 import type { FrontendLogPayload, ProsodyPayload } from "../lib/generated/contracts.js";
+import type { UserFacingError } from "../lib/user-facing-error.js";
 import type {
   CursorIntent,
   CursorPositionForTest,
@@ -14,6 +15,8 @@ import type {
 } from "./types.js";
 import type { LearnerRecordingStatePayload } from "./recording-state.js";
 import type { SplitDefaultSaveRequest } from "./split-default-save-types.js";
+
+type EditorStatusMessage = string | UserFacingError;
 
 declare global {
   var pycmd: ((cmd: string) => void) | undefined;
@@ -51,9 +54,9 @@ declare global {
     __aqeSetLearnerRecordingState?: ((payload: LearnerRecordingStatePayload) => void) | undefined;
     __aqeSetLearnerVisualizer?: ((ord: number, track: ProsodyPayload) => void) | undefined;
     __aqeSetPlaybackState?: ((ord: number, state: PlaybackState, cursorMs: number) => void) | undefined;
-    __aqeSetStatus?: ((message: string, kind?: string) => void) | undefined;
+    __aqeSetStatus?: ((message: EditorStatusMessage, kind?: string) => void) | undefined;
     __aqeSetVisualizer?: ((ord: number, track: ProsodyPayload, cursorMs: number) => void) | undefined;
-    __aqeSetVisualizerStatus?: ((ord: number, message: string, kind?: string) => void) | undefined;
+    __aqeSetVisualizerStatus?: ((ord: number, message: EditorStatusMessage, kind?: string) => void) | undefined;
     __aqeStopEditorPlayback?: ((ord: number) => boolean) | undefined;
   }
 }

@@ -35,6 +35,7 @@ import { processingMessage } from "../src/editor-inline/commands.js";
 import { PLOT, xForMs } from "../src/editor-inline/plot.js";
 import { commandSlugsForTest } from "../src/editor-inline/test-contract.js";
 import { disposeEditorRuntime } from "../src/editor-inline/runtime.js";
+import { PRODUCT_LINKS } from "../src/lib/product-links.js";
 import { bridgeCommands, mountTrack, track } from "./editor-inline.actions.helpers.js";
 
 describe("editor inline action workflows", () => {
@@ -268,6 +269,14 @@ describe("editor inline action workflows", () => {
     expect(visualizer.dataset.hasTrack).toBe("false");
     expect(window.__aqeGraphStateForTest?.(0)?.spinnerVisible).toBe(true);
 
+    setVisualizerStatusFromPython(
+      0,
+      { code: "AQE-GRAPH-001", message: "Audio visualization failed." },
+      "error",
+    );
+    const graphStatus = visualizer.closest<HTMLElement>(".aqe-controls")?.querySelector<HTMLElement>(".aqe-status");
+    expect(graphStatus).toHaveTextContent("AQE-GRAPH-001: Audio visualization failed. Help");
+
     window.__aqeActiveField = 0;
     expect(window.__aqeSetCursorForTest?.(0, 450, false)).toBe(true);
     expect(getCursorMs()).toBe(450);
@@ -339,6 +348,23 @@ describe("editor inline action workflows", () => {
     expect(currentProgressMs(visualizer)).toBeGreaterThanOrEqual(900);
     frames.shift()?.(performance.now() + 50);
     expect(Number(visualizer.dataset.progressMs)).toBeGreaterThanOrEqual(900);
+  });
+
+  it("renders coded editor status errors with visible help links", async () => {
+    const visualizer = await mountTrack(0);
+    window.__aqeActiveField = 0;
+
+    window.__aqeSetStatus?.(
+      { code: "AQE-MEDIA-001", message: "No [sound:...] reference found." },
+      "error",
+    );
+
+    const controls = visualizer.closest<HTMLElement>(".aqe-controls")!;
+    const status = controls.querySelector<HTMLElement>(".aqe-status")!;
+    const link = status.querySelector<HTMLAnchorElement>("a")!;
+
+    expect(status).toHaveTextContent("AQE-MEDIA-001: No [sound:...] reference found. Help");
+    expect(link.href).toBe(`${PRODUCT_LINKS.githubPages}errors/AQE-MEDIA-001/`);
   });
 
 });

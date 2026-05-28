@@ -9,10 +9,14 @@ import {
 } from "./dom-selectors.js";
 import { continueDefaultGraphQueue } from "./default-graph-queue.js";
 import { syncAllSelectionToolbars } from "./selection-toolbar-state.js";
+import { errorHelpUrl } from "../lib/error-links.js";
 import { setButtonTooltipContent, setTooltipContent } from "../lib/rich-tooltip.js";
+import { isUserFacingError, type UserFacingError } from "../lib/user-facing-error.js";
 import type { EditorCommand } from "./types.js";
 import { defaultGraphQueueDependencies } from "./graph-actions.js";
 import { syncAllRecordingControls, syncRecordingControls } from "./recording-actions.js";
+
+type EditorStatusMessage = string | UserFacingError;
 
 export function anyBusy(): boolean {
   return document.body.dataset.aqeBusy === "true";
@@ -50,16 +54,21 @@ export function setControlsBusy(ord: number, busy: boolean, message = "", comman
   restoreStableStatus(status);
 }
 
-export function setStatus(message: string, kind = "info"): void {
+export function setStatus(message: EditorStatusMessage, kind = "info"): void {
   const ord = Number(window.__aqeActiveField ?? 0);
   setStatusForOrd(ord, message, kind);
 }
 
-export function setStatusForOrd(ord: number, message: string, kind = "info", command = ""): void {
+export function setStatusForOrd(ord: number, message: EditorStatusMessage, kind = "info", command = ""): void {
   const status = statusForOrd(ord);
   if (!status) return;
   if (kind !== "processing") {
-    status.dataset.stableMessage = message || "";
+    status.dataset.stableMessage = statusText(message || "");
+    if (isUserFacingError(message)) {
+      status.dataset.stableUserError = JSON.stringify(message);
+    } else {
+      delete status.dataset.stableUserError;
+    }
     status.dataset.stableKind = kind || "info";
     status.dataset.stableCommand = command || "";
   }
@@ -70,6 +79,7 @@ export function clearStatus(ord: number): void {
   const status = statusForOrd(ord);
   if (!status) return;
   status.dataset.stableMessage = "";
+  delete status.dataset.stableUserError;
   status.dataset.stableKind = "info";
   status.dataset.stableCommand = "";
   renderStatus(status, "", "info", "");
@@ -150,18 +160,50 @@ function statusForOrd(ord: number): HTMLElement | null {
   return controlsForOrd(ord)?.querySelector<HTMLElement>(".aqe-status") ?? null;
 }
 
-function renderStatus(status: HTMLElement, message: string, kind: string, command: string): void {
-  status.textContent = message;
+function statusText(message: EditorStatusMessage): string {
+  return isUserFacingError(message) ? message.message : message;
+}
+
+function renderStatusContent(status: HTMLElement, message: EditorStatusMessage): void {
+  status.textContent = "";
+  if (!isUserFacingError(message)) {
+    status.textContent = message;
+    return;
+  }
+  const code = document.createElement("span");
+  code.className = "aqe-error-code";
+  code.textContent = `${message.code}:`;
+  const link = document.createElement("a");
+  link.className = "aqe-error-help-link";
+  link.href = errorHelpUrl(message.code);
+  link.target = "_blank";
+  link.rel = "noopener noreferrer";
+  link.textContent = "Help";
+  status.append(code, ` ${message.message} `, link);
+}
+
+function renderStatus(status: HTMLElement, message: EditorStatusMessage, kind: string, command: string): void {
+  renderStatusContent(status, message);
   status.dataset.kind = kind;
-  setTooltipContent(status, command);
+  setTooltipContent(status, command || statusText(message));
   const spinner = status.closest<HTMLElement>(".aqe-status-row")?.querySelector<HTMLElement>(".aqe-spinner");
   if (spinner) spinner.hidden = kind !== "processing";
 }
 
 function restoreStableStatus(status: HTMLElement): void {
+  let message: EditorStatusMessage = status.dataset.stableMessage || "";
+  const rawUserError = status.dataset.stableUserError;
+  if (rawUserError) {
+    try {
+      const parsed = JSON.parse(rawUserError) as unknown;
+      if (isUserFacingError(parsed)) message = parsed;
+    } catch {
+      delete status.dataset.stableUserError;
+    }
+  }
   renderStatus(
     status,
-    status.dataset.stableMessage || "",
+    message,
     status.dataset.stableKind || "info",
     status.dataset.stableCommand || "",
   );
