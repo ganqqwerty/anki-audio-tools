@@ -8,6 +8,22 @@ import { DOCUMENTATION_SECTION_LINKS, PRODUCT_LINKS } from "../src/lib/product-l
 
 const FIRST_PARTY_ORIGIN = new URL(PRODUCT_LINKS.githubPages).origin;
 const DOCS_ROOT = join(cwd(), "../docs");
+const ERROR_CODES = [
+  "AQE-MEDIA-001",
+  "AQE-MEDIA-002",
+  "AQE-RUNTIME-001",
+  "AQE-RUNTIME-002",
+  "AQE-RUNTIME-003",
+  "AQE-AUDIO-001",
+  "AQE-PLAYBACK-001",
+  "AQE-GRAPH-001",
+  "AQE-RECORDING-001",
+  "AQE-BATCH-001",
+  "AQE-SETTINGS-001",
+  "AQE-FRONTEND-001",
+  "AQE-FRONTEND-002",
+  "AQE-FRONTEND-999",
+] as const;
 const GO_VIDEO_PATHS = new Set([
   "/anki-audio-tools/go/video-play/",
   "/anki-audio-tools/go/video-graph/",
@@ -63,5 +79,17 @@ describe("product links", () => {
 
     expect(url.origin).toBe(FIRST_PARTY_ORIGIN);
     expect(url.pathname).toBe("/anki-audio-tools/errors/AQE-RUNTIME-001/");
+  });
+
+  it("backs every initial error help link with a docs page", async () => {
+    const { errorHelpUrl } = await import("../src/lib/error-links.js");
+
+    for (const code of ERROR_CODES) {
+      const url = new URL(errorHelpUrl(code));
+      const pagePath = join(DOCS_ROOT, "errors", code, "index.html");
+
+      expect(url.pathname).toBe(`/anki-audio-tools/errors/${code}/`);
+      expect(existsSync(pagePath), `${code} docs page exists`).toBe(true);
+    }
   });
 });
