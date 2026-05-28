@@ -56,4 +56,12 @@ describe("product links", () => {
       expect(docsGoPageExists(url)).toBe(true);
     }
   });
+
+  it("builds first-party error help links", async () => {
+    const { errorHelpUrl } = await import("../src/lib/error-links.js");
+    const url = new URL(errorHelpUrl("AQE-RUNTIME-001"));
+
+    expect(url.origin).toBe(FIRST_PARTY_ORIGIN);
+    expect(url.pathname).toBe("/anki-audio-tools/errors/AQE-RUNTIME-001/");
+  });
 });
