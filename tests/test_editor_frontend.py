@@ -3,8 +3,14 @@ from __future__ import annotations
 from types import SimpleNamespace
 from unittest.mock import MagicMock
 
-from anki_audio_quick_editor.editor_frontend import eval_status, eval_visualizer_status_for_field
-from anki_audio_quick_editor.error_codes import AQE_MEDIA_CURRENT_FIELD_AUDIO_MISSING, coded_error
+from anki_audio_quick_editor.editor_frontend import (
+    eval_status,
+    eval_visualizer_status_for_field,
+)
+from anki_audio_quick_editor.error_codes import (
+    AQE_MEDIA_CURRENT_FIELD_AUDIO_MISSING,
+    coded_error,
+)
 
 
 def test_eval_status_accepts_user_facing_error_payload() -> None:
