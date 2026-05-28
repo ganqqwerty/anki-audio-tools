@@ -180,6 +180,7 @@ _eval_status = editor_callbacks._eval_status
 _eval_visualizer_status = editor_callbacks._eval_visualizer_status
 _eval_visualizer_status_for_field = editor_callbacks._eval_visualizer_status_for_field
 _eval_playback_state = editor_callbacks._eval_playback_state
+_pending_post_edit_playback_payload = editor_callbacks._pending_post_edit_playback_payload
 _request_graph_redraw = editor_callbacks._request_graph_redraw
 _schedule_graph_redraw_attempt = editor_callbacks._schedule_graph_redraw_attempt
 _graph_redraw_expression = editor_callbacks._graph_redraw_expression
@@ -225,6 +226,7 @@ def _on_editor_will_load_note(js: str, note: Any, editor: Any) -> str:
         list(audio_field_sources),
         audio_field_sources=audio_field_sources,
         initial_status_by_field=_initial_status_by_field(_SESSIONS.get(editor)),
+        pending_post_edit_playback=_pending_post_edit_playback_payload(_SESSIONS.get(editor)),
         repeat_playback_by_default=bool(config.get("repeat_playback_by_default", True)),
         show_graph_by_default=bool(config.get("show_graph_by_default", True)),
         visible_editor_buttons=[str(command) for command in visible_editor_buttons],

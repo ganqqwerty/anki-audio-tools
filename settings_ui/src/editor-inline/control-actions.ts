@@ -8,6 +8,7 @@ import {
   playButton,
 } from "./dom-selectors.js";
 import { continueDefaultGraphQueue } from "./default-graph-queue.js";
+import { notifyMountedPostEditPlaybackReady } from "./post-edit-playback.js";
 import { syncAllSelectionToolbars } from "./selection-toolbar-state.js";
 import { errorHelpUrl } from "../lib/error-links.js";
 import { setButtonTooltipContent, setTooltipContent } from "../lib/rich-tooltip.js";
@@ -40,6 +41,7 @@ export function setControlsBusy(ord: number, busy: boolean, message = "", comman
   syncAllSelectionToolbars();
   if (!busy) {
     queueMicrotask(() => continueDefaultGraphQueue(defaultGraphQueueDependencies()));
+    queueMicrotask(notifyMountedPostEditPlaybackReady);
   }
   const status = statusForOrd(ord);
   if (!status) return;

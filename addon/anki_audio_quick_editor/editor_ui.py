@@ -21,6 +21,7 @@ def injection_script(
     repeat_playback_by_default: bool = True,
     show_graph_by_default: bool = True,
     split_button_defaults: dict[str, object] | None = None,
+    pending_post_edit_playback: dict[str, object] | None = None,
     visible_editor_buttons: list[str] | None = None,
     editor_button_modes: dict[str, str] | None = None,
 ) -> str:
@@ -30,6 +31,7 @@ def injection_script(
         "audioFieldIndices": audio_field_indices or [],
         "audioFieldSources": audio_field_sources or {},
         "initialStatusByField": initial_status_by_field or {},
+        "pendingPostEditPlayback": pending_post_edit_playback,
         "repeatPlaybackByDefault": bool(repeat_playback_by_default),
         "showGraphByDefault": bool(show_graph_by_default),
         "visibleEditorButtons": visible_editor_buttons,

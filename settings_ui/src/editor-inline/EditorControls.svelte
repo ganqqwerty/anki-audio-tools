@@ -24,6 +24,7 @@
   import { syncRecordingControls } from "./recording-actions.js";
   import { visualizerForOrd } from "./dom-selectors.js";
   import { handleVisualizerKeyDown } from "./region-delete.js";
+  import { notifyPostEditPlaybackReady } from "./post-edit-playback.js";
   import { PLOT } from "./plot.js";
   import type { ButtonSpec, FieldTarget } from "./types.js";
 
@@ -138,6 +139,7 @@
     visualizer.dataset.sourceFilename = target.sourceFilename || "";
     configureAudioClock(visualizer, target.sourceFilename || "");
     syncRecordingControls(target.ord);
+    notifyPostEditPlaybackReady(target.ord, target.sourceFilename || "");
   });
 </script>
 

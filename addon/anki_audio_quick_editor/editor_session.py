@@ -139,6 +139,10 @@ class EditorSession:
     preserve_status_during_playback: bool = False
     playback_generation: int = 0
     post_edit_playback_generation: int = 0
+    pending_post_edit_playback_field_index: int | None = None
+    pending_post_edit_playback_generation: int | None = None
+    pending_post_edit_playback_requires_graph_redraw: bool = False
+    pending_post_edit_playback_source_filename: str | None = None
     temp_playback_path: Path | None = None
     next_status_summary: str = ""
     status_summary: str = ""
@@ -175,6 +179,10 @@ def reset_for_note_load(session: EditorSession, note_id: int | None) -> bool:
     session.playback_preparing = False
     session.preserve_status_during_playback = False
     session.post_edit_playback_generation += 1
+    session.pending_post_edit_playback_field_index = None
+    session.pending_post_edit_playback_generation = None
+    session.pending_post_edit_playback_requires_graph_redraw = False
+    session.pending_post_edit_playback_source_filename = None
     session.next_status_summary = ""
     session.status_summary = ""
     session.pending_status = None

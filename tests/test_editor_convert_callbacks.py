@@ -113,7 +113,7 @@ def test_convert_replaces_current_media_using_default_output_format(
     editor.loadNote.assert_called_once_with(focusTo=0)
 
 
-def test_convert_schedules_post_edit_playback(tmp_path: Path, monkeypatch) -> None:
+def test_convert_records_pending_post_edit_playback(tmp_path: Path, monkeypatch) -> None:
     editor, _source = _setup_editor(tmp_path, config={"output_format": "flac"})
 
     def fake_render_converted_audio(
@@ -126,7 +126,6 @@ def test_convert_schedules_post_edit_playback(tmp_path: Path, monkeypatch) -> No
         output_path.write_bytes(b"converted")
 
     _patch_common(monkeypatch)
-    monkeypatch.setattr("aqt.qt.QTimer.singleShot", lambda _delay, callback: callback())
     monkeypatch.setattr(
         "anki_audio_quick_editor.editor_dependencies.render_converted_audio",
         fake_render_converted_audio,
@@ -135,8 +134,11 @@ def test_convert_schedules_post_edit_playback(tmp_path: Path, monkeypatch) -> No
     _handle_bridge_command(editor, "aqe:convert")
 
     saved_name = editor.mw.col.media.write_data.call_args.args[0]
+    session = _SESSIONS[editor]
     assert editor.note.fields == [f"[sound:{saved_name}]"]
-    assert "__aqePlayAfterEdit(0)" in editor.web.evalWithCallback.call_args.args[0]
+    assert session.pending_post_edit_playback_field_index == 0
+    assert session.pending_post_edit_playback_generation == session.post_edit_playback_generation
+    assert session.pending_post_edit_playback_source_filename == saved_name
 
 
 def test_convert_uses_payload_target_format_override(tmp_path: Path, monkeypatch) -> None:

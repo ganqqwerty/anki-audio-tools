@@ -244,6 +244,11 @@ def replace_current_field_after_render(
     deps.dispose_editor_frontend_controls(editor)
     editor.note.fields[field_index] = replace_sound_reference(field_html, selection.selected, saved_name)
     should_redraw_graph = _replace_standard_render_session_state(session, field_index, saved_name, updated_state)
+    deps.request_playback_after_edit(
+        editor,
+        field_index,
+        require_graph_redraw=should_redraw_graph,
+    )
     editor.loadNote(focusTo=field_index)
     if session:
         session.pending_status = None
@@ -254,7 +259,6 @@ def replace_current_field_after_render(
         deps.request_graph_redraw(editor, saved_name)
     else:
         deps.set_busy(editor, False)
-    deps.request_playback_after_edit(editor, field_index)
 
 
 def _accept_guarded_render_replacement(

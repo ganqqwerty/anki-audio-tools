@@ -93,7 +93,9 @@ def test_standard_denoise_replaces_current_media_and_resets_state(tmp_path: Path
         "__aqeSetHistoryAvailability(0, true, false)" in call.args[0]
         for call in editor.web.evalWithCallback.call_args_list
     )
-    assert "__aqePlayAfterEdit(0)" in editor.web.evalWithCallback.call_args.args[0]
+    assert session.pending_post_edit_playback_field_index == 0
+    assert session.pending_post_edit_playback_generation == session.post_edit_playback_generation
+    assert session.pending_post_edit_playback_source_filename == saved_name
 
 def test_rnnoise_replaces_current_media_and_resets_state(tmp_path: Path, monkeypatch) -> None:
     class ImmediateThread:

@@ -22,6 +22,7 @@ from .editor_actions import (
     CMD_OPEN_URL,
     CMD_PITCH_HUM,
     CMD_PLAY_RECORDING,
+    CMD_POST_EDIT_PLAYBACK_READY,
     CMD_RECORD_VOICE,
     CMD_REDO,
     CMD_RNNOISE,
@@ -172,6 +173,7 @@ def handle_payload_command(editor: Any, payload: EditorCommandPayload, deps: Any
         CMD_CONVERT: lambda: deps.convert_async(editor, payload),
         CMD_DPDFNET: lambda: deps.dpdfnet_async(editor, payload),
         CMD_PITCH_HUM: lambda: deps.pitch_hum_async(editor, payload),
+        CMD_POST_EDIT_PLAYBACK_READY: lambda: deps.handle_post_edit_playback_ready(editor, payload),
         CMD_SHARE: lambda: deps.share_current_audio_file(editor, payload),
         CMD_RECORD_VOICE: lambda: deps.record_learner_voice(editor, graph_settings=payload.graph_settings),
     }

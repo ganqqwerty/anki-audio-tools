@@ -47,6 +47,7 @@ CMD_OPEN_URL = "aqe:open-url"
 CMD_RECORD_VOICE = "aqe:record-voice"
 CMD_STOP_RECORDING = "aqe:stop-recording"
 CMD_PLAY_RECORDING = "aqe:play-recording"
+CMD_POST_EDIT_PLAYBACK_READY = "aqe:post-edit-playback-ready"
 
 TRUSTED_EXTERNAL_URL_HOST = "ganqqwerty.github.io"
 TRUSTED_EXTERNAL_URL_PATH = "/anki-audio-tools"
@@ -63,6 +64,7 @@ BRIDGE_COMMANDS = (
     "aqe:play",
     "aqe:play-ended",
     "aqe:frontend-log",
+    CMD_POST_EDIT_PLAYBACK_READY,
     "aqe:show-file",
     CMD_SHARE,
     CMD_OPEN_URL,
@@ -131,7 +133,9 @@ class EditorCommandPayload:
     field_ord: int | None = None
     overrides: EditorCommandOverrides = EditorCommandOverrides()
     graph_settings: dict[str, object] | None = None
+    generation: int | None = None
     share_target: str | None = None
+    source_filename: str | None = None
     url: str | None = None
 
 
@@ -183,6 +187,10 @@ def _graph_settings_from_raw(raw: Any) -> dict[str, object] | None:
     return dict(raw)
 
 
+def _str_or_none(value: Any) -> str | None:
+    return value if isinstance(value, str) else None
+
+
 def _pitch_hum_mode_or_none(value: Any) -> str | None:
     text = str(value)
     return text if text in {"direct", "pitch_tier"} else None
@@ -228,7 +236,9 @@ def decode_editor_command_payload(raw_command: str | EditorCommandPayload) -> Ed
         field_ord=_int_or_none(raw_payload.get("fieldOrd")),
         overrides=_overrides_from_raw(raw_payload.get("overrides")),
         graph_settings=_graph_settings_from_raw(raw_payload.get("graphSettings")),
+        generation=_int_or_none(raw_payload.get("generation")),
         share_target=_share_target_or_none(raw_payload.get("shareTarget")),
+        source_filename=_str_or_none(raw_payload.get("sourceFilename")),
         url=_external_url_or_none(raw_payload.get("url")),
     )
 

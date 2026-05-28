@@ -48,6 +48,10 @@ def test_note_load_reset_clears_note_specific_session_state(monkeypatch) -> None
         playback_paused=True,
         playback_preparing=True,
         playback_generation=4,
+        pending_post_edit_playback_field_index=2,
+        pending_post_edit_playback_generation=3,
+        pending_post_edit_playback_requires_graph_redraw=True,
+        pending_post_edit_playback_source_filename="generated.mp3",
         temp_playback_path=source_path,
     )
     session.undo_history.push(AudioEditState("source.mp3"), "generated.mp3")
@@ -78,6 +82,10 @@ def test_note_load_reset_clears_note_specific_session_state(monkeypatch) -> None
     assert session.playback_paused is False
     assert session.playback_preparing is False
     assert session.playback_generation == 5
+    assert session.pending_post_edit_playback_field_index is None
+    assert session.pending_post_edit_playback_generation is None
+    assert session.pending_post_edit_playback_requires_graph_redraw is False
+    assert session.pending_post_edit_playback_source_filename is None
     assert session.temp_playback_path is None
     assert session.undo_history.pop() is None
     evals = [call.args[0] for call in editor.web.eval.call_args_list]
