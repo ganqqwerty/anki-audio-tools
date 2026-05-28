@@ -15,10 +15,10 @@ import {
 } from "../src/lib/types.js";
 
 function setInitialState(): void {
-  window.onBatchProgress = undefined;
-  window.onBatchLog = undefined;
-  window.onBatchFinish = undefined;
-  window.onBatchError = undefined;
+  delete window.onBatchProgress;
+  delete window.onBatchLog;
+  delete window.onBatchFinish;
+  delete window.onBatchError;
   window.__AQE_BATCH_INITIAL_STATE__ = {
     note_count: 2,
     operations: [
