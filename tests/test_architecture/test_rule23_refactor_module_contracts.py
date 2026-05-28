@@ -29,7 +29,13 @@ EDITOR_SPLIT_MODULES = {
     "editor_callbacks",
     "editor_dependencies",
     "editor_frontend",
+    "editor_frontend.bridge",
+    "editor_frontend.busy",
     "editor_frontend_callbacks",
+    "editor_frontend.playback",
+    "editor_frontend.refresh",
+    "editor_frontend.status",
+    "editor_frontend.types",
     "editor_history",
     "editor_media",
     "editor_playback",
@@ -123,5 +129,10 @@ def test_import_linter_forbids_upper_layer_modules_from_core() -> None:
         for name, module_contract in MODULE_CONTRACTS.items()
         if module_contract.layer != Layer.IMPORT_SAFE_CORE and name != "__init__"
     }
+    editor_frontend_children = {
+        module
+        for module in upper_layer_modules
+        if module.startswith(_qualified("editor_frontend") + ".")
+    }
 
-    assert set(contract["forbidden_modules"]) == upper_layer_modules
+    assert set(contract["forbidden_modules"]) == upper_layer_modules - editor_frontend_children
