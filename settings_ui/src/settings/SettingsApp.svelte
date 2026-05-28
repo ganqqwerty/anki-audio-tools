@@ -14,6 +14,8 @@
   } from "$lib/bridge.js";
   import { configureI18n, t } from "$lib/i18n.js";
   import { logger } from "$lib/logger.js";
+  import type { ErrorDisplayValue } from "$lib/user-facing-error.js";
+  import { isUserFacingError, messageFromUnknownError } from "$lib/user-facing-error.js";
   import type {
     AsyncDonePayload,
     AsyncProgressPayload,
@@ -27,7 +29,6 @@
   import {
     cloneConfig,
     initialSettingsState,
-    messageFromError,
     saveConfigPayload,
     type SettingsTab,
   } from "./settings-state.js";
@@ -37,11 +38,11 @@
 
   let config = $state(cloneConfig(initialState.config));
   let activeTab = $state<SettingsTab>("general");
-  let saveError = $state("");
-  let healthMessage = $state(t("settings.health.not_run"));
+  let saveError = $state<ErrorDisplayValue>("");
+  let healthMessage = $state<ErrorDisplayValue>(t("settings.health.not_run"));
   let healthReport = $state<HealthReport | null>(null);
   let healthProgress = $state<AsyncProgressPayload | null>(null);
-  let diagnosticsMessage = $state("");
+  let diagnosticsMessage = $state<ErrorDisplayValue>("");
   let runtimeStatus = $state<RuntimeStatus>(initialState.diagnostics.runtime);
 
   onMount(() => {
@@ -54,7 +55,7 @@
         handleAsyncDone(payload);
       },
       onSaveError: (payload: SaveErrorPayload) => {
-        saveError = payload.error;
+        saveError = isUserFacingError(payload.user_error) ? payload.user_error : payload.error;
       },
     });
     logger.info("audio quick editor settings UI mounted", { version: initialState.version });
@@ -70,8 +71,8 @@
       healthReport = result;
       healthMessage = t("settings.health.completed");
     } catch (error) {
-      const message = messageFromError(error);
-      healthMessage = message;
+      const message = messageFromUnknownError(error);
+      healthMessage = isUserFacingError(error) ? error : message;
       logger.error("health check failed", { message });
     }
   }
@@ -84,8 +85,8 @@
       copySupportReport(result.reportText);
       diagnosticsMessage = t("settings.support.copied");
     } catch (error) {
-      const message = messageFromError(error);
-      diagnosticsMessage = message;
+      const message = messageFromUnknownError(error);
+      diagnosticsMessage = isUserFacingError(error) ? error : message;
       logger.error("support report failed", { message });
     }
   }
@@ -97,8 +98,8 @@
       const result = await startAsyncOp("show_log_file", {});
       diagnosticsMessage = t("settings.log.opened", { path: result.logFilePath });
     } catch (error) {
-      const message = messageFromError(error);
-      diagnosticsMessage = message;
+      const message = messageFromUnknownError(error);
+      diagnosticsMessage = isUserFacingError(error) ? error : message;
       logger.error("show log file failed", { message });
     }
   }
@@ -107,8 +108,8 @@
     try {
       runtimeStatus = await startAsyncOp("runtime_status", {});
     } catch (error) {
-      const message = messageFromError(error);
-      diagnosticsMessage = message;
+      const message = messageFromUnknownError(error);
+      diagnosticsMessage = isUserFacingError(error) ? error : message;
       logger.error("runtime status failed", { message });
     }
   }
@@ -120,8 +121,8 @@
       runtimeStatus = await startAsyncOp("runtime_install", {});
       diagnosticsMessage = runtimeStatus.error || runtimeStatus.message || t("settings.async.done");
     } catch (error) {
-      const message = messageFromError(error);
-      diagnosticsMessage = message;
+      const message = messageFromUnknownError(error);
+      diagnosticsMessage = isUserFacingError(error) ? error : message;
       logger.error("runtime install failed", { message });
     }
   }

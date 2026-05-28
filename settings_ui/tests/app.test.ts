@@ -202,6 +202,23 @@ describe("App", () => {
     expect(config.enabled).toBe(true);
   });
 
+  it("renders coded settings save errors with visible help link", async () => {
+    setInitialState();
+    render(App);
+
+    window.onSaveError?.({
+      error: "Invalid settings payload",
+      user_error: { code: "AQE-SETTINGS-001", message: "Invalid settings payload" },
+    });
+
+    const error = await screen.findByTestId("save-error");
+    expect(error).toHaveTextContent("AQE-SETTINGS-001: Invalid settings payload");
+    expect(within(error).getByRole("link", { name: "Help" })).toHaveAttribute(
+      "href",
+      `${PRODUCT_LINKS.githubPages}errors/AQE-SETTINGS-001/`,
+    );
+  });
+
   it("saves edited volume settings", async () => {
     setInitialState();
 

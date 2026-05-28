@@ -141,6 +141,10 @@ def test_async_command_reports_unknown_operation() -> None:
         "id": "job-unknown",
         "ok": False,
         "error": "Unknown async operation: explode",
+        "user_error": {
+            "code": "AQE-FRONTEND-002",
+            "message": "Unknown async operation: explode",
+        },
     }
 
 
@@ -161,6 +165,10 @@ def test_async_health_check_rejects_non_dict_payload_config() -> None:
         "id": "job-1",
         "ok": False,
         "error": "Invalid async command payload",
+        "user_error": {
+            "code": "AQE-FRONTEND-002",
+            "message": "Invalid async command payload",
+        },
     }
 
 

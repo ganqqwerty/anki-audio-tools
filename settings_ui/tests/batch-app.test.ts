@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from "@testing-library/svelte";
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/svelte";
 import { describe, expect, it, vi } from "vitest";
 
 import BatchApp from "../src/batch/BatchApp.svelte";
@@ -15,6 +15,10 @@ import {
 } from "../src/lib/types.js";
 
 function setInitialState(): void {
+  window.onBatchProgress = undefined;
+  window.onBatchLog = undefined;
+  window.onBatchFinish = undefined;
+  window.onBatchError = undefined;
   window.__AQE_BATCH_INITIAL_STATE__ = {
     note_count: 2,
     operations: [
@@ -217,5 +221,28 @@ describe("BatchApp", () => {
 
     await fireEvent.click(screen.getByRole("button", { name: "Copy Log" }));
     expect(pycmdMock()).toHaveBeenCalledWith('bridge:{"command":"batch.copy_log"}');
+  });
+
+  it("renders coded batch errors with visible help link", async () => {
+    setInitialState();
+    render(BatchApp);
+
+    await waitFor(() => expect(window.onBatchError).toBeTypeOf("function"));
+    window.onBatchError?.({
+      message: "Batch operation failed: Invalid batch request",
+      recoverable: false,
+      user_error: {
+        code: "AQE-BATCH-001",
+        message: "Batch operation failed: Invalid batch request",
+      },
+    });
+
+    const status = (await screen.findByText("AQE-BATCH-001:")).closest("p");
+    expect(status).not.toBeNull();
+    expect(status).toHaveTextContent("AQE-BATCH-001: Batch operation failed: Invalid batch request");
+    expect(within(status as HTMLElement).getByRole("link", { name: "Help" })).toHaveAttribute(
+      "href",
+      `${PRODUCT_LINKS.githubPages}errors/AQE-BATCH-001/`,
+    );
   });
 });

@@ -1,5 +1,7 @@
 <script lang="ts">
   import { t } from "$lib/i18n.js";
+  import ErrorMessage from "$lib/ErrorMessage.svelte";
+  import type { ErrorDisplayValue } from "$lib/user-facing-error.js";
   import type { AsyncProgressPayload, Config, HealthReport, InitialState, RuntimeStatus } from "$lib/types.js";
   import DiagnosticsLinks from "./DiagnosticsLinks.svelte";
 
@@ -19,9 +21,9 @@
     onCopySupportReport,
     onShowLogFile,
   }: {
-    diagnosticsMessage: string;
+    diagnosticsMessage: ErrorDisplayValue;
     config: Config;
-    healthMessage: string;
+    healthMessage: ErrorDisplayValue;
     healthProgress: AsyncProgressPayload | null;
     healthReport: HealthReport | null;
     initialState: InitialState;
@@ -148,8 +150,14 @@
           {healthProgress.progress}% - {healthProgress.message}
         </p>
       {/if}
-      <p class="settings-muted" data-testid="health-message">{healthMessage}</p>
-      <p class="settings-muted" data-testid="diagnostics-message">{diagnosticsMessage}</p>
+      <p class="settings-muted" data-testid="health-message">
+        <ErrorMessage error={healthMessage} />
+      </p>
+      <p class="settings-muted" data-testid="diagnostics-message">
+        {#if diagnosticsMessage}
+          <ErrorMessage error={diagnosticsMessage} />
+        {/if}
+      </p>
     </div>
   </section>
 

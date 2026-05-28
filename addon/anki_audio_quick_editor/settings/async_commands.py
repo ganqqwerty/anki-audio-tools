@@ -11,6 +11,7 @@ from typing import Any
 
 from ..contracts_generated import AsyncCommand, AsyncDonePayload, AsyncProgressPayload
 from ..diagnostics_runtime import capture_exception, record_breadcrumb
+from ..error_codes import AQE_FRONTEND_UNKNOWN_ASYNC_ERROR, coded_error
 from ..webview_bridge import WebviewBridgeCommand
 from .async_operations import dispatch_settings_async_op
 
@@ -28,8 +29,14 @@ def handle_async_settings_command(command: WebviewBridgeCommand, eval_fn: Callab
     try:
         async_command = AsyncCommand.from_dict(raw_payload)
     except CONTRACT_DECODE_ERRORS as invalid_payload_error:
+        message = "Invalid async command payload"
         invalid_done_payload_json = json.dumps(
-            AsyncDonePayload(raw_job_id, False, error="Invalid async command payload").to_dict()
+            {
+                "id": raw_job_id,
+                "ok": False,
+                "error": message,
+                "user_error": coded_error(AQE_FRONTEND_UNKNOWN_ASYNC_ERROR, message),
+            }
         )
         mw.taskman.run_on_main(lambda: eval_fn(f"window.onAsyncDone({invalid_done_payload_json})"))
         logger.warning("settings.async: invalid payload shape: %s", invalid_payload_error)
@@ -80,8 +87,14 @@ def handle_async_settings_command(command: WebviewBridgeCommand, eval_fn: Callab
                 context={"op": op, "job_id": job_id},
                 log=logger,
             )
+            message = str(async_error)
             failure_done_payload_json = json.dumps(
-                AsyncDonePayload(job_id, False, error=str(async_error)).to_dict()
+                {
+                    "id": job_id,
+                    "ok": False,
+                    "error": message,
+                    "user_error": coded_error(AQE_FRONTEND_UNKNOWN_ASYNC_ERROR, message),
+                }
             )
             _main_eval(f"window.onAsyncDone({failure_done_payload_json})")
 

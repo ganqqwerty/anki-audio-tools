@@ -1,11 +1,13 @@
 <script lang="ts">
   import { t } from "$lib/i18n.js";
+  import ErrorMessage from "$lib/ErrorMessage.svelte";
+  import type { ErrorDisplayValue } from "$lib/user-facing-error.js";
   import ToolbarVisibilitySettings from "./ToolbarVisibilitySettings.svelte";
   import type { Config } from "$lib/types.js";
 
   let { config = $bindable(), saveError }: {
     config: Config;
-    saveError: string;
+    saveError: ErrorDisplayValue;
   } = $props();
 </script>
 
@@ -15,6 +17,8 @@
   <ToolbarVisibilitySettings bind:config />
 
   {#if saveError}
-    <p class="settings-error" data-testid="save-error">{saveError}</p>
+    <p class="settings-error" data-testid="save-error">
+      <ErrorMessage error={saveError} />
+    </p>
   {/if}
 </div>
