@@ -8,6 +8,12 @@
  */
 
 import { sendAsyncCmd } from "./bridge.js";
+import {
+  AQE_FRONTEND_INVALID_ASYNC_RESULT,
+  AQE_FRONTEND_UNKNOWN_ASYNC_ERROR,
+  frontendUserError,
+  isUserFacingError,
+} from "./user-facing-error.js";
 import type {
   AsyncDonePayload,
   AsyncOperationName,
@@ -24,7 +30,7 @@ import type {
 interface PendingJob {
   op: AsyncOperationName;
   resolve: (result: unknown) => void;
-  reject: (error: Error) => void;
+  reject: (error: unknown) => void;
   // Explicit `| undefined` required by exactOptionalPropertyTypes
   onProgress: ((pct: number, message: string) => void) | undefined;
 }
@@ -91,10 +97,15 @@ export function handleAsyncDone(payload: AsyncDonePayload): void {
     if (narrowed.ok) {
       job.resolve(narrowed.result);
     } else {
-      job.reject(new Error(narrowed.error));
+      job.reject(frontendUserError(AQE_FRONTEND_INVALID_ASYNC_RESULT, narrowed.error));
     }
   } else {
-    job.reject(new Error(payload.error ?? "Unknown async error"));
+    const message = payload.error ?? "Unknown async error";
+    job.reject(
+      isUserFacingError(payload.user_error)
+        ? payload.user_error
+        : frontendUserError(AQE_FRONTEND_UNKNOWN_ASYNC_ERROR, message),
+    );
   }
 }
 

@@ -5,7 +5,10 @@
   import { createLogger } from "$lib/logger.js";
   import { PRODUCT_LINKS } from "$lib/product-links.js";
   import AqeTooltipProvider from "$lib/AqeTooltipProvider.svelte";
+  import ErrorMessage from "$lib/ErrorMessage.svelte";
   import ProductLinkIcon from "$lib/ProductLinkIcon.svelte";
+  import type { ErrorDisplayValue } from "$lib/user-facing-error.js";
+  import { isUserFacingError } from "$lib/user-facing-error.js";
   import type { BatchErrorPayload, BatchFinishPayload, BatchProgressPayload } from "$lib/types.js";
   import BatchControls from "./BatchControls.svelte";
   import BatchFooter from "./BatchFooter.svelte";
@@ -27,7 +30,7 @@
   let form = $state(initialFormState(batchState));
   let running = $state(false);
   let finished = $state(false);
-  let status = $state(t("batch.instructions"));
+  let status = $state<ErrorDisplayValue>(t("batch.instructions"));
   let processed = $state(0);
   let total = $state(batchState.note_count);
   let failures = $state(0);
@@ -58,7 +61,7 @@
       onError: (payload: BatchErrorPayload) => {
         running = false;
         finished = payload.recoverable !== true;
-        status = payload.message;
+        status = isUserFacingError(payload.user_error) ? payload.user_error : payload.message;
       },
     });
     logger.info("batch UI mounted", { noteCount: batchState.note_count });
@@ -86,7 +89,7 @@
   <main class="batch-root" dir={batchState.direction} lang={batchState.locale}>
     <header>
       <h1>{t("batch.window_title")}</h1>
-      <p>{status}</p>
+      <p><ErrorMessage error={status} /></p>
       <nav class="resource-links" aria-label={t("batch.links.label")}>
         <a href={PRODUCT_LINKS.githubPages} target="_blank" rel="noopener noreferrer">
           <ProductLinkIcon className="resource-link-icon" icon="external-link" />

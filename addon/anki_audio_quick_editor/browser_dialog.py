@@ -19,6 +19,7 @@ from .browser_dialog_state import (
     request_from_batch_start_payload,
 )
 from .browser_report import BatchRunReport
+from .error_codes import AQE_BATCH_INVALID_REQUEST, coded_error
 from .frontend_logs import handle_frontend_log_payload
 from .i18n import active_context, format_message
 from .webview_bridge import (
@@ -115,12 +116,21 @@ class BatchOperationsDialog:
         self.append_log(report.summary)
         self._emit("onBatchFinish", batch_finish_payload(report))
 
-    def finish_with_error(self, message: str, *, recoverable: bool = False) -> None:
+    def finish_with_error(
+        self,
+        message: str,
+        *,
+        recoverable: bool = False,
+        user_error: dict[str, str] | None = None,
+    ) -> None:
         """Show an unexpected batch-level failure."""
         self._running = False
         self._finished = not recoverable
         self.append_log(message)
-        self._emit("onBatchError", batch_error_payload(message, recoverable=recoverable))
+        self._emit(
+            "onBatchError",
+            batch_error_payload(message, recoverable=recoverable, user_error=user_error),
+        )
 
     def _emit(self, callback: str, payload: dict[str, Any]) -> None:
         self._webview.eval(f"window.{callback}({json.dumps(payload)})")
@@ -155,7 +165,10 @@ class BatchOperationsDialog:
             request = request_from_batch_start_payload(command.payload)
         except (AssertionError, TypeError) as exc:
             message = self.tr("batch.failed", {"error": "Invalid batch request"})
-            self.finish_with_error(message)
+            self.finish_with_error(
+                message,
+                user_error=coded_error(AQE_BATCH_INVALID_REQUEST, message),
+            )
             logger.warning("invalid batch start payload: %s", exc)
             return True
         except ValueError as exc:

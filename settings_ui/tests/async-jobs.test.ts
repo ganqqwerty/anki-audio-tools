@@ -141,7 +141,27 @@ describe("startAsyncOp", () => {
 
     handleAsyncDone({ id, ok: false, error: "API timeout" });
 
-    await expect(promise).rejects.toThrow("API timeout");
+    await expect(promise).rejects.toMatchObject({
+      code: "AQE-FRONTEND-002",
+      message: "API timeout",
+    });
+  });
+
+  it("rejects with structured backend user errors", async () => {
+    const promise = startAsyncOp("health_check", { config });
+    const id = asyncCommandAt(0).id;
+
+    handleAsyncDone({
+      id,
+      ok: false,
+      error: "Invalid settings payload",
+      user_error: { code: "AQE-SETTINGS-001", message: "Invalid settings payload" },
+    });
+
+    await expect(promise).rejects.toMatchObject({
+      code: "AQE-SETTINGS-001",
+      message: "Invalid settings payload",
+    });
   });
 
   it("calls onProgress callback with pct and message", () => {
@@ -178,7 +198,10 @@ describe("startAsyncOp", () => {
 
     handleAsyncDone({ id, ok: true, result: { reportText: "wrong shape" } });
 
-    await expect(promise).rejects.toThrow("Invalid async result payload for show_log_file");
+    await expect(promise).rejects.toMatchObject({
+      code: "AQE-FRONTEND-001",
+      message: "Invalid async result payload for show_log_file",
+    });
   });
 });
 
