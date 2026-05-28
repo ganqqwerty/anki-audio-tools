@@ -9,11 +9,11 @@ export const PRODUCT_LINKS = {
   discord: githubPagesPath("go/discord/"),
   editorVideos: {
     batchProcessing: githubPagesPath("go/video-batch-processing/"),
-    convert: `${GITHUB_PAGES_URL}#video-convert`,
+    convert: githubPagesPath("go/video-convert/"),
     denoise: githubPagesPath("go/video-denoise/"),
     graph: githubPagesPath("go/video-graph/"),
     pauseShortening: githubPagesPath("go/video-shorten-pauses/"),
-    pitchHum: `${GITHUB_PAGES_URL}#video-pitch-hum`,
+    pitchHum: githubPagesPath("go/video-pitch-hum/"),
     playback: githubPagesPath("go/video-play/"),
     recordVoice: githubPagesPath("go/video-record-voice/"),
     share: githubPagesPath("go/video-share/"),
