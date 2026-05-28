@@ -110,8 +110,14 @@ export function playbackRequest(ord: number): PlaybackRequest {
 
 export function playAfterEdit(ord: number): boolean {
   const visualizer = visualizerForOrd(ord);
-  if (!visualizer) return false;
-  if (anyBusy()) return false;
+  if (!visualizer) {
+    logger.warn("post-edit playback start rejected: visualizer missing", { ord });
+    return false;
+  }
+  if (anyBusy()) {
+    logger.info("post-edit playback start rejected: editor busy", postEditPlaybackStartContext(ord, visualizer));
+    return false;
+  }
   const intent = consumePostEditPlaybackIntent(ord);
   if (intent) {
     setRepeatEnabled(visualizer, intent.repeat);
@@ -129,11 +135,37 @@ export function playAfterEdit(ord: number): boolean {
     regionMode: region.mode,
     source: "post_edit",
   };
+  logger.info("post-edit playback start requested", {
+    ...postEditPlaybackStartContext(ord, visualizer),
+    cursorMs: request.cursorMs,
+    endMs: request.endMs,
+    loop: request.loop,
+    regionMode: request.regionMode,
+  });
   if (request.engine === "html") {
-    return startEditorHtmlPlayback(visualizer, request);
+    const started = startEditorHtmlPlayback(visualizer, request);
+    logger.info("post-edit html playback start result", {
+      ...postEditPlaybackStartContext(ord, visualizer),
+      started,
+    });
+    return started;
   }
   sendPlaybackRequest(request);
+  logger.info("post-edit native playback request sent", postEditPlaybackStartContext(ord, visualizer));
   return true;
+}
+
+function postEditPlaybackStartContext(ord: number, visualizer: VisualizerElement): Record<string, unknown> {
+  return {
+    audioClockReady: audioClockReady(visualizer),
+    engine: playbackEngineFor(visualizer),
+    graphBusy: visualizer.dataset.graphBusy || "",
+    hasTrack: visualizer.dataset.hasTrack || "",
+    ord,
+    playbackState: visualizer.dataset.playbackState || "",
+    repeatEnabled: repeatEnabledFor(visualizer),
+    sourceFilename: visualizer.dataset.sourceFilename || "",
+  };
 }
 
 export function playbackEngineFor(visualizer: VisualizerElement | null): "html" | "native" {

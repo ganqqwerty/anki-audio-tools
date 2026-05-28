@@ -195,4 +195,31 @@ describe("editor inline post-edit playback integration", () => {
     });
     expect(bridgeCommands()).toContain("aqe:command-payload");
   });
+
+  it("does not let a stale graph redraw marker block a rendered post-edit source", async () => {
+    initializeEditorRuntime({
+      audioFieldIndices: [0],
+      pendingPostEditPlayback: {
+        fieldOrd: 0,
+        generation: 6,
+        requireGraphRedraw: true,
+        sourceFilename: "clip one.mp3",
+      },
+    });
+    scan(window.__AQE_EDITOR_CONFIG__!);
+    window.__aqeSetVisualizer?.(0, track, 0);
+    window.__aqePendingGraphRedrawField = 0;
+    window.__aqePendingGraphRedrawSource = "stale.mp3";
+
+    window.__aqeSetBusy?.(0, false);
+    await Promise.resolve();
+
+    expect(window.__aqePendingCommandPayload).toEqual({
+      command: "aqe:post-edit-playback-ready",
+      fieldOrd: 0,
+      generation: 6,
+      sourceFilename: "clip one.mp3",
+    });
+    expect(bridgeCommands()).toContain("aqe:command-payload");
+  });
 });

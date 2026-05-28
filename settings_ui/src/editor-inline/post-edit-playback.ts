@@ -1,5 +1,6 @@
 import { sendBridgeCommand } from "./bridge.js";
 import { allControls, visualizerForOrd } from "./dom-selectors.js";
+import { logger } from "./logger.js";
 import type { PostEditPlaybackIntent } from "./types.js";
 
 export function rememberPostEditPlaybackIntent(ord: number): void {
@@ -24,23 +25,32 @@ export function consumePostEditPlaybackIntent(ord: number): PostEditPlaybackInte
 export function notifyPostEditPlaybackReady(ord: number, sourceFilename: string): void {
   const pending = window.__AQE_EDITOR_CONFIG__?.pendingPostEditPlayback;
   if (!pending || pending.fieldOrd !== ord) return;
-  if (pending.sourceFilename && pending.sourceFilename !== sourceFilename) return;
-  if (document.body.dataset.aqeBusy === "true") return;
-  if (!postEditPlaybackGraphReady(ord, sourceFilename)) return;
+  if (pending.sourceFilename && pending.sourceFilename !== sourceFilename) {
+    logger.warn("post-edit playback ready deferred: source mismatch", postEditPlaybackDiagnosticContext(ord, sourceFilename));
+    return;
+  }
+  if (document.body.dataset.aqeBusy === "true") {
+    logger.info("post-edit playback ready deferred: editor busy", postEditPlaybackDiagnosticContext(ord, sourceFilename));
+    return;
+  }
+  if (!postEditPlaybackGraphReady(ord, sourceFilename)) {
+    logger.info("post-edit playback ready deferred: graph not ready", postEditPlaybackDiagnosticContext(ord, sourceFilename));
+    return;
+  }
   window.__aqePendingCommandPayload = {
     command: "aqe:post-edit-playback-ready",
     fieldOrd: ord,
     generation: pending.generation,
     sourceFilename,
   };
+  logger.info("post-edit playback ready dispatched", postEditPlaybackDiagnosticContext(ord, sourceFilename));
   sendBridgeCommand("aqe:command-payload");
 }
 
 function postEditPlaybackGraphReady(ord: number, sourceFilename: string): boolean {
   const pending = window.__AQE_EDITOR_CONFIG__?.pendingPostEditPlayback;
   if (!pending?.requireGraphRedraw) return true;
-  const expectedSource = window.__aqePendingGraphRedrawField === ord ? window.__aqePendingGraphRedrawSource || "" : "";
-  const sourceToMatch = expectedSource || pending.sourceFilename || sourceFilename;
+  const sourceToMatch = pending.sourceFilename || sourceFilename;
   const visualizer = visualizerForOrd(ord);
   return !!visualizer
     && visualizer.dataset.graphBusy !== "true"
@@ -55,6 +65,24 @@ export function notifyMountedPostEditPlaybackReady(): void {
       controls.dataset.aqeSourceFilename || "",
     );
   });
+}
+
+function postEditPlaybackDiagnosticContext(ord: number, sourceFilename: string): Record<string, unknown> {
+  const pending = window.__AQE_EDITOR_CONFIG__?.pendingPostEditPlayback;
+  const visualizer = visualizerForOrd(ord);
+  return {
+    bodyBusy: document.body.dataset.aqeBusy || "",
+    controlSourceFilename: sourceFilename,
+    graphBusy: visualizer?.dataset.graphBusy || "",
+    hasPending: !!pending,
+    hasTrack: visualizer?.dataset.hasTrack || "",
+    ord,
+    pendingFieldOrd: pending?.fieldOrd,
+    pendingGeneration: pending?.generation,
+    pendingRequireGraphRedraw: pending?.requireGraphRedraw === true,
+    pendingSourceFilename: pending?.sourceFilename || "",
+    visualizerSourceFilename: visualizer?.dataset.sourceFilename || "",
+  };
 }
 
 function postEditPlaybackIntents(): Record<number, PostEditPlaybackIntent> {

@@ -113,8 +113,10 @@ def handle_pending_command_payload(editor: Any, deps: Any) -> None:
 
     def _continue(raw_payload: Any) -> None:
         if raw_payload is None:
+            logger.warning("editor command payload missing after bridge signal")
             deps.set_busy(editor, False)
             return
+        logger.info("editor command payload received | %s", raw_payload)
         deps.handle_bridge_command(editor, json.dumps(raw_payload))
 
     deps.eval_with_callback(editor, expression, _continue)

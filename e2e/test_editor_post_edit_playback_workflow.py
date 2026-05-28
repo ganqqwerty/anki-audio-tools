@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
+from e2e.editor_graph_helpers import _click_graph_and_wait
 from e2e.editor_note_helpers import (
     _basic_audio_note,
     _button_selector,
@@ -74,6 +75,29 @@ def test_post_edit_playback_waits_for_frontend_ready_event(anki_mw, ffmpeg_confi
         parent.close()
 
 
+def test_undo_post_edit_playback_ignores_stale_graph_redraw_marker(anki_mw, ffmpeg_config, caplog) -> None:
+    media_dir = Path(anki_mw.col.media.dir())
+    source = media_dir / "editor_post_edit_playback_undo_stale_graph.wav"
+    generate_tone(ffmpeg_config, source, duration_s=1.0)
+    note = _basic_audio_note(anki_mw, source.name)
+    _configure_ffmpeg(anki_mw, ffmpeg_config)
+
+    editor, parent = _open_editor(anki_mw, note)
+    try:
+        wait_for_selector(editor.web, _button_selector("aqe:faster"), timeout=10.0)
+        _click_graph_and_wait(editor, lambda value: value["sourceFilename"] == source.name)
+        _install_post_edit_ready_probe_with_stale_graph_marker(editor, source.name)
+
+        wait_for_condition(
+            lambda: any("post-edit playback ready dispatched" in record.message for record in caplog.records),
+            timeout=5.0,
+            message="Post-edit ready notification was blocked by a stale graph redraw marker",
+        )
+    finally:
+        editor.set_note(None)
+        parent.close()
+
+
 def _delay_post_edit_playback_ready_event(editor, delay_ms: int) -> None:
     run_js(
         editor.web,
@@ -99,6 +123,27 @@ def _delay_post_edit_playback_ready_event(editor, delay_ms: int) -> None:
             }}
             originalPycmd(command);
           }};
+          return true;
+        }})()
+        """,
+    )
+
+
+def _install_post_edit_ready_probe_with_stale_graph_marker(editor, source_name: str) -> None:
+    run_js(
+        editor.web,
+        f"""
+        (() => {{
+          window.__AQE_EDITOR_CONFIG__.pendingPostEditPlayback = {{
+            fieldOrd: 0,
+            generation: 99,
+            requireGraphRedraw: true,
+            sourceFilename: {source_name!r},
+          }};
+          window.__aqePendingCommandPayload = null;
+          window.__aqePendingGraphRedrawField = 0;
+          window.__aqePendingGraphRedrawSource = "stale-redraw-source.mp3";
+          window.__aqeSetBusy(0, false);
           return true;
         }})()
         """,
