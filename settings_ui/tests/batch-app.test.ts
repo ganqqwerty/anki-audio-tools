@@ -100,6 +100,10 @@ describe("BatchApp", () => {
       "href",
       PRODUCT_LINKS.githubPages,
     );
+    expect(screen.getByRole("link", { name: "See video" })).toHaveAttribute(
+      "href",
+      PRODUCT_LINKS.editorVideos.batchProcessing,
+    );
     expect(screen.getByRole("link", { name: "Report a bug" })).toHaveAttribute(
       "href",
       PRODUCT_LINKS.bugReport,

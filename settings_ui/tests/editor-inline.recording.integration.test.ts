@@ -11,6 +11,7 @@ import {
   renderFields,
   track,
 } from "./editor-inline.integration.helpers.js";
+import { PRODUCT_LINKS } from "../src/lib/product-links.js";
 import { EditorButtonMode } from "../src/lib/types.js";
 import type { EditorRuntimeConfig } from "../src/editor-inline/types.js";
 
@@ -88,6 +89,11 @@ describe("editor inline learner recording integration", () => {
     const menu = document.querySelector<HTMLButtonElement>('[data-testid="aqe-split-0-record-voice-menu"]')!;
     menu.click();
     await Promise.resolve();
+    const popover = document.querySelector<HTMLElement>('[data-testid="aqe-split-0-record-voice-popover"]')!;
+    expect(popover.querySelector<HTMLAnchorElement>(".aqe-split-video-link")).toHaveAttribute(
+      "href",
+      PRODUCT_LINKS.editorVideos.recordVoice,
+    );
     const countdown = document.querySelector<HTMLInputElement>('[data-testid="aqe-split-0-record-voice-value"]')!;
     countdown.value = "0";
     countdown.dispatchEvent(new Event("input", { bubbles: true }));
