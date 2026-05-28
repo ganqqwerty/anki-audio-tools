@@ -25,6 +25,12 @@ export interface EditorRuntimeConfig {
   initialStatusByField?: Record<number, { kind?: string; message: string }>;
   locale?: string;
   messages?: Record<string, string>;
+  pendingPostEditPlayback?: {
+    fieldOrd: number;
+    generation: number;
+    requireGraphRedraw?: boolean;
+    sourceFilename?: string;
+  } | null;
   repeatPlaybackByDefault?: boolean;
   showGraphByDefault?: boolean;
   splitButtonDefaults?: SplitButtonDefaults;
@@ -60,8 +66,10 @@ export interface SplitButtonDefaults {
 }
 
 export interface EditorCommandPayload {
-  command: EditorCommand | "aqe:open-url";
+  command: EditorCommand | "aqe:open-url" | "aqe:post-edit-playback-ready";
   fieldOrd?: number;
+  generation?: number;
+  sourceFilename?: string;
   url?: string;
   shareTarget?: "catbox" | "litterbox";
   overrides?: {

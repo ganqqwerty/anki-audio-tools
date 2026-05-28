@@ -69,6 +69,18 @@ def test_decode_command_accepts_share_target_payload() -> None:
     assert decoded.share_target == "litterbox"
 
 
+def test_decode_post_edit_playback_ready_payload() -> None:
+    decoded = decode_editor_command_payload(
+        '{"command":"aqe:post-edit-playback-ready","fieldOrd":2,'
+        '"generation":5,"sourceFilename":"clip__aqe.mp3"}'
+    )
+
+    assert decoded.command == "aqe:post-edit-playback-ready"
+    assert decoded.field_ord == 2
+    assert decoded.generation == 5
+    assert decoded.source_filename == "clip__aqe.mp3"
+
+
 def test_apply_processing_command_handles_speed_and_feature_toggles() -> None:
     config = AudioProcessingConfig(speed_step=1.5)
     state = AudioEditState("clip.mp3")

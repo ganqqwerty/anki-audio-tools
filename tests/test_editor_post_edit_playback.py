@@ -2,11 +2,11 @@
 
 from __future__ import annotations
 
-from collections.abc import Callable
 from pathlib import Path
 from types import SimpleNamespace
 from unittest.mock import MagicMock
 
+from anki_audio_quick_editor import editor_frontend
 from anki_audio_quick_editor.audio_state import AudioEditState
 from anki_audio_quick_editor.editor_integration import (
     _SESSIONS,
@@ -15,7 +15,7 @@ from anki_audio_quick_editor.editor_integration import (
 )
 
 
-def test_standard_render_replacement_schedules_post_edit_playback(
+def test_standard_render_replacement_records_pending_post_edit_playback(
     tmp_path: Path,
     monkeypatch,
 ) -> None:
@@ -41,12 +41,16 @@ def test_standard_render_replacement_schedules_post_edit_playback(
 
     _replace_current_field_after_render(editor, AudioEditState("clip.mp3", volume_db=3.0), "clip__aqe.mp3")
 
+    session = _SESSIONS[editor]
     assert editor.note.fields == ["[sound:clip__aqe.mp3]"]
     assert any(
         "__aqeSetHistoryAvailability(0, true, false)" in call.args[0]
         for call in editor.web.evalWithCallback.call_args_list
     )
-    assert "__aqePlayAfterEdit(0)" in editor.web.evalWithCallback.call_args.args[0]
+    assert session.pending_post_edit_playback_field_index == 0
+    assert session.pending_post_edit_playback_generation == session.post_edit_playback_generation
+    assert session.pending_post_edit_playback_requires_graph_redraw is False
+    assert session.pending_post_edit_playback_source_filename == "clip__aqe.mp3"
 
 
 def test_standard_render_replacement_uses_session_field_when_focus_changes(
@@ -76,33 +80,94 @@ def test_standard_render_replacement_uses_session_field_when_focus_changes(
 
     _replace_current_field_after_render(editor, AudioEditState("second.mp3", left_trim_ms=100), "second__aqe.mp3")
 
+    session = _SESSIONS[editor]
     assert editor.note.fields == ["[sound:first.mp3]", "[sound:second__aqe.mp3]"]
     assert editor.loadNote.call_args.kwargs == {"focusTo": 1}
     assert any(
         "__aqeSetHistoryAvailability(1, true, false)" in call.args[0]
         for call in editor.web.evalWithCallback.call_args_list
     )
-    assert "__aqePlayAfterEdit(1)" in editor.web.evalWithCallback.call_args.args[0]
+    assert session.pending_post_edit_playback_field_index == 1
+    assert session.pending_post_edit_playback_generation == session.post_edit_playback_generation
+    assert session.pending_post_edit_playback_requires_graph_redraw is False
+    assert session.pending_post_edit_playback_source_filename == "second__aqe.mp3"
 
 
-def test_stale_post_edit_playback_attempt_is_ignored(monkeypatch) -> None:
-    from anki_audio_quick_editor import editor_frontend_callbacks
-
+def test_stale_post_edit_playback_ready_event_is_ignored() -> None:
     class Editor:
         pass
 
-    scheduled: list[Callable[[], None]] = []
     editor = Editor()
     editor.note = SimpleNamespace(fields=["[sound:clip.mp3]"])
     editor.web = MagicMock()
     _SESSIONS[editor] = EditorSession(
-        field_index=0,
         post_edit_playback_generation=3,
+        pending_post_edit_playback_field_index=0,
+        pending_post_edit_playback_generation=3,
+        pending_post_edit_playback_source_filename="clip.mp3",
     )
-    monkeypatch.setattr("aqt.qt.QTimer.singleShot", lambda _delay, callback: scheduled.append(callback))
+    payload = SimpleNamespace(field_ord=0, generation=2, source_filename="clip.mp3")
+    deps = SimpleNamespace(
+        sessions=_SESSIONS,
+        eval_with_callback=MagicMock(),
+        playback_after_edit_expression=editor_frontend.playback_after_edit_expression,
+    )
 
-    editor_frontend_callbacks._request_playback_after_edit(editor, 0)
-    _SESSIONS[editor].post_edit_playback_generation += 1
-    scheduled[0]()
+    editor_frontend.handle_post_edit_playback_ready(editor, payload, deps)
 
-    editor.web.evalWithCallback.assert_not_called()
+    deps.eval_with_callback.assert_not_called()
+
+
+def test_post_edit_playback_request_records_frontend_ready_payload() -> None:
+    class Editor:
+        pass
+
+    editor = Editor()
+    _SESSIONS[editor] = EditorSession(
+        current_filename="clip__aqe.mp3",
+        post_edit_playback_generation=7,
+    )
+    deps = SimpleNamespace(
+        sessions=_SESSIONS,
+    )
+
+    editor_frontend.request_playback_after_edit(editor, 2, deps)
+
+    session = _SESSIONS[editor]
+    assert editor_frontend.pending_post_edit_playback_payload(session) == {
+        "fieldOrd": 2,
+        "generation": 7,
+        "requireGraphRedraw": False,
+        "sourceFilename": "clip__aqe.mp3",
+    }
+
+
+def test_matching_post_edit_playback_ready_event_starts_once_and_clears_pending() -> None:
+    class Editor:
+        pass
+
+    editor = Editor()
+    _SESSIONS[editor] = EditorSession(
+        pending_post_edit_playback_field_index=1,
+        pending_post_edit_playback_generation=4,
+        pending_post_edit_playback_source_filename="clip__aqe.mp3",
+    )
+    payload = SimpleNamespace(field_ord=1, generation=4, source_filename="clip__aqe.mp3")
+
+    def eval_with_callback(_editor, expression, callback):
+        assert "__aqePlayAfterEdit(1)" in expression
+        callback(True)
+
+    deps = SimpleNamespace(
+        sessions=_SESSIONS,
+        eval_with_callback=eval_with_callback,
+        playback_after_edit_expression=editor_frontend.playback_after_edit_expression,
+    )
+
+    editor_frontend.handle_post_edit_playback_ready(editor, payload, deps)
+
+    session = _SESSIONS[editor]
+    assert session.pending_post_edit_playback_field_index is None
+    assert session.pending_post_edit_playback_generation is None
+    assert session.pending_post_edit_playback_requires_graph_redraw is False
+    assert session.pending_post_edit_playback_source_filename is None

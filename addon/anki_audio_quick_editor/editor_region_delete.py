@@ -216,6 +216,11 @@ def replace_current_field_after_region_delete(
             },
             flush=True,
         )
+        deps.request_playback_after_edit(
+            editor,
+            field_index,
+            require_graph_redraw=should_redraw_graph,
+        )
         editor.loadNote(focusTo=field_index)
         if session:
             session.pending_status = None
@@ -226,7 +231,6 @@ def replace_current_field_after_region_delete(
             deps.request_graph_redraw(editor, saved_name)
         else:
             deps.set_busy_for_field(editor, field_index, False)
-        deps.request_playback_after_edit(editor, field_index)
     except Exception as exc:
         message = message_with_permission_guidance(str(exc), exc)
         capture_exception(

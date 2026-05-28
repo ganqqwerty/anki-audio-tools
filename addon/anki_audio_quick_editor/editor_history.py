@@ -122,6 +122,11 @@ def restore_history_entry(
     session.playback_paused = False
     restored_path = existing_media_file_path(Path(editor.mw.col.media.dir()), entry.filename)
     session.source_mtime_ns = restored_path.stat().st_mtime_ns if restored_path is not None else None
+    deps.request_playback_after_edit(
+        editor,
+        field_index,
+        require_graph_redraw=field_index in session.graph_active_fields,
+    )
     editor.loadNote(focusTo=field_index)
     session.pending_status = None
     sync_history_availability(editor, session, deps)
@@ -129,4 +134,3 @@ def restore_history_entry(
     deps.eval_playback_state(editor, field_index, "stopped", 0)
     if field_index in session.graph_active_fields:
         deps.request_graph_redraw(editor, entry.filename)
-    deps.request_playback_after_edit(editor, field_index)

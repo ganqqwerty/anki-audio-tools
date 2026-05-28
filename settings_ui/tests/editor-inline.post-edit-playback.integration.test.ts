@@ -7,6 +7,7 @@ import {
   prepareHtmlAudio,
   renderFields,
   setRepeatMode,
+  track,
 } from "./editor-inline.integration.helpers.js";
 
 describe("editor inline post-edit playback integration", () => {
@@ -14,6 +15,7 @@ describe("editor inline post-edit playback integration", () => {
 
   beforeEach(() => {
     restoreConsole = muteConsole();
+    window.__aqePendingCommandPayload = null;
     renderFields();
   });
 
@@ -113,5 +115,84 @@ describe("editor inline post-edit playback integration", () => {
     expect(window.__aqePlayAfterEdit?.(0)).toBe(true);
     expect(window.__aqePostEditPlaybackIntents?.[0]).toBeUndefined();
     expect(bridgeCommands()).toContain("aqe:play");
+  });
+
+  it("notifies Python when a pending post-edit playback field is mounted", async () => {
+    initializeEditorRuntime({
+      audioFieldIndices: [0],
+      pendingPostEditPlayback: {
+        fieldOrd: 0,
+        generation: 3,
+        sourceFilename: "clip one.mp3",
+      },
+    });
+    scan(window.__AQE_EDITOR_CONFIG__!);
+    await Promise.resolve();
+
+    expect(window.__aqePendingCommandPayload).toEqual({
+      command: "aqe:post-edit-playback-ready",
+      fieldOrd: 0,
+      generation: 3,
+      sourceFilename: "clip one.mp3",
+    });
+    expect(bridgeCommands()).toContain("aqe:command-payload");
+  });
+
+  it("defers the post-edit ready notification until controls are not busy", async () => {
+    initializeEditorRuntime({
+      audioFieldIndices: [0],
+      pendingPostEditPlayback: {
+        fieldOrd: 0,
+        generation: 4,
+        sourceFilename: "clip one.mp3",
+      },
+    });
+    document.body.dataset.aqeBusy = "true";
+    scan(window.__AQE_EDITOR_CONFIG__!);
+    await Promise.resolve();
+
+    expect(window.__aqePendingCommandPayload).toBeNull();
+    expect(bridgeCommands()).not.toContain("aqe:command-payload");
+
+    window.__aqeSetBusy?.(0, false);
+    await Promise.resolve();
+
+    expect(window.__aqePendingCommandPayload).toEqual({
+      command: "aqe:post-edit-playback-ready",
+      fieldOrd: 0,
+      generation: 4,
+      sourceFilename: "clip one.mp3",
+    });
+    expect(bridgeCommands()).toContain("aqe:command-payload");
+  });
+
+  it("defers the post-edit ready notification until a pending graph redraw finishes", async () => {
+    initializeEditorRuntime({
+      audioFieldIndices: [0],
+      pendingPostEditPlayback: {
+        fieldOrd: 0,
+        generation: 5,
+        requireGraphRedraw: true,
+        sourceFilename: "clip one.mp3",
+      },
+    });
+    window.__aqePendingGraphRedrawField = 0;
+    window.__aqePendingGraphRedrawSource = "clip one.mp3";
+    scan(window.__AQE_EDITOR_CONFIG__!);
+    await Promise.resolve();
+
+    expect(window.__aqePendingCommandPayload).toBeNull();
+    expect(bridgeCommands()).not.toContain("aqe:command-payload");
+
+    window.__aqeSetVisualizer?.(0, track, 0);
+    await Promise.resolve();
+
+    expect(window.__aqePendingCommandPayload).toEqual({
+      command: "aqe:post-edit-playback-ready",
+      fieldOrd: 0,
+      generation: 5,
+      sourceFilename: "clip one.mp3",
+    });
+    expect(bridgeCommands()).toContain("aqe:command-payload");
   });
 });

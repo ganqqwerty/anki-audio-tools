@@ -107,17 +107,76 @@ def request_graph_redraw(editor: Any, deps: Any, expected_filename: str | None =
     )
 
 
-def request_playback_after_edit(editor: Any, field_index: int, deps: Any) -> None:
-    """Schedule playback after a successful audio field replacement."""
+def request_playback_after_edit(
+    editor: Any,
+    field_index: int,
+    deps: Any,
+    *,
+    require_graph_redraw: bool = False,
+) -> None:
+    """Record a playback request for the next frontend ready signal."""
     session = deps.sessions.get(editor)
-    generation = session.post_edit_playback_generation if session else 0
-    deps.schedule_playback_after_edit_attempt(
+    if session is None:
+        return
+    session.pending_post_edit_playback_field_index = int(field_index)
+    session.pending_post_edit_playback_generation = session.post_edit_playback_generation
+    session.pending_post_edit_playback_requires_graph_redraw = bool(require_graph_redraw)
+    session.pending_post_edit_playback_source_filename = session.current_filename
+
+
+def pending_post_edit_playback_payload(session: Any | None) -> dict[str, object] | None:
+    """Return the pending post-edit playback payload for frontend injection."""
+    if session is None:
+        return None
+    field_index = session.pending_post_edit_playback_field_index
+    generation = session.pending_post_edit_playback_generation
+    if field_index is None or generation is None:
+        return None
+    return {
+        "fieldOrd": int(field_index),
+        "generation": int(generation),
+        "requireGraphRedraw": bool(session.pending_post_edit_playback_requires_graph_redraw),
+        "sourceFilename": session.pending_post_edit_playback_source_filename or "",
+    }
+
+
+def handle_post_edit_playback_ready(editor: Any, payload: Any, deps: Any) -> None:
+    """Start pending post-edit playback after the frontend reports readiness."""
+    session = deps.sessions.get(editor)
+    if not _post_edit_playback_ready_matches(session, payload):
+        return
+
+    def _clear_if_started(started: bool) -> None:
+        if not started:
+            return
+        current = deps.sessions.get(editor)
+        if _post_edit_playback_ready_matches(current, payload):
+            current.pending_post_edit_playback_field_index = None
+            current.pending_post_edit_playback_generation = None
+            current.pending_post_edit_playback_requires_graph_redraw = False
+            current.pending_post_edit_playback_source_filename = None
+
+    deps.eval_with_callback(
         editor,
-        int(field_index),
-        generation,
-        remaining=12,
-        delay_ms=150,
+        deps.playback_after_edit_expression(int(payload.field_ord)),
+        _clear_if_started,
     )
+
+
+def _post_edit_playback_ready_matches(session: Any | None, payload: Any) -> bool:
+    if session is None:
+        return False
+    field_ord = getattr(payload, "field_ord", None)
+    generation = getattr(payload, "generation", None)
+    source_filename = getattr(payload, "source_filename", None)
+    if field_ord is None or generation is None:
+        return False
+    if session.pending_post_edit_playback_field_index != int(field_ord):
+        return False
+    if session.pending_post_edit_playback_generation != int(generation):
+        return False
+    pending_source = session.pending_post_edit_playback_source_filename
+    return not pending_source or source_filename == pending_source
 
 
 def request_history_availability_after_edit(
@@ -206,42 +265,6 @@ def schedule_history_availability_attempt(
     QTimer.singleShot(delay_ms, _attempt)
 
 
-def schedule_playback_after_edit_attempt(
-    editor: Any,
-    field_index: int,
-    generation: int,
-    *,
-    remaining: int,
-    delay_ms: int,
-    deps: Any,
-) -> None:
-    """Schedule one delayed playback-after-edit attempt."""
-    from aqt.qt import QTimer
-
-    def _attempt() -> None:
-        if getattr(editor, "note", None) is None:
-            return
-        session = deps.sessions.get(editor)
-        if session and session.post_edit_playback_generation != generation:
-            return
-        try:
-            deps.eval_with_callback(
-                editor,
-                deps.playback_after_edit_expression(field_index),
-                lambda started: deps.retry_playback_after_edit(
-                    editor,
-                    field_index,
-                    generation,
-                    bool(started),
-                    remaining - 1,
-                ),
-            )
-        except RuntimeError:
-            return
-
-    QTimer.singleShot(delay_ms, _attempt)
-
-
 def graph_redraw_expression(field_index: int, expected_filename: str | None = None) -> str:
     """Return the frontend expression that restarts graph rendering."""
     return (
@@ -295,26 +318,6 @@ def retry_graph_redraw(
         editor,
         field_index,
         expected_filename=expected_filename,
-        remaining=remaining,
-        delay_ms=100,
-    )
-
-
-def retry_playback_after_edit(
-    editor: Any,
-    field_index: int,
-    generation: int,
-    started: bool,
-    remaining: int,
-    deps: Any,
-) -> None:
-    """Retry playback after edit when the frontend was not ready."""
-    if started or remaining <= 0:
-        return
-    deps.schedule_playback_after_edit_attempt(
-        editor,
-        field_index,
-        generation,
         remaining=remaining,
         delay_ms=100,
     )
