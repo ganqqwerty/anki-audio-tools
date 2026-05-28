@@ -15,6 +15,7 @@ from anki_audio_quick_editor.browser_dialog_state import (
     request_from_batch_start_payload,
 )
 from anki_audio_quick_editor.browser_report import BatchRunReport
+from anki_audio_quick_editor.error_codes import AQE_BATCH_INVALID_REQUEST, coded_error
 
 
 def test_build_batch_initial_state_contains_operations_fields_defaults_and_i18n() -> None:
@@ -189,7 +190,27 @@ def test_progress_and_finish_payloads_match_frontend_contract() -> None:
         "canceled": False,
         "summary": report.summary,
     }
-    assert batch_error_payload("Choose a source field.", recoverable=True) == {
+    assert batch_error_payload(
+        "Choose a source field.",
+        recoverable=True,
+        user_error={
+            "code": "AQE-BATCH-001",
+            "message": "Choose a source field.",
+        },
+    ) == {
         "message": "Choose a source field.",
         "recoverable": True,
+        "user_error": {
+            "code": "AQE-BATCH-001",
+            "message": "Choose a source field.",
+        },
     }
+
+
+def test_invalid_start_message_has_batch_error_code() -> None:
+    payload = batch_error_payload(
+        "Batch operation failed: Invalid batch request",
+        user_error=coded_error(AQE_BATCH_INVALID_REQUEST, "Batch operation failed: Invalid batch request"),
+    )
+
+    assert payload["user_error"]["code"] == "AQE-BATCH-001"

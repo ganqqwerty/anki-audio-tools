@@ -17,6 +17,7 @@ from ..diagnostics_runtime import (
     record_breadcrumb,
     set_debug_enabled,
 )
+from ..error_codes import AQE_SETTINGS_INVALID_PAYLOAD, coded_error
 from ..frontend_logs import handle_frontend_log_payload
 from ..webview_bridge import (
     WebviewBridgeCommand,
@@ -84,7 +85,15 @@ def _handle_settings_save(
     try:
         config = Config.from_dict(raw_config).to_dict()
     except CONTRACT_DECODE_ERRORS:
-        payload = json.dumps({"error": "Invalid settings payload"})
+        payload = json.dumps(
+            {
+                "error": "Invalid settings payload",
+                "user_error": coded_error(
+                    AQE_SETTINGS_INVALID_PAYLOAD,
+                    "Invalid settings payload",
+                ),
+            }
+        )
         eval_fn(f"window.onSaveError({payload})")
         return
 
@@ -184,4 +193,3 @@ def _handle_copy_support_report(command: WebviewBridgeCommand) -> None:
         logger.warning("support.copy_report: clipboard unavailable")
         return
     clipboard.setText(payload.text)
-

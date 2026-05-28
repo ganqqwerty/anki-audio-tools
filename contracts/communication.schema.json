@@ -416,13 +416,24 @@
         "summary": { "type": "string" }
       }
     },
+    "UserFacingError": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["code", "message"],
+      "properties": {
+        "code": { "type": "string" },
+        "message": { "type": "string" },
+        "details": { "type": "string" }
+      }
+    },
     "BatchErrorPayload": {
       "type": "object",
       "additionalProperties": false,
       "required": ["message"],
       "properties": {
         "message": { "type": "string" },
-        "recoverable": { "type": "boolean" }
+        "recoverable": { "type": "boolean" },
+        "user_error": { "$ref": "#/definitions/UserFacingError" }
       }
     },
     "AsyncSuccessPayload": {
@@ -442,7 +453,8 @@
       "properties": {
         "id": { "type": "string" },
         "ok": { "enum": [false] },
-        "error": { "type": "string" }
+        "error": { "type": "string" },
+        "user_error": { "$ref": "#/definitions/UserFacingError" }
       }
     },
     "AsyncDonePayload": {
@@ -480,7 +492,8 @@
       "additionalProperties": false,
       "required": ["error"],
       "properties": {
-        "error": { "type": "string" }
+        "error": { "type": "string" },
+        "user_error": { "$ref": "#/definitions/UserFacingError" }
       }
     },
     "ProsodyPointPayload": {
