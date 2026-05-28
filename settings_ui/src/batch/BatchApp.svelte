@@ -92,6 +92,10 @@
           <ProductLinkIcon className="resource-link-icon" icon="external-link" />
           <span>{t("links.github_pages")}</span>
         </a>
+        <a href={PRODUCT_LINKS.editorVideos.batchProcessing} target="_blank" rel="noopener noreferrer">
+          <ProductLinkIcon className="resource-link-icon" icon="external-link" />
+          <span>{t("links.see_video")}</span>
+        </a>
         <a href={PRODUCT_LINKS.bugReport} target="_blank" rel="noopener noreferrer">
           <ProductLinkIcon className="resource-link-icon" icon="bug" />
           <span>{t("links.report_bug")}</span>

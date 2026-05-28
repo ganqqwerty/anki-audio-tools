@@ -1,6 +1,8 @@
 <script lang="ts">
   import { t } from "../lib/i18n.js";
+  import { PRODUCT_LINKS } from "../lib/product-links.js";
   import SplitDefaultSaveButton from "./SplitDefaultSaveButton.svelte";
+  import { openEditorExternalLink } from "./external-links.js";
   import { formatVoiceRecordingCountdownSeconds } from "./split-button-state.js";
 
   const {
@@ -50,6 +52,15 @@
 </div>
 <p class="aqe-split-popover-description">
   {t("editor.split.description_record_voice")}
+  <a
+    class="aqe-split-video-link"
+    href={PRODUCT_LINKS.editorVideos.recordVoice}
+    onclick={(event) => openEditorExternalLink(event, PRODUCT_LINKS.editorVideos.recordVoice)}
+    target="_blank"
+    rel="noopener noreferrer"
+  >
+    {t("links.see_video")}
+  </a>
 </p>
 <input
   data-testid={`aqe-split-${targetOrd}-${slug}-slider`}
