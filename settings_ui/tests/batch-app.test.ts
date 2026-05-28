@@ -245,4 +245,19 @@ describe("BatchApp", () => {
       `${PRODUCT_LINKS.githubPages}errors/AQE-BATCH-001/`,
     );
   });
+
+  it("shows a visible coded error when the batch frontend throws", async () => {
+    setInitialState();
+    render(BatchApp);
+
+    await waitFor(() => expect(pycmdMock()).toHaveBeenCalled());
+    window.dispatchEvent(new ErrorEvent("error", { message: "boom" }));
+
+    const error = await screen.findByTestId("frontend-runtime-error");
+    expect(error).toHaveTextContent("AQE-FRONTEND-999: The interface hit an unexpected error. Help");
+    expect(within(error).getByRole("link", { name: "Help" })).toHaveAttribute(
+      "href",
+      `${PRODUCT_LINKS.githubPages}errors/AQE-FRONTEND-999/`,
+    );
+  });
 });
