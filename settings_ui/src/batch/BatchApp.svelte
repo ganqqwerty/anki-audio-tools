@@ -8,7 +8,11 @@
   import ErrorMessage from "$lib/ErrorMessage.svelte";
   import ProductLinkIcon from "$lib/ProductLinkIcon.svelte";
   import type { ErrorDisplayValue } from "$lib/user-facing-error.js";
-  import { isUserFacingError } from "$lib/user-facing-error.js";
+  import {
+    AQE_FRONTEND_UNEXPECTED,
+    frontendUserError,
+    isUserFacingError,
+  } from "$lib/user-facing-error.js";
   import type { BatchErrorPayload, BatchFinishPayload, BatchProgressPayload } from "$lib/types.js";
   import BatchControls from "./BatchControls.svelte";
   import BatchFooter from "./BatchFooter.svelte";
@@ -31,6 +35,7 @@
   let running = $state(false);
   let finished = $state(false);
   let status = $state<ErrorDisplayValue>(t("batch.instructions"));
+  let frontendRuntimeError = $state<ErrorDisplayValue>("");
   let processed = $state(0);
   let total = $state(batchState.note_count);
   let failures = $state(0);
@@ -40,6 +45,12 @@
   let canStart = $derived(canStartBatch(form, selected));
 
   onMount(() => {
+    const showFrontendRuntimeError = () => {
+      frontendRuntimeError = frontendUserError(
+        AQE_FRONTEND_UNEXPECTED,
+        "The interface hit an unexpected error.",
+      );
+    };
     registerBatchCallbacks({
       onProgress: (payload: BatchProgressPayload) => {
         processed = payload.processed;
@@ -64,7 +75,13 @@
         status = isUserFacingError(payload.user_error) ? payload.user_error : payload.message;
       },
     });
+    window.addEventListener("error", showFrontendRuntimeError);
+    window.addEventListener("unhandledrejection", showFrontendRuntimeError);
     logger.info("batch UI mounted", { noteCount: batchState.note_count });
+    return () => {
+      window.removeEventListener("error", showFrontendRuntimeError);
+      window.removeEventListener("unhandledrejection", showFrontendRuntimeError);
+    };
   });
 
   function start(): void {
@@ -109,6 +126,12 @@
         </a>
       </nav>
     </header>
+
+    {#if frontendRuntimeError}
+      <p class="batch-error" data-testid="frontend-runtime-error">
+        <ErrorMessage error={frontendRuntimeError} />
+      </p>
+    {/if}
 
     <BatchControls state={batchState} bind:form selected={selected} disabled={running} />
 
@@ -177,6 +200,11 @@
   p,
   .progress-meta {
     color: var(--fg-subtle, currentColor);
+  }
+
+  .batch-error {
+    color: var(--fg, currentColor);
+    margin: 0;
   }
 
   .resource-links {

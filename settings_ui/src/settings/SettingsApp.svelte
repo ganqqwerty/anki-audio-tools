@@ -3,6 +3,7 @@
   import "./styles.css";
 
   import AqeTooltipProvider from "$lib/AqeTooltipProvider.svelte";
+  import ErrorMessage from "$lib/ErrorMessage.svelte";
   import { handleAsyncDone, handleAsyncProgress, startAsyncOp } from "$lib/async-jobs.js";
   import {
     copySupportReport,
@@ -15,7 +16,12 @@
   import { configureI18n, t } from "$lib/i18n.js";
   import { logger } from "$lib/logger.js";
   import type { ErrorDisplayValue } from "$lib/user-facing-error.js";
-  import { isUserFacingError, messageFromUnknownError } from "$lib/user-facing-error.js";
+  import {
+    AQE_FRONTEND_UNEXPECTED,
+    frontendUserError,
+    isUserFacingError,
+    messageFromUnknownError,
+  } from "$lib/user-facing-error.js";
   import type {
     AsyncDonePayload,
     AsyncProgressPayload,
@@ -43,9 +49,16 @@
   let healthReport = $state<HealthReport | null>(null);
   let healthProgress = $state<AsyncProgressPayload | null>(null);
   let diagnosticsMessage = $state<ErrorDisplayValue>("");
+  let frontendRuntimeError = $state<ErrorDisplayValue>("");
   let runtimeStatus = $state<RuntimeStatus>(initialState.diagnostics.runtime);
 
   onMount(() => {
+    const showFrontendRuntimeError = () => {
+      frontendRuntimeError = frontendUserError(
+        AQE_FRONTEND_UNEXPECTED,
+        "The interface hit an unexpected error.",
+      );
+    };
     registerCallbacks({
       onAsyncProgress: (payload: AsyncProgressPayload) => {
         healthProgress = payload;
@@ -58,8 +71,14 @@
         saveError = isUserFacingError(payload.user_error) ? payload.user_error : payload.error;
       },
     });
+    window.addEventListener("error", showFrontendRuntimeError);
+    window.addEventListener("unhandledrejection", showFrontendRuntimeError);
     logger.info("audio quick editor settings UI mounted", { version: initialState.version });
     void refreshRuntimeStatus();
+    return () => {
+      window.removeEventListener("error", showFrontendRuntimeError);
+      window.removeEventListener("unhandledrejection", showFrontendRuntimeError);
+    };
   });
 
   async function runHealthCheck(): Promise<void> {
@@ -144,6 +163,12 @@
       </div>
       <div class="version-pill">v{initialState.version}</div>
     </header>
+
+    {#if frontendRuntimeError}
+      <p class="settings-error" data-testid="frontend-runtime-error">
+        <ErrorMessage error={frontendRuntimeError} />
+      </p>
+    {/if}
 
     <div class="tab-nav" role="tablist" aria-label={t("settings.tabs.label")}>
       <button

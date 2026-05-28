@@ -219,6 +219,21 @@ describe("App", () => {
     );
   });
 
+  it("shows a visible coded error when the settings frontend throws", async () => {
+    setInitialState();
+    render(App);
+
+    await waitFor(() => expect(pycmdMock()).toHaveBeenCalled());
+    window.dispatchEvent(new ErrorEvent("error", { message: "boom" }));
+
+    const error = await screen.findByTestId("frontend-runtime-error");
+    expect(error).toHaveTextContent("AQE-FRONTEND-999: The interface hit an unexpected error. Help");
+    expect(within(error).getByRole("link", { name: "Help" })).toHaveAttribute(
+      "href",
+      `${PRODUCT_LINKS.githubPages}errors/AQE-FRONTEND-999/`,
+    );
+  });
+
   it("saves edited volume settings", async () => {
     setInitialState();
 
