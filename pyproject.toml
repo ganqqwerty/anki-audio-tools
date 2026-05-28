@@ -297,6 +297,7 @@ source_modules = [
     "anki_audio_quick_editor.editor_region_delete_request",
     "anki_audio_quick_editor.editor_session",
     "anki_audio_quick_editor.editor_ui",
+    "anki_audio_quick_editor.error_codes",
     "anki_audio_quick_editor.errors",
     "anki_audio_quick_editor.ffmpeg_defaults",
     "anki_audio_quick_editor.file_sharing",

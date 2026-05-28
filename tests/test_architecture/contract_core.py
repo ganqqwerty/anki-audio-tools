@@ -41,6 +41,7 @@ CORE_CONTRACTS: dict[str, ModuleContract] = {
         allowed_addon_deps=("diagnostics_runtime_json",),
     ),
     "dpdfnet_settings": contract("dpdfnet_settings", layer=Layer.IMPORT_SAFE_CORE),
+    "error_codes": contract("error_codes", layer=Layer.IMPORT_SAFE_CORE),
     "errors": contract("errors", layer=Layer.IMPORT_SAFE_CORE),
     "ffmpeg_defaults": contract("ffmpeg_defaults", layer=Layer.IMPORT_SAFE_CORE),
     "frontend_logs": contract(

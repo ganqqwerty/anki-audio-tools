@@ -74,6 +74,7 @@ UI_CONTRACTS: dict[str, ModuleContract] = {
             "batch_operations",
             "browser_dialog_state",
             "browser_report",
+            "error_codes",
             "frontend_logs",
             "i18n",
             "webview_bridge",
@@ -121,6 +122,7 @@ UI_CONTRACTS: dict[str, ModuleContract] = {
         allowed_addon_deps=(
             "contracts_generated",
             "diagnostics_runtime",
+            "error_codes",
             "ffmpeg_defaults",
             "frontend_logs",
             "i18n",
@@ -139,6 +141,7 @@ UI_CONTRACTS: dict[str, ModuleContract] = {
         allowed_addon_deps=(
             "contracts_generated",
             "diagnostics_runtime",
+            "error_codes",
             "settings.async_operations",
             "webview_bridge",
         ),
