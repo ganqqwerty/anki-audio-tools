@@ -21,7 +21,14 @@ python3 scripts/dev.py info
 [[actions]]
 name = "build"
 icon = "tool"
-command = "./scripts/run.py build"
+command = '''
+set -euo pipefail
+
+ROOT="$(git rev-parse --show-toplevel)"
+cd "$ROOT"
+
+scripts/run.py build
+'''
 platform = "darwin"
 
 [[actions]]
