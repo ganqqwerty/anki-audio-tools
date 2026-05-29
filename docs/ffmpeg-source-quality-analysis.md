@@ -1,6 +1,6 @@
 # FFmpeg Source-Quality Preservation Analysis
 
-Date: 2026-05-27
+Date: 2026-05-29
 
 ## Scope
 
@@ -17,6 +17,41 @@ The codebase already accepts common input formats such as MP3, M4A/AAC, Ogg/Vorb
 - Pause removal final render uses `libmp3lame -q:a 4`.
 - Denoise and pitch-hum pipelines produce WAV/raw PCM intermediates, then encode final output as MP3.
 - Only the explicit "Convert" operation supports `mp3`, `m4a`, `wav`, and `flac`, and those use fixed codec settings.
+
+## Managed FFmpeg Runtime Capability State
+
+Source-extension preservation is blocked by more than the Python command builders. The managed FFmpeg runtime also has to provide encoders and muxers for every extension we intend to preserve.
+
+Current repository state:
+
+- Release targets are `macos-arm64`, `macos-x86_64`, and `windows-x86_64` in `scripts/release_asset_common.py`.
+- `ffmpeg` and `ffprobe` are cached native tools fetched from `release_assets.lock.json` into `.release-assets/bin/<target>/`.
+- Current locked providers are martin-riedl macOS static archives and gyan.dev Windows essentials archives, not BtbN release assets.
+- Current lock validation verifies schema, checksums, runtime files, and optional diagnostics, but does not yet enforce an encoder/muxer capability profile for source-extension preservation.
+- `scripts/ffmpeg_build/` already exists as a source-build fallback. It is not a new path to create.
+
+The existing fallback build scripts are currently MP3/WAV focused:
+
+- `scripts/ffmpeg_build/build_macos.sh` and `scripts/ffmpeg_build/build_windows_cross.sh` enable muxers `mp3`, `null`, `s16le`, and `wav`.
+- The same scripts enable encoders `libmp3lame` and `pcm_s16le`.
+- They decode more formats than they can encode, including AAC, FLAC, Opus, and Vorbis.
+- They are insufficient for preserving `.m4a`, `.aac`, `.flac`, `.ogg`, `.oga`, `.opus`, or `.webm` as final output.
+
+BtbN status verified on 2026-05-29: [BtbN/FFmpeg-Builds](https://github.com/BtbN/FFmpeg-Builds) publishes daily auto-builds for Windows and Linux targets, with no macOS target. That means BtbN is a candidate for Windows if its selected archive passes our capability profile, but macOS needs a macOS-specific provider or the existing repo-owned source build path.
+
+macOS provider status checked on 2026-05-29:
+
+- [Martin Riedl's FFmpeg Build Server](https://ffmpeg.martin-riedl.de/) is already the current locked macOS provider in `release_assets.lock.json`. It publishes FFmpeg and FFprobe ZIPs for both macOS Intel/amd64 and Apple Silicon/arm64 release builds, currently FFmpeg 8.1.1 for both targets. It also publishes per-build `Formats` and `Codecs` reports and scripting redirect URLs for automated downloads.
+- Martin Riedl's codec reports list MP3 via `libmp3lame`, AAC, Opus via `libopus`, Vorbis via `libvorbis`, and PCM 16/24-bit support for both macOS targets. Its format reports list muxing support for `mp3`, `mp4`, `adts`, `wav`, `flac`, `oga`, `ogg`, `opus`, and `webm`. Treat Martin Riedl as the first macOS candidate, but still run the local binary capability checker before changing source-preservation behavior. In particular, verify the FLAC encoder from the binary because the public codec report line appears less explicit than the format report.
+- [OSXExperts](https://www.osxexperts.net/) publishes static macOS FFmpeg/FFprobe ZIPs with SHA-256 values. Current page state lists FFmpeg 8.1 for Apple Silicon and FFmpeg 8.0 for Intel. Its published build script enables `libopus`, `libvorbis`, and `libmp3lame`, but the page does not expose the same per-build Formats/Codecs reports as Martin Riedl. Treat OSXExperts as a secondary macOS fallback that must be downloaded, inspected with `ffmpeg_runtime_capabilities.py`, and possibly repackaged into our release archive format before lock-file adoption.
+- [Vargol/ffmpeg-apple-arm64-build](https://github.com/Vargol/ffmpeg-apple-arm64-build) is an Apple Silicon build-script fallback only. The project targets macOS on Apple Silicon and documents builds with LAME, Opus, Vorbis, and FDK-AAC. It does not cover Intel macOS, so it cannot replace `macos-x86_64`. Use it only if Martin Riedl and OSXExperts fail the arm64 capability gate or disappear.
+
+Required runtime capability work:
+
+- Add a repository capability profile for final audio output, for example `aqe-source-audio-v1`.
+- Require the profile on release-ready `ffmpeg` lock entries.
+- Verify required encoders and muxers in `fetch-ffmpeg`/diagnostic flows for binaries that can run on the current host.
+- Prefer a capability-verified macOS provider archive over custom macOS builds. Expand existing `scripts/ffmpeg_build/` fallback scripts only when no acceptable provider archive exists for a target.
 
 ## FFmpeg Hardcoded Replacement Inventory
 

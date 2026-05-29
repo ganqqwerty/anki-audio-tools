@@ -1,5 +1,7 @@
 # Source-Quality FFmpeg Output Implementation Plan
 
+Last actualized: 2026-05-29
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Replace forced MP3 final output with a source-aware output policy that preserves source format, bitrate, sample rate, and channels where practical while keeping model-required intermediate formats intact.
@@ -17,9 +19,15 @@
 - Keep manual output choices `mp3`, `m4a`, `wav`, and `flac`; do not add every preserved extension as a manual UI menu choice in this pass.
 - When `output_format` is `source`, keep the original visible file extension where possible. The first pass should preserve at least these common Anki audio extensions when FFmpeg can write them: `mp3`, `m4a`, `aac`, `wav`, `flac`, `ogg`, `oga`, `opus`, and `webm`.
 - Preserving `ogg`, `oga`, `opus`, `webm`, and raw `aac` depends on the managed FFmpeg runtime having the required encoders and muxers. Treat runtime capability as a release-blocking prerequisite, not as a best-effort runtime surprise.
-- Prefer [BtbN FFmpeg builds](https://github.com/BtbN/FFmpeg-Builds) where they satisfy the capability profile. BtbN publishes Windows and Linux builds and does not cover the current macOS runtime targets, so macOS needs a repo-owned GitHub Actions build/upload path.
+- Prefer provider archives where they satisfy the capability profile. [BtbN FFmpeg builds](https://github.com/BtbN/FFmpeg-Builds) publishes Windows and Linux builds and does not cover the current macOS runtime targets.
+- For macOS, check [Martin Riedl's FFmpeg Build Server](https://ffmpeg.martin-riedl.de/) first because it is already the current locked macOS provider and publishes release ZIPs plus Formats/Codecs reports for both Intel/amd64 and Apple Silicon/arm64. Check [OSXExperts](https://www.osxexperts.net/) second as a fallback provider. Check [Vargol/ffmpeg-apple-arm64-build](https://github.com/Vargol/ffmpeg-apple-arm64-build) only as an Apple Silicon build-script fallback; it does not cover `macos-x86_64`.
 - If a BtbN prebuilt artifact for a supported target is missing required capabilities, use the BtbN build scripts/configuration in GitHub Actions for that target instead of weakening the source-preservation policy.
 - Keep the runtime asset work inside the existing thin-release/runtime-pack system: update `release_assets.lock.json`, fetch into `.release-assets`, stage into runtime packs, and upload runtime packs through the existing release flow.
+- Licensing is intentionally out of scope for this implementation plan; do not let the existing `scripts/ffmpeg_build/README.md` LGPL fallback note block the capability work.
+- `scripts/ffmpeg_build/` already exists. Do not create a duplicate `scripts/ffmpeg_runtime/` build directory; update or wrap the existing fallback scripts where custom builds are needed.
+- The current fallback scripts are MP3/WAV-only for output (`libmp3lame`, `pcm_s16le`, `mp3`, `wav`, `s16le`, `null`). They must be expanded before they can satisfy `.m4a`, `.aac`, `.flac`, `.ogg`, `.oga`, `.opus`, or `.webm` preservation.
+- Source builds are the fallback for targets where no provider archive passes `aqe-source-audio-v1`, not the default macOS path.
+- The current release-asset code is split across `scripts/release_assets.py`, `scripts/release_assets_core.py`, `scripts/release_assets_paths.py`, `scripts/release_assets_runtime_ops.py`, `scripts/release_assets_cli_handlers.py`, `scripts/release_assets_cli.py`, and `scripts/release_assets_commands.py`.
 - Fall back to MP3 only when the source extension is unknown, unsupported by Anki, unsupported by the bundled FFmpeg encoder/muxer, or the source codec/container combination cannot be mapped safely.
 - Native playback segment temp files stay MP3 for compatibility and are excluded from final-media preservation.
 - Model and analysis intermediates stay in their current required formats unless explicitly listed in this plan.
@@ -41,7 +49,8 @@ Modify:
 
 - `release_assets.lock.json`: replace locked FFmpeg/ffprobe entries with capability-verified archives.
 - `scripts/release_asset_verify.py`: run FFmpeg capability diagnostics as part of release-asset verification.
-- `scripts/release_assets.py`, `scripts/release_assets_runtime_ops.py`, `scripts/release_assets_cli.py`, `scripts/release_assets_commands.py`: expose runtime capability checks in fetch/verify flows where needed.
+- `scripts/release_assets.py`, `scripts/release_assets_core.py`, `scripts/release_assets_paths.py`, `scripts/release_assets_runtime_ops.py`, `scripts/release_assets_cli_handlers.py`, `scripts/release_assets_cli.py`, `scripts/release_assets_commands.py`: expose runtime capability checks in fetch/verify flows where needed.
+- `scripts/ffmpeg_build/README.md`, `scripts/ffmpeg_build/build_macos.sh`, `scripts/ffmpeg_build/build_windows_cross.sh`, `scripts/ffmpeg_build/build_windows.ps1`: update the existing fallback build path for the required FFmpeg capability profile.
 - `addon/anki_audio_quick_editor/audio_formats.py`: add `source` as a persisted policy value while keeping concrete format helpers strict.
 - `addon/anki_audio_quick_editor/audio_state.py`: default and normalize `output_format="source"`.
 - `addon/anki_audio_quick_editor/config.schema.json`, `addon/anki_audio_quick_editor/config.json`, `addon/anki_audio_quick_editor/config_migration.py`: allow and default `source`.
@@ -216,7 +225,10 @@ git commit -m "test: define source output format policy"
 - Modify: `scripts/release_asset_common.py`
 - Modify: `scripts/release_asset_verify.py`
 - Modify: `scripts/release_assets.py`
+- Modify: `scripts/release_assets_core.py`
+- Modify: `scripts/release_assets_paths.py`
 - Modify: `scripts/release_assets_runtime_ops.py`
+- Modify: `scripts/release_assets_cli_handlers.py`
 - Modify: `scripts/release_assets_cli.py`
 - Modify: `scripts/release_assets_commands.py`
 - Modify: `release_assets.lock.json`
@@ -343,8 +355,8 @@ Expected: PASS.
 If the locked current-host FFmpeg archive is already present or can be fetched, run:
 
 ```bash
-python3 scripts/release_assets.py fetch-ffmpeg --target current
-python3 scripts/release_assets.py verify --target current --diagnostics
+python3 scripts/dev.py release-assets fetch-ffmpeg --target current
+python3 scripts/dev.py release-assets verify --target current --diagnostics
 ```
 
 Expected: PASS and report that the current FFmpeg binary satisfies `aqe-source-audio-v1`.
@@ -352,7 +364,7 @@ Expected: PASS and report that the current FFmpeg binary satisfies `aqe-source-a
 - [ ] **Step 8: Commit**
 
 ```bash
-git add scripts/ffmpeg_runtime_capabilities.py scripts/release_asset_common.py scripts/release_asset_verify.py scripts/release_assets.py scripts/release_assets_runtime_ops.py scripts/release_assets_cli.py scripts/release_assets_commands.py release_assets.lock.json tests/test_ffmpeg_runtime_capabilities.py tests/test_release_assets.py tests/test_release_asset_fetch.py
+git add scripts/ffmpeg_runtime_capabilities.py scripts/release_asset_common.py scripts/release_asset_verify.py scripts/release_assets.py scripts/release_assets_core.py scripts/release_assets_paths.py scripts/release_assets_runtime_ops.py scripts/release_assets_cli_handlers.py scripts/release_assets_cli.py scripts/release_assets_commands.py release_assets.lock.json tests/test_ffmpeg_runtime_capabilities.py tests/test_release_assets.py tests/test_release_asset_fetch.py
 git commit -m "test: enforce ffmpeg runtime audio capabilities"
 ```
 
@@ -362,8 +374,11 @@ git commit -m "test: enforce ffmpeg runtime audio capabilities"
 
 **Files:**
 - Create: `.github/workflows/build-ffmpeg-runtime.yml`
-- Create: `scripts/ffmpeg_runtime/build_macos.sh`
 - Create: `tests/test_ffmpeg_runtime_workflow.py`
+- Modify: `scripts/ffmpeg_build/README.md`
+- Modify: `scripts/ffmpeg_build/build_macos.sh`
+- Modify: `scripts/ffmpeg_build/build_windows_cross.sh`
+- Modify: `scripts/ffmpeg_build/build_windows.ps1`
 - Modify: `release_assets.lock.json`
 - Modify: `scripts/release_assets.py` only if lock-update helpers are needed.
 - Test: `tests/test_ffmpeg_runtime_workflow.py`
@@ -376,7 +391,8 @@ Create `tests/test_ffmpeg_runtime_workflow.py` that reads `.github/workflows/bui
 - It is a manual `workflow_dispatch` workflow with inputs for `release_tag`, `ffmpeg_ref`, and `force_custom_build`.
 - The matrix includes current runtime targets: `windows-x86_64`, `macos-arm64`, and `macos-x86_64`.
 - Windows uses BtbN prebuilt assets by default and has a custom-build branch for fallback.
-- macOS targets use the repo-owned macOS build script because BtbN does not publish macOS targets.
+- macOS targets use the existing repo-owned `scripts/ffmpeg_build/build_macos.sh` path because BtbN does not publish macOS targets.
+- The workflow does not reference a new `scripts/ffmpeg_runtime/` directory.
 - Every target runs `python3 scripts/ffmpeg_runtime_capabilities.py` before uploading artifacts.
 - Uploaded release assets are combined per target and contain both `ffmpeg` and `ffprobe`.
 
@@ -398,8 +414,12 @@ Use this source decision tree:
 
 - `windows-x86_64`: Prefer a pinned BtbN `win64` build (`gpl` or `gpl-shared`) when the downloaded archive passes `aqe-source-audio-v1`.
 - Future `linux-x86_64` and `linux-arm64` targets, if added later: map to BtbN `linux64` and `linuxarm64` and use the same capability gate.
-- `macos-arm64` and `macos-x86_64`: Build in GitHub Actions because BtbN's published targets are Windows and Linux only.
-- Any target with `force_custom_build=true`: checkout `BtbN/FFmpeg-Builds` and run its build scripts/configuration where the target is supported; for macOS, run `scripts/ffmpeg_runtime/build_macos.sh` with the same capability profile.
+- `macos-arm64` and `macos-x86_64`: build in GitHub Actions using `scripts/ffmpeg_build/build_macos.sh`, because BtbN's published targets are Windows and Linux only.
+- `macos-arm64` provider fallback order: Martin Riedl ZIP, then OSXExperts ZIP, then Vargol Apple Silicon build script, then repo-owned `scripts/ffmpeg_build/build_macos.sh`.
+- `macos-x86_64` provider fallback order: Martin Riedl ZIP, then OSXExperts ZIP, then repo-owned `scripts/ffmpeg_build/build_macos.sh`. Do not use Vargol for Intel.
+- Any supported BtbN target with `force_custom_build=true`: checkout `BtbN/FFmpeg-Builds` and run its `makeimage.sh`/`build.sh` scripts for the selected target and variant.
+- Any non-BtbN target with `force_custom_build=true`: run the existing repo-owned fallback script under `scripts/ffmpeg_build/`.
+- The workflow should upload the exact archive consumed by `release_assets.lock.json`; do not depend on transient GitHub Actions artifacts as release inputs.
 
 The workflow should produce one archive per runtime target:
 
@@ -421,9 +441,11 @@ ffmpeg.exe
 ffprobe.exe
 ```
 
-- [ ] **Step 4: Implement macOS build script**
+- [ ] **Step 4: Expand the existing fallback build scripts**
 
-Create `scripts/ffmpeg_runtime/build_macos.sh` with explicit configure flags for the required profile:
+Modify `scripts/ffmpeg_build/build_macos.sh` and `scripts/ffmpeg_build/build_windows_cross.sh` so their outputs can satisfy `aqe-source-audio-v1`. The current scripts only enable MP3/WAV output; expand them instead of adding a parallel build directory.
+
+Required configure posture:
 
 ```bash
 --enable-gpl
@@ -434,11 +456,22 @@ Create `scripts/ffmpeg_runtime/build_macos.sh` with explicit configure flags for
 --disable-shared
 ```
 
-Also ensure native FFmpeg components required for `aac`, `flac`, `wav`, `mp4`, `adts`, `ogg`, `opus`, and `webm` remain enabled. The script should write `ffmpeg` and `ffprobe` into a target-specific staging directory, then run:
+Also add or keep the external dependency builds required by `libopus` and `libvorbis`; native AAC and FLAC encoders do not need external libraries.
+
+Ensure these output components remain enabled:
 
 ```bash
-python3 scripts/ffmpeg_runtime_capabilities.py --ffmpeg "$STAGING_DIR/ffmpeg"
+--enable-muxer=mp3,mp4,adts,wav,flac,ogg,opus,webm,null,s16le
+--enable-encoder=libmp3lame,aac,flac,libvorbis,libopus,pcm_s16le,pcm_s24le
 ```
+
+Keep the demuxers, decoders, parsers, and filters already needed by the editor and model pipelines. The scripts should write `ffmpeg` and `ffprobe` into `.release-assets/bin/<target>/`, then run:
+
+```bash
+python3 scripts/ffmpeg_runtime_capabilities.py --ffmpeg "$output_dir/ffmpeg"
+```
+
+For Windows, either make `scripts/ffmpeg_build/build_windows.ps1` run a native build on Windows or keep it as a hard failure that points maintainers to the cross-build/GitHub Actions path. Do not leave it implying that the current minimal MP3/WAV build satisfies source preservation.
 
 - [ ] **Step 5: Upload target archives to GitHub releases**
 
@@ -469,15 +502,15 @@ For `ffprobe`, use the same `download_url` and `download_sha256`, but set `archi
 Run on each available local host target:
 
 ```bash
-python3 scripts/release_assets.py fetch-ffmpeg --target current
-python3 scripts/release_assets.py verify --target current --diagnostics
+python3 scripts/dev.py release-assets fetch-ffmpeg --target current
+python3 scripts/dev.py release-assets verify --target current --diagnostics
 ```
 
 Fetch and verify all target archives without diagnostics:
 
 ```bash
-python3 scripts/release_assets.py fetch-ffmpeg --target all
-python3 scripts/release_assets.py verify --target all
+python3 scripts/dev.py release-assets fetch-ffmpeg --target all
+python3 scripts/dev.py release-assets verify --target all
 ```
 
 Expected: PASS. Do not mark release-ready until all target archives are downloadable and checksum-valid.
@@ -485,7 +518,7 @@ Expected: PASS. Do not mark release-ready until all target archives are download
 - [ ] **Step 8: Commit**
 
 ```bash
-git add .github/workflows/build-ffmpeg-runtime.yml scripts/ffmpeg_runtime/build_macos.sh release_assets.lock.json tests/test_ffmpeg_runtime_workflow.py tests/test_release.py
+git add .github/workflows/build-ffmpeg-runtime.yml scripts/ffmpeg_build/README.md scripts/ffmpeg_build/build_macos.sh scripts/ffmpeg_build/build_windows_cross.sh scripts/ffmpeg_build/build_windows.ps1 release_assets.lock.json tests/test_ffmpeg_runtime_workflow.py tests/test_release.py
 git commit -m "build: add ffmpeg runtime release workflow"
 ```
 
@@ -1794,9 +1827,9 @@ Expected: PASS.
 Run after the FFmpeg runtime lock points at capability-verified archives:
 
 ```bash
-python3 scripts/release_assets.py fetch-ffmpeg --target all
-python3 scripts/release_assets.py verify --target all
-python3 scripts/release_assets.py verify --target current --diagnostics
+python3 scripts/dev.py release-assets fetch-ffmpeg --target all
+python3 scripts/dev.py release-assets verify --target all
+python3 scripts/dev.py release-assets verify --target current --diagnostics
 ```
 
 Expected: PASS. The current-target diagnostic output must include the FFmpeg capability profile result.
@@ -1835,8 +1868,8 @@ If maintainers need a repeatable FFmpeg asset refresh workflow, document:
 
 ```bash
 gh workflow run build-ffmpeg-runtime.yml -f release_tag=<tag> -f ffmpeg_ref=<ref>
-python3 scripts/release_assets.py fetch-ffmpeg --target all
-python3 scripts/release_assets.py verify --target all
+python3 scripts/dev.py release-assets fetch-ffmpeg --target all
+python3 scripts/dev.py release-assets verify --target all
 ```
 
 - [ ] **Step 8: Final commit**
