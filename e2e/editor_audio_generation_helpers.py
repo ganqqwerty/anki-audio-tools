@@ -181,6 +181,9 @@ def _render_direct_deep_filter_reference(
 
     wav_outputs = sorted(output_dir.glob("*.wav"))
     assert len(wav_outputs) == 1
+    codec_args = ("-codec:a", "pcm_s16le", "-ar", "48000", "-ac", "1")
+    if output_path.suffix.lower() == ".mp3":
+        codec_args = ("-codec:a", "libmp3lame", "-q:a", "4")
     subprocess.run(
         [
             ffmpeg_config.ffmpeg_path,
@@ -188,10 +191,7 @@ def _render_direct_deep_filter_reference(
             "-i",
             str(wav_outputs[0]),
             "-vn",
-            "-codec:a",
-            "libmp3lame",
-            "-q:a",
-            "4",
+            *codec_args,
             str(output_path),
         ],
         check=True,

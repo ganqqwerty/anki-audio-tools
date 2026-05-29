@@ -34,7 +34,7 @@ def test_standard_denoise_menu_matches_direct_deep_filter_output(
     media_dir = Path(anki_mw.col.media.dir())
     source = media_dir / DEEP_FILTER_SAMPLE_FIXTURE.name
     shutil.copyfile(DEEP_FILTER_SAMPLE_FIXTURE, source)
-    direct_output = tmp_path / "3d8ca69aee6_input_48k_mono_direct_deep_filter.mp3"
+    direct_output = tmp_path / "3d8ca69aee6_input_48k_mono_direct_deep_filter.wav"
     _render_direct_deep_filter_reference(
         ffmpeg_config,
         source,
@@ -105,7 +105,7 @@ def test_standard_denoise_failure_leaves_note_unchanged(
         assert json.loads(deep_filter_log.read_text(encoding="utf-8"))[-1].endswith(
             "input_48k_mono.wav"
         )
-        assert not list(media_dir.glob("editor_standard_denoise_failure_source__aqe_*.mp3"))
+        assert not list(media_dir.glob("editor_standard_denoise_failure_source__aqe_*"))
     finally:
         editor.set_note(None)
         parent.close()

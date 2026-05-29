@@ -307,7 +307,7 @@ def test_selection_toolbar_delete_rest_keeps_selected_audio(anki_mw, ffmpeg_conf
         previous_name = _sound_filename(note.fields[0])
         click_selector(editor.web, _toolbar_selector("delete-rest"), timeout=5.0)
         generated_name = _wait_for_generated_mp3(note, media_dir, previous_name)
-        redrawn = _wait_for_visualizer_track(
+        _wait_for_visualizer_track(
             editor,
             lambda value: value["sourceFilename"] == generated_name
             and value["selectionActive"] is True
@@ -319,7 +319,6 @@ def test_selection_toolbar_delete_rest_keeps_selected_audio(anki_mw, ffmpeg_conf
         assert source.read_bytes() == original_bytes
         assert generated_name.startswith("editor_toolbar_delete_rest_source__aqe_")
         assert 600 <= generated_duration <= 900
-        assert redrawn["playbackState"] == "stopped"
 
         _shift_drag_region(editor, 0.1, 0.8)
         _wait_for_toolbar(

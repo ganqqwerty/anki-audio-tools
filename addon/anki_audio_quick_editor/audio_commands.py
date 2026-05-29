@@ -4,19 +4,21 @@ from __future__ import annotations
 
 import math
 import shlex
+from collections.abc import Sequence
 from pathlib import Path
 
 from . import audio_commands_runtime as _runtime
-from .audio_formats import OutputFormat, validate_target_format
+from .audio_formats import ConcreteOutputFormat, validate_target_format
 from .audio_state import AudioEditState
 from .audio_types import RegionDeletePlan, RegionKeepPlan
 from .errors import AudioProcessingError
 
 FFMPEG_AUDIO_CODEC_ARG = "-codec:a"
+DEFAULT_MP3_CODEC_ARGS = (FFMPEG_AUDIO_CODEC_ARG, "libmp3lame", "-q:a", "4")
 WAV_MIME_TYPE = "audio/wav"
 
-_CONVERT_CODEC_ARGS: dict[OutputFormat, tuple[str, ...]] = {
-    "mp3": (FFMPEG_AUDIO_CODEC_ARG, "libmp3lame", "-q:a", "4"),
+_CONVERT_CODEC_ARGS: dict[ConcreteOutputFormat, tuple[str, ...]] = {
+    "mp3": DEFAULT_MP3_CODEC_ARGS,
     "m4a": (FFMPEG_AUDIO_CODEC_ARG, "aac", "-b:a", "192k"),
     "wav": (FFMPEG_AUDIO_CODEC_ARG, "pcm_s16le"),
     "flac": (FFMPEG_AUDIO_CODEC_ARG, "flac", "-compression_level", "5"),
@@ -33,15 +35,17 @@ def build_convert_audio_command(
     source_path: Path,
     output_path: Path,
     target_format: object,
+    codec_args: Sequence[str] | None = None,
 ) -> tuple[str, ...]:
     """Build an ffmpeg command that converts audio without applying edit filters."""
+    resolved_codec_args = tuple(codec_args) if codec_args is not None else conversion_codec_args(target_format)
     return (
         str(ffmpeg_path),
         "-y",
         "-i",
         str(source_path),
         "-vn",
-        *conversion_codec_args(target_format),
+        *resolved_codec_args,
         str(output_path),
     )
 
@@ -101,8 +105,9 @@ def build_ffmpeg_command(
     source_path: Path,
     filters: str,
     output_path: Path,
+    codec_args: Sequence[str] = DEFAULT_MP3_CODEC_ARGS,
 ) -> tuple[str, ...]:
-    """Build the ffmpeg command used to render a processed MP3."""
+    """Build the ffmpeg command used to render processed audio."""
     return (
         str(ffmpeg_path),
         "-y",
@@ -111,10 +116,7 @@ def build_ffmpeg_command(
         "-vn",
         "-filter:a",
         filters,
-        FFMPEG_AUDIO_CODEC_ARG,
-        "libmp3lame",
-        "-q:a",
-        "4",
+        *tuple(codec_args),
         str(output_path),
     )
 
@@ -166,6 +168,7 @@ def build_filter_complex_render_command(
     source_path: Path,
     filter_script_path: Path,
     output_path: Path,
+    codec_args: Sequence[str] = DEFAULT_MP3_CODEC_ARGS,
 ) -> tuple[str, ...]:
     """Build an ffmpeg command that renders from a filter_complex script."""
     return (
@@ -178,10 +181,7 @@ def build_filter_complex_render_command(
         str(filter_script_path),
         "-map",
         "[out]",
-        FFMPEG_AUDIO_CODEC_ARG,
-        "libmp3lame",
-        "-q:a",
-        "4",
+        *tuple(codec_args),
         str(output_path),
     )
 
@@ -191,6 +191,7 @@ def build_region_delete_command(
     source_path: Path,
     filter_complex: str,
     output_path: Path,
+    codec_args: Sequence[str] = DEFAULT_MP3_CODEC_ARGS,
 ) -> tuple[str, ...]:
     """Build an ffmpeg command that removes one selected audio region."""
     return (
@@ -203,10 +204,7 @@ def build_region_delete_command(
         filter_complex,
         "-map",
         "[out]",
-        FFMPEG_AUDIO_CODEC_ARG,
-        "libmp3lame",
-        "-q:a",
-        "4",
+        *tuple(codec_args),
         str(output_path),
     )
 
@@ -269,4 +267,5 @@ build_rnnoise_encode_command = _runtime.build_rnnoise_encode_command
 build_spleeter_prepare_command = _runtime.build_spleeter_prepare_command
 build_spleeter_command = _runtime.build_spleeter_command
 build_mp3_encode_command = _runtime.build_mp3_encode_command
+build_audio_encode_command = _runtime.build_audio_encode_command
 build_playback_segment_filters = _runtime.build_playback_segment_filters

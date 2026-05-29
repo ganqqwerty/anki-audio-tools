@@ -69,6 +69,7 @@ TARGET_TOOL_NAMES = {
 TOOL_NAMES = sorted({tool for tools in TARGET_TOOL_NAMES.values() for tool in tools})
 SHARED_FILE_NAMES = ["spleeter-vocals", "spleeter-accompaniment", "silero-vad-model"]
 CACHED_TOOL_NAMES = {"ffmpeg", "ffprobe"}
+FFMPEG_CAPABILITY_PROFILE = "aqe-source-audio-v1"
 
 
 class ReleaseAssetError(RuntimeError):
@@ -262,6 +263,10 @@ def _validate_tool_lock_entry(lock: dict[str, Any], target: str, tool_name: str,
         raise ReleaseAssetError(f"{target}/{tool_name} is release-ready but missing sha256")
     if checksum is not None and not _is_sha256(checksum):
         raise ReleaseAssetError(f"{target}/{tool_name} has invalid sha256")
+    if release_ready and tool_name == "ffmpeg" and entry.get("capability_profile") != FFMPEG_CAPABILITY_PROFILE:
+        raise ReleaseAssetError(
+            f"{target}/{tool_name} is release-ready but missing capability profile {FFMPEG_CAPABILITY_PROFILE}"
+        )
     for file_entry in tool_runtime_files(lock, target, tool_name):
         _validate_tool_runtime_file_entry(target, tool_name, file_entry, release_ready)
 

@@ -66,7 +66,7 @@ def pump_events_for(seconds: float) -> None:
 
 
 def generated_aqe_files(media_dir: Path) -> list[str]:
-    return sorted(path.name for path in media_dir.glob("*__aqe_*.mp3"))
+    return sorted(path.name for path in media_dir.glob("*__aqe_*"))
 
 
 def assert_note_field(note: Any, field_index: int, expected_html: str) -> None:

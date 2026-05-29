@@ -66,7 +66,7 @@ export const FALLBACK_INITIAL_STATE: InitialState = {
     pause_silero_min_silence_seconds: 0.45,
     pause_silero_min_speech_seconds: 0.1,
     pause_silero_preprocess_denoise: false,
-    output_format: OutputFormat.Mp3,
+    output_format: OutputFormat.Source,
     ffmpeg_path: "/opt/homebrew/bin/ffmpeg",
     deep_filter_post_filter: true,
     dpdfnet_attn_limit_db: 12.0,

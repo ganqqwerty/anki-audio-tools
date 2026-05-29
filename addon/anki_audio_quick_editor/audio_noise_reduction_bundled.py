@@ -9,8 +9,8 @@ from collections.abc import Callable
 from pathlib import Path
 
 from .audio_commands import (
+    build_audio_encode_command,
     build_dpdfnet_command,
-    build_mp3_encode_command,
     build_rnnoise_command,
     build_rnnoise_encode_command,
     build_rnnoise_prepare_command,
@@ -21,6 +21,12 @@ from .audio_external import (
     _render_external_error_message,
     _run_external_command,
     probe_duration_ms,
+)
+from .audio_output_policy import (
+    AudioOutputPolicy,
+    codec_args_for_output_policy,
+    resolve_output_policy_from_metadata,
+    synthetic_audio_metadata,
 )
 from .audio_state import AudioProcessingConfig
 from .audio_tools import (
@@ -46,7 +52,7 @@ def render_rnnoise_audio(
     output_path: Path | None = None,
     on_command: Callable[[tuple[str, ...]], None] | None = None,
 ) -> AudioProcessingResult:
-    """Render a denoised MP3 using the bundled RNNoise executable."""
+    """Render denoised audio using the bundled RNNoise executable."""
     ffmpeg_path: Path | None = None
     rnnoise_path: Path | None = None
     attempted_commands: list[dict[str, object]] = []
@@ -54,7 +60,16 @@ def render_rnnoise_audio(
     try:
         ffmpeg_path = find_ffmpeg(config.ffmpeg_path)
         rnnoise_path = find_rnnoise_bundle()
-        output_path = output_path or Path(tempfile.mkstemp(prefix="aqe_rnnoise_", suffix=".mp3")[1])
+        output_policy = _model_output_policy(
+            source_path,
+            config,
+            output_path,
+            codec_name="pcm_s16le",
+            sample_rate=48000,
+            channels=1,
+            bits_per_raw_sample=16,
+        )
+        output_path = output_path or Path(tempfile.mkstemp(prefix="aqe_rnnoise_", suffix=output_policy.extension)[1])
         work_dir = Path(tempfile.mkdtemp(prefix="aqe_rnnoise_"))
         input_raw = work_dir / "input_48k_mono.s16le"
         denoised_raw = work_dir / "denoised.s16le"
@@ -83,8 +98,13 @@ def render_rnnoise_audio(
             raise AudioProcessingError("RNNoise did not produce a raw PCM output.")
         _ensure_stage_success(
             _run_recorded_external_command(
-                build_rnnoise_encode_command(ffmpeg_path, denoised_raw, output_path),
-                "Could not start MP3 encoding for RNNoise output.",
+                build_rnnoise_encode_command(
+                    ffmpeg_path,
+                    denoised_raw,
+                    output_path,
+                    codec_args_for_output_policy(output_policy),
+                ),
+                "Could not start final encoding for RNNoise output.",
                 attempted_commands,
                 on_command,
                 timeout_seconds=DENOISE_EXTERNAL_TIMEOUT_SECONDS,
@@ -106,7 +126,7 @@ def render_dpdfnet_audio(
     output_path: Path | None = None,
     on_command: Callable[[tuple[str, ...]], None] | None = None,
 ) -> AudioProcessingResult:
-    """Render a denoised MP3 using the bundled DPDFNet executable."""
+    """Render denoised audio using the bundled DPDFNet executable."""
     ffmpeg_path: Path | None = None
     dpdfnet_path: Path | None = None
     attempted_commands: list[dict[str, object]] = []
@@ -114,7 +134,16 @@ def render_dpdfnet_audio(
     try:
         ffmpeg_path = find_ffmpeg(config.ffmpeg_path)
         dpdfnet_path = find_dpdfnet_bundle()
-        output_path = output_path or Path(tempfile.mkstemp(prefix="aqe_dpdfnet_", suffix=".mp3")[1])
+        output_policy = _model_output_policy(
+            source_path,
+            config,
+            output_path,
+            codec_name="pcm_s16le",
+            sample_rate=None,
+            channels=None,
+            bits_per_raw_sample=16,
+        )
+        output_path = output_path or Path(tempfile.mkstemp(prefix="aqe_dpdfnet_", suffix=output_policy.extension)[1])
         work_dir = Path(tempfile.mkdtemp(prefix="aqe_dpdfnet_"))
         denoised_wav = work_dir / "denoised.wav"
         dpdfnet_cmd = build_dpdfnet_command(dpdfnet_path, source_path, denoised_wav, attn_limit_db=config.dpdfnet_attn_limit_db)
@@ -133,8 +162,13 @@ def render_dpdfnet_audio(
             raise AudioProcessingError("DPDFNet did not produce a WAV output.")
         _ensure_stage_success(
             _run_recorded_external_command(
-                build_mp3_encode_command(ffmpeg_path, denoised_wav, output_path),
-                "Could not start MP3 encoding for DPDFNet output.",
+                build_audio_encode_command(
+                    ffmpeg_path,
+                    denoised_wav,
+                    output_path,
+                    codec_args_for_output_policy(output_policy),
+                ),
+                "Could not start final encoding for DPDFNet output.",
                 attempted_commands,
                 on_command,
                 timeout_seconds=DENOISE_EXTERNAL_TIMEOUT_SECONDS,
@@ -156,7 +190,7 @@ def render_voice_only_audio(
     output_path: Path | None = None,
     on_command: Callable[[tuple[str, ...]], None] | None = None,
 ) -> AudioProcessingResult:
-    """Render an MP3 containing only the Spleeter vocals stem."""
+    """Render audio containing only the Spleeter vocals stem."""
     ffmpeg_path: Path | None = None
     spleeter_path: Path | None = None
     vocals_model_path: Path | None = None
@@ -166,7 +200,16 @@ def render_voice_only_audio(
     try:
         ffmpeg_path = find_ffmpeg(config.ffmpeg_path)
         spleeter_path, vocals_model_path, accompaniment_model_path = find_spleeter_bundle()
-        output_path = output_path or Path(tempfile.mkstemp(prefix="aqe_voice_only_", suffix=".mp3")[1])
+        output_policy = _model_output_policy(
+            source_path,
+            config,
+            output_path,
+            codec_name="pcm_s16le",
+            sample_rate=44100,
+            channels=2,
+            bits_per_raw_sample=16,
+        )
+        output_path = output_path or Path(tempfile.mkstemp(prefix="aqe_voice_only_", suffix=output_policy.extension)[1])
         work_dir = Path(tempfile.mkdtemp(prefix="aqe_spleeter_"))
         input_wav = work_dir / "input_44k_stereo.wav"
         output_dir = work_dir / "spleeter_output"
@@ -203,8 +246,13 @@ def render_voice_only_audio(
             raise AudioProcessingError("Voice Only extraction did not produce vocals.wav.")
         _ensure_stage_success(
             _run_recorded_external_command(
-                build_mp3_encode_command(ffmpeg_path, vocals_wav, output_path),
-                "Could not start MP3 encoding for Voice Only output.",
+                build_audio_encode_command(
+                    ffmpeg_path,
+                    vocals_wav,
+                    output_path,
+                    codec_args_for_output_policy(output_policy),
+                ),
+                "Could not start final encoding for Voice Only output.",
                 attempted_commands,
                 on_command,
                 timeout_seconds=DENOISE_EXTERNAL_TIMEOUT_SECONDS,
@@ -226,6 +274,30 @@ def render_voice_only_audio(
     finally:
         if work_dir is not None:
             shutil.rmtree(work_dir, ignore_errors=True)
+
+
+def _model_output_policy(
+    source_path: Path,
+    config: AudioProcessingConfig,
+    output_path: Path | None,
+    *,
+    codec_name: str | None,
+    sample_rate: int | None,
+    channels: int | None,
+    bits_per_raw_sample: int | None,
+) -> AudioOutputPolicy:
+    return resolve_output_policy_from_metadata(
+        synthetic_audio_metadata(
+            source_path,
+            output_path=output_path or source_path,
+            codec_name=codec_name,
+            sample_rate=sample_rate,
+            channels=channels,
+            bits_per_raw_sample=bits_per_raw_sample,
+        ),
+        requested_format=config.output_format,
+        output_path=output_path,
+    )
 
 
 def _run_recorded_external_command(

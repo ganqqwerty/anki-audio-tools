@@ -11,8 +11,14 @@ from importlib.util import find_spec
 from pathlib import Path
 from typing import Any, cast
 
-from .audio_commands import build_mp3_encode_command
+from .audio_commands import build_audio_encode_command
 from .audio_external import _external_command_run_kwargs, probe_duration_ms
+from .audio_output_policy import (
+    AudioOutputPolicy,
+    codec_args_for_output_policy,
+    resolve_output_policy_from_metadata,
+    synthetic_audio_metadata,
+)
 from .audio_pitch_hum_frames import (
     PitchHumFrame,
     sanitize_pitch_hum_frames,
@@ -50,8 +56,9 @@ def render_pitch_hum_audio(
 
     import parselmouth
 
+    output_policy = _pitch_hum_output_policy(source_path, config, output_path)
     if output_path is None:
-        output_path = Path(tempfile.mkstemp(prefix="aqe_pitch_hum_", suffix=".mp3")[1])
+        output_path = Path(tempfile.mkstemp(prefix="aqe_pitch_hum_", suffix=output_policy.extension)[1])
 
     sound = parselmouth.Sound(str(source_path))
     frames = _pitch_hum_frames(sound, config)
@@ -83,8 +90,9 @@ def render_pitch_tier_hum_audio(
 
     call = import_module("parselmouth.praat").call
 
+    output_policy = _pitch_hum_output_policy(source_path, config, output_path)
     if output_path is None:
-        output_path = Path(tempfile.mkstemp(prefix="aqe_pitch_tier_", suffix=".mp3")[1])
+        output_path = Path(tempfile.mkstemp(prefix="aqe_pitch_tier_", suffix=output_policy.extension)[1])
 
     options = resolve_analysis_options(config)
     sound = parselmouth.Sound(str(source_path))
@@ -120,7 +128,13 @@ def _encode_pitch_hum_wav(
     failure_message: str,
 ) -> AudioProcessingResult:
     ffmpeg_path = find_ffmpeg(config.ffmpeg_path)
-    command = build_mp3_encode_command(ffmpeg_path, wav_path, output_path)
+    output_policy = _pitch_hum_output_policy(wav_path, config, output_path)
+    command = build_audio_encode_command(
+        ffmpeg_path,
+        wav_path,
+        output_path,
+        codec_args_for_output_policy(output_policy),
+    )
     if on_command:
         on_command(command)
     try:
@@ -132,13 +146,32 @@ def _encode_pitch_hum_wav(
             **_external_command_run_kwargs(),
         )  # nosec B603
     except OSError as exc:
-        raise AudioProcessingError(launch_error_message("Could not start pitch hum MP3 encoding.", exc)) from exc
+        raise AudioProcessingError(launch_error_message("Could not start pitch hum encoding.", exc)) from exc
     if result.returncode != 0:
         raise AudioProcessingError(result.stderr.strip() or failure_message)
     return AudioProcessingResult(
         output_path=output_path,
         command=command,
         duration_ms=probe_duration_ms(output_path, config),
+    )
+
+
+def _pitch_hum_output_policy(
+    source_path: Path,
+    config: AudioProcessingConfig,
+    output_path: Path | None,
+) -> AudioOutputPolicy:
+    return resolve_output_policy_from_metadata(
+        synthetic_audio_metadata(
+            source_path,
+            output_path=output_path or source_path,
+            codec_name="pcm_s16le",
+            sample_rate=HUM_SAMPLE_RATE,
+            channels=1,
+            bits_per_raw_sample=16,
+        ),
+        requested_format=config.output_format,
+        output_path=output_path,
     )
 
 

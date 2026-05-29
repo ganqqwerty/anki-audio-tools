@@ -26,8 +26,18 @@ from .audio_external import (
 )
 from .audio_formats import (
     DEFAULT_OUTPUT_FORMAT,
+    normalize_output_format,
     output_extension,
     validate_target_format,
+    visible_extension,
+)
+from .audio_output_policy import (
+    PRESERVABLE_SOURCE_FORMATS,
+    AudioOutputPolicy,
+    codec_args_for_output_policy,
+    resolve_output_policy,
+    resolve_output_policy_from_metadata,
+    synthetic_audio_metadata,
 )
 from .audio_pause_pipeline import _render_pause_removal_pipeline_audio
 from .audio_state import AudioEditState, AudioProcessingConfig
@@ -45,15 +55,16 @@ def render_audio(
     on_command: Callable[[tuple[str, ...]], None] | None = None,
     artifact_root: Path | None = None,
 ) -> AudioProcessingResult:
-    """Render ``state`` from ``source_path`` to an MP3 file."""
+    """Render ``state`` from ``source_path`` to a final audio file."""
     ffmpeg_path = find_ffmpeg(config.ffmpeg_path)
     duration_ms = probe_duration_ms(source_path, config)
     state.validate(duration_ms, config)
 
-    if output_path is None:
-        output_path = Path(tempfile.mkstemp(prefix="aqe_preview_", suffix=".mp3")[1])
 
     if state.remove_internal_pauses_enabled:
+        output_policy = _resolve_filename_output_policy(source_path, config, output_path)
+        if output_path is None:
+            output_path = Path(tempfile.mkstemp(prefix="aqe_preview_", suffix=output_policy.extension)[1])
         return _render_pause_removal_pipeline_audio(
             source_path,
             state,
@@ -63,10 +74,22 @@ def render_audio(
             on_command,
             artifact_root=artifact_root,
             source_duration_ms=duration_ms,
+            codec_args=codec_args_for_output_policy(output_policy),
+            output_mime_type=output_policy.mime_type,
         )
 
+    output_policy = resolve_output_policy(source_path, config, output_path=output_path)
+    if output_path is None:
+        output_path = Path(tempfile.mkstemp(prefix="aqe_preview_", suffix=output_policy.extension)[1])
+
     filters = build_audio_filters(duration_ms, state)
-    cmd = build_ffmpeg_command(ffmpeg_path, source_path, filters, output_path)
+    cmd = build_ffmpeg_command(
+        ffmpeg_path,
+        source_path,
+        filters,
+        output_path,
+        codec_args_for_output_policy(output_policy),
+    )
     if on_command:
         on_command(cmd)
     result = _run_render_command(cmd, "Could not start audio processing.")
@@ -91,12 +114,24 @@ def render_converted_audio(
     """Convert ``source_path`` to a supported output format without edit filters."""
     target = validate_target_format(target_format)
     ffmpeg_path = find_ffmpeg(config.ffmpeg_path)
+    output_policy = resolve_output_policy(
+        source_path,
+        config,
+        requested_format=target,
+        output_path=output_path,
+    )
     if output_path is None:
         output_path = Path(
-            tempfile.mkstemp(prefix="aqe_convert_", suffix=output_extension(target))[1]
+            tempfile.mkstemp(prefix="aqe_convert_", suffix=output_policy.extension)[1]
         )
 
-    cmd = build_convert_audio_command(ffmpeg_path, source_path, output_path, target)
+    cmd = build_convert_audio_command(
+        ffmpeg_path,
+        source_path,
+        output_path,
+        target,
+        codec_args_for_output_policy(output_policy),
+    )
     if on_command:
         on_command(cmd)
     result = _run_render_command(cmd, "Could not start audio conversion.")
@@ -119,14 +154,22 @@ def render_audio_region_deleted(
     output_path: Path | None = None,
     on_command: Callable[[tuple[str, ...]], None] | None = None,
 ) -> AudioProcessingResult:
-    """Render an MP3 with one selected region removed from ``source_path``."""
+    """Render final audio with one selected region removed from ``source_path``."""
     duration_ms = probe_duration_ms(source_path, config)
     plan = build_region_delete_plan(selection_start_ms, selection_end_ms, duration_ms)
+    output_policy = resolve_output_policy(source_path, config, output_path=output_path)
 
     if output_path is None:
-        output_path = Path(tempfile.mkstemp(prefix="aqe_region_delete_", suffix=".mp3")[1])
+        output_path = Path(tempfile.mkstemp(prefix="aqe_region_delete_", suffix=output_policy.extension)[1])
 
-    return _render_region_filter_complex(source_path, plan.filter_complex, config, output_path, on_command)
+    return _render_region_filter_complex(
+        source_path,
+        plan.filter_complex,
+        config,
+        output_path,
+        codec_args_for_output_policy(output_policy),
+        on_command,
+    )
 
 
 def _render_region_filter_complex(
@@ -134,10 +177,11 @@ def _render_region_filter_complex(
     filter_complex: str,
     config: AudioProcessingConfig,
     output_path: Path,
+    codec_args: tuple[str, ...],
     on_command: Callable[[tuple[str, ...]], None] | None = None,
 ) -> AudioProcessingResult:
     ffmpeg_path = find_ffmpeg(config.ffmpeg_path)
-    cmd = build_region_delete_command(ffmpeg_path, source_path, filter_complex, output_path)
+    cmd = build_region_delete_command(ffmpeg_path, source_path, filter_complex, output_path, codec_args)
     if on_command:
         on_command(cmd)
     result = _run_render_command(cmd, "Could not start selected-region rendering.")
@@ -160,14 +204,22 @@ def render_audio_region_kept(
     output_path: Path | None = None,
     on_command: Callable[[tuple[str, ...]], None] | None = None,
 ) -> AudioProcessingResult:
-    """Render an MP3 with only one selected region kept from ``source_path``."""
+    """Render final audio with only one selected region kept from ``source_path``."""
     duration_ms = probe_duration_ms(source_path, config)
     plan = build_region_keep_plan(selection_start_ms, selection_end_ms, duration_ms)
+    output_policy = resolve_output_policy(source_path, config, output_path=output_path)
 
     if output_path is None:
-        output_path = Path(tempfile.mkstemp(prefix="aqe_region_keep_", suffix=".mp3")[1])
+        output_path = Path(tempfile.mkstemp(prefix="aqe_region_keep_", suffix=output_policy.extension)[1])
 
-    return _render_region_filter_complex(source_path, plan.filter_complex, config, output_path, on_command)
+    return _render_region_filter_complex(
+        source_path,
+        plan.filter_complex,
+        config,
+        output_path,
+        codec_args_for_output_policy(output_policy),
+        on_command,
+    )
 
 
 def render_playback_segment(
@@ -217,7 +269,7 @@ def make_output_filename(
     token = token or uuid.uuid4().hex[:8]
     stem = Path(source_filename).stem or "audio"
     safe_stem = _safe_filename_stem(stem)
-    suffix = f"__aqe_{now:%Y%m%d_%H%M%S_%f}_{token}{output_extension(output_format)}"
+    suffix = f"__aqe_{now:%Y%m%d_%H%M%S_%f}_{token}{_output_extension_for_filename(source_filename, output_format)}"
     max_stem_length = max(1, 120 - len(suffix))  # pragma: no mutate
     return f"{safe_stem[:max_stem_length]}{suffix}"
 
@@ -239,6 +291,33 @@ def _safe_filename_stem(stem: str) -> str:
     safe = "".join(ch if ch.isascii() and (ch.isalnum() or ch in {"-", "_"}) else "_" for ch in stem)  # pragma: no mutate
     safe = "_".join(part for part in safe.split("_") if part)
     return safe or "audio"
+
+
+def _output_extension_for_filename(source_filename: str, output_format: object) -> str:
+    if normalize_output_format(output_format) == DEFAULT_OUTPUT_FORMAT:
+        source_extension = visible_extension(source_filename)
+        if source_extension in PRESERVABLE_SOURCE_FORMATS:
+            return f".{source_extension}"
+        return ".mp3"
+    return output_extension(output_format)
+
+
+def _resolve_filename_output_policy(
+    source_path: Path,
+    config: AudioProcessingConfig,
+    output_path: Path | None,
+) -> AudioOutputPolicy:
+    return resolve_output_policy_from_metadata(
+        synthetic_audio_metadata(
+            source_path,
+            output_path=output_path or source_path,
+            codec_name=None,
+            sample_rate=None,
+            channels=None,
+        ),
+        requested_format=config.output_format,
+        output_path=output_path,
+    )
 
 
 def temp_final_path(filename: str) -> Path:

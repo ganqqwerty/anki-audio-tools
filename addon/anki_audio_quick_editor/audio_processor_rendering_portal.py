@@ -126,7 +126,7 @@ def make_output_filename(
     now: datetime | None = None,
     token: str | None = None,
     *,
-    output_format: object = "mp3",
+    output_format: object = "source",
 ) -> str:
     facade = _facade()
     _sync(facade, "_sync_rendering_dependencies")

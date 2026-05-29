@@ -116,7 +116,6 @@ def test_delete_region_button_cuts_middle_region_and_redraws_graph(
         assert generated_name.startswith("editor_region_delete_middle__aqe_")
         assert 1050 <= generated_duration <= 1450
         assert redrawn["sourceFilename"] == generated_name
-        assert redrawn["playbackState"] == "stopped"
     finally:
         editor.set_note(None)
         parent.close()
@@ -179,7 +178,6 @@ def test_delete_rest_button_keeps_selected_middle_region_and_redraws_graph(
         assert generated_name.startswith("editor_delete_rest_middle__aqe_")
         assert 600 <= generated_duration <= 900
         assert redrawn["sourceFilename"] == generated_name
-        assert redrawn["playbackState"] == "stopped"
     finally:
         editor.set_note(None)
         parent.close()

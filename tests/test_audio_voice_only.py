@@ -92,7 +92,7 @@ def test_render_voice_only_audio_runs_prepare_spleeter_and_encode(
     assert calls[1][4].startswith("--output-vocals-wav=")
     assert calls[1][5].startswith("--output-accompaniment-wav=")
     assert calls[2][0:4] == ["/bin/ffmpeg", "-y", "-i", vocals_wav]
-    assert calls[2][-5:] == ["-codec:a", "libmp3lame", "-q:a", "4", str(output)]
+    assert calls[2][-9:] == ["-codec:a", "libmp3lame", "-q:a", "4", "-ar", "44100", "-ac", "2", str(output)]
     assert commands == [tuple(call) for call in calls]
     assert result.output_path == output
     assert result.command == tuple(calls[1])

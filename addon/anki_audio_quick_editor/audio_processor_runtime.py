@@ -46,6 +46,7 @@ def sync_rendering_dependencies(
     find_ffmpeg: Any,
     make_playback_segment_filename: Any,
     probe_duration_ms: Any,
+    resolve_output_policy: Any,
     render_pause_removal_pipeline_audio: Any,
     subprocess_module: Any,
     tempfile_module: Any,
@@ -55,6 +56,7 @@ def sync_rendering_dependencies(
     audio_rendering.probe_duration_ms = probe_duration_ms
     audio_rendering.build_audio_filters = build_audio_filters
     audio_rendering.build_convert_audio_command = build_convert_audio_command
+    audio_rendering.resolve_output_policy = resolve_output_policy
     audio_rendering._render_pause_removal_pipeline_audio = render_pause_removal_pipeline_audio
     audio_rendering._external_command_run_kwargs = external_command_run_kwargs
     audio_rendering.subprocess = subprocess_module

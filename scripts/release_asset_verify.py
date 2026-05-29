@@ -5,6 +5,7 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any
 
+from scripts.ffmpeg_runtime_capabilities import PROFILE_NAME, verify_ffmpeg_binary
 from scripts.release_asset_common import (
     SHARED_FILE_NAMES,
     VerificationResult,
@@ -96,6 +97,22 @@ def _verify_tool_asset(
     reports.append(f"{target}/{tool_name}: {path} sha256={actual_sha}")
     if run_diagnostics and target == current_target_key():
         append_diagnostic_report(path, entry, reports, errors, target, tool_name)
+        if tool_name == "ffmpeg":
+            _append_ffmpeg_capability_report(path, reports, errors, target)
+
+
+def _append_ffmpeg_capability_report(
+    path: Path,
+    reports: list[str],
+    errors: list[str],
+    target: str,
+) -> None:
+    try:
+        verify_ffmpeg_binary(path)
+    except RuntimeError as exc:
+        errors.append(f"{target}/ffmpeg: {exc}")
+        return
+    reports.append(f"{target}/ffmpeg: satisfies {PROFILE_NAME}")
 
 
 def _verify_shared_asset(

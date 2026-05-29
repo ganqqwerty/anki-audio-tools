@@ -79,6 +79,16 @@ def test_release_ready_lock_requires_every_binary_checksum() -> None:
         release_assets.validate_lock(release_ready_lock)
 
 
+def test_release_ready_lock_requires_ffmpeg_capability_profile() -> None:
+    lock = release_assets.load_lock()
+    release_ready_lock = copy.deepcopy(lock)
+    release_ready_lock["release_ready"] = True
+    release_ready_lock["targets"]["macos-arm64"]["tools"]["ffmpeg"].pop("capability_profile", None)
+
+    with pytest.raises(release_assets.ReleaseAssetError, match="capability profile aqe-source-audio-v1"):
+        release_assets.validate_lock(release_ready_lock)
+
+
 def test_release_ready_lock_requires_runtime_file_checksums() -> None:
     lock = release_assets.load_lock()
     release_ready_lock = copy.deepcopy(lock)
@@ -152,6 +162,7 @@ def test_verify_runs_current_sherpa_spleeter_smoke(
     _write_verified_target_sources(lock, tmp_path / "cache", tmp_path / "addon-bin", current_target)
     monkeypatch.setattr(release_assets, "current_target_key", lambda: current_target)
     monkeypatch.setattr(release_assets, "_append_diagnostic_report", lambda *_args: None)
+    monkeypatch.setattr("scripts.release_asset_verify.verify_ffmpeg_binary", lambda _path: None)
     commands: list[tuple[str, ...]] = []
 
     def fake_run(

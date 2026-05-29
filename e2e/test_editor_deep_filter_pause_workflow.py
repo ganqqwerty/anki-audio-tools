@@ -80,7 +80,7 @@ def test_shorten_pauses_uses_dpdfnet_analysis_and_retains_artifacts(
             "04_removed_intervals.json",
             "05_timeline.json",
             "06_filter_complex.ffscript",
-            "07_final_output.mp3",
+            "07_final_output.wav",
             "manifest.json",
         ):
             assert (run_dir / relative_path).is_file()
@@ -170,7 +170,7 @@ def test_shorten_pauses_failure_leaves_note_unchanged_and_records_manifest(
         assert len(new_artifacts) == 1
         manifest = json.loads((next(iter(new_artifacts)) / "manifest.json").read_text(encoding="utf-8"))
         assert manifest["errors"]
-        assert not list(media_dir.glob("editor_shorten_pause_failure_source__aqe_*.mp3"))
+        assert not list(media_dir.glob("editor_shorten_pause_failure_source__aqe_*"))
     finally:
         editor.set_note(None)
         parent.close()

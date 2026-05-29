@@ -55,6 +55,8 @@ def _render_pause_removal_pipeline_audio(
     *,
     artifact_root: Path | None,
     source_duration_ms: int,
+    codec_args: tuple[str, ...] = ("-codec:a", "libmp3lame", "-q:a", "4"),
+    output_mime_type: str = "audio/mpeg",
 ) -> AudioProcessingResult:
     runtime = _PauseDetectionRuntime()
     run_dir = _create_pause_pipeline_run_dir(source_path, artifact_root)
@@ -65,7 +67,7 @@ def _render_pause_removal_pipeline_audio(
     warnings: list[str] = []
     errors: list[str] = []
     working_original = run_dir / "01_working_original.wav"
-    final_copy_path = run_dir / "07_final_output.mp3"
+    final_copy_path = run_dir / f"07_final_output{output_path.suffix or '.mp3'}"
     paths = _pause_pipeline_artifact_paths(run_dir)
 
     manifest = _build_pause_pipeline_manifest(
@@ -133,6 +135,8 @@ def _render_pause_removal_pipeline_audio(
             intervals_path=paths.intervals_path,
             timeline_path=paths.timeline_path,
             filter_script_path=paths.filter_script_path,
+            codec_args=codec_args,
+            output_mime_type=output_mime_type,
         )
     except Exception as exc:
         errors.append(str(exc) or type(exc).__name__)
@@ -252,6 +256,8 @@ def _render_selected_pause_detection_pipeline(
     filter_script_path: Path,
     final_copy_path: Path,
     runtime: _PauseDetectionRuntime,
+    codec_args: tuple[str, ...],
+    output_mime_type: str,
 ) -> AudioProcessingResult:
     return _render_pause_removal_audio(
         state,
@@ -278,4 +284,6 @@ def _render_selected_pause_detection_pipeline(
         dpdfnet_path=runtime.dpdfnet_path,
         silero_vad_path=runtime.silero_vad_path,
         silero_model_path=runtime.silero_model_path,
+        codec_args=codec_args,
+        output_mime_type=output_mime_type,
     )

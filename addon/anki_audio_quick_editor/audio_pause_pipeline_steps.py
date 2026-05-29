@@ -63,6 +63,8 @@ def _render_pause_removal_audio(
     dpdfnet_path: Path | None,
     silero_vad_path: Path | None,
     silero_model_path: Path | None,
+    codec_args: tuple[str, ...] = ("-codec:a", "libmp3lame", "-q:a", "4"),
+    output_mime_type: str = "audio/mpeg",
 ) -> AudioProcessingResult:
     active_params = active_pause_detection_params(config)
     manifest["pause_detection_parameters"] = {
@@ -146,6 +148,7 @@ def _render_pause_removal_audio(
         working_original,
         filter_script_path,
         output_path,
+        codec_args,
     )
     _stage.run_pipeline_stage(
         "render_final_output",
@@ -158,7 +161,7 @@ def _render_pause_removal_audio(
     )
     if output_path.resolve() != final_copy_path.resolve():
         shutil.copyfile(output_path, final_copy_path)
-    artifacts.append(_artifact_record("final_output", final_copy_path, "audio/mpeg"))
+    artifacts.append(_artifact_record("final_output", final_copy_path, output_mime_type))
     final_duration_ms = probe_duration_ms(output_path, config)
     manifest["final_output"] = {
         "path": str(output_path),

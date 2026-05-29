@@ -67,7 +67,7 @@ def test_standard_denoise_menu_runs_deep_filter_and_is_undoable(
 
         generated_path = media_dir / generated_name
         assert generated_path.is_file()
-        assert generated_name.endswith(".mp3")
+        assert generated_name.endswith(".wav")
         assert source.read_bytes() == original_bytes
         assert probe_duration_ms(generated_path, ffmpeg_config) > 0
         assert abs(probe_duration_ms(generated_path, ffmpeg_config) - 1200) < 250

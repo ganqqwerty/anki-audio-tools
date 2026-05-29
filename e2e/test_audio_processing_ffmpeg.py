@@ -294,7 +294,7 @@ def test_final_save_writes_new_anki_media_without_overwriting_original(
     saved_name = anki_mw.col.media.write_data(desired_name, rendered_path.read_bytes())
     saved_path = media_dir / saved_name
 
-    assert saved_name.endswith(".mp3")
+    assert saved_name.endswith(".wav")
     assert saved_path.is_file()
     assert source.read_bytes() == original_bytes
     assert audio_processor.probe_duration_ms(saved_path, ffmpeg_config) < audio_processor.probe_duration_ms(source, ffmpeg_config)

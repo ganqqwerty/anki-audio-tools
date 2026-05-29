@@ -36,8 +36,8 @@ const PAUSE_PRESETS: Record<PauseDetectionAlgorithmValue, Record<PauseAggressive
   },
 };
 export const DPDFNET_ATTENUATION_LIMIT_DB_VALUES = [6, 12, 18] as const;
-export const DEFAULT_OUTPUT_FORMAT = "mp3";
-export const OUTPUT_FORMAT_VALUES = ["mp3", "m4a", "wav", "flac"] as const;
+export const DEFAULT_OUTPUT_FORMAT = "source";
+export const OUTPUT_FORMAT_VALUES = ["source", "mp3", "m4a", "wav", "flac"] as const;
 export type OutputFormatValue = (typeof OUTPUT_FORMAT_VALUES)[number];
 
 export function clampVolumeStepDb(value: number): number {

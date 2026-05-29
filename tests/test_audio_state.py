@@ -109,7 +109,7 @@ def test_processing_config_from_partial_config_uses_defaults() -> None:
     assert config.pause_silero_min_silence_seconds == 0.45
     assert config.pause_silero_min_speech_seconds == 0.10
     assert config.pause_silero_preprocess_denoise is False
-    assert config.output_format == "mp3"
+    assert config.output_format == "source"
     assert config.ffmpeg_path == "/opt/bin/ffmpeg"
     assert config.deep_filter_post_filter is True
     assert config.dpdfnet_attn_limit_db == 12.0
@@ -135,7 +135,7 @@ def test_processing_config_reads_show_ffmpeg_commands_flag() -> None:
 
 def test_processing_config_normalizes_output_format() -> None:
     assert AudioProcessingConfig.from_config({"output_format": " FLAC "}).output_format == "flac"
-    assert AudioProcessingConfig.from_config({"output_format": "aac"}).output_format == "mp3"
+    assert AudioProcessingConfig.from_config({"output_format": "aac"}).output_format == "source"
 
 
 def test_processing_config_reads_algorithm_specific_pause_params() -> None:

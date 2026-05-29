@@ -31,6 +31,21 @@ lame_sha="ddfe36cab873794038ae2c1210557ad34857a4b6bdc515785d1da9e175b1da1e"
 lame_archive="$sources_dir/lame-3.100.tar.gz"
 lame_build="$build_root/lame-$target"
 
+ogg_url="https://downloads.xiph.org/releases/ogg/libogg-1.3.5.tar.xz"
+ogg_sha="c4d91be36fc8e54deae7575241e03f4211eb102afb3fc0775fbbc1b740016705"
+ogg_archive="$sources_dir/libogg-1.3.5.tar.xz"
+ogg_build="$build_root/libogg-$target"
+
+vorbis_url="https://downloads.xiph.org/releases/vorbis/libvorbis-1.3.7.tar.xz"
+vorbis_sha="b33cc4934322bcbf6efcbacf49e3ca01aadbea4114ec9589d1b1e9d20f72954b"
+vorbis_archive="$sources_dir/libvorbis-1.3.7.tar.xz"
+vorbis_build="$build_root/libvorbis-$target"
+
+opus_url="https://downloads.xiph.org/releases/opus/opus-1.5.2.tar.gz"
+opus_sha="65c1d2f78b9f2fb20082c38cbe47c951ad5839345876e46941612ee87f9a7ce1"
+opus_archive="$sources_dir/opus-1.5.2.tar.gz"
+opus_build="$build_root/opus-$target"
+
 ffmpeg_url="https://ffmpeg.org/releases/ffmpeg-8.1.1.tar.xz"
 ffmpeg_sha="b6863adde98898f42602017462871b5f6333e65aec803fdd7a6308639c52edf3"
 ffmpeg_archive="$sources_dir/ffmpeg-8.1.1.tar.xz"
@@ -75,21 +90,79 @@ build_lame() {
   cp "$lame_build/include/lame.h" "$lame_build/ffmpeg-include/lame/lame.h"
 }
 
+build_ogg() {
+  rm -rf "$ogg_build"
+  mkdir -p "$ogg_build"
+  tar -xJf "$ogg_archive" -C "$ogg_build" --strip-components=1
+  (
+    cd "$ogg_build"
+    CFLAGS="-O2 -arch $arch -mmacosx-version-min=$min_version" \
+      ./configure \
+        --disable-shared \
+        --enable-static \
+        --prefix="$ogg_build/prefix" \
+        ${host_arg:+"$host_arg"}
+    make -j"$(sysctl -n hw.ncpu)"
+    make install
+  )
+}
+
+build_vorbis() {
+  rm -rf "$vorbis_build"
+  mkdir -p "$vorbis_build"
+  tar -xJf "$vorbis_archive" -C "$vorbis_build" --strip-components=1
+  (
+    cd "$vorbis_build"
+    PKG_CONFIG_PATH="$ogg_build/prefix/lib/pkgconfig${PKG_CONFIG_PATH:+:$PKG_CONFIG_PATH}" \
+      CFLAGS="-O2 -arch $arch -mmacosx-version-min=$min_version -I$ogg_build/prefix/include" \
+      LDFLAGS="-arch $arch -mmacosx-version-min=$min_version -L$ogg_build/prefix/lib" \
+      ./configure \
+        --disable-shared \
+        --enable-static \
+        --with-ogg="$ogg_build/prefix" \
+        --prefix="$vorbis_build/prefix" \
+        ${host_arg:+"$host_arg"}
+    make -j"$(sysctl -n hw.ncpu)"
+    make install
+  )
+}
+
+build_opus() {
+  rm -rf "$opus_build"
+  mkdir -p "$opus_build"
+  tar -xzf "$opus_archive" -C "$opus_build" --strip-components=1
+  (
+    cd "$opus_build"
+    CFLAGS="-O2 -arch $arch -mmacosx-version-min=$min_version" \
+      ./configure \
+        --disable-shared \
+        --enable-static \
+        --disable-extra-programs \
+        --disable-doc \
+        --prefix="$opus_build/prefix" \
+        ${host_arg:+"$host_arg"}
+    make -j"$(sysctl -n hw.ncpu)"
+    make install
+  )
+}
+
 build_ffmpeg() {
   rm -rf "$ffmpeg_build"
   mkdir -p "$ffmpeg_build"
   tar -xJf "$ffmpeg_archive" -C "$ffmpeg_build" --strip-components=1
   (
     cd "$ffmpeg_build"
+    export PKG_CONFIG_PATH="$opus_build/prefix/lib/pkgconfig:$vorbis_build/prefix/lib/pkgconfig:$ogg_build/prefix/lib/pkgconfig${PKG_CONFIG_PATH:+:$PKG_CONFIG_PATH}"
     ./configure \
       --prefix="$ffmpeg_build/install" \
       --cc=clang \
       --arch="$arch" \
       --target-os=darwin \
       ${x86asm_arg:+"$x86asm_arg"} \
-      --extra-cflags="-O2 -arch $arch -mmacosx-version-min=$min_version -I$lame_build/ffmpeg-include" \
-      --extra-ldflags="-arch $arch -mmacosx-version-min=$min_version -L$lame_build/libmp3lame/.libs" \
-      --extra-libs="-lm" \
+      --pkg-config-flags="--static" \
+      --extra-cflags="-O2 -arch $arch -mmacosx-version-min=$min_version -I$lame_build/ffmpeg-include -I$ogg_build/prefix/include -I$vorbis_build/prefix/include -I$opus_build/prefix/include" \
+      --extra-ldflags="-arch $arch -mmacosx-version-min=$min_version -L$lame_build/libmp3lame/.libs -L$ogg_build/prefix/lib -L$vorbis_build/prefix/lib -L$opus_build/prefix/lib" \
+      --extra-libs="-lvorbisenc -lvorbis -logg -lopus -lm" \
       --enable-static \
       --disable-shared \
       --disable-autodetect \
@@ -101,12 +174,15 @@ build_ffmpeg() {
       --enable-ffprobe \
       --enable-protocol=file,pipe \
       --enable-demuxer=aac,flac,matroska,mov,mp3,ogg,wav \
-      --enable-muxer=mp3,null,s16le,wav \
+      --enable-muxer=mp3,mp4,adts,wav,flac,ogg,opus,webm,null,s16le \
       --enable-decoder=aac,alac,flac,mp3,mp3float,opus,pcm_f32le,pcm_s16le,pcm_s24le,vorbis \
-      --enable-encoder=libmp3lame,pcm_s16le \
+      --enable-encoder=libmp3lame,aac,flac,libvorbis,libopus,pcm_s16le,pcm_s24le \
       --enable-parser=aac,flac,mpegaudio,opus,vorbis \
       --enable-filter=anull,aresample,asetpts,atempo,atrim,concat,silencedetect,volume \
-      --enable-libmp3lame
+      --enable-gpl \
+      --enable-libmp3lame \
+      --enable-libopus \
+      --enable-libvorbis
     make -j"$(sysctl -n hw.ncpu)" ffmpeg ffprobe
   )
 }
@@ -131,13 +207,23 @@ verify_outputs() {
   codesign -dv "$output_dir/ffprobe" || true
   xattr -l "$output_dir/ffmpeg" || true
   xattr -l "$output_dir/ffprobe" || true
+  python3 "$root/scripts/ffmpeg_runtime_capabilities.py" --ffmpeg "$output_dir/ffmpeg"
 }
 
 download_if_missing "$lame_url" "$lame_archive"
+download_if_missing "$ogg_url" "$ogg_archive"
+download_if_missing "$vorbis_url" "$vorbis_archive"
+download_if_missing "$opus_url" "$opus_archive"
 download_if_missing "$ffmpeg_url" "$ffmpeg_archive"
 verify_sha256 "$lame_archive" "$lame_sha"
+verify_sha256 "$ogg_archive" "$ogg_sha"
+verify_sha256 "$vorbis_archive" "$vorbis_sha"
+verify_sha256 "$opus_archive" "$opus_sha"
 verify_sha256 "$ffmpeg_archive" "$ffmpeg_sha"
 build_lame
+build_ogg
+build_vorbis
+build_opus
 build_ffmpeg
 install_outputs
 verify_outputs

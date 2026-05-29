@@ -12,6 +12,7 @@ from typing import Any, cast
 from . import audio_commands as _audio_commands
 from . import audio_external as _audio_external
 from . import audio_noise_reduction as _audio_noise_reduction
+from . import audio_output_policy as _audio_output_policy
 from . import audio_pause_pipeline as _audio_pause_pipeline
 from . import audio_pause_pipeline_stage as _audio_pause_pipeline_stage
 from . import audio_pause_pipeline_steps as _audio_pause_pipeline_steps
@@ -49,6 +50,8 @@ build_region_keep_plan = _audio_commands.build_region_keep_plan
 build_silencedetect_command = _audio_commands.build_silencedetect_command
 build_working_original_filters = _audio_commands.build_working_original_filters
 format_ffmpeg_command = _audio_commands.format_ffmpeg_command
+probe_audio_metadata = _audio_output_policy.probe_audio_metadata
+resolve_output_policy = _audio_output_policy.resolve_output_policy
 make_output_filename = _render_portal.make_output_filename
 make_playback_segment_filename = _render_portal.make_playback_segment_filename
 render_audio = _render_portal.render_audio
@@ -228,6 +231,8 @@ def _render_pause_removal_pipeline_audio(
     *,
     artifact_root: Path | None,
     source_duration_ms: int,
+    codec_args: tuple[str, ...],
+    output_mime_type: str,
 ) -> AudioProcessingResult:
     _sync_pause_dependencies()
     return _audio_pause_pipeline._render_pause_removal_pipeline_audio(
@@ -239,6 +244,8 @@ def _render_pause_removal_pipeline_audio(
         on_command,
         artifact_root=artifact_root,
         source_duration_ms=source_duration_ms,
+        codec_args=codec_args,
+        output_mime_type=output_mime_type,
     )
 def _sync_rendering_dependencies() -> None:
     sync_rendering_dependencies(
@@ -249,6 +256,7 @@ def _sync_rendering_dependencies() -> None:
         find_ffmpeg=find_ffmpeg,
         make_playback_segment_filename=make_playback_segment_filename,
         probe_duration_ms=probe_duration_ms,
+        resolve_output_policy=resolve_output_policy,
         render_pause_removal_pipeline_audio=_render_pause_removal_pipeline_audio,
         subprocess_module=subprocess,
         tempfile_module=tempfile,

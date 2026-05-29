@@ -122,7 +122,7 @@ export const FALLBACK_BATCH_INITIAL_STATE: BatchInitialState = {
     pause_silero_preprocess_denoise: false,
     denoise_algorithm: DenoiseAlgorithm.Standard,
     dpdfnet_attn_limit_db: 12,
-    output_format: OutputFormat.Mp3,
+    output_format: OutputFormat.Source,
   },
   locale: "en",
   direction: Direction.LTR,

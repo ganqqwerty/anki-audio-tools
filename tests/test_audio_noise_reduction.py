@@ -89,7 +89,7 @@ def test_render_noise_reduced_audio_runs_prepare_deep_filter_and_encode(
     ]
     assert calls[1][0:3] == ["/bin/deep-filter", "-D", "--pf"]
     assert calls[2][0:4] == ["/bin/ffmpeg", "-y", "-i", calls[2][3]]
-    assert calls[2][-5:] == ["-codec:a", "libmp3lame", "-q:a", "4", str(output)]
+    assert calls[2][-9:] == ["-codec:a", "libmp3lame", "-q:a", "4", "-ar", "48000", "-ac", "1", str(output)]
     assert commands == [tuple(call) for call in calls]
     assert result.output_path == output
     assert result.command == tuple(calls[1])

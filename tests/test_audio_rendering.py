@@ -19,10 +19,10 @@ from anki_audio_quick_editor.errors import (
 )
 
 
-def test_make_output_filename_is_mp3_and_timestamped() -> None:
+def test_make_output_filename_preserves_source_extension_and_timestamp() -> None:
     filename = make_output_filename("my sentence.wav", datetime(2026, 5, 14, 9, 8, 7), "abc12345")
 
-    assert filename == "my_sentence__aqe_20260514_090807_000000_abc12345.mp3"
+    assert filename == "my_sentence__aqe_20260514_090807_000000_abc12345.wav"
 
 
 def test_make_output_filename_respects_output_format() -> None:
@@ -43,7 +43,7 @@ def test_make_output_filename_sanitizes_and_bounds_problematic_names() -> None:
         "deadbeef",
     )
 
-    assert filename.endswith("__aqe_20260514_090807_123456_deadbeef.mp3")
+    assert filename.endswith("__aqe_20260514_090807_123456_deadbeef.wav")
     assert "/" not in filename
     assert "?" not in filename
     assert len(filename) <= 120
@@ -52,7 +52,7 @@ def test_make_output_filename_sanitizes_and_bounds_problematic_names() -> None:
 def test_make_output_filename_uses_audio_for_empty_sanitized_stem() -> None:
     filename = make_output_filename("短い.wav", datetime(2026, 5, 14), "12345678")
 
-    assert filename == "audio__aqe_20260514_000000_000000_12345678.mp3"
+    assert filename == "audio__aqe_20260514_000000_000000_12345678.wav"
 
 
 def test_make_output_filename_uses_audio_for_empty_source_name() -> None:
@@ -69,7 +69,7 @@ def test_make_output_filename_uses_eight_character_generated_token(monkeypatch) 
 
     filename = make_output_filename("clip.wav", datetime(2026, 5, 14))
 
-    assert filename.endswith("_12345678.mp3")
+    assert filename.endswith("_12345678.wav")
 
 
 def test_safe_filename_stem_collapses_invalid_runs_and_falls_back_to_audio() -> None:
@@ -83,6 +83,14 @@ def test_temp_final_path_preserves_basename_only() -> None:
 
     assert path.name == "clip.mp3"
     assert path.parent.name.startswith("aqe_final_")
+
+
+def _mp3_policy() -> SimpleNamespace:
+    return SimpleNamespace(
+        extension=".mp3",
+        mime_type="audio/mpeg",
+        codec_args=("-codec:a", "libmp3lame", "-q:a", "4"),
+    )
 
 
 def test_probe_duration_ms_uses_json_ffprobe_call_and_rounds(monkeypatch, tmp_path: Path) -> None:
@@ -187,6 +195,7 @@ def test_render_audio_uses_expected_ffmpeg_invocation(monkeypatch, tmp_path: Pat
     monkeypatch.setattr("anki_audio_quick_editor.audio_processor.find_ffmpeg", fake_find_ffmpeg)
     monkeypatch.setattr("anki_audio_quick_editor.audio_processor.probe_duration_ms", lambda *_args: next(durations))
     monkeypatch.setattr("anki_audio_quick_editor.audio_processor.build_audio_filters", lambda *_args: "atrim=start=0.100:end=0.900")
+    monkeypatch.setattr("anki_audio_quick_editor.audio_processor.resolve_output_policy", lambda *_args, **_kwargs: _mp3_policy())
 
     def fake_run(cmd: list[str], capture_output: bool, text: bool, check: bool) -> SimpleNamespace:
         calls.append((cmd, capture_output, text, check))
@@ -232,6 +241,7 @@ def test_render_audio_forwards_window_visibility_kwargs(monkeypatch, tmp_path: P
 
     monkeypatch.setattr("anki_audio_quick_editor.audio_processor.find_ffmpeg", lambda _path: Path("/bin/ffmpeg"))
     monkeypatch.setattr("anki_audio_quick_editor.audio_processor.probe_duration_ms", lambda *_args: next(durations))
+    monkeypatch.setattr("anki_audio_quick_editor.audio_processor.resolve_output_policy", lambda *_args, **_kwargs: _mp3_policy())
     monkeypatch.setattr(
         "anki_audio_quick_editor.audio_processor._external_command_run_kwargs",
         lambda: {"creationflags": 0x08000000},
@@ -261,4 +271,3 @@ def test_render_audio_forwards_window_visibility_kwargs(monkeypatch, tmp_path: P
     )
 
     assert run_kwargs == [{"creationflags": 0x08000000}]
-

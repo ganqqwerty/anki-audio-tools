@@ -273,7 +273,7 @@
       "enum": ["standard", "rnnoise", "dpdfnet", "voice_only"]
     },
     "OutputFormat": {
-      "enum": ["mp3", "m4a", "wav", "flac"]
+      "enum": ["source", "mp3", "m4a", "wav", "flac"]
     },
     "BatchDpdfnetAttnLimitDB": {
       "enum": [6.0, 12.0, 18.0]

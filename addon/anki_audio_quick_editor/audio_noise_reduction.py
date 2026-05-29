@@ -11,13 +11,19 @@ from typing import Any
 
 from . import audio_noise_reduction_bundled as _bundled
 from .audio_commands import (
+    build_audio_encode_command,
     build_deep_filter_command,
     build_deep_filter_prepare_command,
-    build_mp3_encode_command,
 )
 from .audio_external import (
     _run_external_command,
     probe_duration_ms,
+)
+from .audio_output_policy import (
+    AudioOutputPolicy,
+    codec_args_for_output_policy,
+    resolve_output_policy_from_metadata,
+    synthetic_audio_metadata,
 )
 from .audio_state import AudioProcessingConfig
 from .audio_tools import (
@@ -44,11 +50,12 @@ def render_noise_reduced_audio(
     output_path: Path | None = None,
     on_command: Callable[[tuple[str, ...]], None] | None = None,
 ) -> AudioProcessingResult:
-    """Render a noise-reduced MP3 using the external DeepFilterNet executable."""
+    """Render noise-reduced audio using the external DeepFilterNet executable."""
     ffmpeg_path = find_ffmpeg(config.ffmpeg_path)
     deep_filter_path = find_deep_filter()
+    output_policy = _deep_filter_output_policy(source_path, config, output_path)
     if output_path is None:
-        output_path = Path(tempfile.mkstemp(prefix="aqe_denoised_", suffix=".mp3")[1])
+        output_path = Path(tempfile.mkstemp(prefix="aqe_denoised_", suffix=output_policy.extension)[1])
 
     work_dir = Path(tempfile.mkdtemp(prefix="aqe_deep_filter_"))
     input_wav = work_dir / "input_48k_mono.wav"
@@ -78,10 +85,16 @@ def render_noise_reduced_audio(
         )
 
         cleaned_wav = select_deep_filter_output(deep_filter_output_dir)
-        encode_cmd = build_mp3_encode_command(ffmpeg_path, cleaned_wav, output_path)
+        output_policy = _deep_filter_output_policy(cleaned_wav, config, output_path)
+        encode_cmd = build_audio_encode_command(
+            ffmpeg_path,
+            cleaned_wav,
+            output_path,
+            codec_args_for_output_policy(output_policy),
+        )
         _run_audio_stage(
             encode_cmd,
-            "Could not start MP3 encoding for DeepFilterNet output.",
+            "Could not start final encoding for DeepFilterNet output.",
             "Could not encode DeepFilterNet output.",
             on_command,
         )
@@ -93,6 +106,25 @@ def render_noise_reduced_audio(
         )
     finally:
         shutil.rmtree(work_dir, ignore_errors=True)
+
+
+def _deep_filter_output_policy(
+    source_path: Path,
+    config: AudioProcessingConfig,
+    output_path: Path | None,
+) -> AudioOutputPolicy:
+    return resolve_output_policy_from_metadata(
+        synthetic_audio_metadata(
+            source_path,
+            output_path=output_path or source_path,
+            codec_name="pcm_s16le",
+            sample_rate=48000,
+            channels=1,
+            bits_per_raw_sample=16,
+        ),
+        requested_format=config.output_format,
+        output_path=output_path,
+    )
 
 
 def _run_audio_stage(

@@ -25,6 +25,14 @@ def test_render_converted_audio_uses_expected_ffmpeg_invocation(monkeypatch, tmp
 
     monkeypatch.setattr("anki_audio_quick_editor.audio_processor.find_ffmpeg", lambda _path: Path("/bin/ffmpeg"))
     monkeypatch.setattr("anki_audio_quick_editor.audio_processor.probe_duration_ms", lambda *_args: 1000)
+    monkeypatch.setattr(
+        "anki_audio_quick_editor.audio_processor.resolve_output_policy",
+        lambda *_args, **_kwargs: SimpleNamespace(
+            extension=".flac",
+            mime_type="audio/flac",
+            codec_args=("-codec:a", "flac", "-compression_level", "5"),
+        ),
+    )
 
     def fake_run(cmd: list[str], capture_output: bool, text: bool, check: bool) -> SimpleNamespace:
         calls.append((cmd, capture_output, text, check))
@@ -65,6 +73,14 @@ def test_render_converted_audio_uses_default_error_message_for_blank_stderr(
     tmp_path: Path,
 ) -> None:
     monkeypatch.setattr("anki_audio_quick_editor.audio_processor.find_ffmpeg", lambda _path: Path("/bin/ffmpeg"))
+    monkeypatch.setattr(
+        "anki_audio_quick_editor.audio_processor.resolve_output_policy",
+        lambda *_args, **_kwargs: SimpleNamespace(
+            extension=".m4a",
+            mime_type="audio/mp4",
+            codec_args=("-codec:a", "aac", "-b:a", "192k"),
+        ),
+    )
     monkeypatch.setattr(
         "anki_audio_quick_editor.audio_processor.subprocess.run",
         lambda *_args, **_kwargs: SimpleNamespace(returncode=1, stdout="", stderr="   "),

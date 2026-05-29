@@ -96,7 +96,7 @@ def _default_config() -> dict:
         "pause_silero_min_silence_seconds": 0.45,
         "pause_silero_min_speech_seconds": 0.1,
         "pause_silero_preprocess_denoise": False,
-        "output_format": "mp3",
+        "output_format": "source",
         "ffmpeg_path": "/opt/homebrew/bin/ffmpeg",
         "deep_filter_post_filter": True,
         "dpdfnet_attn_limit_db": 12.0,

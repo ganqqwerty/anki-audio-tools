@@ -8,6 +8,7 @@ from pathlib import Path
 from typing import Any
 from urllib.parse import urlparse
 
+from scripts.ffmpeg_runtime_capabilities import PROFILE_NAME, verify_ffmpeg_binary
 from scripts.release_asset_common import (
     ReleaseAssetError,
     _extract_zip_member,
@@ -103,6 +104,10 @@ def fetch_deepfilter(lock: dict[str, Any], *, target_keys: list[str], cache_dir:
 def fetch_ffmpeg(lock: dict[str, Any], *, target_keys: list[str], tool_names: list[str] | None, cache_dir: Path, tool_entry) -> list[Path]:
     selected_tools = tool_names or ["ffmpeg", "ffprobe"]
     fetched: list[Path] = []
+    try:
+        host_target = current_target_key()
+    except ReleaseAssetError:
+        host_target = ""
     for target in target_keys:
         _validate_target(target)
         for tool_name in selected_tools:
@@ -122,5 +127,10 @@ def fetch_ffmpeg(lock: dict[str, Any], *, target_keys: list[str], tool_names: li
             actual_sha = sha256_file(destination)
             if actual_sha != expected_sha:
                 raise ReleaseAssetError(f"{target}/{tool_name}: extracted checksum mismatch (expected {expected_sha}, got {actual_sha})")
+            if tool_name == "ffmpeg" and target == host_target and entry.get("capability_profile") == PROFILE_NAME:
+                try:
+                    verify_ffmpeg_binary(destination)
+                except RuntimeError as exc:
+                    raise ReleaseAssetError(f"{target}/ffmpeg: {exc}") from exc
             fetched.append(destination)
     return fetched

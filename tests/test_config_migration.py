@@ -287,7 +287,7 @@ class TestMigrateConfig:
 
         migrated, changed = migrate_config(user, defaults)
 
-        assert migrated["output_format"] == "mp3"
+        assert migrated["output_format"] == "source"
         assert migrated["_config_version"] == CURRENT_CONFIG_VERSION
         assert changed is True
 

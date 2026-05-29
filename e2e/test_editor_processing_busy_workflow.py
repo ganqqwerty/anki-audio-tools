@@ -46,7 +46,7 @@ def test_fast_clicks_are_ignored_while_processing(anki_mw, ffmpeg_config) -> Non
         )
         generated_name = _wait_for_generated_mp3(note, media_dir, source.name)
 
-        generated_for_source = list(media_dir.glob("editor_fast_click_source__aqe_*.mp3"))
+        generated_for_source = list(media_dir.glob("editor_fast_click_source__aqe_*"))
         assert generated_for_source == [media_dir / generated_name]
         assert (media_dir / generated_name).is_file()
     finally:
@@ -113,7 +113,7 @@ def test_three_audio_fields_fast_cross_clicks_lock_globally_and_do_not_corrupt_f
         assert _sound_filename(note.fields[0]) == generated_name
         assert _sound_filename(note.fields[1]) == sources[1].name
         assert _sound_filename(note.fields[2]) == sources[2].name
-        assert list(media_dir.glob("editor_three_fields_one__aqe_*.mp3")) == [media_dir / generated_name]
+        assert list(media_dir.glob("editor_three_fields_one__aqe_*")) == [media_dir / generated_name]
     finally:
         editor.set_note(None)
         parent.close()

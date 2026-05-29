@@ -31,6 +31,7 @@
           "original_filename": "ffmpeg.zip",
           "build": "third-party-static-gpl",
           "executable": "ffmpeg",
+          "capability_profile": "aqe-source-audio-v1",
           "diagnostic_args": [
             "-version"
           ],
@@ -162,6 +163,7 @@
           "original_filename": "ffmpeg.zip",
           "build": "third-party-static-gpl",
           "executable": "ffmpeg",
+          "capability_profile": "aqe-source-audio-v1",
           "diagnostic_args": [
             "-version"
           ],
@@ -286,30 +288,31 @@
         "ffmpeg": {
           "version": "8.1.1",
           "source_url": "https://ffmpeg.org/download.html",
-          "provider_url": "https://www.gyan.dev/ffmpeg/builds/",
-          "download_url": "https://www.gyan.dev/ffmpeg/builds/packages/ffmpeg-8.1.1-essentials_build.zip",
-          "download_sha256": "6f58ce889f59c311410f7d2b18895b33c03456463486f3b1ebc93d97a0f54541",
-          "archive_member": "ffmpeg-8.1.1-essentials_build/bin/ffmpeg.exe",
-          "original_filename": "ffmpeg-8.1.1-essentials_build.zip",
-          "build": "third-party-static-gpl",
+          "provider_url": "https://github.com/BtbN/FFmpeg-Builds",
+          "download_url": "https://github.com/BtbN/FFmpeg-Builds/releases/download/autobuild-2026-05-29-14-08/ffmpeg-n8.1.1-9-g58d4114d36-win64-gpl-8.1.zip",
+          "download_sha256": "efe11c1e305371896c7887fd02275d9664794371537683373d574bb7acbb30e7",
+          "archive_member": "ffmpeg-n8.1.1-9-g58d4114d36-win64-gpl-8.1/bin/ffmpeg.exe",
+          "original_filename": "ffmpeg-n8.1.1-9-g58d4114d36-win64-gpl-8.1.zip",
+          "build": "third-party-btbn-static-gpl",
           "executable": "ffmpeg.exe",
+          "capability_profile": "aqe-source-audio-v1",
           "diagnostic_args": [
             "-version"
           ],
           "licenses": [
             "GPL-3.0-or-later"
           ],
-          "sha256": "228d7a8556258de907fdb55f36850078ebc7680b84ec30d84ea02e99bec1d1eb"
+          "sha256": "6cc3f11d1412a2640847df2a70d915aad67a24db55ab352af196babe0c52c08d"
         },
         "ffprobe": {
           "version": "8.1.1",
           "source_url": "https://ffmpeg.org/download.html",
-          "provider_url": "https://www.gyan.dev/ffmpeg/builds/",
-          "download_url": "https://www.gyan.dev/ffmpeg/builds/packages/ffmpeg-8.1.1-essentials_build.zip",
-          "download_sha256": "6f58ce889f59c311410f7d2b18895b33c03456463486f3b1ebc93d97a0f54541",
-          "archive_member": "ffmpeg-8.1.1-essentials_build/bin/ffprobe.exe",
-          "original_filename": "ffmpeg-8.1.1-essentials_build.zip",
-          "build": "third-party-static-gpl",
+          "provider_url": "https://github.com/BtbN/FFmpeg-Builds",
+          "download_url": "https://github.com/BtbN/FFmpeg-Builds/releases/download/autobuild-2026-05-29-14-08/ffmpeg-n8.1.1-9-g58d4114d36-win64-gpl-8.1.zip",
+          "download_sha256": "efe11c1e305371896c7887fd02275d9664794371537683373d574bb7acbb30e7",
+          "archive_member": "ffmpeg-n8.1.1-9-g58d4114d36-win64-gpl-8.1/bin/ffprobe.exe",
+          "original_filename": "ffmpeg-n8.1.1-9-g58d4114d36-win64-gpl-8.1.zip",
+          "build": "third-party-btbn-static-gpl",
           "executable": "ffprobe.exe",
           "diagnostic_args": [
             "-version"
@@ -317,7 +320,7 @@
           "licenses": [
             "GPL-3.0-or-later"
           ],
-          "sha256": "0fde260f5abd35c9cafd96f594cc76365a780c1b73a90e35b6a3409ea1db1bf0"
+          "sha256": "1798f03ae186573d1a2ea126be1287c5494523f3a5b524d094b50648f470b71e"
         },
         "rnnoise-cli": {
           "version": "0.2",

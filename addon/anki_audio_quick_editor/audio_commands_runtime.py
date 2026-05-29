@@ -2,9 +2,11 @@
 
 from __future__ import annotations
 
+from collections.abc import Sequence
 from pathlib import Path
 
 FFMPEG_AUDIO_CODEC_ARG = "-codec:a"
+DEFAULT_MP3_CODEC_ARGS = (FFMPEG_AUDIO_CODEC_ARG, "libmp3lame", "-q:a", "4")
 
 
 def build_deep_filter_prepare_command(
@@ -154,8 +156,9 @@ def build_rnnoise_encode_command(
     ffmpeg_path: Path,
     source_raw_path: Path,
     output_path: Path,
+    codec_args: Sequence[str] = DEFAULT_MP3_CODEC_ARGS,
 ) -> tuple[str, ...]:
-    """Build the ffmpeg command that encodes RNNoise raw PCM output as MP3."""
+    """Build the ffmpeg command that encodes RNNoise raw PCM output."""
     return (
         str(ffmpeg_path),
         "-y",
@@ -168,10 +171,7 @@ def build_rnnoise_encode_command(
         "-i",
         str(source_raw_path),
         "-vn",
-        FFMPEG_AUDIO_CODEC_ARG,
-        "libmp3lame",
-        "-q:a",
-        "4",
+        *tuple(codec_args),
         str(output_path),
     )
 
@@ -223,16 +223,23 @@ def build_mp3_encode_command(
     output_path: Path,
 ) -> tuple[str, ...]:
     """Build the ffmpeg command used to encode processed WAV output as MP3."""
+    return build_audio_encode_command(ffmpeg_path, source_path, output_path, DEFAULT_MP3_CODEC_ARGS)
+
+
+def build_audio_encode_command(
+    ffmpeg_path: Path,
+    source_path: Path,
+    output_path: Path,
+    codec_args: Sequence[str] = DEFAULT_MP3_CODEC_ARGS,
+) -> tuple[str, ...]:
+    """Build the ffmpeg command used to encode processed audio output."""
     return (
         str(ffmpeg_path),
         "-y",
         "-i",
         str(source_path),
         "-vn",
-        FFMPEG_AUDIO_CODEC_ARG,
-        "libmp3lame",
-        "-q:a",
-        "4",
+        *tuple(codec_args),
         str(output_path),
     )
 

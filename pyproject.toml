@@ -259,6 +259,7 @@ source_modules = [
     "anki_audio_quick_editor.audio_commands",
     "anki_audio_quick_editor.audio_commands_runtime",
     "anki_audio_quick_editor.audio_external",
+    "anki_audio_quick_editor.audio_output_policy",
     "anki_audio_quick_editor.audio_noise_reduction",
     "anki_audio_quick_editor.audio_noise_reduction_bundled",
     "anki_audio_quick_editor.audio_pause_pipeline",

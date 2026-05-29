@@ -51,6 +51,7 @@ def test_fetch_ffmpeg_extracts_verified_zip_member(tmp_path: Path, monkeypatch: 
         destination.write_bytes(archive.read_bytes())
 
     monkeypatch.setattr(release_assets, "_download_verified", fake_download)
+    monkeypatch.setattr("scripts.release_assets_runtime_ops.verify_ffmpeg_binary", lambda _path: None)
     fetched = release_assets.fetch_ffmpeg(
         lock,
         target_keys=["macos-arm64"],

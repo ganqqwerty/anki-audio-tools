@@ -3,10 +3,12 @@ import { describe, expect, it } from "vitest";
 import {
   clampSpeedStep,
   clampVolumeStepDb,
+  DEFAULT_OUTPUT_FORMAT,
   formatPauseAggressiveness,
   formatOutputFormat,
   formatSpeedStep,
   formatVolumeDb,
+  OUTPUT_FORMAT_VALUES,
   outputFormatOrDefault,
 } from "../src/lib/audio-operation-parameters.js";
 import { configureI18n } from "../src/lib/i18n.js";
@@ -27,6 +29,15 @@ describe("audio-operation-parameters", () => {
     expect(formatSpeedStep(2, "slower")).toBe("x2");
     expect(formatPauseAggressiveness("aggressive")).toBe("Aggressive");
     expect(formatOutputFormat("flac")).toBe("FLAC");
-    expect(outputFormatOrDefault("aac")).toBe("mp3");
+    expect(formatOutputFormat("source")).toBe("Same as source");
+    expect(outputFormatOrDefault("aac")).toBe("source");
+  });
+
+  it("uses source as the persisted default output policy", () => {
+    expect(DEFAULT_OUTPUT_FORMAT).toBe("source");
+    expect(OUTPUT_FORMAT_VALUES).toEqual(["source", "mp3", "m4a", "wav", "flac"]);
+    expect(outputFormatOrDefault("flac")).toBe("flac");
+    expect(outputFormatOrDefault("source")).toBe("source");
+    expect(outputFormatOrDefault("opus")).toBe("source");
   });
 });

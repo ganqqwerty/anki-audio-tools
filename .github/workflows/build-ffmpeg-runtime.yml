@@ -1,0 +1,122 @@
+name: Build FFmpeg Runtime
+
+on:
+  workflow_dispatch:
+    inputs:
+      release_tag:
+        description: GitHub release tag to upload runtime archives to
+        required: true
+        type: string
+      ffmpeg_ref:
+        description: FFmpeg provider version or custom build ref
+        required: true
+        default: "8.1.1"
+        type: string
+      force_custom_build:
+        description: Build from fallback scripts even when provider archives are available
+        required: true
+        default: false
+        type: boolean
+
+permissions:
+  contents: write
+
+jobs:
+  build-runtime:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - target: windows-x86_64
+            runner: windows-latest
+          - target: macos-arm64
+            runner: macos-14
+          - target: macos-x86_64
+            runner: macos-13
+    runs-on: ${{ matrix.runner }}
+    env:
+      TARGET: ${{ matrix.target }}
+      RELEASE_TAG: ${{ inputs.release_tag }}
+      FFMPEG_REF: ${{ inputs.ffmpeg_ref }}
+      FORCE_CUSTOM_BUILD: ${{ inputs.force_custom_build }}
+      ARCHIVE_NAME: aqe-ffmpeg-runtime-${{ inputs.ffmpeg_ref }}-${{ matrix.target }}.zip
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Resolve FFmpeg runtime
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p ".release-assets/bin/$TARGET" "dist/ffmpeg-runtime"
+
+          if [[ "$FORCE_CUSTOM_BUILD" != "true" ]]; then
+            # Fetch the locked provider archive first. Windows lock entries should
+            # use BtbN/FFmpeg-Builds when that provider satisfies
+            # aqe-source-audio-v1; macOS entries prefer Martin Riedl, then
+            # OSXExperts, with Vargol as arm64-only fallback.
+            python3 scripts/dev.py release-assets fetch-ffmpeg --target "$TARGET"
+          elif [[ "$TARGET" == "windows-x86_64" ]]; then
+            # Prefer BtbN/FFmpeg-Builds for custom Windows rebuilds.
+            # If a provider archive fails aqe-source-audio-v1, rebuild through
+            # BtbN/FFmpeg-Builds scripts instead of weakening the profile.
+            git clone --depth 1 https://github.com/BtbN/FFmpeg-Builds .release-assets/BtbN-FFmpeg-Builds
+            scripts/ffmpeg_build/build_windows_cross.sh "$TARGET"
+          elif [[ "$TARGET" == "macos-arm64" ]]; then
+            # macOS provider fallback order:
+            # 1. https://ffmpeg.martin-riedl.de/
+            # 2. https://www.osxexperts.net/
+            # 3. https://github.com/Vargol/ffmpeg-apple-arm64-build
+            # 4. repo fallback script below.
+            scripts/ffmpeg_build/build_macos.sh "$TARGET"
+          elif [[ "$TARGET" == "macos-x86_64" ]]; then
+            # macOS Intel provider fallback order:
+            # 1. https://ffmpeg.martin-riedl.de/
+            # 2. https://www.osxexperts.net/
+            # 3. repo fallback script below. Vargol is arm64-only.
+            scripts/ffmpeg_build/build_macos.sh "$TARGET"
+          else
+            echo "Unsupported target: $TARGET" >&2
+            exit 2
+          fi
+
+      - name: Verify source-audio capability profile
+        shell: bash
+        run: |
+          set -euo pipefail
+          ffmpeg_bin=".release-assets/bin/$TARGET/ffmpeg"
+          if [[ "$TARGET" == windows-* ]]; then
+            ffmpeg_bin="${ffmpeg_bin}.exe"
+          fi
+          python3 scripts/ffmpeg_runtime_capabilities.py --ffmpeg "$ffmpeg_bin"
+
+      - name: Package runtime archive
+        shell: bash
+        run: |
+          set -euo pipefail
+          out_dir="dist/ffmpeg-runtime"
+          runtime_dir=".release-assets/bin/$TARGET"
+          python3 - <<'PY'
+          from pathlib import Path
+          from zipfile import ZIP_DEFLATED, ZipFile
+          import os
+
+          target = os.environ["TARGET"]
+          archive = Path("dist/ffmpeg-runtime") / os.environ["ARCHIVE_NAME"]
+          runtime_dir = Path(".release-assets/bin") / target
+          names = ("ffmpeg.exe", "ffprobe.exe") if target.startswith("windows-") else ("ffmpeg", "ffprobe")
+          with ZipFile(archive, "w", ZIP_DEFLATED) as zf:
+              for name in names:
+                  zf.write(runtime_dir / name, name)
+          PY
+          shasum -a 256 "$out_dir/$ARCHIVE_NAME" | tee "$out_dir/$ARCHIVE_NAME.sha256"
+          for tool in "$runtime_dir"/ffmpeg* "$runtime_dir"/ffprobe*; do
+            shasum -a 256 "$tool" | tee -a "$GITHUB_STEP_SUMMARY"
+          done
+
+      - name: Upload runtime archive
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          gh release upload "$RELEASE_TAG" "dist/ffmpeg-runtime/aqe-ffmpeg-runtime-${{ inputs.ffmpeg_ref }}-${{ matrix.target }}.zip" --clobber

@@ -16,37 +16,37 @@ from anki_audio_quick_editor.audio_formats import (
 )
 
 
-def test_supported_formats_cover_main_audio_targets() -> None:
-    assert SUPPORTED_OUTPUT_FORMATS == ("mp3", "m4a", "wav", "flac")
-    assert DEFAULT_OUTPUT_FORMAT == "mp3"
+def test_supported_formats_include_source_policy_and_concrete_targets() -> None:
+    assert SUPPORTED_OUTPUT_FORMATS == ("source", "mp3", "m4a", "wav", "flac")
+    assert DEFAULT_OUTPUT_FORMAT == "source"
 
 
 @pytest.mark.parametrize(
     ("raw", "expected"),
     [
+        ("source", "source"),
+        (" SOURCE ", "source"),
         ("mp3", "mp3"),
-        (" MP3 ", "mp3"),
         ("m4a", "m4a"),
-        ("ogg", "mp3"),
+        ("ogg", "source"),
         ("wav", "wav"),
         ("flac", "flac"),
-        (None, "mp3"),
-        ("aac", "mp3"),
-        ("", "mp3"),
+        (None, "source"),
+        ("", "source"),
     ],
 )
-def test_normalize_output_format_falls_back_for_settings(raw: object, expected: str) -> None:
+def test_normalize_output_format_accepts_source_policy(raw: object, expected: str) -> None:
     assert normalize_output_format(raw) == expected
 
 
 @pytest.mark.parametrize("target", ["mp3", "M4A", "wav", "flac"])
-def test_validate_target_format_accepts_supported_values(target: str) -> None:
+def test_validate_target_format_accepts_only_concrete_targets(target: str) -> None:
     assert validate_target_format(target) == target.strip().lower()
 
 
-@pytest.mark.parametrize("target", ["aac", "mp4", "", None])
-def test_validate_target_format_rejects_unknown_values(target: object) -> None:
-    with pytest.raises(ValueError, match="Unsupported audio output format"):
+@pytest.mark.parametrize("target", ["source", "ogg", "", None])
+def test_validate_target_format_rejects_unresolved_or_unknown_targets(target: object) -> None:
+    with pytest.raises(ValueError, match="Unsupported concrete audio output format"):
         validate_target_format(target)
 
 
