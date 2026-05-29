@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" data-theme="light">
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -7,21 +7,28 @@
       name="description"
       content="Anki Audio Quick Editor is an Anki desktop add-on for quick, non-destructive audio edits inside the note editor."
     >
-    <title>Anki Audio Quick Editor</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap"
+      rel="stylesheet"
+    >
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/pico.min.css">
     <link rel="stylesheet" href="assets/site.css">
+    <title>Anki Audio Quick Editor</title>
   </head>
   <body>
     <header class="site-header">
-      <div class="page-shell top-line">
+      <div class="shell masthead">
         <a class="brand" href="#overview" aria-label="Anki Audio Quick Editor home">
           <span class="brand-mark" aria-hidden="true">A</span>
           <span>Anki Audio Quick Editor</span>
         </a>
-        <a class="source-link" href="https://github.com/ganqqwerty/anki-audio-tools">Source on GitHub</a>
+        <a class="repo-link" href="https://github.com/ganqqwerty/anki-audio-tools">Source on GitHub</a>
       </div>
     </header>
 
-    <div class="page-shell layout">
+    <div class="shell layout">
       <nav class="contents" aria-label="Page contents">
         <details open>
           <summary>Contents</summary>
@@ -41,20 +48,62 @@
       </nav>
 
       <main class="content">
-        <section class="hero" id="overview">
+        <section class="hero section" id="overview">
           <p class="eyebrow">Anki desktop add-on</p>
           <h1>Quick, non-destructive audio edits inside Anki.</h1>
           <p class="lead">
             Trim sentence-mining clips, adjust speed and volume, shorten long pauses, denoise recordings,
             and inspect prosody without leaving the note editor.
           </p>
-          <div class="actions" aria-label="Primary actions">
-            <a class="button" href="https://github.com/ganqqwerty/anki-audio-tools/releases">
+          <div class="hero-actions">
+            <a href="https://github.com/ganqqwerty/anki-audio-tools/releases" role="button">
               Download from GitHub Releases
             </a>
-            <a class="button secondary" href="#requirements">View requirements</a>
+            <a href="#requirements" role="button" class="secondary outline">View requirements</a>
           </div>
-          <figure class="media-frame hero-media">
+          <ul class="quick-links" aria-label="Community and support links">
+            <li>
+              <a href="go/bug-report/">
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                  <path d="M8 2h8v2h3v2h-2v2.5a6.5 6.5 0 0 1 1.88 4.62V16h2v2h-2v2h-2v-2H8v2H6v-2H4v-2h2v-2.88A6.5 6.5 0 0 1 7.88 8.5V6H6V4h3V2Zm1 11a1.5 1.5 0 1 0 0 .01V13Zm6 0a1.5 1.5 0 1 0 0 .01V13ZM9.88 8A4.5 4.5 0 0 0 8 11.63V16h8v-4.37A4.5 4.5 0 0 0 14.12 8H9.88Z" fill="currentColor"/>
+                </svg>
+                <span>Report bug</span>
+              </a>
+            </li>
+            <li>
+              <a href="go/idea-request/">
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                  <path d="M9 21h6v-1H9v1Zm3-19a7 7 0 0 0-4 12.75V17a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1v-2.25A7 7 0 0 0 12 2Zm2 11.68V16h-4v-2.32l-.32-.24A5 5 0 1 1 14.32 13.68L14 13.92Z" fill="currentColor"/>
+                </svg>
+                <span>Request idea</span>
+              </a>
+            </li>
+            <li>
+              <a href="go/discord/">
+                <svg viewBox="0 0 32 32" aria-hidden="true">
+                  <path d="M12.66 4.91 11.88 5s-3.5.38-6.06 2.44l-.03.03-.03.03c-.57.53-.83 1.18-1.22 2.12-.39.95-.81 2.16-1.19 3.5C2.6 15.78 2 19.03 2 22v.25l.13.25c.92 1.63 2.57 2.66 4.09 3.38 1.52.71 2.84 1.09 3.75 1.12l.59.03.31-.53 1.09-1.94c1.16.26 2.5.44 4.04.44 1.54 0 2.88-.18 4.03-.44l1.1 1.94.31.53.59-.03c.91-.03 2.22-.41 3.75-1.12 1.52-.72 3.16-1.75 4.09-3.38l.13-.25V22c0-2.97-.6-6.22-1.34-8.91-.38-1.34-.8-2.55-1.19-3.5-.39-.94-.65-1.59-1.22-2.12l-.03-.03-.03-.03C23.63 5.38 20.12 5 20.12 5l-.78-.09-.28.72s-.29.73-.47 1.56C17.46 7.04 16.54 7 16 7c-.54 0-1.46.04-2.59.19-.18-.83-.47-1.56-.47-1.56l-.28-.72ZM11.28 7.19c.04.14.09.26.13.37-1.29.32-2.67.81-3.94 1.6l1.06 1.68C11.13 9.23 14.85 9 16 9s4.87.23 7.47 1.84l1.06-1.68c-1.27-.79-2.65-1.28-3.94-1.6.04-.11.09-.23.13-.37.93.19 2.72.61 4.19 1.78 0 0 .38.58.72 1.41.35.85.74 1.98 1.09 3.25.67 2.44 1.2 5.41 1.25 8.03-.63.96-1.8 1.83-3.04 2.41-1.08.5-1.93.69-2.44.78L22 24c.3-.11.59-.23.84-.34 1.54-.68 2.38-1.41 2.38-1.41l-1.31-1.5s-.57.52-1.88 1.09C20.72 22.42 18.71 23 16 23c-2.71 0-4.72-.58-6.03-1.16-1.31-.57-1.88-1.09-1.88-1.09l-1.31 1.5s.84.73 2.38 1.41c.25.11.54.23.84.34l-.5.84c-.51-.09-1.36-.28-2.44-.78-1.24-.58-2.41-1.45-3.04-2.41.05-2.62.58-5.59 1.25-8.03.35-1.27.74-2.4 1.09-3.25.34-.83.72-1.41.72-1.41 1.47-1.17 3.26-1.59 4.19-1.78ZM12.5 14c-.77 0-1.46.44-1.88 1-.42.56-.62 1.25-.62 2s.2 1.44.62 2c.42.56 1.11 1 1.88 1s1.46-.44 1.88-1c.42-.56.62-1.25.62-2s-.2-1.44-.62-2c-.42-.56-1.11-1-1.88-1Zm7 0c-.77 0-1.46.44-1.88 1-.42.56-.62 1.25-.62 2s.2 1.44.62 2c.42.56 1.11 1 1.88 1s1.46-.44 1.88-1c.42-.56.62-1.25.62-2s-.2-1.44-.62-2c-.42-.56-1.11-1-1.88-1Z" fill="currentColor"/>
+                </svg>
+                <span>Discord</span>
+              </a>
+            </li>
+            <li>
+              <a href="go/telegram/">
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                  <path d="M21.44 4.76 3.97 11.5c-1.19.48-1.18 1.14-.22 1.43l4.48 1.4 10.36-6.54c.49-.3.94-.14.57.2l-8.39 7.57-.31 4.7c.46 0 .66-.21.92-.46l2.22-2.16 4.62 3.41c.85.47 1.46.23 1.67-.79l2.97-13.99c.31-1.25-.48-1.81-1.42-1.39Z" fill="currentColor"/>
+                </svg>
+                <span>Telegram</span>
+              </a>
+            </li>
+            <li>
+              <a href="https://ankiweb.net/shared/info/1197817101?cb=1780010134595">
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                  <path d="M14 3h7v7h-2V6.41l-9.29 9.3-1.42-1.42 9.3-9.29H14V3ZM5 5h6v2H7v10h10v-4h2v6H5V5Z" fill="currentColor"/>
+                </svg>
+                <span>AnkiWeb</span>
+              </a>
+            </li>
+          </ul>
+          <figure class="hero-media">
             <img src="assets/editor-prosody-playback.gif" alt="Inline prosody graph playback inside the Anki editor">
           </figure>
         </section>
@@ -66,19 +115,19 @@
             the cards you are studying.
           </p>
           <div class="media-grid">
-            <figure class="media-frame">
+            <figure>
               <img src="assets/editor-processing-chain.gif" alt="Applying audio processing actions from the Anki editor toolbar">
               <figcaption>Apply processing actions without leaving the note editor.</figcaption>
             </figure>
-            <figure class="media-frame">
+            <figure>
               <img src="assets/browser-card-selection.gif" alt="Selecting cards in the Anki browser before batch audio work">
               <figcaption>Start batch work from selected cards in the Anki browser.</figcaption>
             </figure>
-            <figure class="media-frame">
+            <figure>
               <img src="assets/editor-pitch-cursor.gif" alt="Inspecting the pitch cursor in the inline audio graph">
               <figcaption>Inspect timing and pitch directly on the inline graph.</figcaption>
             </figure>
-            <figure class="media-frame">
+            <figure>
               <img src="assets/editor-dark-prosody-playback.gif" alt="Inline prosody graph playback in Anki dark mode">
               <figcaption>Use the same inline graph workflow in Anki dark mode.</figcaption>
             </figure>
@@ -92,7 +141,7 @@
             beside the audio. Common actions include playback, speed changes, volume changes, conversion,
             pause shortening, denoise processing, file reveal, sharing, undo, and redo.
           </p>
-          <ul class="feature-list">
+          <ul>
             <li>Works from the Anki note editor instead of a separate audio program.</li>
             <li>Targets short study clips and sentence-mining audio.</li>
             <li>Provides settings for which toolbar buttons are shown and how processing defaults behave.</li>
@@ -113,7 +162,7 @@
             Short walkthrough videos open in your browser through stable GitHub Pages links. The add-on uses
             these first-party routes so video destinations can change without a new add-on release.
           </p>
-          <ul class="feature-list">
+          <ul>
             <li id="video-play"><strong>Play:</strong> Playback and repeat controls. <a href="go/video-play/">Open video</a>.</li>
             <li id="video-graph"><strong>Graph:</strong> Pitch and loudness visualization settings. <a href="go/video-graph/">Open video</a>.</li>
             <li id="video-share"><strong>Share:</strong> Upload and copy-link workflow. <a href="go/video-share/">Open video</a>.</li>
@@ -142,10 +191,10 @@
             Edits render to new MP3 files and update the field reference. The original media file remains in
             place, so experiments and cleanup work do not overwrite the source audio.
           </p>
-          <div class="note">
+          <p class="note">
             The page intentionally links to GitHub Releases rather than a direct asset file, so versioned and
             platform-specific archive names can change without breaking the main install button.
-          </div>
+          </p>
         </section>
 
         <section class="section" id="install">
@@ -154,16 +203,14 @@
             Download the latest <code>.ankiaddon</code> archive from GitHub Releases, then install it in Anki
             through the desktop add-on manager.
           </p>
-          <div class="actions">
-            <a class="button" href="https://github.com/ganqqwerty/anki-audio-tools/releases">
-              Open GitHub Releases
-            </a>
-          </div>
+          <p>
+            <a href="https://github.com/ganqqwerty/anki-audio-tools/releases" role="button">Open GitHub Releases</a>
+          </p>
         </section>
 
         <section class="section" id="requirements">
           <h2>Requirements</h2>
-          <ul class="requirements-list">
+          <ul>
             <li>Anki desktop 25.09 or later.</li>
             <li>Desktop Anki only; not AnkiMobile or AnkiDroid.</li>
             <li>Release archives bundle audio helper tools for macOS arm64, macOS x86_64, and Windows x86_64.</li>
@@ -178,17 +225,19 @@
             issue tracker for reproducible problems and include Anki version, operating system, and the relevant
             audio file workflow.
           </p>
-          <div class="actions">
-            <a class="button secondary" href="https://github.com/ganqqwerty/anki-audio-tools">
-              View repository
-            </a>
-          </div>
+          <p class="support-links">
+            <a href="https://github.com/ganqqwerty/anki-audio-tools">View repository</a>
+            <span aria-hidden="true">·</span>
+            <a href="go/bug-report/">Report a bug</a>
+            <span aria-hidden="true">·</span>
+            <a href="go/idea-request/">Request an idea</a>
+          </p>
         </section>
       </main>
     </div>
 
     <footer class="site-footer">
-      <div class="page-shell">
+      <div class="shell">
         Anki Audio Quick Editor is an independent Anki desktop add-on.
       </div>
     </footer>

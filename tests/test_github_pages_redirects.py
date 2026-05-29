@@ -51,3 +51,15 @@ def test_video_redirect_pages_do_not_embed_video_players() -> None:
         assert "<iframe" not in html
         assert "<video" not in html
         assert "open video" in html
+
+
+def test_docs_home_exposes_primary_support_links() -> None:
+    html = (REPO_ROOT / "docs" / "index.html").read_text(encoding="utf-8")
+
+    assert "https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/pico.min.css" in html
+    assert "https://fonts.googleapis.com" in html
+    assert "go/bug-report/" in html
+    assert "go/idea-request/" in html
+    assert "go/discord/" in html
+    assert "go/telegram/" in html
+    assert "https://ankiweb.net/shared/info/1197817101?cb=1780010134595" in html
