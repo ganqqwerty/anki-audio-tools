@@ -14,6 +14,10 @@
       <a class="diagnostics-link" href={PRODUCT_LINKS.githubPages} target="_blank" rel="noopener noreferrer">
         <span>{t("links.website")}</span>
       </a>
+      <a class="diagnostics-link" href={PRODUCT_LINKS.ankiWeb} target="_blank" rel="noopener noreferrer">
+        <ProductLinkIcon className="diagnostics-link-icon" icon="external-link" />
+        <span>AnkiWeb listing</span>
+      </a>
       <AqeTooltip content={t("links.discord")}>
         {#snippet trigger({ props })}
           <a

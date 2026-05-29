@@ -1,10 +1,12 @@
 const GITHUB_PAGES_URL = "https://ganqqwerty.github.io/anki-audio-tools/";
+const ANKIWEB_URL = "https://ankiweb.net/shared/info/1197817101?cb=1780010134595";
 
 function githubPagesPath(path: string): string {
   return `${GITHUB_PAGES_URL}${path}`;
 }
 
 export const PRODUCT_LINKS = {
+  ankiWeb: ANKIWEB_URL,
   bugReport: githubPagesPath("go/bug-report/"),
   discord: githubPagesPath("go/discord/"),
   editorVideos: {

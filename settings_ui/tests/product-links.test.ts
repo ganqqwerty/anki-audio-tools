@@ -44,6 +44,17 @@ function docsGoPageExists(url: URL): boolean {
 }
 
 describe("product links", () => {
+  it("keeps the direct AnkiWeb listing separate from first-party mutable links", () => {
+    expect(PRODUCT_LINKS.ankiWeb).toBe(
+      "https://ankiweb.net/shared/info/1197817101?cb=1780010134595",
+    );
+
+    const url = new URL(PRODUCT_LINKS.ankiWeb);
+    expect(url.origin).toBe("https://ankiweb.net");
+    expect(url.pathname).toBe("/shared/info/1197817101");
+    expect(url.searchParams.get("cb")).toBe("1780010134595");
+  });
+
   it("keeps mutable product links on the first-party GitHub Pages origin", () => {
     for (const link of [
       PRODUCT_LINKS.bugReport,

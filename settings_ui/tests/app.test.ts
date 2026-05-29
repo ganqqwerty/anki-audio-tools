@@ -358,6 +358,7 @@ describe("App", () => {
     await fireEvent.click(screen.getByRole("tab", { name: "Diagnostics & About" }));
     for (const [name, href] of [
       ["Website", PRODUCT_LINKS.githubPages],
+      ["AnkiWeb listing", PRODUCT_LINKS.ankiWeb],
       ["Discord: Yuri's cool software", PRODUCT_LINKS.discord],
       ["Support on Patreon", PRODUCT_LINKS.patreon],
       [/Telegram: Immersoshnaya/, PRODUCT_LINKS.telegram],
