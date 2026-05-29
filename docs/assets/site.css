@@ -177,6 +177,17 @@ h2 {
   font-size: clamp(2rem, 4vw, 2.8rem);
 }
 
+h3 {
+  margin: 2rem 0 1rem;
+  font-size: 1.2rem;
+  letter-spacing: -0.02em;
+}
+
+h4 {
+  margin-bottom: 0.5rem;
+  font-size: 1.05rem;
+}
+
 .lead {
   max-width: 46rem;
   margin-bottom: 1.5rem;
@@ -236,6 +247,35 @@ h2 {
   margin-top: 1.5rem;
 }
 
+.video-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1.5rem;
+}
+
+.video-entry p:last-child {
+  margin-bottom: 0;
+}
+
+.video-embed {
+  overflow: hidden;
+  margin: 1rem 0;
+  border: 1px solid rgba(16, 32, 51, 0.12);
+  border-radius: 1rem;
+  background: #dfe7f4;
+}
+
+.video-embed iframe {
+  display: block;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  border: 0;
+}
+
+.video-placeholder {
+  color: var(--pico-muted-color);
+}
+
 .note {
   margin-top: 1rem;
   color: var(--pico-muted-color);
@@ -284,6 +324,10 @@ h2 {
   }
 
   .media-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .video-grid {
     grid-template-columns: 1fr;
   }
 
