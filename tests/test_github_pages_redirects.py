@@ -63,3 +63,25 @@ def test_docs_home_exposes_primary_support_links() -> None:
     assert "go/discord/" in html
     assert "go/telegram/" in html
     assert "https://ankiweb.net/shared/info/1197817101?cb=1780010134595" in html
+
+
+def test_docs_home_groups_and_links_all_ui_video_routes() -> None:
+    html = (REPO_ROOT / "docs" / "index.html").read_text(encoding="utf-8")
+
+    assert "Editor Controls" in html
+    assert "Audio Processing" in html
+    assert "Batch Tools" in html
+    assert 'id="video-convert"' in html
+    assert 'href="go/video-convert/"' in html
+    assert "Open video section" in html
+    assert 'id="video-pitch-hum"' in html
+    assert 'href="go/video-pitch-hum/"' in html
+    assert "https://www.youtube-nocookie.com/embed/K3ksQ6r0Pys" in html
+    assert "https://www.youtube-nocookie.com/embed/YktYHl_JOGo" in html
+    assert "https://www.youtube-nocookie.com/embed/Z_lbxrdBjuA" in html
+    assert "https://www.youtube-nocookie.com/embed/-hDocz82MxI" in html
+    assert "https://www.youtube-nocookie.com/embed/WWimt1urx30" in html
+    assert "https://www.youtube-nocookie.com/embed/85gZpORKB68" in html
+    assert "https://www.youtube-nocookie.com/embed/wYxhKatjKBw" in html
+    assert "https://www.youtube-nocookie.com/embed/tHDJRKY03PM" in html
+    assert "https://www.youtube-nocookie.com/embed/wgNb9NSh7BU" in html
