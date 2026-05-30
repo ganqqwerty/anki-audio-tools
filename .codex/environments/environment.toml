@@ -7,6 +7,9 @@ script = '''
 
 set -euo pipefail
 
+WORKTREE="${CODEX_WORKTREE_PATH:-${CODEX_SOURCE_TREE_PATH:-$(pwd)}}"
+cd "$WORKTREE"
+
 ROOT="$(git rev-parse --show-toplevel)"
 cd "$ROOT"
 
@@ -15,8 +18,10 @@ codegraph init -i
 
 [setup.darwin]
 script = '''
-cd "$CODEX_SOURCE_TREE_PATH"
 set -euo pipefail
+
+WORKTREE="${CODEX_WORKTREE_PATH:-${CODEX_SOURCE_TREE_PATH:-$(pwd)}}"
+cd "$WORKTREE"
 
 ROOT="$(git rev-parse --show-toplevel)"
 cd "$ROOT"
