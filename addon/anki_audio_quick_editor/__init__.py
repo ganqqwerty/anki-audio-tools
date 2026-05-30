@@ -286,8 +286,19 @@ def _setup_menu() -> None:
     """Register the add-on submenu under Tools."""
     from .i18n import t
 
+    reviewer_integration = import_module(f"{__name__}.reviewer_integration")
     submenu = mw.form.menuTools.addMenu("Anki Audio Quick Editor")
     assert submenu is not None
+
+    reviewer_action = reviewer_integration.add_reviewer_editor_toggle_action(submenu)
+
+    def _refresh_reviewer_action() -> None:
+        reviewer_action.setText(reviewer_integration.reviewer_editor_menu_label())
+
+    if hasattr(submenu, "aboutToShow"):
+        qconnect(submenu.aboutToShow, _refresh_reviewer_action)
+
+    submenu.addSeparator()
 
     settings_action = submenu.addAction(t("settings.menu"))
     assert settings_action is not None

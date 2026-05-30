@@ -41,6 +41,11 @@
   max-width: min(980px, 100%);
 }
 
+.aqe-mount-host[data-aqe-surface="reviewer"] .aqe-help {
+  flex: 0 0 auto;
+  max-width: none;
+}
+
 .aqe-help-summary {
   align-items: center;
   cursor: pointer;

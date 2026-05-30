@@ -8,6 +8,7 @@ import re
 from typing import Any
 
 from aqt import mw
+from aqt.qt import qconnect
 
 from .editor_actions import BRIDGE_COMMANDS, CMD_COMMAND_PAYLOAD
 from .editor_callbacks import _handle_bridge_command
@@ -25,6 +26,9 @@ _ADAPTERS: dict[int, ReviewerEditorAdapter] = {}
 _BRIDGE_WRAPPED_ATTR = "_aqe_reviewer_bridge_wrapped"
 _ORIGINAL_BRIDGE_ATTR = "_aqe_original_bridge_command"
 _WRAPPER_BRIDGE_ATTR = "_aqe_reviewer_bridge_command"
+_SHOW_REVIEWER_EDITOR_LABEL = "Show audio editor"
+_HIDE_REVIEWER_EDITOR_LABEL = "Hide audio editor"
+_reviewer_editor_visible = True
 
 
 class ReviewerEditorAdapter:
@@ -68,6 +72,41 @@ def register_reviewer_hooks(gui_hooks: Any) -> None:
     gui_hooks.reviewer_did_show_question.append(_on_reviewer_did_show_card_side)
     gui_hooks.reviewer_did_show_answer.append(_on_reviewer_did_show_card_side)
     gui_hooks.reviewer_did_answer_card.append(_on_reviewer_did_answer_card)
+    gui_hooks.reviewer_will_show_context_menu.append(_on_reviewer_will_show_context_menu)
+
+
+def reviewer_editor_menu_label(reviewer: Any | None = None) -> str:
+    """Return the current Reviewer audio-editor toggle label."""
+    reviewer = reviewer if reviewer is not None else getattr(mw, "reviewer", None)
+    return (
+        _HIDE_REVIEWER_EDITOR_LABEL
+        if _reviewer_editor_currently_shown(reviewer)
+        else _SHOW_REVIEWER_EDITOR_LABEL
+    )
+
+
+def add_reviewer_editor_toggle_action(menu: Any, reviewer: Any | None = None) -> Any:
+    """Add a Show/Hide audio editor action to an Anki menu."""
+    action = menu.addAction(reviewer_editor_menu_label(reviewer))
+    assert action is not None
+    if hasattr(action, "setEnabled"):
+        action.setEnabled(_reviewer_editor_enabled())
+    qconnect(action.triggered, toggle_reviewer_editor_visibility)
+    return action
+
+
+def toggle_reviewer_editor_visibility() -> bool:
+    """Toggle reviewer audio controls without changing the persistent setting."""
+    global _reviewer_editor_visible
+    reviewer = getattr(mw, "reviewer", None)
+    if _reviewer_editor_currently_shown(reviewer):
+        _reviewer_editor_visible = False
+        _dispose_reviewer_frontend()
+        return False
+    _reviewer_editor_visible = True
+    if _reviewer_editor_enabled() and _reviewer_showing_answer(reviewer):
+        _render_current_reviewer_side(reviewer)
+    return False
 
 
 def _on_card_review_webview_did_init(webview: Any, kind: Any) -> None:
@@ -76,9 +115,9 @@ def _on_card_review_webview_did_init(webview: Any, kind: Any) -> None:
 
 
 def _on_card_will_show(text: str, card: Any, kind: str) -> str:
-    if kind not in {"reviewQuestion", "reviewAnswer"}:
+    if kind != "reviewAnswer":
         return text
-    if not _reviewer_editor_enabled():
+    if not _reviewer_editor_enabled() or not _reviewer_editor_visible:
         return text
     note = _card_note(card)
     if note is None:
@@ -90,11 +129,14 @@ def _on_card_will_show(text: str, card: Any, kind: str) -> str:
 
 
 def _on_reviewer_did_show_card_side(card: Any) -> None:
-    if not _reviewer_editor_enabled():
+    if not _reviewer_editor_enabled() or not _reviewer_editor_visible:
         _dispose_reviewer_frontend()
         return
     reviewer = getattr(mw, "reviewer", None)
     if reviewer is None or getattr(reviewer, "card", None) is not card:
+        return
+    if not _reviewer_showing_answer(reviewer):
+        _dispose_reviewer_frontend()
         return
     adapter = _adapter_for_reviewer(reviewer)
     note = _card_note(card)
@@ -115,6 +157,12 @@ def _on_reviewer_did_answer_card(reviewer: Any, card: Any, ease: int) -> None:
         reset_for_note_load(session, None)
     if hasattr(adapter, "web"):
         adapter.web.eval("window.__aqeEditorDispose && window.__aqeEditorDispose()")
+
+
+def _on_reviewer_will_show_context_menu(reviewer: Any, menu: Any) -> None:
+    if hasattr(menu, "addSeparator"):
+        menu.addSeparator()
+    add_reviewer_editor_toggle_action(menu, reviewer)
 
 
 def _ensure_reviewer_bridge_wrapped(webview: Any) -> None:
@@ -262,6 +310,14 @@ def _card_note(card: Any) -> Any | None:
 def _reviewer_editor_enabled() -> bool:
     config = mw.addonManager.getConfig(mw.addonManager.addonFromModule(__name__)) or {}
     return bool(config.get("enable_reviewer_editor", True))
+
+
+def _reviewer_showing_answer(reviewer: Any | None) -> bool:
+    return getattr(reviewer, "state", None) == "answer"
+
+
+def _reviewer_editor_currently_shown(reviewer: Any | None) -> bool:
+    return _reviewer_editor_enabled() and _reviewer_editor_visible and _reviewer_showing_answer(reviewer)
 
 
 def _dispose_reviewer_frontend() -> None:

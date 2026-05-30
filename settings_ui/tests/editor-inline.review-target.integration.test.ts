@@ -23,7 +23,9 @@ describe("editor inline review targets", () => {
     scan(config);
 
     const controls = document.querySelector<HTMLElement>('.aqe-controls[data-aqe-field-ord="2"]');
+    const host = document.querySelector<HTMLElement>(".aqe-mount-host");
     expect(controls).not.toBeNull();
+    expect(host?.dataset.aqeSurface).toBe("reviewer");
     expect(controls?.dataset.aqeSourceFilename).toBe("review clip.mp3");
     expect(document.querySelector('[data-testid="aqe-button-2-play"]')).not.toBeNull();
   });
