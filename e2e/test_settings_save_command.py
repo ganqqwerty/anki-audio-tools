@@ -20,6 +20,7 @@ def test_save_command_writes_config(anki_mw) -> None:
         "enabled": False,
         "debug_logging": True,
         "show_ffmpeg_commands": False,
+        "enable_reviewer_editor": True,
         "repeat_playback_by_default": False,
         "repeat_pause_seconds": 0.0,
         "voice_recording_countdown_seconds": 3,

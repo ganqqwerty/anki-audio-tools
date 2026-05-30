@@ -14,6 +14,7 @@
   "settings.voice_recording_countdown_seconds": "音声録音前のカウントダウン",
   "settings.share_target": "既定の共有先",
   "settings.show_graph_by_default": "既定でグラフを表示する",
+  "settings.enable_reviewer_editor": "レビュー中にエディター操作を表示する",
   "settings.toolbar_visibility.title": "エディターツールバーのボタン",
   "settings.toolbar_visibility.summary": "音声フィールドの横に表示するクイックエディターボタンを選択します。",
   "settings.toolbar_visibility.off": "オフ",

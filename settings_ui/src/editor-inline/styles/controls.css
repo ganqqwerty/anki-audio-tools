@@ -25,6 +25,21 @@
   padding: 6px 8px;
 }
 
+.aqe-mount-host[data-aqe-surface="reviewer"] {
+  clear: both;
+  display: block;
+  margin: 4px 0;
+  max-width: 100%;
+}
+
+.aqe-mount-host[data-aqe-surface="reviewer"] .aqe-controls {
+  background: color-mix(in srgb, Canvas 92%, CanvasText 8%);
+  box-sizing: border-box;
+  margin: 3px 0;
+  max-width: 100%;
+  padding: 4px 6px;
+}
+
 @media (prefers-color-scheme: dark) {
   .aqe-controls {
     --aqe-progress-color: #fb3d03;
@@ -39,7 +54,8 @@
   }
 }
 
-.aqe-button {
+.aqe-button,
+.aqe-mount-host .aqe-button {
   align-items: center;
   background: transparent;
   border: 1px solid;
@@ -51,8 +67,26 @@
   font-size: 12px;
   font-weight: 400;
   gap: 5px;
+  line-height: 1.2;
+  margin: 0;
   min-height: 27px;
   padding: 4px 8px;
+  text-align: center;
+  text-shadow: none;
+  text-transform: none;
+  vertical-align: middle;
+}
+
+.aqe-controls *,
+.aqe-controls *::before,
+.aqe-controls *::after {
+  box-sizing: border-box;
+}
+
+.aqe-mount-host[data-aqe-surface="reviewer"] .aqe-button-icon,
+.aqe-mount-host[data-aqe-surface="reviewer"] .aqe-button-icon svg {
+  filter: none;
+  transform: none;
 }
 
 .aqe-button-tooltip-target {

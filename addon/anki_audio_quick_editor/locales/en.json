@@ -16,6 +16,7 @@
   "settings.share_target.catbox.tooltip": "Permanent public upload while the Catbox service keeps it available.\nUse this when you want a link that should last.",
   "settings.share_target.litterbox.tooltip": "Temporary public upload that expires after about 3 days.\nUse this for quick sharing when the link does not need to last.",
   "settings.show_graph_by_default": "Show graph by default",
+  "settings.enable_reviewer_editor": "Show editor controls while reviewing",
   "settings.toolbar_visibility.title": "Editor toolbar buttons",
   "settings.toolbar_visibility.summary": "Choose which quick editor buttons are shown beside audio fields.",
   "settings.toolbar_visibility.off": "Off",

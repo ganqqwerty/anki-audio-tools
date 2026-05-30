@@ -277,12 +277,28 @@ def _setup_browser_integration() -> None:
     import_module(f"{__name__}.browser_integration").register_browser_hooks(gui_hooks)
 
 
+def _setup_reviewer_integration() -> None:
+    """Register reviewer hooks for inline audio controls during learning."""
+    import_module(f"{__name__}.reviewer_integration").register_reviewer_hooks(gui_hooks)
+
+
 def _setup_menu() -> None:
     """Register the add-on submenu under Tools."""
     from .i18n import t
 
+    reviewer_integration = import_module(f"{__name__}.reviewer_integration")
     submenu = mw.form.menuTools.addMenu("Anki Audio Quick Editor")
     assert submenu is not None
+
+    reviewer_action = reviewer_integration.add_reviewer_editor_toggle_action(submenu)
+
+    def _refresh_reviewer_action() -> None:
+        reviewer_action.setText(reviewer_integration.reviewer_editor_menu_label())
+
+    if hasattr(submenu, "aboutToShow"):
+        qconnect(submenu.aboutToShow, _refresh_reviewer_action)
+
+    submenu.addSeparator()
 
     settings_action = submenu.addAction(t("settings.menu"))
     assert settings_action is not None
@@ -309,6 +325,7 @@ gui_hooks.main_window_did_init.append(_with_hook_boundary("apply_log_level", _ap
 gui_hooks.main_window_did_init.append(_with_hook_boundary("setup_managed_runtime", _setup_managed_runtime))
 gui_hooks.main_window_did_init.append(_with_hook_boundary("setup_editor_integration", _setup_editor_integration))
 gui_hooks.main_window_did_init.append(_with_hook_boundary("setup_browser_integration", _setup_browser_integration))
+gui_hooks.main_window_did_init.append(_with_hook_boundary("setup_reviewer_integration", _setup_reviewer_integration))
 gui_hooks.main_window_did_init.append(_with_hook_boundary("setup_menu", _setup_menu))
 gui_hooks.addon_manager_will_install_addon.append(_release_install_blocking_files)
 gui_hooks.addon_manager_did_install_addon.append(_restore_install_logging)

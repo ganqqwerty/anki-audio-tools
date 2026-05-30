@@ -37,6 +37,7 @@ def _full_config() -> dict[str, object]:
         "enabled": True,
         "debug_logging": False,
         "show_ffmpeg_commands": False,
+        "enable_reviewer_editor": True,
         "repeat_playback_by_default": True,
         "repeat_pause_seconds": 0.0,
         "voice_recording_countdown_seconds": 3,

@@ -14,6 +14,7 @@
   "settings.voice_recording_countdown_seconds": "Обратный отсчет перед записью голоса",
   "settings.share_target": "Цель публикации по умолчанию",
   "settings.show_graph_by_default": "Показывать график по умолчанию",
+  "settings.enable_reviewer_editor": "Показывать кнопки редактора при повторении",
   "settings.toolbar_visibility.title": "Кнопки панели редактора",
   "settings.toolbar_visibility.summary": "Выберите, какие кнопки быстрого редактирования показывать рядом с аудиополями.",
   "settings.toolbar_visibility.off": "Откл.",

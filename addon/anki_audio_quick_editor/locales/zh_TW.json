@@ -14,6 +14,7 @@
   "settings.voice_recording_countdown_seconds": "語音錄製前倒數",
   "settings.share_target": "預設分享目標",
   "settings.show_graph_by_default": "預設顯示圖表",
+  "settings.enable_reviewer_editor": "複習時顯示編輯器控制項",
   "settings.toolbar_visibility.title": "編輯器工具列按鈕",
   "settings.toolbar_visibility.summary": "選擇要在音訊欄位旁顯示哪些快速編輯按鈕。",
   "settings.toolbar_visibility.off": "關閉",

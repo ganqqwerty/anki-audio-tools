@@ -16,6 +16,7 @@
   "settings.share_target.catbox.tooltip": "Öffentlicher Upload ohne festes Ablaufdatum, solange Catbox ihn verfügbar hält.\nNutze dies, wenn der Link länger halten soll.",
   "settings.share_target.litterbox.tooltip": "Temporärer öffentlicher Upload, der nach etwa 3 Tagen abläuft.\nNutze dies für schnelles Teilen, wenn der Link nicht dauerhaft sein muss.",
   "settings.show_graph_by_default": "Diagramm standardmäßig anzeigen",
+  "settings.enable_reviewer_editor": "Editor-Steuerung beim Wiederholen anzeigen",
   "settings.toolbar_visibility.title": "Schaltflächen der Bearbeitungsleiste",
   "settings.toolbar_visibility.summary": "Wähle, welche Schnellbearbeitungs-Schaltflächen neben Audiofeldern angezeigt werden.",
   "settings.toolbar_visibility.off": "Aus",
