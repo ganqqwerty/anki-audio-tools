@@ -54,7 +54,8 @@
   }
 }
 
-.aqe-button {
+.aqe-button,
+.aqe-mount-host .aqe-button {
   align-items: center;
   background: transparent;
   border: 1px solid;
@@ -71,6 +72,8 @@
   min-height: 27px;
   padding: 4px 8px;
   text-align: center;
+  text-shadow: none;
+  text-transform: none;
   vertical-align: middle;
 }
 
