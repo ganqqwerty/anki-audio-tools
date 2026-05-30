@@ -8,6 +8,7 @@
     "enabled",
     "debug_logging",
     "show_ffmpeg_commands",
+    "enable_reviewer_editor",
     "repeat_playback_by_default",
     "repeat_pause_seconds",
     "share_target",
@@ -58,6 +59,9 @@
       "type": "boolean"
     },
     "show_ffmpeg_commands": {
+      "type": "boolean"
+    },
+    "enable_reviewer_editor": {
       "type": "boolean"
     },
     "repeat_playback_by_default": {

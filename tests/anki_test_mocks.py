@@ -229,6 +229,7 @@ def _configure_qt_static_methods() -> None:
 
 _webview = types.ModuleType("aqt.webview")
 _webview.AnkiWebView = _AnkiWebView
+_webview.AnkiWebViewKind = types.SimpleNamespace(MAIN=types.SimpleNamespace(name="MAIN", value="main"))
 
 _aqt_addons = types.ModuleType("aqt.addons")
 _aqt_addons.AddonManager = _AddonManager
@@ -257,6 +258,11 @@ _GUI_HOOK_NAMES = (
     "addon_manager_did_install_addon",
     "editor_did_init",
     "editor_will_load_note",
+    "card_review_webview_did_init",
+    "card_will_show",
+    "reviewer_did_show_question",
+    "reviewer_did_show_answer",
+    "reviewer_did_answer_card",
     "browser_menus_did_init",
     "browser_will_show_context_menu",
     "operation_did_execute",

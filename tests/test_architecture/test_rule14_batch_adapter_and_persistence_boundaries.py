@@ -16,6 +16,7 @@ ALLOWED_PERSISTENCE_FILES = {
     "editor_integration.py",
     "editor_processing.py",
     "editor_region_delete.py",
+    "reviewer_integration.py",
 }
 PERSISTENCE_PATTERNS = [
     r"\.media\.write_data\(",

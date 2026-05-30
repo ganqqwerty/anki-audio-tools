@@ -193,26 +193,26 @@ def _resolve_output_format(
 def _codec_args(output_format: str, metadata: AudioSourceMetadata) -> tuple[str, ...]:
     sample_args = _sample_args(metadata)
     if output_format == "mp3":
-        return (*_mp3_args(metadata), *sample_args)
+        return *_mp3_args(metadata), *sample_args
     if output_format in {"m4a", "aac"}:
         muxer_args = ("-f", "adts") if output_format == "aac" else ()
-        return (FFMPEG_AUDIO_CODEC_ARG, "aac", "-b:a", _bitrate(metadata, "192k"), *muxer_args, *sample_args)
+        return FFMPEG_AUDIO_CODEC_ARG, "aac", "-b:a", _bitrate(metadata, "192k"), *muxer_args, *sample_args
     if output_format == "wav":
-        return (FFMPEG_AUDIO_CODEC_ARG, _wav_codec(metadata), *sample_args)
+        return FFMPEG_AUDIO_CODEC_ARG, _wav_codec(metadata), *sample_args
     if output_format == "flac":
-        return (FFMPEG_AUDIO_CODEC_ARG, "flac", "-compression_level", "5", *sample_args)
+        return FFMPEG_AUDIO_CODEC_ARG, "flac", "-compression_level", "5", *sample_args
     if output_format == "ogg":
         codec = "libopus" if metadata.codec_name == "opus" else "libvorbis"
-        return (FFMPEG_AUDIO_CODEC_ARG, codec, "-b:a", _bitrate(metadata, "128k"), *sample_args)
+        return FFMPEG_AUDIO_CODEC_ARG, codec, "-b:a", _bitrate(metadata, "128k"), *sample_args
     if output_format in {"oga", "opus", "webm"}:
-        return (FFMPEG_AUDIO_CODEC_ARG, "libopus", "-b:a", _bitrate(metadata, "128k"), *sample_args)
-    return (*DEFAULT_MP3_CODEC_ARGS, *sample_args)
+        return FFMPEG_AUDIO_CODEC_ARG, "libopus", "-b:a", _bitrate(metadata, "128k"), *sample_args
+    return *DEFAULT_MP3_CODEC_ARGS, *sample_args
 
 
 def _mp3_args(metadata: AudioSourceMetadata) -> tuple[str, ...]:
     if metadata.bit_rate is None:
         return DEFAULT_MP3_CODEC_ARGS
-    return (FFMPEG_AUDIO_CODEC_ARG, "libmp3lame", "-b:a", _bitrate(metadata, "128k"))
+    return FFMPEG_AUDIO_CODEC_ARG, "libmp3lame", "-b:a", _bitrate(metadata, "128k")
 
 
 def _sample_args(metadata: AudioSourceMetadata) -> tuple[str, ...]:

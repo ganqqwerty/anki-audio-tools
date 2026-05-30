@@ -14,6 +14,7 @@
   "settings.voice_recording_countdown_seconds": "Đếm ngược trước khi ghi âm giọng nói",
   "settings.share_target": "Đích chia sẻ mặc định",
   "settings.show_graph_by_default": "Hiển thị biểu đồ theo mặc định",
+  "settings.enable_reviewer_editor": "Hiển thị điều khiển trình soạn thảo khi ôn tập",
   "settings.toolbar_visibility.title": "Nút thanh công cụ trình soạn thảo",
   "settings.toolbar_visibility.summary": "Chọn các nút chỉnh sửa nhanh hiển thị bên cạnh trường âm thanh.",
   "settings.toolbar_visibility.off": "Tắt",

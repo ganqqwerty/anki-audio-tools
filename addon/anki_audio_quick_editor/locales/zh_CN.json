@@ -14,6 +14,7 @@
   "settings.voice_recording_countdown_seconds": "语音录制前倒计时",
   "settings.share_target": "默认分享目标",
   "settings.show_graph_by_default": "默认显示图表",
+  "settings.enable_reviewer_editor": "复习时显示编辑器控件",
   "settings.toolbar_visibility.title": "编辑器工具栏按钮",
   "settings.toolbar_visibility.summary": "选择在音频字段旁显示哪些快速编辑按钮。",
   "settings.toolbar_visibility.off": "关闭",

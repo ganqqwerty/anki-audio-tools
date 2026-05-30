@@ -68,6 +68,14 @@ export function disposeEditorRuntime(): void {
 }
 
 export function scan(config: EditorRuntimeConfig = window.__AQE_EDITOR_CONFIG__ ?? { audioFieldIndices: [] }): void {
+  const reviewTargets = reviewFieldTargets();
+  if (reviewTargets.length) {
+    reviewTargets.forEach((target) => mountNear(target));
+    logger.debug("scan mounted review fields", { count: reviewTargets.length });
+    requestPendingGraphRedraw();
+    enqueueConfiguredDefaultGraphs(config, reviewTargets);
+    return;
+  }
   if (config.audioFieldIndices.length) {
     const explicitTargets = explicitFieldTargets(config.audioFieldIndices, config.audioFieldSources);
     explicitTargets.forEach((target) => mountNear(target));
@@ -93,6 +101,21 @@ export function scan(config: EditorRuntimeConfig = window.__AQE_EDITOR_CONFIG__ 
   logger.debug("scan mounted detected fields", { count });
   requestPendingGraphRedraw();
   enqueueConfiguredDefaultGraphs(config, mountedTargets);
+}
+
+export function reviewFieldTargets(): FieldTarget[] {
+  return Array.from(document.querySelectorAll<HTMLElement>(".aqe-review-audio-target"))
+    .map((node): FieldTarget | null => {
+      const rawOrd = node.dataset.fieldOrd;
+      const sourceFilename = node.dataset.aqeSourceFilename || audioSourceForNode(node);
+      if (rawOrd === undefined || !/^\d+$/.test(rawOrd) || !sourceFilename) return null;
+      return {
+        node,
+        ord: Number(rawOrd),
+        sourceFilename,
+      };
+    })
+    .filter((target): target is FieldTarget => target !== null);
 }
 
 export function fieldNodes(): HTMLElement[] {

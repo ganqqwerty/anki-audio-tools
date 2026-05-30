@@ -36,6 +36,7 @@ const config = {
   enabled: true,
   debug_logging: false,
   show_ffmpeg_commands: false,
+  enable_reviewer_editor: true,
   repeat_playback_by_default: true,
   repeat_pause_seconds: 0,
   voice_recording_countdown_seconds: 3,

@@ -110,6 +110,15 @@
     <p>{t("settings.toolbar_visibility.summary")}</p>
   </div>
 
+  <label class="settings-toggle">
+    <input
+      data-testid="enable-reviewer-editor"
+      type="checkbox"
+      bind:checked={config.enable_reviewer_editor}
+    />
+    <span class="settings-label-text">{t("settings.enable_reviewer_editor")}</span>
+  </label>
+
   <div class="button-settings-grid" data-testid="toolbar-visibility-buttons">
     {#each buttons as button (button.command)}
       {@const visible = isVisible(button.command)}

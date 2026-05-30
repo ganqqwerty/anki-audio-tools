@@ -88,6 +88,7 @@ __all__ = [
     "STILL_PROCESSING_MESSAGE",
     "UndoEntry",
     "UndoHistory",
+    "editor_injection_script",
     "_audio_field_indices",
     "_audio_field_sources",
     "_artifact_root",
@@ -214,6 +215,11 @@ def _on_editor_did_init(editor: Any) -> None:
 def _on_editor_will_load_note(js: str, note: Any, editor: Any) -> str:
     _reset_editor_session_for_note_load(editor, getattr(note, "id", None))
     _SESSIONS.setdefault(editor, EditorSession()).note_id = getattr(note, "id", None)
+    return f"{js}\n{editor_injection_script(editor, note)}"
+
+
+def editor_injection_script(editor: Any, note: Any) -> str:
+    """Return the shared inline controls script for one note-bearing editor surface."""
     config = _config(editor)
     audio_field_sources = _audio_field_sources(note)
     visible_editor_buttons = config.get("visible_editor_buttons", [])
@@ -222,7 +228,7 @@ def _on_editor_will_load_note(js: str, note: Any, editor: Any) -> str:
     editor_button_modes = config.get("editor_button_modes", {})
     if not isinstance(editor_button_modes, dict):
         editor_button_modes = {}
-    script = injection_script(
+    return injection_script(
         list(audio_field_sources),
         audio_field_sources=audio_field_sources,
         initial_status_by_field=_initial_status_by_field(_SESSIONS.get(editor)),
@@ -282,7 +288,6 @@ def _on_editor_will_load_note(js: str, note: Any, editor: Any) -> str:
             "graphVoiceLock": str(config.get("graph_voice_lock", "balanced")),
         },
     )
-    return f"{js}\n{script}"
 
 
 def _initial_status_by_field(session: EditorSession | None) -> dict[int, dict[str, str]]:
