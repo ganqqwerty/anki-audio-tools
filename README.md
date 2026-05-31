@@ -58,29 +58,40 @@ The local development add-on ID is `1000000002`.
 
 ## Release
 
+Runtime packs and thin add-on archives are released separately. Build and publish
+a runtime release only when native tools or model files change:
+
 ```bash
 python3 scripts/dev.py release-assets verify --target all
 python3 scripts/dev.py release-assets verify --target current --diagnostics
-python3 scripts/release.py --target all
-python3 scripts/release.py --verify-runtime-urls
+python3 scripts/dev.py release-runtime build --runtime-version 1.0 --target all
+python3 scripts/dev.py release-runtime upload --metadata runtime_release.lock.json
+python3 scripts/dev.py release-runtime verify --metadata runtime_release.lock.json
+```
+
+Normal public add-on releases are thin and consume the tracked
+`runtime_release.lock.json` metadata:
+
+```bash
+python3 scripts/release.py --target all --verify-runtime-urls
 python3 scripts/dev.py release-smoke dist/anki-audio-quick-editor-<version>.ankiaddon
 ```
 
-This validates the repo, regenerates contracts and webview bundles, stages
-locked runtime payloads, builds platform runtime pack zips, writes version-pinned
-runtime-pack metadata into `bin/runtime_manifest.json`, validates the thin add-on
-archive, and produces `dist/anki-audio-quick-editor-<version>.ankiaddon`.
-Public AnkiWeb releases should use `--target all`; `--target current` and
-single-platform targets are for local/private validation.
+This validates the repo, regenerates contracts and webview bundles, writes
+runtime-pack metadata from `runtime_release.lock.json` into
+`bin/runtime_manifest.json`, validates the thin add-on archive, verifies the
+published runtime URLs when requested, and produces
+`dist/anki-audio-quick-editor-<version>.ankiaddon`. Public AnkiWeb releases
+should use `--target all`; `--target current` and single-platform targets are
+for local/private validation.
 
 `release-assets verify` checks presence and checksums by default. Add
 `--diagnostics` when you also want current-host runtime probes before release
 smoke or native acceptance.
 
-Use `--upload-assets` to upload generated runtime packs with `gh release upload`,
-or run the printed command manually when `gh` is unavailable. Use `--embed-runtime`
-for local/offline validation builds that intentionally include runtime payloads in
-the `.ankiaddon`.
+Runtime releases use immutable tags named `runtime-vN`, such as `runtime-v1.0`.
+Use `--embed-runtime` for local/offline validation builds that intentionally
+include runtime payloads in the `.ankiaddon`.
 
 ## Similar projects
 

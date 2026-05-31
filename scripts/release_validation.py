@@ -9,8 +9,8 @@ import zipfile
 from pathlib import Path
 from typing import Callable
 
-import release_assets
 import scripts.release_asset_common as release_asset_common
+from scripts import release_assets
 
 
 def validate_archive(

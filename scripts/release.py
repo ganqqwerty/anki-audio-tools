@@ -19,6 +19,8 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 import release_assets  # noqa: E402
 import scripts.release_bundle_freshness as release_bundle_freshness  # noqa: E402
 import scripts.release_manifest_selection as release_manifest_selection  # noqa: E402
+import scripts.release_runtime_metadata as release_runtime_metadata  # noqa: E402
+import scripts.release_runtime_remote as release_runtime_remote  # noqa: E402
 import scripts.release_validation as release_validation  # noqa: E402
 from dev import _find_anki_python  # noqa: E402
 from scripts.release_archive import (
@@ -30,15 +32,6 @@ from scripts.release_archive import (
 from scripts.release_archive import (
     validate_archive as _validate_archive,
 )
-from scripts.release_runtime import (
-    build_runtime_packs as _build_runtime_packs,  # noqa: E402
-)
-from scripts.release_runtime import (
-    default_runtime_base_url as _default_runtime_base_url,
-)
-from scripts.release_runtime import upload_runtime_assets as _upload_runtime_assets
-from scripts.release_runtime import validate_runtime_packs as _validate_runtime_packs
-from scripts.release_runtime import verify_runtime_urls as _verify_runtime_urls
 
 _should_include = release_manifest_selection.should_include
 release_manifest_files = release_manifest_selection.release_manifest_files
@@ -90,6 +83,44 @@ def _selected_release_targets(value: str, lock: dict) -> tuple[list[str] | None,
     return release_validation.selected_release_targets(value, lock)
 
 
+def _validate_release_args(parser: argparse.ArgumentParser, args: argparse.Namespace) -> bool:
+    skip_quality_checks = args.skip_quality_checks or args.skip_checks
+    if skip_quality_checks and args.full:
+        parser.error("--full cannot be used with --skip-quality-checks")
+    if args.no_bundle_ffmpeg and not args.embed_runtime:
+        parser.error("--no-bundle-ffmpeg is only supported with --embed-runtime")
+    if args.runtime_base_url:
+        parser.error("--runtime-base-url moved to python3 scripts/dev.py release-runtime build")
+    if args.upload_assets:
+        parser.error("--upload-assets moved to python3 scripts/dev.py release-runtime upload")
+    if args.verify_runtime_urls and args.embed_runtime:
+        parser.error("--verify-runtime-urls is only valid for thin releases")
+    return skip_quality_checks
+
+
+def _load_thin_runtime_release(
+    args: argparse.Namespace,
+    lock: dict,
+    target_keys: list[str] | None,
+) -> tuple[dict[str, Any], dict[str, dict[str, Any]], dict[str, dict[str, Any]]]:
+    runtime_release = release_runtime_metadata.load_runtime_release_lock(Path(args.runtime_metadata))
+    release_runtime_metadata.validate_runtime_release_metadata(
+        runtime_release,
+        lock,
+        target_keys=target_keys,
+        include_ffmpeg=True,
+    )
+    runtime_pack_metadata = release_runtime_metadata.runtime_pack_metadata_from_release(
+        runtime_release,
+        target_keys=target_keys,
+    )
+    runtime_file_metadata = release_runtime_metadata.file_metadata_by_path(
+        runtime_pack_metadata,
+        target_keys=target_keys,
+    )
+    return runtime_release, runtime_pack_metadata, runtime_file_metadata
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description="Build .ankiaddon package")
     parser.add_argument("--version", help="Override version")
@@ -118,12 +149,17 @@ def main() -> None:
     )
     parser.add_argument(
         "--runtime-base-url",
-        help="Base URL where runtime pack assets will be uploaded; defaults to the versioned GitHub Release URL",
+        help="Deprecated for add-on releases; use release-runtime build instead",
+    )
+    parser.add_argument(
+        "--runtime-metadata",
+        default=str(release_runtime_metadata.RUNTIME_RELEASE_LOCK_PATH),
+        help="Tracked runtime release metadata used by thin releases",
     )
     parser.add_argument(
         "--upload-assets",
         action="store_true",
-        help="Upload generated runtime packs with gh release upload after local validation",
+        help="Deprecated for add-on releases; use python3 scripts/dev.py release-runtime upload",
     )
     parser.add_argument(
         "--verify-runtime-urls",
@@ -131,11 +167,7 @@ def main() -> None:
         help="Download manifest runtime URLs and verify their SHA-256 digests after upload",
     )
     args = parser.parse_args()
-    skip_quality_checks = args.skip_quality_checks or args.skip_checks
-    if skip_quality_checks and args.full:
-        parser.error("--full cannot be used with --skip-quality-checks")
-    if args.no_bundle_ffmpeg and not args.embed_runtime:
-        parser.error("--no-bundle-ffmpeg is only supported with --embed-runtime")
+    skip_quality_checks = _validate_release_args(parser, args)
     if args.allow_large_archive:
         print(f"Large archive override reason: {args.allow_large_archive}")
 
@@ -149,28 +181,20 @@ def main() -> None:
     lock = release_assets.load_lock()
     target_keys, target_label = _selected_release_targets(args.target, lock)
     include_ffmpeg = not args.no_bundle_ffmpeg
-    runtime_base_url = args.runtime_base_url or _default_runtime_base_url(version)
     runtime_pack_metadata: dict[str, dict[str, Any]] = {}
+    runtime_file_metadata: dict[str, dict[str, Any]] | None = None
+    runtime_release: dict[str, Any] | None = None
+
+    if not args.embed_runtime:
+        runtime_release, runtime_pack_metadata, runtime_file_metadata = _load_thin_runtime_release(
+            args,
+            lock,
+            target_keys,
+        )
 
     with tempfile.TemporaryDirectory(prefix="anki-audio-release-") as tmp:
         staging_dir = Path(tmp) / "addon"
-        runtime_source_bin_dir = Path(tmp) / "runtime-bin"
         try:
-            if not args.embed_runtime:
-                release_assets.stage_assets(
-                    lock,
-                    destination=runtime_source_bin_dir,
-                    target_keys=target_keys,
-                    include_ffmpeg=True,
-                )
-                runtime_pack_metadata = _build_runtime_packs(
-                    version,
-                    lock,
-                    source_bin_dir=runtime_source_bin_dir,
-                    target_keys=target_keys,
-                    include_ffmpeg=True,
-                    runtime_base_url=runtime_base_url,
-                )
             _stage_release_tree(
                 staging_dir,
                 lock=lock,
@@ -178,15 +202,13 @@ def main() -> None:
                 include_ffmpeg=include_ffmpeg,
                 embed_runtime=args.embed_runtime,
                 runtime_pack_metadata=runtime_pack_metadata or None,
-                runtime_source_bin_dir=runtime_source_bin_dir if runtime_pack_metadata else None,
+                runtime_file_metadata=runtime_file_metadata,
             )
         except release_assets.ReleaseAssetError as exc:
             # noinspection PyStringConversionWithoutDunderMethod
             print(f"ERROR: {exc}")
             sys.exit(1)
         archive = _build_archive(version, staging_dir, target_label=target_label, include_ffmpeg=include_ffmpeg)
-        if runtime_pack_metadata:
-            _validate_runtime_packs(runtime_pack_metadata)
     _validate_archive(
         archive,
         allow_large_archive=bool(args.allow_large_archive),
@@ -195,10 +217,12 @@ def main() -> None:
         include_ffmpeg=include_ffmpeg,
         embed_runtime=args.embed_runtime,
     )
-    if runtime_pack_metadata and args.upload_assets:
-        _upload_runtime_assets(version, runtime_pack_metadata)
-    if runtime_pack_metadata and args.verify_runtime_urls:
-        _verify_runtime_urls(runtime_pack_metadata)
+    if runtime_release is not None and args.verify_runtime_urls:
+        try:
+            release_runtime_remote.verify_runtime_release_urls(runtime_release)
+        except release_assets.ReleaseAssetError as exc:
+            print(f"ERROR: {exc}")
+            sys.exit(1)
     print(f"Done: {archive}")
 
 

@@ -67,7 +67,7 @@ Public release archives are thin. They include `bin/runtime_manifest.json`, but 
 
 Runtime discovery checks the configured ffmpeg path where supported, the managed downloaded runtime, package `bin/` as a source-tree development fallback, and `PATH` as a compatibility fallback for `ffmpeg`, `ffprobe`, and `deep-filter`. The settings diagnostics report whether each tool came from config, the managed runtime, the development fallback, or `PATH`.
 
-`release_assets.lock.json` remains the source of truth for the runtime matrix, source URLs, diagnostic arguments, and SHA-256 values. Keep runtime payloads available under the same staged source layout used by release scripts: non-FFmpeg runtime payloads under `addon/anki_audio_quick_editor/bin/<target>/` and `addon/anki_audio_quick_editor/bin/models/`, with cached `ffmpeg` and `ffprobe` under `.release-assets/bin/<target>/`. The release script stages those files, builds one runtime pack zip per target, computes pack metadata, and writes version-pinned GitHub Release URLs into `bin/runtime_manifest.json`.
+`release_assets.lock.json` remains the source of truth for the runtime matrix, source URLs, diagnostic arguments, and SHA-256 values. Keep runtime payloads available under the same staged source layout used by release scripts: non-FFmpeg runtime payloads under `addon/anki_audio_quick_editor/bin/<target>/` and `addon/anki_audio_quick_editor/bin/models/`, with cached `ffmpeg` and `ffprobe` under `.release-assets/bin/<target>/`. Runtime pack releases are built separately from add-on releases and recorded in `runtime_release.lock.json`. Thin add-on releases consume that metadata and write its immutable `runtime-vN` URLs into `bin/runtime_manifest.json`.
 
 Release asset workflow:
 
@@ -115,19 +115,31 @@ need executable behavior checks on the current host.
 
 Sherpa Spleeter and Silero VAD are fetched from locked `sherpa-onnx` native archives. Packaging renames the upstream `sherpa-onnx-offline-source-separation` executable to `sherpa-spleeter` and `sherpa-onnx-vad` to `silero-vad`, stages the target-specific ONNX Runtime libraries beside them once per runtime pack path, and reads the committed shared Spleeter 2-stems fp16 model files plus `silero_vad.onnx` from `addon/anki_audio_quick_editor/bin/models/`.
 
-Package all runtime targets for public AnkiWeb distribution:
+Build and publish runtime packs only when native tools or model files change:
 
 ```bash
-python3 scripts/release.py --target all
+python3 scripts/dev.py release-runtime build --runtime-version 1.0 --target all
+python3 scripts/dev.py release-runtime upload --metadata runtime_release.lock.json
+python3 scripts/dev.py release-runtime verify --metadata runtime_release.lock.json
 ```
 
-This builds `dist/anki-audio-quick-editor-<version>.ankiaddon` plus runtime packs named `aqe-runtime-<version>-<target>.zip`. Pass `--upload-assets` to upload those packs with `gh release upload`, or use the printed command when `gh` is unavailable. After upload, run:
+This builds runtime packs named `aqe-runtime-<runtime-version>-<target>.zip`,
+records their whole-archive and inner-file SHA-256 values in
+`runtime_release.lock.json`, uploads them to the immutable `runtime-vN` GitHub
+Release tag, and verifies the uploaded archives by downloading and unpacking
+them.
+
+Package all thin add-on targets for public AnkiWeb distribution:
 
 ```bash
-python3 scripts/release.py --verify-runtime-urls
+python3 scripts/release.py --target all --verify-runtime-urls
 ```
 
-`--verify-runtime-urls` downloads each manifest URL and verifies the runtime pack SHA-256, so it must run only after the versioned GitHub Release assets exist. Use `--runtime-base-url` for a private release location. Platform-limited `--target current` or single-target builds are for testing/private distribution, not public AnkiWeb release.
+`--verify-runtime-urls` downloads each URL from `runtime_release.lock.json` and
+verifies both the runtime pack SHA-256 and every inner file. It must run only
+after the referenced `runtime-vN` GitHub Release assets exist. Platform-limited
+`--target current` or single-target builds are for testing/private distribution,
+not public AnkiWeb release.
 
 Run `release-smoke` with Anki's Python 3.13 runtime when validating a built archive. The smoke script imports the packaged add-on, so system Python versions older than Anki's runtime can fail on supported runtime APIs such as `datetime.UTC`.
 

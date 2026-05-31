@@ -87,11 +87,24 @@ Plans should specify tests (including extensive e2e tests) before implementation
 
 ## Building A Release
 
+Runtime packs are released separately under immutable `runtime-vN` tags and
+recorded in `runtime_release.lock.json`. Build them only when native runtime
+payloads change:
+
 ```bash
-python3 scripts/release.py
+python3 scripts/dev.py release-runtime build --runtime-version 1.0 --target all
+python3 scripts/dev.py release-runtime upload --metadata runtime_release.lock.json
+python3 scripts/dev.py release-runtime verify --metadata runtime_release.lock.json
 ```
 
-This builds a thin `dist/anki-audio-quick-editor-<version>.ankiaddon` plus platform runtime pack zips. Use `--embed-runtime` only for local/offline validation builds.
+Thin add-on releases consume the tracked runtime metadata:
+
+```bash
+python3 scripts/release.py --target all --verify-runtime-urls
+```
+
+This builds `dist/anki-audio-quick-editor-<version>.ankiaddon` without rebuilding
+runtime packs. Use `--embed-runtime` only for local/offline validation builds.
 
 ## Debugging
 

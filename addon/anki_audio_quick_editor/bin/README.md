@@ -53,15 +53,15 @@ for all non-FFmpeg runtime payloads:
 - shared Spleeter fp16 and Silero VAD model files live under `bin/models/`
 - `runtime_manifest.json` is generated during packaging and is not committed
 
-`ffmpeg` and `ffprobe` remain external. Packaging and `release-assets verify`
-read them from `.release-assets/bin/<target>/`, verify their SHA-256 checksums,
-and assemble a target-specific release staging tree with the tracked non-FFmpeg
-payloads from this directory. FFmpeg/FFprobe use locked third-party release
-archives, RNNoise is locally built from source, DPDFNet is bundled from the
-vendored standalone TFLite CLI source in `scripts/dpdfnet_cli/lite_src/`, and
-Sherpa Spleeter/Silero VAD are extracted from locked Sherpa ONNX native
-archives by renaming upstream executables to `sherpa-spleeter` and
-`silero-vad`.
+`ffmpeg` and `ffprobe` remain external. `release-assets verify` and
+`release-runtime build` read them from `.release-assets/bin/<target>/`, verify
+their SHA-256 checksums, and assemble target-specific runtime packs with the
+tracked non-FFmpeg payloads from this directory. FFmpeg/FFprobe use locked
+third-party release archives, RNNoise is locally built from source, DPDFNet is
+bundled from the vendored standalone TFLite CLI source in
+`scripts/dpdfnet_cli/lite_src/`, and Sherpa Spleeter/Silero VAD are extracted
+from locked Sherpa ONNX native archives by renaming upstream executables to
+`sherpa-spleeter` and `silero-vad`.
 
 Runtime discovery uses user-configured overrides first where supported, then
 the managed downloaded runtime, then this source-tree bundle as a development

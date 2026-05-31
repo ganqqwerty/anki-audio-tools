@@ -24,6 +24,8 @@ def _install_anki_stubs() -> None:
         editor_will_load_note=[],
         browser_menus_did_init=[],
         browser_will_show_context_menu=[],
+        addon_manager_will_install_addon=[],
+        addon_manager_did_install_addon=[],
     )
     addon_manager = types.SimpleNamespace(
         addonFromModule=lambda _module: "anki_audio_quick_editor",
@@ -87,7 +89,11 @@ def smoke_archive(archive: Path) -> None:
         if platform_key is None:
             raise RuntimeError("current platform is not in the release target matrix")
         manifest = json.loads((package_dir / "bin" / "runtime_manifest.json").read_text(encoding="utf-8"))
-        tools = manifest["targets"][platform_key]["tools"]
+        target_entry = manifest["targets"][platform_key]
+        tools = target_entry["tools"]
+        if _is_thin_runtime_target(target_entry):
+            _validate_runtime_pack_metadata(target_entry["runtime_pack"])
+            return
         deep_filter = audio_tools.find_deep_filter("")
         rnnoise = audio_tools.find_rnnoise_bundle()
         bundled_tools = {
@@ -109,6 +115,26 @@ def smoke_archive(archive: Path) -> None:
             _run_tool(ffprobe, tools["ffprobe"].get("diagnostic_args", ["-version"]))
         _run_tool(deep_filter, tools["deep-filter"].get("diagnostic_args", ["--version"]))
         _run_tool(rnnoise, tools["rnnoise-cli"].get("diagnostic_args", ["--version"]))
+
+
+def _is_thin_runtime_target(target_entry: dict[str, object]) -> bool:
+    return isinstance(target_entry.get("runtime_pack"), dict)
+
+
+def _validate_runtime_pack_metadata(pack: object) -> None:
+    if not isinstance(pack, dict):
+        raise RuntimeError("runtime_pack metadata is missing")
+    for key in ("name", "url", "sha256", "size"):
+        if key not in pack:
+            raise RuntimeError(f"runtime_pack metadata is missing {key}")
+    if not isinstance(pack["name"], str) or not pack["name"].endswith(".zip"):
+        raise RuntimeError("runtime_pack name must be a zip asset")
+    if not isinstance(pack["url"], str) or not pack["url"].startswith("https://"):
+        raise RuntimeError("runtime_pack url must be https")
+    if not isinstance(pack["sha256"], str) or len(pack["sha256"]) != 64:
+        raise RuntimeError("runtime_pack sha256 must be a SHA-256 digest")
+    if not isinstance(pack["size"], int) or pack["size"] <= 0:
+        raise RuntimeError("runtime_pack size must be positive")
 
 
 def main() -> int:

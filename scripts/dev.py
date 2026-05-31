@@ -318,12 +318,21 @@ def cmd_release_assets() -> int:
     return _run([sys.executable, "scripts/release_assets.py", *args], label="release asset preparation")
 
 
+def cmd_release_runtime() -> int:
+    args = _COMMAND_ARGS
+    if not args:
+        print("Usage: python3 scripts/dev.py release-runtime <subcommand> [args...]", file=sys.stderr)
+        return 1
+    return _run([sys.executable, "scripts/release_runtime_cli.py", *args], label="runtime release")
+
+
 def cmd_release_smoke() -> int:
     args = _COMMAND_ARGS
     if len(args) != 1:
         print("Usage: python3 scripts/dev.py release-smoke <archive.ankiaddon>", file=sys.stderr)
         return 1
-    return _run([sys.executable, "scripts/release_smoke.py", args[0]], label="release archive smoke test")
+    anki_python = _find_anki_python()
+    return _run([str(anki_python), "scripts/release_smoke.py", args[0]], label="release archive smoke test")
 
 
 COMMANDS: dict[str, tuple[Callable[[], int], str]] = {
@@ -359,6 +368,7 @@ COMMANDS: dict[str, tuple[Callable[[], int], str]] = {
     "file-lines": (cmd_file_lines, "Check hand-maintained Python files against line-count limits"),
     "release": (cmd_release, "Run scripts/release.py"),
     "release-assets": (cmd_release_assets, "Fetch, build, verify, and stage locked release runtime assets"),
+    "release-runtime": (cmd_release_runtime, "Build, upload, and verify decoupled runtime release packs"),
     "release-smoke": (cmd_release_smoke, "Smoke-test a built .ankiaddon archive in isolation"),
     "info": (cmd_info, "Print discovered paths and versions"),
 }

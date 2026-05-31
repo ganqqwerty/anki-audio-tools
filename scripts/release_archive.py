@@ -76,6 +76,7 @@ def stage_release_tree(
     embed_runtime: bool = False,
     runtime_pack_metadata: dict[str, dict[str, Any]] | None = None,
     runtime_source_bin_dir: Path | None = None,
+    runtime_file_metadata: dict[str, dict[str, Any]] | None = None,
 ) -> None:
     """Stage source, release metadata, optional embedded runtime, and runtime manifest."""
     stage_source_tree(staging_dir)
@@ -96,6 +97,7 @@ def stage_release_tree(
         include_ffmpeg=include_ffmpeg,
         runtime_pack_metadata=runtime_pack_metadata,
         source_bin_dir=runtime_source_bin_dir,
+        runtime_file_metadata=runtime_file_metadata,
     )
 
 

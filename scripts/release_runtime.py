@@ -4,12 +4,7 @@ from __future__ import annotations
 
 import hashlib
 import json
-import shutil
-import subprocess
 import sys
-import tempfile
-import urllib.error
-import urllib.request
 import zipfile
 from pathlib import Path
 from typing import Any
@@ -32,10 +27,35 @@ def write_runtime_manifest(
     include_ffmpeg: bool = True,
     runtime_pack_metadata: dict[str, dict[str, Any]] | None = None,
     source_bin_dir: Path | None = None,
+    runtime_file_metadata: dict[str, dict[str, Any]] | None = None,
 ) -> None:
     staging_bin_dir.mkdir(parents=True, exist_ok=True)
+    manifest = runtime_manifest_data(
+        lock,
+        target_keys=target_keys,
+        include_ffmpeg=include_ffmpeg,
+        runtime_pack_metadata=runtime_pack_metadata,
+        source_bin_dir=source_bin_dir,
+        runtime_file_metadata=runtime_file_metadata,
+    )
+    (staging_bin_dir / "runtime_manifest.json").write_text(
+        json.dumps(manifest, indent=2) + "\n",
+        encoding="utf-8",
+    )
+
+
+def runtime_manifest_data(
+    lock: dict,
+    *,
+    target_keys: list[str] | None = None,
+    include_ffmpeg: bool = True,
+    runtime_pack_metadata: dict[str, dict[str, Any]] | None = None,
+    source_bin_dir: Path | None = None,
+    runtime_file_metadata: dict[str, dict[str, Any]] | None = None,
+) -> dict[str, Any]:
+    """Return runtime manifest data for a staged release tree."""
     selected_targets = target_keys or release_assets.lock_targets(lock)
-    source_bin_dir = source_bin_dir or staging_bin_dir
+    source_bin_dir = source_bin_dir or Path()
     manifest = {
         "schema_version": lock["schema_version"],
         "release_ready": bool(lock.get("release_ready", False)),
@@ -46,19 +66,22 @@ def write_runtime_manifest(
                 include_ffmpeg=include_ffmpeg,
                 runtime_pack_metadata=runtime_pack_metadata,
                 source_bin_dir=source_bin_dir,
+                runtime_file_metadata=runtime_file_metadata,
             )
             for target in selected_targets
         },
         "shared_files": {
-            file_name: _runtime_manifest_shared_entry(lock, file_name, source_bin_dir=source_bin_dir)
+            file_name: _runtime_manifest_shared_entry(
+                lock,
+                file_name,
+                source_bin_dir=source_bin_dir,
+                runtime_file_metadata=runtime_file_metadata,
+            )
             for file_name in release_assets.lock_shared_files(lock)
         },
     }
     manifest["runtime_manifest_id"] = _runtime_manifest_id(manifest)
-    (staging_bin_dir / "runtime_manifest.json").write_text(
-        json.dumps(manifest, indent=2) + "\n",
-        encoding="utf-8",
-    )
+    return manifest
 
 
 def _runtime_manifest_target(
@@ -68,6 +91,7 @@ def _runtime_manifest_target(
     include_ffmpeg: bool,
     runtime_pack_metadata: dict[str, dict[str, Any]] | None,
     source_bin_dir: Path,
+    runtime_file_metadata: dict[str, dict[str, Any]] | None,
 ) -> dict[str, Any]:
     target_entry: dict[str, Any] = {
         "tools": {
@@ -76,6 +100,7 @@ def _runtime_manifest_target(
                 target,
                 tool_name,
                 source_bin_dir=source_bin_dir,
+                runtime_file_metadata=runtime_file_metadata,
             )
             for tool_name in release_asset_common.bundled_tool_names(
                 release_assets.lock_tools(lock, target),
@@ -83,7 +108,12 @@ def _runtime_manifest_target(
             )
         },
         "shared_files": {
-            file_name: _runtime_manifest_shared_entry(lock, file_name, source_bin_dir=source_bin_dir)
+            file_name: _runtime_manifest_shared_entry(
+                lock,
+                file_name,
+                source_bin_dir=source_bin_dir,
+                runtime_file_metadata=runtime_file_metadata,
+            )
             for file_name in release_assets.lock_shared_files(lock)
         },
     }
@@ -106,6 +136,7 @@ def _runtime_manifest_tool_entry(
     tool_name: str,
     *,
     source_bin_dir: Path,
+    runtime_file_metadata: dict[str, dict[str, Any]] | None,
 ) -> dict[str, Any]:
     entry = lock["targets"][target]["tools"][tool_name]
     executable = entry["executable"]
@@ -117,11 +148,16 @@ def _runtime_manifest_tool_entry(
         "diagnostic_args": entry.get("diagnostic_args"),
         "executable_bit": not target.startswith("windows-"),
         "runtime_files": [
-            _runtime_manifest_support_entry(file_entry, target=target, source_bin_dir=source_bin_dir)
+            _runtime_manifest_support_entry(
+                file_entry,
+                target=target,
+                source_bin_dir=source_bin_dir,
+                runtime_file_metadata=runtime_file_metadata,
+            )
             for file_entry in release_assets.tool_runtime_files(lock, target, tool_name)
         ],
     }
-    _add_file_size(result, source_bin_dir / path)
+    _add_file_size(result, source_bin_dir / path, path, runtime_file_metadata)
     return result
 
 
@@ -130,26 +166,44 @@ def _runtime_manifest_support_entry(
     *,
     target: str,
     source_bin_dir: Path,
+    runtime_file_metadata: dict[str, dict[str, Any]] | None,
 ) -> dict[str, Any]:
+    archive_path = f"{target}/{file_entry['path']}"
     result: dict[str, Any] = {
         "path": file_entry["path"],
         "sha256": file_entry.get("sha256"),
     }
-    _add_file_size(result, source_bin_dir / target / file_entry["path"])
+    _add_file_size(result, source_bin_dir / archive_path, archive_path, runtime_file_metadata)
     return result
 
 
-def _runtime_manifest_shared_entry(lock: dict, file_name: str, *, source_bin_dir: Path) -> dict[str, Any]:
+def _runtime_manifest_shared_entry(
+    lock: dict,
+    file_name: str,
+    *,
+    source_bin_dir: Path,
+    runtime_file_metadata: dict[str, dict[str, Any]] | None,
+) -> dict[str, Any]:
     entry = lock["shared_files"][file_name]
+    archive_path = entry["path"]
     result: dict[str, Any] = {
-        "path": entry["path"],
+        "path": archive_path,
         "sha256": entry.get("sha256"),
     }
-    _add_file_size(result, source_bin_dir / entry["path"])
+    _add_file_size(result, source_bin_dir / archive_path, archive_path, runtime_file_metadata)
     return result
 
 
-def _add_file_size(entry: dict[str, Any], path: Path) -> None:
+def _add_file_size(
+    entry: dict[str, Any],
+    path: Path,
+    archive_path: str,
+    runtime_file_metadata: dict[str, dict[str, Any]] | None,
+) -> None:
+    metadata_entry = (runtime_file_metadata or {}).get(archive_path)
+    if metadata_entry is not None and isinstance(metadata_entry.get("size"), int):
+        entry["size"] = metadata_entry["size"]
+        return
     if path.is_file():
         entry["size"] = path.stat().st_size
 
@@ -173,7 +227,7 @@ def _runtime_manifest_id(manifest: dict[str, Any]) -> str:
 
 
 def build_runtime_packs(
-    version: str,
+    runtime_version: str,
     lock: dict,
     *,
     source_bin_dir: Path,
@@ -184,7 +238,7 @@ def build_runtime_packs(
     DIST_DIR.mkdir(exist_ok=True)
     metadata: dict[str, dict[str, Any]] = {}
     for target in target_keys or release_assets.lock_targets(lock):
-        archive = DIST_DIR / _runtime_pack_asset_name(version, target)
+        archive = DIST_DIR / runtime_pack_asset_name(runtime_version, target)
         file_entries = _runtime_pack_entries(
             lock,
             target,
@@ -208,8 +262,8 @@ def build_runtime_packs(
     return metadata
 
 
-def default_runtime_base_url(version: str) -> str:
-    return f"{DEFAULT_RUNTIME_RELEASE_REPO}/releases/download/v{version}"
+def default_runtime_base_url(runtime_tag: str) -> str:
+    return f"{DEFAULT_RUNTIME_RELEASE_REPO}/releases/download/{runtime_tag}"
 
 
 def validate_runtime_packs(runtime_pack_metadata: dict[str, dict[str, Any]]) -> None:
@@ -241,36 +295,8 @@ def validate_runtime_packs(runtime_pack_metadata: dict[str, dict[str, Any]]) -> 
             _validation_exit(f"{target} runtime pack checksum mismatch")
 
 
-def upload_runtime_assets(version: str, runtime_pack_metadata: dict[str, dict[str, Any]]) -> None:
-    tag = f"v{version}"
-    pack_paths = [str(pack["path"]) for pack in runtime_pack_metadata.values()]
-    command = ["gh", "release", "upload", tag, *pack_paths, "--clobber"]
-    if shutil.which("gh") is None:
-        print("gh not found; upload runtime packs with:")
-        print(" ".join(command))
-        return
-    subprocess.run(command, cwd=ROOT, check=True)
-
-
-def verify_runtime_urls(runtime_pack_metadata: dict[str, dict[str, Any]]) -> None:
-    with tempfile.TemporaryDirectory(prefix="anki-audio-runtime-verify-") as tmp:
-        tmp_dir = Path(tmp)
-        for pack in runtime_pack_metadata.values():
-            destination = tmp_dir / pack["name"]
-            try:
-                with urllib.request.urlopen(pack["url"], timeout=60) as response, destination.open("wb") as handle:  # nosec B310
-                    shutil.copyfileobj(response, handle)
-            except (OSError, urllib.error.URLError) as exc:
-                _validation_exit(f"could not download runtime asset {pack['url']}: {exc}")
-            actual_sha = release_asset_common.sha256_file(destination)
-            if actual_sha != pack["sha256"]:
-                _validation_exit(
-                    f"runtime asset {pack['name']} is stale: expected {pack['sha256']}, got {actual_sha}"
-                )
-
-
-def _runtime_pack_asset_name(version: str, target: str) -> str:
-    return f"aqe-runtime-{version}-{target}.zip"
+def runtime_pack_asset_name(runtime_version: str, target: str) -> str:
+    return f"aqe-runtime-{runtime_version}-{target}.zip"
 
 
 def _runtime_pack_entries(

@@ -7,6 +7,7 @@ import types
 import zipfile
 from pathlib import Path
 
+import pytest
 from scripts import release_smoke
 
 
@@ -71,3 +72,37 @@ def test_release_smoke_skips_ffmpeg_when_manifest_omits_it(tmp_path: Path, monke
         ("deep-filter", ("--version",)),
         ("rnnoise-cli", ("--version",)),
     ]
+
+
+def test_release_smoke_accepts_thin_runtime_manifest(tmp_path: Path, monkeypatch) -> None:
+    archive = tmp_path / "thin.ankiaddon"
+    manifest = {
+        "schema_version": 1,
+        "targets": {
+            "macos-arm64": {
+                "runtime_pack": {
+                    "name": "aqe-runtime-1.0-macos-arm64.zip",
+                    "url": "https://example.invalid/runtime-v1.0/aqe-runtime-1.0-macos-arm64.zip",
+                    "sha256": "a" * 64,
+                    "size": 1,
+                },
+                "tools": {},
+            }
+        },
+    }
+    with zipfile.ZipFile(archive, "w") as zf:
+        zf.writestr("bin/runtime_manifest.json", json.dumps(manifest))
+        zf.writestr("contracts_generated.py", b"VALUE = 1\n")
+        zf.writestr("audio_tools.py", b"def current_platform_key():\n    return 'macos-arm64'\n")
+        for name in (
+            "templates/settings/settings_bundle.js",
+            "templates/editor/editor_bundle.js",
+            "templates/batch/batch_bundle.js",
+            "templates/batch/batch_bundle.css",
+        ):
+            zf.writestr(name, b"x")
+
+    monkeypatch.setattr(release_smoke, "_run_tool", lambda _path, _args: pytest.fail("unexpected tool run"))
+    monkeypatch.setattr(release_smoke, "_install_anki_stubs", lambda: None)
+
+    release_smoke.smoke_archive(archive)
