@@ -40,6 +40,7 @@ from .runtime_state import (
     RUNTIME_PHASE_READY,
     RUNTIME_PHASE_UNSUPPORTED,
     RUNTIME_SOURCE_MANAGED,
+    clear_state,
     read_state,
 )
 
@@ -58,6 +59,7 @@ __all__ = [
     "USER_FILES_DIRNAME",
     "_TOOL_EXECUTABLES",
     "current_platform_key",
+    "clear_state",
     "ensure_runtime",
     "ensure_runtime_async",
     "expected_managed_model_path",

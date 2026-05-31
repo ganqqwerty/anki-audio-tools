@@ -182,40 +182,33 @@ def _apply_log_level() -> None:
 
 
 def _setup_managed_runtime() -> None:
-    """Start managed runtime installation after Anki has initialized the add-on."""
-    from aqt.utils import tooltip
-
+    """Open the managed runtime installer when runtime assets are not ready."""
     from . import runtime_manager
 
     addon_id = mw.addonManager.addonFromModule(__name__)
     addon_dir = Path(mw.addonManager.addonsFolder(addon_id))
 
-    def _notify(runtime_status_payload: dict[str, object]) -> None:
-        phase = str(runtime_status_payload.get("phase", ""))
-        raw_progress = runtime_status_payload.get("progress", 0)
-        progress = raw_progress if isinstance(raw_progress, int) else 0
-        record_breadcrumb(
-            "runtime.status",
-            source="runtime",
-            operation="runtime.ensure",
-            context={
-                "phase": phase,
-                "platform": runtime_status_payload.get("platform", ""),
-                "runtime_manifest_id": runtime_status_payload.get("runtime_manifest_id", ""),
-                "error": runtime_status_payload.get("error", ""),
-            },
-            flush=phase in {"ready", "error"},
-        )
-        if phase == runtime_manager.RUNTIME_PHASE_DOWNLOADING and progress:
-            return
-        message = _runtime_notice_message(runtime_status_payload)
-        if not message:
-            return
-        mw.taskman.run_on_main(lambda: tooltip(message, period=5000))
+    startup_status = runtime_manager.runtime_status(addon_dir)
+    phase = str(startup_status.get("phase", ""))
+    record_breadcrumb(
+        "runtime.status",
+        source="runtime",
+        operation="runtime.ensure",
+        context={
+            "phase": phase,
+            "platform": startup_status.get("platform", ""),
+            "runtime_manifest_id": startup_status.get("runtime_manifest_id", ""),
+            "error": startup_status.get("error", ""),
+        },
+        flush=phase in {"ready", "error"},
+    )
+    if phase == runtime_manager.RUNTIME_PHASE_READY:
+        return
+    if not startup_status.get("runtime_manifest_id"):
+        return
+    from .runtime_installer_dialog import open_runtime_install_dialog
 
-    startup_status = runtime_manager.ensure_runtime_async(addon_dir, notify=_notify)
-    if startup_status.get("phase") == runtime_manager.RUNTIME_PHASE_ERROR and startup_status.get("runtime_manifest_id"):
-        _notify(startup_status)
+    open_runtime_install_dialog(mw, addon_dir, force_verify=False)
 
 
 def _runtime_notice_message(status: dict[str, object]) -> str:

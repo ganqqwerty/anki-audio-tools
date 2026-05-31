@@ -59,11 +59,11 @@ def test_find_ffmpeg_raises_exact_message_when_missing_and_unconfigured(monkeypa
     with pytest.raises(MissingFfmpegError) as exc_info:
         find_ffmpeg()
 
-    assert str(exc_info.value) == (
-        "Audio Quick Editor requires ffmpeg. The managed runtime may still be downloading "
-        "or missing; open Settings > Diagnostics to install or repair it, configure an "
-        "ffmpeg path, or make ffmpeg available in PATH."
-    )
+    message = str(exc_info.value)
+    assert message.startswith("AQE-RUNTIME-003:")
+    assert "Audio Quick Editor requires ffmpeg" in message
+    assert "Settings > Diagnostics" in message
+    assert "Install/Repair Runtime" in message
 
 
 def test_find_ffmpeg_prefers_existing_configured_file(tmp_path: Path) -> None:

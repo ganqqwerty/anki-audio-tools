@@ -232,7 +232,7 @@ AUDIO_CONTRACTS: dict[str, ModuleContract] = {
     "audio_tools": contract(
         "audio_tools",
         layer=Layer.IMPORT_SAFE_CORE,
-        allowed_addon_deps=("errors", "runtime_manager"),
+        allowed_addon_deps=("error_codes", "errors", "runtime_manager"),
     ),
     "audio_types": contract("audio_types", layer=Layer.IMPORT_SAFE_CORE),
     "audio_state": contract(

@@ -8,6 +8,7 @@ import {
   sendBridgeCommand,
   settingsCancel,
   settingsCheckMedia,
+  settingsOpenRuntimeInstaller,
   settingsResetDefaults,
   settingsSave,
 } from "../src/lib/bridge.js";
@@ -142,6 +143,11 @@ describe("lifecycle commands", () => {
     settingsCheckMedia();
     expect(pycmd).toHaveBeenCalledWith('bridge:{"command":"settings.check_media"}');
   });
+
+  it("sends settings.open_runtime_installer", () => {
+    settingsOpenRuntimeInstaller();
+    expect(pycmd).toHaveBeenCalledWith('bridge:{"command":"settings.open_runtime_installer"}');
+  });
 });
 
 describe("sendAsyncCmd", () => {
@@ -179,15 +185,18 @@ describe("registerCallbacks", () => {
     delete window.onAsyncProgress;
     delete window.onAsyncDone;
     delete window.onSaveError;
+    delete window.onRuntimeInstallerClosed;
   });
 
   it("registers the supplied callbacks", () => {
     const onAsyncProgress = vi.fn();
     const onAsyncDone = vi.fn();
     const onSaveError = vi.fn();
-    registerCallbacks({ onAsyncProgress, onAsyncDone, onSaveError });
+    const onRuntimeInstallerClosed = vi.fn();
+    registerCallbacks({ onAsyncProgress, onAsyncDone, onSaveError, onRuntimeInstallerClosed });
     expect(window.onAsyncProgress).toBe(onAsyncProgress);
     expect(window.onAsyncDone).toBe(onAsyncDone);
     expect(window.onSaveError).toBe(onSaveError);
+    expect(window.onRuntimeInstallerClosed).toBe(onRuntimeInstallerClosed);
   });
 });

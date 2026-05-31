@@ -7,6 +7,7 @@ import shutil
 from pathlib import Path
 
 from . import runtime_manager
+from .error_codes import AQE_RUNTIME_ASSET_MISSING, format_coded_message
 from .errors import (
     MissingDeepFilterError,
     MissingDpdfnetError,
@@ -60,6 +61,15 @@ _TOOL_EXECUTABLES = {
         "windows-x86_64": "silero-vad.exe",
     },
 }
+
+
+def _runtime_repair_message(message: str) -> str:
+    return format_coded_message(
+        AQE_RUNTIME_ASSET_MISSING,
+        f"{message} Open Settings > Diagnostics and click Install/Repair Runtime.",
+    )
+
+
 def current_platform_key() -> str | None:
     """Return the supported release target key for this runtime platform."""
     system = platform.system()
@@ -146,9 +156,10 @@ def find_ffmpeg(configured_path: str = "") -> Path:  # pragma: no mutate
     if found:
         return Path(found)
     raise MissingFfmpegError(
-        "Audio Quick Editor requires ffmpeg. The managed runtime may still be downloading "
-        "or missing; open Settings > Diagnostics to install or repair it, configure an "
-        "ffmpeg path, or make ffmpeg available in PATH."
+        _runtime_repair_message(
+            "Audio Quick Editor requires ffmpeg. Configure an ffmpeg path, make ffmpeg "
+            "available in PATH, or repair the managed runtime."
+        )
     )
 
 
@@ -187,9 +198,10 @@ def find_deep_filter(configured_path: str = "") -> Path:
     if found:
         return Path(found)
     raise MissingDeepFilterError(
-        "DeepFilterNet's deep-filter executable is required for Standard denoise. "
-        "The managed runtime may still be downloading or missing; open Settings > Diagnostics "
-        "to install or repair it, or make deep-filter available in PATH."
+        _runtime_repair_message(
+            "DeepFilterNet's deep-filter executable is required for Standard denoise. "
+            "Make deep-filter available in PATH or repair the managed runtime."
+        )
     )
 
 
@@ -221,8 +233,9 @@ def find_rnnoise_bundle() -> Path:
     if bundled is not None:
         return bundled
     raise MissingRnnoiseError(
-        f"RNNoise requires the managed or bundled rnnoise-cli executable at {rnnoise_path}. "
-        "The runtime may still be downloading or missing; open Settings > Diagnostics to install or repair it."
+        _runtime_repair_message(
+            f"RNNoise requires the managed or bundled rnnoise-cli executable at {rnnoise_path}."
+        )
     )
 
 
@@ -239,8 +252,9 @@ def find_dpdfnet_bundle() -> Path:
     if dpdfnet_path is None:
         raise MissingDpdfnetError(f"DPDFNet is not bundled for {platform_description()}.")
     raise MissingDpdfnetError(
-        f"DPDFNet requires the managed or bundled dpdfnet executable at {dpdfnet_path}. "
-        "The runtime may still be downloading or missing; open Settings > Diagnostics to install or repair it."
+        _runtime_repair_message(
+            f"DPDFNet requires the managed or bundled dpdfnet executable at {dpdfnet_path}."
+        )
     )
 
 
@@ -273,8 +287,9 @@ def find_spleeter_bundle() -> tuple[Path, Path, Path]:
     bundled = bundled_tool_path("sherpa-spleeter")
     if bundled is None:
         raise MissingSpleeterError(
-            f"Voice Only requires the managed or bundled sherpa-spleeter executable at {executable_path}. "
-            "The runtime may still be downloading or missing; open Settings > Diagnostics to install or repair it."
+            _runtime_repair_message(
+                f"Voice Only requires the managed or bundled sherpa-spleeter executable at {executable_path}."
+            )
         )
     spleeter_path = bundled
 
@@ -301,8 +316,7 @@ def find_silero_vad_bundle() -> tuple[Path, Path]:
     if managed_executable is not None:
         expected_model = runtime_manager.expected_managed_silero_vad_model_path(_PACKAGE_DIR)
         raise MissingSileroVadError(
-            f"Silero VAD requires the managed model at {expected_model}. "
-            "The runtime may still be downloading or missing; open Settings > Diagnostics to install or repair it."
+            _runtime_repair_message(f"Silero VAD requires the managed model at {expected_model}.")
         )
 
     managed_expected = expected_managed_tool_path("silero-vad")
@@ -313,8 +327,9 @@ def find_silero_vad_bundle() -> tuple[Path, Path]:
     if executable_path is None:
         raise MissingSileroVadError(f"Silero VAD is not bundled for {platform_description()}.")
     raise MissingSileroVadError(
-        f"Silero VAD requires the managed or bundled silero-vad executable at {executable_path}. "
-        "The runtime may still be downloading or missing; open Settings > Diagnostics to install or repair it."
+        _runtime_repair_message(
+            f"Silero VAD requires the managed or bundled silero-vad executable at {executable_path}."
+        )
     )
 
 
@@ -324,8 +339,9 @@ def _required_spleeter_model(model_name: str) -> Path:
         raise MissingSpleeterError(f"Sherpa Spleeter models are not bundled for {platform_description()}.")
     if not model_path.is_file():
         raise MissingSpleeterError(
-            f"Voice Only requires the managed or bundled Sherpa Spleeter model at {model_path}. "
-            "The runtime may still be downloading or missing; open Settings > Diagnostics to install or repair it."
+            _runtime_repair_message(
+                f"Voice Only requires the managed or bundled Sherpa Spleeter model at {model_path}."
+            )
         )
     return model_path
 
@@ -336,7 +352,6 @@ def _required_silero_vad_model() -> Path:
         raise MissingSileroVadError(f"Silero VAD model is not bundled for {platform_description()}.")
     if not model_path.is_file():
         raise MissingSileroVadError(
-            f"Silero VAD requires the managed or bundled model at {model_path}. "
-            "The runtime may still be downloading or missing; open Settings > Diagnostics to install or repair it."
+            _runtime_repair_message(f"Silero VAD requires the managed or bundled model at {model_path}.")
         )
     return model_path

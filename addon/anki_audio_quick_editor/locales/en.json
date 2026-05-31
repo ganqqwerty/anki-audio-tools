@@ -432,5 +432,11 @@
   "editor.command.dpdfnet.label": "DPDFNet",
   "editor.command.dpdfnet.title": "Create a new file cleaned with DPDFNet, Aggressiveness: {level}",
   "editor.status.denoising_dpdfnet": "Denoising with DPDFNet",
-  "settings.health.checking_dpdfnet": "Checking DPDFNet"
+  "settings.health.checking_dpdfnet": "Checking DPDFNet",
+  "runtime_installer.window_title": "Audio Quick Editor Runtime",
+  "runtime_installer.starting": "Preparing runtime installation...",
+  "runtime_installer.cancel": "Cancel",
+  "runtime_installer.close": "Close",
+  "runtime_installer.cancel_warning.title": "Runtime installation cancelled",
+  "runtime_installer.cancel_warning.message": "Audio Quick Editor runtime installation was not completed. Audio Quick Editor may not work properly.\n\nTo fix this, open Settings > Diagnostics and click Install/Repair Runtime."
 }

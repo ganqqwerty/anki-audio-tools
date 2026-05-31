@@ -135,6 +135,7 @@ CORE_CONTRACTS: dict[str, ModuleContract] = {
         allowed_addon_deps=(
             "error_codes",
             "runtime_archive",
+            "runtime_install_io",
             "runtime_lookup",
             "runtime_manifest",
             "runtime_paths",
@@ -145,6 +146,17 @@ CORE_CONTRACTS: dict[str, ModuleContract] = {
             SideEffect.THREAD_SPAWN,
             SideEffect.TEMP_FILESYSTEM_CLEANUP,
         ),
+    ),
+    "runtime_install_io": contract(
+        "runtime_install_io",
+        layer=Layer.IMPORT_SAFE_CORE,
+        allowed_addon_deps=(
+            "runtime_archive",
+            "runtime_manifest",
+            "runtime_paths",
+            "runtime_state",
+        ),
+        allowed_side_effects=(SideEffect.TEMP_FILESYSTEM_CLEANUP,),
     ),
     "runtime_lookup": contract(
         "runtime_lookup",

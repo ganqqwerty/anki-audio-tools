@@ -432,5 +432,11 @@
   "settings.denoise_algorithm.standard.tooltip": "Общая очистка от повседневного фонового шума.\nНачинайте с нее для большинства записей.",
   "settings.denoise_algorithm.rnnoise.tooltip": "Легкое и быстрое подавление шума речи.\nПодходит для шипения, вентилятора и слабых компьютеров.",
   "settings.denoise_algorithm.voice_only.tooltip": "Извлекает голосовую дорожку и может убрать музыку или инструменты.\nИспользуйте, когда речь смешана с фоновым аудио.",
-  "settings.denoise_algorithm.dpdfnet.tooltip": "Более сильное современное шумоподавление с настройкой агрессивности.\nИспользуйте, если Standard оставляет слишком много шума."
+  "settings.denoise_algorithm.dpdfnet.tooltip": "Более сильное современное шумоподавление с настройкой агрессивности.\nИспользуйте, если Standard оставляет слишком много шума.",
+  "runtime_installer.window_title": "Среда выполнения Audio Quick Editor",
+  "runtime_installer.starting": "Подготовка установки среды выполнения...",
+  "runtime_installer.cancel": "Отмена",
+  "runtime_installer.close": "Закрыть",
+  "runtime_installer.cancel_warning.title": "Установка среды выполнения отменена",
+  "runtime_installer.cancel_warning.message": "Установка среды выполнения Audio Quick Editor не завершена. Audio Quick Editor может работать неправильно.\n\nЧтобы исправить это, откройте Настройки > Диагностика и нажмите Установить/починить рантайм."
 }

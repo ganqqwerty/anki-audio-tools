@@ -10,6 +10,7 @@
     registerCallbacks,
     settingsCancel,
     settingsCheckMedia,
+    settingsOpenRuntimeInstaller,
     settingsResetDefaults,
     settingsSave,
   } from "$lib/bridge.js";
@@ -74,6 +75,10 @@
           ? payload.user_error
           : frontendUnknownError(payload.error);
       },
+      onRuntimeInstallerClosed: (payload: RuntimeStatus) => {
+        runtimeStatus = payload;
+        diagnosticsMessage = payload.error || payload.message || t("settings.async.done");
+      },
     });
     window.addEventListener("error", showFrontendRuntimeError);
     window.addEventListener("unhandledrejection", showFrontendRuntimeError);
@@ -137,17 +142,10 @@
     }
   }
 
-  async function installRuntime(): Promise<void> {
+  function installRuntime(): void {
     diagnosticsMessage = t("settings.runtime.installing");
     healthProgress = null;
-    try {
-      runtimeStatus = await startAsyncOp("runtime_install", {});
-      diagnosticsMessage = runtimeStatus.error || runtimeStatus.message || t("settings.async.done");
-    } catch (error) {
-      const message = messageFromUnknownError(error);
-      diagnosticsMessage = frontendUnknownError(error);
-      logger.error("runtime install failed", { message });
-    }
+    settingsOpenRuntimeInstaller();
   }
 
   function saveConfig(): void {

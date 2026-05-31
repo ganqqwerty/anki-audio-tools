@@ -10,6 +10,7 @@ from typing import Any
 from ..contracts_generated import (
     Config,
     CopySupportReportPayload,
+    RuntimeStatus,
     VisibleEditorButton,
 )
 from ..diagnostics_runtime import (
@@ -60,6 +61,9 @@ def handle_settings_command(
         return True
     if command_name == "settings.check_media":
         _handle_check_media()
+        return True
+    if command_name == "settings.open_runtime_installer":
+        _handle_open_runtime_installer(eval_fn, dialog)
         return True
     if command_name == "settings.async":
         handle_async_settings_command(command, eval_fn)
@@ -162,6 +166,12 @@ def _handle_check_media() -> None:
     from aqt.mediacheck import check_media_db
 
     check_media_db(mw)
+
+
+def _handle_open_runtime_installer(eval_fn: Callable[[str], None], dialog: Any) -> None:
+    status_payload = dialog.open_runtime_installer()
+    payload = json.dumps(RuntimeStatus.from_dict(status_payload).to_dict())
+    eval_fn(f"window.onRuntimeInstallerClosed({payload})")
 
 
 def _handle_frontend_log(raw_payload: Any) -> None:

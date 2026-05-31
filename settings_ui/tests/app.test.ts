@@ -11,6 +11,7 @@ import {
   GraphVoiceRange,
   OutputFormat,
   PauseAggressiveness,
+  Phase,
   PitchHumMode,
 } from "../src/lib/types.js";
 import { asyncPayload, bridgeEnvelopes, bridgePayload, defaultConfig, pycmdMock, setInitialState } from "./settings-app-helpers.js";
@@ -351,6 +352,29 @@ describe("App", () => {
     await fireEvent.click(screen.getByRole("button", { name: "Clear unused audios" }));
 
     expect(bridgeEnvelopes()).toContainEqual({ command: "settings.check_media" });
+  });
+
+  it("opens runtime installer from diagnostics and refreshes runtime status", async () => {
+    setInitialState();
+
+    render(App);
+    await fireEvent.click(screen.getByRole("tab", { name: "Diagnostics & About" }));
+    await fireEvent.click(screen.getByRole("button", { name: "Install/Repair Runtime" }));
+
+    expect(bridgeEnvelopes()).toContainEqual({ command: "settings.open_runtime_installer" });
+    window.onRuntimeInstallerClosed?.({
+      error: "",
+      message: "Runtime is ready.",
+      phase: Phase.Ready,
+      platform: "macos-arm64",
+      progress: 100,
+      runtime_manifest_id: "runtime-test",
+      runtime_root: "/runtime",
+    });
+
+    await waitFor(() =>
+      expect(screen.getByTestId("runtime-status")).toHaveTextContent("Runtime is ready.")
+    );
   });
 
   it("renders resource and feedback links in diagnostics", async () => {

@@ -58,6 +58,14 @@ class SettingsDialog(QDialog):
             return
         self._webview.page().runJavaScript(script, callback)
 
+    def open_runtime_installer(self) -> dict[str, Any]:
+        """Open the modal runtime installer from the settings dialog."""
+        from ..runtime_installer_dialog import open_runtime_install_dialog
+
+        addon_id = mw.addonManager.addonFromModule(__name__)
+        addon_dir = mw.addonManager.addonsFolder(addon_id)
+        return open_runtime_install_dialog(self, addon_dir, force_verify=True)
+
 
 def _render_settings_content(config: dict[str, Any]) -> tuple[str, str]:
     """Render settings webview body/head fragments for Anki's themed HTML shell."""

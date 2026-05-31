@@ -432,5 +432,11 @@
   "settings.denoise_algorithm.standard.tooltip": "Làm sạch chung cho tiếng ồn nền hằng ngày.\nHãy bắt đầu ở đây với hầu hết bản ghi.",
   "settings.denoise_algorithm.rnnoise.tooltip": "Khử nhiễu lời nói nhẹ và nhanh.\nDùng cho tiếng xì, quạt hoặc máy yếu.",
   "settings.denoise_algorithm.voice_only.tooltip": "Tách phần giọng và có thể loại nhạc hoặc nhạc cụ.\nDùng khi lời nói bị trộn với âm thanh nền.",
-  "settings.denoise_algorithm.dpdfnet.tooltip": "Khử nhiễu hiện đại mạnh hơn, có chỉnh mức mạnh.\nDùng khi Standard còn để lại quá nhiều nhiễu."
+  "settings.denoise_algorithm.dpdfnet.tooltip": "Khử nhiễu hiện đại mạnh hơn, có chỉnh mức mạnh.\nDùng khi Standard còn để lại quá nhiều nhiễu.",
+  "runtime_installer.window_title": "Runtime Audio Quick Editor",
+  "runtime_installer.starting": "Đang chuẩn bị cài đặt runtime...",
+  "runtime_installer.cancel": "Hủy",
+  "runtime_installer.close": "Đóng",
+  "runtime_installer.cancel_warning.title": "Đã hủy cài đặt runtime",
+  "runtime_installer.cancel_warning.message": "Cài đặt runtime của Audio Quick Editor chưa hoàn tất. Audio Quick Editor có thể không hoạt động đúng.\n\nĐể sửa, hãy mở Cài đặt > Chẩn đoán và bấm Cài đặt/Sửa Runtime."
 }

@@ -432,5 +432,11 @@
   "editor.command.dpdfnet.label": "DPDFNet-Entrauschung",
   "editor.command.dpdfnet.title": "Neue Datei mit DPDFNet bereinigen, Aggressivität: {level}",
   "editor.status.denoising_dpdfnet": "Entrauschen mit DPDFNet",
-  "settings.health.checking_dpdfnet": "DPDFNet wird geprüft"
+  "settings.health.checking_dpdfnet": "DPDFNet wird geprüft",
+  "runtime_installer.window_title": "Audio-Quick-Editor-Laufzeit",
+  "runtime_installer.starting": "Laufzeitinstallation wird vorbereitet...",
+  "runtime_installer.cancel": "Abbrechen",
+  "runtime_installer.close": "Schließen",
+  "runtime_installer.cancel_warning.title": "Laufzeitinstallation abgebrochen",
+  "runtime_installer.cancel_warning.message": "Die Laufzeitinstallation von Audio Quick Editor wurde nicht abgeschlossen. Audio Quick Editor funktioniert möglicherweise nicht richtig.\n\nÖffne zum Reparieren Einstellungen > Diagnose und klicke auf Laufzeit installieren/reparieren."
 }

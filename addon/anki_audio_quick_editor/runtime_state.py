@@ -30,6 +30,11 @@ def read_state(addon_dir: Path) -> dict[str, Any]:
     return raw if isinstance(raw, dict) else {}
 
 
+def clear_state(addon_dir: Path) -> None:
+    """Remove persisted runtime readiness state."""
+    runtime_state_path(addon_dir).unlink(missing_ok=True)
+
+
 def write_ready_state(
     addon_dir: Path,
     manifest: RuntimeManifest,

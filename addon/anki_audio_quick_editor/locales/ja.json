@@ -432,5 +432,11 @@
   "settings.denoise_algorithm.standard.tooltip": "日常的な背景ノイズ向けの汎用クリーニングです。\nほとんどの録音ではここから始めます。",
   "settings.denoise_algorithm.rnnoise.tooltip": "軽くて速い音声ノイズ除去です。\nヒス、ファン音、低スペック環境に向いています。",
   "settings.denoise_algorithm.voice_only.tooltip": "声のステムを取り出し、音楽や楽器を減らせます。\n背景音に声が混ざっているクリップに使います。",
-  "settings.denoise_algorithm.dpdfnet.tooltip": "強めの現代的なノイズ除去で、強さを調整できます。\nStandard でノイズが残りすぎるときに使います。"
+  "settings.denoise_algorithm.dpdfnet.tooltip": "強めの現代的なノイズ除去で、強さを調整できます。\nStandard でノイズが残りすぎるときに使います。",
+  "runtime_installer.window_title": "Audio Quick Editor ランタイム",
+  "runtime_installer.starting": "ランタイムのインストールを準備しています...",
+  "runtime_installer.cancel": "キャンセル",
+  "runtime_installer.close": "閉じる",
+  "runtime_installer.cancel_warning.title": "ランタイムのインストールをキャンセルしました",
+  "runtime_installer.cancel_warning.message": "Audio Quick Editor のランタイムインストールは完了していません。Audio Quick Editor が正しく動作しない可能性があります。\n\n修復するには、設定 > 診断を開き、ランタイムをインストール/修復をクリックしてください。"
 }

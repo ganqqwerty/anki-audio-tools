@@ -5,6 +5,7 @@ from __future__ import annotations
 import importlib
 import sys
 import types
+from pathlib import Path
 
 import aqt
 
@@ -87,6 +88,112 @@ def test_open_settings_keeps_dialog_reference() -> None:
     anki_audio_quick_editor._open_settings()
 
     assert anki_audio_quick_editor._settings_dialog is not None
+
+
+def test_setup_managed_runtime_skips_dialog_when_ready(monkeypatch) -> None:
+    from anki_audio_quick_editor import runtime_manager
+
+    monkeypatch.setattr(
+        runtime_manager,
+        "runtime_status",
+        lambda _addon_dir: {
+            "phase": "ready",
+            "runtime_manifest_id": "runtime-test",
+            "platform": "macos-arm64",
+            "runtime_root": "/runtime",
+            "progress": 100,
+            "message": "Runtime is ready.",
+            "error": "",
+        },
+    )
+    dialog_module = types.ModuleType("anki_audio_quick_editor.runtime_installer_dialog")
+    dialog_module.open_runtime_install_dialog = lambda *_args, **_kwargs: (_ for _ in ()).throw(
+        AssertionError("dialog should not open")
+    )
+    monkeypatch.setitem(sys.modules, "anki_audio_quick_editor.runtime_installer_dialog", dialog_module)
+
+    anki_audio_quick_editor._setup_managed_runtime()
+
+
+def test_setup_managed_runtime_opens_dialog_when_missing(monkeypatch) -> None:
+    from anki_audio_quick_editor import runtime_manager
+
+    monkeypatch.setattr(
+        runtime_manager,
+        "runtime_status",
+        lambda _addon_dir: {
+            "phase": "missing",
+            "runtime_manifest_id": "runtime-test",
+            "platform": "macos-arm64",
+            "runtime_root": "",
+            "progress": 0,
+            "message": "Runtime assets are not installed.",
+            "error": "",
+        },
+    )
+    calls: list[tuple[object, object, bool]] = []
+    dialog_module = types.ModuleType("anki_audio_quick_editor.runtime_installer_dialog")
+    dialog_module.open_runtime_install_dialog = (
+        lambda parent, addon_dir, *, force_verify: calls.append((parent, addon_dir, force_verify))
+    )
+    monkeypatch.setitem(sys.modules, "anki_audio_quick_editor.runtime_installer_dialog", dialog_module)
+
+    anki_audio_quick_editor._setup_managed_runtime()
+
+    assert calls == [(aqt.mw, Path("/tmp/anki-audio-quick-editor-addon"), False)]
+
+
+def test_setup_managed_runtime_opens_dialog_when_error_with_manifest(monkeypatch) -> None:
+    from anki_audio_quick_editor import runtime_manager
+
+    monkeypatch.setattr(
+        runtime_manager,
+        "runtime_status",
+        lambda _addon_dir: {
+            "phase": "error",
+            "runtime_manifest_id": "runtime-test",
+            "platform": "macos-arm64",
+            "runtime_root": "",
+            "progress": 0,
+            "message": "",
+            "error": "Runtime failed verification.",
+        },
+    )
+    calls: list[tuple[object, object, bool]] = []
+    dialog_module = types.ModuleType("anki_audio_quick_editor.runtime_installer_dialog")
+    dialog_module.open_runtime_install_dialog = (
+        lambda parent, addon_dir, *, force_verify: calls.append((parent, addon_dir, force_verify))
+    )
+    monkeypatch.setitem(sys.modules, "anki_audio_quick_editor.runtime_installer_dialog", dialog_module)
+
+    anki_audio_quick_editor._setup_managed_runtime()
+
+    assert calls == [(aqt.mw, Path("/tmp/anki-audio-quick-editor-addon"), False)]
+
+
+def test_setup_managed_runtime_skips_dialog_without_manifest(monkeypatch) -> None:
+    from anki_audio_quick_editor import runtime_manager
+
+    monkeypatch.setattr(
+        runtime_manager,
+        "runtime_status",
+        lambda _addon_dir: {
+            "phase": "missing",
+            "runtime_manifest_id": "",
+            "platform": "macos-arm64",
+            "runtime_root": "",
+            "progress": 0,
+            "message": "Runtime manifest is not packaged.",
+            "error": "",
+        },
+    )
+    dialog_module = types.ModuleType("anki_audio_quick_editor.runtime_installer_dialog")
+    dialog_module.open_runtime_install_dialog = lambda *_args, **_kwargs: (_ for _ in ()).throw(
+        AssertionError("dialog should not open without a manifest")
+    )
+    monkeypatch.setitem(sys.modules, "anki_audio_quick_editor.runtime_installer_dialog", dialog_module)
+
+    anki_audio_quick_editor._setup_managed_runtime()
 
 
 def test_show_settings_dialog_calls_on_closed_once_for_rejected_finished(monkeypatch) -> None:

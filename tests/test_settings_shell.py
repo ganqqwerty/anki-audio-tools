@@ -150,6 +150,26 @@ def test_settings_dialog_run_js_uses_eval_and_page_callback(monkeypatch, request
     dialog._webview.page_object.runJavaScript.assert_called_once_with("window.answer", callback)
 
 
+def test_settings_dialog_opens_runtime_installer(monkeypatch, request) -> None:
+    settings = _reload_settings_with_fake_qt(request)
+    import anki_audio_quick_editor.runtime_installer_dialog as runtime_installer_dialog
+
+    monkeypatch.setattr(settings, "build_initial_state", lambda config: json.dumps({"config": config}))
+    aqt.mw.addonManager.addonFromModule.return_value = "addon-id"
+    aqt.mw.addonManager.addonsFolder.return_value = "/addon"
+    calls: list[tuple[object, str, bool]] = []
+    monkeypatch.setattr(
+        runtime_installer_dialog,
+        "open_runtime_install_dialog",
+        lambda parent, addon_dir, *, force_verify: calls.append((parent, addon_dir, force_verify))
+        or {"phase": "ready"},
+    )
+    dialog = settings.SettingsDialog(parent=object())
+
+    assert dialog.open_runtime_installer() == {"phase": "ready"}
+    assert calls == [(dialog, "/addon", True)]
+
+
 def _reload_settings_with_fake_qt(request):
     import anki_audio_quick_editor.settings as settings
 

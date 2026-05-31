@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import threading
 import urllib.error
 import zipfile
 from pathlib import Path
@@ -21,6 +22,7 @@ def _write_manifest(
     archive_sha: str,
     file_payloads: dict[str, bytes],
     manifest_id: str = "runtime-test",
+    archive_size: int | None = None,
 ) -> None:
     (addon_dir / "bin").mkdir(parents=True, exist_ok=True)
     files = {
@@ -46,7 +48,7 @@ def _write_manifest(
                     "name": archive.name,
                     "url": archive.as_uri(),
                     "sha256": archive_sha,
-                    "size": archive.stat().st_size,
+                    "size": archive.stat().st_size if archive_size is None else archive_size,
                 },
                 "tools": {
                     "ffmpeg": {
@@ -109,10 +111,22 @@ def test_ensure_runtime_downloads_verifies_and_persists_state(
     _write_manifest(addon_dir, archive=archive, archive_sha=archive_sha, file_payloads=payloads)
     monkeypatch.setattr(runtime_manager.platform, "system", lambda: "Darwin")
     monkeypatch.setattr(runtime_manager.platform, "machine", lambda: "arm64")
+    progress: list[dict[str, object]] = []
 
-    status = runtime_manager.ensure_runtime(addon_dir)
+    status = runtime_manager.ensure_runtime(addon_dir, progress=progress.append)
 
     assert status["phase"] == "ready"
+    assert [entry.get("step") for entry in progress] == [
+        "Select runtime package",
+        "Check existing runtime",
+        "Download zip",
+        "Download zip",
+        "Verify zip",
+        "Unpack zip",
+        "Verify files",
+        "Promote runtime",
+        "Cleanup",
+    ]
     root = addon_dir / "user_files" / "runtime" / "runtime-test"
     assert (root / "macos-arm64" / "ffmpeg").read_bytes() == b"ffmpeg"
     assert (root / "macos-arm64" / "rnnoise-cli").read_bytes() == b"rnnoise"
@@ -143,6 +157,54 @@ def test_ensure_runtime_rejects_checksum_mismatch(tmp_path: Path, monkeypatch) -
     assert not (addon_dir / "user_files" / "runtime_state.json").exists()
 
 
+def test_ensure_runtime_rejects_zip_size_mismatch(tmp_path: Path, monkeypatch) -> None:
+    payloads = {
+        "macos-arm64/ffmpeg": b"ffmpeg",
+        "macos-arm64/rnnoise-cli": b"rnnoise",
+        "models/spleeter-2stems-fp16/vocals.fp16.onnx": b"vocals",
+    }
+    archive = tmp_path / "runtime.zip"
+    archive_sha = _write_runtime_pack(archive, payloads)
+    addon_dir = tmp_path / "addon"
+    _write_manifest(
+        addon_dir,
+        archive=archive,
+        archive_sha=archive_sha,
+        archive_size=archive.stat().st_size + 1,
+        file_payloads=payloads,
+    )
+    monkeypatch.setattr(runtime_manager.platform, "system", lambda: "Darwin")
+    monkeypatch.setattr(runtime_manager.platform, "machine", lambda: "arm64")
+
+    status = runtime_manager.ensure_runtime(addon_dir)
+
+    assert status["phase"] == "error"
+    assert status["error"].startswith("AQE-RUNTIME-003:")
+    assert "size mismatch" in status["error"]
+    assert not (addon_dir / "user_files" / "runtime_state.json").exists()
+
+
+def test_ensure_runtime_rejects_corrupt_zip(tmp_path: Path, monkeypatch) -> None:
+    payloads = {
+        "macos-arm64/ffmpeg": b"ffmpeg",
+        "macos-arm64/rnnoise-cli": b"rnnoise",
+        "models/spleeter-2stems-fp16/vocals.fp16.onnx": b"vocals",
+    }
+    archive = tmp_path / "runtime.zip"
+    archive.write_bytes(b"not a zip")
+    archive_sha = runtime_manager.sha256_file(archive)
+    addon_dir = tmp_path / "addon"
+    _write_manifest(addon_dir, archive=archive, archive_sha=archive_sha, file_payloads=payloads)
+    monkeypatch.setattr(runtime_manager.platform, "system", lambda: "Darwin")
+    monkeypatch.setattr(runtime_manager.platform, "machine", lambda: "arm64")
+
+    status = runtime_manager.ensure_runtime(addon_dir)
+
+    assert status["phase"] == "error"
+    assert "not a valid zip archive" in status["error"]
+    assert not (addon_dir / "user_files" / "runtime_state.json").exists()
+
+
 def test_ensure_runtime_rejects_unexpected_archive_file(tmp_path: Path, monkeypatch) -> None:
     payloads = {
         "macos-arm64/ffmpeg": b"ffmpeg",
@@ -170,6 +232,117 @@ def test_ensure_runtime_rejects_unexpected_archive_file(tmp_path: Path, monkeypa
     assert "unexpected file" in status["error"]
 
 
+def test_ensure_runtime_rejects_missing_archive_file(tmp_path: Path, monkeypatch) -> None:
+    expected_payloads = {
+        "macos-arm64/ffmpeg": b"ffmpeg",
+        "macos-arm64/rnnoise-cli": b"rnnoise",
+        "models/spleeter-2stems-fp16/vocals.fp16.onnx": b"vocals",
+    }
+    archive_payloads = {
+        key: value
+        for key, value in expected_payloads.items()
+        if key != "macos-arm64/rnnoise-cli"
+    }
+    archive = tmp_path / "runtime.zip"
+    archive_sha = _write_runtime_pack(archive, archive_payloads)
+    addon_dir = tmp_path / "addon"
+    _write_manifest(
+        addon_dir,
+        archive=archive,
+        archive_sha=archive_sha,
+        file_payloads=expected_payloads,
+    )
+    monkeypatch.setattr(runtime_manager.platform, "system", lambda: "Darwin")
+    monkeypatch.setattr(runtime_manager.platform, "machine", lambda: "arm64")
+
+    status = runtime_manager.ensure_runtime(addon_dir)
+
+    assert status["phase"] == "error"
+    assert "missing file" in status["error"]
+    assert not (addon_dir / "user_files" / "runtime_state.json").exists()
+
+
+def test_ensure_runtime_rejects_extracted_size_mismatch(tmp_path: Path, monkeypatch) -> None:
+    expected_payloads = {
+        "macos-arm64/ffmpeg": b"ffmpeg",
+        "macos-arm64/rnnoise-cli": b"rnnoise",
+        "models/spleeter-2stems-fp16/vocals.fp16.onnx": b"vocals",
+    }
+    archive_payloads = {
+        **expected_payloads,
+        "macos-arm64/rnnoise-cli": b"rnnoise-too-large",
+    }
+    archive = tmp_path / "runtime.zip"
+    archive_sha = _write_runtime_pack(archive, archive_payloads)
+    addon_dir = tmp_path / "addon"
+    _write_manifest(
+        addon_dir,
+        archive=archive,
+        archive_sha=archive_sha,
+        file_payloads=expected_payloads,
+    )
+    monkeypatch.setattr(runtime_manager.platform, "system", lambda: "Darwin")
+    monkeypatch.setattr(runtime_manager.platform, "machine", lambda: "arm64")
+
+    status = runtime_manager.ensure_runtime(addon_dir)
+
+    assert status["phase"] == "error"
+    assert "wrong size" in status["error"]
+    assert not (addon_dir / "user_files" / "runtime_state.json").exists()
+
+
+def test_ensure_runtime_rejects_extracted_sha_mismatch(tmp_path: Path, monkeypatch) -> None:
+    expected_payloads = {
+        "macos-arm64/ffmpeg": b"ffmpeg",
+        "macos-arm64/rnnoise-cli": b"rnnoise",
+        "models/spleeter-2stems-fp16/vocals.fp16.onnx": b"vocals",
+    }
+    archive_payloads = {
+        **expected_payloads,
+        "macos-arm64/rnnoise-cli": b"RNNOISE",
+    }
+    archive = tmp_path / "runtime.zip"
+    archive_sha = _write_runtime_pack(archive, archive_payloads)
+    addon_dir = tmp_path / "addon"
+    _write_manifest(
+        addon_dir,
+        archive=archive,
+        archive_sha=archive_sha,
+        file_payloads=expected_payloads,
+    )
+    monkeypatch.setattr(runtime_manager.platform, "system", lambda: "Darwin")
+    monkeypatch.setattr(runtime_manager.platform, "machine", lambda: "arm64")
+
+    status = runtime_manager.ensure_runtime(addon_dir)
+
+    assert status["phase"] == "error"
+    assert "checksum mismatch" in status["error"]
+    assert not (addon_dir / "user_files" / "runtime_state.json").exists()
+
+
+def test_ensure_runtime_can_be_cancelled_before_download(tmp_path: Path, monkeypatch) -> None:
+    payloads = {
+        "macos-arm64/ffmpeg": b"ffmpeg",
+        "macos-arm64/rnnoise-cli": b"rnnoise",
+        "models/spleeter-2stems-fp16/vocals.fp16.onnx": b"vocals",
+    }
+    archive = tmp_path / "runtime.zip"
+    archive_sha = _write_runtime_pack(archive, payloads)
+    addon_dir = tmp_path / "addon"
+    _write_manifest(addon_dir, archive=archive, archive_sha=archive_sha, file_payloads=payloads)
+    monkeypatch.setattr(runtime_manager.platform, "system", lambda: "Darwin")
+    monkeypatch.setattr(runtime_manager.platform, "machine", lambda: "arm64")
+    cancel_event = threading.Event()
+    cancel_event.set()
+
+    status = runtime_manager.ensure_runtime(addon_dir, cancel_event=cancel_event)
+
+    assert status["phase"] == "missing"
+    assert status["message"] == "Runtime installation cancelled."
+    assert not (addon_dir / "user_files" / "runtime_state.json").exists()
+    assert not (addon_dir / "user_files" / "runtime" / "runtime-test").exists()
+
+
 def test_runtime_status_reuses_existing_manifest_id_across_addon_versions(
     tmp_path: Path,
     monkeypatch,
@@ -190,6 +363,43 @@ def test_runtime_status_reuses_existing_manifest_id_across_addon_versions(
     _write_manifest(addon_dir, archive=archive, archive_sha=archive_sha, file_payloads=payloads)
 
     assert runtime_manager.runtime_status(addon_dir)["phase"] == "ready"
+
+
+def test_force_verify_clears_ready_state_before_cancelled_repair(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    payloads = {
+        "macos-arm64/ffmpeg": b"ffmpeg",
+        "macos-arm64/rnnoise-cli": b"rnnoise",
+        "models/spleeter-2stems-fp16/vocals.fp16.onnx": b"vocals",
+    }
+    archive = tmp_path / "runtime.zip"
+    archive_sha = _write_runtime_pack(archive, payloads)
+    addon_dir = tmp_path / "addon"
+    _write_manifest(addon_dir, archive=archive, archive_sha=archive_sha, file_payloads=payloads)
+    monkeypatch.setattr(runtime_manager.platform, "system", lambda: "Darwin")
+    monkeypatch.setattr(runtime_manager.platform, "machine", lambda: "arm64")
+    assert runtime_manager.ensure_runtime(addon_dir)["phase"] == "ready"
+    root = addon_dir / "user_files" / "runtime" / "runtime-test"
+    (root / "macos-arm64" / "ffmpeg").write_bytes(b"FFMPEG")
+    assert runtime_manager.runtime_status(addon_dir)["phase"] == "ready"
+    cancel_event = threading.Event()
+
+    def progress(payload: dict[str, object]) -> None:
+        if "failed verification" in str(payload.get("detail", "")):
+            cancel_event.set()
+
+    status = runtime_manager.ensure_runtime(
+        addon_dir,
+        progress=progress,
+        cancel_event=cancel_event,
+        force_verify=True,
+    )
+
+    assert status["phase"] == "missing"
+    assert not (addon_dir / "user_files" / "runtime_state.json").exists()
+    assert runtime_manager.runtime_status(addon_dir)["phase"] == "missing"
 
 
 def test_managed_silero_vad_model_path_uses_installed_runtime(

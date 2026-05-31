@@ -128,6 +128,37 @@ def test_check_media_command_opens_anki_media_checker() -> None:
     assert dialog.rejected is False
 
 
+def test_open_runtime_installer_command_returns_refreshed_status() -> None:
+    dialog = _make_dialog()
+    dialog.open_runtime_installer.return_value = {
+        "phase": "ready",
+        "runtime_manifest_id": "runtime-test",
+        "platform": "macos-arm64",
+        "runtime_root": "/runtime",
+        "progress": 100,
+        "message": "Runtime is ready.",
+        "error": "",
+    }
+    calls, eval_fn = _capture_eval()
+
+    assert handle_settings_command(
+        _bridge_command("settings.open_runtime_installer"),
+        eval_fn,
+        dialog,
+    ) is True
+
+    dialog.open_runtime_installer.assert_called_once_with()
+    assert _parse_callback(calls[-1], "onRuntimeInstallerClosed") == {
+        "error": "",
+        "message": "Runtime is ready.",
+        "phase": "ready",
+        "platform": "macos-arm64",
+        "progress": 100,
+        "runtime_manifest_id": "runtime-test",
+        "runtime_root": "/runtime",
+    }
+
+
 def test_async_command_reports_unknown_operation() -> None:
     dialog = _make_dialog()
     calls, eval_fn = _capture_eval()

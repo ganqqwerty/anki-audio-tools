@@ -2,28 +2,22 @@
 
 from __future__ import annotations
 
-import os
 import shutil
-import socket
 import threading
-import time
-import urllib.error
-import urllib.request
 from collections.abc import Callable
 from pathlib import Path
 from typing import Any
 
+from . import runtime_install_io
 from .error_codes import AQE_RUNTIME_ASSET_MISSING, format_coded_message
-from .runtime_archive import extract_expected_files, verify_extracted_files
+from .runtime_archive import verify_extracted_files
 from .runtime_lookup import is_runtime_ready
 from .runtime_manifest import (
     RuntimeFile,
     RuntimeInstallError,
     RuntimeManifest,
-    RuntimePack,
     expected_files,
     load_manifest,
-    sha256_file,
     target_pack,
 )
 from .runtime_paths import DOWNLOADS_DIRNAME, managed_runtime_root, runtime_base_dir
@@ -34,15 +28,17 @@ from .runtime_state import (
     RUNTIME_PHASE_MISSING,
     RUNTIME_PHASE_READY,
     RUNTIME_PHASE_UNSUPPORTED,
+    clear_state,
     status,
-    write_ready_state,
 )
 from .runtime_state import (
     notify as notify_runtime_status,
 )
 
-DOWNLOAD_TIMEOUT_SECONDS = 60
-USER_AGENT = "anki-audio-quick-editor-runtime/1.0"
+DOWNLOAD_TIMEOUT_SECONDS = runtime_install_io.DOWNLOAD_TIMEOUT_SECONDS
+USER_AGENT = runtime_install_io.USER_AGENT
+RuntimeInstallCancelledError = runtime_install_io.RuntimeInstallCancelledError
+download_extract_promote = runtime_install_io.download_extract_promote
 
 _STATE_LOCK = threading.RLock()
 _INSTALL_THREAD: threading.Thread | None = None
@@ -122,7 +118,13 @@ def ensure_runtime_async(
     return downloading
 
 
-def ensure_runtime(addon_dir: Path, *, progress: Callable[[dict[str, Any]], None] | None = None) -> dict[str, Any]:
+def ensure_runtime(
+    addon_dir: Path,
+    *,
+    progress: Callable[[dict[str, Any]], None] | None = None,
+    cancel_event: threading.Event | None = None,
+    force_verify: bool = False,
+) -> dict[str, Any]:
     """Synchronously install or repair the managed runtime."""
     platform_key = current_platform_key()
     if platform_key is None:
@@ -130,8 +132,6 @@ def ensure_runtime(addon_dir: Path, *, progress: Callable[[dict[str, Any]], None
     manifest = load_manifest(addon_dir)
     if manifest is None:
         return status(RUNTIME_PHASE_ERROR, platform_key=platform_key, error="Runtime manifest is not packaged.")
-    if is_runtime_ready(addon_dir, manifest=manifest, platform_key=platform_key):
-        return runtime_status(addon_dir)
     pack = target_pack(manifest, platform_key)
     if pack is None:
         return status(
@@ -149,10 +149,72 @@ def ensure_runtime(addon_dir: Path, *, progress: Callable[[dict[str, Any]], None
             error=f"Runtime manifest has no files for {platform_key}.",
         )
 
+    _emit_progress(
+        progress,
+        manifest,
+        platform_key,
+        1,
+        "Select runtime package",
+        f"Manifest {manifest.manifest_id}; archive {pack.name}; URL {pack.url}",
+    )
+    if is_runtime_ready(addon_dir, manifest=manifest, platform_key=platform_key):
+        ready_status = _handle_ready_runtime(
+            addon_dir,
+            manifest,
+            platform_key,
+            files,
+            progress,
+            cancel_event,
+            force_verify=force_verify,
+        )
+        if ready_status is not None:
+            return ready_status
+    else:
+        _emit_progress(
+            progress,
+            manifest,
+            platform_key,
+            8,
+            "Check existing runtime",
+            "Runtime assets are not installed or the ready state is missing.",
+        )
+
     try:
-        _download_extract_promote(addon_dir, manifest, platform_key, pack, files, progress)
+        _check_cancel(cancel_event)
+        download_extract_promote(
+            addon_dir,
+            manifest,
+            platform_key,
+            pack,
+            files,
+            lambda pct, step, detail: _emit_progress(
+                progress,
+                manifest,
+                platform_key,
+                pct,
+                step,
+                detail,
+            ),
+            lambda: _check_cancel(cancel_event),
+        )
         _cleanup_old_runtimes(addon_dir, keep_manifest_id=manifest.manifest_id)
-    except Exception as exc:
+    except RuntimeInstallCancelledError:
+        _emit_progress(
+            progress,
+            manifest,
+            platform_key,
+            0,
+            "Cancelled",
+            "Runtime installation was cancelled before completion.",
+            phase=RUNTIME_PHASE_MISSING,
+        )
+        return status(
+            RUNTIME_PHASE_MISSING,
+            manifest=manifest,
+            platform_key=platform_key,
+            message="Runtime installation cancelled.",
+        )
+    except (OSError, RuntimeInstallError) as exc:
         return status(
             RUNTIME_PHASE_ERROR,
             manifest=manifest,
@@ -179,81 +241,96 @@ def _install_thread_main(addon_dir: Path, notify_fn: Callable[[dict[str, Any]], 
     notify_runtime_status(notify_fn, final_status)
 
 
-def _download_extract_promote(
+def _handle_ready_runtime(
     addon_dir: Path,
     manifest: RuntimeManifest,
     platform_key: str,
-    pack: RuntimePack,
     files: list[RuntimeFile],
     progress: Callable[[dict[str, Any]], None] | None,
-) -> None:
-    base_dir = runtime_base_dir(addon_dir)
-    downloads_dir = base_dir / DOWNLOADS_DIRNAME
-    downloads_dir.mkdir(parents=True, exist_ok=True)
-    archive_path = downloads_dir / pack.name
-    _download_pack(pack, archive_path, manifest, platform_key, progress)
-    extract_root = base_dir / f"{manifest.manifest_id}.extracting-{os.getpid()}-{int(time.time())}"
-    shutil.rmtree(extract_root, ignore_errors=True)
+    cancel_event: threading.Event | None,
+    *,
+    force_verify: bool,
+) -> dict[str, Any] | None:
+    runtime_root = managed_runtime_root(addon_dir, manifest.manifest_id)
+    _emit_progress(
+        progress,
+        manifest,
+        platform_key,
+        8,
+        "Check existing runtime",
+        f"Runtime state is ready at {runtime_root}.",
+    )
+    if not force_verify:
+        return runtime_status(addon_dir)
     try:
-        extract_expected_files(archive_path, extract_root, files)
-        verify_extracted_files(extract_root, files)
-        target_root = managed_runtime_root(addon_dir, manifest.manifest_id)
-        if target_root.exists():
-            shutil.rmtree(target_root)
-        extract_root.replace(target_root)
-        write_ready_state(addon_dir, manifest, platform_key, files)
-    except Exception:
-        archive_path.unlink(missing_ok=True)
-        raise
-    finally:
-        shutil.rmtree(extract_root, ignore_errors=True)
-        archive_path.with_suffix(archive_path.suffix + ".download").unlink(missing_ok=True)
+        _check_cancel(cancel_event)
+        _emit_progress(
+            progress,
+            manifest,
+            platform_key,
+            20,
+            "Verify files",
+            f"Checking size and SHA-256 for {len(files)} installed runtime files.",
+        )
+        verify_extracted_files(runtime_root, files)
+    except RuntimeInstallCancelledError:
+        return status(
+            RUNTIME_PHASE_READY,
+            manifest=manifest,
+            platform_key=platform_key,
+            runtime_root=str(runtime_root),
+            message="Runtime verification cancelled; existing runtime was left unchanged.",
+        )
+    except (OSError, RuntimeInstallError) as exc:
+        clear_state(addon_dir)
+        _emit_progress(
+            progress,
+            manifest,
+            platform_key,
+            25,
+            "Check existing runtime",
+            f"Installed runtime failed verification and will be repaired: {exc}",
+        )
+        return None
+    _emit_progress(
+        progress,
+        manifest,
+        platform_key,
+        100,
+        "Ready",
+        f"Runtime files are verified at {runtime_root}.",
+        phase=RUNTIME_PHASE_READY,
+    )
+    return runtime_status(addon_dir)
 
 
-def _download_pack(
-    pack: RuntimePack,
-    destination: Path,
+def _emit_progress(
+    progress: Callable[[dict[str, Any]], None] | None,
     manifest: RuntimeManifest,
     platform_key: str,
-    progress: Callable[[dict[str, Any]], None] | None,
+    pct: int,
+    step: str,
+    detail: str,
+    *,
+    phase: str = RUNTIME_PHASE_DOWNLOADING,
 ) -> None:
-    if destination.is_file() and sha256_file(destination) == pack.sha256:
+    if progress is None:
         return
-    tmp_path = destination.with_suffix(destination.suffix + ".download")
-    tmp_path.unlink(missing_ok=True)
-    request = urllib.request.Request(pack.url, headers={"User-Agent": USER_AGENT})
-    downloaded = 0
-    try:
-        with (
-            urllib.request.urlopen(request, timeout=DOWNLOAD_TIMEOUT_SECONDS) as response,  # nosec B310
-            tmp_path.open("wb") as handle,
-        ):
-            while True:
-                chunk = response.read(1024 * 1024)
-                if not chunk:
-                    break
-                handle.write(chunk)
-                downloaded += len(chunk)
-                if progress is not None and pack.size:
-                    progress(
-                        status(
-                            RUNTIME_PHASE_DOWNLOADING,
-                            manifest=manifest,
-                            platform_key=platform_key,
-                            progress=min(99, int(downloaded * 100 / pack.size)),
-                            message=f"Downloaded {downloaded // 1024} KB of runtime assets...",
-                        )
-                    )
-    except (OSError, urllib.error.URLError) as exc:
-        tmp_path.unlink(missing_ok=True)
-        raise RuntimeInstallError(_friendly_download_error(exc)) from exc
-    actual_sha = sha256_file(tmp_path)
-    if actual_sha != pack.sha256:
-        tmp_path.unlink(missing_ok=True)
-        raise RuntimeInstallError(
-            f"Runtime pack checksum mismatch: expected {pack.sha256}, got {actual_sha}."
-        )
-    tmp_path.replace(destination)
+    payload = status(
+        phase,
+        manifest=manifest,
+        platform_key=platform_key,
+        progress=max(0, min(100, pct)),
+        message=step,
+    )
+    payload["step"] = step
+    payload["detail"] = detail
+    progress(payload)
+
+
+def _check_cancel(cancel_event: threading.Event | None) -> None:
+    if cancel_event is not None and cancel_event.is_set():
+        raise RuntimeInstallCancelledError("Runtime installation cancelled.")
 
 
 def _cleanup_old_runtimes(addon_dir: Path, *, keep_manifest_id: str) -> None:
@@ -276,29 +353,7 @@ def _friendly_install_error(exc: BaseException) -> str:
 
 
 def _friendly_download_error(exc: BaseException) -> str:
-    reason = getattr(exc, "reason", exc)
-    if isinstance(reason, (TimeoutError, socket.timeout)):
-        return _runtime_asset_error(
-            "Runtime download timed out. Check your internet connection and whether a "
-            "firewall, proxy, VPN, antivirus, or organization network policy is blocking "
-            "Audio Quick Editor from downloading its runtime assets."
-        )
-    if isinstance(exc, urllib.error.HTTPError):
-        return _runtime_asset_error(
-            f"Runtime download failed with HTTP {exc.code}. If this keeps happening, "
-            "check whether a firewall, proxy, VPN, antivirus, or organization network "
-            "policy is blocking the runtime asset URL."
-        )
-    if isinstance(reason, OSError) and getattr(reason, "errno", None) in {13, 30}:
-        return _runtime_asset_error(
-            f"Runtime download could not write files: {reason}. Check permissions for "
-            "Anki's add-ons folder and whether security software is blocking the add-on."
-        )
-    return _runtime_asset_error(
-        f"Runtime download failed: {exc}. Check your internet connection and whether a "
-        "firewall, proxy, VPN, antivirus, or organization network policy is blocking "
-        "Audio Quick Editor from downloading its runtime assets."
-    )
+    return _runtime_asset_error(runtime_install_io.friendly_download_error(exc))
 
 
 def _runtime_asset_error(message: str) -> str:

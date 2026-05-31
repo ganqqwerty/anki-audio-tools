@@ -4,6 +4,7 @@ import type {
   AsyncOperationPayloads,
   AsyncProgressPayload,
   Config,
+  RuntimeStatus,
   SaveErrorPayload,
 } from "./types.js";
 
@@ -59,6 +60,10 @@ export function settingsCheckMedia(): void {
   sendBridgeEnvelope("settings.check_media");
 }
 
+export function settingsOpenRuntimeInstaller(): void {
+  sendBridgeEnvelope("settings.open_runtime_installer");
+}
+
 export function sendAsyncCmd<TOp extends AsyncOperationName>(
   id: string,
   op: TOp,
@@ -75,6 +80,7 @@ export interface BridgeCallbacks {
   onAsyncProgress?: (payload: AsyncProgressPayload) => void;
   onAsyncDone?: (payload: AsyncDonePayload) => void;
   onSaveError?: (payload: SaveErrorPayload) => void;
+  onRuntimeInstallerClosed?: (payload: RuntimeStatus) => void;
 }
 
 export function registerCallbacks(callbacks: BridgeCallbacks): void {
@@ -87,6 +93,9 @@ export function registerCallbacks(callbacks: BridgeCallbacks): void {
   if (callbacks.onSaveError) {
     globalThis.onSaveError = callbacks.onSaveError;
   }
+  if (callbacks.onRuntimeInstallerClosed) {
+    globalThis.onRuntimeInstallerClosed = callbacks.onRuntimeInstallerClosed;
+  }
 }
 
 declare global {
@@ -94,11 +103,13 @@ declare global {
   var onAsyncProgress: ((payload: AsyncProgressPayload) => void) | undefined;
   var onAsyncDone: ((payload: AsyncDonePayload) => void) | undefined;
   var onSaveError: ((payload: SaveErrorPayload) => void) | undefined;
+  var onRuntimeInstallerClosed: ((payload: RuntimeStatus) => void) | undefined;
 
   interface Window {
     __INITIAL_STATE__?: import("./types.js").InitialState;
     onAsyncProgress?: (payload: AsyncProgressPayload) => void;
     onAsyncDone?: (payload: AsyncDonePayload) => void;
     onSaveError?: (payload: SaveErrorPayload) => void;
+    onRuntimeInstallerClosed?: (payload: RuntimeStatus) => void;
   }
 }

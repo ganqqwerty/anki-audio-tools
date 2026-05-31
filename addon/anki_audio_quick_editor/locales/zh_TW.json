@@ -432,5 +432,11 @@
   "settings.denoise_algorithm.standard.tooltip": "用於日常背景噪音的通用清理。\n大多數錄音可以先從這裡開始。",
   "settings.denoise_algorithm.rnnoise.tooltip": "輕量、快速的語音降噪。\n適合嘶聲、風扇聲或效能較低的機器。",
   "settings.denoise_algorithm.voice_only.tooltip": "提取人聲聲部，可去除音樂或樂器。\n適合語音混在背景音中的片段。",
-  "settings.denoise_algorithm.dpdfnet.tooltip": "更強的現代降噪，並帶有強度控制。\n當 Standard 仍留下太多噪音時使用。"
+  "settings.denoise_algorithm.dpdfnet.tooltip": "更強的現代降噪，並帶有強度控制。\n當 Standard 仍留下太多噪音時使用。",
+  "runtime_installer.window_title": "Audio Quick Editor 執行環境",
+  "runtime_installer.starting": "正在準備安裝執行環境...",
+  "runtime_installer.cancel": "取消",
+  "runtime_installer.close": "關閉",
+  "runtime_installer.cancel_warning.title": "執行環境安裝已取消",
+  "runtime_installer.cancel_warning.message": "Audio Quick Editor 執行環境安裝尚未完成。Audio Quick Editor 可能無法正常運作。\n\n若要修復此問題，請開啟設定 > 診斷，然後點擊安裝/修復執行環境。"
 }
