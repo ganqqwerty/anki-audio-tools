@@ -193,13 +193,26 @@ Unit tests should cover:
 
 - Step order and state transitions for successful install.
 - Reusing an already downloaded archive.
+- Malformed or missing runtime manifest fails in the package-selection step with a coded error.
+- Unsupported platform fails before download and shows platform details.
+- Preflight rejects unwritable runtime/download directories.
+- Preflight rejects low disk space when pack size is known and available free space is below the threshold.
+- Download timeout, HTTP failure, and interrupted partial download failures include URL, bytes downloaded, operation ID, and failed step.
+- Reused cached archives are revalidated and rejected when their checksum no longer matches the manifest.
 - Archive checksum mismatch failure includes operation ID and failed step.
 - Archive size mismatch details are logged when size is known.
+- Corrupt/non-zip archive failures map to archive verification.
 - Unsafe path, unexpected file, and missing file failures map to the archive contents step.
 - Extracted file size/hash mismatch maps to extracted file verification.
-- Permission check behavior on POSIX and skipped/limited behavior on Windows.
-- Dry-run probe success, timeout, and non-zero exit handling.
+- Extraction write failure leaves no promoted partial runtime and records temp paths.
+- Permission check behavior on POSIX, chmod failure behavior, and skipped/limited behavior on Windows.
+- Promotion failure, including an existing target directory that cannot be removed or replaced, leaves the prior ready runtime untouched when one existed.
+- `runtime_state.json` write failure prevents the install from being reported as ready.
+- Cleanup failure is surfaced as a warning when runtime is otherwise usable and as an error when it prevents readiness.
+- Concurrent startup and Settings repair attempts attach to one active operation instead of racing writes.
+- Dry-run probe success, timeout, non-zero exit, and executable-not-found handling.
 - Dismissed incomplete installer returns/shows the warning message.
+- Reopening the installer after dismissal attaches to the active operation or shows the latest failed operation.
 - Runtime-dependent action guard returns a coded runtime repair error.
 - Support report context includes latest failed runtime install operation details.
 
@@ -210,6 +223,8 @@ Svelte/frontend tests should cover:
 - Download byte/progress details render without layout overflow.
 - Failure state shows code, operation ID, failed step, and repair guidance.
 - Settings Install/Repair Runtime opens the detailed installer flow.
+- Closing the window during an active install shows the incomplete-install warning and does not mark the operation as successful.
+- Reopening after a failure preserves the failed step details instead of showing only a generic runtime status.
 
 E2E coverage should include:
 
@@ -217,6 +232,8 @@ E2E coverage should include:
 - Dismissing incomplete install shows the warning.
 - Settings > Diagnostics > Install/Repair Runtime opens the same detailed installer.
 - A forced failure, such as checksum mismatch in a test manifest, shows the failed step and coded message.
+- A forced download or archive failure leaves no promoted partial runtime and the next repair attempt can retry.
+- Invoking a runtime-dependent action after a dismissed or failed install shows the coded repair guidance instead of a subprocess/file error.
 - After successful install, runtime-dependent editor or batch action no longer hits the guardrail.
 
 Full completion for the feature requires `python3 scripts/dev.py check` and `python3 scripts/dev.py test-e2e` unless a commit explicitly documents that full check/e2e were not run.
