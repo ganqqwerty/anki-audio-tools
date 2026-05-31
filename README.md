@@ -81,3 +81,25 @@ Use `--upload-assets` to upload generated runtime packs with `gh release upload`
 or run the printed command manually when `gh` is unavailable. Use `--embed-runtime`
 for local/offline validation builds that intentionally include runtime payloads in
 the `.ankiaddon`.
+
+## Similar projects
+
+* [Onsei by Didier Marin](https://hub.2i2c.mybinder.org/user/itsupera-onsei-79jviu4s/voila/render/work/notebook.ipynb?token=s5dTPB1fQbux8BehMRju2g#:~:text=Onsei%3A%20Japanese%20pitch%20accent%20practice%20tool) works nicely on the web, he also has an anki plugin for comparing pitch
+* [kotu.io by kezi](kotu.io) with [backup of its early version](https://kuuuube.github.io/minimal-pairs/) by kuuube - an amazing set of learning tools, inlcuding the famous minimal pairs trainer
+* [migaku's pitch trainer](https://pitch-demo.migaku.io/)
+* [pitchaccentapp by checkempty](https://pitchaccentapp.web.app/) - another web tool for pitch comparison
+* [Praat](https://www.fon.hum.uva.nl/praat/) - an ancient tool for researchers. We all use algorithms they developed
+* [YuTone](https://yutone.app/) - an app for chinese, somehow super fast, processes pitch in real time
+* [Aomi Japanese](https://www.aomijapanese.jp/) records and compares your Japanese pitch accent
+* [Tone perfect](https://toneperfect.app/) and [companion reading-feedback app](https://chromewebstore.google.com/detail/chinese-ai-pronunciation/ciginfkinhpfknohjbplmlhgmbomgokg) - chinese only,
+* [Ka Chinese Tones](https://chinesetones.app/) - kotu-like tool for chinese tones
+* [Aaron's Vietnamese toolset](https://ard.ninja/games/vietnamese/)
+* [OJAD](https://www.gavo.t.u-tokyo.ac.jp/ojad/eng/pages/usage) some tools for Japanese pitch, including pitch of sentences
+* [JPitch](https://www.jpitch.org/) - word pronunciation analysis for japanese, feedback on mora-by-mora level!
+* [MandaTone](https://play.google.com/store/apps/details?hl=en&id=com.ruiyu.mandatone) - Chinese tones app
+* [CanTone](https://play.google.com/store/apps/details?hl=en&id=com.cantone.cantone) - comparing your cantonese tones against model
+* [Vietnamese Tones](https://apps.apple.com/ca/app/vietnamese-tones/id1549573747) ios app for recording your tones
+* [Pho speak](https://phospeak.com/) big vietnamese course that includes pronunciation feedback
+* [Cracking languages](https://www.crackinglanguage.com/) Tons of tools for tonal languages from a tonal polyglot
+* [Syllable](https://play.google.com/store/apps/details?hl=en_AU&id=com.electricbamboo.syllable)
+* [Thai language tones](https://apps.apple.com/us/app/thai-language-tones/id1064086189)
