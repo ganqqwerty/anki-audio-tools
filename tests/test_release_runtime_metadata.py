@@ -14,10 +14,12 @@ from scripts import (
     release_archive,
     release_asset_common,
     release_assets,
+    release_runtime,
     release_runtime_remote,
 )
 from scripts import release_runtime_metadata as runtime_metadata
 
+from anki_audio_quick_editor import runtime_manager
 from tests.release_archive_fixtures import FAKE_RELEASE_INFO, lock_with_binary_hashes
 
 
@@ -229,6 +231,52 @@ def test_fake_addon_version_points_to_runtime_tag(
     pack = manifest["targets"]["macos-arm64"]["runtime_pack"]
     assert "/runtime-v1.0/" in pack["url"]
     assert "/v4.2/" not in pack["url"]
+
+
+def test_generated_thin_manifest_installs_through_runtime_manager(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    lock = lock_with_binary_hashes()
+    pack_metadata = _runtime_pack_metadata(tmp_path, lock, runtime_version="1.0")
+    metadata = runtime_metadata.build_runtime_release_metadata(
+        "1.0",
+        lock,
+        pack_metadata,
+        target_keys=["macos-arm64"],
+    )
+    manifest_pack_metadata = runtime_metadata.runtime_pack_metadata_from_release(
+        metadata,
+        target_keys=["macos-arm64"],
+    )
+    manifest_pack_metadata["macos-arm64"]["url"] = pack_metadata["macos-arm64"]["path"].as_uri()
+    manifest = release_runtime.runtime_manifest_data(
+        lock,
+        target_keys=["macos-arm64"],
+        runtime_pack_metadata=manifest_pack_metadata,
+        runtime_file_metadata=runtime_metadata.file_metadata_by_path(
+            manifest_pack_metadata,
+            target_keys=["macos-arm64"],
+        ),
+    )
+    addon_dir = tmp_path / "addon"
+    (addon_dir / "bin").mkdir(parents=True)
+    (addon_dir / "bin" / "runtime_manifest.json").write_text(
+        json.dumps(manifest),
+        encoding="utf-8",
+    )
+    monkeypatch.setattr(runtime_manager.platform, "system", lambda: "Darwin")
+    monkeypatch.setattr(runtime_manager.platform, "machine", lambda: "arm64")
+
+    status = runtime_manager.ensure_runtime(addon_dir)
+
+    runtime_root = addon_dir / "user_files" / "runtime" / metadata["runtime_manifest_id"]
+    assert status["phase"] == "ready"
+    assert status["runtime_manifest_id"] == metadata["runtime_manifest_id"]
+    assert (runtime_root / "macos-arm64" / "ffmpeg").is_file()
+    assert runtime_manager.managed_tool_path(addon_dir, "ffmpeg") == (
+        runtime_root / "macos-arm64" / "ffmpeg"
+    )
 
 
 def _runtime_pack_metadata(
