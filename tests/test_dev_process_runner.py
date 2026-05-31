@@ -115,3 +115,20 @@ def test_process_run_streams_subprocess_output_in_verbose_mode(capsys) -> None:
     captured = capsys.readouterr()
     assert rc == 0
     assert "visible subprocess output" in captured.out
+
+
+def test_process_run_uses_configured_idle_timeout(capsys) -> None:
+    process.set_verbose(False)
+    process.set_idle_timeout(0.01)
+
+    try:
+        rc = process._run(
+            [sys.executable, "-c", "import time; time.sleep(2)"],
+            label="idle command",
+        )
+    finally:
+        process.set_idle_timeout(None)
+
+    captured = capsys.readouterr()
+    assert rc != 0
+    assert "FAILED: terminated after idle timeout" in captured.out

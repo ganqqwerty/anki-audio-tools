@@ -19,7 +19,7 @@ from scripts.dev_tasks.contracts import cmd_config_schema, cmd_contracts_check, 
 from scripts.dev_tasks.coverage import PYTHON_COVERAGE_FAIL_UNDER, cmd_coverage, cmd_info, cmd_sonar
 from scripts.dev_tasks.e2e_parallel import cmd_test_e2e_parallel as _cmd_test_e2e_parallel
 from scripts.dev_tasks.frontend import cmd_build, cmd_build_ui, cmd_test_svelte
-from scripts.dev_tasks.process import _run, _run_capture, set_verbose
+from scripts.dev_tasks.process import _run, _run_capture, set_idle_timeout, set_verbose
 from scripts.dev_tasks.pytest_runner import _run_pytest
 from scripts.dev_tasks.python_env import _anki_bin_dir, _die, _find_anki_python, cmd_link_addon
 from scripts.dev_tasks.quality import format_locale_catalog_report, locale_catalog_violations, _mutmut_fix_stats_prefix_mismatch, _radon_complexity_violations, _radon_maintainability_violations
@@ -383,8 +383,9 @@ _parse_cli_args = parse_cli_args
 
 
 def main() -> None:
-    command, command_args, verbose = parse_cli_args(sys.argv[1:], COMMANDS)
+    command, command_args, verbose, idle_timeout_s = parse_cli_args(sys.argv[1:], COMMANDS)
     set_verbose(verbose)
+    set_idle_timeout(idle_timeout_s)
     if command is None or command in ("help", "--help", "-h"):
         cmd_help()
         raise SystemExit(0)

@@ -13,11 +13,17 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
 _VERBOSE = False
+_IDLE_TIMEOUT_S: float | None = None
 
 
 def set_verbose(verbose: bool) -> None:
     global _VERBOSE
     _VERBOSE = verbose
+
+
+def set_idle_timeout(timeout_s: float | None) -> None:
+    global _IDLE_TIMEOUT_S
+    _IDLE_TIMEOUT_S = timeout_s
 
 
 def is_verbose() -> bool:
@@ -192,7 +198,11 @@ def _run(
     if idle_warning_s is None:
         idle_warning_s = _read_seconds_env("DEV_IDLE_WARNING_SECS", 30.0)
     if idle_timeout_s is None:
-        idle_timeout_s = _read_seconds_env("DEV_IDLE_TIMEOUT_SECS", 300.0)
+        idle_timeout_s = (
+            _IDLE_TIMEOUT_S
+            if _IDLE_TIMEOUT_S is not None
+            else _read_seconds_env("DEV_IDLE_TIMEOUT_SECS", 300.0)
+        )
     terminate_grace_s = _read_seconds_env("DEV_TERMINATE_GRACE_SECS", 5.0)
     rendered_cmd = shlex.join(str(part) for part in cmd)
     if is_verbose():

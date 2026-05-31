@@ -3,8 +3,21 @@
 from __future__ import annotations
 
 import argparse
+import math
 from collections.abc import Callable
 from contextlib import suppress
+
+
+def _idle_timeout_seconds(raw: str) -> float:
+    try:
+        value = float(raw)
+    except ValueError as exc:
+        raise argparse.ArgumentTypeError("must be a number of seconds") from exc
+    if not math.isfinite(value):
+        raise argparse.ArgumentTypeError("must be a finite number of seconds")
+    if value < 0:
+        raise argparse.ArgumentTypeError("must be zero or greater")
+    return value
 
 
 def build_parser(commands: dict[str, tuple[Callable[[], int], str]]) -> argparse.ArgumentParser:
@@ -18,17 +31,29 @@ def build_parser(commands: dict[str, tuple[Callable[[], int], str]]) -> argparse
 
     parser = argparse.ArgumentParser(
         prog="python3 scripts/dev.py",
-        usage="python3 scripts/dev.py [--verbose] <command> [args ...]",
+        usage="python3 scripts/dev.py [--verbose] [--idle-timeout SECONDS] <command> [args ...]",
         description=(
             "First time? Run 'setup' to install dev tools:\n\n"
             "  python3 scripts/dev.py setup\n\n"
             "Default command output is concise. Add --verbose before the command for live tool output:\n\n"
             "  python3 scripts/dev.py --verbose check\n\n"
+            "Tune the no-output subprocess kill threshold with --idle-timeout before the command:\n\n"
+            "  python3 scripts/dev.py --idle-timeout 900 check\n\n"
             + "\n".join(command_help_lines)
         ),
         formatter_class=argparse.RawDescriptionHelpFormatter,
     )
     parser.add_argument("--verbose", action="store_true", help="stream subprocess output live")
+    parser.add_argument(
+        "--idle-timeout",
+        type=_idle_timeout_seconds,
+        metavar="SECONDS",
+        default=None,
+        help=(
+            "terminate subprocesses after SECONDS without output; use 0 to disable "
+            "(default: DEV_IDLE_TIMEOUT_SECS or 300)"
+        ),
+    )
     subparsers = parser.add_subparsers(dest="command")
     for name, (_, desc) in commands.items():
         subparser = subparsers.add_parser(name, help=_escape_help(desc), add_help=False)
@@ -41,7 +66,7 @@ def build_parser(commands: dict[str, tuple[Callable[[], int], str]]) -> argparse
 def parse_cli_args(
     args: list[str],
     commands: dict[str, tuple[Callable[[], int], str]],
-) -> tuple[str | None, list[str], bool]:
+) -> tuple[str | None, list[str], bool, float | None]:
     parser = build_parser(commands)
     with suppress(ImportError):
         import argcomplete
@@ -49,6 +74,10 @@ def parse_cli_args(
         argcomplete.autocomplete(parser)
     namespace = parser.parse_args(args)
     command_args = list(getattr(namespace, "command_args", []))
-    if "--verbose" in command_args:
-        parser.error("unrecognized arguments: --verbose")
-    return namespace.command, command_args, namespace.verbose
+    for global_option in ("--verbose", "--idle-timeout"):
+        if any(
+            argument == global_option or argument.startswith(f"{global_option}=")
+            for argument in command_args
+        ):
+            parser.error(f"unrecognized arguments: {global_option}")
+    return namespace.command, command_args, namespace.verbose, namespace.idle_timeout
