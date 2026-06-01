@@ -29,6 +29,7 @@ import {
 } from "./actions.js";
 import { anyBusy, setCommandButtonLabel, setStatus } from "./control-actions.js";
 import { syncSelectionToolbar } from "./selection-toolbar-state.js";
+import { readVisualizerTargetDurationMs } from "./visualizer-state.js";
 import { t } from "../lib/i18n.js";
 
 export function setPlaybackButtonLabel(visualizer: VisualizerElement, label: string): void {
@@ -99,6 +100,7 @@ export function playbackRequest(ord: number): PlaybackRequest {
     anchorMs: Number(visualizer.dataset.anchorMs || visualizer.dataset.cursorMs || "0"),
     currentProgressMs: currentProgressMs(visualizer),
     cursorMs: Number(visualizer.dataset.cursorMs || "0"),
+    durationMs: readVisualizerTargetDurationMs(visualizer),
     engine: playbackEngineFor(visualizer),
     ord,
     playbackState: playbackStateFor(visualizer),

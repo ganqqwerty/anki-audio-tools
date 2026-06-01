@@ -13,6 +13,7 @@ export interface PlaybackRequestState {
   anchorMs: number;
   currentProgressMs: number | null;
   cursorMs: number;
+  durationMs: number;
   engine: PlaybackEngine;
   ord: number;
   playbackState: PlaybackState;
@@ -34,10 +35,13 @@ export function buildPlaybackRequestForPython(state: PlaybackRequestState): Play
 
   let cursorMs = state.anchorMs;
   const pausedRestart = state.playbackState === "paused" && state.resumeRequiresRestart;
+  const fullCoverSelection = selectionCoversFullDuration(state.region, state.durationMs);
   if (action === "start" && state.region.mode === "selection") {
     cursorMs = pausedRestart
       ? clampMsToRegion(progressOrFallback(state.currentProgressMs, state.cursorMs, cursorMs), state.region)
-      : state.region.startMs;
+      : fullCoverSelection
+        ? clampMsToRegion(progressOrFallback(state.currentProgressMs, state.cursorMs, cursorMs), state.region)
+        : state.region.startMs;
   }
   if (action === "pause") {
     cursorMs = progressOrFallback(state.currentProgressMs, state.cursorMs, cursorMs);
@@ -49,6 +53,9 @@ export function buildPlaybackRequestForPython(state: PlaybackRequestState): Play
       cursorMs = state.region.startMs;
     }
   }
+  const regionMode = fullCoverSelection && cursorMs > state.region.startMs
+    ? "full"
+    : state.region.mode;
 
   return {
     action,
@@ -57,7 +64,7 @@ export function buildPlaybackRequestForPython(state: PlaybackRequestState): Play
     engine: state.engine,
     loop: state.repeat,
     ord: state.ord,
-    regionMode: state.region.mode,
+    regionMode,
   };
 }
 
@@ -75,4 +82,9 @@ export function shouldLoopAtBoundary(nextMs: number, endMs: number, repeat: bool
 
 function progressOrFallback(currentProgressMs: number | null, cursorMs: number, fallbackMs: number): number {
   return Number(currentProgressMs || cursorMs || fallbackMs || 0);
+}
+
+function selectionCoversFullDuration(region: PlaybackRegion, durationMs: number): boolean {
+  const duration = Math.max(0, Number(durationMs) || 0);
+  return region.mode === "selection" && duration > 0 && region.startMs <= 0 && region.endMs >= duration;
 }

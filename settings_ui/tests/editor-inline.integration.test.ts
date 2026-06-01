@@ -189,26 +189,49 @@ describe("editor inline Svelte integration", () => {
     window.__aqeSetVisualizer?.(0, track, 500);
     await Promise.resolve();
     const svg = document.querySelector<SVGSVGElement>('[data-testid="aqe-graph-svg-0"]')!;
+    const plot = document.querySelector<HTMLElement>('[data-testid="aqe-visualizer-plot-0"]')!;
     setGraphBounds(svg);
 
-    svg.dispatchEvent(new WheelEvent("wheel", {
+    plot.dispatchEvent(new WheelEvent("wheel", {
       bubbles: true,
       clientX: graphClientX(svg, 0.5),
       ctrlKey: true,
       deltaY: -100,
     }));
     let state = window.__aqeGraphStateForTest?.(0);
-    expect((state?.viewportEndMs ?? 0) - (state?.viewportStartMs ?? 0)).toBeLessThan(track.durationMs);
+    let span = (state?.viewportEndMs ?? 0) - (state?.viewportStartMs ?? 0);
+    expect(span).toBeLessThan(track.durationMs);
+    expect(span).toBeGreaterThan(track.durationMs * 0.75);
 
-    const beforePanStart = state?.viewportStartMs ?? 0;
-    svg.dispatchEvent(new WheelEvent("wheel", {
+    const beforeShiftPanStart = state?.viewportStartMs ?? 0;
+    plot.dispatchEvent(new WheelEvent("wheel", {
       bubbles: true,
       clientX: graphClientX(svg, 0.5),
       deltaX: 100,
       shiftKey: true,
     }));
     state = window.__aqeGraphStateForTest?.(0);
-    expect(state?.viewportStartMs).toBeGreaterThan(beforePanStart);
+    expect(state?.viewportStartMs).toBeGreaterThan(beforeShiftPanStart);
+
+    const beforePanStart = state?.viewportStartMs ?? 0;
+    plot.dispatchEvent(new WheelEvent("wheel", {
+      bubbles: true,
+      clientX: graphClientX(svg, 0.5),
+      deltaX: -100,
+    }));
+    state = window.__aqeGraphStateForTest?.(0);
+    expect(state?.viewportStartMs).toBeLessThan(beforePanStart);
+
+    const beforeVerticalStart = state?.viewportStartMs ?? 0;
+    plot.dispatchEvent(new WheelEvent("wheel", {
+      bubbles: true,
+      clientX: graphClientX(svg, 0.5),
+      deltaY: 100,
+    }));
+    state = window.__aqeGraphStateForTest?.(0);
+    expect(state?.viewportStartMs).toBe(beforeVerticalStart);
+    span = (state?.viewportEndMs ?? 0) - (state?.viewportStartMs ?? 0);
+    expect(span).toBeGreaterThan(track.durationMs * 0.75);
 
     const visualizer = document.querySelector<HTMLElement>('[data-testid="aqe-graph-0"]')!;
     visualizer.dispatchEvent(new KeyboardEvent("keydown", { bubbles: true, key: "0" }));

@@ -12,6 +12,7 @@ const baseState: PlaybackRequestState = {
   anchorMs: 250,
   currentProgressMs: null,
   cursorMs: 250,
+  durationMs: 1000,
   engine: "html",
   ord: 0,
   playbackState: "stopped",
@@ -44,6 +45,21 @@ describe("playback state", () => {
       endMs: 800,
       loop: true,
       regionMode: "selection",
+    });
+  });
+
+  it("starts full-cover selected playback from the moved cursor as full playback", () => {
+    expect(buildPlaybackRequestForPython({
+      ...baseState,
+      anchorMs: 650,
+      cursorMs: 650,
+      currentProgressMs: 650,
+      region: { startMs: 0, endMs: 1000, mode: "selection" },
+    })).toMatchObject({
+      action: "start",
+      cursorMs: 650,
+      endMs: 1000,
+      regionMode: "full",
     });
   });
 

@@ -115,7 +115,11 @@
 >
   <audio class="aqe-audio-clock" data-testid={`aqe-audio-clock-${target.ord}`} preload="metadata" hidden></audio>
   <ZoomControls {target} />
-  <div class="aqe-visualizer-plot" data-testid={`aqe-visualizer-plot-${target.ord}`}>
+  <div
+    class="aqe-visualizer-plot"
+    data-testid={`aqe-visualizer-plot-${target.ord}`}
+    onwheel={handleGraphWheel}
+  >
     <div class="aqe-selection-region-preview-halo aqe-selection-region-preview-halo-top" aria-hidden="true"></div>
     <div class="aqe-selection-region-preview-halo aqe-selection-region-preview-halo-bottom" aria-hidden="true"></div>
     <svg
@@ -126,7 +130,6 @@
       role="img"
       aria-label={t("editor.graph.image_aria")}
       onpointerdown={(event) => handleVisualizerPointerDown(event, target.ord)}
-      onwheel={handleGraphWheel}
     >
       <defs>
         <clipPath id={plotClipId}>
