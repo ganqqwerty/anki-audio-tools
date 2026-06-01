@@ -22,10 +22,12 @@ from scripts.dev_tasks.frontend import cmd_build, cmd_build_ui, cmd_test_svelte
 from scripts.dev_tasks.process import _run, _run_capture, set_idle_timeout, set_verbose
 from scripts.dev_tasks.pytest_runner import _run_pytest
 from scripts.dev_tasks.python_env import _anki_bin_dir, _die, _find_anki_python, cmd_link_addon
-from scripts.dev_tasks.quality import format_locale_catalog_report, locale_catalog_violations, _mutmut_fix_stats_prefix_mismatch, _radon_complexity_violations, _radon_maintainability_violations
+from scripts.dev_tasks.quality import format_locale_catalog_report, locale_catalog_violations, \
+    _mutmut_fix_stats_prefix_mismatch, _radon_complexity_violations, _radon_maintainability_violations
 from scripts.dev_tasks.quality_tools import cmd_qodana
 from scripts.dev_tasks.repository import cmd_file_lines
 from scripts.dev_tasks.setup import cmd_setup
+
 # isort: on
 
 ADDON_DIR = ROOT / "addon" / "anki_audio_quick_editor"
@@ -36,6 +38,7 @@ _check_post_preflight_groups = _dev_check._check_post_preflight_groups
 _check_worker_count = _dev_check._check_worker_count
 _run_check_steps_parallel = _dev_check._run_check_steps_parallel
 _run_check_steps_sequential = _dev_check._run_check_steps_sequential
+
 
 def _run_test_targets() -> int:
     targets = _COMMAND_ARGS or ["tests/"]
@@ -56,6 +59,7 @@ def cmd_test() -> int:
 
 def cmd_test_anki_api() -> int:
     return _run_pytest("anki_api_contract/", label="Anki API compatibility tests")
+
 
 def cmd_test_e2e() -> int:
     build_rc = cmd_build_ui()
@@ -95,6 +99,7 @@ def cmd_typecheck() -> int:
 def _run_typecheck() -> int:
     anki_python = _find_anki_python()
     return _run([str(anki_python), "-m", "mypy"], label="mypy typecheck")
+
 
 def cmd_arch() -> int:
     anki_python = _find_anki_python()
@@ -297,7 +302,9 @@ def cmd_check() -> int:
     for phase_name, phase_steps in phases:
         runner = _run_check_steps_parallel if phase_name == "parallel" else _run_check_steps_sequential
         failed.extend(runner(phase_steps))
-    ordered_failed = [name for name, _func in [*preflight_steps, *(step for _phase_name, steps in phases for step in steps)] if name in set(failed)]
+    ordered_failed = [name for name, _func in
+                      [*preflight_steps, *(step for _phase_name, steps in phases for step in steps)] if
+                      name in set(failed)]
     print(
         f"[dev] {len(ordered_failed)} check step(s) failed: {', '.join(ordered_failed)}"
         if ordered_failed
@@ -355,13 +362,15 @@ COMMANDS: dict[str, tuple[Callable[[], int], str]] = {
     "security": (cmd_security, "Run bandit security linter"),
     "deps": (cmd_deps, "Check dependencies (deptry)"),
     "qodana": (cmd_qodana, "Run Qodana code quality analysis"),
-    "check": (cmd_check, "Full QC: config-schema + contracts-generate + contracts-check + architecture-report + lint + typecheck + i18n + file-lines + security + deadcode + deps + complexity + qodana + arch + test-anki-api + test + coverage + frontend validate"),
+    "check": (cmd_check,
+              "Full QC: config-schema + contracts-generate + contracts-check + architecture-report + lint + typecheck + i18n + file-lines + security + deadcode + deps + complexity + qodana + arch + test-anki-api + test + coverage + frontend validate"),
     "coverage": (cmd_coverage, f"Run tests with branch coverage report (fail under {PYTHON_COVERAGE_FAIL_UNDER}%)"),
     "sonar": (cmd_sonar, "Optional SonarQube analysis (needs SONAR_TOKEN)"),
     "muttest": (cmd_muttest, "Mutation testing (advisory, opt-in)"),
     "build": (cmd_build, "Build the settings and editor Svelte bundles"),
     "build-ui": (cmd_build_ui, "Build the settings and editor Svelte bundles"),
-    "test-svelte": (cmd_test_svelte, "Build frontend bundles, run ESLint autofix, then validate: svelte-check + ESLint + tsc + Vitest coverage"),
+    "test-svelte": (cmd_test_svelte,
+                    "Build frontend bundles, run ESLint autofix, then validate: svelte-check + ESLint + tsc + Vitest coverage"),
     "config-schema": (cmd_config_schema, "Validate config.json against JSON Schema"),
     "contracts-generate": (cmd_contracts_generate, "Generate Python and TypeScript JSON contracts"),
     "contracts-check": (cmd_contracts_check, "Verify generated JSON contracts are current"),

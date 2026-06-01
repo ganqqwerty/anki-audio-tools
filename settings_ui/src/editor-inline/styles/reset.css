@@ -2,46 +2,46 @@
 .aqe-mount-host *,
 .aqe-mount-host *::before,
 .aqe-mount-host *::after {
-  box-sizing: border-box;
+    box-sizing: border-box;
 }
 
 .aqe-mount-host {
-  --aqe-border-color: var(--border, rgba(128, 128, 128, 0.55));
-  --aqe-reviewer-surface-color: rgba(128, 128, 128, 0.08);
-  --aqe-surface-color: var(--canvas, Canvas);
-  --aqe-surface-elevated-color: var(--canvas-elevated, Canvas);
-  --aqe-text-muted-color: var(--fg-subtle, GrayText);
+    --aqe-border-color: var(--border, rgba(128, 128, 128, 0.55));
+    --aqe-reviewer-surface-color: rgba(128, 128, 128, 0.08);
+    --aqe-surface-color: var(--canvas, Canvas);
+    --aqe-surface-elevated-color: var(--canvas-elevated, Canvas);
+    --aqe-text-muted-color: var(--fg-subtle, GrayText);
 
-  color-scheme: light dark;
-  font: 12px/1.2 -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-  letter-spacing: normal;
-  text-align: left;
-  text-shadow: none;
-  text-transform: none;
-  white-space: normal;
+    color-scheme: light dark;
+    font: 12px/1.2 -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    letter-spacing: normal;
+    text-align: left;
+    text-shadow: none;
+    text-transform: none;
+    white-space: normal;
 }
 
 .aqe-mount-host button,
 .aqe-mount-host input,
 .aqe-mount-host select,
 .aqe-mount-host summary {
-  color: inherit;
-  font: inherit;
-  letter-spacing: normal;
-  line-height: 1.2;
-  margin: 0;
-  text-align: inherit;
-  text-shadow: none;
-  text-transform: none;
+    color: inherit;
+    font: inherit;
+    letter-spacing: normal;
+    line-height: 1.2;
+    margin: 0;
+    text-align: inherit;
+    text-shadow: none;
+    text-transform: none;
 }
 
 .aqe-mount-host button {
-  -webkit-appearance: none;
-  appearance: none;
+    -webkit-appearance: none;
+    appearance: none;
 }
 
 .aqe-mount-host svg {
-  display: block;
-  fill: none;
-  max-width: none;
+    display: block;
+    fill: none;
+    max-width: none;
 }
