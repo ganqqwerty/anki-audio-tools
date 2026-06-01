@@ -43,6 +43,7 @@ describe("editor inline window contract", () => {
       "__aqeSetLearnerVisualizer",
       "__aqeSetPlaybackState",
       "__aqeSetStatus",
+      "__aqeSetTimeViewportForTest",
       "__aqeSetVisualizer",
       "__aqeSetVisualizerStatus",
       "__aqeStopEditorPlayback",

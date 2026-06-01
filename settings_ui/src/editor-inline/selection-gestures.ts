@@ -11,6 +11,7 @@ import type { PlaybackRequest, PlaybackState, VisualizerElement } from "./types.
 import {
   readVisualizerCursorMs,
   readVisualizerTargetDurationMs,
+  readVisualizerTimeViewport,
   setVisualizerResumeRequiresRestart,
 } from "./visualizer-state.js";
 
@@ -71,7 +72,7 @@ export function startCursorDrag(
   const durationMs = readVisualizerTargetDurationMs(visualizer);
   if (!svg || !durationMs) return;
   const startEvent = { clientX: event.clientX };
-  const startMs = cursorMsFromEvent(event, svg, durationMs);
+  const startMs = cursorMsFromEvent(event, svg, durationMs, readVisualizerTimeViewport(visualizer));
   if (previousPlaybackState === "playing") {
     suspendPlaybackForGesture(visualizer, previousPlaybackState, deps);
   }
@@ -85,7 +86,7 @@ export function startCursorDrag(
     if (previousPlaybackState === "paused") {
       setVisualizerResumeRequiresRestart(visualizer, true);
     }
-    const rawReleasedMs = cursorMsFromEvent(upEvent, svg, durationMs);
+    const rawReleasedMs = cursorMsFromEvent(upEvent, svg, durationMs, readVisualizerTimeViewport(visualizer));
     const expandedSelection = clickExpandedSelection(
       startEvent,
       upEvent,
@@ -146,7 +147,7 @@ export function startSelectionGesture(
   const previousPlaybackState = deps.playbackStateFor(visualizer);
   let frozenProgressMs = deps.currentProgressMs(visualizer) ?? readVisualizerCursorMs(visualizer);
   const startEvent = { clientX: event.clientX };
-  const startMs = cursorMsFromEvent(event, svg, durationMs);
+  const startMs = cursorMsFromEvent(event, svg, durationMs, readVisualizerTimeViewport(visualizer));
   let stoppedForDrag = false;
   const stopForDrag = (): void => {
     if (stoppedForDrag || previousPlaybackState !== "playing") return;
@@ -167,7 +168,7 @@ export function startSelectionGesture(
       );
     },
     onPointerMove(moveEvent) {
-      const moveMs = cursorMsFromEvent(moveEvent, svg, durationMs);
+      const moveMs = cursorMsFromEvent(moveEvent, svg, durationMs, readVisualizerTimeViewport(visualizer));
       if (shouldTreatSelectionGestureAsClick(startEvent, moveEvent, startMs, moveMs)) {
         deps.clearSelectionDraft(visualizer);
         return;
@@ -176,7 +177,7 @@ export function startSelectionGesture(
       deps.setSelectionDraft(visualizer, startMs, moveMs);
     },
     onPointerUp(upEvent) {
-      const endMs = cursorMsFromEvent(upEvent, svg, durationMs);
+      const endMs = cursorMsFromEvent(upEvent, svg, durationMs, readVisualizerTimeViewport(visualizer));
       if (shouldTreatSelectionGestureAsClick(startEvent, upEvent, startMs, endMs)) {
         deps.clearSelection(visualizer);
         resumeInterruptedSelectionPlayback(
@@ -229,7 +230,7 @@ export function startSelectionResizeGesture(
     frozenProgressMs = suspendPlaybackForGesture(visualizer, previousPlaybackState, deps);
   };
   const resizeFromEvent = (resizeEvent: PointerEvent): PlaybackRegion | null => {
-    const edgeMs = cursorMsFromEvent(resizeEvent, svg, durationMs);
+    const edgeMs = cursorMsFromEvent(resizeEvent, svg, durationMs, readVisualizerTimeViewport(visualizer));
     const range = resizeSelectionRange(selection, edge, edgeMs, durationMs);
     return range ? { ...range, mode: "selection" } : null;
   };
@@ -309,7 +310,7 @@ function scrubMsFromEvent(
   visualizer: VisualizerElement,
   deps: SelectionGestureDependencies,
 ): number {
-  const rawMs = cursorMsFromEvent(event, svg, durationMs);
+  const rawMs = cursorMsFromEvent(event, svg, durationMs, readVisualizerTimeViewport(visualizer));
   const selection = deps.selectionForVisualizer(visualizer);
   if (selection) {
     return clampMsToRegion(rawMs, selection);

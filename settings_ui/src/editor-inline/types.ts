@@ -304,6 +304,8 @@ export interface GraphStateForTest {
   timecodeFlagPitch: string;
   timecodeFlagTransform: string;
   timecodeFlagVisible: boolean;
+  viewportEndMs: number;
+  viewportStartMs: number;
   xAxisLabels: string[];
 }
 

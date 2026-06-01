@@ -55,6 +55,7 @@ declare global {
     __aqeSetLearnerVisualizer?: ((ord: number, track: ProsodyPayload) => void) | undefined;
     __aqeSetPlaybackState?: ((ord: number, state: PlaybackState, cursorMs: number) => void) | undefined;
     __aqeSetStatus?: ((message: EditorStatusMessage, kind?: string) => void) | undefined;
+    __aqeSetTimeViewportForTest?: ((ord: number, startMs: number, endMs: number) => boolean) | undefined;
     __aqeSetVisualizer?: ((ord: number, track: ProsodyPayload, cursorMs: number) => void) | undefined;
     __aqeSetVisualizerStatus?: ((ord: number, message: EditorStatusMessage, kind?: string) => void) | undefined;
     __aqeStopEditorPlayback?: ((ord: number) => boolean) | undefined;
