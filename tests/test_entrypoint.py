@@ -51,6 +51,9 @@ def test_entrypoint_registers_hooks_and_config_action() -> None:
     aqt.gui_hooks.addon_manager_did_install_addon.append.assert_called_once_with(
         anki_audio_quick_editor._restore_install_logging
     )
+    aqt.gui_hooks.addons_dialog_will_delete_addons.append.assert_called_once_with(
+        anki_audio_quick_editor._release_delete_blocking_files
+    )
     aqt.mw.addonManager.setConfigAction.assert_called_once()
 
 

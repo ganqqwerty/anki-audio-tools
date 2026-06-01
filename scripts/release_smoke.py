@@ -26,6 +26,7 @@ def _install_anki_stubs() -> None:
         browser_will_show_context_menu=[],
         addon_manager_will_install_addon=[],
         addon_manager_did_install_addon=[],
+        addons_dialog_will_delete_addons=[],
     )
     addon_manager = types.SimpleNamespace(
         addonFromModule=lambda _module: "anki_audio_quick_editor",

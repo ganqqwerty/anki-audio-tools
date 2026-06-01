@@ -256,6 +256,7 @@ _GUI_HOOK_NAMES = (
     "main_window_did_init",
     "addon_manager_will_install_addon",
     "addon_manager_did_install_addon",
+    "addons_dialog_will_delete_addons",
     "editor_did_init",
     "editor_will_load_note",
     "card_review_webview_did_init",

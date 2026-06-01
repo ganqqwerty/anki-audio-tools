@@ -149,6 +149,19 @@ def _release_install_blocking_files(manager: object, module: str) -> None:
     """Release open files before Anki deletes this add-on during install."""
     if not _is_this_addon(module, manager):
         return
+    _release_blocking_files()
+
+
+def _release_delete_blocking_files(dialog: object, ids: list[str]) -> None:
+    """Release open files before Anki deletes this add-on from the Add-ons dialog."""
+    manager = getattr(dialog, "mgr", mw.addonManager)
+    if not any(_is_this_addon(module, manager) for module in ids):
+        return
+    _release_blocking_files()
+
+
+def _release_blocking_files() -> None:
+    """Release files that would block add-on replacement or removal on Windows."""
     _release_file_logging()
     release_runtime_files()
 
@@ -322,6 +335,7 @@ gui_hooks.main_window_did_init.append(_with_hook_boundary("setup_reviewer_integr
 gui_hooks.main_window_did_init.append(_with_hook_boundary("setup_menu", _setup_menu))
 gui_hooks.addon_manager_will_install_addon.append(_release_install_blocking_files)
 gui_hooks.addon_manager_did_install_addon.append(_restore_install_logging)
+gui_hooks.addons_dialog_will_delete_addons.append(_release_delete_blocking_files)
 mw.addonManager.setConfigAction(__name__, _open_settings)
 
 logger.info("audio quick editor add-on loaded")
