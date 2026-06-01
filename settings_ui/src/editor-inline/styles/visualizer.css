@@ -22,7 +22,7 @@
 
 .aqe-visualizer-svg {
   border: 1px solid;
-  border-color: ButtonBorder;
+  border-color: var(--aqe-border-color);
   border-radius: 8px;
   color: inherit;
   display: block;

@@ -190,11 +190,21 @@ def _prepare_reviewer_note(
 
 def test_reviewer_audio_editor_answer_workflow(anki_mw, ffmpeg_config) -> None:
     hostile_css = """
+    .card div {
+      width: 100%;
+      justify-content: space-between;
+      border-color: transparent;
+    }
     .card button {
       margin: 20px;
       padding: 24px;
       border-width: 8px;
       text-transform: uppercase;
+    }
+    .card .aqe-split-menu-button {
+      min-width: 36px;
+      padding-left: 10px;
+      padding-right: 10px;
     }
     .card svg {
       transform: scale(2);
@@ -222,16 +232,51 @@ def test_reviewer_audio_editor_answer_workflow(anki_mw, ffmpeg_config) -> None:
         reviewer.web,
         f"""
         (() => {{
+          const controls = document.querySelector('.aqe-controls[data-aqe-field-ord="{field_ord}"]');
           const button = document.querySelector({(_button_selector('aqe:play', field_ord))!r});
+          const splitMenu = document.querySelector('[data-testid="aqe-split-{field_ord}-play-menu"]');
           const icon = button?.querySelector('svg, .aqe-button-icon');
-          if (!button) return null;
+          if (!controls || !button || !splitMenu) return null;
+          const controlsStyle = getComputedStyle(controls);
           const buttonStyle = getComputedStyle(button);
+          const splitMenuStyle = getComputedStyle(splitMenu);
           const iconStyle = icon ? getComputedStyle(icon) : null;
+          const host = controls.closest('.aqe-mount-host');
+          const hostClone = host ? host.cloneNode(true) : null;
+          let naturalControlsWidth = controls.getBoundingClientRect().width;
+          if (hostClone instanceof HTMLElement) {{
+            hostClone.style.left = '-10000px';
+            hostClone.style.maxWidth = 'none';
+            hostClone.style.position = 'absolute';
+            hostClone.style.visibility = 'hidden';
+            hostClone.style.width = 'auto';
+            document.body.appendChild(hostClone);
+            naturalControlsWidth = hostClone.querySelector('.aqe-controls').getBoundingClientRect().width;
+            hostClone.remove();
+          }}
+          const toolbarItems = Array.from(controls.children)
+            .filter((node) => !node.matches('.aqe-help, .aqe-visualizer, .aqe-status-row'));
+          const maxRowGap = toolbarItems.reduce((maxGap, node, index) => {{
+            const next = toolbarItems[index + 1];
+            if (!next) return maxGap;
+            const rect = node.getBoundingClientRect();
+            const nextRect = next.getBoundingClientRect();
+            if (Math.abs(nextRect.top - rect.top) > 4) return maxGap;
+            return Math.max(maxGap, nextRect.left - rect.right);
+          }}, 0);
           return {{
+            controlsBorderColor: controlsStyle.borderTopColor,
+            controlsJustifyContent: controlsStyle.justifyContent,
+            controlsWidth: controls.getBoundingClientRect().width,
+            maxRowGap,
+            naturalControlsWidth,
             borderTopWidth: buttonStyle.borderTopWidth,
             marginLeft: buttonStyle.marginLeft,
             paddingLeft: buttonStyle.paddingLeft,
+            splitMenuPaddingLeft: splitMenuStyle.paddingLeft,
+            splitMenuWidth: splitMenu.getBoundingClientRect().width,
             textTransform: buttonStyle.textTransform,
+            viewportWidth: document.documentElement.clientWidth,
             iconTransform: iconStyle ? iconStyle.transform : null,
           }};
         }})()
@@ -241,8 +286,14 @@ def test_reviewer_audio_editor_answer_workflow(anki_mw, ffmpeg_config) -> None:
     )
 
     assert style["borderTopWidth"] == "1px"
+    assert style["controlsBorderColor"] not in {"rgba(0, 0, 0, 0)", "transparent"}
+    assert style["controlsJustifyContent"] == "flex-start"
+    assert style["controlsWidth"] <= style["naturalControlsWidth"] + 4
+    assert style["maxRowGap"] <= 8
     assert style["marginLeft"] == "0px"
     assert style["paddingLeft"] != "24px"
+    assert style["splitMenuPaddingLeft"] == "0px"
+    assert style["splitMenuWidth"] <= 18
     assert style["textTransform"] != "uppercase"
     if style["iconTransform"] is not None:
         assert style["iconTransform"] in {"none", "matrix(1, 0, 0, 1, 0, 0)"}

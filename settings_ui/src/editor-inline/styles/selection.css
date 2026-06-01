@@ -98,9 +98,9 @@
 
 .aqe-selection-toolbar {
   align-items: center;
-  background: Canvas;
+  background: var(--aqe-surface-color);
   border: 1px solid;
-  border-color: ButtonBorder;
+  border-color: var(--aqe-border-color);
   border-radius: 8px;
   box-shadow: 0 3px 10px rgb(0 0 0 / 20%);
   box-sizing: border-box;
@@ -174,7 +174,7 @@
 }
 
 .aqe-selection-toolbar-dot-ring {
-  fill: Canvas;
+  fill: var(--aqe-surface-color);
   stroke: currentColor;
   stroke-width: 2.25;
 }

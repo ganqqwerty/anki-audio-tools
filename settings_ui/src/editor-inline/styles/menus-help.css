@@ -15,9 +15,9 @@
 }
 
 .aqe-menu-items {
-  background: Canvas;
+  background: var(--aqe-surface-color);
   border: 1px solid;
-  border-color: ButtonBorder;
+  border-color: var(--aqe-border-color);
   border-radius: 7px;
   box-shadow: 0 8px 18px rgb(0 0 0 / 18%);
   display: grid;
@@ -75,7 +75,7 @@
 
 .aqe-help-body {
   border-top: 1px solid;
-  border-color: ButtonBorder;
+  border-color: var(--aqe-border-color);
   display: grid;
   gap: 10px;
   margin-top: 6px;
@@ -106,7 +106,7 @@
 
 .aqe-help-list kbd {
   border: 1px solid;
-  border-color: ButtonBorder;
+  border-color: var(--aqe-border-color);
   border-radius: 4px;
   font: inherit;
   padding: 0 4px;
@@ -128,7 +128,7 @@
 .aqe-help-command {
   align-items: center;
   border: 1px solid;
-  border-color: ButtonBorder;
+  border-color: var(--aqe-border-color);
   border-radius: 7px;
   display: inline-flex;
   gap: 5px;
@@ -167,7 +167,7 @@
 .aqe-help-link {
   align-items: center;
   border: 1px solid;
-  border-color: ButtonBorder;
+  border-color: var(--aqe-border-color);
   border-radius: 7px;
   color: inherit;
   display: inline-flex;
@@ -187,6 +187,6 @@
 }
 
 .aqe-help-note {
-  border-left: 3px solid ButtonBorder;
+  border-left: 3px solid var(--aqe-border-color);
   padding-left: 8px;
 }

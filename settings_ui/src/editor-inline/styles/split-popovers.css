@@ -29,10 +29,23 @@
   padding-right: 0;
 }
 
+.aqe-mount-host .aqe-button.aqe-split-menu-button {
+  flex: 0 0 16px;
+  min-width: 16px;
+  padding-left: 0;
+  padding-right: 0;
+  width: 16px;
+}
+
+.aqe-mount-host .aqe-button.aqe-split-menu-button .aqe-button-icon svg {
+  height: 12px;
+  width: 12px;
+}
+
 .aqe-split-popover {
-  background: Canvas;
+  background: var(--aqe-surface-color);
   border: 1px solid;
-  border-color: ButtonBorder;
+  border-color: var(--aqe-border-color);
   border-radius: 8px;
   box-sizing: border-box;
   box-shadow: 0 10px 24px rgb(0 0 0 / 22%);
@@ -47,13 +60,13 @@
 }
 
 .aqe-split-popover-arrow {
-  color: Canvas;
+  color: var(--aqe-surface-color);
   display: inline-flex;
 }
 
 .aqe-split-popover-arrow svg {
   display: block;
-  filter: drop-shadow(0 0 1px ButtonBorder);
+  filter: drop-shadow(0 0 1px var(--aqe-border-color));
 }
 
 .aqe-graph-split-popover {
@@ -99,11 +112,11 @@
 }
 
 .aqe-split-default-save-saved {
-  box-shadow: inset 0 0 0 1px ButtonBorder;
+  box-shadow: inset 0 0 0 1px var(--aqe-border-color);
 }
 
 .aqe-split-popover-description {
-  color: GrayText;
+  color: var(--aqe-text-muted-color);
   font-size: 11px;
   line-height: 1.4;
   margin: 0;
@@ -119,7 +132,7 @@
 .aqe-split-value-input {
   background: Field;
   border: 1px solid;
-  border-color: ButtonBorder;
+  border-color: var(--aqe-border-color);
   border-radius: 5px;
   box-sizing: border-box;
   color: FieldText;
@@ -154,11 +167,11 @@
 }
 
 .aqe-split-preset[aria-pressed="true"] {
-  box-shadow: inset 0 0 0 1px ButtonBorder;
+  box-shadow: inset 0 0 0 1px var(--aqe-border-color);
 }
 
 .aqe-split-preset[aria-checked="true"] {
-  box-shadow: inset 0 0 0 1px ButtonBorder;
+  box-shadow: inset 0 0 0 1px var(--aqe-border-color);
 }
 
 .aqe-split-extra-field {
@@ -173,8 +186,8 @@
 }
 
 .aqe-split-extra-field select {
-  background: var(--canvas-elevated, Field);
-  border: 1px solid var(--border, ButtonBorder);
+  background: var(--aqe-surface-elevated-color, Field);
+  border: 1px solid var(--aqe-border-color);
   border-radius: 6px;
   color: var(--fg, FieldText);
   font: inherit;
@@ -202,13 +215,13 @@
 }
 
 .aqe-graph-option-note {
-  color: GrayText;
+  color: var(--aqe-text-muted-color);
   font-size: 11px;
   line-height: 1.35;
 }
 
 .aqe-graph-option-value {
-  color: GrayText;
+  color: var(--aqe-text-muted-color);
   font-size: 11px;
   justify-self: end;
 }
