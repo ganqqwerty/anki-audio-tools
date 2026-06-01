@@ -33,8 +33,11 @@ export function buildPlaybackRequestForPython(state: PlaybackRequestState): Play
   }
 
   let cursorMs = state.anchorMs;
+  const pausedRestart = state.playbackState === "paused" && state.resumeRequiresRestart;
   if (action === "start" && state.region.mode === "selection") {
-    cursorMs = state.region.startMs;
+    cursorMs = pausedRestart
+      ? clampMsToRegion(progressOrFallback(state.currentProgressMs, state.cursorMs, cursorMs), state.region)
+      : state.region.startMs;
   }
   if (action === "pause") {
     cursorMs = progressOrFallback(state.currentProgressMs, state.cursorMs, cursorMs);

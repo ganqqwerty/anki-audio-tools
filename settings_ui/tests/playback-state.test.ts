@@ -81,6 +81,24 @@ describe("playback state", () => {
     })).toMatchObject({ action: "start", cursorMs: 400 });
   });
 
+  it("starts a paused selected-region restart from the repositioned cursor", () => {
+    expect(buildPlaybackRequestForPython({
+      ...baseState,
+      anchorMs: 650,
+      cursorMs: 650,
+      playbackState: "paused",
+      region: { startMs: 400, endMs: 800, mode: "selection" },
+      repeat: true,
+      resumeRequiresRestart: true,
+    })).toMatchObject({
+      action: "start",
+      cursorMs: 650,
+      endMs: 800,
+      loop: true,
+      regionMode: "selection",
+    });
+  });
+
   it("keeps small completion and loop decisions pure", () => {
     const region = { startMs: 400, endMs: 800, mode: "selection" as const };
 
