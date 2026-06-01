@@ -1,4 +1,5 @@
 import type { PlaybackRegion } from "./playback-state.js";
+import { draftSelectionRegion, selectionRegion } from "./selection-state.js";
 import {
   PLOT,
   drawLabels,
@@ -11,7 +12,14 @@ import {
   pitchHzAtMs,
   xForMs,
 } from "./plot.js";
+import { msVisibleInViewport } from "./time-viewport.js";
 import type { NormalizedProsodyTrack, VisualizerElement } from "./types.js";
+import {
+  readVisualizerSelectionState,
+  readVisualizerTargetDurationMs,
+  readVisualizerTimeViewport,
+  resetVisualizerTimeViewport,
+} from "./visualizer-state.js";
 
 type CursorRenderCache = NonNullable<VisualizerElement["__aqeCursorRenderCache"]>;
 
@@ -38,6 +46,7 @@ export function renderGraphRequested(visualizer: VisualizerElement): void {
   visualizer.dataset.playbackStartMs = "0";
   visualizer.dataset.playbackEndMs = "0";
   visualizer.dataset.playbackRegionMode = "full";
+  resetVisualizerTimeViewport(visualizer, 0);
   delete visualizer.__aqeCursorPaintedAtMs;
   delete visualizer.__aqeCursorTextPaintedAtMs;
   delete visualizer.__aqeLearnerTrack;
@@ -57,6 +66,7 @@ export function renderVisualizerTrack(visualizer: VisualizerElement, track: Norm
   visualizer.dataset.sourceFilename = track.sourceFilename || "";
   delete visualizer.__aqeLearnerTrack;
   visualizer.__aqeTrack = track;
+  resetVisualizerTimeViewport(visualizer, track.durationMs || 0);
   renderProsodyTracks(visualizer);
 }
 
@@ -107,8 +117,24 @@ export function renderSelection(
     clearSelectionOverlayGeometry(visualizer);
     return;
   }
-  const startX = xForMs(activeSelection.startMs, durationMs);
-  const endX = xForMs(activeSelection.endMs, durationMs);
+  const viewport = readVisualizerTimeViewport(visualizer);
+  const visibleStartMs = Math.max(activeSelection.startMs, viewport.startMs);
+  const visibleEndMs = Math.min(activeSelection.endMs, viewport.endMs);
+  if (visibleEndMs < visibleStartMs) {
+    band.setAttribute("width", "0");
+    band.setAttribute("visibility", "hidden");
+    band.classList.remove("aqe-selection-draft");
+    startEdge.setAttribute("visibility", "hidden");
+    endEdge.setAttribute("visibility", "hidden");
+    startHandle?.setAttribute("visibility", "hidden");
+    endHandle?.setAttribute("visibility", "hidden");
+    startGrip?.setAttribute("visibility", "hidden");
+    endGrip?.setAttribute("visibility", "hidden");
+    clearSelectionOverlayGeometry(visualizer);
+    return;
+  }
+  const startX = xForMs(visibleStartMs, durationMs, viewport);
+  const endX = xForMs(visibleEndMs, durationMs, viewport);
   const plotTop = PLOT.top;
   const plotBottom = PLOT.height - PLOT.bottom;
   const plotHeight = plotBottom - plotTop;
@@ -174,7 +200,9 @@ export function startPlaybackCursorTransition(
   const nodes = cursorRenderCache(visualizer);
   if (!nodes.cssCursor || !durationMs || endMs <= startMs) return;
   renderCursorProjection(visualizer, startMs, durationMs, { geometry: true, text: true });
-  const endX = cssXForViewBoxX(visualizer, xForMs(endMs, durationMs));
+  const viewport = readVisualizerTimeViewport(visualizer);
+  if (!msVisibleInViewport(startMs, viewport) || !msVisibleInViewport(endMs, viewport)) return;
+  const endX = cssXForViewBoxX(visualizer, xForMs(endMs, durationMs, viewport));
   nodes.cssCursor.style.transition = "none";
   void nodes.cssCursor.offsetWidth;
   nodes.cssCursor.style.transition = `transform ${Math.max(0, endMs - startMs).toFixed(0)}ms linear`;
@@ -193,9 +221,10 @@ function renderCursorProjection(
   options: { geometry: boolean; text: boolean },
 ): void {
   const nodes = cursorRenderCache(visualizer);
-  const x = xForMs(ms, durationMs);
+  const viewport = readVisualizerTimeViewport(visualizer);
+  const x = xForMs(ms, durationMs, viewport);
   if (options.geometry) {
-    renderCssCursorGeometry(visualizer, nodes, x);
+    renderCssCursorGeometry(visualizer, nodes, x, ms);
   }
   if (options.text) {
     const currentText = formatTime(ms, durationMs);
@@ -244,32 +273,45 @@ export function graphLogContext(
   };
 }
 
+export function renderCurrentSelectionFromState(visualizer: VisualizerElement): void {
+  const selectionState = readVisualizerSelectionState(visualizer);
+  const durationMs = readVisualizerTargetDurationMs(visualizer);
+  renderSelection(
+    visualizer,
+    selectionRegion(selectionState, durationMs),
+    draftSelectionRegion(selectionState, durationMs),
+  );
+}
+
 function clearText(root: VisualizerElement, selector: string): void {
   const node = root.querySelector<HTMLElement | SVGElement>(selector);
   if (node) node.textContent = "";
 }
 
-function renderProsodyTracks(visualizer: VisualizerElement): void {
+export function renderProsodyTracks(visualizer: VisualizerElement): void {
   const target = visualizer.__aqeTrack;
   if (!target) return;
   const learner = visualizer.__aqeLearnerTrack;
   const durationMs = Math.max(target.durationMs || 0, learner?.durationMs || 0);
+  const viewport = readVisualizerTimeViewport(visualizer);
   const pitchRange = combinedPitchRange(target, learner);
   visualizer.dataset.durationMs = String(durationMs);
   visualizer.dataset.targetDurationMs = String(target.durationMs || 0);
   visualizer.dataset.learnerDurationMs = String(learner?.durationMs || 0);
   const intensity = visualizer.querySelector<SVGPathElement>(".aqe-intensity");
-  if (intensity) intensity.setAttribute("d", pathForIntensity(target.points, durationMs));
+  if (intensity) intensity.setAttribute("d", pathForIntensity(target.points, durationMs, viewport));
   drawPitch(visualizer, target, {
     durationMs,
     pitchMaxHz: pitchRange.maxHz,
     pitchMinHz: pitchRange.minHz,
+    viewport,
   });
   if (learner) {
     drawLearnerPitch(visualizer, learner, {
       durationMs,
       pitchMaxHz: pitchRange.maxHz,
       pitchMinHz: pitchRange.minHz,
+      viewport,
     });
   } else {
     clearLearnerVisualizerTrack(visualizer);
@@ -278,7 +320,7 @@ function renderProsodyTracks(visualizer: VisualizerElement): void {
     pitchMaxHz: pitchRange.maxHz,
     pitchMinHz: pitchRange.minHz,
   });
-  drawXAxis(visualizer, durationMs);
+  drawXAxis(visualizer, durationMs, viewport);
 }
 
 function combinedPitchRange(
@@ -390,10 +432,21 @@ function cursorRenderCache(visualizer: VisualizerElement): CursorRenderCache {
   return cache;
 }
 
-function renderCssCursorGeometry(visualizer: VisualizerElement, nodes: CursorRenderCache, cursorX: number): void {
+function renderCssCursorGeometry(
+  visualizer: VisualizerElement,
+  nodes: CursorRenderCache,
+  cursorX: number,
+  ms?: number,
+): void {
+  const viewport = readVisualizerTimeViewport(visualizer);
   const scale = cssScaleFor(visualizer);
   const cursor = nodes.cssCursor;
   if (!cursor) return;
+  if (typeof ms === "number" && !msVisibleInViewport(ms, viewport)) {
+    cursor.style.display = "none";
+    cursor.style.transition = "none";
+    return;
+  }
   cursor.style.display = "block";
   cursor.style.transition = "none";
   cursor.style.transform = `translate3d(${cssXForViewBoxX(visualizer, cursorX).toFixed(2)}px, 0, 0)`;
