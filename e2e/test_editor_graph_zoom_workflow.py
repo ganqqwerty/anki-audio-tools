@@ -47,6 +47,39 @@ def test_editor_graph_horizontal_zoom_controls_preserve_time_selection(
         )
         assert zoomed["viewportEndMs"] - zoomed["viewportStartMs"] < zoomed["durationMs"]
 
+        scrolled = wait_for_js_condition(
+            editor.web,
+            """
+            (() => {
+              const scrollbar = document.querySelector('[data-testid="aqe-time-scrollbar-0"]');
+              const scroller = document.querySelector('[data-testid="aqe-time-scrollbar-scroll-0"]');
+              if (!scrollbar || !scroller || scrollbar.hidden) return null;
+              scroller.scrollLeft = scroller.scrollWidth - scroller.clientWidth;
+              scroller.dispatchEvent(new Event('scroll'));
+              return window.__aqeGraphStateForTest?.(0) || null;
+            })()
+            """,
+            lambda value: value is not None
+            and value["viewportStartMs"] > zoomed["viewportStartMs"]
+            and value["viewportEndMs"] == value["durationMs"],
+            timeout=5.0,
+        )
+        assert scrolled["viewportStartMs"] > zoomed["viewportStartMs"]
+
+        wait_for_js_condition(
+            editor.web,
+            """
+            (() => {
+              document.querySelector('[data-testid="aqe-zoom-fit-0"]')?.click();
+              return window.__aqeGraphStateForTest?.(0) || null;
+            })()
+            """,
+            lambda value: value is not None
+            and value["viewportStartMs"] == 0
+            and value["viewportEndMs"] == value["durationMs"],
+            timeout=5.0,
+        )
+
         selected_zoom = wait_for_js_condition(
             editor.web,
             """

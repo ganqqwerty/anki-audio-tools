@@ -41,6 +41,32 @@
   position: relative;
 }
 
+.aqe-time-scrollbar {
+  margin-top: 6px;
+  width: 100%;
+}
+
+.aqe-time-scrollbar[hidden] {
+  display: none;
+}
+
+.aqe-time-scrollbar-scroll {
+  height: 14px;
+  max-width: 100%;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scrollbar-width: thin;
+}
+
+.aqe-time-scrollbar-scroll:focus {
+  outline: 2px solid Highlight;
+  outline-offset: 2px;
+}
+
+.aqe-time-scrollbar-spacer {
+  height: 1px;
+}
+
 .aqe-visualizer-svg {
   border: 1px solid;
   border-color: var(--aqe-border-color);

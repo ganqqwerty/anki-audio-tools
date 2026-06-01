@@ -15,6 +15,7 @@
   import { syncRecordingControls } from "./recording-actions.js";
   import { handleVisualizerKeyDown } from "./region-delete.js";
   import SelectionToolbar from "./SelectionToolbar.svelte";
+  import TimeViewportScroller from "./TimeViewportScroller.svelte";
   import type { FieldTarget } from "./types.js";
   import { handleVisualizerWheelZoom, handleVisualizerZoomKeyDown } from "./zoom-actions.js";
   import ZoomControls from "./ZoomControls.svelte";
@@ -214,5 +215,6 @@
     </div>
     <SelectionToolbar {target} />
   </div>
+  <TimeViewportScroller {target} />
   <span class="aqe-cursor-label" data-testid={`aqe-progress-label-${target.ord}`}>0 ms</span>
 </div>

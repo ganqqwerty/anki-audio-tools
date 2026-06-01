@@ -216,6 +216,32 @@ describe("editor inline Svelte integration", () => {
     expect(state?.viewportEndMs).toBe(track.durationMs);
   });
 
+  it("scrolls the visible time viewport with a horizontal scrollbar", async () => {
+    initializeEditorRuntime({ audioFieldIndices: [0] });
+    scan({ audioFieldIndices: [0] });
+    window.__aqeSetVisualizer?.(0, track, 500);
+    await Promise.resolve();
+    const scrollbar = document.querySelector<HTMLElement>('[data-testid="aqe-time-scrollbar-0"]')!;
+    const scrollport = document.querySelector<HTMLDivElement>('[data-testid="aqe-time-scrollbar-scroll-0"]')!;
+    Object.defineProperty(scrollport, "clientWidth", { configurable: true, value: 200 });
+
+    expect(scrollbar.hidden).toBe(true);
+
+    document.querySelector<HTMLButtonElement>('[data-testid="aqe-zoom-in-0"]')?.click();
+    await Promise.resolve();
+    await Promise.resolve();
+    expect(scrollbar.hidden).toBe(false);
+    const beforeScroll = window.__aqeGraphStateForTest?.(0);
+    expect(scrollport.querySelector<HTMLElement>(".aqe-time-scrollbar-spacer")?.style.width).toBe("200%");
+
+    scrollport.scrollLeft = 200;
+    scrollport.dispatchEvent(new Event("scroll"));
+
+    const afterScroll = window.__aqeGraphStateForTest?.(0);
+    expect(afterScroll?.viewportStartMs).toBeGreaterThan(beforeScroll?.viewportStartMs ?? 0);
+    expect(afterScroll?.viewportEndMs).toBe(track.durationMs);
+  });
+
   it("resets zoom to fit when a graph is redrawn for a new track", async () => {
     initializeEditorRuntime({ audioFieldIndices: [0] });
     scan({ audioFieldIndices: [0] });
