@@ -164,6 +164,22 @@ describe("editor inline visualizer renderer", () => {
     expect(zoomedPath).toContain("L 610.00 73.60");
   });
 
+  it("syncs the plot clip and x-axis to the rendered SVG width", () => {
+    const visualizer = mountVisualizer(voicedTrack);
+    const svg = visualizer.querySelector<SVGSVGElement>(".aqe-visualizer-svg")!;
+    setSvgBounds(svg, 1240);
+
+    renderVisualizerTrack(visualizer, voicedTrack);
+
+    const intensity = visualizer.querySelector<SVGPathElement>(".aqe-intensity")!;
+    const clipRect = visualizer.querySelector<SVGRectElement>("clipPath > rect")!;
+    const lastTick = Array.from(visualizer.querySelectorAll<SVGLineElement>(".aqe-x-tick")).at(-1)!;
+    expect(svg.getAttribute("viewBox")).toBe("0 0 1240 150");
+    expect(clipRect.getAttribute("width")).toBe("1186");
+    expect(intensity.getAttribute("d")).toContain("L 1230.00 116.00 Z");
+    expect(lastTick.getAttribute("x1")).toBe("1230.00");
+  });
+
   it("clips selection rendering to the visible viewport while preserving selected milliseconds", () => {
     const visualizer = mountVisualizer(voicedTrack);
     visualizer.dataset.targetDurationMs = "1000";
@@ -194,7 +210,17 @@ function mountVisualizer(track: NormalizedProsodyTrack): VisualizerElement {
   document.body.innerHTML = `
     <div class="aqe-visualizer" data-duration-ms="${track.durationMs}" data-target-duration-ms="${track.durationMs}">
       <div class="aqe-visualizer-plot">
-        <svg class="aqe-visualizer-svg">
+        <svg class="aqe-visualizer-svg" viewBox="0 0 ${PLOT.width} ${PLOT.height}">
+          <defs>
+            <clipPath>
+              <rect
+                x="${PLOT.left}"
+                y="${PLOT.top}"
+                width="${PLOT.width - PLOT.left - PLOT.right}"
+                height="${PLOT.height - PLOT.top - PLOT.bottom}"
+              ></rect>
+            </clipPath>
+          </defs>
           <rect class="aqe-selection" x="${PLOT.left}" y="${PLOT.top}" width="0" height="${PLOT.height - PLOT.top - PLOT.bottom}" visibility="hidden"></rect>
           <path class="aqe-intensity"></path>
           <g class="aqe-pitch"></g>
@@ -225,4 +251,18 @@ function mountVisualizer(track: NormalizedProsodyTrack): VisualizerElement {
   if (!visualizer) throw new Error("visualizer fixture did not mount");
   visualizer.__aqeTrack = track;
   return visualizer;
+}
+
+function setSvgBounds(svg: SVGSVGElement, width: number): void {
+  svg.getBoundingClientRect = () => ({
+    bottom: PLOT.height,
+    height: PLOT.height,
+    left: 0,
+    right: width,
+    top: 0,
+    width,
+    x: 0,
+    y: 0,
+    toJSON: () => ({}),
+  });
 }

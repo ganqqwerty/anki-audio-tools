@@ -275,7 +275,18 @@ function syncVisualizerViewBox(visualizer: VisualizerElement): PlotGeometry {
   const width = Math.max(PLOT.width, Math.round(rectWidth));
   const viewBox = `0 0 ${width} ${PLOT.height}`;
   if (svg.getAttribute("viewBox") !== viewBox) svg.setAttribute("viewBox", viewBox);
-  return plotGeometryForSvg(svg);
+  const plot = plotGeometryForSvg(svg);
+  syncPlotClipPath(svg, plot);
+  return plot;
+}
+
+function syncPlotClipPath(svg: SVGSVGElement, plot: PlotGeometry): void {
+  const clip = svg.querySelector<SVGRectElement>("clipPath > rect");
+  if (!clip) return;
+  clip.setAttribute("x", String(plot.left));
+  clip.setAttribute("y", String(plot.top));
+  clip.setAttribute("width", String(plot.width - plot.left - plot.right));
+  clip.setAttribute("height", String(plot.height - plot.top - plot.bottom));
 }
 
 function cursorRenderCache(visualizer: VisualizerElement): CursorRenderCache {

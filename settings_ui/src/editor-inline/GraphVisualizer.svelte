@@ -17,6 +17,7 @@
   import SelectionToolbar from "./SelectionToolbar.svelte";
   import TimeViewportScroller from "./TimeViewportScroller.svelte";
   import type { FieldTarget } from "./types.js";
+  import { redrawVisualizerForCurrentViewport } from "./viewport-actions.js";
   import { handleVisualizerWheelZoom, handleVisualizerZoomKeyDown } from "./zoom-actions.js";
   import ZoomControls from "./ZoomControls.svelte";
 
@@ -43,9 +44,28 @@
     if (visualizer) handleVisualizerWheelZoom(event, visualizer);
   }
 
+  function installGraphLayoutObserver(visualizer: HTMLElement): () => void {
+    const svg = visualizer.querySelector<SVGSVGElement>(".aqe-visualizer-svg");
+    if (!svg) return () => undefined;
+    let lastWidth = 0;
+    const sync = () => {
+      const width = Math.round(Number(svg.getBoundingClientRect().width) || 0);
+      if (!width || width === lastWidth) return;
+      lastWidth = width;
+      redrawVisualizerForCurrentViewport(visualizer);
+    };
+    const observer = typeof ResizeObserver === "function" ? new ResizeObserver(sync) : null;
+    observer?.observe(svg);
+    sync();
+    return () => {
+      observer?.disconnect();
+    };
+  }
+
   onMount(() => {
     const visualizer = visualizerForOrd(target.ord);
     if (!visualizer) return;
+    const stopGraphLayoutObserver = installGraphLayoutObserver(visualizer);
     resetAudioClockState(visualizer);
     initializePlaybackRegionState(visualizer);
     installAudioClockHandlers(visualizer);
@@ -53,6 +73,7 @@
     configureAudioClock(visualizer, target.sourceFilename || "");
     syncRecordingControls(target.ord);
     notifyPostEditPlaybackReady(target.ord, target.sourceFilename || "");
+    return stopGraphLayoutObserver;
   });
 </script>
 
