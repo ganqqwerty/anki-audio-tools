@@ -94,6 +94,38 @@ def test_frontend_error_payload_records_stack_for_support_report(
     assert incident["traceback"] == "Error: frontend exploded\n    at SettingsApp"
 
 
+def test_settings_open_url_opens_trusted_external_url() -> None:
+    dialog = _make_dialog()
+    _, eval_fn = _capture_eval()
+    url = "https://ganqqwerty.github.io/anki-audio-tools/errors/AQE-RUNTIME-001/"
+
+    with patch("anki_audio_quick_editor.external_links.open_external_url") as open_external_url:
+        assert (
+            handle_settings_command(
+                _bridge_command("webview.open_url", {"url": url}),
+                eval_fn,
+                dialog,
+            )
+            is True
+        )
+
+    open_external_url.assert_called_once_with(url)
+
+
+def test_settings_open_url_rejects_untrusted_external_url() -> None:
+    dialog = _make_dialog()
+    _, eval_fn = _capture_eval()
+
+    with patch("anki_audio_quick_editor.external_links.open_external_url") as open_external_url:
+        assert handle_settings_command(
+            _bridge_command("webview.open_url", {"url": "https://example.invalid/"}),
+            eval_fn,
+            dialog,
+        ) is True
+
+    open_external_url.assert_not_called()
+
+
 def test_async_command_reports_invalid_payload(caplog: pytest.LogCaptureFixture) -> None:
     dialog = _make_dialog()
     calls, eval_fn = _capture_eval()

@@ -49,6 +49,7 @@ def test_browser_batch_adapter_uses_shared_registry_and_executor() -> None:
             "browser_dialog_state",
             "browser_report",
             "error_codes",
+            "external_links",
             "frontend_logs",
             "i18n",
             "webview_bridge",

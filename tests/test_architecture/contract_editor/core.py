@@ -8,7 +8,12 @@ CORE_EDITOR_CONTRACTS: dict[str, ModuleContract] = {
     "editor_actions": contract(
         "editor_actions",
         layer=Layer.IMPORT_SAFE_CORE,
-        allowed_addon_deps=("audio_operation_params", "audio_operations", "audio_state"),
+        allowed_addon_deps=(
+            "audio_operation_params",
+            "audio_operations",
+            "audio_state",
+            "external_links",
+        ),
     ),
     "editor_media": contract(
         "editor_media",

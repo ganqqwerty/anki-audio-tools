@@ -11,6 +11,7 @@ import { continueDefaultGraphQueue } from "./default-graph-queue.js";
 import { notifyMountedPostEditPlaybackReady } from "./post-edit-playback.js";
 import { syncAllSelectionToolbars } from "./selection-toolbar-state.js";
 import { errorHelpUrl } from "../lib/error-links.js";
+import { openEditorExternalLink } from "./external-links.js";
 import { setButtonTooltipContent, setTooltipContent } from "../lib/rich-tooltip.js";
 import { isUserFacingError, type UserFacingError } from "../lib/user-facing-error.js";
 import type { EditorCommand } from "./types.js";
@@ -181,6 +182,7 @@ function renderStatusContent(status: HTMLElement, message: EditorStatusMessage):
   link.target = "_blank";
   link.rel = "noopener noreferrer";
   link.textContent = "Help";
+  link.addEventListener("click", (event) => openEditorExternalLink(event, link.href));
   status.append(code, ` ${message.message} `, link);
 }
 

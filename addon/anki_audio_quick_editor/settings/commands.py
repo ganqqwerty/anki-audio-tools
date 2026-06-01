@@ -19,6 +19,7 @@ from ..diagnostics_runtime import (
     set_debug_enabled,
 )
 from ..error_codes import AQE_SETTINGS_INVALID_PAYLOAD, coded_error
+from ..external_links import open_trusted_external_url_from_payload
 from ..frontend_logs import handle_frontend_log_payload
 from ..webview_bridge import (
     WebviewBridgeCommand,
@@ -68,11 +69,16 @@ def handle_settings_command(
     if command_name == "settings.async":
         handle_async_settings_command(command, eval_fn)
         return True
-    if command_name == "frontend.log":
-        _handle_frontend_log(command.payload)
-        return True
-    if command_name == "support.copy_report":
-        _handle_copy_support_report(command)
+    simple_handler = {
+        "frontend.log": lambda: _handle_frontend_log(command.payload),
+        "webview.open_url": lambda: open_trusted_external_url_from_payload(
+            command.payload,
+            logger=logger,
+        ),
+        "support.copy_report": lambda: _handle_copy_support_report(command),
+    }.get(command_name)
+    if simple_handler is not None:
+        simple_handler()
         return True
     return False
 

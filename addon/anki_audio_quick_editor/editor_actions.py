@@ -5,7 +5,6 @@ from __future__ import annotations
 import json
 from dataclasses import dataclass
 from typing import Any
-from urllib.parse import urlparse
 
 from .audio_operation_params import (
     AudioOperationParameters,
@@ -22,6 +21,7 @@ from .audio_operations import (
     apply_audio_operation,
 )
 from .audio_state import AudioEditState, AudioProcessingConfig
+from .external_links import trusted_external_url_or_none
 
 CMD_SLOWER = "aqe:slower"
 CMD_FASTER = "aqe:faster"
@@ -48,10 +48,6 @@ CMD_RECORD_VOICE = "aqe:record-voice"
 CMD_STOP_RECORDING = "aqe:stop-recording"
 CMD_PLAY_RECORDING = "aqe:play-recording"
 CMD_POST_EDIT_PLAYBACK_READY = "aqe:post-edit-playback-ready"
-
-TRUSTED_EXTERNAL_URL_HOST = "ganqqwerty.github.io"
-TRUSTED_EXTERNAL_URL_PATH = "/anki-audio-tools"
-TRUSTED_EXTERNAL_URL_PATH_PREFIX = f"{TRUSTED_EXTERNAL_URL_PATH}/"
 
 BRIDGE_COMMANDS = (
     "aqe:scan",
@@ -201,21 +197,6 @@ def _share_target_or_none(value: Any) -> str | None:
     return text if text in {"catbox", "litterbox"} else None
 
 
-def _external_url_or_none(value: Any) -> str | None:
-    if not isinstance(value, str):
-        return None
-    parsed = urlparse(value)
-    if parsed.scheme != "https":
-        return None
-    if parsed.hostname != TRUSTED_EXTERNAL_URL_HOST:
-        return None
-    if parsed.username is not None or parsed.password is not None:
-        return None
-    if parsed.path != TRUSTED_EXTERNAL_URL_PATH and not parsed.path.startswith(TRUSTED_EXTERNAL_URL_PATH_PREFIX):
-        return None
-    return value
-
-
 def decode_editor_command_payload(raw_command: str | EditorCommandPayload) -> EditorCommandPayload:
     """Return normalized editor command data from a bridge string or JSON payload."""
     if isinstance(raw_command, EditorCommandPayload):
@@ -239,7 +220,7 @@ def decode_editor_command_payload(raw_command: str | EditorCommandPayload) -> Ed
         generation=_int_or_none(raw_payload.get("generation")),
         share_target=_share_target_or_none(raw_payload.get("shareTarget")),
         source_filename=_str_or_none(raw_payload.get("sourceFilename")),
-        url=_external_url_or_none(raw_payload.get("url")),
+        url=trusted_external_url_or_none(raw_payload.get("url")),
     )
 
 

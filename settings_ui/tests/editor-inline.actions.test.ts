@@ -367,6 +367,14 @@ describe("editor inline action workflows", () => {
     expect(status).toHaveTextContent("AQE-MEDIA-001: No [sound:...] reference found. Help");
     expect(status).not.toHaveAttribute("data-aqe-tooltip-content");
     expect(link.href).toBe(`${PRODUCT_LINKS.githubPages}errors/AQE-MEDIA-001/`);
+
+    const click = new MouseEvent("click", { bubbles: true, cancelable: true });
+    expect(link.dispatchEvent(click)).toBe(false);
+    expect(bridgeCommands()).toContain("aqe:command-payload");
+    expect(window.__aqePendingCommandPayload).toEqual({
+      command: "aqe:open-url",
+      url: `${PRODUCT_LINKS.githubPages}errors/AQE-MEDIA-001/`,
+    });
   });
 
   it("keeps status tooltips reserved for explicit command details", async () => {

@@ -20,6 +20,7 @@ from .browser_dialog_state import (
 )
 from .browser_report import BatchRunReport
 from .error_codes import AQE_BATCH_INVALID_REQUEST, coded_error
+from .external_links import open_trusted_external_url_from_payload
 from .frontend_logs import handle_frontend_log_payload
 from .i18n import active_context, format_message
 from .webview_bridge import (
@@ -156,6 +157,9 @@ class BatchOperationsDialog:
             return True
         if command.name == "frontend.log":
             _handle_frontend_log(command.payload)
+            return True
+        if command.name == "webview.open_url":
+            open_trusted_external_url_from_payload(command.payload, logger=logger)
             return True
         return False
 
