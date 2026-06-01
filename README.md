@@ -19,7 +19,7 @@ Anki desktop add-on for quickly editing audio references from the note editor. I
 ## What It Includes
 
 - Inline Anki editor controls for fields containing `[sound:...]` references
-- Inline prosody visualization with pitch, intensity, and a draggable playback start cursor
+- Inline prosody visualization with pitch, intensity, horizontal zoom, and a draggable playback start cursor
 - ffmpeg-backed MP3 rendering for each inline edit action
 - Silencedetect/Silero pause removal with optional denoise preprocessing and retained debug artifacts
 - Non-destructive save flow that writes a new media file and updates the field reference
