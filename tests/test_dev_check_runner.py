@@ -2,24 +2,25 @@ from __future__ import annotations
 
 import threading
 
-import scripts.dev as dev
+from scripts.dev_scripts import check as check_commands
+from scripts.dev_scripts import check_runner
 
 
 def test_check_includes_python_coverage_gate(monkeypatch) -> None:
     phases: list[tuple[str, list[str]]] = []
 
     monkeypatch.setattr(
-        dev,
+        check_runner,
         "_run_check_steps_sequential",
         lambda steps: phases.append(("sequential", [name for name, _func in steps])) or [],
     )
     monkeypatch.setattr(
-        dev,
+        check_runner,
         "_run_check_steps_parallel",
         lambda steps: phases.append(("parallel", [name for name, _func in steps])) or [],
     )
 
-    assert dev.cmd_check() == 0
+    assert check_commands.cmd_check([]) == 0
     assert phases == [
         (
             "sequential",
@@ -66,7 +67,7 @@ def test_check_parallel_executor_runs_multiple_steps_concurrently(monkeypatch) -
             active -= 1
         return 0
 
-    failed = dev._run_check_steps_parallel([("one", make_step), ("two", make_step)])
+    failed = check_runner._run_check_steps_parallel([("one", make_step), ("two", make_step)])
 
     assert failed == []
     assert max_active == 2
@@ -76,6 +77,6 @@ def test_check_parallel_executor_treats_exceptions_as_failures() -> None:
     def explode() -> int:
         raise RuntimeError("boom")
 
-    failed = dev._run_check_steps_parallel([("explode", explode)])
+    failed = check_runner._run_check_steps_parallel([("explode", explode)])
 
     assert failed == ["explode"]

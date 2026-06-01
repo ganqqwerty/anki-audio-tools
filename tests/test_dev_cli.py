@@ -69,6 +69,18 @@ def test_parse_cli_args_preserves_command_args() -> None:
     assert idle_timeout_s is None
 
 
+def test_parse_cli_args_accepts_run_anki_command() -> None:
+    command, command_args, verbose, idle_timeout_s = dev._parse_cli_args(
+        ["run-anki"],
+        dev.COMMANDS,
+    )
+
+    assert command == "run-anki"
+    assert command_args == []
+    assert verbose is False
+    assert idle_timeout_s is None
+
+
 def test_parse_cli_args_rejects_verbose_after_command() -> None:
     with pytest.raises(SystemExit) as excinfo:
         dev._parse_cli_args(["test-e2e", "e2e/test_editor.py", "--verbose"], dev.COMMANDS)
@@ -99,17 +111,38 @@ def test_parse_cli_args_rejects_negative_idle_timeout() -> None:
 
 def test_main_applies_idle_timeout(monkeypatch) -> None:
     calls: dict[str, object] = {}
-    monkeypatch.setattr(dev, "COMMANDS", {"info": (lambda: 0, "Print info")})
+    monkeypatch.setattr(dev, "COMMANDS", {"info": (lambda _args: 0, "Print info")})
     monkeypatch.setattr(dev, "parse_cli_args", lambda _args, _commands: ("info", [], False, 42.0))
-    monkeypatch.setattr(dev, "set_verbose", lambda verbose: calls.setdefault("verbose", verbose))
+
+    def fake_run_command(
+        command: str | None,
+        command_args: list[str],
+        *,
+        verbose: bool,
+        idle_timeout_s: float | None,
+        commands: object,
+    ) -> int:
+        calls["command"] = command
+        calls["command_args"] = command_args
+        calls["verbose"] = verbose
+        calls["idle_timeout"] = idle_timeout_s
+        calls["commands"] = commands
+        return 0
+
     monkeypatch.setattr(
         dev,
-        "set_idle_timeout",
-        lambda timeout_s: calls.setdefault("idle_timeout", timeout_s),
+        "run_command",
+        fake_run_command,
     )
 
     with pytest.raises(SystemExit) as excinfo:
         dev.main()
 
     assert excinfo.value.code == 0
-    assert calls == {"verbose": False, "idle_timeout": 42.0}
+    assert calls == {
+        "command": "info",
+        "command_args": [],
+        "verbose": False,
+        "idle_timeout": 42.0,
+        "commands": dev.COMMANDS,
+    }

@@ -276,6 +276,9 @@ def _run(
     return rc
 
 
+run_process = _run
+
+
 def _run_capture(
     cmd: list[str],
     env: dict[str, str] | None = None,
@@ -317,3 +320,6 @@ def _run_capture(
     )
     print(f"[dev] {status} in {_format_duration(elapsed)}")
     return result.returncode, output
+
+
+run_capture = _run_capture

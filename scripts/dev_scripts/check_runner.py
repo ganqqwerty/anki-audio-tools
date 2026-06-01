@@ -90,7 +90,8 @@ def cmd_check(
         )
         steps = [*preflight_steps, *(step for _phase_name, phase_steps in phases for step in phase_steps)]
         for phase_name, phase_steps in phases:
-            failed.extend(_run_check_steps_parallel(phase_steps) if phase_name == "parallel" else _run_check_steps_sequential(phase_steps))
+            runner = _run_check_steps_parallel if phase_name == "parallel" else _run_check_steps_sequential
+            failed.extend(runner(phase_steps))
     failed = [name for name, _func in steps if name in set(failed)]
     if is_verbose():
         print(f"\n{'=' * 60}")
@@ -136,7 +137,11 @@ def _check_post_preflight_groups(
     if contracts_prepared:
         parallel_steps.append(("test", run_test_targets))
     parallel_steps.append(("coverage", cmd_coverage))
-    tail_steps = [("test-svelte", cmd_test_svelte)] if contracts_prepared else [("typecheck", cmd_typecheck), ("test", cmd_test), ("test-svelte", cmd_test_svelte)]
+    tail_steps = (
+        [("test-svelte", cmd_test_svelte)]
+        if contracts_prepared
+        else [("typecheck", cmd_typecheck), ("test", cmd_test), ("test-svelte", cmd_test_svelte)]
+    )
     return [("parallel", parallel_steps), ("tail", tail_steps)]
 
 
@@ -156,7 +161,11 @@ def _run_check_steps_sequential(steps: list[CheckStep]) -> list[str]:
     failed: list[str] = []
     total_steps = len(steps)
     for index, (name, func) in enumerate(steps, start=1):
-        print(f"\n{'=' * 60}\n  Step {index}/{total_steps}: {name}\n{'=' * 60}\n" if is_verbose() else f"[dev] check {index}/{total_steps}: {name}")
+        print(
+            f"\n{'=' * 60}\n  Step {index}/{total_steps}: {name}\n{'=' * 60}\n"
+            if is_verbose()
+            else f"[dev] check {index}/{total_steps}: {name}"
+        )
         rc = _run_check_step(name, func)
         if rc != 0:
             failed.append(name)
