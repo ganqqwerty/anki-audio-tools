@@ -14,6 +14,7 @@ import {
   xForMs,
   yForPitch,
 } from "../src/editor-inline/plot.js";
+import { msVisibleInViewport } from "../src/editor-inline/time-viewport.js";
 import type { NormalizedProsodyTrack } from "../src/editor-inline/types.js";
 
 const track: NormalizedProsodyTrack = {
@@ -140,6 +141,17 @@ describe("editor inline plot helpers", () => {
     expect(cursorMsFromEvent({ clientX: bounds.left }, svg, 4000, viewport)).toBe(1000);
     expect(cursorMsFromEvent({ clientX: bounds.left + bounds.width / 2 }, svg, 4000, viewport)).toBe(2000);
     expect(cursorMsFromEvent({ clientX: bounds.left + bounds.width }, svg, 4000, viewport)).toBe(3000);
+  });
+
+  it("clamps x coordinates separately from viewport cursor visibility", () => {
+    const viewport = { startMs: 1000, endMs: 3000, durationMs: 4000 };
+
+    expect(xForMs(500, 4000, viewport)).toBe(PLOT.left);
+    expect(xForMs(3500, 4000, viewport)).toBe(PLOT.width - PLOT.right);
+    expect(msVisibleInViewport(1000, viewport)).toBe(true);
+    expect(msVisibleInViewport(3000, viewport)).toBe(true);
+    expect(msVisibleInViewport(999, viewport)).toBe(false);
+    expect(msVisibleInViewport(3001, viewport)).toBe(false);
   });
 
   it("draws visible x-axis labels from the viewport without changing default full-axis labels", () => {

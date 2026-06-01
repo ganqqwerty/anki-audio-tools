@@ -4,12 +4,12 @@ import { PLOT, xForMs } from "../src/editor-inline/plot.js";
 import { applyVisualizerTimeViewport } from "../src/editor-inline/viewport-actions.js";
 import {
   renderCursor,
-  renderSelection,
   renderVisualizerTrack,
   renderPlaybackCursor,
   resetCursorProjection,
   startPlaybackCursorTransition,
 } from "../src/editor-inline/visualizer-renderer.js";
+import { renderSelection } from "../src/editor-inline/visualizer-selection-renderer.js";
 import type { NormalizedProsodyTrack, VisualizerElement } from "../src/editor-inline/types.js";
 
 const voicedTrack: NormalizedProsodyTrack = {
@@ -88,17 +88,17 @@ describe("editor inline visualizer renderer", () => {
     renderPlaybackCursor(visualizer, 0, voicedTrack.durationMs, 0);
     renderPlaybackCursor(visualizer, 100, voicedTrack.durationMs, 10);
 
-    expect(cssCursor.style.transform).toBe("");
+    expect(cssCursor.style.transform).toBe(`translate3d(${xForMs(100, voicedTrack.durationMs).toFixed(2)}px, 0, 0)`);
     expect(current.textContent).toBe("0 ms");
 
     renderPlaybackCursor(visualizer, 100, voicedTrack.durationMs, 17);
 
-    expect(cssCursor.style.transform).toBe("");
+    expect(cssCursor.style.transform).toBe(`translate3d(${xForMs(100, voicedTrack.durationMs).toFixed(2)}px, 0, 0)`);
     expect(current.textContent).toBe("0 ms");
 
     renderPlaybackCursor(visualizer, 200, voicedTrack.durationMs, 110);
 
-    expect(cssCursor.style.transform).toBe("");
+    expect(cssCursor.style.transform).toBe(`translate3d(${xForMs(200, voicedTrack.durationMs).toFixed(2)}px, 0, 0)`);
     expect(current.textContent).toBe("200 ms");
   });
 

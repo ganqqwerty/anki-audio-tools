@@ -9,6 +9,7 @@ import {
 } from "../src/editor-inline/runtime.js";
 import { EditorButtonMode } from "../src/lib/types.js";
 import {
+  commandLog,
   dragGraphSelection,
   graphClientX,
   muteConsole,
@@ -240,6 +241,76 @@ describe("editor inline Svelte integration", () => {
     const afterScroll = window.__aqeGraphStateForTest?.(0);
     expect(afterScroll?.viewportStartMs).toBeGreaterThan(beforeScroll?.viewportStartMs ?? 0);
     expect(afterScroll?.viewportEndMs).toBe(track.durationMs);
+  });
+
+  it("projects and hides the stopped cursor against the zoomed viewport", async () => {
+    initializeEditorRuntime({ audioFieldIndices: [0] });
+    scan({ audioFieldIndices: [0] });
+    window.__aqeSetVisualizer?.(0, track, 500);
+    await Promise.resolve();
+    const svg = document.querySelector<SVGSVGElement>('[data-testid="aqe-graph-svg-0"]')!;
+    setGraphBounds(svg);
+
+    window.__aqeSetTimeViewportForTest?.(0, 250, 750);
+    window.__aqeSetCursorForTest?.(0, 600, false);
+    let state = window.__aqeGraphStateForTest?.(0);
+
+    expect(state).toMatchObject({
+      cursorMs: 600,
+      progressMs: 600,
+      timecodeFlagCurrent: "600 ms",
+      timecodeFlagPitch: " / 260 Hz",
+      timecodeFlagVisible: true,
+    });
+    expect(state?.cursorX).toBeCloseTo(44 + 566 * 0.7);
+
+    window.__aqeSetCursorForTest?.(0, 900, false);
+    state = window.__aqeGraphStateForTest?.(0);
+
+    expect(state).toMatchObject({
+      cursorMs: 900,
+      progressMs: 900,
+      timecodeFlagCurrent: "900 ms",
+      timecodeFlagVisible: false,
+    });
+  });
+
+  it("scrolls away from and back to the stopped cursor without committing cursor state", async () => {
+    initializeEditorRuntime({ audioFieldIndices: [0] });
+    scan({ audioFieldIndices: [0] });
+    window.__aqeSetVisualizer?.(0, track, 250);
+    await Promise.resolve();
+    const svg = document.querySelector<SVGSVGElement>('[data-testid="aqe-graph-svg-0"]')!;
+    const scrollport = document.querySelector<HTMLDivElement>('[data-testid="aqe-time-scrollbar-scroll-0"]')!;
+    Object.defineProperty(scrollport, "clientWidth", { configurable: true, value: 200 });
+    setGraphBounds(svg);
+    window.__aqeSetTimeViewportForTest?.(0, 0, 500);
+    window.__aqeSetCursorForTest?.(0, 250, false);
+    await Promise.resolve();
+    await Promise.resolve();
+    const commandsBeforeScroll = commandLog().slice();
+
+    scrollport.scrollLeft = 200;
+    scrollport.dispatchEvent(new Event("scroll"));
+    let state = window.__aqeGraphStateForTest?.(0);
+    expect(state).toMatchObject({
+      cursorMs: 250,
+      timecodeFlagVisible: false,
+      viewportEndMs: 1000,
+      viewportStartMs: 500,
+    });
+
+    scrollport.scrollLeft = 0;
+    scrollport.dispatchEvent(new Event("scroll"));
+    state = window.__aqeGraphStateForTest?.(0);
+    expect(state).toMatchObject({
+      cursorMs: 250,
+      timecodeFlagVisible: true,
+      viewportEndMs: 500,
+      viewportStartMs: 0,
+    });
+    expect(state?.cursorX).toBeCloseTo(44 + 566 * 0.5);
+    expect(commandLog().slice(commandsBeforeScroll.length)).not.toContain("aqe:set-cursor");
   });
 
   it("resets zoom to fit when a graph is redrawn for a new track", async () => {

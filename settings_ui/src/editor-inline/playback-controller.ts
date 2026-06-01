@@ -113,6 +113,7 @@ export function completePlayback(visualizer: VisualizerElement, deps: PlaybackCo
   const preserveStatus = visualizer.dataset.preserveStatusOnPlaybackEnd === "true";
   stopProgressClock(visualizer, deps);
   deps.setCursor(visualizer, anchorMs, false, { updateAnchor: false });
+  ensurePlaybackCursorVisible(visualizer, anchorMs);
   if (audioClockReady(visualizer)) {
     seekAudioClock(visualizer, anchorMs, Number(visualizer.dataset.durationMs || "0"));
   }
@@ -335,6 +336,7 @@ function scheduleRepeatLoopPlayback(
   visualizer.dataset.progressClockMode = "stopped";
   visualizer.dataset.repeatPauseWaiting = "true";
   deps.setCursor(visualizer, loopStartMs, false, { updateAnchor: false });
+  ensurePlaybackCursorVisible(visualizer, loopStartMs);
   deps.setPlaybackButtonLabel(visualizer, "Pause");
   visualizer.__aqeRepeatPauseTimer = window.setTimeout(() => {
     visualizer.__aqeRepeatPauseTimer = null;
@@ -361,6 +363,7 @@ function restartLoopPlaybackNow(
   visualizer.dataset.playStartMs = String(loopStartMs);
   visualizer.dataset.playbackState = "playing";
   deps.setCursor(visualizer, loopStartMs, false, { updateAnchor: false });
+  ensurePlaybackCursorVisible(visualizer, loopStartMs);
   const canUseAudioClock = audioClockReady(visualizer)
     && (visualizer.dataset.progressClockMode === "audio" || visualizer.dataset.playbackEngine === "html");
   if (visualizer.dataset.progressClockMode !== "audio" || !audioClockReady(visualizer)) {
