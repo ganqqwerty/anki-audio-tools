@@ -56,6 +56,41 @@ def denoise_standard_async(editor: Any, deps: Any) -> None:
     )
 
 
+def reduce_size_async(
+    editor: Any,
+    command: EditorCommandPayload | None = None,
+    deps: Any = None,
+) -> None:
+    if deps is None:
+        deps = command
+        command = EditorCommandPayload(command="aqe:reduce-size")
+    mode = command.overrides.size_reduction_mode if command is not None else None
+
+    def _renderer(
+        source_path: Path,
+        render_config: AudioProcessingConfig,
+        *,
+        output_path: Path,
+        on_command: Callable[[tuple[str, ...]], None] | None = None,
+    ) -> Any:
+        return deps.render_size_reduced_audio(
+            source_path,
+            render_config,
+            output_path=output_path,
+            on_command=on_command,
+            mode=mode,
+        )
+
+    deps.run_special_audio_transform_async(
+        editor,
+        label=t("editor.status.reducing_size"),
+        failure_log_label="size reduction failed",
+        renderer=_renderer,
+        command=command,
+        output_format="mp3",
+    )
+
+
 def rnnoise_async(editor: Any, deps: Any) -> None:
     deps.run_special_audio_transform_async(
         editor,

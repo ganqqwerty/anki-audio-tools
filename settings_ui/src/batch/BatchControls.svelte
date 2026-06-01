@@ -7,8 +7,11 @@
     formatPauseAggressiveness,
     formatOutputFormat,
     formatPauseDetectionAlgorithm,
+    formatSizeReductionMode,
     pausePreset,
     OUTPUT_FORMAT_VALUES,
+    SIZE_REDUCTION_MODE_VALUES,
+    type SizeReductionMode,
   } from "$lib/audio-operation-parameters.js";
   import PauseAdvancedParamsFields from "$lib/PauseAdvancedParamsFields.svelte";
   import {
@@ -17,6 +20,7 @@
     dpdfnetAggressivenessTooltip,
     pauseAggressivenessTooltip,
     pauseDetectionAlgorithmTooltip,
+    sizeReductionModeTooltip,
   } from "$lib/audio-option-tooltips.js";
   import {
     BatchParameterKind,
@@ -154,6 +158,31 @@
           <option value={format}>{formatOutputFormat(format)}</option>
         {/each}
       </select>
+    </label>
+  {:else if selected?.parameter_kind === BatchParameterKind.SizeReduction}
+    <label>
+      <span>{t("settings.size_reduction_mode")}</span>
+      <div class="batch-choice-group" role="radiogroup" aria-label={t("settings.size_reduction_mode")}>
+        {#each SIZE_REDUCTION_MODE_VALUES as value}
+          <AqeTooltip>
+            {#snippet trigger({ props })}
+              <button
+                {...props}
+                type="button"
+                class="batch-choice-button aqe-tooltip-target"
+                disabled={disabled}
+                data-testid={`batch-size-reduction-mode-${value}`}
+                data-aqe-tooltip-content={choiceTooltip(formatSizeReductionMode(value), sizeReductionModeTooltip(value))}
+                role="radio"
+                aria-checked={form.sizeReductionMode === value ? "true" : "false"}
+                onclick={() => (form.sizeReductionMode = value as SizeReductionMode)}
+              >
+                {formatSizeReductionMode(value)}
+              </button>
+            {/snippet}
+          </AqeTooltip>
+        {/each}
+      </div>
     </label>
   {:else if selected?.parameter_kind === BatchParameterKind.Denoise}
     <label>

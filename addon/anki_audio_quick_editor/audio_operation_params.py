@@ -17,6 +17,7 @@ from .audio_pause_settings import (
     pause_detection_algorithm_or_default,
     preset_for_pause_detection,
 )
+from .audio_size_reduction import normalize_size_reduction_mode
 from .audio_state import AudioProcessingConfig
 from .dpdfnet_settings import normalize_dpdfnet_attn_limit_db
 
@@ -42,6 +43,7 @@ class AudioOperationParameters:
     denoise_algorithm: str | None = None
     dpdfnet_attn_limit_db: float | None = None
     target_format: str | None = None
+    size_reduction_mode: str | None = None
 
 
 def parameters_from_raw(
@@ -57,6 +59,7 @@ def parameters_from_raw(
     denoise_algorithm: Any = None,
     dpdfnet_attn_limit_db: Any = None,
     target_format: Any = None,
+    size_reduction_mode: Any = None,
 ) -> AudioOperationParameters:
     """Normalize raw UI values into clamped operation parameters."""
     return AudioOperationParameters(
@@ -79,6 +82,7 @@ def parameters_from_raw(
         denoise_algorithm=_denoise_algorithm_or_none(denoise_algorithm),
         dpdfnet_attn_limit_db=_dpdfnet_attn_limit_or_none(dpdfnet_attn_limit_db),
         target_format=_target_format_or_none(target_format),
+        size_reduction_mode=_size_reduction_mode_or_none(size_reduction_mode),
     )
 
 
@@ -92,6 +96,8 @@ def effective_config_for_operation(
         return config
     if operation == "convert":
         return _config_for_convert_operation(config, parameters)
+    if operation == "reduce_size":
+        return _config_for_size_reduction(config, parameters)
     effective = _config_with_shared_operation_parameters(config, parameters)
     if operation != "remove_pauses":
         return effective
@@ -103,6 +109,16 @@ def _config_for_convert_operation(
     parameters: AudioOperationParameters,
 ) -> AudioProcessingConfig:
     return replace(config, output_format=parameters.target_format or config.output_format)
+
+
+def _config_for_size_reduction(
+    config: AudioProcessingConfig,
+    parameters: AudioOperationParameters,
+) -> AudioProcessingConfig:
+    return replace(
+        config,
+        size_reduction_mode=parameters.size_reduction_mode or config.size_reduction_mode,
+    )
 
 
 def _config_with_shared_operation_parameters(
@@ -311,3 +327,8 @@ def _target_format_or_none(value: Any) -> str | None:
         return validate_target_format(value)
     except ValueError:
         return None
+
+
+def _size_reduction_mode_or_none(value: Any) -> str | None:
+    normalized = normalize_size_reduction_mode(value)
+    return normalized if str(value).strip().lower() == normalized else None

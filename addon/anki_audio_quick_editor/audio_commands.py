@@ -50,6 +50,24 @@ def build_convert_audio_command(
     )
 
 
+def build_size_reduction_audio_command(
+    ffmpeg_path: Path,
+    source_path: Path,
+    output_path: Path,
+    codec_args: Sequence[str],
+) -> tuple[str, ...]:
+    """Build an ffmpeg command that re-encodes audio for a smaller MP3 output."""
+    return (
+        str(ffmpeg_path),
+        "-y",
+        "-i",
+        str(source_path),
+        "-vn",
+        *tuple(codec_args),
+        str(output_path),
+    )
+
+
 def build_region_delete_plan(
     selection_start_ms: int,
     selection_end_ms: int,

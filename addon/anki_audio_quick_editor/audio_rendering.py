@@ -18,6 +18,7 @@ from .audio_commands import (
     build_region_delete_command,
     build_region_delete_plan,
     build_region_keep_plan,
+    build_size_reduction_audio_command,
 )
 from .audio_external import (
     _external_command_run_kwargs,
@@ -35,15 +36,17 @@ from .audio_output_policy import (
     PRESERVABLE_SOURCE_FORMATS,
     AudioOutputPolicy,
     codec_args_for_output_policy,
+    probe_audio_metadata,
     resolve_output_policy,
     resolve_output_policy_from_metadata,
     synthetic_audio_metadata,
 )
 from .audio_pause_pipeline import _render_pause_removal_pipeline_audio
+from .audio_size_reduction import size_reduction_plan_from_metadata
 from .audio_state import AudioEditState, AudioProcessingConfig
 from .audio_tools import find_ffmpeg
 from .audio_types import AudioProcessingResult
-from .errors import AudioProcessingError
+from .errors import AudioAlreadyCompactError, AudioProcessingError
 from .permission_guidance import launch_error_message
 
 
@@ -138,6 +141,46 @@ def render_converted_audio(
     if result.returncode != 0:
         raise AudioProcessingError(
             _render_external_error_message(result, "Audio conversion failed.")
+        )
+    return AudioProcessingResult(
+        output_path=output_path,
+        command=cmd,
+        duration_ms=probe_duration_ms(output_path, config),
+    )
+
+
+def render_size_reduced_audio(
+    source_path: Path,
+    config: AudioProcessingConfig,
+    output_path: Path | None = None,
+    on_command: Callable[[tuple[str, ...]], None] | None = None,
+    *,
+    mode: object | None = None,
+) -> AudioProcessingResult:
+    """Re-encode ``source_path`` to MP3 with source-aware smaller settings."""
+    ffmpeg_path = find_ffmpeg(config.ffmpeg_path)
+    metadata = probe_audio_metadata(source_path, config)
+    plan = size_reduction_plan_from_metadata(metadata, mode or config.size_reduction_mode)
+    if output_path is None:
+        output_path = Path(tempfile.mkstemp(prefix="aqe_smaller_", suffix=".mp3")[1])
+
+    cmd = build_size_reduction_audio_command(
+        ffmpeg_path,
+        source_path,
+        output_path,
+        plan.codec_args,
+    )
+    if on_command:
+        on_command(cmd)
+    result = _run_render_command(cmd, "Could not start audio size reduction.")
+    if result.returncode != 0:
+        raise AudioProcessingError(
+            _render_external_error_message(result, "Audio size reduction failed.")
+        )
+    if output_path.stat().st_size >= source_path.stat().st_size:
+        output_path.unlink(missing_ok=True)
+        raise AudioAlreadyCompactError(
+            "Size reduction did not make a smaller file; note was left unchanged."
         )
     return AudioProcessingResult(
         output_path=output_path,

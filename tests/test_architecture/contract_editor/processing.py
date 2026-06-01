@@ -196,6 +196,7 @@ EDITOR_PROCESSING_CONTRACTS: dict[str, ModuleContract] = {
             "audio_state",
             "diagnostics_runtime",
             "editor_session",
+            "errors",
             "permission_guidance",
         ),
         allowed_side_effects=(

@@ -62,6 +62,7 @@
       "aqe:record-voice",
       "aqe:share",
       "aqe:convert",
+      "aqe:reduce-size",
       "aqe:slower",
       "aqe:faster",
       "aqe:volume-down",

@@ -74,6 +74,7 @@ def _audio_parameter_updates(raw_defaults: dict[str, object]) -> dict[str, objec
         pause_preprocess_denoise=raw_defaults.get("pausePreprocessDenoise"),
         denoise_algorithm=raw_defaults.get("denoiseAlgorithm"),
         dpdfnet_attn_limit_db=raw_defaults.get("dpdfnetAttnLimitDb"),
+        size_reduction_mode=raw_defaults.get("sizeReductionMode"),
     )
     if params.volume_step_db is not None:
         updates["volume_step_db"] = params.volume_step_db
@@ -91,6 +92,8 @@ def _audio_parameter_updates(raw_defaults: dict[str, object]) -> dict[str, objec
         updates["denoise_algorithm"] = params.denoise_algorithm
     if params.dpdfnet_attn_limit_db is not None:
         updates["dpdfnet_attn_limit_db"] = params.dpdfnet_attn_limit_db
+    if params.size_reduction_mode is not None:
+        updates["size_reduction_mode"] = params.size_reduction_mode
     return updates
 
 

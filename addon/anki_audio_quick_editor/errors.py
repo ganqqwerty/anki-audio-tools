@@ -47,3 +47,7 @@ class InvalidEditStateError(AudioQuickEditorError):
 
 class AudioProcessingError(AudioQuickEditorError):
     """Raised when ffmpeg fails to render a preview or final file."""
+
+
+class AudioAlreadyCompactError(AudioProcessingError):
+    """Raised when a size reduction pass cannot make a smaller audio file."""

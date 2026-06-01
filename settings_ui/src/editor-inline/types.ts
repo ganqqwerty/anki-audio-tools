@@ -1,5 +1,5 @@
 import type { FrontendLogPayload, ProsodyPayload } from "../lib/generated/contracts.js";
-import type { OutputFormatValue } from "../lib/audio-operation-parameters.js";
+import type { OutputFormatValue, SizeReductionMode } from "../lib/audio-operation-parameters.js";
 import type {
   EditorButtonModes,
   EditorCommand as SharedEditorCommand,
@@ -47,6 +47,7 @@ export interface SplitButtonDefaults {
   graphVoiceLock?: GraphVoiceLock;
   graphVoiceRange?: GraphVoiceRange;
   outputFormat?: OutputFormatValue;
+  sizeReductionMode?: SizeReductionMode;
   pauseAggressiveness: "gentle" | "normal" | "aggressive";
   pauseDetectionAlgorithm?: PauseDetectionAlgorithm;
   pauseSilencedetectThresholdDb?: number;
@@ -82,6 +83,7 @@ export interface EditorCommandPayload {
     pauseMinSpeechSeconds?: number;
     pausePreprocessDenoise?: boolean;
     pitchHumMode?: PitchHumMode;
+    sizeReductionMode?: SizeReductionMode;
     speedStep?: number;
     targetFormat?: OutputFormatValue;
     volumeStepDb?: number;
@@ -110,6 +112,7 @@ export interface FieldSplitButtonState {
   defaultDpdfnetAttnLimitDb: number;
   defaultPitchHumMode: PitchHumMode;
   defaultRepeatPauseSeconds: number;
+  defaultSizeReductionMode: SizeReductionMode;
   defaultSpeedStep: number;
   defaultVoiceRecordingCountdownSeconds: number;
   defaultVolumeStepDb: number;
@@ -142,6 +145,8 @@ export interface FieldSplitButtonState {
   repeatPauseSeconds: number;
   shareEdited: boolean;
   shareTarget: "catbox" | "litterbox";
+  sizeReductionEdited: boolean;
+  sizeReductionMode: SizeReductionMode;
   speedEdited: boolean;
   speedStep: number;
   voiceRecordingCountdownEdited: boolean;

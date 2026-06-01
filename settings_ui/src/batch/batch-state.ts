@@ -16,8 +16,10 @@ import {
   clampVolumeStepDb,
   outputFormatOrDefault,
   pauseDetectionAlgorithmOrDefault,
+  sizeReductionModeOrDefault,
   type OutputFormatValue,
   type PauseDetectionAlgorithmValue,
+  type SizeReductionMode as SizeReductionModeValue,
 } from "$lib/audio-operation-parameters.js";
 import type {
   BatchInitialState,
@@ -44,6 +46,7 @@ export interface BatchFormState {
   denoiseAlgorithm: DenoiseAlgorithm;
   dpdfnetAttnLimitDb: number;
   targetFormat: OutputFormatValue;
+  sizeReductionMode: SizeReductionModeValue;
 }
 
 export const FALLBACK_BATCH_INITIAL_STATE: BatchInitialState = {
@@ -62,6 +65,13 @@ export const FALLBACK_BATCH_INITIAL_STATE: BatchInitialState = {
       requires_target_field: false,
       parameter_kind: BatchParameterKind.Format,
       parameter_name: BatchParameterName.TargetFormat,
+    },
+    {
+      operation: BatchOperationName.ReduceSize,
+      label: "Smaller",
+      requires_target_field: false,
+      parameter_kind: BatchParameterKind.SizeReduction,
+      parameter_name: BatchParameterName.SizeReductionMode,
     },
     {
       operation: BatchOperationName.Denoise,
@@ -123,6 +133,7 @@ export const FALLBACK_BATCH_INITIAL_STATE: BatchInitialState = {
     denoise_algorithm: DenoiseAlgorithm.Standard,
     dpdfnet_attn_limit_db: 12,
     output_format: OutputFormat.Source,
+    size_reduction_mode: BatchPauseAggressiveness.Normal,
   },
   locale: "en",
   direction: Direction.LTR,
@@ -155,6 +166,7 @@ export function initialFormState(state: BatchInitialState): BatchFormState {
     denoiseAlgorithm: state.defaults.denoise_algorithm,
     dpdfnetAttnLimitDb: clampDpdfnetAttnLimitDb(state.defaults.dpdfnet_attn_limit_db),
     targetFormat: outputFormatOrDefault(state.defaults.output_format),
+    sizeReductionMode: sizeReductionModeOrDefault(state.defaults.size_reduction_mode),
   };
 }
 
@@ -208,6 +220,11 @@ export function batchStartRequest(
   }
   if (operation?.parameter_name === BatchParameterName.TargetFormat) {
     request.parameters.target_format = outputFormatOrDefault(form.targetFormat) as OutputFormat;
+  }
+  if (operation?.parameter_name === BatchParameterName.SizeReductionMode) {
+    request.parameters.size_reduction_mode = sizeReductionModeOrDefault(
+      form.sizeReductionMode,
+    ) as BatchPauseAggressiveness;
   }
   return request;
 }

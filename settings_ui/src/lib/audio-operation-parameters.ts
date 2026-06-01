@@ -1,7 +1,9 @@
 import { t } from "./i18n.js";
 
 export type PauseAggressiveness = "gentle" | "normal" | "aggressive";
+export type SizeReductionMode = "gentle" | "normal" | "aggressive";
 export type DpdfnetAggressiveness = "gentle" | "normal" | "aggressive";
+export const SIZE_REDUCTION_MODE_VALUES = ["gentle", "normal", "aggressive"] as const;
 export const PAUSE_DETECTION_ALGORITHM_VALUES = ["silencedetect", "silero_vad"] as const;
 export type PauseDetectionAlgorithmValue = (typeof PAUSE_DETECTION_ALGORITHM_VALUES)[number];
 export interface PauseAdvancedParams {
@@ -88,6 +90,18 @@ export function formatPauseAggressiveness(value: PauseAggressiveness): string {
   if (value === "aggressive") return t("settings.pause_aggressiveness.aggressive");
   if (value === "gentle") return t("settings.pause_aggressiveness.gentle");
   return t("settings.pause_aggressiveness.normal");
+}
+
+export function isSizeReductionMode(value: unknown): value is SizeReductionMode {
+  return typeof value === "string" && (SIZE_REDUCTION_MODE_VALUES as readonly string[]).includes(value);
+}
+
+export function sizeReductionModeOrDefault(value: unknown): SizeReductionMode {
+  return isSizeReductionMode(value) ? value : "normal";
+}
+
+export function formatSizeReductionMode(value: SizeReductionMode): string {
+  return formatPauseAggressiveness(value);
 }
 
 export function isPauseDetectionAlgorithmValue(value: unknown): value is PauseDetectionAlgorithmValue {

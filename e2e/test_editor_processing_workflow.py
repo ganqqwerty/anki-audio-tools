@@ -93,6 +93,8 @@ def test_each_processing_button_updates_field_to_new_real_audio(
                     "Options",
                     "Convert",
                     "Options",
+                    "Smaller",
+                    "Options",
                     "Shorten Pauses",
                     "Options",
                     "Denoise",

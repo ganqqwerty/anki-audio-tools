@@ -113,6 +113,24 @@ class TestMigrateConfig:
         assert migrated["_config_version"] == CURRENT_CONFIG_VERSION
         assert changed is True
 
+    def test_normalizes_size_reduction_mode(self) -> None:
+        user = {
+            "_config_version": 20,
+            "enabled": True,
+            "size_reduction_mode": "tiny",
+        }
+        defaults = {
+            "_config_version": CURRENT_CONFIG_VERSION,
+            "enabled": True,
+            "size_reduction_mode": "normal",
+        }
+
+        migrated, changed = migrate_config(user, defaults)
+
+        assert migrated["size_reduction_mode"] == "normal"
+        assert migrated["_config_version"] == CURRENT_CONFIG_VERSION
+        assert changed is True
+
     def test_picks_up_show_graph_default(self) -> None:
         user = {"_config_version": 8, "enabled": True}
         defaults = {

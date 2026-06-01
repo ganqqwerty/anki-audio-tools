@@ -54,6 +54,7 @@ def injection_script(
             "pauseSileroMinSpeechSeconds": 0.10,
             "pauseSileroPreprocessDenoise": False,
             "outputFormat": "mp3",
+            "sizeReductionMode": "normal",
             "denoiseAlgorithm": "standard",
             "pitchHumMode": "direct",
             "dpdfnetAttnLimitDb": 12.0,

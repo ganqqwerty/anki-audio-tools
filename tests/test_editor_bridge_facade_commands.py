@@ -27,6 +27,13 @@ def test_split_default_updates_accept_and_reject_share_target() -> None:
     assert split_default_config_updates({"defaults": {"shareTarget": "invalid"}}) == {}
 
 
+def test_split_default_updates_accept_and_reject_size_reduction_mode() -> None:
+    assert split_default_config_updates({"defaults": {"sizeReductionMode": "aggressive"}}) == {
+        "size_reduction_mode": "aggressive"
+    }
+    assert split_default_config_updates({"defaults": {"sizeReductionMode": "tiny"}}) == {}
+
+
 def test_bridge_routes_share_payload_to_editor_sharing(monkeypatch) -> None:
     editor = make_editor()
     called: dict[str, object] = {}

@@ -12,7 +12,12 @@ from typing import Any
 
 from .audio_formats import format_label, is_same_visible_format
 from .audio_operation_params import effective_config_for_operation
-from .audio_operations import OP_CONVERT, OP_DENOISE, apply_audio_operation
+from .audio_operations import (
+    OP_CONVERT,
+    OP_DENOISE,
+    OP_REDUCE_SIZE,
+    apply_audio_operation,
+)
 from .audio_processor import (
     make_output_filename,
     temp_final_path,
@@ -26,6 +31,7 @@ from .error_codes import (
     AQE_GRAPH_ANALYSIS_FAILED,
     format_coded_message,
 )
+from .errors import AudioAlreadyCompactError
 from .permission_guidance import message_with_permission_guidance
 from .prosody_svg import make_visualization_filename, render_prosody_svg
 from .sound_refs import SoundReference, replace_sound_reference
@@ -139,6 +145,15 @@ def process_transform_operation(
                 target_format,
                 output_path=output_path,
             )
+        elif request.operation == OP_REDUCE_SIZE:
+            desired_name = make_output_filename(audio_filename, output_format="mp3")
+            output_path = temp_final_path(desired_name)
+            _facade_attr("render_size_reduced_audio")(
+                source_path,
+                effective_config,
+                output_path=output_path,
+                mode=effective_config.size_reduction_mode,
+            )
         else:
             desired_name = make_output_filename(audio_filename)
             output_path = temp_final_path(desired_name)
@@ -160,6 +175,13 @@ def process_transform_operation(
         with output_path.open("rb") as file:
             saved_name = media_writer(desired_name, file.read())
         replaced_html = replace_sound_reference(source_html, selection, saved_name)
+    except AudioAlreadyCompactError as exc:
+        return BatchNoteResult(
+            note_id=note.note_id,
+            status="skipped",
+            message=str(exc),
+            audio_filename=audio_filename,
+        )
     except Exception as exc:
         raw_message = str(exc)
         message = (

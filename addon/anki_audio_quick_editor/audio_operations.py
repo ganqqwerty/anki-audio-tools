@@ -9,6 +9,7 @@ from .i18n import format_message
 
 OP_GRAPH = "graph"
 OP_CONVERT = "convert"
+OP_REDUCE_SIZE = "reduce_size"
 OP_DENOISE = "denoise"
 OP_REMOVE_PAUSES = "remove_pauses"
 OP_SLOWER = "slower"
@@ -18,6 +19,7 @@ OP_VOLUME_UP = "volume_up"
 
 TRANSFORM_OPERATIONS = (
     OP_CONVERT,
+    OP_REDUCE_SIZE,
     OP_DENOISE,
     OP_REMOVE_PAUSES,
     OP_SLOWER,
@@ -31,6 +33,7 @@ BATCH_OPERATIONS = (OP_GRAPH,) + TRANSFORM_OPERATIONS
 OPERATION_LABELS: dict[str, str] = {
     OP_GRAPH: "Graph",
     OP_CONVERT: "Convert",
+    OP_REDUCE_SIZE: "Smaller",
     OP_DENOISE: "Denoise",
     OP_REMOVE_PAUSES: "Shorten Pauses",
     OP_SLOWER: "Slower",
@@ -42,6 +45,7 @@ OPERATION_LABELS: dict[str, str] = {
 OPERATION_LABEL_KEYS: dict[str, str] = {
     OP_GRAPH: "operation.graph",
     OP_CONVERT: "operation.convert",
+    OP_REDUCE_SIZE: "operation.reduce_size",
     OP_DENOISE: "operation.denoise",
     OP_REMOVE_PAUSES: "operation.remove_pauses",
     OP_SLOWER: "operation.slower",

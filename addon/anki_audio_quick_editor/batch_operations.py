@@ -15,6 +15,7 @@ from .audio_processor import (
     render_dpdfnet_audio,
     render_noise_reduced_audio,
     render_rnnoise_audio,
+    render_size_reduced_audio,
     render_voice_only_audio,
 )
 from .audio_state import AudioProcessingConfig
@@ -59,6 +60,7 @@ __all__ = [
     "render_dpdfnet_audio",
     "render_noise_reduced_audio",
     "render_rnnoise_audio",
+    "render_size_reduced_audio",
     "render_voice_only_audio",
     "unique_note_ids",
 ]

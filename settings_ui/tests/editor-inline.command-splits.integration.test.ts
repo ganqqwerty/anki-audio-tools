@@ -45,13 +45,14 @@ describe("editor inline split-button command integration", () => {
 
     const help = document.querySelector<HTMLDetailsElement>('[data-testid="aqe-help-0"]')!;
     expect(help.open).toBe(false);
-    expect(help.querySelectorAll(".aqe-help-command")).toHaveLength(15);
+    expect(help.querySelectorAll(".aqe-help-command")).toHaveLength(16);
     expect(help.querySelector(".aqe-help-triangle")).not.toBeNull();
     expect(help).toHaveTextContent("Shift-drag on the graph to select a region.");
     expect(help).toHaveTextContent("Delete Region removes the selected region; Delete the rest keeps only the selected region.");
     expect(help).toHaveTextContent("Delete Region / Delete the rest");
     expect(help).toHaveTextContent("Creates a new file that removes the selected region or keeps only that region.");
     expect(help).toHaveTextContent("Creates a new file with louder audio.");
+    expect(help).toHaveTextContent("Creates a smaller MP3 by lowering safe audio parameters.");
     expect(help).toHaveTextContent("Share this file online. The link will be copied to the clipboard.");
     expect(help).toHaveTextContent(/GitHub Pages.*Report a bug.*Request an idea/s);
     expect(help).toHaveTextContent("Every edit creates a new media file and updates the field to point at it.");

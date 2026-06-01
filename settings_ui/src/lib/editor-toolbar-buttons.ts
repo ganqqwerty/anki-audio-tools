@@ -1,7 +1,9 @@
 import {
   formatDpdfnetAggressiveness,
   formatOutputFormat,
+  formatSizeReductionMode,
   outputFormatOrDefault,
+  sizeReductionModeOrDefault,
 } from "./audio-operation-parameters.js";
 import { t } from "./i18n.js";
 import type { CommandIconName } from "./icon-types.js";
@@ -16,6 +18,7 @@ export type EditorCommand =
   | "aqe:show-file"
   | "aqe:share"
   | "aqe:convert"
+  | "aqe:reduce-size"
   | "aqe:delete-selection"
   | "aqe:delete-rest"
   | "aqe:remove-pauses"
@@ -49,6 +52,7 @@ export const DEFAULT_VISIBLE_EDITOR_BUTTONS = [
   "aqe:analyze",
   "aqe:show-file",
   "aqe:share",
+  "aqe:reduce-size",
   "aqe:remove-pauses",
   "aqe:denoise-standard",
   "aqe:slower",
@@ -66,6 +70,7 @@ export const DEFAULT_EDITOR_BUTTON_MODES = {
   "aqe:show-file": EditorButtonMode.Icon,
   "aqe:share": EditorButtonMode.Icon,
   "aqe:convert": EditorButtonMode.Text,
+  "aqe:reduce-size": EditorButtonMode.Text,
   "aqe:remove-pauses": EditorButtonMode.Text,
   "aqe:denoise-standard": EditorButtonMode.Text,
   "aqe:pitch-hum": EditorButtonMode.Text,
@@ -88,6 +93,9 @@ function formatDenoiseAlgorithm(value: "standard" | "rnnoise" | "dpdfnet" | "voi
 export function commandButtons(): readonly ToolbarButtonSpec[] {
   const outputFormat = outputFormatOrDefault(
     window.__AQE_EDITOR_CONFIG__?.splitButtonDefaults?.outputFormat,
+  );
+  const sizeReductionMode = sizeReductionModeOrDefault(
+    window.__AQE_EDITOR_CONFIG__?.splitButtonDefaults?.sizeReductionMode,
   );
   return [
     {
@@ -141,6 +149,13 @@ export function commandButtons(): readonly ToolbarButtonSpec[] {
       iconOnly: true,
       label: t("editor.command.convert.label"),
       title: t("editor.command.convert.title", { format: formatOutputFormat(outputFormat) }),
+    },
+    {
+      command: "aqe:reduce-size",
+      icon: "minimize-2",
+      iconOnly: true,
+      label: t("editor.command.reduce_size.label"),
+      title: t("editor.command.reduce_size.title", { level: formatSizeReductionMode(sizeReductionMode) }),
     },
     {
       command: "aqe:remove-pauses",
@@ -299,6 +314,7 @@ export const COMMAND_SLUGS: Readonly<Record<EditorCommand, string>> = {
   "aqe:show-file": "show-file",
   "aqe:share": "share",
   "aqe:convert": "convert",
+  "aqe:reduce-size": "reduce-size",
   "aqe:delete-selection": "delete-selection",
   "aqe:delete-rest": "delete-rest",
   "aqe:remove-pauses": "remove-pauses",

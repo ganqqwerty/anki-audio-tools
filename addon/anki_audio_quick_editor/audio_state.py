@@ -13,6 +13,7 @@ from .audio_pause_settings import (
     pause_detection_algorithm_or_default,
     preset_for_pause_detection,
 )
+from .audio_size_reduction import normalize_size_reduction_mode
 from .dpdfnet_settings import (
     DEFAULT_DPDFNET_ATTENUATION_LIMIT_DB,
     normalize_dpdfnet_attn_limit_db,
@@ -48,6 +49,7 @@ class AudioProcessingConfig:
     pause_silero_min_speech_seconds: float = 0.10
     pause_silero_preprocess_denoise: bool = False
     output_format: str = DEFAULT_OUTPUT_FORMAT
+    size_reduction_mode: str = "normal"
     ffmpeg_path: str = field(default_factory=default_ffmpeg_path)
     deep_filter_post_filter: bool = True
     dpdfnet_attn_limit_db: float = DEFAULT_DPDFNET_ATTENUATION_LIMIT_DB
@@ -136,6 +138,9 @@ class AudioProcessingConfig:
                 silero_preset.preprocess_denoise,
             ),
             output_format=normalize_output_format(config.get("output_format", cls.output_format)),
+            size_reduction_mode=normalize_size_reduction_mode(
+                config.get("size_reduction_mode", cls.size_reduction_mode)
+            ),
             ffmpeg_path=str(config.get("ffmpeg_path", default_ffmpeg_path())),
             deep_filter_post_filter=bool(
                 config.get("deep_filter_post_filter", cls.deep_filter_post_filter)

@@ -28,6 +28,10 @@ export function shareTargetTooltip(value: string): string {
   return t(`settings.share_target.${value}.tooltip`);
 }
 
+export function sizeReductionModeTooltip(value: string): string {
+  return t(`settings.size_reduction_mode.${value}.tooltip`);
+}
+
 function dpdfnetAggressivenessKey(value: number): "gentle" | "normal" | "aggressive" {
   if (value <= 9) return "gentle";
   if (value >= 18) return "aggressive";

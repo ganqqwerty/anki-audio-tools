@@ -11,6 +11,7 @@ from .editor_actions import (
     CMD_DPDFNET,
     CMD_FASTER,
     CMD_PITCH_HUM,
+    CMD_REDUCE_SIZE,
     CMD_REMOVE_PAUSES,
     CMD_RNNOISE,
     CMD_SLOWER,
@@ -105,26 +106,70 @@ def _simple_command_status_summary(
         return _volume_status_summary(payload.command, effective_config)
     if payload.command in {CMD_FASTER, CMD_SLOWER}:
         return _speed_status_summary(payload.command, effective_config)
-    if payload.command == CMD_REMOVE_PAUSES:
-        algorithm = payload.overrides.pause_detection_algorithm or config.pause_detection_algorithm
-        return t(
-            "editor.status.operation.remove_pauses",
-            {
-                "level": _pause_aggressiveness_label(effective_config.pause_aggressiveness),
-                "algorithm": _pause_detection_algorithm_label(algorithm),
-            },
-        )
-    if payload.command == CMD_CONVERT:
-        return t(
-            "editor.status.operation.convert",
-            {"format": format_label(payload.overrides.target_format or config.output_format)},
-        )
-    if payload.command == CMD_PITCH_HUM:
-        return t(
-            "editor.status.operation.pitch_hum",
-            {"mode": _pitch_hum_mode_label(payload.overrides.pitch_hum_mode or config.pitch_hum_mode)},
-        )
+    handler = _SPECIAL_STATUS_HANDLERS.get(payload.command)
+    if handler is not None:
+        return handler(payload, config, effective_config)
     return ""
+
+
+def _remove_pauses_status_summary(
+    payload: EditorCommandPayload,
+    config: AudioProcessingConfig,
+    effective_config: AudioProcessingConfig,
+) -> str:
+    algorithm = payload.overrides.pause_detection_algorithm or config.pause_detection_algorithm
+    return t(
+        "editor.status.operation.remove_pauses",
+        {
+            "level": _pause_aggressiveness_label(effective_config.pause_aggressiveness),
+            "algorithm": _pause_detection_algorithm_label(algorithm),
+        },
+    )
+
+
+def _convert_status_summary(
+    payload: EditorCommandPayload,
+    config: AudioProcessingConfig,
+    _effective_config: AudioProcessingConfig,
+) -> str:
+    return t(
+        "editor.status.operation.convert",
+        {"format": format_label(payload.overrides.target_format or config.output_format)},
+    )
+
+
+def _reduce_size_status_summary(
+    payload: EditorCommandPayload,
+    config: AudioProcessingConfig,
+    _effective_config: AudioProcessingConfig,
+) -> str:
+    return t(
+        "editor.status.operation.reduce_size",
+        {
+            "level": _pause_aggressiveness_label(
+                payload.overrides.size_reduction_mode or config.size_reduction_mode
+            )
+        },
+    )
+
+
+def _pitch_hum_status_summary(
+    payload: EditorCommandPayload,
+    config: AudioProcessingConfig,
+    _effective_config: AudioProcessingConfig,
+) -> str:
+    return t(
+        "editor.status.operation.pitch_hum",
+        {"mode": _pitch_hum_mode_label(payload.overrides.pitch_hum_mode or config.pitch_hum_mode)},
+    )
+
+
+_SPECIAL_STATUS_HANDLERS = {
+    CMD_REMOVE_PAUSES: _remove_pauses_status_summary,
+    CMD_CONVERT: _convert_status_summary,
+    CMD_REDUCE_SIZE: _reduce_size_status_summary,
+    CMD_PITCH_HUM: _pitch_hum_status_summary,
+}
 
 
 def _volume_status_summary(command: str, config: AudioProcessingConfig) -> str:

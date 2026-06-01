@@ -29,6 +29,7 @@
     setPauseThresholdForField,
     setPitchHumModeForField,
     setShareTargetForField,
+    setSizeReductionModeForField,
     setSpeedStepForField,
     setVoiceRecordingCountdownSecondsForField,
     setVolumeStepForField,
@@ -52,6 +53,7 @@
   type OutputFormatValue = FieldSplitButtonState["outputFormat"];
   type PauseDetectionAlgorithm = FieldSplitButtonState["pauseDetectionAlgorithm"];
   type PitchHumMode = FieldSplitButtonState["pitchHumMode"];
+  type SizeReductionMode = FieldSplitButtonState["sizeReductionMode"];
   type PrimaryGroupPosition = "middle" | "start";
   type ShareTarget = FieldSplitButtonState["shareTarget"];
   const CLOSE_SPLIT_MENUS_EVENT = "aqe-ui:close-split-menus";
@@ -90,6 +92,7 @@
   let denoiseAlgorithm = $state<DenoiseAlgorithm>("standard");
   let dpdfnetAttnLimitDb = $state(12);
   let outputFormat = $state<OutputFormatValue>("mp3");
+  let sizeReductionMode = $state<SizeReductionMode>("normal");
   let pitchHumMode = $state<PitchHumMode>("direct");
   let shareTarget = $state<ShareTarget>("litterbox");
   let graphVoiceRange = $state<GraphVoiceRange>("general");
@@ -123,7 +126,7 @@
     return button.command === "aqe:record-voice" || button.command === "aqe:play-recording";
   }
 
-  const currentPrimaryTitle = $derived(primaryTitle(button, outputFormat, denoiseAlgorithm));
+  const currentPrimaryTitle = $derived(primaryTitle(button, outputFormat, denoiseAlgorithm, sizeReductionMode));
   const currentValue = $derived(currentValueLabel(button, groupSlug, {
     denoiseAlgorithm,
     dpdfnetAttnLimitDb,
@@ -133,6 +136,7 @@
     graphVoiceLock,
     graphVoiceRange,
     outputFormat,
+    sizeReductionMode,
     pauseAggressiveness,
     pauseDetectionAlgorithm,
     pitchHumMode,
@@ -161,6 +165,7 @@
     denoiseAlgorithm = state.denoiseAlgorithm;
     dpdfnetAttnLimitDb = state.dpdfnetAttnLimitDb;
     outputFormat = state.outputFormat;
+    sizeReductionMode = state.sizeReductionMode;
     pitchHumMode = state.pitchHumMode;
     shareTarget = state.shareTarget;
     graphVoiceRange = state.graphVoiceRange;
@@ -230,6 +235,10 @@
 
   function applyOutputFormat(value: OutputFormatValue): void {
     outputFormat = setOutputFormatForField(target.ord, value).outputFormat;
+  }
+
+  function applySizeReductionMode(value: SizeReductionMode): void {
+    sizeReductionMode = setSizeReductionModeForField(target.ord, value).sizeReductionMode;
   }
 
   function applyPitchHumMode(value: PitchHumMode): void {
@@ -446,6 +455,7 @@
               onRunCommand={dispatchCommand}
               onSaveDefault={saveCurrentDefaults}
               onShareTarget={applyShareTarget}
+              onSizeReductionMode={applySizeReductionMode}
               onSpeedStep={applySpeedStep}
               onVolumeStep={applyVolumeStep}
               pauseAggressiveness={pauseAggressiveness}
@@ -455,6 +465,7 @@
               pausePreprocessDenoise={pausePreprocessDenoise}
               pauseThreshold={pauseThreshold}
               outputFormat={outputFormat}
+              sizeReductionMode={sizeReductionMode}
               pitchHumMode={pitchHumMode}
               saveDefaultSaved={defaultSaved}
               shareTarget={shareTarget}

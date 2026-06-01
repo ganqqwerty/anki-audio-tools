@@ -6,6 +6,7 @@ import copy
 from typing import Any
 
 from .audio_formats import normalize_output_format
+from .audio_size_reduction import normalize_size_reduction_mode
 from .dpdfnet_settings import normalize_dpdfnet_attn_limit_db
 
 CURRENT_CONFIG_VERSION = 1
@@ -43,6 +44,7 @@ def _apply_post_merge_migrations(
     changed = False
     changed = _normalize_dpdfnet_limit_setting(merged) or changed
     changed = _normalize_output_format_setting(merged) or changed
+    changed = _normalize_size_reduction_mode_setting(merged) or changed
     changed = _normalize_pause_detection_algorithm_setting(merged) or changed
     changed = _normalize_visible_editor_buttons_setting(merged, defaults) or changed
     return _normalize_editor_button_mode_settings(merged, defaults) or changed
@@ -67,6 +69,16 @@ def _normalize_output_format_setting(merged: dict[str, Any]) -> bool:
     if merged.get("output_format") == normalized_output_format:
         return False
     merged["output_format"] = normalized_output_format
+    return True
+
+
+def _normalize_size_reduction_mode_setting(merged: dict[str, Any]) -> bool:
+    if "size_reduction_mode" not in merged:
+        return False
+    normalized_mode = normalize_size_reduction_mode(merged.get("size_reduction_mode"))
+    if merged.get("size_reduction_mode") == normalized_mode:
+        return False
+    merged["size_reduction_mode"] = normalized_mode
     return True
 
 

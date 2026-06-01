@@ -37,6 +37,13 @@ function setInitialState(): void {
         parameter_name: BatchParameterName.TargetFormat,
       },
       {
+        operation: BatchOperationName.ReduceSize,
+        label: "Smaller",
+        requires_target_field: false,
+        parameter_kind: BatchParameterKind.SizeReduction,
+        parameter_name: BatchParameterName.SizeReductionMode,
+      },
+      {
         operation: BatchOperationName.RemovePauses,
         label: "Shorten Pauses",
         requires_target_field: false,
@@ -82,6 +89,7 @@ function setInitialState(): void {
       denoise_algorithm: DenoiseAlgorithm.Standard,
       dpdfnet_attn_limit_db: 12,
       output_format: OutputFormat.Mp3,
+      size_reduction_mode: BatchPauseAggressiveness.Normal,
     },
     locale: "en",
     direction: Direction.LTR,

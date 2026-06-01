@@ -7,6 +7,7 @@ from unittest.mock import patch
 from anki_audio_quick_editor.audio_operations import (
     OP_CONVERT,
     OP_FASTER,
+    OP_REDUCE_SIZE,
     OP_REMOVE_PAUSES,
     OP_SLOWER,
     OP_VOLUME_DOWN,
@@ -35,6 +36,7 @@ def test_batchable_processing_commands_map_to_shared_operations() -> None:
         "aqe:volume-up": OP_VOLUME_UP,
         "aqe:remove-pauses": OP_REMOVE_PAUSES,
         "aqe:convert": OP_CONVERT,
+        "aqe:reduce-size": OP_REDUCE_SIZE,
     }
 
 
@@ -157,6 +159,14 @@ def test_decode_command_accepts_convert_target_format_override() -> None:
     assert decoded.overrides.target_format == "flac"
 
 
+def test_decode_command_accepts_size_reduction_mode_override() -> None:
+    decoded = decode_editor_command_payload(
+        '{"command":"aqe:reduce-size","fieldOrd":0,"overrides":{"sizeReductionMode":"gentle"}}'
+    )
+
+    assert decoded.overrides.size_reduction_mode == "gentle"
+
+
 def test_decode_command_accepts_pitch_hum_mode_override() -> None:
     decoded = decode_editor_command_payload(
         '{"command":"aqe:pitch-hum","fieldOrd":0,"overrides":{"pitchHumMode":"pitch_tier"}}'
@@ -235,6 +245,13 @@ def test_apply_processing_command_returns_none_for_convert_command() -> None:
     assert apply_processing_command("aqe:convert", state, config) is None
 
 
+def test_apply_processing_command_returns_none_for_size_reduction_command() -> None:
+    config = AudioProcessingConfig()
+    state = AudioEditState("clip.mp3")
+
+    assert apply_processing_command("aqe:reduce-size", state, config) is None
+
+
 def test_play_graph_cursor_and_play_ended_are_not_processing_commands() -> None:
     assert {
         "aqe:play",
@@ -253,6 +270,8 @@ def test_play_graph_cursor_and_play_ended_are_not_processing_commands() -> None:
         "aqe:settings",
         "aqe:redo",
         "aqe:trim-silence",
+        "aqe:convert",
+        "aqe:reduce-size",
     }.isdisjoint(PROCESSING_COMMANDS)
 
     assert "aqe:denoise-standard" in BRIDGE_COMMANDS

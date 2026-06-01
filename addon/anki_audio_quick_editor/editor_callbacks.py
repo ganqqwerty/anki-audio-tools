@@ -141,6 +141,7 @@ _rnnoise_async = _with_deps(editor_processing.rnnoise_async, _processing_deps)
 _dpdfnet_async = _with_deps(editor_processing.dpdfnet_async, _processing_deps)
 _voice_only_async = _with_deps(editor_processing.voice_only_async, _processing_deps)
 _pitch_hum_async = _with_deps(editor_processing.pitch_hum_async, _processing_deps)
+_reduce_size_async = _with_deps(editor_processing.reduce_size_async, _processing_deps)
 _run_special_audio_transform_async = _with_keyword_deps(
     editor_processing.run_special_audio_transform_async,
     _processing_deps,

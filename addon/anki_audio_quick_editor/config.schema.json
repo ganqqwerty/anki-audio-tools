@@ -38,6 +38,7 @@
     "pause_silero_min_speech_seconds",
     "pause_silero_preprocess_denoise",
     "output_format",
+    "size_reduction_mode",
     "ffmpeg_path",
     "deep_filter_post_filter",
     "dpdfnet_attn_limit_db",
@@ -96,6 +97,7 @@
           "aqe:show-file",
           "aqe:share",
           "aqe:convert",
+          "aqe:reduce-size",
           "aqe:remove-pauses",
           "aqe:denoise-standard",
           "aqe:pitch-hum",
@@ -121,6 +123,7 @@
           "aqe:show-file",
           "aqe:share",
           "aqe:convert",
+          "aqe:reduce-size",
           "aqe:remove-pauses",
           "aqe:denoise-standard",
           "aqe:pitch-hum",
@@ -236,6 +239,10 @@
     "output_format": {
       "type": "string",
       "enum": ["source", "mp3", "m4a", "wav", "flac"]
+    },
+    "size_reduction_mode": {
+      "type": "string",
+      "enum": ["gentle", "normal", "aggressive"]
     },
     "ffmpeg_path": {
       "type": "string"

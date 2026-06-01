@@ -4,6 +4,7 @@ import {
   formatDenoiseAlgorithm,
   formatOutputFormat,
   formatPauseDetectionAlgorithm,
+  formatSizeReductionMode,
   formatSpeedStep,
   formatVoiceRecordingCountdownSeconds,
   formatVolumeDb,
@@ -29,6 +30,7 @@ type SplitButtonValueState = {
   pauseDetectionAlgorithm: FieldSplitButtonState["pauseDetectionAlgorithm"];
   pitchHumMode: PitchHumMode;
   shareTarget: ShareTarget;
+  sizeReductionMode: FieldSplitButtonState["sizeReductionMode"];
   speedStep: number;
   voiceRecordingCountdownSeconds: number;
   volumeStepDb: number;
@@ -57,9 +59,13 @@ export function primaryTitle(
   button: ButtonSpec,
   outputFormat: OutputFormatValue,
   denoiseAlgorithm: DenoiseAlgorithm,
+  sizeReductionMode: FieldSplitButtonState["sizeReductionMode"],
 ): string {
   if (button.command === "aqe:convert") {
     return t("editor.command.convert.title", { format: formatOutputFormat(outputFormat) });
+  }
+  if (button.command === "aqe:reduce-size") {
+    return t("editor.command.reduce_size.title", { level: formatSizeReductionMode(sizeReductionMode) });
   }
   if (!isDenoiseCommand(button.command)) return button.title;
   return t("editor.command.denoise.title", { algorithm: formatDenoiseAlgorithm(denoiseAlgorithm) });
@@ -96,6 +102,7 @@ export function currentValueLabel(
     return `${level} · ${formatPauseDetectionAlgorithm(state.pauseDetectionAlgorithm)}`;
   }
   if (button.command === "aqe:convert") return formatOutputFormat(state.outputFormat);
+  if (button.command === "aqe:reduce-size") return formatSizeReductionMode(state.sizeReductionMode);
   if (button.command === "aqe:share") {
     return state.shareTarget === "litterbox" ? t("editor.share.target.litterbox") : t("editor.share.target.catbox");
   }

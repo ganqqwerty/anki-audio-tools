@@ -20,15 +20,16 @@ export type SettingsTab = "general" | "diagnostics";
 
 export const DEFAULT_VISIBLE_EDITOR_BUTTONS = [
   VisibleEditorButton.AqePlay,
-    VisibleEditorButton.AqeAnalyze,
-    VisibleEditorButton.AqeShowFile,
-    VisibleEditorButton.AqeShare,
-    VisibleEditorButton.AqeRemovePauses,
-    VisibleEditorButton.AqeDenoiseStandard,
-    VisibleEditorButton.AqeSlower,
-    VisibleEditorButton.AqeFaster,
-    VisibleEditorButton.AqeUndo,
-    VisibleEditorButton.AqeRedo,
+  VisibleEditorButton.AqeAnalyze,
+  VisibleEditorButton.AqeShowFile,
+  VisibleEditorButton.AqeShare,
+  VisibleEditorButton.AqeReduceSize,
+  VisibleEditorButton.AqeRemovePauses,
+  VisibleEditorButton.AqeDenoiseStandard,
+  VisibleEditorButton.AqeSlower,
+  VisibleEditorButton.AqeFaster,
+  VisibleEditorButton.AqeUndo,
+  VisibleEditorButton.AqeRedo,
   VisibleEditorButton.AqeSettings,
 ] as const satisfies readonly VisibleEditorButton[];
 
@@ -68,6 +69,7 @@ export const FALLBACK_INITIAL_STATE: InitialState = {
     pause_silero_min_speech_seconds: 0.1,
     pause_silero_preprocess_denoise: false,
     output_format: OutputFormat.Source,
+    size_reduction_mode: PauseAggressiveness.Normal,
     ffmpeg_path: "/opt/homebrew/bin/ffmpeg",
     deep_filter_post_filter: true,
     dpdfnet_attn_limit_db: 12.0,

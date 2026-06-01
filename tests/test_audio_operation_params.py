@@ -8,6 +8,7 @@ from anki_audio_quick_editor.audio_operations import (
     OP_DENOISE,
     OP_FASTER,
     OP_GRAPH,
+    OP_REDUCE_SIZE,
     OP_REMOVE_PAUSES,
     OP_VOLUME_UP,
 )
@@ -23,6 +24,7 @@ def test_parameters_from_raw_clamps_editor_matching_ranges() -> None:
         denoise_algorithm="invalid",
         dpdfnet_attn_limit_db=17.4,
         target_format=" FLAC ",
+        size_reduction_mode="invalid",
     )
 
     assert params.volume_step_db == 40.0
@@ -32,6 +34,7 @@ def test_parameters_from_raw_clamps_editor_matching_ranges() -> None:
     assert params.denoise_algorithm is None
     assert params.dpdfnet_attn_limit_db == 18.0
     assert params.target_format == "flac"
+    assert params.size_reduction_mode is None
 
 
 def test_effective_config_uses_volume_override_without_mutating_config() -> None:
@@ -152,3 +155,13 @@ def test_effective_config_uses_convert_target_format() -> None:
 
     assert effective.output_format == "flac"
     assert config.output_format == "mp3"
+
+
+def test_effective_config_uses_size_reduction_mode_override() -> None:
+    config = AudioProcessingConfig(size_reduction_mode="normal")
+    params = AudioOperationParameters(size_reduction_mode="aggressive")
+
+    effective = effective_config_for_operation(OP_REDUCE_SIZE, config, params)
+
+    assert effective.size_reduction_mode == "aggressive"
+    assert config.size_reduction_mode == "normal"

@@ -124,6 +124,7 @@ _rnnoise_async = editor_callbacks._rnnoise_async
 _dpdfnet_async = editor_callbacks._dpdfnet_async
 _voice_only_async = editor_callbacks._voice_only_async
 _pitch_hum_async = editor_callbacks._pitch_hum_async
+_reduce_size_async = editor_callbacks._reduce_size_async
 _run_special_audio_transform_async = editor_callbacks._run_special_audio_transform_async
 _delete_selection_from_frontend = editor_callbacks._delete_selection_from_frontend
 _delete_selection_with_request = editor_callbacks._delete_selection_with_request
@@ -278,6 +279,7 @@ def editor_injection_script(editor: Any, note: Any) -> str:
             "denoiseAlgorithm": str(config.get("denoise_algorithm", "standard")),
             "pitchHumMode": str(config.get("pitch_hum_mode", "direct")),
             "outputFormat": str(config.get("output_format", "source")),
+            "sizeReductionMode": str(config.get("size_reduction_mode", "normal")),
             "dpdfnetAttnLimitDb": float(config.get("dpdfnet_attn_limit_db", 12.0)),
             "graphVoiceRange": str(config.get("graph_voice_range", "general")),
             "graphRecordingCondition": str(config.get("graph_recording_condition", "auto")),
