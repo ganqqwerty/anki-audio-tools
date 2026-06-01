@@ -11,6 +11,7 @@
   import PlaySplitButton from "./PlaySplitButton.svelte";
   import SelectionToolbar from "./SelectionToolbar.svelte";
   import SplitButton from "./SplitButton.svelte";
+  import ZoomControls from "./ZoomControls.svelte";
   import {
     configureAudioClock,
     handleVisualizerPointerDown,
@@ -27,6 +28,7 @@
   import { notifyPostEditPlaybackReady } from "./post-edit-playback.js";
   import { PLOT } from "./plot.js";
   import type { ButtonSpec, FieldTarget } from "./types.js";
+  import { handleVisualizerWheelZoom, handleVisualizerZoomKeyDown } from "./zoom-actions.js";
 
   type ToolbarRenderItem =
     | { button: ButtonSpec; kind: "button" }
@@ -130,6 +132,18 @@
     }
     return items;
   }
+
+  function handleGraphKeyDown(event: KeyboardEvent): void {
+    const visualizer = visualizerForOrd(target.ord);
+    if (visualizer && handleVisualizerZoomKeyDown(event, visualizer)) return;
+    handleVisualizerKeyDown(event, target.ord);
+  }
+
+  function handleGraphWheel(event: WheelEvent): void {
+    const visualizer = visualizerForOrd(target.ord);
+    if (visualizer) handleVisualizerWheelZoom(event, visualizer);
+  }
+
   onMount(() => {
     const visualizer = visualizerForOrd(target.ord);
     if (!visualizer) return;
@@ -263,6 +277,8 @@
       data-cursor-ms="0"
       data-progress-ms="0"
       data-target-duration-ms="0"
+      data-viewport-start-ms="0"
+      data-viewport-end-ms="0"
       data-learner-duration-ms="0"
       data-learner-recording-status="idle"
       data-graph-active="false"
@@ -287,7 +303,7 @@
       role="button"
       aria-label={t("editor.graph.aria")}
       tabindex="0"
-      onkeydown={(event) => handleVisualizerKeyDown(event, target.ord)}
+      onkeydown={handleGraphKeyDown}
       hidden
     >
       <audio
@@ -296,6 +312,7 @@
         preload="metadata"
         hidden
       ></audio>
+      <ZoomControls {target} />
       <div class="aqe-visualizer-plot" data-testid={`aqe-visualizer-plot-${target.ord}`}>
         <div class="aqe-selection-region-preview-halo aqe-selection-region-preview-halo-top" aria-hidden="true"></div>
         <div class="aqe-selection-region-preview-halo aqe-selection-region-preview-halo-bottom" aria-hidden="true"></div>
@@ -307,7 +324,18 @@
           role="img"
           aria-label={t("editor.graph.image_aria")}
           onpointerdown={(event) => handleVisualizerPointerDown(event, target.ord)}
+          onwheel={handleGraphWheel}
         >
+      <defs>
+        <clipPath id={`aqe-plot-clip-${target.ord}`}>
+          <rect
+            x={PLOT.left}
+            y={PLOT.top}
+            width={PLOT.width - PLOT.left - PLOT.right}
+            height={PLOT.height - PLOT.top - PLOT.bottom}
+          ></rect>
+        </clipPath>
+      </defs>
       <rect
         class="aqe-selection"
         data-testid={`aqe-selection-${target.ord}`}
@@ -317,9 +345,22 @@
         height={PLOT.height - PLOT.top - PLOT.bottom}
         visibility="hidden"
       ></rect>
-      <path class="aqe-intensity" data-testid={`aqe-intensity-${target.ord}`} d=""></path>
-      <g class="aqe-pitch" data-testid={`aqe-pitch-${target.ord}`}></g>
-      <g class="aqe-learner-pitch" data-testid={`aqe-learner-pitch-${target.ord}`}></g>
+      <path
+        class="aqe-intensity"
+        data-testid={`aqe-intensity-${target.ord}`}
+        d=""
+        clip-path={`url(#aqe-plot-clip-${target.ord})`}
+      ></path>
+      <g
+        class="aqe-pitch"
+        data-testid={`aqe-pitch-${target.ord}`}
+        clip-path={`url(#aqe-plot-clip-${target.ord})`}
+      ></g>
+      <g
+        class="aqe-learner-pitch"
+        data-testid={`aqe-learner-pitch-${target.ord}`}
+        clip-path={`url(#aqe-plot-clip-${target.ord})`}
+      ></g>
       <g class="aqe-labels"></g>
       <g class="aqe-x-axis" data-testid={`aqe-x-axis-${target.ord}`}></g>
       <line

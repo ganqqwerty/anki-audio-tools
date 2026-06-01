@@ -10,6 +10,27 @@
   display: none;
 }
 
+.aqe-zoom-controls {
+  align-items: center;
+  display: flex;
+  gap: 4px;
+  justify-content: flex-end;
+  margin-top: 8px;
+  width: 100%;
+}
+
+.aqe-zoom-controls[hidden] {
+  display: none;
+}
+
+.aqe-zoom-button {
+  height: 26px;
+  min-height: 26px;
+  min-width: 26px;
+  padding: 0;
+  width: 26px;
+}
+
 .aqe-visualizer[data-has-track="false"] .aqe-visualizer-svg,
 .aqe-visualizer[data-has-track="false"] .aqe-cursor-label {
   display: none;

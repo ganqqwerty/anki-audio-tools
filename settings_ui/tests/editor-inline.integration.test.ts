@@ -8,7 +8,14 @@ import {
   scan,
 } from "../src/editor-inline/runtime.js";
 import { EditorButtonMode } from "../src/lib/types.js";
-import { muteConsole, renderFields } from "./editor-inline.integration.helpers.js";
+import {
+  dragGraphSelection,
+  graphClientX,
+  muteConsole,
+  renderFields,
+  setGraphBounds,
+  track,
+} from "./editor-inline.integration.helpers.js";
 
 describe("editor inline Svelte integration", () => {
   let restoreConsole: () => void;
@@ -146,6 +153,67 @@ describe("editor inline Svelte integration", () => {
     expect(document.querySelector('[data-testid="aqe-button-0-convert"]')).toBeInTheDocument();
     expect(document.querySelector('[data-testid="aqe-button-0-settings"]')).not.toBeInTheDocument();
     expect(document.querySelector('[data-testid="aqe-button-0-denoise-standard"]')).not.toBeInTheDocument();
+  });
+
+  it("zooms, fits, and zooms to selection from graph controls", async () => {
+    initializeEditorRuntime({ audioFieldIndices: [0] });
+    scan({ audioFieldIndices: [0] });
+    window.__aqeSetVisualizer?.(0, track, 500);
+    await Promise.resolve();
+    const svg = document.querySelector<SVGSVGElement>('[data-testid="aqe-graph-svg-0"]')!;
+    setGraphBounds(svg);
+
+    document.querySelector<HTMLButtonElement>('[data-testid="aqe-zoom-in-0"]')?.click();
+    let state = window.__aqeGraphStateForTest?.(0);
+    expect(state?.viewportStartMs).toBeGreaterThan(0);
+    expect(state?.viewportEndMs).toBeLessThan(track.durationMs);
+
+    document.querySelector<HTMLButtonElement>('[data-testid="aqe-zoom-fit-0"]')?.click();
+    state = window.__aqeGraphStateForTest?.(0);
+    expect(state?.viewportStartMs).toBe(0);
+    expect(state?.viewportEndMs).toBe(track.durationMs);
+
+    dragGraphSelection(svg, 0.25, 0.5);
+    await Promise.resolve();
+    document.querySelector<HTMLButtonElement>('[data-testid="aqe-zoom-selection-0"]')?.click();
+    state = window.__aqeGraphStateForTest?.(0);
+    expect(state?.viewportStartMs).toBeLessThanOrEqual(state?.selectionStartMs ?? 0);
+    expect(state?.viewportEndMs).toBeGreaterThanOrEqual(state?.selectionEndMs ?? 0);
+    expect((state?.viewportEndMs ?? 0) - (state?.viewportStartMs ?? 0)).toBeLessThan(track.durationMs);
+  });
+
+  it("uses graph wheel and keyboard gestures for horizontal zoom only", async () => {
+    initializeEditorRuntime({ audioFieldIndices: [0] });
+    scan({ audioFieldIndices: [0] });
+    window.__aqeSetVisualizer?.(0, track, 500);
+    await Promise.resolve();
+    const svg = document.querySelector<SVGSVGElement>('[data-testid="aqe-graph-svg-0"]')!;
+    setGraphBounds(svg);
+
+    svg.dispatchEvent(new WheelEvent("wheel", {
+      bubbles: true,
+      clientX: graphClientX(svg, 0.5),
+      ctrlKey: true,
+      deltaY: -100,
+    }));
+    let state = window.__aqeGraphStateForTest?.(0);
+    expect((state?.viewportEndMs ?? 0) - (state?.viewportStartMs ?? 0)).toBeLessThan(track.durationMs);
+
+    const beforePanStart = state?.viewportStartMs ?? 0;
+    svg.dispatchEvent(new WheelEvent("wheel", {
+      bubbles: true,
+      clientX: graphClientX(svg, 0.5),
+      deltaX: 100,
+      shiftKey: true,
+    }));
+    state = window.__aqeGraphStateForTest?.(0);
+    expect(state?.viewportStartMs).toBeGreaterThan(beforePanStart);
+
+    const visualizer = document.querySelector<HTMLElement>('[data-testid="aqe-graph-0"]')!;
+    visualizer.dispatchEvent(new KeyboardEvent("keydown", { bubbles: true, key: "0" }));
+    state = window.__aqeGraphStateForTest?.(0);
+    expect(state?.viewportStartMs).toBe(0);
+    expect(state?.viewportEndMs).toBe(track.durationMs);
   });
 
   it("mounts the share split button in the default toolbar", () => {
