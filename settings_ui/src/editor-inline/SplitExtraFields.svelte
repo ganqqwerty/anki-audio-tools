@@ -11,6 +11,7 @@
     PAUSE_DETECTION_ALGORITHM_VALUES,
     pauseDetectionAlgorithmOrDefault,
   } from "../lib/audio-operation-parameters.js";
+  import type { AudioSourceMetadataSummary } from "../lib/size-reduction-parameters.js";
   import PauseAdvancedParamsFields from "../lib/PauseAdvancedParamsFields.svelte";
   import SizeReductionAdvancedParamsFields from "../lib/SizeReductionAdvancedParamsFields.svelte";
   import {
@@ -72,6 +73,9 @@
     targetOrd: number;
   } = $props();
 
+  const sourceMetadata = $derived(window.__AQE_EDITOR_CONFIG__?.audioFieldMetadata?.[targetOrd]);
+  const sourceMetadataText = $derived(formatSourceMetadata(sourceMetadata));
+
   function applyDpdfnetAggressiveness(value: number): void {
     onDpdfnetAttnLimitDb(value);
     onChange();
@@ -126,6 +130,34 @@
       command === "aqe:dpdfnet" ||
       command === "aqe:voice-only"
     );
+  }
+
+  function formatSourceMetadata(metadata: AudioSourceMetadataSummary | undefined): string | null {
+    if (!metadata) return null;
+    return t("settings.size_reduction_source_metadata", {
+      bitRate: formatBitRate(metadata.bitRate),
+      sampleRate: formatSampleRate(metadata.sampleRate),
+      channels: formatChannels(metadata.channels),
+    });
+  }
+
+  function formatBitRate(value: number | null | undefined): string {
+    if (!isPositiveNumber(value)) return t("settings.size_reduction_source_metadata.unknown");
+    return `${Math.max(1, Math.round(value / 1000))} kbps`;
+  }
+
+  function formatSampleRate(value: number | null | undefined): string {
+    if (!isPositiveNumber(value)) return t("settings.size_reduction_source_metadata.unknown");
+    return `${Math.round(value)} Hz`;
+  }
+
+  function formatChannels(value: number | null | undefined): string {
+    if (!isPositiveNumber(value)) return t("settings.size_reduction_source_metadata.unknown");
+    return String(Math.round(value));
+  }
+
+  function isPositiveNumber(value: number | null | undefined): value is number {
+    return typeof value === "number" && Number.isFinite(value) && value > 0;
   }
 </script>
 
@@ -219,6 +251,7 @@
     onBitrateKbps={applySizeReductionBitrate}
     onSampleRateHz={applySizeReductionSampleRate}
     onChannels={applySizeReductionChannels}
+    {sourceMetadataText}
     testPrefix={`aqe-split-${targetOrd}-${slug}-size-reduction`}
   />
 {/if}

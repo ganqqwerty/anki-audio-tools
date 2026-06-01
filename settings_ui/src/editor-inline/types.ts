@@ -1,6 +1,6 @@
 import type { FrontendLogPayload, ProsodyPayload } from "../lib/generated/contracts.js";
 import type { OutputFormatValue } from "../lib/audio-operation-parameters.js";
-import type { SizeReductionMode } from "../lib/size-reduction-parameters.js";
+import type { AudioSourceMetadataSummary, SizeReductionMode } from "../lib/size-reduction-parameters.js";
 import type {
   EditorButtonModes,
   EditorCommand as SharedEditorCommand,
@@ -21,6 +21,7 @@ export type ButtonSpec = ToolbarButtonSpec;
 
 export interface EditorRuntimeConfig {
   audioFieldIndices: number[];
+  audioFieldMetadata?: Record<number, AudioSourceMetadataSummary>;
   audioFieldSources?: Record<number, string>;
   direction?: "ltr" | "rtl";
   initialStatusByField?: Record<number, { kind?: string; message: string }>;

@@ -419,6 +419,9 @@ describe("editor inline split-button command integration", () => {
   it("dispatches size reduction split payloads with advanced params", async () => {
     window.__AQE_EDITOR_CONFIG__ = {
       audioFieldIndices: [0],
+      audioFieldMetadata: {
+        0: { bitRate: 128000, sampleRate: 44100, channels: 2 },
+      },
       splitButtonDefaults: {
         denoiseAlgorithm: "standard",
         pauseAggressiveness: "normal",
@@ -438,6 +441,12 @@ describe("editor inline split-button command integration", () => {
     await Promise.resolve();
     const popover = document.querySelector<HTMLElement>('[data-testid="aqe-split-0-reduce-size-popover"]')!;
     expect(popover.querySelector('[data-testid="aqe-split-0-reduce-size-size-reduction-bitrate-kbps-help"]')).not.toBeNull();
+    const sourceMetadata = popover.querySelector<HTMLElement>(
+      '[data-testid="aqe-split-0-reduce-size-size-reduction-source-metadata"]',
+    )!;
+    expect(sourceMetadata).toHaveTextContent(
+      "Current: bit_rate 128 kbps, sample_rate 44100 Hz, channels 2",
+    );
     document.querySelector<HTMLButtonElement>('[data-testid="aqe-split-0-reduce-size-preset-gentle"]')!.click();
     const bitrateInput = document.querySelector<HTMLInputElement>(
       '[data-testid="aqe-split-0-reduce-size-size-reduction-bitrate-kbps"]',

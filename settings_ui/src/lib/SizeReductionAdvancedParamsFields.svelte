@@ -18,6 +18,7 @@
     onChannels?: (value: number) => void;
     onSampleRateHz?: (value: number) => void;
     sampleRateHz: number;
+    sourceMetadataText?: string | null;
     testPrefix?: string;
   }
 
@@ -30,6 +31,7 @@
     onChannels,
     onSampleRateHz,
     sampleRateHz = $bindable(),
+    sourceMetadataText = null,
     testPrefix = "size-reduction",
   }: Props = $props();
 
@@ -52,6 +54,14 @@
   data-testid={`${testPrefix}-advanced-params`}
 >
   <summary>{t("settings.pause_advanced_params")}</summary>
+  {#if sourceMetadataText}
+    <p
+      class="source-metadata"
+      data-testid={`${testPrefix}-source-metadata`}
+    >
+      {sourceMetadataText}
+    </p>
+  {/if}
   <div class="advanced-params-grid">
     <label>
       <div class="field-label-row">
@@ -159,6 +169,13 @@
     gap: 10px;
     grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
     margin-top: 10px;
+  }
+
+  .source-metadata {
+    color: var(--fg-muted, var(--fg-subtle, currentColor));
+    font-size: 0.75rem;
+    line-height: 1.35;
+    margin: 6px 0 0;
   }
 
   label {

@@ -119,6 +119,8 @@
   "settings.size_reduction_channels.help": "设置作为 -ac 传入的声道上限。单声道最省空间；立体声保留左右声道分离。",
   "settings.size_reduction_channels.mono": "单声道",
   "settings.size_reduction_channels.stereo": "立体声",
+  "settings.size_reduction_source_metadata": "当前：bit_rate {bitRate}，sample_rate {sampleRate}，声道 {channels}",
+  "settings.size_reduction_source_metadata.unknown": "未知",
   "settings.denoise_algorithm": "默认降噪算法",
   "settings.denoise_algorithm.standard": "标准",
   "settings.denoise_algorithm.rnnoise": "RNNoise 降噪",

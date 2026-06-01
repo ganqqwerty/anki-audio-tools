@@ -128,6 +128,8 @@
   "settings.size_reduction_channels.help": "Setzt die Kanal-Obergrenze, die als -ac übergeben wird. Mono spart am meisten Platz; Stereo erhält die Links-rechts-Trennung.",
   "settings.size_reduction_channels.mono": "Mono (1 Kanal)",
   "settings.size_reduction_channels.stereo": "Stereo (2 Kanäle)",
+  "settings.size_reduction_source_metadata": "Aktuell: bit_rate {bitRate}, sample_rate {sampleRate}, Kanäle {channels}",
+  "settings.size_reduction_source_metadata.unknown": "unbekannt",
   "settings.denoise_algorithm": "Standard-Entrauschungsalgorithmus",
   "settings.denoise_algorithm.standard": "Standardfilter",
   "settings.denoise_algorithm.standard.tooltip": "Allgemeine Bereinigung für alltägliche Hintergrundgeräusche.\nBeginne hier bei den meisten Aufnahmen.",

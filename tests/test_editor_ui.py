@@ -19,6 +19,7 @@ def test_injection_script_embeds_audio_field_indices_and_bundle() -> None:
     config = _embedded_config(script)
 
     assert config["audioFieldIndices"] == [1, 3]
+    assert config["audioFieldMetadata"] == {}
     assert config["audioFieldSources"] == {}
     assert config["pendingPostEditPlayback"] is None
     assert config["repeatPlaybackByDefault"] is True
@@ -101,6 +102,19 @@ def test_injection_script_embeds_audio_field_sources() -> None:
     script = injection_script([0, 2], audio_field_sources={0: "front.wav", 2: "back.mp3"})
 
     assert '"audioFieldSources": {"0": "front.wav", "2": "back.mp3"}' in script
+
+
+def test_injection_script_embeds_audio_field_metadata() -> None:
+    script = injection_script(
+        [0],
+        audio_field_metadata={
+            0: {"bitRate": 128000, "sampleRate": 44100, "channels": 2},
+        },
+    )
+
+    assert _embedded_config(script)["audioFieldMetadata"] == {
+        "0": {"bitRate": 128000, "sampleRate": 44100, "channels": 2},
+    }
 
 
 def test_injection_script_embeds_pending_post_edit_playback() -> None:

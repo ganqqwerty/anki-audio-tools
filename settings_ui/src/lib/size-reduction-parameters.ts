@@ -25,6 +25,12 @@ export interface SizeReductionAdvancedParams {
   channels: number;
 }
 
+export interface AudioSourceMetadataSummary {
+  bitRate?: number | null;
+  sampleRate?: number | null;
+  channels?: number | null;
+}
+
 export function isSizeReductionMode(value: unknown): value is SizeReductionMode {
   return typeof value === "string" && (SIZE_REDUCTION_MODE_VALUES as readonly string[]).includes(value);
 }

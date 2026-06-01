@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 import importlib
+import json
+import re
 from pathlib import Path
 from types import SimpleNamespace
 from unittest.mock import MagicMock
@@ -17,6 +19,7 @@ from anki_audio_quick_editor.editor_integration import (
     _handle_bridge_command,
     _initial_status_by_field,
     _set_busy,
+    editor_injection_script,
     register_editor_hooks,
 )
 
@@ -55,6 +58,43 @@ def test_audio_field_indices_are_detected_from_note_fields() -> None:
     note = SimpleNamespace(fields=["plain", "<b>[sound:first.mp3]</b>", "[sound:movie.mp4]"])
 
     assert _audio_field_indices(note) == [1]
+
+
+def test_editor_injection_script_embeds_source_audio_metadata(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    media_dir = tmp_path / "media"
+    media_dir.mkdir()
+    (media_dir / "clip.mp3").write_bytes(b"audio")
+    class Editor:
+        pass
+
+    editor = Editor()
+    editor.mw = SimpleNamespace(
+        col=SimpleNamespace(media=SimpleNamespace(dir=lambda: str(media_dir))),
+        addonManager=SimpleNamespace(
+            addonFromModule=lambda _module: "addon",
+            getConfig=lambda _addon: {},
+        )
+    )
+    note = SimpleNamespace(fields=["[sound:clip.mp3]"])
+    monkeypatch.setattr(
+        "anki_audio_quick_editor.editor_integration.probe_audio_metadata",
+        lambda _path, _config: SimpleNamespace(
+            bit_rate=128000,
+            sample_rate=44100,
+            channels=2,
+        ),
+    )
+
+    script = editor_injection_script(editor, note)
+
+    match = re.search(r"window\.__AQE_EDITOR_CONFIG__ = (?P<config>\{.*?\});", script)
+    assert match is not None
+    assert json.loads(match.group("config"))["audioFieldMetadata"] == {
+        "0": {"bitRate": 128000, "sampleRate": 44100, "channels": 2},
+    }
 
 
 def test_undo_history_restores_last_audio_modification_only() -> None:
