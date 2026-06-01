@@ -36,6 +36,9 @@ function form(overrides: Partial<BatchFormState> = {}): BatchFormState {
     dpdfnetAttnLimitDb: 12,
     targetFormat: "mp3",
     sizeReductionMode: "normal",
+    sizeReductionBitrateKbps: 64,
+    sizeReductionSampleRateHz: 32000,
+    sizeReductionChannels: 1,
     ...overrides,
   };
 }
@@ -168,12 +171,20 @@ describe("batch-state", () => {
       batchStartRequest(form({
         operation: BatchOperationName.ReduceSize,
         sizeReductionMode: "aggressive",
+        sizeReductionBitrateKbps: 40,
+        sizeReductionSampleRateHz: 22050,
+        sizeReductionChannels: 1,
       }), reduceSize),
     ).toEqual({
       operation: BatchOperationName.ReduceSize,
       source_field: "Audio",
       target_field: null,
-      parameters: { size_reduction_mode: "aggressive" },
+      parameters: {
+        size_reduction_bitrate_kbps: 40,
+        size_reduction_channels: 1,
+        size_reduction_mode: "aggressive",
+        size_reduction_sample_rate_hz: 22050,
+      },
     });
   });
 });

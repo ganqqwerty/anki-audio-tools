@@ -161,10 +161,15 @@ def test_decode_command_accepts_convert_target_format_override() -> None:
 
 def test_decode_command_accepts_size_reduction_mode_override() -> None:
     decoded = decode_editor_command_payload(
-        '{"command":"aqe:reduce-size","fieldOrd":0,"overrides":{"sizeReductionMode":"gentle"}}'
+        '{"command":"aqe:reduce-size","fieldOrd":0,'
+        '"overrides":{"sizeReductionMode":"gentle","sizeReductionBitrateKbps":80,'
+        '"sizeReductionSampleRateHz":44100,"sizeReductionChannels":2}}'
     )
 
     assert decoded.overrides.size_reduction_mode == "gentle"
+    assert decoded.overrides.size_reduction_bitrate_kbps == 80
+    assert decoded.overrides.size_reduction_sample_rate_hz == 44100
+    assert decoded.overrides.size_reduction_channels == 2
 
 
 def test_decode_command_accepts_pitch_hum_mode_override() -> None:

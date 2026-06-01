@@ -160,7 +160,13 @@ def render_size_reduced_audio(
     """Re-encode ``source_path`` to MP3 with source-aware smaller settings."""
     ffmpeg_path = find_ffmpeg(config.ffmpeg_path)
     metadata = probe_audio_metadata(source_path, config)
-    plan = size_reduction_plan_from_metadata(metadata, mode or config.size_reduction_mode)
+    plan = size_reduction_plan_from_metadata(
+        metadata,
+        mode or config.size_reduction_mode,
+        bitrate_kbps=config.size_reduction_bitrate_kbps,
+        sample_rate_hz=config.size_reduction_sample_rate_hz,
+        channels=config.size_reduction_channels,
+    )
     if output_path is None:
         output_path = Path(tempfile.mkstemp(prefix="aqe_smaller_", suffix=".mp3")[1])
 

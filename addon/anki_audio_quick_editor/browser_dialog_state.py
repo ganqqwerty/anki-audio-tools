@@ -67,6 +67,9 @@ def build_batch_initial_state(
             "dpdfnet_attn_limit_db": config.dpdfnet_attn_limit_db,
             "output_format": config.output_format,
             "size_reduction_mode": config.size_reduction_mode,
+            "size_reduction_bitrate_kbps": config.size_reduction_bitrate_kbps,
+            "size_reduction_sample_rate_hz": config.size_reduction_sample_rate_hz,
+            "size_reduction_channels": config.size_reduction_channels,
         },
         "locale": i18n["locale"],
         "direction": i18n["direction"],
@@ -95,6 +98,9 @@ def request_from_batch_start_payload(raw_payload: object) -> BatchRunRequest:
             dpdfnet_attn_limit_db=params.get("dpdfnet_attn_limit_db"),
             target_format=params.get("target_format"),
             size_reduction_mode=params.get("size_reduction_mode"),
+            size_reduction_bitrate_kbps=params.get("size_reduction_bitrate_kbps"),
+            size_reduction_sample_rate_hz=params.get("size_reduction_sample_rate_hz"),
+            size_reduction_channels=params.get("size_reduction_channels"),
         ),
     )
 

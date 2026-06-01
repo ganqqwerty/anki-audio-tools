@@ -12,6 +12,7 @@
     pauseDetectionAlgorithmOrDefault,
   } from "../lib/audio-operation-parameters.js";
   import PauseAdvancedParamsFields from "../lib/PauseAdvancedParamsFields.svelte";
+  import SizeReductionAdvancedParamsFields from "../lib/SizeReductionAdvancedParamsFields.svelte";
   import {
     formatDpdfnetAggressiveness,
     formatPauseDetectionAlgorithm,
@@ -32,11 +33,17 @@
     onPauseMinSpeechSeconds,
     onPausePreprocessDenoise,
     onPauseThreshold,
+    onSizeReductionBitrateKbps,
+    onSizeReductionChannels,
+    onSizeReductionSampleRateHz,
     pauseMinSilenceSeconds,
     pauseMinSpeechSeconds,
     pausePreprocessDenoise,
     pauseThreshold,
     pauseDetectionAlgorithm,
+    sizeReductionBitrateKbps,
+    sizeReductionChannels,
+    sizeReductionSampleRateHz,
     slug,
     targetOrd,
   }: {
@@ -50,11 +57,17 @@
     onPauseMinSpeechSeconds: (value: number) => void;
     onPausePreprocessDenoise: (value: boolean) => void;
     onPauseThreshold: (value: number) => void;
+    onSizeReductionBitrateKbps: (value: number) => void;
+    onSizeReductionChannels: (value: number) => void;
+    onSizeReductionSampleRateHz: (value: number) => void;
     pauseMinSilenceSeconds: number;
     pauseMinSpeechSeconds: number;
     pausePreprocessDenoise: boolean;
     pauseThreshold: number;
     pauseDetectionAlgorithm: PauseDetectionAlgorithm;
+    sizeReductionBitrateKbps: number;
+    sizeReductionChannels: number;
+    sizeReductionSampleRateHz: number;
     slug: string;
     targetOrd: number;
   } = $props();
@@ -88,6 +101,21 @@
 
   function applyPausePreprocessDenoise(value: boolean): void {
     onPausePreprocessDenoise(value);
+    onChange();
+  }
+
+  function applySizeReductionBitrate(value: number): void {
+    onSizeReductionBitrateKbps(value);
+    onChange();
+  }
+
+  function applySizeReductionSampleRate(value: number): void {
+    onSizeReductionSampleRateHz(value);
+    onChange();
+  }
+
+  function applySizeReductionChannels(value: number): void {
+    onSizeReductionChannels(value);
     onChange();
   }
 
@@ -180,5 +208,17 @@
     onMinSpeechSeconds={applyPauseMinSpeechSeconds}
     onPreprocessDenoise={applyPausePreprocessDenoise}
     testPrefix={`aqe-split-${targetOrd}-${slug}-pause`}
+  />
+{/if}
+{#if command === "aqe:reduce-size"}
+  <SizeReductionAdvancedParamsFields
+    compact={true}
+    bitrateKbps={sizeReductionBitrateKbps}
+    sampleRateHz={sizeReductionSampleRateHz}
+    channels={sizeReductionChannels}
+    onBitrateKbps={applySizeReductionBitrate}
+    onSampleRateHz={applySizeReductionSampleRate}
+    onChannels={applySizeReductionChannels}
+    testPrefix={`aqe-split-${targetOrd}-${slug}-size-reduction`}
   />
 {/if}

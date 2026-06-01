@@ -16,11 +16,17 @@ import {
   clampVolumeStepDb,
   outputFormatOrDefault,
   pauseDetectionAlgorithmOrDefault,
-  sizeReductionModeOrDefault,
   type OutputFormatValue,
   type PauseDetectionAlgorithmValue,
-  type SizeReductionMode as SizeReductionModeValue,
 } from "$lib/audio-operation-parameters.js";
+import {
+  clampSizeReductionBitrateKbps,
+  clampSizeReductionChannels,
+  clampSizeReductionSampleRateHz,
+  sizeReductionPreset,
+  sizeReductionModeOrDefault,
+  type SizeReductionMode as SizeReductionModeValue,
+} from "$lib/size-reduction-parameters.js";
 import type {
   BatchInitialState,
   BatchOperationOption,
@@ -47,6 +53,9 @@ export interface BatchFormState {
   dpdfnetAttnLimitDb: number;
   targetFormat: OutputFormatValue;
   sizeReductionMode: SizeReductionModeValue;
+  sizeReductionBitrateKbps: number;
+  sizeReductionSampleRateHz: number;
+  sizeReductionChannels: number;
 }
 
 export const FALLBACK_BATCH_INITIAL_STATE: BatchInitialState = {
@@ -134,6 +143,9 @@ export const FALLBACK_BATCH_INITIAL_STATE: BatchInitialState = {
     dpdfnet_attn_limit_db: 12,
     output_format: OutputFormat.Source,
     size_reduction_mode: BatchPauseAggressiveness.Normal,
+    size_reduction_bitrate_kbps: 64,
+    size_reduction_sample_rate_hz: 32000,
+    size_reduction_channels: 1,
   },
   locale: "en",
   direction: Direction.LTR,
@@ -167,6 +179,13 @@ export function initialFormState(state: BatchInitialState): BatchFormState {
     dpdfnetAttnLimitDb: clampDpdfnetAttnLimitDb(state.defaults.dpdfnet_attn_limit_db),
     targetFormat: outputFormatOrDefault(state.defaults.output_format),
     sizeReductionMode: sizeReductionModeOrDefault(state.defaults.size_reduction_mode),
+    sizeReductionBitrateKbps: clampSizeReductionBitrateKbps(
+      state.defaults.size_reduction_bitrate_kbps,
+    ),
+    sizeReductionSampleRateHz: clampSizeReductionSampleRateHz(
+      state.defaults.size_reduction_sample_rate_hz,
+    ),
+    sizeReductionChannels: clampSizeReductionChannels(state.defaults.size_reduction_channels),
   };
 }
 
@@ -225,8 +244,25 @@ export function batchStartRequest(
     request.parameters.size_reduction_mode = sizeReductionModeOrDefault(
       form.sizeReductionMode,
     ) as BatchPauseAggressiveness;
+    request.parameters.size_reduction_bitrate_kbps = clampSizeReductionBitrateKbps(
+      form.sizeReductionBitrateKbps,
+    );
+    request.parameters.size_reduction_sample_rate_hz = clampSizeReductionSampleRateHz(
+      form.sizeReductionSampleRateHz,
+    );
+    request.parameters.size_reduction_channels = clampSizeReductionChannels(
+      form.sizeReductionChannels,
+    );
   }
   return request;
+}
+
+export function applyBatchSizeReductionPreset(form: BatchFormState, value: SizeReductionModeValue): void {
+  const preset = sizeReductionPreset(value);
+  form.sizeReductionMode = value;
+  form.sizeReductionBitrateKbps = preset.bitrateKbps;
+  form.sizeReductionSampleRateHz = preset.sampleRateHz;
+  form.sizeReductionChannels = preset.channels;
 }
 
 export function activeBatchPauseAlgorithm(form: BatchFormState): PauseDetectionAlgorithmValue {

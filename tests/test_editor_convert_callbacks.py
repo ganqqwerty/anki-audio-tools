@@ -239,7 +239,7 @@ def test_reduce_size_replaces_current_media_as_mp3(tmp_path: Path, monkeypatch) 
 
 def test_reduce_size_uses_payload_mode_override(tmp_path: Path, monkeypatch) -> None:
     editor, source = _setup_editor(tmp_path, config={"size_reduction_mode": "normal"})
-    rendered: list[tuple[Path, str, str]] = []
+    rendered: list[tuple[Path, str, str, int, int, int]] = []
 
     def fake_render_size_reduced_audio(
         source_path: Path,
@@ -247,7 +247,16 @@ def test_reduce_size_uses_payload_mode_override(tmp_path: Path, monkeypatch) -> 
         output_path: Path,
         **kwargs,
     ) -> None:
-        rendered.append((source_path, config.size_reduction_mode, kwargs["mode"]))
+        rendered.append(
+            (
+                source_path,
+                config.size_reduction_mode,
+                kwargs["mode"],
+                config.size_reduction_bitrate_kbps,
+                config.size_reduction_sample_rate_hz,
+                config.size_reduction_channels,
+            )
+        )
         output_path.write_bytes(b"smaller")
 
     _patch_common(monkeypatch)
@@ -267,7 +276,53 @@ def test_reduce_size_uses_payload_mode_override(tmp_path: Path, monkeypatch) -> 
         ),
     )
 
-    assert rendered == [(source, "normal", "aggressive")]
+    assert rendered == [(source, "aggressive", "aggressive", 40, 22050, 1)]
+
+
+def test_reduce_size_uses_payload_advanced_overrides(tmp_path: Path, monkeypatch) -> None:
+    editor, source = _setup_editor(tmp_path, config={"size_reduction_mode": "normal"})
+    rendered: list[tuple[Path, str, int, int, int]] = []
+
+    def fake_render_size_reduced_audio(
+        source_path: Path,
+        config: AudioProcessingConfig,
+        output_path: Path,
+        **_kwargs,
+    ) -> None:
+        rendered.append(
+            (
+                source_path,
+                config.size_reduction_mode,
+                config.size_reduction_bitrate_kbps,
+                config.size_reduction_sample_rate_hz,
+                config.size_reduction_channels,
+            )
+        )
+        output_path.write_bytes(b"smaller")
+
+    _patch_common(monkeypatch)
+    monkeypatch.setattr(
+        "anki_audio_quick_editor.editor_dependencies.render_size_reduced_audio",
+        fake_render_size_reduced_audio,
+    )
+
+    _handle_bridge_command(
+        editor,
+        json.dumps(
+            {
+                "command": "aqe:reduce-size",
+                "fieldOrd": 0,
+                "overrides": {
+                    "sizeReductionMode": "gentle",
+                    "sizeReductionBitrateKbps": 80,
+                    "sizeReductionSampleRateHz": 44100,
+                    "sizeReductionChannels": 2,
+                },
+            }
+        ),
+    )
+
+    assert rendered == [(source, "gentle", 80, 44100, 2)]
 
 
 def test_reduce_size_already_compact_is_noop(tmp_path: Path, monkeypatch) -> None:

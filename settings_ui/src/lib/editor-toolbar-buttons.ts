@@ -1,11 +1,10 @@
 import {
   formatDpdfnetAggressiveness,
   formatOutputFormat,
-  formatSizeReductionMode,
   outputFormatOrDefault,
-  sizeReductionModeOrDefault,
 } from "./audio-operation-parameters.js";
 import { t } from "./i18n.js";
+import { formatSizeReductionMode, sizeReductionModeOrDefault } from "./size-reduction-parameters.js";
 import type { CommandIconName } from "./icon-types.js";
 import { EditorButtonMode } from "./types.js";
 

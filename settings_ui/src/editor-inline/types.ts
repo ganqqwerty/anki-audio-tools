@@ -1,5 +1,6 @@
 import type { FrontendLogPayload, ProsodyPayload } from "../lib/generated/contracts.js";
-import type { OutputFormatValue, SizeReductionMode } from "../lib/audio-operation-parameters.js";
+import type { OutputFormatValue } from "../lib/audio-operation-parameters.js";
+import type { SizeReductionMode } from "../lib/size-reduction-parameters.js";
 import type {
   EditorButtonModes,
   EditorCommand as SharedEditorCommand,
@@ -48,6 +49,9 @@ export interface SplitButtonDefaults {
   graphVoiceRange?: GraphVoiceRange;
   outputFormat?: OutputFormatValue;
   sizeReductionMode?: SizeReductionMode;
+  sizeReductionBitrateKbps?: number;
+  sizeReductionSampleRateHz?: number;
+  sizeReductionChannels?: number;
   pauseAggressiveness: "gentle" | "normal" | "aggressive";
   pauseDetectionAlgorithm?: PauseDetectionAlgorithm;
   pauseSilencedetectThresholdDb?: number;
@@ -84,6 +88,9 @@ export interface EditorCommandPayload {
     pausePreprocessDenoise?: boolean;
     pitchHumMode?: PitchHumMode;
     sizeReductionMode?: SizeReductionMode;
+    sizeReductionBitrateKbps?: number;
+    sizeReductionSampleRateHz?: number;
+    sizeReductionChannels?: number;
     speedStep?: number;
     targetFormat?: OutputFormatValue;
     volumeStepDb?: number;
@@ -113,6 +120,9 @@ export interface FieldSplitButtonState {
   defaultPitchHumMode: PitchHumMode;
   defaultRepeatPauseSeconds: number;
   defaultSizeReductionMode: SizeReductionMode;
+  defaultSizeReductionBitrateKbps: number;
+  defaultSizeReductionSampleRateHz: number;
+  defaultSizeReductionChannels: number;
   defaultSpeedStep: number;
   defaultVoiceRecordingCountdownSeconds: number;
   defaultVolumeStepDb: number;
@@ -147,6 +157,9 @@ export interface FieldSplitButtonState {
   shareTarget: "catbox" | "litterbox";
   sizeReductionEdited: boolean;
   sizeReductionMode: SizeReductionMode;
+  sizeReductionBitrateKbps: number;
+  sizeReductionSampleRateHz: number;
+  sizeReductionChannels: number;
   speedEdited: boolean;
   speedStep: number;
   voiceRecordingCountdownEdited: boolean;

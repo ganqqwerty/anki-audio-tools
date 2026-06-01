@@ -131,6 +131,31 @@ class TestMigrateConfig:
         assert migrated["_config_version"] == CURRENT_CONFIG_VERSION
         assert changed is True
 
+    def test_normalizes_size_reduction_encoder_params(self) -> None:
+        user = {
+            "_config_version": 20,
+            "enabled": True,
+            "size_reduction_mode": "gentle",
+            "size_reduction_bitrate_kbps": 999,
+            "size_reduction_sample_rate_hz": 12345,
+            "size_reduction_channels": 7,
+        }
+        defaults = {
+            "_config_version": CURRENT_CONFIG_VERSION,
+            "enabled": True,
+            "size_reduction_mode": "normal",
+            "size_reduction_bitrate_kbps": 64,
+            "size_reduction_sample_rate_hz": 32000,
+            "size_reduction_channels": 1,
+        }
+
+        migrated, changed = migrate_config(user, defaults)
+
+        assert migrated["size_reduction_bitrate_kbps"] == 320
+        assert migrated["size_reduction_sample_rate_hz"] == 12000
+        assert migrated["size_reduction_channels"] == 2
+        assert changed is True
+
     def test_picks_up_show_graph_default(self) -> None:
         user = {"_config_version": 8, "enabled": True}
         defaults = {

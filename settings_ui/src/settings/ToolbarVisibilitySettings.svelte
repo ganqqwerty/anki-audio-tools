@@ -7,18 +7,15 @@
     pauseDetectionAlgorithmTooltip,
     pitchHumModeTooltip,
     shareTargetTooltip,
-    sizeReductionModeTooltip,
   } from "$lib/audio-option-tooltips.js";
   import {
     DPDFNET_ATTENUATION_LIMIT_DB_VALUES,
     formatDpdfnetAggressiveness,
     formatPauseAggressiveness,
     formatPauseDetectionAlgorithm,
-    formatSizeReductionMode,
     pauseDetectionAlgorithmOrDefault,
     pausePreset,
     PAUSE_DETECTION_ALGORITHM_VALUES,
-    SIZE_REDUCTION_MODE_VALUES,
   } from "$lib/audio-operation-parameters.js";
   import {
     buttonDisplayMode,
@@ -34,6 +31,7 @@
   import ButtonSettingsCard from "./ButtonSettingsCard.svelte";
   import GraphSettingsFields from "./GraphSettingsFields.svelte";
   import OutputFormatField from "./OutputFormatField.svelte";
+  import SettingsSizeReductionFields from "./SettingsSizeReductionFields.svelte";
   import SettingsChoiceGroup from "./SettingsChoiceGroup.svelte";
   import SettingsHiddenWarning from "./SettingsHiddenWarning.svelte";
 
@@ -114,6 +112,7 @@
     config.pause_silencedetect_min_speech_seconds = preset.minSpeechSeconds;
     config.pause_silencedetect_preprocess_denoise = preset.preprocessDenoise;
   }
+
 </script>
 
 <section class="toolbar-visibility settings-section" aria-labelledby="toolbar-visibility-title">
@@ -207,20 +206,7 @@
         {:else if button.command === "aqe:convert"}
           <OutputFormatField bind:config />
         {:else if button.command === "aqe:reduce-size"}
-          <label class="settings-field">
-            <span>{t("settings.size_reduction_mode")}</span>
-            <SettingsChoiceGroup
-              ariaLabel={t("settings.size_reduction_mode")}
-              options={SIZE_REDUCTION_MODE_VALUES.map((value) => ({
-                label: formatSizeReductionMode(value),
-                tooltip: choiceTooltip(formatSizeReductionMode(value), sizeReductionModeTooltip(value)),
-                value,
-              }))}
-              testId="size-reduction-mode"
-              value={config.size_reduction_mode}
-              onSelect={(value) => (config.size_reduction_mode = value as Config["size_reduction_mode"])}
-            />
-          </label>
+          <SettingsSizeReductionFields bind:config />
         {:else if button.command === "aqe:remove-pauses"}
           <label class="settings-field">
             <span>{t("settings.pause_detection_algorithm")}</span>

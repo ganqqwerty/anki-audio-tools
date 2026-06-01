@@ -416,4 +416,46 @@ describe("editor inline split-button command integration", () => {
     });
   });
 
+  it("dispatches size reduction split payloads with advanced params", async () => {
+    window.__AQE_EDITOR_CONFIG__ = {
+      audioFieldIndices: [0],
+      splitButtonDefaults: {
+        denoiseAlgorithm: "standard",
+        pauseAggressiveness: "normal",
+        repeatPauseSeconds: 0,
+        sizeReductionMode: "normal",
+        sizeReductionBitrateKbps: 64,
+        sizeReductionSampleRateHz: 32000,
+        sizeReductionChannels: 1,
+        speedStep: 1.5,
+        volumeStepDb: 15,
+      },
+    };
+    initializeEditorRuntime(window.__AQE_EDITOR_CONFIG__);
+    scan(window.__AQE_EDITOR_CONFIG__);
+
+    document.querySelector<HTMLButtonElement>('[data-testid="aqe-split-0-reduce-size-menu"]')!.click();
+    await Promise.resolve();
+    const popover = document.querySelector<HTMLElement>('[data-testid="aqe-split-0-reduce-size-popover"]')!;
+    expect(popover.querySelector('[data-testid="aqe-split-0-reduce-size-size-reduction-bitrate-kbps-help"]')).not.toBeNull();
+    document.querySelector<HTMLButtonElement>('[data-testid="aqe-split-0-reduce-size-preset-gentle"]')!.click();
+    const bitrateInput = document.querySelector<HTMLInputElement>(
+      '[data-testid="aqe-split-0-reduce-size-size-reduction-bitrate-kbps"]',
+    )!;
+    bitrateInput.value = "80";
+    bitrateInput.dispatchEvent(new Event("input", { bubbles: true }));
+    document.querySelector<HTMLButtonElement>('[data-testid="aqe-button-0-reduce-size"]')!.click();
+
+    expect(window.__aqePendingCommandPayload).toMatchObject({
+      command: "aqe:reduce-size",
+      fieldOrd: 0,
+      overrides: {
+        sizeReductionMode: "gentle",
+        sizeReductionBitrateKbps: 80,
+        sizeReductionSampleRateHz: 44100,
+        sizeReductionChannels: 2,
+      },
+    });
+  });
+
 });

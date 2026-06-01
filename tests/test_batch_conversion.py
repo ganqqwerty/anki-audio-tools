@@ -108,7 +108,7 @@ def test_process_note_batch_operation_reduces_audio_size_to_mp3(
     source = tmp_path / "clip.wav"
     source.write_bytes(b"audio")
     note = BatchNoteSnapshot(10, "Basic", {"Audio": "before [sound:clip.wav] after"})
-    reduce_calls: list[tuple[str, str, str, str]] = []
+    reduce_calls: list[tuple[str, str, str, int, int, int, str]] = []
     writes: list[tuple[str, bytes]] = []
 
     def fake_render_size_reduced_audio(
@@ -122,7 +122,17 @@ def test_process_note_batch_operation_reduces_audio_size_to_mp3(
         del on_command
         assert output_path is not None
         output_path.write_bytes(b"smaller")
-        reduce_calls.append((source_path.name, config.size_reduction_mode, mode, output_path.suffix))
+        reduce_calls.append(
+            (
+                source_path.name,
+                config.size_reduction_mode,
+                mode,
+                config.size_reduction_bitrate_kbps,
+                config.size_reduction_sample_rate_hz,
+                config.size_reduction_channels,
+                output_path.suffix,
+            )
+        )
 
     monkeypatch.setattr(
         "anki_audio_quick_editor.batch_operations.render_size_reduced_audio",
@@ -138,7 +148,12 @@ def test_process_note_batch_operation_reduces_audio_size_to_mp3(
         request=BatchRunRequest(
             operation=OP_REDUCE_SIZE,
             source_field="Audio",
-            parameters=AudioOperationParameters(size_reduction_mode="aggressive"),
+            parameters=AudioOperationParameters(
+                size_reduction_mode="aggressive",
+                size_reduction_bitrate_kbps=32,
+                size_reduction_sample_rate_hz=16000,
+                size_reduction_channels=1,
+            ),
         ),
         media_dir=tmp_path,
         config=AudioProcessingConfig(size_reduction_mode="normal"),
@@ -149,7 +164,7 @@ def test_process_note_batch_operation_reduces_audio_size_to_mp3(
     assert result.written_filename is not None
     assert result.written_filename.endswith(".mp3")
     assert result.written_filename in result.target_html
-    assert reduce_calls == [("clip.wav", "aggressive", "aggressive", ".mp3")]
+    assert reduce_calls == [("clip.wav", "aggressive", "aggressive", 32, 16000, 1, ".mp3")]
     assert writes[0][0].endswith(".mp3")
     assert writes[0][1] == b"smaller"
 

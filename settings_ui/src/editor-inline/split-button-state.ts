@@ -32,8 +32,10 @@ import {
   syncPauseAdvancedDefaults,
 } from "./pause-split-state.js";
 import {
-  applyPromotedSizeReductionDefaultsToState, defaultSizeReductionModeFromDefaults, setSizeReductionModeOnState,
-  syncSizeReductionState, type SizeReductionMode,
+  applyPromotedSizeReductionDefaultsToState,
+  defaultSizeReductionModeFromDefaults,
+  sizeReductionAdvancedDefaults,
+  syncSizeReductionState,
 } from "./size-reduction-split-state.js";
 export {
   clampRepeatPauseSeconds,
@@ -45,10 +47,10 @@ export {
   formatPauseDetectionAlgorithm,
   formatDpdfnetAggressiveness,
   formatRepeatPauseSeconds,
-  formatSizeReductionMode,
   formatSpeedStep,
   formatVolumeDb,
 } from "../lib/audio-operation-parameters.js";
+export { formatSizeReductionMode } from "../lib/size-reduction-parameters.js";
 export { formatDenoiseAlgorithm, formatPitchHumMode, formatShareTarget } from "./split-button-formatters.js";
 
 type CompleteSplitButtonDefaults = Required<SplitButtonDefaults>;
@@ -60,6 +62,9 @@ const DEFAULTS: CompleteSplitButtonDefaults = {
   ...defaultGraphSplitValues(),
   outputFormat: DEFAULT_OUTPUT_FORMAT,
   sizeReductionMode: "normal",
+  sizeReductionBitrateKbps: 64,
+  sizeReductionSampleRateHz: 32000,
+  sizeReductionChannels: 1,
   pauseAggressiveness: "normal",
   pauseDetectionAlgorithm: "silencedetect",
   pauseSilencedetectThresholdDb: -45,
@@ -118,6 +123,7 @@ export function getSplitButtonState(ord: number): FieldSplitButtonState {
   const defaultGraphVoiceRange = graphVoiceRangeOrDefault(defaults.graphVoiceRange);
   const defaultOutputFormat = outputFormatOrDefault(defaults.outputFormat);
   const defaultSizeReductionMode = defaultSizeReductionModeFromDefaults(defaults);
+  const defaultSizeReductionParams = sizeReductionAdvancedDefaults(defaults);
   const defaultVolumeStepDb = clampVolumeStepDb(defaults.volumeStepDb);
   const defaultSpeedStep = clampSpeedStep(defaults.speedStep);
   const defaultRepeatPauseSeconds = clampRepeatPauseSeconds(defaults.repeatPauseSeconds);
@@ -151,7 +157,7 @@ export function getSplitButtonState(ord: number): FieldSplitButtonState {
       runtimeState.shareTarget = defaultShareTarget;
       existing.shareEdited = false;
     }
-    syncSizeReductionState(existing, defaultSizeReductionMode);
+    syncSizeReductionState(existing, defaultSizeReductionMode, defaultSizeReductionParams);
     if (
       runtimeState.pauseDetectionAlgorithm !== "silencedetect" &&
       runtimeState.pauseDetectionAlgorithm !== "silero_vad"
@@ -250,6 +256,7 @@ export function getSplitButtonState(ord: number): FieldSplitButtonState {
     defaultGraphVoiceRange,
     defaultOutputFormat,
     defaultSizeReductionMode,
+    ...defaultSizeReductionParams,
     ...pauseDefaults,
     defaultPitchHumMode,
     defaultRepeatPauseSeconds,
@@ -270,6 +277,9 @@ export function getSplitButtonState(ord: number): FieldSplitButtonState {
     outputFormatEdited: false,
     sizeReductionEdited: false,
     sizeReductionMode: defaultSizeReductionMode,
+    sizeReductionBitrateKbps: defaultSizeReductionParams.defaultSizeReductionBitrateKbps,
+    sizeReductionSampleRateHz: defaultSizeReductionParams.defaultSizeReductionSampleRateHz,
+    sizeReductionChannels: defaultSizeReductionParams.defaultSizeReductionChannels,
     ...pauseFieldValuesFromDefaults(pauseDefaults),
     pauseEdited: false,
     pitchHumEdited: false,
@@ -477,24 +487,14 @@ export function setShareTargetForField(ord: number, value: ShareTarget): FieldSp
   state.shareTarget = value;
   return state;
 }
-
-export function setSizeReductionModeForField(ord: number, value: SizeReductionMode): FieldSplitButtonState {
-  const state = getSplitButtonState(ord);
-  setSizeReductionModeOnState(state, value);
-  return state;
-}
-
 export function setOutputFormatForField(ord: number, value: unknown): FieldSplitButtonState {
   const state = getSplitButtonState(ord);
   state.outputFormatEdited = true;
   state.outputFormat = outputFormatOrDefault(value);
   return state;
 }
-
 export function buildSplitCommandPayload(command: EditorCommand, ord: number): EditorCommandPayload {
   return buildSplitCommandPayloadFromState(command, ord, getSplitButtonState(ord));
 }
-
-export function buildSplitDefaultSaveRequest(command: EditorCommand, ord: number): SplitDefaultSaveRequest {
-  return buildSplitDefaultSaveRequestFromState(command, ord, getSplitButtonState(ord));
-}
+export const buildSplitDefaultSaveRequest = (command: EditorCommand, ord: number): SplitDefaultSaveRequest =>
+  buildSplitDefaultSaveRequestFromState(command, ord, getSplitButtonState(ord));

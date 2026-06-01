@@ -1,5 +1,4 @@
 <script lang="ts">
-  import AqeTooltip from "../lib/AqeTooltip.svelte";
   import { t } from "../lib/i18n.js";
   import {
     formatDenoiseAlgorithm,
@@ -18,11 +17,11 @@
     splitMenuDescription,
     splitMenuVideoLink,
     splitOptionLabel,
-    splitOptionTooltip,
     splitOptionValues,
   } from "./split-menu-content.js";
   import SplitDefaultSaveButton from "./SplitDefaultSaveButton.svelte";
   import SplitExtraFields from "./SplitExtraFields.svelte";
+  import SplitValuePresetGrid from "./SplitValuePresetGrid.svelte";
   import SplitRunButtons from "./SplitRunButtons.svelte";
   import type { ButtonSpec, FieldSplitButtonState } from "./types.js";
 
@@ -32,7 +31,6 @@
   type PitchHumMode = FieldSplitButtonState["pitchHumMode"];
   type ShareTarget = FieldSplitButtonState["shareTarget"];
   type SizeReductionMode = FieldSplitButtonState["sizeReductionMode"];
-
   const {
     button,
     denoiseAlgorithm,
@@ -53,7 +51,10 @@
     onSaveDefault,
     onRunCommand,
     onShareTarget,
+    onSizeReductionBitrateKbps,
+    onSizeReductionChannels,
     onSizeReductionMode,
+    onSizeReductionSampleRateHz,
     onSpeedStep,
     onVolumeStep,
     pauseAggressiveness,
@@ -69,6 +70,9 @@
     showRunButton,
     showSaveDefault,
     sizeReductionMode,
+    sizeReductionBitrateKbps,
+    sizeReductionSampleRateHz,
+    sizeReductionChannels,
     speedStep,
     targetOrd,
     volumeStepDb,
@@ -92,7 +96,10 @@
     onSaveDefault: () => void;
     onRunCommand: (command: ButtonSpec["command"]) => void;
     onShareTarget: (value: ShareTarget) => void;
+    onSizeReductionBitrateKbps: (value: number) => void;
+    onSizeReductionChannels: (value: number) => void;
     onSizeReductionMode: (value: SizeReductionMode) => void;
+    onSizeReductionSampleRateHz: (value: number) => void;
     onSpeedStep: (value: number) => void;
     onVolumeStep: (value: number) => void;
     pauseAggressiveness: "gentle" | "normal" | "aggressive";
@@ -108,6 +115,9 @@
     showRunButton: boolean;
     showSaveDefault: boolean;
     sizeReductionMode: SizeReductionMode;
+    sizeReductionBitrateKbps: number;
+    sizeReductionSampleRateHz: number;
+    sizeReductionChannels: number;
     speedStep: number;
     targetOrd: number;
     volumeStepDb: number;
@@ -318,25 +328,16 @@
   {/if}
 </p>
 {#if options.length}
-  <div class="aqe-split-presets">
-    {#each options as option}
-      <AqeTooltip>
-        {#snippet trigger({ props })}
-          <button
-            {...props}
-            type="button"
-            class="aqe-button aqe-split-preset aqe-tooltip-target"
-            data-aqe-tooltip-content={splitOptionTooltip(option, dpdfnetAttnLimitDb, button.command)}
-            data-testid={`aqe-split-${targetOrd}-${slug}-preset-${option}`}
-            aria-pressed={selectedOptionLabel() === optionLabel(option) ? "true" : "false"}
-            onclick={() => applyOption(option)}
-          >
-            <span class="aqe-split-preset-label">{optionLabel(option)}</span>
-          </button>
-        {/snippet}
-      </AqeTooltip>
-    {/each}
-  </div>
+  <SplitValuePresetGrid
+    command={button.command}
+    {dpdfnetAttnLimitDb}
+    onSelect={applyOption}
+    {optionLabel}
+    {options}
+    selectedLabel={selectedOptionLabel()}
+    {slug}
+    {targetOrd}
+  />
   <SplitExtraFields
     command={button.command}
     {denoiseAlgorithm}
@@ -344,15 +345,14 @@
     {onChange}
     {onDpdfnetAttnLimitDb}
     {onPauseDetectionAlgorithm}
-    {onPauseMinSilenceSeconds}
-    {onPauseMinSpeechSeconds}
-    {onPausePreprocessDenoise}
-    {onPauseThreshold}
-    {pauseMinSilenceSeconds}
-    {pauseMinSpeechSeconds}
-    {pausePreprocessDenoise}
-    {pauseThreshold}
+    {onPauseMinSilenceSeconds} {onPauseMinSpeechSeconds}
+    {onPausePreprocessDenoise} {onPauseThreshold}
+    {pauseMinSilenceSeconds} {pauseMinSpeechSeconds}
+    {pausePreprocessDenoise} {pauseThreshold}
     {pauseDetectionAlgorithm}
+    {onSizeReductionBitrateKbps} {onSizeReductionChannels}
+    {onSizeReductionSampleRateHz} {sizeReductionBitrateKbps}
+    {sizeReductionChannels} {sizeReductionSampleRateHz}
     {slug}
     {targetOrd}
   />

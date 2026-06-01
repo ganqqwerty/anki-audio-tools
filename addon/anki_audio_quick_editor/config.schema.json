@@ -39,6 +39,9 @@
     "pause_silero_preprocess_denoise",
     "output_format",
     "size_reduction_mode",
+    "size_reduction_bitrate_kbps",
+    "size_reduction_sample_rate_hz",
+    "size_reduction_channels",
     "ffmpeg_path",
     "deep_filter_post_filter",
     "dpdfnet_attn_limit_db",
@@ -243,6 +246,20 @@
     "size_reduction_mode": {
       "type": "string",
       "enum": ["gentle", "normal", "aggressive"]
+    },
+    "size_reduction_bitrate_kbps": {
+      "type": "integer",
+      "minimum": 16,
+      "maximum": 320
+    },
+    "size_reduction_sample_rate_hz": {
+      "type": "integer",
+      "enum": [8000, 11025, 12000, 16000, 22050, 24000, 32000, 44100, 48000]
+    },
+    "size_reduction_channels": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 2
     },
     "ffmpeg_path": {
       "type": "string"

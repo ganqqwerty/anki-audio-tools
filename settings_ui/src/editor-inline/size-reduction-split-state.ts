@@ -1,7 +1,11 @@
 import {
   SIZE_REDUCTION_MODE_VALUES,
+  clampSizeReductionBitrateKbps,
+  clampSizeReductionChannels,
+  clampSizeReductionSampleRateHz,
+  sizeReductionPreset,
   sizeReductionModeOrDefault,
-} from "../lib/audio-operation-parameters.js";
+} from "../lib/size-reduction-parameters.js";
 import type {
   FieldSplitButtonState,
   SplitButtonDefaults,
@@ -11,6 +15,12 @@ import type { SplitDefaultSaveRequest } from "./split-default-save-types.js";
 type CompleteSplitButtonDefaults = Required<SplitButtonDefaults>;
 
 export type SizeReductionMode = FieldSplitButtonState["sizeReductionMode"];
+export type SizeReductionAdvancedDefaults = Pick<
+  FieldSplitButtonState,
+  | "defaultSizeReductionBitrateKbps"
+  | "defaultSizeReductionSampleRateHz"
+  | "defaultSizeReductionChannels"
+>;
 
 export function defaultSizeReductionModeFromDefaults(
   defaults: CompleteSplitButtonDefaults,
@@ -18,9 +28,27 @@ export function defaultSizeReductionModeFromDefaults(
   return sizeReductionModeOrDefault(defaults.sizeReductionMode);
 }
 
+export function sizeReductionAdvancedDefaults(
+  defaults: CompleteSplitButtonDefaults,
+): SizeReductionAdvancedDefaults {
+  const preset = sizeReductionPreset(defaultSizeReductionModeFromDefaults(defaults));
+  return {
+    defaultSizeReductionBitrateKbps: clampSizeReductionBitrateKbps(
+      defaults.sizeReductionBitrateKbps ?? preset.bitrateKbps,
+    ),
+    defaultSizeReductionSampleRateHz: clampSizeReductionSampleRateHz(
+      defaults.sizeReductionSampleRateHz ?? preset.sampleRateHz,
+    ),
+    defaultSizeReductionChannels: clampSizeReductionChannels(
+      defaults.sizeReductionChannels ?? preset.channels,
+    ),
+  };
+}
+
 export function syncSizeReductionState(
   state: FieldSplitButtonState,
   defaultMode: SizeReductionMode,
+  defaultParams: SizeReductionAdvancedDefaults,
 ): void {
   if (!SIZE_REDUCTION_MODE_VALUES.includes(state.sizeReductionMode)) {
     state.sizeReductionMode = defaultMode;
@@ -30,6 +58,7 @@ export function syncSizeReductionState(
     state.defaultSizeReductionMode = defaultMode;
     state.sizeReductionMode = defaultMode;
   }
+  syncSizeReductionAdvancedDefaults(state, defaultParams);
 }
 
 export function applyPromotedSizeReductionDefaultsToState(
@@ -38,12 +67,17 @@ export function applyPromotedSizeReductionDefaultsToState(
   values: SplitDefaultSaveRequest["defaults"],
   forceCurrentField: boolean,
 ): void {
-  if (values.sizeReductionMode === undefined) return;
-  state.defaultSizeReductionMode = defaultSizeReductionModeFromDefaults(defaults);
-  if (forceCurrentField || !state.sizeReductionEdited) {
-    state.sizeReductionMode = state.defaultSizeReductionMode;
+  if (values.sizeReductionMode !== undefined) {
+    state.defaultSizeReductionMode = defaultSizeReductionModeFromDefaults(defaults);
+    if (forceCurrentField || !state.sizeReductionEdited) {
+      state.sizeReductionMode = state.defaultSizeReductionMode;
+    }
+    if (forceCurrentField) state.sizeReductionEdited = false;
   }
-  if (forceCurrentField) state.sizeReductionEdited = false;
+  if (sizeReductionAdvancedValuesChanged(values)) {
+    syncSizeReductionAdvancedDefaults(state, sizeReductionAdvancedDefaults(defaults), forceCurrentField);
+    if (forceCurrentField) state.sizeReductionEdited = false;
+  }
 }
 
 export function setSizeReductionModeOnState(
@@ -52,4 +86,83 @@ export function setSizeReductionModeOnState(
 ): void {
   state.sizeReductionEdited = true;
   state.sizeReductionMode = sizeReductionModeOrDefault(value);
+  const preset = sizeReductionPreset(state.sizeReductionMode);
+  state.sizeReductionBitrateKbps = preset.bitrateKbps;
+  state.sizeReductionSampleRateHz = preset.sampleRateHz;
+  state.sizeReductionChannels = preset.channels;
+}
+
+export function setSizeReductionBitrateOnState(
+  state: FieldSplitButtonState,
+  value: number,
+): void {
+  state.sizeReductionEdited = true;
+  state.sizeReductionBitrateKbps = clampSizeReductionBitrateKbps(value);
+}
+
+export function setSizeReductionSampleRateOnState(
+  state: FieldSplitButtonState,
+  value: number,
+): void {
+  state.sizeReductionEdited = true;
+  state.sizeReductionSampleRateHz = clampSizeReductionSampleRateHz(value);
+}
+
+export function setSizeReductionChannelsOnState(
+  state: FieldSplitButtonState,
+  value: number,
+): void {
+  state.sizeReductionEdited = true;
+  state.sizeReductionChannels = clampSizeReductionChannels(value);
+}
+
+function syncSizeReductionAdvancedDefaults(
+  state: FieldSplitButtonState,
+  defaults: SizeReductionAdvancedDefaults,
+  forceCurrentField = false,
+): void {
+  syncNumberSizeReductionDefault(
+    state,
+    "defaultSizeReductionBitrateKbps",
+    "sizeReductionBitrateKbps",
+    defaults.defaultSizeReductionBitrateKbps,
+    forceCurrentField,
+  );
+  syncNumberSizeReductionDefault(
+    state,
+    "defaultSizeReductionSampleRateHz",
+    "sizeReductionSampleRateHz",
+    defaults.defaultSizeReductionSampleRateHz,
+    forceCurrentField,
+  );
+  syncNumberSizeReductionDefault(
+    state,
+    "defaultSizeReductionChannels",
+    "sizeReductionChannels",
+    defaults.defaultSizeReductionChannels,
+    forceCurrentField,
+  );
+}
+
+function syncNumberSizeReductionDefault(
+  state: FieldSplitButtonState,
+  defaultKey: keyof SizeReductionAdvancedDefaults,
+  valueKey: keyof FieldSplitButtonState,
+  value: number,
+  forceCurrentField: boolean,
+): void {
+  const target = state as unknown as Record<string, unknown>;
+  if (target[defaultKey] !== value) {
+    target[defaultKey] = value;
+    if (forceCurrentField || !state.sizeReductionEdited) target[valueKey] = value;
+  }
+  if (!Number.isFinite(target[valueKey])) target[valueKey] = value;
+}
+
+function sizeReductionAdvancedValuesChanged(values: SplitDefaultSaveRequest["defaults"]): boolean {
+  return (
+    values.sizeReductionBitrateKbps !== undefined ||
+    values.sizeReductionSampleRateHz !== undefined ||
+    values.sizeReductionChannels !== undefined
+  );
 }

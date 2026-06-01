@@ -127,6 +127,9 @@ class EditorCommandOverrides:
     dpdfnet_attn_limit_db: float | None = None
     target_format: str | None = None
     size_reduction_mode: str | None = None
+    size_reduction_bitrate_kbps: int | None = None
+    size_reduction_sample_rate_hz: int | None = None
+    size_reduction_channels: int | None = None
     pitch_hum_mode: str | None = None
 
 
@@ -170,6 +173,9 @@ def _overrides_from_raw(raw: Any) -> EditorCommandOverrides:
         dpdfnet_attn_limit_db=raw.get("dpdfnetAttnLimitDb"),
         target_format=raw.get("targetFormat"),
         size_reduction_mode=raw.get("sizeReductionMode"),
+        size_reduction_bitrate_kbps=raw.get("sizeReductionBitrateKbps"),
+        size_reduction_sample_rate_hz=raw.get("sizeReductionSampleRateHz"),
+        size_reduction_channels=raw.get("sizeReductionChannels"),
     )
     return EditorCommandOverrides(
         volume_step_db=params.volume_step_db,
@@ -184,6 +190,9 @@ def _overrides_from_raw(raw: Any) -> EditorCommandOverrides:
         dpdfnet_attn_limit_db=params.dpdfnet_attn_limit_db,
         target_format=params.target_format,
         size_reduction_mode=params.size_reduction_mode,
+        size_reduction_bitrate_kbps=params.size_reduction_bitrate_kbps,
+        size_reduction_sample_rate_hz=params.size_reduction_sample_rate_hz,
+        size_reduction_channels=params.size_reduction_channels,
         pitch_hum_mode=_pitch_hum_mode_or_none(raw.get("pitchHumMode")),
     )
 
@@ -278,6 +287,9 @@ def processing_config_for_command(
             pause_preprocess_denoise=payload.overrides.pause_preprocess_denoise,
             target_format=payload.overrides.target_format,
             size_reduction_mode=payload.overrides.size_reduction_mode,
+            size_reduction_bitrate_kbps=payload.overrides.size_reduction_bitrate_kbps,
+            size_reduction_sample_rate_hz=payload.overrides.size_reduction_sample_rate_hz,
+            size_reduction_channels=payload.overrides.size_reduction_channels,
         ),
     )
 

@@ -28,6 +28,9 @@ def test_injection_script_embeds_audio_field_indices_and_bundle() -> None:
     assert config["splitButtonDefaults"]["voiceRecordingCountdownSeconds"] == 3
     assert config["splitButtonDefaults"]["shareTarget"] == "litterbox"
     assert config["splitButtonDefaults"]["sizeReductionMode"] == "normal"
+    assert config["splitButtonDefaults"]["sizeReductionBitrateKbps"] == 64
+    assert config["splitButtonDefaults"]["sizeReductionSampleRateHz"] == 32000
+    assert config["splitButtonDefaults"]["sizeReductionChannels"] == 1
     assert config["splitButtonDefaults"]["pitchHumMode"] == "direct"
     assert config["splitButtonDefaults"]["pauseDetectionAlgorithm"] == "silencedetect"
     assert config["splitButtonDefaults"]["pauseSilencedetectThresholdDb"] == -45.0
@@ -130,6 +133,9 @@ def test_injection_script_embeds_split_button_defaults() -> None:
             "pauseDetectionAlgorithm": "silero_vad",
             "outputFormat": "mp3",
             "sizeReductionMode": "aggressive",
+            "sizeReductionBitrateKbps": 40,
+            "sizeReductionSampleRateHz": 22050,
+            "sizeReductionChannels": 1,
             "denoiseAlgorithm": "standard",
             "pitchHumMode": "pitch_tier",
             "dpdfnetAttnLimitDb": 18.0,
@@ -144,6 +150,9 @@ def test_injection_script_embeds_split_button_defaults() -> None:
         "pauseDetectionAlgorithm": "silero_vad",
         "outputFormat": "mp3",
         "sizeReductionMode": "aggressive",
+        "sizeReductionBitrateKbps": 40,
+        "sizeReductionSampleRateHz": 22050,
+        "sizeReductionChannels": 1,
         "denoiseAlgorithm": "standard",
         "pitchHumMode": "pitch_tier",
         "dpdfnetAttnLimitDb": 18.0,

@@ -58,7 +58,16 @@ export function buildSplitCommandPayloadFromState(
     return { command, fieldOrd: ord, overrides: { targetFormat: state.outputFormat } };
   }
   if (command === "aqe:reduce-size") {
-    return { command, fieldOrd: ord, overrides: { sizeReductionMode: state.sizeReductionMode } };
+    return {
+      command,
+      fieldOrd: ord,
+      overrides: {
+        sizeReductionMode: state.sizeReductionMode,
+        sizeReductionBitrateKbps: state.sizeReductionBitrateKbps,
+        sizeReductionSampleRateHz: state.sizeReductionSampleRateHz,
+        sizeReductionChannels: state.sizeReductionChannels,
+      },
+    };
   }
   if (command === "aqe:share") {
     return { command, fieldOrd: ord, shareTarget: state.shareTarget };
@@ -139,6 +148,9 @@ export function buildSplitDefaultSaveRequestFromState(
     request.defaults.pitchHumMode = state.pitchHumMode;
   } else if (command === "aqe:reduce-size") {
     request.defaults.sizeReductionMode = state.sizeReductionMode;
+    request.defaults.sizeReductionBitrateKbps = state.sizeReductionBitrateKbps;
+    request.defaults.sizeReductionSampleRateHz = state.sizeReductionSampleRateHz;
+    request.defaults.sizeReductionChannels = state.sizeReductionChannels;
   } else if (command === "aqe:share") {
     request.defaults.shareTarget = state.shareTarget;
   } else if (command === "aqe:record-voice") {

@@ -296,7 +296,13 @@
         "denoise_algorithm": { "$ref": "#/definitions/DenoiseAlgorithm" },
         "dpdfnet_attn_limit_db": { "$ref": "#/definitions/BatchDpdfnetAttnLimitDB" },
         "target_format": { "$ref": "#/definitions/OutputFormat" },
-        "size_reduction_mode": { "$ref": "#/definitions/SizeReductionMode" }
+        "size_reduction_mode": { "$ref": "#/definitions/SizeReductionMode" },
+        "size_reduction_bitrate_kbps": { "type": "integer", "minimum": 16, "maximum": 320 },
+        "size_reduction_sample_rate_hz": {
+          "type": "integer",
+          "enum": [8000, 11025, 12000, 16000, 22050, 24000, 32000, 44100, 48000]
+        },
+        "size_reduction_channels": { "type": "integer", "minimum": 1, "maximum": 2 }
       }
     },
     "BatchOperationOption": {
@@ -339,7 +345,10 @@
         "denoise_algorithm",
         "dpdfnet_attn_limit_db",
         "output_format",
-        "size_reduction_mode"
+        "size_reduction_mode",
+        "size_reduction_bitrate_kbps",
+        "size_reduction_sample_rate_hz",
+        "size_reduction_channels"
       ],
       "properties": {
         "speed_step": { "type": "number" },
@@ -357,7 +366,13 @@
         "denoise_algorithm": { "$ref": "#/definitions/DenoiseAlgorithm" },
         "dpdfnet_attn_limit_db": { "$ref": "#/definitions/BatchDpdfnetAttnLimitDB" },
         "output_format": { "$ref": "#/definitions/OutputFormat" },
-        "size_reduction_mode": { "$ref": "#/definitions/SizeReductionMode" }
+        "size_reduction_mode": { "$ref": "#/definitions/SizeReductionMode" },
+        "size_reduction_bitrate_kbps": { "type": "integer", "minimum": 16, "maximum": 320 },
+        "size_reduction_sample_rate_hz": {
+          "type": "integer",
+          "enum": [8000, 11025, 12000, 16000, 22050, 24000, 32000, 44100, 48000]
+        },
+        "size_reduction_channels": { "type": "integer", "minimum": 1, "maximum": 2 }
       }
     },
     "BatchInitialState": {

@@ -1,10 +1,9 @@
 import {
   formatOutputFormat,
-  formatSizeReductionMode,
   outputFormatOrDefault,
-  sizeReductionModeOrDefault,
 } from "../lib/audio-operation-parameters.js";
 import { t } from "../lib/i18n.js";
+import { formatSizeReductionMode, sizeReductionModeOrDefault } from "../lib/size-reduction-parameters.js";
 import type { EditorCommand, EditorCommandPayload } from "./types.js";
 
 export {

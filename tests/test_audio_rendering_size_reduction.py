@@ -95,3 +95,50 @@ def test_render_size_reduced_audio_skips_when_output_is_not_smaller(
         )
 
     assert not output.exists()
+
+
+def test_render_size_reduced_audio_uses_custom_encoder_params(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    source = tmp_path / "source.mp3"
+    source.write_bytes(b"x" * 200)
+    output = tmp_path / "smaller.mp3"
+    calls: list[list[str]] = []
+
+    monkeypatch.setattr("anki_audio_quick_editor.audio_processor.find_ffmpeg", lambda _path: Path("/bin/ffmpeg"))
+    monkeypatch.setattr("anki_audio_quick_editor.audio_processor.probe_duration_ms", lambda *_args: 1000)
+    monkeypatch.setattr(
+        "anki_audio_quick_editor.audio_processor.probe_audio_metadata",
+        lambda *_args: SimpleNamespace(sample_rate=48000, channels=2, bit_rate=128_000),
+    )
+
+    def fake_run(cmd: list[str], *_args, **_kwargs) -> SimpleNamespace:
+        output.write_bytes(b"y" * 100)
+        calls.append(cmd)
+        return SimpleNamespace(returncode=0, stdout="", stderr="")
+
+    monkeypatch.setattr("anki_audio_quick_editor.audio_processor.subprocess.run", fake_run)
+
+    render_size_reduced_audio(
+        source,
+        AudioProcessingConfig(
+            size_reduction_bitrate_kbps=80,
+            size_reduction_sample_rate_hz=44100,
+            size_reduction_channels=2,
+        ),
+        output_path=output,
+        mode="normal",
+    )
+
+    assert calls[0][-9:] == [
+        "-codec:a",
+        "libmp3lame",
+        "-b:a",
+        "80k",
+        "-ar",
+        "44100",
+        "-ac",
+        "2",
+        str(output),
+    ]

@@ -280,6 +280,11 @@ def editor_injection_script(editor: Any, note: Any) -> str:
             "pitchHumMode": str(config.get("pitch_hum_mode", "direct")),
             "outputFormat": str(config.get("output_format", "source")),
             "sizeReductionMode": str(config.get("size_reduction_mode", "normal")),
+            "sizeReductionBitrateKbps": int(config.get("size_reduction_bitrate_kbps", 64)),
+            "sizeReductionSampleRateHz": int(
+                config.get("size_reduction_sample_rate_hz", 32000)
+            ),
+            "sizeReductionChannels": int(config.get("size_reduction_channels", 1)),
             "dpdfnetAttnLimitDb": float(config.get("dpdfnet_attn_limit_db", 12.0)),
             "graphVoiceRange": str(config.get("graph_voice_range", "general")),
             "graphRecordingCondition": str(config.get("graph_recording_condition", "auto")),

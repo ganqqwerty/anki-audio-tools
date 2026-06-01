@@ -31,6 +31,9 @@ type SplitButtonValueState = {
   pitchHumMode: PitchHumMode;
   shareTarget: ShareTarget;
   sizeReductionMode: FieldSplitButtonState["sizeReductionMode"];
+  sizeReductionBitrateKbps: number;
+  sizeReductionSampleRateHz: number;
+  sizeReductionChannels: number;
   speedStep: number;
   voiceRecordingCountdownSeconds: number;
   volumeStepDb: number;

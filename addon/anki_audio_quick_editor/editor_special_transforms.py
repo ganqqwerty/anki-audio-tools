@@ -10,7 +10,7 @@ from typing import Any, Callable, cast
 from .audio_formats import DEFAULT_OUTPUT_FORMAT
 from .audio_state import AudioEditState, AudioProcessingConfig
 from .diagnostics_runtime import new_operation_id, record_breadcrumb
-from .editor_actions import EditorCommandPayload
+from .editor_actions import EditorCommandPayload, processing_config_for_command
 from .editor_processing_shared import (
     cancel_graph_analysis_for_processing,
     request_history_availability_after_edit,
@@ -234,6 +234,8 @@ def _special_transform_config(
 ) -> AudioProcessingConfig:
     if command is None:
         return config
+    if command.command == "aqe:reduce-size":
+        return processing_config_for_command(command, config)
     if command.overrides.dpdfnet_attn_limit_db is not None:
         config = replace(config, dpdfnet_attn_limit_db=command.overrides.dpdfnet_attn_limit_db)
     if command.command == "aqe:pitch-hum":
