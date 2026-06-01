@@ -108,6 +108,24 @@ def _graph_state_js(ord_: int = 0) -> str:
     return f"window.__aqeGraphStateForTest ? window.__aqeGraphStateForTest({ord_}) : null"
 
 
+def _graph_zoom_state_js(ord_: int = 0) -> str:
+    return f"""
+    (() => {{
+      const state = window.__aqeGraphStateForTest?.({ord_});
+      if (!state) return null;
+      return {{
+        cursorMs: state.cursorMs,
+        durationMs: state.durationMs,
+        selectionEndMs: state.selectionEndMs,
+        selectionStartMs: state.selectionStartMs,
+        viewportEndMs: state.viewportEndMs,
+        viewportStartMs: state.viewportStartMs,
+        xAxisLabels: state.xAxisLabels,
+      }};
+    }})()
+    """
+
+
 def _click_graph_and_wait(editor, predicate=lambda track: True, ord_: int = 0, timeout: float = 10.0):
     selector = f'[data-testid="aqe-button-{ord_}-graph"]'
     wait_for_selector(editor.web, selector, timeout=5.0)
