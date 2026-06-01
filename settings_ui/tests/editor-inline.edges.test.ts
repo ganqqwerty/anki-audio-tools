@@ -103,6 +103,26 @@ describe("editor inline defensive edges", () => {
     expect(() => drawXAxis(visualizer, 0)).not.toThrow();
   });
 
+  it("clamps viewport hit testing to the visible time range", () => {
+    const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+    svg.getBoundingClientRect = () => ({
+      bottom: 150,
+      height: 150,
+      left: 0,
+      right: 620,
+      top: 0,
+      width: 620,
+      x: 0,
+      y: 0,
+      toJSON: () => ({}),
+    });
+
+    const viewport = { startMs: 250, endMs: 750, durationMs: 1000 };
+
+    expect(cursorMsFromEvent({ clientX: -100 }, svg, 1000, viewport)).toBe(250);
+    expect(cursorMsFromEvent({ clientX: 9999 }, svg, 1000, viewport)).toBe(750);
+  });
+
   it("handles scanner/index fallbacks and unsupported audio references", () => {
     document.body.innerHTML = `
       <div class="field-container" data-index="4">[sound:fallback.mp3]</div>

@@ -108,4 +108,53 @@ describe("editor inline plot helpers", () => {
 
     expect(ms).toBeCloseTo(1500);
   });
+
+  it("maps time into the visible viewport when provided", () => {
+    const viewport = { startMs: 1000, endMs: 3000, durationMs: 4000 };
+
+    expect(xForMs(1000, 4000, viewport)).toBe(PLOT.left);
+    expect(xForMs(2000, 4000, viewport)).toBeCloseTo(PLOT.left + (PLOT.width - PLOT.left - PLOT.right) / 2);
+    expect(xForMs(3000, 4000, viewport)).toBe(PLOT.width - PLOT.right);
+  });
+
+  it("uses visible viewport bounds for pointer hit testing", () => {
+    const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+    svg.getBoundingClientRect = () => ({
+      bottom: 150,
+      height: 150,
+      left: 10,
+      right: 630,
+      top: 0,
+      width: 620,
+      x: 10,
+      y: 0,
+      toJSON: () => ({}),
+    });
+
+    const viewport = { startMs: 1000, endMs: 3000, durationMs: 4000 };
+    const bounds = graphPixelBounds(svg);
+
+    expect(cursorMsFromEvent({ clientX: bounds.left }, svg, 4000, viewport)).toBe(1000);
+    expect(cursorMsFromEvent({ clientX: bounds.left + bounds.width / 2 }, svg, 4000, viewport)).toBe(2000);
+    expect(cursorMsFromEvent({ clientX: bounds.left + bounds.width }, svg, 4000, viewport)).toBe(3000);
+  });
+
+  it("draws visible x-axis labels from the viewport without changing default full-axis labels", () => {
+    document.body.innerHTML = `
+      <div class="aqe-visualizer">
+        <svg>
+          <g class="aqe-x-axis"></g>
+        </svg>
+      </div>
+    `;
+    const visualizer = document.querySelector<HTMLElement>(".aqe-visualizer")!;
+
+    drawXAxis(visualizer, 4000, { startMs: 1000, endMs: 3000, durationMs: 4000 });
+
+    expect(Array.from(visualizer.querySelectorAll(".aqe-x-label")).map((node) => node.textContent)).toEqual([
+      "1.00s",
+      "2.00s",
+      "3.00s",
+    ]);
+  });
 });

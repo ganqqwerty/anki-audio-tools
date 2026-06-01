@@ -1,4 +1,6 @@
 import type { NormalizedProsodyTrack, ProsodyPoint, VisualizerElement } from "./types.js";
+import type { TimeViewport } from "./time-viewport.js";
+import { fullTimeViewport, msForViewportRatio, ratioForMsInViewport } from "./time-viewport.js";
 
 export const PLOT = { width: 620, height: 150, left: 44, right: 10, top: 10, bottom: 34 } as const;
 
@@ -10,9 +12,10 @@ export function plotHeight(): number {
   return PLOT.height - PLOT.top - PLOT.bottom;
 }
 
-export function xForMs(ms: number, durationMs: number): number {
-  if (!durationMs) return PLOT.left;
-  return PLOT.left + Math.max(0, Math.min(1, ms / durationMs)) * plotWidth();
+export function xForMs(ms: number, durationMs: number, viewport?: TimeViewport | null): number {
+  const activeViewport = viewport ?? fullTimeViewport(durationMs);
+  const ratio = ratioForMsInViewport(ms, activeViewport);
+  return PLOT.left + Math.max(0, Math.min(1, ratio)) * plotWidth();
 }
 
 export function yForPitch(pitchHz: number | null, minHz: number | null, maxHz: number | null): number {
@@ -59,20 +62,24 @@ export function pitchHzAtMs(points: readonly ProsodyPoint[], ms: number): number
   return previousPitch + (nextPitch - previousPitch) * ratio;
 }
 
-export function pathForIntensity(points: readonly ProsodyPoint[], durationMs: number): string {
+export function pathForIntensity(
+  points: readonly ProsodyPoint[],
+  durationMs: number,
+  viewport?: TimeViewport | null,
+): string {
   if (!points.length || !durationMs) return "";
   const base = PLOT.height - PLOT.bottom;
   const first = points[0];
   if (!first) return "";
-  const head = `M ${xForMs(first[0], durationMs).toFixed(2)} ${base.toFixed(2)}`;
+  const head = `M ${xForMs(first[0], durationMs, viewport).toFixed(2)} ${base.toFixed(2)}`;
   const body = points.map((point) => {
-    const x = xForMs(point[0], durationMs).toFixed(2);
+    const x = xForMs(point[0], durationMs, viewport).toFixed(2);
     const intensity = Math.max(0, Math.min(1, point[2] ?? 0));
     const y = (base - intensity * plotHeight()).toFixed(2);
     return `L ${x} ${y}`;
   }).join(" ");
   const last = points.at(-1) ?? first;
-  const tail = `L ${xForMs(last[0], durationMs).toFixed(2)} ${base.toFixed(2)} Z`;
+  const tail = `L ${xForMs(last[0], durationMs, viewport).toFixed(2)} ${base.toFixed(2)} Z`;
   return `${head} ${body} ${tail}`;
 }
 
@@ -81,6 +88,7 @@ export function pitchSegments(
   durationMs: number,
   minHz: number | null,
   maxHz: number | null,
+  viewport?: TimeViewport | null,
 ): number[][][] {
   const segments: number[][][] = [];
   let current: number[][] = [];
@@ -92,7 +100,7 @@ export function pitchSegments(
       current = [];
       continue;
     }
-    current.push([xForMs(point[0], durationMs), yForPitch(pitchHz, minHz, maxHz)]);
+    current.push([xForMs(point[0], durationMs, viewport), yForPitch(pitchHz, minHz, maxHz)]);
   }
   if (current.length) segments.push(current);
   return segments;
@@ -104,12 +112,13 @@ interface PitchDrawOptions {
   pathClass: string;
   pitchMaxHz?: number | null;
   pitchMinHz?: number | null;
+  viewport?: TimeViewport | null;
 }
 
 export function drawPitch(
   visualizer: VisualizerElement,
   track: NormalizedProsodyTrack,
-  options: Pick<PitchDrawOptions, "durationMs" | "pitchMaxHz" | "pitchMinHz"> = {},
+  options: Pick<PitchDrawOptions, "durationMs" | "pitchMaxHz" | "pitchMinHz" | "viewport"> = {},
 ): void {
   drawPitchPaths(visualizer, track, {
     ...options,
@@ -121,7 +130,7 @@ export function drawPitch(
 export function drawLearnerPitch(
   visualizer: VisualizerElement,
   track: NormalizedProsodyTrack,
-  options: Pick<PitchDrawOptions, "durationMs" | "pitchMaxHz" | "pitchMinHz">,
+  options: Pick<PitchDrawOptions, "durationMs" | "pitchMaxHz" | "pitchMinHz" | "viewport">,
 ): void {
   drawPitchPaths(visualizer, track, {
     ...options,
@@ -141,7 +150,7 @@ function drawPitchPaths(
   const durationMs = options.durationMs ?? track.durationMs;
   const minHz = options.pitchMinHz ?? track.pitchMinHz;
   const maxHz = options.pitchMaxHz ?? track.pitchMaxHz;
-  for (const segment of pitchSegments(track.points, durationMs, minHz, maxHz)) {
+  for (const segment of pitchSegments(track.points, durationMs, minHz, maxHz, options.viewport)) {
     if (segment.length < 2) continue;
     const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
     path.setAttribute("class", options.pathClass);
@@ -180,13 +189,16 @@ export function drawLabels(
   }
 }
 
-export function drawXAxis(visualizer: VisualizerElement, durationMs: number): void {
+export function drawXAxis(visualizer: VisualizerElement, durationMs: number, viewport?: TimeViewport | null): void {
   const group = visualizer.querySelector<SVGGElement>(".aqe-x-axis");
   if (!group) return;
   group.textContent = "";
-  const ticks = [0, durationMs / 2, durationMs].filter((value, index, values) => index === 0 || value !== values[index - 1]);
+  const activeViewport = viewport ?? fullTimeViewport(durationMs);
+  const midpoint = activeViewport.startMs + (activeViewport.endMs - activeViewport.startMs) / 2;
+  const ticks = [activeViewport.startMs, midpoint, activeViewport.endMs]
+    .filter((value, index, values) => index === 0 || Math.round(value) !== Math.round(values[index - 1] ?? -1));
   for (const tick of ticks) {
-    const x = xForMs(tick, durationMs);
+    const x = xForMs(tick, durationMs, activeViewport);
     const line = document.createElementNS("http://www.w3.org/2000/svg", "line");
     line.setAttribute("class", "aqe-x-tick");
     line.setAttribute("x1", x.toFixed(2));
@@ -213,10 +225,15 @@ export function graphPixelBounds(svg: SVGSVGElement): { left: number; width: num
   };
 }
 
-export function cursorMsFromEvent(event: Pick<PointerEvent, "clientX">, svg: SVGSVGElement, durationMs: number): number {
+export function cursorMsFromEvent(
+  event: Pick<PointerEvent, "clientX">,
+  svg: SVGSVGElement,
+  durationMs: number,
+  viewport?: TimeViewport | null,
+): number {
   const bounds = graphPixelBounds(svg);
   const ratio = Math.max(0, Math.min(1, (event.clientX - bounds.left) / bounds.width));
-  return ratio * durationMs;
+  return msForViewportRatio(viewport ?? fullTimeViewport(durationMs), ratio);
 }
 
 function voicedPitch(point: ProsodyPoint): number | null {
