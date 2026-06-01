@@ -89,7 +89,8 @@ Plans should specify tests (including extensive e2e tests) before implementation
 
 Runtime packs are released separately under immutable `runtime-vN` tags and
 recorded in `runtime_release.lock.json`. Build them only when native runtime
-payloads change:
+payloads change. Use [`DEVELOPMENT.md`](DEVELOPMENT.md#release-workflow) as the
+canonical release checklist.
 
 ```bash
 python3 scripts/dev.py release-runtime build --runtime-version 1.0 --target all
@@ -104,7 +105,9 @@ python3 scripts/release.py --target all --verify-runtime-urls
 ```
 
 This builds `dist/anki-audio-quick-editor-<version>.ankiaddon` without rebuilding
-runtime packs. Use `--embed-runtime` only for local/offline validation builds.
+runtime packs. Smoke-test it, inspect `bin/runtime_manifest.json`, and publish
+only the `.ankiaddon` asset to add-on releases. Use `--embed-runtime` only for
+local/offline validation builds.
 
 ## Debugging
 

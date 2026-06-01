@@ -115,9 +115,16 @@ need executable behavior checks on the current host.
 
 Sherpa Spleeter and Silero VAD are fetched from locked `sherpa-onnx` native archives. Packaging renames the upstream `sherpa-onnx-offline-source-separation` executable to `sherpa-spleeter` and `sherpa-onnx-vad` to `silero-vad`, stages the target-specific ONNX Runtime libraries beside them once per runtime pack path, and reads the committed shared Spleeter 2-stems fp16 model files plus `silero_vad.onnx` from `addon/anki_audio_quick_editor/bin/models/`.
 
+## Release Workflow
+
+Use this section as the canonical release checklist. Keep `runtime-vN` tags
+immutable; if a runtime release was published, do not overwrite its assets.
+
 Build and publish runtime packs only when native tools or model files change:
 
 ```bash
+python3 scripts/dev.py release-assets verify --target all
+python3 scripts/dev.py release-assets verify --target current --diagnostics
 python3 scripts/dev.py release-runtime build --runtime-version 1.0 --target all
 python3 scripts/dev.py release-runtime upload --metadata runtime_release.lock.json
 python3 scripts/dev.py release-runtime verify --metadata runtime_release.lock.json
@@ -129,10 +136,22 @@ records their whole-archive and inner-file SHA-256 values in
 Release tag, and verifies the uploaded archives by downloading and unpacking
 them.
 
-Package all thin add-on targets for public AnkiWeb distribution:
+If remote runtime verification is too quiet for the dev runner timeout, use
+`python3 scripts/dev.py --idle-timeout 900 release-runtime verify --metadata runtime_release.lock.json`
+or run `python3 scripts/release_runtime_cli.py verify --metadata runtime_release.lock.json`
+directly.
+
+For a public thin add-on release:
+
+1. Bump `pyproject.toml` and `addon/anki_audio_quick_editor/_version.py`.
+2. Run `python3 scripts/dev.py check`, `python3 scripts/dev.py test-e2e`,
+   and `python3 scripts/release_runtime_cli.py verify --metadata runtime_release.lock.json`.
+3. Commit the version bump.
+4. Build the committed version:
 
 ```bash
 python3 scripts/release.py --target all --verify-runtime-urls
+python3 scripts/dev.py release-smoke dist/anki-audio-quick-editor-<version>.ankiaddon
 ```
 
 `--verify-runtime-urls` downloads each URL from `runtime_release.lock.json` and
@@ -140,6 +159,12 @@ verifies both the runtime pack SHA-256 and every inner file. It must run only
 after the referenced `runtime-vN` GitHub Release assets exist. Platform-limited
 `--target current` or single-target builds are for testing/private distribution,
 not public AnkiWeb release.
+
+Before publishing, inspect packaged `bin/runtime_manifest.json`: runtime pack
+URLs must point at `runtime-vN`, not the add-on tag, and pack names must use the
+runtime version. Publish the GitHub add-on release with only the
+`.ankiaddon` asset; do not upload runtime zips to add-on releases. Upload the
+same smoke-tested `.ankiaddon` to AnkiWeb and record its SHA-256.
 
 Run `release-smoke` with Anki's Python 3.13 runtime when validating a built archive. The smoke script imports the packaged add-on, so system Python versions older than Anki's runtime can fail on supported runtime APIs such as `datetime.UTC`.
 
