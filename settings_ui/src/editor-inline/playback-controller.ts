@@ -19,6 +19,7 @@ import type { PlaybackState, VisualizerElement } from "./types.js";
 import {
   renderPlaybackCursor,
 } from "./visualizer-renderer.js";
+import { ensurePlaybackCursorVisible } from "./viewport-actions.js";
 
 export interface ProgressClockOptions {
   engine?: "html" | "native" | "";
@@ -138,6 +139,7 @@ export function paintProgressFromClock(visualizer: VisualizerElement, deps: Play
     if (handlePlaybackBoundary(visualizer, nextMs, deps)) {
       return;
     }
+    ensurePlaybackCursorVisible(visualizer, nextMs);
     renderPlaybackCursor(
       visualizer,
       nextMs,
@@ -231,6 +233,7 @@ export function startProgressClock(
   setPlaybackPass(visualizer, clampedStartMs, deps);
   if (durationMs) {
     deps.setCursor(visualizer, clampedStartMs, false, { updateAnchor: false });
+    ensurePlaybackCursorVisible(visualizer, clampedStartMs);
   } else {
     visualizer.dataset.cursorMs = String(Math.round(clampedStartMs));
     visualizer.dataset.progressMs = String(Math.round(clampedStartMs));

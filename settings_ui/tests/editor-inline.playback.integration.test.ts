@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { completePlayback } from "../src/editor-inline/actions.js";
+import { completePlayback, startManualProgressClock } from "../src/editor-inline/actions.js";
 import { disposeEditorRuntime, initializeEditorRuntime, scan } from "../src/editor-inline/runtime.js";
 import {
   bridgeCommands,
@@ -262,6 +262,33 @@ afterEach(() => {
       playbackEndMs: 750,
       playbackRegionMode: "selection",
     });
+  });
+
+  it("pans the zoomed viewport as manual playback approaches the visible edge", async () => {
+    const frames: Array<(time: number) => void> = [];
+    vi.spyOn(window, "requestAnimationFrame").mockImplementation((callback) => {
+      frames.push(callback);
+      return frames.length;
+    });
+    vi.spyOn(window, "cancelAnimationFrame").mockImplementation(() => undefined);
+    let now = 1000;
+    vi.spyOn(performance, "now").mockImplementation(() => now);
+    initializeEditorRuntime({ audioFieldIndices: [0] });
+    scan({ audioFieldIndices: [0] });
+    await Promise.resolve();
+    window.__aqeSetVisualizer?.(0, track, 0);
+    window.__aqeSetTimeViewportForTest?.(0, 0, 500);
+    const visualizer = document.querySelector<HTMLElement>('[data-testid="aqe-graph-0"]')!;
+    const audio = document.querySelector<HTMLAudioElement>('[data-testid="aqe-audio-clock-0"]')!;
+    audio.pause = vi.fn<() => void>(() => undefined);
+
+    startManualProgressClock(visualizer as Parameters<typeof startManualProgressClock>[0], 450);
+    now = 1120;
+    frames.shift()?.(now);
+
+    const state = window.__aqeGraphStateForTest?.(0);
+    expect(state?.viewportStartMs).toBeGreaterThan(0);
+    expect(state?.progressMs).toBeGreaterThanOrEqual(450);
   });
 
   it("stops HTML playback immediately before processing commands", async () => {
