@@ -7,6 +7,7 @@
   import FileAudio from "@lucide/svelte/icons/file-audio";
   import FolderOpen from "@lucide/svelte/icons/folder-open";
   import Mic from "@lucide/svelte/icons/mic";
+  import Minimize2 from "@lucide/svelte/icons/minimize-2";
   import Pause from "@lucide/svelte/icons/pause";
   import Play from "@lucide/svelte/icons/play";
   import Redo2 from "@lucide/svelte/icons/redo-2";
@@ -62,6 +63,8 @@
     <FolderOpen {size} {strokeWidth} />
   {:else if icon === "mic"}
     <Mic {size} {strokeWidth} />
+  {:else if icon === "minimize-2"}
+    <Minimize2 {size} {strokeWidth} />
   {:else if icon === "pause"}
     <Pause {size} {strokeWidth} />
   {:else if icon === "play"}

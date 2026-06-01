@@ -35,6 +35,10 @@ function form(overrides: Partial<BatchFormState> = {}): BatchFormState {
     denoiseAlgorithm: DenoiseAlgorithm.Standard,
     dpdfnetAttnLimitDb: 12,
     targetFormat: "mp3",
+    sizeReductionMode: "normal",
+    sizeReductionBitrateKbps: 64,
+    sizeReductionSampleRateHz: 32000,
+    sizeReductionChannels: 1,
     ...overrides,
   };
 }
@@ -101,6 +105,7 @@ describe("batch-state", () => {
     const pause = selectedOperation(FALLBACK_BATCH_INITIAL_STATE, BatchOperationName.RemovePauses);
     const denoise = selectedOperation(FALLBACK_BATCH_INITIAL_STATE, BatchOperationName.Denoise);
     const convert = selectedOperation(FALLBACK_BATCH_INITIAL_STATE, BatchOperationName.Convert);
+    const reduceSize = selectedOperation(FALLBACK_BATCH_INITIAL_STATE, BatchOperationName.ReduceSize);
     expect(
       batchStartRequest(form({
         operation: BatchOperationName.Faster,
@@ -160,6 +165,26 @@ describe("batch-state", () => {
       source_field: "Audio",
       target_field: null,
       parameters: { target_format: "flac" },
+    });
+
+    expect(
+      batchStartRequest(form({
+        operation: BatchOperationName.ReduceSize,
+        sizeReductionMode: "aggressive",
+        sizeReductionBitrateKbps: 40,
+        sizeReductionSampleRateHz: 22050,
+        sizeReductionChannels: 1,
+      }), reduceSize),
+    ).toEqual({
+      operation: BatchOperationName.ReduceSize,
+      source_field: "Audio",
+      target_field: null,
+      parameters: {
+        size_reduction_bitrate_kbps: 40,
+        size_reduction_channels: 1,
+        size_reduction_mode: "aggressive",
+        size_reduction_sample_rate_hz: 22050,
+      },
     });
   });
 });

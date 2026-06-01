@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-import scripts.dev as dev
+from scripts.dev_scripts import quality, tooling
 from scripts.dev_tasks import quality_tools
 
 
@@ -10,10 +10,10 @@ def test_lint_runs_safe_autofix_before_check(monkeypatch) -> None:
     calls: list[str] = []
     anki_python = Path("/anki/python")
 
-    monkeypatch.setattr(dev, "_find_anki_python", lambda: anki_python)
-    monkeypatch.setattr(dev, "_run", lambda cmd, **kwargs: calls.append(" ".join(cmd)) or 0)
+    monkeypatch.setattr(tooling, "find_anki_python", lambda: anki_python)
+    monkeypatch.setattr(tooling, "run_process", lambda cmd, **kwargs: calls.append(" ".join(cmd)) or 0)
 
-    assert dev.cmd_lint() == 0
+    assert tooling.cmd_lint([]) == 0
     assert calls == [
         "/anki/python -m ruff check --fix",
         "/anki/python -m ruff check",
@@ -24,10 +24,10 @@ def test_lint_stops_when_safe_autofix_fails(monkeypatch) -> None:
     calls: list[str] = []
     anki_python = Path("/anki/python")
 
-    monkeypatch.setattr(dev, "_find_anki_python", lambda: anki_python)
-    monkeypatch.setattr(dev, "_run", lambda cmd, **kwargs: calls.append(" ".join(cmd)) or 42)
+    monkeypatch.setattr(tooling, "find_anki_python", lambda: anki_python)
+    monkeypatch.setattr(tooling, "run_process", lambda cmd, **kwargs: calls.append(" ".join(cmd)) or 42)
 
-    assert dev.cmd_lint() == 42
+    assert tooling.cmd_lint([]) == 42
     assert calls == ["/anki/python -m ruff check --fix"]
 
 
@@ -73,9 +73,9 @@ def test_qodana_reports_missing_cli(monkeypatch, capsys) -> None:
 
 
 def test_cmd_i18n_reports_failures(monkeypatch, capsys) -> None:
-    monkeypatch.setattr(dev, "locale_catalog_violations", lambda: ["de.json missing keys: beta"])
+    monkeypatch.setattr(quality, "locale_catalog_violations", lambda: ["de.json missing keys: beta"])
 
-    assert dev.cmd_i18n() == 1
+    assert quality.cmd_i18n([]) == 1
 
     captured = capsys.readouterr()
     assert "FAIL: locale catalogs differ from en.json:" in captured.out

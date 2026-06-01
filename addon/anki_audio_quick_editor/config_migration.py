@@ -6,6 +6,13 @@ import copy
 from typing import Any
 
 from .audio_formats import normalize_output_format
+from .audio_size_reduction import (
+    normalize_size_reduction_bitrate_kbps,
+    normalize_size_reduction_channels,
+    normalize_size_reduction_mode,
+    normalize_size_reduction_sample_rate_hz,
+    size_reduction_encoder_params_for_mode,
+)
 from .dpdfnet_settings import normalize_dpdfnet_attn_limit_db
 
 CURRENT_CONFIG_VERSION = 1
@@ -43,6 +50,8 @@ def _apply_post_merge_migrations(
     changed = False
     changed = _normalize_dpdfnet_limit_setting(merged) or changed
     changed = _normalize_output_format_setting(merged) or changed
+    changed = _normalize_size_reduction_mode_setting(merged) or changed
+    changed = _normalize_size_reduction_encoder_settings(merged) or changed
     changed = _normalize_pause_detection_algorithm_setting(merged) or changed
     changed = _normalize_visible_editor_buttons_setting(merged, defaults) or changed
     return _normalize_editor_button_mode_settings(merged, defaults) or changed
@@ -68,6 +77,49 @@ def _normalize_output_format_setting(merged: dict[str, Any]) -> bool:
         return False
     merged["output_format"] = normalized_output_format
     return True
+
+
+def _normalize_size_reduction_mode_setting(merged: dict[str, Any]) -> bool:
+    if "size_reduction_mode" not in merged:
+        return False
+    normalized_mode = normalize_size_reduction_mode(merged.get("size_reduction_mode"))
+    if merged.get("size_reduction_mode") == normalized_mode:
+        return False
+    merged["size_reduction_mode"] = normalized_mode
+    return True
+
+
+def _normalize_size_reduction_encoder_settings(merged: dict[str, Any]) -> bool:
+    size_reduction_keys = {
+        "size_reduction_mode",
+        "size_reduction_bitrate_kbps",
+        "size_reduction_sample_rate_hz",
+        "size_reduction_channels",
+    }
+    if not size_reduction_keys.intersection(merged):
+        return False
+    defaults = size_reduction_encoder_params_for_mode(merged.get("size_reduction_mode"))
+    updates = {
+        "size_reduction_bitrate_kbps": normalize_size_reduction_bitrate_kbps(
+            merged.get("size_reduction_bitrate_kbps"),
+            defaults.bitrate_kbps,
+        ),
+        "size_reduction_sample_rate_hz": normalize_size_reduction_sample_rate_hz(
+            merged.get("size_reduction_sample_rate_hz"),
+            defaults.sample_rate_hz,
+        ),
+        "size_reduction_channels": normalize_size_reduction_channels(
+            merged.get("size_reduction_channels"),
+            defaults.channels,
+        ),
+    }
+    changed = False
+    for key, value in updates.items():
+        if merged.get(key) == value:
+            continue
+        merged[key] = value
+        changed = True
+    return changed
 
 
 def _normalize_pause_detection_algorithm_setting(merged: dict[str, Any]) -> bool:

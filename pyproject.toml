@@ -254,6 +254,7 @@ source_modules = [
     "anki_audio_quick_editor.audio_formats",
     "anki_audio_quick_editor.audio_operation_params",
     "anki_audio_quick_editor.audio_operations",
+    "anki_audio_quick_editor.audio_size_reduction",
     "anki_audio_quick_editor.audio_pipeline",
     "anki_audio_quick_editor.audio_artifacts",
     "anki_audio_quick_editor.audio_commands",

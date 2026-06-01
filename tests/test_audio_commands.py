@@ -10,6 +10,7 @@ from anki_audio_quick_editor.audio_processor import (
     build_region_delete_plan,
     build_region_keep_plan,
     build_silencedetect_command,
+    build_size_reduction_audio_command,
     build_working_original_filters,
 )
 from anki_audio_quick_editor.audio_state import AudioEditState, AudioProcessingConfig
@@ -118,6 +119,32 @@ def test_build_convert_audio_command_uses_format_codec_args(
         "-vn",
         *codec_args,
         str(tmp_path / f"converted.{target_format}"),
+    )
+
+
+def test_build_size_reduction_audio_command_uses_source_aware_codec_args(tmp_path: Path) -> None:
+    command = build_size_reduction_audio_command(
+        Path("/bin/ffmpeg"),
+        tmp_path / "source.mp3",
+        tmp_path / "smaller.mp3",
+        ("-codec:a", "libmp3lame", "-b:a", "64k", "-ar", "32000", "-ac", "1"),
+    )
+
+    assert command == (
+        "/bin/ffmpeg",
+        "-y",
+        "-i",
+        str(tmp_path / "source.mp3"),
+        "-vn",
+        "-codec:a",
+        "libmp3lame",
+        "-b:a",
+        "64k",
+        "-ar",
+        "32000",
+        "-ac",
+        "1",
+        str(tmp_path / "smaller.mp3"),
     )
 
 

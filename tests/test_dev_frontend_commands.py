@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-import scripts.dev as dev
+from scripts.dev_scripts import testing as test_commands
 from scripts.dev_tasks import frontend
 
 
@@ -92,15 +92,14 @@ def test_test_svelte_stops_when_frontend_build_fails(monkeypatch, tmp_path: Path
 def test_test_e2e_builds_frontend_before_pytest(monkeypatch) -> None:
     calls: list[str] = []
 
-    monkeypatch.setattr(dev, "_COMMAND_ARGS", [])
-    monkeypatch.setattr(dev, "cmd_build_ui", lambda: calls.append("build") or 0)
+    monkeypatch.setattr(test_commands, "cmd_build_ui", lambda: calls.append("build") or 0)
     monkeypatch.setattr(
-        dev,
-        "_run_pytest",
+        test_commands,
+        "run_pytest",
         lambda target, *, label: calls.append(f"{target} {label}") or 0,
     )
 
-    assert dev.cmd_test_e2e() == 0
+    assert test_commands.cmd_test_e2e([]) == 0
     assert calls == ["build", "e2e/ python e2e tests"]
 
 
@@ -115,15 +114,14 @@ def test_test_e2e_forwards_explicit_pytest_targets(monkeypatch) -> None:
         "test_two_audio_fields_keep_region_state_scoped_and_single_active_playback"
     )
 
-    monkeypatch.setattr(dev, "_COMMAND_ARGS", [graph_default_target, multi_field_target])
-    monkeypatch.setattr(dev, "cmd_build_ui", lambda: calls.append("build") or 0)
+    monkeypatch.setattr(test_commands, "cmd_build_ui", lambda: calls.append("build") or 0)
     monkeypatch.setattr(
-        dev,
-        "_run_pytest",
+        test_commands,
+        "run_pytest",
         lambda target, *, label: calls.append(f"{target} {label}") or 0,
     )
 
-    assert dev.cmd_test_e2e() == 0
+    assert test_commands.cmd_test_e2e([graph_default_target, multi_field_target]) == 0
     assert calls == [
         "build",
         f"{graph_default_target} python e2e tests: {graph_default_target}",
@@ -132,11 +130,11 @@ def test_test_e2e_forwards_explicit_pytest_targets(monkeypatch) -> None:
 
 
 def test_test_e2e_stops_when_frontend_build_fails(monkeypatch) -> None:
-    monkeypatch.setattr(dev, "cmd_build_ui", lambda: 23)
+    monkeypatch.setattr(test_commands, "cmd_build_ui", lambda: 23)
     monkeypatch.setattr(
-        dev,
-        "_run_pytest",
+        test_commands,
+        "run_pytest",
         lambda *_args, **_kwargs: (_ for _ in ()).throw(AssertionError("e2e should not run")),
     )
 
-    assert dev.cmd_test_e2e() == 23
+    assert test_commands.cmd_test_e2e([]) == 23

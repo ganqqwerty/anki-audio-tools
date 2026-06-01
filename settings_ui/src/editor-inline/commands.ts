@@ -3,6 +3,7 @@ import {
   outputFormatOrDefault,
 } from "../lib/audio-operation-parameters.js";
 import { t } from "../lib/i18n.js";
+import { formatSizeReductionMode, sizeReductionModeOrDefault } from "../lib/size-reduction-parameters.js";
 import type { EditorCommand, EditorCommandPayload } from "./types.js";
 
 export {
@@ -20,6 +21,7 @@ export const PROCESSING_COMMANDS = new Set<EditorCommand>([
   "aqe:slower",
   "aqe:faster",
   "aqe:convert",
+  "aqe:reduce-size",
   "aqe:remove-pauses",
   "aqe:denoise-standard",
   "aqe:rnnoise",
@@ -53,6 +55,13 @@ export function processingMessage(command: EditorCommand, payload?: EditorComman
         window.__AQE_EDITOR_CONFIG__?.splitButtonDefaults?.outputFormat,
     );
     return `${t("editor.status.converting", { format: formatOutputFormat(outputFormat) })}...`;
+  }
+  if (command === "aqe:reduce-size") {
+    const mode = sizeReductionModeOrDefault(
+      payload?.overrides?.sizeReductionMode ??
+        window.__AQE_EDITOR_CONFIG__?.splitButtonDefaults?.sizeReductionMode,
+    );
+    return `${t("editor.status.reducing_size_with_level", { level: formatSizeReductionMode(mode) })}...`;
   }
   if (command === "aqe:delete-selection") return t("editor.status.deleting_region");
   if (command === "aqe:delete-rest") return t("editor.status.deleting_rest");

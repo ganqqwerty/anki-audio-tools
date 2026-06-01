@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-import scripts.dev as dev
+from scripts.dev_scripts import testing as test_commands
 from scripts.dev_tasks import coverage, process, pytest_runner
 
 
@@ -60,26 +60,26 @@ def test_run_pytest_shows_output_on_collect_and_run_failures(monkeypatch) -> Non
 def test_python_test_command_generates_contracts_before_pytest(monkeypatch) -> None:
     calls: list[str] = []
 
-    monkeypatch.setattr(dev, "cmd_contracts_generate", lambda: calls.append("contracts-generate") or 0)
+    monkeypatch.setattr(test_commands, "cmd_contracts_generate", lambda: calls.append("contracts-generate") or 0)
     monkeypatch.setattr(
-        dev,
-        "_run_pytest",
+        test_commands,
+        "run_pytest",
         lambda target, *, label: calls.append(f"{target} {label}") or 0,
     )
 
-    assert dev.cmd_test() == 0
+    assert test_commands.cmd_test([]) == 0
     assert calls == ["contracts-generate", "tests/ python tests"]
 
 
 def test_python_test_command_stops_when_contract_generation_fails(monkeypatch) -> None:
-    monkeypatch.setattr(dev, "cmd_contracts_generate", lambda: 29)
+    monkeypatch.setattr(test_commands, "cmd_contracts_generate", lambda: 29)
     monkeypatch.setattr(
-        dev,
-        "_run_pytest",
+        test_commands,
+        "run_pytest",
         lambda *_args, **_kwargs: (_ for _ in ()).throw(AssertionError("pytest should not run")),
     )
 
-    assert dev.cmd_test() == 29
+    assert test_commands.cmd_test([]) == 29
 
 
 def test_coverage_pytest_shows_output_on_failure(monkeypatch) -> None:

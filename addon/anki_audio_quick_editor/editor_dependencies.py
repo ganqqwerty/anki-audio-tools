@@ -20,6 +20,7 @@ from .audio_processor import (
     render_pitch_tier_hum_audio,
     render_playback_segment,
     render_rnnoise_audio,
+    render_size_reduced_audio,
     render_voice_only_audio,
     temp_final_path,
 )
@@ -81,6 +82,7 @@ def bridge_deps(callbacks: Any, frontend_callbacks: Any) -> SimpleNamespace:
         pitch_hum_async=callbacks.pitch_hum_async,
         record_learner_voice=callbacks.record_learner_voice,
         redo=callbacks.redo,
+        reduce_size_async=callbacks.reduce_size_async,
         rnnoise_async=callbacks.rnnoise_async,
         save_split_defaults_from_frontend=callbacks.save_split_defaults_from_frontend,
         set_busy=frontend_callbacks.set_busy,
@@ -187,6 +189,7 @@ def processing_deps(callbacks: Any, frontend_callbacks: Any) -> SimpleNamespace:
         render_pitch_hum_audio=render_pitch_hum_audio,
         render_pitch_tier_hum_audio=render_pitch_tier_hum_audio,
         render_rnnoise_audio=render_rnnoise_audio,
+        render_size_reduced_audio=render_size_reduced_audio,
         render_voice_only_audio=render_voice_only_audio,
         replace_current_field_after_noise_removal=callbacks.replace_current_field_after_noise_removal,
         replace_current_field_after_render=callbacks.replace_current_field_after_render,

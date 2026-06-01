@@ -1,5 +1,4 @@
 <script lang="ts">
-  import AqeTooltip from "../lib/AqeTooltip.svelte";
   import { t } from "../lib/i18n.js";
   import {
     formatDenoiseAlgorithm,
@@ -7,6 +6,7 @@
     formatPauseAggressiveness,
     formatPitchHumMode,
     formatShareTarget,
+    formatSizeReductionMode,
     formatSpeedStep,
     formatVolumeDb,
   } from "./split-button-state.js";
@@ -17,11 +17,11 @@
     splitMenuDescription,
     splitMenuVideoLink,
     splitOptionLabel,
-    splitOptionTooltip,
     splitOptionValues,
   } from "./split-menu-content.js";
   import SplitDefaultSaveButton from "./SplitDefaultSaveButton.svelte";
   import SplitExtraFields from "./SplitExtraFields.svelte";
+  import SplitValuePresetGrid from "./SplitValuePresetGrid.svelte";
   import SplitRunButtons from "./SplitRunButtons.svelte";
   import type { ButtonSpec, FieldSplitButtonState } from "./types.js";
 
@@ -30,7 +30,7 @@
   type PauseDetectionAlgorithm = FieldSplitButtonState["pauseDetectionAlgorithm"];
   type PitchHumMode = FieldSplitButtonState["pitchHumMode"];
   type ShareTarget = FieldSplitButtonState["shareTarget"];
-
+  type SizeReductionMode = FieldSplitButtonState["sizeReductionMode"];
   const {
     button,
     denoiseAlgorithm,
@@ -51,6 +51,10 @@
     onSaveDefault,
     onRunCommand,
     onShareTarget,
+    onSizeReductionBitrateKbps,
+    onSizeReductionChannels,
+    onSizeReductionMode,
+    onSizeReductionSampleRateHz,
     onSpeedStep,
     onVolumeStep,
     pauseAggressiveness,
@@ -65,6 +69,10 @@
     shareTarget,
     showRunButton,
     showSaveDefault,
+    sizeReductionMode,
+    sizeReductionBitrateKbps,
+    sizeReductionSampleRateHz,
+    sizeReductionChannels,
     speedStep,
     targetOrd,
     volumeStepDb,
@@ -88,6 +96,10 @@
     onSaveDefault: () => void;
     onRunCommand: (command: ButtonSpec["command"]) => void;
     onShareTarget: (value: ShareTarget) => void;
+    onSizeReductionBitrateKbps: (value: number) => void;
+    onSizeReductionChannels: (value: number) => void;
+    onSizeReductionMode: (value: SizeReductionMode) => void;
+    onSizeReductionSampleRateHz: (value: number) => void;
     onSpeedStep: (value: number) => void;
     onVolumeStep: (value: number) => void;
     pauseAggressiveness: "gentle" | "normal" | "aggressive";
@@ -102,6 +114,10 @@
     shareTarget: ShareTarget;
     showRunButton: boolean;
     showSaveDefault: boolean;
+    sizeReductionMode: SizeReductionMode;
+    sizeReductionBitrateKbps: number;
+    sizeReductionSampleRateHz: number;
+    sizeReductionChannels: number;
     speedStep: number;
     targetOrd: number;
     volumeStepDb: number;
@@ -138,6 +154,7 @@
     if (groupSlug === "speed") return groupedSpeedLabel(speedStep);
     if (isSpeedControl()) return formatSpeedStep(speedStep, button.command);
     if (button.command === "aqe:remove-pauses") return formatPauseAggressiveness(pauseAggressiveness);
+    if (button.command === "aqe:reduce-size") return formatSizeReductionMode(sizeReductionMode);
     if (button.command === "aqe:convert") return formatOutputFormat(outputFormat);
     if (button.command === "aqe:share") return formatShareTarget(shareTarget);
     if (
@@ -214,7 +231,10 @@
 
   function applyOption(value: string): void {
     if (value === "catbox" || value === "litterbox") onShareTarget(value);
-    if (value === "gentle" || value === "normal" || value === "aggressive") onPauseAggressiveness(value);
+    if (value === "gentle" || value === "normal" || value === "aggressive") {
+      if (button.command === "aqe:reduce-size") onSizeReductionMode(value);
+      else onPauseAggressiveness(value);
+    }
     if (value === "standard" || value === "rnnoise" || value === "dpdfnet" || value === "voice_only") onDenoiseAlgorithm(value);
     if (isOutputFormatValue(value)) onOutputFormat(value);
     if (value === "direct" || value === "pitch_tier") onPitchHumMode(value);
@@ -247,6 +267,9 @@
   function runTitle(command: ButtonSpec["command"]): string {
     if (command === "aqe:share") return t("editor.command.share.title");
     if (command === "aqe:convert") return t("editor.command.convert.title", { format: formatOutputFormat(outputFormat) });
+    if (command === "aqe:reduce-size") {
+      return t("editor.command.reduce_size.title", { level: formatSizeReductionMode(sizeReductionMode) });
+    }
     if (command === "aqe:remove-pauses") return t("editor.command.shorten_pauses.title");
     if (command === "aqe:pitch-hum") return t("editor.command.pitch_hum.title");
     if (command === "aqe:slower") return t("editor.command.slower.title");
@@ -305,25 +328,16 @@
   {/if}
 </p>
 {#if options.length}
-  <div class="aqe-split-presets">
-    {#each options as option}
-      <AqeTooltip>
-        {#snippet trigger({ props })}
-          <button
-            {...props}
-            type="button"
-            class="aqe-button aqe-split-preset aqe-tooltip-target"
-            data-aqe-tooltip-content={splitOptionTooltip(option, dpdfnetAttnLimitDb)}
-            data-testid={`aqe-split-${targetOrd}-${slug}-preset-${option}`}
-            aria-pressed={selectedOptionLabel() === optionLabel(option) ? "true" : "false"}
-            onclick={() => applyOption(option)}
-          >
-            <span class="aqe-split-preset-label">{optionLabel(option)}</span>
-          </button>
-        {/snippet}
-      </AqeTooltip>
-    {/each}
-  </div>
+  <SplitValuePresetGrid
+    command={button.command}
+    {dpdfnetAttnLimitDb}
+    onSelect={applyOption}
+    {optionLabel}
+    {options}
+    selectedLabel={selectedOptionLabel()}
+    {slug}
+    {targetOrd}
+  />
   <SplitExtraFields
     command={button.command}
     {denoiseAlgorithm}
@@ -331,15 +345,14 @@
     {onChange}
     {onDpdfnetAttnLimitDb}
     {onPauseDetectionAlgorithm}
-    {onPauseMinSilenceSeconds}
-    {onPauseMinSpeechSeconds}
-    {onPausePreprocessDenoise}
-    {onPauseThreshold}
-    {pauseMinSilenceSeconds}
-    {pauseMinSpeechSeconds}
-    {pausePreprocessDenoise}
-    {pauseThreshold}
+    {onPauseMinSilenceSeconds} {onPauseMinSpeechSeconds}
+    {onPausePreprocessDenoise} {onPauseThreshold}
+    {pauseMinSilenceSeconds} {pauseMinSpeechSeconds}
+    {pausePreprocessDenoise} {pauseThreshold}
     {pauseDetectionAlgorithm}
+    {onSizeReductionBitrateKbps} {onSizeReductionChannels}
+    {onSizeReductionSampleRateHz} {sizeReductionBitrateKbps}
+    {sizeReductionChannels} {sizeReductionSampleRateHz}
     {slug}
     {targetOrd}
   />

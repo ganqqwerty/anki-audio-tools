@@ -19,6 +19,7 @@ def test_injection_script_embeds_audio_field_indices_and_bundle() -> None:
     config = _embedded_config(script)
 
     assert config["audioFieldIndices"] == [1, 3]
+    assert config["audioFieldMetadata"] == {}
     assert config["audioFieldSources"] == {}
     assert config["pendingPostEditPlayback"] is None
     assert config["repeatPlaybackByDefault"] is True
@@ -27,6 +28,10 @@ def test_injection_script_embeds_audio_field_indices_and_bundle() -> None:
     assert config["splitButtonDefaults"]["repeatPauseSeconds"] == 0.0
     assert config["splitButtonDefaults"]["voiceRecordingCountdownSeconds"] == 3
     assert config["splitButtonDefaults"]["shareTarget"] == "litterbox"
+    assert config["splitButtonDefaults"]["sizeReductionMode"] == "normal"
+    assert config["splitButtonDefaults"]["sizeReductionBitrateKbps"] == 64
+    assert config["splitButtonDefaults"]["sizeReductionSampleRateHz"] == 32000
+    assert config["splitButtonDefaults"]["sizeReductionChannels"] == 1
     assert config["splitButtonDefaults"]["pitchHumMode"] == "direct"
     assert config["splitButtonDefaults"]["pauseDetectionAlgorithm"] == "silencedetect"
     assert config["splitButtonDefaults"]["pauseSilencedetectThresholdDb"] == -45.0
@@ -49,6 +54,7 @@ def test_injection_script_embeds_audio_field_indices_and_bundle() -> None:
     assert "aqe:show-file" in script
     assert "aqe:share" in script
     assert "aqe:convert" in script
+    assert "aqe:reduce-size" in script
     assert "aqe:volume-down" in script
     assert "aqe:volume-up" in script
     assert "aqe:denoise-standard" in script
@@ -98,6 +104,19 @@ def test_injection_script_embeds_audio_field_sources() -> None:
     assert '"audioFieldSources": {"0": "front.wav", "2": "back.mp3"}' in script
 
 
+def test_injection_script_embeds_audio_field_metadata() -> None:
+    script = injection_script(
+        [0],
+        audio_field_metadata={
+            0: {"bitRate": 128000, "sampleRate": 44100, "channels": 2},
+        },
+    )
+
+    assert _embedded_config(script)["audioFieldMetadata"] == {
+        "0": {"bitRate": 128000, "sampleRate": 44100, "channels": 2},
+    }
+
+
 def test_injection_script_embeds_pending_post_edit_playback() -> None:
     script = injection_script(
         [0],
@@ -127,6 +146,10 @@ def test_injection_script_embeds_split_button_defaults() -> None:
             "pauseAggressiveness": "normal",
             "pauseDetectionAlgorithm": "silero_vad",
             "outputFormat": "mp3",
+            "sizeReductionMode": "aggressive",
+            "sizeReductionBitrateKbps": 40,
+            "sizeReductionSampleRateHz": 22050,
+            "sizeReductionChannels": 1,
             "denoiseAlgorithm": "standard",
             "pitchHumMode": "pitch_tier",
             "dpdfnetAttnLimitDb": 18.0,
@@ -140,6 +163,10 @@ def test_injection_script_embeds_split_button_defaults() -> None:
         "pauseAggressiveness": "normal",
         "pauseDetectionAlgorithm": "silero_vad",
         "outputFormat": "mp3",
+        "sizeReductionMode": "aggressive",
+        "sizeReductionBitrateKbps": 40,
+        "sizeReductionSampleRateHz": 22050,
+        "sizeReductionChannels": 1,
         "denoiseAlgorithm": "standard",
         "pitchHumMode": "pitch_tier",
         "dpdfnetAttnLimitDb": 18.0,

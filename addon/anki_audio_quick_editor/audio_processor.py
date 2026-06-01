@@ -45,6 +45,7 @@ _ORIGINAL_MAKE_PLAYBACK_SEGMENT_FILENAME = _audio_rendering.make_playback_segmen
 _safe_filename_stem = _audio_rendering._safe_filename_stem
 build_audio_filters = _audio_commands.build_audio_filters
 build_convert_audio_command = _audio_commands.build_convert_audio_command
+build_size_reduction_audio_command = _audio_commands.build_size_reduction_audio_command
 build_region_delete_plan = _audio_commands.build_region_delete_plan
 build_region_keep_plan = _audio_commands.build_region_keep_plan
 build_silencedetect_command = _audio_commands.build_silencedetect_command
@@ -58,6 +59,7 @@ render_audio = _render_portal.render_audio
 render_audio_region_deleted = _render_portal.render_audio_region_deleted
 render_audio_region_kept = _render_portal.render_audio_region_kept
 render_converted_audio = _render_portal.render_converted_audio
+render_size_reduced_audio = _render_portal.render_size_reduced_audio
 render_dpdfnet_audio = _render_portal.render_dpdfnet_audio
 render_noise_reduced_audio = _render_portal.render_noise_reduced_audio
 render_pitch_hum_audio = _render_portal.render_pitch_hum_audio
@@ -252,9 +254,11 @@ def _sync_rendering_dependencies() -> None:
         cast(Any, _audio_rendering),
         build_audio_filters=build_audio_filters,
         build_convert_audio_command=build_convert_audio_command,
+        build_size_reduction_audio_command=build_size_reduction_audio_command,
         external_command_run_kwargs=_external_command_run_kwargs,
         find_ffmpeg=find_ffmpeg,
         make_playback_segment_filename=make_playback_segment_filename,
+        probe_audio_metadata=probe_audio_metadata,
         probe_duration_ms=probe_duration_ms,
         resolve_output_policy=resolve_output_policy,
         render_pause_removal_pipeline_audio=_render_pause_removal_pipeline_audio,

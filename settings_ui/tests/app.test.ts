@@ -41,7 +41,7 @@ describe("App", () => {
     expect(screen.getByText("DPDFNet Aggressiveness")).toBeInTheDocument();
     expect(screen.getByText("Pause detection")).toBeInTheDocument();
     expect(screen.getByText("Shorten pauses level")).toBeInTheDocument();
-    expect(screen.getByText("Advanced Params")).toBeInTheDocument();
+    expect(within(screen.getByTestId("settings-pause-advanced-params")).getByText("Advanced Params")).toBeInTheDocument();
     expect(screen.getByTestId("settings-pause-threshold-help")).toBeInTheDocument();
     expect(screen.getByTestId("settings-pause-min-silence-seconds-help")).toBeInTheDocument();
     expect(screen.getByTestId("settings-pause-min-speech-seconds-help")).toBeInTheDocument();

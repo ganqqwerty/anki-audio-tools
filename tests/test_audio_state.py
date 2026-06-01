@@ -114,6 +114,10 @@ def test_processing_config_from_partial_config_uses_defaults() -> None:
     assert config.deep_filter_post_filter is True
     assert config.dpdfnet_attn_limit_db == 12.0
     assert config.pitch_hum_mode == "direct"
+    assert config.size_reduction_mode == "normal"
+    assert config.size_reduction_bitrate_kbps == 64
+    assert config.size_reduction_sample_rate_hz == 32000
+    assert config.size_reduction_channels == 1
     assert config.show_ffmpeg_commands is False
 
 
@@ -136,6 +140,35 @@ def test_processing_config_reads_show_ffmpeg_commands_flag() -> None:
 def test_processing_config_normalizes_output_format() -> None:
     assert AudioProcessingConfig.from_config({"output_format": " FLAC "}).output_format == "flac"
     assert AudioProcessingConfig.from_config({"output_format": "aac"}).output_format == "source"
+
+
+def test_processing_config_normalizes_size_reduction_mode() -> None:
+    assert AudioProcessingConfig.from_config({"size_reduction_mode": " gentle "}).size_reduction_mode == "gentle"
+    assert AudioProcessingConfig.from_config({"size_reduction_mode": "tiny"}).size_reduction_mode == "normal"
+
+
+def test_processing_config_normalizes_size_reduction_encoder_params() -> None:
+    config = AudioProcessingConfig.from_config(
+        {
+            "size_reduction_mode": "gentle",
+            "size_reduction_bitrate_kbps": 999,
+            "size_reduction_sample_rate_hz": 12345,
+            "size_reduction_channels": 7,
+        }
+    )
+
+    assert config.size_reduction_mode == "gentle"
+    assert config.size_reduction_bitrate_kbps == 320
+    assert config.size_reduction_sample_rate_hz == 12000
+    assert config.size_reduction_channels == 2
+
+
+def test_processing_config_uses_mode_defaults_for_missing_size_reduction_encoder_params() -> None:
+    config = AudioProcessingConfig.from_config({"size_reduction_mode": "aggressive"})
+
+    assert config.size_reduction_bitrate_kbps == 40
+    assert config.size_reduction_sample_rate_hz == 22050
+    assert config.size_reduction_channels == 1
 
 
 def test_processing_config_reads_algorithm_specific_pause_params() -> None:

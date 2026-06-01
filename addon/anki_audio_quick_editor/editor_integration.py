@@ -3,12 +3,15 @@
 from __future__ import annotations
 
 import logging
+from pathlib import Path
 from typing import Any, Callable
 
 from . import (
     editor_callbacks,
     editor_runtime,
 )
+from .audio_processor import probe_audio_metadata
+from .audio_state import AudioProcessingConfig
 from .editor_actions import (
     BRIDGE_COMMANDS,
 )
@@ -74,6 +77,8 @@ from .editor_session import (
     reset_for_note_load,
 )
 from .editor_ui import injection_script
+from .errors import AudioProcessingError
+from .media_paths import existing_media_file_path
 
 logger = logging.getLogger(__name__)
 
@@ -124,6 +129,7 @@ _rnnoise_async = editor_callbacks._rnnoise_async
 _dpdfnet_async = editor_callbacks._dpdfnet_async
 _voice_only_async = editor_callbacks._voice_only_async
 _pitch_hum_async = editor_callbacks._pitch_hum_async
+_reduce_size_async = editor_callbacks._reduce_size_async
 _run_special_audio_transform_async = editor_callbacks._run_special_audio_transform_async
 _delete_selection_from_frontend = editor_callbacks._delete_selection_from_frontend
 _delete_selection_with_request = editor_callbacks._delete_selection_with_request
@@ -230,6 +236,7 @@ def editor_injection_script(editor: Any, note: Any) -> str:
         editor_button_modes = {}
     return injection_script(
         list(audio_field_sources),
+        audio_field_metadata=_audio_field_metadata(editor, audio_field_sources, config),
         audio_field_sources=audio_field_sources,
         initial_status_by_field=_initial_status_by_field(_SESSIONS.get(editor)),
         pending_post_edit_playback=_pending_post_edit_playback_payload(_SESSIONS.get(editor)),
@@ -278,6 +285,12 @@ def editor_injection_script(editor: Any, note: Any) -> str:
             "denoiseAlgorithm": str(config.get("denoise_algorithm", "standard")),
             "pitchHumMode": str(config.get("pitch_hum_mode", "direct")),
             "outputFormat": str(config.get("output_format", "source")),
+            "sizeReductionMode": str(config.get("size_reduction_mode", "normal")),
+            "sizeReductionBitrateKbps": int(config.get("size_reduction_bitrate_kbps", 64)),
+            "sizeReductionSampleRateHz": int(
+                config.get("size_reduction_sample_rate_hz", 32000)
+            ),
+            "sizeReductionChannels": int(config.get("size_reduction_channels", 1)),
             "dpdfnetAttnLimitDb": float(config.get("dpdfnet_attn_limit_db", 12.0)),
             "graphVoiceRange": str(config.get("graph_voice_range", "general")),
             "graphRecordingCondition": str(config.get("graph_recording_condition", "auto")),
@@ -288,6 +301,31 @@ def editor_injection_script(editor: Any, note: Any) -> str:
             "graphVoiceLock": str(config.get("graph_voice_lock", "balanced")),
         },
     )
+
+
+def _audio_field_metadata(
+    editor: Any,
+    audio_field_sources: dict[int, str],
+    config: dict[str, Any],
+) -> dict[int, dict[str, int | None]]:
+    metadata_by_field: dict[int, dict[str, int | None]] = {}
+    media_dir = Path(editor.mw.col.media.dir())
+    processing_config = AudioProcessingConfig.from_config(config)
+    for field_index, filename in audio_field_sources.items():
+        media_path = existing_media_file_path(media_dir, filename)
+        if media_path is None:
+            continue
+        try:
+            metadata = probe_audio_metadata(media_path, processing_config)
+        except AudioProcessingError:
+            logger.debug("Could not inspect editor audio metadata.", exc_info=True)
+            continue
+        metadata_by_field[int(field_index)] = {
+            "bitRate": metadata.bit_rate,
+            "sampleRate": metadata.sample_rate,
+            "channels": metadata.channels,
+        }
+    return metadata_by_field
 
 
 def _initial_status_by_field(session: EditorSession | None) -> dict[int, dict[str, str]]:

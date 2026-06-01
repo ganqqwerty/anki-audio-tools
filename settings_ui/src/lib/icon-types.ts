@@ -7,6 +7,7 @@ export type CommandIconName =
   | "file-audio"
   | "folder-open"
   | "mic"
+  | "minimize-2"
   | "pause"
   | "play"
   | "redo-2"

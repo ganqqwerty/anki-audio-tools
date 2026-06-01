@@ -27,6 +27,25 @@ def test_split_default_updates_accept_and_reject_share_target() -> None:
     assert split_default_config_updates({"defaults": {"shareTarget": "invalid"}}) == {}
 
 
+def test_split_default_updates_accept_and_reject_size_reduction_mode() -> None:
+    assert split_default_config_updates(
+        {
+            "defaults": {
+                "sizeReductionMode": "aggressive",
+                "sizeReductionBitrateKbps": 32,
+                "sizeReductionSampleRateHz": 16000,
+                "sizeReductionChannels": 1,
+            }
+        }
+    ) == {
+        "size_reduction_mode": "aggressive",
+        "size_reduction_bitrate_kbps": 32,
+        "size_reduction_sample_rate_hz": 16000,
+        "size_reduction_channels": 1,
+    }
+    assert split_default_config_updates({"defaults": {"sizeReductionMode": "tiny"}}) == {}
+
+
 def test_bridge_routes_share_payload_to_editor_sharing(monkeypatch) -> None:
     editor = make_editor()
     called: dict[str, object] = {}

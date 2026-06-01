@@ -10,7 +10,7 @@ from typing import Any, Callable, cast
 from .audio_formats import DEFAULT_OUTPUT_FORMAT
 from .audio_state import AudioEditState, AudioProcessingConfig
 from .diagnostics_runtime import new_operation_id, record_breadcrumb
-from .editor_actions import EditorCommandPayload
+from .editor_actions import EditorCommandPayload, processing_config_for_command
 from .editor_processing_shared import (
     cancel_graph_analysis_for_processing,
     request_history_availability_after_edit,
@@ -53,6 +53,41 @@ def denoise_standard_async(editor: Any, deps: Any) -> None:
         failure_log_label="standard denoise failed",
         renderer=deps.render_noise_reduced_audio,
         command=EditorCommandPayload(command="aqe:denoise-standard"),
+    )
+
+
+def reduce_size_async(
+    editor: Any,
+    command: EditorCommandPayload | None = None,
+    deps: Any = None,
+) -> None:
+    if deps is None:
+        deps = command
+        command = EditorCommandPayload(command="aqe:reduce-size")
+    mode = command.overrides.size_reduction_mode if command is not None else None
+
+    def _renderer(
+        source_path: Path,
+        render_config: AudioProcessingConfig,
+        *,
+        output_path: Path,
+        on_command: Callable[[tuple[str, ...]], None] | None = None,
+    ) -> Any:
+        return deps.render_size_reduced_audio(
+            source_path,
+            render_config,
+            output_path=output_path,
+            on_command=on_command,
+            mode=mode,
+        )
+
+    deps.run_special_audio_transform_async(
+        editor,
+        label=t("editor.status.reducing_size"),
+        failure_log_label="size reduction failed",
+        renderer=_renderer,
+        command=command,
+        output_format="mp3",
     )
 
 
@@ -199,6 +234,8 @@ def _special_transform_config(
 ) -> AudioProcessingConfig:
     if command is None:
         return config
+    if command.command == "aqe:reduce-size":
+        return processing_config_for_command(command, config)
     if command.overrides.dpdfnet_attn_limit_db is not None:
         config = replace(config, dpdfnet_attn_limit_db=command.overrides.dpdfnet_attn_limit_db)
     if command.command == "aqe:pitch-hum":

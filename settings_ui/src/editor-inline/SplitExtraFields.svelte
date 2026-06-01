@@ -11,7 +11,9 @@
     PAUSE_DETECTION_ALGORITHM_VALUES,
     pauseDetectionAlgorithmOrDefault,
   } from "../lib/audio-operation-parameters.js";
+  import type { AudioSourceMetadataSummary } from "../lib/size-reduction-parameters.js";
   import PauseAdvancedParamsFields from "../lib/PauseAdvancedParamsFields.svelte";
+  import SizeReductionAdvancedParamsFields from "../lib/SizeReductionAdvancedParamsFields.svelte";
   import {
     formatDpdfnetAggressiveness,
     formatPauseDetectionAlgorithm,
@@ -32,11 +34,17 @@
     onPauseMinSpeechSeconds,
     onPausePreprocessDenoise,
     onPauseThreshold,
+    onSizeReductionBitrateKbps,
+    onSizeReductionChannels,
+    onSizeReductionSampleRateHz,
     pauseMinSilenceSeconds,
     pauseMinSpeechSeconds,
     pausePreprocessDenoise,
     pauseThreshold,
     pauseDetectionAlgorithm,
+    sizeReductionBitrateKbps,
+    sizeReductionChannels,
+    sizeReductionSampleRateHz,
     slug,
     targetOrd,
   }: {
@@ -50,14 +58,23 @@
     onPauseMinSpeechSeconds: (value: number) => void;
     onPausePreprocessDenoise: (value: boolean) => void;
     onPauseThreshold: (value: number) => void;
+    onSizeReductionBitrateKbps: (value: number) => void;
+    onSizeReductionChannels: (value: number) => void;
+    onSizeReductionSampleRateHz: (value: number) => void;
     pauseMinSilenceSeconds: number;
     pauseMinSpeechSeconds: number;
     pausePreprocessDenoise: boolean;
     pauseThreshold: number;
     pauseDetectionAlgorithm: PauseDetectionAlgorithm;
+    sizeReductionBitrateKbps: number;
+    sizeReductionChannels: number;
+    sizeReductionSampleRateHz: number;
     slug: string;
     targetOrd: number;
   } = $props();
+
+  const sourceMetadata = $derived(window.__AQE_EDITOR_CONFIG__?.audioFieldMetadata?.[targetOrd]);
+  const sourceMetadataText = $derived(formatSourceMetadata(sourceMetadata));
 
   function applyDpdfnetAggressiveness(value: number): void {
     onDpdfnetAttnLimitDb(value);
@@ -91,6 +108,21 @@
     onChange();
   }
 
+  function applySizeReductionBitrate(value: number): void {
+    onSizeReductionBitrateKbps(value);
+    onChange();
+  }
+
+  function applySizeReductionSampleRate(value: number): void {
+    onSizeReductionSampleRateHz(value);
+    onChange();
+  }
+
+  function applySizeReductionChannels(value: number): void {
+    onSizeReductionChannels(value);
+    onChange();
+  }
+
   function isDenoiseCommand(): boolean {
     return (
       command === "aqe:denoise-standard" ||
@@ -98,6 +130,34 @@
       command === "aqe:dpdfnet" ||
       command === "aqe:voice-only"
     );
+  }
+
+  function formatSourceMetadata(metadata: AudioSourceMetadataSummary | undefined): string | null {
+    if (!metadata) return null;
+    return t("settings.size_reduction_source_metadata", {
+      bitRate: formatBitRate(metadata.bitRate),
+      sampleRate: formatSampleRate(metadata.sampleRate),
+      channels: formatChannels(metadata.channels),
+    });
+  }
+
+  function formatBitRate(value: number | null | undefined): string {
+    if (!isPositiveNumber(value)) return t("settings.size_reduction_source_metadata.unknown");
+    return `${Math.max(1, Math.round(value / 1000))} kbps`;
+  }
+
+  function formatSampleRate(value: number | null | undefined): string {
+    if (!isPositiveNumber(value)) return t("settings.size_reduction_source_metadata.unknown");
+    return `${Math.round(value)} Hz`;
+  }
+
+  function formatChannels(value: number | null | undefined): string {
+    if (!isPositiveNumber(value)) return t("settings.size_reduction_source_metadata.unknown");
+    return String(Math.round(value));
+  }
+
+  function isPositiveNumber(value: number | null | undefined): value is number {
+    return typeof value === "number" && Number.isFinite(value) && value > 0;
   }
 </script>
 
@@ -180,5 +240,18 @@
     onMinSpeechSeconds={applyPauseMinSpeechSeconds}
     onPreprocessDenoise={applyPausePreprocessDenoise}
     testPrefix={`aqe-split-${targetOrd}-${slug}-pause`}
+  />
+{/if}
+{#if command === "aqe:reduce-size"}
+  <SizeReductionAdvancedParamsFields
+    compact={true}
+    bitrateKbps={sizeReductionBitrateKbps}
+    sampleRateHz={sizeReductionSampleRateHz}
+    channels={sizeReductionChannels}
+    onBitrateKbps={applySizeReductionBitrate}
+    onSampleRateHz={applySizeReductionSampleRate}
+    onChannels={applySizeReductionChannels}
+    {sourceMetadataText}
+    testPrefix={`aqe-split-${targetOrd}-${slug}-size-reduction`}
   />
 {/if}

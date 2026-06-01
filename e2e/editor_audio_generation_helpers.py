@@ -229,6 +229,32 @@ def _generate_tone_silence_tone(ffmpeg_config, path: Path) -> None:
     )
 
 
+def _generate_high_bitrate_mp3(ffmpeg_config, path: Path, *, duration_s: float = 2.0) -> None:
+    subprocess.run(
+        [
+            ffmpeg_config.ffmpeg_path,
+            "-y",
+            "-f",
+            "lavfi",
+            "-i",
+            f"sine=frequency=440:duration={duration_s}",
+            "-vn",
+            "-ac",
+            "2",
+            "-ar",
+            "48000",
+            "-codec:a",
+            "libmp3lame",
+            "-b:a",
+            "192k",
+            str(path),
+        ],
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+
+
 def _generate_noisy_pause_and_clean_analysis(
     ffmpeg_config,
     noisy_path: Path,

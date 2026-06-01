@@ -25,6 +25,7 @@ from .editor_actions import (
     CMD_POST_EDIT_PLAYBACK_READY,
     CMD_RECORD_VOICE,
     CMD_REDO,
+    CMD_REDUCE_SIZE,
     CMD_RNNOISE,
     CMD_SAVE_SPLIT_DEFAULTS,
     CMD_SETTINGS,
@@ -173,6 +174,7 @@ def handle_payload_command(editor: Any, payload: EditorCommandPayload, deps: Any
     handlers = {
         "aqe:analyze": lambda: deps.analyze_current_async(editor, graph_settings=payload.graph_settings),
         CMD_CONVERT: lambda: deps.convert_async(editor, payload),
+        CMD_REDUCE_SIZE: lambda: deps.reduce_size_async(editor, payload),
         CMD_DPDFNET: lambda: deps.dpdfnet_async(editor, payload),
         CMD_PITCH_HUM: lambda: deps.pitch_hum_async(editor, payload),
         CMD_POST_EDIT_PLAYBACK_READY: lambda: deps.handle_post_edit_playback_ready(editor, payload),

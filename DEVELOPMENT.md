@@ -49,6 +49,14 @@ python3 scripts/dev.py link-addon
 
 This repoints `~/Library/Application Support/Anki2/addons21/1000000002` at the current worktree's `addon/anki_audio_quick_editor/` and refuses to overwrite a real directory. Repoint it again when you switch worktrees so manual testing does not accidentally exercise old code. `python3 scripts/dev.py info` and frontend builds warn when the live Anki symlink target differs from the current worktree.
 
+For manual testing against the real Anki profile, use:
+
+```bash
+python3 scripts/dev.py run-anki
+```
+
+This builds the committed webview bundles, repoints the development add-on symlink to the current worktree, and launches the installed Anki app. If Anki is already running, quit and rerun the command so add-ons reload from the new symlink target.
+
 ## Runtime Package Name
 
 Anki imports add-ons by installed folder name. In local development and AnkiWeb installs, that name is numeric, such as `1000000002`, even though this source tree keeps the friendly package path `addon/anki_audio_quick_editor/`.

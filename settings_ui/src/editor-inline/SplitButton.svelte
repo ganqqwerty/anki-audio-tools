@@ -1,17 +1,14 @@
 <script lang="ts">
   import { Popover } from "bits-ui";
   import { onMount } from "svelte";
-  import AqeTooltip from "../lib/AqeTooltip.svelte";
 
   import EditorCommandIcon from "./EditorCommandIcon.svelte";
+  import GraphSplitPopoverContent from "./GraphSplitPopoverContent.svelte";
   import RecordingSplitOptions from "./RecordingSplitOptions.svelte";
   import SplitButtonPrimary from "./SplitButtonPrimary.svelte";
-  import SplitDefaultSaveButton from "./SplitDefaultSaveButton.svelte";
-  import GraphSplitOptions from "./GraphSplitOptions.svelte";
   import SplitValueOptions from "./SplitValueOptions.svelte";
   import { send } from "./actions.js";
   import { dispatchLearnerRecordingPrimary } from "./recording-actions.js";
-  import { openEditorExternalLink } from "./external-links.js";
   import { sendSplitDefaultSaveRequest } from "./bridge.js";
   import {
     buildSplitCommandPayload,
@@ -34,6 +31,12 @@
     setVolumeStepForField,
   } from "./split-button-state.js";
   import {
+    setSizeReductionBitrateForField,
+    setSizeReductionChannelsForField,
+    setSizeReductionModeForField,
+    setSizeReductionSampleRateForField,
+  } from "./size-reduction-field-state.js";
+  import {
     setGraphConnectShortDropoutsForField,
     setGraphRecordingConditionForField,
     setGraphSmoothnessForField,
@@ -43,7 +46,6 @@
   import { currentValueLabel, primaryTitle } from "./split-button-presenter.js";
   import { COMMAND_SLUGS } from "./commands.js";
   import { t } from "../lib/i18n.js";
-  import { PRODUCT_LINKS } from "../lib/product-links.js";
   import type { EditorButtonDisplayMode } from "../lib/editor-toolbar-buttons.js";
   import type { GraphRecordingCondition, GraphSmoothness, GraphVoiceLock, GraphVoiceRange } from "./graph-settings.js";
   import type { ButtonSpec, FieldSplitButtonState, FieldTarget } from "./types.js";
@@ -52,6 +54,7 @@
   type OutputFormatValue = FieldSplitButtonState["outputFormat"];
   type PauseDetectionAlgorithm = FieldSplitButtonState["pauseDetectionAlgorithm"];
   type PitchHumMode = FieldSplitButtonState["pitchHumMode"];
+  type SizeReductionMode = FieldSplitButtonState["sizeReductionMode"];
   type PrimaryGroupPosition = "middle" | "start";
   type ShareTarget = FieldSplitButtonState["shareTarget"];
   const CLOSE_SPLIT_MENUS_EVENT = "aqe-ui:close-split-menus";
@@ -90,6 +93,10 @@
   let denoiseAlgorithm = $state<DenoiseAlgorithm>("standard");
   let dpdfnetAttnLimitDb = $state(12);
   let outputFormat = $state<OutputFormatValue>("mp3");
+  let sizeReductionMode = $state<SizeReductionMode>("normal");
+  let sizeReductionBitrateKbps = $state(64);
+  let sizeReductionSampleRateHz = $state(32000);
+  let sizeReductionChannels = $state(1);
   let pitchHumMode = $state<PitchHumMode>("direct");
   let shareTarget = $state<ShareTarget>("litterbox");
   let graphVoiceRange = $state<GraphVoiceRange>("general");
@@ -123,7 +130,7 @@
     return button.command === "aqe:record-voice" || button.command === "aqe:play-recording";
   }
 
-  const currentPrimaryTitle = $derived(primaryTitle(button, outputFormat, denoiseAlgorithm));
+  const currentPrimaryTitle = $derived(primaryTitle(button, outputFormat, denoiseAlgorithm, sizeReductionMode));
   const currentValue = $derived(currentValueLabel(button, groupSlug, {
     denoiseAlgorithm,
     dpdfnetAttnLimitDb,
@@ -133,6 +140,10 @@
     graphVoiceLock,
     graphVoiceRange,
     outputFormat,
+    sizeReductionMode,
+    sizeReductionBitrateKbps,
+    sizeReductionSampleRateHz,
+    sizeReductionChannels,
     pauseAggressiveness,
     pauseDetectionAlgorithm,
     pitchHumMode,
@@ -161,6 +172,10 @@
     denoiseAlgorithm = state.denoiseAlgorithm;
     dpdfnetAttnLimitDb = state.dpdfnetAttnLimitDb;
     outputFormat = state.outputFormat;
+    sizeReductionMode = state.sizeReductionMode;
+    sizeReductionBitrateKbps = state.sizeReductionBitrateKbps;
+    sizeReductionSampleRateHz = state.sizeReductionSampleRateHz;
+    sizeReductionChannels = state.sizeReductionChannels;
     pitchHumMode = state.pitchHumMode;
     shareTarget = state.shareTarget;
     graphVoiceRange = state.graphVoiceRange;
@@ -230,6 +245,29 @@
 
   function applyOutputFormat(value: OutputFormatValue): void {
     outputFormat = setOutputFormatForField(target.ord, value).outputFormat;
+  }
+
+  function applySizeReductionMode(value: SizeReductionMode): void {
+    syncSizeReductionFromState(setSizeReductionModeForField(target.ord, value));
+  }
+
+  function applySizeReductionBitrateKbps(value: number): void {
+    syncSizeReductionFromState(setSizeReductionBitrateForField(target.ord, value));
+  }
+
+  function applySizeReductionSampleRateHz(value: number): void {
+    syncSizeReductionFromState(setSizeReductionSampleRateForField(target.ord, value));
+  }
+
+  function applySizeReductionChannels(value: number): void {
+    syncSizeReductionFromState(setSizeReductionChannelsForField(target.ord, value));
+  }
+
+  function syncSizeReductionFromState(state: FieldSplitButtonState): void {
+    sizeReductionMode = state.sizeReductionMode;
+    sizeReductionBitrateKbps = state.sizeReductionBitrateKbps;
+    sizeReductionSampleRateHz = state.sizeReductionSampleRateHz;
+    sizeReductionChannels = state.sizeReductionChannels;
   }
 
   function applyPitchHumMode(value: PitchHumMode): void {
@@ -362,59 +400,24 @@
           width={16}
         />
         {#if button.command === "aqe:analyze"}
-          <div class="aqe-split-popover-header aqe-split-popover-header-with-action">
-            <span class="aqe-split-popover-title">
-              <strong>{menuTextLabel()}</strong>
-            </span>
-            <SplitDefaultSaveButton
-              onSave={saveCurrentDefaults}
-              saved={defaultSaved}
-              testId={`aqe-split-${target.ord}-${menuSlug()}-save-default`}
-            />
-          </div>
-          <p class="aqe-split-popover-description">
-            {t("editor.split.description_graph")}
-            <a
-              class="aqe-split-video-link"
-              href={PRODUCT_LINKS.editorVideos.graph}
-              onclick={(event) => openEditorExternalLink(event, PRODUCT_LINKS.editorVideos.graph)}
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              {t("links.see_video")}
-            </a>
-          </p>
-          <GraphSplitOptions
+          <GraphSplitPopoverContent
             connectShortDropoutsMs={graphConnectShortDropoutsMs}
+            menuLabel={menuTextLabel()}
+            menuSlug={menuSlug()}
             onConnectShortDropouts={applyGraphConnectShortDropouts}
             onRecordingCondition={applyGraphRecordingCondition}
+            onRun={dispatchPrimary}
+            onSaveDefault={saveCurrentDefaults}
             onSmoothness={applyGraphSmoothness}
             onVoiceLock={applyGraphVoiceLock}
             onVoiceRange={applyGraphVoiceRange}
             recordingCondition={graphRecordingCondition}
-            slug={menuSlug()}
+            saved={defaultSaved}
             smoothness={graphSmoothness}
             targetOrd={target.ord}
             voiceLock={graphVoiceLock}
             voiceRange={graphVoiceRange}
           />
-          <div class="aqe-split-popover-footer">
-            <AqeTooltip>
-              {#snippet trigger({ props })}
-                <button
-                  {...props}
-                  type="button"
-                  class="aqe-button aqe-split-run-button aqe-tooltip-target"
-                  data-aqe-tooltip-content={t("editor.command.graph.title")}
-                  data-testid={`aqe-split-${target.ord}-${menuSlug()}-run`}
-                  aria-label={t("editor.command.graph.title")}
-                  onclick={dispatchPrimary}
-                >
-                  {t("editor.split.draw")}
-                </button>
-              {/snippet}
-            </AqeTooltip>
-          </div>
         {:else}
           {#if button.command === "aqe:record-voice"}
             <RecordingSplitOptions
@@ -446,6 +449,10 @@
               onRunCommand={dispatchCommand}
               onSaveDefault={saveCurrentDefaults}
               onShareTarget={applyShareTarget}
+              onSizeReductionBitrateKbps={applySizeReductionBitrateKbps}
+              onSizeReductionChannels={applySizeReductionChannels}
+              onSizeReductionMode={applySizeReductionMode}
+              onSizeReductionSampleRateHz={applySizeReductionSampleRateHz}
               onSpeedStep={applySpeedStep}
               onVolumeStep={applyVolumeStep}
               pauseAggressiveness={pauseAggressiveness}
@@ -455,6 +462,10 @@
               pausePreprocessDenoise={pausePreprocessDenoise}
               pauseThreshold={pauseThreshold}
               outputFormat={outputFormat}
+              sizeReductionMode={sizeReductionMode}
+              sizeReductionBitrateKbps={sizeReductionBitrateKbps}
+              sizeReductionSampleRateHz={sizeReductionSampleRateHz}
+              sizeReductionChannels={sizeReductionChannels}
               pitchHumMode={pitchHumMode}
               saveDefaultSaved={defaultSaved}
               shareTarget={shareTarget}

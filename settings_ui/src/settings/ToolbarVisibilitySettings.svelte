@@ -1,5 +1,13 @@
 <script lang="ts">
-  import { choiceTooltip, denoiseAlgorithmTooltip, dpdfnetAggressivenessTooltip, pauseAggressivenessTooltip, pauseDetectionAlgorithmTooltip, pitchHumModeTooltip, shareTargetTooltip } from "$lib/audio-option-tooltips.js";
+  import {
+    choiceTooltip,
+    denoiseAlgorithmTooltip,
+    dpdfnetAggressivenessTooltip,
+    pauseAggressivenessTooltip,
+    pauseDetectionAlgorithmTooltip,
+    pitchHumModeTooltip,
+    shareTargetTooltip,
+  } from "$lib/audio-option-tooltips.js";
   import {
     DPDFNET_ATTENUATION_LIMIT_DB_VALUES,
     formatDpdfnetAggressiveness,
@@ -23,6 +31,7 @@
   import ButtonSettingsCard from "./ButtonSettingsCard.svelte";
   import GraphSettingsFields from "./GraphSettingsFields.svelte";
   import OutputFormatField from "./OutputFormatField.svelte";
+  import SettingsSizeReductionFields from "./SettingsSizeReductionFields.svelte";
   import SettingsChoiceGroup from "./SettingsChoiceGroup.svelte";
   import SettingsHiddenWarning from "./SettingsHiddenWarning.svelte";
 
@@ -72,6 +81,7 @@
       command === "aqe:record-voice" ||
       command === "aqe:share" ||
       command === "aqe:convert" ||
+      command === "aqe:reduce-size" ||
       command === "aqe:remove-pauses" ||
       command === "aqe:denoise-standard" ||
       command === "aqe:pitch-hum" ||
@@ -102,6 +112,7 @@
     config.pause_silencedetect_min_speech_seconds = preset.minSpeechSeconds;
     config.pause_silencedetect_preprocess_denoise = preset.preprocessDenoise;
   }
+
 </script>
 
 <section class="toolbar-visibility settings-section" aria-labelledby="toolbar-visibility-title">
@@ -194,6 +205,8 @@
           </label>
         {:else if button.command === "aqe:convert"}
           <OutputFormatField bind:config />
+        {:else if button.command === "aqe:reduce-size"}
+          <SettingsSizeReductionFields bind:config />
         {:else if button.command === "aqe:remove-pauses"}
           <label class="settings-field">
             <span>{t("settings.pause_detection_algorithm")}</span>

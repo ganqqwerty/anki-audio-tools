@@ -17,6 +17,13 @@ from .audio_pause_settings import (
     pause_detection_algorithm_or_default,
     preset_for_pause_detection,
 )
+from .audio_size_reduction import (
+    normalize_size_reduction_bitrate_kbps,
+    normalize_size_reduction_channels,
+    normalize_size_reduction_mode,
+    normalize_size_reduction_sample_rate_hz,
+    size_reduction_encoder_params_for_mode,
+)
 from .audio_state import AudioProcessingConfig
 from .dpdfnet_settings import normalize_dpdfnet_attn_limit_db
 
@@ -42,6 +49,10 @@ class AudioOperationParameters:
     denoise_algorithm: str | None = None
     dpdfnet_attn_limit_db: float | None = None
     target_format: str | None = None
+    size_reduction_mode: str | None = None
+    size_reduction_bitrate_kbps: int | None = None
+    size_reduction_sample_rate_hz: int | None = None
+    size_reduction_channels: int | None = None
 
 
 def parameters_from_raw(
@@ -57,6 +68,10 @@ def parameters_from_raw(
     denoise_algorithm: Any = None,
     dpdfnet_attn_limit_db: Any = None,
     target_format: Any = None,
+    size_reduction_mode: Any = None,
+    size_reduction_bitrate_kbps: Any = None,
+    size_reduction_sample_rate_hz: Any = None,
+    size_reduction_channels: Any = None,
 ) -> AudioOperationParameters:
     """Normalize raw UI values into clamped operation parameters."""
     return AudioOperationParameters(
@@ -79,6 +94,14 @@ def parameters_from_raw(
         denoise_algorithm=_denoise_algorithm_or_none(denoise_algorithm),
         dpdfnet_attn_limit_db=_dpdfnet_attn_limit_or_none(dpdfnet_attn_limit_db),
         target_format=_target_format_or_none(target_format),
+        size_reduction_mode=_size_reduction_mode_or_none(size_reduction_mode),
+        size_reduction_bitrate_kbps=_size_reduction_bitrate_or_none(
+            size_reduction_bitrate_kbps
+        ),
+        size_reduction_sample_rate_hz=_size_reduction_sample_rate_or_none(
+            size_reduction_sample_rate_hz
+        ),
+        size_reduction_channels=_size_reduction_channels_or_none(size_reduction_channels),
     )
 
 
@@ -92,6 +115,8 @@ def effective_config_for_operation(
         return config
     if operation == "convert":
         return _config_for_convert_operation(config, parameters)
+    if operation == "reduce_size":
+        return _config_for_size_reduction(config, parameters)
     effective = _config_with_shared_operation_parameters(config, parameters)
     if operation != "remove_pauses":
         return effective
@@ -103,6 +128,67 @@ def _config_for_convert_operation(
     parameters: AudioOperationParameters,
 ) -> AudioProcessingConfig:
     return replace(config, output_format=parameters.target_format or config.output_format)
+
+
+def _config_for_size_reduction(
+    config: AudioProcessingConfig,
+    parameters: AudioOperationParameters,
+) -> AudioProcessingConfig:
+    mode = parameters.size_reduction_mode or config.size_reduction_mode
+    bitrate_kbps, sample_rate_hz, channels = _size_reduction_encoder_values(
+        config,
+        parameters,
+        mode,
+    )
+    return replace(
+        config,
+        size_reduction_mode=mode,
+        size_reduction_bitrate_kbps=bitrate_kbps,
+        size_reduction_sample_rate_hz=sample_rate_hz,
+        size_reduction_channels=channels,
+    )
+
+
+def _size_reduction_encoder_values(
+    config: AudioProcessingConfig,
+    parameters: AudioOperationParameters,
+    mode: str,
+) -> tuple[int, int, int]:
+    if _should_use_size_reduction_mode_defaults(parameters):
+        mode_defaults = size_reduction_encoder_params_for_mode(mode)
+        return (
+            mode_defaults.bitrate_kbps,
+            mode_defaults.sample_rate_hz,
+            mode_defaults.channels,
+        )
+    return (
+        _parameter_or_config(
+            parameters.size_reduction_bitrate_kbps,
+            config.size_reduction_bitrate_kbps,
+        ),
+        _parameter_or_config(
+            parameters.size_reduction_sample_rate_hz,
+            config.size_reduction_sample_rate_hz,
+        ),
+        _parameter_or_config(parameters.size_reduction_channels, config.size_reduction_channels),
+    )
+
+
+def _should_use_size_reduction_mode_defaults(
+    parameters: AudioOperationParameters,
+) -> bool:
+    return parameters.size_reduction_mode is not None and not any(
+        value is not None
+        for value in (
+            parameters.size_reduction_bitrate_kbps,
+            parameters.size_reduction_sample_rate_hz,
+            parameters.size_reduction_channels,
+        )
+    )
+
+
+def _parameter_or_config(parameter_value: int | None, config_value: int) -> int:
+    return parameter_value if parameter_value is not None else config_value
 
 
 def _config_with_shared_operation_parameters(
@@ -252,6 +338,16 @@ def _float_or_none(value: Any) -> float | None:
     return None
 
 
+def _int_or_none(value: Any) -> int | None:
+    if isinstance(value, bool):
+        return None
+    if isinstance(value, int):
+        return value
+    if isinstance(value, float) and value.is_integer():
+        return int(value)
+    return None
+
+
 def _clamp_float(value: float | None, minimum: float, maximum: float) -> float | None:
     if value is None:
         return None
@@ -311,3 +407,29 @@ def _target_format_or_none(value: Any) -> str | None:
         return validate_target_format(value)
     except ValueError:
         return None
+
+
+def _size_reduction_mode_or_none(value: Any) -> str | None:
+    normalized = normalize_size_reduction_mode(value)
+    return normalized if str(value).strip().lower() == normalized else None
+
+
+def _size_reduction_bitrate_or_none(value: Any) -> int | None:
+    parsed = _int_or_none(value)
+    if parsed is None:
+        return None
+    return normalize_size_reduction_bitrate_kbps(parsed)
+
+
+def _size_reduction_sample_rate_or_none(value: Any) -> int | None:
+    parsed = _int_or_none(value)
+    if parsed is None:
+        return None
+    return normalize_size_reduction_sample_rate_hz(parsed)
+
+
+def _size_reduction_channels_or_none(value: Any) -> int | None:
+    parsed = _int_or_none(value)
+    if parsed is None:
+        return None
+    return normalize_size_reduction_channels(parsed)

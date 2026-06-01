@@ -22,7 +22,7 @@ import scripts.release_manifest_selection as release_manifest_selection  # noqa:
 import scripts.release_runtime_metadata as release_runtime_metadata  # noqa: E402
 import scripts.release_runtime_remote as release_runtime_remote  # noqa: E402
 import scripts.release_validation as release_validation  # noqa: E402
-from dev import _find_anki_python  # noqa: E402
+from scripts.dev_tasks.python_env import find_anki_python  # noqa: E402
 from scripts.release_archive import (
     build_archive as _build_archive,
 )
@@ -175,7 +175,7 @@ def main() -> None:
     _verify_versions(version)
 
     if not skip_quality_checks:
-        _find_anki_python()
+        find_anki_python()
         _run_checks(full=args.full)
     _build_required_artifacts()
     lock = release_assets.load_lock()

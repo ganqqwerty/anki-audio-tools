@@ -45,13 +45,14 @@ describe("editor inline split-button command integration", () => {
 
     const help = document.querySelector<HTMLDetailsElement>('[data-testid="aqe-help-0"]')!;
     expect(help.open).toBe(false);
-    expect(help.querySelectorAll(".aqe-help-command")).toHaveLength(15);
+    expect(help.querySelectorAll(".aqe-help-command")).toHaveLength(16);
     expect(help.querySelector(".aqe-help-triangle")).not.toBeNull();
     expect(help).toHaveTextContent("Shift-drag on the graph to select a region.");
     expect(help).toHaveTextContent("Delete Region removes the selected region; Delete the rest keeps only the selected region.");
     expect(help).toHaveTextContent("Delete Region / Delete the rest");
     expect(help).toHaveTextContent("Creates a new file that removes the selected region or keeps only that region.");
     expect(help).toHaveTextContent("Creates a new file with louder audio.");
+    expect(help).toHaveTextContent("Creates a smaller MP3 by lowering safe audio parameters.");
     expect(help).toHaveTextContent("Share this file online. The link will be copied to the clipboard.");
     expect(help).toHaveTextContent(/GitHub Pages.*Report a bug.*Request an idea/s);
     expect(help).toHaveTextContent("Every edit creates a new media file and updates the field to point at it.");
@@ -411,6 +412,57 @@ describe("editor inline split-button command integration", () => {
       fieldOrd: 0,
       overrides: {
         pauseAggressiveness: "aggressive",
+      },
+    });
+  });
+
+  it("dispatches size reduction split payloads with advanced params", async () => {
+    window.__AQE_EDITOR_CONFIG__ = {
+      audioFieldIndices: [0],
+      audioFieldMetadata: {
+        0: { bitRate: 128000, sampleRate: 44100, channels: 2 },
+      },
+      splitButtonDefaults: {
+        denoiseAlgorithm: "standard",
+        pauseAggressiveness: "normal",
+        repeatPauseSeconds: 0,
+        sizeReductionMode: "normal",
+        sizeReductionBitrateKbps: 64,
+        sizeReductionSampleRateHz: 32000,
+        sizeReductionChannels: 1,
+        speedStep: 1.5,
+        volumeStepDb: 15,
+      },
+    };
+    initializeEditorRuntime(window.__AQE_EDITOR_CONFIG__);
+    scan(window.__AQE_EDITOR_CONFIG__);
+
+    document.querySelector<HTMLButtonElement>('[data-testid="aqe-split-0-reduce-size-menu"]')!.click();
+    await Promise.resolve();
+    const popover = document.querySelector<HTMLElement>('[data-testid="aqe-split-0-reduce-size-popover"]')!;
+    expect(popover.querySelector('[data-testid="aqe-split-0-reduce-size-size-reduction-bitrate-kbps-help"]')).not.toBeNull();
+    const sourceMetadata = popover.querySelector<HTMLElement>(
+      '[data-testid="aqe-split-0-reduce-size-size-reduction-source-metadata"]',
+    )!;
+    expect(sourceMetadata).toHaveTextContent(
+      "Current: bit_rate 128 kbps, sample_rate 44100 Hz, channels 2",
+    );
+    document.querySelector<HTMLButtonElement>('[data-testid="aqe-split-0-reduce-size-preset-gentle"]')!.click();
+    const bitrateInput = document.querySelector<HTMLInputElement>(
+      '[data-testid="aqe-split-0-reduce-size-size-reduction-bitrate-kbps"]',
+    )!;
+    bitrateInput.value = "80";
+    bitrateInput.dispatchEvent(new Event("input", { bubbles: true }));
+    document.querySelector<HTMLButtonElement>('[data-testid="aqe-button-0-reduce-size"]')!.click();
+
+    expect(window.__aqePendingCommandPayload).toMatchObject({
+      command: "aqe:reduce-size",
+      fieldOrd: 0,
+      overrides: {
+        sizeReductionMode: "gentle",
+        sizeReductionBitrateKbps: 80,
+        sizeReductionSampleRateHz: 44100,
+        sizeReductionChannels: 2,
       },
     });
   });

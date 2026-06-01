@@ -1,5 +1,6 @@
 import type { FrontendLogPayload, ProsodyPayload } from "../lib/generated/contracts.js";
 import type { OutputFormatValue } from "../lib/audio-operation-parameters.js";
+import type { AudioSourceMetadataSummary, SizeReductionMode } from "../lib/size-reduction-parameters.js";
 import type {
   EditorButtonModes,
   EditorCommand as SharedEditorCommand,
@@ -20,6 +21,7 @@ export type ButtonSpec = ToolbarButtonSpec;
 
 export interface EditorRuntimeConfig {
   audioFieldIndices: number[];
+  audioFieldMetadata?: Record<number, AudioSourceMetadataSummary>;
   audioFieldSources?: Record<number, string>;
   direction?: "ltr" | "rtl";
   initialStatusByField?: Record<number, { kind?: string; message: string }>;
@@ -47,6 +49,10 @@ export interface SplitButtonDefaults {
   graphVoiceLock?: GraphVoiceLock;
   graphVoiceRange?: GraphVoiceRange;
   outputFormat?: OutputFormatValue;
+  sizeReductionMode?: SizeReductionMode;
+  sizeReductionBitrateKbps?: number;
+  sizeReductionSampleRateHz?: number;
+  sizeReductionChannels?: number;
   pauseAggressiveness: "gentle" | "normal" | "aggressive";
   pauseDetectionAlgorithm?: PauseDetectionAlgorithm;
   pauseSilencedetectThresholdDb?: number;
@@ -82,6 +88,10 @@ export interface EditorCommandPayload {
     pauseMinSpeechSeconds?: number;
     pausePreprocessDenoise?: boolean;
     pitchHumMode?: PitchHumMode;
+    sizeReductionMode?: SizeReductionMode;
+    sizeReductionBitrateKbps?: number;
+    sizeReductionSampleRateHz?: number;
+    sizeReductionChannels?: number;
     speedStep?: number;
     targetFormat?: OutputFormatValue;
     volumeStepDb?: number;
@@ -110,6 +120,10 @@ export interface FieldSplitButtonState {
   defaultDpdfnetAttnLimitDb: number;
   defaultPitchHumMode: PitchHumMode;
   defaultRepeatPauseSeconds: number;
+  defaultSizeReductionMode: SizeReductionMode;
+  defaultSizeReductionBitrateKbps: number;
+  defaultSizeReductionSampleRateHz: number;
+  defaultSizeReductionChannels: number;
   defaultSpeedStep: number;
   defaultVoiceRecordingCountdownSeconds: number;
   defaultVolumeStepDb: number;
@@ -142,6 +156,11 @@ export interface FieldSplitButtonState {
   repeatPauseSeconds: number;
   shareEdited: boolean;
   shareTarget: "catbox" | "litterbox";
+  sizeReductionEdited: boolean;
+  sizeReductionMode: SizeReductionMode;
+  sizeReductionBitrateKbps: number;
+  sizeReductionSampleRateHz: number;
+  sizeReductionChannels: number;
   speedEdited: boolean;
   speedStep: number;
   voiceRecordingCountdownEdited: boolean;

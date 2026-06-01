@@ -25,8 +25,12 @@
     DenoiseAlgorithm,
   } from "$lib/types.js";
   import type { BatchInitialState, BatchOperationOption } from "$lib/types.js";
-  import { activeBatchPauseAlgorithm, type BatchFormState } from "./batch-state.js";
+  import {
+    activeBatchPauseAlgorithm,
+    type BatchFormState,
+  } from "./batch-state.js";
   import BatchFieldSelectors from "./BatchFieldSelectors.svelte";
+  import BatchSizeReductionFields from "./BatchSizeReductionFields.svelte";
 
   interface Props {
     state: BatchInitialState;
@@ -155,6 +159,8 @@
         {/each}
       </select>
     </label>
+  {:else if selected?.parameter_kind === BatchParameterKind.SizeReduction}
+    <BatchSizeReductionFields bind:form {disabled} />
   {:else if selected?.parameter_kind === BatchParameterKind.Denoise}
     <label>
       <span>{t("batch.suppressor")}</span>

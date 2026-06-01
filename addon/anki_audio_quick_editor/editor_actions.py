@@ -14,6 +14,7 @@ from .audio_operation_params import (
 from .audio_operations import (
     OP_CONVERT,
     OP_FASTER,
+    OP_REDUCE_SIZE,
     OP_REMOVE_PAUSES,
     OP_SLOWER,
     OP_VOLUME_DOWN,
@@ -29,6 +30,7 @@ CMD_VOLUME_DOWN = "aqe:volume-down"
 CMD_VOLUME_UP = "aqe:volume-up"
 CMD_REMOVE_PAUSES = "aqe:remove-pauses"
 CMD_CONVERT = "aqe:convert"
+CMD_REDUCE_SIZE = "aqe:reduce-size"
 CMD_DENOISE_STANDARD = "aqe:denoise-standard"
 CMD_RNNOISE = "aqe:rnnoise"
 CMD_DPDFNET = "aqe:dpdfnet"
@@ -73,6 +75,7 @@ BRIDGE_COMMANDS = (
     CMD_VOLUME_UP,
     CMD_REMOVE_PAUSES,
     CMD_CONVERT,
+    CMD_REDUCE_SIZE,
     CMD_DENOISE_STANDARD,
     CMD_RNNOISE,
     CMD_DPDFNET,
@@ -100,6 +103,7 @@ BRIDGE_COMMAND_TO_OPERATION = {
     CMD_VOLUME_UP: OP_VOLUME_UP,
     CMD_REMOVE_PAUSES: OP_REMOVE_PAUSES,
     CMD_CONVERT: OP_CONVERT,
+    CMD_REDUCE_SIZE: OP_REDUCE_SIZE,
 }
 
 
@@ -118,6 +122,10 @@ class EditorCommandOverrides:
     denoise_algorithm: str | None = None
     dpdfnet_attn_limit_db: float | None = None
     target_format: str | None = None
+    size_reduction_mode: str | None = None
+    size_reduction_bitrate_kbps: int | None = None
+    size_reduction_sample_rate_hz: int | None = None
+    size_reduction_channels: int | None = None
     pitch_hum_mode: str | None = None
 
 
@@ -160,6 +168,10 @@ def _overrides_from_raw(raw: Any) -> EditorCommandOverrides:
         denoise_algorithm=raw.get("denoiseAlgorithm"),
         dpdfnet_attn_limit_db=raw.get("dpdfnetAttnLimitDb"),
         target_format=raw.get("targetFormat"),
+        size_reduction_mode=raw.get("sizeReductionMode"),
+        size_reduction_bitrate_kbps=raw.get("sizeReductionBitrateKbps"),
+        size_reduction_sample_rate_hz=raw.get("sizeReductionSampleRateHz"),
+        size_reduction_channels=raw.get("sizeReductionChannels"),
     )
     return EditorCommandOverrides(
         volume_step_db=params.volume_step_db,
@@ -173,6 +185,10 @@ def _overrides_from_raw(raw: Any) -> EditorCommandOverrides:
         denoise_algorithm=params.denoise_algorithm,
         dpdfnet_attn_limit_db=params.dpdfnet_attn_limit_db,
         target_format=params.target_format,
+        size_reduction_mode=params.size_reduction_mode,
+        size_reduction_bitrate_kbps=params.size_reduction_bitrate_kbps,
+        size_reduction_sample_rate_hz=params.size_reduction_sample_rate_hz,
+        size_reduction_channels=params.size_reduction_channels,
         pitch_hum_mode=_pitch_hum_mode_or_none(raw.get("pitchHumMode")),
     )
 
@@ -251,6 +267,10 @@ def processing_config_for_command(
             pause_min_speech_seconds=payload.overrides.pause_min_speech_seconds,
             pause_preprocess_denoise=payload.overrides.pause_preprocess_denoise,
             target_format=payload.overrides.target_format,
+            size_reduction_mode=payload.overrides.size_reduction_mode,
+            size_reduction_bitrate_kbps=payload.overrides.size_reduction_bitrate_kbps,
+            size_reduction_sample_rate_hz=payload.overrides.size_reduction_sample_rate_hz,
+            size_reduction_channels=payload.overrides.size_reduction_channels,
         ),
     )
 
@@ -266,6 +286,6 @@ def apply_processing_command(
     operation = operation_for_command(payload.command)
     if operation is None:
         return None
-    if operation == OP_CONVERT:
+    if operation in {OP_CONVERT, OP_REDUCE_SIZE}:
         return None
     return apply_audio_operation(operation, state, effective_config)

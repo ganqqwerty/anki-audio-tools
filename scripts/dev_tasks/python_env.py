@@ -11,6 +11,8 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[2]
 ADDON_DIR = ROOT / "addon" / "anki_audio_quick_editor"
 ADDON_SYMLINK_ID = "1000000002"
+MACOS_ANKI_APP_PATH = Path("/Applications/Anki.app")
+ANKI_PYTHON_LAUNCHER = "import aqt, sys; sys.argv[0] = 'Anki'; aqt.run()"
 
 
 def _load_dotenv() -> dict[str, str]:
@@ -78,8 +80,17 @@ def _find_anki_python() -> Path:
     raise SystemExit(1)
 
 
+find_anki_python = _find_anki_python
+
+
 def _anki_bin_dir(anki_python: Path) -> Path:
     return anki_python.parent
+
+
+anki_bin_dir = _anki_bin_dir
+
+
+die = _die
 
 
 def _anki_addons_dir() -> Path | None:
@@ -182,4 +193,30 @@ def cmd_link_addon() -> int:
         return 1
     link.symlink_to(ADDON_DIR)
     print(f"Created: {link} -> {current}")
+    return 0
+
+
+def _anki_launch_command() -> list[str]:
+    if platform.system() == "Darwin":
+        app = str(MACOS_ANKI_APP_PATH) if MACOS_ANKI_APP_PATH.is_dir() else "Anki"
+        return ["open", "-a", app]
+    anki_python = _find_anki_python()
+    return [str(anki_python), "-c", ANKI_PYTHON_LAUNCHER]
+
+
+def cmd_launch_anki() -> int:
+    command = _anki_launch_command()
+    try:
+        if platform.system() == "Darwin":
+            result = subprocess.run(command, check=False)
+            if result.returncode != 0:
+                print(f"ERROR: Anki launcher failed with exit code {result.returncode}.", file=sys.stderr)
+                return result.returncode
+        else:
+            subprocess.Popen(command)
+    except OSError as exc:
+        print(f"ERROR: could not launch Anki: {exc}", file=sys.stderr)
+        return 1
+    print(f"Launched Anki: {' '.join(command)}")
+    print("If Anki was already running, quit and rerun so add-ons reload from this worktree.")
     return 0

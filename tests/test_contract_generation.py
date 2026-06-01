@@ -28,6 +28,7 @@ def test_composed_contract_schema_uses_config_schema_source() -> None:
     assert "graph_smoothness" in config["properties"]
     assert "graph_connect_short_dropouts_ms" in config["properties"]
     assert "graph_voice_lock" in config["properties"]
+    assert "size_reduction_mode" in config["properties"]
 
 
 def test_stale_targets_reports_missing_and_changed_files(tmp_path: Path) -> None:

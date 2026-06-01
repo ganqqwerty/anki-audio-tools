@@ -10,7 +10,7 @@ CORE_CONTRACTS: dict[str, ModuleContract] = {
     "config_migration": contract(
         "config_migration",
         layer=Layer.IMPORT_SAFE_CORE,
-        allowed_addon_deps=("audio_formats", "dpdfnet_settings"),
+        allowed_addon_deps=("audio_formats", "audio_size_reduction", "dpdfnet_settings"),
     ),
     "contracts_generated": contract(
         "contracts_generated",

@@ -16,6 +16,7 @@ _STYLE_ID = "aqe-inline-style"
 def injection_script(
     audio_field_indices: list[int] | None = None,
     *,
+    audio_field_metadata: dict[int, dict[str, int | None]] | None = None,
     audio_field_sources: dict[int, str] | None = None,
     initial_status_by_field: dict[int, dict[str, str]] | None = None,
     repeat_playback_by_default: bool = True,
@@ -29,6 +30,7 @@ def injection_script(
     i18n = active_context()
     config = {
         "audioFieldIndices": audio_field_indices or [],
+        "audioFieldMetadata": audio_field_metadata or {},
         "audioFieldSources": audio_field_sources or {},
         "initialStatusByField": initial_status_by_field or {},
         "pendingPostEditPlayback": pending_post_edit_playback,
@@ -54,6 +56,10 @@ def injection_script(
             "pauseSileroMinSpeechSeconds": 0.10,
             "pauseSileroPreprocessDenoise": False,
             "outputFormat": "mp3",
+            "sizeReductionMode": "normal",
+            "sizeReductionBitrateKbps": 64,
+            "sizeReductionSampleRateHz": 32000,
+            "sizeReductionChannels": 1,
             "denoiseAlgorithm": "standard",
             "pitchHumMode": "direct",
             "dpdfnetAttnLimitDb": 12.0,

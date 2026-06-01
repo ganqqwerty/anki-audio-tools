@@ -1,9 +1,4 @@
-import type {
-  EditorCommand,
-  EditorCommandPayload,
-  FieldSplitButtonState,
-  SplitButtonDefaults,
-} from "./types.js";
+import type { EditorCommand, EditorCommandPayload, FieldSplitButtonState, SplitButtonDefaults } from "./types.js";
 import type { SplitDefaultSaveRequest } from "./split-default-save-types.js";
 import { t } from "../lib/i18n.js";
 import {
@@ -23,10 +18,7 @@ import {
   graphVoiceLockOrDefault,
   graphVoiceRangeOrDefault,
 } from "./graph-split-values.js";
-import {
-  buildSplitCommandPayloadFromState,
-  buildSplitDefaultSaveRequestFromState,
-} from "./split-button-state-commands.js";
+import { buildSplitCommandPayloadFromState, buildSplitDefaultSaveRequestFromState } from "./split-button-state-commands.js";
 import { applyPromotedGraphDefaultsToState } from "./graph-promoted-defaults.js";
 import {
   applyPausePresetToState,
@@ -39,6 +31,12 @@ import {
   setPauseThresholdOnState,
   syncPauseAdvancedDefaults,
 } from "./pause-split-state.js";
+import {
+  applyPromotedSizeReductionDefaultsToState,
+  defaultSizeReductionModeFromDefaults,
+  sizeReductionAdvancedDefaults,
+  syncSizeReductionState,
+} from "./size-reduction-split-state.js";
 export {
   clampRepeatPauseSeconds,
   clampDpdfnetAttnLimitDb,
@@ -52,11 +50,8 @@ export {
   formatSpeedStep,
   formatVolumeDb,
 } from "../lib/audio-operation-parameters.js";
-export {
-  formatDenoiseAlgorithm,
-  formatPitchHumMode,
-  formatShareTarget,
-} from "./split-button-formatters.js";
+export { formatSizeReductionMode } from "../lib/size-reduction-parameters.js";
+export { formatDenoiseAlgorithm, formatPitchHumMode, formatShareTarget } from "./split-button-formatters.js";
 
 type CompleteSplitButtonDefaults = Required<SplitButtonDefaults>;
 type PitchHumMode = FieldSplitButtonState["pitchHumMode"];
@@ -66,6 +61,10 @@ const DEFAULTS: CompleteSplitButtonDefaults = {
   dpdfnetAttnLimitDb: 12,
   ...defaultGraphSplitValues(),
   outputFormat: DEFAULT_OUTPUT_FORMAT,
+  sizeReductionMode: "normal",
+  sizeReductionBitrateKbps: 64,
+  sizeReductionSampleRateHz: 32000,
+  sizeReductionChannels: 1,
   pauseAggressiveness: "normal",
   pauseDetectionAlgorithm: "silencedetect",
   pauseSilencedetectThresholdDb: -45,
@@ -123,6 +122,8 @@ export function getSplitButtonState(ord: number): FieldSplitButtonState {
   const defaultGraphVoiceLock = graphVoiceLockOrDefault(defaults.graphVoiceLock);
   const defaultGraphVoiceRange = graphVoiceRangeOrDefault(defaults.graphVoiceRange);
   const defaultOutputFormat = outputFormatOrDefault(defaults.outputFormat);
+  const defaultSizeReductionMode = defaultSizeReductionModeFromDefaults(defaults);
+  const defaultSizeReductionParams = sizeReductionAdvancedDefaults(defaults);
   const defaultVolumeStepDb = clampVolumeStepDb(defaults.volumeStepDb);
   const defaultSpeedStep = clampSpeedStep(defaults.speedStep);
   const defaultRepeatPauseSeconds = clampRepeatPauseSeconds(defaults.repeatPauseSeconds);
@@ -156,6 +157,7 @@ export function getSplitButtonState(ord: number): FieldSplitButtonState {
       runtimeState.shareTarget = defaultShareTarget;
       existing.shareEdited = false;
     }
+    syncSizeReductionState(existing, defaultSizeReductionMode, defaultSizeReductionParams);
     if (
       runtimeState.pauseDetectionAlgorithm !== "silencedetect" &&
       runtimeState.pauseDetectionAlgorithm !== "silero_vad"
@@ -253,6 +255,8 @@ export function getSplitButtonState(ord: number): FieldSplitButtonState {
     defaultGraphVoiceLock,
     defaultGraphVoiceRange,
     defaultOutputFormat,
+    defaultSizeReductionMode,
+    ...defaultSizeReductionParams,
     ...pauseDefaults,
     defaultPitchHumMode,
     defaultRepeatPauseSeconds,
@@ -271,6 +275,11 @@ export function getSplitButtonState(ord: number): FieldSplitButtonState {
     graphVoiceRange: defaultGraphVoiceRange,
     outputFormat: defaultOutputFormat,
     outputFormatEdited: false,
+    sizeReductionEdited: false,
+    sizeReductionMode: defaultSizeReductionMode,
+    sizeReductionBitrateKbps: defaultSizeReductionParams.defaultSizeReductionBitrateKbps,
+    sizeReductionSampleRateHz: defaultSizeReductionParams.defaultSizeReductionSampleRateHz,
+    sizeReductionChannels: defaultSizeReductionParams.defaultSizeReductionChannels,
     ...pauseFieldValuesFromDefaults(pauseDefaults),
     pauseEdited: false,
     pitchHumEdited: false,
@@ -357,6 +366,7 @@ function applyPromotedDefaultsToState(
     if (forceCurrentField || !state.dpdfnetEdited) state.dpdfnetAttnLimitDb = state.defaultDpdfnetAttnLimitDb;
     if (forceCurrentField) state.dpdfnetEdited = false;
   }
+  applyPromotedSizeReductionDefaultsToState(state, defaults, values, forceCurrentField);
   if (values.pitchHumMode !== undefined) {
     state.defaultPitchHumMode = pitchHumModeOrDefault(defaults.pitchHumMode);
     if (forceCurrentField || !state.pitchHumEdited) state.pitchHumMode = state.defaultPitchHumMode;
@@ -477,18 +487,14 @@ export function setShareTargetForField(ord: number, value: ShareTarget): FieldSp
   state.shareTarget = value;
   return state;
 }
-
 export function setOutputFormatForField(ord: number, value: unknown): FieldSplitButtonState {
   const state = getSplitButtonState(ord);
   state.outputFormatEdited = true;
   state.outputFormat = outputFormatOrDefault(value);
   return state;
 }
-
 export function buildSplitCommandPayload(command: EditorCommand, ord: number): EditorCommandPayload {
   return buildSplitCommandPayloadFromState(command, ord, getSplitButtonState(ord));
 }
-
-export function buildSplitDefaultSaveRequest(command: EditorCommand, ord: number): SplitDefaultSaveRequest {
-  return buildSplitDefaultSaveRequestFromState(command, ord, getSplitButtonState(ord));
-}
+export const buildSplitDefaultSaveRequest = (command: EditorCommand, ord: number): SplitDefaultSaveRequest =>
+  buildSplitDefaultSaveRequestFromState(command, ord, getSplitButtonState(ord));
