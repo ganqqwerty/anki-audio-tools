@@ -42,6 +42,7 @@ import {
   clearStatus,
 } from "./control-actions.js";
 import { graphSettingsForField } from "./graph-split-state.js";
+import { resetVisualizerTimeViewport } from "./visualizer-state.js";
 
 type EditorStatusMessage = string | UserFacingError;
 
@@ -221,6 +222,7 @@ export function prepareForNewNote(): void {
     visualizer.dataset.playbackEngine = "";
     visualizer.dataset.resumeRequiresRestart = "false";
     visualizer.dataset.durationMs = "0";
+    resetVisualizerTimeViewport(visualizer, 0);
     visualizer.dataset.targetDurationMs = "0";
     visualizer.dataset.learnerDurationMs = "0";
     visualizer.dataset.learnerRecordingStatus = "idle";

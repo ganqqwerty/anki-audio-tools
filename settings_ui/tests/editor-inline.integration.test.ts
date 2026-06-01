@@ -216,6 +216,20 @@ describe("editor inline Svelte integration", () => {
     expect(state?.viewportEndMs).toBe(track.durationMs);
   });
 
+  it("resets zoom to fit when a graph is redrawn for a new track", async () => {
+    initializeEditorRuntime({ audioFieldIndices: [0] });
+    scan({ audioFieldIndices: [0] });
+    await Promise.resolve();
+    window.__aqeSetVisualizer?.(0, track, 0);
+    window.__aqeSetTimeViewportForTest?.(0, 250, 750);
+
+    window.__aqeSetVisualizer?.(0, { ...track, durationMs: 2000, sourceFilename: "next.mp3" }, 0);
+
+    const state = window.__aqeGraphStateForTest?.(0);
+    expect(state?.viewportStartMs).toBe(0);
+    expect(state?.viewportEndMs).toBe(2000);
+  });
+
   it("mounts the share split button in the default toolbar", () => {
     initializeEditorRuntime({ audioFieldIndices: [0] });
     scan({ audioFieldIndices: [0] });

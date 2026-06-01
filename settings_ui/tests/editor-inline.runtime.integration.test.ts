@@ -73,6 +73,20 @@ describe("editor inline runtime scan integration", () => {
     expect(document.querySelector(".aqe-controls")).toBe(controls);
   });
 
+  it("clears viewport state when preparing for a new note", async () => {
+    initializeEditorRuntime({ audioFieldIndices: [0] });
+    scan({ audioFieldIndices: [0] });
+    await Promise.resolve();
+    window.__aqeSetVisualizer?.(0, track, 0);
+    window.__aqeSetTimeViewportForTest?.(0, 250, 750);
+
+    window.__aqePrepareForNewNote?.();
+
+    const state = window.__aqeGraphStateForTest?.(0);
+    expect(state?.viewportStartMs).toBe(0);
+    expect(state?.viewportEndMs).toBe(0);
+  });
+
   it("auto-detects supported audio fields, dedupes rescans, and remounts changed sources", () => {
     document.body.innerHTML = `
       <div>
