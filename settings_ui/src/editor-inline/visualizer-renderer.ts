@@ -2,6 +2,7 @@ import type { PlaybackRegion } from "./playback-state.js";
 import { draftSelectionRegion, selectionRegion } from "./selection-state.js";
 import {
   PLOT,
+  type PlotGeometry,
   drawLabels,
   drawLearnerPitch,
   drawPitch,
@@ -10,6 +11,8 @@ import {
   formatTime,
   pathForIntensity,
   pitchHzAtMs,
+  plotGeometryForSvg,
+  svgViewBoxScale,
   xForMs,
 } from "./plot.js";
 import { msVisibleInViewport } from "./time-viewport.js";
@@ -100,6 +103,7 @@ export function renderSelection(
   const endGrip = visualizer.querySelector<SVGGElement>(".aqe-selection-resize-grip-end");
   const activeSelection = draftSelection ?? selection;
   const durationMs = Number(visualizer.dataset.durationMs || "0");
+  const plot = plotGeometryForVisualizer(visualizer);
   if (!band || !startEdge || !endEdge || !activeSelection || !durationMs) {
     band?.setAttribute("width", "0");
     band?.setAttribute("visibility", "hidden");
@@ -133,10 +137,10 @@ export function renderSelection(
     clearSelectionOverlayGeometry(visualizer);
     return;
   }
-  const startX = xForMs(visibleStartMs, durationMs, viewport);
-  const endX = xForMs(visibleEndMs, durationMs, viewport);
-  const plotTop = PLOT.top;
-  const plotBottom = PLOT.height - PLOT.bottom;
+  const startX = xForMs(visibleStartMs, durationMs, viewport, plot);
+  const endX = xForMs(visibleEndMs, durationMs, viewport, plot);
+  const plotTop = plot.top;
+  const plotBottom = plot.height - plot.bottom;
   const plotHeight = plotBottom - plotTop;
   const handleHeight = plotHeight * 0.8;
   const handleY = plotTop + (plotHeight - handleHeight) / 2;
@@ -168,7 +172,7 @@ export function renderSelection(
     grip?.classList.toggle("aqe-selection-resize-dragging", handlesDragging);
     grip?.setAttribute("transform", `translate(${x.toFixed(2)} ${handleCenterY.toFixed(2)})`);
   }
-  setSelectionOverlayGeometry(visualizer, startX, endX, plotTop, plotBottom);
+  setSelectionOverlayGeometry(visualizer, plot, startX, endX, plotTop, plotBottom);
 }
 
 export function renderCursor(visualizer: VisualizerElement, ms: number, durationMs: number): void {
@@ -202,7 +206,8 @@ export function startPlaybackCursorTransition(
   renderCursorProjection(visualizer, startMs, durationMs, { geometry: true, text: true });
   const viewport = readVisualizerTimeViewport(visualizer);
   if (!msVisibleInViewport(startMs, viewport) || !msVisibleInViewport(endMs, viewport)) return;
-  const endX = cssXForViewBoxX(visualizer, xForMs(endMs, durationMs, viewport));
+  const plot = plotGeometryForVisualizer(visualizer);
+  const endX = cssXForViewBoxX(visualizer, xForMs(endMs, durationMs, viewport, plot));
   nodes.cssCursor.style.transition = "none";
   void nodes.cssCursor.offsetWidth;
   nodes.cssCursor.style.transition = `transform ${Math.max(0, endMs - startMs).toFixed(0)}ms linear`;
@@ -222,9 +227,10 @@ function renderCursorProjection(
 ): void {
   const nodes = cursorRenderCache(visualizer);
   const viewport = readVisualizerTimeViewport(visualizer);
-  const x = xForMs(ms, durationMs, viewport);
   if (options.geometry) {
-    renderCssCursorGeometry(visualizer, nodes, x, ms);
+    const plot = plotGeometryForVisualizer(visualizer);
+    const x = xForMs(ms, durationMs, viewport, plot);
+    renderCssCursorGeometry(visualizer, nodes, x, plot, ms);
   }
   if (options.text) {
     const currentText = formatTime(ms, durationMs);
@@ -251,8 +257,9 @@ export function clearLearnerVisualizerTrack(visualizer: VisualizerElement): void
 
 export function resetCursorProjection(visualizer: VisualizerElement): void {
   const nodes = cursorRenderCache(visualizer);
+  const plot = plotGeometryForVisualizer(visualizer);
   stopPlaybackCursorTransition(visualizer);
-  renderCssCursorGeometry(visualizer, nodes, PLOT.left);
+  renderCssCursorGeometry(visualizer, nodes, plot.left, plot);
   if (nodes.label) nodes.label.textContent = "0 ms / -- Hz";
   if (nodes.cssFlagCurrent) nodes.cssFlagCurrent.textContent = "0 ms";
   if (nodes.cssFlagPitch) nodes.cssFlagPitch.textContent = " / -- Hz";
@@ -291,6 +298,7 @@ function clearText(root: VisualizerElement, selector: string): void {
 export function renderProsodyTracks(visualizer: VisualizerElement): void {
   const target = visualizer.__aqeTrack;
   if (!target) return;
+  const plot = syncVisualizerViewBox(visualizer);
   const learner = visualizer.__aqeLearnerTrack;
   const durationMs = Math.max(target.durationMs || 0, learner?.durationMs || 0);
   const viewport = readVisualizerTimeViewport(visualizer);
@@ -299,11 +307,12 @@ export function renderProsodyTracks(visualizer: VisualizerElement): void {
   visualizer.dataset.targetDurationMs = String(target.durationMs || 0);
   visualizer.dataset.learnerDurationMs = String(learner?.durationMs || 0);
   const intensity = visualizer.querySelector<SVGPathElement>(".aqe-intensity");
-  if (intensity) intensity.setAttribute("d", pathForIntensity(target.points, durationMs, viewport));
+  if (intensity) intensity.setAttribute("d", pathForIntensity(target.points, durationMs, viewport, plot));
   drawPitch(visualizer, target, {
     durationMs,
     pitchMaxHz: pitchRange.maxHz,
     pitchMinHz: pitchRange.minHz,
+    plot,
     viewport,
   });
   if (learner) {
@@ -311,6 +320,7 @@ export function renderProsodyTracks(visualizer: VisualizerElement): void {
       durationMs,
       pitchMaxHz: pitchRange.maxHz,
       pitchMinHz: pitchRange.minHz,
+      plot,
       viewport,
     });
   } else {
@@ -319,8 +329,9 @@ export function renderProsodyTracks(visualizer: VisualizerElement): void {
   drawLabels(visualizer, target, {
     pitchMaxHz: pitchRange.maxHz,
     pitchMinHz: pitchRange.minHz,
+    plot,
   });
-  drawXAxis(visualizer, durationMs, viewport);
+  drawXAxis(visualizer, durationMs, viewport, plot);
 }
 
 function combinedPitchRange(
@@ -339,36 +350,46 @@ function isFiniteNumber(value: number | null | undefined): value is number {
   return typeof value === "number" && Number.isFinite(value);
 }
 
-function plotWrapperFor(visualizer: VisualizerElement): HTMLElement | null {
-  return visualizer.querySelector<HTMLElement>(".aqe-visualizer-plot");
+function plotGeometryForVisualizer(visualizer: VisualizerElement): PlotGeometry {
+  const svg = visualizer.querySelector<SVGSVGElement>(".aqe-visualizer-svg");
+  return svg ? plotGeometryForSvg(svg) : PLOT;
+}
+
+function syncVisualizerViewBox(visualizer: VisualizerElement): PlotGeometry {
+  const svg = visualizer.querySelector<SVGSVGElement>(".aqe-visualizer-svg");
+  if (!svg) return PLOT;
+  const rectWidth = Number(svg.getBoundingClientRect().width) || PLOT.width;
+  const width = Math.max(PLOT.width, Math.round(rectWidth));
+  const viewBox = `0 0 ${width} ${PLOT.height}`;
+  if (svg.getAttribute("viewBox") !== viewBox) svg.setAttribute("viewBox", viewBox);
+  return plotGeometryForSvg(svg);
 }
 
 function setSelectionOverlayGeometry(
   visualizer: VisualizerElement,
+  plot: PlotGeometry,
   startX: number,
   endX: number,
   plotTop: number,
   plotBottom: number,
 ): void {
-  const wrapper = plotWrapperFor(visualizer);
+  const wrapper = visualizer.querySelector<HTMLElement>(".aqe-visualizer-plot");
   const svg = visualizer.querySelector<SVGSVGElement>(".aqe-visualizer-svg");
   if (!wrapper || !svg) return;
   const rect = svg.getBoundingClientRect();
   const rectWidth = Number(rect.width) || PLOT.width;
-  const rectHeight = Number(rect.height) || PLOT.height;
-  const scale = Math.min(rectWidth / PLOT.width, rectHeight / PLOT.height) || 1;
-  const startPx = startX * scale;
-  const endPx = endX * scale;
-  const plotTopPx = plotTop * scale;
-  const plotBottomPx = plotBottom * scale;
+  const scale = svgViewBoxScale(svg);
+  const startPx = startX * scale.x;
+  const endPx = endX * scale.x;
+  const plotTopPx = plotTop * scale.y;
+  const plotBottomPx = plotBottom * scale.y;
   const plotHeightPx = Math.max(0, plotBottomPx - plotTopPx);
-  const plotLeftPx = PLOT.left * scale;
-  const plotRightEdgePx = (PLOT.width - PLOT.right) * scale;
+  const plotLeftPx = plot.left * scale.x;
+  const plotRightEdgePx = (plot.width - plot.right) * scale.x;
   const plotRightPx = Math.max(0, rectWidth - plotRightEdgePx);
-  const contentHeightPx = PLOT.height * scale;
+  const contentHeightPx = plot.height * scale.y;
   const toolbarLeftPx = Math.max(plotLeftPx, Math.min(endPx, plotRightEdgePx - 6));
   const toolbarTopPx = Math.max(plotTopPx, Math.min(plotBottomPx, contentHeightPx - 34));
-
   wrapper.dataset.selectionOverlayReady = "true";
   wrapper.style.setProperty("--aqe-selection-start-px", `${startPx.toFixed(2)}px`);
   wrapper.style.setProperty("--aqe-selection-end-px", `${endPx.toFixed(2)}px`);
@@ -384,7 +405,7 @@ function setSelectionOverlayGeometry(
 }
 
 function clearSelectionOverlayGeometry(visualizer: VisualizerElement): void {
-  const wrapper = plotWrapperFor(visualizer);
+  const wrapper = visualizer.querySelector<HTMLElement>(".aqe-visualizer-plot");
   if (!wrapper) return;
   wrapper.dataset.selectionOverlayReady = "false";
   for (const property of [
@@ -427,6 +448,7 @@ function cursorRenderCache(visualizer: VisualizerElement): CursorRenderCache {
     cssFlagPitch: cssFlag?.querySelector<HTMLElement>(".aqe-css-cursor-flag-pitch") ?? null,
     cssLine: visualizer.querySelector<HTMLElement>(".aqe-css-cursor-line"),
     label: visualizer.querySelector<HTMLElement>(".aqe-cursor-label"),
+    svg: visualizer.querySelector<SVGSVGElement>(".aqe-visualizer-svg"),
   };
   visualizer.__aqeCursorRenderCache = cache;
   return cache;
@@ -436,10 +458,11 @@ function renderCssCursorGeometry(
   visualizer: VisualizerElement,
   nodes: CursorRenderCache,
   cursorX: number,
+  plot: PlotGeometry,
   ms?: number,
 ): void {
   const viewport = readVisualizerTimeViewport(visualizer);
-  const scale = cssScaleFor(visualizer);
+  const scale = cssScaleFor(nodes.svg);
   const cursor = nodes.cssCursor;
   if (!cursor) return;
   if (typeof ms === "number" && !msVisibleInViewport(ms, viewport)) {
@@ -449,37 +472,29 @@ function renderCssCursorGeometry(
   }
   cursor.style.display = "block";
   cursor.style.transition = "none";
-  cursor.style.transform = `translate3d(${cssXForViewBoxX(visualizer, cursorX).toFixed(2)}px, 0, 0)`;
+  cursor.style.transform = `translate3d(${(cursorX * scale.x).toFixed(2)}px, 0, 0)`;
   if (nodes.cssLine) {
-    nodes.cssLine.style.top = `${(PLOT.top * scale).toFixed(2)}px`;
-    nodes.cssLine.style.height = `${((PLOT.height - PLOT.top - PLOT.bottom) * scale).toFixed(2)}px`;
+    nodes.cssLine.style.top = `${(plot.top * scale.y).toFixed(2)}px`;
+    nodes.cssLine.style.height = `${((plot.height - plot.top - plot.bottom) * scale.y).toFixed(2)}px`;
   }
   if (nodes.cssFlag) {
-    const flagX = clampedCursorFlagX(cursorX);
-    const flagOffsetPx = (flagX - cursorX) * scale - CURSOR_FLAG_HALF_WIDTH;
-    nodes.cssFlag.style.top = `${(PLOT.top * scale - CURSOR_FLAG_BOX_HEIGHT).toFixed(2)}px`;
+    const flagX = clampedCursorFlagX(cursorX, plot);
+    const flagOffsetPx = (flagX - cursorX) * scale.x - CURSOR_FLAG_HALF_WIDTH;
+    nodes.cssFlag.style.top = `${(plot.top * scale.y - CURSOR_FLAG_BOX_HEIGHT).toFixed(2)}px`;
     nodes.cssFlag.style.transform = `translateX(${flagOffsetPx.toFixed(2)}px)`;
   }
 }
 
-function clampedCursorFlagX(cursorX: number): number {
-  const minX = PLOT.left + CURSOR_FLAG_HALF_WIDTH;
-  const maxX = PLOT.width - PLOT.right - CURSOR_FLAG_HALF_WIDTH;
+function clampedCursorFlagX(cursorX: number, plot: PlotGeometry): number {
+  const minX = plot.left + CURSOR_FLAG_HALF_WIDTH;
+  const maxX = plot.width - plot.right - CURSOR_FLAG_HALF_WIDTH;
   return Math.max(minX, Math.min(cursorX, maxX));
 }
 
 function cssXForViewBoxX(visualizer: VisualizerElement, x: number): number {
-  return x * cssScaleFor(visualizer);
-}
-
-function cssScaleFor(visualizer: VisualizerElement): number {
-  const cached = Number(visualizer.dataset.cssCursorScale || "0");
-  if (cached > 0) return cached;
   const svg = visualizer.querySelector<SVGSVGElement>(".aqe-visualizer-svg");
-  const rect = svg?.getBoundingClientRect();
-  const rectWidth = Number(rect?.width) || PLOT.width;
-  const rectHeight = Number(rect?.height) || PLOT.height;
-  const scale = Math.min(rectWidth / PLOT.width, rectHeight / PLOT.height) || 1;
-  visualizer.dataset.cssCursorScale = String(scale);
-  return scale;
+  return x * cssScaleFor(svg).x;
+}
+function cssScaleFor(svg: SVGSVGElement | null): { x: number; y: number } {
+  return svg ? svgViewBoxScale(svg) : { x: 1, y: 1 };
 }

@@ -91,6 +91,7 @@ describe("editor inline plot helpers", () => {
 
   it("uses rendered SVG bounds for cursor hit testing", () => {
     const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+    svg.setAttribute("viewBox", "0 0 760 150");
     svg.getBoundingClientRect = () => ({
       bottom: 150,
       height: 150,
@@ -106,6 +107,8 @@ describe("editor inline plot helpers", () => {
     const bounds = graphPixelBounds(svg);
     const ms = cursorMsFromEvent({ clientX: bounds.left + bounds.width * 0.75 }, svg, 2000);
 
+    expect(bounds.left).toBeCloseTo(54);
+    expect(bounds.width).toBeCloseTo(706);
     expect(ms).toBeCloseTo(1500);
   });
 

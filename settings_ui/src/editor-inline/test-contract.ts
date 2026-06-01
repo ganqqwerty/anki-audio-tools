@@ -15,7 +15,7 @@ import {
   selectionForVisualizer,
   setCursor,
 } from "./actions.js";
-import { cursorMsFromEvent, graphPixelBounds } from "./plot.js";
+import { cursorMsFromEvent, graphPixelBounds, svgViewBoxScale } from "./plot.js";
 import { applyVisualizerTimeViewport } from "./viewport-actions.js";
 import { readVisualizerTargetDurationMs, readVisualizerTimeViewport } from "./visualizer-state.js";
 import type {
@@ -274,6 +274,7 @@ function cssCursorViewBoxX(visualizer: VisualizerElement): number {
   const transform = cursor?.style.transform || "";
   const match = /translate3d\((-?\d+(?:\.\d+)?)px/.exec(transform);
   const x = match ? Number(match[1]) : 0;
-  const scale = Number(visualizer.dataset.cssCursorScale || "1") || 1;
+  const svg = visualizer.querySelector<SVGSVGElement>(".aqe-visualizer-svg");
+  const scale = svg ? svgViewBoxScale(svg).x : 1;
   return x / scale;
 }

@@ -352,6 +352,7 @@ interface CursorRenderCache {
   cssFlagPitch: HTMLElement | null;
   cssLine: HTMLElement | null;
   label: HTMLElement | null;
+  svg: SVGSVGElement | null;
 }
 
 export interface MountedField {
