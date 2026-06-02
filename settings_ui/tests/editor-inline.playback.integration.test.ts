@@ -24,6 +24,7 @@ beforeEach(() => {
 afterEach(() => {
   disposeEditorRuntime();
   restoreConsole();
+  vi.useRealTimers();
   vi.restoreAllMocks();
 });
 

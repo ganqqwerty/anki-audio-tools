@@ -50,6 +50,29 @@ describe("editor inline action progress clocks", () => {
     expect(state).toMatchObject({ pitchMarkerVisible: false, pitchMarkerX: null, pitchMarkerY: null, progressMs: 700 });
   });
 
+  it("pans the zoomed viewport while painting manual playback progress", async () => {
+    const frames: Array<(time: number) => void> = [];
+    vi.spyOn(window, "requestAnimationFrame").mockImplementation((callback) => {
+      frames.push(callback);
+      return frames.length;
+    });
+    vi.spyOn(window, "cancelAnimationFrame").mockImplementation(() => undefined);
+    let now = 1000;
+    vi.spyOn(performance, "now").mockImplementation(() => now);
+    const visualizer = await mountTrack(0);
+    const audio = visualizer.querySelector<HTMLAudioElement>(".aqe-audio-clock")!;
+    audio.pause = vi.fn<() => void>(() => undefined);
+    window.__aqeSetTimeViewportForTest?.(0, 0, 500);
+
+    startManualProgressClock(visualizer, 450);
+    now = 1120;
+    frames.shift()?.(now);
+
+    const state = window.__aqeGraphStateForTest?.(0);
+    expect(state?.viewportStartMs).toBeGreaterThan(0);
+    expect(state?.progressMs).toBeGreaterThanOrEqual(450);
+  });
+
   it("loops manual progress clocks at the selected region boundary without play-ended", async () => {
     const frames: Array<(time: number) => void> = [];
     vi.spyOn(window, "requestAnimationFrame").mockImplementation((callback) => {

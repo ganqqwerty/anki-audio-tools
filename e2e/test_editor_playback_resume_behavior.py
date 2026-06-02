@@ -83,6 +83,49 @@ def test_playback_completion_clears_status_and_returns_cursor_to_anchor(anki_mw,
         parent.close()
 
 
+def test_playback_starts_from_graph_positioned_cursor(anki_mw, ffmpeg_config) -> None:
+    media_dir = Path(anki_mw.col.media.dir())
+    source = media_dir / "editor_playback_positioned_cursor.wav"
+    generate_tone(ffmpeg_config, source, duration_s=2.0)
+    note = _basic_audio_note(anki_mw, source.name)
+    _configure_ffmpeg(anki_mw, ffmpeg_config)
+
+    editor, parent = _open_editor(anki_mw, note)
+    try:
+        track = _click_graph_and_wait(editor, lambda value: value["sourceFilename"] == source.name)
+        _install_html_audio_test_driver(editor)
+        _drag_cursor_to_ratio(editor, 0.5)
+        positioned = wait_for_js_condition(
+            editor.web,
+            _graph_state_js(),
+            lambda state: state is not None
+            and abs(state["cursorMs"] - 1000) <= PLAYBACK_INTERVAL_TOLERANCE_MS
+            and abs(state["anchorMs"] - state["cursorMs"]) <= PLAYBACK_INTERVAL_TOLERANCE_MS,
+            timeout=5.0,
+        )
+
+        with _record_fake_playback(
+            media_dir,
+            {source.name: round(track["durationMs"])},
+            ffmpeg_config=ffmpeg_config,
+        ) as playback:
+            click_selector(editor.web, _button_selector("aqe:play"), timeout=5.0)
+            started = _wait_for_html_playback(
+                editor,
+                lambda state: abs(state["playbackStartMs"] - positioned["cursorMs"])
+                <= PLAYBACK_INTERVAL_TOLERANCE_MS
+                and state["audioClockCurrentMs"] >= positioned["cursorMs"] - PLAYBACK_INTERVAL_TOLERANCE_MS,
+                timeout=5.0,
+            )
+
+        assert playback.attempts == []
+        assert abs(started["cursorMs"] - positioned["cursorMs"]) <= PLAYBACK_INTERVAL_TOLERANCE_MS
+        assert started["playbackEndMs"] == round(track["durationMs"])
+    finally:
+        editor.set_note(None)
+        parent.close()
+
+
 def test_drag_while_playing_restarts_playback_from_released_cursor(anki_mw, ffmpeg_config) -> None:
     media_dir = Path(anki_mw.col.media.dir())
     source = media_dir / "editor_drag_while_playing_source.wav"

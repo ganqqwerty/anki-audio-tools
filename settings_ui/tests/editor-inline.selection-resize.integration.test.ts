@@ -68,6 +68,59 @@ describe("editor inline selection resize integration", () => {
     });
   });
 
+  it("resizes selection handles using visible viewport coordinates when zoomed", () => {
+    initializeEditorRuntime({ audioFieldIndices: [0] });
+    scan({ audioFieldIndices: [0] });
+    window.__aqeSetVisualizer?.(0, track, 100);
+    window.__aqeSetTimeViewportForTest?.(0, 250, 750);
+    const svg = document.querySelector<SVGSVGElement>('[data-testid="aqe-graph-svg-0"]')!;
+    setGraphBounds(svg);
+
+    dragGraphSelection(svg, 0.25, 0.75);
+    dragSelectionHandle(svg, "end", 1);
+
+    expect(window.__aqeGraphStateForTest?.(0)).toMatchObject({
+      selectionStartMs: 375,
+      selectionEndMs: 750,
+      cursorMs: 375,
+    });
+  });
+
+  it("shows resize handles only for true selection edges visible in the viewport", () => {
+    initializeEditorRuntime({ audioFieldIndices: [0] });
+    scan({ audioFieldIndices: [0] });
+    window.__aqeSetVisualizer?.(0, track, 100);
+    const svg = document.querySelector<SVGSVGElement>('[data-testid="aqe-graph-svg-0"]')!;
+    setGraphBounds(svg);
+    dragGraphSelection(svg, 0.25, 0.75);
+
+    window.__aqeSetTimeViewportForTest?.(0, 0, 500);
+    expect(window.__aqeGraphStateForTest?.(0)).toMatchObject({
+      selectionEndHandleVisible: false,
+      selectionStartHandleVisible: true,
+      selectionStartMs: 250,
+      selectionEndMs: 750,
+    });
+    dragSelectionHandle(svg, "start", 0.25);
+    expect(window.__aqeGraphStateForTest?.(0)).toMatchObject({
+      cursorMs: 125,
+      selectionStartMs: 125,
+      selectionEndMs: 750,
+    });
+
+    window.__aqeSetTimeViewportForTest?.(0, 500, 1000);
+    expect(window.__aqeGraphStateForTest?.(0)).toMatchObject({
+      selectionEndHandleVisible: true,
+      selectionStartHandleVisible: false,
+    });
+    dragSelectionHandle(svg, "end", 0.75);
+    expect(window.__aqeGraphStateForTest?.(0)).toMatchObject({
+      cursorMs: 125,
+      selectionStartMs: 125,
+      selectionEndMs: 875,
+    });
+  });
+
   it("clamps handle drags at the minimum duration without swapping edges", () => {
     initializeEditorRuntime({ audioFieldIndices: [0] });
     scan({ audioFieldIndices: [0] });

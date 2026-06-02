@@ -1,5 +1,6 @@
 import type { PlaybackRegion } from "./playback-state.js";
 import type { SelectionRange, SelectionState } from "./selection-state.js";
+import { fullTimeViewport, normalizeTimeViewport, type TimeViewport } from "./time-viewport.js";
 import type { VisualizerElement } from "./types.js";
 
 export function readVisualizerDurationMs(visualizer: VisualizerElement): number {
@@ -10,6 +11,26 @@ export function readVisualizerTargetDurationMs(visualizer: VisualizerElement): n
   const targetDurationMs = Number(visualizer.dataset.targetDurationMs || "0") || 0;
   if (targetDurationMs > 0) return targetDurationMs;
   return readVisualizerDurationMs(visualizer);
+}
+
+export function readVisualizerTimeViewport(visualizer: VisualizerElement): TimeViewport {
+  const durationMs = readVisualizerDurationMs(visualizer);
+  const startMs = Number(visualizer.dataset.viewportStartMs || "0") || 0;
+  const endMs = Number(visualizer.dataset.viewportEndMs || String(durationMs)) || durationMs;
+  return normalizeTimeViewport(startMs, endMs, durationMs);
+}
+
+export function resetVisualizerTimeViewport(
+  visualizer: VisualizerElement,
+  durationMs = readVisualizerDurationMs(visualizer),
+): void {
+  writeVisualizerTimeViewport(visualizer, fullTimeViewport(durationMs));
+}
+
+export function writeVisualizerTimeViewport(visualizer: VisualizerElement, viewport: TimeViewport): void {
+  const normalized = normalizeTimeViewport(viewport.startMs, viewport.endMs, viewport.durationMs);
+  visualizer.dataset.viewportStartMs = String(Math.round(normalized.startMs));
+  visualizer.dataset.viewportEndMs = String(Math.round(normalized.endMs));
 }
 
 export function readVisualizerCursorMs(visualizer: VisualizerElement): number {
@@ -63,6 +84,11 @@ export function setVisualizerPlaybackRegion(visualizer: VisualizerElement, regio
   visualizer.dataset.playbackStartMs = String(Math.round(region.startMs));
   visualizer.dataset.playbackEndMs = String(Math.round(region.endMs));
   visualizer.dataset.playbackRegionMode = region.mode;
+  visualizer.dataset.playbackResetCursorMs = String(Math.round(
+    region.mode === "selection"
+      ? region.startMs
+      : Number(visualizer.dataset.anchorMs || visualizer.dataset.cursorMs || "0"),
+  ));
 }
 
 function readOptionalMs(rawValue: string | undefined): number | null {

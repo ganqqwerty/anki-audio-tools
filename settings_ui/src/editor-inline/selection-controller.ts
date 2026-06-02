@@ -7,7 +7,7 @@ import {
   setSelectionRange,
 } from "./selection-state.js";
 import type { PlaybackState, VisualizerElement } from "./types.js";
-import { renderSelection } from "./visualizer-renderer.js";
+import { renderSelection } from "./visualizer-selection-renderer.js";
 import {
   clearVisualizerSelection,
   clearVisualizerSelectionDraft,

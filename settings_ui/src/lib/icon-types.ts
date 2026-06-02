@@ -6,6 +6,7 @@ export type CommandIconName =
   | "fast-forward"
   | "file-audio"
   | "folder-open"
+  | "maximize-2"
   | "mic"
   | "minimize-2"
   | "pause"
@@ -15,6 +16,7 @@ export type CommandIconName =
   | "repeat-2"
   | "rewind"
   | "save"
+  | "scan-search"
   | "scissors"
   | "selection-remove-inside"
   | "selection-remove-outside"
@@ -31,4 +33,6 @@ export type CommandIconName =
   | "volume-1"
   | "volume-2"
   | "volume-x"
-  | "x";
+  | "x"
+  | "zoom-in"
+  | "zoom-out";

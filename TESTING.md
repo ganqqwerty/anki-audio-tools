@@ -230,7 +230,7 @@ Audio rendering and fallback prosody tests require `ffmpeg` and `ffprobe`. On th
 
 External binary features should have two kinds of tests: normal-path coverage that runs the real executable in e2e when the binary is available, and focused unit/e2e fixtures with fake executables for exceptional behavior. Use fakes for missing tools, permission errors, invalid arguments, malformed output, timeout handling, and nonzero exits; do not replace the normal real-binary smoke path with a fake when the feature depends on actual media processing.
 
-Prosody visualization e2e coverage verifies that the real Anki editor renders intensity fill, pitch paths, Hertz labels, and cursor seeking, and that the graph refreshes after real ffmpeg-generated media changes.
+Prosody visualization e2e coverage verifies that the real Anki editor renders intensity fill, pitch paths, Hertz labels, cursor seeking, horizontal zoom controls, and selection-aware zooming, and that the graph refreshes after real ffmpeg-generated media changes.
 
 Settings that affect editor startup behavior need at least one same-session e2e check: open the real settings dialog, save the changed value, then load a later editor note in the same Anki runtime. Unit and Svelte tests can prove state plumbing, but only the Anki e2e path catches whether saved add-on config is read again without restarting Anki.
 

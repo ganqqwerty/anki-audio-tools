@@ -42,6 +42,7 @@ import {
   clearStatus,
 } from "./control-actions.js";
 import { graphSettingsForField } from "./graph-split-state.js";
+import { resetVisualizerTimeViewport } from "./visualizer-state.js";
 
 type EditorStatusMessage = string | UserFacingError;
 
@@ -134,7 +135,7 @@ export function setVisualizer(ord: number, rawTrack: ProsodyPayload, cursorMs: n
   if (!visualizer || !rawTrack) return;
   const track = normalizeTrack(rawTrack);
   renderVisualizerTrack(visualizer, track);
-  visualizer.dataset.anchorMs = String(cursorMs || 0);
+  visualizer.dataset.anchorMs = "0";
   if (pendingGraphRedrawMatches(ord, track.sourceFilename || "")) {
     window.__aqePendingGraphRedrawField = null;
     window.__aqePendingGraphRedrawSource = null;
@@ -142,7 +143,7 @@ export function setVisualizer(ord: number, rawTrack: ProsodyPayload, cursorMs: n
   setSelection(visualizer, 0, track.durationMs || 0, { updateCursor: false });
   configureAudioClock(visualizer, track.sourceFilename || "");
   setCommandButtonLabel(ord, "aqe:analyze", "Redraw");
-  setCursor(visualizer, cursorMs || 0, false);
+  setCursor(visualizer, cursorMs || 0, false, { updateAnchor: false });
   if (audioClockReady(visualizer)) {
     seekAudioClock(visualizer, cursorMs || 0);
   }
@@ -221,6 +222,7 @@ export function prepareForNewNote(): void {
     visualizer.dataset.playbackEngine = "";
     visualizer.dataset.resumeRequiresRestart = "false";
     visualizer.dataset.durationMs = "0";
+    resetVisualizerTimeViewport(visualizer, 0);
     visualizer.dataset.targetDurationMs = "0";
     visualizer.dataset.learnerDurationMs = "0";
     visualizer.dataset.learnerRecordingStatus = "idle";
@@ -231,6 +233,8 @@ export function prepareForNewNote(): void {
     visualizer.dataset.playbackStartMs = "0";
     visualizer.dataset.playbackEndMs = "0";
     visualizer.dataset.playbackRegionMode = "full";
+    visualizer.dataset.playbackResetCursorMs = "0";
+    visualizer.dataset.playbackLoop = "false";
     visualizer.dataset.progressClockMode = "stopped";
     setRepeatEnabled(visualizer, repeatDefaultFromConfig());
     clearSelection(visualizer);

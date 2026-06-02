@@ -323,6 +323,8 @@ export interface GraphStateForTest {
   timecodeFlagPitch: string;
   timecodeFlagTransform: string;
   timecodeFlagVisible: boolean;
+  viewportEndMs: number;
+  viewportStartMs: number;
   xAxisLabels: string[];
 }
 
@@ -369,6 +371,7 @@ interface CursorRenderCache {
   cssFlagPitch: HTMLElement | null;
   cssLine: HTMLElement | null;
   label: HTMLElement | null;
+  svg: SVGSVGElement | null;
 }
 
 export interface MountedField {

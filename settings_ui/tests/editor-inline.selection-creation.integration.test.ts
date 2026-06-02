@@ -89,6 +89,24 @@ describe("editor inline selection creation integration", () => {
     expect(endHandle).toHaveAttribute("visibility", "hidden");
   });
 
+  it("creates selections using visible viewport coordinates when zoomed", () => {
+    initializeEditorRuntime({ audioFieldIndices: [0] });
+    scan({ audioFieldIndices: [0] });
+    window.__aqeSetVisualizer?.(0, track, 100);
+    window.__aqeSetTimeViewportForTest?.(0, 250, 750);
+    const svg = document.querySelector<SVGSVGElement>('[data-testid="aqe-graph-svg-0"]')!;
+    setGraphBounds(svg);
+
+    dragGraphSelection(svg, 0.25, 0.75);
+
+    expect(window.__aqeGraphStateForTest?.(0)).toMatchObject({
+      viewportStartMs: 250,
+      viewportEndMs: 750,
+      selectionStartMs: 375,
+      selectionEndMs: 625,
+    });
+  });
+
   it("shows and updates a draft selection during Shift-drag before commit", () => {
     initializeEditorRuntime({ audioFieldIndices: [0] });
     scan({ audioFieldIndices: [0] });

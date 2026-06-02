@@ -15,7 +15,7 @@ import {
   stopProgressClock as stopProgressClockFromController,
   type ProgressClockOptions,
 } from "./playback-controller.js";
-import { buildPlaybackRequestForPython } from "./playback-state.js";
+import { planPlaybackRequest, type PlaybackSnapshot } from "./playback-model.js";
 import { consumePostEditPlaybackIntent } from "./post-edit-playback.js";
 import type { CursorIntent, PlaybackRequest, PlaybackState, VisualizerElement } from "./types.js";
 import { isPlaybackState } from "./types.js";
@@ -29,6 +29,7 @@ import {
 } from "./actions.js";
 import { anyBusy, setCommandButtonLabel, setStatus } from "./control-actions.js";
 import { syncSelectionToolbar } from "./selection-toolbar-state.js";
+import { readVisualizerTargetDurationMs } from "./visualizer-state.js";
 import { t } from "../lib/i18n.js";
 
 export function setPlaybackButtonLabel(visualizer: VisualizerElement, label: string): void {
@@ -95,17 +96,22 @@ export function stopProgressClock(
 export function playbackRequest(ord: number): PlaybackRequest {
   const visualizer = visualizerForOrd(ord);
   if (!visualizer) return { ord, action: "start", cursorMs: 0 };
-  return buildPlaybackRequestForPython({
+  return planPlaybackRequest(playbackSnapshotFor(visualizer, ord));
+}
+
+function playbackSnapshotFor(visualizer: VisualizerElement, ord: number): PlaybackSnapshot {
+  return {
     anchorMs: Number(visualizer.dataset.anchorMs || visualizer.dataset.cursorMs || "0"),
     currentProgressMs: currentProgressMs(visualizer),
     cursorMs: Number(visualizer.dataset.cursorMs || "0"),
+    durationMs: readVisualizerTargetDurationMs(visualizer),
     engine: playbackEngineFor(visualizer),
     ord,
     playbackState: playbackStateFor(visualizer),
     region: effectivePlaybackRegion(visualizer),
     repeat: repeatEnabledFor(visualizer),
     resumeRequiresRestart: visualizer.dataset.resumeRequiresRestart === "true",
-  });
+  };
 }
 
 export function playAfterEdit(ord: number): boolean {

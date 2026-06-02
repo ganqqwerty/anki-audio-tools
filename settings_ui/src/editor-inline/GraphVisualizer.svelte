@@ -1,0 +1,246 @@
+<script lang="ts">
+  import { onMount } from "svelte";
+  import { t } from "../lib/i18n.js";
+  import {
+    configureAudioClock,
+    handleVisualizerPointerDown,
+    initializePlaybackRegionState,
+    installAudioClockHandlers,
+    resetAudioClockState,
+    startSelectionResizeGesture,
+  } from "./actions.js";
+  import { visualizerForOrd } from "./dom-selectors.js";
+  import { notifyPostEditPlaybackReady } from "./post-edit-playback.js";
+  import { PLOT } from "./plot.js";
+  import { syncRecordingControls } from "./recording-actions.js";
+  import { handleVisualizerKeyDown } from "./region-delete.js";
+  import SelectionToolbar from "./SelectionToolbar.svelte";
+  import TimeViewportScroller from "./TimeViewportScroller.svelte";
+  import type { FieldTarget } from "./types.js";
+  import { redrawVisualizerForCurrentViewport } from "./viewport-actions.js";
+  import { handleVisualizerWheelZoom, handleVisualizerZoomKeyDown } from "./zoom-actions.js";
+  import ZoomControls from "./ZoomControls.svelte";
+
+  const {
+    repeatDefault,
+    repeatPauseDefault,
+    target,
+  }: { repeatDefault: boolean; repeatPauseDefault: number; target: FieldTarget } = $props();
+  const selectionPlotHeight = PLOT.height - PLOT.top - PLOT.bottom;
+  const selectionHandleHeight = selectionPlotHeight * 0.8;
+  const selectionHandleY = PLOT.top + (selectionPlotHeight - selectionHandleHeight) / 2;
+  const selectionHandleCenterY = selectionHandleY + selectionHandleHeight / 2;
+  const plotClipId = $derived(`aqe-plot-clip-${target.ord}`);
+  const plotClipUrl = $derived(`url(#${plotClipId})`);
+
+  function handleGraphKeyDown(event: KeyboardEvent): void {
+    const visualizer = visualizerForOrd(target.ord);
+    if (visualizer && handleVisualizerZoomKeyDown(event, visualizer)) return;
+    handleVisualizerKeyDown(event, target.ord);
+  }
+
+  function handleGraphWheel(event: WheelEvent): void {
+    const visualizer = visualizerForOrd(target.ord);
+    if (visualizer) handleVisualizerWheelZoom(event, visualizer);
+  }
+
+  function installGraphLayoutObserver(visualizer: HTMLElement): () => void {
+    const svg = visualizer.querySelector<SVGSVGElement>(".aqe-visualizer-svg");
+    if (!svg) return () => undefined;
+    let lastWidth = 0;
+    const sync = () => {
+      const width = Math.round(Number(svg.getBoundingClientRect().width) || 0);
+      if (!width || width === lastWidth) return;
+      lastWidth = width;
+      redrawVisualizerForCurrentViewport(visualizer);
+    };
+    const observer = typeof ResizeObserver === "function" ? new ResizeObserver(sync) : null;
+    observer?.observe(svg);
+    sync();
+    return () => {
+      observer?.disconnect();
+    };
+  }
+
+  onMount(() => {
+    const visualizer = visualizerForOrd(target.ord);
+    if (!visualizer) return;
+    const stopGraphLayoutObserver = installGraphLayoutObserver(visualizer);
+    resetAudioClockState(visualizer);
+    initializePlaybackRegionState(visualizer);
+    installAudioClockHandlers(visualizer);
+    visualizer.dataset.sourceFilename = target.sourceFilename || "";
+    configureAudioClock(visualizer, target.sourceFilename || "");
+    syncRecordingControls(target.ord);
+    notifyPostEditPlaybackReady(target.ord, target.sourceFilename || "");
+    return stopGraphLayoutObserver;
+  });
+</script>
+
+<div
+  class="aqe-visualizer"
+  data-aqe-field-ord={target.ord}
+  data-anchor-ms="0"
+  data-cursor-ms="0"
+  data-progress-ms="0"
+  data-target-duration-ms="0"
+  data-viewport-start-ms="0"
+  data-viewport-end-ms="0"
+  data-learner-duration-ms="0"
+  data-learner-recording-status="idle"
+  data-graph-active="false"
+  data-graph-busy="false"
+  data-has-track="false"
+  data-playback-state="stopped"
+  data-playback-engine=""
+  data-playback-start-ms="0"
+  data-playback-end-ms="0"
+  data-playback-region-mode="full"
+  data-playback-reset-cursor-ms="0"
+  data-playback-loop={repeatDefault ? "true" : "false"}
+  data-resume-requires-restart="false"
+  data-selection-active="false"
+  data-selection-start-ms=""
+  data-selection-end-ms=""
+  data-selection-draft-active="false"
+  data-selection-draft-start-ms=""
+  data-selection-draft-end-ms=""
+  data-repeat-enabled={repeatDefault ? "true" : "false"}
+  data-repeat-pause-seconds={repeatPauseDefault}
+  data-repeat-pause-waiting="false"
+  data-testid={`aqe-graph-${target.ord}`}
+  role="button"
+  aria-label={t("editor.graph.aria")}
+  tabindex="0"
+  onkeydown={handleGraphKeyDown}
+  hidden
+>
+  <audio class="aqe-audio-clock" data-testid={`aqe-audio-clock-${target.ord}`} preload="metadata" hidden></audio>
+  <ZoomControls {target} />
+  <div
+    class="aqe-visualizer-plot"
+    data-testid={`aqe-visualizer-plot-${target.ord}`}
+    onwheel={handleGraphWheel}
+  >
+    <div class="aqe-selection-region-preview-halo aqe-selection-region-preview-halo-top" aria-hidden="true"></div>
+    <div class="aqe-selection-region-preview-halo aqe-selection-region-preview-halo-bottom" aria-hidden="true"></div>
+    <svg
+      class="aqe-visualizer-svg"
+      data-testid={`aqe-graph-svg-${target.ord}`}
+      viewBox={`0 0 ${PLOT.width} ${PLOT.height}`}
+      preserveAspectRatio="xMinYMin meet"
+      role="img"
+      aria-label={t("editor.graph.image_aria")}
+      onpointerdown={(event) => handleVisualizerPointerDown(event, target.ord)}
+    >
+      <defs>
+        <clipPath id={plotClipId}>
+          <rect
+            x={PLOT.left}
+            y={PLOT.top}
+            width={PLOT.width - PLOT.left - PLOT.right}
+            height={PLOT.height - PLOT.top - PLOT.bottom}
+          ></rect>
+        </clipPath>
+      </defs>
+      <rect
+        class="aqe-selection"
+        data-testid={`aqe-selection-${target.ord}`}
+        x={PLOT.left}
+        y={PLOT.top}
+        width="0"
+        height={PLOT.height - PLOT.top - PLOT.bottom}
+        visibility="hidden"
+      ></rect>
+      <path class="aqe-intensity" data-testid={`aqe-intensity-${target.ord}`} d="" clip-path={plotClipUrl}></path>
+      <g class="aqe-pitch" data-testid={`aqe-pitch-${target.ord}`} clip-path={plotClipUrl}></g>
+      <g class="aqe-learner-pitch" data-testid={`aqe-learner-pitch-${target.ord}`} clip-path={plotClipUrl}></g>
+      <g class="aqe-labels"></g>
+      <g class="aqe-x-axis" data-testid={`aqe-x-axis-${target.ord}`}></g>
+      <line
+        class="aqe-selection-edge aqe-selection-start"
+        data-testid={`aqe-selection-start-${target.ord}`}
+        x1={PLOT.left}
+        x2={PLOT.left}
+        y1={PLOT.top}
+        y2={PLOT.height - PLOT.bottom}
+        visibility="hidden"
+      ></line>
+      <line
+        class="aqe-selection-edge aqe-selection-end"
+        data-testid={`aqe-selection-end-${target.ord}`}
+        x1={PLOT.left}
+        x2={PLOT.left}
+        y1={PLOT.top}
+        y2={PLOT.height - PLOT.bottom}
+        visibility="hidden"
+      ></line>
+      <rect
+        class="aqe-selection-resize-handle aqe-selection-resize-start"
+        data-testid={`aqe-selection-resize-start-${target.ord}`}
+        x={PLOT.left - 5}
+        y={selectionHandleY}
+        width="10"
+        height={selectionHandleHeight}
+        rx="3"
+        role="button"
+        aria-label="Resize selection start"
+        tabindex="0"
+        visibility="hidden"
+        onpointerdown={(event) => {
+          if (event.shiftKey) return;
+          startSelectionResizeGesture(event, target.ord, "start");
+        }}
+      ></rect>
+      <g
+        class="aqe-selection-resize-grip aqe-selection-resize-grip-start"
+        transform={`translate(${PLOT.left} ${selectionHandleCenterY})`}
+        visibility="hidden"
+        aria-hidden="true"
+      >
+        <line x1="-3" x2="3" y1="-10" y2="-10"></line>
+        <line x1="-3" x2="3" y1="0" y2="0"></line>
+        <line x1="-3" x2="3" y1="10" y2="10"></line>
+      </g>
+      <rect
+        class="aqe-selection-resize-handle aqe-selection-resize-end"
+        data-testid={`aqe-selection-resize-end-${target.ord}`}
+        x={PLOT.left - 5}
+        y={selectionHandleY}
+        width="10"
+        height={selectionHandleHeight}
+        rx="3"
+        role="button"
+        aria-label="Resize selection end"
+        tabindex="0"
+        visibility="hidden"
+        onpointerdown={(event) => {
+          if (event.shiftKey) return;
+          startSelectionResizeGesture(event, target.ord, "end");
+        }}
+      ></rect>
+      <g
+        class="aqe-selection-resize-grip aqe-selection-resize-grip-end"
+        transform={`translate(${PLOT.left} ${selectionHandleCenterY})`}
+        visibility="hidden"
+        aria-hidden="true"
+      >
+        <line x1="-3" x2="3" y1="-10" y2="-10"></line>
+        <line x1="-3" x2="3" y1="0" y2="0"></line>
+        <line x1="-3" x2="3" y1="10" y2="10"></line>
+      </g>
+    </svg>
+    <div class="aqe-css-cursor" data-testid={`aqe-css-cursor-${target.ord}`} aria-hidden="true">
+      <div class="aqe-css-cursor-line"></div>
+      <div class="aqe-css-cursor-flag">
+        <div class="aqe-css-cursor-flag-box">
+          <span class="aqe-css-cursor-flag-current">0 ms</span>
+          <span class="aqe-css-cursor-flag-pitch"> / -- Hz</span>
+        </div>
+      </div>
+    </div>
+    <SelectionToolbar {target} />
+  </div>
+  <TimeViewportScroller {target} />
+  <span class="aqe-cursor-label" data-testid={`aqe-progress-label-${target.ord}`}>0 ms</span>
+</div>

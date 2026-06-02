@@ -1,5 +1,6 @@
 import { vi } from "vitest";
 
+import { graphPixelBounds } from "../src/editor-inline/plot.js";
 import { pycmdMock } from "./setup.js";
 
 export const track = {
@@ -48,8 +49,8 @@ export function renderTwoAudioFields(): void {
 }
 
 export function graphClientX(svg: SVGSVGElement, ratio: number): number {
-  const rect = svg.getBoundingClientRect();
-  return 44 + 566 * ratio + rect.left;
+  const bounds = graphPixelBounds(svg);
+  return bounds.left + bounds.width * ratio;
 }
 
 export function dispatchGraphPointer(svg: SVGSVGElement, type: string, clientX: number, shiftKey = false): void {

@@ -222,6 +222,76 @@ def test_selected_repeat_loops_pauses_resumes_and_can_finish_current_pass(
         parent.close()
 
 
+def test_selected_repeat_restarts_from_repositioned_paused_cursor(
+    anki_mw,
+    ffmpeg_config,
+) -> None:
+    media_dir, source, _note, editor, parent, track = _open_tone_editor(
+        anki_mw,
+        ffmpeg_config,
+        "editor_region_repeat_reposition_cursor.wav",
+        2.0,
+    )
+    try:
+        _shift_drag_region(editor, 0.25, 0.65)
+        _set_repeat(editor, True)
+        run_js(
+            editor.web,
+            """
+            (() => {
+              window.__aqeSetTimeViewportForTest?.(0, 400, 1400);
+              return true;
+            })()
+            """,
+        )
+
+        with _record_fake_playback(
+            media_dir,
+            {source.name: round(track["durationMs"])},
+            ffmpeg_config=ffmpeg_config,
+        ) as playback:
+            click_selector(editor.web, _button_selector("aqe:play"), timeout=5.0)
+            _wait_for_html_playback(editor, lambda state: state["progressMs"] >= 650)
+            click_selector(editor.web, _button_selector("aqe:play"), timeout=5.0)
+            _state(
+                editor,
+                lambda state: state["playbackState"] == "paused"
+                and state["playButtonLabel"] == "Play",
+            )
+
+            _normal_drag(editor, 0.45, 0.45)
+            repositioned = _state(
+                editor,
+                lambda state: all((
+                    state["playbackState"] == "paused",
+                    state["cursorMs"] > state["selectionStartMs"] + PLAYBACK_INTERVAL_TOLERANCE_MS,
+                    state["cursorMs"] <= state["selectionEndMs"],
+                    state["resumeRequiresRestart"] is True,
+                )),
+            )
+            expected_restart_ms = repositioned["cursorMs"]
+
+            click_selector(editor.web, _button_selector("aqe:play"), timeout=5.0)
+            restarted = _wait_for_html_playback(
+                editor,
+                lambda state: abs(state["playbackStartMs"] - expected_restart_ms)
+                <= PLAYBACK_INTERVAL_TOLERANCE_MS
+                and abs(state["cursorMs"] - expected_restart_ms)
+                <= PLAYBACK_INTERVAL_TOLERANCE_MS
+                and state["playbackEndMs"] == 1300,
+                timeout=5.0,
+            )
+
+        assert playback.attempts == []
+        assert repositioned["repeatEnabled"] is True
+        assert repositioned["selectionStartMs"] == 500
+        assert repositioned["selectionEndMs"] == 1300
+        assert restarted["playbackRegionMode"] == "selection"
+    finally:
+        editor.set_note(None)
+        parent.close()
+
+
 def _force_native_playback(editor, ord_: int = 0) -> None:
     run_js(
         editor.web,

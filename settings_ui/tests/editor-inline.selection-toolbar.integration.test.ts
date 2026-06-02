@@ -97,19 +97,20 @@ describe("editor inline selection toolbar integration", () => {
   it("positions the toolbar against the rendered plot when the SVG viewport is wider than the viewBox", () => {
     initializeEditorRuntime({ audioFieldIndices: [0] });
     scan({ audioFieldIndices: [0] });
-    window.__aqeSetVisualizer?.(0, track, 250);
     const svg = document.querySelector<SVGSVGElement>('[data-testid="aqe-graph-svg-0"]')!;
     setGraphBounds(svg, { height: 150, width: 1240 });
+    window.__aqeSetVisualizer?.(0, track, 250);
 
     dragGraphSelection(svg, 0.2, 0.6);
 
     const state = window.__aqeGraphStateForTest?.(0);
+    expect(svg.getAttribute("viewBox")).toBe("0 0 1240 150");
     expect(state).toMatchObject({
       selectionDraftActive: false,
       selectionEndMs: 600,
       selectionToolbarHidden: false,
     });
-    expect(state?.selectionToolbarLeftPx).toBeCloseTo(383.6, 1);
+    expect(state?.selectionToolbarLeftPx).toBeCloseTo(755.6, 1);
     expect(state?.selectionToolbarTopPx).toBeCloseTo(116, 1);
   });
 

@@ -15,8 +15,9 @@ import {
   selectionForVisualizer,
   setCursor,
 } from "./actions.js";
-import { cursorMsFromEvent, graphPixelBounds } from "./plot.js";
-import { readVisualizerTargetDurationMs } from "./visualizer-state.js";
+import { cursorMsFromEvent, graphPixelBounds, svgViewBoxScale } from "./plot.js";
+import { applyVisualizerTimeViewport } from "./viewport-actions.js";
+import { readVisualizerTargetDurationMs, readVisualizerTimeViewport } from "./visualizer-state.js";
 import type {
   CursorPositionForTest,
   EditorCommand,
@@ -32,6 +33,7 @@ export const EDITOR_TEST_WINDOW_CONTRACT_NAMES = [
   "__aqeInstallAudioPlaybackTestDriverForTest",
   "__aqeSetCursorByClientXForTest",
   "__aqeSetCursorForTest",
+  "__aqeSetTimeViewportForTest",
 ] as const;
 
 export function installEditorTestWindowContract(): void {
@@ -39,6 +41,7 @@ export function installEditorTestWindowContract(): void {
   window.__aqeInstallAudioPlaybackTestDriverForTest = installAudioPlaybackTestDriver;
   window.__aqeSetCursorByClientXForTest = setCursorByClientXForTest;
   window.__aqeSetCursorForTest = setCursorForTest;
+  window.__aqeSetTimeViewportForTest = setTimeViewportForTest;
 }
 
 export function installAudioPlaybackTestDriver(ord: number): boolean {
@@ -106,13 +109,24 @@ export function setCursorByClientXForTest(ord: number, clientX: number, notifyPy
   const svg = visualizer?.querySelector<SVGSVGElement>(".aqe-visualizer-svg") ?? null;
   if (!visualizer || !svg) return null;
   const durationMs = Number(visualizer.dataset.durationMs || "0");
-  const ms = cursorMsFromEvent({ clientX }, svg, durationMs);
+  const ms = cursorMsFromEvent({ clientX }, svg, durationMs, readVisualizerTimeViewport(visualizer));
   setCursor(visualizer, ms, !!notifyPython);
   return {
     cursorMs: Number(visualizer.dataset.cursorMs || "0"),
     cursorX: cssCursorViewBoxX(visualizer),
     bounds: graphPixelBounds(svg),
   };
+}
+
+export function setTimeViewportForTest(ord: number, startMs: number, endMs: number): boolean {
+  const visualizer = visualizerForOrd(ord);
+  if (!visualizer) return false;
+  applyVisualizerTimeViewport(visualizer, {
+    durationMs: readVisualizerTargetDurationMs(visualizer),
+    endMs,
+    startMs,
+  });
+  return true;
 }
 
 export function graphStateForTest(ord: number): GraphStateForTest | null {
@@ -141,6 +155,7 @@ export function graphStateForTest(ord: number): GraphStateForTest | null {
   const timecodeFlagPitch = visualizer.querySelector<HTMLElement>(".aqe-css-cursor-flag-pitch");
   const spinner = visualizer.closest<HTMLElement>(".aqe-controls")?.querySelector<HTMLElement>(".aqe-spinner")
     ?? visualizer.querySelector<HTMLElement>(".aqe-spinner");
+  const viewport = readVisualizerTimeViewport(visualizer);
   return {
     active: visualizer.dataset.graphActive === "true",
     busy: visualizer.dataset.graphBusy === "true",
@@ -148,6 +163,8 @@ export function graphStateForTest(ord: number): GraphStateForTest | null {
     hasTrack: visualizer.dataset.hasTrack === "true",
     durationMs: Number(visualizer.dataset.durationMs || "0"),
     targetDurationMs: readVisualizerTargetDurationMs(visualizer),
+    viewportStartMs: viewport.startMs,
+    viewportEndMs: viewport.endMs,
     learnerDurationMs: Number(visualizer.dataset.learnerDurationMs || "0"),
     learnerRecordingStatus: visualizer.dataset.learnerRecordingStatus || "idle",
     anchorMs: Number(visualizer.dataset.anchorMs || "0"),
@@ -257,6 +274,7 @@ function cssCursorViewBoxX(visualizer: VisualizerElement): number {
   const transform = cursor?.style.transform || "";
   const match = /translate3d\((-?\d+(?:\.\d+)?)px/.exec(transform);
   const x = match ? Number(match[1]) : 0;
-  const scale = Number(visualizer.dataset.cssCursorScale || "1") || 1;
+  const svg = visualizer.querySelector<SVGSVGElement>(".aqe-visualizer-svg");
+  const scale = svg ? svgViewBoxScale(svg).x : 1;
   return x / scale;
 }

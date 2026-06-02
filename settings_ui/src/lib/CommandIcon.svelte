@@ -6,6 +6,7 @@
   import FastForward from "@lucide/svelte/icons/fast-forward";
   import FileAudio from "@lucide/svelte/icons/file-audio";
   import FolderOpen from "@lucide/svelte/icons/folder-open";
+  import Maximize2 from "@lucide/svelte/icons/maximize-2";
   import Mic from "@lucide/svelte/icons/mic";
   import Minimize2 from "@lucide/svelte/icons/minimize-2";
   import Pause from "@lucide/svelte/icons/pause";
@@ -15,6 +16,7 @@
   import Repeat2 from "@lucide/svelte/icons/repeat-2";
   import Rewind from "@lucide/svelte/icons/rewind";
   import Save from "@lucide/svelte/icons/save";
+  import ScanSearch from "@lucide/svelte/icons/scan-search";
   import Scissors from "@lucide/svelte/icons/scissors";
   import Settings from "@lucide/svelte/icons/settings";
   import Share from "@lucide/svelte/icons/share";
@@ -29,6 +31,8 @@
   import VolumeX from "@lucide/svelte/icons/volume-x";
   import Waves from "@lucide/svelte/icons/waves";
   import X from "@lucide/svelte/icons/x";
+  import ZoomIn from "@lucide/svelte/icons/zoom-in";
+  import ZoomOut from "@lucide/svelte/icons/zoom-out";
   import SelectionRemoveOutsideIcon from "./icons/SelectionRemoveOutsideIcon.svelte";
 
   import type { CommandIconName } from "./icon-types.js";
@@ -61,6 +65,8 @@
     <FileAudio {size} {strokeWidth} />
   {:else if icon === "folder-open"}
     <FolderOpen {size} {strokeWidth} />
+  {:else if icon === "maximize-2"}
+    <Maximize2 {size} {strokeWidth} />
   {:else if icon === "mic"}
     <Mic {size} {strokeWidth} />
   {:else if icon === "minimize-2"}
@@ -79,6 +85,8 @@
     <Rewind {size} {strokeWidth} />
   {:else if icon === "save"}
     <Save {size} {strokeWidth} />
+  {:else if icon === "scan-search"}
+    <ScanSearch {size} {strokeWidth} />
   {:else if icon === "scissors"}
     <Scissors {size} {strokeWidth} />
   {:else if icon === "selection-remove-inside"}
@@ -119,5 +127,9 @@
     <Waves {size} {strokeWidth} />
   {:else if icon === "x"}
     <X {size} {strokeWidth} />
+  {:else if icon === "zoom-in"}
+    <ZoomIn {size} {strokeWidth} />
+  {:else if icon === "zoom-out"}
+    <ZoomOut {size} {strokeWidth} />
   {/if}
 </span>

@@ -1,61 +1,26 @@
-import type { PlaybackRequest, PlaybackState } from "./types.js";
+import type { PlaybackRequest } from "./types.js";
+import {
+  clampMsToRegion,
+  planPlaybackRequest,
+  type PlaybackEngine,
+  type PlaybackRegion,
+  type PlaybackRegionMode,
+  type PlaybackSnapshot,
+} from "./playback-model.js";
 
-export type PlaybackRegionMode = "selection" | "full";
-export type PlaybackEngine = "html" | "native" | "";
+export {
+  clampMsToRegion,
+};
+export type {
+  PlaybackEngine,
+  PlaybackRegion,
+  PlaybackRegionMode,
+};
 
-export interface PlaybackRegion {
-  endMs: number;
-  mode: PlaybackRegionMode;
-  startMs: number;
-}
-
-export interface PlaybackRequestState {
-  anchorMs: number;
-  currentProgressMs: number | null;
-  cursorMs: number;
-  engine: PlaybackEngine;
-  ord: number;
-  playbackState: PlaybackState;
-  region: PlaybackRegion;
-  repeat: boolean;
-  resumeRequiresRestart: boolean;
-}
-
-export function clampMsToRegion(ms: number, region: Pick<PlaybackRegion, "startMs" | "endMs">): number {
-  return Math.max(region.startMs, Math.min(Number(ms) || 0, region.endMs));
-}
+export type PlaybackRequestState = PlaybackSnapshot;
 
 export function buildPlaybackRequestForPython(state: PlaybackRequestState): PlaybackRequest {
-  let action: PlaybackRequest["action"] = "start";
-  if (state.playbackState === "playing") action = "pause";
-  if (state.playbackState === "paused") {
-    action = state.resumeRequiresRestart ? "start" : "resume";
-  }
-
-  let cursorMs = state.anchorMs;
-  if (action === "start" && state.region.mode === "selection") {
-    cursorMs = state.region.startMs;
-  }
-  if (action === "pause") {
-    cursorMs = progressOrFallback(state.currentProgressMs, state.cursorMs, cursorMs);
-  }
-  if (action === "resume") {
-    cursorMs = progressOrFallback(state.currentProgressMs, state.cursorMs, cursorMs);
-    if (state.region.mode === "selection" && (cursorMs < state.region.startMs || cursorMs > state.region.endMs)) {
-      action = "start";
-      cursorMs = state.region.startMs;
-    }
-  }
-
-  return {
-    action,
-    cursorMs: Math.round(cursorMs),
-    endMs: Math.round(state.region.endMs),
-    engine: state.engine,
-    loop: state.repeat,
-    ord: state.ord,
-    regionMode: state.region.mode,
-  };
+  return planPlaybackRequest(state);
 }
 
 export function playbackRegionForCompletion(
@@ -68,8 +33,4 @@ export function playbackRegionForCompletion(
 
 export function shouldLoopAtBoundary(nextMs: number, endMs: number, repeat: boolean): boolean {
   return repeat && nextMs >= endMs;
-}
-
-function progressOrFallback(currentProgressMs: number | null, cursorMs: number, fallbackMs: number): number {
-  return Number(currentProgressMs || cursorMs || fallbackMs || 0);
 }
