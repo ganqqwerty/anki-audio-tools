@@ -151,7 +151,8 @@ directly.
 
 For a public thin add-on release:
 
-1. Bump `pyproject.toml` and `addon/anki_audio_quick_editor/_version.py`.
+1. Bump `pyproject.toml`, `addon/anki_audio_quick_editor/_version.py`,
+   and `addon/anki_audio_quick_editor/manifest.json`.
 2. Run `python3 scripts/dev.py check`, `python3 scripts/dev.py test-e2e`,
    and `python3 scripts/release_runtime_cli.py verify --metadata runtime_release.lock.json`.
 3. Commit the version bump.
@@ -161,6 +162,9 @@ For a public thin add-on release:
 python3 scripts/release.py --target all --verify-runtime-urls
 python3 scripts/dev.py release-smoke dist/anki-audio-quick-editor-<version>.ankiaddon
 ```
+
+`scripts/release.py` verifies that all three add-on version sources match before
+building the archive.
 
 `--verify-runtime-urls` downloads each URL from `runtime_release.lock.json` and
 verifies both the runtime pack SHA-256 and every inner file. It must run only

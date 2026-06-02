@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import argparse
+import json
 import re
 import sys
 import tempfile
@@ -60,13 +61,30 @@ def _read_package_version() -> str:
     return match.group(1)
 
 
+def _read_manifest_version() -> str:
+    manifest_path = ADDON_DIR / "manifest.json"
+    manifest: dict[str, Any] = {}
+    try:
+        manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    except json.JSONDecodeError:
+        print("ERROR: Could not parse manifest.json")
+        sys.exit(1)
+    version = manifest.get("human_version")
+    if not isinstance(version, str) or not version:
+        print("ERROR: Could not find human_version in manifest.json")
+        sys.exit(1)
+    return version
+
+
 def _verify_versions(version: str) -> None:
     pyproject_ver = _read_pyproject_version()
     package_ver = _read_package_version()
-    if pyproject_ver != version or package_ver != version:
+    manifest_ver = _read_manifest_version()
+    if pyproject_ver != version or package_ver != version or manifest_ver != version:
         print(
             "ERROR: version mismatch "
-            f"(pyproject={pyproject_ver!r}, package={package_ver!r}, requested={version!r})"
+            f"(pyproject={pyproject_ver!r}, package={package_ver!r}, "
+            f"manifest={manifest_ver!r}, requested={version!r})"
         )
         sys.exit(1)
 
