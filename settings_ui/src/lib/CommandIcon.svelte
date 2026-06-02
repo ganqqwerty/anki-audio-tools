@@ -20,6 +20,8 @@
   import Scissors from "@lucide/svelte/icons/scissors";
   import Settings from "@lucide/svelte/icons/settings";
   import Share from "@lucide/svelte/icons/share";
+  import SkipBack from "@lucide/svelte/icons/skip-back";
+  import SkipForward from "@lucide/svelte/icons/skip-forward";
   import Snail from "@lucide/svelte/icons/snail";
   import Sparkles from "@lucide/svelte/icons/sparkles";
   import Square from "@lucide/svelte/icons/square";
@@ -97,6 +99,10 @@
     <Settings {size} {strokeWidth} />
   {:else if icon === "share"}
     <Share {size} {strokeWidth} />
+  {:else if icon === "skip-back"}
+    <SkipBack {size} {strokeWidth} />
+  {:else if icon === "skip-forward"}
+    <SkipForward {size} {strokeWidth} />
   {:else if icon === "hare-running"}
     <!-- Framework7 hare, MIT. Modified with outline motion lines. -->
     <svg xmlns="http://www.w3.org/2000/svg" width={Math.round(size * 1.35)} height={size} viewBox="0 0 76 56" fill="none" stroke="currentColor" aria-hidden="true">

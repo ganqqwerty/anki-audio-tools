@@ -15,6 +15,7 @@
   import { syncRecordingControls } from "./recording-actions.js";
   import { handleVisualizerKeyDown } from "./region-delete.js";
   import { handleSegmentMarkerPointerDown, installSegmentPracticeHandlers } from "./segment-practice-controller.js";
+  import SegmentPracticePanel from "./SegmentPracticePanel.svelte";
   import SelectionToolbar from "./SelectionToolbar.svelte";
   import TimeViewportScroller from "./TimeViewportScroller.svelte";
   import type { FieldTarget } from "./types.js";
@@ -118,6 +119,7 @@
   data-segment-base-start-ms=""
   data-segment-editing="false"
   data-segment-markers-ms=""
+  data-segment-panel-open="false"
   data-segment-practice-state="stopped"
   data-testid={`aqe-graph-${target.ord}`}
   role="button"
@@ -259,6 +261,7 @@
       </div>
     </div>
     <SelectionToolbar {target} />
+    <SegmentPracticePanel {target} />
   </div>
   <TimeViewportScroller {target} />
   <span class="aqe-cursor-label" data-testid={`aqe-progress-label-${target.ord}`}>0 ms</span>

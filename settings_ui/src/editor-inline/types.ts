@@ -331,6 +331,7 @@ export interface GraphStateForTest {
   segmentEditing: boolean;
   segmentMarkerVisibleXs: number[];
   segmentMarkersMs: number[];
+  segmentPanelOpen: boolean;
   segmentPracticeState: "paused" | "playing" | "stopped";
   segmentVisibleActiveRangeEndX: number | null;
   segmentVisibleActiveRangeStartX: number | null;

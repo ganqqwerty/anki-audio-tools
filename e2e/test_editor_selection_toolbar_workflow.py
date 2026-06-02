@@ -311,7 +311,8 @@ def test_selection_toolbar_delete_rest_keeps_selected_audio(anki_mw, ffmpeg_conf
             editor,
             lambda value: value["sourceFilename"] == generated_name
             and value["selectionActive"] is True
-            and value["selectionToolbarHidden"] is True,
+            and value["selectionToolbarHidden"] is False
+            and value["selectionToolbarDeleteRestHidden"] is True,
             timeout=10.0,
         )
 
@@ -331,7 +332,7 @@ def test_selection_toolbar_delete_rest_keeps_selected_audio(anki_mw, ffmpeg_conf
         parent.close()
 
 
-def test_selection_toolbar_hides_for_whole_clip_selection(anki_mw, ffmpeg_config) -> None:
+def test_selection_toolbar_shows_for_whole_clip_selection(anki_mw, ffmpeg_config) -> None:
     media_dir = Path(anki_mw.col.media.dir())
     source = media_dir / "editor_toolbar_whole_clip_source.wav"
     generate_tone(ffmpeg_config, source, duration_s=2.0)
@@ -347,7 +348,9 @@ def test_selection_toolbar_hides_for_whole_clip_selection(anki_mw, ffmpeg_config
             _graph_state_js(),
             lambda state: state is not None
             and state["selectionActive"] is True
-            and state["selectionToolbarHidden"] is True
+            and state["selectionToolbarHidden"] is False
+            and state["selectionToolbarDeleteRegionHidden"] is True
+            and state["selectionToolbarDeleteRestHidden"] is True
             and state["regionDeleteButtonHidden"] is True
             and state["regionDeleteRestButtonHidden"] is True,
             timeout=5.0,

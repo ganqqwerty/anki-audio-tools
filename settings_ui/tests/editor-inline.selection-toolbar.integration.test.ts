@@ -33,7 +33,7 @@ describe("editor inline selection toolbar integration", () => {
     vi.restoreAllMocks();
   });
 
-  it("keeps the toolbar hidden until a graph has a valid committed selection", () => {
+  it("shows the toolbar for committed selections and hides delete actions until the selection is scoped", () => {
     initializeEditorRuntime({ audioFieldIndices: [0] });
     scan({ audioFieldIndices: [0] });
 
@@ -50,7 +50,9 @@ describe("editor inline selection toolbar integration", () => {
     expect(window.__aqeGraphStateForTest?.(0)).toMatchObject({
       hasTrack: true,
       selectionActive: true,
-      selectionToolbarHidden: true,
+      selectionToolbarDeleteRegionHidden: true,
+      selectionToolbarDeleteRestHidden: true,
+      selectionToolbarHidden: false,
     });
 
     dragGraphSelection(svg, 0.2, 0.6);

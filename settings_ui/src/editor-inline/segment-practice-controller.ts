@@ -70,9 +70,30 @@ export function segmentPracticeControlsForOrd(ord: number): SegmentPracticeContr
   return segmentPracticeControlsForVisualizer(visualizer);
 }
 
+export function enterSegmentPracticeForOrd(ord: number): boolean {
+  return toggleSegmentPracticePanelForOrd(ord);
+}
+
+export function toggleSegmentPracticePanelForOrd(ord: number): boolean {
+  const visualizer = visualizerForOrd(ord);
+  if (!visualizer) return false;
+  if (visualizer.dataset.segmentPanelOpen === "true") {
+    visualizer.dataset.segmentPanelOpen = "false";
+    syncSelectionToolbar(visualizer);
+    return true;
+  }
+  const entered = setSegmentEditing(visualizer, true);
+  if (!entered) return false;
+  visualizer.dataset.segmentPanelOpen = "true";
+  syncSelectionToolbar(visualizer);
+  return true;
+}
+
 export function startSegmentEditingForOrd(ord: number): boolean {
   const visualizer = visualizerForOrd(ord);
-  return visualizer ? startSegmentEditing(visualizer) : false;
+  if (!visualizer) return false;
+  const state = segmentPracticeStateForVisualizer(visualizer);
+  return setSegmentEditing(visualizer, !state.editing);
 }
 
 export function toggleSegmentPracticeForOrd(ord: number): boolean {
@@ -89,6 +110,13 @@ export function clearSegmentPracticeForOrd(ord: number): boolean {
   const visualizer = visualizerForOrd(ord);
   if (!visualizer) return false;
   clearSegmentPractice(visualizer, { restoreRepeat: true });
+  return true;
+}
+
+export function clearSegmentMarkersForOrd(ord: number): boolean {
+  const visualizer = visualizerForOrd(ord);
+  if (!visualizer) return false;
+  clearSegmentMarkers(visualizer);
   return true;
 }
 
@@ -130,18 +158,20 @@ export function clearSegmentPractice(
     focusAndSendCommand(Number(visualizer.dataset.aqeFieldOrd || "0"), "aqe:stop-playback");
   }
   if (options.restoreRepeat !== false) restoreOrdinaryRepeat(visualizer, state);
+  visualizer.dataset.segmentPanelOpen = "false";
   writeSegmentPracticeState(visualizer, emptySegmentPracticeState());
+  syncSelectionToolbar(visualizer);
 }
 
-function startSegmentEditing(visualizer: VisualizerElement): boolean {
-  const selection = selectionForVisualizer(visualizer);
-  if (!selection) return false;
+function setSegmentEditing(visualizer: VisualizerElement, editing: boolean): boolean {
   const state = segmentPracticeStateForVisualizer(visualizer);
+  const baseRegion = state.baseRegion ?? selectionForVisualizer(visualizer);
+  if (!baseRegion) return false;
   writeSegmentPracticeState(visualizer, {
     ...state,
     activeMarkerIndex: state.baseRegion ? state.activeMarkerIndex : null,
-    baseRegion: selection,
-    editing: !state.editing,
+    baseRegion,
+    editing,
     markersMs: state.baseRegion ? state.markersMs : [],
     sourceFilename: visualizer.dataset.sourceFilename || "",
   });
@@ -239,6 +269,30 @@ function pauseSegmentPractice(visualizer: VisualizerElement, state: SegmentPract
   writeSegmentPracticeState(visualizer, {
     ...state,
     practiceState: "paused",
+  });
+}
+
+function clearSegmentMarkers(visualizer: VisualizerElement): void {
+  const state = segmentPracticeStateForVisualizer(visualizer);
+  if (state.practiceState !== "stopped") {
+    stopProgressClock(visualizer);
+    focusAndSendCommand(Number(visualizer.dataset.aqeFieldOrd || "0"), "aqe:stop-playback");
+  }
+  restoreOrdinaryRepeat(visualizer, state);
+  const baseRegion = state.baseRegion ?? selectionForVisualizer(visualizer);
+  if (!baseRegion) {
+    writeSegmentPracticeState(visualizer, emptySegmentPracticeState());
+    return;
+  }
+  writeSegmentPracticeState(visualizer, {
+    ...state,
+    activeMarkerIndex: null,
+    baseRegion,
+    editing: true,
+    markersMs: [],
+    ordinaryRepeatEnabled: null,
+    practiceState: "stopped",
+    sourceFilename: visualizer.dataset.sourceFilename || "",
   });
 }
 

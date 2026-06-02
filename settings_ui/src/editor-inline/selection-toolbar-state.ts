@@ -46,6 +46,10 @@ function playButtonFor(visualizer: VisualizerElement): HTMLButtonElement | null 
   return visualizer.querySelector<HTMLButtonElement>(".aqe-selection-toolbar-play");
 }
 
+function segmentPracticeButtonFor(visualizer: VisualizerElement): HTMLButtonElement | null {
+  return visualizer.querySelector<HTMLButtonElement>(".aqe-selection-toolbar-segment");
+}
+
 function deleteRegionButtonFor(visualizer: VisualizerElement): HTMLButtonElement | null {
   return visualizer.querySelector<HTMLButtonElement>(".aqe-delete-region-button");
 }
@@ -69,7 +73,7 @@ export function syncSelectionToolbar(visualizer: VisualizerElement): void {
   }
 
   syncSelectionToolbarButtons(visualizer, busy, availability.valid);
-  const available = hasTrack && availability.valid && !draftActive && !busy;
+  const available = hasTrack && availability.hasSelection && !draftActive && !busy;
   if (!available) {
     hideToolbar(toolbar, dot);
     setSelectionToolbarPreview(visualizer, "none");
@@ -194,6 +198,7 @@ function syncSelectionToolbarButtons(
   validDeleteSelection: boolean,
 ): void {
   syncToolbarPlayButton(visualizer, busy);
+  syncToolbarSegmentPracticeButton(visualizer, busy);
   syncToolbarDeleteButton(
     deleteRegionButtonFor(visualizer),
     validDeleteSelection,
@@ -208,6 +213,17 @@ function syncSelectionToolbarButtons(
     t("editor.command.delete_rest.title"),
     titleForOperation("delete-rest", false),
   );
+}
+
+function syncToolbarSegmentPracticeButton(visualizer: VisualizerElement, busy: boolean): void {
+  const button = segmentPracticeButtonFor(visualizer);
+  if (!button) return;
+  const panelOpen = visualizer.dataset.segmentPanelOpen === "true";
+  button.disabled = busy;
+  button.dataset.aqeButtonState = busy ? "unavailable" : panelOpen ? "active" : "default";
+  button.setAttribute("aria-pressed", panelOpen ? "true" : "false");
+  setButtonTooltipContent(button, t("editor.segment.practice_segments_title"));
+  button.setAttribute("aria-disabled", button.disabled ? "true" : "false");
 }
 
 function syncToolbarPlayButton(visualizer: VisualizerElement, busy: boolean): void {

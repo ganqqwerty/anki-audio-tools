@@ -1,3 +1,7 @@
+.aqe-ui-root,
+.aqe-ui-root *,
+.aqe-ui-root *::before,
+.aqe-ui-root *::after,
 .aqe-mount-host,
 .aqe-mount-host *,
 .aqe-mount-host *::before,
@@ -5,6 +9,7 @@
     box-sizing: border-box;
 }
 
+.aqe-ui-root,
 .aqe-mount-host {
     --aqe-border-color: var(--border, rgba(128, 128, 128, 0.55));
     --aqe-reviewer-surface-color: rgba(128, 128, 128, 0.08);
@@ -21,25 +26,40 @@
     white-space: normal;
 }
 
+.aqe-mount-host.aqe-ui-root {
+    padding: 0;
+}
+
+.aqe-ui-root button,
+.aqe-ui-root input,
+.aqe-ui-root select,
+.aqe-ui-root textarea,
+.aqe-ui-root summary,
+.aqe-ui-root :where(a, details, h1, h2, h3, h4, h5, h6, label, li, ol, p, span, strong, ul),
 .aqe-mount-host button,
 .aqe-mount-host input,
 .aqe-mount-host select,
-.aqe-mount-host summary {
+.aqe-mount-host textarea,
+.aqe-mount-host summary,
+.aqe-mount-host :where(a, details, h1, h2, h3, h4, h5, h6, label, li, ol, p, span, strong, ul) {
     color: inherit;
     font: inherit;
     letter-spacing: normal;
     line-height: 1.2;
     margin: 0;
+    padding: 0;
     text-align: inherit;
     text-shadow: none;
     text-transform: none;
 }
 
+.aqe-ui-root button,
 .aqe-mount-host button {
     -webkit-appearance: none;
     appearance: none;
 }
 
+.aqe-ui-root svg,
 .aqe-mount-host svg {
     display: block;
     fill: none;

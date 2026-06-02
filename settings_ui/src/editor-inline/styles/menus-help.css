@@ -35,18 +35,31 @@
   width: 100%;
 }
 
-.aqe-help {
-  flex: 1 0 100%;
+.aqe-help,
+.aqe-ui-root .aqe-help {
+  align-self: stretch;
+  display: block;
+  flex: 0 0 100%;
   font-size: 12px;
   max-width: min(980px, 100%);
+  min-width: 100%;
+  width: 100%;
 }
 
-.aqe-mount-host[data-aqe-surface="reviewer"] .aqe-help {
-  flex: 0 0 auto;
-  max-width: none;
+.aqe-ui-root .aqe-help :where(a, div, h4, li, p, section, span, strong, summary, ul) {
+  color: inherit;
+  font: inherit;
+  letter-spacing: normal;
+  line-height: inherit;
+  margin: 0;
+  padding: 0;
+  text-align: left;
+  text-shadow: none;
+  text-transform: none;
 }
 
-.aqe-help-summary {
+.aqe-help-summary,
+.aqe-ui-root .aqe-help-summary {
   align-items: center;
   cursor: pointer;
   display: inline-flex;
@@ -55,11 +68,13 @@
   list-style: none;
 }
 
-.aqe-help-summary::-webkit-details-marker {
+.aqe-help-summary::-webkit-details-marker,
+.aqe-ui-root .aqe-help-summary::-webkit-details-marker {
   display: none;
 }
 
-.aqe-help-triangle {
+.aqe-help-triangle,
+.aqe-ui-root .aqe-help-triangle {
   border-bottom: 4px solid transparent;
   border-left: 6px solid currentColor;
   border-top: 4px solid transparent;
@@ -69,11 +84,13 @@
   width: 0;
 }
 
-.aqe-help[open] .aqe-help-triangle {
+.aqe-help[open] .aqe-help-triangle,
+.aqe-ui-root .aqe-help[open] .aqe-help-triangle {
   transform: rotate(90deg);
 }
 
-.aqe-help-body {
+.aqe-help-body,
+.aqe-ui-root .aqe-help-body {
   border-top: 1px solid;
   border-color: var(--aqe-border-color);
   display: grid;
@@ -84,27 +101,34 @@
 
 .aqe-help-body p,
 .aqe-help-body ul,
-.aqe-help-body h4 {
+.aqe-help-body h4,
+.aqe-ui-root .aqe-help-body p,
+.aqe-ui-root .aqe-help-body ul,
+.aqe-ui-root .aqe-help-body h4 {
   margin: 0;
 }
 
-.aqe-help-section {
+.aqe-help-section,
+.aqe-ui-root .aqe-help-section {
   display: grid;
   gap: 5px;
 }
 
-.aqe-help-title {
+.aqe-help-title,
+.aqe-ui-root .aqe-help-title {
   font-size: 12px;
   font-weight: 700;
 }
 
-.aqe-help-list {
+.aqe-help-list,
+.aqe-ui-root .aqe-help-list {
   display: grid;
   gap: 3px;
   padding-left: 18px;
 }
 
-.aqe-help-list kbd {
+.aqe-help-list kbd,
+.aqe-ui-root .aqe-help-list kbd {
   border: 1px solid;
   border-color: var(--aqe-border-color);
   border-radius: 4px;
@@ -112,20 +136,23 @@
   padding: 0 4px;
 }
 
-.aqe-help-grid {
+.aqe-help-grid,
+.aqe-ui-root .aqe-help-grid {
   display: grid;
   gap: 7px 14px;
   grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr));
 }
 
-.aqe-help-item {
+.aqe-help-item,
+.aqe-ui-root .aqe-help-item {
   align-items: start;
   display: grid;
   gap: 5px;
   grid-template-columns: minmax(0, 142px) minmax(0, 1fr);
 }
 
-.aqe-help-command {
+.aqe-help-command,
+.aqe-ui-root .aqe-help-command {
   align-items: center;
   border: 1px solid;
   border-color: var(--aqe-border-color);
@@ -137,15 +164,18 @@
   padding: 2px 6px;
 }
 
-.aqe-help-command span:last-child {
+.aqe-help-command span:last-child,
+.aqe-ui-root .aqe-help-command span:last-child {
   overflow-wrap: anywhere;
 }
 
-.aqe-help-description {
+.aqe-help-description,
+.aqe-ui-root .aqe-help-description {
   line-height: 1.35;
 }
 
-.aqe-help-text-link {
+.aqe-help-text-link,
+.aqe-ui-root .aqe-help-text-link {
   color: inherit;
   margin-left: 4px;
   text-decoration: underline;
@@ -153,18 +183,21 @@
   text-underline-offset: 2px;
 }
 
-.aqe-help-text-link:hover {
+.aqe-help-text-link:hover,
+.aqe-ui-root .aqe-help-text-link:hover {
   color: LinkText;
   text-decoration-thickness: 2px;
 }
 
-.aqe-help-link-row {
+.aqe-help-link-row,
+.aqe-ui-root .aqe-help-link-row {
   display: flex;
   flex-wrap: wrap;
   gap: 8px 12px;
 }
 
-.aqe-help-link {
+.aqe-help-link,
+.aqe-ui-root .aqe-help-link {
   align-items: center;
   border: 1px solid;
   border-color: var(--aqe-border-color);
@@ -177,16 +210,19 @@
   text-decoration: none;
 }
 
-.aqe-help-link:hover {
+.aqe-help-link:hover,
+.aqe-ui-root .aqe-help-link:hover {
   text-decoration: underline;
 }
 
-.aqe-help-link-icon {
+.aqe-help-link-icon,
+.aqe-ui-root .aqe-help-link-icon {
   display: inline-flex;
   flex: 0 0 auto;
 }
 
-.aqe-help-note {
+.aqe-help-note,
+.aqe-ui-root .aqe-help-note {
   border-left: 3px solid var(--aqe-border-color);
   padding-left: 8px;
 }

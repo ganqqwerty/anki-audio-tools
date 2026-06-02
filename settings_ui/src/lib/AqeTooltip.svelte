@@ -58,7 +58,7 @@
   <Tooltip.Portal>
     <Tooltip.Content
       align={align}
-      class="aqe-rich-tooltip"
+      class="aqe-ui-root aqe-rich-tooltip"
       collisionPadding={8}
       side={side}
       sideOffset={sideOffset}

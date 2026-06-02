@@ -26,6 +26,7 @@ export interface SegmentPracticeControlsState {
   canPrevious: boolean;
   editing: boolean;
   markersMs: number[];
+  panelOpen: boolean;
   practiceState: "paused" | "playing" | "stopped";
   visibleActiveRange: { endX: number; startX: number } | null;
   visibleMarkers: Array<{ ms: number; x: number }>;
@@ -66,6 +67,7 @@ export function renderSegmentMarkerRow(visualizer: VisualizerElement): void {
   const scale = svgViewBoxScale(svg);
   const base = visibleRangeProjection(state.baseRegion, viewport, plot);
   if (base) appendRange(row, "aqe-segment-base-range", (base.startX - plot.left) * scale.x, (base.endX - base.startX) * scale.x);
+  appendBoundaryMarkers(row, state.baseRegion, viewport, plot, scale.x);
   const activeSuffix = deriveActiveSuffix(state.baseRegion, state.markersMs, state.activeMarkerIndex);
   const active = activeSuffix ? visibleRangeProjection(activeSuffix, viewport, plot) : null;
   if (active) {
@@ -108,12 +110,25 @@ function controlsSnapshot(
     canPrevious: availability.canPrevious,
     editing: state.editing,
     markersMs: state.markersMs,
+    panelOpen: visualizer?.dataset.segmentPanelOpen === "true",
     practiceState: state.practiceState,
     visibleActiveRange: visibleActiveRange
       ? { endX: visibleActiveRange.endX, startX: visibleActiveRange.startX }
       : null,
     visibleMarkers,
   };
+}
+
+function appendBoundaryMarkers(
+  row: HTMLElement,
+  baseRegion: { endMs: number; startMs: number },
+  viewport: ReturnType<typeof readVisualizerTimeViewport>,
+  plot: ReturnType<typeof plotGeometryForSvg>,
+  scaleX: number,
+): void {
+  const [start, end] = markerProjections([baseRegion.startMs, baseRegion.endMs], viewport, plot);
+  if (start?.visible) appendMarker(row, (start.x - plot.left) * scaleX, "aqe-segment-boundary-marker aqe-segment-boundary-marker-start");
+  if (end?.visible) appendMarker(row, (end.x - plot.left) * scaleX, "aqe-segment-boundary-marker aqe-segment-boundary-marker-end");
 }
 
 function positionMarkerRow(row: HTMLElement, svg: SVGSVGElement): void {
@@ -132,9 +147,9 @@ function appendRange(row: HTMLElement, className: string, leftPx: number, widthP
   row.appendChild(range);
 }
 
-function appendMarker(row: HTMLElement, leftPx: number): void {
+function appendMarker(row: HTMLElement, leftPx: number, className = "aqe-segment-marker"): void {
   const marker = document.createElement("span");
-  marker.className = "aqe-segment-marker";
+  marker.className = className;
   marker.style.left = `${leftPx.toFixed(2)}px`;
   row.appendChild(marker);
 }

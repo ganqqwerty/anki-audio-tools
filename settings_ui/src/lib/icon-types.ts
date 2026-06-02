@@ -22,6 +22,8 @@ export type CommandIconName =
   | "selection-remove-outside"
   | "settings"
   | "share"
+  | "skip-back"
+  | "skip-forward"
   | "square"
   | "hare-running"
   | "snail"

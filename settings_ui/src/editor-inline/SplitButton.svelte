@@ -384,7 +384,7 @@
       <Popover.Content
         align="center"
         arrowPadding={14}
-        class={`aqe-split-popover${button.command === "aqe:analyze" ? " aqe-graph-split-popover" : ""}`}
+        class={`aqe-ui-root aqe-split-popover${button.command === "aqe:analyze" ? " aqe-graph-split-popover" : ""}`}
         collisionPadding={8}
         data-testid={`aqe-split-${target.ord}-${menuSlug()}-popover`}
         onCloseAutoFocus={(event) => event.preventDefault()}

@@ -3,6 +3,7 @@
   import EditorCommandIcon from "./EditorCommandIcon.svelte";
   import { send } from "./actions.js";
   import { sendRegionDelete } from "./region-delete.js";
+  import { toggleSegmentPracticePanelForOrd } from "./segment-practice-controller.js";
   import {
     collapseSelectionToolbarForOrd,
     expandSelectionToolbarForOrd,
@@ -50,6 +51,24 @@
       >
         <EditorCommandIcon className="aqe-button-icon-default" icon="play" />
         <EditorCommandIcon className="aqe-button-icon-active" icon="pause" />
+      </button>
+    {/snippet}
+  </AqeTooltip>
+  <AqeTooltip>
+    {#snippet trigger({ props })}
+      <button
+        {...props}
+        type="button"
+        class="aqe-button aqe-selection-toolbar-button aqe-selection-toolbar-segment aqe-tooltip-target"
+        data-aqe-button-state="default"
+        data-aqe-tooltip-content={t("editor.segment.practice_segments_title")}
+        data-testid={`aqe-selection-toolbar-practice-segments-${target.ord}`}
+        aria-label={t("editor.segment.practice_segments_title")}
+        onpointerdown={(event) => event.stopPropagation()}
+        onmousedown={(event) => event.preventDefault()}
+        onclick={() => toggleSegmentPracticePanelForOrd(target.ord)}
+      >
+        {t("editor.segment.practice_segments")}
       </button>
     {/snippet}
   </AqeTooltip>

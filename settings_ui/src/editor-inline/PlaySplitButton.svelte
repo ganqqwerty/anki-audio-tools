@@ -5,7 +5,6 @@
   import EditorCommandIcon from "./EditorCommandIcon.svelte";
   import { openEditorExternalLink } from "./external-links.js";
   import { PRODUCT_LINKS } from "../lib/product-links.js";
-  import PlayPracticeOptions from "./PlayPracticeOptions.svelte";
   import SplitDefaultSaveButton from "./SplitDefaultSaveButton.svelte";
   import { setRepeatEnabledForOrd, setRepeatPauseSecondsForOrd, send } from "./actions.js";
   import { sendSplitDefaultSaveRequest } from "./bridge.js";
@@ -156,7 +155,7 @@
     <Popover.Content
       align="center"
       arrowPadding={14}
-      class="aqe-split-popover aqe-play-split-popover"
+      class="aqe-ui-root aqe-split-popover aqe-play-split-popover"
       collisionPadding={8}
       data-testid={`aqe-split-${target.ord}-play-popover`}
       onCloseAutoFocus={(event) => event.preventDefault()}
@@ -255,7 +254,6 @@
           </button>
         {/each}
       </div>
-      <PlayPracticeOptions {target} />
       <div class="aqe-split-popover-footer">
         <AqeTooltip>
           {#snippet trigger({ props })}

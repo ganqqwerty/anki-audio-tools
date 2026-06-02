@@ -103,16 +103,20 @@ def _enable_segment_editing(editor) -> None:
         editor.web,
         """
         (() => {
-          const menu = document.querySelector('[data-testid="aqe-split-0-play-menu"]');
-          if (!menu) return null;
-          if (menu.getAttribute("aria-expanded") !== "true") menu.click();
-          const edit = document.querySelector('[data-testid="aqe-segment-0-edit"]');
-          if (!edit) return null;
-          if (window.__aqeGraphStateForTest?.(0)?.segmentEditing !== true) edit.click();
+          const splitMenu = document.querySelector('[data-testid="aqe-split-0-play-menu"]');
+          if (splitMenu && splitMenu.getAttribute("aria-expanded") !== "true") splitMenu.click();
+          const popover = document.querySelector('[data-testid="aqe-split-0-play-popover"]');
+          if (popover?.querySelector('[data-testid="aqe-segment-0-edit"]')) return null;
+          const entry = document.querySelector('[data-testid="aqe-selection-toolbar-practice-segments-0"]');
+          if (!entry) return null;
+          if (window.__aqeGraphStateForTest?.(0)?.segmentEditing !== true) entry.click();
           return window.__aqeGraphStateForTest?.(0) || null;
         })()
         """,
-        lambda state: state is not None and state["segmentEditing"] is True,
+        lambda state: state is not None
+        and state["segmentEditing"] is True
+        and state["segmentPanelOpen"] is True
+        and state["segmentBaseStartMs"] == 400,
         timeout=5.0,
     )
 
@@ -148,8 +152,8 @@ def _click_segment_practice(editor) -> None:
         editor.web,
         """
         (() => {
-          const menu = document.querySelector('[data-testid="aqe-split-0-play-menu"]');
-          if (menu && menu.getAttribute("aria-expanded") !== "true") menu.click();
+          const panel = document.querySelector('[data-testid="aqe-segment-0-panel"]');
+          if (!panel) return null;
           const button = document.querySelector('[data-testid="aqe-segment-0-practice"]');
           if (!button || button.disabled) return null;
           button.click();
@@ -166,8 +170,8 @@ def _click_segment_next(editor) -> None:
         editor.web,
         """
         (() => {
-          const menu = document.querySelector('[data-testid="aqe-split-0-play-menu"]');
-          if (menu && menu.getAttribute("aria-expanded") !== "true") menu.click();
+          const panel = document.querySelector('[data-testid="aqe-segment-0-panel"]');
+          if (!panel) return null;
           const button = document.querySelector('[data-testid="aqe-segment-0-next"]');
           if (!button || button.disabled) return null;
           button.click();

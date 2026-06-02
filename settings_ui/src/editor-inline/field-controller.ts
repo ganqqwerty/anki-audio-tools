@@ -45,7 +45,7 @@ export function mountController(target: FieldTarget): FieldController | null {
 
   disposeController(target.ord);
   const host = document.createElement("div");
-  host.className = "aqe-mount-host";
+  host.className = "aqe-mount-host aqe-ui-root";
   host.dataset.aqeSurface = target.node.classList.contains("aqe-review-audio-target") ? "reviewer" : "editor";
   insertHostNearTarget(target, host);
   const component = mount(EditorControls, {

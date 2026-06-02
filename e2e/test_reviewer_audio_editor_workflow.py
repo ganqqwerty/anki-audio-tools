@@ -8,6 +8,7 @@ from pathlib import Path
 from PyQt6.QtWidgets import QMenu
 
 from e2e.conftest import ADDON_NUMERIC_ID, import_runtime_addon_module
+from e2e.editor_graph_helpers import _click_graph_and_wait
 from e2e.editor_note_helpers import _button_selector, _configure_ffmpeg, _sound_filename
 from e2e.helpers import (
     click_selector,
@@ -15,6 +16,11 @@ from e2e.helpers import (
     wait_for_condition,
     wait_for_js,
     wait_for_js_condition,
+)
+from e2e.reviewer_css_isolation_helpers import (
+    assert_reviewer_audio_controls_css_isolated,
+    assert_reviewer_remove_pauses_popover_css_isolated,
+    assert_reviewer_segment_panel_css_isolated,
 )
 
 
@@ -194,6 +200,7 @@ def test_reviewer_audio_editor_answer_workflow(anki_mw, ffmpeg_config) -> None:
       width: 100%;
       justify-content: space-between;
       border-color: transparent;
+      padding: 16px;
     }
     .card button {
       margin: 20px;
@@ -208,6 +215,24 @@ def test_reviewer_audio_editor_answer_workflow(anki_mw, ffmpeg_config) -> None:
     }
     .card svg {
       transform: scale(2);
+    }
+    .card details {
+      display: inline;
+      width: auto;
+    }
+    .card span,
+    .card strong,
+    .card h4,
+    .card li,
+    .card p,
+    .card a,
+    .card summary {
+      font-family: Georgia, serif;
+      font-size: 24px;
+      line-height: 2;
+      margin: 12px;
+      padding: 12px;
+      text-transform: uppercase;
     }
     """
     _media_dir, _source, note, deck_id, field_ord = _prepare_reviewer_note(
@@ -227,76 +252,10 @@ def test_reviewer_audio_editor_answer_workflow(anki_mw, ffmpeg_config) -> None:
         lambda value: value is True,
         timeout=5.0,
     )
-
-    style = wait_for_js_condition(
-        reviewer.web,
-        f"""
-        (() => {{
-          const controls = document.querySelector('.aqe-controls[data-aqe-field-ord="{field_ord}"]');
-          const button = document.querySelector({(_button_selector('aqe:play', field_ord))!r});
-          const splitMenu = document.querySelector('[data-testid="aqe-split-{field_ord}-play-menu"]');
-          const icon = button?.querySelector('svg, .aqe-button-icon');
-          if (!controls || !button || !splitMenu) return null;
-          const controlsStyle = getComputedStyle(controls);
-          const buttonStyle = getComputedStyle(button);
-          const splitMenuStyle = getComputedStyle(splitMenu);
-          const iconStyle = icon ? getComputedStyle(icon) : null;
-          const host = controls.closest('.aqe-mount-host');
-          const hostClone = host ? host.cloneNode(true) : null;
-          let naturalControlsWidth = controls.getBoundingClientRect().width;
-          if (hostClone instanceof HTMLElement) {{
-            hostClone.style.left = '-10000px';
-            hostClone.style.maxWidth = 'none';
-            hostClone.style.position = 'absolute';
-            hostClone.style.visibility = 'hidden';
-            hostClone.style.width = 'auto';
-            document.body.appendChild(hostClone);
-            naturalControlsWidth = hostClone.querySelector('.aqe-controls').getBoundingClientRect().width;
-            hostClone.remove();
-          }}
-          const toolbarItems = Array.from(controls.children)
-            .filter((node) => !node.matches('.aqe-help, .aqe-visualizer, .aqe-status-row'));
-          const maxRowGap = toolbarItems.reduce((maxGap, node, index) => {{
-            const next = toolbarItems[index + 1];
-            if (!next) return maxGap;
-            const rect = node.getBoundingClientRect();
-            const nextRect = next.getBoundingClientRect();
-            if (Math.abs(nextRect.top - rect.top) > 4) return maxGap;
-            return Math.max(maxGap, nextRect.left - rect.right);
-          }}, 0);
-          return {{
-            controlsBorderColor: controlsStyle.borderTopColor,
-            controlsJustifyContent: controlsStyle.justifyContent,
-            controlsWidth: controls.getBoundingClientRect().width,
-            maxRowGap,
-            naturalControlsWidth,
-            borderTopWidth: buttonStyle.borderTopWidth,
-            marginLeft: buttonStyle.marginLeft,
-            paddingLeft: buttonStyle.paddingLeft,
-            splitMenuPaddingLeft: splitMenuStyle.paddingLeft,
-            splitMenuWidth: splitMenu.getBoundingClientRect().width,
-            textTransform: buttonStyle.textTransform,
-            viewportWidth: document.documentElement.clientWidth,
-            iconTransform: iconStyle ? iconStyle.transform : null,
-          }};
-        }})()
-        """,
-        lambda value: isinstance(value, dict),
-        timeout=5.0,
-    )
-
-    assert style["borderTopWidth"] == "1px"
-    assert style["controlsBorderColor"] not in {"rgba(0, 0, 0, 0)", "transparent"}
-    assert style["controlsJustifyContent"] == "flex-start"
-    assert style["controlsWidth"] <= style["naturalControlsWidth"] + 4
-    assert style["maxRowGap"] <= 8
-    assert style["marginLeft"] == "0px"
-    assert style["paddingLeft"] != "24px"
-    assert style["splitMenuPaddingLeft"] == "0px"
-    assert style["splitMenuWidth"] <= 18
-    assert style["textTransform"] != "uppercase"
-    if style["iconTransform"] is not None:
-        assert style["iconTransform"] in {"none", "matrix(1, 0, 0, 1, 0, 0)"}
+    _click_graph_and_wait(reviewer, ord_=field_ord, timeout=10.0)
+    assert_reviewer_audio_controls_css_isolated(reviewer, field_ord)
+    assert_reviewer_remove_pauses_popover_css_isolated(reviewer, field_ord)
+    assert_reviewer_segment_panel_css_isolated(reviewer, field_ord)
 
     hide_action = _menu_action(_reviewer_more_menu(reviewer), "Hide audio editor")
     hide_action.trigger()

@@ -226,6 +226,7 @@ export function graphStateForTest(ord: number): GraphStateForTest | null {
     segmentEditing: segment.editing,
     segmentMarkerVisibleXs: segment.visibleMarkers.map((marker) => marker.x),
     segmentMarkersMs: segment.markersMs,
+    segmentPanelOpen: segment.panelOpen,
     segmentPracticeState: segment.practiceState,
     segmentVisibleActiveRangeEndX: segment.visibleActiveRange?.endX ?? null,
     segmentVisibleActiveRangeStartX: segment.visibleActiveRange?.startX ?? null,
