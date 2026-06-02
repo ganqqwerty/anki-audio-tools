@@ -1,19 +1,19 @@
 import type { PlaybackRegion } from "./playback-model.js";
 
-export type SegmentPracticeStatus = "paused" | "playing" | "stopped";
-export type SegmentMarkerDirection = "next" | "previous";
+export type BackChainingStatus = "paused" | "playing" | "stopped";
+export type BackChainingMarkerDirection = "next" | "previous";
 
-export interface SegmentPracticeState {
+export interface BackChainingState {
   activeMarkerIndex: number | null;
   baseRegion: PlaybackRegion | null;
   editing: boolean;
   markersMs: number[];
   ordinaryRepeatEnabled: boolean | null;
-  practiceState: SegmentPracticeStatus;
+  practiceState: BackChainingStatus;
   sourceFilename: string;
 }
 
-export interface SegmentControlAvailability {
+export interface BackChainingControlAvailability {
   canClear: boolean;
   canEdit: boolean;
   canNext: boolean;
@@ -21,17 +21,17 @@ export interface SegmentControlAvailability {
   canPrevious: boolean;
 }
 
-export interface SegmentNavigationAvailability {
+export interface BackChainingNavigationAvailability {
   canNext: boolean;
   canPrevious: boolean;
 }
 
-export interface ToggleSegmentMarkerResult {
+export interface ToggleBackChainingMarkerResult {
   markersMs: number[];
   removed: boolean;
 }
 
-export function emptySegmentPracticeState(): SegmentPracticeState {
+export function emptyBackChainingState(): BackChainingState {
   return {
     activeMarkerIndex: null,
     baseRegion: null,
@@ -43,7 +43,17 @@ export function emptySegmentPracticeState(): SegmentPracticeState {
   };
 }
 
-export function normalizeSegmentMarkers(markersMs: readonly number[], baseRegion: PlaybackRegion | null): number[] {
+export function defaultBackChainingMarkers(baseRegion: PlaybackRegion | null): number[] {
+  if (!baseRegion) return [];
+  const lengthMs = Math.max(0, baseRegion.endMs - baseRegion.startMs);
+  return normalizeBackChainingMarkers([
+    baseRegion.startMs,
+    baseRegion.startMs + lengthMs / 3,
+    baseRegion.startMs + (lengthMs * 2) / 3,
+  ], baseRegion);
+}
+
+export function normalizeBackChainingMarkers(markersMs: readonly number[], baseRegion: PlaybackRegion | null): number[] {
   if (!baseRegion) return [];
   return Array.from(
     new Set(
@@ -55,13 +65,13 @@ export function normalizeSegmentMarkers(markersMs: readonly number[], baseRegion
   ).sort((left, right) => left - right);
 }
 
-export function toggleSegmentMarker(
+export function toggleBackChainingMarker(
   markersMs: readonly number[],
   rawMarkerMs: number,
   baseRegion: PlaybackRegion,
   hitToleranceMs: number,
-): ToggleSegmentMarkerResult {
-  const normalized = normalizeSegmentMarkers(markersMs, baseRegion);
+): ToggleBackChainingMarkerResult {
+  const normalized = normalizeBackChainingMarkers(markersMs, baseRegion);
   const markerMs = clampMarkerMs(rawMarkerMs, baseRegion);
   const existingIndex = normalized.findIndex((marker) => Math.abs(marker - markerMs) <= hitToleranceMs);
   if (existingIndex >= 0) {
@@ -71,7 +81,7 @@ export function toggleSegmentMarker(
     };
   }
   return {
-    markersMs: normalizeSegmentMarkers([...normalized, markerMs], baseRegion),
+    markersMs: normalizeBackChainingMarkers([...normalized, markerMs], baseRegion),
     removed: false,
   };
 }
@@ -83,7 +93,7 @@ export function chooseInitialActiveMarkerIndex(markersMs: readonly number[]): nu
 export function moveActiveMarkerIndex(
   markersMs: readonly number[],
   activeMarkerIndex: number | null,
-  direction: SegmentMarkerDirection,
+  direction: BackChainingMarkerDirection,
 ): number | null {
   if (!markersMs.length) return null;
   const active = normalizeActiveMarkerIndex(markersMs, activeMarkerIndex);
@@ -111,7 +121,7 @@ export function deriveActiveSuffix(
 export function markerNavigationAvailability(
   markersMs: readonly number[],
   activeMarkerIndex: number | null,
-): SegmentNavigationAvailability {
+): BackChainingNavigationAvailability {
   if (!markersMs.length || activeMarkerIndex === null) {
     return {
       canNext: false,
@@ -125,7 +135,7 @@ export function markerNavigationAvailability(
   };
 }
 
-export function segmentControlAvailability(state: SegmentPracticeState): SegmentControlAvailability {
+export function backChainingControlAvailability(state: BackChainingState): BackChainingControlAvailability {
   const hasBaseRegion = state.baseRegion !== null;
   const hasMarkers = state.markersMs.length > 0;
   const navigation = markerNavigationAvailability(state.markersMs, state.activeMarkerIndex);

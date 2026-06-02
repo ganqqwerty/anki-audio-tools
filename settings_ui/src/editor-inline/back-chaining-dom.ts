@@ -6,17 +6,17 @@ import { PLOT, plotGeometryForSvg, plotWidth } from "./plot.js";
 import { selectionForVisualizer } from "./selection-controller.js";
 import {
   deriveActiveSuffix,
-  emptySegmentPracticeState,
-  segmentControlAvailability,
-  type SegmentPracticeState,
-} from "./segment-practice-state.js";
+  emptyBackChainingState,
+  backChainingControlAvailability,
+  type BackChainingState,
+} from "./back-chaining-state.js";
 import type { VisualizerElement } from "./types.js";
 import { readVisualizerTimeViewport } from "./visualizer-state.js";
 
 const SVG_NS = "http://www.w3.org/2000/svg";
-const SEGMENT_MARKER_ROW_HEIGHT = 18;
+const BACK_CHAINING_MARKER_ROW_HEIGHT = 18;
 
-export interface SegmentPracticeControlsState {
+export interface BackChainingControlsState {
   activeMarkerIndex: number | null;
   activeSuffixEndMs: number | null;
   activeSuffixStartMs: number | null;
@@ -35,31 +35,31 @@ export interface SegmentPracticeControlsState {
   visibleMarkers: Array<{ ms: number; x: number }>;
 }
 
-export function segmentPracticeStateForVisualizer(visualizer: VisualizerElement): SegmentPracticeState {
-  return visualizer.__aqeSegmentPracticeState ?? emptySegmentPracticeState();
+export function backChainingStateForVisualizer(visualizer: VisualizerElement): BackChainingState {
+  return visualizer.__aqeBackChainingState ?? emptyBackChainingState();
 }
 
-export function writeSegmentPracticeState(visualizer: VisualizerElement, state: SegmentPracticeState): void {
-  visualizer.__aqeSegmentPracticeState = state;
-  visualizer.dataset.segmentEditing = state.editing ? "true" : "false";
-  visualizer.dataset.segmentPracticeState = state.practiceState;
-  visualizer.dataset.segmentBaseStartMs = state.baseRegion ? String(Math.round(state.baseRegion.startMs)) : "";
-  visualizer.dataset.segmentBaseEndMs = state.baseRegion ? String(Math.round(state.baseRegion.endMs)) : "";
-  visualizer.dataset.segmentMarkersMs = state.markersMs.join(",");
-  visualizer.dataset.segmentActiveMarkerIndex = state.activeMarkerIndex === null ? "" : String(state.activeMarkerIndex);
-  renderSegmentMarkerRow(visualizer);
+export function writeBackChainingState(visualizer: VisualizerElement, state: BackChainingState): void {
+  visualizer.__aqeBackChainingState = state;
+  visualizer.dataset.backChainingEditing = state.editing ? "true" : "false";
+  visualizer.dataset.backChainingState = state.practiceState;
+  visualizer.dataset.backChainingBaseStartMs = state.baseRegion ? String(Math.round(state.baseRegion.startMs)) : "";
+  visualizer.dataset.backChainingBaseEndMs = state.baseRegion ? String(Math.round(state.baseRegion.endMs)) : "";
+  visualizer.dataset.backChainingMarkersMs = state.markersMs.join(",");
+  visualizer.dataset.backChainingActiveMarkerIndex = state.activeMarkerIndex === null ? "" : String(state.activeMarkerIndex);
+  renderBackChainingMarkerRow(visualizer);
 }
 
-export function segmentPracticeControlsForVisualizer(visualizer: VisualizerElement | null): SegmentPracticeControlsState {
-  if (!visualizer) return controlsSnapshot(emptySegmentPracticeState(), null);
-  return controlsSnapshot(segmentPracticeStateForVisualizer(visualizer), visualizer);
+export function backChainingControlsForVisualizer(visualizer: VisualizerElement | null): BackChainingControlsState {
+  if (!visualizer) return controlsSnapshot(emptyBackChainingState(), null);
+  return controlsSnapshot(backChainingStateForVisualizer(visualizer), visualizer);
 }
 
-export function renderSegmentMarkerRow(visualizer: VisualizerElement): void {
-  const row = visualizer.querySelector<SVGGElement>(".aqe-segment-marker-row");
+export function renderBackChainingMarkerRow(visualizer: VisualizerElement): void {
+  const row = visualizer.querySelector<SVGGElement>(".aqe-back-chaining-marker-row");
   const svg = visualizer.querySelector<SVGSVGElement>(".aqe-visualizer-svg");
   if (!row || !svg) return;
-  const state = segmentPracticeStateForVisualizer(visualizer);
+  const state = backChainingStateForVisualizer(visualizer);
   const shouldShow = !!state.baseRegion && (state.editing || state.practiceState !== "stopped");
   row.style.display = shouldShow ? "" : "none";
   row.setAttribute("aria-hidden", shouldShow ? "false" : "true");
@@ -68,7 +68,7 @@ export function renderSegmentMarkerRow(visualizer: VisualizerElement): void {
   const viewport = readVisualizerTimeViewport(visualizer);
   const plot = plotGeometryForSvg(svg);
   appendTrack(row, plot);
-  appendBoundaryMarkers(row, state.baseRegion, viewport, plot);
+  appendEndBoundaryMarker(row, state.baseRegion, viewport, plot);
   for (const marker of markerProjections(state.markersMs, viewport, plot)) {
     if (!marker.visible) continue;
     appendMarker(row, marker.x, plot);
@@ -76,10 +76,10 @@ export function renderSegmentMarkerRow(visualizer: VisualizerElement): void {
 }
 
 function controlsSnapshot(
-  state: SegmentPracticeState,
+  state: BackChainingState,
   visualizer: VisualizerElement | null,
-): SegmentPracticeControlsState {
-  const availability = segmentControlAvailability(state);
+): BackChainingControlsState {
+  const availability = backChainingControlAvailability(state);
   const currentSelection = visualizer ? selectionForVisualizer(visualizer) : null;
   const suffix = deriveActiveSuffix(state.baseRegion, state.markersMs, state.activeMarkerIndex);
   const viewport = visualizer ? readVisualizerTimeViewport(visualizer) : null;
@@ -106,7 +106,7 @@ function controlsSnapshot(
     canPrevious: availability.canPrevious,
     editing: state.editing,
     markersMs: state.markersMs,
-    panelOpen: visualizer?.dataset.segmentPanelOpen === "true",
+    panelOpen: visualizer?.dataset.backChainingPanelOpen === "true",
     practiceState: state.practiceState,
     visibleActiveRange: visibleActiveRange
       ? { endX: visibleActiveRange.endX, startX: visibleActiveRange.startX }
@@ -115,25 +115,24 @@ function controlsSnapshot(
   };
 }
 
-function appendBoundaryMarkers(
+function appendEndBoundaryMarker(
   row: SVGGElement,
   baseRegion: { endMs: number; startMs: number },
   viewport: ReturnType<typeof readVisualizerTimeViewport>,
   plot: ReturnType<typeof plotGeometryForSvg>,
 ): void {
-  const [start, end] = markerProjections([baseRegion.startMs, baseRegion.endMs], viewport, plot);
-  if (start?.visible) appendMarker(row, start.x, plot, "aqe-segment-boundary-marker aqe-segment-boundary-marker-start");
-  if (end?.visible) appendMarker(row, end.x, plot, "aqe-segment-boundary-marker aqe-segment-boundary-marker-end");
+  const [end] = markerProjections([baseRegion.endMs], viewport, plot);
+  if (end?.visible) appendMarker(row, end.x, plot, "aqe-back-chaining-boundary-marker aqe-back-chaining-boundary-marker-end");
 }
 
 function appendTrack(row: SVGGElement, plot: ReturnType<typeof plotGeometryForSvg>): void {
   const track = document.createElementNS(SVG_NS, "rect");
-  const y = plot.top - SEGMENT_MARKER_ROW_HEIGHT;
-  track.classList.add("aqe-segment-marker-track");
+  const y = plot.top - BACK_CHAINING_MARKER_ROW_HEIGHT;
+  track.classList.add("aqe-back-chaining-marker-track");
   track.setAttribute("x", plot.left.toFixed(2));
   track.setAttribute("y", y.toFixed(2));
   track.setAttribute("width", plotWidth(plot).toFixed(2));
-  track.setAttribute("height", String(SEGMENT_MARKER_ROW_HEIGHT));
+  track.setAttribute("height", String(BACK_CHAINING_MARKER_ROW_HEIGHT));
   row.appendChild(track);
 }
 
@@ -141,15 +140,15 @@ function appendMarker(
   row: SVGGElement,
   x: number,
   plot: ReturnType<typeof plotGeometryForSvg>,
-  className = "aqe-segment-marker",
+  className = "aqe-back-chaining-marker",
 ): void {
-  const y = plot.top - SEGMENT_MARKER_ROW_HEIGHT;
-  if (className.includes("aqe-segment-boundary-marker")) {
+  const y = plot.top - BACK_CHAINING_MARKER_ROW_HEIGHT;
+  if (className.includes("aqe-back-chaining-boundary-marker")) {
     const marker = document.createElementNS(SVG_NS, "rect");
     marker.setAttribute("x", (x - 3.5).toFixed(2));
     marker.setAttribute("y", y.toFixed(2));
     marker.setAttribute("width", "7");
-    marker.setAttribute("height", String(SEGMENT_MARKER_ROW_HEIGHT));
+    marker.setAttribute("height", String(BACK_CHAINING_MARKER_ROW_HEIGHT));
     marker.setAttribute("rx", "3.5");
     marker.setAttribute("class", className);
     row.appendChild(marker);

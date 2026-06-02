@@ -1,4 +1,4 @@
-"""E2E tests for segmented graph playback practice."""
+"""E2E tests for graph back-chaining practice."""
 
 from __future__ import annotations
 
@@ -11,106 +11,120 @@ from e2e.editor_region_loop_helpers import (
 from e2e.helpers import run_js, wait_for_js_condition
 
 
-def test_segmented_playback_practice_loops_suffixes_and_pauses_for_normal_play(
+def test_back_chaining_practice_loops_suffixes_and_pauses_for_normal_play(
     anki_mw,
     ffmpeg_config,
 ) -> None:
     _media_dir, _source, _note, editor, parent, _track = _open_tone_editor(
         anki_mw,
         ffmpeg_config,
-        "editor_segmented_practice.wav",
+        "editor_back_chaining_practice.wav",
         2.0,
     )
     try:
         _shift_drag_region(editor, 0.2, 0.8)
-        _enable_segment_editing(editor)
-        _click_segment_marker(editor, 0.4, expected_count=1)
-        _click_segment_marker(editor, 0.7, expected_count=2)
+        _enable_back_chaining_editing(editor)
         markers = _state(
             editor,
-            lambda state: state["segmentMarkersMs"] == [800, 1400]
-            and state["segmentCanPractice"] is True,
+            lambda state: state["backChainingMarkersMs"] == [400, 800, 1200]
+            and state["backChainingCanPractice"] is True,
         )
 
-        _click_segment_practice(editor)
+        _click_back_chaining_practice(editor)
         playing = _state(
             editor,
-            lambda state: state["segmentPracticeState"] == "playing"
-            and state["selectionStartMs"] == 1400
+            lambda state: state["backChainingState"] == "playing"
+            and state["selectionStartMs"] == 1200
             and state["selectionEndMs"] == 1600
-            and state["playbackStartMs"] == 1400
+            and state["playbackStartMs"] == 1200
             and state["playbackEndMs"] == 1600
             and state["repeatEnabled"] is True,
         )
-        wrapped = _force_repeat_wrap(editor, 1400)
+        status_text = wait_for_js_condition(
+            editor.web,
+            "document.querySelector('[data-testid=\"aqe-controls-0\"] .aqe-status')?.textContent || ''",
+            lambda value: "Practice mode. Use floating panel at the bottom of the graph." in value,
+            timeout=5.0,
+        )
+        wrapped = _force_repeat_wrap(editor, 1200)
 
-        _click_segment_next(editor)
+        _click_back_chaining_next(editor)
         longer = _state(
             editor,
-            lambda state: state["segmentActiveMarkerIndex"] == 0
+            lambda state: state["backChainingActiveMarkerIndex"] == 1
             and state["selectionStartMs"] == 800
+            and state["selectionEndMs"] == 1600,
+        )
+
+        _click_back_chaining_next(editor, expected_index=0)
+        full_sentence = _state(
+            editor,
+            lambda state: state["backChainingActiveMarkerIndex"] == 0
+            and state["selectionStartMs"] == 400
             and state["selectionEndMs"] == 1600,
         )
 
         run_js(editor.web, "document.querySelector('[data-testid=\"aqe-button-0-play\"]')?.click()")
         paused = _state(
             editor,
-            lambda state: state["segmentPracticeState"] == "paused"
+            lambda state: state["backChainingState"] == "paused"
             and state["repeatEnabled"] is False,
         )
 
-        assert markers["segmentBaseStartMs"] == 400
-        assert playing["segmentActiveStartMs"] == 1400
-        assert wrapped["segmentActiveMarkerIndex"] == 1
-        assert longer["segmentActiveStartMs"] == 800
-        assert paused["selectionStartMs"] == 800
+        assert markers["backChainingBaseStartMs"] == 400
+        assert "Playing from 1.20s" in status_text
+        assert playing["backChainingActiveStartMs"] == 1200
+        assert wrapped["backChainingActiveMarkerIndex"] == 2
+        assert longer["backChainingActiveStartMs"] == 800
+        assert full_sentence["backChainingActiveStartMs"] == 400
+        assert paused["selectionStartMs"] == 400
     finally:
         editor.set_note(None)
         parent.close()
 
 
-def test_segmented_playback_marker_placement_uses_zoomed_viewport(
+def test_back_chaining_marker_placement_uses_zoomed_viewport(
     anki_mw,
     ffmpeg_config,
 ) -> None:
     _media_dir, _source, _note, editor, parent, _track = _open_tone_editor(
         anki_mw,
         ffmpeg_config,
-        "editor_segmented_zoomed_marker.wav",
+        "editor_back_chaining_zoomed_marker.wav",
         2.0,
     )
     try:
         _shift_drag_region(editor, 0.2, 0.8)
-        _enable_segment_editing(editor)
+        _enable_back_chaining_editing(editor)
         run_js(editor.web, "window.__aqeSetTimeViewportForTest?.(0, 400, 1600)")
-        _click_segment_marker(editor, 0.5, expected_count=1)
+        _click_back_chaining_marker(editor, 0.5, expected_count=4)
 
         state = _state(
             editor,
             lambda value: value["viewportStartMs"] == 400
             and value["viewportEndMs"] == 1600
-            and value["segmentMarkersMs"] == [1000],
+            and value["backChainingMarkersMs"] == [400, 800, 1000, 1200],
         )
 
-        assert state["segmentMarkerVisibleXs"]
+        assert state["backChainingMarkerVisibleXs"]
     finally:
         editor.set_note(None)
         parent.close()
 
 
-def test_segment_marker_rail_does_not_steal_top_of_graph_cursor_drag(
+def test_back_chaining_marker_rail_does_not_steal_top_of_graph_cursor_drag(
     anki_mw,
     ffmpeg_config,
 ) -> None:
     _media_dir, _source, _note, editor, parent, _track = _open_tone_editor(
         anki_mw,
         ffmpeg_config,
-        "editor_segmented_top_drag.wav",
+        "editor_back_chaining_top_drag.wav",
         2.0,
     )
     try:
         _shift_drag_region(editor, 0.2, 0.8)
-        _enable_segment_editing(editor)
+        _enable_back_chaining_editing(editor)
 
         drag_state = wait_for_js_condition(
             editor.web,
@@ -145,48 +159,49 @@ def test_segment_marker_rail_does_not_steal_top_of_graph_cursor_drag(
               const state = window.__aqeGraphStateForTest?.(0);
               return state ? {
                 cursorMs: state.cursorMs,
-                markersMs: state.segmentMarkersMs,
+                markersMs: state.backChainingMarkersMs,
                 targetClass: target.getAttribute("class") || "",
               } : null;
             })()
             """,
             lambda value: value is not None
             and abs(value["cursorMs"] - 1200) <= 75
-            and value["markersMs"] == [],
+            and value["markersMs"] == [400, 800, 1200],
             timeout=5.0,
         )
 
-        assert "aqe-segment-marker" not in drag_state["targetClass"]
+        assert "aqe-back-chaining-marker" not in drag_state["targetClass"]
     finally:
         editor.set_note(None)
         parent.close()
 
 
-def _enable_segment_editing(editor) -> None:
+def _enable_back_chaining_editing(editor) -> None:
     wait_for_js_condition(
         editor.web,
         """
         (() => {
-          const entry = document.querySelector('[data-testid="aqe-selection-toolbar-practice-segments-0"]');
+          const entry = document.querySelector('[data-testid="aqe-selection-toolbar-back-chaining-0"]');
           if (!entry) return null;
-          if (window.__aqeGraphStateForTest?.(0)?.segmentEditing !== true) entry.click();
+          if (window.__aqeGraphStateForTest?.(0)?.backChainingEditing !== true) entry.click();
           return window.__aqeGraphStateForTest?.(0) || null;
         })()
         """,
         lambda state: state is not None
-        and state["segmentEditing"] is True
-        and state["segmentPanelOpen"] is True
-        and state["segmentBaseStartMs"] == 400,
+        and state["backChainingEditing"] is True
+        and state["backChainingPanelOpen"] is True
+        and state["backChainingBaseStartMs"] == 400
+        and state["backChainingMarkersMs"] == [400, 800, 1200],
         timeout=5.0,
     )
 
 
-def _click_segment_marker(editor, ratio: float, *, expected_count: int) -> None:
+def _click_back_chaining_marker(editor, ratio: float, *, expected_count: int) -> None:
     wait_for_js_condition(
         editor.web,
         f"""
         (() => {{
-          const row = document.querySelector('[data-testid="aqe-segment-marker-row-0"]');
+          const row = document.querySelector('[data-testid="aqe-back-chaining-marker-row-0"]');
           const svg = document.querySelector('[data-testid="aqe-graph-svg-0"]');
           if (!row || !svg || row.getAttribute("aria-hidden") === "true") return null;
           const rect = svg.getBoundingClientRect();
@@ -207,42 +222,42 @@ def _click_segment_marker(editor, ratio: float, *, expected_count: int) -> None:
           return window.__aqeGraphStateForTest?.(0) || null;
         }})()
         """,
-        lambda state: state is not None and len(state["segmentMarkersMs"]) == expected_count,
+        lambda state: state is not None and len(state["backChainingMarkersMs"]) == expected_count,
         timeout=5.0,
     )
 
 
-def _click_segment_practice(editor) -> None:
+def _click_back_chaining_practice(editor) -> None:
     wait_for_js_condition(
         editor.web,
         """
         (() => {
-          const panel = document.querySelector('[data-testid="aqe-segment-0-panel"]');
+          const panel = document.querySelector('[data-testid="aqe-back-chaining-0-panel"]');
           if (!panel) return null;
-          const button = document.querySelector('[data-testid="aqe-segment-0-practice"]');
+          const button = document.querySelector('[data-testid="aqe-back-chaining-0-practice"]');
           if (!button || button.disabled) return null;
           button.click();
           return window.__aqeGraphStateForTest?.(0) || null;
         })()
         """,
-        lambda state: state is not None and state["segmentPracticeState"] == "playing",
+        lambda state: state is not None and state["backChainingState"] == "playing",
         timeout=5.0,
     )
 
 
-def _click_segment_next(editor) -> None:
+def _click_back_chaining_next(editor, *, expected_index: int = 1) -> None:
     wait_for_js_condition(
         editor.web,
         """
         (() => {
-          const panel = document.querySelector('[data-testid="aqe-segment-0-panel"]');
+          const panel = document.querySelector('[data-testid="aqe-back-chaining-0-panel"]');
           if (!panel) return null;
-          const button = document.querySelector('[data-testid="aqe-segment-0-next"]');
+          const button = document.querySelector('[data-testid="aqe-back-chaining-0-next"]');
           if (!button || button.disabled) return null;
           button.click();
           return window.__aqeGraphStateForTest?.(0) || null;
         })()
         """,
-        lambda state: state is not None and state["segmentActiveMarkerIndex"] == 0,
+        lambda state: state is not None and state["backChainingActiveMarkerIndex"] == expected_index,
         timeout=5.0,
     )

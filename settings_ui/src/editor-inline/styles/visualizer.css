@@ -91,37 +91,54 @@
   width: 100%;
 }
 
-.aqe-segment-marker-row {
+.aqe-back-chaining-marker-hitbox,
+.aqe-ui-root .aqe-back-chaining-marker-hitbox {
+  height: 12%;
+  left: 0;
+  pointer-events: none;
+  position: absolute;
+  right: 0;
+  top: 6.67%;
+  z-index: 2;
+}
+
+.aqe-visualizer[data-back-chaining-editing="true"] .aqe-back-chaining-marker-hitbox,
+.aqe-visualizer[data-back-chaining-state="playing"] .aqe-back-chaining-marker-hitbox,
+.aqe-visualizer[data-back-chaining-state="paused"] .aqe-back-chaining-marker-hitbox {
+  pointer-events: all;
+}
+
+.aqe-back-chaining-marker-row {
   color: #2f80ed;
   opacity: 1;
   pointer-events: all;
 }
 
-.aqe-segment-marker-track {
+.aqe-back-chaining-marker-track {
   fill: rgb(255 255 255);
   stroke: color-mix(in srgb, var(--aqe-border-color) 72%, transparent);
   stroke-width: 1;
   vector-effect: non-scaling-stroke;
 }
 
-.aqe-segment-marker-row:hover .aqe-segment-marker-track,
-.aqe-segment-marker-row:focus-visible .aqe-segment-marker-track {
+.aqe-back-chaining-marker-row:hover .aqe-back-chaining-marker-track,
+.aqe-back-chaining-marker-row:focus-visible .aqe-back-chaining-marker-track {
   fill: color-mix(in srgb, rgb(255 255 255) 86%, Highlight);
   stroke: color-mix(in srgb, Highlight 55%, var(--aqe-border-color));
 }
 
-.aqe-segment-marker-row[aria-hidden="true"] {
+.aqe-back-chaining-marker-row[aria-hidden="true"] {
   display: none;
 }
 
-.aqe-segment-marker {
+.aqe-back-chaining-marker {
   stroke: currentColor;
   stroke-linecap: round;
   stroke-width: 3;
   vector-effect: non-scaling-stroke;
 }
 
-.aqe-segment-boundary-marker {
+.aqe-back-chaining-boundary-marker {
   box-sizing: border-box;
   fill: var(--aqe-surface-color);
   stroke: currentColor;

@@ -3,8 +3,8 @@
   import EditorCommandIcon from "./EditorCommandIcon.svelte";
   import { send } from "./actions.js";
   import { sendRegionDelete } from "./region-delete.js";
-  import { toggleSegmentPracticePanelForOrd } from "./segment-practice-controller.js";
-  import SegmentPracticePanel from "./SegmentPracticePanel.svelte";
+  import { toggleBackChainingPanelForOrd } from "./back-chaining-controller.js";
+  import BackChainingPanel from "./BackChainingPanel.svelte";
   import {
     collapseSelectionToolbarForOrd,
     expandSelectionToolbarForOrd,
@@ -60,25 +60,25 @@
       <button
         {...props}
         type="button"
-        class="aqe-button aqe-selection-toolbar-button aqe-selection-toolbar-segment aqe-tooltip-target"
+        class="aqe-button aqe-selection-toolbar-button aqe-selection-toolbar-back-chaining aqe-tooltip-target"
         data-aqe-button-state="default"
-        data-aqe-tooltip-content={t("editor.segment.practice_segments_title")}
-        data-testid={`aqe-selection-toolbar-practice-segments-${target.ord}`}
-        aria-controls={`aqe-segment-${target.ord}-panel`}
-        aria-label={t("editor.segment.practice_segments_title")}
+        data-aqe-tooltip-content={t("editor.back_chaining.entry_title")}
+        data-testid={`aqe-selection-toolbar-back-chaining-${target.ord}`}
+        aria-controls={`aqe-back-chaining-${target.ord}-panel`}
+        aria-label={t("editor.back_chaining.entry_title")}
         onpointerdown={(event) => event.stopPropagation()}
         onmousedown={(event) => event.preventDefault()}
-        onclick={() => toggleSegmentPracticePanelForOrd(target.ord)}
+        onclick={() => toggleBackChainingPanelForOrd(target.ord)}
       >
         <EditorCommandIcon
-          className="aqe-segment-disclosure aqe-segment-disclosure-closed"
+          className="aqe-back-chaining-disclosure aqe-back-chaining-disclosure-closed"
           icon="chevron-right"
         />
         <EditorCommandIcon
-          className="aqe-segment-disclosure aqe-segment-disclosure-open"
+          className="aqe-back-chaining-disclosure aqe-back-chaining-disclosure-open"
           icon="chevron-down"
         />
-        <span class="aqe-button-label">{t("editor.segment.practice_segments")}</span>
+        <span class="aqe-button-label">{t("editor.back_chaining.entry")}</span>
       </button>
     {/snippet}
   </AqeTooltip>
@@ -147,7 +147,7 @@
       </button>
     {/snippet}
   </AqeTooltip>
-  <SegmentPracticePanel {target} />
+  <BackChainingPanel {target} />
 </div>
 <AqeTooltip>
   {#snippet trigger({ props })}

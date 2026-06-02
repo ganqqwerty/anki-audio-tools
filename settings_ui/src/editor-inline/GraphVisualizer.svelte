@@ -1,5 +1,6 @@
 <script lang="ts">
   import { onMount } from "svelte";
+  import AqeTooltip from "../lib/AqeTooltip.svelte";
   import { t } from "../lib/i18n.js";
   import {
     configureAudioClock,
@@ -14,7 +15,7 @@
   import { PLOT } from "./plot.js";
   import { syncRecordingControls } from "./recording-actions.js";
   import { handleVisualizerKeyDown } from "./region-delete.js";
-  import { handleSegmentMarkerPointerDown, installSegmentPracticeHandlers } from "./segment-practice-controller.js";
+  import { handleBackChainingMarkerPointerDown, installBackChainingHandlers } from "./back-chaining-controller.js";
   import SelectionToolbar from "./SelectionToolbar.svelte";
   import TimeViewportScroller from "./TimeViewportScroller.svelte";
   import type { FieldTarget } from "./types.js";
@@ -67,7 +68,7 @@
     const visualizer = visualizerForOrd(target.ord);
     if (!visualizer) return;
     const stopGraphLayoutObserver = installGraphLayoutObserver(visualizer);
-    const stopSegmentPracticeHandlers = installSegmentPracticeHandlers(visualizer);
+    const stopBackChainingHandlers = installBackChainingHandlers(visualizer);
     resetAudioClockState(visualizer);
     initializePlaybackRegionState(visualizer);
     installAudioClockHandlers(visualizer);
@@ -77,7 +78,7 @@
     notifyPostEditPlaybackReady(target.ord, target.sourceFilename || "");
     return () => {
       stopGraphLayoutObserver();
-      stopSegmentPracticeHandlers();
+      stopBackChainingHandlers();
     };
   });
 </script>
@@ -113,13 +114,13 @@
   data-repeat-enabled={repeatDefault ? "true" : "false"}
   data-repeat-pause-seconds={repeatPauseDefault}
   data-repeat-pause-waiting="false"
-  data-segment-active-marker-index=""
-  data-segment-base-end-ms=""
-  data-segment-base-start-ms=""
-  data-segment-editing="false"
-  data-segment-markers-ms=""
-  data-segment-panel-open="false"
-  data-segment-practice-state="stopped"
+  data-back-chaining-active-marker-index=""
+  data-back-chaining-base-end-ms=""
+  data-back-chaining-base-start-ms=""
+  data-back-chaining-editing="false"
+  data-back-chaining-markers-ms=""
+  data-back-chaining-panel-open="false"
+  data-back-chaining-state="stopped"
   data-testid={`aqe-graph-${target.ord}`}
   role="button"
   aria-label={t("editor.graph.aria")}
@@ -136,6 +137,17 @@
   >
     <div class="aqe-selection-region-preview-halo aqe-selection-region-preview-halo-top" aria-hidden="true"></div>
     <div class="aqe-selection-region-preview-halo aqe-selection-region-preview-halo-bottom" aria-hidden="true"></div>
+    <AqeTooltip side="bottom">
+      {#snippet trigger({ props })}
+        <div
+          {...props}
+          class="aqe-back-chaining-marker-hitbox aqe-tooltip-target"
+          data-aqe-tooltip-content={t("editor.back_chaining.marker_row_tooltip")}
+          aria-hidden="true"
+          onpointerdown={(event) => handleBackChainingMarkerPointerDown(event, target.ord)}
+        ></div>
+      {/snippet}
+    </AqeTooltip>
     <svg
       class="aqe-visualizer-svg"
       data-testid={`aqe-graph-svg-${target.ord}`}
@@ -170,14 +182,14 @@
       <g class="aqe-labels"></g>
       <g class="aqe-x-axis" data-testid={`aqe-x-axis-${target.ord}`}></g>
       <g
-        class="aqe-segment-marker-row"
-        data-testid={`aqe-segment-marker-row-${target.ord}`}
+        class="aqe-back-chaining-marker-row"
+        data-testid={`aqe-back-chaining-marker-row-${target.ord}`}
         role="button"
-        aria-label={t("editor.segment.marker_row_aria")}
+        aria-label={t("editor.back_chaining.marker_row_aria")}
         aria-hidden="true"
         tabindex="0"
         style="display: none"
-        onpointerdown={(event) => handleSegmentMarkerPointerDown(event, target.ord)}
+        onpointerdown={(event) => handleBackChainingMarkerPointerDown(event, target.ord)}
       ></g>
       <line
         class="aqe-selection-edge aqe-selection-start"

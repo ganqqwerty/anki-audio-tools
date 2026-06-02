@@ -6,54 +6,54 @@
   import { visualizerForOrd } from "./dom-selectors.js";
   import { openEditorExternalLink } from "./external-links.js";
   import {
-    clearSegmentMarkersForOrd,
-    moveSegmentPracticeForOrd,
-    segmentPracticeControlsForOrd,
-    startSegmentEditingForOrd,
-    toggleSegmentPracticeForOrd,
-  } from "./segment-practice-controller.js";
-  import type { SegmentPracticeControlsState } from "./segment-practice-dom.js";
+    clearBackChainingMarkersForOrd,
+    moveBackChainingForOrd,
+    backChainingControlsForOrd,
+    startBackChainingEditingForOrd,
+    toggleBackChainingForOrd,
+  } from "./back-chaining-controller.js";
+  import type { BackChainingControlsState } from "./back-chaining-dom.js";
   import type { FieldTarget } from "./types.js";
 
   const { target }: { target: FieldTarget } = $props();
-  let state = $state<SegmentPracticeControlsState>(emptyControlsState());
+  let state = $state<BackChainingControlsState>(emptyControlsState());
   const visible = $derived(state.panelOpen && (state.baseStartMs !== null || state.canClear));
   const practiceLabel = $derived(
     state.practiceState === "playing"
-      ? t("editor.segment.pause_practice")
-      : t("editor.segment.practice"),
+      ? t("editor.back_chaining.pause_practice")
+      : t("editor.back_chaining.practice"),
   );
 
   function sync(): void {
-    state = segmentPracticeControlsForOrd(target.ord);
+    state = backChainingControlsForOrd(target.ord);
   }
 
-  function editSegments(): void {
-    startSegmentEditingForOrd(target.ord);
+  function editBackChaining(): void {
+    startBackChainingEditingForOrd(target.ord);
     sync();
   }
 
   function togglePractice(): void {
-    toggleSegmentPracticeForOrd(target.ord);
+    toggleBackChainingForOrd(target.ord);
     sync();
   }
 
   function previous(): void {
-    moveSegmentPracticeForOrd(target.ord, "previous");
+    moveBackChainingForOrd(target.ord, "previous");
     sync();
   }
 
   function next(): void {
-    moveSegmentPracticeForOrd(target.ord, "next");
+    moveBackChainingForOrd(target.ord, "next");
     sync();
   }
 
   function clearMarkers(): void {
-    clearSegmentMarkersForOrd(target.ord);
+    clearBackChainingMarkersForOrd(target.ord);
     sync();
   }
 
-  function emptyControlsState(): SegmentPracticeControlsState {
+  function emptyControlsState(): BackChainingControlsState {
     return {
       activeMarkerIndex: null,
       activeSuffixEndMs: null,
@@ -81,13 +81,13 @@
     observer.observe(visualizer, {
       attributeFilter: [
         "data-selection-active",
-        "data-segment-active-marker-index",
-        "data-segment-base-end-ms",
-        "data-segment-base-start-ms",
-        "data-segment-editing",
-        "data-segment-markers-ms",
-        "data-segment-panel-open",
-        "data-segment-practice-state",
+        "data-back-chaining-active-marker-index",
+        "data-back-chaining-base-end-ms",
+        "data-back-chaining-base-start-ms",
+        "data-back-chaining-editing",
+        "data-back-chaining-markers-ms",
+        "data-back-chaining-panel-open",
+        "data-back-chaining-state",
       ],
       attributes: true,
     });
@@ -98,14 +98,14 @@
 
 {#if visible}
   <div
-    id={`aqe-segment-${target.ord}-panel`}
-    class="aqe-segment-practice-panel"
-    data-testid={`aqe-segment-${target.ord}-panel`}
+    id={`aqe-back-chaining-${target.ord}-panel`}
+    class="aqe-back-chaining-panel"
+    data-testid={`aqe-back-chaining-${target.ord}-panel`}
   >
-    <div class="aqe-segment-practice-header">
-      <strong>{t("editor.segment.title")}</strong>
+    <div class="aqe-back-chaining-header">
+      <strong>{t("editor.back_chaining.title")}</strong>
       <a
-        class="aqe-segment-video-link"
+        class="aqe-back-chaining-video-link"
         href={PRODUCT_LINKS.editorVideos.playback}
         onclick={(event) => openEditorExternalLink(event, PRODUCT_LINKS.editorVideos.playback)}
         target="_blank"
@@ -114,22 +114,22 @@
         {t("links.see_video")}
       </a>
     </div>
-    <div class="aqe-segment-practice-controls">
+    <div class="aqe-back-chaining-controls">
       <AqeTooltip>
         {#snippet trigger({ props })}
           <button
             {...props}
             type="button"
-            class="aqe-button aqe-segment-practice-button aqe-tooltip-target"
-            data-aqe-tooltip-content={t("editor.segment.edit_title")}
-            data-testid={`aqe-segment-${target.ord}-edit`}
+            class="aqe-button aqe-back-chaining-button aqe-tooltip-target"
+            data-aqe-tooltip-content={t("editor.back_chaining.edit_title")}
+            data-testid={`aqe-back-chaining-${target.ord}-edit`}
             aria-pressed={state.editing ? "true" : "false"}
             disabled={!state.canEdit}
             onpointerdown={(event) => event.stopPropagation()}
             onmousedown={(event) => event.preventDefault()}
-            onclick={editSegments}
+            onclick={editBackChaining}
           >
-            {t("editor.segment.edit_markers")}
+            {t("editor.back_chaining.edit_markers")}
           </button>
         {/snippet}
       </AqeTooltip>
@@ -138,9 +138,9 @@
           <button
             {...props}
             type="button"
-            class="aqe-button aqe-segment-practice-button aqe-tooltip-target"
-            data-aqe-tooltip-content={t("editor.segment.practice_title")}
-            data-testid={`aqe-segment-${target.ord}-practice`}
+            class="aqe-button aqe-back-chaining-button aqe-tooltip-target"
+            data-aqe-tooltip-content={t("editor.back_chaining.practice_title")}
+            data-testid={`aqe-back-chaining-${target.ord}-practice`}
             disabled={!state.canPractice}
             onpointerdown={(event) => event.stopPropagation()}
             onmousedown={(event) => event.preventDefault()}
@@ -155,10 +155,10 @@
           <button
             {...props}
             type="button"
-            class="aqe-button aqe-segment-practice-button aqe-tooltip-target"
-            data-aqe-tooltip-content={t("editor.segment.previous_title")}
-            data-testid={`aqe-segment-${target.ord}-previous`}
-            aria-label={t("editor.segment.previous")}
+            class="aqe-button aqe-back-chaining-button aqe-tooltip-target"
+            data-aqe-tooltip-content={t("editor.back_chaining.previous_title")}
+            data-testid={`aqe-back-chaining-${target.ord}-previous`}
+            aria-label={t("editor.back_chaining.previous")}
             disabled={!state.canPrevious}
             onpointerdown={(event) => event.stopPropagation()}
             onmousedown={(event) => event.preventDefault()}
@@ -173,10 +173,10 @@
           <button
             {...props}
             type="button"
-            class="aqe-button aqe-segment-practice-button aqe-tooltip-target"
-            data-aqe-tooltip-content={t("editor.segment.next_title")}
-            data-testid={`aqe-segment-${target.ord}-next`}
-            aria-label={t("editor.segment.next")}
+            class="aqe-button aqe-back-chaining-button aqe-tooltip-target"
+            data-aqe-tooltip-content={t("editor.back_chaining.next_title")}
+            data-testid={`aqe-back-chaining-${target.ord}-next`}
+            aria-label={t("editor.back_chaining.next")}
             disabled={!state.canNext}
             onpointerdown={(event) => event.stopPropagation()}
             onmousedown={(event) => event.preventDefault()}
@@ -191,10 +191,10 @@
           <button
             {...props}
             type="button"
-            class="aqe-button aqe-segment-practice-button aqe-tooltip-target"
-            data-aqe-tooltip-content={t("editor.segment.clear_title")}
-            data-testid={`aqe-segment-${target.ord}-clear`}
-            aria-label={t("editor.segment.clear")}
+            class="aqe-button aqe-back-chaining-button aqe-tooltip-target"
+            data-aqe-tooltip-content={t("editor.back_chaining.clear_title")}
+            data-testid={`aqe-back-chaining-${target.ord}-clear`}
+            aria-label={t("editor.back_chaining.clear")}
             disabled={!state.canClear}
             onpointerdown={(event) => event.stopPropagation()}
             onmousedown={(event) => event.preventDefault()}

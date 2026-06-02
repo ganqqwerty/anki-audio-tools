@@ -157,6 +157,7 @@ def test_html_playback_request_updates_session_without_native_segment(tmp_path: 
     assert stop_calls == ["stop"]
     evals = [call.args[0] for call in editor.web.eval.call_args_list]
     assert any("Playing from 0.70s" in call for call in evals)
+    assert not any("Practice mode. Use floating panel at the bottom of the graph." in call for call in evals)
 
 
 def test_post_edit_playback_request_does_not_replace_status_while_analysis_is_busy(tmp_path: Path) -> None:

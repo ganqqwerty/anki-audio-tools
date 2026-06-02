@@ -13,21 +13,22 @@ import { selectionForVisualizer, setSelection as setSelectionFromController } fr
 import { SELECTION_CHANGED_EVENT, notifySelectionChanged, type SelectionChangedDetail } from "./selection-events.js";
 import { syncSelectionToolbar } from "./selection-toolbar-state.js";
 import {
-  renderSegmentMarkerRow,
-  segmentPracticeControlsForVisualizer,
-  segmentPracticeStateForVisualizer,
-  writeSegmentPracticeState,
-  type SegmentPracticeControlsState,
-} from "./segment-practice-dom.js";
+  renderBackChainingMarkerRow,
+  backChainingControlsForVisualizer,
+  backChainingStateForVisualizer,
+  writeBackChainingState,
+  type BackChainingControlsState,
+} from "./back-chaining-dom.js";
 import {
   chooseInitialActiveMarkerIndex,
+  defaultBackChainingMarkers,
   deriveActiveSuffix,
-  emptySegmentPracticeState,
+  emptyBackChainingState,
   moveActiveMarkerIndex,
-  type SegmentMarkerDirection,
-  type SegmentPracticeState,
-  toggleSegmentMarker,
-} from "./segment-practice-state.js";
+  type BackChainingMarkerDirection,
+  type BackChainingState,
+  toggleBackChainingMarker,
+} from "./back-chaining-state.js";
 import {
   readVisualizerCursorMs,
   readVisualizerTimeViewport,
@@ -35,21 +36,21 @@ import {
 
 const MARKER_HIT_TOLERANCE_MS = 35;
 
-export function installSegmentPracticeHandlers(visualizer: VisualizerElement): () => void {
-  writeSegmentPracticeState(visualizer, segmentPracticeStateForVisualizer(visualizer));
+export function installBackChainingHandlers(visualizer: VisualizerElement): () => void {
+  writeBackChainingState(visualizer, backChainingStateForVisualizer(visualizer));
   const onSelectionChanged = (event: Event): void => {
     const origin = (event as CustomEvent<SelectionChangedDetail>).detail?.origin ?? "user";
     if (origin === "user") {
-      clearSegmentPractice(visualizer, { restoreRepeat: true });
+      clearBackChaining(visualizer, { restoreRepeat: true });
     } else {
-      renderSegmentMarkerRow(visualizer);
+      renderBackChainingMarkerRow(visualizer);
     }
   };
-  const onViewportChanged = (): void => renderSegmentMarkerRow(visualizer);
+  const onViewportChanged = (): void => renderBackChainingMarkerRow(visualizer);
   const observer = new MutationObserver(() => {
-    const state = segmentPracticeStateForVisualizer(visualizer);
+    const state = backChainingStateForVisualizer(visualizer);
     if (!state.sourceFilename || state.sourceFilename === (visualizer.dataset.sourceFilename || "")) return;
-    clearSegmentPractice(visualizer, { restoreRepeat: true });
+    clearBackChaining(visualizer, { restoreRepeat: true });
   });
   visualizer.addEventListener(SELECTION_CHANGED_EVENT, onSelectionChanged);
   visualizer.addEventListener("aqe-viewport-rendered", onViewportChanged);
@@ -57,7 +58,7 @@ export function installSegmentPracticeHandlers(visualizer: VisualizerElement): (
     attributeFilter: ["data-source-filename", "data-has-track", "hidden"],
     attributes: true,
   });
-  renderSegmentMarkerRow(visualizer);
+  renderBackChainingMarkerRow(visualizer);
   return () => {
     observer.disconnect();
     visualizer.removeEventListener(SELECTION_CHANGED_EVENT, onSelectionChanged);
@@ -65,124 +66,126 @@ export function installSegmentPracticeHandlers(visualizer: VisualizerElement): (
   };
 }
 
-export function segmentPracticeControlsForOrd(ord: number): SegmentPracticeControlsState {
+export function backChainingControlsForOrd(ord: number): BackChainingControlsState {
   const visualizer = visualizerForOrd(ord);
-  return segmentPracticeControlsForVisualizer(visualizer);
+  return backChainingControlsForVisualizer(visualizer);
 }
 
-export function enterSegmentPracticeForOrd(ord: number): boolean {
-  return toggleSegmentPracticePanelForOrd(ord);
+export function enterBackChainingForOrd(ord: number): boolean {
+  return toggleBackChainingPanelForOrd(ord);
 }
 
-export function toggleSegmentPracticePanelForOrd(ord: number): boolean {
+export function toggleBackChainingPanelForOrd(ord: number): boolean {
   const visualizer = visualizerForOrd(ord);
   if (!visualizer) return false;
-  if (visualizer.dataset.segmentPanelOpen === "true") {
-    visualizer.dataset.segmentPanelOpen = "false";
+  if (visualizer.dataset.backChainingPanelOpen === "true") {
+    visualizer.dataset.backChainingPanelOpen = "false";
     syncSelectionToolbar(visualizer);
     return true;
   }
-  const entered = setSegmentEditing(visualizer, true);
+  const entered = setBackChainingEditing(visualizer, true);
   if (!entered) return false;
-  visualizer.dataset.segmentPanelOpen = "true";
+  visualizer.dataset.backChainingPanelOpen = "true";
   syncSelectionToolbar(visualizer);
   return true;
 }
 
-export function startSegmentEditingForOrd(ord: number): boolean {
+export function startBackChainingEditingForOrd(ord: number): boolean {
   const visualizer = visualizerForOrd(ord);
   if (!visualizer) return false;
-  const state = segmentPracticeStateForVisualizer(visualizer);
-  return setSegmentEditing(visualizer, !state.editing);
+  const state = backChainingStateForVisualizer(visualizer);
+  return setBackChainingEditing(visualizer, !state.editing);
 }
 
-export function toggleSegmentPracticeForOrd(ord: number): boolean {
+export function toggleBackChainingForOrd(ord: number): boolean {
   const visualizer = visualizerForOrd(ord);
-  return visualizer ? toggleSegmentPractice(visualizer) : false;
+  return visualizer ? toggleBackChaining(visualizer) : false;
 }
 
-export function moveSegmentPracticeForOrd(ord: number, direction: SegmentMarkerDirection): boolean {
+export function moveBackChainingForOrd(ord: number, direction: BackChainingMarkerDirection): boolean {
   const visualizer = visualizerForOrd(ord);
-  return visualizer ? moveSegmentPractice(visualizer, direction) : false;
+  return visualizer ? moveBackChaining(visualizer, direction) : false;
 }
 
-export function clearSegmentPracticeForOrd(ord: number): boolean {
+export function clearBackChainingForOrd(ord: number): boolean {
   const visualizer = visualizerForOrd(ord);
   if (!visualizer) return false;
-  clearSegmentPractice(visualizer, { restoreRepeat: true });
+  clearBackChaining(visualizer, { restoreRepeat: true });
   return true;
 }
 
-export function clearSegmentMarkersForOrd(ord: number): boolean {
+export function clearBackChainingMarkersForOrd(ord: number): boolean {
   const visualizer = visualizerForOrd(ord);
   if (!visualizer) return false;
-  clearSegmentMarkers(visualizer);
+  clearBackChainingMarkers(visualizer);
   return true;
 }
 
-export function handleSegmentMarkerPointerDown(event: PointerEvent, ord: number): void {
+export function handleBackChainingMarkerPointerDown(event: PointerEvent, ord: number): void {
   const visualizer = visualizerForOrd(ord);
   const svg = visualizer?.querySelector<SVGSVGElement>(".aqe-visualizer-svg") ?? null;
-  const state = visualizer ? segmentPracticeStateForVisualizer(visualizer) : null;
+  const state = visualizer ? backChainingStateForVisualizer(visualizer) : null;
   if (!visualizer || !svg || !state?.baseRegion || !state.editing) return;
   event.preventDefault();
   event.stopPropagation();
   const click = markerClickFromEvent(event, svg, readVisualizerTimeViewport(visualizer), state.baseRegion);
   if (!click.insideVisibleBaseRegion) return;
-  const toggled = toggleSegmentMarker(state.markersMs, click.ms, state.baseRegion, MARKER_HIT_TOLERANCE_MS);
+  const toggled = toggleBackChainingMarker(state.markersMs, click.ms, state.baseRegion, MARKER_HIT_TOLERANCE_MS);
   const activeMarkerIndex = state.practiceState === "stopped" || state.activeMarkerIndex === null
     ? chooseInitialActiveMarkerIndex(toggled.markersMs)
     : Math.min(state.activeMarkerIndex, Math.max(0, toggled.markersMs.length - 1));
-  writeSegmentPracticeState(visualizer, {
+  writeBackChainingState(visualizer, {
     ...state,
     activeMarkerIndex: toggled.markersMs.length ? activeMarkerIndex : null,
     markersMs: toggled.markersMs,
   });
 }
 
-export function pauseSegmentPracticeForNormalPlay(ord: number): boolean {
+export function pauseBackChainingForNormalPlay(ord: number): boolean {
   const visualizer = visualizerForOrd(ord);
   if (!visualizer) return false;
-  const state = segmentPracticeStateForVisualizer(visualizer);
+  const state = backChainingStateForVisualizer(visualizer);
   if (state.practiceState !== "playing") return false;
-  pauseSegmentPractice(visualizer, state);
+  pauseBackChaining(visualizer, state);
   return true;
 }
 
-export function clearSegmentPractice(
+export function clearBackChaining(
   visualizer: VisualizerElement,
   options: { restoreRepeat?: boolean } = {},
 ): void {
-  const state = segmentPracticeStateForVisualizer(visualizer);
+  const state = backChainingStateForVisualizer(visualizer);
   if (state.practiceState !== "stopped") {
     stopProgressClock(visualizer);
     focusAndSendCommand(Number(visualizer.dataset.aqeFieldOrd || "0"), "aqe:stop-playback");
   }
   if (options.restoreRepeat !== false) restoreOrdinaryRepeat(visualizer, state);
-  visualizer.dataset.segmentPanelOpen = "false";
-  writeSegmentPracticeState(visualizer, emptySegmentPracticeState());
+  visualizer.dataset.backChainingPanelOpen = "false";
+  writeBackChainingState(visualizer, emptyBackChainingState());
   syncSelectionToolbar(visualizer);
 }
 
-function setSegmentEditing(visualizer: VisualizerElement, editing: boolean): boolean {
-  const state = segmentPracticeStateForVisualizer(visualizer);
+function setBackChainingEditing(visualizer: VisualizerElement, editing: boolean): boolean {
+  const state = backChainingStateForVisualizer(visualizer);
   const baseRegion = state.baseRegion ?? selectionForVisualizer(visualizer);
   if (!baseRegion) return false;
-  writeSegmentPracticeState(visualizer, {
+  const newBaseRegion = !state.baseRegion;
+  const markersMs = newBaseRegion ? defaultBackChainingMarkers(baseRegion) : state.markersMs;
+  writeBackChainingState(visualizer, {
     ...state,
-    activeMarkerIndex: state.baseRegion ? state.activeMarkerIndex : null,
+    activeMarkerIndex: newBaseRegion ? chooseInitialActiveMarkerIndex(markersMs) : state.activeMarkerIndex,
     baseRegion,
     editing,
-    markersMs: state.baseRegion ? state.markersMs : [],
+    markersMs,
     sourceFilename: visualizer.dataset.sourceFilename || "",
   });
   return true;
 }
 
-function toggleSegmentPractice(visualizer: VisualizerElement): boolean {
-  const state = segmentPracticeStateForVisualizer(visualizer);
+function toggleBackChaining(visualizer: VisualizerElement): boolean {
+  const state = backChainingStateForVisualizer(visualizer);
   if (state.practiceState === "playing") {
-    pauseSegmentPractice(visualizer, state);
+    pauseBackChaining(visualizer, state);
     return true;
   }
   const readyState = ensurePracticeReady(visualizer, state);
@@ -191,15 +194,15 @@ function toggleSegmentPractice(visualizer: VisualizerElement): boolean {
   return true;
 }
 
-function moveSegmentPractice(visualizer: VisualizerElement, direction: SegmentMarkerDirection): boolean {
-  const state = segmentPracticeStateForVisualizer(visualizer);
+function moveBackChaining(visualizer: VisualizerElement, direction: BackChainingMarkerDirection): boolean {
+  const state = backChainingStateForVisualizer(visualizer);
   if (!state.baseRegion || !state.markersMs.length) return false;
   const nextIndex = moveActiveMarkerIndex(state.markersMs, state.activeMarkerIndex, direction);
   const nextState = {
     ...state,
     activeMarkerIndex: nextIndex,
   };
-  writeSegmentPracticeState(visualizer, nextState);
+  writeBackChainingState(visualizer, nextState);
   setSelectionToActiveSuffix(visualizer, nextState);
   if (nextState.practiceState === "playing") {
     startPracticePlayback(visualizer, nextState);
@@ -209,8 +212,8 @@ function moveSegmentPractice(visualizer: VisualizerElement, direction: SegmentMa
 
 function ensurePracticeReady(
   visualizer: VisualizerElement,
-  state: SegmentPracticeState,
-): SegmentPracticeState | null {
+  state: BackChainingState,
+): BackChainingState | null {
   const baseRegion = state.baseRegion ?? selectionForVisualizer(visualizer);
   if (!baseRegion || !state.markersMs.length) return null;
   const activeMarkerIndex = state.activeMarkerIndex ?? chooseInitialActiveMarkerIndex(state.markersMs);
@@ -223,11 +226,11 @@ function ensurePracticeReady(
     ordinaryRepeatEnabled: state.ordinaryRepeatEnabled ?? readOrdinaryRepeat(visualizer),
     sourceFilename: visualizer.dataset.sourceFilename || "",
   };
-  writeSegmentPracticeState(visualizer, readyState);
+  writeBackChainingState(visualizer, readyState);
   return readyState;
 }
 
-function startPracticePlayback(visualizer: VisualizerElement, state: SegmentPracticeState): void {
+function startPracticePlayback(visualizer: VisualizerElement, state: BackChainingState): void {
   const suffix = setSelectionToActiveSuffix(visualizer, state);
   if (!suffix) return;
   stopProgressClock(visualizer, { clearEngine: false });
@@ -241,8 +244,9 @@ function startPracticePlayback(visualizer: VisualizerElement, state: SegmentPrac
     loop: true,
     ord,
     regionMode: "selection",
+    source: "back_chaining",
   };
-  writeSegmentPracticeState(visualizer, {
+  writeBackChainingState(visualizer, {
     ...state,
     practiceState: "playing",
   });
@@ -253,7 +257,7 @@ function startPracticePlayback(visualizer: VisualizerElement, state: SegmentPrac
   }
 }
 
-function pauseSegmentPractice(visualizer: VisualizerElement, state: SegmentPracticeState): void {
+function pauseBackChaining(visualizer: VisualizerElement, state: BackChainingState): void {
   const ord = Number(visualizer.dataset.aqeFieldOrd || "0");
   pauseProgressClock(visualizer);
   sendPlaybackRequest({
@@ -265,16 +269,17 @@ function pauseSegmentPractice(visualizer: VisualizerElement, state: SegmentPract
     loop: true,
     ord,
     regionMode: "selection",
+    source: "back_chaining",
   });
   restoreOrdinaryRepeat(visualizer, state);
-  writeSegmentPracticeState(visualizer, {
+  writeBackChainingState(visualizer, {
     ...state,
     practiceState: "paused",
   });
 }
 
-function clearSegmentMarkers(visualizer: VisualizerElement): void {
-  const state = segmentPracticeStateForVisualizer(visualizer);
+function clearBackChainingMarkers(visualizer: VisualizerElement): void {
+  const state = backChainingStateForVisualizer(visualizer);
   if (state.practiceState !== "stopped") {
     stopProgressClock(visualizer);
     focusAndSendCommand(Number(visualizer.dataset.aqeFieldOrd || "0"), "aqe:stop-playback");
@@ -282,10 +287,10 @@ function clearSegmentMarkers(visualizer: VisualizerElement): void {
   restoreOrdinaryRepeat(visualizer, state);
   const baseRegion = state.baseRegion ?? selectionForVisualizer(visualizer);
   if (!baseRegion) {
-    writeSegmentPracticeState(visualizer, emptySegmentPracticeState());
+    writeBackChainingState(visualizer, emptyBackChainingState());
     return;
   }
-  writeSegmentPracticeState(visualizer, {
+  writeBackChainingState(visualizer, {
     ...state,
     activeMarkerIndex: null,
     baseRegion,
@@ -297,12 +302,12 @@ function clearSegmentMarkers(visualizer: VisualizerElement): void {
   });
 }
 
-function setSelectionToActiveSuffix(visualizer: VisualizerElement, state: SegmentPracticeState) {
+function setSelectionToActiveSuffix(visualizer: VisualizerElement, state: BackChainingState) {
   const suffix = deriveActiveSuffix(state.baseRegion, state.markersMs, state.activeMarkerIndex);
   if (!suffix) return null;
   setSelectionFromController(visualizer, suffix.startMs, suffix.endMs, { setCursor: () => undefined }, { updateCursor: false });
   syncSelectionToolbar(visualizer);
-  notifySelectionChanged(visualizer, "segment-practice");
+  notifySelectionChanged(visualizer, "back-chaining");
   return suffix;
 }
 
@@ -315,7 +320,7 @@ function writeRepeatForPractice(visualizer: VisualizerElement, enabled: boolean)
   visualizer.dataset.playbackLoop = enabled ? "true" : "false";
 }
 
-function restoreOrdinaryRepeat(visualizer: VisualizerElement, state: SegmentPracticeState): void {
+function restoreOrdinaryRepeat(visualizer: VisualizerElement, state: BackChainingState): void {
   if (state.ordinaryRepeatEnabled === null) return;
   writeRepeatForPractice(visualizer, state.ordinaryRepeatEnabled);
 }

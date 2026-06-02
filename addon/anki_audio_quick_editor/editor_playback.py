@@ -106,15 +106,7 @@ def play_with_request(editor: Any, request: Any, deps: Any) -> None:
         return
 
     selected_end_ms = end_ms if region_mode == "selection" else None
-    deps.start_playback_from_cursor(
-        editor,
-        session,
-        source_path,
-        field_index,
-        cursor_ms,
-        selected_end_ms,
-        source=source,
-    )
+    deps.start_playback_from_cursor(editor, session, source_path, field_index, cursor_ms, selected_end_ms, source=source)
 
 
 def playback_request_values(
@@ -132,7 +124,8 @@ def playback_request_values(
     end_ms = requested_end_ms(request.get("endMs"), duration_ms)
     cursor_ms = clamp_cursor_ms(request.get("cursorMs"), end_ms if end_ms is not None else duration_ms)
     region_mode = "selection" if request.get("regionMode") == "selection" else "full"
-    source = "post_edit" if request.get("source") == "post_edit" else "user"
+    raw_source = str(request.get("source") or "")
+    source = raw_source if raw_source in {"back_chaining", "post_edit"} else "user"
     return action, engine, cursor_ms, end_ms, region_mode, source
 
 
@@ -192,7 +185,7 @@ def apply_html_playback_request(
     if session.preserve_status_during_playback:
         return
     if cursor_ms > 0 and action == "start":
-        deps.eval_status(editor, t("editor.playback.playing_from", {"seconds": f"{max(0.0, cursor_ms / 1000):.2f}"}))
+        deps.eval_status(editor, playback_started_from_message(cursor_ms, source))
     else:
         deps.eval_status(editor, t("editor.playback.playing"))
 
@@ -266,7 +259,6 @@ def start_playback_from_cursor(
 
     def _run() -> None:
         try:
-
             def _show_command(command: tuple[str, ...]) -> None:
                 rendered = deps.format_ffmpeg_command(command)
                 status_message = t("editor.playback.preparing_ffmpeg")
@@ -292,6 +284,7 @@ def start_playback_from_cursor(
                     field_index,
                     playback_cursor_ms,
                     result.output_path,
+                    source=source,
                 ),
             )
         except Exception as exc:
@@ -311,7 +304,6 @@ def start_playback_from_cursor(
                 log=logger,
             )
             deps.main(editor, lambda: deps.playback_segment_failed(editor, generation, message))
-
     deps.threading.Thread(target=_run, daemon=True).start()
 
 
@@ -322,6 +314,7 @@ def playback_segment_ready(
     cursor_ms: int,
     playback_path: Path,
     deps: Any,
+    source: str = "user",
 ) -> None:
     """Start native playback once an offset playback segment has rendered."""
     session = deps.sessions.get(editor)
@@ -342,7 +335,7 @@ def playback_segment_ready(
     if session.preserve_status_during_playback:
         return
     if cursor_ms > 0:
-        deps.eval_status(editor, t("editor.playback.playing_from", {"seconds": f"{max(0.0, cursor_ms / 1000):.2f}"}))
+        deps.eval_status(editor, playback_started_from_message(cursor_ms, source))
     else:
         deps.eval_status(editor, t("editor.playback.playing"))
 
@@ -363,6 +356,13 @@ def playback_segment_failed(editor: Any, generation: int, message: str, deps: An
         coded_error(AQE_PLAYBACK_PREPARE_FAILED, display_message),
         kind="error",
     )
+
+
+def playback_started_from_message(cursor_ms: int, source: str) -> str:
+    message = t("editor.playback.playing_from", {"seconds": f"{max(0.0, cursor_ms / 1000):.2f}"})
+    if source == "back_chaining":
+        return f"{message}. {t('editor.playback.back_chaining_guidance')}"
+    return message
 
 
 def set_cursor_from_web(editor: Any, deps: Any) -> None:

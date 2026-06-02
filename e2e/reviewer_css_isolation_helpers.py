@@ -221,21 +221,21 @@ def assert_reviewer_tooltip_css_isolated(reviewer) -> None:
     assert tooltip_style["textTransform"] != "uppercase"
 
 
-def assert_reviewer_segment_panel_css_isolated(reviewer, field_ord: int) -> None:
-    """Assert the segment panel keeps its own padding and sizing."""
+def assert_reviewer_back_chaining_panel_css_isolated(reviewer, field_ord: int) -> None:
+    """Assert the back-chaining panel keeps its own padding and sizing."""
     _shift_drag_region(reviewer, 0.25, 0.75, ord_=field_ord)
-    segment_style = wait_for_js_condition(
+    back_chaining_style = wait_for_js_condition(
         reviewer.web,
         f"""
         (() => {{
-          const entry = document.querySelector('[data-testid="aqe-selection-toolbar-practice-segments-{field_ord}"]');
+          const entry = document.querySelector('[data-testid="aqe-selection-toolbar-back-chaining-{field_ord}"]');
           if (!entry) return null;
-          const panelSelector = '[data-testid="aqe-segment-{field_ord}-panel"]';
+          const panelSelector = '[data-testid="aqe-back-chaining-{field_ord}-panel"]';
           if (!document.querySelector(panelSelector)) entry.click();
           const panel = document.querySelector(panelSelector);
-          const controls = panel?.querySelector('.aqe-segment-practice-controls');
-          const edit = panel?.querySelector('[data-testid="aqe-segment-{field_ord}-edit"]');
-          const clear = panel?.querySelector('[data-testid="aqe-segment-{field_ord}-clear"]');
+          const controls = panel?.querySelector('.aqe-back-chaining-controls');
+          const edit = panel?.querySelector('[data-testid="aqe-back-chaining-{field_ord}-edit"]');
+          const clear = panel?.querySelector('[data-testid="aqe-back-chaining-{field_ord}-clear"]');
           if (!panel || !controls || !edit || !clear) return null;
           const panelStyle = getComputedStyle(panel);
           const controlsStyle = getComputedStyle(controls);
@@ -254,9 +254,9 @@ def assert_reviewer_segment_panel_css_isolated(reviewer, field_ord: int) -> None
         lambda value: isinstance(value, dict),
         timeout=5.0,
     )
-    assert segment_style["panelPaddingLeft"] == "6px"
-    assert segment_style["panelFontSize"] == "12px"
-    assert segment_style["controlsGap"] == "6px"
-    assert segment_style["editFontSize"] == "11px"
-    assert segment_style["editPaddingLeft"] == "8px"
-    assert segment_style["clearPaddingLeft"] == "0px"
+    assert back_chaining_style["panelPaddingLeft"] == "6px"
+    assert back_chaining_style["panelFontSize"] == "12px"
+    assert back_chaining_style["controlsGap"] == "6px"
+    assert back_chaining_style["editFontSize"] == "11px"
+    assert back_chaining_style["editPaddingLeft"] == "8px"
+    assert back_chaining_style["clearPaddingLeft"] == "0px"

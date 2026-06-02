@@ -3,14 +3,15 @@ import { describe, expect, it } from "vitest";
 import type { PlaybackRegion } from "../src/editor-inline/playback-model.js";
 import {
   chooseInitialActiveMarkerIndex,
+  defaultBackChainingMarkers,
   deriveActiveSuffix,
-  emptySegmentPracticeState,
+  emptyBackChainingState,
   markerNavigationAvailability,
   moveActiveMarkerIndex,
-  normalizeSegmentMarkers,
-  segmentControlAvailability,
-  toggleSegmentMarker,
-} from "../src/editor-inline/segment-practice-state.js";
+  normalizeBackChainingMarkers,
+  backChainingControlAvailability,
+  toggleBackChainingMarker,
+} from "../src/editor-inline/back-chaining-state.js";
 
 const baseRegion: PlaybackRegion = {
   endMs: 2200,
@@ -18,9 +19,9 @@ const baseRegion: PlaybackRegion = {
   startMs: 1000,
 };
 
-describe("editor inline segment practice state", () => {
+describe("editor inline back-chaining state", () => {
   it("sorts, clamps, and deduplicates markers inside the base region", () => {
-    expect(normalizeSegmentMarkers([1600.4, 100, 2200, 1600.2, 999.9, 1200], baseRegion)).toEqual([
+    expect(normalizeBackChainingMarkers([1600.4, 100, 2200, 1600.2, 999.9, 1200], baseRegion)).toEqual([
       1000,
       1200,
       1600,
@@ -28,15 +29,19 @@ describe("editor inline segment practice state", () => {
     ]);
   });
 
+  it("creates default markers from the selection start through two equally spaced suffix starts", () => {
+    expect(defaultBackChainingMarkers(baseRegion)).toEqual([1000, 1400, 1800]);
+  });
+
   it("adds a marker when no nearby marker exists", () => {
-    expect(toggleSegmentMarker([1200, 1900], 1500, baseRegion, 40)).toEqual({
+    expect(toggleBackChainingMarker([1200, 1900], 1500, baseRegion, 40)).toEqual({
       markersMs: [1200, 1500, 1900],
       removed: false,
     });
   });
 
   it("removes a nearby marker before adding a duplicate", () => {
-    expect(toggleSegmentMarker([1200, 1500, 1900], 1518, baseRegion, 40)).toEqual({
+    expect(toggleBackChainingMarker([1200, 1500, 1900], 1518, baseRegion, 40)).toEqual({
       markersMs: [1200, 1900],
       removed: true,
     });
@@ -68,8 +73,8 @@ describe("editor inline segment practice state", () => {
   });
 
   it("reports practice and navigation availability", () => {
-    const stopped = emptySegmentPracticeState();
-    expect(segmentControlAvailability(stopped)).toEqual({
+    const stopped = emptyBackChainingState();
+    expect(backChainingControlAvailability(stopped)).toEqual({
       canClear: false,
       canEdit: false,
       canNext: false,
@@ -83,7 +88,7 @@ describe("editor inline segment practice state", () => {
       baseRegion,
       markersMs: [1200, 1500, 1900],
     };
-    expect(segmentControlAvailability(ready)).toEqual({
+    expect(backChainingControlAvailability(ready)).toEqual({
       canClear: true,
       canEdit: true,
       canNext: true,
