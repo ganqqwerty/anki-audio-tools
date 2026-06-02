@@ -13,6 +13,10 @@ import {
   mountController,
 } from "./field-controller.js";
 import { logger } from "./logger.js";
+import {
+  installReviewerPanelTriggers,
+  reviewTargetIsOpen,
+} from "./reviewer-panel-trigger.js";
 import { audioSourceForNode } from "./sound-source.js";
 import type { EditorRuntimeConfig, FieldTarget } from "./types.js";
 import { installEditorWindowContract } from "./window-contract.js";
@@ -69,6 +73,7 @@ export function disposeEditorRuntime(): void {
 
 export function scan(config: EditorRuntimeConfig = window.__AQE_EDITOR_CONFIG__ ?? { audioFieldIndices: [] }): void {
   const reviewTargets = reviewFieldTargets();
+  installReviewerPanelTriggers(() => scan(config));
   if (reviewTargets.length) {
     reviewTargets.forEach((target) => mountNear(target));
     logger.debug("scan mounted review fields", { count: reviewTargets.length });
@@ -108,6 +113,7 @@ export function reviewFieldTargets(): FieldTarget[] {
     .map((node): FieldTarget | null => {
       const rawOrd = node.dataset.fieldOrd;
       const sourceFilename = node.dataset.aqeSourceFilename || audioSourceForNode(node);
+      if (!reviewTargetIsOpen(node)) return null;
       if (rawOrd === undefined || !/^\d+$/.test(rawOrd) || !sourceFilename) return null;
       return {
         node,

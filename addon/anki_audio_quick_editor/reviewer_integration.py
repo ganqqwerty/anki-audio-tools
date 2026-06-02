@@ -7,6 +7,7 @@ import logging
 import re
 from typing import Any
 
+import anki.hooks as anki_hooks
 from aqt import mw
 from aqt.qt import qconnect
 
@@ -16,11 +17,13 @@ from .editor_integration import editor_injection_script
 from .editor_media import audio_field_sources
 from .editor_runtime import SESSIONS
 from .editor_session import EditorSession, reset_for_note_load
-from .sound_refs import safe_media_basename
+from .sound_refs import is_supported_audio_filename, safe_media_basename
 
 logger = logging.getLogger(__name__)
 
 _AQE_REVIEW_TARGET_CLASS = "aqe-review-audio-target"
+_AQE_REVIEW_TRIGGER_CLASS = "aqe-review-audio-panel-trigger"
+_AQE_AUDIO_PANEL_FILTER = "aqe-audio-panel"
 _SOUND_RE = re.compile(r"\[sound:([^\]]+)\]", re.IGNORECASE)
 _ADAPTERS: dict[int, ReviewerEditorAdapter] = {}
 _BRIDGE_WRAPPED_ATTR = "_aqe_reviewer_bridge_wrapped"
@@ -67,6 +70,7 @@ class ReviewerEditorAdapter:
 
 def register_reviewer_hooks(gui_hooks: Any) -> None:
     """Register Reviewer hooks used by the add-on."""
+    anki_hooks.field_filter.append(_aqe_audio_panel_filter)
     gui_hooks.card_review_webview_did_init.append(_on_card_review_webview_did_init)
     gui_hooks.card_will_show.append(_on_card_will_show)
     gui_hooks.reviewer_did_show_question.append(_on_reviewer_did_show_card_side)
@@ -125,7 +129,27 @@ def _on_card_will_show(text: str, card: Any, kind: str) -> str:
     targets = _review_audio_targets(text, note, card=card, kind=kind)
     if not targets:
         return text
-    return text + "".join(_target_html(field_index, filename) for field_index, filename in targets)
+    existing_targets = _explicit_target_field_indices(text)
+    return text + "".join(
+        _target_html(field_index, filename)
+        for field_index, filename in targets
+        if field_index not in existing_targets
+    )
+
+
+def _aqe_audio_panel_filter(field_text: str, field_name: str, filter_name: str, ctx: Any) -> str:
+    """Render a Reviewer audio-panel trigger for an Anki card template field filter."""
+    if filter_name != _AQE_AUDIO_PANEL_FILTER:
+        return field_text
+    if not _reviewer_editor_enabled():
+        return ""
+    filename = _first_sound_filename(field_text)
+    if filename is None:
+        return ""
+    field_index = _template_field_index(ctx, field_name)
+    if field_index is None:
+        return ""
+    return _audio_panel_trigger_html(field_index, filename)
 
 
 def _on_reviewer_did_show_card_side(card: Any) -> None:
@@ -291,11 +315,85 @@ def _card_side_audio_filenames(card: Any | None, kind: str) -> set[str]:
 
 
 def _target_html(field_index: int, filename: str) -> str:
+    return _target_html_with_attrs(field_index, filename, "")
+
+
+def _target_html_with_attrs(field_index: int, filename: str, extra_attrs: str) -> str:
     return (
         f'<div class="{_AQE_REVIEW_TARGET_CLASS}" '
         f'data-field-ord="{int(field_index)}" '
-        f'data-aqe-source-filename="{html.escape(filename, quote=True)}"></div>'
+        f'data-aqe-source-filename="{html.escape(filename, quote=True)}"{extra_attrs}></div>'
     )
+
+
+def _audio_panel_trigger_html(field_index: int, filename: str) -> str:
+    target = _target_html_with_attrs(
+        field_index,
+        filename,
+        ' data-aqe-panel-trigger-target="true" data-aqe-panel-open="false"',
+    )
+    escaped_filename = html.escape(filename, quote=True)
+    return (
+        f'<button type="button" class="{_AQE_REVIEW_TRIGGER_CLASS}" '
+        f'data-testid="aqe-review-audio-panel-trigger-{int(field_index)}" '
+        f'data-field-ord="{int(field_index)}" '
+        f'data-aqe-source-filename="{escaped_filename}">{_SHOW_REVIEWER_EDITOR_LABEL}</button>'
+        f"{target}"
+    )
+
+
+def _first_sound_filename(text: str) -> str | None:
+    match = _SOUND_RE.search(text)
+    if match is None:
+        return None
+    filename = safe_media_basename(match.group(1))
+    return filename if is_supported_audio_filename(filename) else None
+
+
+def _template_field_index(ctx: Any, field_name: str) -> int | None:
+    note = _template_note(ctx)
+    if isinstance(field_name, str):
+        ordinal = _field_index_by_name(note, field_name)
+        if ordinal is not None:
+            return ordinal
+    ordinal = getattr(ctx, "field_ordinal", None)
+    if isinstance(ordinal, int):
+        return ordinal
+    return None
+
+
+def _template_note(ctx: Any) -> Any | None:
+    note = getattr(ctx, "note", None)
+    if callable(note):
+        try:
+            return note()
+        except TypeError:
+            return None
+    return note
+
+
+def _field_index_by_name(note: Any, field_name: str) -> int | None:
+    keys = getattr(note, "keys", None)
+    if callable(keys):
+        try:
+            return list(keys()).index(field_name)
+        except ValueError:
+            return None
+    fields = getattr(note, "fields", None)
+    field_names = getattr(note, "field_names", None)
+    if isinstance(fields, list) and isinstance(field_names, list):
+        try:
+            return field_names.index(field_name)
+        except ValueError:
+            return None
+    return None
+
+
+def _explicit_target_field_indices(text: str) -> set[int]:
+    return {
+        int(match)
+        for match in re.findall(r'class="[^"]*\baqe-review-audio-target\b[^"]*"[^>]*data-field-ord="(\d+)"', text)
+    }
 
 
 def _card_note(card: Any) -> Any | None:
