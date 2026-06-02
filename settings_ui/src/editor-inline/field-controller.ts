@@ -84,6 +84,10 @@ export function disposeAllControllers(): void {
 }
 
 function insertHostNearTarget(target: FieldTarget, host: HTMLElement): void {
+  if (target.node.classList.contains("aqe-review-audio-target")) {
+    target.node.append(host);
+    return;
+  }
   const parent = target.node.closest(".field-container")
     || target.node.closest(".field")
     || target.node.parentElement

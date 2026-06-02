@@ -80,7 +80,7 @@ def test_editor_injection_script_embeds_source_audio_metadata(
     )
     note = SimpleNamespace(fields=["[sound:clip.mp3]"])
     monkeypatch.setattr(
-        "anki_audio_quick_editor.editor_integration.probe_audio_metadata",
+        "anki_audio_quick_editor.editor_webview_injection.probe_audio_metadata",
         lambda _path, _config: SimpleNamespace(
             bit_rate=128000,
             sample_rate=44100,

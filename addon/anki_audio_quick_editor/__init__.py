@@ -286,6 +286,9 @@ def _setup_browser_integration() -> None:
 def _setup_reviewer_integration() -> None:
     """Register reviewer hooks for inline audio controls during learning."""
     import_module(f"{__name__}.reviewer_integration").register_reviewer_hooks(gui_hooks)
+    import_module(f"{__name__}.reviewer_template_filter_integration").register_reviewer_template_filter(
+        gui_hooks
+    )
 
 
 def _setup_menu() -> None:

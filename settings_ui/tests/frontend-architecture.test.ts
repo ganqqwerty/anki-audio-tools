@@ -132,6 +132,20 @@ describe("frontend architecture guardrails", () => {
     expect(offenders).toEqual([]);
   });
 
+  it("keeps reviewer panel trigger as a runtime-mounted selector client", () => {
+    const triggerSource = readFileSync(join(projectRoot, "src/editor-inline/reviewer-panel-trigger.ts"), "utf-8");
+    const runtimeSource = readFileSync(join(projectRoot, "src/editor-inline/runtime.ts"), "utf-8");
+    const selectorSource = readFileSync(join(projectRoot, "src/editor-inline/dom-selectors.ts"), "utf-8");
+
+    expect(triggerSource).not.toMatch(/document\.querySelector/);
+    expect(triggerSource).toContain('from "./dom-selectors.js"');
+    expect(triggerSource).not.toContain('from "./runtime.js"');
+    expect(runtimeSource).toContain("installReviewerPanelTriggers");
+    expect(runtimeSource).toContain("reviewTargetIsOpen");
+    expect(selectorSource).toContain("allReviewerPanelTriggers");
+    expect(selectorSource).toContain("reviewerPanelTargetForTrigger");
+  });
+
   it("keeps persisted settings UI and per-field editor split state separated", () => {
     const offenders = productionFiles()
       .map((path) => ({

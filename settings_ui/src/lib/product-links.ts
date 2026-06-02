@@ -20,6 +20,7 @@ export const PRODUCT_LINKS = {
     recordVoice: githubPagesPath("go/video-record-voice/"),
     share: githubPagesPath("go/video-share/"),
     speed: githubPagesPath("go/video-speed/"),
+    templateAudioPanel: githubPagesPath("go/video-template-audio-panel/"),
     volume: githubPagesPath("go/video-volume/"),
   },
   githubPages: GITHUB_PAGES_URL,

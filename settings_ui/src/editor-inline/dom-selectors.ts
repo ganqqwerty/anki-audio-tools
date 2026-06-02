@@ -92,12 +92,7 @@ export function reviewerPanelTargetForTrigger(trigger: HTMLButtonElement): HTMLE
   const ord = trigger.dataset.fieldOrd;
   const sourceFilename = trigger.dataset.aqeSourceFilename;
   if (!ord || !sourceFilename) return null;
-  return document.querySelector<HTMLElement>(
-    `.aqe-review-audio-target[data-field-ord="${cssEscape(ord)}"][data-aqe-source-filename="${cssEscape(sourceFilename)}"]`,
-  );
-}
-
-function cssEscape(value: string): string {
-  if (globalThis.CSS?.escape) return globalThis.CSS.escape(value);
-  return value.replace(/["\\]/g, "\\$&");
+  return Array.from(
+    document.querySelectorAll<HTMLElement>(`.aqe-review-audio-target[data-field-ord="${ord}"]`),
+  ).find((target) => target.dataset.aqeSourceFilename === sourceFilename) ?? null;
 }

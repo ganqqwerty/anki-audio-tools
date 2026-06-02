@@ -156,6 +156,20 @@ def _wait_for_no_controls(web) -> None:
     )
 
 
+def _wait_for_template_target_controls(web, field_ord: int) -> None:
+    wait_for_js_condition(
+        web,
+        (
+            "document.querySelector("
+            f"'.aqe-review-audio-target[data-field-ord=\"{field_ord}\"] "
+            f".aqe-controls[data-aqe-field-ord=\"{field_ord}\"]'"
+            ") !== null"
+        ),
+        lambda value: value is True,
+        timeout=5.0,
+    )
+
+
 def _menu_action(menu: QMenu, label: str):
     for action in menu.actions():
         if action.text() == label:
@@ -237,6 +251,7 @@ def test_reviewer_audio_panel_template_filter_opens_controls(anki_mw, ffmpeg_con
         timeout=5.0,
     )
     _wait_for_controls(reviewer.web)
+    _wait_for_template_target_controls(reviewer.web, field_ord)
     wait_for_js_condition(
         reviewer.web,
         f"document.querySelector({(_button_selector('aqe:play', field_ord))!r}) !== null",
@@ -244,6 +259,82 @@ def test_reviewer_audio_panel_template_filter_opens_controls(anki_mw, ffmpeg_con
         timeout=5.0,
     )
     _cleanup_reviewer_session(reviewer)
+
+
+def test_reviewer_audio_panel_template_filter_opens_front_field_controls(
+    anki_mw,
+    ffmpeg_config,
+) -> None:
+    _media_dir, _source, note, deck_id, field_ord = _prepare_reviewer_note(
+        anki_mw,
+        ffmpeg_config,
+        "reviewer_template_filter_front_source.wav",
+        audio_field="Front",
+        answer_template="{{FrontSide}}<hr id=answer>{{aqe-audio-panel:Front}}{{Back}}",
+    )
+    reviewer = _open_reviewer_for_note(anki_mw, note, deck_id)
+    _wait_for_no_controls(reviewer.web)
+
+    _show_answer(reviewer)
+    _wait_for_no_controls(reviewer.web)
+    wait_for_js_condition(
+        reviewer.web,
+        f"document.querySelector('[data-testid=\"aqe-review-audio-panel-trigger-{field_ord}\"]') !== null",
+        lambda value: value is True,
+        timeout=5.0,
+    )
+
+    click_selector(
+        reviewer.web,
+        f'[data-testid="aqe-review-audio-panel-trigger-{field_ord}"]',
+        timeout=5.0,
+    )
+    _wait_for_controls(reviewer.web)
+    _wait_for_template_target_controls(reviewer.web, field_ord)
+    wait_for_js_condition(
+        reviewer.web,
+        f"document.querySelector({(_button_selector('aqe:play', field_ord))!r}) !== null",
+        lambda value: value is True,
+        timeout=5.0,
+    )
+    _cleanup_reviewer_session(reviewer)
+
+
+def test_reviewer_audio_panel_template_filter_ignores_disabled_setting(
+    anki_mw,
+    ffmpeg_config,
+) -> None:
+    _media_dir, _source, note, deck_id, field_ord = _prepare_reviewer_note(
+        anki_mw,
+        ffmpeg_config,
+        "reviewer_template_filter_disabled_source.wav",
+        answer_template="{{FrontSide}}<hr id=answer>{{aqe-audio-panel:Back}}{{Back}}",
+    )
+    config = anki_mw.addonManager.getConfig(ADDON_NUMERIC_ID) or {}
+    config["enable_reviewer_editor"] = False
+    anki_mw.addonManager.writeConfig(ADDON_NUMERIC_ID, config)
+    reviewer = _open_reviewer_for_note(anki_mw, note, deck_id)
+    try:
+        _show_answer(reviewer)
+        _wait_for_no_controls(reviewer.web)
+        wait_for_js_condition(
+            reviewer.web,
+            f"document.querySelector('[data-testid=\"aqe-review-audio-panel-trigger-{field_ord}\"]') !== null",
+            lambda value: value is True,
+            timeout=5.0,
+        )
+        click_selector(
+            reviewer.web,
+            f'[data-testid="aqe-review-audio-panel-trigger-{field_ord}"]',
+            timeout=5.0,
+        )
+        _wait_for_controls(reviewer.web)
+        _wait_for_template_target_controls(reviewer.web, field_ord)
+    finally:
+        config = anki_mw.addonManager.getConfig(ADDON_NUMERIC_ID) or {}
+        config["enable_reviewer_editor"] = True
+        anki_mw.addonManager.writeConfig(ADDON_NUMERIC_ID, config)
+        _cleanup_reviewer_session(reviewer)
 
 
 def test_reviewer_audio_editor_answer_workflow(anki_mw, ffmpeg_config) -> None:

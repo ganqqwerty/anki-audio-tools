@@ -260,6 +260,7 @@ _GUI_HOOK_NAMES = (
     "editor_did_init",
     "editor_will_load_note",
     "card_review_webview_did_init",
+    "card_layout_will_show",
     "card_will_show",
     "reviewer_did_show_question",
     "reviewer_did_show_answer",
