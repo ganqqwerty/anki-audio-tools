@@ -16,6 +16,7 @@ import {
   setCursor,
 } from "./actions.js";
 import { cursorMsFromEvent, graphPixelBounds, svgViewBoxScale } from "./plot.js";
+import { segmentPracticeControlsForVisualizer } from "./segment-practice-dom.js";
 import { applyVisualizerTimeViewport } from "./viewport-actions.js";
 import { readVisualizerTargetDurationMs, readVisualizerTimeViewport } from "./visualizer-state.js";
 import type {
@@ -156,6 +157,7 @@ export function graphStateForTest(ord: number): GraphStateForTest | null {
   const spinner = visualizer.closest<HTMLElement>(".aqe-controls")?.querySelector<HTMLElement>(".aqe-spinner")
     ?? visualizer.querySelector<HTMLElement>(".aqe-spinner");
   const viewport = readVisualizerTimeViewport(visualizer);
+  const segment = segmentPracticeControlsForVisualizer(visualizer);
   return {
     active: visualizer.dataset.graphActive === "true",
     busy: visualizer.dataset.graphBusy === "true",
@@ -211,6 +213,22 @@ export function graphStateForTest(ord: number): GraphStateForTest | null {
       ? selectionToolbarPreview
       : "none",
     selectionToolbarTopPx: selectionToolbar ? cssPixelNumber(selectionToolbar.style.top) : null,
+    segmentActiveEndMs: segment.activeSuffixEndMs,
+    segmentActiveMarkerIndex: segment.activeMarkerIndex,
+    segmentActiveStartMs: segment.activeSuffixStartMs,
+    segmentBaseEndMs: segment.baseEndMs,
+    segmentBaseStartMs: segment.baseStartMs,
+    segmentCanClear: segment.canClear,
+    segmentCanEdit: segment.canEdit,
+    segmentCanNext: segment.canNext,
+    segmentCanPractice: segment.canPractice,
+    segmentCanPrevious: segment.canPrevious,
+    segmentEditing: segment.editing,
+    segmentMarkerVisibleXs: segment.visibleMarkers.map((marker) => marker.x),
+    segmentMarkersMs: segment.markersMs,
+    segmentPracticeState: segment.practiceState,
+    segmentVisibleActiveRangeEndX: segment.visibleActiveRange?.endX ?? null,
+    segmentVisibleActiveRangeStartX: segment.visibleActiveRange?.startX ?? null,
     playbackStartMs: Number(visualizer.dataset.playbackStartMs || "0"),
     playbackEndMs: Number(visualizer.dataset.playbackEndMs || "0"),
     playbackRegionMode: visualizer.dataset.playbackRegionMode === "selection" ? "selection" : "full",

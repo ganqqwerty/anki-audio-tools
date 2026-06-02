@@ -14,6 +14,7 @@
   import { PLOT } from "./plot.js";
   import { syncRecordingControls } from "./recording-actions.js";
   import { handleVisualizerKeyDown } from "./region-delete.js";
+  import { handleSegmentMarkerPointerDown, installSegmentPracticeHandlers } from "./segment-practice-controller.js";
   import SelectionToolbar from "./SelectionToolbar.svelte";
   import TimeViewportScroller from "./TimeViewportScroller.svelte";
   import type { FieldTarget } from "./types.js";
@@ -66,6 +67,7 @@
     const visualizer = visualizerForOrd(target.ord);
     if (!visualizer) return;
     const stopGraphLayoutObserver = installGraphLayoutObserver(visualizer);
+    const stopSegmentPracticeHandlers = installSegmentPracticeHandlers(visualizer);
     resetAudioClockState(visualizer);
     initializePlaybackRegionState(visualizer);
     installAudioClockHandlers(visualizer);
@@ -73,7 +75,10 @@
     configureAudioClock(visualizer, target.sourceFilename || "");
     syncRecordingControls(target.ord);
     notifyPostEditPlaybackReady(target.ord, target.sourceFilename || "");
-    return stopGraphLayoutObserver;
+    return () => {
+      stopGraphLayoutObserver();
+      stopSegmentPracticeHandlers();
+    };
   });
 </script>
 
@@ -108,6 +113,12 @@
   data-repeat-enabled={repeatDefault ? "true" : "false"}
   data-repeat-pause-seconds={repeatPauseDefault}
   data-repeat-pause-waiting="false"
+  data-segment-active-marker-index=""
+  data-segment-base-end-ms=""
+  data-segment-base-start-ms=""
+  data-segment-editing="false"
+  data-segment-markers-ms=""
+  data-segment-practice-state="stopped"
   data-testid={`aqe-graph-${target.ord}`}
   role="button"
   aria-label={t("editor.graph.aria")}
@@ -230,6 +241,14 @@
         <line x1="-3" x2="3" y1="10" y2="10"></line>
       </g>
     </svg>
+    <button
+      type="button"
+      class="aqe-segment-marker-row"
+      data-testid={`aqe-segment-marker-row-${target.ord}`}
+      aria-label={t("editor.segment.marker_row_aria")}
+      hidden
+      onpointerdown={(event) => handleSegmentMarkerPointerDown(event, target.ord)}
+    ></button>
     <div class="aqe-css-cursor" data-testid={`aqe-css-cursor-${target.ord}`} aria-hidden="true">
       <div class="aqe-css-cursor-line"></div>
       <div class="aqe-css-cursor-flag">

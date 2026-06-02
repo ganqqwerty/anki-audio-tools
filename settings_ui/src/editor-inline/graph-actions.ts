@@ -91,7 +91,7 @@ function prepareGraphRequest(ord: number): boolean {
   stopProgressClock(visualizer, { clearAudio: true });
   resetLearnerRecordingState(ord);
   renderGraphRequested(visualizer);
-  clearSelection(visualizer);
+  clearSelection(visualizer, { origin: "system" });
   setCursor(visualizer, 0, false);
   setCommandButtonLabel(ord, "aqe:analyze", "Redraw");
   setVisualizerStatus(ord, t("editor.status.analyzing"), "processing");
@@ -140,7 +140,7 @@ export function setVisualizer(ord: number, rawTrack: ProsodyPayload, cursorMs: n
     window.__aqePendingGraphRedrawField = null;
     window.__aqePendingGraphRedrawSource = null;
   }
-  setSelection(visualizer, 0, track.durationMs || 0, { updateCursor: false });
+  setSelection(visualizer, 0, track.durationMs || 0, { origin: "system", updateCursor: false });
   configureAudioClock(visualizer, track.sourceFilename || "");
   setCommandButtonLabel(ord, "aqe:analyze", "Redraw");
   setCursor(visualizer, cursorMs || 0, false, { updateAnchor: false });
@@ -237,7 +237,7 @@ export function prepareForNewNote(): void {
     visualizer.dataset.playbackLoop = "false";
     visualizer.dataset.progressClockMode = "stopped";
     setRepeatEnabled(visualizer, repeatDefaultFromConfig());
-    clearSelection(visualizer);
+    clearSelection(visualizer, { origin: "system" });
     resetVisualizerPlot(visualizer);
     resetCursorProjection(visualizer);
     resetLearnerRecordingState(ord);

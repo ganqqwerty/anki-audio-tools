@@ -10,6 +10,7 @@ import {
   playbackStateFor,
   stopProgressClock,
 } from "./playback-actions.js";
+import { pauseSegmentPracticeForNormalPlay } from "./segment-practice-controller.js";
 import type { EditorCommand, EditorCommandPayload, VisualizerElement } from "./types.js";
 import { anyBusy, setControlsBusy } from "./control-actions.js";
 
@@ -25,6 +26,9 @@ export function send(
   logger.info("command dispatched", { command, ord });
   if (command === "aqe:analyze") {
     requestGraph(ord, true, payload?.graphSettings);
+    return;
+  }
+  if (command === "aqe:play" && pauseSegmentPracticeForNormalPlay(ord)) {
     return;
   }
   if (command === "aqe:play" && handleHtmlPlaybackCommand(ord)) {

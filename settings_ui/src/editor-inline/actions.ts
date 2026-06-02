@@ -19,6 +19,7 @@ import {
   shouldTreatSelectionGestureAsClick as isClickLikeSelectionGesture,
   type SelectionResizeEdge,
 } from "./selection-state.js";
+import { notifySelectionChanged, type SelectionMutationOrigin } from "./selection-events.js";
 import {
   clearSelection as clearSelectionFromController,
   clearSelectionDraft as clearSelectionDraftFromController,
@@ -197,18 +198,20 @@ export function setSelectionDraft(
 
 export function commitSelectionDraft(
   visualizer: VisualizerElement,
-  options: { updateCursor?: boolean } = {},
+  options: { origin?: SelectionMutationOrigin; updateCursor?: boolean } = {},
 ): boolean {
   const committed = commitSelectionDraftFromController(visualizer, selectionControllerDependencies(), options);
+  if (committed) notifySelectionChanged(visualizer, options.origin ?? "user");
   syncSelectionToolbar(visualizer);
   return committed;
 }
 
 export function clearSelection(
   visualizer: VisualizerElement,
-  options: { resetPlaybackRegion?: boolean } = {},
+  options: { origin?: SelectionMutationOrigin; resetPlaybackRegion?: boolean } = {},
 ): void {
   clearSelectionFromController(visualizer, options);
+  notifySelectionChanged(visualizer, options.origin ?? "user");
   syncSelectionToolbar(visualizer);
 }
 
@@ -216,9 +219,10 @@ export function setSelection(
   visualizer: VisualizerElement,
   startMs: number,
   endMs: number,
-  options: { updateCursor?: boolean } = {},
+  options: { origin?: SelectionMutationOrigin; updateCursor?: boolean } = {},
 ): boolean {
   const selected = setSelectionFromController(visualizer, startMs, endMs, selectionControllerDependencies(), options);
+  if (selected) notifySelectionChanged(visualizer, options.origin ?? "user");
   syncSelectionToolbar(visualizer);
   return selected;
 }
@@ -230,7 +234,7 @@ export function initializePlaybackRegionState(visualizer: VisualizerElement): vo
   visualizer.dataset.playbackResetCursorMs = "0";
   visualizer.dataset.playbackLoop = repeatDefaultFromConfig() ? "true" : "false";
   setRepeatEnabled(visualizer, repeatDefaultFromConfig());
-  clearSelection(visualizer, { resetPlaybackRegion: false });
+  clearSelection(visualizer, { origin: "system", resetPlaybackRegion: false });
 }
 
 export function shouldTreatSelectionGestureAsClick(

@@ -5,6 +5,7 @@
   import EditorCommandIcon from "./EditorCommandIcon.svelte";
   import { openEditorExternalLink } from "./external-links.js";
   import { PRODUCT_LINKS } from "../lib/product-links.js";
+  import PlayPracticeOptions from "./PlayPracticeOptions.svelte";
   import SplitDefaultSaveButton from "./SplitDefaultSaveButton.svelte";
   import { setRepeatEnabledForOrd, setRepeatPauseSecondsForOrd, send } from "./actions.js";
   import { sendSplitDefaultSaveRequest } from "./bridge.js";
@@ -254,6 +255,7 @@
           </button>
         {/each}
       </div>
+      <PlayPracticeOptions {target} />
       <div class="aqe-split-popover-footer">
         <AqeTooltip>
           {#snippet trigger({ props })}

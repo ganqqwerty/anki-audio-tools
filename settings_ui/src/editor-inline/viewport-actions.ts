@@ -34,6 +34,7 @@ export function redrawVisualizerForCurrentViewport(visualizer: VisualizerElement
     readVisualizerCursorMs(visualizer),
     readVisualizerDurationMs(visualizer),
   );
+  visualizer.dispatchEvent(new CustomEvent("aqe-viewport-rendered", { bubbles: false }));
 }
 
 export function ensurePlaybackCursorVisible(visualizer: VisualizerElement, cursorMs: number): boolean {

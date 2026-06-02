@@ -247,3 +247,22 @@
   justify-content: flex-start;
   width: fit-content;
 }
+
+.aqe-segment-practice-header {
+  border-top: 1px solid var(--aqe-border-color);
+  margin-top: 4px;
+  padding-top: 10px;
+}
+
+.aqe-segment-practice-controls {
+  display: grid;
+  gap: 6px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.aqe-segment-practice-button {
+  justify-content: center;
+  min-height: 28px;
+  min-width: 0;
+  padding-inline: 8px;
+}

@@ -14,6 +14,7 @@ import type {
   GraphVoiceRange,
 } from "./graph-settings.js";
 import type { PlaybackProgressPlan } from "./playback-progress-clock.js";
+import type { SegmentPracticeState } from "./segment-practice-state.js";
 
 export type EditorCommand = SharedEditorCommand;
 
@@ -317,6 +318,22 @@ export interface GraphStateForTest {
   selectionToolbarPlayState: "pause" | "play";
   selectionToolbarPreview: "none" | "region" | "rest";
   selectionToolbarTopPx: number | null;
+  segmentActiveEndMs: number | null;
+  segmentActiveMarkerIndex: number | null;
+  segmentActiveStartMs: number | null;
+  segmentBaseEndMs: number | null;
+  segmentBaseStartMs: number | null;
+  segmentCanClear: boolean;
+  segmentCanEdit: boolean;
+  segmentCanNext: boolean;
+  segmentCanPractice: boolean;
+  segmentCanPrevious: boolean;
+  segmentEditing: boolean;
+  segmentMarkerVisibleXs: number[];
+  segmentMarkersMs: number[];
+  segmentPracticeState: "paused" | "playing" | "stopped";
+  segmentVisibleActiveRangeEndX: number | null;
+  segmentVisibleActiveRangeStartX: number | null;
   sourceFilename: string;
   spinnerVisible: boolean;
   timecodeFlagCurrent: string;
@@ -355,6 +372,7 @@ export type VisualizerElement = HTMLElement & {
   __aqeLiveProgressMs?: number;
   __aqePlaybackGeneration?: number;
   __aqePlaybackPlan?: PlaybackProgressPlan;
+  __aqeSegmentPracticeState?: SegmentPracticeState;
   __aqeLearnerTrack?: NormalizedProsodyTrack;
   __aqeRecordingCursorFrame?: number | null;
   __aqeRecordingStartedAt?: number | null;

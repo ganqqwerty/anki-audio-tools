@@ -78,6 +78,50 @@
   width: 100%;
 }
 
+.aqe-segment-marker-row {
+  background: transparent;
+  border: 0;
+  bottom: -14px;
+  height: 12px;
+  margin: 0;
+  padding: 0;
+  position: absolute;
+  z-index: 3;
+}
+
+.aqe-segment-marker-row[hidden] {
+  display: none;
+}
+
+.aqe-segment-base-range,
+.aqe-segment-active-range,
+.aqe-segment-marker {
+  position: absolute;
+}
+
+.aqe-segment-base-range {
+  background: color-mix(in srgb, Highlight 16%, transparent);
+  border-radius: 999px;
+  height: 3px;
+  top: 5px;
+}
+
+.aqe-segment-active-range {
+  background: color-mix(in srgb, Highlight 38%, transparent);
+  border-radius: 999px;
+  height: 5px;
+  top: 4px;
+}
+
+.aqe-segment-marker {
+  background: currentColor;
+  border-radius: 999px;
+  height: 12px;
+  top: 0;
+  transform: translateX(-50%);
+  width: 2px;
+}
+
 .aqe-visualizer:focus {
   outline: none;
 }
