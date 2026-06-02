@@ -17,6 +17,7 @@ This feature is a practice aid only. It must not modify media, note fields, conf
 The inline editor already has the important primitives:
 
 - Graph selection creates a committed playback region.
+- Graph zoom uses a per-visualizer time viewport and maps graph pointer positions through the current visible viewport.
 - Selected-region playback uses existing Play behavior, repeat, repeat pause, progress clocks, and Python playback requests.
 - Region state is stored per visualizer and is already scoped by field.
 - The Play split menu owns repeat-related controls.
@@ -106,9 +107,12 @@ The segment section contains:
 The marker row lives under the graph and is the direct editing surface:
 
 - It aligns horizontally with the graph plot area.
+- It uses the current graph time viewport for click-to-time conversion and marker positioning.
 - It shows marker ticks at their time positions.
 - It shades the active suffix from the active marker to `baseRegion.endMs`.
 - Markers cannot be placed outside `baseRegion`.
+- Markers outside the current zoom viewport remain in state but are not shown until panning or zooming brings them back into view.
+- If `baseRegion` extends beyond the current zoom viewport, the row clips the visible phrase/active-suffix shading to the viewport while preserving the full stored `baseRegion`.
 - A click close to an existing marker removes that marker; otherwise the click adds one.
 
 Practice requires at least one marker and a valid `baseRegion`. With no valid phrase selection or no markers, Practice remains disabled or reports a concise status.
@@ -123,6 +127,7 @@ Practice behavior:
 
 - Starting Practice chooses the rightmost marker by default.
 - It sets the visible selection to `[marker, baseRegion.endMs]`.
+- It may pan or zoom the graph viewport only through the existing viewport helpers. It must not replace `baseRegion` when the viewport changes.
 - It starts selected-region playback with repeat enabled for the practice loop.
 - It reuses the existing repeat pause setting from the Play menu.
 - It does not add a separate segment pause setting.
@@ -144,7 +149,7 @@ Expected modules:
 - `segment-practice-controller.ts`: coordinates marker-row gestures, Play menu commands, selection updates, mutual exclusion with normal playback, and practice state transitions.
 - `EditorControls.svelte` or a small child component: renders the marker row under the visualizer and wires pointer events.
 - `PlaySplitButton.svelte` and split menu state modules: add the segment controls to the existing Play menu.
-- `visualizer-renderer.ts` or related state helpers: publish marker-row geometry and active suffix classes without shifting the graph layout.
+- `time-viewport.ts`, `plot.ts`, `visualizer-renderer.ts`, or related state helpers: reuse viewport-aware millisecond/pixel conversion, publish marker-row geometry, and apply active suffix classes without shifting the graph layout.
 - `test-contract.ts`: expose marker state, base region, active suffix, and practice state for e2e assertions.
 
 Existing playback modules continue to own actual playback requests, progress clocks, repeat wrapping, pause/resume, and native/html routing. Practice should update the normal selection before invoking existing playback actions.
@@ -163,16 +168,19 @@ When editing starts:
 When the marker row is clicked:
 
 1. Convert the click position to milliseconds.
-2. Clamp to `baseRegion`.
-3. Remove a nearby marker or add a new marker.
-4. Sort and deduplicate markers.
-5. Redraw the row and update menu button availability.
+2. Use the current visualizer time viewport for the conversion.
+3. Clamp to `baseRegion`.
+4. Reject or no-op if the click maps outside the visible portion of `baseRegion`.
+5. Remove a nearby marker or add a new marker.
+6. Sort and deduplicate markers.
+7. Redraw the row and update menu button availability.
 
-When the committed graph selection changes manually:
+When the graph viewport changes through zoom, pan, fit, zoom-to-selection, or playback-follow behavior:
 
-1. If the change did not come from the practice controller, stop practice state.
-2. Clear markers and `activeMarkerIndex` for that field/source.
-3. Treat the new selection as eligible for a fresh `baseRegion` only when the learner re-enters segment editing or starts a new setup.
+1. Keep `baseRegion`, markers, and `activeMarkerIndex` unchanged.
+2. Recompute marker row positions from marker times using the new viewport.
+3. Hide marker ticks and suffix shading portions that fall outside the visible viewport.
+4. Keep practice running unless the underlying field/source/selection state became invalid.
 
 When Practice starts:
 
@@ -187,13 +195,22 @@ When Next or Previous runs:
 1. Move the active marker index if possible.
 2. Derive the new suffix.
 3. Set the normal visible selection to that suffix.
-4. Restart or continue selected-region repeat playback for the new bounds.
+4. If the new suffix is partly or fully outside the current viewport, bring it into view using existing viewport behavior rather than changing stored marker times.
+5. Restart or continue selected-region repeat playback for the new bounds.
+
+When the committed graph selection changes manually:
+
+1. If the change did not come from the practice controller, stop practice state.
+2. Clear markers and `activeMarkerIndex` for that field/source.
+3. Treat the new selection as eligible for a fresh `baseRegion` only when the learner re-enters segment editing or starts a new setup.
 
 When normal Play is requested during Practice:
 
 1. Pause practice state.
 2. Leave the visible suffix selection in place.
 3. Do not start a separate normal playback from the same click.
+
+The marker row must never use full-duration ratios when the graph is zoomed. Time-to-x and x-to-time calculations should go through the same viewport-aware helpers used by selection, cursor, and zoom behavior.
 
 ## Error Handling
 
@@ -224,6 +241,9 @@ Add tests for:
 - marker sorting and deduplication,
 - marker clamping inside `baseRegion`,
 - rejecting markers outside `baseRegion`,
+- viewport-aware click-to-marker conversion,
+- viewport-aware marker-to-x positioning,
+- hiding markers outside the current viewport without deleting them,
 - deriving suffix region from active marker to `baseRegion.endMs`,
 - choosing the rightmost marker as the initial practice marker,
 - Next moving left toward longer suffixes,
@@ -245,9 +265,13 @@ Add Svelte or DOM-level tests where practical for:
 Add e2e coverage for:
 
 - selecting a phrase, enabling segment editing, and placing markers with left click in the marker row,
+- zooming into the phrase and placing markers at the correct zoomed time positions,
+- panning or zooming after placing markers without losing marker state,
+- clipping marker ticks and active suffix shading when part of `baseRegion` is outside the viewport,
 - clicking an existing marker removes it,
 - Practice starts from the rightmost marker,
 - Practice sets the visible selection to marker-to-phrase-end,
+- Practice or Next/Previous brings the active suffix into view when needed without changing marker times,
 - practice playback loops using the existing repeat pause setting,
 - Next moves one marker left and expands the selected playback region,
 - Previous moves one marker right and shrinks the selected playback region,
