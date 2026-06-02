@@ -34,6 +34,7 @@ const GO_VIDEO_PATHS = new Set([
   "/anki-audio-tools/go/video-shorten-pauses/",
   "/anki-audio-tools/go/video-speed/",
   "/anki-audio-tools/go/video-record-voice/",
+  "/anki-audio-tools/go/video-template-audio-panel/",
   "/anki-audio-tools/go/video-volume/",
   "/anki-audio-tools/go/video-batch-processing/",
 ]);
@@ -74,7 +75,7 @@ describe("product links", () => {
     const uniqueLinks = new Set(DOCUMENTATION_SECTION_LINKS);
 
     expect(uniqueLinks.size).toBe(DOCUMENTATION_SECTION_LINKS.length);
-    expect(DOCUMENTATION_SECTION_LINKS).toHaveLength(11);
+    expect(DOCUMENTATION_SECTION_LINKS).toHaveLength(12);
 
     for (const link of DOCUMENTATION_SECTION_LINKS) {
       const url = new URL(link);

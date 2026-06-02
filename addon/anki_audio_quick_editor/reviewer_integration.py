@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import html
 import logging
 import re
 from typing import Any
@@ -12,15 +11,18 @@ from aqt.qt import qconnect
 
 from .editor_actions import BRIDGE_COMMANDS, CMD_COMMAND_PAYLOAD
 from .editor_callbacks import _handle_bridge_command
-from .editor_integration import editor_injection_script
 from .editor_media import audio_field_sources
 from .editor_runtime import SESSIONS
 from .editor_session import EditorSession, reset_for_note_load
+from .editor_webview_injection import editor_injection_script
+from .reviewer_audio_targets import (
+    explicit_target_field_indices,
+    target_html,
+)
 from .sound_refs import safe_media_basename
 
 logger = logging.getLogger(__name__)
 
-_AQE_REVIEW_TARGET_CLASS = "aqe-review-audio-target"
 _SOUND_RE = re.compile(r"\[sound:([^\]]+)\]", re.IGNORECASE)
 _ADAPTERS: dict[int, ReviewerEditorAdapter] = {}
 _BRIDGE_WRAPPED_ATTR = "_aqe_reviewer_bridge_wrapped"
@@ -29,6 +31,7 @@ _WRAPPER_BRIDGE_ATTR = "_aqe_reviewer_bridge_command"
 _SHOW_REVIEWER_EDITOR_LABEL = "Show audio editor"
 _HIDE_REVIEWER_EDITOR_LABEL = "Hide audio editor"
 _reviewer_editor_visible = True
+_EXPLICIT_PANEL_CARD_KEYS: set[object] = set()
 
 
 class ReviewerEditorAdapter:
@@ -117,6 +120,9 @@ def _on_card_review_webview_did_init(webview: Any, kind: Any) -> None:
 def _on_card_will_show(text: str, card: Any, kind: str) -> str:
     if kind != "reviewAnswer":
         return text
+    existing_targets = explicit_target_field_indices(text)
+    if existing_targets:
+        _EXPLICIT_PANEL_CARD_KEYS.add(_card_key(card))
     if not _reviewer_editor_enabled() or not _reviewer_editor_visible:
         return text
     note = _card_note(card)
@@ -125,17 +131,23 @@ def _on_card_will_show(text: str, card: Any, kind: str) -> str:
     targets = _review_audio_targets(text, note, card=card, kind=kind)
     if not targets:
         return text
-    return text + "".join(_target_html(field_index, filename) for field_index, filename in targets)
+    return text + "".join(
+        target_html(field_index, filename)
+        for field_index, filename in targets
+        if field_index not in existing_targets
+    )
 
 
 def _on_reviewer_did_show_card_side(card: Any) -> None:
-    if not _reviewer_editor_enabled() or not _reviewer_editor_visible:
-        _dispose_reviewer_frontend()
-        return
     reviewer = getattr(mw, "reviewer", None)
     if reviewer is None or getattr(reviewer, "card", None) is not card:
         return
     if not _reviewer_showing_answer(reviewer):
+        _dispose_reviewer_frontend()
+        return
+    if (
+        not _reviewer_editor_enabled() or not _reviewer_editor_visible
+    ) and not _card_has_explicit_panel_target(card):
         _dispose_reviewer_frontend()
         return
     adapter = _adapter_for_reviewer(reviewer)
@@ -149,6 +161,7 @@ def _on_reviewer_did_show_card_side(card: Any) -> None:
 
 def _on_reviewer_did_answer_card(reviewer: Any, card: Any, ease: int) -> None:
     logger.debug("disposing reviewer editor state after card answer: card=%r ease=%s", card, ease)
+    _EXPLICIT_PANEL_CARD_KEYS.discard(_card_key(card))
     adapter = _ADAPTERS.get(id(reviewer))
     if adapter is None:
         return
@@ -290,14 +303,6 @@ def _card_side_audio_filenames(card: Any | None, kind: str) -> set[str]:
     }
 
 
-def _target_html(field_index: int, filename: str) -> str:
-    return (
-        f'<div class="{_AQE_REVIEW_TARGET_CLASS}" '
-        f'data-field-ord="{int(field_index)}" '
-        f'data-aqe-source-filename="{html.escape(filename, quote=True)}"></div>'
-    )
-
-
 def _card_note(card: Any) -> Any | None:
     if not hasattr(card, "note"):
         return None
@@ -305,6 +310,15 @@ def _card_note(card: Any) -> Any | None:
         return card.note()
     except TypeError:
         return card.note
+
+
+def _card_key(card: Any) -> object:
+    key = getattr(card, "id", None)
+    return key if key is not None else id(card)
+
+
+def _card_has_explicit_panel_target(card: Any) -> bool:
+    return _card_key(card) in _EXPLICIT_PANEL_CARD_KEYS
 
 
 def _reviewer_editor_enabled() -> bool:

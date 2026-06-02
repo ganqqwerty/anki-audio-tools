@@ -129,6 +129,12 @@ CORE_CONTRACTS: dict[str, ModuleContract] = {
     ),
     "prosody_types": contract("prosody_types", layer=Layer.IMPORT_SAFE_CORE),
     "release_info": contract("release_info", layer=Layer.IMPORT_SAFE_CORE),
+    "reviewer_audio_targets": contract("reviewer_audio_targets", layer=Layer.IMPORT_SAFE_CORE),
+    "reviewer_template_filter": contract(
+        "reviewer_template_filter",
+        layer=Layer.IMPORT_SAFE_CORE,
+        allowed_addon_deps=("reviewer_audio_targets", "sound_refs"),
+    ),
     "runtime_archive": contract(
         "runtime_archive",
         layer=Layer.IMPORT_SAFE_CORE,
