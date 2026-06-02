@@ -84,6 +84,11 @@ export function setVisualizerPlaybackRegion(visualizer: VisualizerElement, regio
   visualizer.dataset.playbackStartMs = String(Math.round(region.startMs));
   visualizer.dataset.playbackEndMs = String(Math.round(region.endMs));
   visualizer.dataset.playbackRegionMode = region.mode;
+  visualizer.dataset.playbackResetCursorMs = String(Math.round(
+    region.mode === "selection"
+      ? region.startMs
+      : Number(visualizer.dataset.anchorMs || visualizer.dataset.cursorMs || "0"),
+  ));
 }
 
 function readOptionalMs(rawValue: string | undefined): number | null {

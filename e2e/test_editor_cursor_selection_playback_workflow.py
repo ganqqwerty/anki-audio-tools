@@ -195,9 +195,11 @@ def test_clearing_selection_while_paused_replays_full_audio_from_cursor(
             _normal_drag(editor, 0.45, 0.45)
             repositioned = _state(
                 editor,
-                lambda state: state["playbackState"] == "paused"
-                and state["cursorMs"] > 500
-                and state["cursorMs"] < 1300,
+                lambda state: all((
+                    state["playbackState"] == "paused",
+                    state["cursorMs"] > 500,
+                    state["cursorMs"] < 1300,
+                )),
             )
             _shift_click_region(editor, 0.45)
             cleared = _state(
@@ -259,12 +261,14 @@ def test_zoomed_selected_playback_pans_to_offscreen_selection_start(
             click_selector(editor.web, _button_selector("aqe:play"), timeout=5.0)
             followed = _wait_for_html_playback(
                 editor,
-                lambda state: state["playbackStartMs"] == 500
-                and state["selectionStartMs"] == 500
-                and state["selectionEndMs"] == 1300
-                and state["viewportStartMs"] <= 500
-                and state["viewportEndMs"] >= 500
-                and state["timecodeFlagVisible"] is True,
+                lambda state: all((
+                    state["playbackStartMs"] == 500,
+                    state["selectionStartMs"] == 500,
+                    state["selectionEndMs"] == 1300,
+                    state["viewportStartMs"] <= 500,
+                    state["viewportEndMs"] >= 500,
+                    state["timecodeFlagVisible"] is True,
+                )),
                 timeout=5.0,
             )
 

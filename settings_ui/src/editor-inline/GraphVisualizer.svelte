@@ -96,6 +96,8 @@
   data-playback-start-ms="0"
   data-playback-end-ms="0"
   data-playback-region-mode="full"
+  data-playback-reset-cursor-ms="0"
+  data-playback-loop={repeatDefault ? "true" : "false"}
   data-resume-requires-restart="false"
   data-selection-active="false"
   data-selection-start-ms=""

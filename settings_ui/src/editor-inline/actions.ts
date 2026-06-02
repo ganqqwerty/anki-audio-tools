@@ -227,6 +227,8 @@ export function initializePlaybackRegionState(visualizer: VisualizerElement): vo
   visualizer.dataset.playbackStartMs = "0";
   visualizer.dataset.playbackEndMs = String(Number(visualizer.dataset.durationMs || "0") || 0);
   visualizer.dataset.playbackRegionMode = "full";
+  visualizer.dataset.playbackResetCursorMs = "0";
+  visualizer.dataset.playbackLoop = repeatDefaultFromConfig() ? "true" : "false";
   setRepeatEnabled(visualizer, repeatDefaultFromConfig());
   clearSelection(visualizer, { resetPlaybackRegion: false });
 }

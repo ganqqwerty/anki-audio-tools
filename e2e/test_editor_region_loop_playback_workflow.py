@@ -262,10 +262,12 @@ def test_selected_repeat_restarts_from_repositioned_paused_cursor(
             _normal_drag(editor, 0.45, 0.45)
             repositioned = _state(
                 editor,
-                lambda state: state["playbackState"] == "paused"
-                and state["cursorMs"] > state["selectionStartMs"] + PLAYBACK_INTERVAL_TOLERANCE_MS
-                and state["cursorMs"] <= state["selectionEndMs"]
-                and state["resumeRequiresRestart"] is True,
+                lambda state: all((
+                    state["playbackState"] == "paused",
+                    state["cursorMs"] > state["selectionStartMs"] + PLAYBACK_INTERVAL_TOLERANCE_MS,
+                    state["cursorMs"] <= state["selectionEndMs"],
+                    state["resumeRequiresRestart"] is True,
+                )),
             )
             expected_restart_ms = repositioned["cursorMs"]
 

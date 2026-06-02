@@ -14,7 +14,16 @@ import {
   repeatPauseDelayMs,
   startPlaybackPlan,
 } from "./playback-plan-state.js";
-import type { PlaybackRegion } from "./playback-state.js";
+import {
+  planPlaybackBoundary,
+  planPlaybackPass,
+  playbackCompletionCursor,
+  type PlaybackEngine,
+  type PlaybackPass,
+  type PlaybackRegion,
+  type PlaybackRegionMode,
+  type PlaybackSnapshot,
+} from "./playback-model.js";
 import type { PlaybackState, VisualizerElement } from "./types.js";
 import {
   renderPlaybackCursor,
@@ -95,9 +104,19 @@ export function handlePlaybackBoundary(
   deps: PlaybackControllerDependencies,
   options: { forceAudioPlay?: boolean } = {},
 ): boolean {
-  if (nextMs < playbackEndMs(visualizer, deps)) return false;
-  if (deps.repeatEnabledFor(visualizer)) {
-    restartLoopPlayback(visualizer, deps, options);
+  const boundary = planPlaybackBoundary({
+    nextMs,
+    pass: activePlaybackPass(visualizer, deps),
+    repeat: deps.repeatEnabledFor(visualizer),
+    repeatPauseMs: repeatPauseDelayMs(visualizer),
+  });
+  if (boundary.kind === "continue") return false;
+  if (boundary.kind === "loop") {
+    if (boundary.repeatPauseMs > 0) {
+      scheduleRepeatLoopPlayback(visualizer, deps, options, boundary.pass, boundary.repeatPauseMs);
+    } else {
+      restartLoopPlaybackNow(visualizer, deps, options, boundary.pass);
+    }
     return true;
   }
   completePlayback(visualizer, deps);
@@ -106,16 +125,13 @@ export function handlePlaybackBoundary(
 
 export function completePlayback(visualizer: VisualizerElement, deps: PlaybackControllerDependencies): void {
   const ord = Number(visualizer.dataset.aqeFieldOrd || "0");
-  const region = deps.effectivePlaybackRegion(visualizer);
-  const anchorMs = visualizer.dataset.playbackRegionMode === "selection"
-    ? region.startMs
-    : Number(visualizer.dataset.anchorMs || "0");
+  const resetCursorMs = playbackCompletionCursor(activePlaybackPass(visualizer, deps));
   const preserveStatus = visualizer.dataset.preserveStatusOnPlaybackEnd === "true";
   stopProgressClock(visualizer, deps);
-  deps.setCursor(visualizer, anchorMs, false, { updateAnchor: false });
-  ensurePlaybackCursorVisible(visualizer, anchorMs);
+  deps.setCursor(visualizer, resetCursorMs, false, { updateAnchor: false });
+  ensurePlaybackCursorVisible(visualizer, resetCursorMs);
   if (audioClockReady(visualizer)) {
-    seekAudioClock(visualizer, anchorMs, Number(visualizer.dataset.durationMs || "0"));
+    seekAudioClock(visualizer, resetCursorMs, Number(visualizer.dataset.durationMs || "0"));
   }
   if (preserveStatus) {
     deps.restoreStatus(ord);
@@ -157,17 +173,29 @@ export function startManualProgressClock(
   startMs: number,
   deps: PlaybackControllerDependencies,
 ): void {
+  const durationMs = Number(visualizer.dataset.durationMs || "0");
+  const clampedStartMs = durationMs ? clampProgressMs(visualizer, startMs) : Math.max(0, Number(startMs) || 0);
+  const region = deps.effectivePlaybackRegion(visualizer);
+  const passStartMs = region.mode === "selection" ? region.startMs : clampedStartMs;
+  startManualPlaybackPass(visualizer, plannedPlaybackPass(visualizer, passStartMs, deps, region), deps, clampedStartMs);
+}
+
+function startManualPlaybackPass(
+  visualizer: VisualizerElement,
+  pass: PlaybackPass,
+  deps: PlaybackControllerDependencies,
+  clockStartMs: number = pass.startMs,
+): void {
   clearPlaybackFrame(visualizer);
   pauseAudioClock(visualizer);
   const durationMs = Number(visualizer.dataset.durationMs || "0");
   if (!durationMs) return;
-  const clampedStartMs = clampProgressMs(visualizer, startMs);
   visualizer.__aqeAudioClockFallback = true;
   visualizer.dataset.playbackState = "playing";
   visualizer.dataset.progressClockMode = "manual";
-  setPlaybackPass(visualizer, clampedStartMs, deps);
+  writePlaybackPass(visualizer, pass);
   deps.setPlaybackButtonLabel(visualizer, "Pause");
-  startPlaybackPlan(visualizer, clampedStartMs, playbackEndMs(visualizer, deps));
+  startPlaybackPlan(visualizer, clockStartMs, pass.endMs);
   paintProgressFromClock(visualizer, deps);
 }
 
@@ -183,7 +211,7 @@ export function startAudioProgressClock(
       options.onAudioPlayFailed?.();
       return;
     }
-    startManualProgressClock(visualizer, startMs, deps);
+    startManualPlaybackPass(visualizer, activePlaybackPass(visualizer, deps), deps);
     return;
   }
   visualizer.dataset.progressClockMode = "audio";
@@ -194,7 +222,7 @@ export function startAudioProgressClock(
       options.onAudioPlayFailed?.();
       return;
     }
-    startManualProgressClock(visualizer, startMs, deps);
+    startManualPlaybackPass(visualizer, activePlaybackPass(visualizer, deps), deps);
   };
   const startPainting = (): void => {
     if (visualizer.__aqePlaybackGeneration !== playGeneration) return;
@@ -231,7 +259,7 @@ export function startProgressClock(
   visualizer.dataset.playbackState = "playing";
   visualizer.dataset.playStartedAt = String(performance.now());
   visualizer.dataset.playStartMs = String(clampedStartMs);
-  setPlaybackPass(visualizer, clampedStartMs, deps);
+  const pass = setPlaybackPass(visualizer, clampedStartMs, deps);
   if (durationMs) {
     deps.setCursor(visualizer, clampedStartMs, false, { updateAnchor: false });
     ensurePlaybackCursorVisible(visualizer, clampedStartMs);
@@ -243,7 +271,7 @@ export function startProgressClock(
   logger.info("playback clock selected", { engine: selectedEngine || "auto", startMs: clampedStartMs });
   if (!durationMs) return;
   if (selectedEngine === "native") {
-    startManualProgressClock(visualizer, clampedStartMs, deps);
+    startManualPlaybackPass(visualizer, pass, deps);
     return;
   }
   if (audioClockReady(visualizer)) {
@@ -254,7 +282,7 @@ export function startProgressClock(
     options.onAudioPlayFailed?.();
     return;
   }
-  startManualProgressClock(visualizer, clampedStartMs, deps);
+  startManualPlaybackPass(visualizer, pass, deps);
 }
 
 export function pauseProgressClock(visualizer: VisualizerElement, deps: PlaybackControllerDependencies): void {
@@ -293,43 +321,27 @@ function setPlaybackPass(
   startMs: number,
   deps: PlaybackControllerDependencies,
   region: PlaybackRegion = deps.effectivePlaybackRegion(visualizer),
-): void {
-  visualizer.dataset.playbackStartMs = String(Math.round(startMs));
-  visualizer.dataset.playbackEndMs = String(Math.round(region.endMs));
-  visualizer.dataset.playbackRegionMode = region.mode;
+): PlaybackPass {
+  const pass = planPlaybackPass(playbackSnapshotForPass(visualizer, deps, region), startMs);
+  writePlaybackPass(visualizer, pass);
+  return pass;
 }
 
 function playbackEndMs(visualizer: VisualizerElement, deps: PlaybackControllerDependencies): number {
-  const region = deps.effectivePlaybackRegion(visualizer);
-  const endMs = Number(visualizer.dataset.playbackEndMs || "0") || region.endMs;
-  return Math.max(region.startMs, Math.min(endMs, Number(visualizer.dataset.durationMs || "0") || 0));
-}
-
-function restartLoopPlayback(
-  visualizer: VisualizerElement,
-  deps: PlaybackControllerDependencies,
-  options: { forceAudioPlay?: boolean } = {},
-): void {
-  const region = deps.effectivePlaybackRegion(visualizer);
-  const delayMs = repeatPauseDelayMs(visualizer);
-  if (delayMs > 0) {
-    scheduleRepeatLoopPlayback(visualizer, deps, options, region, delayMs);
-    return;
-  }
-  restartLoopPlaybackNow(visualizer, deps, options, region);
+  return activePlaybackPass(visualizer, deps).endMs;
 }
 
 function scheduleRepeatLoopPlayback(
   visualizer: VisualizerElement,
   deps: PlaybackControllerDependencies,
   options: { forceAudioPlay?: boolean },
-  region: PlaybackRegion,
+  pass: PlaybackPass,
   delayMs: number,
 ): void {
-  const loopStartMs = region.startMs;
+  const loopStartMs = pass.startMs;
   clearPlaybackFrame(visualizer);
   pauseAudioClock(visualizer);
-  setPlaybackPass(visualizer, loopStartMs, deps, region);
+  writePlaybackPass(visualizer, pass);
   visualizer.dataset.playStartedAt = String(performance.now());
   visualizer.dataset.playStartMs = String(loopStartMs);
   visualizer.dataset.playbackState = "playing";
@@ -346,7 +358,7 @@ function scheduleRepeatLoopPlayback(
       completePlayback(visualizer, deps);
       return;
     }
-    restartLoopPlaybackNow(visualizer, deps, { ...options, forceAudioPlay: true }, region);
+    restartLoopPlaybackNow(visualizer, deps, { ...options, forceAudioPlay: true }, pass);
   }, delayMs);
 }
 
@@ -354,11 +366,11 @@ function restartLoopPlaybackNow(
   visualizer: VisualizerElement,
   deps: PlaybackControllerDependencies,
   options: { forceAudioPlay?: boolean } = {},
-  region: PlaybackRegion = deps.effectivePlaybackRegion(visualizer),
+  pass: PlaybackPass = activePlaybackPass(visualizer, deps),
 ): void {
-  const loopStartMs = region.startMs;
+  const loopStartMs = pass.startMs;
   clearRepeatPauseTimer(visualizer);
-  setPlaybackPass(visualizer, loopStartMs, deps, region);
+  writePlaybackPass(visualizer, pass);
   visualizer.dataset.playStartedAt = String(performance.now());
   visualizer.dataset.playStartMs = String(loopStartMs);
   visualizer.dataset.playbackState = "playing";
@@ -368,18 +380,18 @@ function restartLoopPlaybackNow(
     && (visualizer.dataset.progressClockMode === "audio" || visualizer.dataset.playbackEngine === "html");
   if (visualizer.dataset.progressClockMode !== "audio" || !audioClockReady(visualizer)) {
     if (!canUseAudioClock) {
-      startManualProgressClock(visualizer, loopStartMs, deps);
+      startManualPlaybackPass(visualizer, pass, deps);
       return;
     }
     visualizer.dataset.progressClockMode = "audio";
   }
   if (!seekAudioClock(visualizer, loopStartMs, Number(visualizer.dataset.durationMs || "0"))) {
-    startManualProgressClock(visualizer, loopStartMs, deps);
+    startManualPlaybackPass(visualizer, pass, deps);
     return;
   }
   if (!options.forceAudioPlay && visualizer.dataset.progressClockMode === "audio") {
     clearPlaybackFrame(visualizer);
-    startPlaybackPlan(visualizer, loopStartMs, playbackEndMs(visualizer, deps));
+    startPlaybackPlan(visualizer, loopStartMs, pass.endMs);
     paintProgressFromClock(visualizer, deps);
     return;
   }
@@ -392,14 +404,87 @@ function restartLoopPlaybackNow(
       if (visualizer.__aqePlaybackGeneration !== playGeneration) return;
       if (visualizer.dataset.playbackState === "playing") {
         visualizer.dataset.progressClockMode = "audio";
-        startPlaybackPlan(visualizer, loopStartMs, playbackEndMs(visualizer, deps));
+        startPlaybackPlan(visualizer, loopStartMs, pass.endMs);
         paintProgressFromClock(visualizer, deps);
       }
     })
     .catch(() => {
       if (visualizer.__aqePlaybackGeneration !== playGeneration) return;
       if (visualizer.dataset.playbackState === "playing") {
-        startManualProgressClock(visualizer, loopStartMs, deps);
+        startManualPlaybackPass(visualizer, pass, deps);
       }
     });
+}
+
+function plannedPlaybackPass(
+  visualizer: VisualizerElement,
+  startMs: number,
+  deps: PlaybackControllerDependencies,
+  region: PlaybackRegion = deps.effectivePlaybackRegion(visualizer),
+): PlaybackPass {
+  return planPlaybackPass(playbackSnapshotForPass(visualizer, deps, region), startMs);
+}
+
+function playbackSnapshotForPass(
+  visualizer: VisualizerElement,
+  deps: PlaybackControllerDependencies,
+  region: PlaybackRegion,
+): PlaybackSnapshot {
+  return {
+    anchorMs: Number(visualizer.dataset.anchorMs || visualizer.dataset.cursorMs || "0"),
+    currentProgressMs: currentProgressMs(visualizer),
+    cursorMs: Number(visualizer.dataset.cursorMs || "0"),
+    durationMs: Number(visualizer.dataset.durationMs || "0") || 0,
+    engine: playbackEngineForDataset(visualizer.dataset.playbackEngine),
+    ord: Number(visualizer.dataset.aqeFieldOrd || "0"),
+    playbackState: playbackStateForDataset(visualizer.dataset.playbackState),
+    region,
+    repeat: deps.repeatEnabledFor(visualizer),
+    resumeRequiresRestart: visualizer.dataset.resumeRequiresRestart === "true",
+  };
+}
+
+function activePlaybackPass(visualizer: VisualizerElement, deps: PlaybackControllerDependencies): PlaybackPass {
+  const region = deps.effectivePlaybackRegion(visualizer);
+  const durationMs = Number(visualizer.dataset.durationMs || "0") || 0;
+  const regionMode = playbackRegionModeForDataset(visualizer.dataset.playbackRegionMode);
+  const fallbackResetCursorMs = regionMode === "selection"
+    ? region.startMs
+    : Number(visualizer.dataset.anchorMs || visualizer.dataset.cursorMs || "0");
+  const rawEndMs = readStoredMs(visualizer.dataset.playbackEndMs, region.endMs);
+  const endMs = durationMs > 0 ? Math.min(rawEndMs, durationMs) : rawEndMs;
+  return {
+    endMs: Math.round(Math.max(0, endMs)),
+    loop: visualizer.dataset.playbackLoop === "true",
+    regionMode,
+    resetCursorMs: Math.round(readStoredMs(visualizer.dataset.playbackResetCursorMs, fallbackResetCursorMs)),
+    startMs: Math.round(readStoredMs(visualizer.dataset.playbackStartMs, region.startMs)),
+  };
+}
+
+function writePlaybackPass(visualizer: VisualizerElement, pass: PlaybackPass): void {
+  visualizer.dataset.playbackStartMs = String(Math.round(pass.startMs));
+  visualizer.dataset.playbackEndMs = String(Math.round(pass.endMs));
+  visualizer.dataset.playbackRegionMode = pass.regionMode;
+  visualizer.dataset.playbackResetCursorMs = String(Math.round(pass.resetCursorMs));
+  visualizer.dataset.playbackLoop = pass.loop ? "true" : "false";
+}
+
+function playbackStateForDataset(value: string | undefined): PlaybackState {
+  if (value === "playing" || value === "paused") return value;
+  return "stopped";
+}
+
+function playbackEngineForDataset(value: string | undefined): PlaybackEngine {
+  return value === "html" || value === "native" ? value : "";
+}
+
+function playbackRegionModeForDataset(value: string | undefined): PlaybackRegionMode {
+  return value === "selection" ? "selection" : "full";
+}
+
+function readStoredMs(rawValue: string | undefined, fallbackMs: number): number {
+  if (!rawValue) return fallbackMs;
+  const value = Number(rawValue);
+  return Number.isFinite(value) ? value : fallbackMs;
 }

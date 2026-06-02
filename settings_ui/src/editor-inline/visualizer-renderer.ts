@@ -49,6 +49,8 @@ export function renderGraphRequested(visualizer: VisualizerElement): void {
   visualizer.dataset.playbackStartMs = "0";
   visualizer.dataset.playbackEndMs = "0";
   visualizer.dataset.playbackRegionMode = "full";
+  visualizer.dataset.playbackResetCursorMs = "0";
+  visualizer.dataset.playbackLoop = "false";
   resetVisualizerTimeViewport(visualizer, 0);
   delete visualizer.__aqeCursorPaintedAtMs;
   delete visualizer.__aqeCursorTextPaintedAtMs;
