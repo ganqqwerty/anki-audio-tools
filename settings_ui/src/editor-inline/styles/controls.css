@@ -27,12 +27,14 @@
 }
 
 .aqe-mount-host[data-aqe-surface="reviewer"] {
-  align-self: flex-start;
+  align-self: stretch;
+  box-sizing: border-box;
   clear: both;
-  display: table;
-  margin: 4px auto 4px 0;
+  display: block;
+  margin: 4px 0;
   max-width: 100%;
-  width: auto;
+  padding: 0;
+  width: 100%;
 }
 
 .aqe-mount-host[data-aqe-surface="reviewer"] .aqe-controls {
@@ -43,7 +45,7 @@
   margin: 3px 0;
   max-width: 100%;
   padding: 4px 6px;
-  width: auto;
+  width: 100%;
 }
 
 @media (prefers-color-scheme: dark) {

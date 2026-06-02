@@ -92,59 +92,41 @@
 }
 
 .aqe-segment-marker-row {
-  background: transparent;
-  border: 0;
-  bottom: -20px;
-  height: 18px;
-  margin: 0;
-  padding: 0;
-  position: absolute;
-  z-index: 3;
+  color: #2f80ed;
+  opacity: 1;
+  pointer-events: all;
 }
 
-.aqe-segment-marker-row[hidden] {
+.aqe-segment-marker-track {
+  fill: rgb(255 255 255);
+  stroke: color-mix(in srgb, var(--aqe-border-color) 72%, transparent);
+  stroke-width: 1;
+  vector-effect: non-scaling-stroke;
+}
+
+.aqe-segment-marker-row:hover .aqe-segment-marker-track,
+.aqe-segment-marker-row:focus-visible .aqe-segment-marker-track {
+  fill: color-mix(in srgb, rgb(255 255 255) 86%, Highlight);
+  stroke: color-mix(in srgb, Highlight 55%, var(--aqe-border-color));
+}
+
+.aqe-segment-marker-row[aria-hidden="true"] {
   display: none;
 }
 
-.aqe-segment-base-range,
-.aqe-segment-active-range,
-.aqe-segment-marker,
-.aqe-segment-boundary-marker {
-  position: absolute;
-}
-
-.aqe-segment-base-range {
-  background: color-mix(in srgb, Highlight 16%, transparent);
-  border-radius: 999px;
-  height: 6px;
-  top: 6px;
-}
-
-.aqe-segment-active-range {
-  background: color-mix(in srgb, Highlight 38%, transparent);
-  border-radius: 999px;
-  height: 8px;
-  top: 5px;
-}
-
 .aqe-segment-marker {
-  background: currentColor;
-  border-radius: 999px;
-  height: 18px;
-  top: 0;
-  transform: translateX(-50%);
-  width: 3px;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-width: 3;
+  vector-effect: non-scaling-stroke;
 }
 
 .aqe-segment-boundary-marker {
-  background: var(--aqe-surface-color);
-  border: 2px solid currentColor;
-  border-radius: 999px;
   box-sizing: border-box;
-  height: 18px;
-  top: 0;
-  transform: translateX(-50%);
-  width: 7px;
+  fill: var(--aqe-surface-color);
+  stroke: currentColor;
+  stroke-width: 2;
+  vector-effect: non-scaling-stroke;
 }
 
 .aqe-visualizer:focus {

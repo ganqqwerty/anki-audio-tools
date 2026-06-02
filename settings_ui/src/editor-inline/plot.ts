@@ -11,7 +11,7 @@ export interface PlotGeometry {
   width: number;
 }
 
-export const PLOT = { width: 620, height: 150, left: 44, right: 10, top: 10, bottom: 34 } as const;
+export const PLOT = { width: 620, height: 150, left: 44, right: 10, top: 28, bottom: 34 } as const;
 
 export function plotWidth(plot: PlotGeometry = PLOT): number {
   return plot.width - plot.left - plot.right;

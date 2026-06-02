@@ -159,8 +159,8 @@ def _drag_cursor_to_ratio(editor, ratio: float, ord_: int = 0) -> None:
           const plotWidth = ((plot.width - plot.left - plot.right) / plot.width) * rect.width;
           const x = plotLeft + plotWidth * ratio;
           const EventCtor = window.PointerEvent || window.MouseEvent;
-          svg.dispatchEvent(new EventCtor('pointerdown', { clientX: x, clientY: rect.top + 20, bubbles: true }));
-          window.dispatchEvent(new EventCtor('pointerup', { clientX: x, clientY: rect.top + 20, bubbles: true }));
+          svg.dispatchEvent(new EventCtor('pointerdown', { clientX: x, clientY: rect.top + 40, bubbles: true }));
+          window.dispatchEvent(new EventCtor('pointerup', { clientX: x, clientY: rect.top + 40, bubbles: true }));
         })()
         """.replace("__ORD__", json.dumps(ord_)).replace("__RATIO__", json.dumps(ratio)),
     )

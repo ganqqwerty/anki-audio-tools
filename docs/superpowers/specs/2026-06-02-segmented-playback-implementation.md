@@ -8,7 +8,7 @@ Segmented playback is implemented as an inline-editor frontend feature. It reuse
 
 ## User-Facing Behavior
 
-The learner selects a phrase on the graph, opens the Play split menu, enables `Edit segments`, and clicks the marker row below the graph to place temporary start markers. `Practice` starts from the rightmost marker and loops the suffix from that marker to the original phrase end. `Next` moves left toward longer suffixes, and `Previous` moves right toward shorter suffixes.
+The learner selects a phrase on the graph, opens `Practice segments` from the floating selection toolbar, and clicks the marker rail at the top of the SVG graph to place temporary start markers. `Practice` starts from the rightmost marker and loops the suffix from that marker to the original phrase end. `Next` moves left toward longer suffixes, and `Previous` moves right toward shorter suffixes.
 
 The visible graph selection is reused as the active suffix display. This keeps practice behavior aligned with ordinary selected-region playback: practice simply updates the selected region to the current suffix and starts a looped selected-region playback request.
 
@@ -40,7 +40,7 @@ This file keeps marker row math viewport-aware:
 
 - `markerClickFromEvent` converts a pointer click to milliseconds through `cursorMsFromEvent` and the current `TimeViewport`.
 - `markerProjections` converts marker times to graph x positions through `xForMs`.
-- `visibleRangeProjection` clips base-region and active-suffix shading to the current viewport.
+- `visibleRangeProjection` clips active-suffix state snapshots to the current viewport for tests and control state.
 
 The marker row never uses full-duration ratios directly. Zoomed placement and rendering use the same viewport model as graph cursor and selection behavior.
 
@@ -53,8 +53,8 @@ This file bridges temporary segment state to the visualizer DOM:
 - stores state on `VisualizerElement.__aqeSegmentPracticeState`,
 - mirrors state to `data-segment-*` attributes for Svelte reactivity and tests,
 - builds `SegmentPracticeControlsState` snapshots for the Play menu and test contract,
-- renders marker ticks, base-region shading, and active-suffix shading into `.aqe-segment-marker-row`,
-- positions the marker row against `graphPixelBounds`, `plotGeometryForSvg`, and `svgViewBoxScale`.
+- renders an SVG marker rail and marker ticks into `.aqe-segment-marker-row`,
+- positions marker geometry with `plotGeometryForSvg` and the current viewport.
 
 Off-viewport markers stay in state but are not rendered until the viewport brings them back into view.
 
@@ -66,7 +66,7 @@ The controller owns orchestration:
 
 - installs per-visualizer handlers through `installSegmentPracticeHandlers`,
 - starts/stops marker editing from the current committed graph selection,
-- handles marker row pointer clicks,
+- handles marker row clicks while leaving drag gestures available for ordinary cursor movement,
 - starts, pauses, clears, and navigates practice,
 - updates the normal graph selection to the active suffix,
 - pauses practice when normal Play is requested,
@@ -87,19 +87,23 @@ Practice needs to update the visible graph selection without erasing its capture
 
 This avoids a broader event bus and keeps invalidation localized to the segment controller.
 
-### Graph And Play Menu Integration
+### Graph And Selection Toolbar Integration
 
 `settings_ui/src/editor-inline/GraphVisualizer.svelte`
 
-The visualizer installs segment handlers on mount and renders a button-based marker row under the SVG plot. The row is hidden unless editing or practice is active.
+The visualizer installs segment handlers on mount and renders the marker rail as an SVG group inside `.aqe-visualizer-svg`, visually above the graph selection and near the top of the plot. The row is hidden unless editing or practice is active.
 
 `settings_ui/src/editor-inline/viewport-actions.ts`
 
 Viewport redraw dispatches `aqe-viewport-rendered`, which tells the marker row to recompute positions after zoom, pan, fit, or playback-follow redraws.
 
-`settings_ui/src/editor-inline/PlayPracticeOptions.svelte`
+`settings_ui/src/editor-inline/SelectionToolbar.svelte`
 
-The Play split menu segment section renders:
+The selection toolbar renders `Practice segments` as a disclosure button. Opening it starts marker editing for the current graph selection and reveals the attached segment-practice section inside the same floating toolbar.
+
+`settings_ui/src/editor-inline/SegmentPracticePanel.svelte`
+
+The attached segment-practice section renders:
 
 - `Edit segments`,
 - `Practice` / `Pause practice`,
@@ -108,10 +112,6 @@ The Play split menu segment section renders:
 - `Clear markers`.
 
 The component observes visualizer `data-segment-*`, selection, and source attributes with a `MutationObserver` and re-reads control state from the controller.
-
-`settings_ui/src/editor-inline/PlaySplitButton.svelte`
-
-The implementation adds `PlayPracticeOptions` to the existing Play popover. The earlier refactor plan suggested extracting repeat controls first, but v1 kept repeat controls in place and added only the practice child component to keep the change smaller.
 
 `settings_ui/src/editor-inline/command-actions.ts`
 
@@ -175,7 +175,7 @@ Implemented test coverage:
 - `settings_ui/tests/editor-inline.graph-overlay-geometry.test.ts`
   - marker clicks use the current zoom viewport,
   - marker projections use the current zoom viewport,
-  - visible ranges clip to the viewport.
+  - visible state snapshots clip to the viewport.
 
 - `settings_ui/tests/editor-inline.segment-practice.integration.test.ts`
   - Play menu controls and marker editing,

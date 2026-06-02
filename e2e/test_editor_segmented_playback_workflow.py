@@ -98,15 +98,75 @@ def test_segmented_playback_marker_placement_uses_zoomed_viewport(
         parent.close()
 
 
+def test_segment_marker_rail_does_not_steal_top_of_graph_cursor_drag(
+    anki_mw,
+    ffmpeg_config,
+) -> None:
+    _media_dir, _source, _note, editor, parent, _track = _open_tone_editor(
+        anki_mw,
+        ffmpeg_config,
+        "editor_segmented_top_drag.wav",
+        2.0,
+    )
+    try:
+        _shift_drag_region(editor, 0.2, 0.8)
+        _enable_segment_editing(editor)
+
+        drag_state = wait_for_js_condition(
+            editor.web,
+            """
+            (() => {
+              const svg = document.querySelector('[data-testid="aqe-graph-svg-0"]');
+              if (!svg) return null;
+              const rect = svg.getBoundingClientRect();
+              const plot = { width: 620, height: 150, left: 44, right: 10, top: 28 };
+              const plotLeft = rect.left + (plot.left / plot.width) * rect.width;
+              const plotWidth = ((plot.width - plot.left - plot.right) / plot.width) * rect.width;
+              const xFor = (ratio) => plotLeft + plotWidth * ratio;
+              const y = rect.top + ((plot.top + 4) / plot.height) * rect.height;
+              const target = document.elementFromPoint(xFor(0.25), y);
+              if (!target) return null;
+              const EventCtor = window.PointerEvent || window.MouseEvent;
+              target.dispatchEvent(new EventCtor("pointerdown", {
+                bubbles: true,
+                clientX: xFor(0.25),
+                clientY: y,
+              }));
+              window.dispatchEvent(new EventCtor("pointermove", {
+                bubbles: true,
+                clientX: xFor(0.6),
+                clientY: y,
+              }));
+              window.dispatchEvent(new EventCtor("pointerup", {
+                bubbles: true,
+                clientX: xFor(0.6),
+                clientY: y,
+              }));
+              const state = window.__aqeGraphStateForTest?.(0);
+              return state ? {
+                cursorMs: state.cursorMs,
+                markersMs: state.segmentMarkersMs,
+                targetClass: target.getAttribute("class") || "",
+              } : null;
+            })()
+            """,
+            lambda value: value is not None
+            and abs(value["cursorMs"] - 1200) <= 75
+            and value["markersMs"] == [],
+            timeout=5.0,
+        )
+
+        assert "aqe-segment-marker" not in drag_state["targetClass"]
+    finally:
+        editor.set_note(None)
+        parent.close()
+
+
 def _enable_segment_editing(editor) -> None:
     wait_for_js_condition(
         editor.web,
         """
         (() => {
-          const splitMenu = document.querySelector('[data-testid="aqe-split-0-play-menu"]');
-          if (splitMenu && splitMenu.getAttribute("aria-expanded") !== "true") splitMenu.click();
-          const popover = document.querySelector('[data-testid="aqe-split-0-play-popover"]');
-          if (popover?.querySelector('[data-testid="aqe-segment-0-edit"]')) return null;
           const entry = document.querySelector('[data-testid="aqe-selection-toolbar-practice-segments-0"]');
           if (!entry) return null;
           if (window.__aqeGraphStateForTest?.(0)?.segmentEditing !== true) entry.click();
@@ -128,7 +188,7 @@ def _click_segment_marker(editor, ratio: float, *, expected_count: int) -> None:
         (() => {{
           const row = document.querySelector('[data-testid="aqe-segment-marker-row-0"]');
           const svg = document.querySelector('[data-testid="aqe-graph-svg-0"]');
-          if (!row || !svg || row.hidden) return null;
+          if (!row || !svg || row.getAttribute("aria-hidden") === "true") return null;
           const rect = svg.getBoundingClientRect();
           const plot = {{ width: 620, left: 44, right: 10 }};
           const plotLeft = rect.left + (plot.left / plot.width) * rect.width;
@@ -137,7 +197,12 @@ def _click_segment_marker(editor, ratio: float, *, expected_count: int) -> None:
           row.dispatchEvent(new EventCtor('pointerdown', {{
             bubbles: true,
             clientX: plotLeft + plotWidth * {ratio},
-            clientY: rect.bottom + 4,
+            clientY: rect.top + 14,
+          }}));
+          window.dispatchEvent(new EventCtor('pointerup', {{
+            bubbles: true,
+            clientX: plotLeft + plotWidth * {ratio},
+            clientY: rect.top + 14,
           }}));
           return window.__aqeGraphStateForTest?.(0) || null;
         }})()

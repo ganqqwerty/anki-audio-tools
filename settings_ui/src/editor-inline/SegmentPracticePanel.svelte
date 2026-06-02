@@ -1,8 +1,10 @@
 <script lang="ts">
   import AqeTooltip from "../lib/AqeTooltip.svelte";
   import { t } from "../lib/i18n.js";
+  import { PRODUCT_LINKS } from "../lib/product-links.js";
   import EditorCommandIcon from "./EditorCommandIcon.svelte";
   import { visualizerForOrd } from "./dom-selectors.js";
+  import { openEditorExternalLink } from "./external-links.js";
   import {
     clearSegmentMarkersForOrd,
     moveSegmentPracticeForOrd,
@@ -96,11 +98,21 @@
 
 {#if visible}
   <div
+    id={`aqe-segment-${target.ord}-panel`}
     class="aqe-segment-practice-panel"
     data-testid={`aqe-segment-${target.ord}-panel`}
   >
     <div class="aqe-segment-practice-header">
       <strong>{t("editor.segment.title")}</strong>
+      <a
+        class="aqe-segment-video-link"
+        href={PRODUCT_LINKS.editorVideos.playback}
+        onclick={(event) => openEditorExternalLink(event, PRODUCT_LINKS.editorVideos.playback)}
+        target="_blank"
+        rel="noopener noreferrer"
+      >
+        {t("links.see_video")}
+      </a>
     </div>
     <div class="aqe-segment-practice-controls">
       <AqeTooltip>
@@ -113,6 +125,8 @@
             data-testid={`aqe-segment-${target.ord}-edit`}
             aria-pressed={state.editing ? "true" : "false"}
             disabled={!state.canEdit}
+            onpointerdown={(event) => event.stopPropagation()}
+            onmousedown={(event) => event.preventDefault()}
             onclick={editSegments}
           >
             {t("editor.segment.edit_markers")}
@@ -128,6 +142,8 @@
             data-aqe-tooltip-content={t("editor.segment.practice_title")}
             data-testid={`aqe-segment-${target.ord}-practice`}
             disabled={!state.canPractice}
+            onpointerdown={(event) => event.stopPropagation()}
+            onmousedown={(event) => event.preventDefault()}
             onclick={togglePractice}
           >
             {practiceLabel}
@@ -144,6 +160,8 @@
             data-testid={`aqe-segment-${target.ord}-previous`}
             aria-label={t("editor.segment.previous")}
             disabled={!state.canPrevious}
+            onpointerdown={(event) => event.stopPropagation()}
+            onmousedown={(event) => event.preventDefault()}
             onclick={previous}
           >
             <EditorCommandIcon icon="skip-back" />
@@ -160,6 +178,8 @@
             data-testid={`aqe-segment-${target.ord}-next`}
             aria-label={t("editor.segment.next")}
             disabled={!state.canNext}
+            onpointerdown={(event) => event.stopPropagation()}
+            onmousedown={(event) => event.preventDefault()}
             onclick={next}
           >
             <EditorCommandIcon icon="skip-forward" />
@@ -176,6 +196,8 @@
             data-testid={`aqe-segment-${target.ord}-clear`}
             aria-label={t("editor.segment.clear")}
             disabled={!state.canClear}
+            onpointerdown={(event) => event.stopPropagation()}
+            onmousedown={(event) => event.preventDefault()}
             onclick={clearMarkers}
           >
             <EditorCommandIcon icon="trash-2" />

@@ -2,7 +2,7 @@ import {
   markerProjections,
   visibleRangeProjection,
 } from "./graph-overlay-geometry.js";
-import { PLOT, graphPixelBounds, plotGeometryForSvg, svgViewBoxScale } from "./plot.js";
+import { PLOT, plotGeometryForSvg, plotWidth } from "./plot.js";
 import { selectionForVisualizer } from "./selection-controller.js";
 import {
   deriveActiveSuffix,
@@ -12,6 +12,9 @@ import {
 } from "./segment-practice-state.js";
 import type { VisualizerElement } from "./types.js";
 import { readVisualizerTimeViewport } from "./visualizer-state.js";
+
+const SVG_NS = "http://www.w3.org/2000/svg";
+const SEGMENT_MARKER_ROW_HEIGHT = 18;
 
 export interface SegmentPracticeControlsState {
   activeMarkerIndex: number | null;
@@ -53,29 +56,22 @@ export function segmentPracticeControlsForVisualizer(visualizer: VisualizerEleme
 }
 
 export function renderSegmentMarkerRow(visualizer: VisualizerElement): void {
-  const row = visualizer.querySelector<HTMLElement>(".aqe-segment-marker-row");
+  const row = visualizer.querySelector<SVGGElement>(".aqe-segment-marker-row");
   const svg = visualizer.querySelector<SVGSVGElement>(".aqe-visualizer-svg");
   if (!row || !svg) return;
   const state = segmentPracticeStateForVisualizer(visualizer);
   const shouldShow = !!state.baseRegion && (state.editing || state.practiceState !== "stopped");
-  row.hidden = !shouldShow;
-  row.textContent = "";
+  row.style.display = shouldShow ? "" : "none";
+  row.setAttribute("aria-hidden", shouldShow ? "false" : "true");
+  row.replaceChildren();
   if (!shouldShow || !state.baseRegion) return;
-  positionMarkerRow(row, svg);
   const viewport = readVisualizerTimeViewport(visualizer);
   const plot = plotGeometryForSvg(svg);
-  const scale = svgViewBoxScale(svg);
-  const base = visibleRangeProjection(state.baseRegion, viewport, plot);
-  if (base) appendRange(row, "aqe-segment-base-range", (base.startX - plot.left) * scale.x, (base.endX - base.startX) * scale.x);
-  appendBoundaryMarkers(row, state.baseRegion, viewport, plot, scale.x);
-  const activeSuffix = deriveActiveSuffix(state.baseRegion, state.markersMs, state.activeMarkerIndex);
-  const active = activeSuffix ? visibleRangeProjection(activeSuffix, viewport, plot) : null;
-  if (active) {
-    appendRange(row, "aqe-segment-active-range", (active.startX - plot.left) * scale.x, (active.endX - active.startX) * scale.x);
-  }
+  appendTrack(row, plot);
+  appendBoundaryMarkers(row, state.baseRegion, viewport, plot);
   for (const marker of markerProjections(state.markersMs, viewport, plot)) {
     if (!marker.visible) continue;
-    appendMarker(row, (marker.x - plot.left) * scale.x);
+    appendMarker(row, marker.x, plot);
   }
 }
 
@@ -120,36 +116,50 @@ function controlsSnapshot(
 }
 
 function appendBoundaryMarkers(
-  row: HTMLElement,
+  row: SVGGElement,
   baseRegion: { endMs: number; startMs: number },
   viewport: ReturnType<typeof readVisualizerTimeViewport>,
   plot: ReturnType<typeof plotGeometryForSvg>,
-  scaleX: number,
 ): void {
   const [start, end] = markerProjections([baseRegion.startMs, baseRegion.endMs], viewport, plot);
-  if (start?.visible) appendMarker(row, (start.x - plot.left) * scaleX, "aqe-segment-boundary-marker aqe-segment-boundary-marker-start");
-  if (end?.visible) appendMarker(row, (end.x - plot.left) * scaleX, "aqe-segment-boundary-marker aqe-segment-boundary-marker-end");
+  if (start?.visible) appendMarker(row, start.x, plot, "aqe-segment-boundary-marker aqe-segment-boundary-marker-start");
+  if (end?.visible) appendMarker(row, end.x, plot, "aqe-segment-boundary-marker aqe-segment-boundary-marker-end");
 }
 
-function positionMarkerRow(row: HTMLElement, svg: SVGSVGElement): void {
-  const bounds = graphPixelBounds(svg);
-  const containerBounds = row.parentElement?.getBoundingClientRect();
-  const left = containerBounds ? bounds.left - containerBounds.left : 0;
-  row.style.left = `${left.toFixed(2)}px`;
-  row.style.width = `${bounds.width.toFixed(2)}px`;
+function appendTrack(row: SVGGElement, plot: ReturnType<typeof plotGeometryForSvg>): void {
+  const track = document.createElementNS(SVG_NS, "rect");
+  const y = plot.top - SEGMENT_MARKER_ROW_HEIGHT;
+  track.classList.add("aqe-segment-marker-track");
+  track.setAttribute("x", plot.left.toFixed(2));
+  track.setAttribute("y", y.toFixed(2));
+  track.setAttribute("width", plotWidth(plot).toFixed(2));
+  track.setAttribute("height", String(SEGMENT_MARKER_ROW_HEIGHT));
+  row.appendChild(track);
 }
 
-function appendRange(row: HTMLElement, className: string, leftPx: number, widthPx: number): void {
-  const range = document.createElement("span");
-  range.className = className;
-  range.style.left = `${Math.max(0, leftPx).toFixed(2)}px`;
-  range.style.width = `${Math.max(0, widthPx).toFixed(2)}px`;
-  row.appendChild(range);
-}
-
-function appendMarker(row: HTMLElement, leftPx: number, className = "aqe-segment-marker"): void {
-  const marker = document.createElement("span");
-  marker.className = className;
-  marker.style.left = `${leftPx.toFixed(2)}px`;
+function appendMarker(
+  row: SVGGElement,
+  x: number,
+  plot: ReturnType<typeof plotGeometryForSvg>,
+  className = "aqe-segment-marker",
+): void {
+  const y = plot.top - SEGMENT_MARKER_ROW_HEIGHT;
+  if (className.includes("aqe-segment-boundary-marker")) {
+    const marker = document.createElementNS(SVG_NS, "rect");
+    marker.setAttribute("x", (x - 3.5).toFixed(2));
+    marker.setAttribute("y", y.toFixed(2));
+    marker.setAttribute("width", "7");
+    marker.setAttribute("height", String(SEGMENT_MARKER_ROW_HEIGHT));
+    marker.setAttribute("rx", "3.5");
+    marker.setAttribute("class", className);
+    row.appendChild(marker);
+    return;
+  }
+  const marker = document.createElementNS(SVG_NS, "line");
+  marker.setAttribute("x1", x.toFixed(2));
+  marker.setAttribute("x2", x.toFixed(2));
+  marker.setAttribute("y1", y.toFixed(2));
+  marker.setAttribute("y2", plot.top.toFixed(2));
+  marker.setAttribute("class", className);
   row.appendChild(marker);
 }

@@ -53,21 +53,21 @@ def _plot_pointer_script(ord_: int, start_ratio: float, end_ratio: float, *, shi
       svg.dispatchEvent(new EventCtor("pointerdown", {{
         bubbles: true,
         clientX: xFor(startRatio),
-        clientY: rect.top + 20,
+        clientY: rect.top + 40,
         shiftKey: {str(shift).lower()},
       }}));
       if ({str(move).lower()}) {{
         window.dispatchEvent(new EventCtor("pointermove", {{
           bubbles: true,
           clientX: xFor(endRatio),
-          clientY: rect.top + 20,
+          clientY: rect.top + 40,
           shiftKey: {str(shift).lower()},
         }}));
       }}
       window.dispatchEvent(new EventCtor("pointerup", {{
         bubbles: true,
         clientX: xFor(endRatio),
-        clientY: rect.top + 20,
+        clientY: rect.top + 40,
         shiftKey: {str(shift).lower()},
       }}));
     }})()
@@ -90,7 +90,7 @@ def _plot_pointer_event_script(ord_: int, ratio: float, event_type: str, *, shif
       {target}.dispatchEvent(new EventCtor("{event_type}", {{
         bubbles: true,
         clientX: x,
-        clientY: rect.top + 20,
+        clientY: rect.top + 40,
         shiftKey: {str(shift).lower()},
       }}));
     }})()
@@ -148,7 +148,7 @@ def _selection_handle_pointer_event_script(
       {target}.dispatchEvent(new EventCtor("{event_type}", {{
         bubbles: true,
         clientX: x,
-        clientY: rect.top + 20,
+        clientY: rect.top + 40,
       }}));
     }})()
     """

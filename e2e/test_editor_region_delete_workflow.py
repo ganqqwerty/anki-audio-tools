@@ -36,19 +36,19 @@ def _plot_pointer_script(ord_: int, start_ratio: float, end_ratio: float) -> str
       svg.dispatchEvent(new EventCtor("pointerdown", {{
         bubbles: true,
         clientX: xFor({start_ratio}),
-        clientY: rect.top + 20,
+        clientY: rect.top + 40,
         shiftKey: true,
       }}));
       window.dispatchEvent(new EventCtor("pointermove", {{
         bubbles: true,
         clientX: xFor({end_ratio}),
-        clientY: rect.top + 20,
+        clientY: rect.top + 40,
         shiftKey: true,
       }}));
       window.dispatchEvent(new EventCtor("pointerup", {{
         bubbles: true,
         clientX: xFor({end_ratio}),
-        clientY: rect.top + 20,
+        clientY: rect.top + 40,
         shiftKey: true,
       }}));
     }})()

@@ -221,6 +221,7 @@ function syncToolbarSegmentPracticeButton(visualizer: VisualizerElement, busy: b
   const panelOpen = visualizer.dataset.segmentPanelOpen === "true";
   button.disabled = busy;
   button.dataset.aqeButtonState = busy ? "unavailable" : panelOpen ? "active" : "default";
+  button.setAttribute("aria-expanded", panelOpen ? "true" : "false");
   button.setAttribute("aria-pressed", panelOpen ? "true" : "false");
   setButtonTooltipContent(button, t("editor.segment.practice_segments_title"));
   button.setAttribute("aria-disabled", button.disabled ? "true" : "false");

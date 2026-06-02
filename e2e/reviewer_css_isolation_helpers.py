@@ -7,6 +7,51 @@ from e2e.editor_region_loop_helpers import _shift_drag_region
 from e2e.helpers import wait_for_js_condition
 
 
+def assert_reviewer_audio_controls_full_width(reviewer, field_ord: int) -> None:
+    """Assert reviewer controls fill their available row before the graph opens."""
+    layout = wait_for_js_condition(
+        reviewer.web,
+        f"""
+        (() => {{
+          const controls = document.querySelector('.aqe-controls[data-aqe-field-ord="{field_ord}"]');
+          const host = controls?.closest('.aqe-mount-host');
+          if (!controls || !(host instanceof HTMLElement) || !host.parentElement) return null;
+          const hostRect = host.getBoundingClientRect();
+          const parentRect = host.parentElement.getBoundingClientRect();
+          const parentStyle = getComputedStyle(host.parentElement);
+          const controlsRect = controls.getBoundingClientRect();
+          const hostStyle = getComputedStyle(host);
+          const controlsStyle = getComputedStyle(controls);
+          const parentContentWidth = parentRect.width
+            - parseFloat(parentStyle.paddingLeft || '0')
+            - parseFloat(parentStyle.paddingRight || '0');
+          return {{
+            controlsBoxSizing: controlsStyle.boxSizing,
+            controlsLeftDelta: Math.abs(controlsRect.left - hostRect.left),
+            controlsRightDelta: Math.abs(controlsRect.right - hostRect.right),
+            controlsWidth: controlsRect.width,
+            hostBoxSizing: hostStyle.boxSizing,
+            hostDisplay: hostStyle.display,
+            hostPaddingLeft: hostStyle.paddingLeft,
+            hostWidth: hostRect.width,
+            parentContentWidth,
+          }};
+        }})()
+        """,
+        lambda value: isinstance(value, dict),
+        timeout=5.0,
+    )
+
+    assert layout["hostDisplay"] == "block"
+    assert layout["hostBoxSizing"] == "border-box"
+    assert layout["hostPaddingLeft"] == "0px"
+    assert layout["controlsBoxSizing"] == "border-box"
+    assert layout["hostWidth"] >= layout["parentContentWidth"] - 8
+    assert abs(layout["controlsWidth"] - layout["hostWidth"]) <= 2
+    assert layout["controlsLeftDelta"] <= 1
+    assert layout["controlsRightDelta"] <= 1
+
+
 def assert_reviewer_audio_controls_css_isolated(reviewer, field_ord: int) -> None:
     """Assert hostile card CSS cannot alter AQE reviewer control spacing."""
     style = wait_for_js_condition(
@@ -35,18 +80,10 @@ def assert_reviewer_audio_controls_css_isolated(reviewer, field_ord: int) -> Non
           const helpCommandRect = helpCommand.getBoundingClientRect();
           const buttonRect = button.getBoundingClientRect();
           const host = controls.closest('.aqe-mount-host');
-          const hostClone = host ? host.cloneNode(true) : null;
-          let naturalControlsWidth = controls.getBoundingClientRect().width;
-          if (hostClone instanceof HTMLElement) {{
-            hostClone.style.left = '-10000px';
-            hostClone.style.maxWidth = 'none';
-            hostClone.style.position = 'absolute';
-            hostClone.style.visibility = 'hidden';
-            hostClone.style.width = 'auto';
-            document.body.appendChild(hostClone);
-            naturalControlsWidth = hostClone.querySelector('.aqe-controls').getBoundingClientRect().width;
-            hostClone.remove();
-          }}
+          if (!(host instanceof HTMLElement)) return null;
+          const hostStyle = getComputedStyle(host);
+          const controlsRect = controls.getBoundingClientRect();
+          const hostRect = host.getBoundingClientRect();
           const toolbarItems = Array.from(controls.children)
             .filter((node) => !node.matches('.aqe-help, .aqe-visualizer, .aqe-status-row'));
           const maxRowGap = toolbarItems.reduce((maxGap, node, index) => {{
@@ -60,9 +97,12 @@ def assert_reviewer_audio_controls_css_isolated(reviewer, field_ord: int) -> Non
           return {{
             controlsBorderColor: controlsStyle.borderTopColor,
             controlsJustifyContent: controlsStyle.justifyContent,
-            controlsWidth: controls.getBoundingClientRect().width,
+            controlsRightDelta: Math.abs(controlsRect.right - hostRect.right),
+            controlsWidth: controlsRect.width,
             maxRowGap,
-            naturalControlsWidth,
+            hostDisplay: hostStyle.display,
+            hostPaddingLeft: hostStyle.paddingLeft,
+            hostWidth: hostRect.width,
             borderTopWidth: buttonStyle.borderTopWidth,
             marginLeft: buttonStyle.marginLeft,
             paddingLeft: buttonStyle.paddingLeft,
@@ -91,7 +131,10 @@ def assert_reviewer_audio_controls_css_isolated(reviewer, field_ord: int) -> Non
     assert style["borderTopWidth"] == "1px"
     assert style["controlsBorderColor"] not in {"rgba(0, 0, 0, 0)", "transparent"}
     assert style["controlsJustifyContent"] == "flex-start"
-    assert style["controlsWidth"] <= style["naturalControlsWidth"] + 4
+    assert style["hostDisplay"] == "block"
+    assert style["hostPaddingLeft"] == "0px"
+    assert abs(style["controlsWidth"] - style["hostWidth"]) <= 2
+    assert style["controlsRightDelta"] <= 1
     assert style["maxRowGap"] <= 8
     assert style["marginLeft"] == "0px"
     assert style["paddingLeft"] != "24px"
@@ -145,8 +188,41 @@ def assert_reviewer_remove_pauses_popover_css_isolated(reviewer, field_ord: int)
     assert popover_style["presetPaddingLeft"] == "6px"
 
 
+def assert_reviewer_tooltip_css_isolated(reviewer) -> None:
+    """Assert AQE tooltip roots keep compact padding under hostile card CSS."""
+    tooltip_style = wait_for_js_condition(
+        reviewer.web,
+        """
+        (() => {
+          const card = document.querySelector('.card') || document.body;
+          const probe = document.createElement('div');
+          probe.className = 'aqe-ui-root aqe-rich-tooltip';
+          probe.textContent = 'Tooltip probe';
+          card.appendChild(probe);
+          const style = getComputedStyle(probe);
+          const result = {
+            fontSize: style.fontSize,
+            marginLeft: style.marginLeft,
+            paddingLeft: style.paddingLeft,
+            paddingTop: style.paddingTop,
+            textTransform: style.textTransform,
+          };
+          probe.remove();
+          return result;
+        })()
+        """,
+        lambda value: isinstance(value, dict),
+        timeout=5.0,
+    )
+    assert tooltip_style["fontSize"] == "11px"
+    assert tooltip_style["marginLeft"] == "0px"
+    assert tooltip_style["paddingLeft"] == "8px"
+    assert tooltip_style["paddingTop"] == "6px"
+    assert tooltip_style["textTransform"] != "uppercase"
+
+
 def assert_reviewer_segment_panel_css_isolated(reviewer, field_ord: int) -> None:
-    """Assert the floating segment panel keeps its own padding and sizing."""
+    """Assert the segment panel keeps its own padding and sizing."""
     _shift_drag_region(reviewer, 0.25, 0.75, ord_=field_ord)
     segment_style = wait_for_js_condition(
         reviewer.web,
@@ -178,7 +254,7 @@ def assert_reviewer_segment_panel_css_isolated(reviewer, field_ord: int) -> None
         lambda value: isinstance(value, dict),
         timeout=5.0,
     )
-    assert segment_style["panelPaddingLeft"] == "8px"
+    assert segment_style["panelPaddingLeft"] == "6px"
     assert segment_style["panelFontSize"] == "12px"
     assert segment_style["controlsGap"] == "6px"
     assert segment_style["editFontSize"] == "11px"

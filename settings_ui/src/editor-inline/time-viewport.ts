@@ -5,7 +5,7 @@ export interface TimeViewport {
 }
 
 export const MIN_TIME_VIEWPORT_MS = 250;
-export const TIME_VIEWPORT_ZOOM_FACTOR = 2;
+export const TIME_VIEWPORT_ZOOM_FACTOR = 1.25;
 export const TIME_VIEWPORT_SELECTION_PADDING_RATIO = 0.1;
 
 export function fullTimeViewport(durationMs: number): TimeViewport {

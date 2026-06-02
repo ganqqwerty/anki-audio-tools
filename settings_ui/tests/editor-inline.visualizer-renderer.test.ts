@@ -160,8 +160,8 @@ describe("editor inline visualizer renderer", () => {
     applyVisualizerTimeViewport(visualizer, { startMs: 0, endMs: 500, durationMs: 1000 });
     const zoomedPath = visualizer.querySelector<SVGPathElement>(".aqe-pitch-path")?.getAttribute("d") || "";
 
-    expect(fullPath).toContain("L 327.00 73.60");
-    expect(zoomedPath).toContain("L 610.00 73.60");
+    expect(fullPath).toContain("L 327.00 80.80");
+    expect(zoomedPath).toContain("L 610.00 80.80");
   });
 
   it("syncs the plot clip and x-axis to the rendered SVG width", () => {

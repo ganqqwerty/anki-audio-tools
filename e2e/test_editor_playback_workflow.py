@@ -54,8 +54,8 @@ def test_cursor_drag_updates_session_and_play_uses_html_audio(anki_mw, ffmpeg_co
               const rect = svg.getBoundingClientRect();
               const EventCtor = window.PointerEvent || window.MouseEvent;
               const x = rect.left + rect.width * 0.65;
-              svg.dispatchEvent(new EventCtor('pointerdown', { clientX: x, clientY: rect.top + 20, bubbles: true }));
-              window.dispatchEvent(new EventCtor('pointerup', { clientX: x, clientY: rect.top + 20, bubbles: true }));
+              svg.dispatchEvent(new EventCtor('pointerdown', { clientX: x, clientY: rect.top + 40, bubbles: true }));
+              window.dispatchEvent(new EventCtor('pointerup', { clientX: x, clientY: rect.top + 40, bubbles: true }));
             })()
             """,
         )

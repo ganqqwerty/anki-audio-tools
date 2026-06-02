@@ -126,6 +126,7 @@ export function handleSegmentMarkerPointerDown(event: PointerEvent, ord: number)
   const state = visualizer ? segmentPracticeStateForVisualizer(visualizer) : null;
   if (!visualizer || !svg || !state?.baseRegion || !state.editing) return;
   event.preventDefault();
+  event.stopPropagation();
   const click = markerClickFromEvent(event, svg, readVisualizerTimeViewport(visualizer), state.baseRegion);
   if (!click.insideVisibleBaseRegion) return;
   const toggled = toggleSegmentMarker(state.markersMs, click.ms, state.baseRegion, MARKER_HIT_TOLERANCE_MS);

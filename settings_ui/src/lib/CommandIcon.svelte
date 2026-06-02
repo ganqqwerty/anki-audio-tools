@@ -2,6 +2,7 @@
   import AudioLines from "@lucide/svelte/icons/audio-lines";
   import ChartLine from "@lucide/svelte/icons/chart-line";
   import ChevronDown from "@lucide/svelte/icons/chevron-down";
+  import ChevronRight from "@lucide/svelte/icons/chevron-right";
   import CircleHelp from "@lucide/svelte/icons/circle-help";
   import FastForward from "@lucide/svelte/icons/fast-forward";
   import FileAudio from "@lucide/svelte/icons/file-audio";
@@ -59,6 +60,8 @@
     <ChartLine {size} {strokeWidth} />
   {:else if icon === "chevron-down"}
     <ChevronDown {size} {strokeWidth} />
+  {:else if icon === "chevron-right"}
+    <ChevronRight {size} {strokeWidth} />
   {:else if icon === "circle-help"}
     <CircleHelp {size} {strokeWidth} />
   {:else if icon === "fast-forward"}

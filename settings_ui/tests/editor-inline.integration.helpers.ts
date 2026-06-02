@@ -59,7 +59,7 @@ export function dispatchGraphPointer(svg: SVGSVGElement, type: string, clientX: 
   const event = new EventCtor(type, {
     bubbles: true,
     clientX,
-    clientY: rect.top + 20,
+    clientY: rect.top + 40,
     shiftKey,
   });
   if (type === "pointerdown") {

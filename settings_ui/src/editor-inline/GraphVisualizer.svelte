@@ -15,7 +15,6 @@
   import { syncRecordingControls } from "./recording-actions.js";
   import { handleVisualizerKeyDown } from "./region-delete.js";
   import { handleSegmentMarkerPointerDown, installSegmentPracticeHandlers } from "./segment-practice-controller.js";
-  import SegmentPracticePanel from "./SegmentPracticePanel.svelte";
   import SelectionToolbar from "./SelectionToolbar.svelte";
   import TimeViewportScroller from "./TimeViewportScroller.svelte";
   import type { FieldTarget } from "./types.js";
@@ -170,6 +169,16 @@
       <g class="aqe-learner-pitch" data-testid={`aqe-learner-pitch-${target.ord}`} clip-path={plotClipUrl}></g>
       <g class="aqe-labels"></g>
       <g class="aqe-x-axis" data-testid={`aqe-x-axis-${target.ord}`}></g>
+      <g
+        class="aqe-segment-marker-row"
+        data-testid={`aqe-segment-marker-row-${target.ord}`}
+        role="button"
+        aria-label={t("editor.segment.marker_row_aria")}
+        aria-hidden="true"
+        tabindex="0"
+        style="display: none"
+        onpointerdown={(event) => handleSegmentMarkerPointerDown(event, target.ord)}
+      ></g>
       <line
         class="aqe-selection-edge aqe-selection-start"
         data-testid={`aqe-selection-start-${target.ord}`}
@@ -243,14 +252,6 @@
         <line x1="-3" x2="3" y1="10" y2="10"></line>
       </g>
     </svg>
-    <button
-      type="button"
-      class="aqe-segment-marker-row"
-      data-testid={`aqe-segment-marker-row-${target.ord}`}
-      aria-label={t("editor.segment.marker_row_aria")}
-      hidden
-      onpointerdown={(event) => handleSegmentMarkerPointerDown(event, target.ord)}
-    ></button>
     <div class="aqe-css-cursor" data-testid={`aqe-css-cursor-${target.ord}`} aria-hidden="true">
       <div class="aqe-css-cursor-line"></div>
       <div class="aqe-css-cursor-flag">
@@ -261,7 +262,6 @@
       </div>
     </div>
     <SelectionToolbar {target} />
-    <SegmentPracticePanel {target} />
   </div>
   <TimeViewportScroller {target} />
   <span class="aqe-cursor-label" data-testid={`aqe-progress-label-${target.ord}`}>0 ms</span>

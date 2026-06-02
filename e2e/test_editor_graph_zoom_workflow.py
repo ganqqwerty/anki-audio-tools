@@ -122,19 +122,19 @@ def test_editor_graph_horizontal_zoom_controls_preserve_time_selection(
               svg.dispatchEvent(new EventCtor('pointerdown', {
                 bubbles: true,
                 clientX: plotLeft + plotWidth * 0.25,
-                clientY: rect.top + 20,
+                clientY: rect.top + 40,
                 shiftKey: true,
               }));
               window.dispatchEvent(new EventCtor('pointermove', {
                 bubbles: true,
                 clientX: plotLeft + plotWidth * 0.75,
-                clientY: rect.top + 20,
+                clientY: rect.top + 40,
                 shiftKey: true,
               }));
               window.dispatchEvent(new EventCtor('pointerup', {
                 bubbles: true,
                 clientX: plotLeft + plotWidth * 0.75,
-                clientY: rect.top + 20,
+                clientY: rect.top + 40,
                 shiftKey: true,
               }));
               document.querySelector('[data-testid="aqe-zoom-selection-0"]')?.click();

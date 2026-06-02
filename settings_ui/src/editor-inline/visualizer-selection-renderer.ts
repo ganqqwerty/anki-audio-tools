@@ -5,8 +5,6 @@ import type { VisualizerElement } from "./types.js";
 import { readVisualizerTimeViewport } from "./visualizer-state.js";
 
 const SELECTION_TOOLBAR_RIGHT_OFFSET_PX = 6;
-const SEGMENT_PANEL_MAX_WIDTH_PX = 360;
-const SEGMENT_PANEL_TOP_OFFSET_PX = 40;
 
 export function renderSelection(
   visualizer: VisualizerElement,
@@ -129,23 +127,12 @@ function setSelectionOverlayGeometry(
   const plotLeftPx = plot.left * scale.x;
   const plotRightEdgePx = (plot.width - plot.right) * scale.x;
   const plotRightPx = Math.max(0, rectWidth - plotRightEdgePx);
-  const plotWidthPx = Math.max(0, plotRightEdgePx - plotLeftPx);
   const contentHeightPx = plot.height * scale.y;
   const toolbarLeftPx = Math.max(
     plotLeftPx,
     Math.min(endPx, plotRightEdgePx - SELECTION_TOOLBAR_RIGHT_OFFSET_PX),
   );
   const toolbarTopPx = Math.max(plotTopPx, Math.min(plotBottomPx, contentHeightPx - 34));
-  const toolbarRightPx = Math.max(
-    plotLeftPx,
-    Math.min(toolbarLeftPx + SELECTION_TOOLBAR_RIGHT_OFFSET_PX, plotRightEdgePx),
-  );
-  const segmentPanelWidthPx = Math.min(SEGMENT_PANEL_MAX_WIDTH_PX, plotWidthPx);
-  const segmentPanelLeftPx = Math.max(
-    plotLeftPx,
-    Math.min(toolbarRightPx - segmentPanelWidthPx, plotRightEdgePx - segmentPanelWidthPx),
-  );
-  const segmentPanelTopPx = toolbarTopPx + SEGMENT_PANEL_TOP_OFFSET_PX;
   wrapper.dataset.selectionOverlayReady = "true";
   wrapper.style.setProperty("--aqe-selection-start-px", `${startPx.toFixed(2)}px`);
   wrapper.style.setProperty("--aqe-selection-end-px", `${endPx.toFixed(2)}px`);
@@ -156,9 +143,6 @@ function setSelectionOverlayGeometry(
   wrapper.style.setProperty("--aqe-plot-right-px", `${plotRightPx.toFixed(2)}px`);
   wrapper.style.setProperty("--aqe-plot-top-px", `${plotTopPx.toFixed(2)}px`);
   wrapper.style.setProperty("--aqe-plot-height-px", `${plotHeightPx.toFixed(2)}px`);
-  wrapper.style.setProperty("--aqe-segment-panel-left-px", `${segmentPanelLeftPx.toFixed(2)}px`);
-  wrapper.style.setProperty("--aqe-segment-panel-top-px", `${segmentPanelTopPx.toFixed(2)}px`);
-  wrapper.style.setProperty("--aqe-segment-panel-width-px", `${segmentPanelWidthPx.toFixed(2)}px`);
   setOverlayNodePosition(wrapper.querySelector<HTMLElement>(".aqe-selection-toolbar"), toolbarLeftPx, toolbarTopPx);
   setOverlayNodePosition(wrapper.querySelector<HTMLElement>(".aqe-selection-toolbar-dot"), toolbarLeftPx, toolbarTopPx);
 }
@@ -177,9 +161,6 @@ function clearSelectionOverlayGeometry(visualizer: VisualizerElement): void {
     "--aqe-plot-right-px",
     "--aqe-plot-top-px",
     "--aqe-plot-height-px",
-    "--aqe-segment-panel-left-px",
-    "--aqe-segment-panel-top-px",
-    "--aqe-segment-panel-width-px",
   ]) {
     wrapper.style.removeProperty(property);
   }

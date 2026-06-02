@@ -4,6 +4,7 @@
   import { send } from "./actions.js";
   import { sendRegionDelete } from "./region-delete.js";
   import { toggleSegmentPracticePanelForOrd } from "./segment-practice-controller.js";
+  import SegmentPracticePanel from "./SegmentPracticePanel.svelte";
   import {
     collapseSelectionToolbarForOrd,
     expandSelectionToolbarForOrd,
@@ -63,12 +64,21 @@
         data-aqe-button-state="default"
         data-aqe-tooltip-content={t("editor.segment.practice_segments_title")}
         data-testid={`aqe-selection-toolbar-practice-segments-${target.ord}`}
+        aria-controls={`aqe-segment-${target.ord}-panel`}
         aria-label={t("editor.segment.practice_segments_title")}
         onpointerdown={(event) => event.stopPropagation()}
         onmousedown={(event) => event.preventDefault()}
         onclick={() => toggleSegmentPracticePanelForOrd(target.ord)}
       >
-        {t("editor.segment.practice_segments")}
+        <EditorCommandIcon
+          className="aqe-segment-disclosure aqe-segment-disclosure-closed"
+          icon="chevron-right"
+        />
+        <EditorCommandIcon
+          className="aqe-segment-disclosure aqe-segment-disclosure-open"
+          icon="chevron-down"
+        />
+        <span class="aqe-button-label">{t("editor.segment.practice_segments")}</span>
       </button>
     {/snippet}
   </AqeTooltip>
@@ -137,6 +147,7 @@
       </button>
     {/snippet}
   </AqeTooltip>
+  <SegmentPracticePanel {target} />
 </div>
 <AqeTooltip>
   {#snippet trigger({ props })}

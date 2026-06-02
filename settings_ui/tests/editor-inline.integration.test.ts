@@ -256,9 +256,9 @@ describe("editor inline Svelte integration", () => {
     await Promise.resolve();
     expect(scrollbar.hidden).toBe(false);
     const beforeScroll = window.__aqeGraphStateForTest?.(0);
-    expect(scrollport.querySelector<HTMLElement>(".aqe-time-scrollbar-spacer")?.style.width).toBe("200%");
+    expect(scrollport.querySelector<HTMLElement>(".aqe-time-scrollbar-spacer")?.style.width).toBe("125%");
 
-    scrollport.scrollLeft = 200;
+    scrollport.scrollLeft = 50;
     scrollport.dispatchEvent(new Event("scroll"));
 
     const afterScroll = window.__aqeGraphStateForTest?.(0);

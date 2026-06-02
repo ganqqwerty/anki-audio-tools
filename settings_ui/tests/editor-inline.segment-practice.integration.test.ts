@@ -1,3 +1,4 @@
+import { readFileSync } from "node:fs";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { disposeEditorRuntime, initializeEditorRuntime, scan } from "../src/editor-inline/runtime.js";
@@ -12,10 +13,20 @@ import {
   track,
 } from "./editor-inline.integration.helpers.js";
 
+const visualizerCss = readFileSync(
+  "src/editor-inline/styles/visualizer.css",
+  "utf8",
+);
+const selectionCss = readFileSync(
+  "src/editor-inline/styles/selection.css",
+  "utf8",
+);
+
 describe("editor inline segment practice integration", () => {
   let restoreConsole: () => void;
 
   beforeEach(() => {
+    installVisualizerStyles();
     restoreConsole = muteConsole();
     renderFields();
   });
@@ -37,12 +48,28 @@ describe("editor inline segment practice integration", () => {
     const edit = panel.querySelector<HTMLButtonElement>('[data-testid="aqe-segment-0-edit"]')!;
     expect(edit).not.toBeNull();
     expect(edit.disabled).toBe(false);
+    expect(panel.closest('[data-testid="aqe-selection-toolbar-0"]')).not.toBeNull();
+    const videoLink = panel.querySelector<HTMLAnchorElement>(".aqe-segment-video-link")!;
+    expect(videoLink.textContent).toBe("See video");
+    const linkClick = new MouseEvent("click", { bubbles: true, cancelable: true });
+    videoLink.dispatchEvent(linkClick);
+    expect(linkClick.defaultPrevented).toBe(true);
     expectIconOnlyButton(panel, "previous", "Previous");
     expectIconOnlyButton(panel, "next", "Next");
     expectIconOnlyButton(panel, "clear", "Clear markers");
     expect(panel.querySelector('[data-testid="aqe-segment-0-exit"]')).toBeNull();
+    for (const button of panel.querySelectorAll<HTMLButtonElement>(".aqe-segment-practice-button")) {
+      expectPointerGuards(button);
+    }
     expect(row.querySelectorAll(".aqe-segment-boundary-marker")).toHaveLength(2);
-    await Promise.resolve();
+    expect(row.closest('[data-testid="aqe-graph-svg-0"]')).not.toBeNull();
+    const trackRect = row.querySelector<SVGRectElement>(".aqe-segment-marker-track")!;
+    expect(getComputedStyle(trackRect).fill.replaceAll(",", "")).toBe("rgb(255 255 255)");
+    expect(trackRect.getAttribute("y")).toBe("10.00");
+    expect(trackRect.hasAttribute("rx")).toBe(false);
+    expect(row.querySelector(".aqe-segment-base-range")).toBeNull();
+    expect(row.querySelector(".aqe-segment-active-range")).toBeNull();
+    expect(getComputedStyle(row).opacity).toBe("1");
     clickMarkerRow(row, svg, 0.4);
     clickMarkerRow(row, svg, 0.7);
 
@@ -55,6 +82,16 @@ describe("editor inline segment practice integration", () => {
 
     clickMarkerRow(row, svg, 0.705);
     expect(window.__aqeGraphStateForTest?.(0)?.segmentMarkersMs).toEqual([400]);
+
+    panel.querySelector<HTMLButtonElement>('[data-testid="aqe-segment-0-clear"]')!.click();
+    await Promise.resolve();
+    expect(window.__aqeGraphStateForTest?.(0)).toMatchObject({
+      segmentBaseEndMs: 800,
+      segmentBaseStartMs: 200,
+      segmentEditing: true,
+      segmentMarkersMs: [],
+      segmentPanelOpen: true,
+    });
   });
 
   it("places markers using zoomed viewport time rather than full duration", async () => {
@@ -102,35 +139,59 @@ describe("editor inline segment practice integration", () => {
       selectionStartMs: 400,
     });
 
+    document.querySelector<HTMLButtonElement>('[data-testid="aqe-segment-0-previous"]')!.click();
+    await Promise.resolve();
+    expect(window.__aqeGraphStateForTest?.(0)).toMatchObject({
+      playbackStartMs: 700,
+      segmentActiveMarkerIndex: 1,
+      selectionEndMs: 800,
+      selectionStartMs: 700,
+    });
+
     document.querySelector<HTMLButtonElement>('[data-testid="aqe-button-0-play"]')!.click();
     await Promise.resolve();
     expect(window.__aqeGraphStateForTest?.(0)).toMatchObject({
       repeatEnabled: false,
       segmentPracticeState: "paused",
     });
+
+    document.querySelector<HTMLButtonElement>('[data-testid="aqe-segment-0-edit"]')!.click();
+    await Promise.resolve();
+    expect(window.__aqeGraphStateForTest?.(0)).toMatchObject({
+      segmentEditing: false,
+    });
   });
 
-  it("toggles the floating segment panel without rendering an exit action", async () => {
+  it("toggles the attached segment section without rendering an exit action", async () => {
     await prepareSegmentSelection();
     await enterSegmentPractice();
+    const segmentButton = document.querySelector<HTMLButtonElement>('[data-testid="aqe-selection-toolbar-practice-segments-0"]')!;
+    expectPointerGuards(segmentButton);
     expect(document.querySelector('[data-testid="aqe-segment-0-panel"]')).not.toBeNull();
+    expect(segmentButton.getAttribute("aria-pressed")).toBe("true");
+    expect(segmentButton.getAttribute("aria-expanded")).toBe("true");
+    expect(segmentButton.getAttribute("aria-controls")).toBe("aqe-segment-0-panel");
+    expect(segmentButton.querySelector(".aqe-segment-disclosure-open")).not.toBeNull();
+    expect(segmentButton.querySelector(".aqe-segment-disclosure-closed")).not.toBeNull();
 
-    document.querySelector<HTMLButtonElement>('[data-testid="aqe-selection-toolbar-practice-segments-0"]')!.click();
+    segmentButton.click();
     await Promise.resolve();
     expect(document.querySelector('[data-testid="aqe-segment-0-panel"]')).toBeNull();
+    expect(segmentButton.getAttribute("aria-pressed")).toBe("false");
+    expect(segmentButton.getAttribute("aria-expanded")).toBe("false");
     expect(window.__aqeGraphStateForTest?.(0)).toMatchObject({
       segmentBaseStartMs: 200,
       segmentEditing: true,
       segmentPanelOpen: false,
     });
 
-    document.querySelector<HTMLButtonElement>('[data-testid="aqe-selection-toolbar-practice-segments-0"]')!.click();
+    segmentButton.click();
     await Promise.resolve();
     await Promise.resolve();
     expect(document.querySelector('[data-testid="aqe-segment-0-panel"]')).not.toBeNull();
     expect(document.querySelector('[data-testid="aqe-segment-0-exit"]')).toBeNull();
 
-    document.querySelector<HTMLButtonElement>('[data-testid="aqe-selection-toolbar-practice-segments-0"]')!.click();
+    segmentButton.click();
     await Promise.resolve();
 
     expect(document.querySelector('[data-testid="aqe-segment-0-panel"]')).toBeNull();
@@ -141,21 +202,25 @@ describe("editor inline segment practice integration", () => {
     });
   });
 
-  it("keeps the floating segment panel inside the graph horizontal bounds", async () => {
+  it("renders the segment section inside the selection toolbar near graph edges", async () => {
     const { svg } = await prepareSegmentSelection(0, 0.1);
+    expectSelectionToolbarWrap("nowrap");
     await enterSegmentPractice({ baseEndMs: 100, baseStartMs: 0 });
 
-    expectSegmentPanelWithinGraphBounds({ expectLeftFlush: true });
+    expectSegmentPanelAttachedToToolbar();
+    expectSelectionToolbarWrap("wrap");
 
     document.querySelector<HTMLButtonElement>('[data-testid="aqe-selection-toolbar-practice-segments-0"]')!.click();
     await Promise.resolve();
     dragGraphSelection(svg, 0.9, 1);
+    expectSelectionToolbarWrap("nowrap");
     await enterSegmentPractice({ baseEndMs: 1000, baseStartMs: 900 });
 
-    expectSegmentPanelWithinGraphBounds({ expectRightFlush: true });
+    expectSegmentPanelAttachedToToolbar();
+    expectSelectionToolbarWrap("wrap");
   });
 
-  it("opens the floating segment panel for whole-clip selections", async () => {
+  it("opens the segment section for whole-clip selections", async () => {
     const { row } = await prepareSegmentSelection(0, 1);
 
     expect(window.__aqeGraphStateForTest?.(0)).toMatchObject({
@@ -170,9 +235,18 @@ describe("editor inline segment practice integration", () => {
     await enterSegmentPractice({ baseEndMs: 1000, baseStartMs: 0 });
 
     expect(document.querySelector('[data-testid="aqe-segment-0-panel"]')).not.toBeNull();
+    expectSegmentPanelAttachedToToolbar();
     expect(row.querySelectorAll(".aqe-segment-boundary-marker")).toHaveLength(2);
   });
 });
+
+function installVisualizerStyles(): void {
+  if (document.querySelector("style[data-aqe-test-visualizer-styles]")) return;
+  const style = document.createElement("style");
+  style.dataset.aqeTestVisualizerStyles = "true";
+  style.textContent = `${visualizerCss}\n${selectionCss}`;
+  document.head.appendChild(style);
+}
 
 async function enterSegmentPractice(
   expected: { baseEndMs: number; baseStartMs: number } = { baseEndMs: 800, baseStartMs: 200 },
@@ -190,7 +264,7 @@ async function enterSegmentPractice(
 async function prepareSegmentSelection(
   startRatio = 0.2,
   endRatio = 0.8,
-): Promise<{ row: HTMLElement; svg: SVGSVGElement }> {
+): Promise<{ row: SVGGElement; svg: SVGSVGElement }> {
   initializeEditorRuntime({ audioFieldIndices: [0], repeatPlaybackByDefault: false });
   scan({ audioFieldIndices: [0], repeatPlaybackByDefault: false });
   await Promise.resolve();
@@ -198,7 +272,7 @@ async function prepareSegmentSelection(
   const svg = document.querySelector<SVGSVGElement>('[data-testid="aqe-graph-svg-0"]')!;
   setGraphBounds(svg);
   dragGraphSelection(svg, startRatio, endRatio);
-  const row = document.querySelector<HTMLElement>('[data-testid="aqe-segment-marker-row-0"]')!;
+  const row = document.querySelector<SVGGElement>('[data-testid="aqe-segment-marker-row-0"]')!;
   return { row, svg };
 }
 
@@ -210,29 +284,36 @@ function expectIconOnlyButton(panel: HTMLElement, kind: "clear" | "next" | "prev
   expect(button.querySelector(".aqe-button-icon")).not.toBeNull();
 }
 
-function expectSegmentPanelWithinGraphBounds(
-  options: { expectLeftFlush?: boolean; expectRightFlush?: boolean } = {},
-): void {
-  const plot = document.querySelector<HTMLElement>('[data-testid="aqe-visualizer-plot-0"]')!;
-  const panelLeft = cssVarNumber(plot, "--aqe-segment-panel-left-px");
-  const panelWidth = cssVarNumber(plot, "--aqe-segment-panel-width-px");
-  const plotLeft = 44;
-  const plotRight = 610;
-  expect(panelLeft).toBeGreaterThanOrEqual(plotLeft);
-  expect(panelLeft + panelWidth).toBeLessThanOrEqual(plotRight);
-  if (options.expectLeftFlush) expect(panelLeft).toBeCloseTo(plotLeft, 1);
-  if (options.expectRightFlush) expect(panelLeft + panelWidth).toBeCloseTo(plotRight, 1);
+function expectSegmentPanelAttachedToToolbar(): void {
+  const toolbar = document.querySelector<HTMLElement>('[data-testid="aqe-selection-toolbar-0"]')!;
+  const panel = document.querySelector<HTMLElement>('[data-testid="aqe-segment-0-panel"]')!;
+  expect(panel.closest('[data-testid="aqe-selection-toolbar-0"]')).toBe(toolbar);
 }
 
-function cssVarNumber(node: HTMLElement, name: string): number {
-  return Number.parseFloat(node.style.getPropertyValue(name));
+function expectSelectionToolbarWrap(expected: "nowrap" | "wrap"): void {
+  const toolbar = document.querySelector<HTMLElement>('[data-testid="aqe-selection-toolbar-0"]')!;
+  expect(getComputedStyle(toolbar).flexWrap).toBe(expected);
 }
 
-function clickMarkerRow(row: HTMLElement, svg: SVGSVGElement, ratio: number): void {
+function expectPointerGuards(element: HTMLElement): void {
+  const PointerEventCtor = window.PointerEvent || window.MouseEvent;
+  element.dispatchEvent(new PointerEventCtor("pointerdown", { bubbles: true, cancelable: true }));
+  const mouseDown = new MouseEvent("mousedown", { bubbles: true, cancelable: true });
+  element.dispatchEvent(mouseDown);
+  expect(mouseDown.defaultPrevented).toBe(true);
+}
+
+function clickMarkerRow(row: SVGGElement, svg: SVGSVGElement, ratio: number): void {
   const EventCtor = window.PointerEvent || window.MouseEvent;
+  const clientX = graphClientX(svg, ratio);
   row.dispatchEvent(new EventCtor("pointerdown", {
     bubbles: true,
-    clientX: graphClientX(svg, ratio),
+    clientX,
+    clientY: 155,
+  }));
+  window.dispatchEvent(new EventCtor("pointerup", {
+    bubbles: true,
+    clientX,
     clientY: 155,
   }));
 }
