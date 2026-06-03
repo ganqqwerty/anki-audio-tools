@@ -76,7 +76,12 @@ describe("editor inline learner recording integration", () => {
     initializeEditorRuntime(config);
     scan(config);
 
-    expect(document.querySelector(".aqe-recording-group")).not.toBeNull();
+    const group = document.querySelector<HTMLElement>(".aqe-recording-group")!;
+    expect(group).not.toBeNull();
+    expect(group).toHaveClass("aqe-toolbar-panel");
+    expect(group).toHaveAttribute("role", "group");
+    expect(group).toHaveAttribute("aria-label", "Record / Play yours");
+    expect(group.querySelector(".aqe-toolbar-panel-label")).toHaveTextContent("Record / Play yours");
     expect(document.querySelector('[data-testid="aqe-button-0-record-voice"]')).not.toBeNull();
     expect(document.querySelector('[data-testid="aqe-button-0-play-recording"]')).not.toBeNull();
   });
@@ -89,6 +94,9 @@ describe("editor inline learner recording integration", () => {
     const recordButton = document.querySelector<HTMLButtonElement>('[data-testid="aqe-button-0-record-voice"]')!;
     const playYoursButton = document.querySelector<HTMLButtonElement>('[data-testid="aqe-button-0-play-recording"]')!;
     expect(group).not.toBeNull();
+    expect(group).toHaveClass("aqe-toolbar-panel");
+    expect(group).toHaveAttribute("aria-label", "Record / Play yours");
+    expect(group?.querySelector(".aqe-split-group")).not.toBeNull();
     expect(recordButton.classList.contains("aqe-icon-only")).toBe(true);
     expect(playYoursButton.classList.contains("aqe-icon-only")).toBe(true);
     expect(document.querySelector('[data-testid="aqe-split-0-record-voice-menu"]')).not.toBeNull();

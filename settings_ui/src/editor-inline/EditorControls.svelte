@@ -6,6 +6,7 @@
   import { t } from "../lib/i18n.js";
   import EditorHelp from "./EditorHelp.svelte";
   import EditorToolbarButton from "./EditorToolbarButton.svelte";
+  import EditorToolbarPanel from "./EditorToolbarPanel.svelte";
   import GraphVisualizer from "./GraphVisualizer.svelte";
   import PlaySplitButton from "./PlaySplitButton.svelte";
   import SplitButton from "./SplitButton.svelte";
@@ -166,38 +167,43 @@
         </span>
       {:else if item.kind === "recording-group"}
         {@const playRecording = item.playRecording}
-        <span class="aqe-split-group aqe-recording-group">
-          <SplitButton
-            button={item.record}
-            displayMode={buttonDisplayMode(item.record.command, buttonModes)}
-            primaryGroupPosition="start"
-            showMenu={false}
-            {target}
-          />
-          <SplitButton
-            button={playRecording}
-            displayMode={buttonDisplayMode(playRecording.command, buttonModes)}
-            primaryGroupPosition="middle"
-            showMenu={false}
-            {target}
-          />
-          <SplitButton
-            button={item.record}
-            displayMode={buttonDisplayMode(item.record.command, buttonModes)}
-            groupLabel={t("editor.command.record_group.label")}
-            showPrimary={false}
-            showRunButton={false}
-            {target}
-          />
-        </span>
-      {:else if item.kind === "back-chaining-group"}
-        <span
-          class="aqe-toolbar-panel aqe-back-chaining-toolbar-panel"
-          data-testid={`aqe-back-chaining-toolbar-panel-${target.ord}`}
-          role="group"
-          aria-label={item.label}
+        {@const recordingLabel = t("editor.command.record_group.label")}
+        <EditorToolbarPanel
+          label={recordingLabel}
+          panelClass="aqe-recording-group"
+          testId={`aqe-recording-toolbar-panel-${target.ord}`}
         >
-          <span class="aqe-toolbar-panel-label" aria-hidden="true">{item.label}</span>
+          <span class="aqe-split-group">
+            <SplitButton
+              button={item.record}
+              displayMode={buttonDisplayMode(item.record.command, buttonModes)}
+              primaryGroupPosition="start"
+              showMenu={false}
+              {target}
+            />
+            <SplitButton
+              button={playRecording}
+              displayMode={buttonDisplayMode(playRecording.command, buttonModes)}
+              primaryGroupPosition="middle"
+              showMenu={false}
+              {target}
+            />
+            <SplitButton
+              button={item.record}
+              displayMode={buttonDisplayMode(item.record.command, buttonModes)}
+              groupLabel={recordingLabel}
+              showPrimary={false}
+              showRunButton={false}
+              {target}
+            />
+          </span>
+        </EditorToolbarPanel>
+      {:else if item.kind === "back-chaining-group"}
+        <EditorToolbarPanel
+          label={item.label}
+          panelClass="aqe-back-chaining-toolbar-panel"
+          testId={`aqe-back-chaining-toolbar-panel-${target.ord}`}
+        >
           {#each item.buttons as button (button.command)}
             <EditorToolbarButton
               {button}
@@ -207,7 +213,7 @@
               {target}
             />
           {/each}
-        </span>
+        </EditorToolbarPanel>
       {:else if item.button.command === "aqe:play"}
         <PlaySplitButton
           button={item.button}

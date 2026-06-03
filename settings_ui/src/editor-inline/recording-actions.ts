@@ -300,6 +300,7 @@ function toolbarButtonsForControls(controls: HTMLElement): HTMLButtonElement[] {
     if (
       node.matches(".aqe-split-group")
       || node.matches(".aqe-split-button")
+      || node.matches(".aqe-toolbar-panel")
       || node.matches(".aqe-button-tooltip-target")
     ) {
       buttons.push(...Array.from(node.querySelectorAll<HTMLButtonElement>(".aqe-button")));
