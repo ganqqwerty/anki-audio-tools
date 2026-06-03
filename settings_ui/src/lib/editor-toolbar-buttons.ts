@@ -240,24 +240,6 @@ export function toolbarButtons(): readonly ToolbarButtonSpec[] {
   );
 }
 
-export function visibleToolbarButtons(
-  buttons: readonly ToolbarButtonSpec[],
-  visibleCommands: readonly EditorCommand[] | undefined,
-): readonly ToolbarButtonSpec[] {
-  if (!Array.isArray(visibleCommands)) {
-    return buttons.filter(
-      (button) => button.command !== "aqe:record-voice" && button.command !== "aqe:play-recording",
-    );
-  }
-  const availableCommands = new Set(buttons.map((button) => button.command));
-  const requested = new Set(
-    visibleCommands.filter((command): command is EditorCommand =>
-      availableCommands.has(command),
-    ),
-  );
-  return buttons.filter((button) => requested.has(button.command));
-}
-
 export function buttonDisplayMode(
   command: EditorCommand,
   modes: EditorButtonModes | undefined,

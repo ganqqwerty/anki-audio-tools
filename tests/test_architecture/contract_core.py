@@ -10,12 +10,21 @@ CORE_CONTRACTS: dict[str, ModuleContract] = {
     "config_migration": contract(
         "config_migration",
         layer=Layer.IMPORT_SAFE_CORE,
-        allowed_addon_deps=("audio_formats", "audio_size_reduction", "dpdfnet_settings"),
+        allowed_addon_deps=(
+            "audio_formats",
+            "audio_size_reduction",
+            "dpdfnet_settings",
+            "editor_button_visibility",
+        ),
     ),
     "contracts_generated": contract(
         "contracts_generated",
         layer=Layer.IMPORT_SAFE_CORE,
         notes="Generated quicktype DTOs for owned JSON bridge contracts.",
+    ),
+    "editor_button_visibility": contract(
+        "editor_button_visibility",
+        layer=Layer.IMPORT_SAFE_CORE,
     ),
     "db_helpers": contract(
         "db_helpers",

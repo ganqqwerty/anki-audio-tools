@@ -183,6 +183,7 @@ UI_CONTRACTS: dict[str, ModuleContract] = {
         allowed_addon_deps=(
             "contracts_generated",
             "diagnostics_runtime",
+            "editor_button_visibility",
             "error_codes",
             "external_links",
             "ffmpeg_defaults",
