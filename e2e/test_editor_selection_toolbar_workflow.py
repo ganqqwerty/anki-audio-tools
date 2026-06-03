@@ -115,7 +115,7 @@ def _toolbar_alignment_state(editor, ord_: int = 0):
     )
 
 
-def test_selection_toolbar_appears_collapses_and_expands(anki_mw, ffmpeg_config) -> None:
+def test_selection_toolbar_appears_and_remains_visible(anki_mw, ffmpeg_config) -> None:
     media_dir = Path(anki_mw.col.media.dir())
     source = media_dir / "editor_toolbar_expand_source.wav"
     generate_tone(ffmpeg_config, source, duration_s=2.0)
@@ -128,9 +128,7 @@ def test_selection_toolbar_appears_collapses_and_expands(anki_mw, ffmpeg_config)
         _shift_drag_region(editor, 0.25, 0.625)
         visible = _wait_for_toolbar(
             editor,
-            lambda state: state["selectionToolbarCollapsed"] is False
-            and state["selectionToolbarDotHidden"] is True
-            and state["selectionToolbarDeleteRegionHidden"] is False
+            lambda state: state["selectionToolbarDeleteRegionHidden"] is False
             and state["selectionToolbarDeleteRestHidden"] is False,
         )
         assert visible["selectionStartMs"] == 500
@@ -138,18 +136,18 @@ def test_selection_toolbar_appears_collapses_and_expands(anki_mw, ffmpeg_config)
         alignment = _toolbar_alignment_state(editor)
         assert alignment is not None
         assert 0 <= alignment["rightDeltaPx"] <= 12
-
-        click_selector(editor.web, _toolbar_selector("collapse"), timeout=5.0)
-        collapsed = wait_for_js_condition(
+        absent_controls = wait_for_js_condition(
             editor.web,
-            _graph_state_js(),
-            lambda state: state is not None
-            and state["selectionToolbarCollapsed"] is True
-            and state["selectionToolbarHidden"] is True
-            and state["selectionToolbarDotHidden"] is False,
+            """
+            (() => ({
+              collapse: Boolean(document.querySelector('[data-testid="aqe-selection-toolbar-collapse-0"]')),
+              dot: Boolean(document.querySelector('[data-testid="aqe-selection-toolbar-dot-0"]')),
+            }))()
+            """,
+            lambda state: state == {"collapse": False, "dot": False},
             timeout=5.0,
         )
-        assert collapsed["selectionActive"] is True
+        assert absent_controls == {"collapse": False, "dot": False}
 
         _shift_drag_region(editor, 0.3, 0.7)
         wait_for_js_condition(
@@ -158,9 +156,7 @@ def test_selection_toolbar_appears_collapses_and_expands(anki_mw, ffmpeg_config)
             lambda state: state is not None
             and state["selectionStartMs"] == 600
             and state["selectionEndMs"] == 1400
-            and state["selectionToolbarCollapsed"] is True
-            and state["selectionToolbarHidden"] is True
-            and state["selectionToolbarDotHidden"] is False,
+            and state["selectionToolbarHidden"] is False,
             timeout=5.0,
         )
 
@@ -177,26 +173,15 @@ def test_selection_toolbar_appears_collapses_and_expands(anki_mw, ffmpeg_config)
             editor.web,
             _graph_state_js(),
             lambda state: state is not None
-            and state["selectionToolbarCollapsed"] is True
-            and state["selectionToolbarHidden"] is True
-            and state["selectionToolbarDotHidden"] is False,
+            and state["selectionToolbarHidden"] is False,
             timeout=5.0,
         )
 
-        _dispatch_toolbar_event(editor, "dot", "click")
-        expanded = _wait_for_toolbar(
-            editor,
-            lambda state: state["selectionToolbarCollapsed"] is False
-            and state["selectionToolbarDotHidden"] is True,
-        )
+        expanded = _wait_for_toolbar(editor)
         assert expanded["selectionActive"] is True
 
         _shift_drag_region(editor, 0.2, 0.4)
-        _wait_for_toolbar(
-            editor,
-            lambda state: state["selectionToolbarCollapsed"] is False
-            and state["selectionToolbarDotHidden"] is True,
-        )
+        _wait_for_toolbar(editor)
     finally:
         editor.set_note(None)
         parent.close()
@@ -322,11 +307,7 @@ def test_selection_toolbar_delete_rest_keeps_selected_audio(anki_mw, ffmpeg_conf
         assert 600 <= generated_duration <= 900
 
         _shift_drag_region(editor, 0.1, 0.8)
-        _wait_for_toolbar(
-            editor,
-            lambda state: state["selectionToolbarCollapsed"] is False
-            and state["selectionToolbarDotHidden"] is True,
-        )
+        _wait_for_toolbar(editor)
     finally:
         editor.set_note(None)
         parent.close()

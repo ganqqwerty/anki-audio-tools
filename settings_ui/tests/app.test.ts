@@ -13,6 +13,7 @@ import {
   PauseAggressiveness,
   Phase,
   PitchHumMode,
+  VisibleEditorButton,
 } from "../src/lib/types.js";
 import { asyncPayload, bridgeEnvelopes, bridgePayload, defaultConfig, pycmdMock, setInitialState } from "./settings-app-helpers.js";
 
@@ -30,7 +31,10 @@ describe("App", () => {
     expect(screen.getByText("Editor toolbar buttons")).toBeInTheDocument();
     expect(screen.getByTestId("button-settings-settings")).toBeInTheDocument();
     expect(screen.getByTestId("button-settings-play")).toBeInTheDocument();
-    expect(screen.getByTestId("button-settings-back-chain-previous")).toBeInTheDocument();
+    expect(screen.getByTestId("button-settings-back-chaining")).toBeInTheDocument();
+    expect(screen.queryByTestId("button-settings-back-chain-previous")).not.toBeInTheDocument();
+    expect(screen.getByTestId("button-settings-delete-selection")).toBeInTheDocument();
+    expect(screen.getByTestId("button-settings-delete-rest")).toBeInTheDocument();
     expect(screen.getByText("Speaker's voice")).toBeInTheDocument();
     expect(screen.getByText("Recording condition")).toBeInTheDocument();
     expect(screen.getByText("Graph smoothness")).toBeInTheDocument();
@@ -149,14 +153,56 @@ describe("App", () => {
     expect(config.editor_button_modes["aqe:settings"]).toBe("icon");
   });
 
+  it("saves selection action visibility and display mode changes", async () => {
+    setInitialState();
+
+    render(App);
+    const deleteSelectionCard = screen.getByTestId("button-settings-delete-selection");
+    await fireEvent.click(within(deleteSelectionCard).getByRole("checkbox", { name: "Show" }));
+    await fireEvent.click(within(deleteSelectionCard).getByRole("checkbox", { name: "Icon" }));
+    await fireEvent.click(screen.getByRole("button", { name: "Save" }));
+
+    const config = bridgePayload<{
+      editor_button_modes: Record<string, string>;
+      visible_editor_buttons: string[];
+    }>("settings.save");
+    expect(config.visible_editor_buttons).not.toContain("aqe:delete-selection");
+    expect(config.visible_editor_buttons).toContain("aqe:delete-rest");
+    expect(config.editor_button_modes["aqe:delete-selection"]).toBe("text");
+  });
+
+  it("hides all back-chaining commands from one settings panel", async () => {
+    setInitialState();
+
+    render(App);
+
+    const backChainingPanel = screen.getByTestId("button-settings-back-chaining");
+    expect(screen.queryByTestId("button-settings-back-chain-practice")).not.toBeInTheDocument();
+    expect(screen.queryByTestId("button-settings-back-chain-previous")).not.toBeInTheDocument();
+    expect(screen.queryByTestId("button-settings-back-chain-next")).not.toBeInTheDocument();
+    expect(within(backChainingPanel).getByTestId("button-settings-back-chain-practice-mode-icon")).toBeEnabled();
+    expect(within(backChainingPanel).getByTestId("button-settings-back-chain-previous-mode-icon")).toBeEnabled();
+    expect(within(backChainingPanel).getByTestId("button-settings-back-chain-next-mode-icon")).toBeEnabled();
+
+    await fireEvent.click(within(backChainingPanel).getByTestId("button-settings-back-chaining-visibility-show"));
+    await fireEvent.click(screen.getByRole("button", { name: "Save" }));
+
+    const config = bridgePayload<{ visible_editor_buttons: string[] }>("settings.save");
+    expect(config.visible_editor_buttons).not.toContain("aqe:back-chain-practice");
+    expect(config.visible_editor_buttons).not.toContain("aqe:back-chain-previous");
+    expect(config.visible_editor_buttons).not.toContain("aqe:back-chain-next");
+  });
+
   it("shows a placeholder for toolbar buttons without extra settings", () => {
     setInitialState();
 
     render(App);
 
     const folderCard = screen.getByTestId("button-settings-show-file");
+    const deleteRestCard = screen.getByTestId("button-settings-delete-rest");
 
     expect(within(folderCard).getByText("No extra settings")).toBeInTheDocument();
+    expect(within(deleteRestCard).getByText("No extra settings")).toBeInTheDocument();
   });
 
   it("saves split button default settings", async () => {
@@ -221,20 +267,20 @@ describe("App", () => {
     expect(config.graph_voice_lock).toBe("stable");
   });
 
-  it("enables learner recording buttons with separate visibility and display settings", async () => {
+  it("enables the learner recording panel with separate display settings", async () => {
     setInitialState();
 
     render(App);
 
-    const recordCard = screen.getByTestId("button-settings-record-voice");
-    const playYoursCard = screen.getByTestId("button-settings-play-recording");
-    const recordIconMode = within(recordCard).getByTestId("button-settings-record-voice-mode-icon");
-    const playYoursIconMode = within(playYoursCard).getByTestId("button-settings-play-recording-mode-icon");
+    const recordingPanel = screen.getByTestId("button-settings-record-play-yours");
+    expect(screen.queryByTestId("button-settings-record-voice")).not.toBeInTheDocument();
+    expect(screen.queryByTestId("button-settings-play-recording")).not.toBeInTheDocument();
+    const recordIconMode = within(recordingPanel).getByTestId("button-settings-record-voice-mode-icon");
+    const playYoursIconMode = within(recordingPanel).getByTestId("button-settings-play-recording-mode-icon");
     expect(recordIconMode).toBeEnabled();
     expect(playYoursIconMode).toBeEnabled();
 
-    await fireEvent.click(within(recordCard).getByTestId("button-settings-record-voice-visibility-show"));
-    await fireEvent.click(within(playYoursCard).getByTestId("button-settings-play-recording-visibility-show"));
+    await fireEvent.click(within(recordingPanel).getByTestId("button-settings-record-play-yours-visibility-show"));
     await fireEvent.click(recordIconMode);
     await fireEvent.click(playYoursIconMode);
     await fireEvent.input(screen.getByTestId("voice-recording-countdown-seconds"), {
@@ -252,6 +298,27 @@ describe("App", () => {
     expect(config.editor_button_modes["aqe:record-voice"]).toBe("text");
     expect(config.editor_button_modes["aqe:play-recording"]).toBe("text");
     expect(config.voice_recording_countdown_seconds).toBe(0);
+  });
+
+  it("hides both learner recording commands when the panel is hidden", async () => {
+    setInitialState({
+      ...defaultConfig,
+      visible_editor_buttons: [
+        ...defaultConfig.visible_editor_buttons,
+        VisibleEditorButton.AqeRecordVoice,
+        VisibleEditorButton.AqePlayRecording,
+      ],
+    });
+
+    render(App);
+
+    const recordingPanel = screen.getByTestId("button-settings-record-play-yours");
+    await fireEvent.click(within(recordingPanel).getByTestId("button-settings-record-play-yours-visibility-show"));
+    await fireEvent.click(screen.getByRole("button", { name: "Save" }));
+
+    const config = bridgePayload<{ visible_editor_buttons: string[] }>("settings.save");
+    expect(config.visible_editor_buttons).not.toContain("aqe:record-voice");
+    expect(config.visible_editor_buttons).not.toContain("aqe:play-recording");
   });
 
   it("shows diagnostics data and runs a health check", async () => {

@@ -67,6 +67,20 @@ describe("editor inline learner recording integration", () => {
     expect(document.querySelector('[data-testid="aqe-button-0-play-recording"]')).toBeNull();
   });
 
+  it("expands partial learner recording visibility to the full group", () => {
+    const config: EditorRuntimeConfig = {
+      ...recordingConfig(),
+      visibleEditorButtons: ["aqe:record-voice"],
+    };
+
+    initializeEditorRuntime(config);
+    scan(config);
+
+    expect(document.querySelector(".aqe-recording-group")).not.toBeNull();
+    expect(document.querySelector('[data-testid="aqe-button-0-record-voice"]')).not.toBeNull();
+    expect(document.querySelector('[data-testid="aqe-button-0-play-recording"]')).not.toBeNull();
+  });
+
   it("renders the opt-in grouped buttons and dispatches record after the configured countdown", async () => {
     initializeEditorRuntime(recordingConfig());
     scan(recordingConfig());

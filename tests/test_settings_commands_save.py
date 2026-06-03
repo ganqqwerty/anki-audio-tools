@@ -83,6 +83,53 @@ def test_settings_save_drops_stale_visible_editor_buttons() -> None:
     assert dialog.accepted is True
 
 
+def test_settings_save_normalizes_partial_recording_panel_visibility() -> None:
+    from aqt import mw
+
+    dialog = _make_dialog()
+    _, eval_fn = _capture_eval()
+    config = {
+        **_full_config(),
+        "visible_editor_buttons": ["aqe:play", "aqe:record-voice", "aqe:settings"],
+    }
+    command = _bridge_command("settings.save", config)
+
+    assert handle_settings_command(command, eval_fn, dialog) is True
+
+    saved_config = mw.addonManager.writeConfig.call_args.args[1]
+    assert saved_config["visible_editor_buttons"] == [
+        "aqe:play",
+        "aqe:record-voice",
+        "aqe:play-recording",
+        "aqe:settings",
+    ]
+    assert dialog.accepted is True
+
+
+def test_settings_save_normalizes_partial_back_chaining_panel_visibility() -> None:
+    from aqt import mw
+
+    dialog = _make_dialog()
+    _, eval_fn = _capture_eval()
+    config = {
+        **_full_config(),
+        "visible_editor_buttons": ["aqe:play", "aqe:back-chain-next", "aqe:settings"],
+    }
+    command = _bridge_command("settings.save", config)
+
+    assert handle_settings_command(command, eval_fn, dialog) is True
+
+    saved_config = mw.addonManager.writeConfig.call_args.args[1]
+    assert saved_config["visible_editor_buttons"] == [
+        "aqe:play",
+        "aqe:back-chain-practice",
+        "aqe:back-chain-previous",
+        "aqe:back-chain-next",
+        "aqe:settings",
+    ]
+    assert dialog.accepted is True
+
+
 def test_settings_save_reports_invalid_payload() -> None:
     dialog = _make_dialog()
     calls, eval_fn = _capture_eval()

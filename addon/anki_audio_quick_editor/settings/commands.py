@@ -18,6 +18,10 @@ from ..diagnostics_runtime import (
     record_breadcrumb,
     set_debug_enabled,
 )
+from ..editor_button_visibility import (
+    normalize_visible_editor_buttons,
+    supported_visible_editor_button_order,
+)
 from ..error_codes import AQE_SETTINGS_INVALID_PAYLOAD, coded_error
 from ..external_links import open_trusted_external_url_from_payload
 from ..frontend_logs import handle_frontend_log_payload
@@ -130,10 +134,13 @@ def _sanitize_settings_payload(raw_config: Any) -> None:
         return
     visible_buttons = raw_config.get("visible_editor_buttons")
     if isinstance(visible_buttons, list):
-        allowed_buttons = {button.value for button in VisibleEditorButton}
-        raw_config["visible_editor_buttons"] = [
-            button for button in visible_buttons if button in allowed_buttons
-        ]
+        button_order = supported_visible_editor_button_order(raw_config)
+        if not button_order:
+            button_order = [button.value for button in VisibleEditorButton]
+        raw_config["visible_editor_buttons"] = normalize_visible_editor_buttons(
+            visible_buttons,
+            button_order,
+        )
 
 
 def _handle_reset_defaults(dialog: Any) -> None:

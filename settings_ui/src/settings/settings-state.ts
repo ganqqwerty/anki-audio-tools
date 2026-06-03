@@ -22,6 +22,7 @@ export const DEFAULT_VISIBLE_EDITOR_BUTTONS = [
   VisibleEditorButton.AqePlay,
   VisibleEditorButton.AqeAnalyze,
   VisibleEditorButton.AqeBackChainPractice,
+  VisibleEditorButton.AqeBackChainPrevious,
   VisibleEditorButton.AqeBackChainNext,
   VisibleEditorButton.AqeShowFile,
   VisibleEditorButton.AqeShare,
@@ -30,6 +31,8 @@ export const DEFAULT_VISIBLE_EDITOR_BUTTONS = [
   VisibleEditorButton.AqeDenoiseStandard,
   VisibleEditorButton.AqeSlower,
   VisibleEditorButton.AqeFaster,
+  VisibleEditorButton.AqeDeleteSelection,
+  VisibleEditorButton.AqeDeleteREST,
   VisibleEditorButton.AqeUndo,
   VisibleEditorButton.AqeRedo,
   VisibleEditorButton.AqeSettings,
@@ -37,7 +40,7 @@ export const DEFAULT_VISIBLE_EDITOR_BUTTONS = [
 
 export const FALLBACK_INITIAL_STATE: InitialState = {
   config: {
-    _config_version: 1,
+    _config_version: 2,
     enabled: true,
     debug_logging: false,
     show_ffmpeg_commands: false,

@@ -12,9 +12,9 @@ export {
   denoiseButtons,
   denoiseTopLevelButton,
   toolbarButtons,
-  visibleToolbarButtons,
 } from "../lib/editor-toolbar-buttons.js";
 export { COMMAND_SLUGS, testId } from "../lib/editor-toolbar-command-slugs.js";
+export { visibleToolbarButtons } from "../lib/editor-toolbar-visibility.js";
 
 export const PROCESSING_COMMANDS = new Set<EditorCommand>([
   "aqe:slower",
