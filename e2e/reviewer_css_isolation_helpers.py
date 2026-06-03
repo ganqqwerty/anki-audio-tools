@@ -267,6 +267,7 @@ def assert_reviewer_back_chaining_marker_row_css_isolated(reviewer, field_ord: i
             nextFontSize: nextStyle.fontSize,
             panelBorderRadius: panelStyle.borderRadius,
             panelBorderTopWidth: panelStyle.borderTopWidth,
+            panelContainer: panel.getAttribute("data-aqe-toolbar-button-container"),
             panelDisplay: panelStyle.display,
             panelLabel: panel.querySelector(".aqe-toolbar-panel-label")?.textContent || "",
             previousFontSize: previousStyle.fontSize,
@@ -284,6 +285,7 @@ def assert_reviewer_back_chaining_marker_row_css_isolated(reviewer, field_ord: i
     assert back_chaining_style["nextFontSize"] == "12px"
     assert back_chaining_style["panelBorderRadius"] == "9px"
     assert back_chaining_style["panelBorderTopWidth"] == "1px"
+    assert back_chaining_style["panelContainer"] == "true"
     assert back_chaining_style["panelDisplay"] in {"flex", "inline-flex"}
     assert back_chaining_style["panelLabel"] == "Back-chaining"
     assert back_chaining_style["previousFontSize"] == "12px"

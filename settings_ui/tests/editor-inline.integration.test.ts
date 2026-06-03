@@ -168,6 +168,7 @@ describe("editor inline Svelte integration", () => {
     expect(panel).toHaveClass("aqe-toolbar-panel", "aqe-back-chaining-toolbar-panel");
     expect(panel).toHaveAttribute("role", "group");
     expect(panel).toHaveAttribute("aria-label", "Back-chaining");
+    expect(panel).toHaveAttribute("data-aqe-toolbar-button-container", "true");
     expect(panel.querySelector(".aqe-toolbar-panel-label")).toHaveTextContent("Back-chaining");
     expect(Array.from(panel.querySelectorAll<HTMLButtonElement>("[data-aqe-command]")).map((button) => button.dataset.aqeCommand)).toEqual([
       "aqe:back-chain-practice",

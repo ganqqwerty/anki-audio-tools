@@ -128,6 +128,7 @@ def test_editor_voice_recording_comparison_workflow(
                 ariaLabel: panel.getAttribute("aria-label"),
                 borderRadius: style.borderRadius,
                 borderTopWidth: style.borderTopWidth,
+                container: panel.getAttribute("data-aqe-toolbar-button-container"),
                 groupCount: document.querySelectorAll('.aqe-recording-group').length,
                 label: panel.querySelector(".aqe-toolbar-panel-label")?.textContent || "",
                 recordIconOnly: record.classList.contains('aqe-icon-only'),
@@ -142,6 +143,7 @@ def test_editor_voice_recording_comparison_workflow(
             and value["ariaLabel"] == "Record / Play yours"
             and value["borderRadius"] == "9px"
             and value["borderTopWidth"] == "1px"
+            and value["container"] == "true"
             and value["groupCount"] == 1
             and value["label"] == "Record / Play yours"
             and value["recordIconOnly"] is True

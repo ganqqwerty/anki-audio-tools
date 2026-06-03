@@ -140,6 +140,7 @@ def test_back_chaining_marker_row_is_immediately_editable_after_graph_shows(
                 borderTopWidth: style.borderTopWidth,
                 commands: Array.from(panel.querySelectorAll("[data-aqe-command]"))
                   .map((button) => button.getAttribute("data-aqe-command")),
+                container: panel.getAttribute("data-aqe-toolbar-button-container"),
                 display: style.display,
                 label: panel.querySelector(".aqe-toolbar-panel-label")?.textContent || "",
                 role: panel.getAttribute("role"),
@@ -155,6 +156,7 @@ def test_back_chaining_marker_row_is_immediately_editable_after_graph_shows(
                 "aqe:back-chain-previous",
                 "aqe:back-chain-next",
             ]
+            and value["container"] == "true"
             and value["display"] in {"flex", "inline-flex"}
             and value["label"] == "Back-chaining"
             and value["role"] == "group",

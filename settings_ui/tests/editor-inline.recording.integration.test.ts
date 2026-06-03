@@ -81,6 +81,7 @@ describe("editor inline learner recording integration", () => {
     expect(group).toHaveClass("aqe-toolbar-panel");
     expect(group).toHaveAttribute("role", "group");
     expect(group).toHaveAttribute("aria-label", "Record / Play yours");
+    expect(group).toHaveAttribute("data-aqe-toolbar-button-container", "true");
     expect(group.querySelector(".aqe-toolbar-panel-label")).toHaveTextContent("Record / Play yours");
     expect(document.querySelector('[data-testid="aqe-button-0-record-voice"]')).not.toBeNull();
     expect(document.querySelector('[data-testid="aqe-button-0-play-recording"]')).not.toBeNull();
@@ -96,6 +97,7 @@ describe("editor inline learner recording integration", () => {
     expect(group).not.toBeNull();
     expect(group).toHaveClass("aqe-toolbar-panel");
     expect(group).toHaveAttribute("aria-label", "Record / Play yours");
+    expect(group).toHaveAttribute("data-aqe-toolbar-button-container", "true");
     expect(group?.querySelector(".aqe-split-group")).not.toBeNull();
     expect(recordButton.classList.contains("aqe-icon-only")).toBe(true);
     expect(playYoursButton.classList.contains("aqe-icon-only")).toBe(true);

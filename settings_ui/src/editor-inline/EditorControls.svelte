@@ -3,7 +3,9 @@
   import AqeTooltipProvider from "../lib/AqeTooltipProvider.svelte";
   import { toolbarButtons, visibleToolbarButtons } from "./commands.js";
   import { buttonDisplayMode } from "../lib/editor-toolbar-buttons.js";
+  import type { ToolbarPanelSlug } from "../lib/editor-toolbar-panel-definitions.js";
   import { t } from "../lib/i18n.js";
+  import { buildEditorToolbarRenderItems } from "./editor-toolbar-render-items.js";
   import EditorHelp from "./EditorHelp.svelte";
   import EditorToolbarButton from "./EditorToolbarButton.svelte";
   import EditorToolbarPanel from "./EditorToolbarPanel.svelte";
@@ -11,26 +13,17 @@
   import PlaySplitButton from "./PlaySplitButton.svelte";
   import SplitButton from "./SplitButton.svelte";
   import { historyAvailability } from "./actions.js";
-  import type { ButtonSpec, FieldTarget } from "./types.js";
+  import type { FieldTarget } from "./types.js";
 
-  type ToolbarRenderItem =
-    | { button: ButtonSpec; kind: "button" }
-    | {
-      buttons: readonly [ButtonSpec, ButtonSpec, ButtonSpec];
-      kind: "back-chaining-group";
-      label: string;
-    }
-    | {
-      buttons: readonly [ButtonSpec, ButtonSpec];
-      kind: "group";
-      menuLabel: string;
-      menuSlug: "speed" | "volume";
-    }
-    | {
-      playRecording: ButtonSpec;
-      record: ButtonSpec;
-      kind: "recording-group";
-    };
+  const TOOLBAR_PANEL_CLASSES: Record<ToolbarPanelSlug, string> = {
+    "back-chaining": "aqe-back-chaining-toolbar-panel",
+    "record-play-yours": "aqe-recording-group",
+  };
+
+  const TOOLBAR_PANEL_TEST_ID_PREFIXES: Record<ToolbarPanelSlug, string> = {
+    "back-chaining": "back-chaining",
+    "record-play-yours": "recording",
+  };
 
   const { target }: { target: FieldTarget } = $props();
   const repeatDefault = window.__AQE_EDITOR_CONFIG__?.repeatPlaybackByDefault === true;
@@ -40,7 +33,7 @@
     window.__AQE_EDITOR_CONFIG__?.visibleEditorButtons,
   );
   const buttonModes = window.__AQE_EDITOR_CONFIG__?.editorButtonModes;
-  const renderItems = buildToolbarRenderItems(buttons);
+  const renderItems = buildEditorToolbarRenderItems(buttons);
 
   function isSplitCommand(command: string): boolean {
     return [
@@ -75,58 +68,12 @@
     return false;
   }
 
-  function buildToolbarRenderItems(buttons: readonly ButtonSpec[]): readonly ToolbarRenderItem[] {
-    const items: ToolbarRenderItem[] = [];
-    for (let index = 0; index < buttons.length; index += 1) {
-      const button = buttons[index];
-      if (!button) continue;
-      const next = buttons[index + 1];
-      const afterNext = buttons[index + 2];
-      if (
-        button.command === "aqe:back-chain-practice"
-        && next?.command === "aqe:back-chain-previous"
-        && afterNext?.command === "aqe:back-chain-next"
-      ) {
-        items.push({
-          buttons: [button, next, afterNext],
-          kind: "back-chaining-group",
-          label: t("editor.back_chaining.title"),
-        });
-        index += 2;
-        continue;
-      }
-      if (button.command === "aqe:record-voice" && next?.command === "aqe:play-recording") {
-        items.push({
-          kind: "recording-group",
-          playRecording: next,
-          record: button,
-        });
-        index += 1;
-        continue;
-      }
-      if (button.command === "aqe:slower" && next?.command === "aqe:faster") {
-        items.push({
-          buttons: [button, next],
-          kind: "group",
-          menuLabel: t("editor.split.group.speed"),
-          menuSlug: "speed",
-        });
-        index += 1;
-        continue;
-      }
-      if (button.command === "aqe:volume-down" && next?.command === "aqe:volume-up") {
-        items.push({
-          buttons: [button, next],
-          kind: "group",
-          menuLabel: t("editor.split.group.volume"),
-          menuSlug: "volume",
-        });
-        index += 1;
-        continue;
-      }
-      items.push({ button, kind: "button" });
-    }
-    return items;
+  function toolbarPanelClass(slug: ToolbarPanelSlug): string {
+    return TOOLBAR_PANEL_CLASSES[slug];
+  }
+
+  function toolbarPanelTestId(slug: ToolbarPanelSlug): string {
+    return `aqe-${TOOLBAR_PANEL_TEST_ID_PREFIXES[slug]}-toolbar-panel-${target.ord}`;
   }
 
 </script>
@@ -138,8 +85,8 @@
     data-aqe-source-filename={target.sourceFilename}
     data-testid={`aqe-controls-${target.ord}`}
   >
-    {#each renderItems as item (item.kind === "group" ? `${item.menuSlug}:${item.buttons[0].command}` : item.kind === "recording-group" ? `recording:${item.record.command}` : item.kind === "back-chaining-group" ? `back-chaining:${item.buttons[0].command}` : item.button.command)}
-      {#if item.kind === "group"}
+    {#each renderItems as item (item.kind === "split-run-group" ? `${item.menuSlug}:${item.buttons[0].command}` : item.kind === "toolbar-panel" ? `${item.definition.slug}:${item.buttons[0]?.command}` : item.button.command)}
+      {#if item.kind === "split-run-group"}
         <span class="aqe-split-group">
           <SplitButton
             button={item.buttons[0]}
@@ -165,54 +112,52 @@
             {target}
           />
         </span>
-      {:else if item.kind === "recording-group"}
-        {@const playRecording = item.playRecording}
-        {@const recordingLabel = t("editor.command.record_group.label")}
-        <EditorToolbarPanel
-          label={recordingLabel}
-          panelClass="aqe-recording-group"
-          testId={`aqe-recording-toolbar-panel-${target.ord}`}
-        >
-          <span class="aqe-split-group">
-            <SplitButton
-              button={item.record}
-              displayMode={buttonDisplayMode(item.record.command, buttonModes)}
-              primaryGroupPosition="start"
-              showMenu={false}
-              {target}
-            />
-            <SplitButton
-              button={playRecording}
-              displayMode={buttonDisplayMode(playRecording.command, buttonModes)}
-              primaryGroupPosition="middle"
-              showMenu={false}
-              {target}
-            />
-            <SplitButton
-              button={item.record}
-              displayMode={buttonDisplayMode(item.record.command, buttonModes)}
-              groupLabel={recordingLabel}
-              showPrimary={false}
-              showRunButton={false}
-              {target}
-            />
-          </span>
-        </EditorToolbarPanel>
-      {:else if item.kind === "back-chaining-group"}
+      {:else if item.kind === "toolbar-panel"}
         <EditorToolbarPanel
           label={item.label}
-          panelClass="aqe-back-chaining-toolbar-panel"
-          testId={`aqe-back-chaining-toolbar-panel-${target.ord}`}
+          panelClass={toolbarPanelClass(item.definition.slug)}
+          testId={toolbarPanelTestId(item.definition.slug)}
         >
-          {#each item.buttons as button (button.command)}
-            <EditorToolbarButton
-              {button}
-              displayMode={buttonDisplayMode(button.command, buttonModes)}
-              disabled={initialButtonDisabled(button.command)}
-              disabledTitle={disabledTitle(button.command)}
-              {target}
-            />
-          {/each}
+          {#if item.definition.slug === "record-play-yours"}
+            {@const record = item.buttons.find((button) => button.command === "aqe:record-voice")}
+            {@const playRecording = item.buttons.find((button) => button.command === "aqe:play-recording")}
+            {#if record && playRecording}
+              <span class="aqe-split-group">
+                <SplitButton
+                  button={record}
+                  displayMode={buttonDisplayMode(record.command, buttonModes)}
+                  primaryGroupPosition="start"
+                  showMenu={false}
+                  {target}
+                />
+                <SplitButton
+                  button={playRecording}
+                  displayMode={buttonDisplayMode(playRecording.command, buttonModes)}
+                  primaryGroupPosition="middle"
+                  showMenu={false}
+                  {target}
+                />
+                <SplitButton
+                  button={record}
+                  displayMode={buttonDisplayMode(record.command, buttonModes)}
+                  groupLabel={item.label}
+                  showPrimary={false}
+                  showRunButton={false}
+                  {target}
+                />
+              </span>
+            {/if}
+          {:else}
+            {#each item.buttons as button (button.command)}
+              <EditorToolbarButton
+                {button}
+                displayMode={buttonDisplayMode(button.command, buttonModes)}
+                disabled={initialButtonDisabled(button.command)}
+                disabledTitle={disabledTitle(button.command)}
+                {target}
+              />
+            {/each}
+          {/if}
         </EditorToolbarPanel>
       {:else if item.button.command === "aqe:play"}
         <PlaySplitButton

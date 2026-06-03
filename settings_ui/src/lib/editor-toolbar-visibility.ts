@@ -3,6 +3,10 @@ import {
   DEFAULT_VISIBLE_EDITOR_BUTTONS,
   toolbarButtons,
 } from "./editor-toolbar-buttons.js";
+import {
+  TOOLBAR_PANEL_DEFINITIONS,
+  toolbarPanelDefinitionAt,
+} from "./editor-toolbar-panel-definitions.js";
 import { COMMAND_SLUGS } from "./editor-toolbar-command-slugs.js";
 import type { CommandIconName } from "./icon-types.js";
 import type { EditorCommand, ToolbarButtonSpec } from "./editor-toolbar-buttons.js";
@@ -17,22 +21,6 @@ export interface ToolbarPanelSpec {
   title: string;
 }
 
-const RECORDING_PANEL_COMMANDS = [
-  "aqe:record-voice",
-  "aqe:play-recording",
-] as const satisfies readonly EditorCommand[];
-
-const BACK_CHAINING_PANEL_COMMANDS = [
-  "aqe:back-chain-practice",
-  "aqe:back-chain-previous",
-  "aqe:back-chain-next",
-] as const satisfies readonly EditorCommand[];
-
-const ATOMIC_PANEL_COMMAND_GROUPS = [
-  BACK_CHAINING_PANEL_COMMANDS,
-  RECORDING_PANEL_COMMANDS,
-] as const;
-
 export function toolbarPanels(
   buttons: readonly ToolbarButtonSpec[] = toolbarButtons(),
 ): readonly ToolbarPanelSpec[] {
@@ -40,36 +28,21 @@ export function toolbarPanels(
   for (let index = 0; index < buttons.length; index += 1) {
     const button = buttons[index];
     if (!button) continue;
-    const next = buttons[index + 1];
-    const afterNext = buttons[index + 2];
-    if (
-      button.command === "aqe:back-chain-practice"
-      && next?.command === "aqe:back-chain-previous"
-      && afterNext?.command === "aqe:back-chain-next"
-    ) {
+    const matchedPanel = toolbarPanelDefinitionAt(buttons, index);
+    if (matchedPanel) {
+      const primaryButton = matchedPanel.buttons.find(
+        (candidate) => candidate.command === matchedPanel.definition.primaryCommand,
+      ) ?? matchedPanel.buttons[0]!;
       panels.push({
-        buttons: [button, next, afterNext],
-        commands: [button.command, next.command, afterNext.command],
-        icon: button.icon,
-        label: t("editor.back_chaining.title"),
-        primaryButton: button,
-        slug: "back-chaining",
-        title: t("editor.command.back_chain_practice.title"),
+        buttons: matchedPanel.buttons,
+        commands: matchedPanel.definition.commands,
+        icon: primaryButton.icon,
+        label: t(matchedPanel.definition.labelKey),
+        primaryButton,
+        slug: matchedPanel.definition.slug,
+        title: t(matchedPanel.definition.titleKey),
       });
-      index += 2;
-      continue;
-    }
-    if (button.command === "aqe:record-voice" && next?.command === "aqe:play-recording") {
-      panels.push({
-        buttons: [button, next],
-        commands: [button.command, next.command],
-        icon: button.icon,
-        label: t("editor.command.record_group.label"),
-        primaryButton: button,
-        slug: "record-play-yours",
-        title: t("editor.command.record_group.label"),
-      });
-      index += 1;
+      index += matchedPanel.buttons.length - 1;
       continue;
     }
     panels.push({
@@ -95,9 +68,9 @@ export function normalizeVisibleEditorButtons(
   const requested = new Set(
     sourceCommands.filter((command): command is EditorCommand => availableCommands.has(command)),
   );
-  for (const commands of ATOMIC_PANEL_COMMAND_GROUPS) {
-    if (commands.some((command) => requested.has(command))) {
-      for (const command of commands) {
+  for (const definition of TOOLBAR_PANEL_DEFINITIONS) {
+    if (definition.commands.some((command) => requested.has(command))) {
+      for (const command of definition.commands) {
         if (availableCommands.has(command)) requested.add(command);
       }
     }
@@ -116,7 +89,10 @@ export function visibleToolbarButtons(
 }
 
 function defaultRuntimeVisibleCommands(buttons: readonly ToolbarButtonSpec[]): readonly EditorCommand[] {
-  const recordingCommands = new Set<EditorCommand>(RECORDING_PANEL_COMMANDS);
+  const recordingDefinition = TOOLBAR_PANEL_DEFINITIONS.find(
+    (definition) => definition.slug === "record-play-yours",
+  );
+  const recordingCommands = new Set<EditorCommand>(recordingDefinition?.commands ?? []);
   return buttons
     .map((button) => button.command)
     .filter((command) => !recordingCommands.has(command));
