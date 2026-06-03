@@ -33,7 +33,7 @@ def _capture_eval() -> tuple[list[str], callable]:
 
 def _full_config() -> dict[str, object]:
     return {
-        "_config_version": 1,
+        "_config_version": 2,
         "enabled": True,
         "debug_logging": False,
         "show_ffmpeg_commands": False,
@@ -53,6 +53,8 @@ def _full_config() -> dict[str, object]:
             "aqe:denoise-standard",
             "aqe:slower",
             "aqe:faster",
+            "aqe:delete-selection",
+            "aqe:delete-rest",
             "aqe:undo",
             "aqe:redo",
             "aqe:settings",
@@ -71,6 +73,8 @@ def _full_config() -> dict[str, object]:
             "aqe:pitch-hum": "text",
             "aqe:slower": "icon",
             "aqe:faster": "icon",
+            "aqe:delete-selection": "icon",
+            "aqe:delete-rest": "icon",
             "aqe:volume-down": "icon",
             "aqe:volume-up": "icon",
             "aqe:undo": "icon",

@@ -3,6 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { setControlsBusy } from "../src/editor-inline/actions.js";
 import { disposeEditorRuntime, initializeEditorRuntime, scan } from "../src/editor-inline/runtime.js";
 import { resetSelectionToolbarPreferences } from "../src/editor-inline/selection-toolbar-state.js";
+import type { EditorRuntimeConfig } from "../src/editor-inline/types.js";
 import {
   dispatchGraphPointer,
   dragGraphSelection,
@@ -136,10 +137,37 @@ describe("editor inline selection toolbar integration", () => {
     expect(deleteRegion.getAttribute("data-aqe-button-state")).toBe("destructive");
     expect(deleteRest.getAttribute("data-aqe-button-state")).toBe("destructive");
     expect(collapse.getAttribute("data-aqe-tooltip-content")).toBe("Collapse selection actions");
-    for (const button of [play, deleteRegion, deleteRest, collapse]) {
+    for (const button of [play, collapse]) {
       expect(button.querySelector(".aqe-button-label")).toBeNull();
       expect(button.classList.contains("aqe-selection-toolbar-button")).toBe(true);
     }
+    for (const button of [deleteRegion, deleteRest]) {
+      expect(button).toHaveClass("aqe-icon-only");
+      expect(button.querySelector(".aqe-button-label")).not.toBeNull();
+      expect(button.classList.contains("aqe-selection-toolbar-button")).toBe(true);
+    }
+  });
+
+  it("hides selection delete actions omitted from visible editor button config", () => {
+    const config: EditorRuntimeConfig = {
+      audioFieldIndices: [0],
+      visibleEditorButtons: ["aqe:play", "aqe:analyze", "aqe:settings"],
+    };
+    initializeEditorRuntime(config);
+    scan(config);
+    window.__aqeSetVisualizer?.(0, track, 250);
+    const svg = document.querySelector<SVGSVGElement>('[data-testid="aqe-graph-svg-0"]')!;
+    setGraphBounds(svg);
+    dragGraphSelection(svg, 0.2, 0.6);
+
+    expect(document.querySelector('[data-testid="aqe-selection-toolbar-delete-region-0"]')).toBeNull();
+    expect(document.querySelector('[data-testid="aqe-selection-toolbar-delete-rest-0"]')).toBeNull();
+    expect(window.__aqeGraphStateForTest?.(0)).toMatchObject({
+      regionDeleteButtonHidden: true,
+      regionDeleteRestButtonHidden: true,
+      selectionToolbarDeleteRegionHidden: true,
+      selectionToolbarDeleteRestHidden: true,
+    });
   });
 
   it("keeps collapse preference across selection changes until the dot is expanded", () => {

@@ -234,6 +234,16 @@
   width: auto;
 }
 
+.aqe-selection-toolbar-command-text,
+.aqe-ui-root .aqe-selection-toolbar-command-text {
+  font-size: 11px;
+  gap: 4px;
+  min-width: auto;
+  padding: 0 8px;
+  white-space: nowrap;
+  width: auto;
+}
+
 .aqe-selection-toolbar-back-chaining .aqe-back-chaining-disclosure svg {
   height: 12px;
   width: 12px;

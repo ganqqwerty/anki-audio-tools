@@ -30,6 +30,8 @@ describe("App", () => {
     expect(screen.getByText("Editor toolbar buttons")).toBeInTheDocument();
     expect(screen.getByTestId("button-settings-settings")).toBeInTheDocument();
     expect(screen.getByTestId("button-settings-play")).toBeInTheDocument();
+    expect(screen.getByTestId("button-settings-delete-selection")).toBeInTheDocument();
+    expect(screen.getByTestId("button-settings-delete-rest")).toBeInTheDocument();
     expect(screen.getByText("Speaker's voice")).toBeInTheDocument();
     expect(screen.getByText("Recording condition")).toBeInTheDocument();
     expect(screen.getByText("Graph smoothness")).toBeInTheDocument();
@@ -148,14 +150,34 @@ describe("App", () => {
     expect(config.editor_button_modes["aqe:settings"]).toBe("icon");
   });
 
+  it("saves selection action visibility and display mode changes", async () => {
+    setInitialState();
+
+    render(App);
+    const deleteSelectionCard = screen.getByTestId("button-settings-delete-selection");
+    await fireEvent.click(within(deleteSelectionCard).getByRole("checkbox", { name: "Show" }));
+    await fireEvent.click(within(deleteSelectionCard).getByRole("checkbox", { name: "Icon" }));
+    await fireEvent.click(screen.getByRole("button", { name: "Save" }));
+
+    const config = bridgePayload<{
+      editor_button_modes: Record<string, string>;
+      visible_editor_buttons: string[];
+    }>("settings.save");
+    expect(config.visible_editor_buttons).not.toContain("aqe:delete-selection");
+    expect(config.visible_editor_buttons).toContain("aqe:delete-rest");
+    expect(config.editor_button_modes["aqe:delete-selection"]).toBe("text");
+  });
+
   it("shows a placeholder for toolbar buttons without extra settings", () => {
     setInitialState();
 
     render(App);
 
     const folderCard = screen.getByTestId("button-settings-show-file");
+    const deleteRestCard = screen.getByTestId("button-settings-delete-rest");
 
     expect(within(folderCard).getByText("No extra settings")).toBeInTheDocument();
+    expect(within(deleteRestCard).getByText("No extra settings")).toBeInTheDocument();
   });
 
   it("saves split button default settings", async () => {

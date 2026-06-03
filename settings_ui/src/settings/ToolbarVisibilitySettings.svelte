@@ -22,8 +22,8 @@
     COMMAND_SLUGS,
     DEFAULT_EDITOR_BUTTON_MODES,
     DEFAULT_VISIBLE_EDITOR_BUTTONS,
-    toolbarButtons,
   } from "$lib/editor-toolbar-buttons.js";
+  import { settingsToolbarButtons } from "$lib/settings-toolbar-buttons.js";
   import { t } from "$lib/i18n.js";
   import { DenoiseAlgorithm, PauseAggressiveness, PitchHumMode, type Config } from "$lib/types.js";
   import type { EditorButtonDisplayMode, EditorCommand } from "$lib/editor-toolbar-buttons.js";
@@ -36,7 +36,7 @@
   import SettingsHiddenWarning from "./SettingsHiddenWarning.svelte";
 
   let { config = $bindable() }: { config: Config } = $props();
-  const buttons = toolbarButtons();
+  const buttons = settingsToolbarButtons();
   const buttonOrder = buttons.map((button) => button.command);
 
   function visibleSet(): Set<EditorCommand> {

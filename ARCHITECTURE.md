@@ -126,10 +126,11 @@ Config defaults are stored in `config.json` and migrated into user config:
 
 ```json
 {
-  "_config_version": 1,
+  "_config_version": 2,
   "enabled": true,
   "debug_logging": false,
   "show_ffmpeg_commands": false,
+  "enable_reviewer_editor": true,
   "repeat_playback_by_default": true,
   "repeat_pause_seconds": 0.0,
   "share_target": "litterbox",
@@ -140,10 +141,13 @@ Config defaults are stored in `config.json` and migrated into user config:
     "aqe:analyze",
     "aqe:show-file",
     "aqe:share",
+    "aqe:reduce-size",
     "aqe:remove-pauses",
     "aqe:denoise-standard",
     "aqe:slower",
     "aqe:faster",
+    "aqe:delete-selection",
+    "aqe:delete-rest",
     "aqe:undo",
     "aqe:redo",
     "aqe:settings"
@@ -156,11 +160,14 @@ Config defaults are stored in `config.json` and migrated into user config:
     "aqe:show-file": "icon",
     "aqe:share": "icon",
     "aqe:convert": "text",
+    "aqe:reduce-size": "text",
     "aqe:remove-pauses": "text",
     "aqe:denoise-standard": "text",
     "aqe:pitch-hum": "text",
     "aqe:slower": "icon",
     "aqe:faster": "icon",
+    "aqe:delete-selection": "icon",
+    "aqe:delete-rest": "icon",
     "aqe:volume-down": "icon",
     "aqe:volume-up": "icon",
     "aqe:undo": "icon",
@@ -188,7 +195,11 @@ Config defaults are stored in `config.json` and migrated into user config:
   "pause_silero_min_silence_seconds": 0.45,
   "pause_silero_min_speech_seconds": 0.1,
   "pause_silero_preprocess_denoise": false,
-  "output_format": "mp3",
+  "output_format": "source",
+  "size_reduction_mode": "normal",
+  "size_reduction_bitrate_kbps": 64,
+  "size_reduction_sample_rate_hz": 32000,
+  "size_reduction_channels": 1,
   "ffmpeg_path": "/opt/homebrew/bin/ffmpeg",
   "deep_filter_post_filter": true,
   "dpdfnet_attn_limit_db": 12.0,
@@ -223,6 +234,7 @@ The canonical module contracts and allowed side effects are defined in `tests/te
 - Import policy, addon dependency policy, and side-effect policy are enforced by executable module contracts.
 - Python bridge command registration and injected editor UI commands must stay in sync.
 - Editor TypeScript/Svelte source is part of that bridge-command sync check, not only Python injection code.
+- Editor panel command buttons must stay accepted by settings visibility/display-mode config.
 - Shared batch operations must stay free of editor bridge strings and editor-adapter imports.
 - Optional analysis dependencies such as Parselmouth must stay isolated to their backend module and never become package-level imports.
 - The settings shell must stay a thin `QDialog` + `AnkiWebView` wrapper.
