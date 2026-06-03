@@ -11,6 +11,8 @@ import { EditorButtonMode } from "./types.js";
 export type EditorCommand =
   | "aqe:play"
   | "aqe:analyze"
+  | "aqe:back-chain-practice"
+  | "aqe:back-chain-next"
   | "aqe:record-voice"
   | "aqe:stop-recording"
   | "aqe:play-recording"
@@ -49,6 +51,8 @@ export interface ToolbarButtonSpec {
 export const DEFAULT_VISIBLE_EDITOR_BUTTONS = [
   "aqe:play",
   "aqe:analyze",
+  "aqe:back-chain-practice",
+  "aqe:back-chain-next",
   "aqe:show-file",
   "aqe:share",
   "aqe:reduce-size",
@@ -64,6 +68,8 @@ export const DEFAULT_VISIBLE_EDITOR_BUTTONS = [
 export const DEFAULT_EDITOR_BUTTON_MODES = {
   "aqe:play": EditorButtonMode.Icon,
   "aqe:analyze": EditorButtonMode.Icon,
+  "aqe:back-chain-practice": EditorButtonMode.Icon,
+  "aqe:back-chain-next": EditorButtonMode.Icon,
   "aqe:record-voice": EditorButtonMode.Icon,
   "aqe:play-recording": EditorButtonMode.Icon,
   "aqe:show-file": EditorButtonMode.Icon,
@@ -112,6 +118,21 @@ export function commandButtons(): readonly ToolbarButtonSpec[] {
       iconOnly: true,
       label: t("editor.command.graph.label"),
       title: t("editor.command.graph.title"),
+    },
+    {
+      activeIcon: "pause",
+      command: "aqe:back-chain-practice",
+      icon: "repeat-2",
+      iconOnly: true,
+      label: t("editor.command.back_chain_practice.label"),
+      title: t("editor.command.back_chain_practice.title"),
+    },
+    {
+      command: "aqe:back-chain-next",
+      icon: "skip-forward",
+      iconOnly: true,
+      label: t("editor.command.back_chain_next.label"),
+      title: t("editor.command.back_chain_next.title"),
     },
     {
       activeIcon: "square",
@@ -307,6 +328,8 @@ export function denoiseButtons(): readonly ToolbarButtonSpec[] {
 export const COMMAND_SLUGS: Readonly<Record<EditorCommand, string>> = {
   "aqe:play": "play",
   "aqe:analyze": "graph",
+  "aqe:back-chain-practice": "back-chain-practice",
+  "aqe:back-chain-next": "back-chain-next",
   "aqe:record-voice": "record-voice",
   "aqe:stop-recording": "stop-recording",
   "aqe:play-recording": "play-recording",

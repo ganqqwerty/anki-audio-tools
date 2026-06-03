@@ -21,6 +21,8 @@ export type SettingsTab = "general" | "diagnostics";
 export const DEFAULT_VISIBLE_EDITOR_BUTTONS = [
   VisibleEditorButton.AqePlay,
   VisibleEditorButton.AqeAnalyze,
+  VisibleEditorButton.AqeBackChainPractice,
+  VisibleEditorButton.AqeBackChainNext,
   VisibleEditorButton.AqeShowFile,
   VisibleEditorButton.AqeShare,
   VisibleEditorButton.AqeReduceSize,

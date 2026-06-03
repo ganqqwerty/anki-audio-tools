@@ -95,6 +95,8 @@
         "enum": [
           "aqe:play",
           "aqe:analyze",
+          "aqe:back-chain-practice",
+          "aqe:back-chain-next",
           "aqe:record-voice",
           "aqe:play-recording",
           "aqe:show-file",
@@ -121,6 +123,8 @@
         "enum": [
           "aqe:play",
           "aqe:analyze",
+          "aqe:back-chain-practice",
+          "aqe:back-chain-next",
           "aqe:record-voice",
           "aqe:play-recording",
           "aqe:show-file",

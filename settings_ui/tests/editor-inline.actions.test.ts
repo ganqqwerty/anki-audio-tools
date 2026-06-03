@@ -62,6 +62,8 @@ describe("editor inline action workflows", () => {
     expect(commandSlugsForTest()["aqe:dpdfnet"]).toBe("dpdfnet");
     expect(commandSlugsForTest()["aqe:voice-only"]).toBe("voice-only");
     expect(commandSlugsForTest()["aqe:convert"]).toBe("convert");
+    expect(commandSlugsForTest()["aqe:back-chain-practice"]).toBe("back-chain-practice");
+    expect(commandSlugsForTest()["aqe:back-chain-next"]).toBe("back-chain-next");
     expect(commandSlugsForTest()["aqe:redo"]).toBe("redo");
     expect(commandSlugsForTest()["aqe:settings"]).toBe("settings");
     expect(processingMessage("aqe:denoise-standard")).toBe("Denoising with Standard...");
