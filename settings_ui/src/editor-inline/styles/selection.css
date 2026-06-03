@@ -119,91 +119,6 @@
   z-index: 2147483647;
 }
 
-.aqe-selection-toolbar:has(.aqe-back-chaining-panel),
-.aqe-ui-root .aqe-selection-toolbar:has(.aqe-back-chaining-panel) {
-  flex-wrap: wrap;
-  min-width: min(320px, calc(100vw - 16px));
-  width: min(340px, calc(100vw - 16px));
-}
-
-.aqe-back-chaining-panel,
-.aqe-ui-root .aqe-back-chaining-panel {
-  border-top: 1px solid var(--aqe-border-color);
-  box-sizing: border-box;
-  display: grid;
-  flex: 1 0 100%;
-  gap: 6px;
-  min-width: min(316px, calc(100vw - 20px));
-  padding: 6px;
-  width: 100%;
-}
-
-.aqe-ui-root .aqe-back-chaining-panel :where(button, div, span, strong) {
-  color: inherit;
-  font: inherit;
-  letter-spacing: normal;
-  line-height: inherit;
-  margin: 0;
-  padding: 0;
-  text-align: inherit;
-  text-shadow: none;
-  text-transform: none;
-}
-
-.aqe-back-chaining-header,
-.aqe-ui-root .aqe-back-chaining-header {
-  align-items: center;
-  display: flex;
-  font-size: 11px;
-  gap: 8px;
-  justify-content: space-between;
-  min-width: 0;
-}
-
-.aqe-back-chaining-video-link,
-.aqe-ui-root .aqe-back-chaining-video-link {
-  color: inherit;
-  flex: 0 0 auto;
-  font-size: 11px;
-  text-decoration: underline;
-  text-decoration-color: color-mix(in srgb, currentColor 55%, transparent);
-  text-underline-offset: 2px;
-  white-space: nowrap;
-}
-
-.aqe-back-chaining-video-link:hover,
-.aqe-ui-root .aqe-back-chaining-video-link:hover {
-  color: LinkText;
-  text-decoration-thickness: 2px;
-}
-
-.aqe-back-chaining-controls,
-.aqe-ui-root .aqe-back-chaining-controls {
-  display: grid;
-  gap: 6px;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) repeat(3, 28px);
-  min-width: 0;
-}
-
-.aqe-back-chaining-button,
-.aqe-ui-root .aqe-back-chaining-button {
-  font-size: 11px;
-  justify-content: center;
-  min-height: 26px;
-  min-width: 0;
-  overflow: hidden;
-  padding: 3px 8px;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.aqe-back-chaining-controls .aqe-back-chaining-button:nth-last-child(-n + 3),
-.aqe-ui-root .aqe-back-chaining-controls .aqe-back-chaining-button:nth-last-child(-n + 3) {
-  gap: 0;
-  padding: 0;
-  width: 28px;
-}
-
 .aqe-selection-toolbar[hidden] {
   display: none;
 }
@@ -222,16 +137,6 @@
   width: 26px;
 }
 
-.aqe-selection-toolbar-back-chaining,
-.aqe-ui-root .aqe-selection-toolbar-back-chaining {
-  font-size: 11px;
-  gap: 4px;
-  min-width: 112px;
-  padding: 0 8px;
-  white-space: nowrap;
-  width: auto;
-}
-
 .aqe-selection-toolbar-command-text,
 .aqe-ui-root .aqe-selection-toolbar-command-text {
   font-size: 11px;
@@ -241,21 +146,6 @@
   white-space: nowrap;
   width: auto;
 }
-
-.aqe-selection-toolbar-back-chaining .aqe-back-chaining-disclosure svg {
-  height: 12px;
-  width: 12px;
-}
-
-.aqe-selection-toolbar-back-chaining .aqe-back-chaining-disclosure-open,
-.aqe-selection-toolbar-back-chaining[aria-pressed="true"] .aqe-back-chaining-disclosure-closed {
-  display: none;
-}
-
-.aqe-selection-toolbar-back-chaining[aria-pressed="true"] .aqe-back-chaining-disclosure-open {
-  display: inline-flex;
-}
-
 .aqe-selection-toolbar-button:hover {
   text-decoration: none;
 }

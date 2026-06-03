@@ -1,5 +1,6 @@
 <script lang="ts">
   import CommandIcon from "$lib/CommandIcon.svelte";
+  import FieldTooltipTarget from "$lib/FieldTooltipTarget.svelte";
   import { t } from "$lib/i18n.js";
   import { EditorButtonMode } from "$lib/types.js";
   import type { CommandIconName } from "$lib/icon-types.js";
@@ -39,6 +40,10 @@
     title: string;
     visible: boolean;
   } = $props();
+
+  function lockedModeReason(locked: boolean | undefined): string | undefined {
+    return locked ? t("settings.toolbar_visibility.mode_locked_tooltip") : undefined;
+  }
 </script>
 
 <section class:button-settings-card-hidden={!visible} class="button-settings-card" data-testid={testId}>
@@ -64,35 +69,39 @@
       {#if modeControls}
         {#each modeControls as control (control.testId)}
           <label class="button-settings-checkbox">
-            <input
-              checked={control.mode === EditorButtonMode.Icon}
-              data-testid={`${control.testId}-mode-icon`}
-              disabled={control.modeLocked ?? false}
-              type="checkbox"
-              onchange={(event) =>
-                control.onSetMode(
-                  (event.currentTarget as HTMLInputElement).checked
-                    ? EditorButtonMode.Icon
-                    : EditorButtonMode.Text,
-                )}
-            />
+            <FieldTooltipTarget content={control.label} disabledReason={lockedModeReason(control.modeLocked)}>
+              <input
+                checked={control.mode === EditorButtonMode.Icon}
+                data-testid={`${control.testId}-mode-icon`}
+                disabled={control.modeLocked ?? false}
+                type="checkbox"
+                onchange={(event) =>
+                  control.onSetMode(
+                    (event.currentTarget as HTMLInputElement).checked
+                      ? EditorButtonMode.Icon
+                      : EditorButtonMode.Text,
+                  )}
+              />
+            </FieldTooltipTarget>
             <span>{control.label}</span>
           </label>
         {/each}
       {:else}
         <label class="button-settings-checkbox">
-          <input
-            checked={mode === EditorButtonMode.Icon}
-            data-testid={`${testId}-mode-icon`}
-            disabled={modeLocked}
-            type="checkbox"
-            onchange={(event) =>
-              onSetMode?.(
-                (event.currentTarget as HTMLInputElement).checked
-                  ? EditorButtonMode.Icon
-                  : EditorButtonMode.Text,
-              )}
-          />
+          <FieldTooltipTarget content={t("settings.toolbar_visibility.icon")} disabledReason={lockedModeReason(modeLocked)}>
+            <input
+              checked={mode === EditorButtonMode.Icon}
+              data-testid={`${testId}-mode-icon`}
+              disabled={modeLocked}
+              type="checkbox"
+              onchange={(event) =>
+                onSetMode?.(
+                  (event.currentTarget as HTMLInputElement).checked
+                    ? EditorButtonMode.Icon
+                    : EditorButtonMode.Text,
+                )}
+            />
+          </FieldTooltipTarget>
           <span>{t("settings.toolbar_visibility.icon")}</span>
         </label>
       {/if}

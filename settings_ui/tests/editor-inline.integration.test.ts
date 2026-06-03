@@ -103,19 +103,37 @@ describe("editor inline Svelte integration", () => {
 
     expect(undoButton).toBeDisabled();
     expect(redoButton).toBeDisabled();
-    expect(undoButton).toHaveAttribute("aria-label", "Nothing to undo yet");
-    expect(redoButton).toHaveAttribute("aria-label", "Nothing to redo yet");
-    expect(undoTooltip).toHaveAttribute("data-aqe-tooltip-content", "Nothing to undo yet");
-    expect(redoTooltip).toHaveAttribute("data-aqe-tooltip-content", "Nothing to redo yet");
+    expect(undoButton).toHaveAttribute(
+      "aria-label",
+      "Undo the last action and restore the previous file\n\nNothing to undo yet",
+    );
+    expect(redoButton).toHaveAttribute(
+      "aria-label",
+      "Redo the last undone action and restore the next file\n\nNothing to redo yet",
+    );
+    expect(undoTooltip).toHaveAttribute(
+      "data-aqe-tooltip-content",
+      "Undo the last action and restore the previous file\n\nNothing to undo yet",
+    );
+    expect(redoTooltip).toHaveAttribute(
+      "data-aqe-tooltip-content",
+      "Redo the last undone action and restore the next file\n\nNothing to redo yet",
+    );
 
     window.__aqeSetHistoryAvailability?.(0, true, false);
 
     expect(undoButton).not.toBeDisabled();
     expect(redoButton).toBeDisabled();
     expect(undoButton).toHaveAttribute("aria-label", "Undo the last action and restore the previous file");
-    expect(redoButton).toHaveAttribute("aria-label", "Nothing to redo yet");
+    expect(redoButton).toHaveAttribute(
+      "aria-label",
+      "Redo the last undone action and restore the next file\n\nNothing to redo yet",
+    );
     expect(undoTooltip).toHaveAttribute("data-aqe-tooltip-content", "Undo the last action and restore the previous file");
-    expect(redoTooltip).toHaveAttribute("data-aqe-tooltip-content", "Nothing to redo yet");
+    expect(redoTooltip).toHaveAttribute(
+      "data-aqe-tooltip-content",
+      "Redo the last undone action and restore the next file\n\nNothing to redo yet",
+    );
   });
 
   it("renders configured buttons as icon only", () => {
@@ -154,6 +172,32 @@ describe("editor inline Svelte integration", () => {
     expect(document.querySelector('[data-testid="aqe-button-0-convert"]')).toBeInTheDocument();
     expect(document.querySelector('[data-testid="aqe-button-0-settings"]')).not.toBeInTheDocument();
     expect(document.querySelector('[data-testid="aqe-button-0-denoise-standard"]')).not.toBeInTheDocument();
+  });
+
+  it("renders back-chaining toolbar buttons as one labeled panel", () => {
+    initializeEditorRuntime({ audioFieldIndices: [0] });
+    scan({ audioFieldIndices: [0] });
+
+    const panel = document.querySelector<HTMLElement>('[data-testid="aqe-back-chaining-toolbar-panel-0"]')!;
+    const practiceButton = document.querySelector<HTMLButtonElement>('[data-testid="aqe-button-0-back-chain-practice"]')!;
+    const previousButton = document.querySelector<HTMLButtonElement>('[data-testid="aqe-button-0-back-chain-previous"]')!;
+    const nextButton = document.querySelector<HTMLButtonElement>('[data-testid="aqe-button-0-back-chain-next"]')!;
+
+    expect(panel).toHaveClass("aqe-toolbar-panel", "aqe-back-chaining-toolbar-panel");
+    expect(panel).toHaveAttribute("role", "group");
+    expect(panel).toHaveAttribute("aria-label", "Back-chaining");
+    expect(panel).toHaveAttribute("data-aqe-toolbar-button-container", "true");
+    expect(panel.querySelector(".aqe-toolbar-panel-label")).toHaveTextContent("Back-chaining");
+    expect(Array.from(panel.querySelectorAll<HTMLButtonElement>("[data-aqe-command]")).map((button) => button.dataset.aqeCommand)).toEqual([
+      "aqe:back-chain-practice",
+      "aqe:back-chain-previous",
+      "aqe:back-chain-next",
+    ]);
+    expect(panel).toContainElement(practiceButton);
+    expect(panel).toContainElement(previousButton);
+    expect(panel).toContainElement(nextButton);
+    expect(previousButton).toBeDisabled();
+    expect(nextButton).toBeDisabled();
   });
 
   it("zooms, fits, and zooms to selection from graph controls", async () => {

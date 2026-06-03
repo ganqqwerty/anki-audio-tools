@@ -39,6 +39,7 @@ import {
   setControlsBusy,
   setHistoryAvailability,
   setStatusForOrd,
+  updateButtonTooltipForDisabledState,
   clearStatus,
 } from "./control-actions.js";
 import { graphSettingsForField } from "./graph-split-state.js";
@@ -204,6 +205,7 @@ export function prepareForNewNote(): void {
       if (button.dataset.aqeCommand === "aqe:play") {
         setCommandButtonLabel(ord, "aqe:play", "Play");
       }
+      updateButtonTooltipForDisabledState(button);
     });
     setHistoryAvailability(ord, false, false);
     clearStatus(ord);

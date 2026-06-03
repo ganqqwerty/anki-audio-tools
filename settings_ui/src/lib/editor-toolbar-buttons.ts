@@ -11,6 +11,9 @@ import { EditorButtonMode } from "./types.js";
 export type EditorCommand =
   | "aqe:play"
   | "aqe:analyze"
+  | "aqe:back-chain-practice"
+  | "aqe:back-chain-previous"
+  | "aqe:back-chain-next"
   | "aqe:record-voice"
   | "aqe:stop-recording"
   | "aqe:play-recording"
@@ -49,6 +52,9 @@ export interface ToolbarButtonSpec {
 export const DEFAULT_VISIBLE_EDITOR_BUTTONS = [
   "aqe:play",
   "aqe:analyze",
+  "aqe:back-chain-practice",
+  "aqe:back-chain-previous",
+  "aqe:back-chain-next",
   "aqe:show-file",
   "aqe:share",
   "aqe:reduce-size",
@@ -66,6 +72,9 @@ export const DEFAULT_VISIBLE_EDITOR_BUTTONS = [
 export const DEFAULT_EDITOR_BUTTON_MODES = {
   "aqe:play": EditorButtonMode.Icon,
   "aqe:analyze": EditorButtonMode.Icon,
+  "aqe:back-chain-practice": EditorButtonMode.Icon,
+  "aqe:back-chain-previous": EditorButtonMode.Icon,
+  "aqe:back-chain-next": EditorButtonMode.Icon,
   "aqe:record-voice": EditorButtonMode.Icon,
   "aqe:play-recording": EditorButtonMode.Icon,
   "aqe:show-file": EditorButtonMode.Icon,
@@ -112,6 +121,28 @@ export function commandButtons(): readonly ToolbarButtonSpec[] {
       iconOnly: true,
       label: t("editor.command.graph.label"),
       title: t("editor.command.graph.title"),
+    },
+    {
+      activeIcon: "pause",
+      command: "aqe:back-chain-practice",
+      icon: "bug-play",
+      iconOnly: true,
+      label: t("editor.command.back_chain_practice.label"),
+      title: t("editor.command.back_chain_practice.title"),
+    },
+    {
+      command: "aqe:back-chain-previous",
+      icon: "skip-back",
+      iconOnly: true,
+      label: t("editor.command.back_chain_previous.label"),
+      title: t("editor.command.back_chain_previous.title"),
+    },
+    {
+      command: "aqe:back-chain-next",
+      icon: "skip-forward",
+      iconOnly: true,
+      label: t("editor.command.back_chain_next.label"),
+      title: t("editor.command.back_chain_next.title"),
     },
     {
       activeIcon: "square",
@@ -280,35 +311,4 @@ export function denoiseButtons(): readonly ToolbarButtonSpec[] {
       title: t("editor.command.voice_only.title"),
     },
   ] as const;
-}
-
-export const COMMAND_SLUGS: Readonly<Record<EditorCommand, string>> = {
-  "aqe:play": "play",
-  "aqe:analyze": "graph",
-  "aqe:record-voice": "record-voice",
-  "aqe:stop-recording": "stop-recording",
-  "aqe:play-recording": "play-recording",
-  "aqe:show-file": "show-file",
-  "aqe:share": "share",
-  "aqe:convert": "convert",
-  "aqe:reduce-size": "reduce-size",
-  "aqe:delete-selection": "delete-selection",
-  "aqe:delete-rest": "delete-rest",
-  "aqe:remove-pauses": "remove-pauses",
-  "aqe:denoise-standard": "denoise-standard",
-  "aqe:rnnoise": "rnnoise",
-  "aqe:dpdfnet": "dpdfnet",
-  "aqe:voice-only": "voice-only",
-  "aqe:pitch-hum": "pitch-hum",
-  "aqe:slower": "slower",
-  "aqe:faster": "faster",
-  "aqe:volume-down": "volume-down",
-  "aqe:volume-up": "volume-up",
-  "aqe:undo": "undo",
-  "aqe:redo": "redo",
-  "aqe:settings": "settings",
-};
-
-export function testId(ord: number, command: EditorCommand): string {
-  return `aqe-button-${ord}-${COMMAND_SLUGS[command]}`;
 }

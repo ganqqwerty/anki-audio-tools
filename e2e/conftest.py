@@ -51,6 +51,9 @@ def _default_config() -> dict:
         "visible_editor_buttons": [
             "aqe:play",
             "aqe:analyze",
+            "aqe:back-chain-practice",
+            "aqe:back-chain-previous",
+            "aqe:back-chain-next",
             "aqe:show-file",
             "aqe:share",
             "aqe:remove-pauses",
@@ -66,6 +69,9 @@ def _default_config() -> dict:
         "editor_button_modes": {
             "aqe:play": "icon",
             "aqe:analyze": "icon",
+            "aqe:back-chain-practice": "icon",
+            "aqe:back-chain-previous": "icon",
+            "aqe:back-chain-next": "icon",
             "aqe:record-voice": "icon",
             "aqe:play-recording": "icon",
             "aqe:show-file": "icon",

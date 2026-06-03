@@ -176,6 +176,48 @@ describe("BatchApp", () => {
     expect(screen.getByTestId("batch-dpdfnet-attn-limit-db")).toBeInTheDocument();
   });
 
+  it("adds running-state clarification to disabled batch field tooltips", async () => {
+    setInitialState();
+    render(BatchApp);
+
+    await fireEvent.change(screen.getByTestId("batch-operation"), {
+      target: { value: BatchOperationName.RemovePauses },
+    });
+    await fireEvent.click(screen.getByTestId("batch-start"));
+
+    const aggressiveness = screen.getByTestId("batch-pause-aggressiveness-aggressive");
+    const aggressivenessTooltip = aggressiveness.closest<HTMLElement>(".field-tooltip-target");
+    expect(aggressiveness).toBeDisabled();
+    expect(aggressiveness).toHaveAttribute(
+      "data-aqe-tooltip-content",
+      expect.stringContaining("Aggressive\nCuts shorter pauses too"),
+    );
+    expect(aggressiveness).toHaveAttribute(
+      "data-aqe-tooltip-content",
+      expect.stringContaining("150 ms"),
+    );
+    expect(aggressiveness).toHaveAttribute(
+      "data-aqe-tooltip-content",
+      expect.stringContaining("Disabled while the batch is running."),
+    );
+    expect(aggressivenessTooltip).toHaveAttribute(
+      "data-aqe-tooltip-content",
+      expect.stringContaining("Disabled while the batch is running."),
+    );
+
+    const threshold = screen.getByTestId("batch-pause-threshold");
+    const thresholdTooltip = threshold.closest<HTMLElement>(".field-tooltip-target");
+    expect(threshold).toBeDisabled();
+    expect(thresholdTooltip).toHaveAttribute(
+      "data-aqe-tooltip-content",
+      expect.stringContaining("How quiet audio must be before ffmpeg treats it as silence"),
+    );
+    expect(thresholdTooltip).toHaveAttribute(
+      "data-aqe-tooltip-content",
+      expect.stringContaining("Disabled while the batch is running."),
+    );
+  });
+
   it("sends a convert start request with the selected format", async () => {
     setInitialState();
     render(BatchApp);

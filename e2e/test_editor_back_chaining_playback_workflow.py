@@ -23,46 +23,46 @@ def test_back_chaining_practice_loops_suffixes_and_pauses_for_normal_play(
     )
     try:
         _shift_drag_region(editor, 0.2, 0.8)
-        _enable_back_chaining_editing(editor)
         markers = _state(
             editor,
-            lambda state: state["backChainingMarkersMs"] == [400, 800, 1200]
-            and state["backChainingCanPractice"] is True,
+            lambda state: state["selectionStartMs"] == 400
+            and state["selectionEndMs"] == 1600
+            and state["backChainingBaseStartMs"] == 0
+            and state["backChainingBaseEndMs"] == 2000
+            and state["backChainingMarkersMs"] == [0, 667, 1333],
         )
 
         _click_back_chaining_practice(editor)
         playing = _state(
             editor,
             lambda state: state["backChainingState"] == "playing"
-            and state["selectionStartMs"] == 1200
-            and state["selectionEndMs"] == 1600
-            and state["playbackStartMs"] == 1200
-            and state["playbackEndMs"] == 1600
+            and state["selectionStartMs"] == 1333
+            and state["selectionEndMs"] == 2000
+            and state["playbackStartMs"] == 1333
+            and state["playbackEndMs"] == 2000
             and state["repeatEnabled"] is True,
         )
         status_text = wait_for_js_condition(
             editor.web,
             "document.querySelector('[data-testid=\"aqe-controls-0\"] .aqe-status')?.textContent || ''",
-            lambda value: "Practice mode. Use floating panel at the bottom of the graph." in value,
+            lambda value: "Practice mode. Use the toolbar buttons for back-chaining." in value,
             timeout=5.0,
         )
-        wrapped = _force_repeat_wrap(editor, 1200)
+        wrapped = _force_repeat_wrap(editor, 1333)
 
-        _click_back_chaining_next(editor)
-        longer = _state(
-            editor,
-            lambda state: state["backChainingActiveMarkerIndex"] == 1
-            and state["selectionStartMs"] == 800
-            and state["selectionEndMs"] == 1600,
-        )
+        inserted = _click_back_chaining_marker(editor, 0.5, expected_count=4)
+        after_insert_next = _click_back_chaining_next(editor, expected_index=2)
+
+        longer = _click_back_chaining_next(editor, expected_index=1)
 
         _click_back_chaining_next(editor, expected_index=0)
         full_sentence = _state(
             editor,
             lambda state: state["backChainingActiveMarkerIndex"] == 0
-            and state["selectionStartMs"] == 400
-            and state["selectionEndMs"] == 1600,
+            and state["selectionStartMs"] == 0
+            and state["selectionEndMs"] == 2000,
         )
+        shorter = _click_back_chaining_previous(editor, expected_index=1)
 
         run_js(editor.web, "document.querySelector('[data-testid=\"aqe-button-0-play\"]')?.click()")
         paused = _state(
@@ -71,13 +71,116 @@ def test_back_chaining_practice_loops_suffixes_and_pauses_for_normal_play(
             and state["repeatEnabled"] is False,
         )
 
-        assert markers["backChainingBaseStartMs"] == 400
-        assert "Playing from 1.20s" in status_text
-        assert playing["backChainingActiveStartMs"] == 1200
+        assert markers["backChainingState"] == "stopped"
+        assert "Playing from 1.33s" in status_text
+        assert playing["backChainingBaseStartMs"] == 0
+        assert playing["backChainingMarkersMs"] == [0, 667, 1333]
+        assert playing["backChainingActiveStartMs"] == 1333
         assert wrapped["backChainingActiveMarkerIndex"] == 2
-        assert longer["backChainingActiveStartMs"] == 800
-        assert full_sentence["backChainingActiveStartMs"] == 400
-        assert paused["selectionStartMs"] == 400
+        assert inserted["backChainingMarkersMs"] == [0, 667, 1000, 1333]
+        assert inserted["backChainingActiveStartMs"] == 1333
+        assert after_insert_next["backChainingActiveStartMs"] == 1000
+        assert longer["backChainingActiveStartMs"] == 667
+        assert full_sentence["backChainingActiveStartMs"] == 0
+        assert shorter["backChainingActiveStartMs"] == 667
+        assert shorter["selectionStartMs"] == 667
+        assert paused["selectionStartMs"] == 667
+    finally:
+        editor.set_note(None)
+        parent.close()
+
+
+def test_back_chaining_marker_row_is_immediately_editable_after_graph_shows(
+    anki_mw,
+    ffmpeg_config,
+) -> None:
+    _media_dir, _source, _note, editor, parent, _track = _open_tone_editor(
+        anki_mw,
+        ffmpeg_config,
+        "editor_back_chaining_immediate_markers.wav",
+        2.0,
+    )
+    try:
+        initial = _state(
+            editor,
+            lambda state: state["backChainingBaseStartMs"] == 0
+            and state["backChainingBaseEndMs"] == 2000
+            and state["backChainingMarkersMs"] == [0, 667, 1333]
+            and state["backChainingState"] == "stopped",
+        )
+        rail = wait_for_js_condition(
+            editor.web,
+            """
+            (() => {
+              const row = document.querySelector('[data-testid="aqe-back-chaining-marker-row-0"]');
+              if (!row) return null;
+              return {
+                hidden: row.getAttribute("aria-hidden"),
+                markerCount: row.querySelectorAll(".aqe-back-chaining-marker").length,
+                trackVisible: !!row.querySelector(".aqe-back-chaining-marker-track"),
+              };
+            })()
+            """,
+            lambda value: value is not None
+            and value["hidden"] == "false"
+            and value["markerCount"] == 3
+            and value["trackVisible"] is True,
+            timeout=5.0,
+        )
+        toolbar_panel = wait_for_js_condition(
+            editor.web,
+            """
+            (() => {
+              const panel = document.querySelector('[data-testid="aqe-back-chaining-toolbar-panel-0"]');
+              if (!panel) return null;
+              const style = getComputedStyle(panel);
+              return {
+                ariaLabel: panel.getAttribute("aria-label"),
+                borderRadius: style.borderRadius,
+                borderTopWidth: style.borderTopWidth,
+                commands: Array.from(panel.querySelectorAll("[data-aqe-command]"))
+                  .map((button) => button.getAttribute("data-aqe-command")),
+                container: panel.getAttribute("data-aqe-toolbar-button-container"),
+                display: style.display,
+                label: panel.querySelector(".aqe-toolbar-panel-label")?.textContent || "",
+                role: panel.getAttribute("role"),
+              };
+            })()
+            """,
+            lambda value: value is not None
+            and value["ariaLabel"] == "Back-chaining"
+            and value["borderRadius"] == "9px"
+            and value["borderTopWidth"] == "1px"
+            and value["commands"] == [
+                "aqe:back-chain-practice",
+                "aqe:back-chain-previous",
+                "aqe:back-chain-next",
+            ]
+            and value["container"] == "true"
+            and value["display"] in {"flex", "inline-flex"}
+            and value["label"] == "Back-chaining"
+            and value["role"] == "group",
+            timeout=5.0,
+        )
+
+        inserted = _click_back_chaining_marker(editor, 0.5, expected_count=4)
+        _click_back_chaining_practice(editor)
+        playing = _state(
+            editor,
+            lambda state: state["backChainingState"] == "playing"
+            and state["backChainingActiveStartMs"] == 1333
+            and state["backChainingMarkersMs"] == [0, 667, 1000, 1333],
+        )
+
+        assert initial["backChainingCanPractice"] is True
+        assert rail["hidden"] == "false"
+        assert toolbar_panel["commands"] == [
+            "aqe:back-chain-practice",
+            "aqe:back-chain-previous",
+            "aqe:back-chain-next",
+        ]
+        assert inserted["backChainingActiveStartMs"] == 1333
+        assert playing["selectionStartMs"] == 1333
     finally:
         editor.set_note(None)
         parent.close()
@@ -94,8 +197,6 @@ def test_back_chaining_marker_placement_uses_zoomed_viewport(
         2.0,
     )
     try:
-        _shift_drag_region(editor, 0.2, 0.8)
-        _enable_back_chaining_editing(editor)
         run_js(editor.web, "window.__aqeSetTimeViewportForTest?.(0, 400, 1600)")
         _click_back_chaining_marker(editor, 0.5, expected_count=4)
 
@@ -103,7 +204,9 @@ def test_back_chaining_marker_placement_uses_zoomed_viewport(
             editor,
             lambda value: value["viewportStartMs"] == 400
             and value["viewportEndMs"] == 1600
-            and value["backChainingMarkersMs"] == [400, 800, 1000, 1200],
+            and value["backChainingBaseStartMs"] == 0
+            and value["backChainingBaseEndMs"] == 2000
+            and value["backChainingMarkersMs"] == [0, 667, 1000, 1333],
         )
 
         assert state["backChainingMarkerVisibleXs"]
@@ -123,9 +226,6 @@ def test_back_chaining_marker_rail_does_not_steal_top_of_graph_cursor_drag(
         2.0,
     )
     try:
-        _shift_drag_region(editor, 0.2, 0.8)
-        _enable_back_chaining_editing(editor)
-
         drag_state = wait_for_js_condition(
             editor.web,
             """
@@ -166,7 +266,7 @@ def test_back_chaining_marker_rail_does_not_steal_top_of_graph_cursor_drag(
             """,
             lambda value: value is not None
             and abs(value["cursorMs"] - 1200) <= 75
-            and value["markersMs"] == [400, 800, 1200],
+            and value["markersMs"] == [0, 667, 1333],
             timeout=5.0,
         )
 
@@ -176,40 +276,22 @@ def test_back_chaining_marker_rail_does_not_steal_top_of_graph_cursor_drag(
         parent.close()
 
 
-def _enable_back_chaining_editing(editor) -> None:
-    wait_for_js_condition(
-        editor.web,
-        """
-        (() => {
-          const entry = document.querySelector('[data-testid="aqe-selection-toolbar-back-chaining-0"]');
-          if (!entry) return null;
-          if (window.__aqeGraphStateForTest?.(0)?.backChainingEditing !== true) entry.click();
-          return window.__aqeGraphStateForTest?.(0) || null;
-        })()
-        """,
-        lambda state: state is not None
-        and state["backChainingEditing"] is True
-        and state["backChainingPanelOpen"] is True
-        and state["backChainingBaseStartMs"] == 400
-        and state["backChainingMarkersMs"] == [400, 800, 1200],
-        timeout=5.0,
-    )
-
-
-def _click_back_chaining_marker(editor, ratio: float, *, expected_count: int) -> None:
-    wait_for_js_condition(
+def _click_back_chaining_marker(editor, ratio: float, *, expected_count: int):
+    return wait_for_js_condition(
         editor.web,
         f"""
         (() => {{
           const row = document.querySelector('[data-testid="aqe-back-chaining-marker-row-0"]');
+          const hitbox = document.querySelector('.aqe-back-chaining-marker-hitbox');
           const svg = document.querySelector('[data-testid="aqe-graph-svg-0"]');
-          if (!row || !svg || row.getAttribute("aria-hidden") === "true") return null;
+          if (!row || !hitbox || !svg) return null;
           const rect = svg.getBoundingClientRect();
           const plot = {{ width: 620, left: 44, right: 10 }};
           const plotLeft = rect.left + (plot.left / plot.width) * rect.width;
           const plotWidth = ((plot.width - plot.left - plot.right) / plot.width) * rect.width;
           const EventCtor = window.PointerEvent || window.MouseEvent;
-          row.dispatchEvent(new EventCtor('pointerdown', {{
+          const target = row.getAttribute("aria-hidden") === "true" ? hitbox : row;
+          target.dispatchEvent(new EventCtor('pointerdown', {{
             bubbles: true,
             clientX: plotLeft + plotWidth * {ratio},
             clientY: rect.top + 14,
@@ -232,9 +314,7 @@ def _click_back_chaining_practice(editor) -> None:
         editor.web,
         """
         (() => {
-          const panel = document.querySelector('[data-testid="aqe-back-chaining-0-panel"]');
-          if (!panel) return null;
-          const button = document.querySelector('[data-testid="aqe-back-chaining-0-practice"]');
+          const button = document.querySelector('[data-testid="aqe-button-0-back-chain-practice"]');
           if (!button || button.disabled) return null;
           button.click();
           return window.__aqeGraphStateForTest?.(0) || null;
@@ -245,14 +325,28 @@ def _click_back_chaining_practice(editor) -> None:
     )
 
 
-def _click_back_chaining_next(editor, *, expected_index: int = 1) -> None:
-    wait_for_js_condition(
+def _click_back_chaining_next(editor, *, expected_index: int = 1):
+    return wait_for_js_condition(
         editor.web,
         """
         (() => {
-          const panel = document.querySelector('[data-testid="aqe-back-chaining-0-panel"]');
-          if (!panel) return null;
-          const button = document.querySelector('[data-testid="aqe-back-chaining-0-next"]');
+          const button = document.querySelector('[data-testid="aqe-button-0-back-chain-next"]');
+          if (!button || button.disabled) return null;
+          button.click();
+          return window.__aqeGraphStateForTest?.(0) || null;
+        })()
+        """,
+        lambda state: state is not None and state["backChainingActiveMarkerIndex"] == expected_index,
+        timeout=5.0,
+    )
+
+
+def _click_back_chaining_previous(editor, *, expected_index: int = 1):
+    return wait_for_js_condition(
+        editor.web,
+        """
+        (() => {
+          const button = document.querySelector('[data-testid="aqe-button-0-back-chain-previous"]');
           if (!button || button.disabled) return null;
           button.click();
           return window.__aqeGraphStateForTest?.(0) || null;

@@ -2,6 +2,8 @@ import { describe, expect, it } from "vitest";
 
 import type { PlaybackRegion } from "../src/editor-inline/playback-model.js";
 import {
+  activeMarkerIndexAfterMarkerToggle,
+  backChainingControlAvailability,
   chooseInitialActiveMarkerIndex,
   defaultBackChainingMarkers,
   deriveActiveSuffix,
@@ -9,7 +11,6 @@ import {
   markerNavigationAvailability,
   moveActiveMarkerIndex,
   normalizeBackChainingMarkers,
-  backChainingControlAvailability,
   toggleBackChainingMarker,
 } from "../src/editor-inline/back-chaining-state.js";
 
@@ -72,14 +73,28 @@ describe("editor inline back-chaining state", () => {
     expect(deriveActiveSuffix(null, [1200], 0)).toBeNull();
   });
 
-  it("reports practice and navigation availability", () => {
+  it("normalizes the active marker after inserting before the current marker", () => {
+    expect(activeMarkerIndexAfterMarkerToggle([0, 500, 750], [0, 250, 500, 750], 1)).toBe(2);
+  });
+
+  it("normalizes the active marker after inserting after the current marker", () => {
+    expect(activeMarkerIndexAfterMarkerToggle([0, 500, 750], [0, 500, 625, 750], 1)).toBe(1);
+  });
+
+  it("normalizes the active marker after removing the current marker", () => {
+    expect(activeMarkerIndexAfterMarkerToggle([0, 500, 750], [0, 750], 1)).toBe(1);
+  });
+
+  it("normalizes the active marker to null when all markers are removed", () => {
+    expect(activeMarkerIndexAfterMarkerToggle([500], [], 0)).toBeNull();
+  });
+
+  it("reports whole-file practice and navigation availability", () => {
     const stopped = emptyBackChainingState();
     expect(backChainingControlAvailability(stopped)).toEqual({
-      canClear: false,
-      canEdit: false,
       canNext: false,
-      canPractice: false,
       canPrevious: false,
+      canPractice: false,
     });
 
     const ready = {
@@ -89,11 +104,9 @@ describe("editor inline back-chaining state", () => {
       markersMs: [1200, 1500, 1900],
     };
     expect(backChainingControlAvailability(ready)).toEqual({
-      canClear: true,
-      canEdit: true,
       canNext: true,
-      canPractice: true,
       canPrevious: false,
+      canPractice: true,
     });
     expect(markerNavigationAvailability([1200, 1500, 1900], 0)).toEqual({
       canNext: false,

@@ -1,9 +1,9 @@
 <script lang="ts">
   import {
     buttonDisplayMode,
-    COMMAND_SLUGS,
     DEFAULT_EDITOR_BUTTON_MODES,
   } from "$lib/editor-toolbar-buttons.js";
+  import { COMMAND_SLUGS } from "$lib/editor-toolbar-command-slugs.js";
   import { normalizeVisibleEditorButtons, toolbarPanels } from "$lib/editor-toolbar-visibility.js";
   import { t } from "$lib/i18n.js";
   import { settingsToolbarButtons } from "$lib/settings-toolbar-buttons.js";
@@ -90,7 +90,6 @@
       testId: `button-settings-${COMMAND_SLUGS[button.command]}`,
     }));
   }
-
 </script>
 
 <section class="toolbar-visibility settings-section" aria-labelledby="toolbar-visibility-title">

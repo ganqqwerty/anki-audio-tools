@@ -10,7 +10,11 @@ import {
   playbackStateFor,
   stopProgressClock,
 } from "./playback-actions.js";
-import { pauseBackChainingForNormalPlay } from "./back-chaining-controller.js";
+import {
+  moveBackChainingForOrd,
+  pauseBackChainingForNormalPlay,
+  toggleBackChainingForOrd,
+} from "./back-chaining-controller.js";
 import type { EditorCommand, EditorCommandPayload, VisualizerElement } from "./types.js";
 import { anyBusy, setControlsBusy } from "./control-actions.js";
 
@@ -26,6 +30,18 @@ export function send(
   logger.info("command dispatched", { command, ord });
   if (command === "aqe:analyze") {
     requestGraph(ord, true, payload?.graphSettings);
+    return;
+  }
+  if (command === "aqe:back-chain-practice") {
+    toggleBackChainingForOrd(ord);
+    return;
+  }
+  if (command === "aqe:back-chain-next") {
+    moveBackChainingForOrd(ord, "next");
+    return;
+  }
+  if (command === "aqe:back-chain-previous") {
+    moveBackChainingForOrd(ord, "previous");
     return;
   }
   if (command === "aqe:play" && pauseBackChainingForNormalPlay(ord)) {

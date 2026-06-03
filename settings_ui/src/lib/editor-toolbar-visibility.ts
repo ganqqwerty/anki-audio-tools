@@ -1,9 +1,13 @@
 import { t } from "./i18n.js";
 import {
-  COMMAND_SLUGS,
   DEFAULT_VISIBLE_EDITOR_BUTTONS,
   toolbarButtons,
 } from "./editor-toolbar-buttons.js";
+import {
+  TOOLBAR_PANEL_DEFINITIONS,
+  toolbarPanelDefinitionAt,
+} from "./editor-toolbar-panel-definitions.js";
+import { COMMAND_SLUGS } from "./editor-toolbar-command-slugs.js";
 import type { CommandIconName } from "./icon-types.js";
 import type { EditorCommand, ToolbarButtonSpec } from "./editor-toolbar-buttons.js";
 
@@ -17,11 +21,6 @@ export interface ToolbarPanelSpec {
   title: string;
 }
 
-const RECORDING_PANEL_COMMANDS = [
-  "aqe:record-voice",
-  "aqe:play-recording",
-] as const satisfies readonly EditorCommand[];
-
 export function toolbarPanels(
   buttons: readonly ToolbarButtonSpec[] = toolbarButtons(),
 ): readonly ToolbarPanelSpec[] {
@@ -29,18 +28,21 @@ export function toolbarPanels(
   for (let index = 0; index < buttons.length; index += 1) {
     const button = buttons[index];
     if (!button) continue;
-    const next = buttons[index + 1];
-    if (button.command === "aqe:record-voice" && next?.command === "aqe:play-recording") {
+    const matchedPanel = toolbarPanelDefinitionAt(buttons, index);
+    if (matchedPanel) {
+      const primaryButton = matchedPanel.buttons.find(
+        (candidate) => candidate.command === matchedPanel.definition.primaryCommand,
+      ) ?? matchedPanel.buttons[0]!;
       panels.push({
-        buttons: [button, next],
-        commands: [button.command, next.command],
-        icon: button.icon,
-        label: t("editor.command.record_group.label"),
-        primaryButton: button,
-        slug: "record-play-yours",
-        title: t("editor.command.record_group.label"),
+        buttons: matchedPanel.buttons,
+        commands: matchedPanel.definition.commands,
+        icon: primaryButton.icon,
+        label: t(matchedPanel.definition.labelKey),
+        primaryButton,
+        slug: matchedPanel.definition.slug,
+        title: t(matchedPanel.definition.titleKey),
       });
-      index += 1;
+      index += matchedPanel.buttons.length - 1;
       continue;
     }
     panels.push({
@@ -66,9 +68,11 @@ export function normalizeVisibleEditorButtons(
   const requested = new Set(
     sourceCommands.filter((command): command is EditorCommand => availableCommands.has(command)),
   );
-  if (RECORDING_PANEL_COMMANDS.some((command) => requested.has(command))) {
-    for (const command of RECORDING_PANEL_COMMANDS) {
-      if (availableCommands.has(command)) requested.add(command);
+  for (const definition of TOOLBAR_PANEL_DEFINITIONS) {
+    if (definition.commands.some((command) => requested.has(command))) {
+      for (const command of definition.commands) {
+        if (availableCommands.has(command)) requested.add(command);
+      }
     }
   }
   return buttons.map((button) => button.command).filter((command) => requested.has(command));
@@ -85,7 +89,10 @@ export function visibleToolbarButtons(
 }
 
 function defaultRuntimeVisibleCommands(buttons: readonly ToolbarButtonSpec[]): readonly EditorCommand[] {
-  const recordingCommands = new Set<EditorCommand>(RECORDING_PANEL_COMMANDS);
+  const recordingDefinition = TOOLBAR_PANEL_DEFINITIONS.find(
+    (definition) => definition.slug === "record-play-yours",
+  );
+  const recordingCommands = new Set<EditorCommand>(recordingDefinition?.commands ?? []);
   return buttons
     .map((button) => button.command)
     .filter((command) => !recordingCommands.has(command));

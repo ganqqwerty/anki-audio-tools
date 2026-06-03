@@ -6,7 +6,6 @@ import {
   dragGraphSelection,
   graphClientX,
   muteConsole,
-  openPlayOptions,
   prepareHtmlAudio,
   renderFields,
   setGraphBounds,
@@ -37,220 +36,166 @@ describe("editor inline back-chaining integration", () => {
     vi.restoreAllMocks();
   });
 
-  it("shows practice controls for a committed graph selection and edits markers", async () => {
-    const { row, svg } = await prepareBackChainingSelection();
-    await openPlayOptions();
-    const playPopover = document.querySelector<HTMLElement>('[data-testid="aqe-split-0-play-popover"]')!;
-    expect(playPopover.querySelector('[data-testid="aqe-back-chaining-0-edit"]')).toBeNull();
+  it("shows and edits whole-file markers as soon as the graph is available", async () => {
+    const { row, svg } = await prepareBackChainingGraph();
 
-    await enterBackChaining();
-    const panel = document.querySelector<HTMLElement>('[data-testid="aqe-back-chaining-0-panel"]')!;
-    const edit = panel.querySelector<HTMLButtonElement>('[data-testid="aqe-back-chaining-0-edit"]')!;
-    expect(edit).not.toBeNull();
-    expect(edit.disabled).toBe(false);
-    expect(panel.closest('[data-testid="aqe-selection-toolbar-0"]')).not.toBeNull();
-    const videoLink = panel.querySelector<HTMLAnchorElement>(".aqe-back-chaining-video-link")!;
-    expect(videoLink.textContent).toBe("See video");
-    const linkClick = new MouseEvent("click", { bubbles: true, cancelable: true });
-    videoLink.dispatchEvent(linkClick);
-    expect(linkClick.defaultPrevented).toBe(true);
-    expectIconOnlyButton(panel, "previous", "Previous");
-    expectIconOnlyButton(panel, "next", "Next");
-    expectIconOnlyButton(panel, "clear", "Clear markers");
-    expect(panel.querySelector('[data-testid="aqe-back-chaining-0-exit"]')).toBeNull();
-    for (const button of panel.querySelectorAll<HTMLButtonElement>(".aqe-back-chaining-button")) {
-      expectPointerGuards(button);
-    }
-    expect(row.querySelectorAll(".aqe-back-chaining-boundary-marker")).toHaveLength(1);
-    expect(row.closest('[data-testid="aqe-graph-svg-0"]')).not.toBeNull();
-    const trackRect = row.querySelector<SVGRectElement>(".aqe-back-chaining-marker-track")!;
-    expect(getComputedStyle(trackRect).fill.replaceAll(",", "")).toBe("rgb(255 255 255)");
-    expect(trackRect.getAttribute("y")).toBe("10.00");
-    expect(trackRect.hasAttribute("rx")).toBe(false);
-    expect(row.querySelector(".aqe-back-chaining-base-range")).toBeNull();
-    expect(row.querySelector(".aqe-back-chaining-active-range")).toBeNull();
-    expect(getComputedStyle(row).opacity).toBe("1");
+    expect(row.getAttribute("aria-hidden")).toBe("false");
+    expect(row.style.display).toBe("");
+    expect(row.querySelector(".aqe-back-chaining-marker-track")).not.toBeNull();
+    expect(row.querySelectorAll(".aqe-back-chaining-marker")).toHaveLength(3);
     expect(window.__aqeGraphStateForTest?.(0)).toMatchObject({
-      backChainingBaseEndMs: 800,
-      backChainingBaseStartMs: 200,
-      backChainingEditing: true,
-      backChainingMarkersMs: [200, 400, 600],
+      backChainingBaseEndMs: 1000,
+      backChainingBaseStartMs: 0,
+      backChainingCanPractice: true,
+      backChainingCanPrevious: false,
+      backChainingMarkersMs: [0, 333, 667],
+      backChainingState: "stopped",
     });
+    expect(previousButton()).toBeDisabled();
+    expect(previousButton().closest(".aqe-button-tooltip-target")).toHaveAttribute(
+      "data-aqe-tooltip-content",
+      "Move to the next shorter back-chaining suffix.\n\nStart back-chaining practice and move to a longer suffix before choosing a shorter suffix.",
+    );
+    expect(nextButton()).not.toBeDisabled();
+    expect(nextButton().closest(".aqe-button-tooltip-target")).toHaveAttribute(
+      "data-aqe-tooltip-content",
+      "Move to the next longer back-chaining suffix.",
+    );
 
-    clickMarkerRow(row, svg, 0.4);
-    clickMarkerRow(row, svg, 0.7);
+    clickMarkerRail(svg, 0.5);
 
     expect(window.__aqeGraphStateForTest?.(0)).toMatchObject({
-      backChainingBaseEndMs: 800,
-      backChainingBaseStartMs: 200,
-      backChainingEditing: true,
-      backChainingMarkersMs: [200, 600, 700],
-    });
-
-    clickMarkerRow(row, svg, 0.705);
-    expect(window.__aqeGraphStateForTest?.(0)?.backChainingMarkersMs).toEqual([200, 600]);
-
-    panel.querySelector<HTMLButtonElement>('[data-testid="aqe-back-chaining-0-clear"]')!.click();
-    await Promise.resolve();
-    expect(window.__aqeGraphStateForTest?.(0)).toMatchObject({
-      backChainingBaseEndMs: 800,
-      backChainingBaseStartMs: 200,
-      backChainingEditing: true,
-      backChainingMarkersMs: [],
-      backChainingPanelOpen: true,
+      backChainingBaseEndMs: 1000,
+      backChainingBaseStartMs: 0,
+      backChainingMarkersMs: [0, 333, 500, 667],
     });
   });
 
-  it("places markers using zoomed viewport time rather than full duration", async () => {
-    const { row, svg } = await prepareBackChainingSelection();
-    await enterBackChaining();
-    window.__aqeSetTimeViewportForTest?.(0, 200, 800);
+  it("starts back-chaining from the toolbar for the whole file instead of the graph selection", async () => {
+    const { row, svg } = await prepareBackChainingGraph();
+    dragGraphSelection(svg, 0.2, 0.8);
 
-    clickMarkerRow(row, svg, 0.5);
+    expect(document.querySelector('[data-testid="aqe-selection-toolbar-back-chaining-0"]')).toBeNull();
+    expect(document.querySelector('[data-testid="aqe-back-chaining-0-panel"]')).toBeNull();
+    expect(document.querySelector('[data-testid="aqe-back-chaining-0-edit"]')).toBeNull();
+    expect(document.querySelector('[data-testid="aqe-back-chaining-0-clear"]')).toBeNull();
+    expect(document.querySelector('[data-testid="aqe-back-chaining-0-previous"]')).toBeNull();
+
+    prepareHtmlAudio();
+    practiceButton().click();
+    await Promise.resolve();
 
     expect(window.__aqeGraphStateForTest?.(0)).toMatchObject({
-      backChainingMarkersMs: [200, 400, 500, 600],
+      backChainingBaseEndMs: 1000,
+      backChainingBaseStartMs: 0,
+      backChainingMarkersMs: [0, 333, 667],
+      backChainingState: "playing",
+      playbackEndMs: 1000,
+      playbackRegionMode: "selection",
+      playbackStartMs: 667,
+      selectionEndMs: 1000,
+      selectionStartMs: 667,
+    });
+    expect(row.querySelectorAll(".aqe-back-chaining-boundary-marker")).toHaveLength(1);
+    expect(practiceButton().dataset.aqeButtonState).toBe("pause");
+    expect(previousButton().disabled).toBe(true);
+    expect(nextButton().disabled).toBe(false);
+  });
+
+  it("places markers using zoomed viewport time while keeping a whole-file base", async () => {
+    const { svg } = await prepareBackChainingGraph();
+    window.__aqeSetTimeViewportForTest?.(0, 200, 800);
+
+    clickMarkerRail(svg, 0.5);
+
+    expect(window.__aqeGraphStateForTest?.(0)).toMatchObject({
+      backChainingBaseEndMs: 1000,
+      backChainingBaseStartMs: 0,
+      backChainingMarkerVisibleXs: expect.any(Array),
+      backChainingMarkersMs: [0, 333, 500, 667],
       viewportEndMs: 800,
       viewportStartMs: 200,
     });
   });
 
-  it("starts practice from the rightmost default marker and normal Play pauses practice", async () => {
-    await prepareBackChainingSelection();
+  it("moves between longer and shorter suffixes from the toolbar and normal Play pauses practice", async () => {
+    await prepareBackChainingGraph();
     prepareHtmlAudio();
-    await enterBackChaining();
-    await Promise.resolve();
 
-    document.querySelector<HTMLButtonElement>('[data-testid="aqe-back-chaining-0-practice"]')!.click();
+    practiceButton().click();
     await Promise.resolve();
     expect(window.__aqeGraphStateForTest?.(0)).toMatchObject({
-      playbackEndMs: 800,
-      playbackRegionMode: "selection",
-      playbackStartMs: 600,
-      repeatEnabled: true,
       backChainingActiveMarkerIndex: 2,
-      backChainingActiveStartMs: 600,
+      backChainingActiveStartMs: 667,
       backChainingState: "playing",
-      selectionEndMs: 800,
-      selectionStartMs: 600,
+      repeatEnabled: true,
     });
 
-    document.querySelector<HTMLButtonElement>('[data-testid="aqe-back-chaining-0-next"]')!.click();
+    nextButton().click();
     await Promise.resolve();
     expect(window.__aqeGraphStateForTest?.(0)).toMatchObject({
-      playbackStartMs: 400,
       backChainingActiveMarkerIndex: 1,
-      selectionEndMs: 800,
-      selectionStartMs: 400,
+      playbackStartMs: 333,
+      selectionEndMs: 1000,
+      selectionStartMs: 333,
     });
 
-    document.querySelector<HTMLButtonElement>('[data-testid="aqe-back-chaining-0-next"]')!.click();
+    nextButton().click();
     await Promise.resolve();
     expect(window.__aqeGraphStateForTest?.(0)).toMatchObject({
-      playbackStartMs: 200,
       backChainingActiveMarkerIndex: 0,
-      selectionEndMs: 800,
-      selectionStartMs: 200,
+      playbackStartMs: 0,
+      selectionEndMs: 1000,
+      selectionStartMs: 0,
     });
+    expect(nextButton().disabled).toBe(true);
+    expect(previousButton().disabled).toBe(false);
 
-    document.querySelector<HTMLButtonElement>('[data-testid="aqe-back-chaining-0-previous"]')!.click();
+    previousButton().click();
     await Promise.resolve();
     expect(window.__aqeGraphStateForTest?.(0)).toMatchObject({
-      playbackStartMs: 400,
       backChainingActiveMarkerIndex: 1,
-      selectionEndMs: 800,
-      selectionStartMs: 400,
+      playbackStartMs: 333,
+      selectionEndMs: 1000,
+      selectionStartMs: 333,
     });
+    expect(nextButton().disabled).toBe(false);
+    expect(previousButton().disabled).toBe(false);
 
     document.querySelector<HTMLButtonElement>('[data-testid="aqe-button-0-play"]')!.click();
     await Promise.resolve();
     expect(window.__aqeGraphStateForTest?.(0)).toMatchObject({
-      repeatEnabled: false,
       backChainingState: "paused",
+      repeatEnabled: false,
     });
-
-    document.querySelector<HTMLButtonElement>('[data-testid="aqe-back-chaining-0-edit"]')!.click();
-    await Promise.resolve();
-    expect(window.__aqeGraphStateForTest?.(0)).toMatchObject({
-      backChainingEditing: false,
-    });
+    expect(practiceButton().dataset.aqeButtonState).toBe("default");
   });
 
-  it("toggles the attached back-chaining section without rendering an exit action", async () => {
-    await prepareBackChainingSelection();
-    await enterBackChaining();
-    const backChainingButton = document.querySelector<HTMLButtonElement>('[data-testid="aqe-selection-toolbar-back-chaining-0"]')!;
-    expectPointerGuards(backChainingButton);
-    expect(document.querySelector('[data-testid="aqe-back-chaining-0-panel"]')).not.toBeNull();
-    expect(backChainingButton.getAttribute("aria-pressed")).toBe("true");
-    expect(backChainingButton.getAttribute("aria-expanded")).toBe("true");
-    expect(backChainingButton.getAttribute("aria-controls")).toBe("aqe-back-chaining-0-panel");
-    expect(backChainingButton.querySelector(".aqe-back-chaining-disclosure-open")).not.toBeNull();
-    expect(backChainingButton.querySelector(".aqe-back-chaining-disclosure-closed")).not.toBeNull();
+  it("adds markers mid-practice and includes them in longer-suffix navigation", async () => {
+    const { svg } = await prepareBackChainingGraph();
+    prepareHtmlAudio();
 
-    backChainingButton.click();
+    practiceButton().click();
     await Promise.resolve();
-    expect(document.querySelector('[data-testid="aqe-back-chaining-0-panel"]')).toBeNull();
-    expect(backChainingButton.getAttribute("aria-pressed")).toBe("false");
-    expect(backChainingButton.getAttribute("aria-expanded")).toBe("false");
-    expect(window.__aqeGraphStateForTest?.(0)).toMatchObject({
-      backChainingBaseStartMs: 200,
-      backChainingEditing: true,
-      backChainingPanelOpen: false,
-    });
-
-    backChainingButton.click();
+    clickMarkerRail(svg, 0.5);
     await Promise.resolve();
-    await Promise.resolve();
-    expect(document.querySelector('[data-testid="aqe-back-chaining-0-panel"]')).not.toBeNull();
-    expect(document.querySelector('[data-testid="aqe-back-chaining-0-exit"]')).toBeNull();
-
-    backChainingButton.click();
-    await Promise.resolve();
-
-    expect(document.querySelector('[data-testid="aqe-back-chaining-0-panel"]')).toBeNull();
-    expect(window.__aqeGraphStateForTest?.(0)).toMatchObject({
-      backChainingBaseStartMs: 200,
-      backChainingEditing: true,
-      backChainingPanelOpen: false,
-    });
-  });
-
-  it("renders the back-chaining section inside the selection toolbar near graph edges", async () => {
-    const { svg } = await prepareBackChainingSelection(0, 0.1);
-    expectSelectionToolbarWrap("nowrap");
-    await enterBackChaining({ baseEndMs: 100, baseStartMs: 0 });
-
-    expectBackChainingPanelAttachedToToolbar();
-    expectSelectionToolbarWrap("wrap");
-
-    document.querySelector<HTMLButtonElement>('[data-testid="aqe-selection-toolbar-back-chaining-0"]')!.click();
-    await Promise.resolve();
-    dragGraphSelection(svg, 0.9, 1);
-    expectSelectionToolbarWrap("nowrap");
-    await enterBackChaining({ baseEndMs: 1000, baseStartMs: 900 });
-
-    expectBackChainingPanelAttachedToToolbar();
-    expectSelectionToolbarWrap("wrap");
-  });
-
-  it("opens the back-chaining section for whole-clip selections", async () => {
-    const { row } = await prepareBackChainingSelection(0, 1);
 
     expect(window.__aqeGraphStateForTest?.(0)).toMatchObject({
-      selectionActive: true,
-      selectionEndMs: 1000,
-      selectionStartMs: 0,
-      selectionToolbarDeleteRegionHidden: true,
-      selectionToolbarDeleteRestHidden: true,
-      selectionToolbarHidden: false,
+      backChainingActiveMarkerIndex: 3,
+      backChainingActiveStartMs: 667,
+      backChainingMarkersMs: [0, 333, 500, 667],
+      playbackStartMs: 667,
     });
 
-    await enterBackChaining({ baseEndMs: 1000, baseStartMs: 0 });
+    nextButton().click();
+    await Promise.resolve();
 
-    expect(document.querySelector('[data-testid="aqe-back-chaining-0-panel"]')).not.toBeNull();
-    expectBackChainingPanelAttachedToToolbar();
-    expect(row.querySelectorAll(".aqe-back-chaining-boundary-marker")).toHaveLength(1);
+    expect(window.__aqeGraphStateForTest?.(0)).toMatchObject({
+      backChainingActiveMarkerIndex: 2,
+      backChainingActiveStartMs: 500,
+      playbackStartMs: 500,
+      selectionStartMs: 500,
+    });
   });
 });
 
@@ -262,70 +207,26 @@ function installVisualizerStyles(): void {
   document.head.appendChild(style);
 }
 
-async function enterBackChaining(
-  expected: { baseEndMs: number; baseStartMs: number } = { baseEndMs: 800, baseStartMs: 200 },
-): Promise<void> {
-  document.querySelector<HTMLButtonElement>('[data-testid="aqe-selection-toolbar-back-chaining-0"]')!.click();
-  await Promise.resolve();
-  expect(window.__aqeGraphStateForTest?.(0)).toMatchObject({
-    backChainingBaseEndMs: expected.baseEndMs,
-    backChainingBaseStartMs: expected.baseStartMs,
-    backChainingEditing: true,
-    backChainingMarkersMs: [
-      expected.baseStartMs,
-      expected.baseStartMs + Math.round((expected.baseEndMs - expected.baseStartMs) / 3),
-      expected.baseStartMs + Math.round(((expected.baseEndMs - expected.baseStartMs) * 2) / 3),
-    ],
-    backChainingPanelOpen: true,
-  });
-}
-
-async function prepareBackChainingSelection(
-  startRatio = 0.2,
-  endRatio = 0.8,
-): Promise<{ row: SVGGElement; svg: SVGSVGElement }> {
+async function prepareBackChainingGraph(): Promise<{ row: SVGGElement; svg: SVGSVGElement }> {
   initializeEditorRuntime({ audioFieldIndices: [0], repeatPlaybackByDefault: false });
   scan({ audioFieldIndices: [0], repeatPlaybackByDefault: false });
   await Promise.resolve();
   window.__aqeSetVisualizer?.(0, track, 0);
+  await Promise.resolve();
   const svg = document.querySelector<SVGSVGElement>('[data-testid="aqe-graph-svg-0"]')!;
   setGraphBounds(svg);
-  dragGraphSelection(svg, startRatio, endRatio);
   const row = document.querySelector<SVGGElement>('[data-testid="aqe-back-chaining-marker-row-0"]')!;
   return { row, svg };
 }
 
-function expectIconOnlyButton(panel: HTMLElement, kind: "clear" | "next" | "previous", label: string): void {
-  const button = panel.querySelector<HTMLButtonElement>(`[data-testid="aqe-back-chaining-0-${kind}"]`)!;
-  expect(button).not.toBeNull();
-  expect(button.getAttribute("aria-label")).toBe(label);
-  expect(button.textContent?.trim()).toBe("");
-  expect(button.querySelector(".aqe-button-icon")).not.toBeNull();
-}
-
-function expectBackChainingPanelAttachedToToolbar(): void {
-  const toolbar = document.querySelector<HTMLElement>('[data-testid="aqe-selection-toolbar-0"]')!;
-  const panel = document.querySelector<HTMLElement>('[data-testid="aqe-back-chaining-0-panel"]')!;
-  expect(panel.closest('[data-testid="aqe-selection-toolbar-0"]')).toBe(toolbar);
-}
-
-function expectSelectionToolbarWrap(expected: "nowrap" | "wrap"): void {
-  const toolbar = document.querySelector<HTMLElement>('[data-testid="aqe-selection-toolbar-0"]')!;
-  expect(getComputedStyle(toolbar).flexWrap).toBe(expected);
-}
-
-function expectPointerGuards(element: HTMLElement): void {
-  const PointerEventCtor = window.PointerEvent || window.MouseEvent;
-  element.dispatchEvent(new PointerEventCtor("pointerdown", { bubbles: true, cancelable: true }));
-  const mouseDown = new MouseEvent("mousedown", { bubbles: true, cancelable: true });
-  element.dispatchEvent(mouseDown);
-  expect(mouseDown.defaultPrevented).toBe(true);
-}
-
-function clickMarkerRow(row: SVGGElement, svg: SVGSVGElement, ratio: number): void {
+function clickMarkerRail(svg: SVGSVGElement, ratio: number): void {
+  const row = document.querySelector<SVGGElement>('[data-testid="aqe-back-chaining-marker-row-0"]')!;
+  const target = row.getAttribute("aria-hidden") === "true"
+    ? document.querySelector<HTMLElement>(".aqe-back-chaining-marker-hitbox")!
+    : row;
   const EventCtor = window.PointerEvent || window.MouseEvent;
   const clientX = graphClientX(svg, ratio);
-  row.dispatchEvent(new EventCtor("pointerdown", {
+  target.dispatchEvent(new EventCtor("pointerdown", {
     bubbles: true,
     clientX,
     clientY: 155,
@@ -335,4 +236,16 @@ function clickMarkerRow(row: SVGGElement, svg: SVGSVGElement, ratio: number): vo
     clientX,
     clientY: 155,
   }));
+}
+
+function practiceButton(): HTMLButtonElement {
+  return document.querySelector<HTMLButtonElement>('[data-testid="aqe-button-0-back-chain-practice"]')!;
+}
+
+function nextButton(): HTMLButtonElement {
+  return document.querySelector<HTMLButtonElement>('[data-testid="aqe-button-0-back-chain-next"]')!;
+}
+
+function previousButton(): HTMLButtonElement {
+  return document.querySelector<HTMLButtonElement>('[data-testid="aqe-button-0-back-chain-previous"]')!;
 }

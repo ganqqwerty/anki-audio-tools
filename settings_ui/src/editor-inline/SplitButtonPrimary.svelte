@@ -1,5 +1,6 @@
 <script lang="ts">
   import AqeTooltip from "../lib/AqeTooltip.svelte";
+  import { tooltipWithDisabledClarification } from "../lib/disabled-tooltip.js";
   import type { CommandIconName } from "../lib/icon-types.js";
 
   import EditorCommandIcon from "./EditorCommandIcon.svelte";
@@ -12,6 +13,7 @@
     activeIcon,
     command,
     disabled = false,
+    disabledReason,
     displayMode,
     icon,
     label,
@@ -25,6 +27,7 @@
     activeIcon?: CommandIconName | undefined;
     command: string;
     disabled?: boolean;
+    disabledReason?: string | undefined;
     displayMode: EditorButtonDisplayMode;
     icon: CommandIconName;
     label: string;
@@ -34,31 +37,40 @@
     slug: string;
     title: string;
   } = $props();
+
+  const tooltipTitle = $derived(tooltipWithDisabledClarification(title, disabled ? disabledReason : undefined));
 </script>
 
 <AqeTooltip>
   {#snippet trigger({ props })}
-    <button
+    <span
       {...props}
-      type="button"
-      class:aqe-icon-only={displayMode === EditorButtonMode.Icon}
-      class={`${primaryClass} aqe-tooltip-target`}
-      data-aqe-command={command}
-      data-aqe-button-state={command === "aqe:play" ? "play" : command === "aqe:analyze" ? "graph" : "default"}
-      data-aqe-tooltip-content={title}
-      data-testid={`aqe-button-${ord}-${slug}`}
-      {disabled}
-      aria-label={ariaLabel}
-      onmousedown={(event) => event.preventDefault()}
-      onclick={onClick}
+      class="aqe-button-tooltip-target aqe-tooltip-target"
+      data-aqe-tooltip-content={tooltipTitle}
     >
-      {#if displayMode === EditorButtonMode.Icon}
-        <EditorCommandIcon className="aqe-button-icon-default" {icon} />
-        {#if activeIcon}
-          <EditorCommandIcon className="aqe-button-icon-active" icon={activeIcon} />
+      <button
+        type="button"
+        class:aqe-icon-only={displayMode === EditorButtonMode.Icon}
+        class={primaryClass}
+        data-aqe-command={command}
+        data-aqe-button-state={command === "aqe:play" ? "play" : command === "aqe:analyze" ? "graph" : "default"}
+        data-aqe-disabled-title={disabledReason}
+        data-aqe-enabled-title={title}
+        data-aqe-tooltip-content={tooltipTitle}
+        data-testid={`aqe-button-${ord}-${slug}`}
+        {disabled}
+        aria-label={tooltipTitle || ariaLabel}
+        onmousedown={(event) => event.preventDefault()}
+        onclick={onClick}
+      >
+        {#if displayMode === EditorButtonMode.Icon}
+          <EditorCommandIcon className="aqe-button-icon-default" {icon} />
+          {#if activeIcon}
+            <EditorCommandIcon className="aqe-button-icon-active" icon={activeIcon} />
+          {/if}
         {/if}
-      {/if}
-      <span class="aqe-button-label">{label}</span>
-    </button>
+        <span class="aqe-button-label">{label}</span>
+      </button>
+    </span>
   {/snippet}
 </AqeTooltip>

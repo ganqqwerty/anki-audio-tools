@@ -121,21 +121,36 @@ def test_editor_voice_recording_comparison_workflow(
             (() => {{
               const record = document.querySelector({record_selector!r});
               const play = document.querySelector({play_yours_selector!r});
-              return record && play ? {{
+              const panel = document.querySelector('[data-testid="aqe-recording-toolbar-panel-0"]');
+              if (!record || !play || !panel) return null;
+              const style = getComputedStyle(panel);
+              return {{
+                ariaLabel: panel.getAttribute("aria-label"),
+                borderRadius: style.borderRadius,
+                borderTopWidth: style.borderTopWidth,
+                container: panel.getAttribute("data-aqe-toolbar-button-container"),
                 groupCount: document.querySelectorAll('.aqe-recording-group').length,
+                label: panel.querySelector(".aqe-toolbar-panel-label")?.textContent || "",
                 recordIconOnly: record.classList.contains('aqe-icon-only'),
                 playIconOnly: play.classList.contains('aqe-icon-only'),
                 recordDisabled: record.disabled,
                 playDisabled: play.disabled,
-              }} : null;
+                role: panel.getAttribute("role"),
+              }};
             }})()
             """,
             lambda value: value is not None
+            and value["ariaLabel"] == "Record / Play yours"
+            and value["borderRadius"] == "9px"
+            and value["borderTopWidth"] == "1px"
+            and value["container"] == "true"
             and value["groupCount"] == 1
+            and value["label"] == "Record / Play yours"
             and value["recordIconOnly"] is True
             and value["playIconOnly"] is True
             and value["recordDisabled"] is False
-            and value["playDisabled"] is True,
+            and value["playDisabled"] is True
+            and value["role"] == "group",
             timeout=5.0,
         )
 

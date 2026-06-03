@@ -1,6 +1,7 @@
 import type { ProsodyPayload } from "../lib/generated/contracts.js";
 import { t } from "../lib/i18n.js";
 import { setButtonTooltipContent } from "../lib/rich-tooltip.js";
+import { tooltipWithDisabledClarification } from "../lib/disabled-tooltip.js";
 import { focusAndSendCommand, focusAndSendCommandPayload } from "./bridge.js";
 import { allControls, buttonFor, controlsForOrd, visualizerForOrd } from "./dom-selectors.js";
 import { graphSettingsForField } from "./graph-split-state.js";
@@ -183,18 +184,54 @@ export function syncRecordingControls(ord: number): void {
     recordButton.dataset.aqeButtonState = recording ? "recording" : "default";
     const label = recording ? t("editor.command.stop_recording.label") : t("editor.command.record_voice.label");
     const title = recording ? t("editor.command.stop_recording.title") : t("editor.command.record_voice.title");
+    const reason = recordButton.disabled && !recording
+      ? recordingDisabledReason({ blocking, bodyBusy, targetReady })
+      : undefined;
+    const tooltip = tooltipWithDisabledClarification(title, reason);
     recordButton.querySelector<HTMLElement>(".aqe-button-label")!.textContent = label;
-    recordButton.setAttribute("aria-label", title);
+    recordButton.setAttribute("aria-label", tooltip);
     recordButton.dataset.aqeEnabledTitle = title;
-    setButtonTooltipContent(recordButton, title);
+    recordButton.dataset.aqeDisabledTitle = t("editor.command.record_voice.disabled_title");
+    setButtonTooltipContent(recordButton, tooltip);
   }
   if (playButton) {
-    const title = status === "ready"
-      ? t("editor.command.play_recording.title")
-      : t("editor.command.play_recording.disabled_title");
-    playButton.setAttribute("aria-label", title);
-    setButtonTooltipContent(playButton, title);
+    const title = t("editor.command.play_recording.title");
+    const reason = status === "ready"
+      ? undefined
+      : recordingPlaybackDisabledReason({ blocking, bodyBusy });
+    const tooltip = tooltipWithDisabledClarification(title, reason);
+    playButton.dataset.aqeEnabledTitle = title;
+    playButton.dataset.aqeDisabledTitle = t("editor.command.play_recording.disabled_title");
+    playButton.setAttribute("aria-label", tooltip);
+    setButtonTooltipContent(playButton, tooltip);
   }
+}
+
+function recordingDisabledReason({
+  blocking,
+  bodyBusy,
+  targetReady,
+}: {
+  blocking: boolean;
+  bodyBusy: boolean;
+  targetReady: boolean;
+}): string {
+  if (blocking) return t("tooltip.disabled.recording_active");
+  if (bodyBusy) return t("tooltip.disabled.editor_busy");
+  if (!targetReady) return t("editor.command.record_voice.disabled_title");
+  return "";
+}
+
+function recordingPlaybackDisabledReason({
+  blocking,
+  bodyBusy,
+}: {
+  blocking: boolean;
+  bodyBusy: boolean;
+}): string {
+  if (blocking) return t("tooltip.disabled.recording_active");
+  if (bodyBusy) return t("tooltip.disabled.editor_busy");
+  return t("editor.command.play_recording.disabled_title");
 }
 
 function startRecordingCursor(visualizer: VisualizerElement, targetDurationMs: number): void {
@@ -300,6 +337,7 @@ function toolbarButtonsForControls(controls: HTMLElement): HTMLButtonElement[] {
     if (
       node.matches(".aqe-split-group")
       || node.matches(".aqe-split-button")
+      || node.matches('[data-aqe-toolbar-button-container="true"]')
       || node.matches(".aqe-button-tooltip-target")
     ) {
       buttons.push(...Array.from(node.querySelectorAll<HTMLButtonElement>(".aqe-button")));

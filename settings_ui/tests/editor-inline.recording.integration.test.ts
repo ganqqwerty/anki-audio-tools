@@ -76,7 +76,13 @@ describe("editor inline learner recording integration", () => {
     initializeEditorRuntime(config);
     scan(config);
 
-    expect(document.querySelector(".aqe-recording-group")).not.toBeNull();
+    const group = document.querySelector<HTMLElement>(".aqe-recording-group")!;
+    expect(group).not.toBeNull();
+    expect(group).toHaveClass("aqe-toolbar-panel");
+    expect(group).toHaveAttribute("role", "group");
+    expect(group).toHaveAttribute("aria-label", "Record / Play yours");
+    expect(group).toHaveAttribute("data-aqe-toolbar-button-container", "true");
+    expect(group.querySelector(".aqe-toolbar-panel-label")).toHaveTextContent("Record / Play yours");
     expect(document.querySelector('[data-testid="aqe-button-0-record-voice"]')).not.toBeNull();
     expect(document.querySelector('[data-testid="aqe-button-0-play-recording"]')).not.toBeNull();
   });
@@ -89,16 +95,36 @@ describe("editor inline learner recording integration", () => {
     const recordButton = document.querySelector<HTMLButtonElement>('[data-testid="aqe-button-0-record-voice"]')!;
     const playYoursButton = document.querySelector<HTMLButtonElement>('[data-testid="aqe-button-0-play-recording"]')!;
     expect(group).not.toBeNull();
+    expect(group).toHaveClass("aqe-toolbar-panel");
+    expect(group).toHaveAttribute("aria-label", "Record / Play yours");
+    expect(group).toHaveAttribute("data-aqe-toolbar-button-container", "true");
+    expect(group?.querySelector(".aqe-split-group")).not.toBeNull();
     expect(recordButton.classList.contains("aqe-icon-only")).toBe(true);
     expect(playYoursButton.classList.contains("aqe-icon-only")).toBe(true);
     expect(document.querySelector('[data-testid="aqe-split-0-record-voice-menu"]')).not.toBeNull();
     expect(recordButton.disabled).toBe(true);
     expect(playYoursButton.disabled).toBe(true);
+    expect(recordButton.closest(".aqe-button-tooltip-target")).toHaveAttribute(
+      "data-aqe-tooltip-content",
+      "Record your voice for this graph\n\nDraw the graph before recording your voice",
+    );
+    expect(playYoursButton.closest(".aqe-button-tooltip-target")).toHaveAttribute(
+      "data-aqe-tooltip-content",
+      "Play your latest recording\n\nRecord your voice before playing it",
+    );
 
     window.__aqeSetVisualizer?.(0, { ...track, sourceFilename: "clip one.mp3" }, 0);
     await Promise.resolve();
     expect(recordButton.disabled).toBe(false);
     expect(playYoursButton.disabled).toBe(true);
+    expect(recordButton.closest(".aqe-button-tooltip-target")).toHaveAttribute(
+      "data-aqe-tooltip-content",
+      "Record your voice for this graph",
+    );
+    expect(playYoursButton.closest(".aqe-button-tooltip-target")).toHaveAttribute(
+      "data-aqe-tooltip-content",
+      "Play your latest recording\n\nRecord your voice before playing it",
+    );
 
     const menu = document.querySelector<HTMLButtonElement>('[data-testid="aqe-split-0-record-voice-menu"]')!;
     menu.click();

@@ -1,5 +1,6 @@
 <script lang="ts">
   import AudioLines from "@lucide/svelte/icons/audio-lines";
+  import BugPlay from "@lucide/svelte/icons/bug-play";
   import ChartLine from "@lucide/svelte/icons/chart-line";
   import ChevronDown from "@lucide/svelte/icons/chevron-down";
   import ChevronRight from "@lucide/svelte/icons/chevron-right";
@@ -56,6 +57,8 @@
 <span class={className} aria-hidden="true">
   {#if icon === "audio-lines"}
     <AudioLines {size} {strokeWidth} />
+  {:else if icon === "bug-play"}
+    <BugPlay {size} {strokeWidth} />
   {:else if icon === "chart-line"}
     <ChartLine {size} {strokeWidth} />
   {:else if icon === "chevron-down"}

@@ -102,9 +102,7 @@
   z-index: 2;
 }
 
-.aqe-visualizer[data-back-chaining-editing="true"] .aqe-back-chaining-marker-hitbox,
-.aqe-visualizer[data-back-chaining-state="playing"] .aqe-back-chaining-marker-hitbox,
-.aqe-visualizer[data-back-chaining-state="paused"] .aqe-back-chaining-marker-hitbox {
+.aqe-visualizer[data-has-track="true"] .aqe-back-chaining-marker-hitbox {
   pointer-events: all;
 }
 

@@ -9,17 +9,17 @@ import {
   stopProgressClock,
 } from "./playback-actions.js";
 import type { PlaybackRequest, VisualizerElement } from "./types.js";
-import { selectionForVisualizer, setSelection as setSelectionFromController } from "./selection-controller.js";
+import { setSelection as setSelectionFromController } from "./selection-controller.js";
 import { SELECTION_CHANGED_EVENT, notifySelectionChanged, type SelectionChangedDetail } from "./selection-events.js";
 import { syncSelectionToolbar } from "./selection-toolbar-state.js";
 import {
   renderBackChainingMarkerRow,
-  backChainingControlsForVisualizer,
   backChainingStateForVisualizer,
   writeBackChainingState,
-  type BackChainingControlsState,
 } from "./back-chaining-dom.js";
+import { syncBackChainingToolbarButtons } from "./back-chaining-toolbar.js";
 import {
+  activeMarkerIndexAfterMarkerToggle,
   chooseInitialActiveMarkerIndex,
   defaultBackChainingMarkers,
   deriveActiveSuffix,
@@ -31,17 +31,19 @@ import {
 } from "./back-chaining-state.js";
 import {
   readVisualizerCursorMs,
+  readVisualizerTargetDurationMs,
   readVisualizerTimeViewport,
 } from "./visualizer-state.js";
 
 const MARKER_HIT_TOLERANCE_MS = 35;
 
 export function installBackChainingHandlers(visualizer: VisualizerElement): () => void {
-  writeBackChainingState(visualizer, backChainingStateForVisualizer(visualizer));
+  writeState(visualizer, backChainingStateForVisualizer(visualizer));
   const onSelectionChanged = (event: Event): void => {
     const origin = (event as CustomEvent<SelectionChangedDetail>).detail?.origin ?? "user";
     if (origin === "user") {
-      clearBackChaining(visualizer, { restoreRepeat: true });
+      renderBackChainingMarkerRow(visualizer);
+      syncBackChainingToolbarButtons(visualizer);
     } else {
       renderBackChainingMarkerRow(visualizer);
     }
@@ -49,8 +51,12 @@ export function installBackChainingHandlers(visualizer: VisualizerElement): () =
   const onViewportChanged = (): void => renderBackChainingMarkerRow(visualizer);
   const observer = new MutationObserver(() => {
     const state = backChainingStateForVisualizer(visualizer);
-    if (!state.sourceFilename || state.sourceFilename === (visualizer.dataset.sourceFilename || "")) return;
-    clearBackChaining(visualizer, { restoreRepeat: true });
+    if (visualizer.dataset.hasTrack !== "true" && state.baseRegion) {
+      clearBackChaining(visualizer, { restoreRepeat: true });
+      return;
+    }
+    if (visualizer.dataset.hasTrack !== "true") return;
+    ensureCurrentTrackBackChainingBase(visualizer, state);
   });
   visualizer.addEventListener(SELECTION_CHANGED_EVENT, onSelectionChanged);
   visualizer.addEventListener("aqe-viewport-rendered", onViewportChanged);
@@ -58,7 +64,7 @@ export function installBackChainingHandlers(visualizer: VisualizerElement): () =
     attributeFilter: ["data-source-filename", "data-has-track", "hidden"],
     attributes: true,
   });
-  renderBackChainingMarkerRow(visualizer);
+  ensureCurrentTrackBackChainingBase(visualizer, backChainingStateForVisualizer(visualizer));
   return () => {
     observer.disconnect();
     visualizer.removeEventListener(SELECTION_CHANGED_EVENT, onSelectionChanged);
@@ -66,35 +72,16 @@ export function installBackChainingHandlers(visualizer: VisualizerElement): () =
   };
 }
 
-export function backChainingControlsForOrd(ord: number): BackChainingControlsState {
-  const visualizer = visualizerForOrd(ord);
-  return backChainingControlsForVisualizer(visualizer);
-}
-
-export function enterBackChainingForOrd(ord: number): boolean {
-  return toggleBackChainingPanelForOrd(ord);
-}
-
-export function toggleBackChainingPanelForOrd(ord: number): boolean {
-  const visualizer = visualizerForOrd(ord);
-  if (!visualizer) return false;
-  if (visualizer.dataset.backChainingPanelOpen === "true") {
-    visualizer.dataset.backChainingPanelOpen = "false";
-    syncSelectionToolbar(visualizer);
-    return true;
+function ensureCurrentTrackBackChainingBase(visualizer: VisualizerElement, state: BackChainingState): void {
+  const sourceFilename = visualizer.dataset.sourceFilename || "";
+  let currentState = state;
+  if (state.sourceFilename && state.sourceFilename !== sourceFilename) {
+    clearBackChaining(visualizer, { restoreRepeat: true });
+    currentState = backChainingStateForVisualizer(visualizer);
   }
-  const entered = setBackChainingEditing(visualizer, true);
-  if (!entered) return false;
-  visualizer.dataset.backChainingPanelOpen = "true";
-  syncSelectionToolbar(visualizer);
-  return true;
-}
-
-export function startBackChainingEditingForOrd(ord: number): boolean {
-  const visualizer = visualizerForOrd(ord);
-  if (!visualizer) return false;
-  const state = backChainingStateForVisualizer(visualizer);
-  return setBackChainingEditing(visualizer, !state.editing);
+  if (ensureBackChainingBase(visualizer, currentState) === null) {
+    writeState(visualizer, emptyBackChainingState());
+  }
 }
 
 export function toggleBackChainingForOrd(ord: number): boolean {
@@ -107,38 +94,51 @@ export function moveBackChainingForOrd(ord: number, direction: BackChainingMarke
   return visualizer ? moveBackChaining(visualizer, direction) : false;
 }
 
-export function clearBackChainingForOrd(ord: number): boolean {
-  const visualizer = visualizerForOrd(ord);
-  if (!visualizer) return false;
-  clearBackChaining(visualizer, { restoreRepeat: true });
-  return true;
-}
-
-export function clearBackChainingMarkersForOrd(ord: number): boolean {
-  const visualizer = visualizerForOrd(ord);
-  if (!visualizer) return false;
-  clearBackChainingMarkers(visualizer);
-  return true;
-}
-
 export function handleBackChainingMarkerPointerDown(event: PointerEvent, ord: number): void {
   const visualizer = visualizerForOrd(ord);
   const svg = visualizer?.querySelector<SVGSVGElement>(".aqe-visualizer-svg") ?? null;
   const state = visualizer ? backChainingStateForVisualizer(visualizer) : null;
-  if (!visualizer || !svg || !state?.baseRegion || !state.editing) return;
+  if (!visualizer || !svg || !state) return;
+  const readyState = ensureBackChainingBase(visualizer, state);
+  if (!readyState?.baseRegion) return;
   event.preventDefault();
   event.stopPropagation();
-  const click = markerClickFromEvent(event, svg, readVisualizerTimeViewport(visualizer), state.baseRegion);
+  const click = markerClickFromEvent(event, svg, readVisualizerTimeViewport(visualizer), readyState.baseRegion);
   if (!click.insideVisibleBaseRegion) return;
-  const toggled = toggleBackChainingMarker(state.markersMs, click.ms, state.baseRegion, MARKER_HIT_TOLERANCE_MS);
-  const activeMarkerIndex = state.practiceState === "stopped" || state.activeMarkerIndex === null
-    ? chooseInitialActiveMarkerIndex(toggled.markersMs)
-    : Math.min(state.activeMarkerIndex, Math.max(0, toggled.markersMs.length - 1));
-  writeBackChainingState(visualizer, {
-    ...state,
-    activeMarkerIndex: toggled.markersMs.length ? activeMarkerIndex : null,
+  const previousSuffix = deriveActiveSuffix(
+    readyState.baseRegion,
+    readyState.markersMs,
+    readyState.activeMarkerIndex,
+  );
+  const toggled = toggleBackChainingMarker(
+    readyState.markersMs,
+    click.ms,
+    readyState.baseRegion,
+    MARKER_HIT_TOLERANCE_MS,
+  );
+  const activeMarkerIndex = activeMarkerIndexAfterMarkerToggle(
+    readyState.markersMs,
+    toggled.markersMs,
+    readyState.activeMarkerIndex,
+  );
+  const nextState = {
+    ...readyState,
+    activeMarkerIndex,
     markersMs: toggled.markersMs,
-  });
+    practiceState: toggled.markersMs.length ? readyState.practiceState : "stopped",
+  };
+  const nextSuffix = deriveActiveSuffix(nextState.baseRegion, nextState.markersMs, nextState.activeMarkerIndex);
+  writeState(visualizer, nextState);
+  if (readyState.practiceState !== "playing") return;
+  if (!nextSuffix) {
+    stopProgressClock(visualizer);
+    focusAndSendCommand(Number(visualizer.dataset.aqeFieldOrd || "0"), "aqe:stop-playback");
+    restoreOrdinaryRepeat(visualizer, readyState);
+    return;
+  }
+  if (previousSuffix?.startMs !== nextSuffix.startMs || previousSuffix?.endMs !== nextSuffix.endMs) {
+    startPracticePlayback(visualizer, nextState);
+  }
 }
 
 export function pauseBackChainingForNormalPlay(ord: number): boolean {
@@ -160,26 +160,39 @@ export function clearBackChaining(
     focusAndSendCommand(Number(visualizer.dataset.aqeFieldOrd || "0"), "aqe:stop-playback");
   }
   if (options.restoreRepeat !== false) restoreOrdinaryRepeat(visualizer, state);
-  visualizer.dataset.backChainingPanelOpen = "false";
-  writeBackChainingState(visualizer, emptyBackChainingState());
+  writeState(visualizer, emptyBackChainingState());
   syncSelectionToolbar(visualizer);
 }
 
-function setBackChainingEditing(visualizer: VisualizerElement, editing: boolean): boolean {
-  const state = backChainingStateForVisualizer(visualizer);
-  const baseRegion = state.baseRegion ?? selectionForVisualizer(visualizer);
-  if (!baseRegion) return false;
-  const newBaseRegion = !state.baseRegion;
+function ensureBackChainingBase(
+  visualizer: VisualizerElement,
+  state: BackChainingState,
+): BackChainingState | null {
+  const baseRegion = state.baseRegion ?? wholeFileBackChainingRegion(visualizer);
+  if (!baseRegion) return null;
+  const newBaseRegion = state.baseRegion === null;
   const markersMs = newBaseRegion ? defaultBackChainingMarkers(baseRegion) : state.markersMs;
-  writeBackChainingState(visualizer, {
+  const nextState = {
     ...state,
     activeMarkerIndex: newBaseRegion ? chooseInitialActiveMarkerIndex(markersMs) : state.activeMarkerIndex,
     baseRegion,
-    editing,
     markersMs,
     sourceFilename: visualizer.dataset.sourceFilename || "",
-  });
-  return true;
+  };
+  if (newBaseRegion || state.sourceFilename !== nextState.sourceFilename) {
+    writeState(visualizer, nextState);
+  }
+  return nextState;
+}
+
+function wholeFileBackChainingRegion(visualizer: VisualizerElement) {
+  const durationMs = readVisualizerTargetDurationMs(visualizer);
+  if (visualizer.dataset.hasTrack !== "true" || durationMs <= 0) return null;
+  return {
+    endMs: durationMs,
+    mode: "selection" as const,
+    startMs: 0,
+  };
 }
 
 function toggleBackChaining(visualizer: VisualizerElement): boolean {
@@ -202,7 +215,7 @@ function moveBackChaining(visualizer: VisualizerElement, direction: BackChaining
     ...state,
     activeMarkerIndex: nextIndex,
   };
-  writeBackChainingState(visualizer, nextState);
+  writeState(visualizer, nextState);
   setSelectionToActiveSuffix(visualizer, nextState);
   if (nextState.practiceState === "playing") {
     startPracticePlayback(visualizer, nextState);
@@ -214,19 +227,17 @@ function ensurePracticeReady(
   visualizer: VisualizerElement,
   state: BackChainingState,
 ): BackChainingState | null {
-  const baseRegion = state.baseRegion ?? selectionForVisualizer(visualizer);
-  if (!baseRegion || !state.markersMs.length) return null;
-  const activeMarkerIndex = state.activeMarkerIndex ?? chooseInitialActiveMarkerIndex(state.markersMs);
+  const baseState = ensureBackChainingBase(visualizer, state);
+  if (!baseState?.baseRegion || !baseState.markersMs.length) return null;
+  const activeMarkerIndex = baseState.activeMarkerIndex ?? chooseInitialActiveMarkerIndex(baseState.markersMs);
   if (activeMarkerIndex === null) return null;
   const readyState = {
-    ...state,
+    ...baseState,
     activeMarkerIndex,
-    baseRegion,
-    editing: state.editing,
-    ordinaryRepeatEnabled: state.ordinaryRepeatEnabled ?? readOrdinaryRepeat(visualizer),
+    ordinaryRepeatEnabled: baseState.ordinaryRepeatEnabled ?? readOrdinaryRepeat(visualizer),
     sourceFilename: visualizer.dataset.sourceFilename || "",
   };
-  writeBackChainingState(visualizer, readyState);
+  writeState(visualizer, readyState);
   return readyState;
 }
 
@@ -246,7 +257,7 @@ function startPracticePlayback(visualizer: VisualizerElement, state: BackChainin
     regionMode: "selection",
     source: "back_chaining",
   };
-  writeBackChainingState(visualizer, {
+  writeState(visualizer, {
     ...state,
     practiceState: "playing",
   });
@@ -272,33 +283,9 @@ function pauseBackChaining(visualizer: VisualizerElement, state: BackChainingSta
     source: "back_chaining",
   });
   restoreOrdinaryRepeat(visualizer, state);
-  writeBackChainingState(visualizer, {
+  writeState(visualizer, {
     ...state,
     practiceState: "paused",
-  });
-}
-
-function clearBackChainingMarkers(visualizer: VisualizerElement): void {
-  const state = backChainingStateForVisualizer(visualizer);
-  if (state.practiceState !== "stopped") {
-    stopProgressClock(visualizer);
-    focusAndSendCommand(Number(visualizer.dataset.aqeFieldOrd || "0"), "aqe:stop-playback");
-  }
-  restoreOrdinaryRepeat(visualizer, state);
-  const baseRegion = state.baseRegion ?? selectionForVisualizer(visualizer);
-  if (!baseRegion) {
-    writeBackChainingState(visualizer, emptyBackChainingState());
-    return;
-  }
-  writeBackChainingState(visualizer, {
-    ...state,
-    activeMarkerIndex: null,
-    baseRegion,
-    editing: true,
-    markersMs: [],
-    ordinaryRepeatEnabled: null,
-    practiceState: "stopped",
-    sourceFilename: visualizer.dataset.sourceFilename || "",
   });
 }
 
@@ -323,4 +310,9 @@ function writeRepeatForPractice(visualizer: VisualizerElement, enabled: boolean)
 function restoreOrdinaryRepeat(visualizer: VisualizerElement, state: BackChainingState): void {
   if (state.ordinaryRepeatEnabled === null) return;
   writeRepeatForPractice(visualizer, state.ordinaryRepeatEnabled);
+}
+
+function writeState(visualizer: VisualizerElement, state: BackChainingState): void {
+  writeBackChainingState(visualizer, state);
+  syncBackChainingToolbarButtons(visualizer);
 }

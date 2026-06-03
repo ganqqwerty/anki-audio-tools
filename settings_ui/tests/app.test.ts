@@ -31,6 +31,8 @@ describe("App", () => {
     expect(screen.getByText("Editor toolbar buttons")).toBeInTheDocument();
     expect(screen.getByTestId("button-settings-settings")).toBeInTheDocument();
     expect(screen.getByTestId("button-settings-play")).toBeInTheDocument();
+    expect(screen.getByTestId("button-settings-back-chaining")).toBeInTheDocument();
+    expect(screen.queryByTestId("button-settings-back-chain-previous")).not.toBeInTheDocument();
     expect(screen.getByTestId("button-settings-delete-selection")).toBeInTheDocument();
     expect(screen.getByTestId("button-settings-delete-rest")).toBeInTheDocument();
     expect(screen.getByText("Speaker's voice")).toBeInTheDocument();
@@ -167,6 +169,28 @@ describe("App", () => {
     expect(config.visible_editor_buttons).not.toContain("aqe:delete-selection");
     expect(config.visible_editor_buttons).toContain("aqe:delete-rest");
     expect(config.editor_button_modes["aqe:delete-selection"]).toBe("text");
+  });
+
+  it("hides all back-chaining commands from one settings panel", async () => {
+    setInitialState();
+
+    render(App);
+
+    const backChainingPanel = screen.getByTestId("button-settings-back-chaining");
+    expect(screen.queryByTestId("button-settings-back-chain-practice")).not.toBeInTheDocument();
+    expect(screen.queryByTestId("button-settings-back-chain-previous")).not.toBeInTheDocument();
+    expect(screen.queryByTestId("button-settings-back-chain-next")).not.toBeInTheDocument();
+    expect(within(backChainingPanel).getByTestId("button-settings-back-chain-practice-mode-icon")).toBeEnabled();
+    expect(within(backChainingPanel).getByTestId("button-settings-back-chain-previous-mode-icon")).toBeEnabled();
+    expect(within(backChainingPanel).getByTestId("button-settings-back-chain-next-mode-icon")).toBeEnabled();
+
+    await fireEvent.click(within(backChainingPanel).getByTestId("button-settings-back-chaining-visibility-show"));
+    await fireEvent.click(screen.getByRole("button", { name: "Save" }));
+
+    const config = bridgePayload<{ visible_editor_buttons: string[] }>("settings.save");
+    expect(config.visible_editor_buttons).not.toContain("aqe:back-chain-practice");
+    expect(config.visible_editor_buttons).not.toContain("aqe:back-chain-previous");
+    expect(config.visible_editor_buttons).not.toContain("aqe:back-chain-next");
   });
 
   it("shows a placeholder for toolbar buttons without extra settings", () => {

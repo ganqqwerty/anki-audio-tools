@@ -1,6 +1,7 @@
 <script lang="ts">
   import AqeTooltip from "$lib/AqeTooltip.svelte";
   import CommandIcon from "$lib/CommandIcon.svelte";
+  import FieldTooltipTarget from "$lib/FieldTooltipTarget.svelte";
   import {
     SIZE_REDUCTION_SAMPLE_RATE_VALUES,
     clampSizeReductionBitrateKbps,
@@ -14,6 +15,7 @@
     channels: number;
     compact?: boolean;
     disabled?: boolean;
+    disabledReason?: string | null | undefined;
     onBitrateKbps?: (value: number) => void;
     onChannels?: (value: number) => void;
     onSampleRateHz?: (value: number) => void;
@@ -27,6 +29,7 @@
     channels = $bindable(),
     compact = false,
     disabled = false,
+    disabledReason = null,
     onBitrateKbps,
     onChannels,
     onSampleRateHz,
@@ -81,16 +84,18 @@
           {/snippet}
         </AqeTooltip>
       </div>
-      <input
-        bind:value={bitrateKbps}
-        data-testid={`${testPrefix}-bitrate-kbps`}
-        disabled={disabled}
-        max="320"
-        min="16"
-        step="1"
-        type="number"
-        oninput={(event) => applyBitrate((event.currentTarget as HTMLInputElement).valueAsNumber)}
-      />
+      <FieldTooltipTarget block content={t("settings.size_reduction_bitrate_kbps.help")} {disabledReason}>
+        <input
+          bind:value={bitrateKbps}
+          data-testid={`${testPrefix}-bitrate-kbps`}
+          disabled={disabled}
+          max="320"
+          min="16"
+          step="1"
+          type="number"
+          oninput={(event) => applyBitrate((event.currentTarget as HTMLInputElement).valueAsNumber)}
+        />
+      </FieldTooltipTarget>
     </label>
     <label>
       <div class="field-label-row">
@@ -110,16 +115,18 @@
           {/snippet}
         </AqeTooltip>
       </div>
-      <select
-        bind:value={sampleRateHz}
-        data-testid={`${testPrefix}-sample-rate-hz`}
-        disabled={disabled}
-        onchange={(event) => applySampleRate(Number((event.currentTarget as HTMLSelectElement).value))}
-      >
-        {#each SIZE_REDUCTION_SAMPLE_RATE_VALUES as value}
-          <option value={value}>{value}</option>
-        {/each}
-      </select>
+      <FieldTooltipTarget block content={t("settings.size_reduction_sample_rate_hz.help")} {disabledReason}>
+        <select
+          bind:value={sampleRateHz}
+          data-testid={`${testPrefix}-sample-rate-hz`}
+          disabled={disabled}
+          onchange={(event) => applySampleRate(Number((event.currentTarget as HTMLSelectElement).value))}
+        >
+          {#each SIZE_REDUCTION_SAMPLE_RATE_VALUES as value}
+            <option value={value}>{value}</option>
+          {/each}
+        </select>
+      </FieldTooltipTarget>
     </label>
     <label>
       <div class="field-label-row">
@@ -139,15 +146,17 @@
           {/snippet}
         </AqeTooltip>
       </div>
-      <select
-        bind:value={channels}
-        data-testid={`${testPrefix}-channels`}
-        disabled={disabled}
-        onchange={(event) => applyChannels(Number((event.currentTarget as HTMLSelectElement).value))}
-      >
-        <option value={1}>{t("settings.size_reduction_channels.mono")}</option>
-        <option value={2}>{t("settings.size_reduction_channels.stereo")}</option>
-      </select>
+      <FieldTooltipTarget block content={t("settings.size_reduction_channels.help")} {disabledReason}>
+        <select
+          bind:value={channels}
+          data-testid={`${testPrefix}-channels`}
+          disabled={disabled}
+          onchange={(event) => applyChannels(Number((event.currentTarget as HTMLSelectElement).value))}
+        >
+          <option value={1}>{t("settings.size_reduction_channels.mono")}</option>
+          <option value={2}>{t("settings.size_reduction_channels.stereo")}</option>
+        </select>
+      </FieldTooltipTarget>
     </label>
   </div>
 </details>

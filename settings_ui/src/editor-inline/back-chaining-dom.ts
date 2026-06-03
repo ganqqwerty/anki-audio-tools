@@ -3,7 +3,6 @@ import {
   visibleRangeProjection,
 } from "./graph-overlay-geometry.js";
 import { PLOT, plotGeometryForSvg, plotWidth } from "./plot.js";
-import { selectionForVisualizer } from "./selection-controller.js";
 import {
   deriveActiveSuffix,
   emptyBackChainingState,
@@ -22,14 +21,10 @@ export interface BackChainingControlsState {
   activeSuffixStartMs: number | null;
   baseEndMs: number | null;
   baseStartMs: number | null;
-  canClear: boolean;
-  canEdit: boolean;
   canNext: boolean;
-  canPractice: boolean;
   canPrevious: boolean;
-  editing: boolean;
+  canPractice: boolean;
   markersMs: number[];
-  panelOpen: boolean;
   practiceState: "paused" | "playing" | "stopped";
   visibleActiveRange: { endX: number; startX: number } | null;
   visibleMarkers: Array<{ ms: number; x: number }>;
@@ -41,7 +36,6 @@ export function backChainingStateForVisualizer(visualizer: VisualizerElement): B
 
 export function writeBackChainingState(visualizer: VisualizerElement, state: BackChainingState): void {
   visualizer.__aqeBackChainingState = state;
-  visualizer.dataset.backChainingEditing = state.editing ? "true" : "false";
   visualizer.dataset.backChainingState = state.practiceState;
   visualizer.dataset.backChainingBaseStartMs = state.baseRegion ? String(Math.round(state.baseRegion.startMs)) : "";
   visualizer.dataset.backChainingBaseEndMs = state.baseRegion ? String(Math.round(state.baseRegion.endMs)) : "";
@@ -60,7 +54,7 @@ export function renderBackChainingMarkerRow(visualizer: VisualizerElement): void
   const svg = visualizer.querySelector<SVGSVGElement>(".aqe-visualizer-svg");
   if (!row || !svg) return;
   const state = backChainingStateForVisualizer(visualizer);
-  const shouldShow = !!state.baseRegion && (state.editing || state.practiceState !== "stopped");
+  const shouldShow = !!state.baseRegion;
   row.style.display = shouldShow ? "" : "none";
   row.setAttribute("aria-hidden", shouldShow ? "false" : "true");
   row.replaceChildren();
@@ -80,7 +74,6 @@ function controlsSnapshot(
   visualizer: VisualizerElement | null,
 ): BackChainingControlsState {
   const availability = backChainingControlAvailability(state);
-  const currentSelection = visualizer ? selectionForVisualizer(visualizer) : null;
   const suffix = deriveActiveSuffix(state.baseRegion, state.markersMs, state.activeMarkerIndex);
   const viewport = visualizer ? readVisualizerTimeViewport(visualizer) : null;
   const svg = visualizer?.querySelector<SVGSVGElement>(".aqe-visualizer-svg") ?? null;
@@ -99,14 +92,10 @@ function controlsSnapshot(
     activeSuffixStartMs: suffix?.startMs ?? null,
     baseEndMs: state.baseRegion?.endMs ?? null,
     baseStartMs: state.baseRegion?.startMs ?? null,
-    canClear: availability.canClear,
-    canEdit: availability.canEdit || currentSelection !== null,
     canNext: availability.canNext,
-    canPractice: availability.canPractice,
     canPrevious: availability.canPrevious,
-    editing: state.editing,
+    canPractice: availability.canPractice,
     markersMs: state.markersMs,
-    panelOpen: visualizer?.dataset.backChainingPanelOpen === "true",
     practiceState: state.practiceState,
     visibleActiveRange: visibleActiveRange
       ? { endX: visibleActiveRange.endX, startX: visibleActiveRange.startX }

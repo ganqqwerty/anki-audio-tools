@@ -5,6 +5,15 @@ from __future__ import annotations
 from typing import Any
 
 RECORDING_PANEL_BUTTONS = ("aqe:record-voice", "aqe:play-recording")
+BACK_CHAINING_PANEL_BUTTONS = (
+    "aqe:back-chain-practice",
+    "aqe:back-chain-previous",
+    "aqe:back-chain-next",
+)
+ATOMIC_PANEL_BUTTON_GROUPS = (
+    BACK_CHAINING_PANEL_BUTTONS,
+    RECORDING_PANEL_BUTTONS,
+)
 
 
 def supported_visible_editor_button_order(config: dict[str, Any]) -> list[str]:
@@ -24,13 +33,26 @@ def normalize_visible_editor_buttons(
 ) -> list[str]:
     """Filter stale commands, expand atomic panels, and preserve toolbar order."""
     allowed_buttons = set(button_order)
-    requested = {
+    requested = _supported_requested_buttons(visible_buttons, allowed_buttons)
+    _expand_atomic_panel_buttons(requested, allowed_buttons)
+    return [button for button in button_order if button in requested]
+
+
+def _supported_requested_buttons(
+    visible_buttons: list[Any],
+    allowed_buttons: set[str],
+) -> set[str]:
+    return {
         button
         for button in visible_buttons
         if isinstance(button, str) and button in allowed_buttons
     }
-    if any(button in requested for button in RECORDING_PANEL_BUTTONS):
-        requested.update(
-            button for button in RECORDING_PANEL_BUTTONS if button in allowed_buttons
-        )
-    return [button for button in button_order if button in requested]
+
+
+def _expand_atomic_panel_buttons(
+    requested: set[str],
+    allowed_buttons: set[str],
+) -> None:
+    for buttons in ATOMIC_PANEL_BUTTON_GROUPS:
+        if any(button in requested for button in buttons):
+            requested.update(button for button in buttons if button in allowed_buttons)

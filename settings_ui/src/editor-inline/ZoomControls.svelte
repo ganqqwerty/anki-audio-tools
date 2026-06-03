@@ -1,6 +1,7 @@
 <script lang="ts">
   import { onMount } from "svelte";
   import AqeTooltip from "../lib/AqeTooltip.svelte";
+  import { tooltipWithDisabledClarification } from "../lib/disabled-tooltip.js";
   import { t } from "../lib/i18n.js";
   import { visualizerForOrd } from "./dom-selectors.js";
   import EditorCommandIcon from "./EditorCommandIcon.svelte";
@@ -26,6 +27,17 @@
     if (!visualizer || visualizer.dataset.hasTrack !== "true") return;
     action(visualizer);
     syncState(visualizer);
+  }
+
+  function trackTooltip(title: string): string {
+    return tooltipWithDisabledClarification(title, hasTrack ? undefined : t("editor.zoom.disabled_no_graph"));
+  }
+
+  function selectionTooltip(): string {
+    return tooltipWithDisabledClarification(
+      t("editor.zoom.selection"),
+      hasSelection ? undefined : t("editor.zoom.selection.disabled_no_selection"),
+    );
   }
 
   onMount(() => {
@@ -54,9 +66,9 @@
         {...props}
         type="button"
         class="aqe-button aqe-icon-only aqe-zoom-button aqe-tooltip-target"
-        data-aqe-tooltip-content={t("editor.zoom.out")}
+        data-aqe-tooltip-content={trackTooltip(t("editor.zoom.out"))}
         data-testid={`aqe-zoom-out-${target.ord}`}
-        aria-label={t("editor.zoom.out")}
+        aria-label={trackTooltip(t("editor.zoom.out"))}
         disabled={!hasTrack}
         onmousedown={(event) => event.preventDefault()}
         onclick={() => withVisualizer(zoomOutForVisualizer)}
@@ -72,9 +84,9 @@
         {...props}
         type="button"
         class="aqe-button aqe-icon-only aqe-zoom-button aqe-tooltip-target"
-        data-aqe-tooltip-content={t("editor.zoom.in")}
+        data-aqe-tooltip-content={trackTooltip(t("editor.zoom.in"))}
         data-testid={`aqe-zoom-in-${target.ord}`}
-        aria-label={t("editor.zoom.in")}
+        aria-label={trackTooltip(t("editor.zoom.in"))}
         disabled={!hasTrack}
         onmousedown={(event) => event.preventDefault()}
         onclick={() => withVisualizer(zoomInForVisualizer)}
@@ -90,9 +102,9 @@
         {...props}
         type="button"
         class="aqe-button aqe-icon-only aqe-zoom-button aqe-tooltip-target"
-        data-aqe-tooltip-content={t("editor.zoom.selection")}
+        data-aqe-tooltip-content={selectionTooltip()}
         data-testid={`aqe-zoom-selection-${target.ord}`}
-        aria-label={t("editor.zoom.selection")}
+        aria-label={selectionTooltip()}
         aria-disabled={!hasSelection}
         disabled={!hasTrack}
         onmousedown={(event) => event.preventDefault()}
@@ -109,9 +121,9 @@
         {...props}
         type="button"
         class="aqe-button aqe-icon-only aqe-zoom-button aqe-tooltip-target"
-        data-aqe-tooltip-content={t("editor.zoom.fit")}
+        data-aqe-tooltip-content={trackTooltip(t("editor.zoom.fit"))}
         data-testid={`aqe-zoom-fit-${target.ord}`}
-        aria-label={t("editor.zoom.fit")}
+        aria-label={trackTooltip(t("editor.zoom.fit"))}
         disabled={!hasTrack}
         onmousedown={(event) => event.preventDefault()}
         onclick={() => withVisualizer(fitTimeViewportForVisualizer)}

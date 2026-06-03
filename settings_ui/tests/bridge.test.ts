@@ -43,6 +43,9 @@ const config: Config = {
   visible_editor_buttons: [
     VisibleEditorButton.AqePlay,
     VisibleEditorButton.AqeAnalyze,
+    VisibleEditorButton.AqeBackChainPractice,
+    VisibleEditorButton.AqeBackChainPrevious,
+    VisibleEditorButton.AqeBackChainNext,
     VisibleEditorButton.AqeShowFile,
     VisibleEditorButton.AqeShare,
     VisibleEditorButton.AqeReduceSize,

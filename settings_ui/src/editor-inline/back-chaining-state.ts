@@ -6,7 +6,6 @@ export type BackChainingMarkerDirection = "next" | "previous";
 export interface BackChainingState {
   activeMarkerIndex: number | null;
   baseRegion: PlaybackRegion | null;
-  editing: boolean;
   markersMs: number[];
   ordinaryRepeatEnabled: boolean | null;
   practiceState: BackChainingStatus;
@@ -14,11 +13,9 @@ export interface BackChainingState {
 }
 
 export interface BackChainingControlAvailability {
-  canClear: boolean;
-  canEdit: boolean;
   canNext: boolean;
-  canPractice: boolean;
   canPrevious: boolean;
+  canPractice: boolean;
 }
 
 export interface BackChainingNavigationAvailability {
@@ -35,7 +32,6 @@ export function emptyBackChainingState(): BackChainingState {
   return {
     activeMarkerIndex: null,
     baseRegion: null,
-    editing: false,
     markersMs: [],
     ordinaryRepeatEnabled: null,
     practiceState: "stopped",
@@ -90,6 +86,24 @@ export function chooseInitialActiveMarkerIndex(markersMs: readonly number[]): nu
   return markersMs.length ? markersMs.length - 1 : null;
 }
 
+export function activeMarkerIndexAfterMarkerToggle(
+  previousMarkersMs: readonly number[],
+  nextMarkersMs: readonly number[],
+  activeMarkerIndex: number | null,
+): number | null {
+  if (!nextMarkersMs.length) return null;
+  const active = normalizeActiveMarkerIndex(previousMarkersMs, activeMarkerIndex);
+  const activeMarker = previousMarkersMs[active];
+  if (typeof activeMarker !== "number" || !Number.isFinite(activeMarker)) {
+    return chooseInitialActiveMarkerIndex(nextMarkersMs);
+  }
+  const exactIndex = nextMarkersMs.findIndex((marker) => marker === activeMarker);
+  if (exactIndex >= 0) return exactIndex;
+  const insertionPoint = nextMarkersMs.findIndex((marker) => marker > activeMarker);
+  if (insertionPoint < 0) return nextMarkersMs.length - 1;
+  return insertionPoint;
+}
+
 export function moveActiveMarkerIndex(
   markersMs: readonly number[],
   activeMarkerIndex: number | null,
@@ -140,11 +154,9 @@ export function backChainingControlAvailability(state: BackChainingState): BackC
   const hasMarkers = state.markersMs.length > 0;
   const navigation = markerNavigationAvailability(state.markersMs, state.activeMarkerIndex);
   return {
-    canClear: hasMarkers || state.editing || state.practiceState !== "stopped",
-    canEdit: hasBaseRegion,
     canNext: navigation.canNext,
-    canPractice: hasBaseRegion && hasMarkers,
     canPrevious: navigation.canPrevious,
+    canPractice: hasBaseRegion && hasMarkers,
   };
 }
 

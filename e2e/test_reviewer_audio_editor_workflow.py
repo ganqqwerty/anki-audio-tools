@@ -20,7 +20,7 @@ from e2e.helpers import (
 from e2e.reviewer_css_isolation_helpers import (
     assert_reviewer_audio_controls_css_isolated,
     assert_reviewer_audio_controls_full_width,
-    assert_reviewer_back_chaining_panel_css_isolated,
+    assert_reviewer_back_chaining_marker_row_css_isolated,
     assert_reviewer_remove_pauses_popover_css_isolated,
     assert_reviewer_tooltip_css_isolated,
 )
@@ -408,7 +408,7 @@ def test_reviewer_audio_editor_answer_workflow(anki_mw, ffmpeg_config) -> None:
     assert_reviewer_audio_controls_css_isolated(reviewer, field_ord)
     assert_reviewer_remove_pauses_popover_css_isolated(reviewer, field_ord)
     assert_reviewer_tooltip_css_isolated(reviewer)
-    assert_reviewer_back_chaining_panel_css_isolated(reviewer, field_ord)
+    assert_reviewer_back_chaining_marker_row_css_isolated(reviewer, field_ord)
 
     hide_action = _menu_action(_reviewer_more_menu(reviewer), "Hide audio editor")
     hide_action.trigger()
