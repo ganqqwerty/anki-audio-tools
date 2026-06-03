@@ -74,6 +74,16 @@ export function primaryTitle(
   return t("editor.command.denoise.title", { algorithm: formatDenoiseAlgorithm(denoiseAlgorithm) });
 }
 
+export function primaryInitiallyDisabled(command: ButtonSpec["command"]): boolean {
+  return command === "aqe:record-voice" || command === "aqe:play-recording";
+}
+
+export function primaryDisabledReason(command: ButtonSpec["command"]): string | undefined {
+  if (command === "aqe:record-voice") return t("editor.command.record_voice.disabled_title");
+  if (command === "aqe:play-recording") return t("editor.command.play_recording.disabled_title");
+  return undefined;
+}
+
 function groupedSpeedValueLabel(speedStep: number): string {
   return formatSpeedStep(speedStep, "aqe:faster");
 }

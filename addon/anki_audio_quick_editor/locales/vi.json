@@ -490,6 +490,16 @@
   "runtime_installer.starting": "Đang chuẩn bị cài đặt runtime...",
   "runtime_installer.cancel": "Hủy",
   "runtime_installer.close": "Đóng",
+  "settings.toolbar_visibility.mode_locked_tooltip": "Cài đặt hiển thị này bị khóa vì nút thuộc một nhóm thanh công cụ.",
+  "tooltip.disabled.batch_running": "Bị tắt trong khi lô đang chạy.",
+  "tooltip.disabled.editor_busy": "Chờ thao tác xử lý âm thanh hiện tại hoàn tất.",
+  "tooltip.disabled.recording_active": "Dừng bản ghi hiện tại trước khi dùng điều khiển này.",
+  "editor.command.back_chain_practice.disabled_title": "Vẽ đồ thị trước khi bắt đầu luyện chuỗi ngược.",
+  "editor.command.back_chain_previous.disabled_title": "Bắt đầu luyện chuỗi ngược và chuyển tới đoạn dài hơn trước khi chọn đoạn ngắn hơn.",
+  "editor.command.back_chain_next.disabled_title": "Bắt đầu luyện chuỗi ngược trước khi chuyển tới đoạn dài hơn.",
+  "editor.command.record_voice.disabled_title": "Vẽ đồ thị trước khi ghi giọng nói của bạn",
+  "editor.zoom.disabled_no_graph": "Vẽ đồ thị trước khi dùng các điều khiển thu phóng.",
+  "editor.zoom.selection.disabled_no_selection": "Chọn một phần của đồ thị trước khi phóng tới vùng chọn.",
   "runtime_installer.cancel_warning.title": "Đã hủy cài đặt runtime",
   "runtime_installer.cancel_warning.message": "Cài đặt runtime của Audio Quick Editor chưa hoàn tất. Audio Quick Editor có thể không hoạt động đúng.\n\nĐể sửa, hãy mở Cài đặt > Chẩn đoán và bấm Cài đặt/Sửa Runtime."
 }

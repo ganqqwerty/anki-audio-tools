@@ -1,4 +1,5 @@
 import { t } from "../lib/i18n.js";
+import { tooltipWithDisabledClarification } from "../lib/disabled-tooltip.js";
 import { setButtonTooltipContent } from "../lib/rich-tooltip.js";
 import { backChainingControlsForVisualizer } from "./back-chaining-dom.js";
 import { buttonFor } from "./dom-selectors.js";
@@ -21,11 +22,29 @@ export function syncBackChainingToolbarButtons(visualizer: VisualizerElement): v
     const title = playing
       ? t("editor.command.back_chain_practice.pause_title")
       : t("editor.command.back_chain_practice.title");
-    practiceButton.setAttribute("aria-label", title);
-    setButtonTooltipContent(practiceButton, title);
+    const tooltip = tooltipWithDisabledClarification(
+      title,
+      practiceButton.disabled
+        ? (busy ? t("tooltip.disabled.editor_busy") : t("editor.command.back_chain_practice.disabled_title"))
+        : undefined,
+    );
+    practiceButton.setAttribute("aria-label", tooltip);
+    setButtonTooltipContent(practiceButton, tooltip);
   }
-  syncBackChainingNavButton(buttonFor(ord, "aqe:back-chain-previous"), controls.canPrevious, busy, t("editor.command.back_chain_previous.title"));
-  syncBackChainingNavButton(buttonFor(ord, "aqe:back-chain-next"), controls.canNext, busy, t("editor.command.back_chain_next.title"));
+  syncBackChainingNavButton(
+    buttonFor(ord, "aqe:back-chain-previous"),
+    controls.canPrevious,
+    busy,
+    t("editor.command.back_chain_previous.title"),
+    t("editor.command.back_chain_previous.disabled_title"),
+  );
+  syncBackChainingNavButton(
+    buttonFor(ord, "aqe:back-chain-next"),
+    controls.canNext,
+    busy,
+    t("editor.command.back_chain_next.title"),
+    t("editor.command.back_chain_next.disabled_title"),
+  );
 }
 
 function syncBackChainingNavButton(
@@ -33,10 +52,15 @@ function syncBackChainingNavButton(
   canUse: boolean,
   busy: boolean,
   title: string,
+  disabledReason: string,
 ): void {
   if (!button) return;
   button.disabled = busy || !canUse;
   button.dataset.aqeButtonState = canUse ? "default" : "unavailable";
   button.setAttribute("aria-disabled", button.disabled ? "true" : "false");
-  setButtonTooltipContent(button, title);
+  const tooltip = tooltipWithDisabledClarification(
+    title,
+    button.disabled ? (busy ? t("tooltip.disabled.editor_busy") : disabledReason) : undefined,
+  );
+  setButtonTooltipContent(button, tooltip);
 }

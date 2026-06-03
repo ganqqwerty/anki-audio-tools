@@ -103,19 +103,37 @@ describe("editor inline Svelte integration", () => {
 
     expect(undoButton).toBeDisabled();
     expect(redoButton).toBeDisabled();
-    expect(undoButton).toHaveAttribute("aria-label", "Nothing to undo yet");
-    expect(redoButton).toHaveAttribute("aria-label", "Nothing to redo yet");
-    expect(undoTooltip).toHaveAttribute("data-aqe-tooltip-content", "Nothing to undo yet");
-    expect(redoTooltip).toHaveAttribute("data-aqe-tooltip-content", "Nothing to redo yet");
+    expect(undoButton).toHaveAttribute(
+      "aria-label",
+      "Undo the last action and restore the previous file\n\nNothing to undo yet",
+    );
+    expect(redoButton).toHaveAttribute(
+      "aria-label",
+      "Redo the last undone action and restore the next file\n\nNothing to redo yet",
+    );
+    expect(undoTooltip).toHaveAttribute(
+      "data-aqe-tooltip-content",
+      "Undo the last action and restore the previous file\n\nNothing to undo yet",
+    );
+    expect(redoTooltip).toHaveAttribute(
+      "data-aqe-tooltip-content",
+      "Redo the last undone action and restore the next file\n\nNothing to redo yet",
+    );
 
     window.__aqeSetHistoryAvailability?.(0, true, false);
 
     expect(undoButton).not.toBeDisabled();
     expect(redoButton).toBeDisabled();
     expect(undoButton).toHaveAttribute("aria-label", "Undo the last action and restore the previous file");
-    expect(redoButton).toHaveAttribute("aria-label", "Nothing to redo yet");
+    expect(redoButton).toHaveAttribute(
+      "aria-label",
+      "Redo the last undone action and restore the next file\n\nNothing to redo yet",
+    );
     expect(undoTooltip).toHaveAttribute("data-aqe-tooltip-content", "Undo the last action and restore the previous file");
-    expect(redoTooltip).toHaveAttribute("data-aqe-tooltip-content", "Nothing to redo yet");
+    expect(redoTooltip).toHaveAttribute(
+      "data-aqe-tooltip-content",
+      "Redo the last undone action and restore the next file\n\nNothing to redo yet",
+    );
   });
 
   it("renders configured buttons as icon only", () => {

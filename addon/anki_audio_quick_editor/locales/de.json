@@ -490,6 +490,16 @@
   "runtime_installer.starting": "Laufzeitinstallation wird vorbereitet...",
   "runtime_installer.cancel": "Abbrechen",
   "runtime_installer.close": "Schließen",
+  "settings.toolbar_visibility.mode_locked_tooltip": "Diese Anzeigeeinstellung ist gesperrt, weil die Schaltfläche zu einer gruppierten Werkzeugleisten-Gruppe gehört.",
+  "tooltip.disabled.batch_running": "Während der Stapelverarbeitung deaktiviert.",
+  "tooltip.disabled.editor_busy": "Warte, bis die aktuelle Audioverarbeitung abgeschlossen ist.",
+  "tooltip.disabled.recording_active": "Stoppe die aktuelle Aufnahme, bevor du diese Steuerung verwendest.",
+  "editor.command.back_chain_practice.disabled_title": "Zeichne zuerst das Diagramm, bevor du die Back-Chaining-Übung startest.",
+  "editor.command.back_chain_previous.disabled_title": "Starte die Back-Chaining-Übung und wechsle zu einem längeren Abschnitt, bevor du einen kürzeren Abschnitt wählst.",
+  "editor.command.back_chain_next.disabled_title": "Starte die Back-Chaining-Übung, bevor du zu einem längeren Abschnitt wechselst.",
+  "editor.command.record_voice.disabled_title": "Zeichne zuerst das Diagramm, bevor du deine Stimme aufnimmst",
+  "editor.zoom.disabled_no_graph": "Zeichne zuerst das Diagramm, bevor du die Zoom-Steuerung verwendest.",
+  "editor.zoom.selection.disabled_no_selection": "Wähle einen Teil des Diagramms aus, bevor du auf eine Auswahl zoomst.",
   "runtime_installer.cancel_warning.title": "Laufzeitinstallation abgebrochen",
   "runtime_installer.cancel_warning.message": "Die Laufzeitinstallation von Audio Quick Editor wurde nicht abgeschlossen. Audio Quick Editor funktioniert möglicherweise nicht richtig.\n\nÖffne zum Reparieren Einstellungen > Diagnose und klicke auf Laufzeit installieren/reparieren."
 }

@@ -16,6 +16,7 @@ import { syncAllSelectionToolbars } from "./selection-toolbar-state.js";
 import { errorHelpUrl } from "../lib/error-links.js";
 import { openEditorExternalLink } from "./external-links.js";
 import { setButtonTooltipContent, setTooltipContent } from "../lib/rich-tooltip.js";
+import { tooltipWithDisabledClarification } from "../lib/disabled-tooltip.js";
 import { isUserFacingError, type UserFacingError } from "../lib/user-facing-error.js";
 import type { EditorCommand } from "./types.js";
 import { defaultGraphQueueDependencies } from "./graph-actions.js";
@@ -40,7 +41,10 @@ export function setControlsBusy(ord: number, busy: boolean, message = "", comman
   document.querySelectorAll<HTMLElement>(".aqe-controls").forEach((controls) => {
     controls.dataset.busy = busy ? "true" : "false";
   });
-  allButtons().forEach(updateButtonDisabledState);
+  allButtons().forEach((button) => {
+    updateButtonDisabledState(button);
+    updateButtonTooltipForDisabledState(button);
+  });
   syncAllRecordingControls();
   syncAllSelectionToolbars();
   if (!busy) {
@@ -127,6 +131,7 @@ export function setCommandButtonLabel(ord: number, command: EditorCommand, label
   if (command === "aqe:analyze") {
     button.dataset.aqeButtonState = label === "Redraw" ? "redraw" : "graph";
     const title = label === "Redraw" ? t("editor.command.redraw.title") : t("editor.command.graph.title");
+    button.dataset.aqeEnabledTitle = title;
     setButtonTooltipContent(button, title);
   }
 }
@@ -224,8 +229,27 @@ function updateHistoryButtonState(ord: number, command: "aqe:redo" | "aqe:undo")
   const fallbackTitle = button.getAttribute("aria-label") || "";
   const disabledTitle = button.dataset.aqeDisabledTitle || enabledTitle || fallbackTitle;
   const available = command === "aqe:undo" ? historyAvailability(ord).canUndo : historyAvailability(ord).canRedo;
-  const title = available ? (enabledTitle || fallbackTitle) : disabledTitle;
+  const reason = button.disabled
+    ? (anyBusy() && available ? t("tooltip.disabled.editor_busy") : disabledTitle)
+    : undefined;
+  const title = tooltipWithDisabledClarification(enabledTitle || fallbackTitle, reason);
   setButtonTooltipContent(button, title);
+}
+
+export function updateButtonTooltipForDisabledState(button: HTMLButtonElement): void {
+  const enabledTitle = button.dataset.aqeEnabledTitle || "";
+  const fallbackTitle = baseTooltipTitle(button);
+  const baseTitle = enabledTitle || fallbackTitle;
+  if (!baseTitle) return;
+  const reason = button.disabled
+    ? (anyBusy() ? t("tooltip.disabled.editor_busy") : button.dataset.aqeDisabledTitle)
+    : undefined;
+  setButtonTooltipContent(button, tooltipWithDisabledClarification(baseTitle, reason));
+}
+
+function baseTooltipTitle(button: HTMLButtonElement): string {
+  const currentTitle = button.getAttribute("data-aqe-tooltip-content") || button.getAttribute("aria-label") || "";
+  return currentTitle.split(/\n\s*\n/, 1)[0]?.trim() ?? "";
 }
 
 function updateButtonDisabledState(button: HTMLButtonElement): void {

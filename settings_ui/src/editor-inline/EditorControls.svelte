@@ -55,6 +55,9 @@
   function disabledTitle(command: string): string | undefined {
     if (command === "aqe:undo") return t("editor.command.undo.disabled_title");
     if (command === "aqe:redo") return t("editor.command.redo.disabled_title");
+    if (command === "aqe:back-chain-practice") return t("editor.command.back_chain_practice.disabled_title");
+    if (command === "aqe:back-chain-previous") return t("editor.command.back_chain_previous.disabled_title");
+    if (command === "aqe:back-chain-next") return t("editor.command.back_chain_next.disabled_title");
     return undefined;
   }
 

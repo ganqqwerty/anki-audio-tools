@@ -43,7 +43,7 @@
     setGraphVoiceLockForField,
     setGraphVoiceRangeForField,
   } from "./graph-split-state.js";
-  import { currentValueLabel, primaryTitle } from "./split-button-presenter.js";
+  import { currentValueLabel, primaryDisabledReason, primaryInitiallyDisabled, primaryTitle } from "./split-button-presenter.js";
   import { COMMAND_SLUGS } from "./commands.js";
   import { t } from "../lib/i18n.js";
   import type { EditorButtonDisplayMode } from "../lib/editor-toolbar-buttons.js";
@@ -124,10 +124,6 @@
     return primaryGroupPosition === "middle"
       ? "aqe-button aqe-split-primary aqe-split-primary-middle"
       : "aqe-button aqe-split-primary";
-  }
-
-  function primaryInitiallyDisabled(): boolean {
-    return button.command === "aqe:record-voice" || button.command === "aqe:play-recording";
   }
 
   const currentPrimaryTitle = $derived(primaryTitle(button, outputFormat, denoiseAlgorithm, sizeReductionMode));
@@ -361,7 +357,8 @@
           ariaLabel={currentPrimaryTitle}
           activeIcon={button.activeIcon}
           command={button.command}
-          disabled={primaryInitiallyDisabled()}
+          disabled={primaryInitiallyDisabled(button.command)}
+          disabledReason={primaryDisabledReason(button.command)}
           {displayMode}
           icon={button.icon}
           label={button.label}
@@ -485,7 +482,8 @@
     ariaLabel={currentPrimaryTitle}
     activeIcon={button.activeIcon}
     command={button.command}
-    disabled={primaryInitiallyDisabled()}
+    disabled={primaryInitiallyDisabled(button.command)}
+    disabledReason={primaryDisabledReason(button.command)}
     {displayMode}
     icon={button.icon}
     label={button.label}

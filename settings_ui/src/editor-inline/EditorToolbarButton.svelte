@@ -1,5 +1,6 @@
 <script lang="ts">
   import AqeTooltip from "../lib/AqeTooltip.svelte";
+  import { tooltipWithDisabledClarification } from "../lib/disabled-tooltip.js";
   import { EditorButtonMode } from "../lib/types.js";
   import { testId } from "./commands.js";
   import { send } from "./actions.js";
@@ -21,7 +22,7 @@
     target: FieldTarget;
   } = $props();
 
-  const title = $derived(disabled && disabledTitle ? disabledTitle : button.title);
+  const title = $derived(tooltipWithDisabledClarification(button.title, disabled ? disabledTitle : undefined));
   const buttonState = $derived(button.command === "aqe:analyze" ? "graph" : "default");
 </script>
 

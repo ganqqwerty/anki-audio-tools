@@ -1,6 +1,7 @@
 <script lang="ts">
   import AqeTooltip from "$lib/AqeTooltip.svelte";
   import CommandIcon from "$lib/CommandIcon.svelte";
+  import FieldTooltipTarget from "$lib/FieldTooltipTarget.svelte";
   import {
     pauseThresholdLabel,
     pauseThresholdMax,
@@ -18,6 +19,7 @@
     minSpeechSeconds: number;
     preprocessDenoise: boolean;
     disabled?: boolean;
+    disabledReason?: string | null | undefined;
     onMinSilenceSeconds?: (value: number) => void;
     onMinSpeechSeconds?: (value: number) => void;
     onPreprocessDenoise?: (value: boolean) => void;
@@ -33,6 +35,7 @@
     minSpeechSeconds = $bindable(),
     preprocessDenoise = $bindable(),
     disabled = false,
+    disabledReason = null,
     onMinSilenceSeconds,
     onMinSpeechSeconds,
     onPreprocessDenoise,
@@ -73,16 +76,18 @@
           {/snippet}
         </AqeTooltip>
       </div>
-      <input
-        bind:value={threshold}
-        data-testid={`${testPrefix}-threshold`}
-        disabled={disabled}
-        max={pauseThresholdMax(algorithm)}
-        min={pauseThresholdMin(algorithm)}
-        step={pauseThresholdStep(algorithm)}
-        type="number"
-        oninput={(event) => onThreshold?.((event.currentTarget as HTMLInputElement).valueAsNumber)}
-      />
+      <FieldTooltipTarget block content={t(thresholdDescriptionKey)} {disabledReason}>
+        <input
+          bind:value={threshold}
+          data-testid={`${testPrefix}-threshold`}
+          disabled={disabled}
+          max={pauseThresholdMax(algorithm)}
+          min={pauseThresholdMin(algorithm)}
+          step={pauseThresholdStep(algorithm)}
+          type="number"
+          oninput={(event) => onThreshold?.((event.currentTarget as HTMLInputElement).valueAsNumber)}
+        />
+      </FieldTooltipTarget>
     </label>
     <label>
       <div class="field-label-row">
@@ -102,16 +107,18 @@
           {/snippet}
         </AqeTooltip>
       </div>
-      <input
-        bind:value={minSilenceSeconds}
-        data-testid={`${testPrefix}-min-silence-seconds`}
-        disabled={disabled}
-        max="10"
-        min="0.01"
-        step="0.01"
-        type="number"
-        oninput={(event) => onMinSilenceSeconds?.((event.currentTarget as HTMLInputElement).valueAsNumber)}
-      />
+      <FieldTooltipTarget block content={t("settings.pause_min_silence_seconds.help")} {disabledReason}>
+        <input
+          bind:value={minSilenceSeconds}
+          data-testid={`${testPrefix}-min-silence-seconds`}
+          disabled={disabled}
+          max="10"
+          min="0.01"
+          step="0.01"
+          type="number"
+          oninput={(event) => onMinSilenceSeconds?.((event.currentTarget as HTMLInputElement).valueAsNumber)}
+        />
+      </FieldTooltipTarget>
     </label>
     <label>
       <div class="field-label-row">
@@ -131,25 +138,29 @@
           {/snippet}
         </AqeTooltip>
       </div>
-      <input
-        bind:value={minSpeechSeconds}
-        data-testid={`${testPrefix}-min-speech-seconds`}
-        disabled={disabled}
-        max="10"
-        min="0.01"
-        step="0.01"
-        type="number"
-        oninput={(event) => onMinSpeechSeconds?.((event.currentTarget as HTMLInputElement).valueAsNumber)}
-      />
+      <FieldTooltipTarget block content={t("settings.pause_min_speech_seconds.help")} {disabledReason}>
+        <input
+          bind:value={minSpeechSeconds}
+          data-testid={`${testPrefix}-min-speech-seconds`}
+          disabled={disabled}
+          max="10"
+          min="0.01"
+          step="0.01"
+          type="number"
+          oninput={(event) => onMinSpeechSeconds?.((event.currentTarget as HTMLInputElement).valueAsNumber)}
+        />
+      </FieldTooltipTarget>
     </label>
     <label class="advanced-params-toggle">
-      <input
-        bind:checked={preprocessDenoise}
-        data-testid={`${testPrefix}-preprocess-denoise`}
-        disabled={disabled}
-        type="checkbox"
-        onchange={(event) => onPreprocessDenoise?.((event.currentTarget as HTMLInputElement).checked)}
-      />
+      <FieldTooltipTarget content={t("settings.pause_preprocess_denoise.help")} {disabledReason}>
+        <input
+          bind:checked={preprocessDenoise}
+          data-testid={`${testPrefix}-preprocess-denoise`}
+          disabled={disabled}
+          type="checkbox"
+          onchange={(event) => onPreprocessDenoise?.((event.currentTarget as HTMLInputElement).checked)}
+        />
+      </FieldTooltipTarget>
       <div class="field-label-row">
         <span>{t("settings.pause_preprocess_denoise")}</span>
         <AqeTooltip>

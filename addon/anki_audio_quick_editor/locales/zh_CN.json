@@ -490,6 +490,16 @@
   "runtime_installer.starting": "正在准备安装运行时...",
   "runtime_installer.cancel": "取消",
   "runtime_installer.close": "关闭",
+  "settings.toolbar_visibility.mode_locked_tooltip": "此显示设置已锁定，因为该按钮属于分组工具栏面板。",
+  "tooltip.disabled.batch_running": "批处理运行时已禁用。",
+  "tooltip.disabled.editor_busy": "请等待当前音频操作完成。",
+  "tooltip.disabled.recording_active": "使用此控件前，请先停止当前录音。",
+  "editor.command.back_chain_practice.disabled_title": "开始逆向链式练习前，请先绘制图表。",
+  "editor.command.back_chain_previous.disabled_title": "选择更短后缀前，请先开始逆向链式练习并移动到更长后缀。",
+  "editor.command.back_chain_next.disabled_title": "移动到更长后缀前，请先开始逆向链式练习。",
+  "editor.command.record_voice.disabled_title": "录制自己的声音前，请先绘制图表",
+  "editor.zoom.disabled_no_graph": "使用缩放控件前，请先绘制图表。",
+  "editor.zoom.selection.disabled_no_selection": "缩放到选择范围前，请先选择图表的一部分。",
   "runtime_installer.cancel_warning.title": "运行时安装已取消",
   "runtime_installer.cancel_warning.message": "Audio Quick Editor 运行时安装尚未完成。Audio Quick Editor 可能无法正常工作。\n\n要修复此问题，请打开设置 > 诊断，然后点击安装/修复运行时。"
 }

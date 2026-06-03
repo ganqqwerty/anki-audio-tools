@@ -490,6 +490,16 @@
   "runtime_installer.starting": "Подготовка установки среды выполнения...",
   "runtime_installer.cancel": "Отмена",
   "runtime_installer.close": "Закрыть",
+  "settings.toolbar_visibility.mode_locked_tooltip": "Эта настройка отображения заблокирована, потому что кнопка входит в сгруппированную панель инструментов.",
+  "tooltip.disabled.batch_running": "Отключено, пока выполняется пакетная обработка.",
+  "tooltip.disabled.editor_busy": "Дождитесь завершения текущей обработки аудио.",
+  "tooltip.disabled.recording_active": "Остановите текущую запись, прежде чем использовать этот элемент управления.",
+  "editor.command.back_chain_practice.disabled_title": "Постройте график перед запуском тренировки обратной цепочки.",
+  "editor.command.back_chain_previous.disabled_title": "Запустите тренировку обратной цепочки и перейдите к более длинному фрагменту, прежде чем выбирать более короткий.",
+  "editor.command.back_chain_next.disabled_title": "Запустите тренировку обратной цепочки перед переходом к более длинному фрагменту.",
+  "editor.command.record_voice.disabled_title": "Постройте график перед записью своего голоса",
+  "editor.zoom.disabled_no_graph": "Постройте график, прежде чем использовать масштабирование.",
+  "editor.zoom.selection.disabled_no_selection": "Выделите часть графика, прежде чем масштабировать по выделению.",
   "runtime_installer.cancel_warning.title": "Установка среды выполнения отменена",
   "runtime_installer.cancel_warning.message": "Установка среды выполнения Audio Quick Editor не завершена. Audio Quick Editor может работать неправильно.\n\nЧтобы исправить это, откройте Настройки > Диагностика и нажмите Установить/починить рантайм."
 }

@@ -51,6 +51,16 @@ describe("editor inline back-chaining integration", () => {
       backChainingMarkersMs: [0, 333, 667],
       backChainingState: "stopped",
     });
+    expect(previousButton()).toBeDisabled();
+    expect(previousButton().closest(".aqe-button-tooltip-target")).toHaveAttribute(
+      "data-aqe-tooltip-content",
+      "Move to the next shorter back-chaining suffix.\n\nStart back-chaining practice and move to a longer suffix before choosing a shorter suffix.",
+    );
+    expect(nextButton()).not.toBeDisabled();
+    expect(nextButton().closest(".aqe-button-tooltip-target")).toHaveAttribute(
+      "data-aqe-tooltip-content",
+      "Move to the next longer back-chaining suffix.",
+    );
 
     clickMarkerRail(svg, 0.5);
 

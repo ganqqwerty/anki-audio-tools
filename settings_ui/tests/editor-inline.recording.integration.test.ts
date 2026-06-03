@@ -104,11 +104,27 @@ describe("editor inline learner recording integration", () => {
     expect(document.querySelector('[data-testid="aqe-split-0-record-voice-menu"]')).not.toBeNull();
     expect(recordButton.disabled).toBe(true);
     expect(playYoursButton.disabled).toBe(true);
+    expect(recordButton.closest(".aqe-button-tooltip-target")).toHaveAttribute(
+      "data-aqe-tooltip-content",
+      "Record your voice for this graph\n\nDraw the graph before recording your voice",
+    );
+    expect(playYoursButton.closest(".aqe-button-tooltip-target")).toHaveAttribute(
+      "data-aqe-tooltip-content",
+      "Play your latest recording\n\nRecord your voice before playing it",
+    );
 
     window.__aqeSetVisualizer?.(0, { ...track, sourceFilename: "clip one.mp3" }, 0);
     await Promise.resolve();
     expect(recordButton.disabled).toBe(false);
     expect(playYoursButton.disabled).toBe(true);
+    expect(recordButton.closest(".aqe-button-tooltip-target")).toHaveAttribute(
+      "data-aqe-tooltip-content",
+      "Record your voice for this graph",
+    );
+    expect(playYoursButton.closest(".aqe-button-tooltip-target")).toHaveAttribute(
+      "data-aqe-tooltip-content",
+      "Play your latest recording\n\nRecord your voice before playing it",
+    );
 
     const menu = document.querySelector<HTMLButtonElement>('[data-testid="aqe-split-0-record-voice-menu"]')!;
     menu.click();

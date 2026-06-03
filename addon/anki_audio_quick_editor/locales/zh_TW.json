@@ -490,6 +490,16 @@
   "runtime_installer.starting": "正在準備安裝執行環境...",
   "runtime_installer.cancel": "取消",
   "runtime_installer.close": "關閉",
+  "settings.toolbar_visibility.mode_locked_tooltip": "此顯示設定已鎖定，因為該按鈕屬於分組工具列面板。",
+  "tooltip.disabled.batch_running": "批次處理執行時已停用。",
+  "tooltip.disabled.editor_busy": "請等待目前音訊操作完成。",
+  "tooltip.disabled.recording_active": "使用此控制項前，請先停止目前錄音。",
+  "editor.command.back_chain_practice.disabled_title": "開始逆向鏈式練習前，請先繪製圖表。",
+  "editor.command.back_chain_previous.disabled_title": "選擇更短後綴前，請先開始逆向鏈式練習並移動到更長後綴。",
+  "editor.command.back_chain_next.disabled_title": "移動到更長後綴前，請先開始逆向鏈式練習。",
+  "editor.command.record_voice.disabled_title": "錄製自己的聲音前，請先繪製圖表",
+  "editor.zoom.disabled_no_graph": "使用縮放控制項前，請先繪製圖表。",
+  "editor.zoom.selection.disabled_no_selection": "縮放至選取範圍前，請先選取圖表的一部分。",
   "runtime_installer.cancel_warning.title": "執行環境安裝已取消",
   "runtime_installer.cancel_warning.message": "Audio Quick Editor 執行環境安裝尚未完成。Audio Quick Editor 可能無法正常運作。\n\n若要修復此問題，請開啟設定 > 診斷，然後點擊安裝/修復執行環境。"
 }

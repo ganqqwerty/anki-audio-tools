@@ -490,6 +490,16 @@
   "runtime_installer.starting": "ランタイムのインストールを準備しています...",
   "runtime_installer.cancel": "キャンセル",
   "runtime_installer.close": "閉じる",
+  "settings.toolbar_visibility.mode_locked_tooltip": "この表示設定は、ボタンがグループ化されたツールバーパネルに属しているためロックされています。",
+  "tooltip.disabled.batch_running": "バッチ処理中は無効です。",
+  "tooltip.disabled.editor_busy": "現在の音声処理が完了するまで待ってください。",
+  "tooltip.disabled.recording_active": "この操作を使う前に、現在の録音を停止してください。",
+  "editor.command.back_chain_practice.disabled_title": "バックチェイニング練習を始める前にグラフを描画してください。",
+  "editor.command.back_chain_previous.disabled_title": "短い語尾を選ぶ前に、バックチェイニング練習を開始して長い語尾へ移動してください。",
+  "editor.command.back_chain_next.disabled_title": "長い語尾へ移動する前に、バックチェイニング練習を開始してください。",
+  "editor.command.record_voice.disabled_title": "自分の声を録音する前にグラフを描画してください",
+  "editor.zoom.disabled_no_graph": "ズーム操作を使う前にグラフを描画してください。",
+  "editor.zoom.selection.disabled_no_selection": "選択範囲にズームする前に、グラフの一部を選択してください。",
   "runtime_installer.cancel_warning.title": "ランタイムのインストールをキャンセルしました",
   "runtime_installer.cancel_warning.message": "Audio Quick Editor のランタイムインストールは完了していません。Audio Quick Editor が正しく動作しない可能性があります。\n\n修復するには、設定 > 診断を開き、ランタイムをインストール/修復をクリックしてください。"
 }
