@@ -2,7 +2,6 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { setControlsBusy } from "../src/editor-inline/actions.js";
 import { disposeEditorRuntime, initializeEditorRuntime, scan } from "../src/editor-inline/runtime.js";
-import { resetSelectionToolbarPreferences } from "../src/editor-inline/selection-toolbar-state.js";
 import {
   dispatchGraphPointer,
   dragGraphSelection,
@@ -13,7 +12,6 @@ import {
   renderFields,
   renderTwoAudioFields,
   selectionToolbarButton,
-  selectionToolbarDot,
   setGraphBounds,
   track,
 } from "./editor-inline.integration.helpers.js";
@@ -28,7 +26,6 @@ describe("editor inline selection toolbar integration", () => {
 
   afterEach(() => {
     disposeEditorRuntime();
-    resetSelectionToolbarPreferences();
     restoreConsole();
     vi.restoreAllMocks();
   });
@@ -40,7 +37,6 @@ describe("editor inline selection toolbar integration", () => {
     expect(window.__aqeGraphStateForTest?.(0)).toMatchObject({
       hasTrack: false,
       selectionToolbarHidden: true,
-      selectionToolbarDotHidden: true,
     });
 
     window.__aqeSetVisualizer?.(0, track, 250);
@@ -61,8 +57,6 @@ describe("editor inline selection toolbar integration", () => {
       selectionActive: true,
       selectionDraftActive: false,
       selectionToolbarHidden: false,
-      selectionToolbarCollapsed: false,
-      selectionToolbarDotHidden: true,
       selectionToolbarPreview: "none",
     });
   });
@@ -127,7 +121,6 @@ describe("editor inline selection toolbar integration", () => {
     const play = selectionToolbarButton("play");
     const deleteRegion = selectionToolbarButton("delete-region");
     const deleteRest = selectionToolbarButton("delete-rest");
-    const collapse = selectionToolbarButton("collapse");
 
     expect(play.getAttribute("data-aqe-tooltip-content")).toBe("Play selection");
     expect(play.getAttribute("aria-label")).toBe("Play selection");
@@ -135,14 +128,15 @@ describe("editor inline selection toolbar integration", () => {
     expect(deleteRest.getAttribute("data-aqe-tooltip-content")).toBe("Create a new file that keeps only the selected region");
     expect(deleteRegion.getAttribute("data-aqe-button-state")).toBe("destructive");
     expect(deleteRest.getAttribute("data-aqe-button-state")).toBe("destructive");
-    expect(collapse.getAttribute("data-aqe-tooltip-content")).toBe("Collapse selection actions");
-    for (const button of [play, deleteRegion, deleteRest, collapse]) {
+    expect(document.querySelector('[data-testid="aqe-selection-toolbar-collapse-0"]')).toBeNull();
+    expect(document.querySelector('[data-testid="aqe-selection-toolbar-dot-0"]')).toBeNull();
+    for (const button of [play, deleteRegion, deleteRest]) {
       expect(button.querySelector(".aqe-button-label")).toBeNull();
       expect(button.classList.contains("aqe-selection-toolbar-button")).toBe(true);
     }
   });
 
-  it("keeps collapse preference across selection changes until the dot is expanded", () => {
+  it("keeps the toolbar visible across selection changes", () => {
     initializeEditorRuntime({ audioFieldIndices: [0] });
     scan({ audioFieldIndices: [0] });
     window.__aqeSetVisualizer?.(0, track, 250);
@@ -150,42 +144,29 @@ describe("editor inline selection toolbar integration", () => {
     setGraphBounds(svg);
     dragGraphSelection(svg, 0.2, 0.6);
 
-    selectionToolbarButton("collapse").click();
     expect(window.__aqeGraphStateForTest?.(0)).toMatchObject({
       selectionActive: true,
-      selectionToolbarCollapsed: true,
-      selectionToolbarHidden: true,
-      selectionToolbarDotHidden: false,
+      selectionToolbarHidden: false,
     });
-    expect(selectionToolbarDot()).toBeInstanceOf(SVGSVGElement);
-    expect(selectionToolbarDot().querySelector(".aqe-selection-toolbar-dot-ring")).not.toBeNull();
+    expect(document.querySelector('[data-testid="aqe-selection-toolbar-collapse-0"]')).toBeNull();
+    expect(document.querySelector('[data-testid="aqe-selection-toolbar-dot-0"]')).toBeNull();
 
     dragGraphSelection(svg, 0.3, 0.7);
     expect(window.__aqeGraphStateForTest?.(0)).toMatchObject({
       selectionStartMs: 300,
       selectionEndMs: 700,
-      selectionToolbarCollapsed: true,
-      selectionToolbarHidden: true,
-      selectionToolbarDotHidden: false,
-    });
-
-    selectionToolbarDot().dispatchEvent(new MouseEvent("click", { bubbles: true }));
-    expect(window.__aqeGraphStateForTest?.(0)).toMatchObject({
-      selectionToolbarCollapsed: false,
       selectionToolbarHidden: false,
-      selectionToolbarDotHidden: true,
     });
 
     dragGraphSelection(svg, 0.2, 0.5);
     expect(window.__aqeGraphStateForTest?.(0)).toMatchObject({
       selectionStartMs: 200,
       selectionEndMs: 500,
-      selectionToolbarCollapsed: false,
       selectionToolbarHidden: false,
     });
   });
 
-  it("preserves toolbar preference across graph redraws after transformations", () => {
+  it("keeps the toolbar visible across graph redraws after transformations", () => {
     initializeEditorRuntime({ audioFieldIndices: [0] });
     scan({ audioFieldIndices: [0] });
     window.__aqeSetVisualizer?.(0, track, 250);
@@ -196,18 +177,7 @@ describe("editor inline selection toolbar integration", () => {
     window.__aqeSetVisualizer?.(0, { ...track, sourceFilename: "transformed-visible.mp3" }, 0);
     dragGraphSelection(svg, 0.3, 0.7);
     expect(window.__aqeGraphStateForTest?.(0)).toMatchObject({
-      selectionToolbarCollapsed: false,
       selectionToolbarHidden: false,
-      selectionToolbarDotHidden: true,
-    });
-
-    selectionToolbarButton("collapse").click();
-    window.__aqeSetVisualizer?.(0, { ...track, sourceFilename: "transformed-collapsed.mp3" }, 0);
-    dragGraphSelection(svg, 0.25, 0.5);
-    expect(window.__aqeGraphStateForTest?.(0)).toMatchObject({
-      selectionToolbarCollapsed: true,
-      selectionToolbarHidden: true,
-      selectionToolbarDotHidden: false,
     });
 
     disposeEditorRuntime();
@@ -218,31 +188,9 @@ describe("editor inline selection toolbar integration", () => {
     setGraphBounds(remountedSvg);
     dragGraphSelection(remountedSvg, 0.35, 0.55);
     expect(window.__aqeGraphStateForTest?.(0)).toMatchObject({
-      selectionToolbarCollapsed: true,
-      selectionToolbarHidden: true,
-      selectionToolbarDotHidden: false,
-    });
-  });
-
-  it("expands the collapsed svg circle from the keyboard", () => {
-    initializeEditorRuntime({ audioFieldIndices: [0] });
-    scan({ audioFieldIndices: [0] });
-    window.__aqeSetVisualizer?.(0, track, 250);
-    const svg = document.querySelector<SVGSVGElement>('[data-testid="aqe-graph-svg-0"]')!;
-    setGraphBounds(svg);
-    dragGraphSelection(svg, 0.2, 0.6);
-
-    selectionToolbarButton("collapse").click();
-    const dot = selectionToolbarDot();
-    expect(dot.getAttribute("role")).toBe("button");
-    expect(dot.getAttribute("tabindex")).toBe("0");
-    dot.dispatchEvent(new KeyboardEvent("keydown", { bubbles: true, key: "Enter" }));
-
-    expect(window.__aqeGraphStateForTest?.(0)).toMatchObject({
-      selectionToolbarCollapsed: false,
       selectionToolbarHidden: false,
-      selectionToolbarDotHidden: true,
     });
+    expect(document.querySelector('[data-testid="aqe-selection-toolbar-dot-0"]')).toBeNull();
   });
 
   it("sets and clears destructive hover previews", () => {

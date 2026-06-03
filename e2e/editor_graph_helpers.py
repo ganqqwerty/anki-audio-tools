@@ -19,7 +19,6 @@ def _visualizer_js(ord_: int = 0) -> str:
       const visualizer = document.querySelector(`.aqe-visualizer[data-aqe-field-ord="${ord}"]`);
       if (!visualizer) return null;
       const toolbar = visualizer.querySelector('.aqe-selection-toolbar');
-      const toolbarDot = visualizer.querySelector('.aqe-selection-toolbar-dot');
       const toolbarPlay = visualizer.querySelector('.aqe-selection-toolbar-play');
       const toolbarDelete = visualizer.querySelector('.aqe-delete-region-button');
       const toolbarDeleteRest = visualizer.querySelector('.aqe-delete-rest-button');
@@ -69,8 +68,6 @@ def _visualizer_js(ord_: int = 0) -> str:
         selectionDraftEndMs: visualizer.dataset.selectionDraftEndMs ? Number(visualizer.dataset.selectionDraftEndMs) : null,
         repeatEnabled: visualizer.dataset.repeatEnabled === "true",
         selectionToolbarHidden: toolbar ? toolbar.hidden : true,
-        selectionToolbarCollapsed: visualizer.dataset.selectionToolbarCollapsed === "true",
-        selectionToolbarDotHidden: toolbarDot ? toolbarDot.hasAttribute("hidden") : true,
         selectionToolbarPreview: (
           visualizer.dataset.selectionToolbarPreview === "region"
           || visualizer.dataset.selectionToolbarPreview === "rest"
