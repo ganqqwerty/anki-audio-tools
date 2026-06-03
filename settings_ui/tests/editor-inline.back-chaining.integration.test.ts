@@ -36,6 +36,30 @@ describe("editor inline back-chaining integration", () => {
     vi.restoreAllMocks();
   });
 
+  it("shows and edits whole-file markers as soon as the graph is available", async () => {
+    const { row, svg } = await prepareBackChainingGraph();
+
+    expect(row.getAttribute("aria-hidden")).toBe("false");
+    expect(row.style.display).toBe("");
+    expect(row.querySelector(".aqe-back-chaining-marker-track")).not.toBeNull();
+    expect(row.querySelectorAll(".aqe-back-chaining-marker")).toHaveLength(3);
+    expect(window.__aqeGraphStateForTest?.(0)).toMatchObject({
+      backChainingBaseEndMs: 1000,
+      backChainingBaseStartMs: 0,
+      backChainingCanPractice: true,
+      backChainingMarkersMs: [0, 333, 667],
+      backChainingState: "stopped",
+    });
+
+    clickMarkerRail(svg, 0.5);
+
+    expect(window.__aqeGraphStateForTest?.(0)).toMatchObject({
+      backChainingBaseEndMs: 1000,
+      backChainingBaseStartMs: 0,
+      backChainingMarkersMs: [0, 333, 500, 667],
+    });
+  });
+
   it("starts back-chaining from the toolbar for the whole file instead of the graph selection", async () => {
     const { row, svg } = await prepareBackChainingGraph();
     dragGraphSelection(svg, 0.2, 0.8);

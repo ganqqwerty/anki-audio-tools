@@ -27,7 +27,9 @@ def test_back_chaining_practice_loops_suffixes_and_pauses_for_normal_play(
             editor,
             lambda state: state["selectionStartMs"] == 400
             and state["selectionEndMs"] == 1600
-            and state["backChainingBaseStartMs"] is None,
+            and state["backChainingBaseStartMs"] == 0
+            and state["backChainingBaseEndMs"] == 2000
+            and state["backChainingMarkersMs"] == [0, 667, 1333],
         )
 
         _click_back_chaining_practice(editor)
@@ -68,7 +70,7 @@ def test_back_chaining_practice_loops_suffixes_and_pauses_for_normal_play(
             and state["repeatEnabled"] is False,
         )
 
-        assert markers["backChainingMarkersMs"] == []
+        assert markers["backChainingState"] == "stopped"
         assert "Playing from 1.33s" in status_text
         assert playing["backChainingBaseStartMs"] == 0
         assert playing["backChainingMarkersMs"] == [0, 667, 1333]
@@ -80,6 +82,62 @@ def test_back_chaining_practice_loops_suffixes_and_pauses_for_normal_play(
         assert longer["backChainingActiveStartMs"] == 667
         assert full_sentence["backChainingActiveStartMs"] == 0
         assert paused["selectionStartMs"] == 0
+    finally:
+        editor.set_note(None)
+        parent.close()
+
+
+def test_back_chaining_marker_row_is_immediately_editable_after_graph_shows(
+    anki_mw,
+    ffmpeg_config,
+) -> None:
+    _media_dir, _source, _note, editor, parent, _track = _open_tone_editor(
+        anki_mw,
+        ffmpeg_config,
+        "editor_back_chaining_immediate_markers.wav",
+        2.0,
+    )
+    try:
+        initial = _state(
+            editor,
+            lambda state: state["backChainingBaseStartMs"] == 0
+            and state["backChainingBaseEndMs"] == 2000
+            and state["backChainingMarkersMs"] == [0, 667, 1333]
+            and state["backChainingState"] == "stopped",
+        )
+        rail = wait_for_js_condition(
+            editor.web,
+            """
+            (() => {
+              const row = document.querySelector('[data-testid="aqe-back-chaining-marker-row-0"]');
+              if (!row) return null;
+              return {
+                hidden: row.getAttribute("aria-hidden"),
+                markerCount: row.querySelectorAll(".aqe-back-chaining-marker").length,
+                trackVisible: !!row.querySelector(".aqe-back-chaining-marker-track"),
+              };
+            })()
+            """,
+            lambda value: value is not None
+            and value["hidden"] == "false"
+            and value["markerCount"] == 3
+            and value["trackVisible"] is True,
+            timeout=5.0,
+        )
+
+        inserted = _click_back_chaining_marker(editor, 0.5, expected_count=4)
+        _click_back_chaining_practice(editor)
+        playing = _state(
+            editor,
+            lambda state: state["backChainingState"] == "playing"
+            and state["backChainingActiveStartMs"] == 1333
+            and state["backChainingMarkersMs"] == [0, 667, 1000, 1333],
+        )
+
+        assert initial["backChainingCanPractice"] is True
+        assert rail["hidden"] == "false"
+        assert inserted["backChainingActiveStartMs"] == 1333
+        assert playing["selectionStartMs"] == 1333
     finally:
         editor.set_note(None)
         parent.close()
@@ -165,7 +223,7 @@ def test_back_chaining_marker_rail_does_not_steal_top_of_graph_cursor_drag(
             """,
             lambda value: value is not None
             and abs(value["cursorMs"] - 1200) <= 75
-            and value["markersMs"] == [],
+            and value["markersMs"] == [0, 667, 1333],
             timeout=5.0,
         )
 

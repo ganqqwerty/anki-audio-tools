@@ -44,7 +44,8 @@ export function installBackChainingHandlers(visualizer: VisualizerElement): () =
   const onSelectionChanged = (event: Event): void => {
     const origin = (event as CustomEvent<SelectionChangedDetail>).detail?.origin ?? "user";
     if (origin === "user") {
-      clearBackChaining(visualizer, { restoreRepeat: true });
+      renderBackChainingMarkerRow(visualizer);
+      syncBackChainingToolbarButtons(visualizer);
     } else {
       renderBackChainingMarkerRow(visualizer);
     }
@@ -56,9 +57,8 @@ export function installBackChainingHandlers(visualizer: VisualizerElement): () =
       clearBackChaining(visualizer, { restoreRepeat: true });
       return;
     }
-    if (!state.sourceFilename || state.sourceFilename === (visualizer.dataset.sourceFilename || "")) return;
-    clearBackChaining(visualizer, { restoreRepeat: true });
-    syncBackChainingToolbarButtons(visualizer);
+    if (visualizer.dataset.hasTrack !== "true") return;
+    ensureCurrentTrackBackChainingBase(visualizer, state);
   });
   visualizer.addEventListener(SELECTION_CHANGED_EVENT, onSelectionChanged);
   visualizer.addEventListener("aqe-viewport-rendered", onViewportChanged);
@@ -66,13 +66,24 @@ export function installBackChainingHandlers(visualizer: VisualizerElement): () =
     attributeFilter: ["data-source-filename", "data-has-track", "hidden"],
     attributes: true,
   });
-  renderBackChainingMarkerRow(visualizer);
-  syncBackChainingToolbarButtons(visualizer);
+  ensureCurrentTrackBackChainingBase(visualizer, backChainingStateForVisualizer(visualizer));
   return () => {
     observer.disconnect();
     visualizer.removeEventListener(SELECTION_CHANGED_EVENT, onSelectionChanged);
     visualizer.removeEventListener("aqe-viewport-rendered", onViewportChanged);
   };
+}
+
+function ensureCurrentTrackBackChainingBase(visualizer: VisualizerElement, state: BackChainingState): void {
+  const sourceFilename = visualizer.dataset.sourceFilename || "";
+  let currentState = state;
+  if (state.sourceFilename && state.sourceFilename !== sourceFilename) {
+    clearBackChaining(visualizer, { restoreRepeat: true });
+    currentState = backChainingStateForVisualizer(visualizer);
+  }
+  if (ensureBackChainingBase(visualizer, currentState) === null) {
+    writeState(visualizer, emptyBackChainingState());
+  }
 }
 
 export function toggleBackChainingForOrd(ord: number): boolean {

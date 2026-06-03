@@ -122,7 +122,7 @@ export function commandButtons(): readonly ToolbarButtonSpec[] {
     {
       activeIcon: "pause",
       command: "aqe:back-chain-practice",
-      icon: "repeat-2",
+      icon: "bug-play",
       iconOnly: true,
       label: t("editor.command.back_chain_practice.label"),
       title: t("editor.command.back_chain_practice.title"),

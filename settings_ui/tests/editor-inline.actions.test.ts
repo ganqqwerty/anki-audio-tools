@@ -36,6 +36,7 @@ import { processingMessage } from "../src/editor-inline/commands.js";
 import { PLOT, xForMs } from "../src/editor-inline/plot.js";
 import { commandSlugsForTest } from "../src/editor-inline/test-contract.js";
 import { disposeEditorRuntime } from "../src/editor-inline/runtime.js";
+import { commandButtons } from "../src/lib/editor-toolbar-buttons.js";
 import { PRODUCT_LINKS } from "../src/lib/product-links.js";
 import { bridgeCommands, mountTrack, track } from "./editor-inline.actions.helpers.js";
 
@@ -66,6 +67,7 @@ describe("editor inline action workflows", () => {
     expect(commandSlugsForTest()["aqe:back-chain-next"]).toBe("back-chain-next");
     expect(commandSlugsForTest()["aqe:redo"]).toBe("redo");
     expect(commandSlugsForTest()["aqe:settings"]).toBe("settings");
+    expect(commandButtons().find((button) => button.command === "aqe:back-chain-practice")?.icon).toBe("bug-play");
     expect(processingMessage("aqe:denoise-standard")).toBe("Denoising with Standard...");
     expect(processingMessage("aqe:rnnoise")).toBe("Denoising with RNNoise...");
     expect(processingMessage("aqe:dpdfnet")).toBe("Denoising with DPDFNet...");

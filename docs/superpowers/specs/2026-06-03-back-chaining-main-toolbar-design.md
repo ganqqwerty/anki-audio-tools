@@ -11,7 +11,7 @@ In scope:
 - Remove the selected-region Back-chaining submenu and panel.
 - Remove Clear markers, Move to shorter suffix, and Edit markers actions.
 - Add two configurable main editor toolbar commands: Practice/Pause Back-chaining and Longer suffix.
-- Treat marker editing as always available while a back-chaining session exists.
+- Treat marker editing as always available as soon as a playable graph is shown.
 - Support marker additions and removals during active practice.
 - Restrict back-chaining practice to the whole audio file.
 - Update settings, config schema, generated contracts, localization, frontend tests, Python config tests, and e2e tests.
@@ -55,13 +55,13 @@ Back-chaining state keeps only the data required for whole-file practice:
 - practice state,
 - source filename.
 
-A back-chaining session exists when the current source file has a whole-file base region and marker list. Marker editing is available whenever that session exists, including while practice is playing or paused.
+A back-chaining session exists when the current source file has a whole-file base region and marker list. The editor creates that temporary whole-file session as soon as a playable graph track is shown, before the user presses the Back-chain toolbar button. The white marker rail and default markers are therefore visible immediately after the graph appears. Marker editing is available whenever that graph track is available, including before practice starts and while practice is playing or paused.
 
 Changing source media still clears temporary back-chaining state and restores repeat state.
 
 ## Whole-File Behavior
 
-Starting back-chaining derives the base region from the visualizer target duration:
+Showing a playable graph derives the base region from the visualizer target duration:
 
 ```ts
 { startMs: 0, endMs: readVisualizerTargetDurationMs(visualizer), mode: "full" }
@@ -69,7 +69,7 @@ Starting back-chaining derives the base region from the visualizer target durati
 
 Committed graph selections are ignored for back-chaining base-region creation. The active suffix that is played may still be written into selection/playback visual state so the graph can highlight the practiced suffix, but that selection must be derived from the whole-file markers, not from the user's prior selection.
 
-If a visualizer has no positive target duration, back-chaining start is rejected and leaves state unchanged.
+If a visualizer has no positive target duration, the marker rail stays hidden and back-chaining start is rejected.
 
 Default markers are generated across the whole file using the existing three-marker strategy. The initial active marker is the rightmost marker.
 
@@ -126,7 +126,7 @@ Svelte integration tests:
 - the Settings visibility grid renders both commands and can toggle them,
 - the selection toolbar no longer renders Back-chaining entry or a back-chaining panel,
 - starting back-chaining ignores an existing committed graph selection and uses the full file,
-- marker row clicks work without edit mode,
+- marker row clicks work without edit mode immediately after the graph is shown,
 - adding a marker mid-practice changes the next longer suffix to the newly added marker,
 - removing a marker mid-practice clamps the active marker index predictably.
 
@@ -139,6 +139,7 @@ Python/config tests:
 E2E tests:
 
 - whole-file back-chaining starts from the rightmost default marker and loops to the end of the file,
+- the marker rail is visible and editable immediately after the graph is shown, before Back-chain is pressed,
 - committed graph selections do not limit back-chaining practice,
 - marker placement still respects zoomed viewport time,
 - marker row still does not steal top-of-graph cursor drag,

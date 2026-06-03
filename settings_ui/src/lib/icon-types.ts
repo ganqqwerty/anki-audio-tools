@@ -1,5 +1,6 @@
 export type CommandIconName =
   | "audio-lines"
+  | "bug-play"
   | "chart-line"
   | "chevron-down"
   | "chevron-right"
