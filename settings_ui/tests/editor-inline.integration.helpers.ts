@@ -98,14 +98,10 @@ export function dragSelectionHandle(svg: SVGSVGElement, edge: "end" | "start", e
 }
 
 export function selectionToolbarButton(
-  kind: "collapse" | "delete-region" | "delete-rest" | "play",
+  kind: "delete-region" | "delete-rest" | "play",
   ord = 0,
 ): HTMLButtonElement {
   return document.querySelector<HTMLButtonElement>(`[data-testid="aqe-selection-toolbar-${kind}-${ord}"]`)!;
-}
-
-export function selectionToolbarDot(ord = 0): SVGSVGElement {
-  return document.querySelector<SVGSVGElement>(`[data-testid="aqe-selection-toolbar-dot-${ord}"]`)!;
 }
 
 export function hoverToolbarButton(button: HTMLElement): void {

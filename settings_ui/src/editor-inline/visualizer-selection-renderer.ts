@@ -144,7 +144,6 @@ function setSelectionOverlayGeometry(
   wrapper.style.setProperty("--aqe-plot-top-px", `${plotTopPx.toFixed(2)}px`);
   wrapper.style.setProperty("--aqe-plot-height-px", `${plotHeightPx.toFixed(2)}px`);
   setOverlayNodePosition(wrapper.querySelector<HTMLElement>(".aqe-selection-toolbar"), toolbarLeftPx, toolbarTopPx);
-  setOverlayNodePosition(wrapper.querySelector<HTMLElement>(".aqe-selection-toolbar-dot"), toolbarLeftPx, toolbarTopPx);
 }
 
 function clearSelectionOverlayGeometry(visualizer: VisualizerElement): void {
@@ -165,7 +164,6 @@ function clearSelectionOverlayGeometry(visualizer: VisualizerElement): void {
     wrapper.style.removeProperty(property);
   }
   clearOverlayNodePosition(wrapper.querySelector<HTMLElement>(".aqe-selection-toolbar"));
-  clearOverlayNodePosition(wrapper.querySelector<HTMLElement>(".aqe-selection-toolbar-dot"));
 }
 
 function setOverlayNodePosition(node: HTMLElement | null, leftPx: number, topPx: number): void {

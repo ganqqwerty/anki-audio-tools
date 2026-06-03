@@ -5,26 +5,11 @@
   import { sendRegionDelete } from "./region-delete.js";
   import { toggleBackChainingPanelForOrd } from "./back-chaining-controller.js";
   import BackChainingPanel from "./BackChainingPanel.svelte";
-  import {
-    collapseSelectionToolbarForOrd,
-    expandSelectionToolbarForOrd,
-    setSelectionToolbarPreviewForOrd,
-  } from "./selection-toolbar-state.js";
+  import { setSelectionToolbarPreviewForOrd } from "./selection-toolbar-state.js";
   import { t } from "../lib/i18n.js";
   import type { FieldTarget } from "./types.js";
 
   const { target }: { target: FieldTarget } = $props();
-
-  function expandCollapsedToolbar(): void {
-    expandSelectionToolbarForOrd(target.ord);
-  }
-
-  function expandCollapsedToolbarFromKeyboard(event: KeyboardEvent): void {
-    if (event.key !== "Enter" && event.key !== " ") return;
-    event.preventDefault();
-    event.stopPropagation();
-    expandCollapsedToolbar();
-  }
 </script>
 
 <div class="aqe-selection-rest-preview aqe-selection-rest-preview-before" aria-hidden="true"></div>
@@ -130,44 +115,5 @@
       </button>
     {/snippet}
   </AqeTooltip>
-  <AqeTooltip>
-    {#snippet trigger({ props })}
-      <button
-        {...props}
-        type="button"
-        class="aqe-button aqe-selection-toolbar-button aqe-selection-toolbar-collapse aqe-tooltip-target"
-        data-aqe-tooltip-content="Collapse selection actions"
-        data-testid={`aqe-selection-toolbar-collapse-${target.ord}`}
-        aria-label="Collapse selection actions"
-        onpointerdown={(event) => event.stopPropagation()}
-        onmousedown={(event) => event.preventDefault()}
-        onclick={() => collapseSelectionToolbarForOrd(target.ord)}
-      >
-        <EditorCommandIcon icon="x" />
-      </button>
-    {/snippet}
-  </AqeTooltip>
   <BackChainingPanel {target} />
 </div>
-<AqeTooltip>
-  {#snippet trigger({ props })}
-    <svg
-      {...props}
-      class="aqe-selection-toolbar-dot aqe-tooltip-target"
-      data-aqe-tooltip-content="Expand selection actions"
-      data-testid={`aqe-selection-toolbar-dot-${target.ord}`}
-      viewBox="0 0 18 18"
-      role="button"
-      tabindex="0"
-      aria-label="Expand selection actions"
-      onpointerdown={(event) => event.stopPropagation()}
-      onmousedown={(event) => event.preventDefault()}
-      onkeydown={expandCollapsedToolbarFromKeyboard}
-      onclick={expandCollapsedToolbar}
-      aria-hidden="true"
-    >
-      <circle class="aqe-selection-toolbar-dot-halo" cx="9" cy="9" r="6.25"></circle>
-      <circle class="aqe-selection-toolbar-dot-ring" cx="9" cy="9" r="4.75"></circle>
-    </svg>
-  {/snippet}
-</AqeTooltip>
