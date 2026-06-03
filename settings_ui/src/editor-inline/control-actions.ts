@@ -240,7 +240,11 @@ function updateButtonDisabledState(button: HTMLButtonElement): void {
     button.disabled = busy || !historyAvailability(ord).canRedo;
     return;
   }
-  if (command === "aqe:back-chain-practice" || command === "aqe:back-chain-next") {
+  if (
+    command === "aqe:back-chain-practice"
+    || command === "aqe:back-chain-next"
+    || command === "aqe:back-chain-previous"
+  ) {
     updateBackChainingButtonDisabledState(button, ord, command, busy);
     return;
   }
@@ -250,7 +254,7 @@ function updateButtonDisabledState(button: HTMLButtonElement): void {
 function updateBackChainingButtonDisabledState(
   button: HTMLButtonElement,
   ord: number,
-  command: "aqe:back-chain-practice" | "aqe:back-chain-next",
+  command: "aqe:back-chain-practice" | "aqe:back-chain-next" | "aqe:back-chain-previous",
   busy: boolean,
 ): void {
   const visualizer = visualizerForOrd(ord);
@@ -261,6 +265,10 @@ function updateBackChainingButtonDisabledState(
   const controls = backChainingControlsForVisualizer(visualizer);
   if (command === "aqe:back-chain-next") {
     button.disabled = busy || !controls.canNext;
+    return;
+  }
+  if (command === "aqe:back-chain-previous") {
+    button.disabled = busy || !controls.canPrevious;
     return;
   }
   const hasPlayableTrack = visualizer.dataset.hasTrack === "true" && readVisualizerTargetDurationMs(visualizer) > 0;

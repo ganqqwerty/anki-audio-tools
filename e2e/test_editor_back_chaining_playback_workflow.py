@@ -62,6 +62,7 @@ def test_back_chaining_practice_loops_suffixes_and_pauses_for_normal_play(
             and state["selectionStartMs"] == 0
             and state["selectionEndMs"] == 2000,
         )
+        shorter = _click_back_chaining_previous(editor, expected_index=1)
 
         run_js(editor.web, "document.querySelector('[data-testid=\"aqe-button-0-play\"]')?.click()")
         paused = _state(
@@ -81,7 +82,9 @@ def test_back_chaining_practice_loops_suffixes_and_pauses_for_normal_play(
         assert after_insert_next["backChainingActiveStartMs"] == 1000
         assert longer["backChainingActiveStartMs"] == 667
         assert full_sentence["backChainingActiveStartMs"] == 0
-        assert paused["selectionStartMs"] == 0
+        assert shorter["backChainingActiveStartMs"] == 667
+        assert shorter["selectionStartMs"] == 667
+        assert paused["selectionStartMs"] == 667
     finally:
         editor.set_note(None)
         parent.close()
@@ -288,6 +291,22 @@ def _click_back_chaining_next(editor, *, expected_index: int = 1):
         """
         (() => {
           const button = document.querySelector('[data-testid="aqe-button-0-back-chain-next"]');
+          if (!button || button.disabled) return null;
+          button.click();
+          return window.__aqeGraphStateForTest?.(0) || null;
+        })()
+        """,
+        lambda state: state is not None and state["backChainingActiveMarkerIndex"] == expected_index,
+        timeout=5.0,
+    )
+
+
+def _click_back_chaining_previous(editor, *, expected_index: int = 1):
+    return wait_for_js_condition(
+        editor.web,
+        """
+        (() => {
+          const button = document.querySelector('[data-testid="aqe-button-0-back-chain-previous"]');
           if (!button || button.disabled) return null;
           button.click();
           return window.__aqeGraphStateForTest?.(0) || null;

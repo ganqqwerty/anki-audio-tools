@@ -30,6 +30,7 @@ describe("App", () => {
     expect(screen.getByText("Editor toolbar buttons")).toBeInTheDocument();
     expect(screen.getByTestId("button-settings-settings")).toBeInTheDocument();
     expect(screen.getByTestId("button-settings-play")).toBeInTheDocument();
+    expect(screen.getByTestId("button-settings-back-chain-previous")).toBeInTheDocument();
     expect(screen.getByText("Speaker's voice")).toBeInTheDocument();
     expect(screen.getByText("Recording condition")).toBeInTheDocument();
     expect(screen.getByText("Graph smoothness")).toBeInTheDocument();

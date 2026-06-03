@@ -40,6 +40,10 @@ export function send(
     moveBackChainingForOrd(ord, "next");
     return;
   }
+  if (command === "aqe:back-chain-previous") {
+    moveBackChainingForOrd(ord, "previous");
+    return;
+  }
   if (command === "aqe:play" && pauseBackChainingForNormalPlay(ord)) {
     return;
   }

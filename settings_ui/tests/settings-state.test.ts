@@ -32,6 +32,7 @@ const config: Config = {
     VisibleEditorButton.AqePlay,
     VisibleEditorButton.AqeAnalyze,
     VisibleEditorButton.AqeBackChainPractice,
+    VisibleEditorButton.AqeBackChainPrevious,
     VisibleEditorButton.AqeBackChainNext,
     VisibleEditorButton.AqeShowFile,
     VisibleEditorButton.AqeShare,

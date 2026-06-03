@@ -12,6 +12,7 @@ export type EditorCommand =
   | "aqe:play"
   | "aqe:analyze"
   | "aqe:back-chain-practice"
+  | "aqe:back-chain-previous"
   | "aqe:back-chain-next"
   | "aqe:record-voice"
   | "aqe:stop-recording"
@@ -52,6 +53,7 @@ export const DEFAULT_VISIBLE_EDITOR_BUTTONS = [
   "aqe:play",
   "aqe:analyze",
   "aqe:back-chain-practice",
+  "aqe:back-chain-previous",
   "aqe:back-chain-next",
   "aqe:show-file",
   "aqe:share",
@@ -69,6 +71,7 @@ export const DEFAULT_EDITOR_BUTTON_MODES = {
   "aqe:play": EditorButtonMode.Icon,
   "aqe:analyze": EditorButtonMode.Icon,
   "aqe:back-chain-practice": EditorButtonMode.Icon,
+  "aqe:back-chain-previous": EditorButtonMode.Icon,
   "aqe:back-chain-next": EditorButtonMode.Icon,
   "aqe:record-voice": EditorButtonMode.Icon,
   "aqe:play-recording": EditorButtonMode.Icon,
@@ -126,6 +129,13 @@ export function commandButtons(): readonly ToolbarButtonSpec[] {
       iconOnly: true,
       label: t("editor.command.back_chain_practice.label"),
       title: t("editor.command.back_chain_practice.title"),
+    },
+    {
+      command: "aqe:back-chain-previous",
+      icon: "skip-back",
+      iconOnly: true,
+      label: t("editor.command.back_chain_previous.label"),
+      title: t("editor.command.back_chain_previous.title"),
     },
     {
       command: "aqe:back-chain-next",

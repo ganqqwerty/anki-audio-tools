@@ -10,7 +10,7 @@ In scope:
 
 - Remove the selected-region Back-chaining submenu and panel.
 - Remove Clear markers, Move to shorter suffix, and Edit markers actions.
-- Add two configurable main editor toolbar commands: Practice/Pause Back-chaining and Longer suffix.
+- Add three configurable main editor toolbar commands: Practice/Pause Back-chaining, Shorter suffix, and Longer suffix.
 - Treat marker editing as always available as soon as a playable graph is shown.
 - Support marker additions and removals during active practice.
 - Restrict back-chaining practice to the whole audio file.
@@ -20,7 +20,7 @@ Out of scope:
 
 - Persisting back-chaining markers.
 - Supporting practice on graph selections.
-- Adding shorter-suffix navigation through keyboard shortcuts or hidden UI.
+- Adding shorter-suffix navigation anywhere except the main toolbar command.
 - Changing Python playback transport semantics beyond the existing `source: "back_chaining"` request path.
 
 ## Approved UX
@@ -30,9 +30,10 @@ Back-chaining appears in the main inline editor toolbar, beside other editor but
 Toolbar commands:
 
 - `aqe:back-chain-practice`: starts back-chaining practice, pauses active practice, and resumes from the active suffix.
+- `aqe:back-chain-previous`: moves to the shorter suffix to the right.
 - `aqe:back-chain-next`: moves to the longer suffix to the left.
 
-Both commands are normal toolbar buttons and appear in Settings under "Editor toolbar buttons." Defaults include both commands so the feature remains discoverable after the submenu is removed. Users can hide either button through settings.
+All three commands are normal toolbar buttons and appear in Settings under "Editor toolbar buttons." Defaults include all three commands so the feature remains discoverable after the submenu is removed. Users can hide any of them through settings.
 
 The selected-region toolbar keeps only selection-scoped actions such as Play selection, Delete region, Delete rest, collapse, and expand. It no longer renders Back-chaining, the back-chaining panel, or any disclosure/submenu UI.
 
@@ -44,7 +45,6 @@ Remove these state concepts from the back-chaining model:
 - `panelOpen`
 - `canClear`
 - `canEdit`
-- `canPrevious`
 
 Back-chaining state keeps only the data required for whole-file practice:
 
@@ -89,7 +89,7 @@ This ensures mid-practice marker edits affect the next playback/navigation step 
 
 ## Settings And Contracts
 
-Add both command IDs everywhere the toolbar command inventory is defined:
+Add all three command IDs everywhere the toolbar command inventory is defined:
 
 - `settings_ui/src/lib/editor-toolbar-buttons.ts`
 - `addon/anki_audio_quick_editor/config.schema.json`
@@ -99,7 +99,7 @@ Add both command IDs everywhere the toolbar command inventory is defined:
 - settings fixtures and Python test fixtures
 - command slug tests
 
-Default display mode is icon for both new commands. Use clear labels and titles in `addon/anki_audio_quick_editor/locales/en.json`; update other locale files with English fallback text if the project has no translation workflow for this change.
+Default display mode is icon for all three back-chaining toolbar commands. Use clear labels and titles in `addon/anki_audio_quick_editor/locales/en.json`; update other locale files with English fallback text if the project has no translation workflow for this change.
 
 ## Architecture
 
@@ -107,7 +107,7 @@ Default display mode is icon for both new commands. Use clear labels and titles 
 
 `settings_ui/src/editor-inline/back-chaining-controller.ts` owns visualizer state transitions, marker row clicks, playback requests, and repeat restoration. It should not depend on selection-toolbar state for entry.
 
-`settings_ui/src/editor-inline/command-actions.ts` routes the two new toolbar commands to the controller before bridge dispatch. These commands are frontend-only and must not be sent to Python as editor bridge commands.
+`settings_ui/src/editor-inline/command-actions.ts` routes the back-chaining toolbar commands to the controller before bridge dispatch. These commands are frontend-only and must not be sent to Python as editor bridge commands.
 
 `SelectionToolbar.svelte` should stop importing or rendering back-chaining UI. `GraphVisualizer.svelte` keeps the marker row because the row is part of the graph surface, not the removed submenu.
 
@@ -122,19 +122,20 @@ Pure state tests:
 
 Svelte integration tests:
 
-- the main toolbar renders `aqe:back-chain-practice` and `aqe:back-chain-next` when visible,
-- the Settings visibility grid renders both commands and can toggle them,
+- the main toolbar renders `aqe:back-chain-practice`, `aqe:back-chain-previous`, and `aqe:back-chain-next` when visible,
+- the Settings visibility grid renders all three commands and can toggle them,
 - the selection toolbar no longer renders Back-chaining entry or a back-chaining panel,
 - starting back-chaining ignores an existing committed graph selection and uses the full file,
+- the Shorter suffix command moves practice from the full-file suffix back toward the end of the file,
 - marker row clicks work without edit mode immediately after the graph is shown,
 - adding a marker mid-practice changes the next longer suffix to the newly added marker,
 - removing a marker mid-practice clamps the active marker index predictably.
 
 Python/config tests:
 
-- config schema accepts both new command IDs in `visible_editor_buttons` and `editor_button_modes`,
+- config schema accepts all three back-chaining command IDs in `visible_editor_buttons` and `editor_button_modes`,
 - settings save sanitization keeps the new command IDs and drops stale IDs,
-- editor config injection includes both default visible buttons and button modes.
+- editor config injection includes all three default visible buttons and button modes.
 
 E2E tests:
 

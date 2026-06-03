@@ -324,6 +324,7 @@ export interface GraphStateForTest {
   backChainingBaseEndMs: number | null;
   backChainingBaseStartMs: number | null;
   backChainingCanNext: boolean;
+  backChainingCanPrevious: boolean;
   backChainingCanPractice: boolean;
   backChainingMarkerVisibleXs: number[];
   backChainingMarkersMs: number[];

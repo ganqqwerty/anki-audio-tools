@@ -63,6 +63,7 @@ def test_settings_save_drops_stale_visible_editor_buttons() -> None:
             "aqe:play",
             "aqe:back-chain-practice",
             "aqe:stale-button",
+            "aqe:back-chain-previous",
             "aqe:back-chain-next",
             "aqe:settings",
         ],
@@ -75,6 +76,7 @@ def test_settings_save_drops_stale_visible_editor_buttons() -> None:
     assert saved_config["visible_editor_buttons"] == [
         "aqe:play",
         "aqe:back-chain-practice",
+        "aqe:back-chain-previous",
         "aqe:back-chain-next",
         "aqe:settings",
     ]

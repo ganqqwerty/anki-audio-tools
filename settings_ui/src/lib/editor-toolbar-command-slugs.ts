@@ -4,6 +4,7 @@ export const COMMAND_SLUGS: Readonly<Record<EditorCommand, string>> = {
   "aqe:play": "play",
   "aqe:analyze": "graph",
   "aqe:back-chain-practice": "back-chain-practice",
+  "aqe:back-chain-previous": "back-chain-previous",
   "aqe:back-chain-next": "back-chain-next",
   "aqe:record-voice": "record-voice",
   "aqe:stop-recording": "stop-recording",

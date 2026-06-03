@@ -165,6 +165,8 @@
   "editor.command.back_chain_practice.label": "逆向鏈式",
   "editor.command.back_chain_practice.title": "使用可編輯的逆向鏈式標記，從檔案末尾開始練習。",
   "editor.command.back_chain_practice.pause_title": "暫停逆向鏈式練習。",
+  "editor.command.back_chain_previous.label": "更短後綴",
+  "editor.command.back_chain_previous.title": "移動到下一個更短的逆向鏈式後綴。",
   "editor.command.back_chain_next.label": "更長後綴",
   "editor.command.back_chain_next.title": "移動到下一個更長的逆向鏈式後綴。",
   "editor.command.record_group.label": "錄製和播放自己的錄音",

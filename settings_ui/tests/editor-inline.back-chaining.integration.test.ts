@@ -47,6 +47,7 @@ describe("editor inline back-chaining integration", () => {
       backChainingBaseEndMs: 1000,
       backChainingBaseStartMs: 0,
       backChainingCanPractice: true,
+      backChainingCanPrevious: false,
       backChainingMarkersMs: [0, 333, 667],
       backChainingState: "stopped",
     });
@@ -87,6 +88,7 @@ describe("editor inline back-chaining integration", () => {
     });
     expect(row.querySelectorAll(".aqe-back-chaining-boundary-marker")).toHaveLength(1);
     expect(practiceButton().dataset.aqeButtonState).toBe("pause");
+    expect(previousButton().disabled).toBe(true);
     expect(nextButton().disabled).toBe(false);
   });
 
@@ -106,7 +108,7 @@ describe("editor inline back-chaining integration", () => {
     });
   });
 
-  it("advances to longer suffixes from the toolbar and normal Play pauses practice", async () => {
+  it("moves between longer and shorter suffixes from the toolbar and normal Play pauses practice", async () => {
     await prepareBackChainingGraph();
     prepareHtmlAudio();
 
@@ -137,6 +139,18 @@ describe("editor inline back-chaining integration", () => {
       selectionStartMs: 0,
     });
     expect(nextButton().disabled).toBe(true);
+    expect(previousButton().disabled).toBe(false);
+
+    previousButton().click();
+    await Promise.resolve();
+    expect(window.__aqeGraphStateForTest?.(0)).toMatchObject({
+      backChainingActiveMarkerIndex: 1,
+      playbackStartMs: 333,
+      selectionEndMs: 1000,
+      selectionStartMs: 333,
+    });
+    expect(nextButton().disabled).toBe(false);
+    expect(previousButton().disabled).toBe(false);
 
     document.querySelector<HTMLButtonElement>('[data-testid="aqe-button-0-play"]')!.click();
     await Promise.resolve();
@@ -220,4 +234,8 @@ function practiceButton(): HTMLButtonElement {
 
 function nextButton(): HTMLButtonElement {
   return document.querySelector<HTMLButtonElement>('[data-testid="aqe-button-0-back-chain-next"]')!;
+}
+
+function previousButton(): HTMLButtonElement {
+  return document.querySelector<HTMLButtonElement>('[data-testid="aqe-button-0-back-chain-previous"]')!;
 }

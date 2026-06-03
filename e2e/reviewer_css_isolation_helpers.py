@@ -223,18 +223,20 @@ def assert_reviewer_tooltip_css_isolated(reviewer) -> None:
 def assert_reviewer_back_chaining_marker_row_css_isolated(reviewer, field_ord: int) -> None:
     """Assert back-chaining toolbar controls and marker row keep isolated styling."""
     practice_selector = _button_selector("aqe:back-chain-practice", field_ord)
+    previous_selector = _button_selector("aqe:back-chain-previous", field_ord)
     next_selector = _button_selector("aqe:back-chain-next", field_ord)
     back_chaining_style = wait_for_js_condition(
         reviewer.web,
         f"""
         (() => {{
           const practice = document.querySelector({practice_selector!r});
+          const previous = document.querySelector({previous_selector!r});
           const next = document.querySelector({next_selector!r});
           const oldEntry = document.querySelector('[data-testid="aqe-selection-toolbar-back-chaining-{field_ord}"]');
           const row = document.querySelector('[data-testid="aqe-back-chaining-marker-row-{field_ord}"]');
           const hitbox = document.querySelector('.aqe-back-chaining-marker-hitbox');
           const svg = document.querySelector('[data-testid="aqe-graph-svg-{field_ord}"]');
-          if (!practice || !next || oldEntry || !row || !hitbox || !svg) return null;
+          if (!practice || !previous || !next || oldEntry || !row || !hitbox || !svg) return null;
           if (row.getAttribute("aria-hidden") === "true") {{
             const rect = svg.getBoundingClientRect();
             const EventCtor = window.PointerEvent || window.MouseEvent;
@@ -253,6 +255,7 @@ def assert_reviewer_back_chaining_marker_row_css_isolated(reviewer, field_ord: i
           const marker = row.querySelector('.aqe-back-chaining-marker');
           if (row.getAttribute("aria-hidden") === "true" || !track || !marker) return null;
           const practiceStyle = getComputedStyle(practice);
+          const previousStyle = getComputedStyle(previous);
           const nextStyle = getComputedStyle(next);
           const rowStyle = getComputedStyle(row);
           const trackStyle = getComputedStyle(track);
@@ -260,6 +263,7 @@ def assert_reviewer_back_chaining_marker_row_css_isolated(reviewer, field_ord: i
           return {{
             markerStrokeWidth: markerStyle.strokeWidth,
             nextFontSize: nextStyle.fontSize,
+            previousFontSize: previousStyle.fontSize,
             practiceFontSize: practiceStyle.fontSize,
             rowOpacity: rowStyle.opacity,
             trackFill: trackStyle.fill,
@@ -272,6 +276,7 @@ def assert_reviewer_back_chaining_marker_row_css_isolated(reviewer, field_ord: i
     )
     assert back_chaining_style["markerStrokeWidth"] == "3px"
     assert back_chaining_style["nextFontSize"] == "12px"
+    assert back_chaining_style["previousFontSize"] == "12px"
     assert back_chaining_style["practiceFontSize"] == "12px"
     assert back_chaining_style["rowOpacity"] == "1"
     assert back_chaining_style["trackFill"] in {"rgb(255, 255, 255)", "rgb(255 255 255)"}

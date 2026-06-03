@@ -177,6 +177,8 @@
   "editor.command.back_chain_practice.label": "Rückwärtskette",
   "editor.command.back_chain_practice.title": "Datei vom Ende her mit bearbeitbaren Back-Chaining-Marken üben.",
   "editor.command.back_chain_practice.pause_title": "Back-Chaining-Übung pausieren.",
+  "editor.command.back_chain_previous.label": "Kürzerer Abschnitt",
+  "editor.command.back_chain_previous.title": "Zum nächsten kürzeren Back-Chaining-Abschnitt wechseln.",
   "editor.command.back_chain_next.label": "Längerer Abschnitt",
   "editor.command.back_chain_next.title": "Zum nächsten längeren Back-Chaining-Abschnitt wechseln.",
   "editor.command.record_group.label": "Aufnehmen und eigene Wiedergabe",

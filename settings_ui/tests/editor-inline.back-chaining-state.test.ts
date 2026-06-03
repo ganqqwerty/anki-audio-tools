@@ -93,6 +93,7 @@ describe("editor inline back-chaining state", () => {
     const stopped = emptyBackChainingState();
     expect(backChainingControlAvailability(stopped)).toEqual({
       canNext: false,
+      canPrevious: false,
       canPractice: false,
     });
 
@@ -104,6 +105,7 @@ describe("editor inline back-chaining state", () => {
     };
     expect(backChainingControlAvailability(ready)).toEqual({
       canNext: true,
+      canPrevious: false,
       canPractice: true,
     });
     expect(markerNavigationAvailability([1200, 1500, 1900], 0)).toEqual({

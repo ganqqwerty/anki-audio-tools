@@ -177,6 +177,8 @@
   "editor.command.back_chain_practice.label": "Back-chain",
   "editor.command.back_chain_practice.title": "Practice the file from the end with editable back-chaining markers.",
   "editor.command.back_chain_practice.pause_title": "Pause back-chaining practice.",
+  "editor.command.back_chain_previous.label": "Shorter suffix",
+  "editor.command.back_chain_previous.title": "Move to the next shorter back-chaining suffix.",
   "editor.command.back_chain_next.label": "Longer suffix",
   "editor.command.back_chain_next.title": "Move to the next longer back-chaining suffix.",
   "editor.command.record_group.label": "Record / Play yours",

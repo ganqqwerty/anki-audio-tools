@@ -165,6 +165,8 @@
   "editor.command.back_chain_practice.label": "Chuỗi ngược",
   "editor.command.back_chain_practice.title": "Luyện từ cuối tệp với các mốc chuỗi ngược có thể chỉnh sửa.",
   "editor.command.back_chain_practice.pause_title": "Tạm dừng luyện chuỗi ngược.",
+  "editor.command.back_chain_previous.label": "Đoạn ngắn hơn",
+  "editor.command.back_chain_previous.title": "Chuyển sang đoạn chuỗi ngược ngắn hơn tiếp theo.",
   "editor.command.back_chain_next.label": "Đoạn dài hơn",
   "editor.command.back_chain_next.title": "Chuyển sang đoạn chuỗi ngược dài hơn tiếp theo.",
   "editor.command.record_group.label": "Ghi âm và phát bản của bạn",

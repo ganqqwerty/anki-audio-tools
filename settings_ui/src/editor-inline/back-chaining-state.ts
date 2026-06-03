@@ -14,6 +14,7 @@ export interface BackChainingState {
 
 export interface BackChainingControlAvailability {
   canNext: boolean;
+  canPrevious: boolean;
   canPractice: boolean;
 }
 
@@ -154,6 +155,7 @@ export function backChainingControlAvailability(state: BackChainingState): BackC
   const navigation = markerNavigationAvailability(state.markersMs, state.activeMarkerIndex);
   return {
     canNext: navigation.canNext,
+    canPrevious: navigation.canPrevious,
     canPractice: hasBaseRegion && hasMarkers,
   };
 }

@@ -68,6 +68,7 @@
     if (command === "aqe:undo") return !availability.canUndo;
     if (command === "aqe:redo") return !availability.canRedo;
     if (command === "aqe:back-chain-next") return true;
+    if (command === "aqe:back-chain-previous") return true;
     if (command === "aqe:record-voice" || command === "aqe:play-recording") return true;
     return false;
   }

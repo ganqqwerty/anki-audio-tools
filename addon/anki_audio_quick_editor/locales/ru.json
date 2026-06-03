@@ -165,6 +165,8 @@
   "editor.command.back_chain_practice.label": "Обратная цепочка",
   "editor.command.back_chain_practice.title": "Тренироваться с конца файла, используя редактируемые маркеры обратной цепочки.",
   "editor.command.back_chain_practice.pause_title": "Приостановить тренировку обратной цепочкой.",
+  "editor.command.back_chain_previous.label": "Короче",
+  "editor.command.back_chain_previous.title": "Перейти к следующему более короткому фрагменту обратной цепочки.",
   "editor.command.back_chain_next.label": "Длиннее",
   "editor.command.back_chain_next.title": "Перейти к следующему более длинному фрагменту обратной цепочки.",
   "editor.command.record_group.label": "Запись и свое воспроизведение",

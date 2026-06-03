@@ -31,6 +31,7 @@ export const defaultConfig = {
     VisibleEditorButton.AqePlay,
     VisibleEditorButton.AqeAnalyze,
     VisibleEditorButton.AqeBackChainPractice,
+    VisibleEditorButton.AqeBackChainPrevious,
     VisibleEditorButton.AqeBackChainNext,
     VisibleEditorButton.AqeShowFile,
     VisibleEditorButton.AqeShare,

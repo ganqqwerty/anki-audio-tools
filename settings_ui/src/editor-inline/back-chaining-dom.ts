@@ -22,6 +22,7 @@ export interface BackChainingControlsState {
   baseEndMs: number | null;
   baseStartMs: number | null;
   canNext: boolean;
+  canPrevious: boolean;
   canPractice: boolean;
   markersMs: number[];
   practiceState: "paused" | "playing" | "stopped";
@@ -92,6 +93,7 @@ function controlsSnapshot(
     baseEndMs: state.baseRegion?.endMs ?? null,
     baseStartMs: state.baseRegion?.startMs ?? null,
     canNext: availability.canNext,
+    canPrevious: availability.canPrevious,
     canPractice: availability.canPractice,
     markersMs: state.markersMs,
     practiceState: state.practiceState,

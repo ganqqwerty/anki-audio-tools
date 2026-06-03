@@ -64,6 +64,7 @@ describe("editor inline action workflows", () => {
     expect(commandSlugsForTest()["aqe:voice-only"]).toBe("voice-only");
     expect(commandSlugsForTest()["aqe:convert"]).toBe("convert");
     expect(commandSlugsForTest()["aqe:back-chain-practice"]).toBe("back-chain-practice");
+    expect(commandSlugsForTest()["aqe:back-chain-previous"]).toBe("back-chain-previous");
     expect(commandSlugsForTest()["aqe:back-chain-next"]).toBe("back-chain-next");
     expect(commandSlugsForTest()["aqe:redo"]).toBe("redo");
     expect(commandSlugsForTest()["aqe:settings"]).toBe("settings");

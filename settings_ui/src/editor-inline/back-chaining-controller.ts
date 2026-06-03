@@ -1,7 +1,5 @@
-import { buttonFor, visualizerForOrd } from "./dom-selectors.js";
+import { visualizerForOrd } from "./dom-selectors.js";
 import { focusAndSendCommand } from "./bridge.js";
-import { t } from "../lib/i18n.js";
-import { setButtonTooltipContent } from "../lib/rich-tooltip.js";
 import { markerClickFromEvent } from "./graph-overlay-geometry.js";
 import {
   playbackEngineFor,
@@ -16,10 +14,10 @@ import { SELECTION_CHANGED_EVENT, notifySelectionChanged, type SelectionChangedD
 import { syncSelectionToolbar } from "./selection-toolbar-state.js";
 import {
   renderBackChainingMarkerRow,
-  backChainingControlsForVisualizer,
   backChainingStateForVisualizer,
   writeBackChainingState,
 } from "./back-chaining-dom.js";
+import { syncBackChainingToolbarButtons } from "./back-chaining-toolbar.js";
 import {
   activeMarkerIndexAfterMarkerToggle,
   chooseInitialActiveMarkerIndex,
@@ -317,32 +315,4 @@ function restoreOrdinaryRepeat(visualizer: VisualizerElement, state: BackChainin
 function writeState(visualizer: VisualizerElement, state: BackChainingState): void {
   writeBackChainingState(visualizer, state);
   syncBackChainingToolbarButtons(visualizer);
-}
-
-function syncBackChainingToolbarButtons(visualizer: VisualizerElement): void {
-  const ord = Number(visualizer.dataset.aqeFieldOrd || "0");
-  const controls = backChainingControlsForVisualizer(visualizer);
-  const hasPlayableTrack = visualizer.dataset.hasTrack === "true" && readVisualizerTargetDurationMs(visualizer) > 0;
-  const busy = document.body.dataset.aqeBusy === "true" || visualizer.dataset.graphBusy === "true";
-  const practiceButton = buttonFor(ord, "aqe:back-chain-practice");
-  if (practiceButton) {
-    const playing = controls.practiceState === "playing";
-    const canInitialize = controls.baseStartMs === null && hasPlayableTrack;
-    practiceButton.disabled = busy || !(controls.canPractice || canInitialize);
-    practiceButton.dataset.aqeButtonState = playing ? "pause" : "default";
-    practiceButton.setAttribute("aria-pressed", playing ? "true" : "false");
-    practiceButton.setAttribute("aria-disabled", practiceButton.disabled ? "true" : "false");
-    const title = playing
-      ? t("editor.command.back_chain_practice.pause_title")
-      : t("editor.command.back_chain_practice.title");
-    practiceButton.setAttribute("aria-label", title);
-    setButtonTooltipContent(practiceButton, title);
-  }
-  const nextButton = buttonFor(ord, "aqe:back-chain-next");
-  if (nextButton) {
-    nextButton.disabled = busy || !controls.canNext;
-    nextButton.dataset.aqeButtonState = controls.canNext ? "default" : "unavailable";
-    nextButton.setAttribute("aria-disabled", nextButton.disabled ? "true" : "false");
-    setButtonTooltipContent(nextButton, t("editor.command.back_chain_next.title"));
-  }
 }

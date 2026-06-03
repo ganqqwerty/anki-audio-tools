@@ -165,6 +165,8 @@
   "editor.command.back_chain_practice.label": "バックチェーン",
   "editor.command.back_chain_practice.title": "編集可能なバックチェイニングマーカーを使ってファイル末尾から練習します。",
   "editor.command.back_chain_practice.pause_title": "バックチェイニング練習を一時停止します。",
+  "editor.command.back_chain_previous.label": "短い語尾",
+  "editor.command.back_chain_previous.title": "次の短いバックチェイニング語尾へ移動します。",
   "editor.command.back_chain_next.label": "長い語尾",
   "editor.command.back_chain_next.title": "次の長いバックチェイニング語尾へ移動します。",
   "editor.command.record_group.label": "録音と自分の再生",

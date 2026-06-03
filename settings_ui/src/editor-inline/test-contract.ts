@@ -219,6 +219,7 @@ export function graphStateForTest(ord: number): GraphStateForTest | null {
     backChainingBaseEndMs: backChaining.baseEndMs,
     backChainingBaseStartMs: backChaining.baseStartMs,
     backChainingCanNext: backChaining.canNext,
+    backChainingCanPrevious: backChaining.canPrevious,
     backChainingCanPractice: backChaining.canPractice,
     backChainingMarkerVisibleXs: backChaining.visibleMarkers.map((marker) => marker.x),
     backChainingMarkersMs: backChaining.markersMs,
