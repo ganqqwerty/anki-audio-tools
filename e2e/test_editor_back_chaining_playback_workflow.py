@@ -127,6 +127,39 @@ def test_back_chaining_marker_row_is_immediately_editable_after_graph_shows(
             and value["trackVisible"] is True,
             timeout=5.0,
         )
+        toolbar_panel = wait_for_js_condition(
+            editor.web,
+            """
+            (() => {
+              const panel = document.querySelector('[data-testid="aqe-back-chaining-toolbar-panel-0"]');
+              if (!panel) return null;
+              const style = getComputedStyle(panel);
+              return {
+                ariaLabel: panel.getAttribute("aria-label"),
+                borderRadius: style.borderRadius,
+                borderTopWidth: style.borderTopWidth,
+                commands: Array.from(panel.querySelectorAll("[data-aqe-command]"))
+                  .map((button) => button.getAttribute("data-aqe-command")),
+                display: style.display,
+                label: panel.querySelector(".aqe-toolbar-panel-label")?.textContent || "",
+                role: panel.getAttribute("role"),
+              };
+            })()
+            """,
+            lambda value: value is not None
+            and value["ariaLabel"] == "Back-chaining"
+            and value["borderRadius"] == "9px"
+            and value["borderTopWidth"] == "1px"
+            and value["commands"] == [
+                "aqe:back-chain-practice",
+                "aqe:back-chain-previous",
+                "aqe:back-chain-next",
+            ]
+            and value["display"] in {"flex", "inline-flex"}
+            and value["label"] == "Back-chaining"
+            and value["role"] == "group",
+            timeout=5.0,
+        )
 
         inserted = _click_back_chaining_marker(editor, 0.5, expected_count=4)
         _click_back_chaining_practice(editor)
@@ -139,6 +172,11 @@ def test_back_chaining_marker_row_is_immediately_editable_after_graph_shows(
 
         assert initial["backChainingCanPractice"] is True
         assert rail["hidden"] == "false"
+        assert toolbar_panel["commands"] == [
+            "aqe:back-chain-practice",
+            "aqe:back-chain-previous",
+            "aqe:back-chain-next",
+        ]
         assert inserted["backChainingActiveStartMs"] == 1333
         assert playing["selectionStartMs"] == 1333
     finally:

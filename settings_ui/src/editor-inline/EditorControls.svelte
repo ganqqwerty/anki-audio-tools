@@ -1,23 +1,24 @@
 <script lang="ts">
   import AqeTooltip from "../lib/AqeTooltip.svelte";
   import AqeTooltipProvider from "../lib/AqeTooltipProvider.svelte";
-  import { testId, toolbarButtons, visibleToolbarButtons } from "./commands.js";
+  import { toolbarButtons, visibleToolbarButtons } from "./commands.js";
   import { buttonDisplayMode } from "../lib/editor-toolbar-buttons.js";
   import { t } from "../lib/i18n.js";
-  import { EditorButtonMode } from "../lib/types.js";
-  import EditorCommandIcon from "./EditorCommandIcon.svelte";
   import EditorHelp from "./EditorHelp.svelte";
+  import EditorToolbarButton from "./EditorToolbarButton.svelte";
   import GraphVisualizer from "./GraphVisualizer.svelte";
   import PlaySplitButton from "./PlaySplitButton.svelte";
   import SplitButton from "./SplitButton.svelte";
-  import {
-    historyAvailability,
-    send,
-  } from "./actions.js";
+  import { historyAvailability } from "./actions.js";
   import type { ButtonSpec, FieldTarget } from "./types.js";
 
   type ToolbarRenderItem =
     | { button: ButtonSpec; kind: "button" }
+    | {
+      buttons: readonly [ButtonSpec, ButtonSpec, ButtonSpec];
+      kind: "back-chaining-group";
+      label: string;
+    }
     | {
       buttons: readonly [ButtonSpec, ButtonSpec];
       kind: "group";
@@ -73,17 +74,26 @@
     return false;
   }
 
-  function initialButtonTitle(button: { command: string; title: string }): string {
-    const unavailableTitle = disabledTitle(button.command);
-    return initialButtonDisabled(button.command) && unavailableTitle ? unavailableTitle : button.title;
-  }
-
   function buildToolbarRenderItems(buttons: readonly ButtonSpec[]): readonly ToolbarRenderItem[] {
     const items: ToolbarRenderItem[] = [];
     for (let index = 0; index < buttons.length; index += 1) {
       const button = buttons[index];
       if (!button) continue;
       const next = buttons[index + 1];
+      const afterNext = buttons[index + 2];
+      if (
+        button.command === "aqe:back-chain-practice"
+        && next?.command === "aqe:back-chain-previous"
+        && afterNext?.command === "aqe:back-chain-next"
+      ) {
+        items.push({
+          buttons: [button, next, afterNext],
+          kind: "back-chaining-group",
+          label: t("editor.back_chaining.title"),
+        });
+        index += 2;
+        continue;
+      }
       if (button.command === "aqe:record-voice" && next?.command === "aqe:play-recording") {
         items.push({
           kind: "recording-group",
@@ -127,7 +137,7 @@
     data-aqe-source-filename={target.sourceFilename}
     data-testid={`aqe-controls-${target.ord}`}
   >
-    {#each renderItems as item (item.kind === "group" ? `${item.menuSlug}:${item.buttons[0].command}` : item.kind === "recording-group" ? `recording:${item.record.command}` : item.button.command)}
+    {#each renderItems as item (item.kind === "group" ? `${item.menuSlug}:${item.buttons[0].command}` : item.kind === "recording-group" ? `recording:${item.record.command}` : item.kind === "back-chaining-group" ? `back-chaining:${item.buttons[0].command}` : item.button.command)}
       {#if item.kind === "group"}
         <span class="aqe-split-group">
           <SplitButton
@@ -180,6 +190,24 @@
             {target}
           />
         </span>
+      {:else if item.kind === "back-chaining-group"}
+        <span
+          class="aqe-toolbar-panel aqe-back-chaining-toolbar-panel"
+          data-testid={`aqe-back-chaining-toolbar-panel-${target.ord}`}
+          role="group"
+          aria-label={item.label}
+        >
+          <span class="aqe-toolbar-panel-label" aria-hidden="true">{item.label}</span>
+          {#each item.buttons as button (button.command)}
+            <EditorToolbarButton
+              {button}
+              displayMode={buttonDisplayMode(button.command, buttonModes)}
+              disabled={initialButtonDisabled(button.command)}
+              disabledTitle={disabledTitle(button.command)}
+              {target}
+            />
+          {/each}
+        </span>
       {:else if item.button.command === "aqe:play"}
         <PlaySplitButton
           button={item.button}
@@ -195,41 +223,13 @@
         />
       {:else}
         {@const button = item.button}
-        {@const displayMode = buttonDisplayMode(button.command, buttonModes)}
-        <AqeTooltip>
-          {#snippet trigger({ props })}
-            <span
-              {...props}
-              class="aqe-button-tooltip-target aqe-tooltip-target"
-              data-aqe-tooltip-content={initialButtonTitle(button)}
-            >
-              <button
-                type="button"
-                class:aqe-icon-only={displayMode === EditorButtonMode.Icon}
-                class="aqe-button"
-                data-aqe-command={button.command}
-                data-aqe-button-state={button.command === "aqe:analyze" ? "graph" : "default"}
-                data-aqe-disabled-title={disabledTitle(button.command)}
-                data-aqe-enabled-title={button.title}
-                data-testid={testId(target.ord, button.command)}
-                disabled={initialButtonDisabled(button.command)}
-                aria-label={initialButtonTitle(button)}
-                onmousedown={(event) => event.preventDefault()}
-                onclick={() => send(button.command, target.node, target.ord)}
-              >
-                {#if displayMode === EditorButtonMode.Icon}
-                  <EditorCommandIcon className="aqe-button-icon-default" icon={button.icon} />
-                  {#if button.activeIcon}
-                    <EditorCommandIcon className="aqe-button-icon-active" icon={button.activeIcon} />
-                  {/if}
-                  <span class="aqe-button-label">{button.label}</span>
-                {:else}
-                  <span class="aqe-button-label">{button.label}</span>
-                {/if}
-              </button>
-            </span>
-          {/snippet}
-        </AqeTooltip>
+        <EditorToolbarButton
+          {button}
+          displayMode={buttonDisplayMode(button.command, buttonModes)}
+          disabled={initialButtonDisabled(button.command)}
+          disabledTitle={disabledTitle(button.command)}
+          {target}
+        />
       {/if}
     {/each}
     <EditorHelp ord={target.ord} />

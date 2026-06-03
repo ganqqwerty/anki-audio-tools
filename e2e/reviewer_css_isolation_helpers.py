@@ -232,11 +232,12 @@ def assert_reviewer_back_chaining_marker_row_css_isolated(reviewer, field_ord: i
           const practice = document.querySelector({practice_selector!r});
           const previous = document.querySelector({previous_selector!r});
           const next = document.querySelector({next_selector!r});
+          const panel = document.querySelector('[data-testid="aqe-back-chaining-toolbar-panel-{field_ord}"]');
           const oldEntry = document.querySelector('[data-testid="aqe-selection-toolbar-back-chaining-{field_ord}"]');
           const row = document.querySelector('[data-testid="aqe-back-chaining-marker-row-{field_ord}"]');
           const hitbox = document.querySelector('.aqe-back-chaining-marker-hitbox');
           const svg = document.querySelector('[data-testid="aqe-graph-svg-{field_ord}"]');
-          if (!practice || !previous || !next || oldEntry || !row || !hitbox || !svg) return null;
+          if (!practice || !previous || !next || !panel || oldEntry || !row || !hitbox || !svg) return null;
           if (row.getAttribute("aria-hidden") === "true") {{
             const rect = svg.getBoundingClientRect();
             const EventCtor = window.PointerEvent || window.MouseEvent;
@@ -257,12 +258,17 @@ def assert_reviewer_back_chaining_marker_row_css_isolated(reviewer, field_ord: i
           const practiceStyle = getComputedStyle(practice);
           const previousStyle = getComputedStyle(previous);
           const nextStyle = getComputedStyle(next);
+          const panelStyle = getComputedStyle(panel);
           const rowStyle = getComputedStyle(row);
           const trackStyle = getComputedStyle(track);
           const markerStyle = getComputedStyle(marker);
           return {{
             markerStrokeWidth: markerStyle.strokeWidth,
             nextFontSize: nextStyle.fontSize,
+            panelBorderRadius: panelStyle.borderRadius,
+            panelBorderTopWidth: panelStyle.borderTopWidth,
+            panelDisplay: panelStyle.display,
+            panelLabel: panel.querySelector(".aqe-toolbar-panel-label")?.textContent || "",
             previousFontSize: previousStyle.fontSize,
             practiceFontSize: practiceStyle.fontSize,
             rowOpacity: rowStyle.opacity,
@@ -276,6 +282,10 @@ def assert_reviewer_back_chaining_marker_row_css_isolated(reviewer, field_ord: i
     )
     assert back_chaining_style["markerStrokeWidth"] == "3px"
     assert back_chaining_style["nextFontSize"] == "12px"
+    assert back_chaining_style["panelBorderRadius"] == "9px"
+    assert back_chaining_style["panelBorderTopWidth"] == "1px"
+    assert back_chaining_style["panelDisplay"] in {"flex", "inline-flex"}
+    assert back_chaining_style["panelLabel"] == "Back-chaining"
     assert back_chaining_style["previousFontSize"] == "12px"
     assert back_chaining_style["practiceFontSize"] == "12px"
     assert back_chaining_style["rowOpacity"] == "1"

@@ -156,6 +156,31 @@ describe("editor inline Svelte integration", () => {
     expect(document.querySelector('[data-testid="aqe-button-0-denoise-standard"]')).not.toBeInTheDocument();
   });
 
+  it("renders back-chaining toolbar buttons as one labeled panel", () => {
+    initializeEditorRuntime({ audioFieldIndices: [0] });
+    scan({ audioFieldIndices: [0] });
+
+    const panel = document.querySelector<HTMLElement>('[data-testid="aqe-back-chaining-toolbar-panel-0"]')!;
+    const practiceButton = document.querySelector<HTMLButtonElement>('[data-testid="aqe-button-0-back-chain-practice"]')!;
+    const previousButton = document.querySelector<HTMLButtonElement>('[data-testid="aqe-button-0-back-chain-previous"]')!;
+    const nextButton = document.querySelector<HTMLButtonElement>('[data-testid="aqe-button-0-back-chain-next"]')!;
+
+    expect(panel).toHaveClass("aqe-toolbar-panel", "aqe-back-chaining-toolbar-panel");
+    expect(panel).toHaveAttribute("role", "group");
+    expect(panel).toHaveAttribute("aria-label", "Back-chaining");
+    expect(panel.querySelector(".aqe-toolbar-panel-label")).toHaveTextContent("Back-chaining");
+    expect(Array.from(panel.querySelectorAll<HTMLButtonElement>("[data-aqe-command]")).map((button) => button.dataset.aqeCommand)).toEqual([
+      "aqe:back-chain-practice",
+      "aqe:back-chain-previous",
+      "aqe:back-chain-next",
+    ]);
+    expect(panel).toContainElement(practiceButton);
+    expect(panel).toContainElement(previousButton);
+    expect(panel).toContainElement(nextButton);
+    expect(previousButton).toBeDisabled();
+    expect(nextButton).toBeDisabled();
+  });
+
   it("zooms, fits, and zooms to selection from graph controls", async () => {
     initializeEditorRuntime({ audioFieldIndices: [0] });
     scan({ audioFieldIndices: [0] });
