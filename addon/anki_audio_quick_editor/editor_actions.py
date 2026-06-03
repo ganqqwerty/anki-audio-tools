@@ -50,6 +50,8 @@ CMD_RECORD_VOICE = "aqe:record-voice"
 CMD_STOP_RECORDING = "aqe:stop-recording"
 CMD_PLAY_RECORDING = "aqe:play-recording"
 CMD_POST_EDIT_PLAYBACK_READY = "aqe:post-edit-playback-ready"
+CMD_BACK_CHAIN_PRACTICE = "aqe:back-chain-practice"
+CMD_BACK_CHAIN_NEXT = "aqe:back-chain-next"
 
 BRIDGE_COMMANDS = (
     "aqe:scan",
@@ -61,6 +63,8 @@ BRIDGE_COMMANDS = (
     "aqe:set-cursor",
     "aqe:play",
     "aqe:play-ended",
+    CMD_BACK_CHAIN_PRACTICE,
+    CMD_BACK_CHAIN_NEXT,
     "aqe:frontend-log",
     CMD_POST_EDIT_PLAYBACK_READY,
     "aqe:show-file",

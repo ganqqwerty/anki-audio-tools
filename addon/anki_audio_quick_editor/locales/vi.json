@@ -387,7 +387,7 @@
   "editor.playback.paused": "Đã tạm dừng",
   "editor.playback.playing": "Đang phát",
   "editor.playback.playing_from": "Đang phát từ {seconds} giây",
-  "editor.playback.back_chaining_guidance": "Chế độ thực hành. Dùng bảng nổi ở cuối biểu đồ.",
+  "editor.playback.back_chaining_guidance": "Chế độ thực hành. Dùng các nút chuỗi ngược trên thanh công cụ.",
   "editor.playback.preparing": "Đang chuẩn bị phát...",
   "editor.playback.preparing_ffmpeg": "Đang chuẩn bị phát bằng ffmpeg",
   "editor.playback.prepare_failed": "Không thể chuẩn bị phát.",

@@ -387,7 +387,7 @@
   "editor.playback.paused": "已暂停",
   "editor.playback.playing": "正在播放",
   "editor.playback.playing_from": "从 {seconds} 秒开始播放",
-  "editor.playback.back_chaining_guidance": "练习模式。使用图表底部的浮动面板。",
+  "editor.playback.back_chaining_guidance": "练习模式。使用工具栏上的逆向链式按钮。",
   "editor.playback.preparing": "正在准备播放...",
   "editor.playback.preparing_ffmpeg": "正在用 ffmpeg 准备播放",
   "editor.playback.prepare_failed": "无法准备播放。",

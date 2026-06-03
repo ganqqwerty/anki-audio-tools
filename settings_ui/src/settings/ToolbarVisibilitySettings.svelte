@@ -19,11 +19,11 @@
   } from "$lib/audio-operation-parameters.js";
   import {
     buttonDisplayMode,
-    COMMAND_SLUGS,
     DEFAULT_EDITOR_BUTTON_MODES,
     DEFAULT_VISIBLE_EDITOR_BUTTONS,
     toolbarButtons,
   } from "$lib/editor-toolbar-buttons.js";
+  import { COMMAND_SLUGS } from "$lib/editor-toolbar-command-slugs.js";
   import { t } from "$lib/i18n.js";
   import { DenoiseAlgorithm, PauseAggressiveness, PitchHumMode, type Config } from "$lib/types.js";
   import type { EditorButtonDisplayMode, EditorCommand } from "$lib/editor-toolbar-buttons.js";

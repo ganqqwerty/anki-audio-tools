@@ -3,8 +3,6 @@
   import EditorCommandIcon from "./EditorCommandIcon.svelte";
   import { send } from "./actions.js";
   import { sendRegionDelete } from "./region-delete.js";
-  import { toggleBackChainingPanelForOrd } from "./back-chaining-controller.js";
-  import BackChainingPanel from "./BackChainingPanel.svelte";
   import {
     collapseSelectionToolbarForOrd,
     expandSelectionToolbarForOrd,
@@ -52,33 +50,6 @@
       >
         <EditorCommandIcon className="aqe-button-icon-default" icon="play" />
         <EditorCommandIcon className="aqe-button-icon-active" icon="pause" />
-      </button>
-    {/snippet}
-  </AqeTooltip>
-  <AqeTooltip>
-    {#snippet trigger({ props })}
-      <button
-        {...props}
-        type="button"
-        class="aqe-button aqe-selection-toolbar-button aqe-selection-toolbar-back-chaining aqe-tooltip-target"
-        data-aqe-button-state="default"
-        data-aqe-tooltip-content={t("editor.back_chaining.entry_title")}
-        data-testid={`aqe-selection-toolbar-back-chaining-${target.ord}`}
-        aria-controls={`aqe-back-chaining-${target.ord}-panel`}
-        aria-label={t("editor.back_chaining.entry_title")}
-        onpointerdown={(event) => event.stopPropagation()}
-        onmousedown={(event) => event.preventDefault()}
-        onclick={() => toggleBackChainingPanelForOrd(target.ord)}
-      >
-        <EditorCommandIcon
-          className="aqe-back-chaining-disclosure aqe-back-chaining-disclosure-closed"
-          icon="chevron-right"
-        />
-        <EditorCommandIcon
-          className="aqe-back-chaining-disclosure aqe-back-chaining-disclosure-open"
-          icon="chevron-down"
-        />
-        <span class="aqe-button-label">{t("editor.back_chaining.entry")}</span>
       </button>
     {/snippet}
   </AqeTooltip>
@@ -147,7 +118,6 @@
       </button>
     {/snippet}
   </AqeTooltip>
-  <BackChainingPanel {target} />
 </div>
 <AqeTooltip>
   {#snippet trigger({ props })}

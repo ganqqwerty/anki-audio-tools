@@ -18,6 +18,8 @@ ADDON_NUMERIC_ID = "1000000002"
 DEFAULT_VISIBLE_EDITOR_BUTTONS = (
     "aqe:play",
     "aqe:analyze",
+    "aqe:back-chain-practice",
+    "aqe:back-chain-next",
     "aqe:show-file",
     "aqe:share",
     "aqe:convert",
@@ -37,6 +39,8 @@ DEFAULT_VISIBLE_EDITOR_BUTTONS = (
 DEFAULT_EDITOR_BUTTON_MODES = {
     "aqe:play": "text",
     "aqe:analyze": "text",
+    "aqe:back-chain-practice": "text",
+    "aqe:back-chain-next": "text",
     "aqe:record-voice": "icon",
     "aqe:play-recording": "icon",
     "aqe:show-file": "text",

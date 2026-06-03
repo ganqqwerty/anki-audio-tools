@@ -323,15 +323,10 @@ export interface GraphStateForTest {
   backChainingActiveStartMs: number | null;
   backChainingBaseEndMs: number | null;
   backChainingBaseStartMs: number | null;
-  backChainingCanClear: boolean;
-  backChainingCanEdit: boolean;
   backChainingCanNext: boolean;
   backChainingCanPractice: boolean;
-  backChainingCanPrevious: boolean;
-  backChainingEditing: boolean;
   backChainingMarkerVisibleXs: number[];
   backChainingMarkersMs: number[];
-  backChainingPanelOpen: boolean;
   backChainingState: "paused" | "playing" | "stopped";
   backChainingVisibleActiveRangeEndX: number | null;
   backChainingVisibleActiveRangeStartX: number | null;

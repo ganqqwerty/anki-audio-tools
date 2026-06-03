@@ -6,7 +6,10 @@ import {
   controlsForOrd,
   graphButton,
   playButton,
+  visualizerForOrd,
 } from "./dom-selectors.js";
+import { backChainingControlsForVisualizer } from "./back-chaining-dom.js";
+import { readVisualizerTargetDurationMs } from "./visualizer-state.js";
 import { continueDefaultGraphQueue } from "./default-graph-queue.js";
 import { notifyMountedPostEditPlaybackReady } from "./post-edit-playback.js";
 import { syncAllSelectionToolbars } from "./selection-toolbar-state.js";
@@ -237,5 +240,30 @@ function updateButtonDisabledState(button: HTMLButtonElement): void {
     button.disabled = busy || !historyAvailability(ord).canRedo;
     return;
   }
+  if (command === "aqe:back-chain-practice" || command === "aqe:back-chain-next") {
+    updateBackChainingButtonDisabledState(button, ord, command, busy);
+    return;
+  }
   button.disabled = busy;
+}
+
+function updateBackChainingButtonDisabledState(
+  button: HTMLButtonElement,
+  ord: number,
+  command: "aqe:back-chain-practice" | "aqe:back-chain-next",
+  busy: boolean,
+): void {
+  const visualizer = visualizerForOrd(ord);
+  if (!visualizer) {
+    button.disabled = true;
+    return;
+  }
+  const controls = backChainingControlsForVisualizer(visualizer);
+  if (command === "aqe:back-chain-next") {
+    button.disabled = busy || !controls.canNext;
+    return;
+  }
+  const hasPlayableTrack = visualizer.dataset.hasTrack === "true" && readVisualizerTargetDurationMs(visualizer) > 0;
+  const canInitialize = controls.baseStartMs === null && hasPlayableTrack;
+  button.disabled = busy || !(controls.canPractice || canInitialize);
 }

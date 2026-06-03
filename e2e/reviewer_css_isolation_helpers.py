@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 from e2e.editor_note_helpers import _button_selector
-from e2e.editor_region_loop_helpers import _shift_drag_region
 from e2e.helpers import wait_for_js_condition
 
 
@@ -221,42 +220,59 @@ def assert_reviewer_tooltip_css_isolated(reviewer) -> None:
     assert tooltip_style["textTransform"] != "uppercase"
 
 
-def assert_reviewer_back_chaining_panel_css_isolated(reviewer, field_ord: int) -> None:
-    """Assert the back-chaining panel keeps its own padding and sizing."""
-    _shift_drag_region(reviewer, 0.25, 0.75, ord_=field_ord)
+def assert_reviewer_back_chaining_marker_row_css_isolated(reviewer, field_ord: int) -> None:
+    """Assert back-chaining toolbar controls and marker row keep isolated styling."""
+    practice_selector = _button_selector("aqe:back-chain-practice", field_ord)
+    next_selector = _button_selector("aqe:back-chain-next", field_ord)
     back_chaining_style = wait_for_js_condition(
         reviewer.web,
         f"""
         (() => {{
-          const entry = document.querySelector('[data-testid="aqe-selection-toolbar-back-chaining-{field_ord}"]');
-          if (!entry) return null;
-          const panelSelector = '[data-testid="aqe-back-chaining-{field_ord}-panel"]';
-          if (!document.querySelector(panelSelector)) entry.click();
-          const panel = document.querySelector(panelSelector);
-          const controls = panel?.querySelector('.aqe-back-chaining-controls');
-          const edit = panel?.querySelector('[data-testid="aqe-back-chaining-{field_ord}-edit"]');
-          const clear = panel?.querySelector('[data-testid="aqe-back-chaining-{field_ord}-clear"]');
-          if (!panel || !controls || !edit || !clear) return null;
-          const panelStyle = getComputedStyle(panel);
-          const controlsStyle = getComputedStyle(controls);
-          const editStyle = getComputedStyle(edit);
-          const clearStyle = getComputedStyle(clear);
+          const practice = document.querySelector({practice_selector!r});
+          const next = document.querySelector({next_selector!r});
+          const oldEntry = document.querySelector('[data-testid="aqe-selection-toolbar-back-chaining-{field_ord}"]');
+          const row = document.querySelector('[data-testid="aqe-back-chaining-marker-row-{field_ord}"]');
+          const hitbox = document.querySelector('.aqe-back-chaining-marker-hitbox');
+          const svg = document.querySelector('[data-testid="aqe-graph-svg-{field_ord}"]');
+          if (!practice || !next || oldEntry || !row || !hitbox || !svg) return null;
+          if (row.getAttribute("aria-hidden") === "true") {{
+            const rect = svg.getBoundingClientRect();
+            const EventCtor = window.PointerEvent || window.MouseEvent;
+            hitbox.dispatchEvent(new EventCtor("pointerdown", {{
+              bubbles: true,
+              clientX: rect.left + rect.width / 2,
+              clientY: rect.top + 14,
+            }}));
+            window.dispatchEvent(new EventCtor("pointerup", {{
+              bubbles: true,
+              clientX: rect.left + rect.width / 2,
+              clientY: rect.top + 14,
+            }}));
+          }}
+          const track = row.querySelector('.aqe-back-chaining-marker-track');
+          const marker = row.querySelector('.aqe-back-chaining-marker');
+          if (row.getAttribute("aria-hidden") === "true" || !track || !marker) return null;
+          const practiceStyle = getComputedStyle(practice);
+          const nextStyle = getComputedStyle(next);
+          const rowStyle = getComputedStyle(row);
+          const trackStyle = getComputedStyle(track);
+          const markerStyle = getComputedStyle(marker);
           return {{
-            panelPaddingLeft: panelStyle.paddingLeft,
-            panelFontSize: panelStyle.fontSize,
-            controlsGap: controlsStyle.gap,
-            editFontSize: editStyle.fontSize,
-            editPaddingLeft: editStyle.paddingLeft,
-            clearPaddingLeft: clearStyle.paddingLeft,
+            markerStrokeWidth: markerStyle.strokeWidth,
+            nextFontSize: nextStyle.fontSize,
+            practiceFontSize: practiceStyle.fontSize,
+            rowOpacity: rowStyle.opacity,
+            trackFill: trackStyle.fill,
+            trackStrokeWidth: trackStyle.strokeWidth,
           }};
         }})()
         """,
         lambda value: isinstance(value, dict),
         timeout=5.0,
     )
-    assert back_chaining_style["panelPaddingLeft"] == "6px"
-    assert back_chaining_style["panelFontSize"] == "12px"
-    assert back_chaining_style["controlsGap"] == "6px"
-    assert back_chaining_style["editFontSize"] == "11px"
-    assert back_chaining_style["editPaddingLeft"] == "8px"
-    assert back_chaining_style["clearPaddingLeft"] == "0px"
+    assert back_chaining_style["markerStrokeWidth"] == "3px"
+    assert back_chaining_style["nextFontSize"] == "12px"
+    assert back_chaining_style["practiceFontSize"] == "12px"
+    assert back_chaining_style["rowOpacity"] == "1"
+    assert back_chaining_style["trackFill"] in {"rgb(255, 255, 255)", "rgb(255 255 255)"}
+    assert back_chaining_style["trackStrokeWidth"] == "1px"

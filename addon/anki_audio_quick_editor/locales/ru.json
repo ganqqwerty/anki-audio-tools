@@ -387,7 +387,7 @@
   "editor.playback.paused": "Пауза",
   "editor.playback.playing": "Воспроизведение",
   "editor.playback.playing_from": "Воспроизведение с {seconds} с",
-  "editor.playback.back_chaining_guidance": "Режим тренировки. Используйте плавающую панель внизу графика.",
+  "editor.playback.back_chaining_guidance": "Режим тренировки. Используйте кнопки обратной цепочки на панели инструментов.",
   "editor.playback.preparing": "Подготовка воспроизведения...",
   "editor.playback.preparing_ffmpeg": "Подготовка воспроизведения через ffmpeg",
   "editor.playback.prepare_failed": "Не удалось подготовить воспроизведение.",

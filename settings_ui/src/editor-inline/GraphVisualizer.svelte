@@ -117,9 +117,7 @@
   data-back-chaining-active-marker-index=""
   data-back-chaining-base-end-ms=""
   data-back-chaining-base-start-ms=""
-  data-back-chaining-editing="false"
   data-back-chaining-markers-ms=""
-  data-back-chaining-panel-open="false"
   data-back-chaining-state="stopped"
   data-testid={`aqe-graph-${target.ord}`}
   role="button"

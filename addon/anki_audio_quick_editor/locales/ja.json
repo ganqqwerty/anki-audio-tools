@@ -387,7 +387,7 @@
   "editor.playback.paused": "一時停止中",
   "editor.playback.playing": "再生中",
   "editor.playback.playing_from": "{seconds}秒から再生中",
-  "editor.playback.back_chaining_guidance": "練習モードです。グラフ下部のフローティングパネルを使ってください。",
+  "editor.playback.back_chaining_guidance": "練習モードです。ツールバーのバックチェイニングボタンを使ってください。",
   "editor.playback.preparing": "再生を準備中...",
   "editor.playback.preparing_ffmpeg": "ffmpeg で再生を準備中",
   "editor.playback.prepare_failed": "再生を準備できませんでした。",

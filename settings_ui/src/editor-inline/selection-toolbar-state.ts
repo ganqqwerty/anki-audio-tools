@@ -46,10 +46,6 @@ function playButtonFor(visualizer: VisualizerElement): HTMLButtonElement | null 
   return visualizer.querySelector<HTMLButtonElement>(".aqe-selection-toolbar-play");
 }
 
-function backChainingButtonFor(visualizer: VisualizerElement): HTMLButtonElement | null {
-  return visualizer.querySelector<HTMLButtonElement>(".aqe-selection-toolbar-back-chaining");
-}
-
 function deleteRegionButtonFor(visualizer: VisualizerElement): HTMLButtonElement | null {
   return visualizer.querySelector<HTMLButtonElement>(".aqe-delete-region-button");
 }
@@ -198,7 +194,6 @@ function syncSelectionToolbarButtons(
   validDeleteSelection: boolean,
 ): void {
   syncToolbarPlayButton(visualizer, busy);
-  syncToolbarBackChainingButton(visualizer, busy);
   syncToolbarDeleteButton(
     deleteRegionButtonFor(visualizer),
     validDeleteSelection,
@@ -213,18 +208,6 @@ function syncSelectionToolbarButtons(
     t("editor.command.delete_rest.title"),
     titleForOperation("delete-rest", false),
   );
-}
-
-function syncToolbarBackChainingButton(visualizer: VisualizerElement, busy: boolean): void {
-  const button = backChainingButtonFor(visualizer);
-  if (!button) return;
-  const panelOpen = visualizer.dataset.backChainingPanelOpen === "true";
-  button.disabled = busy;
-  button.dataset.aqeButtonState = busy ? "unavailable" : panelOpen ? "active" : "default";
-  button.setAttribute("aria-expanded", panelOpen ? "true" : "false");
-  button.setAttribute("aria-pressed", panelOpen ? "true" : "false");
-  setButtonTooltipContent(button, t("editor.back_chaining.entry_title"));
-  button.setAttribute("aria-disabled", button.disabled ? "true" : "false");
 }
 
 function syncToolbarPlayButton(visualizer: VisualizerElement, busy: boolean): void {
