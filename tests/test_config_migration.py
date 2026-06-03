@@ -188,10 +188,15 @@ class TestMigrateConfig:
         defaults = {
             "_config_version": CURRENT_CONFIG_VERSION,
             "visible_editor_buttons": ["aqe:play", "aqe:share", "aqe:settings"],
+            "editor_button_modes": {
+                "aqe:play": "icon",
+                "aqe:share": "icon",
+                "aqe:settings": "icon",
+            },
         }
         user = {
             "_config_version": CURRENT_CONFIG_VERSION,
-            "visible_editor_buttons": ["aqe:play", "aqe:record-voice", "aqe:settings"],
+            "visible_editor_buttons": ["aqe:play", "aqe:stale-button", "aqe:settings"],
         }
 
         migrated, changed = migrate_config(user, defaults)

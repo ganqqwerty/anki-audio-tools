@@ -14,6 +14,10 @@ from .audio_size_reduction import (
     size_reduction_encoder_params_for_mode,
 )
 from .dpdfnet_settings import normalize_dpdfnet_attn_limit_db
+from .editor_button_visibility import (
+    normalize_visible_editor_buttons,
+    supported_visible_editor_button_order,
+)
 
 CURRENT_CONFIG_VERSION = 1
 PAUSE_DETECTION_ALGORITHMS = frozenset({"silencedetect", "silero_vad"})
@@ -137,12 +141,11 @@ def _normalize_visible_editor_buttons_setting(
     defaults: dict[str, Any],
 ) -> bool:
     visible_buttons = merged.get("visible_editor_buttons")
-    default_buttons = defaults.get("visible_editor_buttons")
-    if not isinstance(visible_buttons, list) or not isinstance(default_buttons, list):
+    button_order = supported_visible_editor_button_order(defaults)
+    if not isinstance(visible_buttons, list) or not button_order:
         return False
 
-    allowed_buttons = set(default_buttons)
-    normalized = [button for button in visible_buttons if button in allowed_buttons]
+    normalized = normalize_visible_editor_buttons(visible_buttons, button_order)
     if normalized == visible_buttons:
         return False
     merged["visible_editor_buttons"] = normalized

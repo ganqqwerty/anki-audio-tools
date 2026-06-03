@@ -292,6 +292,7 @@ source_modules = [
     "anki_audio_quick_editor.diagnostics_runtime_json",
     "anki_audio_quick_editor.diagnostics_runtime_storage",
     "anki_audio_quick_editor.dpdfnet_settings",
+    "anki_audio_quick_editor.editor_button_visibility",
     "anki_audio_quick_editor.editor_actions",
     "anki_audio_quick_editor.editor_media",
     "anki_audio_quick_editor.editor_playback_bounds",

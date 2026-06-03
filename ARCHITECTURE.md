@@ -197,7 +197,7 @@ Config defaults are stored in `config.json` and migrated into user config:
 }
 ```
 
-`config_migration.py` deep-merges defaults into user config and stamps the current schema version.
+`config_migration.py` deep-merges defaults into user config and stamps the current schema version. `editor_button_visibility.py` keeps `visible_editor_buttons` normalization import-safe for startup migration and Settings saves, including grouped toolbar panels such as Record / Play yours.
 Editor split-button choices are field-local runtime overrides. Settings provide defaults for toolbar visibility/display mode, repeat playback and pause, Share target, prosody graph options, volume step, speed step, pause detector, pause aggressiveness, algorithm-specific pause Advanced Params, convert target format, denoise algorithm, DPDFNet aggressiveness, and pitch hum mode, but changing a split-button value in one editor field does not write back to persisted config or other fields unless the user promotes that field's quick setting to defaults. See [`EDITOR_MODIFICATION_BUTTON_BEHAVIOR_RULES.md`](EDITOR_MODIFICATION_BUTTON_BEHAVIOR_RULES.md) for button defaults and non-persisted command choices.
 
 ## Source Of Truth
@@ -215,7 +215,7 @@ The canonical module contracts and allowed side effects are defined in `tests/te
 
 | Contract | Source modules | Forbidden modules |
 |----------|----------------|-------------------|
-| `import-safe-no-upper-layers` | Import-safe helper modules, including batch visualization, Browser batch state, runtime asset management, shared WebView bridge/shell helpers, frontend log handling, and prosody rendering/cache modules | Browser/editor UI modules and settings backend modules |
+| `import-safe-no-upper-layers` | Import-safe helper modules, including batch visualization, Browser batch state, runtime asset management, toolbar visibility normalization, shared WebView bridge/shell helpers, frontend log handling, and prosody rendering/cache modules | Browser/editor UI modules and settings backend modules |
 | `settings-backend-no-ui` | `settings.commands`, `settings.initial_state` | `editor_integration` |
 
 ## Enforced Rules

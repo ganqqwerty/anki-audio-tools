@@ -6,10 +6,19 @@
   import type { EditorButtonDisplayMode } from "$lib/editor-toolbar-buttons.js";
   import type { Snippet } from "svelte";
 
+  interface ButtonModeControl {
+    label: string;
+    mode: EditorButtonDisplayMode;
+    modeLocked?: boolean;
+    onSetMode: (mode: EditorButtonDisplayMode) => void;
+    testId: string;
+  }
+
   const {
     hasSettings = true,
     icon,
     mode,
+    modeControls,
     modeLocked = false,
     onSetMode,
     onToggle,
@@ -21,9 +30,10 @@
     children?: Snippet;
     hasSettings?: boolean;
     icon: CommandIconName;
-    mode: EditorButtonDisplayMode;
+    mode?: EditorButtonDisplayMode | undefined;
+    modeControls?: readonly ButtonModeControl[] | undefined;
     modeLocked?: boolean;
-    onSetMode: (mode: EditorButtonDisplayMode) => void;
+    onSetMode?: ((mode: EditorButtonDisplayMode) => void) | undefined;
     onToggle: () => void;
     testId: string;
     title: string;
@@ -51,17 +61,41 @@
         <span>{t("settings.toolbar_visibility.show")}</span>
       </label>
 
-      <label class="button-settings-checkbox">
-        <input
-          checked={mode === EditorButtonMode.Icon}
-          data-testid={`${testId}-mode-icon`}
-          disabled={modeLocked}
-          type="checkbox"
-          onchange={(event) =>
-            onSetMode((event.currentTarget as HTMLInputElement).checked ? EditorButtonMode.Icon : EditorButtonMode.Text)}
-        />
-        <span>{t("settings.toolbar_visibility.icon")}</span>
-      </label>
+      {#if modeControls}
+        {#each modeControls as control (control.testId)}
+          <label class="button-settings-checkbox">
+            <input
+              checked={control.mode === EditorButtonMode.Icon}
+              data-testid={`${control.testId}-mode-icon`}
+              disabled={control.modeLocked ?? false}
+              type="checkbox"
+              onchange={(event) =>
+                control.onSetMode(
+                  (event.currentTarget as HTMLInputElement).checked
+                    ? EditorButtonMode.Icon
+                    : EditorButtonMode.Text,
+                )}
+            />
+            <span>{control.label}</span>
+          </label>
+        {/each}
+      {:else}
+        <label class="button-settings-checkbox">
+          <input
+            checked={mode === EditorButtonMode.Icon}
+            data-testid={`${testId}-mode-icon`}
+            disabled={modeLocked}
+            type="checkbox"
+            onchange={(event) =>
+              onSetMode?.(
+                (event.currentTarget as HTMLInputElement).checked
+                  ? EditorButtonMode.Icon
+                  : EditorButtonMode.Text,
+              )}
+          />
+          <span>{t("settings.toolbar_visibility.icon")}</span>
+        </label>
+      {/if}
     </span>
   </header>
 
