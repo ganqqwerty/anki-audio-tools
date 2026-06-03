@@ -56,6 +56,8 @@ export const DEFAULT_VISIBLE_EDITOR_BUTTONS = [
   "aqe:denoise-standard",
   "aqe:slower",
   "aqe:faster",
+  "aqe:delete-selection",
+  "aqe:delete-rest",
   "aqe:undo",
   "aqe:redo",
   "aqe:settings",
@@ -77,6 +79,8 @@ export const DEFAULT_EDITOR_BUTTON_MODES = {
   "aqe:faster": EditorButtonMode.Icon,
   "aqe:volume-down": EditorButtonMode.Icon,
   "aqe:volume-up": EditorButtonMode.Icon,
+  "aqe:delete-selection": EditorButtonMode.Icon,
+  "aqe:delete-rest": EditorButtonMode.Icon,
   "aqe:undo": EditorButtonMode.Icon,
   "aqe:redo": EditorButtonMode.Icon,
   "aqe:settings": EditorButtonMode.Icon,
@@ -90,12 +94,8 @@ function formatDenoiseAlgorithm(value: "standard" | "rnnoise" | "dpdfnet" | "voi
 }
 
 export function commandButtons(): readonly ToolbarButtonSpec[] {
-  const outputFormat = outputFormatOrDefault(
-    window.__AQE_EDITOR_CONFIG__?.splitButtonDefaults?.outputFormat,
-  );
-  const sizeReductionMode = sizeReductionModeOrDefault(
-    window.__AQE_EDITOR_CONFIG__?.splitButtonDefaults?.sizeReductionMode,
-  );
+  const outputFormat = outputFormatOrDefault(window.__AQE_EDITOR_CONFIG__?.splitButtonDefaults?.outputFormat);
+  const sizeReductionMode = sizeReductionModeOrDefault(window.__AQE_EDITOR_CONFIG__?.splitButtonDefaults?.sizeReductionMode);
   return [
     {
       activeIcon: "pause",
@@ -265,15 +265,11 @@ export function buttonDisplayMode(
   const configuredMode = modes?.[command];
   if (configuredMode === EditorButtonMode.Icon) return EditorButtonMode.Icon;
   if (configuredMode === EditorButtonMode.Text) return EditorButtonMode.Text;
-  return (
-    DEFAULT_EDITOR_BUTTON_MODES[command as keyof typeof DEFAULT_EDITOR_BUTTON_MODES] ??
-    EditorButtonMode.Text
-  );
+  return DEFAULT_EDITOR_BUTTON_MODES[command as keyof typeof DEFAULT_EDITOR_BUTTON_MODES] ?? EditorButtonMode.Text;
 }
 
 export function denoiseButtons(): readonly ToolbarButtonSpec[] {
-  const dpdfnetAttnLimitDb =
-    window.__AQE_EDITOR_CONFIG__?.splitButtonDefaults?.dpdfnetAttnLimitDb ?? 12;
+  const dpdfnetAttnLimitDb = window.__AQE_EDITOR_CONFIG__?.splitButtonDefaults?.dpdfnetAttnLimitDb ?? 12;
   return [
     {
       command: "aqe:denoise-standard",

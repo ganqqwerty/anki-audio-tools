@@ -15,8 +15,9 @@ from .audio_size_reduction import (
 )
 from .dpdfnet_settings import normalize_dpdfnet_attn_limit_db
 
-CURRENT_CONFIG_VERSION = 1
+CURRENT_CONFIG_VERSION = 2
 PAUSE_DETECTION_ALGORITHMS = frozenset({"silencedetect", "silero_vad"})
+V2_DEFAULT_VISIBLE_EDITOR_BUTTONS = ("aqe:delete-selection", "aqe:delete-rest")
 
 
 def deep_merge(defaults: dict[str, Any], user: dict[str, Any]) -> dict[str, Any]:
@@ -53,6 +54,7 @@ def _apply_post_merge_migrations(
     changed = _normalize_size_reduction_mode_setting(merged) or changed
     changed = _normalize_size_reduction_encoder_settings(merged) or changed
     changed = _normalize_pause_detection_algorithm_setting(merged) or changed
+    changed = _append_v2_visible_editor_button_defaults(merged) or changed
     changed = _normalize_visible_editor_buttons_setting(merged, defaults) or changed
     return _normalize_editor_button_mode_settings(merged, defaults) or changed
 
@@ -147,6 +149,24 @@ def _normalize_visible_editor_buttons_setting(
         return False
     merged["visible_editor_buttons"] = normalized
     return True
+
+
+def _append_v2_visible_editor_button_defaults(merged: dict[str, Any]) -> bool:
+    visible_buttons = merged.get("visible_editor_buttons")
+    if not isinstance(visible_buttons, list):
+        return False
+
+    version = merged.get("_config_version")
+    if isinstance(version, int) and version >= 2:
+        return False
+
+    changed = False
+    for button in V2_DEFAULT_VISIBLE_EDITOR_BUTTONS:
+        if button in visible_buttons:
+            continue
+        visible_buttons.append(button)
+        changed = True
+    return changed
 
 
 def _normalize_editor_button_mode_settings(

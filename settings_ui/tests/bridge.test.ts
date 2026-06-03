@@ -30,7 +30,7 @@ import { DEFAULT_EDITOR_BUTTON_MODES as DEFAULT_BUTTON_MODES } from "../src/lib/
 
 const pycmd = (globalThis as unknown as Record<string, ReturnType<typeof vi.fn>>)["pycmd"]!;
 const config: Config = {
-  _config_version: 1,
+  _config_version: 2,
   enabled: true,
   debug_logging: false,
   show_ffmpeg_commands: false,
@@ -50,6 +50,8 @@ const config: Config = {
     VisibleEditorButton.AqeDenoiseStandard,
     VisibleEditorButton.AqeSlower,
     VisibleEditorButton.AqeFaster,
+    VisibleEditorButton.AqeDeleteSelection,
+    VisibleEditorButton.AqeDeleteREST,
     VisibleEditorButton.AqeUndo,
     VisibleEditorButton.AqeRedo,
     VisibleEditorButton.AqeSettings,

@@ -17,7 +17,7 @@ import {
 import { pycmdMock as installedPycmdMock } from "./setup.js";
 
 export const defaultConfig = {
-  _config_version: 1,
+  _config_version: 2,
   enabled: true,
   debug_logging: false,
   show_ffmpeg_commands: false,
@@ -37,6 +37,8 @@ export const defaultConfig = {
     VisibleEditorButton.AqeDenoiseStandard,
     VisibleEditorButton.AqeSlower,
     VisibleEditorButton.AqeFaster,
+    VisibleEditorButton.AqeDeleteSelection,
+    VisibleEditorButton.AqeDeleteREST,
     VisibleEditorButton.AqeUndo,
     VisibleEditorButton.AqeRedo,
     VisibleEditorButton.AqeSettings,

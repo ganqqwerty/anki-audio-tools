@@ -18,7 +18,7 @@ import {
 } from "../src/lib/types.js";
 
 const config: Config = {
-  _config_version: 1,
+  _config_version: 2,
   enabled: false,
   debug_logging: false,
   show_ffmpeg_commands: false,
@@ -38,6 +38,8 @@ const config: Config = {
     VisibleEditorButton.AqeDenoiseStandard,
     VisibleEditorButton.AqeSlower,
     VisibleEditorButton.AqeFaster,
+    VisibleEditorButton.AqeDeleteSelection,
+    VisibleEditorButton.AqeDeleteREST,
     VisibleEditorButton.AqeUndo,
     VisibleEditorButton.AqeRedo,
     VisibleEditorButton.AqeSettings,

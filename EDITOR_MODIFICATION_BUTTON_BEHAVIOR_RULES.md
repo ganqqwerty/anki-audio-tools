@@ -2,9 +2,9 @@
 
 This document is the shared behavior contract for inline editor buttons that modify an audio field. It applies to any command that creates, restores, or selects a generated audio file and replaces the field's supported `[sound:...]` reference.
 
-Ground truth for this document is the current toolbar registry in `settings_ui/src/lib/editor-toolbar-buttons.ts`, editor dispatch in `settings_ui/src/editor-inline/` and `addon/anki_audio_quick_editor/editor_*.py`, shared operation definitions in `audio_operations.py`, and the editor e2e tests under `e2e/`.
+Ground truth for this document is the current toolbar registry in `settings_ui/src/lib/editor-toolbar-buttons.ts`, the settings-facing button registry in `settings_ui/src/lib/settings-toolbar-buttons.ts`, editor dispatch in `settings_ui/src/editor-inline/` and `addon/anki_audio_quick_editor/editor_*.py`, shared operation definitions in `audio_operations.py`, and the editor e2e tests under `e2e/`.
 
-Available editor button commands are not the same as default-visible commands. The default config currently shows Play, Graph, Folder, Share, Shorten Pauses, Denoise, Slower, Faster, Undo, Redo, and Settings. Convert, Pitch Hum, Volume -, Volume +, Record, and Play yours are available toolbar commands but are hidden by the default `visible_editor_buttons` list unless the user enables them.
+Available editor button commands are not the same as default-visible commands. The default config currently shows Play, Graph, Folder, Share, Reduce Size, Shorten Pauses, Denoise, Slower, Faster, Delete Region, Delete the rest, Undo, Redo, and Settings. Convert, Pitch Hum, Volume -, Volume +, Record, and Play yours are available toolbar commands but are hidden by the default `visible_editor_buttons` list unless the user enables them.
 
 ## Current Command Inventory
 
