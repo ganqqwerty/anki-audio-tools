@@ -193,6 +193,7 @@ EDITOR_PROCESSING_CONTRACTS: dict[str, ModuleContract] = {
         "editor_special_transform_worker",
         layer=Layer.UI_ADAPTER,
         allowed_addon_deps=(
+            "audio_formats",
             "audio_state",
             "diagnostics_runtime",
             "editor_session",

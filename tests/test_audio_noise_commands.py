@@ -52,6 +52,11 @@ def test_build_deep_filter_prepare_command_uses_48khz_mono_pcm(tmp_path: Path) -
     )
 
 
+def test_build_deep_filter_prepare_command_rejects_non_wav_intermediate_output(tmp_path: Path) -> None:
+    with pytest.raises(AudioProcessingError, match="WAV output"):
+        build_deep_filter_prepare_command(Path("/bin/ffmpeg"), tmp_path / "source.mp3", tmp_path / "input.mp3")
+
+
 def test_build_deep_filter_command_includes_post_filter_when_enabled(tmp_path: Path) -> None:
     assert build_deep_filter_command(Path("/bin/deep-filter"), tmp_path / "input.wav", tmp_path / "out", post_filter=True) == (
         "/bin/deep-filter",
@@ -86,6 +91,11 @@ def test_build_rnnoise_prepare_command_uses_48khz_mono_raw_pcm(tmp_path: Path) -
         "pcm_s16le",
         str(tmp_path / "input.s16le"),
     )
+
+
+def test_build_rnnoise_prepare_command_rejects_non_raw_pcm_intermediate_output(tmp_path: Path) -> None:
+    with pytest.raises(AudioProcessingError, match="raw PCM output"):
+        build_rnnoise_prepare_command(Path("/bin/ffmpeg"), tmp_path / "source.mp3", tmp_path / "input.wav")
 
 
 def test_build_rnnoise_command_includes_json_and_overwrite(tmp_path: Path) -> None:
@@ -153,6 +163,11 @@ def test_build_spleeter_prepare_command_uses_44k1_stereo_wav(tmp_path: Path) -> 
         "pcm_s16le",
         str(tmp_path / "input.wav"),
     )
+
+
+def test_build_spleeter_prepare_command_rejects_non_wav_intermediate_output(tmp_path: Path) -> None:
+    with pytest.raises(AudioProcessingError, match="WAV output"):
+        build_spleeter_prepare_command(Path("/bin/ffmpeg"), tmp_path / "source.mp3", tmp_path / "input.mp3")
 
 
 def test_build_spleeter_command_uses_sherpa_source_separation_flags(tmp_path: Path) -> None:

@@ -1,9 +1,19 @@
 from __future__ import annotations
 
+from collections.abc import Callable
 from pathlib import Path
 
 import pytest
 
+from anki_audio_quick_editor.audio_commands import (
+    build_audio_encode_command,
+    build_ffmpeg_command,
+    build_filter_complex_render_command,
+    build_mp3_encode_command,
+    build_region_delete_command,
+    build_rnnoise_encode_command,
+    build_wav_filter_command,
+)
 from anki_audio_quick_editor.audio_processor import (
     build_audio_filters,
     build_convert_audio_command,
@@ -17,6 +27,8 @@ from anki_audio_quick_editor.audio_state import AudioEditState, AudioProcessingC
 from anki_audio_quick_editor.errors import (
     AudioProcessingError,
 )
+
+FinalCommandBuilder = Callable[[Path], tuple[str, ...]]
 
 
 def test_build_audio_filters_includes_crop_speed_and_silence_steps() -> None:
@@ -146,6 +158,103 @@ def test_build_size_reduction_audio_command_uses_source_aware_codec_args(tmp_pat
         "1",
         str(tmp_path / "smaller.mp3"),
     )
+
+
+@pytest.mark.parametrize(
+    "builder",
+    [
+        pytest.param(
+            lambda tmp_path: build_convert_audio_command(
+                Path("/bin/ffmpeg"),
+                tmp_path / "source.wav",
+                tmp_path / "bad.mp3",
+                "wav",
+            ),
+            id="convert",
+        ),
+        pytest.param(
+            lambda tmp_path: build_size_reduction_audio_command(
+                Path("/bin/ffmpeg"),
+                tmp_path / "source.wav",
+                tmp_path / "bad.mp3",
+                ("-codec:a", "pcm_s16le"),
+            ),
+            id="size-reduction",
+        ),
+        pytest.param(
+            lambda tmp_path: build_ffmpeg_command(
+                Path("/bin/ffmpeg"),
+                tmp_path / "source.wav",
+                "atrim=start=0.000,asetpts=PTS-STARTPTS",
+                tmp_path / "bad.mp3",
+                ("-codec:a", "pcm_s16le"),
+            ),
+            id="simple-render",
+        ),
+        pytest.param(
+            lambda tmp_path: build_filter_complex_render_command(
+                Path("/bin/ffmpeg"),
+                tmp_path / "source.wav",
+                tmp_path / "filters.txt",
+                tmp_path / "bad.mp3",
+                ("-codec:a", "pcm_s16le"),
+            ),
+            id="filter-complex",
+        ),
+        pytest.param(
+            lambda tmp_path: build_region_delete_command(
+                Path("/bin/ffmpeg"),
+                tmp_path / "source.wav",
+                "[0:a]anull[out]",
+                tmp_path / "bad.mp3",
+                ("-codec:a", "pcm_s16le"),
+            ),
+            id="region-delete",
+        ),
+        pytest.param(
+            lambda tmp_path: build_audio_encode_command(
+                Path("/bin/ffmpeg"),
+                tmp_path / "source.wav",
+                tmp_path / "bad.mp3",
+                ("-codec:a", "pcm_s16le"),
+            ),
+            id="audio-encode",
+        ),
+        pytest.param(
+            lambda tmp_path: build_rnnoise_encode_command(
+                Path("/bin/ffmpeg"),
+                tmp_path / "source.s16le",
+                tmp_path / "bad.mp3",
+                ("-codec:a", "pcm_s16le"),
+            ),
+            id="rnnoise-encode",
+        ),
+        pytest.param(
+            lambda tmp_path: build_mp3_encode_command(
+                Path("/bin/ffmpeg"),
+                tmp_path / "source.wav",
+                tmp_path / "bad.wav",
+            ),
+            id="mp3-encode",
+        ),
+    ],
+)
+def test_final_ffmpeg_command_builders_reject_mismatched_output_contract(
+    builder: FinalCommandBuilder,
+    tmp_path: Path,
+) -> None:
+    with pytest.raises(AudioProcessingError, match="does not match ffmpeg audio codec"):
+        builder(tmp_path)
+
+
+def test_build_wav_filter_command_rejects_non_wav_intermediate_output(tmp_path: Path) -> None:
+    with pytest.raises(AudioProcessingError, match="WAV output"):
+        build_wav_filter_command(
+            Path("/bin/ffmpeg"),
+            tmp_path / "source.mp3",
+            "anull",
+            tmp_path / "working.mp3",
+        )
 
 
 def test_build_audio_filters_omits_edge_silence_filter_parameters() -> None:

@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import os
+import shutil
 from pathlib import Path
 
 from e2e.conftest import import_runtime_addon_module, runtime_addon_import_path
@@ -40,6 +42,67 @@ def _wait_for_generated_file(
         message=f"Editor did not replace the field with a newly generated {suffix} file",
     )
     return _sound_filename(note.fields[field_index])
+
+
+def _denoise_repro_source(media_dir: Path, ffmpeg_config) -> Path:
+    fixture = os.environ.get("AQE_DENOISE_REPRO_AUDIO")
+    if fixture:
+        fixture_path = Path(fixture).expanduser()
+        if fixture_path.is_file():
+            source = media_dir / fixture_path.name
+            shutil.copyfile(fixture_path, source)
+            return source
+
+    source = media_dir / "editor_denoise_wav_output_source.mp3"
+    generate_tone(ffmpeg_config, source, duration_s=1.0)
+    return source
+
+
+def test_denoise_wav_output_uses_matching_wav_extension(
+    anki_mw,
+    ffmpeg_config,
+    monkeypatch,
+) -> None:
+    audio_processing_config = import_runtime_addon_module(".audio_state").AudioProcessingConfig
+
+    captured: list[tuple[str, str, str]] = []
+    media_dir = Path(anki_mw.col.media.dir())
+    source = _denoise_repro_source(media_dir, ffmpeg_config)
+    note = _basic_audio_note(anki_mw, source.name)
+    _configure_ffmpeg(anki_mw, ffmpeg_config, output_format="wav", denoise_algorithm="standard")
+
+    def fake_render_noise_reduced_audio(
+        source_path: Path,
+        config: audio_processing_config,
+        output_path: Path,
+        **_kwargs,
+    ) -> None:
+        captured.append((source_path.name, config.output_format, output_path.suffix))
+        if output_path.suffix != ".wav":
+            raise AssertionError(f"denoise renderer received mismatched output path: {output_path.name}")
+        output_path.write_bytes(b"denoised")
+
+    monkeypatch.setattr(
+        runtime_addon_import_path(".editor_dependencies", "render_noise_reduced_audio"),
+        fake_render_noise_reduced_audio,
+    )
+
+    editor, parent = _open_editor(anki_mw, note)
+    try:
+        wait_for_selector(editor.web, _button_selector("aqe:denoise-standard"), timeout=10.0)
+        click_selector(editor.web, _button_selector("aqe:denoise-standard"), timeout=5.0)
+
+        wait_for_condition(
+            lambda: bool(captured),
+            timeout=5.0,
+            message="Denoise renderer was not called",
+        )
+        assert captured == [(source.name, "wav", ".wav")]
+        generated_name = _wait_for_generated_file(note, media_dir, source.name, ".wav")
+        assert generated_name.endswith(".wav")
+    finally:
+        editor.set_note(None)
+        parent.close()
 
 
 def test_convert_status_reports_selected_output_format(

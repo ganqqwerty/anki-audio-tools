@@ -135,7 +135,7 @@ def _run_standard_render_worker(
 ) -> None:
     output_path: Path | None = None
     try:
-        desired_name = deps.make_output_filename(source_path.name)
+        desired_name = deps.make_output_filename(source_path.name, output_format=config.output_format)
         output_path = deps.temp_final_path(desired_name)
 
         def _show_command(process_command: tuple[str, ...]) -> None:

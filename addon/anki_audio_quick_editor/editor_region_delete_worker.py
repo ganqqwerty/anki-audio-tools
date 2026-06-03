@@ -63,7 +63,7 @@ def run_region_delete_worker(
     """Render a region operation and schedule a guarded main-thread completion."""
     output_path: Path | None = None
     try:
-        desired_name = deps.make_output_filename(source_path.name)
+        desired_name = deps.make_output_filename(source_path.name, output_format=config.output_format)
         output_path = deps.temp_final_path(desired_name)
 
         def _show_command(command: tuple[str, ...]) -> None:

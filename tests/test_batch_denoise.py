@@ -22,11 +22,13 @@ def test_process_note_batch_operation_uses_dpdfnet_parameter_for_denoise(
     source.write_bytes(b"audio")
     note = BatchNoteSnapshot(10, "Basic", {"Audio": "[sound:clip.mp3]"})
     configs: list[AudioProcessingConfig] = []
+    output_paths: list[Path] = []
 
     def fake_render_dpdfnet_audio(source_path, config, output_path=None, on_command=None):
         del source_path, on_command
         assert output_path is not None
         configs.append(config)
+        output_paths.append(output_path)
         output_path.write_bytes(b"denoised")
 
     monkeypatch.setattr(
@@ -45,10 +47,17 @@ def test_process_note_batch_operation_uses_dpdfnet_parameter_for_denoise(
             ),
         ),
         media_dir=tmp_path,
-        config=AudioProcessingConfig(denoise_algorithm="standard", dpdfnet_attn_limit_db=12.0),
+        config=AudioProcessingConfig(
+            denoise_algorithm="standard",
+            dpdfnet_attn_limit_db=12.0,
+            output_format="flac",
+        ),
         media_writer=lambda name, data: name,
     )
 
     assert result.written
     assert configs[0].denoise_algorithm == "dpdfnet"
     assert configs[0].dpdfnet_attn_limit_db == 18.0
+    assert output_paths[0].suffix == ".flac"
+    assert result.written_filename is not None
+    assert result.written_filename.endswith(".flac")
