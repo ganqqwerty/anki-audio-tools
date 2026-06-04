@@ -17,6 +17,7 @@ EDITOR_PROCESSING_CONTRACTS: dict[str, ModuleContract] = {
             "editor_dependencies",
             "editor_frontend_callbacks",
             "editor_history",
+            "editor_persistent_undo",
             "editor_playback",
             "editor_processing",
             "editor_recording",

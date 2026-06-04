@@ -1,6 +1,9 @@
 import { mount, unmount } from "svelte";
 
-import { applyInitialStatusForOrd } from "./control-actions.js";
+import {
+  applyInitialHistoryAvailabilityForOrd,
+  applyInitialStatusForOrd,
+} from "./control-actions.js";
 import EditorControls from "./EditorControls.svelte";
 import { visualizerForOrd } from "./dom-selectors.js";
 import type { FieldTarget } from "./types.js";
@@ -53,6 +56,7 @@ export function mountController(target: FieldTarget): FieldController | null {
     props: { target },
   }) as Record<string, unknown>;
   applyInitialStatusForOrd(target.ord);
+  applyInitialHistoryAvailabilityForOrd(target.ord);
   const controller = {
     component,
     host,

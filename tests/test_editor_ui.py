@@ -21,6 +21,7 @@ def test_injection_script_embeds_audio_field_indices_and_bundle() -> None:
     assert config["audioFieldIndices"] == [1, 3]
     assert config["audioFieldMetadata"] == {}
     assert config["audioFieldSources"] == {}
+    assert config["initialHistoryAvailabilityByField"] == {}
     assert config["pendingPostEditPlayback"] is None
     assert config["repeatPlaybackByDefault"] is True
     assert config["showGraphByDefault"] is True
@@ -102,6 +103,19 @@ def test_injection_script_embeds_audio_field_sources() -> None:
     script = injection_script([0, 2], audio_field_sources={0: "front.wav", 2: "back.mp3"})
 
     assert '"audioFieldSources": {"0": "front.wav", "2": "back.mp3"}' in script
+
+
+def test_injection_script_embeds_initial_history_availability() -> None:
+    script = injection_script(
+        [0],
+        initial_history_availability_by_field={
+            0: {"canUndo": True, "canRedo": False},
+        },
+    )
+
+    assert _embedded_config(script)["initialHistoryAvailabilityByField"] == {
+        "0": {"canUndo": True, "canRedo": False},
+    }
 
 
 def test_injection_script_embeds_audio_field_metadata() -> None:

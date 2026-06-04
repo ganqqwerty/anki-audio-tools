@@ -142,6 +142,18 @@ BROAD_EXCEPTION_ALLOWLIST: tuple[BroadExceptionAllowance, ...] = (
         "Background render worker boundary reports failed audio generation on the main thread.",
     ),
     BroadExceptionAllowance(
+        "editor_processing",
+        "replace_current_field_after_render",
+        1,
+        "Persistent undo journal writes are best-effort and must not block a completed render.",
+    ),
+    BroadExceptionAllowance(
+        "editor_integration",
+        "_can_persistent_undo",
+        1,
+        "Initial editor injection must not fail note loading when the persistent history check fails.",
+    ),
+    BroadExceptionAllowance(
         "editor_special_transform_worker",
         "run_special_transform_worker",
         1,

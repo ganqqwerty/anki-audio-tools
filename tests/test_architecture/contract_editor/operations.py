@@ -73,6 +73,21 @@ EDITOR_OPERATION_CONTRACTS: dict[str, ModuleContract] = {
         allowed_addon_deps=("editor_session", "editor_status", "errors", "i18n", "media_paths", "sound_refs"),
         allowed_side_effects=(SideEffect.WEB_EVAL,),
     ),
+    "editor_persistent_undo": contract(
+        "editor_persistent_undo",
+        layer=Layer.UI_ADAPTER,
+        allowed_addon_deps=(
+            "audio_state",
+            "editor_session",
+            "editor_status",
+            "errors",
+            "media_paths",
+            "persistent_history",
+            "runtime_paths",
+            "sound_refs",
+        ),
+        allowed_side_effects=(SideEffect.DB_ACCESS,),
+    ),
     "editor_runtime": contract(
         "editor_runtime",
         layer=Layer.UI_ADAPTER,

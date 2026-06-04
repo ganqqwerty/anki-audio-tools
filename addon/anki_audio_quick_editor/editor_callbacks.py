@@ -12,6 +12,7 @@ from . import (
     editor_dependencies,
     editor_frontend_callbacks,
     editor_history,
+    editor_persistent_undo,
     editor_playback,
     editor_processing,
     editor_recording,
@@ -134,6 +135,9 @@ _replace_current_field_after_render = _with_deps(
     _processing_deps,
 )
 _write_generated_media = _with_deps(editor_processing.write_generated_media, _processing_deps)
+_record_standard_persistent_undo = editor_persistent_undo.record_standard_persistent_undo
+_can_persistent_undo = editor_persistent_undo.can_persistent_undo
+_restore_persistent_undo = _with_deps(editor_persistent_undo.restore_persistent_undo, _history_deps)
 _render_failed = _with_deps(editor_processing.render_failed, _processing_deps)
 _denoise_standard_async = _with_deps(editor_processing.denoise_standard_async, _processing_deps)
 _convert_async = _with_deps(editor_processing.convert_async, _processing_deps)

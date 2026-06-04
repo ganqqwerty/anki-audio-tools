@@ -242,8 +242,27 @@ def replace_current_field_after_render(
     selection = select_first_sound_reference(field_html)
     if selection.selected is None:
         raise AudioProcessingError(deps.current_field_audio_missing)
+    old_field_html = field_html
+    old_filename = selection.selected.filename
+    old_state = session.state if session else None
+    status_summary = session.next_status_summary if session else ""
     deps.dispose_editor_frontend_controls(editor)
     editor.note.fields[field_index] = replace_sound_reference(field_html, selection.selected, saved_name)
+    new_field_html = editor.note.fields[field_index]
+    try:
+        deps.record_standard_persistent_undo(
+            editor,
+            field_index=field_index,
+            old_field_html=old_field_html,
+            new_field_html=new_field_html,
+            old_filename=old_filename,
+            new_filename=saved_name,
+            old_state=old_state,
+            new_state=updated_state,
+            status_summary=status_summary,
+        )
+    except Exception:
+        logger.debug("Could not record persistent undo operation.", exc_info=True)
     should_redraw_graph = _replace_standard_render_session_state(session, field_index, saved_name, updated_state)
     deps.request_playback_after_edit(
         editor,

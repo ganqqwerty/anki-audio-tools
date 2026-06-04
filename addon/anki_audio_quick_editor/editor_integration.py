@@ -8,6 +8,7 @@ from typing import Any, Callable
 
 from . import (
     editor_callbacks,
+    editor_persistent_undo,
     editor_runtime,
 )
 from .audio_processor import probe_audio_metadata
@@ -238,6 +239,11 @@ def editor_injection_script(editor: Any, note: Any) -> str:
         list(audio_field_sources),
         audio_field_metadata=_audio_field_metadata(editor, audio_field_sources, config),
         audio_field_sources=audio_field_sources,
+        initial_history_availability_by_field=_initial_history_availability_by_field(
+            editor,
+            note,
+            _SESSIONS.get(editor),
+        ),
         initial_status_by_field=_initial_status_by_field(_SESSIONS.get(editor)),
         pending_post_edit_playback=_pending_post_edit_playback_payload(_SESSIONS.get(editor)),
         repeat_playback_by_default=bool(config.get("repeat_playback_by_default", True)),
@@ -301,6 +307,38 @@ def editor_injection_script(editor: Any, note: Any) -> str:
             "graphVoiceLock": str(config.get("graph_voice_lock", "balanced")),
         },
     )
+
+
+def _initial_history_availability_by_field(
+    editor: Any,
+    note: Any,
+    session: EditorSession | None,
+) -> dict[int, dict[str, bool]]:
+    availability: dict[int, dict[str, bool]] = {}
+    for field_index in _audio_field_indices(note):
+        session_can_undo = (
+            session is not None
+            and session.field_index == field_index
+            and bool(session.undo_history.entries)
+        )
+        session_can_redo = (
+            session is not None
+            and session.field_index == field_index
+            and bool(session.redo_history.entries)
+        )
+        availability[int(field_index)] = {
+            "canUndo": bool(session_can_undo or _can_persistent_undo(editor, field_index)),
+            "canRedo": bool(session_can_redo),
+        }
+    return availability
+
+
+def _can_persistent_undo(editor: Any, field_index: int) -> bool:
+    try:
+        return editor_persistent_undo.can_persistent_undo(editor, field_index)
+    except Exception:
+        logger.debug("Could not compute persistent undo availability.", exc_info=True)
+        return False
 
 
 def _audio_field_metadata(

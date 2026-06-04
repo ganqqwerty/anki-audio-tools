@@ -84,6 +84,13 @@ CORE_CONTRACTS: dict[str, ModuleContract] = {
         allowed_addon_deps=("sound_refs",),
     ),
     "permission_guidance": contract("permission_guidance", layer=Layer.IMPORT_SAFE_CORE),
+    "persistent_history": contract(
+        "persistent_history",
+        layer=Layer.IMPORT_SAFE_CORE,
+        allowed_addon_deps=("audio_state",),
+        allowed_side_effects=(SideEffect.DB_ACCESS,),
+        notes="Add-on-owned SQLite journal for persistent audio undo history.",
+    ),
     "prosody_analyzer": contract(
         "prosody_analyzer",
         layer=Layer.IMPORT_SAFE_CORE,

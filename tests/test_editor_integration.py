@@ -173,8 +173,6 @@ def test_editor_undo_and_redo_restore_audio_references_without_processing(
     assert session.pending_post_edit_playback_source_filename == "clip__aqe_first.mp3"
 
 
-
-
 def test_editor_settings_command_opens_settings_and_refreshes_after_save(
     tmp_path: Path,
     monkeypatch,

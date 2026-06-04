@@ -26,6 +26,7 @@ export interface EditorRuntimeConfig {
   audioFieldSources?: Record<number, string>;
   direction?: "ltr" | "rtl";
   initialStatusByField?: Record<number, { kind?: string; message: string }>;
+  initialHistoryAvailabilityByField?: Record<number, { canRedo: boolean; canUndo: boolean }>;
   locale?: string;
   messages?: Record<string, string>;
   pendingPostEditPlayback?: {

@@ -142,6 +142,7 @@ def history_deps(callbacks: Any, frontend_callbacks: Any) -> SimpleNamespace:
     from . import editor_runtime
 
     return SimpleNamespace(
+        can_persistent_undo=callbacks.can_persistent_undo,
         current_field_audio_missing=editor_runtime.CURRENT_FIELD_AUDIO_MISSING,
         current_field_index=current_field_index,
         dispose_editor_frontend_controls=frontend_callbacks.dispose_editor_frontend_controls,
@@ -153,6 +154,7 @@ def history_deps(callbacks: Any, frontend_callbacks: Any) -> SimpleNamespace:
         request_playback_after_edit=frontend_callbacks.request_playback_after_edit,
         request_graph_redraw=frontend_callbacks.request_graph_redraw,
         restore_history_entry=callbacks.restore_history_entry,
+        restore_persistent_undo=callbacks.restore_persistent_undo,
         session_and_source=editor_runtime.session_and_source,
         still_processing_message=editor_runtime.STILL_PROCESSING_MESSAGE,
         stop_session_playback=editor_runtime.stop_session_playback,
@@ -179,6 +181,7 @@ def processing_deps(callbacks: Any, frontend_callbacks: Any) -> SimpleNamespace:
         make_output_filename=make_output_filename,
         record_dpdfnet_failure_context=callbacks.record_dpdfnet_failure_context,
         record_rnnoise_failure_context=callbacks.record_rnnoise_failure_context,
+        record_standard_persistent_undo=callbacks.record_standard_persistent_undo,
         record_spleeter_failure_context=callbacks.record_spleeter_failure_context,
         render_and_replace_async=callbacks.render_and_replace_async,
         render_audio=render_audio,

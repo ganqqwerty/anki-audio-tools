@@ -104,6 +104,14 @@ export function applyInitialStatusForOrd(ord: number): void {
   }
 }
 
+export function applyInitialHistoryAvailabilityForOrd(ord: number): void {
+  const initialAvailability = window.__AQE_EDITOR_CONFIG__?.initialHistoryAvailabilityByField;
+  const availability = initialAvailability?.[ord];
+  if (!availability) return;
+  setHistoryAvailability(ord, availability.canUndo, availability.canRedo);
+  delete initialAvailability[ord];
+}
+
 export function setCommandButtonLabel(ord: number, command: EditorCommand, label: string): void {
   const button = command === "aqe:play"
     ? playButton(ord)

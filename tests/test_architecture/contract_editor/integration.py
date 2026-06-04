@@ -20,6 +20,7 @@ EDITOR_INTEGRATION_CONTRACTS: dict[str, ModuleContract] = {
             "editor_frontend",
             "editor_history",
             "editor_media",
+            "editor_persistent_undo",
             "editor_playback",
             "editor_processing",
             "editor_region_delete",
