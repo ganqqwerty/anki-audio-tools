@@ -22,7 +22,9 @@ import { playAfterEdit } from "./playback-actions.js";
 import {
   popPendingRegionDeleteRequest,
   popPendingSplitDefaultSaveRequest,
+  popPendingSourceMetadataRequest,
 } from "./bridge.js";
+import { receiveSourceMetadataResponse } from "./source-metadata-requests.js";
 import { installEditorTestWindowContract } from "./test-contract.js";
 
 export const EDITOR_WINDOW_CONTRACT_NAMES = [
@@ -32,6 +34,7 @@ export const EDITOR_WINDOW_CONTRACT_NAMES = [
   "__aqePopPendingGraphAnalysisRequest",
   "__aqePopPendingRegionDeleteRequest",
   "__aqePopPendingSplitDefaultSaveRequest",
+  "__aqePopPendingSourceMetadataRequest",
   "__aqePopFrontendLog",
   "__aqePlayAfterEdit",
   "__aqePrepareForNewNote",
@@ -44,6 +47,7 @@ export const EDITOR_WINDOW_CONTRACT_NAMES = [
   "__aqeSetStatus",
   "__aqeSetVisualizer",
   "__aqeSetVisualizerStatus",
+  "__aqeReceiveSourceMetadataResponse",
   "__aqeStopEditorPlayback",
 ] as const;
 
@@ -67,5 +71,7 @@ export function installEditorWindowContract(): void {
   window.__aqePopPendingGraphAnalysisRequest = popPendingGraphAnalysisRequest;
   window.__aqePopPendingRegionDeleteRequest = popPendingRegionDeleteRequest;
   window.__aqePopPendingSplitDefaultSaveRequest = popPendingSplitDefaultSaveRequest;
+  window.__aqePopPendingSourceMetadataRequest = popPendingSourceMetadataRequest;
+  window.__aqeReceiveSourceMetadataResponse = receiveSourceMetadataResponse;
   installEditorTestWindowContract();
 }

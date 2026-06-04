@@ -41,6 +41,19 @@ export interface EditorRuntimeConfig {
   editorButtonModes?: EditorButtonModes;
 }
 
+export interface SourceMetadataRequest {
+  requestId: string;
+  fieldOrd: number;
+  sourceFilename: string;
+}
+
+export interface SourceMetadataResponse {
+  requestId: string;
+  ok: boolean;
+  metadata?: AudioSourceMetadataSummary;
+  error?: string;
+}
+
 export interface SplitButtonDefaults {
   denoiseAlgorithm: DenoiseAlgorithm;
   dpdfnetAttnLimitDb?: number;
