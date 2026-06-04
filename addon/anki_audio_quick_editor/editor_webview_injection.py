@@ -52,7 +52,7 @@ def editor_injection_script(editor: Any, note: Any) -> str:
             "speedStep": float(config.get("speed_step", 1.5)),
             "repeatPauseSeconds": float(config.get("repeat_pause_seconds", 0.0)),
             "voiceRecordingCountdownSeconds": int(
-                config.get("voice_recording_countdown_seconds", 3)
+                config.get("voice_recording_countdown_seconds", 0)
             ),
             "shareTarget": str(config.get("share_target", "litterbox")),
             "pauseAggressiveness": str(config.get("pause_aggressiveness", "normal")),

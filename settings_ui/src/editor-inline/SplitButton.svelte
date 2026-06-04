@@ -104,7 +104,7 @@
   let graphSmoothness = $state<GraphSmoothness>("very_smooth");
   let graphConnectShortDropoutsMs = $state(240);
   let graphVoiceLock = $state<GraphVoiceLock>("balanced");
-  let voiceRecordingCountdownSeconds = $state(3);
+  let voiceRecordingCountdownSeconds = $state(0);
   let defaultSaved = $state(false);
   let defaultSavedTimer: number | undefined;
 

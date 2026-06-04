@@ -23,7 +23,7 @@ def test_save_command_writes_config(anki_mw) -> None:
         "enable_reviewer_editor": True,
         "repeat_playback_by_default": False,
         "repeat_pause_seconds": 0.0,
-        "voice_recording_countdown_seconds": 3,
+        "voice_recording_countdown_seconds": 0,
         "share_target": "litterbox",
         "show_graph_by_default": False,
         "visible_editor_buttons": list(DEFAULT_VISIBLE_EDITOR_BUTTONS),
