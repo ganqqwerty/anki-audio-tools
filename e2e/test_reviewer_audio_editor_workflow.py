@@ -186,6 +186,10 @@ def _menu_action(menu: QMenu, label: str):
     raise AssertionError(f"menu action {label!r} not found; saw {labels!r}")
 
 
+def _trigger_action(action) -> None:
+    action.triggered.emit()
+
+
 def _reviewer_more_menu(reviewer) -> QMenu:
     from aqt import gui_hooks
 
@@ -411,20 +415,20 @@ def test_reviewer_audio_editor_answer_workflow(anki_mw, ffmpeg_config) -> None:
     assert_reviewer_back_chaining_marker_row_css_isolated(reviewer, field_ord)
 
     hide_action = _menu_action(_reviewer_more_menu(reviewer), "Hide audio editor")
-    hide_action.trigger()
+    _trigger_action(hide_action)
     _wait_for_no_controls(reviewer.web)
 
     show_action = _menu_action(_reviewer_more_menu(reviewer), "Show audio editor")
-    show_action.trigger()
+    _trigger_action(show_action)
     _wait_for_controls(reviewer.web)
 
     tools_menu = _tools_audio_menu(anki_mw)
     tools_menu.aboutToShow.emit()
-    _menu_action(tools_menu, "Hide audio editor").trigger()
+    _trigger_action(_menu_action(tools_menu, "Hide audio editor"))
     _wait_for_no_controls(reviewer.web)
 
     tools_menu.aboutToShow.emit()
-    _menu_action(tools_menu, "Show audio editor").trigger()
+    _trigger_action(_menu_action(tools_menu, "Show audio editor"))
     _wait_for_controls(reviewer.web)
 
     original_card_id = reviewer.card.id
@@ -444,7 +448,8 @@ def test_reviewer_audio_editor_answer_workflow(anki_mw, ffmpeg_config) -> None:
     config = anki_mw.addonManager.getConfig(ADDON_NUMERIC_ID) or {}
     config["enable_reviewer_editor"] = False
     anki_mw.addonManager.writeConfig(ADDON_NUMERIC_ID, config)
-    _show_answer(reviewer)
+    reviewer_module = _reviewer_module()
+    reviewer_module._on_reviewer_did_show_card_side(reviewer.card)
     _wait_for_no_controls(reviewer.web)
     action = _menu_action(_reviewer_more_menu(reviewer), "Show audio editor")
     assert action.isEnabled() is False

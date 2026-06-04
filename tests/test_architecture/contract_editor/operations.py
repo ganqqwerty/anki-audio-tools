@@ -41,6 +41,19 @@ EDITOR_OPERATION_CONTRACTS: dict[str, ModuleContract] = {
         ),
         allowed_side_effects=(SideEffect.WEB_EVAL,),
     ),
+    "editor_source_metadata": contract(
+        "editor_source_metadata",
+        layer=Layer.UI_ADAPTER,
+        allowed_addon_deps=(
+            "audio_state",
+            "diagnostics_runtime",
+            "i18n",
+        ),
+        allowed_side_effects=(
+            SideEffect.THREAD_SPAWN,
+            SideEffect.WEB_EVAL,
+        ),
+    ),
     "editor_conversion": contract(
         "editor_conversion",
         layer=Layer.UI_ADAPTER,

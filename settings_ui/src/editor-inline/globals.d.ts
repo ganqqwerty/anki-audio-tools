@@ -12,9 +12,11 @@ import type {
   PlaybackState,
   PostEditPlaybackIntent,
   RegionDeleteRequest,
+} from "./types.js";
+import type {
   SourceMetadataRequest,
   SourceMetadataResponse,
-} from "./types.js";
+} from "./source-metadata-types.js";
 import type { LearnerRecordingStatePayload } from "./recording-state.js";
 import type { SplitDefaultSaveRequest } from "./split-default-save-types.js";
 

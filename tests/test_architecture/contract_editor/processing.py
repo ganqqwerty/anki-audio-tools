@@ -25,6 +25,7 @@ EDITOR_PROCESSING_CONTRACTS: dict[str, ModuleContract] = {
             "editor_session",
             "editor_settings_actions",
             "editor_sharing",
+            "editor_source_metadata",
             "editor_split_defaults",
             "prosody_types",
         ),

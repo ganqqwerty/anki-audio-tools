@@ -1,6 +1,6 @@
 import type { AudioSourceMetadataSummary } from "../lib/size-reduction-parameters.js";
 import { sendSourceMetadataRequest } from "./bridge.js";
-import type { SourceMetadataResponse } from "./types.js";
+import type { SourceMetadataResponse } from "./source-metadata-types.js";
 
 const pending = new Map<
   string,

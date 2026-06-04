@@ -5,8 +5,8 @@ import type {
   GraphAnalysisRequest,
   PlaybackRequest,
   RegionDeleteRequest,
-  SourceMetadataRequest,
 } from "./types.js";
+import type { SourceMetadataRequest } from "./source-metadata-types.js";
 import type { SplitDefaultSaveRequest } from "./split-default-save-types.js";
 
 const frontendLogs: FrontendLogPayload[] = [];
