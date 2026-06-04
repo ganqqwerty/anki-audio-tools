@@ -28,20 +28,41 @@
 
   function isVisible(panel: ToolbarPanelSpec): boolean {
     const visible = visibleSet();
-    return panel.commands.every((command) => visible.has(command));
+    return panel.commands.some((command) => visible.has(command));
+  }
+
+  function setVisibleCommands(visible: Set<EditorCommand>): void {
+    const selectedCommands = buttons
+      .map((button) => button.command)
+      .filter((command) => visible.has(command));
+    config.visible_editor_buttons = normalizeVisibleEditorButtons(
+      buttons,
+      selectedCommands,
+    ) as Config["visible_editor_buttons"];
   }
 
   function toggle(panel: ToolbarPanelSpec): void {
     const visible = visibleSet();
-    if (panel.commands.every((command) => visible.has(command))) {
+    if (panel.commands.some((command) => visible.has(command))) {
       for (const command of panel.commands) visible.delete(command);
     } else {
       for (const command of panel.commands) visible.add(command);
     }
-    config.visible_editor_buttons = normalizeVisibleEditorButtons(
-      buttons,
-      buttons.map((button) => button.command).filter((command) => visible.has(command)),
-    ) as Config["visible_editor_buttons"];
+    setVisibleCommands(visible);
+  }
+
+  function isCommandVisible(command: EditorCommand): boolean {
+    return visibleSet().has(command);
+  }
+
+  function setCommandVisible(command: EditorCommand, nextVisible: boolean): void {
+    const visible = visibleSet();
+    if (nextVisible) {
+      visible.add(command);
+    } else {
+      visible.delete(command);
+    }
+    setVisibleCommands(visible);
   }
 
   function displayMode(command: EditorCommand): EditorButtonDisplayMode {
@@ -84,10 +105,15 @@
   function modeControls(panel: ToolbarPanelSpec) {
     if (panel.buttons.length === 1) return undefined;
     return panel.buttons.map((button) => ({
-      label: `${button.label} ${t("settings.toolbar_visibility.icon")}`,
+      icon: button.icon,
+      label: button.label,
       mode: displayMode(button.command),
+      onToggleVisible: panel.atomicVisibility
+        ? undefined
+        : (nextVisible: boolean) => setCommandVisible(button.command, nextVisible),
       onSetMode: (nextMode: EditorButtonDisplayMode) => setDisplayMode(button.command, nextMode),
       testId: `button-settings-${COMMAND_SLUGS[button.command]}`,
+      visible: isCommandVisible(button.command),
     }));
   }
 </script>

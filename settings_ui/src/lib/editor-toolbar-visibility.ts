@@ -12,6 +12,7 @@ import type { CommandIconName } from "./icon-types.js";
 import type { EditorCommand, ToolbarButtonSpec } from "./editor-toolbar-buttons.js";
 
 export interface ToolbarPanelSpec {
+  atomicVisibility: boolean;
   buttons: readonly ToolbarButtonSpec[];
   commands: readonly EditorCommand[];
   icon: CommandIconName;
@@ -34,6 +35,7 @@ export function toolbarPanels(
         (candidate) => candidate.command === matchedPanel.definition.primaryCommand,
       ) ?? matchedPanel.buttons[0]!;
       panels.push({
+        atomicVisibility: matchedPanel.definition.atomicVisibility === true,
         buttons: matchedPanel.buttons,
         commands: matchedPanel.definition.commands,
         icon: primaryButton.icon,
@@ -46,6 +48,7 @@ export function toolbarPanels(
       continue;
     }
     panels.push({
+      atomicVisibility: false,
       buttons: [button],
       commands: [button.command],
       icon: button.icon,
@@ -69,6 +72,7 @@ export function normalizeVisibleEditorButtons(
     sourceCommands.filter((command): command is EditorCommand => availableCommands.has(command)),
   );
   for (const definition of TOOLBAR_PANEL_DEFINITIONS) {
+    if (definition.atomicVisibility !== true) continue;
     if (definition.commands.some((command) => requested.has(command))) {
       for (const command of definition.commands) {
         if (availableCommands.has(command)) requested.add(command);

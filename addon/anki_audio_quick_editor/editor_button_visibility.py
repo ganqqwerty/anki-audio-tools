@@ -5,13 +5,7 @@ from __future__ import annotations
 from typing import Any
 
 RECORDING_PANEL_BUTTONS = ("aqe:record-voice", "aqe:play-recording")
-BACK_CHAINING_PANEL_BUTTONS = (
-    "aqe:back-chain-practice",
-    "aqe:back-chain-previous",
-    "aqe:back-chain-next",
-)
 ATOMIC_PANEL_BUTTON_GROUPS = (
-    BACK_CHAINING_PANEL_BUTTONS,
     RECORDING_PANEL_BUTTONS,
 )
 

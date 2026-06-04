@@ -3,6 +3,7 @@ import type { EditorCommand, ToolbarButtonSpec } from "./editor-toolbar-buttons.
 export type ToolbarPanelSlug = "back-chaining" | "record-play-yours";
 
 export interface ToolbarPanelDefinition {
+  atomicVisibility?: boolean;
   commands: readonly EditorCommand[];
   labelKey: string;
   primaryCommand: EditorCommand;
@@ -17,6 +18,7 @@ export interface MatchedToolbarPanel<TButton extends { command: EditorCommand }>
 
 export const TOOLBAR_PANEL_DEFINITIONS = [
   {
+    atomicVisibility: false,
     commands: [
       "aqe:back-chain-practice",
       "aqe:back-chain-previous",
@@ -28,6 +30,7 @@ export const TOOLBAR_PANEL_DEFINITIONS = [
     titleKey: "editor.command.back_chain_practice.title",
   },
   {
+    atomicVisibility: true,
     commands: [
       "aqe:record-voice",
       "aqe:play-recording",
