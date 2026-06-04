@@ -143,7 +143,7 @@ describe("playback model", () => {
     })).toEqual({ kind: "continue" });
   });
 
-  it("repeats at boundary with the same pass when repeat is enabled", () => {
+  it("repeats at boundary from the pass reset cursor when repeat is enabled", () => {
     const pass = selectedPass();
 
     expect(planPlaybackBoundary({
@@ -153,8 +153,34 @@ describe("playback model", () => {
       repeatPauseMs: 250,
     })).toEqual({
       kind: "loop",
-      pass,
+      pass: {
+        ...pass,
+        startMs: 400,
+      },
       repeatPauseMs: 250,
+    });
+  });
+
+  it("restarts a resumed selected loop from the selection start after the current pass", () => {
+    const pass = planPlaybackPass({
+      ...baseSnapshot,
+      cursorMs: 650,
+      region: { startMs: 400, endMs: 800, mode: "selection" },
+      repeat: true,
+    }, 650);
+
+    expect(planPlaybackBoundary({
+      nextMs: 800,
+      pass,
+      repeat: true,
+      repeatPauseMs: 0,
+    })).toEqual({
+      kind: "loop",
+      pass: {
+        ...pass,
+        startMs: 400,
+      },
+      repeatPauseMs: 0,
     });
   });
 

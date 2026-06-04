@@ -105,7 +105,7 @@ export function planPlaybackBoundary(input: {
   if (input.repeat) {
     return {
       kind: "loop",
-      pass: input.pass,
+      pass: playbackLoopPass(input.pass),
       repeatPauseMs: input.repeatPauseMs,
     };
   }
@@ -117,6 +117,13 @@ export function planPlaybackBoundary(input: {
 
 export function playbackCompletionCursor(pass: Pick<PlaybackPass, "regionMode" | "resetCursorMs">): number {
   return Math.round(pass.resetCursorMs);
+}
+
+function playbackLoopPass(pass: PlaybackPass): PlaybackPass {
+  return {
+    ...pass,
+    startMs: playbackCompletionCursor(pass),
+  };
 }
 
 export function selectionCoversFullDuration(region: PlaybackRegion, durationMs: number): boolean {
