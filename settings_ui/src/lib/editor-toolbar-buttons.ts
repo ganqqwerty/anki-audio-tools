@@ -132,14 +132,14 @@ export function commandButtons(): readonly ToolbarButtonSpec[] {
     },
     {
       command: "aqe:back-chain-previous",
-      icon: "skip-back",
+      icon: "skip-forward",
       iconOnly: true,
       label: t("editor.command.back_chain_previous.label"),
       title: t("editor.command.back_chain_previous.title"),
     },
     {
       command: "aqe:back-chain-next",
-      icon: "skip-forward",
+      icon: "skip-back",
       iconOnly: true,
       label: t("editor.command.back_chain_next.label"),
       title: t("editor.command.back_chain_next.title"),
