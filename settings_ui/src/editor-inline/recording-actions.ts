@@ -51,6 +51,7 @@ export function startLearnerRecordingCountdown(node: HTMLElement, ord: number): 
       resetLearnerRecordingState(ord);
       return;
     }
+    clearRecordingCountdownOverlay(visualizer);
     if (typeof node.focus === "function") node.focus();
     window.__aqeActiveField = ord;
     focusAndSendCommandPayload(ord, {
@@ -60,22 +61,21 @@ export function startLearnerRecordingCountdown(node: HTMLElement, ord: number): 
     });
   };
   if (countdownSeconds <= 0) {
-    setLearnerRecordingState({ fieldOrd: ord, status: "countdown", countdownSeconds: 0, targetDurationMs });
     dispatch();
     return true;
   }
   let remaining = countdownSeconds;
   const tick = (): void => {
+    if (remaining <= 0) {
+      dispatch();
+      return;
+    }
     setLearnerRecordingState({
       fieldOrd: ord,
       status: "countdown",
       countdownSeconds: remaining,
       targetDurationMs,
     });
-    if (remaining <= 0) {
-      dispatch();
-      return;
-    }
     remaining -= 1;
     visualizer.__aqeRecordCountdownTimer = window.setTimeout(tick, 1000);
   };
@@ -114,6 +114,7 @@ export function setLearnerRecordingState(payload: LearnerRecordingStatePayload):
     } else {
       stopRecordingCursor(visualizer);
     }
+    renderRecordingCountdownOverlay(visualizer, payload);
   }
   renderRecordingStatus(controls, payload);
   syncRecordingControls(ord);
@@ -290,6 +291,37 @@ function recordingStatusText(payload: LearnerRecordingStatePayload): string {
   if (payload.status === "ready") return t("editor.recording.ready");
   if (payload.status === "failed") return payload.failureMessage || t("editor.recording.failed");
   return "";
+}
+
+function renderRecordingCountdownOverlay(
+  visualizer: VisualizerElement,
+  payload: LearnerRecordingStatePayload,
+): void {
+  const overlay = visualizer.querySelector<HTMLElement>(".aqe-recording-countdown-overlay");
+  if (!overlay) return;
+  const valueNode = overlay.querySelector<HTMLElement>(".aqe-recording-countdown-value");
+  const seconds = countdownOverlaySeconds(payload);
+  if (seconds == null) {
+    overlay.hidden = true;
+    overlay.removeAttribute("aria-label");
+    if (valueNode) valueNode.textContent = "";
+    return;
+  }
+  const message = t("editor.recording.countdown", { seconds });
+  overlay.hidden = false;
+  overlay.setAttribute("aria-label", message);
+  if (valueNode) valueNode.textContent = String(seconds);
+}
+
+function clearRecordingCountdownOverlay(visualizer: VisualizerElement): void {
+  renderRecordingCountdownOverlay(visualizer, { status: "idle" });
+}
+
+function countdownOverlaySeconds(payload: LearnerRecordingStatePayload): number | null {
+  if (payload.status !== "countdown") return null;
+  const seconds = Number(payload.countdownSeconds);
+  if (!Number.isFinite(seconds) || seconds <= 0) return null;
+  return Math.round(seconds);
 }
 
 function recordingTargetReady(ord: number): boolean {

@@ -135,6 +135,15 @@
   >
     <div class="aqe-selection-region-preview-halo aqe-selection-region-preview-halo-top" aria-hidden="true"></div>
     <div class="aqe-selection-region-preview-halo aqe-selection-region-preview-halo-bottom" aria-hidden="true"></div>
+    <div
+      class="aqe-recording-countdown-overlay"
+      data-testid={`aqe-recording-countdown-overlay-${target.ord}`}
+      aria-live="polite"
+      aria-atomic="true"
+      hidden
+    >
+      <span class="aqe-recording-countdown-value"></span>
+    </div>
     <AqeTooltip side="bottom">
       {#snippet trigger({ props })}
         <div

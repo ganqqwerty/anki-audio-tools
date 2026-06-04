@@ -34,6 +34,17 @@ function recordingConfig(): EditorRuntimeConfig {
   };
 }
 
+function recordingConfigWithCountdown(seconds: number): EditorRuntimeConfig {
+  const config = recordingConfig();
+  return {
+    ...config,
+    splitButtonDefaults: {
+      ...config.splitButtonDefaults,
+      voiceRecordingCountdownSeconds: seconds,
+    },
+  };
+}
+
 function textRecordingConfig(): EditorRuntimeConfig {
   return {
     ...recordingConfig(),
@@ -54,6 +65,7 @@ describe("editor inline learner recording integration", () => {
 
   afterEach(() => {
     disposeEditorRuntime();
+    delete window.__aqeSplitButtonStates;
     restoreConsole();
     vi.useRealTimers();
     vi.restoreAllMocks();
@@ -140,12 +152,58 @@ describe("editor inline learner recording integration", () => {
 
     recordButton.click();
 
+    const overlay = document.querySelector<HTMLElement>('[data-testid="aqe-recording-countdown-overlay-0"]')!;
+    expect(overlay).not.toBeNull();
+    expect(overlay.hidden).toBe(true);
+    expect(window.__aqeGraphStateForTest?.(0)?.learnerRecordingStatus).toBe("idle");
     expect(bridgeCommands()).toContain("focus:0");
     expect(bridgeCommands()).toContain("aqe:command-payload");
     expect(window.__aqePendingCommandPayload).toMatchObject({
       command: "aqe:record-voice",
       fieldOrd: 0,
       graphSettings: { smoothness: expect.any(String) },
+    });
+  });
+
+  it("shows a graph overlay while a positive recording countdown runs", async () => {
+    vi.useFakeTimers();
+    const config = recordingConfigWithCountdown(3);
+    initializeEditorRuntime(config);
+    scan(config);
+    window.__aqeSetVisualizer?.(0, { ...track, sourceFilename: "clip one.mp3" }, 0);
+    await Promise.resolve();
+
+    const recordButton = document.querySelector<HTMLButtonElement>('[data-testid="aqe-button-0-record-voice"]')!;
+    recordButton.click();
+
+    let overlay = document.querySelector<HTMLElement>('[data-testid="aqe-recording-countdown-overlay-0"]')!;
+    expect(overlay).not.toBeNull();
+    expect(overlay.hidden).toBe(false);
+    expect(overlay).toHaveTextContent("3");
+    expect(overlay).toHaveAttribute("aria-label", "Recording starts in 3s");
+    expect(bridgeCommands()).not.toContain("aqe:command-payload");
+
+    await vi.advanceTimersByTimeAsync(1000);
+    await Promise.resolve();
+    overlay = document.querySelector<HTMLElement>('[data-testid="aqe-recording-countdown-overlay-0"]')!;
+    expect(overlay).toHaveTextContent("2");
+    expect(overlay).toHaveAttribute("aria-label", "Recording starts in 2s");
+
+    await vi.advanceTimersByTimeAsync(1000);
+    await Promise.resolve();
+    overlay = document.querySelector<HTMLElement>('[data-testid="aqe-recording-countdown-overlay-0"]')!;
+    expect(overlay).toHaveTextContent("1");
+    expect(overlay).toHaveAttribute("aria-label", "Recording starts in 1s");
+
+    await vi.advanceTimersByTimeAsync(1000);
+    await Promise.resolve();
+    overlay = document.querySelector<HTMLElement>('[data-testid="aqe-recording-countdown-overlay-0"]')!;
+    expect(overlay.hidden).toBe(true);
+    expect(bridgeCommands()).toContain("focus:0");
+    expect(bridgeCommands()).toContain("aqe:command-payload");
+    expect(window.__aqePendingCommandPayload).toMatchObject({
+      command: "aqe:record-voice",
+      fieldOrd: 0,
     });
   });
 
