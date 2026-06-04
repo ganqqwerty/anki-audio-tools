@@ -39,7 +39,7 @@ function recordingConfigWithCountdown(seconds: number): EditorRuntimeConfig {
   return {
     ...config,
     splitButtonDefaults: {
-      ...config.splitButtonDefaults,
+      ...config.splitButtonDefaults!,
       voiceRecordingCountdownSeconds: seconds,
     },
   };
