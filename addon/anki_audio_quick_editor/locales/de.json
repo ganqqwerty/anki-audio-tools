@@ -401,6 +401,7 @@
   "editor.playback.paused": "Pausiert",
   "editor.playback.playing": "Wiedergabe läuft",
   "editor.playback.playing_from": "Wiedergabe ab {seconds}s",
+  "editor.playback.repeat_countdown": "Wiederholung in {seconds}s",
   "editor.playback.back_chaining_guidance": "Übungsmodus. Verwende die Back-Chaining-Schaltflächen in der Werkzeugleiste.",
   "editor.playback.preparing": "Wiedergabe wird vorbereitet...",
   "editor.playback.preparing_ffmpeg": "Wiedergabe wird mit ffmpeg vorbereitet",

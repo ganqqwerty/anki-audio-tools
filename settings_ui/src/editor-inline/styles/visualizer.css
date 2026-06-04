@@ -47,6 +47,8 @@
   position: relative;
 }
 
+.aqe-graph-countdown-overlay,
+.aqe-ui-root .aqe-graph-countdown-overlay,
 .aqe-recording-countdown-overlay,
 .aqe-ui-root .aqe-recording-countdown-overlay {
   align-items: center;
@@ -63,11 +65,15 @@
   z-index: 3;
 }
 
+.aqe-graph-countdown-overlay[hidden],
+.aqe-ui-root .aqe-graph-countdown-overlay[hidden],
 .aqe-recording-countdown-overlay[hidden],
 .aqe-ui-root .aqe-recording-countdown-overlay[hidden] {
   display: none;
 }
 
+.aqe-graph-countdown-value,
+.aqe-ui-root .aqe-graph-countdown-value,
 .aqe-recording-countdown-value,
 .aqe-ui-root .aqe-recording-countdown-value {
   font-size: 72px;

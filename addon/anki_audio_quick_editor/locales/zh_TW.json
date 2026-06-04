@@ -389,6 +389,7 @@
   "editor.playback.paused": "已暫停",
   "editor.playback.playing": "正在播放",
   "editor.playback.playing_from": "從 {seconds} 秒開始播放",
+  "editor.playback.repeat_countdown": "{seconds} 秒後重複",
   "editor.playback.back_chaining_guidance": "練習模式。請使用工具列上的逆向鏈式按鈕。",
   "editor.playback.preparing": "正在準備播放...",
   "editor.playback.preparing_ffmpeg": "正在用 ffmpeg 準備播放",

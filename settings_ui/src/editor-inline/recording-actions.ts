@@ -4,6 +4,7 @@ import { setButtonTooltipContent } from "../lib/rich-tooltip.js";
 import { tooltipWithDisabledClarification } from "../lib/disabled-tooltip.js";
 import { focusAndSendCommand, focusAndSendCommandPayload } from "./bridge.js";
 import { allControls, buttonFor, controlsForOrd, visualizerForOrd } from "./dom-selectors.js";
+import { clearGraphCountdownOverlay, renderGraphCountdownOverlay } from "./graph-countdown-overlay.js";
 import { graphSettingsForField } from "./graph-split-state.js";
 import { renderCursor, clearLearnerVisualizerTrack, renderLearnerVisualizerTrack } from "./visualizer-renderer.js";
 import { readVisualizerTargetDurationMs } from "./visualizer-state.js";
@@ -297,24 +298,17 @@ function renderRecordingCountdownOverlay(
   visualizer: VisualizerElement,
   payload: LearnerRecordingStatePayload,
 ): void {
-  const overlay = visualizer.querySelector<HTMLElement>(".aqe-recording-countdown-overlay");
-  if (!overlay) return;
-  const valueNode = overlay.querySelector<HTMLElement>(".aqe-recording-countdown-value");
   const seconds = countdownOverlaySeconds(payload);
   if (seconds == null) {
-    overlay.hidden = true;
-    overlay.removeAttribute("aria-label");
-    if (valueNode) valueNode.textContent = "";
+    clearGraphCountdownOverlay(visualizer);
     return;
   }
   const message = t("editor.recording.countdown", { seconds });
-  overlay.hidden = false;
-  overlay.setAttribute("aria-label", message);
-  if (valueNode) valueNode.textContent = String(seconds);
+  renderGraphCountdownOverlay(visualizer, seconds, message);
 }
 
 function clearRecordingCountdownOverlay(visualizer: VisualizerElement): void {
-  renderRecordingCountdownOverlay(visualizer, { status: "idle" });
+  clearGraphCountdownOverlay(visualizer);
 }
 
 function countdownOverlaySeconds(payload: LearnerRecordingStatePayload): number | null {
