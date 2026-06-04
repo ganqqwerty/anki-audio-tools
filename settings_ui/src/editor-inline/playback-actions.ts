@@ -15,7 +15,7 @@ import {
   stopProgressClock as stopProgressClockFromController,
   type ProgressClockOptions,
 } from "./playback-controller.js";
-import { planPlaybackRequest, type PlaybackSnapshot } from "./playback-model.js";
+import { planPlaybackRequest, selectionCoversFullDuration, type PlaybackSnapshot } from "./playback-model.js";
 import { consumePostEditPlaybackIntent } from "./post-edit-playback.js";
 import type { CursorIntent, PlaybackRequest, PlaybackState, VisualizerElement } from "./types.js";
 import { isPlaybackState } from "./types.js";
@@ -214,7 +214,7 @@ export function startEditorHtmlPlayback(visualizer: VisualizerElement, request: 
     onAudioPlayFailed() {
       logger.warn("html playback failed; falling back to native", { ord: request.ord });
       stopProgressClock(visualizer);
-      if (request.loop) {
+      if (repeatFallbackRequiresBrowserAudio(visualizer, request)) {
         window.__aqeActiveField = request.ord;
         setStatus(t("editor.status.selected_repeat_browser_audio"), "warning");
         return;
@@ -226,6 +226,21 @@ export function startEditorHtmlPlayback(visualizer: VisualizerElement, request: 
     },
   });
   return true;
+}
+
+function repeatFallbackRequiresBrowserAudio(visualizer: VisualizerElement, request: PlaybackRequest): boolean {
+  if (!request.loop) return false;
+  if (request.source === "post_edit") return true;
+  if (request.regionMode !== "selection") return false;
+  const durationMs = Number(visualizer.dataset.durationMs || "0");
+  const selectionActive = visualizer.dataset.selectionActive === "true";
+  const startMs = selectionActive
+    ? Number(visualizer.dataset.selectionStartMs || "0")
+    : Number(request.cursorMs || "0");
+  const endMs = selectionActive
+    ? Number(visualizer.dataset.selectionEndMs || request.endMs || durationMs)
+    : Number(request.endMs || durationMs);
+  return !selectionCoversFullDuration({ endMs, mode: "selection", startMs }, durationMs);
 }
 
 export function handleHtmlPlaybackCommand(ord: number): boolean {
