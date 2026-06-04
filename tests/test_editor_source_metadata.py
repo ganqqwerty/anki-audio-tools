@@ -78,6 +78,53 @@ def test_request_source_metadata_probes_requested_source_on_worker(tmp_path: Pat
     }
 
 
+def test_request_source_metadata_resolves_editor_state_before_worker(tmp_path: Path) -> None:
+    source = tmp_path / "clip.mp3"
+    source.write_bytes(b"audio")
+    evals = EvalCollector()
+    request = {
+        "requestId": "source-1",
+        "fieldOrd": 0,
+        "sourceFilename": "clip.mp3",
+    }
+    editor = SimpleNamespace(web=SimpleNamespace(eval=evals))
+    events: list[str] = []
+
+    class TracingThread:
+        def __init__(self, target, daemon: bool = False):
+            events.append("thread-created")
+            self._target = target
+            self.daemon = daemon
+
+        def start(self) -> None:
+            events.append("thread-started")
+            self._target()
+
+    def eval_with_callback(_editor, _expression, callback):
+        callback(request)
+
+    def resolve_requested_field_media(_editor, _field_ord, _expected):
+        events.append("resolved")
+        return "clip.mp3", source
+
+    def probe_audio_metadata(_path, _config):
+        events.append("probed")
+        return SimpleNamespace(bit_rate=128000, sample_rate=44100, channels=2)
+
+    deps = SimpleNamespace(
+        config=lambda _editor: {},
+        eval_with_callback=eval_with_callback,
+        main=lambda _editor, callback: callback(),
+        probe_audio_metadata=probe_audio_metadata,
+        resolve_requested_field_media=resolve_requested_field_media,
+        threading=SimpleNamespace(Thread=TracingThread),
+    )
+
+    request_source_metadata(editor, deps)
+
+    assert events == ["resolved", "thread-created", "thread-started", "probed"]
+
+
 def test_request_source_metadata_reports_non_blocking_error(tmp_path: Path) -> None:
     source = tmp_path / "clip.mp3"
     source.write_bytes(b"audio")
@@ -147,6 +194,7 @@ def test_request_source_metadata_rejects_stale_source_without_probe(tmp_path: Pa
     }
     editor = SimpleNamespace(web=SimpleNamespace(eval=evals))
     probe_calls = []
+    thread_calls = []
 
     def eval_with_callback(_editor, _expression, callback):
         callback(request)
@@ -157,7 +205,7 @@ def test_request_source_metadata_rejects_stale_source_without_probe(tmp_path: Pa
         main=lambda _editor, callback: callback(),
         probe_audio_metadata=lambda _path, _config: probe_calls.append(_path),
         resolve_requested_field_media=lambda _editor, _field_ord, _expected: None,
-        threading=SimpleNamespace(Thread=ImmediateThread),
+        threading=SimpleNamespace(Thread=lambda *args, **kwargs: thread_calls.append((args, kwargs))),
     )
 
     request_source_metadata(editor, deps)
@@ -166,3 +214,4 @@ def test_request_source_metadata_rejects_stale_source_without_probe(tmp_path: Pa
     assert payload["ok"] is False
     assert payload["error"] == "Could not inspect source info."
     assert probe_calls == []
+    assert thread_calls == []

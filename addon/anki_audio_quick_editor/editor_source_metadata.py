@@ -27,7 +27,17 @@ def request_source_metadata(editor: Any, deps: Any) -> None:
         request = _parse_request(raw_request)
         if request is None:
             return
-        _start_probe(editor, request, deps)
+        resolved = deps.resolve_requested_field_media(
+            editor,
+            int(request["fieldOrd"]),
+            str(request["sourceFilename"]),
+        )
+        if resolved is None:
+            _emit_response(editor, _error_payload(request))
+            return
+        _filename, media_path = resolved
+        processing_config = AudioProcessingConfig.from_config(deps.config(editor))
+        _start_probe(editor, request, Path(media_path), processing_config, deps)
 
     deps.eval_with_callback(editor, expression, _continue)
 
@@ -54,7 +64,13 @@ def _parse_request(raw_request: Any) -> dict[str, Any] | None:
     }
 
 
-def _start_probe(editor: Any, request: dict[str, Any], deps: Any) -> None:
+def _start_probe(
+    editor: Any,
+    request: dict[str, Any],
+    media_path: Path,
+    processing_config: AudioProcessingConfig,
+    deps: Any,
+) -> None:
     operation_id = new_operation_id("source-meta")
     record_breadcrumb(
         "editor.source_metadata.started",
@@ -67,20 +83,7 @@ def _start_probe(editor: Any, request: dict[str, Any], deps: Any) -> None:
 
     def _run() -> None:
         try:
-            resolved = deps.resolve_requested_field_media(
-                editor,
-                int(request["fieldOrd"]),
-                str(request["sourceFilename"]),
-            )
-            if resolved is None:
-                payload = _error_payload(request)
-                deps.main(editor, lambda: _emit_response(editor, payload))
-                return
-            _filename, media_path = resolved
-            metadata = deps.probe_audio_metadata(
-                Path(media_path),
-                AudioProcessingConfig.from_config(deps.config(editor)),
-            )
+            metadata = deps.probe_audio_metadata(media_path, processing_config)
             payload = {
                 "requestId": request["requestId"],
                 "ok": True,
