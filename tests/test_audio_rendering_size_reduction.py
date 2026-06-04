@@ -27,7 +27,13 @@ def test_render_size_reduced_audio_uses_expected_ffmpeg_invocation(
         lambda *_args: SimpleNamespace(sample_rate=44100, channels=2, bit_rate=128_000),
     )
 
-    def fake_run(cmd: list[str], capture_output: bool, text: bool, check: bool) -> SimpleNamespace:
+    def fake_run(
+        cmd: list[str],
+        capture_output: bool,
+        text: bool,
+        check: bool,
+        **_kwargs: object,
+    ) -> SimpleNamespace:
         output.write_bytes(b"y" * 100)
         calls.append((cmd, capture_output, text, check))
         return SimpleNamespace(returncode=0, stdout="", stderr="")

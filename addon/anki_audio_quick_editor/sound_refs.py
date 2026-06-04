@@ -2,8 +2,10 @@
 
 from __future__ import annotations
 
+import html
 import ntpath
 import os
+import platform
 import re
 from dataclasses import dataclass
 from pathlib import Path
@@ -13,7 +15,8 @@ from .errors import UnsupportedAudioError
 SUPPORTED_AUDIO_EXTENSIONS = frozenset(
     {".aac", ".flac", ".m4a", ".mp3", ".oga", ".ogg", ".opus", ".wav", ".webm"}
 )
-SOUND_REF_RE = re.compile(r"(?i)\[sound:(?P<filename>[^\]]+)\]")
+SOUND_REF_START_RE = re.compile(r"(?i)\[sound:")
+_TRAILING_VISIBLE_EXTENSION_CHARS = ". \t\r\n\v\f"
 
 
 @dataclass(frozen=True)
@@ -28,7 +31,7 @@ class SoundReference:
     @property
     def extension(self) -> str:
         """Return the lowercase filename extension."""
-        return Path(self.filename).suffix.lower()
+        return _audio_extension_for_support(self.filename)
 
 
 @dataclass(frozen=True)
@@ -47,14 +50,20 @@ class SoundReferenceSelection:
 def find_sound_references(field_html: str) -> tuple[SoundReference, ...]:
     """Return all Anki sound references in field order."""
     refs: list[SoundReference] = []
-    for match in SOUND_REF_RE.finditer(field_html):
-        filename = match.group("filename").strip()
+    starts = tuple(SOUND_REF_START_RE.finditer(field_html))
+    for index, match in enumerate(starts):
+        filename_start = match.end()
+        next_start = starts[index + 1].start() if index + 1 < len(starts) else len(field_html)
+        filename_end = _sound_reference_filename_end(field_html, filename_start, next_start)
+        if filename_end is None:
+            continue
+        filename = html.unescape(field_html[filename_start:filename_end])
         refs.append(
             SoundReference(
-                tag=match.group(0),
+                tag=field_html[match.start() : filename_end + 1],
                 filename=filename,
                 start=match.start(),
-                end=match.end(),
+                end=filename_end + 1,
             )
         )
     return tuple(refs)
@@ -77,12 +86,36 @@ def select_first_sound_reference(field_html: str) -> SoundReferenceSelection:
 
 def is_supported_audio_filename(filename: str) -> bool:
     """Return whether ``filename`` has a supported audio extension."""
-    return Path(filename).suffix.lower() in SUPPORTED_AUDIO_EXTENSIONS
+    return _audio_extension_for_support(filename) in SUPPORTED_AUDIO_EXTENSIONS
+
+
+def _sound_reference_filename_end(
+    field_html: str,
+    filename_start: int,
+    search_limit: int,
+) -> int | None:
+    first_close = field_html.find("]", filename_start, search_limit)
+    if first_close < 0:
+        return None
+    best_supported_close: int | None = None
+    close = first_close
+    while close >= 0:
+        filename = html.unescape(field_html[filename_start:close])
+        if is_supported_audio_filename(filename):
+            best_supported_close = close
+        close = field_html.find("]", close + 1, search_limit)
+    return best_supported_close if best_supported_close is not None else first_close
+
+
+def _audio_extension_for_support(filename: str) -> str:
+    return Path(filename.rstrip(_TRAILING_VISIBLE_EXTENSION_CHARS)).suffix.lower()
 
 
 def safe_media_basename(filename: str) -> str:
     """Return a basename suitable for resolving inside Anki's media folder."""
-    return os.path.basename(ntpath.basename(filename))
+    if platform.system() == "Windows":
+        return ntpath.basename(filename)
+    return os.path.basename(filename)
 
 
 def replace_sound_reference(

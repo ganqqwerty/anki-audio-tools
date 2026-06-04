@@ -69,6 +69,9 @@ def test_format_extension_and_label(target: str, extension: str, label: str) -> 
     [
         ("clip.mp3", "mp3"),
         ("clip.M4A", "m4a"),
+        ("clip.opus ", "opus"),
+        ("clip.opus.", "opus"),
+        ("clip.opus .", "opus"),
         ("clip", None),
         (".hidden", None),
     ],
@@ -82,6 +85,8 @@ def test_visible_extension(filename: str, expected: str | None) -> None:
     [
         ("clip.mp3", "mp3", True),
         ("clip.MP3", "mp3", True),
+        ("clip.mp3 ", "mp3", True),
+        ("clip.mp3.", "mp3", True),
         ("clip.m4a", "m4a", True),
         ("clip.aac", "m4a", False),
         ("clip.wav", "flac", False),

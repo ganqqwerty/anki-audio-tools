@@ -57,7 +57,13 @@ def test_render_noise_reduced_audio_runs_prepare_deep_filter_and_encode(
     )
     monkeypatch.setattr("anki_audio_quick_editor.audio_processor.probe_duration_ms", lambda *_args: 1000)
 
-    def fake_run(cmd: list[str], capture_output: bool, text: bool, check: bool) -> SimpleNamespace:
+    def fake_run(
+        cmd: list[str],
+        capture_output: bool,
+        text: bool,
+        check: bool,
+        **_kwargs: object,
+    ) -> SimpleNamespace:
         calls.append(cmd)
         if cmd[0] == "/bin/deep-filter":
             output_dir = Path(cmd[cmd.index("-o") + 1])
@@ -106,7 +112,13 @@ def test_render_noise_reduced_audio_reports_deep_filter_parameter_errors(
         lambda *_args: Path("/bin/deep-filter"),
     )
 
-    def fake_run(cmd: list[str], capture_output: bool, text: bool, check: bool) -> SimpleNamespace:
+    def fake_run(
+        cmd: list[str],
+        capture_output: bool,
+        text: bool,
+        check: bool,
+        **_kwargs: object,
+    ) -> SimpleNamespace:
         if cmd[0] == "/bin/deep-filter":
             return SimpleNamespace(returncode=2, stdout="", stderr="error: unexpected argument '--atten-lim'")
         return SimpleNamespace(returncode=0, stdout="", stderr="")
@@ -131,7 +143,13 @@ def test_render_noise_reduced_audio_reports_deep_filter_launch_errors(
         lambda *_args: Path("/bin/deep-filter"),
     )
 
-    def fake_run(cmd: list[str], capture_output: bool, text: bool, check: bool) -> SimpleNamespace:
+    def fake_run(
+        cmd: list[str],
+        capture_output: bool,
+        text: bool,
+        check: bool,
+        **_kwargs: object,
+    ) -> SimpleNamespace:
         if cmd[0] == "/bin/deep-filter":
             raise PermissionError(13, "Permission denied", "/bin/deep-filter")
         return SimpleNamespace(returncode=0, stdout="", stderr="")
@@ -158,7 +176,13 @@ def test_render_noise_reduced_audio_reports_prepare_failure_before_deep_filter(
         lambda *_args: Path("/bin/deep-filter"),
     )
 
-    def fake_run(cmd: list[str], capture_output: bool, text: bool, check: bool) -> SimpleNamespace:
+    def fake_run(
+        cmd: list[str],
+        capture_output: bool,
+        text: bool,
+        check: bool,
+        **_kwargs: object,
+    ) -> SimpleNamespace:
         calls.append(cmd)
         return SimpleNamespace(returncode=1, stdout="", stderr="prepare failed")
 
@@ -188,7 +212,13 @@ def test_render_noise_reduced_audio_reports_encode_failure_after_deep_filter(
         lambda *_args: Path("/bin/deep-filter"),
     )
 
-    def fake_run(cmd: list[str], capture_output: bool, text: bool, check: bool) -> SimpleNamespace:
+    def fake_run(
+        cmd: list[str],
+        capture_output: bool,
+        text: bool,
+        check: bool,
+        **_kwargs: object,
+    ) -> SimpleNamespace:
         calls.append(cmd)
         if cmd[0] == "/bin/deep-filter":
             output_dir = Path(cmd[cmd.index("-o") + 1])
@@ -222,7 +252,13 @@ def test_render_noise_reduced_audio_uses_default_temp_output_path(
     )
     monkeypatch.setattr("anki_audio_quick_editor.audio_processor.probe_duration_ms", lambda *_args: 1234)
 
-    def fake_run(cmd: list[str], capture_output: bool, text: bool, check: bool) -> SimpleNamespace:
+    def fake_run(
+        cmd: list[str],
+        capture_output: bool,
+        text: bool,
+        check: bool,
+        **_kwargs: object,
+    ) -> SimpleNamespace:
         if cmd[0] == "/bin/deep-filter":
             output_dir = Path(cmd[cmd.index("-o") + 1])
             output_dir.mkdir(parents=True, exist_ok=True)

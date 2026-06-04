@@ -70,9 +70,9 @@ def test_reveal_file_selects_file_on_macos(tmp_path: Path, monkeypatch) -> None:
 def test_reveal_file_selects_file_on_windows(tmp_path: Path, monkeypatch) -> None:
     media_dir = tmp_path / "User 1" / "collection.media"
     media_dir.mkdir(parents=True)
-    source = media_dir / "clip one.mp3"
+    source = media_dir / "Даии_青山 clip one.opus"
     source.write_bytes(b"audio")
-    commands: list[str | tuple[str, ...]] = []
+    commands: list[tuple[str, ...]] = []
 
     monkeypatch.setattr("anki_audio_quick_editor.file_reveal.platform.system", lambda: "Windows")
     monkeypatch.setattr(
@@ -82,7 +82,7 @@ def test_reveal_file_selects_file_on_windows(tmp_path: Path, monkeypatch) -> Non
 
     reveal_file(source)
 
-    assert commands == [f'explorer.exe /select,"{source.resolve()}"']
+    assert commands == [("explorer.exe", f"/select,{source.resolve()}")]
 
 
 def test_reveal_file_opens_parent_folder_elsewhere(tmp_path: Path, monkeypatch) -> None:

@@ -55,6 +55,53 @@ def test_upload_file_posts_to_catbox_without_retention(tmp_path: Path, monkeypat
     assert b'name="time"' not in captured["body"]
 
 
+def test_upload_file_posts_utf_media_filename_as_utf8(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    source = tmp_path / "Даии_青山_voice.opus"
+    source.write_bytes(b"audio")
+    captured: dict[str, object] = {}
+
+    def fake_urlopen(request: urllib.request.Request, *, timeout: float) -> _Response:
+        del timeout
+        captured["body"] = request.data
+        return _Response("https://files.catbox.moe/share123.opus")
+
+    monkeypatch.setattr("anki_audio_quick_editor.file_sharing.urllib.request.urlopen", fake_urlopen)
+
+    result = upload_file(source, "catbox")
+
+    assert result == "https://files.catbox.moe/share123.opus"
+    assert (
+        'name="fileToUpload"; filename="Даии_青山_voice.opus"'.encode()
+        in captured["body"]
+    )
+    assert b"audio" in captured["body"]
+
+
+def test_upload_file_escapes_problematic_filename_header_characters(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    source = tmp_path / 'quote"line\nback\\slash.opus'
+    source.write_bytes(b"audio")
+    captured: dict[str, object] = {}
+
+    def fake_urlopen(request: urllib.request.Request, *, timeout: float) -> _Response:
+        del timeout
+        captured["body"] = request.data
+        return _Response("https://files.catbox.moe/share123.opus")
+
+    monkeypatch.setattr("anki_audio_quick_editor.file_sharing.urllib.request.urlopen", fake_urlopen)
+
+    upload_file(source, "catbox")
+
+    upload_header = captured["body"].split(b"Content-Type:", 1)[0]
+    assert b'filename="quote\\"line back\\\\slash.opus"' in upload_header
+    assert b"filename*=UTF-8''quote%22line%0Aback%5Cslash.opus" in upload_header
+
+
 def test_upload_file_posts_to_litterbox_with_fixed_72h_retention(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
