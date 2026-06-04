@@ -44,7 +44,7 @@ export const FALLBACK_INITIAL_STATE: InitialState = {
     enabled: true,
     debug_logging: false,
     show_ffmpeg_commands: false,
-    enable_reviewer_editor: true,
+    enable_reviewer_editor: false,
     repeat_playback_by_default: true,
     repeat_pause_seconds: 0,
     share_target: ShareTarget.Litterbox,
