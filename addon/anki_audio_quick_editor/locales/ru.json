@@ -22,6 +22,7 @@
   "settings.toolbar_visibility.shown": "Показано",
   "settings.toolbar_visibility.hidden": "Скрыто",
   "settings.toolbar_visibility.icon": "Значок",
+  "settings.toolbar_visibility.show_panel": "Показать панель",
   "settings.toolbar_visibility.text_only": "Только текст",
   "settings.toolbar_visibility.icon_only": "Только значок",
   "settings.toolbar_visibility.no_extra_settings": "Нет дополнительных настроек",

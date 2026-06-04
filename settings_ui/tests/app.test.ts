@@ -162,10 +162,7 @@ describe("App", () => {
     await fireEvent.click(within(deleteSelectionCard).getByRole("checkbox", { name: "Icon" }));
     await fireEvent.click(screen.getByRole("button", { name: "Save" }));
 
-    const config = bridgePayload<{
-      editor_button_modes: Record<string, string>;
-      visible_editor_buttons: string[];
-    }>("settings.save");
+    const config = bridgePayload<{ editor_button_modes: Record<string, string>; visible_editor_buttons: string[] }>("settings.save");
     expect(config.visible_editor_buttons).not.toContain("aqe:delete-selection");
     expect(config.visible_editor_buttons).toContain("aqe:delete-rest");
     expect(config.editor_button_modes["aqe:delete-selection"]).toBe("text");
@@ -180,6 +177,11 @@ describe("App", () => {
     expect(screen.queryByTestId("button-settings-back-chain-practice")).not.toBeInTheDocument();
     expect(screen.queryByTestId("button-settings-back-chain-previous")).not.toBeInTheDocument();
     expect(screen.queryByTestId("button-settings-back-chain-next")).not.toBeInTheDocument();
+    expect(within(backChainingPanel).getByTestId("button-settings-back-chaining-panel-controls")).toBeInTheDocument();
+    expect(within(backChainingPanel).getByRole("checkbox", { name: "Show panel" })).toBeChecked();
+    expect(within(backChainingPanel).getByTestId("button-settings-back-chain-practice-visibility-show")).toBeEnabled();
+    expect(within(backChainingPanel).getByTestId("button-settings-back-chain-previous-visibility-show")).toBeEnabled();
+    expect(within(backChainingPanel).getByTestId("button-settings-back-chain-next-visibility-show")).toBeEnabled();
     expect(within(backChainingPanel).getByTestId("button-settings-back-chain-practice-mode-icon")).toBeEnabled();
     expect(within(backChainingPanel).getByTestId("button-settings-back-chain-previous-mode-icon")).toBeEnabled();
     expect(within(backChainingPanel).getByTestId("button-settings-back-chain-next-mode-icon")).toBeEnabled();
@@ -191,6 +193,26 @@ describe("App", () => {
     expect(config.visible_editor_buttons).not.toContain("aqe:back-chain-practice");
     expect(config.visible_editor_buttons).not.toContain("aqe:back-chain-previous");
     expect(config.visible_editor_buttons).not.toContain("aqe:back-chain-next");
+  });
+
+  it("saves individual back-chaining button visibility and display modes", async () => {
+    setInitialState();
+
+    render(App);
+
+    const backChainingPanel = screen.getByTestId("button-settings-back-chaining");
+    await fireEvent.click(within(backChainingPanel).getByTestId("button-settings-back-chain-previous-visibility-show"));
+    await fireEvent.click(within(backChainingPanel).getByTestId("button-settings-back-chain-next-mode-icon"));
+    await fireEvent.click(screen.getByRole("button", { name: "Save" }));
+
+    const config = bridgePayload<{
+      editor_button_modes: Record<string, string>;
+      visible_editor_buttons: string[];
+    }>("settings.save");
+    expect(config.visible_editor_buttons).toContain("aqe:back-chain-practice");
+    expect(config.visible_editor_buttons).not.toContain("aqe:back-chain-previous");
+    expect(config.visible_editor_buttons).toContain("aqe:back-chain-next");
+    expect(config.editor_button_modes["aqe:back-chain-next"]).toBe("text");
   });
 
   it("shows a placeholder for toolbar buttons without extra settings", () => {

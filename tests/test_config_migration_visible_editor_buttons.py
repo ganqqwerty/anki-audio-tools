@@ -58,7 +58,7 @@ def test_normalizes_partial_recording_panel_visibility() -> None:
     ]
 
 
-def test_normalizes_partial_back_chaining_panel_visibility() -> None:
+def test_preserves_partial_back_chaining_panel_visibility() -> None:
     user = {
         "_config_version": CURRENT_CONFIG_VERSION,
         "visible_editor_buttons": ["aqe:play", "aqe:back-chain-previous", "aqe:settings"],
@@ -69,8 +69,6 @@ def test_normalizes_partial_back_chaining_panel_visibility() -> None:
     assert changed is True
     assert migrated["visible_editor_buttons"] == [
         "aqe:play",
-        "aqe:back-chain-practice",
         "aqe:back-chain-previous",
-        "aqe:back-chain-next",
         "aqe:settings",
     ]

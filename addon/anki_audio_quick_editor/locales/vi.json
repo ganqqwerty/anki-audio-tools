@@ -22,6 +22,7 @@
   "settings.toolbar_visibility.shown": "Đang hiện",
   "settings.toolbar_visibility.hidden": "Ẩn",
   "settings.toolbar_visibility.icon": "Biểu tượng",
+  "settings.toolbar_visibility.show_panel": "Hiện bảng",
   "settings.toolbar_visibility.text_only": "Chỉ văn bản",
   "settings.toolbar_visibility.icon_only": "Chỉ biểu tượng",
   "settings.toolbar_visibility.no_extra_settings": "Không có cài đặt bổ sung",

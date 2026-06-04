@@ -1,5 +1,7 @@
 import {
+  TOOLBAR_PANEL_DEFINITIONS,
   toolbarPanelDefinitionAt,
+  type MatchedToolbarPanel,
   type ToolbarPanelDefinition,
 } from "../lib/editor-toolbar-panel-definitions.js";
 import { t } from "../lib/i18n.js";
@@ -25,7 +27,7 @@ export function buildEditorToolbarRenderItems(buttons: readonly ButtonSpec[]): r
   for (let index = 0; index < buttons.length; index += 1) {
     const button = buttons[index];
     if (!button) continue;
-    const matchedPanel = toolbarPanelDefinitionAt(buttons, index);
+    const matchedPanel = toolbarPanelRenderItemAt(buttons, index);
     if (matchedPanel) {
       items.push({
         buttons: matchedPanel.buttons,
@@ -60,4 +62,34 @@ export function buildEditorToolbarRenderItems(buttons: readonly ButtonSpec[]): r
     items.push({ button, kind: "button" });
   }
   return items;
+}
+
+function toolbarPanelRenderItemAt(
+  buttons: readonly ButtonSpec[],
+  index: number,
+): MatchedToolbarPanel<ButtonSpec> | undefined {
+  return toolbarPanelDefinitionAt(buttons, index) ?? partialToolbarPanelDefinitionAt(buttons, index);
+}
+
+function partialToolbarPanelDefinitionAt(
+  buttons: readonly ButtonSpec[],
+  index: number,
+): MatchedToolbarPanel<ButtonSpec> | undefined {
+  const button = buttons[index];
+  if (!button) return undefined;
+
+  for (const definition of TOOLBAR_PANEL_DEFINITIONS) {
+    if (
+      definition.atomicVisibility === true ||
+      !definition.commands.some((command) => command === button.command)
+    ) {
+      continue;
+    }
+    const panelButtons = definition.commands
+      .map((command) => buttons.find((candidate) => candidate.command === command))
+      .filter((candidate): candidate is ButtonSpec => candidate !== undefined);
+    if (panelButtons[0]?.command !== button.command) continue;
+    return { buttons: panelButtons, definition };
+  }
+  return undefined;
 }

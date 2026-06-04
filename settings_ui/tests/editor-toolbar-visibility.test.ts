@@ -59,7 +59,7 @@ describe("editor toolbar visibility panels", () => {
     expect(panels.filter((panel) => panel.commands.includes("aqe:back-chain-previous"))).toHaveLength(1);
   });
 
-  it("normalizes partial back-chaining visibility to the full panel", () => {
+  it("preserves partial back-chaining visibility", () => {
     expect(
       normalizeVisibleEditorButtons(
         toolbarButtons(),
@@ -67,8 +67,6 @@ describe("editor toolbar visibility panels", () => {
       ),
     ).toEqual([
       "aqe:play",
-      "aqe:back-chain-practice",
-      "aqe:back-chain-previous",
       "aqe:back-chain-next",
       "aqe:settings",
     ]);

@@ -88,12 +88,19 @@ def reviewer_editor_menu_label(reviewer: Any | None = None) -> str:
     )
 
 
+def refresh_reviewer_editor_toggle_action(action: Any, reviewer: Any | None = None) -> None:
+    """Refresh a Reviewer audio-editor toggle action for the current state."""
+    if hasattr(action, "setText"):
+        action.setText(reviewer_editor_menu_label(reviewer))
+    if hasattr(action, "setEnabled"):
+        action.setEnabled(_reviewer_editor_enabled())
+
+
 def add_reviewer_editor_toggle_action(menu: Any, reviewer: Any | None = None) -> Any:
     """Add a Show/Hide audio editor action to an Anki menu."""
     action = menu.addAction(reviewer_editor_menu_label(reviewer))
     assert action is not None
-    if hasattr(action, "setEnabled"):
-        action.setEnabled(_reviewer_editor_enabled())
+    refresh_reviewer_editor_toggle_action(action, reviewer)
     qconnect(action.triggered, toggle_reviewer_editor_visibility)
     return action
 

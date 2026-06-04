@@ -302,7 +302,7 @@ def _setup_menu() -> None:
     reviewer_action = reviewer_integration.add_reviewer_editor_toggle_action(submenu)
 
     def _refresh_reviewer_action() -> None:
-        reviewer_action.setText(reviewer_integration.reviewer_editor_menu_label())
+        reviewer_integration.refresh_reviewer_editor_toggle_action(reviewer_action)
 
     if hasattr(submenu, "aboutToShow"):
         qconnect(submenu.aboutToShow, _refresh_reviewer_action)

@@ -17,10 +17,11 @@ from anki_audio_quick_editor.editor_runtime import SettingsLifecycleCallbacks
 class FakeAction:
     def __init__(self, label: str) -> None:
         self.label = label
+        self.enabled = False
         self.triggered = object()
 
     def setEnabled(self, enabled: bool) -> None:  # noqa: N802 - Qt API
-        del enabled
+        self.enabled = enabled
 
     def setText(self, label: str) -> None:  # noqa: N802 - Qt API
         self.label = label
@@ -83,6 +84,46 @@ def test_setup_menu_adds_reviewer_toggle_and_settings(monkeypatch) -> None:
     assert menu.aboutToShow in connections
     assert menu.actions[0].triggered in connections
     assert menu.actions[1].triggered in connections
+
+
+def test_setup_menu_refreshes_reviewer_toggle_enabled_state(monkeypatch) -> None:
+    menu = FakeMenu()
+    aqt.mw.form.menuTools.addMenu.return_value = menu
+    connections: dict[object, object] = {}
+    enabled = False
+
+    def _reviewer_editor_enabled() -> bool:
+        return enabled
+
+    monkeypatch.setattr(
+        anki_audio_quick_editor,
+        "qconnect",
+        lambda signal, callback: connections.setdefault(signal, callback),
+    )
+    monkeypatch.setattr(
+        reviewer_integration,
+        "qconnect",
+        lambda signal, callback: connections.setdefault(signal, callback),
+    )
+    monkeypatch.setattr(
+        reviewer_integration,
+        "_reviewer_editor_enabled",
+        _reviewer_editor_enabled,
+    )
+    monkeypatch.setattr(
+        reviewer_integration,
+        "reviewer_editor_menu_label",
+        lambda _reviewer=None: "Hide audio editor" if enabled else "Show audio editor",
+    )
+
+    anki_audio_quick_editor._setup_menu()
+
+    assert menu.actions[0].enabled is False
+    enabled = True
+    connections[menu.aboutToShow]()
+
+    assert menu.actions[0].label == "Hide audio editor"
+    assert menu.actions[0].enabled is True
 
 
 def test_open_settings_keeps_dialog_reference() -> None:

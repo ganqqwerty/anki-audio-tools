@@ -24,6 +24,7 @@
   "settings.toolbar_visibility.shown": "Shown",
   "settings.toolbar_visibility.hidden": "Hidden",
   "settings.toolbar_visibility.icon": "Icon",
+  "settings.toolbar_visibility.show_panel": "Show panel",
   "settings.toolbar_visibility.text_only": "Text only",
   "settings.toolbar_visibility.icon_only": "Icon only",
   "settings.toolbar_visibility.no_extra_settings": "No extra settings",

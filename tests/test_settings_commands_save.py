@@ -106,7 +106,7 @@ def test_settings_save_normalizes_partial_recording_panel_visibility() -> None:
     assert dialog.accepted is True
 
 
-def test_settings_save_normalizes_partial_back_chaining_panel_visibility() -> None:
+def test_settings_save_preserves_partial_back_chaining_panel_visibility() -> None:
     from aqt import mw
 
     dialog = _make_dialog()
@@ -122,8 +122,6 @@ def test_settings_save_normalizes_partial_back_chaining_panel_visibility() -> No
     saved_config = mw.addonManager.writeConfig.call_args.args[1]
     assert saved_config["visible_editor_buttons"] == [
         "aqe:play",
-        "aqe:back-chain-practice",
-        "aqe:back-chain-previous",
         "aqe:back-chain-next",
         "aqe:settings",
     ]
