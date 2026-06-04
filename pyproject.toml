@@ -49,7 +49,11 @@ markers = [
 target-version = "py313"
 line-length = 88
 src = ["addon", "tests", "e2e"]
-exclude = ["addon/anki_audio_quick_editor/vendor", "vulture_whitelist.py"]
+exclude = [
+    "addon/anki_audio_quick_editor/vendor",
+    "addon/anki_audio_quick_editor/user_files",
+    "vulture_whitelist.py",
+]
 
 [tool.ruff.lint]
 select = [
@@ -191,7 +195,7 @@ docstring-code-format = true
 [tool.mypy]
 python_version = "3.13"
 files = ["addon/anki_audio_quick_editor"]
-exclude = "addon/anki_audio_quick_editor/vendor"
+exclude = "addon/anki_audio_quick_editor/(vendor|user_files)"
 ignore_missing_imports = false
 disallow_any_generics = true
 no_implicit_reexport = true
@@ -216,7 +220,7 @@ ignore_missing_imports = true
 
 [tool.radon]
 exclude = "*/tests/*,*/test_*.py,*/migrations/*,*/generated/*"
-ignore = ".git,.venv,build,dist,vendor,bin"
+ignore = ".git,.venv,build,dist,vendor,bin,user_files"
 cc_min = "B"
 cc_max = "F"
 show_complexity = true
@@ -228,7 +232,10 @@ show_mi = true
 
 [tool.coverage.run]
 source = ["addon/anki_audio_quick_editor"]
-omit = ["addon/anki_audio_quick_editor/vendor/*"]
+omit = [
+    "addon/anki_audio_quick_editor/vendor/*",
+    "addon/anki_audio_quick_editor/user_files/*",
+]
 branch = true
 
 [tool.coverage.report]
@@ -330,6 +337,7 @@ source_modules = [
     "anki_audio_quick_editor.runtime_paths",
     "anki_audio_quick_editor.runtime_platform",
     "anki_audio_quick_editor.runtime_state",
+    "anki_audio_quick_editor.vendor_runtime",
     "anki_audio_quick_editor.settings_state",
     "anki_audio_quick_editor.sound_refs",
     "anki_audio_quick_editor.support",
@@ -389,7 +397,12 @@ forbidden_modules = [
 ]
 
 [tool.bandit]
-exclude_dirs = ["addon/anki_audio_quick_editor/vendor", "tests", "e2e"]
+exclude_dirs = [
+    "addon/anki_audio_quick_editor/vendor",
+    "addon/anki_audio_quick_editor/user_files",
+    "tests",
+    "e2e",
+]
 
 [tool.bandit.assert_used]
 skips = [
@@ -401,7 +414,12 @@ skips = [
 
 [tool.deptry]
 known_first_party = ["anki_audio_quick_editor"]
-extend_exclude = ["addon/anki_audio_quick_editor/vendor", "settings_ui", "scripts"]
+extend_exclude = [
+    "addon/anki_audio_quick_editor/vendor",
+    "addon/anki_audio_quick_editor/user_files",
+    "settings_ui",
+    "scripts",
+]
 ignore_notebooks = true
 
 [tool.vulture]
@@ -419,6 +437,7 @@ exclude = [
     "*/e2e/*",
     "*/generated/*",
     "*/vendor/*",
+    "*/user_files/*",
 ]
 
 [tool.deptry.package_module_name_map]

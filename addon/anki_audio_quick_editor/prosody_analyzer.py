@@ -19,5 +19,7 @@ def analyze_prosody(source_path: Path, config: AudioProcessingConfig) -> Prosody
         try:
             return analyze_with_praat(source_path, config)
         except Exception as exc:
-            logger.info("Parselmouth analysis failed; falling back to ffmpeg/PCM: %s", exc)
+            logger.warning("Parselmouth analysis failed; falling back to ffmpeg/PCM: %s", exc)
+    else:
+        logger.warning("Parselmouth is unavailable; falling back to ffmpeg/PCM graph analysis.")
     return analyze_with_fallback(source_path, config)

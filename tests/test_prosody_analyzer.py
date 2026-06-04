@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import logging
 import sys
 import types
 from pathlib import Path
@@ -12,7 +13,11 @@ from anki_audio_quick_editor.prosody_praat import analyze_with_praat
 from anki_audio_quick_editor.prosody_types import ProsodyPoint, build_prosody_track
 
 
-def test_analyzer_selection_falls_back_when_praat_fails(monkeypatch, tmp_path: Path) -> None:
+def test_analyzer_selection_falls_back_when_praat_fails(
+    monkeypatch,
+    tmp_path: Path,
+    caplog,
+) -> None:
     fallback_track = build_prosody_track(
         duration_ms=100,
         points=[ProsodyPoint(0, 220, -20, 0.0, True)],
@@ -29,9 +34,35 @@ def test_analyzer_selection_falls_back_when_praat_fails(monkeypatch, tmp_path: P
         lambda _path, _config: fallback_track,
     )
 
+    caplog.set_level(logging.WARNING, logger="anki_audio_quick_editor.prosody_analyzer")
     track = analyze_prosody(tmp_path / "clip.wav", AudioProcessingConfig())
 
     assert track is fallback_track
+    assert "Parselmouth analysis failed; falling back to ffmpeg/PCM: boom" in caplog.text
+
+
+def test_analyzer_selection_logs_when_praat_is_unavailable(
+    monkeypatch,
+    tmp_path: Path,
+    caplog,
+) -> None:
+    fallback_track = build_prosody_track(
+        duration_ms=100,
+        points=[ProsodyPoint(0, 220, -20, 0.0, True)],
+        source_filename="clip.wav",
+        analyzer_name="fallback",
+    )
+    monkeypatch.setattr("anki_audio_quick_editor.prosody_analyzer.is_praat_available", lambda: False)
+    monkeypatch.setattr(
+        "anki_audio_quick_editor.prosody_analyzer.analyze_with_fallback",
+        lambda _path, _config: fallback_track,
+    )
+
+    caplog.set_level(logging.WARNING, logger="anki_audio_quick_editor.prosody_analyzer")
+    track = analyze_prosody(tmp_path / "clip.wav", AudioProcessingConfig())
+
+    assert track is fallback_track
+    assert "Parselmouth is unavailable; falling back to ffmpeg/PCM graph analysis." in caplog.text
 
 
 def test_praat_adapter_converts_voiced_unvoiced_and_intensity(monkeypatch, tmp_path: Path) -> None:

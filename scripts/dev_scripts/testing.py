@@ -9,6 +9,11 @@ from scripts.dev_tasks.e2e_parallel import (
 from scripts.dev_tasks.frontend import cmd_build_ui
 from scripts.dev_tasks.pytest_runner import run_pytest
 
+E2E_RUNTIME_NOTICE = (
+    "[dev] e2e tests usually take about 6 minutes; consider the run jammed "
+    "if it exceeds 10 minutes."
+)
+
 
 def run_test_targets(command_args: list[str]) -> int:
     targets = command_args or ["tests/"]
@@ -32,6 +37,7 @@ def cmd_test_anki_api(_command_args: list[str]) -> int:
 
 
 def cmd_test_e2e(command_args: list[str]) -> int:
+    print(E2E_RUNTIME_NOTICE)
     build_rc = cmd_build_ui()
     if build_rc != 0:
         return build_rc

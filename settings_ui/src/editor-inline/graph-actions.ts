@@ -39,8 +39,11 @@ import {
   setControlsBusy,
   setHistoryAvailability,
   setStatusForOrd,
+  setTransientStatusForOrd,
   updateButtonTooltipForDisabledState,
   clearStatus,
+  hasStableStatusForOrd,
+  restoreStatusForOrd,
 } from "./control-actions.js";
 import { graphSettingsForField } from "./graph-split-state.js";
 import { resetVisualizerTimeViewport } from "./visualizer-state.js";
@@ -150,6 +153,13 @@ export function setVisualizer(ord: number, rawTrack: ProsodyPayload, cursorMs: n
   }
   renderVisualizerStatus(visualizer, "", "info");
   setControlsBusy(ord, false, "", "");
+  if (rawTrack.analysisWarning) {
+    setTransientStatusForOrd(ord, rawTrack.analysisWarning, "warning");
+    renderVisualizerStatus(visualizer, rawTrack.analysisWarning, "warning");
+    if (hasStableStatusForOrd(ord)) {
+      window.setTimeout(() => restoreStatusForOrd(ord), 4000);
+    }
+  }
   finishDefaultGraphRequest(ord, defaultGraphQueueDependencies());
   logger.info("graph rendered", graphLogContext(ord, track));
 }

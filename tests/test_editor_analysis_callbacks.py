@@ -16,7 +16,12 @@ from anki_audio_quick_editor.editor_integration import (
     _handle_bridge_command,
     _reset_editor_session_for_note_load,
 )
-from anki_audio_quick_editor.prosody_types import ProsodyPoint, ProsodyTrack
+from anki_audio_quick_editor.prosody_types import (
+    FFMPEG_PCM_ANALYSIS_WARNING,
+    FFMPEG_PCM_ANALYZER,
+    ProsodyPoint,
+    ProsodyTrack,
+)
 
 
 def test_stale_analysis_completion_is_ignored_after_note_load_reset() -> None:
@@ -87,6 +92,37 @@ def test_analysis_completion_renders_requested_field_when_session_tracks_another
     assert session.visualized_durations_by_field[1] == 900
     evals = [call.args[0] for call in editor.web.eval.call_args_list]
     assert any("window.__aqeSetVisualizer(1," in call for call in evals)
+
+
+def test_analysis_completion_warns_when_graph_uses_ffmpeg_pcm_fallback() -> None:
+    class Editor:
+        pass
+
+    editor = Editor()
+    editor.currentField = 0
+    editor.web = MagicMock()
+    session = EditorSession(
+        field_index=0,
+        analysis_busy=True,
+        analysis_busy_fields={0},
+        analysis_generation=2,
+        analysis_generations_by_field={0: 2},
+    )
+    _SESSIONS[editor] = session
+    track = ProsodyTrack(
+        duration_ms=900,
+        points=(ProsodyPoint(0, 220.0, -20.0, 0.5, True),),
+        pitch_min_hz=220.0,
+        pitch_max_hz=220.0,
+        source_filename="field-one.mp3",
+        analyzer_name=FFMPEG_PCM_ANALYZER,
+    )
+
+    _analysis_finished(editor, 2, 0, track)
+
+    evals = [call.args[0] for call in editor.web.eval.call_args_list]
+    assert any('"analysisWarning":' in call and FFMPEG_PCM_ANALYSIS_WARNING in call for call in evals)
+    assert not any("__aqeSetVisualizerStatus" in call and '"warning"' in call for call in evals)
 
 
 def test_field_addressed_analysis_preserves_edit_session_history(

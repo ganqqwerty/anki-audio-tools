@@ -103,6 +103,17 @@ def test_test_e2e_builds_frontend_before_pytest(monkeypatch) -> None:
     assert calls == ["build", "e2e/ python e2e tests"]
 
 
+def test_test_e2e_prints_runtime_notice(monkeypatch, capsys) -> None:
+    monkeypatch.setattr(test_commands, "cmd_build_ui", lambda: 0)
+    monkeypatch.setattr(test_commands, "run_pytest", lambda *_args, **_kwargs: 0)
+
+    assert test_commands.cmd_test_e2e([]) == 0
+
+    output = capsys.readouterr().out
+    assert "e2e tests usually take about 6 minutes" in output
+    assert "consider the run jammed if it exceeds 10 minutes" in output
+
+
 def test_test_e2e_forwards_explicit_pytest_targets(monkeypatch) -> None:
     calls: list[str] = []
     graph_default_target = (

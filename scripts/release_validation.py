@@ -331,7 +331,7 @@ def _is_forbidden_archive_name(name: str) -> bool:
     parts = Path(name).parts
     if name == ".DS_Store" or name.endswith(".DS_Store"):
         return True
-    if "node_modules" in parts or "__pycache__" in parts or "aqe_artifacts" in parts:
+    if "node_modules" in parts or "__pycache__" in parts or "aqe_artifacts" in parts or "user_files" in parts:
         return True
     if ".release-assets" in parts or name == "meta.json":
         return True

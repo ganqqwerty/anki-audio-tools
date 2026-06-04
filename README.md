@@ -35,7 +35,7 @@ Anki desktop add-on for quickly editing audio references from the note editor. I
 - Python 3.13 as bundled by Anki
 - Public release archives are thin. On first load, the add-on downloads the verified runtime pack for macOS arm64, macOS x86_64, or Windows x86_64.
 - Optional advanced overrides: explicit `ffmpeg_path` and `deep_filter_path` settings still take precedence over managed runtime tools
-- Optional: `praat-parselmouth` in Anki's Python for preferred pitch/intensity analysis; the add-on falls back to ffmpeg-decoded PCM without it
+- Bundled `praat-parselmouth` wheels for pitch/intensity analysis on supported platforms; the graph analyzer still falls back to ffmpeg-decoded PCM if Praat is unavailable
 - Node.js 18+ for editing or rebuilding the settings/editor frontend bundles
 
 ## Quick Start
@@ -80,6 +80,12 @@ python3 scripts/dev.py release-smoke dist/anki-audio-quick-editor-<version>.anki
 Inspect the archive manifest before publishing: it must point at `runtime-vN`,
 not the add-on tag. GitHub add-on releases should upload only the `.ankiaddon`;
 AnkiWeb should receive the same smoke-tested archive.
+
+Before publishing a public release, run native acceptance on macOS arm64,
+macOS x86_64, and Windows x86_64. That includes checking that Anki's bundled
+CPython 3.13 imports the packaged `praat-parselmouth` and NumPy wheels from the
+add-on-local `user_files/python_vendor/<platform>/` cache, then verifying Graph
+and Pitch Hum run without the ffmpeg/PCM fallback warning.
 
 ## Similar projects
 
