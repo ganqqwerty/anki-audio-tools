@@ -166,6 +166,12 @@ BROAD_EXCEPTION_ALLOWLIST: tuple[BroadExceptionAllowance, ...] = (
         "Background upload worker boundary reports Catbox/Litterbox failures on the main thread.",
     ),
     BroadExceptionAllowance(
+        "editor_source_metadata",
+        "_start_probe._run",
+        1,
+        "Lazy editor source metadata worker sends non-blocking UI error callbacks instead of leaking thread exceptions.",
+    ),
+    BroadExceptionAllowance(
         "editor_playback",
         "stop_audio_playback",
         1,

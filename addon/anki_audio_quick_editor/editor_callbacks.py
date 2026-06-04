@@ -19,6 +19,7 @@ from . import (
     editor_runtime,
     editor_settings_actions,
     editor_sharing,
+    editor_source_metadata,
     editor_split_defaults,
 )
 
@@ -124,6 +125,10 @@ _handle_editor_frontend_log = _with_deps(editor_bridge.handle_editor_frontend_lo
 _log_editor_frontend_payload = editor_bridge.log_editor_frontend_payload
 _save_split_defaults_from_frontend = _with_deps(
     editor_split_defaults.save_split_defaults_from_frontend,
+    _bridge_deps,
+)
+_request_source_metadata = _with_deps(
+    editor_source_metadata.request_source_metadata,
     _bridge_deps,
 )
 

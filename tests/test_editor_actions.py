@@ -17,6 +17,7 @@ from anki_audio_quick_editor.audio_state import AudioEditState, AudioProcessingC
 from anki_audio_quick_editor.editor_actions import (
     BRIDGE_COMMAND_TO_OPERATION,
     BRIDGE_COMMANDS,
+    CMD_SOURCE_METADATA,
     PROCESSING_COMMANDS,
     apply_processing_command,
     decode_editor_command_payload,
@@ -277,6 +278,7 @@ def test_play_graph_cursor_and_play_ended_are_not_processing_commands() -> None:
         "aqe:trim-silence",
         "aqe:convert",
         "aqe:reduce-size",
+        CMD_SOURCE_METADATA,
     }.isdisjoint(PROCESSING_COMMANDS)
 
     assert "aqe:denoise-standard" in BRIDGE_COMMANDS
@@ -287,6 +289,8 @@ def test_play_graph_cursor_and_play_ended_are_not_processing_commands() -> None:
     assert "aqe:settings" in BRIDGE_COMMANDS
     assert "aqe:redo" in BRIDGE_COMMANDS
     assert "aqe:analyze-field" in BRIDGE_COMMANDS
+    assert CMD_SOURCE_METADATA == "aqe:source-metadata"
+    assert CMD_SOURCE_METADATA in BRIDGE_COMMANDS
     assert ("aqe:" + "si" + "don") not in BRIDGE_COMMANDS
 
 

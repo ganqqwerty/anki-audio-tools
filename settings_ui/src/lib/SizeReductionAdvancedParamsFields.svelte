@@ -18,8 +18,11 @@
     disabledReason?: string | null | undefined;
     onBitrateKbps?: (value: number) => void;
     onChannels?: (value: number) => void;
+    onAdvancedOpen?: () => void;
     onSampleRateHz?: (value: number) => void;
     sampleRateHz: number;
+    sourceMetadataErrorText?: string | null;
+    sourceMetadataLoading?: boolean;
     sourceMetadataText?: string | null;
     testPrefix?: string;
   }
@@ -30,10 +33,13 @@
     compact = false,
     disabled = false,
     disabledReason = null,
+    onAdvancedOpen,
     onBitrateKbps,
     onChannels,
     onSampleRateHz,
     sampleRateHz = $bindable(),
+    sourceMetadataErrorText = null,
+    sourceMetadataLoading = false,
     sourceMetadataText = null,
     testPrefix = "size-reduction",
   }: Props = $props();
@@ -49,20 +55,40 @@
   function applyChannels(value: number): void {
     onChannels?.(clampSizeReductionChannels(value));
   }
+
+  function handleToggle(event: Event): void {
+    const details = event.currentTarget as HTMLDetailsElement;
+    if (details.open) onAdvancedOpen?.();
+  }
 </script>
 
 <details
   class:advanced-params-compact={compact}
   class="advanced-params"
   data-testid={`${testPrefix}-advanced-params`}
+  ontoggle={handleToggle}
 >
   <summary>{t("settings.pause_advanced_params")}</summary>
-  {#if sourceMetadataText}
+  {#if sourceMetadataLoading}
+    <p
+      class="source-metadata"
+      data-testid={`${testPrefix}-source-metadata-loading`}
+    >
+      {t("settings.size_reduction_source_metadata.loading")}
+    </p>
+  {:else if sourceMetadataText}
     <p
       class="source-metadata"
       data-testid={`${testPrefix}-source-metadata`}
     >
       {sourceMetadataText}
+    </p>
+  {:else if sourceMetadataErrorText}
+    <p
+      class="source-metadata source-metadata-error"
+      data-testid={`${testPrefix}-source-metadata-error`}
+    >
+      {sourceMetadataErrorText}
     </p>
   {/if}
   <div class="advanced-params-grid">
@@ -185,6 +211,10 @@
     font-size: 0.75rem;
     line-height: 1.35;
     margin: 6px 0 0;
+  }
+
+  .source-metadata-error {
+    color: var(--fg-muted, var(--fg-subtle, currentColor));
   }
 
   label {

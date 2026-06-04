@@ -60,13 +60,14 @@ def test_audio_field_indices_are_detected_from_note_fields() -> None:
     assert _audio_field_indices(note) == [1]
 
 
-def test_editor_injection_script_embeds_source_audio_metadata(
+def test_editor_injection_script_never_probes_source_audio_metadata(
     tmp_path: Path,
     monkeypatch,
 ) -> None:
     media_dir = tmp_path / "media"
     media_dir.mkdir()
     (media_dir / "clip.mp3").write_bytes(b"audio")
+
     class Editor:
         pass
 
@@ -75,26 +76,70 @@ def test_editor_injection_script_embeds_source_audio_metadata(
         col=SimpleNamespace(media=SimpleNamespace(dir=lambda: str(media_dir))),
         addonManager=SimpleNamespace(
             addonFromModule=lambda _module: "addon",
-            getConfig=lambda _addon: {},
-        )
+            getConfig=lambda _addon: {
+                "visible_editor_buttons": ["aqe:reduce-size"],
+            },
+        ),
     )
     note = SimpleNamespace(fields=["[sound:clip.mp3]"])
+
+    def fail_probe(*_args: object, **_kwargs: object) -> object:
+        raise AssertionError("editor injection must not probe source metadata")
+
     monkeypatch.setattr(
         "anki_audio_quick_editor.editor_webview_injection.probe_audio_metadata",
-        lambda _path, _config: SimpleNamespace(
-            bit_rate=128000,
-            sample_rate=44100,
-            channels=2,
-        ),
+        fail_probe,
+        raising=False,
     )
 
     script = editor_injection_script(editor, note)
 
     match = re.search(r"window\.__AQE_EDITOR_CONFIG__ = (?P<config>\{.*?\});", script)
     assert match is not None
-    assert json.loads(match.group("config"))["audioFieldMetadata"] == {
-        "0": {"bitRate": 128000, "sampleRate": 44100, "channels": 2},
-    }
+    config = json.loads(match.group("config"))
+    assert config["audioFieldMetadata"] == {}
+    assert config["audioFieldSources"] == {"0": "clip.mp3"}
+
+
+def test_editor_injection_script_does_not_probe_when_compress_audio_hidden(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    media_dir = tmp_path / "media"
+    media_dir.mkdir()
+    (media_dir / "clip.mp3").write_bytes(b"audio")
+
+    class Editor:
+        pass
+
+    editor = Editor()
+    editor.mw = SimpleNamespace(
+        col=SimpleNamespace(media=SimpleNamespace(dir=lambda: str(media_dir))),
+        addonManager=SimpleNamespace(
+            addonFromModule=lambda _module: "addon",
+            getConfig=lambda _addon: {
+                "visible_editor_buttons": ["aqe:slower"],
+            },
+        ),
+    )
+    note = SimpleNamespace(fields=["[sound:clip.mp3]"])
+
+    def fail_probe(*_args: object, **_kwargs: object) -> object:
+        raise AssertionError("hidden Compress Audio must not probe source metadata")
+
+    monkeypatch.setattr(
+        "anki_audio_quick_editor.editor_webview_injection.probe_audio_metadata",
+        fail_probe,
+        raising=False,
+    )
+
+    script = editor_injection_script(editor, note)
+
+    match = re.search(r"window\.__AQE_EDITOR_CONFIG__ = (?P<config>\{.*?\});", script)
+    assert match is not None
+    config = json.loads(match.group("config"))
+    assert config["visibleEditorButtons"] == ["aqe:slower"]
+    assert config["audioFieldMetadata"] == {}
 
 
 def test_undo_history_restores_last_audio_modification_only() -> None:

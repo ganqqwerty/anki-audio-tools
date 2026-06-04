@@ -362,6 +362,7 @@ forbidden_modules = [
     "anki_audio_quick_editor.editor_settings_actions",
     "anki_audio_quick_editor.editor_special_transform_worker",
     "anki_audio_quick_editor.editor_special_transforms",
+    "anki_audio_quick_editor.editor_source_metadata",
     "anki_audio_quick_editor.editor_status",
     "anki_audio_quick_editor.editor_sharing",
     "anki_audio_quick_editor.editor_split_defaults",

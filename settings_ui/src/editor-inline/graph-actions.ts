@@ -11,6 +11,7 @@ import { currentAudioSourceForOrd, visualizerForOrd } from "./dom-selectors.js";
 import type { GraphSettings } from "./graph-settings.js";
 import { logger } from "./logger.js";
 import { normalizeTrack, type DefaultGraphTarget, type VisualizerElement } from "./types.js";
+import { clearSourceMetadataRequests } from "./source-metadata-requests.js";
 import {
   graphLogContext,
   renderGraphRequested,
@@ -189,6 +190,7 @@ function pendingGraphRedrawMatches(ord: number, sourceFilename: string): boolean
 
 export function prepareForNewNote(): void {
   clearPendingNoteScopedBridgeRequests();
+  clearSourceMetadataRequests();
   document.body.dataset.aqeBusy = "false";
   window.__aqeActiveField = null;
   window.__aqeLastCursorIntent = null;

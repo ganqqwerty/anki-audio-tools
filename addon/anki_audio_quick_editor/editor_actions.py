@@ -41,6 +41,7 @@ CMD_DELETE_REST = "aqe:delete-rest"
 CMD_ANALYZE_FIELD = "aqe:analyze-field"
 CMD_COMMAND_PAYLOAD = "aqe:command-payload"
 CMD_SAVE_SPLIT_DEFAULTS = "aqe:save-split-defaults"
+CMD_SOURCE_METADATA = "aqe:source-metadata"
 CMD_STOP_PLAYBACK = "aqe:stop-playback"
 CMD_SETTINGS = "aqe:settings"
 CMD_REDO = "aqe:redo"
@@ -60,6 +61,7 @@ BRIDGE_COMMANDS = (
     CMD_ANALYZE_FIELD,
     CMD_COMMAND_PAYLOAD,
     CMD_SAVE_SPLIT_DEFAULTS,
+    CMD_SOURCE_METADATA,
     CMD_STOP_PLAYBACK,
     "aqe:set-cursor",
     "aqe:play",

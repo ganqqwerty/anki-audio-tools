@@ -2,12 +2,8 @@
 
 from __future__ import annotations
 
-import logging
-from pathlib import Path
 from typing import Any
 
-from .audio_processor import probe_audio_metadata
-from .audio_state import AudioProcessingConfig
 from .editor_media import audio_field_sources as _audio_field_sources
 from .editor_runtime import (
     SESSIONS as _SESSIONS,
@@ -17,10 +13,6 @@ from .editor_runtime import (
 )
 from .editor_session import EditorSession
 from .editor_ui import injection_script
-from .errors import AudioProcessingError
-from .media_paths import existing_media_file_path
-
-logger = logging.getLogger(__name__)
 
 
 def editor_injection_script(editor: Any, note: Any) -> str:
@@ -35,7 +27,7 @@ def editor_injection_script(editor: Any, note: Any) -> str:
         editor_button_modes = {}
     return injection_script(
         list(audio_field_sources),
-        audio_field_metadata=_audio_field_metadata(editor, audio_field_sources, config),
+        audio_field_metadata={},
         audio_field_sources=audio_field_sources,
         initial_status_by_field=_initial_status_by_field(_SESSIONS.get(editor)),
         pending_post_edit_playback=_pending_post_edit_playback(editor),
@@ -100,31 +92,6 @@ def editor_injection_script(editor: Any, note: Any) -> str:
             "graphVoiceLock": str(config.get("graph_voice_lock", "balanced")),
         },
     )
-
-
-def _audio_field_metadata(
-    editor: Any,
-    audio_field_sources: dict[int, str],
-    config: dict[str, Any],
-) -> dict[int, dict[str, int | None]]:
-    metadata_by_field: dict[int, dict[str, int | None]] = {}
-    media_dir = Path(editor.mw.col.media.dir())
-    processing_config = AudioProcessingConfig.from_config(config)
-    for field_index, filename in audio_field_sources.items():
-        media_path = existing_media_file_path(media_dir, filename)
-        if media_path is None:
-            continue
-        try:
-            metadata = probe_audio_metadata(media_path, processing_config)
-        except AudioProcessingError:
-            logger.debug("Could not inspect editor audio metadata.", exc_info=True)
-            continue
-        metadata_by_field[int(field_index)] = {
-            "bitRate": metadata.bit_rate,
-            "sampleRate": metadata.sample_rate,
-            "channels": metadata.channels,
-        }
-    return metadata_by_field
 
 
 def _initial_status_by_field(session: EditorSession | None) -> dict[int, dict[str, str]]:

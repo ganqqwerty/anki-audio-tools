@@ -16,7 +16,7 @@ from e2e.editor_note_helpers import (
 from e2e.helpers import click_selector, wait_for_selector
 
 
-def test_reduce_size_button_renders_smaller_mp3_with_real_ffmpeg(anki_mw, ffmpeg_config) -> None:
+def test_compress_audio_button_renders_compressed_mp3_with_real_ffmpeg(anki_mw, ffmpeg_config) -> None:
     media_dir = Path(anki_mw.col.media.dir())
     source = media_dir / "editor_size_reduce_source.mp3"
     _generate_high_bitrate_mp3(ffmpeg_config, source)
@@ -31,12 +31,12 @@ def test_reduce_size_button_renders_smaller_mp3_with_real_ffmpeg(anki_mw, ffmpeg
         generated_name = _wait_for_generated_mp3(note, media_dir, source.name)
         status = _wait_for_status_flow(
             editor,
-            lambda value: value["text"] == "Made audio smaller with Normal level.",
+            lambda value: value["text"] == "Compressed audio with Normal level.",
             timeout=10.0,
         )
 
         generated_path = media_dir / generated_name
-        assert status["text"] == "Made audio smaller with Normal level."
+        assert status["text"] == "Compressed audio with Normal level."
         assert generated_name.endswith(".mp3")
         assert generated_path.stat().st_size < len(original_bytes)
         assert source.read_bytes() == original_bytes
