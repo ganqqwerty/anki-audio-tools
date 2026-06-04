@@ -25,6 +25,12 @@ def test_make_output_filename_preserves_source_extension_and_timestamp() -> None
     assert filename == "my_sentence__aqe_20260514_090807_000000_abc12345.wav"
 
 
+def test_make_output_filename_preserves_source_extension_with_trailing_os_characters() -> None:
+    filename = make_output_filename("clip.opus .", datetime(2026, 5, 14), "12345678")
+
+    assert filename == "clip_opus__aqe_20260514_000000_000000_12345678.opus"
+
+
 def test_make_output_filename_respects_output_format() -> None:
     filename = make_output_filename(
         "my sentence.wav",

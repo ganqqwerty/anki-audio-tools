@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import logging
-import re
 from typing import Any
 
 from aqt import mw
@@ -15,15 +14,15 @@ from .editor_media import audio_field_sources
 from .editor_runtime import SESSIONS
 from .editor_session import EditorSession, reset_for_note_load
 from .editor_webview_injection import editor_injection_script
+from .media_paths import media_filenames_match
 from .reviewer_audio_targets import (
     explicit_target_field_indices,
     target_html,
 )
-from .sound_refs import safe_media_basename
+from .sound_refs import find_sound_references, safe_media_basename
 
 logger = logging.getLogger(__name__)
 
-_SOUND_RE = re.compile(r"\[sound:([^\]]+)\]", re.IGNORECASE)
 _ADAPTERS: dict[int, ReviewerEditorAdapter] = {}
 _BRIDGE_WRAPPED_ATTR = "_aqe_reviewer_bridge_wrapped"
 _ORIGINAL_BRIDGE_ATTR = "_aqe_original_bridge_command"
@@ -270,7 +269,7 @@ def _review_audio_targets(
     if not sources:
         return []
     side_filenames = _card_side_audio_filenames(card, kind)
-    rendered_filenames = {safe_media_basename(match.group(1)) for match in _SOUND_RE.finditer(text)}
+    rendered_filenames = {safe_media_basename(ref.filename) for ref in find_sound_references(text)}
     targets: list[tuple[int, str]] = []
     matched_filenames: set[str] = set()
     for field_index, filename in sources.items():
@@ -287,13 +286,17 @@ def _review_target_matches(
     rendered_filenames: set[str],
     matched_filenames: set[str],
 ) -> bool:
-    if filename in matched_filenames:
+    if _contains_media_filename(matched_filenames, filename):
         return False
     if side_filenames:
-        return filename in side_filenames
+        return _contains_media_filename(side_filenames, filename)
     if rendered_filenames:
-        return filename in rendered_filenames
+        return _contains_media_filename(rendered_filenames, filename)
     return filename in text
+
+
+def _contains_media_filename(candidates: set[str], filename: str) -> bool:
+    return any(media_filenames_match(candidate, filename) for candidate in candidates)
 
 
 def _card_side_audio_filenames(card: Any | None, kind: str) -> set[str]:

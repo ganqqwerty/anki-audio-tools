@@ -58,6 +58,14 @@ class FakeCard:
         return [SimpleNamespace(filename="second.wav")]
 
 
+class FakeRenderedAudioCard(FakeCard):
+    def question_av_tags(self) -> list[object]:
+        return []
+
+    def answer_av_tags(self) -> list[object]:
+        return []
+
+
 class FakeWeb:
     def __init__(self) -> None:
         self.onBridgeCmd = MagicMock(return_value="delegated")
@@ -131,6 +139,36 @@ def test_card_will_show_adds_review_targets_for_rendered_audio() -> None:
     assert 'data-field-ord="1"' in html
     assert 'data-aqe-source-filename="second.wav"' in html
     assert 'data-field-ord="0"' not in html
+
+
+def test_card_will_show_matches_rendered_escaped_bracket_audio_without_av_tags() -> None:
+    note = FakeNote(["[sound:amp&amp;bracket]name.opus]", "[sound:second.wav]"])
+    card = FakeRenderedAudioCard(note)
+    aqt.mw.addonManager.getConfig.return_value = {"enable_reviewer_editor": True}
+
+    html = _on_card_will_show(
+        "<div>[sound:amp&amp;bracket]name.opus]</div>",
+        card,
+        "reviewAnswer",
+    )
+
+    assert 'class="aqe-review-audio-target"' in html
+    assert 'data-field-ord="0"' in html
+    assert 'data-aqe-source-filename="amp&amp;bracket]name.opus"' in html
+    assert 'data-field-ord="1"' not in html
+
+
+def test_card_will_show_deduplicates_windows_case_variant_targets(monkeypatch) -> None:
+    note = FakeNote(["[sound:Clip.MP3]", "[sound:clip.mp3]"])
+    card = FakeRenderedAudioCard(note)
+    aqt.mw.addonManager.getConfig.return_value = {"enable_reviewer_editor": True}
+    monkeypatch.setattr("anki_audio_quick_editor.media_paths.platform.system", lambda: "Windows")
+
+    html = _on_card_will_show("<div>[sound:clip.mp3]</div>", card, "reviewAnswer")
+
+    assert html.count('class="aqe-review-audio-target"') == 1
+    assert 'data-field-ord="0"' in html
+    assert 'data-field-ord="1"' not in html
 
 
 def test_card_will_show_does_not_duplicate_explicit_template_target() -> None:

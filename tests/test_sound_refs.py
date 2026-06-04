@@ -46,6 +46,7 @@ def test_detects_utf_sound_reference_inside_html() -> None:
         ("[sound:line\nbreak.opus]", "line\nbreak.opus"),
         ("[sound:trailing-newline.opus\n]", "trailing-newline.opus\n"),
         ("[sound:trailing-dot.opus.]", "trailing-dot.opus."),
+        ("[sound:trailing-dot-space.opus .]", "trailing-dot-space.opus ."),
     ],
 )
 def test_detects_problematic_os_filename_characters(
@@ -72,6 +73,7 @@ def test_detects_sound_reference_preserves_inner_whitespace() -> None:
 
     assert selection.selected is not None
     assert selection.selected.filename == "  sentence.MP3  "
+    assert selection.selected.extension == ".mp3"
 
 
 def test_supported_audio_extensions_match_common_input_formats() -> None:

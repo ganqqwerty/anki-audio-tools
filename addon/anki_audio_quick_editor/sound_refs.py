@@ -16,6 +16,7 @@ SUPPORTED_AUDIO_EXTENSIONS = frozenset(
     {".aac", ".flac", ".m4a", ".mp3", ".oga", ".ogg", ".opus", ".wav", ".webm"}
 )
 SOUND_REF_START_RE = re.compile(r"(?i)\[sound:")
+_TRAILING_VISIBLE_EXTENSION_CHARS = ". \t\r\n\v\f"
 
 
 @dataclass(frozen=True)
@@ -30,7 +31,7 @@ class SoundReference:
     @property
     def extension(self) -> str:
         """Return the lowercase filename extension."""
-        return Path(self.filename).suffix.lower()
+        return _audio_extension_for_support(self.filename)
 
 
 @dataclass(frozen=True)
@@ -107,13 +108,7 @@ def _sound_reference_filename_end(
 
 
 def _audio_extension_for_support(filename: str) -> str:
-    suffix = Path(filename).suffix.lower()
-    if suffix in SUPPORTED_AUDIO_EXTENSIONS:
-        return suffix
-    visible_filename = filename.rstrip().rstrip(".")
-    if visible_filename != filename:
-        return Path(visible_filename).suffix.lower()
-    return suffix
+    return Path(filename.rstrip(_TRAILING_VISIBLE_EXTENSION_CHARS)).suffix.lower()
 
 
 def safe_media_basename(filename: str) -> str:

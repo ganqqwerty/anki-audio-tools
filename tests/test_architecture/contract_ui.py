@@ -119,6 +119,7 @@ UI_CONTRACTS: dict[str, ModuleContract] = {
             "editor_runtime",
             "editor_session",
             "editor_webview_injection",
+            "media_paths",
             "reviewer_audio_targets",
             "sound_refs",
         ),

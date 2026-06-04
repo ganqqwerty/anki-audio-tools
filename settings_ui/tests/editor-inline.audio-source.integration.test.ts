@@ -37,4 +37,10 @@ describe("editor inline audio source detection", () => {
 
     expect(audioSourceForNode(document.getElementById("trailing-field")!)).toBe("clip.opus ");
   });
+
+  it("preserves mixed trailing dots and spaces after supported audio extensions", () => {
+    document.body.innerHTML = '<div id="trailing-mixed-field">[sound:clip.opus .]</div>';
+
+    expect(audioSourceForNode(document.getElementById("trailing-mixed-field")!)).toBe("clip.opus .");
+  });
 });
