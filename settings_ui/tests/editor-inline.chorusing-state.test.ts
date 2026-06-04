@@ -3,16 +3,16 @@ import { describe, expect, it } from "vitest";
 import type { PlaybackRegion } from "../src/editor-inline/playback-model.js";
 import {
   activeMarkerIndexAfterMarkerToggle,
-  backChainingControlAvailability,
+  chorusingControlAvailability,
   chooseInitialActiveMarkerIndex,
-  defaultBackChainingMarkers,
+  defaultChorusingMarkers,
   deriveActiveSuffix,
-  emptyBackChainingState,
+  emptyChorusingState,
   markerNavigationAvailability,
   moveActiveMarkerIndex,
-  normalizeBackChainingMarkers,
-  toggleBackChainingMarker,
-} from "../src/editor-inline/back-chaining-state.js";
+  normalizeChorusingMarkers,
+  toggleChorusingMarker,
+} from "../src/editor-inline/chorusing-state";
 
 const baseRegion: PlaybackRegion = {
   endMs: 2200,
@@ -20,9 +20,9 @@ const baseRegion: PlaybackRegion = {
   startMs: 1000,
 };
 
-describe("editor inline back-chaining state", () => {
+describe("editor inline chorusing state", () => {
   it("sorts, clamps, and deduplicates markers inside the base region", () => {
-    expect(normalizeBackChainingMarkers([1600.4, 100, 2200, 1600.2, 999.9, 1200], baseRegion)).toEqual([
+    expect(normalizeChorusingMarkers([1600.4, 100, 2200, 1600.2, 999.9, 1200], baseRegion)).toEqual([
       1000,
       1200,
       1600,
@@ -31,18 +31,18 @@ describe("editor inline back-chaining state", () => {
   });
 
   it("creates default markers from the selection start through two equally spaced suffix starts", () => {
-    expect(defaultBackChainingMarkers(baseRegion)).toEqual([1000, 1400, 1800]);
+    expect(defaultChorusingMarkers(baseRegion)).toEqual([1000, 1400, 1800]);
   });
 
   it("adds a marker when no nearby marker exists", () => {
-    expect(toggleBackChainingMarker([1200, 1900], 1500, baseRegion, 40)).toEqual({
+    expect(toggleChorusingMarker([1200, 1900], 1500, baseRegion, 40)).toEqual({
       markersMs: [1200, 1500, 1900],
       removed: false,
     });
   });
 
   it("removes a nearby marker before adding a duplicate", () => {
-    expect(toggleBackChainingMarker([1200, 1500, 1900], 1518, baseRegion, 40)).toEqual({
+    expect(toggleChorusingMarker([1200, 1500, 1900], 1518, baseRegion, 40)).toEqual({
       markersMs: [1200, 1900],
       removed: true,
     });
@@ -90,8 +90,8 @@ describe("editor inline back-chaining state", () => {
   });
 
   it("reports whole-file practice and navigation availability", () => {
-    const stopped = emptyBackChainingState();
-    expect(backChainingControlAvailability(stopped)).toEqual({
+    const stopped = emptyChorusingState();
+    expect(chorusingControlAvailability(stopped)).toEqual({
       canNext: false,
       canPrevious: false,
       canPractice: false,
@@ -103,7 +103,7 @@ describe("editor inline back-chaining state", () => {
       baseRegion,
       markersMs: [1200, 1500, 1900],
     };
-    expect(backChainingControlAvailability(ready)).toEqual({
+    expect(chorusingControlAvailability(ready)).toEqual({
       canNext: true,
       canPrevious: false,
       canPractice: true,

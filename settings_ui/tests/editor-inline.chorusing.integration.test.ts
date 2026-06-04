@@ -21,7 +21,7 @@ const selectionCss = readFileSync(
   "utf8",
 );
 
-describe("editor inline back-chaining integration", () => {
+describe("editor inline chorusing integration", () => {
   let restoreConsole: () => void;
 
   beforeEach(() => {
@@ -37,104 +37,104 @@ describe("editor inline back-chaining integration", () => {
   });
 
   it("shows and edits whole-file markers as soon as the graph is available", async () => {
-    const { row, svg } = await prepareBackChainingGraph();
+    const { row, svg } = await prepareChorusingGraph();
 
     expect(row.getAttribute("aria-hidden")).toBe("false");
     expect(row.style.display).toBe("");
-    expect(row.querySelector(".aqe-back-chaining-marker-track")).not.toBeNull();
-    expect(row.querySelectorAll(".aqe-back-chaining-marker")).toHaveLength(3);
+    expect(row.querySelector(".aqe-chorusing-marker-track")).not.toBeNull();
+    expect(row.querySelectorAll(".aqe-chorusing-marker")).toHaveLength(3);
     expect(window.__aqeGraphStateForTest?.(0)).toMatchObject({
-      backChainingBaseEndMs: 1000,
-      backChainingBaseStartMs: 0,
-      backChainingCanPractice: true,
-      backChainingCanPrevious: false,
-      backChainingMarkersMs: [0, 333, 667],
-      backChainingState: "stopped",
+      chorusingBaseEndMs: 1000,
+      chorusingBaseStartMs: 0,
+      chorusingCanPractice: true,
+      chorusingCanPrevious: false,
+      chorusingMarkersMs: [0, 333, 667],
+      chorusingState: "stopped",
     });
     expect(previousButton()).toBeDisabled();
     expect(previousButton().closest(".aqe-button-tooltip-target")).toHaveAttribute(
       "data-aqe-tooltip-content",
-      "Move to the next shorter back-chaining suffix.\n\nStart back-chaining practice and move to a longer suffix before choosing a shorter suffix.",
+      "Move to the next shorter chorusing suffix.\n\nStart chorusing practice and move to a longer suffix before choosing a shorter suffix.",
     );
     expect(nextButton()).not.toBeDisabled();
     expect(nextButton().closest(".aqe-button-tooltip-target")).toHaveAttribute(
       "data-aqe-tooltip-content",
-      "Move to the next longer back-chaining suffix.",
+      "Move to the next longer chorusing suffix.",
     );
 
     clickMarkerRail(svg, 0.5);
 
     expect(window.__aqeGraphStateForTest?.(0)).toMatchObject({
-      backChainingBaseEndMs: 1000,
-      backChainingBaseStartMs: 0,
-      backChainingMarkersMs: [0, 333, 500, 667],
+      chorusingBaseEndMs: 1000,
+      chorusingBaseStartMs: 0,
+      chorusingMarkersMs: [0, 333, 500, 667],
     });
   });
 
-  it("starts back-chaining from the toolbar for the whole file instead of the graph selection", async () => {
-    const { row, svg } = await prepareBackChainingGraph();
+  it("starts chorusing from the toolbar for the whole file instead of the graph selection", async () => {
+    const { row, svg } = await prepareChorusingGraph();
     dragGraphSelection(svg, 0.2, 0.8);
 
-    expect(document.querySelector('[data-testid="aqe-selection-toolbar-back-chaining-0"]')).toBeNull();
-    expect(document.querySelector('[data-testid="aqe-back-chaining-0-panel"]')).toBeNull();
-    expect(document.querySelector('[data-testid="aqe-back-chaining-0-edit"]')).toBeNull();
-    expect(document.querySelector('[data-testid="aqe-back-chaining-0-clear"]')).toBeNull();
-    expect(document.querySelector('[data-testid="aqe-back-chaining-0-previous"]')).toBeNull();
+    expect(document.querySelector('[data-testid="aqe-selection-toolbar-chorusing-0"]')).toBeNull();
+    expect(document.querySelector('[data-testid="aqe-chorusing-0-panel"]')).toBeNull();
+    expect(document.querySelector('[data-testid="aqe-chorusing-0-edit"]')).toBeNull();
+    expect(document.querySelector('[data-testid="aqe-chorusing-0-clear"]')).toBeNull();
+    expect(document.querySelector('[data-testid="aqe-chorusing-0-previous"]')).toBeNull();
 
     prepareHtmlAudio();
     practiceButton().click();
     await Promise.resolve();
 
     expect(window.__aqeGraphStateForTest?.(0)).toMatchObject({
-      backChainingBaseEndMs: 1000,
-      backChainingBaseStartMs: 0,
-      backChainingMarkersMs: [0, 333, 667],
-      backChainingState: "playing",
+      chorusingBaseEndMs: 1000,
+      chorusingBaseStartMs: 0,
+      chorusingMarkersMs: [0, 333, 667],
+      chorusingState: "playing",
       playbackEndMs: 1000,
       playbackRegionMode: "selection",
       playbackStartMs: 667,
       selectionEndMs: 1000,
       selectionStartMs: 667,
     });
-    expect(row.querySelectorAll(".aqe-back-chaining-boundary-marker")).toHaveLength(1);
+    expect(row.querySelectorAll(".aqe-chorusing-boundary-marker")).toHaveLength(1);
     expect(practiceButton().dataset.aqeButtonState).toBe("pause");
     expect(previousButton().disabled).toBe(true);
     expect(nextButton().disabled).toBe(false);
   });
 
   it("places markers using zoomed viewport time while keeping a whole-file base", async () => {
-    const { svg } = await prepareBackChainingGraph();
+    const { svg } = await prepareChorusingGraph();
     window.__aqeSetTimeViewportForTest?.(0, 200, 800);
 
     clickMarkerRail(svg, 0.5);
 
     expect(window.__aqeGraphStateForTest?.(0)).toMatchObject({
-      backChainingBaseEndMs: 1000,
-      backChainingBaseStartMs: 0,
-      backChainingMarkerVisibleXs: expect.any(Array),
-      backChainingMarkersMs: [0, 333, 500, 667],
+      chorusingBaseEndMs: 1000,
+      chorusingBaseStartMs: 0,
+      chorusingMarkerVisibleXs: expect.any(Array),
+      chorusingMarkersMs: [0, 333, 500, 667],
       viewportEndMs: 800,
       viewportStartMs: 200,
     });
   });
 
   it("moves between longer and shorter suffixes from the toolbar and normal Play pauses practice", async () => {
-    await prepareBackChainingGraph();
+    await prepareChorusingGraph();
     prepareHtmlAudio();
 
     practiceButton().click();
     await Promise.resolve();
     expect(window.__aqeGraphStateForTest?.(0)).toMatchObject({
-      backChainingActiveMarkerIndex: 2,
-      backChainingActiveStartMs: 667,
-      backChainingState: "playing",
+      chorusingActiveMarkerIndex: 2,
+      chorusingActiveStartMs: 667,
+      chorusingState: "playing",
       repeatEnabled: true,
     });
 
     nextButton().click();
     await Promise.resolve();
     expect(window.__aqeGraphStateForTest?.(0)).toMatchObject({
-      backChainingActiveMarkerIndex: 1,
+      chorusingActiveMarkerIndex: 1,
       playbackStartMs: 333,
       selectionEndMs: 1000,
       selectionStartMs: 333,
@@ -143,7 +143,7 @@ describe("editor inline back-chaining integration", () => {
     nextButton().click();
     await Promise.resolve();
     expect(window.__aqeGraphStateForTest?.(0)).toMatchObject({
-      backChainingActiveMarkerIndex: 0,
+      chorusingActiveMarkerIndex: 0,
       playbackStartMs: 0,
       selectionEndMs: 1000,
       selectionStartMs: 0,
@@ -154,7 +154,7 @@ describe("editor inline back-chaining integration", () => {
     previousButton().click();
     await Promise.resolve();
     expect(window.__aqeGraphStateForTest?.(0)).toMatchObject({
-      backChainingActiveMarkerIndex: 1,
+      chorusingActiveMarkerIndex: 1,
       playbackStartMs: 333,
       selectionEndMs: 1000,
       selectionStartMs: 333,
@@ -165,14 +165,14 @@ describe("editor inline back-chaining integration", () => {
     document.querySelector<HTMLButtonElement>('[data-testid="aqe-button-0-play"]')!.click();
     await Promise.resolve();
     expect(window.__aqeGraphStateForTest?.(0)).toMatchObject({
-      backChainingState: "paused",
+      chorusingState: "paused",
       repeatEnabled: false,
     });
     expect(practiceButton().dataset.aqeButtonState).toBe("default");
   });
 
   it("adds markers mid-practice and includes them in longer-suffix navigation", async () => {
-    const { svg } = await prepareBackChainingGraph();
+    const { svg } = await prepareChorusingGraph();
     prepareHtmlAudio();
 
     practiceButton().click();
@@ -181,9 +181,9 @@ describe("editor inline back-chaining integration", () => {
     await Promise.resolve();
 
     expect(window.__aqeGraphStateForTest?.(0)).toMatchObject({
-      backChainingActiveMarkerIndex: 3,
-      backChainingActiveStartMs: 667,
-      backChainingMarkersMs: [0, 333, 500, 667],
+      chorusingActiveMarkerIndex: 3,
+      chorusingActiveStartMs: 667,
+      chorusingMarkersMs: [0, 333, 500, 667],
       playbackStartMs: 667,
     });
 
@@ -191,8 +191,8 @@ describe("editor inline back-chaining integration", () => {
     await Promise.resolve();
 
     expect(window.__aqeGraphStateForTest?.(0)).toMatchObject({
-      backChainingActiveMarkerIndex: 2,
-      backChainingActiveStartMs: 500,
+      chorusingActiveMarkerIndex: 2,
+      chorusingActiveStartMs: 500,
       playbackStartMs: 500,
       selectionStartMs: 500,
     });
@@ -207,7 +207,7 @@ function installVisualizerStyles(): void {
   document.head.appendChild(style);
 }
 
-async function prepareBackChainingGraph(): Promise<{ row: SVGGElement; svg: SVGSVGElement }> {
+async function prepareChorusingGraph(): Promise<{ row: SVGGElement; svg: SVGSVGElement }> {
   initializeEditorRuntime({ audioFieldIndices: [0], repeatPlaybackByDefault: false });
   scan({ audioFieldIndices: [0], repeatPlaybackByDefault: false });
   await Promise.resolve();
@@ -215,14 +215,14 @@ async function prepareBackChainingGraph(): Promise<{ row: SVGGElement; svg: SVGS
   await Promise.resolve();
   const svg = document.querySelector<SVGSVGElement>('[data-testid="aqe-graph-svg-0"]')!;
   setGraphBounds(svg);
-  const row = document.querySelector<SVGGElement>('[data-testid="aqe-back-chaining-marker-row-0"]')!;
+  const row = document.querySelector<SVGGElement>('[data-testid="aqe-chorusing-marker-row-0"]')!;
   return { row, svg };
 }
 
 function clickMarkerRail(svg: SVGSVGElement, ratio: number): void {
-  const row = document.querySelector<SVGGElement>('[data-testid="aqe-back-chaining-marker-row-0"]')!;
+  const row = document.querySelector<SVGGElement>('[data-testid="aqe-chorusing-marker-row-0"]')!;
   const target = row.getAttribute("aria-hidden") === "true"
-    ? document.querySelector<HTMLElement>(".aqe-back-chaining-marker-hitbox")!
+    ? document.querySelector<HTMLElement>(".aqe-chorusing-marker-hitbox")!
     : row;
   const EventCtor = window.PointerEvent || window.MouseEvent;
   const clientX = graphClientX(svg, ratio);
@@ -239,13 +239,13 @@ function clickMarkerRail(svg: SVGSVGElement, ratio: number): void {
 }
 
 function practiceButton(): HTMLButtonElement {
-  return document.querySelector<HTMLButtonElement>('[data-testid="aqe-button-0-back-chain-practice"]')!;
+  return document.querySelector<HTMLButtonElement>('[data-testid="aqe-button-0-chorusing-practice"]')!;
 }
 
 function nextButton(): HTMLButtonElement {
-  return document.querySelector<HTMLButtonElement>('[data-testid="aqe-button-0-back-chain-next"]')!;
+  return document.querySelector<HTMLButtonElement>('[data-testid="aqe-button-0-chorusing-next"]')!;
 }
 
 function previousButton(): HTMLButtonElement {
-  return document.querySelector<HTMLButtonElement>('[data-testid="aqe-button-0-back-chain-previous"]')!;
+  return document.querySelector<HTMLButtonElement>('[data-testid="aqe-button-0-chorusing-previous"]')!;
 }

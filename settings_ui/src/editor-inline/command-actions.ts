@@ -11,10 +11,10 @@ import {
   stopProgressClock,
 } from "./playback-actions.js";
 import {
-  moveBackChainingForOrd,
-  pauseBackChainingForNormalPlay,
-  toggleBackChainingForOrd,
-} from "./back-chaining-controller.js";
+  moveChorusingForOrd,
+  pauseChorusingForNormalPlay,
+  toggleChorusingForOrd,
+} from "./chorusing-controller.js";
 import type { EditorCommand, EditorCommandPayload, VisualizerElement } from "./types.js";
 import { anyBusy, setControlsBusy } from "./control-actions.js";
 
@@ -32,19 +32,19 @@ export function send(
     requestGraph(ord, true, payload?.graphSettings);
     return;
   }
-  if (command === "aqe:back-chain-practice") {
-    toggleBackChainingForOrd(ord);
+  if (command === "aqe:chorusing-practice") {
+    toggleChorusingForOrd(ord);
     return;
   }
-  if (command === "aqe:back-chain-next") {
-    moveBackChainingForOrd(ord, "next");
+  if (command === "aqe:chorusing-next") {
+    moveChorusingForOrd(ord, "next");
     return;
   }
-  if (command === "aqe:back-chain-previous") {
-    moveBackChainingForOrd(ord, "previous");
+  if (command === "aqe:chorusing-previous") {
+    moveChorusingForOrd(ord, "previous");
     return;
   }
-  if (command === "aqe:play" && pauseBackChainingForNormalPlay(ord)) {
+  if (command === "aqe:play" && pauseChorusingForNormalPlay(ord)) {
     return;
   }
   if (command === "aqe:play" && handleHtmlPlaybackCommand(ord)) {

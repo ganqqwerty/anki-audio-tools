@@ -16,7 +16,7 @@ import {
   setCursor,
 } from "./actions.js";
 import { cursorMsFromEvent, graphPixelBounds, svgViewBoxScale } from "./plot.js";
-import { backChainingControlsForVisualizer } from "./back-chaining-dom.js";
+import { chorusingControlsForVisualizer } from "./chorusing-dom.js";
 import { applyVisualizerTimeViewport } from "./viewport-actions.js";
 import { readVisualizerTargetDurationMs, readVisualizerTimeViewport } from "./visualizer-state.js";
 import type {
@@ -156,7 +156,7 @@ export function graphStateForTest(ord: number): GraphStateForTest | null {
   const spinner = visualizer.closest<HTMLElement>(".aqe-controls")?.querySelector<HTMLElement>(".aqe-spinner")
     ?? visualizer.querySelector<HTMLElement>(".aqe-spinner");
   const viewport = readVisualizerTimeViewport(visualizer);
-  const backChaining = backChainingControlsForVisualizer(visualizer);
+  const chorusing = chorusingControlsForVisualizer(visualizer);
   return {
     active: visualizer.dataset.graphActive === "true",
     busy: visualizer.dataset.graphBusy === "true",
@@ -208,19 +208,19 @@ export function graphStateForTest(ord: number): GraphStateForTest | null {
       ? selectionToolbarPreview
       : "none",
     selectionToolbarTopPx: selectionToolbar ? cssPixelNumber(selectionToolbar.style.top) : null,
-    backChainingActiveEndMs: backChaining.activeSuffixEndMs,
-    backChainingActiveMarkerIndex: backChaining.activeMarkerIndex,
-    backChainingActiveStartMs: backChaining.activeSuffixStartMs,
-    backChainingBaseEndMs: backChaining.baseEndMs,
-    backChainingBaseStartMs: backChaining.baseStartMs,
-    backChainingCanNext: backChaining.canNext,
-    backChainingCanPrevious: backChaining.canPrevious,
-    backChainingCanPractice: backChaining.canPractice,
-    backChainingMarkerVisibleXs: backChaining.visibleMarkers.map((marker) => marker.x),
-    backChainingMarkersMs: backChaining.markersMs,
-    backChainingState: backChaining.practiceState,
-    backChainingVisibleActiveRangeEndX: backChaining.visibleActiveRange?.endX ?? null,
-    backChainingVisibleActiveRangeStartX: backChaining.visibleActiveRange?.startX ?? null,
+    chorusingActiveEndMs: chorusing.activeSuffixEndMs,
+    chorusingActiveMarkerIndex: chorusing.activeMarkerIndex,
+    chorusingActiveStartMs: chorusing.activeSuffixStartMs,
+    chorusingBaseEndMs: chorusing.baseEndMs,
+    chorusingBaseStartMs: chorusing.baseStartMs,
+    chorusingCanNext: chorusing.canNext,
+    chorusingCanPrevious: chorusing.canPrevious,
+    chorusingCanPractice: chorusing.canPractice,
+    chorusingMarkerVisibleXs: chorusing.visibleMarkers.map((marker) => marker.x),
+    chorusingMarkersMs: chorusing.markersMs,
+    chorusingState: chorusing.practiceState,
+    chorusingVisibleActiveRangeEndX: chorusing.visibleActiveRange?.endX ?? null,
+    chorusingVisibleActiveRangeStartX: chorusing.visibleActiveRange?.startX ?? null,
     playbackStartMs: Number(visualizer.dataset.playbackStartMs || "0"),
     playbackEndMs: Number(visualizer.dataset.playbackEndMs || "0"),
     playbackRegionMode: visualizer.dataset.playbackRegionMode === "selection" ? "selection" : "full",

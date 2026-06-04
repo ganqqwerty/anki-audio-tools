@@ -10,8 +10,8 @@ import aqt
 
 from anki_audio_quick_editor.reviewer_template_filter_integration import (
     AQE_TEMPLATE_AUDIO_PANEL_VIDEO_URL,
-    _aqe_audio_panel_filter,
     _append_audio_editor_tag,
+    _aqe_audio_panel_filter,
     _on_card_layout_will_show,
     register_reviewer_template_filter,
 )

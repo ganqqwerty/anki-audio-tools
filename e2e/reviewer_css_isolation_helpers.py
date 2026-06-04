@@ -220,22 +220,22 @@ def assert_reviewer_tooltip_css_isolated(reviewer) -> None:
     assert tooltip_style["textTransform"] != "uppercase"
 
 
-def assert_reviewer_back_chaining_marker_row_css_isolated(reviewer, field_ord: int) -> None:
-    """Assert back-chaining toolbar controls and marker row keep isolated styling."""
-    practice_selector = _button_selector("aqe:back-chain-practice", field_ord)
-    previous_selector = _button_selector("aqe:back-chain-previous", field_ord)
-    next_selector = _button_selector("aqe:back-chain-next", field_ord)
-    back_chaining_style = wait_for_js_condition(
+def assert_reviewer_chorusing_marker_row_css_isolated(reviewer, field_ord: int) -> None:
+    """Assert chorusing toolbar controls and marker row keep isolated styling."""
+    practice_selector = _button_selector("aqe:chorusing-practice", field_ord)
+    previous_selector = _button_selector("aqe:chorusing-previous", field_ord)
+    next_selector = _button_selector("aqe:chorusing-next", field_ord)
+    chorusing_style = wait_for_js_condition(
         reviewer.web,
         f"""
         (() => {{
           const practice = document.querySelector({practice_selector!r});
           const previous = document.querySelector({previous_selector!r});
           const next = document.querySelector({next_selector!r});
-          const panel = document.querySelector('[data-testid="aqe-back-chaining-toolbar-panel-{field_ord}"]');
-          const oldEntry = document.querySelector('[data-testid="aqe-selection-toolbar-back-chaining-{field_ord}"]');
-          const row = document.querySelector('[data-testid="aqe-back-chaining-marker-row-{field_ord}"]');
-          const hitbox = document.querySelector('.aqe-back-chaining-marker-hitbox');
+          const panel = document.querySelector('[data-testid="aqe-chorusing-toolbar-panel-{field_ord}"]');
+          const oldEntry = document.querySelector('[data-testid="aqe-selection-toolbar-chorusing-{field_ord}"]');
+          const row = document.querySelector('[data-testid="aqe-chorusing-marker-row-{field_ord}"]');
+          const hitbox = document.querySelector('.aqe-chorusing-marker-hitbox');
           const svg = document.querySelector('[data-testid="aqe-graph-svg-{field_ord}"]');
           if (!practice || !previous || !next || !panel || oldEntry || !row || !hitbox || !svg) return null;
           if (row.getAttribute("aria-hidden") === "true") {{
@@ -252,8 +252,8 @@ def assert_reviewer_back_chaining_marker_row_css_isolated(reviewer, field_ord: i
               clientY: rect.top + 14,
             }}));
           }}
-          const track = row.querySelector('.aqe-back-chaining-marker-track');
-          const marker = row.querySelector('.aqe-back-chaining-marker');
+          const track = row.querySelector('.aqe-chorusing-marker-track');
+          const marker = row.querySelector('.aqe-chorusing-marker');
           if (row.getAttribute("aria-hidden") === "true" || !track || !marker) return null;
           const practiceStyle = getComputedStyle(practice);
           const previousStyle = getComputedStyle(previous);
@@ -281,15 +281,15 @@ def assert_reviewer_back_chaining_marker_row_css_isolated(reviewer, field_ord: i
         lambda value: isinstance(value, dict),
         timeout=5.0,
     )
-    assert back_chaining_style["markerStrokeWidth"] == "3px"
-    assert back_chaining_style["nextFontSize"] == "12px"
-    assert back_chaining_style["panelBorderRadius"] == "9px"
-    assert back_chaining_style["panelBorderTopWidth"] == "1px"
-    assert back_chaining_style["panelContainer"] == "true"
-    assert back_chaining_style["panelDisplay"] in {"flex", "inline-flex"}
-    assert back_chaining_style["panelLabel"] == "Back-chaining"
-    assert back_chaining_style["previousFontSize"] == "12px"
-    assert back_chaining_style["practiceFontSize"] == "12px"
-    assert back_chaining_style["rowOpacity"] == "1"
-    assert back_chaining_style["trackFill"] in {"rgb(255, 255, 255)", "rgb(255 255 255)"}
-    assert back_chaining_style["trackStrokeWidth"] == "1px"
+    assert chorusing_style["markerStrokeWidth"] == "3px"
+    assert chorusing_style["nextFontSize"] == "12px"
+    assert chorusing_style["panelBorderRadius"] == "9px"
+    assert chorusing_style["panelBorderTopWidth"] == "1px"
+    assert chorusing_style["panelContainer"] == "true"
+    assert chorusing_style["panelDisplay"] in {"flex", "inline-flex"}
+    assert chorusing_style["panelLabel"] == "Chorusing"
+    assert chorusing_style["previousFontSize"] == "12px"
+    assert chorusing_style["practiceFontSize"] == "12px"
+    assert chorusing_style["rowOpacity"] == "1"
+    assert chorusing_style["trackFill"] in {"rgb(255, 255, 255)", "rgb(255 255 255)"}
+    assert chorusing_style["trackStrokeWidth"] == "1px"

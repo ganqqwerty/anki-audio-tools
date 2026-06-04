@@ -128,7 +128,6 @@ def restore_history_entry(
         require_graph_redraw=field_index in session.graph_active_fields,
     )
     editor.loadNote(focusTo=field_index)
-    session.pending_status = None
     sync_history_availability(editor, session, deps)
     request_history_availability_after_edit(editor, session, deps)
     deps.eval_playback_state(editor, field_index, "stopped", 0)

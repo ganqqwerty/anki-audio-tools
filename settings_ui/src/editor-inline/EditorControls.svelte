@@ -16,12 +16,12 @@
   import type { FieldTarget } from "./types.js";
 
   const TOOLBAR_PANEL_CLASSES: Record<ToolbarPanelSlug, string> = {
-    "back-chaining": "aqe-back-chaining-toolbar-panel",
+    "chorusing": "aqe-chorusing-toolbar-panel",
     "record-play-yours": "aqe-recording-group",
   };
 
   const TOOLBAR_PANEL_TEST_ID_PREFIXES: Record<ToolbarPanelSlug, string> = {
-    "back-chaining": "back-chaining",
+    "chorusing": "chorusing",
     "record-play-yours": "recording",
   };
 
@@ -34,6 +34,9 @@
   );
   const buttonModes = window.__AQE_EDITOR_CONFIG__?.editorButtonModes;
   const renderItems = buildEditorToolbarRenderItems(buttons);
+  const initialStatus = (() => window.__AQE_EDITOR_CONFIG__?.initialStatusByField?.[target.ord])();
+  const initialStatusKind = initialStatus?.kind || "info";
+  const initialStatusMessage = initialStatus?.message || "";
 
   function isSplitCommand(command: string): boolean {
     return [
@@ -55,9 +58,9 @@
   function disabledTitle(command: string): string | undefined {
     if (command === "aqe:undo") return t("editor.command.undo.disabled_title");
     if (command === "aqe:redo") return t("editor.command.redo.disabled_title");
-    if (command === "aqe:back-chain-practice") return t("editor.command.back_chain_practice.disabled_title");
-    if (command === "aqe:back-chain-previous") return t("editor.command.back_chain_previous.disabled_title");
-    if (command === "aqe:back-chain-next") return t("editor.command.back_chain_next.disabled_title");
+    if (command === "aqe:chorusing-practice") return t("editor.command.chorusing_practice.disabled_title");
+    if (command === "aqe:chorusing-previous") return t("editor.command.chorusing_previous.disabled_title");
+    if (command === "aqe:chorusing-next") return t("editor.command.chorusing_next.disabled_title");
     return undefined;
   }
 
@@ -65,8 +68,8 @@
     const availability = historyAvailability(target.ord);
     if (command === "aqe:undo") return !availability.canUndo;
     if (command === "aqe:redo") return !availability.canRedo;
-    if (command === "aqe:back-chain-next") return true;
-    if (command === "aqe:back-chain-previous") return true;
+    if (command === "aqe:chorusing-next") return true;
+    if (command === "aqe:chorusing-previous") return true;
     if (command === "aqe:record-voice" || command === "aqe:play-recording") return true;
     return false;
   }
@@ -200,8 +203,11 @@
           <span
             {...props}
             class="aqe-status aqe-tooltip-target"
+            data-kind={initialStatusKind}
+            data-stable-kind={initialStatusKind}
+            data-stable-message={initialStatusMessage}
             data-testid={`aqe-status-${target.ord}`}
-          ></span>
+          >{initialStatusMessage}</span>
         {/snippet}
       </AqeTooltip>
     </div>

@@ -51,7 +51,11 @@ def _choose_audio_editor_field_name(clayout: Any) -> str | None:
     import aqt.forms as aqt_forms
     from aqt.utils import disable_help_button
 
-    fields = [field["name"] for field in getattr(clayout, "model", {}).get("flds", []) if field.get("name")]
+    fields: list[str] = []
+    for field in getattr(clayout, "model", {}).get("flds", []):
+        name = field.get("name") if isinstance(field, dict) else None
+        if isinstance(name, str) and name:
+            fields.append(name)
     if not fields:
         return None
 
@@ -148,9 +152,12 @@ def _on_card_layout_will_show(clayout: Any) -> None:
     else:
         buttons.addWidget(button)
 
+    def sync_button_visibility(*_args: object) -> None:
+        _sync_add_audio_editor_button_visibility(clayout, button)
+
     for toggle_name in ("front_button", "back_button", "style_button"):
         toggle = getattr(tform, toggle_name, None)
         if toggle is not None:
-            qconnect(toggle.clicked, lambda *_args, clayout=clayout, button=button: _sync_add_audio_editor_button_visibility(clayout, button))
+            qconnect(toggle.clicked, sync_button_visibility)
     _sync_add_audio_editor_button_visibility(clayout, button)
     clayout._aqe_template_audio_panel_button = button

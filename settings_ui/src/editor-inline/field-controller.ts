@@ -30,6 +30,7 @@ export function mountController(target: FieldTarget): FieldController | null {
     }
     removeDuplicateControls(target.ord, existing.host);
     if (!target.sourceFilename || existing.sourceFilename === target.sourceFilename) {
+      applyInitialStatusForOrd(target.ord);
       return existing;
     }
     const visualizer = visualizerForOrd(target.ord);
@@ -39,6 +40,7 @@ export function mountController(target: FieldTarget): FieldController | null {
       const controls = document.querySelector<HTMLElement>(`.aqe-controls[data-aqe-field-ord="${target.ord}"]`);
       if (controls) controls.dataset.aqeSourceFilename = renderedSource;
       removeDuplicateControls(target.ord, existing.host);
+      applyInitialStatusForOrd(target.ord);
       return existing;
     }
   }

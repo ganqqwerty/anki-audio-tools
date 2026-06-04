@@ -5,17 +5,17 @@ import {
 import { PLOT, plotGeometryForSvg, plotWidth } from "./plot.js";
 import {
   deriveActiveSuffix,
-  emptyBackChainingState,
-  backChainingControlAvailability,
-  type BackChainingState,
-} from "./back-chaining-state.js";
+  emptyChorusingState,
+  chorusingControlAvailability,
+  type ChorusingState,
+} from "./chorusing-state";
 import type { VisualizerElement } from "./types.js";
 import { readVisualizerTimeViewport } from "./visualizer-state.js";
 
 const SVG_NS = "http://www.w3.org/2000/svg";
 const BACK_CHAINING_MARKER_ROW_HEIGHT = 18;
 
-export interface BackChainingControlsState {
+export interface ChorusingControlsState {
   activeMarkerIndex: number | null;
   activeSuffixEndMs: number | null;
   activeSuffixStartMs: number | null;
@@ -30,30 +30,30 @@ export interface BackChainingControlsState {
   visibleMarkers: Array<{ ms: number; x: number }>;
 }
 
-export function backChainingStateForVisualizer(visualizer: VisualizerElement): BackChainingState {
-  return visualizer.__aqeBackChainingState ?? emptyBackChainingState();
+export function chorusingStateForVisualizer(visualizer: VisualizerElement): ChorusingState {
+  return visualizer.__aqeChorusingState ?? emptyChorusingState();
 }
 
-export function writeBackChainingState(visualizer: VisualizerElement, state: BackChainingState): void {
-  visualizer.__aqeBackChainingState = state;
-  visualizer.dataset.backChainingState = state.practiceState;
-  visualizer.dataset.backChainingBaseStartMs = state.baseRegion ? String(Math.round(state.baseRegion.startMs)) : "";
-  visualizer.dataset.backChainingBaseEndMs = state.baseRegion ? String(Math.round(state.baseRegion.endMs)) : "";
-  visualizer.dataset.backChainingMarkersMs = state.markersMs.join(",");
-  visualizer.dataset.backChainingActiveMarkerIndex = state.activeMarkerIndex === null ? "" : String(state.activeMarkerIndex);
-  renderBackChainingMarkerRow(visualizer);
+export function writeChorusingState(visualizer: VisualizerElement, state: ChorusingState): void {
+  visualizer.__aqeChorusingState = state;
+  visualizer.dataset.chorusingState = state.practiceState;
+  visualizer.dataset.chorusingBaseStartMs = state.baseRegion ? String(Math.round(state.baseRegion.startMs)) : "";
+  visualizer.dataset.chorusingBaseEndMs = state.baseRegion ? String(Math.round(state.baseRegion.endMs)) : "";
+  visualizer.dataset.chorusingMarkersMs = state.markersMs.join(",");
+  visualizer.dataset.chorusingActiveMarkerIndex = state.activeMarkerIndex === null ? "" : String(state.activeMarkerIndex);
+  renderChorusingMarkerRow(visualizer);
 }
 
-export function backChainingControlsForVisualizer(visualizer: VisualizerElement | null): BackChainingControlsState {
-  if (!visualizer) return controlsSnapshot(emptyBackChainingState(), null);
-  return controlsSnapshot(backChainingStateForVisualizer(visualizer), visualizer);
+export function chorusingControlsForVisualizer(visualizer: VisualizerElement | null): ChorusingControlsState {
+  if (!visualizer) return controlsSnapshot(emptyChorusingState(), null);
+  return controlsSnapshot(chorusingStateForVisualizer(visualizer), visualizer);
 }
 
-export function renderBackChainingMarkerRow(visualizer: VisualizerElement): void {
-  const row = visualizer.querySelector<SVGGElement>(".aqe-back-chaining-marker-row");
+export function renderChorusingMarkerRow(visualizer: VisualizerElement): void {
+  const row = visualizer.querySelector<SVGGElement>(".aqe-chorusing-marker-row");
   const svg = visualizer.querySelector<SVGSVGElement>(".aqe-visualizer-svg");
   if (!row || !svg) return;
-  const state = backChainingStateForVisualizer(visualizer);
+  const state = chorusingStateForVisualizer(visualizer);
   const shouldShow = !!state.baseRegion;
   row.style.display = shouldShow ? "" : "none";
   row.setAttribute("aria-hidden", shouldShow ? "false" : "true");
@@ -70,10 +70,10 @@ export function renderBackChainingMarkerRow(visualizer: VisualizerElement): void
 }
 
 function controlsSnapshot(
-  state: BackChainingState,
+  state: ChorusingState,
   visualizer: VisualizerElement | null,
-): BackChainingControlsState {
-  const availability = backChainingControlAvailability(state);
+): ChorusingControlsState {
+  const availability = chorusingControlAvailability(state);
   const suffix = deriveActiveSuffix(state.baseRegion, state.markersMs, state.activeMarkerIndex);
   const viewport = visualizer ? readVisualizerTimeViewport(visualizer) : null;
   const svg = visualizer?.querySelector<SVGSVGElement>(".aqe-visualizer-svg") ?? null;
@@ -111,13 +111,13 @@ function appendEndBoundaryMarker(
   plot: ReturnType<typeof plotGeometryForSvg>,
 ): void {
   const [end] = markerProjections([baseRegion.endMs], viewport, plot);
-  if (end?.visible) appendMarker(row, end.x, plot, "aqe-back-chaining-boundary-marker aqe-back-chaining-boundary-marker-end");
+  if (end?.visible) appendMarker(row, end.x, plot, "aqe-chorusing-boundary-marker aqe-chorusing-boundary-marker-end");
 }
 
 function appendTrack(row: SVGGElement, plot: ReturnType<typeof plotGeometryForSvg>): void {
   const track = document.createElementNS(SVG_NS, "rect");
   const y = plot.top - BACK_CHAINING_MARKER_ROW_HEIGHT;
-  track.classList.add("aqe-back-chaining-marker-track");
+  track.classList.add("aqe-chorusing-marker-track");
   track.setAttribute("x", plot.left.toFixed(2));
   track.setAttribute("y", y.toFixed(2));
   track.setAttribute("width", plotWidth(plot).toFixed(2));
@@ -129,10 +129,10 @@ function appendMarker(
   row: SVGGElement,
   x: number,
   plot: ReturnType<typeof plotGeometryForSvg>,
-  className = "aqe-back-chaining-marker",
+  className = "aqe-chorusing-marker",
 ): void {
   const y = plot.top - BACK_CHAINING_MARKER_ROW_HEIGHT;
-  if (className.includes("aqe-back-chaining-boundary-marker")) {
+  if (className.includes("aqe-chorusing-boundary-marker")) {
     const marker = document.createElementNS(SVG_NS, "rect");
     marker.setAttribute("x", (x - 3.5).toFixed(2));
     marker.setAttribute("y", y.toFixed(2));

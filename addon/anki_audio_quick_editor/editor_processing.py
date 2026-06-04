@@ -251,8 +251,6 @@ def replace_current_field_after_render(
         require_graph_redraw=should_redraw_graph,
     )
     editor.loadNote(focusTo=field_index)
-    if session:
-        session.pending_status = None
     _sync_history_availability(editor, session, deps)
     _request_history_availability_after_edit(editor, session, deps)
     deps.eval_playback_state(editor, field_index, "stopped", 0)

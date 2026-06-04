@@ -1,17 +1,17 @@
 import { t } from "../lib/i18n.js";
 import { tooltipWithDisabledClarification } from "../lib/disabled-tooltip.js";
 import { setButtonTooltipContent } from "../lib/rich-tooltip.js";
-import { backChainingControlsForVisualizer } from "./back-chaining-dom.js";
+import { chorusingControlsForVisualizer } from "./chorusing-dom.js";
 import { buttonFor } from "./dom-selectors.js";
 import type { VisualizerElement } from "./types.js";
 import { readVisualizerTargetDurationMs } from "./visualizer-state.js";
 
-export function syncBackChainingToolbarButtons(visualizer: VisualizerElement): void {
+export function syncChorusingToolbarButtons(visualizer: VisualizerElement): void {
   const ord = Number(visualizer.dataset.aqeFieldOrd || "0");
-  const controls = backChainingControlsForVisualizer(visualizer);
+  const controls = chorusingControlsForVisualizer(visualizer);
   const hasPlayableTrack = visualizer.dataset.hasTrack === "true" && readVisualizerTargetDurationMs(visualizer) > 0;
   const busy = document.body.dataset.aqeBusy === "true" || visualizer.dataset.graphBusy === "true";
-  const practiceButton = buttonFor(ord, "aqe:back-chain-practice");
+  const practiceButton = buttonFor(ord, "aqe:chorusing-practice");
   if (practiceButton) {
     const playing = controls.practiceState === "playing";
     const canInitialize = controls.baseStartMs === null && hasPlayableTrack;
@@ -20,34 +20,34 @@ export function syncBackChainingToolbarButtons(visualizer: VisualizerElement): v
     practiceButton.setAttribute("aria-pressed", playing ? "true" : "false");
     practiceButton.setAttribute("aria-disabled", practiceButton.disabled ? "true" : "false");
     const title = playing
-      ? t("editor.command.back_chain_practice.pause_title")
-      : t("editor.command.back_chain_practice.title");
+      ? t("editor.command.chorusing_practice.pause_title")
+      : t("editor.command.chorusing_practice.title");
     const tooltip = tooltipWithDisabledClarification(
       title,
       practiceButton.disabled
-        ? (busy ? t("tooltip.disabled.editor_busy") : t("editor.command.back_chain_practice.disabled_title"))
+        ? (busy ? t("tooltip.disabled.editor_busy") : t("editor.command.chorusing_practice.disabled_title"))
         : undefined,
     );
     practiceButton.setAttribute("aria-label", tooltip);
     setButtonTooltipContent(practiceButton, tooltip);
   }
-  syncBackChainingNavButton(
-    buttonFor(ord, "aqe:back-chain-previous"),
+  syncChorusingNavButton(
+    buttonFor(ord, "aqe:chorusing-previous"),
     controls.canPrevious,
     busy,
-    t("editor.command.back_chain_previous.title"),
-    t("editor.command.back_chain_previous.disabled_title"),
+    t("editor.command.chorusing_previous.title"),
+    t("editor.command.chorusing_previous.disabled_title"),
   );
-  syncBackChainingNavButton(
-    buttonFor(ord, "aqe:back-chain-next"),
+  syncChorusingNavButton(
+    buttonFor(ord, "aqe:chorusing-next"),
     controls.canNext,
     busy,
-    t("editor.command.back_chain_next.title"),
-    t("editor.command.back_chain_next.disabled_title"),
+    t("editor.command.chorusing_next.title"),
+    t("editor.command.chorusing_next.disabled_title"),
   );
 }
 
-function syncBackChainingNavButton(
+function syncChorusingNavButton(
   button: HTMLButtonElement | null,
   canUse: boolean,
   busy: boolean,

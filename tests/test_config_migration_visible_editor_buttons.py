@@ -14,9 +14,9 @@ def _defaults() -> dict[str, object]:
         "visible_editor_buttons": ["aqe:play", "aqe:settings"],
         "editor_button_modes": {
             "aqe:play": "icon",
-            "aqe:back-chain-practice": "icon",
-            "aqe:back-chain-previous": "icon",
-            "aqe:back-chain-next": "icon",
+            "aqe:chorusing-practice": "icon",
+            "aqe:chorusing-previous": "icon",
+            "aqe:chorusing-next": "icon",
             "aqe:record-voice": "icon",
             "aqe:play-recording": "icon",
             "aqe:settings": "icon",
@@ -58,10 +58,10 @@ def test_normalizes_partial_recording_panel_visibility() -> None:
     ]
 
 
-def test_preserves_partial_back_chaining_panel_visibility() -> None:
+def test_preserves_partial_chorusing_panel_visibility() -> None:
     user = {
         "_config_version": CURRENT_CONFIG_VERSION,
-        "visible_editor_buttons": ["aqe:play", "aqe:back-chain-previous", "aqe:settings"],
+        "visible_editor_buttons": ["aqe:play", "aqe:chorusing-previous", "aqe:settings"],
     }
 
     migrated, changed = migrate_config(user, _defaults())
@@ -69,6 +69,6 @@ def test_preserves_partial_back_chaining_panel_visibility() -> None:
     assert changed is True
     assert migrated["visible_editor_buttons"] == [
         "aqe:play",
-        "aqe:back-chain-previous",
+        "aqe:chorusing-previous",
         "aqe:settings",
     ]

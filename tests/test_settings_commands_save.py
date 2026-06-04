@@ -61,10 +61,10 @@ def test_settings_save_drops_stale_visible_editor_buttons() -> None:
         **_full_config(),
         "visible_editor_buttons": [
             "aqe:play",
-            "aqe:back-chain-practice",
+            "aqe:chorusing-practice",
             "aqe:stale-button",
-            "aqe:back-chain-previous",
-            "aqe:back-chain-next",
+            "aqe:chorusing-previous",
+            "aqe:chorusing-next",
             "aqe:settings",
         ],
     }
@@ -75,9 +75,9 @@ def test_settings_save_drops_stale_visible_editor_buttons() -> None:
     saved_config = mw.addonManager.writeConfig.call_args.args[1]
     assert saved_config["visible_editor_buttons"] == [
         "aqe:play",
-        "aqe:back-chain-practice",
-        "aqe:back-chain-previous",
-        "aqe:back-chain-next",
+        "aqe:chorusing-practice",
+        "aqe:chorusing-previous",
+        "aqe:chorusing-next",
         "aqe:settings",
     ]
     assert dialog.accepted is True
@@ -106,14 +106,14 @@ def test_settings_save_normalizes_partial_recording_panel_visibility() -> None:
     assert dialog.accepted is True
 
 
-def test_settings_save_preserves_partial_back_chaining_panel_visibility() -> None:
+def test_settings_save_preserves_partial_chorusing_panel_visibility() -> None:
     from aqt import mw
 
     dialog = _make_dialog()
     _, eval_fn = _capture_eval()
     config = {
         **_full_config(),
-        "visible_editor_buttons": ["aqe:play", "aqe:back-chain-next", "aqe:settings"],
+        "visible_editor_buttons": ["aqe:play", "aqe:chorusing-next", "aqe:settings"],
     }
     command = _bridge_command("settings.save", config)
 
@@ -122,7 +122,7 @@ def test_settings_save_preserves_partial_back_chaining_panel_visibility() -> Non
     saved_config = mw.addonManager.writeConfig.call_args.args[1]
     assert saved_config["visible_editor_buttons"] == [
         "aqe:play",
-        "aqe:back-chain-next",
+        "aqe:chorusing-next",
         "aqe:settings",
     ]
     assert dialog.accepted is True

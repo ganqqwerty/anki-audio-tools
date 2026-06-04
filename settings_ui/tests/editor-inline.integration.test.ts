@@ -174,24 +174,24 @@ describe("editor inline Svelte integration", () => {
     expect(document.querySelector('[data-testid="aqe-button-0-denoise-standard"]')).not.toBeInTheDocument();
   });
 
-  it("renders back-chaining toolbar buttons as one labeled panel", () => {
+  it("renders chorusing toolbar buttons as one labeled panel", () => {
     initializeEditorRuntime({ audioFieldIndices: [0] });
     scan({ audioFieldIndices: [0] });
 
-    const panel = document.querySelector<HTMLElement>('[data-testid="aqe-back-chaining-toolbar-panel-0"]')!;
-    const practiceButton = document.querySelector<HTMLButtonElement>('[data-testid="aqe-button-0-back-chain-practice"]')!;
-    const previousButton = document.querySelector<HTMLButtonElement>('[data-testid="aqe-button-0-back-chain-previous"]')!;
-    const nextButton = document.querySelector<HTMLButtonElement>('[data-testid="aqe-button-0-back-chain-next"]')!;
+    const panel = document.querySelector<HTMLElement>('[data-testid="aqe-chorusing-toolbar-panel-0"]')!;
+    const practiceButton = document.querySelector<HTMLButtonElement>('[data-testid="aqe-button-0-chorusing-practice"]')!;
+    const previousButton = document.querySelector<HTMLButtonElement>('[data-testid="aqe-button-0-chorusing-previous"]')!;
+    const nextButton = document.querySelector<HTMLButtonElement>('[data-testid="aqe-button-0-chorusing-next"]')!;
 
-    expect(panel).toHaveClass("aqe-toolbar-panel", "aqe-back-chaining-toolbar-panel");
+    expect(panel).toHaveClass("aqe-toolbar-panel", "aqe-chorusing-toolbar-panel");
     expect(panel).toHaveAttribute("role", "group");
-    expect(panel).toHaveAttribute("aria-label", "Back-chaining");
+    expect(panel).toHaveAttribute("aria-label", "Chorusing");
     expect(panel).toHaveAttribute("data-aqe-toolbar-button-container", "true");
-    expect(panel.querySelector(".aqe-toolbar-panel-label")).toHaveTextContent("Back-chaining");
+    expect(panel.querySelector(".aqe-toolbar-panel-label")).toHaveTextContent("Chorusing");
     expect(Array.from(panel.querySelectorAll<HTMLButtonElement>("[data-aqe-command]")).map((button) => button.dataset.aqeCommand)).toEqual([
-      "aqe:back-chain-practice",
-      "aqe:back-chain-previous",
-      "aqe:back-chain-next",
+      "aqe:chorusing-practice",
+      "aqe:chorusing-next",
+      "aqe:chorusing-previous",
     ]);
     expect(panel).toContainElement(practiceButton);
     expect(panel).toContainElement(previousButton);

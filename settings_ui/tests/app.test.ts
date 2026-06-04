@@ -31,8 +31,8 @@ describe("App", () => {
     expect(screen.getByText("Editor toolbar buttons")).toBeInTheDocument();
     expect(screen.getByTestId("button-settings-settings")).toBeInTheDocument();
     expect(screen.getByTestId("button-settings-play")).toBeInTheDocument();
-    expect(screen.getByTestId("button-settings-back-chaining")).toBeInTheDocument();
-    expect(screen.queryByTestId("button-settings-back-chain-previous")).not.toBeInTheDocument();
+    expect(screen.getByTestId("button-settings-chorusing")).toBeInTheDocument();
+    expect(screen.queryByTestId("button-settings-chorusing-previous")).not.toBeInTheDocument();
     expect(screen.getByTestId("button-settings-delete-selection")).toBeInTheDocument();
     expect(screen.getByTestId("button-settings-delete-rest")).toBeInTheDocument();
     expect(screen.getByText("Speaker's voice")).toBeInTheDocument();
@@ -168,51 +168,51 @@ describe("App", () => {
     expect(config.editor_button_modes["aqe:delete-selection"]).toBe("text");
   });
 
-  it("hides all back-chaining commands from one settings panel", async () => {
+  it("hides all chorusing commands from one settings panel", async () => {
     setInitialState();
 
     render(App);
 
-    const backChainingPanel = screen.getByTestId("button-settings-back-chaining");
-    expect(screen.queryByTestId("button-settings-back-chain-practice")).not.toBeInTheDocument();
-    expect(screen.queryByTestId("button-settings-back-chain-previous")).not.toBeInTheDocument();
-    expect(screen.queryByTestId("button-settings-back-chain-next")).not.toBeInTheDocument();
-    expect(within(backChainingPanel).getByTestId("button-settings-back-chaining-panel-controls")).toBeInTheDocument();
-    expect(within(backChainingPanel).getByRole("checkbox", { name: "Show panel" })).toBeChecked();
-    expect(within(backChainingPanel).getByTestId("button-settings-back-chain-practice-visibility-show")).toBeEnabled();
-    expect(within(backChainingPanel).getByTestId("button-settings-back-chain-previous-visibility-show")).toBeEnabled();
-    expect(within(backChainingPanel).getByTestId("button-settings-back-chain-next-visibility-show")).toBeEnabled();
-    expect(within(backChainingPanel).getByTestId("button-settings-back-chain-practice-mode-icon")).toBeEnabled();
-    expect(within(backChainingPanel).getByTestId("button-settings-back-chain-previous-mode-icon")).toBeEnabled();
-    expect(within(backChainingPanel).getByTestId("button-settings-back-chain-next-mode-icon")).toBeEnabled();
+    const chorusingPanel = screen.getByTestId("button-settings-chorusing");
+    expect(screen.queryByTestId("button-settings-chorusing-practice")).not.toBeInTheDocument();
+    expect(screen.queryByTestId("button-settings-chorusing-previous")).not.toBeInTheDocument();
+    expect(screen.queryByTestId("button-settings-chorusing-next")).not.toBeInTheDocument();
+    expect(within(chorusingPanel).getByTestId("button-settings-chorusing-panel-controls")).toBeInTheDocument();
+    expect(within(chorusingPanel).getByRole("checkbox", { name: "Show panel" })).toBeChecked();
+    expect(within(chorusingPanel).getByTestId("button-settings-chorusing-practice-visibility-show")).toBeEnabled();
+    expect(within(chorusingPanel).getByTestId("button-settings-chorusing-previous-visibility-show")).toBeEnabled();
+    expect(within(chorusingPanel).getByTestId("button-settings-chorusing-next-visibility-show")).toBeEnabled();
+    expect(within(chorusingPanel).getByTestId("button-settings-chorusing-practice-mode-icon")).toBeEnabled();
+    expect(within(chorusingPanel).getByTestId("button-settings-chorusing-previous-mode-icon")).toBeEnabled();
+    expect(within(chorusingPanel).getByTestId("button-settings-chorusing-next-mode-icon")).toBeEnabled();
 
-    await fireEvent.click(within(backChainingPanel).getByTestId("button-settings-back-chaining-visibility-show"));
+    await fireEvent.click(within(chorusingPanel).getByTestId("button-settings-chorusing-visibility-show"));
     await fireEvent.click(screen.getByRole("button", { name: "Save" }));
 
     const config = bridgePayload<{ visible_editor_buttons: string[] }>("settings.save");
-    expect(config.visible_editor_buttons).not.toContain("aqe:back-chain-practice");
-    expect(config.visible_editor_buttons).not.toContain("aqe:back-chain-previous");
-    expect(config.visible_editor_buttons).not.toContain("aqe:back-chain-next");
+    expect(config.visible_editor_buttons).not.toContain("aqe:chorusing-practice");
+    expect(config.visible_editor_buttons).not.toContain("aqe:chorusing-previous");
+    expect(config.visible_editor_buttons).not.toContain("aqe:chorusing-next");
   });
 
-  it("saves individual back-chaining button visibility and display modes", async () => {
+  it("saves individual chorusing button visibility and display modes", async () => {
     setInitialState();
 
     render(App);
 
-    const backChainingPanel = screen.getByTestId("button-settings-back-chaining");
-    await fireEvent.click(within(backChainingPanel).getByTestId("button-settings-back-chain-previous-visibility-show"));
-    await fireEvent.click(within(backChainingPanel).getByTestId("button-settings-back-chain-next-mode-icon"));
+    const chorusingPanel = screen.getByTestId("button-settings-chorusing");
+    await fireEvent.click(within(chorusingPanel).getByTestId("button-settings-chorusing-previous-visibility-show"));
+    await fireEvent.click(within(chorusingPanel).getByTestId("button-settings-chorusing-next-mode-icon"));
     await fireEvent.click(screen.getByRole("button", { name: "Save" }));
 
     const config = bridgePayload<{
       editor_button_modes: Record<string, string>;
       visible_editor_buttons: string[];
     }>("settings.save");
-    expect(config.visible_editor_buttons).toContain("aqe:back-chain-practice");
-    expect(config.visible_editor_buttons).not.toContain("aqe:back-chain-previous");
-    expect(config.visible_editor_buttons).toContain("aqe:back-chain-next");
-    expect(config.editor_button_modes["aqe:back-chain-next"]).toBe("text");
+    expect(config.visible_editor_buttons).toContain("aqe:chorusing-practice");
+    expect(config.visible_editor_buttons).not.toContain("aqe:chorusing-previous");
+    expect(config.visible_editor_buttons).toContain("aqe:chorusing-next");
+    expect(config.editor_button_modes["aqe:chorusing-next"]).toBe("text");
   });
 
   it("shows a placeholder for toolbar buttons without extra settings", () => {

@@ -1,34 +1,34 @@
 import type { PlaybackRegion } from "./playback-model.js";
 
-export type BackChainingStatus = "paused" | "playing" | "stopped";
-export type BackChainingMarkerDirection = "next" | "previous";
+export type ChorusingStatus = "paused" | "playing" | "stopped";
+export type ChorusingMarkerDirection = "next" | "previous";
 
-export interface BackChainingState {
+export interface ChorusingState {
   activeMarkerIndex: number | null;
   baseRegion: PlaybackRegion | null;
   markersMs: number[];
   ordinaryRepeatEnabled: boolean | null;
-  practiceState: BackChainingStatus;
+  practiceState: ChorusingStatus;
   sourceFilename: string;
 }
 
-export interface BackChainingControlAvailability {
+export interface ChorusingControlAvailability {
   canNext: boolean;
   canPrevious: boolean;
   canPractice: boolean;
 }
 
-export interface BackChainingNavigationAvailability {
+export interface ChorusingNavigationAvailability {
   canNext: boolean;
   canPrevious: boolean;
 }
 
-export interface ToggleBackChainingMarkerResult {
+export interface ToggleChorusingMarkerResult {
   markersMs: number[];
   removed: boolean;
 }
 
-export function emptyBackChainingState(): BackChainingState {
+export function emptyChorusingState(): ChorusingState {
   return {
     activeMarkerIndex: null,
     baseRegion: null,
@@ -39,17 +39,17 @@ export function emptyBackChainingState(): BackChainingState {
   };
 }
 
-export function defaultBackChainingMarkers(baseRegion: PlaybackRegion | null): number[] {
+export function defaultChorusingMarkers(baseRegion: PlaybackRegion | null): number[] {
   if (!baseRegion) return [];
   const lengthMs = Math.max(0, baseRegion.endMs - baseRegion.startMs);
-  return normalizeBackChainingMarkers([
+  return normalizeChorusingMarkers([
     baseRegion.startMs,
     baseRegion.startMs + lengthMs / 3,
     baseRegion.startMs + (lengthMs * 2) / 3,
   ], baseRegion);
 }
 
-export function normalizeBackChainingMarkers(markersMs: readonly number[], baseRegion: PlaybackRegion | null): number[] {
+export function normalizeChorusingMarkers(markersMs: readonly number[], baseRegion: PlaybackRegion | null): number[] {
   if (!baseRegion) return [];
   return Array.from(
     new Set(
@@ -61,13 +61,13 @@ export function normalizeBackChainingMarkers(markersMs: readonly number[], baseR
   ).sort((left, right) => left - right);
 }
 
-export function toggleBackChainingMarker(
+export function toggleChorusingMarker(
   markersMs: readonly number[],
   rawMarkerMs: number,
   baseRegion: PlaybackRegion,
   hitToleranceMs: number,
-): ToggleBackChainingMarkerResult {
-  const normalized = normalizeBackChainingMarkers(markersMs, baseRegion);
+): ToggleChorusingMarkerResult {
+  const normalized = normalizeChorusingMarkers(markersMs, baseRegion);
   const markerMs = clampMarkerMs(rawMarkerMs, baseRegion);
   const existingIndex = normalized.findIndex((marker) => Math.abs(marker - markerMs) <= hitToleranceMs);
   if (existingIndex >= 0) {
@@ -77,7 +77,7 @@ export function toggleBackChainingMarker(
     };
   }
   return {
-    markersMs: normalizeBackChainingMarkers([...normalized, markerMs], baseRegion),
+    markersMs: normalizeChorusingMarkers([...normalized, markerMs], baseRegion),
     removed: false,
   };
 }
@@ -107,7 +107,7 @@ export function activeMarkerIndexAfterMarkerToggle(
 export function moveActiveMarkerIndex(
   markersMs: readonly number[],
   activeMarkerIndex: number | null,
-  direction: BackChainingMarkerDirection,
+  direction: ChorusingMarkerDirection,
 ): number | null {
   if (!markersMs.length) return null;
   const active = normalizeActiveMarkerIndex(markersMs, activeMarkerIndex);
@@ -135,7 +135,7 @@ export function deriveActiveSuffix(
 export function markerNavigationAvailability(
   markersMs: readonly number[],
   activeMarkerIndex: number | null,
-): BackChainingNavigationAvailability {
+): ChorusingNavigationAvailability {
   if (!markersMs.length || activeMarkerIndex === null) {
     return {
       canNext: false,
@@ -149,7 +149,7 @@ export function markerNavigationAvailability(
   };
 }
 
-export function backChainingControlAvailability(state: BackChainingState): BackChainingControlAvailability {
+export function chorusingControlAvailability(state: ChorusingState): ChorusingControlAvailability {
   const hasBaseRegion = state.baseRegion !== null;
   const hasMarkers = state.markersMs.length > 0;
   const navigation = markerNavigationAvailability(state.markersMs, state.activeMarkerIndex);

@@ -16,12 +16,12 @@ describe("editor toolbar render items", () => {
     }))).toEqual([
       {
         commands: [
-          "aqe:back-chain-practice",
-          "aqe:back-chain-previous",
-          "aqe:back-chain-next",
+          "aqe:chorusing-practice",
+          "aqe:chorusing-next",
+          "aqe:chorusing-previous",
         ],
-        label: "Back-chaining",
-        slug: "back-chaining",
+        label: "Chorusing",
+        slug: "chorusing",
       },
       {
         commands: [
@@ -43,12 +43,12 @@ describe("editor toolbar render items", () => {
     ]);
   });
 
-  it("keeps partially visible back-chaining buttons inside the toolbar panel", () => {
+  it("keeps partially visible chorusing buttons inside the toolbar panel", () => {
     const items = buildEditorToolbarRenderItems(
       visibleToolbarButtons(toolbarButtons(), [
         "aqe:play",
-        "aqe:back-chain-practice",
-        "aqe:back-chain-next",
+        "aqe:chorusing-practice",
+        "aqe:chorusing-next",
         "aqe:settings",
       ]),
     );
@@ -57,15 +57,15 @@ describe("editor toolbar render items", () => {
     expect(panels).toEqual([
       expect.objectContaining({
         buttons: expect.arrayContaining([
-          expect.objectContaining({ command: "aqe:back-chain-practice" }),
-          expect.objectContaining({ command: "aqe:back-chain-next" }),
+          expect.objectContaining({ command: "aqe:chorusing-practice" }),
+          expect.objectContaining({ command: "aqe:chorusing-next" }),
         ]),
-        definition: expect.objectContaining({ slug: "back-chaining" }),
+        definition: expect.objectContaining({ slug: "chorusing" }),
       }),
     ]);
     expect(panels[0]?.buttons.map((button) => button.command)).toEqual([
-      "aqe:back-chain-practice",
-      "aqe:back-chain-next",
+      "aqe:chorusing-practice",
+      "aqe:chorusing-next",
     ]);
   });
 });

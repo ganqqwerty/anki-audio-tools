@@ -1,6 +1,6 @@
 import type { EditorCommand, ToolbarButtonSpec } from "./editor-toolbar-buttons.js";
 
-export type ToolbarPanelSlug = "back-chaining" | "record-play-yours";
+export type ToolbarPanelSlug = "chorusing" | "record-play-yours";
 
 export interface ToolbarPanelDefinition {
   atomicVisibility?: boolean;
@@ -20,14 +20,14 @@ export const TOOLBAR_PANEL_DEFINITIONS = [
   {
     atomicVisibility: false,
     commands: [
-      "aqe:back-chain-practice",
-      "aqe:back-chain-previous",
-      "aqe:back-chain-next",
+      "aqe:chorusing-practice",
+      "aqe:chorusing-next",
+      "aqe:chorusing-previous",
     ],
-    labelKey: "editor.back_chaining.title",
-    primaryCommand: "aqe:back-chain-practice",
-    slug: "back-chaining",
-    titleKey: "editor.command.back_chain_practice.title",
+    labelKey: "editor.chorusing.title",
+    primaryCommand: "aqe:chorusing-practice",
+    slug: "chorusing",
+    titleKey: "editor.command.chorusing_practice.title",
   },
   {
     atomicVisibility: true,

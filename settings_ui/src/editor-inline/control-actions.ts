@@ -8,7 +8,7 @@ import {
   playButton,
   visualizerForOrd,
 } from "./dom-selectors.js";
-import { backChainingControlsForVisualizer } from "./back-chaining-dom.js";
+import { chorusingControlsForVisualizer } from "./chorusing-dom.js";
 import { readVisualizerTargetDurationMs } from "./visualizer-state.js";
 import { continueDefaultGraphQueue } from "./default-graph-queue.js";
 import { notifyMountedPostEditPlaybackReady } from "./post-edit-playback.js";
@@ -93,6 +93,16 @@ export function clearStatus(ord: number): void {
   status.dataset.stableKind = "info";
   status.dataset.stableCommand = "";
   renderStatus(status, "", "info", "");
+}
+
+export function clearTransientStatusForOrd(ord: number): void {
+  const status = statusForOrd(ord);
+  if (!status) return;
+  if (status.dataset.stableMessage || status.dataset.stableUserError) {
+    restoreStableStatus(status);
+    return;
+  }
+  clearStatus(ord);
 }
 
 export function restoreStatusForOrd(ord: number): void {
@@ -265,20 +275,20 @@ function updateButtonDisabledState(button: HTMLButtonElement): void {
     return;
   }
   if (
-    command === "aqe:back-chain-practice"
-    || command === "aqe:back-chain-next"
-    || command === "aqe:back-chain-previous"
+    command === "aqe:chorusing-practice"
+    || command === "aqe:chorusing-next"
+    || command === "aqe:chorusing-previous"
   ) {
-    updateBackChainingButtonDisabledState(button, ord, command, busy);
+    updateChorusingButtonDisabledState(button, ord, command, busy);
     return;
   }
   button.disabled = busy;
 }
 
-function updateBackChainingButtonDisabledState(
+function updateChorusingButtonDisabledState(
   button: HTMLButtonElement,
   ord: number,
-  command: "aqe:back-chain-practice" | "aqe:back-chain-next" | "aqe:back-chain-previous",
+  command: "aqe:chorusing-practice" | "aqe:chorusing-next" | "aqe:chorusing-previous",
   busy: boolean,
 ): void {
   const visualizer = visualizerForOrd(ord);
@@ -286,12 +296,12 @@ function updateBackChainingButtonDisabledState(
     button.disabled = true;
     return;
   }
-  const controls = backChainingControlsForVisualizer(visualizer);
-  if (command === "aqe:back-chain-next") {
+  const controls = chorusingControlsForVisualizer(visualizer);
+  if (command === "aqe:chorusing-next") {
     button.disabled = busy || !controls.canNext;
     return;
   }
-  if (command === "aqe:back-chain-previous") {
+  if (command === "aqe:chorusing-previous") {
     button.disabled = busy || !controls.canPrevious;
     return;
   }

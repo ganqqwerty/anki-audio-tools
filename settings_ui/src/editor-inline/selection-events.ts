@@ -1,6 +1,6 @@
 import type { VisualizerElement } from "./types.js";
 
-export type SelectionMutationOrigin = "back-chaining" | "system" | "user";
+export type SelectionMutationOrigin = "chorusing" | "system" | "user";
 
 export interface SelectionChangedDetail {
   origin: SelectionMutationOrigin;

@@ -11,9 +11,9 @@ import { EditorButtonMode } from "./types.js";
 export type EditorCommand =
   | "aqe:play"
   | "aqe:analyze"
-  | "aqe:back-chain-practice"
-  | "aqe:back-chain-previous"
-  | "aqe:back-chain-next"
+  | "aqe:chorusing-practice"
+  | "aqe:chorusing-previous"
+  | "aqe:chorusing-next"
   | "aqe:record-voice"
   | "aqe:stop-recording"
   | "aqe:play-recording"
@@ -52,9 +52,9 @@ export interface ToolbarButtonSpec {
 export const DEFAULT_VISIBLE_EDITOR_BUTTONS = [
   "aqe:play",
   "aqe:analyze",
-  "aqe:back-chain-practice",
-  "aqe:back-chain-previous",
-  "aqe:back-chain-next",
+  "aqe:chorusing-practice",
+  "aqe:chorusing-previous",
+  "aqe:chorusing-next",
   "aqe:show-file",
   "aqe:share",
   "aqe:reduce-size",
@@ -72,9 +72,9 @@ export const DEFAULT_VISIBLE_EDITOR_BUTTONS = [
 export const DEFAULT_EDITOR_BUTTON_MODES = {
   "aqe:play": EditorButtonMode.Icon,
   "aqe:analyze": EditorButtonMode.Icon,
-  "aqe:back-chain-practice": EditorButtonMode.Icon,
-  "aqe:back-chain-previous": EditorButtonMode.Icon,
-  "aqe:back-chain-next": EditorButtonMode.Icon,
+  "aqe:chorusing-practice": EditorButtonMode.Icon,
+  "aqe:chorusing-previous": EditorButtonMode.Icon,
+  "aqe:chorusing-next": EditorButtonMode.Icon,
   "aqe:record-voice": EditorButtonMode.Icon,
   "aqe:play-recording": EditorButtonMode.Icon,
   "aqe:show-file": EditorButtonMode.Icon,
@@ -124,25 +124,25 @@ export function commandButtons(): readonly ToolbarButtonSpec[] {
     },
     {
       activeIcon: "pause",
-      command: "aqe:back-chain-practice",
+      command: "aqe:chorusing-practice",
       icon: "bug-play",
       iconOnly: true,
-      label: t("editor.command.back_chain_practice.label"),
-      title: t("editor.command.back_chain_practice.title"),
+      label: t("editor.command.chorusing_practice.label"),
+      title: t("editor.command.chorusing_practice.title"),
     },
     {
-      command: "aqe:back-chain-previous",
-      icon: "skip-forward",
-      iconOnly: true,
-      label: t("editor.command.back_chain_previous.label"),
-      title: t("editor.command.back_chain_previous.title"),
-    },
-    {
-      command: "aqe:back-chain-next",
+      command: "aqe:chorusing-next",
       icon: "skip-back",
       iconOnly: true,
-      label: t("editor.command.back_chain_next.label"),
-      title: t("editor.command.back_chain_next.title"),
+      label: t("editor.command.chorusing_next.label"),
+      title: t("editor.command.chorusing_next.title"),
+    },
+    {
+      command: "aqe:chorusing-previous",
+      icon: "skip-forward",
+      iconOnly: true,
+      label: t("editor.command.chorusing_previous.label"),
+      title: t("editor.command.chorusing_previous.title"),
     },
     {
       activeIcon: "square",

@@ -30,9 +30,9 @@ export const defaultConfig = {
   visible_editor_buttons: [
     VisibleEditorButton.AqePlay,
     VisibleEditorButton.AqeAnalyze,
-    VisibleEditorButton.AqeBackChainPractice,
-    VisibleEditorButton.AqeBackChainPrevious,
-    VisibleEditorButton.AqeBackChainNext,
+    VisibleEditorButton.AqeChorusingPractice,
+    VisibleEditorButton.AqeChorusingNext,
+    VisibleEditorButton.AqeChorusingPrevious,
     VisibleEditorButton.AqeShowFile,
     VisibleEditorButton.AqeShare,
     VisibleEditorButton.AqeReduceSize,

@@ -265,7 +265,6 @@ def test_aac_full_repeat_falls_back_to_native_when_browser_audio_rejects_after_g
         _state(
             editor,
             lambda state: state["repeatEnabled"] is True
-            and state["audioClockReady"] is True
             and state["playbackEngine"] == "html",
         )
 

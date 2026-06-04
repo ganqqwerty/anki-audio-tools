@@ -17,13 +17,13 @@ describe("editor toolbar visibility panels", () => {
     }))).toEqual([
       {
         commands: [
-          "aqe:back-chain-practice",
-          "aqe:back-chain-previous",
-          "aqe:back-chain-next",
+          "aqe:chorusing-practice",
+          "aqe:chorusing-next",
+          "aqe:chorusing-previous",
         ],
-        labelKey: "editor.back_chaining.title",
-        slug: "back-chaining",
-        titleKey: "editor.command.back_chain_practice.title",
+        labelKey: "editor.chorusing.title",
+        slug: "chorusing",
+        titleKey: "editor.command.chorusing_practice.title",
       },
       {
         commands: [
@@ -39,35 +39,35 @@ describe("editor toolbar visibility panels", () => {
 
   it("matches shared panel definitions against consecutive toolbar buttons", () => {
     const buttons = toolbarButtons();
-    const backChainingIndex = buttons.findIndex((button) => button.command === "aqe:back-chain-practice");
+    const chorusingIndex = buttons.findIndex((button) => button.command === "aqe:chorusing-practice");
     const recordingIndex = buttons.findIndex((button) => button.command === "aqe:record-voice");
 
-    expect(toolbarPanelDefinitionAt(buttons, backChainingIndex)?.definition.slug).toBe("back-chaining");
+    expect(toolbarPanelDefinitionAt(buttons, chorusingIndex)?.definition.slug).toBe("chorusing");
     expect(toolbarPanelDefinitionAt(buttons, recordingIndex)?.definition.slug).toBe("record-play-yours");
     expect(toolbarPanelDefinitionAt(buttons, 0)).toBeUndefined();
   });
 
-  it("groups back-chaining commands into one settings panel", () => {
+  it("groups chorusing commands into one settings panel", () => {
     const panels = toolbarPanels(toolbarButtons());
-    const backChainingPanel = panels.find((panel) => panel.slug === "back-chaining");
+    const chorusingPanel = panels.find((panel) => panel.slug === "chorusing");
 
-    expect(backChainingPanel?.commands).toEqual([
-      "aqe:back-chain-practice",
-      "aqe:back-chain-previous",
-      "aqe:back-chain-next",
+    expect(chorusingPanel?.commands).toEqual([
+      "aqe:chorusing-practice",
+      "aqe:chorusing-next",
+      "aqe:chorusing-previous",
     ]);
-    expect(panels.filter((panel) => panel.commands.includes("aqe:back-chain-previous"))).toHaveLength(1);
+    expect(panels.filter((panel) => panel.commands.includes("aqe:chorusing-previous"))).toHaveLength(1);
   });
 
-  it("preserves partial back-chaining visibility", () => {
+  it("preserves partial chorusing visibility", () => {
     expect(
       normalizeVisibleEditorButtons(
         toolbarButtons(),
-        ["aqe:play", "aqe:back-chain-next", "aqe:settings"] as EditorCommand[],
+        ["aqe:play", "aqe:chorusing-next", "aqe:settings"] as EditorCommand[],
       ),
     ).toEqual([
       "aqe:play",
-      "aqe:back-chain-next",
+      "aqe:chorusing-next",
       "aqe:settings",
     ]);
   });

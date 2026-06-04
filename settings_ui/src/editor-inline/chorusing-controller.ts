@@ -13,22 +13,22 @@ import { setSelection as setSelectionFromController } from "./selection-controll
 import { SELECTION_CHANGED_EVENT, notifySelectionChanged, type SelectionChangedDetail } from "./selection-events.js";
 import { syncSelectionToolbar } from "./selection-toolbar-state.js";
 import {
-  renderBackChainingMarkerRow,
-  backChainingStateForVisualizer,
-  writeBackChainingState,
-} from "./back-chaining-dom.js";
-import { syncBackChainingToolbarButtons } from "./back-chaining-toolbar.js";
+  renderChorusingMarkerRow,
+  chorusingStateForVisualizer,
+  writeChorusingState,
+} from "./chorusing-dom.js";
+import { syncChorusingToolbarButtons } from "./chorusing-toolbar.js";
 import {
   activeMarkerIndexAfterMarkerToggle,
   chooseInitialActiveMarkerIndex,
-  defaultBackChainingMarkers,
+  defaultChorusingMarkers,
   deriveActiveSuffix,
-  emptyBackChainingState,
+  emptyChorusingState,
   moveActiveMarkerIndex,
-  type BackChainingMarkerDirection,
-  type BackChainingState,
-  toggleBackChainingMarker,
-} from "./back-chaining-state.js";
+  type ChorusingMarkerDirection,
+  type ChorusingState,
+  toggleChorusingMarker,
+} from "./chorusing-state";
 import {
   readVisualizerCursorMs,
   readVisualizerTargetDurationMs,
@@ -37,26 +37,26 @@ import {
 
 const MARKER_HIT_TOLERANCE_MS = 35;
 
-export function installBackChainingHandlers(visualizer: VisualizerElement): () => void {
-  writeState(visualizer, backChainingStateForVisualizer(visualizer));
+export function installChorusingHandlers(visualizer: VisualizerElement): () => void {
+  writeState(visualizer, chorusingStateForVisualizer(visualizer));
   const onSelectionChanged = (event: Event): void => {
     const origin = (event as CustomEvent<SelectionChangedDetail>).detail?.origin ?? "user";
     if (origin === "user") {
-      renderBackChainingMarkerRow(visualizer);
-      syncBackChainingToolbarButtons(visualizer);
+      renderChorusingMarkerRow(visualizer);
+      syncChorusingToolbarButtons(visualizer);
     } else {
-      renderBackChainingMarkerRow(visualizer);
+      renderChorusingMarkerRow(visualizer);
     }
   };
-  const onViewportChanged = (): void => renderBackChainingMarkerRow(visualizer);
+  const onViewportChanged = (): void => renderChorusingMarkerRow(visualizer);
   const observer = new MutationObserver(() => {
-    const state = backChainingStateForVisualizer(visualizer);
+    const state = chorusingStateForVisualizer(visualizer);
     if (visualizer.dataset.hasTrack !== "true" && state.baseRegion) {
-      clearBackChaining(visualizer, { restoreRepeat: true });
+      clearChorusing(visualizer, { restoreRepeat: true });
       return;
     }
     if (visualizer.dataset.hasTrack !== "true") return;
-    ensureCurrentTrackBackChainingBase(visualizer, state);
+    ensureCurrentTrackChorusingBase(visualizer, state);
   });
   visualizer.addEventListener(SELECTION_CHANGED_EVENT, onSelectionChanged);
   visualizer.addEventListener("aqe-viewport-rendered", onViewportChanged);
@@ -64,7 +64,7 @@ export function installBackChainingHandlers(visualizer: VisualizerElement): () =
     attributeFilter: ["data-source-filename", "data-has-track", "hidden"],
     attributes: true,
   });
-  ensureCurrentTrackBackChainingBase(visualizer, backChainingStateForVisualizer(visualizer));
+  ensureCurrentTrackChorusingBase(visualizer, chorusingStateForVisualizer(visualizer));
   return () => {
     observer.disconnect();
     visualizer.removeEventListener(SELECTION_CHANGED_EVENT, onSelectionChanged);
@@ -72,34 +72,34 @@ export function installBackChainingHandlers(visualizer: VisualizerElement): () =
   };
 }
 
-function ensureCurrentTrackBackChainingBase(visualizer: VisualizerElement, state: BackChainingState): void {
+function ensureCurrentTrackChorusingBase(visualizer: VisualizerElement, state: ChorusingState): void {
   const sourceFilename = visualizer.dataset.sourceFilename || "";
   let currentState = state;
   if (state.sourceFilename && state.sourceFilename !== sourceFilename) {
-    clearBackChaining(visualizer, { restoreRepeat: true });
-    currentState = backChainingStateForVisualizer(visualizer);
+    clearChorusing(visualizer, { restoreRepeat: true });
+    currentState = chorusingStateForVisualizer(visualizer);
   }
-  if (ensureBackChainingBase(visualizer, currentState) === null) {
-    writeState(visualizer, emptyBackChainingState());
+  if (ensureChorusingBase(visualizer, currentState) === null) {
+    writeState(visualizer, emptyChorusingState());
   }
 }
 
-export function toggleBackChainingForOrd(ord: number): boolean {
+export function toggleChorusingForOrd(ord: number): boolean {
   const visualizer = visualizerForOrd(ord);
-  return visualizer ? toggleBackChaining(visualizer) : false;
+  return visualizer ? toggleChorusing(visualizer) : false;
 }
 
-export function moveBackChainingForOrd(ord: number, direction: BackChainingMarkerDirection): boolean {
+export function moveChorusingForOrd(ord: number, direction: ChorusingMarkerDirection): boolean {
   const visualizer = visualizerForOrd(ord);
-  return visualizer ? moveBackChaining(visualizer, direction) : false;
+  return visualizer ? moveChorusing(visualizer, direction) : false;
 }
 
-export function handleBackChainingMarkerPointerDown(event: PointerEvent, ord: number): void {
+export function handleChorusingMarkerPointerDown(event: PointerEvent, ord: number): void {
   const visualizer = visualizerForOrd(ord);
   const svg = visualizer?.querySelector<SVGSVGElement>(".aqe-visualizer-svg") ?? null;
-  const state = visualizer ? backChainingStateForVisualizer(visualizer) : null;
+  const state = visualizer ? chorusingStateForVisualizer(visualizer) : null;
   if (!visualizer || !svg || !state) return;
-  const readyState = ensureBackChainingBase(visualizer, state);
+  const readyState = ensureChorusingBase(visualizer, state);
   if (!readyState?.baseRegion) return;
   event.preventDefault();
   event.stopPropagation();
@@ -110,7 +110,7 @@ export function handleBackChainingMarkerPointerDown(event: PointerEvent, ord: nu
     readyState.markersMs,
     readyState.activeMarkerIndex,
   );
-  const toggled = toggleBackChainingMarker(
+  const toggled = toggleChorusingMarker(
     readyState.markersMs,
     click.ms,
     readyState.baseRegion,
@@ -141,37 +141,37 @@ export function handleBackChainingMarkerPointerDown(event: PointerEvent, ord: nu
   }
 }
 
-export function pauseBackChainingForNormalPlay(ord: number): boolean {
+export function pauseChorusingForNormalPlay(ord: number): boolean {
   const visualizer = visualizerForOrd(ord);
   if (!visualizer) return false;
-  const state = backChainingStateForVisualizer(visualizer);
+  const state = chorusingStateForVisualizer(visualizer);
   if (state.practiceState !== "playing") return false;
-  pauseBackChaining(visualizer, state);
+  pauseChorusing(visualizer, state);
   return true;
 }
 
-export function clearBackChaining(
+export function clearChorusing(
   visualizer: VisualizerElement,
   options: { restoreRepeat?: boolean } = {},
 ): void {
-  const state = backChainingStateForVisualizer(visualizer);
+  const state = chorusingStateForVisualizer(visualizer);
   if (state.practiceState !== "stopped") {
     stopProgressClock(visualizer);
     focusAndSendCommand(Number(visualizer.dataset.aqeFieldOrd || "0"), "aqe:stop-playback");
   }
   if (options.restoreRepeat !== false) restoreOrdinaryRepeat(visualizer, state);
-  writeState(visualizer, emptyBackChainingState());
+  writeState(visualizer, emptyChorusingState());
   syncSelectionToolbar(visualizer);
 }
 
-function ensureBackChainingBase(
+function ensureChorusingBase(
   visualizer: VisualizerElement,
-  state: BackChainingState,
-): BackChainingState | null {
-  const baseRegion = state.baseRegion ?? wholeFileBackChainingRegion(visualizer);
+  state: ChorusingState,
+): ChorusingState | null {
+  const baseRegion = state.baseRegion ?? wholeFileChorusingRegion(visualizer);
   if (!baseRegion) return null;
   const newBaseRegion = state.baseRegion === null;
-  const markersMs = newBaseRegion ? defaultBackChainingMarkers(baseRegion) : state.markersMs;
+  const markersMs = newBaseRegion ? defaultChorusingMarkers(baseRegion) : state.markersMs;
   const nextState = {
     ...state,
     activeMarkerIndex: newBaseRegion ? chooseInitialActiveMarkerIndex(markersMs) : state.activeMarkerIndex,
@@ -185,7 +185,7 @@ function ensureBackChainingBase(
   return nextState;
 }
 
-function wholeFileBackChainingRegion(visualizer: VisualizerElement) {
+function wholeFileChorusingRegion(visualizer: VisualizerElement) {
   const durationMs = readVisualizerTargetDurationMs(visualizer);
   if (visualizer.dataset.hasTrack !== "true" || durationMs <= 0) return null;
   return {
@@ -195,10 +195,10 @@ function wholeFileBackChainingRegion(visualizer: VisualizerElement) {
   };
 }
 
-function toggleBackChaining(visualizer: VisualizerElement): boolean {
-  const state = backChainingStateForVisualizer(visualizer);
+function toggleChorusing(visualizer: VisualizerElement): boolean {
+  const state = chorusingStateForVisualizer(visualizer);
   if (state.practiceState === "playing") {
-    pauseBackChaining(visualizer, state);
+    pauseChorusing(visualizer, state);
     return true;
   }
   const readyState = ensurePracticeReady(visualizer, state);
@@ -207,8 +207,8 @@ function toggleBackChaining(visualizer: VisualizerElement): boolean {
   return true;
 }
 
-function moveBackChaining(visualizer: VisualizerElement, direction: BackChainingMarkerDirection): boolean {
-  const state = backChainingStateForVisualizer(visualizer);
+function moveChorusing(visualizer: VisualizerElement, direction: ChorusingMarkerDirection): boolean {
+  const state = chorusingStateForVisualizer(visualizer);
   if (!state.baseRegion || !state.markersMs.length) return false;
   const nextIndex = moveActiveMarkerIndex(state.markersMs, state.activeMarkerIndex, direction);
   const nextState = {
@@ -225,9 +225,9 @@ function moveBackChaining(visualizer: VisualizerElement, direction: BackChaining
 
 function ensurePracticeReady(
   visualizer: VisualizerElement,
-  state: BackChainingState,
-): BackChainingState | null {
-  const baseState = ensureBackChainingBase(visualizer, state);
+  state: ChorusingState,
+): ChorusingState | null {
+  const baseState = ensureChorusingBase(visualizer, state);
   if (!baseState?.baseRegion || !baseState.markersMs.length) return null;
   const activeMarkerIndex = baseState.activeMarkerIndex ?? chooseInitialActiveMarkerIndex(baseState.markersMs);
   if (activeMarkerIndex === null) return null;
@@ -241,7 +241,7 @@ function ensurePracticeReady(
   return readyState;
 }
 
-function startPracticePlayback(visualizer: VisualizerElement, state: BackChainingState): void {
+function startPracticePlayback(visualizer: VisualizerElement, state: ChorusingState): void {
   const suffix = setSelectionToActiveSuffix(visualizer, state);
   if (!suffix) return;
   stopProgressClock(visualizer, { clearEngine: false });
@@ -255,7 +255,7 @@ function startPracticePlayback(visualizer: VisualizerElement, state: BackChainin
     loop: true,
     ord,
     regionMode: "selection",
-    source: "back_chaining",
+    source: "chorusing",
   };
   writeState(visualizer, {
     ...state,
@@ -268,7 +268,7 @@ function startPracticePlayback(visualizer: VisualizerElement, state: BackChainin
   }
 }
 
-function pauseBackChaining(visualizer: VisualizerElement, state: BackChainingState): void {
+function pauseChorusing(visualizer: VisualizerElement, state: ChorusingState): void {
   const ord = Number(visualizer.dataset.aqeFieldOrd || "0");
   pauseProgressClock(visualizer);
   sendPlaybackRequest({
@@ -280,7 +280,7 @@ function pauseBackChaining(visualizer: VisualizerElement, state: BackChainingSta
     loop: true,
     ord,
     regionMode: "selection",
-    source: "back_chaining",
+    source: "chorusing",
   });
   restoreOrdinaryRepeat(visualizer, state);
   writeState(visualizer, {
@@ -289,12 +289,12 @@ function pauseBackChaining(visualizer: VisualizerElement, state: BackChainingSta
   });
 }
 
-function setSelectionToActiveSuffix(visualizer: VisualizerElement, state: BackChainingState) {
+function setSelectionToActiveSuffix(visualizer: VisualizerElement, state: ChorusingState) {
   const suffix = deriveActiveSuffix(state.baseRegion, state.markersMs, state.activeMarkerIndex);
   if (!suffix) return null;
   setSelectionFromController(visualizer, suffix.startMs, suffix.endMs, { setCursor: () => undefined }, { updateCursor: false });
   syncSelectionToolbar(visualizer);
-  notifySelectionChanged(visualizer, "back-chaining");
+  notifySelectionChanged(visualizer, "chorusing");
   return suffix;
 }
 
@@ -307,12 +307,12 @@ function writeRepeatForPractice(visualizer: VisualizerElement, enabled: boolean)
   visualizer.dataset.playbackLoop = enabled ? "true" : "false";
 }
 
-function restoreOrdinaryRepeat(visualizer: VisualizerElement, state: BackChainingState): void {
+function restoreOrdinaryRepeat(visualizer: VisualizerElement, state: ChorusingState): void {
   if (state.ordinaryRepeatEnabled === null) return;
   writeRepeatForPractice(visualizer, state.ordinaryRepeatEnabled);
 }
 
-function writeState(visualizer: VisualizerElement, state: BackChainingState): void {
-  writeBackChainingState(visualizer, state);
-  syncBackChainingToolbarButtons(visualizer);
+function writeState(visualizer: VisualizerElement, state: ChorusingState): void {
+  writeChorusingState(visualizer, state);
+  syncChorusingToolbarButtons(visualizer);
 }
