@@ -47,6 +47,41 @@
   position: relative;
 }
 
+.aqe-graph-countdown-overlay,
+.aqe-ui-root .aqe-graph-countdown-overlay,
+.aqe-recording-countdown-overlay,
+.aqe-ui-root .aqe-recording-countdown-overlay {
+  align-items: center;
+  background: color-mix(in srgb, var(--aqe-surface-color) 84%, transparent);
+  border: 1px solid color-mix(in srgb, var(--aqe-border-color) 70%, transparent);
+  border-radius: 8px;
+  box-sizing: border-box;
+  color: inherit;
+  display: flex;
+  inset: 0;
+  justify-content: center;
+  pointer-events: none;
+  position: absolute;
+  z-index: 3;
+}
+
+.aqe-graph-countdown-overlay[hidden],
+.aqe-ui-root .aqe-graph-countdown-overlay[hidden],
+.aqe-recording-countdown-overlay[hidden],
+.aqe-ui-root .aqe-recording-countdown-overlay[hidden] {
+  display: none;
+}
+
+.aqe-graph-countdown-value,
+.aqe-ui-root .aqe-graph-countdown-value,
+.aqe-recording-countdown-value,
+.aqe-ui-root .aqe-recording-countdown-value {
+  font-size: 72px;
+  font-weight: 700;
+  line-height: 1;
+  text-align: center;
+}
+
 .aqe-time-scrollbar,
 .aqe-ui-root .aqe-time-scrollbar {
   margin-top: 6px;

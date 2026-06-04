@@ -391,6 +391,7 @@
   "editor.playback.playing": "Đang phát",
   "editor.playback.playing_from": "Đang phát từ {seconds} giây",
   "editor.playback.chorusing_guidance": "Chế độ thực hành. Dùng các nút đồng thanh trên thanh công cụ.",
+  "editor.playback.repeat_countdown": "Lặp lại sau {seconds} giây",
   "editor.playback.preparing": "Đang chuẩn bị phát...",
   "editor.playback.preparing_ffmpeg": "Đang chuẩn bị phát bằng ffmpeg",
   "editor.playback.prepare_failed": "Không thể chuẩn bị phát.",

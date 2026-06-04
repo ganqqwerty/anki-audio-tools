@@ -79,7 +79,7 @@ const DEFAULTS: CompleteSplitButtonDefaults = {
   repeatPauseSeconds: 0,
   shareTarget: "litterbox",
   speedStep: 1.5,
-  voiceRecordingCountdownSeconds: 3,
+  voiceRecordingCountdownSeconds: 0,
   volumeStepDb: 15,
 };
 
@@ -97,7 +97,7 @@ export function splitButtonDefaults(): CompleteSplitButtonDefaults {
 
 export function clampVoiceRecordingCountdownSeconds(value: unknown): number {
   if (typeof value === "boolean" || typeof value !== "number" || !Number.isFinite(value)) {
-    return 3;
+    return 0;
   }
   return Math.max(0, Math.min(10, Math.round(value)));
 }

@@ -49,6 +49,10 @@ async function startSelectedRepeatWithPause(seconds: number) {
   return { audio };
 }
 
+function graphCountdownOverlay(): HTMLElement {
+  return document.querySelector<HTMLElement>('[data-testid="aqe-recording-countdown-overlay-0"]')!;
+}
+
 describe("editor inline selected repeat pause integration", () => {
   let restoreConsole: () => void;
 
@@ -76,8 +80,14 @@ describe("editor inline selected repeat pause integration", () => {
     });
     expect(audio.pause).toHaveBeenCalled();
     expect(audio.play).toHaveBeenCalledTimes(1);
+    expect(graphCountdownOverlay().hidden).toBe(false);
+    expect(graphCountdownOverlay()).toHaveTextContent("2");
+    expect(graphCountdownOverlay()).toHaveAttribute("aria-label", "Repeating in 2s");
 
-    await vi.advanceTimersByTimeAsync(1999);
+    await vi.advanceTimersByTimeAsync(1000);
+    expect(graphCountdownOverlay()).toHaveTextContent("1");
+    expect(graphCountdownOverlay()).toHaveAttribute("aria-label", "Repeating in 1s");
+    await vi.advanceTimersByTimeAsync(999);
     expect(audio.play).toHaveBeenCalledTimes(1);
     await vi.advanceTimersByTimeAsync(1);
 
@@ -88,6 +98,7 @@ describe("editor inline selected repeat pause integration", () => {
       repeatPauseWaiting: false,
       cursorMs: 250,
     });
+    expect(graphCountdownOverlay().hidden).toBe(true);
     expect(bridgeCommands()).not.toContain("aqe:play-ended");
   });
 
@@ -95,6 +106,7 @@ describe("editor inline selected repeat pause integration", () => {
     const { audio } = await startSelectedRepeatWithPause(1);
 
     document.querySelector<HTMLButtonElement>('[data-testid="aqe-button-0-play"]')!.click();
+    expect(graphCountdownOverlay().hidden).toBe(true);
     await vi.advanceTimersByTimeAsync(1000);
 
     expect(audio.play).toHaveBeenCalledTimes(1);
@@ -109,6 +121,7 @@ describe("editor inline selected repeat pause integration", () => {
     const { audio } = await startSelectedRepeatWithPause(1);
 
     await setRepeatMode(false);
+    expect(graphCountdownOverlay().hidden).toBe(true);
     await vi.advanceTimersByTimeAsync(1000);
 
     expect(audio.play).toHaveBeenCalledTimes(1);

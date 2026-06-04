@@ -24,7 +24,7 @@ export const defaultConfig = {
   enable_reviewer_editor: true,
   repeat_playback_by_default: true,
   repeat_pause_seconds: 0,
-  voice_recording_countdown_seconds: 3,
+  voice_recording_countdown_seconds: 0,
   share_target: ShareTarget.Litterbox,
   show_graph_by_default: true,
   visible_editor_buttons: [

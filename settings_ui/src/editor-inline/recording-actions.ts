@@ -4,6 +4,7 @@ import { setButtonTooltipContent } from "../lib/rich-tooltip.js";
 import { tooltipWithDisabledClarification } from "../lib/disabled-tooltip.js";
 import { focusAndSendCommand, focusAndSendCommandPayload } from "./bridge.js";
 import { allControls, buttonFor, controlsForOrd, visualizerForOrd } from "./dom-selectors.js";
+import { clearGraphCountdownOverlay, renderGraphCountdownOverlay } from "./graph-countdown-overlay.js";
 import { graphSettingsForField } from "./graph-split-state.js";
 import { renderCursor, clearLearnerVisualizerTrack, renderLearnerVisualizerTrack } from "./visualizer-renderer.js";
 import { readVisualizerTargetDurationMs } from "./visualizer-state.js";
@@ -51,6 +52,7 @@ export function startLearnerRecordingCountdown(node: HTMLElement, ord: number): 
       resetLearnerRecordingState(ord);
       return;
     }
+    clearRecordingCountdownOverlay(visualizer);
     if (typeof node.focus === "function") node.focus();
     window.__aqeActiveField = ord;
     focusAndSendCommandPayload(ord, {
@@ -60,22 +62,21 @@ export function startLearnerRecordingCountdown(node: HTMLElement, ord: number): 
     });
   };
   if (countdownSeconds <= 0) {
-    setLearnerRecordingState({ fieldOrd: ord, status: "countdown", countdownSeconds: 0, targetDurationMs });
     dispatch();
     return true;
   }
   let remaining = countdownSeconds;
   const tick = (): void => {
+    if (remaining <= 0) {
+      dispatch();
+      return;
+    }
     setLearnerRecordingState({
       fieldOrd: ord,
       status: "countdown",
       countdownSeconds: remaining,
       targetDurationMs,
     });
-    if (remaining <= 0) {
-      dispatch();
-      return;
-    }
     remaining -= 1;
     visualizer.__aqeRecordCountdownTimer = window.setTimeout(tick, 1000);
   };
@@ -114,6 +115,7 @@ export function setLearnerRecordingState(payload: LearnerRecordingStatePayload):
     } else {
       stopRecordingCursor(visualizer);
     }
+    renderRecordingCountdownOverlay(visualizer, payload);
   }
   renderRecordingStatus(controls, payload);
   syncRecordingControls(ord);
@@ -290,6 +292,30 @@ function recordingStatusText(payload: LearnerRecordingStatePayload): string {
   if (payload.status === "ready") return t("editor.recording.ready");
   if (payload.status === "failed") return payload.failureMessage || t("editor.recording.failed");
   return "";
+}
+
+function renderRecordingCountdownOverlay(
+  visualizer: VisualizerElement,
+  payload: LearnerRecordingStatePayload,
+): void {
+  const seconds = countdownOverlaySeconds(payload);
+  if (seconds == null) {
+    clearGraphCountdownOverlay(visualizer);
+    return;
+  }
+  const message = t("editor.recording.countdown", { seconds });
+  renderGraphCountdownOverlay(visualizer, seconds, message);
+}
+
+function clearRecordingCountdownOverlay(visualizer: VisualizerElement): void {
+  clearGraphCountdownOverlay(visualizer);
+}
+
+function countdownOverlaySeconds(payload: LearnerRecordingStatePayload): number | null {
+  if (payload.status !== "countdown") return null;
+  const seconds = Number(payload.countdownSeconds);
+  if (!Number.isFinite(seconds) || seconds <= 0) return null;
+  return Math.round(seconds);
 }
 
 function recordingTargetReady(ord: number): boolean {

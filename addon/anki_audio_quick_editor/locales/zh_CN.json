@@ -391,6 +391,7 @@
   "editor.playback.playing": "正在播放",
   "editor.playback.playing_from": "从 {seconds} 秒开始播放",
   "editor.playback.chorusing_guidance": "练习模式。使用工具栏上的合诵按钮。",
+  "editor.playback.repeat_countdown": "{seconds} 秒后重复",
   "editor.playback.preparing": "正在准备播放...",
   "editor.playback.preparing_ffmpeg": "正在用 ffmpeg 准备播放",
   "editor.playback.prepare_failed": "无法准备播放。",

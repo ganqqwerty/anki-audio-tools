@@ -391,6 +391,7 @@
   "editor.playback.playing": "再生中",
   "editor.playback.playing_from": "{seconds}秒から再生中",
   "editor.playback.chorusing_guidance": "練習モードです。ツールバーのコーラシングボタンを使ってください。",
+  "editor.playback.repeat_countdown": "{seconds}秒後にリピート",
   "editor.playback.preparing": "再生を準備中...",
   "editor.playback.preparing_ffmpeg": "ffmpeg で再生を準備中",
   "editor.playback.prepare_failed": "再生を準備できませんでした。",

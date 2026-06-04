@@ -413,6 +413,7 @@
   "editor.playback.playing": "Playing",
   "editor.playback.playing_from": "Playing from {seconds}s",
   "editor.playback.chorusing_guidance": "Practice mode. Use the toolbar buttons for chorusing.",
+  "editor.playback.repeat_countdown": "Repeating in {seconds}s",
   "editor.playback.preparing": "Preparing playback...",
   "editor.playback.preparing_ffmpeg": "Preparing playback with ffmpeg",
   "editor.playback.prepare_failed": "Could not prepare playback.",

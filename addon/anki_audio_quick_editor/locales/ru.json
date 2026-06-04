@@ -391,6 +391,7 @@
   "editor.playback.playing": "Воспроизведение",
   "editor.playback.playing_from": "Воспроизведение с {seconds} с",
   "editor.playback.chorusing_guidance": "Режим тренировки. Используйте кнопки обратной цепочки на панели инструментов.",
+  "editor.playback.repeat_countdown": "Повтор через {seconds} с",
   "editor.playback.preparing": "Подготовка воспроизведения...",
   "editor.playback.preparing_ffmpeg": "Подготовка воспроизведения через ffmpeg",
   "editor.playback.prepare_failed": "Не удалось подготовить воспроизведение.",

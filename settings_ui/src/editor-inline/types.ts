@@ -374,6 +374,7 @@ export type VisualizerElement = HTMLElement & {
   __aqeTrack?: NormalizedProsodyTrack;
   __aqePlaybackTimer?: number | null;
   __aqeRepeatPauseTimer?: number | null;
+  __aqeRepeatPauseOverlayTimer?: number | null;
 };
 
 interface CursorRenderCache {
