@@ -157,7 +157,7 @@ def test_special_transform_explicit_output_format_overrides_config(tmp_path: Pat
         session,
         tmp_path / "clip.mp3",
         AudioProcessingConfig(output_format="wav"),
-        "Reduce size",
+        "Compress audio",
         "size reduction failed",
         renderer,
         None,

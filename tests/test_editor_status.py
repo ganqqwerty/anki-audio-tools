@@ -56,7 +56,7 @@ def test_processing_status_summaries_include_operation_parameters() -> None:
         ),
         config,
     ) == "Converted audio to FLAC."
-    assert command_status_summary(CMD_REDUCE_SIZE, config) == "Made audio smaller with Normal level."
+    assert command_status_summary(CMD_REDUCE_SIZE, config) == "Compressed audio with Normal level."
     assert command_status_summary(CMD_DENOISE_STANDARD, config) == "Cleaned audio with Standard."
     assert command_status_summary(CMD_RNNOISE, config) == "Cleaned audio with RNNoise."
     assert command_status_summary(CMD_VOICE_ONLY, config) == "Cleaned audio with Voice Only."

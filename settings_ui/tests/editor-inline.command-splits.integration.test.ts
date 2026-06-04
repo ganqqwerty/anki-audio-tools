@@ -52,7 +52,8 @@ describe("editor inline split-button command integration", () => {
     expect(help).toHaveTextContent("Delete Region / Delete the rest");
     expect(help).toHaveTextContent("Creates a new file that removes the selected region or keeps only that region.");
     expect(help).toHaveTextContent("Creates a new file with louder audio.");
-    expect(help).toHaveTextContent("Creates a smaller MP3 by lowering safe audio parameters.");
+    expect(help).toHaveTextContent("Creates a compressed MP3 by lowering safe audio parameters.");
+    expect(help).toHaveTextContent("Compress Audio");
     expect(help).toHaveTextContent("Share this file online. The link will be copied to the clipboard.");
     expect(help).toHaveTextContent(/GitHub Pages.*Report a bug.*Request an idea/s);
     expect(help).toHaveTextContent("Every edit creates a new media file and updates the field to point at it.");
@@ -445,7 +446,7 @@ describe("editor inline split-button command integration", () => {
       '[data-testid="aqe-split-0-reduce-size-size-reduction-source-metadata"]',
     )!;
     expect(sourceMetadata).toHaveTextContent(
-      "Current: bit_rate 128 kbps, sample_rate 44100 Hz, channels 2",
+      "Current: 128 kbps, 44100 Hz, channels 2",
     );
     document.querySelector<HTMLButtonElement>('[data-testid="aqe-split-0-reduce-size-preset-gentle"]')!.click();
     const bitrateInput = document.querySelector<HTMLInputElement>(
