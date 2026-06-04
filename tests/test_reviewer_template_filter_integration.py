@@ -11,6 +11,7 @@ import aqt
 from anki_audio_quick_editor.reviewer_template_filter_integration import (
     AQE_TEMPLATE_AUDIO_PANEL_VIDEO_URL,
     _aqe_audio_panel_filter,
+    _append_audio_editor_tag,
     _on_card_layout_will_show,
     register_reviewer_template_filter,
 )
@@ -50,6 +51,36 @@ class FakeCardLayoutLabel:
         self.open_external_links = enabled
 
 
+class FakeCardLayoutButton:
+    def __init__(self, text: str, parent: object | None = None) -> None:
+        self.text = text
+        self.parent = parent
+        self.object_name = ""
+        self.auto_default = True
+        self.hidden = False
+        self.clicked = object()  # noqa: N815 - Qt signal attribute
+
+    def setObjectName(self, object_name: str) -> None:  # noqa: N802 - Qt API
+        self.object_name = object_name
+
+    def setAutoDefault(self, enabled: bool) -> None:  # noqa: N802 - Qt API
+        self.auto_default = enabled
+
+    def setHidden(self, hidden: bool) -> None:  # noqa: N802 - Qt API
+        self.hidden = hidden
+
+
+class FakeCardLayoutEditArea:
+    def __init__(self, text: str = "") -> None:
+        self.text = text
+
+    def toPlainText(self) -> str:  # noqa: N802 - Qt API
+        return self.text
+
+    def setPlainText(self, text: str) -> None:  # noqa: N802 - Qt API
+        self.text = text
+
+
 class FakeCardLayoutWidgetList:
     def __init__(self, edit_area: object) -> None:
         self.edit_area = edit_area
@@ -58,6 +89,22 @@ class FakeCardLayoutWidgetList:
 
     def indexOf(self, widget: object) -> int:  # noqa: N802 - Qt API
         return 3 if widget is self.edit_area else -1
+
+    def insertWidget(self, index: int, widget: object) -> None:  # noqa: N802 - Qt API
+        self.inserted.append((index, widget))
+
+    def addWidget(self, widget: object) -> None:  # noqa: N802 - Qt API
+        self.added.append(widget)
+
+
+class FakeCardLayoutButtonList:
+    def __init__(self, add_field_button: object) -> None:
+        self.add_field_button = add_field_button
+        self.inserted: list[tuple[int, object]] = []
+        self.added: list[object] = []
+
+    def indexOf(self, widget: object) -> int:  # noqa: N802 - Qt API
+        return 2 if widget is self.add_field_button else -1
 
     def insertWidget(self, index: int, widget: object) -> None:  # noqa: N802 - Qt API
         self.inserted.append((index, widget))
@@ -77,14 +124,25 @@ def test_register_reviewer_template_filter() -> None:
 
 def test_card_layout_hint_is_inserted_before_template_edit_area(monkeypatch) -> None:
     parent = object()
-    edit_area = object()
+    edit_area = FakeCardLayoutEditArea("{{Front}}")
     layout = FakeCardLayoutWidgetList(edit_area)
+    add_field_button = object()
+    buttons = FakeCardLayoutButtonList(add_field_button)
     clayout = SimpleNamespace(
+        model={"flds": [{"name": "Back"}]},
+        change_tracker=SimpleNamespace(mark_basic=MagicMock()),
+        current_editor_index=0,
         tform=SimpleNamespace(
+            back_button=SimpleNamespace(clicked=object()),
             edit_area=edit_area,
+            front_button=SimpleNamespace(clicked=object()),
+            style_button=SimpleNamespace(clicked=object()),
             template_box=parent,
             verticalLayout=layout,
-        )
+        ),
+        add_field_button=add_field_button,
+        buttons=buttons,
+        write_edits_to_template_and_redraw=MagicMock(),
     )
     connections: dict[object, object] = {}
     opened: list[str] = []
@@ -93,12 +151,20 @@ def test_card_layout_hint_is_inserted_before_template_edit_area(monkeypatch) -> 
         FakeCardLayoutLabel,
     )
     monkeypatch.setattr(
+        "anki_audio_quick_editor.reviewer_template_filter_integration.QPushButton",
+        FakeCardLayoutButton,
+    )
+    monkeypatch.setattr(
         "anki_audio_quick_editor.reviewer_template_filter_integration.qconnect",
         lambda signal, callback: connections.setdefault(signal, callback),
     )
     monkeypatch.setattr(
         "anki_audio_quick_editor.reviewer_template_filter_integration.openLink",
         opened.append,
+    )
+    monkeypatch.setattr(
+        "anki_audio_quick_editor.reviewer_template_filter_integration._choose_audio_editor_field_name",
+        lambda _clayout: "Back",
     )
 
     _on_card_layout_will_show(clayout)
@@ -115,10 +181,75 @@ def test_card_layout_hint_is_inserted_before_template_edit_area(monkeypatch) -> 
     assert label.open_external_links is False
     assert "{{aqe-audio-panel:FieldName}}" in label.text
     assert AQE_TEMPLATE_AUDIO_PANEL_VIDEO_URL in label.text
+    assert len(buttons.inserted) == 1
+    button_index, button = buttons.inserted[0]
+    assert button_index == 3
+    assert isinstance(button, FakeCardLayoutButton)
+    assert button.object_name == "aqeTemplateAudioPanelAddButton"
+    assert button.auto_default is False
+    assert button.hidden is False
 
     connections[label.linkActivated](AQE_TEMPLATE_AUDIO_PANEL_VIDEO_URL)
+    connections[button.clicked]()
 
     assert opened == [AQE_TEMPLATE_AUDIO_PANEL_VIDEO_URL]
+    assert edit_area.text == "{{Front}}\n{{aqe-audio-panel:Back}}\n"
+    clayout.change_tracker.mark_basic.assert_called_once_with()
+    clayout.write_edits_to_template_and_redraw.assert_called_once_with()
+
+
+def test_add_audio_editor_button_is_hidden_for_style_editor(monkeypatch) -> None:
+    parent = object()
+    edit_area = FakeCardLayoutEditArea()
+    layout = FakeCardLayoutWidgetList(edit_area)
+    add_field_button = object()
+    buttons = FakeCardLayoutButtonList(add_field_button)
+    clayout = SimpleNamespace(
+        current_editor_index=2,
+        tform=SimpleNamespace(
+            back_button=SimpleNamespace(clicked=object()),
+            edit_area=edit_area,
+            front_button=SimpleNamespace(clicked=object()),
+            style_button=SimpleNamespace(clicked=object()),
+            template_box=parent,
+            verticalLayout=layout,
+        ),
+        add_field_button=add_field_button,
+        buttons=buttons,
+    )
+    monkeypatch.setattr(
+        "anki_audio_quick_editor.reviewer_template_filter_integration.QLabel",
+        FakeCardLayoutLabel,
+    )
+    monkeypatch.setattr(
+        "anki_audio_quick_editor.reviewer_template_filter_integration.QPushButton",
+        FakeCardLayoutButton,
+    )
+    monkeypatch.setattr(
+        "anki_audio_quick_editor.reviewer_template_filter_integration.qconnect",
+        lambda _signal, _callback: None,
+    )
+
+    _on_card_layout_will_show(clayout)
+
+    _, button = buttons.inserted[0]
+    assert isinstance(button, FakeCardLayoutButton)
+    assert button.hidden is True
+
+
+def test_append_audio_editor_tag_adds_template_filter_tag() -> None:
+    edit_area = FakeCardLayoutEditArea("{{Front}}")
+    clayout = SimpleNamespace(
+        change_tracker=SimpleNamespace(mark_basic=MagicMock()),
+        tform=SimpleNamespace(edit_area=edit_area),
+        write_edits_to_template_and_redraw=MagicMock(),
+    )
+
+    _append_audio_editor_tag(clayout, "Back")
+
+    assert edit_area.text == "{{Front}}\n{{aqe-audio-panel:Back}}\n"
+    clayout.change_tracker.mark_basic.assert_called_once_with()
+    clayout.write_edits_to_template_and_redraw.assert_called_once_with()
 
 
 def test_aqe_audio_panel_filter_renders_trigger_for_audio_field() -> None:
