@@ -188,6 +188,16 @@ def test_aqe_audio_panel_filter_escapes_filename() -> None:
     assert 'bad"name.mp3' not in html
 
 
+def test_aqe_audio_panel_filter_handles_escaped_bracket_filename() -> None:
+    note = FakeNote(["[sound:amp&amp;bracket]name.opus]"])
+    ctx = SimpleNamespace(note=note)
+    aqt.mw.addonManager.getConfig.return_value = {"enable_reviewer_editor": True}
+
+    html = _aqe_audio_panel_filter("[sound:amp&amp;bracket]name.opus]", "Front", "aqe-audio-panel", ctx)
+
+    assert 'data-aqe-source-filename="amp&amp;bracket]name.opus"' in html
+
+
 def test_aqe_audio_panel_filter_ignores_reviewer_setting() -> None:
     note = FakeNote(["[sound:first.mp3]"])
     ctx = SimpleNamespace(note=note)

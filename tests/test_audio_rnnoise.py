@@ -41,6 +41,7 @@ def test_render_rnnoise_audio_runs_prepare_denoise_and_encode(
         text: bool,
         check: bool,
         timeout: float,
+        **_kwargs: object,
     ) -> SimpleNamespace:
         assert timeout > 0
         calls.append(cmd)
@@ -123,6 +124,7 @@ def test_render_rnnoise_audio_reports_denoise_errors(
         text: bool,
         check: bool,
         timeout: float,
+        **_kwargs: object,
     ) -> SimpleNamespace:
         assert timeout > 0
         if cmd[0] == "/bin/rnnoise-cli":
@@ -171,6 +173,7 @@ def test_render_rnnoise_audio_reports_launch_errors(
         text: bool,
         check: bool,
         timeout: float,
+        **_kwargs: object,
     ) -> SimpleNamespace:
         assert timeout > 0
         if cmd[0] == "/bin/rnnoise-cli":

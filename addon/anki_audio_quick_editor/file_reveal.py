@@ -45,8 +45,8 @@ def open_external_url(url: str) -> None:
     raise AudioProcessingError(t("external_link.open_failed"))
 
 
-def _windows_explorer_select_command(path: Path) -> str:
-    return f'explorer.exe /select,"{path}"'
+def _windows_explorer_select_command(path: Path) -> tuple[str, str]:
+    return "explorer.exe", f"/select,{path}"
 
 
 def _open_parent_folder(folder: Path) -> None:

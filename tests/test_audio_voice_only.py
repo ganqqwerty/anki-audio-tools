@@ -45,6 +45,7 @@ def test_render_voice_only_audio_runs_prepare_spleeter_and_encode(
         text: bool,
         check: bool,
         timeout: float | None = None,
+        **_kwargs: object,
     ) -> SimpleNamespace:
         calls.append(cmd)
         if cmd[0] == "/bin/sherpa-spleeter":
@@ -121,6 +122,7 @@ def test_render_voice_only_audio_reports_spleeter_errors(
         text: bool,
         check: bool,
         timeout: float | None = None,
+        **_kwargs: object,
     ) -> SimpleNamespace:
         if cmd[0] == "/bin/sherpa-spleeter":
             return SimpleNamespace(returncode=5, stdout='{"error":"invalid wav"}', stderr="")
@@ -181,6 +183,7 @@ def test_render_voice_only_audio_reports_output_launch_and_encode_failures(
         text: bool,
         check: bool,
         timeout: float | None = None,
+        **_kwargs: object,
     ) -> SimpleNamespace:
         if cmd[0] == "/bin/sherpa-spleeter":
             if run_behavior == "launch_error":

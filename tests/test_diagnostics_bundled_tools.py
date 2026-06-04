@@ -49,7 +49,14 @@ def test_rnnoise_health_reports_successful_version(monkeypatch) -> None:
         lambda: Path("/addon/bin/macos-arm64/rnnoise-cli"),
     )
 
-    def fake_run(cmd, capture_output: bool, text: bool, check: bool, timeout: int) -> SimpleNamespace:
+    def fake_run(
+        cmd,
+        capture_output: bool,
+        text: bool,
+        check: bool,
+        timeout: int,
+        **_kwargs: object,
+    ) -> SimpleNamespace:
         assert cmd == ["/addon/bin/macos-arm64/rnnoise-cli", "--version"]
         return SimpleNamespace(returncode=0, stdout="rnnoise-cli 0.2\n", stderr="")
 
@@ -145,7 +152,14 @@ def test_dpdfnet_health_reports_successful_version(monkeypatch) -> None:
     )
     monkeypatch.setattr("anki_audio_quick_editor.audio_processor.find_dpdfnet_bundle", lambda: Path("/addon/bin/macos-arm64/dpdfnet"))
 
-    def fake_run(cmd, capture_output: bool, text: bool, check: bool, timeout: int) -> SimpleNamespace:
+    def fake_run(
+        cmd,
+        capture_output: bool,
+        text: bool,
+        check: bool,
+        timeout: int,
+        **_kwargs: object,
+    ) -> SimpleNamespace:
         assert cmd == ["/addon/bin/macos-arm64/dpdfnet", "--version"]
         return SimpleNamespace(returncode=0, stdout="dpdfnet-lite 0.1.0\n", stderr="")
 
@@ -247,7 +261,14 @@ def test_spleeter_health_reports_successful_help_probe(monkeypatch) -> None:
         ),
     )
 
-    def fake_run(cmd, capture_output: bool, text: bool, check: bool, timeout: int) -> SimpleNamespace:
+    def fake_run(
+        cmd,
+        capture_output: bool,
+        text: bool,
+        check: bool,
+        timeout: int,
+        **_kwargs: object,
+    ) -> SimpleNamespace:
         assert cmd == ["/addon/bin/macos-arm64/sherpa-spleeter", "--help"]
         return SimpleNamespace(returncode=0, stdout="Non-streaming source separation with sherpa-onnx.\n", stderr="")
 
@@ -274,7 +295,14 @@ def test_silero_vad_health_reports_successful_help_probe(monkeypatch) -> None:
         ),
     )
 
-    def fake_run(cmd, capture_output: bool, text: bool, check: bool, timeout: int) -> SimpleNamespace:
+    def fake_run(
+        cmd,
+        capture_output: bool,
+        text: bool,
+        check: bool,
+        timeout: int,
+        **_kwargs: object,
+    ) -> SimpleNamespace:
         assert cmd == ["/addon/bin/macos-arm64/silero-vad", "--help"]
         return SimpleNamespace(returncode=0, stdout="VAD in sherpa-onnx.\n", stderr="")
 

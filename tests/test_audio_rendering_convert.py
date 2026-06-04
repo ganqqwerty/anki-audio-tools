@@ -34,7 +34,13 @@ def test_render_converted_audio_uses_expected_ffmpeg_invocation(monkeypatch, tmp
         ),
     )
 
-    def fake_run(cmd: list[str], capture_output: bool, text: bool, check: bool) -> SimpleNamespace:
+    def fake_run(
+        cmd: list[str],
+        capture_output: bool,
+        text: bool,
+        check: bool,
+        **_kwargs: object,
+    ) -> SimpleNamespace:
         calls.append((cmd, capture_output, text, check))
         return SimpleNamespace(returncode=0, stdout="", stderr="")
 

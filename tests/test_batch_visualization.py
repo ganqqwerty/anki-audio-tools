@@ -64,8 +64,15 @@ def test_append_image_reference_escapes_filename_for_html() -> None:
     assert append_image_reference("existing", 'viz"bad.svg') == 'existing<br><img src="viz&quot;bad.svg">'
 
 
-def test_first_audio_filename_returns_sanitized_basename() -> None:
+def test_first_audio_filename_returns_sanitized_posix_basename() -> None:
+    note = BatchNoteSnapshot(10, "Basic", {"Audio": "[sound:../nested/clip.mp3]"})
+
+    assert first_audio_filename(note, "Audio") == "clip.mp3"
+
+
+def test_first_audio_filename_strips_windows_backslash_basename(monkeypatch) -> None:
     note = BatchNoteSnapshot(10, "Basic", {"Audio": r"[sound:..\nested\clip.mp3]"})
+    monkeypatch.setattr("anki_audio_quick_editor.sound_refs.platform.system", lambda: "Windows")
 
     assert first_audio_filename(note, "Audio") == "clip.mp3"
 

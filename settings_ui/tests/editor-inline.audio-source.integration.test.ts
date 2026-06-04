@@ -19,4 +19,22 @@ describe("editor inline audio source detection", () => {
 
     expect(audioSourceForNode(document.getElementById("video-field")!)).toBe("");
   });
+
+  it("detects utf sound references as supported audio", () => {
+    document.body.innerHTML = '<div id="utf-field">[sound:Даии_青山 voice.OPUS]</div>';
+
+    expect(audioSourceForNode(document.getElementById("utf-field")!)).toBe("Даии_青山 voice.OPUS");
+  });
+
+  it("detects entity-escaped bracket filenames from field text", () => {
+    document.body.innerHTML = '<div id="special-field">[sound:amp&amp;bracket]name.OPUS]</div>';
+
+    expect(audioSourceForNode(document.getElementById("special-field")!)).toBe("amp&bracket]name.OPUS");
+  });
+
+  it("preserves trailing whitespace after supported audio extensions", () => {
+    document.body.innerHTML = '<div id="trailing-field">[sound:clip.opus ]</div>';
+
+    expect(audioSourceForNode(document.getElementById("trailing-field")!)).toBe("clip.opus ");
+  });
 });

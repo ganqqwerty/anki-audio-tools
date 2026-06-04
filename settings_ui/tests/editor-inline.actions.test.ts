@@ -58,6 +58,8 @@ describe("editor inline action workflows", () => {
     expect(mediaUrlForFilename("hello world.mp3")).toBe("hello%20world.mp3");
     expect(mediaUrlForFilename("かな.wav")).toBe("%E3%81%8B%E3%81%AA.wav");
     expect(mediaUrlForFilename("nested/clip.mp3")).toBe("nested/clip.mp3");
+    expect(mediaUrlForFilename("hash#question?percent%.opus")).toBe("hash%23question%3Fpercent%25.opus");
+    expect(mediaUrlForFilename('quote"line\nback\\slash.ogg')).toBe("quote%22line%0Aback%5Cslash.ogg");
     expect(commandSlugsForTest()["aqe:denoise-standard"]).toBe("denoise-standard");
     expect(commandSlugsForTest()["aqe:rnnoise"]).toBe("rnnoise");
     expect(commandSlugsForTest()["aqe:dpdfnet"]).toBe("dpdfnet");

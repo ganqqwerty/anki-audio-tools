@@ -47,6 +47,10 @@ from .audio_state import AudioEditState, AudioProcessingConfig
 from .audio_tools import find_ffmpeg
 from .audio_types import AudioProcessingResult
 from .errors import AudioAlreadyCompactError, AudioProcessingError
+from .external_command_text import (
+    EXTERNAL_COMMAND_TEXT_ENCODING,
+    EXTERNAL_COMMAND_TEXT_ERRORS,
+)
 from .permission_guidance import launch_error_message
 
 
@@ -62,7 +66,6 @@ def render_audio(
     ffmpeg_path = find_ffmpeg(config.ffmpeg_path)
     duration_ms = probe_duration_ms(source_path, config)
     state.validate(duration_ms, config)
-
 
     if state.remove_internal_pauses_enabled:
         output_policy = _resolve_filename_output_policy(source_path, config, output_path)
@@ -330,6 +333,8 @@ def _run_render_command(command: tuple[str, ...], launch_error: str) -> subproce
             capture_output=True,
             text=True,
             check=False,
+            encoding=EXTERNAL_COMMAND_TEXT_ENCODING,
+            errors=EXTERNAL_COMMAND_TEXT_ERRORS,
             **_external_command_run_kwargs(),
         )  # nosec B603
     except OSError as exc:

@@ -38,6 +38,7 @@ CORE_CONTRACTS: dict[str, ModuleContract] = {
             "audio_processor",
             "audio_tools",
             "error_codes",
+            "external_command_text",
             "permission_guidance",
             "runtime_manager",
         ),
@@ -63,6 +64,7 @@ CORE_CONTRACTS: dict[str, ModuleContract] = {
         layer=Layer.IMPORT_SAFE_CORE,
         allowed_addon_deps=("errors", "file_reveal"),
     ),
+    "external_command_text": contract("external_command_text", layer=Layer.IMPORT_SAFE_CORE),
     "ffmpeg_defaults": contract("ffmpeg_defaults", layer=Layer.IMPORT_SAFE_CORE),
     "frontend_logs": contract(
         "frontend_logs",

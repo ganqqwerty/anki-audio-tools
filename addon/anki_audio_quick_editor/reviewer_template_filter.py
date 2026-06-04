@@ -2,16 +2,17 @@
 
 from __future__ import annotations
 
-import re
 from typing import Any
 
 from .reviewer_audio_targets import (
     AQE_REVIEW_TRIGGER_CLASS,
     audio_panel_trigger_html,
 )
-from .sound_refs import is_supported_audio_filename, safe_media_basename
-
-_SOUND_RE = re.compile(r"\[sound:([^\]]+)\]", re.IGNORECASE)
+from .sound_refs import (
+    find_sound_references,
+    is_supported_audio_filename,
+    safe_media_basename,
+)
 
 
 def audio_panel_filter_html(
@@ -34,11 +35,11 @@ def audio_panel_filter_html(
 
 
 def _first_sound_filename(text: str) -> str | None:
-    match = _SOUND_RE.search(text)
-    if match is None:
-        return None
-    filename = safe_media_basename(match.group(1))
-    return filename if is_supported_audio_filename(filename) else None
+    for reference in find_sound_references(text):
+        filename = safe_media_basename(reference.filename)
+        if is_supported_audio_filename(filename):
+            return filename
+    return None
 
 
 def _template_field_index(ctx: Any, field_name: str) -> int | None:

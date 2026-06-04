@@ -13,6 +13,11 @@ from .audio_state import AudioProcessingConfig
 from .audio_tools import find_ffmpeg, find_ffprobe
 from .diagnostics_runtime import is_debug_enabled, new_operation_id, record_breadcrumb
 from .errors import AudioProcessingError
+from .external_command_text import (
+    EXTERNAL_COMMAND_TEXT_ENCODING,
+    EXTERNAL_COMMAND_TEXT_ERRORS,
+    external_command_text_kwargs,
+)
 from .permission_guidance import (
     external_tool_error_message,
     launch_error_message,
@@ -27,6 +32,10 @@ def _external_command_run_kwargs() -> dict[str, Any]:
     if not _is_windows() or is_debug_enabled():
         return {}
     return {"creationflags": getattr(subprocess, "CREATE_NO_WINDOW", 0)}
+
+
+def _external_command_text_kwargs() -> dict[str, str]:
+    return external_command_text_kwargs()
 
 
 def probe_duration_ms(source_path: Path, config: AudioProcessingConfig) -> int:
@@ -58,6 +67,8 @@ def probe_duration_ms(source_path: Path, config: AudioProcessingConfig) -> int:
             capture_output=True,
             text=True,
             check=False,
+            encoding=EXTERNAL_COMMAND_TEXT_ENCODING,
+            errors=EXTERNAL_COMMAND_TEXT_ERRORS,
             **_external_command_run_kwargs(),
         )  # nosec B603
     except OSError as exc:
@@ -114,6 +125,8 @@ def _run_external_command(
             capture_output=True,
             text=True,
             check=False,
+            encoding=EXTERNAL_COMMAND_TEXT_ENCODING,
+            errors=EXTERNAL_COMMAND_TEXT_ERRORS,
             **run_kwargs,
         )  # nosec B603
         record_breadcrumb(

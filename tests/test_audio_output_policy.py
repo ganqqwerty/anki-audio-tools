@@ -200,12 +200,14 @@ def test_mime_type_mapping(output_format: str, mime_type: str) -> None:
 
 def test_probe_audio_metadata_parses_first_audio_stream(monkeypatch, tmp_path: Path) -> None:
     calls: list[list[str]] = []
+    run_kwargs: list[dict[str, object]] = []
 
     monkeypatch.setattr("anki_audio_quick_editor.audio_output_policy.find_ffmpeg", lambda path: Path(path or "/bin/ffmpeg"))
     monkeypatch.setattr("anki_audio_quick_editor.audio_output_policy.find_ffprobe", lambda _path: Path("/bin/ffprobe"))
 
-    def fake_run(cmd: list[str], **_kwargs: object) -> SimpleNamespace:
+    def fake_run(cmd: list[str], **kwargs: object) -> SimpleNamespace:
         calls.append(cmd)
+        run_kwargs.append(kwargs)
         return SimpleNamespace(
             returncode=0,
             stdout=(
@@ -241,6 +243,9 @@ def test_probe_audio_metadata_parses_first_audio_stream(monkeypatch, tmp_path: P
             "json",
             str(source),
         ]
+    ]
+    assert run_kwargs == [
+        {"capture_output": True, "text": True, "check": False, "encoding": "utf-8", "errors": "replace"}
     ]
 
 

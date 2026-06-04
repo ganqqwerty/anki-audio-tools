@@ -123,7 +123,13 @@ def test_render_playback_segment_clamps_negative_start_and_invokes_ffmpeg(monkey
     monkeypatch.setattr("anki_audio_quick_editor.audio_processor.find_ffmpeg", fake_find_ffmpeg)
     monkeypatch.setattr("anki_audio_quick_editor.audio_processor.probe_duration_ms", lambda *_args: next(durations))
 
-    def fake_run(cmd: list[str], capture_output: bool, text: bool, check: bool) -> SimpleNamespace:
+    def fake_run(
+        cmd: list[str],
+        capture_output: bool,
+        text: bool,
+        check: bool,
+        **_kwargs: object,
+    ) -> SimpleNamespace:
         calls.append((cmd, capture_output, text, check))
         return SimpleNamespace(returncode=0, stdout="", stderr="")
 
@@ -168,7 +174,13 @@ def test_render_playback_segment_honors_selected_end_boundary(monkeypatch, tmp_p
     monkeypatch.setattr("anki_audio_quick_editor.audio_processor.find_ffmpeg", lambda _path: Path("/bin/ffmpeg"))
     monkeypatch.setattr("anki_audio_quick_editor.audio_processor.probe_duration_ms", lambda *_args: next(durations))
 
-    def fake_run(cmd: list[str], capture_output: bool, text: bool, check: bool) -> SimpleNamespace:
+    def fake_run(
+        cmd: list[str],
+        capture_output: bool,
+        text: bool,
+        check: bool,
+        **_kwargs: object,
+    ) -> SimpleNamespace:
         calls.append((cmd, capture_output, text, check))
         return SimpleNamespace(returncode=0, stdout="", stderr="")
 

@@ -10,6 +10,7 @@ import pytest
 from anki_audio_quick_editor import diagnostics_runtime
 from anki_audio_quick_editor.audio_external import (
     _external_command_run_kwargs,
+    _external_command_text_kwargs,
     _render_external_error_message,
     _run_external_command,
     probe_duration_ms,
@@ -60,6 +61,10 @@ def test_external_command_run_kwargs_omit_flags_on_non_windows(monkeypatch) -> N
     assert _external_command_run_kwargs() == {}
 
 
+def test_external_command_text_kwargs_use_stable_utf8_decoding() -> None:
+    assert _external_command_text_kwargs() == {"encoding": "utf-8", "errors": "replace"}
+
+
 def test_external_command_success_records_duration_and_returncode(tmp_path, monkeypatch) -> None:
     diagnostics_runtime.configure_runtime(tmp_path, debug_enabled=True)
 
@@ -103,7 +108,7 @@ def test_external_command_forwards_window_visibility_kwargs(tmp_path, monkeypatc
 
     _run_external_command(("ffmpeg", "-version"), "launch failed")
 
-    assert run_kwargs == [{"creationflags": 0x08000000}]
+    assert run_kwargs == [{"encoding": "utf-8", "errors": "replace", "creationflags": 0x08000000}]
 
 
 def test_external_command_merges_environment_overrides(tmp_path, monkeypatch) -> None:
@@ -129,6 +134,8 @@ def test_external_command_merges_environment_overrides(tmp_path, monkeypatch) ->
     _run_external_command(("dpdfnet", "--version"), "launch failed", env={"DPDFNET_FFMPEG": "/bin/ffmpeg"})
 
     assert run_kwargs
+    assert run_kwargs[0]["encoding"] == "utf-8"
+    assert run_kwargs[0]["errors"] == "replace"
     env = run_kwargs[0]["env"]
     assert isinstance(env, dict)
     assert env["DPDFNET_FFMPEG"] == "/bin/ffmpeg"
@@ -166,7 +173,7 @@ def test_probe_duration_forwards_window_visibility_kwargs(tmp_path, monkeypatch)
     monkeypatch.setattr("anki_audio_quick_editor.audio_external.subprocess.run", fake_run)
 
     assert probe_duration_ms(tmp_path / "clip.wav", AudioProcessingConfig()) == 1250
-    assert run_kwargs == [{"creationflags": 0x08000000}]
+    assert run_kwargs == [{"encoding": "utf-8", "errors": "replace", "creationflags": 0x08000000}]
 
 
 def test_external_command_nonzero_records_stderr_tail(tmp_path, monkeypatch) -> None:
