@@ -1,0 +1,67 @@
+{
+  "schema_version": 1,
+  "python_tag": "cp313",
+  "abi_tag": "cp313",
+  "targets": {
+    "macos-arm64": [
+      {
+        "package": "numpy",
+        "version": "2.4.6",
+        "filename": "numpy-2.4.6-cp313-cp313-macosx_11_0_arm64.whl",
+        "url": "https://files.pythonhosted.org/packages/1b/30/a80189bcc7f5e4258b3fbc3968d909d1756f54d023299ecc39ad6fdb9ef8/numpy-2.4.6-cp313-cp313-macosx_11_0_arm64.whl",
+        "sha256": "bf162abab1c1a736333192707cef898e735a5ca00f38f27eeedf44b39d9e85eb",
+        "size": 14693902,
+        "tag": "cp313-cp313-macosx_11_0_arm64"
+      },
+      {
+        "package": "praat-parselmouth",
+        "version": "0.4.7",
+        "filename": "praat_parselmouth-0.4.7-cp313-cp313-macosx_11_0_arm64.whl",
+        "url": "https://files.pythonhosted.org/packages/53/16/ac1b44f6247d3abd86fc66634a32f56d43cc58f7314db81c40fd67fa2afd/praat_parselmouth-0.4.7-cp313-cp313-macosx_11_0_arm64.whl",
+        "sha256": "02b2b351e9dce18fb795ef91ce92107343183cff2cd8e56b40050016a45c7778",
+        "size": 8635340,
+        "tag": "cp313-cp313-macosx_11_0_arm64"
+      }
+    ],
+    "macos-x86_64": [
+      {
+        "package": "numpy",
+        "version": "2.4.6",
+        "filename": "numpy-2.4.6-cp313-cp313-macosx_10_13_x86_64.whl",
+        "url": "https://files.pythonhosted.org/packages/fb/82/bdab26d7438c6791ca31b7c024ca37c1eab8b726ba236129005cd4a06e45/numpy-2.4.6-cp313-cp313-macosx_10_13_x86_64.whl",
+        "sha256": "511dbaf848decaaaf4b4ca48032619fb3138710c4bf7da7617765edad1ef96b0",
+        "size": 16684648,
+        "tag": "cp313-cp313-macosx_10_13_x86_64"
+      },
+      {
+        "package": "praat-parselmouth",
+        "version": "0.4.7",
+        "filename": "praat_parselmouth-0.4.7-cp313-cp313-macosx_10_13_x86_64.whl",
+        "url": "https://files.pythonhosted.org/packages/c2/a9/5e38d5ce459795c73600dedca72912955a299eefc4cbd0759529d30fe488/praat_parselmouth-0.4.7-cp313-cp313-macosx_10_13_x86_64.whl",
+        "sha256": "6ec2b7c3d59b41794923bf6ca7dd97f64bc295b1a4c7835e732add2cb0fabce9",
+        "size": 9051832,
+        "tag": "cp313-cp313-macosx_10_13_x86_64"
+      }
+    ],
+    "windows-x86_64": [
+      {
+        "package": "numpy",
+        "version": "2.4.6",
+        "filename": "numpy-2.4.6-cp313-cp313-win_amd64.whl",
+        "url": "https://files.pythonhosted.org/packages/b5/cd/9cc4dc876fb065d5c220aae4d5e14826b2715331bb7618ce1fb07a679d99/numpy-2.4.6-cp313-cp313-win_amd64.whl",
+        "sha256": "c4fc99836233ea196540b17ab0983aff60ed07941751930f5f4d05bc3b3b7359",
+        "size": 12318598,
+        "tag": "cp313-cp313-win_amd64"
+      },
+      {
+        "package": "praat-parselmouth",
+        "version": "0.4.7",
+        "filename": "praat_parselmouth-0.4.7-cp313-cp313-win_amd64.whl",
+        "url": "https://files.pythonhosted.org/packages/83/35/089a5a8dd45800dcbaa23a414d6f4f5ec29a46fec04d654923efdb3a6746/praat_parselmouth-0.4.7-cp313-cp313-win_amd64.whl",
+        "sha256": "e3bfe1fc8d0f0252766978affa2e7f9b68876540688dfb9c56535fcaa2f4776a",
+        "size": 8958175,
+        "tag": "cp313-cp313-win_amd64"
+      }
+    ]
+  }
+}

@@ -10,7 +10,7 @@ from pathlib import Path
 from typing import Callable
 
 import scripts.release_asset_common as release_asset_common
-from scripts import release_assets
+from scripts import release_assets, vendor_wheels
 
 
 def validate_archive(
@@ -48,6 +48,7 @@ def validate_archive(
             _validate_shared_runtime_files(zf, infos, lock)
         else:
             _validate_thin_archive_excludes_runtime_payloads(names, lock)
+        _validate_vendor_wheels(zf, names)
         _validate_notices(zf, names, include_ffmpeg=include_ffmpeg)
     _validate_archive_size(archive, allow_large_archive=allow_large_archive, warn_archive_bytes=warn_archive_bytes, fail_archive_bytes=fail_archive_bytes)
 
@@ -276,6 +277,17 @@ def _validate_notices(zf: zipfile.ZipFile, names: set[str], *, include_ffmpeg: b
     for required in required_notices:
         if required not in notice_text:
             _validation_error(f"{notice_name} is missing {required} notice")
+
+
+def _validate_vendor_wheels(zf: zipfile.ZipFile, names: set[str]) -> None:
+    lock_name = "vendor/wheels.lock.json"
+    if lock_name not in names:
+        _validation_error(f"missing required file {lock_name}")
+    expected_lock = vendor_wheels.DEFAULT_LOCK_PATH.read_bytes()
+    if zf.read(lock_name) != expected_lock:
+        _validation_error(f"{lock_name} does not match source lock file")
+    for error in vendor_wheels.archive_errors(zf):
+        _validation_error(error)
 
 
 def _validate_release_info(zf: zipfile.ZipFile, names: set[str]) -> None:

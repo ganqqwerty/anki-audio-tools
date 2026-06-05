@@ -1,5 +1,6 @@
 /addon/anki_audio_quick_editor/vendor/*
 !/addon/anki_audio_quick_editor/vendor/README.md
+!/addon/anki_audio_quick_editor/vendor/wheels.lock.json
 !/addon/anki_audio_quick_editor/vendor/wheels/
 !/addon/anki_audio_quick_editor/vendor/wheels/**
 /addon/anki_audio_quick_editor/user_files/

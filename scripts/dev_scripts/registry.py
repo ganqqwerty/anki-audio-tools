@@ -20,6 +20,7 @@ from scripts.dev_scripts.release import (
     cmd_release_assets,
     cmd_release_runtime,
     cmd_release_smoke,
+    cmd_vendor_wheels,
 )
 from scripts.dev_scripts.testing import (
     cmd_test,
@@ -95,6 +96,7 @@ COMMANDS: CommandRegistry = {
     "release": (cmd_release, "Run scripts/release.py"),
     "release-assets": (cmd_release_assets, "Fetch, build, verify, and stage locked release runtime assets"),
     "release-runtime": (cmd_release_runtime, "Build, upload, and verify decoupled runtime release packs"),
+    "vendor-wheels": (cmd_vendor_wheels, "Verify or download locked vendored Python runtime wheels"),
     "release-smoke": (cmd_release_smoke, "Smoke-test a built .ankiaddon archive in isolation"),
     "info": (no_args(cmd_info), "Print discovered paths and versions"),
 }
