@@ -42,6 +42,7 @@ Anki desktop add-on for quickly editing audio references from the note editor. I
 
 ```bash
 python3 scripts/dev.py setup
+python3 scripts/dev.py runtime-install
 python3 scripts/dev.py check
 python3 scripts/dev.py test-e2e
 ```

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import importlib
 import json
 import subprocess
 from pathlib import Path
@@ -26,7 +27,11 @@ def test_graph_smoothness_changes_real_praat_rendered_pitch_density(
     anki_mw,
     ffmpeg_config,
 ) -> None:
-    pytest.importorskip("parselmouth", reason=PRAAT_SKIP_REASON)
+    try:
+        importlib.import_module("parselmouth")
+    except ModuleNotFoundError:
+        pytest.fail(PRAAT_SKIP_REASON)
+
     media_dir = Path(anki_mw.col.media.dir())
     source = media_dir / "editor_graph_params_praat_smoothness.wav"
     _generate_frequency_tone(ffmpeg_config, source, frequency_hz=440, duration_s=1.0)
@@ -171,6 +176,8 @@ def _run_ffmpeg(ffmpeg_config, *args: str) -> None:
         check=True,
         capture_output=True,
         text=True,
+        encoding="utf-8",
+        errors="replace",
     )
 
 

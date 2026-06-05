@@ -22,7 +22,7 @@ def test_database_access_is_isolated() -> None:
     for path in ADDON_DIR.rglob("*.py"):
         if path == ALLOWED_FILE or "__pycache__" in path.parts:
             continue
-        for line_no, line in enumerate(path.read_text().splitlines(), start=1):
+        for line_no, line in enumerate(path.read_text(encoding="utf-8").splitlines(), start=1):
             if line.strip().startswith("#"):
                 continue
             if any(re.search(pattern, line) for pattern in PATTERNS):

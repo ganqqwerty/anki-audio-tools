@@ -15,8 +15,8 @@ from unittest.mock import patch
 
 import pytest
 
-pytest.importorskip("aqt")
-pytest.importorskip("anki.collection")
+importlib.import_module("anki.collection")
+aqt = importlib.import_module("aqt")
 
 PROJECT_ROOT = Path(__file__).parent.parent
 ADDON_DIR = PROJECT_ROOT / "addon" / "anki_audio_quick_editor"
@@ -115,20 +115,6 @@ def _default_config() -> dict:
     }
 
 
-def _find_ffmpeg() -> Path | None:
-    configured = os.environ.get("AQE_FFMPEG_PATH") or os.environ.get("FFMPEG_PATH")
-    candidates = [
-        Path(configured).expanduser() if configured else None,
-        Path("/opt/homebrew/bin/ffmpeg"),
-        Path("/usr/local/bin/ffmpeg"),
-        Path(found) if (found := shutil.which("ffmpeg")) else None,
-    ]
-    for candidate in candidates:
-        if candidate and candidate.is_file():
-            return candidate
-    return None
-
-
 def _process_events_until(predicate, timeout_s: float, message: str) -> None:
     from PyQt6.QtWidgets import QApplication
 
@@ -142,7 +128,6 @@ def _process_events_until(predicate, timeout_s: float, message: str) -> None:
 
 
 def _start_anki_runtime() -> None:
-    import aqt
     from aqt.profiles import ProfileManager
 
     # noinspection PyUnusedLocal
@@ -222,6 +207,7 @@ def anki_base(tmp_path_factory):
             "__pycache__",
             "*.pyc",
             "*.log",
+            ".downloads",
             "aqe_artifacts",
             "meta.json",
         ),
@@ -233,7 +219,6 @@ def anki_base(tmp_path_factory):
 
 @pytest.fixture(scope="session")
 def qapp(anki_base):
-    import aqt
     from PyQt6.QtCore import QEvent
     from PyQt6.QtWidgets import QApplication
 
@@ -259,7 +244,6 @@ def qapp(anki_base):
 
 @pytest.fixture(scope="session")
 def anki_app(anki_base, qapp):
-    import aqt
 
     _process_events_until(
         lambda: aqt.mw is not None and aqt.mw.col is not None,
@@ -291,13 +275,23 @@ def anki_mw(anki_app):
 
 
 @pytest.fixture
-def ffmpeg_config():
-    """Return config that points at real ffmpeg, or skip when unavailable."""
+def ffmpeg_config(anki_mw):
+    """Return config that points at runtime-managed ffmpeg, or fail when unavailable."""
+    del anki_mw
     audio_processing_config = import_runtime_addon_module(".audio_state").AudioProcessingConfig
+    audio_processor = import_runtime_addon_module(".audio_processor")
 
-    ffmpeg = _find_ffmpeg()
-    if ffmpeg is None or not ffmpeg.with_name("ffprobe").is_file():
-        pytest.skip("ffmpeg and ffprobe are required for audio processing e2e tests")
+    try:
+        return _runtime_ffmpeg_config(audio_processor, audio_processing_config)
+    except Exception as exc:
+        pytest.fail(f"ffmpeg and ffprobe are required for audio processing e2e tests: {exc}")
+
+
+def _runtime_ffmpeg_config(audio_processor, audio_processing_config):
+    """Build e2e audio config from the add-on's runtime-aware ffmpeg lookup."""
+    configured = os.environ.get("AQE_FFMPEG_PATH") or os.environ.get("FFMPEG_PATH") or ""
+    ffmpeg = audio_processor.find_ffmpeg(configured)
+    audio_processor.find_ffprobe(ffmpeg)
     return audio_processing_config(ffmpeg_path=str(ffmpeg))
 
 

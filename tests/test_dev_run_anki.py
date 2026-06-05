@@ -37,6 +37,26 @@ def test_cmd_run_anki_stops_when_link_fails(monkeypatch) -> None:
     assert calls == ["build", "link"]
 
 
+def test_candidate_paths_keep_macos_anki_program_files_location(monkeypatch) -> None:
+    monkeypatch.setattr(python_env.platform, "system", lambda: "Darwin")
+    monkeypatch.setattr(python_env.Path, "home", lambda: Path("/Users/tester"))
+
+    assert python_env._candidate_paths() == [
+        Path("/Users/tester/Library/Application Support/AnkiProgramFiles/.venv/bin/python3")
+    ]
+
+
+def test_candidate_paths_prefer_windows_local_appdata(monkeypatch) -> None:
+    monkeypatch.setattr(python_env.platform, "system", lambda: "Windows")
+    monkeypatch.setenv("LOCALAPPDATA", r"C:\Users\tester\AppData\Local")
+    monkeypatch.setenv("APPDATA", r"C:\Users\tester\AppData\Roaming")
+
+    assert python_env._candidate_paths() == [
+        Path(r"C:\Users\tester\AppData\Local\AnkiProgramFiles\.venv\Scripts\python.exe"),
+        Path(r"C:\Users\tester\AppData\Roaming\AnkiProgramFiles\.venv\Scripts\python.exe"),
+    ]
+
+
 def test_cmd_launch_anki_uses_launchservices_on_macos(monkeypatch, tmp_path) -> None:
     app = tmp_path / "Anki.app"
     app.mkdir()
@@ -66,7 +86,7 @@ def test_cmd_launch_anki_starts_anki_python_on_non_macos(monkeypatch) -> None:
     monkeypatch.setattr(python_env.subprocess, "Popen", FakePopen)
 
     assert python_env.cmd_launch_anki() == 0
-    assert calls == [["/opt/anki/python", "-c", python_env.ANKI_PYTHON_LAUNCHER]]
+    assert calls == [[str(Path("/opt/anki/python")), "-c", python_env.ANKI_PYTHON_LAUNCHER]]
 
 
 def test_cmd_launch_anki_reports_launch_failure(monkeypatch, capsys) -> None:

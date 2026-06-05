@@ -44,9 +44,12 @@ def _candidate_paths() -> list[Path]:
             Path.home() / ".var" / "app" / "net.ankiweb.Anki" / "data" / "AnkiProgramFiles" / ".venv" / "bin" / "python3",
         ]
     if system == "Windows":
-        appdata = os.environ.get("APPDATA", "")
-        if appdata:
-            return [Path(appdata) / "AnkiProgramFiles" / ".venv" / "Scripts" / "python.exe"]
+        candidates = []
+        for env_name in ("LOCALAPPDATA", "APPDATA"):
+            env_path = os.environ.get(env_name, "")
+            if env_path:
+                candidates.append(Path(env_path) / "AnkiProgramFiles" / ".venv" / "Scripts" / "python.exe")
+        return candidates
     return []
 
 

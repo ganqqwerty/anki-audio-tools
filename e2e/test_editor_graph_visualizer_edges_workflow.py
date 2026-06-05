@@ -153,6 +153,8 @@ def test_silence_visualizer_renders_pitch_gaps_without_crashing(anki_mw, ffmpeg_
         check=True,
         capture_output=True,
         text=True,
+        encoding="utf-8",
+        errors="replace",
     )
     note = _basic_audio_note(anki_mw, source.name)
     _configure_ffmpeg(anki_mw, ffmpeg_config)

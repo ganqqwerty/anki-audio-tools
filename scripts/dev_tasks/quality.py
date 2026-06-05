@@ -59,11 +59,11 @@ radon_maintainability_violations = _radon_maintainability_violations
 def _radon_display_path(raw_path: object) -> str:
     path = Path(str(raw_path))
     if not path.is_absolute():
-        return str(path)
+        return str(path).replace("\\", "/")
     try:
-        return str(path.relative_to(ROOT))
+        return str(path.relative_to(ROOT)).replace("\\", "/")
     except ValueError:
-        return str(path)
+        return str(path).replace("\\", "/")
 
 
 def _mutmut_fix_stats_prefix_mismatch() -> bool:

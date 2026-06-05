@@ -11,12 +11,11 @@ from anki_audio_quick_editor.audio_tools import (
     expected_bundled_silero_vad_model_path,
     expected_bundled_tool_path,
 )
-from tests.audio_fixtures import FFMPEG_AVAILABLE, FFMPEG_SKIP_REASON
 
 MUSIC_PAUSE_FIXTURE = Path(__file__).parent / "fixtures" / "audio" / "13df7c3d3bc_music_pauses.mp3"
 
 
-@pytest.mark.skipif(not FFMPEG_AVAILABLE, reason=FFMPEG_SKIP_REASON)
+@pytest.mark.allow_managed_runtime
 def test_silero_aggressive_detects_music_filled_pauses_and_removes_min_duration(
     monkeypatch: pytest.MonkeyPatch,
     tmp_path: Path,
@@ -24,7 +23,7 @@ def test_silero_aggressive_detects_music_filled_pauses_and_removes_min_duration(
     silero_path = expected_bundled_tool_path("silero-vad")
     model_path = expected_bundled_silero_vad_model_path()
     if silero_path is None or model_path is None or not silero_path.is_file() or not model_path.is_file():
-        pytest.skip("Bundled Silero VAD executable and model are not available for this platform.")
+        pytest.fail("Bundled Silero VAD executable and model are not available for this platform.")
     monkeypatch.setattr(
         "anki_audio_quick_editor.audio_pause_pipeline.find_silero_vad_bundle",
         lambda: (silero_path, model_path),

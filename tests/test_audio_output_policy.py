@@ -15,6 +15,8 @@ from anki_audio_quick_editor.audio_output_policy import (
 from anki_audio_quick_editor.audio_state import AudioProcessingConfig
 from anki_audio_quick_editor.errors import AudioProcessingError
 
+FFPROBE = str(Path("/bin/ffprobe"))
+
 
 def metadata(
     *,
@@ -232,7 +234,7 @@ def test_probe_audio_metadata_parses_first_audio_stream(monkeypatch, tmp_path: P
     )
     assert calls == [
         [
-            "/bin/ffprobe",
+            FFPROBE,
             "-v",
             "error",
             "-select_streams",
@@ -244,9 +246,12 @@ def test_probe_audio_metadata_parses_first_audio_stream(monkeypatch, tmp_path: P
             str(source),
         ]
     ]
-    assert run_kwargs == [
-        {"capture_output": True, "text": True, "check": False, "encoding": "utf-8", "errors": "replace"}
-    ]
+    assert run_kwargs
+    assert run_kwargs[0]["capture_output"] is True
+    assert run_kwargs[0]["text"] is True
+    assert run_kwargs[0]["check"] is False
+    assert run_kwargs[0]["encoding"] == "utf-8"
+    assert run_kwargs[0]["errors"] == "replace"
 
 
 def test_probe_audio_metadata_raises_for_missing_audio_stream(monkeypatch, tmp_path: Path) -> None:

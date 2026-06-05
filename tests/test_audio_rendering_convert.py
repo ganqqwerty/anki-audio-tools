@@ -13,10 +13,8 @@ from anki_audio_quick_editor.audio_processor import (
 )
 from anki_audio_quick_editor.audio_state import AudioProcessingConfig
 from anki_audio_quick_editor.errors import AudioProcessingError
-from tests.audio_fixtures import (
-    FFMPEG_AVAILABLE,
-    FFMPEG_SKIP_REASON,
-)
+
+FFMPEG = str(Path("/bin/ffmpeg"))
 
 
 def test_render_converted_audio_uses_expected_ffmpeg_invocation(monkeypatch, tmp_path: Path) -> None:
@@ -56,7 +54,7 @@ def test_render_converted_audio_uses_expected_ffmpeg_invocation(monkeypatch, tmp
     )
 
     expected_command = (
-        "/bin/ffmpeg",
+        FFMPEG,
         "-y",
         "-i",
         str(tmp_path / "source.wav"),
@@ -102,10 +100,7 @@ def test_render_converted_audio_uses_default_error_message_for_blank_stderr(
 
 
 @pytest.mark.parametrize("target_format", ["mp3", "m4a", "wav", "flac"])
-@pytest.mark.skipif(
-    not FFMPEG_AVAILABLE,
-    reason=FFMPEG_SKIP_REASON,
-)
+@pytest.mark.allow_managed_runtime
 def test_render_converted_audio_smoke_for_supported_formats(
     target_format: str,
     tmp_path: Path,
@@ -127,6 +122,8 @@ def test_render_converted_audio_smoke_for_supported_formats(
         check=True,
         capture_output=True,
         text=True,
+        encoding="utf-8",
+        errors="replace",
     )
 
     result = render_converted_audio(

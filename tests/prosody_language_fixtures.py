@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import importlib
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -231,8 +232,12 @@ LANGUAGE_CONTOUR_SPECS: dict[str, ContourSpec] = {
 
 
 def require_praat_and_ffmpeg() -> None:
-    pytest.importorskip("parselmouth", reason=PRAAT_SKIP_REASON)
-    pytest.importorskip("numpy", reason=PRAAT_SKIP_REASON)
+    try:
+        importlib.import_module("numpy")
+        importlib.import_module("parselmouth")
+    except ModuleNotFoundError:
+        pytest.fail(PRAAT_SKIP_REASON)
+
     try:
         from anki_audio_quick_editor.audio_processor import find_ffmpeg, find_ffprobe
         from anki_audio_quick_editor.audio_state import AudioProcessingConfig
@@ -243,15 +248,18 @@ def require_praat_and_ffmpeg() -> None:
         import shutil
 
         if shutil.which("ffmpeg") is None or shutil.which("ffprobe") is None:
-            pytest.skip(FFMPEG_SKIP_REASON)
+            pytest.fail(FFMPEG_SKIP_REASON)
     except Exception:
-        pytest.skip(FFMPEG_SKIP_REASON)
+        pytest.fail(FFMPEG_SKIP_REASON)
 
 
 def generate_praat_vowel_fixture(path: Path, spec: ContourSpec) -> Path:
     """Generate a vowel-like WAV through Parselmouth from a known F0 schedule."""
-    parselmouth = pytest.importorskip("parselmouth", reason=PRAAT_SKIP_REASON)
-    np = pytest.importorskip("numpy", reason=PRAAT_SKIP_REASON)
+    try:
+        import numpy as np
+        import parselmouth
+    except ModuleNotFoundError:
+        pytest.fail(PRAAT_SKIP_REASON)
 
     sample_rate = 22_050
     duration_s = spec.duration_ms / 1000

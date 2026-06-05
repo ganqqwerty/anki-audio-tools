@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from scripts.dev_scripts.runtime import cmd_runtime_preflight
 from scripts.dev_tasks.contracts import cmd_contracts_generate
 from scripts.dev_tasks.e2e_parallel import (
     cmd_test_e2e_parallel as _cmd_test_e2e_parallel,
@@ -38,6 +39,9 @@ def cmd_test_anki_api(_command_args: list[str]) -> int:
 
 def cmd_test_e2e(command_args: list[str]) -> int:
     print(E2E_RUNTIME_NOTICE)
+    runtime_rc = cmd_runtime_preflight()
+    if runtime_rc != 0:
+        return runtime_rc
     build_rc = cmd_build_ui()
     if build_rc != 0:
         return build_rc
@@ -51,6 +55,9 @@ def cmd_test_e2e(command_args: list[str]) -> int:
 
 
 def cmd_test_e2e_parallel(command_args: list[str]) -> int:
+    runtime_rc = cmd_runtime_preflight()
+    if runtime_rc != 0:
+        return runtime_rc
     build_rc = cmd_build_ui()
     if build_rc != 0:
         return build_rc

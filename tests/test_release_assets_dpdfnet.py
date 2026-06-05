@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import copy
 import hashlib
+import os
 import stat
 from pathlib import Path
 
@@ -30,7 +31,8 @@ def test_stage_copies_macos_arm64_dpdfnet_binary(tmp_path: Path) -> None:
 
     assert staged == [tmp_path / "stage" / "macos-arm64" / "dpdfnet"]
     assert staged[0].read_bytes() == b"dpdfnet"
-    assert staged[0].stat().st_mode & stat.S_IXUSR
+    if os.name == "posix":
+        assert staged[0].stat().st_mode & stat.S_IXUSR
 
 
 def test_stage_copies_windows_dpdfnet_binary(tmp_path: Path) -> None:

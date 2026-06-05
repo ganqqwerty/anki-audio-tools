@@ -5,6 +5,7 @@ from __future__ import annotations
 import copy
 import hashlib
 import io
+import os
 import stat
 import urllib.request
 import zipfile
@@ -19,6 +20,11 @@ import scripts.release_silero_assets as release_silero_assets
 from tests.release_assets_helpers import write_tar_bz2
 
 
+def _assert_executable_on_posix(path: Path) -> None:
+    if os.name == "posix":
+        assert path.stat().st_mode & stat.S_IXUSR
+
+
 def test_fetch_deepfilter_marks_macos_binary_executable(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     lock = copy.deepcopy(release_assets.load_lock())
 
@@ -30,7 +36,7 @@ def test_fetch_deepfilter_marks_macos_binary_executable(tmp_path: Path, monkeypa
     monkeypatch.setattr(release_assets, "_download_verified", fake_download)
     fetched = release_assets.fetch_deepfilter(lock, target_keys=["macos-arm64"], cache_dir=tmp_path)
     assert fetched == [tmp_path / "bin" / "macos-arm64" / "deep-filter"]
-    assert fetched[0].stat().st_mode & stat.S_IXUSR
+    _assert_executable_on_posix(fetched[0])
 
 
 def test_fetch_ffmpeg_extracts_verified_zip_member(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
@@ -60,7 +66,7 @@ def test_fetch_ffmpeg_extracts_verified_zip_member(tmp_path: Path, monkeypatch: 
     )
     assert fetched == [tmp_path / "cache" / "bin" / "macos-arm64" / "ffmpeg"]
     assert fetched[0].read_bytes() == b"ffmpeg-binary"
-    assert fetched[0].stat().st_mode & stat.S_IXUSR
+    _assert_executable_on_posix(fetched[0])
 
 
 def test_fetch_sherpa_spleeter_extracts_executable_and_runtime_files(
@@ -90,7 +96,7 @@ def test_fetch_sherpa_spleeter_extracts_executable_and_runtime_files(
     runtime = tmp_path / "cache" / "bin" / "macos-arm64" / "libonnxruntime.1.24.4.dylib"
     assert fetched == [executable, runtime]
     assert executable.read_bytes() == b"sherpa-executable"
-    assert executable.stat().st_mode & stat.S_IXUSR
+    _assert_executable_on_posix(executable)
     assert runtime.read_bytes() == b"onnxruntime"
 
 
@@ -158,7 +164,7 @@ def test_fetch_silero_vad_extracts_executable_and_runtime_files(
     runtime = tmp_path / "addon-bin" / "macos-arm64" / "libonnxruntime.1.24.4.dylib"
     assert fetched == [executable, runtime]
     assert executable.read_bytes() == b"silero-executable"
-    assert executable.stat().st_mode & stat.S_IXUSR
+    _assert_executable_on_posix(executable)
     assert runtime.read_bytes() == b"onnxruntime"
 
 

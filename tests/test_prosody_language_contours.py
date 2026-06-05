@@ -24,7 +24,7 @@ from .prosody_language_fixtures import (
 )
 from .prosody_visualizer_harness import render_pitch_points
 
-pytestmark = pytest.mark.praat
+pytestmark = [pytest.mark.praat, pytest.mark.allow_managed_runtime]
 
 PITCH_TOLERANCE_HZ = 32
 MIN_VISIBLE_CONTOUR_PX = 16

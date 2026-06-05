@@ -5,7 +5,6 @@ from __future__ import annotations
 from pathlib import Path
 from unittest.mock import patch
 
-from e2e.editor_audio_generation_helpers import _fake_deep_filter_executable
 from e2e.editor_graph_helpers import (
     _click_graph_and_wait,
     _graph_state_js,
@@ -37,15 +36,13 @@ from e2e.helpers import (
 def test_each_processing_button_updates_field_to_new_real_audio(
     anki_mw,
     ffmpeg_config,
-    tmp_path,
 ) -> None:
     media_dir = Path(anki_mw.col.media.dir())
     source = media_dir / "editor_each_button_source.wav"
     generate_tone(ffmpeg_config, source, duration_s=2.0)
     original_bytes = source.read_bytes()
-    fake_deep_filter, _deep_filter_log = _fake_deep_filter_executable(tmp_path)
     note = _basic_audio_note(anki_mw, source.name)
-    _configure_ffmpeg(anki_mw, ffmpeg_config, deep_filter_path=str(fake_deep_filter))
+    _configure_ffmpeg(anki_mw, ffmpeg_config)
     artifact_root = _artifact_root(anki_mw)
 
     editor, parent = _open_editor(anki_mw, note)
@@ -205,7 +202,7 @@ def test_ffmpeg_command_status_respects_settings_flag(anki_mw, ffmpeg_config) ->
             lambda status: status is not None and " -i " in status["text"],
             timeout=5.0,
         )
-        assert shown_status["title"].startswith(ffmpeg_config.ffmpeg_path)
+        assert ffmpeg_config.ffmpeg_path in shown_status["title"]
         _wait_for_generated_mp3(shown_note, media_dir, shown_source.name)
         final_status = _wait_for_status_flow(
             shown_editor,

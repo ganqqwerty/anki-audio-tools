@@ -55,6 +55,21 @@ def _extract_archive(archive: Path, root: Path) -> Path:
     return package_dir
 
 
+def _anki_audio_modules() -> dict[str, types.ModuleType]:
+    return {
+        name: module
+        for name, module in sys.modules.items()
+        if name == "anki_audio_quick_editor" or name.startswith("anki_audio_quick_editor.")
+    }
+
+
+def _restore_anki_audio_modules(original_modules: dict[str, types.ModuleType]) -> None:
+    for name in list(sys.modules):
+        if name == "anki_audio_quick_editor" or name.startswith("anki_audio_quick_editor."):
+            del sys.modules[name]
+    sys.modules.update(original_modules)
+
+
 def _require_nonempty(package_dir: Path, relative: str) -> None:
     path = package_dir / relative
     if not path.is_file() or path.stat().st_size == 0:
@@ -69,53 +84,61 @@ def _run_tool(path: Path, args: list[str]) -> None:
 
 
 def smoke_archive(archive: Path) -> None:
+    original_modules = _anki_audio_modules()
+    original_sys_path = list(sys.path)
     with tempfile.TemporaryDirectory(prefix="anki-audio-smoke-") as tmp:
-        root = Path(tmp)
-        package_dir = _extract_archive(archive, root)
-        empty_path = root / "empty-path"
-        empty_path.mkdir()
-        os.environ["PATH"] = str(empty_path)
-        sys.path.insert(0, str(root))
-        _install_anki_stubs()
+        try:
+            _restore_anki_audio_modules({})
+            root = Path(tmp)
+            package_dir = _extract_archive(archive, root)
+            empty_path = root / "empty-path"
+            empty_path.mkdir()
+            os.environ["PATH"] = str(empty_path)
+            sys.path.insert(0, str(root))
+            _install_anki_stubs()
 
-        _require_nonempty(package_dir, "contracts_generated.py")
-        _require_nonempty(package_dir, "templates/settings/settings_bundle.js")
-        _require_nonempty(package_dir, "templates/editor/editor_bundle.js")
-        _require_nonempty(package_dir, "templates/batch/batch_bundle.js")
-        _require_nonempty(package_dir, "templates/batch/batch_bundle.css")
-        __import__("anki_audio_quick_editor.contracts_generated")
-        audio_tools = __import__("anki_audio_quick_editor.audio_tools", fromlist=["audio_tools"])
+            _require_nonempty(package_dir, "contracts_generated.py")
+            _require_nonempty(package_dir, "__init__.py")
+            _require_nonempty(package_dir, "templates/settings/settings_bundle.js")
+            _require_nonempty(package_dir, "templates/editor/editor_bundle.js")
+            _require_nonempty(package_dir, "templates/batch/batch_bundle.js")
+            _require_nonempty(package_dir, "templates/batch/batch_bundle.css")
+            __import__("anki_audio_quick_editor.contracts_generated")
+            audio_tools = __import__("anki_audio_quick_editor.audio_tools", fromlist=["audio_tools"])
 
-        platform_key = audio_tools.current_platform_key()
-        if platform_key is None:
-            raise RuntimeError("current platform is not in the release target matrix")
-        manifest = json.loads((package_dir / "bin" / "runtime_manifest.json").read_text(encoding="utf-8"))
-        target_entry = manifest["targets"][platform_key]
-        tools = target_entry["tools"]
-        if _is_thin_runtime_target(target_entry):
-            _validate_runtime_pack_metadata(target_entry["runtime_pack"])
-            return
-        deep_filter = audio_tools.find_deep_filter("")
-        rnnoise = audio_tools.find_rnnoise_bundle()
-        bundled_tools = {
-            "deep-filter": deep_filter,
-            "rnnoise-cli": rnnoise,
-        }
-        if "ffmpeg" in tools:
-            ffmpeg = audio_tools.find_ffmpeg("")
-            ffprobe = audio_tools.find_ffprobe(ffmpeg)
-            bundled_tools.update({
-                "ffmpeg": ffmpeg,
-                "ffprobe": ffprobe,
-            })
-        for tool_name, path in bundled_tools.items():
-            if str(package_dir) not in str(path):
-                raise RuntimeError(f"{tool_name} did not resolve inside extracted archive: {path}")
-        if "ffmpeg" in tools:
-            _run_tool(ffmpeg, tools["ffmpeg"].get("diagnostic_args", ["-version"]))
-            _run_tool(ffprobe, tools["ffprobe"].get("diagnostic_args", ["-version"]))
-        _run_tool(deep_filter, tools["deep-filter"].get("diagnostic_args", ["--version"]))
-        _run_tool(rnnoise, tools["rnnoise-cli"].get("diagnostic_args", ["--version"]))
+            platform_key = audio_tools.current_platform_key()
+            if platform_key is None:
+                raise RuntimeError("current platform is not in the release target matrix")
+            manifest = json.loads((package_dir / "bin" / "runtime_manifest.json").read_text(encoding="utf-8"))
+            target_entry = manifest["targets"][platform_key]
+            tools = target_entry["tools"]
+            if _is_thin_runtime_target(target_entry):
+                _validate_runtime_pack_metadata(target_entry["runtime_pack"])
+                return
+            deep_filter = audio_tools.find_deep_filter("")
+            rnnoise = audio_tools.find_rnnoise_bundle()
+            bundled_tools = {
+                "deep-filter": deep_filter,
+                "rnnoise-cli": rnnoise,
+            }
+            if "ffmpeg" in tools:
+                ffmpeg = audio_tools.find_ffmpeg("")
+                ffprobe = audio_tools.find_ffprobe(ffmpeg)
+                bundled_tools.update({
+                    "ffmpeg": ffmpeg,
+                    "ffprobe": ffprobe,
+                })
+            for tool_name, path in bundled_tools.items():
+                if str(package_dir) not in str(path):
+                    raise RuntimeError(f"{tool_name} did not resolve inside extracted archive: {path}")
+            if "ffmpeg" in tools:
+                _run_tool(ffmpeg, tools["ffmpeg"].get("diagnostic_args", ["-version"]))
+                _run_tool(ffprobe, tools["ffprobe"].get("diagnostic_args", ["-version"]))
+            _run_tool(deep_filter, tools["deep-filter"].get("diagnostic_args", ["--version"]))
+            _run_tool(rnnoise, tools["rnnoise-cli"].get("diagnostic_args", ["--version"]))
+        finally:
+            sys.path[:] = original_sys_path
+            _restore_anki_audio_modules(original_modules)
 
 
 def _is_thin_runtime_target(target_entry: dict[str, object]) -> bool:

@@ -1,9 +1,8 @@
 from __future__ import annotations
 
 import json
+import os
 import stat
-import sys
-import types
 import zipfile
 from pathlib import Path
 
@@ -21,7 +20,8 @@ def test_release_smoke_extract_preserves_executable_bits(tmp_path: Path) -> None
     package_dir = release_smoke._extract_archive(archive, tmp_path / "extract")
 
     extracted = package_dir / "bin" / "macos-arm64" / "ffmpeg"
-    assert extracted.stat().st_mode & stat.S_IXUSR
+    if os.name == "posix":
+        assert extracted.stat().st_mode & stat.S_IXUSR
 
 
 def test_release_smoke_skips_ffmpeg_when_manifest_omits_it(tmp_path: Path, monkeypatch) -> None:
@@ -39,7 +39,24 @@ def test_release_smoke_skips_ffmpeg_when_manifest_omits_it(tmp_path: Path, monke
     }
     with zipfile.ZipFile(archive, "w") as zf:
         zf.writestr("bin/runtime_manifest.json", json.dumps(manifest))
-        for name in ("contracts_generated.py", "templates/settings/settings_bundle.js", "templates/editor/editor_bundle.js", "templates/batch/batch_bundle.js", "templates/batch/batch_bundle.css"):
+        zf.writestr("__init__.py", b"# test package\n")
+        zf.writestr("contracts_generated.py", b"VALUE = 1\n")
+        zf.writestr(
+            "audio_tools.py",
+            "\n".join(
+                [
+                    "from pathlib import Path",
+                    "def current_platform_key():",
+                    "    return 'macos-arm64'",
+                    "def find_deep_filter(_configured_path):",
+                    "    return Path(__file__).parent / 'bin' / 'macos-arm64' / 'deep-filter'",
+                    "def find_rnnoise_bundle():",
+                    "    return Path(__file__).parent / 'bin' / 'macos-arm64' / 'rnnoise-cli'",
+                    "",
+                ]
+            ).encode(),
+        )
+        for name in ("templates/settings/settings_bundle.js", "templates/editor/editor_bundle.js", "templates/batch/batch_bundle.js", "templates/batch/batch_bundle.css"):
             zf.writestr(name, b"x")
         for name in ("bin/macos-arm64/deep-filter", "bin/macos-arm64/rnnoise-cli"):
             info = zipfile.ZipInfo(name)
@@ -53,19 +70,6 @@ def test_release_smoke_skips_ffmpeg_when_manifest_omits_it(tmp_path: Path, monke
 
     monkeypatch.setattr(release_smoke, "_run_tool", fake_run_tool)
     monkeypatch.setattr(release_smoke, "_install_anki_stubs", lambda: None)
-    original_extract = release_smoke._extract_archive
-    audio_tools_stub = types.ModuleType("anki_audio_quick_editor.audio_tools")
-    audio_tools_stub.current_platform_key = lambda: "macos-arm64"
-
-    def fake_extract(archive_path: Path, root: Path) -> Path:
-        package_dir = original_extract(archive_path, root)
-        audio_tools_stub.find_deep_filter = lambda _configured_path: package_dir / "bin" / "macos-arm64" / "deep-filter"
-        audio_tools_stub.find_rnnoise_bundle = lambda: package_dir / "bin" / "macos-arm64" / "rnnoise-cli"
-        return package_dir
-
-    monkeypatch.setattr(release_smoke, "_extract_archive", fake_extract)
-    monkeypatch.setitem(sys.modules, "anki_audio_quick_editor.audio_tools", audio_tools_stub)
-
     release_smoke.smoke_archive(archive)
 
     assert calls == [
@@ -92,6 +96,7 @@ def test_release_smoke_accepts_thin_runtime_manifest(tmp_path: Path, monkeypatch
     }
     with zipfile.ZipFile(archive, "w") as zf:
         zf.writestr("bin/runtime_manifest.json", json.dumps(manifest))
+        zf.writestr("__init__.py", b"# test package\n")
         zf.writestr("contracts_generated.py", b"VALUE = 1\n")
         zf.writestr("audio_tools.py", b"def current_platform_key():\n    return 'macos-arm64'\n")
         for name in (

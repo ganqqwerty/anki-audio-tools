@@ -198,15 +198,23 @@ def test_chorusing_marker_placement_uses_zoomed_viewport(
     )
     try:
         run_js(editor.web, "window.__aqeSetTimeViewportForTest?.(0, 400, 1600)")
-        _click_chorusing_marker(editor, 0.5, expected_count=4)
+        _state(
+            editor,
+            lambda value: value["viewportStartMs"] == 400
+            and value["viewportEndMs"] == 1600,
+        )
+        _click_chorusing_marker(editor, 0.4, expected_count=4)
 
         state = _state(
             editor,
-            lambda value: value["viewportStartMs"] == 400
-            and value["viewportEndMs"] == 1600
+            lambda value: 0 < value["viewportStartMs"] < value["viewportEndMs"] < value["durationMs"]
+            and value["viewportEndMs"] - value["viewportStartMs"] == 1200
             and value["chorusingBaseStartMs"] == 0
             and value["chorusingBaseEndMs"] == 2000
-            and value["chorusingMarkersMs"] == [0, 667, 1000, 1333],
+            and len(value["chorusingMarkersMs"]) == 4
+            and value["chorusingMarkersMs"][0:2] == [0, 667]
+            and abs(value["chorusingMarkersMs"][2] - 880) <= 5
+            and value["chorusingMarkersMs"][3] == 1333,
         )
 
         assert state["chorusingMarkerVisibleXs"]

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import os
 import shutil
 import sys
 from pathlib import Path
@@ -14,15 +15,22 @@ ROOT = Path(__file__).resolve().parents[2]
 SETTINGS_UI_DIR = ROOT / "settings_ui"
 
 
+def _npm_command() -> str | None:
+    if os.name == "nt":
+        return shutil.which("npm.cmd") or shutil.which("npm")
+    return shutil.which("npm")
+
+
 def cmd_build_ui() -> int:
     if not SETTINGS_UI_DIR.is_dir():
         _die("settings_ui/ directory not found.")
-    if not shutil.which("npm"):
+    npm = _npm_command()
+    if not npm:
         _die("npm not found. Install Node.js 18+.")
     contracts_rc = cmd_contracts_generate()
     if contracts_rc != 0:
         return contracts_rc
-    rc = _run(["npm", "run", "build"], cwd=SETTINGS_UI_DIR, label="frontend webview bundle build")
+    rc = _run([npm, "run", "build"], cwd=SETTINGS_UI_DIR, label="frontend webview bundle build")
     if rc == 0:
         _warn_if_addon_symlink_mismatch()
     return rc
@@ -36,7 +44,8 @@ def cmd_test_svelte() -> int:
     if not SETTINGS_UI_DIR.is_dir():
         print("ERROR: settings_ui/ not found; cannot validate frontend.", file=sys.stderr)
         return 1
-    if not shutil.which("npm"):
+    npm = _npm_command()
+    if not npm:
         print("ERROR: npm not found. Install Node.js 18+.", file=sys.stderr)
         return 1
     if not (SETTINGS_UI_DIR / "node_modules").is_dir():
@@ -45,7 +54,7 @@ def cmd_test_svelte() -> int:
     build_rc = cmd_build_ui()
     if build_rc != 0:
         return build_rc
-    lint_fix_rc = _run(["npm", "run", "lint", "--", "--fix"], cwd=SETTINGS_UI_DIR, label="frontend UI lint autofix")
+    lint_fix_rc = _run([npm, "run", "lint", "--", "--fix"], cwd=SETTINGS_UI_DIR, label="frontend UI lint autofix")
     if lint_fix_rc != 0:
         return lint_fix_rc
-    return _run(["npm", "run", "validate"], cwd=SETTINGS_UI_DIR, label="frontend UI validation")
+    return _run([npm, "run", "validate"], cwd=SETTINGS_UI_DIR, label="frontend UI validation")

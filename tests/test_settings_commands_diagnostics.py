@@ -19,13 +19,27 @@ from tests.settings_command_fixtures import (
     _parse_callback,
 )
 
+DEEP_FILTER = str(Path("/addon/bin/deep-filter"))
+DPDFNET = str(Path("/addon/bin/macos-arm64/dpdfnet"))
+RNNOISE = str(Path("/addon/bin/macos-arm64/rnnoise-cli"))
+SILERO_VAD = str(Path("/addon/bin/macos-arm64/silero-vad"))
+SPLEETER = str(Path("/addon/bin/macos-arm64/sherpa-spleeter"))
+
 
 class _ImmediateThread:
-    def __init__(self, target, daemon=True):
+    def __init__(self, target, args=(), kwargs=None, daemon=True):
         self._target = target
+        self._args = args
+        self._kwargs = kwargs or {}
 
     def start(self) -> None:
-        self._target()
+        self._target(*self._args, **self._kwargs)
+
+    def join(self, _timeout=None) -> None:
+        return None
+
+    def is_alive(self) -> bool:
+        return False
 
 
 def test_frontend_log_handles_invalid_payload(caplog: pytest.LogCaptureFixture) -> None:
@@ -282,7 +296,7 @@ def test_async_health_check_reports_deep_filter_version() -> None:
     result = _parse_callback(done_calls[0], "onAsyncDone")
     assert result["result"]["deep_filter"] == {
         "available": True,
-        "path": "/addon/bin/deep-filter",
+        "path": DEEP_FILTER,
         "source": "PATH",
         "version": "deep-filter 0.5.6",
         "error": "",
@@ -315,7 +329,7 @@ def test_async_health_check_reports_rnnoise_version() -> None:
     result = _parse_callback(done_calls[0], "onAsyncDone")
     assert result["result"]["rnnoise"] == {
         "available": True,
-        "path": "/addon/bin/macos-arm64/rnnoise-cli",
+        "path": RNNOISE,
         "source": "bundled",
         "version": "rnnoise-cli 0.2",
         "error": "",
@@ -348,7 +362,7 @@ def test_async_health_check_reports_dpdfnet_version() -> None:
     result = _parse_callback(done_calls[0], "onAsyncDone")
     assert result["result"]["dpdfnet"] == {
         "available": True,
-        "path": "/addon/bin/macos-arm64/dpdfnet",
+        "path": DPDFNET,
         "source": "bundled",
         "version": "dpdfnet-lite 0.1.0",
         "error": "",
@@ -385,7 +399,7 @@ def test_async_health_check_reports_spleeter_probe() -> None:
     result = _parse_callback(done_calls[0], "onAsyncDone")
     assert result["result"]["spleeter"] == {
         "available": True,
-        "path": "/addon/bin/macos-arm64/sherpa-spleeter",
+        "path": SPLEETER,
         "source": "bundled",
         "version": "Non-streaming source separation with sherpa-onnx.",
         "error": "",
@@ -421,7 +435,7 @@ def test_async_health_check_reports_silero_vad_probe() -> None:
     result = _parse_callback(done_calls[0], "onAsyncDone")
     assert result["result"]["silero_vad"] == {
         "available": True,
-        "path": "/addon/bin/macos-arm64/silero-vad",
+        "path": SILERO_VAD,
         "source": "bundled",
         "version": "VAD in sherpa-onnx.",
         "error": "",

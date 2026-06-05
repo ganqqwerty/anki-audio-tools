@@ -20,11 +20,19 @@ from tests.settings_command_fixtures import (
 
 
 class _ImmediateThread:
-    def __init__(self, target, daemon=True):
+    def __init__(self, target, args=(), kwargs=None, daemon=True):
         self._target = target
+        self._args = args
+        self._kwargs = kwargs or {}
 
     def start(self) -> None:
-        self._target()
+        self._target(*self._args, **self._kwargs)
+
+    def join(self, _timeout=None) -> None:
+        return None
+
+    def is_alive(self) -> bool:
+        return False
 
 
 def test_async_support_report_handles_missing_log_file() -> None:

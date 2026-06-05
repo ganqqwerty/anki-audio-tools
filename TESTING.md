@@ -9,6 +9,7 @@ python3 scripts/dev.py check
 python3 scripts/dev.py coverage
 python3 scripts/dev.py qodana
 python3 scripts/dev.py sonar
+python3 scripts/dev.py runtime-install
 python3 scripts/dev.py test-e2e
 python3 scripts/dev.py test-e2e-parallel
 ```
@@ -30,7 +31,12 @@ python3 scripts/dev.py test-e2e-parallel
 
 ## Feature Completion Rule
 
-A feature is not complete until `python3 scripts/dev.py test-e2e` passes. The e2e command rebuilds the frontend bundles first so Anki tests never depend on stale webview output.
+A feature is not complete until `python3 scripts/dev.py test-e2e` passes. Run
+`python3 scripts/dev.py runtime-install` first when the managed runtime is not
+ready. The e2e command preflights managed runtime assets and vendored Python
+wheels, then rebuilds the frontend bundles so Anki tests never depend on stale
+webview output. Missing dependency-backed tools, models, archives, or wheels
+are failures, not skips.
 
 `python3 scripts/dev.py test-e2e-parallel` is available for faster local e2e
 feedback. It rebuilds the frontend once, collects e2e tests once, then runs
@@ -87,6 +93,7 @@ Avoid running `npm run validate` or `pytest e2e` directly as the only verificati
 | Dependency audit | `python3 scripts/dev.py deps` |
 | Complexity | `python3 scripts/dev.py complexity` |
 | Frontend validation | `python3 scripts/dev.py test-svelte` |
+| Managed runtime install/repair | `python3 scripts/dev.py runtime-install` |
 | E2E tests with frontend rebuild | `python3 scripts/dev.py test-e2e` |
 | Parallel local e2e feedback | `python3 scripts/dev.py test-e2e-parallel` |
 | Python branch coverage | `python3 scripts/dev.py coverage` |
