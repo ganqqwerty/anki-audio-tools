@@ -51,6 +51,7 @@ describe("editor inline action workflows", () => {
 
   afterEach(() => {
     disposeEditorRuntime();
+    vi.useRealTimers();
     vi.restoreAllMocks();
   });
 
@@ -313,6 +314,46 @@ describe("editor inline action workflows", () => {
     });
     expect(resetGraphAfterEdit(0)).toBe(true);
     expect(resetGraphAfterEdit(99)).toBe(false);
+  });
+
+  it("renders graph fallback warnings delivered with the graph payload", async () => {
+    const visualizer = await mountTrack(0);
+
+    window.__aqeSetVisualizer?.(
+      0,
+      {
+        ...track,
+        analyzerName: "ffmpeg-pcm",
+        analysisWarning: "Graph used the ffmpeg/PCM fallback.",
+      },
+      0,
+    );
+
+    const status = visualizer.closest<HTMLElement>(".aqe-controls")?.querySelector<HTMLElement>(".aqe-status");
+    expect(status).toHaveTextContent("Graph used the ffmpeg/PCM fallback.");
+    expect(status?.dataset.kind).toBe("warning");
+  });
+
+  it("restores a stable operation status after a graph fallback warning", async () => {
+    vi.useFakeTimers();
+    const visualizer = await mountTrack(0);
+    setControlsBusy(0, false, "Cleaned audio with RNNoise.", "");
+
+    window.__aqeSetVisualizer?.(
+      0,
+      {
+        ...track,
+        analyzerName: "ffmpeg-pcm",
+        analysisWarning: "Graph used the ffmpeg/PCM fallback.",
+      },
+      0,
+    );
+
+    const status = visualizer.closest<HTMLElement>(".aqe-controls")?.querySelector<HTMLElement>(".aqe-status");
+    expect(status).toHaveTextContent("Graph used the ffmpeg/PCM fallback.");
+    vi.advanceTimersByTime(4000);
+    expect(status).toHaveTextContent("Cleaned audio with RNNoise.");
+    expect(status?.dataset.kind).toBe("info");
   });
 
   it("renders a timecode flag at the cursor and clamps it inside the plot", async () => {

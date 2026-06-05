@@ -289,7 +289,7 @@ def test_broad_exception_handlers_are_allowlisted_with_reasons() -> None:
 def _collect_broad_exception_handlers() -> Counter[tuple[str, str]]:
     observed: Counter[tuple[str, str]] = Counter()
     for path in sorted(ADDON_DIR.rglob("*.py")):
-        if "vendor" in path.parts:
+        if "vendor" in path.parts or "user_files" in path.parts:
             continue
         module = _module_name(path)
         visitor = BroadExceptionVisitor(module)

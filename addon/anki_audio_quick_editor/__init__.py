@@ -5,7 +5,6 @@ from __future__ import annotations
 import logging
 import logging.handlers
 import os
-import sys
 from collections.abc import Callable
 from importlib import import_module
 from pathlib import Path
@@ -20,6 +19,7 @@ from .diagnostics_runtime import (
     set_debug_enabled,
 )
 from .release_info import read_release_info
+from .vendor_runtime import VendorActivationError, activate_vendor
 
 if TYPE_CHECKING:
     from .editor_runtime import SettingsLifecycleCallbacks
@@ -28,9 +28,11 @@ logging.basicConfig(level=logging.INFO, format="%(name)s: %(levelname)s: %(messa
 logger = logging.getLogger("anki_audio_quick_editor")
 logger.setLevel(logging.INFO)
 
-_VENDOR_DIR = Path(__file__).parent / "vendor"
-if str(_VENDOR_DIR) not in sys.path:
-    sys.path.insert(0, str(_VENDOR_DIR))
+try:
+    activate_vendor(Path(__file__).parent)
+except VendorActivationError as activation_error:
+    logger.warning("%s", activation_error)
+
 
 def _maybe_attach_debugger(*, wait_for_client: bool = True) -> None:
     """Attach debugpy when requested without making it a shipped dependency."""

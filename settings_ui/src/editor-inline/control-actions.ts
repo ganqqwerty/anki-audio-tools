@@ -85,6 +85,17 @@ export function setStatusForOrd(ord: number, message: EditorStatusMessage, kind 
   renderStatus(status, message || "", kind || "info", command || "");
 }
 
+export function setTransientStatusForOrd(ord: number, message: EditorStatusMessage, kind = "info"): void {
+  const status = statusForOrd(ord);
+  if (!status) return;
+  renderStatus(status, message || "", kind || "info", "");
+}
+
+export function hasStableStatusForOrd(ord: number): boolean {
+  const status = statusForOrd(ord);
+  return Boolean(status?.dataset.stableMessage || status?.dataset.stableUserError);
+}
+
 export function clearStatus(ord: number): void {
   const status = statusForOrd(ord);
   if (!status) return;

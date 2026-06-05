@@ -214,6 +214,11 @@ CORE_CONTRACTS: dict[str, ModuleContract] = {
         layer=Layer.IMPORT_SAFE_CORE,
         allowed_addon_deps=("runtime_manifest", "runtime_paths"),
     ),
+    "vendor_runtime": contract(
+        "vendor_runtime",
+        layer=Layer.IMPORT_SAFE_CORE,
+        allowed_addon_deps=("runtime_paths", "runtime_platform"),
+    ),
     "settings_state": contract(
         "settings_state",
         layer=Layer.IMPORT_SAFE_CORE,

@@ -5,6 +5,8 @@ from __future__ import annotations
 import json
 
 from anki_audio_quick_editor.prosody_types import (
+    FFMPEG_PCM_ANALYSIS_WARNING,
+    FFMPEG_PCM_ANALYZER,
     ProsodyPoint,
     build_prosody_track,
     clamp_cursor_ms,
@@ -48,4 +50,16 @@ def test_track_payload_is_compact_and_json_serializable() -> None:
     assert payload["durationMs"] == 100
     assert payload["pitchMinHz"] == 220.12
     assert payload["points"][0] == [0, None, 0.0, False]
+    assert payload["analysisWarning"] == ""
     assert json.loads(json.dumps(payload)) == payload
+
+
+def test_track_payload_warns_for_ffmpeg_pcm_fallback() -> None:
+    track = build_prosody_track(
+        duration_ms=100,
+        points=[],
+        source_filename="clip.wav",
+        analyzer_name=FFMPEG_PCM_ANALYZER,
+    )
+
+    assert track.to_payload()["analysisWarning"] == FFMPEG_PCM_ANALYSIS_WARNING

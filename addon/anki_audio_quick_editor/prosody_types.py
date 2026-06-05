@@ -5,6 +5,12 @@ from __future__ import annotations
 import math
 from dataclasses import dataclass, replace
 
+FFMPEG_PCM_ANALYZER = "ffmpeg-pcm"
+FFMPEG_PCM_ANALYSIS_WARNING = (
+    "Graph used the ffmpeg/PCM fallback because Praat/Parselmouth was unavailable. "
+    "This is abnormal; please include the add-on log when reporting it."
+)
+
 
 @dataclass(frozen=True)
 class ProsodyPoint:
@@ -36,6 +42,7 @@ class ProsodyTrack:
             "pitchMaxHz": _rounded_or_none(self.pitch_max_hz),
             "sourceFilename": self.source_filename,
             "analyzerName": self.analyzer_name,
+            "analysisWarning": self.analysis_warning,
             "points": [
                 [
                     point.time_ms,
@@ -46,6 +53,13 @@ class ProsodyTrack:
                 for point in self.points
             ],
         }
+
+    @property
+    def analysis_warning(self) -> str:
+        """Return a user-facing warning when graph analysis used an abnormal fallback."""
+        if self.analyzer_name == FFMPEG_PCM_ANALYZER:
+            return FFMPEG_PCM_ANALYSIS_WARNING
+        return ""
 
 
 def build_prosody_track(

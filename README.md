@@ -35,7 +35,7 @@ Anki desktop add-on for quickly editing audio references from the note editor. I
 - Python 3.13 as bundled by Anki
 - Public release archives are thin. On first load, the add-on downloads the verified runtime pack for macOS arm64, macOS x86_64, or Windows x86_64.
 - Optional advanced overrides: explicit `ffmpeg_path` and `deep_filter_path` settings still take precedence over managed runtime tools
-- Optional: `praat-parselmouth` in Anki's Python for preferred pitch/intensity analysis; the add-on falls back to ffmpeg-decoded PCM without it
+- Locked bundled `praat-parselmouth` and NumPy wheels for pitch/intensity analysis on supported platforms; the graph analyzer still falls back to ffmpeg-decoded PCM if Praat is unavailable
 - Node.js 18+ for editing or rebuilding the settings/editor frontend bundles
 
 ## Quick Start
@@ -73,13 +73,22 @@ Normal public add-on releases are thin and consume the tracked
 `runtime_release.lock.json` metadata:
 
 ```bash
+python3 scripts/dev.py vendor-wheels verify
 python3 scripts/release.py --target all --verify-runtime-urls
 python3 scripts/dev.py release-smoke dist/anki-audio-quick-editor-<version>.ankiaddon
 ```
 
 Inspect the archive manifest before publishing: it must point at `runtime-vN`,
-not the add-on tag. GitHub add-on releases should upload only the `.ankiaddon`;
-AnkiWeb should receive the same smoke-tested archive.
+not the add-on tag. The release script also verifies packaged wheels against
+`addon/anki_audio_quick_editor/vendor/wheels.lock.json`. GitHub add-on releases
+should upload only the `.ankiaddon`; AnkiWeb should receive the same
+smoke-tested archive.
+
+Before publishing a public release, run native acceptance on macOS arm64,
+macOS x86_64, and Windows x86_64. That includes checking that Anki's bundled
+CPython 3.13 imports the packaged `praat-parselmouth` and NumPy wheels from the
+add-on-local `user_files/python_vendor/<platform>/` cache, then verifying Graph
+and Pitch Hum run without the ffmpeg/PCM fallback warning.
 
 ## Similar projects
 

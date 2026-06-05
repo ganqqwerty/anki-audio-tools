@@ -6,7 +6,7 @@ import json
 import zipfile
 from pathlib import Path
 
-from scripts import release, release_assets
+from scripts import release, release_assets, vendor_wheels
 
 FAKE_COMMIT_HASH = "a" * 40
 FAKE_RELEASE_INFO = {
@@ -23,13 +23,17 @@ def write_archive(
     *,
     release_info: bytes | None = None,
     runtime_manifest: bytes | None = None,
+    file_overrides: dict[str, bytes] | None = None,
 ) -> None:
     executable_names = executable_names or set()
+    file_overrides = file_overrides or {}
     with zipfile.ZipFile(path, "w", zipfile.ZIP_DEFLATED) as zf:
         for name in names:
             info = zipfile.ZipInfo(name)
             info.external_attr = ((0o755 if name in executable_names else 0o644) & 0xFFFF) << 16
-            if name in executable_names:
+            if name in file_overrides:
+                content = file_overrides[name]
+            elif name in executable_names:
                 content = b"binary"
             elif name == "bin/THIRD_PARTY_NOTICES.md":
                 content = b"FFmpeg LAME DeepFilterNet RNNoise DPDFNet Sherpa Spleeter Silero"
@@ -37,6 +41,13 @@ def write_archive(
                 content = release_info or (json.dumps(FAKE_RELEASE_INFO) + "\n").encode()
             elif name == "bin/runtime_manifest.json":
                 content = runtime_manifest or runtime_manifest_bytes()
+            elif name == "vendor/wheels.lock.json":
+                content = vendor_wheels.DEFAULT_LOCK_PATH.read_bytes()
+            elif name.startswith("vendor/wheels/") and name.endswith(".whl"):
+                content = (
+                    vendor_wheels.DEFAULT_WHEELS_DIR
+                    / Path(name).relative_to("vendor/wheels")
+                ).read_bytes()
             else:
                 content = b""
             zf.writestr(info, content)

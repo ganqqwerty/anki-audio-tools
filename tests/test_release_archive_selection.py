@@ -18,6 +18,24 @@ def test_release_excludes_retained_pause_pipeline_artifacts() -> None:
     assert release._should_include(artifact_manifest) is False
 
 
+def test_release_excludes_runtime_user_files() -> None:
+    runtime_file = release.ADDON_DIR / "user_files" / "python_vendor" / "cache" / "parselmouth.py"
+
+    assert release._should_include(runtime_file) is False
+
+
+def test_release_includes_vendored_wheels() -> None:
+    wheel_file = (
+        release.ADDON_DIR
+        / "vendor"
+        / "wheels"
+        / "windows-x86_64"
+        / "praat_parselmouth-0.4.7-cp313-cp313-win_amd64.whl"
+    )
+
+    assert release._should_include(wheel_file) is True
+
+
 def test_release_keeps_committed_config_json() -> None:
     assert release._should_include(release.ADDON_DIR / "config.json") is True
 

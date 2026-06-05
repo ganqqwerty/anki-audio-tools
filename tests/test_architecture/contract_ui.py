@@ -22,6 +22,7 @@ UI_CONTRACTS: dict[str, ModuleContract] = {
             "runtime_installer_dialog",
             "runtime_manager",
             "settings",
+            "vendor_runtime",
         ),
         allowed_side_effects=(
             SideEffect.ANKI_IMPORTS_ANYWHERE,

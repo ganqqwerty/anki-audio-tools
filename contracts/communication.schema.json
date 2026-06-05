@@ -545,6 +545,7 @@
         "pitchMaxHz": { "type": ["number", "null"] },
         "sourceFilename": { "type": "string" },
         "analyzerName": { "type": "string" },
+        "analysisWarning": { "type": "string" },
         "points": {
           "type": "array",
           "items": { "$ref": "#/definitions/ProsodyPointPayload" }

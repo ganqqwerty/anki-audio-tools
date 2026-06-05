@@ -26,6 +26,13 @@ def cmd_release_runtime(command_args: list[str]) -> int:
     return run_process([sys.executable, "scripts/release_runtime_cli.py", *command_args], label="runtime release")
 
 
+def cmd_vendor_wheels(command_args: list[str]) -> int:
+    if not command_args:
+        print("Usage: python3 scripts/dev.py vendor-wheels <verify|download> [args...]", file=sys.stderr)
+        return 1
+    return run_process([sys.executable, "scripts/vendor_wheels.py", *command_args], label="vendored wheels")
+
+
 def cmd_release_smoke(command_args: list[str]) -> int:
     if len(command_args) != 1:
         print("Usage: python3 scripts/dev.py release-smoke <archive.ankiaddon>", file=sys.stderr)
