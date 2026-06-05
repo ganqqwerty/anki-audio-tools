@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 from types import SimpleNamespace
 
 from anki_audio_quick_editor.settings.commands import (
@@ -130,9 +131,10 @@ def test_settings_save_preserves_partial_chorusing_panel_visibility() -> None:
     assert dialog.accepted is True
 
 
-def test_settings_save_reports_invalid_payload() -> None:
+def test_settings_save_reports_invalid_payload(caplog) -> None:
     dialog = _make_dialog()
     calls, eval_fn = _capture_eval()
+    caplog.set_level(logging.ERROR, logger="anki_audio_quick_editor.settings.commands")
 
     handle_settings_command(_bridge_command("settings.save", "not-a-config"), eval_fn, dialog)
 
@@ -145,6 +147,7 @@ def test_settings_save_reports_invalid_payload() -> None:
         },
     }
     assert dialog.accepted is False
+    assert "settings save displayed error: invalid settings payload" in caplog.text
 
 
 def test_settings_cancel_rejects_dialog() -> None:
@@ -155,19 +158,21 @@ def test_settings_cancel_rejects_dialog() -> None:
     assert dialog.rejected is True
 
 
-def test_settings_reset_defaults_warns_when_defaults_are_missing() -> None:
+def test_settings_reset_defaults_warns_when_defaults_are_missing(caplog) -> None:
     from aqt import mw
     from aqt.qt import QMessageBox
 
     mw.addonManager.addonConfigDefaults.return_value = None
     dialog = _make_dialog()
     _, eval_fn = _capture_eval()
+    caplog.set_level(logging.ERROR, logger="anki_audio_quick_editor.settings.commands")
 
     assert handle_settings_command(_bridge_command("settings.reset_defaults"), eval_fn, dialog) is True
 
     QMessageBox.warning.assert_called_once_with(dialog, "Reset Failed", "Could not load config defaults.")
     mw.addonManager.writeConfig.assert_not_called()
     assert dialog.rejected is False
+    assert "settings reset displayed error: config defaults are missing" in caplog.text
 
 
 def test_settings_reset_defaults_respects_no_confirmation() -> None:
