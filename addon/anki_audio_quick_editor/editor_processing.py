@@ -262,7 +262,13 @@ def replace_current_field_after_render(
             status_summary=status_summary,
         )
     except Exception:
-        logger.debug("Could not record persistent undo operation.", exc_info=True)
+        logger.debug(
+            "Could not record persistent undo operation field_index=%s old=%s new=%s.",
+            field_index,
+            old_filename,
+            saved_name,
+            exc_info=True,
+        )
     should_redraw_graph = _replace_standard_render_session_state(session, field_index, saved_name, updated_state)
     deps.request_playback_after_edit(
         editor,

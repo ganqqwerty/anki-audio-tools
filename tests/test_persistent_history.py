@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import hashlib
+import logging
 from pathlib import Path
 
 import pytest
@@ -85,6 +86,21 @@ def test_repository_ignores_expired_operations(tmp_path: Path) -> None:
     repo.mark_expired(operation_id, expired_at_ms=2)
 
     assert repo.latest_undoable("collection", 1001, 0) is None
+
+
+def test_repository_logs_debug_history_lifecycle(tmp_path: Path, caplog: pytest.LogCaptureFixture) -> None:
+    repo = PersistentHistoryRepository(tmp_path / "history.sqlite3")
+    caplog.set_level(logging.DEBUG, logger="anki_audio_quick_editor.persistent_history")
+
+    operation_id = _append_operation(repo, old_filename="a.mp3", new_filename="b.mp3", created_at_ms=1)
+    latest = repo.latest_undoable("collection", 1001, 0)
+    repo.mark_undone(operation_id, undone_at_ms=2)
+
+    assert latest is not None
+    assert any("persistent undo stored row" in record.message for record in caplog.records)
+    assert any("persistent undo latest query hit" in record.message for record in caplog.records)
+    assert any(f"operation_id={operation_id}" in record.message for record in caplog.records)
+    assert any("persistent undo marked undone" in record.message for record in caplog.records)
 
 
 def test_repository_reports_missing_sqlite(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:

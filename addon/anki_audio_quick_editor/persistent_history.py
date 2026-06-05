@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import logging
 from contextlib import closing
 from dataclasses import asdict, dataclass
 from pathlib import Path
@@ -18,6 +19,7 @@ except ImportError:
     _sqlite3 = None
 
 SCHEMA_VERSION = 1
+logger = logging.getLogger(__name__)
 
 
 class PersistentHistoryUnavailableError(RuntimeError):
@@ -106,7 +108,18 @@ class PersistentHistoryRepository:
             row_id = cursor.lastrowid
             if row_id is None:
                 raise RuntimeError("SQLite did not return an id for the persistent undo row.")
-            return int(row_id)
+            operation_id = int(row_id)
+            logger.debug(
+                "persistent undo stored row id=%s collection=%s note_id=%s field_index=%s type=%s old=%s new=%s",
+                operation_id,
+                _short_collection_id(operation.collection_id),
+                operation.note_id,
+                operation.field_index,
+                operation.operation_type,
+                operation.old_filename,
+                operation.new_filename,
+            )
+            return operation_id
 
     def latest_undoable(
         self,
@@ -130,7 +143,16 @@ class PersistentHistoryRepository:
                 """,
                 (collection_id, note_id, field_index),
             ).fetchone()
-        return _operation_from_row(row) if row is not None else None
+        operation = _operation_from_row(row) if row is not None else None
+        logger.debug(
+            "persistent undo latest query %s collection=%s note_id=%s field_index=%s operation_id=%s",
+            "hit" if operation is not None else "miss",
+            _short_collection_id(collection_id),
+            note_id,
+            field_index,
+            operation.id if operation is not None else None,
+        )
+        return operation
 
     def mark_undone(self, operation_id: int, *, undone_at_ms: int) -> None:
         """Mark an operation as undone."""
@@ -144,6 +166,7 @@ class PersistentHistoryRepository:
                     """,
                 (undone_at_ms, operation_id),
             )
+        logger.debug("persistent undo marked undone id=%s undone_at_ms=%s", operation_id, undone_at_ms)
 
     def mark_expired(self, operation_id: int, *, expired_at_ms: int) -> None:
         """Mark an operation as unavailable due to retention pruning."""
@@ -157,6 +180,7 @@ class PersistentHistoryRepository:
                     """,
                 (expired_at_ms, operation_id),
             )
+        logger.debug("persistent undo marked expired id=%s expired_at_ms=%s", operation_id, expired_at_ms)
 
     def _connect(self) -> Any:
         sqlite = _require_sqlite()
@@ -253,8 +277,13 @@ def sqlite_available() -> bool:
 
 def _require_sqlite() -> Any:
     if _sqlite3 is None:
+        logger.debug("persistent undo sqlite3 module is unavailable")
         raise PersistentHistoryUnavailableError("SQLite support is not available in this Python runtime.")
     return _sqlite3
+
+
+def _short_collection_id(collection_id: str) -> str:
+    return collection_id[:12]
 
 
 def _operation_from_row(row: Any) -> PersistentHistoryOperation:

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import hashlib
+import logging
 import time
 from pathlib import Path
 from typing import Any
@@ -28,6 +29,7 @@ from .sound_refs import replace_sound_reference, select_first_sound_reference
 
 DB_FILENAME = "persistent_undo.sqlite3"
 STANDARD_RENDER_OPERATION = "standard-render"
+logger = logging.getLogger(__name__)
 
 
 def history_db_path_for_editor(editor: Any) -> Path:
@@ -53,14 +55,42 @@ def can_persistent_undo(editor: Any, field_index: int | None) -> bool:
     try:
         operation = _latest_for_field(editor, field_index)
     except PersistentHistoryUnavailableError:
+        logger.debug(
+            "persistent undo availability false reason=sqlite_unavailable field_index=%s",
+            field_index,
+        )
         return False
     if operation is None or field_index is None:
+        logger.debug(
+            "persistent undo availability false reason=no_operation field_index=%s",
+            field_index,
+        )
         return False
     field_html = editor.note.fields[int(field_index)]
-    return (
-        _old_media_available(editor, operation)
-        and _restored_field_html(field_html, operation) is not None
+    if not _old_media_available(editor, operation):
+        logger.debug(
+            "persistent undo availability false reason=old_media_unavailable operation_id=%s field_index=%s old=%s",
+            operation.id,
+            field_index,
+            operation.old_filename,
+        )
+        return False
+    if _restored_field_html(field_html, operation) is None:
+        logger.debug(
+            "persistent undo availability false reason=current_field_not_applicable operation_id=%s field_index=%s new=%s",
+            operation.id,
+            field_index,
+            operation.new_filename,
+        )
+        return False
+    logger.debug(
+        "persistent undo availability true operation_id=%s field_index=%s old=%s new=%s",
+        operation.id,
+        field_index,
+        operation.old_filename,
+        operation.new_filename,
     )
+    return True
 
 
 def record_standard_persistent_undo(
@@ -78,15 +108,25 @@ def record_standard_persistent_undo(
     """Append a persistent undo row for a standard editor render."""
     note_id = getattr(getattr(editor, "note", None), "id", None)
     if note_id is None:
+        logger.debug("persistent undo record skipped reason=no_note_id field_index=%s", field_index)
         return
     media_dir = Path(editor.mw.col.media.dir())
     old_path = existing_media_file_path(media_dir, old_filename)
     new_path = existing_media_file_path(media_dir, new_filename)
     if old_path is None or new_path is None:
+        logger.debug(
+            "persistent undo record skipped reason=missing_media note_id=%s field_index=%s old_exists=%s new_exists=%s old=%s new=%s",
+            note_id,
+            field_index,
+            old_path is not None,
+            new_path is not None,
+            old_filename,
+            new_filename,
+        )
         return
     old_fingerprint = media_fingerprint(old_path)
     new_fingerprint = media_fingerprint(new_path)
-    repository_for_editor(editor).append_operation(
+    operation_id = repository_for_editor(editor).append_operation(
         PersistentHistoryAppend(
             collection_id=collection_id_for_editor(editor),
             note_id=int(note_id),
@@ -106,6 +146,14 @@ def record_standard_persistent_undo(
             created_at_ms=_now_ms(),
         )
     )
+    logger.debug(
+        "persistent undo record stored operation_id=%s note_id=%s field_index=%s old=%s new=%s",
+        operation_id,
+        note_id,
+        field_index,
+        old_filename,
+        new_filename,
+    )
 
 
 def restore_persistent_undo(editor: Any, session: EditorSession, deps: Any) -> bool:
@@ -114,14 +162,27 @@ def restore_persistent_undo(editor: Any, session: EditorSession, deps: Any) -> b
     try:
         operation = _latest_for_field(editor, field_index)
     except PersistentHistoryUnavailableError:
+        logger.debug("persistent undo restore unavailable reason=sqlite_unavailable field_index=%s", field_index)
         _show_persistent_undo_unavailable(editor, deps)
         return True
     if operation is None or not _old_media_available(editor, operation):
+        logger.debug(
+            "persistent undo restore skipped reason=%s field_index=%s operation_id=%s",
+            "no_operation" if operation is None else "old_media_unavailable",
+            field_index,
+            operation.id if operation is not None else None,
+        )
         return False
 
     field_html = editor.note.fields[field_index]
     restored_field_html = _restored_field_html(field_html, operation)
     if restored_field_html is None:
+        logger.debug(
+            "persistent undo restore skipped reason=current_field_not_applicable field_index=%s operation_id=%s new=%s",
+            field_index,
+            operation.id,
+            operation.new_filename,
+        )
         return False
 
     state = audio_edit_state_from_json(operation.old_state_json) or AudioEditState(operation.old_filename)
@@ -148,12 +209,26 @@ def restore_persistent_undo(editor: Any, session: EditorSession, deps: Any) -> b
     editor.loadNote(focusTo=field_index)
     session.pending_status = None
     deps.eval_playback_state(editor, field_index, "stopped", 0)
+    logger.debug(
+        "persistent undo restored operation_id=%s note_id=%s field_index=%s old=%s new=%s",
+        operation.id,
+        operation.note_id,
+        field_index,
+        operation.old_filename,
+        operation.new_filename,
+    )
     return True
 
 
 def _latest_for_field(editor: Any, field_index: int | None) -> PersistentHistoryOperation | None:
     note_id = getattr(getattr(editor, "note", None), "id", None)
     if field_index is None or note_id is None:
+        logger.debug(
+            "persistent undo latest skipped reason=%s field_index=%s note_id=%s",
+            "no_field_index" if field_index is None else "no_note_id",
+            field_index,
+            note_id,
+        )
         return None
     return repository_for_editor(editor).latest_undoable(
         collection_id_for_editor(editor),

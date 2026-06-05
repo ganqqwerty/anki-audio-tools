@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import logging
 from pathlib import Path
 from types import SimpleNamespace
 from unittest.mock import MagicMock
@@ -89,6 +90,30 @@ def test_can_persistent_undo_returns_false_when_sqlite_is_unavailable(tmp_path: 
     assert can_persistent_undo(editor, 0) is False
 
 
+def test_can_persistent_undo_logs_inapplicable_field_reason(
+    tmp_path: Path,
+    monkeypatch,
+    caplog,
+) -> None:
+    media_dir = tmp_path / "media"
+    media_dir.mkdir()
+    old_media = media_dir / "clip.mp3"
+    new_media = media_dir / "clip__aqe_1.mp3"
+    old_media.write_bytes(b"old")
+    new_media.write_bytes(b"new")
+    db_path = tmp_path / "history.sqlite3"
+    editor = _editor(media_dir, note_id=1001, field_html="[sound:other.mp3]")
+    _append_operation(db_path, editor, old_filename=old_media.name, new_filename=new_media.name)
+    monkeypatch.setattr(
+        "anki_audio_quick_editor.editor_persistent_undo.history_db_path_for_editor",
+        lambda _editor: db_path,
+    )
+    caplog.set_level(logging.DEBUG, logger="anki_audio_quick_editor.editor_persistent_undo")
+
+    assert can_persistent_undo(editor, 0) is False
+    assert "reason=current_field_not_applicable" in caplog.text
+
+
 def test_restore_persistent_undo_restores_old_field_html(tmp_path: Path, monkeypatch) -> None:
     media_dir = tmp_path / "media"
     media_dir.mkdir()
@@ -121,6 +146,30 @@ def test_restore_persistent_undo_restores_old_field_html(tmp_path: Path, monkeyp
     assert session.current_filename == old_media.name
     assert editor.loadNote.call_args.kwargs == {"focusTo": 0}
     assert deps.request_playback_after_edit.call_args.args[:2] == (editor, 0)
+
+
+def test_record_standard_persistent_undo_logs_missing_media_skip(
+    tmp_path: Path,
+    caplog,
+) -> None:
+    media_dir = tmp_path / "media"
+    media_dir.mkdir()
+    editor = _editor(media_dir, note_id=1001, field_html="[sound:clip.mp3]")
+    caplog.set_level(logging.DEBUG, logger="anki_audio_quick_editor.editor_persistent_undo")
+
+    record_standard_persistent_undo(
+        editor,
+        field_index=0,
+        old_field_html="[sound:clip.mp3]",
+        new_field_html="[sound:clip__aqe_1.mp3]",
+        old_filename="clip.mp3",
+        new_filename="clip__aqe_1.mp3",
+        old_state=None,
+        new_state=AudioEditState("clip.mp3"),
+        status_summary="Increased speed to x1.5.",
+    )
+
+    assert "persistent undo record skipped reason=missing_media" in caplog.text
 
 
 def test_restore_persistent_undo_replaces_matching_current_reference(tmp_path: Path, monkeypatch) -> None:
