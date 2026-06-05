@@ -26,8 +26,6 @@ from anki_audio_quick_editor.support import (
     latest_pause_pipeline_support_incident,
 )
 from tests.audio_fixtures import (
-    FFMPEG_AVAILABLE,
-    FFMPEG_SKIP_REASON,
     _generate_long_pause_clip,
     _generate_short_pause_clip,
 )
@@ -317,10 +315,7 @@ def test_render_audio_pause_pipeline_records_launch_error_for_out_of_disk(
     assert incident["attempted_commands"][0]["launch_error"].startswith("Could not start working-audio preparation.")
 
 
-@pytest.mark.skipif(
-    not FFMPEG_AVAILABLE,
-    reason=FFMPEG_SKIP_REASON,
-)
+@pytest.mark.allow_managed_runtime
 def test_render_audio_remove_pauses_preserves_short_pause(tmp_path: Path) -> None:
     source = tmp_path / "short_pause.wav"
     output = tmp_path / "short_pause.mp3"
@@ -353,10 +348,7 @@ def test_render_audio_remove_pauses_preserves_short_pause(tmp_path: Path) -> Non
     ]
 
 
-@pytest.mark.skipif(
-    not FFMPEG_AVAILABLE,
-    reason=FFMPEG_SKIP_REASON,
-)
+@pytest.mark.allow_managed_runtime
 def test_render_audio_remove_pauses_cuts_obvious_long_pause(tmp_path: Path) -> None:
     source = tmp_path / "long_pause.wav"
     output = tmp_path / "long_pause.mp3"

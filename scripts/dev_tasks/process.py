@@ -15,6 +15,11 @@ ROOT = Path(__file__).resolve().parents[2]
 _VERBOSE = False
 _IDLE_TIMEOUT_S: float | None = None
 
+if hasattr(sys.stdout, "reconfigure"):
+    sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+if hasattr(sys.stderr, "reconfigure"):
+    sys.stderr.reconfigure(encoding="utf-8", errors="replace")
+
 
 def set_verbose(verbose: bool) -> None:
     global _VERBOSE
@@ -217,6 +222,8 @@ def _run(
         stdout=subprocess.PIPE,
         stderr=subprocess.STDOUT,
         text=True,
+        encoding="utf-8",
+        errors="replace",
         bufsize=1,
     )
     assert process.stdout is not None
@@ -303,6 +310,8 @@ def _run_capture(
         stdout=subprocess.PIPE,
         stderr=subprocess.STDOUT,
         text=True,
+        encoding="utf-8",
+        errors="replace",
     )
     output = result.stdout or ""
     if output and is_verbose():

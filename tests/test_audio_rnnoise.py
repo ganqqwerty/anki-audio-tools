@@ -13,6 +13,9 @@ from anki_audio_quick_editor.support import (
     latest_denoise_support_incident,
 )
 
+FFMPEG = str(Path("/bin/ffmpeg"))
+RNNOISE = str(Path("/bin/rnnoise-cli"))
+
 
 def test_render_rnnoise_audio_runs_prepare_denoise_and_encode(
     monkeypatch,
@@ -45,7 +48,7 @@ def test_render_rnnoise_audio_runs_prepare_denoise_and_encode(
     ) -> SimpleNamespace:
         assert timeout > 0
         calls.append(cmd)
-        if cmd[0] == "/bin/rnnoise-cli":
+        if cmd[0] == RNNOISE:
             Path(cmd[cmd.index("--output") + 1]).write_bytes(b"denoised")
             return SimpleNamespace(returncode=0, stdout='{"ok":true}', stderr="")
         return SimpleNamespace(returncode=0, stdout="", stderr="")
@@ -61,7 +64,7 @@ def test_render_rnnoise_audio_runs_prepare_denoise_and_encode(
     )
 
     assert calls[0] == [
-        "/bin/ffmpeg",
+        FFMPEG,
         "-y",
         "-i",
         str(tmp_path / "source.mp3"),
@@ -76,7 +79,7 @@ def test_render_rnnoise_audio_runs_prepare_denoise_and_encode(
         "pcm_s16le",
         calls[0][-1],
     ]
-    assert calls[1][0] == "/bin/rnnoise-cli"
+    assert calls[1][0] == RNNOISE
     assert calls[1][1:] == [
         "denoise",
         "--input",
@@ -87,7 +90,7 @@ def test_render_rnnoise_audio_runs_prepare_denoise_and_encode(
         "--json",
     ]
     assert calls[2][0:8] == [
-        "/bin/ffmpeg",
+        FFMPEG,
         "-y",
         "-f",
         "s16le",
@@ -127,7 +130,7 @@ def test_render_rnnoise_audio_reports_denoise_errors(
         **_kwargs: object,
     ) -> SimpleNamespace:
         assert timeout > 0
-        if cmd[0] == "/bin/rnnoise-cli":
+        if cmd[0] == RNNOISE:
             return SimpleNamespace(returncode=5, stdout='{"error":"invalid raw input"}', stderr="")
         return SimpleNamespace(returncode=0, stdout="", stderr="")
 
@@ -143,12 +146,10 @@ def test_render_rnnoise_audio_reports_denoise_errors(
     assert incident is not None
     assert incident["operation"] == "rnnoise_denoise"
     assert incident["media_filename"] == "source.mp3"
-    assert incident["ffmpeg_path"] == "/bin/ffmpeg"
-    assert incident["rnnoise_path"] == "/bin/rnnoise-cli"
+    assert incident["ffmpeg_path"] == FFMPEG
+    assert incident["rnnoise_path"] == RNNOISE
     assert len(incident["attempted_commands"]) == 2
-    assert incident["attempted_commands"][1]["command"].startswith(
-        "/bin/rnnoise-cli denoise"
-    )
+    assert incident["attempted_commands"][1]["argv"][:2] == [RNNOISE, "denoise"]
     assert incident["attempted_commands"][1]["returncode"] == 5
     assert incident["attempted_commands"][1]["stdout"] == '{"error":"invalid raw input"}'
 
@@ -176,7 +177,7 @@ def test_render_rnnoise_audio_reports_launch_errors(
         **_kwargs: object,
     ) -> SimpleNamespace:
         assert timeout > 0
-        if cmd[0] == "/bin/rnnoise-cli":
+        if cmd[0] == RNNOISE:
             raise PermissionError(13, "Permission denied", "/bin/rnnoise-cli")
         return SimpleNamespace(returncode=0, stdout="", stderr="")
 

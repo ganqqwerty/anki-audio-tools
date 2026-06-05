@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import importlib
 import math
 import sys
 import wave
@@ -279,7 +280,8 @@ def test_renderers_preserve_voiced_regions_and_silence_unvoiced_gap(
     monkeypatch,
     tmp_path: Path,
 ) -> None:
-    pytest.importorskip("parselmouth")
+    importlib.import_module("parselmouth")
+
     source = tmp_path / "voiced-silence-voiced.wav"
     _write_voiced_silence_voiced_wav(source)
     region_levels: dict[str, dict[str, float]] = {}

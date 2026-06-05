@@ -8,7 +8,6 @@ from pathlib import Path
 import pytest
 
 from e2e.conftest import runtime_addon_import_path
-from e2e.editor_audio_generation_helpers import _fake_deep_filter_executable
 from e2e.editor_graph_helpers import (
     _wait_for_visualizer_track,
 )
@@ -124,7 +123,6 @@ def _expected_processing_status(command: str) -> str:
 def test_multi_field_processing_undo_redo_survives_graph_default_auto_analysis(
     anki_mw,
     ffmpeg_config,
-    tmp_path,
     monkeypatch,
     command: str,
 ) -> None:
@@ -138,7 +136,6 @@ def test_multi_field_processing_undo_redo_survives_graph_default_auto_analysis(
     for index, source in enumerate(sources):
         generate_tone(ffmpeg_config, source, duration_s=1.4 + index * 0.1)
     note = _three_audio_field_note(anki_mw, tuple(source.name for source in sources))
-    fake_deep_filter, _deep_filter_log = _fake_deep_filter_executable(tmp_path)
     if command == "aqe:rnnoise":
         monkeypatch.setattr(
             runtime_addon_import_path(".editor_dependencies", "render_rnnoise_audio"),
@@ -147,7 +144,6 @@ def test_multi_field_processing_undo_redo_survives_graph_default_auto_analysis(
     _configure_ffmpeg(
         anki_mw,
         ffmpeg_config,
-        deep_filter_path=str(fake_deep_filter),
         deep_filter_post_filter=True,
         show_graph_by_default=True,
     )
@@ -257,4 +253,6 @@ def _fake_special_renderer(source_path: Path, config, output_path: Path, **_kwar
         check=True,
         capture_output=True,
         text=True,
+        encoding="utf-8",
+        errors="replace",
     )

@@ -15,13 +15,24 @@ Always go through `python3 scripts/dev.py ...`. The task runner discovers Anki's
 
 ```bash
 python3 scripts/dev.py setup
+python3 scripts/dev.py runtime-install
+python3 scripts/dev.py test-e2e
 ```
 
-This:
+`setup`:
 
 - installs Python dev dependencies into Anki's Python
 - creates the add-on symlink in `addons21/1000000002`
 - runs `npm ci` in `settings_ui/` when `package-lock.json` is present, otherwise `npm install`
+
+`runtime-install` downloads, verifies, extracts, and repairs the current
+platform's managed native runtime through the same core installer used by the
+in-app runtime dialog. It stages the ignored thin runtime manifest from
+`runtime_release.lock.json`, then installs into `user_files/runtime/`.
+
+`test-e2e` fails fast when the managed runtime or vendored Python wheels are
+missing or corrupt. It does not silently skip dependency-backed tests and does
+not auto-download runtime assets; run `runtime-install` first.
 
 ## Zsh Completion
 
@@ -74,6 +85,17 @@ Anki add-ons cannot rely on `pip install` at user runtime. Audio Quick Editor us
 Public release archives are thin. They include `bin/runtime_manifest.json`, but they do not embed `ffmpeg`, `ffprobe`, DeepFilterNet's `deep-filter`, `rnnoise-cli`, Sherpa's `sherpa-spleeter`, `silero-vad`, DPDFNet Lite, or shared Spleeter/Silero model files. They do embed compressed platform wheels under `vendor/wheels/` for Python runtime dependencies with native extensions. On first load, startup schedules a background managed-runtime install into `user_files/runtime/<runtime_manifest_id>/<platform>/`, extracts the current platform's vendored Python wheels into `user_files/python_vendor/<platform>/`, and records runtime state in `user_files/runtime_state.json`.
 
 Runtime discovery checks the configured ffmpeg path where supported, the managed downloaded runtime, package `bin/` as a source-tree development fallback, and `PATH` as a compatibility fallback for `ffmpeg`, `ffprobe`, and `deep-filter`. The settings diagnostics report whether each tool came from config, the managed runtime, the development fallback, or `PATH`.
+
+For local development, provision the current host's managed runtime with:
+
+```bash
+python3 scripts/dev.py runtime-install
+```
+
+The command reuses `runtime_manager.ensure_runtime(...)`, the same download and
+verification core used by the Qt installer dialog. The dev command is headless:
+it prints progress to the task runner and exits nonzero unless the final
+runtime status is `ready`.
 
 `release_assets.lock.json` remains the source of truth for the runtime matrix, source URLs, diagnostic arguments, and SHA-256 values. Keep runtime payloads available under the same staged source layout used by release scripts: non-FFmpeg runtime payloads under `addon/anki_audio_quick_editor/bin/<target>/` and `addon/anki_audio_quick_editor/bin/models/`, with cached `ffmpeg` and `ffprobe` under `.release-assets/bin/<target>/`. Runtime pack releases are built separately from add-on releases and recorded in `runtime_release.lock.json`. Thin add-on releases consume that metadata and write its immutable `runtime-vN` URLs into `bin/runtime_manifest.json`.
 
@@ -247,6 +269,10 @@ workers and can be adjusted with `DEV_E2E_JOBS`, for example:
 ```bash
 DEV_E2E_JOBS=2 python3 scripts/dev.py test-e2e-parallel
 ```
+
+Both e2e commands preflight the managed runtime and vendored Python wheels
+before rebuilding the frontend or collecting tests. Missing runtime tools,
+models, archives, or wheels are command failures, not pytest skips.
 
 Do not treat `settings_ui/src/` as the runtime artifact. During Anki and e2e runs, the add-on reads `addon/anki_audio_quick_editor/templates/settings/settings_bundle.{js,css}`, `addon/anki_audio_quick_editor/templates/editor/editor_bundle.{js,css}`, and `addon/anki_audio_quick_editor/templates/batch/batch_bundle.{js,css}`. Build output changes after `check`, `test-svelte`, or `test-e2e` are expected when source changed, but those generated files are ignored by git.
 

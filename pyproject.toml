@@ -42,6 +42,7 @@ required_plugins = [
     "pytest-randomly",
 ]
 markers = [
+    "allow_managed_runtime: allows unit smoke tests to use the downloaded managed runtime",
     "praat: requires praat-parselmouth for generated speech contour fixtures",
 ]
 

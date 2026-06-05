@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import os
 from pathlib import Path
 from types import SimpleNamespace
 
@@ -109,6 +110,13 @@ def test_existing_media_file_path_preserves_posix_backslash_filename(
     tmp_path: Path,
     monkeypatch,
 ) -> None:
+    if os.name == "nt":
+        monkeypatch.setattr("anki_audio_quick_editor.media_paths.platform.system", lambda: "Darwin")
+        monkeypatch.setattr("anki_audio_quick_editor.sound_refs.platform.system", lambda: "Darwin")
+
+        assert existing_media_file_path(tmp_path, r"back\slash.opus") is None
+        return
+
     source = tmp_path / r"back\slash.opus"
     source.write_bytes(b"audio")
     monkeypatch.setattr("anki_audio_quick_editor.media_paths.platform.system", lambda: "Darwin")

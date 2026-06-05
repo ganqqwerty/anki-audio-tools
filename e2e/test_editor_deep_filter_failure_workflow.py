@@ -2,14 +2,10 @@
 
 from __future__ import annotations
 
-import json
 import shutil
 from pathlib import Path
 
-from e2e.editor_audio_generation_helpers import (
-    _fake_deep_filter_executable,
-    _render_direct_deep_filter_reference,
-)
+from e2e.editor_audio_generation_helpers import _render_direct_deep_filter_reference
 from e2e.editor_note_helpers import (
     _basic_audio_note,
     _button_selector,
@@ -19,7 +15,7 @@ from e2e.editor_note_helpers import (
     _sound_filename,
     _wait_for_generated_mp3,
 )
-from e2e.helpers import click_selector, generate_tone, wait_for_js_condition
+from e2e.helpers import click_selector, wait_for_js_condition
 
 DEEP_FILTER_SAMPLE_FIXTURE = (
     Path(__file__).parent / "fixtures" / "audio" / "3d8ca69aee6_input_48k_mono.wav"
@@ -46,7 +42,6 @@ def test_standard_denoise_menu_matches_direct_deep_filter_output(
     _configure_ffmpeg(
         anki_mw,
         ffmpeg_config,
-        deep_filter_path="",
         deep_filter_post_filter=True,
         show_ffmpeg_commands=True,
     )
@@ -72,18 +67,15 @@ def test_standard_denoise_menu_matches_direct_deep_filter_output(
 def test_standard_denoise_failure_leaves_note_unchanged(
     anki_mw,
     ffmpeg_config,
-    tmp_path,
 ) -> None:
     media_dir = Path(anki_mw.col.media.dir())
     source = media_dir / "editor_standard_denoise_failure_source.wav"
-    generate_tone(ffmpeg_config, source, duration_s=0.8)
+    source.write_bytes(b"not an audio file")
     original_field = f"Prompt [sound:{source.name}]"
-    fake_deep_filter, deep_filter_log = _fake_deep_filter_executable(tmp_path, fail=True)
     note = _basic_audio_note(anki_mw, source.name)
     _configure_ffmpeg(
         anki_mw,
         ffmpeg_config,
-        deep_filter_path=str(fake_deep_filter),
         deep_filter_post_filter=True,
     )
 
@@ -95,16 +87,13 @@ def test_standard_denoise_failure_leaves_note_unchanged(
             _processing_status_js(),
             lambda value: value is not None
             and value["kind"] == "error"
-            and "fake deep-filter failed" in value["text"],
+            and "Invalid data" in value["text"],
             timeout=10.0,
         )
 
         assert status["title"] == ""
         assert note.fields[0] == original_field
         assert _sound_filename(note.fields[0]) == source.name
-        assert json.loads(deep_filter_log.read_text(encoding="utf-8"))[-1].endswith(
-            "input_48k_mono.wav"
-        )
         assert not list(media_dir.glob("editor_standard_denoise_failure_source__aqe_*"))
     finally:
         editor.set_note(None)

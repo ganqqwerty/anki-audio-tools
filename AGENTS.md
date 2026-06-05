@@ -72,7 +72,8 @@ Add `--verbose` when you need live subprocess output or full command diagnostics
 | Full QC | `python3 scripts/dev.py check` |
 | Anki API compatibility | `python3 scripts/dev.py test-anki-api` |
 | Unit tests | `python3 scripts/dev.py test` |
-| E2E tests (builds frontend first) | `python3 scripts/dev.py test-e2e` |
+| Managed runtime install/repair | `python3 scripts/dev.py runtime-install` |
+| E2E tests (preflights runtime, then builds frontend) | `python3 scripts/dev.py test-e2e` |
 | Linter | `python3 scripts/dev.py lint` |
 | Type checker | `python3 scripts/dev.py typecheck` |
 | Python coverage | `python3 scripts/dev.py coverage` |

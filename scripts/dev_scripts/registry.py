@@ -22,6 +22,7 @@ from scripts.dev_scripts.release import (
     cmd_release_smoke,
     cmd_vendor_wheels,
 )
+from scripts.dev_scripts.runtime import cmd_runtime_install
 from scripts.dev_scripts.testing import (
     cmd_test,
     cmd_test_anki_api,
@@ -56,6 +57,7 @@ COMMANDS: CommandRegistry = {
     "setup": (no_args(cmd_setup), "One-time setup: install dev deps, create symlink, npm install"),
     "link-addon": (no_args(cmd_link_addon), "Point Anki's local numeric add-on symlink at this worktree"),
     "run-anki": (cmd_run_anki, "Build UI, link this worktree add-on, and launch real Anki"),
+    "runtime-install": (cmd_runtime_install, "Install or repair managed runtime assets for local development"),
     "architecture-report": (cmd_architecture_report, "Inspect executable architecture contracts and report violations"),
     "test": (cmd_test, "Run unit + architecture tests"),
     "test-e2e": (cmd_test_e2e, "Build frontend bundles, then run e2e tests (requires Anki runtime)"),

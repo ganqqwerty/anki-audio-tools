@@ -6,7 +6,6 @@ import json
 from pathlib import Path
 
 from e2e.conftest import import_runtime_addon_module
-from e2e.editor_audio_generation_helpers import _fake_dpdfnet_executable
 from e2e.editor_note_helpers import (
     ADDON_NUMERIC_ID,
     _artifact_dirs_for_source,
@@ -154,17 +153,14 @@ def test_grouped_volume_and_speed_split_buttons_apply_local_values_without_chang
 def test_pause_split_button_applies_local_aggressiveness_without_changing_settings(
     anki_mw,
     ffmpeg_config,
-    tmp_path,
 ) -> None:
     media_dir = Path(anki_mw.col.media.dir())
     source = media_dir / "editor_split_pause_source.wav"
     generate_tone(ffmpeg_config, source, duration_s=2.0)
-    fake_dpdfnet, _dpdfnet_log = _fake_dpdfnet_executable(tmp_path)
     note = _basic_audio_note(anki_mw, source.name)
     _configure_ffmpeg(
         anki_mw,
         ffmpeg_config,
-        dpdfnet_path=str(fake_dpdfnet),
         pause_detection_algorithm="silencedetect",
         pause_aggressiveness="normal",
         pause_silencedetect_threshold_db=-45,

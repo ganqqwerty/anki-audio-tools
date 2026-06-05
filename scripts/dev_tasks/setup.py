@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import os
 import shutil
 from pathlib import Path
 
@@ -29,6 +30,12 @@ DEV_DEPS = [
 ]
 
 
+def _npm_command() -> str | None:
+    if os.name == "nt":
+        return shutil.which("npm.cmd") or shutil.which("npm")
+    return shutil.which("npm")
+
+
 def cmd_setup() -> int:
     anki_python = _find_anki_python()
     print(f"Anki Python: {anki_python}")
@@ -37,10 +44,11 @@ def cmd_setup() -> int:
         print(f"  Installed: {', '.join(DEV_DEPS)}")
     _setup_addon_symlink()
     npm_rc = 0
-    if SETTINGS_UI_DIR.is_dir() and shutil.which("npm"):
-        npm_cmd = ["npm", "ci", "--legacy-peer-deps"]
+    npm = _npm_command()
+    if SETTINGS_UI_DIR.is_dir() and npm:
+        npm_cmd = [npm, "ci", "--legacy-peer-deps"]
         if not (SETTINGS_UI_DIR / "package-lock.json").is_file():
-            npm_cmd = ["npm", "install", "--legacy-peer-deps"]
+            npm_cmd = [npm, "install", "--legacy-peer-deps"]
         npm_rc = _run(npm_cmd, cwd=SETTINGS_UI_DIR, label="settings UI npm install")
     if pip_rc != 0:
         return pip_rc

@@ -15,6 +15,8 @@ from anki_audio_quick_editor.diagnostics import (
 )
 from anki_audio_quick_editor.errors import MissingDeepFilterError
 
+DEEP_FILTER = str(Path("/tools/deep-filter"))
+
 
 def test_deep_filter_health_reports_missing_executable(monkeypatch) -> None:
     def fake_find_deep_filter() -> Path:
@@ -49,7 +51,7 @@ def test_deep_filter_health_reports_os_error(monkeypatch) -> None:
     health = build_deep_filter_health({})
 
     assert health["available"] is False
-    assert health["path"] == "/tools/deep-filter"
+    assert health["path"] == DEEP_FILTER
     assert health["source"] == "PATH"
     assert health["version"] == ""
     assert health["error"].startswith("AQE-RUNTIME-003:")
@@ -71,7 +73,7 @@ def test_deep_filter_health_reports_timeout(monkeypatch) -> None:
 
     assert health == {
         "available": False,
-        "path": "/tools/deep-filter",
+        "path": DEEP_FILTER,
         "source": "PATH",
         "version": "",
         "error": "deep-filter --version timed out.",
@@ -92,7 +94,7 @@ def test_deep_filter_health_reports_nonzero_version_stderr_with_unicode_filename
         timeout: int,
         **kwargs: object,
     ) -> SimpleNamespace:
-        assert cmd == ["/tools/deep-filter", "--version"]
+        assert cmd == [DEEP_FILTER, "--version"]
         assert capture_output is True
         assert text is True
         assert check is False
@@ -111,7 +113,7 @@ def test_deep_filter_health_reports_nonzero_version_stderr_with_unicode_filename
 
     assert health == {
         "available": False,
-        "path": "/tools/deep-filter",
+        "path": DEEP_FILTER,
         "source": "PATH",
         "version": "",
         "error": "could not inspect 'Даии_青山_voice.opus'",

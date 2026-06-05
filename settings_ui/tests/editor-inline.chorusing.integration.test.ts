@@ -106,13 +106,13 @@ describe("editor inline chorusing integration", () => {
     const { svg } = await prepareChorusingGraph();
     window.__aqeSetTimeViewportForTest?.(0, 200, 800);
 
-    clickMarkerRail(svg, 0.5);
+    clickMarkerRail(svg, 0.4);
 
     expect(window.__aqeGraphStateForTest?.(0)).toMatchObject({
       chorusingBaseEndMs: 1000,
       chorusingBaseStartMs: 0,
       chorusingMarkerVisibleXs: expect.any(Array),
-      chorusingMarkersMs: [0, 333, 500, 667],
+      chorusingMarkersMs: [0, 333, 440, 667],
       viewportEndMs: 800,
       viewportStartMs: 200,
     });

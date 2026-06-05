@@ -92,7 +92,7 @@ def _run_quicktype(quicktype: Path, schema_path: Path, target: GeneratedTarget) 
         "CommunicationContracts",
         "--no-date-times",
         *target.extra_args,
-        str(schema_path),
+        str(schema_path.relative_to(ROOT)),
     ]
     result = subprocess.run(command, cwd=ROOT, capture_output=True, text=True, check=False)
     if result.returncode != 0:
@@ -122,7 +122,7 @@ def generate_outputs() -> dict[Path, str]:
             f"quicktype not found at {quicktype}. Run: python3 scripts/dev.py setup"
         )
 
-    with tempfile.TemporaryDirectory() as tmp:
+    with tempfile.TemporaryDirectory(dir=ROOT) as tmp:
         schema_path = Path(tmp) / "communication.composed.schema.json"
         schema_path.write_text(
             json.dumps(_composed_schema(), indent=2, sort_keys=True),

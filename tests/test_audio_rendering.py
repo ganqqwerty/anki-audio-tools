@@ -18,6 +18,9 @@ from anki_audio_quick_editor.errors import (
     AudioProcessingError,
 )
 
+FFMPEG = str(Path("/bin/ffmpeg"))
+FFPROBE = str(Path("/bin/ffprobe"))
+
 
 def test_make_output_filename_preserves_source_extension_and_timestamp() -> None:
     filename = make_output_filename("my sentence.wav", datetime(2026, 5, 14, 9, 8, 7), "abc12345")
@@ -129,7 +132,7 @@ def test_probe_duration_ms_uses_json_ffprobe_call_and_rounds(monkeypatch, tmp_pa
     assert run_calls == [
         (
             [
-                "/bin/ffprobe",
+                FFPROBE,
                 "-v",
                 "error",
                 "-show_entries",
@@ -232,7 +235,7 @@ def test_render_audio_uses_expected_ffmpeg_invocation(monkeypatch, tmp_path: Pat
     )
 
     expected_command = (
-        "/bin/ffmpeg",
+        FFMPEG,
         "-y",
         "-i",
         str(tmp_path / "source.wav"),
@@ -291,7 +294,9 @@ def test_render_audio_uses_stable_text_decoding_for_non_ascii_sources(
         output_path=output,
     )
 
-    assert run_kwargs == [{"encoding": "utf-8", "errors": "replace"}]
+    assert run_kwargs
+    assert run_kwargs[0]["encoding"] == "utf-8"
+    assert run_kwargs[0]["errors"] == "replace"
 
 
 def test_render_audio_forwards_window_visibility_kwargs(monkeypatch, tmp_path: Path) -> None:

@@ -3,11 +3,17 @@
 from __future__ import annotations
 
 import json
+import os
 
+from anki_audio_quick_editor.ffmpeg_defaults import with_platform_ffmpeg_default
 from anki_audio_quick_editor.settings_state import (
     build_initial_state_payload,
     encode_initial_state,
 )
+
+
+def _log_file_path(addon_dir: str) -> str:
+    return f"{addon_dir}{os.sep}anki_audio_quick_editor.log"
 
 
 def _full_config() -> dict[str, object]:
@@ -128,16 +134,17 @@ def _missing_runtime_status() -> dict[str, object]:
 
 def test_build_initial_state_payload_has_settings_webview_shape() -> None:
     config = _full_config()
+    expected_config = with_platform_ffmpeg_default(config)
     payload = build_initial_state_payload(
         config,
         **_payload_args(),
     )
 
     assert payload == {
-        "config": config,
+        "config": expected_config,
         "version": "0.1.0",
         "addon_dir": "/tmp/addon",
-        "log_file_path": "/tmp/addon/anki_audio_quick_editor.log",
+        "log_file_path": _log_file_path("/tmp/addon"),
         "locale": "de",
         "direction": "ltr",
         "messages": {"settings.title": "Einstellungen"},
@@ -174,4 +181,4 @@ def test_build_initial_state_payload_preserves_false_diagnostics_and_log_path() 
     )
 
     assert payload["diagnostics"]["collection_available"] is False
-    assert payload["log_file_path"] == "/tmp/custom-addon/anki_audio_quick_editor.log"
+    assert payload["log_file_path"] == _log_file_path("/tmp/custom-addon")

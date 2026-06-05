@@ -12,6 +12,7 @@ from anki_audio_quick_editor.file_sharing import (
     LITTERBOX_RETENTION,
     LITTERBOX_UPLOAD_URL,
     FileSharingError,
+    _multipart_body,
     upload_file,
 )
 
@@ -81,23 +82,15 @@ def test_upload_file_posts_utf_media_filename_as_utf8(
 
 
 def test_upload_file_escapes_problematic_filename_header_characters(
-    tmp_path: Path,
-    monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    source = tmp_path / 'quote"line\nback\\slash.opus'
-    source.write_bytes(b"audio")
-    captured: dict[str, object] = {}
+    class ProblematicPath:
+        name = 'quote"line\nback\\slash.opus'
 
-    def fake_urlopen(request: urllib.request.Request, *, timeout: float) -> _Response:
-        del timeout
-        captured["body"] = request.data
-        return _Response("https://files.catbox.moe/share123.opus")
+        def read_bytes(self) -> bytes:
+            return b"audio"
 
-    monkeypatch.setattr("anki_audio_quick_editor.file_sharing.urllib.request.urlopen", fake_urlopen)
-
-    upload_file(source, "catbox")
-
-    upload_header = captured["body"].split(b"Content-Type:", 1)[0]
+    _content_type, body = _multipart_body([("reqtype", "fileupload")], ProblematicPath())
+    upload_header = body.split(b"Content-Type:", 1)[0]
     assert b'filename="quote\\"line back\\\\slash.opus"' in upload_header
     assert b"filename*=UTF-8''quote%22line%0Aback%5Cslash.opus" in upload_header
 

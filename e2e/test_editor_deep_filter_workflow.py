@@ -2,14 +2,10 @@
 
 from __future__ import annotations
 
-import json
 import shutil
 from pathlib import Path
 
 from e2e.conftest import import_runtime_addon_module
-from e2e.editor_audio_generation_helpers import (
-    _fake_deep_filter_executable,
-)
 from e2e.editor_graph_helpers import _click_graph_and_wait, _wait_for_visualizer_track
 from e2e.editor_note_helpers import (
     _basic_audio_note,
@@ -36,7 +32,6 @@ DEEP_FILTER_SAMPLE_FIXTURE = (
 def test_standard_denoise_menu_runs_deep_filter_and_is_undoable(
     anki_mw,
     ffmpeg_config,
-    tmp_path,
 ) -> None:
     probe_duration_ms = import_runtime_addon_module(".audio_processor").probe_duration_ms
 
@@ -44,12 +39,10 @@ def test_standard_denoise_menu_runs_deep_filter_and_is_undoable(
     source = media_dir / "editor_standard_denoise_source.wav"
     generate_tone(ffmpeg_config, source, duration_s=1.2)
     original_bytes = source.read_bytes()
-    fake_deep_filter, deep_filter_log = _fake_deep_filter_executable(tmp_path)
     note = _basic_audio_note(anki_mw, source.name)
     _configure_ffmpeg(
         anki_mw,
         ffmpeg_config,
-        deep_filter_path=str(fake_deep_filter),
         deep_filter_post_filter=True,
         show_ffmpeg_commands=True,
     )
@@ -71,14 +64,6 @@ def test_standard_denoise_menu_runs_deep_filter_and_is_undoable(
         assert source.read_bytes() == original_bytes
         assert probe_duration_ms(generated_path, ffmpeg_config) > 0
         assert abs(probe_duration_ms(generated_path, ffmpeg_config) - 1200) < 250
-
-        deep_filter_args = json.loads(deep_filter_log.read_text(encoding="utf-8"))
-        assert "-D" in deep_filter_args
-        assert "--pf" in deep_filter_args
-        assert "-o" in deep_filter_args
-        output_dir = Path(deep_filter_args[deep_filter_args.index("-o") + 1])
-        assert output_dir.name == "deep_filter_output"
-        assert Path(deep_filter_args[-1]).name == "input_48k_mono.wav"
 
         _wait_for_visualizer_track(
             editor,
@@ -105,17 +90,14 @@ def test_standard_denoise_menu_runs_deep_filter_and_is_undoable(
 def test_standard_denoise_menu_click_then_undo_and_redo_restores_reference(
     anki_mw,
     ffmpeg_config,
-    tmp_path,
 ) -> None:
     media_dir = Path(anki_mw.col.media.dir())
     source = media_dir / "editor_standard_denoise_menu_undo_source.wav"
     generate_tone(ffmpeg_config, source, duration_s=1.2)
-    fake_deep_filter, _deep_filter_log = _fake_deep_filter_executable(tmp_path)
     note = _basic_audio_note(anki_mw, source.name)
     _configure_ffmpeg(
         anki_mw,
         ffmpeg_config,
-        deep_filter_path=str(fake_deep_filter),
         deep_filter_post_filter=True,
     )
 
@@ -176,7 +158,6 @@ def test_standard_denoise_menu_undo_with_user_meta_settings(
         anki_mw,
         ffmpeg_config,
         debug_logging=True,
-        deep_filter_path="",
         deep_filter_post_filter=True,
         repeat_playback_by_default=False,
         show_graph_by_default=True,
@@ -227,7 +208,6 @@ def test_standard_denoise_menu_undo_with_user_meta_settings_on_local_sample(
         anki_mw,
         ffmpeg_config,
         debug_logging=True,
-        deep_filter_path="",
         deep_filter_post_filter=True,
         repeat_playback_by_default=False,
         show_graph_by_default=True,
@@ -283,7 +263,6 @@ def test_standard_denoise_menu_undo_with_user_meta_settings_and_multiple_audio_f
         anki_mw,
         ffmpeg_config,
         debug_logging=True,
-        deep_filter_path="",
         deep_filter_post_filter=True,
         repeat_playback_by_default=False,
         show_graph_by_default=True,

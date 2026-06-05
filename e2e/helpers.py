@@ -186,6 +186,8 @@ def generate_tone(ffmpeg_config, path: Path, duration_s: float) -> None:
         check=True,
         capture_output=True,
         text=True,
+        encoding="utf-8",
+        errors="replace",
     )
 
 

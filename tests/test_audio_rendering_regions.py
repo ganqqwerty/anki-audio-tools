@@ -18,7 +18,8 @@ from anki_audio_quick_editor.audio_processor import (
 )
 from anki_audio_quick_editor.audio_state import AudioEditState, AudioProcessingConfig
 from anki_audio_quick_editor.errors import AudioProcessingError
-from tests.audio_fixtures import FFMPEG_AVAILABLE, FFMPEG_SKIP_REASON
+
+FFMPEG = str(Path("/bin/ffmpeg"))
 
 
 def test_render_audio_region_deleted_uses_concat_filter(monkeypatch, tmp_path: Path) -> None:
@@ -48,7 +49,7 @@ def test_render_audio_region_deleted_uses_concat_filter(monkeypatch, tmp_path: P
         "[a0][a1]concat=n=2:v=0:a=1[out]"
     )
     expected_command = (
-        "/bin/ffmpeg",
+        FFMPEG,
         "-y",
         "-i",
         str(tmp_path / "source.wav"),
@@ -92,7 +93,7 @@ def test_render_audio_region_kept_uses_single_trim_filter(monkeypatch, tmp_path:
         on_command=commands.append,
     )
     expected_command = (
-        "/bin/ffmpeg",
+        FFMPEG,
         "-y",
         "-i",
         str(tmp_path / "source.wav"),
@@ -140,7 +141,7 @@ def _mp3_policy() -> SimpleNamespace:
     )
 
 
-@pytest.mark.skipif(not FFMPEG_AVAILABLE, reason=FFMPEG_SKIP_REASON)
+@pytest.mark.allow_managed_runtime
 def test_render_audio_smoke_with_path_spaces_and_non_ascii(tmp_path: Path) -> None:
     source_dir = tmp_path / "media with spaces"
     source_dir.mkdir()
@@ -152,6 +153,8 @@ def test_render_audio_smoke_with_path_spaces_and_non_ascii(tmp_path: Path) -> No
         check=True,
         capture_output=True,
         text=True,
+        encoding="utf-8",
+        errors="replace",
     )
     result = render_audio(
         source,
@@ -165,7 +168,7 @@ def test_render_audio_smoke_with_path_spaces_and_non_ascii(tmp_path: Path) -> No
     assert 700 <= probe_duration_ms(output, AudioProcessingConfig()) <= 1000
 
 
-@pytest.mark.skipif(not FFMPEG_AVAILABLE, reason=FFMPEG_SKIP_REASON)
+@pytest.mark.allow_managed_runtime
 def test_render_audio_region_kept_smoke_outputs_selected_duration(tmp_path: Path) -> None:
     source = tmp_path / "source.wav"
     output = tmp_path / "kept.mp3"
@@ -175,6 +178,8 @@ def test_render_audio_region_kept_smoke_outputs_selected_duration(tmp_path: Path
         check=True,
         capture_output=True,
         text=True,
+        encoding="utf-8",
+        errors="replace",
     )
     result = render_audio_region_kept(source, 500, 1250, AudioProcessingConfig(), output_path=output)
     probed_duration_ms = probe_duration_ms(output, AudioProcessingConfig())

@@ -14,6 +14,11 @@ from anki_audio_quick_editor.diagnostics import (
     build_spleeter_health,
 )
 
+DPDFNET = str(Path("/addon/bin/macos-arm64/dpdfnet"))
+RNNOISE = str(Path("/addon/bin/macos-arm64/rnnoise-cli"))
+SILERO_VAD = str(Path("/addon/bin/macos-arm64/silero-vad"))
+SPLEETER = str(Path("/addon/bin/macos-arm64/sherpa-spleeter"))
+
 
 def test_rnnoise_health_reports_missing_bundle_at_expected_path(monkeypatch, tmp_path: Path) -> None:
     expected_dir = tmp_path / "bin" / "macos-arm64"
@@ -57,13 +62,13 @@ def test_rnnoise_health_reports_successful_version(monkeypatch) -> None:
         timeout: int,
         **_kwargs: object,
     ) -> SimpleNamespace:
-        assert cmd == ["/addon/bin/macos-arm64/rnnoise-cli", "--version"]
+        assert cmd == [RNNOISE, "--version"]
         return SimpleNamespace(returncode=0, stdout="rnnoise-cli 0.2\n", stderr="")
 
     monkeypatch.setattr("anki_audio_quick_editor.diagnostics.subprocess.run", fake_run)
     assert build_rnnoise_health() == {
         "available": True,
-        "path": "/addon/bin/macos-arm64/rnnoise-cli",
+        "path": RNNOISE,
         "source": "bundled",
         "version": "rnnoise-cli 0.2",
         "error": "",
@@ -115,7 +120,7 @@ def test_rnnoise_health_reports_nonzero_version_output(monkeypatch) -> None:
     )
     assert build_rnnoise_health() == {
         "available": False,
-        "path": "/addon/bin/macos-arm64/rnnoise-cli",
+        "path": RNNOISE,
         "source": "bundled",
         "version": "",
         "error": "invalid arch",
@@ -160,13 +165,13 @@ def test_dpdfnet_health_reports_successful_version(monkeypatch) -> None:
         timeout: int,
         **_kwargs: object,
     ) -> SimpleNamespace:
-        assert cmd == ["/addon/bin/macos-arm64/dpdfnet", "--version"]
+        assert cmd == [DPDFNET, "--version"]
         return SimpleNamespace(returncode=0, stdout="dpdfnet-lite 0.1.0\n", stderr="")
 
     monkeypatch.setattr("anki_audio_quick_editor.diagnostics.subprocess.run", fake_run)
     assert build_dpdfnet_health() == {
         "available": True,
-        "path": "/addon/bin/macos-arm64/dpdfnet",
+        "path": DPDFNET,
         "source": "bundled",
         "version": "dpdfnet-lite 0.1.0",
         "error": "",
@@ -269,13 +274,13 @@ def test_spleeter_health_reports_successful_help_probe(monkeypatch) -> None:
         timeout: int,
         **_kwargs: object,
     ) -> SimpleNamespace:
-        assert cmd == ["/addon/bin/macos-arm64/sherpa-spleeter", "--help"]
+        assert cmd == [SPLEETER, "--help"]
         return SimpleNamespace(returncode=0, stdout="Non-streaming source separation with sherpa-onnx.\n", stderr="")
 
     monkeypatch.setattr("anki_audio_quick_editor.diagnostics.subprocess.run", fake_run)
     assert build_spleeter_health() == {
         "available": True,
-        "path": "/addon/bin/macos-arm64/sherpa-spleeter",
+        "path": SPLEETER,
         "source": "bundled",
         "version": "Non-streaming source separation with sherpa-onnx.",
         "error": "",
@@ -303,13 +308,13 @@ def test_silero_vad_health_reports_successful_help_probe(monkeypatch) -> None:
         timeout: int,
         **_kwargs: object,
     ) -> SimpleNamespace:
-        assert cmd == ["/addon/bin/macos-arm64/silero-vad", "--help"]
+        assert cmd == [SILERO_VAD, "--help"]
         return SimpleNamespace(returncode=0, stdout="VAD in sherpa-onnx.\n", stderr="")
 
     monkeypatch.setattr("anki_audio_quick_editor.diagnostics.subprocess.run", fake_run)
     assert build_silero_vad_health() == {
         "available": True,
-        "path": "/addon/bin/macos-arm64/silero-vad",
+        "path": SILERO_VAD,
         "source": "bundled",
         "version": "VAD in sherpa-onnx.",
         "error": "",

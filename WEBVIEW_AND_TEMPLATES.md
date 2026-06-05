@@ -17,7 +17,7 @@ Rebuild it with:
 python3 scripts/dev.py build
 ```
 
-Frontend-dependent test commands also build before they run. `python3 scripts/dev.py test-svelte` rebuilds before validation, and `python3 scripts/dev.py test-e2e` rebuilds before launching Anki e2e tests.
+Frontend-dependent test commands also build before they run. `python3 scripts/dev.py test-svelte` rebuilds before validation, while `python3 scripts/dev.py test-e2e` and `python3 scripts/dev.py test-e2e-parallel` preflight the managed runtime and vendored Python wheels before rebuilding and launching Anki e2e tests.
 
 Release packaging also regenerates contracts and all webview bundles before staging files, even when invoked with `--skip-quality-checks`. A release archive should never depend on ignored generated files that happened to be present before the release command started.
 

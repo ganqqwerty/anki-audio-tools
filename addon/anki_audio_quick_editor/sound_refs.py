@@ -4,8 +4,8 @@ from __future__ import annotations
 
 import html
 import ntpath
-import os
 import platform
+import posixpath
 import re
 from dataclasses import dataclass
 from pathlib import Path
@@ -115,7 +115,7 @@ def safe_media_basename(filename: str) -> str:
     """Return a basename suitable for resolving inside Anki's media folder."""
     if platform.system() == "Windows":
         return ntpath.basename(filename)
-    return os.path.basename(filename)
+    return posixpath.basename(filename)
 
 
 def replace_sound_reference(

@@ -14,6 +14,9 @@ from anki_audio_quick_editor.support import (
     latest_denoise_support_incident,
 )
 
+DPDFNET = str(Path("/bin/dpdfnet"))
+FFMPEG = str(Path("/bin/ffmpeg"))
+
 
 def test_render_dpdfnet_audio_runs_denoise_and_encode(
     monkeypatch,
@@ -47,9 +50,9 @@ def test_render_dpdfnet_audio_runs_denoise_and_encode(
     ) -> SimpleNamespace:
         assert timeout > 0
         calls.append(cmd)
-        if cmd[0] == "/bin/dpdfnet":
+        if cmd[0] == DPDFNET:
             assert env is not None
-            assert env["DPDFNET_FFMPEG"] == "/bin/ffmpeg"
+            assert env["DPDFNET_FFMPEG"] == FFMPEG
             Path(cmd[5]).write_bytes(b"denoised")
         else:
             assert env is None
@@ -66,14 +69,14 @@ def test_render_dpdfnet_audio_runs_denoise_and_encode(
     )
 
     assert calls[0] == [
-        "/bin/dpdfnet",
+        DPDFNET,
         "enhance",
         "--attn-limit-db",
         "18",
         str(tmp_path / "source.mp3"),
         calls[0][5],
     ]
-    assert calls[1][0:4] == ["/bin/ffmpeg", "-y", "-i", calls[0][5]]
+    assert calls[1][0:4] == [FFMPEG, "-y", "-i", calls[0][5]]
     assert calls[1][-5:] == ["-codec:a", "libmp3lame", "-q:a", "4", str(output)]
     assert commands == [tuple(call) for call in calls]
     assert result.output_path == output
@@ -110,10 +113,10 @@ def test_render_dpdfnet_audio_reports_denoise_errors(
     assert incident is not None
     assert incident["operation"] == "dpdfnet_denoise"
     assert incident["media_filename"] == "source.mp3"
-    assert incident["ffmpeg_path"] == "/bin/ffmpeg"
-    assert incident["dpdfnet_path"] == "/bin/dpdfnet"
+    assert incident["ffmpeg_path"] == FFMPEG
+    assert incident["dpdfnet_path"] == DPDFNET
     assert len(incident["attempted_commands"]) == 1
-    assert incident["attempted_commands"][0]["command"].startswith("/bin/dpdfnet enhance")
+    assert incident["attempted_commands"][0]["argv"][:2] == [DPDFNET, "enhance"]
     assert incident["attempted_commands"][0]["returncode"] == 2
 
 
@@ -178,7 +181,7 @@ def test_render_dpdfnet_audio_reports_timeout_errors(
     assert incident is not None
     assert incident["operation"] == "dpdfnet_denoise"
     assert len(incident["attempted_commands"]) == 1
-    assert incident["attempted_commands"][0]["command"].startswith("/bin/dpdfnet enhance")
+    assert incident["attempted_commands"][0]["argv"][:2] == [DPDFNET, "enhance"]
     assert "Timed out" in incident["attempted_commands"][0]["launch_error"]
 
 
@@ -223,7 +226,7 @@ def test_render_dpdfnet_audio_reports_encode_errors(
     )
 
     def fake_run(cmd: list[str], *_args, **_kwargs) -> SimpleNamespace:
-        if cmd[0] == "/bin/dpdfnet":
+        if cmd[0] == DPDFNET:
             Path(cmd[5]).write_bytes(b"denoised")
             return SimpleNamespace(returncode=0, stdout="", stderr="")
         return SimpleNamespace(returncode=1, stdout="", stderr="encode failed")
@@ -239,4 +242,4 @@ def test_render_dpdfnet_audio_reports_encode_errors(
     incident = latest_denoise_support_incident()
     assert incident is not None
     assert len(incident["attempted_commands"]) == 2
-    assert incident["attempted_commands"][1]["command"].startswith("/bin/ffmpeg")
+    assert incident["attempted_commands"][1]["argv"][0] == FFMPEG

@@ -29,6 +29,7 @@ from anki_audio_quick_editor.errors import (
 )
 
 FinalCommandBuilder = Callable[[Path], tuple[str, ...]]
+FFMPEG = str(Path("/bin/ffmpeg"))
 
 
 def test_build_audio_filters_includes_crop_speed_and_silence_steps() -> None:
@@ -90,7 +91,7 @@ def test_build_silencedetect_command_uses_exact_pause_threshold_and_gap_values(t
     )
 
     assert command == (
-        "/bin/ffmpeg",
+        FFMPEG,
         "-y",
         "-i",
         str(tmp_path / "analysis.wav"),
@@ -124,7 +125,7 @@ def test_build_convert_audio_command_uses_format_codec_args(
     )
 
     assert command == (
-        "/bin/ffmpeg",
+        FFMPEG,
         "-y",
         "-i",
         str(tmp_path / "source.wav"),
@@ -143,7 +144,7 @@ def test_build_size_reduction_audio_command_uses_source_aware_codec_args(tmp_pat
     )
 
     assert command == (
-        "/bin/ffmpeg",
+        FFMPEG,
         "-y",
         "-i",
         str(tmp_path / "source.mp3"),

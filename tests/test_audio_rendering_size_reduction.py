@@ -9,6 +9,8 @@ from anki_audio_quick_editor.audio_processor import render_size_reduced_audio
 from anki_audio_quick_editor.audio_state import AudioProcessingConfig
 from anki_audio_quick_editor.errors import AudioAlreadyCompactError
 
+FFMPEG = str(Path("/bin/ffmpeg"))
+
 
 def test_render_size_reduced_audio_uses_expected_ffmpeg_invocation(
     monkeypatch,
@@ -49,7 +51,7 @@ def test_render_size_reduced_audio_uses_expected_ffmpeg_invocation(
     )
 
     expected_command = (
-        "/bin/ffmpeg",
+        FFMPEG,
         "-y",
         "-i",
         str(source),
