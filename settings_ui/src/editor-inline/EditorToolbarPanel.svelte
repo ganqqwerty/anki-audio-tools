@@ -1,13 +1,16 @@
 <script lang="ts">
+  import AqeTooltip from "../lib/AqeTooltip.svelte";
   import type { Snippet } from "svelte";
 
   const {
     children,
+    description = "",
     label,
     panelClass = "",
     testId,
   }: {
     children: Snippet;
+    description?: string;
     label: string;
     panelClass?: string;
     testId: string;
@@ -23,6 +26,15 @@
   role="group"
   aria-label={label}
 >
-  <span class="aqe-toolbar-panel-label" aria-hidden="true">{label}</span>
+  <AqeTooltip content={description}>
+    {#snippet trigger({ props })}
+      <span
+        {...props}
+        class="aqe-toolbar-panel-label aqe-tooltip-target"
+        data-aqe-tooltip-content={description || undefined}
+        aria-hidden="true"
+      >{label}</span>
+    {/snippet}
+  </AqeTooltip>
   {@render children()}
 </span>

@@ -11,6 +11,7 @@
   const {
     hasSettings = true,
     icon,
+    description = "",
     mode,
     modeControls,
     modeLocked = false,
@@ -22,6 +23,7 @@
     children,
   }: {
     children?: Snippet;
+    description?: string;
     hasSettings?: boolean;
     icon: CommandIconName;
     mode?: EditorButtonDisplayMode | undefined;
@@ -41,10 +43,15 @@
 
 <section class:button-settings-card-hidden={!visible} class="button-settings-card" data-testid={testId}>
   <header class="button-settings-card-header">
-    <span class="button-settings-card-title">
+    <div class="button-settings-card-title">
       <CommandIcon className="button-settings-card-icon" {icon} />
-      <h4>{title}</h4>
-    </span>
+      <div class="button-settings-card-title-copy">
+        <h4>{title}</h4>
+        {#if description}
+          <p class="button-settings-card-description" data-testid={`${testId}-description`}>{description}</p>
+        {/if}
+      </div>
+    </div>
 
     <span class="button-settings-controls">
       <label class="button-settings-checkbox">
@@ -119,14 +126,27 @@
   }
 
   .button-settings-card-title {
-    align-items: center;
+    align-items: flex-start;
     display: flex;
     gap: 8px;
     min-width: 0;
   }
 
+  .button-settings-card-title-copy {
+    display: grid;
+    gap: 3px;
+    min-width: 0;
+  }
+
   .button-settings-card-header h4 {
     font-size: 0.9rem;
+    margin: 0;
+  }
+
+  .button-settings-card-description {
+    color: var(--fg-subtle, currentColor);
+    font-size: 0.8rem;
+    line-height: 1.35;
     margin: 0;
   }
 

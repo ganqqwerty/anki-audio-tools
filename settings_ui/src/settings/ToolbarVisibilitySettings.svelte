@@ -105,6 +105,7 @@
   function modeControls(panel: ToolbarPanelSpec) {
     if (panel.buttons.length === 1) return undefined;
     return panel.buttons.map((button) => ({
+      description: button.title,
       icon: button.icon,
       label: button.label,
       mode: displayMode(button.command),
@@ -139,6 +140,7 @@
       {@const button = panel.primaryButton}
       {@const mode = displayMode(button.command)}
       <ButtonSettingsCard
+        description={panel.description}
         hasSettings={panelHasSettings(panel, visible)}
         icon={panel.icon}
         mode={mode}

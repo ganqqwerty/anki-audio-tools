@@ -187,7 +187,12 @@ describe("editor inline Svelte integration", () => {
     expect(panel).toHaveAttribute("role", "group");
     expect(panel).toHaveAttribute("aria-label", "Chorusing");
     expect(panel).toHaveAttribute("data-aqe-toolbar-button-container", "true");
-    expect(panel.querySelector(".aqe-toolbar-panel-label")).toHaveTextContent("Chorusing");
+    const panelLabel = panel.querySelector<HTMLElement>(".aqe-toolbar-panel-label");
+    expect(panelLabel).toHaveTextContent("Chorusing");
+    expect(panelLabel).toHaveAttribute(
+      "data-aqe-tooltip-content",
+      "Practice the audio from the end, word by word, until you can repeat the whole sentence.",
+    );
     expect(Array.from(panel.querySelectorAll<HTMLButtonElement>("[data-aqe-command]")).map((button) => button.dataset.aqeCommand)).toEqual([
       "aqe:chorusing-practice",
       "aqe:chorusing-next",

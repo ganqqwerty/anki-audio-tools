@@ -125,6 +125,7 @@
         </span>
       {:else if item.kind === "toolbar-panel"}
         <EditorToolbarPanel
+          description={item.description}
           label={item.label}
           panelClass={toolbarPanelClass(item.definition.slug)}
           testId={toolbarPanelTestId(item.definition.slug)}

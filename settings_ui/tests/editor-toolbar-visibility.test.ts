@@ -11,6 +11,7 @@ describe("editor toolbar visibility panels", () => {
   it("defines atomic toolbar panels in one shared list", () => {
     expect(TOOLBAR_PANEL_DEFINITIONS.map((definition) => ({
       commands: definition.commands,
+      descriptionKey: definition.descriptionKey,
       labelKey: definition.labelKey,
       slug: definition.slug,
       titleKey: definition.titleKey,
@@ -21,6 +22,7 @@ describe("editor toolbar visibility panels", () => {
           "aqe:chorusing-next",
           "aqe:chorusing-previous",
         ],
+        descriptionKey: "editor.chorusing.panel_description",
         labelKey: "editor.chorusing.title",
         slug: "chorusing",
         titleKey: "editor.command.chorusing_practice.title",
@@ -32,6 +34,7 @@ describe("editor toolbar visibility panels", () => {
           "aqe:share-recording",
           "aqe:show-recording-file",
         ],
+        descriptionKey: "editor.recording.panel_description",
         labelKey: "editor.command.record_group.label",
         slug: "record-play-yours",
         titleKey: "editor.command.record_group.label",

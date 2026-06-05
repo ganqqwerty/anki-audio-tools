@@ -15,6 +15,7 @@ export interface ToolbarPanelSpec {
   atomicVisibility: boolean;
   buttons: readonly ToolbarButtonSpec[];
   commands: readonly EditorCommand[];
+  description: string;
   icon: CommandIconName;
   label: string;
   primaryButton: ToolbarButtonSpec;
@@ -38,6 +39,7 @@ export function toolbarPanels(
         atomicVisibility: matchedPanel.definition.atomicVisibility === true,
         buttons: matchedPanel.buttons,
         commands: matchedPanel.definition.commands,
+        description: t(matchedPanel.definition.descriptionKey),
         icon: primaryButton.icon,
         label: t(matchedPanel.definition.labelKey),
         primaryButton,
@@ -51,6 +53,7 @@ export function toolbarPanels(
       atomicVisibility: false,
       buttons: [button],
       commands: [button.command],
+      description: button.title,
       icon: button.icon,
       label: button.label,
       primaryButton: button,

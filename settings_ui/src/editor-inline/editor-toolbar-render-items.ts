@@ -11,6 +11,7 @@ export type ToolbarRenderItem =
   | { button: ButtonSpec; kind: "button" }
   | {
     buttons: readonly ButtonSpec[];
+    description: string;
     definition: ToolbarPanelDefinition;
     kind: "toolbar-panel";
     label: string;
@@ -31,6 +32,7 @@ export function buildEditorToolbarRenderItems(buttons: readonly ButtonSpec[]): r
     if (matchedPanel) {
       items.push({
         buttons: matchedPanel.buttons,
+        description: t(matchedPanel.definition.descriptionKey),
         definition: matchedPanel.definition,
         kind: "toolbar-panel",
         label: t(matchedPanel.definition.labelKey),

@@ -3,6 +3,7 @@
   import type { CommandIconName } from "$lib/icon-types.js";
 
   export interface ButtonSettingsPanelControl {
+    description?: string;
     icon: CommandIconName;
     label: string;
     mode: EditorButtonDisplayMode;
@@ -40,9 +41,14 @@
       class="button-settings-panel-row"
       data-testid={`${control.testId}-row`}
     >
-      <span class="button-settings-panel-title">
-        <CommandIcon className="button-settings-panel-icon" icon={control.icon} />
-        <span>{control.label}</span>
+      <span class="button-settings-panel-title-copy">
+        <span class="button-settings-panel-title">
+          <CommandIcon className="button-settings-panel-icon" icon={control.icon} />
+          <span>{control.label}</span>
+        </span>
+        {#if control.description}
+          <span class="button-settings-panel-description">{control.description}</span>
+        {/if}
       </span>
 
       <span class="button-settings-panel-controls">
@@ -120,6 +126,19 @@
   }
 
   .button-settings-panel-title span {
+    overflow-wrap: anywhere;
+  }
+
+  .button-settings-panel-title-copy {
+    display: grid;
+    gap: 3px;
+    min-width: 0;
+  }
+
+  .button-settings-panel-description {
+    color: var(--fg-subtle, currentColor);
+    font-size: 0.78rem;
+    line-height: 1.35;
     overflow-wrap: anywhere;
   }
 

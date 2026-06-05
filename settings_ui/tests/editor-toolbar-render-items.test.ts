@@ -11,6 +11,7 @@ describe("editor toolbar render items", () => {
 
     expect(panels.map((item) => ({
       commands: item.buttons.map((button) => button.command),
+      description: item.description,
       label: item.label,
       slug: item.definition.slug,
     }))).toEqual([
@@ -20,6 +21,7 @@ describe("editor toolbar render items", () => {
           "aqe:chorusing-next",
           "aqe:chorusing-previous",
         ],
+        description: "Practice the audio from the end, word by word, until you can repeat the whole sentence.",
         label: "Chorusing",
         slug: "chorusing",
       },
@@ -30,6 +32,7 @@ describe("editor toolbar render items", () => {
           "aqe:share-recording",
           "aqe:show-recording-file",
         ],
+        description: "Record your voice for the current graph, then play, share, or show your latest recording.",
         label: "Record / Play yours",
         slug: "record-play-yours",
       },

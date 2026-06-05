@@ -5,6 +5,7 @@ export type ToolbarPanelSlug = "chorusing" | "record-play-yours";
 export interface ToolbarPanelDefinition {
   atomicVisibility?: boolean;
   commands: readonly EditorCommand[];
+  descriptionKey: string;
   labelKey: string;
   primaryCommand: EditorCommand;
   slug: ToolbarPanelSlug;
@@ -24,6 +25,7 @@ export const TOOLBAR_PANEL_DEFINITIONS = [
       "aqe:chorusing-next",
       "aqe:chorusing-previous",
     ],
+    descriptionKey: "editor.chorusing.panel_description",
     labelKey: "editor.chorusing.title",
     primaryCommand: "aqe:chorusing-practice",
     slug: "chorusing",
@@ -37,6 +39,7 @@ export const TOOLBAR_PANEL_DEFINITIONS = [
       "aqe:share-recording",
       "aqe:show-recording-file",
     ],
+    descriptionKey: "editor.recording.panel_description",
     labelKey: "editor.command.record_group.label",
     primaryCommand: "aqe:record-voice",
     slug: "record-play-yours",

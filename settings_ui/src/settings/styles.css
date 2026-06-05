@@ -179,6 +179,51 @@ body {
   margin: 0;
 }
 
+.settings-root input[type="checkbox"] {
+  appearance: none;
+  background: #fff;
+  border: 1px solid color-mix(in srgb, ButtonBorder 82%, transparent);
+  border-radius: 3px;
+  box-sizing: border-box;
+  color: HighlightText;
+  cursor: inherit;
+  display: inline-grid;
+  flex: 0 0 13px;
+  height: 13px;
+  margin: 0;
+  place-content: center;
+  width: 13px;
+}
+
+.settings-root input[type="checkbox"]::before {
+  border: solid currentColor;
+  border-width: 0 0 2px 2px;
+  content: "";
+  height: 4px;
+  transform: rotate(-45deg) scale(0);
+  transform-origin: center;
+  width: 7px;
+}
+
+.settings-root input[type="checkbox"]:checked {
+  background: Highlight;
+  border-color: Highlight;
+}
+
+.settings-root input[type="checkbox"]:checked::before {
+  transform: rotate(-45deg) scale(1);
+}
+
+.settings-root input[type="checkbox"]:focus-visible {
+  outline: 2px solid Highlight;
+  outline-offset: 2px;
+}
+
+.settings-root input[type="checkbox"]:disabled {
+  cursor: not-allowed;
+  opacity: 0.65;
+}
+
 .settings-label-with-icon {
   align-items: center;
   display: inline-flex;
