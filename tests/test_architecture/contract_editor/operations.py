@@ -108,6 +108,7 @@ EDITOR_OPERATION_CONTRACTS: dict[str, ModuleContract] = {
             "editor_runtime",
             "editor_session",
             "error_codes",
+            "errors",
             "file_reveal",
             "i18n",
         ),

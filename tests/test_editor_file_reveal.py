@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import logging
 from pathlib import Path
 from unittest.mock import MagicMock
 
@@ -67,10 +68,10 @@ def test_reveal_file_selects_file_on_macos(tmp_path: Path, monkeypatch) -> None:
     assert commands == [("open", "-R", str(source.resolve()))]
 
 
-def test_reveal_file_selects_file_on_windows(tmp_path: Path, monkeypatch) -> None:
+def test_reveal_file_selects_file_on_windows(tmp_path: Path, monkeypatch, caplog) -> None:
     media_dir = tmp_path / "User 1" / "collection.media"
     media_dir.mkdir(parents=True)
-    source = media_dir / "Даии_青山 clip one.opus"
+    source = media_dir / "Даии, 青山 clip one.opus"
     source.write_bytes(b"audio")
     commands: list[tuple[str, ...]] = []
 
@@ -79,10 +80,14 @@ def test_reveal_file_selects_file_on_windows(tmp_path: Path, monkeypatch) -> Non
         "anki_audio_quick_editor.file_reveal._run_detached",
         lambda command: commands.append(command),
     )
+    caplog.set_level(logging.INFO, logger="anki_audio_quick_editor.file_reveal")
 
     reveal_file(source)
 
-    assert commands == [("explorer.exe", f"/select,{source.resolve()}")]
+    assert commands == [("explorer.exe", "/select,", str(source.resolve()))]
+    assert "Windows Explorer reveal launch" in caplog.text
+    assert "explorer.exe" in caplog.text
+    assert str(source.resolve()) in caplog.text
 
 
 def test_reveal_file_opens_parent_folder_elsewhere(tmp_path: Path, monkeypatch) -> None:

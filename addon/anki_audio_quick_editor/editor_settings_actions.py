@@ -7,10 +7,13 @@ from typing import Any, Callable
 from .editor_runtime import SettingsLifecycleCallbacks
 from .editor_session import PendingEditorStatus, ready_learner_recording_media_path
 from .error_codes import (
+    AQE_FILE_REVEAL_FAILED,
+    AQE_MEDIA_CURRENT_FIELD_AUDIO_MISSING,
     AQE_MEDIA_REFERENCED_AUDIO_MISSING,
     AQE_SETTINGS_INVALID_PAYLOAD,
     coded_error,
 )
+from .errors import AudioProcessingError, MissingMediaError
 from .file_reveal import open_external_url as open_url
 from .file_reveal import reveal_file
 from .i18n import t
@@ -72,7 +75,22 @@ def refresh_editor_after_settings_save(editor: Any, deps: Any, status_after_relo
 
 def show_current_audio_file(editor: Any, deps: Any) -> None:
     """Reveal the current audio file in the platform file manager."""
-    session, media_path = deps.current_media_path(editor)
+    try:
+        session, media_path = deps.current_media_path(editor)
+    except MissingMediaError as exc:
+        deps.eval_status(
+            editor,
+            coded_error(AQE_MEDIA_REFERENCED_AUDIO_MISSING, str(exc)),
+            kind="error",
+        )
+        return
+    except AudioProcessingError as exc:
+        deps.eval_status(
+            editor,
+            coded_error(AQE_MEDIA_CURRENT_FIELD_AUDIO_MISSING, str(exc)),
+            kind="error",
+        )
+        return
     show_media_file(editor, session, media_path, deps)
 
 
@@ -92,8 +110,24 @@ def show_media_file(editor: Any, session: Any, media_path: Any, deps: Any) -> No
     if deps.is_busy(session):
         deps.eval_status(editor, deps.still_processing_message, kind="processing")
         return
-    reveal_file(media_path)
+    try:
+        reveal_file(media_path)
+    except MissingMediaError as exc:
+        deps.eval_status(
+            editor,
+            coded_error(AQE_MEDIA_REFERENCED_AUDIO_MISSING, str(exc)),
+            kind="error",
+        )
+        return
+    except AudioProcessingError as exc:
+        deps.eval_status(
+            editor,
+            coded_error(AQE_FILE_REVEAL_FAILED, str(exc)),
+            kind="error",
+        )
+        return
     deps.eval_status(editor, t("editor.status.showing_in_folder", {"filename": media_path.name}))
+
 
 def open_external_url(url: str) -> None:
     """Open a trusted external URL from the editor webview."""

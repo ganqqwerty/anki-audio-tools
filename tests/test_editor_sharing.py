@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 from pathlib import Path
 from types import SimpleNamespace
 from unittest.mock import MagicMock
@@ -9,8 +10,10 @@ from anki_audio_quick_editor.editor_session import EditorSession, LearnerRecordi
 from anki_audio_quick_editor.editor_sharing import (
     finish_shared_audio,
     share_current_audio_file,
+    share_failed,
     share_learner_recording_file,
 )
+from anki_audio_quick_editor.errors import AudioProcessingError, MissingMediaError
 
 
 def _message(key: str, values: dict[str, str] | None = None) -> str:
@@ -29,6 +32,8 @@ def _message(key: str, values: dict[str, str] | None = None) -> str:
         return "Sharing with Catbox"
     if key == "editor.status.sharing_litterbox":
         return "Sharing with Litterbox"
+    if key == "editor.status.share_failed":
+        return f"Share failed: {values['error']}"
     raise KeyError(key)
 
 
@@ -68,10 +73,74 @@ def test_share_current_audio_file_rejects_invalid_target_without_upload(tmp_path
 
     assert statuses == [
         (
-            {"code": "AQE-AUDIO-001", "message": "Unsupported share target."},
+            {"code": "AQE-SHARE-001", "message": "Unsupported share target."},
             "error",
         )
     ]
+
+
+def test_share_current_audio_file_reports_missing_current_audio_with_media_code(tmp_path: Path) -> None:
+    editor = SimpleNamespace(currentField=0, web=MagicMock(), mw=MagicMock())
+    statuses: list[tuple[object, str]] = []
+    busy_calls: list[tuple[bool, str, str]] = []
+
+    deps = SimpleNamespace(
+        current_media_path=lambda _editor: (_ for _ in ()).throw(
+            AudioProcessingError("No [sound:...] reference found in the current field.")
+        ),
+        eval_status=lambda _editor, message, kind="info": statuses.append((message, kind)),
+        set_busy=lambda _editor, busy, message="", command="": busy_calls.append((busy, message, command)),
+        t=_message,
+    )
+
+    share_current_audio_file(
+        editor,
+        EditorCommandPayload(command="aqe:share", field_ord=0, share_target="catbox"),
+        deps,
+    )
+
+    assert statuses == [
+        (
+            {
+                "code": "AQE-MEDIA-001",
+                "message": "No [sound:...] reference found in the current field.",
+            },
+            "error",
+        )
+    ]
+    assert busy_calls == [(False, "", "")]
+
+
+def test_share_current_audio_file_reports_missing_referenced_media_with_media_code(tmp_path: Path) -> None:
+    editor = SimpleNamespace(currentField=0, web=MagicMock(), mw=MagicMock())
+    statuses: list[tuple[object, str]] = []
+    busy_calls: list[tuple[bool, str, str]] = []
+
+    deps = SimpleNamespace(
+        current_media_path=lambda _editor: (_ for _ in ()).throw(
+            MissingMediaError("The referenced audio file was not found in Anki's media folder.")
+        ),
+        eval_status=lambda _editor, message, kind="info": statuses.append((message, kind)),
+        set_busy=lambda _editor, busy, message="", command="": busy_calls.append((busy, message, command)),
+        t=_message,
+    )
+
+    share_current_audio_file(
+        editor,
+        EditorCommandPayload(command="aqe:share", field_ord=0, share_target="catbox"),
+        deps,
+    )
+
+    assert statuses == [
+        (
+            {
+                "code": "AQE-MEDIA-002",
+                "message": "The referenced audio file was not found in Anki's media folder.",
+            },
+            "error",
+        )
+    ]
+    assert busy_calls == [(False, "", "")]
 
 
 def test_share_learner_recording_rejects_missing_ready_media(tmp_path: Path) -> None:
@@ -108,6 +177,38 @@ def test_share_learner_recording_rejects_missing_ready_media(tmp_path: Path) -> 
                 "code": "AQE-MEDIA-002",
                 "message": "The referenced audio file was not found in Anki's media folder.",
             },
+            "error",
+        )
+    ]
+    assert busy_calls == [(False, "", "")]
+
+
+def test_share_learner_recording_rejects_invalid_target_without_upload(tmp_path: Path) -> None:
+    editor = _Editor()
+    editor.currentField = 0
+    editor.web = MagicMock()
+    editor.mw = MagicMock()
+    session = EditorSession()
+    statuses: list[tuple[object, str]] = []
+    busy_calls: list[tuple[bool, str, str]] = []
+
+    deps = SimpleNamespace(
+        eval_status=lambda _editor, message, kind="info": statuses.append((message, kind)),
+        set_busy=lambda _editor, busy, message="", command="": busy_calls.append((busy, message, command)),
+        sessions={editor: session},
+        t=_message,
+        upload_file=lambda *_args, **_kwargs: (_ for _ in ()).throw(AssertionError("should not upload")),
+    )
+
+    share_learner_recording_file(
+        editor,
+        EditorCommandPayload(command="aqe:share-recording", field_ord=0),
+        deps,
+    )
+
+    assert statuses == [
+        (
+            {"code": "AQE-SHARE-001", "message": "Unsupported share target."},
             "error",
         )
     ]
@@ -166,6 +267,65 @@ def test_share_learner_recording_uploads_ready_sidecar(tmp_path: Path, monkeypat
         )
     ]
     assert editor.note.fields == ["[sound:target.wav]"]
+
+
+def test_share_learner_recording_reports_upload_failures_with_share_code(
+    tmp_path: Path,
+    monkeypatch,
+    caplog,
+) -> None:
+    monkeypatch.setattr("anki_audio_quick_editor.editor_sharing.threading.Thread", _ImmediateThread)
+    editor = _Editor()
+    editor.currentField = 0
+    editor.note = SimpleNamespace(fields=["[sound:target.wav]"])
+    editor.web = MagicMock()
+    editor.mw = MagicMock()
+    media_path = tmp_path / "target__aqe_voice.wav"
+    media_path.write_bytes(b"RIFFfakeWAVE")
+    session = EditorSession(
+        learner_recording=LearnerRecordingState(
+            status="ready",
+            field_index=0,
+            generation=2,
+            source_filename="target.wav",
+            target_duration_ms=1000,
+            media_filename=media_path.name,
+            media_path=media_path,
+        )
+    )
+    statuses: list[tuple[object, str]] = []
+    busy_calls: list[tuple[bool, str, str]] = []
+
+    caplog.set_level(logging.INFO, logger="anki_audio_quick_editor.editor_sharing")
+    deps = SimpleNamespace(
+        eval_status=lambda _editor, message, kind="info": statuses.append((message, kind)),
+        finish_shared_audio=lambda *_args, **_kwargs: None,
+        is_busy=lambda _session: False,
+        logger=MagicMock(),
+        main=lambda _editor, callback: callback(),
+        set_busy=lambda _editor, busy, message="", command="": busy_calls.append((busy, message, command)),
+        sessions={editor: session},
+        still_processing_message="Still processing. Please wait.",
+        t=_message,
+        upload_file=lambda _path, _target: (_ for _ in ()).throw(RuntimeError("network down")),
+    )
+    deps.share_failed = lambda _editor, error: share_failed(_editor, error, deps)
+
+    share_learner_recording_file(
+        editor,
+        EditorCommandPayload(command="aqe:share-recording", field_ord=0, share_target="catbox"),
+        deps,
+    )
+
+    assert busy_calls[0] == (True, "Sharing with Catbox", "aqe:share-recording")
+    assert busy_calls[-1] == (False, "", "")
+    assert statuses == [
+        (
+            {"code": "AQE-SHARE-001", "message": "Share failed: network down"},
+            "error",
+        )
+    ]
+    assert "Editor share upload start" in caplog.text
 
 
 def test_finish_shared_audio_copies_url_to_clipboard_and_reports_success(monkeypatch) -> None:

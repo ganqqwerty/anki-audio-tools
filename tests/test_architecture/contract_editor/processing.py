@@ -156,7 +156,13 @@ EDITOR_PROCESSING_CONTRACTS: dict[str, ModuleContract] = {
     "editor_sharing": contract(
         "editor_sharing",
         layer=Layer.UI_ADAPTER,
-        allowed_addon_deps=("diagnostics_runtime", "editor_actions", "editor_session", "error_codes"),
+        allowed_addon_deps=(
+            "diagnostics_runtime",
+            "editor_actions",
+            "editor_session",
+            "error_codes",
+            "errors",
+        ),
         allowed_side_effects=(
             SideEffect.ANKI_IMPORTS_ANYWHERE,
             SideEffect.THREAD_SPAWN,

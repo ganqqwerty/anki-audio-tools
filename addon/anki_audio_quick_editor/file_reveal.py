@@ -28,7 +28,9 @@ def reveal_file(
         _run_detached(("open", "-R", str(resolved)))
         return
     if system == "Windows":
-        _run_detached(_windows_explorer_select_command(resolved))
+        command = _windows_explorer_select_command(resolved)
+        logger.info("Windows Explorer reveal launch | command=%r path=%s", command, resolved)
+        _run_detached(command)
         return
     _open_parent_folder(resolved.parent)
 
@@ -45,8 +47,8 @@ def open_external_url(url: str) -> None:
     raise AudioProcessingError(t("external_link.open_failed"))
 
 
-def _windows_explorer_select_command(path: Path) -> tuple[str, str]:
-    return "explorer.exe", f"/select,{path}"
+def _windows_explorer_select_command(path: Path) -> tuple[str, str, str]:
+    return "explorer.exe", "/select,", str(path)
 
 
 def _open_parent_folder(folder: Path) -> None:
