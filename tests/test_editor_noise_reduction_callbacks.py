@@ -12,6 +12,7 @@ from anki_audio_quick_editor.editor_integration import (
     EditorSession,
     _handle_bridge_command,
 )
+from anki_audio_quick_editor.editor_session import PendingEditorStatus
 
 
 def test_standard_denoise_replaces_current_media_and_resets_state(tmp_path: Path, monkeypatch) -> None:
@@ -88,6 +89,7 @@ def test_standard_denoise_replaces_current_media_and_resets_state(tmp_path: Path
     assert session.state == AudioEditState(source_file=saved_name)
     assert session.current_filename == saved_name
     assert session.processing is False
+    assert session.pending_status == PendingEditorStatus(0, message="Cleaned audio with Standard.")
     editor.loadNote.assert_called_once_with(focusTo=0)
     assert any(
         "__aqeSetHistoryAvailability(0, true, false)" in call.args[0]

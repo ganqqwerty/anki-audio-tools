@@ -5,7 +5,8 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any
 
-from .editor_session import EditorSession, PendingEditorStatus, UndoEntry
+from .editor_reload_status import reload_editor_with_pending_status
+from .editor_session import EditorSession, UndoEntry
 from .editor_status import (
     redo_status_message,
     restored_status_summary,
@@ -97,7 +98,6 @@ def restore_history_entry(
         raise AudioProcessingError(deps.current_field_audio_missing)
     current_state = session.state
     current_filename = session.current_filename
-    deps.dispose_editor_frontend_controls(editor)
     editor.note.fields[field_index] = replace_sound_reference(field_html, selection.selected, entry.filename)
     if redo_current:
         session.redo_history.push(
@@ -116,7 +116,6 @@ def restore_history_entry(
     session.field_index = field_index
     session.status_summary = restored_status_summary(entry)
     session.next_status_summary = ""
-    session.pending_status = PendingEditorStatus(field_index, message=status)
     session.cursor_ms = 0
     session.playback_active = False
     session.playback_paused = False
@@ -127,7 +126,13 @@ def restore_history_entry(
         field_index,
         require_graph_redraw=field_index in session.graph_active_fields,
     )
-    editor.loadNote(focusTo=field_index)
+    reload_editor_with_pending_status(
+        editor,
+        session,
+        field_index,
+        message=status,
+        deps=deps,
+    )
     sync_history_availability(editor, session, deps)
     request_history_availability_after_edit(editor, session, deps)
     deps.eval_playback_state(editor, field_index, "stopped", 0)

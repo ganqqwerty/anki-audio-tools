@@ -9,6 +9,7 @@ from unittest.mock import patch
 from PyQt6.QtWidgets import QApplication
 
 from e2e.conftest import import_runtime_addon_module
+from e2e.editor_graph_helpers import _wait_for_visualizer_track
 from e2e.editor_note_helpers import (
     ADDON_NUMERIC_ID,
     DEFAULT_VISIBLE_EDITOR_BUTTONS,
@@ -81,6 +82,7 @@ def test_editor_settings_save_refreshes_current_editor_button_modes(
             "aqe:settings": "text",
             "aqe:show-file": "text",
         },
+        show_graph_by_default=True,
     )
     note = _basic_audio_note(anki_mw, source.name)
     editor, parent = _open_editor(anki_mw, note)
@@ -108,6 +110,11 @@ def test_editor_settings_save_refreshes_current_editor_button_modes(
                 "showFileIcons": 0,
             },
             timeout=5.0,
+        )
+        _wait_for_visualizer_track(
+            editor,
+            lambda value: value["sourceFilename"] == source.name,
+            timeout=10.0,
         )
 
         click_selector(editor.web, _button_selector("aqe:settings"), timeout=5.0)
@@ -178,6 +185,17 @@ def test_editor_settings_save_refreshes_current_editor_button_modes(
                 "showFileIcons": 0,
             },
             timeout=10.0,
+        )
+        _wait_for_visualizer_track(
+            editor,
+            lambda value: value["sourceFilename"] == source.name,
+            timeout=10.0,
+        )
+        _wait_for_status(
+            editor,
+            lambda status: status["text"] == "Closed settings."
+            and status["statusOwner"] == "edit",
+            timeout=5.0,
         )
     finally:
         editor.set_note(None)

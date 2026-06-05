@@ -132,7 +132,7 @@ export function setVisualizerStatus(ord: number, message: EditorStatusMessage, k
   const visualizer = visualizerForOrd(ord);
   if (!visualizer) return;
   renderVisualizerStatus(visualizer, visualizerStatusText(message), kind);
-  setStatusForOrd(ord, message, kind);
+  setStatusForOrd(ord, message, kind, "", kind === "error" ? "error" : "graph");
 }
 
 export function setVisualizer(ord: number, rawTrack: ProsodyPayload, cursorMs: number): void {
@@ -155,7 +155,7 @@ export function setVisualizer(ord: number, rawTrack: ProsodyPayload, cursorMs: n
   renderVisualizerStatus(visualizer, "", "info");
   setControlsBusy(ord, false, "", "");
   if (rawTrack.analysisWarning) {
-    setTransientStatusForOrd(ord, rawTrack.analysisWarning, "warning");
+    setTransientStatusForOrd(ord, rawTrack.analysisWarning, "warning", "graph");
     renderVisualizerStatus(visualizer, rawTrack.analysisWarning, "warning");
     if (hasStableStatusForOrd(ord)) {
       window.setTimeout(() => restoreStatusForOrd(ord), 4000);

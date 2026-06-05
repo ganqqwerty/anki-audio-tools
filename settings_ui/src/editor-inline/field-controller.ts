@@ -1,6 +1,10 @@
 import { mount, unmount } from "svelte";
 
-import { applyInitialStatusForOrd } from "./control-actions.js";
+import {
+  consumeInitialStatusForOrd,
+  setStatusForOrd,
+  type InitialEditorStatus,
+} from "./control-actions.js";
 import EditorControls from "./EditorControls.svelte";
 import { visualizerForOrd } from "./dom-selectors.js";
 import type { FieldTarget } from "./types.js";
@@ -23,6 +27,7 @@ export function mountedControllerCount(): number {
 }
 
 export function mountController(target: FieldTarget): FieldController | null {
+  const initialStatus = consumeInitialStatusForOrd(target.ord);
   const existing = controllers.get(target.ord);
   if (existing) {
     if (!document.body.contains(existing.host)) {
@@ -30,7 +35,7 @@ export function mountController(target: FieldTarget): FieldController | null {
     }
     removeDuplicateControls(target.ord, existing.host);
     if (!target.sourceFilename || existing.sourceFilename === target.sourceFilename) {
-      applyInitialStatusForOrd(target.ord);
+      applyInitialStatus(target.ord, initialStatus);
       return existing;
     }
     const visualizer = visualizerForOrd(target.ord);
@@ -40,7 +45,7 @@ export function mountController(target: FieldTarget): FieldController | null {
       const controls = document.querySelector<HTMLElement>(`.aqe-controls[data-aqe-field-ord="${target.ord}"]`);
       if (controls) controls.dataset.aqeSourceFilename = renderedSource;
       removeDuplicateControls(target.ord, existing.host);
-      applyInitialStatusForOrd(target.ord);
+      applyInitialStatus(target.ord, initialStatus);
       return existing;
     }
   }
@@ -52,9 +57,8 @@ export function mountController(target: FieldTarget): FieldController | null {
   insertHostNearTarget(target, host);
   const component = mount(EditorControls, {
     target: host,
-    props: { target },
+    props: { initialStatus, target },
   }) as Record<string, unknown>;
-  applyInitialStatusForOrd(target.ord);
   const controller = {
     component,
     host,
@@ -64,6 +68,11 @@ export function mountController(target: FieldTarget): FieldController | null {
   controllers.set(target.ord, controller);
   removeDuplicateControls(target.ord, host);
   return controller;
+}
+
+function applyInitialStatus(ord: number, initialStatus: InitialEditorStatus | null): void {
+  if (!initialStatus) return;
+  setStatusForOrd(ord, initialStatus.message, initialStatus.kind || "info", "", "edit");
 }
 
 export function disposeController(ord: number): void {

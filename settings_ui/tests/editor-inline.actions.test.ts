@@ -356,6 +356,22 @@ describe("editor inline action workflows", () => {
     expect(status?.dataset.kind).toBe("info");
   });
 
+  it("keeps graph-owned statuses transient and restores edit-owned status", async () => {
+    const visualizer = await mountTrack(0);
+    setControlsBusy(0, false, "Increased volume by 15 dB.", "");
+
+    setVisualizerStatusFromPython(0, "Analyzing...", "processing");
+    const status = visualizer.closest<HTMLElement>(".aqe-controls")?.querySelector<HTMLElement>(".aqe-status")!;
+    expect(status).toHaveTextContent("Analyzing...");
+    expect(status.dataset.statusOwner).toBe("graph");
+    expect(status.dataset.stableMessage).toBe("Increased volume by 15 dB.");
+
+    window.__aqeSetVisualizer?.(0, track, 0);
+
+    expect(status).toHaveTextContent("Increased volume by 15 dB.");
+    expect(status.dataset.statusOwner).toBe("edit");
+  });
+
   it("renders a timecode flag at the cursor and clamps it inside the plot", async () => {
     const visualizer = await mountTrack(0);
     window.__aqeSetVisualizer?.(0, { ...track, durationMs: 6000 }, 750);

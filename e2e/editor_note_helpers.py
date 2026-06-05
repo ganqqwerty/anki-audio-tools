@@ -239,6 +239,7 @@ def _status_js(ord_: int = 0) -> str:
         text: status.textContent,
         title: status.getAttribute('data-aqe-tooltip-content') || "",
         kind: status.dataset.kind || "",
+        statusOwner: status.dataset.statusOwner || "",
       } : null;
     })()
     """.replace("__ORD__", str(ord_))

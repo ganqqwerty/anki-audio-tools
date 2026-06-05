@@ -216,7 +216,7 @@ export function startEditorHtmlPlayback(visualizer: VisualizerElement, request: 
       stopProgressClock(visualizer);
       if (repeatFallbackRequiresBrowserAudio(visualizer, request)) {
         window.__aqeActiveField = request.ord;
-        setStatus(t("editor.status.selected_repeat_browser_audio"), "warning");
+        setStatus(t("editor.status.selected_repeat_browser_audio"), "warning", "playback");
         return;
       }
       sendPlaybackRequest({

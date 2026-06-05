@@ -25,10 +25,10 @@ from .editor_processing_shared import (
 from .editor_processing_shared import (
     sync_history_availability as _sync_history_availability,
 )
+from .editor_reload_status import reload_editor_with_pending_status
 from .editor_session import (
     EditorProcessingGuard,
     EditorSession,
-    PendingEditorStatus,
     begin_processing_guard,
     clear_processing_for_stale_guard,
     is_current_processing_guard,
@@ -242,7 +242,6 @@ def replace_current_field_after_render(
     selection = select_first_sound_reference(field_html)
     if selection.selected is None:
         raise AudioProcessingError(deps.current_field_audio_missing)
-    deps.dispose_editor_frontend_controls(editor)
     editor.note.fields[field_index] = replace_sound_reference(field_html, selection.selected, saved_name)
     should_redraw_graph = _replace_standard_render_session_state(session, field_index, saved_name, updated_state)
     deps.request_playback_after_edit(
@@ -250,7 +249,13 @@ def replace_current_field_after_render(
         field_index,
         require_graph_redraw=should_redraw_graph,
     )
-    editor.loadNote(focusTo=field_index)
+    reload_editor_with_pending_status(
+        editor,
+        session,
+        field_index,
+        message=session.status_summary if session is not None else "",
+        deps=deps,
+    )
     _sync_history_availability(editor, session, deps)
     _request_history_availability_after_edit(editor, session, deps)
     deps.eval_playback_state(editor, field_index, "stopped", 0)
@@ -305,7 +310,6 @@ def _replace_standard_render_session_state(
     session.field_index = field_index
     session.status_summary = session.next_status_summary or session.status_summary
     session.next_status_summary = ""
-    session.pending_status = PendingEditorStatus(field_index, message=session.status_summary)
     session.processing = False
     session.cursor_ms = 0
     session.playback_active = False

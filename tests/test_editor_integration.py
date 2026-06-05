@@ -22,6 +22,7 @@ from anki_audio_quick_editor.editor_integration import (
     editor_injection_script,
     register_editor_hooks,
 )
+from anki_audio_quick_editor.editor_session import PendingEditorStatus
 
 
 def test_register_editor_hooks() -> None:
@@ -196,6 +197,7 @@ def test_editor_undo_and_redo_restore_audio_references_without_processing(
     assert session.current_filename == "clip.mp3"
     assert session.redo_history.pop().filename == "clip__aqe_first.mp3"
     assert reload_statuses[0] == {0: {"kind": "info", "message": "Undid: Original audio."}}
+    assert session.pending_status == PendingEditorStatus(0, message="Undid: Original audio.")
 
     session.redo_history.push(
         generated_state,
@@ -210,6 +212,7 @@ def test_editor_undo_and_redo_restore_audio_references_without_processing(
     assert session.undo_history.pop().filename == "clip.mp3"
     assert editor.loadNote.call_count == 2
     assert reload_statuses[1] == {0: {"kind": "info", "message": "Redid: Increased speed to x1.5."}}
+    assert session.pending_status == PendingEditorStatus(0, message="Redid: Increased speed to x1.5.")
     evals = [call.args[0] for call in editor.web.eval.call_args_list]
     assert any("window.__aqeSetHistoryAvailability && window.__aqeSetHistoryAvailability(0, false, true)" in call for call in evals)
     assert any("window.__aqeSetHistoryAvailability && window.__aqeSetHistoryAvailability(0, true, false)" in call for call in evals)
@@ -269,6 +272,7 @@ def test_editor_settings_command_opens_settings_and_refreshes_after_save(
     assert session.playback_paused is False
     assert session.playback_preparing is False
     assert reload_statuses == [{0: {"kind": "info", "message": "Closed settings."}}]
+    assert session.pending_status == PendingEditorStatus(0, message="Closed settings.")
     assert editor.loadNote.call_args.args == ()
     assert editor.loadNote.call_args.kwargs == {"focusTo": 0}
     assert any("window.__aqeEditorDispose" in call.args[0] for call in editor.web.eval.call_args_list)

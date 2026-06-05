@@ -17,6 +17,7 @@ from e2e.editor_note_helpers import (
     _open_editor,
     _sound_filename,
     _wait_for_generated_mp3,
+    _wait_for_status,
     _wait_for_status_flow,
 )
 from e2e.helpers import click_selector, generate_tone, run_js, wait_for_js_condition
@@ -110,6 +111,12 @@ def test_delete_region_button_cuts_middle_region_and_redraws_graph(
             and value["cursorMs"] == 0,
             timeout=10.0,
         )
+        _wait_for_status(
+            editor,
+            lambda status: status["text"] == "Deleted selection 500-1250 ms."
+            and status["statusOwner"] == "edit",
+            timeout=5.0,
+        )
 
         generated_duration = probe_duration_ms(media_dir / generated_name, audio_processing_config.from_config({}))
         assert source.read_bytes() == original_bytes
@@ -171,6 +178,12 @@ def test_delete_rest_button_keeps_selected_middle_region_and_redraws_graph(
             and abs(value["selectionEndMs"] - value["durationMs"]) <= 1
             and value["cursorMs"] == 0,
             timeout=10.0,
+        )
+        _wait_for_status(
+            editor,
+            lambda status: status["text"] == "Kept only selection 500-1250 ms."
+            and status["statusOwner"] == "edit",
+            timeout=5.0,
         )
 
         generated_duration = probe_duration_ms(media_dir / generated_name, audio_processing_config.from_config({}))

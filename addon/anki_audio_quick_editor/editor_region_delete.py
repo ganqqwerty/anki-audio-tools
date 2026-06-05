@@ -28,10 +28,10 @@ from .editor_region_delete_worker import (
 from .editor_region_delete_worker import (
     run_region_delete_worker,
 )
+from .editor_reload_status import reload_editor_with_pending_status
 from .editor_session import (
     EditorProcessingGuard,
     EditorSession,
-    PendingEditorStatus,
     RegionDeleteRequest,
     begin_processing_guard,
     clear_processing_for_stale_guard,
@@ -192,7 +192,6 @@ def replace_current_field_after_region_delete(
             raise AudioProcessingError(deps.current_field_audio_missing)
         if not media_filenames_match(selection.selected.filename, request.source_filename):
             raise AudioProcessingError(t("editor.status.graph_audio_mismatch"))
-        deps.dispose_editor_frontend_controls(editor)
         editor.note.fields[field_index] = replace_sound_reference(field_html, selection.selected, saved_name)
         should_redraw_graph = _replace_region_delete_session_state(editor, session, field_index, saved_name, request)
         logger.info(
@@ -221,9 +220,13 @@ def replace_current_field_after_region_delete(
             field_index,
             require_graph_redraw=should_redraw_graph,
         )
-        editor.loadNote(focusTo=field_index)
-        if session:
-            session.pending_status = None
+        reload_editor_with_pending_status(
+            editor,
+            session,
+            field_index,
+            message=session.status_summary if session is not None else "",
+            deps=deps,
+        )
         _sync_history_availability(editor, session, deps)
         _request_history_availability_after_edit(editor, session, deps)
         deps.eval_playback_state(editor, field_index, "stopped", 0)
@@ -279,7 +282,6 @@ def _replace_region_delete_session_state(
     session.field_index = field_index
     session.status_summary = region_operation_status_summary(request)
     session.next_status_summary = ""
-    session.pending_status = PendingEditorStatus(field_index, message=session.status_summary)
     saved_path = existing_media_file_path(Path(editor.mw.col.media.dir()), saved_name)
     session.source_mtime_ns = saved_path.stat().st_mtime_ns if saved_path is not None else None
     session.processing = False

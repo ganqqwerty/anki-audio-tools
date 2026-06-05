@@ -19,6 +19,7 @@ from e2e.editor_note_helpers import (
     _open_editor,
     _sound_filename,
     _three_audio_field_note,
+    _wait_for_status,
     _wait_for_status_flow,
 )
 from e2e.helpers import (
@@ -186,6 +187,12 @@ def test_multi_field_processing_undo_redo_survives_graph_default_auto_analysis(
             ord_=2,
             timeout=10.0,
         )
+        _wait_for_status(
+            editor,
+            lambda status: status["text"] == _expected_processing_status(command)
+            and status["statusOwner"] == "edit",
+            timeout=5.0,
+        )
 
         _click_latest_enabled_button_once(editor, "aqe:undo")
         wait_for_condition(
@@ -204,6 +211,12 @@ def test_multi_field_processing_undo_redo_survives_graph_default_auto_analysis(
             ord_=2,
             timeout=10.0,
         )
+        _wait_for_status(
+            editor,
+            lambda status: status["text"] == "Undid: Original audio."
+            and status["statusOwner"] == "edit",
+            timeout=5.0,
+        )
         _click_latest_enabled_button_once(editor, "aqe:redo")
         wait_for_condition(
             lambda: _sound_filename(note.fields[0]) == generated_name,
@@ -214,6 +227,12 @@ def test_multi_field_processing_undo_redo_survives_graph_default_auto_analysis(
             editor,
             lambda status: status["text"] == f"Redid: {_expected_processing_status(command)}",
             timeout=10.0,
+        )
+        _wait_for_status(
+            editor,
+            lambda status: status["text"] == f"Redid: {_expected_processing_status(command)}"
+            and status["statusOwner"] == "edit",
+            timeout=5.0,
         )
 
         assert _sound_filename(note.fields[1]) == sources[1].name

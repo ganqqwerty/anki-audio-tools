@@ -44,6 +44,7 @@ EDITOR_SPLIT_MODULES = {
     "editor_recording_frontend",
     "editor_region_delete",
     "editor_region_delete_worker",
+    "editor_reload_status",
     "editor_runtime",
     "editor_session",
     "editor_special_transform_worker",

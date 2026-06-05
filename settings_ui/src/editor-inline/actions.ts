@@ -67,7 +67,7 @@ export {
 } from "./actions-audio-clock.js";
 export { popEditorFrontendLog, popPendingGraphAnalysisRequest } from "./bridge.js";
 import {
-  clearTransientStatusForOrd,
+  clearPlaybackStatusForOrd,
   repeatDefaultFromConfig,
   restoreStatusForOrd,
 } from "./control-actions.js";
@@ -275,7 +275,7 @@ function selectionControllerDependencies(): SelectionControllerDependencies {
 
 export function playbackControllerDependencies(): PlaybackControllerDependencies {
   return {
-    clearStatus: clearTransientStatusForOrd,
+    clearStatus: clearPlaybackStatusForOrd,
     effectivePlaybackRegion,
     focusAndSendCommand,
     playbackEngineFor,
