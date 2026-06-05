@@ -27,6 +27,8 @@ describe("editor toolbar render items", () => {
         commands: [
           "aqe:record-voice",
           "aqe:play-recording",
+          "aqe:share-recording",
+          "aqe:show-recording-file",
         ],
         label: "Record / Play yours",
         slug: "record-play-yours",

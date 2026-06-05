@@ -77,6 +77,8 @@ describe("editor inline learner recording integration", () => {
 
     expect(document.querySelector('[data-testid="aqe-button-0-record-voice"]')).toBeNull();
     expect(document.querySelector('[data-testid="aqe-button-0-play-recording"]')).toBeNull();
+    expect(document.querySelector('[data-testid="aqe-button-0-share-recording"]')).toBeNull();
+    expect(document.querySelector('[data-testid="aqe-button-0-show-recording-file"]')).toBeNull();
   });
 
   it("expands partial learner recording visibility to the full group", () => {
@@ -97,6 +99,8 @@ describe("editor inline learner recording integration", () => {
     expect(group.querySelector(".aqe-toolbar-panel-label")).toHaveTextContent("Record / Play yours");
     expect(document.querySelector('[data-testid="aqe-button-0-record-voice"]')).not.toBeNull();
     expect(document.querySelector('[data-testid="aqe-button-0-play-recording"]')).not.toBeNull();
+    expect(document.querySelector('[data-testid="aqe-button-0-share-recording"]')).not.toBeNull();
+    expect(document.querySelector('[data-testid="aqe-button-0-show-recording-file"]')).not.toBeNull();
   });
 
   it("renders the opt-in grouped buttons and dispatches record after the configured countdown", async () => {
@@ -106,6 +110,8 @@ describe("editor inline learner recording integration", () => {
     const group = document.querySelector(".aqe-recording-group");
     const recordButton = document.querySelector<HTMLButtonElement>('[data-testid="aqe-button-0-record-voice"]')!;
     const playYoursButton = document.querySelector<HTMLButtonElement>('[data-testid="aqe-button-0-play-recording"]')!;
+    const shareYoursButton = document.querySelector<HTMLButtonElement>('[data-testid="aqe-button-0-share-recording"]')!;
+    const showYoursButton = document.querySelector<HTMLButtonElement>('[data-testid="aqe-button-0-show-recording-file"]')!;
     expect(group).not.toBeNull();
     expect(group).toHaveClass("aqe-toolbar-panel");
     expect(group).toHaveAttribute("aria-label", "Record / Play yours");
@@ -113,9 +119,13 @@ describe("editor inline learner recording integration", () => {
     expect(group?.querySelector(".aqe-split-group")).not.toBeNull();
     expect(recordButton.classList.contains("aqe-icon-only")).toBe(true);
     expect(playYoursButton.classList.contains("aqe-icon-only")).toBe(true);
+    expect(shareYoursButton.classList.contains("aqe-icon-only")).toBe(true);
+    expect(showYoursButton.classList.contains("aqe-icon-only")).toBe(true);
     expect(document.querySelector('[data-testid="aqe-split-0-record-voice-menu"]')).not.toBeNull();
     expect(recordButton.disabled).toBe(true);
     expect(playYoursButton.disabled).toBe(true);
+    expect(shareYoursButton.disabled).toBe(true);
+    expect(showYoursButton.disabled).toBe(true);
     expect(recordButton.closest(".aqe-button-tooltip-target")).toHaveAttribute(
       "data-aqe-tooltip-content",
       "Record your voice for this graph\n\nDraw the graph before recording your voice",
@@ -127,8 +137,11 @@ describe("editor inline learner recording integration", () => {
 
     window.__aqeSetVisualizer?.(0, { ...track, sourceFilename: "clip one.mp3" }, 0);
     await Promise.resolve();
+    document.querySelector<HTMLElement>('[data-testid="aqe-graph-0"]')!.dataset.cursorMs = "400";
     expect(recordButton.disabled).toBe(false);
     expect(playYoursButton.disabled).toBe(true);
+    expect(shareYoursButton.disabled).toBe(true);
+    expect(showYoursButton.disabled).toBe(true);
     expect(recordButton.closest(".aqe-button-tooltip-target")).toHaveAttribute(
       "data-aqe-tooltip-content",
       "Record your voice for this graph",
@@ -162,6 +175,11 @@ describe("editor inline learner recording integration", () => {
       command: "aqe:record-voice",
       fieldOrd: 0,
       graphSettings: { smoothness: expect.any(String) },
+      startCursorMs: 400,
+    });
+    expect(window.__aqeGraphStateForTest?.(0)).toMatchObject({
+      cursorMs: 400,
+      learnerStartCursorMs: 400,
     });
   });
 
@@ -213,8 +231,12 @@ describe("editor inline learner recording integration", () => {
 
     const recordButton = document.querySelector<HTMLButtonElement>('[data-testid="aqe-button-0-record-voice"]')!;
     const playYoursButton = document.querySelector<HTMLButtonElement>('[data-testid="aqe-button-0-play-recording"]')!;
+    const shareYoursButton = document.querySelector<HTMLButtonElement>('[data-testid="aqe-button-0-share-recording"]')!;
+    const showYoursButton = document.querySelector<HTMLButtonElement>('[data-testid="aqe-button-0-show-recording-file"]')!;
     expect(recordButton.classList.contains("aqe-icon-only")).toBe(false);
     expect(playYoursButton.classList.contains("aqe-icon-only")).toBe(false);
+    expect(shareYoursButton.classList.contains("aqe-icon-only")).toBe(true);
+    expect(showYoursButton.classList.contains("aqe-icon-only")).toBe(true);
     expect(recordButton.textContent).toContain("Record");
     expect(playYoursButton.textContent).toContain("Play yours");
   });
@@ -227,6 +249,8 @@ describe("editor inline learner recording integration", () => {
 
     const recordButton = document.querySelector<HTMLButtonElement>('[data-testid="aqe-button-0-record-voice"]')!;
     const playYoursButton = document.querySelector<HTMLButtonElement>('[data-testid="aqe-button-0-play-recording"]')!;
+    const shareYoursButton = document.querySelector<HTMLButtonElement>('[data-testid="aqe-button-0-share-recording"]')!;
+    const showYoursButton = document.querySelector<HTMLButtonElement>('[data-testid="aqe-button-0-show-recording-file"]')!;
 
     window.__aqeSetLearnerRecordingState?.({
       fieldOrd: 0,
@@ -239,6 +263,8 @@ describe("editor inline learner recording integration", () => {
     expect(recordButton.getAttribute("aria-label")).toBe("Stop recording your voice");
     expect(recordButton.disabled).toBe(false);
     expect(playYoursButton.disabled).toBe(true);
+    expect(shareYoursButton.disabled).toBe(true);
+    expect(showYoursButton.disabled).toBe(true);
 
     recordButton.click();
     expect(bridgeCommands()).toContain("aqe:stop-recording");
@@ -247,13 +273,51 @@ describe("editor inline learner recording integration", () => {
       fieldOrd: 0,
       generation: 1,
       mediaFilename: "target__aqe_voice.wav",
+      playbackStatus: "stopped",
       status: "ready",
       targetDurationMs: track.durationMs,
     });
     expect(playYoursButton.disabled).toBe(false);
+    expect(shareYoursButton.disabled).toBe(false);
+    expect(showYoursButton.disabled).toBe(false);
 
     playYoursButton.click();
     expect(bridgeCommands()).toContain("aqe:play-recording");
+
+    window.__aqeSetLearnerRecordingState?.({
+      fieldOrd: 0,
+      generation: 1,
+      mediaFilename: "target__aqe_voice.wav",
+      playbackStatus: "playing",
+      status: "ready",
+      targetDurationMs: track.durationMs,
+    });
+    expect(playYoursButton.dataset.aqeButtonState).toBe("pause");
+    expect(playYoursButton.textContent).toContain("Pause yours");
+
+    window.__aqeSetLearnerRecordingState?.({
+      fieldOrd: 0,
+      generation: 1,
+      mediaFilename: "target__aqe_voice.wav",
+      playbackStatus: "stopped",
+      status: "ready",
+      targetDurationMs: track.durationMs,
+    });
+    expect(playYoursButton.dataset.aqeButtonState).toBe("default");
+    expect(playYoursButton.textContent).toContain("Play yours");
+
+    showYoursButton.click();
+    expect(window.__aqePendingCommandPayload).toMatchObject({
+      command: "aqe:show-recording-file",
+      fieldOrd: 0,
+    });
+
+    shareYoursButton.click();
+    expect(window.__aqePendingCommandPayload).toMatchObject({
+      command: "aqe:share-recording",
+      fieldOrd: 0,
+      shareTarget: "litterbox",
+    });
   });
 
   it("renders learner pitch only, expands graph duration, and keeps target playback constrained", async () => {
@@ -262,6 +326,13 @@ describe("editor inline learner recording integration", () => {
     window.__aqeSetVisualizer?.(0, { ...track, sourceFilename: "clip one.mp3" }, 0);
     await Promise.resolve();
 
+    window.__aqeSetLearnerRecordingState?.({
+      fieldOrd: 0,
+      generation: 1,
+      startCursorMs: 400,
+      status: "ready",
+      targetDurationMs: track.durationMs,
+    });
     window.__aqeSetLearnerVisualizer?.(0, {
       ...track,
       durationMs: 1500,
@@ -276,11 +347,12 @@ describe("editor inline learner recording integration", () => {
     });
 
     expect(window.__aqeGraphStateForTest?.(0)).toMatchObject({
-      durationMs: 1500,
+      durationMs: 1900,
       targetDurationMs: 1000,
-      learnerDurationMs: 1500,
+      learnerDurationMs: 1900,
       learnerIntensityPaths: 0,
       learnerPitchPaths: 1,
+      learnerStartCursorMs: 400,
       playbackEndMs: 1000,
     });
     expect(window.__aqeGraphStateForTest?.(0)?.intensity).not.toBe("");
@@ -290,7 +362,9 @@ describe("editor inline learner recording integration", () => {
     expect(window.__aqeGraphStateForTest?.(0)).toMatchObject({
       learnerDurationMs: 0,
       learnerPitchPaths: 0,
+      learnerPlaybackStatus: "stopped",
       learnerRecordingStatus: "idle",
+      learnerStartCursorMs: 0,
     });
     window.__aqePopPendingGraphAnalysisRequest?.();
   });

@@ -75,12 +75,19 @@ export function primaryTitle(
 }
 
 export function primaryInitiallyDisabled(command: ButtonSpec["command"]): boolean {
-  return command === "aqe:record-voice" || command === "aqe:play-recording";
+  return (
+    command === "aqe:record-voice" ||
+    command === "aqe:play-recording" ||
+    command === "aqe:share-recording" ||
+    command === "aqe:show-recording-file"
+  );
 }
 
 export function primaryDisabledReason(command: ButtonSpec["command"]): string | undefined {
   if (command === "aqe:record-voice") return t("editor.command.record_voice.disabled_title");
   if (command === "aqe:play-recording") return t("editor.command.play_recording.disabled_title");
+  if (command === "aqe:share-recording") return t("editor.command.share_recording.disabled_title");
+  if (command === "aqe:show-recording-file") return t("editor.command.show_recording_file.disabled_title");
   return undefined;
 }
 

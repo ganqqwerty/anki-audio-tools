@@ -4,7 +4,12 @@ from __future__ import annotations
 
 from typing import Any
 
-RECORDING_PANEL_BUTTONS = ("aqe:record-voice", "aqe:play-recording")
+RECORDING_PANEL_BUTTONS = (
+    "aqe:record-voice",
+    "aqe:play-recording",
+    "aqe:share-recording",
+    "aqe:show-recording-file",
+)
 ATOMIC_PANEL_BUTTON_GROUPS = (
     RECORDING_PANEL_BUTTONS,
 )

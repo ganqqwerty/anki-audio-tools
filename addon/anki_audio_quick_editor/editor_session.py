@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from pathlib import Path
 from typing import Any, Literal
 
@@ -10,6 +10,7 @@ from .audio_state import AudioEditState
 
 RegionDeleteOperation = Literal["delete-selection", "delete-rest"]
 LearnerRecordingStatus = Literal["idle", "recording", "stopping", "analyzing", "ready", "failed"]
+LearnerPlaybackStatus = Literal["stopped", "playing", "paused"]
 
 
 @dataclass(frozen=True)
@@ -41,8 +42,13 @@ class LearnerRecordingState:
     media_filename: str | None = None
     media_path: Path | None = None
     target_duration_ms: int | None = None
+    start_cursor_ms: int = 0
     recording_started_at_monotonic: float | None = None
     recording_duration_ms: int | None = None
+    playback_status: LearnerPlaybackStatus = "stopped"
+    playback_position_ms: int = 0
+    playback_started_at_monotonic: float | None = None
+    playback_generation: int = 0
     prosody_payload: dict[str, object] | None = None
     failure_message: str | None = None
     graph_settings: dict[str, object] | None = None
@@ -257,6 +263,7 @@ def begin_learner_recording_state(
     target_duration_ms: int,
     media_filename: str,
     media_path: Path,
+    start_cursor_ms: int = 0,
     graph_settings: dict[str, object] | None = None,
     started_at: float | None = None,
 ) -> LearnerRecordingState:
@@ -270,6 +277,7 @@ def begin_learner_recording_state(
         media_filename=media_filename,
         media_path=media_path,
         target_duration_ms=target_duration_ms,
+        start_cursor_ms=start_cursor_ms,
         recording_started_at_monotonic=started_at,
         graph_settings=graph_settings,
     )
@@ -283,6 +291,37 @@ def clear_learner_recording_state(session: EditorSession) -> LearnerRecordingSta
     session.learner_recording = state
     session.learner_recording_controller = None
     return state
+
+
+def reset_learner_playback_state(session: EditorSession) -> LearnerRecordingState:
+    """Stop tracked learner playback without clearing the recording sidecar."""
+    state = session.learner_recording
+    if (
+        state.playback_status == "stopped"
+        and state.playback_position_ms == 0
+        and state.playback_started_at_monotonic is None
+    ):
+        return state
+    next_state = replace(
+        state,
+        playback_status="stopped",
+        playback_position_ms=0,
+        playback_started_at_monotonic=None,
+        playback_generation=state.playback_generation + 1,
+    )
+    session.learner_recording = next_state
+    return next_state
+
+
+def ready_learner_recording_media_path(session: EditorSession | None) -> Path | None:
+    """Return the ready learner recording media path when its sidecar still exists."""
+    if session is None:
+        return None
+    state = session.learner_recording
+    media_path = state.media_path
+    if state.status != "ready" or media_path is None or not media_path.is_file():
+        return None
+    return media_path
 
 
 def learner_recording_is_current(

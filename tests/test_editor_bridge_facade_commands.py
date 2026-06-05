@@ -64,6 +64,56 @@ def test_bridge_routes_share_payload_to_editor_sharing(monkeypatch) -> None:
     assert called["payload"].share_target == "catbox"
 
 
+def test_bridge_routes_learner_share_payload_to_editor_sharing(monkeypatch) -> None:
+    editor = make_editor()
+    called: dict[str, object] = {}
+
+    monkeypatch.setattr(
+        "anki_audio_quick_editor.editor_callbacks._share_learner_recording_file",
+        lambda _editor, payload: called.update(editor=_editor, payload=payload),
+    )
+
+    _handle_bridge_command(
+        editor,
+        '{"command":"aqe:share-recording","fieldOrd":0,"shareTarget":"litterbox"}',
+    )
+
+    assert called["editor"] is editor
+    assert called["payload"].share_target == "litterbox"
+
+
+def test_bridge_routes_show_learner_recording_file(monkeypatch) -> None:
+    editor = make_editor()
+    called: dict[str, object] = {}
+
+    monkeypatch.setattr(
+        "anki_audio_quick_editor.editor_callbacks._show_learner_recording_file",
+        lambda _editor: called.update(editor=_editor),
+    )
+
+    _handle_bridge_command(editor, "aqe:show-recording-file")
+
+    assert called["editor"] is editor
+
+
+def test_bridge_passes_start_cursor_to_learner_recording(monkeypatch) -> None:
+    editor = make_editor()
+    called: dict[str, object] = {}
+
+    monkeypatch.setattr(
+        "anki_audio_quick_editor.editor_callbacks._record_learner_voice",
+        lambda _editor, **kwargs: called.update(editor=_editor, kwargs=kwargs),
+    )
+
+    _handle_bridge_command(
+        editor,
+        '{"command":"aqe:record-voice","fieldOrd":0,"startCursorMs":450}',
+    )
+
+    assert called["editor"] is editor
+    assert called["kwargs"]["start_cursor_ms"] == 450
+
+
 def test_stop_playback_command_stops_session_without_clearing_status() -> None:
     editor = make_editor()
     session = EditorSession(

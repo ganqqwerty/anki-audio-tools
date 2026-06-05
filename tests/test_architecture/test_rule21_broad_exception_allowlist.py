@@ -161,7 +161,7 @@ BROAD_EXCEPTION_ALLOWLIST: tuple[BroadExceptionAllowance, ...] = (
     ),
     BroadExceptionAllowance(
         "editor_sharing",
-        "share_current_audio_file._run",
+        "share_media_path._run",
         1,
         "Background upload worker boundary reports Catbox/Litterbox failures on the main thread.",
     ),
@@ -200,6 +200,12 @@ BROAD_EXCEPTION_ALLOWLIST: tuple[BroadExceptionAllowance, ...] = (
         "analyze_learner_recording_async._run",
         1,
         "Background learner-recording analysis worker reports analyzer failures on the main thread.",
+    ),
+    BroadExceptionAllowance(
+        "editor_recording",
+        "play_learner_recording",
+        1,
+        "Best-effort learner playback integration reports pause/resume unavailability as a warning.",
     ),
     BroadExceptionAllowance(
         "file_reveal",

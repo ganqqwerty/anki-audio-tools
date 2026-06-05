@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import logging
 import re
+import shutil
 import time
 from dataclasses import dataclass, replace
 from pathlib import Path
@@ -26,6 +27,7 @@ from .editor_session import (
     LearnerRecordingState,
     begin_learner_recording_state,
     learner_recording_is_current,
+    reset_learner_playback_state,
 )
 from .error_codes import (
     AQE_MEDIA_REFERENCED_AUDIO_MISSING,
@@ -53,6 +55,7 @@ class LearnerRecordingRequest:
     target_duration_ms: int
     output_filename: str
     output_path: Path
+    start_cursor_ms: int = 0
     graph_settings: dict[str, object] | None = None
 
 
@@ -61,6 +64,7 @@ def record_learner_voice(
     deps: Any,
     *,
     graph_settings: dict[str, object] | None = None,
+    start_cursor_ms: int | None = None,
 ) -> None:
     """Start learner recording for the active target graph."""
     if getattr(editor, "note", None) is None:
@@ -70,7 +74,7 @@ def record_learner_voice(
         deps.eval_status(editor, deps.still_processing_message, kind="processing")
         return
     try:
-        request = learner_recording_request(editor, session, graph_settings, deps)
+        request = learner_recording_request(editor, session, graph_settings, start_cursor_ms, deps)
         recorder = deps.recorder_factory(request.output_path, editor.mw, _recording_parent(editor))
     except AudioQuickEditorError as exc:
         deps.eval_status(editor, coded_error(AQE_RECORDING_FAILED, str(exc)), kind="error")
@@ -87,6 +91,7 @@ def record_learner_voice(
         target_duration_ms=request.target_duration_ms,
         media_filename=request.output_filename,
         media_path=request.output_path,
+        start_cursor_ms=request.start_cursor_ms,
         graph_settings=request.graph_settings,
         started_at=time.monotonic(),
     )
@@ -142,6 +147,7 @@ def learner_recording_request(
     editor: Any,
     session: EditorSession,
     graph_settings: dict[str, object] | None,
+    start_cursor_ms: int | None,
     deps: Any,
 ) -> LearnerRecordingRequest:
     """Validate that the current field still matches a target graph."""
@@ -162,6 +168,7 @@ def learner_recording_request(
         source_filename=filename,
         source_path=source_path,
         target_duration_ms=int(target_duration_ms),
+        start_cursor_ms=_clamp_ms(start_cursor_ms, int(target_duration_ms)),
         output_filename=output_filename,
         output_path=media_dir / output_filename,
         graph_settings=graph_settings,
@@ -186,6 +193,7 @@ def learner_recording_request_from_state(
         source_filename=state.source_filename,
         source_path=Path(editor.mw.col.media.dir()) / state.source_filename,
         target_duration_ms=state.target_duration_ms,
+        start_cursor_ms=state.start_cursor_ms,
         output_filename=state.media_filename,
         output_path=state.media_path,
         graph_settings=state.graph_settings,
@@ -248,7 +256,7 @@ def persist_learner_recording(result: RecordingResult, output_path: Path) -> Pat
     recording_result_from_path(result.path, generation=result.generation)
     output_path.parent.mkdir(parents=True, exist_ok=True)
     if result.path.resolve() != output_path.resolve():
-        output_path.write_bytes(result.path.read_bytes())
+        shutil.copyfile(result.path, output_path)
     recording_result_from_path(output_path, generation=result.generation)
     return output_path
 
@@ -364,7 +372,7 @@ def fail_learner_recording(
 
 
 def play_learner_recording(editor: Any, deps: Any) -> None:
-    """Play the latest learner recording if one exists."""
+    """Toggle playback for the latest learner recording if one exists."""
     session = deps.sessions.get(editor)
     if session is None:
         message = t("editor.status.referenced_audio_missing")
@@ -373,8 +381,9 @@ def play_learner_recording(editor: Any, deps: Any) -> None:
     state = session.learner_recording
     media_path = state.media_path
     if state.status != "ready" or media_path is None or not media_path.is_file():
+        reset_learner_playback_state(session)
         session.learner_recording = replace(
-            state,
+            session.learner_recording,
             status="failed",
             failure_message=t("editor.status.referenced_audio_missing"),
         )
@@ -383,12 +392,104 @@ def play_learner_recording(editor: Any, deps: Any) -> None:
         deps.eval_status(editor, coded_error(AQE_MEDIA_REFERENCED_AUDIO_MISSING, message), kind="error")
         return
 
-    from anki.sound import SoundOrVideoTag
     from aqt.sound import av_player
 
+    if state.playback_status in {"playing", "paused"}:
+        try:
+            av_player.toggle_pause()
+        except Exception as exc:  # pragma: no cover - depends on active Anki audio backend
+            logger.info("learner recording pause/resume failed: %s", exc)
+            deps.eval_status(editor, t("editor.playback.pause_unavailable"), kind="warning")
+            return
+        now = time.monotonic()
+        if state.playback_status == "playing":
+            position_ms = _learner_playback_position_ms(state, now)
+            session.learner_recording = replace(
+                state,
+                playback_status="paused",
+                playback_position_ms=position_ms,
+                playback_started_at_monotonic=None,
+                playback_generation=state.playback_generation + 1,
+            )
+            eval_learner_recording_state(editor, session.learner_recording)
+            deps.eval_status(editor, t("editor.playback.paused"))
+            return
+        session.learner_recording = replace(
+            state,
+            playback_status="playing",
+            playback_started_at_monotonic=now,
+            playback_generation=state.playback_generation + 1,
+        )
+        eval_learner_recording_state(editor, session.learner_recording)
+        _schedule_learner_playback_finished(editor, session, session.learner_recording, deps)
+        deps.eval_status(editor, t("editor.playback.playing"))
+        return
+
+    from anki.sound import SoundOrVideoTag
+
     deps.stop_session_playback(session)
+    state = session.learner_recording
     av_player.play_tags([SoundOrVideoTag(str(media_path))])
+    session.learner_recording = replace(
+        state,
+        playback_status="playing",
+        playback_position_ms=0,
+        playback_started_at_monotonic=time.monotonic(),
+        playback_generation=state.playback_generation + 1,
+    )
+    eval_learner_recording_state(editor, session.learner_recording)
+    _schedule_learner_playback_finished(editor, session, session.learner_recording, deps)
     deps.eval_status(editor, t("editor.playback.playing"))
+
+
+def _schedule_learner_playback_finished(
+    editor: Any,
+    session: EditorSession,
+    state: LearnerRecordingState,
+    deps: Any,
+) -> None:
+    duration_ms = int(state.recording_duration_ms or state.target_duration_ms or 0)
+    remaining_ms = max(0, duration_ms - int(state.playback_position_ms or 0))
+    if remaining_ms <= 0:
+        remaining_ms = 1
+    playback_generation = state.playback_generation
+    recording_generation = state.generation
+
+    def _finish() -> None:
+        current = session.learner_recording
+        if (
+            current.generation != recording_generation
+            or current.playback_generation != playback_generation
+            or current.playback_status != "playing"
+        ):
+            return
+        session.learner_recording = replace(
+            current,
+            playback_status="stopped",
+            playback_position_ms=0,
+            playback_started_at_monotonic=None,
+            playback_generation=current.playback_generation + 1,
+        )
+        eval_learner_recording_state(editor, session.learner_recording)
+
+    from aqt.qt import QTimer
+
+    QTimer.singleShot(remaining_ms, lambda: deps.main(editor, _finish))
+
+
+def _learner_playback_position_ms(state: LearnerRecordingState, now: float) -> int:
+    if state.playback_started_at_monotonic is None:
+        return int(state.playback_position_ms or 0)
+    elapsed_ms = round((now - state.playback_started_at_monotonic) * 1000)
+    duration_ms = int(state.recording_duration_ms or state.target_duration_ms or 0)
+    return _clamp_ms(int(state.playback_position_ms or 0) + elapsed_ms, duration_ms)
+
+
+def _clamp_ms(value: int | None, duration_ms: int) -> int:
+    if value is None:
+        return 0
+    return max(0, min(int(value), max(0, int(duration_ms))))
+
 
 def _recording_parent(editor: Any) -> Any:
     return getattr(editor, "parentWindow", None) or getattr(editor, "widget", None) or editor.web

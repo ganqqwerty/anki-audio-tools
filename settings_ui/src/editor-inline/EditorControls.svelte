@@ -70,7 +70,12 @@
     if (command === "aqe:redo") return !availability.canRedo;
     if (command === "aqe:chorusing-next") return true;
     if (command === "aqe:chorusing-previous") return true;
-    if (command === "aqe:record-voice" || command === "aqe:play-recording") return true;
+    if (
+      command === "aqe:record-voice" ||
+      command === "aqe:play-recording" ||
+      command === "aqe:share-recording" ||
+      command === "aqe:show-recording-file"
+    ) return true;
     return false;
   }
 
@@ -127,7 +132,9 @@
           {#if item.definition.slug === "record-play-yours"}
             {@const record = item.buttons.find((button) => button.command === "aqe:record-voice")}
             {@const playRecording = item.buttons.find((button) => button.command === "aqe:play-recording")}
-            {#if record && playRecording}
+            {@const shareRecording = item.buttons.find((button) => button.command === "aqe:share-recording")}
+            {@const showRecordingFile = item.buttons.find((button) => button.command === "aqe:show-recording-file")}
+            {#if record && playRecording && shareRecording && showRecordingFile}
               <span class="aqe-split-group">
                 <SplitButton
                   button={record}
@@ -139,6 +146,20 @@
                 <SplitButton
                   button={playRecording}
                   displayMode={buttonDisplayMode(playRecording.command, buttonModes)}
+                  primaryGroupPosition="middle"
+                  showMenu={false}
+                  {target}
+                />
+                <SplitButton
+                  button={shareRecording}
+                  displayMode={buttonDisplayMode(shareRecording.command, buttonModes)}
+                  primaryGroupPosition="middle"
+                  showMenu={false}
+                  {target}
+                />
+                <SplitButton
+                  button={showRecordingFile}
+                  displayMode={buttonDisplayMode(showRecordingFile.command, buttonModes)}
                   primaryGroupPosition="middle"
                   showMenu={false}
                   {target}

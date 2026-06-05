@@ -69,7 +69,7 @@ export function buildSplitCommandPayloadFromState(
       },
     };
   }
-  if (command === "aqe:share") {
+  if (command === "aqe:share" || command === "aqe:share-recording") {
     return { command, fieldOrd: ord, shareTarget: state.shareTarget };
   }
   if (

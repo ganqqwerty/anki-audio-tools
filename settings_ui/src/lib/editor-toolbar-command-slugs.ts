@@ -9,6 +9,8 @@ export const COMMAND_SLUGS: Readonly<Record<EditorCommand, string>> = {
   "aqe:record-voice": "record-voice",
   "aqe:stop-recording": "stop-recording",
   "aqe:play-recording": "play-recording",
+  "aqe:share-recording": "share-recording",
+  "aqe:show-recording-file": "show-recording-file",
   "aqe:show-file": "show-file",
   "aqe:share": "share",
   "aqe:convert": "convert",

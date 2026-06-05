@@ -30,6 +30,7 @@ _eval_status = editor_frontend_callbacks._eval_status
 _eval_visualizer_status = editor_frontend_callbacks._eval_visualizer_status
 _eval_visualizer_status_for_field = editor_frontend_callbacks._eval_visualizer_status_for_field
 _eval_with_callback = editor_frontend_callbacks._eval_with_callback
+_eval_learner_recording_state = editor_frontend_callbacks._eval_learner_recording_state
 _graph_redraw_expression = editor_frontend_callbacks._graph_redraw_expression
 _history_availability_expression = editor_frontend_callbacks._history_availability_expression
 _handle_post_edit_playback_ready = editor_frontend_callbacks._handle_post_edit_playback_ready
@@ -227,11 +228,16 @@ def _show_current_audio_file(editor: Any) -> None:
     editor_settings_actions.show_current_audio_file(editor, _settings_action_deps())
 
 
+def _show_learner_recording_file(editor: Any) -> None:
+    editor_settings_actions.show_learner_recording_file(editor, _settings_action_deps())
+
+
 def _open_external_url(url: str) -> None:
     editor_settings_actions.open_external_url(url)
 
 
 _share_current_audio_file = _with_deps(editor_sharing.share_current_audio_file, _share_deps)
+_share_learner_recording_file = _with_deps(editor_sharing.share_learner_recording_file, _share_deps)
 _finish_shared_audio = _with_deps(editor_sharing.finish_shared_audio, _share_deps)
 _share_failed = _with_deps(editor_sharing.share_failed, _share_deps)
 

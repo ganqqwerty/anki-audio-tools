@@ -8,7 +8,12 @@ from typing import Any
 
 from .diagnostics_runtime import capture_exception, new_operation_id
 from .editor_actions import EditorCommandPayload, decode_editor_command_payload
-from .error_codes import AQE_AUDIO_PROCESSING_FAILED, coded_error
+from .editor_session import ready_learner_recording_media_path
+from .error_codes import (
+    AQE_AUDIO_PROCESSING_FAILED,
+    AQE_MEDIA_REFERENCED_AUDIO_MISSING,
+    coded_error,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -21,16 +26,52 @@ def share_current_audio_file(
     """Upload the current editor audio file and copy the resulting URL."""
     payload = decode_editor_command_payload(command)
     if payload.share_target not in {"catbox", "litterbox"}:
-        deps.set_busy(editor, False)
-        message = deps.t("editor.status.share_invalid_target")
-        deps.eval_status(
-            editor,
-            coded_error(AQE_AUDIO_PROCESSING_FAILED, message),
-            kind="error",
-        )
+        reject_invalid_share_target(editor, deps)
         return
 
     session, media_path = deps.current_media_path(editor)
+    share_media_path(editor, payload, session, media_path, deps)
+
+
+def share_learner_recording_file(
+    editor: Any,
+    command: str | EditorCommandPayload,
+    deps: Any,
+) -> None:
+    """Upload the latest learner recording sidecar and copy the resulting URL."""
+    payload = decode_editor_command_payload(command)
+    if payload.share_target not in {"catbox", "litterbox"}:
+        reject_invalid_share_target(editor, deps)
+        return
+
+    session = deps.sessions.get(editor)
+    media_path = ready_learner_recording_media_path(session)
+    if session is None or media_path is None:
+        deps.set_busy(editor, False)
+        message = deps.t("editor.status.referenced_audio_missing")
+        deps.eval_status(editor, coded_error(AQE_MEDIA_REFERENCED_AUDIO_MISSING, message), kind="error")
+        return
+    share_media_path(editor, payload, session, media_path, deps)
+
+
+def reject_invalid_share_target(editor: Any, deps: Any) -> None:
+    deps.set_busy(editor, False)
+    message = deps.t("editor.status.share_invalid_target")
+    deps.eval_status(
+        editor,
+        coded_error(AQE_AUDIO_PROCESSING_FAILED, message),
+        kind="error",
+    )
+
+
+def share_media_path(
+    editor: Any,
+    payload: EditorCommandPayload,
+    session: Any,
+    media_path: Any,
+    deps: Any,
+) -> None:
+    """Upload one already-resolved media path."""
     if deps.is_busy(session):
         deps.eval_status(editor, deps.still_processing_message, kind="processing")
         return

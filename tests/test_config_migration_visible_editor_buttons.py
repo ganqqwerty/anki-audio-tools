@@ -19,6 +19,8 @@ def _defaults() -> dict[str, object]:
             "aqe:chorusing-next": "icon",
             "aqe:record-voice": "icon",
             "aqe:play-recording": "icon",
+            "aqe:share-recording": "icon",
+            "aqe:show-recording-file": "icon",
             "aqe:settings": "icon",
         },
     }
@@ -37,6 +39,8 @@ def test_keeps_supported_default_hidden_visible_editor_buttons() -> None:
         "aqe:play",
         "aqe:record-voice",
         "aqe:play-recording",
+        "aqe:share-recording",
+        "aqe:show-recording-file",
         "aqe:settings",
     ]
 
@@ -54,6 +58,8 @@ def test_normalizes_partial_recording_panel_visibility() -> None:
         "aqe:play",
         "aqe:record-voice",
         "aqe:play-recording",
+        "aqe:share-recording",
+        "aqe:show-recording-file",
         "aqe:settings",
     ]
 

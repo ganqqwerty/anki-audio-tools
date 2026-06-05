@@ -17,6 +17,8 @@ export type EditorCommand =
   | "aqe:record-voice"
   | "aqe:stop-recording"
   | "aqe:play-recording"
+  | "aqe:share-recording"
+  | "aqe:show-recording-file"
   | "aqe:show-file"
   | "aqe:share"
   | "aqe:convert"
@@ -77,6 +79,8 @@ export const DEFAULT_EDITOR_BUTTON_MODES = {
   "aqe:chorusing-next": EditorButtonMode.Icon,
   "aqe:record-voice": EditorButtonMode.Icon,
   "aqe:play-recording": EditorButtonMode.Icon,
+  "aqe:share-recording": EditorButtonMode.Icon,
+  "aqe:show-recording-file": EditorButtonMode.Icon,
   "aqe:show-file": EditorButtonMode.Icon,
   "aqe:share": EditorButtonMode.Icon,
   "aqe:convert": EditorButtonMode.Text,
@@ -153,11 +157,26 @@ export function commandButtons(): readonly ToolbarButtonSpec[] {
       title: t("editor.command.record_voice.title"),
     },
     {
+      activeIcon: "pause",
       command: "aqe:play-recording",
       icon: "audio-lines",
       iconOnly: true,
       label: t("editor.command.play_recording.label"),
       title: t("editor.command.play_recording.title"),
+    },
+    {
+      command: "aqe:share-recording",
+      icon: "share",
+      iconOnly: true,
+      label: t("editor.command.share_recording.label"),
+      title: t("editor.command.share_recording.title"),
+    },
+    {
+      command: "aqe:show-recording-file",
+      icon: "folder-open",
+      iconOnly: true,
+      label: t("editor.command.show_recording_file.label"),
+      title: t("editor.command.show_recording_file.title"),
     },
     {
       command: "aqe:show-file",

@@ -34,6 +34,8 @@ export const TOOLBAR_PANEL_DEFINITIONS = [
     commands: [
       "aqe:record-voice",
       "aqe:play-recording",
+      "aqe:share-recording",
+      "aqe:show-recording-file",
     ],
     labelKey: "editor.command.record_group.label",
     primaryCommand: "aqe:record-voice",

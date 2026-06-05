@@ -46,10 +46,12 @@ CMD_STOP_PLAYBACK = "aqe:stop-playback"
 CMD_SETTINGS = "aqe:settings"
 CMD_REDO = "aqe:redo"
 CMD_SHARE = "aqe:share"
+CMD_SHARE_RECORDING = "aqe:share-recording"
 CMD_OPEN_URL = "aqe:open-url"
 CMD_RECORD_VOICE = "aqe:record-voice"
 CMD_STOP_RECORDING = "aqe:stop-recording"
 CMD_PLAY_RECORDING = "aqe:play-recording"
+CMD_SHOW_RECORDING_FILE = "aqe:show-recording-file"
 CMD_POST_EDIT_PLAYBACK_READY = "aqe:post-edit-playback-ready"
 CMD_BACK_CHAIN_PRACTICE = "aqe:chorusing-practice"
 CMD_BACK_CHAIN_PREVIOUS = "aqe:chorusing-previous"
@@ -73,6 +75,8 @@ BRIDGE_COMMANDS = (
     CMD_POST_EDIT_PLAYBACK_READY,
     "aqe:show-file",
     CMD_SHARE,
+    CMD_SHARE_RECORDING,
+    CMD_SHOW_RECORDING_FILE,
     CMD_OPEN_URL,
     CMD_RECORD_VOICE,
     CMD_STOP_RECORDING,
@@ -148,6 +152,7 @@ class EditorCommandPayload:
     generation: int | None = None
     share_target: str | None = None
     source_filename: str | None = None
+    start_cursor_ms: int | None = None
     url: str | None = None
 
 
@@ -244,6 +249,7 @@ def decode_editor_command_payload(raw_command: str | EditorCommandPayload) -> Ed
         generation=_int_or_none(raw_payload.get("generation")),
         share_target=_share_target_or_none(raw_payload.get("shareTarget")),
         source_filename=_str_or_none(raw_payload.get("sourceFilename")),
+        start_cursor_ms=_int_or_none(raw_payload.get("startCursorMs")),
         url=trusted_external_url_or_none(raw_payload.get("url")),
     )
 

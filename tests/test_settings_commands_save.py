@@ -101,6 +101,8 @@ def test_settings_save_normalizes_partial_recording_panel_visibility() -> None:
         "aqe:play",
         "aqe:record-voice",
         "aqe:play-recording",
+        "aqe:share-recording",
+        "aqe:show-recording-file",
         "aqe:settings",
     ]
     assert dialog.accepted is True

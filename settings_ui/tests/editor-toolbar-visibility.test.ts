@@ -29,6 +29,8 @@ describe("editor toolbar visibility panels", () => {
         commands: [
           "aqe:record-voice",
           "aqe:play-recording",
+          "aqe:share-recording",
+          "aqe:show-recording-file",
         ],
         labelKey: "editor.command.record_group.label",
         slug: "record-play-yours",
@@ -82,6 +84,8 @@ describe("editor toolbar visibility panels", () => {
       "aqe:play",
       "aqe:record-voice",
       "aqe:play-recording",
+      "aqe:share-recording",
+      "aqe:show-recording-file",
       "aqe:settings",
     ]);
   });

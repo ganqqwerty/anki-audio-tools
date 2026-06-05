@@ -30,6 +30,8 @@ from .editor_actions import (
     CMD_SAVE_SPLIT_DEFAULTS,
     CMD_SETTINGS,
     CMD_SHARE,
+    CMD_SHARE_RECORDING,
+    CMD_SHOW_RECORDING_FILE,
     CMD_SOURCE_METADATA,
     CMD_STOP_PLAYBACK,
     CMD_STOP_RECORDING,
@@ -151,6 +153,7 @@ def handle_non_processing_command(editor: Any, command: str | EditorCommandPaylo
         CMD_STOP_RECORDING: deps.stop_learner_recording,
         CMD_STOP_PLAYBACK: deps.stop_playback,
         CMD_PLAY_RECORDING: deps.play_learner_recording,
+        CMD_SHOW_RECORDING_FILE: deps.show_learner_recording_file,
         CMD_SAVE_SPLIT_DEFAULTS: deps.save_split_defaults_from_frontend,
         CMD_SOURCE_METADATA: deps.request_source_metadata,
         "aqe:show-file": deps.show_current_audio_file,
@@ -181,7 +184,12 @@ def handle_payload_command(editor: Any, payload: EditorCommandPayload, deps: Any
         CMD_PITCH_HUM: lambda: deps.pitch_hum_async(editor, payload),
         CMD_POST_EDIT_PLAYBACK_READY: lambda: deps.handle_post_edit_playback_ready(editor, payload),
         CMD_SHARE: lambda: deps.share_current_audio_file(editor, payload),
-        CMD_RECORD_VOICE: lambda: deps.record_learner_voice(editor, graph_settings=payload.graph_settings),
+        CMD_SHARE_RECORDING: lambda: deps.share_learner_recording_file(editor, payload),
+        CMD_RECORD_VOICE: lambda: deps.record_learner_voice(
+            editor,
+            graph_settings=payload.graph_settings,
+            start_cursor_ms=payload.start_cursor_ms,
+        ),
     }
     handler = handlers.get(payload.command)
     if handler is None:

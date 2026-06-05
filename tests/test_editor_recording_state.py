@@ -8,6 +8,7 @@ from anki_audio_quick_editor.editor_session import (
     begin_learner_recording_state,
     learner_recording_is_current,
     reset_for_note_load,
+    reset_learner_playback_state,
 )
 
 
@@ -28,6 +29,7 @@ def test_begin_learner_recording_state_records_attempt_data_and_generation() -> 
         target_duration_ms=1234,
         media_filename="learner.wav",
         media_path=media_path,
+        start_cursor_ms=456,
         started_at=10.0,
     )
 
@@ -39,6 +41,7 @@ def test_begin_learner_recording_state_records_attempt_data_and_generation() -> 
         media_filename="learner.wav",
         media_path=media_path,
         target_duration_ms=1234,
+        start_cursor_ms=456,
         recording_started_at_monotonic=10.0,
     )
     assert session.learner_recording == state
@@ -87,6 +90,30 @@ def test_reset_for_same_note_keeps_learner_recording_state() -> None:
 
     assert changed is False
     assert session.learner_recording == state
+
+
+def test_reset_learner_playback_state_invalidates_active_playback() -> None:
+    session = EditorSession()
+    session.learner_recording = LearnerRecordingState(
+        status="ready",
+        field_index=0,
+        generation=3,
+        source_filename="target.wav",
+        target_duration_ms=1000,
+        media_filename="learner.wav",
+        media_path=Path("/tmp/learner.wav"),
+        playback_status="playing",
+        playback_position_ms=250,
+        playback_started_at_monotonic=10.0,
+        playback_generation=4,
+    )
+
+    state = reset_learner_playback_state(session)
+
+    assert state.playback_status == "stopped"
+    assert state.playback_position_ms == 0
+    assert state.playback_started_at_monotonic is None
+    assert state.playback_generation == 5
 
 
 def test_learner_recording_is_current_rejects_stale_generation_field_or_source() -> None:

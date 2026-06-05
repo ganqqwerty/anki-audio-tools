@@ -49,6 +49,8 @@ def _full_config() -> dict[str, object]:
             "aqe:chorusing-next": "icon",
             "aqe:record-voice": "icon",
             "aqe:play-recording": "icon",
+            "aqe:share-recording": "icon",
+            "aqe:show-recording-file": "icon",
             "aqe:show-file": "icon",
             "aqe:share": "icon",
             "aqe:convert": "text",

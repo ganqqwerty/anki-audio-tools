@@ -17,6 +17,13 @@
   stroke-width: 2.5;
 }
 
+@media (prefers-color-scheme: dark) {
+  .aqe-learner-pitch-path {
+    opacity: 0.94;
+    stroke: #facc15;
+  }
+}
+
 .aqe-css-cursor,
 .aqe-ui-root .aqe-css-cursor {
   display: none;

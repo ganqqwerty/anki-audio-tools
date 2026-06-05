@@ -59,7 +59,7 @@ export function send(
   }
   const effectivePayload =
     payload ??
-    (command === "aqe:pitch-hum" || command === "aqe:share"
+    (command === "aqe:pitch-hum" || command === "aqe:share" || command === "aqe:share-recording"
       ? buildSplitCommandPayload(command, ord)
       : undefined);
   if (effectivePayload) {

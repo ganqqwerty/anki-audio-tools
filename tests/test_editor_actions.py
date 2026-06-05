@@ -72,6 +72,21 @@ def test_decode_command_accepts_share_target_payload() -> None:
     assert decoded.share_target == "litterbox"
 
 
+def test_decode_record_voice_payload_accepts_start_cursor() -> None:
+    decoded = decode_editor_command_payload(
+        '{"command":"aqe:record-voice","fieldOrd":0,"startCursorMs":750}'
+    )
+
+    assert decoded.command == "aqe:record-voice"
+    assert decoded.field_ord == 0
+    assert decoded.start_cursor_ms == 750
+
+
+def test_learner_recording_sidecar_commands_are_registered_bridge_commands() -> None:
+    assert "aqe:share-recording" in BRIDGE_COMMANDS
+    assert "aqe:show-recording-file" in BRIDGE_COMMANDS
+
+
 def test_decode_post_edit_playback_ready_payload() -> None:
     decoded = decode_editor_command_payload(
         '{"command":"aqe:post-edit-playback-ready","fieldOrd":2,'

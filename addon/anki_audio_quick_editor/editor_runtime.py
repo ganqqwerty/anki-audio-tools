@@ -16,7 +16,11 @@ from .editor_media import (
     sound_reference_for_field,
 )
 from .editor_playback import cleanup_temp_playback, stop_audio_playback
-from .editor_session import EditorSession, clear_learner_recording_state
+from .editor_session import (
+    EditorSession,
+    clear_learner_recording_state,
+    reset_learner_playback_state,
+)
 from .editor_status import original_audio_status_summary
 from .errors import AudioProcessingError, MissingMediaError
 from .i18n import t
@@ -135,5 +139,6 @@ def stop_session_playback(session: EditorSession) -> None:
     session.playback_preparing = False
     session.playback_active = False
     session.playback_paused = False
+    reset_learner_playback_state(session)
     stop_audio_playback()
     cleanup_temp_playback(session)

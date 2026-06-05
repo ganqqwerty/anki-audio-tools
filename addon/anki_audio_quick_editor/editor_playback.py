@@ -80,8 +80,11 @@ def stop_playback(editor: Any, deps: Any) -> bool:
         field_index = session.field_index if session.field_index is not None else 0
         cursor_ms = session.cursor_ms
         preserve_status = session.preserve_status_during_playback
+        learner_was_active = session.learner_recording.playback_status != "stopped"
         deps.stop_session_playback(session)
         deps.eval_playback_state(editor, field_index, "stopped", cursor_ms)
+        if learner_was_active:
+            deps.eval_learner_recording_state(editor, session.learner_recording)
     else:
         deps.stop_audio_playback()
     return preserve_status

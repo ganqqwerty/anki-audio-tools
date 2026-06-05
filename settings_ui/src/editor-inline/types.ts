@@ -76,6 +76,7 @@ export interface EditorCommandPayload {
   fieldOrd?: number;
   generation?: number;
   sourceFilename?: string;
+  startCursorMs?: number;
   url?: string;
   shareTarget?: "catbox" | "litterbox";
   overrides?: {
@@ -269,7 +270,9 @@ export interface GraphStateForTest {
   learnerDurationMs: number;
   learnerIntensityPaths: number;
   learnerPitchPaths: number;
+  learnerPlaybackStatus: string;
   learnerRecordingStatus: string;
+  learnerStartCursorMs: number;
   pitchPaths: number;
   pitchMarkerVisible: boolean;
   pitchMarkerX: number | null;
