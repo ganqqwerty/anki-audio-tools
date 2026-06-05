@@ -269,13 +269,6 @@
   line-height: 1.35;
 }
 
-.aqe-graph-option-value,
-.aqe-ui-root .aqe-graph-option-value {
-  color: var(--aqe-text-muted-color);
-  font-size: 11px;
-  justify-self: end;
-}
-
 .aqe-play-split-popover {
   min-width: min(240px, calc(100vw - 16px));
 }

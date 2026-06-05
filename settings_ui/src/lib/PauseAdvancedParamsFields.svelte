@@ -2,6 +2,7 @@
   import AqeTooltip from "$lib/AqeTooltip.svelte";
   import CommandIcon from "$lib/CommandIcon.svelte";
   import FieldTooltipTarget from "$lib/FieldTooltipTarget.svelte";
+  import UnitNumberInput from "$lib/UnitNumberInput.svelte";
   import {
     pauseThresholdLabel,
     pauseThresholdMax,
@@ -77,15 +78,17 @@
         </AqeTooltip>
       </div>
       <FieldTooltipTarget block content={t(thresholdDescriptionKey)} {disabledReason}>
-        <input
+        <UnitNumberInput
           bind:value={threshold}
-          data-testid={`${testPrefix}-threshold`}
+          block
+          density="comfortable"
+          testId={`${testPrefix}-threshold`}
           disabled={disabled}
           max={pauseThresholdMax(algorithm)}
           min={pauseThresholdMin(algorithm)}
           step={pauseThresholdStep(algorithm)}
-          type="number"
-          oninput={(event) => onThreshold?.((event.currentTarget as HTMLInputElement).valueAsNumber)}
+          unit={algorithm === "silero_vad" ? "" : "dB"}
+          onValueInput={onThreshold}
         />
       </FieldTooltipTarget>
     </label>
@@ -108,15 +111,17 @@
         </AqeTooltip>
       </div>
       <FieldTooltipTarget block content={t("settings.pause_min_silence_seconds.help")} {disabledReason}>
-        <input
+        <UnitNumberInput
           bind:value={minSilenceSeconds}
-          data-testid={`${testPrefix}-min-silence-seconds`}
+          block
+          density="comfortable"
+          testId={`${testPrefix}-min-silence-seconds`}
           disabled={disabled}
           max="10"
           min="0.01"
           step="0.01"
-          type="number"
-          oninput={(event) => onMinSilenceSeconds?.((event.currentTarget as HTMLInputElement).valueAsNumber)}
+          unit="s"
+          onValueInput={onMinSilenceSeconds}
         />
       </FieldTooltipTarget>
     </label>
@@ -139,15 +144,17 @@
         </AqeTooltip>
       </div>
       <FieldTooltipTarget block content={t("settings.pause_min_speech_seconds.help")} {disabledReason}>
-        <input
+        <UnitNumberInput
           bind:value={minSpeechSeconds}
-          data-testid={`${testPrefix}-min-speech-seconds`}
+          block
+          density="comfortable"
+          testId={`${testPrefix}-min-speech-seconds`}
           disabled={disabled}
           max="10"
           min="0.01"
           step="0.01"
-          type="number"
-          oninput={(event) => onMinSpeechSeconds?.((event.currentTarget as HTMLInputElement).valueAsNumber)}
+          unit="s"
+          onValueInput={onMinSpeechSeconds}
         />
       </FieldTooltipTarget>
     </label>

@@ -1,6 +1,7 @@
 <script lang="ts">
   import FieldTooltipTarget from "$lib/FieldTooltipTarget.svelte";
   import { t } from "$lib/i18n.js";
+  import UnitNumberInput from "$lib/UnitNumberInput.svelte";
   import { tooltipWithDisabledClarification } from "$lib/disabled-tooltip.js";
   import {
     DPDFNET_ATTENUATION_LIMIT_DB_VALUES,
@@ -72,14 +73,31 @@
     <label>
       <span>{t("settings.speed_step")}</span>
       <FieldTooltipTarget block content={t("settings.speed_step")} {disabledReason}>
-        <input bind:value={form.speedStep} disabled={disabled} max="5" min="1.01" step="0.01" type="number" />
+        <UnitNumberInput
+          block
+          bind:value={form.speedStep}
+          disabled={disabled}
+          max="5"
+          min="1.01"
+          step="0.01"
+          unit="x"
+          unitPosition="prefix"
+        />
       </FieldTooltipTarget>
     </label>
   {:else if selected?.parameter_kind === BatchParameterKind.Volume}
     <label>
       <span>{t("settings.volume_step_db")}</span>
       <FieldTooltipTarget block content={t("settings.volume_step_db")} {disabledReason}>
-        <input bind:value={form.volumeStepDb} disabled={disabled} max="40" min="1" step="0.5" type="number" />
+        <UnitNumberInput
+          block
+          bind:value={form.volumeStepDb}
+          disabled={disabled}
+          max="40"
+          min="1"
+          step="0.5"
+          unit="dB"
+        />
       </FieldTooltipTarget>
     </label>
   {:else if selected?.parameter_kind === BatchParameterKind.Pause}
@@ -250,8 +268,7 @@
     font-weight: 700;
   }
 
-  select,
-  input {
+  select {
     background: var(--canvas-elevated, Field);
     border: 1px solid var(--border, ButtonBorder);
     border-radius: 5px;
@@ -270,8 +287,7 @@
     padding: 4px 8px;
   }
 
-  select:disabled,
-  input:disabled {
+  select:disabled {
     opacity: 0.7;
   }
 

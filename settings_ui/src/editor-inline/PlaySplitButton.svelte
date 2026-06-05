@@ -5,6 +5,8 @@
   import EditorCommandIcon from "./EditorCommandIcon.svelte";
   import { openEditorExternalLink } from "./external-links.js";
   import { PRODUCT_LINKS } from "../lib/product-links.js";
+  import UnitNumberInput from "../lib/UnitNumberInput.svelte";
+  import ValueSlider from "../lib/ValueSlider.svelte";
   import SplitDefaultSaveButton from "./SplitDefaultSaveButton.svelte";
   import { setRepeatEnabledForOrd, setRepeatPauseSecondsForOrd, send } from "./actions.js";
   import { sendSplitDefaultSaveRequest } from "./bridge.js";
@@ -213,29 +215,27 @@
       </AqeTooltip>
       <div class="aqe-split-popover-header">
         <strong>{t("editor.repeat.pause_seconds")}</strong>
-        <span style="align-items: center; display: inline-flex; gap: 4px; justify-content: flex-end;">
-          <input
-            class="aqe-split-value-input"
-            data-testid={`aqe-split-${target.ord}-repeat-value`}
-            type="number"
-            min="0"
-            max="10"
-            step="0.1"
-            value={repeatPauseSeconds}
-            aria-label={t("editor.repeat.pause_seconds")}
-            oninput={(event) => applyValue((event.currentTarget as HTMLInputElement).valueAsNumber)}
-          />
-          <span style="font-size: 11px; white-space: nowrap;"> s</span>
-        </span>
+        <UnitNumberInput
+          inputClass="aqe-split-value-input"
+          testId={`aqe-split-${target.ord}-repeat-value`}
+          min="0"
+          max="10"
+          step="0.1"
+          value={repeatPauseSeconds}
+          unit="s"
+          ariaLabel={t("editor.repeat.pause_seconds")}
+          onValueInput={applyValue}
+        />
       </div>
-      <input
-        data-testid={`aqe-split-${target.ord}-repeat-slider`}
-        type="range"
+      <ValueSlider
+        testId={`aqe-split-${target.ord}-repeat-slider`}
         min="0"
         max="10"
         step="0.1"
         value={repeatPauseSeconds}
-        oninput={(event) => applyValue(Number((event.currentTarget as HTMLInputElement).value))}
+        ariaLabel={t("editor.repeat.pause_seconds")}
+        formatValue={formatRepeatPauseSeconds}
+        onValueInput={applyValue}
       />
       <div class="aqe-split-range-labels">
         <span>0 s</span>
