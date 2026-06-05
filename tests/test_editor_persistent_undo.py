@@ -16,6 +16,7 @@ from anki_audio_quick_editor.editor_persistent_undo import (
 )
 from anki_audio_quick_editor.editor_processing import replace_current_field_after_render
 from anki_audio_quick_editor.editor_session import EditorSession
+from anki_audio_quick_editor.error_codes import AQE_PERSISTENT_UNDO_UNAVAILABLE
 from anki_audio_quick_editor.persistent_history import (
     PersistentHistoryAppend,
     PersistentHistoryRepository,
@@ -79,6 +80,13 @@ def test_can_persistent_undo_requires_applicable_current_field(
     editor.note.fields[0] = f"Kept text [sound:{new_media.name}]"
 
     assert can_persistent_undo(editor, 0) is True
+
+
+def test_can_persistent_undo_returns_false_when_sqlite_is_unavailable(tmp_path: Path, monkeypatch) -> None:
+    editor = _editor(tmp_path / "media", note_id=1001, field_html="[sound:clip.mp3]")
+    monkeypatch.setattr("anki_audio_quick_editor.persistent_history._sqlite3", None)
+
+    assert can_persistent_undo(editor, 0) is False
 
 
 def test_restore_persistent_undo_restores_old_field_html(tmp_path: Path, monkeypatch) -> None:
@@ -168,6 +176,25 @@ def test_restore_persistent_undo_refuses_unrelated_field(tmp_path: Path, monkeyp
 
     assert restored is False
     assert editor.note.fields == [f"[sound:{other_media.name}]"]
+
+
+def test_restore_persistent_undo_reports_coded_error_when_sqlite_is_unavailable(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    editor = _editor(tmp_path / "media", note_id=1001, field_html="[sound:clip.mp3]")
+    deps = _deps()
+    monkeypatch.setattr("anki_audio_quick_editor.persistent_history._sqlite3", None)
+
+    handled = restore_persistent_undo(editor, EditorSession(), deps)
+
+    assert handled is True
+    deps.eval_status.assert_called_once()
+    assert deps.eval_status.call_args.args[0] is editor
+    payload = deps.eval_status.call_args.args[1]
+    assert payload["code"] == AQE_PERSISTENT_UNDO_UNAVAILABLE
+    assert "SQLite" in payload["message"]
+    assert deps.eval_status.call_args.kwargs == {"kind": "error"}
 
 
 def test_restore_persistent_undo_refuses_missing_old_media(tmp_path: Path, monkeypatch) -> None:
@@ -277,6 +304,7 @@ def _deps() -> SimpleNamespace:
     return SimpleNamespace(
         current_field_index=lambda _editor: 0,
         dispose_editor_frontend_controls=MagicMock(),
+        eval_status=MagicMock(),
         eval_playback_state=MagicMock(),
         request_history_availability_after_edit=MagicMock(),
         request_playback_after_edit=MagicMock(),

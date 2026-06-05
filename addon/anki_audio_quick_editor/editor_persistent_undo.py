@@ -10,12 +10,15 @@ from typing import Any
 from .audio_state import AudioEditState
 from .editor_session import EditorSession, PendingEditorStatus, UndoEntry
 from .editor_status import restored_status_summary, undo_status_message
+from .error_codes import AQE_PERSISTENT_UNDO_UNAVAILABLE, coded_error
 from .errors import AudioQuickEditorError
+from .i18n import t
 from .media_paths import existing_media_file_path, media_filenames_match
 from .persistent_history import (
     PersistentHistoryAppend,
     PersistentHistoryOperation,
     PersistentHistoryRepository,
+    PersistentHistoryUnavailableError,
     audio_edit_state_from_json,
     audio_edit_state_to_json,
     media_fingerprint,
@@ -47,7 +50,10 @@ def collection_id_for_editor(editor: Any) -> str:
 
 def can_persistent_undo(editor: Any, field_index: int | None) -> bool:
     """Return whether a persistent undo operation can currently be restored."""
-    operation = _latest_for_field(editor, field_index)
+    try:
+        operation = _latest_for_field(editor, field_index)
+    except PersistentHistoryUnavailableError:
+        return False
     if operation is None or field_index is None:
         return False
     field_html = editor.note.fields[int(field_index)]
@@ -105,7 +111,11 @@ def record_standard_persistent_undo(
 def restore_persistent_undo(editor: Any, session: EditorSession, deps: Any) -> bool:
     """Restore the latest persistent undo operation for the current field."""
     field_index = int(deps.current_field_index(editor))
-    operation = _latest_for_field(editor, field_index)
+    try:
+        operation = _latest_for_field(editor, field_index)
+    except PersistentHistoryUnavailableError:
+        _show_persistent_undo_unavailable(editor, deps)
+        return True
     if operation is None or not _old_media_available(editor, operation):
         return False
 
@@ -149,6 +159,17 @@ def _latest_for_field(editor: Any, field_index: int | None) -> PersistentHistory
         collection_id_for_editor(editor),
         int(note_id),
         int(field_index),
+    )
+
+
+def _show_persistent_undo_unavailable(editor: Any, deps: Any) -> None:
+    deps.eval_status(
+        editor,
+        coded_error(
+            AQE_PERSISTENT_UNDO_UNAVAILABLE,
+            t("editor.status.persistent_undo_unavailable"),
+        ),
+        kind="error",
     )
 
 

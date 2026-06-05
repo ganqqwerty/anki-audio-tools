@@ -4,14 +4,24 @@ from __future__ import annotations
 
 import hashlib
 import json
-import sqlite3
 from contextlib import closing
 from dataclasses import asdict, dataclass
 from pathlib import Path
+from typing import Any
 
 from .audio_state import AudioEditState
 
+_sqlite3: Any
+try:
+    import sqlite3 as _sqlite3
+except ImportError:
+    _sqlite3 = None
+
 SCHEMA_VERSION = 1
+
+
+class PersistentHistoryUnavailableError(RuntimeError):
+    """Raised when SQLite support is unavailable."""
 
 
 @dataclass(frozen=True)
@@ -96,7 +106,7 @@ class PersistentHistoryRepository:
             row_id = cursor.lastrowid
             if row_id is None:
                 raise RuntimeError("SQLite did not return an id for the persistent undo row.")
-            return row_id
+            return int(row_id)
 
     def latest_undoable(
         self,
@@ -148,10 +158,11 @@ class PersistentHistoryRepository:
                 (expired_at_ms, operation_id),
             )
 
-    def _connect(self) -> sqlite3.Connection:
+    def _connect(self) -> Any:
+        sqlite = _require_sqlite()
         self._db_path.parent.mkdir(parents=True, exist_ok=True)
-        connection = sqlite3.connect(self._db_path)
-        connection.row_factory = sqlite3.Row
+        connection = sqlite.connect(self._db_path)
+        connection.row_factory = sqlite.Row
         return connection
 
     def _migrate(self) -> None:
@@ -235,7 +246,18 @@ def audio_edit_state_from_json(raw: str) -> AudioEditState | None:
     return AudioEditState(**payload)
 
 
-def _operation_from_row(row: sqlite3.Row) -> PersistentHistoryOperation:
+def sqlite_available() -> bool:
+    """Return whether the active Python runtime provides SQLite."""
+    return _sqlite3 is not None
+
+
+def _require_sqlite() -> Any:
+    if _sqlite3 is None:
+        raise PersistentHistoryUnavailableError("SQLite support is not available in this Python runtime.")
+    return _sqlite3
+
+
+def _operation_from_row(row: Any) -> PersistentHistoryOperation:
     return PersistentHistoryOperation(
         id=int(row["id"]),
         collection_id=str(row["collection_id"]),

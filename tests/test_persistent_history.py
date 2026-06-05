@@ -5,13 +5,17 @@ from __future__ import annotations
 import hashlib
 from pathlib import Path
 
+import pytest
+
 from anki_audio_quick_editor.audio_state import AudioEditState
 from anki_audio_quick_editor.persistent_history import (
     PersistentHistoryAppend,
     PersistentHistoryRepository,
+    PersistentHistoryUnavailableError,
     audio_edit_state_from_json,
     audio_edit_state_to_json,
     media_fingerprint,
+    sqlite_available,
 )
 
 
@@ -81,6 +85,15 @@ def test_repository_ignores_expired_operations(tmp_path: Path) -> None:
     repo.mark_expired(operation_id, expired_at_ms=2)
 
     assert repo.latest_undoable("collection", 1001, 0) is None
+
+
+def test_repository_reports_missing_sqlite(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr("anki_audio_quick_editor.persistent_history._sqlite3", None)
+    repo = PersistentHistoryRepository(tmp_path / "history.sqlite3")
+
+    assert sqlite_available() is False
+    with pytest.raises(PersistentHistoryUnavailableError):
+        repo.latest_undoable("collection", 1001, 0)
 
 
 def test_media_fingerprint_detects_size_and_hash(tmp_path: Path) -> None:

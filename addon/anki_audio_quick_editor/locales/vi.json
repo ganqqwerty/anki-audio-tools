@@ -305,6 +305,7 @@
   "editor.status.operation.redo": "Đã làm lại: {summary}",
   "editor.status.nothing_to_undo": "Không có gì để hoàn tác.",
   "editor.status.nothing_to_redo": "Không có gì để làm lại.",
+  "editor.status.persistent_undo_unavailable": "Không thể dùng hoàn tác liên tục vì bản dựng Anki này không cung cấp hỗ trợ SQLite.",
   "editor.status.region_read_failed": "Không thể đọc vùng đã chọn.",
   "editor.status.graph_inactive": "Biểu đồ đã chọn không còn là trường đang hoạt động.",
   "editor.status.graph_audio_mismatch": "Biểu đồ đã chọn không còn khớp với âm thanh hiện tại.",

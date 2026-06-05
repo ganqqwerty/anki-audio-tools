@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from anki_audio_quick_editor.error_codes import (
     AQE_BATCH_INVALID_REQUEST,
+    AQE_PERSISTENT_UNDO_UNAVAILABLE,
     AQE_RUNTIME_FFMPEG_MISSING,
     UserFacingError,
     coded_error,
@@ -28,6 +29,9 @@ def test_coded_error_payload_contains_code_message_and_details() -> None:
 def test_public_help_url_is_deterministic() -> None:
     assert public_help_url(AQE_BATCH_INVALID_REQUEST) == (
         "https://ganqqwerty.github.io/anki-audio-tools/errors/AQE-BATCH-001/"
+    )
+    assert public_help_url(AQE_PERSISTENT_UNDO_UNAVAILABLE) == (
+        "https://ganqqwerty.github.io/anki-audio-tools/errors/AQE-UNDO-001/"
     )
 
 

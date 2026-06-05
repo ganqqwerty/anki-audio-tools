@@ -305,6 +305,7 @@
   "editor.status.operation.redo": "やり直しました: {summary}",
   "editor.status.nothing_to_undo": "元に戻すものがありません。",
   "editor.status.nothing_to_redo": "やり直すものがありません。",
+  "editor.status.persistent_undo_unavailable": "この Anki ビルドでは SQLite サポートが提供されていないため、永続的な取り消しは利用できません。",
   "editor.status.region_read_failed": "選択範囲を読み取れませんでした。",
   "editor.status.graph_inactive": "選択したグラフはもうアクティブなフィールドではありません。",
   "editor.status.graph_audio_mismatch": "選択したグラフは現在の音声と一致しません。",
