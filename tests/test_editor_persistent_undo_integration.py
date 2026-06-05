@@ -161,12 +161,54 @@ def test_editor_injection_embeds_persistent_undo_availability(
 
     script = editor_injection_script(editor, editor.note)
 
-    match = re.search(r"window\.__AQE_EDITOR_CONFIG__ = (?P<config>\{.*?\});", script)
-    assert match is not None
-    config = json.loads(match.group("config"))
+    config = _embedded_config(script)
     assert config["initialHistoryAvailabilityByField"] == {
         "0": {"canUndo": True, "canRedo": False}
     }
+
+
+def test_editor_injection_disables_persistent_undo_for_unrelated_current_field(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    _SESSIONS.clear()
+    media_dir = tmp_path / "media"
+    media_dir.mkdir()
+    old_media = media_dir / "clip.mp3"
+    new_media = media_dir / "clip__aqe_1.mp3"
+    unrelated_media = media_dir / "other.mp3"
+    old_media.write_bytes(b"old")
+    new_media.write_bytes(b"new")
+    unrelated_media.write_bytes(b"other")
+    db_path = tmp_path / "persistent_undo.sqlite3"
+    editor = _persistent_undo_editor(
+        media_dir,
+        note_id=1001,
+        field_html=f"[sound:{unrelated_media.name}]",
+    )
+    _append_persistent_operation(
+        db_path,
+        editor,
+        old_filename=old_media.name,
+        new_filename=new_media.name,
+    )
+    monkeypatch.setattr(
+        "anki_audio_quick_editor.editor_persistent_undo.history_db_path_for_editor",
+        lambda _editor: db_path,
+    )
+
+    script = editor_injection_script(editor, editor.note)
+
+    config = _embedded_config(script)
+    assert config["initialHistoryAvailabilityByField"] == {
+        "0": {"canUndo": False, "canRedo": False}
+    }
+
+
+def _embedded_config(script: str) -> dict[str, object]:
+    match = re.search(r"window\.__AQE_EDITOR_CONFIG__ = (?P<config>\{.*?\});", script)
+    assert match is not None
+    return json.loads(match.group("config"))
 
 
 def _persistent_undo_editor(media_dir: Path, *, note_id: int, field_html: str):

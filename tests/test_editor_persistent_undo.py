@@ -54,6 +54,33 @@ def test_can_persistent_undo_requires_matching_old_media(tmp_path: Path, monkeyp
     assert can_persistent_undo(editor, 0) is False
 
 
+def test_can_persistent_undo_requires_applicable_current_field(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    media_dir = tmp_path / "media"
+    media_dir.mkdir()
+    old_media = media_dir / "clip.mp3"
+    new_media = media_dir / "clip__aqe_1.mp3"
+    unrelated_media = media_dir / "other.mp3"
+    old_media.write_bytes(b"old")
+    new_media.write_bytes(b"new")
+    unrelated_media.write_bytes(b"other")
+    db_path = tmp_path / "history.sqlite3"
+    editor = _editor(media_dir, note_id=1001, field_html=f"[sound:{unrelated_media.name}]")
+    _append_operation(db_path, editor, old_filename=old_media.name, new_filename=new_media.name)
+    monkeypatch.setattr(
+        "anki_audio_quick_editor.editor_persistent_undo.history_db_path_for_editor",
+        lambda _editor: db_path,
+    )
+
+    assert can_persistent_undo(editor, 0) is False
+
+    editor.note.fields[0] = f"Kept text [sound:{new_media.name}]"
+
+    assert can_persistent_undo(editor, 0) is True
+
+
 def test_restore_persistent_undo_restores_old_field_html(tmp_path: Path, monkeypatch) -> None:
     media_dir = tmp_path / "media"
     media_dir.mkdir()

@@ -48,7 +48,13 @@ def collection_id_for_editor(editor: Any) -> str:
 def can_persistent_undo(editor: Any, field_index: int | None) -> bool:
     """Return whether a persistent undo operation can currently be restored."""
     operation = _latest_for_field(editor, field_index)
-    return operation is not None and _old_media_available(editor, operation)
+    if operation is None or field_index is None:
+        return False
+    field_html = editor.note.fields[int(field_index)]
+    return (
+        _old_media_available(editor, operation)
+        and _restored_field_html(field_html, operation) is not None
+    )
 
 
 def record_standard_persistent_undo(
