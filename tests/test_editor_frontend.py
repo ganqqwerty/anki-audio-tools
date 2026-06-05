@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 from types import SimpleNamespace
 from unittest.mock import MagicMock
 
@@ -54,3 +55,30 @@ def test_eval_visualizer_status_codes_plain_error_strings() -> None:
     script = editor.web.eval.call_args.args[0]
     assert '"code": "AQE-GRAPH-001"' in script
     assert '"message": "graph failure"' in script
+
+
+def test_eval_status_logs_displayed_errors(caplog) -> None:
+    editor = SimpleNamespace(web=SimpleNamespace(eval=MagicMock()))
+    caplog.set_level(logging.ERROR, logger="anki_audio_quick_editor.editor_frontend.status")
+
+    eval_status(editor, "plain failure", kind="error")
+
+    assert "editor status displayed error: AQE-AUDIO-001: plain failure" in caplog.text
+
+
+def test_eval_visualizer_status_logs_displayed_errors(caplog) -> None:
+    editor = SimpleNamespace(web=SimpleNamespace(eval=MagicMock()))
+    caplog.set_level(logging.ERROR, logger="anki_audio_quick_editor.editor_frontend.status")
+
+    eval_visualizer_status_for_field(editor, 1, "graph failure", kind="error")
+
+    assert "editor visualizer status field=1 displayed error: AQE-GRAPH-001: graph failure" in caplog.text
+
+
+def test_eval_status_does_not_log_non_error_status(caplog) -> None:
+    editor = SimpleNamespace(web=SimpleNamespace(eval=MagicMock()))
+    caplog.set_level(logging.ERROR, logger="anki_audio_quick_editor.editor_frontend.status")
+
+    eval_status(editor, "plain info")
+
+    assert caplog.text == ""

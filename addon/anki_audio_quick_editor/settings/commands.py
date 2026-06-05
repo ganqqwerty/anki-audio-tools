@@ -99,6 +99,7 @@ def _handle_settings_save(
     try:
         config = Config.from_dict(raw_config).to_dict()
     except CONTRACT_DECODE_ERRORS:
+        logger.error("settings save displayed error: invalid settings payload")
         payload = json.dumps(
             {
                 "error": "Invalid settings payload",
@@ -153,6 +154,7 @@ def _handle_reset_defaults(dialog: Any) -> None:
     addon_id = mw.addonManager.addonFromModule(__name__)
     defaults = mw.addonManager.addonConfigDefaults(addon_id)
     if defaults is None:
+        logger.error("settings reset displayed error: config defaults are missing")
         QMessageBox.warning(
             dialog,
             t("settings.reset_failed.title"),

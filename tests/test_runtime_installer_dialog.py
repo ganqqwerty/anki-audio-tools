@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import importlib
+import logging
 import sys
 from types import SimpleNamespace
 
@@ -169,6 +170,32 @@ def test_runtime_installer_exec_updates_progress_and_final_status(monkeypatch, r
     assert dialog._button.text == "Close"
     assert "Download zip: Downloaded bytes" in dialog._log.lines
     assert dialog._progress.value == 100
+
+
+def test_runtime_installer_logs_displayed_final_error(monkeypatch, request, caplog) -> None:
+    dialog_module = _reload_runtime_dialog_with_fake_qt(request)
+    final_status = {
+        "phase": "error",
+        "runtime_manifest_id": "runtime-test",
+        "platform": "macos-arm64",
+        "runtime_root": "",
+        "progress": 0,
+        "message": "Runtime install failed.",
+        "error": "Runtime manifest is not packaged.",
+    }
+
+    def ensure_runtime(_addon_dir, *, progress, cancel_event, force_verify):
+        return final_status
+
+    monkeypatch.setattr(dialog_module.threading, "Thread", ImmediateThread)
+    monkeypatch.setattr("anki_audio_quick_editor.runtime_manager.ensure_runtime", ensure_runtime)
+    caplog.set_level(logging.ERROR, logger="anki_audio_quick_editor.runtime_installer_dialog")
+
+    dialog = dialog_module.RuntimeInstallDialog(object(), "/addon", force_verify=True)
+    dialog.exec_install()
+
+    assert dialog.final_status == final_status
+    assert "runtime installer displayed error: Runtime manifest is not packaged." in caplog.text
 
 
 def _reload_runtime_dialog_with_fake_qt(request):

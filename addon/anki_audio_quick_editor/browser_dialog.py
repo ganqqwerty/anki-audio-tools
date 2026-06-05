@@ -127,8 +127,13 @@ class BatchOperationsDialog:
         """Show an unexpected batch-level failure."""
         self._running = False
         self._finished = not recoverable
-        self.append_log(message)
         display_error = user_error or coded_error(AQE_BATCH_INVALID_REQUEST, message)
+        logger.error(
+            "batch dialog displayed error: %s | recoverable=%s",
+            _display_error_log_text(display_error),
+            recoverable,
+        )
+        self.append_log(message)
         self._emit(
             "onBatchError",
             batch_error_payload(message, recoverable=recoverable, user_error=display_error),
@@ -228,6 +233,16 @@ def _clipboard_set_text(text: str) -> None:
     clipboard = QApplication.clipboard()
     if clipboard is not None:
         clipboard.setText(text)
+
+
+def _display_error_log_text(error: dict[str, str]) -> str:
+    code = error.get("code", "")
+    message = error.get("message", "")
+    details = error.get("details", "")
+    rendered = f"{code}: {message}" if code else message
+    if details:
+        return f"{rendered} | details={details}"
+    return rendered
 
 
 def _handle_frontend_log(raw_payload: Any) -> None:
