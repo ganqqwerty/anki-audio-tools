@@ -41,8 +41,16 @@ def test_candidate_paths_keep_macos_anki_program_files_location(monkeypatch) -> 
     monkeypatch.setattr(python_env.platform, "system", lambda: "Darwin")
     monkeypatch.setattr(python_env.Path, "home", lambda: Path("/Users/tester"))
 
-    assert python_env._candidate_paths() == [
-        Path("/Users/tester/Library/Application Support/AnkiProgramFiles/.venv/bin/python3")
+    assert python_env._candidate_path_segments() == [
+        (
+            "/Users/tester",
+            "Library",
+            "Application Support",
+            "AnkiProgramFiles",
+            ".venv",
+            "bin",
+            "python3",
+        )
     ]
 
 
@@ -51,9 +59,16 @@ def test_candidate_paths_prefer_windows_local_appdata(monkeypatch) -> None:
     monkeypatch.setenv("LOCALAPPDATA", r"C:\Users\tester\AppData\Local")
     monkeypatch.setenv("APPDATA", r"C:\Users\tester\AppData\Roaming")
 
-    assert python_env._candidate_paths() == [
-        Path(r"C:\Users\tester\AppData\Local\AnkiProgramFiles\.venv\Scripts\python.exe"),
-        Path(r"C:\Users\tester\AppData\Roaming\AnkiProgramFiles\.venv\Scripts\python.exe"),
+    segments = python_env._candidate_path_segments()
+    rendered_paths = [python_env._render_candidate_path(path_segments, system="Windows") for path_segments in segments]
+
+    assert segments == [
+        (r"C:\Users\tester\AppData\Local", "AnkiProgramFiles", ".venv", "Scripts", "python.exe"),
+        (r"C:\Users\tester\AppData\Roaming", "AnkiProgramFiles", ".venv", "Scripts", "python.exe"),
+    ]
+    assert rendered_paths == [
+        r"C:\Users\tester\AppData\Local\AnkiProgramFiles\.venv\Scripts\python.exe",
+        r"C:\Users\tester\AppData\Roaming\AnkiProgramFiles\.venv\Scripts\python.exe",
     ]
 
 

@@ -1,3 +1,3 @@
 """Version metadata for Anki Audio Quick Editor."""
 
-__version__ = "1.4"
+__version__ = "1.3"

@@ -43,7 +43,7 @@ Audio Quick Editor config lives in [`addon/anki_audio_quick_editor/config.json`]
 | `size_reduction_bitrate_kbps` | integer | Default custom Reduce Size bitrate in kbps |
 | `size_reduction_sample_rate_hz` | integer | Default custom Reduce Size sample rate in Hz |
 | `size_reduction_channels` | integer | Default custom Reduce Size channel count |
-| `ffmpeg_path` | string | Explicit path to `ffmpeg`, prefilled from the current platform default |
+| `ffmpeg_path` | string | Explicit path override for `ffmpeg`; the shipped default is platform-specific, and an empty value falls back to runtime-aware discovery |
 | `deep_filter_post_filter` | boolean | Enables DeepFilterNet post-filtering for stronger Standard denoise output |
 | `dpdfnet_attn_limit_db` | number | Discrete DPDFNet aggressiveness value passed as `--attn-limit-db`: `6.0` gentle, `12.0` normal, or `18.0` aggressive |
 | `denoise_algorithm` | string | Default cleanup split-button action: `standard` for DeepFilterNet, `rnnoise` for RNNoise, `dpdfnet` for bundled DPDFNet Lite, or `voice_only` for Sherpa Spleeter vocals extraction |

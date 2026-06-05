@@ -6,13 +6,14 @@ import os
 import platform
 import subprocess
 import sys
-from pathlib import Path
+from pathlib import Path, PurePosixPath, PureWindowsPath
 
 ROOT = Path(__file__).resolve().parents[2]
 ADDON_DIR = ROOT / "addon" / "anki_audio_quick_editor"
 ADDON_SYMLINK_ID = "1000000002"
 MACOS_ANKI_APP_PATH = Path("/Applications/Anki.app")
 ANKI_PYTHON_LAUNCHER = "import aqt, sys; sys.argv[0] = 'Anki'; aqt.run()"
+PathSegments = tuple[str, ...]
 
 
 def _load_dotenv() -> dict[str, str]:
@@ -33,24 +34,68 @@ def _load_dotenv() -> dict[str, str]:
     return result
 
 
-def _candidate_paths() -> list[Path]:
+def _candidate_path_segments() -> list[PathSegments]:
+    """Return candidate Anki Python paths as plain segments.
+
+    Keeping the path pieces separate lets tests render Windows-style paths
+    deterministically even when they run on a POSIX host.
+    """
     system = platform.system()
     if system == "Darwin":
-        base = Path.home() / "Library" / "Application Support"
-        return [base / "AnkiProgramFiles" / ".venv" / "bin" / "python3"]
+        return [
+            (
+                str(Path.home()),
+                "Library",
+                "Application Support",
+                "AnkiProgramFiles",
+                ".venv",
+                "bin",
+                "python3",
+            )
+        ]
     if system == "Linux":
         return [
-            Path.home() / ".local" / "share" / "AnkiProgramFiles" / ".venv" / "bin" / "python3",
-            Path.home() / ".var" / "app" / "net.ankiweb.Anki" / "data" / "AnkiProgramFiles" / ".venv" / "bin" / "python3",
+            (
+                str(Path.home()),
+                ".local",
+                "share",
+                "AnkiProgramFiles",
+                ".venv",
+                "bin",
+                "python3",
+            ),
+            (
+                str(Path.home()),
+                ".var",
+                "app",
+                "net.ankiweb.Anki",
+                "data",
+                "AnkiProgramFiles",
+                ".venv",
+                "bin",
+                "python3",
+            ),
         ]
     if system == "Windows":
         candidates = []
         for env_name in ("LOCALAPPDATA", "APPDATA"):
             env_path = os.environ.get(env_name, "")
             if env_path:
-                candidates.append(Path(env_path) / "AnkiProgramFiles" / ".venv" / "Scripts" / "python.exe")
+                candidates.append((env_path, "AnkiProgramFiles", ".venv", "Scripts", "python.exe"))
         return candidates
     return []
+
+
+def _render_candidate_path(segments: PathSegments, *, system: str) -> str:
+    """Render candidate path segments using the requested platform semantics."""
+    if system == "Windows":
+        return str(PureWindowsPath(*segments))
+    return str(PurePosixPath(*segments))
+
+
+def _candidate_paths() -> list[Path]:
+    system = platform.system()
+    return [Path(_render_candidate_path(segments, system=system)) for segments in _candidate_path_segments()]
 
 
 def _validate_python(python: Path) -> bool:

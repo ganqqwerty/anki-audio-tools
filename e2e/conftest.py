@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import hashlib
 import importlib
 import os
 import shutil
@@ -21,7 +20,6 @@ aqt = importlib.import_module("aqt")
 PROJECT_ROOT = Path(__file__).parent.parent
 ADDON_DIR = PROJECT_ROOT / "addon" / "anki_audio_quick_editor"
 ADDON_NUMERIC_ID = "1000000002"
-LOCAL_DPDFNET_BUILD = Path("/Users/iuriikatkov/IdeaProjects/DPDFNet/dist/lite/dpdfnet")
 
 
 def import_runtime_addon_module(module_suffix: str = ""):
@@ -107,7 +105,8 @@ def _default_config() -> dict:
         "pause_silero_min_speech_seconds": 0.1,
         "pause_silero_preprocess_denoise": False,
         "output_format": "source",
-        "ffmpeg_path": "/opt/homebrew/bin/ffmpeg",
+        # Let e2e exercise the add-on's runtime-aware ffmpeg lookup.
+        "ffmpeg_path": "",
         "deep_filter_post_filter": True,
         "dpdfnet_attn_limit_db": 12.0,
         "denoise_algorithm": "standard",
@@ -144,56 +143,6 @@ def _start_anki_runtime() -> None:
         aqt._run(exec=False, argv=startup_argv)
 
 
-def _sha256(path: Path) -> str:
-    hasher = hashlib.sha256()
-    with path.open("rb") as handle:
-        for chunk in iter(lambda: handle.read(1024 * 1024), b""):
-            hasher.update(chunk)
-    return hasher.hexdigest()
-
-
-def _dpdfnet_source_candidate() -> Path | None:
-    configured = os.environ.get("AQE_DPDFNET_PATH")
-    candidates = [
-        Path(configured).expanduser() if configured else None,
-        LOCAL_DPDFNET_BUILD,
-    ]
-    for candidate in candidates:
-        if candidate and candidate.is_file():
-            return candidate
-    return None
-
-
-def _stage_dpdfnet_bundle(addon_dir: Path) -> None:
-    from scripts import release_assets
-
-    if release_assets.current_target_key() != "macos-arm64":
-        return
-
-    cache_path = PROJECT_ROOT / ".release-assets" / "bin" / "macos-arm64" / "dpdfnet"
-    if cache_path.is_file():
-        release_assets.stage_assets(
-            release_assets.load_lock(),
-            destination=addon_dir / "bin",
-            target_keys=["macos-arm64"],
-            tool_names=["dpdfnet"],
-        )
-        return
-
-    source_path = _dpdfnet_source_candidate()
-    if source_path is None:
-        return
-
-    lock = release_assets.load_lock()
-    expected_sha = lock["targets"]["macos-arm64"]["tools"]["dpdfnet"]["sha256"]
-    if _sha256(source_path) != expected_sha:
-        return
-
-    destination = addon_dir / "bin" / "macos-arm64" / "dpdfnet"
-    destination.parent.mkdir(parents=True, exist_ok=True)
-    shutil.copy2(source_path, destination)
-    destination.chmod(destination.stat().st_mode | 0o755)
-
 @pytest.fixture(scope="session")
 def anki_base(tmp_path_factory):
     base = tmp_path_factory.mktemp("anki_base")
@@ -212,7 +161,6 @@ def anki_base(tmp_path_factory):
             "meta.json",
         ),
     )
-    _stage_dpdfnet_bundle(addon_dir)
     os.environ["ANKI_BASE"] = str(base)
     yield base
 

@@ -10,6 +10,10 @@ class _FakeAudioConfig:
         self.ffmpeg_path = ffmpeg_path
 
 
+def test_e2e_default_config_leaves_ffmpeg_unpinned_for_runtime_resolution() -> None:
+    assert e2e_conftest._default_config()["ffmpeg_path"] == ""
+
+
 def test_e2e_ffmpeg_config_uses_runtime_aware_addon_helpers(monkeypatch, tmp_path: Path) -> None:
     ffmpeg = tmp_path / "user_files" / "runtime" / "manifest" / "windows-x86_64" / "ffmpeg.exe"
     ffprobe = ffmpeg.with_name("ffprobe.exe")

@@ -27,7 +27,7 @@ python3 scripts/dev.py test-e2e-parallel
 - `python3 scripts/dev.py coverage` runs Python unit tests with branch coverage and fails below 80%.
 - `python3 scripts/dev.py qodana` runs JetBrains Qodana with `qodana.yaml` and fails on any reported problem.
 - `python3 scripts/dev.py sonar` regenerates Python XML coverage and frontend LCOV from scratch, waits for the Sonar quality gate, and fails on missing reports or a failed quality gate.
-- `e2e/` exercises the real add-on inside a live Anki runtime via `aqt._run(exec=False)`, including ffmpeg-backed audio processing when `ffmpeg` and `ffprobe` are installed.
+- `e2e/` exercises the real add-on inside a live Anki runtime via `aqt._run(exec=False)`, including ffmpeg-backed audio processing through the same runtime-aware tool discovery used in production.
 
 ## Feature Completion Rule
 
@@ -234,7 +234,7 @@ The e2e suite uses a temporary `ANKI_BASE`, copies the add-on under `addons21/10
 
 E2E tests run in randomized order and Anki config is persistent inside the temporary add-on profile for the duration of a test. When adding a config key, update the e2e default-config helpers so the new setting is explicitly reset to its production default unless a test opts into another value. This prevents one settings-dialog test from silently changing later editor tests.
 
-Audio rendering and fallback prosody tests require `ffmpeg` and `ffprobe`. On this machine they are installed with Homebrew as `ffmpeg 8.1.1` under `/opt/homebrew/bin/`; e2e tests prefer that Homebrew binary and do not use bundled app copies such as Migaku's ffmpeg.
+Audio rendering and fallback prosody tests require `ffmpeg` and `ffprobe`. Shared e2e defaults intentionally leave `ffmpeg_path` empty so those tests exercise the same lookup order as production: configured path when set, then managed runtime, package `bin/` as a source-tree fallback, then `PATH` as a compatibility fallback. Do not pin machine-specific Homebrew or Windows paths in the shared e2e defaults.
 
 External binary features should have two kinds of tests: normal-path coverage that runs the real executable in e2e when the binary is available, and focused unit/e2e fixtures with fake executables for exceptional behavior. Use fakes for missing tools, permission errors, invalid arguments, malformed output, timeout handling, and nonzero exits; do not replace the normal real-binary smoke path with a fake when the feature depends on actual media processing.
 

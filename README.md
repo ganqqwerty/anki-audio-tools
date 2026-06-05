@@ -34,7 +34,7 @@ Anki desktop add-on for quickly editing audio references from the note editor. I
 - Anki 25.09 or later
 - Python 3.13 as bundled by Anki
 - Public release archives are thin. On first load, the add-on downloads the verified runtime pack for macOS arm64, macOS x86_64, or Windows x86_64.
-- Optional advanced overrides: explicit `ffmpeg_path` and `deep_filter_path` settings still take precedence over managed runtime tools
+- Optional advanced override: explicit `ffmpeg_path` still takes precedence over managed runtime discovery
 - Locked bundled `praat-parselmouth` and NumPy wheels for pitch/intensity analysis on supported platforms; the graph analyzer still falls back to ffmpeg-decoded PCM if Praat is unavailable
 - Node.js 18+ for editing or rebuilding the settings/editor frontend bundles
 
