@@ -19,6 +19,7 @@
   } from "$lib/audio-operation-parameters.js";
   import { t } from "$lib/i18n.js";
   import PauseAdvancedParamsFields from "$lib/PauseAdvancedParamsFields.svelte";
+  import UnitNumberInput from "$lib/UnitNumberInput.svelte";
   import { DenoiseAlgorithm, PauseAggressiveness, PitchHumMode, type Config } from "$lib/types.js";
   import type { EditorCommand } from "$lib/editor-toolbar-buttons.js";
   import GraphSettingsFields from "./GraphSettingsFields.svelte";
@@ -70,13 +71,13 @@
   </label>
   <label class="settings-field">
     <span>{t("settings.repeat_pause_seconds")}</span>
-    <input
-      class="settings-input"
-      data-testid="repeat-pause-seconds"
-      type="number"
+    <UnitNumberInput
+      inputClass="settings-input"
+      testId="repeat-pause-seconds"
       min="0"
       max="10"
       step="0.1"
+      unit="s"
       bind:value={config.repeat_pause_seconds}
     />
   </label>
@@ -93,13 +94,13 @@
 {:else if command === "aqe:record-voice"}
   <label class="settings-field">
     <span>{t("settings.voice_recording_countdown_seconds")}</span>
-    <input
-      class="settings-input"
-      data-testid="voice-recording-countdown-seconds"
-      type="number"
+    <UnitNumberInput
+      inputClass="settings-input"
+      testId="voice-recording-countdown-seconds"
       min="0"
       max="10"
       step="1"
+      unit="s"
       bind:value={config.voice_recording_countdown_seconds}
     />
   </label>
@@ -232,30 +233,75 @@
 {:else if command === "aqe:slower"}
   <label class="settings-field">
     <span>{t("settings.speed_step")}</span>
-    <input class="settings-input" type="number" min="1.01" max="5" step="0.01" bind:value={config.speed_step} />
+    <UnitNumberInput
+      inputClass="settings-input"
+      min="1.01"
+      max="5"
+      step="0.01"
+      unit="x"
+      unitPosition="prefix"
+      bind:value={config.speed_step}
+    />
   </label>
   <label class="settings-field">
     <span>{t("settings.min_speed")}</span>
-    <input class="settings-input" type="number" min="0.2" max="5" step="0.05" bind:value={config.min_speed} />
+    <UnitNumberInput
+      inputClass="settings-input"
+      min="0.2"
+      max="5"
+      step="0.05"
+      unit="x"
+      unitPosition="prefix"
+      bind:value={config.min_speed}
+    />
   </label>
 {:else if command === "aqe:faster"}
   <label class="settings-field">
     <span>{t("settings.max_speed")}</span>
-    <input class="settings-input" type="number" min="0.2" max="5" step="0.05" bind:value={config.max_speed} />
+    <UnitNumberInput
+      inputClass="settings-input"
+      min="0.2"
+      max="5"
+      step="0.05"
+      unit="x"
+      unitPosition="prefix"
+      bind:value={config.max_speed}
+    />
   </label>
 {:else if command === "aqe:volume-down"}
   <label class="settings-field">
     <span>{t("settings.volume_step_db")}</span>
-    <input class="settings-input" type="number" min="1" max="40" step="0.5" bind:value={config.volume_step_db} />
+    <UnitNumberInput
+      inputClass="settings-input"
+      min="1"
+      max="40"
+      step="0.5"
+      unit="dB"
+      bind:value={config.volume_step_db}
+    />
   </label>
   <label class="settings-field">
     <span>{t("settings.min_volume_db")}</span>
-    <input class="settings-input" type="number" min="-40" max="40" step="0.5" bind:value={config.min_volume_db} />
+    <UnitNumberInput
+      inputClass="settings-input"
+      min="-40"
+      max="40"
+      step="0.5"
+      unit="dB"
+      bind:value={config.min_volume_db}
+    />
   </label>
 {:else if command === "aqe:volume-up"}
   <label class="settings-field">
     <span>{t("settings.max_volume_db")}</span>
-    <input class="settings-input" type="number" min="-40" max="40" step="0.5" bind:value={config.max_volume_db} />
+    <UnitNumberInput
+      inputClass="settings-input"
+      min="-40"
+      max="40"
+      step="0.5"
+      unit="dB"
+      bind:value={config.max_volume_db}
+    />
   </label>
 {:else if command === "aqe:settings" && !visible}
   <SettingsHiddenWarning />

@@ -23,6 +23,8 @@
   import SplitExtraFields from "./SplitExtraFields.svelte";
   import SplitValuePresetGrid from "./SplitValuePresetGrid.svelte";
   import SplitRunButtons from "./SplitRunButtons.svelte";
+  import UnitNumberInput from "../lib/UnitNumberInput.svelte";
+  import ValueSlider from "../lib/ValueSlider.svelte";
   import type { ButtonSpec, FieldSplitButtonState } from "./types.js";
 
   type DenoiseAlgorithm = FieldSplitButtonState["denoiseAlgorithm"];
@@ -145,10 +147,6 @@
     return formatSpeedStep(value, "aqe:faster");
   }
 
-  function descriptionText(): string {
-    return splitMenuDescription(button.command, groupSlug, menuLabel);
-  }
-
   function selectedOptionLabel(): string {
     if (isVolumeControl()) return formatVolumeDb(volumeStepDb);
     if (groupSlug === "speed") return groupedSpeedLabel(speedStep);
@@ -179,17 +177,14 @@
     if (isVolumeControl()) {
       return { min: "1", max: "40", step: "0.5", labels: ["1 dB", "40 dB"], presets: [3, 6, 15, 24, 40] };
     }
-    if (groupSlug === "speed") {
+    if (isSpeedControl()) {
       return {
         min: "1.01",
         max: "5",
         step: "0.01",
-        labels: [groupedSpeedLabel(1.01), groupedSpeedLabel(5)],
+        labels: groupSlug === "speed" ? [groupedSpeedLabel(1.01), groupedSpeedLabel(5)] : ["x1.01", "x5"],
         presets: [1.25, 1.5, 2, 3, 5],
       };
-    }
-    if (isSpeedControl()) {
-      return { min: "1.01", max: "5", step: "0.01", labels: ["x1.01", "x5"], presets: [1.25, 1.5, 2, 3, 5] };
     }
     return { min: "0", max: "0", step: "1", labels: ["", ""], presets: [] };
   }
@@ -198,16 +193,14 @@
     if (isVolumeControl()) {
       return { min: "1", max: "40", step: "0.5", label: t("settings.volume_step_db") };
     }
-    if (groupSlug === "speed") {
-      return { min: "1.01", max: "5", step: "0.01", label: t("settings.speed_step") };
-    }
     if (isSpeedControl()) return { min: "1.01", max: "5", step: "0.01", label: t("settings.speed_step") };
     return { min: "0", max: "0", step: "1", label: "" };
   }
 
-  function valueInputValue(): number {
-    if (isSpeedControl()) return speedStep;
-    return sliderValue();
+  function valueUnitConfig(): { unit: string; unitPosition: "prefix" | "suffix" } {
+    return isVolumeControl()
+      ? { unit: "dB", unitPosition: "suffix" }
+      : { unit: isSpeedControl() ? "x" : "", unitPosition: isSpeedControl() ? "prefix" : "suffix" };
   }
 
   function applyValueInput(value: number): void {
@@ -292,16 +285,17 @@
   <span class="aqe-split-popover-title">
     <strong>{menuLabel}</strong>
     {#if !options.length}
-      <input
-        class="aqe-split-value-input"
-        data-testid={`aqe-split-${targetOrd}-${slug}-value`}
-        type="number"
+      <UnitNumberInput
+        inputClass="aqe-split-value-input"
+        testId={`aqe-split-${targetOrd}-${slug}-value`}
         min={valueInputConfig().min}
         max={valueInputConfig().max}
         step={valueInputConfig().step}
-        value={valueInputValue()}
-        aria-label={valueInputConfig().label}
-        oninput={(event) => applyValueInput((event.currentTarget as HTMLInputElement).valueAsNumber)}
+        value={isSpeedControl() ? speedStep : sliderValue()}
+        unit={valueUnitConfig().unit}
+        unitPosition={valueUnitConfig().unitPosition}
+        ariaLabel={valueInputConfig().label}
+        onValueInput={applyValueInput}
       />
     {/if}
   </span>
@@ -314,7 +308,7 @@
   {/if}
 </div>
 <p class="aqe-split-popover-description">
-  {descriptionText()}
+  {splitMenuDescription(button.command, groupSlug, menuLabel)}
   {#if videoLink}
     <a
       class="aqe-split-video-link"
@@ -357,14 +351,15 @@
     {targetOrd}
   />
 {:else}
-  <input
-    data-testid={`aqe-split-${targetOrd}-${slug}-slider`}
-    type="range"
+  <ValueSlider
+    testId={`aqe-split-${targetOrd}-${slug}-slider`}
     min={sliderConfig().min}
     max={sliderConfig().max}
     step={sliderConfig().step}
     value={sliderValue()}
-    oninput={(event) => applyValue(Number((event.currentTarget as HTMLInputElement).value))}
+    ariaLabel={valueInputConfig().label}
+    formatValue={presetLabel}
+    onValueInput={applyValue}
   />
   <div class="aqe-split-range-labels">
     <span>{sliderConfig().labels[0]}</span>

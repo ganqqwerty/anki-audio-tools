@@ -2,6 +2,7 @@
   import AqeTooltip from "$lib/AqeTooltip.svelte";
   import CommandIcon from "$lib/CommandIcon.svelte";
   import FieldTooltipTarget from "$lib/FieldTooltipTarget.svelte";
+  import UnitNumberInput from "$lib/UnitNumberInput.svelte";
   import {
     SIZE_REDUCTION_SAMPLE_RATE_VALUES,
     clampSizeReductionBitrateKbps,
@@ -111,15 +112,17 @@
         </AqeTooltip>
       </div>
       <FieldTooltipTarget block content={t("settings.size_reduction_bitrate_kbps.help")} {disabledReason}>
-        <input
+        <UnitNumberInput
           bind:value={bitrateKbps}
-          data-testid={`${testPrefix}-bitrate-kbps`}
+          block
+          density="comfortable"
+          testId={`${testPrefix}-bitrate-kbps`}
           disabled={disabled}
           max="320"
           min="16"
           step="1"
-          type="number"
-          oninput={(event) => applyBitrate((event.currentTarget as HTMLInputElement).valueAsNumber)}
+          unit="kbps"
+          onValueInput={applyBitrate}
         />
       </FieldTooltipTarget>
     </label>
@@ -149,7 +152,7 @@
           onchange={(event) => applySampleRate(Number((event.currentTarget as HTMLSelectElement).value))}
         >
           {#each SIZE_REDUCTION_SAMPLE_RATE_VALUES as value}
-            <option value={value}>{value}</option>
+            <option value={value}>{value} Hz</option>
           {/each}
         </select>
       </FieldTooltipTarget>
@@ -234,7 +237,6 @@
     font-weight: 600;
   }
 
-  input,
   select {
     background: var(--canvas-elevated, Field);
     border: 1px solid var(--border, ButtonBorder);
@@ -286,7 +288,6 @@
     gap: 4px;
   }
 
-  .advanced-params-compact input,
   .advanced-params-compact select {
     border-radius: 5px;
     font-size: 11px;
