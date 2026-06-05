@@ -92,7 +92,7 @@
     background: var(--canvas-inset, rgba(0, 0, 0, 0.03));
     border: 1px solid var(--border, rgba(0, 0, 0, 0.12));
     border-radius: 6px;
-    box-shadow: inset 3px 0 0 var(--button-bg, rgba(0, 0, 0, 0.18));
+    box-shadow: inset 3px 0 0 var(--aqe-accent-border, var(--button-bg, rgba(0, 0, 0, 0.18)));
     display: grid;
     gap: 0;
     grid-column: 2;

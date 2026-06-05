@@ -1,3 +1,4 @@
+import "./styles.css";
 import { mount } from "svelte";
 import BatchApp from "./BatchApp.svelte";
 

@@ -11,6 +11,13 @@
 
 .aqe-ui-root,
 .aqe-mount-host {
+    --aqe-accent-fill: #1d4ed8;
+    --aqe-accent-fill-text: #fff;
+    --aqe-accent-surface-color: color-mix(in srgb, var(--aqe-accent-fill) 12%, transparent);
+    --aqe-accent-surface-strong-color: color-mix(in srgb, var(--aqe-accent-fill) 20%, transparent);
+    --aqe-accent-border-color: color-mix(in srgb, var(--aqe-accent-fill) 76%, var(--aqe-border-color));
+    --aqe-accent-text-color: color-mix(in srgb, #123a8c 86%, currentColor);
+    --aqe-accent-focus-color: color-mix(in srgb, var(--aqe-accent-fill) 34%, transparent);
     --aqe-border-color: var(--border, rgba(128, 128, 128, 0.55));
     --aqe-reviewer-surface-color: rgba(128, 128, 128, 0.08);
     --aqe-surface-color: var(--canvas, Canvas);
@@ -24,6 +31,36 @@
     text-shadow: none;
     text-transform: none;
     white-space: normal;
+}
+
+html.night-mode .aqe-ui-root,
+html.night-mode .aqe-mount-host,
+body.nightMode .aqe-ui-root,
+body.nightMode .aqe-mount-host,
+[data-bs-theme="dark"] .aqe-ui-root,
+[data-bs-theme="dark"] .aqe-mount-host {
+    --aqe-accent-fill: #8ab4ff;
+    --aqe-accent-fill-text: #06111f;
+    --aqe-accent-surface-color: rgb(56 105 255 / 24%);
+    --aqe-accent-surface-strong-color: rgb(83 133 255 / 34%);
+    --aqe-accent-border-color: rgb(145 181 255 / 82%);
+    --aqe-accent-text-color: rgb(225 236 255);
+    --aqe-accent-focus-color: rgb(145 181 255 / 48%);
+    --aqe-border-color: var(--border, rgba(180, 198, 235, 0.55));
+}
+
+@media (prefers-color-scheme: dark) {
+    .aqe-ui-root,
+    .aqe-mount-host {
+        --aqe-accent-fill: #8ab4ff;
+        --aqe-accent-fill-text: #06111f;
+        --aqe-accent-surface-color: rgb(56 105 255 / 24%);
+        --aqe-accent-surface-strong-color: rgb(83 133 255 / 34%);
+        --aqe-accent-border-color: rgb(145 181 255 / 82%);
+        --aqe-accent-text-color: rgb(225 236 255);
+        --aqe-accent-focus-color: rgb(145 181 255 / 48%);
+        --aqe-border-color: var(--border, rgba(180, 198, 235, 0.55));
+    }
 }
 
 .aqe-mount-host.aqe-ui-root {

@@ -148,7 +148,10 @@
 }
 
 .aqe-split-default-save-saved {
-  box-shadow: inset 0 0 0 1px var(--aqe-border-color);
+  background: var(--aqe-accent-surface-strong-color);
+  border-color: var(--aqe-accent-border-color);
+  box-shadow: inset 0 0 0 1px var(--aqe-accent-border-color);
+  color: var(--aqe-accent-text-color);
 }
 
 .aqe-split-popover-description,
@@ -208,11 +211,21 @@
 }
 
 .aqe-split-preset[aria-pressed="true"] {
-  box-shadow: inset 0 0 0 1px var(--aqe-border-color);
+  background: var(--aqe-accent-surface-strong-color);
+  border-color: var(--aqe-accent-border-color);
+  box-shadow:
+    inset 0 0 0 1px var(--aqe-accent-border-color),
+    0 0 0 1px color-mix(in srgb, var(--aqe-accent-border-color) 24%, transparent);
+  color: var(--aqe-accent-text-color);
 }
 
 .aqe-split-preset[aria-checked="true"] {
-  box-shadow: inset 0 0 0 1px var(--aqe-border-color);
+  background: var(--aqe-accent-surface-strong-color);
+  border-color: var(--aqe-accent-border-color);
+  box-shadow:
+    inset 0 0 0 1px var(--aqe-accent-border-color),
+    0 0 0 1px color-mix(in srgb, var(--aqe-accent-border-color) 24%, transparent);
+  color: var(--aqe-accent-text-color);
 }
 
 .aqe-split-extra-field,

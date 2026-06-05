@@ -105,7 +105,7 @@
 }
 
 .aqe-time-scrollbar-scroll:focus {
-  outline: 2px solid Highlight;
+  outline: 2px solid var(--aqe-accent-focus-color);
   outline-offset: 2px;
 }
 
@@ -156,8 +156,8 @@
 
 .aqe-chorusing-marker-row:hover .aqe-chorusing-marker-track,
 .aqe-chorusing-marker-row:focus-visible .aqe-chorusing-marker-track {
-  fill: color-mix(in srgb, rgb(255 255 255) 86%, Highlight);
-  stroke: color-mix(in srgb, Highlight 55%, var(--aqe-border-color));
+  fill: color-mix(in srgb, var(--aqe-surface-color) 70%, var(--aqe-accent-fill));
+  stroke: var(--aqe-accent-border-color);
 }
 
 .aqe-chorusing-marker-row[aria-hidden="true"] {
@@ -184,7 +184,7 @@
 }
 
 .aqe-visualizer:focus .aqe-visualizer-svg {
-  box-shadow: 0 0 0 2px Highlight;
+  box-shadow: 0 0 0 2px var(--aqe-accent-focus-color);
 }
 
 .aqe-intensity {

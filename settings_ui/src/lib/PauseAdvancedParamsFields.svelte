@@ -270,7 +270,7 @@
   }
 
   .help-icon-button:focus-visible {
-    outline: 1px solid Highlight;
+    outline: 1px solid var(--aqe-accent-focus, var(--aqe-accent-focus-color, Highlight));
     outline-offset: 2px;
   }
 

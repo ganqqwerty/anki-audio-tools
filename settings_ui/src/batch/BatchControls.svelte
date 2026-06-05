@@ -305,8 +305,8 @@
   .batch-choice-button {
     align-items: center;
     appearance: none;
-    background: var(--canvas-elevated, ButtonFace);
-    border: 1px solid var(--border, ButtonBorder);
+    background: color-mix(in srgb, var(--canvas-elevated, ButtonFace) 88%, transparent);
+    border: 1px solid color-mix(in srgb, var(--border, ButtonBorder) 86%, transparent);
     border-radius: 7px;
     color: var(--fg, ButtonText);
     cursor: pointer;
@@ -316,15 +316,6 @@
     font-weight: 400;
     min-height: 24px;
     padding: 3px 6px;
-  }
-
-  .batch-choice-button:hover {
-    text-decoration: none;
-  }
-
-  .batch-choice-button[aria-checked="true"] {
-    box-shadow: inset 0 0 0 1px ButtonBorder;
-    font-weight: 700;
   }
 
   .batch-choice-button:disabled {

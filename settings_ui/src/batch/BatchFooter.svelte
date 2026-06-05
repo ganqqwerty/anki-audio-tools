@@ -73,7 +73,10 @@
   }
 
   .batch-button-primary {
-    box-shadow: inset 0 0 0 1px ButtonBorder;
+    background: var(--aqe-accent-bg);
+    border-color: var(--aqe-accent-border);
+    box-shadow: inset 0 0 0 1px var(--aqe-accent-border);
+    color: var(--aqe-accent-text);
     font-weight: 700;
   }
 

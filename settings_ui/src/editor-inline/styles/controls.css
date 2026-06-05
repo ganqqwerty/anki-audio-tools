@@ -41,7 +41,8 @@
 
 .aqe-review-audio-panel-trigger:hover,
 .aqe-review-audio-panel-trigger:focus-visible {
-  background: color-mix(in srgb, ButtonFace 82%, Highlight);
+  background: var(--aqe-accent-surface-color);
+  border-color: var(--aqe-accent-border-color);
 }
 
 .aqe-mount-host[data-aqe-surface="reviewer"] {
@@ -140,8 +141,8 @@
 .aqe-toolbar-panel,
 .aqe-ui-root .aqe-toolbar-panel {
   align-items: center;
-  background: color-mix(in srgb, Highlight 7%, transparent);
-  border: 1px solid color-mix(in srgb, Highlight 38%, var(--aqe-border-color));
+  background: var(--aqe-accent-surface-color);
+  border: 1px solid var(--aqe-accent-border-color);
   border-radius: 9px;
   display: inline-flex;
   flex: 0 0 auto;
@@ -153,7 +154,7 @@
 
 .aqe-toolbar-panel-label,
 .aqe-ui-root .aqe-toolbar-panel-label {
-  color: color-mix(in srgb, Highlight 68%, currentColor);
+  color: var(--aqe-accent-text-color);
   display: inline-flex;
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   font-size: 11px;
@@ -246,12 +247,18 @@
 }
 
 .aqe-repeat-button[data-aqe-button-state="active"] {
+  background: var(--aqe-accent-surface-strong-color);
+  border-color: var(--aqe-accent-border-color);
   border-style: solid;
-  box-shadow: inset 0 0 0 1px var(--aqe-border-color);
+  box-shadow: inset 0 0 0 1px var(--aqe-accent-border-color);
+  color: var(--aqe-accent-text-color);
 }
 
 .aqe-play-repeat-menu-button[data-aqe-button-state="active"] {
-  box-shadow: inset 0 0 0 1px var(--aqe-border-color);
+  background: var(--aqe-accent-surface-strong-color);
+  border-color: var(--aqe-accent-border-color);
+  box-shadow: inset 0 0 0 1px var(--aqe-accent-border-color);
+  color: var(--aqe-accent-text-color);
 }
 
 .aqe-status,
