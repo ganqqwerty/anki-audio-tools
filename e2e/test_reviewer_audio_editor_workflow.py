@@ -20,7 +20,7 @@ from e2e.helpers import (
 from e2e.reviewer_css_isolation_helpers import (
     assert_reviewer_audio_controls_css_isolated,
     assert_reviewer_audio_controls_full_width,
-    assert_reviewer_back_chaining_panel_css_isolated,
+    assert_reviewer_chorusing_marker_row_css_isolated,
     assert_reviewer_remove_pauses_popover_css_isolated,
     assert_reviewer_tooltip_css_isolated,
 )
@@ -44,6 +44,7 @@ def _reviewer_note(
     *,
     audio_field: str = "Back",
     card_css: str = "",
+    answer_template: str | None = None,
 ):
     models = anki_mw.col.models
     notetype = models.new(_unique_name("AQE E2E Reviewer"))
@@ -51,7 +52,7 @@ def _reviewer_note(
     models.add_field(notetype, models.new_field("Back"))
     template = models.new_template("Card 1")
     template["qfmt"] = "{{Front}}"
-    template["afmt"] = "{{FrontSide}}<hr id=answer>{{Back}}"
+    template["afmt"] = answer_template or "{{FrontSide}}<hr id=answer>{{Back}}"
     notetype["css"] = card_css
     models.add_template(notetype, template)
     models.add(notetype)
@@ -78,18 +79,31 @@ def _open_reviewer_for_note(anki_mw, note, deck_id: int):
         anki_mw.moveToState("deckBrowser")
     anki_mw.col.decks.select(deck_id)
     anki_mw.moveToState("review")
+    wait_for_condition(
+        lambda: anki_mw.state == "review",
+        timeout=10.0,
+        message="Anki did not enter review state",
+    )
     reviewer = anki_mw.reviewer
     card_ids = note.card_ids()
     assert card_ids
     reviewer.card = anki_mw.col.get_card(card_ids[0])
     reviewer.card.start_timer()
     reviewer._initWeb()
-    wait_for_js_condition(
-        reviewer.web,
-        "document.querySelector('#qa') !== null",
-        lambda value: value is True,
-        timeout=10.0,
-    )
+    try:
+        wait_for_js_condition(
+            reviewer.web,
+            "document.querySelector('#qa') !== null",
+            lambda value: value is True,
+            timeout=10.0,
+        )
+    except TimeoutError as exc:
+        body = wait_for_js(
+            reviewer.web,
+            "document.body ? document.body.outerHTML.slice(0, 2000) : ''",
+            timeout=1.0,
+        )
+        raise TimeoutError(f"{exc}; initial reviewer body={body!r}") from exc
     reviewer._showQuestion()
     wait_for_condition(
         lambda: (
@@ -150,12 +164,30 @@ def _wait_for_no_controls(web) -> None:
     )
 
 
+def _wait_for_template_target_controls(web, field_ord: int) -> None:
+    wait_for_js_condition(
+        web,
+        (
+            "document.querySelector("
+            f"'.aqe-review-audio-target[data-field-ord=\"{field_ord}\"] "
+            f".aqe-controls[data-aqe-field-ord=\"{field_ord}\"]'"
+            ") !== null"
+        ),
+        lambda value: value is True,
+        timeout=5.0,
+    )
+
+
 def _menu_action(menu: QMenu, label: str):
     for action in menu.actions():
         if action.text() == label:
             return action
     labels = [action.text() for action in menu.actions()]
     raise AssertionError(f"menu action {label!r} not found; saw {labels!r}")
+
+
+def _trigger_action(action) -> None:
+    action.triggered.emit()
 
 
 def _reviewer_more_menu(reviewer) -> QMenu:
@@ -165,6 +197,14 @@ def _reviewer_more_menu(reviewer) -> QMenu:
     reviewer._addMenuItems(menu, reviewer._contextMenu())
     gui_hooks.reviewer_will_show_context_menu(reviewer, menu)
     return menu
+
+
+def _cleanup_reviewer_session(reviewer) -> None:
+    from aqt import gui_hooks
+
+    if getattr(reviewer, "card", None) is not None:
+        gui_hooks.reviewer_did_answer_card(reviewer, reviewer.card, 3)
+    reviewer.mw.moveToState("deckBrowser")
 
 
 def _tools_audio_menu(anki_mw) -> QMenu:
@@ -182,6 +222,7 @@ def _prepare_reviewer_note(
     *,
     audio_field: str = "Back",
     card_css: str = "",
+    answer_template: str | None = None,
 ):
     media_dir = Path(anki_mw.col.media.dir())
     source = media_dir / filename
@@ -191,9 +232,121 @@ def _prepare_reviewer_note(
         source.name,
         audio_field=audio_field,
         card_css=card_css,
+        answer_template=answer_template,
     )
     _configure_ffmpeg(anki_mw, ffmpeg_config, enable_reviewer_editor=True)
     return media_dir, source, note, deck_id, field_ord
+
+
+def test_reviewer_audio_panel_template_filter_opens_controls(anki_mw, ffmpeg_config) -> None:
+    _media_dir, _source, note, deck_id, field_ord = _prepare_reviewer_note(
+        anki_mw,
+        ffmpeg_config,
+        "reviewer_template_filter_source.wav",
+        answer_template="{{FrontSide}}<hr id=answer>{{aqe-audio-panel:Back}}",
+    )
+    reviewer = _open_reviewer_for_note(anki_mw, note, deck_id)
+    _wait_for_no_controls(reviewer.web)
+
+    _show_answer(reviewer)
+    _wait_for_no_controls(reviewer.web)
+    wait_for_js_condition(
+        reviewer.web,
+        f"document.querySelector('[data-testid=\"aqe-review-audio-panel-trigger-{field_ord}\"]') !== null",
+        lambda value: value is True,
+        timeout=5.0,
+    )
+
+    click_selector(
+        reviewer.web,
+        f'[data-testid="aqe-review-audio-panel-trigger-{field_ord}"]',
+        timeout=5.0,
+    )
+    _wait_for_controls(reviewer.web)
+    _wait_for_template_target_controls(reviewer.web, field_ord)
+    wait_for_js_condition(
+        reviewer.web,
+        f"document.querySelector({(_button_selector('aqe:play', field_ord))!r}) !== null",
+        lambda value: value is True,
+        timeout=5.0,
+    )
+    _cleanup_reviewer_session(reviewer)
+
+
+def test_reviewer_audio_panel_template_filter_opens_front_field_controls(
+    anki_mw,
+    ffmpeg_config,
+) -> None:
+    _media_dir, _source, note, deck_id, field_ord = _prepare_reviewer_note(
+        anki_mw,
+        ffmpeg_config,
+        "reviewer_template_filter_front_source.wav",
+        audio_field="Front",
+        answer_template="{{FrontSide}}<hr id=answer>{{aqe-audio-panel:Front}}{{Back}}",
+    )
+    reviewer = _open_reviewer_for_note(anki_mw, note, deck_id)
+    _wait_for_no_controls(reviewer.web)
+
+    _show_answer(reviewer)
+    _wait_for_no_controls(reviewer.web)
+    wait_for_js_condition(
+        reviewer.web,
+        f"document.querySelector('[data-testid=\"aqe-review-audio-panel-trigger-{field_ord}\"]') !== null",
+        lambda value: value is True,
+        timeout=5.0,
+    )
+
+    click_selector(
+        reviewer.web,
+        f'[data-testid="aqe-review-audio-panel-trigger-{field_ord}"]',
+        timeout=5.0,
+    )
+    _wait_for_controls(reviewer.web)
+    _wait_for_template_target_controls(reviewer.web, field_ord)
+    wait_for_js_condition(
+        reviewer.web,
+        f"document.querySelector({(_button_selector('aqe:play', field_ord))!r}) !== null",
+        lambda value: value is True,
+        timeout=5.0,
+    )
+    _cleanup_reviewer_session(reviewer)
+
+
+def test_reviewer_audio_panel_template_filter_ignores_disabled_setting(
+    anki_mw,
+    ffmpeg_config,
+) -> None:
+    _media_dir, _source, note, deck_id, field_ord = _prepare_reviewer_note(
+        anki_mw,
+        ffmpeg_config,
+        "reviewer_template_filter_disabled_source.wav",
+        answer_template="{{FrontSide}}<hr id=answer>{{aqe-audio-panel:Back}}{{Back}}",
+    )
+    config = anki_mw.addonManager.getConfig(ADDON_NUMERIC_ID) or {}
+    config["enable_reviewer_editor"] = False
+    anki_mw.addonManager.writeConfig(ADDON_NUMERIC_ID, config)
+    reviewer = _open_reviewer_for_note(anki_mw, note, deck_id)
+    try:
+        _show_answer(reviewer)
+        _wait_for_no_controls(reviewer.web)
+        wait_for_js_condition(
+            reviewer.web,
+            f"document.querySelector('[data-testid=\"aqe-review-audio-panel-trigger-{field_ord}\"]') !== null",
+            lambda value: value is True,
+            timeout=5.0,
+        )
+        click_selector(
+            reviewer.web,
+            f'[data-testid="aqe-review-audio-panel-trigger-{field_ord}"]',
+            timeout=5.0,
+        )
+        _wait_for_controls(reviewer.web)
+        _wait_for_template_target_controls(reviewer.web, field_ord)
+    finally:
+        config = anki_mw.addonManager.getConfig(ADDON_NUMERIC_ID) or {}
+        config["enable_reviewer_editor"] = True
+        anki_mw.addonManager.writeConfig(ADDON_NUMERIC_ID, config)
+        _cleanup_reviewer_session(reviewer)
 
 
 def test_reviewer_audio_editor_answer_workflow(anki_mw, ffmpeg_config) -> None:
@@ -259,23 +412,23 @@ def test_reviewer_audio_editor_answer_workflow(anki_mw, ffmpeg_config) -> None:
     assert_reviewer_audio_controls_css_isolated(reviewer, field_ord)
     assert_reviewer_remove_pauses_popover_css_isolated(reviewer, field_ord)
     assert_reviewer_tooltip_css_isolated(reviewer)
-    assert_reviewer_back_chaining_panel_css_isolated(reviewer, field_ord)
+    assert_reviewer_chorusing_marker_row_css_isolated(reviewer, field_ord)
 
     hide_action = _menu_action(_reviewer_more_menu(reviewer), "Hide audio editor")
-    hide_action.trigger()
+    _trigger_action(hide_action)
     _wait_for_no_controls(reviewer.web)
 
     show_action = _menu_action(_reviewer_more_menu(reviewer), "Show audio editor")
-    show_action.trigger()
+    _trigger_action(show_action)
     _wait_for_controls(reviewer.web)
 
     tools_menu = _tools_audio_menu(anki_mw)
     tools_menu.aboutToShow.emit()
-    _menu_action(tools_menu, "Hide audio editor").trigger()
+    _trigger_action(_menu_action(tools_menu, "Hide audio editor"))
     _wait_for_no_controls(reviewer.web)
 
     tools_menu.aboutToShow.emit()
-    _menu_action(tools_menu, "Show audio editor").trigger()
+    _trigger_action(_menu_action(tools_menu, "Show audio editor"))
     _wait_for_controls(reviewer.web)
 
     original_card_id = reviewer.card.id
@@ -295,7 +448,9 @@ def test_reviewer_audio_editor_answer_workflow(anki_mw, ffmpeg_config) -> None:
     config = anki_mw.addonManager.getConfig(ADDON_NUMERIC_ID) or {}
     config["enable_reviewer_editor"] = False
     anki_mw.addonManager.writeConfig(ADDON_NUMERIC_ID, config)
-    _show_answer(reviewer)
+    reviewer_module = _reviewer_module()
+    reviewer_module._on_reviewer_did_show_card_side(reviewer.card)
     _wait_for_no_controls(reviewer.web)
     action = _menu_action(_reviewer_more_menu(reviewer), "Show audio editor")
     assert action.isEnabled() is False
+    _cleanup_reviewer_session(reviewer)

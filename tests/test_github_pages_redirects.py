@@ -16,6 +16,7 @@ VIDEO_ROUTES = {
     "video-shorten-pauses": "Remove pauses menu video",
     "video-speed": "Faster and slower menu video",
     "video-record-voice": "Record voice menu video",
+    "video-template-audio-panel": "Card template audio panel video",
     "video-volume": "Louder and quieter menu video",
     "video-batch-processing": "Batch processing video",
 }
@@ -76,6 +77,8 @@ def test_docs_home_groups_and_links_all_ui_video_routes() -> None:
     assert "Open video section" in html
     assert 'id="video-pitch-hum"' in html
     assert 'href="go/video-pitch-hum/"' in html
+    assert 'id="video-template-audio-panel"' in html
+    assert 'href="go/video-template-audio-panel/"' in html
     assert "https://www.youtube-nocookie.com/embed/K3ksQ6r0Pys" in html
     assert "https://www.youtube-nocookie.com/embed/YktYHl_JOGo" in html
     assert "https://www.youtube-nocookie.com/embed/Z_lbxrdBjuA" in html

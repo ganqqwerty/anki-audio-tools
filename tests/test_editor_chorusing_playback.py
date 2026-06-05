@@ -1,4 +1,4 @@
-"""Back-chaining playback status tests."""
+"""Chorusing playback status tests."""
 
 from __future__ import annotations
 
@@ -16,7 +16,7 @@ from anki_audio_quick_editor.editor_integration import (
 )
 
 
-def test_back_chaining_html_playback_status_includes_practice_guidance(tmp_path: Path, monkeypatch) -> None:
+def test_chorusing_html_playback_status_includes_practice_guidance(tmp_path: Path, monkeypatch) -> None:
     class Editor:
         pass
 
@@ -44,10 +44,10 @@ def test_back_chaining_html_playback_status_includes_practice_guidance(tmp_path:
         lambda *_args, **_kwargs: pytest.fail("HTML playback should not render a segment"),
     )
 
-    _play_with_request(editor, {"engine": "html", "action": "start", "cursorMs": 700, "source": "back_chaining"})
+    _play_with_request(editor, {"engine": "html", "action": "start", "cursorMs": 700, "source": "chorusing"})
 
     evals = [call.args[0] for call in editor.web.eval.call_args_list]
     assert any(
-        "Playing from 0.70s. Practice mode. Use floating panel at the bottom of the graph." in call
+        "Playing from 0.70s. Practice mode. Use the toolbar buttons for chorusing." in call
         for call in evals
     )

@@ -1,4 +1,5 @@
 <script lang="ts">
+  import FieldTooltipTarget from "$lib/FieldTooltipTarget.svelte";
   import { t } from "$lib/i18n.js";
   import type { BatchInitialState, BatchOperationOption } from "$lib/types.js";
   import type { BatchFormState } from "./batch-state.js";
@@ -11,38 +12,45 @@
   }
 
   let { state, form = $bindable(), selected, disabled }: Props = $props();
+  const disabledReason = $derived(disabled ? t("tooltip.disabled.batch_running") : undefined);
 </script>
 
 <label>
   <span>{t("batch.operation")}</span>
-  <select bind:value={form.operation} data-testid="batch-operation" disabled={disabled}>
-    {#each state.operations as operation}
-      <option value={operation.operation}>{operation.label}</option>
-    {/each}
-  </select>
+  <FieldTooltipTarget block content={t("batch.operation")} {disabledReason}>
+    <select bind:value={form.operation} data-testid="batch-operation" disabled={disabled}>
+      {#each state.operations as operation}
+        <option value={operation.operation}>{operation.label}</option>
+      {/each}
+    </select>
+  </FieldTooltipTarget>
 </label>
 
 <label>
   <span>{t("batch.source_field")}</span>
-  <select bind:value={form.sourceField} disabled={disabled}>
-    {#each state.field_groups as group}
-      {#each group.fields as field}
-        <option value={field}>{group.notetype_name} / {field}</option>
-      {/each}
-    {/each}
-  </select>
-</label>
-
-{#if selected?.requires_target_field}
-  <label>
-    <span>{t("batch.target_field")}</span>
-    <select bind:value={form.targetField} disabled={disabled}>
+  <FieldTooltipTarget block content={t("batch.source_field")} {disabledReason}>
+    <select bind:value={form.sourceField} disabled={disabled}>
       {#each state.field_groups as group}
         {#each group.fields as field}
           <option value={field}>{group.notetype_name} / {field}</option>
         {/each}
       {/each}
     </select>
+  </FieldTooltipTarget>
+</label>
+
+{#if selected?.requires_target_field}
+  <label>
+    <span>{t("batch.target_field")}</span>
+    <FieldTooltipTarget block content={t("batch.target_field")} {disabledReason}>
+      <select bind:value={form.targetField} disabled={disabled}>
+        {#each state.field_groups as group}
+          {#each group.fields as field}
+            <option value={field}>{group.notetype_name} / {field}</option>
+          {/each}
+        {/each}
+      </select>
+    </FieldTooltipTarget>
   </label>
 {/if}
 

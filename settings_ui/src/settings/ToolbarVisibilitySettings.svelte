@@ -1,65 +1,68 @@
 <script lang="ts">
   import {
-    choiceTooltip,
-    denoiseAlgorithmTooltip,
-    dpdfnetAggressivenessTooltip,
-    pauseAggressivenessTooltip,
-    pauseDetectionAlgorithmTooltip,
-    pitchHumModeTooltip,
-    shareTargetTooltip,
-  } from "$lib/audio-option-tooltips.js";
-  import {
-    DPDFNET_ATTENUATION_LIMIT_DB_VALUES,
-    formatDpdfnetAggressiveness,
-    formatPauseAggressiveness,
-    formatPauseDetectionAlgorithm,
-    pauseDetectionAlgorithmOrDefault,
-    pausePreset,
-    PAUSE_DETECTION_ALGORITHM_VALUES,
-  } from "$lib/audio-operation-parameters.js";
-  import {
     buttonDisplayMode,
-    COMMAND_SLUGS,
     DEFAULT_EDITOR_BUTTON_MODES,
-    DEFAULT_VISIBLE_EDITOR_BUTTONS,
-    toolbarButtons,
   } from "$lib/editor-toolbar-buttons.js";
+  import { COMMAND_SLUGS } from "$lib/editor-toolbar-command-slugs.js";
+  import { normalizeVisibleEditorButtons, toolbarPanels } from "$lib/editor-toolbar-visibility.js";
   import { t } from "$lib/i18n.js";
-  import { DenoiseAlgorithm, PauseAggressiveness, PitchHumMode, type Config } from "$lib/types.js";
+  import { settingsToolbarButtons } from "$lib/settings-toolbar-buttons.js";
+  import type { Config } from "$lib/types.js";
   import type { EditorButtonDisplayMode, EditorCommand } from "$lib/editor-toolbar-buttons.js";
-  import PauseAdvancedParamsFields from "$lib/PauseAdvancedParamsFields.svelte";
+  import type { ToolbarPanelSpec } from "$lib/editor-toolbar-visibility.js";
   import ButtonSettingsCard from "./ButtonSettingsCard.svelte";
-  import GraphSettingsFields from "./GraphSettingsFields.svelte";
-  import OutputFormatField from "./OutputFormatField.svelte";
-  import SettingsSizeReductionFields from "./SettingsSizeReductionFields.svelte";
-  import SettingsChoiceGroup from "./SettingsChoiceGroup.svelte";
-  import SettingsHiddenWarning from "./SettingsHiddenWarning.svelte";
+  import ToolbarPanelSettingsFields from "./ToolbarPanelSettingsFields.svelte";
 
   let { config = $bindable() }: { config: Config } = $props();
-  const buttons = toolbarButtons();
-  const buttonOrder = buttons.map((button) => button.command);
+  const buttons = settingsToolbarButtons();
+  const panels = toolbarPanels(buttons);
 
   function visibleSet(): Set<EditorCommand> {
-    if (!Array.isArray(config.visible_editor_buttons)) {
-      return new Set(DEFAULT_VISIBLE_EDITOR_BUTTONS);
-    }
-    return new Set(config.visible_editor_buttons as unknown as EditorCommand[]);
+    return new Set(
+      normalizeVisibleEditorButtons(
+        buttons,
+        config.visible_editor_buttons as unknown as EditorCommand[] | undefined,
+      ),
+    );
   }
 
-  function isVisible(command: EditorCommand): boolean {
+  function isVisible(panel: ToolbarPanelSpec): boolean {
+    const visible = visibleSet();
+    return panel.commands.some((command) => visible.has(command));
+  }
+
+  function setVisibleCommands(visible: Set<EditorCommand>): void {
+    const selectedCommands = buttons
+      .map((button) => button.command)
+      .filter((command) => visible.has(command));
+    config.visible_editor_buttons = normalizeVisibleEditorButtons(
+      buttons,
+      selectedCommands,
+    ) as Config["visible_editor_buttons"];
+  }
+
+  function toggle(panel: ToolbarPanelSpec): void {
+    const visible = visibleSet();
+    if (panel.commands.some((command) => visible.has(command))) {
+      for (const command of panel.commands) visible.delete(command);
+    } else {
+      for (const command of panel.commands) visible.add(command);
+    }
+    setVisibleCommands(visible);
+  }
+
+  function isCommandVisible(command: EditorCommand): boolean {
     return visibleSet().has(command);
   }
 
-  function toggle(command: EditorCommand): void {
+  function setCommandVisible(command: EditorCommand, nextVisible: boolean): void {
     const visible = visibleSet();
-    if (visible.has(command)) {
-      visible.delete(command);
-    } else {
+    if (nextVisible) {
       visible.add(command);
+    } else {
+      visible.delete(command);
     }
-    config.visible_editor_buttons = buttonOrder.filter((item) => visible.has(item)) as Config[
-      "visible_editor_buttons"
-    ];
+    setVisibleCommands(visible);
   }
 
   function displayMode(command: EditorCommand): EditorButtonDisplayMode {
@@ -92,27 +95,27 @@
     );
   }
 
-  function pauseAlgorithm() {
-    return pauseDetectionAlgorithmOrDefault(config.pause_detection_algorithm);
+  function panelHasSettings(panel: ToolbarPanelSpec, visible: boolean): boolean {
+    return (
+      panel.commands.some((command) => hasSettings(command)) ||
+      (panel.commands.includes("aqe:settings") && !visible)
+    );
   }
 
-  function applyPausePreset(value: PauseAggressiveness): void {
-    const algorithm = pauseAlgorithm();
-    const preset = pausePreset(algorithm, value);
-    config.pause_aggressiveness = value;
-    if (algorithm === "silero_vad") {
-      config.pause_silero_threshold = preset.threshold;
-      config.pause_silero_min_silence_seconds = preset.minSilenceSeconds;
-      config.pause_silero_min_speech_seconds = preset.minSpeechSeconds;
-      config.pause_silero_preprocess_denoise = preset.preprocessDenoise;
-      return;
-    }
-    config.pause_silencedetect_threshold_db = preset.threshold;
-    config.pause_silencedetect_min_silence_seconds = preset.minSilenceSeconds;
-    config.pause_silencedetect_min_speech_seconds = preset.minSpeechSeconds;
-    config.pause_silencedetect_preprocess_denoise = preset.preprocessDenoise;
+  function modeControls(panel: ToolbarPanelSpec) {
+    if (panel.buttons.length === 1) return undefined;
+    return panel.buttons.map((button) => ({
+      icon: button.icon,
+      label: button.label,
+      mode: displayMode(button.command),
+      onToggleVisible: panel.atomicVisibility
+        ? undefined
+        : (nextVisible: boolean) => setCommandVisible(button.command, nextVisible),
+      onSetMode: (nextMode: EditorButtonDisplayMode) => setDisplayMode(button.command, nextMode),
+      testId: `button-settings-${COMMAND_SLUGS[button.command]}`,
+      visible: isCommandVisible(button.command),
+    }));
   }
-
 </script>
 
 <section class="toolbar-visibility settings-section" aria-labelledby="toolbar-visibility-title">
@@ -131,220 +134,22 @@
   </label>
 
   <div class="button-settings-grid" data-testid="toolbar-visibility-buttons">
-    {#each buttons as button (button.command)}
-      {@const visible = isVisible(button.command)}
+    {#each panels as panel (panel.slug)}
+      {@const visible = isVisible(panel)}
+      {@const button = panel.primaryButton}
       {@const mode = displayMode(button.command)}
       <ButtonSettingsCard
-        hasSettings={hasSettings(button.command) || (button.command === "aqe:settings" && !visible)}
-        icon={button.icon}
+        hasSettings={panelHasSettings(panel, visible)}
+        icon={panel.icon}
         mode={mode}
+        modeControls={modeControls(panel)}
         onSetMode={(nextMode) => setDisplayMode(button.command, nextMode)}
-        onToggle={() => toggle(button.command)}
-        testId={`button-settings-${COMMAND_SLUGS[button.command]}`}
-        title={button.label}
+        onToggle={() => toggle(panel)}
+        testId={`button-settings-${panel.slug}`}
+        title={panel.label}
         {visible}
       >
-        {#if button.command === "aqe:play"}
-          <label class="settings-toggle">
-            <input
-              data-testid="repeat-playback-by-default"
-              type="checkbox"
-              bind:checked={config.repeat_playback_by_default}
-            />
-            <span class="settings-label-text">{t("settings.repeat_playback_by_default")}</span>
-          </label>
-          <label class="settings-field">
-            <span>{t("settings.repeat_pause_seconds")}</span>
-            <input
-              class="settings-input"
-              data-testid="repeat-pause-seconds"
-              type="number"
-              min="0"
-              max="10"
-              step="0.1"
-              bind:value={config.repeat_pause_seconds}
-            />
-          </label>
-        {:else if button.command === "aqe:analyze"}
-          <label class="settings-toggle">
-            <input
-              data-testid="show-graph-by-default"
-              type="checkbox"
-              bind:checked={config.show_graph_by_default}
-            />
-            <span class="settings-label-text">{t("settings.show_graph_by_default")}</span>
-          </label>
-          <GraphSettingsFields bind:config />
-        {:else if button.command === "aqe:record-voice"}
-          <label class="settings-field">
-            <span>{t("settings.voice_recording_countdown_seconds")}</span>
-            <input
-              class="settings-input"
-              data-testid="voice-recording-countdown-seconds"
-              type="number"
-              min="0"
-              max="10"
-              step="1"
-              bind:value={config.voice_recording_countdown_seconds}
-            />
-          </label>
-        {:else if button.command === "aqe:share"}
-          <label class="settings-field">
-            <span>{t("settings.share_target")}</span>
-            <SettingsChoiceGroup
-              ariaLabel={t("settings.share_target")}
-              options={["litterbox", "catbox"].map((value) => ({
-                label: t(`editor.share.target.${value}`),
-                tooltip: choiceTooltip(t(`editor.share.target.${value}`), shareTargetTooltip(value)),
-                value,
-              }))}
-              testId="share-target"
-              value={config.share_target}
-              onSelect={(value) => (config.share_target = value as Config["share_target"])}
-            />
-          </label>
-        {:else if button.command === "aqe:convert"}
-          <OutputFormatField bind:config />
-        {:else if button.command === "aqe:reduce-size"}
-          <SettingsSizeReductionFields bind:config />
-        {:else if button.command === "aqe:remove-pauses"}
-          <label class="settings-field">
-            <span>{t("settings.pause_detection_algorithm")}</span>
-            <SettingsChoiceGroup
-              ariaLabel={t("settings.pause_detection_algorithm")}
-              options={PAUSE_DETECTION_ALGORITHM_VALUES.map((value) => ({
-                label: formatPauseDetectionAlgorithm(value),
-                tooltip: choiceTooltip(formatPauseDetectionAlgorithm(value), pauseDetectionAlgorithmTooltip(value)),
-                value,
-              }))}
-              testId="pause-detection-algorithm"
-              value={config.pause_detection_algorithm}
-              onSelect={(value) => {
-                config.pause_detection_algorithm = value as Config["pause_detection_algorithm"];
-              }}
-            />
-          </label>
-          <label class="settings-field">
-            <span>{t("settings.pause_aggressiveness")}</span>
-            <SettingsChoiceGroup
-              ariaLabel={t("settings.pause_aggressiveness")}
-              options={[
-                PauseAggressiveness.Gentle,
-                PauseAggressiveness.Normal,
-                PauseAggressiveness.Aggressive,
-              ].map((value) => ({
-                label: formatPauseAggressiveness(value),
-                tooltip: choiceTooltip(formatPauseAggressiveness(value), pauseAggressivenessTooltip(value)),
-                value,
-              }))}
-              testId="pause-aggressiveness"
-              value={config.pause_aggressiveness}
-              onSelect={(value) => applyPausePreset(value as PauseAggressiveness)}
-            />
-          </label>
-          {#if pauseAlgorithm() === "silero_vad"}
-            <PauseAdvancedParamsFields
-              algorithm="silero_vad"
-              bind:threshold={config.pause_silero_threshold}
-              bind:minSilenceSeconds={config.pause_silero_min_silence_seconds}
-              bind:minSpeechSeconds={config.pause_silero_min_speech_seconds}
-              bind:preprocessDenoise={config.pause_silero_preprocess_denoise}
-              testPrefix="settings-pause"
-            />
-          {:else}
-            <PauseAdvancedParamsFields
-              algorithm="silencedetect"
-              bind:threshold={config.pause_silencedetect_threshold_db}
-              bind:minSilenceSeconds={config.pause_silencedetect_min_silence_seconds}
-              bind:minSpeechSeconds={config.pause_silencedetect_min_speech_seconds}
-              bind:preprocessDenoise={config.pause_silencedetect_preprocess_denoise}
-              testPrefix="settings-pause"
-            />
-          {/if}
-        {:else if button.command === "aqe:denoise-standard"}
-          <label class="settings-field">
-            <span>{t("settings.denoise_algorithm")}</span>
-            <SettingsChoiceGroup
-              ariaLabel={t("settings.denoise_algorithm")}
-              options={[
-                DenoiseAlgorithm.Standard,
-                DenoiseAlgorithm.Rnnoise,
-                DenoiseAlgorithm.Dpdfnet,
-                DenoiseAlgorithm.VoiceOnly,
-              ].map((value) => ({
-                label: t(`settings.denoise_algorithm.${value}`),
-                tooltip: choiceTooltip(t(`settings.denoise_algorithm.${value}`), denoiseAlgorithmTooltip(value)),
-                value,
-              }))}
-              testId="denoise-algorithm"
-              value={config.denoise_algorithm}
-              onSelect={(value) => (config.denoise_algorithm = value as DenoiseAlgorithm)}
-            />
-          </label>
-          <label class="settings-field">
-            <span>{t("settings.dpdfnet_attn_limit_db")}</span>
-            <SettingsChoiceGroup
-              ariaLabel={t("settings.dpdfnet_attn_limit_db")}
-              options={DPDFNET_ATTENUATION_LIMIT_DB_VALUES.map((value) => ({
-                label: formatDpdfnetAggressiveness(value),
-                tooltip: choiceTooltip(formatDpdfnetAggressiveness(value), dpdfnetAggressivenessTooltip(value)),
-                value,
-              }))}
-              testId="dpdfnet-attn-limit-db"
-              value={config.dpdfnet_attn_limit_db}
-              onSelect={(value) => (config.dpdfnet_attn_limit_db = Number(value))}
-            />
-          </label>
-          <label class="settings-toggle">
-            <input type="checkbox" bind:checked={config.deep_filter_post_filter} />
-            <span class="settings-label-text">{t("settings.deep_filter_post_filter")}</span>
-          </label>
-        {:else if button.command === "aqe:pitch-hum"}
-          <label class="settings-field">
-            <span>{t("settings.pitch_hum_mode")}</span>
-            <SettingsChoiceGroup
-              ariaLabel={t("settings.pitch_hum_mode")}
-              options={[PitchHumMode.Direct, PitchHumMode.PitchTier].map((value) => ({
-                label: t(`settings.pitch_hum_mode.${value}`),
-                tooltip: choiceTooltip(t(`settings.pitch_hum_mode.${value}`), pitchHumModeTooltip(value)),
-                value,
-              }))}
-              testId="pitch-hum-mode"
-              value={config.pitch_hum_mode}
-              onSelect={(value) => (config.pitch_hum_mode = value as PitchHumMode)}
-            />
-          </label>
-        {:else if button.command === "aqe:slower"}
-          <label class="settings-field">
-            <span>{t("settings.speed_step")}</span>
-            <input class="settings-input" type="number" min="1.01" max="5" step="0.01" bind:value={config.speed_step} />
-          </label>
-          <label class="settings-field">
-            <span>{t("settings.min_speed")}</span>
-            <input class="settings-input" type="number" min="0.2" max="5" step="0.05" bind:value={config.min_speed} />
-          </label>
-        {:else if button.command === "aqe:faster"}
-          <label class="settings-field">
-            <span>{t("settings.max_speed")}</span>
-            <input class="settings-input" type="number" min="0.2" max="5" step="0.05" bind:value={config.max_speed} />
-          </label>
-        {:else if button.command === "aqe:volume-down"}
-          <label class="settings-field">
-            <span>{t("settings.volume_step_db")}</span>
-            <input class="settings-input" type="number" min="1" max="40" step="0.5" bind:value={config.volume_step_db} />
-          </label>
-          <label class="settings-field">
-            <span>{t("settings.min_volume_db")}</span>
-            <input class="settings-input" type="number" min="-40" max="40" step="0.5" bind:value={config.min_volume_db} />
-          </label>
-        {:else if button.command === "aqe:volume-up"}
-          <label class="settings-field">
-            <span>{t("settings.max_volume_db")}</span>
-            <input class="settings-input" type="number" min="-40" max="40" step="0.5" bind:value={config.max_volume_db} />
-          </label>
-        {:else if button.command === "aqe:settings" && !visible}
-          <SettingsHiddenWarning />
-        {/if}
+        <ToolbarPanelSettingsFields bind:config command={button.command} {visible} />
       </ButtonSettingsCard>
     {/each}
   </div>

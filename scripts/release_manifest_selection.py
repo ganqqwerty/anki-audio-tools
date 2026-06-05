@@ -13,7 +13,7 @@ SOURCE_BIN_FILES = {
     "bin/README.md",
     "bin/THIRD_PARTY_NOTICES.md",
 }
-EXCLUDE_DIRS = {"aqe_artifacts"}
+EXCLUDE_DIRS = {"aqe_artifacts", "user_files"}
 BASE_REQUIRED_ARCHIVE_FILES = (
     "__init__.py",
     "manifest.json",

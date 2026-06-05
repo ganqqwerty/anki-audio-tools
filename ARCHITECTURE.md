@@ -126,10 +126,11 @@ Config defaults are stored in `config.json` and migrated into user config:
 
 ```json
 {
-  "_config_version": 1,
+  "_config_version": 2,
   "enabled": true,
   "debug_logging": false,
   "show_ffmpeg_commands": false,
+  "enable_reviewer_editor": true,
   "repeat_playback_by_default": true,
   "repeat_pause_seconds": 0.0,
   "share_target": "litterbox",
@@ -140,10 +141,13 @@ Config defaults are stored in `config.json` and migrated into user config:
     "aqe:analyze",
     "aqe:show-file",
     "aqe:share",
+    "aqe:reduce-size",
     "aqe:remove-pauses",
     "aqe:denoise-standard",
     "aqe:slower",
     "aqe:faster",
+    "aqe:delete-selection",
+    "aqe:delete-rest",
     "aqe:undo",
     "aqe:redo",
     "aqe:settings"
@@ -156,11 +160,14 @@ Config defaults are stored in `config.json` and migrated into user config:
     "aqe:show-file": "icon",
     "aqe:share": "icon",
     "aqe:convert": "text",
+    "aqe:reduce-size": "text",
     "aqe:remove-pauses": "text",
     "aqe:denoise-standard": "text",
     "aqe:pitch-hum": "text",
     "aqe:slower": "icon",
     "aqe:faster": "icon",
+    "aqe:delete-selection": "icon",
+    "aqe:delete-rest": "icon",
     "aqe:volume-down": "icon",
     "aqe:volume-up": "icon",
     "aqe:undo": "icon",
@@ -188,7 +195,11 @@ Config defaults are stored in `config.json` and migrated into user config:
   "pause_silero_min_silence_seconds": 0.45,
   "pause_silero_min_speech_seconds": 0.1,
   "pause_silero_preprocess_denoise": false,
-  "output_format": "mp3",
+  "output_format": "source",
+  "size_reduction_mode": "normal",
+  "size_reduction_bitrate_kbps": 64,
+  "size_reduction_sample_rate_hz": 32000,
+  "size_reduction_channels": 1,
   "ffmpeg_path": "/opt/homebrew/bin/ffmpeg",
   "deep_filter_post_filter": true,
   "dpdfnet_attn_limit_db": 12.0,
@@ -197,7 +208,7 @@ Config defaults are stored in `config.json` and migrated into user config:
 }
 ```
 
-`config_migration.py` deep-merges defaults into user config and stamps the current schema version.
+`config_migration.py` deep-merges defaults into user config and stamps the current schema version. `editor_button_visibility.py` keeps `visible_editor_buttons` normalization import-safe for startup migration and Settings saves, including grouped toolbar panels such as Record / Play yours.
 Editor split-button choices are field-local runtime overrides. Settings provide defaults for toolbar visibility/display mode, repeat playback and pause, Share target, prosody graph options, volume step, speed step, pause detector, pause aggressiveness, algorithm-specific pause Advanced Params, convert target format, denoise algorithm, DPDFNet aggressiveness, and pitch hum mode, but changing a split-button value in one editor field does not write back to persisted config or other fields unless the user promotes that field's quick setting to defaults. See [`EDITOR_MODIFICATION_BUTTON_BEHAVIOR_RULES.md`](EDITOR_MODIFICATION_BUTTON_BEHAVIOR_RULES.md) for button defaults and non-persisted command choices.
 
 ## Source Of Truth
@@ -215,7 +226,7 @@ The canonical module contracts and allowed side effects are defined in `tests/te
 
 | Contract | Source modules | Forbidden modules |
 |----------|----------------|-------------------|
-| `import-safe-no-upper-layers` | Import-safe helper modules, including batch visualization, Browser batch state, runtime asset management, shared WebView bridge/shell helpers, frontend log handling, and prosody rendering/cache modules | Browser/editor UI modules and settings backend modules |
+| `import-safe-no-upper-layers` | Import-safe helper modules, including batch visualization, Browser batch state, runtime asset management, toolbar visibility normalization, shared WebView bridge/shell helpers, frontend log handling, and prosody rendering/cache modules | Browser/editor UI modules and settings backend modules |
 | `settings-backend-no-ui` | `settings.commands`, `settings.initial_state` | `editor_integration` |
 
 ## Enforced Rules
@@ -223,6 +234,7 @@ The canonical module contracts and allowed side effects are defined in `tests/te
 - Import policy, addon dependency policy, and side-effect policy are enforced by executable module contracts.
 - Python bridge command registration and injected editor UI commands must stay in sync.
 - Editor TypeScript/Svelte source is part of that bridge-command sync check, not only Python injection code.
+- Editor panel command buttons must stay accepted by settings visibility/display-mode config.
 - Shared batch operations must stay free of editor bridge strings and editor-adapter imports.
 - Optional analysis dependencies such as Parselmouth must stay isolated to their backend module and never become package-level imports.
 - The settings shell must stay a thin `QDialog` + `AnkiWebView` wrapper.

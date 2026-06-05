@@ -18,6 +18,7 @@
     formatDpdfnetAggressiveness,
     formatPauseDetectionAlgorithm,
   } from "./split-button-state.js";
+  import { requestSourceMetadata } from "./source-metadata-requests.js";
   import type { ButtonSpec, FieldSplitButtonState } from "./types.js";
 
   type DenoiseAlgorithm = FieldSplitButtonState["denoiseAlgorithm"];
@@ -73,8 +74,13 @@
     targetOrd: number;
   } = $props();
 
-  const sourceMetadata = $derived(window.__AQE_EDITOR_CONFIG__?.audioFieldMetadata?.[targetOrd]);
-  const sourceMetadataText = $derived(formatSourceMetadata(sourceMetadata));
+  let sourceMetadata = $state<AudioSourceMetadataSummary | null>(null);
+  let sourceMetadataErrorText = $state<string | null>(null);
+  let sourceMetadataLoading = $state(false);
+  let sourceMetadataRequested = false;
+
+  const sourceFilename = $derived(window.__AQE_EDITOR_CONFIG__?.audioFieldSources?.[targetOrd] ?? null);
+  const sourceMetadataText = $derived(sourceMetadata ? formatSourceMetadata(sourceMetadata) : null);
 
   function applyDpdfnetAggressiveness(value: number): void {
     onDpdfnetAttnLimitDb(value);
@@ -121,6 +127,26 @@
   function applySizeReductionChannels(value: number): void {
     onSizeReductionChannels(value);
     onChange();
+  }
+
+  function requestSourceMetadataAfterAdvancedOpen(): void {
+    if (command !== "aqe:reduce-size") return;
+    if (sourceMetadataRequested || !sourceFilename) return;
+    sourceMetadataRequested = true;
+    sourceMetadataLoading = true;
+    sourceMetadataErrorText = null;
+    requestSourceMetadata(targetOrd, sourceFilename)
+      .then((metadata) => {
+        sourceMetadata = metadata;
+        sourceMetadataErrorText = null;
+      })
+      .catch(() => {
+        sourceMetadata = null;
+        sourceMetadataErrorText = t("settings.size_reduction_source_metadata.error");
+      })
+      .finally(() => {
+        sourceMetadataLoading = false;
+      });
   }
 
   function isDenoiseCommand(): boolean {
@@ -251,7 +277,10 @@
     onBitrateKbps={applySizeReductionBitrate}
     onSampleRateHz={applySizeReductionSampleRate}
     onChannels={applySizeReductionChannels}
+    onAdvancedOpen={requestSourceMetadataAfterAdvancedOpen}
     {sourceMetadataText}
+    {sourceMetadataErrorText}
+    {sourceMetadataLoading}
     testPrefix={`aqe-split-${targetOrd}-${slug}-size-reduction`}
   />
 {/if}

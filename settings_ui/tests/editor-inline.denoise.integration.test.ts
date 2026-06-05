@@ -48,7 +48,7 @@ describe("editor inline denoise integration", () => {
     expect(help).toHaveTextContent("Delete Region / Delete the rest");
     expect(help).toHaveTextContent("Creates a new file that removes the selected region or keeps only that region.");
     expect(help).toHaveTextContent("Creates a new file with louder audio.");
-    expect(help).toHaveTextContent("Creates a smaller MP3 by lowering safe audio parameters.");
+    expect(help).toHaveTextContent("Creates a compressed MP3 by lowering safe audio parameters.");
     expect(help).toHaveTextContent("Creates a new file in a different format.");
     expect(help).toHaveTextContent("Creates a new pitch-preserving hum file for intonation practice.");
     expect(help).toHaveTextContent("Every edit creates a new media file and updates the field to point at it.");

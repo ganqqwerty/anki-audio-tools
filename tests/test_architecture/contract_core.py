@@ -10,12 +10,21 @@ CORE_CONTRACTS: dict[str, ModuleContract] = {
     "config_migration": contract(
         "config_migration",
         layer=Layer.IMPORT_SAFE_CORE,
-        allowed_addon_deps=("audio_formats", "audio_size_reduction", "dpdfnet_settings"),
+        allowed_addon_deps=(
+            "audio_formats",
+            "audio_size_reduction",
+            "dpdfnet_settings",
+            "editor_button_visibility",
+        ),
     ),
     "contracts_generated": contract(
         "contracts_generated",
         layer=Layer.IMPORT_SAFE_CORE,
         notes="Generated quicktype DTOs for owned JSON bridge contracts.",
+    ),
+    "editor_button_visibility": contract(
+        "editor_button_visibility",
+        layer=Layer.IMPORT_SAFE_CORE,
     ),
     "db_helpers": contract(
         "db_helpers",
@@ -29,6 +38,7 @@ CORE_CONTRACTS: dict[str, ModuleContract] = {
             "audio_processor",
             "audio_tools",
             "error_codes",
+            "external_command_text",
             "permission_guidance",
             "runtime_manager",
         ),
@@ -54,6 +64,7 @@ CORE_CONTRACTS: dict[str, ModuleContract] = {
         layer=Layer.IMPORT_SAFE_CORE,
         allowed_addon_deps=("errors", "file_reveal"),
     ),
+    "external_command_text": contract("external_command_text", layer=Layer.IMPORT_SAFE_CORE),
     "ffmpeg_defaults": contract("ffmpeg_defaults", layer=Layer.IMPORT_SAFE_CORE),
     "frontend_logs": contract(
         "frontend_logs",
@@ -136,6 +147,12 @@ CORE_CONTRACTS: dict[str, ModuleContract] = {
     ),
     "prosody_types": contract("prosody_types", layer=Layer.IMPORT_SAFE_CORE),
     "release_info": contract("release_info", layer=Layer.IMPORT_SAFE_CORE),
+    "reviewer_audio_targets": contract("reviewer_audio_targets", layer=Layer.IMPORT_SAFE_CORE),
+    "reviewer_template_filter": contract(
+        "reviewer_template_filter",
+        layer=Layer.IMPORT_SAFE_CORE,
+        allowed_addon_deps=("reviewer_audio_targets", "sound_refs"),
+    ),
     "runtime_archive": contract(
         "runtime_archive",
         layer=Layer.IMPORT_SAFE_CORE,
@@ -203,6 +220,11 @@ CORE_CONTRACTS: dict[str, ModuleContract] = {
         "runtime_state",
         layer=Layer.IMPORT_SAFE_CORE,
         allowed_addon_deps=("runtime_manifest", "runtime_paths"),
+    ),
+    "vendor_runtime": contract(
+        "vendor_runtime",
+        layer=Layer.IMPORT_SAFE_CORE,
+        allowed_addon_deps=("runtime_paths", "runtime_platform"),
     ),
     "settings_state": contract(
         "settings_state",

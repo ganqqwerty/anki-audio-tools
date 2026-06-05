@@ -21,7 +21,12 @@ from .prosody_settings import (
     postprocess_points,
     resolve_analysis_options,
 )
-from .prosody_types import ProsodyPoint, ProsodyTrack, build_prosody_track
+from .prosody_types import (
+    FFMPEG_PCM_ANALYZER,
+    ProsodyPoint,
+    ProsodyTrack,
+    build_prosody_track,
+)
 
 SAMPLE_RATE = 16_000
 
@@ -39,7 +44,7 @@ def analyze_with_fallback(source_path: Path, config: AudioProcessingConfig) -> P
             duration_ms=duration_ms,
             points=[],
             source_filename=source_path.name,
-            analyzer_name="ffmpeg-pcm",
+            analyzer_name=FFMPEG_PCM_ANALYZER,
         )
     for start in range(0, len(samples), hop_size):
         frame = samples[start : start + frame_size]
@@ -63,7 +68,7 @@ def analyze_with_fallback(source_path: Path, config: AudioProcessingConfig) -> P
         duration_ms=duration_ms,
         points=postprocess_points(points, config),
         source_filename=source_path.name,
-        analyzer_name="ffmpeg-pcm",
+        analyzer_name=FFMPEG_PCM_ANALYZER,
     )
 
 

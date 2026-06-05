@@ -148,7 +148,7 @@ BROAD_EXCEPTION_ALLOWLIST: tuple[BroadExceptionAllowance, ...] = (
         "Persistent undo journal writes are best-effort and must not block a completed render.",
     ),
     BroadExceptionAllowance(
-        "editor_integration",
+        "editor_webview_injection",
         "_can_persistent_undo",
         1,
         "Initial editor injection must not fail note loading when the persistent history check fails.",
@@ -176,6 +176,12 @@ BROAD_EXCEPTION_ALLOWLIST: tuple[BroadExceptionAllowance, ...] = (
         "share_current_audio_file._run",
         1,
         "Background upload worker boundary reports Catbox/Litterbox failures on the main thread.",
+    ),
+    BroadExceptionAllowance(
+        "editor_source_metadata",
+        "_start_probe._run",
+        1,
+        "Lazy editor source metadata worker sends non-blocking UI error callbacks instead of leaking thread exceptions.",
     ),
     BroadExceptionAllowance(
         "editor_playback",
@@ -295,7 +301,7 @@ def test_broad_exception_handlers_are_allowlisted_with_reasons() -> None:
 def _collect_broad_exception_handlers() -> Counter[tuple[str, str]]:
     observed: Counter[tuple[str, str]] = Counter()
     for path in sorted(ADDON_DIR.rglob("*.py")):
-        if "vendor" in path.parts:
+        if "vendor" in path.parts or "user_files" in path.parts:
             continue
         module = _module_name(path)
         visitor = BroadExceptionVisitor(module)

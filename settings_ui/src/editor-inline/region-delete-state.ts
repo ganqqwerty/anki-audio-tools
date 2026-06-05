@@ -1,6 +1,7 @@
 import { allVisualizers, controlsForOrd } from "./dom-selectors.js";
 import { t } from "../lib/i18n.js";
 import { setButtonTooltipContent } from "../lib/rich-tooltip.js";
+import { tooltipWithDisabledClarification } from "../lib/disabled-tooltip.js";
 import { logger } from "./logger.js";
 import type { PlaybackRegion } from "./playback-state.js";
 import { selectionForVisualizer } from "./selection-controller.js";
@@ -51,7 +52,10 @@ function syncRegionDeleteButton(
   button.hidden = !valid;
   button.disabled = anyBusy() || !valid;
   button.dataset.aqeButtonState = valid ? "destructive" : "unavailable";
-  setButtonTooltipContent(button, titleForOperation(operation, valid));
+  const validTitle = titleForOperation(operation, true);
+  const invalidTitle = titleForOperation(operation, false);
+  const reason = anyBusy() && valid ? t("tooltip.disabled.editor_busy") : (!valid ? invalidTitle : undefined);
+  setButtonTooltipContent(button, tooltipWithDisabledClarification(validTitle, reason));
   button.setAttribute("aria-disabled", button.disabled ? "true" : "false");
 }
 

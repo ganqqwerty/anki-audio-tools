@@ -9,7 +9,7 @@ from typing import Any
 
 ROOT = Path(__file__).resolve().parents[1]
 ADDON_DIR = ROOT / "addon" / "anki_audio_quick_editor"
-EXCLUDED_PARTS = {"__pycache__", "aqe_artifacts", "bin", "templates", "vendor"}
+EXCLUDED_PARTS = {"__pycache__", "aqe_artifacts", "bin", "templates", "user_files", "vendor"}
 
 
 @dataclass(frozen=True, order=True)

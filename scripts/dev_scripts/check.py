@@ -25,6 +25,7 @@ from scripts.dev_tasks.repository import cmd_file_lines
 
 
 def cmd_check(_command_args: list[str]) -> int:
+    print("Typically takes 3-4 minutes. More than")
     return check_runner.cmd_check(
         cmd_config_schema=cmd_config_schema,
         cmd_contracts_generate=cmd_contracts_generate,

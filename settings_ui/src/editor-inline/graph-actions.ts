@@ -11,6 +11,7 @@ import { currentAudioSourceForOrd, visualizerForOrd } from "./dom-selectors.js";
 import type { GraphSettings } from "./graph-settings.js";
 import { logger } from "./logger.js";
 import { normalizeTrack, type DefaultGraphTarget, type VisualizerElement } from "./types.js";
+import { clearSourceMetadataRequests } from "./source-metadata-requests.js";
 import {
   graphLogContext,
   renderGraphRequested,
@@ -39,7 +40,11 @@ import {
   setControlsBusy,
   setHistoryAvailability,
   setStatusForOrd,
+  setTransientStatusForOrd,
+  updateButtonTooltipForDisabledState,
   clearStatus,
+  hasStableStatusForOrd,
+  restoreStatusForOrd,
 } from "./control-actions.js";
 import { graphSettingsForField } from "./graph-split-state.js";
 import { resetVisualizerTimeViewport } from "./visualizer-state.js";
@@ -149,6 +154,13 @@ export function setVisualizer(ord: number, rawTrack: ProsodyPayload, cursorMs: n
   }
   renderVisualizerStatus(visualizer, "", "info");
   setControlsBusy(ord, false, "", "");
+  if (rawTrack.analysisWarning) {
+    setTransientStatusForOrd(ord, rawTrack.analysisWarning, "warning");
+    renderVisualizerStatus(visualizer, rawTrack.analysisWarning, "warning");
+    if (hasStableStatusForOrd(ord)) {
+      window.setTimeout(() => restoreStatusForOrd(ord), 4000);
+    }
+  }
   finishDefaultGraphRequest(ord, defaultGraphQueueDependencies());
   logger.info("graph rendered", graphLogContext(ord, track));
 }
@@ -188,6 +200,7 @@ function pendingGraphRedrawMatches(ord: number, sourceFilename: string): boolean
 
 export function prepareForNewNote(): void {
   clearPendingNoteScopedBridgeRequests();
+  clearSourceMetadataRequests();
   document.body.dataset.aqeBusy = "false";
   window.__aqeActiveField = null;
   window.__aqeLastCursorIntent = null;
@@ -204,6 +217,7 @@ export function prepareForNewNote(): void {
       if (button.dataset.aqeCommand === "aqe:play") {
         setCommandButtonLabel(ord, "aqe:play", "Play");
       }
+      updateButtonTooltipForDisabledState(button);
     });
     setHistoryAvailability(ord, false, false);
     clearStatus(ord);

@@ -26,16 +26,22 @@ class FakeNote:
     def __init__(self, fields: list[str], note_id: int = 123) -> None:
         self.fields = fields
         self.id = note_id
+        self.field_names = ["Front", "Back"][: len(fields)]
+
+    def keys(self) -> list[str]:
+        return self.field_names
 
 
 @pytest.fixture(autouse=True)
 def _reset_reviewer_visibility(monkeypatch) -> None:
     monkeypatch.setattr(reviewer_integration, "_reviewer_editor_visible", True)
+    reviewer_integration._EXPLICIT_PANEL_CARD_KEYS.clear()
 
 
 class FakeCard:
     def __init__(self, note: FakeNote) -> None:
         self._note = note
+        self.id = note.id + 1000
         self.loaded = False
 
     def note(self, reload: bool = False) -> FakeNote:
@@ -50,6 +56,14 @@ class FakeCard:
 
     def answer_av_tags(self) -> list[object]:
         return [SimpleNamespace(filename="second.wav")]
+
+
+class FakeRenderedAudioCard(FakeCard):
+    def question_av_tags(self) -> list[object]:
+        return []
+
+    def answer_av_tags(self) -> list[object]:
+        return []
 
 
 class FakeWeb:
@@ -127,6 +141,51 @@ def test_card_will_show_adds_review_targets_for_rendered_audio() -> None:
     assert 'data-field-ord="0"' not in html
 
 
+def test_card_will_show_matches_rendered_escaped_bracket_audio_without_av_tags() -> None:
+    note = FakeNote(["[sound:amp&amp;bracket]name.opus]", "[sound:second.wav]"])
+    card = FakeRenderedAudioCard(note)
+    aqt.mw.addonManager.getConfig.return_value = {"enable_reviewer_editor": True}
+
+    html = _on_card_will_show(
+        "<div>[sound:amp&amp;bracket]name.opus]</div>",
+        card,
+        "reviewAnswer",
+    )
+
+    assert 'class="aqe-review-audio-target"' in html
+    assert 'data-field-ord="0"' in html
+    assert 'data-aqe-source-filename="amp&amp;bracket]name.opus"' in html
+    assert 'data-field-ord="1"' not in html
+
+
+def test_card_will_show_deduplicates_windows_case_variant_targets(monkeypatch) -> None:
+    note = FakeNote(["[sound:Clip.MP3]", "[sound:clip.mp3]"])
+    card = FakeRenderedAudioCard(note)
+    aqt.mw.addonManager.getConfig.return_value = {"enable_reviewer_editor": True}
+    monkeypatch.setattr("anki_audio_quick_editor.media_paths.platform.system", lambda: "Windows")
+
+    html = _on_card_will_show("<div>[sound:clip.mp3]</div>", card, "reviewAnswer")
+
+    assert html.count('class="aqe-review-audio-target"') == 1
+    assert 'data-field-ord="0"' in html
+    assert 'data-field-ord="1"' not in html
+
+
+def test_card_will_show_does_not_duplicate_explicit_template_target() -> None:
+    note = FakeNote(["[sound:first.mp3]", "[sound:second.wav]"])
+    card = FakeCard(note)
+    aqt.mw.addonManager.getConfig.return_value = {"enable_reviewer_editor": True}
+    existing = (
+        '<button class="aqe-review-audio-panel-trigger" data-field-ord="1"></button>'
+        '<div class="aqe-review-audio-target" data-field-ord="1" '
+        'data-aqe-source-filename="second.wav"></div>'
+    )
+
+    html = _on_card_will_show(existing, card, "reviewAnswer")
+
+    assert html.count('class="aqe-review-audio-target"') == 1
+
+
 def test_card_will_show_respects_reviewer_setting() -> None:
     note = FakeNote(["[sound:first.mp3]"])
     card = FakeCard(note)
@@ -137,6 +196,21 @@ def test_card_will_show_respects_reviewer_setting() -> None:
     assert "aqe-review-audio-target" not in html
 
 
+def test_card_will_show_leaves_pre_rendered_html_when_reviewer_setting_disabled() -> None:
+    note = FakeNote(["front", "[sound:second.wav]"])
+    card = FakeCard(note)
+    aqt.mw.addonManager.getConfig.return_value = {"enable_reviewer_editor": False}
+    text = (
+        '<button class="aqe-review-audio-panel-trigger" data-field-ord="1"></button>'
+        '<div class="aqe-review-audio-target" data-field-ord="1" '
+        'data-aqe-source-filename="second.wav"></div>'
+    )
+
+    html = _on_card_will_show(text, card, "reviewAnswer")
+
+    assert html == text
+
+
 def test_card_will_show_skips_question_side() -> None:
     note = FakeNote(["[sound:first.mp3]"])
     card = FakeCard(note)
@@ -145,6 +219,26 @@ def test_card_will_show_skips_question_side() -> None:
     html = _on_card_will_show("<div>[sound:first.mp3]</div>", card, "reviewQuestion")
 
     assert "aqe-review-audio-target" not in html
+
+
+def test_reviewer_did_show_injects_explicit_template_panel_when_setting_disabled() -> None:
+    note = FakeNote(["front", "[sound:second.wav]"])
+    card = FakeCard(note)
+    web = FakeWeb()
+    reviewer = SimpleNamespace(mw=aqt.mw, web=web, card=card, state="answer")
+    aqt.mw.reviewer = reviewer
+    aqt.mw.addonManager.getConfig.return_value = {"enable_reviewer_editor": False}
+    explicit = (
+        '<button class="aqe-review-audio-panel-trigger" data-field-ord="1"></button>'
+        '<div class="aqe-review-audio-target" data-field-ord="1" '
+        'data-aqe-source-filename="second.wav" '
+        'data-aqe-panel-trigger-target="true" data-aqe-panel-open="false"></div>'
+    )
+
+    assert _on_card_will_show(explicit, card, "reviewAnswer") == explicit
+    _on_reviewer_did_show_card_side(card)
+
+    assert any("window.__AQE_EDITOR_CONFIG__" in script for script in web.evals)
 
 
 def test_reviewer_bridge_delegates_non_aqe_commands(monkeypatch) -> None:

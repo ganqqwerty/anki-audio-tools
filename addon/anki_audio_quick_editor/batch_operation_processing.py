@@ -155,7 +155,7 @@ def process_transform_operation(
                 mode=effective_config.size_reduction_mode,
             )
         else:
-            desired_name = make_output_filename(audio_filename)
+            desired_name = make_output_filename(audio_filename, output_format=effective_config.output_format)
             output_path = temp_final_path(desired_name)
             if request.operation == OP_DENOISE:
                 render_batch_denoise(source_path, effective_config, output_path)

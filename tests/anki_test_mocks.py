@@ -248,6 +248,12 @@ _aqt_utils.showInfo = _named_mock("aqt.utils.showInfo")
 _aqt_utils.showWarning = _named_mock("aqt.utils.showWarning")
 _aqt_utils.tooltip = _named_mock("aqt.utils.tooltip")
 _aqt_utils.openLink = _named_mock("aqt.utils.openLink")
+_aqt_utils.disable_help_button = _named_mock("aqt.utils.disable_help_button")
+
+_aqt_forms = types.ModuleType("aqt.forms")
+_aqt_forms_addfield = types.ModuleType("aqt.forms.addfield")
+_aqt_forms_addfield.Ui_Dialog = _named_mock("aqt.forms.addfield.Ui_Dialog")
+_aqt_forms.addfield = _aqt_forms_addfield
 
 _aqt_gui_hooks = types.ModuleType("aqt.gui_hooks")
 _GUI_HOOK_NAMES = (
@@ -260,6 +266,7 @@ _GUI_HOOK_NAMES = (
     "editor_did_init",
     "editor_will_load_note",
     "card_review_webview_did_init",
+    "card_layout_will_show",
     "card_will_show",
     "reviewer_did_show_question",
     "reviewer_did_show_answer",
@@ -298,11 +305,14 @@ _anki_notes.Note = _Note
 _anki_lang = types.ModuleType("anki.lang")
 _anki_lang.current_lang = "en"
 _anki_lang.is_rtl = lambda _lang: False
+_anki_hooks = types.ModuleType("anki.hooks")
+_anki_hooks.field_filter = _named_mock("anki.hooks.field_filter")
 _anki_sound = types.ModuleType("anki.sound")
 _anki_sound.SoundOrVideoTag = _SoundOrVideoTag
 _anki.collection = _anki_collection
 _anki.db = _anki_db
 _anki.decks = _anki_decks
+_anki.hooks = _anki_hooks
 _anki.lang = _anki_lang
 _anki.media = _anki_media
 _anki.models = _anki_models
@@ -314,6 +324,7 @@ _aqt = types.ModuleType("aqt")
 _aqt.mw = _mw
 _aqt.addons = _aqt_addons
 _aqt.editor = _aqt_editor
+_aqt.forms = _aqt_forms
 _aqt.gui_hooks = _aqt_gui_hooks
 _aqt.main = _aqt_main
 _aqt.qt = _qt
@@ -326,6 +337,8 @@ _aqt.mediacheck = _aqt_mediacheck
 sys.modules["aqt"] = _aqt
 sys.modules["aqt.addons"] = _aqt_addons
 sys.modules["aqt.editor"] = _aqt_editor
+sys.modules["aqt.forms"] = _aqt_forms
+sys.modules["aqt.forms.addfield"] = _aqt_forms_addfield
 sys.modules["aqt.qt"] = _qt
 sys.modules["aqt.webview"] = _webview
 sys.modules["aqt.utils"] = _aqt_utils
@@ -339,6 +352,7 @@ sys.modules["anki"] = _anki
 sys.modules["anki.collection"] = _anki_collection
 sys.modules["anki.db"] = _anki_db
 sys.modules["anki.decks"] = _anki_decks
+sys.modules["anki.hooks"] = _anki_hooks
 sys.modules["anki.media"] = _anki_media
 sys.modules["anki.models"] = _anki_models
 sys.modules["anki.notes"] = _anki_notes
@@ -387,6 +401,7 @@ def reset_static_mock_modules() -> None:
 
     for hook_name in _GUI_HOOK_NAMES:
         _reset_mock_tree(getattr(_aqt_gui_hooks, hook_name))
+    _reset_mock_tree(_anki_hooks.field_filter)
 
     _configure_mw()
 

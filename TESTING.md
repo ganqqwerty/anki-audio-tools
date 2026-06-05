@@ -195,6 +195,7 @@ Recommended workflow:
 | Module-level Anki import ban | Import-safe helpers, including batch and SVG modules, must not import `aqt` or `anki` at module load time. |
 | Runtime import safety | UI layers must not leak into import-safe modules, including shared WebView bridge/shell and frontend log helpers. |
 | Editor bridge contract | Injected editor UI commands and registered bridge commands must stay in sync. |
+| Editor panel button settings | Configurable editor panel command buttons must be accepted by settings visibility and display-mode config. |
 | Module classification | Every production module must be listed in one architecture layer. |
 | Prosody boundaries | Optional Parselmouth/Praat dependencies stay isolated and do not become package-level imports. |
 | Settings/backend isolation | Settings backend modules do not import UI modules; the settings shell remains thin. |
@@ -236,7 +237,7 @@ Settings that affect editor startup behavior need at least one same-session e2e 
 
 The inline editor has an additional in-between integration layer in `settings_ui/tests/editor-inline.*.test.ts`: tests mount fake Anki editor fields in jsdom, replace `pycmd` with a bridge double, provide deterministic prosody/audio payloads, and drive the public `window.__aqe*` contract without loading Anki. The editor-inline coverage gate enforces at least 90% lines/statements/functions for `settings_ui/src/editor-inline/`; branch coverage is enforced separately for defensive DOM guards. This gate runs as part of `python3 scripts/dev.py test-svelte` because that command uses `npm run validate`.
 
-When adding or changing editor toolbar buttons, update [`EDITOR_MODIFICATION_BUTTON_BEHAVIOR_RULES.md`](EDITOR_MODIFICATION_BUTTON_BEHAVIOR_RULES.md). It maps current editor commands to behavior expectations, e2e/unit coverage, and known buttons that intentionally diverge from standard modification-button rules.
+When adding or changing editor toolbar or selection-panel command buttons, update [`EDITOR_MODIFICATION_BUTTON_BEHAVIOR_RULES.md`](EDITOR_MODIFICATION_BUTTON_BEHAVIOR_RULES.md) and keep the settings visibility/display-mode architecture guard passing. It maps current editor commands to behavior expectations, e2e/unit coverage, and known buttons that intentionally diverge from standard modification-button rules.
 
 Browser batch operations are covered by Python unit tests for hook registration, WebView shell behavior, state/contract decoding, batch progress/cancel semantics, SVG media writes, denoise parameter routing, skip/failure handling, and target-field appends. The Svelte batch UI is covered in `settings_ui/tests/`. Direct real-WebView batch dialog race coverage lives in `e2e/test_browser_batch_race_workflow.py`; there is still no full Browser-selection-to-dialog e2e workflow, so add one before making risky Browser selection or context-menu changes.
 

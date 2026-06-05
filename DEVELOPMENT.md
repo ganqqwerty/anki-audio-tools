@@ -71,11 +71,13 @@ If that happens, remove `addon/anki_audio_quick_editor/meta.json` or use the set
 
 Anki add-ons cannot rely on `pip install` at user runtime. Audio Quick Editor uses the Python/Qt runtime bundled with Anki and downloads a locked native runtime payload for supported release platforms. The managed runtime matrix is macOS arm64, macOS x86_64, and Windows x86_64.
 
-Public release archives are thin. They include `bin/runtime_manifest.json`, but they do not embed `ffmpeg`, `ffprobe`, DeepFilterNet's `deep-filter`, `rnnoise-cli`, Sherpa's `sherpa-spleeter`, Sherpa's `silero-vad`, DPDFNet Lite, or shared Spleeter/Silero model files. On first load, startup schedules a background managed-runtime install into `user_files/runtime/<runtime_manifest_id>/<platform>/` and records state in `user_files/runtime_state.json`.
+Public release archives are thin. They include `bin/runtime_manifest.json`, but they do not embed `ffmpeg`, `ffprobe`, DeepFilterNet's `deep-filter`, `rnnoise-cli`, Sherpa's `sherpa-spleeter`, `silero-vad`, DPDFNet Lite, or shared Spleeter/Silero model files. They do embed compressed platform wheels under `vendor/wheels/` for Python runtime dependencies with native extensions. On first load, startup schedules a background managed-runtime install into `user_files/runtime/<runtime_manifest_id>/<platform>/`, extracts the current platform's vendored Python wheels into `user_files/python_vendor/<platform>/`, and records runtime state in `user_files/runtime_state.json`.
 
 Runtime discovery checks the configured ffmpeg path where supported, the managed downloaded runtime, package `bin/` as a source-tree development fallback, and `PATH` as a compatibility fallback for `ffmpeg`, `ffprobe`, and `deep-filter`. The settings diagnostics report whether each tool came from config, the managed runtime, the development fallback, or `PATH`.
 
 `release_assets.lock.json` remains the source of truth for the runtime matrix, source URLs, diagnostic arguments, and SHA-256 values. Keep runtime payloads available under the same staged source layout used by release scripts: non-FFmpeg runtime payloads under `addon/anki_audio_quick_editor/bin/<target>/` and `addon/anki_audio_quick_editor/bin/models/`, with cached `ffmpeg` and `ffprobe` under `.release-assets/bin/<target>/`. Runtime pack releases are built separately from add-on releases and recorded in `runtime_release.lock.json`. Thin add-on releases consume that metadata and write its immutable `runtime-vN` URLs into `bin/runtime_manifest.json`.
+
+`addon/anki_audio_quick_editor/vendor/wheels.lock.json` is the source of truth for vendored Python runtime wheels. It pins exact filenames, download URLs, sizes, SHA-256 digests, and wheel platform tags. Recreate the wheel directory with `python3 scripts/dev.py vendor-wheels download --prune`, then verify it with `python3 scripts/dev.py vendor-wheels verify`. `scripts/release.py` runs the verifier before staging and validates the final archive against the same lock.
 
 Release asset workflow:
 
@@ -151,9 +153,11 @@ directly.
 
 For a public thin add-on release:
 
-1. Bump `pyproject.toml` and `addon/anki_audio_quick_editor/_version.py`.
-2. Run `python3 scripts/dev.py check`, `python3 scripts/dev.py test-e2e`,
-   and `python3 scripts/release_runtime_cli.py verify --metadata runtime_release.lock.json`.
+1. Bump `pyproject.toml`, `addon/anki_audio_quick_editor/_version.py`,
+   and `addon/anki_audio_quick_editor/manifest.json`.
+2. Run `python3 scripts/dev.py vendor-wheels verify`,
+   `python3 scripts/dev.py check`, `python3 scripts/dev.py test-e2e`, and
+   `python3 scripts/release_runtime_cli.py verify --metadata runtime_release.lock.json`.
 3. Commit the version bump.
 4. Build the committed version:
 
@@ -161,6 +165,26 @@ For a public thin add-on release:
 python3 scripts/release.py --target all --verify-runtime-urls
 python3 scripts/dev.py release-smoke dist/anki-audio-quick-editor-<version>.ankiaddon
 ```
+
+5. Run native acceptance on each supported platform before publishing. In
+   addition to managed runtime tools, verify the packaged Python wheels extract
+   and import under Anki's bundled CPython 3.13:
+
+```python
+import parselmouth
+import numpy
+print(parselmouth.__file__)
+print(numpy.__version__)
+```
+
+On Windows x86_64, `parselmouth.__file__` must point inside
+`user_files/python_vendor/windows-x86_64/.../site-packages/`, NumPy must be the
+bundled version, and editor Graph/Pitch Hum should use `praat-parselmouth`
+without showing the ffmpeg/PCM fallback warning.
+
+`scripts/release.py` verifies that all three add-on version sources match and
+that the vendored Python wheels match `wheels.lock.json` before building the
+archive. Archive validation also checks the packaged lock file and wheel bytes.
 
 `--verify-runtime-urls` downloads each URL from `runtime_release.lock.json` and
 verifies both the runtime pack SHA-256 and every inner file. It must run only
@@ -182,7 +206,7 @@ Pause-shortening runs retain provenance under `<addon_dir>/aqe_artifacts/<run_id
 
 RNNoise denoising uses ffmpeg to convert arbitrary source audio to raw 48 kHz mono signed 16-bit PCM, runs RNNoise over that raw stream, then uses ffmpeg to encode the result as MP3.
 
-Prosody visualization can use `praat-parselmouth` when it is already available in Anki's Python, but the shipped add-on does not require it. The required cross-platform path is the built-in ffmpeg/PCM fallback. A dry-run compatibility check on this machine resolved `praat-parselmouth 0.4.7` and `numpy 2.4.4` for Anki Python 3.13, but those packages were not installed or vendored.
+Prosody visualization and Pitch Hum use bundled `praat-parselmouth 0.4.7` wheels for Anki's CPython 3.13 runtime on macOS arm64, macOS x86_64, and Windows x86_64. The bundled transitive NumPy wheel is `numpy 2.4.6`. Update these wheels by changing `addon/anki_audio_quick_editor/vendor/wheels.lock.json`, running `python3 scripts/dev.py vendor-wheels download --prune`, and committing both the lock and wheel files. The graph analyzer still has a required ffmpeg/PCM fallback for unsupported platforms or failed Praat analysis; PitchTier and direct Pitch Hum require Parselmouth.
 
 Local ffmpeg setup remains useful for development and e2e baselines:
 

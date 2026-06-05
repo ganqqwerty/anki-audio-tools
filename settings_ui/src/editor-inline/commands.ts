@@ -7,15 +7,14 @@ import { formatSizeReductionMode, sizeReductionModeOrDefault } from "../lib/size
 import type { EditorCommand, EditorCommandPayload } from "./types.js";
 
 export {
-  COMMAND_SLUGS,
   DEFAULT_VISIBLE_EDITOR_BUTTONS,
   commandButtons,
   denoiseButtons,
   denoiseTopLevelButton,
-  testId,
   toolbarButtons,
-  visibleToolbarButtons,
 } from "../lib/editor-toolbar-buttons.js";
+export { COMMAND_SLUGS, testId } from "../lib/editor-toolbar-command-slugs.js";
+export { visibleToolbarButtons } from "../lib/editor-toolbar-visibility.js";
 
 export const PROCESSING_COMMANDS = new Set<EditorCommand>([
   "aqe:slower",

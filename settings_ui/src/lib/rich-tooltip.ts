@@ -12,6 +12,10 @@ export function setTooltipContent(target: HTMLElement | null, content: string): 
 
 export function setButtonTooltipContent(button: HTMLButtonElement | null, content: string): void {
   if (!button) return;
-  setTooltipContent(button.closest<HTMLElement>(".aqe-tooltip-target") ?? button, content);
+  const tooltipTarget = button.closest<HTMLElement>(".aqe-tooltip-target") ?? button;
+  setTooltipContent(tooltipTarget, content);
+  if (tooltipTarget !== button) {
+    setTooltipContent(button, content);
+  }
   button.setAttribute("aria-label", content);
 }

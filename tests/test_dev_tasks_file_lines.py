@@ -33,11 +33,13 @@ def test_scan_python_file_lengths_ignores_generated_and_runtime_artifacts(tmp_pa
     root = tmp_path
     generated = root / "addon" / "anki_audio_quick_editor" / "contracts_generated.py"
     template = root / "addon" / "anki_audio_quick_editor" / "templates" / "settings" / "bundle.py"
+    user_file = root / "addon" / "anki_audio_quick_editor" / "user_files" / "python_vendor" / "numpy.py"
     cache_file = root / "tests" / "__pycache__" / "cached.py"
     generated.parent.mkdir(parents=True)
     template.parent.mkdir(parents=True)
+    user_file.parent.mkdir(parents=True)
     cache_file.parent.mkdir(parents=True)
-    for path in (generated, template, cache_file):
+    for path in (generated, template, user_file, cache_file):
         path.write_text("pass\n" * 700)
 
     report = file_lines.scan_python_file_lengths(root)

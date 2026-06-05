@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import mimetypes
 import urllib.error
+import urllib.parse
 import urllib.request
 import uuid
 from pathlib import Path
@@ -13,6 +14,7 @@ CATBOX_UPLOAD_URL: Final[str] = "https://catbox.moe/user/api.php"
 LITTERBOX_UPLOAD_URL: Final[str] = "https://litterbox.catbox.moe/resources/internals/api.php"
 LITTERBOX_RETENTION: Final[str] = "72h"
 DEFAULT_TIMEOUT_SECONDS: Final[float] = 60.0
+MULTIPART_TEXT_ENCODING: Final[str] = "utf-8"
 
 
 class FileSharingError(RuntimeError):
@@ -68,22 +70,31 @@ def _multipart_body(fields: list[tuple[str, str]], path: Path) -> tuple[str, byt
     parts: list[bytes] = []
 
     for name, value in fields:
-        parts.append(f"--{boundary}\r\n".encode())
+        parts.append(f"--{boundary}\r\n".encode(MULTIPART_TEXT_ENCODING))
         parts.append(
-            f'Content-Disposition: form-data; name="{name}"\r\n\r\n{value}\r\n'.encode()
+            f'Content-Disposition: form-data; name="{name}"\r\n\r\n{value}\r\n'.encode(
+                MULTIPART_TEXT_ENCODING
+            )
         )
 
-    parts.append(f"--{boundary}\r\n".encode())
+    parts.append(f"--{boundary}\r\n".encode(MULTIPART_TEXT_ENCODING))
+    quoted_filename = _quoted_multipart_filename(path.name)
+    encoded_filename = urllib.parse.quote(path.name, safe="")
     parts.append(
         (
-            f'Content-Disposition: form-data; name="fileToUpload"; filename="{path.name}"\r\n'
+            f'Content-Disposition: form-data; name="fileToUpload"; filename="{quoted_filename}"; '
+            f"filename*=UTF-8''{encoded_filename}\r\n"
             f"Content-Type: {mime_type}\r\n\r\n"
-        ).encode()
+        ).encode(MULTIPART_TEXT_ENCODING)
     )
     parts.append(path.read_bytes())
     parts.append(b"\r\n")
-    parts.append(f"--{boundary}--\r\n".encode())
+    parts.append(f"--{boundary}--\r\n".encode(MULTIPART_TEXT_ENCODING))
     return f"multipart/form-data; boundary={boundary}", b"".join(parts)
+
+
+def _quoted_multipart_filename(filename: str) -> str:
+    return filename.replace("\\", "\\\\").replace('"', '\\"').replace("\r", " ").replace("\n", " ")
 
 
 def _http_error_message(exc: urllib.error.HTTPError) -> str:

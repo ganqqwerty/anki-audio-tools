@@ -11,6 +11,7 @@
     graphVoiceRangeTooltip,
   } from "../lib/graph-option-copy.js";
   import { t } from "../lib/i18n.js";
+  import ValueSlider from "../lib/ValueSlider.svelte";
   import {
     formatGraphRecordingCondition,
     formatGraphSmoothness,
@@ -180,15 +181,15 @@
   <label class="aqe-graph-option">
     <span>{t("editor.graph.options.connect_dropouts")}</span>
     <span class="aqe-graph-option-note">{graphConnectDropoutsNote()}</span>
-    <input
-      data-testid={`aqe-split-${targetOrd}-${slug}-connect-dropouts`}
-      type="range"
+    <ValueSlider
+      testId={`aqe-split-${targetOrd}-${slug}-connect-dropouts`}
       min="0"
       max="500"
       step="30"
       value={connectShortDropoutsMs}
-      oninput={(event) => onConnectShortDropouts((event.currentTarget as HTMLInputElement).valueAsNumber)}
+      ariaLabel={t("editor.graph.options.connect_dropouts")}
+      formatValue={(value) => `${Math.round(value)} ms`}
+      onValueInput={onConnectShortDropouts}
     />
-    <span class="aqe-graph-option-value">{connectShortDropoutsMs} ms</span>
   </label>
 </div>

@@ -7,6 +7,10 @@ from pathlib import Path
 from typing import Any
 
 from .error_codes import AQE_RUNTIME_ASSET_MISSING, format_coded_message
+from .external_command_text import (
+    EXTERNAL_COMMAND_TEXT_ENCODING,
+    EXTERNAL_COMMAND_TEXT_ERRORS,
+)
 from .permission_guidance import (
     external_tool_error_message,
     message_with_permission_guidance,
@@ -40,6 +44,8 @@ def build_deep_filter_health(_config: dict[str, Any]) -> dict[str, Any]:
             capture_output=True,
             text=True,
             check=False,
+            encoding=EXTERNAL_COMMAND_TEXT_ENCODING,
+            errors=EXTERNAL_COMMAND_TEXT_ERRORS,
             timeout=10,
             **_external_command_run_kwargs(),
         )  # nosec B603
@@ -98,6 +104,8 @@ def build_rnnoise_health() -> dict[str, Any]:
             capture_output=True,
             text=True,
             check=False,
+            encoding=EXTERNAL_COMMAND_TEXT_ENCODING,
+            errors=EXTERNAL_COMMAND_TEXT_ERRORS,
             timeout=10,
             **_external_command_run_kwargs(),
         )  # nosec B603
@@ -156,6 +164,8 @@ def build_dpdfnet_health() -> dict[str, Any]:
             capture_output=True,
             text=True,
             check=False,
+            encoding=EXTERNAL_COMMAND_TEXT_ENCODING,
+            errors=EXTERNAL_COMMAND_TEXT_ERRORS,
             timeout=10,
             **_external_command_run_kwargs(),
         )  # nosec B603
@@ -266,6 +276,8 @@ def _run_silero_help_probe(
             capture_output=True,
             text=True,
             check=False,
+            encoding=EXTERNAL_COMMAND_TEXT_ENCODING,
+            errors=EXTERNAL_COMMAND_TEXT_ERRORS,
             timeout=10,
             **run_kwargs,
         )  # nosec B603
@@ -314,6 +326,8 @@ def _run_spleeter_help_probe(
             capture_output=True,
             text=True,
             check=False,
+            encoding=EXTERNAL_COMMAND_TEXT_ENCODING,
+            errors=EXTERNAL_COMMAND_TEXT_ERRORS,
             timeout=10,
             **run_kwargs,
         )  # nosec B603

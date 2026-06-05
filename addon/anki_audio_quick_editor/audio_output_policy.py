@@ -7,7 +7,10 @@ import subprocess  # nosec B404
 from dataclasses import dataclass
 from pathlib import Path
 
-from .audio_external import _external_command_run_kwargs, _render_external_error_message
+from .audio_external import (
+    _external_command_run_kwargs,
+    _render_external_error_message,
+)
 from .audio_formats import (
     normalize_output_format,
     validate_target_format,
@@ -16,6 +19,10 @@ from .audio_formats import (
 from .audio_state import AudioProcessingConfig
 from .audio_tools import find_ffmpeg, find_ffprobe
 from .errors import AudioProcessingError
+from .external_command_text import (
+    EXTERNAL_COMMAND_TEXT_ENCODING,
+    EXTERNAL_COMMAND_TEXT_ERRORS,
+)
 from .permission_guidance import launch_error_message
 
 FFMPEG_AUDIO_CODEC_ARG = "-codec:a"
@@ -71,6 +78,8 @@ def probe_audio_metadata(source_path: Path, config: AudioProcessingConfig) -> Au
             capture_output=True,
             text=True,
             check=False,
+            encoding=EXTERNAL_COMMAND_TEXT_ENCODING,
+            errors=EXTERNAL_COMMAND_TEXT_ERRORS,
             **_external_command_run_kwargs(),
         )  # nosec B603
     except OSError as exc:

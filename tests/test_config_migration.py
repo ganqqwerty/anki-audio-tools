@@ -184,14 +184,64 @@ class TestMigrateConfig:
         assert migrated["_config_version"] == CURRENT_CONFIG_VERSION
         assert changed is True
 
+    def test_appends_v2_selection_buttons_to_legacy_visible_editor_buttons(self) -> None:
+        defaults = {
+            "_config_version": CURRENT_CONFIG_VERSION,
+            "visible_editor_buttons": [
+                "aqe:play",
+                "aqe:settings",
+                "aqe:delete-selection",
+                "aqe:delete-rest",
+            ],
+        }
+        user = {
+            "_config_version": 1,
+            "visible_editor_buttons": ["aqe:play", "aqe:settings"],
+        }
+
+        migrated, changed = migrate_config(user, defaults)
+
+        assert changed is True
+        assert migrated["visible_editor_buttons"] == [
+            "aqe:play",
+            "aqe:settings",
+            "aqe:delete-selection",
+            "aqe:delete-rest",
+        ]
+
+    def test_keeps_current_hidden_selection_buttons_hidden(self) -> None:
+        config = {
+            "_config_version": CURRENT_CONFIG_VERSION,
+            "visible_editor_buttons": ["aqe:play", "aqe:settings"],
+        }
+        defaults = {
+            "_config_version": CURRENT_CONFIG_VERSION,
+            "visible_editor_buttons": [
+                "aqe:play",
+                "aqe:settings",
+                "aqe:delete-selection",
+                "aqe:delete-rest",
+            ],
+        }
+
+        migrated, changed = migrate_config(config, defaults)
+
+        assert changed is False
+        assert migrated["visible_editor_buttons"] == ["aqe:play", "aqe:settings"]
+
     def test_removes_stale_visible_editor_buttons(self) -> None:
         defaults = {
             "_config_version": CURRENT_CONFIG_VERSION,
             "visible_editor_buttons": ["aqe:play", "aqe:share", "aqe:settings"],
+            "editor_button_modes": {
+                "aqe:play": "icon",
+                "aqe:share": "icon",
+                "aqe:settings": "icon",
+            },
         }
         user = {
             "_config_version": CURRENT_CONFIG_VERSION,
-            "visible_editor_buttons": ["aqe:play", "aqe:record-voice", "aqe:settings"],
+            "visible_editor_buttons": ["aqe:play", "aqe:stale-button", "aqe:settings"],
         }
 
         migrated, changed = migrate_config(user, defaults)

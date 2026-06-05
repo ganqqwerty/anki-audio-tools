@@ -34,6 +34,17 @@ function recordingConfig(): EditorRuntimeConfig {
   };
 }
 
+function recordingConfigWithCountdown(seconds: number): EditorRuntimeConfig {
+  const config = recordingConfig();
+  return {
+    ...config,
+    splitButtonDefaults: {
+      ...config.splitButtonDefaults!,
+      voiceRecordingCountdownSeconds: seconds,
+    },
+  };
+}
+
 function textRecordingConfig(): EditorRuntimeConfig {
   return {
     ...recordingConfig(),
@@ -54,6 +65,7 @@ describe("editor inline learner recording integration", () => {
 
   afterEach(() => {
     disposeEditorRuntime();
+    delete window.__aqeSplitButtonStates;
     restoreConsole();
     vi.useRealTimers();
     vi.restoreAllMocks();
@@ -67,6 +79,26 @@ describe("editor inline learner recording integration", () => {
     expect(document.querySelector('[data-testid="aqe-button-0-play-recording"]')).toBeNull();
   });
 
+  it("expands partial learner recording visibility to the full group", () => {
+    const config: EditorRuntimeConfig = {
+      ...recordingConfig(),
+      visibleEditorButtons: ["aqe:record-voice"],
+    };
+
+    initializeEditorRuntime(config);
+    scan(config);
+
+    const group = document.querySelector<HTMLElement>(".aqe-recording-group")!;
+    expect(group).not.toBeNull();
+    expect(group).toHaveClass("aqe-toolbar-panel");
+    expect(group).toHaveAttribute("role", "group");
+    expect(group).toHaveAttribute("aria-label", "Record / Play yours");
+    expect(group).toHaveAttribute("data-aqe-toolbar-button-container", "true");
+    expect(group.querySelector(".aqe-toolbar-panel-label")).toHaveTextContent("Record / Play yours");
+    expect(document.querySelector('[data-testid="aqe-button-0-record-voice"]')).not.toBeNull();
+    expect(document.querySelector('[data-testid="aqe-button-0-play-recording"]')).not.toBeNull();
+  });
+
   it("renders the opt-in grouped buttons and dispatches record after the configured countdown", async () => {
     initializeEditorRuntime(recordingConfig());
     scan(recordingConfig());
@@ -75,16 +107,36 @@ describe("editor inline learner recording integration", () => {
     const recordButton = document.querySelector<HTMLButtonElement>('[data-testid="aqe-button-0-record-voice"]')!;
     const playYoursButton = document.querySelector<HTMLButtonElement>('[data-testid="aqe-button-0-play-recording"]')!;
     expect(group).not.toBeNull();
+    expect(group).toHaveClass("aqe-toolbar-panel");
+    expect(group).toHaveAttribute("aria-label", "Record / Play yours");
+    expect(group).toHaveAttribute("data-aqe-toolbar-button-container", "true");
+    expect(group?.querySelector(".aqe-split-group")).not.toBeNull();
     expect(recordButton.classList.contains("aqe-icon-only")).toBe(true);
     expect(playYoursButton.classList.contains("aqe-icon-only")).toBe(true);
     expect(document.querySelector('[data-testid="aqe-split-0-record-voice-menu"]')).not.toBeNull();
     expect(recordButton.disabled).toBe(true);
     expect(playYoursButton.disabled).toBe(true);
+    expect(recordButton.closest(".aqe-button-tooltip-target")).toHaveAttribute(
+      "data-aqe-tooltip-content",
+      "Record your voice for this graph\n\nDraw the graph before recording your voice",
+    );
+    expect(playYoursButton.closest(".aqe-button-tooltip-target")).toHaveAttribute(
+      "data-aqe-tooltip-content",
+      "Play your latest recording\n\nRecord your voice before playing it",
+    );
 
     window.__aqeSetVisualizer?.(0, { ...track, sourceFilename: "clip one.mp3" }, 0);
     await Promise.resolve();
     expect(recordButton.disabled).toBe(false);
     expect(playYoursButton.disabled).toBe(true);
+    expect(recordButton.closest(".aqe-button-tooltip-target")).toHaveAttribute(
+      "data-aqe-tooltip-content",
+      "Record your voice for this graph",
+    );
+    expect(playYoursButton.closest(".aqe-button-tooltip-target")).toHaveAttribute(
+      "data-aqe-tooltip-content",
+      "Play your latest recording\n\nRecord your voice before playing it",
+    );
 
     const menu = document.querySelector<HTMLButtonElement>('[data-testid="aqe-split-0-record-voice-menu"]')!;
     menu.click();
@@ -100,12 +152,58 @@ describe("editor inline learner recording integration", () => {
 
     recordButton.click();
 
+    const overlay = document.querySelector<HTMLElement>('[data-testid="aqe-recording-countdown-overlay-0"]')!;
+    expect(overlay).not.toBeNull();
+    expect(overlay.hidden).toBe(true);
+    expect(window.__aqeGraphStateForTest?.(0)?.learnerRecordingStatus).toBe("idle");
     expect(bridgeCommands()).toContain("focus:0");
     expect(bridgeCommands()).toContain("aqe:command-payload");
     expect(window.__aqePendingCommandPayload).toMatchObject({
       command: "aqe:record-voice",
       fieldOrd: 0,
       graphSettings: { smoothness: expect.any(String) },
+    });
+  });
+
+  it("shows a graph overlay while a positive recording countdown runs", async () => {
+    vi.useFakeTimers();
+    const config = recordingConfigWithCountdown(3);
+    initializeEditorRuntime(config);
+    scan(config);
+    window.__aqeSetVisualizer?.(0, { ...track, sourceFilename: "clip one.mp3" }, 0);
+    await Promise.resolve();
+
+    const recordButton = document.querySelector<HTMLButtonElement>('[data-testid="aqe-button-0-record-voice"]')!;
+    recordButton.click();
+
+    let overlay = document.querySelector<HTMLElement>('[data-testid="aqe-recording-countdown-overlay-0"]')!;
+    expect(overlay).not.toBeNull();
+    expect(overlay.hidden).toBe(false);
+    expect(overlay).toHaveTextContent("3");
+    expect(overlay).toHaveAttribute("aria-label", "Recording starts in 3s");
+    expect(bridgeCommands()).not.toContain("aqe:command-payload");
+
+    await vi.advanceTimersByTimeAsync(1000);
+    await Promise.resolve();
+    overlay = document.querySelector<HTMLElement>('[data-testid="aqe-recording-countdown-overlay-0"]')!;
+    expect(overlay).toHaveTextContent("2");
+    expect(overlay).toHaveAttribute("aria-label", "Recording starts in 2s");
+
+    await vi.advanceTimersByTimeAsync(1000);
+    await Promise.resolve();
+    overlay = document.querySelector<HTMLElement>('[data-testid="aqe-recording-countdown-overlay-0"]')!;
+    expect(overlay).toHaveTextContent("1");
+    expect(overlay).toHaveAttribute("aria-label", "Recording starts in 1s");
+
+    await vi.advanceTimersByTimeAsync(1000);
+    await Promise.resolve();
+    overlay = document.querySelector<HTMLElement>('[data-testid="aqe-recording-countdown-overlay-0"]')!;
+    expect(overlay.hidden).toBe(true);
+    expect(bridgeCommands()).toContain("focus:0");
+    expect(bridgeCommands()).toContain("aqe:command-payload");
+    expect(window.__aqePendingCommandPayload).toMatchObject({
+      command: "aqe:record-voice",
+      fieldOrd: 0,
     });
   });
 

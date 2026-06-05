@@ -14,6 +14,7 @@ DEFAULT_OUTPUT_FORMAT: OutputFormat = "source"
 
 _SUPPORTED_FORMAT_SET = frozenset(SUPPORTED_OUTPUT_FORMATS)
 _CONCRETE_FORMAT_SET = frozenset(CONCRETE_OUTPUT_FORMATS)
+_TRAILING_VISIBLE_EXTENSION_CHARS = ". \t\r\n\v\f"
 
 
 def normalize_output_format(value: object, default: OutputFormat = DEFAULT_OUTPUT_FORMAT) -> OutputFormat:
@@ -46,7 +47,7 @@ def format_label(target_format: object) -> str:
 
 def visible_extension(filename: str | Path) -> str | None:
     """Return the user-visible file extension without the leading dot."""
-    suffix = Path(filename).suffix
+    suffix = Path(str(filename).rstrip(_TRAILING_VISIBLE_EXTENSION_CHARS)).suffix
     if not suffix:
         return None
     return suffix[1:].lower()

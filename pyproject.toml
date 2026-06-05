@@ -1,6 +1,6 @@
 [project]
 name = "anki-audio-quick-editor"
-version = "1.1"
+version = "1.3"
 requires-python = ">=3.13"
 license = "AGPL-3.0-or-later"
 dependencies = [
@@ -49,7 +49,11 @@ markers = [
 target-version = "py313"
 line-length = 88
 src = ["addon", "tests", "e2e"]
-exclude = ["addon/anki_audio_quick_editor/vendor", "vulture_whitelist.py"]
+exclude = [
+    "addon/anki_audio_quick_editor/vendor",
+    "addon/anki_audio_quick_editor/user_files",
+    "vulture_whitelist.py",
+]
 
 [tool.ruff.lint]
 select = [
@@ -191,7 +195,7 @@ docstring-code-format = true
 [tool.mypy]
 python_version = "3.13"
 files = ["addon/anki_audio_quick_editor"]
-exclude = "addon/anki_audio_quick_editor/vendor"
+exclude = "addon/anki_audio_quick_editor/(vendor|user_files)"
 ignore_missing_imports = false
 disallow_any_generics = true
 no_implicit_reexport = true
@@ -216,7 +220,7 @@ ignore_missing_imports = true
 
 [tool.radon]
 exclude = "*/tests/*,*/test_*.py,*/migrations/*,*/generated/*"
-ignore = ".git,.venv,build,dist,vendor,bin"
+ignore = ".git,.venv,build,dist,vendor,bin,user_files"
 cc_min = "B"
 cc_max = "F"
 show_complexity = true
@@ -228,7 +232,10 @@ show_mi = true
 
 [tool.coverage.run]
 source = ["addon/anki_audio_quick_editor"]
-omit = ["addon/anki_audio_quick_editor/vendor/*"]
+omit = [
+    "addon/anki_audio_quick_editor/vendor/*",
+    "addon/anki_audio_quick_editor/user_files/*",
+]
 branch = true
 
 [tool.coverage.report]
@@ -292,6 +299,7 @@ source_modules = [
     "anki_audio_quick_editor.diagnostics_runtime_json",
     "anki_audio_quick_editor.diagnostics_runtime_storage",
     "anki_audio_quick_editor.dpdfnet_settings",
+    "anki_audio_quick_editor.editor_button_visibility",
     "anki_audio_quick_editor.editor_actions",
     "anki_audio_quick_editor.editor_media",
     "anki_audio_quick_editor.editor_playback_bounds",
@@ -301,8 +309,10 @@ source_modules = [
     "anki_audio_quick_editor.editor_ui",
     "anki_audio_quick_editor.error_codes",
     "anki_audio_quick_editor.errors",
+    "anki_audio_quick_editor.external_command_text",
     "anki_audio_quick_editor.external_links",
     "anki_audio_quick_editor.ffmpeg_defaults",
+    "anki_audio_quick_editor.ffmpeg_output_contracts",
     "anki_audio_quick_editor.file_sharing",
     "anki_audio_quick_editor.frontend_logs",
     "anki_audio_quick_editor.file_reveal",
@@ -318,6 +328,8 @@ source_modules = [
     "anki_audio_quick_editor.prosody_svg",
     "anki_audio_quick_editor.prosody_types",
     "anki_audio_quick_editor.release_info",
+    "anki_audio_quick_editor.reviewer_audio_targets",
+    "anki_audio_quick_editor.reviewer_template_filter",
     "anki_audio_quick_editor.runtime_archive",
     "anki_audio_quick_editor.runtime_install",
     "anki_audio_quick_editor.runtime_install_io",
@@ -327,6 +339,7 @@ source_modules = [
     "anki_audio_quick_editor.runtime_paths",
     "anki_audio_quick_editor.runtime_platform",
     "anki_audio_quick_editor.runtime_state",
+    "anki_audio_quick_editor.vendor_runtime",
     "anki_audio_quick_editor.settings_state",
     "anki_audio_quick_editor.sound_refs",
     "anki_audio_quick_editor.support",
@@ -359,10 +372,13 @@ forbidden_modules = [
     "anki_audio_quick_editor.editor_settings_actions",
     "anki_audio_quick_editor.editor_special_transform_worker",
     "anki_audio_quick_editor.editor_special_transforms",
+    "anki_audio_quick_editor.editor_source_metadata",
     "anki_audio_quick_editor.editor_status",
     "anki_audio_quick_editor.editor_sharing",
     "anki_audio_quick_editor.editor_split_defaults",
+    "anki_audio_quick_editor.editor_webview_injection",
     "anki_audio_quick_editor.reviewer_integration",
+    "anki_audio_quick_editor.reviewer_template_filter_integration",
     "anki_audio_quick_editor.runtime_installer_dialog",
     "anki_audio_quick_editor.settings",
     "anki_audio_quick_editor.settings.async_commands",
@@ -385,7 +401,12 @@ forbidden_modules = [
 ]
 
 [tool.bandit]
-exclude_dirs = ["addon/anki_audio_quick_editor/vendor", "tests", "e2e"]
+exclude_dirs = [
+    "addon/anki_audio_quick_editor/vendor",
+    "addon/anki_audio_quick_editor/user_files",
+    "tests",
+    "e2e",
+]
 
 [tool.bandit.assert_used]
 skips = [
@@ -397,7 +418,12 @@ skips = [
 
 [tool.deptry]
 known_first_party = ["anki_audio_quick_editor"]
-extend_exclude = ["addon/anki_audio_quick_editor/vendor", "settings_ui", "scripts"]
+extend_exclude = [
+    "addon/anki_audio_quick_editor/vendor",
+    "addon/anki_audio_quick_editor/user_files",
+    "settings_ui",
+    "scripts",
+]
 ignore_notebooks = true
 
 [tool.vulture]
@@ -415,6 +441,7 @@ exclude = [
     "*/e2e/*",
     "*/generated/*",
     "*/vendor/*",
+    "*/user_files/*",
 ]
 
 [tool.deptry.package_module_name_map]

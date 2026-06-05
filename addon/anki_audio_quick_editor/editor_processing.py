@@ -135,7 +135,7 @@ def _run_standard_render_worker(
 ) -> None:
     output_path: Path | None = None
     try:
-        desired_name = deps.make_output_filename(source_path.name)
+        desired_name = deps.make_output_filename(source_path.name, output_format=config.output_format)
         output_path = deps.temp_final_path(desired_name)
 
         def _show_command(process_command: tuple[str, ...]) -> None:
@@ -270,8 +270,6 @@ def replace_current_field_after_render(
         require_graph_redraw=should_redraw_graph,
     )
     editor.loadNote(focusTo=field_index)
-    if session:
-        session.pending_status = None
     _sync_history_availability(editor, session, deps)
     _request_history_availability_after_edit(editor, session, deps)
     deps.eval_playback_state(editor, field_index, "stopped", 0)

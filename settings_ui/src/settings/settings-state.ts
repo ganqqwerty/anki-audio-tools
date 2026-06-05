@@ -21,6 +21,9 @@ export type SettingsTab = "general" | "diagnostics";
 export const DEFAULT_VISIBLE_EDITOR_BUTTONS = [
   VisibleEditorButton.AqePlay,
   VisibleEditorButton.AqeAnalyze,
+  VisibleEditorButton.AqeChorusingPractice,
+  VisibleEditorButton.AqeChorusingNext,
+  VisibleEditorButton.AqeChorusingPrevious,
   VisibleEditorButton.AqeShowFile,
   VisibleEditorButton.AqeShare,
   VisibleEditorButton.AqeReduceSize,
@@ -28,6 +31,8 @@ export const DEFAULT_VISIBLE_EDITOR_BUTTONS = [
   VisibleEditorButton.AqeDenoiseStandard,
   VisibleEditorButton.AqeSlower,
   VisibleEditorButton.AqeFaster,
+  VisibleEditorButton.AqeDeleteSelection,
+  VisibleEditorButton.AqeDeleteREST,
   VisibleEditorButton.AqeUndo,
   VisibleEditorButton.AqeRedo,
   VisibleEditorButton.AqeSettings,
@@ -35,15 +40,15 @@ export const DEFAULT_VISIBLE_EDITOR_BUTTONS = [
 
 export const FALLBACK_INITIAL_STATE: InitialState = {
   config: {
-    _config_version: 1,
+    _config_version: 2,
     enabled: true,
     debug_logging: false,
     show_ffmpeg_commands: false,
-    enable_reviewer_editor: true,
+    enable_reviewer_editor: false,
     repeat_playback_by_default: true,
     repeat_pause_seconds: 0,
     share_target: ShareTarget.Litterbox,
-    voice_recording_countdown_seconds: 3,
+    voice_recording_countdown_seconds: 0,
     show_graph_by_default: true,
     visible_editor_buttons: [...DEFAULT_VISIBLE_EDITOR_BUTTONS],
     editor_button_modes: { ...DEFAULT_EDITOR_BUTTON_MODES },

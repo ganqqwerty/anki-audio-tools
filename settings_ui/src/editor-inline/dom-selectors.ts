@@ -5,6 +5,10 @@ export function controlsForOrd(ord: number): HTMLElement | null {
   return document.querySelector<HTMLElement>(`.aqe-controls[data-aqe-field-ord="${ord}"]`);
 }
 
+export function controlsForRawOrd(rawOrd: string): HTMLElement | null {
+  return document.querySelector<HTMLElement>(`.aqe-controls[data-aqe-field-ord="${rawOrd}"]`);
+}
+
 export function visualizerForOrd(ord: number): VisualizerElement | null {
   return document.querySelector<VisualizerElement>(`.aqe-visualizer[data-aqe-field-ord="${ord}"]`);
 }
@@ -13,32 +17,10 @@ export function visualizerPlotForOrd(ord: number): HTMLElement | null {
   return visualizerForOrd(ord)?.querySelector<HTMLElement>(".aqe-visualizer-plot") ?? null;
 }
 
-export function selectionToolbarForOrd(ord: number): HTMLElement | null {
-  return visualizerForOrd(ord)?.querySelector<HTMLElement>(".aqe-selection-toolbar") ?? null;
-}
-
-export function selectionToolbarDotForOrd(ord: number): SVGSVGElement | null {
-  return visualizerForOrd(ord)?.querySelector<SVGSVGElement>(".aqe-selection-toolbar-dot") ?? null;
-}
-
 export function currentAudioSourceForOrd(ord: number): string {
   const container = document.querySelector<HTMLElement>(`.field-container[data-index="${ord}"]`);
   const node = container?.querySelector<HTMLElement>('[contenteditable="true"]') ?? container;
   return audioSourceForNode(node) || audioSourceForNode(container);
-}
-
-export function fieldPreferenceNodeForOrd(ord: number): HTMLElement | null {
-  const container = document.querySelector<HTMLElement>(`.field-container[data-index="${ord}"]`);
-  if (container) {
-    return container.querySelector<HTMLElement>('[contenteditable="true"]') || container;
-  }
-  return document.querySelector<HTMLElement>(
-    `[data-field-ord="${ord}"], [data-ord="${ord}"], [data-index="${ord}"]`,
-  );
-}
-
-export function allFieldPreferenceNodes(): HTMLElement[] {
-  return Array.from(document.querySelectorAll<HTMLElement>("[data-aqe-selection-toolbar-preferred-collapsed]"));
 }
 
 export function buttonFor(ord: number, command: EditorCommand): HTMLButtonElement | null {
@@ -78,4 +60,17 @@ export function allRepeatButtons(): HTMLButtonElement[] {
 
 export function allVisualizers(): VisualizerElement[] {
   return Array.from(document.querySelectorAll<VisualizerElement>(".aqe-visualizer"));
+}
+
+export function allReviewerPanelTriggers(): HTMLButtonElement[] {
+  return Array.from(document.querySelectorAll<HTMLButtonElement>(".aqe-review-audio-panel-trigger"));
+}
+
+export function reviewerPanelTargetForTrigger(trigger: HTMLButtonElement): HTMLElement | null {
+  const ord = trigger.dataset.fieldOrd;
+  const sourceFilename = trigger.dataset.aqeSourceFilename;
+  if (!ord || !sourceFilename) return null;
+  return Array.from(
+    document.querySelectorAll<HTMLElement>(`.aqe-review-audio-target[data-field-ord="${ord}"]`),
+  ).find((target) => target.dataset.aqeSourceFilename === sourceFilename) ?? null;
 }

@@ -21,7 +21,9 @@ const lineLimitAllowlist = new Map<string, number>([
   ["src/editor-inline/SplitValueOptions.svelte", 398],
   ["src/lib/editor-toolbar-buttons.ts", 337],
   ["src/lib/i18n.ts", 370],
+  ["src/lib/PauseAdvancedParamsFields.svelte", 302],
   ["src/settings/SettingsApp.svelte", 304],
+  ["src/settings/ToolbarPanelSettingsFields.svelte", 308],
   ["src/settings/ToolbarVisibilitySettings.svelte", 386],
 ]);
 
@@ -130,6 +132,20 @@ describe("frontend architecture guardrails", () => {
     }
 
     expect(offenders).toEqual([]);
+  });
+
+  it("keeps reviewer panel trigger as a runtime-mounted selector client", () => {
+    const triggerSource = readFileSync(join(projectRoot, "src/editor-inline/reviewer-panel-trigger.ts"), "utf-8");
+    const runtimeSource = readFileSync(join(projectRoot, "src/editor-inline/runtime.ts"), "utf-8");
+    const selectorSource = readFileSync(join(projectRoot, "src/editor-inline/dom-selectors.ts"), "utf-8");
+
+    expect(triggerSource).not.toMatch(/document\.querySelector/);
+    expect(triggerSource).toContain('from "./dom-selectors.js"');
+    expect(triggerSource).not.toContain('from "./runtime.js"');
+    expect(runtimeSource).toContain("installReviewerPanelTriggers");
+    expect(runtimeSource).toContain("reviewTargetIsOpen");
+    expect(selectorSource).toContain("allReviewerPanelTriggers");
+    expect(selectorSource).toContain("reviewerPanelTargetForTrigger");
   });
 
   it("keeps persisted settings UI and per-field editor split state separated", () => {

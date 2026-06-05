@@ -13,7 +13,7 @@ def media_filenames_match(left: str, right: str) -> bool:
     left_name = safe_media_basename(left)
     right_name = safe_media_basename(right)
     if platform.system() == "Windows":
-        return left_name.casefold() == right_name.casefold()
+        return _windows_filename_key(left_name) == _windows_filename_key(right_name)
     return left_name == right_name
 
 
@@ -30,8 +30,7 @@ def existing_media_file_path(media_dir: Path, filename: str) -> Path | None:
     """Return an existing media path when it exists under the platform policy."""
     basename = safe_media_basename(filename)
     if platform.system() == "Windows":
-        candidate = _windows_case_variant(media_dir, basename) or (media_dir / basename)
-        return candidate if candidate.is_file() else None
+        return _windows_case_variant(media_dir, basename)
     return _exact_file_variant(media_dir, basename)
 
 
@@ -46,11 +45,15 @@ def _exact_file_variant(media_dir: Path, basename: str) -> Path | None:
 
 
 def _windows_case_variant(media_dir: Path, basename: str) -> Path | None:
-    folded = basename.casefold()
+    folded = _windows_filename_key(basename)
     try:
         for child in media_dir.iterdir():
-            if child.name.casefold() == folded and child.is_file():
+            if _windows_filename_key(child.name) == folded and child.is_file():
                 return child
     except OSError:
         return None
     return None
+
+
+def _windows_filename_key(filename: str) -> str:
+    return filename.lower()

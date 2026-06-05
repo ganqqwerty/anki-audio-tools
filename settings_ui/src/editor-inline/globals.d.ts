@@ -13,6 +13,10 @@ import type {
   PostEditPlaybackIntent,
   RegionDeleteRequest,
 } from "./types.js";
+import type {
+  SourceMetadataRequest,
+  SourceMetadataResponse,
+} from "./source-metadata-types.js";
 import type { LearnerRecordingStatePayload } from "./recording-state.js";
 import type { SplitDefaultSaveRequest } from "./split-default-save-types.js";
 
@@ -43,6 +47,7 @@ declare global {
     __aqePopPendingGraphAnalysisRequest?: (() => GraphAnalysisRequest | null) | undefined;
     __aqePopPendingRegionDeleteRequest?: (() => RegionDeleteRequest | null) | undefined;
     __aqePopPendingSplitDefaultSaveRequest?: (() => SplitDefaultSaveRequest | null) | undefined;
+    __aqePopPendingSourceMetadataRequest?: (() => SourceMetadataRequest | null) | undefined;
     __aqePopFrontendLog?: (() => FrontendLogPayload | null) | undefined;
     __aqePrepareForNewNote?: (() => void) | undefined;
     __aqeResetGraphAfterEdit?: ((ord: number, sourceFilename?: string | null) => boolean) | undefined;
@@ -58,6 +63,7 @@ declare global {
     __aqeSetTimeViewportForTest?: ((ord: number, startMs: number, endMs: number) => boolean) | undefined;
     __aqeSetVisualizer?: ((ord: number, track: ProsodyPayload, cursorMs: number) => void) | undefined;
     __aqeSetVisualizerStatus?: ((ord: number, message: EditorStatusMessage, kind?: string) => void) | undefined;
+    __aqeReceiveSourceMetadataResponse?: ((payload: SourceMetadataResponse) => void) | undefined;
     __aqeStopEditorPlayback?: ((ord: number) => boolean) | undefined;
   }
 }

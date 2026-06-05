@@ -1,6 +1,6 @@
 import type { FrontendLogPayload, ProsodyPayload } from "../lib/generated/contracts.js";
 import type { OutputFormatValue } from "../lib/audio-operation-parameters.js";
-import type { AudioSourceMetadataSummary, SizeReductionMode } from "../lib/size-reduction-parameters.js";
+import type { SizeReductionMode } from "../lib/size-reduction-parameters.js";
 import type {
   EditorButtonModes,
   EditorCommand as SharedEditorCommand,
@@ -14,7 +14,7 @@ import type {
   GraphVoiceRange,
 } from "./graph-settings.js";
 import type { PlaybackProgressPlan } from "./playback-progress-clock.js";
-import type { BackChainingState } from "./back-chaining-state.js";
+import type { ChorusingState } from "./chorusing-state";
 
 export type EditorCommand = SharedEditorCommand;
 
@@ -22,7 +22,6 @@ export type ButtonSpec = ToolbarButtonSpec;
 
 export interface EditorRuntimeConfig {
   audioFieldIndices: number[];
-  audioFieldMetadata?: Record<number, AudioSourceMetadataSummary>;
   audioFieldSources?: Record<number, string>;
   direction?: "ltr" | "rtl";
   initialStatusByField?: Record<number, { kind?: string; message: string }>;
@@ -208,7 +207,7 @@ export interface PlaybackRequest {
   loop?: boolean;
   ord: number;
   regionMode?: "selection" | "full";
-  source?: "back_chaining" | "post_edit" | "user";
+  source?: "chorusing" | "post_edit" | "user";
 }
 
 export interface PostEditPlaybackIntent {
@@ -307,35 +306,29 @@ export interface GraphStateForTest {
   selectionStartHandleVisible: boolean;
   selectionStartHandleX: number | null;
   selectionStartMs: number | null;
-  selectionToolbarCollapsed: boolean;
   selectionToolbarDeleteRegionDisabled: boolean;
   selectionToolbarDeleteRegionHidden: boolean;
   selectionToolbarDeleteRestDisabled: boolean;
   selectionToolbarDeleteRestHidden: boolean;
-  selectionToolbarDotHidden: boolean;
   selectionToolbarHidden: boolean;
   selectionToolbarLeftPx: number | null;
   selectionToolbarPlayAriaLabel: string;
   selectionToolbarPlayState: "pause" | "play";
   selectionToolbarPreview: "none" | "region" | "rest";
   selectionToolbarTopPx: number | null;
-  backChainingActiveEndMs: number | null;
-  backChainingActiveMarkerIndex: number | null;
-  backChainingActiveStartMs: number | null;
-  backChainingBaseEndMs: number | null;
-  backChainingBaseStartMs: number | null;
-  backChainingCanClear: boolean;
-  backChainingCanEdit: boolean;
-  backChainingCanNext: boolean;
-  backChainingCanPractice: boolean;
-  backChainingCanPrevious: boolean;
-  backChainingEditing: boolean;
-  backChainingMarkerVisibleXs: number[];
-  backChainingMarkersMs: number[];
-  backChainingPanelOpen: boolean;
-  backChainingState: "paused" | "playing" | "stopped";
-  backChainingVisibleActiveRangeEndX: number | null;
-  backChainingVisibleActiveRangeStartX: number | null;
+  chorusingActiveEndMs: number | null;
+  chorusingActiveMarkerIndex: number | null;
+  chorusingActiveStartMs: number | null;
+  chorusingBaseEndMs: number | null;
+  chorusingBaseStartMs: number | null;
+  chorusingCanNext: boolean;
+  chorusingCanPrevious: boolean;
+  chorusingCanPractice: boolean;
+  chorusingMarkerVisibleXs: number[];
+  chorusingMarkersMs: number[];
+  chorusingState: "paused" | "playing" | "stopped";
+  chorusingVisibleActiveRangeEndX: number | null;
+  chorusingVisibleActiveRangeStartX: number | null;
   sourceFilename: string;
   spinnerVisible: boolean;
   timecodeFlagCurrent: string;
@@ -374,7 +367,7 @@ export type VisualizerElement = HTMLElement & {
   __aqeLiveProgressMs?: number;
   __aqePlaybackGeneration?: number;
   __aqePlaybackPlan?: PlaybackProgressPlan;
-  __aqeBackChainingState?: BackChainingState;
+  __aqeChorusingState?: ChorusingState;
   __aqeLearnerTrack?: NormalizedProsodyTrack;
   __aqeRecordingCursorFrame?: number | null;
   __aqeRecordingStartedAt?: number | null;
@@ -382,6 +375,7 @@ export type VisualizerElement = HTMLElement & {
   __aqeTrack?: NormalizedProsodyTrack;
   __aqePlaybackTimer?: number | null;
   __aqeRepeatPauseTimer?: number | null;
+  __aqeRepeatPauseOverlayTimer?: number | null;
 };
 
 interface CursorRenderCache {

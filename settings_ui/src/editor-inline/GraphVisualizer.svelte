@@ -15,7 +15,7 @@
   import { PLOT } from "./plot.js";
   import { syncRecordingControls } from "./recording-actions.js";
   import { handleVisualizerKeyDown } from "./region-delete.js";
-  import { handleBackChainingMarkerPointerDown, installBackChainingHandlers } from "./back-chaining-controller.js";
+  import { handleChorusingMarkerPointerDown, installChorusingHandlers } from "./chorusing-controller.js";
   import SelectionToolbar from "./SelectionToolbar.svelte";
   import TimeViewportScroller from "./TimeViewportScroller.svelte";
   import type { FieldTarget } from "./types.js";
@@ -68,7 +68,7 @@
     const visualizer = visualizerForOrd(target.ord);
     if (!visualizer) return;
     const stopGraphLayoutObserver = installGraphLayoutObserver(visualizer);
-    const stopBackChainingHandlers = installBackChainingHandlers(visualizer);
+    const stopChorusingHandlers = installChorusingHandlers(visualizer);
     resetAudioClockState(visualizer);
     initializePlaybackRegionState(visualizer);
     installAudioClockHandlers(visualizer);
@@ -78,7 +78,7 @@
     notifyPostEditPlaybackReady(target.ord, target.sourceFilename || "");
     return () => {
       stopGraphLayoutObserver();
-      stopBackChainingHandlers();
+      stopChorusingHandlers();
     };
   });
 </script>
@@ -114,13 +114,11 @@
   data-repeat-enabled={repeatDefault ? "true" : "false"}
   data-repeat-pause-seconds={repeatPauseDefault}
   data-repeat-pause-waiting="false"
-  data-back-chaining-active-marker-index=""
-  data-back-chaining-base-end-ms=""
-  data-back-chaining-base-start-ms=""
-  data-back-chaining-editing="false"
-  data-back-chaining-markers-ms=""
-  data-back-chaining-panel-open="false"
-  data-back-chaining-state="stopped"
+  data-chorusing-active-marker-index=""
+  data-chorusing-base-end-ms=""
+  data-chorusing-base-start-ms=""
+  data-chorusing-markers-ms=""
+  data-chorusing-state="stopped"
   data-testid={`aqe-graph-${target.ord}`}
   role="button"
   aria-label={t("editor.graph.aria")}
@@ -137,14 +135,23 @@
   >
     <div class="aqe-selection-region-preview-halo aqe-selection-region-preview-halo-top" aria-hidden="true"></div>
     <div class="aqe-selection-region-preview-halo aqe-selection-region-preview-halo-bottom" aria-hidden="true"></div>
+    <div
+      class="aqe-graph-countdown-overlay aqe-recording-countdown-overlay"
+      data-testid={`aqe-recording-countdown-overlay-${target.ord}`}
+      aria-live="polite"
+      aria-atomic="true"
+      hidden
+    >
+      <span class="aqe-graph-countdown-value aqe-recording-countdown-value"></span>
+    </div>
     <AqeTooltip side="bottom">
       {#snippet trigger({ props })}
         <div
           {...props}
-          class="aqe-back-chaining-marker-hitbox aqe-tooltip-target"
-          data-aqe-tooltip-content={t("editor.back_chaining.marker_row_tooltip")}
+          class="aqe-chorusing-marker-hitbox aqe-tooltip-target"
+          data-aqe-tooltip-content={t("editor.chorusing.marker_row_tooltip")}
           aria-hidden="true"
-          onpointerdown={(event) => handleBackChainingMarkerPointerDown(event, target.ord)}
+          onpointerdown={(event) => handleChorusingMarkerPointerDown(event, target.ord)}
         ></div>
       {/snippet}
     </AqeTooltip>
@@ -182,14 +189,14 @@
       <g class="aqe-labels"></g>
       <g class="aqe-x-axis" data-testid={`aqe-x-axis-${target.ord}`}></g>
       <g
-        class="aqe-back-chaining-marker-row"
-        data-testid={`aqe-back-chaining-marker-row-${target.ord}`}
+        class="aqe-chorusing-marker-row"
+        data-testid={`aqe-chorusing-marker-row-${target.ord}`}
         role="button"
-        aria-label={t("editor.back_chaining.marker_row_aria")}
+        aria-label={t("editor.chorusing.marker_row_aria")}
         aria-hidden="true"
         tabindex="0"
         style="display: none"
-        onpointerdown={(event) => handleBackChainingMarkerPointerDown(event, target.ord)}
+        onpointerdown={(event) => handleChorusingMarkerPointerDown(event, target.ord)}
       ></g>
       <line
         class="aqe-selection-edge aqe-selection-start"

@@ -12,7 +12,10 @@ from pathlib import Path
 from typing import Any, cast
 
 from .audio_commands import build_audio_encode_command
-from .audio_external import _external_command_run_kwargs, probe_duration_ms
+from .audio_external import (
+    _external_command_run_kwargs,
+    probe_duration_ms,
+)
 from .audio_output_policy import (
     AudioOutputPolicy,
     codec_args_for_output_policy,
@@ -39,6 +42,10 @@ from .audio_state import AudioProcessingConfig
 from .audio_tools import find_ffmpeg
 from .audio_types import AudioProcessingResult
 from .errors import AudioProcessingError
+from .external_command_text import (
+    EXTERNAL_COMMAND_TEXT_ENCODING,
+    EXTERNAL_COMMAND_TEXT_ERRORS,
+)
 from .permission_guidance import launch_error_message
 from .prosody_settings import resolve_analysis_options
 
@@ -143,6 +150,8 @@ def _encode_pitch_hum_wav(
             capture_output=True,
             text=True,
             check=False,
+            encoding=EXTERNAL_COMMAND_TEXT_ENCODING,
+            errors=EXTERNAL_COMMAND_TEXT_ERRORS,
             **_external_command_run_kwargs(),
         )  # nosec B603
     except OSError as exc:

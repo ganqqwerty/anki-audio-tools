@@ -78,22 +78,31 @@ def test_deep_filter_health_reports_timeout(monkeypatch) -> None:
     }
 
 
-def test_deep_filter_health_reports_nonzero_version_stderr_with_problematic_filename(monkeypatch) -> None:
+def test_deep_filter_health_reports_nonzero_version_stderr_with_unicode_filename(monkeypatch) -> None:
     monkeypatch.setattr(
         "anki_audio_quick_editor.audio_processor.find_deep_filter",
         lambda: Path("/tools/deep-filter"),
     )
 
-    def fake_run(cmd, capture_output: bool, text: bool, check: bool, timeout: int) -> SimpleNamespace:
+    def fake_run(
+        cmd,
+        capture_output: bool,
+        text: bool,
+        check: bool,
+        timeout: int,
+        **kwargs: object,
+    ) -> SimpleNamespace:
         assert cmd == ["/tools/deep-filter", "--version"]
         assert capture_output is True
         assert text is True
         assert check is False
         assert timeout == 10
+        if kwargs.get("encoding") != "utf-8" or kwargs.get("errors") != "replace":
+            raise UnicodeDecodeError("charmap", b"\xe9\x9d\x92", 1, 2, "character maps to <undefined>")
         return SimpleNamespace(
             returncode=2,
             stdout="",
-            stderr="could not inspect 'bad name [final] #1.wav'",
+            stderr="could not inspect 'Даии_青山_voice.opus'",
         )
 
     monkeypatch.setattr("anki_audio_quick_editor.diagnostics.subprocess.run", fake_run)
@@ -105,7 +114,7 @@ def test_deep_filter_health_reports_nonzero_version_stderr_with_problematic_file
         "path": "/tools/deep-filter",
         "source": "PATH",
         "version": "",
-        "error": "could not inspect 'bad name [final] #1.wav'",
+        "error": "could not inspect 'Даии_青山_voice.opus'",
     }
 
 
@@ -179,9 +188,9 @@ def test_health_checks_forward_window_visibility_kwargs(monkeypatch) -> None:
     assert build_spleeter_health()["available"] is True
     assert build_silero_vad_health()["available"] is True
     assert run_kwargs == [
-        {"creationflags": 0x08000000},
-        {"creationflags": 0x08000000},
-        {"creationflags": 0x08000000},
-        {"creationflags": 0x08000000},
-        {"creationflags": 0x08000000},
+        {"encoding": "utf-8", "errors": "replace", "creationflags": 0x08000000},
+        {"encoding": "utf-8", "errors": "replace", "creationflags": 0x08000000},
+        {"encoding": "utf-8", "errors": "replace", "creationflags": 0x08000000},
+        {"encoding": "utf-8", "errors": "replace", "creationflags": 0x08000000},
+        {"encoding": "utf-8", "errors": "replace", "creationflags": 0x08000000},
     ]

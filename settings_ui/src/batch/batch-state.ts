@@ -77,7 +77,7 @@ export const FALLBACK_BATCH_INITIAL_STATE: BatchInitialState = {
     },
     {
       operation: BatchOperationName.ReduceSize,
-      label: "Smaller",
+      label: "Compress Audio",
       requires_target_field: false,
       parameter_kind: BatchParameterKind.SizeReduction,
       parameter_name: BatchParameterName.SizeReductionMode,

@@ -36,17 +36,31 @@ AUDIO_CONTRACTS: dict[str, ModuleContract] = {
     "audio_commands": contract(
         "audio_commands",
         layer=Layer.IMPORT_SAFE_CORE,
-        allowed_addon_deps=("audio_commands_runtime", "audio_formats", "audio_state", "audio_types", "errors"),
+        allowed_addon_deps=(
+            "audio_commands_runtime",
+            "audio_formats",
+            "audio_state",
+            "audio_types",
+            "errors",
+            "ffmpeg_output_contracts",
+        ),
     ),
     "audio_commands_runtime": contract(
         "audio_commands_runtime",
         layer=Layer.IMPORT_SAFE_CORE,
-        allowed_addon_deps=("audio_commands",),
+        allowed_addon_deps=("audio_commands", "ffmpeg_output_contracts"),
     ),
     "audio_external": contract(
         "audio_external",
         layer=Layer.IMPORT_SAFE_CORE,
-        allowed_addon_deps=("audio_state", "audio_tools", "diagnostics_runtime", "errors", "permission_guidance"),
+        allowed_addon_deps=(
+            "audio_state",
+            "audio_tools",
+            "diagnostics_runtime",
+            "errors",
+            "external_command_text",
+            "permission_guidance",
+        ),
         allowed_side_effects=(SideEffect.SUBPROCESS_RUN,),
     ),
     "audio_output_policy": contract(
@@ -58,6 +72,7 @@ AUDIO_CONTRACTS: dict[str, ModuleContract] = {
             "audio_state",
             "audio_tools",
             "errors",
+            "external_command_text",
             "permission_guidance",
         ),
         allowed_side_effects=(SideEffect.SUBPROCESS_RUN,),
@@ -109,6 +124,7 @@ AUDIO_CONTRACTS: dict[str, ModuleContract] = {
             "audio_tools",
             "audio_types",
             "errors",
+            "external_command_text",
             "permission_guidance",
             "prosody_settings",
         ),
@@ -235,6 +251,7 @@ AUDIO_CONTRACTS: dict[str, ModuleContract] = {
             "audio_tools",
             "audio_types",
             "errors",
+            "external_command_text",
             "permission_guidance",
         ),
         allowed_side_effects=(
@@ -248,6 +265,11 @@ AUDIO_CONTRACTS: dict[str, ModuleContract] = {
         allowed_addon_deps=("error_codes", "errors", "runtime_manager"),
     ),
     "audio_types": contract("audio_types", layer=Layer.IMPORT_SAFE_CORE),
+    "ffmpeg_output_contracts": contract(
+        "ffmpeg_output_contracts",
+        layer=Layer.IMPORT_SAFE_CORE,
+        allowed_addon_deps=("errors",),
+    ),
     "audio_state": contract(
         "audio_state",
         layer=Layer.IMPORT_SAFE_CORE,

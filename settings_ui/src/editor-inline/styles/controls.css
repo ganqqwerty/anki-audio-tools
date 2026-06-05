@@ -26,6 +26,24 @@
   padding: 6px 8px;
 }
 
+.aqe-review-audio-panel-trigger {
+  appearance: none;
+  margin: 0.35rem 0;
+  padding: 0.35rem 0.65rem;
+  border: 1px solid var(--aqe-border-color, ButtonBorder);
+  border-radius: 6px;
+  background: ButtonFace;
+  color: ButtonText;
+  font: inherit;
+  line-height: 1.2;
+  cursor: pointer;
+}
+
+.aqe-review-audio-panel-trigger:hover,
+.aqe-review-audio-panel-trigger:focus-visible {
+  background: color-mix(in srgb, ButtonFace 82%, Highlight);
+}
+
 .aqe-mount-host[data-aqe-surface="reviewer"] {
   align-self: stretch;
   box-sizing: border-box;
@@ -117,6 +135,37 @@
   font: inherit;
   margin: 0;
   padding: 0;
+}
+
+.aqe-toolbar-panel,
+.aqe-ui-root .aqe-toolbar-panel {
+  align-items: center;
+  background: color-mix(in srgb, Highlight 7%, transparent);
+  border: 1px solid color-mix(in srgb, Highlight 38%, var(--aqe-border-color));
+  border-radius: 9px;
+  display: inline-flex;
+  flex: 0 0 auto;
+  font: inherit;
+  gap: 3px;
+  margin: 0;
+  padding: 3px;
+}
+
+.aqe-toolbar-panel-label,
+.aqe-ui-root .aqe-toolbar-panel-label {
+  color: color-mix(in srgb, Highlight 68%, currentColor);
+  display: inline-flex;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1.2;
+  padding: 0 5px;
+  white-space: nowrap;
+}
+
+.aqe-toolbar-panel .aqe-button,
+.aqe-ui-root .aqe-toolbar-panel .aqe-button {
+  background: color-mix(in srgb, Canvas 90%, transparent);
 }
 
 .aqe-icon-only {

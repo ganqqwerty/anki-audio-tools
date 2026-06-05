@@ -5,6 +5,7 @@ import {
   pauseAudioClock,
   seekAudioClock,
 } from "./audio-clock.js";
+import { clearRepeatPauseCountdownOverlay, startRepeatPauseCountdownOverlay } from "./graph-countdown-overlay.js";
 import { logger } from "./logger.js";
 import {
   clearPlaybackPlan,
@@ -74,6 +75,7 @@ function clearRepeatPauseTimer(visualizer: VisualizerElement): void {
     window.clearTimeout(visualizer.__aqeRepeatPauseTimer);
     visualizer.__aqeRepeatPauseTimer = null;
   }
+  clearRepeatPauseCountdownOverlay(visualizer);
   visualizer.dataset.repeatPauseWaiting = "false";
 }
 
@@ -350,9 +352,11 @@ function scheduleRepeatLoopPlayback(
   deps.setCursor(visualizer, loopStartMs, false, { updateAnchor: false });
   ensurePlaybackCursorVisible(visualizer, loopStartMs);
   deps.setPlaybackButtonLabel(visualizer, "Pause");
+  startRepeatPauseCountdownOverlay(visualizer, delayMs);
   visualizer.__aqeRepeatPauseTimer = window.setTimeout(() => {
     visualizer.__aqeRepeatPauseTimer = null;
     visualizer.dataset.repeatPauseWaiting = "false";
+    clearRepeatPauseCountdownOverlay(visualizer);
     if (visualizer.dataset.playbackState !== "playing") return;
     if (!deps.repeatEnabledFor(visualizer)) {
       completePlayback(visualizer, deps);

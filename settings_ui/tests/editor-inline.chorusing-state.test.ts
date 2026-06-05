@@ -2,16 +2,17 @@ import { describe, expect, it } from "vitest";
 
 import type { PlaybackRegion } from "../src/editor-inline/playback-model.js";
 import {
+  activeMarkerIndexAfterMarkerToggle,
+  chorusingControlAvailability,
   chooseInitialActiveMarkerIndex,
-  defaultBackChainingMarkers,
+  defaultChorusingMarkers,
   deriveActiveSuffix,
-  emptyBackChainingState,
+  emptyChorusingState,
   markerNavigationAvailability,
   moveActiveMarkerIndex,
-  normalizeBackChainingMarkers,
-  backChainingControlAvailability,
-  toggleBackChainingMarker,
-} from "../src/editor-inline/back-chaining-state.js";
+  normalizeChorusingMarkers,
+  toggleChorusingMarker,
+} from "../src/editor-inline/chorusing-state";
 
 const baseRegion: PlaybackRegion = {
   endMs: 2200,
@@ -19,9 +20,9 @@ const baseRegion: PlaybackRegion = {
   startMs: 1000,
 };
 
-describe("editor inline back-chaining state", () => {
+describe("editor inline chorusing state", () => {
   it("sorts, clamps, and deduplicates markers inside the base region", () => {
-    expect(normalizeBackChainingMarkers([1600.4, 100, 2200, 1600.2, 999.9, 1200], baseRegion)).toEqual([
+    expect(normalizeChorusingMarkers([1600.4, 100, 2200, 1600.2, 999.9, 1200], baseRegion)).toEqual([
       1000,
       1200,
       1600,
@@ -30,18 +31,18 @@ describe("editor inline back-chaining state", () => {
   });
 
   it("creates default markers from the selection start through two equally spaced suffix starts", () => {
-    expect(defaultBackChainingMarkers(baseRegion)).toEqual([1000, 1400, 1800]);
+    expect(defaultChorusingMarkers(baseRegion)).toEqual([1000, 1400, 1800]);
   });
 
   it("adds a marker when no nearby marker exists", () => {
-    expect(toggleBackChainingMarker([1200, 1900], 1500, baseRegion, 40)).toEqual({
+    expect(toggleChorusingMarker([1200, 1900], 1500, baseRegion, 40)).toEqual({
       markersMs: [1200, 1500, 1900],
       removed: false,
     });
   });
 
   it("removes a nearby marker before adding a duplicate", () => {
-    expect(toggleBackChainingMarker([1200, 1500, 1900], 1518, baseRegion, 40)).toEqual({
+    expect(toggleChorusingMarker([1200, 1500, 1900], 1518, baseRegion, 40)).toEqual({
       markersMs: [1200, 1900],
       removed: true,
     });
@@ -72,14 +73,28 @@ describe("editor inline back-chaining state", () => {
     expect(deriveActiveSuffix(null, [1200], 0)).toBeNull();
   });
 
-  it("reports practice and navigation availability", () => {
-    const stopped = emptyBackChainingState();
-    expect(backChainingControlAvailability(stopped)).toEqual({
-      canClear: false,
-      canEdit: false,
+  it("normalizes the active marker after inserting before the current marker", () => {
+    expect(activeMarkerIndexAfterMarkerToggle([0, 500, 750], [0, 250, 500, 750], 1)).toBe(2);
+  });
+
+  it("normalizes the active marker after inserting after the current marker", () => {
+    expect(activeMarkerIndexAfterMarkerToggle([0, 500, 750], [0, 500, 625, 750], 1)).toBe(1);
+  });
+
+  it("normalizes the active marker after removing the current marker", () => {
+    expect(activeMarkerIndexAfterMarkerToggle([0, 500, 750], [0, 750], 1)).toBe(1);
+  });
+
+  it("normalizes the active marker to null when all markers are removed", () => {
+    expect(activeMarkerIndexAfterMarkerToggle([500], [], 0)).toBeNull();
+  });
+
+  it("reports whole-file practice and navigation availability", () => {
+    const stopped = emptyChorusingState();
+    expect(chorusingControlAvailability(stopped)).toEqual({
       canNext: false,
-      canPractice: false,
       canPrevious: false,
+      canPractice: false,
     });
 
     const ready = {
@@ -88,12 +103,10 @@ describe("editor inline back-chaining state", () => {
       baseRegion,
       markersMs: [1200, 1500, 1900],
     };
-    expect(backChainingControlAvailability(ready)).toEqual({
-      canClear: true,
-      canEdit: true,
+    expect(chorusingControlAvailability(ready)).toEqual({
       canNext: true,
-      canPractice: true,
       canPrevious: false,
+      canPractice: true,
     });
     expect(markerNavigationAvailability([1200, 1500, 1900], 0)).toEqual({
       canNext: false,

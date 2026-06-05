@@ -7,6 +7,7 @@ import shutil
 from pathlib import Path
 from typing import Any, Callable
 
+from .audio_formats import DEFAULT_OUTPUT_FORMAT
 from .audio_state import AudioProcessingConfig
 from .diagnostics_runtime import capture_exception
 from .editor_session import (
@@ -39,7 +40,8 @@ def run_special_transform_worker(
     """Render a special transform and schedule a guarded main-thread completion."""
     output_path: Path | None = None
     try:
-        desired_name = deps.make_output_filename(current_path.name, output_format=output_format)
+        filename_output_format = config.output_format if output_format == DEFAULT_OUTPUT_FORMAT else output_format
+        desired_name = deps.make_output_filename(current_path.name, output_format=filename_output_format)
         output_path = deps.temp_final_path(desired_name)
 
         def _show_command(process_command: tuple[str, ...]) -> None:

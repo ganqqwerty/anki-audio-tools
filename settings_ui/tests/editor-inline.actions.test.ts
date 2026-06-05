@@ -36,6 +36,7 @@ import { processingMessage } from "../src/editor-inline/commands.js";
 import { PLOT, xForMs } from "../src/editor-inline/plot.js";
 import { commandSlugsForTest } from "../src/editor-inline/test-contract.js";
 import { disposeEditorRuntime } from "../src/editor-inline/runtime.js";
+import { commandButtons } from "../src/lib/editor-toolbar-buttons.js";
 import { PRODUCT_LINKS } from "../src/lib/product-links.js";
 import { bridgeCommands, mountTrack, track } from "./editor-inline.actions.helpers.js";
 
@@ -50,6 +51,7 @@ describe("editor inline action workflows", () => {
 
   afterEach(() => {
     disposeEditorRuntime();
+    vi.useRealTimers();
     vi.restoreAllMocks();
   });
 
@@ -57,13 +59,19 @@ describe("editor inline action workflows", () => {
     expect(mediaUrlForFilename("hello world.mp3")).toBe("hello%20world.mp3");
     expect(mediaUrlForFilename("かな.wav")).toBe("%E3%81%8B%E3%81%AA.wav");
     expect(mediaUrlForFilename("nested/clip.mp3")).toBe("nested/clip.mp3");
+    expect(mediaUrlForFilename("hash#question?percent%.opus")).toBe("hash%23question%3Fpercent%25.opus");
+    expect(mediaUrlForFilename('quote"line\nback\\slash.ogg')).toBe("quote%22line%0Aback%5Cslash.ogg");
     expect(commandSlugsForTest()["aqe:denoise-standard"]).toBe("denoise-standard");
     expect(commandSlugsForTest()["aqe:rnnoise"]).toBe("rnnoise");
     expect(commandSlugsForTest()["aqe:dpdfnet"]).toBe("dpdfnet");
     expect(commandSlugsForTest()["aqe:voice-only"]).toBe("voice-only");
     expect(commandSlugsForTest()["aqe:convert"]).toBe("convert");
+    expect(commandSlugsForTest()["aqe:chorusing-practice"]).toBe("chorusing-practice");
+    expect(commandSlugsForTest()["aqe:chorusing-previous"]).toBe("chorusing-previous");
+    expect(commandSlugsForTest()["aqe:chorusing-next"]).toBe("chorusing-next");
     expect(commandSlugsForTest()["aqe:redo"]).toBe("redo");
     expect(commandSlugsForTest()["aqe:settings"]).toBe("settings");
+    expect(commandButtons().find((button) => button.command === "aqe:chorusing-practice")?.icon).toBe("bug-play");
     expect(processingMessage("aqe:denoise-standard")).toBe("Denoising with Standard...");
     expect(processingMessage("aqe:rnnoise")).toBe("Denoising with RNNoise...");
     expect(processingMessage("aqe:dpdfnet")).toBe("Denoising with DPDFNet...");
@@ -306,6 +314,46 @@ describe("editor inline action workflows", () => {
     });
     expect(resetGraphAfterEdit(0)).toBe(true);
     expect(resetGraphAfterEdit(99)).toBe(false);
+  });
+
+  it("renders graph fallback warnings delivered with the graph payload", async () => {
+    const visualizer = await mountTrack(0);
+
+    window.__aqeSetVisualizer?.(
+      0,
+      {
+        ...track,
+        analyzerName: "ffmpeg-pcm",
+        analysisWarning: "Graph used the ffmpeg/PCM fallback.",
+      },
+      0,
+    );
+
+    const status = visualizer.closest<HTMLElement>(".aqe-controls")?.querySelector<HTMLElement>(".aqe-status");
+    expect(status).toHaveTextContent("Graph used the ffmpeg/PCM fallback.");
+    expect(status?.dataset.kind).toBe("warning");
+  });
+
+  it("restores a stable operation status after a graph fallback warning", async () => {
+    vi.useFakeTimers();
+    const visualizer = await mountTrack(0);
+    setControlsBusy(0, false, "Cleaned audio with RNNoise.", "");
+
+    window.__aqeSetVisualizer?.(
+      0,
+      {
+        ...track,
+        analyzerName: "ffmpeg-pcm",
+        analysisWarning: "Graph used the ffmpeg/PCM fallback.",
+      },
+      0,
+    );
+
+    const status = visualizer.closest<HTMLElement>(".aqe-controls")?.querySelector<HTMLElement>(".aqe-status");
+    expect(status).toHaveTextContent("Graph used the ffmpeg/PCM fallback.");
+    vi.advanceTimersByTime(4000);
+    expect(status).toHaveTextContent("Cleaned audio with RNNoise.");
+    expect(status?.dataset.kind).toBe("info");
   });
 
   it("renders a timecode flag at the cursor and clamps it inside the plot", async () => {

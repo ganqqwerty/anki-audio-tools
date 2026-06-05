@@ -6,12 +6,14 @@ import type {
   PlaybackRequest,
   RegionDeleteRequest,
 } from "./types.js";
+import type { SourceMetadataRequest } from "./source-metadata-types.js";
 import type { SplitDefaultSaveRequest } from "./split-default-save-types.js";
 
 const frontendLogs: FrontendLogPayload[] = [];
 const pendingGraphAnalysisRequests: GraphAnalysisRequest[] = [];
 const pendingPlaybackRequests: PlaybackRequest[] = [];
 const pendingRegionDeleteRequests: RegionDeleteRequest[] = [];
+const pendingSourceMetadataRequests: SourceMetadataRequest[] = [];
 const pendingSplitDefaultSaveRequests: SplitDefaultSaveRequest[] = [];
 
 export function sendBridgeCommand(command: string): void {
@@ -51,6 +53,11 @@ export function sendSplitDefaultSaveRequest(request: SplitDefaultSaveRequest): v
   sendBridgeCommand("aqe:save-split-defaults");
 }
 
+export function sendSourceMetadataRequest(request: SourceMetadataRequest): void {
+  pendingSourceMetadataRequests.push(request);
+  sendBridgeCommand("aqe:source-metadata");
+}
+
 export function popEditorFrontendLog(): FrontendLogPayload | null {
   return frontendLogs.shift() ?? null;
 }
@@ -71,6 +78,7 @@ export function clearPendingNoteScopedBridgeRequests(): void {
   pendingGraphAnalysisRequests.length = 0;
   pendingPlaybackRequests.length = 0;
   pendingRegionDeleteRequests.length = 0;
+  pendingSourceMetadataRequests.length = 0;
   window.__aqePendingPlaybackRequest = null;
   window.__aqeLastPlaybackRequest = null;
 }
@@ -89,6 +97,10 @@ export function popPendingRegionDeleteRequest(): RegionDeleteRequest | null {
 
 export function popPendingSplitDefaultSaveRequest(): SplitDefaultSaveRequest | null {
   return pendingSplitDefaultSaveRequests.shift() ?? null;
+}
+
+export function popPendingSourceMetadataRequest(): SourceMetadataRequest | null {
+  return pendingSourceMetadataRequests.shift() ?? null;
 }
 
 export function setCursorIntent(intent: CursorIntent): void {

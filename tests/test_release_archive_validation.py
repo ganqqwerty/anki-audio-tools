@@ -183,6 +183,68 @@ def test_release_rejects_local_artifacts_and_macos_junk(tmp_path, capsys) -> Non
     assert ".DS_Store" in capsys.readouterr().out
 
 
+def test_release_validation_requires_locked_vendor_wheels(tmp_path, capsys) -> None:
+    missing_name = "vendor/wheels/windows-x86_64/praat_parselmouth-0.4.7-cp313-cp313-win_amd64.whl"
+    archive = tmp_path / "missing-vendor-wheel.ankiaddon"
+    names = [name for name in complete_manifest_names() if name != missing_name]
+    write_archive(archive, names, complete_executable_names())
+
+    with pytest.raises(SystemExit):
+        release_archive.validate_archive(
+            archive,
+            allow_large_archive=False,
+            lock=lock_with_binary_hashes(),
+        )
+
+    output = capsys.readouterr().out
+    assert "missing required file" in output
+    assert missing_name in output
+
+
+def test_release_validation_rejects_corrupt_vendor_wheels(tmp_path, capsys) -> None:
+    bad_name = "vendor/wheels/windows-x86_64/praat_parselmouth-0.4.7-cp313-cp313-win_amd64.whl"
+    archive = tmp_path / "bad-vendor-wheel.ankiaddon"
+    write_archive(
+        archive,
+        complete_manifest_names(),
+        complete_executable_names(),
+        file_overrides={bad_name: b"not a wheel"},
+    )
+
+    with pytest.raises(SystemExit):
+        release_archive.validate_archive(
+            archive,
+            allow_large_archive=False,
+            lock=lock_with_binary_hashes(),
+        )
+
+    output = capsys.readouterr().out
+    assert bad_name in output
+    assert "size mismatch" in output
+
+
+def test_release_validation_rejects_stale_vendor_wheel_lock(tmp_path, capsys) -> None:
+    lock_name = "vendor/wheels.lock.json"
+    archive = tmp_path / "bad-vendor-wheel-lock.ankiaddon"
+    write_archive(
+        archive,
+        complete_manifest_names(),
+        complete_executable_names(),
+        file_overrides={lock_name: b'{"schema_version":1}\n'},
+    )
+
+    with pytest.raises(SystemExit):
+        release_archive.validate_archive(
+            archive,
+            allow_large_archive=False,
+            lock=lock_with_binary_hashes(),
+        )
+
+    output = capsys.readouterr().out
+    assert lock_name in output
+    assert "does not match source lock file" in output
+
+
 def test_release_validates_runtime_payload_checksums_even_before_release_ready(tmp_path, capsys) -> None:
     archive = tmp_path / "bad-checksum.ankiaddon"
     lock = lock_with_binary_hashes(b"expected")

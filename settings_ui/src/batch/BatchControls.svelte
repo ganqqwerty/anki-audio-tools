@@ -1,6 +1,8 @@
 <script lang="ts">
-  import AqeTooltip from "$lib/AqeTooltip.svelte";
+  import FieldTooltipTarget from "$lib/FieldTooltipTarget.svelte";
   import { t } from "$lib/i18n.js";
+  import UnitNumberInput from "$lib/UnitNumberInput.svelte";
+  import { tooltipWithDisabledClarification } from "$lib/disabled-tooltip.js";
   import {
     DPDFNET_ATTENUATION_LIMIT_DB_VALUES,
     formatDpdfnetAggressiveness,
@@ -40,6 +42,11 @@
   }
 
   let { state, form = $bindable(), selected, disabled }: Props = $props();
+  const disabledReason = $derived(disabled ? t("tooltip.disabled.batch_running") : undefined);
+
+  function clarifiedTooltip(content: string): string {
+    return tooltipWithDisabledClarification(content, disabledReason);
+  }
 
   function applyPausePreset(value: BatchPauseAggressiveness): void {
     const algorithm = activeBatchPauseAlgorithm(form);
@@ -65,35 +72,54 @@
   {#if selected?.parameter_kind === BatchParameterKind.Speed}
     <label>
       <span>{t("settings.speed_step")}</span>
-      <input bind:value={form.speedStep} disabled={disabled} max="5" min="1.01" step="0.01" type="number" />
+      <FieldTooltipTarget block content={t("settings.speed_step")} {disabledReason}>
+        <UnitNumberInput
+          block
+          bind:value={form.speedStep}
+          disabled={disabled}
+          max="5"
+          min="1.01"
+          step="0.01"
+          unit="x"
+          unitPosition="prefix"
+        />
+      </FieldTooltipTarget>
     </label>
   {:else if selected?.parameter_kind === BatchParameterKind.Volume}
     <label>
       <span>{t("settings.volume_step_db")}</span>
-      <input bind:value={form.volumeStepDb} disabled={disabled} max="40" min="1" step="0.5" type="number" />
+      <FieldTooltipTarget block content={t("settings.volume_step_db")} {disabledReason}>
+        <UnitNumberInput
+          block
+          bind:value={form.volumeStepDb}
+          disabled={disabled}
+          max="40"
+          min="1"
+          step="0.5"
+          unit="dB"
+        />
+      </FieldTooltipTarget>
     </label>
   {:else if selected?.parameter_kind === BatchParameterKind.Pause}
     <label>
       <span>{t("settings.pause_aggressiveness")}</span>
       <div class="batch-choice-group" role="radiogroup" aria-label={t("settings.pause_aggressiveness")}>
         {#each [BatchPauseAggressiveness.Gentle, BatchPauseAggressiveness.Normal, BatchPauseAggressiveness.Aggressive] as value}
-          <AqeTooltip>
-            {#snippet trigger({ props })}
-              <button
-                {...props}
-                type="button"
-                class="batch-choice-button aqe-tooltip-target"
-                disabled={disabled}
-                data-testid={`batch-pause-aggressiveness-${value}`}
-                data-aqe-tooltip-content={choiceTooltip(formatPauseAggressiveness(value), pauseAggressivenessTooltip(value))}
-                role="radio"
-                aria-checked={form.pauseAggressiveness === value ? "true" : "false"}
-                onclick={() => applyPausePreset(value)}
-              >
-                {formatPauseAggressiveness(value)}
-              </button>
-            {/snippet}
-          </AqeTooltip>
+          {@const tooltip = choiceTooltip(formatPauseAggressiveness(value), pauseAggressivenessTooltip(value))}
+          <FieldTooltipTarget content={tooltip} {disabledReason}>
+            <button
+              type="button"
+              class="batch-choice-button aqe-tooltip-target"
+              disabled={disabled}
+              data-testid={`batch-pause-aggressiveness-${value}`}
+              data-aqe-tooltip-content={clarifiedTooltip(tooltip)}
+              role="radio"
+              aria-checked={form.pauseAggressiveness === value ? "true" : "false"}
+              onclick={() => applyPausePreset(value)}
+            >
+              {formatPauseAggressiveness(value)}
+            </button>
+          </FieldTooltipTarget>
         {/each}
       </div>
     </label>
@@ -106,26 +132,24 @@
         aria-label={t("settings.pause_detection_algorithm")}
       >
         {#each [BatchPauseDetectionAlgorithm.Silencedetect, BatchPauseDetectionAlgorithm.SileroVad] as value}
-          <AqeTooltip>
-            {#snippet trigger({ props })}
-              <button
-                {...props}
-                type="button"
-                class="batch-choice-button aqe-tooltip-target"
-                disabled={disabled}
-                data-testid={`batch-pause-detection-algorithm-${value}`}
-                data-aqe-tooltip-content={choiceTooltip(
-                  formatPauseDetectionAlgorithm(value),
-                  pauseDetectionAlgorithmTooltip(value),
-                )}
-                role="radio"
-                aria-checked={form.pauseDetectionAlgorithm === value ? "true" : "false"}
-                onclick={() => (form.pauseDetectionAlgorithm = value)}
-              >
-                {formatPauseDetectionAlgorithm(value)}
-              </button>
-            {/snippet}
-          </AqeTooltip>
+          {@const tooltip = choiceTooltip(
+            formatPauseDetectionAlgorithm(value),
+            pauseDetectionAlgorithmTooltip(value),
+          )}
+          <FieldTooltipTarget content={tooltip} {disabledReason}>
+            <button
+              type="button"
+              class="batch-choice-button aqe-tooltip-target"
+              disabled={disabled}
+              data-testid={`batch-pause-detection-algorithm-${value}`}
+              data-aqe-tooltip-content={clarifiedTooltip(tooltip)}
+              role="radio"
+              aria-checked={form.pauseDetectionAlgorithm === value ? "true" : "false"}
+              onclick={() => (form.pauseDetectionAlgorithm = value)}
+            >
+              {formatPauseDetectionAlgorithm(value)}
+            </button>
+          </FieldTooltipTarget>
         {/each}
       </div>
     </label>
@@ -137,6 +161,7 @@
         bind:minSpeechSeconds={form.pauseSileroMinSpeechSeconds}
         bind:preprocessDenoise={form.pauseSileroPreprocessDenoise}
         {disabled}
+        {disabledReason}
         testPrefix="batch-pause"
       />
     {:else}
@@ -147,45 +172,46 @@
         bind:minSpeechSeconds={form.pauseSilencedetectMinSpeechSeconds}
         bind:preprocessDenoise={form.pauseSilencedetectPreprocessDenoise}
         {disabled}
+        {disabledReason}
         testPrefix="batch-pause"
       />
     {/if}
   {:else if selected?.parameter_kind === BatchParameterKind.Format}
     <label>
       <span>{t("settings.output_format")}</span>
-      <select bind:value={form.targetFormat} data-testid="batch-output-format" disabled={disabled}>
-        {#each OUTPUT_FORMAT_VALUES as format}
-          <option value={format}>{formatOutputFormat(format)}</option>
-        {/each}
-      </select>
+      <FieldTooltipTarget block content={t("settings.output_format")} {disabledReason}>
+        <select bind:value={form.targetFormat} data-testid="batch-output-format" disabled={disabled}>
+          {#each OUTPUT_FORMAT_VALUES as format}
+            <option value={format}>{formatOutputFormat(format)}</option>
+          {/each}
+        </select>
+      </FieldTooltipTarget>
     </label>
   {:else if selected?.parameter_kind === BatchParameterKind.SizeReduction}
-    <BatchSizeReductionFields bind:form {disabled} />
+    <BatchSizeReductionFields bind:form {disabled} {disabledReason} />
   {:else if selected?.parameter_kind === BatchParameterKind.Denoise}
     <label>
       <span>{t("batch.suppressor")}</span>
       <div class="batch-choice-group batch-choice-group-wrap" role="radiogroup" aria-label={t("batch.suppressor")}>
         {#each [DenoiseAlgorithm.Standard, DenoiseAlgorithm.Rnnoise, DenoiseAlgorithm.Dpdfnet, DenoiseAlgorithm.VoiceOnly] as value}
-          <AqeTooltip>
-            {#snippet trigger({ props })}
-              <button
-                {...props}
-                type="button"
-                class="batch-choice-button aqe-tooltip-target"
-                disabled={disabled}
-                data-testid={`batch-denoise-algorithm-${value}`}
-                data-aqe-tooltip-content={choiceTooltip(
-                  t(`settings.denoise_algorithm.${value}`),
-                  denoiseAlgorithmTooltip(value),
-                )}
-                role="radio"
-                aria-checked={form.denoiseAlgorithm === value ? "true" : "false"}
-                onclick={() => (form.denoiseAlgorithm = value)}
-              >
-                {t(`settings.denoise_algorithm.${value}`)}
-              </button>
-            {/snippet}
-          </AqeTooltip>
+          {@const tooltip = choiceTooltip(
+            t(`settings.denoise_algorithm.${value}`),
+            denoiseAlgorithmTooltip(value),
+          )}
+          <FieldTooltipTarget content={tooltip} {disabledReason}>
+            <button
+              type="button"
+              class="batch-choice-button aqe-tooltip-target"
+              disabled={disabled}
+              data-testid={`batch-denoise-algorithm-${value}`}
+              data-aqe-tooltip-content={clarifiedTooltip(tooltip)}
+              role="radio"
+              aria-checked={form.denoiseAlgorithm === value ? "true" : "false"}
+              onclick={() => (form.denoiseAlgorithm = value)}
+            >
+              {t(`settings.denoise_algorithm.${value}`)}
+            </button>
+          </FieldTooltipTarget>
         {/each}
       </div>
     </label>
@@ -199,26 +225,24 @@
           aria-label={t("settings.dpdfnet_attn_limit_db")}
         >
           {#each DPDFNET_ATTENUATION_LIMIT_DB_VALUES as value}
-            <AqeTooltip>
-              {#snippet trigger({ props })}
-                <button
-                  {...props}
-                  type="button"
-                  class="batch-choice-button aqe-tooltip-target"
-                  disabled={disabled}
-                  data-testid={`batch-dpdfnet-attn-limit-db-${value}`}
-                  data-aqe-tooltip-content={choiceTooltip(
-                    formatDpdfnetAggressiveness(value),
-                    dpdfnetAggressivenessTooltip(value),
-                  )}
-                  role="radio"
-                  aria-checked={form.dpdfnetAttnLimitDb === value ? "true" : "false"}
-                  onclick={() => (form.dpdfnetAttnLimitDb = value)}
-                >
-                  {formatDpdfnetAggressiveness(value)}
-                </button>
-              {/snippet}
-            </AqeTooltip>
+            {@const tooltip = choiceTooltip(
+              formatDpdfnetAggressiveness(value),
+              dpdfnetAggressivenessTooltip(value),
+            )}
+            <FieldTooltipTarget content={tooltip} {disabledReason}>
+              <button
+                type="button"
+                class="batch-choice-button aqe-tooltip-target"
+                disabled={disabled}
+                data-testid={`batch-dpdfnet-attn-limit-db-${value}`}
+                data-aqe-tooltip-content={clarifiedTooltip(tooltip)}
+                role="radio"
+                aria-checked={form.dpdfnetAttnLimitDb === value ? "true" : "false"}
+                onclick={() => (form.dpdfnetAttnLimitDb = value)}
+              >
+                {formatDpdfnetAggressiveness(value)}
+              </button>
+            </FieldTooltipTarget>
           {/each}
         </div>
       </label>
@@ -244,8 +268,7 @@
     font-weight: 700;
   }
 
-  select,
-  input {
+  select {
     background: var(--canvas-elevated, Field);
     border: 1px solid var(--border, ButtonBorder);
     border-radius: 5px;
@@ -264,8 +287,7 @@
     padding: 4px 8px;
   }
 
-  select:disabled,
-  input:disabled {
+  select:disabled {
     opacity: 0.7;
   }
 

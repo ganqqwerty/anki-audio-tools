@@ -61,7 +61,7 @@ def _standard_deps(tmp_path: Path, barrier: BarrierCall) -> SimpleNamespace:
     deps.threading = SimpleNamespace(Thread=BackgroundThread)
     deps.main = main_immediately
     deps.render_audio = render_audio
-    deps.make_output_filename = lambda name: f"{Path(name).stem}__aqe_race.mp3"
+    deps.make_output_filename = lambda name, **_kwargs: f"{Path(name).stem}__aqe_race.mp3"
     deps.temp_final_path = lambda desired_name: temp_dir / desired_name
     deps.write_generated_media = lambda editor, desired_name, output_path: editor.mw.col.media.write_data(
         desired_name,
@@ -100,7 +100,7 @@ def _region_deps(tmp_path: Path, barrier: BarrierCall) -> SimpleNamespace:
     deps.main = main_immediately
     deps.render_audio_region_deleted = render_region
     deps.render_audio_region_kept = render_region
-    deps.make_output_filename = lambda name: f"{Path(name).stem}__aqe_region_race.mp3"
+    deps.make_output_filename = lambda name, **_kwargs: f"{Path(name).stem}__aqe_region_race.mp3"
     deps.temp_final_path = lambda desired_name: temp_dir / desired_name
     deps.replace_current_field_after_region_delete = MagicMock()
     deps.render_failed = MagicMock()

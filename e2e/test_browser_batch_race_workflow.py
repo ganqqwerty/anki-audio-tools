@@ -5,7 +5,7 @@ import json
 import pytest
 
 from .conftest import import_runtime_addon_module
-from .helpers import run_js, wait_for_condition
+from .helpers import run_js, wait_for_condition, wait_for_js_condition
 
 
 def test_batch_dialog_duplicate_start_does_not_launch_second_run(anki_mw) -> None:
@@ -86,5 +86,70 @@ def test_batch_dialog_duplicate_start_keeps_single_progress_stream(
         progress_events = [payload for name, payload in emitted if name == "onBatchProgress"]
         assert len(progress_events) == 1
         assert dialog._log_lines == ["first run"]
+    finally:
+        dialog._dialog.close()
+
+
+def test_batch_dialog_running_controls_explain_disabled_tooltip(anki_mw) -> None:
+    audio_state = import_runtime_addon_module(".audio_state")
+    batch_operations = import_runtime_addon_module(".batch_operations")
+    browser_dialog = import_runtime_addon_module(".browser_dialog")
+    batch_dialog_class = browser_dialog.BatchOperationsDialog
+
+    def fake_run_batch(_browser, _run_dialog, _note_ids, _request):
+        return None
+
+    dialog = batch_dialog_class(
+        anki_mw,
+        [1, 2],
+        (batch_operations.FieldGroup("Basic", ("Front", "Back")),),
+        audio_state.AudioProcessingConfig(),
+        fake_run_batch,
+    )
+
+    dialog._dialog.show()
+    try:
+        wait_for_js_condition(
+            dialog._webview,
+            "Boolean(document.querySelector('[data-testid=\"batch-operation\"]'))",
+            bool,
+            timeout=5.0,
+        )
+        run_js(
+            dialog._webview,
+            """
+            (() => {
+              const operation = document.querySelector('[data-testid="batch-operation"]');
+              operation.value = 'remove_pauses';
+              operation.dispatchEvent(new Event('change', { bubbles: true }));
+              document.querySelector('[data-testid="batch-start"]').click();
+            })();
+            """,
+        )
+
+        tooltip_state = wait_for_js_condition(
+            dialog._webview,
+            """
+            (() => {
+              const button = document.querySelector('[data-testid="batch-pause-aggressiveness-aggressive"]');
+              const wrapper = button?.closest('.field-tooltip-target');
+              return button && wrapper ? {
+                disabled: button.disabled,
+                buttonTooltip: button.getAttribute('data-aqe-tooltip-content') || '',
+                wrapperTooltip: wrapper.getAttribute('data-aqe-tooltip-content') || '',
+              } : null;
+            })();
+            """,
+            lambda value: (
+                value
+                and value["disabled"] is True
+                and "150 ms" in value["buttonTooltip"]
+                and "Disabled while the batch is running." in value["buttonTooltip"]
+                and "Disabled while the batch is running." in value["wrapperTooltip"]
+            ),
+            timeout=5.0,
+        )
+
+        assert "Aggressive" in tooltip_state["buttonTooltip"]
     finally:
         dialog._dialog.close()

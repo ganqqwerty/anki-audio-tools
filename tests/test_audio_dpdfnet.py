@@ -43,6 +43,7 @@ def test_render_dpdfnet_audio_runs_denoise_and_encode(
         check: bool,
         timeout: float,
         env: dict[str, str] | None = None,
+        **_kwargs: object,
     ) -> SimpleNamespace:
         assert timeout > 0
         calls.append(cmd)

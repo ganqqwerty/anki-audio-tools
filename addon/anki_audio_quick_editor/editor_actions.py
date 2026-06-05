@@ -41,6 +41,7 @@ CMD_DELETE_REST = "aqe:delete-rest"
 CMD_ANALYZE_FIELD = "aqe:analyze-field"
 CMD_COMMAND_PAYLOAD = "aqe:command-payload"
 CMD_SAVE_SPLIT_DEFAULTS = "aqe:save-split-defaults"
+CMD_SOURCE_METADATA = "aqe:source-metadata"
 CMD_STOP_PLAYBACK = "aqe:stop-playback"
 CMD_SETTINGS = "aqe:settings"
 CMD_REDO = "aqe:redo"
@@ -50,6 +51,9 @@ CMD_RECORD_VOICE = "aqe:record-voice"
 CMD_STOP_RECORDING = "aqe:stop-recording"
 CMD_PLAY_RECORDING = "aqe:play-recording"
 CMD_POST_EDIT_PLAYBACK_READY = "aqe:post-edit-playback-ready"
+CMD_BACK_CHAIN_PRACTICE = "aqe:chorusing-practice"
+CMD_BACK_CHAIN_PREVIOUS = "aqe:chorusing-previous"
+CMD_BACK_CHAIN_NEXT = "aqe:chorusing-next"
 
 BRIDGE_COMMANDS = (
     "aqe:scan",
@@ -57,10 +61,14 @@ BRIDGE_COMMANDS = (
     CMD_ANALYZE_FIELD,
     CMD_COMMAND_PAYLOAD,
     CMD_SAVE_SPLIT_DEFAULTS,
+    CMD_SOURCE_METADATA,
     CMD_STOP_PLAYBACK,
     "aqe:set-cursor",
     "aqe:play",
     "aqe:play-ended",
+    CMD_BACK_CHAIN_PRACTICE,
+    CMD_BACK_CHAIN_PREVIOUS,
+    CMD_BACK_CHAIN_NEXT,
     "aqe:frontend-log",
     CMD_POST_EDIT_PLAYBACK_READY,
     "aqe:show-file",

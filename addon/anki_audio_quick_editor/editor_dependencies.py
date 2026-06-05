@@ -10,6 +10,7 @@ from typing import Any
 from .audio_processor import (
     format_ffmpeg_command,
     make_output_filename,
+    probe_audio_metadata,
     render_audio,
     render_audio_region_deleted,
     render_audio_region_kept,
@@ -59,9 +60,12 @@ def frontend_deps(frontend_callbacks: Any) -> SimpleNamespace:
 
 
 def bridge_deps(callbacks: Any, frontend_callbacks: Any) -> SimpleNamespace:
+    from . import editor_runtime
+
     return SimpleNamespace(
         analyze_current_async=callbacks.analyze_current_async,
         analyze_field_from_frontend=callbacks.analyze_field_from_frontend,
+        config=editor_runtime.config,
         delete_selection_from_frontend=callbacks.delete_selection_from_frontend,
         denoise_standard_async=callbacks.denoise_standard_async,
         convert_async=callbacks.convert_async,
@@ -83,14 +87,19 @@ def bridge_deps(callbacks: Any, frontend_callbacks: Any) -> SimpleNamespace:
         record_learner_voice=callbacks.record_learner_voice,
         redo=callbacks.redo,
         reduce_size_async=callbacks.reduce_size_async,
+        request_source_metadata=callbacks.request_source_metadata,
         rnnoise_async=callbacks.rnnoise_async,
         save_split_defaults_from_frontend=callbacks.save_split_defaults_from_frontend,
         set_busy=frontend_callbacks.set_busy,
         set_cursor_from_web=callbacks.set_cursor_from_web,
         share_current_audio_file=callbacks.share_current_audio_file,
         show_current_audio_file=callbacks.show_current_audio_file,
+        main=frontend_callbacks.main,
+        probe_audio_metadata=probe_audio_metadata,
+        resolve_requested_field_media=resolve_requested_field_media,
         stop_playback=callbacks.stop_playback,
         stop_learner_recording=callbacks.stop_learner_recording,
+        threading=threading,
         undo=callbacks.undo,
         update_state_and_render=callbacks.update_state_and_render,
         voice_only_async=callbacks.voice_only_async,

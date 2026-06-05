@@ -10,7 +10,7 @@ from .inspection import ADDON_DIR
 def test_runtime_import_module_calls_do_not_hard_code_source_package() -> None:
     violations: list[str] = []
     for path in sorted(ADDON_DIR.rglob("*.py")):
-        if "__pycache__" in path.parts:
+        if "__pycache__" in path.parts or "user_files" in path.parts:
             continue
         tree = ast.parse(path.read_text(encoding="utf-8"))
         for node in ast.walk(tree):

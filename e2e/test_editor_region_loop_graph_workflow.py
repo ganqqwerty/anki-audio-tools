@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 from pathlib import Path
 
 from e2e.editor_graph_helpers import (
@@ -33,6 +34,7 @@ from e2e.editor_region_loop_helpers import (
 from e2e.helpers import (
     click_selector,
     generate_tone,
+    wait_for_condition,
     wait_for_js_condition,
 )
 
@@ -90,6 +92,42 @@ def test_graph_render_selects_full_region_and_outside_click_expands_boundaries(
     finally:
         editor.set_note(None)
         parent.close()
+
+
+def _force_html_audio_play_rejection(editor, expected_source: str, ord_: int = 0) -> None:
+    expected_source_json = json.dumps(expected_source)
+    wait_for_js_condition(
+        editor.web,
+        f"""
+        (() => {{
+          const visualizer = document.querySelector('[data-testid="aqe-graph-{ord_}"]');
+          const audio = document.querySelector('[data-testid="aqe-audio-clock-{ord_}"]');
+          if (!visualizer || !audio) return null;
+          if ((audio.getAttribute("src") || "") !== {expected_source_json}) return null;
+          try {{
+            Object.defineProperty(audio, "duration", {{
+              configurable: true,
+              value: Number(visualizer.dataset.durationMs || "0") / 1000,
+            }});
+            Object.defineProperty(audio, "readyState", {{ configurable: true, value: 1 }});
+          }} catch (_error) {{
+          }}
+          audio.pause = () => undefined;
+          audio.play = () => Promise.reject(new Error("blocked-aac"));
+          visualizer.__aqeAudioClockAvailable = true;
+          visualizer.__aqeAudioClockFallback = false;
+          audio.dispatchEvent(new Event("loadedmetadata"));
+          return {{
+            ready: Boolean(visualizer.__aqeAudioClockAvailable),
+            src: audio.getAttribute("src") || "",
+          }};
+        }})()
+        """,
+        lambda value: isinstance(value, dict)
+        and value.get("ready") is True
+        and value.get("src") == expected_source,
+        timeout=5.0,
+    )
 
 
 def test_graph_default_auto_analysis_supports_region_selection(
@@ -197,6 +235,60 @@ def test_graph_default_repeat_can_be_turned_off_for_selected_region_playback(
         assert repeat_off["playbackRegionMode"] == "selection"
         assert playing["playButtonLabel"] == "Pause"
         assert finished["playButtonLabel"] == "Play"
+    finally:
+        editor.set_note(None)
+        parent.close()
+
+
+def test_aac_full_repeat_falls_back_to_native_when_browser_audio_rejects_after_graph(
+    anki_mw,
+    ffmpeg_config,
+) -> None:
+    media_dir = Path(anki_mw.col.media.dir())
+    source = media_dir / "editor_aac_full_repeat_browser_reject.aac"
+    generate_tone(ffmpeg_config, source, duration_s=1.2)
+    note = _basic_audio_note(anki_mw, source.name)
+    _configure_ffmpeg(
+        anki_mw,
+        ffmpeg_config,
+        repeat_playback_by_default=True,
+    )
+
+    editor, parent = _open_editor(anki_mw, note)
+    try:
+        track = _click_graph_and_wait(
+            editor,
+            lambda state: state["sourceFilename"] == source.name,
+            timeout=10.0,
+        )
+        _force_html_audio_play_rejection(editor, source.name)
+        _state(
+            editor,
+            lambda state: state["repeatEnabled"] is True
+            and state["playbackEngine"] == "html",
+        )
+
+        with _record_fake_playback(
+            media_dir,
+            {source.name: round(track["durationMs"])},
+            ffmpeg_config=ffmpeg_config,
+        ) as playback:
+            click_selector(editor.web, _button_selector("aqe:play"), timeout=5.0)
+            playing = _state(
+                editor,
+                lambda state: state["playbackState"] == "playing"
+                and state["playbackEngine"] == "native",
+                timeout=6.0,
+            )
+            wait_for_condition(
+                lambda: len(playback.attempts) == 1,
+                timeout=5.0,
+                message="AAC full-repeat browser playback failure did not fall back to native playback",
+            )
+
+        assert playback.attempts[0].filename == source.name
+        assert playing["selectionStartMs"] == 0
+        assert playing["selectionEndMs"] == round(track["durationMs"])
     finally:
         editor.set_note(None)
         parent.close()
