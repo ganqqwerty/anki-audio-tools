@@ -14,6 +14,7 @@ from anki_audio_quick_editor.editor_integration import (
     EditorSession,
     _handle_bridge_command,
 )
+from anki_audio_quick_editor.editor_session import PendingEditorStatus
 
 
 class ImmediateThread:
@@ -105,6 +106,7 @@ def test_pitch_hum_replaces_current_media_and_resets_state(tmp_path: Path, monke
     assert session.state == AudioEditState(source_file=saved_name)
     assert session.current_filename == saved_name
     assert session.processing is False
+    assert session.pending_status == PendingEditorStatus(0, message="Rendered pitch hum with Pitch-to-hum mode.")
     editor.loadNote.assert_called_once_with(focusTo=0)
 
 

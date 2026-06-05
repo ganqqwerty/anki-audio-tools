@@ -13,6 +13,7 @@
   import PlaySplitButton from "./PlaySplitButton.svelte";
   import SplitButton from "./SplitButton.svelte";
   import { historyAvailability } from "./actions.js";
+  import type { InitialEditorStatus } from "./control-actions.js";
   import type { FieldTarget } from "./types.js";
 
   const TOOLBAR_PANEL_CLASSES: Record<ToolbarPanelSlug, string> = {
@@ -25,7 +26,10 @@
     "record-play-yours": "recording",
   };
 
-  const { target }: { target: FieldTarget } = $props();
+  const {
+    initialStatus = null,
+    target,
+  }: { initialStatus?: InitialEditorStatus | null; target: FieldTarget } = $props();
   const repeatDefault = window.__AQE_EDITOR_CONFIG__?.repeatPlaybackByDefault === true;
   const repeatPauseDefault = window.__AQE_EDITOR_CONFIG__?.splitButtonDefaults?.repeatPauseSeconds ?? 0;
   const buttons = visibleToolbarButtons(
@@ -34,9 +38,8 @@
   );
   const buttonModes = window.__AQE_EDITOR_CONFIG__?.editorButtonModes;
   const renderItems = buildEditorToolbarRenderItems(buttons);
-  const initialStatus = (() => window.__AQE_EDITOR_CONFIG__?.initialStatusByField?.[target.ord])();
-  const initialStatusKind = initialStatus?.kind || "info";
-  const initialStatusMessage = initialStatus?.message || "";
+  const initialStatusKind = $derived(initialStatus?.kind || "info");
+  const initialStatusMessage = $derived(initialStatus?.message || "");
 
   function isSplitCommand(command: string): boolean {
     return [
@@ -226,6 +229,7 @@
             {...props}
             class="aqe-status aqe-tooltip-target"
             data-kind={initialStatusKind}
+            data-status-owner="edit"
             data-stable-kind={initialStatusKind}
             data-stable-message={initialStatusMessage}
             data-testid={`aqe-status-${target.ord}`}

@@ -132,6 +132,32 @@ afterEach(() => {
     expect(bridgeCommands()).toContain("aqe:play-ended");
   });
 
+  it("clears playback-owned warning without erasing edit-owned status", async () => {
+    const config = {
+      audioFieldIndices: [0],
+      initialStatusByField: {
+        0: { kind: "info", message: "Closed settings." },
+      },
+    };
+    initializeEditorRuntime(config);
+    scan(config);
+    await Promise.resolve();
+    window.__aqeSetVisualizer?.(0, track, 400);
+
+    const status = document.querySelector<HTMLElement>('[data-testid="aqe-status-0"]')!;
+    const visualizer = document.querySelector('[data-testid="aqe-graph-0"]') as Parameters<typeof completePlayback>[0] | null;
+    expect(visualizer).not.toBeNull();
+
+    window.__aqeSetStatus?.("Selected repeat playback needs browser audio.", "warning", "playback");
+    expect(status).toHaveTextContent("Selected repeat playback needs browser audio.");
+    expect(status.dataset.statusOwner).toBe("playback");
+
+    completePlayback(visualizer!);
+
+    expect(status).toHaveTextContent("Closed settings.");
+    expect(status.dataset.statusOwner).toBe("edit");
+  });
+
   it("uses HTML audio playback and queues the Python bridge request", async () => {
     initializeEditorRuntime({ audioFieldIndices: [0] });
     scan({ audioFieldIndices: [0] });

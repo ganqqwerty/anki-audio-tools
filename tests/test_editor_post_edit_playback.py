@@ -13,6 +13,7 @@ from anki_audio_quick_editor.editor_integration import (
     EditorSession,
     _replace_current_field_after_render,
 )
+from anki_audio_quick_editor.editor_session import PendingEditorStatus
 
 
 def test_standard_render_replacement_records_pending_post_edit_playback(
@@ -36,6 +37,7 @@ def test_standard_render_replacement_records_pending_post_edit_playback(
         state=AudioEditState("clip.mp3"),
         field_index=0,
         current_filename="clip.mp3",
+        next_status_summary="Increased volume by 15 dB.",
     )
     monkeypatch.setattr("aqt.qt.QTimer.singleShot", lambda _delay, callback: callback())
 
@@ -43,6 +45,7 @@ def test_standard_render_replacement_records_pending_post_edit_playback(
 
     session = _SESSIONS[editor]
     assert editor.note.fields == ["[sound:clip__aqe.mp3]"]
+    assert session.pending_status == PendingEditorStatus(0, message="Increased volume by 15 dB.")
     assert any(
         "__aqeSetHistoryAvailability(0, true, false)" in call.args[0]
         for call in editor.web.evalWithCallback.call_args_list

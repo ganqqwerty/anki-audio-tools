@@ -83,8 +83,21 @@ EDITOR_OPERATION_CONTRACTS: dict[str, ModuleContract] = {
     "editor_history": contract(
         "editor_history",
         layer=Layer.UI_ADAPTER,
-        allowed_addon_deps=("editor_session", "editor_status", "errors", "i18n", "media_paths", "sound_refs"),
+        allowed_addon_deps=(
+            "editor_reload_status",
+            "editor_session",
+            "editor_status",
+            "errors",
+            "i18n",
+            "media_paths",
+            "sound_refs",
+        ),
         allowed_side_effects=(SideEffect.WEB_EVAL,),
+    ),
+    "editor_reload_status": contract(
+        "editor_reload_status",
+        layer=Layer.UI_ADAPTER,
+        allowed_addon_deps=("editor_session",),
     ),
     "editor_runtime": contract(
         "editor_runtime",
@@ -106,6 +119,7 @@ EDITOR_OPERATION_CONTRACTS: dict[str, ModuleContract] = {
         layer=Layer.UI_ADAPTER,
         allowed_addon_deps=(
             "editor_runtime",
+            "editor_reload_status",
             "editor_session",
             "error_codes",
             "errors",

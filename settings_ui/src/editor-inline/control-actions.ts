@@ -22,6 +22,9 @@ import type { EditorCommand } from "./types.js";
 import { defaultGraphQueueDependencies } from "./graph-actions.js";
 import { syncAllRecordingControls, syncRecordingControls } from "./recording-actions.js";
 
+export type InitialEditorStatus = { kind?: string; message: string };
+export type StatusOwner = "edit" | "error" | "graph" | "playback";
+
 type EditorStatusMessage = string | UserFacingError;
 
 export function anyBusy(): boolean {
@@ -54,25 +57,31 @@ export function setControlsBusy(ord: number, busy: boolean, message = "", comman
   const status = statusForOrd(ord);
   if (!status) return;
   if (busy) {
-    renderStatus(status, message || "", "processing", command || "");
+    renderStatus(status, message || "", "processing", command || "", "graph");
     return;
   }
   if (message || command) {
-    setStatusForOrd(ord, message, "info", command);
+    setStatusForOrd(ord, message, "info", command, "edit");
     return;
   }
   restoreStableStatus(status);
 }
 
-export function setStatus(message: EditorStatusMessage, kind = "info"): void {
+export function setStatus(message: EditorStatusMessage, kind = "info", owner: StatusOwner = defaultStatusOwner(kind)): void {
   const ord = Number(window.__aqeActiveField ?? 0);
-  setStatusForOrd(ord, message, kind);
+  setStatusForOrd(ord, message, kind, "", owner);
 }
 
-export function setStatusForOrd(ord: number, message: EditorStatusMessage, kind = "info", command = ""): void {
+export function setStatusForOrd(
+  ord: number,
+  message: EditorStatusMessage,
+  kind = "info",
+  command = "",
+  owner: StatusOwner = defaultStatusOwner(kind),
+): void {
   const status = statusForOrd(ord);
   if (!status) return;
-  if (kind !== "processing") {
+  if (storesStableStatus(owner)) {
     status.dataset.stableMessage = statusText(message || "");
     if (isUserFacingError(message)) {
       status.dataset.stableUserError = JSON.stringify(message);
@@ -82,13 +91,18 @@ export function setStatusForOrd(ord: number, message: EditorStatusMessage, kind 
     status.dataset.stableKind = kind || "info";
     status.dataset.stableCommand = command || "";
   }
-  renderStatus(status, message || "", kind || "info", command || "");
+  renderStatus(status, message || "", kind || "info", command || "", owner);
 }
 
-export function setTransientStatusForOrd(ord: number, message: EditorStatusMessage, kind = "info"): void {
+export function setTransientStatusForOrd(
+  ord: number,
+  message: EditorStatusMessage,
+  kind = "info",
+  owner: StatusOwner = "graph",
+): void {
   const status = statusForOrd(ord);
   if (!status) return;
-  renderStatus(status, message || "", kind || "info", "");
+  renderStatus(status, message || "", kind || "info", "", owner);
 }
 
 export function hasStableStatusForOrd(ord: number): boolean {
@@ -103,17 +117,13 @@ export function clearStatus(ord: number): void {
   delete status.dataset.stableUserError;
   status.dataset.stableKind = "info";
   status.dataset.stableCommand = "";
-  renderStatus(status, "", "info", "");
+  renderStatus(status, "", "info", "", "edit");
 }
 
-export function clearTransientStatusForOrd(ord: number): void {
+export function clearPlaybackStatusForOrd(ord: number): void {
   const status = statusForOrd(ord);
-  if (!status) return;
-  if (status.dataset.stableMessage || status.dataset.stableUserError) {
-    restoreStableStatus(status);
-    return;
-  }
-  clearStatus(ord);
+  if (!status || status.dataset.statusOwner !== "playback") return;
+  restoreStableStatus(status);
 }
 
 export function restoreStatusForOrd(ord: number): void {
@@ -122,14 +132,13 @@ export function restoreStatusForOrd(ord: number): void {
   restoreStableStatus(status);
 }
 
-export function applyInitialStatusForOrd(ord: number): void {
+export function consumeInitialStatusForOrd(ord: number): InitialEditorStatus | null {
   const initialStatuses = window.__AQE_EDITOR_CONFIG__?.initialStatusByField;
   const initialStatus = initialStatuses?.[ord];
-  if (!initialStatus?.message) return;
-  setStatusForOrd(ord, initialStatus.message, initialStatus.kind || "info");
   if (initialStatuses) {
     delete initialStatuses[ord];
   }
+  return initialStatus?.message ? initialStatus : null;
 }
 
 export function setCommandButtonLabel(ord: number, command: EditorCommand, label: string): void {
@@ -196,6 +205,16 @@ function statusText(message: EditorStatusMessage): string {
   return isUserFacingError(message) ? message.message : message;
 }
 
+function defaultStatusOwner(kind: string): StatusOwner {
+  if (kind === "error") return "error";
+  if (kind === "processing") return "graph";
+  return "edit";
+}
+
+function storesStableStatus(owner: StatusOwner): boolean {
+  return owner === "edit" || owner === "error";
+}
+
 function renderStatusContent(status: HTMLElement, message: EditorStatusMessage): void {
   status.textContent = "";
   if (!isUserFacingError(message)) {
@@ -215,9 +234,16 @@ function renderStatusContent(status: HTMLElement, message: EditorStatusMessage):
   status.append(code, ` ${message.message} `, link);
 }
 
-function renderStatus(status: HTMLElement, message: EditorStatusMessage, kind: string, command: string): void {
+function renderStatus(
+  status: HTMLElement,
+  message: EditorStatusMessage,
+  kind: string,
+  command: string,
+  owner: StatusOwner,
+): void {
   renderStatusContent(status, message);
   status.dataset.kind = kind;
+  status.dataset.statusOwner = owner;
   setTooltipContent(status, command);
   const spinner = status.closest<HTMLElement>(".aqe-status-row")?.querySelector<HTMLElement>(".aqe-spinner");
   if (spinner) spinner.hidden = kind !== "processing";
@@ -239,6 +265,7 @@ function restoreStableStatus(status: HTMLElement): void {
     message,
     status.dataset.stableKind || "info",
     status.dataset.stableCommand || "",
+    defaultStatusOwner(status.dataset.stableKind || "info"),
   );
 }
 

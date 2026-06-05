@@ -19,6 +19,7 @@ import type {
 } from "./source-metadata-types.js";
 import type { LearnerRecordingStatePayload } from "./recording-state.js";
 import type { SplitDefaultSaveRequest } from "./split-default-save-types.js";
+import type { StatusOwner } from "./control-actions.js";
 
 type EditorStatusMessage = string | UserFacingError;
 
@@ -59,7 +60,7 @@ declare global {
     __aqeSetLearnerRecordingState?: ((payload: LearnerRecordingStatePayload) => void) | undefined;
     __aqeSetLearnerVisualizer?: ((ord: number, track: ProsodyPayload) => void) | undefined;
     __aqeSetPlaybackState?: ((ord: number, state: PlaybackState, cursorMs: number) => void) | undefined;
-    __aqeSetStatus?: ((message: EditorStatusMessage, kind?: string) => void) | undefined;
+    __aqeSetStatus?: ((message: EditorStatusMessage, kind?: string, owner?: StatusOwner) => void) | undefined;
     __aqeSetTimeViewportForTest?: ((ord: number, startMs: number, endMs: number) => boolean) | undefined;
     __aqeSetVisualizer?: ((ord: number, track: ProsodyPayload, cursorMs: number) => void) | undefined;
     __aqeSetVisualizerStatus?: ((ord: number, message: EditorStatusMessage, kind?: string) => void) | undefined;

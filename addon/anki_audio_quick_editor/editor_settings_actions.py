@@ -4,8 +4,9 @@ from __future__ import annotations
 
 from typing import Any, Callable
 
+from .editor_reload_status import reload_editor_with_pending_status
 from .editor_runtime import SettingsLifecycleCallbacks
-from .editor_session import PendingEditorStatus, ready_learner_recording_media_path
+from .editor_session import ready_learner_recording_media_path
 from .error_codes import (
     AQE_FILE_REVEAL_FAILED,
     AQE_MEDIA_CURRENT_FIELD_AUDIO_MISSING,
@@ -65,12 +66,13 @@ def refresh_editor_after_settings_save(editor: Any, deps: Any, status_after_relo
         session.playback_active = False
         session.playback_paused = False
         session.playback_preparing = False
-        if status_after_reload:
-            session.pending_status = PendingEditorStatus(field_index, message=status_after_reload)
-    deps.dispose_editor_frontend_controls(editor)
-    editor.loadNote(focusTo=field_index)
-    if session is not None:
-        session.pending_status = None
+    reload_editor_with_pending_status(
+        editor,
+        session,
+        field_index,
+        message=status_after_reload,
+        deps=deps,
+    )
 
 
 def show_current_audio_file(editor: Any, deps: Any) -> None:

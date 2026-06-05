@@ -92,6 +92,28 @@ describe("editor inline Svelte integration", () => {
     expect(status).toHaveTextContent("Closed settings.");
   });
 
+  it("consumes initial status once in the field controller", () => {
+    const config = {
+      audioFieldIndices: [0],
+      initialStatusByField: {
+        0: { kind: "info", message: "Closed settings." },
+      },
+    };
+    initializeEditorRuntime(config);
+    scan(config);
+
+    const status = document.querySelector<HTMLElement>('[data-testid="aqe-status-0"]')!;
+    expect(status).toHaveTextContent("Closed settings.");
+    expect(status.dataset.statusOwner).toBe("edit");
+    expect(window.__AQE_EDITOR_CONFIG__?.initialStatusByField?.[0]).toBeUndefined();
+
+    status.textContent = "";
+    scan(config);
+
+    expect(status).toHaveTextContent("");
+    expect(window.__AQE_EDITOR_CONFIG__?.initialStatusByField?.[0]).toBeUndefined();
+  });
+
   it("disables undo and redo until history becomes available and updates their tooltips", () => {
     initializeEditorRuntime({ audioFieldIndices: [0] });
     scan({ audioFieldIndices: [0] });
