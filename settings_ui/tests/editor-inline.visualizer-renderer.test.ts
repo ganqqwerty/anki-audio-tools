@@ -192,6 +192,20 @@ describe("editor inline visualizer renderer", () => {
     expect(band.getAttribute("visibility")).toBe("visible");
     expect(band.getAttribute("x")).toBe(PLOT.left.toFixed(2));
     expect(Number(band.getAttribute("width"))).toBeGreaterThan(0);
+    const plot = visualizer.querySelector<HTMLElement>(".aqe-visualizer-plot")!;
+    expect(plot.dataset.selectionOverlayReady).toBe("true");
+    expect(plot.dataset.selectionStartEdgeVisible).toBe("false");
+    expect(plot.dataset.selectionEndEdgeVisible).toBe("true");
+    expect(plot.style.getPropertyValue("--aqe-selection-end-edge-px")).not.toBe("");
+  });
+
+  it("flags narrow selections to hide the inner marker-shift buttons", () => {
+    const visualizer = mountVisualizer(voicedTrack);
+
+    renderSelection(visualizer, { startMs: 480, endMs: 530, mode: "selection" }, null);
+
+    const plot = visualizer.querySelector<HTMLElement>(".aqe-visualizer-plot")!;
+    expect(plot.dataset.selectionShiftHideInner).toBe("true");
   });
 
   it("hides the visible cursor when the cursor is outside the zoomed viewport", () => {

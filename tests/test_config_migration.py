@@ -170,6 +170,20 @@ class TestMigrateConfig:
         assert migrated["_config_version"] == CURRENT_CONFIG_VERSION
         assert changed is True
 
+    def test_picks_up_selection_marker_shift_button_default(self) -> None:
+        user = {"_config_version": 20, "enabled": True}
+        defaults = {
+            "_config_version": CURRENT_CONFIG_VERSION,
+            "enabled": True,
+            "selection_marker_shift_buttons_enabled": False,
+        }
+
+        migrated, changed = migrate_config(user, defaults)
+
+        assert migrated["selection_marker_shift_buttons_enabled"] is False
+        assert migrated["_config_version"] == CURRENT_CONFIG_VERSION
+        assert changed is True
+
     def test_picks_up_visible_editor_buttons_default(self) -> None:
         user = {"_config_version": 15, "enabled": True}
         defaults = {

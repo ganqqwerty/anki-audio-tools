@@ -28,6 +28,7 @@ describe("App", () => {
     expect(screen.getByText("Repeat playback by default")).toBeInTheDocument();
     expect(screen.getByText("Pause between repeats (s)")).toBeInTheDocument();
     expect(screen.getByText("Show graph by default")).toBeInTheDocument();
+    expect(screen.getByText("Show selection marker shift buttons")).toBeInTheDocument();
     expect(screen.getByText("Editor toolbar buttons")).toBeInTheDocument();
     expect(screen.getByTestId("button-settings-settings")).toBeInTheDocument();
     expect(screen.getByTestId("button-settings-play")).toBeInTheDocument();
@@ -359,6 +360,7 @@ describe("App", () => {
     expect(payload.config.repeat_playback_by_default).toBe(true);
     expect(payload.config.repeat_pause_seconds).toBe(0);
     expect(payload.config.show_graph_by_default).toBe(true);
+    expect(payload.config.selection_marker_shift_buttons_enabled).toBe(false);
     window.onAsyncProgress?.({ id, progress: 100, message: "Done" });
     window.onAsyncDone?.({
       id,

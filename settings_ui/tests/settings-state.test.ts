@@ -28,6 +28,7 @@ const config: Config = {
   voice_recording_countdown_seconds: 0,
   share_target: ShareTarget.Litterbox,
   show_graph_by_default: true,
+  selection_marker_shift_buttons_enabled: false,
   visible_editor_buttons: [
     VisibleEditorButton.AqePlay,
     VisibleEditorButton.AqeAnalyze,
@@ -84,5 +85,12 @@ const config: Config = {
 describe("settings state helpers", () => {
   it("forces inline editor controls on when building a save payload", () => {
     expect(saveConfigPayload(config)).toMatchObject({ enabled: true });
+  });
+
+  it("preserves the selection marker shift toggle when building a save payload", () => {
+    expect(saveConfigPayload({
+      ...config,
+      selection_marker_shift_buttons_enabled: true,
+    }).selection_marker_shift_buttons_enabled).toBe(true);
   });
 });

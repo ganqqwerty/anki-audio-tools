@@ -26,6 +26,7 @@ def test_save_command_writes_config(anki_mw) -> None:
         "voice_recording_countdown_seconds": 0,
         "share_target": "litterbox",
         "show_graph_by_default": False,
+        "selection_marker_shift_buttons_enabled": False,
         "visible_editor_buttons": list(DEFAULT_VISIBLE_EDITOR_BUTTONS),
         "editor_button_modes": {
             "aqe:play": "text",

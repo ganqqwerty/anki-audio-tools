@@ -5,6 +5,7 @@ import type { VisualizerElement } from "./types.js";
 import { readVisualizerTimeViewport } from "./visualizer-state.js";
 
 const SELECTION_TOOLBAR_RIGHT_OFFSET_PX = 6;
+const SELECTION_SHIFT_BUTTON_MIN_BAND_WIDTH_PX = 52;
 
 export function renderSelection(
   visualizer: VisualizerElement,
@@ -97,7 +98,18 @@ export function renderSelection(
     grip?.classList.toggle("aqe-selection-resize-dragging", handlesDragging);
     grip?.setAttribute("transform", `translate(${x.toFixed(2)} ${handleCenterY.toFixed(2)})`);
   }
-  setSelectionOverlayGeometry(visualizer, plot, startX, endX, plotTop, plotBottom);
+  setSelectionOverlayGeometry(
+    visualizer,
+    plot,
+    actualStartX,
+    actualEndX,
+    startX,
+    endX,
+    plotTop,
+    plotBottom,
+    actualStartVisible,
+    actualEndVisible,
+  );
 }
 
 function plotGeometryForVisualizer(visualizer: VisualizerElement): PlotGeometry {
@@ -108,10 +120,14 @@ function plotGeometryForVisualizer(visualizer: VisualizerElement): PlotGeometry 
 function setSelectionOverlayGeometry(
   visualizer: VisualizerElement,
   plot: PlotGeometry,
+  actualStartX: number,
+  actualEndX: number,
   startX: number,
   endX: number,
   plotTop: number,
   plotBottom: number,
+  actualStartVisible: boolean,
+  actualEndVisible: boolean,
 ): void {
   const wrapper = visualizer.querySelector<HTMLElement>(".aqe-visualizer-plot");
   const svg = visualizer.querySelector<SVGSVGElement>(".aqe-visualizer-svg");
@@ -121,6 +137,8 @@ function setSelectionOverlayGeometry(
   const scale = svgViewBoxScale(svg);
   const startPx = startX * scale.x;
   const endPx = endX * scale.x;
+  const actualStartPx = actualStartX * scale.x;
+  const actualEndPx = actualEndX * scale.x;
   const plotTopPx = plotTop * scale.y;
   const plotBottomPx = plotBottom * scale.y;
   const plotHeightPx = Math.max(0, plotBottomPx - plotTopPx);
@@ -133,10 +151,18 @@ function setSelectionOverlayGeometry(
     Math.min(endPx, plotRightEdgePx - SELECTION_TOOLBAR_RIGHT_OFFSET_PX),
   );
   const toolbarTopPx = Math.max(plotTopPx, Math.min(plotBottomPx, contentHeightPx - 34));
+  const shiftTopPx = Math.max(plotTopPx, plotBottomPx - 20);
+  const hideInnerButtons = Math.max(0, endPx - startPx) < SELECTION_SHIFT_BUTTON_MIN_BAND_WIDTH_PX;
   wrapper.dataset.selectionOverlayReady = "true";
+  wrapper.dataset.selectionShiftHideInner = hideInnerButtons ? "true" : "false";
+  wrapper.dataset.selectionStartEdgeVisible = actualStartVisible ? "true" : "false";
+  wrapper.dataset.selectionEndEdgeVisible = actualEndVisible ? "true" : "false";
   wrapper.style.setProperty("--aqe-selection-start-px", `${startPx.toFixed(2)}px`);
   wrapper.style.setProperty("--aqe-selection-end-px", `${endPx.toFixed(2)}px`);
+  wrapper.style.setProperty("--aqe-selection-start-edge-px", `${actualStartPx.toFixed(2)}px`);
+  wrapper.style.setProperty("--aqe-selection-end-edge-px", `${actualEndPx.toFixed(2)}px`);
   wrapper.style.setProperty("--aqe-selection-bottom-px", `${plotBottomPx.toFixed(2)}px`);
+  wrapper.style.setProperty("--aqe-selection-shift-top-px", `${shiftTopPx.toFixed(2)}px`);
   wrapper.style.setProperty("--aqe-selection-toolbar-left-px", `${toolbarLeftPx.toFixed(2)}px`);
   wrapper.style.setProperty("--aqe-selection-toolbar-top-px", `${toolbarTopPx.toFixed(2)}px`);
   wrapper.style.setProperty("--aqe-plot-left-px", `${plotLeftPx.toFixed(2)}px`);
@@ -153,7 +179,10 @@ function clearSelectionOverlayGeometry(visualizer: VisualizerElement): void {
   for (const property of [
     "--aqe-selection-start-px",
     "--aqe-selection-end-px",
+    "--aqe-selection-start-edge-px",
+    "--aqe-selection-end-edge-px",
     "--aqe-selection-bottom-px",
+    "--aqe-selection-shift-top-px",
     "--aqe-selection-toolbar-left-px",
     "--aqe-selection-toolbar-top-px",
     "--aqe-plot-left-px",
@@ -163,6 +192,9 @@ function clearSelectionOverlayGeometry(visualizer: VisualizerElement): void {
   ]) {
     wrapper.style.removeProperty(property);
   }
+  wrapper.dataset.selectionShiftHideInner = "false";
+  wrapper.dataset.selectionStartEdgeVisible = "false";
+  wrapper.dataset.selectionEndEdgeVisible = "false";
   clearOverlayNodePosition(wrapper.querySelector<HTMLElement>(".aqe-selection-toolbar"));
 }
 

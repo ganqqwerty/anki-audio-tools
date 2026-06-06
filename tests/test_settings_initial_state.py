@@ -19,6 +19,7 @@ def _full_config() -> dict[str, object]:
         "voice_recording_countdown_seconds": 0,
         "share_target": "litterbox",
         "show_graph_by_default": True,
+        "selection_marker_shift_buttons_enabled": False,
         "visible_editor_buttons": [
             "aqe:play",
             "aqe:analyze",

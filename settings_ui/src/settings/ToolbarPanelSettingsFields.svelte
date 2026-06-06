@@ -84,6 +84,14 @@
 {:else if command === "aqe:analyze"}
   <label class="settings-toggle">
     <input
+      data-testid="selection-marker-shift-buttons-enabled"
+      type="checkbox"
+      bind:checked={config.selection_marker_shift_buttons_enabled}
+    />
+    <span class="settings-label-text">{t("settings.selection_marker_shift_buttons_enabled")}</span>
+  </label>
+  <label class="settings-toggle">
+    <input
       data-testid="show-graph-by-default"
       type="checkbox"
       bind:checked={config.show_graph_by_default}
