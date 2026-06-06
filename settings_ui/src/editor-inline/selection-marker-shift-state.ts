@@ -36,7 +36,7 @@ const WRAPPER_ATTRIBUTE_FILTER = [
   "data-selection-start-edge-visible",
 ] as const;
 
-export function selectionShiftMutationObserverOptions(): MutationObserverInit {
+export function selectionShiftMutationObserverOptions() {
   return {
     attributes: true,
     attributeFilter: [...VISUALIZER_ATTRIBUTE_FILTER, ...WRAPPER_ATTRIBUTE_FILTER],
