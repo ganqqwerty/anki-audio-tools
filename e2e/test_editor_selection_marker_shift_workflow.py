@@ -102,7 +102,6 @@ def test_selection_marker_shift_click_moves_edge_and_keeps_html_playback_running
         )
 
         click_selector(editor.web, '[data-testid="aqe-selection-shift-end-next-0"]', timeout=5.0)
-        click_selector(editor.web, '[data-testid="aqe-selection-shift-end-next-0"]', timeout=5.0)
         shifted = _state(
             editor,
             lambda state: state["playbackState"] == "playing"
@@ -112,6 +111,7 @@ def test_selection_marker_shift_click_moves_edge_and_keeps_html_playback_running
             and abs(state["playbackEndMs"] - 1333) <= 8,
         )
         assert shifted["cursorMs"] == 0
+        assert _button_state(editor, "end", "next")["disabled"] is True
     finally:
         editor.set_note(None)
         parent.close()
