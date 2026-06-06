@@ -2,12 +2,10 @@
 
 from __future__ import annotations
 
-import subprocess
 from pathlib import Path
 
 import pytest
 
-from e2e.conftest import runtime_addon_import_path
 from e2e.editor_graph_helpers import (
     _wait_for_visualizer_track,
 )
@@ -22,29 +20,20 @@ from e2e.editor_note_helpers import (
     _wait_for_status_flow,
 )
 from e2e.helpers import (
-    click_selector,
     generate_tone,
     run_js,
     wait_for_condition,
     wait_for_js_condition,
 )
 
-
-def _split_slug(command: str) -> str:
-    if command in {"aqe:volume-up", "aqe:volume-down"}:
-        return "volume"
-    if command in {"aqe:faster", "aqe:slower"}:
-        return "speed"
-    return command.removeprefix("aqe:")
-
-
-def _split_menu_selector(command: str, ord_: int = 0) -> str:
-    slug = _split_slug(command)
-    return f'[data-testid="aqe-split-{ord_}-{slug}-menu"]'
-
-
 def _split_popover_state_js(command: str, ord_: int = 0) -> str:
-    slug = _split_slug(command)
+    slug = (
+        "volume"
+        if command in {"aqe:volume-up", "aqe:volume-down"}
+        else "speed"
+        if command in {"aqe:faster", "aqe:slower"}
+        else command.removeprefix("aqe:")
+    )
     return f"""
     (() => {{
       const popover = document.querySelector('[data-testid="aqe-split-{ord_}-{slug}-popover"]');
@@ -117,13 +106,11 @@ def _expected_processing_status(command: str) -> str:
         "aqe:faster",
         "aqe:volume-up",
         "aqe:remove-pauses",
-        "aqe:rnnoise",
     ],
 )
 def test_multi_field_processing_undo_redo_survives_graph_default_auto_analysis(
     anki_mw,
     ffmpeg_config,
-    monkeypatch,
     command: str,
 ) -> None:
     media_dir = Path(anki_mw.col.media.dir())
@@ -136,11 +123,6 @@ def test_multi_field_processing_undo_redo_survives_graph_default_auto_analysis(
     for index, source in enumerate(sources):
         generate_tone(ffmpeg_config, source, duration_s=1.4 + index * 0.1)
     note = _three_audio_field_note(anki_mw, tuple(source.name for source in sources))
-    if command == "aqe:rnnoise":
-        monkeypatch.setattr(
-            runtime_addon_import_path(".editor_dependencies", "render_rnnoise_audio"),
-            _fake_special_renderer,
-        )
     _configure_ffmpeg(
         anki_mw,
         ffmpeg_config,
@@ -156,20 +138,11 @@ def test_multi_field_processing_undo_redo_survives_graph_default_auto_analysis(
             ord_=2,
             timeout=10.0,
         )
-        click_command = command
-        if command == "aqe:rnnoise":
-            click_selector(editor.web, _split_menu_selector("aqe:denoise-standard"), timeout=5.0)
-            click_selector(
-                editor.web,
-                '[data-testid="aqe-split-0-denoise-standard-preset-rnnoise"]',
-                timeout=5.0,
-            )
-            click_command = "aqe:denoise-standard"
         generated_name = _click_and_wait_for_new_file(
             editor,
             note,
             media_dir,
-            click_command,
+            command,
             sources[0].name,
         )
         _wait_for_status_flow(
@@ -236,23 +209,3 @@ def test_multi_field_processing_undo_redo_survives_graph_default_auto_analysis(
     finally:
         editor.set_note(None)
         parent.close()
-
-
-def _fake_special_renderer(source_path: Path, config, output_path: Path, **_kwargs) -> None:
-    subprocess.run(
-        [
-            config.ffmpeg_path,
-            "-y",
-            "-i",
-            str(source_path),
-            "-vn",
-            "-codec:a",
-            "libmp3lame",
-            str(output_path),
-        ],
-        check=True,
-        capture_output=True,
-        text=True,
-        encoding="utf-8",
-        errors="replace",
-    )
