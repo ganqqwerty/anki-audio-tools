@@ -14,6 +14,7 @@ from e2e.editor_note_helpers import (
 )
 from e2e.helpers import (
     click_selector,
+    wait_for_condition,
     wait_for_js_condition,
     wait_for_selector,
 )
