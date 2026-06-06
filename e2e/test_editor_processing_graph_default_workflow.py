@@ -26,6 +26,7 @@ from e2e.helpers import (
     wait_for_js_condition,
 )
 
+
 def _split_popover_state_js(command: str, ord_: int = 0) -> str:
     slug = (
         "volume"
