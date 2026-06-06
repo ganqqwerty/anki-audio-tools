@@ -4,7 +4,11 @@ from __future__ import annotations
 
 from scripts.dev_cli import build_parser
 from scripts.dev_scripts.types import CommandRegistry
-from scripts.dev_tasks.process import set_idle_timeout, set_verbose
+from scripts.dev_tasks.process import quiet_test_output, set_idle_timeout, set_verbose
+
+QUIET_TEST_COMMANDS = frozenset(
+    {"test", "test-anki-api", "test-e2e", "test-e2e-parallel", "test-svelte", "coverage"}
+)
 
 
 def print_help(commands: CommandRegistry) -> None:
@@ -24,6 +28,9 @@ def run_command(
     if command is None or command in ("help", "--help", "-h"):
         print_help(commands)
         return 0
-    print(f"[dev] selected command: {command}" + (" (verbose)" if verbose else ""))
     func, _description = commands[command]
-    return func(command_args)
+    if verbose or command not in QUIET_TEST_COMMANDS:
+        print(f"[dev] selected command: {command}" + (" (verbose)" if verbose else ""))
+        return func(command_args)
+    with quiet_test_output():
+        return func(command_args)

@@ -1,5 +1,8 @@
 from __future__ import annotations
 
+from types import SimpleNamespace
+
+from scripts.dev_tasks import e2e_parallel, process
 from scripts.dev_tasks.e2e_parallel import (
     E2EFileGroup,
     E2EShard,
@@ -151,3 +154,94 @@ def test_parallel_shard_run_shows_output_on_failure(monkeypatch, tmp_path) -> No
 
     assert result.returncode == 0
     assert calls[0]["show_output_on_failure"] is True
+
+
+def test_parallel_runner_stays_silent_on_success_in_quiet_mode(monkeypatch, tmp_path, capsys) -> None:
+    shard = E2EShard(
+        "e2e-1",
+        (
+            E2EFileGroup(
+                "e2e/test_audio_processing_ffmpeg.py",
+                ("e2e/test_audio_processing_ffmpeg.py::test_example",),
+            ),
+        ),
+    )
+    monkeypatch.setattr(e2e_parallel, "_find_anki_python", lambda: tmp_path / "python")
+    monkeypatch.setattr(
+        e2e_parallel,
+        "_collect_nodeids",
+        lambda *_args, **_kwargs: ("e2e/test_audio_processing_ffmpeg.py::test_example",),
+    )
+    monkeypatch.setattr(e2e_parallel, "plan_shards", lambda *_args, **_kwargs: (shard,))
+    monkeypatch.setattr(
+        e2e_parallel,
+        "_run_shard",
+        lambda *_args, **_kwargs: SimpleNamespace(
+            name="e2e-1",
+            returncode=0,
+            rerun_command="python3 scripts/dev.py test-e2e-parallel e2e/test_audio_processing_ffmpeg.py",
+        ),
+    )
+
+    with process.quiet_test_output():
+        assert e2e_parallel.cmd_test_e2e_parallel([]) == 0
+
+    captured = capsys.readouterr()
+    assert captured.out == ""
+
+
+def test_parallel_shard_run_suppresses_completion_line_in_quiet_mode(
+    monkeypatch, tmp_path, capsys
+) -> None:
+    shard = E2EShard(
+        "e2e-1",
+        (
+            E2EFileGroup(
+                "e2e/test_audio_processing_ffmpeg.py",
+                ("e2e/test_audio_processing_ffmpeg.py::test_example",),
+            ),
+        ),
+    )
+    monkeypatch.setattr("scripts.dev_tasks.e2e_parallel._run", lambda *_args, **_kwargs: 0)
+
+    with process.quiet_test_output():
+        result = _run_shard(tmp_path / "python", shard)
+
+    captured = capsys.readouterr()
+    assert result.returncode == 0
+    assert "completed in" not in captured.out
+
+
+def test_parallel_runner_keeps_rerun_hints_when_quiet_run_fails(monkeypatch, tmp_path, capsys) -> None:
+    shard = E2EShard(
+        "e2e-1",
+        (
+            E2EFileGroup(
+                "e2e/test_audio_processing_ffmpeg.py",
+                ("e2e/test_audio_processing_ffmpeg.py::test_example",),
+            ),
+        ),
+    )
+    monkeypatch.setattr(e2e_parallel, "_find_anki_python", lambda: tmp_path / "python")
+    monkeypatch.setattr(
+        e2e_parallel,
+        "_collect_nodeids",
+        lambda *_args, **_kwargs: ("e2e/test_audio_processing_ffmpeg.py::test_example",),
+    )
+    monkeypatch.setattr(e2e_parallel, "plan_shards", lambda *_args, **_kwargs: (shard,))
+    monkeypatch.setattr(
+        e2e_parallel,
+        "_run_shard",
+        lambda *_args, **_kwargs: SimpleNamespace(
+            name="e2e-1",
+            returncode=1,
+            rerun_command="python3 scripts/dev.py test-e2e-parallel e2e/test_audio_processing_ffmpeg.py",
+        ),
+    )
+
+    with process.quiet_test_output():
+        assert e2e_parallel.cmd_test_e2e_parallel([]) == 1
+
+    captured = capsys.readouterr()
+    assert "rerun e2e-1" in captured.out
+    assert "all e2e shards passed" not in captured.out

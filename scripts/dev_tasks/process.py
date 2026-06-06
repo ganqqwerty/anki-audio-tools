@@ -9,11 +9,15 @@ import subprocess
 import sys
 import threading
 import time
+from collections.abc import Iterator
+from contextlib import contextmanager
+from contextvars import ContextVar
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
 _VERBOSE = False
 _IDLE_TIMEOUT_S: float | None = None
+_QUIET_TEST_OUTPUT: ContextVar[int] = ContextVar("_QUIET_TEST_OUTPUT", default=0)
 
 if hasattr(sys.stdout, "reconfigure"):
     sys.stdout.reconfigure(encoding="utf-8", errors="replace")
@@ -33,6 +37,19 @@ def set_idle_timeout(timeout_s: float | None) -> None:
 
 def is_verbose() -> bool:
     return _VERBOSE
+
+
+@contextmanager
+def quiet_test_output() -> Iterator[None]:
+    token = _QUIET_TEST_OUTPUT.set(_QUIET_TEST_OUTPUT.get() + 1)
+    try:
+        yield
+    finally:
+        _QUIET_TEST_OUTPUT.reset(token)
+
+
+def is_quiet_test_output() -> bool:
+    return _QUIET_TEST_OUTPUT.get() > 0
 
 
 def _read_seconds_env(name: str, default: float) -> float:
@@ -178,7 +195,9 @@ def _handle_idle_queue_wait(
     return False, False, stream_closed, last_output, next_warning
 
 
-def _print_failed_output(output: str) -> bool:
+def _print_failed_output(output: str, *, label: str | None = None) -> bool:
+    if label is not None:
+        print(f"[dev] {label}")
     if not output:
         return False
     print("[dev] output from failed command:")
@@ -198,6 +217,7 @@ def _run(
     idle_timeout_s: float | None = None,
     show_output_on_failure: bool = False,
 ) -> int:
+    quiet_mode = is_quiet_test_output() and not is_verbose()
     run_cwd = cwd or ROOT
     merged_env = {**os.environ, **env} if env else None
     if idle_warning_s is None:
@@ -212,7 +232,7 @@ def _run(
     rendered_cmd = shlex.join(str(part) for part in cmd)
     if is_verbose():
         _print_run_header(rendered_cmd, run_cwd, env, label, idle_warning_s, idle_timeout_s)
-    else:
+    elif not quiet_mode:
         print(f"[dev] {label or rendered_cmd}")
 
     process = subprocess.Popen(
@@ -245,7 +265,7 @@ def _run(
     next_warning = start + idle_warning_s if idle_warning_s else float("inf")
     stream_closed = False
     interrupted_for_idle = False
-    buffered_output: list[str] | None = [] if show_output_on_failure and not is_verbose() else None
+    buffered_output: list[str] | None = [] if (quiet_mode or show_output_on_failure) and not is_verbose() else None
 
     while True:
         should_break, timed_out, stream_closed, last_output, next_warning = _handle_idle_queue_wait(
@@ -272,14 +292,18 @@ def _run(
     elapsed = time.monotonic() - start
     failure_output_available = False
     if rc != 0 and buffered_output is not None:
-        failure_output_available = _print_failed_output("".join(buffered_output))
+        failure_output_available = _print_failed_output(
+            "".join(buffered_output),
+            label=label if quiet_mode else None,
+        )
     status = _format_exit_status(
         rc=rc,
         interrupted_for_idle=interrupted_for_idle,
         verbose=is_verbose(),
         failure_output_available=failure_output_available,
     )
-    print(f"[dev] {status} in {_format_duration(elapsed)}")
+    if not quiet_mode or rc != 0:
+        print(f"[dev] {status} in {_format_duration(elapsed)}")
     return rc
 
 
@@ -294,12 +318,13 @@ def _run_capture(
     label: str | None = None,
     show_output_on_failure: bool = False,
 ) -> tuple[int, str]:
+    quiet_mode = is_quiet_test_output() and not is_verbose()
     run_cwd = cwd or ROOT
     merged_env = {**os.environ, **env} if env else None
     rendered_cmd = shlex.join(str(part) for part in cmd)
     if is_verbose():
         _print_run_header(rendered_cmd, run_cwd, env, label, idle_warning_s=0.0, idle_timeout_s=0.0)
-    else:
+    elif not quiet_mode:
         print(f"[dev] {label or rendered_cmd}")
 
     start = time.monotonic()
@@ -319,15 +344,19 @@ def _run_capture(
         sys.stdout.flush()
     elapsed = time.monotonic() - start
     failure_output_available = False
-    if result.returncode != 0 and show_output_on_failure and not is_verbose():
-        failure_output_available = _print_failed_output(output)
+    if result.returncode != 0 and (quiet_mode or show_output_on_failure) and not is_verbose():
+        failure_output_available = _print_failed_output(
+            output,
+            label=label if quiet_mode else None,
+        )
     status = _format_exit_status(
         rc=result.returncode,
         interrupted_for_idle=False,
         verbose=is_verbose(),
         failure_output_available=failure_output_available,
     )
-    print(f"[dev] {status} in {_format_duration(elapsed)}")
+    if not quiet_mode or result.returncode != 0:
+        print(f"[dev] {status} in {_format_duration(elapsed)}")
     return result.returncode, output
 
 
