@@ -9,6 +9,7 @@ from datetime import datetime
 from pathlib import Path
 
 PAUSE_PIPELINE_MANIFEST_VERSION = 1
+PAUSE_PIPELINE_RUN_ID_COMPONENT_MAX_LENGTH = 255
 
 _SILENCE_START_RE = re.compile(r"silence_start:\s*(-?\d+(?:\.\d+)?)")
 _SILENCE_END_RE = re.compile(r"silence_end:\s*(-?\d+(?:\.\d+)?)")
@@ -39,6 +40,7 @@ class TimelineSegment:
 def make_pause_pipeline_run_id(
     source_filename: str,
     *,
+    max_length: int | None = None,
     now: datetime | None = None,
     token: str | None = None,
 ) -> str:
@@ -47,7 +49,9 @@ def make_pause_pipeline_run_id(
     token = token or uuid.uuid4().hex[:8]
     stem = safe_filename_stem(Path(source_filename).stem or "audio")
     suffix = f"__{now:%Y%m%d_%H%M%S_%f}_{token}"
-    max_stem_length = max(1, 160 - len(suffix))
+    max_run_id_length = max_length if max_length is not None else PAUSE_PIPELINE_RUN_ID_COMPONENT_MAX_LENGTH
+    max_run_id_length = max(1, min(PAUSE_PIPELINE_RUN_ID_COMPONENT_MAX_LENGTH, max_run_id_length))
+    max_stem_length = max(1, max_run_id_length - len(suffix))
     return f"{stem[:max_stem_length]}{suffix}"
 
 

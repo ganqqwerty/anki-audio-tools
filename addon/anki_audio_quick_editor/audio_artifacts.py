@@ -3,17 +3,62 @@
 from __future__ import annotations
 
 import hashlib
+import os
 from datetime import datetime
-from pathlib import Path
+from pathlib import Path, PureWindowsPath
 
-from .audio_pipeline import PAUSE_PIPELINE_MANIFEST_VERSION, make_pause_pipeline_run_id
+from .audio_pipeline import (
+    PAUSE_PIPELINE_MANIFEST_VERSION,
+    PAUSE_PIPELINE_RUN_ID_COMPONENT_MAX_LENGTH,
+    make_pause_pipeline_run_id,
+)
 from .audio_state import AudioEditState, AudioProcessingConfig
 from .audio_tools import PACKAGE_DIR
+from .errors import AudioProcessingError
+
+_WINDOWS_LEGACY_MAX_PATH_LENGTH = 259
+_LONGEST_PAUSE_PIPELINE_ARTIFACT_NAME = "04_detected_pause_intervals.json"
+_MIN_PAUSE_PIPELINE_RUN_ID_LENGTH = len(
+    make_pause_pipeline_run_id(
+        "a",
+        now=datetime(2000, 1, 1, 0, 0, 0, 0),
+        token="00000000",
+    )
+)
+
+
+def _max_pause_pipeline_run_id_length(
+    artifact_root: Path,
+    *,
+    is_windows: bool | None = None,
+) -> int:
+    if is_windows is None:
+        is_windows = os.name == "nt"
+    if not is_windows:
+        return PAUSE_PIPELINE_RUN_ID_COMPONENT_MAX_LENGTH
+
+    root_text = str(PureWindowsPath(str(artifact_root)))
+    run_id_budget = (
+        _WINDOWS_LEGACY_MAX_PATH_LENGTH
+        - len(root_text)
+        - 2
+        - len(_LONGEST_PAUSE_PIPELINE_ARTIFACT_NAME)
+    )
+    if run_id_budget < _MIN_PAUSE_PIPELINE_RUN_ID_LENGTH:
+        raise AudioProcessingError(
+            "Pause-removal support artifact path is too long for Windows. "
+            "Shorten the source audio filename or use a shorter Anki/add-on path."
+        )
+    return min(PAUSE_PIPELINE_RUN_ID_COMPONENT_MAX_LENGTH, run_id_budget)
 
 
 def _create_pause_pipeline_run_dir(source_path: Path, artifact_root: Path | None) -> Path:
     root = artifact_root or (PACKAGE_DIR / "aqe_artifacts")
-    run_dir = Path(root).expanduser() / make_pause_pipeline_run_id(source_path.name)
+    root = Path(root).expanduser()
+    run_dir = root / make_pause_pipeline_run_id(
+        source_path.name,
+        max_length=_max_pause_pipeline_run_id_length(root),
+    )
     run_dir.mkdir(parents=True, exist_ok=False)
     return run_dir
 

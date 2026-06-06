@@ -3,7 +3,9 @@
 from __future__ import annotations
 
 from datetime import datetime
+from pathlib import Path, PureWindowsPath
 
+from anki_audio_quick_editor.audio_artifacts import _max_pause_pipeline_run_id_length
 from anki_audio_quick_editor.audio_pipeline import (
     SilenceInterval,
     TimelineSegment,
@@ -169,4 +171,35 @@ def test_make_pause_pipeline_run_id_sanitizes_and_bounds_problematic_filename() 
     assert "/" not in run_id
     assert " " not in run_id
     assert "?" not in run_id
-    assert len(run_id) <= 160
+    assert len(run_id) <= 255
+
+
+def test_make_pause_pipeline_run_id_truncates_stem_to_explicit_max_length() -> None:
+    run_id = make_pause_pipeline_run_id(
+        "folder/very_long_source_filename.wav",
+        max_length=40,
+        now=datetime(2026, 5, 17, 9, 8, 7, 123456),
+        token="deadbeef",
+    )
+
+    assert run_id == "very_lo__20260517_090807_123456_deadbeef"
+    assert len(run_id) == 40
+
+
+def test_make_pause_pipeline_run_id_keeps_windows_pause_artifact_path_below_max_path() -> None:
+    artifact_root = Path(
+        r"C:\Users\mickd\AppData\Roaming\Anki2\addons21"
+        r"\anki_audio_quick_editor\aqe_artifacts"
+    )
+    run_id = make_pause_pipeline_run_id(
+        (
+            "1twister23_aqe_20260606_005401_832401_6279882d_"
+            "aqe_20260606_005406_832438_cbdd3__aqe_20260606_005726_592354_45c285a4.mp3"
+        ),
+        max_length=_max_pause_pipeline_run_id_length(artifact_root, is_windows=True),
+        now=datetime(2026, 6, 6, 1, 0, 52, 851108),
+        token="efb6c018",
+    )
+    artifact_path = PureWindowsPath(str(artifact_root)) / run_id / "04_detected_pause_intervals.json"
+
+    assert len(str(artifact_path)) < 260
