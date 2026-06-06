@@ -104,7 +104,8 @@ function blocked(
 
 function findPreviousMarker(markersMs: readonly number[], edgeMs: number): number | null {
   for (let index = markersMs.length - 1; index >= 0; index -= 1) {
-    if (markersMs[index] < edgeMs) return markersMs[index];
+    const markerMs = markersMs[index];
+    if (markerMs !== undefined && markerMs < edgeMs) return markerMs;
   }
   return null;
 }
