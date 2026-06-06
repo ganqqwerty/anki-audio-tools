@@ -39,6 +39,20 @@ def test_settings_save_writes_config_and_accepts() -> None:
     assert dialog.accepted is True
 
 
+def test_settings_save_direct_command_writes_config_without_frontend_callbacks() -> None:
+    from aqt import mw
+
+    dialog = _make_dialog()
+    calls, eval_fn = _capture_eval()
+    config = {**_full_config(), "ffmpeg_path": ""}
+
+    assert handle_settings_command(_bridge_command("settings.save", config), eval_fn, dialog) is True
+
+    mw.addonManager.writeConfig.assert_called_once()
+    assert calls == []
+    assert dialog.accepted is True
+
+
 def test_settings_save_accepts_bridge_envelope() -> None:
     from aqt import mw
 
