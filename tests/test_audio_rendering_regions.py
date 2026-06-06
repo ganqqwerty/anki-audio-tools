@@ -28,11 +28,12 @@ def test_render_audio_region_deleted_uses_concat_filter(monkeypatch, tmp_path: P
     commands: list[tuple[str, ...]] = []
     monkeypatch.setattr("anki_audio_quick_editor.audio_processor.find_ffmpeg", lambda _path: Path("/bin/ffmpeg"))
     monkeypatch.setattr("anki_audio_quick_editor.audio_processor.probe_duration_ms", lambda *_args: next(durations))
-    monkeypatch.setattr("anki_audio_quick_editor.audio_processor.resolve_output_policy", lambda *_args, **_kwargs: _mp3_policy())
+    monkeypatch.setattr("anki_audio_quick_editor.audio_processor.resolve_output_policy",
+                        lambda *_args, **_kwargs: _mp3_policy())
     monkeypatch.setattr(
         "anki_audio_quick_editor.audio_processor.subprocess.run",
         lambda cmd, capture_output, text, check, **_kwargs: calls.append((cmd, capture_output, text, check))
-        or SimpleNamespace(returncode=0, stdout="", stderr=""),
+                                                            or SimpleNamespace(returncode=0, stdout="", stderr=""),
     )
     output = tmp_path / "cut.mp3"
     result = render_audio_region_deleted(
@@ -77,11 +78,12 @@ def test_render_audio_region_kept_uses_single_trim_filter(monkeypatch, tmp_path:
     commands: list[tuple[str, ...]] = []
     monkeypatch.setattr("anki_audio_quick_editor.audio_processor.find_ffmpeg", lambda _path: Path("/bin/ffmpeg"))
     monkeypatch.setattr("anki_audio_quick_editor.audio_processor.probe_duration_ms", lambda *_args: next(durations))
-    monkeypatch.setattr("anki_audio_quick_editor.audio_processor.resolve_output_policy", lambda *_args, **_kwargs: _mp3_policy())
+    monkeypatch.setattr("anki_audio_quick_editor.audio_processor.resolve_output_policy",
+                        lambda *_args, **_kwargs: _mp3_policy())
     monkeypatch.setattr(
         "anki_audio_quick_editor.audio_processor.subprocess.run",
         lambda cmd, capture_output, text, check, **_kwargs: calls.append((cmd, capture_output, text, check))
-        or SimpleNamespace(returncode=0, stdout="", stderr=""),
+                                                            or SimpleNamespace(returncode=0, stdout="", stderr=""),
     )
     output = tmp_path / "kept.mp3"
     result = render_audio_region_kept(
@@ -119,7 +121,8 @@ def test_render_audio_uses_default_error_message_for_blank_stderr(monkeypatch, t
     monkeypatch.setattr("anki_audio_quick_editor.audio_processor.find_ffmpeg", lambda _path: Path("/bin/ffmpeg"))
     monkeypatch.setattr("anki_audio_quick_editor.audio_processor.probe_duration_ms", lambda *_args: 1000)
     monkeypatch.setattr("anki_audio_quick_editor.audio_processor.build_audio_filters", lambda *_args: "filters")
-    monkeypatch.setattr("anki_audio_quick_editor.audio_processor.resolve_output_policy", lambda *_args, **_kwargs: _mp3_policy())
+    monkeypatch.setattr("anki_audio_quick_editor.audio_processor.resolve_output_policy",
+                        lambda *_args, **_kwargs: _mp3_policy())
     monkeypatch.setattr(
         "anki_audio_quick_editor.audio_processor.subprocess.run",
         lambda *_args, **_kwargs: SimpleNamespace(returncode=1, stdout="", stderr="   "),

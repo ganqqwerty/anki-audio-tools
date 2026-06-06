@@ -55,12 +55,12 @@ from .permission_guidance import launch_error_message
 
 
 def render_audio(
-    source_path: Path,
-    state: AudioEditState,
-    config: AudioProcessingConfig,
-    output_path: Path | None = None,
-    on_command: Callable[[tuple[str, ...]], None] | None = None,
-    artifact_root: Path | None = None,
+        source_path: Path,
+        state: AudioEditState,
+        config: AudioProcessingConfig,
+        output_path: Path | None = None,
+        on_command: Callable[[tuple[str, ...]], None] | None = None,
+        artifact_root: Path | None = None,
 ) -> AudioProcessingResult:
     """Render ``state`` from ``source_path`` to a final audio file."""
     ffmpeg_path = find_ffmpeg(config.ffmpeg_path)
@@ -111,11 +111,11 @@ def render_audio(
 
 
 def render_converted_audio(
-    source_path: Path,
-    config: AudioProcessingConfig,
-    target_format: object,
-    output_path: Path | None = None,
-    on_command: Callable[[tuple[str, ...]], None] | None = None,
+        source_path: Path,
+        config: AudioProcessingConfig,
+        target_format: object,
+        output_path: Path | None = None,
+        on_command: Callable[[tuple[str, ...]], None] | None = None,
 ) -> AudioProcessingResult:
     """Convert ``source_path`` to a supported output format without edit filters."""
     target = validate_target_format(target_format)
@@ -153,12 +153,12 @@ def render_converted_audio(
 
 
 def render_size_reduced_audio(
-    source_path: Path,
-    config: AudioProcessingConfig,
-    output_path: Path | None = None,
-    on_command: Callable[[tuple[str, ...]], None] | None = None,
-    *,
-    mode: object | None = None,
+        source_path: Path,
+        config: AudioProcessingConfig,
+        output_path: Path | None = None,
+        on_command: Callable[[tuple[str, ...]], None] | None = None,
+        *,
+        mode: object | None = None,
 ) -> AudioProcessingResult:
     """Re-encode ``source_path`` to MP3 with source-aware smaller settings."""
     ffmpeg_path = find_ffmpeg(config.ffmpeg_path)
@@ -199,12 +199,12 @@ def render_size_reduced_audio(
 
 
 def render_audio_region_deleted(
-    source_path: Path,
-    selection_start_ms: int,
-    selection_end_ms: int,
-    config: AudioProcessingConfig,
-    output_path: Path | None = None,
-    on_command: Callable[[tuple[str, ...]], None] | None = None,
+        source_path: Path,
+        selection_start_ms: int,
+        selection_end_ms: int,
+        config: AudioProcessingConfig,
+        output_path: Path | None = None,
+        on_command: Callable[[tuple[str, ...]], None] | None = None,
 ) -> AudioProcessingResult:
     """Render final audio with one selected region removed from ``source_path``."""
     duration_ms = probe_duration_ms(source_path, config)
@@ -225,12 +225,12 @@ def render_audio_region_deleted(
 
 
 def _render_region_filter_complex(
-    source_path: Path,
-    filter_complex: str,
-    config: AudioProcessingConfig,
-    output_path: Path,
-    codec_args: tuple[str, ...],
-    on_command: Callable[[tuple[str, ...]], None] | None = None,
+        source_path: Path,
+        filter_complex: str,
+        config: AudioProcessingConfig,
+        output_path: Path,
+        codec_args: tuple[str, ...],
+        on_command: Callable[[tuple[str, ...]], None] | None = None,
 ) -> AudioProcessingResult:
     ffmpeg_path = find_ffmpeg(config.ffmpeg_path)
     cmd = build_region_delete_command(ffmpeg_path, source_path, filter_complex, output_path, codec_args)
@@ -249,12 +249,12 @@ def _render_region_filter_complex(
 
 
 def render_audio_region_kept(
-    source_path: Path,
-    selection_start_ms: int,
-    selection_end_ms: int,
-    config: AudioProcessingConfig,
-    output_path: Path | None = None,
-    on_command: Callable[[tuple[str, ...]], None] | None = None,
+        source_path: Path,
+        selection_start_ms: int,
+        selection_end_ms: int,
+        config: AudioProcessingConfig,
+        output_path: Path | None = None,
+        on_command: Callable[[tuple[str, ...]], None] | None = None,
 ) -> AudioProcessingResult:
     """Render final audio with only one selected region kept from ``source_path``."""
     duration_ms = probe_duration_ms(source_path, config)
@@ -275,12 +275,12 @@ def render_audio_region_kept(
 
 
 def render_playback_segment(
-    source_path: Path,
-    start_ms: int,
-    config: AudioProcessingConfig,
-    output_path: Path | None = None,
-    on_command: Callable[[tuple[str, ...]], None] | None = None,
-    end_ms: int | None = None,
+        source_path: Path,
+        start_ms: int,
+        config: AudioProcessingConfig,
+        output_path: Path | None = None,
+        on_command: Callable[[tuple[str, ...]], None] | None = None,
+        end_ms: int | None = None,
 ) -> AudioProcessingResult:
     """Render a temporary segment for deterministic native playback."""
     ffmpeg_path = find_ffmpeg(config.ffmpeg_path)
@@ -310,11 +310,11 @@ def render_playback_segment(
 
 
 def make_output_filename(
-    source_filename: str,
-    now: datetime | None = None,
-    token: str | None = None,
-    *,
-    output_format: object = DEFAULT_OUTPUT_FORMAT,
+        source_filename: str,
+        now: datetime | None = None,
+        token: str | None = None,
+        *,
+        output_format: object = DEFAULT_OUTPUT_FORMAT,
 ) -> str:
     """Return the preferred generated filename for a final save."""
     now = now or datetime.now()
@@ -342,7 +342,8 @@ def _run_render_command(command: tuple[str, ...], launch_error: str) -> subproce
 
 
 def _safe_filename_stem(stem: str) -> str:
-    safe = "".join(ch if ch.isascii() and (ch.isalnum() or ch in {"-", "_"}) else "_" for ch in stem)  # pragma: no mutate
+    safe = "".join(
+        ch if ch.isascii() and (ch.isalnum() or ch in {"-", "_"}) else "_" for ch in stem)  # pragma: no mutate
     safe = "_".join(part for part in safe.split("_") if part)
     return safe or "audio"
 
@@ -357,9 +358,9 @@ def _output_extension_for_filename(source_filename: str, output_format: object) 
 
 
 def _resolve_filename_output_policy(
-    source_path: Path,
-    config: AudioProcessingConfig,
-    output_path: Path | None,
+        source_path: Path,
+        config: AudioProcessingConfig,
+        output_path: Path | None,
 ) -> AudioOutputPolicy:
     return resolve_output_policy_from_metadata(
         synthetic_audio_metadata(
@@ -381,9 +382,9 @@ def temp_final_path(filename: str) -> Path:
 
 
 def make_playback_segment_filename(
-    source_filename: str,
-    start_ms: int,
-    token: str | None = None,
+        source_filename: str,
+        start_ms: int,
+        token: str | None = None,
 ) -> str:
     """Return a debuggable temp filename for cursor playback segments."""
     token = token or uuid.uuid4().hex[:8]  # pragma: no mutate

@@ -65,8 +65,8 @@ def test_parse_silero_vad_speech_intervals_and_inverts_to_pauses() -> None:
 
 
 def test_silero_pipeline_cuts_pauses_and_renders_from_original_audio(
-    monkeypatch,
-    tmp_path: Path,
+        monkeypatch,
+        tmp_path: Path,
 ) -> None:
     run_dir = tmp_path / "artifacts" / "run"
     run_dir.mkdir(parents=True)
@@ -83,10 +83,10 @@ def test_silero_pipeline_cuts_pauses_and_renders_from_original_audio(
         manifest_path.write_text(json.dumps(manifest, indent=2, sort_keys=True), encoding="utf-8")
 
     def fake_run_pipeline_stage(
-        stage_name: str,
-        command: tuple[str, ...],
-        *_args: object,
-        **_kwargs: object,
+            stage_name: str,
+            command: tuple[str, ...],
+            *_args: object,
+            **_kwargs: object,
     ) -> subprocess.CompletedProcess[str]:
         stages.append({"name": stage_name, "command": " ".join(command)})
         if stage_name == "prepare_silero_vad_input":
@@ -182,8 +182,8 @@ def test_silero_pipeline_cuts_pauses_and_renders_from_original_audio(
 
 
 def test_denoise_preprocessing_changes_detection_input_not_render_source(
-    monkeypatch,
-    tmp_path: Path,
+        monkeypatch,
+        tmp_path: Path,
 ) -> None:
     run_dir = tmp_path / "artifacts" / "run"
     run_dir.mkdir(parents=True)
@@ -200,10 +200,10 @@ def test_denoise_preprocessing_changes_detection_input_not_render_source(
         manifest_path.write_text(json.dumps(manifest, indent=2, sort_keys=True), encoding="utf-8")
 
     def fake_run_pipeline_stage(
-        stage_name: str,
-        command: tuple[str, ...],
-        *_args: object,
-        **_kwargs: object,
+            stage_name: str,
+            command: tuple[str, ...],
+            *_args: object,
+            **_kwargs: object,
     ) -> subprocess.CompletedProcess[str]:
         stages.append({"name": stage_name, "command": " ".join(command)})
         if stage_name == "preprocess_pause_analysis_denoise":
@@ -273,8 +273,8 @@ def test_denoise_preprocessing_changes_detection_input_not_render_source(
 
 
 def test_render_audio_pause_pipeline_records_launch_error_for_out_of_disk(
-    monkeypatch,
-    tmp_path: Path,
+        monkeypatch,
+        tmp_path: Path,
 ) -> None:
     clear_latest_pause_pipeline_support_incident()
     source = tmp_path / "source.mp3"

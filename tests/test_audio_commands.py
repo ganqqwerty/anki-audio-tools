@@ -113,9 +113,9 @@ def test_build_silencedetect_command_uses_exact_pause_threshold_and_gap_values(t
     ],
 )
 def test_build_convert_audio_command_uses_format_codec_args(
-    target_format: str,
-    codec_args: tuple[str, ...],
-    tmp_path: Path,
+        target_format: str,
+        codec_args: tuple[str, ...],
+        tmp_path: Path,
 ) -> None:
     command = build_convert_audio_command(
         Path("/bin/ffmpeg"),
@@ -241,8 +241,8 @@ def test_build_size_reduction_audio_command_uses_source_aware_codec_args(tmp_pat
     ],
 )
 def test_final_ffmpeg_command_builders_reject_mismatched_output_contract(
-    builder: FinalCommandBuilder,
-    tmp_path: Path,
+        builder: FinalCommandBuilder,
+        tmp_path: Path,
 ) -> None:
     with pytest.raises(AudioProcessingError, match="does not match ffmpeg audio codec"):
         builder(tmp_path)

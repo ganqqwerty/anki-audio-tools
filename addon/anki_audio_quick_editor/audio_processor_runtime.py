@@ -12,22 +12,23 @@ def sync_tool_dependencies(audio_tools: Any, *, shutil_module: Any, bundled_deep
     audio_tools._bundled_deep_filter_path = bundled_deep_filter_path
 
 
-def sync_external_dependencies(audio_external: Any, *, subprocess_module: Any, find_ffmpeg: Any, find_ffprobe: Any) -> None:
+def sync_external_dependencies(audio_external: Any, *, subprocess_module: Any, find_ffmpeg: Any,
+                               find_ffprobe: Any) -> None:
     audio_external.subprocess = subprocess_module
     audio_external.find_ffmpeg = find_ffmpeg
     audio_external.find_ffprobe = find_ffprobe
 
 
 def sync_pause_dependencies(
-    audio_pause_pipeline: Any,
-    audio_pause_pipeline_steps: Any,
-    audio_pause_pipeline_stage: Any,
-    *,
-    find_dpdfnet_bundle: Any,
-    find_silero_vad_bundle: Any,
-    probe_duration_ms: Any,
-    run_external_command: Any,
-    render_external_error_message: Any,
+        audio_pause_pipeline: Any,
+        audio_pause_pipeline_steps: Any,
+        audio_pause_pipeline_stage: Any,
+        *,
+        find_dpdfnet_bundle: Any,
+        find_silero_vad_bundle: Any,
+        probe_duration_ms: Any,
+        run_external_command: Any,
+        render_external_error_message: Any,
 ) -> None:
     audio_pause_pipeline.find_dpdfnet_bundle = find_dpdfnet_bundle
     audio_pause_pipeline.find_silero_vad_bundle = find_silero_vad_bundle
@@ -38,21 +39,21 @@ def sync_pause_dependencies(
 
 
 def sync_rendering_dependencies(
-    audio_rendering: Any,
-    *,
-    build_audio_filters: Any,
-    build_convert_audio_command: Any,
-    build_size_reduction_audio_command: Any,
-    external_command_run_kwargs: Any,
-    find_ffmpeg: Any,
-    make_playback_segment_filename: Any,
-    probe_audio_metadata: Any,
-    probe_duration_ms: Any,
-    resolve_output_policy: Any,
-    render_pause_removal_pipeline_audio: Any,
-    subprocess_module: Any,
-    tempfile_module: Any,
-    uuid_module: Any,
+        audio_rendering: Any,
+        *,
+        build_audio_filters: Any,
+        build_convert_audio_command: Any,
+        build_size_reduction_audio_command: Any,
+        external_command_run_kwargs: Any,
+        find_ffmpeg: Any,
+        make_playback_segment_filename: Any,
+        probe_audio_metadata: Any,
+        probe_duration_ms: Any,
+        resolve_output_policy: Any,
+        render_pause_removal_pipeline_audio: Any,
+        subprocess_module: Any,
+        tempfile_module: Any,
+        uuid_module: Any,
 ) -> None:
     audio_rendering.find_ffmpeg = find_ffmpeg
     audio_rendering.probe_duration_ms = probe_duration_ms
@@ -70,19 +71,19 @@ def sync_rendering_dependencies(
 
 
 def sync_noise_dependencies(
-    audio_noise_reduction: Any,
-    *,
-    find_deep_filter: Any,
-    find_dpdfnet_bundle: Any,
-    find_ffmpeg: Any,
-    find_rnnoise_bundle: Any,
-    find_silero_vad_bundle: Any,
-    find_spleeter_bundle: Any,
-    probe_duration_ms: Any,
-    render_external_error_message: Any,
-    run_external_command: Any,
-    shutil_module: Any,
-    tempfile_module: Any,
+        audio_noise_reduction: Any,
+        *,
+        find_deep_filter: Any,
+        find_dpdfnet_bundle: Any,
+        find_ffmpeg: Any,
+        find_rnnoise_bundle: Any,
+        find_silero_vad_bundle: Any,
+        find_spleeter_bundle: Any,
+        probe_duration_ms: Any,
+        render_external_error_message: Any,
+        run_external_command: Any,
+        shutil_module: Any,
+        tempfile_module: Any,
 ) -> None:
     audio_noise_reduction.find_ffmpeg = find_ffmpeg
     audio_noise_reduction.find_deep_filter = find_deep_filter
@@ -109,7 +110,8 @@ def sync_noise_dependencies(
         bundled.shutil = shutil_module
 
 
-def sync_pitch_hum_dependencies(audio_pitch_hum: Any, *, find_ffmpeg: Any, probe_duration_ms: Any, subprocess_module: Any, tempfile_module: Any) -> None:
+def sync_pitch_hum_dependencies(audio_pitch_hum: Any, *, find_ffmpeg: Any, probe_duration_ms: Any,
+                                subprocess_module: Any, tempfile_module: Any) -> None:
     audio_pitch_hum.find_ffmpeg = find_ffmpeg
     audio_pitch_hum.probe_duration_ms = probe_duration_ms
     audio_pitch_hum.subprocess = subprocess_module

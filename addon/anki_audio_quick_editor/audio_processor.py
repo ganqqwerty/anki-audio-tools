@@ -189,10 +189,10 @@ def probe_duration_ms(source_path: Path, config: AudioProcessingConfig) -> int:
 
 
 def _run_external_command(
-    command: tuple[str, ...],
-    launch_error_message: str,
-    timeout_seconds: float | None = None,
-    env: dict[str, str] | None = None,
+        command: tuple[str, ...],
+        launch_error_message: str,
+        timeout_seconds: float | None = None,
+        env: dict[str, str] | None = None,
 ) -> subprocess.CompletedProcess[str]:
     _sync_external_dependencies()
     return _audio_external._run_external_command(command, launch_error_message, timeout_seconds, env)
@@ -204,8 +204,8 @@ def _external_command_run_kwargs() -> dict[str, Any]:
 
 
 def _render_external_error_message(
-    result: subprocess.CompletedProcess[str],
-    default_message: str,
+        result: subprocess.CompletedProcess[str],
+        default_message: str,
 ) -> str:
     return _audio_external._render_external_error_message(result, default_message)
 
@@ -224,17 +224,17 @@ def _sync_pause_dependencies() -> None:
 
 
 def _render_pause_removal_pipeline_audio(
-    source_path: Path,
-    state: AudioEditState,
-    config: AudioProcessingConfig,
-    ffmpeg_path: Path,
-    output_path: Path,
-    on_command: Callable[[tuple[str, ...]], None] | None,
-    *,
-    artifact_root: Path | None,
-    source_duration_ms: int,
-    codec_args: tuple[str, ...],
-    output_mime_type: str,
+        source_path: Path,
+        state: AudioEditState,
+        config: AudioProcessingConfig,
+        ffmpeg_path: Path,
+        output_path: Path,
+        on_command: Callable[[tuple[str, ...]], None] | None,
+        *,
+        artifact_root: Path | None,
+        source_duration_ms: int,
+        codec_args: tuple[str, ...],
+        output_mime_type: str,
 ) -> AudioProcessingResult:
     _sync_pause_dependencies()
     return _audio_pause_pipeline._render_pause_removal_pipeline_audio(
@@ -249,6 +249,8 @@ def _render_pause_removal_pipeline_audio(
         codec_args=codec_args,
         output_mime_type=output_mime_type,
     )
+
+
 def _sync_rendering_dependencies() -> None:
     sync_rendering_dependencies(
         cast(Any, _audio_rendering),

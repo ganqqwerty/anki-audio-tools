@@ -114,11 +114,11 @@ def test_probe_duration_ms_uses_json_ffprobe_call_and_rounds(monkeypatch, tmp_pa
     monkeypatch.setattr("anki_audio_quick_editor.audio_processor.find_ffprobe", lambda _path: Path("/bin/ffprobe"))
 
     def fake_run(
-        cmd: list[str],
-        capture_output: bool,
-        text: bool,
-        check: bool,
-        **_kwargs: object,
+            cmd: list[str],
+            capture_output: bool,
+            text: bool,
+            check: bool,
+            **_kwargs: object,
     ) -> SimpleNamespace:
         run_calls.append((cmd, capture_output, text, check))
         return SimpleNamespace(returncode=0, stdout='{"format":{"duration":"1.2346"}}', stderr="")
@@ -209,15 +209,17 @@ def test_render_audio_uses_expected_ffmpeg_invocation(monkeypatch, tmp_path: Pat
 
     monkeypatch.setattr("anki_audio_quick_editor.audio_processor.find_ffmpeg", fake_find_ffmpeg)
     monkeypatch.setattr("anki_audio_quick_editor.audio_processor.probe_duration_ms", lambda *_args: next(durations))
-    monkeypatch.setattr("anki_audio_quick_editor.audio_processor.build_audio_filters", lambda *_args: "atrim=start=0.100:end=0.900")
-    monkeypatch.setattr("anki_audio_quick_editor.audio_processor.resolve_output_policy", lambda *_args, **_kwargs: _mp3_policy())
+    monkeypatch.setattr("anki_audio_quick_editor.audio_processor.build_audio_filters",
+                        lambda *_args: "atrim=start=0.100:end=0.900")
+    monkeypatch.setattr("anki_audio_quick_editor.audio_processor.resolve_output_policy",
+                        lambda *_args, **_kwargs: _mp3_policy())
 
     def fake_run(
-        cmd: list[str],
-        capture_output: bool,
-        text: bool,
-        check: bool,
-        **_kwargs: object,
+            cmd: list[str],
+            capture_output: bool,
+            text: bool,
+            check: bool,
+            **_kwargs: object,
     ) -> SimpleNamespace:
         calls.append((cmd, capture_output, text, check))
         return SimpleNamespace(returncode=0, stdout="", stderr="")
@@ -257,8 +259,8 @@ def test_render_audio_uses_expected_ffmpeg_invocation(monkeypatch, tmp_path: Pat
 
 
 def test_render_audio_uses_stable_text_decoding_for_non_ascii_sources(
-    monkeypatch,
-    tmp_path: Path,
+        monkeypatch,
+        tmp_path: Path,
 ) -> None:
     durations = iter([1000, 1000])
     source = tmp_path / "Даии_青山_voice.opus"
@@ -267,15 +269,16 @@ def test_render_audio_uses_stable_text_decoding_for_non_ascii_sources(
 
     monkeypatch.setattr("anki_audio_quick_editor.audio_processor.find_ffmpeg", lambda _path: Path("/bin/ffmpeg"))
     monkeypatch.setattr("anki_audio_quick_editor.audio_processor.probe_duration_ms", lambda *_args: next(durations))
-    monkeypatch.setattr("anki_audio_quick_editor.audio_processor.resolve_output_policy", lambda *_args, **_kwargs: _mp3_policy())
+    monkeypatch.setattr("anki_audio_quick_editor.audio_processor.resolve_output_policy",
+                        lambda *_args, **_kwargs: _mp3_policy())
 
     def fake_run(
-        _cmd: list[str],
-        *,
-        capture_output: bool,
-        text: bool,
-        check: bool,
-        **kwargs: object,
+            _cmd: list[str],
+            *,
+            capture_output: bool,
+            text: bool,
+            check: bool,
+            **kwargs: object,
     ) -> SimpleNamespace:
         assert capture_output is True
         assert text is True
@@ -305,19 +308,20 @@ def test_render_audio_forwards_window_visibility_kwargs(monkeypatch, tmp_path: P
 
     monkeypatch.setattr("anki_audio_quick_editor.audio_processor.find_ffmpeg", lambda _path: Path("/bin/ffmpeg"))
     monkeypatch.setattr("anki_audio_quick_editor.audio_processor.probe_duration_ms", lambda *_args: next(durations))
-    monkeypatch.setattr("anki_audio_quick_editor.audio_processor.resolve_output_policy", lambda *_args, **_kwargs: _mp3_policy())
+    monkeypatch.setattr("anki_audio_quick_editor.audio_processor.resolve_output_policy",
+                        lambda *_args, **_kwargs: _mp3_policy())
     monkeypatch.setattr(
         "anki_audio_quick_editor.audio_processor._external_command_run_kwargs",
         lambda: {"creationflags": 0x08000000},
     )
 
     def fake_run(
-        _cmd: list[str],
-        *,
-        capture_output: bool,
-        text: bool,
-        check: bool,
-        **kwargs: object,
+            _cmd: list[str],
+            *,
+            capture_output: bool,
+            text: bool,
+            check: bool,
+            **kwargs: object,
     ) -> SimpleNamespace:
         assert capture_output is True
         assert text is True

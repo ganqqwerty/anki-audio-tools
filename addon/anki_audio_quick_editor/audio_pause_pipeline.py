@@ -46,17 +46,17 @@ class _PausePipelinePaths:
 
 
 def _render_pause_removal_pipeline_audio(
-    source_path: Path,
-    state: AudioEditState,
-    config: AudioProcessingConfig,
-    ffmpeg_path: Path,
-    output_path: Path,
-    on_command: Callable[[tuple[str, ...]], None] | None,
-    *,
-    artifact_root: Path | None,
-    source_duration_ms: int,
-    codec_args: tuple[str, ...] = ("-codec:a", "libmp3lame", "-q:a", "4"),
-    output_mime_type: str = "audio/mpeg",
+        source_path: Path,
+        state: AudioEditState,
+        config: AudioProcessingConfig,
+        ffmpeg_path: Path,
+        output_path: Path,
+        on_command: Callable[[tuple[str, ...]], None] | None,
+        *,
+        artifact_root: Path | None,
+        source_duration_ms: int,
+        codec_args: tuple[str, ...] = ("-codec:a", "libmp3lame", "-q:a", "4"),
+        output_mime_type: str = "audio/mpeg",
 ) -> AudioProcessingResult:
     runtime = _PauseDetectionRuntime()
     run_dir = _create_pause_pipeline_run_dir(source_path, artifact_root)
@@ -174,8 +174,8 @@ def _pause_pipeline_artifact_paths(run_dir: Path) -> _PausePipelinePaths:
 
 
 def _resolve_pause_detection_runtime(
-    config: AudioProcessingConfig,
-    manifest: dict[str, object],
+        config: AudioProcessingConfig,
+        manifest: dict[str, object],
 ) -> _PauseDetectionRuntime:
     dpdfnet_path = find_dpdfnet_bundle() if _pause_preprocess_enabled(config) else None
     if dpdfnet_path is not None:
@@ -201,16 +201,16 @@ def _pause_preprocess_enabled(config: AudioProcessingConfig) -> bool:
 
 
 def _render_working_original(
-    source_path: Path,
-    state: AudioEditState,
-    config: AudioProcessingConfig,
-    ffmpeg_path: Path,
-    source_duration_ms: int,
-    working_original: Path,
-    stages: list[dict[str, object]],
-    attempted_commands: list[dict[str, object]],
-    artifacts: list[dict[str, object]],
-    on_command: Callable[[tuple[str, ...]], None] | None,
+        source_path: Path,
+        state: AudioEditState,
+        config: AudioProcessingConfig,
+        ffmpeg_path: Path,
+        source_duration_ms: int,
+        working_original: Path,
+        stages: list[dict[str, object]],
+        attempted_commands: list[dict[str, object]],
+        artifacts: list[dict[str, object]],
+        on_command: Callable[[tuple[str, ...]], None] | None,
 ) -> int:
     working_filters = build_working_original_filters(source_duration_ms, state)
     working_cmd = build_wav_filter_command(
@@ -233,31 +233,31 @@ def _render_working_original(
 
 
 def _render_selected_pause_detection_pipeline(
-    state: AudioEditState,
-    config: AudioProcessingConfig,
-    ffmpeg_path: Path,
-    output_path: Path,
-    on_command: Callable[[tuple[str, ...]], None] | None,
-    *,
-    manifest_path: Path,
-    manifest: dict[str, object],
-    stages: list[dict[str, object]],
-    attempted_commands: list[dict[str, object]],
-    artifacts: list[dict[str, object]],
-    write_manifest: Callable[[], None],
-    run_dir: Path,
-    working_original: Path,
-    working_duration_ms: int,
-    analysis_input: Path,
-    denoised_analysis: Path,
-    raw_silence_path: Path,
-    intervals_path: Path,
-    timeline_path: Path,
-    filter_script_path: Path,
-    final_copy_path: Path,
-    runtime: _PauseDetectionRuntime,
-    codec_args: tuple[str, ...],
-    output_mime_type: str,
+        state: AudioEditState,
+        config: AudioProcessingConfig,
+        ffmpeg_path: Path,
+        output_path: Path,
+        on_command: Callable[[tuple[str, ...]], None] | None,
+        *,
+        manifest_path: Path,
+        manifest: dict[str, object],
+        stages: list[dict[str, object]],
+        attempted_commands: list[dict[str, object]],
+        artifacts: list[dict[str, object]],
+        write_manifest: Callable[[], None],
+        run_dir: Path,
+        working_original: Path,
+        working_duration_ms: int,
+        analysis_input: Path,
+        denoised_analysis: Path,
+        raw_silence_path: Path,
+        intervals_path: Path,
+        timeline_path: Path,
+        filter_script_path: Path,
+        final_copy_path: Path,
+        runtime: _PauseDetectionRuntime,
+        codec_args: tuple[str, ...],
+        output_mime_type: str,
 ) -> AudioProcessingResult:
     return _render_pause_removal_audio(
         state,

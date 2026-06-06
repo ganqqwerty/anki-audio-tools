@@ -28,9 +28,9 @@ _MIN_PAUSE_PIPELINE_RUN_ID_LENGTH = len(
 
 
 def _max_pause_pipeline_run_id_length(
-    artifact_root: Path,
-    *,
-    is_windows: bool | None = None,
+        artifact_root: Path,
+        *,
+        is_windows: bool | None = None,
 ) -> int:
     if is_windows is None:
         is_windows = os.name == "nt"
@@ -39,10 +39,10 @@ def _max_pause_pipeline_run_id_length(
 
     root_text = str(PureWindowsPath(str(artifact_root)))
     run_id_budget = (
-        _WINDOWS_LEGACY_MAX_PATH_LENGTH
-        - len(root_text)
-        - 2
-        - len(_LONGEST_PAUSE_PIPELINE_ARTIFACT_NAME)
+            _WINDOWS_LEGACY_MAX_PATH_LENGTH
+            - len(root_text)
+            - 2
+            - len(_LONGEST_PAUSE_PIPELINE_ARTIFACT_NAME)
     )
     if run_id_budget < _MIN_PAUSE_PIPELINE_RUN_ID_LENGTH:
         raise AudioProcessingError(
@@ -64,16 +64,16 @@ def _create_pause_pipeline_run_dir(source_path: Path, artifact_root: Path | None
 
 
 def _build_pause_pipeline_manifest(
-    run_dir: Path,
-    source_path: Path,
-    state: AudioEditState,
-    config: AudioProcessingConfig,
-    source_duration_ms: int,
-    *,
-    stages: list[dict[str, object]],
-    artifacts: list[dict[str, object]],
-    warnings: list[str],
-    errors: list[str],
+        run_dir: Path,
+        source_path: Path,
+        state: AudioEditState,
+        config: AudioProcessingConfig,
+        source_duration_ms: int,
+        *,
+        stages: list[dict[str, object]],
+        artifacts: list[dict[str, object]],
+        warnings: list[str],
+        errors: list[str],
 ) -> dict[str, object]:
     return {
         "schema_version": PAUSE_PIPELINE_MANIFEST_VERSION,
