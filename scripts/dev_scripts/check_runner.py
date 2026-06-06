@@ -8,9 +8,10 @@ import sys
 import traceback
 from collections.abc import Callable
 
-from scripts.dev_tasks.process import is_verbose
+from scripts.dev_tasks.process import is_verbose, quiet_test_output
 
 CheckStep = tuple[str, Callable[[], int]]
+QUIET_SUCCESS_CHECK_STEPS = frozenset({"test", "test-anki-api", "coverage", "test-svelte"})
 
 
 def cmd_check(
@@ -161,12 +162,11 @@ def _run_check_steps_sequential(steps: list[CheckStep]) -> list[str]:
     failed: list[str] = []
     total_steps = len(steps)
     for index, (name, func) in enumerate(steps, start=1):
-        print(
-            f"\n{'=' * 60}\n  Step {index}/{total_steps}: {name}\n{'=' * 60}\n"
-            if is_verbose()
-            else f"[dev] check {index}/{total_steps}: {name}"
-        )
-        rc = _run_check_step(name, func)
+        if is_verbose():
+            print(f"\n{'=' * 60}\n  Step {index}/{total_steps}: {name}\n{'=' * 60}\n")
+        elif name not in QUIET_SUCCESS_CHECK_STEPS:
+            print(f"[dev] check {index}/{total_steps}: {name}")
+        rc = _run_check_step_with_policy(name, func)
         if rc != 0:
             failed.append(name)
             print(f"[dev] FAILED: {name}")
@@ -180,7 +180,7 @@ def _run_check_steps_parallel(steps: list[CheckStep]) -> list[str]:
     print(f"[dev] check parallel phase: {len(steps)} step(s), {workers} worker(s)")
     failed: list[str] = []
     with concurrent.futures.ThreadPoolExecutor(max_workers=workers) as executor:
-        future_to_name = {executor.submit(_run_check_step, name, func): name for name, func in steps}
+        future_to_name = {executor.submit(_run_check_step_with_policy, name, func): name for name, func in steps}
         results: dict[str, int] = {}
         for future in concurrent.futures.as_completed(future_to_name):
             name = future_to_name[future]
@@ -200,3 +200,10 @@ def _run_check_step(name: str, func: Callable[[], int]) -> int:
         if is_verbose():
             traceback.print_exc()
         return 1
+
+
+def _run_check_step_with_policy(name: str, func: Callable[[], int]) -> int:
+    if not is_verbose() and name in QUIET_SUCCESS_CHECK_STEPS:
+        with quiet_test_output():
+            return _run_check_step(name, func)
+    return _run_check_step(name, func)
