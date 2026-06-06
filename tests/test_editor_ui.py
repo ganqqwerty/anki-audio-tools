@@ -24,6 +24,7 @@ def test_injection_script_embeds_audio_field_indices_and_bundle() -> None:
     assert config["initialHistoryAvailabilityByField"] == {}
     assert config["pendingPostEditPlayback"] is None
     assert config["repeatPlaybackByDefault"] is True
+    assert config["selectionMarkerShiftButtonsEnabled"] is False
     assert config["showGraphByDefault"] is True
     assert config["visibleEditorButtons"] is None
     assert config["splitButtonDefaults"]["repeatPauseSeconds"] == 0.0
@@ -79,6 +80,12 @@ def test_injection_script_embeds_show_graph_default() -> None:
     script = injection_script([0], show_graph_by_default=True)
 
     assert _embedded_config(script)["showGraphByDefault"] is True
+
+
+def test_injection_script_embeds_selection_marker_shift_toggle() -> None:
+    script = injection_script([0], selection_marker_shift_buttons_enabled=False)
+
+    assert _embedded_config(script)["selectionMarkerShiftButtonsEnabled"] is False
 
 
 def test_injection_script_embeds_visible_editor_buttons() -> None:

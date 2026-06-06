@@ -16,6 +16,7 @@
   import { syncRecordingControls } from "./recording-actions.js";
   import { handleVisualizerKeyDown } from "./region-delete.js";
   import { handleChorusingMarkerPointerDown, installChorusingHandlers } from "./chorusing-controller.js";
+  import SelectionMarkerShiftButtons from "./SelectionMarkerShiftButtons.svelte";
   import SelectionToolbar from "./SelectionToolbar.svelte";
   import TimeViewportScroller from "./TimeViewportScroller.svelte";
   import type { FieldTarget } from "./types.js";
@@ -34,6 +35,7 @@
   const selectionHandleCenterY = selectionHandleY + selectionHandleHeight / 2;
   const plotClipId = $derived(`aqe-plot-clip-${target.ord}`);
   const plotClipUrl = $derived(`url(#${plotClipId})`);
+  const selectionMarkerShiftButtonsEnabled = window.__AQE_EDITOR_CONFIG__?.selectionMarkerShiftButtonsEnabled === true;
 
   function handleGraphKeyDown(event: KeyboardEvent): void {
     const visualizer = visualizerForOrd(target.ord);
@@ -111,6 +113,7 @@
   data-selection-draft-active="false"
   data-selection-draft-start-ms=""
   data-selection-draft-end-ms=""
+  data-selection-marker-shift-buttons-enabled={selectionMarkerShiftButtonsEnabled ? "true" : "false"}
   data-repeat-enabled={repeatDefault ? "true" : "false"}
   data-repeat-pause-seconds={repeatPauseDefault}
   data-repeat-pause-waiting="false"
@@ -280,6 +283,9 @@
         </div>
       </div>
     </div>
+    {#if selectionMarkerShiftButtonsEnabled}
+      <SelectionMarkerShiftButtons {target} />
+    {/if}
     <SelectionToolbar {target} />
   </div>
   <TimeViewportScroller {target} />

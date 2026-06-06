@@ -35,6 +35,7 @@ export interface EditorRuntimeConfig {
     sourceFilename?: string;
   } | null;
   repeatPlaybackByDefault?: boolean;
+  selectionMarkerShiftButtonsEnabled?: boolean;
   showGraphByDefault?: boolean;
   splitButtonDefaults?: SplitButtonDefaults;
   visibleEditorButtons?: EditorCommand[];

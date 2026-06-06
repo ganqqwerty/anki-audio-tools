@@ -14,6 +14,7 @@
     "share_target",
     "voice_recording_countdown_seconds",
     "show_graph_by_default",
+    "selection_marker_shift_buttons_enabled",
     "visible_editor_buttons",
     "editor_button_modes",
     "graph_voice_range",
@@ -86,6 +87,9 @@
       "maximum": 10
     },
     "show_graph_by_default": {
+      "type": "boolean"
+    },
+    "selection_marker_shift_buttons_enabled": {
       "type": "boolean"
     },
     "visible_editor_buttons": {

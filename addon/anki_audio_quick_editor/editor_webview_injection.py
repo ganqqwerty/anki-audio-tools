@@ -42,6 +42,9 @@ def editor_injection_script(editor: Any, note: Any) -> str:
         initial_status_by_field=_initial_status_by_field(_SESSIONS.get(editor)),
         pending_post_edit_playback=_pending_post_edit_playback(editor),
         repeat_playback_by_default=bool(config.get("repeat_playback_by_default", True)),
+        selection_marker_shift_buttons_enabled=bool(
+            config.get("selection_marker_shift_buttons_enabled", False)
+        ),
         show_graph_by_default=bool(config.get("show_graph_by_default", True)),
         visible_editor_buttons=[str(command) for command in visible_editor_buttons],
         editor_button_modes={

@@ -40,6 +40,7 @@ const config: Config = {
   voice_recording_countdown_seconds: 0,
   share_target: ShareTarget.Litterbox,
   show_graph_by_default: true,
+  selection_marker_shift_buttons_enabled: false,
   visible_editor_buttons: [
     VisibleEditorButton.AqePlay,
     VisibleEditorButton.AqeAnalyze,

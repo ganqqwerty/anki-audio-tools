@@ -21,6 +21,14 @@ import {
 } from "./selection-state.js";
 import { notifySelectionChanged, type SelectionMutationOrigin } from "./selection-events.js";
 import {
+  chorusingStateForVisualizer,
+} from "./chorusing-dom.js";
+import {
+  resolveSelectionMarkerShift,
+  type SelectionShiftDirection,
+  type SelectionShiftEdge,
+} from "./selection-marker-shift.js";
+import {
   clearSelection as clearSelectionFromController,
   clearSelectionDraft as clearSelectionDraftFromController,
   commitSelectionDraft as commitSelectionDraftFromController,
@@ -43,6 +51,7 @@ import {
 } from "./visualizer-renderer.js";
 import {
   readVisualizerTargetDurationMs,
+  setVisualizerResumeRequiresRestart,
 } from "./visualizer-state.js";
 import {
   clearPlaybackFrame as clearPlaybackFrameFromController,
@@ -225,6 +234,56 @@ export function setSelection(
   if (selected) notifySelectionChanged(visualizer, options.origin ?? "user");
   syncSelectionToolbar(visualizer);
   return selected;
+}
+
+export function shiftSelectionEdgeToMarker(
+  visualizer: VisualizerElement,
+  edge: SelectionShiftEdge,
+  direction: SelectionShiftDirection,
+  options: { origin?: SelectionMutationOrigin } = {},
+): boolean {
+  const selection = selectionForVisualizer(visualizer);
+  if (!selection) return false;
+  const resolution = resolveSelectionMarkerShift(
+    selection,
+    edge,
+    direction,
+    chorusingStateForVisualizer(visualizer).markersMs,
+    readVisualizerTargetDurationMs(visualizer),
+  );
+  if (!resolution.nextRange) return false;
+  const ord = Number(visualizer.dataset.aqeFieldOrd || "0");
+  const previousPlaybackState = playbackStateFor(visualizer);
+  if (previousPlaybackState === "playing") {
+    stopProgressClock(visualizer, { clearEngine: false });
+  }
+  const shifted = setSelection(
+    visualizer,
+    resolution.nextRange.startMs,
+    resolution.nextRange.endMs,
+    { origin: options.origin ?? "user" },
+  );
+  if (!shifted) return false;
+  if (previousPlaybackState === "paused") {
+    setVisualizerResumeRequiresRestart(visualizer, true);
+  }
+  if (previousPlaybackState === "playing" && audioClockReady(visualizer)) {
+    startEditorHtmlPlayback(
+      visualizer,
+      playbackRequestForStart(visualizer, ord, resolution.nextRange.startMs, "html"),
+    );
+  }
+  return true;
+}
+
+export function shiftSelectionEdgeToMarkerForOrd(
+  ord: number,
+  edge: SelectionShiftEdge,
+  direction: SelectionShiftDirection,
+): boolean {
+  const visualizer = visualizerForOrd(ord);
+  if (!visualizer) return false;
+  return shiftSelectionEdgeToMarker(visualizer, edge, direction);
 }
 
 export function initializePlaybackRegionState(visualizer: VisualizerElement): void {
