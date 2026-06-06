@@ -27,12 +27,10 @@ def _plot_pointer_script(ord_: int, start_ratio: float, end_ratio: float) -> str
     (() => {{
       const ord = {ord_};
       const svg = document.querySelector(`.aqe-visualizer[data-aqe-field-ord="${{ord}}"] .aqe-visualizer-svg`);
-      const rect = svg.getBoundingClientRect();
-      const plot = {{ width: 620, height: 150, left: 44, right: 10 }};
-      const scale = Math.min(rect.width / plot.width, rect.height / plot.height) || 1;
-      const plotLeft = rect.left + plot.left * scale;
-      const plotWidth = (plot.width - plot.left - plot.right) * scale;
-      const xFor = (ratio) => plotLeft + plotWidth * ratio;
+      const rect = svg?.getBoundingClientRect();
+      const bounds = window.__aqeGraphPixelBoundsForTest?.(ord);
+      if (!svg || !rect || !bounds) return;
+      const xFor = (ratio) => bounds.left + bounds.width * ratio;
       const EventCtor = window.PointerEvent || window.MouseEvent;
       svg.dispatchEvent(new EventCtor("pointerdown", {{
         bubbles: true,

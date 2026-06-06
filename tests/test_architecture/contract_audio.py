@@ -31,7 +31,7 @@ AUDIO_CONTRACTS: dict[str, ModuleContract] = {
     "audio_artifacts": contract(
         "audio_artifacts",
         layer=Layer.IMPORT_SAFE_CORE,
-        allowed_addon_deps=("audio_pipeline", "audio_state", "audio_tools"),
+        allowed_addon_deps=("audio_pipeline", "audio_state", "audio_tools", "errors"),
     ),
     "audio_commands": contract(
         "audio_commands",

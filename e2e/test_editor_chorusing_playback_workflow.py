@@ -11,6 +11,27 @@ from e2e.editor_region_loop_helpers import (
 from e2e.helpers import run_js, wait_for_js_condition
 
 
+def _matches_zoomed_marker_state(state) -> bool:
+    start = int(state["viewportStartMs"])
+    end = int(state["viewportEndMs"])
+    duration = int(state["durationMs"])
+    starts_after_zero = start > 0
+    ends_before_duration = end < duration
+    markers = state["chorusingMarkersMs"]
+    return (
+        starts_after_zero
+        and end > start
+        and ends_before_duration
+        and end - start == 1200
+        and state["chorusingBaseStartMs"] == 0
+        and state["chorusingBaseEndMs"] == 2000
+        and len(markers) == 4
+        and markers[0:2] == [0, 667]
+        and abs(markers[2] - 880) <= 5
+        and markers[3] == 1333
+    )
+
+
 def test_chorusing_practice_loops_suffixes_and_pauses_for_normal_play(
     anki_mw,
     ffmpeg_config,
@@ -207,14 +228,7 @@ def test_chorusing_marker_placement_uses_zoomed_viewport(
 
         state = _state(
             editor,
-            lambda value: 0 < value["viewportStartMs"] < value["viewportEndMs"] < value["durationMs"]
-            and value["viewportEndMs"] - value["viewportStartMs"] == 1200
-            and value["chorusingBaseStartMs"] == 0
-            and value["chorusingBaseEndMs"] == 2000
-            and len(value["chorusingMarkersMs"]) == 4
-            and value["chorusingMarkersMs"][0:2] == [0, 667]
-            and abs(value["chorusingMarkersMs"][2] - 880) <= 5
-            and value["chorusingMarkersMs"][3] == 1333,
+            _matches_zoomed_marker_state,
         )
 
         assert state["chorusingMarkerVisibleXs"]
@@ -239,13 +253,13 @@ def test_chorusing_marker_rail_does_not_steal_top_of_graph_cursor_drag(
             """
             (() => {
               const svg = document.querySelector('[data-testid="aqe-graph-svg-0"]');
-              if (!svg) return null;
-              const rect = svg.getBoundingClientRect();
-              const plot = { width: 620, height: 150, left: 44, right: 10, top: 28 };
-              const plotLeft = rect.left + (plot.left / plot.width) * rect.width;
-              const plotWidth = ((plot.width - plot.left - plot.right) / plot.width) * rect.width;
-              const xFor = (ratio) => plotLeft + plotWidth * ratio;
-              const y = rect.top + ((plot.top + 4) / plot.height) * rect.height;
+              const rect = svg?.getBoundingClientRect();
+              const bounds = window.__aqeGraphPixelBoundsForTest?.(0);
+              if (!svg || !rect || !bounds) return null;
+              const viewBoxHeight = svg.viewBox?.baseVal?.height || 150;
+              const scale = Math.min(rect.width / (svg.viewBox?.baseVal?.width || 620), rect.height / viewBoxHeight) || 1;
+              const xFor = (ratio) => bounds.left + bounds.width * ratio;
+              const y = rect.top + (28 + 4) * scale;
               const target = document.elementFromPoint(xFor(0.25), y);
               if (!target) return null;
               const EventCtor = window.PointerEvent || window.MouseEvent;
@@ -292,21 +306,19 @@ def _click_chorusing_marker(editor, ratio: float, *, expected_count: int):
           const row = document.querySelector('[data-testid="aqe-chorusing-marker-row-0"]');
           const hitbox = document.querySelector('.aqe-chorusing-marker-hitbox');
           const svg = document.querySelector('[data-testid="aqe-graph-svg-0"]');
-          if (!row || !hitbox || !svg) return null;
-          const rect = svg.getBoundingClientRect();
-          const plot = {{ width: 620, left: 44, right: 10 }};
-          const plotLeft = rect.left + (plot.left / plot.width) * rect.width;
-          const plotWidth = ((plot.width - plot.left - plot.right) / plot.width) * rect.width;
+          const rect = svg?.getBoundingClientRect();
+          const bounds = window.__aqeGraphPixelBoundsForTest?.(0);
+          if (!row || !hitbox || !svg || !rect || !bounds) return null;
           const EventCtor = window.PointerEvent || window.MouseEvent;
           const target = row.getAttribute("aria-hidden") === "true" ? hitbox : row;
           target.dispatchEvent(new EventCtor('pointerdown', {{
             bubbles: true,
-            clientX: plotLeft + plotWidth * {ratio},
+            clientX: bounds.left + bounds.width * {ratio},
             clientY: rect.top + 14,
           }}));
           window.dispatchEvent(new EventCtor('pointerup', {{
             bubbles: true,
-            clientX: plotLeft + plotWidth * {ratio},
+            clientX: bounds.left + bounds.width * {ratio},
             clientY: rect.top + 14,
           }}));
           return window.__aqeGraphStateForTest?.(0) || null;

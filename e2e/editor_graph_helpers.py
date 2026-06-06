@@ -150,11 +150,10 @@ def _drag_cursor_to_ratio(editor, ratio: float, ord_: int = 0) -> None:
           const ord = __ORD__;
           const ratio = __RATIO__;
           const svg = document.querySelector(`.aqe-visualizer[data-aqe-field-ord="${ord}"] .aqe-visualizer-svg`);
-          const rect = svg.getBoundingClientRect();
-          const plot = { width: 620, left: 44, right: 10 };
-          const plotLeft = rect.left + (plot.left / plot.width) * rect.width;
-          const plotWidth = ((plot.width - plot.left - plot.right) / plot.width) * rect.width;
-          const x = plotLeft + plotWidth * ratio;
+          const rect = svg?.getBoundingClientRect();
+          const bounds = window.__aqeGraphPixelBoundsForTest?.(ord);
+          if (!svg || !rect || !bounds) return;
+          const x = bounds.left + bounds.width * ratio;
           const EventCtor = window.PointerEvent || window.MouseEvent;
           svg.dispatchEvent(new EventCtor('pointerdown', { clientX: x, clientY: rect.top + 40, bubbles: true }));
           window.dispatchEvent(new EventCtor('pointerup', { clientX: x, clientY: rect.top + 40, bubbles: true }));

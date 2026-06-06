@@ -149,14 +149,15 @@ def build_ffmpeg_command(
 
 
 def build_wav_filter_command(
-        ffmpeg_path: Path,
-        source_path: Path,
-        filters: str,
-        output_path: Path,
+    ffmpeg_path: Path,
+    source_path: Path,
+    filters: str,
+    output_path: Path,
+    codec_args: Sequence[str] | None = None,
 ) -> tuple[str, ...]:
     """Build an ffmpeg command that renders filtered PCM WAV output."""
-    codec_args = (FFMPEG_AUDIO_CODEC_ARG, "pcm_s16le")
-    validate_intermediate_ffmpeg_output(output_path, codec_args)
+    resolved_codec_args = tuple(codec_args) if codec_args is not None else (FFMPEG_AUDIO_CODEC_ARG, "pcm_s16le")
+    validate_intermediate_ffmpeg_output(output_path, resolved_codec_args)
     return (
         str(ffmpeg_path),
         "-y",
@@ -165,7 +166,7 @@ def build_wav_filter_command(
         "-vn",
         "-filter:a",
         filters,
-        *codec_args,
+        *resolved_codec_args,
         str(output_path),
     )
 

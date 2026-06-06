@@ -114,26 +114,25 @@ def test_editor_graph_horizontal_zoom_controls_preserve_time_selection(
             """
             (() => {
               const svg = document.querySelector('[data-testid="aqe-graph-svg-0"]');
-              if (!svg) return null;
-              const rect = svg.getBoundingClientRect();
-              const plotLeft = rect.left + (44 / 620) * rect.width;
-              const plotWidth = ((620 - 44 - 10) / 620) * rect.width;
+              const rect = svg?.getBoundingClientRect();
+              const bounds = window.__aqeGraphPixelBoundsForTest?.(0);
+              if (!svg || !rect || !bounds) return null;
               const EventCtor = window.PointerEvent || window.MouseEvent;
               svg.dispatchEvent(new EventCtor('pointerdown', {
                 bubbles: true,
-                clientX: plotLeft + plotWidth * 0.25,
+                clientX: bounds.left + bounds.width * 0.25,
                 clientY: rect.top + 40,
                 shiftKey: true,
               }));
               window.dispatchEvent(new EventCtor('pointermove', {
                 bubbles: true,
-                clientX: plotLeft + plotWidth * 0.75,
+                clientX: bounds.left + bounds.width * 0.75,
                 clientY: rect.top + 40,
                 shiftKey: true,
               }));
               window.dispatchEvent(new EventCtor('pointerup', {
                 bubbles: true,
-                clientX: plotLeft + plotWidth * 0.75,
+                clientX: bounds.left + bounds.width * 0.75,
                 clientY: rect.top + 40,
                 shiftKey: true,
               }));

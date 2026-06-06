@@ -80,8 +80,6 @@ def render_audio(
             on_command,
             artifact_root=artifact_root,
             source_duration_ms=duration_ms,
-            codec_args=codec_args_for_output_policy(output_policy),
-            output_mime_type=output_policy.mime_type,
         )
 
     output_policy = resolve_output_policy(source_path, config, output_path=output_path)

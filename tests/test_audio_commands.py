@@ -258,6 +258,29 @@ def test_build_wav_filter_command_rejects_non_wav_intermediate_output(tmp_path: 
         )
 
 
+def test_build_wav_filter_command_uses_explicit_pcm_codec_args(tmp_path: Path) -> None:
+    command = build_wav_filter_command(
+        Path("/bin/ffmpeg"),
+        tmp_path / "source.flac",
+        "anull",
+        tmp_path / "working.wav",
+        ("-codec:a", "pcm_s24le"),
+    )
+
+    assert command == (
+        FFMPEG,
+        "-y",
+        "-i",
+        str(tmp_path / "source.flac"),
+        "-vn",
+        "-filter:a",
+        "anull",
+        "-codec:a",
+        "pcm_s24le",
+        str(tmp_path / "working.wav"),
+    )
+
+
 def test_build_audio_filters_omits_edge_silence_filter_parameters() -> None:
     config = AudioProcessingConfig(
         pause_silencedetect_threshold_db=-47,

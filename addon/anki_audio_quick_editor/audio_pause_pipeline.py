@@ -6,6 +6,7 @@ import json
 from collections.abc import Callable
 from dataclasses import dataclass
 from pathlib import Path
+from typing import Any
 
 from .audio_artifacts import (
     _artifact_record,
@@ -45,18 +46,26 @@ class _PausePipelinePaths:
     filter_script_path: Path
 
 
+_WORKING_WAV_CODEC_ARGS = ("-codec:a", "pcm_s24le")
+
+
+def _missing_resolve_output_policy(*_args: Any, **_kwargs: Any) -> Any:
+    raise RuntimeError("audio_pause_pipeline.resolve_output_policy was not synced")
+
+
+resolve_output_policy = _missing_resolve_output_policy
+
+
 def _render_pause_removal_pipeline_audio(
-        source_path: Path,
-        state: AudioEditState,
-        config: AudioProcessingConfig,
-        ffmpeg_path: Path,
-        output_path: Path,
-        on_command: Callable[[tuple[str, ...]], None] | None,
-        *,
-        artifact_root: Path | None,
-        source_duration_ms: int,
-        codec_args: tuple[str, ...] = ("-codec:a", "libmp3lame", "-q:a", "4"),
-        output_mime_type: str = "audio/mpeg",
+    source_path: Path,
+    state: AudioEditState,
+    config: AudioProcessingConfig,
+    ffmpeg_path: Path,
+    output_path: Path,
+    on_command: Callable[[tuple[str, ...]], None] | None,
+    *,
+    artifact_root: Path | None,
+    source_duration_ms: int,
 ) -> AudioProcessingResult:
     runtime = _PauseDetectionRuntime()
     run_dir = _create_pause_pipeline_run_dir(source_path, artifact_root)
@@ -104,6 +113,7 @@ def _render_pause_removal_pipeline_audio(
             ffmpeg_path,
             source_duration_ms,
             working_original,
+            _WORKING_WAV_CODEC_ARGS,
             stages,
             attempted_commands,
             artifacts,
@@ -111,6 +121,7 @@ def _render_pause_removal_pipeline_audio(
         )
         manifest["working_duration_ms"] = working_duration_ms
         write_manifest()
+        output_policy = resolve_output_policy(source_path, config, output_path=output_path)
 
         return _render_selected_pause_detection_pipeline(
             state,
@@ -135,8 +146,8 @@ def _render_pause_removal_pipeline_audio(
             intervals_path=paths.intervals_path,
             timeline_path=paths.timeline_path,
             filter_script_path=paths.filter_script_path,
-            codec_args=codec_args,
-            output_mime_type=output_mime_type,
+            codec_args=output_policy.codec_args,
+            output_mime_type=output_policy.mime_type,
         )
     except Exception as exc:
         errors.append(str(exc) or type(exc).__name__)
@@ -201,16 +212,17 @@ def _pause_preprocess_enabled(config: AudioProcessingConfig) -> bool:
 
 
 def _render_working_original(
-        source_path: Path,
-        state: AudioEditState,
-        config: AudioProcessingConfig,
-        ffmpeg_path: Path,
-        source_duration_ms: int,
-        working_original: Path,
-        stages: list[dict[str, object]],
-        attempted_commands: list[dict[str, object]],
-        artifacts: list[dict[str, object]],
-        on_command: Callable[[tuple[str, ...]], None] | None,
+    source_path: Path,
+    state: AudioEditState,
+    config: AudioProcessingConfig,
+    ffmpeg_path: Path,
+    source_duration_ms: int,
+    working_original: Path,
+    working_codec_args: tuple[str, ...],
+    stages: list[dict[str, object]],
+    attempted_commands: list[dict[str, object]],
+    artifacts: list[dict[str, object]],
+    on_command: Callable[[tuple[str, ...]], None] | None,
 ) -> int:
     working_filters = build_working_original_filters(source_duration_ms, state)
     working_cmd = build_wav_filter_command(
@@ -218,6 +230,7 @@ def _render_working_original(
         source_path,
         working_filters,
         working_original,
+        working_codec_args,
     )
     run_pipeline_stage(
         "render_working_original",

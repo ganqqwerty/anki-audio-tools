@@ -20,19 +20,21 @@ def sync_external_dependencies(audio_external: Any, *, subprocess_module: Any, f
 
 
 def sync_pause_dependencies(
-        audio_pause_pipeline: Any,
-        audio_pause_pipeline_steps: Any,
-        audio_pause_pipeline_stage: Any,
-        *,
-        find_dpdfnet_bundle: Any,
-        find_silero_vad_bundle: Any,
-        probe_duration_ms: Any,
-        run_external_command: Any,
-        render_external_error_message: Any,
+    audio_pause_pipeline: Any,
+    audio_pause_pipeline_steps: Any,
+    audio_pause_pipeline_stage: Any,
+    *,
+    find_dpdfnet_bundle: Any,
+    find_silero_vad_bundle: Any,
+    probe_duration_ms: Any,
+    resolve_output_policy: Any,
+    run_external_command: Any,
+    render_external_error_message: Any,
 ) -> None:
     audio_pause_pipeline.find_dpdfnet_bundle = find_dpdfnet_bundle
     audio_pause_pipeline.find_silero_vad_bundle = find_silero_vad_bundle
     audio_pause_pipeline.probe_duration_ms = probe_duration_ms
+    audio_pause_pipeline.resolve_output_policy = resolve_output_policy
     audio_pause_pipeline_steps.probe_duration_ms = probe_duration_ms
     audio_pause_pipeline_stage._run_external_command = run_external_command
     audio_pause_pipeline_stage._render_external_error_message = render_external_error_message
