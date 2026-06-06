@@ -8,6 +8,7 @@ from scripts.dev_tasks.e2e_parallel import (
     cmd_test_e2e_parallel as _cmd_test_e2e_parallel,
 )
 from scripts.dev_tasks.frontend import cmd_build_ui
+from scripts.dev_tasks.process import is_quiet_test_output
 from scripts.dev_tasks.pytest_runner import run_pytest
 
 E2E_RUNTIME_NOTICE = (
@@ -38,7 +39,8 @@ def cmd_test_anki_api(_command_args: list[str]) -> int:
 
 
 def cmd_test_e2e(command_args: list[str]) -> int:
-    print(E2E_RUNTIME_NOTICE)
+    if not is_quiet_test_output():
+        print(E2E_RUNTIME_NOTICE)
     runtime_rc = cmd_runtime_preflight()
     if runtime_rc != 0:
         return runtime_rc

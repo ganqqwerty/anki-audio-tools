@@ -82,6 +82,18 @@ def test_python_test_command_stops_when_contract_generation_fails(monkeypatch) -
     assert test_commands.cmd_test([]) == 29
 
 
+def test_e2e_command_suppresses_runtime_notice_in_quiet_mode(monkeypatch, capsys) -> None:
+    monkeypatch.setattr(test_commands, "cmd_runtime_preflight", lambda: 0)
+    monkeypatch.setattr(test_commands, "cmd_build_ui", lambda: 0)
+    monkeypatch.setattr(test_commands, "run_pytest", lambda *_args, **_kwargs: 0)
+
+    with process.quiet_test_output():
+        assert test_commands.cmd_test_e2e([]) == 0
+
+    captured = capsys.readouterr()
+    assert test_commands.E2E_RUNTIME_NOTICE not in captured.out
+
+
 def test_coverage_pytest_shows_output_on_failure(monkeypatch) -> None:
     calls: list[tuple[list[str], dict[str, object]]] = []
 
