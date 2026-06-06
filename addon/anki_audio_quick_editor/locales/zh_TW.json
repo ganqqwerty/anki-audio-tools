@@ -313,6 +313,7 @@
   "editor.status.operation.redo": "已重做：{summary}",
   "editor.status.nothing_to_undo": "沒有可復原的操作。",
   "editor.status.nothing_to_redo": "沒有可重做的操作。",
+  "editor.status.persistent_undo_unavailable": "持久復原無法使用，因為此 Anki 版本未提供 SQLite 支援。",
   "editor.status.region_read_failed": "無法讀取選取區域。",
   "editor.status.graph_inactive": "選取圖表不再是作用中欄位。",
   "editor.status.graph_audio_mismatch": "選取圖表與目前音訊不再相符。",

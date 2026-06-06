@@ -2,6 +2,7 @@ import { mount, unmount } from "svelte";
 
 import {
   consumeInitialStatusForOrd,
+  applyInitialHistoryAvailabilityForOrd,
   setStatusForOrd,
   type InitialEditorStatus,
 } from "./control-actions.js";
@@ -59,6 +60,7 @@ export function mountController(target: FieldTarget): FieldController | null {
     target: host,
     props: { initialStatus, target },
   }) as Record<string, unknown>;
+  applyInitialHistoryAvailabilityForOrd(target.ord);
   const controller = {
     component,
     host,

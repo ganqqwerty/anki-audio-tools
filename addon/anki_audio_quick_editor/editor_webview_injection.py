@@ -2,8 +2,11 @@
 
 from __future__ import annotations
 
+import logging
 from typing import Any
 
+from . import editor_persistent_undo
+from .editor_media import audio_field_indices as _audio_field_indices
 from .editor_media import audio_field_sources as _audio_field_sources
 from .editor_runtime import (
     SESSIONS as _SESSIONS,
@@ -13,6 +16,8 @@ from .editor_runtime import (
 )
 from .editor_session import EditorSession
 from .editor_ui import injection_script
+
+logger = logging.getLogger(__name__)
 
 
 def editor_injection_script(editor: Any, note: Any) -> str:
@@ -29,6 +34,11 @@ def editor_injection_script(editor: Any, note: Any) -> str:
         list(audio_field_sources),
         audio_field_metadata={},
         audio_field_sources=audio_field_sources,
+        initial_history_availability_by_field=_initial_history_availability_by_field(
+            editor,
+            note,
+            _SESSIONS.get(editor),
+        ),
         initial_status_by_field=_initial_status_by_field(_SESSIONS.get(editor)),
         pending_post_edit_playback=_pending_post_edit_playback(editor),
         repeat_playback_by_default=bool(config.get("repeat_playback_by_default", True)),
@@ -92,6 +102,38 @@ def editor_injection_script(editor: Any, note: Any) -> str:
             "graphVoiceLock": str(config.get("graph_voice_lock", "balanced")),
         },
     )
+
+
+def _initial_history_availability_by_field(
+    editor: Any,
+    note: Any,
+    session: EditorSession | None,
+) -> dict[int, dict[str, bool]]:
+    availability: dict[int, dict[str, bool]] = {}
+    for field_index in _audio_field_indices(note):
+        session_can_undo = (
+            session is not None
+            and session.field_index == field_index
+            and bool(session.undo_history.entries)
+        )
+        session_can_redo = (
+            session is not None
+            and session.field_index == field_index
+            and bool(session.redo_history.entries)
+        )
+        availability[int(field_index)] = {
+            "canUndo": bool(session_can_undo or _can_persistent_undo(editor, field_index)),
+            "canRedo": bool(session_can_redo),
+        }
+    return availability
+
+
+def _can_persistent_undo(editor: Any, field_index: int) -> bool:
+    try:
+        return editor_persistent_undo.can_persistent_undo(editor, field_index)
+    except Exception:
+        logger.debug("Could not compute persistent undo availability.", exc_info=True)
+        return False
 
 
 def _initial_status_by_field(session: EditorSession | None) -> dict[int, dict[str, str]]:

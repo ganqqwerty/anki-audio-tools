@@ -313,6 +313,7 @@
   "editor.status.operation.redo": "已重做：{summary}",
   "editor.status.nothing_to_undo": "没有可撤销的操作。",
   "editor.status.nothing_to_redo": "没有可重做的操作。",
+  "editor.status.persistent_undo_unavailable": "持久撤销不可用，因为此 Anki 版本不提供 SQLite 支持。",
   "editor.status.region_read_failed": "无法读取选定区域。",
   "editor.status.graph_inactive": "选定图表不再是活动字段。",
   "editor.status.graph_audio_mismatch": "选定图表与当前音频不再匹配。",

@@ -26,7 +26,7 @@ def sync_history_availability(editor: Any, session: EditorSession, deps: Any) ->
     deps.eval_history_availability(
         editor,
         session.field_index,
-        bool(session.undo_history.entries),
+        _can_undo(editor, session, deps),
         bool(session.redo_history.entries),
     )
 
@@ -36,7 +36,7 @@ def request_history_availability_after_edit(editor: Any, session: EditorSession,
     deps.request_history_availability_after_edit(
         editor,
         session.field_index,
-        bool(session.undo_history.entries),
+        _can_undo(editor, session, deps),
         bool(session.redo_history.entries),
     )
 
@@ -49,6 +49,10 @@ def undo(editor: Any, deps: Any) -> None:
         return
     previous = session.undo_history.pop()
     if previous is None:
+        if deps.restore_persistent_undo(editor, session):
+            sync_history_availability(editor, session, deps)
+            request_history_availability_after_edit(editor, session, deps)
+            return
         deps.eval_status(editor, t("editor.status.nothing_to_undo"))
         return
     deps.restore_history_entry(
@@ -138,3 +142,7 @@ def restore_history_entry(
     deps.eval_playback_state(editor, field_index, "stopped", 0)
     if field_index in session.graph_active_fields:
         deps.request_graph_redraw(editor, entry.filename)
+
+
+def _can_undo(editor: Any, session: EditorSession, deps: Any) -> bool:
+    return bool(session.undo_history.entries) or bool(deps.can_persistent_undo(editor, session.field_index))
