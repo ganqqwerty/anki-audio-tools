@@ -90,10 +90,6 @@ def test_setup_menu_refreshes_reviewer_toggle_enabled_state(monkeypatch) -> None
     menu = FakeMenu()
     aqt.mw.form.menuTools.addMenu.return_value = menu
     connections: dict[object, object] = {}
-    enabled = False
-
-    def _reviewer_editor_enabled() -> bool:
-        return enabled
 
     monkeypatch.setattr(
         anki_audio_quick_editor,
@@ -107,19 +103,17 @@ def test_setup_menu_refreshes_reviewer_toggle_enabled_state(monkeypatch) -> None
     )
     monkeypatch.setattr(
         reviewer_integration,
-        "_reviewer_editor_enabled",
-        _reviewer_editor_enabled,
-    )
-    monkeypatch.setattr(
-        reviewer_integration,
         "reviewer_editor_menu_label",
-        lambda _reviewer=None: "Hide audio editor" if enabled else "Show audio editor",
+        lambda _reviewer=None: "Hide audio editor"
+        if getattr(aqt.mw, "reviewer", None) is not None
+        else "Show audio editor",
     )
+    aqt.mw.reviewer = None
 
     anki_audio_quick_editor._setup_menu()
 
     assert menu.actions[0].enabled is False
-    enabled = True
+    aqt.mw.reviewer = types.SimpleNamespace(card=object())
     connections[menu.aboutToShow]()
 
     assert menu.actions[0].label == "Hide audio editor"

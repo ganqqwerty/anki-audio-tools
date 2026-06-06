@@ -30,6 +30,7 @@ _WRAPPER_BRIDGE_ATTR = "_aqe_reviewer_bridge_command"
 _SHOW_REVIEWER_EDITOR_LABEL = "Show audio editor"
 _HIDE_REVIEWER_EDITOR_LABEL = "Hide audio editor"
 _reviewer_editor_visible = True
+_reviewer_editor_manual_override = False
 _EXPLICIT_PANEL_CARD_KEYS: set[object] = set()
 
 
@@ -92,7 +93,7 @@ def refresh_reviewer_editor_toggle_action(action: Any, reviewer: Any | None = No
     if hasattr(action, "setText"):
         action.setText(reviewer_editor_menu_label(reviewer))
     if hasattr(action, "setEnabled"):
-        action.setEnabled(_reviewer_editor_enabled())
+        action.setEnabled(_reviewer_editor_action_enabled(reviewer))
 
 
 def add_reviewer_editor_toggle_action(menu: Any, reviewer: Any | None = None) -> Any:
@@ -106,14 +107,17 @@ def add_reviewer_editor_toggle_action(menu: Any, reviewer: Any | None = None) ->
 
 def toggle_reviewer_editor_visibility() -> bool:
     """Toggle reviewer audio controls without changing the persistent setting."""
+    global _reviewer_editor_manual_override
     global _reviewer_editor_visible
     reviewer = getattr(mw, "reviewer", None)
     if _reviewer_editor_currently_shown(reviewer):
         _reviewer_editor_visible = False
+        _reviewer_editor_manual_override = False
         _dispose_reviewer_frontend()
         return False
     _reviewer_editor_visible = True
-    if _reviewer_editor_enabled() and _reviewer_showing_answer(reviewer):
+    _reviewer_editor_manual_override = not _reviewer_editor_enabled()
+    if _reviewer_showing_answer(reviewer):
         _render_current_reviewer_side(reviewer)
     return False
 
@@ -129,7 +133,7 @@ def _on_card_will_show(text: str, card: Any, kind: str) -> str:
     existing_targets = explicit_target_field_indices(text)
     if existing_targets:
         _EXPLICIT_PANEL_CARD_KEYS.add(_card_key(card))
-    if not _reviewer_editor_enabled() or not _reviewer_editor_visible:
+    if not _reviewer_editor_requested():
         return text
     note = _card_note(card)
     if note is None:
@@ -151,9 +155,7 @@ def _on_reviewer_did_show_card_side(card: Any) -> None:
     if not _reviewer_showing_answer(reviewer):
         _dispose_reviewer_frontend()
         return
-    if (
-        not _reviewer_editor_enabled() or not _reviewer_editor_visible
-    ) and not _card_has_explicit_panel_target(card):
+    if not _reviewer_editor_requested() and not _card_has_explicit_panel_target(card):
         _dispose_reviewer_frontend()
         return
     adapter = _adapter_for_reviewer(reviewer)
@@ -336,12 +338,21 @@ def _reviewer_editor_enabled() -> bool:
     return bool(config.get("enable_reviewer_editor", True))
 
 
+def _reviewer_editor_action_enabled(reviewer: Any | None) -> bool:
+    reviewer = reviewer if reviewer is not None else getattr(mw, "reviewer", None)
+    return reviewer is not None and getattr(reviewer, "card", None) is not None
+
+
+def _reviewer_editor_requested() -> bool:
+    return _reviewer_editor_visible and (_reviewer_editor_enabled() or _reviewer_editor_manual_override)
+
+
 def _reviewer_showing_answer(reviewer: Any | None) -> bool:
     return getattr(reviewer, "state", None) == "answer"
 
 
 def _reviewer_editor_currently_shown(reviewer: Any | None) -> bool:
-    return _reviewer_editor_enabled() and _reviewer_editor_visible and _reviewer_showing_answer(reviewer)
+    return _reviewer_editor_requested() and _reviewer_showing_answer(reviewer)
 
 
 def _dispose_reviewer_frontend() -> None:

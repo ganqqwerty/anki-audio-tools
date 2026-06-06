@@ -35,6 +35,7 @@ class FakeNote:
 @pytest.fixture(autouse=True)
 def _reset_reviewer_visibility(monkeypatch) -> None:
     monkeypatch.setattr(reviewer_integration, "_reviewer_editor_visible", True)
+    monkeypatch.setattr(reviewer_integration, "_reviewer_editor_manual_override", False)
     reviewer_integration._EXPLICIT_PANEL_CARD_KEYS.clear()
 
 
@@ -359,9 +360,36 @@ def test_toggle_shows_answer_editor_by_rerendering_answer() -> None:
     reviewer._showAnswer.assert_called_once()
 
 
+def test_toggle_shows_answer_editor_when_setting_disabled() -> None:
+    web = FakeWeb()
+    reviewer = SimpleNamespace(
+        mw=aqt.mw,
+        web=web,
+        card=FakeRenderedAudioCard(FakeNote(["[sound:first.mp3]", "[sound:second.wav]"])),
+        state="answer",
+        _showAnswer=MagicMock(),
+    )
+    aqt.mw.reviewer = reviewer
+    aqt.mw.addonManager.getConfig.return_value = {"enable_reviewer_editor": False}
+
+    assert reviewer_editor_menu_label() == "Show audio editor"
+
+    toggle_reviewer_editor_visibility()
+
+    reviewer._showAnswer.assert_called_once()
+    html = _on_card_will_show(
+        "<div>[sound:first.mp3] [sound:second.wav]</div>",
+        reviewer.card,
+        "reviewAnswer",
+    )
+    assert html.count('class="aqe-review-audio-target"') == 2
+    assert 'data-field-ord="0"' in html
+    assert 'data-field-ord="1"' in html
+
+
 def test_reviewer_more_menu_adds_audio_editor_toggle(monkeypatch) -> None:
     menu = FakeMenu()
-    reviewer = SimpleNamespace(state="question")
+    reviewer = SimpleNamespace(state="question", card=FakeCard(FakeNote(["[sound:first.mp3]"])))
     connections: dict[object, object] = {}
     monkeypatch.setattr(
         reviewer_integration,
@@ -374,4 +402,5 @@ def test_reviewer_more_menu_adds_audio_editor_toggle(monkeypatch) -> None:
 
     assert menu.separator_count == 1
     assert menu.actions[0].label == "Show audio editor"
+    assert menu.actions[0].enabled is True
     assert menu.actions[0].triggered in connections
