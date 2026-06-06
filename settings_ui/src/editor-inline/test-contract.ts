@@ -29,8 +29,11 @@ import type {
 } from "./types.js";
 import { isPlaybackState } from "./types.js";
 
+type GraphBoundsForTest = { left: number; width: number };
+
 export const EDITOR_TEST_WINDOW_CONTRACT_NAMES = [
   "__aqeGraphStateForTest",
+  "__aqeGraphPixelBoundsForTest",
   "__aqeInstallAudioPlaybackTestDriverForTest",
   "__aqeSetCursorByClientXForTest",
   "__aqeSetCursorForTest",
@@ -39,6 +42,7 @@ export const EDITOR_TEST_WINDOW_CONTRACT_NAMES = [
 
 export function installEditorTestWindowContract(): void {
   window.__aqeGraphStateForTest = graphStateForTest;
+  window.__aqeGraphPixelBoundsForTest = graphPixelBoundsForTest;
   window.__aqeInstallAudioPlaybackTestDriverForTest = installAudioPlaybackTestDriver;
   window.__aqeSetCursorByClientXForTest = setCursorByClientXForTest;
   window.__aqeSetCursorForTest = setCursorForTest;
@@ -117,6 +121,13 @@ export function setCursorByClientXForTest(ord: number, clientX: number, notifyPy
     cursorX: cssCursorViewBoxX(visualizer),
     bounds: graphPixelBounds(svg),
   };
+}
+
+export function graphPixelBoundsForTest(ord: number): GraphBoundsForTest | null {
+  const visualizer = visualizerForOrd(ord);
+  const svg = visualizer?.querySelector<SVGSVGElement>(".aqe-visualizer-svg") ?? null;
+  if (!svg) return null;
+  return graphPixelBounds(svg);
 }
 
 export function setTimeViewportForTest(ord: number, startMs: number, endMs: number): boolean {

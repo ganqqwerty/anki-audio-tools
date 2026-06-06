@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import hashlib
 import os
-from datetime import datetime
+from datetime import UTC, datetime
 from pathlib import Path, PureWindowsPath
 
 from .audio_pipeline import (
@@ -21,7 +21,7 @@ _LONGEST_PAUSE_PIPELINE_ARTIFACT_NAME = "04_detected_pause_intervals.json"
 _MIN_PAUSE_PIPELINE_RUN_ID_LENGTH = len(
     make_pause_pipeline_run_id(
         "a",
-        now=datetime(2000, 1, 1, 0, 0, 0, 0),
+        now=datetime(2000, 1, 1, 0, 0, 0, 0, tzinfo=UTC),
         token="00000000",
     )
 )
@@ -78,7 +78,7 @@ def _build_pause_pipeline_manifest(
     return {
         "schema_version": PAUSE_PIPELINE_MANIFEST_VERSION,
         "run_id": run_dir.name,
-        "created_at": datetime.now().isoformat(),
+        "created_at": datetime.now(UTC).isoformat(),
         "operation": "pause_removal",
         "artifact_dir": str(run_dir),
         "source": _source_file_record(source_path, source_duration_ms),

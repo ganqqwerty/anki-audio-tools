@@ -74,6 +74,7 @@ class PersistentHistoryRepository:
     def append_operation(self, operation: PersistentHistoryAppend) -> int:
         """Append an operation and return its row id."""
         self._migrate()
+        operation_id: int | None = None
         with closing(self._connect()) as connection, connection:
             cursor = connection.execute(
                 """
@@ -119,7 +120,9 @@ class PersistentHistoryRepository:
                 operation.old_filename,
                 operation.new_filename,
             )
-            return operation_id
+        if operation_id is None:
+            raise RuntimeError("SQLite did not return an id for the persistent undo row.")
+        return operation_id
 
     def latest_undoable(
         self,

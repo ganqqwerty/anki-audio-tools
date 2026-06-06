@@ -32,15 +32,16 @@ def _rendered_pitch_points_js(ord_: int = 0) -> str:
       const visualizer = document.querySelector(`.aqe-visualizer[data-aqe-field-ord="${ord}"]`);
       if (!visualizer) return null;
       const durationMs = Number(visualizer.dataset.durationMs || "0");
-      const plot = { width: 620, left: 44, right: 10 };
-      const plotWidth = plot.width - plot.left - plot.right;
+      const svg = visualizer.querySelector(".aqe-visualizer-svg");
+      const viewBoxWidth = svg?.viewBox?.baseVal?.width || 620;
+      const plotWidth = viewBoxWidth - 44 - 10;
       const points = [];
       for (const path of visualizer.querySelectorAll(".aqe-pitch-path")) {
         const values = (path.getAttribute("d") || "").match(/-?\\d+(?:\\.\\d+)?/g) || [];
         for (let index = 0; index + 1 < values.length; index += 2) {
           const x = Number(values[index]);
           const y = Number(values[index + 1]);
-          const ms = ((x - plot.left) / plotWidth) * durationMs;
+          const ms = ((x - 44) / plotWidth) * durationMs;
           points.push({ ms, y });
         }
       }

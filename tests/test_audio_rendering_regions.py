@@ -60,8 +60,12 @@ def test_render_audio_region_deleted_uses_concat_filter(monkeypatch, tmp_path: P
         "[out]",
         "-codec:a",
         "libmp3lame",
-        "-q:a",
-        "4",
+        "-b:a",
+        "192k",
+        "-ar",
+        "44100",
+        "-ac",
+        "1",
         str(output),
     )
     assert calls == [(list(expected_command), True, True, False)]
@@ -104,8 +108,12 @@ def test_render_audio_region_kept_uses_single_trim_filter(monkeypatch, tmp_path:
         "[out]",
         "-codec:a",
         "libmp3lame",
-        "-q:a",
-        "4",
+        "-b:a",
+        "192k",
+        "-ar",
+        "44100",
+        "-ac",
+        "1",
         str(output),
     )
     assert calls == [(list(expected_command), True, True, False)]
@@ -137,7 +145,7 @@ def _mp3_policy() -> SimpleNamespace:
     return SimpleNamespace(
         extension=".mp3",
         mime_type="audio/mpeg",
-        codec_args=("-codec:a", "libmp3lame", "-q:a", "4"),
+        codec_args=("-codec:a", "libmp3lame", "-b:a", "192k", "-ar", "44100", "-ac", "1"),
     )
 
 

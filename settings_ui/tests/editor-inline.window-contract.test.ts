@@ -25,6 +25,7 @@ describe("editor inline window contract", () => {
       "__aqeGetCursorIntent",
       "__aqeGetCursorMs",
       "__aqeGetPlaybackRequest",
+      "__aqeGraphPixelBoundsForTest",
       "__aqeGraphStateForTest",
       "__aqeInstallAudioPlaybackTestDriverForTest",
       "__aqePlayAfterEdit",

@@ -218,6 +218,7 @@ def _sync_pause_dependencies() -> None:
         find_dpdfnet_bundle=find_dpdfnet_bundle,
         find_silero_vad_bundle=find_silero_vad_bundle,
         probe_duration_ms=probe_duration_ms,
+        resolve_output_policy=resolve_output_policy,
         run_external_command=_run_external_command,
         render_external_error_message=_render_external_error_message,
     )
@@ -233,8 +234,6 @@ def _render_pause_removal_pipeline_audio(
     *,
     artifact_root: Path | None,
     source_duration_ms: int,
-    codec_args: tuple[str, ...],
-    output_mime_type: str,
 ) -> AudioProcessingResult:
     _sync_pause_dependencies()
     return _audio_pause_pipeline._render_pause_removal_pipeline_audio(
@@ -246,9 +245,9 @@ def _render_pause_removal_pipeline_audio(
         on_command,
         artifact_root=artifact_root,
         source_duration_ms=source_duration_ms,
-        codec_args=codec_args,
-        output_mime_type=output_mime_type,
     )
+
+
 def _sync_rendering_dependencies() -> None:
     sync_rendering_dependencies(
         cast(Any, _audio_rendering),
