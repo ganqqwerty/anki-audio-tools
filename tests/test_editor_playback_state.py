@@ -191,6 +191,36 @@ def test_post_edit_playback_request_does_not_replace_status_while_analysis_is_bu
     assert session.playback_preparing is False
 
 
+def test_playback_request_reports_missing_referenced_media_with_media_code(tmp_path: Path) -> None:
+    class Editor:
+        pass
+
+    media_dir = tmp_path / "media"
+    media_dir.mkdir()
+    source = media_dir / "clip.mp3"
+    source.write_bytes(b"audio")
+    editor = Editor()
+    editor.currentField = 0
+    editor.note = SimpleNamespace(fields=["[sound:missing.mp3]"])
+    editor.web = MagicMock()
+    editor.mw = SimpleNamespace(col=SimpleNamespace(media=SimpleNamespace(dir=lambda: str(media_dir))))
+    session = EditorSession(
+        state=AudioEditState("clip.mp3"),
+        field_index=0,
+        current_filename="clip.mp3",
+        source_mtime_ns=source.stat().st_mtime_ns,
+    )
+    _SESSIONS[editor] = session
+
+    _play_with_request(editor, {"engine": "native", "action": "start", "cursorMs": 0})
+
+    evals = [call.args[0] for call in editor.web.eval.call_args_list]
+    assert any('"code": "AQE-MEDIA-002"' in call for call in evals)
+    assert any('"message": "The referenced audio file was not found in Anki\'s media folder."' in call for call in evals)
+    assert session.playback_active is False
+    assert session.playback_preparing is False
+
+
 def test_native_selected_playback_renders_segment_from_cursor_to_selection_end(tmp_path: Path, monkeypatch) -> None:
     class ImmediateThread:
         def __init__(self, target, daemon=True):

@@ -247,6 +247,7 @@ def playback_deps(callbacks: Any, frontend_callbacks: Any) -> SimpleNamespace:
     return SimpleNamespace(
         cleanup_temp_playback=callbacks.cleanup_temp_playback,
         config=editor_runtime.config,
+        current_field_audio_missing=editor_runtime.CURRENT_FIELD_AUDIO_MISSING,
         current_field_index=current_field_index,
         eval_learner_recording_state=callbacks.eval_learner_recording_state,
         eval_playback_state=frontend_callbacks.eval_playback_state,
@@ -258,6 +259,7 @@ def playback_deps(callbacks: Any, frontend_callbacks: Any) -> SimpleNamespace:
         playback_segment_failed=callbacks.playback_segment_failed,
         playback_segment_ready=callbacks.playback_segment_ready,
         play_with_request=callbacks.play_with_request,
+        referenced_audio_missing=editor_runtime.REFERENCED_AUDIO_MISSING,
         render_playback_segment=render_playback_segment,
         session_and_source=editor_runtime.session_and_source,
         sessions=editor_runtime.SESSIONS,
