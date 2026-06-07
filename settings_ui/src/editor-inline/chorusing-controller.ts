@@ -13,6 +13,7 @@ import { setSelection as setSelectionFromController } from "./selection-controll
 import { SELECTION_CHANGED_EVENT, notifySelectionChanged, type SelectionChangedDetail } from "./selection-events.js";
 import { syncSelectionToolbar } from "./selection-toolbar-state.js";
 import {
+  chorusingMarkerControlsVisible,
   renderChorusingMarkerRow,
   chorusingStateForVisualizer,
   writeChorusingState,
@@ -99,6 +100,7 @@ export function handleChorusingMarkerPointerDown(event: PointerEvent, ord: numbe
   const svg = visualizer?.querySelector<SVGSVGElement>(".aqe-visualizer-svg") ?? null;
   const state = visualizer ? chorusingStateForVisualizer(visualizer) : null;
   if (!visualizer || !svg || !state) return;
+  if (!chorusingMarkerControlsVisible(visualizer)) return;
   const readyState = ensureChorusingBase(visualizer, state);
   if (!readyState?.baseRegion) return;
   event.preventDefault();

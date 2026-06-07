@@ -9,6 +9,7 @@ import {
   chorusingControlAvailability,
   type ChorusingState,
 } from "./chorusing-state";
+import { controlsForRawOrd } from "./dom-selectors.js";
 import type { VisualizerElement } from "./types.js";
 import { readVisualizerTimeViewport } from "./visualizer-state.js";
 
@@ -49,14 +50,22 @@ export function chorusingControlsForVisualizer(visualizer: VisualizerElement | n
   return controlsSnapshot(chorusingStateForVisualizer(visualizer), visualizer);
 }
 
+export function chorusingMarkerControlsVisible(visualizer: VisualizerElement): boolean {
+  if (visualizer.dataset.selectionMarkerShiftButtonsEnabled === "true") return true;
+  const rawOrd = visualizer.dataset.aqeFieldOrd;
+  return !!rawOrd && !!controlsForRawOrd(rawOrd)?.querySelector(".aqe-chorusing-toolbar-panel");
+}
+
 export function renderChorusingMarkerRow(visualizer: VisualizerElement): void {
   const row = visualizer.querySelector<SVGGElement>(".aqe-chorusing-marker-row");
+  const hitbox = visualizer.querySelector<HTMLElement>(".aqe-chorusing-marker-hitbox");
   const svg = visualizer.querySelector<SVGSVGElement>(".aqe-visualizer-svg");
   if (!row || !svg) return;
   const state = chorusingStateForVisualizer(visualizer);
-  const shouldShow = !!state.baseRegion;
+  const shouldShow = !!state.baseRegion && chorusingMarkerControlsVisible(visualizer);
   row.style.display = shouldShow ? "" : "none";
   row.setAttribute("aria-hidden", shouldShow ? "false" : "true");
+  if (hitbox) hitbox.hidden = !shouldShow;
   row.replaceChildren();
   if (!shouldShow || !state.baseRegion) return;
   const viewport = readVisualizerTimeViewport(visualizer);

@@ -154,6 +154,7 @@
           class="aqe-chorusing-marker-hitbox aqe-tooltip-target"
           data-aqe-tooltip-content={t("editor.chorusing.marker_row_tooltip")}
           aria-hidden="true"
+          hidden
           onpointerdown={(event) => handleChorusingMarkerPointerDown(event, target.ord)}
         ></div>
       {/snippet}

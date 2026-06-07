@@ -71,6 +71,31 @@ describe("editor inline chorusing integration", () => {
     });
   });
 
+  it("keeps markers hidden when the chorusing panel is hidden and marker shift is disabled", async () => {
+    const { row, svg } = await prepareChorusingGraph({
+      selectionMarkerShiftButtonsEnabled: false,
+      visibleEditorButtons: ["aqe:play", "aqe:analyze", "aqe:settings"],
+    });
+
+    expect(document.querySelector('[data-testid="aqe-chorusing-toolbar-panel-0"]')).toBeNull();
+    expect(document.querySelector('[data-testid="aqe-selection-shift-start-previous-0"]')).toBeNull();
+    expect(row.getAttribute("aria-hidden")).toBe("true");
+    expect(row.style.display).toBe("none");
+    expect(document.querySelector<HTMLElement>(".aqe-chorusing-marker-hitbox")?.hidden).toBe(true);
+    expect(window.__aqeGraphStateForTest?.(0)).toMatchObject({
+      chorusingBaseEndMs: 1000,
+      chorusingBaseStartMs: 0,
+      chorusingMarkersMs: [0, 333, 667],
+    });
+
+    clickMarkerRail(svg, 0.5);
+    await Promise.resolve();
+
+    expect(window.__aqeGraphStateForTest?.(0)).toMatchObject({
+      chorusingMarkersMs: [0, 333, 667],
+    });
+  });
+
   it("starts chorusing from the toolbar for the whole file instead of the graph selection", async () => {
     const { row, svg } = await prepareChorusingGraph();
     dragGraphSelection(svg, 0.2, 0.8);
@@ -207,9 +232,14 @@ function installVisualizerStyles(): void {
   document.head.appendChild(style);
 }
 
-async function prepareChorusingGraph(): Promise<{ row: SVGGElement; svg: SVGSVGElement }> {
-  initializeEditorRuntime({ audioFieldIndices: [0], repeatPlaybackByDefault: false });
-  scan({ audioFieldIndices: [0], repeatPlaybackByDefault: false });
+type EditorRuntimeOverrides = Partial<Parameters<typeof initializeEditorRuntime>[0]>;
+
+async function prepareChorusingGraph(
+  overrides: EditorRuntimeOverrides = {},
+): Promise<{ row: SVGGElement; svg: SVGSVGElement }> {
+  const config = { audioFieldIndices: [0], repeatPlaybackByDefault: false, ...overrides };
+  initializeEditorRuntime(config);
+  scan(config);
   await Promise.resolve();
   window.__aqeSetVisualizer?.(0, track, 0);
   await Promise.resolve();
