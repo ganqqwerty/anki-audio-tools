@@ -18,6 +18,8 @@ from anki_audio_quick_editor.editor_integration import (
     _audio_field_indices,
     _handle_bridge_command,
     _initial_status_by_field,
+    _on_editor_did_init,
+    _on_editor_will_load_note,
     _set_busy,
     editor_injection_script,
     register_editor_hooks,
@@ -32,6 +34,8 @@ def test_register_editor_hooks() -> None:
 
     hooks.editor_did_init.append.assert_called_once()
     hooks.editor_will_load_note.append.assert_called_once()
+    assert hooks.editor_did_init.append.call_args.args == (_on_editor_did_init,)
+    assert hooks.editor_will_load_note.append.call_args.args == (_on_editor_will_load_note,)
 
 
 def test_entrypoint_registers_editor_startup_hook() -> None:

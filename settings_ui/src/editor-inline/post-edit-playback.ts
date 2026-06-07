@@ -1,7 +1,7 @@
-import { sendBridgeCommand } from "./bridge.js";
+import { sendCommandPayload } from "./bridge.js";
 import { allControls, visualizerForOrd } from "./dom-selectors.js";
 import { logger } from "./logger.js";
-import type { PostEditPlaybackIntent } from "./types.js";
+import type { EditorCommandPayload, PostEditPlaybackIntent } from "./types.js";
 
 export function rememberPostEditPlaybackIntent(ord: number): void {
   const visualizer = visualizerForOrd(ord);
@@ -37,14 +37,12 @@ export function notifyPostEditPlaybackReady(ord: number, sourceFilename: string)
     logger.info("post-edit playback ready deferred: graph not ready", postEditPlaybackDiagnosticContext(ord, sourceFilename));
     return;
   }
-  window.__aqePendingCommandPayload = {
+  dispatchPostEditPlaybackReady({
     command: "aqe:post-edit-playback-ready",
     fieldOrd: ord,
     generation: pending.generation,
     sourceFilename,
-  };
-  logger.info("post-edit playback ready dispatched", postEditPlaybackDiagnosticContext(ord, sourceFilename));
-  sendBridgeCommand("aqe:command-payload");
+  }, ord, sourceFilename);
 }
 
 function postEditPlaybackGraphReady(ord: number, sourceFilename: string): boolean {
@@ -83,6 +81,20 @@ function postEditPlaybackDiagnosticContext(ord: number, sourceFilename: string):
     pendingSourceFilename: pending?.sourceFilename || "",
     visualizerSourceFilename: visualizer?.dataset.sourceFilename || "",
   };
+}
+
+function dispatchPostEditPlaybackReady(
+  payload: EditorCommandPayload,
+  ord: number,
+  sourceFilename: string,
+): void {
+  const testDispatcher = window.__aqeDispatchPostEditPlaybackReadyForTest;
+  const dispatch = () => {
+    sendCommandPayload(payload);
+    logger.info("post-edit playback ready dispatched", postEditPlaybackDiagnosticContext(ord, sourceFilename));
+  };
+  if (testDispatcher?.(payload, dispatch) === true) return;
+  dispatch();
 }
 
 function postEditPlaybackIntents(): Record<number, PostEditPlaybackIntent> {

@@ -1,6 +1,8 @@
 import { vi } from "vitest";
 
+import { popPendingCommandPayload } from "../src/editor-inline/bridge.js";
 import { graphPixelBounds } from "../src/editor-inline/plot.js";
+import type { EditorCommandPayload } from "../src/editor-inline/types.js";
 import { pycmdMock } from "./setup.js";
 
 export const track = {
@@ -24,6 +26,11 @@ export function commandLog(): string[] {
 
 export function bridgeCommands(): string[] {
   return commandLog().filter((command) => command.startsWith("focus:") || command.startsWith("aqe:"));
+}
+
+export function consumePendingCommandPayload(): EditorCommandPayload | null {
+  const payload = popPendingCommandPayload();
+  return payload ? { ...payload } : null;
 }
 
 export function renderFields(): void {

@@ -138,7 +138,11 @@ def test_runtime_installer_reject_cancels_and_warns(request) -> None:
 
     assert dialog._cancel_event.is_set()
     assert dialog.rejected is True
-    aqt.qt.QMessageBox.warning.assert_called_once()
+    aqt.qt.QMessageBox.warning.assert_called_once_with(
+        dialog,
+        dialog_module.t("runtime_installer.cancel_warning.title"),
+        dialog_module.t("runtime_installer.cancel_warning.message"),
+    )
 
 
 def test_runtime_installer_exec_updates_progress_and_final_status(monkeypatch, request) -> None:

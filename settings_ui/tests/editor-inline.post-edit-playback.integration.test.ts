@@ -3,6 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { disposeEditorRuntime, initializeEditorRuntime, scan } from "../src/editor-inline/runtime.js";
 import {
   bridgeCommands,
+  consumePendingCommandPayload,
   muteConsole,
   prepareHtmlAudio,
   renderFields,
@@ -15,7 +16,7 @@ describe("editor inline post-edit playback integration", () => {
 
   beforeEach(() => {
     restoreConsole = muteConsole();
-    window.__aqePendingCommandPayload = null;
+    consumePendingCommandPayload();
     renderFields();
   });
 
@@ -129,7 +130,7 @@ describe("editor inline post-edit playback integration", () => {
     scan(window.__AQE_EDITOR_CONFIG__!);
     await Promise.resolve();
 
-    expect(window.__aqePendingCommandPayload).toEqual({
+    expect(consumePendingCommandPayload()).toEqual({
       command: "aqe:post-edit-playback-ready",
       fieldOrd: 0,
       generation: 3,
@@ -151,13 +152,13 @@ describe("editor inline post-edit playback integration", () => {
     scan(window.__AQE_EDITOR_CONFIG__!);
     await Promise.resolve();
 
-    expect(window.__aqePendingCommandPayload).toBeNull();
+    expect(consumePendingCommandPayload()).toBeNull();
     expect(bridgeCommands()).not.toContain("aqe:command-payload");
 
     window.__aqeSetBusy?.(0, false);
     await Promise.resolve();
 
-    expect(window.__aqePendingCommandPayload).toEqual({
+    expect(consumePendingCommandPayload()).toEqual({
       command: "aqe:post-edit-playback-ready",
       fieldOrd: 0,
       generation: 4,
@@ -176,18 +177,16 @@ describe("editor inline post-edit playback integration", () => {
         sourceFilename: "clip one.mp3",
       },
     });
-    window.__aqePendingGraphRedrawField = 0;
-    window.__aqePendingGraphRedrawSource = "clip one.mp3";
     scan(window.__AQE_EDITOR_CONFIG__!);
     await Promise.resolve();
 
-    expect(window.__aqePendingCommandPayload).toBeNull();
+    expect(consumePendingCommandPayload()).toBeNull();
     expect(bridgeCommands()).not.toContain("aqe:command-payload");
 
     window.__aqeSetVisualizer?.(0, track, 0);
     await Promise.resolve();
 
-    expect(window.__aqePendingCommandPayload).toEqual({
+    expect(consumePendingCommandPayload()).toEqual({
       command: "aqe:post-edit-playback-ready",
       fieldOrd: 0,
       generation: 5,
@@ -196,7 +195,7 @@ describe("editor inline post-edit playback integration", () => {
     expect(bridgeCommands()).toContain("aqe:command-payload");
   });
 
-  it("does not let a stale graph redraw marker block a rendered post-edit source", async () => {
+  it("does not require a new redraw when the matching post-edit graph is already rendered", async () => {
     initializeEditorRuntime({
       audioFieldIndices: [0],
       pendingPostEditPlayback: {
@@ -208,13 +207,11 @@ describe("editor inline post-edit playback integration", () => {
     });
     scan(window.__AQE_EDITOR_CONFIG__!);
     window.__aqeSetVisualizer?.(0, track, 0);
-    window.__aqePendingGraphRedrawField = 0;
-    window.__aqePendingGraphRedrawSource = "stale.mp3";
 
     window.__aqeSetBusy?.(0, false);
     await Promise.resolve();
 
-    expect(window.__aqePendingCommandPayload).toEqual({
+    expect(consumePendingCommandPayload()).toEqual({
       command: "aqe:post-edit-playback-ready",
       fieldOrd: 0,
       generation: 6,

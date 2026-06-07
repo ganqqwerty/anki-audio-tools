@@ -27,15 +27,18 @@ export function focusAndSendCommand(ord: number, command: string): void {
   sendBridgeCommand(command);
 }
 
-export function focusAndSendCommandPayload(ord: number, payload: EditorCommandPayload): void {
-  sendBridgeCommand(`focus:${ord}`);
+export function sendCommandPayload(payload: EditorCommandPayload): void {
   window.__aqePendingCommandPayload = payload;
   sendBridgeCommand("aqe:command-payload");
 }
 
+export function focusAndSendCommandPayload(ord: number, payload: EditorCommandPayload): void {
+  sendBridgeCommand(`focus:${ord}`);
+  sendCommandPayload(payload);
+}
+
 export function sendExternalLinkRequest(url: string): void {
-  window.__aqePendingCommandPayload = { command: "aqe:open-url", url };
-  sendBridgeCommand("aqe:command-payload");
+  sendCommandPayload({ command: "aqe:open-url", url });
 }
 
 export function sendGraphAnalysisRequest(request: GraphAnalysisRequest): void {
@@ -101,6 +104,12 @@ export function popPendingSplitDefaultSaveRequest(): SplitDefaultSaveRequest | n
 
 export function popPendingSourceMetadataRequest(): SourceMetadataRequest | null {
   return pendingSourceMetadataRequests.shift() ?? null;
+}
+
+export function popPendingCommandPayload(): EditorCommandPayload | null {
+  const payload = window.__aqePendingCommandPayload ?? null;
+  window.__aqePendingCommandPayload = null;
+  return payload;
 }
 
 export function setCursorIntent(intent: CursorIntent): void {

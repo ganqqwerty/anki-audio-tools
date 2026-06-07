@@ -90,10 +90,13 @@ describe("editor inline graph queue integration", () => {
     scan({ audioFieldIndices: [0] });
 
     expect(window.__aqeResetGraphAfterEdit?.(0)).toBe(true);
-    expect(window.__aqePendingGraphRedrawField).toBe(0);
+    expect(window.__aqeGraphStateForTest?.(0)).toMatchObject({
+      busy: true,
+      hidden: false,
+    });
+    expect(bridgeCommands().filter((command) => command === "aqe:analyze-field")).toHaveLength(1);
 
     disposeEditorRuntime();
-    renderFields();
     initializeEditorRuntime({ audioFieldIndices: [0] });
     scan({ audioFieldIndices: [0] });
 
@@ -104,7 +107,12 @@ describe("editor inline graph queue integration", () => {
     expect(bridgeCommands().filter((command) => command === "aqe:analyze-field")).toHaveLength(2);
 
     window.__aqeSetVisualizer?.(0, track, 0);
-    expect(window.__aqePendingGraphRedrawField).toBeNull();
+
+    disposeEditorRuntime();
+    initializeEditorRuntime({ audioFieldIndices: [0] });
+    scan({ audioFieldIndices: [0] });
+
+    expect(bridgeCommands().filter((command) => command === "aqe:analyze-field")).toHaveLength(2);
   });
 
   it("waits for the edited source before replaying a pending graph redraw", () => {
@@ -113,8 +121,6 @@ describe("editor inline graph queue integration", () => {
     window.__aqeSetVisualizer?.(0, track, 0);
 
     expect(window.__aqeResetGraphAfterEdit?.(0, "updated.mp3")).toBe(false);
-    expect(window.__aqePendingGraphRedrawField).toBe(0);
-    expect(window.__aqePendingGraphRedrawSource).toBe("updated.mp3");
     expect(bridgeCommands().filter((command) => command === "aqe:analyze-field")).toHaveLength(0);
 
     document.getElementById("f0")!.innerHTML = "[sound:updated.mp3]";
@@ -132,8 +138,15 @@ describe("editor inline graph queue integration", () => {
     });
 
     window.__aqeSetVisualizer?.(0, { ...track, sourceFilename: "updated.mp3" }, 0);
-    expect(window.__aqePendingGraphRedrawField).toBeNull();
-    expect(window.__aqePendingGraphRedrawSource).toBeNull();
+
+    disposeEditorRuntime();
+    initializeEditorRuntime({
+      audioFieldIndices: [0],
+      audioFieldSources: { 0: "updated.mp3" },
+    });
+    scan(window.__AQE_EDITOR_CONFIG__!);
+
+    expect(bridgeCommands().filter((command) => command === "aqe:analyze-field")).toHaveLength(1);
   });
 
   it("auto-queues default graphs for all mounted audio fields", async () => {

@@ -14,6 +14,7 @@ from anki_audio_quick_editor.reviewer_integration import (
     _handle_reviewer_bridge_command,
     _on_card_review_webview_did_init,
     _on_card_will_show,
+    _on_reviewer_did_answer_card,
     _on_reviewer_did_show_card_side,
     _on_reviewer_will_show_context_menu,
     register_reviewer_hooks,
@@ -127,6 +128,12 @@ def test_register_reviewer_hooks() -> None:
     hooks.reviewer_did_show_answer.append.assert_called_once()
     hooks.reviewer_did_answer_card.append.assert_called_once()
     hooks.reviewer_will_show_context_menu.append.assert_called_once()
+    assert hooks.card_review_webview_did_init.append.call_args.args == (_on_card_review_webview_did_init,)
+    assert hooks.card_will_show.append.call_args.args == (_on_card_will_show,)
+    assert hooks.reviewer_did_show_question.append.call_args.args == (_on_reviewer_did_show_card_side,)
+    assert hooks.reviewer_did_show_answer.append.call_args.args == (_on_reviewer_did_show_card_side,)
+    assert hooks.reviewer_did_answer_card.append.call_args.args == (_on_reviewer_did_answer_card,)
+    assert hooks.reviewer_will_show_context_menu.append.call_args.args == (_on_reviewer_will_show_context_menu,)
 
 
 def test_card_will_show_adds_review_targets_for_rendered_audio() -> None:
