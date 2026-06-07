@@ -11,7 +11,14 @@ from .audio_state import AudioProcessingConfig
 from .diagnostics_runtime import capture_exception, new_operation_id, record_breadcrumb
 from .editor_playback_bounds import native_playback_end_ms, requested_end_ms
 from .editor_session import EditorSession
-from .error_codes import AQE_PLAYBACK_PREPARE_FAILED, coded_error
+from .error_codes import (
+    AQE_AUDIO_PROCESSING_FAILED,
+    AQE_MEDIA_CURRENT_FIELD_AUDIO_MISSING,
+    AQE_MEDIA_REFERENCED_AUDIO_MISSING,
+    AQE_PLAYBACK_PREPARE_FAILED,
+    coded_error,
+)
+from .errors import AudioQuickEditorError
 from .i18n import t
 from .media_paths import existing_media_file_path
 from .permission_guidance import message_with_permission_guidance
@@ -94,22 +101,39 @@ def play_with_request(editor: Any, request: Any, deps: Any) -> None:
     """Apply a frontend playback request."""
     if getattr(editor, "note", None) is None:
         return
-    session, source_path = deps.session_and_source(editor)
-    field_index = deps.current_field_index(editor)
-    action, engine, cursor_ms, end_ms, region_mode, source = playback_request_values(session, request, field_index, deps)
-    if deps.is_busy(session):
-        if source != "post_edit":
-            deps.eval_status(editor, deps.still_processing_message, kind="processing")
-        return
-    session.cursor_ms = cursor_ms
-    if engine == "html":
-        apply_html_playback_request(editor, session, field_index, action, cursor_ms, source, deps)
-        return
-    if toggle_native_pause_resume(editor, session, field_index, action, cursor_ms, deps):
-        return
+    try:
+        session, source_path = deps.session_and_source(editor)
+        field_index = deps.current_field_index(editor)
+        action, engine, cursor_ms, end_ms, region_mode, source = playback_request_values(
+            session,
+            request,
+            field_index,
+            deps,
+        )
+        if deps.is_busy(session):
+            if source != "post_edit":
+                deps.eval_status(editor, deps.still_processing_message, kind="processing")
+            return
+        session.cursor_ms = cursor_ms
+        if engine == "html":
+            apply_html_playback_request(editor, session, field_index, action, cursor_ms, source, deps)
+            return
+        if toggle_native_pause_resume(editor, session, field_index, action, cursor_ms, deps):
+            return
 
-    selected_end_ms = end_ms if region_mode == "selection" else None
-    deps.start_playback_from_cursor(editor, session, source_path, field_index, cursor_ms, selected_end_ms, source=source)
+        selected_end_ms = end_ms if region_mode == "selection" else None
+        deps.start_playback_from_cursor(
+            editor,
+            session,
+            source_path,
+            field_index,
+            cursor_ms,
+            selected_end_ms,
+            source=source,
+        )
+    except AudioQuickEditorError as exc:
+        deps.set_busy(editor, False)
+        deps.eval_status(editor, _coded_playback_error(str(exc), deps), kind="error")
 
 
 def playback_request_values(
@@ -366,6 +390,14 @@ def playback_started_from_message(cursor_ms: int, source: str) -> str:
     if source == "chorusing":
         return f"{message}. {t('editor.playback.chorusing_guidance')}"
     return message
+
+
+def _coded_playback_error(message: str, deps: Any) -> dict[str, str]:
+    if message == deps.current_field_audio_missing:
+        return coded_error(AQE_MEDIA_CURRENT_FIELD_AUDIO_MISSING, message)
+    if message == deps.referenced_audio_missing:
+        return coded_error(AQE_MEDIA_REFERENCED_AUDIO_MISSING, message)
+    return coded_error(AQE_AUDIO_PROCESSING_FAILED, message)
 
 
 def set_cursor_from_web(editor: Any, deps: Any) -> None:
