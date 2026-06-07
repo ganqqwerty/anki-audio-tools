@@ -2,6 +2,7 @@
   import { Popover } from "bits-ui";
   import { onMount } from "svelte";
   import AqeTooltip from "../lib/AqeTooltip.svelte";
+  import { buttonTooltipContent } from "../lib/disabled-tooltip.js";
   import EditorCommandIcon from "./EditorCommandIcon.svelte";
   import { openEditorExternalLink } from "./external-links.js";
   import { PRODUCT_LINKS } from "../lib/product-links.js";
@@ -41,6 +42,9 @@
     }),
   }));
   const title = $derived(playSelection ? t("editor.command.play.title_selected") : t("editor.command.play.title"));
+  const primaryTooltip = $derived(buttonTooltipContent(button.label, title));
+  const repeatTooltip = $derived(buttonTooltipContent(t("editor.repeat.label"), t("editor.repeat.title")));
+  const playRunTooltip = $derived(buttonTooltipContent(t("editor.play.play_audio"), t("editor.command.play.title")));
   function close(): void {
     open = false;
   }
@@ -128,9 +132,10 @@
           class="aqe-button aqe-split-primary aqe-tooltip-target"
           data-aqe-command={button.command}
           data-aqe-button-state="play"
-          data-aqe-tooltip-content={title}
+          data-aqe-enabled-title={primaryTooltip}
+          data-aqe-tooltip-content={primaryTooltip}
           data-testid={`aqe-button-${target.ord}-play`}
-          aria-label={title}
+          aria-label={primaryTooltip}
           onmousedown={(event) => event.preventDefault()}
           onclick={dispatchPrimary}
         >
@@ -201,9 +206,9 @@
             type="button"
             class="aqe-button aqe-repeat-button aqe-repeat-toggle-button aqe-tooltip-target"
             data-aqe-button-state={pressed ? "active" : "default"}
-            data-aqe-tooltip-content={t("editor.repeat.title")}
+            data-aqe-tooltip-content={repeatTooltip}
             data-testid={`aqe-repeat-${target.ord}`}
-            aria-label={t("editor.repeat.aria")}
+            aria-label={repeatTooltip}
             aria-pressed={pressed ? "true" : "false"}
             onmousedown={(event) => event.preventDefault()}
             onclick={toggleRepeat}
@@ -261,9 +266,9 @@
               {...props}
               type="button"
               class="aqe-button aqe-split-run-button aqe-tooltip-target"
-              data-aqe-tooltip-content={t("editor.command.play.title")}
+              data-aqe-tooltip-content={playRunTooltip}
               data-testid={`aqe-split-${target.ord}-play-run`}
-              aria-label={t("editor.command.play.title")}
+              aria-label={playRunTooltip}
               onclick={dispatchPrimary}
             >
               {t("editor.play.play_audio")}

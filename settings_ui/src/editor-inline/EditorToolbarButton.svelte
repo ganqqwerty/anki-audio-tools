@@ -1,6 +1,6 @@
 <script lang="ts">
   import AqeTooltip from "../lib/AqeTooltip.svelte";
-  import { tooltipWithDisabledClarification } from "../lib/disabled-tooltip.js";
+  import { buttonTooltipContent, tooltipWithDisabledClarification } from "../lib/disabled-tooltip.js";
   import { EditorButtonMode } from "../lib/types.js";
   import { testId } from "./commands.js";
   import { send } from "./actions.js";
@@ -22,7 +22,8 @@
     target: FieldTarget;
   } = $props();
 
-  const title = $derived(tooltipWithDisabledClarification(button.title, disabled ? disabledTitle : undefined));
+  const enabledTitle = $derived(buttonTooltipContent(button.label, button.title));
+  const title = $derived(tooltipWithDisabledClarification(enabledTitle, disabled ? disabledTitle : undefined));
   const buttonState = $derived(button.command === "aqe:analyze" ? "graph" : "default");
 </script>
 
@@ -40,7 +41,7 @@
         data-aqe-command={button.command}
         data-aqe-button-state={buttonState}
         data-aqe-disabled-title={disabledTitle}
-        data-aqe-enabled-title={button.title}
+        data-aqe-enabled-title={enabledTitle}
         data-testid={testId(target.ord, button.command)}
         {disabled}
         aria-label={title}

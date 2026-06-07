@@ -123,10 +123,14 @@ describe("editor inline selection toolbar integration", () => {
     const deleteRegion = selectionToolbarButton("delete-region");
     const deleteRest = selectionToolbarButton("delete-rest");
 
-    expect(play.getAttribute("data-aqe-tooltip-content")).toBe("Play selection");
-    expect(play.getAttribute("aria-label")).toBe("Play selection");
-    expect(deleteRegion.getAttribute("data-aqe-tooltip-content")).toBe("Create a new file without the selected region");
-    expect(deleteRest.getAttribute("data-aqe-tooltip-content")).toBe("Create a new file that keeps only the selected region");
+    expect(play.getAttribute("data-aqe-tooltip-content")).toBe("Play\nPlay selection");
+    expect(play.getAttribute("aria-label")).toBe("Play\nPlay selection");
+    expect(deleteRegion.getAttribute("data-aqe-tooltip-content")).toBe(
+      "Delete Region\nCreate a new file without the selected region",
+    );
+    expect(deleteRest.getAttribute("data-aqe-tooltip-content")).toBe(
+      "Delete the rest\nCreate a new file that keeps only the selected region",
+    );
     expect(deleteRegion.getAttribute("data-aqe-button-state")).toBe("destructive");
     expect(deleteRest.getAttribute("data-aqe-button-state")).toBe("destructive");
     expect(document.querySelector('[data-testid="aqe-selection-toolbar-collapse-0"]')).toBeNull();

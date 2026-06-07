@@ -133,11 +133,11 @@ describe("editor inline learner recording integration", () => {
     expect(showYoursButton.disabled).toBe(true);
     expect(recordButton.closest(".aqe-button-tooltip-target")).toHaveAttribute(
       "data-aqe-tooltip-content",
-      "Record your voice for this graph\n\nDraw the graph before recording your voice",
+      "Record\nRecord your voice for this graph\n\nDraw the graph before recording your voice",
     );
     expect(playYoursButton.closest(".aqe-button-tooltip-target")).toHaveAttribute(
       "data-aqe-tooltip-content",
-      "Play your latest recording\n\nRecord your voice before playing it",
+      "Play yours\nPlay your latest recording\n\nRecord your voice before playing it",
     );
 
     window.__aqeSetVisualizer?.(0, { ...track, sourceFilename: "clip one.mp3" }, 0);
@@ -149,11 +149,11 @@ describe("editor inline learner recording integration", () => {
     expect(showYoursButton.disabled).toBe(true);
     expect(recordButton.closest(".aqe-button-tooltip-target")).toHaveAttribute(
       "data-aqe-tooltip-content",
-      "Record your voice for this graph",
+      "Record\nRecord your voice for this graph",
     );
     expect(playYoursButton.closest(".aqe-button-tooltip-target")).toHaveAttribute(
       "data-aqe-tooltip-content",
-      "Play your latest recording\n\nRecord your voice before playing it",
+      "Play yours\nPlay your latest recording\n\nRecord your voice before playing it",
     );
 
     const menu = document.querySelector<HTMLButtonElement>('[data-testid="aqe-split-0-record-voice-menu"]')!;
@@ -265,7 +265,7 @@ describe("editor inline learner recording integration", () => {
     });
 
     expect(recordButton.dataset.aqeButtonState).toBe("recording");
-    expect(recordButton.getAttribute("aria-label")).toBe("Stop recording your voice");
+    expect(recordButton.getAttribute("aria-label")).toBe("Stop\nStop recording your voice");
     expect(recordButton.disabled).toBe(false);
     expect(playYoursButton.disabled).toBe(true);
     expect(shareYoursButton.disabled).toBe(true);

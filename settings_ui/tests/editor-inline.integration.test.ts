@@ -49,7 +49,7 @@ describe("editor inline Svelte integration", () => {
     const volumeDownButton = document.querySelector<HTMLButtonElement>('[data-testid="aqe-button-0-volume-down"]')!;
     const volumeUpButton = document.querySelector<HTMLButtonElement>('[data-testid="aqe-button-0-volume-up"]')!;
     expect(graphButton).toHaveClass("aqe-icon-only");
-    expect(graphButton).toHaveAttribute("aria-label", "Draw a pitch/intensity graph");
+    expect(graphButton).toHaveAttribute("aria-label", "Graph\nDraw a pitch/intensity graph");
     expect(removePausesButton).not.toHaveClass("aqe-icon-only");
     expect(showFileButton).toHaveClass("aqe-icon-only");
     expect(convertButton).not.toHaveClass("aqe-icon-only");
@@ -127,34 +127,37 @@ describe("editor inline Svelte integration", () => {
     expect(redoButton).toBeDisabled();
     expect(undoButton).toHaveAttribute(
       "aria-label",
-      "Undo the last action and restore the previous file\n\nNothing to undo yet",
+      "Undo\nUndo the last action and restore the previous file\n\nNothing to undo yet",
     );
     expect(redoButton).toHaveAttribute(
       "aria-label",
-      "Redo the last undone action and restore the next file\n\nNothing to redo yet",
+      "Redo\nRedo the last undone action and restore the next file\n\nNothing to redo yet",
     );
     expect(undoTooltip).toHaveAttribute(
       "data-aqe-tooltip-content",
-      "Undo the last action and restore the previous file\n\nNothing to undo yet",
+      "Undo\nUndo the last action and restore the previous file\n\nNothing to undo yet",
     );
     expect(redoTooltip).toHaveAttribute(
       "data-aqe-tooltip-content",
-      "Redo the last undone action and restore the next file\n\nNothing to redo yet",
+      "Redo\nRedo the last undone action and restore the next file\n\nNothing to redo yet",
     );
 
     window.__aqeSetHistoryAvailability?.(0, true, false);
 
     expect(undoButton).not.toBeDisabled();
     expect(redoButton).toBeDisabled();
-    expect(undoButton).toHaveAttribute("aria-label", "Undo the last action and restore the previous file");
+    expect(undoButton).toHaveAttribute("aria-label", "Undo\nUndo the last action and restore the previous file");
     expect(redoButton).toHaveAttribute(
       "aria-label",
-      "Redo the last undone action and restore the next file\n\nNothing to redo yet",
+      "Redo\nRedo the last undone action and restore the next file\n\nNothing to redo yet",
     );
-    expect(undoTooltip).toHaveAttribute("data-aqe-tooltip-content", "Undo the last action and restore the previous file");
+    expect(undoTooltip).toHaveAttribute(
+      "data-aqe-tooltip-content",
+      "Undo\nUndo the last action and restore the previous file",
+    );
     expect(redoTooltip).toHaveAttribute(
       "data-aqe-tooltip-content",
-      "Redo the last undone action and restore the next file\n\nNothing to redo yet",
+      "Redo\nRedo the last undone action and restore the next file\n\nNothing to redo yet",
     );
   });
 
@@ -434,7 +437,7 @@ describe("editor inline Svelte integration", () => {
     expect(shareMenuButton).toBeInTheDocument();
     expect(shareButton).toHaveAttribute(
       "aria-label",
-      "Share this file online and copy the link to the clipboard",
+      "Share\nShare this file online and copy the link to the clipboard",
     );
   });
 
