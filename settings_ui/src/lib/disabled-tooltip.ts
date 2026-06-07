@@ -1,3 +1,14 @@
+export function buttonTooltipContent(
+  label: string | null | undefined,
+  description: string | null | undefined,
+): string {
+  const normalizedLabel = (label ?? "").trim();
+  const normalizedDescription = (description ?? "").trim();
+  if (!normalizedLabel) return normalizedDescription;
+  if (!normalizedDescription || normalizedDescription === normalizedLabel) return normalizedLabel;
+  return `${normalizedLabel}\n${normalizedDescription}`;
+}
+
 export function tooltipWithDisabledClarification(
   content: string | null | undefined,
   disabledReason: string | null | undefined,

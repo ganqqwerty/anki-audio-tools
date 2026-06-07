@@ -33,7 +33,7 @@ afterEach(() => {
     scan({ audioFieldIndices: [0] });
 
     const playButton = document.querySelector<HTMLButtonElement>('[data-testid="aqe-button-0-play"]')!;
-    expect(playButton).toHaveAttribute("data-aqe-tooltip-content", "Play or pause the current audio");
+    expect(playButton).toHaveAttribute("data-aqe-tooltip-content", "Play\nPlay or pause the current audio");
 
     document.querySelector<HTMLButtonElement>('[data-testid="aqe-button-0-volume-up"]')!.click();
 
@@ -43,7 +43,7 @@ afterEach(() => {
     expect(window.__aqeGraphStateForTest?.(0)?.repeatControlDisabled).toBe(true);
     expect(playButton).toHaveAttribute(
       "data-aqe-tooltip-content",
-      "Play or pause the current audio\n\nWait for the current audio operation to finish.",
+      "Play\nPlay or pause the current audio\n\nWait for the current audio operation to finish.",
     );
     expect(document.querySelector('[data-testid="aqe-status-0"]')).toHaveTextContent("Processing...");
 
@@ -51,7 +51,7 @@ afterEach(() => {
 
     expect(window.__aqeGraphStateForTest?.(0)?.allButtonsDisabled).toBe(false);
     expect(window.__aqeGraphStateForTest?.(0)?.repeatControlDisabled).toBe(false);
-    expect(playButton).toHaveAttribute("data-aqe-tooltip-content", "Play or pause the current audio");
+    expect(playButton).toHaveAttribute("data-aqe-tooltip-content", "Play\nPlay or pause the current audio");
     expect(document.querySelector('[data-testid="aqe-status-0"]')).toHaveTextContent("");
   });
 

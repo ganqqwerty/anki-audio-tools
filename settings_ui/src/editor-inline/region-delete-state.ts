@@ -55,7 +55,8 @@ function syncRegionDeleteButton(
   const validTitle = titleForOperation(operation, true);
   const invalidTitle = titleForOperation(operation, false);
   const reason = anyBusy() && valid ? t("tooltip.disabled.editor_busy") : (!valid ? invalidTitle : undefined);
-  setButtonTooltipContent(button, tooltipWithDisabledClarification(validTitle, reason));
+  const enabledTitle = button.dataset.aqeEnabledTitle || validTitle;
+  setButtonTooltipContent(button, tooltipWithDisabledClarification(enabledTitle, reason));
   button.setAttribute("aria-disabled", button.disabled ? "true" : "false");
 }
 

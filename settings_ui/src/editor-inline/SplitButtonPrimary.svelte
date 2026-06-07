@@ -1,6 +1,6 @@
 <script lang="ts">
   import AqeTooltip from "../lib/AqeTooltip.svelte";
-  import { tooltipWithDisabledClarification } from "../lib/disabled-tooltip.js";
+  import { buttonTooltipContent, tooltipWithDisabledClarification } from "../lib/disabled-tooltip.js";
   import type { CommandIconName } from "../lib/icon-types.js";
 
   import EditorCommandIcon from "./EditorCommandIcon.svelte";
@@ -38,7 +38,8 @@
     title: string;
   } = $props();
 
-  const tooltipTitle = $derived(tooltipWithDisabledClarification(title, disabled ? disabledReason : undefined));
+  const enabledTitle = $derived(buttonTooltipContent(label, title));
+  const tooltipTitle = $derived(tooltipWithDisabledClarification(enabledTitle, disabled ? disabledReason : undefined));
 </script>
 
 <AqeTooltip>
@@ -55,7 +56,7 @@
         data-aqe-command={command}
         data-aqe-button-state={command === "aqe:play" ? "play" : command === "aqe:analyze" ? "graph" : "default"}
         data-aqe-disabled-title={disabledReason}
-        data-aqe-enabled-title={title}
+        data-aqe-enabled-title={enabledTitle}
         data-aqe-tooltip-content={tooltipTitle}
         data-testid={`aqe-button-${ord}-${slug}`}
         {disabled}

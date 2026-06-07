@@ -9,7 +9,7 @@ import {
   titleForOperation,
 } from "./region-delete-state.js";
 import { setButtonTooltipContent } from "../lib/rich-tooltip.js";
-import { tooltipWithDisabledClarification } from "../lib/disabled-tooltip.js";
+import { buttonTooltipContent, tooltipWithDisabledClarification } from "../lib/disabled-tooltip.js";
 import type { VisualizerElement } from "./types.js";
 
 export type SelectionToolbarPreview = "none" | "region" | "rest";
@@ -108,9 +108,16 @@ function syncToolbarPlayButton(visualizer: VisualizerElement, busy: boolean): vo
   if (!play) return;
   const playing = visualizer.dataset.playbackState === "playing";
   const title = playing ? PAUSE_SELECTION_TITLE : PLAY_SELECTION_TITLE;
+  const label = playing ? t("editor.command.pause.label") : t("editor.command.play.label");
   play.disabled = busy;
   play.dataset.aqeButtonState = playing ? "pause" : "play";
-  setButtonTooltipContent(play, tooltipWithDisabledClarification(title, busy ? t("tooltip.disabled.editor_busy") : undefined));
+  setButtonTooltipContent(
+    play,
+    tooltipWithDisabledClarification(
+      buttonTooltipContent(label, title),
+      busy ? t("tooltip.disabled.editor_busy") : undefined,
+    ),
+  );
   play.setAttribute("aria-disabled", play.disabled ? "true" : "false");
 }
 
@@ -126,6 +133,7 @@ function syncToolbarDeleteButton(
   button.disabled = busy || !valid;
   button.dataset.aqeButtonState = valid ? "destructive" : "unavailable";
   const reason = busy && valid ? t("tooltip.disabled.editor_busy") : (!valid ? invalidTitle : undefined);
-  setButtonTooltipContent(button, tooltipWithDisabledClarification(validTitle, reason));
+  const enabledTitle = button.dataset.aqeEnabledTitle || validTitle;
+  setButtonTooltipContent(button, tooltipWithDisabledClarification(enabledTitle, reason));
   button.setAttribute("aria-disabled", button.disabled ? "true" : "false");
 }
