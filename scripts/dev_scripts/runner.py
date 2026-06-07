@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from collections.abc import Callable
+
 from scripts.dev_cli import build_parser
 from scripts.dev_scripts.types import CommandRegistry
 from scripts.dev_tasks.process import quiet_test_output, set_idle_timeout, set_verbose
@@ -13,6 +15,14 @@ QUIET_TEST_COMMANDS = frozenset(
 
 def print_help(commands: CommandRegistry) -> None:
     build_parser(commands).print_help()
+
+
+def _run_quiet_command(func: Callable[[list[str]], int], command_args: list[str]) -> int:
+    result: int | None = None
+    with quiet_test_output():
+        result = func(command_args)
+    assert result is not None
+    return result
 
 
 def run_command(
@@ -32,5 +42,4 @@ def run_command(
     if verbose or command not in QUIET_TEST_COMMANDS:
         print(f"[dev] selected command: {command}" + (" (verbose)" if verbose else ""))
         return func(command_args)
-    with quiet_test_output():
-        return func(command_args)
+    return _run_quiet_command(func, command_args)

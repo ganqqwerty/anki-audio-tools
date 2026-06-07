@@ -130,7 +130,6 @@ def _check_post_preflight_groups(
             ("deadcode", cmd_deadcode),
             ("deps", cmd_deps),
             ("complexity", cmd_quality_metrics),
-            ("qodana", cmd_qodana),
             ("arch", cmd_arch),
             ("test-anki-api", cmd_test_anki_api),
         ]
@@ -139,9 +138,9 @@ def _check_post_preflight_groups(
         parallel_steps.append(("test", run_test_targets))
     parallel_steps.append(("coverage", cmd_coverage))
     tail_steps = (
-        [("test-svelte", cmd_test_svelte)]
+        [("qodana", cmd_qodana), ("test-svelte", cmd_test_svelte)]
         if contracts_prepared
-        else [("typecheck", cmd_typecheck), ("test", cmd_test), ("test-svelte", cmd_test_svelte)]
+        else [("typecheck", cmd_typecheck), ("test", cmd_test), ("qodana", cmd_qodana), ("test-svelte", cmd_test_svelte)]
     )
     return [("parallel", parallel_steps), ("tail", tail_steps)]
 

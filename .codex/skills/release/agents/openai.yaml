@@ -1,0 +1,4 @@
+interface:
+  display_name: "Release"
+  short_description: "Build and validate repo release archives"
+  default_prompt: "Use $release to build and validate a macOS or Windows release for this repository."

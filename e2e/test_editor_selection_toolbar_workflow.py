@@ -247,7 +247,7 @@ def test_selection_toolbar_play_pause_uses_selected_html_audio(anki_mw, ffmpeg_c
             and 450 <= state["playbackStartMs"] <= 550
             and 1200 <= state["playbackEndMs"] <= 1300
             and state["selectionToolbarPlayState"] == "pause"
-            and state["selectionToolbarPlayAriaLabel"] == "Pause selection",
+            and state["selectionToolbarPlayAriaLabel"] == "Pause\nPause selection",
         )
         assert playing["selectionActive"] is True
 

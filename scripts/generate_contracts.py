@@ -6,7 +6,6 @@ from __future__ import annotations
 import argparse
 import difflib
 import json
-import os
 import re
 import subprocess
 import sys
@@ -15,6 +14,11 @@ from dataclasses import dataclass
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
+
+from scripts.dev_tasks.node_tools import quicktype_command
+
 COMMUNICATION_SCHEMA = ROOT / "contracts" / "communication.schema.json"
 CONFIG_SCHEMA = ROOT / "addon" / "anki_audio_quick_editor" / "config.schema.json"
 SETTINGS_UI_DIR = ROOT / "settings_ui"
@@ -58,11 +62,6 @@ TARGETS = (
 )
 
 
-def _quicktype_bin() -> Path:
-    binary_name = "quicktype.cmd" if os.name == "nt" else "quicktype"
-    return SETTINGS_UI_DIR / "node_modules" / ".bin" / binary_name
-
-
 def _load_json(path: Path) -> dict[str, object]:
     return json.loads(path.read_text(encoding="utf-8"))
 
@@ -81,9 +80,9 @@ def _composed_schema() -> dict[str, object]:
     return schema
 
 
-def _run_quicktype(quicktype: Path, schema_path: Path, target: GeneratedTarget) -> str:
+def _run_quicktype(quicktype: list[str], schema_path: Path, target: GeneratedTarget) -> str:
     command = [
-        str(quicktype),
+        *quicktype,
         "--src-lang",
         "schema",
         "--lang",
@@ -116,11 +115,10 @@ def _postprocess_python(content: str) -> str:
 # noinspection PyInconsistentReturns
 def generate_outputs() -> dict[Path, str]:
     """Return generated file contents keyed by repository path."""
-    quicktype = _quicktype_bin()
-    if not quicktype.exists():
-        raise RuntimeError(
-            f"quicktype not found at {quicktype}. Run: python3 scripts/dev.py setup"
-        )
+    quicktype = quicktype_command(SETTINGS_UI_DIR)
+    if not quicktype:
+        expected = SETTINGS_UI_DIR / "node_modules" / "quicktype" / "dist" / "index.js"
+        raise RuntimeError(f"quicktype not found at {expected}. Run: python3 scripts/dev.py setup")
 
     with tempfile.TemporaryDirectory(dir=ROOT) as tmp:
         schema_path = Path(tmp) / "communication.composed.schema.json"

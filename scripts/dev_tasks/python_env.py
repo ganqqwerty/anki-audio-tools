@@ -34,6 +34,11 @@ def _load_dotenv() -> dict[str, str]:
     return result
 
 
+def _posix_home_string() -> str:
+    """Return the current home directory rendered with POSIX separators."""
+    return str(Path.home()).replace("\\", "/")
+
+
 def _candidate_path_segments() -> list[PathSegments]:
     """Return candidate Anki Python paths as plain segments.
 
@@ -44,7 +49,7 @@ def _candidate_path_segments() -> list[PathSegments]:
     if system == "Darwin":
         return [
             (
-                str(Path.home()),
+                _posix_home_string(),
                 "Library",
                 "Application Support",
                 "AnkiProgramFiles",
@@ -56,7 +61,7 @@ def _candidate_path_segments() -> list[PathSegments]:
     if system == "Linux":
         return [
             (
-                str(Path.home()),
+                _posix_home_string(),
                 ".local",
                 "share",
                 "AnkiProgramFiles",
@@ -65,7 +70,7 @@ def _candidate_path_segments() -> list[PathSegments]:
                 "python3",
             ),
             (
-                str(Path.home()),
+                _posix_home_string(),
                 ".var",
                 "app",
                 "net.ankiweb.Anki",

@@ -24,6 +24,8 @@ python3 scripts/dev.py test-e2e
 - installs Python dev dependencies into Anki's Python
 - creates the add-on symlink in `addons21/1000000002`
 - runs `npm ci` in `settings_ui/` when `package-lock.json` is present, otherwise `npm install`
+- on Windows, discovers npm from `PATH` first and then from the installed Node.js directory if `npm.cmd` is not already exported on `PATH`
+- fails loudly when neither npm nor an existing `settings_ui/node_modules` tree is available, instead of silently leaving frontend commands unusable
 
 `runtime-install` downloads, verifies, extracts, and repairs the current
 platform's managed native runtime through the same core installer used by the
@@ -287,6 +289,8 @@ python3 scripts/dev.py test-svelte
 ```
 
 That command requires `settings_ui/node_modules`, rebuilds the ignored generated bundles, then runs `npm run validate`, which chains `svelte-check`, ESLint, `tsc --noEmit`, and Vitest coverage thresholds.
+
+When Node.js is present but `npm` is not exported on `PATH`, the dev runner still executes frontend package scripts through a repo-local fallback runner. Fresh dependency installs still require a real npm CLI, so `python3 scripts/dev.py setup` now reports that case explicitly on Windows instead of pretending setup completed successfully.
 
 Generate and verify communication contracts with:
 

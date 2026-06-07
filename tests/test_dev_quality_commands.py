@@ -57,11 +57,7 @@ def test_arch_uses_windows_lint_imports_executable(monkeypatch, tmp_path: Path) 
 def test_qodana_runs_with_committed_config(monkeypatch) -> None:
     calls: list[tuple[list[str], dict[str, object]]] = []
 
-    monkeypatch.setattr(
-        quality_tools.shutil,
-        "which",
-        lambda name: "/usr/local/bin/qodana" if name == "qodana" else None,
-    )
+    monkeypatch.setattr(quality_tools, "_find_qodana", lambda: "/usr/local/bin/qodana")
     monkeypatch.setattr(
         quality_tools,
         "_run",
@@ -87,7 +83,7 @@ def test_qodana_runs_with_committed_config(monkeypatch) -> None:
 
 
 def test_qodana_reports_missing_cli(monkeypatch, capsys) -> None:
-    monkeypatch.setattr(quality_tools.shutil, "which", lambda name: None)
+    monkeypatch.setattr(quality_tools, "_find_qodana", lambda: None)
 
     assert quality_tools.cmd_qodana() == 1
 

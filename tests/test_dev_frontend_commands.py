@@ -12,7 +12,7 @@ def test_build_ui_generates_contracts_before_frontend_build(monkeypatch, tmp_pat
     calls: list[str] = []
 
     monkeypatch.setattr(frontend, "SETTINGS_UI_DIR", settings_ui)
-    monkeypatch.setattr(frontend.shutil, "which", lambda name: "/usr/bin/npm" if name == "npm" else None)
+    monkeypatch.setattr(frontend, "frontend_npm_command", lambda *args, **kwargs: ["/usr/bin/npm", "run", "build"])
     monkeypatch.setattr(frontend, "cmd_contracts_generate", lambda: calls.append("contracts-generate") or 0)
     monkeypatch.setattr(frontend, "_run", lambda cmd, **kwargs: calls.append(" ".join(cmd)) or 0)
 
@@ -25,7 +25,7 @@ def test_build_ui_stops_when_contract_generation_fails(monkeypatch, tmp_path: Pa
     settings_ui.mkdir()
 
     monkeypatch.setattr(frontend, "SETTINGS_UI_DIR", settings_ui)
-    monkeypatch.setattr(frontend.shutil, "which", lambda name: "/usr/bin/npm" if name == "npm" else None)
+    monkeypatch.setattr(frontend, "frontend_npm_command", lambda *args, **kwargs: ["/usr/bin/npm", "run", "build"])
     monkeypatch.setattr(frontend, "cmd_contracts_generate", lambda: 19)
     monkeypatch.setattr(
         frontend,
@@ -42,7 +42,13 @@ def test_test_svelte_builds_frontend_before_validation(monkeypatch, tmp_path: Pa
     calls: list[str] = []
 
     monkeypatch.setattr(frontend, "SETTINGS_UI_DIR", settings_ui)
-    monkeypatch.setattr(frontend.shutil, "which", lambda name: "/usr/bin/npm" if name == "npm" else None)
+    monkeypatch.setattr(
+        frontend,
+        "frontend_npm_command",
+        lambda script, **kwargs: ["/usr/bin/npm", "run", script, "--", "--fix"]
+        if script == "lint"
+        else ["/usr/bin/npm", "run", script],
+    )
     monkeypatch.setattr(frontend, "cmd_build_ui", lambda: calls.append("build") or 0)
     monkeypatch.setattr(
         frontend,
@@ -60,7 +66,13 @@ def test_test_svelte_stops_when_lint_autofix_fails(monkeypatch, tmp_path: Path) 
     calls: list[str] = []
 
     monkeypatch.setattr(frontend, "SETTINGS_UI_DIR", settings_ui)
-    monkeypatch.setattr(frontend.shutil, "which", lambda name: "/usr/bin/npm" if name == "npm" else None)
+    monkeypatch.setattr(
+        frontend,
+        "frontend_npm_command",
+        lambda script, **kwargs: ["/usr/bin/npm", "run", script, "--", "--fix"]
+        if script == "lint"
+        else ["/usr/bin/npm", "run", script],
+    )
     monkeypatch.setattr(frontend, "cmd_build_ui", lambda: calls.append("build") or 0)
 
     def fake_run(cmd: list[str], **_kwargs: object) -> int:
@@ -78,7 +90,7 @@ def test_test_svelte_stops_when_frontend_build_fails(monkeypatch, tmp_path: Path
     (settings_ui / "node_modules").mkdir(parents=True)
 
     monkeypatch.setattr(frontend, "SETTINGS_UI_DIR", settings_ui)
-    monkeypatch.setattr(frontend.shutil, "which", lambda name: "/usr/bin/npm" if name == "npm" else None)
+    monkeypatch.setattr(frontend, "frontend_npm_command", lambda script, **kwargs: ["/usr/bin/npm", "run", script])
     monkeypatch.setattr(frontend, "cmd_build_ui", lambda: 17)
     monkeypatch.setattr(
         frontend,

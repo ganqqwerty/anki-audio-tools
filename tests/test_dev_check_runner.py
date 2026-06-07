@@ -37,7 +37,6 @@ def test_check_includes_python_coverage_gate(monkeypatch) -> None:
                 "deadcode",
                 "deps",
                 "complexity",
-                "qodana",
                 "arch",
                 "test-anki-api",
                 "test",
@@ -46,7 +45,7 @@ def test_check_includes_python_coverage_gate(monkeypatch) -> None:
         ),
         (
             "sequential",
-            ["test-svelte"],
+            ["qodana", "test-svelte"],
         ),
     ]
 

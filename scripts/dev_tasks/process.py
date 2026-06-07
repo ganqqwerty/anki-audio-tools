@@ -207,47 +207,47 @@ def _print_failed_output(output: str, *, label: str | None = None) -> bool:
     return True
 
 
-def _run(
-    cmd: list[str],
-    env: dict[str, str] | None = None,
-    cwd: Path | None = None,
+def _resolve_run_settings(
     *,
-    label: str | None = None,
-    idle_warning_s: float | None = None,
-    idle_timeout_s: float | None = None,
-    show_output_on_failure: bool = False,
-) -> int:
-    quiet_mode = is_quiet_test_output() and not is_verbose()
+    cwd: Path | None,
+    env: dict[str, str] | None,
+    idle_warning_s: float | None,
+    idle_timeout_s: float | None,
+) -> tuple[Path, dict[str, str] | None, float, float, float]:
     run_cwd = cwd or ROOT
     merged_env = {**os.environ, **env} if env else None
-    if idle_warning_s is None:
-        idle_warning_s = _read_seconds_env("DEV_IDLE_WARNING_SECS", 30.0)
-    if idle_timeout_s is None:
-        idle_timeout_s = (
+    resolved_idle_warning = idle_warning_s
+    if resolved_idle_warning is None:
+        resolved_idle_warning = _read_seconds_env("DEV_IDLE_WARNING_SECS", 30.0)
+    resolved_idle_timeout = idle_timeout_s
+    if resolved_idle_timeout is None:
+        resolved_idle_timeout = (
             _IDLE_TIMEOUT_S
             if _IDLE_TIMEOUT_S is not None
             else _read_seconds_env("DEV_IDLE_TIMEOUT_SECS", 300.0)
         )
     terminate_grace_s = _read_seconds_env("DEV_TERMINATE_GRACE_SECS", 5.0)
-    rendered_cmd = shlex.join(str(part) for part in cmd)
+    return run_cwd, merged_env, resolved_idle_warning, resolved_idle_timeout, terminate_grace_s
+
+
+def _announce_run(
+    *,
+    rendered_cmd: str,
+    run_cwd: Path,
+    env: dict[str, str] | None,
+    label: str | None,
+    idle_warning_s: float,
+    idle_timeout_s: float,
+    quiet_mode: bool,
+) -> None:
     if is_verbose():
         _print_run_header(rendered_cmd, run_cwd, env, label, idle_warning_s, idle_timeout_s)
     elif not quiet_mode:
         print(f"[dev] {label or rendered_cmd}")
 
-    process = subprocess.Popen(
-        [str(part) for part in cmd],
-        cwd=run_cwd,
-        env=merged_env,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.STDOUT,
-        text=True,
-        encoding="utf-8",
-        errors="replace",
-        bufsize=1,
-    )
+
+def _start_output_reader(process: subprocess.Popen[str], output_queue: queue.Queue[str | None]) -> threading.Thread:
     assert process.stdout is not None
-    output_queue: queue.Queue[str | None] = queue.Queue()
 
     def _pump_output() -> None:
         try:
@@ -259,13 +259,23 @@ def _run(
 
     reader = threading.Thread(target=_pump_output, daemon=True)
     reader.start()
+    return reader
 
+
+def _wait_for_process_completion(
+    *,
+    output_queue: queue.Queue[str | None],
+    process: subprocess.Popen[str],
+    idle_warning_s: float,
+    idle_timeout_s: float,
+    terminate_grace_s: float,
+    buffered_output: list[str] | None,
+) -> bool:
     start = time.monotonic()
     last_output = start
     next_warning = start + idle_warning_s if idle_warning_s else float("inf")
     stream_closed = False
     interrupted_for_idle = False
-    buffered_output: list[str] | None = [] if (quiet_mode or show_output_on_failure) and not is_verbose() else None
 
     while True:
         should_break, timed_out, stream_closed, last_output, next_warning = _handle_idle_queue_wait(
@@ -281,11 +291,63 @@ def _run(
             stream_output=is_verbose(),
             buffered_output=buffered_output,
         )
+        if should_break:
+            return interrupted_for_idle
         if timed_out:
             interrupted_for_idle = True
-            continue
-        if should_break:
-            break
+
+
+def _run(
+    cmd: list[str],
+    env: dict[str, str] | None = None,
+    cwd: Path | None = None,
+    *,
+    label: str | None = None,
+    idle_warning_s: float | None = None,
+    idle_timeout_s: float | None = None,
+    show_output_on_failure: bool = False,
+) -> int:
+    quiet_mode = is_quiet_test_output() and not is_verbose()
+    run_cwd, merged_env, resolved_idle_warning, resolved_idle_timeout, terminate_grace_s = _resolve_run_settings(
+        cwd=cwd,
+        env=env,
+        idle_warning_s=idle_warning_s,
+        idle_timeout_s=idle_timeout_s,
+    )
+    rendered_cmd = shlex.join(str(part) for part in cmd)
+    _announce_run(
+        rendered_cmd=rendered_cmd,
+        run_cwd=run_cwd,
+        env=env,
+        label=label,
+        idle_warning_s=resolved_idle_warning,
+        idle_timeout_s=resolved_idle_timeout,
+        quiet_mode=quiet_mode,
+    )
+
+    process = subprocess.Popen(
+        [str(part) for part in cmd],
+        cwd=run_cwd,
+        env=merged_env,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.STDOUT,
+        text=True,
+        encoding="utf-8",
+        errors="replace",
+        bufsize=1,
+    )
+    output_queue: queue.Queue[str | None] = queue.Queue()
+    buffered_output: list[str] | None = [] if (quiet_mode or show_output_on_failure) and not is_verbose() else None
+    reader = _start_output_reader(process, output_queue)
+    start = time.monotonic()
+    interrupted_for_idle = _wait_for_process_completion(
+        output_queue=output_queue,
+        process=process,
+        idle_warning_s=resolved_idle_warning,
+        idle_timeout_s=resolved_idle_timeout,
+        terminate_grace_s=terminate_grace_s,
+        buffered_output=buffered_output,
+    )
 
     rc = process.wait()
     reader.join(timeout=1)

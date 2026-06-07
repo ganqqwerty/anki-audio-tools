@@ -13,6 +13,7 @@ Anki desktop add-on for quick, non-destructive audio edits from the Anki Editor 
 | Documentation maintenance | `/doc-maintain` | `$doc-maintain` |
 | Full QC suite | `/test` | `$test` |
 | Dependency changes | `/add-dep` | `$add-dep` |
+| Release workflow | `n/a` | `$release` |
 
 ## Documentation Maintenance
 
