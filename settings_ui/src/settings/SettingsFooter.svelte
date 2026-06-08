@@ -35,7 +35,7 @@
     background: var(--canvas, Canvas);
     bottom: 0;
     margin: 20px 0 0;
-    padding: 0 12px;
+    padding: 0 12px 12px;
     position: sticky;
     z-index: 10;
   }

@@ -22,5 +22,9 @@ export function selectionActionButtons(): readonly ToolbarButtonSpec[] {
 }
 
 export function settingsToolbarButtons(): readonly ToolbarButtonSpec[] {
-  return [...toolbarButtons(), ...selectionActionButtons()] as const;
+  const buttons = toolbarButtons();
+  const selectionButtons = selectionActionButtons();
+  const undoIndex = buttons.findIndex((button) => button.command === "aqe:undo");
+  if (undoIndex === -1) return [...buttons, ...selectionButtons] as const;
+  return [...buttons.slice(0, undoIndex), ...selectionButtons, ...buttons.slice(undoIndex)] as const;
 }

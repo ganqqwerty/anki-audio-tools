@@ -211,21 +211,17 @@
 }
 
 .aqe-split-preset[aria-pressed="true"] {
-  background: var(--aqe-accent-surface-strong-color);
+  background: color-mix(in srgb, Canvas 90%, var(--aqe-border-color));
   border-color: var(--aqe-accent-border-color);
-  box-shadow:
-    inset 0 0 0 1px var(--aqe-accent-border-color),
-    0 0 0 1px color-mix(in srgb, var(--aqe-accent-border-color) 24%, transparent);
-  color: var(--aqe-accent-text-color);
+  box-shadow: inset 0 0 0 1px var(--aqe-accent-border-color);
+  color: inherit;
 }
 
 .aqe-split-preset[aria-checked="true"] {
-  background: var(--aqe-accent-surface-strong-color);
+  background: color-mix(in srgb, Canvas 90%, var(--aqe-border-color));
   border-color: var(--aqe-accent-border-color);
-  box-shadow:
-    inset 0 0 0 1px var(--aqe-accent-border-color),
-    0 0 0 1px color-mix(in srgb, var(--aqe-accent-border-color) 24%, transparent);
-  color: var(--aqe-accent-text-color);
+  box-shadow: inset 0 0 0 1px var(--aqe-accent-border-color);
+  color: inherit;
 }
 
 .aqe-split-extra-field,

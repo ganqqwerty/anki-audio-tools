@@ -54,16 +54,20 @@ export interface ToolbarButtonSpec {
 export const DEFAULT_VISIBLE_EDITOR_BUTTONS = [
   "aqe:play",
   "aqe:analyze",
-  "aqe:chorusing-practice",
-  "aqe:chorusing-previous",
-  "aqe:chorusing-next",
   "aqe:show-file",
   "aqe:share",
-  "aqe:reduce-size",
-  "aqe:remove-pauses",
   "aqe:denoise-standard",
+  "aqe:remove-pauses",
   "aqe:slower",
   "aqe:faster",
+  "aqe:volume-down",
+  "aqe:volume-up",
+  "aqe:chorusing-practice",
+  "aqe:chorusing-next",
+  "aqe:chorusing-previous",
+  "aqe:pitch-hum",
+  "aqe:convert",
+  "aqe:reduce-size",
   "aqe:delete-selection",
   "aqe:delete-rest",
   "aqe:undo",
@@ -127,6 +131,56 @@ export function commandButtons(): readonly ToolbarButtonSpec[] {
       title: t("editor.command.graph.title"),
     },
     {
+      command: "aqe:show-file",
+      icon: "folder-open",
+      iconOnly: true,
+      label: t("editor.command.folder.label"),
+      title: t("editor.command.folder.title"),
+    },
+    {
+      command: "aqe:share",
+      icon: "share",
+      iconOnly: true,
+      label: t("editor.command.share.label"),
+      title: t("editor.command.share.title"),
+    },
+    denoiseTopLevelButton(),
+    {
+      command: "aqe:remove-pauses",
+      icon: "timer-reset",
+      iconOnly: true,
+      label: t("editor.command.shorten_pauses.label"),
+      title: t("editor.command.shorten_pauses.title"),
+    },
+    {
+      command: "aqe:slower",
+      icon: "snail",
+      iconOnly: true,
+      label: t("editor.command.slower.label"),
+      title: t("editor.command.slower.title"),
+    },
+    {
+      command: "aqe:faster",
+      icon: "hare-running",
+      iconOnly: true,
+      label: t("editor.command.faster.label"),
+      title: t("editor.command.faster.title"),
+    },
+    {
+      command: "aqe:volume-down",
+      icon: "volume-1",
+      iconOnly: true,
+      label: t("editor.command.volume_down.label"),
+      title: t("editor.command.volume_down.title"),
+    },
+    {
+      command: "aqe:volume-up",
+      icon: "volume-2",
+      iconOnly: true,
+      label: t("editor.command.volume_up.label"),
+      title: t("editor.command.volume_up.title"),
+    },
+    {
       activeIcon: "pause",
       command: "aqe:chorusing-practice",
       icon: "bug-play",
@@ -179,18 +233,11 @@ export function commandButtons(): readonly ToolbarButtonSpec[] {
       title: t("editor.command.show_recording_file.title"),
     },
     {
-      command: "aqe:show-file",
-      icon: "folder-open",
+      command: "aqe:pitch-hum",
+      icon: "waves",
       iconOnly: true,
-      label: t("editor.command.folder.label"),
-      title: t("editor.command.folder.title"),
-    },
-    {
-      command: "aqe:share",
-      icon: "share",
-      iconOnly: true,
-      label: t("editor.command.share.label"),
-      title: t("editor.command.share.title"),
+      label: t("editor.command.pitch_hum.label"),
+      title: t("editor.command.pitch_hum.title"),
     },
     {
       command: "aqe:convert",
@@ -205,48 +252,6 @@ export function commandButtons(): readonly ToolbarButtonSpec[] {
       iconOnly: true,
       label: t("editor.command.reduce_size.label"),
       title: t("editor.command.reduce_size.title", { level: formatSizeReductionMode(sizeReductionMode) }),
-    },
-    {
-      command: "aqe:remove-pauses",
-      icon: "timer-reset",
-      iconOnly: true,
-      label: t("editor.command.shorten_pauses.label"),
-      title: t("editor.command.shorten_pauses.title"),
-    },
-    {
-      command: "aqe:pitch-hum",
-      icon: "waves",
-      iconOnly: true,
-      label: t("editor.command.pitch_hum.label"),
-      title: t("editor.command.pitch_hum.title"),
-    },
-    {
-      command: "aqe:slower",
-      icon: "snail",
-      iconOnly: true,
-      label: t("editor.command.slower.label"),
-      title: t("editor.command.slower.title"),
-    },
-    {
-      command: "aqe:faster",
-      icon: "hare-running",
-      iconOnly: true,
-      label: t("editor.command.faster.label"),
-      title: t("editor.command.faster.title"),
-    },
-    {
-      command: "aqe:volume-down",
-      icon: "volume-1",
-      iconOnly: true,
-      label: t("editor.command.volume_down.label"),
-      title: t("editor.command.volume_down.title"),
-    },
-    {
-      command: "aqe:volume-up",
-      icon: "volume-2",
-      iconOnly: true,
-      label: t("editor.command.volume_up.label"),
-      title: t("editor.command.volume_up.title"),
     },
     {
       command: "aqe:undo",
@@ -285,9 +290,7 @@ export function denoiseTopLevelButton(): ToolbarButtonSpec {
 }
 
 export function toolbarButtons(): readonly ToolbarButtonSpec[] {
-  return commandButtons().flatMap((button) =>
-    button.command === "aqe:remove-pauses" ? [button, denoiseTopLevelButton()] : [button],
-  );
+  return commandButtons();
 }
 
 export function buttonDisplayMode(

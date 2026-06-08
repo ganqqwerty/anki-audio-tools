@@ -141,8 +141,7 @@
 .aqe-toolbar-panel,
 .aqe-ui-root .aqe-toolbar-panel {
   align-items: center;
-  background: var(--aqe-accent-surface-color);
-  border: 1px solid var(--aqe-accent-border-color);
+  background: var(--aqe-toolbar-panel-surface-color);
   border-radius: 9px;
   display: inline-flex;
   flex: 0 0 auto;
@@ -154,11 +153,11 @@
 
 .aqe-toolbar-panel-label,
 .aqe-ui-root .aqe-toolbar-panel-label {
-  color: var(--aqe-accent-text-color);
+  color: inherit;
   display: inline-flex;
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   font-size: 11px;
-  font-weight: 700;
+  font-weight: 400;
   line-height: 1.2;
   padding: 0 5px;
   white-space: nowrap;
@@ -247,18 +246,18 @@
 }
 
 .aqe-repeat-button[data-aqe-button-state="active"] {
-  background: var(--aqe-accent-surface-strong-color);
+  background: color-mix(in srgb, Canvas 90%, var(--aqe-border-color));
   border-color: var(--aqe-accent-border-color);
   border-style: solid;
   box-shadow: inset 0 0 0 1px var(--aqe-accent-border-color);
-  color: var(--aqe-accent-text-color);
+  color: inherit;
 }
 
 .aqe-play-repeat-menu-button[data-aqe-button-state="active"] {
-  background: var(--aqe-accent-surface-strong-color);
+  background: transparent;
   border-color: var(--aqe-accent-border-color);
-  box-shadow: inset 0 0 0 1px var(--aqe-accent-border-color);
-  color: var(--aqe-accent-text-color);
+  box-shadow: none;
+  color: inherit;
 }
 
 .aqe-status,

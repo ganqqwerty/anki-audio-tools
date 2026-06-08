@@ -7,6 +7,8 @@ import {
   initializeEditorRuntime,
   scan,
 } from "../src/editor-inline/runtime.js";
+import { toolbarButtons } from "../src/lib/editor-toolbar-buttons.js";
+import { settingsToolbarButtons } from "../src/lib/settings-toolbar-buttons.js";
 import { EditorButtonMode } from "../src/lib/types.js";
 import {
   commandLog,
@@ -64,6 +66,62 @@ describe("editor inline Svelte integration", () => {
     expect(document.querySelector('[data-testid="aqe-split-0-denoise-standard-menu"]')).toHaveTextContent("Options");
     expect(audioSourceForNode(document.getElementById("f0")!)).toBe("clip one.mp3");
     expect(fieldIndex(document.getElementById("f0")!, 7)).toBe(0);
+  });
+
+  it("defines toolbar commands in the configured sequence", () => {
+    expect(toolbarButtons().map((button) => button.command)).toEqual([
+      "aqe:play",
+      "aqe:analyze",
+      "aqe:show-file",
+      "aqe:share",
+      "aqe:denoise-standard",
+      "aqe:remove-pauses",
+      "aqe:slower",
+      "aqe:faster",
+      "aqe:volume-down",
+      "aqe:volume-up",
+      "aqe:chorusing-practice",
+      "aqe:chorusing-next",
+      "aqe:chorusing-previous",
+      "aqe:record-voice",
+      "aqe:play-recording",
+      "aqe:share-recording",
+      "aqe:show-recording-file",
+      "aqe:pitch-hum",
+      "aqe:convert",
+      "aqe:reduce-size",
+      "aqe:undo",
+      "aqe:redo",
+      "aqe:settings",
+    ]);
+
+    expect(settingsToolbarButtons().map((button) => button.command)).toEqual([
+      "aqe:play",
+      "aqe:analyze",
+      "aqe:show-file",
+      "aqe:share",
+      "aqe:denoise-standard",
+      "aqe:remove-pauses",
+      "aqe:slower",
+      "aqe:faster",
+      "aqe:volume-down",
+      "aqe:volume-up",
+      "aqe:chorusing-practice",
+      "aqe:chorusing-next",
+      "aqe:chorusing-previous",
+      "aqe:record-voice",
+      "aqe:play-recording",
+      "aqe:share-recording",
+      "aqe:show-recording-file",
+      "aqe:pitch-hum",
+      "aqe:convert",
+      "aqe:reduce-size",
+      "aqe:delete-selection",
+      "aqe:delete-rest",
+      "aqe:undo",
+      "aqe:redo",
+      "aqe:settings",
+    ]);
   });
 
   it("renders one canonical status element after the visualizer", () => {

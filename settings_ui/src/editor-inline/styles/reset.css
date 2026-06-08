@@ -20,6 +20,7 @@
     --aqe-accent-focus-color: color-mix(in srgb, var(--aqe-accent-fill) 34%, transparent);
     --aqe-border-color: var(--border, rgba(128, 128, 128, 0.55));
     --aqe-reviewer-surface-color: rgba(128, 128, 128, 0.08);
+    --aqe-toolbar-panel-surface-color: color-mix(in srgb, Canvas 94%, var(--aqe-border-color));
     --aqe-surface-color: var(--canvas, Canvas);
     --aqe-surface-elevated-color: var(--canvas-elevated, Canvas);
     --aqe-text-muted-color: var(--fg-subtle, GrayText);
@@ -47,6 +48,7 @@ body.nightMode .aqe-mount-host,
     --aqe-accent-text-color: rgb(225 236 255);
     --aqe-accent-focus-color: rgb(145 181 255 / 48%);
     --aqe-border-color: var(--border, rgba(180, 198, 235, 0.55));
+    --aqe-toolbar-panel-surface-color: color-mix(in srgb, Canvas 90%, var(--aqe-border-color));
 }
 
 @media (prefers-color-scheme: dark) {
@@ -60,6 +62,7 @@ body.nightMode .aqe-mount-host,
         --aqe-accent-text-color: rgb(225 236 255);
         --aqe-accent-focus-color: rgb(145 181 255 / 48%);
         --aqe-border-color: var(--border, rgba(180, 198, 235, 0.55));
+        --aqe-toolbar-panel-surface-color: color-mix(in srgb, Canvas 90%, var(--aqe-border-color));
     }
 }
 

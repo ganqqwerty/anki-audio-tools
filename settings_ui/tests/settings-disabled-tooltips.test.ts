@@ -13,7 +13,7 @@ describe("settings disabled tooltip clarification", () => {
     expect(checkbox).toBeDisabled();
     expect(tooltip).toHaveAttribute(
       "data-aqe-tooltip-content",
-      "Icon\n\nThis display setting is locked because the button belongs to a grouped toolbar panel.",
+      "Show this toolbar item as an icon instead of text.\n\nThis display setting is locked because the button belongs to a grouped toolbar panel.",
     );
   });
 

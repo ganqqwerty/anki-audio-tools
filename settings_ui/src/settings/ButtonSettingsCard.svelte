@@ -39,9 +39,14 @@
   function lockedModeReason(locked: boolean | undefined): string | undefined {
     return locked ? t("settings.toolbar_visibility.mode_locked_tooltip") : undefined;
   }
+
+  const showTooltip = $derived(
+    modeControls ? t("settings.toolbar_visibility.show_panel_tooltip") : t("settings.toolbar_visibility.show_tooltip"),
+  );
+  const iconTooltip = $derived(t("settings.toolbar_visibility.icon_tooltip"));
 </script>
 
-<section class:button-settings-card-hidden={!visible} class="button-settings-card" data-testid={testId}>
+<section class="button-settings-card" data-testid={testId}>
   <header class="button-settings-card-header">
     <div class="button-settings-card-title">
       <CommandIcon className="button-settings-card-icon" {icon} />
@@ -55,20 +60,22 @@
 
     <span class="button-settings-controls">
       <label class="button-settings-checkbox">
-        <input
-          checked={visible}
-          data-testid={`${testId}-visibility-show`}
-          type="checkbox"
-          onchange={(event) => {
-            if ((event.currentTarget as HTMLInputElement).checked !== visible) onToggle();
-          }}
-        />
-        <span>{modeControls ? t("settings.toolbar_visibility.show_panel") : t("settings.toolbar_visibility.show")}</span>
+        <FieldTooltipTarget content={showTooltip}>
+          <input
+            checked={visible}
+            data-testid={`${testId}-visibility-show`}
+            type="checkbox"
+            onchange={(event) => {
+              if ((event.currentTarget as HTMLInputElement).checked !== visible) onToggle();
+            }}
+          />
+          <span>{modeControls ? t("settings.toolbar_visibility.show_panel") : t("settings.toolbar_visibility.show")}</span>
+        </FieldTooltipTarget>
       </label>
 
       {#if !modeControls}
         <label class="button-settings-checkbox">
-          <FieldTooltipTarget content={t("settings.toolbar_visibility.icon")} disabledReason={lockedModeReason(modeLocked)}>
+          <FieldTooltipTarget content={iconTooltip} disabledReason={lockedModeReason(modeLocked)}>
             <input
               checked={mode === EditorButtonMode.Icon}
               data-testid={`${testId}-mode-icon`}
@@ -81,8 +88,8 @@
                     : EditorButtonMode.Text,
                 )}
             />
+            <span>{t("settings.toolbar_visibility.icon")}</span>
           </FieldTooltipTarget>
-          <span>{t("settings.toolbar_visibility.icon")}</span>
         </label>
       {/if}
     </span>
@@ -112,10 +119,6 @@
     gap: 12px 16px;
     grid-template-columns: minmax(130px, 190px) minmax(0, 1fr);
     padding: 16px 0 18px;
-  }
-
-  .button-settings-card-hidden {
-    color: var(--fg-subtle, currentColor);
   }
 
   .button-settings-card-header {
