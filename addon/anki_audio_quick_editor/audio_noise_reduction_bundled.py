@@ -25,6 +25,8 @@ from .audio_external import (
 from .audio_output_policy import (
     AudioOutputPolicy,
     codec_args_for_output_policy,
+    preserve_source_audio_characteristics,
+    probe_audio_metadata,
     resolve_output_policy_from_metadata,
     synthetic_audio_metadata,
 )
@@ -286,15 +288,22 @@ def _model_output_policy(
     channels: int | None,
     bits_per_raw_sample: int | None,
 ) -> AudioOutputPolicy:
+    metadata = synthetic_audio_metadata(
+        source_path,
+        output_path=output_path or source_path,
+        codec_name=codec_name,
+        sample_rate=sample_rate,
+        channels=channels,
+        bits_per_raw_sample=bits_per_raw_sample,
+    )
+    try:
+        source_metadata = probe_audio_metadata(source_path, config)
+    except AudioProcessingError:
+        source_metadata = None
     return resolve_output_policy_from_metadata(
-        synthetic_audio_metadata(
-            source_path,
-            output_path=output_path or source_path,
-            codec_name=codec_name,
-            sample_rate=sample_rate,
-            channels=channels,
-            bits_per_raw_sample=bits_per_raw_sample,
-        ),
+        preserve_source_audio_characteristics(metadata, source_metadata)
+        if source_metadata is not None
+        else metadata,
         requested_format=config.output_format,
         output_path=output_path,
     )

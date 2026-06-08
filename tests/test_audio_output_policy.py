@@ -9,8 +9,10 @@ from anki_audio_quick_editor.audio_output_policy import (
     AudioSourceMetadata,
     codec_args_for_output_policy,
     mime_type_for_output_format,
+    preserve_source_audio_characteristics,
     probe_audio_metadata,
     resolve_output_policy_from_metadata,
+    synthetic_audio_metadata,
 )
 from anki_audio_quick_editor.audio_state import AudioProcessingConfig
 from anki_audio_quick_editor.errors import AudioProcessingError
@@ -180,6 +182,36 @@ def test_output_path_extension_can_resolve_source_policy_without_renaming() -> N
 
     assert policy.output_format == "flac"
     assert policy.extension == ".flac"
+
+
+def test_preserve_source_audio_characteristics_keeps_output_format_hints() -> None:
+    synthetic = synthetic_audio_metadata(
+        Path("clip.mp3"),
+        output_path=Path("edited.ogg"),
+        codec_name="pcm_s16le",
+        sample_rate=44100,
+        channels=1,
+        bits_per_raw_sample=16,
+    )
+    source = metadata(
+        filename="clip.opus",
+        codec_name="opus",
+        sample_rate=48000,
+        channels=2,
+        bit_rate=96000,
+        sample_fmt="fltp",
+    )
+
+    merged = preserve_source_audio_characteristics(synthetic, source)
+
+    assert merged.path == synthetic.path
+    assert merged.visible_format == "ogg"
+    assert merged.codec_name == "opus"
+    assert merged.sample_rate == 48000
+    assert merged.channels == 2
+    assert merged.bit_rate == 96000
+    assert merged.bits_per_raw_sample is None
+    assert merged.sample_fmt == "fltp"
 
 
 @pytest.mark.parametrize(

@@ -183,6 +183,23 @@ def synthetic_audio_metadata(
     )
 
 
+def preserve_source_audio_characteristics(
+    metadata: AudioSourceMetadata,
+    source_metadata: AudioSourceMetadata,
+) -> AudioSourceMetadata:
+    """Keep synthetic output-format hints while reusing the source stream characteristics."""
+    return AudioSourceMetadata(
+        path=metadata.path,
+        visible_format=metadata.visible_format,
+        codec_name=source_metadata.codec_name,
+        sample_rate=source_metadata.sample_rate,
+        channels=source_metadata.channels,
+        bit_rate=source_metadata.bit_rate,
+        bits_per_raw_sample=source_metadata.bits_per_raw_sample,
+        sample_fmt=source_metadata.sample_fmt,
+    )
+
+
 def _resolve_output_format(
     metadata: AudioSourceMetadata,
     requested_format: object,

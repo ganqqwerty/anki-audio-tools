@@ -11,6 +11,7 @@ from anki_audio_quick_editor.audio_processor import (
     select_deep_filter_output,
 )
 from anki_audio_quick_editor.audio_state import AudioProcessingConfig
+from anki_audio_quick_editor.audio_output_policy import AudioSourceMetadata
 from anki_audio_quick_editor.errors import (
     AudioProcessingError,
 )
@@ -58,6 +59,19 @@ def test_render_noise_reduced_audio_runs_prepare_deep_filter_and_encode(
         lambda *_args: Path("/bin/deep-filter"),
     )
     monkeypatch.setattr("anki_audio_quick_editor.audio_processor.probe_duration_ms", lambda *_args: 1000)
+    monkeypatch.setattr(
+        "anki_audio_quick_editor.audio_noise_reduction.probe_audio_metadata",
+        lambda source_path, _config: AudioSourceMetadata(
+            path=source_path,
+            visible_format="mp3",
+            codec_name="mp3",
+            sample_rate=22050,
+            channels=2,
+            bit_rate=96000,
+            bits_per_raw_sample=None,
+            sample_fmt=None,
+        ),
+    )
 
     def fake_run(
         cmd: list[str],
@@ -97,7 +111,7 @@ def test_render_noise_reduced_audio_runs_prepare_deep_filter_and_encode(
     ]
     assert calls[1][0:3] == [DEEP_FILTER, "-D", "--pf"]
     assert calls[2][0:4] == [FFMPEG, "-y", "-i", calls[2][3]]
-    assert calls[2][-9:] == ["-codec:a", "libmp3lame", "-q:a", "4", "-ar", "48000", "-ac", "1", str(output)]
+    assert calls[2][-9:] == ["-codec:a", "libmp3lame", "-b:a", "96k", "-ar", "22050", "-ac", "2", str(output)]
     assert commands == [tuple(call) for call in calls]
     assert result.output_path == output
     assert result.command == tuple(calls[1])
@@ -177,6 +191,19 @@ def test_render_noise_reduced_audio_reports_prepare_failure_before_deep_filter(
         "anki_audio_quick_editor.audio_processor.find_deep_filter",
         lambda *_args: Path("/bin/deep-filter"),
     )
+    monkeypatch.setattr(
+        "anki_audio_quick_editor.audio_noise_reduction.probe_audio_metadata",
+        lambda source_path, _config: AudioSourceMetadata(
+            path=source_path,
+            visible_format="mp3",
+            codec_name="mp3",
+            sample_rate=22050,
+            channels=2,
+            bit_rate=96000,
+            bits_per_raw_sample=None,
+            sample_fmt=None,
+        ),
+    )
 
     def fake_run(
         cmd: list[str],
@@ -212,6 +239,19 @@ def test_render_noise_reduced_audio_reports_encode_failure_after_deep_filter(
     monkeypatch.setattr(
         "anki_audio_quick_editor.audio_processor.find_deep_filter",
         lambda *_args: Path("/bin/deep-filter"),
+    )
+    monkeypatch.setattr(
+        "anki_audio_quick_editor.audio_noise_reduction.probe_audio_metadata",
+        lambda source_path, _config: AudioSourceMetadata(
+            path=source_path,
+            visible_format="mp3",
+            codec_name="mp3",
+            sample_rate=22050,
+            channels=2,
+            bit_rate=96000,
+            bits_per_raw_sample=None,
+            sample_fmt=None,
+        ),
     )
 
     def fake_run(

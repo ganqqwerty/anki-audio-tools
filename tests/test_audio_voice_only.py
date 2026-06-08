@@ -6,6 +6,7 @@ from types import SimpleNamespace
 import pytest
 
 from anki_audio_quick_editor.audio_processor import render_voice_only_audio
+from anki_audio_quick_editor.audio_output_policy import AudioSourceMetadata
 from anki_audio_quick_editor.audio_state import AudioProcessingConfig
 from anki_audio_quick_editor.errors import AudioProcessingError
 from anki_audio_quick_editor.support import (
@@ -42,6 +43,19 @@ def test_render_voice_only_audio_runs_prepare_spleeter_and_encode(
     monkeypatch.setattr(
         "anki_audio_quick_editor.audio_processor.probe_duration_ms",
         lambda *_args: 1234,
+    )
+    monkeypatch.setattr(
+        "anki_audio_quick_editor.audio_noise_reduction_bundled.probe_audio_metadata",
+        lambda source_path, _config: AudioSourceMetadata(
+            path=source_path,
+            visible_format="mp3",
+            codec_name="mp3",
+            sample_rate=32000,
+            channels=1,
+            bit_rate=64000,
+            bits_per_raw_sample=None,
+            sample_fmt=None,
+        ),
     )
 
     def fake_run(
@@ -98,7 +112,7 @@ def test_render_voice_only_audio_runs_prepare_spleeter_and_encode(
     assert calls[1][4].startswith("--output-vocals-wav=")
     assert calls[1][5].startswith("--output-accompaniment-wav=")
     assert calls[2][0:4] == [FFMPEG, "-y", "-i", vocals_wav]
-    assert calls[2][-9:] == ["-codec:a", "libmp3lame", "-q:a", "4", "-ar", "44100", "-ac", "2", str(output)]
+    assert calls[2][-9:] == ["-codec:a", "libmp3lame", "-b:a", "64k", "-ar", "32000", "-ac", "1", str(output)]
     assert commands == [tuple(call) for call in calls]
     assert result.output_path == output
     assert result.command == tuple(calls[1])

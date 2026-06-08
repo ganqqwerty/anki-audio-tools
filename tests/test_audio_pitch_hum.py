@@ -15,6 +15,7 @@ import pytest
 from anki_audio_quick_editor.audio_pitch_hum import (
     HUM_SAMPLE_RATE,
     PitchHumFrame,
+    _pitch_hum_output_policy,
     _synthesize_pitch_hum_pcm,
     _synthesize_pitch_tier_pcm,
     render_pitch_hum_audio,
@@ -25,6 +26,7 @@ from anki_audio_quick_editor.audio_pitch_hum_synthesis import (
     _apply_nasal_onsets,
     _voiced_segments,
 )
+from anki_audio_quick_editor.audio_output_policy import AudioSourceMetadata, codec_args_for_output_policy
 from anki_audio_quick_editor.audio_state import AudioProcessingConfig
 from anki_audio_quick_editor.audio_types import AudioProcessingResult
 from anki_audio_quick_editor.errors import AudioProcessingError
@@ -190,6 +192,35 @@ def test_pitch_hum_and_pitch_tier_synthesis_apply_shared_nasal_onsets(monkeypatc
         (expected_sample_count, 0.03, HUM_SAMPLE_RATE),
         (expected_sample_count, 0.03, HUM_SAMPLE_RATE),
     ]
+
+
+def test_pitch_hum_output_policy_preserves_source_bitrate_and_sample_rate(monkeypatch) -> None:
+    monkeypatch.setattr(
+        "anki_audio_quick_editor.audio_pitch_hum.probe_audio_metadata",
+        lambda source_path, _config: AudioSourceMetadata(
+            path=source_path,
+            visible_format="mp3",
+            codec_name="mp3",
+            sample_rate=24000,
+            channels=2,
+            bit_rate=128000,
+            bits_per_raw_sample=None,
+            sample_fmt=None,
+        ),
+    )
+
+    policy = _pitch_hum_output_policy(Path("clip.mp3"), AudioProcessingConfig(), Path("hum.mp3"))
+
+    assert codec_args_for_output_policy(policy) == (
+        "-codec:a",
+        "libmp3lame",
+        "-b:a",
+        "128k",
+        "-ar",
+        "24000",
+        "-ac",
+        "2",
+    )
 
 
 def test_pitch_hum_synthesis_keeps_unvoiced_frames_silent() -> None:

@@ -67,7 +67,7 @@ describe("split button formatting and clamps", () => {
     expect(formatDenoiseAlgorithm("standard")).toBe("Standard");
     expect(formatDenoiseAlgorithm("rnnoise")).toBe("RNNoise");
     expect(formatDenoiseAlgorithm("dpdfnet")).toBe("DPDFNet");
-    expect(formatDenoiseAlgorithm("voice_only")).toBe("Voice Only");
+    expect(formatDenoiseAlgorithm("voice_only")).toBe("Spleeter");
     expect(formatPitchHumMode("direct")).toBe("Pitch-to-hum");
     expect(formatPitchHumMode("pitch_tier")).toBe("PitchTier");
     expect(formatOutputFormat("ogg")).toBe("Same as source");
