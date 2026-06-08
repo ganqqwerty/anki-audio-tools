@@ -5,6 +5,9 @@ from __future__ import annotations
 import json
 import re
 
+import pytest
+
+import anki_audio_quick_editor.editor_ui as editor_ui
 from anki_audio_quick_editor.editor_ui import injection_script
 
 
@@ -212,20 +215,23 @@ def test_injection_script_keeps_python_window_contract() -> None:
     assert "__aqeGraphStateForTest" in script
 
 
-def test_injection_script_injects_editor_css() -> None:
+def test_injection_script_inlines_editor_bundle_assets(monkeypatch: pytest.MonkeyPatch) -> None:
+    css_bundle = ".aqe-test { color: red; }"
+    js_bundle = "console.log('aqe test bundle');"
+
+    def fake_read_text(path) -> str:
+        if path == editor_ui._BUNDLE_CSS:
+            return css_bundle
+        if path == editor_ui._BUNDLE_JS:
+            return js_bundle
+        raise AssertionError(f"Unexpected bundle path: {path}")
+
+    monkeypatch.setattr(editor_ui, "_read_text", fake_read_text)
+
     script = injection_script([0])
 
     assert "const styleId = \"aqe-inline-style\";" in script
-    assert ".aqe-controls" in script
-    assert ".aqe-button:disabled" in script
-    assert "data-busy=true" in script
-    assert "border-style:dashed" in script
-    assert "filter:drop-shadow" in script
-    assert ".aqe-selection-draft" in script
-    assert "filter:none" in script
-    assert ".aqe-selection-region-preview-halo" in script
-    assert "backdrop-filter:blur(5.1px)" in script
-    assert ".aqe-selection-edge{background:currentColor" in script
-    assert "cursor:ew-resize" in script
-    assert "stroke-opacity:.65" in script
-    assert "aqe-spin" in script
+    assert "style = document.createElement('style');" in script
+    assert "document.head.appendChild(style);" in script
+    assert f"style.textContent = {json.dumps(css_bundle)};" in script
+    assert js_bundle in script
