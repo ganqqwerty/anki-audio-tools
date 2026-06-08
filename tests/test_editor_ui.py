@@ -225,5 +225,7 @@ def test_injection_script_injects_editor_css() -> None:
     assert "filter:none" in script
     assert ".aqe-selection-region-preview-halo" in script
     assert "backdrop-filter:blur(5.1px)" in script
+    assert ".aqe-selection-edge{background:currentColor" in script
+    assert "cursor:ew-resize" in script
     assert "stroke-opacity:.65" in script
     assert "aqe-spin" in script
