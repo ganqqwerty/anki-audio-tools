@@ -14,6 +14,8 @@ from unittest.mock import patch
 
 import pytest
 
+from scripts.dev_tasks.e2e_preflight import ensure_e2e_runtime_artifacts
+
 importlib.import_module("anki.collection")
 aqt = importlib.import_module("aqt")
 
@@ -146,6 +148,10 @@ def _start_anki_runtime() -> None:
 
 @pytest.fixture(scope="session")
 def anki_base(tmp_path_factory):
+    try:
+        ensure_e2e_runtime_artifacts()
+    except RuntimeError as exc:
+        pytest.fail(str(exc))
     base = tmp_path_factory.mktemp("anki_base")
     addons = base / "addons21"
     addons.mkdir()

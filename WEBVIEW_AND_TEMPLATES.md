@@ -35,6 +35,8 @@ Owned JSON communication contracts are schema-first:
 
 Generated contract files are ignored by git. Regenerate them with `python3 scripts/dev.py contracts-generate`; `python3 scripts/dev.py contracts-check` verifies local generated files against the schema.
 
+The direct e2e pytest fixture auto-builds missing generated runtime artifacts before it copies the add-on into the temporary numeric package. That prevents startup failures when `contracts_generated.py` or committed template bundles are absent locally. It is only a missing-file recovery path: stale bundles can still make direct `pytest e2e/...` disagree with current `settings_ui/src/**` edits, so `python3 scripts/dev.py test-e2e` remains the canonical command after frontend changes.
+
 Config schema changes usually have several consumers. When adding, renaming, or removing a config key, update the source schema and generated contracts together with the committed default config, Python config migration tests, settings initial-state fixtures, Svelte settings fixtures, and e2e default-config helpers. Run `python3 scripts/dev.py config-schema`, `python3 scripts/dev.py contracts-generate`, and `python3 scripts/dev.py contracts-check` before relying on frontend or e2e results.
 
 ## Bridge Rules

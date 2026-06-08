@@ -55,6 +55,23 @@ function textRecordingConfig(): EditorRuntimeConfig {
   };
 }
 
+function setScrollbarDimensions(ord = 0, clientWidth = 500): HTMLDivElement {
+  const scroller = document.querySelector<HTMLDivElement>(`[data-testid="aqe-time-scrollbar-scroll-${ord}"]`)!;
+  Object.defineProperty(scroller, "clientWidth", { configurable: true, value: clientWidth });
+  scroller.getBoundingClientRect = () => ({
+    bottom: 16,
+    height: 16,
+    left: 0,
+    right: clientWidth,
+    top: 0,
+    width: clientWidth,
+    x: 0,
+    y: 0,
+    toJSON: () => ({}),
+  });
+  return scroller;
+}
+
 describe("editor inline learner recording integration", () => {
   let restoreConsole: () => void;
 
@@ -322,6 +339,78 @@ describe("editor inline learner recording integration", () => {
       command: "aqe:share-recording",
       fieldOrd: 0,
       shareTarget: "litterbox",
+    });
+  });
+
+  it("grows the active recording graph and reveals the time scrollbar once recording exceeds the target graph", async () => {
+    initializeEditorRuntime(recordingConfig());
+    scan(recordingConfig());
+    window.__aqeSetVisualizer?.(0, { ...track, sourceFilename: "clip one.mp3" }, 0);
+    await Promise.resolve();
+    const initialScrollbar = document.querySelector<HTMLElement>('[data-testid="aqe-time-scrollbar-0"]')!;
+    expect(initialScrollbar.hidden).toBe(true);
+    setScrollbarDimensions();
+
+    window.__aqeSetLearnerRecordingState?.({
+      fieldOrd: 0,
+      generation: 1,
+      recordingDurationMs: 400,
+      startCursorMs: 900,
+      status: "recording",
+      targetDurationMs: track.durationMs,
+    });
+    await Promise.resolve();
+
+    const scrollbar = document.querySelector<HTMLElement>('[data-testid="aqe-time-scrollbar-0"]')!;
+    expect(window.__aqeGraphStateForTest?.(0)).toMatchObject({
+      durationMs: 1300,
+      learnerDurationMs: 1300,
+      learnerRecordingStatus: "recording",
+      targetDurationMs: 1000,
+    });
+    await vi.waitFor(() => {
+      expect(scrollbar.hidden).toBe(false);
+    });
+  });
+
+  it("follows the recording cursor after recording growth makes the graph horizontally scrollable", async () => {
+    const frames: Array<(time: number) => void> = [];
+    vi.spyOn(window, "requestAnimationFrame").mockImplementation((callback) => {
+      frames.push(callback);
+      return frames.length;
+    });
+    vi.spyOn(window, "cancelAnimationFrame").mockImplementation(() => undefined);
+    let now = 1000;
+    vi.spyOn(performance, "now").mockImplementation(() => now);
+
+    initializeEditorRuntime(recordingConfig());
+    scan(recordingConfig());
+    window.__aqeSetVisualizer?.(0, { ...track, sourceFilename: "clip one.mp3" }, 0);
+    await Promise.resolve();
+    const scroller = setScrollbarDimensions();
+
+    window.__aqeSetLearnerRecordingState?.({
+      fieldOrd: 0,
+      generation: 1,
+      startCursorMs: 900,
+      status: "recording",
+      targetDurationMs: track.durationMs,
+    });
+    await Promise.resolve();
+
+    now = 1250;
+    frames.shift()?.(now);
+    await Promise.resolve();
+    await Promise.resolve();
+
+    const scrollbar = document.querySelector<HTMLElement>('[data-testid="aqe-time-scrollbar-0"]')!;
+    const state = window.__aqeGraphStateForTest?.(0);
+    expect(state?.durationMs).toBeGreaterThan(1000);
+    expect(state?.cursorMs).toBeGreaterThan(1000);
+    expect(state?.viewportStartMs).toBeGreaterThan(0);
+    await vi.waitFor(() => {
+      expect(scrollbar.hidden).toBe(false);
+      expect(scroller.scrollLeft).toBeGreaterThan(0);
     });
   });
 

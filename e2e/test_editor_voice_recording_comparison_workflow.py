@@ -60,7 +60,7 @@ def _has_ready_learner_overlay(value: dict[str, Any] | None) -> bool:
         return False
     if value["learnerRecordingStatus"] != "ready":
         return False
-    if value["learnerStartCursorMs"] != 400:
+    if value["learnerStartCursorMs"] != 900:
         return False
     if value["learnerPitchPaths"] <= 0:
         return False
@@ -182,11 +182,36 @@ def test_editor_voice_recording_comparison_workflow(
             (() => {
               const visualizer = document.querySelector('[data-testid="aqe-graph-0"]');
               if (!visualizer) return false;
-              visualizer.dataset.cursorMs = "400";
-              visualizer.dataset.progressMs = "400";
+              visualizer.dataset.cursorMs = "900";
+              visualizer.dataset.progressMs = "900";
               return true;
             })()
             """,
+        )
+        wait_for_js_condition(
+            editor.web,
+            """
+            (() => {
+              const scrollbar = document.querySelector('[data-testid="aqe-time-scrollbar-0"]');
+              const scroller = document.querySelector('[data-testid="aqe-time-scrollbar-scroll-0"]');
+              const state = window.__aqeGraphStateForTest ? window.__aqeGraphStateForTest(0) : null;
+              return scrollbar && scroller && state ? {
+                hidden: scrollbar.hidden,
+                clientWidth: scroller.clientWidth,
+                durationMs: state.durationMs,
+                scrollLeft: scroller.scrollLeft,
+                scrollWidth: scroller.scrollWidth,
+                viewportEndMs: state.viewportEndMs,
+                viewportStartMs: state.viewportStartMs,
+              } : null;
+            })()
+            """,
+            lambda value: value is not None
+            and value["hidden"] is True
+            and value["durationMs"] == target["durationMs"]
+            and value["viewportStartMs"] == 0
+            and value["viewportEndMs"] == value["durationMs"],
+            timeout=5.0,
         )
         click_selector(editor.web, record_selector, timeout=5.0)
         wait_for_js_condition(
@@ -194,8 +219,42 @@ def test_editor_voice_recording_comparison_workflow(
             _graph_state_js(),
             lambda value: value is not None
             and value["learnerRecordingStatus"] == "recording"
-            and value["learnerStartCursorMs"] == 400
+            and value["learnerStartCursorMs"] == 900
             and value["learnerPitchPaths"] == 0,
+            timeout=5.0,
+        )
+        wait_for_js_condition(
+            editor.web,
+            """
+            (() => {
+              const scrollbar = document.querySelector('[data-testid="aqe-time-scrollbar-0"]');
+              const scroller = document.querySelector('[data-testid="aqe-time-scrollbar-scroll-0"]');
+              const state = window.__aqeGraphStateForTest ? window.__aqeGraphStateForTest(0) : null;
+              return scrollbar && scroller && state ? {
+                clientWidth: scroller.clientWidth,
+                cursorMs: state.cursorMs,
+                durationMs: state.durationMs,
+                hidden: scrollbar.hidden,
+                learnerDurationMs: state.learnerDurationMs,
+                learnerRecordingStatus: state.learnerRecordingStatus,
+                scrollLeft: scroller.scrollLeft,
+                scrollWidth: scroller.scrollWidth,
+                targetDurationMs: state.targetDurationMs,
+                viewportEndMs: state.viewportEndMs,
+                viewportStartMs: state.viewportStartMs,
+              } : null;
+            })()
+            """,
+            lambda value: value is not None
+            and value["learnerRecordingStatus"] == "recording"
+            and value["learnerDurationMs"] > value["targetDurationMs"]
+            and value["cursorMs"] > value["targetDurationMs"]
+            and value["durationMs"] > value["targetDurationMs"]
+            and value["hidden"] is False
+            and value["scrollWidth"] > value["clientWidth"]
+            and value["scrollLeft"] > 0
+            and value["viewportStartMs"] > 0
+            and value["viewportEndMs"] >= value["cursorMs"],
             timeout=5.0,
         )
         click_selector(editor.web, record_selector, timeout=5.0)
@@ -213,7 +272,7 @@ def test_editor_voice_recording_comparison_workflow(
         assert fake_recorder.output_path.parent == media_dir
         assert fake_recorder.output_path.name.startswith("editor_voice_recording_target__aqe_voice_")
         assert fake_recorder.output_path.is_file()
-        assert learner["learnerStartCursorMs"] == 400
+        assert learner["learnerStartCursorMs"] == 900
 
         with _record_fake_playback(
             media_dir,

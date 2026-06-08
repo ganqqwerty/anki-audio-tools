@@ -2,7 +2,8 @@ import type { ProsodyPayload } from "../lib/generated/contracts.js";
 import { t } from "../lib/i18n.js";
 import { clearGraphCountdownOverlay, renderGraphCountdownOverlay } from "./graph-countdown-overlay.js";
 import { controlsForOrd, visualizerForOrd } from "./dom-selectors.js";
-import { clearLearnerVisualizerTrack, renderCursor, renderLearnerVisualizerTrack } from "./visualizer-renderer.js";
+import { ensurePlaybackCursorVisible } from "./viewport-actions.js";
+import { clearLearnerVisualizerTrack, renderCursor, renderLearnerVisualizerTrack, renderProsodyTracks } from "./visualizer-renderer.js";
 import { readVisualizerTargetDurationMs } from "./visualizer-state.js";
 import type { LearnerPlaybackStatus, LearnerRecordingStatePayload, LearnerRecordingStatus } from "./recording-state.js";
 import { normalizeTrack, type NormalizedProsodyTrack, type ProsodyPoint, type VisualizerElement } from "./types.js";
@@ -43,13 +44,13 @@ export function setLearnerRecordingState(payload: LearnerRecordingStatePayload):
       visualizer.dataset.learnerStartCursorMs = "0";
     }
     if (payload.recordingDurationMs != null) {
-      visualizer.dataset.learnerDurationMs = String(payload.recordingDurationMs);
+      syncActiveRecordingTimeline(visualizer, payload.recordingDurationMs);
     }
     if (status === "recording") {
       startRecordingCursor(
         visualizer,
-        payload.targetDurationMs ?? targetDurationForRecording(visualizer),
         learnerStartCursorMsForVisualizer(visualizer),
+        payload.recordingDurationMs ?? 0,
       );
     } else {
       stopRecordingCursor(visualizer);
@@ -159,18 +160,20 @@ export function setRecordingCursor(visualizer: VisualizerElement, ms: number, ta
   const clamped = Math.max(0, Math.min(Number(ms) || 0, targetDurationMs || 0));
   visualizer.dataset.cursorMs = String(Math.round(clamped));
   visualizer.dataset.progressMs = String(Math.round(clamped));
+  ensurePlaybackCursorVisible(visualizer, clamped);
   renderCursor(visualizer, clamped, Number(visualizer.dataset.durationMs || targetDurationMs || "0"));
 }
 
-function startRecordingCursor(visualizer: VisualizerElement, targetDurationMs: number, startCursorMs: number): void {
+function startRecordingCursor(visualizer: VisualizerElement, startCursorMs: number, initialRecordingDurationMs: number): void {
   stopRecordingCursor(visualizer);
-  const durationMs = Math.max(0, Number(targetDurationMs) || targetDurationForRecording(visualizer));
-  const startMs = Math.max(0, Math.min(Number(startCursorMs) || 0, durationMs));
-  visualizer.__aqeRecordingStartedAt = performance.now();
+  const startMs = Math.max(0, Number(startCursorMs) || 0);
+  const initialDurationMs = Math.max(0, Number(initialRecordingDurationMs) || 0);
+  visualizer.__aqeRecordingStartedAt = performance.now() - initialDurationMs;
   const tick = (): void => {
     const startedAt = visualizer.__aqeRecordingStartedAt ?? performance.now();
-    const elapsedMs = Math.max(0, performance.now() - startedAt);
-    setRecordingCursor(visualizer, Math.min(startMs + elapsedMs, durationMs), durationMs);
+    const recordingDurationMs = Math.max(0, performance.now() - startedAt);
+    const durationMs = syncActiveRecordingTimeline(visualizer, recordingDurationMs);
+    setRecordingCursor(visualizer, startMs + recordingDurationMs, durationMs);
     visualizer.__aqeRecordingCursorFrame = window.requestAnimationFrame(tick);
   };
   tick();
@@ -182,6 +185,23 @@ function stopRecordingCursor(visualizer: VisualizerElement): void {
   }
   visualizer.__aqeRecordingCursorFrame = null;
   visualizer.__aqeRecordingStartedAt = null;
+}
+
+function syncActiveRecordingTimeline(visualizer: VisualizerElement, recordingDurationMs: number): number {
+  const effectiveLearnerDurationMs = activeRecordingLearnerDurationMs(visualizer, recordingDurationMs);
+  const targetDurationMs = targetDurationForRecording(visualizer);
+  visualizer.dataset.learnerDurationMs = String(Math.round(effectiveLearnerDurationMs));
+  if (visualizer.dataset.hasTrack === "true" && visualizer.__aqeTrack) {
+    renderProsodyTracks(visualizer);
+  } else {
+    visualizer.dataset.durationMs = String(Math.round(Math.max(targetDurationMs, effectiveLearnerDurationMs)));
+  }
+  return Number(visualizer.dataset.durationMs || "0") || 0;
+}
+
+function activeRecordingLearnerDurationMs(visualizer: VisualizerElement, recordingDurationMs: number): number {
+  const startCursorMs = learnerStartCursorMsForVisualizer(visualizer);
+  return Math.max(0, startCursorMs + (Number(recordingDurationMs) || 0));
 }
 
 function renderRecordingStatus(controls: HTMLElement, payload: LearnerRecordingStatePayload): void {
@@ -233,4 +253,3 @@ function countdownOverlaySeconds(payload: LearnerRecordingStatePayload): number 
   if (!Number.isFinite(seconds) || seconds <= 0) return null;
   return Math.round(seconds);
 }
-

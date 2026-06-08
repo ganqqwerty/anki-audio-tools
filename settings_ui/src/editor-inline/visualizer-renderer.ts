@@ -215,12 +215,13 @@ export function renderProsodyTracks(visualizer: VisualizerElement): void {
   if (!target) return;
   const plot = syncVisualizerViewBox(visualizer);
   const learner = visualizer.__aqeLearnerTrack;
-  const durationMs = Math.max(target.durationMs || 0, learner?.durationMs || 0);
+  const learnerDurationMs = Math.max(Number(visualizer.dataset.learnerDurationMs || "0") || 0, learner?.durationMs || 0);
+  const durationMs = Math.max(target.durationMs || 0, learnerDurationMs);
   const viewport = readVisualizerTimeViewport(visualizer);
   const pitchRange = combinedPitchRange(target, learner);
   visualizer.dataset.durationMs = String(durationMs);
   visualizer.dataset.targetDurationMs = String(target.durationMs || 0);
-  visualizer.dataset.learnerDurationMs = String(learner?.durationMs || 0);
+  visualizer.dataset.learnerDurationMs = String(learnerDurationMs);
   const intensity = visualizer.querySelector<SVGPathElement>(".aqe-intensity");
   if (intensity) intensity.setAttribute("d", pathForIntensity(target.points, durationMs, viewport, plot));
   drawPitch(visualizer, target, {
