@@ -150,8 +150,7 @@
       {/snippet}
     </AqeTooltip>
     <Popover.Trigger
-      class="aqe-button aqe-icon-only aqe-split-menu-button aqe-play-repeat-menu-button"
-      data-aqe-button-state={pressed ? "active" : "default"}
+      class="aqe-button aqe-icon-only aqe-split-menu-button"
       data-aqe-tooltip-content={menuTitle}
       data-testid={`aqe-split-${target.ord}-play-menu`}
       aria-label={menuTitle}

@@ -43,7 +43,7 @@ export function repeatButtonForOrd(ord: number): HTMLButtonElement | null {
 
 export function playRepeatMenuButtonForOrd(ord: number): HTMLButtonElement | null {
   const controls = controlsForOrd(ord);
-  return controls?.querySelector<HTMLButtonElement>(".aqe-play-repeat-menu-button") ?? null;
+  return controls?.querySelector<HTMLButtonElement>(".aqe-play-split-button .aqe-split-menu-button") ?? null;
 }
 
 export function allButtons(): HTMLButtonElement[] {

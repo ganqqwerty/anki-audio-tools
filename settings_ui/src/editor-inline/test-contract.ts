@@ -145,7 +145,7 @@ export function graphStateForTest(ord: number): GraphStateForTest | null {
   const visualizer = visualizerForOrd(ord);
   const graph = graphButton(ord);
   const play = playButton(ord);
-  const repeatMenu = controlsForOrd(ord)?.querySelector<HTMLButtonElement>(".aqe-play-repeat-menu-button") ?? null;
+  const repeatMenu = controlsForOrd(ord)?.querySelector<HTMLButtonElement>(".aqe-play-split-button .aqe-split-menu-button") ?? null;
   const regionDelete = controlsForOrd(ord)?.querySelector<HTMLButtonElement>(".aqe-delete-region-button") ?? null;
   const regionDeleteRest = controlsForOrd(ord)?.querySelector<HTMLButtonElement>(".aqe-delete-rest-button") ?? null;
   if (!visualizer) return null;

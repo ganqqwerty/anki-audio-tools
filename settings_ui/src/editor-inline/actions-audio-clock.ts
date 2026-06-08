@@ -90,7 +90,6 @@ export function setRepeatEnabled(visualizer: VisualizerElement, enabled: boolean
         repeat: enabled ? t("editor.play.repeat_on") : t("editor.play.repeat_off"),
       }),
     });
-    menuButton.dataset.aqeButtonState = enabled ? "active" : "default";
     setButtonTooltipContent(menuButton, title);
   }
   if (!enabled && visualizer.dataset.repeatPauseWaiting === "true") {

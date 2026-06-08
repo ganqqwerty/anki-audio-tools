@@ -253,13 +253,6 @@
   color: inherit;
 }
 
-.aqe-play-repeat-menu-button[data-aqe-button-state="active"] {
-  background: transparent;
-  border-color: var(--aqe-accent-border-color);
-  box-shadow: none;
-  color: inherit;
-}
-
 .aqe-status,
 .aqe-ui-root .aqe-status {
   font-size: 12px;
