@@ -12,9 +12,9 @@ from anki_audio_quick_editor.batch_operations import FieldGroup
 from anki_audio_quick_editor.browser_dialog import BatchOperationsDialog
 from anki_audio_quick_editor.browser_integration import (
     ACTION_LABEL,
-    _tr,
     _on_browser_menus_did_init,
     _open_batch_dialog,
+    _tr,
     register_browser_hooks,
 )
 from anki_audio_quick_editor.webview_bridge import WebviewBridgeCommand

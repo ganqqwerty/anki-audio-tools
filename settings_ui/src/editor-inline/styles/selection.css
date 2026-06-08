@@ -27,26 +27,83 @@
 
 .aqe-selection-region-preview-halo {
   display: none;
+  pointer-events: none;
+  position: absolute;
+  top: var(--aqe-plot-top-px, 0px);
+  height: var(--aqe-plot-height-px, 0px);
+  background: rgb(0 0 0 / 18%);
+  backdrop-filter: blur(5.1px);
+  -webkit-backdrop-filter: blur(5.1px);
+  z-index: 1;
+}
+
+.aqe-visualizer-plot[data-selection-overlay-ready="true"] .aqe-selection-region-preview-halo {
+  display: block;
+}
+
+.aqe-selection-region-preview-halo-top {
+  box-shadow: inset -10px 0 24px rgb(0 0 0 / 6%);
+  left: var(--aqe-plot-left-px, 0px);
+  width: max(0px, calc(var(--aqe-selection-start-px, 0px) - var(--aqe-plot-left-px, 0px)));
+}
+
+.aqe-selection-region-preview-halo-bottom {
+  box-shadow: inset 10px 0 24px rgb(0 0 0 / 6%);
+  right: var(--aqe-plot-right-px, 0px);
+  width: max(0px, calc(100% - var(--aqe-selection-end-px, 0px) - var(--aqe-plot-right-px, 0px)));
 }
 
 .aqe-selection-edge {
+  background: currentColor;
+  height: var(--aqe-plot-height-px, 0px);
   opacity: 0.65;
   pointer-events: none;
-  stroke: currentColor;
-  stroke-dasharray: none;
-  stroke-width: 1;
+  position: absolute;
+  top: var(--aqe-plot-top-px, 0px);
+  width: 1px;
+  z-index: 2;
+}
+
+.aqe-selection-start {
+  left: calc(var(--aqe-selection-start-edge-px, 0px) - 0.5px);
+}
+
+.aqe-selection-end {
+  left: calc(var(--aqe-selection-end-edge-px, 0px) - 0.5px);
 }
 
 .aqe-selection-resize-handle {
+  appearance: none;
+  background: ButtonFace;
+  border: 1.25px solid rgb(18 18 18 / 92%);
+  border-radius: 3px;
+  box-sizing: border-box;
+  color: rgb(44 44 44 / 92%);
   cursor: ew-resize;
-  fill: ButtonFace;
   filter: none;
-  opacity: 0.96;
+  height: calc(var(--aqe-plot-height-px, 0px) * 0.8);
+  left: 0;
+  margin: 0;
   pointer-events: auto;
-  stroke: currentColor;
-  stroke-width: 1.25;
-  vector-effect: non-scaling-stroke;
-  opacity: 0.82;
+  opacity: 1;
+  padding: 0;
+  position: absolute;
+  top: calc(var(--aqe-plot-top-px, 0px) + var(--aqe-plot-height-px, 0px) * 0.1);
+  width: 10px;
+  z-index: 2;
+}
+
+.aqe-selection-resize-handle,
+.aqe-selection-resize-handle * {
+  cursor: ew-resize;
+}
+
+.aqe-selection-resize-start {
+  left: calc(var(--aqe-selection-start-edge-px, 0px) - 5px);
+}
+
+.aqe-selection-resize-end {
+  left: calc(var(--aqe-selection-end-edge-px, 0px) - 5px);
 }
 
 .aqe-selection-resize-handle:hover {
@@ -54,23 +111,33 @@
 }
 
 .aqe-selection-resize-handle.aqe-selection-resize-dragging,
-.aqe-selection-resize-grip.aqe-selection-resize-dragging {
-  opacity: 0.42;
+.aqe-selection-resize-handle.aqe-selection-resize-dragging .aqe-selection-resize-grip {
+  opacity: 1;
 }
 
 .aqe-selection-resize-grip {
-  opacity: 0.48;
+  align-items: center;
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+  inset: 0;
+  justify-content: center;
+  opacity: 1;
   pointer-events: none;
-  stroke: currentColor;
-  stroke-linecap: round;
-  stroke-width: 1;
-  vector-effect: non-scaling-stroke;
+  position: absolute;
+}
+
+.aqe-selection-resize-grip > span {
+  border-top: 1px solid currentColor;
+  border-radius: 999px;
+  display: block;
+  width: 6px;
 }
 
 .aqe-selection-outside-preview {
-  fill: color-mix(in srgb, var(--aqe-border-color) 70%, transparent);
+  fill: rgb(0 0 0 / 18%);
   pointer-events: none;
-  stroke: color-mix(in srgb, var(--aqe-border-color) 70%, transparent);
+  stroke: rgb(0 0 0 / 24%);
   stroke-width: 1;
   vector-effect: non-scaling-stroke;
 }

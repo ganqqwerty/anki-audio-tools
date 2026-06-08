@@ -29,10 +29,6 @@
     repeatPauseDefault,
     target,
   }: { repeatDefault: boolean; repeatPauseDefault: number; target: FieldTarget } = $props();
-  const selectionPlotHeight = PLOT.height - PLOT.top - PLOT.bottom;
-  const selectionHandleHeight = selectionPlotHeight * 0.8;
-  const selectionHandleY = PLOT.top + (selectionPlotHeight - selectionHandleHeight) / 2;
-  const selectionHandleCenterY = selectionHandleY + selectionHandleHeight / 2;
   const plotClipId = $derived(`aqe-plot-clip-${target.ord}`);
   const plotClipUrl = $derived(`url(#${plotClipId})`);
   const selectionMarkerShiftButtonsEnabled = window.__AQE_EDITOR_CONFIG__?.selectionMarkerShiftButtonsEnabled === true;
@@ -220,79 +216,43 @@
         style="display: none"
         onpointerdown={(event) => handleChorusingMarkerPointerDown(event, target.ord)}
       ></g>
-      <line
-        class="aqe-selection-edge aqe-selection-start"
-        data-testid={`aqe-selection-start-${target.ord}`}
-        x1={PLOT.left}
-        x2={PLOT.left}
-        y1={PLOT.top}
-        y2={PLOT.height - PLOT.bottom}
-        visibility="hidden"
-      ></line>
-      <line
-        class="aqe-selection-edge aqe-selection-end"
-        data-testid={`aqe-selection-end-${target.ord}`}
-        x1={PLOT.left}
-        x2={PLOT.left}
-        y1={PLOT.top}
-        y2={PLOT.height - PLOT.bottom}
-        visibility="hidden"
-      ></line>
-      <rect
-        class="aqe-selection-resize-handle aqe-selection-resize-start"
-        data-testid={`aqe-selection-resize-start-${target.ord}`}
-        x={PLOT.left - 5}
-        y={selectionHandleY}
-        width="10"
-        height={selectionHandleHeight}
-        rx="3"
-        role="button"
-        aria-label="Resize selection start"
-        tabindex="0"
-        visibility="hidden"
-        onpointerdown={(event) => {
-          if (event.shiftKey) return;
-          startSelectionResizeGesture(event, target.ord, "start");
-        }}
-      ></rect>
-      <g
-        class="aqe-selection-resize-grip aqe-selection-resize-grip-start"
-        transform={`translate(${PLOT.left} ${selectionHandleCenterY})`}
-        visibility="hidden"
-        aria-hidden="true"
-      >
-        <line x1="-3" x2="3" y1="-10" y2="-10"></line>
-        <line x1="-3" x2="3" y1="0" y2="0"></line>
-        <line x1="-3" x2="3" y1="10" y2="10"></line>
-      </g>
-      <rect
-        class="aqe-selection-resize-handle aqe-selection-resize-end"
-        data-testid={`aqe-selection-resize-end-${target.ord}`}
-        x={PLOT.left - 5}
-        y={selectionHandleY}
-        width="10"
-        height={selectionHandleHeight}
-        rx="3"
-        role="button"
-        aria-label="Resize selection end"
-        tabindex="0"
-        visibility="hidden"
-        onpointerdown={(event) => {
-          if (event.shiftKey) return;
-          startSelectionResizeGesture(event, target.ord, "end");
-        }}
-      ></rect>
-      <g
-        class="aqe-selection-resize-grip aqe-selection-resize-grip-end"
-        transform={`translate(${PLOT.left} ${selectionHandleCenterY})`}
-        visibility="hidden"
-        aria-hidden="true"
-      >
-        <line x1="-3" x2="3" y1="-10" y2="-10"></line>
-        <line x1="-3" x2="3" y1="0" y2="0"></line>
-        <line x1="-3" x2="3" y1="10" y2="10"></line>
-      </g>
     </svg>
+    <div class="aqe-selection-edge aqe-selection-start" data-testid={`aqe-selection-start-${target.ord}`} hidden></div>
+    <div class="aqe-selection-edge aqe-selection-end" data-testid={`aqe-selection-end-${target.ord}`} hidden></div>
+    <button
+      type="button"
+      class="aqe-selection-resize-handle aqe-selection-resize-start"
+      data-testid={`aqe-selection-resize-start-${target.ord}`}
+      aria-label="Resize selection start"
+      hidden
+      onpointerdown={(event) => {
+        if (event.shiftKey) return;
+        startSelectionResizeGesture(event, target.ord, "start");
+      }}
+    >
+      <span class="aqe-selection-resize-grip" aria-hidden="true">
+        <span></span>
+        <span></span>
+        <span></span>
+      </span>
+    </button>
+    <button
+      type="button"
+      class="aqe-selection-resize-handle aqe-selection-resize-end"
+      data-testid={`aqe-selection-resize-end-${target.ord}`}
+      aria-label="Resize selection end"
+      hidden
+      onpointerdown={(event) => {
+        if (event.shiftKey) return;
+        startSelectionResizeGesture(event, target.ord, "end");
+      }}
+    >
+      <span class="aqe-selection-resize-grip" aria-hidden="true">
+        <span></span>
+        <span></span>
+        <span></span>
+      </span>
+    </button>
     <div class="aqe-css-cursor" data-testid={`aqe-css-cursor-${target.ord}`} aria-hidden="true">
       <div class="aqe-css-cursor-line"></div>
       <div class="aqe-css-cursor-flag">
