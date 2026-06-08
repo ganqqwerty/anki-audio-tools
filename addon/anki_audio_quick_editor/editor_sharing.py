@@ -170,7 +170,7 @@ def finish_shared_audio(
         if share_target == "litterbox"
         else "editor.status.shared_catbox"
     )
-    deps.eval_status(editor, deps.t(success_key, {"filename": filename}), kind="info")
+    deps.eval_status(editor, deps.t(success_key, {"filename": filename, "url": url}), kind="info")
     deps.set_busy(editor, False)
 
 

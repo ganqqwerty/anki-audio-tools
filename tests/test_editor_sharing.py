@@ -19,9 +19,9 @@ from anki_audio_quick_editor.errors import AudioProcessingError, MissingMediaErr
 def _message(key: str, values: dict[str, str] | None = None) -> str:
     values = values or {}
     if key == "editor.status.shared_catbox":
-        return f"Copied Catbox link for {values['filename']}"
+        return f"Copied Catbox link for {values['filename']}: {values['url']}"
     if key == "editor.status.shared_litterbox":
-        return f"Copied Litterbox link for {values['filename']}"
+        return f"Copied Litterbox link for {values['filename']}: {values['url']}"
     if key == "editor.status.share_clipboard_unavailable":
         return f"Uploaded {values['filename']}: {values['url']}"
     if key == "editor.status.share_invalid_target":
@@ -346,7 +346,7 @@ def test_finish_shared_audio_copies_url_to_clipboard_and_reports_success(monkeyp
     finish_shared_audio(editor, "catbox", "clip.mp3", "https://files.catbox.moe/share123.mp3", deps)
 
     clipboard.setText.assert_called_once_with("https://files.catbox.moe/share123.mp3")
-    assert statuses == [("Copied Catbox link for clip.mp3", "info")]
+    assert statuses == [("Copied Catbox link for clip.mp3: https://files.catbox.moe/share123.mp3", "info")]
     assert busy_calls[-1] == (False, "", "")
 
 
