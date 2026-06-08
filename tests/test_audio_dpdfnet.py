@@ -8,6 +8,7 @@ import pytest
 
 from anki_audio_quick_editor.audio_processor import render_dpdfnet_audio
 from anki_audio_quick_editor.audio_state import AudioProcessingConfig
+from anki_audio_quick_editor.audio_output_policy import AudioSourceMetadata
 from anki_audio_quick_editor.errors import AudioProcessingError
 from anki_audio_quick_editor.support import (
     clear_latest_denoise_support_incident,
@@ -16,6 +17,23 @@ from anki_audio_quick_editor.support import (
 
 DPDFNET = str(Path("/bin/dpdfnet"))
 FFMPEG = str(Path("/bin/ffmpeg"))
+
+
+@pytest.fixture(autouse=True)
+def stub_source_metadata(monkeypatch) -> None:
+    monkeypatch.setattr(
+        "anki_audio_quick_editor.audio_processor.probe_audio_metadata",
+        lambda source_path, _config: AudioSourceMetadata(
+            path=source_path,
+            visible_format="mp3",
+            codec_name="mp3",
+            sample_rate=44100,
+            channels=2,
+            bit_rate=192000,
+            bits_per_raw_sample=None,
+            sample_fmt=None,
+        ),
+    )
 
 
 def test_render_dpdfnet_audio_runs_denoise_and_encode(
@@ -77,7 +95,7 @@ def test_render_dpdfnet_audio_runs_denoise_and_encode(
         calls[0][5],
     ]
     assert calls[1][0:4] == [FFMPEG, "-y", "-i", calls[0][5]]
-    assert calls[1][-5:] == ["-codec:a", "libmp3lame", "-q:a", "4", str(output)]
+    assert calls[1][-9:] == ["-codec:a", "libmp3lame", "-b:a", "192k", "-ar", "44100", "-ac", "2", str(output)]
     assert commands == [tuple(call) for call in calls]
     assert result.output_path == output
     assert result.command == tuple(calls[0])

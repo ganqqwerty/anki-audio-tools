@@ -81,6 +81,7 @@ def sync_noise_dependencies(
         find_rnnoise_bundle: Any,
         find_silero_vad_bundle: Any,
         find_spleeter_bundle: Any,
+        probe_audio_metadata: Any,
         probe_duration_ms: Any,
         render_external_error_message: Any,
         run_external_command: Any,
@@ -93,6 +94,7 @@ def sync_noise_dependencies(
     audio_noise_reduction.find_silero_vad_bundle = find_silero_vad_bundle
     audio_noise_reduction.find_dpdfnet_bundle = find_dpdfnet_bundle
     audio_noise_reduction.find_spleeter_bundle = find_spleeter_bundle
+    audio_noise_reduction.probe_audio_metadata = probe_audio_metadata
     audio_noise_reduction.probe_duration_ms = probe_duration_ms
     audio_noise_reduction._run_external_command = run_external_command
     audio_noise_reduction._render_external_error_message = render_external_error_message
@@ -105,6 +107,7 @@ def sync_noise_dependencies(
         bundled.find_silero_vad_bundle = find_silero_vad_bundle
         bundled.find_dpdfnet_bundle = find_dpdfnet_bundle
         bundled.find_spleeter_bundle = find_spleeter_bundle
+        bundled.probe_audio_metadata = probe_audio_metadata
         bundled.probe_duration_ms = probe_duration_ms
         bundled._run_external_command = run_external_command
         bundled._render_external_error_message = render_external_error_message

@@ -276,6 +276,7 @@ def _sync_noise_dependencies() -> None:
         find_rnnoise_bundle=find_rnnoise_bundle,
         find_spleeter_bundle=find_spleeter_bundle,
         find_silero_vad_bundle=find_silero_vad_bundle,
+        probe_audio_metadata=probe_audio_metadata,
         probe_duration_ms=probe_duration_ms,
         render_external_error_message=_render_external_error_message,
         run_external_command=_run_external_command,

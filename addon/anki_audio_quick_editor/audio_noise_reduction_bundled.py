@@ -24,6 +24,7 @@ from .audio_external import (
 )
 from .audio_output_policy import (
     AudioOutputPolicy,
+    AudioSourceMetadata,
     codec_args_for_output_policy,
     preserve_source_audio_characteristics,
     probe_audio_metadata,
@@ -136,10 +137,12 @@ def render_dpdfnet_audio(
     try:
         ffmpeg_path = find_ffmpeg(config.ffmpeg_path)
         dpdfnet_path = find_dpdfnet_bundle()
+        source_metadata = probe_audio_metadata(source_path, config)
         output_policy = _model_output_policy(
             source_path,
             config,
             output_path,
+            source_metadata=source_metadata,
             codec_name="pcm_s16le",
             sample_rate=None,
             channels=None,
@@ -283,6 +286,7 @@ def _model_output_policy(
     config: AudioProcessingConfig,
     output_path: Path | None,
     *,
+    source_metadata: AudioSourceMetadata | None = None,
     codec_name: str | None,
     sample_rate: int | None,
     channels: int | None,
@@ -296,10 +300,11 @@ def _model_output_policy(
         channels=channels,
         bits_per_raw_sample=bits_per_raw_sample,
     )
-    try:
-        source_metadata = probe_audio_metadata(source_path, config)
-    except AudioProcessingError:
-        source_metadata = None
+    if source_metadata is None:
+        try:
+            source_metadata = probe_audio_metadata(source_path, config)
+        except AudioProcessingError:
+            source_metadata = None
     return resolve_output_policy_from_metadata(
         preserve_source_audio_characteristics(metadata, source_metadata)
         if source_metadata is not None
