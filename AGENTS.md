@@ -21,19 +21,19 @@ After major refactors, package renames, config schema changes, hook changes, or 
 
 ## Layout
 
-| Directory | Contents |
-|-----------|----------|
-| `addon/anki_audio_quick_editor/` | Audio Quick Editor runtime package |
-| `addon/anki_audio_quick_editor/settings/` | Settings dialog Python shell + bridge backend |
-| `addon/anki_audio_quick_editor/templates/` | Committed settings and editor webview bundle output |
+| Directory | Contents                                                                    |
+|-----------|-----------------------------------------------------------------------------|
+| `addon/anki_audio_quick_editor/` | Audio Quick Editor runtime package                                          |
+| `addon/anki_audio_quick_editor/settings/` | Settings dialog Python shell + bridge backend                               |
+| `addon/anki_audio_quick_editor/templates/` | Committed settings and editor webview bundle output                         |
 | `contracts/` | Source JSON Schemas for generated Python/TypeScript communication contracts |
-| `tests/` | Unit + architecture tests |
-| `tests/test_architecture/` | Architecture boundary enforcement |
-| `e2e/` | End-to-end tests with real Anki + Qt |
-| `scripts/` | `dev.py` task runner and `release.py` packaging script |
-| `settings_ui/` | Svelte 5 + TypeScript settings, inline editor, and Browser batch UI source |
-| `.claude/commands/` | Claude Code workflow commands |
-| `.codex/skills/` | Repo-local Codex skills mirroring shared workflows |
+| `tests/` | Unit + architecture tests                                                   |
+| `tests/test_architecture/` | Architecture boundary enforcement, explained in @ARCHITECTURE.md            |
+| `e2e/` | End-to-end tests with real Anki + Qt                                        |
+| `scripts/` | `dev.py` task runner and `release.py` packaging script                      |
+| `settings_ui/` | Svelte 5 + TypeScript settings, inline editor, and Browser batch UI source  |
+| `.claude/commands/` | Claude Code workflow commands                                               |
+| `.codex/skills/` | Repo-local Codex skills mirroring shared workflows                          |
 
 ## Key Facts
 
