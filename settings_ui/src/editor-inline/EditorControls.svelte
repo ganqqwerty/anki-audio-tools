@@ -9,6 +9,7 @@
   import EditorCommandIcon from "./EditorCommandIcon.svelte";
   import EditorHelp from "./EditorHelp.svelte";
   import PlaySplitButton from "./PlaySplitButton.svelte";
+  import PresetSplitButton from "./PresetSplitButton.svelte";
   import SelectionToolbar from "./SelectionToolbar.svelte";
   import SplitButton from "./SplitButton.svelte";
   import {
@@ -61,6 +62,7 @@
       "aqe:analyze",
       "aqe:record-voice",
       "aqe:share",
+      "aqe:preset",
       "aqe:convert",
       "aqe:slower",
       "aqe:faster",
@@ -208,6 +210,12 @@
           button={item.button}
           displayMode={buttonDisplayMode(item.button.command, buttonModes)}
           {repeatDefault}
+          {target}
+        />
+      {:else if item.button.command === "aqe:preset"}
+        <PresetSplitButton
+          button={item.button}
+          displayMode={buttonDisplayMode(item.button.command, buttonModes)}
           {target}
         />
       {:else if isSplitCommand(item.button.command)}

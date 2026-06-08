@@ -45,6 +45,8 @@ import { graphSettingsForField } from "./graph-split-state.js";
 
 type EditorStatusMessage = string | UserFacingError;
 
+let pendingGraphRedrawSettings: GraphSettings | null = null;
+
 export function requestGraph(
   ord: number,
   notifyPython: boolean,
@@ -97,9 +99,14 @@ function prepareGraphRequest(ord: number): boolean {
   return true;
 }
 
-export function resetGraphAfterEdit(ord: number, sourceFilename?: string | null): boolean {
+export function resetGraphAfterEdit(
+  ord: number,
+  sourceFilename?: string | null,
+  graphSettings?: GraphSettings | null,
+): boolean {
   window.__aqePendingGraphRedrawField = ord;
   window.__aqePendingGraphRedrawSource = sourceFilename || null;
+  pendingGraphRedrawSettings = graphSettings ?? null;
   return requestPendingGraphRedraw();
 }
 
@@ -107,6 +114,7 @@ export function requestPendingGraphRedraw(): boolean {
   const ord = window.__aqePendingGraphRedrawField;
   if (typeof ord !== "number") return false;
   const expectedSource = window.__aqePendingGraphRedrawSource || "";
+  const pendingSettings = pendingGraphRedrawSettings ?? undefined;
   const currentSource = currentAudioSourceForOrd(ord) || window.__AQE_EDITOR_CONFIG__?.audioFieldSources?.[ord] || "";
   if (expectedSource && currentSource !== expectedSource) return false;
   const visualizer = visualizerForOrd(ord);
@@ -114,7 +122,7 @@ export function requestPendingGraphRedraw(): boolean {
   if (visualizer.dataset.graphBusy === "true") return true;
   const renderedSource = visualizer.dataset.sourceFilename || "";
   if (visualizer.dataset.hasTrack === "true" && (!expectedSource || renderedSource === expectedSource)) return true;
-  requestGraph(ord, true, undefined, expectedSource || undefined);
+  requestGraph(ord, true, pendingSettings, expectedSource || undefined);
   return true;
 }
 
@@ -138,6 +146,7 @@ export function setVisualizer(ord: number, rawTrack: ProsodyPayload, cursorMs: n
   if (pendingGraphRedrawMatches(ord, track.sourceFilename || "")) {
     window.__aqePendingGraphRedrawField = null;
     window.__aqePendingGraphRedrawSource = null;
+    pendingGraphRedrawSettings = null;
   }
   setSelection(visualizer, 0, track.durationMs || 0, { updateCursor: false });
   configureAudioClock(visualizer, track.sourceFilename || "");
@@ -156,6 +165,7 @@ export function setVisualizerStatusFromPython(ord: number, message: EditorStatus
   if (kind !== "processing" && window.__aqePendingGraphRedrawField === ord) {
     window.__aqePendingGraphRedrawField = null;
     window.__aqePendingGraphRedrawSource = null;
+    pendingGraphRedrawSettings = null;
   }
   const visualizer = visualizerForOrd(ord);
   if (visualizer) {

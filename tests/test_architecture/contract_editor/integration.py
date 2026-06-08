@@ -10,6 +10,7 @@ EDITOR_INTEGRATION_CONTRACTS: dict[str, ModuleContract] = {
         layer=Layer.UI_ADAPTER,
         allowed_addon_deps=(
             "audio_processor",
+            "audio_processing_presets",
             "audio_state",
             "contracts_generated",
             "editor_actions",

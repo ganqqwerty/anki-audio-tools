@@ -34,6 +34,7 @@
   import DiagnosticsLinks from "./DiagnosticsLinks.svelte";
   import DiagnosticsPanel from "./DiagnosticsPanel.svelte";
   import GeneralSettingsPanel from "./GeneralSettingsPanel.svelte";
+  import PresetSettingsPanel from "./PresetSettingsPanel.svelte";
   import SettingsFooter from "./SettingsFooter.svelte";
   import {
     cloneConfig,
@@ -190,6 +191,17 @@
       </button>
       <button
         class="settings-tab"
+        class:active={activeTab === "presets"}
+        data-testid="settings-tab-presets"
+        role="tab"
+        aria-selected={activeTab === "presets"}
+        type="button"
+        onclick={() => (activeTab = "presets")}
+      >
+        {t("settings.tab.presets")}
+      </button>
+      <button
+        class="settings-tab"
         class:active={activeTab === "diagnostics"}
         data-testid="settings-tab-diagnostics"
         role="tab"
@@ -204,6 +216,8 @@
     <section class="panel" role="tabpanel">
       {#if activeTab === "general"}
         <GeneralSettingsPanel bind:config saveError={saveError} />
+      {:else if activeTab === "presets"}
+        <PresetSettingsPanel bind:config />
       {:else}
         <DiagnosticsPanel
           bind:config

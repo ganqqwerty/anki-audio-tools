@@ -53,3 +53,76 @@ def test_apply_result_reports_conflict_when_target_field_changed() -> None:
     col.update_note.assert_not_called()
     assert report.failures == 1
     assert report.written == 0
+
+
+def test_apply_result_applies_multi_field_updates_atomically() -> None:
+    class Note(dict):
+        id = 55
+
+    note = Note(Audio="[sound:old.mp3]", Graph="old")
+    col = SimpleNamespace(
+        get_note=MagicMock(return_value=note),
+        update_note=MagicMock(),
+    )
+    report = BatchRunReport(total=1)
+    result = BatchNoteResult(
+        note_id=55,
+        status="written",
+        message="ran preset Clean + graph",
+        audio_filename="old.mp3",
+        written_filename="new.mp3",
+        field_updates={
+            "Audio": "[sound:new.mp3]",
+            "Graph": 'old<br><img src="new.svg">',
+        },
+        original_field_html={
+            "Audio": "[sound:old.mp3]",
+            "Graph": "old",
+        },
+    )
+
+    applied = apply_result(col, report, result, fallback_field="Audio")
+
+    assert applied is result
+    assert note["Audio"] == "[sound:new.mp3]"
+    assert note["Graph"] == 'old<br><img src="new.svg">'
+    col.update_note.assert_called_once_with(note)
+    assert report.written == 1
+    assert report.failures == 0
+
+
+def test_apply_result_reports_conflict_for_multi_field_updates() -> None:
+    class Note(dict):
+        id = 55
+
+    note = Note(Audio="[sound:old.mp3]", Graph="user edit")
+    col = SimpleNamespace(
+        get_note=MagicMock(return_value=note),
+        update_note=MagicMock(),
+    )
+    report = BatchRunReport(total=1)
+    result = BatchNoteResult(
+        note_id=55,
+        status="written",
+        message="ran preset Clean + graph",
+        audio_filename="old.mp3",
+        written_filename="new.mp3",
+        field_updates={
+            "Audio": "[sound:new.mp3]",
+            "Graph": 'old<br><img src="new.svg">',
+        },
+        original_field_html={
+            "Audio": "[sound:old.mp3]",
+            "Graph": "old",
+        },
+    )
+
+    applied = apply_result(col, report, result, fallback_field="Audio")
+
+    assert applied.status == "failed"
+    assert "target field 'Graph' changed during batch processing" in applied.message
+    assert note["Audio"] == "[sound:old.mp3]"
+    assert note["Graph"] == "user edit"
+    col.update_note.assert_not_called()
+    assert report.failures == 1
+    assert report.written == 0

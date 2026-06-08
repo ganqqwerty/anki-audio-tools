@@ -13,6 +13,7 @@ from typing import Any
 from .audio_formats import format_label, is_same_visible_format
 from .audio_operation_params import effective_config_for_operation
 from .audio_operations import OP_CONVERT, OP_DENOISE, apply_audio_operation
+from .audio_processing_preset_runner import ProcessingPresetRunnerAdapters
 from .audio_processor import (
     make_output_filename,
     temp_final_path,
@@ -201,3 +202,49 @@ def process_transform_operation(
         audio_filename=audio_filename,
         written_filename=saved_name,
     )
+
+
+def batch_preset_runner_adapters() -> ProcessingPresetRunnerAdapters:
+    return ProcessingPresetRunnerAdapters(
+        make_audio_output_filename=make_output_filename,
+        make_graph_output_filename=make_visualization_filename,
+        temp_output_path=temp_final_path,
+        render_audio=_render_preset_audio,
+        render_converted_audio=_render_preset_converted_audio,
+        render_denoise_audio=_render_preset_denoise_audio,
+        analyze_prosody=_facade_attr("analyze_prosody_cached"),
+        render_graph_svg=render_prosody_svg,
+    )
+
+
+def _render_preset_audio(
+    source_path: Path,
+    state: AudioEditState,
+    config: AudioProcessingConfig,
+    output_path: Path,
+    artifact_root: Path | None,
+) -> None:
+    _facade_attr("render_audio")(
+        source_path,
+        state,
+        config,
+        output_path=output_path,
+        artifact_root=artifact_root,
+    )
+
+
+def _render_preset_converted_audio(
+    source_path: Path,
+    config: AudioProcessingConfig,
+    target_format: str,
+    output_path: Path,
+) -> None:
+    _facade_attr("render_converted_audio")(source_path, config, target_format, output_path=output_path)
+
+
+def _render_preset_denoise_audio(
+    source_path: Path,
+    config: AudioProcessingConfig,
+    output_path: Path,
+) -> None:
+    render_batch_denoise(source_path, config, output_path)

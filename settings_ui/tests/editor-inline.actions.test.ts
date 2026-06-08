@@ -61,6 +61,7 @@ describe("editor inline action workflows", () => {
     expect(commandSlugsForTest()["aqe:rnnoise"]).toBe("rnnoise");
     expect(commandSlugsForTest()["aqe:dpdfnet"]).toBe("dpdfnet");
     expect(commandSlugsForTest()["aqe:voice-only"]).toBe("voice-only");
+    expect(commandSlugsForTest()["aqe:preset"]).toBe("preset");
     expect(commandSlugsForTest()["aqe:convert"]).toBe("convert");
     expect(commandSlugsForTest()["aqe:redo"]).toBe("redo");
     expect(commandSlugsForTest()["aqe:settings"]).toBe("settings");
@@ -75,6 +76,13 @@ describe("editor inline action workflows", () => {
         overrides: { targetFormat: "flac" },
       }),
     ).toBe("Converting to FLAC...");
+    expect(
+      processingMessage("aqe:preset", {
+        command: "aqe:preset",
+        fieldOrd: 0,
+        presetId: "clean_graph",
+      }),
+    ).toBe("Running Preset...");
     expect(processingMessage("aqe:faster")).toBe("Processing...");
   });
 

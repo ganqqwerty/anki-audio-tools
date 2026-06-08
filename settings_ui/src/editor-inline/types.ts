@@ -33,6 +33,7 @@ export interface EditorRuntimeConfig {
   } | null;
   repeatPlaybackByDefault?: boolean;
   showGraphByDefault?: boolean;
+  processingPresets?: ProcessingPresetOption[];
   splitButtonDefaults?: SplitButtonDefaults;
   visibleEditorButtons?: EditorCommand[];
   editorButtonModes?: EditorButtonModes;
@@ -71,6 +72,7 @@ export interface EditorCommandPayload {
   generation?: number;
   sourceFilename?: string;
   url?: string;
+  presetId?: string;
   shareTarget?: "catbox" | "litterbox";
   overrides?: {
     denoiseAlgorithm?: DenoiseAlgorithm;
@@ -87,6 +89,13 @@ export interface EditorCommandPayload {
     volumeStepDb?: number;
   };
   graphSettings?: GraphSettings;
+}
+
+interface ProcessingPresetOption {
+  graphEnabled: boolean;
+  hasTransforms: boolean;
+  id: string;
+  name: string;
 }
 
 export interface FieldSplitButtonState {

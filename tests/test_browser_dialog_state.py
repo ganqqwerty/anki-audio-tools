@@ -3,8 +3,10 @@ from anki_audio_quick_editor.audio_operations import (
     OP_DENOISE,
     OP_FASTER,
     OP_GRAPH,
+    OP_PRESET,
     OP_REMOVE_PAUSES,
 )
+from anki_audio_quick_editor.audio_processing_presets import presets_from_raw
 from anki_audio_quick_editor.audio_state import AudioProcessingConfig
 from anki_audio_quick_editor.batch_operations import FieldGroup
 from anki_audio_quick_editor.browser_dialog_state import (
@@ -71,6 +73,53 @@ def test_build_batch_initial_state_contains_operations_fields_defaults_and_i18n(
     assert state["locale"] == "en"
     assert state["direction"] == "ltr"
     assert "batch.start" in state["messages"]
+
+
+def test_build_batch_initial_state_includes_processing_presets_when_configured() -> None:
+    presets = presets_from_raw(
+        [
+            {
+                "id": "clean_graph",
+                "name": "Clean + graph",
+                "steps": [
+                    {
+                        "id": "denoise",
+                        "operation": "denoise",
+                        "parameters": {"denoise_algorithm": "standard"},
+                    }
+                ],
+                "graph": {
+                    "enabled": True,
+                    "parameters": {
+                        "graph_voice_range": "general",
+                        "graph_recording_condition": "auto",
+                        "graph_smoothness": "very_smooth",
+                        "graph_connect_short_dropouts_ms": 240,
+                        "graph_voice_lock": "balanced",
+                    },
+                },
+            }
+        ]
+    )
+
+    state = build_batch_initial_state(
+        note_count=1,
+        groups=(FieldGroup("Basic", ("Audio", "Graph")),),
+        config=AudioProcessingConfig(),
+        processing_presets=presets,
+    )
+
+    preset_operation = next(item for item in state["operations"] if item["operation"] == OP_PRESET)
+    assert preset_operation["parameter_kind"] == "preset"
+    assert preset_operation["parameter_name"] == "preset_id"
+    assert state["processing_presets"] == [
+        {
+            "id": "clean_graph",
+            "name": "Clean + graph",
+            "has_transforms": True,
+            "graph_enabled": True,
+        }
+    ]
 
 
 def test_request_from_batch_start_payload_builds_batch_run_request() -> None:
@@ -145,6 +194,92 @@ def test_request_from_batch_start_payload_builds_convert_parameters() -> None:
 
     assert request.operation == "convert"
     assert request.parameters.target_format == "flac"
+
+
+def test_request_from_batch_start_payload_resolves_processing_preset() -> None:
+    presets = presets_from_raw(
+        [
+            {
+                "id": "graph_only",
+                "name": "Graph only",
+                "steps": [],
+                "graph": {
+                    "enabled": True,
+                    "parameters": {
+                        "graph_voice_range": "general",
+                        "graph_recording_condition": "auto",
+                        "graph_smoothness": "very_smooth",
+                        "graph_connect_short_dropouts_ms": 240,
+                        "graph_voice_lock": "balanced",
+                    },
+                },
+            }
+        ]
+    )
+
+    request = request_from_batch_start_payload(
+        {
+            "operation": "preset",
+            "source_field": "Audio",
+            "target_field": None,
+            "preset_id": "graph_only",
+            "audio_target_field": None,
+            "graph_target_field": "Graph",
+            "parameters": {},
+        },
+        processing_presets=presets,
+    )
+
+    assert request.operation == OP_PRESET
+    assert request.preset_id == "graph_only"
+    assert request.preset is presets[0]
+    assert request.graph_target_field == "Graph"
+
+
+def test_request_from_batch_start_payload_rejects_missing_preset_audio_target() -> None:
+    presets = presets_from_raw(
+        [
+            {
+                "id": "clean",
+                "name": "Clean",
+                "steps": [
+                    {
+                        "id": "denoise",
+                        "operation": "denoise",
+                        "parameters": {"denoise_algorithm": "standard"},
+                    }
+                ],
+                "graph": {
+                    "enabled": False,
+                    "parameters": {
+                        "graph_voice_range": "general",
+                        "graph_recording_condition": "auto",
+                        "graph_smoothness": "very_smooth",
+                        "graph_connect_short_dropouts_ms": 240,
+                        "graph_voice_lock": "balanced",
+                    },
+                },
+            }
+        ]
+    )
+
+    try:
+        request_from_batch_start_payload(
+            {
+                "operation": "preset",
+                "source_field": "Audio",
+                "target_field": None,
+                "preset_id": "clean",
+                "audio_target_field": None,
+                "graph_target_field": None,
+                "parameters": {},
+            },
+            processing_presets=presets,
+        )
+    except ValueError as exc:
+        assert str(exc) == "Choose an audio target field before starting."
+    else:
+        raise AssertionError("expected missing preset audio target to fail")
 
 
 def test_request_from_batch_start_payload_rejects_missing_graph_target() -> None:

@@ -13,6 +13,7 @@ import {
   PauseAggressiveness,
   Phase,
   PitchHumMode,
+  type AudioProcessingPreset,
 } from "../src/lib/types.js";
 import { asyncPayload, bridgeEnvelopes, bridgePayload, defaultConfig, pycmdMock, setInitialState } from "./settings-app-helpers.js";
 
@@ -251,6 +252,42 @@ describe("App", () => {
     expect(config.editor_button_modes["aqe:record-voice"]).toBe("text");
     expect(config.editor_button_modes["aqe:play-recording"]).toBe("text");
     expect(config.voice_recording_countdown_seconds).toBe(0);
+  });
+
+  it("constructs and saves processing presets from settings", async () => {
+    setInitialState();
+
+    render(App);
+    await fireEvent.click(screen.getByRole("tab", { name: "Presets" }));
+    expect(screen.getByText("No presets yet.")).toBeInTheDocument();
+
+    await fireEvent.click(screen.getByTestId("preset-add"));
+    await fireEvent.input(screen.getByTestId("preset-name"), {
+      target: { value: "Clean graph" },
+    });
+    await fireEvent.click(screen.getByTestId("preset-graph-enabled"));
+    await fireEvent.click(screen.getByRole("button", { name: "Save" }));
+
+    const config = bridgePayload<{
+      audio_processing_presets: AudioProcessingPreset[];
+      visible_editor_buttons: string[];
+    }>("settings.save");
+    expect(config.visible_editor_buttons).toContain("aqe:preset");
+    expect(config.audio_processing_presets).toHaveLength(1);
+    expect(config.audio_processing_presets[0]).toMatchObject({
+      name: "Clean graph",
+      steps: [
+        {
+          operation: "denoise",
+          parameters: {
+            denoise_algorithm: "standard",
+          },
+        },
+      ],
+      graph: {
+        enabled: true,
+      },
+    });
   });
 
   it("shows diagnostics data and runs a health check", async () => {

@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from .contracts import MODULE_CONTRACTS
+from .contracts import MODULE_CONTRACTS, SideEffect
 from .inspection import ADDON_DIR
 
 BROWSER_INTEGRATION = ADDON_DIR / "browser_integration.py"
@@ -24,6 +24,7 @@ def test_browser_batch_adapter_uses_shared_registry_and_executor() -> None:
     assert "process_note_batch_operation" in runner_text
     assert MODULE_CONTRACTS["browser_integration"].allowed_addon_deps == frozenset(
         {
+            "audio_processing_presets",
             "audio_state",
             "batch_operations",
             "browser_batch_runner",
@@ -36,6 +37,7 @@ def test_browser_batch_adapter_uses_shared_registry_and_executor() -> None:
         {
             "audio_state",
             "batch_operations",
+            "browser_result_application",
             "browser_report",
             "diagnostics_runtime",
             "error_codes",
@@ -45,6 +47,7 @@ def test_browser_batch_adapter_uses_shared_registry_and_executor() -> None:
     assert MODULE_CONTRACTS["browser_dialog"].allowed_addon_deps == frozenset(
         {
             "audio_operations",
+            "audio_processing_presets",
             "batch_operations",
             "browser_dialog_state",
             "browser_report",
@@ -59,6 +62,7 @@ def test_browser_batch_adapter_uses_shared_registry_and_executor() -> None:
         {
             "audio_operation_params",
             "audio_operations",
+            "audio_processing_presets",
             "audio_state",
             "batch_operations",
             "browser_report",
@@ -68,6 +72,19 @@ def test_browser_batch_adapter_uses_shared_registry_and_executor() -> None:
     )
     assert MODULE_CONTRACTS["audio_operation_params"].allowed_addon_deps == frozenset(
         {"audio_formats", "audio_pause_settings", "audio_state", "dpdfnet_settings"}
+    )
+    assert MODULE_CONTRACTS["batch_processing_presets"].allowed_addon_deps == frozenset(
+        {
+            "audio_processing_preset_runner",
+            "audio_state",
+            "batch_operation_processing",
+            "batch_operation_types",
+            "batch_operations_helpers",
+            "sound_refs",
+        }
+    )
+    assert MODULE_CONTRACTS["browser_result_application"].allowed_side_effects == frozenset(
+        {SideEffect.NOTE_UPDATE}
     )
 
 

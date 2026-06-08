@@ -4,13 +4,13 @@ This document is the shared behavior contract for inline editor buttons that mod
 
 Ground truth for this document is the current toolbar registry in `settings_ui/src/lib/editor-toolbar-buttons.ts`, editor dispatch in `settings_ui/src/editor-inline/` and `addon/anki_audio_quick_editor/editor_*.py`, shared operation definitions in `audio_operations.py`, and the editor e2e tests under `e2e/`.
 
-Available editor button commands are not the same as default-visible commands. The default config currently shows Play, Graph, Folder, Share, Shorten Pauses, Denoise, Slower, Faster, Undo, Redo, and Settings. Convert, Pitch Hum, Volume -, Volume +, Record, and Play yours are available toolbar commands but are hidden by the default `visible_editor_buttons` list unless the user enables them.
+Available editor button commands are not the same as default-visible commands. The default config currently shows Play, Graph, Folder, Share, Preset, Shorten Pauses, Denoise, Slower, Faster, Undo, Redo, and Settings. The Preset button is hidden at runtime until at least one processing preset is configured. Convert, Pitch Hum, Volume -, Volume +, Record, and Play yours are available toolbar commands but are hidden by the default `visible_editor_buttons` list unless the user enables them.
 
 ## Current Command Inventory
 
 | Category | Commands | Contract status |
 |----------|----------|-----------------|
-| Generated-file modification commands | `aqe:convert`, `aqe:remove-pauses`, `aqe:denoise-standard`, `aqe:rnnoise`, `aqe:dpdfnet`, `aqe:voice-only`, `aqe:pitch-hum`, `aqe:slower`, `aqe:faster`, `aqe:volume-down`, `aqe:volume-up`, `aqe:delete-selection`, `aqe:delete-rest` | Covered by this document, except explicit no-op cases such as same-format Convert. |
+| Generated-file modification commands | `aqe:preset`, `aqe:convert`, `aqe:remove-pauses`, `aqe:denoise-standard`, `aqe:rnnoise`, `aqe:dpdfnet`, `aqe:voice-only`, `aqe:pitch-hum`, `aqe:slower`, `aqe:faster`, `aqe:volume-down`, `aqe:volume-up`, `aqe:delete-selection`, `aqe:delete-rest` | Covered by this document, except explicit no-op cases such as same-format Convert. For `aqe:preset`, this applies when the selected preset has transform steps; graph-only presets follow graph behavior without replacing the audio field. |
 | Generated-file history commands | `aqe:undo`, `aqe:redo` | Covered by this document where they restore/select generated media instead of rendering a new file. |
 | Non-mutating split buttons | `aqe:play`, `aqe:analyze`, `aqe:record-voice`, `aqe:share` | Not covered by the modification contract; see "Buttons Outside Or Diverging From This Contract". |
 | Non-mutating plain buttons | `aqe:play-recording`, `aqe:show-file`, `aqe:settings` | Not covered by the modification contract. |
@@ -36,7 +36,7 @@ Current split-button shapes:
 
 | Shape | Commands |
 |-------|----------|
-| Individual split buttons | `aqe:play`, `aqe:analyze`, `aqe:record-voice`, `aqe:share`, `aqe:convert`, `aqe:remove-pauses`, `aqe:denoise-standard`, `aqe:pitch-hum` |
+| Individual split buttons | `aqe:play`, `aqe:analyze`, `aqe:record-voice`, `aqe:share`, `aqe:preset`, `aqe:convert`, `aqe:remove-pauses`, `aqe:denoise-standard`, `aqe:pitch-hum` |
 | Grouped split buttons | `aqe:slower` + `aqe:faster` share one Speed quick-settings menu; `aqe:volume-down` + `aqe:volume-up` share one Volume quick-settings menu. |
 | Plain modification buttons | `aqe:delete-selection`, `aqe:delete-rest`, `aqe:undo`, `aqe:redo` |
 
@@ -75,6 +75,7 @@ Current split-button defaults include:
 | Convert output format | `output_format` |
 | Pitch Hum mode | `pitch_hum_mode` |
 | Voice recording countdown | `voice_recording_countdown_seconds` |
+| Processing presets | `audio_processing_presets` |
 
 Share target is persisted as a Settings default. The Share split menu initializes from `share_target`, lets the user pick Catbox or Litterbox locally per field, and exposes the same promote-default control as other split buttons.
 
@@ -92,6 +93,7 @@ Current shared batch/editor operations:
 | Speed | `aqe:slower`, `aqe:faster` with `speedStep` | `slower`, `faster` with `speed_step` |
 | Volume | `aqe:volume-down`, `aqe:volume-up` with `volumeStepDb` | `volume_down`, `volume_up` with `volume_step_db` |
 | Graph | `aqe:analyze` with graph settings | `graph` appends an SVG to a target field |
+| Processing preset | `aqe:preset` with `presetId` | `preset` with `preset_id` plus audio/graph target fields according to preset contents |
 
 Editor-only behavior:
 

@@ -5,6 +5,7 @@ from __future__ import annotations
 import logging
 from typing import Any
 
+from .audio_processing_presets import presets_from_raw
 from .audio_state import AudioProcessingConfig
 from .batch_operations import (
     BatchNoteSnapshot,
@@ -62,10 +63,10 @@ def _open_batch_dialog(browser: Any) -> None:
         showWarning(_tr("batch.no_fields"), parent=browser)
         return
 
-    config = AudioProcessingConfig.from_config(
-        browser.mw.addonManager.getConfig(browser.mw.addonManager.addonFromModule(__name__)) or {}
-    )
-    dialog = _create_dialog(browser, note_ids, groups, config)
+    raw_config = browser.mw.addonManager.getConfig(browser.mw.addonManager.addonFromModule(__name__)) or {}
+    config = AudioProcessingConfig.from_config(raw_config)
+    processing_presets = presets_from_raw(raw_config.get("audio_processing_presets"))
+    dialog = _create_dialog(browser, note_ids, groups, config, processing_presets)
     dialog.exec()
 
 
@@ -81,8 +82,16 @@ def _create_dialog(
     note_ids: list[int],
     groups: tuple[FieldGroup, ...],
     config: AudioProcessingConfig,
+    processing_presets: tuple[Any, ...] = (),
 ) -> Any:
-    return BatchOperationsDialog(browser, note_ids, groups, config, run_batch_in_background)
+    return BatchOperationsDialog(
+        browser,
+        note_ids,
+        groups,
+        config,
+        run_batch_in_background,
+        processing_presets=processing_presets,
+    )
 
 
 def _tr(key: str, values: dict[str, object] | None = None) -> str:

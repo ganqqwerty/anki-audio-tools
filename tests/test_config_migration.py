@@ -223,6 +223,20 @@ class TestMigrateConfig:
         assert migrated["_config_version"] == CURRENT_CONFIG_VERSION
         assert changed is True
 
+    def test_picks_up_processing_presets_default(self) -> None:
+        user = {"_config_version": 1, "enabled": True}
+        defaults = {
+            "_config_version": CURRENT_CONFIG_VERSION,
+            "enabled": True,
+            "audio_processing_presets": [],
+        }
+
+        migrated, changed = migrate_config(user, defaults)
+
+        assert migrated["audio_processing_presets"] == []
+        assert migrated["_config_version"] == CURRENT_CONFIG_VERSION
+        assert changed is True
+
     def test_snaps_legacy_dpdfnet_attenuation_to_supported_aggressiveness(self) -> None:
         user = {
             "_config_version": 13,

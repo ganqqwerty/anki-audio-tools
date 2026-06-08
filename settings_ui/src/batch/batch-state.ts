@@ -22,6 +22,7 @@ import {
 import type {
   BatchInitialState,
   BatchOperationOption,
+  BatchProcessingPresetOption,
   BatchStartRequest,
 } from "$lib/types.js";
 
@@ -29,6 +30,9 @@ export interface BatchFormState {
   operation: BatchOperationName;
   sourceField: string;
   targetField: string;
+  presetId: string;
+  audioTargetField: string;
+  graphTargetField: string;
   speedStep: number;
   volumeStepDb: number;
   pauseAggressiveness: BatchPauseAggressiveness;
@@ -107,6 +111,7 @@ export const FALLBACK_BATCH_INITIAL_STATE: BatchInitialState = {
     },
   ],
   field_groups: [],
+  processing_presets: [],
   defaults: {
     speed_step: 1.5,
     volume_step_db: 15,
@@ -136,10 +141,14 @@ export function initialBatchState(): BatchInitialState {
 export function initialFormState(state: BatchInitialState): BatchFormState {
   const firstOperation = state.operations[0]?.operation ?? BatchOperationName.Graph;
   const firstField = state.field_groups[0]?.fields[0] ?? "";
+  const firstPreset = state.processing_presets[0]?.id ?? "";
   return {
     operation: firstOperation,
     sourceField: firstField,
     targetField: firstField,
+    presetId: firstPreset,
+    audioTargetField: firstField,
+    graphTargetField: firstField,
     speedStep: state.defaults.speed_step,
     volumeStepDb: state.defaults.volume_step_db,
     pauseAggressiveness: state.defaults.pause_aggressiveness,
@@ -165,12 +174,29 @@ export function selectedOperation(
   return state.operations.find((item) => item.operation === operation);
 }
 
+export function selectedPreset(
+  state: BatchInitialState,
+  presetId: string,
+): BatchProcessingPresetOption | undefined {
+  return state.processing_presets.find((item) => item.id === presetId);
+}
+
 export function shouldShowTargetField(operation: BatchOperationOption | undefined): boolean {
   return operation?.requires_target_field === true;
 }
 
-export function canStartBatch(form: BatchFormState, operation: BatchOperationOption | undefined): boolean {
+export function canStartBatch(
+  form: BatchFormState,
+  operation: BatchOperationOption | undefined,
+  preset: BatchProcessingPresetOption | undefined = undefined,
+): boolean {
   if (operation === undefined || form.sourceField.length === 0) return false;
+  if (operation.parameter_kind === BatchParameterKind.Preset) {
+    if (preset === undefined || form.presetId.length === 0) return false;
+    if (preset.has_transforms && form.audioTargetField.length === 0) return false;
+    if (preset.graph_enabled && form.graphTargetField.length === 0) return false;
+    return true;
+  }
   if (operation.requires_target_field && form.targetField.length === 0) return false;
   return true;
 }
@@ -178,6 +204,7 @@ export function canStartBatch(form: BatchFormState, operation: BatchOperationOpt
 export function batchStartRequest(
   form: BatchFormState,
   operation: BatchOperationOption | undefined,
+  preset: BatchProcessingPresetOption | undefined = undefined,
 ): BatchStartRequest {
   const request: BatchStartRequest = {
     operation: form.operation,
@@ -185,6 +212,12 @@ export function batchStartRequest(
     target_field: operation?.requires_target_field === true ? form.targetField : null,
     parameters: {},
   };
+  if (operation?.parameter_name === BatchParameterName.PresetID) {
+    request.preset_id = form.presetId;
+    request.audio_target_field = preset?.has_transforms === true ? form.audioTargetField : null;
+    request.graph_target_field = preset?.graph_enabled === true ? form.graphTargetField : null;
+    return request;
+  }
   if (operation?.parameter_name === BatchParameterName.SpeedStep) {
     request.parameters.speed_step = clampSpeedStep(form.speedStep);
   }

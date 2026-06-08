@@ -37,6 +37,13 @@ function setInitialState(): void {
         parameter_name: BatchParameterName.TargetFormat,
       },
       {
+        operation: BatchOperationName.Preset,
+        label: "Preset",
+        requires_target_field: false,
+        parameter_kind: BatchParameterKind.Preset,
+        parameter_name: BatchParameterName.PresetID,
+      },
+      {
         operation: BatchOperationName.RemovePauses,
         label: "Shorten Pauses",
         requires_target_field: false,
@@ -65,7 +72,15 @@ function setInitialState(): void {
         parameter_name: BatchParameterName.VolumeStepDB,
       },
     ],
-    field_groups: [{ notetype_name: "Basic", fields: ["Audio", "Image"] }],
+    field_groups: [{ notetype_name: "Basic", fields: ["Audio", "Processed", "Image"] }],
+    processing_presets: [
+      {
+        id: "clean_graph",
+        name: "Clean + graph",
+        has_transforms: true,
+        graph_enabled: true,
+      },
+    ],
     defaults: {
       speed_step: 0.1,
       volume_step_db: 6,
@@ -184,6 +199,34 @@ describe("BatchApp", () => {
       source_field: "Audio",
       target_field: null,
       parameters: { target_format: "flac" },
+    });
+  });
+
+  it("shows preset fields and sends preset target selections", async () => {
+    setInitialState();
+    render(BatchApp);
+
+    await fireEvent.change(screen.getByTestId("batch-operation"), {
+      target: { value: BatchOperationName.Preset },
+    });
+    await fireEvent.change(screen.getByTestId("batch-audio-target-field"), {
+      target: { value: "Processed" },
+    });
+    await fireEvent.change(screen.getByTestId("batch-graph-target-field"), {
+      target: { value: "Image" },
+    });
+    await fireEvent.click(screen.getByTestId("batch-start"));
+
+    const call = pycmdMock().mock.calls.find(([command]) => String(command).includes('"batch.start"'))?.[0] as string;
+    const envelope = JSON.parse(call.slice("bridge:".length));
+    expect(envelope.payload).toEqual({
+      operation: BatchOperationName.Preset,
+      source_field: "Audio",
+      target_field: null,
+      preset_id: "clean_graph",
+      audio_target_field: "Processed",
+      graph_target_field: "Image",
+      parameters: {},
     });
   });
 

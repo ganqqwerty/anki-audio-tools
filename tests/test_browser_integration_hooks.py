@@ -71,8 +71,9 @@ def test_open_batch_dialog_builds_field_groups_from_selected_notes(monkeypatch) 
         note_ids: list[int],
         groups: tuple[object, ...],
         config: AudioProcessingConfig,
+        processing_presets: tuple[object, ...],
     ) -> Dialog:
-        dialog_calls.append((note_ids, groups, config))
+        dialog_calls.append((note_ids, groups, config, processing_presets))
         return Dialog()
 
     col = SimpleNamespace(get_note=lambda _note_id: FakeNote(int(_note_id)))
@@ -101,6 +102,7 @@ def test_open_batch_dialog_builds_field_groups_from_selected_notes(monkeypatch) 
     assert config.speed_step == 2.0
     assert config.volume_step_db == 6.0
     assert config.pause_aggressiveness == "aggressive"
+    assert dialog_calls[0][3] == ()
     assert dialog_calls[1] == ("exec", ())
 
 

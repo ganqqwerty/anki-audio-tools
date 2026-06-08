@@ -7,6 +7,7 @@ import {
   initializeEditorRuntime,
   scan,
 } from "../src/editor-inline/runtime.js";
+import type { EditorRuntimeConfig } from "../src/editor-inline/types.js";
 import { EditorButtonMode } from "../src/lib/types.js";
 import { muteConsole, renderFields } from "./editor-inline.integration.helpers.js";
 
@@ -146,6 +147,39 @@ describe("editor inline Svelte integration", () => {
     expect(document.querySelector('[data-testid="aqe-button-0-convert"]')).toBeInTheDocument();
     expect(document.querySelector('[data-testid="aqe-button-0-settings"]')).not.toBeInTheDocument();
     expect(document.querySelector('[data-testid="aqe-button-0-denoise-standard"]')).not.toBeInTheDocument();
+  });
+
+  it("mounts the preset split button when presets are configured", async () => {
+    const config: EditorRuntimeConfig = {
+      audioFieldIndices: [0],
+      visibleEditorButtons: ["aqe:play", "aqe:preset"],
+      processingPresets: [
+        {
+          id: "clean_graph",
+          name: "Clean + graph",
+          hasTransforms: true,
+          graphEnabled: true,
+        },
+      ],
+    };
+    initializeEditorRuntime(config);
+    scan(config);
+
+    const presetButton = document.querySelector<HTMLButtonElement>('[data-testid="aqe-button-0-preset"]')!;
+    const presetMenuButton = document.querySelector<HTMLButtonElement>('[data-testid="aqe-split-0-preset-menu"]')!;
+    expect(presetButton).toBeInTheDocument();
+    expect(presetMenuButton).toBeInTheDocument();
+
+    presetMenuButton.click();
+    await Promise.resolve();
+    expect(document.querySelector('[data-testid="aqe-split-0-preset-select"]')).toHaveTextContent("Clean + graph");
+    presetButton.click();
+
+    expect(window.__aqePendingCommandPayload).toMatchObject({
+      command: "aqe:preset",
+      fieldOrd: 0,
+      presetId: "clean_graph",
+    });
   });
 
   it("mounts the share split button in the default toolbar", () => {

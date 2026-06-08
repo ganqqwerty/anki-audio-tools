@@ -98,7 +98,7 @@ def test_batch_dialog_bridge_start_cancel_copy_and_close(monkeypatch, request) -
     dialog_module = _reload_browser_dialog_with_fake_qt(request)
     run_calls = []
     copied = []
-    monkeypatch.setattr(dialog_module, "request_from_batch_start_payload", lambda _payload: "request")
+    monkeypatch.setattr(dialog_module, "request_from_batch_start_payload", lambda _payload, _presets: "request")
     monkeypatch.setattr(dialog_module, "_clipboard_set_text", lambda text: copied.append(text))
 
     dialog = dialog_module.BatchOperationsDialog(
@@ -139,7 +139,7 @@ def test_batch_dialog_validation_error_is_recoverable(monkeypatch, request) -> N
     monkeypatch.setattr(
         dialog_module,
         "request_from_batch_start_payload",
-        lambda _payload: (_ for _ in ()).throw(ValueError("Choose a target field before starting.")),
+        lambda _payload, _presets: (_ for _ in ()).throw(ValueError("Choose a target field before starting.")),
     )
 
     dialog = dialog_module.BatchOperationsDialog(

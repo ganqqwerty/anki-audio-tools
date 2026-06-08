@@ -140,6 +140,7 @@ Config defaults are stored in `config.json` and migrated into user config:
     "aqe:analyze",
     "aqe:show-file",
     "aqe:share",
+    "aqe:preset",
     "aqe:remove-pauses",
     "aqe:denoise-standard",
     "aqe:slower",
@@ -155,6 +156,7 @@ Config defaults are stored in `config.json` and migrated into user config:
     "aqe:play-recording": "icon",
     "aqe:show-file": "icon",
     "aqe:share": "icon",
+    "aqe:preset": "text",
     "aqe:convert": "text",
     "aqe:remove-pauses": "text",
     "aqe:denoise-standard": "text",
@@ -172,6 +174,7 @@ Config defaults are stored in `config.json` and migrated into user config:
   "graph_smoothness": "very_smooth",
   "graph_connect_short_dropouts_ms": 240,
   "graph_voice_lock": "balanced",
+  "audio_processing_presets": [],
   "speed_step": 1.5,
   "min_speed": 0.2,
   "max_speed": 5.0,
@@ -198,7 +201,7 @@ Config defaults are stored in `config.json` and migrated into user config:
 ```
 
 `config_migration.py` deep-merges defaults into user config and stamps the current schema version.
-Editor split-button choices are field-local runtime overrides. Settings provide defaults for toolbar visibility/display mode, repeat playback and pause, Share target, prosody graph options, volume step, speed step, pause detector, pause aggressiveness, algorithm-specific pause Advanced Params, convert target format, denoise algorithm, DPDFNet aggressiveness, and pitch hum mode, but changing a split-button value in one editor field does not write back to persisted config or other fields unless the user promotes that field's quick setting to defaults. See [`EDITOR_MODIFICATION_BUTTON_BEHAVIOR_RULES.md`](EDITOR_MODIFICATION_BUTTON_BEHAVIOR_RULES.md) for button defaults and non-persisted command choices.
+Editor split-button choices are field-local runtime overrides. Settings provide defaults for toolbar visibility/display mode, repeat playback and pause, Share target, prosody graph options, reusable processing presets, volume step, speed step, pause detector, pause aggressiveness, algorithm-specific pause Advanced Params, convert target format, denoise algorithm, DPDFNet aggressiveness, and pitch hum mode, but changing a split-button value in one editor field does not write back to persisted config or other fields unless the user promotes that field's quick setting to defaults. Processing presets are persisted Settings objects and are serialized into editor and Browser batch initial state as selectable preset options. See [`EDITOR_MODIFICATION_BUTTON_BEHAVIOR_RULES.md`](EDITOR_MODIFICATION_BUTTON_BEHAVIOR_RULES.md) for button defaults and non-persisted command choices.
 
 ## Source Of Truth
 

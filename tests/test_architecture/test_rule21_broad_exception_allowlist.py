@@ -64,6 +64,12 @@ BROAD_EXCEPTION_ALLOWLIST: tuple[BroadExceptionAllowance, ...] = (
         "Per-note batch isolation converts audio transformation failures into a failed row.",
     ),
     BroadExceptionAllowance(
+        "batch_processing_presets",
+        "process_preset_operation",
+        1,
+        "Per-note batch preset isolation converts staged multi-output failures into a failed row.",
+    ),
+    BroadExceptionAllowance(
         "browser_batch_runner",
         "run_batch_in_background.done",
         1,
@@ -82,8 +88,8 @@ BROAD_EXCEPTION_ALLOWLIST: tuple[BroadExceptionAllowance, ...] = (
         "Per-note browser batch boundary prevents one unexpected note failure from stopping the batch.",
     ),
     BroadExceptionAllowance(
-        "browser_batch_runner",
-        "apply_result",
+        "browser_result_application",
+        "_apply_written_result",
         1,
         "Anki collection write boundary preserves batch progress when one result cannot be applied.",
     ),
@@ -146,6 +152,12 @@ BROAD_EXCEPTION_ALLOWLIST: tuple[BroadExceptionAllowance, ...] = (
         "run_special_transform_worker",
         1,
         "Background special-transform worker boundary records support context and reports failure.",
+    ),
+    BroadExceptionAllowance(
+        "editor_presets",
+        "_run_preset_worker",
+        1,
+        "Background preset worker boundary reports staged multi-step preset failures without mutating the note.",
     ),
     BroadExceptionAllowance(
         "editor_region_delete_worker",

@@ -1,16 +1,22 @@
 <script lang="ts">
   import { t } from "$lib/i18n.js";
-  import type { BatchInitialState, BatchOperationOption } from "$lib/types.js";
+  import { BatchParameterKind } from "$lib/types.js";
+  import type {
+    BatchInitialState,
+    BatchOperationOption,
+    BatchProcessingPresetOption,
+  } from "$lib/types.js";
   import type { BatchFormState } from "./batch-state.js";
 
   interface Props {
     state: BatchInitialState;
     form: BatchFormState;
     selected: BatchOperationOption | undefined;
+    preset: BatchProcessingPresetOption | undefined;
     disabled: boolean;
   }
 
-  let { state, form = $bindable(), selected, disabled }: Props = $props();
+  let { state, form = $bindable(), selected, preset, disabled }: Props = $props();
 </script>
 
 <label>
@@ -21,6 +27,17 @@
     {/each}
   </select>
 </label>
+
+{#if selected?.parameter_kind === BatchParameterKind.Preset}
+  <label>
+    <span>{t("batch.preset")}</span>
+    <select bind:value={form.presetId} data-testid="batch-preset" disabled={disabled}>
+      {#each state.processing_presets as item}
+        <option value={item.id}>{item.name}</option>
+      {/each}
+    </select>
+  </label>
+{/if}
 
 <label>
   <span>{t("batch.source_field")}</span>
@@ -37,6 +54,32 @@
   <label>
     <span>{t("batch.target_field")}</span>
     <select bind:value={form.targetField} disabled={disabled}>
+      {#each state.field_groups as group}
+        {#each group.fields as field}
+          <option value={field}>{group.notetype_name} / {field}</option>
+        {/each}
+      {/each}
+    </select>
+  </label>
+{/if}
+
+{#if selected?.parameter_kind === BatchParameterKind.Preset && preset?.has_transforms}
+  <label>
+    <span>{t("batch.audio_target_field")}</span>
+    <select bind:value={form.audioTargetField} data-testid="batch-audio-target-field" disabled={disabled}>
+      {#each state.field_groups as group}
+        {#each group.fields as field}
+          <option value={field}>{group.notetype_name} / {field}</option>
+        {/each}
+      {/each}
+    </select>
+  </label>
+{/if}
+
+{#if selected?.parameter_kind === BatchParameterKind.Preset && preset?.graph_enabled}
+  <label>
+    <span>{t("batch.graph_target_field")}</span>
+    <select bind:value={form.graphTargetField} data-testid="batch-graph-target-field" disabled={disabled}>
       {#each state.field_groups as group}
         {#each group.fields as field}
           <option value={field}>{group.notetype_name} / {field}</option>

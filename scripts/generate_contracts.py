@@ -77,6 +77,12 @@ def _composed_schema() -> dict[str, object]:
     composed_config = dict(config_schema)
     composed_config.pop("$schema", None)
     composed_config.pop("title", None)
+    config_definitions = composed_config.pop("definitions", {})
+    if isinstance(config_definitions, dict):
+        for name, definition in config_definitions.items():
+            if name in definitions:
+                raise RuntimeError(f"config schema definition collides with communication schema: {name}")
+            definitions[name] = definition
     definitions["Config"] = composed_config
     return schema
 

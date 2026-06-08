@@ -112,6 +112,26 @@ def test_bridge_keeps_plain_processing_commands(tmp_path: Path, monkeypatch) -> 
     assert rendered["state"] == AudioEditState("clip.mp3", speed=2.0)
 
 
+def test_bridge_routes_processing_preset_payload(monkeypatch) -> None:
+    editor = make_editor()
+    routed: dict[str, object] = {}
+    monkeypatch.setattr(
+        "anki_audio_quick_editor.editor_callbacks._run_processing_preset_async",
+        lambda _editor, payload: routed.update(editor=_editor, payload=payload),
+    )
+
+    _handle_bridge_command(
+        editor,
+        '{"command":"aqe:preset","fieldOrd":2,"presetId":"clean_graph"}',
+    )
+
+    assert routed["editor"] is editor
+    assert routed["payload"].command == "aqe:preset"
+    assert routed["payload"].field_ord == 2
+    assert routed["payload"].preset_id == "clean_graph"
+    assert editor.currentField == 2
+
+
 def test_busy_session_rejects_processing_command(tmp_path: Path, monkeypatch) -> None:
     editor = make_editor()
     session = EditorSession(state=AudioEditState("clip.mp3"), field_index=0, processing=True)

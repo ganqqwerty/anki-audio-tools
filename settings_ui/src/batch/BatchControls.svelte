@@ -24,7 +24,11 @@
     BatchPauseDetectionAlgorithm,
     DenoiseAlgorithm,
   } from "$lib/types.js";
-  import type { BatchInitialState, BatchOperationOption } from "$lib/types.js";
+  import type {
+    BatchInitialState,
+    BatchOperationOption,
+    BatchProcessingPresetOption,
+  } from "$lib/types.js";
   import { activeBatchPauseAlgorithm, type BatchFormState } from "./batch-state.js";
   import BatchFieldSelectors from "./BatchFieldSelectors.svelte";
 
@@ -32,10 +36,11 @@
     state: BatchInitialState;
     form: BatchFormState;
     selected: BatchOperationOption | undefined;
+    preset: BatchProcessingPresetOption | undefined;
     disabled: boolean;
   }
 
-  let { state, form = $bindable(), selected, disabled }: Props = $props();
+  let { state, form = $bindable(), selected, preset, disabled }: Props = $props();
 
   function applyPausePreset(value: BatchPauseAggressiveness): void {
     const algorithm = activeBatchPauseAlgorithm(form);
@@ -56,7 +61,7 @@
 </script>
 
 <div class="batch-grid">
-  <BatchFieldSelectors {state} bind:form {selected} {disabled} />
+  <BatchFieldSelectors {state} bind:form {selected} {preset} {disabled} />
 
   {#if selected?.parameter_kind === BatchParameterKind.Speed}
     <label>

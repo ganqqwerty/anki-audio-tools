@@ -9,6 +9,7 @@ from . import (
     editor_callbacks,
     editor_runtime,
 )
+from .audio_processing_presets import presets_from_raw
 from .editor_actions import (
     BRIDGE_COMMANDS,
 )
@@ -228,6 +229,7 @@ def editor_injection_script(editor: Any, note: Any) -> str:
     editor_button_modes = config.get("editor_button_modes", {})
     if not isinstance(editor_button_modes, dict):
         editor_button_modes = {}
+    processing_presets = _editor_processing_preset_options(config)
     return injection_script(
         list(audio_field_sources),
         audio_field_sources=audio_field_sources,
@@ -241,6 +243,7 @@ def editor_injection_script(editor: Any, note: Any) -> str:
             for command, mode in editor_button_modes.items()
             if isinstance(command, str) and isinstance(mode, str)
         },
+        processing_presets=processing_presets,
         split_button_defaults={
             "volumeStepDb": float(config.get("volume_step_db", 15.0)),
             "speedStep": float(config.get("speed_step", 1.5)),
@@ -288,6 +291,22 @@ def editor_injection_script(editor: Any, note: Any) -> str:
             "graphVoiceLock": str(config.get("graph_voice_lock", "balanced")),
         },
     )
+
+
+def _editor_processing_preset_options(config: dict[str, Any]) -> list[dict[str, object]]:
+    try:
+        presets = presets_from_raw(config.get("audio_processing_presets"))
+    except ValueError:
+        return []
+    return [
+        {
+            "id": preset.id,
+            "name": preset.name,
+            "hasTransforms": preset.has_transforms,
+            "graphEnabled": preset.graph.enabled,
+        }
+        for preset in presets
+    ]
 
 
 def _initial_status_by_field(session: EditorSession | None) -> dict[int, dict[str, str]]:

@@ -1,8 +1,4 @@
-import {
-  formatDpdfnetAggressiveness,
-  formatOutputFormat,
-  outputFormatOrDefault,
-} from "./audio-operation-parameters.js";
+import { formatDpdfnetAggressiveness, formatOutputFormat, outputFormatOrDefault } from "./audio-operation-parameters.js";
 import { t } from "./i18n.js";
 import type { CommandIconName } from "./icon-types.js";
 import { EditorButtonMode } from "./types.js";
@@ -15,6 +11,7 @@ export type EditorCommand =
   | "aqe:play-recording"
   | "aqe:show-file"
   | "aqe:share"
+  | "aqe:preset"
   | "aqe:convert"
   | "aqe:delete-selection"
   | "aqe:delete-rest"
@@ -49,6 +46,7 @@ export const DEFAULT_VISIBLE_EDITOR_BUTTONS = [
   "aqe:analyze",
   "aqe:show-file",
   "aqe:share",
+  "aqe:preset",
   "aqe:remove-pauses",
   "aqe:denoise-standard",
   "aqe:slower",
@@ -65,6 +63,7 @@ export const DEFAULT_EDITOR_BUTTON_MODES = {
   "aqe:play-recording": EditorButtonMode.Icon,
   "aqe:show-file": EditorButtonMode.Icon,
   "aqe:share": EditorButtonMode.Icon,
+  "aqe:preset": EditorButtonMode.Text,
   "aqe:convert": EditorButtonMode.Text,
   "aqe:remove-pauses": EditorButtonMode.Text,
   "aqe:denoise-standard": EditorButtonMode.Text,
@@ -86,9 +85,7 @@ function formatDenoiseAlgorithm(value: "standard" | "rnnoise" | "dpdfnet" | "voi
 }
 
 export function commandButtons(): readonly ToolbarButtonSpec[] {
-  const outputFormat = outputFormatOrDefault(
-    window.__AQE_EDITOR_CONFIG__?.splitButtonDefaults?.outputFormat,
-  );
+  const outputFormat = outputFormatOrDefault(window.__AQE_EDITOR_CONFIG__?.splitButtonDefaults?.outputFormat);
   return [
     {
       activeIcon: "pause",
@@ -134,6 +131,13 @@ export function commandButtons(): readonly ToolbarButtonSpec[] {
       iconOnly: true,
       label: t("editor.command.share.label"),
       title: t("editor.command.share.title"),
+    },
+    {
+      command: "aqe:preset",
+      icon: "refresh-cw",
+      iconOnly: true,
+      label: t("editor.command.preset.label"),
+      title: t("editor.command.preset.title"),
     },
     {
       command: "aqe:convert",
@@ -230,18 +234,22 @@ export function visibleToolbarButtons(
   buttons: readonly ToolbarButtonSpec[],
   visibleCommands: readonly EditorCommand[] | undefined,
 ): readonly ToolbarButtonSpec[] {
+  const hasPresets = (window.__AQE_EDITOR_CONFIG__?.processingPresets?.length ?? 0) > 0;
+  const availableButtons = hasPresets
+    ? buttons
+    : buttons.filter((button) => button.command !== "aqe:preset");
   if (!Array.isArray(visibleCommands)) {
-    return buttons.filter(
+    return availableButtons.filter(
       (button) => button.command !== "aqe:record-voice" && button.command !== "aqe:play-recording",
     );
   }
-  const availableCommands = new Set(buttons.map((button) => button.command));
+  const availableCommands = new Set(availableButtons.map((button) => button.command));
   const requested = new Set(
     visibleCommands.filter((command): command is EditorCommand =>
       availableCommands.has(command),
     ),
   );
-  return buttons.filter((button) => requested.has(button.command));
+  return availableButtons.filter((button) => requested.has(button.command));
 }
 
 export function buttonDisplayMode(
@@ -258,8 +266,7 @@ export function buttonDisplayMode(
 }
 
 export function denoiseButtons(): readonly ToolbarButtonSpec[] {
-  const dpdfnetAttnLimitDb =
-    window.__AQE_EDITOR_CONFIG__?.splitButtonDefaults?.dpdfnetAttnLimitDb ?? 12;
+  const dpdfnetAttnLimitDb = window.__AQE_EDITOR_CONFIG__?.splitButtonDefaults?.dpdfnetAttnLimitDb ?? 12;
   return [
     {
       command: "aqe:denoise-standard",
@@ -298,6 +305,7 @@ export const COMMAND_SLUGS: Readonly<Record<EditorCommand, string>> = {
   "aqe:play-recording": "play-recording",
   "aqe:show-file": "show-file",
   "aqe:share": "share",
+  "aqe:preset": "preset",
   "aqe:convert": "convert",
   "aqe:delete-selection": "delete-selection",
   "aqe:delete-rest": "delete-rest",

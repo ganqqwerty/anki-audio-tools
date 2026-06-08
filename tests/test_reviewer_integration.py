@@ -214,6 +214,44 @@ def test_reviewer_did_show_injects_shared_editor_script() -> None:
     assert any("window.__AQE_EDITOR_CONFIG__" in script for script in web.evals)
 
 
+def test_reviewer_did_show_injects_processing_presets() -> None:
+    note = FakeNote(["[sound:first.mp3]"])
+    card = FakeCard(note)
+    web = FakeWeb()
+    reviewer = SimpleNamespace(mw=aqt.mw, web=web, card=card, state="answer")
+    aqt.mw.reviewer = reviewer
+    aqt.mw.addonManager.getConfig.return_value = {
+        "enable_reviewer_editor": True,
+        "audio_processing_presets": [
+            {
+                "id": "clean_graph",
+                "name": "Clean + graph",
+                "steps": [
+                    {
+                        "id": "denoise",
+                        "operation": "denoise",
+                        "parameters": {"denoise_algorithm": "standard"},
+                    }
+                ],
+                "graph": {
+                    "enabled": True,
+                    "parameters": {
+                        "graph_voice_range": "general",
+                        "graph_recording_condition": "auto",
+                        "graph_smoothness": "very_smooth",
+                        "graph_connect_short_dropouts_ms": 240,
+                        "graph_voice_lock": "balanced",
+                    },
+                },
+            }
+        ],
+    }
+
+    _on_reviewer_did_show_card_side(card)
+
+    assert any('"processingPresets": [{"id": "clean_graph"' in script for script in web.evals)
+
+
 def test_reviewer_did_show_question_disposes_frontend() -> None:
     note = FakeNote(["[sound:first.mp3]"])
     card = FakeCard(note)

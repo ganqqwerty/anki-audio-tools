@@ -15,7 +15,7 @@ python3 scripts/dev.py test-e2e-parallel
 
 ## What Gets Tested
 
-- `tests/` covers sound-reference parsing, edit-state validation, ffmpeg filter construction, managed runtime download/extract/verify behavior, thin release/runtime-pack packaging, unified Silencedetect/Silero pause-removal planning and artifacts, external denoiser command/render/error paths for DeepFilterNet, RNNoise, and DPDFNet, prosody analysis and serialization, SVG rendering, batch visualization decisions, Browser hook wiring, config migration, bootstrap behavior, editor bridge wiring, and settings command/state logic.
+- `tests/` covers sound-reference parsing, edit-state validation, ffmpeg filter construction, managed runtime download/extract/verify behavior, thin release/runtime-pack packaging, unified Silencedetect/Silero pause-removal planning and artifacts, reusable processing preset validation/running, external denoiser command/render/error paths for DeepFilterNet, RNNoise, and DPDFNet, prosody analysis and serialization, SVG rendering, batch visualization decisions, Browser hook wiring, config migration, bootstrap behavior, editor bridge wiring, and settings command/state logic.
 - `anki_api_contract/` discovers the Anki API surface from production add-on code and checks it against the real installed Anki Python runtime without launching a full Anki app.
 - `tests/test_architecture/` enforces layer boundaries, module classification, Anki-import-safe helper modules, import-safe runtime modules, editor bridge command sync, prosody dependency isolation, shell-thin settings rules, and DB access isolation.
 - `tests/test_runtime_package_imports.py` and the runtime-import architecture rule guard against hard-coded lazy imports of the friendly source package name, which would fail when Anki loads the add-on as a numeric package.
@@ -138,6 +138,7 @@ Thin archives are size-gated separately from runtime packs. Runtime packs have w
 | Browser menu/context integration | `tests/test_browser_integration.py` |
 | Browser batch WebView shell/state | `tests/test_browser_dialog.py`, `tests/test_browser_dialog_state.py` |
 | Shared WebView bridge/shell/log helpers | `tests/test_webview_bridge.py`, `tests/test_webview_shell.py`, `tests/test_frontend_logs.py` |
+| Processing presets | `tests/test_audio_processing_presets.py`, `tests/test_audio_processing_preset_runner.py`, `tests/test_batch_processing_presets.py`, `tests/test_editor_presets.py` |
 | Pause shortening pipeline | `tests/test_audio_pipeline.py`, `tests/test_audio_pause_pipeline.py` |
 | Prosody SVG media rendering | `tests/test_prosody_svg.py` |
 | Shared prosody analysis/cache and editor integration | `tests/test_prosody_analyzer.py`, `tests/test_prosody_fallback.py`, `tests/test_editor_integration.py` |

@@ -26,6 +26,7 @@ export const PROCESSING_COMMANDS = new Set<EditorCommand>([
   "aqe:dpdfnet",
   "aqe:voice-only",
   "aqe:pitch-hum",
+  "aqe:preset",
   "aqe:volume-down",
   "aqe:volume-up",
 ]);
@@ -41,6 +42,10 @@ export function processingMessage(command: EditorCommand, payload?: EditorComman
   if (command === "aqe:dpdfnet") return `${t("editor.status.denoising_dpdfnet")}...`;
   if (command === "aqe:voice-only") return `${t("editor.status.extracting_voice")}...`;
   if (command === "aqe:pitch-hum") return `${t("editor.status.pitch_hum")}...`;
+  if (command === "aqe:preset") {
+    const preset = window.__AQE_EDITOR_CONFIG__?.processingPresets?.find((item) => item.id === payload?.presetId);
+    return `${t("editor.status.running_preset", { preset: preset?.name ?? t("editor.command.preset.label") })}`;
+  }
   if (command === "aqe:share") {
     const shareTarget = payload?.shareTarget ?? "litterbox";
     return shareTarget === "litterbox"

@@ -16,6 +16,7 @@ from .batch_operations import (
     process_note_batch_operation,
 )
 from .browser_report import BatchRunReport, format_result_line
+from .browser_result_application import apply_result
 from .diagnostics_runtime import capture_exception, new_operation_id, record_breadcrumb
 from .error_codes import AQE_BATCH_INVALID_REQUEST, coded_error, format_coded_message
 from .i18n import active_context, format_message
@@ -232,79 +233,6 @@ def process_note(
     return result
 
 
-def apply_result(
-    col: Any,
-    report: BatchRunReport,
-    result: BatchNoteResult,
-    fallback_field: str,
-) -> BatchNoteResult:
-    """Apply one batch note result to the collection and report counters."""
-    if result.written:
-        try:
-            note = col.get_note(result.note_id)
-            assert result.target_field is not None
-            assert result.target_html is not None
-            if result.original_target_html is not None:
-                current_html = _note_field_value(note, result.target_field)
-                if current_html != result.original_target_html:
-                    report.failures += 1
-                    message = format_coded_message(
-                        AQE_BATCH_INVALID_REQUEST,
-                        f"target field {result.target_field!r} changed during batch processing",
-                    )
-                    return BatchNoteResult(
-                        note_id=result.note_id,
-                        status="failed",
-                        message=message,
-                        target_field=result.target_field,
-                        target_html=result.target_html,
-                        audio_filename=result.audio_filename,
-                        image_filename=result.image_filename,
-                        written_filename=result.written_filename,
-                        original_target_html=result.original_target_html,
-                    )
-            note[result.target_field] = result.target_html
-            col.update_note(note)
-            report.written += 1
-        except Exception as exc:
-            message = format_coded_message(
-                AQE_BATCH_INVALID_REQUEST,
-                str(exc) or f"failed to update target field {fallback_field!r}",
-            )
-            capture_exception(
-                "browser.batch.apply_result",
-                exc,
-                operation=f"browser.batch.{result.status}",
-                user_message=message,
-                context={
-                    "note_id": result.note_id,
-                    "target_field": result.target_field,
-                    "fallback_field": fallback_field,
-                    "audio_filename": result.audio_filename,
-                    "written_filename": result.written_filename,
-                },
-                log=logger,
-            )
-            report.failures += 1
-            return BatchNoteResult(
-                note_id=result.note_id,
-                status="failed",
-                message=message,
-                target_field=result.target_field,
-                target_html=result.target_html,
-                audio_filename=result.audio_filename,
-                image_filename=result.image_filename,
-                written_filename=result.written_filename,
-                original_target_html=result.original_target_html,
-            )
-        return result
-    if result.failure:
-        report.failures += 1
-    else:
-        report.skipped += 1
-    return result
-
-
 def publish_collection_changes(browser: Any, changes: Any) -> None:
     """Notify Anki that collection changes were produced by the batch run."""
     if changes is None:
@@ -337,16 +265,6 @@ def _format_parameters(request: BatchRunRequest) -> str:
     if request.operation == "remove_pauses" and params.pause_detection_algorithm is not None:
         values.append(f"pause_detection_algorithm={params.pause_detection_algorithm}")
     return ", ".join(values) if values else "defaults"
-
-
-def _note_field_value(note: Any, field_name: str) -> str:
-    try:
-        return str(note[field_name])
-    except (KeyError, TypeError, AttributeError):
-        fields = getattr(note, "fields", None)
-        if isinstance(fields, dict):
-            return str(fields[field_name])
-        raise
 
 
 def _tr(key: str, values: dict[str, object] | None = None) -> str:

@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 import importlib
+import json
+import re
 from pathlib import Path
 from types import SimpleNamespace
 from unittest.mock import MagicMock
@@ -17,6 +19,7 @@ from anki_audio_quick_editor.editor_integration import (
     _handle_bridge_command,
     _initial_status_by_field,
     _set_busy,
+    editor_injection_script,
     register_editor_hooks,
 )
 
@@ -55,6 +58,58 @@ def test_audio_field_indices_are_detected_from_note_fields() -> None:
     note = SimpleNamespace(fields=["plain", "<b>[sound:first.mp3]</b>", "[sound:movie.mp4]"])
 
     assert _audio_field_indices(note) == [1]
+
+
+def test_editor_injection_script_embeds_processing_presets_from_config() -> None:
+    config = {
+        "audio_processing_presets": [
+            {
+                "id": "clean_graph",
+                "name": "Clean + graph",
+                "steps": [
+                    {
+                        "id": "denoise",
+                        "operation": "denoise",
+                        "parameters": {"denoise_algorithm": "standard"},
+                    }
+                ],
+                "graph": {
+                    "enabled": True,
+                    "parameters": {
+                        "graph_voice_range": "general",
+                        "graph_recording_condition": "auto",
+                        "graph_smoothness": "very_smooth",
+                        "graph_connect_short_dropouts_ms": 240,
+                        "graph_voice_lock": "balanced",
+                    },
+                },
+            }
+        ]
+    }
+    addon_manager = SimpleNamespace(
+        addonFromModule=lambda _module: "addon",
+        getConfig=lambda _addon_id: config,
+    )
+    class Editor:
+        pass
+
+    editor = Editor()
+    editor.mw = SimpleNamespace(addonManager=addon_manager)
+    note = SimpleNamespace(fields=["[sound:clip.mp3]"])
+
+    script = editor_injection_script(editor, note)
+
+    match = re.search(r"window\.__AQE_EDITOR_CONFIG__ = (?P<config>\{.*?\});", script)
+    assert match is not None
+    embedded = json.loads(match.group("config"))
+    assert embedded["processingPresets"] == [
+        {
+            "id": "clean_graph",
+            "name": "Clean + graph",
+            "hasTransforms": True,
+            "graphEnabled": True,
+        }
+    ]
 
 
 def test_undo_history_restores_last_audio_modification_only() -> None:
