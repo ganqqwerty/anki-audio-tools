@@ -124,7 +124,7 @@
   "settings.size_reduction_channels.help": "FFmpeg に -ac として渡すチャンネル上限です。モノラルは容量を最も節約し、ステレオは左右の分離を保ちます。",
   "settings.size_reduction_channels.mono": "モノラル",
   "settings.size_reduction_channels.stereo": "ステレオ",
-  "settings.size_reduction_source_metadata": "現在: {bitRate}, {sampleRate}, チャンネル {channels}",
+  "settings.size_reduction_source_metadata": "現在: {bitRate}, {sampleRate}, チャンネル {channels}, サイズ {size}",
   "settings.size_reduction_source_metadata.unknown": "不明",
   "settings.denoise_algorithm": "既定のノイズ除去アルゴリズム",
   "settings.denoise_algorithm.standard": "標準",

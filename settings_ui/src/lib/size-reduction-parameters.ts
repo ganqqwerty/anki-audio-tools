@@ -29,6 +29,7 @@ export interface AudioSourceMetadataSummary {
   bitRate?: number | null;
   sampleRate?: number | null;
   channels?: number | null;
+  fileSizeBytes?: number | null;
 }
 
 export function isSizeReductionMode(value: unknown): value is SizeReductionMode {

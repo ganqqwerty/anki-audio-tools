@@ -134,7 +134,7 @@
   "settings.size_reduction_channels.help": "Sets the channel cap passed as -ac. Mono saves the most space; stereo preserves left/right separation.",
   "settings.size_reduction_channels.mono": "Mono",
   "settings.size_reduction_channels.stereo": "Stereo",
-  "settings.size_reduction_source_metadata": "Current: {bitRate}, {sampleRate}, channels {channels}",
+  "settings.size_reduction_source_metadata": "Current: {bitRate}, {sampleRate}, channels {channels}, size {size}",
   "settings.size_reduction_source_metadata.unknown": "unknown",
   "settings.denoise_algorithm": "Default denoise algorithm",
   "settings.denoise_algorithm.standard": "Standard",

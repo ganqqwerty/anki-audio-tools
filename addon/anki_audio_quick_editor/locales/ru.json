@@ -124,7 +124,7 @@
   "settings.size_reduction_channels.help": "Задает предел каналов, передаваемый как -ac. Моно сильнее экономит место; стерео сохраняет разделение левого и правого каналов.",
   "settings.size_reduction_channels.mono": "Моно",
   "settings.size_reduction_channels.stereo": "Стерео",
-  "settings.size_reduction_source_metadata": "Текущий файл: {bitRate}, {sampleRate}, каналы {channels}",
+  "settings.size_reduction_source_metadata": "Текущий файл: {bitRate}, {sampleRate}, каналы {channels}, размер {size}",
   "settings.size_reduction_source_metadata.unknown": "неизвестно",
   "settings.denoise_algorithm": "Алгоритм шумоподавления по умолчанию",
   "settings.denoise_algorithm.standard": "Стандартный",

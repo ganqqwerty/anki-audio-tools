@@ -74,7 +74,12 @@ def test_request_source_metadata_probes_requested_source_on_worker(tmp_path: Pat
     assert payload == {
         "requestId": "source-1",
         "ok": True,
-        "metadata": {"bitRate": 128000, "sampleRate": 44100, "channels": 2},
+        "metadata": {
+            "bitRate": 128000,
+            "sampleRate": 44100,
+            "channels": 2,
+            "fileSizeBytes": len(b"audio"),
+        },
     }
 
 

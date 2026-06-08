@@ -91,6 +91,7 @@ def _start_probe(
                     "bitRate": metadata.bit_rate,
                     "sampleRate": metadata.sample_rate,
                     "channels": metadata.channels,
+                    "fileSizeBytes": _file_size_bytes(media_path),
                 },
             }
         except Exception as exc:
@@ -118,6 +119,13 @@ def _error_payload(request: dict[str, Any]) -> dict[str, Any]:
         "ok": False,
         "error": t(_SOURCE_INFO_ERROR),
     }
+
+
+def _file_size_bytes(path: Path) -> int | None:
+    try:
+        return path.stat().st_size
+    except OSError:
+        return None
 
 
 def _emit_response(editor: Any, payload: dict[str, Any]) -> None:

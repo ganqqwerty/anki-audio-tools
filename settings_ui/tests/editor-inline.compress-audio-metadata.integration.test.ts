@@ -31,8 +31,9 @@ describe("editor inline Compress Audio source metadata", () => {
 
     const popover = await openCompressAudioSplit();
     expect(bridgeCommands()).not.toContain("aqe:source-metadata");
+    expect(window.__aqePopPendingSourceMetadataRequest?.()).toBeNull();
     expect(popover).not.toHaveTextContent("Loading source info...");
-    expect(popover).not.toHaveTextContent("Current: 128 kbps, 44100 Hz, channels 2");
+    expect(popover).not.toHaveTextContent("Current: 128 kbps, 44100 Hz, channels 2, size 2.3 MB (2,412,553 bytes)");
 
     openAdvanced(popover);
     await Promise.resolve();
@@ -48,11 +49,11 @@ describe("editor inline Compress Audio source metadata", () => {
     window.__aqeReceiveSourceMetadataResponse?.({
       requestId: request!.requestId,
       ok: true,
-      metadata: { bitRate: 128000, sampleRate: 44100, channels: 2 },
+      metadata: { bitRate: 128000, sampleRate: 44100, channels: 2, fileSizeBytes: 2412553 },
     });
     await flushAsync();
 
-    expect(popover).toHaveTextContent("Current: 128 kbps, 44100 Hz, channels 2");
+    expect(popover).toHaveTextContent("Current: 128 kbps, 44100 Hz, channels 2, size 2.3 MB (2,412,553 bytes)");
   });
 
   it("shows a non-blocking source metadata error", async () => {

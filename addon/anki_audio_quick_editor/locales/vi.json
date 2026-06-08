@@ -124,7 +124,7 @@
   "settings.size_reduction_channels.help": "Đặt giới hạn kênh truyền bằng -ac. Mono tiết kiệm dung lượng nhất; stereo giữ tách biệt trái/phải.",
   "settings.size_reduction_channels.mono": "Đơn kênh",
   "settings.size_reduction_channels.stereo": "Âm thanh nổi",
-  "settings.size_reduction_source_metadata": "Hiện tại: {bitRate}, {sampleRate}, kênh {channels}",
+  "settings.size_reduction_source_metadata": "Hiện tại: {bitRate}, {sampleRate}, kênh {channels}, kích thước {size}",
   "settings.size_reduction_source_metadata.unknown": "không rõ",
   "settings.denoise_algorithm": "Thuật toán khử nhiễu mặc định",
   "settings.denoise_algorithm.standard": "Chuẩn",
