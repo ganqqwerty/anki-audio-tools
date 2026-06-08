@@ -33,8 +33,14 @@
   );
 </script>
 
-<div class="aqe-selection-rest-preview aqe-selection-rest-preview-before" aria-hidden="true"></div>
-<div class="aqe-selection-rest-preview aqe-selection-rest-preview-after" aria-hidden="true"></div>
+<div
+  class="aqe-selection-outside-preview aqe-selection-outside-preview-before aqe-selection-rest-preview aqe-selection-rest-preview-before"
+  aria-hidden="true"
+></div>
+<div
+  class="aqe-selection-outside-preview aqe-selection-outside-preview-after aqe-selection-rest-preview aqe-selection-rest-preview-after"
+  aria-hidden="true"
+></div>
 <div
   class="aqe-selection-toolbar"
   data-testid={`aqe-selection-toolbar-${target.ord}`}

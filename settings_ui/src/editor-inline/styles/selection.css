@@ -1,9 +1,7 @@
 .aqe-selection {
-  fill: var(--aqe-accent-fill);
-  fill-opacity: 0.2;
-  filter:
-    drop-shadow(0 0 2px rgb(255 255 255 / 70%))
-    drop-shadow(0 0 8px rgb(72 145 255 / 52%));
+  fill: transparent;
+  fill-opacity: 0;
+  filter: none;
   pointer-events: none;
   stroke: var(--aqe-accent-fill);
   stroke-opacity: 0.65;
@@ -13,7 +11,7 @@
 
 .aqe-selection-draft {
   fill: currentColor;
-  fill-opacity: 0.24;
+  fill-opacity: 0;
   filter: none;
   stroke: currentColor;
 }
@@ -69,9 +67,10 @@
   vector-effect: non-scaling-stroke;
 }
 
-.aqe-selection-rest-preview {
-  background: linear-gradient(180deg, var(--aqe-destructive-preview-top), var(--aqe-destructive-preview-bottom));
-  border-color: var(--aqe-destructive-border);
+.aqe-selection-outside-preview {
+  --aqe-selection-edge-clearance-px: 7px;
+  background: color-mix(in srgb, var(--aqe-border-color) 70%, transparent);
+  border-color: color-mix(in srgb, var(--aqe-border-color) 70%, transparent);
   display: none;
   height: var(--aqe-plot-height-px, 106px);
   pointer-events: none;
@@ -80,19 +79,33 @@
   z-index: 3;
 }
 
-.aqe-visualizer[data-selection-toolbar-preview="rest"] .aqe-selection-rest-preview {
+.aqe-visualizer[data-selection-active="true"] .aqe-selection-outside-preview,
+.aqe-visualizer[data-selection-draft-active="true"] .aqe-selection-outside-preview {
   display: block;
 }
 
-.aqe-selection-rest-preview-before {
-  border-right: 1px solid;
-  left: var(--aqe-plot-left-px, 44px);
-  width: max(0px, calc(var(--aqe-selection-start-px, 44px) - var(--aqe-plot-left-px, 44px)));
+.aqe-visualizer[data-selection-toolbar-preview="rest"] .aqe-selection-rest-preview {
+  background: linear-gradient(180deg, var(--aqe-destructive-preview-top), var(--aqe-destructive-preview-bottom));
+  border-color: var(--aqe-destructive-border);
+  display: block;
 }
 
-.aqe-selection-rest-preview-after {
+.aqe-selection-outside-preview-before {
+  border-right: 1px solid;
+  left: var(--aqe-plot-left-px, 44px);
+  width: max(
+    0px,
+    calc(
+      var(--aqe-selection-start-px, 44px) -
+      var(--aqe-plot-left-px, 44px) -
+      var(--aqe-selection-edge-clearance-px)
+    )
+  );
+}
+
+.aqe-selection-outside-preview-after {
   border-left: 1px solid;
-  left: var(--aqe-selection-end-px, 0px);
+  left: calc(var(--aqe-selection-end-px, 0px) + var(--aqe-selection-edge-clearance-px));
   right: var(--aqe-plot-right-px, 10px);
 }
 

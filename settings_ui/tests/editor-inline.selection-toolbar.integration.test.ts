@@ -230,22 +230,31 @@ describe("editor inline selection toolbar integration", () => {
     const svg = document.querySelector<SVGSVGElement>('[data-testid="aqe-graph-svg-0"]')!;
     setGraphBounds(svg);
     dragGraphSelection(svg, 0.2, 0.6);
-    const restPreviewBefore = document.querySelector<HTMLElement>(".aqe-selection-rest-preview-before");
-    const restPreviewAfter = document.querySelector<HTMLElement>(".aqe-selection-rest-preview-after");
+    const outsidePreviewBefore = document.querySelector<HTMLElement>(".aqe-selection-outside-preview-before");
+    const outsidePreviewAfter = document.querySelector<HTMLElement>(".aqe-selection-outside-preview-after");
+
+    expect(outsidePreviewBefore).not.toBeNull();
+    expect(outsidePreviewAfter).not.toBeNull();
+    expect(outsidePreviewBefore).toHaveClass("aqe-selection-rest-preview-before");
+    expect(outsidePreviewAfter).toHaveClass("aqe-selection-rest-preview-after");
+    expect(window.getComputedStyle(outsidePreviewBefore!).display).toBe("block");
+    expect(window.getComputedStyle(outsidePreviewAfter!).display).toBe("block");
 
     const deleteRegion = selectionToolbarButton("delete-region");
     hoverToolbarButton(deleteRegion);
     expect(window.__aqeGraphStateForTest?.(0)?.selectionToolbarPreview).toBe("region");
+    expect(window.getComputedStyle(outsidePreviewBefore!).display).toBe("block");
+    expect(window.getComputedStyle(outsidePreviewAfter!).display).toBe("block");
     leaveToolbarButton(deleteRegion);
     expect(window.__aqeGraphStateForTest?.(0)?.selectionToolbarPreview).toBe("none");
+    expect(window.getComputedStyle(outsidePreviewBefore!).display).toBe("block");
+    expect(window.getComputedStyle(outsidePreviewAfter!).display).toBe("block");
 
     const deleteRest = selectionToolbarButton("delete-rest");
     deleteRest.focus();
     expect(window.__aqeGraphStateForTest?.(0)?.selectionToolbarPreview).toBe("rest");
-    expect(restPreviewBefore).not.toBeNull();
-    expect(restPreviewAfter).not.toBeNull();
-    expect(window.getComputedStyle(restPreviewBefore!).display).toBe("block");
-    expect(window.getComputedStyle(restPreviewAfter!).display).toBe("block");
+    expect(window.getComputedStyle(outsidePreviewBefore!).display).toBe("block");
+    expect(window.getComputedStyle(outsidePreviewAfter!).display).toBe("block");
     deleteRest.blur();
     expect(window.__aqeGraphStateForTest?.(0)?.selectionToolbarPreview).toBe("none");
   });
