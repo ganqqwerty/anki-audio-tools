@@ -93,14 +93,12 @@ def _toolbar_alignment_state(editor, ord_: int = 0):
         f"""
         (() => {{
           const visualizer = document.querySelector(`.aqe-visualizer[data-aqe-field-ord="{ord_}"]`);
-          const svg = visualizer?.querySelector(".aqe-visualizer-svg");
           const toolbar = visualizer?.querySelector(".aqe-selection-toolbar");
           const selectionEnd = visualizer?.querySelector(".aqe-selection-end");
-          if (!svg || !toolbar || !selectionEnd) return null;
-          const rect = svg.getBoundingClientRect();
+          if (!toolbar || !selectionEnd) return null;
           const toolbarRect = toolbar.getBoundingClientRect();
-          const scale = Math.min(rect.width / 620, rect.height / 150) || 1;
-          const selectionEndClientX = rect.left + Number(selectionEnd.getAttribute("x1") || "0") * scale;
+          const selectionEndRect = selectionEnd.getBoundingClientRect();
+          const selectionEndClientX = selectionEndRect.left + selectionEndRect.width / 2;
           return {{
             rightDeltaPx: toolbarRect.right - selectionEndClientX,
             selectionEndClientX,

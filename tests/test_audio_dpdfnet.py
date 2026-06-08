@@ -6,9 +6,9 @@ from types import SimpleNamespace
 
 import pytest
 
+from anki_audio_quick_editor.audio_output_policy import AudioSourceMetadata
 from anki_audio_quick_editor.audio_processor import render_dpdfnet_audio
 from anki_audio_quick_editor.audio_state import AudioProcessingConfig
-from anki_audio_quick_editor.audio_output_policy import AudioSourceMetadata
 from anki_audio_quick_editor.errors import AudioProcessingError
 from anki_audio_quick_editor.support import (
     clear_latest_denoise_support_incident,

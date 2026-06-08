@@ -5,6 +5,7 @@ from types import SimpleNamespace
 
 import pytest
 
+from anki_audio_quick_editor.audio_output_policy import AudioSourceMetadata
 from anki_audio_quick_editor.audio_processor import render_rnnoise_audio
 from anki_audio_quick_editor.audio_state import AudioProcessingConfig
 from anki_audio_quick_editor.errors import AudioProcessingError
@@ -36,6 +37,19 @@ def test_render_rnnoise_audio_runs_prepare_denoise_and_encode(
     monkeypatch.setattr(
         "anki_audio_quick_editor.audio_processor.probe_duration_ms",
         lambda *_args: 1000,
+    )
+    monkeypatch.setattr(
+        "anki_audio_quick_editor.audio_processor.probe_audio_metadata",
+        lambda source_path, _config: AudioSourceMetadata(
+            path=source_path,
+            visible_format="mp3",
+            codec_name="mp3",
+            sample_rate=22050,
+            channels=2,
+            bit_rate=96000,
+            bits_per_raw_sample=None,
+            sample_fmt=None,
+        ),
     )
 
     def fake_run(
@@ -99,7 +113,7 @@ def test_render_rnnoise_audio_runs_prepare_denoise_and_encode(
         "-ac",
         "1",
     ]
-    assert calls[2][-9:] == ["-codec:a", "libmp3lame", "-q:a", "4", "-ar", "48000", "-ac", "1", str(output)]
+    assert calls[2][-9:] == ["-codec:a", "libmp3lame", "-b:a", "96k", "-ar", "22050", "-ac", "2", str(output)]
     assert commands == [tuple(call) for call in calls]
     assert result.output_path == output
     assert result.command == tuple(calls[1])
@@ -119,6 +133,19 @@ def test_render_rnnoise_audio_reports_denoise_errors(
     monkeypatch.setattr(
         "anki_audio_quick_editor.audio_processor.find_rnnoise_bundle",
         lambda: Path("/bin/rnnoise-cli"),
+    )
+    monkeypatch.setattr(
+        "anki_audio_quick_editor.audio_processor.probe_audio_metadata",
+        lambda source_path, _config: AudioSourceMetadata(
+            path=source_path,
+            visible_format="mp3",
+            codec_name="mp3",
+            sample_rate=22050,
+            channels=2,
+            bit_rate=96000,
+            bits_per_raw_sample=None,
+            sample_fmt=None,
+        ),
     )
 
     def fake_run(
@@ -166,6 +193,19 @@ def test_render_rnnoise_audio_reports_launch_errors(
     monkeypatch.setattr(
         "anki_audio_quick_editor.audio_processor.find_rnnoise_bundle",
         lambda: Path("/bin/rnnoise-cli"),
+    )
+    monkeypatch.setattr(
+        "anki_audio_quick_editor.audio_processor.probe_audio_metadata",
+        lambda source_path, _config: AudioSourceMetadata(
+            path=source_path,
+            visible_format="mp3",
+            codec_name="mp3",
+            sample_rate=22050,
+            channels=2,
+            bit_rate=96000,
+            bits_per_raw_sample=None,
+            sample_fmt=None,
+        ),
     )
 
     def fake_run(

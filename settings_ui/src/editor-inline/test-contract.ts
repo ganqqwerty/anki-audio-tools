@@ -155,8 +155,9 @@ export function graphStateForTest(ord: number): GraphStateForTest | null {
   const audio = audioClockFor(visualizer);
   const selection = selectionForVisualizer(visualizer);
   const draftSelection = draftSelectionForVisualizer(visualizer);
-  const startHandle = visualizer.querySelector<SVGRectElement>(".aqe-selection-resize-start");
-  const endHandle = visualizer.querySelector<SVGRectElement>(".aqe-selection-resize-end");
+  const plot = visualizer.querySelector<HTMLElement>(".aqe-visualizer-plot");
+  const startHandle = visualizer.querySelector<HTMLElement>(".aqe-selection-resize-start");
+  const endHandle = visualizer.querySelector<HTMLElement>(".aqe-selection-resize-end");
   const selectionToolbar = visualizer.querySelector<HTMLElement>(".aqe-selection-toolbar");
   const selectionToolbarPlay = visualizer.querySelector<HTMLButtonElement>(".aqe-selection-toolbar-play");
   const selectionToolbarPreview = visualizer.dataset.selectionToolbarPreview;
@@ -197,10 +198,10 @@ export function graphStateForTest(ord: number): GraphStateForTest | null {
     selectionDraftActive: draftSelection !== null,
     selectionDraftStartMs: draftSelection?.startMs ?? null,
     selectionDraftEndMs: draftSelection?.endMs ?? null,
-    selectionStartHandleVisible: startHandle?.getAttribute("visibility") === "visible",
-    selectionStartHandleX: startHandle?.getAttribute("x") ? Number(startHandle.getAttribute("x")) : null,
-    selectionEndHandleVisible: endHandle?.getAttribute("visibility") === "visible",
-    selectionEndHandleX: endHandle?.getAttribute("x") ? Number(endHandle.getAttribute("x")) : null,
+    selectionStartHandleVisible: startHandle ? !startHandle.hidden : false,
+    selectionStartHandleX: selectionHandleLeftPx(plot, "--aqe-selection-start-edge-px"),
+    selectionEndHandleVisible: endHandle ? !endHandle.hidden : false,
+    selectionEndHandleX: selectionHandleLeftPx(plot, "--aqe-selection-end-edge-px"),
     repeatEnabled: visualizer.dataset.repeatEnabled === "true",
     repeatPauseSeconds: Number(visualizer.dataset.repeatPauseSeconds || "0"),
     repeatPauseWaiting: visualizer.dataset.repeatPauseWaiting === "true",
@@ -290,6 +291,11 @@ function cssPixelNumber(value: string): number | null {
   if (!value.endsWith("px")) return null;
   const parsed = Number(value.slice(0, -2));
   return Number.isFinite(parsed) ? parsed : null;
+}
+
+function selectionHandleLeftPx(plot: HTMLElement | null, propertyName: string): number | null {
+  const edgePx = cssPixelNumber(plot?.style.getPropertyValue(propertyName).trim() || "");
+  return edgePx === null ? null : edgePx - 5;
 }
 
 function cssCursorViewBoxX(visualizer: VisualizerElement): number {

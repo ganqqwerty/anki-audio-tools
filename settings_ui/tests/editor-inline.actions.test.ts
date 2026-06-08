@@ -41,7 +41,7 @@ describe("editor inline action workflows", () => {
     expect(processingMessage("aqe:denoise-standard")).toBe("Denoising with Standard...");
     expect(processingMessage("aqe:rnnoise")).toBe("Denoising with RNNoise...");
     expect(processingMessage("aqe:dpdfnet")).toBe("Denoising with DPDFNet...");
-    expect(processingMessage("aqe:voice-only")).toBe("Extracting voice...");
+    expect(processingMessage("aqe:voice-only")).toBe("Separating vocals with Spleeter...");
     expect(
       processingMessage("aqe:convert", {
         command: "aqe:convert",

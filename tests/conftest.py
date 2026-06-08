@@ -5,6 +5,9 @@ from __future__ import annotations
 import pytest
 
 from tests.anki_test_mocks import reset_static_mock_modules
+from tests.reviewer_integration_fixtures import (
+    _reset_reviewer_visibility as _reset_reviewer_visibility,
+)
 
 
 @pytest.fixture(autouse=True)

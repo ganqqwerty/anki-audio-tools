@@ -5,8 +5,8 @@ from types import SimpleNamespace
 
 import pytest
 
-from anki_audio_quick_editor.audio_processor import render_voice_only_audio
 from anki_audio_quick_editor.audio_output_policy import AudioSourceMetadata
+from anki_audio_quick_editor.audio_processor import render_voice_only_audio
 from anki_audio_quick_editor.audio_state import AudioProcessingConfig
 from anki_audio_quick_editor.errors import AudioProcessingError
 from anki_audio_quick_editor.support import (
@@ -45,7 +45,7 @@ def test_render_voice_only_audio_runs_prepare_spleeter_and_encode(
         lambda *_args: 1234,
     )
     monkeypatch.setattr(
-        "anki_audio_quick_editor.audio_noise_reduction_bundled.probe_audio_metadata",
+        "anki_audio_quick_editor.audio_processor.probe_audio_metadata",
         lambda source_path, _config: AudioSourceMetadata(
             path=source_path,
             visible_format="mp3",

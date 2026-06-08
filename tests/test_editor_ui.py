@@ -223,6 +223,7 @@ def test_injection_script_injects_editor_css() -> None:
     assert "filter:drop-shadow" in script
     assert ".aqe-selection-draft" in script
     assert "filter:none" in script
-    assert "stroke-dasharray:none" in script
+    assert ".aqe-selection-region-preview-halo" in script
+    assert "backdrop-filter:blur(5.1px)" in script
     assert "stroke-opacity:.65" in script
     assert "aqe-spin" in script

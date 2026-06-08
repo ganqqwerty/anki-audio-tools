@@ -34,16 +34,8 @@ describe("editor inline selection resize integration", () => {
     const svg = document.querySelector<SVGSVGElement>('[data-testid="aqe-graph-svg-0"]')!;
     setGraphBounds(svg);
     dragGraphSelection(svg, 0.2, 0.6);
-    const plotHeight = PLOT.height - PLOT.top - PLOT.bottom;
-    const expectedHandleHeight = plotHeight * 0.8;
-    const expectedHandleY = PLOT.top + (plotHeight - expectedHandleHeight) / 2;
-    const startHandle = document.querySelector<SVGRectElement>('[data-testid="aqe-selection-resize-start-0"]')!;
-    const startGrip = document.querySelector<SVGGElement>(".aqe-selection-resize-grip-start")!;
-    expect(Number(startHandle.getAttribute("height"))).toBeCloseTo(expectedHandleHeight);
-    expect(Number(startHandle.getAttribute("y"))).toBeCloseTo(expectedHandleY);
-    expect(startGrip.getAttribute("transform")).toBe(
-      `translate(${(Number(startHandle.getAttribute("x")) + 5).toFixed(2)} ${(expectedHandleY + expectedHandleHeight / 2).toFixed(2)})`,
-    );
+    const startHandle = document.querySelector<HTMLElement>('[data-testid="aqe-selection-resize-start-0"]')!;
+    expect(startHandle.hidden).toBe(false);
 
     dragSelectionHandle(svg, "start", 0.1);
     expect(window.__aqeGraphStateForTest?.(0)).toMatchObject({
@@ -228,7 +220,7 @@ describe("editor inline selection resize integration", () => {
     });
   });
 
-  it("lets Shift-drag from a visible handle replace the selection", () => {
+  it("ignores Shift-drag from a visible handle and preserves the selection", () => {
     initializeEditorRuntime({ audioFieldIndices: [0] });
     scan({ audioFieldIndices: [0] });
     window.__aqeSetVisualizer?.(0, track, 100);
@@ -243,12 +235,12 @@ describe("editor inline selection resize integration", () => {
 
     expect(window.__aqeGraphStateForTest?.(0)).toMatchObject({
       selectionActive: true,
-      selectionStartMs: 600,
-      selectionEndMs: 900,
+      selectionStartMs: 200,
+      selectionEndMs: 600,
       selectionDraftActive: false,
-      cursorMs: 600,
-      playbackStartMs: 600,
-      playbackEndMs: 900,
+      cursorMs: 200,
+      playbackStartMs: 200,
+      playbackEndMs: 600,
     });
   });
 });

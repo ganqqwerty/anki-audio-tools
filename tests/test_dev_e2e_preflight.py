@@ -3,7 +3,6 @@ from __future__ import annotations
 from pathlib import Path
 
 import pytest
-
 from scripts.dev_tasks import e2e_preflight
 
 

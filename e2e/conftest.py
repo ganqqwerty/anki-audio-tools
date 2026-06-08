@@ -13,7 +13,6 @@ from pathlib import Path
 from unittest.mock import patch
 
 import pytest
-
 from scripts.dev_tasks.e2e_preflight import ensure_e2e_runtime_artifacts
 
 importlib.import_module("anki.collection")

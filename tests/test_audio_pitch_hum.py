@@ -12,6 +12,10 @@ from types import SimpleNamespace
 
 import pytest
 
+from anki_audio_quick_editor.audio_output_policy import (
+    AudioSourceMetadata,
+    codec_args_for_output_policy,
+)
 from anki_audio_quick_editor.audio_pitch_hum import (
     HUM_SAMPLE_RATE,
     PitchHumFrame,
@@ -26,7 +30,6 @@ from anki_audio_quick_editor.audio_pitch_hum_synthesis import (
     _apply_nasal_onsets,
     _voiced_segments,
 )
-from anki_audio_quick_editor.audio_output_policy import AudioSourceMetadata, codec_args_for_output_policy
 from anki_audio_quick_editor.audio_state import AudioProcessingConfig
 from anki_audio_quick_editor.audio_types import AudioProcessingResult
 from anki_audio_quick_editor.errors import AudioProcessingError

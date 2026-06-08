@@ -5,13 +5,13 @@ from types import SimpleNamespace
 
 import pytest
 
+from anki_audio_quick_editor.audio_output_policy import AudioSourceMetadata
 from anki_audio_quick_editor.audio_processor import (
     _render_external_error_message,
     render_noise_reduced_audio,
     select_deep_filter_output,
 )
 from anki_audio_quick_editor.audio_state import AudioProcessingConfig
-from anki_audio_quick_editor.audio_output_policy import AudioSourceMetadata
 from anki_audio_quick_editor.errors import (
     AudioProcessingError,
 )
@@ -60,7 +60,7 @@ def test_render_noise_reduced_audio_runs_prepare_deep_filter_and_encode(
     )
     monkeypatch.setattr("anki_audio_quick_editor.audio_processor.probe_duration_ms", lambda *_args: 1000)
     monkeypatch.setattr(
-        "anki_audio_quick_editor.audio_noise_reduction.probe_audio_metadata",
+        "anki_audio_quick_editor.audio_processor.probe_audio_metadata",
         lambda source_path, _config: AudioSourceMetadata(
             path=source_path,
             visible_format="mp3",
@@ -192,7 +192,7 @@ def test_render_noise_reduced_audio_reports_prepare_failure_before_deep_filter(
         lambda *_args: Path("/bin/deep-filter"),
     )
     monkeypatch.setattr(
-        "anki_audio_quick_editor.audio_noise_reduction.probe_audio_metadata",
+        "anki_audio_quick_editor.audio_processor.probe_audio_metadata",
         lambda source_path, _config: AudioSourceMetadata(
             path=source_path,
             visible_format="mp3",
@@ -241,7 +241,7 @@ def test_render_noise_reduced_audio_reports_encode_failure_after_deep_filter(
         lambda *_args: Path("/bin/deep-filter"),
     )
     monkeypatch.setattr(
-        "anki_audio_quick_editor.audio_noise_reduction.probe_audio_metadata",
+        "anki_audio_quick_editor.audio_processor.probe_audio_metadata",
         lambda source_path, _config: AudioSourceMetadata(
             path=source_path,
             visible_format="mp3",

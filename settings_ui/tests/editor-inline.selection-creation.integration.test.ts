@@ -68,10 +68,10 @@ describe("editor inline selection creation integration", () => {
       cursorMs: 200,
     });
     expect(document.querySelector('[data-testid="aqe-selection-0"]')).toHaveAttribute("visibility", "visible");
-    const startHandle = document.querySelector('[data-testid="aqe-selection-resize-start-0"]')!;
-    const endHandle = document.querySelector('[data-testid="aqe-selection-resize-end-0"]')!;
-    expect(startHandle).toHaveAttribute("visibility", "visible");
-    expect(endHandle).toHaveAttribute("visibility", "visible");
+    const startHandle = document.querySelector<HTMLElement>('[data-testid="aqe-selection-resize-start-0"]')!;
+    const endHandle = document.querySelector<HTMLElement>('[data-testid="aqe-selection-resize-end-0"]')!;
+    expect(startHandle.hidden).toBe(false);
+    expect(endHandle.hidden).toBe(false);
     expect(window.__aqeGraphStateForTest?.(0)).toMatchObject({
       selectionStartHandleVisible: true,
       selectionEndHandleVisible: true,
@@ -87,8 +87,8 @@ describe("editor inline selection creation integration", () => {
     dispatchGraphPointer(svg, "pointerup", graphClientX(svg, 0.5), true);
     expect(window.__aqeGraphStateForTest?.(0)?.selectionActive).toBe(false);
     expect(document.querySelector('[data-testid="aqe-selection-0"]')).toHaveAttribute("visibility", "hidden");
-    expect(startHandle).toHaveAttribute("visibility", "hidden");
-    expect(endHandle).toHaveAttribute("visibility", "hidden");
+    expect(startHandle.hidden).toBe(true);
+    expect(endHandle.hidden).toBe(true);
   });
 
   it("creates selections using visible viewport coordinates when zoomed", () => {
