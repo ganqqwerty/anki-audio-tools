@@ -6,8 +6,65 @@ import {
   toolbarPanelDefinitionAt,
 } from "../src/lib/editor-toolbar-panel-definitions.js";
 import { normalizeVisibleEditorButtons, toolbarPanels } from "../src/lib/editor-toolbar-visibility.js";
+import { settingsToolbarButtons } from "../src/lib/settings-toolbar-buttons.js";
 
 describe("editor toolbar visibility panels", () => {
+  it("defines toolbar commands in the configured sequence", () => {
+    expect(toolbarButtons().map((button) => button.command)).toEqual([
+      "aqe:play",
+      "aqe:analyze",
+      "aqe:show-file",
+      "aqe:share",
+      "aqe:denoise-standard",
+      "aqe:remove-pauses",
+      "aqe:slower",
+      "aqe:faster",
+      "aqe:volume-down",
+      "aqe:volume-up",
+      "aqe:chorusing-practice",
+      "aqe:chorusing-next",
+      "aqe:chorusing-previous",
+      "aqe:record-voice",
+      "aqe:play-recording",
+      "aqe:share-recording",
+      "aqe:show-recording-file",
+      "aqe:pitch-hum",
+      "aqe:convert",
+      "aqe:reduce-size",
+      "aqe:undo",
+      "aqe:redo",
+      "aqe:settings",
+    ]);
+
+    expect(settingsToolbarButtons().map((button) => button.command)).toEqual([
+      "aqe:play",
+      "aqe:analyze",
+      "aqe:show-file",
+      "aqe:share",
+      "aqe:denoise-standard",
+      "aqe:remove-pauses",
+      "aqe:slower",
+      "aqe:faster",
+      "aqe:volume-down",
+      "aqe:volume-up",
+      "aqe:chorusing-practice",
+      "aqe:chorusing-next",
+      "aqe:chorusing-previous",
+      "aqe:record-voice",
+      "aqe:play-recording",
+      "aqe:share-recording",
+      "aqe:show-recording-file",
+      "aqe:pitch-hum",
+      "aqe:convert",
+      "aqe:reduce-size",
+      "aqe:delete-selection",
+      "aqe:delete-rest",
+      "aqe:undo",
+      "aqe:redo",
+      "aqe:settings",
+    ]);
+  });
+
   it("defines atomic toolbar panels in one shared list", () => {
     expect(TOOLBAR_PANEL_DEFINITIONS.map((definition) => ({
       commands: definition.commands,
