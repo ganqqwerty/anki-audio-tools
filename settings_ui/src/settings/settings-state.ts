@@ -46,7 +46,7 @@ export const FALLBACK_INITIAL_STATE: InitialState = {
   config: {
     _config_version: 2,
     enabled: true,
-    debug_logging: false,
+    debug_logging: true,
     show_ffmpeg_commands: false,
     enable_reviewer_editor: false,
     repeat_playback_by_default: true,

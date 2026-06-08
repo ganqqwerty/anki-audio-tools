@@ -99,6 +99,17 @@ describe("App diagnostics behavior", () => {
     );
   });
 
+  it("keeps show log file next to the debug logging toggle", async () => {
+    setInitialState();
+
+    render(App);
+    await fireEvent.click(screen.getByRole("tab", { name: "Diagnostics & About" }));
+
+    const logControls = screen.getByTestId("debug-log-controls");
+    expect(logControls).toContain(screen.getByLabelText("Enable debug logging"));
+    expect(logControls).toContain(screen.getByRole("button", { name: "Show Log File" }));
+  });
+
   it("opens Clear unused audios from diagnostics", async () => {
     setInitialState();
 
@@ -161,4 +172,3 @@ describe("App diagnostics behavior", () => {
     expect(screen.getByText("Debug-Informationen anzeigen")).toBeInTheDocument();
   });
 });
-

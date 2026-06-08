@@ -19,7 +19,7 @@ import { pycmdMock as installedPycmdMock } from "./setup.js";
 export const defaultConfig = {
   _config_version: 2,
   enabled: true,
-  debug_logging: false,
+  debug_logging: true,
   show_ffmpeg_commands: false,
   enable_reviewer_editor: true,
   repeat_playback_by_default: true,

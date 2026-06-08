@@ -34,7 +34,7 @@ const pycmd = (globalThis as unknown as Record<string, ReturnType<typeof vi.fn>>
 const config = {
   _config_version: 2,
   enabled: true,
-  debug_logging: false,
+  debug_logging: true,
   show_ffmpeg_commands: false,
   enable_reviewer_editor: true,
   repeat_playback_by_default: true,

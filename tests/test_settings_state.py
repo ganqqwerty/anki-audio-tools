@@ -20,7 +20,7 @@ def _full_config() -> dict[str, object]:
     return {
         "_config_version": 2,
         "enabled": True,
-        "debug_logging": False,
+        "debug_logging": True,
         "show_ffmpeg_commands": False,
         "enable_reviewer_editor": True,
         "repeat_playback_by_default": True,

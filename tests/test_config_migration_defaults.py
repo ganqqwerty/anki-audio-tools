@@ -18,7 +18,7 @@ class TestMigrateConfigDefaults:
         config = {
             "_config_version": CURRENT_CONFIG_VERSION,
             "enabled": True,
-            "debug_logging": False,
+            "debug_logging": True,
         }
         migrated, changed = migrate_config(config, config)
         assert migrated == config
@@ -29,11 +29,11 @@ class TestMigrateConfigDefaults:
         defaults = {
             "_config_version": CURRENT_CONFIG_VERSION,
             "enabled": True,
-            "debug_logging": False,
+            "debug_logging": True,
         }
         migrated, changed = migrate_config(user, defaults)
         assert migrated["enabled"] is False
-        assert migrated["debug_logging"] is False
+        assert migrated["debug_logging"] is True
         assert changed is True
 
     def test_picks_up_deep_filter_post_filter_default(self) -> None:
@@ -160,13 +160,12 @@ class TestMigrateConfigDefaults:
         defaults = {
             "_config_version": CURRENT_CONFIG_VERSION,
             "enabled": True,
-            "debug_logging": False,
+            "debug_logging": True,
         }
 
         migrated, changed = migrate_config(user, defaults)
 
         assert migrated["_config_version"] == CURRENT_CONFIG_VERSION
         assert migrated["enabled"] is False
-        assert migrated["debug_logging"] is False
+        assert migrated["debug_logging"] is True
         assert changed is True
-
