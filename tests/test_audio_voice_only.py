@@ -20,6 +20,19 @@ SPLEETER = str(Path("/bin/sherpa-spleeter"))
 VOCALS_MODEL = str(Path("/models/vocals.fp16.onnx"))
 
 
+def _source_metadata(source_path: Path) -> AudioSourceMetadata:
+    return AudioSourceMetadata(
+        path=source_path,
+        visible_format="mp3",
+        codec_name="mp3",
+        sample_rate=32000,
+        channels=1,
+        bit_rate=64000,
+        bits_per_raw_sample=None,
+        sample_fmt=None,
+    )
+
+
 def test_render_voice_only_audio_runs_prepare_spleeter_and_encode(
     monkeypatch,
     tmp_path: Path,
@@ -46,16 +59,7 @@ def test_render_voice_only_audio_runs_prepare_spleeter_and_encode(
     )
     monkeypatch.setattr(
         "anki_audio_quick_editor.audio_processor.probe_audio_metadata",
-        lambda source_path, _config: AudioSourceMetadata(
-            path=source_path,
-            visible_format="mp3",
-            codec_name="mp3",
-            sample_rate=32000,
-            channels=1,
-            bit_rate=64000,
-            bits_per_raw_sample=None,
-            sample_fmt=None,
-        ),
+        lambda source_path, _config: _source_metadata(source_path),
     )
 
     def fake_run(
@@ -134,6 +138,10 @@ def test_render_voice_only_audio_reports_spleeter_errors(
             Path("/models/accompaniment.fp16.onnx"),
         ),
     )
+    monkeypatch.setattr(
+        "anki_audio_quick_editor.audio_processor.probe_audio_metadata",
+        lambda source_path, _config: _source_metadata(source_path),
+    )
 
     def fake_run(
         cmd: list[str],
@@ -194,6 +202,10 @@ def test_render_voice_only_audio_reports_output_launch_and_encode_failures(
             Path("/models/vocals.fp16.onnx"),
             Path("/models/accompaniment.fp16.onnx"),
         ),
+    )
+    monkeypatch.setattr(
+        "anki_audio_quick_editor.audio_processor.probe_audio_metadata",
+        lambda source_path, _config: _source_metadata(source_path),
     )
 
     def fake_run(

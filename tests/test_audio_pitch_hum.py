@@ -35,6 +35,29 @@ from anki_audio_quick_editor.audio_types import AudioProcessingResult
 from anki_audio_quick_editor.errors import AudioProcessingError
 
 
+def _wav_source_metadata(
+    source_path: Path,
+    *,
+    visible_format: str = "wav",
+    codec_name: str = "pcm_s16le",
+    sample_rate: int = HUM_SAMPLE_RATE,
+    channels: int = 1,
+    bit_rate: int | None = HUM_SAMPLE_RATE * 16,
+    bits_per_raw_sample: int | None = 16,
+    sample_fmt: str | None = "s16",
+) -> AudioSourceMetadata:
+    return AudioSourceMetadata(
+        path=source_path,
+        visible_format=visible_format,
+        codec_name=codec_name,
+        sample_rate=sample_rate,
+        channels=channels,
+        bit_rate=bit_rate,
+        bits_per_raw_sample=bits_per_raw_sample,
+        sample_fmt=sample_fmt,
+    )
+
+
 def _write_voiced_silence_voiced_wav(path: Path) -> None:
     samples = array("h")
     for duration_s, pitch_hz in ((0.35, 220.0), (0.35, None), (0.35, 330.0)):
@@ -200,8 +223,8 @@ def test_pitch_hum_and_pitch_tier_synthesis_apply_shared_nasal_onsets(monkeypatc
 def test_pitch_hum_output_policy_preserves_source_bitrate_and_sample_rate(monkeypatch) -> None:
     monkeypatch.setattr(
         "anki_audio_quick_editor.audio_pitch_hum.probe_audio_metadata",
-        lambda source_path, _config: AudioSourceMetadata(
-            path=source_path,
+        lambda source_path, _config: _wav_source_metadata(
+            source_path,
             visible_format="mp3",
             codec_name="mp3",
             sample_rate=24000,
@@ -339,6 +362,10 @@ def test_renderers_preserve_voiced_regions_and_silence_unvoiced_gap(
         return AudioProcessingResult(output_path=output_path, command=(), duration_ms=1050)
 
     monkeypatch.setattr("anki_audio_quick_editor.audio_pitch_hum._encode_pitch_hum_wav", fake_encode)
+    monkeypatch.setattr(
+        "anki_audio_quick_editor.audio_pitch_hum.probe_audio_metadata",
+        lambda source_path, _config: _wav_source_metadata(source_path),
+    )
 
     render_pitch_hum_audio(source, AudioProcessingConfig(), tmp_path / "direct.mp3")
     render_pitch_tier_hum_audio(source, AudioProcessingConfig(), tmp_path / "pitch-tier.mp3")
@@ -395,6 +422,10 @@ def test_render_pitch_tier_hum_uses_pitch_tier_sine_not_overlap_add(monkeypatch,
         lambda name: SimpleNamespace(call=fake_call) if name == "parselmouth.praat" else None,
     )
     monkeypatch.setattr("anki_audio_quick_editor.audio_pitch_hum._encode_pitch_hum_wav", fake_encode)
+    monkeypatch.setattr(
+        "anki_audio_quick_editor.audio_pitch_hum.probe_audio_metadata",
+        lambda source_path, _config: _wav_source_metadata(source_path),
+    )
 
     result = render_pitch_tier_hum_audio(tmp_path / "clip.wav", AudioProcessingConfig(), tmp_path / "out.mp3")
 

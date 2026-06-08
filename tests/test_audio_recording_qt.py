@@ -9,11 +9,10 @@ from types import ModuleType, SimpleNamespace
 
 import pytest
 
-import anki_audio_quick_editor.audio_recording as audio_recording
 from anki_audio_quick_editor.audio_recording import (
     AudioRecordingError,
-    _QtAudioSourceRecorderBackend,
     _convert_float32_to_int16,
+    _QtAudioSourceRecorderBackend,
 )
 
 
