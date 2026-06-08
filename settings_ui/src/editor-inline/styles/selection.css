@@ -68,45 +68,16 @@
 }
 
 .aqe-selection-outside-preview {
-  --aqe-selection-edge-clearance-px: 7px;
-  background: color-mix(in srgb, var(--aqe-border-color) 70%, transparent);
-  border-color: color-mix(in srgb, var(--aqe-border-color) 70%, transparent);
-  display: none;
-  height: var(--aqe-plot-height-px, 106px);
+  fill: color-mix(in srgb, var(--aqe-border-color) 70%, transparent);
   pointer-events: none;
-  position: absolute;
-  top: var(--aqe-plot-top-px, 10px);
-  z-index: 3;
-}
-
-.aqe-visualizer[data-selection-active="true"] .aqe-selection-outside-preview,
-.aqe-visualizer[data-selection-draft-active="true"] .aqe-selection-outside-preview {
-  display: block;
+  stroke: color-mix(in srgb, var(--aqe-border-color) 70%, transparent);
+  stroke-width: 1;
+  vector-effect: non-scaling-stroke;
 }
 
 .aqe-visualizer[data-selection-toolbar-preview="rest"] .aqe-selection-rest-preview {
-  background: linear-gradient(180deg, var(--aqe-destructive-preview-top), var(--aqe-destructive-preview-bottom));
-  border-color: var(--aqe-destructive-border);
-  display: block;
-}
-
-.aqe-selection-outside-preview-before {
-  border-right: 1px solid;
-  left: var(--aqe-plot-left-px, 44px);
-  width: max(
-    0px,
-    calc(
-      var(--aqe-selection-start-px, 44px) -
-      var(--aqe-plot-left-px, 44px) -
-      var(--aqe-selection-edge-clearance-px)
-    )
-  );
-}
-
-.aqe-selection-outside-preview-after {
-  border-left: 1px solid;
-  left: calc(var(--aqe-selection-end-px, 0px) + var(--aqe-selection-edge-clearance-px));
-  right: var(--aqe-plot-right-px, 10px);
+  fill: var(--aqe-destructive-preview-top);
+  stroke: var(--aqe-destructive-border);
 }
 
 .aqe-selection-toolbar,

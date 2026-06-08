@@ -239,6 +239,8 @@ function mountVisualizer(track: NormalizedProsodyTrack): VisualizerElement {
           <path class="aqe-intensity"></path>
           <g class="aqe-pitch"></g>
           <g class="aqe-learner-pitch"></g>
+          <rect class="aqe-selection-outside-preview-before" visibility="hidden"></rect>
+          <rect class="aqe-selection-outside-preview-after" visibility="hidden"></rect>
           <g class="aqe-labels"></g>
           <g class="aqe-x-axis"></g>
           <line class="aqe-selection-start" visibility="hidden"></line>

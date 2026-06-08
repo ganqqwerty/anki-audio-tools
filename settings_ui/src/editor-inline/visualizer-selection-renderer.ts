@@ -13,6 +13,8 @@ export function renderSelection(
   draftSelection: PlaybackRegion | null,
 ): void {
   const band = visualizer.querySelector<SVGRectElement>(".aqe-selection");
+  const outsideShadeBefore = visualizer.querySelector<SVGRectElement>(".aqe-selection-outside-preview-before");
+  const outsideShadeAfter = visualizer.querySelector<SVGRectElement>(".aqe-selection-outside-preview-after");
   const startEdge = visualizer.querySelector<SVGLineElement>(".aqe-selection-start");
   const endEdge = visualizer.querySelector<SVGLineElement>(".aqe-selection-end");
   const startHandle = visualizer.querySelector<SVGRectElement>(".aqe-selection-resize-start");
@@ -26,6 +28,7 @@ export function renderSelection(
     band?.setAttribute("width", "0");
     band?.setAttribute("visibility", "hidden");
     band?.classList.remove("aqe-selection-draft");
+    hideOutsideShade(outsideShadeBefore, outsideShadeAfter);
     startEdge?.setAttribute("visibility", "hidden");
     endEdge?.setAttribute("visibility", "hidden");
     startHandle?.setAttribute("visibility", "hidden");
@@ -46,6 +49,7 @@ export function renderSelection(
     band.setAttribute("width", "0");
     band.setAttribute("visibility", "hidden");
     band.classList.remove("aqe-selection-draft");
+    hideOutsideShade(outsideShadeBefore, outsideShadeAfter);
     startEdge.setAttribute("visibility", "hidden");
     endEdge.setAttribute("visibility", "hidden");
     startHandle?.setAttribute("visibility", "hidden");
@@ -73,6 +77,7 @@ export function renderSelection(
   band.setAttribute("y", String(plotTop));
   band.setAttribute("width", Math.max(0, endX - startX).toFixed(2));
   band.setAttribute("height", String(plotHeight));
+  renderOutsideShade(outsideShadeBefore, outsideShadeAfter, plot, startX, endX, plotTop, plotHeight);
   startEdge.setAttribute("visibility", actualStartVisible ? "visible" : "hidden");
   endEdge.setAttribute("visibility", actualEndVisible ? "visible" : "hidden");
   for (const [edge, x] of [[startEdge, actualStartX], [endEdge, actualEndX]] as const) {
@@ -110,6 +115,42 @@ export function renderSelection(
     actualStartVisible,
     actualEndVisible,
   );
+}
+
+function hideOutsideShade(
+  outsideShadeBefore: SVGRectElement | null,
+  outsideShadeAfter: SVGRectElement | null,
+): void {
+  for (const node of [outsideShadeBefore, outsideShadeAfter]) {
+    node?.setAttribute("width", "0");
+    node?.setAttribute("visibility", "hidden");
+  }
+}
+
+function renderOutsideShade(
+  outsideShadeBefore: SVGRectElement | null,
+  outsideShadeAfter: SVGRectElement | null,
+  plot: PlotGeometry,
+  startX: number,
+  endX: number,
+  plotTop: number,
+  plotHeight: number,
+): void {
+  const plotRightEdge = plot.width - plot.right;
+  if (outsideShadeBefore) {
+    outsideShadeBefore.setAttribute("visibility", "visible");
+    outsideShadeBefore.setAttribute("x", String(plot.left));
+    outsideShadeBefore.setAttribute("y", String(plotTop));
+    outsideShadeBefore.setAttribute("width", Math.max(0, startX - plot.left).toFixed(2));
+    outsideShadeBefore.setAttribute("height", String(plotHeight));
+  }
+  if (outsideShadeAfter) {
+    outsideShadeAfter.setAttribute("visibility", "visible");
+    outsideShadeAfter.setAttribute("x", endX.toFixed(2));
+    outsideShadeAfter.setAttribute("y", String(plotTop));
+    outsideShadeAfter.setAttribute("width", Math.max(0, plotRightEdge - endX).toFixed(2));
+    outsideShadeAfter.setAttribute("height", String(plotHeight));
+  }
 }
 
 function plotGeometryForVisualizer(visualizer: VisualizerElement): PlotGeometry {

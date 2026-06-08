@@ -237,24 +237,24 @@ describe("editor inline selection toolbar integration", () => {
     expect(outsidePreviewAfter).not.toBeNull();
     expect(outsidePreviewBefore).toHaveClass("aqe-selection-rest-preview-before");
     expect(outsidePreviewAfter).toHaveClass("aqe-selection-rest-preview-after");
-    expect(window.getComputedStyle(outsidePreviewBefore!).display).toBe("block");
-    expect(window.getComputedStyle(outsidePreviewAfter!).display).toBe("block");
+    expect(outsidePreviewBefore).toHaveAttribute("visibility", "visible");
+    expect(outsidePreviewAfter).toHaveAttribute("visibility", "visible");
 
     const deleteRegion = selectionToolbarButton("delete-region");
     hoverToolbarButton(deleteRegion);
     expect(window.__aqeGraphStateForTest?.(0)?.selectionToolbarPreview).toBe("region");
-    expect(window.getComputedStyle(outsidePreviewBefore!).display).toBe("block");
-    expect(window.getComputedStyle(outsidePreviewAfter!).display).toBe("block");
+    expect(outsidePreviewBefore).toHaveAttribute("visibility", "visible");
+    expect(outsidePreviewAfter).toHaveAttribute("visibility", "visible");
     leaveToolbarButton(deleteRegion);
     expect(window.__aqeGraphStateForTest?.(0)?.selectionToolbarPreview).toBe("none");
-    expect(window.getComputedStyle(outsidePreviewBefore!).display).toBe("block");
-    expect(window.getComputedStyle(outsidePreviewAfter!).display).toBe("block");
+    expect(outsidePreviewBefore).toHaveAttribute("visibility", "visible");
+    expect(outsidePreviewAfter).toHaveAttribute("visibility", "visible");
 
     const deleteRest = selectionToolbarButton("delete-rest");
     deleteRest.focus();
     expect(window.__aqeGraphStateForTest?.(0)?.selectionToolbarPreview).toBe("rest");
-    expect(window.getComputedStyle(outsidePreviewBefore!).display).toBe("block");
-    expect(window.getComputedStyle(outsidePreviewAfter!).display).toBe("block");
+    expect(outsidePreviewBefore).toHaveAttribute("visibility", "visible");
+    expect(outsidePreviewAfter).toHaveAttribute("visibility", "visible");
     deleteRest.blur();
     expect(window.__aqeGraphStateForTest?.(0)?.selectionToolbarPreview).toBe("none");
   });

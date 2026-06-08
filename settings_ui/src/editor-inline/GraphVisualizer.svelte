@@ -190,6 +190,24 @@
       <path class="aqe-intensity" data-testid={`aqe-intensity-${target.ord}`} d="" clip-path={plotClipUrl}></path>
       <g class="aqe-pitch" data-testid={`aqe-pitch-${target.ord}`} clip-path={plotClipUrl}></g>
       <g class="aqe-learner-pitch" data-testid={`aqe-learner-pitch-${target.ord}`} clip-path={plotClipUrl}></g>
+      <rect
+        class="aqe-selection-outside-preview aqe-selection-outside-preview-before aqe-selection-rest-preview aqe-selection-rest-preview-before"
+        data-testid={`aqe-selection-outside-preview-before-${target.ord}`}
+        x={PLOT.left}
+        y={PLOT.top}
+        width="0"
+        height={PLOT.height - PLOT.top - PLOT.bottom}
+        visibility="hidden"
+      ></rect>
+      <rect
+        class="aqe-selection-outside-preview aqe-selection-outside-preview-after aqe-selection-rest-preview aqe-selection-rest-preview-after"
+        data-testid={`aqe-selection-outside-preview-after-${target.ord}`}
+        x={PLOT.left}
+        y={PLOT.top}
+        width="0"
+        height={PLOT.height - PLOT.top - PLOT.bottom}
+        visibility="hidden"
+      ></rect>
       <g class="aqe-labels"></g>
       <g class="aqe-x-axis" data-testid={`aqe-x-axis-${target.ord}`}></g>
       <g

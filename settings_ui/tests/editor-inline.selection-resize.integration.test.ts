@@ -166,6 +166,41 @@ describe("editor inline selection resize integration", () => {
     expect(flag.querySelector(".aqe-css-cursor-flag-pitch")?.textContent).toBe(" / 150 Hz");
   });
 
+  it("keeps outside shade below selection edges and handles while resizing", () => {
+    initializeEditorRuntime({ audioFieldIndices: [0] });
+    scan({ audioFieldIndices: [0] });
+    window.__aqeSetVisualizer?.(0, track, 100);
+    const svg = document.querySelector<SVGSVGElement>('[data-testid="aqe-graph-svg-0"]')!;
+    setGraphBounds(svg);
+    dragGraphSelection(svg, 0.2, 0.6);
+
+    const pitch = document.querySelector<SVGGElement>('[data-testid="aqe-pitch-0"]')!;
+    const shadeBefore = document.querySelector<SVGRectElement>('[data-testid="aqe-selection-outside-preview-before-0"]')!;
+    const shadeAfter = document.querySelector<SVGRectElement>('[data-testid="aqe-selection-outside-preview-after-0"]')!;
+    const startEdge = document.querySelector<SVGLineElement>('[data-testid="aqe-selection-start-0"]')!;
+    const startHandle = document.querySelector<SVGRectElement>('[data-testid="aqe-selection-resize-start-0"]')!;
+    const band = document.querySelector<SVGRectElement>('[data-testid="aqe-selection-0"]')!;
+
+    expect(shadeBefore).toHaveAttribute("visibility", "visible");
+    expect(shadeAfter).toHaveAttribute("visibility", "visible");
+    expect(Boolean(pitch.compareDocumentPosition(shadeBefore) & Node.DOCUMENT_POSITION_FOLLOWING)).toBe(true);
+    expect(Boolean(shadeBefore.compareDocumentPosition(startEdge) & Node.DOCUMENT_POSITION_FOLLOWING)).toBe(true);
+    expect(Boolean(shadeBefore.compareDocumentPosition(startHandle) & Node.DOCUMENT_POSITION_FOLLOWING)).toBe(true);
+
+    dispatchHandlePointer(startHandle, "pointerdown", graphClientX(svg, 0.2));
+    dispatchHandlePointer(startHandle, "pointermove", graphClientX(svg, 0.1));
+
+    expect(window.__aqeGraphStateForTest?.(0)).toMatchObject({
+      selectionDraftActive: true,
+      selectionDraftStartMs: 100,
+      selectionDraftEndMs: 600,
+    });
+    expect(band).toHaveClass("aqe-selection-draft");
+    expect(shadeBefore).toHaveAttribute("visibility", "visible");
+    expect(shadeAfter).toHaveAttribute("visibility", "visible");
+    expect(Boolean(shadeBefore.compareDocumentPosition(startHandle) & Node.DOCUMENT_POSITION_FOLLOWING)).toBe(true);
+  });
+
   it("cancels resize drafts without replacing the committed selection", () => {
     initializeEditorRuntime({ audioFieldIndices: [0] });
     scan({ audioFieldIndices: [0] });
