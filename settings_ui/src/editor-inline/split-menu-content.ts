@@ -57,7 +57,7 @@ export function splitOptionValues(command: EditorCommand): string[] {
   if (command === "aqe:remove-pauses") return ["gentle", "normal", "aggressive"];
   if (command === "aqe:reduce-size") return ["gentle", "normal", "aggressive"];
   if (isDenoiseCommand(command)) return ["standard", "rnnoise", "dpdfnet", "voice_only"];
-  if (command === "aqe:convert") return [...OUTPUT_FORMAT_VALUES];
+  if (command === "aqe:convert") return OUTPUT_FORMAT_VALUES.filter((value) => value !== "source");
   if (command === "aqe:share") return ["catbox", "litterbox"];
   if (command === "aqe:pitch-hum") return ["direct", "pitch_tier"];
   return [];

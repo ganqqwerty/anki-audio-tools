@@ -175,6 +175,8 @@ describe("editor inline split-button command integration", () => {
     window.__aqeSetBusy?.(0, false);
     document.querySelector<HTMLButtonElement>('[data-testid="aqe-split-0-convert-menu"]')!.click();
     await Promise.resolve();
+    expect(document.querySelector('[data-testid="aqe-split-0-convert-preset-source"]')).toBeNull();
+    expect(document.querySelector('[data-testid="aqe-split-0-convert-preset-flac"]')).not.toBeNull();
     document.querySelector<HTMLButtonElement>('[data-testid="aqe-split-0-convert-preset-flac"]')!.click();
     document.querySelector<HTMLButtonElement>('[data-testid="aqe-button-0-convert"]')!.click();
 
