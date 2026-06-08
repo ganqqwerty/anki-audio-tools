@@ -6,12 +6,20 @@ import os
 import shutil
 import subprocess
 import sys
-from pathlib import Path
+from pathlib import Path, PosixPath
 from typing import Sequence
 
 ROOT = Path(__file__).resolve().parents[2]
 SETTINGS_UI_DIR = ROOT / "settings_ui"
 FALLBACK_NPM_RUNNER = ROOT / "scripts" / "dev_tasks" / "settings_ui_npm.py"
+
+
+def _path_for_host(path_str: str) -> Path:
+    """Build a filesystem path without depending on a monkeypatched os.name."""
+
+    if "/" in path_str and "\\" not in path_str:
+        return PosixPath(path_str)
+    return Path(path_str)
 
 
 def _which_first(*names: str) -> str | None:
@@ -93,7 +101,7 @@ def find_npm_install_command(node_command: str | None = None) -> list[str] | Non
     if not node:
         return None
 
-    node_path = Path(node)
+    node_path = _path_for_host(node)
     if os.name == "nt":
         npm_cmd = node_path.parent / "npm.cmd"
         if npm_cmd.is_file():

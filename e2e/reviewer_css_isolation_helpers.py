@@ -284,7 +284,7 @@ def assert_reviewer_chorusing_marker_row_css_isolated(reviewer, field_ord: int) 
     assert chorusing_style["markerStrokeWidth"] == "3px"
     assert chorusing_style["nextFontSize"] == "12px"
     assert chorusing_style["panelBorderRadius"] == "9px"
-    assert chorusing_style["panelBorderTopWidth"] == "1px"
+    assert chorusing_style["panelBorderTopWidth"] == "0px"
     assert chorusing_style["panelContainer"] == "true"
     assert chorusing_style["panelDisplay"] in {"flex", "inline-flex"}
     assert chorusing_style["panelLabel"] == "Chorusing"

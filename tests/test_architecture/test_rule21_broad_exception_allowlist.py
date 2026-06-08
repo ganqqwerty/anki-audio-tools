@@ -190,7 +190,7 @@ BROAD_EXCEPTION_ALLOWLIST: tuple[BroadExceptionAllowance, ...] = (
         "Best-effort playback backend integration cannot assume a stable Anki audio API surface.",
     ),
     BroadExceptionAllowance(
-        "editor_playback",
+        "editor_playback_request",
         "toggle_native_pause_resume",
         1,
         "Best-effort playback backend integration reports pause/resume unavailability as a warning.",

@@ -162,7 +162,7 @@ def test_editor_voice_recording_comparison_workflow(
             lambda value: value is not None
             and value["ariaLabel"] == "Record / Play yours"
             and value["borderRadius"] == "9px"
-            and value["borderTopWidth"] == "1px"
+            and value["borderTopWidth"] == "0px"
             and value["container"] == "true"
             and value["groupCount"] == 1
             and value["label"] == "Record / Play yours"

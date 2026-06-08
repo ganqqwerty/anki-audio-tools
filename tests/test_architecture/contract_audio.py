@@ -14,12 +14,35 @@ AUDIO_CONTRACTS: dict[str, ModuleContract] = {
         "audio_operation_params",
         layer=Layer.IMPORT_SAFE_CORE,
         allowed_addon_deps=(
-            "audio_formats",
+            "audio_operation_params_config",
+            "audio_operation_params_normalize",
+            "audio_operation_params_types",
+        ),
+    ),
+    "audio_operation_params_config": contract(
+        "audio_operation_params_config",
+        layer=Layer.IMPORT_SAFE_CORE,
+        allowed_addon_deps=(
+            "audio_operation_params_types",
             "audio_pause_settings",
             "audio_size_reduction",
             "audio_state",
+        ),
+    ),
+    "audio_operation_params_normalize": contract(
+        "audio_operation_params_normalize",
+        layer=Layer.IMPORT_SAFE_CORE,
+        allowed_addon_deps=(
+            "audio_formats",
+            "audio_operation_params_types",
+            "audio_pause_settings",
+            "audio_size_reduction",
             "dpdfnet_settings",
         ),
+    ),
+    "audio_operation_params_types": contract(
+        "audio_operation_params_types",
+        layer=Layer.IMPORT_SAFE_CORE,
     ),
     "audio_size_reduction": contract(
         "audio_size_reduction",

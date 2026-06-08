@@ -83,7 +83,7 @@ def test_reload_status_helper_callers_do_not_clear_pending_status() -> None:
 def test_initial_status_by_field_is_consumed_only_by_control_actions() -> None:
     offenders: list[str] = []
     for path in (PROJECT_ROOT / "settings_ui" / "src" / "editor-inline").rglob("*"):
-        if not path.is_file() or path.name in {"control-actions.ts", "types.ts"}:
+        if not path.is_file() or path.name in {"control-actions.ts", "types.ts", "editor-runtime-types.ts"}:
             continue
         if path.suffix not in {".ts", ".svelte"}:
             continue

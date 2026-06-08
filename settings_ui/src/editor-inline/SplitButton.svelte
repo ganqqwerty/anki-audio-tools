@@ -1,12 +1,8 @@
 <script lang="ts">
-  import { Popover } from "bits-ui";
   import { onMount } from "svelte";
 
-  import EditorCommandIcon from "./EditorCommandIcon.svelte";
-  import GraphSplitPopoverContent from "./GraphSplitPopoverContent.svelte";
-  import RecordingSplitOptions from "./RecordingSplitOptions.svelte";
   import SplitButtonPrimary from "./SplitButtonPrimary.svelte";
-  import SplitValueOptions from "./SplitValueOptions.svelte";
+  import SplitButtonMenu from "./SplitButtonMenu.svelte";
   import { send } from "./actions.js";
   import { dispatchLearnerRecordingPrimary } from "./recording-actions.js";
   import { sendSplitDefaultSaveRequest } from "./bridge.js";
@@ -15,35 +11,9 @@
     buildSplitDefaultSaveRequest,
     getSplitButtonState,
     promoteSplitDefaultsForField,
-    setDenoiseAlgorithmForField,
-    setDpdfnetAttnLimitDbForField,
-    setOutputFormatForField,
-    setPauseAggressivenessForField,
-    setPauseDetectionAlgorithmForField,
-    setPauseMinSilenceSecondsForField,
-    setPauseMinSpeechSecondsForField,
-    setPausePreprocessDenoiseForField,
-    setPauseThresholdForField,
-    setPitchHumModeForField,
-    setShareTargetForField,
-    setSpeedStepForField,
-    setVoiceRecordingCountdownSecondsForField,
-    setVolumeStepForField,
   } from "./split-button-state.js";
-  import {
-    setSizeReductionBitrateForField,
-    setSizeReductionChannelsForField,
-    setSizeReductionModeForField,
-    setSizeReductionSampleRateForField,
-  } from "./size-reduction-field-state.js";
-  import {
-    setGraphConnectShortDropoutsForField,
-    setGraphRecordingConditionForField,
-    setGraphSmoothnessForField,
-    setGraphVoiceLockForField,
-    setGraphVoiceRangeForField,
-  } from "./graph-split-state.js";
   import { currentValueLabel, primaryDisabledReason, primaryInitiallyDisabled, primaryTitle } from "./split-button-presenter.js";
+  import { createSplitButtonStateHandlers } from "./split-button-state-behavior.js";
   import { COMMAND_SLUGS } from "./commands.js";
   import { t } from "../lib/i18n.js";
   import type { EditorButtonDisplayMode } from "../lib/editor-toolbar-buttons.js";
@@ -107,24 +77,17 @@
   let voiceRecordingCountdownSeconds = $state(0);
   let defaultSaved = $state(false);
   let defaultSavedTimer: number | undefined;
+  const targetOrd = $derived(target.ord);
+  const targetNode = $derived(target.node);
 
-  function slug(): string {
-    return COMMAND_SLUGS[button.command];
-  }
-
-  function menuSlug(): string {
-    return groupSlug ?? slug();
-  }
-
-  function menuTextLabel(): string {
-    return groupLabel ?? button.label;
-  }
-
-  function primaryClass(): string {
-    return primaryGroupPosition === "middle"
+  const commandSlug = $derived(COMMAND_SLUGS[button.command]);
+  const menuSlug = $derived(groupSlug ?? commandSlug);
+  const menuTextLabel = $derived(groupLabel ?? button.label);
+  const primaryClass = $derived(
+    primaryGroupPosition === "middle"
       ? "aqe-button aqe-split-primary aqe-split-primary-middle"
-      : "aqe-button aqe-split-primary";
-  }
+      : "aqe-button aqe-split-primary",
+  );
 
   const currentPrimaryTitle = $derived(primaryTitle(button, outputFormat, denoiseAlgorithm, sizeReductionMode));
   const currentValue = $derived(currentValueLabel(button, groupSlug, {
@@ -149,170 +112,128 @@
     volumeStepDb,
   }));
 
-  function menuTitle(): string {
-    return t("editor.split.menu_title", {
-      label: menuTextLabel(),
+  const {
+    syncFromState,
+    applyVolumeStep,
+    applySpeedStep,
+    applyPauseAggressiveness,
+    applyPauseDetectionAlgorithm,
+    applyPauseThreshold,
+    applyPauseMinSilenceSeconds,
+    applyPauseMinSpeechSeconds,
+    applyPausePreprocessDenoise,
+    applyDenoiseAlgorithm,
+    applyDpdfnetAttnLimitDb,
+    applyOutputFormat,
+    applySizeReductionMode,
+    applySizeReductionBitrateKbps,
+    applySizeReductionSampleRateHz,
+    applySizeReductionChannels,
+    applyPitchHumMode,
+    applyShareTarget,
+    applyGraphVoiceRange,
+    applyGraphRecordingCondition,
+    applyGraphSmoothness,
+    applyGraphConnectShortDropouts,
+    applyGraphVoiceLock,
+    applyVoiceRecordingCountdownSeconds,
+  } = createSplitButtonStateHandlers(
+    () => target.ord,
+    {
+    setVolumeStepDb: (value) => {
+      volumeStepDb = value;
+    },
+    setSpeedStep: (value) => {
+      speedStep = value;
+    },
+    setPauseAggressiveness: (value) => {
+      pauseAggressiveness = value;
+    },
+    setPauseDetectionAlgorithm: (value) => {
+      pauseDetectionAlgorithm = value;
+    },
+    setPauseThreshold: (value) => {
+      pauseThreshold = value;
+    },
+    setPauseMinSilenceSeconds: (value) => {
+      pauseMinSilenceSeconds = value;
+    },
+    setPauseMinSpeechSeconds: (value) => {
+      pauseMinSpeechSeconds = value;
+    },
+    setPausePreprocessDenoise: (value) => {
+      pausePreprocessDenoise = value;
+    },
+    setDenoiseAlgorithm: (value) => {
+      denoiseAlgorithm = value;
+    },
+    setDpdfnetAttnLimitDb: (value) => {
+      dpdfnetAttnLimitDb = value;
+    },
+    setOutputFormat: (value) => {
+      outputFormat = value;
+    },
+    setSizeReductionMode: (value) => {
+      sizeReductionMode = value;
+    },
+    setSizeReductionBitrateKbps: (value) => {
+      sizeReductionBitrateKbps = value;
+    },
+    setSizeReductionSampleRateHz: (value) => {
+      sizeReductionSampleRateHz = value;
+    },
+    setSizeReductionChannels: (value) => {
+      sizeReductionChannels = value;
+    },
+    setPitchHumMode: (value) => {
+      pitchHumMode = value;
+    },
+    setShareTarget: (value) => {
+      shareTarget = value;
+    },
+    setGraphVoiceRange: (value) => {
+      graphVoiceRange = value;
+    },
+    setGraphRecordingCondition: (value) => {
+      graphRecordingCondition = value;
+    },
+    setGraphSmoothness: (value) => {
+      graphSmoothness = value;
+    },
+    setGraphConnectShortDropouts: (value) => {
+      graphConnectShortDropoutsMs = value;
+    },
+    setGraphVoiceLock: (value) => {
+      graphVoiceLock = value;
+    },
+    setVoiceRecordingCountdownSeconds: (value) => {
+      voiceRecordingCountdownSeconds = value;
+    },
+  });
+
+  const menuTitle = $derived(
+    t("editor.split.menu_title", {
+      label: menuTextLabel,
       value: currentValue,
-    });
-  }
+    }),
+  );
 
   function close(): void {
     open = false;
   }
 
-  function syncFromState(state: FieldSplitButtonState): void {
-    volumeStepDb = state.volumeStepDb;
-    speedStep = state.speedStep;
-    pauseAggressiveness = state.pauseAggressiveness;
-    syncPauseFromState(state);
-    denoiseAlgorithm = state.denoiseAlgorithm;
-    dpdfnetAttnLimitDb = state.dpdfnetAttnLimitDb;
-    outputFormat = state.outputFormat;
-    sizeReductionMode = state.sizeReductionMode;
-    sizeReductionBitrateKbps = state.sizeReductionBitrateKbps;
-    sizeReductionSampleRateHz = state.sizeReductionSampleRateHz;
-    sizeReductionChannels = state.sizeReductionChannels;
-    pitchHumMode = state.pitchHumMode;
-    shareTarget = state.shareTarget;
-    graphVoiceRange = state.graphVoiceRange;
-    graphRecordingCondition = state.graphRecordingCondition;
-    graphSmoothness = state.graphSmoothness;
-    graphConnectShortDropoutsMs = state.graphConnectShortDropoutsMs;
-    graphVoiceLock = state.graphVoiceLock;
-    voiceRecordingCountdownSeconds = state.voiceRecordingCountdownSeconds;
-  }
-
-  function syncPauseFromState(state: FieldSplitButtonState): void {
-    pauseDetectionAlgorithm = state.pauseDetectionAlgorithm;
-    if (state.pauseDetectionAlgorithm === "silero_vad") {
-      pauseThreshold = state.pauseSileroThreshold;
-      pauseMinSilenceSeconds = state.pauseSileroMinSilenceSeconds;
-      pauseMinSpeechSeconds = state.pauseSileroMinSpeechSeconds;
-      pausePreprocessDenoise = state.pauseSileroPreprocessDenoise;
-      return;
-    }
-    pauseThreshold = state.pauseSilencedetectThresholdDb;
-    pauseMinSilenceSeconds = state.pauseSilencedetectMinSilenceSeconds;
-    pauseMinSpeechSeconds = state.pauseSilencedetectMinSpeechSeconds;
-    pausePreprocessDenoise = state.pauseSilencedetectPreprocessDenoise;
-  }
-
-  function applyVolumeStep(value: number): void {
-    volumeStepDb = setVolumeStepForField(target.ord, value).volumeStepDb;
-  }
-
-  function applySpeedStep(value: number): void {
-    speedStep = setSpeedStepForField(target.ord, value).speedStep;
-  }
-
-  function applyPauseAggressiveness(value: "gentle" | "normal" | "aggressive"): void {
-    const state = setPauseAggressivenessForField(target.ord, value);
-    pauseAggressiveness = state.pauseAggressiveness;
-    syncPauseFromState(state);
-  }
-
-  function applyPauseDetectionAlgorithm(value: PauseDetectionAlgorithm): void {
-    syncPauseFromState(setPauseDetectionAlgorithmForField(target.ord, value));
-  }
-
-  function applyPauseThreshold(value: number): void {
-    syncPauseFromState(setPauseThresholdForField(target.ord, value));
-  }
-
-  function applyPauseMinSilenceSeconds(value: number): void {
-    syncPauseFromState(setPauseMinSilenceSecondsForField(target.ord, value));
-  }
-
-  function applyPauseMinSpeechSeconds(value: number): void {
-    syncPauseFromState(setPauseMinSpeechSecondsForField(target.ord, value));
-  }
-
-  function applyPausePreprocessDenoise(value: boolean): void {
-    syncPauseFromState(setPausePreprocessDenoiseForField(target.ord, value));
-  }
-
-  function applyDenoiseAlgorithm(value: DenoiseAlgorithm): void {
-    denoiseAlgorithm = setDenoiseAlgorithmForField(target.ord, value).denoiseAlgorithm;
-  }
-
-  function applyDpdfnetAttnLimitDb(value: number): void {
-    dpdfnetAttnLimitDb = setDpdfnetAttnLimitDbForField(target.ord, value).dpdfnetAttnLimitDb;
-  }
-
-  function applyOutputFormat(value: OutputFormatValue): void {
-    outputFormat = setOutputFormatForField(target.ord, value).outputFormat;
-  }
-
-  function applySizeReductionMode(value: SizeReductionMode): void {
-    syncSizeReductionFromState(setSizeReductionModeForField(target.ord, value));
-  }
-
-  function applySizeReductionBitrateKbps(value: number): void {
-    syncSizeReductionFromState(setSizeReductionBitrateForField(target.ord, value));
-  }
-
-  function applySizeReductionSampleRateHz(value: number): void {
-    syncSizeReductionFromState(setSizeReductionSampleRateForField(target.ord, value));
-  }
-
-  function applySizeReductionChannels(value: number): void {
-    syncSizeReductionFromState(setSizeReductionChannelsForField(target.ord, value));
-  }
-
-  function syncSizeReductionFromState(state: FieldSplitButtonState): void {
-    sizeReductionMode = state.sizeReductionMode;
-    sizeReductionBitrateKbps = state.sizeReductionBitrateKbps;
-    sizeReductionSampleRateHz = state.sizeReductionSampleRateHz;
-    sizeReductionChannels = state.sizeReductionChannels;
-  }
-
-  function applyPitchHumMode(value: PitchHumMode): void {
-    pitchHumMode = setPitchHumModeForField(target.ord, value).pitchHumMode;
-  }
-
-  function applyShareTarget(value: ShareTarget): void {
-    shareTarget = setShareTargetForField(target.ord, value).shareTarget;
-  }
-
-  function applyGraphVoiceRange(value: GraphVoiceRange): void {
-    graphVoiceRange = setGraphVoiceRangeForField(target.ord, value).graphVoiceRange;
-  }
-
-  function applyGraphRecordingCondition(value: GraphRecordingCondition): void {
-    graphRecordingCondition = setGraphRecordingConditionForField(target.ord, value).graphRecordingCondition;
-  }
-
-  function applyGraphSmoothness(value: GraphSmoothness): void {
-    graphSmoothness = setGraphSmoothnessForField(target.ord, value).graphSmoothness;
-  }
-
-  function applyGraphConnectShortDropouts(value: number): void {
-    graphConnectShortDropoutsMs = setGraphConnectShortDropoutsForField(target.ord, value).graphConnectShortDropoutsMs;
-  }
-
-  function applyGraphVoiceLock(value: GraphVoiceLock): void {
-    graphVoiceLock = setGraphVoiceLockForField(target.ord, value).graphVoiceLock;
-  }
-
-  function applyVoiceRecordingCountdownSeconds(value: number): void {
-    voiceRecordingCountdownSeconds = setVoiceRecordingCountdownSecondsForField(
-      target.ord,
-      value,
-    ).voiceRecordingCountdownSeconds;
-  }
-
   function dispatchCommand(command: ButtonSpec["command"]): void {
     window.dispatchEvent(new Event(CLOSE_SPLIT_MENUS_EVENT));
     close();
-    const payload = command === "aqe:play-recording" ? undefined : buildSplitCommandPayload(command, target.ord);
-    send(command, target.node, target.ord, payload);
+    const payload = command === "aqe:play-recording" ? undefined : buildSplitCommandPayload(command, targetOrd);
+    send(command, targetNode, targetOrd, payload);
   }
 
   function dispatchPrimary(): void {
     if (button.command === "aqe:record-voice") {
       window.dispatchEvent(new Event(CLOSE_SPLIT_MENUS_EVENT));
       close();
-      dispatchLearnerRecordingPrimary(target.node, target.ord);
+      dispatchLearnerRecordingPrimary(targetNode, targetOrd);
       return;
     }
     dispatchCommand(button.command);
@@ -328,19 +249,19 @@
   }
 
   function saveCurrentDefaults(): void {
-    const request = buildSplitDefaultSaveRequest(button.command, target.ord);
+    const request = buildSplitDefaultSaveRequest(button.command, targetOrd);
     sendSplitDefaultSaveRequest(request);
-    syncFromState(promoteSplitDefaultsForField(target.ord, request.defaults));
+    syncFromState(promoteSplitDefaultsForField(targetOrd, request.defaults));
     showDefaultSaved();
   }
 
   function onOpenChange(nextOpen: boolean): void {
-    if (nextOpen) syncFromState(getSplitButtonState(target.ord));
+    if (nextOpen) syncFromState(getSplitButtonState(targetOrd));
     open = nextOpen;
   }
 
   onMount(() => {
-    syncFromState(getSplitButtonState(target.ord));
+    syncFromState(getSplitButtonState(targetOrd));
     window.addEventListener(CLOSE_SPLIT_MENUS_EVENT, close);
     return () => {
       window.removeEventListener(CLOSE_SPLIT_MENUS_EVENT, close);
@@ -350,133 +271,75 @@
 </script>
 
 {#if showMenu}
-  <Popover.Root open={open} onOpenChange={onOpenChange}>
-    <span class="aqe-split-button">
-      {#if showPrimary}
-        <SplitButtonPrimary
-          ariaLabel={currentPrimaryTitle}
-          activeIcon={button.activeIcon}
-          command={button.command}
-          disabled={primaryInitiallyDisabled(button.command)}
-          disabledReason={primaryDisabledReason(button.command)}
-          {displayMode}
-          icon={button.icon}
-          label={button.label}
-          onClick={dispatchPrimary}
-          ord={target.ord}
-          primaryClass={primaryClass()}
-          slug={slug()}
-          title={currentPrimaryTitle}
-        />
-      {/if}
-      <Popover.Trigger
-        class="aqe-button aqe-icon-only aqe-split-menu-button"
-        data-aqe-tooltip-content={menuTitle()}
-        data-testid={`aqe-split-${target.ord}-${menuSlug()}-menu`}
-        aria-label={menuTitle()}
-      >
-        <EditorCommandIcon icon="chevron-down" />
-        <span class="aqe-button-label">{t("editor.split.options")}</span>
-      </Popover.Trigger>
-      <Popover.Content
-        align="center"
-        arrowPadding={14}
-        class={`aqe-ui-root aqe-split-popover${button.command === "aqe:analyze" ? " aqe-graph-split-popover" : ""}`}
-        collisionPadding={8}
-        data-testid={`aqe-split-${target.ord}-${menuSlug()}-popover`}
-        onCloseAutoFocus={(event) => event.preventDefault()}
-        side="bottom"
-        sideOffset={4}
-        strategy="fixed"
-        trapFocus={false}
-      >
-        <Popover.Arrow
-          class="aqe-split-popover-arrow"
-          data-testid={`aqe-split-${target.ord}-${menuSlug()}-arrow`}
-          height={8}
-          width={16}
-        />
-        {#if button.command === "aqe:analyze"}
-          <GraphSplitPopoverContent
-            connectShortDropoutsMs={graphConnectShortDropoutsMs}
-            menuLabel={menuTextLabel()}
-            menuSlug={menuSlug()}
-            onConnectShortDropouts={applyGraphConnectShortDropouts}
-            onRecordingCondition={applyGraphRecordingCondition}
-            onRun={dispatchPrimary}
-            onSaveDefault={saveCurrentDefaults}
-            onSmoothness={applyGraphSmoothness}
-            onVoiceLock={applyGraphVoiceLock}
-            onVoiceRange={applyGraphVoiceRange}
-            recordingCondition={graphRecordingCondition}
-            saved={defaultSaved}
-            smoothness={graphSmoothness}
-            targetOrd={target.ord}
-            voiceLock={graphVoiceLock}
-            voiceRange={graphVoiceRange}
-          />
-        {:else}
-          {#if button.command === "aqe:record-voice"}
-            <RecordingSplitOptions
-              countdownSeconds={voiceRecordingCountdownSeconds}
-              onCountdownSeconds={applyVoiceRecordingCountdownSeconds}
-              onSaveDefault={saveCurrentDefaults}
-              saveDefaultSaved={defaultSaved}
-              slug={menuSlug()}
-              targetOrd={target.ord}
-            />
-          {:else}
-            <SplitValueOptions
-              {button}
-              denoiseAlgorithm={denoiseAlgorithm}
-              dpdfnetAttnLimitDb={dpdfnetAttnLimitDb}
-              {groupSlug}
-              menuLabel={menuTextLabel()}
-              onChange={() => {}}
-              onDenoiseAlgorithm={applyDenoiseAlgorithm}
-              onDpdfnetAttnLimitDb={applyDpdfnetAttnLimitDb}
-              onOutputFormat={applyOutputFormat}
-              onPauseAggressiveness={applyPauseAggressiveness}
-              onPauseDetectionAlgorithm={applyPauseDetectionAlgorithm}
-              onPauseMinSilenceSeconds={applyPauseMinSilenceSeconds}
-              onPauseMinSpeechSeconds={applyPauseMinSpeechSeconds}
-              onPausePreprocessDenoise={applyPausePreprocessDenoise}
-              onPauseThreshold={applyPauseThreshold}
-              onPitchHumMode={applyPitchHumMode}
-              onRunCommand={dispatchCommand}
-              onSaveDefault={saveCurrentDefaults}
-              onShareTarget={applyShareTarget}
-              onSizeReductionBitrateKbps={applySizeReductionBitrateKbps}
-              onSizeReductionChannels={applySizeReductionChannels}
-              onSizeReductionMode={applySizeReductionMode}
-              onSizeReductionSampleRateHz={applySizeReductionSampleRateHz}
-              onSpeedStep={applySpeedStep}
-              onVolumeStep={applyVolumeStep}
-              pauseAggressiveness={pauseAggressiveness}
-              pauseDetectionAlgorithm={pauseDetectionAlgorithm}
-              pauseMinSilenceSeconds={pauseMinSilenceSeconds}
-              pauseMinSpeechSeconds={pauseMinSpeechSeconds}
-              pausePreprocessDenoise={pausePreprocessDenoise}
-              pauseThreshold={pauseThreshold}
-              outputFormat={outputFormat}
-              sizeReductionMode={sizeReductionMode}
-              sizeReductionBitrateKbps={sizeReductionBitrateKbps}
-              sizeReductionSampleRateHz={sizeReductionSampleRateHz}
-              sizeReductionChannels={sizeReductionChannels}
-              pitchHumMode={pitchHumMode}
-              saveDefaultSaved={defaultSaved}
-              shareTarget={shareTarget}
-              {showRunButton}
-              showSaveDefault={true}
-              speedStep={speedStep}
-              targetOrd={target.ord}
-              volumeStepDb={volumeStepDb}
-            />
-          {/if}
-        {/if}
-      </Popover.Content>
-    </span>
-  </Popover.Root>
+  <SplitButtonMenu
+    {button}
+    {displayMode}
+    {groupSlug}
+    menuTitle={menuTitle}
+    menuSlug={menuSlug}
+    menuTextLabel={menuTextLabel}
+    {open}
+    {onOpenChange}
+    onPrimaryClick={dispatchPrimary}
+    primaryAriaLabel={currentPrimaryTitle}
+    primaryClass={primaryClass}
+    primaryDisabled={primaryInitiallyDisabled(button.command)}
+    primaryDisabledReason={primaryDisabledReason(button.command)}
+    primarySlug={commandSlug}
+    primaryTitle={currentPrimaryTitle}
+    {showPrimary}
+    {showRunButton}
+    targetOrd={targetOrd}
+    {denoiseAlgorithm}
+    {dpdfnetAttnLimitDb}
+    {graphVoiceRange}
+    {graphRecordingCondition}
+    {graphSmoothness}
+    {graphConnectShortDropoutsMs}
+    {graphVoiceLock}
+    {pauseAggressiveness}
+    {pauseDetectionAlgorithm}
+    {pauseMinSilenceSeconds}
+    {pauseMinSpeechSeconds}
+    {pausePreprocessDenoise}
+    {pauseThreshold}
+    {outputFormat}
+    {sizeReductionMode}
+    {sizeReductionBitrateKbps}
+    {sizeReductionSampleRateHz}
+    {sizeReductionChannels}
+    {pitchHumMode}
+    {shareTarget}
+    {speedStep}
+    {volumeStepDb}
+    {defaultSaved}
+    {voiceRecordingCountdownSeconds}
+    applyGraphConnectShortDropouts={applyGraphConnectShortDropouts}
+    applyGraphRecordingCondition={applyGraphRecordingCondition}
+    applyGraphSmoothness={applyGraphSmoothness}
+    applyGraphVoiceLock={applyGraphVoiceLock}
+    applyGraphVoiceRange={applyGraphVoiceRange}
+    applyVoiceRecordingCountdownSeconds={applyVoiceRecordingCountdownSeconds}
+    applyDenoiseAlgorithm={applyDenoiseAlgorithm}
+    applyDpdfnetAttnLimitDb={applyDpdfnetAttnLimitDb}
+    applyOutputFormat={applyOutputFormat}
+    applyPauseAggressiveness={applyPauseAggressiveness}
+    applyPauseDetectionAlgorithm={applyPauseDetectionAlgorithm}
+    applyPauseMinSilenceSeconds={applyPauseMinSilenceSeconds}
+    applyPauseMinSpeechSeconds={applyPauseMinSpeechSeconds}
+    applyPausePreprocessDenoise={applyPausePreprocessDenoise}
+    applyPauseThreshold={applyPauseThreshold}
+    applyPitchHumMode={applyPitchHumMode}
+    applySaveDefault={saveCurrentDefaults}
+    applyShareTarget={applyShareTarget}
+    applySizeReductionBitrateKbps={applySizeReductionBitrateKbps}
+    applySizeReductionChannels={applySizeReductionChannels}
+    applySizeReductionMode={applySizeReductionMode}
+    applySizeReductionSampleRateHz={applySizeReductionSampleRateHz}
+    applySpeedStep={applySpeedStep}
+    applyVolumeStep={applyVolumeStep}
+    onRunCommand={dispatchCommand}
+  />
 {:else if showPrimary}
   <SplitButtonPrimary
     ariaLabel={currentPrimaryTitle}
@@ -488,9 +351,9 @@
     icon={button.icon}
     label={button.label}
     onClick={dispatchPrimary}
-    ord={target.ord}
-    primaryClass={primaryClass()}
-    slug={slug()}
+    ord={targetOrd}
+    primaryClass={primaryClass}
+    slug={commandSlug}
     title={currentPrimaryTitle}
   />
 {/if}

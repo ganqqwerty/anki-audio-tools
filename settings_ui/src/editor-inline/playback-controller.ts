@@ -5,31 +5,38 @@ import {
   pauseAudioClock,
   seekAudioClock,
 } from "./audio-clock.js";
-import { clearRepeatPauseCountdownOverlay, startRepeatPauseCountdownOverlay } from "./graph-countdown-overlay.js";
+import { startRepeatPauseCountdownOverlay } from "./graph-countdown-overlay.js";
 import { logger } from "./logger.js";
 import {
-  clearPlaybackPlan,
   clampProgressMs,
-  invalidatePlaybackFrames,
   liveProgressMs,
   repeatPauseDelayMs,
   startPlaybackPlan,
 } from "./playback-plan-state.js";
 import {
   planPlaybackBoundary,
-  planPlaybackPass,
   playbackCompletionCursor,
-  type PlaybackEngine,
   type PlaybackPass,
   type PlaybackRegion,
-  type PlaybackRegionMode,
-  type PlaybackSnapshot,
 } from "./playback-model.js";
+import {
+  activePlaybackPass,
+  playbackEndMs,
+  plannedPlaybackPass,
+  setPlaybackPass,
+  writePlaybackPass,
+} from "./playback-controller-pass.js";
+import {
+  clearPlaybackFrame,
+  clearRepeatPauseTimer,
+} from "./playback-controller-frame.js";
 import type { PlaybackState, VisualizerElement } from "./types.js";
 import {
   renderPlaybackCursor,
 } from "./visualizer-renderer.js";
 import { ensurePlaybackCursorVisible } from "./viewport-actions.js";
+
+export { clearPlaybackFrame };
 
 export interface ProgressClockOptions {
   engine?: "html" | "native" | "";
@@ -58,25 +65,6 @@ export interface PlaybackControllerDependencies {
   ) => void;
   setPlaybackButtonLabel: (visualizer: VisualizerElement, label: string) => void;
   stopOtherPlayback: (activeVisualizer: VisualizerElement) => void;
-}
-
-export function clearPlaybackFrame(visualizer: VisualizerElement): void {
-  if (visualizer.__aqePlaybackTimer) {
-    window.cancelAnimationFrame(visualizer.__aqePlaybackTimer);
-    visualizer.__aqePlaybackTimer = null;
-  }
-  clearRepeatPauseTimer(visualizer);
-  clearPlaybackPlan(visualizer);
-  invalidatePlaybackFrames(visualizer);
-}
-
-function clearRepeatPauseTimer(visualizer: VisualizerElement): void {
-  if (visualizer.__aqeRepeatPauseTimer) {
-    window.clearTimeout(visualizer.__aqeRepeatPauseTimer);
-    visualizer.__aqeRepeatPauseTimer = null;
-  }
-  clearRepeatPauseCountdownOverlay(visualizer);
-  visualizer.dataset.repeatPauseWaiting = "false";
 }
 
 export function manualProgressMs(visualizer: VisualizerElement): number {
@@ -318,21 +306,6 @@ export function stopProgressClock(
   deps.setPlaybackButtonLabel(visualizer, "Play");
 }
 
-function setPlaybackPass(
-  visualizer: VisualizerElement,
-  startMs: number,
-  deps: PlaybackControllerDependencies,
-  region: PlaybackRegion = deps.effectivePlaybackRegion(visualizer),
-): PlaybackPass {
-  const pass = planPlaybackPass(playbackSnapshotForPass(visualizer, deps, region), startMs);
-  writePlaybackPass(visualizer, pass);
-  return pass;
-}
-
-function playbackEndMs(visualizer: VisualizerElement, deps: PlaybackControllerDependencies): number {
-  return activePlaybackPass(visualizer, deps).endMs;
-}
-
 function scheduleRepeatLoopPlayback(
   visualizer: VisualizerElement,
   deps: PlaybackControllerDependencies,
@@ -355,8 +328,7 @@ function scheduleRepeatLoopPlayback(
   startRepeatPauseCountdownOverlay(visualizer, delayMs);
   visualizer.__aqeRepeatPauseTimer = window.setTimeout(() => {
     visualizer.__aqeRepeatPauseTimer = null;
-    visualizer.dataset.repeatPauseWaiting = "false";
-    clearRepeatPauseCountdownOverlay(visualizer);
+    clearRepeatPauseTimer(visualizer);
     if (visualizer.dataset.playbackState !== "playing") return;
     if (!deps.repeatEnabledFor(visualizer)) {
       completePlayback(visualizer, deps);
@@ -418,77 +390,4 @@ function restartLoopPlaybackNow(
         startManualPlaybackPass(visualizer, pass, deps);
       }
     });
-}
-
-function plannedPlaybackPass(
-  visualizer: VisualizerElement,
-  startMs: number,
-  deps: PlaybackControllerDependencies,
-  region: PlaybackRegion = deps.effectivePlaybackRegion(visualizer),
-): PlaybackPass {
-  return planPlaybackPass(playbackSnapshotForPass(visualizer, deps, region), startMs);
-}
-
-function playbackSnapshotForPass(
-  visualizer: VisualizerElement,
-  deps: PlaybackControllerDependencies,
-  region: PlaybackRegion,
-): PlaybackSnapshot {
-  return {
-    anchorMs: Number(visualizer.dataset.anchorMs || visualizer.dataset.cursorMs || "0"),
-    currentProgressMs: currentProgressMs(visualizer),
-    cursorMs: Number(visualizer.dataset.cursorMs || "0"),
-    durationMs: Number(visualizer.dataset.durationMs || "0") || 0,
-    engine: playbackEngineForDataset(visualizer.dataset.playbackEngine),
-    ord: Number(visualizer.dataset.aqeFieldOrd || "0"),
-    playbackState: playbackStateForDataset(visualizer.dataset.playbackState),
-    region,
-    repeat: deps.repeatEnabledFor(visualizer),
-    resumeRequiresRestart: visualizer.dataset.resumeRequiresRestart === "true",
-  };
-}
-
-function activePlaybackPass(visualizer: VisualizerElement, deps: PlaybackControllerDependencies): PlaybackPass {
-  const region = deps.effectivePlaybackRegion(visualizer);
-  const durationMs = Number(visualizer.dataset.durationMs || "0") || 0;
-  const regionMode = playbackRegionModeForDataset(visualizer.dataset.playbackRegionMode);
-  const fallbackResetCursorMs = regionMode === "selection"
-    ? region.startMs
-    : Number(visualizer.dataset.anchorMs || visualizer.dataset.cursorMs || "0");
-  const rawEndMs = readStoredMs(visualizer.dataset.playbackEndMs, region.endMs);
-  const endMs = durationMs > 0 ? Math.min(rawEndMs, durationMs) : rawEndMs;
-  return {
-    endMs: Math.round(Math.max(0, endMs)),
-    loop: visualizer.dataset.playbackLoop === "true",
-    regionMode,
-    resetCursorMs: Math.round(readStoredMs(visualizer.dataset.playbackResetCursorMs, fallbackResetCursorMs)),
-    startMs: Math.round(readStoredMs(visualizer.dataset.playbackStartMs, region.startMs)),
-  };
-}
-
-function writePlaybackPass(visualizer: VisualizerElement, pass: PlaybackPass): void {
-  visualizer.dataset.playbackStartMs = String(Math.round(pass.startMs));
-  visualizer.dataset.playbackEndMs = String(Math.round(pass.endMs));
-  visualizer.dataset.playbackRegionMode = pass.regionMode;
-  visualizer.dataset.playbackResetCursorMs = String(Math.round(pass.resetCursorMs));
-  visualizer.dataset.playbackLoop = pass.loop ? "true" : "false";
-}
-
-function playbackStateForDataset(value: string | undefined): PlaybackState {
-  if (value === "playing" || value === "paused") return value;
-  return "stopped";
-}
-
-function playbackEngineForDataset(value: string | undefined): PlaybackEngine {
-  return value === "html" || value === "native" ? value : "";
-}
-
-function playbackRegionModeForDataset(value: string | undefined): PlaybackRegionMode {
-  return value === "selection" ? "selection" : "full";
-}
-
-function readStoredMs(rawValue: string | undefined, fallbackMs: number): number {
-  if (!rawValue) return fallbackMs;
-  const value = Number(rawValue);
-  return Number.isFinite(value) ? value : fallbackMs;
 }

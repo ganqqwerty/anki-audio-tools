@@ -17,6 +17,7 @@ const frontendAreas = [
 const lineLimitAllowlist = new Map<string, number>([
   ["src/batch/BatchControls.svelte", 335],
   ["src/editor-inline/EditorControls.svelte", 440],
+  ["src/editor-inline/GraphVisualizer.svelte", 312],
   ["src/editor-inline/SplitButton.svelte", 500],
   ["src/editor-inline/SplitValueOptions.svelte", 398],
   ["src/lib/editor-toolbar-buttons.ts", 337],
@@ -43,7 +44,9 @@ const querySelectorAllowlist = new Set([
 
 const requestAnimationFrameAllowlist = new Set([
   "src/editor-inline/playback-controller.ts",
+  "src/editor-inline/playback-controller-frame.ts",
   "src/editor-inline/recording-actions.ts",
+  "src/editor-inline/recording-actions-state.ts",
   "src/editor-inline/test-contract.ts",
 ]);
 

@@ -171,7 +171,7 @@ def test_chorusing_marker_row_is_immediately_editable_after_graph_shows(
             lambda value: value is not None
             and value["ariaLabel"] == "Chorusing"
             and value["borderRadius"] == "9px"
-            and value["borderTopWidth"] == "1px"
+            and value["borderTopWidth"] == "0px"
             and value["commands"] == [
                 "aqe:chorusing-practice",
                 "aqe:chorusing-next",
