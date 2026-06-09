@@ -8,6 +8,8 @@ import {
 } from "./control-actions.js";
 import EditorControls from "./EditorControls.svelte";
 import { visualizerForOrd } from "./dom-selectors.js";
+import { initFieldState, removeFieldState } from "./field-state-store.js";
+import { initialFieldState } from "./field-state.js";
 import type { FieldTarget } from "./types.js";
 
 export interface FieldController {
@@ -68,6 +70,7 @@ export function mountController(target: FieldTarget): FieldController | null {
     sourceFilename: target.sourceFilename,
   };
   controllers.set(target.ord, controller);
+  initFieldState(target.ord, initialFieldState({ ord: target.ord, sourceFilename: target.sourceFilename }));
   removeDuplicateControls(target.ord, host);
   return controller;
 }
@@ -84,6 +87,7 @@ export function disposeController(ord: number): void {
     controller.host.remove();
     controllers.delete(ord);
   }
+  removeFieldState(ord);
   document.querySelectorAll<HTMLElement>(`.aqe-controls[data-aqe-field-ord="${ord}"]`).forEach((node) => node.remove());
 }
 
@@ -91,6 +95,7 @@ export function disposeAllControllers(): void {
   for (const controller of controllers.values()) {
     void unmount(controller.component);
     controller.host.remove();
+    removeFieldState(controller.ord);
   }
   controllers.clear();
   removeOrphanedControls();

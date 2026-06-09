@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, afterEach } from "vitest";
 
 import {
   clearVisualizerSelection,
@@ -15,10 +15,17 @@ import {
 import type { VisualizerElement } from "../src/editor-inline/types.js";
 
 function visualizer(): VisualizerElement {
-  return document.createElement("div") as VisualizerElement;
+  const el = document.createElement("div") as VisualizerElement;
+  el.className = "aqe-visualizer";
+  el.dataset.aqeFieldOrd = "0";
+  document.body.append(el);
+  return el;
 }
 
 describe("visualizer state adapter", () => {
+  afterEach(() => {
+    document.body.innerHTML = "";
+  });
   it("reads numeric and boolean graph fields with safe defaults", () => {
     const node = visualizer();
 
@@ -37,6 +44,8 @@ describe("visualizer state adapter", () => {
 
   it("round-trips committed and draft selection state", () => {
     const node = visualizer();
+    node.dataset.durationMs = "1000";
+    node.dataset.targetDurationMs = "1000";
 
     setVisualizerSelection(node, { startMs: 125, endMs: 875 });
     setVisualizerSelectionDraft(node, { startMs: 200, endMs: 700 });

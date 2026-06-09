@@ -1,16 +1,31 @@
 import type { PlaybackRegion } from "./playback-state.js";
 import type { SelectionRange, SelectionState } from "./selection-state.js";
+import {
+  clearDraftSelectionState,
+  clearSelectionState,
+  setDraftSelectionRange,
+  setSelectionRange,
+} from "./selection-state.js";
 import { fullTimeViewport, normalizeTimeViewport, type TimeViewport } from "./time-viewport.js";
 import type { VisualizerElement } from "./types.js";
+import {
+  readFieldState,
+  updateFieldState,
+  writeFieldState,
+} from "./field-state-store.js";
+
+function fieldOrd(visualizer: VisualizerElement): number {
+  return Number(visualizer.dataset.aqeFieldOrd || "0");
+}
 
 export function readVisualizerDurationMs(visualizer: VisualizerElement): number {
-  return Number(visualizer.dataset.durationMs || "0") || 0;
+  return readFieldState(fieldOrd(visualizer)).graph.durationMs;
 }
 
 export function readVisualizerTargetDurationMs(visualizer: VisualizerElement): number {
   const targetDurationMs = Number(visualizer.dataset.targetDurationMs || "0") || 0;
   if (targetDurationMs > 0) return targetDurationMs;
-  return readVisualizerDurationMs(visualizer);
+  return readFieldState(fieldOrd(visualizer)).graph.durationMs;
 }
 
 export function readVisualizerTimeViewport(visualizer: VisualizerElement): TimeViewport {
@@ -34,65 +49,72 @@ export function writeVisualizerTimeViewport(visualizer: VisualizerElement, viewp
 }
 
 export function readVisualizerCursorMs(visualizer: VisualizerElement): number {
-  return Number(visualizer.dataset.cursorMs || "0") || 0;
+  return readFieldState(fieldOrd(visualizer)).cursor.ms;
 }
 
 export function readVisualizerRepeatEnabled(visualizer: VisualizerElement): boolean {
-  return visualizer.dataset.repeatEnabled === "true";
+  return readFieldState(fieldOrd(visualizer)).playback.repeat;
 }
 
 export function setVisualizerResumeRequiresRestart(visualizer: VisualizerElement, required: boolean): void {
-  visualizer.dataset.resumeRequiresRestart = required ? "true" : "false";
+  const ord = fieldOrd(visualizer);
+  const state = readFieldState(ord);
+  writeFieldState(ord, {
+    ...state,
+    playback: { ...state.playback, resumeRequiresRestart: required },
+  });
 }
 
 export function readVisualizerSelectionState(visualizer: VisualizerElement): SelectionState {
-  return {
-    active: visualizer.dataset.selectionActive === "true",
-    draftActive: visualizer.dataset.selectionDraftActive === "true",
-    draftEndMs: readOptionalMs(visualizer.dataset.selectionDraftEndMs),
-    draftStartMs: readOptionalMs(visualizer.dataset.selectionDraftStartMs),
-    endMs: readOptionalMs(visualizer.dataset.selectionEndMs),
-    startMs: readOptionalMs(visualizer.dataset.selectionStartMs),
-  };
+  return readFieldState(fieldOrd(visualizer)).selection;
 }
 
 export function clearVisualizerSelectionDraft(visualizer: VisualizerElement): void {
-  visualizer.dataset.selectionDraftActive = "false";
-  visualizer.dataset.selectionDraftStartMs = "";
-  visualizer.dataset.selectionDraftEndMs = "";
+  const ord = fieldOrd(visualizer);
+  updateFieldState(ord, (state) => ({
+    ...state,
+    selection: clearDraftSelectionState(state.selection),
+  }));
 }
 
 export function setVisualizerSelectionDraft(visualizer: VisualizerElement, range: SelectionRange): void {
-  visualizer.dataset.selectionDraftActive = "true";
-  visualizer.dataset.selectionDraftStartMs = String(range.startMs);
-  visualizer.dataset.selectionDraftEndMs = String(range.endMs);
+  const ord = fieldOrd(visualizer);
+  updateFieldState(ord, (state) => ({
+    ...state,
+    selection: setDraftSelectionRange(state.selection, range.startMs, range.endMs, state.graph.durationMs),
+  }));
 }
 
 export function clearVisualizerSelection(visualizer: VisualizerElement): void {
-  visualizer.dataset.selectionActive = "false";
-  visualizer.dataset.selectionStartMs = "";
-  visualizer.dataset.selectionEndMs = "";
+  const ord = fieldOrd(visualizer);
+  updateFieldState(ord, (state) => ({
+    ...state,
+    selection: clearSelectionState(state.selection),
+  }));
 }
 
 export function setVisualizerSelection(visualizer: VisualizerElement, range: SelectionRange): void {
-  visualizer.dataset.selectionActive = "true";
-  visualizer.dataset.selectionStartMs = String(range.startMs);
-  visualizer.dataset.selectionEndMs = String(range.endMs);
+  const ord = fieldOrd(visualizer);
+  updateFieldState(ord, (state) => ({
+    ...state,
+    selection: setSelectionRange(state.selection, range.startMs, range.endMs, state.graph.durationMs),
+  }));
 }
 
 export function setVisualizerPlaybackRegion(visualizer: VisualizerElement, region: PlaybackRegion): void {
-  visualizer.dataset.playbackStartMs = String(Math.round(region.startMs));
-  visualizer.dataset.playbackEndMs = String(Math.round(region.endMs));
-  visualizer.dataset.playbackRegionMode = region.mode;
+  const ord = fieldOrd(visualizer);
   visualizer.dataset.playbackResetCursorMs = String(Math.round(
     region.mode === "selection"
       ? region.startMs
       : Number(visualizer.dataset.anchorMs || visualizer.dataset.cursorMs || "0"),
   ));
-}
-
-function readOptionalMs(rawValue: string | undefined): number | null {
-  if (!rawValue) return null;
-  const value = Number(rawValue);
-  return Number.isFinite(value) ? value : null;
+  writeFieldState(ord, {
+    ...readFieldState(ord),
+    playback: {
+      ...readFieldState(ord).playback,
+      endMs: Math.round(region.endMs),
+      regionMode: region.mode,
+      startMs: Math.round(region.startMs),
+    },
+  });
 }

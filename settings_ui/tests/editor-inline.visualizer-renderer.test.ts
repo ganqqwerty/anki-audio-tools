@@ -222,7 +222,7 @@ describe("editor inline visualizer renderer", () => {
 
 function mountVisualizer(track: NormalizedProsodyTrack): VisualizerElement {
   document.body.innerHTML = `
-    <div class="aqe-visualizer" data-duration-ms="${track.durationMs}" data-target-duration-ms="${track.durationMs}">
+    <div class="aqe-visualizer" data-aqe-field-ord="0" data-duration-ms="${track.durationMs}" data-target-duration-ms="${track.durationMs}">
       <div class="aqe-visualizer-plot">
         <svg class="aqe-visualizer-svg" viewBox="0 0 ${PLOT.width} ${PLOT.height}">
           <defs>
