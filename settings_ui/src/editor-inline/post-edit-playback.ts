@@ -1,12 +1,14 @@
 import { sendCommandPayload } from "./bridge.js";
 import { allControls, visualizerForOrd } from "./dom-selectors.js";
 import { logger } from "./logger.js";
+import { readFieldState } from "./field-state-store.js";
 import type { EditorCommandPayload, PostEditPlaybackIntent } from "./types.js";
 
 export function rememberPostEditPlaybackIntent(ord: number): void {
   const visualizer = visualizerForOrd(ord);
+  const s = visualizer ? readFieldState(ord) : null;
   postEditPlaybackIntents()[ord] = {
-    repeat: visualizer ? visualizer.dataset.repeatEnabled === "true" : repeatDefaultFromConfig(),
+    repeat: s ? s.playback.repeat : repeatDefaultFromConfig(),
     repeatPauseSeconds: normalizedRepeatPauseSeconds(
       visualizer ? Number(visualizer.dataset.repeatPauseSeconds || "0") : 0,
     ),
@@ -50,10 +52,10 @@ function postEditPlaybackGraphReady(ord: number, sourceFilename: string): boolea
   if (!pending?.requireGraphRedraw) return true;
   const sourceToMatch = pending.sourceFilename || sourceFilename;
   const visualizer = visualizerForOrd(ord);
-  return !!visualizer
-    && visualizer.dataset.graphBusy !== "true"
-    && visualizer.dataset.hasTrack === "true"
-    && (!sourceToMatch || visualizer.dataset.sourceFilename === sourceToMatch);
+  if (!visualizer) return false;
+  const s = readFieldState(ord);
+  return !s.graph.busy && s.graph.hasTrack
+    && (!sourceToMatch || s.sourceFilename === sourceToMatch);
 }
 
 export function notifyMountedPostEditPlaybackReady(): void {
@@ -68,18 +70,19 @@ export function notifyMountedPostEditPlaybackReady(): void {
 function postEditPlaybackDiagnosticContext(ord: number, sourceFilename: string): Record<string, unknown> {
   const pending = window.__AQE_EDITOR_CONFIG__?.pendingPostEditPlayback;
   const visualizer = visualizerForOrd(ord);
+  const s = visualizer ? readFieldState(ord) : null;
   return {
     bodyBusy: document.body.dataset.aqeBusy || "",
     controlSourceFilename: sourceFilename,
-    graphBusy: visualizer?.dataset.graphBusy || "",
+    graphBusy: s ? String(s.graph.busy) : "",
     hasPending: !!pending,
-    hasTrack: visualizer?.dataset.hasTrack || "",
+    hasTrack: s ? String(s.graph.hasTrack) : "",
     ord,
     pendingFieldOrd: pending?.fieldOrd,
     pendingGeneration: pending?.generation,
     pendingRequireGraphRedraw: pending?.requireGraphRedraw === true,
     pendingSourceFilename: pending?.sourceFilename || "",
-    visualizerSourceFilename: visualizer?.dataset.sourceFilename || "",
+    visualizerSourceFilename: s?.sourceFilename || "",
   };
 }
 
