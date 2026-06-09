@@ -18,7 +18,7 @@ import { logger } from "./logger.js";
 import { completePlayback, handlePlaybackBoundary, playbackStateFor, startManualProgressClock, stopProgressClock } from "./playback-actions.js";
 import { renderCursor } from "./visualizer-renderer.js";
 import type { VisualizerElement } from "./types.js";
-import { readFieldState } from "./field-state-store.js";
+import { readFieldState, writeFieldState } from "./field-state-store.js";
 
 function fieldOrd(v: VisualizerElement): number {
   return Number(v.dataset.aqeFieldOrd || "0");
@@ -79,8 +79,12 @@ export function clampProgressMs(visualizer: VisualizerElement, ms: number): numb
 }
 
 export function setRepeatEnabled(visualizer: VisualizerElement, enabled: boolean): void {
+  const ord = fieldOrd(visualizer);
+  writeFieldState(ord, {
+    ...readFieldState(ord),
+    playback: { ...readFieldState(ord).playback, repeat: enabled },
+  });
   visualizer.dataset.repeatEnabled = enabled ? "true" : "false";
-  const ord = Number(visualizer.dataset.aqeFieldOrd || "0");
   const button = repeatButtonForOrd(ord);
   if (button) {
     button.ariaPressed = enabled ? "true" : "false";

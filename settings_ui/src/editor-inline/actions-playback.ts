@@ -30,7 +30,7 @@ import {
 } from "./selection-controller.js";
 import { readVisualizerTargetDurationMs } from "./visualizer-state.js";
 import { notifySelectionChanged } from "./selection-events.js";
-import { readFieldState } from "./field-state-store.js";
+import { readFieldState, writeFieldState } from "./field-state-store.js";
 
 function fieldOrd(v: VisualizerElement): number {
   return Number(v.dataset.aqeFieldOrd || "0");
@@ -105,14 +105,18 @@ export function setCursor(
     updateAnchor?: boolean;
   } = {},
 ): void {
-  const s = readFieldState(fieldOrd(visualizer));
+  const ord = fieldOrd(visualizer);
+  const s = readFieldState(ord);
   const targetDurationMs = readVisualizerTargetDurationMs(visualizer);
   const clamped = Math.max(0, Math.min(Number(ms) || 0, targetDurationMs || 0));
-  visualizer.dataset.cursorMs = String(Math.round(clamped));
-  visualizer.dataset.progressMs = String(Math.round(clamped));
-  if (options.updateAnchor !== false) {
-    visualizer.dataset.anchorMs = String(Math.round(clamped));
-  }
+  writeFieldState(ord, {
+    ...s,
+    cursor: {
+      anchorMs: options.updateAnchor !== false ? Math.round(clamped) : s.cursor.anchorMs,
+      ms: Math.round(clamped),
+      progressMs: Math.round(clamped),
+    },
+  });
   renderCursor(visualizer, clamped, s.graph.durationMs);
   if (notifyPython) {
     window.__aqeActiveField = Number(visualizer.dataset.aqeFieldOrd || "0");

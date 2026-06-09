@@ -24,7 +24,8 @@ import {
   readVisualizerTimeViewport,
   resetVisualizerTimeViewport,
 } from "./visualizer-state.js";
-import { readFieldState } from "./field-state-store.js";
+import { readFieldState, writeFieldState } from "./field-state-store.js";
+import { graphRequested } from "./field-state.js";
 
 function fieldOrd(v: VisualizerElement): number {
   return Number(v.dataset.aqeFieldOrd || "0");
@@ -39,22 +40,11 @@ const PLAYBACK_TEXT_PAINT_INTERVAL_MS = 100;
 
 export function renderGraphRequested(visualizer: VisualizerElement): void {
   visualizer.hidden = false;
-  visualizer.dataset.graphActive = "true";
-  visualizer.dataset.graphBusy = "true";
-  visualizer.dataset.hasTrack = "false";
-  visualizer.dataset.durationMs = "0";
+  const ord = fieldOrd(visualizer);
+  writeFieldState(ord, graphRequested(readFieldState(ord)));
   visualizer.dataset.targetDurationMs = "0";
   visualizer.dataset.learnerDurationMs = "0";
   visualizer.dataset.learnerRecordingStatus = "idle";
-  visualizer.dataset.sourceFilename = "";
-  visualizer.dataset.anchorMs = "0";
-  visualizer.dataset.cursorMs = "0";
-  visualizer.dataset.progressMs = "0";
-  visualizer.dataset.resumeRequiresRestart = "false";
-  visualizer.dataset.playbackEngine = "";
-  visualizer.dataset.playbackStartMs = "0";
-  visualizer.dataset.playbackEndMs = "0";
-  visualizer.dataset.playbackRegionMode = "full";
   visualizer.dataset.playbackResetCursorMs = "0";
   visualizer.dataset.playbackLoop = "false";
   resetVisualizerTimeViewport(visualizer, 0);
@@ -67,14 +57,20 @@ export function renderGraphRequested(visualizer: VisualizerElement): void {
 
 export function renderVisualizerTrack(visualizer: VisualizerElement, track: NormalizedProsodyTrack): void {
   visualizer.hidden = false;
-  visualizer.dataset.graphActive = "true";
-  visualizer.dataset.graphBusy = "false";
-  visualizer.dataset.hasTrack = "true";
-  visualizer.dataset.durationMs = String(track.durationMs || 0);
+  const ord = fieldOrd(visualizer);
+  writeFieldState(ord, {
+    ...readFieldState(ord),
+    graph: {
+      active: true,
+      analyzerName: track.analyzerName || "",
+      busy: false,
+      durationMs: track.durationMs || 0,
+      hasTrack: true,
+    },
+    sourceFilename: track.sourceFilename || "",
+  });
   visualizer.dataset.targetDurationMs = String(track.durationMs || 0);
   visualizer.dataset.learnerDurationMs = "0";
-  visualizer.dataset.analyzerName = track.analyzerName || "";
-  visualizer.dataset.sourceFilename = track.sourceFilename || "";
   delete visualizer.__aqeLearnerTrack;
   visualizer.__aqeTrack = track;
   resetVisualizerTimeViewport(visualizer, track.durationMs || 0);
@@ -92,7 +88,12 @@ export function renderVisualizerStatus(visualizer: VisualizerElement, message: s
   const spinner = visualizer.closest<HTMLElement>(".aqe-controls")?.querySelector<HTMLElement>(".aqe-spinner")
     ?? visualizer.querySelector<HTMLElement>(".aqe-spinner");
   const processing = kind === "processing";
-  visualizer.dataset.graphBusy = processing ? "true" : "false";
+  const ord = fieldOrd(visualizer);
+  const state = readFieldState(ord);
+  writeFieldState(ord, {
+    ...state,
+    graph: { ...state.graph, busy: processing },
+  });
   visualizer.dataset.statusMessage = message || "";
   if (spinner) spinner.hidden = !processing;
 }

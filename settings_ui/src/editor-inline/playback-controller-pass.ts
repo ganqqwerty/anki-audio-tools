@@ -9,7 +9,7 @@ import type {
 import type { PlaybackState, VisualizerElement } from "./types.js";
 import type { PlaybackControllerDependencies } from "./playback-controller.js";
 import { liveProgressMs } from "./playback-plan-state.js";
-import { readFieldState } from "./field-state-store.js";
+import { readFieldState, writeFieldState } from "./field-state-store.js";
 import type { EditorFieldState } from "./field-state.js";
 
 function fieldState(visualizer: VisualizerElement): EditorFieldState {
@@ -79,9 +79,16 @@ export function activePlaybackPass(visualizer: VisualizerElement, deps: Playback
 }
 
 export function writePlaybackPass(visualizer: VisualizerElement, pass: PlaybackPass): void {
-  visualizer.dataset.playbackStartMs = String(Math.round(pass.startMs));
-  visualizer.dataset.playbackEndMs = String(Math.round(pass.endMs));
-  visualizer.dataset.playbackRegionMode = pass.regionMode;
+  const ord = Number(visualizer.dataset.aqeFieldOrd || "0");
+  writeFieldState(ord, {
+    ...readFieldState(ord),
+    playback: {
+      ...readFieldState(ord).playback,
+      endMs: Math.round(pass.endMs),
+      regionMode: pass.regionMode,
+      startMs: Math.round(pass.startMs),
+    },
+  });
   visualizer.dataset.playbackResetCursorMs = String(Math.round(pass.resetCursorMs));
   visualizer.dataset.playbackLoop = pass.loop ? "true" : "false";
 }

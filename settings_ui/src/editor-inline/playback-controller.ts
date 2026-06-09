@@ -35,7 +35,7 @@ import {
   renderPlaybackCursor,
 } from "./visualizer-renderer.js";
 import { ensurePlaybackCursorVisible } from "./viewport-actions.js";
-import { readFieldState } from "./field-state-store.js";
+import { readFieldState, writeFieldState } from "./field-state-store.js";
 import type { EditorFieldState } from "./field-state.js";
 
 export { clearPlaybackFrame };
@@ -188,8 +188,10 @@ function startManualPlaybackPass(
   const s = fieldState(visualizer);
   if (!s.graph.durationMs) return;
   visualizer.__aqeAudioClockFallback = true;
-  visualizer.dataset.playbackState = "playing";
-  visualizer.dataset.progressClockMode = "manual";
+  writeFieldState(s.ord, {
+    ...s,
+    playback: { ...s.playback, state: "playing", clockMode: "manual" },
+  });
   writePlaybackPass(visualizer, pass);
   deps.setPlaybackButtonLabel(visualizer, "Pause");
   startPlaybackPlan(visualizer, clockStartMs, pass.endMs);
@@ -290,8 +292,11 @@ export function pauseProgressClock(visualizer: VisualizerElement, deps: Playback
   }
   clearPlaybackFrame(visualizer);
   pauseAudioClock(visualizer);
-  visualizer.dataset.playbackState = "paused";
-  visualizer.dataset.progressClockMode = "stopped";
+  const s = fieldState(visualizer);
+  writeFieldState(s.ord, {
+    ...s,
+    playback: { ...s.playback, state: "paused", clockMode: "stopped" },
+  });
   deps.setPlaybackButtonLabel(visualizer, "Play");
 }
 
@@ -302,12 +307,17 @@ export function stopProgressClock(
 ): void {
   clearPlaybackFrame(visualizer);
   pauseAudioClock(visualizer);
-  visualizer.dataset.playbackState = "stopped";
-  visualizer.dataset.progressClockMode = "stopped";
-  visualizer.dataset.resumeRequiresRestart = "false";
-  if (options.clearEngine !== false) {
-    visualizer.dataset.playbackEngine = "";
-  }
+  const s = fieldState(visualizer);
+  writeFieldState(s.ord, {
+    ...s,
+    playback: {
+      ...s.playback,
+      state: "stopped",
+      clockMode: "stopped",
+      resumeRequiresRestart: false,
+      engine: options.clearEngine !== false ? "" : s.playback.engine,
+    },
+  });
   if (options.clearAudio) {
     clearAudioClockSource(visualizer);
   }

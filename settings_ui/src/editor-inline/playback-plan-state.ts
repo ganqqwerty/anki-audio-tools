@@ -7,7 +7,7 @@ import {
   startPlaybackCursorTransition,
   stopPlaybackCursorTransition,
 } from "./visualizer-renderer.js";
-import { readFieldState } from "./field-state-store.js";
+import { readFieldState, writeFieldState } from "./field-state-store.js";
 
 function fieldOrd(v: VisualizerElement): number {
   return Number(v.dataset.aqeFieldOrd || "0");
@@ -23,7 +23,11 @@ export function startPlaybackPlan(visualizer: VisualizerElement, startMs: number
   delete visualizer.__aqeCursorTextPaintedAtMs;
   visualizer.dataset.playStartedAt = String(nowMs);
   visualizer.dataset.playStartMs = String(Math.round(plan.startMs));
-  visualizer.dataset.progressMs = String(Math.round(plan.startMs));
+  const ord = fieldOrd(visualizer);
+  writeFieldState(ord, {
+    ...readFieldState(ord),
+    cursor: { ...readFieldState(ord).cursor, progressMs: Math.round(plan.startMs) },
+  });
   startPlaybackCursorTransition(visualizer, plan.startMs, plan.endMs);
 }
 
