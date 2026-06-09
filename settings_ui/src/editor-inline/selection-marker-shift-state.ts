@@ -10,6 +10,7 @@ import {
 } from "./selection-marker-shift.js";
 import { selectionForVisualizer } from "./selection-controller.js";
 import type { VisualizerElement } from "./types.js";
+import { readFieldState } from "./field-state-store.js";
 
 const BUTTON_SPECS = [
   { edge: "start", direction: "previous" },
@@ -47,10 +48,12 @@ export function selectionShiftMutationObserverOptions() {
 export function syncSelectionMarkerShiftButtons(visualizer: VisualizerElement): void {
   const wrapper = visualizer.querySelector<HTMLElement>(".aqe-visualizer-plot");
   const selection = selectionForVisualizer(visualizer);
-  const busy = document.body.dataset.aqeBusy === "true" || visualizer.dataset.graphBusy === "true";
+  const ord = Number(visualizer.dataset.aqeFieldOrd || "0");
+  const s = readFieldState(ord);
+  const busy = document.body.dataset.aqeBusy === "true" || s.graph.busy;
   const buttonsEnabled = visualizer.dataset.selectionMarkerShiftButtonsEnabled === "true";
-  const hasTrack = visualizer.dataset.hasTrack === "true";
-  const draftActive = visualizer.dataset.selectionDraftActive === "true";
+  const hasTrack = s.graph.hasTrack;
+  const draftActive = s.selection.draftActive;
   const overlayReady = wrapper?.dataset.selectionOverlayReady === "true";
   const hideInner = wrapper?.dataset.selectionShiftHideInner === "true";
   const startVisible = wrapper?.dataset.selectionStartEdgeVisible === "true";

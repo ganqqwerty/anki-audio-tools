@@ -18,7 +18,7 @@ import { logger } from "./logger.js";
 import { completePlayback, handlePlaybackBoundary, playbackStateFor, startManualProgressClock, stopProgressClock } from "./playback-actions.js";
 import { renderCursor } from "./visualizer-renderer.js";
 import type { VisualizerElement } from "./types.js";
-import { readFieldState, writeFieldState } from "./field-state-store.js";
+import { readFieldState, updateFieldState, writeFieldState } from "./field-state-store.js";
 
 function fieldOrd(v: VisualizerElement): number {
   return Number(v.dataset.aqeFieldOrd || "0");
@@ -52,12 +52,16 @@ export function installAudioClockHandlers(visualizer: VisualizerElement): void {
   installAudioClockElementHandlers(visualizer, {
     onLoadedMetadata(durationMs) {
       if (readFieldState(fieldOrd(visualizer)).graph.hasTrack) return;
-      visualizer.dataset.durationMs = String(durationMs);
+      const ord = fieldOrd(visualizer);
+      updateFieldState(ord, (s) => ({
+        ...s,
+        graph: { ...s.graph, durationMs },
+        playback: { ...s.playback, endMs: durationMs },
+      }));
       if ((Number(visualizer.dataset.targetDurationMs || "0") || 0) <= 0) {
         visualizer.dataset.targetDurationMs = String(durationMs);
       }
-      visualizer.dataset.playbackEndMs = String(durationMs);
-      renderCursor(visualizer, Number(visualizer.dataset.cursorMs || "0"), durationMs);
+      renderCursor(visualizer, readFieldState(ord).cursor.ms, durationMs);
     },
     onErrorDuringPlayback() {
       logger.warn("audio clock failed during playback", { ord: visualizer.dataset.aqeFieldOrd });

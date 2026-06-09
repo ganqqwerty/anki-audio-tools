@@ -11,6 +11,11 @@ import {
 import { setButtonTooltipContent } from "../lib/rich-tooltip.js";
 import { buttonTooltipContent, tooltipWithDisabledClarification } from "../lib/disabled-tooltip.js";
 import type { VisualizerElement } from "./types.js";
+import { readFieldState } from "./field-state-store.js";
+
+function fieldOrd(v: VisualizerElement): number {
+  return Number(v.dataset.aqeFieldOrd || "0");
+}
 
 export type SelectionToolbarPreview = "none" | "region" | "rest";
 
@@ -40,8 +45,9 @@ function deleteRestButtonFor(visualizer: VisualizerElement): HTMLButtonElement |
 export function syncSelectionToolbar(visualizer: VisualizerElement): void {
   const toolbar = toolbarFor(visualizer);
   const availability = regionDeleteAvailabilityFor(visualizer);
-  const busy = anyBusy() || visualizer.dataset.graphBusy === "true";
-  const hasTrack = visualizer.dataset.hasTrack === "true";
+  const s = readFieldState(fieldOrd(visualizer));
+  const busy = anyBusy() || s.graph.busy;
+  const hasTrack = s.graph.hasTrack;
   const draftActive = draftSelectionForVisualizer(visualizer) !== null;
 
   syncSelectionToolbarButtons(visualizer, busy, availability.valid);
@@ -106,7 +112,7 @@ function syncSelectionToolbarButtons(
 function syncToolbarPlayButton(visualizer: VisualizerElement, busy: boolean): void {
   const play = playButtonFor(visualizer);
   if (!play) return;
-  const playing = visualizer.dataset.playbackState === "playing";
+  const playing = readFieldState(fieldOrd(visualizer)).playback.state === "playing";
   const title = playing ? PAUSE_SELECTION_TITLE : PLAY_SELECTION_TITLE;
   const label = playing ? t("editor.command.pause.label") : t("editor.command.play.label");
   play.disabled = busy;
