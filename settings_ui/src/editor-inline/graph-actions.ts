@@ -48,7 +48,8 @@ import {
 } from "./control-actions.js";
 import { graphSettingsForField } from "./graph-split-state.js";
 import { resetVisualizerTimeViewport } from "./visualizer-state.js";
-import { readFieldState } from "./field-state-store.js";
+import { initFieldState, readFieldState } from "./field-state-store.js";
+import { initialFieldState } from "./field-state.js";
 
 type EditorStatusMessage = string | UserFacingError;
 
@@ -227,30 +228,15 @@ export function prepareForNewNote(): void {
     clearPlaybackFrame(visualizer);
     clearAudioClockSource(visualizer);
     visualizer.hidden = true;
-    visualizer.dataset.anchorMs = "0";
-    visualizer.dataset.cursorMs = "0";
-    visualizer.dataset.progressMs = "0";
-    visualizer.dataset.graphActive = "false";
-    visualizer.dataset.graphBusy = "false";
-    visualizer.dataset.hasTrack = "false";
-    visualizer.dataset.playbackState = "stopped";
-    visualizer.dataset.playbackEngine = "";
-    visualizer.dataset.resumeRequiresRestart = "false";
-    visualizer.dataset.durationMs = "0";
+    initFieldState(ord, initialFieldState({ ord, repeatByDefault: repeatDefaultFromConfig() }));
     resetVisualizerTimeViewport(visualizer, 0);
     visualizer.dataset.targetDurationMs = "0";
     visualizer.dataset.learnerDurationMs = "0";
     visualizer.dataset.learnerRecordingStatus = "idle";
-    visualizer.dataset.sourceFilename = "";
-    visualizer.dataset.analyzerName = "";
     visualizer.dataset.playStartedAt = "0";
     visualizer.dataset.playStartMs = "0";
-    visualizer.dataset.playbackStartMs = "0";
-    visualizer.dataset.playbackEndMs = "0";
-    visualizer.dataset.playbackRegionMode = "full";
     visualizer.dataset.playbackResetCursorMs = "0";
     visualizer.dataset.playbackLoop = "false";
-    visualizer.dataset.progressClockMode = "stopped";
     setRepeatEnabled(visualizer, repeatDefaultFromConfig());
     clearSelection(visualizer, { origin: "system" });
     resetVisualizerPlot(visualizer);
