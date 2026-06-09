@@ -9,6 +9,7 @@ import {
 } from "../src/editor-inline/actions.js";
 import { disposeEditorRuntime } from "../src/editor-inline/runtime.js";
 import { bridgeCommands, mountTrack } from "./editor-inline.actions.helpers.js";
+import { readFieldState } from "../src/editor-inline/field-state-store.js";
 
 describe("editor inline action progress clocks", () => {
   let warnSpy: ReturnType<typeof vi.spyOn>;
@@ -92,8 +93,8 @@ describe("editor inline action progress clocks", () => {
     now = 1100;
     frames.shift()?.(now);
 
-    expect(visualizer.dataset.playbackState).toBe("playing");
-    expect(visualizer.dataset.cursorMs).toBe("200");
+    expect(readFieldState(0).playback.state).toBe("playing");
+    expect(readFieldState(0).cursor.ms).toBe(200);
     expect(bridgeCommands()).not.toContain("aqe:play-ended");
   });
 
@@ -160,7 +161,7 @@ describe("editor inline action progress clocks", () => {
     await Promise.resolve();
     await Promise.resolve();
     expect(audio.play).toHaveBeenCalledTimes(2);
-    expect(visualizer.dataset.progressClockMode).toBe("audio");
+    expect(readFieldState(0).playback.clockMode).toBe("audio");
 
     rejectFirstPlay(new Error("blocked"));
     await Promise.resolve();
@@ -168,7 +169,7 @@ describe("editor inline action progress clocks", () => {
     now = 1150;
     frames.shift()?.(now);
 
-    expect(visualizer.dataset.progressClockMode).toBe("audio");
+    expect(readFieldState(0).playback.clockMode).toBe("audio");
     expect(Math.round(currentProgressMs(visualizer) ?? 0)).toBe(650);
   });
 });

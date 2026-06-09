@@ -13,6 +13,7 @@ import {
   startManualProgressClock,
   stopEditorPlayback,
 } from "../src/editor-inline/actions.js";
+import { readFieldState } from "../src/editor-inline/field-state-store.js";
 import { disposeEditorRuntime } from "../src/editor-inline/runtime.js";
 import { bridgeCommands, mountTrack } from "./editor-inline.actions.helpers.js";
 
@@ -70,17 +71,17 @@ describe("editor inline audio-clock workflows", () => {
     audio.dispatchEvent(new Event("loadedmetadata"));
 
     setPlaybackState(0, "playing", 100);
-    expect(visualizer.dataset.progressClockMode).toBe("audio");
+    expect(readFieldState(0).playback.clockMode).toBe("audio");
 
     audio.dispatchEvent(new Event("error"));
-    expect(visualizer.dataset.progressClockMode).toBe("manual");
+    expect(readFieldState(0).playback.clockMode).toBe("manual");
 
     visualizer.__aqeAudioClockAvailable = true;
     visualizer.dataset.progressClockMode = "audio";
     visualizer.dataset.playbackState = "playing";
     audio.dispatchEvent(new Event("ended"));
     expect(bridgeCommands()).toContain("aqe:play-ended");
-    expect(visualizer.dataset.playbackState).toBe("stopped");
+    expect(readFieldState(0).playback.state).toBe("stopped");
   });
 
   it("computes pause/resume playback requests and stop hooks", async () => {
@@ -138,9 +139,9 @@ describe("editor inline audio-clock workflows", () => {
     audio.pause = vi.fn<() => void>(() => undefined);
     startManualProgressClock(visualizer, 900);
 
-    expect(visualizer.dataset.playbackState).toBe("playing");
+    expect(readFieldState(0).playback.state).toBe("playing");
     expect(currentProgressMs(visualizer)).toBeGreaterThanOrEqual(900);
     frames.shift()?.(performance.now() + 50);
-    expect(Number(visualizer.dataset.progressMs)).toBeGreaterThanOrEqual(900);
+    expect(readFieldState(0).cursor.progressMs).toBeGreaterThanOrEqual(900);
   });
 });

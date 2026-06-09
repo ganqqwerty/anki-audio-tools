@@ -17,6 +17,7 @@ import {
 } from "../src/editor-inline/actions.js";
 import { disposeEditorRuntime } from "../src/editor-inline/runtime.js";
 import { mountTrack } from "./editor-inline.actions.helpers.js";
+import { readFieldState } from "../src/editor-inline/field-state-store.js";
 
 describe("editor inline selection workflows", () => {
   let warnSpy: ReturnType<typeof vi.spyOn>;
@@ -112,11 +113,11 @@ describe("editor inline selection workflows", () => {
     expect(selectionForVisualizer(visualizer)).toBeNull();
 
     expect(setSelection(visualizer, 100, 300, { updateCursor: false })).toBe(true);
-    expect(visualizer.dataset.cursorMs).toBe("300");
+    expect(readFieldState(0).cursor.ms).toBe(300);
     window.__aqeActiveField = 0;
     const request = getPlaybackRequest();
     expect(request).toMatchObject({ cursorMs: 100, endMs: 300, regionMode: "selection" });
-    expect(visualizer.dataset.playbackEngine).toBe(request.engine);
+    expect(readFieldState(0).playback.engine).toBe(request.engine);
 
     visualizer.dataset.durationMs = "0";
     visualizer.dataset.targetDurationMs = "0";

@@ -12,6 +12,7 @@ import {
   setVisualizerSelection,
   setVisualizerSelectionDraft,
 } from "../src/editor-inline/visualizer-state.js";
+import { readFieldState } from "../src/editor-inline/field-state-store.js";
 import type { VisualizerElement } from "../src/editor-inline/types.js";
 
 function visualizer(): VisualizerElement {
@@ -78,14 +79,15 @@ describe("visualizer state adapter", () => {
     setVisualizerPlaybackRegion(node, { startMs: 123.4, endMs: 987.6, mode: "selection" });
     setVisualizerResumeRequiresRestart(node, true);
 
-    expect(node.dataset.playbackStartMs).toBe("123");
-    expect(node.dataset.playbackEndMs).toBe("988");
-    expect(node.dataset.playbackRegionMode).toBe("selection");
-    expect(node.dataset.resumeRequiresRestart).toBe("true");
+    const s = readFieldState(0);
+    expect(s.playback.startMs).toBe(123);
+    expect(s.playback.endMs).toBe(988);
+    expect(s.playback.regionMode).toBe("selection");
+    expect(s.playback.resumeRequiresRestart).toBe(true);
 
     setVisualizerResumeRequiresRestart(node, false);
 
-    expect(node.dataset.resumeRequiresRestart).toBe("false");
+    expect(readFieldState(0).playback.resumeRequiresRestart).toBe(false);
   });
 
   it("treats invalid optional selection timestamps as absent", () => {
