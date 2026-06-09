@@ -48,6 +48,7 @@ import {
 } from "./control-actions.js";
 import { graphSettingsForField } from "./graph-split-state.js";
 import { resetVisualizerTimeViewport } from "./visualizer-state.js";
+import { readFieldState } from "./field-state-store.js";
 
 type EditorStatusMessage = string | UserFacingError;
 
@@ -117,9 +118,9 @@ export function requestPendingGraphRedraw(): boolean {
   if (expectedSource && currentSource !== expectedSource) return false;
   const visualizer = visualizerForOrd(ord);
   if (!visualizer) return false;
-  if (visualizer.dataset.graphBusy === "true") return true;
-  const renderedSource = visualizer.dataset.sourceFilename || "";
-  if (visualizer.dataset.hasTrack === "true" && (!expectedSource || renderedSource === expectedSource)) return true;
+  const s = readFieldState(ord);
+  if (s.graph.busy) return true;
+  if (s.graph.hasTrack && (!expectedSource || s.sourceFilename === expectedSource)) return true;
   requestGraph(ord, true, undefined, expectedSource || undefined);
   return true;
 }

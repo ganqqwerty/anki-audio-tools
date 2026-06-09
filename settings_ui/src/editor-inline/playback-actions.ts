@@ -18,7 +18,6 @@ import {
 import { planPlaybackRequest, selectionCoversFullDuration, type PlaybackSnapshot } from "./playback-model.js";
 import { consumePostEditPlaybackIntent } from "./post-edit-playback.js";
 import type { CursorIntent, PlaybackRequest, PlaybackState, VisualizerElement } from "./types.js";
-import { isPlaybackState } from "./types.js";
 import {
   audioClockReady,
   effectivePlaybackRegion,
@@ -30,11 +29,17 @@ import {
 import { anyBusy, setCommandButtonLabel, setStatus } from "./control-actions.js";
 import { syncSelectionToolbar } from "./selection-toolbar-state.js";
 import { readVisualizerTargetDurationMs } from "./visualizer-state.js";
+import { readFieldState } from "./field-state-store.js";
+import type { EditorFieldState } from "./field-state.js";
 import { t } from "../lib/i18n.js";
 
+function fieldState(visualizer: VisualizerElement): EditorFieldState {
+  return readFieldState(Number(visualizer.dataset.aqeFieldOrd || "0"));
+}
+
 export function setPlaybackButtonLabel(visualizer: VisualizerElement, label: string): void {
-  const ord = Number(visualizer.dataset.aqeFieldOrd || "0");
-  setCommandButtonLabel(ord, "aqe:play", label);
+  const s = fieldState(visualizer);
+  setCommandButtonLabel(s.ord, "aqe:play", label);
   syncSelectionToolbar(visualizer);
 }
 
@@ -100,17 +105,18 @@ export function playbackRequest(ord: number): PlaybackRequest {
 }
 
 function playbackSnapshotFor(visualizer: VisualizerElement, ord: number): PlaybackSnapshot {
+  const s = fieldState(visualizer);
   return {
-    anchorMs: Number(visualizer.dataset.anchorMs || visualizer.dataset.cursorMs || "0"),
+    anchorMs: s.cursor.anchorMs,
     currentProgressMs: currentProgressMs(visualizer),
-    cursorMs: Number(visualizer.dataset.cursorMs || "0"),
+    cursorMs: s.cursor.ms,
     durationMs: readVisualizerTargetDurationMs(visualizer),
     engine: playbackEngineFor(visualizer),
     ord,
     playbackState: playbackStateFor(visualizer),
     region: effectivePlaybackRegion(visualizer),
     repeat: repeatEnabledFor(visualizer),
-    resumeRequiresRestart: visualizer.dataset.resumeRequiresRestart === "true",
+    resumeRequiresRestart: s.playback.resumeRequiresRestart,
   };
 }
 
@@ -162,31 +168,32 @@ export function playAfterEdit(ord: number): boolean {
 }
 
 function postEditPlaybackStartContext(ord: number, visualizer: VisualizerElement): Record<string, unknown> {
+  const s = fieldState(visualizer);
   return {
     audioClockReady: audioClockReady(visualizer),
     engine: playbackEngineFor(visualizer),
-    graphBusy: visualizer.dataset.graphBusy || "",
-    hasTrack: visualizer.dataset.hasTrack || "",
+    graphBusy: s.graph.busy ? "true" : "",
+    hasTrack: s.graph.hasTrack ? "true" : "",
     ord,
-    playbackState: visualizer.dataset.playbackState || "",
+    playbackState: s.playback.state,
     repeatEnabled: repeatEnabledFor(visualizer),
-    sourceFilename: visualizer.dataset.sourceFilename || "",
+    sourceFilename: s.sourceFilename,
   };
 }
 
 export function playbackEngineFor(visualizer: VisualizerElement | null): "html" | "native" {
   if (!visualizer) return "native";
-  const activeEngine = visualizer.dataset.playbackEngine || "";
-  if (visualizer.dataset.playbackState !== "stopped" && (activeEngine === "html" || activeEngine === "native")) {
+  const s = fieldState(visualizer);
+  const activeEngine = s.playback.engine;
+  if (s.playback.state !== "stopped" && (activeEngine === "html" || activeEngine === "native")) {
     return activeEngine;
   }
   const region = effectivePlaybackRegion(visualizer);
   if (region.mode === "selection" && repeatEnabledFor(visualizer)) {
     return "html";
   }
-  if (visualizer.dataset.hasTrack !== "true") {
-    const hasDuration = Number(visualizer.dataset.durationMs || "0") > 0;
-    return repeatEnabledFor(visualizer) && hasDuration && audioClockReady(visualizer) ? "html" : "native";
+  if (!s.graph.hasTrack) {
+    return repeatEnabledFor(visualizer) && s.graph.durationMs > 0 && audioClockReady(visualizer) ? "html" : "native";
   }
   return audioClockReady(visualizer) ? "html" : "native";
 }
@@ -232,15 +239,14 @@ function repeatFallbackRequiresBrowserAudio(visualizer: VisualizerElement, reque
   if (!request.loop) return false;
   if (request.source === "post_edit") return true;
   if (request.regionMode !== "selection") return false;
-  const durationMs = Number(visualizer.dataset.durationMs || "0");
-  const selectionActive = visualizer.dataset.selectionActive === "true";
-  const startMs = selectionActive
-    ? Number(visualizer.dataset.selectionStartMs || "0")
+  const s = fieldState(visualizer);
+  const startMs = s.selection.active
+    ? (s.selection.startMs ?? 0)
     : Number(request.cursorMs || "0");
-  const endMs = selectionActive
-    ? Number(visualizer.dataset.selectionEndMs || request.endMs || durationMs)
-    : Number(request.endMs || durationMs);
-  return !selectionCoversFullDuration({ endMs, mode: "selection", startMs }, durationMs);
+  const endMs = s.selection.active
+    ? (s.selection.endMs ?? request.endMs ?? s.graph.durationMs)
+    : Number(request.endMs || s.graph.durationMs);
+  return !selectionCoversFullDuration({ endMs, mode: "selection", startMs }, s.graph.durationMs);
 }
 
 export function handleHtmlPlaybackCommand(ord: number): boolean {
@@ -252,12 +258,14 @@ export function handleHtmlPlaybackCommand(ord: number): boolean {
   };
   if (request.action === "pause") {
     pauseProgressClock(visualizer);
-    request.cursorMs = Number(visualizer.dataset.cursorMs || request.cursorMs || "0");
+    const s = fieldState(visualizer);
+    request.cursorMs = s.cursor.ms || request.cursorMs || 0;
     sendPlaybackRequest(request);
     return true;
   }
   if (request.action === "resume") {
-    request.cursorMs = Number(visualizer.dataset.cursorMs || request.cursorMs || "0");
+    const s = fieldState(visualizer);
+    request.cursorMs = s.cursor.ms || request.cursorMs || 0;
   }
   return startEditorHtmlPlayback(visualizer, request);
 }
@@ -269,9 +277,10 @@ export function setPlaybackState(ord: number, state: PlaybackState, cursorMs: nu
     visualizer.dataset.resumeRequiresRestart = "false";
   }
   if (state === "playing") {
+    const s = fieldState(visualizer);
     startProgressClock(visualizer, cursorMs, {
-      engine: visualizer.dataset.playbackEngine === "html" || visualizer.dataset.playbackEngine === "native"
-        ? visualizer.dataset.playbackEngine
+      engine: s.playback.engine === "html" || s.playback.engine === "native"
+        ? s.playback.engine
         : "",
     });
   } else if (state === "paused") {
@@ -304,13 +313,14 @@ export function stopEditorPlayback(ord: number): boolean {
 export function getCursorMs(): number {
   const ord = Number(window.__aqeActiveField || "0");
   const visualizer = visualizerForOrd(ord);
-  return visualizer ? Number(visualizer.dataset.cursorMs || "0") : 0;
+  if (!visualizer) return 0;
+  return fieldState(visualizer).cursor.ms;
 }
 
 export function getCursorIntent(): CursorIntent {
   const ord = Number(window.__aqeActiveField || "0");
   const visualizer = visualizerForOrd(ord);
-  const fallback = visualizer ? Number(visualizer.dataset.cursorMs || "0") : 0;
+  const fallback = visualizer ? fieldState(visualizer).cursor.ms : 0;
   const region = visualizer ? effectivePlaybackRegion(visualizer) : null;
   const fallbackIntent: CursorIntent = {
     cursorMs: fallback,
@@ -325,6 +335,5 @@ export function getCursorIntent(): CursorIntent {
 }
 
 export function playbackStateFor(visualizer: VisualizerElement): PlaybackState {
-  const state = visualizer.dataset.playbackState;
-  return isPlaybackState(state) ? state : "stopped";
+  return fieldState(visualizer).playback.state;
 }

@@ -17,6 +17,11 @@ import {
   readVisualizerTargetDurationMs,
   readVisualizerTimeViewport,
 } from "./visualizer-state.js";
+import { readFieldState } from "./field-state-store.js";
+
+function fieldOrd(v: VisualizerElement): number {
+  return Number(v.dataset.aqeFieldOrd || "0");
+}
 
 const WHEEL_PAN_RATIO = 0.0015;
 const WHEEL_ZOOM_SENSITIVITY = 0.0015;
@@ -60,7 +65,7 @@ export function zoomSelectionForVisualizer(visualizer: VisualizerElement): boole
 }
 
 export function handleVisualizerWheelZoom(event: WheelEvent, visualizer: VisualizerElement): boolean {
-  if (visualizer.dataset.hasTrack !== "true") return false;
+  if (!readFieldState(fieldOrd(visualizer)).graph.hasTrack) return false;
   const viewport = readVisualizerTimeViewport(visualizer);
   if (event.ctrlKey || event.metaKey || event.altKey) {
     event.preventDefault();
@@ -92,7 +97,7 @@ function wheelZoomFactor(deltaY: number): number {
 }
 
 export function handleVisualizerZoomKeyDown(event: KeyboardEvent, visualizer: VisualizerElement): boolean {
-  if (event.defaultPrevented || visualizer.dataset.hasTrack !== "true") return false;
+  if (event.defaultPrevented || !readFieldState(fieldOrd(visualizer)).graph.hasTrack) return false;
   const viewport = readVisualizerTimeViewport(visualizer);
   if (event.key === "+" || event.key === "=") {
     event.preventDefault();

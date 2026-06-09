@@ -16,6 +16,11 @@ import {
   readVisualizerTimeViewport,
   writeVisualizerTimeViewport,
 } from "./visualizer-state.js";
+import { readFieldState } from "./field-state-store.js";
+
+function fieldOrd(v: VisualizerElement): number {
+  return Number(v.dataset.aqeFieldOrd || "0");
+}
 
 const PLAYBACK_FOLLOW_MARGIN_RATIO = 0.12;
 
@@ -25,7 +30,7 @@ export function applyVisualizerTimeViewport(visualizer: VisualizerElement, viewp
 }
 
 export function redrawVisualizerForCurrentViewport(visualizer: VisualizerElement): void {
-  if (visualizer.dataset.hasTrack === "true") {
+  if (readFieldState(fieldOrd(visualizer)).graph.hasTrack) {
     renderProsodyTracks(visualizer);
   }
   renderCurrentSelectionFromState(visualizer);

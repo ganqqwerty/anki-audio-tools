@@ -18,11 +18,17 @@ import { msVisibleInViewport } from "./time-viewport.js";
 import type { NormalizedProsodyTrack, VisualizerElement } from "./types.js";
 import { renderSelection } from "./visualizer-selection-renderer.js";
 import {
+  readVisualizerDurationMs,
   readVisualizerSelectionState,
   readVisualizerTargetDurationMs,
   readVisualizerTimeViewport,
   resetVisualizerTimeViewport,
 } from "./visualizer-state.js";
+import { readFieldState } from "./field-state-store.js";
+
+function fieldOrd(v: VisualizerElement): number {
+  return Number(v.dataset.aqeFieldOrd || "0");
+}
 
 type CursorRenderCache = NonNullable<VisualizerElement["__aqeCursorRenderCache"]>;
 
@@ -76,7 +82,7 @@ export function renderVisualizerTrack(visualizer: VisualizerElement, track: Norm
 }
 
 export function renderLearnerVisualizerTrack(visualizer: VisualizerElement, track: NormalizedProsodyTrack): void {
-  if (visualizer.dataset.hasTrack !== "true" || !visualizer.__aqeTrack) return;
+  if (!readFieldState(fieldOrd(visualizer)).graph.hasTrack || !visualizer.__aqeTrack) return;
   visualizer.__aqeLearnerTrack = track;
   visualizer.dataset.learnerDurationMs = String(track.durationMs || 0);
   renderProsodyTracks(visualizer);
@@ -115,7 +121,7 @@ export function startPlaybackCursorTransition(
   startMs: number,
   endMs: number,
 ): void {
-  const durationMs = Number(visualizer.dataset.durationMs || "0");
+  const durationMs = readVisualizerDurationMs(visualizer);
   const nodes = cursorRenderCache(visualizer);
   if (!nodes.cssCursor || !durationMs || endMs <= startMs) return;
   renderCursorProjection(visualizer, startMs, durationMs, { geometry: true, text: true });

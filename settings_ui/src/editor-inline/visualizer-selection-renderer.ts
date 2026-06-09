@@ -2,7 +2,7 @@ import type { PlaybackRegion } from "./playback-state.js";
 import { PLOT, type PlotGeometry, plotGeometryForSvg, svgViewBoxScale, xForMs } from "./plot.js";
 import { msVisibleInViewport } from "./time-viewport.js";
 import type { VisualizerElement } from "./types.js";
-import { readVisualizerTimeViewport } from "./visualizer-state.js";
+import { readVisualizerTimeViewport, readVisualizerDurationMs } from "./visualizer-state.js";
 
 const SELECTION_TOOLBAR_RIGHT_OFFSET_PX = 6;
 const SELECTION_SHIFT_BUTTON_MIN_BAND_WIDTH_PX = 52;
@@ -20,7 +20,7 @@ export function renderSelection(
   const startHandle = visualizer.querySelector<HTMLElement>(".aqe-selection-resize-start");
   const endHandle = visualizer.querySelector<HTMLElement>(".aqe-selection-resize-end");
   const activeSelection = draftSelection ?? selection;
-  const durationMs = Number(visualizer.dataset.durationMs || "0");
+  const durationMs = readVisualizerDurationMs(visualizer);
   const plot = plotGeometryForVisualizer(visualizer);
   if (!band || !startEdge || !endEdge || !startHandle || !endHandle || !activeSelection || !durationMs) {
     band?.setAttribute("width", "0");

@@ -9,6 +9,12 @@ import type {
 import type { PlaybackState, VisualizerElement } from "./types.js";
 import type { PlaybackControllerDependencies } from "./playback-controller.js";
 import { liveProgressMs } from "./playback-plan-state.js";
+import { readFieldState } from "./field-state-store.js";
+import type { EditorFieldState } from "./field-state.js";
+
+function fieldState(visualizer: VisualizerElement): EditorFieldState {
+  return readFieldState(Number(visualizer.dataset.aqeFieldOrd || "0"));
+}
 
 export function setPlaybackPass(
   visualizer: VisualizerElement,
@@ -39,35 +45,36 @@ function playbackSnapshotForPass(
   deps: PlaybackControllerDependencies,
   region: PlaybackRegion,
 ): PlaybackSnapshot {
+  const s = fieldState(visualizer);
   return {
-    anchorMs: Number(visualizer.dataset.anchorMs || visualizer.dataset.cursorMs || "0"),
+    anchorMs: s.cursor.anchorMs,
     currentProgressMs: currentProgressMs(visualizer),
-    cursorMs: Number(visualizer.dataset.cursorMs || "0"),
-    durationMs: Number(visualizer.dataset.durationMs || "0") || 0,
-    engine: playbackEngineForDataset(visualizer.dataset.playbackEngine),
-    ord: Number(visualizer.dataset.aqeFieldOrd || "0"),
-    playbackState: playbackStateForDataset(visualizer.dataset.playbackState),
+    cursorMs: s.cursor.ms,
+    durationMs: s.graph.durationMs,
+    engine: playbackEngineForDataset(s.playback.engine),
+    ord: s.ord,
+    playbackState: playbackStateForDataset(s.playback.state),
     region,
     repeat: deps.repeatEnabledFor(visualizer),
-    resumeRequiresRestart: visualizer.dataset.resumeRequiresRestart === "true",
+    resumeRequiresRestart: s.playback.resumeRequiresRestart,
   };
 }
 
 export function activePlaybackPass(visualizer: VisualizerElement, deps: PlaybackControllerDependencies): PlaybackPass {
   const region = deps.effectivePlaybackRegion(visualizer);
-  const durationMs = Number(visualizer.dataset.durationMs || "0") || 0;
-  const regionMode = playbackRegionModeForDataset(visualizer.dataset.playbackRegionMode);
+  const s = fieldState(visualizer);
+  const regionMode = playbackRegionModeForDataset(s.playback.regionMode);
   const fallbackResetCursorMs = regionMode === "selection"
     ? region.startMs
-    : Number(visualizer.dataset.anchorMs || visualizer.dataset.cursorMs || "0");
-  const rawEndMs = readStoredMs(visualizer.dataset.playbackEndMs, region.endMs);
-  const endMs = durationMs > 0 ? Math.min(rawEndMs, durationMs) : rawEndMs;
+    : s.cursor.anchorMs;
+  const rawEndMs = s.playback.endMs || region.endMs;
+  const endMs = s.graph.durationMs > 0 ? Math.min(rawEndMs, s.graph.durationMs) : rawEndMs;
   return {
     endMs: Math.round(Math.max(0, endMs)),
     loop: visualizer.dataset.playbackLoop === "true",
     regionMode,
-    resetCursorMs: Math.round(readStoredMs(visualizer.dataset.playbackResetCursorMs, fallbackResetCursorMs)),
-    startMs: Math.round(readStoredMs(visualizer.dataset.playbackStartMs, region.startMs)),
+    resetCursorMs: Math.round(readDomStoredMs(visualizer.dataset.playbackResetCursorMs, fallbackResetCursorMs)),
+    startMs: Math.round(s.playback.startMs || region.startMs),
   };
 }
 
@@ -92,7 +99,7 @@ function playbackRegionModeForDataset(value: string | undefined): PlaybackRegion
   return value === "selection" ? "selection" : "full";
 }
 
-function readStoredMs(rawValue: string | undefined, fallbackMs: number): number {
+function readDomStoredMs(rawValue: string | undefined, fallbackMs: number): number {
   if (!rawValue) return fallbackMs;
   const value = Number(rawValue);
   return Number.isFinite(value) ? value : fallbackMs;
@@ -100,5 +107,7 @@ function readStoredMs(rawValue: string | undefined, fallbackMs: number): number 
 
 function currentProgressMs(visualizer: VisualizerElement): number | null {
   const planned = liveProgressMs(visualizer);
-  return planned !== null ? planned : Number(visualizer.dataset.progressMs || visualizer.dataset.cursorMs || "0");
+  if (planned !== null) return planned;
+  const s = fieldState(visualizer);
+  return s.cursor.progressMs || s.cursor.ms;
 }

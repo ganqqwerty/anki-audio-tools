@@ -8,7 +8,7 @@ import {
 } from "./control-actions.js";
 import EditorControls from "./EditorControls.svelte";
 import { visualizerForOrd } from "./dom-selectors.js";
-import { initFieldState, removeFieldState } from "./field-state-store.js";
+import { initFieldState, readFieldState, removeFieldState } from "./field-state-store.js";
 import { initialFieldState } from "./field-state.js";
 import type { FieldTarget } from "./types.js";
 
@@ -42,14 +42,17 @@ export function mountController(target: FieldTarget): FieldController | null {
       return existing;
     }
     const visualizer = visualizerForOrd(target.ord);
-    if (visualizer?.dataset.graphBusy === "true" || visualizer?.dataset.hasTrack === "true") {
-      const renderedSource = visualizer.dataset.sourceFilename || target.sourceFilename;
-      existing.sourceFilename = renderedSource;
-      const controls = document.querySelector<HTMLElement>(`.aqe-controls[data-aqe-field-ord="${target.ord}"]`);
-      if (controls) controls.dataset.aqeSourceFilename = renderedSource;
-      removeDuplicateControls(target.ord, existing.host);
-      applyInitialStatus(target.ord, initialStatus);
-      return existing;
+    if (visualizer) {
+      const s = readFieldState(target.ord);
+      if (s.graph.busy || s.graph.hasTrack) {
+        const renderedSource = visualizer.dataset.sourceFilename || target.sourceFilename;
+        existing.sourceFilename = renderedSource;
+        const controls = document.querySelector<HTMLElement>(`.aqe-controls[data-aqe-field-ord="${target.ord}"]`);
+        if (controls) controls.dataset.aqeSourceFilename = renderedSource;
+        removeDuplicateControls(target.ord, existing.host);
+        applyInitialStatus(target.ord, initialStatus);
+        return existing;
+      }
     }
   }
 

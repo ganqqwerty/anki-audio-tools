@@ -18,6 +18,11 @@ import { logger } from "./logger.js";
 import { completePlayback, handlePlaybackBoundary, playbackStateFor, startManualProgressClock, stopProgressClock } from "./playback-actions.js";
 import { renderCursor } from "./visualizer-renderer.js";
 import type { VisualizerElement } from "./types.js";
+import { readFieldState } from "./field-state-store.js";
+
+function fieldOrd(v: VisualizerElement): number {
+  return Number(v.dataset.aqeFieldOrd || "0");
+}
 
 export function stopOtherPlayback(activeVisualizer: VisualizerElement): void {
   for (const visualizer of allVisualizers()) {
@@ -46,7 +51,7 @@ export function configureAudioClock(visualizer: VisualizerElement, filename: str
 export function installAudioClockHandlers(visualizer: VisualizerElement): void {
   installAudioClockElementHandlers(visualizer, {
     onLoadedMetadata(durationMs) {
-      if (visualizer.dataset.hasTrack === "true") return;
+      if (readFieldState(fieldOrd(visualizer)).graph.hasTrack) return;
       visualizer.dataset.durationMs = String(durationMs);
       if ((Number(visualizer.dataset.targetDurationMs || "0") || 0) <= 0) {
         visualizer.dataset.targetDurationMs = String(durationMs);
@@ -69,7 +74,7 @@ export function audioClockReady(visualizer: VisualizerElement | null): boolean {
 }
 
 export function clampProgressMs(visualizer: VisualizerElement, ms: number): number {
-  const durationMs = Number(visualizer.dataset.durationMs || "0");
+  const durationMs = readFieldState(fieldOrd(visualizer)).graph.durationMs;
   return Math.max(0, Math.min(Number(ms) || 0, durationMs || 0));
 }
 
@@ -98,5 +103,5 @@ export function setRepeatEnabled(visualizer: VisualizerElement, enabled: boolean
 }
 
 export function repeatEnabledFor(visualizer: VisualizerElement): boolean {
-  return visualizer.dataset.repeatEnabled === "true";
+  return readFieldState(fieldOrd(visualizer)).playback.repeat;
 }

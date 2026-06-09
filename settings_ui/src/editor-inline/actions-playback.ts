@@ -30,6 +30,11 @@ import {
 } from "./selection-controller.js";
 import { readVisualizerTargetDurationMs } from "./visualizer-state.js";
 import { notifySelectionChanged } from "./selection-events.js";
+import { readFieldState } from "./field-state-store.js";
+
+function fieldOrd(v: VisualizerElement): number {
+  return Number(v.dataset.aqeFieldOrd || "0");
+}
 
 export function clearPlaybackFrame(visualizer: VisualizerElement): void {
   clearPlaybackFrameFromController(visualizer);
@@ -100,7 +105,7 @@ export function setCursor(
     updateAnchor?: boolean;
   } = {},
 ): void {
-  const durationMs = Number(visualizer.dataset.durationMs || "0");
+  const s = readFieldState(fieldOrd(visualizer));
   const targetDurationMs = readVisualizerTargetDurationMs(visualizer);
   const clamped = Math.max(0, Math.min(Number(ms) || 0, targetDurationMs || 0));
   visualizer.dataset.cursorMs = String(Math.round(clamped));
@@ -108,7 +113,7 @@ export function setCursor(
   if (options.updateAnchor !== false) {
     visualizer.dataset.anchorMs = String(Math.round(clamped));
   }
-  renderCursor(visualizer, clamped, durationMs);
+  renderCursor(visualizer, clamped, s.graph.durationMs);
   if (notifyPython) {
     window.__aqeActiveField = Number(visualizer.dataset.aqeFieldOrd || "0");
     const region = effectivePlaybackRegionFromController(visualizer);
@@ -127,8 +132,9 @@ export function setCursor(
 }
 
 export function initializePlaybackRegionState(visualizer: VisualizerElement): void {
+  const s = readFieldState(fieldOrd(visualizer));
   visualizer.dataset.playbackStartMs = "0";
-  visualizer.dataset.playbackEndMs = String(Number(visualizer.dataset.durationMs || "0") || 0);
+  visualizer.dataset.playbackEndMs = String(s.graph.durationMs || 0);
   visualizer.dataset.playbackRegionMode = "full";
   visualizer.dataset.playbackResetCursorMs = "0";
   visualizer.dataset.playbackLoop = repeatDefaultFromConfig() ? "true" : "false";

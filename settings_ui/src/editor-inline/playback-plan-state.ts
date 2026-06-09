@@ -7,6 +7,11 @@ import {
   startPlaybackCursorTransition,
   stopPlaybackCursorTransition,
 } from "./visualizer-renderer.js";
+import { readFieldState } from "./field-state-store.js";
+
+function fieldOrd(v: VisualizerElement): number {
+  return Number(v.dataset.aqeFieldOrd || "0");
+}
 
 export function startPlaybackPlan(visualizer: VisualizerElement, startMs: number, endMs: number): void {
   const nowMs = performance.now();
@@ -53,6 +58,6 @@ export function repeatPauseDelayMs(visualizer: VisualizerElement): number {
 }
 
 export function clampProgressMs(visualizer: VisualizerElement, ms: number): number {
-  const durationMs = Number(visualizer.dataset.durationMs || "0");
+  const durationMs = readFieldState(fieldOrd(visualizer)).graph.durationMs;
   return Math.max(0, Math.min(Number(ms) || 0, durationMs || 0));
 }
