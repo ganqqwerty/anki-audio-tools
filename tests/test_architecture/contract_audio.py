@@ -122,6 +122,7 @@ AUDIO_CONTRACTS: dict[str, ModuleContract] = {
         allowed_addon_deps=(
             "audio_commands",
             "audio_external",
+            "audio_noise_reduction_telemetry",
             "audio_output_policy",
             "audio_state",
             "audio_tools",
@@ -133,6 +134,11 @@ AUDIO_CONTRACTS: dict[str, ModuleContract] = {
             SideEffect.SUBPROCESS_RUN,
             SideEffect.TEMP_FILESYSTEM_CLEANUP,
         ),
+    ),
+    "audio_noise_reduction_telemetry": contract(
+        "audio_noise_reduction_telemetry",
+        layer=Layer.IMPORT_SAFE_CORE,
+        allowed_addon_deps=("support",),
     ),
     "audio_pitch_hum": contract(
         "audio_pitch_hum",

@@ -22,6 +22,11 @@ from .audio_external import (
     _run_external_command,
     probe_duration_ms,
 )
+from .audio_noise_reduction_telemetry import (
+    record_dpdfnet_failure,
+    record_rnnoise_failure,
+    record_spleeter_failure,
+)
 from .audio_output_policy import (
     AudioOutputPolicy,
     AudioSourceMetadata,
@@ -42,8 +47,6 @@ from .audio_types import AudioProcessingResult
 from .errors import AudioProcessingError
 from .support import (
     build_command_record,
-    record_latest_denoise_support_incident,
-    record_latest_spleeter_support_incident,
 )
 
 DENOISE_EXTERNAL_TIMEOUT_SECONDS = 20 * 60
@@ -116,7 +119,7 @@ def render_rnnoise_audio(
         )
         return AudioProcessingResult(output_path=output_path, command=rnnoise_cmd, duration_ms=probe_duration_ms(output_path, config))
     except Exception as exc:
-        _record_rnnoise_failure(source_path, exc, ffmpeg_path=ffmpeg_path, rnnoise_path=rnnoise_path, attempted_commands=attempted_commands)
+        record_rnnoise_failure(source_path, exc, ffmpeg_path=ffmpeg_path, rnnoise_path=rnnoise_path, attempted_commands=attempted_commands)
         raise
     finally:
         if work_dir is not None:
@@ -182,7 +185,7 @@ def render_dpdfnet_audio(
         )
         return AudioProcessingResult(output_path=output_path, command=dpdfnet_cmd, duration_ms=probe_duration_ms(output_path, config))
     except Exception as exc:
-        _record_dpdfnet_failure(source_path, exc, ffmpeg_path=ffmpeg_path, dpdfnet_path=dpdfnet_path, attempted_commands=attempted_commands)
+        record_dpdfnet_failure(source_path, exc, ffmpeg_path=ffmpeg_path, dpdfnet_path=dpdfnet_path, attempted_commands=attempted_commands)
         raise
     finally:
         if work_dir is not None:
@@ -266,7 +269,7 @@ def render_voice_only_audio(
         )
         return AudioProcessingResult(output_path=output_path, command=spleeter_cmd, duration_ms=probe_duration_ms(output_path, config))
     except Exception as exc:
-        _record_spleeter_failure(
+        record_spleeter_failure(
             source_path,
             exc,
             ffmpeg_path=ffmpeg_path,
@@ -337,67 +340,3 @@ def _run_recorded_external_command(
 def _ensure_stage_success(result: subprocess.CompletedProcess[str], failure_message: str) -> None:
     if result.returncode != 0:
         raise AudioProcessingError(_render_external_error_message(result, failure_message))
-
-
-def _record_rnnoise_failure(
-    source_path: Path,
-    exc: Exception,
-    *,
-    ffmpeg_path: Path | None,
-    rnnoise_path: Path | None,
-    attempted_commands: list[dict[str, object]],
-) -> None:
-    record_latest_denoise_support_incident(
-        operation="rnnoise_denoise",
-        media_filename=source_path.name,
-        source_path=str(source_path.resolve()),
-        user_message=str(exc),
-        exception_type=type(exc).__name__,
-        ffmpeg_path=str(ffmpeg_path) if ffmpeg_path is not None else "",
-        rnnoise_path=str(rnnoise_path) if rnnoise_path is not None else "",
-        attempted_commands=attempted_commands,
-    )
-
-
-def _record_dpdfnet_failure(
-    source_path: Path,
-    exc: Exception,
-    *,
-    ffmpeg_path: Path | None,
-    dpdfnet_path: Path | None,
-    attempted_commands: list[dict[str, object]],
-) -> None:
-    record_latest_denoise_support_incident(
-        operation="dpdfnet_denoise",
-        media_filename=source_path.name,
-        source_path=str(source_path.resolve()),
-        user_message=str(exc),
-        exception_type=type(exc).__name__,
-        ffmpeg_path=str(ffmpeg_path) if ffmpeg_path is not None else "",
-        dpdfnet_path=str(dpdfnet_path) if dpdfnet_path is not None else "",
-        attempted_commands=attempted_commands,
-    )
-
-
-def _record_spleeter_failure(
-    source_path: Path,
-    exc: Exception,
-    *,
-    ffmpeg_path: Path | None,
-    spleeter_path: Path | None,
-    vocals_model_path: Path | None,
-    accompaniment_model_path: Path | None,
-    attempted_commands: list[dict[str, object]],
-) -> None:
-    record_latest_spleeter_support_incident(
-        operation="voice_only",
-        media_filename=source_path.name,
-        source_path=str(source_path.resolve()),
-        user_message=str(exc),
-        exception_type=type(exc).__name__,
-        ffmpeg_path=str(ffmpeg_path) if ffmpeg_path is not None else "",
-        spleeter_path=str(spleeter_path) if spleeter_path is not None else "",
-        vocals_model_path=str(vocals_model_path) if vocals_model_path is not None else "",
-        accompaniment_model_path=str(accompaniment_model_path) if accompaniment_model_path is not None else "",
-        attempted_commands=attempted_commands,
-    )

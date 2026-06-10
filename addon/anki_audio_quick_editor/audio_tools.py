@@ -270,20 +270,26 @@ def expected_bundled_spleeter_model_path(model_name: str) -> Path | None:
     return _PACKAGE_DIR / "bin" / "models" / "spleeter-2stems-fp16" / model_name
 
 
+def _managed_spleeter_bundle() -> tuple[Path, Path, Path] | None:
+    managed_executable = managed_tool_path("sherpa-spleeter")
+    managed_vocals = runtime_manager.managed_spleeter_model_path(_PACKAGE_DIR, "vocals.fp16.onnx")
+    managed_accompaniment = runtime_manager.managed_spleeter_model_path(_PACKAGE_DIR, "accompaniment.fp16.onnx")
+    if managed_executable is not None and managed_vocals is not None and managed_accompaniment is not None:
+        return managed_executable, managed_vocals, managed_accompaniment
+    return None
+
+
 def find_spleeter_bundle(
     *,
     expected_bundled_tool_path: Callable[..., Path | None] | None = None,
     expected_bundled_spleeter_model_path: Callable[..., Path | None] | None = None,
 ) -> tuple[Path, Path, Path]:
     """Return bundled Sherpa Spleeter executable and model paths."""
+    managed = _managed_spleeter_bundle()
+    if managed is not None:
+        return managed
     _get_bundled_tool_path = expected_bundled_tool_path if expected_bundled_tool_path is not None else globals()["expected_bundled_tool_path"]
     _get_bundled_spleeter_model = expected_bundled_spleeter_model_path if expected_bundled_spleeter_model_path is not None else globals()["expected_bundled_spleeter_model_path"]
-    managed_executable = managed_tool_path("sherpa-spleeter")
-    managed_vocals = runtime_manager.managed_spleeter_model_path(_PACKAGE_DIR, "vocals.fp16.onnx")
-    managed_accompaniment = runtime_manager.managed_spleeter_model_path(_PACKAGE_DIR, "accompaniment.fp16.onnx")
-    if managed_executable is not None and managed_vocals is not None and managed_accompaniment is not None:
-        return managed_executable, managed_vocals, managed_accompaniment
-
     managed_expected = expected_managed_tool_path("sherpa-spleeter")
     bundled_expected = _get_bundled_tool_path("sherpa-spleeter")
     if bundled_expected is not None and bundled_expected.is_file():
