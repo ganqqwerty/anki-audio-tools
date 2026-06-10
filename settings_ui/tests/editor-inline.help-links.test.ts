@@ -2,7 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { disposeEditorRuntime, initializeEditorRuntime, scan } from "../src/editor-inline/runtime.js";
 import { PRODUCT_LINKS } from "../src/lib/product-links.js";
-import { bridgeCommands, muteConsole, renderFields } from "./editor-inline.integration.helpers.js";
+import { bridgeCommands, muteConsole, peekPendingCommandPayload, renderFields } from "./editor-inline.integration.helpers.js";
 
 describe("editor inline help links", () => {
   let restoreConsole: () => void;
@@ -37,7 +37,7 @@ describe("editor inline help links", () => {
 
     expect(link.dispatchEvent(click)).toBe(false);
     expect(bridgeCommands()).toContain("aqe:command-payload");
-    expect(window.__aqePendingCommandPayload).toEqual({
+    expect(peekPendingCommandPayload()).toEqual({
       command: "aqe:open-url",
       url: PRODUCT_LINKS.githubPages,
     });
@@ -68,7 +68,7 @@ describe("editor inline help links", () => {
     const helpTitles = [...document.querySelectorAll(".aqe-help-title")].map((title) => title.textContent);
     expect(helpTitles).not.toContain("Videos");
     expect(link.dispatchEvent(click)).toBe(false);
-    expect(window.__aqePendingCommandPayload).toEqual({
+    expect(peekPendingCommandPayload()).toEqual({
       command: "aqe:open-url",
       url: PRODUCT_LINKS.editorVideos.pitchHum,
     });

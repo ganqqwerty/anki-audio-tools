@@ -8,6 +8,7 @@ import {
 import {
   bridgeCommands,
   muteConsole,
+  peekPendingCommandPayload,
   renderFields,
   track,
 } from "./editor-inline.integration.helpers.js";
@@ -195,7 +196,7 @@ describe("editor inline learner recording integration", () => {
     expect(window.__aqeGraphStateForTest?.(0)?.learnerRecordingStatus).toBe("idle");
     expect(bridgeCommands()).toContain("focus:0");
     expect(bridgeCommands()).toContain("aqe:command-payload");
-    expect(window.__aqePendingCommandPayload).toMatchObject({
+    expect(peekPendingCommandPayload()).toMatchObject({
       command: "aqe:record-voice",
       fieldOrd: 0,
       graphSettings: { smoothness: expect.any(String) },
@@ -243,7 +244,7 @@ describe("editor inline learner recording integration", () => {
     expect(overlay.hidden).toBe(true);
     expect(bridgeCommands()).toContain("focus:0");
     expect(bridgeCommands()).toContain("aqe:command-payload");
-    expect(window.__aqePendingCommandPayload).toMatchObject({
+    expect(peekPendingCommandPayload()).toMatchObject({
       command: "aqe:record-voice",
       fieldOrd: 0,
     });
@@ -331,13 +332,13 @@ describe("editor inline learner recording integration", () => {
     expect(playYoursButton.textContent).toContain("Play yours");
 
     showYoursButton.click();
-    expect(window.__aqePendingCommandPayload).toMatchObject({
+    expect(peekPendingCommandPayload()).toMatchObject({
       command: "aqe:show-recording-file",
       fieldOrd: 0,
     });
 
     shareYoursButton.click();
-    expect(window.__aqePendingCommandPayload).toMatchObject({
+    expect(peekPendingCommandPayload()).toMatchObject({
       command: "aqe:share-recording",
       fieldOrd: 0,
       shareTarget: "litterbox",

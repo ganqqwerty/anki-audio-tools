@@ -9,6 +9,7 @@ import type { EditorRuntimeConfig } from "../src/editor-inline/types.js";
 import {
   bridgeCommands,
   muteConsole,
+  peekPendingCommandPayload,
   renderFields,
 } from "./editor-inline.integration.helpers.js";
 
@@ -85,7 +86,7 @@ describe("editor inline Compress Audio source metadata", () => {
     expect(bridgeCommands()).toContain("aqe:command-payload");
     expect(bridgeCommands()).not.toContain("aqe:source-metadata");
     expect(window.__aqePopPendingSourceMetadataRequest?.()).toBeNull();
-    expect(window.__aqePendingCommandPayload).toMatchObject({
+    expect(peekPendingCommandPayload()).toMatchObject({
       command: "aqe:reduce-size",
       fieldOrd: 0,
     });

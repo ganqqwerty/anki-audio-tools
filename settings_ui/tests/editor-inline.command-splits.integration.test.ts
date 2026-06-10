@@ -5,10 +5,11 @@ import {
   initializeEditorRuntime,
   scan,
 } from "../src/editor-inline/runtime.js";
-import type { EditorCommandPayload } from "../src/editor-inline/types.js";
 import {
   bridgeCommands,
+  consumePendingCommandPayload,
   muteConsole,
+  peekPendingCommandPayload,
   renderFields,
   track,
 } from "./editor-inline.integration.helpers.js";
@@ -63,9 +64,9 @@ describe("editor inline split-button command integration", () => {
 
     document.querySelector<HTMLButtonElement>('[data-testid="aqe-button-0-denoise-standard"]')!.click();
     expect(bridgeCommands()).toContain("aqe:command-payload");
-    expect(window.__aqePendingCommandPayload?.command).toBe("aqe:denoise-standard");
-    expect(window.__aqePendingCommandPayload?.fieldOrd).toBe(0);
-    expect(window.__aqePendingCommandPayload?.overrides?.denoiseAlgorithm).toBe("standard");
+    expect(peekPendingCommandPayload()?.command).toBe("aqe:denoise-standard");
+    expect(peekPendingCommandPayload()?.fieldOrd).toBe(0);
+    expect(peekPendingCommandPayload()?.overrides?.denoiseAlgorithm).toBe("standard");
 
     window.__aqePrepareForNewNote?.();
     document.querySelector<HTMLButtonElement>('[data-testid="aqe-split-0-denoise-standard-menu"]')!.click();
@@ -82,9 +83,9 @@ describe("editor inline split-button command integration", () => {
       "Denoise\nCreate a new file cleaned with DPDFNet",
     );
     document.querySelector<HTMLButtonElement>('[data-testid="aqe-button-0-denoise-standard"]')!.click();
-    expect(window.__aqePendingCommandPayload?.command).toBe("aqe:dpdfnet");
-    expect(window.__aqePendingCommandPayload?.fieldOrd).toBe(0);
-    expect(window.__aqePendingCommandPayload?.overrides?.denoiseAlgorithm).toBe("dpdfnet");
+    expect(peekPendingCommandPayload()?.command).toBe("aqe:dpdfnet");
+    expect(peekPendingCommandPayload()?.fieldOrd).toBe(0);
+    expect(peekPendingCommandPayload()?.overrides?.denoiseAlgorithm).toBe("dpdfnet");
   });
 
   it("dispatches graph split requests with field-local graph settings", async () => {
@@ -148,7 +149,7 @@ describe("editor inline split-button command integration", () => {
     expect(window.__aqePopPendingGraphAnalysisRequest?.()).toBeNull();
     expect(bridgeCommands()).toContain("focus:0");
     expect(bridgeCommands()).toContain("aqe:command-payload");
-    const payload = window.__aqePendingCommandPayload as EditorCommandPayload | null | undefined;
+    const payload = peekPendingCommandPayload();
     expect(payload?.command).toBe("aqe:analyze");
     expect(payload?.fieldOrd).toBe(0);
     expect(payload?.graphSettings).toMatchObject({ smoothness: expect.any(String) });
@@ -170,8 +171,7 @@ describe("editor inline split-button command integration", () => {
     scan(window.__AQE_EDITOR_CONFIG__);
 
     document.querySelector<HTMLButtonElement>('[data-testid="aqe-button-0-convert"]')!.click();
-    const defaultPayload = window.__aqePendingCommandPayload as EditorCommandPayload | null | undefined;
-    window.__aqePendingCommandPayload = null;
+    const defaultPayload = consumePendingCommandPayload();
     window.__aqeSetBusy?.(0, false);
     document.querySelector<HTMLButtonElement>('[data-testid="aqe-split-0-convert-menu"]')!.click();
     await Promise.resolve();
@@ -181,7 +181,7 @@ describe("editor inline split-button command integration", () => {
     document.querySelector<HTMLButtonElement>('[data-testid="aqe-button-0-convert"]')!.click();
 
     expect(defaultPayload?.overrides?.targetFormat).toBe("m4a");
-    expect(window.__aqePendingCommandPayload).toMatchObject({
+    expect(peekPendingCommandPayload()).toMatchObject({
       command: "aqe:convert",
       fieldOrd: 0,
       overrides: {
@@ -215,7 +215,7 @@ describe("editor inline split-button command integration", () => {
     document.querySelector<HTMLButtonElement>('[data-testid="aqe-button-0-share"]')!.click();
 
     expect(bridgeCommands()).toContain("aqe:command-payload");
-    expect(window.__aqePendingCommandPayload).toMatchObject({
+    expect(peekPendingCommandPayload()).toMatchObject({
       command: "aqe:share",
       fieldOrd: 0,
       shareTarget: "catbox",

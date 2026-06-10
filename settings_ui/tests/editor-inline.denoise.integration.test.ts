@@ -2,7 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { disposeEditorRuntime, initializeEditorRuntime, scan } from "../src/editor-inline/runtime.js";
 import { PRODUCT_LINKS } from "../src/lib/product-links.js";
-import { bridgeCommands, muteConsole, renderFields, track } from "./editor-inline.integration.helpers.js";
+import { bridgeCommands, muteConsole, peekPendingCommandPayload, renderFields, track } from "./editor-inline.integration.helpers.js";
 import { invalidateFieldState } from "../src/editor-inline/field-state-store.js";
 
 describe("editor inline denoise integration", () => {
@@ -60,10 +60,10 @@ describe("editor inline denoise integration", () => {
 
     document.querySelector<HTMLButtonElement>('[data-testid="aqe-button-0-pitch-hum"]')!.click();
     expect(bridgeCommands()).toContain("aqe:command-payload");
-    expect(window.__aqePendingCommandPayload?.command).toBe("aqe:pitch-hum");
-    expect(window.__aqePendingCommandPayload?.fieldOrd).toBe(0);
-    expect(window.__aqePendingCommandPayload?.overrides?.pitchHumMode).toBe("direct");
-    expect(window.__aqePendingCommandPayload?.graphSettings).toEqual({
+    expect(peekPendingCommandPayload()?.command).toBe("aqe:pitch-hum");
+    expect(peekPendingCommandPayload()?.fieldOrd).toBe(0);
+    expect(peekPendingCommandPayload()?.overrides?.pitchHumMode).toBe("direct");
+    expect(peekPendingCommandPayload()?.graphSettings).toEqual({
       connectShortDropoutsMs: 60,
       recordingCondition: "studio",
       smoothness: "very_smooth",
@@ -91,15 +91,15 @@ describe("editor inline denoise integration", () => {
     pitchTierPreset.click();
     await Promise.resolve();
     document.querySelector<HTMLButtonElement>('[data-testid="aqe-button-0-pitch-hum"]')!.click();
-    expect(window.__aqePendingCommandPayload?.command).toBe("aqe:pitch-hum");
-    expect(window.__aqePendingCommandPayload?.overrides?.pitchHumMode).toBe("pitch_tier");
+    expect(peekPendingCommandPayload()?.command).toBe("aqe:pitch-hum");
+    expect(peekPendingCommandPayload()?.overrides?.pitchHumMode).toBe("pitch_tier");
 
     window.__aqePrepareForNewNote?.();
     document.querySelector<HTMLButtonElement>('[data-testid="aqe-button-0-denoise-standard"]')!.click();
     expect(bridgeCommands()).toContain("aqe:command-payload");
-    expect(window.__aqePendingCommandPayload?.command).toBe("aqe:denoise-standard");
-    expect(window.__aqePendingCommandPayload?.fieldOrd).toBe(0);
-    expect(window.__aqePendingCommandPayload?.overrides?.denoiseAlgorithm).toBe("standard");
+    expect(peekPendingCommandPayload()?.command).toBe("aqe:denoise-standard");
+    expect(peekPendingCommandPayload()?.fieldOrd).toBe(0);
+    expect(peekPendingCommandPayload()?.overrides?.denoiseAlgorithm).toBe("standard");
 
     window.__aqePrepareForNewNote?.();
     document.querySelector<HTMLButtonElement>('[data-testid="aqe-split-0-denoise-standard-menu"]')!.click();
@@ -126,10 +126,10 @@ describe("editor inline denoise integration", () => {
       "Denoise\nCreate a new file cleaned with DPDFNet",
     );
     document.querySelector<HTMLButtonElement>('[data-testid="aqe-button-0-denoise-standard"]')!.click();
-    expect(window.__aqePendingCommandPayload?.command).toBe("aqe:dpdfnet");
-    expect(window.__aqePendingCommandPayload?.fieldOrd).toBe(0);
-    expect(window.__aqePendingCommandPayload?.overrides?.denoiseAlgorithm).toBe("dpdfnet");
-    expect(window.__aqePendingCommandPayload?.overrides?.dpdfnetAttnLimitDb).toBe(18);
+    expect(peekPendingCommandPayload()?.command).toBe("aqe:dpdfnet");
+    expect(peekPendingCommandPayload()?.fieldOrd).toBe(0);
+    expect(peekPendingCommandPayload()?.overrides?.denoiseAlgorithm).toBe("dpdfnet");
+    expect(peekPendingCommandPayload()?.overrides?.dpdfnetAttnLimitDb).toBe(18);
   });
 
   it("stops active playback before dispatching a denoise command", async () => {

@@ -12,6 +12,7 @@ import { PLOT, xForMs } from "../src/editor-inline/plot.js";
 import { disposeEditorRuntime } from "../src/editor-inline/runtime.js";
 import { PRODUCT_LINKS } from "../src/lib/product-links.js";
 import { bridgeCommands, mountTrack, track } from "./editor-inline.actions.helpers.js";
+import { peekPendingCommandPayload } from "./editor-inline.integration.helpers.js";
 
 describe("editor inline status workflows", () => {
   let warnSpy: ReturnType<typeof vi.spyOn>;
@@ -174,7 +175,7 @@ describe("editor inline status workflows", () => {
     const click = new MouseEvent("click", { bubbles: true, cancelable: true });
     expect(link.dispatchEvent(click)).toBe(false);
     expect(bridgeCommands()).toContain("aqe:command-payload");
-    expect(window.__aqePendingCommandPayload).toEqual({
+    expect(peekPendingCommandPayload()).toEqual({
       command: "aqe:open-url",
       url: `${PRODUCT_LINKS.githubPages}errors/AQE-MEDIA-001/`,
     });

@@ -5,9 +5,10 @@ import {
   initializeEditorRuntime,
   scan,
 } from "../src/editor-inline/runtime.js";
-import type { EditorCommandPayload } from "../src/editor-inline/types.js";
 import {
+  consumePendingCommandPayload,
   muteConsole,
+  peekPendingCommandPayload,
   renderFields,
 } from "./editor-inline.integration.helpers.js";
 
@@ -45,12 +46,10 @@ describe("editor inline split-button command integration", () => {
     expect(document.querySelector('[data-testid="aqe-split-0-volume-up-menu"]')).toBeNull();
     expect(document.querySelector('[data-testid="aqe-split-0-volume-down-menu"]')).toBeNull();
     document.querySelector<HTMLButtonElement>('[data-testid="aqe-button-0-volume-down"]')!.click();
-    const quieterPayload = window.__aqePendingCommandPayload as EditorCommandPayload | null | undefined;
-    window.__aqePendingCommandPayload = null;
+    const quieterPayload = consumePendingCommandPayload();
     window.__aqeSetBusy?.(0, false);
     document.querySelector<HTMLButtonElement>('[data-testid="aqe-button-0-volume-up"]')!.click();
-    const louderPayload = window.__aqePendingCommandPayload as EditorCommandPayload | null | undefined;
-    window.__aqePendingCommandPayload = null;
+    const louderPayload = consumePendingCommandPayload();
     window.__aqeSetBusy?.(0, false);
 
     document.querySelector<HTMLButtonElement>('[data-testid="aqe-split-0-speed-menu"]')!.click();
@@ -59,8 +58,7 @@ describe("editor inline split-button command integration", () => {
     expect(document.querySelector('[data-testid="aqe-split-0-faster-menu"]')).toBeNull();
     expect(document.querySelector('[data-testid="aqe-split-0-slower-menu"]')).toBeNull();
     document.querySelector<HTMLButtonElement>('[data-testid="aqe-button-0-slower"]')!.click();
-    const slowerPayload = window.__aqePendingCommandPayload as EditorCommandPayload | null | undefined;
-    window.__aqePendingCommandPayload = null;
+    const slowerPayload = consumePendingCommandPayload();
     window.__aqeSetBusy?.(0, false);
     document.querySelector<HTMLButtonElement>('[data-testid="aqe-button-0-faster"]')!.click();
 
@@ -70,7 +68,7 @@ describe("editor inline split-button command integration", () => {
     expect(louderPayload?.overrides?.volumeStepDb).toBe(6);
     expect(slowerPayload?.command).toBe("aqe:slower");
     expect(slowerPayload?.overrides?.speedStep).toBe(2);
-    const fasterPayload = window.__aqePendingCommandPayload as EditorCommandPayload | null | undefined;
+    const fasterPayload = peekPendingCommandPayload();
     expect(fasterPayload?.command).toBe("aqe:faster");
     expect(fasterPayload?.overrides?.speedStep).toBe(2);
   });
@@ -111,7 +109,7 @@ describe("editor inline split-button command integration", () => {
 
     document.querySelector<HTMLButtonElement>('[data-testid="aqe-button-0-volume-up"]')!.click();
 
-    expect(window.__aqePendingCommandPayload).toMatchObject({
+    expect(peekPendingCommandPayload()).toMatchObject({
       command: "aqe:volume-up",
       fieldOrd: 0,
       overrides: {
@@ -146,9 +144,8 @@ describe("editor inline split-button command integration", () => {
     await Promise.resolve();
     expect(volumeSlider.value).toBe("6.5");
     document.querySelector<HTMLButtonElement>('[data-testid="aqe-button-0-volume-up"]')!.click();
-    const volumePayload = window.__aqePendingCommandPayload as EditorCommandPayload | null | undefined;
+    const volumePayload = consumePendingCommandPayload();
     expect(volumePayload?.overrides?.volumeStepDb).toBe(6.5);
-    window.__aqePendingCommandPayload = null;
     window.__aqeSetBusy?.(0, false);
 
     document.querySelector<HTMLButtonElement>('[data-testid="aqe-split-0-speed-menu"]')!.click();
@@ -161,7 +158,7 @@ describe("editor inline split-button command integration", () => {
     await Promise.resolve();
     expect(speedSlider.value).toBe("2");
     document.querySelector<HTMLButtonElement>('[data-testid="aqe-button-0-slower"]')!.click();
-    const speedPayload = window.__aqePendingCommandPayload as EditorCommandPayload | null | undefined;
+    const speedPayload = peekPendingCommandPayload();
     expect(speedPayload?.overrides?.speedStep).toBe(2);
   });
 });

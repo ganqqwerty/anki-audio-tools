@@ -5,10 +5,10 @@ import {
   initializeEditorRuntime,
   scan,
 } from "../src/editor-inline/runtime.js";
-import type { EditorCommandPayload } from "../src/editor-inline/types.js";
 import {
   bridgeCommands,
   muteConsole,
+  peekPendingCommandPayload,
   renderFields,
 } from "./editor-inline.integration.helpers.js";
 
@@ -50,7 +50,7 @@ describe("editor inline split-button command integration", () => {
     document.querySelector<HTMLButtonElement>('[data-testid="aqe-button-0-remove-pauses"]')!.click();
 
     expect(bridgeCommands()).toContain("aqe:command-payload");
-    expect(window.__aqePendingCommandPayload).toMatchObject({
+    expect(peekPendingCommandPayload()).toMatchObject({
       command: "aqe:remove-pauses",
       fieldOrd: 0,
       overrides: {
@@ -93,7 +93,7 @@ describe("editor inline split-button command integration", () => {
     bitrateInput.dispatchEvent(new Event("input", { bubbles: true }));
     document.querySelector<HTMLButtonElement>('[data-testid="aqe-button-0-reduce-size"]')!.click();
 
-    expect(window.__aqePendingCommandPayload).toMatchObject({
+    expect(peekPendingCommandPayload()).toMatchObject({
       command: "aqe:reduce-size",
       fieldOrd: 0,
       overrides: {

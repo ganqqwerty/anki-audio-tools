@@ -6,6 +6,7 @@ import {
   bridgeCommands,
   dragGraphSelection,
   muteConsole,
+  peekPendingCommandPayload,
   renderFields,
   setRepeatMode,
   setGraphBounds,
@@ -38,7 +39,7 @@ afterEach(() => {
     document.querySelector<HTMLButtonElement>('[data-testid="aqe-button-0-volume-up"]')!.click();
 
     expect(bridgeCommands()).toContain("aqe:command-payload");
-    expect(window.__aqePendingCommandPayload?.command).toBe("aqe:volume-up");
+    expect(peekPendingCommandPayload()?.command).toBe("aqe:volume-up");
     expect(window.__aqeGraphStateForTest?.(0)?.allButtonsDisabled).toBe(true);
     expect(window.__aqeGraphStateForTest?.(0)?.repeatControlDisabled).toBe(true);
     expect(playButton).toHaveAttribute(

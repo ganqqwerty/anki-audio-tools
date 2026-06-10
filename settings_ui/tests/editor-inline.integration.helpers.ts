@@ -33,6 +33,14 @@ export function consumePendingCommandPayload(): EditorCommandPayload | null {
   return payload ? { ...payload } : null;
 }
 
+export function peekPendingCommandPayload(): EditorCommandPayload | null {
+  return window.__aqePendingCommandPayload ?? null;
+}
+
+export function clearPendingCommandPayload(): void {
+  window.__aqePendingCommandPayload = null;
+}
+
 export function renderFields(): void {
   document.body.innerHTML = `
     <div class="field-container" data-index="0">
