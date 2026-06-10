@@ -7,6 +7,7 @@ import { clearLearnerVisualizerTrack, renderCursor, renderLearnerVisualizerTrack
 import { readVisualizerTargetDurationMs } from "./visualizer-state.js";
 import type { LearnerPlaybackStatus, LearnerRecordingStatePayload, LearnerRecordingStatus } from "./recording-state.js";
 import { normalizeTrack, type NormalizedProsodyTrack, type ProsodyPoint, type VisualizerElement } from "./types.js";
+import { invalidateFieldState } from "./field-state-store.js";
 
 export const RECORDING_BLOCKING_STATUSES = new Set<LearnerRecordingStatus>([
   "countdown",
@@ -160,6 +161,7 @@ export function setRecordingCursor(visualizer: VisualizerElement, ms: number, ta
   const clamped = Math.max(0, Math.min(Number(ms) || 0, targetDurationMs || 0));
   visualizer.dataset.cursorMs = String(Math.round(clamped));
   visualizer.dataset.progressMs = String(Math.round(clamped));
+  invalidateFieldState(Number(visualizer.dataset.aqeFieldOrd || "0"));
   ensurePlaybackCursorVisible(visualizer, clamped);
   renderCursor(visualizer, clamped, Number(visualizer.dataset.durationMs || targetDurationMs || "0"));
 }
@@ -195,6 +197,7 @@ function syncActiveRecordingTimeline(visualizer: VisualizerElement, recordingDur
     renderProsodyTracks(visualizer);
   } else {
     visualizer.dataset.durationMs = String(Math.round(Math.max(targetDurationMs, effectiveLearnerDurationMs)));
+    invalidateFieldState(Number(visualizer.dataset.aqeFieldOrd || "0"));
   }
   return Number(visualizer.dataset.durationMs || "0") || 0;
 }
