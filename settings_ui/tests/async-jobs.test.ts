@@ -1,5 +1,5 @@
 /**
- * Tests for src/lib/async-jobs.ts
+ * Tests for src/settings/async-jobs.ts
  *
  * Verifies that startAsyncOp:
  *  - sends the correct settings.async bridge command
@@ -15,7 +15,7 @@ import {
   handleAsyncDone,
   handleAsyncProgress,
   startAsyncOp,
-} from "../src/lib/async-jobs.js";
+} from "../src/settings/async-jobs.js";
 import {
   DenoiseAlgorithm,
   GraphRecordingCondition,

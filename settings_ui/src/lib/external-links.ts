@@ -1,4 +1,4 @@
-import { sendBridgeEnvelope } from "./bridge.js";
+import { sendBridgeEnvelope } from "./bridge-transport.js";
 
 export function openExternalLink(event: MouseEvent, url: string): void {
   event.preventDefault();

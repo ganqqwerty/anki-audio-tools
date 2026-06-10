@@ -13,7 +13,7 @@ import {
   AQE_FRONTEND_UNKNOWN_ASYNC_ERROR,
   frontendUserError,
   isUserFacingError,
-} from "./user-facing-error.js";
+} from "../lib/user-facing-error.js";
 import type {
   AsyncDonePayload,
   AsyncOperationName,
@@ -25,7 +25,7 @@ import type {
   RuntimeStatus,
   ShowLogFileResult,
   SupportReportResult,
-} from "./types.js";
+} from "../lib/types.js";
 
 interface PendingJob {
   op: AsyncOperationName;
