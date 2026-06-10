@@ -10,14 +10,14 @@ from typing import Any, cast
 from . import editor_region_delete_request as _request
 from .audio_state import AudioEditState, AudioProcessingConfig
 from .diagnostics_runtime import capture_exception, new_operation_id, record_breadcrumb
+from .editor_deps_protocols import RegionDeleteDeps
+from .editor_media_replacement import replace_first_sound_reference_in_field
 from .editor_processing_shared import (
     request_history_availability_after_edit as _request_history_availability_after_edit,
 )
 from .editor_processing_shared import (
     sync_history_availability as _sync_history_availability,
 )
-from .editor_deps_protocols import RegionDeleteDeps
-from .editor_media_replacement import replace_first_sound_reference_in_field
 from .editor_region_delete_request import (
     parse_region_delete_request as _parse_region_delete_request,
 )

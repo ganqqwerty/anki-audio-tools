@@ -72,6 +72,7 @@ EDITOR_OPERATION_CONTRACTS: dict[str, ModuleContract] = {
         allowed_addon_deps=(
             "audio_processor",
             "audio_recording",
+            "editor_deps_protocols",
             "editor_media",
             "editor_runtime",
             "file_sharing",

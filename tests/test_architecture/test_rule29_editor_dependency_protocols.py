@@ -6,7 +6,6 @@ import ast
 
 from .conftest import ADDON_DIR
 
-
 MIGRATED_FILES = (
     "editor_region_delete.py",
     "editor_region_delete_worker.py",

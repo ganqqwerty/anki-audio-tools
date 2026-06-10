@@ -20,6 +20,8 @@
   import SelectionToolbar from "./SelectionToolbar.svelte";
   import TimeViewportScroller from "./TimeViewportScroller.svelte";
   import type { FieldTarget } from "./types.js";
+  import type { EditorButtonModes } from "../lib/editor-toolbar-buttons.js";
+  import type { EditorCommand } from "./types.js";
   import { redrawVisualizerForCurrentViewport } from "./viewport-actions.js";
   import { handleVisualizerWheelZoom, handleVisualizerZoomKeyDown } from "./zoom-actions.js";
   import ZoomControls from "./ZoomControls.svelte";
@@ -32,12 +34,12 @@
     target,
     visibleCommands,
   }: {
-    buttonModes?: Record<string, string>;
+    buttonModes: EditorButtonModes | undefined;
     repeatDefault: boolean;
     repeatPauseDefault: number;
     selectionMarkerShiftButtonsEnabled?: boolean;
     target: FieldTarget;
-    visibleCommands?: string[];
+    visibleCommands: EditorCommand[] | undefined;
   } = $props();
   const plotClipId = $derived(`aqe-plot-clip-${target.ord}`);
   const plotClipUrl = $derived(`url(#${plotClipId})`);

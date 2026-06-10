@@ -48,8 +48,9 @@
     visibleEditorButtons(runtimeConfig),
   );
   const buttonModes = editorButtonModes(runtimeConfig);
+  const visibleCommands = visibleEditorButtons(runtimeConfig);
   const markerShiftEnabled = selectionMarkerShiftButtonsEnabled(runtimeConfig);
-  const sourceFilename = audioFieldSource(runtimeConfig, target.ord);
+  const sourceFilename = $derived(audioFieldSource(runtimeConfig, target.ord));
   const renderItems = buildEditorToolbarRenderItems(buttons);
   const initialStatusKind = $derived(initialStatus?.kind || "info");
   const initialStatusMessage = $derived(initialStatus?.message || "");
@@ -237,7 +238,7 @@
       {/if}
     {/each}
     <EditorHelp ord={target.ord} />
-    <GraphVisualizer {buttonModes} {repeatDefault} {repeatPauseDefault} selectionMarkerShiftButtonsEnabled={markerShiftEnabled} {target} visibleCommands={visibleEditorButtons(runtimeConfig)} />
+    <GraphVisualizer {buttonModes} {repeatDefault} {repeatPauseDefault} selectionMarkerShiftButtonsEnabled={markerShiftEnabled} {target} visibleCommands={visibleCommands} />
     <div class="aqe-status-row" data-testid={`aqe-status-row-${target.ord}`}>
       <span
         class="aqe-spinner"

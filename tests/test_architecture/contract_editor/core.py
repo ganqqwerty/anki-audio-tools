@@ -41,4 +41,13 @@ CORE_EDITOR_CONTRACTS: dict[str, ModuleContract] = {
         allowed_addon_deps=("audio_state",),
     ),
     "editor_ui": contract("editor_ui", layer=Layer.IMPORT_SAFE_CORE, allowed_addon_deps=("i18n",)),
+    "editor_deps_protocols": contract(
+        "editor_deps_protocols",
+        layer=Layer.IMPORT_SAFE_CORE,
+    ),
+    "editor_media_replacement": contract(
+        "editor_media_replacement",
+        layer=Layer.IMPORT_SAFE_CORE,
+        allowed_addon_deps=("errors", "sound_refs"),
+    ),
 }

@@ -7,19 +7,20 @@
   import { setSelectionToolbarPreviewForOrd } from "./selection-toolbar-state.js";
   import { t } from "../lib/i18n.js";
   import { buttonDisplayMode } from "../lib/editor-toolbar-buttons.js";
+  import type { EditorButtonModes } from "../lib/editor-toolbar-buttons.js";
   import { EditorButtonMode } from "../lib/types.js";
-  import type { FieldTarget } from "./types.js";
+  import type { EditorCommand, FieldTarget } from "./types.js";
 
   const {
     buttonModes,
     target,
     visibleCommands,
   }: {
-    buttonModes?: Record<string, string>;
+    buttonModes: EditorButtonModes | undefined;
     target: FieldTarget;
-    visibleCommands?: string[];
+    visibleCommands: EditorCommand[] | undefined;
   } = $props();
-  type SelectionActionCommand = "aqe:delete-selection" | "aqe:delete-rest";
+  type SelectionActionCommand = EditorCommand & ("aqe:delete-selection" | "aqe:delete-rest");
 
   function commandVisible(command: SelectionActionCommand): boolean {
     return !Array.isArray(visibleCommands) || visibleCommands.includes(command);

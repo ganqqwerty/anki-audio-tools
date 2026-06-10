@@ -7,10 +7,12 @@ import {
   splitButtonDefaults,
   visibleEditorButtons,
 } from "../src/editor-inline/editor-runtime-config.js";
+import { EditorButtonMode } from "../src/lib/types.js";
+import type { EditorRuntimeConfig } from "../src/editor-inline/types.js";
 
 describe("editor runtime config adapter", () => {
   afterEach(() => {
-    delete window.__AQE_EDITOR_CONFIG__;
+    delete (globalThis as Record<string, unknown>).__AQE_EDITOR_CONFIG__;
   });
 
   it("returns a safe fallback when Python has not injected config yet", () => {
@@ -23,14 +25,14 @@ describe("editor runtime config adapter", () => {
   });
 
   it("returns injected config and stable derived values", () => {
-    window.__AQE_EDITOR_CONFIG__ = {
+    const injected: EditorRuntimeConfig = {
       audioFieldIndices: [0],
-      editorButtonModes: { "aqe:play": "icon" },
+      editorButtonModes: { "aqe:play": EditorButtonMode.Icon },
       repeatPlaybackByDefault: true,
       selectionMarkerShiftButtonsEnabled: true,
-      splitButtonDefaults: { outputFormat: "mp3", repeatPauseSeconds: 1.5 },
       visibleEditorButtons: ["aqe:play", "aqe:analyze"],
     };
+    globalThis.__AQE_EDITOR_CONFIG__ = injected;
 
     const config = editorRuntimeConfig();
 
@@ -38,7 +40,7 @@ describe("editor runtime config adapter", () => {
     expect(repeatPlaybackByDefault(config)).toBe(true);
     expect(selectionMarkerShiftButtonsEnabled(config)).toBe(true);
     expect(visibleEditorButtons(config)).toEqual(["aqe:play", "aqe:analyze"]);
-    expect(editorButtonModes(config)).toEqual({ "aqe:play": "icon" });
-    expect(splitButtonDefaults(config)).toEqual({ outputFormat: "mp3", repeatPauseSeconds: 1.5 });
+    expect(editorButtonModes(config)).toEqual({ "aqe:play": EditorButtonMode.Icon });
+    expect(splitButtonDefaults(config)).toEqual({});
   });
 });

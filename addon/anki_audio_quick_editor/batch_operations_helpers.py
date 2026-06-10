@@ -15,7 +15,6 @@ from .audio_state import AudioProcessingConfig
 from .audio_types import AudioProcessingResult
 from .batch_operation_types import BatchNoteResult
 
-
 BatchDenoiseRenderers = Mapping[str, Callable[..., AudioProcessingResult]]
 
 

@@ -7,8 +7,6 @@ import threading
 from types import SimpleNamespace
 from typing import Any
 
-from .editor_deps_protocols import RegionDeleteDeps
-
 from .audio_processor import (
     format_ffmpeg_command,
     make_output_filename,
@@ -28,6 +26,7 @@ from .audio_processor import (
     temp_final_path,
 )
 from .audio_recording import NativeRecordingController
+from .editor_deps_protocols import RegionDeleteDeps
 from .editor_media import (
     current_field_index,
     resolve_requested_field_media,

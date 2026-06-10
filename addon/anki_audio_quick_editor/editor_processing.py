@@ -16,6 +16,10 @@ from .editor_actions import (
     processing_config_for_command,
 )
 from .editor_conversion import convert_async as _convert_async
+from .editor_media_replacement import (
+    persist_generated_media,
+    replace_first_sound_reference_in_field,
+)
 from .editor_processing_shared import (
     cancel_graph_analysis_for_processing as _cancel_graph_analysis_for_processing,
 )
@@ -39,10 +43,6 @@ from .error_codes import (
     AQE_AUDIO_PROCESSING_FAILED,
     AQE_MEDIA_CURRENT_FIELD_AUDIO_MISSING,
     coded_error,
-)
-from .editor_media_replacement import (
-    persist_generated_media,
-    replace_first_sound_reference_in_field,
 )
 from .i18n import t
 from .permission_guidance import message_with_permission_guidance

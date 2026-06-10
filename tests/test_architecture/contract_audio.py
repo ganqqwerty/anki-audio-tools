@@ -361,6 +361,6 @@ AUDIO_CONTRACTS: dict[str, ModuleContract] = {
     "batch_operations_helpers": contract(
         "batch_operations_helpers",
         layer=Layer.IMPORT_SAFE_CORE,
-        allowed_addon_deps=("audio_processor", "audio_state", "audio_types", "batch_operations"),
+        allowed_addon_deps=("audio_processor", "audio_state", "audio_types", "batch_operation_types", "batch_operations"),
     ),
 }

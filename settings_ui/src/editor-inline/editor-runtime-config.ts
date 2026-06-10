@@ -1,13 +1,17 @@
-import type { EditorRuntimeConfig } from "./types.js";
+import type { EditorRuntimeConfig, SplitButtonDefaults } from "./types.js";
 
 const FALLBACK_EDITOR_RUNTIME_CONFIG: EditorRuntimeConfig = { audioFieldIndices: [] };
 
-export function editorRuntimeConfig(): EditorRuntimeConfig {
-  return window.__AQE_EDITOR_CONFIG__ ?? FALLBACK_EDITOR_RUNTIME_CONFIG;
+declare global {
+  var __AQE_EDITOR_CONFIG__: EditorRuntimeConfig | undefined;
 }
 
-export function splitButtonDefaults(config: EditorRuntimeConfig): NonNullable<EditorRuntimeConfig["splitButtonDefaults"]> {
-  return config.splitButtonDefaults ?? {};
+export function editorRuntimeConfig(): EditorRuntimeConfig {
+  return globalThis.__AQE_EDITOR_CONFIG__ ?? FALLBACK_EDITOR_RUNTIME_CONFIG;
+}
+
+export function splitButtonDefaults(config: EditorRuntimeConfig): SplitButtonDefaults {
+  return (config.splitButtonDefaults ?? {}) as SplitButtonDefaults;
 }
 
 export function repeatPlaybackByDefault(config: EditorRuntimeConfig): boolean {
