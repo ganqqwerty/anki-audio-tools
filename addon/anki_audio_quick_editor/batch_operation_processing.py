@@ -5,8 +5,8 @@ from __future__ import annotations
 import logging
 import shutil
 from collections.abc import Callable
+from dataclasses import dataclass
 from datetime import datetime
-from importlib import import_module
 from pathlib import Path
 from typing import Any
 
@@ -24,7 +24,6 @@ from .audio_processor import (
 )
 from .audio_state import AudioEditState, AudioProcessingConfig
 from .batch_operation_types import BatchNoteResult, BatchNoteSnapshot, BatchRunRequest
-from .batch_operations_helpers import render_batch_denoise
 from .diagnostics_runtime import capture_exception
 from .error_codes import (
     AQE_AUDIO_PROCESSING_FAILED,
@@ -39,9 +38,13 @@ from .sound_refs import SoundReference, replace_sound_reference
 logger = logging.getLogger(__name__)
 
 
-def _facade_attr(name: str) -> Any:
-    facade = import_module(".batch_operations", package=__package__)
-    return getattr(facade, name)
+@dataclass(frozen=True)
+class BatchOperationDeps:
+    analyze_prosody_cached: Callable[..., Any]
+    render_audio: Callable[..., Any]
+    render_converted_audio: Callable[..., Any]
+    render_size_reduced_audio: Callable[..., Any]
+    render_batch_denoise: Callable[..., Any]
 
 
 def process_graph_operation(
@@ -55,11 +58,12 @@ def process_graph_operation(
     now_provider: Callable[[], datetime] | None,
     operation_id: str,
     append_image_reference: Callable[[str, str], str],
+    deps: BatchOperationDeps,
 ) -> BatchNoteResult:
     target_field = request.target_field
     assert target_field is not None
     try:
-        track = _facade_attr("analyze_prosody_cached")(source_path, config)
+        track = deps.analyze_prosody_cached(source_path, config)
         svg_bytes = render_prosody_svg(track)
         desired_name = make_visualization_filename(
             audio_filename,
@@ -120,6 +124,7 @@ def process_transform_operation(
     media_writer: Callable[[str, bytes], str],
     artifact_root: Path | None,
     operation_id: str,
+    deps: BatchOperationDeps,
 ) -> BatchNoteResult:
     output_path: Path | None = None
     try:
@@ -139,7 +144,7 @@ def process_transform_operation(
                 )
             desired_name = make_output_filename(audio_filename, output_format=target_format)
             output_path = temp_final_path(desired_name)
-            _facade_attr("render_converted_audio")(
+            deps.render_converted_audio(
                 source_path,
                 effective_config,
                 target_format,
@@ -148,7 +153,7 @@ def process_transform_operation(
         elif request.operation == OP_REDUCE_SIZE:
             desired_name = make_output_filename(audio_filename, output_format="mp3")
             output_path = temp_final_path(desired_name)
-            _facade_attr("render_size_reduced_audio")(
+            deps.render_size_reduced_audio(
                 source_path,
                 effective_config,
                 output_path=output_path,
@@ -158,14 +163,14 @@ def process_transform_operation(
             desired_name = make_output_filename(audio_filename, output_format=effective_config.output_format)
             output_path = temp_final_path(desired_name)
             if request.operation == OP_DENOISE:
-                render_batch_denoise(source_path, effective_config, output_path)
+                deps.render_batch_denoise(source_path, effective_config, output_path)
             else:
                 updated_state = apply_audio_operation(
                     request.operation,
                     AudioEditState(source_file=audio_filename),
                     effective_config,
                 )
-                _facade_attr("render_audio")(
+                deps.render_audio(
                     source_path,
                     updated_state,
                     effective_config,

@@ -32,7 +32,7 @@ def test_process_note_batch_operation_uses_dpdfnet_parameter_for_denoise(
         output_path.write_bytes(b"denoised")
 
     monkeypatch.setattr(
-        "anki_audio_quick_editor.batch_operations.render_dpdfnet_audio",
+        "anki_audio_quick_editor.batch_operations_helpers.render_dpdfnet_audio",
         fake_render_dpdfnet_audio,
     )
 
