@@ -6,7 +6,7 @@ from unittest.mock import MagicMock
 
 import pytest
 
-from anki_audio_quick_editor.editor_integration import _handle_bridge_command
+from anki_audio_quick_editor.editor_callbacks import _handle_bridge_command
 
 
 class Editor:

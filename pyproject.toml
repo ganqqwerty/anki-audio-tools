@@ -132,6 +132,9 @@ max-complexity = 10
     "PIE",
     "PLR2004",
 ]
+"addon/anki_audio_quick_editor/audio_processor.py" = [
+    "F401",
+]
 "e2e/**/*.py" = [
     "ANN",
     "ARG",
@@ -270,6 +273,7 @@ source_modules = [
     "anki_audio_quick_editor.audio_artifacts",
     "anki_audio_quick_editor.audio_commands",
     "anki_audio_quick_editor.audio_commands_runtime",
+    "anki_audio_quick_editor.audio_deps",
     "anki_audio_quick_editor.audio_external",
     "anki_audio_quick_editor.audio_output_policy",
     "anki_audio_quick_editor.audio_noise_reduction",

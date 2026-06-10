@@ -7,7 +7,7 @@ from pathlib import Path
 from unittest.mock import MagicMock
 
 from anki_audio_quick_editor.audio_state import AudioEditState
-from anki_audio_quick_editor.editor_integration import _handle_bridge_command
+from anki_audio_quick_editor.editor_callbacks import _handle_bridge_command
 from tests.editor_bridge_command_fixtures import attach_clip_session, make_editor
 
 

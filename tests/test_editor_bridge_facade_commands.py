@@ -6,11 +6,9 @@ from unittest.mock import MagicMock
 
 from anki_audio_quick_editor import editor_callbacks, editor_frontend_callbacks
 from anki_audio_quick_editor.audio_state import AudioEditState
-from anki_audio_quick_editor.editor_integration import (
-    _SESSIONS,
-    EditorSession,
-    _handle_bridge_command,
-)
+from anki_audio_quick_editor.editor_callbacks import _handle_bridge_command
+from anki_audio_quick_editor.editor_runtime import SESSIONS
+from anki_audio_quick_editor.editor_session import EditorSession
 from anki_audio_quick_editor.editor_split_defaults import split_default_config_updates
 from tests.editor_bridge_command_fixtures import make_editor
 
@@ -123,7 +121,7 @@ def test_stop_playback_command_stops_session_without_clearing_status() -> None:
         playback_paused=True,
         playback_generation=4,
     )
-    _SESSIONS[editor] = session
+    SESSIONS[editor] = session
 
     _handle_bridge_command(editor, "aqe:stop-playback")
 

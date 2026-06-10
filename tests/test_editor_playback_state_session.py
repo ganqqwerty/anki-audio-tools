@@ -6,13 +6,13 @@ from pathlib import Path
 from unittest.mock import MagicMock
 
 from anki_audio_quick_editor.audio_state import AudioEditState
+from anki_audio_quick_editor.editor_callbacks import _playback_segment_ready
 from anki_audio_quick_editor.editor_integration import (
-    _SESSIONS,
-    EditorSession,
-    _is_busy,
-    _playback_segment_ready,
     _reset_editor_session_for_note_load,
 )
+from anki_audio_quick_editor.editor_runtime import SESSIONS
+from anki_audio_quick_editor.editor_runtime import is_busy as _is_busy
+from anki_audio_quick_editor.editor_session import EditorSession
 
 
 def test_note_load_reset_clears_note_specific_session_state(monkeypatch) -> None:
@@ -50,7 +50,7 @@ def test_note_load_reset_clears_note_specific_session_state(monkeypatch) -> None
         temp_playback_path=source_path,
     )
     session.undo_history.push(AudioEditState("source.mp3"), "generated.mp3")
-    _SESSIONS[editor] = session
+    SESSIONS[editor] = session
 
     monkeypatch.setattr("anki_audio_quick_editor.editor_runtime.stop_audio_playback", lambda: None)
     monkeypatch.setattr(
@@ -106,7 +106,7 @@ def test_stale_playback_segment_completion_is_ignored_and_cleaned(tmp_path: Path
 
     editor = Editor()
     session = EditorSession(playback_generation=2)
-    _SESSIONS[editor] = session
+    SESSIONS[editor] = session
     temp_dir = tmp_path / "aqe_playback_stale"
     temp_dir.mkdir()
     segment = temp_dir / "aqe_playback_clip__from_700ms_deadbeef.mp3"

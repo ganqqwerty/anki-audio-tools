@@ -9,13 +9,15 @@ from unittest.mock import MagicMock
 import pytest
 
 from anki_audio_quick_editor.audio_state import AudioEditState, AudioProcessingConfig
-from anki_audio_quick_editor.editor_integration import (
-    _SESSIONS,
-    EditorSession,
+from anki_audio_quick_editor.editor_callbacks import (
     _analysis_finished,
     _handle_bridge_command,
+)
+from anki_audio_quick_editor.editor_integration import (
     _reset_editor_session_for_note_load,
 )
+from anki_audio_quick_editor.editor_runtime import SESSIONS
+from anki_audio_quick_editor.editor_session import EditorSession
 from anki_audio_quick_editor.prosody_types import (
     FFMPEG_PCM_ANALYSIS_WARNING,
     FFMPEG_PCM_ANALYZER,
@@ -39,7 +41,7 @@ def test_stale_analysis_completion_is_ignored_after_note_load_reset() -> None:
         analysis_generation=2,
         analysis_generations_by_field={0: 2},
     )
-    _SESSIONS[editor] = session
+    SESSIONS[editor] = session
     track = ProsodyTrack(
         duration_ms=1000,
         points=(ProsodyPoint(0, 220.0, -20.0, 0.5, True),),
@@ -74,7 +76,7 @@ def test_analysis_completion_renders_requested_field_when_session_tracks_another
         analysis_generation=2,
         analysis_generations_by_field={1: 2},
     )
-    _SESSIONS[editor] = session
+    SESSIONS[editor] = session
     track = ProsodyTrack(
         duration_ms=900,
         points=(ProsodyPoint(0, 220.0, -20.0, 0.5, True),),
@@ -108,7 +110,7 @@ def test_analysis_completion_warns_when_graph_uses_ffmpeg_pcm_fallback() -> None
         analysis_generation=2,
         analysis_generations_by_field={0: 2},
     )
-    _SESSIONS[editor] = session
+    SESSIONS[editor] = session
     track = ProsodyTrack(
         duration_ms=900,
         points=(ProsodyPoint(0, 220.0, -20.0, 0.5, True),),
@@ -172,7 +174,7 @@ def test_field_addressed_analysis_preserves_edit_session_history(
     )
     session.undo_history.push(AudioEditState("field-one.mp3"), "field-one.mp3")
     session.redo_history.push(AudioEditState("field-one.mp3", speed=1.1), "field-one__redo.mp3")
-    _SESSIONS[editor] = session
+    SESSIONS[editor] = session
 
     monkeypatch.setattr("anki_audio_quick_editor.editor_dependencies.threading.Thread", ImmediateThread)
     monkeypatch.setattr(
@@ -257,7 +259,7 @@ def test_manual_analysis_uses_read_only_field_path(tmp_path: Path, monkeypatch) 
         current_filename="field-one.mp3",
     )
     session.undo_history.push(AudioEditState("field-one.mp3"), "field-one.mp3")
-    _SESSIONS[editor] = session
+    SESSIONS[editor] = session
 
     monkeypatch.setattr("anki_audio_quick_editor.editor_dependencies.threading.Thread", ImmediateThread)
     monkeypatch.setattr(
@@ -318,7 +320,7 @@ def test_manual_analysis_payload_applies_graph_settings(tmp_path: Path, monkeypa
         current_filename="field-one.mp3",
     )
     session.undo_history.push(AudioEditState("field-one.mp3"), "field-one.mp3")
-    _SESSIONS[editor] = session
+    SESSIONS[editor] = session
 
     monkeypatch.setattr("anki_audio_quick_editor.editor_dependencies.threading.Thread", ImmediateThread)
     monkeypatch.setattr(
@@ -368,7 +370,7 @@ def test_stale_field_addressed_analysis_request_is_ignored(tmp_path: Path, monke
         current_filename="new.mp3",
     )
     session.undo_history.push(AudioEditState("new.mp3"), "new.mp3")
-    _SESSIONS[editor] = session
+    SESSIONS[editor] = session
 
     monkeypatch.setattr(
         "anki_audio_quick_editor.editor_callbacks._eval_with_callback",

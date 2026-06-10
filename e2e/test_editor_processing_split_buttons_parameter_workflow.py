@@ -33,7 +33,7 @@ def test_grouped_volume_and_speed_split_buttons_apply_local_values_without_chang
     ffmpeg_config,
 ) -> None:
     probe_duration_ms = import_runtime_addon_module(".audio_processor").probe_duration_ms
-    _SESSIONS = import_runtime_addon_module(".editor_integration")._SESSIONS
+    SESSIONS = import_runtime_addon_module(".editor_runtime").SESSIONS
 
     media_dir = Path(anki_mw.col.media.dir())
     source = media_dir / "editor_split_volume_speed_source.wav"
@@ -64,7 +64,7 @@ def test_grouped_volume_and_speed_split_buttons_apply_local_values_without_chang
         )
         wait_for_condition(
             lambda: (
-                (session := _SESSIONS.get(editor)) is not None
+                (session := SESSIONS.get(editor)) is not None
                 and session.state is not None
                 and session.state.volume_db == -6
             ),
@@ -85,7 +85,7 @@ def test_grouped_volume_and_speed_split_buttons_apply_local_values_without_chang
         )
         wait_for_condition(
             lambda: (
-                (session := _SESSIONS.get(editor)) is not None
+                (session := SESSIONS.get(editor)) is not None
                 and session.state is not None
                 and session.state.volume_db == 0
             ),
@@ -114,7 +114,7 @@ def test_grouped_volume_and_speed_split_buttons_apply_local_values_without_chang
         )
         wait_for_condition(
             lambda: (
-                (session := _SESSIONS.get(editor)) is not None
+                (session := SESSIONS.get(editor)) is not None
                 and session.state is not None
                 and session.state.speed == 0.5
             ),

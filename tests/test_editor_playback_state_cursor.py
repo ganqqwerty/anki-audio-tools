@@ -9,11 +9,9 @@ from unittest.mock import MagicMock
 import pytest
 
 from anki_audio_quick_editor.audio_state import AudioEditState
-from anki_audio_quick_editor.editor_integration import (
-    _SESSIONS,
-    EditorSession,
-    _set_cursor_from_web,
-)
+from anki_audio_quick_editor.editor_callbacks import _set_cursor_from_web
+from anki_audio_quick_editor.editor_runtime import SESSIONS
+from anki_audio_quick_editor.editor_session import EditorSession
 
 
 def test_html_cursor_restart_intent_does_not_start_native_playback(tmp_path: Path, monkeypatch) -> None:
@@ -36,7 +34,7 @@ def test_html_cursor_restart_intent_does_not_start_native_playback(tmp_path: Pat
         source_mtime_ns=source.stat().st_mtime_ns,
         visualized_duration_ms=2000,
     )
-    _SESSIONS[editor] = session
+    SESSIONS[editor] = session
 
     monkeypatch.setattr(
         "anki_audio_quick_editor.editor_callbacks._eval_with_callback",
@@ -78,7 +76,7 @@ def test_native_cursor_restart_intent_keeps_selected_end_boundary(tmp_path: Path
         visualized_filenames_by_field={0: "clip.m4a"},
         visualized_durations_by_field={0: 2000},
     )
-    _SESSIONS[editor] = session
+    SESSIONS[editor] = session
     starts: list[tuple[int, int | None]] = []
 
     monkeypatch.setattr(

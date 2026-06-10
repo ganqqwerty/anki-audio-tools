@@ -6,6 +6,7 @@ from .contract_schema import Layer, ModuleContract, SideEffect, contract
 
 CORE_CONTRACTS: dict[str, ModuleContract] = {
     "_version": contract("_version", layer=Layer.IMPORT_SAFE_CORE),
+    "audio_deps": contract("audio_deps", layer=Layer.IMPORT_SAFE_CORE),
     "audio_formats": contract("audio_formats", layer=Layer.IMPORT_SAFE_CORE),
     "config_migration": contract(
         "config_migration",

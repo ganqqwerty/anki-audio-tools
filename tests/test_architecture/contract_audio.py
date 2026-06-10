@@ -224,6 +224,7 @@ AUDIO_CONTRACTS: dict[str, ModuleContract] = {
         allowed_addon_deps=(
             "audio_artifacts",
             "audio_commands",
+            "audio_deps",
             "audio_external",
             "audio_noise_reduction",
             "audio_output_policy",
@@ -248,6 +249,7 @@ AUDIO_CONTRACTS: dict[str, ModuleContract] = {
     "audio_processor_runtime": contract(
         "audio_processor_runtime",
         layer=Layer.IMPORT_SAFE_CORE,
+        allowed_addon_deps=("audio_deps",),
     ),
     "audio_recording": contract(
         "audio_recording",

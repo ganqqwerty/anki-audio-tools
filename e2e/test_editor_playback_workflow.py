@@ -35,7 +35,7 @@ from e2e.helpers import (
 
 
 def test_cursor_drag_updates_session_and_play_uses_html_audio(anki_mw, ffmpeg_config) -> None:
-    _SESSIONS = import_runtime_addon_module(".editor_integration")._SESSIONS
+    SESSIONS = import_runtime_addon_module(".editor_runtime").SESSIONS
 
     media_dir = Path(anki_mw.col.media.dir())
     source = media_dir / "editor_cursor_source.wav"
@@ -62,7 +62,7 @@ def test_cursor_drag_updates_session_and_play_uses_html_audio(anki_mw, ffmpeg_co
         )
         wait_for_condition(
             lambda: (
-                (session := _SESSIONS.get(editor)) is not None
+                (session := SESSIONS.get(editor)) is not None
                 and session.cursor_ms >= 1000
             ),
             timeout=5.0,

@@ -13,7 +13,6 @@ BROWSER_DIALOG = ADDON_DIR / "browser_dialog.py"
 BROWSER_DIALOG_STATE = ADDON_DIR / "browser_dialog_state.py"
 ALLOWED_PERSISTENCE_FILES = {
     "browser_batch_runner.py",
-    "editor_integration.py",
     "editor_processing.py",
     "editor_region_delete.py",
     "reviewer_integration.py",
@@ -84,4 +83,3 @@ def test_direct_media_and_note_persistence_are_isolated_to_ui_adapters() -> None
     assert MODULE_CONTRACTS["browser_batch_runner"].allowed_side_effects >= frozenset(
         {SideEffect.MEDIA_WRITE, SideEffect.NOTE_UPDATE, SideEffect.UNDO_MERGE}
     )
-    assert MODULE_CONTRACTS["editor_integration"].allowed_side_effects >= frozenset({SideEffect.MEDIA_WRITE})

@@ -10,21 +10,24 @@ from types import SimpleNamespace
 from unittest.mock import MagicMock
 
 from anki_audio_quick_editor.audio_state import AudioEditState
+from anki_audio_quick_editor.editor_actions import BRIDGE_COMMANDS
+from anki_audio_quick_editor.editor_callbacks import _handle_bridge_command, _set_busy
 from anki_audio_quick_editor.editor_integration import (
-    _SESSIONS,
-    BRIDGE_COMMANDS,
-    EditorSession,
-    UndoHistory,
-    _audio_field_indices,
-    _handle_bridge_command,
-    _initial_status_by_field,
     _on_editor_did_init,
     _on_editor_will_load_note,
-    _set_busy,
-    editor_injection_script,
     register_editor_hooks,
 )
-from anki_audio_quick_editor.editor_session import PendingEditorStatus
+from anki_audio_quick_editor.editor_media import audio_field_indices
+from anki_audio_quick_editor.editor_runtime import SESSIONS
+from anki_audio_quick_editor.editor_session import (
+    EditorSession,
+    PendingEditorStatus,
+    UndoHistory,
+)
+from anki_audio_quick_editor.editor_webview_injection import (
+    _initial_status_by_field,
+    editor_injection_script,
+)
 
 
 def test_register_editor_hooks() -> None:
@@ -62,7 +65,7 @@ def test_editor_init_registers_all_bridge_commands(tmp_path: Path) -> None:
 def test_audio_field_indices_are_detected_from_note_fields() -> None:
     note = SimpleNamespace(fields=["plain", "<b>[sound:first.mp3]</b>", "[sound:movie.mp4]"])
 
-    assert _audio_field_indices(note) == [1]
+    assert audio_field_indices(note) == [1]
 
 
 def test_editor_injection_script_never_probes_source_audio_metadata(
@@ -189,7 +192,7 @@ def test_editor_undo_and_redo_restore_audio_references_without_processing(
         source_mtime_ns=generated.stat().st_mtime_ns,
     )
     session.undo_history.push(AudioEditState("clip.mp3"), "clip.mp3", status_summary="Original audio.")
-    _SESSIONS[editor] = session
+    SESSIONS[editor] = session
 
     monkeypatch.setattr("anki_audio_quick_editor.editor_runtime.stop_audio_playback", lambda: None)
     monkeypatch.setattr("aqt.qt.QTimer.singleShot", lambda _delay, callback: callback())
@@ -252,7 +255,7 @@ def test_editor_settings_command_opens_settings_and_refreshes_after_save(
         playback_preparing=True,
     )
     editor.loadNote = MagicMock(side_effect=lambda **_kwargs: reload_statuses.append(_initial_status_by_field(session)))
-    _SESSIONS[editor] = session
+    SESSIONS[editor] = session
 
     def fake_settings_opener(callback):
         callbacks.append(callback)
@@ -298,7 +301,7 @@ def test_editor_settings_command_reports_closed_settings_without_refresh_on_clos
     editor.web = MagicMock()
     editor.loadNote = MagicMock()
     editor.mw = SimpleNamespace(col=SimpleNamespace(media=SimpleNamespace(dir=lambda: str(media_dir))))
-    _SESSIONS[editor] = EditorSession(
+    SESSIONS[editor] = EditorSession(
         state=AudioEditState("clip.mp3"),
         field_index=0,
         current_filename="clip.mp3",
@@ -324,7 +327,7 @@ def test_set_busy_falls_back_to_session_field_index() -> None:
     editor = Editor()
     editor.currentField = None
     editor.web = MagicMock()
-    _SESSIONS[editor] = EditorSession(field_index=2)
+    SESSIONS[editor] = EditorSession(field_index=2)
 
     _set_busy(editor, False)
 

@@ -9,12 +9,9 @@ from types import SimpleNamespace
 from unittest.mock import MagicMock
 
 from anki_audio_quick_editor.audio_state import AudioEditState, AudioProcessingConfig
-from anki_audio_quick_editor.editor_integration import (
-    _SESSIONS,
-    EditorSession,
-    _handle_bridge_command,
-)
-from anki_audio_quick_editor.editor_session import PendingEditorStatus
+from anki_audio_quick_editor.editor_callbacks import _handle_bridge_command
+from anki_audio_quick_editor.editor_runtime import SESSIONS
+from anki_audio_quick_editor.editor_session import EditorSession, PendingEditorStatus
 
 
 class ImmediateThread:
@@ -61,7 +58,7 @@ def _setup_editor(
             )
         ),
     )
-    _SESSIONS[editor] = EditorSession(
+    SESSIONS[editor] = EditorSession(
         state=AudioEditState("clip.mp3"),
         field_index=0,
         current_filename="clip.mp3",
@@ -99,7 +96,7 @@ def test_pitch_hum_replaces_current_media_and_resets_state(tmp_path: Path, monke
     _handle_bridge_command(editor, "aqe:pitch-hum")
 
     saved_name = editor.mw.col.media.write_data.call_args.args[0]
-    session = _SESSIONS[editor]
+    session = SESSIONS[editor]
     assert rendered == [source]
     assert editor.note.fields == [f"[sound:{saved_name}]"]
     assert session.undo_history.pop().filename == "clip.mp3"

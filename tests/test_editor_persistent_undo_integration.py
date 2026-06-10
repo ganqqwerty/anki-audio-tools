@@ -9,12 +9,10 @@ from types import SimpleNamespace
 from unittest.mock import MagicMock
 
 from anki_audio_quick_editor.audio_state import AudioEditState
-from anki_audio_quick_editor.editor_integration import (
-    _SESSIONS,
-    _handle_bridge_command,
-    editor_injection_script,
-)
+from anki_audio_quick_editor.editor_callbacks import _handle_bridge_command
 from anki_audio_quick_editor.editor_persistent_undo import collection_id_for_editor
+from anki_audio_quick_editor.editor_runtime import SESSIONS
+from anki_audio_quick_editor.editor_webview_injection import editor_injection_script
 from anki_audio_quick_editor.persistent_history import (
     PersistentHistoryAppend,
     PersistentHistoryRepository,
@@ -27,7 +25,7 @@ def test_persistent_undo_restores_after_session_history_is_empty(
     tmp_path: Path,
     monkeypatch,
 ) -> None:
-    _SESSIONS.clear()
+    SESSIONS.clear()
     media_dir = tmp_path / "media"
     media_dir.mkdir()
     old_media = media_dir / "clip.mp3"
@@ -55,7 +53,7 @@ def test_persistent_undo_restores_after_session_history_is_empty(
 
     _handle_bridge_command(editor, "aqe:undo")
 
-    session = _SESSIONS[editor]
+    session = SESSIONS[editor]
     assert editor.note.fields == [f"[sound:{old_media.name}]"]
     assert session.current_filename == old_media.name
     assert session.state == AudioEditState(old_media.name)
@@ -65,7 +63,7 @@ def test_persistent_undo_refuses_when_old_media_is_missing(
     tmp_path: Path,
     monkeypatch,
 ) -> None:
-    _SESSIONS.clear()
+    SESSIONS.clear()
     media_dir = tmp_path / "media"
     media_dir.mkdir()
     old_media = media_dir / "clip.mp3"
@@ -100,7 +98,7 @@ def test_persistent_undo_refuses_when_field_changed_after_edit(
     tmp_path: Path,
     monkeypatch,
 ) -> None:
-    _SESSIONS.clear()
+    SESSIONS.clear()
     media_dir = tmp_path / "media"
     media_dir.mkdir()
     old_media = media_dir / "clip.mp3"
@@ -135,7 +133,7 @@ def test_editor_injection_embeds_persistent_undo_availability(
     tmp_path: Path,
     monkeypatch,
 ) -> None:
-    _SESSIONS.clear()
+    SESSIONS.clear()
     media_dir = tmp_path / "media"
     media_dir.mkdir()
     old_media = media_dir / "clip.mp3"
@@ -171,7 +169,7 @@ def test_editor_injection_disables_persistent_undo_for_unrelated_current_field(
     tmp_path: Path,
     monkeypatch,
 ) -> None:
-    _SESSIONS.clear()
+    SESSIONS.clear()
     media_dir = tmp_path / "media"
     media_dir.mkdir()
     old_media = media_dir / "clip.mp3"

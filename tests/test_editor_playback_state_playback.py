@@ -9,11 +9,9 @@ from unittest.mock import MagicMock
 import pytest
 
 from anki_audio_quick_editor.audio_state import AudioEditState
-from anki_audio_quick_editor.editor_integration import (
-    _SESSIONS,
-    EditorSession,
-    _play_with_request,
-)
+from anki_audio_quick_editor.editor_callbacks import _play_with_request
+from anki_audio_quick_editor.editor_runtime import SESSIONS
+from anki_audio_quick_editor.editor_session import EditorSession
 
 
 def test_html_playback_request_updates_session_without_native_segment(tmp_path: Path, monkeypatch) -> None:
@@ -36,7 +34,7 @@ def test_html_playback_request_updates_session_without_native_segment(tmp_path: 
         source_mtime_ns=source.stat().st_mtime_ns,
         visualized_duration_ms=2000,
     )
-    _SESSIONS[editor] = session
+    SESSIONS[editor] = session
     stop_calls: list[str] = []
 
     monkeypatch.setattr(
@@ -82,7 +80,7 @@ def test_post_edit_playback_request_does_not_replace_status_while_analysis_is_bu
         analysis_busy=True,
         analysis_busy_fields={1},
     )
-    _SESSIONS[editor] = session
+    SESSIONS[editor] = session
 
     _play_with_request(editor, {"engine": "native", "action": "start", "cursorMs": 0, "source": "post_edit"})
 
@@ -110,7 +108,7 @@ def test_playback_request_reports_missing_referenced_media_with_media_code(tmp_p
         current_filename="clip.mp3",
         source_mtime_ns=source.stat().st_mtime_ns,
     )
-    _SESSIONS[editor] = session
+    SESSIONS[editor] = session
 
     _play_with_request(editor, {"engine": "native", "action": "start", "cursorMs": 0})
 
@@ -162,7 +160,7 @@ def test_native_selected_playback_renders_segment_from_cursor_to_selection_end(
         visualized_filenames_by_field={0: "clip.m4a"},
         visualized_durations_by_field={0: 2000},
     )
-    _SESSIONS[editor] = session
+    SESSIONS[editor] = session
     render_calls: list[dict[str, object]] = []
 
     monkeypatch.setattr("anki_audio_quick_editor.editor_dependencies.threading.Thread", ImmediateThread)
