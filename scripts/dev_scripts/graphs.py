@@ -31,13 +31,19 @@ def cmd_graphs_webview(_command_args: list[str]) -> int:
     return _run_graph_script("graphs_webview.py")
 
 
+def cmd_graphs_archive(_command_args: list[str]) -> int:
+    """Generate machine-readable architecture data in docs/archive/."""
+    return _run_graph_script("graphs_archive.py")
+
+
 def cmd_graphs_all(_command_args: list[str]) -> int:
-    """Run all graph generators (python, svelte, bridge, webview)."""
+    """Run all graph generators (python, svelte, bridge, webview, archive)."""
     results = [
         _run_graph_script("graphs_python.py"),
         _run_graph_script("graphs_svelte.py"),
         _run_graph_script("graphs_bridge.py"),
         _run_graph_script("graphs_webview.py"),
+        _run_graph_script("graphs_archive.py"),
     ]
     return max(results) if results else 0
 

@@ -33,6 +33,7 @@ from scripts.dev_scripts.tooling import cmd_arch, cmd_lint, cmd_typecheck
 from scripts.dev_scripts.types import Command, CommandRegistry
 from scripts.dev_scripts.graphs import (
     cmd_graphs_all,
+    cmd_graphs_archive,
     cmd_graphs_bridge,
     cmd_graphs_check,
     cmd_graphs_python,
@@ -115,4 +116,5 @@ COMMANDS: CommandRegistry = {
     "graphs-webview": (cmd_graphs_webview, "Generate webview injection Mermaid diagram"),
     "graphs-all": (cmd_graphs_all, "Run all graph generators"),
     "graphs-check": (cmd_graphs_check, "Regenerate all graphs and fail if any differ from committed"),
+    "graphs-archive": (cmd_graphs_archive, "Generate machine-readable architecture data for LLMs"),
 }
