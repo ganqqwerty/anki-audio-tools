@@ -10,6 +10,7 @@ from . import (
     editor_analysis,
     editor_bridge,
     editor_dependencies,
+    editor_deps_protocols,
     editor_frontend_callbacks,
     editor_history,
     editor_persistent_undo,
@@ -72,8 +73,9 @@ def _processing_deps() -> SimpleNamespace:
     return _deps(editor_dependencies.processing_deps)
 
 
-def _region_delete_deps() -> SimpleNamespace:
-    return _deps(editor_dependencies.region_delete_deps)
+def _region_delete_deps() -> editor_deps_protocols.RegionDeleteDeps:
+    exports = _exports()
+    return editor_dependencies.region_delete_deps(exports, exports)
 
 
 def _playback_deps() -> SimpleNamespace:
@@ -100,7 +102,7 @@ def _share_deps() -> SimpleNamespace:
     return _deps(editor_dependencies.share_deps)
 
 
-def _with_deps(func: Callable[..., Any], deps_builder: Callable[[], SimpleNamespace]) -> Callable[..., Any]:
+def _with_deps(func: Callable[..., Any], deps_builder: Callable[[], Any]) -> Callable[..., Any]:
     @wraps(func)
     def _wrapper(*args: Any, **kwargs: Any) -> Any:
         return func(*args, deps_builder(), **kwargs)
@@ -110,7 +112,7 @@ def _with_deps(func: Callable[..., Any], deps_builder: Callable[[], SimpleNamesp
 
 def _with_keyword_deps(
     func: Callable[..., Any],
-    deps_builder: Callable[[], SimpleNamespace],
+    deps_builder: Callable[[], Any],
 ) -> Callable[..., Any]:
     @wraps(func)
     def _wrapper(*args: Any, **kwargs: Any) -> Any:

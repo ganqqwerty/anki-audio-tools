@@ -7,6 +7,8 @@ import threading
 from types import SimpleNamespace
 from typing import Any
 
+from .editor_deps_protocols import RegionDeleteDeps
+
 from .audio_processor import (
     format_ffmpeg_command,
     make_output_filename,
@@ -303,7 +305,7 @@ def analysis_deps(callbacks: Any, frontend_callbacks: Any) -> SimpleNamespace:
     )
 
 
-def region_delete_deps(callbacks: Any, frontend_callbacks: Any) -> SimpleNamespace:
+def region_delete_deps(callbacks: Any, frontend_callbacks: Any) -> RegionDeleteDeps:
     from . import editor_runtime
 
     return SimpleNamespace(

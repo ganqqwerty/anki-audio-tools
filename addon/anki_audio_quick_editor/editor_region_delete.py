@@ -16,6 +16,7 @@ from .editor_processing_shared import (
 from .editor_processing_shared import (
     sync_history_availability as _sync_history_availability,
 )
+from .editor_deps_protocols import RegionDeleteDeps
 from .editor_region_delete_request import (
     parse_region_delete_request as _parse_region_delete_request,
 )
@@ -61,7 +62,7 @@ region_operation_command_status = _request.region_operation_command_status
 region_operation_whole_clip_message = _request.region_operation_whole_clip_message
 
 
-def delete_selection_from_frontend(editor: Any, deps: Any) -> None:
+def delete_selection_from_frontend(editor: Any, deps: RegionDeleteDeps) -> None:
     """Pop and process a pending frontend region-delete request."""
     deps.eval_with_callback(
         editor,
@@ -71,7 +72,7 @@ def delete_selection_from_frontend(editor: Any, deps: Any) -> None:
     )
 
 
-def delete_selection_with_request(editor: Any, request: Any, deps: Any) -> None:
+def delete_selection_with_request(editor: Any, request: Any, deps: RegionDeleteDeps) -> None:
     """Validate a region-delete payload and start deletion."""
     parsed = _parse_region_delete_request(request)
     if parsed is None:
@@ -133,7 +134,7 @@ def delete_selection_async(
     source_path: Path,
     request: RegionDeleteRequest,
     config: AudioProcessingConfig,
-    deps: Any,
+    deps: RegionDeleteDeps,
 ) -> None:
     """Render a media file with the requested region removed."""
     operation_id = new_operation_id("region")
@@ -174,7 +175,7 @@ def replace_current_field_after_region_delete(
     saved_name: str,
     output_duration_ms: int | None,
     started_at: float,
-    deps: Any,
+    deps: RegionDeleteDeps,
     *,
     guard: EditorProcessingGuard | None = None,
     output_path: Path | None = None,
@@ -251,7 +252,7 @@ def _accept_guarded_region_replacement(
     editor: Any,
     session: EditorSession | None,
     guard: EditorProcessingGuard | None,
-    deps: Any,
+    deps: RegionDeleteDeps,
 ) -> bool:
     if guard is None or processing_guard_matches_editor(editor, session, guard, deps):
         return True
