@@ -11,6 +11,7 @@ import {
   updateFieldState,
   writeFieldState,
 } from "../src/editor-inline/field-state-store.js";
+import { syncFieldStateToDom } from "../src/editor-inline/field-state-dom-sync.js";
 
 function mountVisualizer(ord = 0, durationMs = 1000): void {
   document.body.innerHTML = `
@@ -125,6 +126,71 @@ describe("field state store", () => {
 
     removeFieldState(4);
     expect(hasFieldState(4)).toBe(false);
+  });
+
+  it("preserves direct-DOM writes after invalidate — writeFieldState does not clobber", () => {
+    mountVisualizer(0, 1000);
+    initFieldState(0, initialFieldState({ ord: 0 }));
+
+    // Simulate a test/e2e that writes cursor directly to DOM
+    const vis = visualizerForOrd(0)!;
+    vis.dataset.cursorMs = "900";
+    vis.dataset.progressMs = "900";
+    invalidateFieldState(0);
+
+    // Store rebuilds from DOM — cursor should be 900
+    expect(readFieldState(0).cursor.ms).toBe(900);
+
+    // A writeFieldState for an unrelated field must not clobber cursor
+    writeFieldState(0, {
+      ...readFieldState(0),
+      playback: { ...readFieldState(0).playback, repeat: true },
+    });
+
+    // Cursor should still be 900 — not reset to the cached-0 from initFieldState
+    expect(readFieldState(0).cursor.ms).toBe(900);
+    expect(readFieldState(0).playback.repeat).toBe(true);
+
+    // DOM should also reflect the preserved cursor
+    expect(vis.dataset.cursorMs).toBe("900");
+  });
+
+  it("stale cache from direct-DOM write returns old value until invalidated", () => {
+    mountVisualizer(0, 1000);
+    initFieldState(0, initialFieldState({ ord: 0 }));
+
+    const vis = visualizerForOrd(0)!;
+
+    // write through store — cache = 300
+    writeFieldState(0, {
+      ...readFieldState(0),
+      cursor: { ...readFieldState(0).cursor, ms: 300 },
+    });
+    expect(readFieldState(0).cursor.ms).toBe(300);
+
+    // direct DOM write bypasses store
+    vis.dataset.cursorMs = "900";
+    vis.dataset.progressMs = "900";
+
+    // cached read returns stale value
+    expect(readFieldState(0).cursor.ms).toBe(300);
+
+    // invalidate forces rebuild
+    invalidateFieldState(0);
+    expect(readFieldState(0).cursor.ms).toBe(900);
+  });
+
+  it("syncFieldStateToDom projects all fields including ones unchanged since init", () => {
+    mountVisualizer(0, 1000);
+    const state = initialFieldState({ ord: 0 });
+    syncFieldStateToDom(0, state);
+
+    const vis = visualizerForOrd(0)!;
+    // Even fields that were never explicitly set are written
+    expect(vis.dataset.graphActive).toBe("false");
+    expect(vis.dataset.cursorMs).toBe("0");
+    expect(vis.dataset.selectionActive).toBe("false");
+    expect(vis.dataset.playbackRegionMode).toBe("full");
   });
 
   it("hasFieldState returns false for unknown ordinals", () => {
