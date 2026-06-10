@@ -245,6 +245,7 @@ def _prime_hidden_audio_duration(editor, duration_ms: int, ord_: int = 0) -> Non
           visualizer.dataset.playbackRegionMode = "full";
           visualizer.dataset.playbackResetCursorMs = "0";
           visualizer.hidden = true;
+          window.__aqeInvalidateFieldState?.({ord_});
           return window.__aqeGraphStateForTest ? window.__aqeGraphStateForTest({ord_}) : null;
         }})()
         """,

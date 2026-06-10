@@ -29,6 +29,7 @@ describe("editor inline window contract", () => {
       "__aqeGraphPixelBoundsForTest",
       "__aqeGraphStateForTest",
       "__aqeInstallAudioPlaybackTestDriverForTest",
+      "__aqeInvalidateFieldState",
       "__aqePlayAfterEdit",
       "__aqePopFrontendLog",
       "__aqePopPendingGraphAnalysisRequest",

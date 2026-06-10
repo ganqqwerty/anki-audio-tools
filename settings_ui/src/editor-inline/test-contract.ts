@@ -37,6 +37,7 @@ export const EDITOR_TEST_WINDOW_CONTRACT_NAMES = [
   "__aqeGraphStateForTest",
   "__aqeGraphPixelBoundsForTest",
   "__aqeInstallAudioPlaybackTestDriverForTest",
+  "__aqeInvalidateFieldState",
   "__aqeSetCursorByClientXForTest",
   "__aqeSetCursorForTest",
   "__aqeSetTimeViewportForTest",
@@ -47,6 +48,7 @@ export function installEditorTestWindowContract(): void {
   window.__aqeGraphStateForTest = graphStateForTest;
   window.__aqeGraphPixelBoundsForTest = graphPixelBoundsForTest;
   window.__aqeInstallAudioPlaybackTestDriverForTest = installAudioPlaybackTestDriver;
+  window.__aqeInvalidateFieldState = (ord: number) => { invalidateFieldState(ord); };
   window.__aqeSetCursorByClientXForTest = setCursorByClientXForTest;
   window.__aqeSetCursorForTest = setCursorForTest;
   window.__aqeSetTimeViewportForTest = setTimeViewportForTest;

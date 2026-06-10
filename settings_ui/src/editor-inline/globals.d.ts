@@ -35,7 +35,9 @@ declare global {
     __aqeGraphPixelBoundsForTest?: ((ord: number) => { left: number; width: number } | null) | undefined;
     __aqeFieldState?: ((ord: number) => Record<string, unknown>) | undefined;
     __aqeGetPlaybackRequest?: (() => PlaybackRequest) | undefined;
+    __aqeGraphPixelBoundsForTest?: ((ord: number) => { left: number; width: number } | null) | undefined;
     __aqeGraphStateForTest?: ((ord: number) => GraphStateForTest | null) | undefined;
+    __aqeInvalidateFieldState?: ((ord: number) => void) | undefined;
     __aqeHistoryAvailabilityByField?: Record<number, { canRedo: boolean; canUndo: boolean }> | undefined;
     __aqeInstallAudioPlaybackTestDriverForTest?: ((ord: number) => boolean) | undefined;
     __aqeLastCursorIntent?: CursorIntent | null;
