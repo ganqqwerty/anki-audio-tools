@@ -21,7 +21,7 @@ RUNTIME_PHASE_READY = "ready"
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-from scripts import (  # noqa: E402
+from scripts import (
     release_assets,
     release_runtime,
     release_runtime_metadata,

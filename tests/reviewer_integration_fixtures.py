@@ -80,10 +80,10 @@ class FakeAction:
         self.enabled = True
         self.triggered = object()
 
-    def setEnabled(self, enabled: bool) -> None:  # noqa: N802 - Qt API
+    def setEnabled(self, enabled: bool) -> None:
         self.enabled = enabled
 
-    def setText(self, label: str) -> None:  # noqa: N802 - Qt API
+    def setText(self, label: str) -> None:
         self.label = label
 
 
@@ -92,10 +92,10 @@ class FakeMenu:
         self.actions: list[FakeAction] = []
         self.separator_count = 0
 
-    def addAction(self, label: str) -> FakeAction:  # noqa: N802 - Qt API
+    def addAction(self, label: str) -> FakeAction:
         action = FakeAction(label)
         self.actions.append(action)
         return action
 
-    def addSeparator(self) -> None:  # noqa: N802 - Qt API
+    def addSeparator(self) -> None:
         self.separator_count += 1

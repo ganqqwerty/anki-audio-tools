@@ -17,14 +17,14 @@ ADDON_DIR = ROOT / "addon" / "anki_audio_quick_editor"
 sys.path.insert(0, str(ROOT))
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
-import release_assets  # noqa: E402
-import scripts.release_bundle_freshness as release_bundle_freshness  # noqa: E402
-import scripts.release_manifest_selection as release_manifest_selection  # noqa: E402
-import scripts.release_runtime_metadata as release_runtime_metadata  # noqa: E402
-import scripts.release_runtime_remote as release_runtime_remote  # noqa: E402
-import scripts.release_validation as release_validation  # noqa: E402
-import scripts.vendor_wheels as vendor_wheels  # noqa: E402
-from scripts.dev_tasks.python_env import find_anki_python  # noqa: E402
+import release_assets
+import scripts.release_bundle_freshness as release_bundle_freshness
+import scripts.release_manifest_selection as release_manifest_selection
+import scripts.release_runtime_metadata as release_runtime_metadata
+import scripts.release_runtime_remote as release_runtime_remote
+import scripts.release_validation as release_validation
+import scripts.vendor_wheels as vendor_wheels
+from scripts.dev_tasks.python_env import find_anki_python
 from scripts.release_archive import (
     build_archive as _build_archive,
 )

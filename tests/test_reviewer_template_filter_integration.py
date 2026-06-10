@@ -33,21 +33,21 @@ class FakeCardLayoutLabel:
         self.object_name = ""
         self.word_wrap = False
         self.open_external_links = True
-        self.linkActivated = object()  # noqa: N815 - Qt signal attribute
+        self.linkActivated = object()
 
-    def setObjectName(self, object_name: str) -> None:  # noqa: N802 - Qt API
+    def setObjectName(self, object_name: str) -> None:
         self.object_name = object_name
 
-    def setWordWrap(self, enabled: bool) -> None:  # noqa: N802 - Qt API
+    def setWordWrap(self, enabled: bool) -> None:
         self.word_wrap = enabled
 
-    def setTextFormat(self, text_format: object) -> None:  # noqa: N802 - Qt API
+    def setTextFormat(self, text_format: object) -> None:
         del text_format
 
-    def setTextInteractionFlags(self, flags: object) -> None:  # noqa: N802 - Qt API
+    def setTextInteractionFlags(self, flags: object) -> None:
         del flags
 
-    def setOpenExternalLinks(self, enabled: bool) -> None:  # noqa: N802 - Qt API
+    def setOpenExternalLinks(self, enabled: bool) -> None:
         self.open_external_links = enabled
 
 
@@ -58,15 +58,15 @@ class FakeCardLayoutButton:
         self.object_name = ""
         self.auto_default = True
         self.hidden = False
-        self.clicked = object()  # noqa: N815 - Qt signal attribute
+        self.clicked = object()
 
-    def setObjectName(self, object_name: str) -> None:  # noqa: N802 - Qt API
+    def setObjectName(self, object_name: str) -> None:
         self.object_name = object_name
 
-    def setAutoDefault(self, enabled: bool) -> None:  # noqa: N802 - Qt API
+    def setAutoDefault(self, enabled: bool) -> None:
         self.auto_default = enabled
 
-    def setHidden(self, hidden: bool) -> None:  # noqa: N802 - Qt API
+    def setHidden(self, hidden: bool) -> None:
         self.hidden = hidden
 
 
@@ -74,10 +74,10 @@ class FakeCardLayoutEditArea:
     def __init__(self, text: str = "") -> None:
         self.text = text
 
-    def toPlainText(self) -> str:  # noqa: N802 - Qt API
+    def toPlainText(self) -> str:
         return self.text
 
-    def setPlainText(self, text: str) -> None:  # noqa: N802 - Qt API
+    def setPlainText(self, text: str) -> None:
         self.text = text
 
 
@@ -87,13 +87,13 @@ class FakeCardLayoutWidgetList:
         self.inserted: list[tuple[int, object]] = []
         self.added: list[object] = []
 
-    def indexOf(self, widget: object) -> int:  # noqa: N802 - Qt API
+    def indexOf(self, widget: object) -> int:
         return 3 if widget is self.edit_area else -1
 
-    def insertWidget(self, index: int, widget: object) -> None:  # noqa: N802 - Qt API
+    def insertWidget(self, index: int, widget: object) -> None:
         self.inserted.append((index, widget))
 
-    def addWidget(self, widget: object) -> None:  # noqa: N802 - Qt API
+    def addWidget(self, widget: object) -> None:
         self.added.append(widget)
 
 
@@ -103,13 +103,13 @@ class FakeCardLayoutButtonList:
         self.inserted: list[tuple[int, object]] = []
         self.added: list[object] = []
 
-    def indexOf(self, widget: object) -> int:  # noqa: N802 - Qt API
+    def indexOf(self, widget: object) -> int:
         return 2 if widget is self.add_field_button else -1
 
-    def insertWidget(self, index: int, widget: object) -> None:  # noqa: N802 - Qt API
+    def insertWidget(self, index: int, widget: object) -> None:
         self.inserted.append((index, widget))
 
-    def addWidget(self, widget: object) -> None:  # noqa: N802 - Qt API
+    def addWidget(self, widget: object) -> None:
         self.added.append(widget)
 
 

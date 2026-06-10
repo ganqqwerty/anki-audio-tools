@@ -262,19 +262,19 @@ def _visualizer_playback_js(ord_: int = 0) -> str:
 
 
 def _visualizer_buttons_js(ord_: int = 0) -> str:
-    return f"""
-    (() => {{
-      const graph = document.querySelector(`[data-testid="aqe-button-${{ord_}}-graph"]`);
-      const play = document.querySelector(`[data-testid="aqe-button-${{ord_}}-play"]`);
-      const deleteBtn = document.querySelector(`[data-testid="aqe-button-${{ord_}}-delete-selection"]`);
-      const deleteRest = document.querySelector(`[data-testid="aqe-button-${{ord_}}-delete-rest"]`);
+    return """
+    (() => {
+      const graph = document.querySelector(`[data-testid="aqe-button-${ord_}-graph"]`);
+      const play = document.querySelector(`[data-testid="aqe-button-${ord_}-play"]`);
+      const deleteBtn = document.querySelector(`[data-testid="aqe-button-${ord_}-delete-selection"]`);
+      const deleteRest = document.querySelector(`[data-testid="aqe-button-${ord_}-delete-rest"]`);
       const allDisabled = Array.from(document.querySelectorAll('.aqe-button')).every((b) => b.disabled);
-      return {{
+      return {
         graphButtonState: graph?.dataset.aqeButtonState || "",
         playButtonState: play?.dataset.aqeButtonState || "",
         regionDeleteButtonDisabled: deleteBtn ? deleteBtn.disabled : true,
         regionDeleteRestButtonDisabled: deleteRest ? deleteRest.disabled : true,
         allButtonsDisabled: allDisabled,
-      }};
-    }})()
+      };
+    })()
     """

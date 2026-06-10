@@ -10,9 +10,9 @@ ROOT = Path(__file__).resolve().parent.parent
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-from scripts.dev_cli import parse_cli_args  # noqa: E402
-from scripts.dev_scripts.registry import COMMANDS  # noqa: E402
-from scripts.dev_scripts.runner import run_command  # noqa: E402
+from scripts.dev_cli import parse_cli_args
+from scripts.dev_scripts.registry import COMMANDS
+from scripts.dev_scripts.runner import run_command
 
 _parse_cli_args = parse_cli_args
 

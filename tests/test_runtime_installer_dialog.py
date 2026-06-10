@@ -42,7 +42,7 @@ class FakeQDialog:
     def accept(self) -> None:
         self.accepted = True
 
-    def closeEvent(self, _event: object) -> None:  # noqa: N802 - Qt API
+    def closeEvent(self, _event: object) -> None:
         pass
 
 
@@ -52,13 +52,13 @@ class FakeLayout:
         self.widgets: list[object] = []
         self.layouts: list[object] = []
 
-    def addWidget(self, widget: object) -> None:  # noqa: N802 - Qt API
+    def addWidget(self, widget: object) -> None:
         self.widgets.append(widget)
 
-    def addLayout(self, layout: object) -> None:  # noqa: N802 - Qt API
+    def addLayout(self, layout: object) -> None:
         self.layouts.append(layout)
 
-    def addStretch(self, _stretch: int) -> None:  # noqa: N802 - Qt API
+    def addStretch(self, _stretch: int) -> None:
         pass
 
 
@@ -67,7 +67,7 @@ class FakeLabel:
         del parent
         self.text = text
 
-    def setText(self, text: str) -> None:  # noqa: N802 - Qt API
+    def setText(self, text: str) -> None:
         self.text = text
 
 
@@ -77,10 +77,10 @@ class FakeProgressBar:
         self.range = (0, 0)
         self.value = 0
 
-    def setRange(self, minimum: int, maximum: int) -> None:  # noqa: N802 - Qt API
+    def setRange(self, minimum: int, maximum: int) -> None:
         self.range = (minimum, maximum)
 
-    def setValue(self, value: int) -> None:  # noqa: N802 - Qt API
+    def setValue(self, value: int) -> None:
         self.value = value
 
 
@@ -90,7 +90,7 @@ class FakeTextEdit:
         self.read_only = False
         self.lines: list[str] = []
 
-    def setReadOnly(self, read_only: bool) -> None:  # noqa: N802 - Qt API
+    def setReadOnly(self, read_only: bool) -> None:
         self.read_only = read_only
 
     def append(self, line: str) -> None:
@@ -103,7 +103,7 @@ class FakeButton:
         self.text = text
         self.clicked = FakeSignal()
 
-    def setText(self, text: str) -> None:  # noqa: N802 - Qt API
+    def setText(self, text: str) -> None:
         self.text = text
 
 
