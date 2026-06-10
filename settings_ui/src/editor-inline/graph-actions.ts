@@ -143,6 +143,7 @@ export function setVisualizer(ord: number, rawTrack: ProsodyPayload, cursorMs: n
   const track = normalizeTrack(rawTrack);
   renderVisualizerTrack(visualizer, track);
   visualizer.dataset.anchorMs = "0";
+  invalidateFieldState(ord);
   if (pendingGraphRedrawMatches(ord, track.sourceFilename || "")) {
     window.__aqePendingGraphRedrawField = null;
     window.__aqePendingGraphRedrawSource = null;

@@ -276,6 +276,7 @@ export function setPlaybackState(ord: number, state: PlaybackState, cursorMs: nu
   if (!visualizer) return;
   if (state === "playing" || state === "paused") {
     visualizer.dataset.resumeRequiresRestart = "false";
+    invalidateFieldState(ord);
   }
   if (state === "playing") {
     const s = fieldState(visualizer);

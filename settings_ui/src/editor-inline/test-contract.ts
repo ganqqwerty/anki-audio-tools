@@ -19,7 +19,7 @@ import { cursorMsFromEvent, graphPixelBounds, svgViewBoxScale } from "./plot.js"
 import { chorusingControlsForVisualizer } from "./chorusing-dom.js";
 import { applyVisualizerTimeViewport } from "./viewport-actions.js";
 import { readVisualizerTargetDurationMs, readVisualizerTimeViewport } from "./visualizer-state.js";
-import { readFieldState } from "./field-state-store.js";
+import { readFieldState, invalidateFieldState } from "./field-state-store.js";
 import type {
   CursorPositionForTest,
   EditorCommand,
@@ -108,6 +108,7 @@ export function setCursorForTest(ord: number, ms: number, notifyPython: boolean)
   if (!visualizer) return false;
   visualizer.hidden = false;
   visualizer.dataset.graphActive = "true";
+  invalidateFieldState(ord);
   setCursor(visualizer, ms, !!notifyPython);
   return true;
 }
