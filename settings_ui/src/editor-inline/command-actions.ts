@@ -15,7 +15,7 @@ import {
   pauseChorusingForNormalPlay,
   toggleChorusingForOrd,
 } from "./chorusing-controller.js";
-import type { EditorCommand, EditorCommandPayload, VisualizerElement } from "./types.js";
+import type { EditorCommand, EditorCommandPayload } from "./types.js";
 import { anyBusy, setControlsBusy } from "./control-actions.js";
 
 export function send(
@@ -74,8 +74,7 @@ function shouldPlayAfterSuccessfulEdit(command: EditorCommand): boolean {
 }
 
 function stopAllEditorPlayback(): void {
-  for (const visualizer of allVisualizers()) {
-    const editorVisualizer = visualizer as VisualizerElement;
+  for (const editorVisualizer of allVisualizers()) {
     if (playbackStateFor(editorVisualizer) === "stopped") continue;
     stopProgressClock(editorVisualizer);
     focusAndSendCommand(Number(editorVisualizer.dataset.aqeFieldOrd || "0"), "aqe:stop-playback");

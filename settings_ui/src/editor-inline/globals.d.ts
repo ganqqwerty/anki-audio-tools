@@ -13,6 +13,7 @@ import type {
   PostEditPlaybackIntent,
   RegionDeleteRequest,
 } from "./types.js";
+import type { EditorFieldState } from "./field-state.js";
 import type {
   SourceMetadataRequest,
   SourceMetadataResponse,
@@ -33,7 +34,7 @@ declare global {
     __aqeGetCursorIntent?: (() => CursorIntent) | undefined;
     __aqeGetCursorMs?: (() => number) | undefined;
     __aqeGraphPixelBoundsForTest?: ((ord: number) => { left: number; width: number } | null) | undefined;
-    __aqeFieldState?: ((ord: number) => Record<string, unknown>) | undefined;
+    __aqeFieldState?: ((ord: number) => EditorFieldState | null) | undefined;
     __aqeGetPlaybackRequest?: (() => PlaybackRequest) | undefined;
     __aqeGraphPixelBoundsForTest?: ((ord: number) => { left: number; width: number } | null) | undefined;
     __aqeGraphStateForTest?: ((ord: number) => GraphStateForTest | null) | undefined;

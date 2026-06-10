@@ -55,7 +55,8 @@ export function syncRecordingControls(ord: number): void {
       : undefined;
     const enabledTitle = buttonTooltipContent(label, title);
     const tooltip = tooltipWithDisabledClarification(enabledTitle, reason);
-    recordButton.querySelector<HTMLElement>(".aqe-button-label")!.textContent = label;
+    const recordLabel = recordButton.querySelector<HTMLElement>(".aqe-button-label");
+    if (recordLabel) recordLabel.textContent = label;
     recordButton.setAttribute("aria-label", tooltip);
     recordButton.dataset.aqeEnabledTitle = enabledTitle;
     recordButton.dataset.aqeDisabledTitle = t("editor.command.record_voice.disabled_title");
@@ -71,7 +72,8 @@ export function syncRecordingControls(ord: number): void {
       : recordingPlaybackDisabledReason({ blocking, bodyBusy });
     const enabledTitle = buttonTooltipContent(label, title);
     const tooltip = tooltipWithDisabledClarification(enabledTitle, reason);
-    playButton.querySelector<HTMLElement>(".aqe-button-label")!.textContent = label;
+    const playLabel = playButton.querySelector<HTMLElement>(".aqe-button-label");
+    if (playLabel) playLabel.textContent = label;
     playButton.dataset.aqeEnabledTitle = enabledTitle;
     playButton.dataset.aqeDisabledTitle = t("editor.command.play_recording.disabled_title");
     playButton.setAttribute("aria-label", tooltip);

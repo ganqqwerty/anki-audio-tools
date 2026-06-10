@@ -7,7 +7,6 @@
   import {
     formatSizeReductionMode,
     SIZE_REDUCTION_MODE_VALUES,
-    type SizeReductionMode,
   } from "$lib/size-reduction-parameters.js";
   import { applyBatchSizeReductionPreset, type BatchFormState } from "./batch-state.js";
 
@@ -43,7 +42,7 @@
           data-aqe-tooltip-content={clarifiedTooltip(tooltip)}
           role="radio"
           aria-checked={form.sizeReductionMode === value ? "true" : "false"}
-          onclick={() => applyBatchSizeReductionPreset(form, value as SizeReductionMode)}
+          onclick={() => applyBatchSizeReductionPreset(form, value)}
         >
           {formatSizeReductionMode(value)}
         </button>

@@ -82,6 +82,7 @@ export const DEFAULT_EDITOR_BUTTON_MODES = {
   "aqe:chorusing-previous": EditorButtonMode.Icon,
   "aqe:chorusing-next": EditorButtonMode.Icon,
   "aqe:record-voice": EditorButtonMode.Icon,
+  "aqe:stop-recording": EditorButtonMode.Icon,
   "aqe:play-recording": EditorButtonMode.Icon,
   "aqe:share-recording": EditorButtonMode.Icon,
   "aqe:show-recording-file": EditorButtonMode.Icon,
@@ -91,6 +92,9 @@ export const DEFAULT_EDITOR_BUTTON_MODES = {
   "aqe:reduce-size": EditorButtonMode.Text,
   "aqe:remove-pauses": EditorButtonMode.Text,
   "aqe:denoise-standard": EditorButtonMode.Text,
+  "aqe:rnnoise": EditorButtonMode.Icon,
+  "aqe:dpdfnet": EditorButtonMode.Icon,
+  "aqe:voice-only": EditorButtonMode.Icon,
   "aqe:pitch-hum": EditorButtonMode.Text,
   "aqe:slower": EditorButtonMode.Icon,
   "aqe:faster": EditorButtonMode.Icon,
@@ -300,7 +304,7 @@ export function buttonDisplayMode(
   const configuredMode = modes?.[command];
   if (configuredMode === EditorButtonMode.Icon) return EditorButtonMode.Icon;
   if (configuredMode === EditorButtonMode.Text) return EditorButtonMode.Text;
-  return DEFAULT_EDITOR_BUTTON_MODES[command as keyof typeof DEFAULT_EDITOR_BUTTON_MODES] ?? EditorButtonMode.Text;
+  return DEFAULT_EDITOR_BUTTON_MODES[command] ?? EditorButtonMode.Text;
 }
 
 export function denoiseButtons(): readonly ToolbarButtonSpec[] {

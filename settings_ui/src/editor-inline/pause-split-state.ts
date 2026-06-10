@@ -214,12 +214,11 @@ function syncNumberPauseDefault(
   value: number,
   forceCurrentField: boolean,
 ): void {
-  const target = state as unknown as Record<string, unknown>;
-  if (target[defaultKey] !== value) {
-    target[defaultKey] = value;
-    if (forceCurrentField || !state.pauseEdited) target[valueKey] = value;
+  if (state[defaultKey] !== value) {
+    (state[defaultKey] as number) = value;
+    if (forceCurrentField || !state.pauseEdited) (state[valueKey] as number) = value;
   }
-  if (!Number.isFinite(target[valueKey])) target[valueKey] = value;
+  if (!Number.isFinite(state[valueKey] as number)) (state[valueKey] as number) = value;
 }
 
 function syncBooleanPauseDefault(
@@ -229,12 +228,11 @@ function syncBooleanPauseDefault(
   value: boolean,
   forceCurrentField: boolean,
 ): void {
-  const target = state as unknown as Record<string, unknown>;
-  if (target[defaultKey] !== value) {
-    target[defaultKey] = value;
-    if (forceCurrentField || !state.pauseEdited) target[valueKey] = value;
+  if (state[defaultKey] !== value) {
+    (state[defaultKey] as boolean) = value;
+    if (forceCurrentField || !state.pauseEdited) (state[valueKey] as unknown as boolean) = value;
   }
-  if (typeof target[valueKey] !== "boolean") target[valueKey] = value;
+  if (typeof state[valueKey] !== "boolean") (state[valueKey] as unknown as boolean) = value;
 }
 
 function pauseAdvancedValuesChanged(values: SplitDefaultSaveRequest["defaults"]): boolean {

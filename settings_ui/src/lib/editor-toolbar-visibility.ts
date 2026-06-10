@@ -32,9 +32,12 @@ export function toolbarPanels(
     if (!button) continue;
     const matchedPanel = toolbarPanelDefinitionAt(buttons, index);
     if (matchedPanel) {
-      const primaryButton = matchedPanel.buttons.find(
+      const primaryMatch = matchedPanel.buttons.find(
         (candidate) => candidate.command === matchedPanel.definition.primaryCommand,
-      ) ?? matchedPanel.buttons[0]!;
+      );
+      const first = matchedPanel.buttons[0];
+      if (!first) continue;
+      const primaryButton = primaryMatch ?? first;
       panels.push({
         atomicVisibility: matchedPanel.definition.atomicVisibility === true,
         buttons: matchedPanel.buttons,

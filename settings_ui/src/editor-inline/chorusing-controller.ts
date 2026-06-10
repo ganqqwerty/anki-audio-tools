@@ -11,7 +11,7 @@ import {
 } from "./playback-actions.js";
 import type { PlaybackRequest, VisualizerElement } from "./types.js";
 import { setSelection as setSelectionFromController } from "./selection-controller.js";
-import { SELECTION_CHANGED_EVENT, notifySelectionChanged, type SelectionChangedDetail } from "./selection-events.js";
+import { SELECTION_CHANGED_EVENT, notifySelectionChanged } from "./selection-events.js";
 import { syncSelectionToolbar } from "./selection-toolbar-state.js";
 import {
   chorusingMarkerControlsVisible,
@@ -42,7 +42,7 @@ const MARKER_HIT_TOLERANCE_MS = 35;
 export function installChorusingHandlers(visualizer: VisualizerElement): () => void {
   writeState(visualizer, chorusingStateForVisualizer(visualizer));
   const onSelectionChanged = (event: Event): void => {
-    const origin = (event as CustomEvent<SelectionChangedDetail>).detail?.origin ?? "user";
+    const origin = event instanceof CustomEvent ? (event.detail?.origin ?? "user") : "user";
     if (origin === "user") {
       renderChorusingMarkerRow(visualizer);
       syncChorusingToolbarButtons(visualizer);

@@ -151,12 +151,11 @@ function syncNumberSizeReductionDefault(
   value: number,
   forceCurrentField: boolean,
 ): void {
-  const target = state as unknown as Record<string, unknown>;
-  if (target[defaultKey] !== value) {
-    target[defaultKey] = value;
-    if (forceCurrentField || !state.sizeReductionEdited) target[valueKey] = value;
+  if (state[defaultKey] !== value) {
+    (state[defaultKey] as number) = value;
+    if (forceCurrentField || !state.sizeReductionEdited) (state[valueKey] as number) = value;
   }
-  if (!Number.isFinite(target[valueKey])) target[valueKey] = value;
+  if (!Number.isFinite(state[valueKey] as number)) (state[valueKey] as number) = value;
 }
 
 function sizeReductionAdvancedValuesChanged(values: SplitDefaultSaveRequest["defaults"]): boolean {

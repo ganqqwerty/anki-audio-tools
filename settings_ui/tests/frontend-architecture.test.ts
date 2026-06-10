@@ -20,7 +20,7 @@ const lineLimitAllowlist = new Map<string, number>([
   ["src/editor-inline/GraphVisualizer.svelte", 312],
   ["src/editor-inline/SplitButton.svelte", 500],
   ["src/editor-inline/SplitValueOptions.svelte", 398],
-  ["src/lib/editor-toolbar-buttons.ts", 337],
+  ["src/lib/editor-toolbar-buttons.ts", 345],
   ["src/lib/i18n.ts", 370],
   ["src/lib/PauseAdvancedParamsFields.svelte", 302],
   ["src/settings/SettingsApp.svelte", 304],

@@ -13,7 +13,8 @@ import { initialFieldState } from "./field-state.js";
 import type { FieldTarget } from "./types.js";
 
 export interface FieldController {
-  component: Record<string, unknown>;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Svelte mount()/unmount() use Record<string, any>
+  component: Record<string, any>;
   host: HTMLElement;
   ord: number;
   sourceFilename: string;
@@ -64,7 +65,7 @@ export function mountController(target: FieldTarget): FieldController | null {
   const component = mount(EditorControls, {
     target: host,
     props: { initialStatus, target },
-  }) as Record<string, unknown>;
+  });
   applyInitialHistoryAvailabilityForOrd(target.ord);
   const controller = {
     component,
