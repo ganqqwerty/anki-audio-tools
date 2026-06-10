@@ -84,6 +84,21 @@ export function invalidateFieldState(ord: number): void {
   _fieldStates.delete(ord);
 }
 
+export function setCachedProgressMs(ord: number, progressMs: number): void {
+  const rounded = Math.round(progressMs);
+  const stored = _fieldStates.get(ord);
+  if (stored) {
+    _fieldStates.set(ord, {
+      ...stored,
+      cursor: { ...stored.cursor, progressMs: rounded },
+    });
+  }
+  const visualizer = visualizerForOrd(ord);
+  if (visualizer) {
+    visualizer.dataset.progressMs = String(rounded);
+  }
+}
+
 export function writeFieldState(ord: number, state: EditorFieldState): void {
   _fieldStates.set(ord, { ...state });
   syncFieldStateToDom(ord, state);
