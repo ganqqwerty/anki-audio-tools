@@ -67,14 +67,14 @@ export function activePlaybackPass(visualizer: VisualizerElement, deps: Playback
   const fallbackResetCursorMs = regionMode === "selection"
     ? region.startMs
     : s.cursor.anchorMs;
-  const rawEndMs = s.playback.endMs || region.endMs;
+  const rawEndMs = s.playback.endMs ?? region.endMs;
   const endMs = s.graph.durationMs > 0 ? Math.min(rawEndMs, s.graph.durationMs) : rawEndMs;
   return {
     endMs: Math.round(Math.max(0, endMs)),
     loop: visualizer.dataset.playbackLoop === "true",
     regionMode,
     resetCursorMs: Math.round(readDomStoredMs(visualizer.dataset.playbackResetCursorMs, fallbackResetCursorMs)),
-    startMs: Math.round(s.playback.startMs || region.startMs),
+    startMs: Math.round(s.playback.startMs ?? region.startMs),
   };
 }
 

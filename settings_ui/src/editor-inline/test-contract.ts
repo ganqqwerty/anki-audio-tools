@@ -19,6 +19,7 @@ import { cursorMsFromEvent, graphPixelBounds, svgViewBoxScale } from "./plot.js"
 import { chorusingControlsForVisualizer } from "./chorusing-dom.js";
 import { applyVisualizerTimeViewport } from "./viewport-actions.js";
 import { readVisualizerTargetDurationMs, readVisualizerTimeViewport } from "./visualizer-state.js";
+import { readFieldState } from "./field-state-store.js";
 import type {
   CursorPositionForTest,
   EditorCommand,
@@ -32,6 +33,7 @@ import { isPlaybackState } from "./types.js";
 type GraphBoundsForTest = { left: number; width: number };
 
 export const EDITOR_TEST_WINDOW_CONTRACT_NAMES = [
+  "__aqeFieldState",
   "__aqeGraphStateForTest",
   "__aqeGraphPixelBoundsForTest",
   "__aqeInstallAudioPlaybackTestDriverForTest",
@@ -41,6 +43,7 @@ export const EDITOR_TEST_WINDOW_CONTRACT_NAMES = [
 ] as const;
 
 export function installEditorTestWindowContract(): void {
+  window.__aqeFieldState = (ord: number) => readFieldState(ord);
   window.__aqeGraphStateForTest = graphStateForTest;
   window.__aqeGraphPixelBoundsForTest = graphPixelBoundsForTest;
   window.__aqeInstallAudioPlaybackTestDriverForTest = installAudioPlaybackTestDriver;

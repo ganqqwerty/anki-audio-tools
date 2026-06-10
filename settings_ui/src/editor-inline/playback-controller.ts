@@ -376,12 +376,12 @@ function restartLoopPlaybackNow(
   options: { forceAudioPlay?: boolean } = {},
   pass: PlaybackPass = activePlaybackPass(visualizer, deps),
 ): void {
-  const s = fieldState(visualizer);
   const loopStartMs = pass.startMs;
   clearRepeatPauseTimer(visualizer);
   writePlaybackPass(visualizer, pass);
   visualizer.dataset.playStartedAt = String(performance.now());
   visualizer.dataset.playStartMs = String(loopStartMs);
+  const s = fieldState(visualizer);
   writeFieldState(s.ord, {
     ...s,
     playback: { ...s.playback, state: "playing" },

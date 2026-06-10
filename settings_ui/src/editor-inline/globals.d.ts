@@ -33,6 +33,7 @@ declare global {
     __aqeGetCursorIntent?: (() => CursorIntent) | undefined;
     __aqeGetCursorMs?: (() => number) | undefined;
     __aqeGraphPixelBoundsForTest?: ((ord: number) => { left: number; width: number } | null) | undefined;
+    __aqeFieldState?: ((ord: number) => Record<string, unknown>) | undefined;
     __aqeGetPlaybackRequest?: (() => PlaybackRequest) | undefined;
     __aqeGraphStateForTest?: ((ord: number) => GraphStateForTest | null) | undefined;
     __aqeHistoryAvailabilityByField?: Record<number, { canRedo: boolean; canUndo: boolean }> | undefined;
