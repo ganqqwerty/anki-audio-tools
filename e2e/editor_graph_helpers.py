@@ -183,3 +183,98 @@ def _install_html_audio_test_driver(editor, ord_: int = 0) -> None:
         lambda value: value is True,
         timeout=5.0,
     )
+
+
+def _visualizer_ready_js(ord_: int = 0) -> str:
+    return f"""
+    (() => {{
+      const v = document.querySelector(`.aqe-visualizer[data-aqe-field-ord="{ord_}"]`);
+      if (!v) return null;
+      if (v.dataset.hasTrack !== "true") return null;
+      if (!Number(v.dataset.durationMs)) return null;
+      if (Array.from(document.querySelectorAll('.aqe-button')).every((b) => b.disabled)) return null;
+      return {{ ord: {ord_} }};
+    }})()
+    """
+
+
+def _wait_for_visualizer_ready(editor, timeout: float = 10.0, ord_: int = 0):
+    return wait_for_js_condition(
+        editor.web,
+        _visualizer_ready_js(ord_),
+        lambda state: state is not None,
+        timeout=timeout,
+    )
+
+
+def _visualizer_source_js(ord_: int = 0) -> str:
+    return f"""
+    (() => {{
+      const v = document.querySelector(`.aqe-visualizer[data-aqe-field-ord="{ord_}"]`);
+      if (!v || v.dataset.hasTrack !== "true") return null;
+      return {{ sourceFilename: v.dataset.sourceFilename || "" }};
+    }})()
+    """
+
+
+def _visualizer_cursor_js(ord_: int = 0) -> str:
+    return f"""
+    (() => {{
+      const v = document.querySelector(`.aqe-visualizer[data-aqe-field-ord="{ord_}"]`);
+      if (!v || v.dataset.hasTrack !== "true") return null;
+      return {{
+        cursorMs: Number(v.dataset.cursorMs || "0"),
+        durationMs: Number(v.dataset.durationMs || "0"),
+      }};
+    }})()
+    """
+
+
+def _visualizer_selection_js(ord_: int = 0) -> str:
+    return f"""
+    (() => {{
+      const v = document.querySelector(`.aqe-visualizer[data-aqe-field-ord="{ord_}"]`);
+      if (!v || v.dataset.hasTrack !== "true") return null;
+      return {{
+        selectionActive: v.dataset.selectionActive === "true",
+        selectionStartMs: v.dataset.selectionStartMs ? Number(v.dataset.selectionStartMs) : null,
+        selectionEndMs: v.dataset.selectionEndMs ? Number(v.dataset.selectionEndMs) : null,
+      }};
+    }})()
+    """
+
+
+def _visualizer_playback_js(ord_: int = 0) -> str:
+    return f"""
+    (() => {{
+      const v = document.querySelector(`.aqe-visualizer[data-aqe-field-ord="{ord_}"]`);
+      if (!v || v.dataset.hasTrack !== "true") return null;
+      return {{
+        playbackState: v.dataset.playbackState || "stopped",
+        playbackStartMs: Number(v.dataset.playbackStartMs || "0"),
+        playbackEndMs: Number(v.dataset.playbackEndMs || "0"),
+        playbackRegionMode: v.dataset.playbackRegionMode || "full",
+        repeatEnabled: v.dataset.repeatEnabled === "true",
+        resumeRequiresRestart: v.dataset.resumeRequiresRestart === "true",
+      }};
+    }})()
+    """
+
+
+def _visualizer_buttons_js(ord_: int = 0) -> str:
+    return f"""
+    (() => {{
+      const graph = document.querySelector(`[data-testid="aqe-button-${{ord_}}-graph"]`);
+      const play = document.querySelector(`[data-testid="aqe-button-${{ord_}}-play"]`);
+      const deleteBtn = document.querySelector(`[data-testid="aqe-button-${{ord_}}-delete-selection"]`);
+      const deleteRest = document.querySelector(`[data-testid="aqe-button-${{ord_}}-delete-rest"]`);
+      const allDisabled = Array.from(document.querySelectorAll('.aqe-button')).every((b) => b.disabled);
+      return {{
+        graphButtonState: graph?.dataset.aqeButtonState || "",
+        playButtonState: play?.dataset.aqeButtonState || "",
+        regionDeleteButtonDisabled: deleteBtn ? deleteBtn.disabled : true,
+        regionDeleteRestButtonDisabled: deleteRest ? deleteRest.disabled : true,
+        allButtonsDisabled: allDisabled,
+      }};
+    }})()
+    """
