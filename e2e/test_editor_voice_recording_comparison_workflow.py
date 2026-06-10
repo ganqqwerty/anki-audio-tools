@@ -180,10 +180,12 @@ def test_editor_voice_recording_comparison_workflow(
             editor.web,
             """
             (() => {
+              if (typeof window.__aqeSetCursorForTest !== "function") return false;
               const visualizer = document.querySelector('[data-testid="aqe-graph-0"]');
               if (!visualizer) return false;
-              visualizer.dataset.cursorMs = "900";
-              visualizer.dataset.progressMs = "900";
+              visualizer.hidden = false;
+              visualizer.dataset.graphActive = "true";
+              window.__aqeSetCursorForTest(0, 900, false);
               return true;
             })()
             """,
