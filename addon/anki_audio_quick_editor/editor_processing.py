@@ -40,10 +40,12 @@ from .error_codes import (
     AQE_MEDIA_CURRENT_FIELD_AUDIO_MISSING,
     coded_error,
 )
-from .errors import AudioProcessingError
+from .editor_media_replacement import (
+    persist_generated_media,
+    replace_first_sound_reference_in_field,
+)
 from .i18n import t
 from .permission_guidance import message_with_permission_guidance
-from .sound_refs import replace_sound_reference, select_first_sound_reference
 
 logger = logging.getLogger(__name__)
 convert_async = _convert_async
@@ -236,18 +238,13 @@ def replace_current_field_after_render(
     session = deps.sessions.get(editor)
     if not _accept_guarded_render_replacement(editor, session, guard, deps):
         return
-    saved_name = _persist_standard_render_output(editor, saved_name, output_path, deps)
+    saved_name = persist_generated_media(editor, saved_name, output_path, deps)
     field_index = _render_replacement_field_index(editor, session, deps)
-    field_html = editor.note.fields[field_index]
-    selection = select_first_sound_reference(field_html)
-    if selection.selected is None:
-        raise AudioProcessingError(deps.current_field_audio_missing)
-    old_field_html = field_html
-    old_filename = selection.selected.filename
+    old_field_html, new_field_html, old_filename = replace_first_sound_reference_in_field(
+        editor, field_index=field_index, saved_name=saved_name, missing_message=deps.current_field_audio_missing,
+    )
     old_state = session.state if session else None
     status_summary = session.next_status_summary if session else ""
-    editor.note.fields[field_index] = replace_sound_reference(field_html, selection.selected, saved_name)
-    new_field_html = editor.note.fields[field_index]
     try:
         deps.record_standard_persistent_undo(
             editor,
@@ -302,16 +299,6 @@ def _accept_guarded_render_replacement(
         deps.set_busy(editor, False)
     return False
 
-
-def _persist_standard_render_output(
-    editor: Any,
-    saved_name: str,
-    output_path: Path | None,
-    deps: Any,
-) -> str:
-    if output_path is None:
-        return saved_name
-    return cast(str, deps.write_generated_media(editor, saved_name, output_path))
 
 
 def _render_replacement_field_index(editor: Any, session: EditorSession | None, deps: Any) -> int:

@@ -11,6 +11,10 @@ from .audio_formats import DEFAULT_OUTPUT_FORMAT
 from .audio_state import AudioEditState, AudioProcessingConfig
 from .diagnostics_runtime import new_operation_id, record_breadcrumb
 from .editor_actions import EditorCommandPayload, processing_config_for_command
+from .editor_media_replacement import (
+    persist_generated_media,
+    replace_first_sound_reference_in_field,
+)
 from .editor_processing_shared import (
     cancel_graph_analysis_for_processing,
     request_history_availability_after_edit,
@@ -28,12 +32,10 @@ from .editor_session import (
 )
 from .editor_special_transform_worker import run_special_transform_worker
 from .editor_status import command_status_summary
-from .errors import AudioProcessingError
 from .i18n import t
 from .media_paths import existing_media_file_path
 from .permission_guidance import message_with_permission_guidance
 from .prosody_settings import config_with_graph_settings
-from .sound_refs import replace_sound_reference, select_first_sound_reference
 from .support import (
     format_denoise_support_log_block,
     format_spleeter_support_log_block,
@@ -256,14 +258,11 @@ def replace_current_field_after_noise_removal(
         if clear_processing_for_stale_guard(session, guard):
             deps.set_busy(editor, False)
         return
-    if output_path is not None:
-        saved_name = deps.write_generated_media(editor, saved_name, output_path)
+    saved_name = persist_generated_media(editor, saved_name, output_path, deps)
     field_index = resolved_field_index(session, editor, deps)
-    field_html = editor.note.fields[field_index]
-    selection = select_first_sound_reference(field_html)
-    if selection.selected is None:
-        raise AudioProcessingError(deps.current_field_audio_missing)
-    editor.note.fields[field_index] = replace_sound_reference(field_html, selection.selected, saved_name)
+    replace_first_sound_reference_in_field(
+        editor, field_index=field_index, saved_name=saved_name, missing_message=deps.current_field_audio_missing,
+    )
     should_redraw_graph = _replace_noise_reduction_session_state(editor, session, field_index, saved_name)
     deps.request_playback_after_edit(
         editor,

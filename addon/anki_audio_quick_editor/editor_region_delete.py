@@ -17,6 +17,7 @@ from .editor_processing_shared import (
     sync_history_availability as _sync_history_availability,
 )
 from .editor_deps_protocols import RegionDeleteDeps
+from .editor_media_replacement import replace_first_sound_reference_in_field
 from .editor_region_delete_request import (
     parse_region_delete_request as _parse_region_delete_request,
 )
@@ -48,7 +49,7 @@ from .errors import AudioProcessingError
 from .i18n import t
 from .media_paths import existing_media_file_path, media_filenames_match
 from .permission_guidance import message_with_permission_guidance
-from .sound_refs import replace_sound_reference, select_first_sound_reference
+from .sound_refs import select_first_sound_reference
 
 logger = logging.getLogger(__name__)
 parse_region_delete_request = _request.parse_region_delete_request
@@ -193,7 +194,9 @@ def replace_current_field_after_region_delete(
             raise AudioProcessingError(deps.current_field_audio_missing)
         if not media_filenames_match(selection.selected.filename, request.source_filename):
             raise AudioProcessingError(t("editor.status.graph_audio_mismatch"))
-        editor.note.fields[field_index] = replace_sound_reference(field_html, selection.selected, saved_name)
+        replace_first_sound_reference_in_field(
+            editor, field_index=field_index, saved_name=saved_name, missing_message=deps.current_field_audio_missing,
+        )
         should_redraw_graph = _replace_region_delete_session_state(editor, session, field_index, saved_name, request)
         logger.info(
             "region delete completed: %s",
