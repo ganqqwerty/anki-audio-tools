@@ -22,6 +22,7 @@ describe("editor inline window contract", () => {
 
     expect([...installed].sort()).toEqual([
       "__aqeEditorDispose",
+      "__aqeFieldState",
       "__aqeGetCursorIntent",
       "__aqeGetCursorMs",
       "__aqeGetPlaybackRequest",

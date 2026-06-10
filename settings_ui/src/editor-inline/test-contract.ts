@@ -43,7 +43,7 @@ export const EDITOR_TEST_WINDOW_CONTRACT_NAMES = [
 ] as const;
 
 export function installEditorTestWindowContract(): void {
-  window.__aqeFieldState = (ord: number) => readFieldState(ord);
+  window.__aqeFieldState = (ord: number) => readFieldState(ord) as unknown as Record<string, unknown>;
   window.__aqeGraphStateForTest = graphStateForTest;
   window.__aqeGraphPixelBoundsForTest = graphPixelBoundsForTest;
   window.__aqeInstallAudioPlaybackTestDriverForTest = installAudioPlaybackTestDriver;
