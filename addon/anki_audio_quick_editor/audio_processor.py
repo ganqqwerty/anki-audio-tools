@@ -77,30 +77,34 @@ def _bundled_deep_filter_path() -> Path | None:
     return _ORIGINAL_BUNDLED_DEEP_FILTER_PATH()
 
 
+def _audio_module_deps() -> AudioModuleDeps:
+    return AudioModuleDeps(
+        find_ffmpeg=find_ffmpeg,
+        find_ffprobe=find_ffprobe,
+        find_deep_filter=find_deep_filter,
+        find_rnnoise_bundle=find_rnnoise_bundle,
+        find_dpdfnet_bundle=find_dpdfnet_bundle,
+        find_spleeter_bundle=find_spleeter_bundle,
+        find_silero_vad_bundle=find_silero_vad_bundle,
+        probe_duration_ms=probe_duration_ms,
+        probe_audio_metadata=probe_audio_metadata,
+        build_audio_filters=build_audio_filters,
+        build_convert_audio_command=build_convert_audio_command,
+        build_size_reduction_audio_command=build_size_reduction_audio_command,
+        resolve_output_policy=resolve_output_policy,
+        render_external_error_message=_render_external_error_message,
+        run_external_command=_run_external_command,
+        external_command_run_kwargs=_external_command_run_kwargs,
+        make_playback_segment_filename=make_playback_segment_filename,
+        render_pause_removal_pipeline_audio=_render_pause_removal_pipeline_audio,
+        bundled_deep_filter_path=_bundled_deep_filter_path,
+    )
+
+
 def _sync_tool_dependencies() -> None:
     sync_tool_dependencies(
         _audio_tools,
-        AudioModuleDeps(
-            find_ffmpeg=find_ffmpeg,
-            find_ffprobe=find_ffprobe,
-            find_deep_filter=find_deep_filter,
-            find_rnnoise_bundle=find_rnnoise_bundle,
-            find_dpdfnet_bundle=find_dpdfnet_bundle,
-            find_spleeter_bundle=find_spleeter_bundle,
-            find_silero_vad_bundle=find_silero_vad_bundle,
-            probe_duration_ms=probe_duration_ms,
-            probe_audio_metadata=probe_audio_metadata,
-            build_audio_filters=build_audio_filters,
-            build_convert_audio_command=build_convert_audio_command,
-            build_size_reduction_audio_command=build_size_reduction_audio_command,
-            resolve_output_policy=resolve_output_policy,
-            render_external_error_message=_render_external_error_message,
-            run_external_command=_run_external_command,
-            external_command_run_kwargs=_external_command_run_kwargs,
-            make_playback_segment_filename=make_playback_segment_filename,
-            render_pause_removal_pipeline_audio=_render_pause_removal_pipeline_audio,
-            bundled_deep_filter_path=_bundled_deep_filter_path,
-        ),
+        _audio_module_deps(),
     )
 
 
@@ -178,27 +182,7 @@ def find_silero_vad_bundle() -> tuple[Path, Path]:
 def _sync_external_dependencies() -> None:
     sync_external_dependencies(
         _audio_external,
-        AudioModuleDeps(
-            find_ffmpeg=find_ffmpeg,
-            find_ffprobe=find_ffprobe,
-            find_deep_filter=find_deep_filter,
-            find_rnnoise_bundle=find_rnnoise_bundle,
-            find_dpdfnet_bundle=find_dpdfnet_bundle,
-            find_spleeter_bundle=find_spleeter_bundle,
-            find_silero_vad_bundle=find_silero_vad_bundle,
-            probe_duration_ms=probe_duration_ms,
-            probe_audio_metadata=probe_audio_metadata,
-            build_audio_filters=build_audio_filters,
-            build_convert_audio_command=build_convert_audio_command,
-            build_size_reduction_audio_command=build_size_reduction_audio_command,
-            resolve_output_policy=resolve_output_policy,
-            render_external_error_message=_render_external_error_message,
-            run_external_command=_run_external_command,
-            external_command_run_kwargs=_external_command_run_kwargs,
-            make_playback_segment_filename=make_playback_segment_filename,
-            render_pause_removal_pipeline_audio=_render_pause_removal_pipeline_audio,
-            bundled_deep_filter_path=_bundled_deep_filter_path,
-        ),
+        _audio_module_deps(),
     )
 
 
@@ -234,27 +218,7 @@ def _sync_pause_dependencies() -> None:
         _audio_pause_pipeline,
         _audio_pause_pipeline_steps,
         _audio_pause_pipeline_stage,
-        AudioModuleDeps(
-            find_ffmpeg=find_ffmpeg,
-            find_ffprobe=find_ffprobe,
-            find_deep_filter=find_deep_filter,
-            find_rnnoise_bundle=find_rnnoise_bundle,
-            find_dpdfnet_bundle=find_dpdfnet_bundle,
-            find_spleeter_bundle=find_spleeter_bundle,
-            find_silero_vad_bundle=find_silero_vad_bundle,
-            probe_duration_ms=probe_duration_ms,
-            probe_audio_metadata=probe_audio_metadata,
-            build_audio_filters=build_audio_filters,
-            build_convert_audio_command=build_convert_audio_command,
-            build_size_reduction_audio_command=build_size_reduction_audio_command,
-            resolve_output_policy=resolve_output_policy,
-            render_external_error_message=_render_external_error_message,
-            run_external_command=_run_external_command,
-            external_command_run_kwargs=_external_command_run_kwargs,
-            make_playback_segment_filename=make_playback_segment_filename,
-            render_pause_removal_pipeline_audio=_render_pause_removal_pipeline_audio,
-            bundled_deep_filter_path=_bundled_deep_filter_path,
-        ),
+        _audio_module_deps(),
     )
 
 
@@ -285,79 +249,19 @@ def _render_pause_removal_pipeline_audio(
 def _sync_rendering_dependencies() -> None:
     sync_rendering_dependencies(
         _audio_rendering,
-        AudioModuleDeps(
-            find_ffmpeg=find_ffmpeg,
-            find_ffprobe=find_ffprobe,
-            find_deep_filter=find_deep_filter,
-            find_rnnoise_bundle=find_rnnoise_bundle,
-            find_dpdfnet_bundle=find_dpdfnet_bundle,
-            find_spleeter_bundle=find_spleeter_bundle,
-            find_silero_vad_bundle=find_silero_vad_bundle,
-            probe_duration_ms=probe_duration_ms,
-            probe_audio_metadata=probe_audio_metadata,
-            build_audio_filters=build_audio_filters,
-            build_convert_audio_command=build_convert_audio_command,
-            build_size_reduction_audio_command=build_size_reduction_audio_command,
-            resolve_output_policy=resolve_output_policy,
-            render_external_error_message=_render_external_error_message,
-            run_external_command=_run_external_command,
-            external_command_run_kwargs=_external_command_run_kwargs,
-            make_playback_segment_filename=make_playback_segment_filename,
-            render_pause_removal_pipeline_audio=_render_pause_removal_pipeline_audio,
-            bundled_deep_filter_path=_bundled_deep_filter_path,
-        ),
+        _audio_module_deps(),
     )
 
 
 def _sync_noise_dependencies() -> None:
     sync_noise_dependencies(
         _audio_noise_reduction,
-        AudioModuleDeps(
-            find_ffmpeg=find_ffmpeg,
-            find_ffprobe=find_ffprobe,
-            find_deep_filter=find_deep_filter,
-            find_rnnoise_bundle=find_rnnoise_bundle,
-            find_dpdfnet_bundle=find_dpdfnet_bundle,
-            find_spleeter_bundle=find_spleeter_bundle,
-            find_silero_vad_bundle=find_silero_vad_bundle,
-            probe_duration_ms=probe_duration_ms,
-            probe_audio_metadata=probe_audio_metadata,
-            build_audio_filters=build_audio_filters,
-            build_convert_audio_command=build_convert_audio_command,
-            build_size_reduction_audio_command=build_size_reduction_audio_command,
-            resolve_output_policy=resolve_output_policy,
-            render_external_error_message=_render_external_error_message,
-            run_external_command=_run_external_command,
-            external_command_run_kwargs=_external_command_run_kwargs,
-            make_playback_segment_filename=make_playback_segment_filename,
-            render_pause_removal_pipeline_audio=_render_pause_removal_pipeline_audio,
-            bundled_deep_filter_path=_bundled_deep_filter_path,
-        ),
+        _audio_module_deps(),
     )
 
 
 def _sync_pitch_hum_dependencies() -> None:
     sync_pitch_hum_dependencies(
         _audio_pitch_hum,
-        AudioModuleDeps(
-            find_ffmpeg=find_ffmpeg,
-            find_ffprobe=find_ffprobe,
-            find_deep_filter=find_deep_filter,
-            find_rnnoise_bundle=find_rnnoise_bundle,
-            find_dpdfnet_bundle=find_dpdfnet_bundle,
-            find_spleeter_bundle=find_spleeter_bundle,
-            find_silero_vad_bundle=find_silero_vad_bundle,
-            probe_duration_ms=probe_duration_ms,
-            probe_audio_metadata=probe_audio_metadata,
-            build_audio_filters=build_audio_filters,
-            build_convert_audio_command=build_convert_audio_command,
-            build_size_reduction_audio_command=build_size_reduction_audio_command,
-            resolve_output_policy=resolve_output_policy,
-            render_external_error_message=_render_external_error_message,
-            run_external_command=_run_external_command,
-            external_command_run_kwargs=_external_command_run_kwargs,
-            make_playback_segment_filename=make_playback_segment_filename,
-            render_pause_removal_pipeline_audio=_render_pause_removal_pipeline_audio,
-            bundled_deep_filter_path=_bundled_deep_filter_path,
-        ),
+        _audio_module_deps(),
     )
