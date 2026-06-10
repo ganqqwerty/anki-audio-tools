@@ -1,6 +1,7 @@
 import { visualizerForOrd } from "./dom-selectors.js";
 import { focusAndSendCommand } from "./bridge.js";
 import { markerClickFromEvent } from "./graph-overlay-geometry.js";
+import { readFieldState, invalidateFieldState } from "./field-state-store.js";
 import {
   playbackEngineFor,
   pauseProgressClock,
@@ -301,12 +302,13 @@ function setSelectionToActiveSuffix(visualizer: VisualizerElement, state: Chorus
 }
 
 function readOrdinaryRepeat(visualizer: VisualizerElement): boolean {
-  return visualizer.dataset.repeatEnabled === "true";
+  return readFieldState(Number(visualizer.dataset.aqeFieldOrd || "0")).playback.repeat;
 }
 
 function writeRepeatForPractice(visualizer: VisualizerElement, enabled: boolean): void {
   visualizer.dataset.repeatEnabled = enabled ? "true" : "false";
   visualizer.dataset.playbackLoop = enabled ? "true" : "false";
+  invalidateFieldState(Number(visualizer.dataset.aqeFieldOrd || "0"));
 }
 
 function restoreOrdinaryRepeat(visualizer: VisualizerElement, state: ChorusingState): void {

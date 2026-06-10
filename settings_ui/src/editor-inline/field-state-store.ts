@@ -73,9 +73,15 @@ export function initFieldState(ord: number, state?: EditorFieldState): EditorFie
 }
 
 export function readFieldState(ord: number): EditorFieldState {
+  const stored = _fieldStates.get(ord);
+  if (stored) return stored;
   const rebuilt = rebuildFieldStateFromDom(ord);
   _fieldStates.set(ord, rebuilt);
   return rebuilt;
+}
+
+export function invalidateFieldState(ord: number): void {
+  _fieldStates.delete(ord);
 }
 
 export function writeFieldState(ord: number, state: EditorFieldState): void {

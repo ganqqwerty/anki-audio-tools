@@ -12,7 +12,7 @@ import {
   setVisualizerSelection,
   setVisualizerSelectionDraft,
 } from "../src/editor-inline/visualizer-state.js";
-import { readFieldState } from "../src/editor-inline/field-state-store.js";
+import { readFieldState, invalidateFieldState } from "../src/editor-inline/field-state-store.js";
 import type { VisualizerElement } from "../src/editor-inline/types.js";
 
 function visualizer(): VisualizerElement {
@@ -25,6 +25,7 @@ function visualizer(): VisualizerElement {
 
 describe("visualizer state adapter", () => {
   afterEach(() => {
+    invalidateFieldState(0);
     document.body.innerHTML = "";
   });
   it("reads numeric and boolean graph fields with safe defaults", () => {
@@ -37,6 +38,7 @@ describe("visualizer state adapter", () => {
     node.dataset.durationMs = "1500";
     node.dataset.cursorMs = "250";
     node.dataset.repeatEnabled = "true";
+    invalidateFieldState(0);
 
     expect(readVisualizerDurationMs(node)).toBe(1500);
     expect(readVisualizerCursorMs(node)).toBe(250);

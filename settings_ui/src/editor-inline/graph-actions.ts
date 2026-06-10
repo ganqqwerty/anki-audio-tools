@@ -48,7 +48,7 @@ import {
 } from "./control-actions.js";
 import { graphSettingsForField } from "./graph-split-state.js";
 import { resetVisualizerTimeViewport } from "./visualizer-state.js";
-import { initFieldState, readFieldState } from "./field-state-store.js";
+import { initFieldState, invalidateFieldState, readFieldState } from "./field-state-store.js";
 import { initialFieldState } from "./field-state.js";
 
 type EditorStatusMessage = string | UserFacingError;
@@ -179,6 +179,7 @@ export function setVisualizerStatusFromPython(ord: number, message: EditorStatus
     if (kind === "processing") {
       visualizer.dataset.hasTrack = "false";
     }
+    invalidateFieldState(ord);
     setCommandButtonLabel(ord, "aqe:analyze", "Redraw");
   }
   setVisualizerStatus(ord, message, kind);

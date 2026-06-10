@@ -29,7 +29,7 @@ import {
 import { anyBusy, setCommandButtonLabel, setStatus } from "./control-actions.js";
 import { syncSelectionToolbar } from "./selection-toolbar-state.js";
 import { readVisualizerTargetDurationMs } from "./visualizer-state.js";
-import { readFieldState } from "./field-state-store.js";
+import { readFieldState, invalidateFieldState } from "./field-state-store.js";
 import type { EditorFieldState } from "./field-state.js";
 import { t } from "../lib/i18n.js";
 
@@ -201,6 +201,7 @@ export function playbackEngineFor(visualizer: VisualizerElement | null): "html" 
 export function sendPlaybackRequest(request: PlaybackRequest): void {
   const visualizer = visualizerForOrd(request.ord);
   if (visualizer) {
+    invalidateFieldState(request.ord);
     visualizer.dataset.playbackEngine = request.engine || "";
     visualizer.dataset.preserveStatusOnPlaybackEnd = request.source === "post_edit" ? "true" : "false";
   }
@@ -297,6 +298,7 @@ export function getPlaybackRequest(): PlaybackRequest {
   const request = playbackRequest(ord);
   const visualizer = visualizerForOrd(ord);
   if (visualizer) {
+    invalidateFieldState(ord);
     visualizer.dataset.playbackEngine = request.engine || "";
     visualizer.dataset.preserveStatusOnPlaybackEnd = request.source === "post_edit" ? "true" : "false";
   }

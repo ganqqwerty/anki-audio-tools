@@ -17,7 +17,7 @@ import {
 } from "../src/editor-inline/actions.js";
 import { disposeEditorRuntime } from "../src/editor-inline/runtime.js";
 import { mountTrack } from "./editor-inline.actions.helpers.js";
-import { readFieldState } from "../src/editor-inline/field-state-store.js";
+import { readFieldState, invalidateFieldState } from "../src/editor-inline/field-state-store.js";
 
 describe("editor inline selection workflows", () => {
   let warnSpy: ReturnType<typeof vi.spyOn>;
@@ -121,6 +121,7 @@ describe("editor inline selection workflows", () => {
 
     visualizer.dataset.durationMs = "0";
     visualizer.dataset.targetDurationMs = "0";
+    invalidateFieldState(0);
     expect(setSelection(visualizer, 0, 200)).toBe(false);
   });
 });

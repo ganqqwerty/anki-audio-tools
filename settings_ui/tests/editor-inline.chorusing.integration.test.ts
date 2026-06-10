@@ -2,6 +2,7 @@ import { readFileSync } from "node:fs";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { disposeEditorRuntime, initializeEditorRuntime, scan } from "../src/editor-inline/runtime.js";
+import { invalidateFieldState } from "../src/editor-inline/field-state-store.js";
 import {
   dragGraphSelection,
   graphClientX,
@@ -32,6 +33,8 @@ describe("editor inline chorusing integration", () => {
 
   afterEach(() => {
     disposeEditorRuntime();
+    invalidateFieldState(0);
+    invalidateFieldState(1);
     restoreConsole();
     vi.restoreAllMocks();
   });
@@ -146,9 +149,11 @@ describe("editor inline chorusing integration", () => {
   it("moves between longer and shorter suffixes from the toolbar and normal Play pauses practice", async () => {
     await prepareChorusingGraph();
     prepareHtmlAudio();
+    invalidateFieldState(0);
 
     practiceButton().click();
     await Promise.resolve();
+    invalidateFieldState(0);
     expect(window.__aqeGraphStateForTest?.(0)).toMatchObject({
       chorusingActiveMarkerIndex: 2,
       chorusingActiveStartMs: 667,

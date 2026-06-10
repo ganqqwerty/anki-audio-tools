@@ -13,7 +13,7 @@ import {
   startManualProgressClock,
   stopEditorPlayback,
 } from "../src/editor-inline/actions.js";
-import { readFieldState } from "../src/editor-inline/field-state-store.js";
+import { readFieldState, invalidateFieldState } from "../src/editor-inline/field-state-store.js";
 import { disposeEditorRuntime } from "../src/editor-inline/runtime.js";
 import { bridgeCommands, mountTrack } from "./editor-inline.actions.helpers.js";
 
@@ -79,6 +79,7 @@ describe("editor inline audio-clock workflows", () => {
     visualizer.__aqeAudioClockAvailable = true;
     visualizer.dataset.progressClockMode = "audio";
     visualizer.dataset.playbackState = "playing";
+    invalidateFieldState(0);
     audio.dispatchEvent(new Event("ended"));
     expect(bridgeCommands()).toContain("aqe:play-ended");
     expect(readFieldState(0).playback.state).toBe("stopped");
@@ -92,6 +93,7 @@ describe("editor inline audio-clock workflows", () => {
     visualizer.dataset.progressClockMode = "manual";
     visualizer.dataset.playStartedAt = String(performance.now() - 125);
     visualizer.dataset.playStartMs = "300";
+    invalidateFieldState(0);
 
     const pause = playbackRequest(0);
     expect(pause.action).toBe("pause");
@@ -100,8 +102,10 @@ describe("editor inline audio-clock workflows", () => {
 
     visualizer.dataset.playbackState = "paused";
     visualizer.dataset.resumeRequiresRestart = "false";
+    invalidateFieldState(0);
     expect(playbackRequest(0).action).toBe("resume");
     visualizer.dataset.resumeRequiresRestart = "true";
+    invalidateFieldState(0);
     expect(playbackRequest(0).action).toBe("start");
     expect(stopEditorPlayback(0)).toBe(true);
     expect(stopEditorPlayback(9)).toBe(false);

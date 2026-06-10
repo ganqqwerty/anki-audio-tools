@@ -5,6 +5,7 @@ import { initialFieldState } from "../src/editor-inline/field-state.js";
 import {
   hasFieldState,
   initFieldState,
+  invalidateFieldState,
   readFieldState,
   removeFieldState,
   updateFieldState,
@@ -41,9 +42,10 @@ describe("field state store", () => {
     expect(visualizer?.dataset.sourceFilename).toBe("");
   });
 
-  it("readFieldState rebuilds from DOM dataset", () => {
+  it("readFieldState caches the first rebuild and returns stored state on subsequent calls", () => {
     mountVisualizer(1, 2000);
     const visualizer = visualizerForOrd(1);
+    invalidateFieldState(1);
     visualizer!.dataset.graphActive = "true";
     visualizer!.dataset.graphBusy = "false";
     visualizer!.dataset.hasTrack = "true";

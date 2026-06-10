@@ -24,7 +24,7 @@ import {
   readVisualizerTimeViewport,
   resetVisualizerTimeViewport,
 } from "./visualizer-state.js";
-import { readFieldState, writeFieldState } from "./field-state-store.js";
+import { invalidateFieldState, readFieldState, writeFieldState } from "./field-state-store.js";
 import { graphRequested } from "./field-state.js";
 
 function fieldOrd(v: VisualizerElement): number {
@@ -227,6 +227,7 @@ export function renderProsodyTracks(visualizer: VisualizerElement): void {
   const viewport = readVisualizerTimeViewport(visualizer);
   const pitchRange = combinedPitchRange(target, learner);
   visualizer.dataset.durationMs = String(durationMs);
+  invalidateFieldState(fieldOrd(visualizer));
   visualizer.dataset.targetDurationMs = String(target.durationMs || 0);
   visualizer.dataset.learnerDurationMs = String(learnerDurationMs);
   const intensity = visualizer.querySelector<SVGPathElement>(".aqe-intensity");
