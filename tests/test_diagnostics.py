@@ -7,6 +7,8 @@ from pathlib import Path
 from types import SimpleNamespace
 
 from anki_audio_quick_editor.diagnostics import (
+    _health_from_probe_result,
+    _run_tool_probe,
     build_deep_filter_health,
     build_dpdfnet_health,
     build_rnnoise_health,
@@ -196,3 +198,45 @@ def test_health_checks_forward_window_visibility_kwargs(monkeypatch) -> None:
         {"encoding": "utf-8", "errors": "replace", "creationflags": 0x08000000},
         {"encoding": "utf-8", "errors": "replace", "creationflags": 0x08000000},
     ]
+
+
+def test_run_tool_probe_timeout_returns_health(monkeypatch) -> None:
+    def fake_run(*_args, **_kwargs):
+        raise subprocess.TimeoutExpired(["tool", "--version"], timeout=10)
+
+    monkeypatch.setattr("anki_audio_quick_editor.diagnostics.subprocess.run", fake_run)
+
+    result = _run_tool_probe(
+        Path("/tmp/tool"),
+        ("--version",),
+        source="managed",
+        run_kwargs={},
+        timeout_error="tool --version timed out.",
+    )
+
+    assert result == {
+        "available": False,
+        "path": "/tmp/tool",
+        "source": "managed",
+        "version": "",
+        "error": "tool --version timed out.",
+    }
+
+
+def test_health_from_probe_result_uses_stderr_on_failure() -> None:
+    result = SimpleNamespace(returncode=2, stdout="", stderr="bad arch")
+
+    health = _health_from_probe_result(
+        Path("/tmp/tool"),
+        source="bundled",
+        result=result,
+        failure_error="tool --version failed.",
+    )
+
+    assert health == {
+        "available": False,
+        "path": "/tmp/tool",
+        "source": "bundled",
+        "version": "",
+        "error": "bad arch",
+    }

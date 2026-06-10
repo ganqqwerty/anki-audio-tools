@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import subprocess  # nosec B404
+from collections.abc import Callable
 from pathlib import Path
 from typing import Any
 
@@ -15,6 +16,64 @@ from .permission_guidance import (
     external_tool_error_message,
     message_with_permission_guidance,
 )
+
+
+def _run_tool_probe(
+    tool_path: Any,
+    args: tuple[str, ...],
+    *,
+    source: str,
+    run_kwargs: dict[str, Any],
+    timeout_error: str,
+) -> subprocess.CompletedProcess[str] | dict[str, Any]:
+    command = [str(tool_path), *args]
+    try:
+        return subprocess.run(
+            command,
+            capture_output=True,
+            text=True,
+            check=False,
+            encoding=EXTERNAL_COMMAND_TEXT_ENCODING,
+            errors=EXTERNAL_COMMAND_TEXT_ERRORS,
+            timeout=10,
+            **run_kwargs,
+        )  # nosec B603
+    except OSError as exc:
+        return {
+            "available": False,
+            "path": str(tool_path),
+            "source": source,
+            "version": "",
+            "error": _diagnostic_error_message(exc),
+        }
+    except subprocess.TimeoutExpired:
+        return {
+            "available": False,
+            "path": str(tool_path),
+            "source": source,
+            "version": "",
+            "error": timeout_error,
+        }
+
+
+def _health_from_probe_result(
+    tool_path: Any,
+    *,
+    source: str,
+    result: subprocess.CompletedProcess[str],
+    failure_error: str,
+    version_parser: Callable[[str], str] | None = None,
+) -> dict[str, Any]:
+    probe_output = (result.stdout or result.stderr).strip()
+    parser = version_parser or (lambda output: output)
+    version = parser(probe_output)
+    return {
+        "available": result.returncode == 0,
+        "path": str(tool_path),
+        "source": source,
+        "version": version if result.returncode == 0 else "",
+        "error": "" if result.returncode == 0 else probe_output or failure_error,
+    }
 
 
 def build_deep_filter_health(_config: dict[str, Any]) -> dict[str, Any]:
@@ -37,43 +96,21 @@ def build_deep_filter_health(_config: dict[str, Any]) -> dict[str, Any]:
         }
     source = tool_source_label(deep_filter_path, configured_path="")
 
-    command = (str(deep_filter_path), "--version")
-    try:
-        result = subprocess.run(
-            list(command),
-            capture_output=True,
-            text=True,
-            check=False,
-            encoding=EXTERNAL_COMMAND_TEXT_ENCODING,
-            errors=EXTERNAL_COMMAND_TEXT_ERRORS,
-            timeout=10,
-            **_external_command_run_kwargs(),
-        )  # nosec B603
-    except OSError as exc:
-        return {
-            "available": False,
-            "path": str(deep_filter_path),
-            "source": source,
-            "version": "",
-            "error": _diagnostic_error_message(exc),
-        }
-    except subprocess.TimeoutExpired:
-        return {
-            "available": False,
-            "path": str(deep_filter_path),
-            "source": source,
-            "version": "",
-            "error": "deep-filter --version timed out.",
-        }
-
-    version = (result.stdout or result.stderr).strip()
-    return {
-        "available": result.returncode == 0,
-        "path": str(deep_filter_path),
-        "source": source,
-        "version": version if result.returncode == 0 else "",
-        "error": "" if result.returncode == 0 else version or "deep-filter --version failed.",
-    }
+    result = _run_tool_probe(
+        deep_filter_path,
+        ("--version",),
+        source=source,
+        run_kwargs=_external_command_run_kwargs(),
+        timeout_error="deep-filter --version timed out.",
+    )
+    if isinstance(result, dict):
+        return result
+    return _health_from_probe_result(
+        deep_filter_path,
+        source=source,
+        result=result,
+        failure_error="deep-filter --version failed.",
+    )
 
 
 def build_rnnoise_health() -> dict[str, Any]:
@@ -97,43 +134,21 @@ def build_rnnoise_health() -> dict[str, Any]:
             "error": _diagnostic_error_message(exc),
         }
 
-    command = (str(rnnoise_path), "--version")
-    try:
-        result = subprocess.run(
-            list(command),
-            capture_output=True,
-            text=True,
-            check=False,
-            encoding=EXTERNAL_COMMAND_TEXT_ENCODING,
-            errors=EXTERNAL_COMMAND_TEXT_ERRORS,
-            timeout=10,
-            **_external_command_run_kwargs(),
-        )  # nosec B603
-    except OSError as exc:
-        return {
-            "available": False,
-            "path": str(rnnoise_path),
-            "source": _managed_or_bundled_source(rnnoise_path),
-            "version": "",
-            "error": _diagnostic_error_message(exc),
-        }
-    except subprocess.TimeoutExpired:
-        return {
-            "available": False,
-            "path": str(rnnoise_path),
-            "source": _managed_or_bundled_source(rnnoise_path),
-            "version": "",
-            "error": "rnnoise-cli --version timed out.",
-        }
-
-    version = (result.stdout or result.stderr).strip()
-    return {
-        "available": result.returncode == 0,
-        "path": str(rnnoise_path),
-        "source": _managed_or_bundled_source(rnnoise_path),
-        "version": version if result.returncode == 0 else "",
-        "error": "" if result.returncode == 0 else version or "rnnoise-cli --version failed.",
-    }
+    result = _run_tool_probe(
+        rnnoise_path,
+        ("--version",),
+        source=_managed_or_bundled_source(rnnoise_path),
+        run_kwargs=_external_command_run_kwargs(),
+        timeout_error="rnnoise-cli --version timed out.",
+    )
+    if isinstance(result, dict):
+        return result
+    return _health_from_probe_result(
+        rnnoise_path,
+        source=_managed_or_bundled_source(rnnoise_path),
+        result=result,
+        failure_error="rnnoise-cli --version failed.",
+    )
 
 
 def build_dpdfnet_health() -> dict[str, Any]:
@@ -157,43 +172,21 @@ def build_dpdfnet_health() -> dict[str, Any]:
             "error": _diagnostic_error_message(exc),
         }
 
-    command = (str(dpdfnet_path), "--version")
-    try:
-        result = subprocess.run(
-            list(command),
-            capture_output=True,
-            text=True,
-            check=False,
-            encoding=EXTERNAL_COMMAND_TEXT_ENCODING,
-            errors=EXTERNAL_COMMAND_TEXT_ERRORS,
-            timeout=10,
-            **_external_command_run_kwargs(),
-        )  # nosec B603
-    except OSError as exc:
-        return {
-            "available": False,
-            "path": str(dpdfnet_path),
-            "source": _managed_or_bundled_source(dpdfnet_path),
-            "version": "",
-            "error": _diagnostic_error_message(exc),
-        }
-    except subprocess.TimeoutExpired:
-        return {
-            "available": False,
-            "path": str(dpdfnet_path),
-            "source": _managed_or_bundled_source(dpdfnet_path),
-            "version": "",
-            "error": "dpdfnet --version timed out.",
-        }
-
-    version = (result.stdout or result.stderr).strip()
-    return {
-        "available": result.returncode == 0,
-        "path": str(dpdfnet_path),
-        "source": _managed_or_bundled_source(dpdfnet_path),
-        "version": version if result.returncode == 0 else "",
-        "error": "" if result.returncode == 0 else version or "dpdfnet --version failed.",
-    }
+    result = _run_tool_probe(
+        dpdfnet_path,
+        ("--version",),
+        source=_managed_or_bundled_source(dpdfnet_path),
+        run_kwargs=_external_command_run_kwargs(),
+        timeout_error="dpdfnet --version timed out.",
+    )
+    if isinstance(result, dict):
+        return result
+    return _health_from_probe_result(
+        dpdfnet_path,
+        source=_managed_or_bundled_source(dpdfnet_path),
+        result=result,
+        failure_error="dpdfnet --version failed.",
+    )
 
 
 def build_spleeter_health() -> dict[str, Any]:
@@ -211,19 +204,22 @@ def build_spleeter_health() -> dict[str, Any]:
     except Exception as exc:
         return _missing_bundled_spleeter_health(expected_path, exc)
 
-    result = _run_spleeter_help_probe(spleeter_path, _external_command_run_kwargs())
+    result = _run_tool_probe(
+        spleeter_path,
+        ("--help",),
+        source=_managed_or_bundled_source(spleeter_path),
+        run_kwargs=_external_command_run_kwargs(),
+        timeout_error="sherpa-spleeter --help timed out.",
+    )
     if isinstance(result, dict):
         return result
-
-    probe_output = (result.stdout or result.stderr).strip()
-    version = _spleeter_probe_summary(probe_output)
-    return {
-        "available": result.returncode == 0,
-        "path": str(spleeter_path),
-        "source": _managed_or_bundled_source(spleeter_path),
-        "version": version if result.returncode == 0 else "",
-        "error": "" if result.returncode == 0 else probe_output or "sherpa-spleeter --help failed.",
-    }
+    return _health_from_probe_result(
+        spleeter_path,
+        source=_managed_or_bundled_source(spleeter_path),
+        result=result,
+        failure_error="sherpa-spleeter --help failed.",
+        version_parser=_spleeter_probe_summary,
+    )
 
 
 def build_silero_vad_health() -> dict[str, Any]:
@@ -241,19 +237,22 @@ def build_silero_vad_health() -> dict[str, Any]:
     except Exception as exc:
         return _missing_bundled_silero_health(expected_path, exc)
 
-    result = _run_silero_help_probe(silero_path, _external_command_run_kwargs())
+    result = _run_tool_probe(
+        silero_path,
+        ("--help",),
+        source=_managed_or_bundled_source(silero_path),
+        run_kwargs=_external_command_run_kwargs(),
+        timeout_error="silero-vad --help timed out.",
+    )
     if isinstance(result, dict):
         return result
-
-    probe_output = (result.stdout or result.stderr).strip()
-    version = _silero_probe_summary(probe_output)
-    return {
-        "available": result.returncode == 0,
-        "path": str(silero_path),
-        "source": _managed_or_bundled_source(silero_path),
-        "version": version if result.returncode == 0 else "",
-        "error": "" if result.returncode == 0 else probe_output or "silero-vad --help failed.",
-    }
+    return _health_from_probe_result(
+        silero_path,
+        source=_managed_or_bundled_source(silero_path),
+        result=result,
+        failure_error="silero-vad --help failed.",
+        version_parser=_silero_probe_summary,
+    )
 
 
 def _missing_bundled_silero_health(expected_path: Any, exc: Exception) -> dict[str, Any]:
@@ -264,39 +263,6 @@ def _missing_bundled_silero_health(expected_path: Any, exc: Exception) -> dict[s
         "version": "",
         "error": str(exc),
     }
-
-
-def _run_silero_help_probe(
-    silero_path: Any,
-    run_kwargs: dict[str, Any],
-) -> subprocess.CompletedProcess[str] | dict[str, Any]:
-    try:
-        return subprocess.run(
-            [str(silero_path), "--help"],
-            capture_output=True,
-            text=True,
-            check=False,
-            encoding=EXTERNAL_COMMAND_TEXT_ENCODING,
-            errors=EXTERNAL_COMMAND_TEXT_ERRORS,
-            timeout=10,
-            **run_kwargs,
-        )  # nosec B603
-    except OSError as exc:
-        return {
-            "available": False,
-            "path": str(silero_path),
-            "source": _managed_or_bundled_source(silero_path),
-            "version": "",
-            "error": str(exc),
-        }
-    except subprocess.TimeoutExpired:
-        return {
-            "available": False,
-            "path": str(silero_path),
-            "source": _managed_or_bundled_source(silero_path),
-            "version": "",
-            "error": "silero-vad --help timed out.",
-        }
 
 
 def _silero_probe_summary(probe_output: str) -> str:
@@ -314,39 +280,6 @@ def _missing_bundled_spleeter_health(expected_path: Any, exc: Exception) -> dict
         "version": "",
         "error": str(exc),
     }
-
-
-def _run_spleeter_help_probe(
-    spleeter_path: Any,
-    run_kwargs: dict[str, Any],
-) -> subprocess.CompletedProcess[str] | dict[str, Any]:
-    try:
-        return subprocess.run(
-            [str(spleeter_path), "--help"],
-            capture_output=True,
-            text=True,
-            check=False,
-            encoding=EXTERNAL_COMMAND_TEXT_ENCODING,
-            errors=EXTERNAL_COMMAND_TEXT_ERRORS,
-            timeout=10,
-            **run_kwargs,
-        )  # nosec B603
-    except OSError as exc:
-        return {
-            "available": False,
-            "path": str(spleeter_path),
-            "source": _managed_or_bundled_source(spleeter_path),
-            "version": "",
-            "error": str(exc),
-        }
-    except subprocess.TimeoutExpired:
-        return {
-            "available": False,
-            "path": str(spleeter_path),
-            "source": "bundled",
-            "version": "",
-            "error": "sherpa-spleeter --help timed out.",
-        }
 
 
 def _spleeter_probe_summary(probe_output: str) -> str:
