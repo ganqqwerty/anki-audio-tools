@@ -48,6 +48,7 @@
     sizeReductionChannels,
     sizeReductionSampleRateHz,
     slug,
+    sourceFilename = null,
     targetOrd,
   }: {
     command: ButtonSpec["command"];
@@ -72,6 +73,7 @@
     sizeReductionChannels: number;
     sizeReductionSampleRateHz: number;
     slug: string;
+    sourceFilename?: string | null;
     targetOrd: number;
   } = $props();
 
@@ -80,7 +82,6 @@
   let sourceMetadataLoading = $state(false);
   let sourceMetadataRequested = false;
 
-  const sourceFilename = $derived(window.__AQE_EDITOR_CONFIG__?.audioFieldSources?.[targetOrd] ?? null);
   const sourceMetadataText = $derived(sourceMetadata ? formatSourceMetadata(sourceMetadata) : null);
 
   function applyDpdfnetAggressiveness(value: number): void {

@@ -114,9 +114,17 @@ function formatDenoiseAlgorithm(value: "standard" | "rnnoise" | "dpdfnet" | "voi
   return t("settings.denoise_algorithm.standard");
 }
 
-export function commandButtons(): readonly ToolbarButtonSpec[] {
-  const outputFormat = outputFormatOrDefault(window.__AQE_EDITOR_CONFIG__?.splitButtonDefaults?.outputFormat);
-  const sizeReductionMode = sizeReductionModeOrDefault(window.__AQE_EDITOR_CONFIG__?.splitButtonDefaults?.sizeReductionMode);
+export interface EditorToolbarRuntimeConfig {
+  splitButtonDefaults?: {
+    dpdfnetAttnLimitDb?: number;
+    outputFormat?: unknown;
+    sizeReductionMode?: unknown;
+  };
+}
+
+export function commandButtons(config: EditorToolbarRuntimeConfig = {}): readonly ToolbarButtonSpec[] {
+  const outputFormat = outputFormatOrDefault(config.splitButtonDefaults?.outputFormat);
+  const sizeReductionMode = sizeReductionModeOrDefault(config.splitButtonDefaults?.sizeReductionMode);
   return [
     {
       activeIcon: "pause",
@@ -293,8 +301,8 @@ export function denoiseTopLevelButton(): ToolbarButtonSpec {
   };
 }
 
-export function toolbarButtons(): readonly ToolbarButtonSpec[] {
-  return commandButtons();
+export function toolbarButtons(config: EditorToolbarRuntimeConfig = {}): readonly ToolbarButtonSpec[] {
+  return commandButtons(config);
 }
 
 export function buttonDisplayMode(
@@ -307,8 +315,8 @@ export function buttonDisplayMode(
   return DEFAULT_EDITOR_BUTTON_MODES[command] ?? EditorButtonMode.Text;
 }
 
-export function denoiseButtons(): readonly ToolbarButtonSpec[] {
-  const dpdfnetAttnLimitDb = window.__AQE_EDITOR_CONFIG__?.splitButtonDefaults?.dpdfnetAttnLimitDb ?? 12;
+export function denoiseButtons(config: EditorToolbarRuntimeConfig = {}): readonly ToolbarButtonSpec[] {
+  const dpdfnetAttnLimitDb = config.splitButtonDefaults?.dpdfnetAttnLimitDb ?? 12;
   return [
     {
       command: "aqe:denoise-standard",

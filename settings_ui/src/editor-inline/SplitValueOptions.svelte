@@ -75,6 +75,7 @@
     sizeReductionBitrateKbps,
     sizeReductionSampleRateHz,
     sizeReductionChannels,
+    sourceFilename = null,
     speedStep,
     targetOrd,
     volumeStepDb,
@@ -120,6 +121,7 @@
     sizeReductionBitrateKbps: number;
     sizeReductionSampleRateHz: number;
     sizeReductionChannels: number;
+    sourceFilename?: string | null;
     speedStep: number;
     targetOrd: number;
     volumeStepDb: number;
@@ -348,6 +350,7 @@
     {onSizeReductionSampleRateHz} {sizeReductionBitrateKbps}
     {sizeReductionChannels} {sizeReductionSampleRateHz}
     {slug}
+    {sourceFilename}
     {targetOrd}
   />
 {:else}

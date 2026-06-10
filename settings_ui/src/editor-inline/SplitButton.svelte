@@ -38,6 +38,7 @@
     showMenu = true,
     showPrimary = true,
     showRunButton = true,
+    sourceFilename = null,
     target,
   }: {
     button: ButtonSpec;
@@ -48,6 +49,7 @@
     showMenu?: boolean;
     showPrimary?: boolean;
     showRunButton?: boolean;
+    sourceFilename?: string | null;
     target: FieldTarget;
   } = $props();
 
@@ -289,6 +291,7 @@
     primaryTitle={currentPrimaryTitle}
     {showPrimary}
     {showRunButton}
+    {sourceFilename}
     targetOrd={targetOrd}
     {denoiseAlgorithm}
     {dpdfnetAttnLimitDb}

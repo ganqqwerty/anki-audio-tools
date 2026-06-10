@@ -10,16 +10,23 @@
   import { EditorButtonMode } from "../lib/types.js";
   import type { FieldTarget } from "./types.js";
 
-  const { target }: { target: FieldTarget } = $props();
+  const {
+    buttonModes,
+    target,
+    visibleCommands,
+  }: {
+    buttonModes?: Record<string, string>;
+    target: FieldTarget;
+    visibleCommands?: string[];
+  } = $props();
   type SelectionActionCommand = "aqe:delete-selection" | "aqe:delete-rest";
 
   function commandVisible(command: SelectionActionCommand): boolean {
-    const visibleCommands = window.__AQE_EDITOR_CONFIG__?.visibleEditorButtons;
     return !Array.isArray(visibleCommands) || visibleCommands.includes(command);
   }
 
   function commandIconOnly(command: SelectionActionCommand): boolean {
-    return buttonDisplayMode(command, window.__AQE_EDITOR_CONFIG__?.editorButtonModes) === EditorButtonMode.Icon;
+    return buttonDisplayMode(command, buttonModes) === EditorButtonMode.Icon;
   }
 
   const playTooltip = $derived(

@@ -37,7 +37,14 @@ export const BUSY_COMMANDS = new Set<EditorCommand>([
   "aqe:share-recording",
 ]);
 
-export function processingMessage(command: EditorCommand, payload?: EditorCommandPayload): string {
+export interface ProcessingMessageConfig {
+  splitButtonDefaults?: {
+    outputFormat?: unknown;
+    sizeReductionMode?: unknown;
+  };
+}
+
+export function processingMessage(command: EditorCommand, payload?: EditorCommandPayload, config: ProcessingMessageConfig = {}): string {
   if (command === "aqe:denoise-standard") return `${t("editor.status.denoising_standard")}...`;
   if (command === "aqe:rnnoise") return `${t("editor.status.denoising_rnnoise")}...`;
   if (command === "aqe:dpdfnet") return `${t("editor.status.denoising_dpdfnet")}...`;
@@ -52,14 +59,14 @@ export function processingMessage(command: EditorCommand, payload?: EditorComman
   if (command === "aqe:convert") {
     const outputFormat = outputFormatOrDefault(
       payload?.overrides?.targetFormat ??
-        window.__AQE_EDITOR_CONFIG__?.splitButtonDefaults?.outputFormat,
+        config.splitButtonDefaults?.outputFormat,
     );
     return `${t("editor.status.converting", { format: formatOutputFormat(outputFormat) })}...`;
   }
   if (command === "aqe:reduce-size") {
     const mode = sizeReductionModeOrDefault(
       payload?.overrides?.sizeReductionMode ??
-        window.__AQE_EDITOR_CONFIG__?.splitButtonDefaults?.sizeReductionMode,
+        config.splitButtonDefaults?.sizeReductionMode,
     );
     return `${t("editor.status.reducing_size_with_level", { level: formatSizeReductionMode(mode) })}...`;
   }

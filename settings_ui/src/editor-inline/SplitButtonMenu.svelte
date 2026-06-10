@@ -37,6 +37,7 @@
     primaryTitle,
     showPrimary,
     showRunButton,
+    sourceFilename = null,
     targetOrd,
     denoiseAlgorithm,
     dpdfnetAttnLimitDb,
@@ -105,6 +106,7 @@
     primaryTitle: string;
     showPrimary: boolean;
     showRunButton: boolean;
+    sourceFilename?: string | null;
     targetOrd: number;
     denoiseAlgorithm: DenoiseAlgorithm;
     dpdfnetAttnLimitDb: number;
@@ -275,6 +277,7 @@
           shareTarget={shareTarget}
           {showRunButton}
           showSaveDefault={true}
+          {sourceFilename}
           speedStep={speedStep}
           targetOrd={targetOrd}
           volumeStepDb={volumeStepDb}

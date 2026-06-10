@@ -15,6 +15,15 @@
   import { historyAvailability } from "./actions.js";
   import type { InitialEditorStatus } from "./control-actions.js";
   import type { FieldTarget } from "./types.js";
+  import {
+    audioFieldSource,
+    editorButtonModes,
+    editorRuntimeConfig,
+    repeatPlaybackByDefault,
+    selectionMarkerShiftButtonsEnabled,
+    splitButtonDefaults,
+    visibleEditorButtons,
+  } from "./editor-runtime-config.js";
 
   const TOOLBAR_PANEL_CLASSES: Record<ToolbarPanelSlug, string> = {
     "chorusing": "aqe-chorusing-toolbar-panel",
@@ -30,13 +39,17 @@
     initialStatus = null,
     target,
   }: { initialStatus?: InitialEditorStatus | null; target: FieldTarget } = $props();
-  const repeatDefault = window.__AQE_EDITOR_CONFIG__?.repeatPlaybackByDefault === true;
-  const repeatPauseDefault = window.__AQE_EDITOR_CONFIG__?.splitButtonDefaults?.repeatPauseSeconds ?? 0;
+  const runtimeConfig = editorRuntimeConfig();
+  const defaults = splitButtonDefaults(runtimeConfig);
+  const repeatDefault = repeatPlaybackByDefault(runtimeConfig);
+  const repeatPauseDefault = defaults.repeatPauseSeconds ?? 0;
   const buttons = visibleToolbarButtons(
-    toolbarButtons(),
-    window.__AQE_EDITOR_CONFIG__?.visibleEditorButtons,
+    toolbarButtons(runtimeConfig),
+    visibleEditorButtons(runtimeConfig),
   );
-  const buttonModes = window.__AQE_EDITOR_CONFIG__?.editorButtonModes;
+  const buttonModes = editorButtonModes(runtimeConfig);
+  const markerShiftEnabled = selectionMarkerShiftButtonsEnabled(runtimeConfig);
+  const sourceFilename = audioFieldSource(runtimeConfig, target.ord);
   const renderItems = buildEditorToolbarRenderItems(buttons);
   const initialStatusKind = $derived(initialStatus?.kind || "info");
   const initialStatusMessage = $derived(initialStatus?.message || "");
@@ -107,6 +120,7 @@
             displayMode={buttonDisplayMode(item.buttons[0].command, buttonModes)}
             primaryGroupPosition="start"
             showMenu={false}
+            {sourceFilename}
             {target}
           />
           <SplitButton
@@ -114,6 +128,7 @@
             displayMode={buttonDisplayMode(item.buttons[1].command, buttonModes)}
             primaryGroupPosition="middle"
             showMenu={false}
+            {sourceFilename}
             {target}
           />
           <SplitButton
@@ -123,6 +138,7 @@
             groupSlug={item.menuSlug}
             showPrimary={false}
             showRunButton={false}
+            {sourceFilename}
             {target}
           />
         </span>
@@ -145,6 +161,7 @@
                   displayMode={buttonDisplayMode(record.command, buttonModes)}
                   primaryGroupPosition="start"
                   showMenu={false}
+                  {sourceFilename}
                   {target}
                 />
                 <SplitButton
@@ -152,6 +169,7 @@
                   displayMode={buttonDisplayMode(playRecording.command, buttonModes)}
                   primaryGroupPosition="middle"
                   showMenu={false}
+                  {sourceFilename}
                   {target}
                 />
                 <SplitButton
@@ -159,6 +177,7 @@
                   displayMode={buttonDisplayMode(shareRecording.command, buttonModes)}
                   primaryGroupPosition="middle"
                   showMenu={false}
+                  {sourceFilename}
                   {target}
                 />
                 <SplitButton
@@ -166,6 +185,7 @@
                   displayMode={buttonDisplayMode(showRecordingFile.command, buttonModes)}
                   primaryGroupPosition="middle"
                   showMenu={false}
+                  {sourceFilename}
                   {target}
                 />
                 <SplitButton
@@ -174,6 +194,7 @@
                   groupLabel={item.label}
                   showPrimary={false}
                   showRunButton={false}
+                  {sourceFilename}
                   {target}
                 />
               </span>
@@ -201,6 +222,7 @@
         <SplitButton
           button={item.button}
           displayMode={buttonDisplayMode(item.button.command, buttonModes)}
+          {sourceFilename}
           {target}
         />
       {:else}
@@ -215,7 +237,7 @@
       {/if}
     {/each}
     <EditorHelp ord={target.ord} />
-    <GraphVisualizer {repeatDefault} {repeatPauseDefault} {target} />
+    <GraphVisualizer {buttonModes} {repeatDefault} {repeatPauseDefault} selectionMarkerShiftButtonsEnabled={markerShiftEnabled} {target} visibleCommands={visibleEditorButtons(runtimeConfig)} />
     <div class="aqe-status-row" data-testid={`aqe-status-row-${target.ord}`}>
       <span
         class="aqe-spinner"

@@ -25,13 +25,22 @@
   import ZoomControls from "./ZoomControls.svelte";
 
   const {
+    buttonModes,
     repeatDefault,
     repeatPauseDefault,
+    selectionMarkerShiftButtonsEnabled = false,
     target,
-  }: { repeatDefault: boolean; repeatPauseDefault: number; target: FieldTarget } = $props();
+    visibleCommands,
+  }: {
+    buttonModes?: Record<string, string>;
+    repeatDefault: boolean;
+    repeatPauseDefault: number;
+    selectionMarkerShiftButtonsEnabled?: boolean;
+    target: FieldTarget;
+    visibleCommands?: string[];
+  } = $props();
   const plotClipId = $derived(`aqe-plot-clip-${target.ord}`);
   const plotClipUrl = $derived(`url(#${plotClipId})`);
-  const selectionMarkerShiftButtonsEnabled = window.__AQE_EDITOR_CONFIG__?.selectionMarkerShiftButtonsEnabled === true;
 
   function handleGraphKeyDown(event: KeyboardEvent): void {
     const visualizer = visualizerForOrd(target.ord);
@@ -265,7 +274,7 @@
     {#if selectionMarkerShiftButtonsEnabled}
       <SelectionMarkerShiftButtons {target} />
     {/if}
-    <SelectionToolbar {target} />
+    <SelectionToolbar {buttonModes} {target} {visibleCommands} />
   </div>
   <TimeViewportScroller {target} />
   <span class="aqe-cursor-label" data-testid={`aqe-progress-label-${target.ord}`}>0 ms</span>
