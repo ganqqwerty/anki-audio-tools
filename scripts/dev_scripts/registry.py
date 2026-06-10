@@ -31,6 +31,14 @@ from scripts.dev_scripts.testing import (
 )
 from scripts.dev_scripts.tooling import cmd_arch, cmd_lint, cmd_typecheck
 from scripts.dev_scripts.types import Command, CommandRegistry
+from scripts.dev_scripts.graphs import (
+    cmd_graphs_all,
+    cmd_graphs_bridge,
+    cmd_graphs_check,
+    cmd_graphs_python,
+    cmd_graphs_svelte,
+    cmd_graphs_webview,
+)
 from scripts.dev_tasks.contracts import (
     cmd_config_schema,
     cmd_contracts_check,
@@ -101,4 +109,10 @@ COMMANDS: CommandRegistry = {
     "vendor-wheels": (cmd_vendor_wheels, "Verify or download locked vendored Python runtime wheels"),
     "release-smoke": (cmd_release_smoke, "Smoke-test a built .ankiaddon archive in isolation"),
     "info": (no_args(cmd_info), "Print discovered paths and versions"),
+    "graphs-python": (cmd_graphs_python, "Generate pydeps SVG dependency graphs for Python"),
+    "graphs-svelte": (cmd_graphs_svelte, "Generate dependency-cruiser SVG graphs for Svelte/TS"),
+    "graphs-bridge": (cmd_graphs_bridge, "Generate Anki bridge message Mermaid diagrams"),
+    "graphs-webview": (cmd_graphs_webview, "Generate webview injection Mermaid diagram"),
+    "graphs-all": (cmd_graphs_all, "Run all graph generators"),
+    "graphs-check": (cmd_graphs_check, "Regenerate all graphs and fail if any differ from committed"),
 }

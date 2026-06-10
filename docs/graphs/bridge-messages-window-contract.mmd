@@ -1,0 +1,36 @@
+```mermaid
+flowchart TD
+    subgraph Python["Python (evalWithCallback / web.eval)"]
+        py["editor_bridge.py<br/>editor_processing.py<br/>editor_playback.py"]
+    end
+
+    subgraph Window["window.__aqe* JavaScript Contract"]
+        aqeSetBusy["__aqeSetBusy()"]
+        aqeSetHistoryAvailability["__aqeSetHistoryAvailability()"]
+        aqeSetLearnerRecordingState["__aqeSetLearnerRecordingState()"]
+        aqeSetLearnerVisualizer["__aqeSetLearnerVisualizer()"]
+        aqeSetStatus["__aqeSetStatus()"]
+        aqeSetVisualizer["__aqeSetVisualizer()"]
+        aqeSetVisualizerStatus["__aqeSetVisualizerStatus()"]
+        aqeResetGraphAfterEdit["__aqeResetGraphAfterEdit()"]
+        aqeSetPlaybackState["__aqeSetPlaybackState()"]
+        aqeGetPlaybackRequest["__aqeGetPlaybackRequest()"]
+        aqePlayAfterEdit["__aqePlayAfterEdit()"]
+        aqeStopEditorPlayback["__aqeStopEditorPlayback()"]
+        aqeGetCursorMs["__aqeGetCursorMs()"]
+        aqeGetCursorIntent["__aqeGetCursorIntent()"]
+        aqePrepareForNewNote["__aqePrepareForNewNote()"]
+        aqePopFrontendLog["__aqePopFrontendLog()"]
+        aqePopPendingGraphAnalysisRequest["__aqePopPendingGraphAnalysisRequest()"]
+        aqePopPendingRegionDeleteRequest["__aqePopPendingRegionDeleteRequest()"]
+        aqePopPendingSplitDefaultSaveRequest["__aqePopPendingSplitDefaultSaveRequest()"]
+        aqePopPendingSourceMetadataRequest["__aqePopPendingSourceMetadataRequest()"]
+        aqeReceiveSourceMetadataResponse["__aqeReceiveSourceMetadataResponse()"]
+    end
+
+    py --> |"eval()"| Window
+
+    subgraph Legend["Legend"]
+        note["22 entry points<br/>Install: installEditorWindowContract()<br/>File: window-contract.ts"]
+    end
+```

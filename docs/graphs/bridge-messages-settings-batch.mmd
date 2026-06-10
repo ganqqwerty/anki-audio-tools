@@ -1,0 +1,56 @@
+```mermaid
+flowchart TD
+
+    subgraph SettingsCommands["Settings Commands<br/>(bridge:{json} envelope)"]
+        s_settings_async["settings.async"]
+        s_settings_cancel["settings.cancel"]
+        s_settings_check_media["settings.check_media"]
+        s_settings_open_runtime_installer["settings.open_runtime_installer"]
+        s_settings_reset_defaults["settings.reset_defaults"]
+        s_settings_save["settings.save"]
+    end
+
+    subgraph BatchCommands["Batch Commands<br/>(bridge:{json} envelope)"]
+        b_batch_cancel["batch.cancel"]
+        b_batch_close["batch.close"]
+        b_batch_copy_log["batch.copy_log"]
+        b_batch_start["batch.start"]
+        b_frontend_log["frontend.log"]
+        b_webview_open_url["webview.open_url"]
+    end
+
+    subgraph SettingsHandlers["Python: settings/commands.py"]
+        sh_settings_async["handle_async_settings_command"]
+        sh_settings_cancel["dialog.reject"]
+        sh_settings_check_media["_handle_check_media"]
+        sh_settings_open_runtime_installer["_handle_open_runtime_installer"]
+        sh_settings_reset_defaults["_handle_reset_defaults"]
+        sh_settings_save["_handle_settings_save"]
+    end
+
+    subgraph BatchHandlers["Python: browser_dialog.py"]
+        bh_batch_cancel["self._cancel_or_close"]
+        bh_batch_close["self._dialog.reject"]
+        bh_batch_copy_log["_clipboard_set_text"]
+        bh_batch_start["self._handle_batch_start"]
+        bh_frontend_log["_handle_frontend_log"]
+        bh_webview_open_url["open_trusted_external_url_from_payload"]
+    end
+
+    subgraph Services["Backend Services"]
+        ts_settings_bridge["lib/bridge.ts"]
+        ts_batch_bridge["batch/bridge.ts"]
+    end
+    ts_settings_bridge --> s_settings_async
+    ts_settings_bridge --> s_settings_cancel
+    ts_settings_bridge --> s_settings_check_media
+    ts_settings_bridge --> s_settings_open_runtime_installer
+    ts_settings_bridge --> s_settings_reset_defaults
+    ts_settings_bridge --> s_settings_save
+    ts_batch_bridge --> b_batch_cancel
+    ts_batch_bridge --> b_batch_close
+    ts_batch_bridge --> b_batch_copy_log
+    ts_batch_bridge --> b_batch_start
+    ts_batch_bridge --> b_frontend_log
+    ts_batch_bridge --> b_webview_open_url
+```

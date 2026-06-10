@@ -50,3 +50,6 @@ node_modules
 /addon/anki_audio_quick_editor/anki_audio_quick_editor_events.jsonl
 /addon/anki_audio_quick_editor/anki_audio_quick_editor_session.json
 /addon/anki_audio_quick_editor/anki_audio_quick_editor_events.jsonl.1
+docs/graphs/*.dot
+docs/architecture/.structurizr/
+docs/architecture/workspace.json

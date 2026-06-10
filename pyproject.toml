@@ -21,6 +21,7 @@ dev = [
     "mccabe",
     "pyflakes",
     "import-linter",
+    "pydeps",
     "deptry",
     "bandit",
     "pytest-randomly",
