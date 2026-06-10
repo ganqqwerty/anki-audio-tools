@@ -788,7 +788,6 @@
         "audio_processor.make_output_filename",
         "audio_state.AudioEditState",
         "batch_operation_types.BatchNoteResult",
-        "batch_operations_helpers.render_batch_denoise",
         "diagnostics_runtime.capture_exception",
         "error_codes.AQE_AUDIO_PROCESSING_FAILED",
         "errors.AudioAlreadyCompactError",
@@ -800,14 +799,14 @@
       "stdlib": [
         "__future__",
         "collections.abc",
+        "dataclasses",
         "logging",
         "pathlib",
         "shutil",
         "typing"
       ],
       "third_party": [
-        "datetime",
-        "importlib"
+        "datetime"
       ]
     }
   },
@@ -839,9 +838,9 @@
         "audio_operations.OP_GRAPH",
         "audio_processor.render_audio",
         "audio_state.AudioProcessingConfig",
-        "batch_operation_processing.process_graph_operation",
+        "batch_operation_processing.BatchOperationDeps",
         "batch_operation_types.BatchNoteResult",
-        "batch_operations_helpers.skipped_batch_note",
+        "batch_operations_helpers.render_batch_denoise",
         "diagnostics_runtime.new_operation_id",
         "error_codes.AQE_MEDIA_REFERENCED_AUDIO_MISSING",
         "errors.AudioQuickEditorError",
@@ -872,17 +871,15 @@
         "audio_processor.render_dpdfnet_audio",
         "audio_state.AudioProcessingConfig",
         "audio_types.AudioProcessingResult",
-        "batch_operations.BatchNoteResult"
+        "batch_operation_types.BatchNoteResult"
       ],
       "addon": [],
       "stdlib": [
         "__future__",
-        "pathlib",
-        "typing"
+        "collections.abc",
+        "pathlib"
       ],
-      "third_party": [
-        "importlib"
-      ]
+      "third_party": []
     }
   },
   {
@@ -1082,6 +1079,7 @@
       "addon": [],
       "stdlib": [
         "__future__",
+        "collections.abc",
         "pathlib",
         "subprocess",
         "typing"
@@ -1326,6 +1324,7 @@
       "anki": [
         "audio_processor.format_ffmpeg_command",
         "audio_recording.NativeRecordingController",
+        "editor_deps_protocols.RegionDeleteDeps",
         "editor_media.current_field_index",
         "file_sharing.upload_file",
         "i18n.t",
@@ -1342,6 +1341,23 @@
       "third_party": [
         "types"
       ]
+    }
+  },
+  {
+    "module": "anki_audio_quick_editor.editor_deps_protocols",
+    "file": "addon/anki_audio_quick_editor/editor_deps_protocols.py",
+    "layer": "unclassified",
+    "summary": "Typed dependency contracts for editor workflow modules",
+    "imports": {
+      "anki": [],
+      "addon": [],
+      "stdlib": [
+        "__future__",
+        "collections.abc",
+        "pathlib",
+        "typing"
+      ],
+      "third_party": []
     }
   },
   {
@@ -1551,6 +1567,25 @@
     }
   },
   {
+    "module": "anki_audio_quick_editor.editor_media_replacement",
+    "file": "addon/anki_audio_quick_editor/editor_media_replacement.py",
+    "layer": "unclassified",
+    "summary": "Shared primitives for editor media replacement workflows",
+    "imports": {
+      "anki": [
+        "errors.AudioProcessingError",
+        "sound_refs.replace_sound_reference"
+      ],
+      "addon": [],
+      "stdlib": [
+        "__future__",
+        "pathlib",
+        "typing"
+      ],
+      "third_party": []
+    }
+  },
+  {
     "module": "anki_audio_quick_editor.editor_persistent_undo",
     "file": "addon/anki_audio_quick_editor/editor_persistent_undo.py",
     "layer": "ui_adapter",
@@ -1663,6 +1698,7 @@
         "diagnostics_runtime.capture_exception",
         "editor_actions.EditorCommandPayload",
         "editor_conversion.convert_async",
+        "editor_media_replacement.persist_generated_media",
         "editor_processing_shared.cancel_graph_analysis_for_processing",
         "editor_processing_shared.request_history_availability_after_edit",
         "editor_processing_shared.sync_history_availability",
@@ -1670,10 +1706,8 @@
         "editor_session.EditorProcessingGuard",
         "editor_status.command_status_summary",
         "error_codes.AQE_AUDIO_PROCESSING_FAILED",
-        "errors.AudioProcessingError",
         "i18n.t",
-        "permission_guidance.message_with_permission_guidance",
-        "sound_refs.replace_sound_reference"
+        "permission_guidance.message_with_permission_guidance"
       ],
       "addon": [],
       "stdlib": [
@@ -1814,6 +1848,7 @@
       "anki": [
         "audio_state.AudioEditState",
         "diagnostics_runtime.capture_exception",
+        "editor_deps_protocols.RegionDeleteDeps",
         "editor_processing_shared.request_history_availability_after_edit",
         "editor_processing_shared.sync_history_availability",
         "editor_region_delete_request.parse_region_delete_request",
@@ -1869,6 +1904,7 @@
       "anki": [
         "audio_state.AudioProcessingConfig",
         "diagnostics_runtime.capture_exception",
+        "editor_deps_protocols.RegionDeleteDeps",
         "editor_region_delete_request.REGION_KEEP_OPERATION",
         "editor_session.EditorProcessingGuard",
         "permission_guidance.message_with_permission_guidance"
@@ -2054,17 +2090,16 @@
         "audio_state.AudioEditState",
         "diagnostics_runtime.new_operation_id",
         "editor_actions.EditorCommandPayload",
+        "editor_media_replacement.persist_generated_media",
         "editor_processing_shared.cancel_graph_analysis_for_processing",
         "editor_reload_status.reload_editor_with_pending_status",
         "editor_session.EditorProcessingGuard",
         "editor_special_transform_worker.run_special_transform_worker",
         "editor_status.command_status_summary",
-        "errors.AudioProcessingError",
         "i18n.t",
         "media_paths.existing_media_file_path",
         "permission_guidance.message_with_permission_guidance",
         "prosody_settings.config_with_graph_settings",
-        "sound_refs.replace_sound_reference",
         "support.format_denoise_support_log_block"
       ],
       "addon": [],

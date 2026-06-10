@@ -7,6 +7,15 @@ from collections.abc import Callable
 from scripts.dev_scripts.anki import cmd_run_anki
 from scripts.dev_scripts.architecture import cmd_architecture_report
 from scripts.dev_scripts.check import cmd_check
+from scripts.dev_scripts.graphs import (
+    cmd_graphs_all,
+    cmd_graphs_archive,
+    cmd_graphs_bridge,
+    cmd_graphs_check,
+    cmd_graphs_python,
+    cmd_graphs_svelte,
+    cmd_graphs_webview,
+)
 from scripts.dev_scripts.quality import (
     cmd_deadcode,
     cmd_deps,
@@ -31,15 +40,6 @@ from scripts.dev_scripts.testing import (
 )
 from scripts.dev_scripts.tooling import cmd_arch, cmd_lint, cmd_typecheck
 from scripts.dev_scripts.types import Command, CommandRegistry
-from scripts.dev_scripts.graphs import (
-    cmd_graphs_all,
-    cmd_graphs_archive,
-    cmd_graphs_bridge,
-    cmd_graphs_check,
-    cmd_graphs_python,
-    cmd_graphs_svelte,
-    cmd_graphs_webview,
-)
 from scripts.dev_tasks.contracts import (
     cmd_config_schema,
     cmd_contracts_check,

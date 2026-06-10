@@ -2,7 +2,8 @@
 
 from __future__ import annotations
 
-from typing import Mapping
+from collections.abc import Callable
+from typing import Mapping, cast
 
 from .audio_state import AudioEditState, AudioProcessingConfig
 from .i18n import format_message
@@ -94,7 +95,7 @@ def apply_audio_operation(
         OP_VOLUME_DOWN: lambda: state.volume_down(config),
         OP_VOLUME_UP: lambda: state.volume_up(config),
     }
-    action = actions.get(operation)
+    action = cast(Callable[[], AudioEditState], actions.get(operation))
     if action is None:
         raise ValueError(f"Operation does not produce audio transforms: {operation}")
     return action()

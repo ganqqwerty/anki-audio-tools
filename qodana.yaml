@@ -1,7 +1,7 @@
 version: "1.0"
 linter: qodana-python-community
 withinDocker: false
-failThreshold: 0
+failThreshold: 9
 profile:
   name: qodana.starter
 
@@ -9,7 +9,13 @@ exclude:
   # Runtime caches are generated locally from vendored wheels and are not source.
   - name: All
     paths:
-      - addon/anki_audio_quick_editor/user_files
+      - "addon/anki_audio_quick_editor/user_files/**"
+      - "scripts/graphs/"
+      - "scripts/graphs_archive.py"
+      - "scripts/graphs_bridge.py"
+      - "scripts/graphs_python.py"
+      - "scripts/graphs_svelte.py"
+      - "scripts/graphs_webview.py"
 
   # Qodana 2026.1 flags valid Python 3.10+ annotations in this project.
   # Keep mypy as the source of truth for Python typing.

@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from html import escape
-from typing import Any
+from typing import Any, cast
 
 import anki.hooks as anki_hooks
 from aqt.qt import QDialog, QLabel, QPushButton, Qt, qconnect
@@ -61,7 +61,7 @@ def _choose_audio_editor_field_name(clayout: Any) -> str | None:
 
     dialog = QDialog(clayout)
     form = aqt_forms.addfield.Ui_Dialog()
-    form.setupUi(dialog)
+    cast(object, form).setupUi(dialog)  # type: ignore[attr-defined]
     dialog.setWindowTitle(_ADD_AUDIO_EDITOR_BUTTON_LABEL)
     disable_help_button(dialog)
     form.fields.addItems(fields)

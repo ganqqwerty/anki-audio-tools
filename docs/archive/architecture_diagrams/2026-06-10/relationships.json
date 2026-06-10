@@ -325,6 +325,12 @@
   },
   {
     "source": "src/editor-inline/EditorControls.svelte",
+    "target": "src/editor-inline/editor-runtime-config.js",
+    "type": "svelte_import",
+    "source_category": "component"
+  },
+  {
+    "source": "src/editor-inline/EditorControls.svelte",
     "target": "src/editor-inline/editor-toolbar-render-items.js",
     "type": "svelte_import",
     "source_category": "component"
@@ -620,6 +626,12 @@
   {
     "source": "src/editor-inline/GraphVisualizer.svelte",
     "target": "src/lib/AqeTooltip.svelte",
+    "type": "svelte_import",
+    "source_category": "component"
+  },
+  {
+    "source": "src/editor-inline/GraphVisualizer.svelte",
+    "target": "src/lib/editor-toolbar-buttons.js",
     "type": "svelte_import",
     "source_category": "component"
   },
@@ -2044,6 +2056,12 @@
     "target": "src/lib/generated/contracts.js",
     "type": "svelte_import",
     "source_category": "types"
+  },
+  {
+    "source": "src/editor-inline/editor-runtime-config.ts",
+    "target": "src/editor-inline/types.js",
+    "type": "svelte_import",
+    "source_category": "logic"
   },
   {
     "source": "src/editor-inline/editor-runtime-types.ts",
@@ -3978,24 +3996,6 @@
     "source_category": "component"
   },
   {
-    "source": "src/lib/async-jobs.ts",
-    "target": "src/lib/bridge.js",
-    "type": "svelte_import",
-    "source_category": "logic"
-  },
-  {
-    "source": "src/lib/async-jobs.ts",
-    "target": "src/lib/types.js",
-    "type": "svelte_import",
-    "source_category": "logic"
-  },
-  {
-    "source": "src/lib/async-jobs.ts",
-    "target": "src/lib/user-facing-error.js",
-    "type": "svelte_import",
-    "source_category": "logic"
-  },
-  {
     "source": "src/lib/audio-operation-parameters.ts",
     "target": "src/lib/i18n.js",
     "type": "svelte_import",
@@ -4009,13 +4009,19 @@
   },
   {
     "source": "src/lib/bridge.ts",
-    "target": "src/lib/types.js",
+    "target": "src/lib/bridge-transport.js",
     "type": "svelte_import",
     "source_category": "bridge"
   },
   {
     "source": "src/lib/editor-toolbar-buttons.ts",
     "target": "src/lib/audio-operation-parameters.js",
+    "type": "svelte_import",
+    "source_category": "logic"
+  },
+  {
+    "source": "src/lib/editor-toolbar-buttons.ts",
+    "target": "src/lib/editor-toolbar-defaults.js",
     "type": "svelte_import",
     "source_category": "logic"
   },
@@ -4046,6 +4052,18 @@
   {
     "source": "src/lib/editor-toolbar-command-slugs.ts",
     "target": "src/lib/editor-toolbar-buttons.js",
+    "type": "svelte_import",
+    "source_category": "logic"
+  },
+  {
+    "source": "src/lib/editor-toolbar-defaults.ts",
+    "target": "src/lib/editor-toolbar-buttons.js",
+    "type": "svelte_import",
+    "source_category": "logic"
+  },
+  {
+    "source": "src/lib/editor-toolbar-defaults.ts",
+    "target": "src/lib/types.js",
     "type": "svelte_import",
     "source_category": "logic"
   },
@@ -4093,7 +4111,7 @@
   },
   {
     "source": "src/lib/external-links.ts",
-    "target": "src/lib/bridge.js",
+    "target": "src/lib/bridge-transport.js",
     "type": "svelte_import",
     "source_category": "logic"
   },
@@ -4105,7 +4123,7 @@
   },
   {
     "source": "src/lib/logger.ts",
-    "target": "src/lib/bridge.js",
+    "target": "src/lib/bridge-transport.js",
     "type": "svelte_import",
     "source_category": "logic"
   },
@@ -4381,18 +4399,6 @@
   },
   {
     "source": "src/settings/SettingsApp.svelte",
-    "target": "src/lib/async-jobs.js",
-    "type": "svelte_import",
-    "source_category": "component"
-  },
-  {
-    "source": "src/settings/SettingsApp.svelte",
-    "target": "src/lib/bridge.js",
-    "type": "svelte_import",
-    "source_category": "component"
-  },
-  {
-    "source": "src/settings/SettingsApp.svelte",
     "target": "src/lib/i18n.js",
     "type": "svelte_import",
     "source_category": "component"
@@ -4436,6 +4442,18 @@
   {
     "source": "src/settings/SettingsApp.svelte",
     "target": "src/settings/SettingsFooter.svelte",
+    "type": "svelte_import",
+    "source_category": "component"
+  },
+  {
+    "source": "src/settings/SettingsApp.svelte",
+    "target": "src/settings/async-jobs.js",
+    "type": "svelte_import",
+    "source_category": "component"
+  },
+  {
+    "source": "src/settings/SettingsApp.svelte",
+    "target": "src/settings/bridge.js",
     "type": "svelte_import",
     "source_category": "component"
   },
@@ -4630,6 +4648,36 @@
     "target": "src/settings/ToolbarPanelSettingsFields.svelte",
     "type": "svelte_import",
     "source_category": "component"
+  },
+  {
+    "source": "src/settings/async-jobs.ts",
+    "target": "src/lib/types.js",
+    "type": "svelte_import",
+    "source_category": "logic"
+  },
+  {
+    "source": "src/settings/async-jobs.ts",
+    "target": "src/lib/user-facing-error.js",
+    "type": "svelte_import",
+    "source_category": "logic"
+  },
+  {
+    "source": "src/settings/async-jobs.ts",
+    "target": "src/settings/bridge.js",
+    "type": "svelte_import",
+    "source_category": "logic"
+  },
+  {
+    "source": "src/settings/bridge.ts",
+    "target": "src/lib/bridge-transport.js",
+    "type": "svelte_import",
+    "source_category": "bridge"
+  },
+  {
+    "source": "src/settings/bridge.ts",
+    "target": "src/lib/types.js",
+    "type": "svelte_import",
+    "source_category": "bridge"
   },
   {
     "source": "src/settings/settings-state.ts",

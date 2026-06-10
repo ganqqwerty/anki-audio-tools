@@ -1,7 +1,6 @@
 import {
   audioClockFor,
   audioClockReady,
-  clearAudioClockSource,
   pauseAudioClock,
   seekAudioClock,
 } from "./audio-clock.js";
@@ -15,7 +14,6 @@ import {
 } from "./playback-plan-state.js";
 import {
   planPlaybackBoundary,
-  playbackCompletionCursor,
   type PlaybackPass,
   type PlaybackRegion,
 } from "./playback-model.js";
@@ -30,6 +28,7 @@ import {
   clearPlaybackFrame,
   clearRepeatPauseTimer,
 } from "./playback-controller-frame.js";
+import { completePlayback, stopProgressClock } from "./playback-controller-state.js";
 import type { PlaybackState, VisualizerElement } from "./types.js";
 import {
   renderPlaybackCursor,
@@ -39,6 +38,16 @@ import { readFieldState, writeFieldState } from "./field-state-store.js";
 import type { EditorFieldState } from "./field-state.js";
 
 export { clearPlaybackFrame };
+export {
+  audioProgressMs,
+  currentProgressMs,
+  manualProgressMs,
+} from "./playback-controller-audio.js";
+export {
+  completePlayback,
+  pauseProgressClock,
+  stopProgressClock,
+} from "./playback-controller-state.js";
 
 function fieldState(visualizer: VisualizerElement): EditorFieldState {
   return readFieldState(Number(visualizer.dataset.aqeFieldOrd || "0"));
@@ -73,28 +82,6 @@ export interface PlaybackControllerDependencies {
   stopOtherPlayback: (activeVisualizer: VisualizerElement) => void;
 }
 
-export function manualProgressMs(visualizer: VisualizerElement): number {
-  const planned = liveProgressMs(visualizer);
-  if (planned !== null) return planned;
-  const s = fieldState(visualizer);
-  const elapsed = performance.now() - Number(visualizer.dataset.playStartedAt || "0");
-  return Math.min(s.graph.durationMs, Number(visualizer.dataset.playStartMs || "0") + elapsed);
-}
-
-export function audioProgressMs(visualizer: VisualizerElement): number | null {
-  const audio = audioClockFor(visualizer);
-  if (!audio) return null;
-  const s = fieldState(visualizer);
-  return Math.min(s.graph.durationMs, (Number(audio.currentTime) || 0) * 1000);
-}
-
-export function currentProgressMs(visualizer: VisualizerElement): number | null {
-  const planned = liveProgressMs(visualizer);
-  if (planned !== null) return planned;
-  const s = fieldState(visualizer);
-  return s.cursor.progressMs || s.cursor.ms;
-}
-
 export function handlePlaybackBoundary(
   visualizer: VisualizerElement,
   nextMs: number,
@@ -118,26 +105,6 @@ export function handlePlaybackBoundary(
   }
   completePlayback(visualizer, deps);
   return true;
-}
-
-export function completePlayback(visualizer: VisualizerElement, deps: PlaybackControllerDependencies): void {
-  const s = fieldState(visualizer);
-  const resetCursorMs = playbackCompletionCursor(activePlaybackPass(visualizer, deps));
-  const preserveStatus = visualizer.dataset.preserveStatusOnPlaybackEnd === "true";
-  stopProgressClock(visualizer, deps);
-  deps.setCursor(visualizer, resetCursorMs, false, { updateAnchor: false });
-  ensurePlaybackCursorVisible(visualizer, resetCursorMs);
-  if (audioClockReady(visualizer)) {
-    seekAudioClock(visualizer, resetCursorMs, s.graph.durationMs);
-  }
-  if (preserveStatus) {
-    deps.restoreStatus(s.ord);
-  } else {
-    deps.clearStatus(s.ord);
-  }
-  visualizer.dataset.preserveStatusOnPlaybackEnd = "false";
-  window.__aqeActiveField = s.ord;
-  deps.focusAndSendCommand(s.ord, "aqe:play-ended");
 }
 
 export function paintProgressFromClock(visualizer: VisualizerElement, deps: PlaybackControllerDependencies): void {
@@ -230,12 +197,12 @@ export function startAudioProgressClock(
   };
   const startPainting = (): void => {
     if (visualizer.__aqePlaybackGeneration !== playGeneration) return;
-    const s = fieldState(visualizer);
-    if (s.playback.state !== "playing") return;
+    const s2 = fieldState(visualizer);
+    if (s2.playback.state !== "playing") return;
     clearPlaybackFrame(visualizer);
-    writeFieldState(s.ord, {
-      ...s,
-      playback: { ...s.playback, clockMode: "audio" },
+    writeFieldState(s2.ord, {
+      ...s2,
+      playback: { ...s2.playback, clockMode: "audio" },
     });
     startPlaybackPlan(visualizer, startMs, playbackEndMs(visualizer, deps));
     logger.info("html audio playback started", { ord: visualizer.dataset.aqeFieldOrd });
@@ -297,45 +264,6 @@ export function startProgressClock(
     return;
   }
   startManualPlaybackPass(visualizer, pass, deps);
-}
-
-export function pauseProgressClock(visualizer: VisualizerElement, deps: PlaybackControllerDependencies): void {
-  const currentMs = currentProgressMs(visualizer);
-  if (currentMs !== null) {
-    deps.setCursor(visualizer, currentMs, false, { updateAnchor: false });
-  }
-  clearPlaybackFrame(visualizer);
-  pauseAudioClock(visualizer);
-  const s = fieldState(visualizer);
-  writeFieldState(s.ord, {
-    ...s,
-    playback: { ...s.playback, state: "paused", clockMode: "stopped" },
-  });
-  deps.setPlaybackButtonLabel(visualizer, "Play");
-}
-
-export function stopProgressClock(
-  visualizer: VisualizerElement,
-  deps: PlaybackControllerDependencies,
-  options: { clearAudio?: boolean; clearEngine?: boolean } = {},
-): void {
-  clearPlaybackFrame(visualizer);
-  pauseAudioClock(visualizer);
-  const s = fieldState(visualizer);
-  writeFieldState(s.ord, {
-    ...s,
-    playback: {
-      ...s.playback,
-      state: "stopped",
-      clockMode: "stopped",
-      resumeRequiresRestart: false,
-      engine: options.clearEngine !== false ? "" : s.playback.engine,
-    },
-  });
-  if (options.clearAudio) {
-    clearAudioClockSource(visualizer);
-  }
-  deps.setPlaybackButtonLabel(visualizer, "Play");
 }
 
 function scheduleRepeatLoopPlayback(
@@ -421,11 +349,11 @@ function restartLoopPlaybackNow(
   void Promise.resolve(audio.play())
     .then(() => {
       if (visualizer.__aqePlaybackGeneration !== playGeneration) return;
-      const s = fieldState(visualizer);
-      if (s.playback.state === "playing") {
-        writeFieldState(s.ord, {
-          ...s,
-          playback: { ...s.playback, clockMode: "audio" },
+      const s2 = fieldState(visualizer);
+      if (s2.playback.state === "playing") {
+        writeFieldState(s2.ord, {
+          ...s2,
+          playback: { ...s2.playback, clockMode: "audio" },
         });
         startPlaybackPlan(visualizer, loopStartMs, pass.endMs);
         paintProgressFromClock(visualizer, deps);

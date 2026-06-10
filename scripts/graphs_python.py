@@ -152,7 +152,7 @@ def _to_dot(
     ]
 
     if title:
-        lines.append(f'    labelloc="t";')
+        lines.append('    labelloc="t";')
         lines.append(f'    label="{title}";')
         lines.append('    fontsize=14;')
 

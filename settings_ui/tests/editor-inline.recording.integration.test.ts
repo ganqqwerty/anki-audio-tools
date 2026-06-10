@@ -1,10 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import {
-  disposeEditorRuntime,
-  initializeEditorRuntime,
-  scan,
-} from "../src/editor-inline/runtime.js";
+import { disposeEditorRuntime } from "../src/editor-inline/runtime.js";
 import {
   bridgeCommands,
   muteConsole,
@@ -12,67 +8,17 @@ import {
   renderFields,
   track,
 } from "./editor-inline.integration.helpers.js";
+import {
+  initAndScan,
+  recordingConfig,
+  recordingConfigWithCountdown,
+  setScrollbarDimensions,
+  setupAudioTrack,
+  textRecordingConfig,
+} from "./editor-inline.recording.integration.helpers.js";
 import { invalidateFieldState } from "../src/editor-inline/field-state-store.js";
 import { PRODUCT_LINKS } from "../src/lib/product-links.js";
-import { EditorButtonMode } from "../src/lib/types.js";
 import type { EditorRuntimeConfig } from "../src/editor-inline/types.js";
-
-function recordingConfig(): EditorRuntimeConfig {
-  return {
-    audioFieldIndices: [0],
-    splitButtonDefaults: {
-      denoiseAlgorithm: "standard" as const,
-      pauseAggressiveness: "normal" as const,
-      repeatPauseSeconds: 0,
-      speedStep: 1.5,
-      voiceRecordingCountdownSeconds: 0,
-      volumeStepDb: 15,
-    },
-    visibleEditorButtons: [
-      "aqe:analyze",
-      "aqe:record-voice",
-      "aqe:play-recording",
-    ],
-  };
-}
-
-function recordingConfigWithCountdown(seconds: number): EditorRuntimeConfig {
-  const config = recordingConfig();
-  return {
-    ...config,
-    splitButtonDefaults: {
-      ...config.splitButtonDefaults!,
-      voiceRecordingCountdownSeconds: seconds,
-    },
-  };
-}
-
-function textRecordingConfig(): EditorRuntimeConfig {
-  return {
-    ...recordingConfig(),
-    editorButtonModes: {
-      "aqe:play-recording": EditorButtonMode.Text,
-      "aqe:record-voice": EditorButtonMode.Text,
-    },
-  };
-}
-
-function setScrollbarDimensions(ord = 0, clientWidth = 500): HTMLDivElement {
-  const scroller = document.querySelector<HTMLDivElement>(`[data-testid="aqe-time-scrollbar-scroll-${ord}"]`)!;
-  Object.defineProperty(scroller, "clientWidth", { configurable: true, value: clientWidth });
-  scroller.getBoundingClientRect = () => ({
-    bottom: 16,
-    height: 16,
-    left: 0,
-    right: clientWidth,
-    top: 0,
-    width: clientWidth,
-    x: 0,
-    y: 0,
-    toJSON: () => ({}),
-  });
-  return scroller;
-}
 
 describe("editor inline learner recording integration", () => {
   let restoreConsole: () => void;
@@ -91,8 +37,7 @@ describe("editor inline learner recording integration", () => {
   });
 
   it("hides learner recording controls unless they are configured visible", () => {
-    initializeEditorRuntime({ audioFieldIndices: [0] });
-    scan({ audioFieldIndices: [0] });
+    initAndScan({ audioFieldIndices: [0] });
 
     expect(document.querySelector('[data-testid="aqe-button-0-record-voice"]')).toBeNull();
     expect(document.querySelector('[data-testid="aqe-button-0-play-recording"]')).toBeNull();
@@ -105,9 +50,7 @@ describe("editor inline learner recording integration", () => {
       ...recordingConfig(),
       visibleEditorButtons: ["aqe:record-voice"],
     };
-
-    initializeEditorRuntime(config);
-    scan(config);
+    initAndScan(config);
 
     const group = document.querySelector<HTMLElement>(".aqe-recording-group")!;
     expect(group).not.toBeNull();
@@ -128,8 +71,7 @@ describe("editor inline learner recording integration", () => {
   });
 
   it("renders the opt-in grouped buttons and dispatches record after the configured countdown", async () => {
-    initializeEditorRuntime(recordingConfig());
-    scan(recordingConfig());
+    initAndScan(recordingConfig());
 
     const group = document.querySelector(".aqe-recording-group");
     const recordButton = document.querySelector<HTMLButtonElement>('[data-testid="aqe-button-0-record-voice"]')!;
@@ -159,8 +101,7 @@ describe("editor inline learner recording integration", () => {
       "Play yours\nPlay your latest recording\n\nRecord your voice before playing it",
     );
 
-    window.__aqeSetVisualizer?.(0, { ...track, sourceFilename: "clip one.mp3" }, 0);
-    await Promise.resolve();
+    await setupAudioTrack();
     document.querySelector<HTMLElement>('[data-testid="aqe-graph-0"]')!.dataset.cursorMs = "400";
     invalidateFieldState(0);
     expect(recordButton.disabled).toBe(false);
@@ -211,10 +152,8 @@ describe("editor inline learner recording integration", () => {
   it("shows a graph overlay while a positive recording countdown runs", async () => {
     vi.useFakeTimers();
     const config = recordingConfigWithCountdown(3);
-    initializeEditorRuntime(config);
-    scan(config);
-    window.__aqeSetVisualizer?.(0, { ...track, sourceFilename: "clip one.mp3" }, 0);
-    await Promise.resolve();
+    initAndScan(config);
+    await setupAudioTrack();
 
     const recordButton = document.querySelector<HTMLButtonElement>('[data-testid="aqe-button-0-record-voice"]')!;
     recordButton.click();
@@ -251,8 +190,7 @@ describe("editor inline learner recording integration", () => {
   });
 
   it("renders the recording group in text mode when configured", () => {
-    initializeEditorRuntime(textRecordingConfig());
-    scan(textRecordingConfig());
+    initAndScan(textRecordingConfig());
 
     const recordButton = document.querySelector<HTMLButtonElement>('[data-testid="aqe-button-0-record-voice"]')!;
     const playYoursButton = document.querySelector<HTMLButtonElement>('[data-testid="aqe-button-0-play-recording"]')!;
@@ -267,10 +205,8 @@ describe("editor inline learner recording integration", () => {
   });
 
   it("toggles Record to Stop while recording and enables Play yours only when ready", async () => {
-    initializeEditorRuntime(recordingConfig());
-    scan(recordingConfig());
-    window.__aqeSetVisualizer?.(0, { ...track, sourceFilename: "clip one.mp3" }, 0);
-    await Promise.resolve();
+    initAndScan(recordingConfig());
+    await setupAudioTrack();
 
     const recordButton = document.querySelector<HTMLButtonElement>('[data-testid="aqe-button-0-record-voice"]')!;
     const playYoursButton = document.querySelector<HTMLButtonElement>('[data-testid="aqe-button-0-play-recording"]')!;
@@ -346,10 +282,8 @@ describe("editor inline learner recording integration", () => {
   });
 
   it("grows the active recording graph and reveals the time scrollbar once recording exceeds the target graph", async () => {
-    initializeEditorRuntime(recordingConfig());
-    scan(recordingConfig());
-    window.__aqeSetVisualizer?.(0, { ...track, sourceFilename: "clip one.mp3" }, 0);
-    await Promise.resolve();
+    initAndScan(recordingConfig());
+    await setupAudioTrack();
     const initialScrollbar = document.querySelector<HTMLElement>('[data-testid="aqe-time-scrollbar-0"]')!;
     expect(initialScrollbar.hidden).toBe(true);
     setScrollbarDimensions();
@@ -386,10 +320,8 @@ describe("editor inline learner recording integration", () => {
     let now = 1000;
     vi.spyOn(performance, "now").mockImplementation(() => now);
 
-    initializeEditorRuntime(recordingConfig());
-    scan(recordingConfig());
-    window.__aqeSetVisualizer?.(0, { ...track, sourceFilename: "clip one.mp3" }, 0);
-    await Promise.resolve();
+    initAndScan(recordingConfig());
+    await setupAudioTrack();
     const scroller = setScrollbarDimensions();
 
     window.__aqeSetLearnerRecordingState?.({
@@ -418,10 +350,8 @@ describe("editor inline learner recording integration", () => {
   });
 
   it("renders learner pitch only, expands graph duration, and keeps target playback constrained", async () => {
-    initializeEditorRuntime(recordingConfig());
-    scan(recordingConfig());
-    window.__aqeSetVisualizer?.(0, { ...track, sourceFilename: "clip one.mp3" }, 0);
-    await Promise.resolve();
+    initAndScan(recordingConfig());
+    await setupAudioTrack();
 
     window.__aqeSetLearnerRecordingState?.({
       fieldOrd: 0,

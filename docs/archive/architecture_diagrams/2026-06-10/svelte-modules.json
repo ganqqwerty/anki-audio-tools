@@ -174,6 +174,7 @@
         "src/editor-inline/actions.js",
         "src/editor-inline/commands.js",
         "src/editor-inline/control-actions.js",
+        "src/editor-inline/editor-runtime-config.js",
         "src/editor-inline/editor-toolbar-render-items.js",
         "src/editor-inline/types.js",
         "src/lib/AqeTooltip.svelte",
@@ -292,6 +293,7 @@
         "src/editor-inline/viewport-actions.js",
         "src/editor-inline/zoom-actions.js",
         "src/lib/AqeTooltip.svelte",
+        "src/lib/editor-toolbar-buttons.js",
         "src/lib/i18n.js"
       ],
       "external": [
@@ -874,6 +876,18 @@
         "src/editor-inline/graph-settings.js",
         "src/editor-inline/playback-progress-clock.js",
         "src/lib/generated/contracts.js"
+      ],
+      "external": []
+    }
+  },
+  {
+    "module": "src/editor-inline/editor-runtime-config.ts",
+    "file": "src/editor-inline/editor-runtime-config.ts",
+    "category": "logic",
+    "summary": "editor-runtime-config",
+    "imports": {
+      "internal": [
+        "src/editor-inline/types.js"
       ],
       "external": []
     }
@@ -2129,20 +2143,6 @@
     }
   },
   {
-    "module": "src/lib/async-jobs.ts",
-    "file": "src/lib/async-jobs.ts",
-    "category": "logic",
-    "summary": "async-jobs",
-    "imports": {
-      "internal": [
-        "src/lib/bridge.js",
-        "src/lib/types.js",
-        "src/lib/user-facing-error.js"
-      ],
-      "external": []
-    }
-  },
-  {
     "module": "src/lib/audio-operation-parameters.ts",
     "file": "src/lib/audio-operation-parameters.ts",
     "category": "logic",
@@ -2167,13 +2167,23 @@
     }
   },
   {
+    "module": "src/lib/bridge-transport.ts",
+    "file": "src/lib/bridge-transport.ts",
+    "category": "logic",
+    "summary": "bridge-transport",
+    "imports": {
+      "internal": [],
+      "external": []
+    }
+  },
+  {
     "module": "src/lib/bridge.ts",
     "file": "src/lib/bridge.ts",
     "category": "bridge",
     "summary": "bridge",
     "imports": {
       "internal": [
-        "src/lib/types.js"
+        "src/lib/bridge-transport.js"
       ],
       "external": []
     }
@@ -2196,6 +2206,7 @@
     "imports": {
       "internal": [
         "src/lib/audio-operation-parameters.js",
+        "src/lib/editor-toolbar-defaults.js",
         "src/lib/i18n.js",
         "src/lib/icon-types.js",
         "src/lib/size-reduction-parameters.js",
@@ -2212,6 +2223,19 @@
     "imports": {
       "internal": [
         "src/lib/editor-toolbar-buttons.js"
+      ],
+      "external": []
+    }
+  },
+  {
+    "module": "src/lib/editor-toolbar-defaults.ts",
+    "file": "src/lib/editor-toolbar-defaults.ts",
+    "category": "logic",
+    "summary": "editor-toolbar-defaults",
+    "imports": {
+      "internal": [
+        "src/lib/editor-toolbar-buttons.js",
+        "src/lib/types.js"
       ],
       "external": []
     }
@@ -2263,7 +2287,7 @@
     "summary": "external-links",
     "imports": {
       "internal": [
-        "src/lib/bridge.js"
+        "src/lib/bridge-transport.js"
       ],
       "external": []
     }
@@ -2327,7 +2351,7 @@
     "summary": "logger",
     "imports": {
       "internal": [
-        "src/lib/bridge.js",
+        "src/lib/bridge-transport.js",
         "src/lib/generated/contracts.js"
       ],
       "external": []
@@ -2539,8 +2563,6 @@
       "internal": [
         "src/lib/AqeTooltipProvider.svelte",
         "src/lib/ErrorMessage.svelte",
-        "src/lib/async-jobs.js",
-        "src/lib/bridge.js",
         "src/lib/i18n.js",
         "src/lib/logger.js",
         "src/lib/types.js",
@@ -2549,6 +2571,8 @@
         "src/settings/DiagnosticsPanel.svelte",
         "src/settings/GeneralSettingsPanel.svelte",
         "src/settings/SettingsFooter.svelte",
+        "src/settings/async-jobs.js",
+        "src/settings/bridge.js",
         "src/settings/settings-state.js"
       ],
       "external": [
@@ -2649,6 +2673,33 @@
         "src/lib/types.js",
         "src/settings/ButtonSettingsCard.svelte",
         "src/settings/ToolbarPanelSettingsFields.svelte"
+      ],
+      "external": []
+    }
+  },
+  {
+    "module": "src/settings/async-jobs.ts",
+    "file": "src/settings/async-jobs.ts",
+    "category": "logic",
+    "summary": "async-jobs",
+    "imports": {
+      "internal": [
+        "src/lib/types.js",
+        "src/lib/user-facing-error.js",
+        "src/settings/bridge.js"
+      ],
+      "external": []
+    }
+  },
+  {
+    "module": "src/settings/bridge.ts",
+    "file": "src/settings/bridge.ts",
+    "category": "bridge",
+    "summary": "bridge",
+    "imports": {
+      "internal": [
+        "src/lib/bridge-transport.js",
+        "src/lib/types.js"
       ],
       "external": []
     }

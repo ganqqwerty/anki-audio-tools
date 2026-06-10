@@ -7,6 +7,9 @@ import { t } from "./i18n.js";
 import { formatSizeReductionMode, sizeReductionModeOrDefault } from "./size-reduction-parameters.js";
 import type { CommandIconName } from "./icon-types.js";
 import { EditorButtonMode } from "./types.js";
+import { DEFAULT_EDITOR_BUTTON_MODES, DEFAULT_VISIBLE_EDITOR_BUTTONS } from "./editor-toolbar-defaults.js";
+
+export { DEFAULT_EDITOR_BUTTON_MODES, DEFAULT_VISIBLE_EDITOR_BUTTONS };
 
 export type EditorCommand =
   | "aqe:play"
@@ -50,62 +53,6 @@ export interface ToolbarButtonSpec {
   label: string;
   title: string;
 }
-
-export const DEFAULT_VISIBLE_EDITOR_BUTTONS = [
-  "aqe:play",
-  "aqe:analyze",
-  "aqe:show-file",
-  "aqe:share",
-  "aqe:denoise-standard",
-  "aqe:remove-pauses",
-  "aqe:slower",
-  "aqe:faster",
-  "aqe:volume-down",
-  "aqe:volume-up",
-  "aqe:chorusing-practice",
-  "aqe:chorusing-next",
-  "aqe:chorusing-previous",
-  "aqe:pitch-hum",
-  "aqe:convert",
-  "aqe:reduce-size",
-  "aqe:delete-selection",
-  "aqe:delete-rest",
-  "aqe:undo",
-  "aqe:redo",
-  "aqe:settings",
-] as const satisfies readonly EditorCommand[];
-
-export const DEFAULT_EDITOR_BUTTON_MODES = {
-  "aqe:play": EditorButtonMode.Icon,
-  "aqe:analyze": EditorButtonMode.Icon,
-  "aqe:chorusing-practice": EditorButtonMode.Icon,
-  "aqe:chorusing-previous": EditorButtonMode.Icon,
-  "aqe:chorusing-next": EditorButtonMode.Icon,
-  "aqe:record-voice": EditorButtonMode.Icon,
-  "aqe:stop-recording": EditorButtonMode.Icon,
-  "aqe:play-recording": EditorButtonMode.Icon,
-  "aqe:share-recording": EditorButtonMode.Icon,
-  "aqe:show-recording-file": EditorButtonMode.Icon,
-  "aqe:show-file": EditorButtonMode.Icon,
-  "aqe:share": EditorButtonMode.Icon,
-  "aqe:convert": EditorButtonMode.Text,
-  "aqe:reduce-size": EditorButtonMode.Text,
-  "aqe:remove-pauses": EditorButtonMode.Text,
-  "aqe:denoise-standard": EditorButtonMode.Text,
-  "aqe:rnnoise": EditorButtonMode.Icon,
-  "aqe:dpdfnet": EditorButtonMode.Icon,
-  "aqe:voice-only": EditorButtonMode.Icon,
-  "aqe:pitch-hum": EditorButtonMode.Text,
-  "aqe:slower": EditorButtonMode.Icon,
-  "aqe:faster": EditorButtonMode.Icon,
-  "aqe:volume-down": EditorButtonMode.Icon,
-  "aqe:volume-up": EditorButtonMode.Icon,
-  "aqe:delete-selection": EditorButtonMode.Icon,
-  "aqe:delete-rest": EditorButtonMode.Icon,
-  "aqe:undo": EditorButtonMode.Icon,
-  "aqe:redo": EditorButtonMode.Icon,
-  "aqe:settings": EditorButtonMode.Icon,
-} as const satisfies EditorButtonModes;
 
 function formatDenoiseAlgorithm(value: "standard" | "rnnoise" | "dpdfnet" | "voice_only"): string {
   if (value === "rnnoise") return t("settings.denoise_algorithm.rnnoise");

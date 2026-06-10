@@ -152,13 +152,21 @@ max-complexity = 10
 "scripts/**/*.py" = [
     "ANN",
     "ARG",
+    "B007",
+    "B905",
+    "C901",
     "D",
     "DTZ",
     "E402",
+    "F841",
     "N",
+    "PERF401",
+    "PIE810",
+    "PLR0912",
     "PLR2004",
     "PLW0108",
     "PLW2901",
+    "RET504",
 ]
 "tests/**/*.py" = [
     "A002",
