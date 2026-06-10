@@ -8,6 +8,7 @@ import {
   invalidateFieldState,
   readFieldState,
   removeFieldState,
+  setCachedProgressMs,
   updateFieldState,
   writeFieldState,
 } from "../src/editor-inline/field-state-store.js";
@@ -191,6 +192,49 @@ describe("field state store", () => {
     expect(vis.dataset.cursorMs).toBe("0");
     expect(vis.dataset.selectionActive).toBe("false");
     expect(vis.dataset.playbackRegionMode).toBe("full");
+  });
+
+  it("setCachedProgressMs updates progressMs in both cache and DOM", () => {
+    mountVisualizer(0, 1000);
+    initFieldState(0, initialFieldState({ ord: 0 }));
+
+    setCachedProgressMs(0, 420.6);
+
+    expect(readFieldState(0).cursor.progressMs).toBe(421);
+    expect(visualizerForOrd(0)!.dataset.progressMs).toBe("421");
+  });
+
+  it("setCachedProgressMs keeps the cache warm — no DOM rebuild on next read", () => {
+    mountVisualizer(0, 1000);
+    // Warm the cache with a distinctive sourceFilename via the store.
+    writeFieldState(0, {
+      ...readFieldState(0),
+      sourceFilename: "warm.wav",
+    });
+
+    const vis = visualizerForOrd(0)!;
+    // A direct DOM write that a rebuild WOULD pick up. If setCachedProgressMs
+    // invalidated the entry, the next read would rebuild and observe this.
+    vis.dataset.sourceFilename = "stale-from-dom.wav";
+
+    setCachedProgressMs(0, 250);
+
+    // progressMs reflects the update...
+    expect(readFieldState(0).cursor.progressMs).toBe(250);
+    // ...but the cache was NOT re-cooled: the direct-DOM sourceFilename change
+    // is not observed, proving no rebuildFieldStateFromDom occurred.
+    expect(readFieldState(0).sourceFilename).toBe("warm.wav");
+  });
+
+  it("setCachedProgressMs writes DOM even when no cache entry exists", () => {
+    mountVisualizer(0, 1000);
+    invalidateFieldState(0);
+
+    setCachedProgressMs(0, 333);
+
+    expect(visualizerForOrd(0)!.dataset.progressMs).toBe("333");
+    // Next read rebuilds from DOM and picks up the written progressMs.
+    expect(readFieldState(0).cursor.progressMs).toBe(333);
   });
 
   it("hasFieldState returns false for unknown ordinals", () => {

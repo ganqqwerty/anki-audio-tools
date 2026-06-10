@@ -7,7 +7,7 @@ import {
   startPlaybackCursorTransition,
   stopPlaybackCursorTransition,
 } from "./visualizer-renderer.js";
-import { readFieldState, writeFieldState, invalidateFieldState } from "./field-state-store.js";
+import { readFieldState, writeFieldState, setCachedProgressMs } from "./field-state-store.js";
 
 function fieldOrd(v: VisualizerElement): number {
   return Number(v.dataset.aqeFieldOrd || "0");
@@ -39,8 +39,7 @@ export function liveProgressMs(
   if (!plan || readFieldState(fieldOrd(visualizer)).playback.state !== "playing") return null;
   const progressMs = progressMsForPlan(plan, nowMs);
   visualizer.__aqeLiveProgressMs = Math.round(progressMs);
-  visualizer.dataset.progressMs = String(Math.round(progressMs));
-  invalidateFieldState(fieldOrd(visualizer));
+  setCachedProgressMs(fieldOrd(visualizer), progressMs);
   return progressMs;
 }
 
