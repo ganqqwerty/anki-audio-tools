@@ -1,0 +1,4844 @@
+[
+  {
+    "source": "src/App.svelte",
+    "target": "src/settings/SettingsApp.svelte",
+    "type": "svelte_import",
+    "source_category": "component"
+  },
+  {
+    "source": "src/batch/BatchApp.svelte",
+    "target": "src/batch/BatchControls.svelte",
+    "type": "svelte_import",
+    "source_category": "component"
+  },
+  {
+    "source": "src/batch/BatchApp.svelte",
+    "target": "src/batch/BatchFooter.svelte",
+    "type": "svelte_import",
+    "source_category": "component"
+  },
+  {
+    "source": "src/batch/BatchApp.svelte",
+    "target": "src/batch/batch-state.js",
+    "type": "svelte_import",
+    "source_category": "component"
+  },
+  {
+    "source": "src/batch/BatchApp.svelte",
+    "target": "src/batch/bridge.js",
+    "type": "svelte_import",
+    "source_category": "component"
+  },
+  {
+    "source": "src/batch/BatchApp.svelte",
+    "target": "src/lib/AqeTooltipProvider.svelte",
+    "type": "svelte_import",
+    "source_category": "component"
+  },
+  {
+    "source": "src/batch/BatchApp.svelte",
+    "target": "src/lib/ErrorMessage.svelte",
+    "type": "svelte_import",
+    "source_category": "component"
+  },
+  {
+    "source": "src/batch/BatchApp.svelte",
+    "target": "src/lib/ProductLinkIcon.svelte",
+    "type": "svelte_import",
+    "source_category": "component"
+  },
+  {
+    "source": "src/batch/BatchApp.svelte",
+    "target": "src/lib/bridge.js",
+    "type": "svelte_import",
+    "source_category": "component"
+  },
+  {
+    "source": "src/batch/BatchApp.svelte",
+    "target": "src/lib/i18n.js",
+    "type": "svelte_import",
+    "source_category": "component"
+  },
+  {
+    "source": "src/batch/BatchApp.svelte",
+    "target": "src/lib/logger.js",
+    "type": "svelte_import",
+    "source_category": "component"
+  },
+  {
+    "source": "src/batch/BatchApp.svelte",
+    "target": "src/lib/product-links.js",
+    "type": "svelte_import",
+    "source_category": "component"
+  },
+  {
+    "source": "src/batch/BatchApp.svelte",
+    "target": "src/lib/types.js",
+    "type": "svelte_import",
+    "source_category": "component"
+  },
+  {
+    "source": "src/batch/BatchApp.svelte",
+    "target": "src/lib/user-facing-error.js",
+    "type": "svelte_import",
+    "source_category": "component"
+  },
+  {
+    "source": "src/batch/BatchControls.svelte",
+    "target": "src/batch/BatchFieldSelectors.svelte",
+    "type": "svelte_import",
+    "source_category": "component"
+  },
+  {
+    "source": "src/batch/BatchControls.svelte",
+    "target": "src/batch/BatchSizeReductionFields.svelte",
+    "type": "svelte_import",
+    "source_category": "component"
+  },
+  {
+    "source": "src/batch/BatchControls.svelte",
+    "target": "src/batch/batch-state.js",
+    "type": "svelte_import",
+    "source_category": "component"
+  },
+  {
+    "source": "src/batch/BatchControls.svelte",
+    "target": "src/lib/FieldTooltipTarget.svelte",
+    "type": "svelte_import",
+    "source_category": "component"
+  },
+  {
+    "source": "src/batch/BatchControls.svelte",
+    "target": "src/lib/PauseAdvancedParamsFields.svelte",
+    "type": "svelte_import",
+    "source_category": "component"
+  },
+  {
+    "source": "src/batch/BatchControls.svelte",
+    "target": "src/lib/UnitNumberInput.svelte",
+    "type": "svelte_import",
+    "source_category": "component"
+  },
+  {
+    "source": "src/batch/BatchControls.svelte",
+    "target": "src/lib/audio-operation-parameters.js",
+    "type": "svelte_import",
+    "source_category": "component"
+  },
+  {
+    "source": "src/batch/BatchControls.svelte",
+    "target": "src/lib/audio-option-tooltips.js",
+    "type": "svelte_import",
+    "source_category": "component"
+  },
+  {
+    "source": "src/batch/BatchControls.svelte",
+    "target": "src/lib/disabled-tooltip.js",
+    "type": "svelte_import",
+    "source_category": "component"
+  },
+  {
+    "source": "src/batch/BatchControls.svelte",
+    "target": "src/lib/i18n.js",
+    "type": "svelte_import",
+    "source_category": "component"
+  },
+  {
+    "source": "src/batch/BatchControls.svelte",
+    "target": "src/lib/types.js",
+    "type": "svelte_import",
+    "source_category": "component"
+  },
+  {
+    "source": "src/batch/BatchFieldSelectors.svelte",
+    "target": "src/batch/batch-state.js",
+    "type": "svelte_import",
+    "source_category": "component"
+  },
+  {
+    "source": "src/batch/BatchFieldSelectors.svelte",
+    "target": "src/lib/FieldTooltipTarget.svelte",
+    "type": "svelte_import",
+    "source_category": "component"
+  },
+  {
+    "source": "src/batch/BatchFieldSelectors.svelte",
+    "target": "src/lib/i18n.js",
+    "type": "svelte_import",
+    "source_category": "component"
+  },
+  {
+    "source": "src/batch/BatchFieldSelectors.svelte",
+    "target": "src/lib/types.js",
+    "type": "svelte_import",
+    "source_category": "component"
+  },
+  {
+    "source": "src/batch/BatchFooter.svelte",
+    "target": "src/lib/i18n.js",
+    "type": "svelte_import",
+    "source_category": "component"
+  },
+  {
+    "source": "src/batch/BatchSizeReductionFields.svelte",
+    "target": "src/batch/batch-state.js",
+    "type": "svelte_import",
+    "source_category": "component"
+  },
+  {
+    "source": "src/batch/BatchSizeReductionFields.svelte",
+    "target": "src/lib/FieldTooltipTarget.svelte",
+    "type": "svelte_import",
+    "source_category": "component"
+  },
+  {
+    "source": "src/batch/BatchSizeReductionFields.svelte",
+    "target": "src/lib/SizeReductionAdvancedParamsFields.svelte",
+    "type": "svelte_import",
+    "source_category": "component"
+  },
+  {
+    "source": "src/batch/BatchSizeReductionFields.svelte",
+    "target": "src/lib/audio-option-tooltips.js",
+    "type": "svelte_import",
+    "source_category": "component"
+  },
+  {
+    "source": "src/batch/BatchSizeReductionFields.svelte",
+    "target": "src/lib/disabled-tooltip.js",
+    "type": "svelte_import",
+    "source_category": "component"
+  },
+  {
+    "source": "src/batch/BatchSizeReductionFields.svelte",
+    "target": "src/lib/i18n.js",
+    "type": "svelte_import",
+    "source_category": "component"
+  },
+  {
+    "source": "src/batch/BatchSizeReductionFields.svelte",
+    "target": "src/lib/size-reduction-parameters.js",
+    "type": "svelte_import",
+    "source_category": "component"
+  },
+  {
+    "source": "src/batch/batch-state.ts",
+    "target": "src/lib/audio-operation-parameters.js",
+    "type": "svelte_import",
+    "source_category": "state"
+  },
+  {
+    "source": "src/batch/batch-state.ts",
+    "target": "src/lib/size-reduction-parameters.js",
+    "type": "svelte_import",
+    "source_category": "state"
+  },
+  {
+    "source": "src/batch/batch-state.ts",
+    "target": "src/lib/types.js",
+    "type": "svelte_import",
+    "source_category": "state"
+  },
+  {
+    "source": "src/batch/bridge.ts",
+    "target": "src/lib/bridge.js",
+    "type": "svelte_import",
+    "source_category": "bridge"
+  },
+  {
+    "source": "src/batch/bridge.ts",
+    "target": "src/lib/types.js",
+    "type": "svelte_import",
+    "source_category": "bridge"
+  },
+  {
+    "source": "src/batch/main.ts",
+    "target": "src/batch/BatchApp.svelte",
+    "type": "svelte_import",
+    "source_category": "logic"
+  },
+  {
+    "source": "src/editor-inline/EditorCommandIcon.svelte",
+    "target": "src/lib/CommandIcon.svelte",
+    "type": "svelte_import",
+    "source_category": "component"
+  },
+  {
+    "source": "src/editor-inline/EditorCommandIcon.svelte",
+    "target": "src/lib/icon-types.js",
+    "type": "svelte_import",
+    "source_category": "component"
+  },
+  {
+    "source": "src/editor-inline/EditorControls.svelte",
+    "target": "src/editor-inline/EditorHelp.svelte",
+    "type": "svelte_import",
+    "source_category": "component"
+  },
+  {
+    "source": "src/editor-inline/EditorControls.svelte",
+    "target": "src/editor-inline/EditorToolbarButton.svelte",
+    "type": "svelte_import",
+    "source_category": "component"
+  },
+  {
+    "source": "src/editor-inline/EditorControls.svelte",
+    "target": "src/editor-inline/EditorToolbarPanel.svelte",
+    "type": "svelte_import",
+    "source_category": "component"
+  },
+  {
+    "source": "src/editor-inline/EditorControls.svelte",
+    "target": "src/editor-inline/GraphVisualizer.svelte",
+    "type": "svelte_import",
+    "source_category": "component"
+  },
+  {
+    "source": "src/editor-inline/EditorControls.svelte",
+    "target": "src/editor-inline/PlaySplitButton.svelte",
+    "type": "svelte_import",
+    "source_category": "component"
+  },
+  {
+    "source": "src/editor-inline/EditorControls.svelte",
+    "target": "src/editor-inline/SplitButton.svelte",
+    "type": "svelte_import",
+    "source_category": "component"
+  },
+  {
+    "source": "src/editor-inline/EditorControls.svelte",
+    "target": "src/editor-inline/actions.js",
+    "type": "svelte_import",
+    "source_category": "component"
+  },
+  {
+    "source": "src/editor-inline/EditorControls.svelte",
+    "target": "src/editor-inline/commands.js",
+    "type": "svelte_import",
+    "source_category": "component"
+  },
+  {
+    "source": "src/editor-inline/EditorControls.svelte",
+    "target": "src/editor-inline/control-actions.js",
+    "type": "svelte_import",
+    "source_category": "component"
+  },
+  {
+    "source": "src/editor-inline/EditorControls.svelte",
+    "target": "src/editor-inline/editor-runtime-config.js",
+    "type": "svelte_import",
+    "source_category": "component"
+  },
+  {
+    "source": "src/editor-inline/EditorControls.svelte",
+    "target": "src/editor-inline/editor-toolbar-render-items.js",
+    "type": "svelte_import",
+    "source_category": "component"
+  },
+  {
+    "source": "src/editor-inline/EditorControls.svelte",
+    "target": "src/editor-inline/types.js",
+    "type": "svelte_import",
+    "source_category": "component"
+  },
+  {
+    "source": "src/editor-inline/EditorControls.svelte",
+    "target": "src/lib/AqeTooltip.svelte",
+    "type": "svelte_import",
+    "source_category": "component"
+  },
+  {
+    "source": "src/editor-inline/EditorControls.svelte",
+    "target": "src/lib/AqeTooltipProvider.svelte",
+    "type": "svelte_import",
+    "source_category": "component"
+  },
+  {
+    "source": "src/editor-inline/EditorControls.svelte",
+    "target": "src/lib/editor-toolbar-buttons.js",
+    "type": "svelte_import",
+    "source_category": "component"
+  },
+  {
+    "source": "src/editor-inline/EditorControls.svelte",
+    "target": "src/lib/editor-toolbar-panel-definitions.js",
+    "type": "svelte_import",
+    "source_category": "component"
+  },
+  {
+    "source": "src/editor-inline/EditorControls.svelte",
+    "target": "src/lib/i18n.js",
+    "type": "svelte_import",
+    "source_category": "component"
+  },
+  {
+    "source": "src/editor-inline/EditorHelp.svelte",
+    "target": "src/editor-inline/EditorCommandIcon.svelte",
+    "type": "svelte_import",
+    "source_category": "component"
+  },
+  {
+    "source": "src/editor-inline/EditorHelp.svelte",
+    "target": "src/editor-inline/external-links.js",
+    "type": "svelte_import",
+    "source_category": "component"
+  },
+  {
+    "source": "src/editor-inline/EditorHelp.svelte",
+    "target": "src/lib/AqeTooltip.svelte",
+    "type": "svelte_import",
+    "source_category": "component"
+  },
+  {
+    "source": "src/editor-inline/EditorHelp.svelte",
+    "target": "src/lib/ProductLinkIcon.svelte",
+    "type": "svelte_import",
+    "source_category": "component"
+  },
+  {
+    "source": "src/editor-inline/EditorHelp.svelte",
+    "target": "src/lib/i18n.js",
+    "type": "svelte_import",
+    "source_category": "component"
+  },
+  {
+    "source": "src/editor-inline/EditorHelp.svelte",
+    "target": "src/lib/product-links.js",
+    "type": "svelte_import",
+    "source_category": "component"
+  },
+  {
+    "source": "src/editor-inline/EditorToolbarButton.svelte",
+    "target": "src/editor-inline/EditorCommandIcon.svelte",
+    "type": "svelte_import",
+    "source_category": "component"
+  },
+  {
+    "source": "src/editor-inline/EditorToolbarButton.svelte",
+    "target": "src/editor-inline/actions.js",
+    "type": "svelte_import",
+    "source_category": "component"
+  },
+  {
+    "source": "src/editor-inline/EditorToolbarButton.svelte",
+    "target": "src/editor-inline/commands.js",
+    "type": "svelte_import",
+    "source_category": "component"
+  },
+  {
+    "source": "src/editor-inline/EditorToolbarButton.svelte",
+    "target": "src/editor-inline/types.js",
+    "type": "svelte_import",
+    "source_category": "component"
+  },
+  {
+    "source": "src/editor-inline/EditorToolbarButton.svelte",
+    "target": "src/lib/AqeTooltip.svelte",
+    "type": "svelte_import",
+    "source_category": "component"
+  },
+  {
+    "source": "src/editor-inline/EditorToolbarButton.svelte",
+    "target": "src/lib/disabled-tooltip.js",
+    "type": "svelte_import",
+    "source_category": "component"
+  },
+  {
+    "source": "src/editor-inline/EditorToolbarButton.svelte",
+    "target": "src/lib/editor-toolbar-buttons.js",
+    "type": "svelte_import",
+    "source_category": "component"
+  },
+  {
+    "source": "src/editor-inline/EditorToolbarButton.svelte",
+    "target": "src/lib/types.js",
+    "type": "svelte_import",
+    "source_category": "component"
+  },
+  {
+    "source": "src/editor-inline/EditorToolbarPanel.svelte",
+    "target": "src/lib/AqeTooltip.svelte",
+    "type": "svelte_import",
+    "source_category": "component"
+  },
+  {
+    "source": "src/editor-inline/GraphSplitOptions.svelte",
+    "target": "src/editor-inline/graph-settings.js",
+    "type": "svelte_import",
+    "source_category": "component"
+  },
+  {
+    "source": "src/editor-inline/GraphSplitOptions.svelte",
+    "target": "src/editor-inline/graph-split-values.js",
+    "type": "svelte_import",
+    "source_category": "component"
+  },
+  {
+    "source": "src/editor-inline/GraphSplitOptions.svelte",
+    "target": "src/lib/AqeTooltip.svelte",
+    "type": "svelte_import",
+    "source_category": "component"
+  },
+  {
+    "source": "src/editor-inline/GraphSplitOptions.svelte",
+    "target": "src/lib/ValueSlider.svelte",
+    "type": "svelte_import",
+    "source_category": "component"
+  },
+  {
+    "source": "src/editor-inline/GraphSplitOptions.svelte",
+    "target": "src/lib/graph-option-copy.js",
+    "type": "svelte_import",
+    "source_category": "component"
+  },
+  {
+    "source": "src/editor-inline/GraphSplitOptions.svelte",
+    "target": "src/lib/i18n.js",
+    "type": "svelte_import",
+    "source_category": "component"
+  },
+  {
+    "source": "src/editor-inline/GraphSplitPopoverContent.svelte",
+    "target": "src/editor-inline/GraphSplitOptions.svelte",
+    "type": "svelte_import",
+    "source_category": "component"
+  },
+  {
+    "source": "src/editor-inline/GraphSplitPopoverContent.svelte",
+    "target": "src/editor-inline/SplitDefaultSaveButton.svelte",
+    "type": "svelte_import",
+    "source_category": "component"
+  },
+  {
+    "source": "src/editor-inline/GraphSplitPopoverContent.svelte",
+    "target": "src/editor-inline/external-links.js",
+    "type": "svelte_import",
+    "source_category": "component"
+  },
+  {
+    "source": "src/editor-inline/GraphSplitPopoverContent.svelte",
+    "target": "src/editor-inline/graph-settings.js",
+    "type": "svelte_import",
+    "source_category": "component"
+  },
+  {
+    "source": "src/editor-inline/GraphSplitPopoverContent.svelte",
+    "target": "src/lib/AqeTooltip.svelte",
+    "type": "svelte_import",
+    "source_category": "component"
+  },
+  {
+    "source": "src/editor-inline/GraphSplitPopoverContent.svelte",
+    "target": "src/lib/i18n.js",
+    "type": "svelte_import",
+    "source_category": "component"
+  },
+  {
+    "source": "src/editor-inline/GraphSplitPopoverContent.svelte",
+    "target": "src/lib/product-links.js",
+    "type": "svelte_import",
+    "source_category": "component"
+  },
+  {
+    "source": "src/editor-inline/GraphVisualizer.svelte",
+    "target": "src/editor-inline/SelectionMarkerShiftButtons.svelte",
+    "type": "svelte_import",
+    "source_category": "component"
+  },
+  {
+    "source": "src/editor-inline/GraphVisualizer.svelte",
+    "target": "src/editor-inline/SelectionToolbar.svelte",
+    "type": "svelte_import",
+    "source_category": "component"
+  },
+  {
+    "source": "src/editor-inline/GraphVisualizer.svelte",
+    "target": "src/editor-inline/TimeViewportScroller.svelte",
+    "type": "svelte_import",
+    "source_category": "component"
+  },
+  {
+    "source": "src/editor-inline/GraphVisualizer.svelte",
+    "target": "src/editor-inline/ZoomControls.svelte",
+    "type": "svelte_import",
+    "source_category": "component"
+  },
+  {
+    "source": "src/editor-inline/GraphVisualizer.svelte",
+    "target": "src/editor-inline/actions.js",
+    "type": "svelte_import",
+    "source_category": "component"
+  },
+  {
+    "source": "src/editor-inline/GraphVisualizer.svelte",
+    "target": "src/editor-inline/chorusing-controller.js",
+    "type": "svelte_import",
+    "source_category": "component"
+  },
+  {
+    "source": "src/editor-inline/GraphVisualizer.svelte",
+    "target": "src/editor-inline/dom-selectors.js",
+    "type": "svelte_import",
+    "source_category": "component"
+  },
+  {
+    "source": "src/editor-inline/GraphVisualizer.svelte",
+    "target": "src/editor-inline/plot.js",
+    "type": "svelte_import",
+    "source_category": "component"
+  },
+  {
+    "source": "src/editor-inline/GraphVisualizer.svelte",
+    "target": "src/editor-inline/post-edit-playback.js",
+    "type": "svelte_import",
+    "source_category": "component"
+  },
+  {
+    "source": "src/editor-inline/GraphVisualizer.svelte",
+    "target": "src/editor-inline/recording-actions.js",
+    "type": "svelte_import",
+    "source_category": "component"
+  },
+  {
+    "source": "src/editor-inline/GraphVisualizer.svelte",
+    "target": "src/editor-inline/region-delete.js",
+    "type": "svelte_import",
+    "source_category": "component"
+  },
+  {
+    "source": "src/editor-inline/GraphVisualizer.svelte",
+    "target": "src/editor-inline/types.js",
+    "type": "svelte_import",
+    "source_category": "component"
+  },
+  {
+    "source": "src/editor-inline/GraphVisualizer.svelte",
+    "target": "src/editor-inline/viewport-actions.js",
+    "type": "svelte_import",
+    "source_category": "component"
+  },
+  {
+    "source": "src/editor-inline/GraphVisualizer.svelte",
+    "target": "src/editor-inline/zoom-actions.js",
+    "type": "svelte_import",
+    "source_category": "component"
+  },
+  {
+    "source": "src/editor-inline/GraphVisualizer.svelte",
+    "target": "src/lib/AqeTooltip.svelte",
+    "type": "svelte_import",
+    "source_category": "component"
+  },
+  {
+    "source": "src/editor-inline/GraphVisualizer.svelte",
+    "target": "src/lib/editor-toolbar-buttons.js",
+    "type": "svelte_import",
+    "source_category": "component"
+  },
+  {
+    "source": "src/editor-inline/GraphVisualizer.svelte",
+    "target": "src/lib/i18n.js",
+    "type": "svelte_import",
+    "source_category": "component"
+  },
+  {
+    "source": "src/editor-inline/PlaySplitButton.svelte",
+    "target": "src/editor-inline/EditorCommandIcon.svelte",
+    "type": "svelte_import",
+    "source_category": "component"
+  },
+  {
+    "source": "src/editor-inline/PlaySplitButton.svelte",
+    "target": "src/editor-inline/SplitDefaultSaveButton.svelte",
+    "type": "svelte_import",
+    "source_category": "component"
+  },
+  {
+    "source": "src/editor-inline/PlaySplitButton.svelte",
+    "target": "src/editor-inline/actions.js",
+    "type": "svelte_import",
+    "source_category": "component"
+  },
+  {
+    "source": "src/editor-inline/PlaySplitButton.svelte",
+    "target": "src/editor-inline/bridge.js",
+    "type": "svelte_import",
+    "source_category": "component"
+  },
+  {
+    "source": "src/editor-inline/PlaySplitButton.svelte",
+    "target": "src/editor-inline/dom-selectors.js",
+    "type": "svelte_import",
+    "source_category": "component"
+  },
+  {
+    "source": "src/editor-inline/PlaySplitButton.svelte",
+    "target": "src/editor-inline/external-links.js",
+    "type": "svelte_import",
+    "source_category": "component"
+  },
+  {
+    "source": "src/editor-inline/PlaySplitButton.svelte",
+    "target": "src/editor-inline/split-button-state.js",
+    "type": "svelte_import",
+    "source_category": "component"
+  },
+  {
+    "source": "src/editor-inline/PlaySplitButton.svelte",
+    "target": "src/editor-inline/types.js",
+    "type": "svelte_import",
+    "source_category": "component"
+  },
+  {
+    "source": "src/editor-inline/PlaySplitButton.svelte",
+    "target": "src/lib/AqeTooltip.svelte",
+    "type": "svelte_import",
+    "source_category": "component"
+  },
+  {
+    "source": "src/editor-inline/PlaySplitButton.svelte",
+    "target": "src/lib/UnitNumberInput.svelte",
+    "type": "svelte_import",
+    "source_category": "component"
+  },
+  {
+    "source": "src/editor-inline/PlaySplitButton.svelte",
+    "target": "src/lib/ValueSlider.svelte",
+    "type": "svelte_import",
+    "source_category": "component"
+  },
+  {
+    "source": "src/editor-inline/PlaySplitButton.svelte",
+    "target": "src/lib/disabled-tooltip.js",
+    "type": "svelte_import",
+    "source_category": "component"
+  },
+  {
+    "source": "src/editor-inline/PlaySplitButton.svelte",
+    "target": "src/lib/editor-toolbar-buttons.js",
+    "type": "svelte_import",
+    "source_category": "component"
+  },
+  {
+    "source": "src/editor-inline/PlaySplitButton.svelte",
+    "target": "src/lib/i18n.js",
+    "type": "svelte_import",
+    "source_category": "component"
+  },
+  {
+    "source": "src/editor-inline/PlaySplitButton.svelte",
+    "target": "src/lib/product-links.js",
+    "type": "svelte_import",
+    "source_category": "component"
+  },
+  {
+    "source": "src/editor-inline/PlaySplitButton.svelte",
+    "target": "src/lib/types.js",
+    "type": "svelte_import",
+    "source_category": "component"
+  },
+  {
+    "source": "src/editor-inline/RecordingSplitOptions.svelte",
+    "target": "src/editor-inline/SplitDefaultSaveButton.svelte",
+    "type": "svelte_import",
+    "source_category": "component"
+  },
+  {
+    "source": "src/editor-inline/RecordingSplitOptions.svelte",
+    "target": "src/editor-inline/external-links.js",
+    "type": "svelte_import",
+    "source_category": "component"
+  },
+  {
+    "source": "src/editor-inline/RecordingSplitOptions.svelte",
+    "target": "src/editor-inline/split-button-state.js",
+    "type": "svelte_import",
+    "source_category": "component"
+  },
+  {
+    "source": "src/editor-inline/RecordingSplitOptions.svelte",
+    "target": "src/lib/UnitNumberInput.svelte",
+    "type": "svelte_import",
+    "source_category": "component"
+  },
+  {
+    "source": "src/editor-inline/RecordingSplitOptions.svelte",
+    "target": "src/lib/ValueSlider.svelte",
+    "type": "svelte_import",
+    "source_category": "component"
+  },
+  {
+    "source": "src/editor-inline/RecordingSplitOptions.svelte",
+    "target": "src/lib/i18n.js",
+    "type": "svelte_import",
+    "source_category": "component"
+  },
+  {
+    "source": "src/editor-inline/RecordingSplitOptions.svelte",
+    "target": "src/lib/product-links.js",
+    "type": "svelte_import",
+    "source_category": "component"
+  },
+  {
+    "source": "src/editor-inline/SelectionMarkerShiftButtons.svelte",
+    "target": "src/editor-inline/actions.js",
+    "type": "svelte_import",
+    "source_category": "component"
+  },
+  {
+    "source": "src/editor-inline/SelectionMarkerShiftButtons.svelte",
+    "target": "src/editor-inline/dom-selectors.js",
+    "type": "svelte_import",
+    "source_category": "component"
+  },
+  {
+    "source": "src/editor-inline/SelectionMarkerShiftButtons.svelte",
+    "target": "src/editor-inline/selection-marker-shift-state.js",
+    "type": "svelte_import",
+    "source_category": "component"
+  },
+  {
+    "source": "src/editor-inline/SelectionMarkerShiftButtons.svelte",
+    "target": "src/editor-inline/types.js",
+    "type": "svelte_import",
+    "source_category": "component"
+  },
+  {
+    "source": "src/editor-inline/SelectionMarkerShiftButtons.svelte",
+    "target": "src/lib/AqeTooltip.svelte",
+    "type": "svelte_import",
+    "source_category": "component"
+  },
+  {
+    "source": "src/editor-inline/SelectionToolbar.svelte",
+    "target": "src/editor-inline/EditorCommandIcon.svelte",
+    "type": "svelte_import",
+    "source_category": "component"
+  },
+  {
+    "source": "src/editor-inline/SelectionToolbar.svelte",
+    "target": "src/editor-inline/actions.js",
+    "type": "svelte_import",
+    "source_category": "component"
+  },
+  {
+    "source": "src/editor-inline/SelectionToolbar.svelte",
+    "target": "src/editor-inline/region-delete.js",
+    "type": "svelte_import",
+    "source_category": "component"
+  },
+  {
+    "source": "src/editor-inline/SelectionToolbar.svelte",
+    "target": "src/editor-inline/selection-toolbar-state.js",
+    "type": "svelte_import",
+    "source_category": "component"
+  },
+  {
+    "source": "src/editor-inline/SelectionToolbar.svelte",
+    "target": "src/editor-inline/types.js",
+    "type": "svelte_import",
+    "source_category": "component"
+  },
+  {
+    "source": "src/editor-inline/SelectionToolbar.svelte",
+    "target": "src/lib/AqeTooltip.svelte",
+    "type": "svelte_import",
+    "source_category": "component"
+  },
+  {
+    "source": "src/editor-inline/SelectionToolbar.svelte",
+    "target": "src/lib/disabled-tooltip.js",
+    "type": "svelte_import",
+    "source_category": "component"
+  },
+  {
+    "source": "src/editor-inline/SelectionToolbar.svelte",
+    "target": "src/lib/editor-toolbar-buttons.js",
+    "type": "svelte_import",
+    "source_category": "component"
+  },
+  {
+    "source": "src/editor-inline/SelectionToolbar.svelte",
+    "target": "src/lib/i18n.js",
+    "type": "svelte_import",
+    "source_category": "component"
+  },
+  {
+    "source": "src/editor-inline/SelectionToolbar.svelte",
+    "target": "src/lib/types.js",
+    "type": "svelte_import",
+    "source_category": "component"
+  },
+  {
+    "source": "src/editor-inline/SplitButton.svelte",
+    "target": "src/editor-inline/SplitButtonMenu.svelte",
+    "type": "svelte_import",
+    "source_category": "component"
+  },
+  {
+    "source": "src/editor-inline/SplitButton.svelte",
+    "target": "src/editor-inline/SplitButtonPrimary.svelte",
+    "type": "svelte_import",
+    "source_category": "component"
+  },
+  {
+    "source": "src/editor-inline/SplitButton.svelte",
+    "target": "src/editor-inline/actions.js",
+    "type": "svelte_import",
+    "source_category": "component"
+  },
+  {
+    "source": "src/editor-inline/SplitButton.svelte",
+    "target": "src/editor-inline/bridge.js",
+    "type": "svelte_import",
+    "source_category": "component"
+  },
+  {
+    "source": "src/editor-inline/SplitButton.svelte",
+    "target": "src/editor-inline/commands.js",
+    "type": "svelte_import",
+    "source_category": "component"
+  },
+  {
+    "source": "src/editor-inline/SplitButton.svelte",
+    "target": "src/editor-inline/graph-settings.js",
+    "type": "svelte_import",
+    "source_category": "component"
+  },
+  {
+    "source": "src/editor-inline/SplitButton.svelte",
+    "target": "src/editor-inline/recording-actions.js",
+    "type": "svelte_import",
+    "source_category": "component"
+  },
+  {
+    "source": "src/editor-inline/SplitButton.svelte",
+    "target": "src/editor-inline/split-button-presenter.js",
+    "type": "svelte_import",
+    "source_category": "component"
+  },
+  {
+    "source": "src/editor-inline/SplitButton.svelte",
+    "target": "src/editor-inline/split-button-state-behavior.js",
+    "type": "svelte_import",
+    "source_category": "component"
+  },
+  {
+    "source": "src/editor-inline/SplitButton.svelte",
+    "target": "src/editor-inline/split-button-state.js",
+    "type": "svelte_import",
+    "source_category": "component"
+  },
+  {
+    "source": "src/editor-inline/SplitButton.svelte",
+    "target": "src/editor-inline/types.js",
+    "type": "svelte_import",
+    "source_category": "component"
+  },
+  {
+    "source": "src/editor-inline/SplitButton.svelte",
+    "target": "src/lib/editor-toolbar-buttons.js",
+    "type": "svelte_import",
+    "source_category": "component"
+  },
+  {
+    "source": "src/editor-inline/SplitButton.svelte",
+    "target": "src/lib/i18n.js",
+    "type": "svelte_import",
+    "source_category": "component"
+  },
+  {
+    "source": "src/editor-inline/SplitButtonMenu.svelte",
+    "target": "src/editor-inline/EditorCommandIcon.svelte",
+    "type": "svelte_import",
+    "source_category": "component"
+  },
+  {
+    "source": "src/editor-inline/SplitButtonMenu.svelte",
+    "target": "src/editor-inline/GraphSplitPopoverContent.svelte",
+    "type": "svelte_import",
+    "source_category": "component"
+  },
+  {
+    "source": "src/editor-inline/SplitButtonMenu.svelte",
+    "target": "src/editor-inline/RecordingSplitOptions.svelte",
+    "type": "svelte_import",
+    "source_category": "component"
+  },
+  {
+    "source": "src/editor-inline/SplitButtonMenu.svelte",
+    "target": "src/editor-inline/SplitButtonPrimary.svelte",
+    "type": "svelte_import",
+    "source_category": "component"
+  },
+  {
+    "source": "src/editor-inline/SplitButtonMenu.svelte",
+    "target": "src/editor-inline/SplitValueOptions.svelte",
+    "type": "svelte_import",
+    "source_category": "component"
+  },
+  {
+    "source": "src/editor-inline/SplitButtonMenu.svelte",
+    "target": "src/editor-inline/graph-settings.js",
+    "type": "svelte_import",
+    "source_category": "component"
+  },
+  {
+    "source": "src/editor-inline/SplitButtonMenu.svelte",
+    "target": "src/editor-inline/types.js",
+    "type": "svelte_import",
+    "source_category": "component"
+  },
+  {
+    "source": "src/editor-inline/SplitButtonMenu.svelte",
+    "target": "src/lib/editor-toolbar-buttons.js",
+    "type": "svelte_import",
+    "source_category": "component"
+  },
+  {
+    "source": "src/editor-inline/SplitButtonMenu.svelte",
+    "target": "src/lib/i18n.js",
+    "type": "svelte_import",
+    "source_category": "component"
+  },
+  {
+    "source": "src/editor-inline/SplitButtonPrimary.svelte",
+    "target": "src/editor-inline/EditorCommandIcon.svelte",
+    "type": "svelte_import",
+    "source_category": "component"
+  },
+  {
+    "source": "src/editor-inline/SplitButtonPrimary.svelte",
+    "target": "src/lib/AqeTooltip.svelte",
+    "type": "svelte_import",
+    "source_category": "component"
+  },
+  {
+    "source": "src/editor-inline/SplitButtonPrimary.svelte",
+    "target": "src/lib/disabled-tooltip.js",
+    "type": "svelte_import",
+    "source_category": "component"
+  },
+  {
+    "source": "src/editor-inline/SplitButtonPrimary.svelte",
+    "target": "src/lib/editor-toolbar-buttons.js",
+    "type": "svelte_import",
+    "source_category": "component"
+  },
+  {
+    "source": "src/editor-inline/SplitButtonPrimary.svelte",
+    "target": "src/lib/icon-types.js",
+    "type": "svelte_import",
+    "source_category": "component"
+  },
+  {
+    "source": "src/editor-inline/SplitButtonPrimary.svelte",
+    "target": "src/lib/types.js",
+    "type": "svelte_import",
+    "source_category": "component"
+  },
+  {
+    "source": "src/editor-inline/SplitDefaultSaveButton.svelte",
+    "target": "src/editor-inline/EditorCommandIcon.svelte",
+    "type": "svelte_import",
+    "source_category": "component"
+  },
+  {
+    "source": "src/editor-inline/SplitDefaultSaveButton.svelte",
+    "target": "src/lib/AqeTooltip.svelte",
+    "type": "svelte_import",
+    "source_category": "component"
+  },
+  {
+    "source": "src/editor-inline/SplitDefaultSaveButton.svelte",
+    "target": "src/lib/i18n.js",
+    "type": "svelte_import",
+    "source_category": "component"
+  },
+  {
+    "source": "src/editor-inline/SplitExtraFields.svelte",
+    "target": "src/editor-inline/source-metadata-formatting.js",
+    "type": "svelte_import",
+    "source_category": "component"
+  },
+  {
+    "source": "src/editor-inline/SplitExtraFields.svelte",
+    "target": "src/editor-inline/source-metadata-requests.js",
+    "type": "svelte_import",
+    "source_category": "component"
+  },
+  {
+    "source": "src/editor-inline/SplitExtraFields.svelte",
+    "target": "src/editor-inline/split-button-state.js",
+    "type": "svelte_import",
+    "source_category": "component"
+  },
+  {
+    "source": "src/editor-inline/SplitExtraFields.svelte",
+    "target": "src/editor-inline/types.js",
+    "type": "svelte_import",
+    "source_category": "component"
+  },
+  {
+    "source": "src/editor-inline/SplitExtraFields.svelte",
+    "target": "src/lib/AqeTooltip.svelte",
+    "type": "svelte_import",
+    "source_category": "component"
+  },
+  {
+    "source": "src/editor-inline/SplitExtraFields.svelte",
+    "target": "src/lib/PauseAdvancedParamsFields.svelte",
+    "type": "svelte_import",
+    "source_category": "component"
+  },
+  {
+    "source": "src/editor-inline/SplitExtraFields.svelte",
+    "target": "src/lib/SizeReductionAdvancedParamsFields.svelte",
+    "type": "svelte_import",
+    "source_category": "component"
+  },
+  {
+    "source": "src/editor-inline/SplitExtraFields.svelte",
+    "target": "src/lib/audio-operation-parameters.js",
+    "type": "svelte_import",
+    "source_category": "component"
+  },
+  {
+    "source": "src/editor-inline/SplitExtraFields.svelte",
+    "target": "src/lib/audio-option-tooltips.js",
+    "type": "svelte_import",
+    "source_category": "component"
+  },
+  {
+    "source": "src/editor-inline/SplitExtraFields.svelte",
+    "target": "src/lib/i18n.js",
+    "type": "svelte_import",
+    "source_category": "component"
+  },
+  {
+    "source": "src/editor-inline/SplitExtraFields.svelte",
+    "target": "src/lib/size-reduction-parameters.js",
+    "type": "svelte_import",
+    "source_category": "component"
+  },
+  {
+    "source": "src/editor-inline/SplitRunButtons.svelte",
+    "target": "src/editor-inline/commands.js",
+    "type": "svelte_import",
+    "source_category": "component"
+  },
+  {
+    "source": "src/editor-inline/SplitRunButtons.svelte",
+    "target": "src/editor-inline/types.js",
+    "type": "svelte_import",
+    "source_category": "component"
+  },
+  {
+    "source": "src/editor-inline/SplitRunButtons.svelte",
+    "target": "src/lib/AqeTooltip.svelte",
+    "type": "svelte_import",
+    "source_category": "component"
+  },
+  {
+    "source": "src/editor-inline/SplitRunButtons.svelte",
+    "target": "src/lib/disabled-tooltip.js",
+    "type": "svelte_import",
+    "source_category": "component"
+  },
+  {
+    "source": "src/editor-inline/SplitValueOptions.svelte",
+    "target": "src/editor-inline/SplitDefaultSaveButton.svelte",
+    "type": "svelte_import",
+    "source_category": "component"
+  },
+  {
+    "source": "src/editor-inline/SplitValueOptions.svelte",
+    "target": "src/editor-inline/SplitExtraFields.svelte",
+    "type": "svelte_import",
+    "source_category": "component"
+  },
+  {
+    "source": "src/editor-inline/SplitValueOptions.svelte",
+    "target": "src/editor-inline/SplitRunButtons.svelte",
+    "type": "svelte_import",
+    "source_category": "component"
+  },
+  {
+    "source": "src/editor-inline/SplitValueOptions.svelte",
+    "target": "src/editor-inline/SplitValuePresetGrid.svelte",
+    "type": "svelte_import",
+    "source_category": "component"
+  },
+  {
+    "source": "src/editor-inline/SplitValueOptions.svelte",
+    "target": "src/editor-inline/commands.js",
+    "type": "svelte_import",
+    "source_category": "component"
+  },
+  {
+    "source": "src/editor-inline/SplitValueOptions.svelte",
+    "target": "src/editor-inline/external-links.js",
+    "type": "svelte_import",
+    "source_category": "component"
+  },
+  {
+    "source": "src/editor-inline/SplitValueOptions.svelte",
+    "target": "src/editor-inline/split-button-state.js",
+    "type": "svelte_import",
+    "source_category": "component"
+  },
+  {
+    "source": "src/editor-inline/SplitValueOptions.svelte",
+    "target": "src/editor-inline/split-menu-content.js",
+    "type": "svelte_import",
+    "source_category": "component"
+  },
+  {
+    "source": "src/editor-inline/SplitValueOptions.svelte",
+    "target": "src/editor-inline/types.js",
+    "type": "svelte_import",
+    "source_category": "component"
+  },
+  {
+    "source": "src/editor-inline/SplitValueOptions.svelte",
+    "target": "src/lib/UnitNumberInput.svelte",
+    "type": "svelte_import",
+    "source_category": "component"
+  },
+  {
+    "source": "src/editor-inline/SplitValueOptions.svelte",
+    "target": "src/lib/ValueSlider.svelte",
+    "type": "svelte_import",
+    "source_category": "component"
+  },
+  {
+    "source": "src/editor-inline/SplitValueOptions.svelte",
+    "target": "src/lib/audio-operation-parameters.js",
+    "type": "svelte_import",
+    "source_category": "component"
+  },
+  {
+    "source": "src/editor-inline/SplitValueOptions.svelte",
+    "target": "src/lib/i18n.js",
+    "type": "svelte_import",
+    "source_category": "component"
+  },
+  {
+    "source": "src/editor-inline/SplitValuePresetGrid.svelte",
+    "target": "src/editor-inline/split-menu-content.js",
+    "type": "svelte_import",
+    "source_category": "component"
+  },
+  {
+    "source": "src/editor-inline/SplitValuePresetGrid.svelte",
+    "target": "src/editor-inline/types.js",
+    "type": "svelte_import",
+    "source_category": "component"
+  },
+  {
+    "source": "src/editor-inline/SplitValuePresetGrid.svelte",
+    "target": "src/lib/AqeTooltip.svelte",
+    "type": "svelte_import",
+    "source_category": "component"
+  },
+  {
+    "source": "src/editor-inline/TimeViewportScroller.svelte",
+    "target": "src/editor-inline/dom-selectors.js",
+    "type": "svelte_import",
+    "source_category": "component"
+  },
+  {
+    "source": "src/editor-inline/TimeViewportScroller.svelte",
+    "target": "src/editor-inline/time-viewport.js",
+    "type": "svelte_import",
+    "source_category": "component"
+  },
+  {
+    "source": "src/editor-inline/TimeViewportScroller.svelte",
+    "target": "src/editor-inline/types.js",
+    "type": "svelte_import",
+    "source_category": "component"
+  },
+  {
+    "source": "src/editor-inline/TimeViewportScroller.svelte",
+    "target": "src/editor-inline/viewport-actions.js",
+    "type": "svelte_import",
+    "source_category": "component"
+  },
+  {
+    "source": "src/editor-inline/TimeViewportScroller.svelte",
+    "target": "src/editor-inline/visualizer-state.js",
+    "type": "svelte_import",
+    "source_category": "component"
+  },
+  {
+    "source": "src/editor-inline/ZoomControls.svelte",
+    "target": "src/editor-inline/EditorCommandIcon.svelte",
+    "type": "svelte_import",
+    "source_category": "component"
+  },
+  {
+    "source": "src/editor-inline/ZoomControls.svelte",
+    "target": "src/editor-inline/dom-selectors.js",
+    "type": "svelte_import",
+    "source_category": "component"
+  },
+  {
+    "source": "src/editor-inline/ZoomControls.svelte",
+    "target": "src/editor-inline/types.js",
+    "type": "svelte_import",
+    "source_category": "component"
+  },
+  {
+    "source": "src/editor-inline/ZoomControls.svelte",
+    "target": "src/editor-inline/zoom-actions.js",
+    "type": "svelte_import",
+    "source_category": "component"
+  },
+  {
+    "source": "src/editor-inline/ZoomControls.svelte",
+    "target": "src/lib/AqeTooltip.svelte",
+    "type": "svelte_import",
+    "source_category": "component"
+  },
+  {
+    "source": "src/editor-inline/ZoomControls.svelte",
+    "target": "src/lib/disabled-tooltip.js",
+    "type": "svelte_import",
+    "source_category": "component"
+  },
+  {
+    "source": "src/editor-inline/ZoomControls.svelte",
+    "target": "src/lib/i18n.js",
+    "type": "svelte_import",
+    "source_category": "component"
+  },
+  {
+    "source": "src/editor-inline/actions-audio-clock.ts",
+    "target": "src/editor-inline/audio-clock.js",
+    "type": "svelte_import",
+    "source_category": "logic"
+  },
+  {
+    "source": "src/editor-inline/actions-audio-clock.ts",
+    "target": "src/editor-inline/dom-selectors.js",
+    "type": "svelte_import",
+    "source_category": "logic"
+  },
+  {
+    "source": "src/editor-inline/actions-audio-clock.ts",
+    "target": "src/editor-inline/field-state-store.js",
+    "type": "svelte_import",
+    "source_category": "logic"
+  },
+  {
+    "source": "src/editor-inline/actions-audio-clock.ts",
+    "target": "src/editor-inline/logger.js",
+    "type": "svelte_import",
+    "source_category": "logic"
+  },
+  {
+    "source": "src/editor-inline/actions-audio-clock.ts",
+    "target": "src/editor-inline/playback-actions.js",
+    "type": "svelte_import",
+    "source_category": "logic"
+  },
+  {
+    "source": "src/editor-inline/actions-audio-clock.ts",
+    "target": "src/editor-inline/types.js",
+    "type": "svelte_import",
+    "source_category": "logic"
+  },
+  {
+    "source": "src/editor-inline/actions-audio-clock.ts",
+    "target": "src/editor-inline/visualizer-renderer.js",
+    "type": "svelte_import",
+    "source_category": "logic"
+  },
+  {
+    "source": "src/editor-inline/actions-audio-clock.ts",
+    "target": "src/lib/audio-operation-parameters.js",
+    "type": "svelte_import",
+    "source_category": "logic"
+  },
+  {
+    "source": "src/editor-inline/actions-audio-clock.ts",
+    "target": "src/lib/i18n.js",
+    "type": "svelte_import",
+    "source_category": "logic"
+  },
+  {
+    "source": "src/editor-inline/actions-audio-clock.ts",
+    "target": "src/lib/rich-tooltip.js",
+    "type": "svelte_import",
+    "source_category": "logic"
+  },
+  {
+    "source": "src/editor-inline/actions-playback.ts",
+    "target": "src/editor-inline/actions-audio-clock.js",
+    "type": "svelte_import",
+    "source_category": "logic"
+  },
+  {
+    "source": "src/editor-inline/actions-playback.ts",
+    "target": "src/editor-inline/audio-clock.js",
+    "type": "svelte_import",
+    "source_category": "logic"
+  },
+  {
+    "source": "src/editor-inline/actions-playback.ts",
+    "target": "src/editor-inline/bridge.js",
+    "type": "svelte_import",
+    "source_category": "logic"
+  },
+  {
+    "source": "src/editor-inline/actions-playback.ts",
+    "target": "src/editor-inline/control-actions.js",
+    "type": "svelte_import",
+    "source_category": "logic"
+  },
+  {
+    "source": "src/editor-inline/actions-playback.ts",
+    "target": "src/editor-inline/dom-selectors.js",
+    "type": "svelte_import",
+    "source_category": "logic"
+  },
+  {
+    "source": "src/editor-inline/actions-playback.ts",
+    "target": "src/editor-inline/field-state-store.js",
+    "type": "svelte_import",
+    "source_category": "logic"
+  },
+  {
+    "source": "src/editor-inline/actions-playback.ts",
+    "target": "src/editor-inline/logger.js",
+    "type": "svelte_import",
+    "source_category": "logic"
+  },
+  {
+    "source": "src/editor-inline/actions-playback.ts",
+    "target": "src/editor-inline/playback-actions.js",
+    "type": "svelte_import",
+    "source_category": "logic"
+  },
+  {
+    "source": "src/editor-inline/actions-playback.ts",
+    "target": "src/editor-inline/playback-controller-frame.js",
+    "type": "svelte_import",
+    "source_category": "logic"
+  },
+  {
+    "source": "src/editor-inline/actions-playback.ts",
+    "target": "src/editor-inline/playback-controller.js",
+    "type": "svelte_import",
+    "source_category": "logic"
+  },
+  {
+    "source": "src/editor-inline/actions-playback.ts",
+    "target": "src/editor-inline/selection-controller.js",
+    "type": "svelte_import",
+    "source_category": "logic"
+  },
+  {
+    "source": "src/editor-inline/actions-playback.ts",
+    "target": "src/editor-inline/selection-events.js",
+    "type": "svelte_import",
+    "source_category": "logic"
+  },
+  {
+    "source": "src/editor-inline/actions-playback.ts",
+    "target": "src/editor-inline/selection-toolbar-state.js",
+    "type": "svelte_import",
+    "source_category": "logic"
+  },
+  {
+    "source": "src/editor-inline/actions-playback.ts",
+    "target": "src/editor-inline/types.js",
+    "type": "svelte_import",
+    "source_category": "logic"
+  },
+  {
+    "source": "src/editor-inline/actions-playback.ts",
+    "target": "src/editor-inline/visualizer-renderer.js",
+    "type": "svelte_import",
+    "source_category": "logic"
+  },
+  {
+    "source": "src/editor-inline/actions-playback.ts",
+    "target": "src/editor-inline/visualizer-state.js",
+    "type": "svelte_import",
+    "source_category": "logic"
+  },
+  {
+    "source": "src/editor-inline/actions-selection.ts",
+    "target": "src/editor-inline/actions-audio-clock.js",
+    "type": "svelte_import",
+    "source_category": "logic"
+  },
+  {
+    "source": "src/editor-inline/actions-selection.ts",
+    "target": "src/editor-inline/actions-playback.js",
+    "type": "svelte_import",
+    "source_category": "logic"
+  },
+  {
+    "source": "src/editor-inline/actions-selection.ts",
+    "target": "src/editor-inline/chorusing-dom.js",
+    "type": "svelte_import",
+    "source_category": "logic"
+  },
+  {
+    "source": "src/editor-inline/actions-selection.ts",
+    "target": "src/editor-inline/dom-selectors.js",
+    "type": "svelte_import",
+    "source_category": "logic"
+  },
+  {
+    "source": "src/editor-inline/actions-selection.ts",
+    "target": "src/editor-inline/playback-actions.js",
+    "type": "svelte_import",
+    "source_category": "logic"
+  },
+  {
+    "source": "src/editor-inline/actions-selection.ts",
+    "target": "src/editor-inline/playback-state.js",
+    "type": "svelte_import",
+    "source_category": "logic"
+  },
+  {
+    "source": "src/editor-inline/actions-selection.ts",
+    "target": "src/editor-inline/selection-controller.js",
+    "type": "svelte_import",
+    "source_category": "logic"
+  },
+  {
+    "source": "src/editor-inline/actions-selection.ts",
+    "target": "src/editor-inline/selection-events.js",
+    "type": "svelte_import",
+    "source_category": "logic"
+  },
+  {
+    "source": "src/editor-inline/actions-selection.ts",
+    "target": "src/editor-inline/selection-gestures.js",
+    "type": "svelte_import",
+    "source_category": "logic"
+  },
+  {
+    "source": "src/editor-inline/actions-selection.ts",
+    "target": "src/editor-inline/selection-marker-shift.js",
+    "type": "svelte_import",
+    "source_category": "logic"
+  },
+  {
+    "source": "src/editor-inline/actions-selection.ts",
+    "target": "src/editor-inline/selection-state.js",
+    "type": "svelte_import",
+    "source_category": "logic"
+  },
+  {
+    "source": "src/editor-inline/actions-selection.ts",
+    "target": "src/editor-inline/selection-toolbar-state.js",
+    "type": "svelte_import",
+    "source_category": "logic"
+  },
+  {
+    "source": "src/editor-inline/actions-selection.ts",
+    "target": "src/editor-inline/types.js",
+    "type": "svelte_import",
+    "source_category": "logic"
+  },
+  {
+    "source": "src/editor-inline/actions-selection.ts",
+    "target": "src/editor-inline/visualizer-state.js",
+    "type": "svelte_import",
+    "source_category": "logic"
+  },
+  {
+    "source": "src/editor-inline/actions.ts",
+    "target": "src/editor-inline/actions-audio-clock.js",
+    "type": "svelte_import",
+    "source_category": "logic"
+  },
+  {
+    "source": "src/editor-inline/actions.ts",
+    "target": "src/editor-inline/actions-playback.js",
+    "type": "svelte_import",
+    "source_category": "logic"
+  },
+  {
+    "source": "src/editor-inline/actions.ts",
+    "target": "src/editor-inline/actions-selection.js",
+    "type": "svelte_import",
+    "source_category": "logic"
+  },
+  {
+    "source": "src/editor-inline/actions.ts",
+    "target": "src/editor-inline/bridge.js",
+    "type": "svelte_import",
+    "source_category": "logic"
+  },
+  {
+    "source": "src/editor-inline/actions.ts",
+    "target": "src/editor-inline/command-actions.js",
+    "type": "svelte_import",
+    "source_category": "logic"
+  },
+  {
+    "source": "src/editor-inline/actions.ts",
+    "target": "src/editor-inline/control-actions.js",
+    "type": "svelte_import",
+    "source_category": "logic"
+  },
+  {
+    "source": "src/editor-inline/actions.ts",
+    "target": "src/editor-inline/graph-actions.js",
+    "type": "svelte_import",
+    "source_category": "logic"
+  },
+  {
+    "source": "src/editor-inline/actions.ts",
+    "target": "src/editor-inline/playback-actions.js",
+    "type": "svelte_import",
+    "source_category": "logic"
+  },
+  {
+    "source": "src/editor-inline/audio-clock.ts",
+    "target": "src/editor-inline/field-state-store.js",
+    "type": "svelte_import",
+    "source_category": "logic"
+  },
+  {
+    "source": "src/editor-inline/audio-clock.ts",
+    "target": "src/editor-inline/types.js",
+    "type": "svelte_import",
+    "source_category": "logic"
+  },
+  {
+    "source": "src/editor-inline/bridge.ts",
+    "target": "src/editor-inline/source-metadata-types.js",
+    "type": "svelte_import",
+    "source_category": "bridge"
+  },
+  {
+    "source": "src/editor-inline/bridge.ts",
+    "target": "src/editor-inline/split-default-save-types.js",
+    "type": "svelte_import",
+    "source_category": "bridge"
+  },
+  {
+    "source": "src/editor-inline/bridge.ts",
+    "target": "src/editor-inline/types.js",
+    "type": "svelte_import",
+    "source_category": "bridge"
+  },
+  {
+    "source": "src/editor-inline/bridge.ts",
+    "target": "src/lib/generated/contracts.js",
+    "type": "svelte_import",
+    "source_category": "bridge"
+  },
+  {
+    "source": "src/editor-inline/chorusing-controller.ts",
+    "target": "src/editor-inline/bridge.js",
+    "type": "svelte_import",
+    "source_category": "logic"
+  },
+  {
+    "source": "src/editor-inline/chorusing-controller.ts",
+    "target": "src/editor-inline/chorusing-dom.js",
+    "type": "svelte_import",
+    "source_category": "logic"
+  },
+  {
+    "source": "src/editor-inline/chorusing-controller.ts",
+    "target": "src/editor-inline/chorusing-state",
+    "type": "svelte_import",
+    "source_category": "logic"
+  },
+  {
+    "source": "src/editor-inline/chorusing-controller.ts",
+    "target": "src/editor-inline/chorusing-toolbar.js",
+    "type": "svelte_import",
+    "source_category": "logic"
+  },
+  {
+    "source": "src/editor-inline/chorusing-controller.ts",
+    "target": "src/editor-inline/dom-selectors.js",
+    "type": "svelte_import",
+    "source_category": "logic"
+  },
+  {
+    "source": "src/editor-inline/chorusing-controller.ts",
+    "target": "src/editor-inline/field-state-store.js",
+    "type": "svelte_import",
+    "source_category": "logic"
+  },
+  {
+    "source": "src/editor-inline/chorusing-controller.ts",
+    "target": "src/editor-inline/graph-overlay-geometry.js",
+    "type": "svelte_import",
+    "source_category": "logic"
+  },
+  {
+    "source": "src/editor-inline/chorusing-controller.ts",
+    "target": "src/editor-inline/playback-actions.js",
+    "type": "svelte_import",
+    "source_category": "logic"
+  },
+  {
+    "source": "src/editor-inline/chorusing-controller.ts",
+    "target": "src/editor-inline/selection-controller.js",
+    "type": "svelte_import",
+    "source_category": "logic"
+  },
+  {
+    "source": "src/editor-inline/chorusing-controller.ts",
+    "target": "src/editor-inline/selection-events.js",
+    "type": "svelte_import",
+    "source_category": "logic"
+  },
+  {
+    "source": "src/editor-inline/chorusing-controller.ts",
+    "target": "src/editor-inline/selection-toolbar-state.js",
+    "type": "svelte_import",
+    "source_category": "logic"
+  },
+  {
+    "source": "src/editor-inline/chorusing-controller.ts",
+    "target": "src/editor-inline/types.js",
+    "type": "svelte_import",
+    "source_category": "logic"
+  },
+  {
+    "source": "src/editor-inline/chorusing-controller.ts",
+    "target": "src/editor-inline/visualizer-state.js",
+    "type": "svelte_import",
+    "source_category": "logic"
+  },
+  {
+    "source": "src/editor-inline/chorusing-dom.ts",
+    "target": "src/editor-inline/chorusing-state",
+    "type": "svelte_import",
+    "source_category": "logic"
+  },
+  {
+    "source": "src/editor-inline/chorusing-dom.ts",
+    "target": "src/editor-inline/dom-selectors.js",
+    "type": "svelte_import",
+    "source_category": "logic"
+  },
+  {
+    "source": "src/editor-inline/chorusing-dom.ts",
+    "target": "src/editor-inline/graph-overlay-geometry.js",
+    "type": "svelte_import",
+    "source_category": "logic"
+  },
+  {
+    "source": "src/editor-inline/chorusing-dom.ts",
+    "target": "src/editor-inline/plot.js",
+    "type": "svelte_import",
+    "source_category": "logic"
+  },
+  {
+    "source": "src/editor-inline/chorusing-dom.ts",
+    "target": "src/editor-inline/types.js",
+    "type": "svelte_import",
+    "source_category": "logic"
+  },
+  {
+    "source": "src/editor-inline/chorusing-dom.ts",
+    "target": "src/editor-inline/visualizer-state.js",
+    "type": "svelte_import",
+    "source_category": "logic"
+  },
+  {
+    "source": "src/editor-inline/chorusing-state.ts",
+    "target": "src/editor-inline/playback-model.js",
+    "type": "svelte_import",
+    "source_category": "state"
+  },
+  {
+    "source": "src/editor-inline/chorusing-toolbar.ts",
+    "target": "src/editor-inline/chorusing-dom.js",
+    "type": "svelte_import",
+    "source_category": "logic"
+  },
+  {
+    "source": "src/editor-inline/chorusing-toolbar.ts",
+    "target": "src/editor-inline/dom-selectors.js",
+    "type": "svelte_import",
+    "source_category": "logic"
+  },
+  {
+    "source": "src/editor-inline/chorusing-toolbar.ts",
+    "target": "src/editor-inline/types.js",
+    "type": "svelte_import",
+    "source_category": "logic"
+  },
+  {
+    "source": "src/editor-inline/chorusing-toolbar.ts",
+    "target": "src/editor-inline/visualizer-state.js",
+    "type": "svelte_import",
+    "source_category": "logic"
+  },
+  {
+    "source": "src/editor-inline/chorusing-toolbar.ts",
+    "target": "src/lib/disabled-tooltip.js",
+    "type": "svelte_import",
+    "source_category": "logic"
+  },
+  {
+    "source": "src/editor-inline/chorusing-toolbar.ts",
+    "target": "src/lib/i18n.js",
+    "type": "svelte_import",
+    "source_category": "logic"
+  },
+  {
+    "source": "src/editor-inline/chorusing-toolbar.ts",
+    "target": "src/lib/rich-tooltip.js",
+    "type": "svelte_import",
+    "source_category": "logic"
+  },
+  {
+    "source": "src/editor-inline/command-actions.ts",
+    "target": "src/editor-inline/bridge.js",
+    "type": "svelte_import",
+    "source_category": "logic"
+  },
+  {
+    "source": "src/editor-inline/command-actions.ts",
+    "target": "src/editor-inline/chorusing-controller.js",
+    "type": "svelte_import",
+    "source_category": "logic"
+  },
+  {
+    "source": "src/editor-inline/command-actions.ts",
+    "target": "src/editor-inline/commands.js",
+    "type": "svelte_import",
+    "source_category": "logic"
+  },
+  {
+    "source": "src/editor-inline/command-actions.ts",
+    "target": "src/editor-inline/control-actions.js",
+    "type": "svelte_import",
+    "source_category": "logic"
+  },
+  {
+    "source": "src/editor-inline/command-actions.ts",
+    "target": "src/editor-inline/dom-selectors.js",
+    "type": "svelte_import",
+    "source_category": "logic"
+  },
+  {
+    "source": "src/editor-inline/command-actions.ts",
+    "target": "src/editor-inline/graph-actions.js",
+    "type": "svelte_import",
+    "source_category": "logic"
+  },
+  {
+    "source": "src/editor-inline/command-actions.ts",
+    "target": "src/editor-inline/logger.js",
+    "type": "svelte_import",
+    "source_category": "logic"
+  },
+  {
+    "source": "src/editor-inline/command-actions.ts",
+    "target": "src/editor-inline/playback-actions.js",
+    "type": "svelte_import",
+    "source_category": "logic"
+  },
+  {
+    "source": "src/editor-inline/command-actions.ts",
+    "target": "src/editor-inline/post-edit-playback.js",
+    "type": "svelte_import",
+    "source_category": "logic"
+  },
+  {
+    "source": "src/editor-inline/command-actions.ts",
+    "target": "src/editor-inline/split-button-state.js",
+    "type": "svelte_import",
+    "source_category": "logic"
+  },
+  {
+    "source": "src/editor-inline/command-actions.ts",
+    "target": "src/editor-inline/types.js",
+    "type": "svelte_import",
+    "source_category": "logic"
+  },
+  {
+    "source": "src/editor-inline/commands.ts",
+    "target": "src/editor-inline/types.js",
+    "type": "svelte_import",
+    "source_category": "logic"
+  },
+  {
+    "source": "src/editor-inline/commands.ts",
+    "target": "src/lib/audio-operation-parameters.js",
+    "type": "svelte_import",
+    "source_category": "logic"
+  },
+  {
+    "source": "src/editor-inline/commands.ts",
+    "target": "src/lib/editor-toolbar-buttons.js",
+    "type": "svelte_import",
+    "source_category": "logic"
+  },
+  {
+    "source": "src/editor-inline/commands.ts",
+    "target": "src/lib/editor-toolbar-command-slugs.js",
+    "type": "svelte_import",
+    "source_category": "logic"
+  },
+  {
+    "source": "src/editor-inline/commands.ts",
+    "target": "src/lib/editor-toolbar-visibility.js",
+    "type": "svelte_import",
+    "source_category": "logic"
+  },
+  {
+    "source": "src/editor-inline/commands.ts",
+    "target": "src/lib/i18n.js",
+    "type": "svelte_import",
+    "source_category": "logic"
+  },
+  {
+    "source": "src/editor-inline/commands.ts",
+    "target": "src/lib/size-reduction-parameters.js",
+    "type": "svelte_import",
+    "source_category": "logic"
+  },
+  {
+    "source": "src/editor-inline/control-actions.ts",
+    "target": "src/editor-inline/chorusing-dom.js",
+    "type": "svelte_import",
+    "source_category": "logic"
+  },
+  {
+    "source": "src/editor-inline/control-actions.ts",
+    "target": "src/editor-inline/commands.js",
+    "type": "svelte_import",
+    "source_category": "logic"
+  },
+  {
+    "source": "src/editor-inline/control-actions.ts",
+    "target": "src/editor-inline/default-graph-queue.js",
+    "type": "svelte_import",
+    "source_category": "logic"
+  },
+  {
+    "source": "src/editor-inline/control-actions.ts",
+    "target": "src/editor-inline/dom-selectors.js",
+    "type": "svelte_import",
+    "source_category": "logic"
+  },
+  {
+    "source": "src/editor-inline/control-actions.ts",
+    "target": "src/editor-inline/external-links.js",
+    "type": "svelte_import",
+    "source_category": "logic"
+  },
+  {
+    "source": "src/editor-inline/control-actions.ts",
+    "target": "src/editor-inline/graph-actions.js",
+    "type": "svelte_import",
+    "source_category": "logic"
+  },
+  {
+    "source": "src/editor-inline/control-actions.ts",
+    "target": "src/editor-inline/post-edit-playback.js",
+    "type": "svelte_import",
+    "source_category": "logic"
+  },
+  {
+    "source": "src/editor-inline/control-actions.ts",
+    "target": "src/editor-inline/recording-actions.js",
+    "type": "svelte_import",
+    "source_category": "logic"
+  },
+  {
+    "source": "src/editor-inline/control-actions.ts",
+    "target": "src/editor-inline/selection-toolbar-state.js",
+    "type": "svelte_import",
+    "source_category": "logic"
+  },
+  {
+    "source": "src/editor-inline/control-actions.ts",
+    "target": "src/editor-inline/types.js",
+    "type": "svelte_import",
+    "source_category": "logic"
+  },
+  {
+    "source": "src/editor-inline/control-actions.ts",
+    "target": "src/editor-inline/visualizer-state.js",
+    "type": "svelte_import",
+    "source_category": "logic"
+  },
+  {
+    "source": "src/editor-inline/control-actions.ts",
+    "target": "src/lib/disabled-tooltip.js",
+    "type": "svelte_import",
+    "source_category": "logic"
+  },
+  {
+    "source": "src/editor-inline/control-actions.ts",
+    "target": "src/lib/error-links.js",
+    "type": "svelte_import",
+    "source_category": "logic"
+  },
+  {
+    "source": "src/editor-inline/control-actions.ts",
+    "target": "src/lib/i18n.js",
+    "type": "svelte_import",
+    "source_category": "logic"
+  },
+  {
+    "source": "src/editor-inline/control-actions.ts",
+    "target": "src/lib/rich-tooltip.js",
+    "type": "svelte_import",
+    "source_category": "logic"
+  },
+  {
+    "source": "src/editor-inline/control-actions.ts",
+    "target": "src/lib/user-facing-error.js",
+    "type": "svelte_import",
+    "source_category": "logic"
+  },
+  {
+    "source": "src/editor-inline/default-graph-queue.ts",
+    "target": "src/editor-inline/dom-selectors.js",
+    "type": "svelte_import",
+    "source_category": "logic"
+  },
+  {
+    "source": "src/editor-inline/default-graph-queue.ts",
+    "target": "src/editor-inline/field-state-store.js",
+    "type": "svelte_import",
+    "source_category": "logic"
+  },
+  {
+    "source": "src/editor-inline/default-graph-queue.ts",
+    "target": "src/editor-inline/types.js",
+    "type": "svelte_import",
+    "source_category": "logic"
+  },
+  {
+    "source": "src/editor-inline/dom-selectors.ts",
+    "target": "src/editor-inline/sound-source.js",
+    "type": "svelte_import",
+    "source_category": "logic"
+  },
+  {
+    "source": "src/editor-inline/dom-selectors.ts",
+    "target": "src/editor-inline/types.js",
+    "type": "svelte_import",
+    "source_category": "logic"
+  },
+  {
+    "source": "src/editor-inline/editor-playback-types.ts",
+    "target": "src/editor-inline/chorusing-state",
+    "type": "svelte_import",
+    "source_category": "types"
+  },
+  {
+    "source": "src/editor-inline/editor-playback-types.ts",
+    "target": "src/editor-inline/graph-settings.js",
+    "type": "svelte_import",
+    "source_category": "types"
+  },
+  {
+    "source": "src/editor-inline/editor-playback-types.ts",
+    "target": "src/editor-inline/playback-progress-clock.js",
+    "type": "svelte_import",
+    "source_category": "types"
+  },
+  {
+    "source": "src/editor-inline/editor-playback-types.ts",
+    "target": "src/lib/generated/contracts.js",
+    "type": "svelte_import",
+    "source_category": "types"
+  },
+  {
+    "source": "src/editor-inline/editor-runtime-config.ts",
+    "target": "src/editor-inline/types.js",
+    "type": "svelte_import",
+    "source_category": "logic"
+  },
+  {
+    "source": "src/editor-inline/editor-runtime-types.ts",
+    "target": "src/editor-inline/graph-settings.js",
+    "type": "svelte_import",
+    "source_category": "types"
+  },
+  {
+    "source": "src/editor-inline/editor-runtime-types.ts",
+    "target": "src/lib/audio-operation-parameters.js",
+    "type": "svelte_import",
+    "source_category": "types"
+  },
+  {
+    "source": "src/editor-inline/editor-runtime-types.ts",
+    "target": "src/lib/editor-toolbar-buttons.js",
+    "type": "svelte_import",
+    "source_category": "types"
+  },
+  {
+    "source": "src/editor-inline/editor-runtime-types.ts",
+    "target": "src/lib/size-reduction-parameters.js",
+    "type": "svelte_import",
+    "source_category": "types"
+  },
+  {
+    "source": "src/editor-inline/editor-toolbar-render-items.ts",
+    "target": "src/editor-inline/types.js",
+    "type": "svelte_import",
+    "source_category": "logic"
+  },
+  {
+    "source": "src/editor-inline/editor-toolbar-render-items.ts",
+    "target": "src/lib/editor-toolbar-panel-definitions.js",
+    "type": "svelte_import",
+    "source_category": "logic"
+  },
+  {
+    "source": "src/editor-inline/editor-toolbar-render-items.ts",
+    "target": "src/lib/i18n.js",
+    "type": "svelte_import",
+    "source_category": "logic"
+  },
+  {
+    "source": "src/editor-inline/external-links.ts",
+    "target": "src/editor-inline/bridge.js",
+    "type": "svelte_import",
+    "source_category": "logic"
+  },
+  {
+    "source": "src/editor-inline/field-controller.ts",
+    "target": "src/editor-inline/EditorControls.svelte",
+    "type": "svelte_import",
+    "source_category": "logic"
+  },
+  {
+    "source": "src/editor-inline/field-controller.ts",
+    "target": "src/editor-inline/control-actions.js",
+    "type": "svelte_import",
+    "source_category": "logic"
+  },
+  {
+    "source": "src/editor-inline/field-controller.ts",
+    "target": "src/editor-inline/dom-selectors.js",
+    "type": "svelte_import",
+    "source_category": "logic"
+  },
+  {
+    "source": "src/editor-inline/field-controller.ts",
+    "target": "src/editor-inline/field-state-store.js",
+    "type": "svelte_import",
+    "source_category": "logic"
+  },
+  {
+    "source": "src/editor-inline/field-controller.ts",
+    "target": "src/editor-inline/field-state.js",
+    "type": "svelte_import",
+    "source_category": "logic"
+  },
+  {
+    "source": "src/editor-inline/field-controller.ts",
+    "target": "src/editor-inline/types.js",
+    "type": "svelte_import",
+    "source_category": "logic"
+  },
+  {
+    "source": "src/editor-inline/field-state-dom-sync.ts",
+    "target": "src/editor-inline/dom-selectors.js",
+    "type": "svelte_import",
+    "source_category": "state"
+  },
+  {
+    "source": "src/editor-inline/field-state-dom-sync.ts",
+    "target": "src/editor-inline/field-state.js",
+    "type": "svelte_import",
+    "source_category": "state"
+  },
+  {
+    "source": "src/editor-inline/field-state-store.ts",
+    "target": "src/editor-inline/dom-selectors.js",
+    "type": "svelte_import",
+    "source_category": "state"
+  },
+  {
+    "source": "src/editor-inline/field-state-store.ts",
+    "target": "src/editor-inline/field-state-dom-sync.js",
+    "type": "svelte_import",
+    "source_category": "state"
+  },
+  {
+    "source": "src/editor-inline/field-state-store.ts",
+    "target": "src/editor-inline/field-state.js",
+    "type": "svelte_import",
+    "source_category": "state"
+  },
+  {
+    "source": "src/editor-inline/field-state-store.ts",
+    "target": "src/editor-inline/playback-state.js",
+    "type": "svelte_import",
+    "source_category": "state"
+  },
+  {
+    "source": "src/editor-inline/field-state-store.ts",
+    "target": "src/editor-inline/selection-state.js",
+    "type": "svelte_import",
+    "source_category": "state"
+  },
+  {
+    "source": "src/editor-inline/field-state-store.ts",
+    "target": "src/editor-inline/types.js",
+    "type": "svelte_import",
+    "source_category": "state"
+  },
+  {
+    "source": "src/editor-inline/field-state.ts",
+    "target": "src/editor-inline/playback-state.js",
+    "type": "svelte_import",
+    "source_category": "state"
+  },
+  {
+    "source": "src/editor-inline/field-state.ts",
+    "target": "src/editor-inline/selection-state.js",
+    "type": "svelte_import",
+    "source_category": "state"
+  },
+  {
+    "source": "src/editor-inline/field-state.ts",
+    "target": "src/editor-inline/types.js",
+    "type": "svelte_import",
+    "source_category": "state"
+  },
+  {
+    "source": "src/editor-inline/graph-actions.ts",
+    "target": "src/editor-inline/actions.js",
+    "type": "svelte_import",
+    "source_category": "logic"
+  },
+  {
+    "source": "src/editor-inline/graph-actions.ts",
+    "target": "src/editor-inline/bridge.js",
+    "type": "svelte_import",
+    "source_category": "logic"
+  },
+  {
+    "source": "src/editor-inline/graph-actions.ts",
+    "target": "src/editor-inline/control-actions.js",
+    "type": "svelte_import",
+    "source_category": "logic"
+  },
+  {
+    "source": "src/editor-inline/graph-actions.ts",
+    "target": "src/editor-inline/default-graph-queue.js",
+    "type": "svelte_import",
+    "source_category": "logic"
+  },
+  {
+    "source": "src/editor-inline/graph-actions.ts",
+    "target": "src/editor-inline/dom-selectors.js",
+    "type": "svelte_import",
+    "source_category": "logic"
+  },
+  {
+    "source": "src/editor-inline/graph-actions.ts",
+    "target": "src/editor-inline/field-state-store.js",
+    "type": "svelte_import",
+    "source_category": "logic"
+  },
+  {
+    "source": "src/editor-inline/graph-actions.ts",
+    "target": "src/editor-inline/field-state.js",
+    "type": "svelte_import",
+    "source_category": "logic"
+  },
+  {
+    "source": "src/editor-inline/graph-actions.ts",
+    "target": "src/editor-inline/graph-settings.js",
+    "type": "svelte_import",
+    "source_category": "logic"
+  },
+  {
+    "source": "src/editor-inline/graph-actions.ts",
+    "target": "src/editor-inline/graph-split-state.js",
+    "type": "svelte_import",
+    "source_category": "logic"
+  },
+  {
+    "source": "src/editor-inline/graph-actions.ts",
+    "target": "src/editor-inline/logger.js",
+    "type": "svelte_import",
+    "source_category": "logic"
+  },
+  {
+    "source": "src/editor-inline/graph-actions.ts",
+    "target": "src/editor-inline/recording-actions.js",
+    "type": "svelte_import",
+    "source_category": "logic"
+  },
+  {
+    "source": "src/editor-inline/graph-actions.ts",
+    "target": "src/editor-inline/source-metadata-requests.js",
+    "type": "svelte_import",
+    "source_category": "logic"
+  },
+  {
+    "source": "src/editor-inline/graph-actions.ts",
+    "target": "src/editor-inline/types.js",
+    "type": "svelte_import",
+    "source_category": "logic"
+  },
+  {
+    "source": "src/editor-inline/graph-actions.ts",
+    "target": "src/editor-inline/visualizer-renderer.js",
+    "type": "svelte_import",
+    "source_category": "logic"
+  },
+  {
+    "source": "src/editor-inline/graph-actions.ts",
+    "target": "src/editor-inline/visualizer-state.js",
+    "type": "svelte_import",
+    "source_category": "logic"
+  },
+  {
+    "source": "src/editor-inline/graph-actions.ts",
+    "target": "src/lib/generated/contracts.js",
+    "type": "svelte_import",
+    "source_category": "logic"
+  },
+  {
+    "source": "src/editor-inline/graph-actions.ts",
+    "target": "src/lib/i18n.js",
+    "type": "svelte_import",
+    "source_category": "logic"
+  },
+  {
+    "source": "src/editor-inline/graph-actions.ts",
+    "target": "src/lib/user-facing-error.js",
+    "type": "svelte_import",
+    "source_category": "logic"
+  },
+  {
+    "source": "src/editor-inline/graph-countdown-overlay.ts",
+    "target": "src/editor-inline/types.js",
+    "type": "svelte_import",
+    "source_category": "logic"
+  },
+  {
+    "source": "src/editor-inline/graph-countdown-overlay.ts",
+    "target": "src/lib/i18n.js",
+    "type": "svelte_import",
+    "source_category": "logic"
+  },
+  {
+    "source": "src/editor-inline/graph-overlay-geometry.ts",
+    "target": "src/editor-inline/plot.js",
+    "type": "svelte_import",
+    "source_category": "logic"
+  },
+  {
+    "source": "src/editor-inline/graph-overlay-geometry.ts",
+    "target": "src/editor-inline/time-viewport.js",
+    "type": "svelte_import",
+    "source_category": "logic"
+  },
+  {
+    "source": "src/editor-inline/graph-promoted-defaults.ts",
+    "target": "src/editor-inline/graph-split-values.js",
+    "type": "svelte_import",
+    "source_category": "logic"
+  },
+  {
+    "source": "src/editor-inline/graph-promoted-defaults.ts",
+    "target": "src/editor-inline/split-default-save-types.js",
+    "type": "svelte_import",
+    "source_category": "logic"
+  },
+  {
+    "source": "src/editor-inline/graph-promoted-defaults.ts",
+    "target": "src/editor-inline/types.js",
+    "type": "svelte_import",
+    "source_category": "logic"
+  },
+  {
+    "source": "src/editor-inline/graph-split-state.ts",
+    "target": "src/editor-inline/graph-settings.js",
+    "type": "svelte_import",
+    "source_category": "state"
+  },
+  {
+    "source": "src/editor-inline/graph-split-state.ts",
+    "target": "src/editor-inline/graph-split-values.js",
+    "type": "svelte_import",
+    "source_category": "state"
+  },
+  {
+    "source": "src/editor-inline/graph-split-state.ts",
+    "target": "src/editor-inline/split-button-state.js",
+    "type": "svelte_import",
+    "source_category": "state"
+  },
+  {
+    "source": "src/editor-inline/graph-split-state.ts",
+    "target": "src/editor-inline/types.js",
+    "type": "svelte_import",
+    "source_category": "state"
+  },
+  {
+    "source": "src/editor-inline/graph-split-values.ts",
+    "target": "src/editor-inline/graph-settings.js",
+    "type": "svelte_import",
+    "source_category": "logic"
+  },
+  {
+    "source": "src/editor-inline/graph-split-values.ts",
+    "target": "src/lib/graph-option-copy.js",
+    "type": "svelte_import",
+    "source_category": "logic"
+  },
+  {
+    "source": "src/editor-inline/logger.ts",
+    "target": "src/editor-inline/bridge.js",
+    "type": "svelte_import",
+    "source_category": "logic"
+  },
+  {
+    "source": "src/editor-inline/logger.ts",
+    "target": "src/lib/logger.js",
+    "type": "svelte_import",
+    "source_category": "logic"
+  },
+  {
+    "source": "src/editor-inline/main.ts",
+    "target": "src/editor-inline/runtime.js",
+    "type": "svelte_import",
+    "source_category": "logic"
+  },
+  {
+    "source": "src/editor-inline/pause-split-state.ts",
+    "target": "src/editor-inline/split-default-save-types.js",
+    "type": "svelte_import",
+    "source_category": "state"
+  },
+  {
+    "source": "src/editor-inline/pause-split-state.ts",
+    "target": "src/editor-inline/types.js",
+    "type": "svelte_import",
+    "source_category": "state"
+  },
+  {
+    "source": "src/editor-inline/pause-split-state.ts",
+    "target": "src/lib/audio-operation-parameters.js",
+    "type": "svelte_import",
+    "source_category": "state"
+  },
+  {
+    "source": "src/editor-inline/playback-actions.ts",
+    "target": "src/editor-inline/actions.js",
+    "type": "svelte_import",
+    "source_category": "logic"
+  },
+  {
+    "source": "src/editor-inline/playback-actions.ts",
+    "target": "src/editor-inline/bridge.js",
+    "type": "svelte_import",
+    "source_category": "logic"
+  },
+  {
+    "source": "src/editor-inline/playback-actions.ts",
+    "target": "src/editor-inline/control-actions.js",
+    "type": "svelte_import",
+    "source_category": "logic"
+  },
+  {
+    "source": "src/editor-inline/playback-actions.ts",
+    "target": "src/editor-inline/dom-selectors.js",
+    "type": "svelte_import",
+    "source_category": "logic"
+  },
+  {
+    "source": "src/editor-inline/playback-actions.ts",
+    "target": "src/editor-inline/field-state-store.js",
+    "type": "svelte_import",
+    "source_category": "logic"
+  },
+  {
+    "source": "src/editor-inline/playback-actions.ts",
+    "target": "src/editor-inline/field-state.js",
+    "type": "svelte_import",
+    "source_category": "logic"
+  },
+  {
+    "source": "src/editor-inline/playback-actions.ts",
+    "target": "src/editor-inline/logger.js",
+    "type": "svelte_import",
+    "source_category": "logic"
+  },
+  {
+    "source": "src/editor-inline/playback-actions.ts",
+    "target": "src/editor-inline/playback-controller.js",
+    "type": "svelte_import",
+    "source_category": "logic"
+  },
+  {
+    "source": "src/editor-inline/playback-actions.ts",
+    "target": "src/editor-inline/playback-model.js",
+    "type": "svelte_import",
+    "source_category": "logic"
+  },
+  {
+    "source": "src/editor-inline/playback-actions.ts",
+    "target": "src/editor-inline/post-edit-playback.js",
+    "type": "svelte_import",
+    "source_category": "logic"
+  },
+  {
+    "source": "src/editor-inline/playback-actions.ts",
+    "target": "src/editor-inline/selection-toolbar-state.js",
+    "type": "svelte_import",
+    "source_category": "logic"
+  },
+  {
+    "source": "src/editor-inline/playback-actions.ts",
+    "target": "src/editor-inline/types.js",
+    "type": "svelte_import",
+    "source_category": "logic"
+  },
+  {
+    "source": "src/editor-inline/playback-actions.ts",
+    "target": "src/editor-inline/visualizer-state.js",
+    "type": "svelte_import",
+    "source_category": "logic"
+  },
+  {
+    "source": "src/editor-inline/playback-actions.ts",
+    "target": "src/lib/i18n.js",
+    "type": "svelte_import",
+    "source_category": "logic"
+  },
+  {
+    "source": "src/editor-inline/playback-controller-audio.ts",
+    "target": "src/editor-inline/audio-clock.js",
+    "type": "svelte_import",
+    "source_category": "logic"
+  },
+  {
+    "source": "src/editor-inline/playback-controller-audio.ts",
+    "target": "src/editor-inline/field-state-store.js",
+    "type": "svelte_import",
+    "source_category": "logic"
+  },
+  {
+    "source": "src/editor-inline/playback-controller-audio.ts",
+    "target": "src/editor-inline/field-state.js",
+    "type": "svelte_import",
+    "source_category": "logic"
+  },
+  {
+    "source": "src/editor-inline/playback-controller-audio.ts",
+    "target": "src/editor-inline/playback-plan-state.js",
+    "type": "svelte_import",
+    "source_category": "logic"
+  },
+  {
+    "source": "src/editor-inline/playback-controller-audio.ts",
+    "target": "src/editor-inline/types.js",
+    "type": "svelte_import",
+    "source_category": "logic"
+  },
+  {
+    "source": "src/editor-inline/playback-controller-frame.ts",
+    "target": "src/editor-inline/graph-countdown-overlay.js",
+    "type": "svelte_import",
+    "source_category": "logic"
+  },
+  {
+    "source": "src/editor-inline/playback-controller-frame.ts",
+    "target": "src/editor-inline/playback-plan-state.js",
+    "type": "svelte_import",
+    "source_category": "logic"
+  },
+  {
+    "source": "src/editor-inline/playback-controller-frame.ts",
+    "target": "src/editor-inline/types.js",
+    "type": "svelte_import",
+    "source_category": "logic"
+  },
+  {
+    "source": "src/editor-inline/playback-controller-pass.ts",
+    "target": "src/editor-inline/field-state-store.js",
+    "type": "svelte_import",
+    "source_category": "logic"
+  },
+  {
+    "source": "src/editor-inline/playback-controller-pass.ts",
+    "target": "src/editor-inline/field-state.js",
+    "type": "svelte_import",
+    "source_category": "logic"
+  },
+  {
+    "source": "src/editor-inline/playback-controller-pass.ts",
+    "target": "src/editor-inline/playback-controller.js",
+    "type": "svelte_import",
+    "source_category": "logic"
+  },
+  {
+    "source": "src/editor-inline/playback-controller-pass.ts",
+    "target": "src/editor-inline/playback-model.js",
+    "type": "svelte_import",
+    "source_category": "logic"
+  },
+  {
+    "source": "src/editor-inline/playback-controller-pass.ts",
+    "target": "src/editor-inline/playback-plan-state.js",
+    "type": "svelte_import",
+    "source_category": "logic"
+  },
+  {
+    "source": "src/editor-inline/playback-controller-pass.ts",
+    "target": "src/editor-inline/types.js",
+    "type": "svelte_import",
+    "source_category": "logic"
+  },
+  {
+    "source": "src/editor-inline/playback-controller-state.ts",
+    "target": "src/editor-inline/audio-clock.js",
+    "type": "svelte_import",
+    "source_category": "state"
+  },
+  {
+    "source": "src/editor-inline/playback-controller-state.ts",
+    "target": "src/editor-inline/field-state-store.js",
+    "type": "svelte_import",
+    "source_category": "state"
+  },
+  {
+    "source": "src/editor-inline/playback-controller-state.ts",
+    "target": "src/editor-inline/field-state.js",
+    "type": "svelte_import",
+    "source_category": "state"
+  },
+  {
+    "source": "src/editor-inline/playback-controller-state.ts",
+    "target": "src/editor-inline/playback-controller-audio.js",
+    "type": "svelte_import",
+    "source_category": "state"
+  },
+  {
+    "source": "src/editor-inline/playback-controller-state.ts",
+    "target": "src/editor-inline/playback-controller-frame.js",
+    "type": "svelte_import",
+    "source_category": "state"
+  },
+  {
+    "source": "src/editor-inline/playback-controller-state.ts",
+    "target": "src/editor-inline/playback-controller-pass.js",
+    "type": "svelte_import",
+    "source_category": "state"
+  },
+  {
+    "source": "src/editor-inline/playback-controller-state.ts",
+    "target": "src/editor-inline/playback-controller.js",
+    "type": "svelte_import",
+    "source_category": "state"
+  },
+  {
+    "source": "src/editor-inline/playback-controller-state.ts",
+    "target": "src/editor-inline/playback-model.js",
+    "type": "svelte_import",
+    "source_category": "state"
+  },
+  {
+    "source": "src/editor-inline/playback-controller-state.ts",
+    "target": "src/editor-inline/types.js",
+    "type": "svelte_import",
+    "source_category": "state"
+  },
+  {
+    "source": "src/editor-inline/playback-controller-state.ts",
+    "target": "src/editor-inline/viewport-actions.js",
+    "type": "svelte_import",
+    "source_category": "state"
+  },
+  {
+    "source": "src/editor-inline/playback-controller.ts",
+    "target": "src/editor-inline/audio-clock.js",
+    "type": "svelte_import",
+    "source_category": "logic"
+  },
+  {
+    "source": "src/editor-inline/playback-controller.ts",
+    "target": "src/editor-inline/field-state-store.js",
+    "type": "svelte_import",
+    "source_category": "logic"
+  },
+  {
+    "source": "src/editor-inline/playback-controller.ts",
+    "target": "src/editor-inline/field-state.js",
+    "type": "svelte_import",
+    "source_category": "logic"
+  },
+  {
+    "source": "src/editor-inline/playback-controller.ts",
+    "target": "src/editor-inline/graph-countdown-overlay.js",
+    "type": "svelte_import",
+    "source_category": "logic"
+  },
+  {
+    "source": "src/editor-inline/playback-controller.ts",
+    "target": "src/editor-inline/logger.js",
+    "type": "svelte_import",
+    "source_category": "logic"
+  },
+  {
+    "source": "src/editor-inline/playback-controller.ts",
+    "target": "src/editor-inline/playback-controller-audio.js",
+    "type": "svelte_import",
+    "source_category": "logic"
+  },
+  {
+    "source": "src/editor-inline/playback-controller.ts",
+    "target": "src/editor-inline/playback-controller-frame.js",
+    "type": "svelte_import",
+    "source_category": "logic"
+  },
+  {
+    "source": "src/editor-inline/playback-controller.ts",
+    "target": "src/editor-inline/playback-controller-pass.js",
+    "type": "svelte_import",
+    "source_category": "logic"
+  },
+  {
+    "source": "src/editor-inline/playback-controller.ts",
+    "target": "src/editor-inline/playback-controller-state.js",
+    "type": "svelte_import",
+    "source_category": "logic"
+  },
+  {
+    "source": "src/editor-inline/playback-controller.ts",
+    "target": "src/editor-inline/playback-model.js",
+    "type": "svelte_import",
+    "source_category": "logic"
+  },
+  {
+    "source": "src/editor-inline/playback-controller.ts",
+    "target": "src/editor-inline/playback-plan-state.js",
+    "type": "svelte_import",
+    "source_category": "logic"
+  },
+  {
+    "source": "src/editor-inline/playback-controller.ts",
+    "target": "src/editor-inline/types.js",
+    "type": "svelte_import",
+    "source_category": "logic"
+  },
+  {
+    "source": "src/editor-inline/playback-controller.ts",
+    "target": "src/editor-inline/viewport-actions.js",
+    "type": "svelte_import",
+    "source_category": "logic"
+  },
+  {
+    "source": "src/editor-inline/playback-controller.ts",
+    "target": "src/editor-inline/visualizer-renderer.js",
+    "type": "svelte_import",
+    "source_category": "logic"
+  },
+  {
+    "source": "src/editor-inline/playback-model.ts",
+    "target": "src/editor-inline/types.js",
+    "type": "svelte_import",
+    "source_category": "logic"
+  },
+  {
+    "source": "src/editor-inline/playback-plan-state.ts",
+    "target": "src/editor-inline/field-state-store.js",
+    "type": "svelte_import",
+    "source_category": "state"
+  },
+  {
+    "source": "src/editor-inline/playback-plan-state.ts",
+    "target": "src/editor-inline/playback-progress-clock.js",
+    "type": "svelte_import",
+    "source_category": "state"
+  },
+  {
+    "source": "src/editor-inline/playback-plan-state.ts",
+    "target": "src/editor-inline/types.js",
+    "type": "svelte_import",
+    "source_category": "state"
+  },
+  {
+    "source": "src/editor-inline/playback-plan-state.ts",
+    "target": "src/editor-inline/visualizer-renderer.js",
+    "type": "svelte_import",
+    "source_category": "state"
+  },
+  {
+    "source": "src/editor-inline/playback-state.ts",
+    "target": "src/editor-inline/playback-model.js",
+    "type": "svelte_import",
+    "source_category": "state"
+  },
+  {
+    "source": "src/editor-inline/playback-state.ts",
+    "target": "src/editor-inline/types.js",
+    "type": "svelte_import",
+    "source_category": "state"
+  },
+  {
+    "source": "src/editor-inline/plot.ts",
+    "target": "src/editor-inline/time-viewport.js",
+    "type": "svelte_import",
+    "source_category": "logic"
+  },
+  {
+    "source": "src/editor-inline/plot.ts",
+    "target": "src/editor-inline/types.js",
+    "type": "svelte_import",
+    "source_category": "logic"
+  },
+  {
+    "source": "src/editor-inline/post-edit-playback.ts",
+    "target": "src/editor-inline/bridge.js",
+    "type": "svelte_import",
+    "source_category": "logic"
+  },
+  {
+    "source": "src/editor-inline/post-edit-playback.ts",
+    "target": "src/editor-inline/dom-selectors.js",
+    "type": "svelte_import",
+    "source_category": "logic"
+  },
+  {
+    "source": "src/editor-inline/post-edit-playback.ts",
+    "target": "src/editor-inline/field-state-store.js",
+    "type": "svelte_import",
+    "source_category": "logic"
+  },
+  {
+    "source": "src/editor-inline/post-edit-playback.ts",
+    "target": "src/editor-inline/logger.js",
+    "type": "svelte_import",
+    "source_category": "logic"
+  },
+  {
+    "source": "src/editor-inline/post-edit-playback.ts",
+    "target": "src/editor-inline/types.js",
+    "type": "svelte_import",
+    "source_category": "logic"
+  },
+  {
+    "source": "src/editor-inline/recording-actions-lifecycle.ts",
+    "target": "src/editor-inline/bridge.js",
+    "type": "svelte_import",
+    "source_category": "logic"
+  },
+  {
+    "source": "src/editor-inline/recording-actions-lifecycle.ts",
+    "target": "src/editor-inline/dom-selectors.js",
+    "type": "svelte_import",
+    "source_category": "logic"
+  },
+  {
+    "source": "src/editor-inline/recording-actions-lifecycle.ts",
+    "target": "src/editor-inline/graph-countdown-overlay.js",
+    "type": "svelte_import",
+    "source_category": "logic"
+  },
+  {
+    "source": "src/editor-inline/recording-actions-lifecycle.ts",
+    "target": "src/editor-inline/graph-split-state.js",
+    "type": "svelte_import",
+    "source_category": "logic"
+  },
+  {
+    "source": "src/editor-inline/recording-actions-lifecycle.ts",
+    "target": "src/editor-inline/recording-actions-state.js",
+    "type": "svelte_import",
+    "source_category": "logic"
+  },
+  {
+    "source": "src/editor-inline/recording-actions-lifecycle.ts",
+    "target": "src/editor-inline/split-button-state.js",
+    "type": "svelte_import",
+    "source_category": "logic"
+  },
+  {
+    "source": "src/editor-inline/recording-actions-lifecycle.ts",
+    "target": "src/editor-inline/visualizer-renderer.js",
+    "type": "svelte_import",
+    "source_category": "logic"
+  },
+  {
+    "source": "src/editor-inline/recording-actions-state.ts",
+    "target": "src/editor-inline/dom-selectors.js",
+    "type": "svelte_import",
+    "source_category": "state"
+  },
+  {
+    "source": "src/editor-inline/recording-actions-state.ts",
+    "target": "src/editor-inline/field-state-store.js",
+    "type": "svelte_import",
+    "source_category": "state"
+  },
+  {
+    "source": "src/editor-inline/recording-actions-state.ts",
+    "target": "src/editor-inline/graph-countdown-overlay.js",
+    "type": "svelte_import",
+    "source_category": "state"
+  },
+  {
+    "source": "src/editor-inline/recording-actions-state.ts",
+    "target": "src/editor-inline/recording-state.js",
+    "type": "svelte_import",
+    "source_category": "state"
+  },
+  {
+    "source": "src/editor-inline/recording-actions-state.ts",
+    "target": "src/editor-inline/types.js",
+    "type": "svelte_import",
+    "source_category": "state"
+  },
+  {
+    "source": "src/editor-inline/recording-actions-state.ts",
+    "target": "src/editor-inline/viewport-actions.js",
+    "type": "svelte_import",
+    "source_category": "state"
+  },
+  {
+    "source": "src/editor-inline/recording-actions-state.ts",
+    "target": "src/editor-inline/visualizer-renderer.js",
+    "type": "svelte_import",
+    "source_category": "state"
+  },
+  {
+    "source": "src/editor-inline/recording-actions-state.ts",
+    "target": "src/editor-inline/visualizer-state.js",
+    "type": "svelte_import",
+    "source_category": "state"
+  },
+  {
+    "source": "src/editor-inline/recording-actions-state.ts",
+    "target": "src/lib/generated/contracts.js",
+    "type": "svelte_import",
+    "source_category": "state"
+  },
+  {
+    "source": "src/editor-inline/recording-actions-state.ts",
+    "target": "src/lib/i18n.js",
+    "type": "svelte_import",
+    "source_category": "state"
+  },
+  {
+    "source": "src/editor-inline/recording-actions-sync.ts",
+    "target": "src/editor-inline/dom-selectors.js",
+    "type": "svelte_import",
+    "source_category": "logic"
+  },
+  {
+    "source": "src/editor-inline/recording-actions-sync.ts",
+    "target": "src/editor-inline/recording-actions-state.js",
+    "type": "svelte_import",
+    "source_category": "logic"
+  },
+  {
+    "source": "src/editor-inline/recording-actions-sync.ts",
+    "target": "src/lib/disabled-tooltip.js",
+    "type": "svelte_import",
+    "source_category": "logic"
+  },
+  {
+    "source": "src/editor-inline/recording-actions-sync.ts",
+    "target": "src/lib/i18n.js",
+    "type": "svelte_import",
+    "source_category": "logic"
+  },
+  {
+    "source": "src/editor-inline/recording-actions-sync.ts",
+    "target": "src/lib/rich-tooltip.js",
+    "type": "svelte_import",
+    "source_category": "logic"
+  },
+  {
+    "source": "src/editor-inline/recording-actions.ts",
+    "target": "src/editor-inline/recording-actions-lifecycle.js",
+    "type": "svelte_import",
+    "source_category": "logic"
+  },
+  {
+    "source": "src/editor-inline/recording-actions.ts",
+    "target": "src/editor-inline/recording-actions-state.js",
+    "type": "svelte_import",
+    "source_category": "logic"
+  },
+  {
+    "source": "src/editor-inline/recording-actions.ts",
+    "target": "src/editor-inline/recording-actions-sync.js",
+    "type": "svelte_import",
+    "source_category": "logic"
+  },
+  {
+    "source": "src/editor-inline/recording-actions.ts",
+    "target": "src/editor-inline/recording-state.js",
+    "type": "svelte_import",
+    "source_category": "logic"
+  },
+  {
+    "source": "src/editor-inline/recording-actions.ts",
+    "target": "src/lib/generated/contracts.js",
+    "type": "svelte_import",
+    "source_category": "logic"
+  },
+  {
+    "source": "src/editor-inline/region-delete-state.ts",
+    "target": "src/editor-inline/dom-selectors.js",
+    "type": "svelte_import",
+    "source_category": "state"
+  },
+  {
+    "source": "src/editor-inline/region-delete-state.ts",
+    "target": "src/editor-inline/logger.js",
+    "type": "svelte_import",
+    "source_category": "state"
+  },
+  {
+    "source": "src/editor-inline/region-delete-state.ts",
+    "target": "src/editor-inline/playback-state.js",
+    "type": "svelte_import",
+    "source_category": "state"
+  },
+  {
+    "source": "src/editor-inline/region-delete-state.ts",
+    "target": "src/editor-inline/selection-controller.js",
+    "type": "svelte_import",
+    "source_category": "state"
+  },
+  {
+    "source": "src/editor-inline/region-delete-state.ts",
+    "target": "src/editor-inline/types.js",
+    "type": "svelte_import",
+    "source_category": "state"
+  },
+  {
+    "source": "src/editor-inline/region-delete-state.ts",
+    "target": "src/lib/disabled-tooltip.js",
+    "type": "svelte_import",
+    "source_category": "state"
+  },
+  {
+    "source": "src/editor-inline/region-delete-state.ts",
+    "target": "src/lib/i18n.js",
+    "type": "svelte_import",
+    "source_category": "state"
+  },
+  {
+    "source": "src/editor-inline/region-delete-state.ts",
+    "target": "src/lib/rich-tooltip.js",
+    "type": "svelte_import",
+    "source_category": "state"
+  },
+  {
+    "source": "src/editor-inline/region-delete.ts",
+    "target": "src/editor-inline/actions.js",
+    "type": "svelte_import",
+    "source_category": "logic"
+  },
+  {
+    "source": "src/editor-inline/region-delete.ts",
+    "target": "src/editor-inline/bridge.js",
+    "type": "svelte_import",
+    "source_category": "logic"
+  },
+  {
+    "source": "src/editor-inline/region-delete.ts",
+    "target": "src/editor-inline/commands.js",
+    "type": "svelte_import",
+    "source_category": "logic"
+  },
+  {
+    "source": "src/editor-inline/region-delete.ts",
+    "target": "src/editor-inline/dom-selectors.js",
+    "type": "svelte_import",
+    "source_category": "logic"
+  },
+  {
+    "source": "src/editor-inline/region-delete.ts",
+    "target": "src/editor-inline/logger.js",
+    "type": "svelte_import",
+    "source_category": "logic"
+  },
+  {
+    "source": "src/editor-inline/region-delete.ts",
+    "target": "src/editor-inline/post-edit-playback.js",
+    "type": "svelte_import",
+    "source_category": "logic"
+  },
+  {
+    "source": "src/editor-inline/region-delete.ts",
+    "target": "src/editor-inline/region-delete-state.js",
+    "type": "svelte_import",
+    "source_category": "logic"
+  },
+  {
+    "source": "src/editor-inline/region-delete.ts",
+    "target": "src/editor-inline/selection-toolbar-state.js",
+    "type": "svelte_import",
+    "source_category": "logic"
+  },
+  {
+    "source": "src/editor-inline/region-delete.ts",
+    "target": "src/editor-inline/types.js",
+    "type": "svelte_import",
+    "source_category": "logic"
+  },
+  {
+    "source": "src/editor-inline/reviewer-panel-trigger.ts",
+    "target": "src/editor-inline/dom-selectors.js",
+    "type": "svelte_import",
+    "source_category": "logic"
+  },
+  {
+    "source": "src/editor-inline/runtime.ts",
+    "target": "src/editor-inline/actions.js",
+    "type": "svelte_import",
+    "source_category": "logic"
+  },
+  {
+    "source": "src/editor-inline/runtime.ts",
+    "target": "src/editor-inline/default-graph-queue.js",
+    "type": "svelte_import",
+    "source_category": "logic"
+  },
+  {
+    "source": "src/editor-inline/runtime.ts",
+    "target": "src/editor-inline/field-controller.js",
+    "type": "svelte_import",
+    "source_category": "logic"
+  },
+  {
+    "source": "src/editor-inline/runtime.ts",
+    "target": "src/editor-inline/logger.js",
+    "type": "svelte_import",
+    "source_category": "logic"
+  },
+  {
+    "source": "src/editor-inline/runtime.ts",
+    "target": "src/editor-inline/reviewer-panel-trigger.js",
+    "type": "svelte_import",
+    "source_category": "logic"
+  },
+  {
+    "source": "src/editor-inline/runtime.ts",
+    "target": "src/editor-inline/sound-source.js",
+    "type": "svelte_import",
+    "source_category": "logic"
+  },
+  {
+    "source": "src/editor-inline/runtime.ts",
+    "target": "src/editor-inline/types.js",
+    "type": "svelte_import",
+    "source_category": "logic"
+  },
+  {
+    "source": "src/editor-inline/runtime.ts",
+    "target": "src/editor-inline/window-contract.js",
+    "type": "svelte_import",
+    "source_category": "logic"
+  },
+  {
+    "source": "src/editor-inline/runtime.ts",
+    "target": "src/lib/i18n.js",
+    "type": "svelte_import",
+    "source_category": "logic"
+  },
+  {
+    "source": "src/editor-inline/selection-controller.ts",
+    "target": "src/editor-inline/playback-state.js",
+    "type": "svelte_import",
+    "source_category": "logic"
+  },
+  {
+    "source": "src/editor-inline/selection-controller.ts",
+    "target": "src/editor-inline/selection-state.js",
+    "type": "svelte_import",
+    "source_category": "logic"
+  },
+  {
+    "source": "src/editor-inline/selection-controller.ts",
+    "target": "src/editor-inline/types.js",
+    "type": "svelte_import",
+    "source_category": "logic"
+  },
+  {
+    "source": "src/editor-inline/selection-controller.ts",
+    "target": "src/editor-inline/visualizer-selection-renderer.js",
+    "type": "svelte_import",
+    "source_category": "logic"
+  },
+  {
+    "source": "src/editor-inline/selection-controller.ts",
+    "target": "src/editor-inline/visualizer-state.js",
+    "type": "svelte_import",
+    "source_category": "logic"
+  },
+  {
+    "source": "src/editor-inline/selection-events.ts",
+    "target": "src/editor-inline/types.js",
+    "type": "svelte_import",
+    "source_category": "logic"
+  },
+  {
+    "source": "src/editor-inline/selection-gestures.ts",
+    "target": "src/editor-inline/gesture-session.js",
+    "type": "svelte_import",
+    "source_category": "logic"
+  },
+  {
+    "source": "src/editor-inline/selection-gestures.ts",
+    "target": "src/editor-inline/playback-state.js",
+    "type": "svelte_import",
+    "source_category": "logic"
+  },
+  {
+    "source": "src/editor-inline/selection-gestures.ts",
+    "target": "src/editor-inline/plot.js",
+    "type": "svelte_import",
+    "source_category": "logic"
+  },
+  {
+    "source": "src/editor-inline/selection-gestures.ts",
+    "target": "src/editor-inline/selection-state.js",
+    "type": "svelte_import",
+    "source_category": "logic"
+  },
+  {
+    "source": "src/editor-inline/selection-gestures.ts",
+    "target": "src/editor-inline/types.js",
+    "type": "svelte_import",
+    "source_category": "logic"
+  },
+  {
+    "source": "src/editor-inline/selection-gestures.ts",
+    "target": "src/editor-inline/visualizer-state.js",
+    "type": "svelte_import",
+    "source_category": "logic"
+  },
+  {
+    "source": "src/editor-inline/selection-marker-shift-state.ts",
+    "target": "src/editor-inline/chorusing-dom.js",
+    "type": "svelte_import",
+    "source_category": "state"
+  },
+  {
+    "source": "src/editor-inline/selection-marker-shift-state.ts",
+    "target": "src/editor-inline/field-state-store.js",
+    "type": "svelte_import",
+    "source_category": "state"
+  },
+  {
+    "source": "src/editor-inline/selection-marker-shift-state.ts",
+    "target": "src/editor-inline/selection-controller.js",
+    "type": "svelte_import",
+    "source_category": "state"
+  },
+  {
+    "source": "src/editor-inline/selection-marker-shift-state.ts",
+    "target": "src/editor-inline/selection-marker-shift.js",
+    "type": "svelte_import",
+    "source_category": "state"
+  },
+  {
+    "source": "src/editor-inline/selection-marker-shift-state.ts",
+    "target": "src/editor-inline/types.js",
+    "type": "svelte_import",
+    "source_category": "state"
+  },
+  {
+    "source": "src/editor-inline/selection-marker-shift-state.ts",
+    "target": "src/lib/disabled-tooltip.js",
+    "type": "svelte_import",
+    "source_category": "state"
+  },
+  {
+    "source": "src/editor-inline/selection-marker-shift-state.ts",
+    "target": "src/lib/i18n.js",
+    "type": "svelte_import",
+    "source_category": "state"
+  },
+  {
+    "source": "src/editor-inline/selection-marker-shift-state.ts",
+    "target": "src/lib/rich-tooltip.js",
+    "type": "svelte_import",
+    "source_category": "state"
+  },
+  {
+    "source": "src/editor-inline/selection-marker-shift.ts",
+    "target": "src/editor-inline/selection-state.js",
+    "type": "svelte_import",
+    "source_category": "logic"
+  },
+  {
+    "source": "src/editor-inline/selection-toolbar-state.ts",
+    "target": "src/editor-inline/dom-selectors.js",
+    "type": "svelte_import",
+    "source_category": "state"
+  },
+  {
+    "source": "src/editor-inline/selection-toolbar-state.ts",
+    "target": "src/editor-inline/field-state-store.js",
+    "type": "svelte_import",
+    "source_category": "state"
+  },
+  {
+    "source": "src/editor-inline/selection-toolbar-state.ts",
+    "target": "src/editor-inline/region-delete-state.js",
+    "type": "svelte_import",
+    "source_category": "state"
+  },
+  {
+    "source": "src/editor-inline/selection-toolbar-state.ts",
+    "target": "src/editor-inline/selection-controller.js",
+    "type": "svelte_import",
+    "source_category": "state"
+  },
+  {
+    "source": "src/editor-inline/selection-toolbar-state.ts",
+    "target": "src/editor-inline/types.js",
+    "type": "svelte_import",
+    "source_category": "state"
+  },
+  {
+    "source": "src/editor-inline/selection-toolbar-state.ts",
+    "target": "src/lib/disabled-tooltip.js",
+    "type": "svelte_import",
+    "source_category": "state"
+  },
+  {
+    "source": "src/editor-inline/selection-toolbar-state.ts",
+    "target": "src/lib/i18n.js",
+    "type": "svelte_import",
+    "source_category": "state"
+  },
+  {
+    "source": "src/editor-inline/selection-toolbar-state.ts",
+    "target": "src/lib/rich-tooltip.js",
+    "type": "svelte_import",
+    "source_category": "state"
+  },
+  {
+    "source": "src/editor-inline/size-reduction-field-state.ts",
+    "target": "src/editor-inline/size-reduction-split-state.js",
+    "type": "svelte_import",
+    "source_category": "state"
+  },
+  {
+    "source": "src/editor-inline/size-reduction-field-state.ts",
+    "target": "src/editor-inline/split-button-state.js",
+    "type": "svelte_import",
+    "source_category": "state"
+  },
+  {
+    "source": "src/editor-inline/size-reduction-field-state.ts",
+    "target": "src/editor-inline/types.js",
+    "type": "svelte_import",
+    "source_category": "state"
+  },
+  {
+    "source": "src/editor-inline/size-reduction-split-state.ts",
+    "target": "src/editor-inline/split-default-save-types.js",
+    "type": "svelte_import",
+    "source_category": "state"
+  },
+  {
+    "source": "src/editor-inline/size-reduction-split-state.ts",
+    "target": "src/editor-inline/types.js",
+    "type": "svelte_import",
+    "source_category": "state"
+  },
+  {
+    "source": "src/editor-inline/size-reduction-split-state.ts",
+    "target": "src/lib/size-reduction-parameters.js",
+    "type": "svelte_import",
+    "source_category": "state"
+  },
+  {
+    "source": "src/editor-inline/source-metadata-formatting.ts",
+    "target": "src/lib/i18n.js",
+    "type": "svelte_import",
+    "source_category": "logic"
+  },
+  {
+    "source": "src/editor-inline/source-metadata-formatting.ts",
+    "target": "src/lib/size-reduction-parameters.js",
+    "type": "svelte_import",
+    "source_category": "logic"
+  },
+  {
+    "source": "src/editor-inline/source-metadata-requests.ts",
+    "target": "src/editor-inline/bridge.js",
+    "type": "svelte_import",
+    "source_category": "logic"
+  },
+  {
+    "source": "src/editor-inline/source-metadata-requests.ts",
+    "target": "src/editor-inline/source-metadata-types.js",
+    "type": "svelte_import",
+    "source_category": "logic"
+  },
+  {
+    "source": "src/editor-inline/source-metadata-requests.ts",
+    "target": "src/lib/size-reduction-parameters.js",
+    "type": "svelte_import",
+    "source_category": "logic"
+  },
+  {
+    "source": "src/editor-inline/source-metadata-types.ts",
+    "target": "src/lib/size-reduction-parameters.js",
+    "type": "svelte_import",
+    "source_category": "types"
+  },
+  {
+    "source": "src/editor-inline/split-button-formatters.ts",
+    "target": "src/editor-inline/types.js",
+    "type": "svelte_import",
+    "source_category": "logic"
+  },
+  {
+    "source": "src/editor-inline/split-button-formatters.ts",
+    "target": "src/lib/i18n.js",
+    "type": "svelte_import",
+    "source_category": "logic"
+  },
+  {
+    "source": "src/editor-inline/split-button-presenter.ts",
+    "target": "src/editor-inline/graph-settings.js",
+    "type": "svelte_import",
+    "source_category": "logic"
+  },
+  {
+    "source": "src/editor-inline/split-button-presenter.ts",
+    "target": "src/editor-inline/graph-split-values.js",
+    "type": "svelte_import",
+    "source_category": "logic"
+  },
+  {
+    "source": "src/editor-inline/split-button-presenter.ts",
+    "target": "src/editor-inline/split-button-state.js",
+    "type": "svelte_import",
+    "source_category": "logic"
+  },
+  {
+    "source": "src/editor-inline/split-button-presenter.ts",
+    "target": "src/editor-inline/types.js",
+    "type": "svelte_import",
+    "source_category": "logic"
+  },
+  {
+    "source": "src/editor-inline/split-button-presenter.ts",
+    "target": "src/lib/i18n.js",
+    "type": "svelte_import",
+    "source_category": "logic"
+  },
+  {
+    "source": "src/editor-inline/split-button-state-behavior.ts",
+    "target": "src/editor-inline/graph-settings.js",
+    "type": "svelte_import",
+    "source_category": "state"
+  },
+  {
+    "source": "src/editor-inline/split-button-state-behavior.ts",
+    "target": "src/editor-inline/graph-split-state.js",
+    "type": "svelte_import",
+    "source_category": "state"
+  },
+  {
+    "source": "src/editor-inline/split-button-state-behavior.ts",
+    "target": "src/editor-inline/size-reduction-field-state.js",
+    "type": "svelte_import",
+    "source_category": "state"
+  },
+  {
+    "source": "src/editor-inline/split-button-state-behavior.ts",
+    "target": "src/editor-inline/split-button-state.js",
+    "type": "svelte_import",
+    "source_category": "state"
+  },
+  {
+    "source": "src/editor-inline/split-button-state-behavior.ts",
+    "target": "src/editor-inline/types.js",
+    "type": "svelte_import",
+    "source_category": "state"
+  },
+  {
+    "source": "src/editor-inline/split-button-state-commands.ts",
+    "target": "src/editor-inline/split-default-save-types.js",
+    "type": "svelte_import",
+    "source_category": "state"
+  },
+  {
+    "source": "src/editor-inline/split-button-state-commands.ts",
+    "target": "src/editor-inline/types.js",
+    "type": "svelte_import",
+    "source_category": "state"
+  },
+  {
+    "source": "src/editor-inline/split-button-state-core.ts",
+    "target": "src/editor-inline/graph-promoted-defaults.js",
+    "type": "svelte_import",
+    "source_category": "state"
+  },
+  {
+    "source": "src/editor-inline/split-button-state-core.ts",
+    "target": "src/editor-inline/graph-split-values.js",
+    "type": "svelte_import",
+    "source_category": "state"
+  },
+  {
+    "source": "src/editor-inline/split-button-state-core.ts",
+    "target": "src/editor-inline/pause-split-state.js",
+    "type": "svelte_import",
+    "source_category": "state"
+  },
+  {
+    "source": "src/editor-inline/split-button-state-core.ts",
+    "target": "src/editor-inline/size-reduction-split-state.js",
+    "type": "svelte_import",
+    "source_category": "state"
+  },
+  {
+    "source": "src/editor-inline/split-button-state-core.ts",
+    "target": "src/editor-inline/split-button-state-defaults.js",
+    "type": "svelte_import",
+    "source_category": "state"
+  },
+  {
+    "source": "src/editor-inline/split-button-state-core.ts",
+    "target": "src/editor-inline/split-default-save-types.js",
+    "type": "svelte_import",
+    "source_category": "state"
+  },
+  {
+    "source": "src/editor-inline/split-button-state-core.ts",
+    "target": "src/editor-inline/types.js",
+    "type": "svelte_import",
+    "source_category": "state"
+  },
+  {
+    "source": "src/editor-inline/split-button-state-core.ts",
+    "target": "src/lib/audio-operation-parameters.js",
+    "type": "svelte_import",
+    "source_category": "state"
+  },
+  {
+    "source": "src/editor-inline/split-button-state-defaults.ts",
+    "target": "src/editor-inline/graph-split-values.js",
+    "type": "svelte_import",
+    "source_category": "state"
+  },
+  {
+    "source": "src/editor-inline/split-button-state-defaults.ts",
+    "target": "src/editor-inline/types.js",
+    "type": "svelte_import",
+    "source_category": "state"
+  },
+  {
+    "source": "src/editor-inline/split-button-state-defaults.ts",
+    "target": "src/lib/audio-operation-parameters.js",
+    "type": "svelte_import",
+    "source_category": "state"
+  },
+  {
+    "source": "src/editor-inline/split-button-state-defaults.ts",
+    "target": "src/lib/i18n.js",
+    "type": "svelte_import",
+    "source_category": "state"
+  },
+  {
+    "source": "src/editor-inline/split-button-state-setters.ts",
+    "target": "src/editor-inline/pause-split-state.js",
+    "type": "svelte_import",
+    "source_category": "state"
+  },
+  {
+    "source": "src/editor-inline/split-button-state-setters.ts",
+    "target": "src/editor-inline/split-button-state-commands.js",
+    "type": "svelte_import",
+    "source_category": "state"
+  },
+  {
+    "source": "src/editor-inline/split-button-state-setters.ts",
+    "target": "src/editor-inline/split-button-state-core.js",
+    "type": "svelte_import",
+    "source_category": "state"
+  },
+  {
+    "source": "src/editor-inline/split-button-state-setters.ts",
+    "target": "src/editor-inline/split-button-state-defaults.js",
+    "type": "svelte_import",
+    "source_category": "state"
+  },
+  {
+    "source": "src/editor-inline/split-button-state-setters.ts",
+    "target": "src/editor-inline/split-default-save-types.js",
+    "type": "svelte_import",
+    "source_category": "state"
+  },
+  {
+    "source": "src/editor-inline/split-button-state-setters.ts",
+    "target": "src/editor-inline/types.js",
+    "type": "svelte_import",
+    "source_category": "state"
+  },
+  {
+    "source": "src/editor-inline/split-button-state-setters.ts",
+    "target": "src/lib/audio-operation-parameters.js",
+    "type": "svelte_import",
+    "source_category": "state"
+  },
+  {
+    "source": "src/editor-inline/split-button-state.ts",
+    "target": "src/editor-inline/split-button-formatters.js",
+    "type": "svelte_import",
+    "source_category": "state"
+  },
+  {
+    "source": "src/editor-inline/split-button-state.ts",
+    "target": "src/editor-inline/split-button-state-core.js",
+    "type": "svelte_import",
+    "source_category": "state"
+  },
+  {
+    "source": "src/editor-inline/split-button-state.ts",
+    "target": "src/editor-inline/split-button-state-defaults.js",
+    "type": "svelte_import",
+    "source_category": "state"
+  },
+  {
+    "source": "src/editor-inline/split-button-state.ts",
+    "target": "src/editor-inline/split-button-state-setters.js",
+    "type": "svelte_import",
+    "source_category": "state"
+  },
+  {
+    "source": "src/editor-inline/split-button-state.ts",
+    "target": "src/lib/audio-operation-parameters.js",
+    "type": "svelte_import",
+    "source_category": "state"
+  },
+  {
+    "source": "src/editor-inline/split-button-state.ts",
+    "target": "src/lib/size-reduction-parameters.js",
+    "type": "svelte_import",
+    "source_category": "state"
+  },
+  {
+    "source": "src/editor-inline/split-default-save-types.ts",
+    "target": "src/editor-inline/types.js",
+    "type": "svelte_import",
+    "source_category": "types"
+  },
+  {
+    "source": "src/editor-inline/split-menu-content.ts",
+    "target": "src/editor-inline/split-button-state.js",
+    "type": "svelte_import",
+    "source_category": "logic"
+  },
+  {
+    "source": "src/editor-inline/split-menu-content.ts",
+    "target": "src/editor-inline/types.js",
+    "type": "svelte_import",
+    "source_category": "logic"
+  },
+  {
+    "source": "src/editor-inline/split-menu-content.ts",
+    "target": "src/lib/audio-operation-parameters.js",
+    "type": "svelte_import",
+    "source_category": "logic"
+  },
+  {
+    "source": "src/editor-inline/split-menu-content.ts",
+    "target": "src/lib/audio-option-tooltips.js",
+    "type": "svelte_import",
+    "source_category": "logic"
+  },
+  {
+    "source": "src/editor-inline/split-menu-content.ts",
+    "target": "src/lib/editor-toolbar-buttons.js",
+    "type": "svelte_import",
+    "source_category": "logic"
+  },
+  {
+    "source": "src/editor-inline/split-menu-content.ts",
+    "target": "src/lib/i18n.js",
+    "type": "svelte_import",
+    "source_category": "logic"
+  },
+  {
+    "source": "src/editor-inline/split-menu-content.ts",
+    "target": "src/lib/product-links.js",
+    "type": "svelte_import",
+    "source_category": "logic"
+  },
+  {
+    "source": "src/editor-inline/test-contract.ts",
+    "target": "src/editor-inline/actions.js",
+    "type": "svelte_import",
+    "source_category": "logic"
+  },
+  {
+    "source": "src/editor-inline/test-contract.ts",
+    "target": "src/editor-inline/audio-clock.js",
+    "type": "svelte_import",
+    "source_category": "logic"
+  },
+  {
+    "source": "src/editor-inline/test-contract.ts",
+    "target": "src/editor-inline/chorusing-dom.js",
+    "type": "svelte_import",
+    "source_category": "logic"
+  },
+  {
+    "source": "src/editor-inline/test-contract.ts",
+    "target": "src/editor-inline/commands.js",
+    "type": "svelte_import",
+    "source_category": "logic"
+  },
+  {
+    "source": "src/editor-inline/test-contract.ts",
+    "target": "src/editor-inline/dom-selectors.js",
+    "type": "svelte_import",
+    "source_category": "logic"
+  },
+  {
+    "source": "src/editor-inline/test-contract.ts",
+    "target": "src/editor-inline/field-state-store.js",
+    "type": "svelte_import",
+    "source_category": "logic"
+  },
+  {
+    "source": "src/editor-inline/test-contract.ts",
+    "target": "src/editor-inline/plot.js",
+    "type": "svelte_import",
+    "source_category": "logic"
+  },
+  {
+    "source": "src/editor-inline/test-contract.ts",
+    "target": "src/editor-inline/types.js",
+    "type": "svelte_import",
+    "source_category": "logic"
+  },
+  {
+    "source": "src/editor-inline/test-contract.ts",
+    "target": "src/editor-inline/viewport-actions.js",
+    "type": "svelte_import",
+    "source_category": "logic"
+  },
+  {
+    "source": "src/editor-inline/test-contract.ts",
+    "target": "src/editor-inline/visualizer-state.js",
+    "type": "svelte_import",
+    "source_category": "logic"
+  },
+  {
+    "source": "src/editor-inline/types.ts",
+    "target": "src/editor-inline/editor-playback-types",
+    "type": "svelte_import",
+    "source_category": "types"
+  },
+  {
+    "source": "src/editor-inline/types.ts",
+    "target": "src/editor-inline/editor-runtime-types",
+    "type": "svelte_import",
+    "source_category": "types"
+  },
+  {
+    "source": "src/editor-inline/types.ts",
+    "target": "src/lib/generated/contracts.js",
+    "type": "svelte_import",
+    "source_category": "types"
+  },
+  {
+    "source": "src/editor-inline/viewport-actions.ts",
+    "target": "src/editor-inline/field-state-store.js",
+    "type": "svelte_import",
+    "source_category": "logic"
+  },
+  {
+    "source": "src/editor-inline/viewport-actions.ts",
+    "target": "src/editor-inline/time-viewport.js",
+    "type": "svelte_import",
+    "source_category": "logic"
+  },
+  {
+    "source": "src/editor-inline/viewport-actions.ts",
+    "target": "src/editor-inline/types.js",
+    "type": "svelte_import",
+    "source_category": "logic"
+  },
+  {
+    "source": "src/editor-inline/viewport-actions.ts",
+    "target": "src/editor-inline/visualizer-renderer.js",
+    "type": "svelte_import",
+    "source_category": "logic"
+  },
+  {
+    "source": "src/editor-inline/viewport-actions.ts",
+    "target": "src/editor-inline/visualizer-state.js",
+    "type": "svelte_import",
+    "source_category": "logic"
+  },
+  {
+    "source": "src/editor-inline/visualizer-renderer.ts",
+    "target": "src/editor-inline/field-state-store.js",
+    "type": "svelte_import",
+    "source_category": "logic"
+  },
+  {
+    "source": "src/editor-inline/visualizer-renderer.ts",
+    "target": "src/editor-inline/field-state.js",
+    "type": "svelte_import",
+    "source_category": "logic"
+  },
+  {
+    "source": "src/editor-inline/visualizer-renderer.ts",
+    "target": "src/editor-inline/plot.js",
+    "type": "svelte_import",
+    "source_category": "logic"
+  },
+  {
+    "source": "src/editor-inline/visualizer-renderer.ts",
+    "target": "src/editor-inline/selection-state.js",
+    "type": "svelte_import",
+    "source_category": "logic"
+  },
+  {
+    "source": "src/editor-inline/visualizer-renderer.ts",
+    "target": "src/editor-inline/time-viewport.js",
+    "type": "svelte_import",
+    "source_category": "logic"
+  },
+  {
+    "source": "src/editor-inline/visualizer-renderer.ts",
+    "target": "src/editor-inline/types.js",
+    "type": "svelte_import",
+    "source_category": "logic"
+  },
+  {
+    "source": "src/editor-inline/visualizer-renderer.ts",
+    "target": "src/editor-inline/visualizer-selection-renderer.js",
+    "type": "svelte_import",
+    "source_category": "logic"
+  },
+  {
+    "source": "src/editor-inline/visualizer-renderer.ts",
+    "target": "src/editor-inline/visualizer-state.js",
+    "type": "svelte_import",
+    "source_category": "logic"
+  },
+  {
+    "source": "src/editor-inline/visualizer-selection-renderer.ts",
+    "target": "src/editor-inline/playback-state.js",
+    "type": "svelte_import",
+    "source_category": "logic"
+  },
+  {
+    "source": "src/editor-inline/visualizer-selection-renderer.ts",
+    "target": "src/editor-inline/plot.js",
+    "type": "svelte_import",
+    "source_category": "logic"
+  },
+  {
+    "source": "src/editor-inline/visualizer-selection-renderer.ts",
+    "target": "src/editor-inline/time-viewport.js",
+    "type": "svelte_import",
+    "source_category": "logic"
+  },
+  {
+    "source": "src/editor-inline/visualizer-selection-renderer.ts",
+    "target": "src/editor-inline/types.js",
+    "type": "svelte_import",
+    "source_category": "logic"
+  },
+  {
+    "source": "src/editor-inline/visualizer-selection-renderer.ts",
+    "target": "src/editor-inline/visualizer-state.js",
+    "type": "svelte_import",
+    "source_category": "logic"
+  },
+  {
+    "source": "src/editor-inline/visualizer-state.ts",
+    "target": "src/editor-inline/field-state-store.js",
+    "type": "svelte_import",
+    "source_category": "state"
+  },
+  {
+    "source": "src/editor-inline/visualizer-state.ts",
+    "target": "src/editor-inline/playback-state.js",
+    "type": "svelte_import",
+    "source_category": "state"
+  },
+  {
+    "source": "src/editor-inline/visualizer-state.ts",
+    "target": "src/editor-inline/selection-state.js",
+    "type": "svelte_import",
+    "source_category": "state"
+  },
+  {
+    "source": "src/editor-inline/visualizer-state.ts",
+    "target": "src/editor-inline/time-viewport.js",
+    "type": "svelte_import",
+    "source_category": "state"
+  },
+  {
+    "source": "src/editor-inline/visualizer-state.ts",
+    "target": "src/editor-inline/types.js",
+    "type": "svelte_import",
+    "source_category": "state"
+  },
+  {
+    "source": "src/editor-inline/window-contract.ts",
+    "target": "src/editor-inline/actions.js",
+    "type": "svelte_import",
+    "source_category": "logic"
+  },
+  {
+    "source": "src/editor-inline/window-contract.ts",
+    "target": "src/editor-inline/bridge.js",
+    "type": "svelte_import",
+    "source_category": "logic"
+  },
+  {
+    "source": "src/editor-inline/window-contract.ts",
+    "target": "src/editor-inline/playback-actions.js",
+    "type": "svelte_import",
+    "source_category": "logic"
+  },
+  {
+    "source": "src/editor-inline/window-contract.ts",
+    "target": "src/editor-inline/recording-actions.js",
+    "type": "svelte_import",
+    "source_category": "logic"
+  },
+  {
+    "source": "src/editor-inline/window-contract.ts",
+    "target": "src/editor-inline/source-metadata-requests.js",
+    "type": "svelte_import",
+    "source_category": "logic"
+  },
+  {
+    "source": "src/editor-inline/window-contract.ts",
+    "target": "src/editor-inline/test-contract.js",
+    "type": "svelte_import",
+    "source_category": "logic"
+  },
+  {
+    "source": "src/editor-inline/zoom-actions.ts",
+    "target": "src/editor-inline/field-state-store.js",
+    "type": "svelte_import",
+    "source_category": "logic"
+  },
+  {
+    "source": "src/editor-inline/zoom-actions.ts",
+    "target": "src/editor-inline/plot.js",
+    "type": "svelte_import",
+    "source_category": "logic"
+  },
+  {
+    "source": "src/editor-inline/zoom-actions.ts",
+    "target": "src/editor-inline/selection-controller.js",
+    "type": "svelte_import",
+    "source_category": "logic"
+  },
+  {
+    "source": "src/editor-inline/zoom-actions.ts",
+    "target": "src/editor-inline/time-viewport.js",
+    "type": "svelte_import",
+    "source_category": "logic"
+  },
+  {
+    "source": "src/editor-inline/zoom-actions.ts",
+    "target": "src/editor-inline/types.js",
+    "type": "svelte_import",
+    "source_category": "logic"
+  },
+  {
+    "source": "src/editor-inline/zoom-actions.ts",
+    "target": "src/editor-inline/viewport-actions.js",
+    "type": "svelte_import",
+    "source_category": "logic"
+  },
+  {
+    "source": "src/editor-inline/zoom-actions.ts",
+    "target": "src/editor-inline/visualizer-state.js",
+    "type": "svelte_import",
+    "source_category": "logic"
+  },
+  {
+    "source": "src/lib/AqeTooltip.svelte",
+    "target": "src/lib/rich-tooltip.js",
+    "type": "svelte_import",
+    "source_category": "component"
+  },
+  {
+    "source": "src/lib/CommandIcon.svelte",
+    "target": "src/lib/icon-types.js",
+    "type": "svelte_import",
+    "source_category": "component"
+  },
+  {
+    "source": "src/lib/CommandIcon.svelte",
+    "target": "src/lib/icons/SelectionRemoveOutsideIcon.svelte",
+    "type": "svelte_import",
+    "source_category": "component"
+  },
+  {
+    "source": "src/lib/ErrorMessage.svelte",
+    "target": "src/lib/error-links.js",
+    "type": "svelte_import",
+    "source_category": "component"
+  },
+  {
+    "source": "src/lib/ErrorMessage.svelte",
+    "target": "src/lib/external-links.js",
+    "type": "svelte_import",
+    "source_category": "component"
+  },
+  {
+    "source": "src/lib/ErrorMessage.svelte",
+    "target": "src/lib/user-facing-error.js",
+    "type": "svelte_import",
+    "source_category": "component"
+  },
+  {
+    "source": "src/lib/FieldTooltipTarget.svelte",
+    "target": "src/lib/AqeTooltip.svelte",
+    "type": "svelte_import",
+    "source_category": "component"
+  },
+  {
+    "source": "src/lib/FieldTooltipTarget.svelte",
+    "target": "src/lib/disabled-tooltip.js",
+    "type": "svelte_import",
+    "source_category": "component"
+  },
+  {
+    "source": "src/lib/PauseAdvancedParamsFields.svelte",
+    "target": "src/lib/AqeTooltip.svelte",
+    "type": "svelte_import",
+    "source_category": "component"
+  },
+  {
+    "source": "src/lib/PauseAdvancedParamsFields.svelte",
+    "target": "src/lib/CommandIcon.svelte",
+    "type": "svelte_import",
+    "source_category": "component"
+  },
+  {
+    "source": "src/lib/PauseAdvancedParamsFields.svelte",
+    "target": "src/lib/FieldTooltipTarget.svelte",
+    "type": "svelte_import",
+    "source_category": "component"
+  },
+  {
+    "source": "src/lib/PauseAdvancedParamsFields.svelte",
+    "target": "src/lib/UnitNumberInput.svelte",
+    "type": "svelte_import",
+    "source_category": "component"
+  },
+  {
+    "source": "src/lib/PauseAdvancedParamsFields.svelte",
+    "target": "src/lib/audio-operation-parameters.js",
+    "type": "svelte_import",
+    "source_category": "component"
+  },
+  {
+    "source": "src/lib/PauseAdvancedParamsFields.svelte",
+    "target": "src/lib/i18n.js",
+    "type": "svelte_import",
+    "source_category": "component"
+  },
+  {
+    "source": "src/lib/SizeReductionAdvancedParamsFields.svelte",
+    "target": "src/lib/AqeTooltip.svelte",
+    "type": "svelte_import",
+    "source_category": "component"
+  },
+  {
+    "source": "src/lib/SizeReductionAdvancedParamsFields.svelte",
+    "target": "src/lib/CommandIcon.svelte",
+    "type": "svelte_import",
+    "source_category": "component"
+  },
+  {
+    "source": "src/lib/SizeReductionAdvancedParamsFields.svelte",
+    "target": "src/lib/FieldTooltipTarget.svelte",
+    "type": "svelte_import",
+    "source_category": "component"
+  },
+  {
+    "source": "src/lib/SizeReductionAdvancedParamsFields.svelte",
+    "target": "src/lib/UnitNumberInput.svelte",
+    "type": "svelte_import",
+    "source_category": "component"
+  },
+  {
+    "source": "src/lib/SizeReductionAdvancedParamsFields.svelte",
+    "target": "src/lib/i18n.js",
+    "type": "svelte_import",
+    "source_category": "component"
+  },
+  {
+    "source": "src/lib/SizeReductionAdvancedParamsFields.svelte",
+    "target": "src/lib/size-reduction-parameters.js",
+    "type": "svelte_import",
+    "source_category": "component"
+  },
+  {
+    "source": "src/lib/audio-operation-parameters.ts",
+    "target": "src/lib/i18n.js",
+    "type": "svelte_import",
+    "source_category": "logic"
+  },
+  {
+    "source": "src/lib/audio-option-tooltips.ts",
+    "target": "src/lib/i18n.js",
+    "type": "svelte_import",
+    "source_category": "logic"
+  },
+  {
+    "source": "src/lib/bridge.ts",
+    "target": "src/lib/bridge-transport.js",
+    "type": "svelte_import",
+    "source_category": "bridge"
+  },
+  {
+    "source": "src/lib/editor-toolbar-buttons.ts",
+    "target": "src/lib/audio-operation-parameters.js",
+    "type": "svelte_import",
+    "source_category": "logic"
+  },
+  {
+    "source": "src/lib/editor-toolbar-buttons.ts",
+    "target": "src/lib/editor-toolbar-defaults.js",
+    "type": "svelte_import",
+    "source_category": "logic"
+  },
+  {
+    "source": "src/lib/editor-toolbar-buttons.ts",
+    "target": "src/lib/i18n.js",
+    "type": "svelte_import",
+    "source_category": "logic"
+  },
+  {
+    "source": "src/lib/editor-toolbar-buttons.ts",
+    "target": "src/lib/icon-types.js",
+    "type": "svelte_import",
+    "source_category": "logic"
+  },
+  {
+    "source": "src/lib/editor-toolbar-buttons.ts",
+    "target": "src/lib/size-reduction-parameters.js",
+    "type": "svelte_import",
+    "source_category": "logic"
+  },
+  {
+    "source": "src/lib/editor-toolbar-buttons.ts",
+    "target": "src/lib/types.js",
+    "type": "svelte_import",
+    "source_category": "logic"
+  },
+  {
+    "source": "src/lib/editor-toolbar-command-slugs.ts",
+    "target": "src/lib/editor-toolbar-buttons.js",
+    "type": "svelte_import",
+    "source_category": "logic"
+  },
+  {
+    "source": "src/lib/editor-toolbar-defaults.ts",
+    "target": "src/lib/editor-toolbar-buttons.js",
+    "type": "svelte_import",
+    "source_category": "logic"
+  },
+  {
+    "source": "src/lib/editor-toolbar-defaults.ts",
+    "target": "src/lib/types.js",
+    "type": "svelte_import",
+    "source_category": "logic"
+  },
+  {
+    "source": "src/lib/editor-toolbar-panel-definitions.ts",
+    "target": "src/lib/editor-toolbar-buttons.js",
+    "type": "svelte_import",
+    "source_category": "logic"
+  },
+  {
+    "source": "src/lib/editor-toolbar-visibility.ts",
+    "target": "src/lib/editor-toolbar-buttons.js",
+    "type": "svelte_import",
+    "source_category": "logic"
+  },
+  {
+    "source": "src/lib/editor-toolbar-visibility.ts",
+    "target": "src/lib/editor-toolbar-command-slugs.js",
+    "type": "svelte_import",
+    "source_category": "logic"
+  },
+  {
+    "source": "src/lib/editor-toolbar-visibility.ts",
+    "target": "src/lib/editor-toolbar-panel-definitions.js",
+    "type": "svelte_import",
+    "source_category": "logic"
+  },
+  {
+    "source": "src/lib/editor-toolbar-visibility.ts",
+    "target": "src/lib/i18n.js",
+    "type": "svelte_import",
+    "source_category": "logic"
+  },
+  {
+    "source": "src/lib/editor-toolbar-visibility.ts",
+    "target": "src/lib/icon-types.js",
+    "type": "svelte_import",
+    "source_category": "logic"
+  },
+  {
+    "source": "src/lib/error-links.ts",
+    "target": "src/lib/product-links.js",
+    "type": "svelte_import",
+    "source_category": "logic"
+  },
+  {
+    "source": "src/lib/external-links.ts",
+    "target": "src/lib/bridge-transport.js",
+    "type": "svelte_import",
+    "source_category": "logic"
+  },
+  {
+    "source": "src/lib/graph-option-copy.ts",
+    "target": "src/lib/i18n.js",
+    "type": "svelte_import",
+    "source_category": "logic"
+  },
+  {
+    "source": "src/lib/logger.ts",
+    "target": "src/lib/bridge-transport.js",
+    "type": "svelte_import",
+    "source_category": "logic"
+  },
+  {
+    "source": "src/lib/logger.ts",
+    "target": "src/lib/generated/contracts.js",
+    "type": "svelte_import",
+    "source_category": "logic"
+  },
+  {
+    "source": "src/lib/settings-toolbar-buttons.ts",
+    "target": "src/lib/editor-toolbar-buttons.js",
+    "type": "svelte_import",
+    "source_category": "logic"
+  },
+  {
+    "source": "src/lib/settings-toolbar-buttons.ts",
+    "target": "src/lib/i18n.js",
+    "type": "svelte_import",
+    "source_category": "logic"
+  },
+  {
+    "source": "src/lib/size-reduction-parameters.ts",
+    "target": "src/lib/audio-operation-parameters.js",
+    "type": "svelte_import",
+    "source_category": "logic"
+  },
+  {
+    "source": "src/lib/types.ts",
+    "target": "src/lib/generated/contracts.js",
+    "type": "svelte_import",
+    "source_category": "types"
+  },
+  {
+    "source": "src/main.ts",
+    "target": "src/App.svelte",
+    "type": "svelte_import",
+    "source_category": "logic"
+  },
+  {
+    "source": "src/settings/ButtonSettingsCard.svelte",
+    "target": "src/lib/CommandIcon.svelte",
+    "type": "svelte_import",
+    "source_category": "component"
+  },
+  {
+    "source": "src/settings/ButtonSettingsCard.svelte",
+    "target": "src/lib/FieldTooltipTarget.svelte",
+    "type": "svelte_import",
+    "source_category": "component"
+  },
+  {
+    "source": "src/settings/ButtonSettingsCard.svelte",
+    "target": "src/lib/editor-toolbar-buttons.js",
+    "type": "svelte_import",
+    "source_category": "component"
+  },
+  {
+    "source": "src/settings/ButtonSettingsCard.svelte",
+    "target": "src/lib/i18n.js",
+    "type": "svelte_import",
+    "source_category": "component"
+  },
+  {
+    "source": "src/settings/ButtonSettingsCard.svelte",
+    "target": "src/lib/icon-types.js",
+    "type": "svelte_import",
+    "source_category": "component"
+  },
+  {
+    "source": "src/settings/ButtonSettingsCard.svelte",
+    "target": "src/lib/types.js",
+    "type": "svelte_import",
+    "source_category": "component"
+  },
+  {
+    "source": "src/settings/ButtonSettingsPanelControls.svelte",
+    "target": "src/lib/CommandIcon.svelte",
+    "type": "svelte_import",
+    "source_category": "component"
+  },
+  {
+    "source": "src/settings/ButtonSettingsPanelControls.svelte",
+    "target": "src/lib/FieldTooltipTarget.svelte",
+    "type": "svelte_import",
+    "source_category": "component"
+  },
+  {
+    "source": "src/settings/ButtonSettingsPanelControls.svelte",
+    "target": "src/lib/editor-toolbar-buttons.js",
+    "type": "svelte_import",
+    "source_category": "component"
+  },
+  {
+    "source": "src/settings/ButtonSettingsPanelControls.svelte",
+    "target": "src/lib/i18n.js",
+    "type": "svelte_import",
+    "source_category": "component"
+  },
+  {
+    "source": "src/settings/ButtonSettingsPanelControls.svelte",
+    "target": "src/lib/icon-types.js",
+    "type": "svelte_import",
+    "source_category": "component"
+  },
+  {
+    "source": "src/settings/ButtonSettingsPanelControls.svelte",
+    "target": "src/lib/types.js",
+    "type": "svelte_import",
+    "source_category": "component"
+  },
+  {
+    "source": "src/settings/DiagnosticsLinks.svelte",
+    "target": "src/lib/AqeTooltip.svelte",
+    "type": "svelte_import",
+    "source_category": "component"
+  },
+  {
+    "source": "src/settings/DiagnosticsLinks.svelte",
+    "target": "src/lib/ProductLinkIcon.svelte",
+    "type": "svelte_import",
+    "source_category": "component"
+  },
+  {
+    "source": "src/settings/DiagnosticsLinks.svelte",
+    "target": "src/lib/i18n.js",
+    "type": "svelte_import",
+    "source_category": "component"
+  },
+  {
+    "source": "src/settings/DiagnosticsLinks.svelte",
+    "target": "src/lib/product-links.js",
+    "type": "svelte_import",
+    "source_category": "component"
+  },
+  {
+    "source": "src/settings/DiagnosticsPanel.svelte",
+    "target": "src/lib/ErrorMessage.svelte",
+    "type": "svelte_import",
+    "source_category": "component"
+  },
+  {
+    "source": "src/settings/DiagnosticsPanel.svelte",
+    "target": "src/lib/i18n.js",
+    "type": "svelte_import",
+    "source_category": "component"
+  },
+  {
+    "source": "src/settings/DiagnosticsPanel.svelte",
+    "target": "src/lib/types.js",
+    "type": "svelte_import",
+    "source_category": "component"
+  },
+  {
+    "source": "src/settings/DiagnosticsPanel.svelte",
+    "target": "src/lib/user-facing-error.js",
+    "type": "svelte_import",
+    "source_category": "component"
+  },
+  {
+    "source": "src/settings/GeneralSettingsPanel.svelte",
+    "target": "src/lib/ErrorMessage.svelte",
+    "type": "svelte_import",
+    "source_category": "component"
+  },
+  {
+    "source": "src/settings/GeneralSettingsPanel.svelte",
+    "target": "src/lib/i18n.js",
+    "type": "svelte_import",
+    "source_category": "component"
+  },
+  {
+    "source": "src/settings/GeneralSettingsPanel.svelte",
+    "target": "src/lib/types.js",
+    "type": "svelte_import",
+    "source_category": "component"
+  },
+  {
+    "source": "src/settings/GeneralSettingsPanel.svelte",
+    "target": "src/lib/user-facing-error.js",
+    "type": "svelte_import",
+    "source_category": "component"
+  },
+  {
+    "source": "src/settings/GeneralSettingsPanel.svelte",
+    "target": "src/settings/ToolbarVisibilitySettings.svelte",
+    "type": "svelte_import",
+    "source_category": "component"
+  },
+  {
+    "source": "src/settings/GraphSettingsFields.svelte",
+    "target": "src/lib/AqeTooltip.svelte",
+    "type": "svelte_import",
+    "source_category": "component"
+  },
+  {
+    "source": "src/settings/GraphSettingsFields.svelte",
+    "target": "src/lib/CommandIcon.svelte",
+    "type": "svelte_import",
+    "source_category": "component"
+  },
+  {
+    "source": "src/settings/GraphSettingsFields.svelte",
+    "target": "src/lib/UnitNumberInput.svelte",
+    "type": "svelte_import",
+    "source_category": "component"
+  },
+  {
+    "source": "src/settings/GraphSettingsFields.svelte",
+    "target": "src/lib/graph-option-copy.js",
+    "type": "svelte_import",
+    "source_category": "component"
+  },
+  {
+    "source": "src/settings/GraphSettingsFields.svelte",
+    "target": "src/lib/i18n.js",
+    "type": "svelte_import",
+    "source_category": "component"
+  },
+  {
+    "source": "src/settings/GraphSettingsFields.svelte",
+    "target": "src/lib/types.js",
+    "type": "svelte_import",
+    "source_category": "component"
+  },
+  {
+    "source": "src/settings/GraphSettingsFields.svelte",
+    "target": "src/settings/SettingsChoiceGroup.svelte",
+    "type": "svelte_import",
+    "source_category": "component"
+  },
+  {
+    "source": "src/settings/OutputFormatField.svelte",
+    "target": "src/lib/CommandIcon.svelte",
+    "type": "svelte_import",
+    "source_category": "component"
+  },
+  {
+    "source": "src/settings/OutputFormatField.svelte",
+    "target": "src/lib/audio-operation-parameters.js",
+    "type": "svelte_import",
+    "source_category": "component"
+  },
+  {
+    "source": "src/settings/OutputFormatField.svelte",
+    "target": "src/lib/i18n.js",
+    "type": "svelte_import",
+    "source_category": "component"
+  },
+  {
+    "source": "src/settings/OutputFormatField.svelte",
+    "target": "src/lib/types.js",
+    "type": "svelte_import",
+    "source_category": "component"
+  },
+  {
+    "source": "src/settings/OutputFormatField.svelte",
+    "target": "src/settings/SettingsChoiceGroup.svelte",
+    "type": "svelte_import",
+    "source_category": "component"
+  },
+  {
+    "source": "src/settings/SettingsApp.svelte",
+    "target": "src/lib/AqeTooltipProvider.svelte",
+    "type": "svelte_import",
+    "source_category": "component"
+  },
+  {
+    "source": "src/settings/SettingsApp.svelte",
+    "target": "src/lib/ErrorMessage.svelte",
+    "type": "svelte_import",
+    "source_category": "component"
+  },
+  {
+    "source": "src/settings/SettingsApp.svelte",
+    "target": "src/lib/i18n.js",
+    "type": "svelte_import",
+    "source_category": "component"
+  },
+  {
+    "source": "src/settings/SettingsApp.svelte",
+    "target": "src/lib/logger.js",
+    "type": "svelte_import",
+    "source_category": "component"
+  },
+  {
+    "source": "src/settings/SettingsApp.svelte",
+    "target": "src/lib/types.js",
+    "type": "svelte_import",
+    "source_category": "component"
+  },
+  {
+    "source": "src/settings/SettingsApp.svelte",
+    "target": "src/lib/user-facing-error.js",
+    "type": "svelte_import",
+    "source_category": "component"
+  },
+  {
+    "source": "src/settings/SettingsApp.svelte",
+    "target": "src/settings/DiagnosticsLinks.svelte",
+    "type": "svelte_import",
+    "source_category": "component"
+  },
+  {
+    "source": "src/settings/SettingsApp.svelte",
+    "target": "src/settings/DiagnosticsPanel.svelte",
+    "type": "svelte_import",
+    "source_category": "component"
+  },
+  {
+    "source": "src/settings/SettingsApp.svelte",
+    "target": "src/settings/GeneralSettingsPanel.svelte",
+    "type": "svelte_import",
+    "source_category": "component"
+  },
+  {
+    "source": "src/settings/SettingsApp.svelte",
+    "target": "src/settings/SettingsFooter.svelte",
+    "type": "svelte_import",
+    "source_category": "component"
+  },
+  {
+    "source": "src/settings/SettingsApp.svelte",
+    "target": "src/settings/async-jobs.js",
+    "type": "svelte_import",
+    "source_category": "component"
+  },
+  {
+    "source": "src/settings/SettingsApp.svelte",
+    "target": "src/settings/bridge.js",
+    "type": "svelte_import",
+    "source_category": "component"
+  },
+  {
+    "source": "src/settings/SettingsApp.svelte",
+    "target": "src/settings/settings-state.js",
+    "type": "svelte_import",
+    "source_category": "component"
+  },
+  {
+    "source": "src/settings/SettingsChoiceGroup.svelte",
+    "target": "src/lib/FieldTooltipTarget.svelte",
+    "type": "svelte_import",
+    "source_category": "component"
+  },
+  {
+    "source": "src/settings/SettingsChoiceGroup.svelte",
+    "target": "src/lib/disabled-tooltip.js",
+    "type": "svelte_import",
+    "source_category": "component"
+  },
+  {
+    "source": "src/settings/SettingsFooter.svelte",
+    "target": "src/lib/i18n.js",
+    "type": "svelte_import",
+    "source_category": "component"
+  },
+  {
+    "source": "src/settings/SettingsHiddenWarning.svelte",
+    "target": "src/lib/i18n.js",
+    "type": "svelte_import",
+    "source_category": "component"
+  },
+  {
+    "source": "src/settings/SettingsHiddenWarning.svelte",
+    "target": "src/settings/assets/settings-hidden-warning.jpg?inline",
+    "type": "svelte_import",
+    "source_category": "component"
+  },
+  {
+    "source": "src/settings/SettingsSizeReductionFields.svelte",
+    "target": "src/lib/SizeReductionAdvancedParamsFields.svelte",
+    "type": "svelte_import",
+    "source_category": "component"
+  },
+  {
+    "source": "src/settings/SettingsSizeReductionFields.svelte",
+    "target": "src/lib/audio-option-tooltips.js",
+    "type": "svelte_import",
+    "source_category": "component"
+  },
+  {
+    "source": "src/settings/SettingsSizeReductionFields.svelte",
+    "target": "src/lib/i18n.js",
+    "type": "svelte_import",
+    "source_category": "component"
+  },
+  {
+    "source": "src/settings/SettingsSizeReductionFields.svelte",
+    "target": "src/lib/size-reduction-parameters.js",
+    "type": "svelte_import",
+    "source_category": "component"
+  },
+  {
+    "source": "src/settings/SettingsSizeReductionFields.svelte",
+    "target": "src/lib/types.js",
+    "type": "svelte_import",
+    "source_category": "component"
+  },
+  {
+    "source": "src/settings/SettingsSizeReductionFields.svelte",
+    "target": "src/settings/SettingsChoiceGroup.svelte",
+    "type": "svelte_import",
+    "source_category": "component"
+  },
+  {
+    "source": "src/settings/ToolbarPanelSettingsFields.svelte",
+    "target": "src/lib/PauseAdvancedParamsFields.svelte",
+    "type": "svelte_import",
+    "source_category": "component"
+  },
+  {
+    "source": "src/settings/ToolbarPanelSettingsFields.svelte",
+    "target": "src/lib/UnitNumberInput.svelte",
+    "type": "svelte_import",
+    "source_category": "component"
+  },
+  {
+    "source": "src/settings/ToolbarPanelSettingsFields.svelte",
+    "target": "src/lib/audio-operation-parameters.js",
+    "type": "svelte_import",
+    "source_category": "component"
+  },
+  {
+    "source": "src/settings/ToolbarPanelSettingsFields.svelte",
+    "target": "src/lib/audio-option-tooltips.js",
+    "type": "svelte_import",
+    "source_category": "component"
+  },
+  {
+    "source": "src/settings/ToolbarPanelSettingsFields.svelte",
+    "target": "src/lib/editor-toolbar-buttons.js",
+    "type": "svelte_import",
+    "source_category": "component"
+  },
+  {
+    "source": "src/settings/ToolbarPanelSettingsFields.svelte",
+    "target": "src/lib/i18n.js",
+    "type": "svelte_import",
+    "source_category": "component"
+  },
+  {
+    "source": "src/settings/ToolbarPanelSettingsFields.svelte",
+    "target": "src/lib/types.js",
+    "type": "svelte_import",
+    "source_category": "component"
+  },
+  {
+    "source": "src/settings/ToolbarPanelSettingsFields.svelte",
+    "target": "src/settings/GraphSettingsFields.svelte",
+    "type": "svelte_import",
+    "source_category": "component"
+  },
+  {
+    "source": "src/settings/ToolbarPanelSettingsFields.svelte",
+    "target": "src/settings/OutputFormatField.svelte",
+    "type": "svelte_import",
+    "source_category": "component"
+  },
+  {
+    "source": "src/settings/ToolbarPanelSettingsFields.svelte",
+    "target": "src/settings/SettingsChoiceGroup.svelte",
+    "type": "svelte_import",
+    "source_category": "component"
+  },
+  {
+    "source": "src/settings/ToolbarPanelSettingsFields.svelte",
+    "target": "src/settings/SettingsHiddenWarning.svelte",
+    "type": "svelte_import",
+    "source_category": "component"
+  },
+  {
+    "source": "src/settings/ToolbarPanelSettingsFields.svelte",
+    "target": "src/settings/SettingsSizeReductionFields.svelte",
+    "type": "svelte_import",
+    "source_category": "component"
+  },
+  {
+    "source": "src/settings/ToolbarVisibilitySettings.svelte",
+    "target": "src/lib/editor-toolbar-buttons.js",
+    "type": "svelte_import",
+    "source_category": "component"
+  },
+  {
+    "source": "src/settings/ToolbarVisibilitySettings.svelte",
+    "target": "src/lib/editor-toolbar-command-slugs.js",
+    "type": "svelte_import",
+    "source_category": "component"
+  },
+  {
+    "source": "src/settings/ToolbarVisibilitySettings.svelte",
+    "target": "src/lib/editor-toolbar-visibility.js",
+    "type": "svelte_import",
+    "source_category": "component"
+  },
+  {
+    "source": "src/settings/ToolbarVisibilitySettings.svelte",
+    "target": "src/lib/i18n.js",
+    "type": "svelte_import",
+    "source_category": "component"
+  },
+  {
+    "source": "src/settings/ToolbarVisibilitySettings.svelte",
+    "target": "src/lib/settings-toolbar-buttons.js",
+    "type": "svelte_import",
+    "source_category": "component"
+  },
+  {
+    "source": "src/settings/ToolbarVisibilitySettings.svelte",
+    "target": "src/lib/types.js",
+    "type": "svelte_import",
+    "source_category": "component"
+  },
+  {
+    "source": "src/settings/ToolbarVisibilitySettings.svelte",
+    "target": "src/settings/ButtonSettingsCard.svelte",
+    "type": "svelte_import",
+    "source_category": "component"
+  },
+  {
+    "source": "src/settings/ToolbarVisibilitySettings.svelte",
+    "target": "src/settings/ToolbarPanelSettingsFields.svelte",
+    "type": "svelte_import",
+    "source_category": "component"
+  },
+  {
+    "source": "src/settings/async-jobs.ts",
+    "target": "src/lib/types.js",
+    "type": "svelte_import",
+    "source_category": "logic"
+  },
+  {
+    "source": "src/settings/async-jobs.ts",
+    "target": "src/lib/user-facing-error.js",
+    "type": "svelte_import",
+    "source_category": "logic"
+  },
+  {
+    "source": "src/settings/async-jobs.ts",
+    "target": "src/settings/bridge.js",
+    "type": "svelte_import",
+    "source_category": "logic"
+  },
+  {
+    "source": "src/settings/bridge.ts",
+    "target": "src/lib/bridge-transport.js",
+    "type": "svelte_import",
+    "source_category": "bridge"
+  },
+  {
+    "source": "src/settings/bridge.ts",
+    "target": "src/lib/types.js",
+    "type": "svelte_import",
+    "source_category": "bridge"
+  },
+  {
+    "source": "src/settings/settings-state.ts",
+    "target": "src/lib/editor-toolbar-buttons.js",
+    "type": "svelte_import",
+    "source_category": "state"
+  },
+  {
+    "source": "src/settings/settings-state.ts",
+    "target": "src/lib/types.js",
+    "type": "svelte_import",
+    "source_category": "state"
+  },
+  {
+    "source": "anki_audio_quick_editor.editor_frontend",
+    "target": "settings_ui/src/editor-inline/",
+    "type": "bridge_python_to_js",
+    "protocol": "evalWithCallback → window.__aqe*"
+  },
+  {
+    "source": "anki_audio_quick_editor.editor_frontend.bridge",
+    "target": "settings_ui/src/editor-inline/",
+    "type": "bridge_python_to_js",
+    "protocol": "evalWithCallback → window.__aqe*"
+  },
+  {
+    "source": "anki_audio_quick_editor.editor_frontend.busy",
+    "target": "settings_ui/src/editor-inline/",
+    "type": "bridge_python_to_js",
+    "protocol": "evalWithCallback → window.__aqe*"
+  },
+  {
+    "source": "anki_audio_quick_editor.editor_frontend.playback",
+    "target": "settings_ui/src/editor-inline/",
+    "type": "bridge_python_to_js",
+    "protocol": "evalWithCallback → window.__aqe*"
+  },
+  {
+    "source": "anki_audio_quick_editor.editor_frontend.refresh",
+    "target": "settings_ui/src/editor-inline/",
+    "type": "bridge_python_to_js",
+    "protocol": "evalWithCallback → window.__aqe*"
+  },
+  {
+    "source": "anki_audio_quick_editor.editor_frontend.status",
+    "target": "settings_ui/src/editor-inline/",
+    "type": "bridge_python_to_js",
+    "protocol": "evalWithCallback → window.__aqe*"
+  },
+  {
+    "source": "anki_audio_quick_editor.editor_frontend.types",
+    "target": "settings_ui/src/editor-inline/",
+    "type": "bridge_python_to_js",
+    "protocol": "evalWithCallback → window.__aqe*"
+  },
+  {
+    "source": "anki_audio_quick_editor.editor_frontend_callbacks",
+    "target": "settings_ui/src/editor-inline/",
+    "type": "bridge_python_to_js",
+    "protocol": "evalWithCallback → window.__aqe*"
+  }
+]
