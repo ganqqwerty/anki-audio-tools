@@ -5,6 +5,8 @@ from __future__ import annotations
 import ast
 from pathlib import Path
 
+from tests.test_architecture.contracts import MODULE_CONTRACTS
+
 ROOT = Path(__file__).resolve().parent.parent.parent
 ADDON = ROOT / "addon" / "anki_audio_quick_editor"
 PKG = "anki_audio_quick_editor"
@@ -19,69 +21,64 @@ STDLIB: set[str] = {
     "warnings", "weakref", "contextlib", "urllib", "zipfile", "struct",
 }
 
+
+def _qualified_module_name(module_name: str) -> str:
+    if module_name == "__init__":
+        return PKG
+    return f"{PKG}.{module_name}"
+
+
 LAYERS: dict[str, str] = {
-    f"{PKG}": "entry_point",
+    _qualified_module_name(module_name): contract.layer.value
+    for module_name, contract in MODULE_CONTRACTS.items()
 }
 
-IMPORT_SAFE = [
-    "_version", "audio_artifacts", "audio_commands", "audio_commands_runtime",
-    "audio_deps", "audio_external", "audio_formats", "audio_operation_params",
-    "audio_operations", "audio_output_policy", "audio_pause_pipeline",
-    "audio_pause_pipeline_detection", "audio_pause_pipeline_stage",
-    "audio_pause_pipeline_steps", "audio_pitch_hum", "audio_pitch_hum_frames",
-    "audio_pitch_hum_synthesis", "audio_processor", "audio_rendering",
-    "audio_size_reduction", "audio_state", "audio_tools", "audio_types",
-    "audio_noise_reduction", "audio_noise_reduction_bundled",
-    "batch_operation_processing", "batch_operation_types",
-    "batch_operations", "batch_operations_helpers",
-    "config_migration", "config", "config.schema",
-    "contracts_generated", "diagnostics", "diagnostics_runtime",
-    "diagnostics_runtime_json", "diagnostics_runtime_storage",
-    "editor_actions", "editor_button_visibility", "editor_media",
-    "editor_session", "editor_ui", "editor_settings_actions",
-    "error_codes", "errors", "external_links", "file_reveal",
-    "file_sharing", "frontend_logs", "i18n", "media_paths",
-    "persistent_history", "prosody_analyzer", "prosody_cache",
-    "prosody_fallback", "prosody_praat", "prosody_settings",
-    "prosody_svg", "prosody_types", "runtime_install", "runtime_manager",
-    "runtime_manifest", "runtime_status", "settings_state",
-    "sound_refs", "support", "support_reporting",
-    "webview_bridge", "webview_shell",
-]
 
-UI_ADAPTERS = [
-    "audio_recording", "browser_batch_runner", "browser_dialog",
-    "browser_dialog_state", "browser_integration", "browser_report",
-    "editor_analysis", "editor_bridge", "editor_callbacks",
-    "editor_conversion", "editor_dependencies", "editor_frontend",
-    "editor_frontend_callbacks", "editor_history", "editor_integration",
-    "editor_persistent_undo", "editor_playback", "editor_playback_bounds",
-    "editor_playback_request", "editor_processing", "editor_recording",
-    "editor_recording_analysis", "editor_recording_frontend",
-    "editor_recording_requests", "editor_region_delete",
-    "editor_region_delete_request", "editor_region_delete_worker",
-    "editor_reload_status", "editor_runtime", "editor_sharing",
-    "editor_source_metadata", "editor_special_transforms",
-    "editor_split_defaults", "editor_status", "editor_webview_injection",
-    "reviewer_audio_targets", "reviewer_integration",
-    "reviewer_template_filter", "reviewer_template_filter_integration",
-    "runtime_installer_dialog",
-]
+def _resolve_relative_import(import_name: str, source_path: Path) -> str:
+    level = len(import_name) - len(import_name.lstrip("."))
+    module_part = import_name.lstrip(".")
+    package_parts = list(source_path.relative_to(ADDON).parts[:-1])
+    remaining = max(0, len(package_parts) - (level - 1))
+    prefix_parts = package_parts[:remaining]
+    short_parts = prefix_parts + ([*module_part.split(".")] if module_part else [])
+    short_name = ".".join(part for part in short_parts if part)
+    if not short_name:
+        return PKG
+    return f"{PKG}.{short_name}"
 
-SETTINGS_SHELL = ["settings"]
-SETTINGS_BACKEND = [
-    "settings.async_commands", "settings.async_operations",
-    "settings.commands", "settings.initial_state",
-]
 
-for m in IMPORT_SAFE:
-    LAYERS.setdefault(f"{PKG}.{m}", "import_safe_core")
-for m in UI_ADAPTERS:
-    LAYERS.setdefault(f"{PKG}.{m}", "ui_adapter")
-for m in SETTINGS_SHELL:
-    LAYERS.setdefault(f"{PKG}.{m}", "settings_shell")
-for m in SETTINGS_BACKEND:
-    LAYERS.setdefault(f"{PKG}.{m}", "settings_backend")
+def _is_type_checking_guard(node: ast.AST) -> bool:
+    if not isinstance(node, ast.If):
+        return False
+    test = node.test
+    if isinstance(test, ast.Name) and test.id == "TYPE_CHECKING":
+        return True
+    return (
+        isinstance(test, ast.Attribute)
+        and test.attr == "TYPE_CHECKING"
+        and isinstance(test.value, ast.Name)
+        and test.value.id == "typing"
+    )
+
+
+def _iter_import_nodes(nodes: list[ast.stmt]) -> list[ast.Import | ast.ImportFrom]:
+    imports: list[ast.Import | ast.ImportFrom] = []
+    for node in nodes:
+        if isinstance(node, (ast.Import, ast.ImportFrom)):
+            imports.append(node)
+        elif isinstance(node, ast.If):
+            if not _is_type_checking_guard(node):
+                imports.extend(_iter_import_nodes(node.body))
+                imports.extend(_iter_import_nodes(node.orelse))
+        elif isinstance(node, ast.Try):
+            imports.extend(_iter_import_nodes(node.body))
+            for handler in node.handlers:
+                imports.extend(_iter_import_nodes(handler.body))
+            imports.extend(_iter_import_nodes(node.orelse))
+            imports.extend(_iter_import_nodes(node.finalbody))
+        elif isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)):
+            imports.extend(_iter_import_nodes(node.body))
+    return imports
 
 
 def _collect_imports(py_file: Path) -> dict[str, list[str]]:
@@ -99,7 +96,7 @@ def _collect_imports(py_file: Path) -> dict[str, list[str]]:
     stdlib_imports: list[str] = []
     third_party: list[str] = []
 
-    for node in ast.walk(tree):
+    for node in _iter_import_nodes(tree.body):
         if isinstance(node, ast.Import):
             for alias in node.names:
                 name = alias.name.split(".")[0]
@@ -112,19 +109,26 @@ def _collect_imports(py_file: Path) -> dict[str, list[str]]:
                 else:
                     third_party.append(alias.name)
         elif isinstance(node, ast.ImportFrom):
-            if node.module:
-                name = node.module.split(".")[0]
-                full = node.module + (f".{node.names[0].name}" if node.names and node.names[0].name != "*" else "")
-                if name in STDLIB:
-                    stdlib_imports.append(node.module)
-                elif name.startswith(ANKI_PREFIXES) or (node.level > 0):
-                    anki_imports.append(full)
-                elif name == PKG.split(".", maxsplit=1)[0] or name == PKG:
-                    addon_imports.append(full)
-                elif node.level > 0:
-                    stdlib_imports.append(node.module)  # relative internal
+            if node.level > 0:
+                module_part = node.module or ""
+                if module_part:
+                    addon_imports.append(_resolve_relative_import("." * node.level + module_part, py_file))
                 else:
-                    third_party.append(node.module)
+                    for alias in node.names:
+                        if alias.name != "*":
+                            addon_imports.append(_resolve_relative_import("." * node.level + alias.name, py_file))
+                continue
+            if not node.module:
+                continue
+            name = node.module.split(".")[0]
+            if name in STDLIB:
+                stdlib_imports.append(node.module)
+            elif name.startswith(ANKI_PREFIXES):
+                anki_imports.append(node.module)
+            elif name == PKG.split(".", maxsplit=1)[0] or name == PKG:
+                addon_imports.append(node.module)
+            else:
+                third_party.append(node.module)
 
     return {
         "anki": sorted(set(anki_imports)),
@@ -169,10 +173,11 @@ def _module_summary(py_file: Path) -> str:
 def _build_python_catalog() -> list[dict]:
     modules = []
     for py_file in sorted(ADDON.rglob("*.py")):
-        if py_file.name.startswith("_") and py_file.name != "__init__.py":
+        if py_file.name.startswith("_") and py_file.name not in {"__init__.py", "_version.py"}:
             continue
         name = _module_name(py_file)
-        if "user_files" in name or "vendor" in name or "bin" in name:
+        rel_parts = py_file.relative_to(ADDON).parts
+        if any(part in {"user_files", "vendor", "bin"} for part in rel_parts):
             continue
         if "templates" in name:
             continue

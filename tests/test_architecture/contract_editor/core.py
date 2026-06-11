@@ -48,6 +48,6 @@ CORE_EDITOR_CONTRACTS: dict[str, ModuleContract] = {
     "editor_media_replacement": contract(
         "editor_media_replacement",
         layer=Layer.IMPORT_SAFE_CORE,
-        allowed_addon_deps=("errors", "sound_refs"),
+        allowed_addon_deps=("errors", "media_paths", "sound_refs"),
     ),
 }

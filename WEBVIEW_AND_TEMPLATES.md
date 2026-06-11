@@ -4,12 +4,13 @@
 
 The frontend source builds three generated webview bundles:
 
-- settings source: `settings_ui/src/App.svelte`, `settings_ui/src/main.ts`, and shared `settings_ui/src/lib/`
-- output: `addon/anki_audio_quick_editor/templates/settings/settings_bundle.{js,css}`
-- inline editor source: `settings_ui/src/editor-inline/` and shared `settings_ui/src/lib/`
-- output: `addon/anki_audio_quick_editor/templates/editor/editor_bundle.{js,css}`
-- Browser batch operations source: `settings_ui/src/batch/` and shared `settings_ui/src/lib/`
-- output: `addon/anki_audio_quick_editor/templates/batch/batch_bundle.{js,css}`
+| Surface | Source entry/root | Generated runtime bundle |
+|---------|-------------------|--------------------------|
+| Settings dialog | `settings_ui/src/main.ts` -> `settings_ui/src/settings/SettingsApp.svelte` | `addon/anki_audio_quick_editor/templates/settings/settings_bundle.{js,css}` |
+| Inline editor controls | `settings_ui/src/editor-inline/main.ts` -> `settings_ui/src/editor-inline/EditorControls.svelte` | `addon/anki_audio_quick_editor/templates/editor/editor_bundle.{js,css}` |
+| Browser batch dialog | `settings_ui/src/batch/main.ts` -> `settings_ui/src/batch/BatchApp.svelte` | `addon/anki_audio_quick_editor/templates/batch/batch_bundle.{js,css}` |
+
+Reviewer audio controls reuse the inline editor bundle rather than owning a separate generated template.
 
 Rebuild it with:
 
@@ -38,6 +39,12 @@ Generated contract files are ignored by git. Regenerate them with `python3 scrip
 The direct e2e pytest fixture auto-builds missing generated runtime artifacts before it copies the add-on into the temporary numeric package. That prevents startup failures when `contracts_generated.py` or committed template bundles are absent locally. It is only a missing-file recovery path: stale bundles can still make direct `pytest e2e/...` disagree with current `settings_ui/src/**` edits, so `python3 scripts/dev.py test-e2e` remains the canonical command after frontend changes.
 
 Config schema changes usually have several consumers. When adding, renaming, or removing a config key, update the source schema and generated contracts together with the committed default config, Python config migration tests, settings initial-state fixtures, Svelte settings fixtures, and e2e default-config helpers. Run `python3 scripts/dev.py config-schema`, `python3 scripts/dev.py contracts-generate`, and `python3 scripts/dev.py contracts-check` before relying on frontend or e2e results.
+
+## WebView Architecture Sources
+
+Run `python3 scripts/dev.py graphs-archive` before updating WebView architecture prose. The generated `webview-injection.json` records the stable mapping from Anki hooks to Python entrypoints, bridge dispatchers, frontend entries, and generated bundles. `bridge-commands.json` records command context and protocol shape without making this document duplicate the command registry.
+
+Use the archive to understand connections, then point readers back to source and tests for exact behavior. The generated files explain what currently connects; bridge sync tests and generated communication contracts explain what must remain valid.
 
 ## Bridge Rules
 

@@ -1,5 +1,9 @@
 import { sendCommandPayload } from "./bridge.js";
 import { allControls, visualizerForOrd } from "./dom-selectors.js";
+import {
+  editorRuntimeConfig,
+  repeatPlaybackByDefault as configRepeatPlaybackByDefault,
+} from "./editor-runtime-config.js";
 import { logger } from "./logger.js";
 import { readFieldState } from "./field-state-store.js";
 import type { EditorCommandPayload, PostEditPlaybackIntent } from "./types.js";
@@ -25,7 +29,7 @@ export function consumePostEditPlaybackIntent(ord: number): PostEditPlaybackInte
 }
 
 export function notifyPostEditPlaybackReady(ord: number, sourceFilename: string): void {
-  const pending = window.__AQE_EDITOR_CONFIG__?.pendingPostEditPlayback;
+  const pending = editorRuntimeConfig().pendingPostEditPlayback;
   if (!pending || pending.fieldOrd !== ord) return;
   if (pending.sourceFilename && pending.sourceFilename !== sourceFilename) {
     logger.warn("post-edit playback ready deferred: source mismatch", postEditPlaybackDiagnosticContext(ord, sourceFilename));
@@ -48,7 +52,7 @@ export function notifyPostEditPlaybackReady(ord: number, sourceFilename: string)
 }
 
 function postEditPlaybackGraphReady(ord: number, sourceFilename: string): boolean {
-  const pending = window.__AQE_EDITOR_CONFIG__?.pendingPostEditPlayback;
+  const pending = editorRuntimeConfig().pendingPostEditPlayback;
   if (!pending?.requireGraphRedraw) return true;
   const sourceToMatch = pending.sourceFilename || sourceFilename;
   const visualizer = visualizerForOrd(ord);
@@ -68,7 +72,7 @@ export function notifyMountedPostEditPlaybackReady(): void {
 }
 
 function postEditPlaybackDiagnosticContext(ord: number, sourceFilename: string): Record<string, unknown> {
-  const pending = window.__AQE_EDITOR_CONFIG__?.pendingPostEditPlayback;
+  const pending = editorRuntimeConfig().pendingPostEditPlayback;
   const visualizer = visualizerForOrd(ord);
   const s = visualizer ? readFieldState(ord) : null;
   return {
@@ -111,5 +115,5 @@ function normalizedRepeatPauseSeconds(value: number): number {
 }
 
 function repeatDefaultFromConfig(): boolean {
-  return window.__AQE_EDITOR_CONFIG__?.repeatPlaybackByDefault === true;
+  return configRepeatPlaybackByDefault(editorRuntimeConfig());
 }

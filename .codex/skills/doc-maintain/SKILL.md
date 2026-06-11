@@ -11,13 +11,21 @@ Use this skill after major refactors, module renames, config schema changes, hoo
 
 ## Ground Truth To Collect
 
-- `addon/anki_short_story/*.py` and `addon/anki_short_story/settings/*.py`
+- `addon/anki_audio_quick_editor/*.py`
+- `addon/anki_audio_quick_editor/settings/*.py`
 - `tests/*.py`
-- `tests/test_architecture/*.py`
+- `tests/test_architecture/**/*.py`
 - `settings_ui/tests/**/*.ts`
-- Top-level keys and nested structure of `addon/anki_short_story/config.json`
+- `settings_ui/tests/**/*.svelte`
+- Top-level keys and nested structure of `addon/anki_audio_quick_editor/config.json`
 - Import-linter contract names from `pyproject.toml`
 - Layer sets from `tests/test_architecture/conftest.py`
+- Fresh architecture archive from `python3 scripts/dev.py graphs-archive`, especially:
+  - `docs/archive/architecture_diagrams/YYYY-MM-DD/index.json`
+  - `architecture-layers.json`
+  - `relationships.json`
+  - `webview-injection.json`
+  - `bridge-commands.json`
 
 ## What To Sync
 
@@ -34,6 +42,7 @@ Use this skill after major refactors, module renames, config schema changes, hoo
 - Module responsibilities
 - Config structure
 - Hooks registered in `__init__.py`
+- Architecture graph/archive pointers and how to use them
 - Import-linter contracts table
 - Layer classification table
 - AST rules table
@@ -56,26 +65,31 @@ Use this skill after major refactors, module renames, config schema changes, hoo
 ### `WEBVIEW_AND_TEMPLATES.md`
 
 - Template file list
-- Story generator architecture, entry points, and dialog class names
+- Settings, inline editor, Browser batch, and reviewer WebView entry points
+- Bridge protocols and generated bundle paths
 - Shared Bits UI tooltip guidance for live settings/editor UI, including the rule to avoid native `title`/SVG `<title>` tooltips
 
 ### `DEVELOPMENT.md`
 
 - Two-Python paths
-- `DEV_DEPS` sync between `scripts/dev.py` and `pyproject.toml`
+- `DEV_DEPS` sync between `scripts/dev_tasks/setup.py` and `pyproject.toml`
 - Vendored package list
 - Svelte dependency names
 
 ## Workflow
 
 1. Inventory the codebase to gather the current truth.
-2. Diff docs against the current code and config.
-3. Make targeted updates instead of broad rewrites.
-4. Verify tool config sync:
+2. Run `python3 scripts/dev.py graphs-archive`.
+   - Use the generated archive to understand module, bridge, webview, and layer relationships.
+   - Treat executable contracts and tests as the source of truth when they disagree with generated archive categorization.
+   - Run `python3 scripts/dev.py graphs-all` or `python3 scripts/dev.py graphs-check` when the committed human-readable diagrams in `docs/graphs/` may be stale.
+3. Diff docs against the current code, tests, config, and graph archive.
+4. Make targeted updates instead of broad rewrites. Prefer principle-level explanations, stable source-of-truth pointers, and WHY over duplicated module/function lists.
+5. Verify tool config sync:
    - `vulture_whitelist.py` covers hook callbacks and fixtures flagged by vulture
    - `pyproject.toml [tool.bandit] skips` still matches assertion patterns in code
-   - `scripts/dev.py` `DEV_DEPS` matches `[dependency-groups] dev` in `pyproject.toml`
-5. Grep for stale patterns before finishing.
+   - `scripts/dev_tasks/setup.py` `DEV_DEPS` matches `[dependency-groups] dev` in `pyproject.toml`
+6. Grep for stale patterns before finishing.
 
 ## Known Stale Patterns
 
@@ -85,7 +99,7 @@ Use this skill after major refactors, module renames, config schema changes, hoo
 - Deleted tab module names: `ai_tab`, `fields_tab`, `params_tab`, `tweaks_tab`, `tts_tab`, `fields_autodetect`, `autodetect_dialog`
 - `"period"` as a config key
 - Old contract names: `pure-and-bridge-no-upper-layers`, `bridge-py-no-sibling-tabs`
-- `setModal(True)` or claims that the dialog is modal
+- Claims that `SettingsDialog` is modal
 - Large duplicated guidance blocks in `CLAUDE.md` instead of a pointer to `AGENTS.md`
 
 ## Reporting

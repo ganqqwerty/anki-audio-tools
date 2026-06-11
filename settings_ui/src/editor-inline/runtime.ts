@@ -17,6 +17,10 @@ import {
     installReviewerPanelTriggers,
     reviewTargetIsOpen,
 } from "./reviewer-panel-trigger.js";
+import {
+    editorRuntimeConfig,
+    setEditorRuntimeConfig,
+} from "./editor-runtime-config.js";
 import {audioSourceForNode} from "./sound-source.js";
 import type {EditorRuntimeConfig, FieldTarget} from "./types.js";
 import {installEditorWindowContract} from "./window-contract.js";
@@ -26,9 +30,9 @@ let globalErrorHandlersInstalled = false;
 
 export {audioSourceForNode} from "./sound-source.js";
 
-export function initializeEditorRuntime(config: EditorRuntimeConfig = window.__AQE_EDITOR_CONFIG__ ?? {audioFieldIndices: []}): void {
+export function initializeEditorRuntime(config: EditorRuntimeConfig = editorRuntimeConfig()): void {
     disposeEditorRuntime();
-    window.__AQE_EDITOR_CONFIG__ = config;
+    setEditorRuntimeConfig(config);
     configureI18n(config.locale, config.direction, config.messages);
     installGlobalErrorHandlers();
     installEditorWindowContract();
@@ -71,7 +75,7 @@ export function disposeEditorRuntime(): void {
     disposeAllControllers();
 }
 
-export function scan(config: EditorRuntimeConfig = window.__AQE_EDITOR_CONFIG__ ?? {audioFieldIndices: []}): void {
+export function scan(config: EditorRuntimeConfig = editorRuntimeConfig()): void {
     const reviewTargets = reviewFieldTargets();
     installReviewerPanelTriggers(() => scan(config));
     if (reviewTargets.length) {

@@ -37,3 +37,4 @@ class RegionDeleteDeps(Protocol):
     stop_session_playback: Callable[[Any], None]
     temp_final_path: Callable[[str], Path]
     threading: Any
+    write_generated_media: Callable[[Any, str, Path], str]

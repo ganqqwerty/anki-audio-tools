@@ -4,11 +4,13 @@ Audio Quick Editor config lives in [`addon/anki_audio_quick_editor/config.json`]
 
 ## Fields
 
-Fields are explained in the schema and should not be druplicated here. When a new key is added, make sure not to have contracts too liberal, and restrict datatypes where needed.
+Fields are explained in the schema and should not be duplicated here. The schema is the durable source of truth because it is executable: `python3 scripts/dev.py config-schema` validates the committed defaults, and generated Python/TypeScript contracts consume the same shapes where config crosses WebView boundaries.
+
+When a new key is added, keep the contract narrow enough to reject invalid persisted values. Prefer enums, numeric ranges, and explicit object shapes over broad `string`, `number`, or free-form object contracts unless the runtime genuinely accepts arbitrary data.
 
 ## Access Pattern
 
-Read config through `mw.addonManager.getConfig(addon_id)` in Anki-facing modules. Merge defaults through `config_migration.migrate_config()` during startup.
+Read config through `mw.addonManager.getConfig(addon_id)` in Anki-facing modules. Merge defaults through `config_migration.migrate_config()` during startup so old user `meta.json` files get normalized before runtime code consumes them.
 
 Pause shortening has one persisted detector choice plus algorithm-specific advanced parameter defaults. The user-facing `pause_aggressiveness` value is a preset layer over those advanced values; Settings, editor quick settings, and Browser Bulk can also send operation-local active values as `pause_threshold`, `pause_min_silence_seconds`, `pause_min_speech_seconds`, and `pause_preprocess_denoise`. Operation-local values do not mutate persisted config. Both Silencedetect and Silero VAD can optionally denoise detector input with DPDFNet, but final edits are always rendered from the original working audio. Detected pauses are omitted/cut from the output rather than sped up to a target gap. The persisted `repeat_pause_seconds`, `share_target`, `output_format`, and `editor_button_modes` values are only editor defaults; changes made in split-button menus are field-local until promoted to defaults and do not otherwise write back to config. Batch operations can also send operation-local target format, denoise, and pause values. The persisted `visible_editor_buttons` value controls later editor panel command renders, including main toolbar commands and selection delete actions; an empty list hides every configurable panel command button, including Settings. `aqe:record-voice` and `aqe:play-recording` are normalized as one Record / Play yours panel: either command in the list shows both, and hiding the panel removes both. DPDFNet denoise uses the persisted `dpdfnet_attn_limit_db` value by default, and editor or batch DPDFNet selections can send an operation-local override. Pause shortening stores retained provenance under `<addon_dir>/aqe_artifacts/<run_id>/`; this artifact location is not currently configurable.
 

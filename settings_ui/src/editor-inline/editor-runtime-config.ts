@@ -10,6 +10,18 @@ export function editorRuntimeConfig(): EditorRuntimeConfig {
   return globalThis.__AQE_EDITOR_CONFIG__ ?? FALLBACK_EDITOR_RUNTIME_CONFIG;
 }
 
+export function setEditorRuntimeConfig(config: EditorRuntimeConfig): EditorRuntimeConfig {
+  globalThis.__AQE_EDITOR_CONFIG__ = config;
+  return config;
+}
+
+export function updateEditorRuntimeConfig(values: Partial<EditorRuntimeConfig>): EditorRuntimeConfig {
+  return setEditorRuntimeConfig({
+    ...editorRuntimeConfig(),
+    ...values,
+  });
+}
+
 export function splitButtonDefaults(config: EditorRuntimeConfig): SplitButtonDefaults {
   return (config.splitButtonDefaults ?? {}) as SplitButtonDefaults;
 }

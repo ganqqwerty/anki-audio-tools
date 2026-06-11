@@ -129,7 +129,6 @@ EDITOR_PROCESSING_CONTRACTS: dict[str, ModuleContract] = {
             "i18n",
             "media_paths",
             "permission_guidance",
-            "sound_refs",
         ),
         allowed_side_effects=(
             SideEffect.MEDIA_WRITE,

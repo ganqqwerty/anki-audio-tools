@@ -6,6 +6,7 @@ from pathlib import Path
 from typing import Any, cast
 
 from .errors import AudioProcessingError
+from .media_paths import media_filenames_match
 from .sound_refs import replace_sound_reference, select_first_sound_reference
 
 
@@ -27,6 +28,8 @@ def replace_first_sound_reference_in_field(
     field_index: int,
     saved_name: str,
     missing_message: str,
+    expected_filename: str | None = None,
+    mismatch_message: str = "",
 ) -> tuple[str, str, str]:
     """Replace the first sound reference in a field and return old/new details."""
     old_field_html = editor.note.fields[field_index]
@@ -34,6 +37,8 @@ def replace_first_sound_reference_in_field(
     if selection.selected is None:
         raise AudioProcessingError(missing_message)
     old_filename = selection.selected.filename
+    if expected_filename is not None and not media_filenames_match(old_filename, expected_filename):
+        raise AudioProcessingError(mismatch_message)
     editor.note.fields[field_index] = replace_sound_reference(
         old_field_html,
         selection.selected,

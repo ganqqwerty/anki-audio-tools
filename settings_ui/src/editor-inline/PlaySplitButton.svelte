@@ -12,6 +12,7 @@
   import { setRepeatEnabledForOrd, setRepeatPauseSecondsForOrd, send } from "./actions.js";
   import { sendSplitDefaultSaveRequest } from "./bridge.js";
   import { visualizerForOrd } from "./dom-selectors.js";
+  import { updateEditorRuntimeConfig } from "./editor-runtime-config.js";
   import {
     formatRepeatPauseSeconds,
     getSplitButtonState,
@@ -89,10 +90,7 @@
       fieldOrd: target.ord,
     };
     sendSplitDefaultSaveRequest(request);
-    window.__AQE_EDITOR_CONFIG__ = {
-      ...(window.__AQE_EDITOR_CONFIG__ ?? { audioFieldIndices: [] }),
-      repeatPlaybackByDefault: pressed,
-    };
+    updateEditorRuntimeConfig({ repeatPlaybackByDefault: pressed });
     repeatPauseSeconds = promoteSplitDefaultsForField(target.ord, request.defaults).repeatPauseSeconds;
     setRepeatPauseSecondsForOrd(target.ord, repeatPauseSeconds);
     showDefaultSaved();

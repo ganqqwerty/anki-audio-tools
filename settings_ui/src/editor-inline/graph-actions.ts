@@ -9,6 +9,10 @@ import {
 import { finishDefaultGraphRequest } from "./default-graph-queue.js";
 import { currentAudioSourceForOrd, visualizerForOrd } from "./dom-selectors.js";
 import type { GraphSettings } from "./graph-settings.js";
+import {
+  audioFieldSource,
+  editorRuntimeConfig,
+} from "./editor-runtime-config.js";
 import { logger } from "./logger.js";
 import { normalizeTrack, type DefaultGraphTarget, type VisualizerElement } from "./types.js";
 import { clearSourceMetadataRequests } from "./source-metadata-requests.js";
@@ -115,7 +119,7 @@ export function requestPendingGraphRedraw(): boolean {
   const ord = window.__aqePendingGraphRedrawField;
   if (typeof ord !== "number") return false;
   const expectedSource = window.__aqePendingGraphRedrawSource || "";
-  const currentSource = currentAudioSourceForOrd(ord) || window.__AQE_EDITOR_CONFIG__?.audioFieldSources?.[ord] || "";
+  const currentSource = currentAudioSourceForOrd(ord) || audioFieldSource(editorRuntimeConfig(), ord) || "";
   if (expectedSource && currentSource !== expectedSource) return false;
   const visualizer = visualizerForOrd(ord);
   if (!visualizer) return false;

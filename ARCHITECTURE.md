@@ -6,9 +6,25 @@ Anki Audio Quick Editor keeps the human-facing architecture doc short and puts t
 
 - architecture contracts live in [`tests/test_architecture/contracts.py`](tests/test_architecture/contracts.py) and its domain files ([`contract_audio.py`](tests/test_architecture/contract_audio.py), [`contract_core.py`](tests/test_architecture/contract_core.py), [`contract_ui.py`](tests/test_architecture/contract_ui.py), [`contract_editor/`](tests/test_architecture/contract_editor/))
 - module inspection lives in [`tests/test_architecture/inspection.py`](tests/test_architecture/inspection.py)
-- pass/fail enforcement lives in [`tests/test_architecture/`](tests/test_architecture/) (30 rules)
+- pass/fail enforcement lives in [`tests/test_architecture/`](tests/test_architecture/)
 - quick inspection: `python3 scripts/dev.py architecture-report`
-- full enforcement: `python3 scripts/dev.py arch`
+- import-linter enforcement: `python3 scripts/dev.py arch`
+- full local architecture enforcement: `python3 scripts/dev.py test`
+
+## Architecture Diagrams And Archives
+
+Human-readable diagrams live in [`docs/graphs/`](docs/graphs/). They are generated from scripts, not edited by hand:
+
+- `python3 scripts/dev.py graphs-python`
+- `python3 scripts/dev.py graphs-svelte`
+- `python3 scripts/dev.py graphs-bridge`
+- `python3 scripts/dev.py graphs-webview`
+- `python3 scripts/dev.py graphs-all`
+- `python3 scripts/dev.py graphs-check`
+
+For documentation audits, run `python3 scripts/dev.py graphs-archive`. It writes a date-stamped machine-readable snapshot under [`docs/archive/architecture_diagrams/`](docs/archive/architecture_diagrams/) with module catalogs, layer assignments, WebView injection surfaces, bridge commands, and cross-module relationships.
+
+Use that archive to understand current connections before updating prose. Keep executable contracts and tests authoritative for allowed dependencies and side effects; generated diagrams explain what currently connects, while `tests/test_architecture/` explains what is allowed and why.
 
 ## Contract-Driven Architecture
 
@@ -71,7 +87,7 @@ The editor modification-button contract, quick-setting defaults, known exception
 ## Batchable Operations
 
 Shared batchable operations are the authoritative single source of truth for cross-UI operations. They are defined in [`audio_operations.py`](addon/anki_audio_quick_editor/audio_operations.py).
-Current operations include graph, convert, reduce_size, denoise, remove_pauses, slower, faster, volume_down, and volume_up, and other.
+Current operation names are intentionally owned by [`audio_operations.py`](addon/anki_audio_quick_editor/audio_operations.py). Do not duplicate the list here; adapters should consume shared operation metadata so editor and Browser batch semantics stay aligned.
 
 Rules:
 
@@ -158,11 +174,11 @@ When you think you need to change boundaries, ask the user and provide justifica
 | Contract | Source modules | Forbidden modules |
 |----------|----------------|-------------------|
 | `import-safe-no-upper-layers` | Import-safe helper modules, including batch visualization, Browser batch state, runtime asset management, toolbar visibility normalization, shared WebView bridge/shell helpers, frontend log handling, and prosody rendering/cache modules | Browser/editor UI modules and settings backend modules |
-| `settings-backend-no-ui` | `settings.commands`, `settings.initial_state` | `editor_integration` |
+| `settings-backend-no-ui` | Settings backend modules (`settings.commands`, async command/operation handlers, and initial state) | `editor_integration` |
 
 ## Enforced Rules
 
-The enforced rules are located in the `tests/test_architecture` and include (but not limited to) the things like that: 
+The enforced rules are located in [`tests/test_architecture/`](tests/test_architecture/). The list below is a principle summary, not a replacement for the tests:
 - Import policy, addon dependency policy, and side-effect policy are enforced by executable module contracts.
 - Python bridge command registration and injected editor UI commands must stay in sync.
 - Editor TypeScript/Svelte source is part of that bridge-command sync check, not only Python injection code.
@@ -173,4 +189,4 @@ The enforced rules are located in the `tests/test_architecture` and include (but
 - Every production module must have an executable contract entry.
 - Broad exception handlers must stay in the function-qualified architecture allowlist with a reason.
 
-The list is not full. Each time we want to remove confusion and explicitly not allow one module to call functions from some other module, we write such test. 
+When a boundary becomes important enough to explain, make it executable in tests first. This keeps the documentation focused on the principle and the test suite responsible for the exact rule.

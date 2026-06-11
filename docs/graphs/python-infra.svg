@@ -113,7 +113,7 @@
 </g>
 </g>
 <!-- anki_audio_quick_editor_config_migration&#45;&gt;anki_audio_quick_editor_editor_button_visibility -->
-<g id="edge11" class="edge">
+<g id="edge20" class="edge">
 <title>anki_audio_quick_editor_config_migration&#45;&gt;anki_audio_quick_editor_editor_button_visibility</title>
 <path fill="none" stroke="#666666" d="M105.55,-34C116.9,-34 129.41,-34 141.69,-34"/>
 <polygon fill="#666666" stroke="#666666" points="141.35,-37.5 151.35,-34 141.35,-30.5 141.35,-37.5"/>
@@ -137,7 +137,7 @@
 </g>
 </g>
 <!-- anki_audio_quick_editor_diagnostics_runtime&#45;&gt;anki_audio_quick_editor_diagnostics_runtime_json -->
-<g id="edge1" class="edge">
+<g id="edge16" class="edge">
 <title>anki_audio_quick_editor_diagnostics_runtime&#45;&gt;anki_audio_quick_editor_diagnostics_runtime_json</title>
 <path fill="none" stroke="#666666" d="M261.46,-132.17C274.54,-135 288.65,-137.57 301.88,-139 377.88,-147.23 397.83,-146.82 473.88,-139 481.15,-138.25 488.68,-137.2 496.18,-135.95"/>
 <polygon fill="#666666" stroke="#666666" points="496.78,-139.4 506.02,-134.21 495.56,-132.51 496.78,-139.4"/>
@@ -152,13 +152,13 @@
 </g>
 </g>
 <!-- anki_audio_quick_editor_diagnostics_runtime&#45;&gt;anki_audio_quick_editor_diagnostics_runtime_storage -->
-<g id="edge2" class="edge">
+<g id="edge17" class="edge">
 <title>anki_audio_quick_editor_diagnostics_runtime&#45;&gt;anki_audio_quick_editor_diagnostics_runtime_storage</title>
 <path fill="none" stroke="#666666" d="M261.46,-108.88C275.33,-106.11 290.7,-103.05 305.79,-100.05"/>
 <polygon fill="#666666" stroke="#666666" points="306.09,-103.56 315.21,-98.17 304.72,-96.69 306.09,-103.56"/>
 </g>
 <!-- anki_audio_quick_editor_diagnostics_runtime_storage&#45;&gt;anki_audio_quick_editor_diagnostics_runtime_json -->
-<g id="edge14" class="edge">
+<g id="edge1" class="edge">
 <title>anki_audio_quick_editor_diagnostics_runtime_storage&#45;&gt;anki_audio_quick_editor_diagnostics_runtime_json</title>
 <path fill="none" stroke="#666666" d="M458.12,-97.43C470.74,-99.86 483.94,-102.4 496.66,-104.85"/>
 <polygon fill="#666666" stroke="#666666" points="495.73,-108.24 506.21,-106.69 497.05,-101.36 495.73,-108.24"/>
@@ -182,7 +182,7 @@
 </g>
 </g>
 <!-- anki_audio_quick_editor_editor_actions&#45;&gt;anki_audio_quick_editor_external_links -->
-<g id="edge15" class="edge">
+<g id="edge19" class="edge">
 <title>anki_audio_quick_editor_editor_actions&#45;&gt;anki_audio_quick_editor_external_links</title>
 <path fill="none" stroke="#666666" d="M100.13,-204C118.35,-204 140.46,-204 159.95,-204"/>
 <polygon fill="#666666" stroke="#666666" points="159.86,-207.5 169.86,-204 159.86,-200.5 159.86,-207.5"/>
@@ -206,7 +206,7 @@
 </g>
 </g>
 <!-- anki_audio_quick_editor_frontend_logs&#45;&gt;anki_audio_quick_editor_diagnostics_runtime -->
-<g id="edge12" class="edge">
+<g id="edge15" class="edge">
 <title>anki_audio_quick_editor_frontend_logs&#45;&gt;anki_audio_quick_editor_diagnostics_runtime</title>
 <path fill="none" stroke="#666666" d="M99,-119C113.42,-119 130.41,-119 146.64,-119"/>
 <polygon fill="#666666" stroke="#666666" points="146.21,-122.5 156.21,-119 146.21,-115.5 146.21,-122.5"/>
@@ -245,13 +245,13 @@
 </g>
 </g>
 <!-- anki_audio_quick_editor_runtime_install&#45;&gt;anki_audio_quick_editor_error_codes -->
-<g id="edge22" class="edge">
+<g id="edge5" class="edge">
 <title>anki_audio_quick_editor_runtime_install&#45;&gt;anki_audio_quick_editor_error_codes</title>
 <path fill="none" stroke="#666666" d="M249.19,-588.51C276.76,-597.45 313.89,-609.49 342.57,-618.79"/>
 <polygon fill="#666666" stroke="#666666" points="341.47,-622.12 352.07,-621.87 343.63,-615.46 341.47,-622.12"/>
 </g>
 <!-- anki_audio_quick_editor_runtime_install&#45;&gt;anki_audio_quick_editor_runtime_archive -->
-<g id="edge19" class="edge">
+<g id="edge4" class="edge">
 <title>anki_audio_quick_editor_runtime_install&#45;&gt;anki_audio_quick_editor_runtime_archive</title>
 <path fill="none" stroke="#666666" d="M220.97,-594.11C235.86,-618.67 265.59,-662.42 301.88,-688 311.52,-694.8 322.85,-700.2 334.04,-704.44"/>
 <polygon fill="#666666" stroke="#666666" points="332.63,-707.65 343.23,-707.65 334.94,-701.05 332.63,-707.65"/>
@@ -266,13 +266,13 @@
 </g>
 </g>
 <!-- anki_audio_quick_editor_runtime_install&#45;&gt;anki_audio_quick_editor_runtime_lookup -->
-<g id="edge21" class="edge">
+<g id="edge7" class="edge">
 <title>anki_audio_quick_editor_runtime_install&#45;&gt;anki_audio_quick_editor_runtime_lookup</title>
 <path fill="none" stroke="#666666" d="M209.62,-557.71C209.62,-514.66 209.62,-471.61 209.62,-428.56"/>
 <polygon fill="#666666" stroke="#666666" points="213.13,-428.84 209.63,-418.84 206.13,-428.84 213.13,-428.84"/>
 </g>
 <!-- anki_audio_quick_editor_runtime_install&#45;&gt;anki_audio_quick_editor_runtime_manifest -->
-<g id="edge17" class="edge">
+<g id="edge8" class="edge">
 <title>anki_audio_quick_editor_runtime_install&#45;&gt;anki_audio_quick_editor_runtime_manifest</title>
 <path fill="none" stroke="#666666" d="M212.69,-594.33C218.39,-635 238.35,-732.41 301.88,-773 366.3,-814.16 401.81,-798.5 473.88,-773 568.46,-739.53 586.33,-709.05 649.38,-631 679.19,-594.09 701.64,-543.38 713.86,-511.93"/>
 <polygon fill="#666666" stroke="#666666" points="717.09,-513.28 717.36,-502.69 710.54,-510.8 717.09,-513.28"/>
@@ -287,7 +287,7 @@
 </g>
 </g>
 <!-- anki_audio_quick_editor_runtime_install&#45;&gt;anki_audio_quick_editor_runtime_paths -->
-<g id="edge16" class="edge">
+<g id="edge6" class="edge">
 <title>anki_audio_quick_editor_runtime_install&#45;&gt;anki_audio_quick_editor_runtime_paths</title>
 <path fill="none" stroke="#666666" d="M249.21,-585.51C302.76,-596.58 401.22,-609.09 473.88,-573 514.09,-553.02 542.41,-507.4 557.49,-477.41"/>
 <polygon fill="#666666" stroke="#666666" points="560.59,-479.04 561.78,-468.51 554.28,-476 560.59,-479.04"/>
@@ -302,7 +302,7 @@
 </g>
 </g>
 <!-- anki_audio_quick_editor_runtime_install&#45;&gt;anki_audio_quick_editor_runtime_platform -->
-<g id="edge18" class="edge">
+<g id="edge2" class="edge">
 <title>anki_audio_quick_editor_runtime_install&#45;&gt;anki_audio_quick_editor_runtime_platform</title>
 <path fill="none" stroke="#666666" d="M227.54,-557.75C245.21,-539.18 274.15,-510.06 301.88,-488 315.56,-477.11 331.44,-466.34 345.71,-457.25"/>
 <polygon fill="#666666" stroke="#666666" points="347.39,-460.33 354.01,-452.06 343.68,-454.4 347.39,-460.33"/>
@@ -317,31 +317,31 @@
 </g>
 </g>
 <!-- anki_audio_quick_editor_runtime_install&#45;&gt;anki_audio_quick_editor_runtime_state -->
-<g id="edge20" class="edge">
+<g id="edge3" class="edge">
 <title>anki_audio_quick_editor_runtime_install&#45;&gt;anki_audio_quick_editor_runtime_state</title>
 <path fill="none" stroke="#666666" d="M249.19,-563.27C275.51,-554.59 310.55,-543.02 338.62,-533.76"/>
 <polygon fill="#666666" stroke="#666666" points="339.56,-537.13 347.96,-530.68 337.37,-530.49 339.56,-537.13"/>
 </g>
 <!-- anki_audio_quick_editor_runtime_lookup&#45;&gt;anki_audio_quick_editor_runtime_manifest -->
-<g id="edge27" class="edge">
+<g id="edge26" class="edge">
 <title>anki_audio_quick_editor_runtime_lookup&#45;&gt;anki_audio_quick_editor_runtime_manifest</title>
 <path fill="none" stroke="#666666" d="M250.95,-390.87C331.37,-376.74 515.44,-354.87 649.38,-419 668.41,-428.11 686.49,-443.31 700.11,-456.61"/>
 <polygon fill="#666666" stroke="#666666" points="697.4,-458.85 706.92,-463.5 702.38,-453.92 697.4,-458.85"/>
 </g>
 <!-- anki_audio_quick_editor_runtime_lookup&#45;&gt;anki_audio_quick_editor_runtime_paths -->
-<g id="edge24" class="edge">
+<g id="edge25" class="edge">
 <title>anki_audio_quick_editor_runtime_lookup&#45;&gt;anki_audio_quick_editor_runtime_paths</title>
 <path fill="none" stroke="#666666" d="M250.97,-394.33C303.2,-389.48 396.67,-384.88 473.88,-403 493.29,-407.56 513.39,-416.41 530.18,-425.15"/>
 <polygon fill="#666666" stroke="#666666" points="528.37,-428.15 538.83,-429.82 531.69,-421.99 528.37,-428.15"/>
 </g>
 <!-- anki_audio_quick_editor_runtime_lookup&#45;&gt;anki_audio_quick_editor_runtime_platform -->
-<g id="edge26" class="edge">
+<g id="edge24" class="edge">
 <title>anki_audio_quick_editor_runtime_lookup&#45;&gt;anki_audio_quick_editor_runtime_platform</title>
 <path fill="none" stroke="#666666" d="M250.95,-406.8C274.78,-411.41 305.3,-417.31 331.32,-422.35"/>
 <polygon fill="#666666" stroke="#666666" points="330.58,-425.77 341.06,-424.23 331.91,-418.9 330.58,-425.77"/>
 </g>
 <!-- anki_audio_quick_editor_runtime_lookup&#45;&gt;anki_audio_quick_editor_runtime_state -->
-<g id="edge25" class="edge">
+<g id="edge27" class="edge">
 <title>anki_audio_quick_editor_runtime_lookup&#45;&gt;anki_audio_quick_editor_runtime_state</title>
 <path fill="none" stroke="#666666" d="M225.27,-417.42C241.93,-437.3 270.88,-468.7 301.88,-488 313.12,-495 326.22,-500.66 338.7,-505.1"/>
 <polygon fill="#666666" stroke="#666666" points="337.43,-508.36 348.02,-508.21 339.64,-501.72 337.43,-508.36"/>
@@ -356,55 +356,55 @@
 </g>
 </g>
 <!-- anki_audio_quick_editor_runtime_manager&#45;&gt;anki_audio_quick_editor_runtime_install -->
-<g id="edge6" class="edge">
+<g id="edge13" class="edge">
 <title>anki_audio_quick_editor_runtime_manager&#45;&gt;anki_audio_quick_editor_runtime_install</title>
 <path fill="none" stroke="#666666" d="M75.19,-451.35C89.31,-471.04 113.43,-502.64 138.38,-526 148.01,-535.02 159.34,-543.76 170.06,-551.34"/>
 <polygon fill="#666666" stroke="#666666" points="167.79,-554.03 178.01,-556.82 171.76,-548.27 167.79,-554.03"/>
 </g>
 <!-- anki_audio_quick_editor_runtime_manager&#45;&gt;anki_audio_quick_editor_runtime_lookup -->
-<g id="edge8" class="edge">
+<g id="edge12" class="edge">
 <title>anki_audio_quick_editor_runtime_manager&#45;&gt;anki_audio_quick_editor_runtime_lookup</title>
 <path fill="none" stroke="#666666" d="M107.14,-422.61C122.96,-418.93 140.89,-414.76 157.22,-410.96"/>
 <polygon fill="#666666" stroke="#666666" points="157.82,-414.42 166.76,-408.74 156.23,-407.6 157.82,-414.42"/>
 </g>
 <!-- anki_audio_quick_editor_runtime_manager&#45;&gt;anki_audio_quick_editor_runtime_manifest -->
-<g id="edge4" class="edge">
+<g id="edge14" class="edge">
 <title>anki_audio_quick_editor_runtime_manager&#45;&gt;anki_audio_quick_editor_runtime_manifest</title>
 <path fill="none" stroke="#666666" d="M70.33,-414.76C81.52,-391.29 104.57,-351.58 138.38,-335 147.59,-330.48 435.81,-331.62 473.88,-336 553.35,-345.15 583,-331.35 649.38,-376 678.22,-395.4 699.37,-429.94 711.69,-454.53"/>
 <polygon fill="#666666" stroke="#666666" points="708.44,-455.84 715.93,-463.34 714.75,-452.81 708.44,-455.84"/>
 </g>
 <!-- anki_audio_quick_editor_runtime_manager&#45;&gt;anki_audio_quick_editor_runtime_paths -->
-<g id="edge3" class="edge">
+<g id="edge11" class="edge">
 <title>anki_audio_quick_editor_runtime_manager&#45;&gt;anki_audio_quick_editor_runtime_paths</title>
 <path fill="none" stroke="#666666" d="M77.44,-414.65C91.35,-399.14 113.61,-378.05 138.38,-369 278.61,-317.76 332.82,-337.06 473.88,-386 497.98,-394.36 521.99,-410.06 540,-423.7"/>
 <polygon fill="#666666" stroke="#666666" points="537.61,-426.27 547.65,-429.66 541.91,-420.75 537.61,-426.27"/>
 </g>
 <!-- anki_audio_quick_editor_runtime_manager&#45;&gt;anki_audio_quick_editor_runtime_platform -->
-<g id="edge5" class="edge">
+<g id="edge9" class="edge">
 <title>anki_audio_quick_editor_runtime_manager&#45;&gt;anki_audio_quick_editor_runtime_platform</title>
 <path fill="none" stroke="#666666" d="M107.42,-447.58C117.5,-450.25 128.22,-452.62 138.38,-454 201.57,-462.58 218.41,-460.31 281.88,-454 298.1,-452.39 315.54,-449.4 331.43,-446.17"/>
 <polygon fill="#666666" stroke="#666666" points="332.14,-449.59 341.21,-444.1 330.7,-442.74 332.14,-449.59"/>
 </g>
 <!-- anki_audio_quick_editor_runtime_manager&#45;&gt;anki_audio_quick_editor_runtime_state -->
-<g id="edge7" class="edge">
+<g id="edge10" class="edge">
 <title>anki_audio_quick_editor_runtime_manager&#45;&gt;anki_audio_quick_editor_runtime_state</title>
 <path fill="none" stroke="#666666" d="M94.14,-451.31C107.44,-458.35 123.3,-465.91 138.38,-471 205.78,-493.77 287.43,-506.56 338.16,-512.88"/>
 <polygon fill="#666666" stroke="#666666" points="337.57,-516.33 347.92,-514.05 338.41,-509.38 337.57,-516.33"/>
 </g>
 <!-- anki_audio_quick_editor_runtime_paths&#45;&gt;anki_audio_quick_editor_runtime_manifest -->
-<g id="edge13" class="edge">
+<g id="edge18" class="edge">
 <title>anki_audio_quick_editor_runtime_paths&#45;&gt;anki_audio_quick_editor_runtime_manifest</title>
 <path fill="none" stroke="#666666" d="M610.12,-457.49C627.7,-461.42 648.94,-466.17 668.31,-470.5"/>
 <polygon fill="#666666" stroke="#666666" points="667.45,-473.89 677.97,-472.66 668.98,-467.06 667.45,-473.89"/>
 </g>
 <!-- anki_audio_quick_editor_runtime_state&#45;&gt;anki_audio_quick_editor_runtime_manifest -->
-<g id="edge10" class="edge">
+<g id="edge22" class="edge">
 <title>anki_audio_quick_editor_runtime_state&#45;&gt;anki_audio_quick_editor_runtime_manifest</title>
 <path fill="none" stroke="#666666" d="M425.39,-518.56C476.23,-518.75 570.35,-517.04 649.38,-504 655.69,-502.96 662.23,-501.58 668.7,-500.03"/>
 <polygon fill="#666666" stroke="#666666" points="669.18,-503.52 678.01,-497.66 667.45,-496.74 669.18,-503.52"/>
 </g>
 <!-- anki_audio_quick_editor_runtime_state&#45;&gt;anki_audio_quick_editor_runtime_paths -->
-<g id="edge9" class="edge">
+<g id="edge21" class="edge">
 <title>anki_audio_quick_editor_runtime_state&#45;&gt;anki_audio_quick_editor_runtime_paths</title>
 <path fill="none" stroke="#666666" d="M425.13,-505.53C440.28,-500.28 457.98,-494 473.88,-488 489.5,-482.1 506.42,-475.36 521.65,-469.17"/>
 <polygon fill="#666666" stroke="#666666" points="522.55,-472.58 530.48,-465.55 519.9,-466.1 522.55,-472.58"/>

@@ -18,6 +18,10 @@ import { openEditorExternalLink } from "./external-links.js";
 import { setButtonTooltipContent, setTooltipContent } from "../lib/rich-tooltip.js";
 import { tooltipWithDisabledClarification } from "../lib/disabled-tooltip.js";
 import { isUserFacingError, type UserFacingError } from "../lib/user-facing-error.js";
+import {
+  editorRuntimeConfig,
+  repeatPlaybackByDefault as configRepeatPlaybackByDefault,
+} from "./editor-runtime-config.js";
 import type { EditorCommand } from "./types.js";
 import { defaultGraphQueueDependencies } from "./graph-actions.js";
 import { syncAllRecordingControls, syncRecordingControls } from "./recording-actions.js";
@@ -32,7 +36,7 @@ export function anyBusy(): boolean {
 }
 
 export function repeatDefaultFromConfig(): boolean {
-  return window.__AQE_EDITOR_CONFIG__?.repeatPlaybackByDefault === true;
+  return configRepeatPlaybackByDefault(editorRuntimeConfig());
 }
 
 export function playRepeatOptionsTitle(enabled: boolean): string {
@@ -133,7 +137,7 @@ export function restoreStatusForOrd(ord: number): void {
 }
 
 export function consumeInitialStatusForOrd(ord: number): InitialEditorStatus | null {
-  const initialStatuses = window.__AQE_EDITOR_CONFIG__?.initialStatusByField;
+  const initialStatuses = editorRuntimeConfig().initialStatusByField;
   const initialStatus = initialStatuses?.[ord];
   if (initialStatuses) {
     delete initialStatuses[ord];
@@ -142,7 +146,7 @@ export function consumeInitialStatusForOrd(ord: number): InitialEditorStatus | n
 }
 
 export function applyInitialHistoryAvailabilityForOrd(ord: number): void {
-  const initialAvailability = window.__AQE_EDITOR_CONFIG__?.initialHistoryAvailabilityByField;
+  const initialAvailability = editorRuntimeConfig().initialHistoryAvailabilityByField;
   const availability = initialAvailability?.[ord];
   if (!availability) return;
   setHistoryAvailability(ord, availability.canUndo, availability.canRedo);

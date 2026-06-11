@@ -28,6 +28,7 @@ import {
   syncSizeReductionState,
 } from "./size-reduction-split-state.js";
 import { splitButtonDefaults, fieldStates, pitchHumModeOrDefault, shareTargetOrDefault, clampVoiceRecordingCountdownSeconds } from "./split-button-state-defaults.js";
+import { updateEditorRuntimeConfig } from "./editor-runtime-config.js";
 
 type CompleteSplitButtonDefaults = Required<SplitButtonDefaults>;
 type ShareTarget = FieldSplitButtonState["shareTarget"];
@@ -42,10 +43,7 @@ function replaceSplitButtonDefaults(values: Partial<CompleteSplitButtonDefaults>
     ...splitButtonDefaults(),
     ...values,
   };
-  window.__AQE_EDITOR_CONFIG__ = {
-    ...(window.__AQE_EDITOR_CONFIG__ ?? { audioFieldIndices: [] }),
-    splitButtonDefaults: nextDefaults,
-  };
+  updateEditorRuntimeConfig({ splitButtonDefaults: nextDefaults });
   return nextDefaults;
 }
 

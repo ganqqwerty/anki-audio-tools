@@ -337,4 +337,5 @@ def region_delete_deps(callbacks: Any, frontend_callbacks: Any) -> RegionDeleteD
         stop_session_playback=editor_runtime.stop_session_playback,
         temp_final_path=temp_final_path,
         threading=threading,
+        write_generated_media=callbacks.write_generated_media,
     )

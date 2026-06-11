@@ -5,12 +5,16 @@ from __future__ import annotations
 import logging
 import time
 from pathlib import Path
-from typing import Any, cast
+from typing import Any
 
 from . import editor_region_delete_request as _request
 from .audio_state import AudioEditState, AudioProcessingConfig
 from .diagnostics_runtime import capture_exception, new_operation_id, record_breadcrumb
 from .editor_deps_protocols import RegionDeleteDeps
+from .editor_media_replacement import (
+    persist_generated_media,
+    replace_first_sound_reference_in_field,
+)
 from .editor_processing_shared import (
     request_history_availability_after_edit as _request_history_availability_after_edit,
 )
@@ -44,11 +48,9 @@ from .error_codes import (
     AQE_GRAPH_ANALYSIS_FAILED,
     coded_error,
 )
-from .errors import AudioProcessingError
 from .i18n import t
 from .media_paths import existing_media_file_path, media_filenames_match
 from .permission_guidance import message_with_permission_guidance
-from .sound_refs import replace_sound_reference, select_first_sound_reference
 
 logger = logging.getLogger(__name__)
 parse_region_delete_request = _request.parse_region_delete_request
@@ -185,17 +187,15 @@ def replace_current_field_after_region_delete(
     if not _accept_guarded_region_replacement(editor, session, guard, deps):
         return
     try:
-        saved_name = _persist_region_delete_output(editor, saved_name, output_path)
+        saved_name = persist_generated_media(editor, saved_name, output_path, deps)
         field_index = request.field_index
-        field_html = editor.note.fields[field_index]
-        selection = select_first_sound_reference(field_html)
-        if selection.selected is None:
-            raise AudioProcessingError(deps.current_field_audio_missing)
-        old_filename = selection.selected.filename
-        if not media_filenames_match(old_filename, request.source_filename):
-            raise AudioProcessingError(t("editor.status.graph_audio_mismatch"))
-        editor.note.fields[field_index] = replace_sound_reference(
-            field_html, selection.selected, saved_name,
+        replace_first_sound_reference_in_field(
+            editor,
+            field_index=field_index,
+            saved_name=saved_name,
+            missing_message=deps.current_field_audio_missing,
+            expected_filename=request.source_filename,
+            mismatch_message=t("editor.status.graph_audio_mismatch"),
         )
         should_redraw_graph = _replace_region_delete_session_state(editor, session, field_index, saved_name, request)
         logger.info(
@@ -262,12 +262,6 @@ def _accept_guarded_region_replacement(
     if clear_processing_for_stale_guard(session, guard):
         deps.set_busy_for_field(editor, guard.field_index, False)
     return False
-
-
-def _persist_region_delete_output(editor: Any, saved_name: str, output_path: Path | None) -> str:
-    if output_path is None:
-        return saved_name
-    return cast(str, editor.mw.col.media.write_data(saved_name, output_path.read_bytes()))
 
 
 def _replace_region_delete_session_state(

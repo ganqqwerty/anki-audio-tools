@@ -14,7 +14,6 @@ BROWSER_DIALOG_STATE = ADDON_DIR / "browser_dialog_state.py"
 ALLOWED_PERSISTENCE_FILES = {
     "browser_batch_runner.py",
     "editor_processing.py",
-    "editor_region_delete.py",
     "reviewer_integration.py",
 }
 PERSISTENCE_PATTERNS = [

@@ -4,6 +4,7 @@
 
 ```bash
 python3 scripts/dev.py architecture-report
+python3 scripts/dev.py graphs-archive
 python3 scripts/dev.py test-anki-api
 python3 scripts/dev.py check
 python3 scripts/dev.py coverage
@@ -79,6 +80,8 @@ Avoid running `npm run validate` or `pytest e2e` directly as the only verificati
 | Task | Command |
 |------|---------|
 | Architecture report | `python3 scripts/dev.py architecture-report` |
+| Architecture archive for docs/LLM audits | `python3 scripts/dev.py graphs-archive` |
+| Architecture diagrams freshness | `python3 scripts/dev.py graphs-check` |
 | Real Anki API compatibility | `python3 scripts/dev.py test-anki-api` |
 | Unit + architecture tests | `python3 scripts/dev.py test` |
 | Lint | `python3 scripts/dev.py lint` |
@@ -210,9 +213,10 @@ When changing module boundaries or side effects, use this order:
 
 1. Run `python3 scripts/dev.py test-e2e` to establish baseline runtime behavior.
 2. Run `python3 scripts/dev.py architecture-report`.
-3. Run `python3 scripts/dev.py arch`.
-4. Run `python3 scripts/dev.py test-anki-api`.
-5. Run `python3 scripts/dev.py test`.
+3. Run `python3 scripts/dev.py graphs-archive` if documentation or dependency diagrams need to be interpreted or updated.
+4. Run `python3 scripts/dev.py arch`.
+5. Run `python3 scripts/dev.py test-anki-api`.
+6. Run `python3 scripts/dev.py test`.
 
 If `test-e2e` fails before the architecture change, treat that as a baseline bug to classify before tightening contracts.
 
@@ -222,6 +226,12 @@ If `test-e2e` fails before the architecture change, treat that as a baseline bug
 |----------|-------------------|
 | `import-safe-no-upper-layers` | Import-safe helpers cannot import Browser/editor UI modules or settings backend modules. |
 | `settings-backend-no-ui` | Settings backend modules cannot import editor integration. |
+
+## Architecture Graphs
+
+`python3 scripts/dev.py graphs-archive` creates a date-stamped JSON snapshot under [`docs/archive/architecture_diagrams/`](docs/archive/architecture_diagrams/) for documentation and review work. Use it to understand current module, Svelte, bridge, WebView, and relationship shape before writing prose.
+
+The archive explains what currently connects. The source of truth for what is allowed remains the executable contracts in [`tests/test_architecture/`](tests/test_architecture/) and import-linter config in [`pyproject.toml`](pyproject.toml).
 
 ## E2E Notes
 

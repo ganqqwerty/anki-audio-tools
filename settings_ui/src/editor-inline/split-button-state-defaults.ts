@@ -1,6 +1,10 @@
 import type { FieldSplitButtonState, SplitButtonDefaults } from "./types.js";
 import { t } from "../lib/i18n.js";
 import { DEFAULT_OUTPUT_FORMAT } from "../lib/audio-operation-parameters.js";
+import {
+  editorRuntimeConfig,
+  splitButtonDefaults as runtimeSplitButtonDefaults,
+} from "./editor-runtime-config.js";
 import { defaultGraphSplitValues } from "./graph-split-values.js";
 
 type CompleteSplitButtonDefaults = Required<SplitButtonDefaults>;
@@ -42,7 +46,7 @@ export function fieldStates(): Record<number, FieldSplitButtonState> {
 export function splitButtonDefaults(): CompleteSplitButtonDefaults {
   return {
     ...DEFAULTS,
-    ...window.__AQE_EDITOR_CONFIG__?.splitButtonDefaults,
+    ...runtimeSplitButtonDefaults(editorRuntimeConfig()),
   };
 }
 

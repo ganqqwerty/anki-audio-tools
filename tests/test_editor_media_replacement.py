@@ -62,3 +62,20 @@ def test_replace_first_sound_reference_in_field_raises_for_missing_audio() -> No
             saved_name="new.mp3",
             missing_message="missing",
         )
+
+
+def test_replace_first_sound_reference_in_field_checks_expected_source_before_mutating() -> None:
+    note = SimpleNamespace(fields=["before [sound:other.mp3] after"])
+    editor = SimpleNamespace(note=note)
+
+    with pytest.raises(AudioProcessingError, match="mismatch"):
+        replace_first_sound_reference_in_field(
+            editor,
+            field_index=0,
+            saved_name="new.mp3",
+            missing_message="missing",
+            expected_filename="old.mp3",
+            mismatch_message="mismatch",
+        )
+
+    assert note.fields[0] == "before [sound:other.mp3] after"

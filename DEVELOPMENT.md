@@ -243,7 +243,7 @@ When adding another external executable dependency, keep normal e2e coverage on 
 
 Python dev dependencies live in two places and must stay in sync:
 
-1. `scripts/dev.py` -> `DEV_DEPS`
+1. `scripts/dev_tasks/setup.py` -> `DEV_DEPS`
 2. `pyproject.toml` -> `[dependency-groups].dev`
 
 Qodana is an external CLI dependency, not a Python package. It is configured by

@@ -11,20 +11,21 @@ Read `DEVELOPMENT.md` first, then determine which dependency category applies.
 
 ## Decision Tree
 
-1. If code in `addon/anki-audio-tools/` needs it at add-on runtime, it is a **Python runtime dependency** and must be vendored into `addon/anki-audio-tools/vendor/`.
-2. If it is a linter, test tool, type checker, or similar, it is a **Python dev dependency** and must be listed in both `scripts/dev.py` and `pyproject.toml`.
+1. If code in `addon/anki_audio_quick_editor/` needs it at add-on runtime, it is a **Python runtime dependency** and must follow the vendoring or locked-wheel workflow in `DEVELOPMENT.md`.
+2. If it is a linter, test tool, type checker, or similar, it is a **Python dev dependency** and must be listed in both `scripts/dev_tasks/setup.py` and `pyproject.toml`.
 3. If it is for `settings_ui/`, it is a **Svelte dependency** and belongs in `settings_ui/package.json`.
 
 ## Python Runtime Dependency
 
-- Install into `addon/anki_short_story/vendor/`
+- Pure-Python runtime packages are vendored under `addon/anki_audio_quick_editor/vendor/`
+- Native Python runtime wheels are locked under `addon/anki_audio_quick_editor/vendor/wheels.lock.json`
 - Remove `.dist-info/` directories
 - Verify vendored loading works with the appropriate tests
 - Ensure transitive runtime dependencies are also vendored
 
 ## Python Dev Dependency
 
-- Add the package to `DEV_DEPS` in `scripts/dev.py`
+- Add the package to `DEV_DEPS` in `scripts/dev_tasks/setup.py`
 - Add the package to `[dependency-groups] dev` in `pyproject.toml`
 - Run `python3 scripts/dev.py setup`
 - If needed, add a matching `dev.py` command
