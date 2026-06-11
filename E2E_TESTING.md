@@ -1,6 +1,7 @@
 # E2E Testing
 
 The e2e suite runs the real add-on inside a live Anki runtime using `aqt._run(exec=False)`.
+It is important to mock as little as possible in e2e tests.
 
 ## What It Verifies
 
@@ -16,7 +17,7 @@ The e2e suite runs the real add-on inside a live Anki runtime using `aqt._run(ex
 
 - `ANKI_BASE` points at a temporary directory for the test session
 - the test fixture copies the add-on under `addons21/1000000002`
-- modules are aliased so `anki_audio_quick_editor.*` resolves to the same module objects Anki loaded as `1000000002.*`
+- add-on modules are imported through `e2e.conftest.import_runtime_addon_module(...)` so numeric-package runtime import bugs stay visible
 
 ## Playback Interval Tests
 

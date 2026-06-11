@@ -51,7 +51,7 @@ Race-sensitive workflows use targeted tests with barrier-controlled fake workers
 Use the focused checks while developing:
 
 ```bash
-python3 scripts/dev.py test tests/test_editor_async_race_guards.py tests/test_browser_integration.py tests/test_prosody_cache.py
+python3 scripts/dev.py test tests/test_editor_async_race_guards.py tests/test_browser_integration_hooks.py tests/test_prosody_cache.py
 cd settings_ui && npm test -- editor-inline.bridge-queue-race.test.ts --run
 python3 scripts/dev.py test-e2e e2e/test_editor_async_race_workflow.py
 python3 scripts/dev.py test-e2e e2e/test_browser_batch_race_workflow.py
@@ -136,22 +136,26 @@ Run archive smoke tests with Anki's Python 3.13 runtime, not the macOS system Py
 
 Thin archives are size-gated separately from runtime packs. Runtime packs have warning thresholds, while the `.ankiaddon` hard size gate continues to apply to the AnkiWeb artifact.
 
-## Focused Test Files
+## Focused Test Areas
 
-| Area | Files |
-|------|-------|
+Test files are named by subsystem. To find tests for a given area:
+
+| Area | Test files |
+|------|------------|
 | Real Anki API compatibility | `anki_api_contract/*.py`, `tests/test_anki_api_contract_mocks.py` |
-| Batch visualization core | `tests/test_batch_visualization.py` |
-| Browser menu/context integration | `tests/test_browser_integration.py` |
-| Browser batch WebView shell/state | `tests/test_browser_dialog.py`, `tests/test_browser_dialog_state.py` |
-| Shared WebView bridge/shell/log helpers | `tests/test_webview_bridge.py`, `tests/test_webview_shell.py`, `tests/test_frontend_logs.py` |
-| Pause shortening pipeline | `tests/test_audio_pipeline.py`, `tests/test_audio_pause_pipeline.py` |
-| Prosody SVG media rendering | `tests/test_prosody_svg.py` |
-| Shared prosody analysis/cache and editor integration | `tests/test_prosody_analyzer.py`, `tests/test_prosody_fallback.py`, `tests/test_editor_integration.py` |
-| JSON contract generation | `tests/test_contract_generation.py` |
-| Managed runtime assets | `tests/test_runtime_manager.py` |
-| Release packaging | `tests/test_release.py` |
-| Architecture boundaries | `tests/test_architecture/*.py` |
+| Audio processing (operations, pipeline, denoise, pitch hum, rendering, recording) | [`tests/test_audio_*.py`](tests/) |
+| Editor (actions, bridge, playback, recording, status, sharing, integration) | [`tests/test_editor_*.py`](tests/) |
+| Browser batch operations | [`tests/test_browser_*.py`](tests/), [`tests/test_batch_*.py`](tests/) |
+| Config & migration | [`tests/test_config_*.py`](tests/) |
+| Prosody (analyzer, cache, fallback, SVG, settings) | [`tests/test_prosody_*.py`](tests/) |
+| Managed runtime | [`tests/test_runtime_*.py`](tests/) |
+| Release packaging | [`tests/test_release_*.py`](tests/) |
+| WebView bridge & shell | [`tests/test_webview_*.py`](tests/), [`tests/test_frontend_logs.py`](tests/test_frontend_logs.py) |
+| Settings dialog | [`tests/test_settings_*.py`](tests/) |
+| Reviewer integration | [`tests/test_reviewer_*.py`](tests/) |
+| Architecture boundaries | [`tests/test_architecture/`](tests/test_architecture/) |
+| Frontend (Svelte/Vitest) | [`settings_ui/tests/`](settings_ui/tests/) |
+| E2E (real Anki + Qt) | [`e2e/`](e2e/) |
 
 ## Pause Shortening Invariants
 
@@ -166,16 +170,7 @@ Pause removal has focused unit tests because it combines detector-specific comma
 
 Mutation testing is available as an advisory, opt-in workflow for the deterministic Python core. It is not part of `python3 scripts/dev.py check` and it is not a feature-completion gate.
 
-Current first-wave mutation scope:
-
-- `audio_state.py`
-- `config_migration.py`
-- `sound_refs.py`
-- `settings_state.py`
-- `prosody_svg.py`
-- `audio_processor.py`
-
-The mutmut run uses the Anki bundled Python environment via `scripts/dev.py`, mutates only covered lines, disables pytest randomization, and limits test selection to the matching focused unit-test files.
+The mutation scope is configured in [`pyproject.toml`](pyproject.toml) under `[tool.mutmut]`, which defines `paths_to_mutate` and `do_not_mutate`. The mutmut run uses the Anki bundled Python environment via `scripts/dev.py`, mutates only covered lines, disables pytest randomization, and limits test selection to the matching focused unit-test files.
 
 Useful commands:
 
