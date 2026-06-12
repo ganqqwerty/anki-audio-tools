@@ -5,7 +5,7 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any
 
-from .audio_state import DEFAULT_EDITOR_HISTORY_SIZE
+from .audio_state import DEFAULT_EDITOR_HISTORY_SIZE, normalize_editor_history_size
 from .editor_history_snapshot import HistorySnapshot, history_snapshot_for_field
 from .editor_reload_status import reload_editor_with_pending_status
 from .editor_session import EditorSession, UndoEntry
@@ -98,6 +98,40 @@ def redo(editor: Any, deps: Any) -> None:
     )
 
 
+def history_jump(editor: Any, payload: Any, deps: Any) -> None:
+    """Restore a selected undo/redo history depth."""
+    session, _source_path = deps.session_and_source(editor)
+    if deps.is_busy(session):
+        deps.eval_status(editor, deps.still_processing_message, kind="processing")
+        return
+    field_ord = getattr(payload, "field_ord", None)
+    if field_ord is None or int(field_ord) != int(deps.current_field_index(editor)):
+        deps.eval_status(editor, t("editor.status.history_selection_unavailable"))
+        return
+    direction = getattr(payload, "history_direction", None)
+    steps = getattr(payload, "history_steps", None)
+    max_steps = normalize_editor_history_size(_history_size(editor, deps))
+    if direction not in {"undo", "redo"} or not isinstance(steps, int) or steps < 1 or steps > max_steps:
+        deps.eval_status(editor, t("editor.status.history_selection_unavailable"))
+        return
+    stack = session.undo_history if direction == "undo" else session.redo_history
+    if len(stack.entries) < steps:
+        deps.eval_status(editor, t("editor.status.history_selection_unavailable"))
+        return
+    for _index in range(steps):
+        entry = stack.pop()
+        if entry is None:
+            deps.eval_status(editor, t("editor.status.history_selection_unavailable"))
+            return
+        deps.restore_history_entry(
+            editor,
+            session,
+            entry,
+            redo_current=direction == "undo",
+            status=undo_status_message(entry) if direction == "undo" else redo_status_message(entry),
+        )
+
+
 def restore_history_entry(
     editor: Any,
     session: EditorSession,
@@ -157,4 +191,3 @@ def restore_history_entry(
     deps.eval_playback_state(editor, field_index, "stopped", 0)
     if field_index in session.graph_active_fields:
         deps.request_graph_redraw(editor, entry.filename)
-
