@@ -1,5 +1,7 @@
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
+import { initialFieldState } from "../src/editor-inline/field-state.js";
+import { removeFieldState, writeFieldState } from "../src/editor-inline/field-state-store.js";
 import { PLOT, xForMs } from "../src/editor-inline/plot.js";
 import { applyVisualizerTimeViewport } from "../src/editor-inline/viewport-actions.js";
 import {
@@ -35,6 +37,11 @@ const gappedTrack: NormalizedProsodyTrack = {
 };
 
 describe("editor inline visualizer renderer", () => {
+  afterEach(() => {
+    removeFieldState(0);
+    document.body.innerHTML = "";
+  });
+
   it("renders pitch text for voiced cursors and unvoiced gaps", () => {
     const visualizer = mountVisualizer(voicedTrack);
     const current = visualizer.querySelector<HTMLElement>(".aqe-css-cursor-flag-current")!;
@@ -266,6 +273,21 @@ function mountVisualizer(track: NormalizedProsodyTrack): VisualizerElement {
   const visualizer = document.querySelector<VisualizerElement>(".aqe-visualizer");
   if (!visualizer) throw new Error("visualizer fixture did not mount");
   visualizer.__aqeTrack = track;
+  const initial = initialFieldState({ ord: 0, sourceFilename: track.sourceFilename });
+  writeFieldState(0, {
+    ...initial,
+    graph: {
+      ...initial.graph,
+      active: true,
+      analyzerName: track.analyzerName,
+      durationMs: track.durationMs,
+      hasTrack: true,
+    },
+    playback: {
+      ...initial.playback,
+      endMs: track.durationMs,
+    },
+  });
   return visualizer;
 }
 

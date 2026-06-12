@@ -3,7 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { disposeEditorRuntime, initializeEditorRuntime, scan } from "../src/editor-inline/runtime.js";
 import { PRODUCT_LINKS } from "../src/lib/product-links.js";
 import { bridgeCommands, muteConsole, peekPendingCommandPayload, renderFields, track } from "./editor-inline.integration.helpers.js";
-import { invalidateFieldState } from "../src/editor-inline/field-state-store.js";
+import { updateFieldState } from "../src/editor-inline/field-state-store.js";
 
 describe("editor inline denoise integration", () => {
   let restoreConsole: () => void;
@@ -147,11 +147,10 @@ describe("editor inline denoise integration", () => {
     scan(config);
     await Promise.resolve();
     window.__aqeSetVisualizer?.(0, track, 250);
-    const visualizer = document.querySelector<HTMLElement>('[data-testid="aqe-graph-0"]')!;
-    visualizer.dataset.playbackState = "playing";
-    visualizer.dataset.playbackEngine = "native";
-    visualizer.dataset.progressClockMode = "manual";
-    invalidateFieldState(0);
+    updateFieldState(0, (state) => ({
+      ...state,
+      playback: { ...state.playback, clockMode: "manual", engine: "native", state: "playing" },
+    }));
 
     document.querySelector<HTMLButtonElement>('[data-testid="aqe-button-0-denoise-standard"]')!.click();
     await Promise.resolve();

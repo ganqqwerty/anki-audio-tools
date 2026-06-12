@@ -27,6 +27,7 @@
   import { getSplitButtonState } from "./split-button-state.js";
   import type { EditorCommand, FieldSplitButtonState, FieldTarget } from "./types.js";
   import type { GraphVoiceRange } from "./graph-settings.js";
+  import { readFieldState } from "./field-state-store.js";
 
   const {
     target,
@@ -62,20 +63,21 @@
   }
 
   function syncFromDom(): void {
-    const visualizer = visualizerForOrd(target.ord);
     const controls = controlsForOrd(target.ord);
+    const fieldState = readFieldState(target.ord);
     busy = document.body.dataset.aqeBusy === "true"
       || controls?.dataset.busy === "true"
-      || visualizer?.dataset.graphBusy === "true";
+      || fieldState.graph.busy;
     syncFromState(getSplitButtonState(target.ord));
   }
 
   function graphIsReadyForRedraw(): boolean {
     const visualizer = visualizerForOrd(target.ord);
+    const fieldState = readFieldState(target.ord);
     return Boolean(
       visualizer
-      && visualizer.dataset.graphActive === "true"
-      && visualizer.dataset.graphBusy !== "true"
+      && fieldState.graph.active
+      && !fieldState.graph.busy
       && document.body.dataset.aqeBusy !== "true",
     );
   }

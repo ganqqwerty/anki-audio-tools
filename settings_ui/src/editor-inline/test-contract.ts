@@ -19,7 +19,8 @@ import { cursorMsFromEvent, graphPixelBounds, svgViewBoxScale } from "./plot.js"
 import { chorusingControlsForVisualizer } from "./chorusing-dom.js";
 import { applyVisualizerTimeViewport } from "./viewport-actions.js";
 import { readVisualizerTargetDurationMs, readVisualizerTimeViewport } from "./visualizer-state.js";
-import { readFieldState, invalidateFieldState } from "./field-state-store.js";
+import { readFieldState, updateFieldState, writeFieldState } from "./field-state-store.js";
+import type { EditorFieldState } from "./field-state.js";
 import type {
   CursorPositionForTest,
   EditorCommand,
@@ -31,13 +32,19 @@ import type {
 import { isPlaybackState } from "./types.js";
 
 type GraphBoundsForTest = { left: number; width: number };
+type FieldStatePatchForTest = Partial<Omit<EditorFieldState, "cursor" | "graph" | "playback" | "selection">> & {
+  cursor?: Partial<EditorFieldState["cursor"]>;
+  graph?: Partial<EditorFieldState["graph"]>;
+  playback?: Partial<EditorFieldState["playback"]>;
+  selection?: Partial<EditorFieldState["selection"]>;
+};
 
 export const EDITOR_TEST_WINDOW_CONTRACT_NAMES = [
   "__aqeFieldState",
   "__aqeGraphStateForTest",
   "__aqeGraphPixelBoundsForTest",
   "__aqeInstallAudioPlaybackTestDriverForTest",
-  "__aqeInvalidateFieldState",
+  "__aqeSetFieldStateForTest",
   "__aqeSetCursorByClientXForTest",
   "__aqeSetCursorForTest",
   "__aqeSetTimeViewportForTest",
@@ -48,7 +55,7 @@ export function installEditorTestWindowContract(): void {
   window.__aqeGraphStateForTest = graphStateForTest;
   window.__aqeGraphPixelBoundsForTest = graphPixelBoundsForTest;
   window.__aqeInstallAudioPlaybackTestDriverForTest = installAudioPlaybackTestDriver;
-  window.__aqeInvalidateFieldState = (ord: number) => { invalidateFieldState(ord); };
+  window.__aqeSetFieldStateForTest = setFieldStateForTest;
   window.__aqeSetCursorByClientXForTest = setCursorByClientXForTest;
   window.__aqeSetCursorForTest = setCursorForTest;
   window.__aqeSetTimeViewportForTest = setTimeViewportForTest;
@@ -109,10 +116,27 @@ export function setCursorForTest(ord: number, ms: number, notifyPython: boolean)
   const visualizer = visualizerForOrd(ord);
   if (!visualizer) return false;
   visualizer.hidden = false;
-  visualizer.dataset.graphActive = "true";
-  invalidateFieldState(ord);
+  updateFieldState(ord, (state) => ({
+    ...state,
+    graph: { ...state.graph, active: true },
+  }));
   setCursor(visualizer, ms, !!notifyPython);
   return true;
+}
+
+export function setFieldStateForTest(ord: number, patch: FieldStatePatchForTest): EditorFieldState | null {
+  if (!visualizerForOrd(ord)) return null;
+  const current = readFieldState(ord);
+  const next: EditorFieldState = {
+    ...current,
+    ...patch,
+    cursor: { ...current.cursor, ...patch.cursor },
+    graph: { ...current.graph, ...patch.graph },
+    playback: { ...current.playback, ...patch.playback },
+    selection: { ...current.selection, ...patch.selection },
+  };
+  writeFieldState(ord, next);
+  return next;
 }
 
 export function setCursorByClientXForTest(ord: number, clientX: number, notifyPython: boolean): CursorPositionForTest | null {

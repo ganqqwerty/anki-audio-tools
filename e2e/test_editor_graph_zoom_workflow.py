@@ -193,7 +193,10 @@ def test_editor_graph_zoom_scroll_hides_and_restores_stopped_cursor(
               if (!state) return null;
               window.__aqeSetTimeViewportForTest?.(0, 0, state.durationMs / 2);
               window.__aqeSetCursorForTest?.(0, state.durationMs / 4, false);
-              return window.__aqeGraphStateForTest?.(0) || null;
+              const next = window.__aqeGraphStateForTest?.(0);
+              const svg = document.querySelector('[data-testid="aqe-graph-svg-0"]');
+              const width = svg?.viewBox?.baseVal?.width || 0;
+              return next && width ? { ...next, expectedCenterX: width / 2 } : null;
             })()
             """,
             lambda value: value is not None
@@ -203,7 +206,7 @@ def test_editor_graph_zoom_scroll_hides_and_restores_stopped_cursor(
             and value["viewportEndMs"] == 2000,
             timeout=5.0,
         )
-        assert 320 <= visible["cursorX"] <= 335
+        assert abs(visible["cursorX"] - visible["expectedCenterX"]) <= 2
 
         hidden = wait_for_js_condition(
             editor.web,
@@ -232,7 +235,10 @@ def test_editor_graph_zoom_scroll_hides_and_restores_stopped_cursor(
               if (!scroller) return null;
               scroller.scrollLeft = 0;
               scroller.dispatchEvent(new Event('scroll'));
-              return window.__aqeGraphStateForTest?.(0) || null;
+              const state = window.__aqeGraphStateForTest?.(0);
+              const svg = document.querySelector('[data-testid="aqe-graph-svg-0"]');
+              const width = svg?.viewBox?.baseVal?.width || 0;
+              return state && width ? { ...state, expectedCenterX: width / 2 } : null;
             })()
             """,
             lambda value: value is not None
@@ -241,7 +247,7 @@ def test_editor_graph_zoom_scroll_hides_and_restores_stopped_cursor(
             and value["viewportStartMs"] == 0,
             timeout=5.0,
         )
-        assert 320 <= restored["cursorX"] <= 335
+        assert abs(restored["cursorX"] - restored["expectedCenterX"]) <= 2
     finally:
         editor.set_note(None)
         parent.close()

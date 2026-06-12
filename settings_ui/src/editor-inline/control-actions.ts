@@ -24,6 +24,7 @@ import {
 import type { EditorCommand } from "./types.js";
 import { defaultGraphQueueDependencies } from "./graph-actions.js";
 import { syncAllRecordingControls, syncRecordingControls } from "./recording-actions.js";
+import { readFieldState } from "./field-state-store.js";
 
 export type InitialEditorStatus = { kind?: string; message: string };
 export type StatusOwner = "edit" | "error" | "graph" | "playback";
@@ -352,7 +353,7 @@ function updateChorusingButtonDisabledState(
     button.disabled = busy || !controls.canPrevious;
     return;
   }
-  const hasPlayableTrack = visualizer.dataset.hasTrack === "true" && readVisualizerTargetDurationMs(visualizer) > 0;
+  const hasPlayableTrack = readFieldState(ord).graph.hasTrack && readVisualizerTargetDurationMs(visualizer) > 0;
   const canInitialize = controls.baseStartMs === null && hasPlayableTrack;
   button.disabled = busy || !(controls.canPractice || canInitialize);
 }

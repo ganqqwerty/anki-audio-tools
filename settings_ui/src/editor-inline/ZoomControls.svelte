@@ -12,19 +12,21 @@
     zoomOutForVisualizer,
     zoomSelectionForVisualizer,
   } from "./zoom-actions.js";
+  import { readFieldState } from "./field-state-store.js";
 
   const { target }: { target: FieldTarget } = $props();
   let hasTrack = $state(false);
   let hasSelection = $state(false);
 
   function syncState(visualizer: VisualizerElement | null = visualizerForOrd(target.ord)): void {
-    hasTrack = visualizer?.dataset.hasTrack === "true";
-    hasSelection = visualizer?.dataset.selectionActive === "true";
+    const state = readFieldState(target.ord);
+    hasTrack = Boolean(visualizer && state.graph.hasTrack);
+    hasSelection = Boolean(visualizer && state.selection.active);
   }
 
   function withVisualizer(action: (visualizer: VisualizerElement) => void): void {
     const visualizer = visualizerForOrd(target.ord);
-    if (!visualizer || visualizer.dataset.hasTrack !== "true") return;
+    if (!visualizer || !readFieldState(target.ord).graph.hasTrack) return;
     action(visualizer);
     syncState(visualizer);
   }

@@ -26,6 +26,7 @@
   import { redrawVisualizerForCurrentViewport } from "./viewport-actions.js";
   import { handleVisualizerWheelZoom, handleVisualizerZoomKeyDown } from "./zoom-actions.js";
   import ZoomControls from "./ZoomControls.svelte";
+  import { updateFieldState } from "./field-state-store.js";
 
   const {
     buttonModes,
@@ -82,7 +83,10 @@
     resetAudioClockState(visualizer);
     initializePlaybackRegionState(visualizer);
     installAudioClockHandlers(visualizer);
-    visualizer.dataset.sourceFilename = target.sourceFilename || "";
+    updateFieldState(target.ord, (state) => ({
+      ...state,
+      sourceFilename: target.sourceFilename || "",
+    }));
     configureAudioClock(visualizer, target.sourceFilename || "");
     syncRecordingControls(target.ord);
     notifyPostEditPlaybackReady(target.ord, target.sourceFilename || "");

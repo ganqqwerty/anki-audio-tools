@@ -1,7 +1,7 @@
 import { visualizerForOrd } from "./dom-selectors.js";
 import { focusAndSendCommand } from "./bridge.js";
 import { markerClickFromEvent } from "./graph-overlay-geometry.js";
-import { readFieldState, invalidateFieldState } from "./field-state-store.js";
+import { readFieldState, updateFieldState } from "./field-state-store.js";
 import {
   playbackEngineFor,
   pauseProgressClock,
@@ -53,11 +53,12 @@ export function installChorusingHandlers(visualizer: VisualizerElement): () => v
   const onViewportChanged = (): void => renderChorusingMarkerRow(visualizer);
   const observer = new MutationObserver(() => {
     const state = chorusingStateForVisualizer(visualizer);
-    if (visualizer.dataset.hasTrack !== "true" && state.baseRegion) {
+    const fieldState = readFieldState(Number(visualizer.dataset.aqeFieldOrd || "0"));
+    if (!fieldState.graph.hasTrack && state.baseRegion) {
       clearChorusing(visualizer, { restoreRepeat: true });
       return;
     }
-    if (visualizer.dataset.hasTrack !== "true") return;
+    if (!fieldState.graph.hasTrack) return;
     ensureCurrentTrackChorusingBase(visualizer, state);
   });
   visualizer.addEventListener(SELECTION_CHANGED_EVENT, onSelectionChanged);
@@ -75,7 +76,7 @@ export function installChorusingHandlers(visualizer: VisualizerElement): () => v
 }
 
 function ensureCurrentTrackChorusingBase(visualizer: VisualizerElement, state: ChorusingState): void {
-  const sourceFilename = visualizer.dataset.sourceFilename || "";
+  const sourceFilename = readFieldState(Number(visualizer.dataset.aqeFieldOrd || "0")).sourceFilename;
   let currentState = state;
   if (state.sourceFilename && state.sourceFilename !== sourceFilename) {
     clearChorusing(visualizer, { restoreRepeat: true });
@@ -180,7 +181,7 @@ function ensureChorusingBase(
     activeMarkerIndex: newBaseRegion ? chooseInitialActiveMarkerIndex(markersMs) : state.activeMarkerIndex,
     baseRegion,
     markersMs,
-    sourceFilename: visualizer.dataset.sourceFilename || "",
+    sourceFilename: readFieldState(Number(visualizer.dataset.aqeFieldOrd || "0")).sourceFilename,
   };
   if (newBaseRegion || state.sourceFilename !== nextState.sourceFilename) {
     writeState(visualizer, nextState);
@@ -190,7 +191,7 @@ function ensureChorusingBase(
 
 function wholeFileChorusingRegion(visualizer: VisualizerElement) {
   const durationMs = readVisualizerTargetDurationMs(visualizer);
-  if (visualizer.dataset.hasTrack !== "true" || durationMs <= 0) return null;
+  if (!readFieldState(Number(visualizer.dataset.aqeFieldOrd || "0")).graph.hasTrack || durationMs <= 0) return null;
   return {
     endMs: durationMs,
     mode: "selection" as const,
@@ -238,7 +239,7 @@ function ensurePracticeReady(
     ...baseState,
     activeMarkerIndex,
     ordinaryRepeatEnabled: baseState.ordinaryRepeatEnabled ?? readOrdinaryRepeat(visualizer),
-    sourceFilename: visualizer.dataset.sourceFilename || "",
+    sourceFilename: readFieldState(Number(visualizer.dataset.aqeFieldOrd || "0")).sourceFilename,
   };
   writeState(visualizer, readyState);
   return readyState;
@@ -273,12 +274,13 @@ function startPracticePlayback(visualizer: VisualizerElement, state: ChorusingSt
 
 function pauseChorusing(visualizer: VisualizerElement, state: ChorusingState): void {
   const ord = Number(visualizer.dataset.aqeFieldOrd || "0");
+  const activeEngine = readFieldState(ord).playback.engine;
   pauseProgressClock(visualizer);
   sendPlaybackRequest({
     action: "pause",
     cursorMs: readVisualizerCursorMs(visualizer),
-    engine: visualizer.dataset.playbackEngine === "html" || visualizer.dataset.playbackEngine === "native"
-      ? visualizer.dataset.playbackEngine
+    engine: activeEngine === "html" || activeEngine === "native"
+      ? activeEngine
       : playbackEngineFor(visualizer),
     loop: true,
     ord,
@@ -306,9 +308,11 @@ function readOrdinaryRepeat(visualizer: VisualizerElement): boolean {
 }
 
 function writeRepeatForPractice(visualizer: VisualizerElement, enabled: boolean): void {
-  visualizer.dataset.repeatEnabled = enabled ? "true" : "false";
+  updateFieldState(Number(visualizer.dataset.aqeFieldOrd || "0"), (state) => ({
+    ...state,
+    playback: { ...state.playback, repeat: enabled },
+  }));
   visualizer.dataset.playbackLoop = enabled ? "true" : "false";
-  invalidateFieldState(Number(visualizer.dataset.aqeFieldOrd || "0"));
 }
 
 function restoreOrdinaryRepeat(visualizer: VisualizerElement, state: ChorusingState): void {

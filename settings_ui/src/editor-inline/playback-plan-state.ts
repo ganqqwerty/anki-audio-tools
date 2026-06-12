@@ -36,10 +36,11 @@ export function liveProgressMs(
   nowMs: number = performance.now(),
 ): number | null {
   const plan = visualizer.__aqePlaybackPlan;
-  if (!plan || readFieldState(fieldOrd(visualizer)).playback.state !== "playing") return null;
+  const ord = fieldOrd(visualizer);
+  if (!plan || readFieldState(ord).playback.state !== "playing") return null;
   const progressMs = progressMsForPlan(plan, nowMs);
   visualizer.__aqeLiveProgressMs = Math.round(progressMs);
-  setCachedProgressMs(fieldOrd(visualizer), progressMs);
+  setCachedProgressMs(ord, progressMs, visualizer);
   return progressMs;
 }
 

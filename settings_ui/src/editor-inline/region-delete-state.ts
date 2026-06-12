@@ -6,7 +6,7 @@ import { logger } from "./logger.js";
 import type { PlaybackRegion } from "./playback-state.js";
 import { selectionForVisualizer } from "./selection-controller.js";
 import type { RegionDeleteRequest, VisualizerElement } from "./types.js";
-import { isPlaybackState } from "./types.js";
+import { readFieldState } from "./field-state-store.js";
 
 type RegionDeleteOperation = RegionDeleteRequest["operation"];
 
@@ -61,8 +61,9 @@ function syncRegionDeleteButton(
 }
 
 export function regionDeleteAvailabilityFor(visualizer: VisualizerElement): RegionDeleteAvailability {
+  const state = readFieldState(Number(visualizer.dataset.aqeFieldOrd || "0"));
   const region = selectionForVisualizer(visualizer);
-  const durationMs = Number(visualizer.dataset.durationMs || "0");
+  const durationMs = state.graph.durationMs;
   const wholeSelection = !!region && isWholeSelection(region, durationMs);
   return {
     hasSelection: region !== null,
@@ -88,14 +89,15 @@ export function regionDeleteRequestFor(
   operation: RegionDeleteOperation = "delete-selection",
 ): RegionDeleteRequest | null {
   const ord = Number(visualizer.dataset.aqeFieldOrd || "0");
-  const durationMs = Number(visualizer.dataset.durationMs || "0") || 0;
+  const state = readFieldState(ord);
+  const durationMs = state.graph.durationMs;
   const region = selectionForVisualizer(visualizer);
   const availability = regionDeleteAvailabilityFor(visualizer);
   if (!region || !availability.valid) {
     if (region && availability.wholeSelection) {
       logger.warn("region delete rejected whole clip", {
         ord,
-        sourceFilename: visualizer.dataset.sourceFilename || "",
+        sourceFilename: state.sourceFilename,
         selectionStartMs: region.startMs,
         selectionEndMs: region.endMs,
         durationMs,
@@ -105,18 +107,17 @@ export function regionDeleteRequestFor(
     }
     return null;
   }
-  const sourceFilename = visualizer.dataset.sourceFilename || "";
+  const sourceFilename = state.sourceFilename;
   if (!sourceFilename) return null;
-  const playbackState = visualizer.dataset.playbackState;
   return {
     operation,
     ord,
     sourceFilename,
     selectionStartMs: Math.round(region.startMs),
     selectionEndMs: Math.round(region.endMs),
-    cursorMs: Math.round(Number(visualizer.dataset.cursorMs || "0") || 0),
+    cursorMs: Math.round(state.cursor.ms),
     durationMs: Math.round(durationMs),
     trigger,
-    playbackActive: isPlaybackState(playbackState) && playbackState !== "stopped",
+    playbackActive: state.playback.state !== "stopped",
   };
 }

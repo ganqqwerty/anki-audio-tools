@@ -25,6 +25,7 @@
   import type { EditorButtonDisplayMode } from "../lib/editor-toolbar-buttons.js";
   import { EditorButtonMode } from "../lib/types.js";
   import type { ButtonSpec, FieldTarget } from "./types.js";
+  import { readFieldState } from "./field-state-store.js";
   const PRESETS = [0, 0.5, 2, 10] as const;
   const { button, displayMode, repeatDefault, target }: {
     button: ButtonSpec;
@@ -52,8 +53,7 @@
     open = false;
   }
   function syncRepeatState(): void {
-    const visualizer = visualizerForOrd(target.ord);
-    pressed = visualizer ? visualizer.dataset.repeatEnabled === "true" : repeatDefault;
+    pressed = visualizerForOrd(target.ord) ? readFieldState(target.ord).playback.repeat : repeatDefault;
     const state = getSplitButtonState(target.ord);
     repeatPauseSeconds = state.repeatPauseSeconds;
     setRepeatPauseSecondsForOrd(target.ord, repeatPauseSeconds);
@@ -104,7 +104,7 @@
   onMount(() => {
     syncRepeatState();
     const visualizer = visualizerForOrd(target.ord);
-    playSelection = visualizer?.dataset.selectionActive === "true";
+    playSelection = Boolean(visualizer && readFieldState(target.ord).selection.active);
     const handleRepeatPauseStateChanged = (event: Event): void => {
       const detail = (event as CustomEvent<RepeatPauseStateChangedDetail>).detail;
       if (detail?.ord !== target.ord) return;
@@ -113,7 +113,7 @@
     let observer: MutationObserver | null = null;
     if (visualizer) {
       observer = new MutationObserver(() => {
-        playSelection = visualizer.dataset.selectionActive === "true";
+        playSelection = readFieldState(target.ord).selection.active;
         repeatPauseSeconds = getSplitButtonState(target.ord).repeatPauseSeconds;
       });
       observer.observe(visualizer, {

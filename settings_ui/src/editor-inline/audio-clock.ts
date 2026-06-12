@@ -1,5 +1,5 @@
 import type { AudioClockElement, VisualizerElement } from "./types.js";
-import { invalidateFieldState } from "./field-state-store.js";
+import { readFieldState, updateFieldState } from "./field-state-store.js";
 
 export interface AudioClockHandlerCallbacks {
   onEndedDuringPlayback?: () => void;
@@ -19,8 +19,10 @@ export function resetAudioClockState(visualizer: VisualizerElement): void {
   visualizer.__aqeAudioClockAvailable = false;
   visualizer.__aqeAudioClockFallback = false;
   visualizer.__aqeAudioClockLastSeekedMs = 0;
-  visualizer.dataset.progressClockMode = "stopped";
-  invalidateFieldState(Number(visualizer.dataset.aqeFieldOrd || "0"));
+  updateFieldState(Number(visualizer.dataset.aqeFieldOrd || "0"), (state) => ({
+    ...state,
+    playback: { ...state.playback, clockMode: "stopped" },
+  }));
 }
 
 export function pauseAudioClock(visualizer: VisualizerElement): void {
@@ -75,6 +77,7 @@ export function installAudioClockHandlers(
 ): void {
   const audio = audioClockFor(visualizer);
   if (!audio || audio.__aqeClockHandlersInstalled) return;
+  const ord = Number(visualizer.dataset.aqeFieldOrd || "0");
   audio.__aqeClockHandlersInstalled = true;
   audio.addEventListener("loadedmetadata", () => {
     if (!audio.getAttribute("src")) return;
@@ -88,12 +91,13 @@ export function installAudioClockHandlers(
   audio.addEventListener("error", () => {
     visualizer.__aqeAudioClockAvailable = false;
     visualizer.__aqeAudioClockFallback = true;
-    if (visualizer.dataset.playbackState === "playing" && visualizer.dataset.progressClockMode === "audio") {
+    const state = readFieldState(ord);
+    if (state.playback.state === "playing" && state.playback.clockMode === "audio") {
       callbacks.onErrorDuringPlayback?.();
     }
   });
   audio.addEventListener("ended", () => {
-    if (visualizer.dataset.playbackState === "playing") {
+    if (readFieldState(ord).playback.state === "playing") {
       callbacks.onEndedDuringPlayback?.();
     }
   });

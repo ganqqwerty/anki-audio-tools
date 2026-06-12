@@ -12,7 +12,7 @@ import {
   setVisualizerSelection,
   setVisualizerSelectionDraft,
 } from "../src/editor-inline/visualizer-state.js";
-import { readFieldState, invalidateFieldState } from "../src/editor-inline/field-state-store.js";
+import { readFieldState, invalidateFieldState, writeFieldState } from "../src/editor-inline/field-state-store.js";
 import type { VisualizerElement } from "../src/editor-inline/types.js";
 
 function visualizer(): VisualizerElement {
@@ -35,10 +35,13 @@ describe("visualizer state adapter", () => {
     expect(readVisualizerCursorMs(node)).toBe(0);
     expect(readVisualizerRepeatEnabled(node)).toBe(false);
 
-    node.dataset.durationMs = "1500";
-    node.dataset.cursorMs = "250";
-    node.dataset.repeatEnabled = "true";
-    invalidateFieldState(0);
+    const state = readFieldState(0);
+    writeFieldState(0, {
+      ...state,
+      cursor: { ...state.cursor, ms: 250 },
+      graph: { ...state.graph, durationMs: 1500 },
+      playback: { ...state.playback, repeat: true },
+    });
 
     expect(readVisualizerDurationMs(node)).toBe(1500);
     expect(readVisualizerCursorMs(node)).toBe(250);
@@ -47,8 +50,11 @@ describe("visualizer state adapter", () => {
 
   it("round-trips committed and draft selection state", () => {
     const node = visualizer();
-    node.dataset.durationMs = "1000";
     node.dataset.targetDurationMs = "1000";
+    writeFieldState(0, {
+      ...readFieldState(0),
+      graph: { ...readFieldState(0).graph, durationMs: 1000 },
+    });
 
     setVisualizerSelection(node, { startMs: 125, endMs: 875 });
     setVisualizerSelectionDraft(node, { startMs: 200, endMs: 700 });
@@ -92,16 +98,16 @@ describe("visualizer state adapter", () => {
     expect(readFieldState(0).playback.resumeRequiresRestart).toBe(false);
   });
 
-  it("treats invalid optional selection timestamps as absent", () => {
+  it("ignores direct DOM selection writes", () => {
     const node = visualizer();
     node.dataset.selectionActive = "true";
     node.dataset.selectionStartMs = "not-a-number";
     node.dataset.selectionEndMs = "500";
 
     expect(readVisualizerSelectionState(node)).toMatchObject({
-      active: true,
+      active: false,
       startMs: null,
-      endMs: 500,
+      endMs: null,
     });
   });
 });

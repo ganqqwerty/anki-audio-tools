@@ -7,7 +7,7 @@ import { clearLearnerVisualizerTrack, renderCursor, renderLearnerVisualizerTrack
 import { readVisualizerTargetDurationMs } from "./visualizer-state.js";
 import type { LearnerPlaybackStatus, LearnerRecordingStatePayload, LearnerRecordingStatus } from "./recording-state.js";
 import { normalizeTrack, type NormalizedProsodyTrack, type ProsodyPoint, type VisualizerElement } from "./types.js";
-import { invalidateFieldState } from "./field-state-store.js";
+import { readFieldState, updateFieldState } from "./field-state-store.js";
 
 export const RECORDING_BLOCKING_STATUSES = new Set<LearnerRecordingStatus>([
   "countdown",
@@ -94,12 +94,12 @@ export function recordingTargetReady(ord: number): boolean {
 }
 
 export function targetDurationForRecording(visualizer: VisualizerElement | null): number {
-  if (!visualizer || visualizer.dataset.hasTrack !== "true") return 0;
+  if (!visualizer || !readFieldState(Number(visualizer.dataset.aqeFieldOrd || "0")).graph.hasTrack) return 0;
   return readVisualizerTargetDurationMs(visualizer);
 }
 
 export function recordingStartCursorMs(visualizer: VisualizerElement, targetDurationMs: number): number {
-  return Math.max(0, Math.min(Number(visualizer.dataset.cursorMs || "0") || 0, targetDurationMs));
+  return Math.max(0, Math.min(readFieldState(Number(visualizer.dataset.aqeFieldOrd || "0")).cursor.ms, targetDurationMs));
 }
 
 export function learnerStartCursorMsForVisualizer(visualizer: VisualizerElement): number {
@@ -159,11 +159,16 @@ export function resolveFieldOrd(fieldOrd: number | null | undefined): number {
 
 export function setRecordingCursor(visualizer: VisualizerElement, ms: number, targetDurationMs: number): void {
   const clamped = Math.max(0, Math.min(Number(ms) || 0, targetDurationMs || 0));
-  visualizer.dataset.cursorMs = String(Math.round(clamped));
-  visualizer.dataset.progressMs = String(Math.round(clamped));
-  invalidateFieldState(Number(visualizer.dataset.aqeFieldOrd || "0"));
+  const state = updateFieldState(Number(visualizer.dataset.aqeFieldOrd || "0"), (fieldState) => ({
+    ...fieldState,
+    cursor: {
+      ...fieldState.cursor,
+      ms: Math.round(clamped),
+      progressMs: Math.round(clamped),
+    },
+  }));
   ensurePlaybackCursorVisible(visualizer, clamped);
-  renderCursor(visualizer, clamped, Number(visualizer.dataset.durationMs || targetDurationMs || "0"));
+  renderCursor(visualizer, clamped, state.graph.durationMs || targetDurationMs);
 }
 
 function startRecordingCursor(visualizer: VisualizerElement, startCursorMs: number, initialRecordingDurationMs: number): void {
@@ -192,14 +197,19 @@ function stopRecordingCursor(visualizer: VisualizerElement): void {
 function syncActiveRecordingTimeline(visualizer: VisualizerElement, recordingDurationMs: number): number {
   const effectiveLearnerDurationMs = activeRecordingLearnerDurationMs(visualizer, recordingDurationMs);
   const targetDurationMs = targetDurationForRecording(visualizer);
+  const ord = Number(visualizer.dataset.aqeFieldOrd || "0");
   visualizer.dataset.learnerDurationMs = String(Math.round(effectiveLearnerDurationMs));
-  if (visualizer.dataset.hasTrack === "true" && visualizer.__aqeTrack) {
+  if (readFieldState(ord).graph.hasTrack && visualizer.__aqeTrack) {
     renderProsodyTracks(visualizer);
+    return readFieldState(ord).graph.durationMs;
   } else {
-    visualizer.dataset.durationMs = String(Math.round(Math.max(targetDurationMs, effectiveLearnerDurationMs)));
-    invalidateFieldState(Number(visualizer.dataset.aqeFieldOrd || "0"));
+    const durationMs = Math.round(Math.max(targetDurationMs, effectiveLearnerDurationMs));
+    const state = updateFieldState(ord, (fieldState) => ({
+      ...fieldState,
+      graph: { ...fieldState.graph, durationMs },
+    }));
+    return state.graph.durationMs;
   }
-  return Number(visualizer.dataset.durationMs || "0") || 0;
 }
 
 function activeRecordingLearnerDurationMs(visualizer: VisualizerElement, recordingDurationMs: number): number {

@@ -5,12 +5,14 @@ import { chorusingControlsForVisualizer } from "./chorusing-dom.js";
 import { buttonFor } from "./dom-selectors.js";
 import type { VisualizerElement } from "./types.js";
 import { readVisualizerTargetDurationMs } from "./visualizer-state.js";
+import { readFieldState } from "./field-state-store.js";
 
 export function syncChorusingToolbarButtons(visualizer: VisualizerElement): void {
   const ord = Number(visualizer.dataset.aqeFieldOrd || "0");
   const controls = chorusingControlsForVisualizer(visualizer);
-  const hasPlayableTrack = visualizer.dataset.hasTrack === "true" && readVisualizerTargetDurationMs(visualizer) > 0;
-  const busy = document.body.dataset.aqeBusy === "true" || visualizer.dataset.graphBusy === "true";
+  const fieldState = readFieldState(ord);
+  const hasPlayableTrack = fieldState.graph.hasTrack && readVisualizerTargetDurationMs(visualizer) > 0;
+  const busy = document.body.dataset.aqeBusy === "true" || fieldState.graph.busy;
   const practiceButton = buttonFor(ord, "aqe:chorusing-practice");
   if (practiceButton) {
     const playing = controls.practiceState === "playing";

@@ -46,7 +46,7 @@ export function mountController(target: FieldTarget): FieldController | null {
     if (visualizer) {
       const s = readFieldState(target.ord);
       if (s.graph.busy || s.graph.hasTrack) {
-        const renderedSource = visualizer.dataset.sourceFilename || target.sourceFilename;
+        const renderedSource = s.sourceFilename || target.sourceFilename;
         existing.sourceFilename = renderedSource;
         const controls = document.querySelector<HTMLElement>(`.aqe-controls[data-aqe-field-ord="${target.ord}"]`);
         if (controls) controls.dataset.aqeSourceFilename = renderedSource;

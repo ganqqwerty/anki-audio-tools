@@ -13,7 +13,7 @@ import {
   startManualProgressClock,
   stopEditorPlayback,
 } from "../src/editor-inline/actions.js";
-import { readFieldState, invalidateFieldState } from "../src/editor-inline/field-state-store.js";
+import { readFieldState, updateFieldState } from "../src/editor-inline/field-state-store.js";
 import { disposeEditorRuntime } from "../src/editor-inline/runtime.js";
 import { bridgeCommands, mountTrack } from "./editor-inline.actions.helpers.js";
 
@@ -77,9 +77,10 @@ describe("editor inline audio-clock workflows", () => {
     expect(readFieldState(0).playback.clockMode).toBe("manual");
 
     visualizer.__aqeAudioClockAvailable = true;
-    visualizer.dataset.progressClockMode = "audio";
-    visualizer.dataset.playbackState = "playing";
-    invalidateFieldState(0);
+    updateFieldState(0, (state) => ({
+      ...state,
+      playback: { ...state.playback, clockMode: "audio", state: "playing" },
+    }));
     audio.dispatchEvent(new Event("ended"));
     expect(bridgeCommands()).toContain("aqe:play-ended");
     expect(readFieldState(0).playback.state).toBe("stopped");
@@ -87,25 +88,28 @@ describe("editor inline audio-clock workflows", () => {
 
   it("computes pause/resume playback requests and stop hooks", async () => {
     const visualizer = await mountTrack(300);
-    visualizer.dataset.hasTrack = "true";
-    visualizer.dataset.playbackEngine = "native";
-    visualizer.dataset.playbackState = "playing";
-    visualizer.dataset.progressClockMode = "manual";
+    updateFieldState(0, (state) => ({
+      ...state,
+      graph: { ...state.graph, hasTrack: true },
+      playback: { ...state.playback, clockMode: "manual", engine: "native", state: "playing" },
+    }));
     visualizer.dataset.playStartedAt = String(performance.now() - 125);
     visualizer.dataset.playStartMs = "300";
-    invalidateFieldState(0);
 
     const pause = playbackRequest(0);
     expect(pause.action).toBe("pause");
     expect(pause.engine).toBe("native");
     expect(pause.cursorMs).toBeGreaterThanOrEqual(300);
 
-    visualizer.dataset.playbackState = "paused";
-    visualizer.dataset.resumeRequiresRestart = "false";
-    invalidateFieldState(0);
+    updateFieldState(0, (state) => ({
+      ...state,
+      playback: { ...state.playback, resumeRequiresRestart: false, state: "paused" },
+    }));
     expect(playbackRequest(0).action).toBe("resume");
-    visualizer.dataset.resumeRequiresRestart = "true";
-    invalidateFieldState(0);
+    updateFieldState(0, (state) => ({
+      ...state,
+      playback: { ...state.playback, resumeRequiresRestart: true },
+    }));
     expect(playbackRequest(0).action).toBe("start");
     expect(stopEditorPlayback(0)).toBe(true);
     expect(stopEditorPlayback(9)).toBe(false);
@@ -124,8 +128,10 @@ describe("editor inline audio-clock workflows", () => {
     expect(handleHtmlPlaybackCommand(0)).toBe(true);
     expect(window.__aqeGetPlaybackRequest?.()).toMatchObject({ action: "pause", engine: "html", ord: 0 });
 
-    visualizer.dataset.playbackState = "paused";
-    visualizer.dataset.resumeRequiresRestart = "false";
+    updateFieldState(0, (state) => ({
+      ...state,
+      playback: { ...state.playback, resumeRequiresRestart: false, state: "paused" },
+    }));
     expect(handleHtmlPlaybackCommand(0)).toBe(true);
     await Promise.resolve();
     expect(window.__aqeGetPlaybackRequest?.()).toMatchObject({ action: "resume", engine: "html", ord: 0 });

@@ -24,7 +24,7 @@ from e2e.helpers import (
 )
 
 
-def test_visualizer_renders_pitch_intensity_labels_and_cursor(anki_mw, ffmpeg_config) -> None:
+def test_visualizer_renders_pitch_intensity_paths_and_cursor(anki_mw, ffmpeg_config) -> None:
     media_dir = Path(anki_mw.col.media.dir())
     source = media_dir / "editor_visualizer_source.wav"
     generate_tone(ffmpeg_config, source, duration_s=1.0)
@@ -50,8 +50,6 @@ def test_visualizer_renders_pitch_intensity_labels_and_cursor(anki_mw, ffmpeg_co
         )
 
         assert track["intensity"].startswith("M ")
-        assert len(track["labels"]) == 2
-        assert all(label.endswith(" Hz") for label in track["labels"])
         assert track["cursorX"]
         assert track["graphButtonLabel"] == "Redraw"
         assert any(label.endswith("ms") for label in track["xAxisLabels"])

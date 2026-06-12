@@ -38,7 +38,6 @@ declare global {
     __aqeGetPlaybackRequest?: (() => PlaybackRequest) | undefined;
     __aqeGraphPixelBoundsForTest?: ((ord: number) => { left: number; width: number } | null) | undefined;
     __aqeGraphStateForTest?: ((ord: number) => GraphStateForTest | null) | undefined;
-    __aqeInvalidateFieldState?: ((ord: number) => void) | undefined;
     __aqeHistoryAvailabilityByField?: Record<number, { canRedo: boolean; canUndo: boolean }> | undefined;
     __aqeInstallAudioPlaybackTestDriverForTest?: ((ord: number) => boolean) | undefined;
     __aqeLastCursorIntent?: CursorIntent | null;
@@ -65,6 +64,7 @@ declare global {
     __aqeSetBusy?: ((ord: number, busy: boolean, message?: string, command?: string) => void) | undefined;
     __aqeSetCursorByClientXForTest?: ((ord: number, clientX: number, notifyPython: boolean) => CursorPositionForTest | null) | undefined;
     __aqeSetCursorForTest?: ((ord: number, ms: number, notifyPython: boolean) => boolean) | undefined;
+    __aqeSetFieldStateForTest?: ((ord: number, patch: Partial<EditorFieldState>) => EditorFieldState | null) | undefined;
     __aqeSetHistoryAvailability?: ((ord: number, canUndo: boolean, canRedo: boolean) => void) | undefined;
     __aqeSetLearnerRecordingState?: ((payload: LearnerRecordingStatePayload) => void) | undefined;
     __aqeSetLearnerVisualizer?: ((ord: number, track: ProsodyPayload) => void) | undefined;

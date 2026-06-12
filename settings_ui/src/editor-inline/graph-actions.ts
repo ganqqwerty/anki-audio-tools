@@ -52,7 +52,7 @@ import {
 } from "./control-actions.js";
 import { graphSettingsForField } from "./graph-split-state.js";
 import { resetVisualizerTimeViewport } from "./visualizer-state.js";
-import { initFieldState, invalidateFieldState, readFieldState } from "./field-state-store.js";
+import { initFieldState, readFieldState, updateFieldState } from "./field-state-store.js";
 import { initialFieldState } from "./field-state.js";
 
 type EditorStatusMessage = string | UserFacingError;
@@ -146,8 +146,10 @@ export function setVisualizer(ord: number, rawTrack: ProsodyPayload, cursorMs: n
   if (!visualizer || !rawTrack) return;
   const track = normalizeTrack(rawTrack);
   renderVisualizerTrack(visualizer, track);
-  visualizer.dataset.anchorMs = "0";
-  invalidateFieldState(ord);
+  updateFieldState(ord, (state) => ({
+    ...state,
+    cursor: { ...state.cursor, anchorMs: 0 },
+  }));
   if (pendingGraphRedrawMatches(ord, track.sourceFilename || "")) {
     window.__aqePendingGraphRedrawField = null;
     window.__aqePendingGraphRedrawSource = null;
@@ -180,11 +182,14 @@ export function setVisualizerStatusFromPython(ord: number, message: EditorStatus
   const visualizer = visualizerForOrd(ord);
   if (visualizer) {
     visualizer.hidden = false;
-    visualizer.dataset.graphActive = "true";
-    if (kind === "processing") {
-      visualizer.dataset.hasTrack = "false";
-    }
-    invalidateFieldState(ord);
+    updateFieldState(ord, (state) => ({
+      ...state,
+      graph: {
+        ...state.graph,
+        active: true,
+        hasTrack: kind === "processing" ? false : state.graph.hasTrack,
+      },
+    }));
     setCommandButtonLabel(ord, "aqe:analyze", "Redraw");
   }
   setVisualizerStatus(ord, message, kind);

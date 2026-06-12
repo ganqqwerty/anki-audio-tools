@@ -239,13 +239,13 @@ def _prime_hidden_audio_duration(editor, duration_ms: int, ord_: int = 0) -> Non
         (() => {{
           const visualizer = document.querySelector('[data-testid="aqe-graph-{ord_}"]');
           if (!visualizer) return null;
-          visualizer.dataset.durationMs = String({duration_ms});
           visualizer.dataset.targetDurationMs = String({duration_ms});
-          visualizer.dataset.playbackEndMs = String({duration_ms});
-          visualizer.dataset.playbackRegionMode = "full";
           visualizer.dataset.playbackResetCursorMs = "0";
           visualizer.hidden = true;
-          window.__aqeInvalidateFieldState?.({ord_});
+          window.__aqeSetFieldStateForTest?.({ord_}, {{
+            graph: {{ active: true, durationMs: {duration_ms} }},
+            playback: {{ endMs: {duration_ms}, regionMode: "full" }}
+          }});
           return window.__aqeGraphStateForTest ? window.__aqeGraphStateForTest({ord_}) : null;
         }})()
         """,

@@ -9,7 +9,7 @@ import {
 } from "../src/editor-inline/actions.js";
 import { disposeEditorRuntime } from "../src/editor-inline/runtime.js";
 import { bridgeCommands, mountTrack } from "./editor-inline.actions.helpers.js";
-import { readFieldState, invalidateFieldState } from "../src/editor-inline/field-state-store.js";
+import { readFieldState, updateFieldState } from "../src/editor-inline/field-state-store.js";
 
 describe("editor inline action progress clocks", () => {
   let warnSpy: ReturnType<typeof vi.spyOn>;
@@ -116,8 +116,10 @@ describe("editor inline action progress clocks", () => {
     }));
     audio.pause = vi.fn<() => void>(() => undefined);
     audio.dispatchEvent(new Event("loadedmetadata"));
-    visualizer.dataset.playbackEngine = "html";
-    invalidateFieldState(0);
+    updateFieldState(0, (state) => ({
+      ...state,
+      playback: { ...state.playback, engine: "html" },
+    }));
 
     setPlaybackState(0, "playing", 100);
     audio.currentTime = 0.9;
@@ -155,8 +157,10 @@ describe("editor inline action progress clocks", () => {
       .mockImplementationOnce(() => Promise.resolve());
     audio.pause = vi.fn<() => void>(() => undefined);
     audio.dispatchEvent(new Event("loadedmetadata"));
-    visualizer.dataset.playbackEngine = "html";
-    invalidateFieldState(0);
+    updateFieldState(0, (state) => ({
+      ...state,
+      playback: { ...state.playback, engine: "html" },
+    }));
 
     setPlaybackState(0, "playing", 100);
     setPlaybackState(0, "playing", 500);

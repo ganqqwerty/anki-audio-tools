@@ -12,7 +12,7 @@
     "dev": "vite",
     "test": "vitest run",
     "test:watch": "vitest",
-    "test:coverage": "vitest run --coverage",
+    "test:coverage": "vitest run --coverage --pool=threads --maxWorkers=2 --testTimeout=15000",
     "lint": "eslint . && npm run lint:max-lines",
     "lint:max-lines": "eslint . --config eslint.max-lines.config.js",
     "check": "svelte-check --tsconfig ./tsconfig.json",

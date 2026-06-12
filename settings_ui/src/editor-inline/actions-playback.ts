@@ -30,7 +30,7 @@ import {
 } from "./selection-controller.js";
 import { readVisualizerTargetDurationMs } from "./visualizer-state.js";
 import { notifySelectionChanged } from "./selection-events.js";
-import { readFieldState, writeFieldState, invalidateFieldState } from "./field-state-store.js";
+import { readFieldState, writeFieldState } from "./field-state-store.js";
 
 function fieldOrd(v: VisualizerElement): number {
   return Number(v.dataset.aqeFieldOrd || "0");
@@ -137,12 +137,17 @@ export function setCursor(
 
 export function initializePlaybackRegionState(visualizer: VisualizerElement): void {
   const s = readFieldState(fieldOrd(visualizer));
-  visualizer.dataset.playbackStartMs = "0";
-  visualizer.dataset.playbackEndMs = String(s.graph.durationMs || 0);
-  visualizer.dataset.playbackRegionMode = "full";
+  writeFieldState(s.ord, {
+    ...s,
+    playback: {
+      ...s.playback,
+      endMs: s.graph.durationMs || 0,
+      regionMode: "full",
+      startMs: 0,
+    },
+  });
   visualizer.dataset.playbackResetCursorMs = "0";
   visualizer.dataset.playbackLoop = repeatDefaultFromConfig() ? "true" : "false";
-  invalidateFieldState(s.ord);
   setRepeatEnabled(visualizer, repeatDefaultFromConfig());
   clearSelectionFromController(visualizer, { resetPlaybackRegion: false });
   notifySelectionChanged(visualizer, "system");

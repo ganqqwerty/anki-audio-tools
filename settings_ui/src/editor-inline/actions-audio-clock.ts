@@ -64,11 +64,12 @@ export function installAudioClockHandlers(visualizer: VisualizerElement): void {
       renderCursor(visualizer, readFieldState(ord).cursor.ms, durationMs);
     },
     onErrorDuringPlayback() {
-      logger.warn("audio clock failed during playback", { ord: visualizer.dataset.aqeFieldOrd });
-      startManualProgressClock(visualizer, Number(visualizer.dataset.cursorMs || "0"));
+      const ord = fieldOrd(visualizer);
+      logger.warn("audio clock failed during playback", { ord });
+      startManualProgressClock(visualizer, readFieldState(ord).cursor.ms);
     },
     onEndedDuringPlayback() {
-      handlePlaybackBoundary(visualizer, Number(visualizer.dataset.durationMs || "0"), { forceAudioPlay: true });
+      handlePlaybackBoundary(visualizer, readFieldState(fieldOrd(visualizer)).graph.durationMs, { forceAudioPlay: true });
     },
   });
 }
@@ -88,7 +89,6 @@ export function setRepeatEnabled(visualizer: VisualizerElement, enabled: boolean
     ...readFieldState(ord),
     playback: { ...readFieldState(ord).playback, repeat: enabled },
   });
-  visualizer.dataset.repeatEnabled = enabled ? "true" : "false";
   for (const button of repeatButtonsForOrd(ord)) {
     button.ariaPressed = enabled ? "true" : "false";
     button.dataset.aqeButtonState = enabled ? "active" : "default";

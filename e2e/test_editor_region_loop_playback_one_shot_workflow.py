@@ -156,8 +156,7 @@ def _force_native_playback(editor, ord_: int = 0) -> None:
           if (!visualizer) return false;
           visualizer.__aqeAudioClockAvailable = false;
           visualizer.__aqeAudioClockFallback = true;
-          visualizer.dataset.playbackEngine = "";
-          window.__aqeInvalidateFieldState?.({ord_});
+          window.__aqeSetFieldStateForTest?.({ord_}, {{ playback: {{ engine: "" }} }});
           return true;
         }})()
         """,

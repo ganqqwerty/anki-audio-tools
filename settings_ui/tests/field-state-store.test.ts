@@ -1,4 +1,4 @@
-import { describe, expect, it, afterEach } from "vitest";
+import { describe, expect, it, afterEach, vi } from "vitest";
 
 import { visualizerForOrd } from "../src/editor-inline/dom-selectors.js";
 import { initialFieldState } from "../src/editor-inline/field-state.js";
@@ -26,6 +26,7 @@ function mountVisualizer(ord = 0, durationMs = 1000): void {
 
 describe("field state store", () => {
   afterEach(() => {
+    vi.restoreAllMocks();
     document.body.innerHTML = "";
   });
 
@@ -44,7 +45,7 @@ describe("field state store", () => {
     expect(visualizer?.dataset.sourceFilename).toBe("");
   });
 
-  it("readFieldState caches the first rebuild and returns stored state on subsequent calls", () => {
+  it("readFieldState initializes a default state and ignores DOM field-state attributes", () => {
     mountVisualizer(1, 2000);
     const visualizer = visualizerForOrd(1);
     invalidateFieldState(1);
@@ -59,15 +60,15 @@ describe("field state store", () => {
     visualizer!.dataset.selectionEndMs = "900";
 
     const state = readFieldState(1);
-    expect(state.graph.active).toBe(true);
-    expect(state.graph.hasTrack).toBe(true);
-    expect(state.graph.durationMs).toBe(2000);
-    expect(state.cursor.ms).toBe(500);
-    expect(state.playback.state).toBe("playing");
-    expect(state.sourceFilename).toBe("test.wav");
-    expect(state.selection.active).toBe(true);
-    expect(state.selection.startMs).toBe(100);
-    expect(state.selection.endMs).toBe(900);
+    expect(state.graph.active).toBe(false);
+    expect(state.graph.hasTrack).toBe(false);
+    expect(state.graph.durationMs).toBe(0);
+    expect(state.cursor.ms).toBe(0);
+    expect(state.playback.state).toBe("stopped");
+    expect(state.sourceFilename).toBe("");
+    expect(state.selection.active).toBe(false);
+    expect(state.selection.startMs).toBeNull();
+    expect(state.selection.endMs).toBeNull();
   });
 
   it("readFieldState returns default state when visualizer not found", () => {
@@ -129,34 +130,21 @@ describe("field state store", () => {
     expect(hasFieldState(4)).toBe(false);
   });
 
-  it("preserves direct-DOM writes after invalidate — writeFieldState does not clobber", () => {
+  it("does not use direct DOM writes as source of truth after invalidate", () => {
     mountVisualizer(0, 1000);
     initFieldState(0, initialFieldState({ ord: 0 }));
 
-    // Simulate a test/e2e that writes cursor directly to DOM
     const vis = visualizerForOrd(0)!;
     vis.dataset.cursorMs = "900";
     vis.dataset.progressMs = "900";
     invalidateFieldState(0);
 
-    // Store rebuilds from DOM — cursor should be 900
-    expect(readFieldState(0).cursor.ms).toBe(900);
-
-    // A writeFieldState for an unrelated field must not clobber cursor
-    writeFieldState(0, {
-      ...readFieldState(0),
-      playback: { ...readFieldState(0).playback, repeat: true },
-    });
-
-    // Cursor should still be 900 — not reset to the cached-0 from initFieldState
-    expect(readFieldState(0).cursor.ms).toBe(900);
-    expect(readFieldState(0).playback.repeat).toBe(true);
-
-    // DOM should also reflect the preserved cursor
+    expect(readFieldState(0).cursor.ms).toBe(0);
+    expect(readFieldState(0).cursor.progressMs).toBe(0);
     expect(vis.dataset.cursorMs).toBe("900");
   });
 
-  it("stale cache from direct-DOM write returns old value until invalidated", () => {
+  it("writeFieldState remains canonical when DOM is stale", () => {
     mountVisualizer(0, 1000);
     initFieldState(0, initialFieldState({ ord: 0 }));
 
@@ -176,9 +164,8 @@ describe("field state store", () => {
     // cached read returns stale value
     expect(readFieldState(0).cursor.ms).toBe(300);
 
-    // invalidate forces rebuild
     invalidateFieldState(0);
-    expect(readFieldState(0).cursor.ms).toBe(900);
+    expect(readFieldState(0).cursor.ms).toBe(0);
   });
 
   it("syncFieldStateToDom projects all fields including ones unchanged since init", () => {
@@ -233,8 +220,20 @@ describe("field state store", () => {
     setCachedProgressMs(0, 333);
 
     expect(visualizerForOrd(0)!.dataset.progressMs).toBe("333");
-    // Next read rebuilds from DOM and picks up the written progressMs.
     expect(readFieldState(0).cursor.progressMs).toBe(333);
+  });
+
+  it("setCachedProgressMs uses a supplied visualizer without querying the DOM", () => {
+    mountVisualizer(0, 1000);
+    initFieldState(0, initialFieldState({ ord: 0 }));
+    const visualizer = visualizerForOrd(0)!;
+    const querySelector = vi.spyOn(document, "querySelector");
+
+    setCachedProgressMs(0, 125.4, visualizer);
+
+    expect(querySelector).not.toHaveBeenCalled();
+    expect(visualizer.dataset.progressMs).toBe("125");
+    expect(readFieldState(0).cursor.progressMs).toBe(125);
   });
 
   it("hasFieldState returns false for unknown ordinals", () => {

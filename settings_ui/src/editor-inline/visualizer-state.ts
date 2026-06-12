@@ -103,15 +103,16 @@ export function setVisualizerSelection(visualizer: VisualizerElement, range: Sel
 
 export function setVisualizerPlaybackRegion(visualizer: VisualizerElement, region: PlaybackRegion): void {
   const ord = fieldOrd(visualizer);
+  const state = readFieldState(ord);
   visualizer.dataset.playbackResetCursorMs = String(Math.round(
     region.mode === "selection"
       ? region.startMs
-      : Number(visualizer.dataset.anchorMs || visualizer.dataset.cursorMs || "0"),
+      : state.cursor.anchorMs || state.cursor.ms,
   ));
   writeFieldState(ord, {
-    ...readFieldState(ord),
+    ...state,
     playback: {
-      ...readFieldState(ord).playback,
+      ...state.playback,
       endMs: Math.round(region.endMs),
       regionMode: region.mode,
       startMs: Math.round(region.startMs),

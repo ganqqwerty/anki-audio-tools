@@ -9,12 +9,14 @@
   import type { FieldTarget, VisualizerElement } from "./types.js";
   import { applyVisualizerTimeViewport } from "./viewport-actions.js";
   import { readVisualizerTimeViewport } from "./visualizer-state.js";
+  import { readFieldState } from "./field-state-store.js";
 
   const { target }: { target: FieldTarget } = $props();
   let scroller = $state<HTMLDivElement | null>(null);
   let hidden = $state(true);
   let spacerWidthPercent = $state(100);
   let syncScrollPosition = false;
+  let syncedScrollLeft = 0;
 
   function maxScrollableWidth(scrollElement: HTMLDivElement, clientWidth: number, widthPercent: number): number {
     const measuredScrollableWidth = scrollElement.scrollWidth - clientWidth;
@@ -23,7 +25,7 @@
   }
 
   function syncFromVisualizer(visualizer: VisualizerElement | null = visualizerForOrd(target.ord)): void {
-    if (!visualizer || visualizer.dataset.hasTrack !== "true") {
+    if (!visualizer || !readFieldState(target.ord).graph.hasTrack) {
       hidden = true;
       spacerWidthPercent = 100;
       return;
@@ -40,6 +42,7 @@
       const clientWidth = scroller.clientWidth || scroller.getBoundingClientRect().width || 1;
       const maxScrollLeft = maxScrollableWidth(scroller, clientWidth, nextSpacerWidthPercent);
       const nextScrollLeft = maxStartMs > 0 ? (viewport.startMs / maxStartMs) * maxScrollLeft : 0;
+      syncedScrollLeft = nextScrollLeft;
       syncScrollPosition = true;
       scroller.scrollLeft = nextScrollLeft;
       window.queueMicrotask(() => {
@@ -49,9 +52,11 @@
   }
 
   function handleScroll(): void {
-    if (!scroller || syncScrollPosition) return;
+    if (!scroller) return;
+    if (syncScrollPosition && Math.abs(scroller.scrollLeft - syncedScrollLeft) <= 1) return;
+    syncScrollPosition = false;
     const visualizer = visualizerForOrd(target.ord);
-    if (!visualizer || visualizer.dataset.hasTrack !== "true") return;
+    if (!visualizer || !readFieldState(target.ord).graph.hasTrack) return;
     const viewport = readVisualizerTimeViewport(visualizer);
     const span = timeViewportSpan(viewport);
     if (isFullTimeViewport(viewport) || span <= 0) return;
@@ -70,8 +75,10 @@
     const visualizer = visualizerForOrd(target.ord);
     syncFromVisualizer(visualizer);
     const handleResize = (): void => syncFromVisualizer(visualizer);
+    const handleViewportRendered = (): void => syncFromVisualizer(visualizer);
     const mutationObserver = visualizer ? new MutationObserver(() => syncFromVisualizer(visualizer)) : null;
     if (visualizer) {
+      visualizer.addEventListener("aqe-viewport-rendered", handleViewportRendered);
       mutationObserver?.observe(visualizer, {
         attributes: true,
         attributeFilter: ["data-has-track", "data-viewport-start-ms", "data-viewport-end-ms", "data-duration-ms"],
@@ -80,6 +87,7 @@
     window.addEventListener("resize", handleResize);
     return () => {
       window.removeEventListener("resize", handleResize);
+      visualizer?.removeEventListener("aqe-viewport-rendered", handleViewportRendered);
       mutationObserver?.disconnect();
     };
   });

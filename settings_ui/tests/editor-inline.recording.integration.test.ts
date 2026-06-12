@@ -16,7 +16,7 @@ import {
   setupAudioTrack,
   textRecordingConfig,
 } from "./editor-inline.recording.integration.helpers.js";
-import { invalidateFieldState } from "../src/editor-inline/field-state-store.js";
+import { updateFieldState } from "../src/editor-inline/field-state-store.js";
 import { PRODUCT_LINKS } from "../src/lib/product-links.js";
 import type { EditorRuntimeConfig } from "../src/editor-inline/types.js";
 
@@ -102,8 +102,10 @@ describe("editor inline learner recording integration", () => {
     );
 
     await setupAudioTrack();
-    document.querySelector<HTMLElement>('[data-testid="aqe-graph-0"]')!.dataset.cursorMs = "400";
-    invalidateFieldState(0);
+    updateFieldState(0, (state) => ({
+      ...state,
+      cursor: { ...state.cursor, ms: 400, progressMs: 400 },
+    }));
     expect(recordButton.disabled).toBe(false);
     expect(playYoursButton.disabled).toBe(true);
     expect(shareYoursButton.disabled).toBe(true);

@@ -18,7 +18,12 @@ class DelayedRenderer:
         self.calls: list[dict[str, Any]] = []
 
     def wait_started(self, timeout: float = 5.0) -> None:
-        assert self.started.wait(timeout), "renderer did not start"
+        deadline = time.monotonic() + timeout
+        while time.monotonic() < deadline:
+            QApplication.processEvents()
+            if self.started.wait(0.01):
+                return
+        assert self.started.is_set(), "renderer did not start"
 
     def allow_completion(self) -> None:
         self.release.set()
