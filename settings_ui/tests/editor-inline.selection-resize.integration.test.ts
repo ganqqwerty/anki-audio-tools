@@ -9,6 +9,7 @@ import {
   graphClientX,
   muteConsole,
   renderFields,
+  setFullGraphViewport,
   setGraphBounds,
   track,
 } from "./editor-inline.integration.helpers.js";
@@ -33,6 +34,7 @@ describe("editor inline selection resize integration", () => {
     window.__aqeSetVisualizer?.(0, track, 100);
     const svg = document.querySelector<SVGSVGElement>('[data-testid="aqe-graph-svg-0"]')!;
     setGraphBounds(svg);
+    setFullGraphViewport();
     dragGraphSelection(svg, 0.2, 0.6);
     const startHandle = document.querySelector<HTMLElement>('[data-testid="aqe-selection-resize-start-0"]')!;
     expect(startHandle.hidden).toBe(false);
@@ -84,6 +86,7 @@ describe("editor inline selection resize integration", () => {
     window.__aqeSetVisualizer?.(0, track, 100);
     const svg = document.querySelector<SVGSVGElement>('[data-testid="aqe-graph-svg-0"]')!;
     setGraphBounds(svg);
+    setFullGraphViewport();
     dragGraphSelection(svg, 0.25, 0.75);
 
     window.__aqeSetTimeViewportForTest?.(0, 0, 500);
@@ -119,6 +122,7 @@ describe("editor inline selection resize integration", () => {
     window.__aqeSetVisualizer?.(0, track, 100);
     const svg = document.querySelector<SVGSVGElement>('[data-testid="aqe-graph-svg-0"]')!;
     setGraphBounds(svg);
+    setFullGraphViewport();
     dragGraphSelection(svg, 0.2, 0.6);
 
     dragSelectionHandle(svg, "start", 0.8);
@@ -140,6 +144,7 @@ describe("editor inline selection resize integration", () => {
     window.__aqeSetVisualizer?.(0, track, 100);
     const svg = document.querySelector<SVGSVGElement>('[data-testid="aqe-graph-svg-0"]')!;
     setGraphBounds(svg);
+    setFullGraphViewport();
     dragGraphSelection(svg, 0.2, 0.6);
     const handle = document.querySelector('[data-testid="aqe-selection-resize-start-0"]')!;
     const flag = document.querySelector<HTMLElement>('[data-testid="aqe-css-cursor-0"] .aqe-css-cursor-flag')!;
@@ -166,6 +171,7 @@ describe("editor inline selection resize integration", () => {
     window.__aqeSetVisualizer?.(0, track, 100);
     const svg = document.querySelector<SVGSVGElement>('[data-testid="aqe-graph-svg-0"]')!;
     setGraphBounds(svg);
+    setFullGraphViewport();
     dragGraphSelection(svg, 0.2, 0.6);
 
     const pitch = document.querySelector<SVGGElement>('[data-testid="aqe-pitch-0"]')!;
@@ -201,6 +207,7 @@ describe("editor inline selection resize integration", () => {
     window.__aqeSetVisualizer?.(0, track, 100);
     const svg = document.querySelector<SVGSVGElement>('[data-testid="aqe-graph-svg-0"]')!;
     setGraphBounds(svg);
+    setFullGraphViewport();
     dragGraphSelection(svg, 0.2, 0.6);
     const handle = document.querySelector('[data-testid="aqe-selection-resize-end-0"]')!;
 
@@ -228,6 +235,7 @@ describe("editor inline selection resize integration", () => {
     window.__aqeSetVisualizer?.(0, track, 100);
     const svg = document.querySelector<SVGSVGElement>('[data-testid="aqe-graph-svg-0"]')!;
     setGraphBounds(svg);
+    setFullGraphViewport();
     dragGraphSelection(svg, 0.2, 0.6);
     const handle = document.querySelector('[data-testid="aqe-selection-resize-end-0"]')!;
 

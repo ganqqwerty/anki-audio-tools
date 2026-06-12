@@ -12,7 +12,7 @@ import { PLOT, xForMs } from "../src/editor-inline/plot.js";
 import { disposeEditorRuntime } from "../src/editor-inline/runtime.js";
 import { PRODUCT_LINKS } from "../src/lib/product-links.js";
 import { bridgeCommands, mountTrack, track } from "./editor-inline.actions.helpers.js";
-import { peekPendingCommandPayload } from "./editor-inline.integration.helpers.js";
+import { peekPendingCommandPayload, setFullGraphViewport } from "./editor-inline.integration.helpers.js";
 
 describe("editor inline status workflows", () => {
   let warnSpy: ReturnType<typeof vi.spyOn>;
@@ -133,6 +133,7 @@ describe("editor inline status workflows", () => {
   it("renders a timecode flag at the cursor and clamps it inside the plot", async () => {
     const visualizer = await mountTrack(0);
     window.__aqeSetVisualizer?.(0, { ...track, durationMs: 6000 }, 750);
+    setFullGraphViewport();
     const cursor = visualizer.querySelector<HTMLElement>('[data-testid="aqe-css-cursor-0"]')!;
     const flag = cursor.querySelector<HTMLElement>(".aqe-css-cursor-flag")!;
     const current = flag.querySelector<HTMLElement>(".aqe-css-cursor-flag-current")!;

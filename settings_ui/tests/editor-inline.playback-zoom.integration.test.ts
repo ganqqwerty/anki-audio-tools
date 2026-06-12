@@ -11,6 +11,7 @@ import {
   dragGraphSelection,
   muteConsole,
   renderFields,
+  setFullGraphViewport,
   setGraphBounds,
   setRepeatMode,
   track,
@@ -111,6 +112,7 @@ describe("editor inline zoom playback integration", () => {
     window.__aqeSetVisualizer?.(0, track, 0);
     const svg = document.querySelector<SVGSVGElement>('[data-testid="aqe-graph-svg-0"]')!;
     setGraphBounds(svg);
+    setFullGraphViewport();
     dragGraphSelection(svg, 0.2, 0.8);
     window.__aqeSetTimeViewportForTest?.(0, 500, 1000);
     const visualizer = document.querySelector<HTMLElement>('[data-testid="aqe-graph-0"]')!;
@@ -146,6 +148,7 @@ describe("editor inline zoom playback integration", () => {
     window.__aqeSetVisualizer?.(0, track, 0);
     const svg = document.querySelector<SVGSVGElement>('[data-testid="aqe-graph-svg-0"]')!;
     setGraphBounds(svg);
+    setFullGraphViewport();
     dragGraphSelection(svg, 0.2, 0.8);
     await setRepeatMode(true);
     window.__aqeSetTimeViewportForTest?.(0, 500, 1000);

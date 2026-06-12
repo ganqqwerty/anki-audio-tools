@@ -7,6 +7,7 @@ import {
   muteConsole,
   renderFields,
   selectionToolbarButton,
+  setFullGraphViewport,
   setGraphBounds,
   track,
 } from "./editor-inline.integration.helpers.js";
@@ -31,6 +32,7 @@ describe("editor inline selection delete integration", () => {
     window.__aqeSetVisualizer?.(0, track, 250);
     const svg = document.querySelector<SVGSVGElement>('[data-testid="aqe-graph-svg-0"]')!;
     setGraphBounds(svg);
+    setFullGraphViewport();
 
     expect(window.__aqeGraphStateForTest?.(0)).toMatchObject({
       selectionActive: true,
@@ -79,6 +81,7 @@ describe("editor inline selection delete integration", () => {
     window.__aqeSetVisualizer?.(0, track, 250);
     const svg = document.querySelector<SVGSVGElement>('[data-testid="aqe-graph-svg-0"]')!;
     setGraphBounds(svg);
+    setFullGraphViewport();
 
     expect(window.__aqeGraphStateForTest?.(0)).toMatchObject({
       selectionActive: true,
@@ -129,6 +132,7 @@ describe("editor inline selection delete integration", () => {
     const graph = document.querySelector<HTMLElement>('[data-testid="aqe-graph-0"]')!;
     const field = document.getElementById("f0")!;
     setGraphBounds(svg);
+    setFullGraphViewport();
     dragGraphSelection(svg, 0.2, 0.6);
 
     field.focus();
@@ -156,6 +160,7 @@ describe("editor inline selection delete integration", () => {
     const svg = document.querySelector<SVGSVGElement>('[data-testid="aqe-graph-svg-0"]')!;
     const graph = document.querySelector<HTMLElement>('[data-testid="aqe-graph-0"]')!;
     setGraphBounds(svg);
+    setFullGraphViewport();
 
     dragGraphSelection(svg, 0, 1);
     expect(window.__aqeGraphStateForTest?.(0)).toMatchObject({
