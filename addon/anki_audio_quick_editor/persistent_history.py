@@ -19,6 +19,7 @@ except ImportError:
     _sqlite3 = None
 
 SCHEMA_VERSION = 1
+MAX_RECENT_UNDOABLE_LIMIT = 100
 logger = logging.getLogger(__name__)
 
 
@@ -167,6 +168,7 @@ class PersistentHistoryRepository:
     ) -> list[PersistentHistoryOperation]:
         """Return recent non-expired operations that have not been undone."""
         self._migrate()
+        bounded_limit = min(MAX_RECENT_UNDOABLE_LIMIT, max(0, int(limit)))
         with closing(self._connect()) as connection:
             rows = connection.execute(
                 """
@@ -179,7 +181,7 @@ class PersistentHistoryRepository:
                 order by id desc
                 limit ?
                 """,
-                (collection_id, note_id, field_index, max(0, int(limit))),
+                (collection_id, note_id, field_index, bounded_limit),
             ).fetchall()
         operations = [_operation_from_row(row) for row in rows]
         logger.debug(
@@ -188,7 +190,7 @@ class PersistentHistoryRepository:
             _short_collection_id(collection_id),
             note_id,
             field_index,
-            limit,
+            bounded_limit,
         )
         return operations
 
