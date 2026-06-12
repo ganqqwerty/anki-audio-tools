@@ -107,6 +107,7 @@ EDITOR_OPERATION_CONTRACTS: dict[str, ModuleContract] = {
         layer=Layer.UI_ADAPTER,
         allowed_addon_deps=(
             "audio_state",
+            "editor_history_settings",
             "editor_reload_status",
             "editor_session",
             "editor_status",
