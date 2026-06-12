@@ -23,16 +23,13 @@
   import { DenoiseAlgorithm, PauseAggressiveness, PitchHumMode, type Config } from "$lib/types.js";
   import type { EditorCommand } from "$lib/editor-toolbar-buttons.js";
   import GraphSettingsFields from "./GraphSettingsFields.svelte";
+  import HistorySettingsFields from "./HistorySettingsFields.svelte";
   import OutputFormatField from "./OutputFormatField.svelte";
   import SettingsChoiceGroup from "./SettingsChoiceGroup.svelte";
   import SettingsHiddenWarning from "./SettingsHiddenWarning.svelte";
   import SettingsSizeReductionFields from "./SettingsSizeReductionFields.svelte";
 
-  let {
-    command,
-    config = $bindable(),
-    visible,
-  }: {
+  let { command, config = $bindable(), visible }: {
     command: EditorCommand;
     config: Config;
     visible: boolean;
@@ -152,11 +149,7 @@
     <span>{t("settings.pause_aggressiveness")}</span>
     <SettingsChoiceGroup
       ariaLabel={t("settings.pause_aggressiveness")}
-      options={[
-        PauseAggressiveness.Gentle,
-        PauseAggressiveness.Normal,
-        PauseAggressiveness.Aggressive,
-      ].map((value) => ({
+      options={[PauseAggressiveness.Gentle, PauseAggressiveness.Normal, PauseAggressiveness.Aggressive].map((value) => ({
         label: formatPauseAggressiveness(value),
         tooltip: choiceTooltip(formatPauseAggressiveness(value), pauseAggressivenessTooltip(value)),
         value,
@@ -312,17 +305,7 @@
     />
   </label>
 {:else if command === "aqe:undo" || command === "aqe:redo"}
-  <label class="settings-field">
-    <span>{t("settings.editor_history_size")}</span>
-    <UnitNumberInput
-      inputClass="settings-input"
-      testId="editor-history-size"
-      min="1"
-      max="100"
-      step="1"
-      bind:value={config.editor_history_size}
-    />
-  </label>
+  <HistorySettingsFields bind:config />
 {:else if command === "aqe:settings" && !visible}
   <SettingsHiddenWarning />
 {/if}

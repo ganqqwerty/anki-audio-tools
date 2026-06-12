@@ -16,6 +16,7 @@ CORE_CONTRACTS: dict[str, ModuleContract] = {
             "audio_size_reduction",
             "dpdfnet_settings",
             "editor_button_visibility",
+            "editor_history_settings",
         ),
     ),
     "contracts_generated": contract(
@@ -27,6 +28,7 @@ CORE_CONTRACTS: dict[str, ModuleContract] = {
         "editor_button_visibility",
         layer=Layer.IMPORT_SAFE_CORE,
     ),
+    "editor_history_settings": contract("editor_history_settings", layer=Layer.IMPORT_SAFE_CORE),
     "db_helpers": contract(
         "db_helpers",
         layer=Layer.IMPORT_SAFE_CORE,

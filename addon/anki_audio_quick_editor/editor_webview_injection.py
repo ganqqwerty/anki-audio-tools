@@ -6,8 +6,15 @@ import logging
 from typing import Any
 
 from . import editor_persistent_undo
-from .audio_state import DEFAULT_EDITOR_HISTORY_SIZE, normalize_editor_history_size
-from .editor_history_snapshot import HistorySnapshotItem, history_snapshot_for_field
+from .editor_history_settings import (
+    DEFAULT_EDITOR_HISTORY_SIZE,
+    normalize_editor_history_size,
+)
+from .editor_history_snapshot import (
+    HistorySnapshot,
+    HistorySnapshotItem,
+    history_snapshot_for_field,
+)
 from .editor_media import audio_field_indices as _audio_field_indices
 from .editor_media import audio_field_sources as _audio_field_sources
 from .editor_runtime import (
@@ -121,8 +128,8 @@ def _initial_history_snapshots_by_field(
     note: Any,
     session: EditorSession | None,
     history_size: int,
-) -> dict[int, dict[str, object]]:
-    snapshots: dict[int, dict[str, object]] = {}
+) -> dict[int, HistorySnapshot]:
+    snapshots: dict[int, HistorySnapshot] = {}
     for field_index in _audio_field_indices(note):
         snapshots[int(field_index)] = history_snapshot_for_field(
             editor,
@@ -135,7 +142,7 @@ def _initial_history_snapshots_by_field(
     return snapshots
 
 
-def _availability_by_field(snapshots: dict[int, dict[str, object]]) -> dict[int, dict[str, bool]]:
+def _availability_by_field(snapshots: dict[int, HistorySnapshot]) -> dict[int, dict[str, bool]]:
     return {
         field_index: {
             "canUndo": bool(snapshot.get("canUndo")),
@@ -145,7 +152,7 @@ def _availability_by_field(snapshots: dict[int, dict[str, object]]) -> dict[int,
     }
 
 
-def _can_persistent_undo(editor: Any, field_index: int) -> bool:
+def _can_persistent_undo(editor: Any, field_index: int | None) -> bool:
     try:
         return editor_persistent_undo.can_persistent_undo(editor, field_index)
     except Exception:
@@ -153,12 +160,15 @@ def _can_persistent_undo(editor: Any, field_index: int) -> bool:
         return False
 
 
-def _latest_persistent_undo_item(editor: Any, field_index: int) -> HistorySnapshotItem | None:
+def _latest_persistent_undo_item(editor: Any, field_index: int | None) -> HistorySnapshotItem | None:
     try:
-        return editor_persistent_undo.latest_persistent_undo_item(editor, field_index)
+        item = editor_persistent_undo.latest_persistent_undo_item(editor, field_index)
     except Exception:
         logger.debug("Could not compute persistent undo item.", exc_info=True)
         return None
+    if item is None:
+        return None
+    return {"id": item["id"], "label": item["label"]}
 
 
 def _initial_status_by_field(session: EditorSession | None) -> dict[int, dict[str, str]]:

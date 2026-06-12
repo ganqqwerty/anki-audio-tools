@@ -28,7 +28,16 @@ CORE_EDITOR_CONTRACTS: dict[str, ModuleContract] = {
     "editor_processing_shared": contract(
         "editor_processing_shared",
         layer=Layer.IMPORT_SAFE_CORE,
-        allowed_addon_deps=("editor_session",),
+        allowed_addon_deps=("editor_history_snapshot", "editor_session"),
+    ),
+    "editor_history_snapshot": contract(
+        "editor_history_snapshot",
+        layer=Layer.IMPORT_SAFE_CORE,
+        allowed_addon_deps=(
+            "editor_history_settings",
+            "editor_session",
+            "i18n",
+        ),
     ),
     "editor_region_delete_request": contract(
         "editor_region_delete_request",
@@ -38,7 +47,7 @@ CORE_EDITOR_CONTRACTS: dict[str, ModuleContract] = {
     "editor_session": contract(
         "editor_session",
         layer=Layer.IMPORT_SAFE_CORE,
-        allowed_addon_deps=("audio_state",),
+        allowed_addon_deps=("audio_state", "editor_history_settings"),
     ),
     "editor_ui": contract("editor_ui", layer=Layer.IMPORT_SAFE_CORE, allowed_addon_deps=("i18n",)),
     "editor_deps_protocols": contract(

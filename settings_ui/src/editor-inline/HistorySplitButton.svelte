@@ -24,7 +24,11 @@
   } = $props();
 
   let open = $state(false);
-  let currentSnapshot = $state(historySnapshot(target.ord));
+  let snapshotRevision = $state(0);
+  const currentSnapshot = $derived.by(() => {
+    snapshotRevision;
+    return historySnapshot(target.ord);
+  });
   const direction = $derived(button.command === "aqe:redo" ? "redo" : "undo");
   const slug = $derived(COMMAND_SLUGS[button.command]);
   const items = $derived(direction === "undo" ? currentSnapshot.undoItems : currentSnapshot.redoItems);
@@ -33,15 +37,26 @@
   const primaryTitle = $derived(button.title);
 
   onMount(() => {
-    currentSnapshot = historySnapshot(target.ord);
+    refreshSnapshot();
     function syncSnapshot(event: Event): void {
       const detail = (event as CustomEvent<{ ord?: number }>).detail;
       if (detail?.ord !== target.ord) return;
-      currentSnapshot = historySnapshot(target.ord);
+      refreshSnapshot();
     }
     window.addEventListener("aqe-history-snapshot", syncSnapshot);
     return () => window.removeEventListener("aqe-history-snapshot", syncSnapshot);
   });
+
+  function refreshSnapshot(): void {
+    snapshotRevision += 1;
+  }
+
+  function setOpen(nextOpen: boolean): void {
+    if (nextOpen) {
+      refreshSnapshot();
+    }
+    open = nextOpen;
+  }
 
   function dispatchPrimary(): void {
     send(button.command, target.node, target.ord);
@@ -62,7 +77,7 @@
   }
 </script>
 
-<Popover.Root bind:open>
+<Popover.Root {open} onOpenChange={setOpen}>
   <span class="aqe-split-button">
     <SplitButtonPrimary
       ariaLabel={primaryTitle}
@@ -82,7 +97,6 @@
       class="aqe-button aqe-icon-only aqe-split-menu-button"
       data-aqe-tooltip-content={menuTitle}
       data-testid={`aqe-split-${target.ord}-${slug}-menu`}
-      disabled={!available || items.length === 0}
       aria-label={menuTitle}
     >
       <EditorCommandIcon icon="chevron-down" />

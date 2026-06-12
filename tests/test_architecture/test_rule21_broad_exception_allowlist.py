@@ -154,6 +154,12 @@ BROAD_EXCEPTION_ALLOWLIST: tuple[BroadExceptionAllowance, ...] = (
         "Initial editor injection must not fail note loading when the persistent history check fails.",
     ),
     BroadExceptionAllowance(
+        "editor_webview_injection",
+        "_latest_persistent_undo_item",
+        1,
+        "Initial editor injection must not fail note loading when persistent history item lookup fails.",
+    ),
+    BroadExceptionAllowance(
         "editor_special_transform_worker",
         "run_special_transform_worker",
         1,

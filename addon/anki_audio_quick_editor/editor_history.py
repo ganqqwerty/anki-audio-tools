@@ -5,7 +5,10 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any
 
-from .audio_state import DEFAULT_EDITOR_HISTORY_SIZE, normalize_editor_history_size
+from .editor_history_settings import (
+    DEFAULT_EDITOR_HISTORY_SIZE,
+    normalize_editor_history_size,
+)
 from .editor_history_snapshot import HistorySnapshot, history_snapshot_for_field
 from .editor_reload_status import reload_editor_with_pending_status
 from .editor_session import EditorSession, UndoEntry
@@ -104,25 +107,15 @@ def history_jump(editor: Any, payload: Any, deps: Any) -> None:
     if deps.is_busy(session):
         deps.eval_status(editor, deps.still_processing_message, kind="processing")
         return
-    field_ord = getattr(payload, "field_ord", None)
-    if field_ord is None or int(field_ord) != int(deps.current_field_index(editor)):
+    direction, steps = _history_jump_request(editor, payload, deps)
+    if direction is None or steps is None:
         deps.eval_status(editor, t("editor.status.history_selection_unavailable"))
         return
-    direction = getattr(payload, "history_direction", None)
-    steps = getattr(payload, "history_steps", None)
-    max_steps = normalize_editor_history_size(_history_size(editor, deps))
-    if direction not in {"undo", "redo"} or not isinstance(steps, int) or steps < 1 or steps > max_steps:
+    entries = _history_jump_entries(session, direction, steps)
+    if entries is None:
         deps.eval_status(editor, t("editor.status.history_selection_unavailable"))
         return
-    stack = session.undo_history if direction == "undo" else session.redo_history
-    if len(stack.entries) < steps:
-        deps.eval_status(editor, t("editor.status.history_selection_unavailable"))
-        return
-    for _index in range(steps):
-        entry = stack.pop()
-        if entry is None:
-            deps.eval_status(editor, t("editor.status.history_selection_unavailable"))
-            return
+    for entry in entries:
         deps.restore_history_entry(
             editor,
             session,
@@ -130,6 +123,35 @@ def history_jump(editor: Any, payload: Any, deps: Any) -> None:
             redo_current=direction == "undo",
             status=undo_status_message(entry) if direction == "undo" else redo_status_message(entry),
         )
+
+
+def _history_jump_request(editor: Any, payload: Any, deps: Any) -> tuple[str | None, int | None]:
+    field_ord = getattr(payload, "field_ord", None)
+    if field_ord is None or int(field_ord) != int(deps.current_field_index(editor)):
+        return None, None
+    direction = getattr(payload, "history_direction", None)
+    steps = getattr(payload, "history_steps", None)
+    max_steps = normalize_editor_history_size(_history_size(editor, deps))
+    if direction not in {"undo", "redo"} or not isinstance(steps, int) or steps < 1 or steps > max_steps:
+        return None, None
+    return direction, steps
+
+
+def _history_jump_entries(
+    session: EditorSession,
+    direction: str,
+    steps: int,
+) -> list[UndoEntry] | None:
+    stack = session.undo_history if direction == "undo" else session.redo_history
+    if len(stack.entries) < steps:
+        return None
+    entries: list[UndoEntry] = []
+    for _index in range(steps):
+        entry = stack.pop()
+        if entry is None:
+            return None
+        entries.append(entry)
+    return entries
 
 
 def restore_history_entry(
