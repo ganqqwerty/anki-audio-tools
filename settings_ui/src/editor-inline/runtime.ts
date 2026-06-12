@@ -26,7 +26,11 @@ import type {EditorRuntimeConfig, FieldTarget} from "./types.js";
 import {installEditorWindowContract} from "./window-contract.js";
 
 let scheduledScanTimers: number[] = [];
+let mutationScanTimer: number | null = null;
+let editorDomObserver: MutationObserver | null = null;
 let globalErrorHandlersInstalled = false;
+
+const FIELD_SCAN_SELECTOR = '.field-container, .field, [contenteditable="true"], [data-field-ord], .aqe-review-audio-target';
 
 export {audioSourceForNode} from "./sound-source.js";
 
@@ -48,6 +52,7 @@ export function initializeEditorRuntime(config: EditorRuntimeConfig = editorRunt
     scheduleScan(scanWithConfig, 0);
     scheduleScan(scanWithConfig, 250);
     scheduleScan(scanWithConfig, 1000);
+    installEditorDomObserver(scanWithConfig);
 }
 
 function installGlobalErrorHandlers(): void {
@@ -72,6 +77,12 @@ function installGlobalErrorHandlers(): void {
 export function disposeEditorRuntime(): void {
     scheduledScanTimers.forEach((timer) => window.clearTimeout(timer));
     scheduledScanTimers = [];
+    if (mutationScanTimer !== null) {
+        window.clearTimeout(mutationScanTimer);
+        mutationScanTimer = null;
+    }
+    editorDomObserver?.disconnect();
+    editorDomObserver = null;
     disposeAllControllers();
 }
 
@@ -188,4 +199,34 @@ function scheduleScan(callback: () => void, delayMs: number): void {
         callback();
     }, delayMs);
     scheduledScanTimers.push(timer);
+}
+
+function installEditorDomObserver(callback: () => void): void {
+    editorDomObserver?.disconnect();
+    editorDomObserver = null;
+    if (typeof MutationObserver === "undefined" || !document.body) return;
+
+    editorDomObserver = new MutationObserver((records) => {
+        if (records.some(recordAffectsFieldScan)) {
+            scheduleMutationScan(callback);
+        }
+    });
+    editorDomObserver.observe(document.body, {childList: true, subtree: true});
+}
+
+function recordAffectsFieldScan(record: MutationRecord): boolean {
+    return [...record.addedNodes, ...record.removedNodes].some(nodeAffectsFieldScan);
+}
+
+function nodeAffectsFieldScan(node: Node): boolean {
+    if (!(node instanceof HTMLElement)) return false;
+    return node.matches(FIELD_SCAN_SELECTOR) || node.querySelector(FIELD_SCAN_SELECTOR) !== null;
+}
+
+function scheduleMutationScan(callback: () => void): void {
+    if (mutationScanTimer !== null) return;
+    mutationScanTimer = window.setTimeout(() => {
+        mutationScanTimer = null;
+        callback();
+    }, 0);
 }
