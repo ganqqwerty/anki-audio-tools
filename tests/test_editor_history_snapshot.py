@@ -58,6 +58,29 @@ def test_history_snapshot_includes_persistent_undo_when_session_empty() -> None:
     assert snapshot["redoItems"] == []
 
 
+def test_snapshot_uses_persistent_item_provider_without_availability_probe() -> None:
+    calls: list[str] = []
+
+    snapshot = history_snapshot_for_field(
+        object(),
+        field_index=0,
+        session=None,
+        history_size=100,
+        can_persistent_undo=lambda _editor, _field_index: calls.append("can") or False,
+        latest_persistent_undo_item=lambda _editor, _field_index: None,
+        persistent_undo_items=lambda _editor, _field_index, _limit: calls.append("items")
+        or [{"id": "persistent:9", "label": "Third edit"}],
+    )
+
+    assert calls == ["items"]
+    assert snapshot == {
+        "canUndo": True,
+        "canRedo": False,
+        "undoItems": [{"id": "persistent:9", "label": "Third edit"}],
+        "redoItems": [],
+    }
+
+
 def test_undo_history_prunes_oldest_entries_to_limit() -> None:
     history = UndoHistory(max_entries=3)
     for index in range(5):
