@@ -92,7 +92,7 @@
     padding: 2px 4px;
     text-align: right;
     max-width: 100%;
-    width: 5.5em;
+    width: var(--aqe-unit-number-input-width, 5.5em);
   }
 
   .aqe-unit-number-input-block .aqe-unit-number-input-field {

@@ -156,6 +156,8 @@ describe("editor inline selection resize integration", () => {
     });
     expect(flag.querySelector(".aqe-css-cursor-flag-current")?.textContent).toBe("100 ms");
     expect(flag.querySelector(".aqe-css-cursor-flag-pitch")?.textContent).toBe(" / 150 Hz");
+
+    dispatchHandlePointer(handle, "pointerup", graphClientX(svg, 0.1));
   });
 
   it("keeps outside shade below selection edges and handles while resizing", () => {

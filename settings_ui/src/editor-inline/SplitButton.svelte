@@ -12,6 +12,10 @@
     getSplitButtonState,
     promoteSplitDefaultsForField,
   } from "./split-button-state.js";
+  import {
+    GRAPH_SPLIT_STATE_CHANGED_EVENT,
+    type GraphSplitStateChangedDetail,
+  } from "./graph-split-state.js";
   import { currentValueLabel, primaryDisabledReason, primaryInitiallyDisabled, primaryTitle } from "./split-button-presenter.js";
   import { createSplitButtonStateHandlers } from "./split-button-state-behavior.js";
   import { COMMAND_SLUGS } from "./commands.js";
@@ -264,9 +268,16 @@
 
   onMount(() => {
     syncFromState(getSplitButtonState(targetOrd));
+    const handleGraphSplitStateChanged = (event: Event): void => {
+      const detail = (event as CustomEvent<GraphSplitStateChangedDetail>).detail;
+      if (detail?.ord !== targetOrd) return;
+      syncFromState(detail.state ?? getSplitButtonState(targetOrd));
+    };
     window.addEventListener(CLOSE_SPLIT_MENUS_EVENT, close);
+    window.addEventListener(GRAPH_SPLIT_STATE_CHANGED_EVENT, handleGraphSplitStateChanged);
     return () => {
       window.removeEventListener(CLOSE_SPLIT_MENUS_EVENT, close);
+      window.removeEventListener(GRAPH_SPLIT_STATE_CHANGED_EVENT, handleGraphSplitStateChanged);
       if (defaultSavedTimer !== undefined) window.clearTimeout(defaultSavedTimer);
     };
   });

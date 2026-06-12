@@ -11,6 +11,9 @@
   --aqe-destructive-preview-top: rgb(225 29 72 / 48%);
   --aqe-destructive-preview-bottom: rgb(225 29 72 / 20%);
   --aqe-destructive-text: rgb(159 18 57);
+  --aqe-record-button-fill: #dc2626;
+  --aqe-record-button-hover-fill: #b91c1c;
+  --aqe-record-button-text: white;
 
   align-items: center;
   border: 1px solid;
@@ -78,6 +81,9 @@
     --aqe-destructive-preview-top: rgb(251 113 133 / 42%);
     --aqe-destructive-preview-bottom: rgb(251 113 133 / 18%);
     --aqe-destructive-text: rgb(254 205 211);
+    --aqe-record-button-fill: #ef4444;
+    --aqe-record-button-hover-fill: #dc2626;
+    --aqe-record-button-text: white;
   }
 }
 
@@ -226,6 +232,39 @@
 .aqe-button[data-aqe-button-state="destructive"]:hover,
 .aqe-button[data-aqe-button-state="destructive"]:focus-visible {
   background: var(--aqe-destructive-fill);
+}
+
+.aqe-button[data-aqe-command="aqe:record-voice"],
+.aqe-ui-root .aqe-button[data-aqe-command="aqe:record-voice"],
+.aqe-mount-host .aqe-button[data-aqe-command="aqe:record-voice"] {
+  background: var(--aqe-record-button-fill);
+  border-color: var(--aqe-record-button-fill);
+  color: var(--aqe-record-button-text);
+}
+
+.aqe-button[data-aqe-command="aqe:record-voice"]:hover:not(:disabled),
+.aqe-button[data-aqe-command="aqe:record-voice"]:focus-visible:not(:disabled) {
+  background: var(--aqe-record-button-hover-fill);
+  border-color: var(--aqe-record-button-hover-fill);
+}
+
+.aqe-button[data-aqe-command="aqe:record-voice"] .aqe-button-icon svg {
+  fill: currentColor;
+}
+
+.aqe-button[data-aqe-command="aqe:play-recording"],
+.aqe-ui-root .aqe-button[data-aqe-command="aqe:play-recording"],
+.aqe-mount-host .aqe-button[data-aqe-command="aqe:play-recording"] {
+  background: transparent;
+  border-color: var(--aqe-record-button-fill);
+  color: var(--aqe-record-button-fill);
+}
+
+.aqe-button[data-aqe-command="aqe:play-recording"]:hover:not(:disabled),
+.aqe-button[data-aqe-command="aqe:play-recording"]:focus-visible:not(:disabled) {
+  background: color-mix(in srgb, var(--aqe-record-button-fill) 12%, transparent);
+  border-color: var(--aqe-record-button-hover-fill);
+  color: var(--aqe-record-button-hover-fill);
 }
 
 .aqe-controls[data-busy="true"] {

@@ -23,6 +23,13 @@ import { clampVoiceRecordingCountdownSeconds, pitchHumModeOrDefault } from "./sp
 import { getSplitButtonState } from "./split-button-state-core.js";
 import type { PitchHumMode, ShareTarget } from "./split-button-state-defaults.js";
 
+export const REPEAT_PAUSE_STATE_CHANGED_EVENT = "aqe-ui:repeat-pause-state-changed";
+
+export interface RepeatPauseStateChangedDetail {
+  ord: number;
+  state: FieldSplitButtonState;
+}
+
 export function setVolumeStepForField(ord: number, value: number): FieldSplitButtonState {
   const state = getSplitButtonState(ord);
   state.volumeEdited = true;
@@ -41,7 +48,16 @@ export function setRepeatPauseSecondsForField(ord: number, value: number): Field
   const state = getSplitButtonState(ord);
   state.repeatPauseEdited = true;
   state.repeatPauseSeconds = clampRepeatPauseSeconds(value);
+  notifyRepeatPauseStateChanged(ord, state);
   return state;
+}
+
+function notifyRepeatPauseStateChanged(ord: number, state: FieldSplitButtonState): void {
+  if (typeof window === "undefined") return;
+  window.dispatchEvent(new CustomEvent<RepeatPauseStateChangedDetail>(
+    REPEAT_PAUSE_STATE_CHANGED_EVENT,
+    { detail: { ord, state } },
+  ));
 }
 
 export function setVoiceRecordingCountdownSecondsForField(ord: number, value: number): FieldSplitButtonState {

@@ -1,7 +1,7 @@
 import {
   allVisualizers,
   playRepeatMenuButtonForOrd,
-  repeatButtonForOrd,
+  repeatButtonsForOrd,
 } from "./dom-selectors.js";
 import { formatRepeatPauseSeconds } from "../lib/audio-operation-parameters.js";
 import { t } from "../lib/i18n.js";
@@ -89,8 +89,7 @@ export function setRepeatEnabled(visualizer: VisualizerElement, enabled: boolean
     playback: { ...readFieldState(ord).playback, repeat: enabled },
   });
   visualizer.dataset.repeatEnabled = enabled ? "true" : "false";
-  const button = repeatButtonForOrd(ord);
-  if (button) {
+  for (const button of repeatButtonsForOrd(ord)) {
     button.ariaPressed = enabled ? "true" : "false";
     button.dataset.aqeButtonState = enabled ? "active" : "default";
   }

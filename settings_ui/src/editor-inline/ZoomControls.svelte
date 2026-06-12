@@ -66,24 +66,6 @@
         {...props}
         type="button"
         class="aqe-button aqe-icon-only aqe-zoom-button aqe-tooltip-target"
-        data-aqe-tooltip-content={trackTooltip(t("editor.zoom.out"))}
-        data-testid={`aqe-zoom-out-${target.ord}`}
-        aria-label={trackTooltip(t("editor.zoom.out"))}
-        disabled={!hasTrack}
-        onmousedown={(event) => event.preventDefault()}
-        onclick={() => withVisualizer(zoomOutForVisualizer)}
-      >
-        <EditorCommandIcon icon="zoom-out" />
-        <span class="aqe-button-label">{t("editor.zoom.out")}</span>
-      </button>
-    {/snippet}
-  </AqeTooltip>
-  <AqeTooltip>
-    {#snippet trigger({ props })}
-      <button
-        {...props}
-        type="button"
-        class="aqe-button aqe-icon-only aqe-zoom-button aqe-tooltip-target"
         data-aqe-tooltip-content={trackTooltip(t("editor.zoom.in"))}
         data-testid={`aqe-zoom-in-${target.ord}`}
         aria-label={trackTooltip(t("editor.zoom.in"))}
@@ -93,6 +75,24 @@
       >
         <EditorCommandIcon icon="zoom-in" />
         <span class="aqe-button-label">{t("editor.zoom.in")}</span>
+      </button>
+    {/snippet}
+  </AqeTooltip>
+  <AqeTooltip>
+    {#snippet trigger({ props })}
+      <button
+        {...props}
+        type="button"
+        class="aqe-button aqe-icon-only aqe-zoom-button aqe-tooltip-target"
+        data-aqe-tooltip-content={trackTooltip(t("editor.zoom.out"))}
+        data-testid={`aqe-zoom-out-${target.ord}`}
+        aria-label={trackTooltip(t("editor.zoom.out"))}
+        disabled={!hasTrack}
+        onmousedown={(event) => event.preventDefault()}
+        onclick={() => withVisualizer(zoomOutForVisualizer)}
+      >
+        <EditorCommandIcon icon="zoom-out" />
+        <span class="aqe-button-label">{t("editor.zoom.out")}</span>
       </button>
     {/snippet}
   </AqeTooltip>

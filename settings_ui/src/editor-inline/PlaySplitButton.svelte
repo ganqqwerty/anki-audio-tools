@@ -17,6 +17,8 @@
     formatRepeatPauseSeconds,
     getSplitButtonState,
     promoteSplitDefaultsForField,
+    REPEAT_PAUSE_STATE_CHANGED_EVENT,
+    type RepeatPauseStateChangedDetail,
     setRepeatPauseSecondsForField,
   } from "./split-button-state.js";
   import { t } from "../lib/i18n.js";
@@ -103,18 +105,26 @@
     syncRepeatState();
     const visualizer = visualizerForOrd(target.ord);
     playSelection = visualizer?.dataset.selectionActive === "true";
+    const handleRepeatPauseStateChanged = (event: Event): void => {
+      const detail = (event as CustomEvent<RepeatPauseStateChangedDetail>).detail;
+      if (detail?.ord !== target.ord) return;
+      repeatPauseSeconds = detail.state.repeatPauseSeconds;
+    };
     let observer: MutationObserver | null = null;
     if (visualizer) {
       observer = new MutationObserver(() => {
         playSelection = visualizer.dataset.selectionActive === "true";
+        repeatPauseSeconds = getSplitButtonState(target.ord).repeatPauseSeconds;
       });
       observer.observe(visualizer, {
         attributes: true,
-        attributeFilter: ["data-selection-active", "data-selection-draft-active"],
+        attributeFilter: ["data-repeat-pause-seconds", "data-selection-active", "data-selection-draft-active"],
       });
     }
+    window.addEventListener(REPEAT_PAUSE_STATE_CHANGED_EVENT, handleRepeatPauseStateChanged);
     return () => {
       observer?.disconnect();
+      window.removeEventListener(REPEAT_PAUSE_STATE_CHANGED_EVENT, handleRepeatPauseStateChanged);
       if (defaultSavedTimer !== undefined) window.clearTimeout(defaultSavedTimer);
     };
   });

@@ -164,7 +164,7 @@ export function commandButtons(config: EditorToolbarRuntimeConfig = {}): readonl
     {
       activeIcon: "square",
       command: "aqe:record-voice",
-      icon: "mic",
+      icon: "circle",
       iconOnly: true,
       label: t("editor.command.record_voice.label"),
       title: t("editor.command.record_voice.title"),
@@ -172,7 +172,7 @@ export function commandButtons(config: EditorToolbarRuntimeConfig = {}): readonl
     {
       activeIcon: "pause",
       command: "aqe:play-recording",
-      icon: "audio-lines",
+      icon: "play",
       iconOnly: true,
       label: t("editor.command.play_recording.label"),
       title: t("editor.command.play_recording.title"),

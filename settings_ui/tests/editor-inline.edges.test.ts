@@ -82,7 +82,7 @@ describe("editor inline defensive edges", () => {
 
     expect(pathForIntensity([], 1000)).toBe("");
     expect(yForPitch(200, 300, 100)).toBe(116);
-    expect(graphPixelBounds(svg)).toEqual({ left: 44, width: 566 });
+    expect(graphPixelBounds(svg)).toEqual({ left: 10, width: 600 });
     expect(cursorMsFromEvent({ clientX: -100 }, svg, 1000)).toBe(0);
     expect(() => drawPitch(visualizer, {
       analyzerName: "",

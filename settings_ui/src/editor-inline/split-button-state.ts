@@ -24,6 +24,8 @@ export {
 export {
   setVolumeStepForField,
   setSpeedStepForField,
+  REPEAT_PAUSE_STATE_CHANGED_EVENT,
+  type RepeatPauseStateChangedDetail,
   setRepeatPauseSecondsForField,
   setVoiceRecordingCountdownSecondsForField,
   setPauseAggressivenessForField,
