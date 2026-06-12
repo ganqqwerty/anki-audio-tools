@@ -26,6 +26,7 @@ class RegionDeleteDeps(Protocol):
     persistent_undo_items: Callable[..., Any]
     main: Callable[[Any, Callable[[], None]], None]
     make_output_filename: Callable[..., str]
+    record_standard_persistent_undo: Callable[..., Any]
     render_audio_region_deleted: Callable[..., Any]
     render_audio_region_kept: Callable[..., Any]
     render_failed: Callable[..., None]

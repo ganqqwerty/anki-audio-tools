@@ -189,7 +189,7 @@ def replace_current_field_after_region_delete(
     try:
         saved_name = persist_generated_media(editor, saved_name, output_path, deps)
         field_index = request.field_index
-        replace_first_sound_reference_in_field(
+        old_field_html, new_field_html, old_filename = replace_first_sound_reference_in_field(
             editor,
             field_index=field_index,
             saved_name=saved_name,
@@ -197,7 +197,28 @@ def replace_current_field_after_region_delete(
             expected_filename=request.source_filename,
             mismatch_message=t("editor.status.graph_audio_mismatch"),
         )
+        old_state = session.state if session is not None else None
         should_redraw_graph = _replace_region_delete_session_state(editor, session, field_index, saved_name, request)
+        try:
+            deps.record_standard_persistent_undo(
+                editor,
+                field_index=field_index,
+                old_field_html=old_field_html,
+                new_field_html=new_field_html,
+                old_filename=old_filename,
+                new_filename=saved_name,
+                old_state=old_state,
+                new_state=session.state if session is not None else AudioEditState(source_file=saved_name),
+                status_summary=session.status_summary if session is not None else region_operation_status_summary(request),
+            )
+        except Exception:
+            logger.debug(
+                "Could not record persistent undo operation for region delete field_index=%s old=%s new=%s.",
+                field_index,
+                old_filename,
+                saved_name,
+                exc_info=True,
+            )
         logger.info(
             "region delete completed: %s",
             {
