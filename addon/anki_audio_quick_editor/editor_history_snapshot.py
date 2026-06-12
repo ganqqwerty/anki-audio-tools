@@ -51,10 +51,10 @@ def history_snapshot_for_field(
             limit,
             fallback_label=t("editor.history.redo_empty_label"),
         )
-    if field_index is not None and not undo_items and can_persistent_undo(editor, field_index):
+    if field_index is not None and not undo_items:
         if persistent_undo_items is not None:
             undo_items.extend(persistent_undo_items(editor, field_index, limit))
-        else:
+        elif can_persistent_undo(editor, field_index):
             item = latest_persistent_undo_item(editor, field_index)
             if item is not None:
                 undo_items.append(item)
