@@ -4,6 +4,7 @@ import { initialFieldState } from "../src/editor-inline/field-state.js";
 import { removeFieldState, writeFieldState } from "../src/editor-inline/field-state-store.js";
 import { PLOT, xForMs } from "../src/editor-inline/plot.js";
 import { applyVisualizerTimeViewport } from "../src/editor-inline/viewport-actions.js";
+import { readVisualizerTimeViewport } from "../src/editor-inline/visualizer-state.js";
 import {
   renderCursor,
   renderVisualizerTrack,
@@ -167,8 +168,30 @@ describe("editor inline visualizer renderer", () => {
     applyVisualizerTimeViewport(visualizer, { startMs: 0, endMs: 500, durationMs: 1000 });
     const zoomedPath = visualizer.querySelector<SVGPathElement>(".aqe-pitch-path")?.getAttribute("d") || "";
 
-    expect(fullPath).toContain("L 310.00 80.80");
+    expect(fullPath).toContain("L 170.00 80.80");
     expect(zoomedPath).toContain("L 610.00 80.80");
+  });
+
+  it("resets new graph tracks to canonical rendered-pixel scale", () => {
+    const shortTrack: NormalizedProsodyTrack = {
+      ...voicedTrack,
+      durationMs: 500,
+      points: [
+        [0, 120, 0.1, true],
+        [250, 180, 0.8, true],
+        [500, 220, 0.6, true],
+      ],
+    };
+    const visualizer = mountVisualizer(shortTrack);
+    const svg = visualizer.querySelector<SVGSVGElement>(".aqe-visualizer-svg")!;
+    setSvgBounds(svg, 620);
+
+    renderVisualizerTrack(visualizer, shortTrack);
+
+    expect(readVisualizerTimeViewport(visualizer)).toEqual({ startMs: 0, endMs: 1875, durationMs: 500 });
+    const pitchPath = visualizer.querySelector<SVGPathElement>(".aqe-pitch-path")?.getAttribute("d") || "";
+    expect(pitchPath).toContain("L 170.00 63.20");
+    expect(pitchPath).not.toContain("L 610.00");
   });
 
   it("syncs the plot clip and x-axis to the rendered SVG width", () => {
@@ -183,7 +206,7 @@ describe("editor inline visualizer renderer", () => {
     const lastTick = Array.from(visualizer.querySelectorAll<SVGLineElement>(".aqe-x-tick")).at(-1)!;
     expect(svg.getAttribute("viewBox")).toBe("0 0 1240 150");
     expect(clipRect.getAttribute("width")).toBe("1220");
-    expect(intensity.getAttribute("d")).toContain("L 1230.00 116.00 Z");
+    expect(intensity.getAttribute("d")).toContain("L 329.96 116.00 Z");
     expect(lastTick.getAttribute("x1")).toBe("1230.00");
   });
 
