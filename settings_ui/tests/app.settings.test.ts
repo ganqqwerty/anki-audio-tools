@@ -261,6 +261,20 @@ describe("App settings behavior", () => {
     expect(config.repeat_pause_seconds).toBe(2.5);
   });
 
+  it("saves editor history size from undo settings", async () => {
+    setInitialState();
+
+    render(App);
+    const undoCard = screen.getByTestId("button-settings-undo");
+    await fireEvent.input(within(undoCard).getByTestId("editor-history-size"), {
+      target: { value: "25" },
+    });
+    await fireEvent.click(screen.getByRole("button", { name: "Save" }));
+
+    const config = bridgePayload<{ editor_history_size: number }>("settings.save");
+    expect(config.editor_history_size).toBe(25);
+  });
+
   it("saves graph display defaults", async () => {
     setInitialState();
 

@@ -24,6 +24,10 @@ def test_composed_contract_schema_uses_config_schema_source() -> None:
     assert "voice_recording_countdown_seconds" in config["properties"]
     assert "show_graph_by_default" in config["properties"]
     assert "selection_marker_shift_buttons_enabled" in config["properties"]
+    assert "editor_history_size" in config["properties"]
+    assert "editor_history_size" in config["required"]
+    assert config["properties"]["editor_history_size"]["minimum"] == 1
+    assert config["properties"]["editor_history_size"]["maximum"] == 100
     assert "graph_voice_range" in config["properties"]
     assert "graph_recording_condition" in config["properties"]
     assert "graph_smoothness" in config["properties"]

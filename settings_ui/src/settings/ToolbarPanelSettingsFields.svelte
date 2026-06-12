@@ -311,6 +311,18 @@
       bind:value={config.max_volume_db}
     />
   </label>
+{:else if command === "aqe:undo" || command === "aqe:redo"}
+  <label class="settings-field">
+    <span>{t("settings.editor_history_size")}</span>
+    <UnitNumberInput
+      inputClass="settings-input"
+      testId="editor-history-size"
+      min="1"
+      max="100"
+      step="1"
+      bind:value={config.editor_history_size}
+    />
+  </label>
 {:else if command === "aqe:settings" && !visible}
   <SettingsHiddenWarning />
 {/if}

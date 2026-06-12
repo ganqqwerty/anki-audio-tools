@@ -11,6 +11,7 @@
   "voice_recording_countdown_seconds": 0,
   "show_graph_by_default": false,
   "selection_marker_shift_buttons_enabled": false,
+  "editor_history_size": 100,
   "visible_editor_buttons": [
     "aqe:play",
     "aqe:analyze",

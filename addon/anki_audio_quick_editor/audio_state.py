@@ -29,10 +29,24 @@ from .errors import InvalidEditStateError
 from .ffmpeg_defaults import default_ffmpeg_path
 
 ConfigValue = str | int | float | bool
+MIN_EDITOR_HISTORY_SIZE = 1
+MAX_EDITOR_HISTORY_SIZE = 100
+DEFAULT_EDITOR_HISTORY_SIZE = 100
 GraphVoiceRange = str
 GraphRecordingCondition = str
 GraphSmoothness = str
 GraphVoiceLock = str
+
+
+def normalize_editor_history_size(value: object) -> int:
+    """Return a supported per-field editor history size."""
+    if isinstance(value, bool):
+        return DEFAULT_EDITOR_HISTORY_SIZE
+    try:
+        parsed = int(value)
+    except (TypeError, ValueError):
+        return DEFAULT_EDITOR_HISTORY_SIZE
+    return min(MAX_EDITOR_HISTORY_SIZE, max(MIN_EDITOR_HISTORY_SIZE, parsed))
 
 
 @dataclass(frozen=True)
@@ -71,6 +85,7 @@ class AudioProcessingConfig:
     graph_smoothness: GraphSmoothness = "very_smooth"
     graph_connect_short_dropouts_ms: int = 240
     graph_voice_lock: GraphVoiceLock = "balanced"
+    editor_history_size: int = DEFAULT_EDITOR_HISTORY_SIZE
 
     @classmethod
     def from_config(cls, config: dict[str, ConfigValue]) -> "AudioProcessingConfig":
@@ -195,6 +210,9 @@ class AudioProcessingConfig:
                 )
             ),
             graph_voice_lock=str(config.get("graph_voice_lock", cls.graph_voice_lock)),
+            editor_history_size=normalize_editor_history_size(
+                config.get("editor_history_size", cls.editor_history_size)
+            ),
         )
 
 

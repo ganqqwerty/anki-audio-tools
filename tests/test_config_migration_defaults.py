@@ -141,6 +141,20 @@ class TestMigrateConfigDefaults:
         assert migrated["_config_version"] == CURRENT_CONFIG_VERSION
         assert changed is True
 
+    def test_picks_up_editor_history_size_default(self) -> None:
+        user = {"_config_version": 2, "enabled": True}
+        defaults = {
+            "_config_version": CURRENT_CONFIG_VERSION,
+            "enabled": True,
+            "editor_history_size": 100,
+        }
+
+        migrated, changed = migrate_config(user, defaults)
+
+        assert migrated["editor_history_size"] == 100
+        assert migrated["_config_version"] == CURRENT_CONFIG_VERSION
+        assert changed is True
+
     def test_picks_up_pitch_hum_mode_default(self) -> None:
         user = {"_config_version": 14, "enabled": True}
         defaults = {

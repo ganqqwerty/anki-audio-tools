@@ -55,6 +55,7 @@ export const FALLBACK_INITIAL_STATE: InitialState = {
     voice_recording_countdown_seconds: 0,
     show_graph_by_default: true,
     selection_marker_shift_buttons_enabled: false,
+    editor_history_size: 100,
     visible_editor_buttons: [...DEFAULT_VISIBLE_EDITOR_BUTTONS],
     editor_button_modes: { ...DEFAULT_EDITOR_BUTTON_MODES },
     graph_voice_range: GraphVoiceRange.General,
