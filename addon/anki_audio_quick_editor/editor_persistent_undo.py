@@ -94,6 +94,25 @@ def can_persistent_undo(editor: Any, field_index: int | None) -> bool:
     return True
 
 
+def latest_persistent_undo_item(editor: Any, field_index: int | None) -> dict[str, str] | None:
+    """Return a frontend menu item for the latest executable persistent undo."""
+    try:
+        operation = _latest_for_field(editor, field_index)
+    except PersistentHistoryUnavailableError:
+        return None
+    if operation is None or field_index is None:
+        return None
+    if not _old_media_available(editor, operation):
+        return None
+    field_html = editor.note.fields[int(field_index)]
+    if _restored_field_html(field_html, operation) is None:
+        return None
+    return {
+        "id": f"persistent:{operation.id}",
+        "label": operation.status_summary.strip() or t("editor.history.undo_empty_label"),
+    }
+
+
 def record_standard_persistent_undo(
     editor: Any,
     *,

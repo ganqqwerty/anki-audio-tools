@@ -25,6 +25,8 @@ def test_injection_script_embeds_audio_field_indices_and_bundle() -> None:
     assert config["audioFieldMetadata"] == {}
     assert config["audioFieldSources"] == {}
     assert config["initialHistoryAvailabilityByField"] == {}
+    assert config["initialHistorySnapshotsByField"] == {}
+    assert config["editorHistorySize"] == 100
     assert config["pendingPostEditPlayback"] is None
     assert config["repeatPlaybackByDefault"] is True
     assert config["selectionMarkerShiftButtonsEnabled"] is False
@@ -126,6 +128,32 @@ def test_injection_script_embeds_initial_history_availability() -> None:
     assert _embedded_config(script)["initialHistoryAvailabilityByField"] == {
         "0": {"canUndo": True, "canRedo": False},
     }
+
+
+def test_injection_script_embeds_initial_history_snapshots() -> None:
+    script = injection_script(
+        [0],
+        initial_history_snapshots_by_field={
+            0: {
+                "canUndo": True,
+                "canRedo": False,
+                "undoItems": [{"id": "undo:1", "label": "Shorten pauses"}],
+                "redoItems": [],
+            },
+        },
+        editor_history_size=25,
+    )
+
+    config = _embedded_config(script)
+    assert config["initialHistorySnapshotsByField"] == {
+        "0": {
+            "canUndo": True,
+            "canRedo": False,
+            "undoItems": [{"id": "undo:1", "label": "Shorten pauses"}],
+            "redoItems": [],
+        },
+    }
+    assert config["editorHistorySize"] == 25
 
 
 def test_injection_script_embeds_audio_field_metadata() -> None:

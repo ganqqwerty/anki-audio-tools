@@ -221,8 +221,8 @@ def test_editor_undo_and_redo_restore_audio_references_without_processing(
     assert reload_statuses[1] == {0: {"kind": "info", "message": "Redid: Increased speed to x1.5."}}
     assert session.pending_status == PendingEditorStatus(0, message="Redid: Increased speed to x1.5.")
     evals = [call.args[0] for call in editor.web.eval.call_args_list]
-    assert any("window.__aqeSetHistoryAvailability && window.__aqeSetHistoryAvailability(0, false, true)" in call for call in evals)
-    assert any("window.__aqeSetHistoryAvailability && window.__aqeSetHistoryAvailability(0, true, false)" in call for call in evals)
+    assert any("window.__aqeSetHistorySnapshot" in call and '"canUndo": false' in call and '"canRedo": true' in call for call in evals)
+    assert any("window.__aqeSetHistorySnapshot" in call and '"canUndo": true' in call and '"canRedo": false' in call for call in evals)
     assert session.pending_post_edit_playback_field_index == 0
     assert session.pending_post_edit_playback_generation == session.post_edit_playback_generation
     assert session.pending_post_edit_playback_source_filename == "clip__aqe_first.mp3"

@@ -40,6 +40,7 @@ declare global {
     __aqeGraphStateForTest?: ((ord: number) => GraphStateForTest | null) | undefined;
     __aqeInvalidateFieldState?: ((ord: number) => void) | undefined;
     __aqeHistoryAvailabilityByField?: Record<number, { canRedo: boolean; canUndo: boolean }> | undefined;
+    __aqeHistorySnapshotsByField?: Record<number, import("./types.js").HistorySnapshot> | undefined;
     __aqeInstallAudioPlaybackTestDriverForTest?: ((ord: number) => boolean) | undefined;
     __aqeLastCursorIntent?: CursorIntent | null;
     __aqeLastPlaybackRequest?: PlaybackRequest | null;
@@ -66,6 +67,7 @@ declare global {
     __aqeSetCursorByClientXForTest?: ((ord: number, clientX: number, notifyPython: boolean) => CursorPositionForTest | null) | undefined;
     __aqeSetCursorForTest?: ((ord: number, ms: number, notifyPython: boolean) => boolean) | undefined;
     __aqeSetHistoryAvailability?: ((ord: number, canUndo: boolean, canRedo: boolean) => void) | undefined;
+    __aqeSetHistorySnapshot?: ((ord: number, snapshot: import("./types.js").HistorySnapshot) => void) | undefined;
     __aqeSetLearnerRecordingState?: ((payload: LearnerRecordingStatePayload) => void) | undefined;
     __aqeSetLearnerVisualizer?: ((ord: number, track: ProsodyPayload) => void) | undefined;
     __aqeSetPlaybackState?: ((ord: number, state: PlaybackState, cursorMs: number) => void) | undefined;

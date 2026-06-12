@@ -163,6 +163,14 @@ def test_editor_injection_embeds_persistent_undo_availability(
     assert config["initialHistoryAvailabilityByField"] == {
         "0": {"canUndo": True, "canRedo": False}
     }
+    assert config["initialHistorySnapshotsByField"] == {
+        "0": {
+            "canUndo": True,
+            "canRedo": False,
+            "undoItems": [{"id": "persistent:1", "label": "Increased speed to x1.5."}],
+            "redoItems": [],
+        }
+    }
 
 
 def test_editor_injection_disables_persistent_undo_for_unrelated_current_field(
@@ -200,6 +208,9 @@ def test_editor_injection_disables_persistent_undo_for_unrelated_current_field(
     config = _embedded_config(script)
     assert config["initialHistoryAvailabilityByField"] == {
         "0": {"canUndo": False, "canRedo": False}
+    }
+    assert config["initialHistorySnapshotsByField"] == {
+        "0": {"canUndo": False, "canRedo": False, "undoItems": [], "redoItems": []}
     }
 
 
