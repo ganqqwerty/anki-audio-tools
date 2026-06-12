@@ -105,6 +105,12 @@ CORE_CONTRACTS: dict[str, ModuleContract] = {
         allowed_side_effects=(SideEffect.DB_ACCESS,),
         notes="Add-on-owned SQLite journal for persistent audio undo history.",
     ),
+    "persistent_undo_chain": contract(
+        "persistent_undo_chain",
+        layer=Layer.IMPORT_SAFE_CORE,
+        allowed_addon_deps=("errors", "media_paths", "persistent_history", "sound_refs"),
+        notes="Pure executable-chain planner for SQLite-backed persistent undo rows.",
+    ),
     "prosody_analyzer": contract(
         "prosody_analyzer",
         layer=Layer.IMPORT_SAFE_CORE,
