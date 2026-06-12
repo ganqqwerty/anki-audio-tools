@@ -6,7 +6,11 @@ import {
   setDraftSelectionRange,
   setSelectionRange,
 } from "./selection-state.js";
-import { fullTimeViewport, normalizeTimeViewport, type TimeViewport } from "./time-viewport.js";
+import {
+  canonicalTimeViewport,
+  normalizeTimeViewport,
+  type TimeViewport,
+} from "./time-viewport.js";
 import type { VisualizerElement } from "./types.js";
 import {
   readFieldState,
@@ -38,8 +42,9 @@ export function readVisualizerTimeViewport(visualizer: VisualizerElement): TimeV
 export function resetVisualizerTimeViewport(
   visualizer: VisualizerElement,
   durationMs = readVisualizerDurationMs(visualizer),
+  plotWidthPx?: number,
 ): void {
-  writeVisualizerTimeViewport(visualizer, fullTimeViewport(durationMs));
+  writeVisualizerTimeViewport(visualizer, canonicalTimeViewport(durationMs, Number(plotWidthPx) || 0));
 }
 
 export function writeVisualizerTimeViewport(visualizer: VisualizerElement, viewport: TimeViewport): void {

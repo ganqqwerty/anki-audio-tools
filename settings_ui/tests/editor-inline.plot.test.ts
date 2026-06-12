@@ -192,4 +192,40 @@ describe("editor inline plot helpers", () => {
       "3.00s",
     ]);
   });
+
+  it("uses visible viewport time beyond duration for axis labels and hit testing", () => {
+    document.body.innerHTML = `
+      <div class="aqe-visualizer">
+        <svg>
+          <g class="aqe-x-axis"></g>
+        </svg>
+      </div>
+    `;
+    const visualizer = document.querySelector<HTMLElement>(".aqe-visualizer")!;
+    const viewport = { startMs: 0, endMs: 1875, durationMs: 500 };
+
+    drawXAxis(visualizer, 500, viewport);
+
+    expect(Array.from(visualizer.querySelectorAll(".aqe-x-label")).map((node) => node.textContent)).toEqual([
+      "0 ms",
+      "938 ms",
+      "1875 ms",
+    ]);
+
+    const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+    svg.getBoundingClientRect = () => ({
+      bottom: 150,
+      height: 150,
+      left: 10,
+      right: 630,
+      top: 0,
+      width: 620,
+      x: 10,
+      y: 0,
+      toJSON: () => ({}),
+    });
+
+    const bounds = graphPixelBounds(svg);
+    expect(cursorMsFromEvent({ clientX: bounds.left + 160 }, svg, 500, viewport)).toBe(500);
+  });
 });
