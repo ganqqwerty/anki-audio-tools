@@ -6,6 +6,8 @@ import logging
 from typing import Any
 
 from . import editor_persistent_undo
+from .audio_state import DEFAULT_EDITOR_HISTORY_SIZE, normalize_editor_history_size
+from .editor_history_snapshot import HistorySnapshotItem, history_snapshot_for_field
 from .editor_media import audio_field_indices as _audio_field_indices
 from .editor_media import audio_field_sources as _audio_field_sources
 from .editor_runtime import (
@@ -30,15 +32,22 @@ def editor_injection_script(editor: Any, note: Any) -> str:
     editor_button_modes = config.get("editor_button_modes", {})
     if not isinstance(editor_button_modes, dict):
         editor_button_modes = {}
+    editor_history_size = normalize_editor_history_size(
+        config.get("editor_history_size", DEFAULT_EDITOR_HISTORY_SIZE)
+    )
+    initial_history_snapshots = _initial_history_snapshots_by_field(
+        editor,
+        note,
+        _SESSIONS.get(editor),
+        editor_history_size,
+    )
     return injection_script(
         list(audio_field_sources),
         audio_field_metadata={},
         audio_field_sources=audio_field_sources,
-        initial_history_availability_by_field=_initial_history_availability_by_field(
-            editor,
-            note,
-            _SESSIONS.get(editor),
-        ),
+        editor_history_size=editor_history_size,
+        initial_history_availability_by_field=_availability_by_field(initial_history_snapshots),
+        initial_history_snapshots_by_field=initial_history_snapshots,
         initial_status_by_field=_initial_status_by_field(_SESSIONS.get(editor)),
         pending_post_edit_playback=_pending_post_edit_playback(editor),
         repeat_playback_by_default=bool(config.get("repeat_playback_by_default", True)),
@@ -107,28 +116,33 @@ def editor_injection_script(editor: Any, note: Any) -> str:
     )
 
 
-def _initial_history_availability_by_field(
+def _initial_history_snapshots_by_field(
     editor: Any,
     note: Any,
     session: EditorSession | None,
-) -> dict[int, dict[str, bool]]:
-    availability: dict[int, dict[str, bool]] = {}
+    history_size: int,
+) -> dict[int, dict[str, object]]:
+    snapshots: dict[int, dict[str, object]] = {}
     for field_index in _audio_field_indices(note):
-        session_can_undo = (
-            session is not None
-            and session.field_index == field_index
-            and bool(session.undo_history.entries)
+        snapshots[int(field_index)] = history_snapshot_for_field(
+            editor,
+            field_index=int(field_index),
+            session=session,
+            history_size=history_size,
+            can_persistent_undo=_can_persistent_undo,
+            latest_persistent_undo_item=_latest_persistent_undo_item,
         )
-        session_can_redo = (
-            session is not None
-            and session.field_index == field_index
-            and bool(session.redo_history.entries)
-        )
-        availability[int(field_index)] = {
-            "canUndo": bool(session_can_undo or _can_persistent_undo(editor, field_index)),
-            "canRedo": bool(session_can_redo),
+    return snapshots
+
+
+def _availability_by_field(snapshots: dict[int, dict[str, object]]) -> dict[int, dict[str, bool]]:
+    return {
+        field_index: {
+            "canUndo": bool(snapshot.get("canUndo")),
+            "canRedo": bool(snapshot.get("canRedo")),
         }
-    return availability
+        for field_index, snapshot in snapshots.items()
+    }
 
 
 def _can_persistent_undo(editor: Any, field_index: int) -> bool:
@@ -137,6 +151,14 @@ def _can_persistent_undo(editor: Any, field_index: int) -> bool:
     except Exception:
         logger.debug("Could not compute persistent undo availability.", exc_info=True)
         return False
+
+
+def _latest_persistent_undo_item(editor: Any, field_index: int) -> HistorySnapshotItem | None:
+    try:
+        return editor_persistent_undo.latest_persistent_undo_item(editor, field_index)
+    except Exception:
+        logger.debug("Could not compute persistent undo item.", exc_info=True)
+        return None
 
 
 def _initial_status_by_field(session: EditorSession | None) -> dict[int, dict[str, str]]:

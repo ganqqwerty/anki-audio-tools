@@ -42,6 +42,7 @@ const config: Config = {
   share_target: ShareTarget.Litterbox,
   show_graph_by_default: true,
   selection_marker_shift_buttons_enabled: false,
+  editor_history_size: 100,
   visible_editor_buttons: [
     VisibleEditorButton.AqePlay,
     VisibleEditorButton.AqeAnalyze,
