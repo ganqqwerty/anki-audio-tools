@@ -8,6 +8,7 @@ from typing import Any, Protocol
 
 
 class RegionDeleteDeps(Protocol):
+    can_persistent_undo: Callable[..., bool]
     config: Callable[[Any], dict[str, Any]]
     current_field_audio_missing: str
     current_field_index: Callable[[Any], int]
@@ -15,11 +16,13 @@ class RegionDeleteDeps(Protocol):
     delete_selection_with_request: Callable[[Any, Any], None]
     dispose_editor_frontend_controls: Callable[[Any], None]
     eval_history_availability: Callable[..., None]
+    eval_history_snapshot: Callable[..., None]
     eval_playback_state: Callable[..., None]
     eval_status: Callable[..., None]
     eval_with_callback: Callable[..., None]
     format_ffmpeg_command: Callable[[tuple[str, ...]], str]
     is_busy: Callable[[Any], bool]
+    latest_persistent_undo_item: Callable[..., Any]
     main: Callable[[Any, Callable[[], None]], None]
     make_output_filename: Callable[..., str]
     render_audio_region_deleted: Callable[..., Any]
@@ -27,6 +30,7 @@ class RegionDeleteDeps(Protocol):
     render_failed: Callable[..., None]
     replace_current_field_after_region_delete: Callable[..., None]
     request_history_availability_after_edit: Callable[..., None]
+    request_history_snapshot_after_edit: Callable[..., None]
     request_playback_after_edit: Callable[..., None]
     request_graph_redraw: Callable[..., None]
     resolve_requested_field_media: Callable[..., Any]

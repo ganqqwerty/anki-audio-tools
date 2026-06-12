@@ -334,6 +334,8 @@ source_modules = [
     "anki_audio_quick_editor.editor_button_visibility",
     "anki_audio_quick_editor.editor_actions",
     "anki_audio_quick_editor.editor_deps_protocols",
+    "anki_audio_quick_editor.editor_history_settings",
+    "anki_audio_quick_editor.editor_history_snapshot",
     "anki_audio_quick_editor.editor_media",
     "anki_audio_quick_editor.editor_media_replacement",
     "anki_audio_quick_editor.editor_playback_bounds",

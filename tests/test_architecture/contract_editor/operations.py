@@ -88,6 +88,8 @@ EDITOR_OPERATION_CONTRACTS: dict[str, ModuleContract] = {
             "editor_reload_status",
             "editor_session",
             "editor_status",
+            "editor_history_settings",
+            "editor_history_snapshot",
             "errors",
             "i18n",
             "media_paths",

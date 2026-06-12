@@ -5,7 +5,6 @@ from __future__ import annotations
 import copy
 from typing import Any
 
-from .audio_state import normalize_editor_history_size
 from .audio_formats import normalize_output_format
 from .audio_size_reduction import (
     normalize_size_reduction_bitrate_kbps,
@@ -19,6 +18,7 @@ from .editor_button_visibility import (
     normalize_visible_editor_buttons,
     supported_visible_editor_button_order,
 )
+from .editor_history_settings import normalize_editor_history_size
 
 CURRENT_CONFIG_VERSION = 2
 PAUSE_DETECTION_ALGORITHMS = frozenset({"silencedetect", "silero_vad"})

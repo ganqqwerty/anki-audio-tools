@@ -309,6 +309,7 @@ AUDIO_CONTRACTS: dict[str, ModuleContract] = {
             "audio_pause_settings",
             "audio_size_reduction",
             "dpdfnet_settings",
+            "editor_history_settings",
             "errors",
             "ffmpeg_defaults",
         ),

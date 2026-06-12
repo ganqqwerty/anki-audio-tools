@@ -27,6 +27,8 @@ EDITOR_INTEGRATION_CONTRACTS: dict[str, ModuleContract] = {
         layer=Layer.UI_ADAPTER,
         allowed_addon_deps=(
             "editor_callbacks",
+            "editor_history_settings",
+            "editor_history_snapshot",
             "editor_media",
             "editor_persistent_undo",
             "editor_runtime",

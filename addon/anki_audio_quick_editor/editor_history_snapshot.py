@@ -5,7 +5,7 @@ from __future__ import annotations
 from collections.abc import Callable, Iterable
 from typing import Any, TypedDict
 
-from .audio_state import normalize_editor_history_size
+from .editor_history_settings import normalize_editor_history_size
 from .editor_session import EditorSession, UndoEntry
 from .i18n import t
 

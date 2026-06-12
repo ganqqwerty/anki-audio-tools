@@ -25,28 +25,18 @@ from .dpdfnet_settings import (
     DEFAULT_DPDFNET_ATTENUATION_LIMIT_DB,
     normalize_dpdfnet_attn_limit_db,
 )
+from .editor_history_settings import (
+    DEFAULT_EDITOR_HISTORY_SIZE,
+    normalize_editor_history_size,
+)
 from .errors import InvalidEditStateError
 from .ffmpeg_defaults import default_ffmpeg_path
 
 ConfigValue = str | int | float | bool
-MIN_EDITOR_HISTORY_SIZE = 1
-MAX_EDITOR_HISTORY_SIZE = 100
-DEFAULT_EDITOR_HISTORY_SIZE = 100
 GraphVoiceRange = str
 GraphRecordingCondition = str
 GraphSmoothness = str
 GraphVoiceLock = str
-
-
-def normalize_editor_history_size(value: object) -> int:
-    """Return a supported per-field editor history size."""
-    if isinstance(value, bool):
-        return DEFAULT_EDITOR_HISTORY_SIZE
-    try:
-        parsed = int(value)
-    except (TypeError, ValueError):
-        return DEFAULT_EDITOR_HISTORY_SIZE
-    return min(MAX_EDITOR_HISTORY_SIZE, max(MIN_EDITOR_HISTORY_SIZE, parsed))
 
 
 @dataclass(frozen=True)

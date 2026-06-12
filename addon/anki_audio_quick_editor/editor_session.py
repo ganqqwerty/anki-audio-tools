@@ -6,7 +6,13 @@ from dataclasses import dataclass, field, replace
 from pathlib import Path
 from typing import Any, Literal
 
-from .audio_state import AudioEditState, DEFAULT_EDITOR_HISTORY_SIZE, normalize_editor_history_size
+from .audio_state import (
+    AudioEditState,
+)
+from .editor_history_settings import (
+    DEFAULT_EDITOR_HISTORY_SIZE,
+    normalize_editor_history_size,
+)
 
 RegionDeleteOperation = Literal["delete-selection", "delete-rest"]
 LearnerRecordingStatus = Literal["idle", "recording", "stopping", "analyzing", "ready", "failed"]
