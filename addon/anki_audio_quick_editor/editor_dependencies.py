@@ -343,6 +343,7 @@ def region_delete_deps(callbacks: Any, frontend_callbacks: Any) -> RegionDeleteD
         persistent_undo_items=callbacks.persistent_undo_items,
         main=frontend_callbacks.main,
         make_output_filename=make_output_filename,
+        record_standard_persistent_undo=callbacks.record_standard_persistent_undo,
         render_audio_region_deleted=render_audio_region_deleted,
         render_audio_region_kept=render_audio_region_kept,
         render_failed=callbacks.render_failed,

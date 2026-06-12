@@ -180,8 +180,8 @@ BROAD_EXCEPTION_ALLOWLIST: tuple[BroadExceptionAllowance, ...] = (
     BroadExceptionAllowance(
         "editor_region_delete",
         "replace_current_field_after_region_delete",
-        1,
-        "Main-thread field replacement boundary keeps failed region deletes non-mutating and user-visible.",
+        2,
+        "Main-thread field replacement boundary keeps failed region deletes non-mutating and persistent history best-effort.",
     ),
     BroadExceptionAllowance(
         "editor_sharing",

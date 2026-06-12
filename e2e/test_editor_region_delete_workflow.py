@@ -20,7 +20,7 @@ from e2e.editor_note_helpers import (
     _wait_for_status,
     _wait_for_status_flow,
 )
-from e2e.helpers import click_selector, generate_tone, run_js, wait_for_js_condition
+from e2e.helpers import click_selector, generate_tone, run_js, wait_for_condition, wait_for_js_condition, wait_for_selector
 
 
 def _plot_pointer_script(ord_: int, start_ratio: float, end_ratio: float) -> str:
@@ -125,6 +125,21 @@ def test_delete_region_button_cuts_middle_region_and_redraws_graph(
     finally:
         editor.set_note(None)
         parent.close()
+
+    reopened, reopened_parent = _open_editor(anki_mw, note)
+    try:
+        wait_for_selector(reopened.web, _button_selector("aqe:delete-selection"), timeout=10.0)
+        click_selector(reopened.web, '[data-testid="aqe-split-0-undo-menu"]', timeout=5.0)
+        wait_for_selector(reopened.web, '[data-testid="aqe-history-0-undo-1"]', timeout=5.0)
+        click_selector(reopened.web, '[data-testid="aqe-history-0-undo-1"]', timeout=5.0)
+        wait_for_condition(
+            lambda: source.name in note.fields[0],
+            timeout=5.0,
+            message="Persistent region-delete undo did not restore the original source reference",
+        )
+    finally:
+        reopened.set_note(None)
+        reopened_parent.close()
 
 
 def test_delete_rest_button_keeps_selected_middle_region_and_redraws_graph(
