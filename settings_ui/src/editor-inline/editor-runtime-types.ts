@@ -89,11 +89,13 @@ export interface SplitButtonDefaults {
 }
 
 export interface EditorCommandPayload {
-  command: EditorCommand | "aqe:open-url" | "aqe:post-edit-playback-ready";
+  command: EditorCommand | "aqe:history-jump" | "aqe:open-url" | "aqe:post-edit-playback-ready";
+  direction?: "redo" | "undo";
   fieldOrd?: number;
   generation?: number;
   sourceFilename?: string;
   startCursorMs?: number;
+  steps?: number;
   url?: string;
   shareTarget?: "catbox" | "litterbox";
   overrides?: {

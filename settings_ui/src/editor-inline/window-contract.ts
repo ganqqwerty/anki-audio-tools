@@ -8,6 +8,7 @@ import {
   resetGraphAfterEdit,
   setControlsBusy,
   setHistoryAvailability,
+  setHistorySnapshot,
   setPlaybackState,
   setStatus,
   setVisualizer,
@@ -41,6 +42,7 @@ export const EDITOR_WINDOW_CONTRACT_NAMES = [
   "__aqeResetGraphAfterEdit",
   "__aqeSetBusy",
   "__aqeSetHistoryAvailability",
+  "__aqeSetHistorySnapshot",
   "__aqeSetLearnerRecordingState",
   "__aqeSetLearnerVisualizer",
   "__aqeSetPlaybackState",
@@ -54,6 +56,7 @@ export const EDITOR_WINDOW_CONTRACT_NAMES = [
 export function installEditorWindowContract(): void {
   window.__aqeSetBusy = setControlsBusy;
   window.__aqeSetHistoryAvailability = setHistoryAvailability;
+  window.__aqeSetHistorySnapshot = setHistorySnapshot;
   window.__aqeSetLearnerRecordingState = setLearnerRecordingState;
   window.__aqeSetLearnerVisualizer = setLearnerVisualizer;
   window.__aqeSetStatus = setStatus;

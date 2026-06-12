@@ -1,3 +1,4 @@
+import { waitFor } from "@testing-library/svelte";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import {
@@ -7,6 +8,8 @@ import {
 } from "../src/editor-inline/runtime.js";
 import { EditorButtonMode } from "../src/lib/types.js";
 import {
+  bridgeCommands,
+  consumePendingCommandPayload,
   muteConsole,
   renderFields,
 } from "./editor-inline.integration.helpers.js";
@@ -25,7 +28,7 @@ describe("editor inline toolbar controls", () => {
     vi.restoreAllMocks();
   });
 
-  it("disables undo and redo until history becomes available and updates their tooltips", () => {
+  it("disables undo and redo until history snapshots become available and updates their tooltips", () => {
     initializeEditorRuntime({ audioFieldIndices: [0] });
     scan({ audioFieldIndices: [0] });
 
@@ -53,7 +56,12 @@ describe("editor inline toolbar controls", () => {
       "Redo\nRedo the last undone action and restore the next file\n\nNothing to redo yet",
     );
 
-    window.__aqeSetHistoryAvailability?.(0, true, false);
+    window.__aqeSetHistorySnapshot?.(0, {
+      canUndo: true,
+      canRedo: false,
+      undoItems: [{ id: "undo:1", label: "Shorten pauses" }],
+      redoItems: [],
+    });
 
     expect(undoButton).not.toBeDisabled();
     expect(redoButton).toBeDisabled();
@@ -70,6 +78,32 @@ describe("editor inline toolbar controls", () => {
       "data-aqe-tooltip-content",
       "Redo\nRedo the last undone action and restore the next file\n\nNothing to redo yet",
     );
+  });
+
+  it("opens undo history and dispatches a one-based history jump payload", async () => {
+    initializeEditorRuntime({ audioFieldIndices: [0] });
+    scan({ audioFieldIndices: [0] });
+    window.__aqeSetHistorySnapshot?.(0, {
+      canUndo: true,
+      canRedo: false,
+      undoItems: [
+        { id: "undo:1", label: "Denoise" },
+        { id: "undo:2", label: "Shorten pauses" },
+      ],
+      redoItems: [],
+    });
+
+    document.querySelector<HTMLButtonElement>('[data-testid="aqe-split-0-undo-menu"]')!.click();
+    await waitFor(() => expect(document.querySelector('[data-testid="aqe-history-0-undo-2"]')).not.toBeNull());
+    document.querySelector<HTMLButtonElement>('[data-testid="aqe-history-0-undo-2"]')!.click();
+
+    expect(consumePendingCommandPayload()).toEqual({
+      command: "aqe:history-jump",
+      direction: "undo",
+      fieldOrd: 0,
+      steps: 2,
+    });
+    expect(bridgeCommands()).toContain("aqe:command-payload");
   });
 
   it("renders configured buttons as icon only", () => {
