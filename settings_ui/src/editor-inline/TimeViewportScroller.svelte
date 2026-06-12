@@ -2,7 +2,7 @@
   import { onMount, tick } from "svelte";
   import { visualizerForOrd } from "./dom-selectors.js";
   import {
-    isFullTimeViewport,
+    hasScrollableTimeRange,
     panTimeViewport,
     timeViewportSpan,
   } from "./time-viewport.js";
@@ -32,7 +32,7 @@
     }
     const viewport = readVisualizerTimeViewport(visualizer);
     const span = timeViewportSpan(viewport);
-    hidden = isFullTimeViewport(viewport) || span <= 0;
+    hidden = !hasScrollableTimeRange(viewport) || span <= 0;
     if (hidden || !scroller) return;
     const nextSpacerWidthPercent = Math.max(100, (viewport.durationMs / span) * 100);
     spacerWidthPercent = nextSpacerWidthPercent;
@@ -59,7 +59,7 @@
     if (!visualizer || !readFieldState(target.ord).graph.hasTrack) return;
     const viewport = readVisualizerTimeViewport(visualizer);
     const span = timeViewportSpan(viewport);
-    if (isFullTimeViewport(viewport) || span <= 0) return;
+    if (!hasScrollableTimeRange(viewport) || span <= 0) return;
     const clientWidth = scroller.clientWidth || scroller.getBoundingClientRect().width || 1;
     const maxScrollLeft = maxScrollableWidth(scroller, clientWidth, spacerWidthPercent);
     if (maxScrollLeft <= 0) return;
