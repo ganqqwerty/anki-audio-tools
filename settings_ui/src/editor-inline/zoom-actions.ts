@@ -1,7 +1,8 @@
 import { selectionForVisualizer } from "./selection-controller.js";
 import {
   fullTimeViewport,
-  isFullTimeViewport,
+  hasScrollableTimeRange,
+  maxZoomedOutViewportSpan,
   panTimeViewport,
   TIME_VIEWPORT_ZOOM_FACTOR,
   timeViewportSpan,
@@ -11,7 +12,7 @@ import {
 } from "./time-viewport.js";
 import type { VisualizerElement } from "./types.js";
 import { applyVisualizerTimeViewport } from "./viewport-actions.js";
-import { graphPixelBounds } from "./plot.js";
+import { graphPixelBounds, plotWidth } from "./plot.js";
 import {
   readVisualizerCursorMs,
   readVisualizerTargetDurationMs,
@@ -21,6 +22,12 @@ import { readFieldState } from "./field-state-store.js";
 
 function fieldOrd(v: VisualizerElement): number {
   return Number(v.dataset.aqeFieldOrd || "0");
+}
+
+function maxZoomOutSpanForVisualizer(visualizer: VisualizerElement): number {
+  const svg = visualizer.querySelector<SVGSVGElement>(".aqe-visualizer-svg");
+  if (!svg) return maxZoomedOutViewportSpan(plotWidth());
+  return maxZoomedOutViewportSpan(graphPixelBounds(svg).width);
 }
 
 const WHEEL_PAN_RATIO = 0.0015;
@@ -33,7 +40,9 @@ export function zoomInForVisualizer(visualizer: VisualizerElement): void {
   const anchorMs = readVisualizerCursorMs(visualizer);
   applyVisualizerTimeViewport(
     visualizer,
-    zoomTimeViewport(viewport, anchorMs, TIME_VIEWPORT_ZOOM_FACTOR),
+    zoomTimeViewport(viewport, anchorMs, TIME_VIEWPORT_ZOOM_FACTOR, {
+      maxSpanMs: maxZoomOutSpanForVisualizer(visualizer),
+    }),
   );
 }
 
@@ -42,7 +51,9 @@ export function zoomOutForVisualizer(visualizer: VisualizerElement): void {
   const anchorMs = readVisualizerCursorMs(visualizer);
   applyVisualizerTimeViewport(
     visualizer,
-    zoomTimeViewport(viewport, anchorMs, 1 / TIME_VIEWPORT_ZOOM_FACTOR),
+    zoomTimeViewport(viewport, anchorMs, 1 / TIME_VIEWPORT_ZOOM_FACTOR, {
+      maxSpanMs: maxZoomOutSpanForVisualizer(visualizer),
+    }),
   );
 }
 
@@ -59,7 +70,9 @@ export function zoomSelectionForVisualizer(visualizer: VisualizerElement): boole
   if (!selection || selection.mode !== "selection") return false;
   applyVisualizerTimeViewport(
     visualizer,
-    zoomTimeViewportToRange(selection.startMs, selection.endMs, durationMs),
+    zoomTimeViewportToRange(selection.startMs, selection.endMs, durationMs, {
+      maxSpanMs: maxZoomOutSpanForVisualizer(visualizer),
+    }),
   );
   return true;
 }
@@ -75,12 +88,17 @@ export function handleVisualizerWheelZoom(event: WheelEvent, visualizer: Visuali
     const bounds = target ? graphPixelBounds(target) : null;
     const ratio = bounds ? Math.max(0, Math.min(1, (event.clientX - bounds.left) / bounds.width)) : 0.5;
     const factor = wheelZoomFactor(event.deltaY);
-    applyVisualizerTimeViewport(visualizer, zoomTimeViewportAroundRatio(viewport, ratio, factor));
+    applyVisualizerTimeViewport(
+      visualizer,
+      zoomTimeViewportAroundRatio(viewport, ratio, factor, {
+        maxSpanMs: maxZoomOutSpanForVisualizer(visualizer),
+      }),
+    );
     return true;
   }
   const horizontalDelta = Number(event.deltaX) || 0;
   const verticalDelta = Number(event.deltaY) || 0;
-  const shouldPan = !isFullTimeViewport(viewport)
+  const shouldPan = hasScrollableTimeRange(viewport)
     && (event.shiftKey || Math.abs(horizontalDelta) > Math.abs(verticalDelta));
   if (!shouldPan) return false;
   const panDelta = event.shiftKey ? (horizontalDelta || verticalDelta) : horizontalDelta;
@@ -114,7 +132,7 @@ export function handleVisualizerZoomKeyDown(event: KeyboardEvent, visualizer: Vi
     fitTimeViewportForVisualizer(visualizer);
     return true;
   }
-  if ((event.key === "ArrowLeft" || event.key === "ArrowRight") && !isFullTimeViewport(viewport)) {
+  if ((event.key === "ArrowLeft" || event.key === "ArrowRight") && hasScrollableTimeRange(viewport)) {
     event.preventDefault();
     const direction = event.key === "ArrowLeft" ? -1 : 1;
     const delta = direction * timeViewportSpan(viewport) * KEYBOARD_PAN_RATIO;
