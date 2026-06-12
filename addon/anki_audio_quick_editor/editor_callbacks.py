@@ -27,6 +27,7 @@ from . import (
 
 _dispose_editor_frontend_controls = editor_frontend_callbacks._dispose_editor_frontend_controls
 _eval_history_availability = editor_frontend_callbacks._eval_history_availability
+_eval_history_snapshot = editor_frontend_callbacks._eval_history_snapshot
 _eval_playback_state = editor_frontend_callbacks._eval_playback_state
 _eval_status = editor_frontend_callbacks._eval_status
 _eval_visualizer_status = editor_frontend_callbacks._eval_visualizer_status
@@ -35,17 +36,21 @@ _eval_with_callback = editor_frontend_callbacks._eval_with_callback
 _eval_learner_recording_state = editor_frontend_callbacks._eval_learner_recording_state
 _graph_redraw_expression = editor_frontend_callbacks._graph_redraw_expression
 _history_availability_expression = editor_frontend_callbacks._history_availability_expression
+_history_snapshot_expression = editor_frontend_callbacks._history_snapshot_expression
 _handle_post_edit_playback_ready = editor_frontend_callbacks._handle_post_edit_playback_ready
 _main = editor_frontend_callbacks._main
 _pending_post_edit_playback_payload = editor_frontend_callbacks._pending_post_edit_playback_payload
 _playback_after_edit_expression = editor_frontend_callbacks._playback_after_edit_expression
 _request_history_availability_after_edit = editor_frontend_callbacks._request_history_availability_after_edit
+_request_history_snapshot_after_edit = editor_frontend_callbacks._request_history_snapshot_after_edit
 _request_playback_after_edit = editor_frontend_callbacks._request_playback_after_edit
 _request_graph_redraw = editor_frontend_callbacks._request_graph_redraw
 _retry_history_availability = editor_frontend_callbacks._retry_history_availability
+_retry_history_snapshot = editor_frontend_callbacks._retry_history_snapshot
 _retry_graph_redraw = editor_frontend_callbacks._retry_graph_redraw
 _schedule_graph_redraw_attempt = editor_frontend_callbacks._schedule_graph_redraw_attempt
 _schedule_history_availability_attempt = editor_frontend_callbacks._schedule_history_availability_attempt
+_schedule_history_snapshot_attempt = editor_frontend_callbacks._schedule_history_snapshot_attempt
 _set_busy = editor_frontend_callbacks._set_busy
 _set_busy_for_field = editor_frontend_callbacks._set_busy_for_field
 
@@ -145,7 +150,13 @@ _replace_current_field_after_render = _with_deps(
 _write_generated_media = _with_deps(editor_processing.write_generated_media, _processing_deps)
 _record_standard_persistent_undo = editor_persistent_undo.record_standard_persistent_undo
 _can_persistent_undo = editor_persistent_undo.can_persistent_undo
+_latest_persistent_undo_item = editor_persistent_undo.latest_persistent_undo_item
+_persistent_undo_items = editor_persistent_undo.persistent_undo_items
 _restore_persistent_undo = _with_deps(editor_persistent_undo.restore_persistent_undo, _history_deps)
+_restore_persistent_undo_steps = _with_deps(
+    editor_persistent_undo.restore_persistent_undo_steps,
+    _history_deps,
+)
 _render_failed = _with_deps(editor_processing.render_failed, _processing_deps)
 _denoise_standard_async = _with_deps(editor_processing.denoise_standard_async, _processing_deps)
 _convert_async = _with_deps(editor_processing.convert_async, _processing_deps)
@@ -215,6 +226,7 @@ _play_learner_recording = _with_deps(
 
 _undo = _with_deps(editor_history.undo, _history_deps)
 _redo = _with_deps(editor_history.redo, _history_deps)
+_history_jump = _with_deps(editor_history.history_jump, _history_deps)
 _restore_history_entry = _with_keyword_deps(editor_history.restore_history_entry, _history_deps)
 
 

@@ -62,6 +62,26 @@ def test_decode_graph_command_accepts_graph_settings() -> None:
     assert decoded.graph_settings == {"voiceRange": "bass", "smoothness": "very_smooth"}
 
 
+def test_decode_history_jump_payload() -> None:
+    payload = decode_editor_command_payload(
+        '{"command":"aqe:history-jump","fieldOrd":2,"direction":"undo","steps":5}'
+    )
+
+    assert payload.command == "aqe:history-jump"
+    assert payload.field_ord == 2
+    assert payload.history_direction == "undo"
+    assert payload.history_steps == 5
+
+
+def test_decode_history_jump_rejects_invalid_values() -> None:
+    payload = decode_editor_command_payload(
+        '{"command":"aqe:history-jump","direction":"sideways","steps":0}'
+    )
+
+    assert payload.history_direction is None
+    assert payload.history_steps is None
+
+
 def test_decode_command_accepts_share_target_payload() -> None:
     decoded = decode_editor_command_payload(
         '{"command":"aqe:share","fieldOrd":0,"shareTarget":"litterbox"}'

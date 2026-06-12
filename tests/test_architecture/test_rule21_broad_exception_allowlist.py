@@ -154,6 +154,18 @@ BROAD_EXCEPTION_ALLOWLIST: tuple[BroadExceptionAllowance, ...] = (
         "Initial editor injection must not fail note loading when the persistent history check fails.",
     ),
     BroadExceptionAllowance(
+        "editor_webview_injection",
+        "_latest_persistent_undo_item",
+        1,
+        "Initial editor injection must not fail note loading when persistent history item lookup fails.",
+    ),
+    BroadExceptionAllowance(
+        "editor_webview_injection",
+        "_persistent_undo_items",
+        1,
+        "Initial editor injection must not fail note loading when persistent history chain lookup fails.",
+    ),
+    BroadExceptionAllowance(
         "editor_special_transform_worker",
         "run_special_transform_worker",
         1,
@@ -168,8 +180,8 @@ BROAD_EXCEPTION_ALLOWLIST: tuple[BroadExceptionAllowance, ...] = (
     BroadExceptionAllowance(
         "editor_region_delete",
         "replace_current_field_after_region_delete",
-        1,
-        "Main-thread field replacement boundary keeps failed region deletes non-mutating and user-visible.",
+        2,
+        "Main-thread field replacement boundary keeps failed region deletes non-mutating and persistent history best-effort.",
     ),
     BroadExceptionAllowance(
         "editor_sharing",

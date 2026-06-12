@@ -91,7 +91,9 @@
       command === "aqe:slower" ||
       command === "aqe:faster" ||
       command === "aqe:volume-down" ||
-      command === "aqe:volume-up"
+      command === "aqe:volume-up" ||
+      command === "aqe:undo" ||
+      command === "aqe:redo"
     );
   }
 

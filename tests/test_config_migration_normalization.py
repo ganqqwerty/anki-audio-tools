@@ -9,6 +9,24 @@ from anki_audio_quick_editor.config_migration import (
 
 
 class TestMigrateConfigNormalization:
+    def test_clamps_editor_history_size(self) -> None:
+        defaults = {
+            "_config_version": CURRENT_CONFIG_VERSION,
+            "enabled": True,
+            "editor_history_size": 100,
+        }
+
+        low, low_changed = migrate_config({"editor_history_size": -3}, defaults)
+        high, high_changed = migrate_config({"editor_history_size": 250}, defaults)
+        non_numeric, non_numeric_changed = migrate_config({"editor_history_size": "many"}, defaults)
+
+        assert low["editor_history_size"] == 1
+        assert high["editor_history_size"] == 100
+        assert non_numeric["editor_history_size"] == 100
+        assert low_changed is True
+        assert high_changed is True
+        assert non_numeric_changed is True
+
     def test_normalizes_size_reduction_mode(self) -> None:
         user = {
             "_config_version": 20,
@@ -145,4 +163,3 @@ class TestMigrateConfigNormalization:
         assert migrated["pause_detection_algorithm"] == "silencedetect"
         assert migrated["_config_version"] == CURRENT_CONFIG_VERSION
         assert changed is True
-

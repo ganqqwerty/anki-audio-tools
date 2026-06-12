@@ -17,12 +17,26 @@ export type EditorCommand = SharedEditorCommand;
 
 export type ButtonSpec = ToolbarButtonSpec;
 
+export interface HistorySnapshotItem {
+  id: string;
+  label: string;
+}
+
+export interface HistorySnapshot {
+  canRedo: boolean;
+  canUndo: boolean;
+  redoItems: HistorySnapshotItem[];
+  undoItems: HistorySnapshotItem[];
+}
+
 export interface EditorRuntimeConfig {
   audioFieldIndices: number[];
   audioFieldSources?: Record<number, string>;
   direction?: "ltr" | "rtl";
+  editorHistorySize?: number;
   initialStatusByField?: Record<number, { kind?: string; message: string }>;
   initialHistoryAvailabilityByField?: Record<number, { canRedo: boolean; canUndo: boolean }>;
+  initialHistorySnapshotsByField?: Record<number, HistorySnapshot>;
   locale?: string;
   messages?: Record<string, string>;
   pendingPostEditPlayback?: {
@@ -75,11 +89,13 @@ export interface SplitButtonDefaults {
 }
 
 export interface EditorCommandPayload {
-  command: EditorCommand | "aqe:open-url" | "aqe:post-edit-playback-ready";
+  command: EditorCommand | "aqe:history-jump" | "aqe:open-url" | "aqe:post-edit-playback-ready";
+  direction?: "redo" | "undo";
   fieldOrd?: number;
   generation?: number;
   sourceFilename?: string;
   startCursorMs?: number;
+  steps?: number;
   url?: string;
   shareTarget?: "catbox" | "litterbox";
   overrides?: {

@@ -21,7 +21,7 @@ import {
   editorRuntimeConfig,
   repeatPlaybackByDefault as configRepeatPlaybackByDefault,
 } from "./editor-runtime-config.js";
-import type { EditorCommand } from "./types.js";
+import type { EditorCommand, HistorySnapshot } from "./types.js";
 import { defaultGraphQueueDependencies } from "./graph-actions.js";
 import { syncAllRecordingControls, syncRecordingControls } from "./recording-actions.js";
 import { readFieldState } from "./field-state-store.js";
@@ -146,6 +146,13 @@ export function consumeInitialStatusForOrd(ord: number): InitialEditorStatus | n
 }
 
 export function applyInitialHistoryAvailabilityForOrd(ord: number): void {
+  const initialSnapshots = editorRuntimeConfig().initialHistorySnapshotsByField;
+  const snapshot = initialSnapshots?.[ord];
+  if (snapshot) {
+    setHistorySnapshot(ord, snapshot);
+    delete initialSnapshots[ord];
+    return;
+  }
   const initialAvailability = editorRuntimeConfig().initialHistoryAvailabilityByField;
   const availability = initialAvailability?.[ord];
   if (!availability) return;
@@ -176,23 +183,56 @@ export function setCommandButtonLabel(ord: number, command: EditorCommand, label
   }
 }
 
-export function setHistoryAvailability(ord: number, canUndo: boolean, canRedo: boolean): void {
+export function emptyHistorySnapshot(): HistorySnapshot {
+  return { canRedo: false, canUndo: false, redoItems: [], undoItems: [] };
+}
+
+export function setHistorySnapshot(ord: number, snapshot: HistorySnapshot): void {
+  if (!window.__aqeHistorySnapshotsByField) {
+    window.__aqeHistorySnapshotsByField = {};
+  }
+  const limit = Math.min(100, Math.max(1, Math.trunc(editorRuntimeConfig().editorHistorySize ?? 100)));
+  const normalized = {
+    canRedo: !!snapshot.canRedo,
+    canUndo: !!snapshot.canUndo,
+    redoItems: snapshot.redoItems.slice(0, limit),
+    undoItems: snapshot.undoItems.slice(0, limit),
+  };
+  window.__aqeHistorySnapshotsByField[ord] = normalized;
   if (!window.__aqeHistoryAvailabilityByField) {
     window.__aqeHistoryAvailabilityByField = {};
   }
-  window.__aqeHistoryAvailabilityByField[ord] = { canRedo: !!canRedo, canUndo: !!canUndo };
+  window.__aqeHistoryAvailabilityByField[ord] = {
+    canRedo: normalized.canRedo,
+    canUndo: normalized.canUndo,
+  };
   const controls = controlsForOrd(ord);
   if (controls) {
-    controls.dataset.aqeCanUndo = canUndo ? "true" : "false";
-    controls.dataset.aqeCanRedo = canRedo ? "true" : "false";
+    controls.dataset.aqeCanUndo = normalized.canUndo ? "true" : "false";
+    controls.dataset.aqeCanRedo = normalized.canRedo ? "true" : "false";
   }
   updateHistoryButtonState(ord, "aqe:undo");
   updateHistoryButtonState(ord, "aqe:redo");
   syncRecordingControls(ord);
+  window.dispatchEvent(new CustomEvent("aqe-history-snapshot", { detail: { ord } }));
+}
+
+export function setHistoryAvailability(ord: number, canUndo: boolean, canRedo: boolean): void {
+  setHistorySnapshot(ord, {
+    canRedo: !!canRedo,
+    canUndo: !!canUndo,
+    redoItems: [],
+    undoItems: [],
+  });
+}
+
+export function historySnapshot(ord: number): HistorySnapshot {
+  return window.__aqeHistorySnapshotsByField?.[ord] ?? emptyHistorySnapshot();
 }
 
 export function historyAvailability(ord: number): { canRedo: boolean; canUndo: boolean } {
-  return window.__aqeHistoryAvailabilityByField?.[ord] ?? { canRedo: false, canUndo: false };
+  const snapshot = historySnapshot(ord);
+  return { canRedo: snapshot.canRedo, canUndo: snapshot.canUndo };
 }
 
 function localizedButtonLabel(command: EditorCommand, label: string): string {

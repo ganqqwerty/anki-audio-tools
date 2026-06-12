@@ -165,7 +165,7 @@ def test_rnnoise_replaces_current_media_and_resets_state(tmp_path: Path, monkeyp
     assert session.processing is False
     editor.loadNote.assert_called_once_with(focusTo=0)
     assert any(
-        "window.__aqeSetHistoryAvailability && window.__aqeSetHistoryAvailability(0, true, false)" in call.args[0]
+        "window.__aqeSetHistorySnapshot(0," in call.args[0]
         for call in editor.web.eval.call_args_list
     )
 
@@ -239,6 +239,6 @@ def test_voice_only_replaces_current_media_and_resets_state(tmp_path: Path, monk
     assert session.processing is False
     editor.loadNote.assert_called_once_with(focusTo=0)
     assert any(
-        "window.__aqeSetHistoryAvailability && window.__aqeSetHistoryAvailability(0, true, false)" in call.args[0]
+        "window.__aqeSetHistorySnapshot(0," in call.args[0]
         for call in editor.web.eval.call_args_list
     )

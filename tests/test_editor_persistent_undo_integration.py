@@ -163,6 +163,47 @@ def test_editor_injection_embeds_persistent_undo_availability(
     assert config["initialHistoryAvailabilityByField"] == {
         "0": {"canUndo": True, "canRedo": False}
     }
+    assert config["initialHistorySnapshotsByField"] == {
+        "0": {
+            "canUndo": True,
+            "canRedo": False,
+            "undoItems": [{"id": "persistent:1", "label": "Increased speed to x1.5."}],
+            "redoItems": [],
+        }
+    }
+
+
+def test_editor_injection_embeds_persistent_undo_chain(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    SESSIONS.clear()
+    media_dir = tmp_path / "media"
+    media_dir.mkdir()
+    for name in ("clip0.mp3", "clip1.mp3", "clip2.mp3", "clip3.mp3"):
+        (media_dir / name).write_bytes(name.encode("utf-8"))
+    db_path = tmp_path / "persistent_undo.sqlite3"
+    editor = _persistent_undo_editor(
+        media_dir,
+        note_id=1001,
+        field_html="[sound:clip3.mp3]",
+        config={"editor_history_size": 2},
+    )
+    _append_persistent_operation(db_path, editor, old_filename="clip0.mp3", new_filename="clip1.mp3", status="First edit")
+    _append_persistent_operation(db_path, editor, old_filename="clip1.mp3", new_filename="clip2.mp3", status="Second edit")
+    _append_persistent_operation(db_path, editor, old_filename="clip2.mp3", new_filename="clip3.mp3", status="Third edit")
+    monkeypatch.setattr(
+        "anki_audio_quick_editor.editor_persistent_undo.history_db_path_for_editor",
+        lambda _editor: db_path,
+    )
+
+    script = editor_injection_script(editor, editor.note)
+
+    config = _embedded_config(script)
+    assert config["initialHistorySnapshotsByField"]["0"]["undoItems"] == [
+        {"id": "persistent:3", "label": "Third edit"},
+        {"id": "persistent:2", "label": "Second edit"},
+    ]
 
 
 def test_editor_injection_disables_persistent_undo_for_unrelated_current_field(
@@ -201,6 +242,45 @@ def test_editor_injection_disables_persistent_undo_for_unrelated_current_field(
     assert config["initialHistoryAvailabilityByField"] == {
         "0": {"canUndo": False, "canRedo": False}
     }
+    assert config["initialHistorySnapshotsByField"] == {
+        "0": {"canUndo": False, "canRedo": False, "undoItems": [], "redoItems": []}
+    }
+
+
+def test_persistent_history_jump_restores_selected_depth_and_marks_rows(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    SESSIONS.clear()
+    media_dir = tmp_path / "media"
+    media_dir.mkdir()
+    for name in ("clip0.mp3", "clip1.mp3", "clip2.mp3", "clip3.mp3"):
+        (media_dir / name).write_bytes(name.encode("utf-8"))
+    db_path = tmp_path / "persistent_undo.sqlite3"
+    editor = _persistent_undo_editor(
+        media_dir,
+        note_id=1001,
+        field_html="[sound:clip3.mp3]",
+    )
+    first = _append_persistent_operation(db_path, editor, old_filename="clip0.mp3", new_filename="clip1.mp3", status="First edit")
+    second = _append_persistent_operation(db_path, editor, old_filename="clip1.mp3", new_filename="clip2.mp3", status="Second edit")
+    third = _append_persistent_operation(db_path, editor, old_filename="clip2.mp3", new_filename="clip3.mp3", status="Third edit")
+    monkeypatch.setattr(
+        "anki_audio_quick_editor.editor_persistent_undo.history_db_path_for_editor",
+        lambda _editor: db_path,
+    )
+    monkeypatch.setattr("anki_audio_quick_editor.editor_runtime.stop_audio_playback", lambda: None)
+    monkeypatch.setattr("aqt.qt.QTimer.singleShot", lambda _delay, callback: callback())
+
+    _handle_bridge_command(editor, '{"command":"aqe:history-jump","fieldOrd":0,"direction":"undo","steps":2}')
+
+    rows = PersistentHistoryRepository(db_path).recent_undoable(collection_id_for_editor(editor), 1001, 0, limit=10)
+    session = SESSIONS[editor]
+    assert editor.note.fields == ["[sound:clip1.mp3]"]
+    assert session.current_filename == "clip1.mp3"
+    assert [row.id for row in rows] == [first]
+    assert PersistentHistoryRepository(db_path).latest_undoable(collection_id_for_editor(editor), 1001, 0).id == first
+    assert {second, third}.isdisjoint({row.id for row in rows})
 
 
 def _embedded_config(script: str) -> dict[str, object]:
@@ -209,7 +289,13 @@ def _embedded_config(script: str) -> dict[str, object]:
     return json.loads(match.group("config"))
 
 
-def _persistent_undo_editor(media_dir: Path, *, note_id: int, field_html: str):
+def _persistent_undo_editor(
+    media_dir: Path,
+    *,
+    note_id: int,
+    field_html: str,
+    config: dict[str, object] | None = None,
+):
     class Editor:
         pass
 
@@ -223,7 +309,7 @@ def _persistent_undo_editor(media_dir: Path, *, note_id: int, field_html: str):
         addonManager=SimpleNamespace(
             addonFromModule=lambda _module: "addon",
             addonsFolder=lambda _addon: str(media_dir.parent / "addon"),
-            getConfig=lambda _addon: {},
+            getConfig=lambda _addon: config or {},
         ),
     )
     return editor
@@ -235,18 +321,40 @@ def _append_persistent_operation(
     *,
     old_filename: str,
     new_filename: str,
-) -> None:
+    status: str = "Increased speed to x1.5.",
+) -> int:
+    return _append_persistent_operation_with_fields(
+        db_path,
+        editor,
+        old_filename=old_filename,
+        new_filename=new_filename,
+        old_field_html=f"[sound:{old_filename}]",
+        new_field_html=f"[sound:{new_filename}]",
+        status=status,
+    )
+
+
+def _append_persistent_operation_with_fields(
+    db_path: Path,
+    editor,
+    *,
+    old_filename: str,
+    new_filename: str,
+    old_field_html: str,
+    new_field_html: str,
+    status: str,
+) -> int:
     media_dir = Path(editor.mw.col.media.dir())
     old_fingerprint = media_fingerprint(media_dir / old_filename)
     new_fingerprint = media_fingerprint(media_dir / new_filename)
-    PersistentHistoryRepository(db_path).append_operation(
+    return PersistentHistoryRepository(db_path).append_operation(
         PersistentHistoryAppend(
             collection_id=collection_id_for_editor(editor),
             note_id=int(editor.note.id),
             field_index=0,
             operation_type="standard-render",
-            old_field_html=f"[sound:{old_filename}]",
-            new_field_html=f"[sound:{new_filename}]",
+            old_field_html=old_field_html,
+            new_field_html=new_field_html,
             old_filename=old_filename,
             new_filename=new_filename,
             old_state_json=audio_edit_state_to_json(AudioEditState(old_filename)),
@@ -255,7 +363,7 @@ def _append_persistent_operation(
             old_media_size=old_fingerprint.size,
             new_media_sha256=new_fingerprint.sha256,
             new_media_size=new_fingerprint.size,
-            status_summary="Increased speed to x1.5.",
+            status_summary=status,
             created_at_ms=1234,
         )
     )

@@ -26,6 +26,8 @@ export type {
   EditorCommandPayload,
   EditorRuntimeConfig,
   FieldSplitButtonState,
+  HistorySnapshot,
+  HistorySnapshotItem,
   SplitButtonDefaults,
 } from "./editor-runtime-types";
 

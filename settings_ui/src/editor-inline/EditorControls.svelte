@@ -10,6 +10,7 @@
   import EditorToolbarButton from "./EditorToolbarButton.svelte";
   import EditorToolbarPanel from "./EditorToolbarPanel.svelte";
   import GraphVisualizer from "./GraphVisualizer.svelte";
+  import HistorySplitButton from "./HistorySplitButton.svelte";
   import PlaySplitButton from "./PlaySplitButton.svelte";
   import SplitButton from "./SplitButton.svelte";
   import { historyAvailability } from "./actions.js";
@@ -217,6 +218,13 @@
           button={item.button}
           displayMode={buttonDisplayMode(item.button.command, buttonModes)}
           {repeatDefault}
+          {target}
+        />
+      {:else if item.button.command === "aqe:undo" || item.button.command === "aqe:redo"}
+        <HistorySplitButton
+          button={item.button}
+          displayMode={buttonDisplayMode(item.button.command, buttonModes)}
+          disabledTitle={disabledTitle(item.button.command)}
           {target}
         />
       {:else if isSplitCommand(item.button.command)}

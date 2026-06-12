@@ -11,6 +11,7 @@ from .inspection import observe_module
 ALLOWED_PRODUCTION_IMPORTERS = {
     ADDON_DIR / "editor_persistent_undo.py",
     ADDON_DIR / "persistent_history.py",
+    ADDON_DIR / "persistent_undo_chain.py",
 }
 
 

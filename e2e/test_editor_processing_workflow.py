@@ -33,6 +33,10 @@ from e2e.helpers import (
 )
 
 
+def _history_menu_selector(direction: str, steps: int, ord_: int = 0) -> str:
+    return f'[data-testid="aqe-history-{ord_}-{direction}-{steps}"]'
+
+
 def test_each_processing_button_updates_field_to_new_real_audio(
     anki_mw,
     ffmpeg_config,
@@ -108,7 +112,9 @@ def test_each_processing_button_updates_field_to_new_real_audio(
                     "Compress Audio",
                     "Options",
                     "Undo",
+                    "Options",
                     "Redo",
+                    "Options",
                     "Settings",
                 ]
                 and state["iconsPerButton"] == [
@@ -359,6 +365,86 @@ def test_processing_undo_redo_and_new_edit_clears_redo(anki_mw, ffmpeg_config) -
             timeout=5.0,
         )
         assert _sound_filename(note.fields[0]) == third_generated
+    finally:
+        editor.set_note(None)
+        parent.close()
+
+
+def test_processing_history_split_buttons_jump_multiple_steps(anki_mw, ffmpeg_config) -> None:
+    media_dir = Path(anki_mw.col.media.dir())
+    source = media_dir / "editor_history_split_source.wav"
+    generate_tone(ffmpeg_config, source, duration_s=2.0)
+    note = _basic_audio_note(anki_mw, source.name)
+    _configure_ffmpeg(anki_mw, ffmpeg_config, editor_history_size=100)
+
+    editor, parent = _open_editor(anki_mw, note)
+    try:
+        wait_for_selector(editor.web, _button_selector("aqe:faster"), timeout=10.0)
+
+        first_generated = _click_and_wait_for_new_file(
+            editor,
+            note,
+            media_dir,
+            "aqe:faster",
+            source.name,
+        )
+        _wait_for_status_flow(
+            editor,
+            lambda status: status["text"] == "Increased speed to x1.5.",
+            timeout=10.0,
+        )
+        second_generated = _click_and_wait_for_new_file(
+            editor,
+            note,
+            media_dir,
+            "aqe:volume-up",
+            first_generated,
+        )
+        _wait_for_status_flow(
+            editor,
+            lambda status: status["text"] == "Increased volume by 15 dB.",
+            timeout=10.0,
+        )
+        third_generated = _click_and_wait_for_new_file(
+            editor,
+            note,
+            media_dir,
+            "aqe:slower",
+            second_generated,
+        )
+        _wait_for_status_flow(
+            editor,
+            lambda status: status["text"] == "Decreased speed to x1.5.",
+            timeout=10.0,
+        )
+
+        click_selector(editor.web, '[data-testid="aqe-split-0-undo-menu"]', timeout=5.0)
+        wait_for_selector(editor.web, _history_menu_selector("undo", 2), timeout=5.0)
+        undo_labels = wait_for_js_condition(
+            editor.web,
+            """
+            Array.from(document.querySelectorAll('[data-testid^="aqe-history-0-undo-"]'))
+              .map((node) => node.textContent)
+            """,
+            lambda labels: len(labels) >= 2,
+            timeout=5.0,
+        )
+        assert undo_labels[:2] == ["Increased volume by 15 dB.", "Increased speed to x1.5."]
+        click_selector(editor.web, _history_menu_selector("undo", 2), timeout=5.0)
+        wait_for_condition(
+            lambda: _sound_filename(note.fields[0]) == first_generated,
+            timeout=5.0,
+            message="Undo history jump did not restore the selected generated reference",
+        )
+
+        click_selector(editor.web, '[data-testid="aqe-split-0-redo-menu"]', timeout=5.0)
+        wait_for_selector(editor.web, _history_menu_selector("redo", 2), timeout=5.0)
+        click_selector(editor.web, _history_menu_selector("redo", 2), timeout=5.0)
+        wait_for_condition(
+            lambda: _sound_filename(note.fields[0]) == third_generated,
+            timeout=5.0,
+            message="Redo history jump did not restore the latest generated reference",
+        )
     finally:
         editor.set_note(None)
         parent.close()

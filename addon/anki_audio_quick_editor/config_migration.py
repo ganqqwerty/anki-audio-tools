@@ -18,6 +18,7 @@ from .editor_button_visibility import (
     normalize_visible_editor_buttons,
     supported_visible_editor_button_order,
 )
+from .editor_history_settings import normalize_editor_history_size
 
 CURRENT_CONFIG_VERSION = 2
 PAUSE_DETECTION_ALGORITHMS = frozenset({"silencedetect", "silero_vad"})
@@ -58,6 +59,7 @@ def _apply_post_merge_migrations(
     changed = _normalize_size_reduction_mode_setting(merged) or changed
     changed = _normalize_size_reduction_encoder_settings(merged) or changed
     changed = _normalize_pause_detection_algorithm_setting(merged) or changed
+    changed = _normalize_editor_history_size_setting(merged) or changed
     changed = _append_v2_visible_editor_button_defaults(merged) or changed
     changed = _normalize_visible_editor_buttons_setting(merged, defaults) or changed
     return _normalize_editor_button_mode_settings(merged, defaults) or changed
@@ -135,6 +137,16 @@ def _normalize_pause_detection_algorithm_setting(merged: dict[str, Any]) -> bool
     if value in PAUSE_DETECTION_ALGORITHMS:
         return False
     merged["pause_detection_algorithm"] = "silencedetect"
+    return True
+
+
+def _normalize_editor_history_size_setting(merged: dict[str, Any]) -> bool:
+    if "editor_history_size" not in merged:
+        return False
+    normalized = normalize_editor_history_size(merged.get("editor_history_size"))
+    if merged.get("editor_history_size") == normalized:
+        return False
+    merged["editor_history_size"] = normalized
     return True
 
 
