@@ -15,6 +15,7 @@
     "voice_recording_countdown_seconds",
     "show_graph_by_default",
     "selection_marker_shift_buttons_enabled",
+    "editor_history_size",
     "visible_editor_buttons",
     "editor_button_modes",
     "graph_voice_range",
@@ -91,6 +92,11 @@
     },
     "selection_marker_shift_buttons_enabled": {
       "type": "boolean"
+    },
+    "editor_history_size": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 100
     },
     "visible_editor_buttons": {
       "type": "array",

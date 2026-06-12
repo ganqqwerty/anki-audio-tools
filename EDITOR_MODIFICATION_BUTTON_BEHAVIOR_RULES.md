@@ -38,7 +38,8 @@ Current split-button shapes:
 |-------|----------|
 | Individual split buttons | `aqe:play`, `aqe:analyze`, `aqe:share`, `aqe:convert`, `aqe:remove-pauses`, `aqe:denoise-standard`, `aqe:pitch-hum` |
 | Grouped split buttons | `aqe:record-voice`, `aqe:play-recording`, `aqe:share-recording`, and `aqe:show-recording-file` render as the Record / Play yours panel with one visibility setting and Record-owned quick settings; `aqe:slower` + `aqe:faster` share one Speed quick-settings menu; `aqe:volume-down` + `aqe:volume-up` share one Volume quick-settings menu. |
-| Plain modification buttons | `aqe:delete-selection`, `aqe:delete-rest`, `aqe:undo`, `aqe:redo` |
+| Plain modification buttons | `aqe:delete-selection`, `aqe:delete-rest` |
+| History split buttons | `aqe:undo`, `aqe:redo` |
 
 `aqe:delete-selection` and `aqe:delete-rest` are selection-toolbar actions backed by a pending region-delete request. `aqe:delete-selection` can also be triggered from Backspace when the focused graph has a valid non-whole-clip selection.
 
@@ -119,6 +120,9 @@ Every successful modification must be reversible through the editor undo/redo bu
 - A new successful modification clears redo history.
 - Undo restores the previous generated reference and pushes the current reference to redo history.
 - Redo restores the next generated reference and pushes the current reference back to undo history.
+- Undo and redo render as split buttons: primary restores one step, and the menu lists the configured number of previous or redoable operation summaries up to the hard cap of 100.
+- Selecting a history menu item applies the required number of undo or redo steps only after Python validates the full requested depth.
+- The editor history size setting controls in-memory undo/redo retention and menu row count.
 - Undo and redo are disabled by behavior, not necessarily by visual state, while processing is busy: they must report the current processing state and avoid changing the field.
 - Undo and redo should trigger the same post-replacement playback, progress, graph, and selection behavior as a newly rendered modification.
 

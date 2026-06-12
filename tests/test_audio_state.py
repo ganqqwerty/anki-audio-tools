@@ -137,6 +137,13 @@ def test_processing_config_reads_show_ffmpeg_commands_flag() -> None:
     assert config.show_ffmpeg_commands is True
 
 
+def test_audio_processing_config_clamps_editor_history_size() -> None:
+    assert AudioProcessingConfig.from_config({"editor_history_size": 5}).editor_history_size == 5
+    assert AudioProcessingConfig.from_config({"editor_history_size": 0}).editor_history_size == 1
+    assert AudioProcessingConfig.from_config({"editor_history_size": 500}).editor_history_size == 100
+    assert AudioProcessingConfig.from_config({"editor_history_size": "many"}).editor_history_size == 100
+
+
 def test_processing_config_normalizes_output_format() -> None:
     assert AudioProcessingConfig.from_config({"output_format": " FLAC "}).output_format == "flac"
     assert AudioProcessingConfig.from_config({"output_format": "aac"}).output_format == "source"

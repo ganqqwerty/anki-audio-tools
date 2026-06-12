@@ -241,6 +241,11 @@ def test_region_delete_replacement_updates_only_requested_field_and_history(
     )
     assert request is not None
     monkeypatch.setattr("aqt.qt.QTimer.singleShot", lambda _delay, callback: callback())
+    persistent_recorder = MagicMock()
+    monkeypatch.setattr(
+        "anki_audio_quick_editor.editor_callbacks._record_standard_persistent_undo",
+        persistent_recorder,
+    )
 
     _replace_current_field_after_region_delete(editor, request, generated.name, 500, 0.0)
 
@@ -259,3 +264,11 @@ def test_region_delete_replacement_updates_only_requested_field_and_history(
     assert session.pending_post_edit_playback_field_index == 1
     assert session.pending_post_edit_playback_generation == session.post_edit_playback_generation
     assert session.pending_post_edit_playback_source_filename == "clip__aqe_cut.mp3"
+    persistent_recorder.assert_called_once()
+    call = persistent_recorder.call_args.kwargs
+    assert call["field_index"] == 1
+    assert call["old_field_html"] == "<b>Prompt</b> [sound:clip.mp3] extra"
+    assert call["new_field_html"] == "<b>Prompt</b> [sound:clip__aqe_cut.mp3] extra"
+    assert call["old_filename"] == current.name
+    assert call["new_filename"] == generated.name
+    assert call["status_summary"] == session.status_summary

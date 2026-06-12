@@ -74,6 +74,36 @@ def test_repository_returns_latest_not_undone_operation(tmp_path: Path) -> None:
     assert latest.id == first
 
 
+def test_repository_returns_recent_undoable_operations_newest_first_with_limit(tmp_path: Path) -> None:
+    repo = PersistentHistoryRepository(tmp_path / "history.sqlite3")
+    first = _append_operation(repo, old_filename="a.mp3", new_filename="b.mp3", created_at_ms=1)
+    second = _append_operation(repo, old_filename="b.mp3", new_filename="c.mp3", created_at_ms=2)
+    third = _append_operation(repo, old_filename="c.mp3", new_filename="d.mp3", created_at_ms=3)
+
+    recent = repo.recent_undoable("collection", 1001, 0, limit=2)
+
+    assert [operation.id for operation in repo.recent_undoable("collection", 1001, 0, limit=10)] == [
+        third,
+        second,
+        first,
+    ]
+    assert [operation.id for operation in recent] == [third, second]
+
+
+def test_repository_clamps_recent_undoable_limit(tmp_path: Path) -> None:
+    repo = PersistentHistoryRepository(tmp_path / "history.sqlite3")
+    for index in range(105):
+        _append_operation(
+            repo,
+            old_filename=f"{index}.mp3",
+            new_filename=f"{index + 1}.mp3",
+            created_at_ms=index,
+        )
+
+    assert repo.recent_undoable("collection", 1001, 0, limit=-1) == []
+    assert len(repo.recent_undoable("collection", 1001, 0, limit=500)) == 100
+
+
 def test_repository_ignores_expired_operations(tmp_path: Path) -> None:
     repo = PersistentHistoryRepository(tmp_path / "history.sqlite3")
     operation_id = _append_operation(

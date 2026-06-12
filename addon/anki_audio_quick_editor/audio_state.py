@@ -25,6 +25,10 @@ from .dpdfnet_settings import (
     DEFAULT_DPDFNET_ATTENUATION_LIMIT_DB,
     normalize_dpdfnet_attn_limit_db,
 )
+from .editor_history_settings import (
+    DEFAULT_EDITOR_HISTORY_SIZE,
+    normalize_editor_history_size,
+)
 from .errors import InvalidEditStateError
 from .ffmpeg_defaults import default_ffmpeg_path
 
@@ -71,6 +75,7 @@ class AudioProcessingConfig:
     graph_smoothness: GraphSmoothness = "very_smooth"
     graph_connect_short_dropouts_ms: int = 240
     graph_voice_lock: GraphVoiceLock = "balanced"
+    editor_history_size: int = DEFAULT_EDITOR_HISTORY_SIZE
 
     @classmethod
     def from_config(cls, config: dict[str, ConfigValue]) -> "AudioProcessingConfig":
@@ -195,6 +200,9 @@ class AudioProcessingConfig:
                 )
             ),
             graph_voice_lock=str(config.get("graph_voice_lock", cls.graph_voice_lock)),
+            editor_history_size=normalize_editor_history_size(
+                config.get("editor_history_size", cls.editor_history_size)
+            ),
         )
 
 

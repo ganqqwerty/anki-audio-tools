@@ -4,11 +4,16 @@ from __future__ import annotations
 
 from typing import Any
 
+from .editor_history_snapshot import history_snapshot_for_field
 from .editor_session import EditorSession
 
 
 def sync_history_availability(editor: Any, session: EditorSession | None, deps: Any) -> None:
     if session is None:
+        return
+    snapshot = _history_snapshot(editor, session, deps)
+    if snapshot is not None and hasattr(deps, "eval_history_snapshot"):
+        deps.eval_history_snapshot(editor, session.field_index, snapshot)
         return
     deps.eval_history_availability(
         editor,
@@ -21,12 +26,34 @@ def sync_history_availability(editor: Any, session: EditorSession | None, deps: 
 def request_history_availability_after_edit(editor: Any, session: EditorSession | None, deps: Any) -> None:
     if session is None:
         return
+    snapshot = _history_snapshot(editor, session, deps)
+    if snapshot is not None and hasattr(deps, "request_history_snapshot_after_edit"):
+        deps.request_history_snapshot_after_edit(editor, session.field_index, snapshot)
+        return
     deps.request_history_availability_after_edit(
         editor,
         session.field_index,
         bool(session.undo_history.entries),
         bool(session.redo_history.entries),
     )
+
+
+def _history_snapshot(editor: Any, session: EditorSession, deps: Any) -> Any | None:
+    try:
+        config = deps.config(editor) if hasattr(deps, "config") else {}
+        latest_persistent_undo_item = getattr(deps, "latest_persistent_undo_item", lambda _editor, _field_index: None)
+        persistent_undo_items = getattr(deps, "persistent_undo_items", None)
+        return history_snapshot_for_field(
+            editor,
+            field_index=session.field_index,
+            session=session,
+            history_size=config.get("editor_history_size") if isinstance(config, dict) else None,
+            can_persistent_undo=deps.can_persistent_undo,
+            latest_persistent_undo_item=latest_persistent_undo_item,
+            persistent_undo_items=persistent_undo_items,
+        )
+    except (AttributeError, TypeError):
+        return None
 
 
 def cancel_graph_analysis_for_processing(editor: Any, session: EditorSession, deps: Any) -> None:

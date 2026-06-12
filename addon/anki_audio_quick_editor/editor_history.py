@@ -5,6 +5,11 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any
 
+from .editor_history_settings import (
+    DEFAULT_EDITOR_HISTORY_SIZE,
+    normalize_editor_history_size,
+)
+from .editor_history_snapshot import HistorySnapshot, history_snapshot_for_field
 from .editor_reload_status import reload_editor_with_pending_status
 from .editor_session import EditorSession, UndoEntry
 from .editor_status import (
@@ -22,23 +27,38 @@ from .sound_refs import (
 
 
 def sync_history_availability(editor: Any, session: EditorSession, deps: Any) -> None:
-    """Reflect current undo/redo availability into the editor toolbar."""
-    deps.eval_history_availability(
-        editor,
-        session.field_index,
-        _can_undo(editor, session, deps),
-        bool(session.redo_history.entries),
-    )
+    """Reflect current undo/redo history into the editor toolbar."""
+    deps.eval_history_snapshot(editor, session.field_index, history_snapshot(editor, session, deps))
 
 
 def request_history_availability_after_edit(editor: Any, session: EditorSession, deps: Any) -> None:
-    """Retry history availability sync after the editor remounts controls."""
-    deps.request_history_availability_after_edit(
+    """Retry history sync after the editor remounts controls."""
+    deps.request_history_snapshot_after_edit(editor, session.field_index, history_snapshot(editor, session, deps))
+
+
+def history_snapshot(editor: Any, session: EditorSession, deps: Any) -> HistorySnapshot:
+    """Return the current history snapshot for the session field."""
+    latest_persistent_undo_item = getattr(deps, "latest_persistent_undo_item", lambda _editor, _field_index: None)
+    persistent_undo_items = getattr(deps, "persistent_undo_items", None)
+    return history_snapshot_for_field(
         editor,
-        session.field_index,
-        _can_undo(editor, session, deps),
-        bool(session.redo_history.entries),
+        field_index=session.field_index,
+        session=session,
+        history_size=_history_size(editor, deps),
+        can_persistent_undo=deps.can_persistent_undo,
+        latest_persistent_undo_item=latest_persistent_undo_item,
+        persistent_undo_items=persistent_undo_items,
     )
+
+
+def _history_size(editor: Any, deps: Any) -> object:
+    if not hasattr(deps, "config"):
+        return DEFAULT_EDITOR_HISTORY_SIZE
+    try:
+        config = deps.config(editor)
+    except (AttributeError, TypeError):
+        return DEFAULT_EDITOR_HISTORY_SIZE
+    return config.get("editor_history_size", DEFAULT_EDITOR_HISTORY_SIZE)
 
 
 def undo(editor: Any, deps: Any) -> None:
@@ -81,6 +101,78 @@ def redo(editor: Any, deps: Any) -> None:
         redo_current=False,
         status=redo_status_message(next_entry),
     )
+
+
+def history_jump(editor: Any, payload: Any, deps: Any) -> None:
+    """Restore a selected undo/redo history depth."""
+    session, _source_path = deps.session_and_source(editor)
+    if deps.is_busy(session):
+        deps.eval_status(editor, deps.still_processing_message, kind="processing")
+        return
+    direction, steps = _history_jump_request(editor, payload, deps)
+    if direction is None or steps is None:
+        deps.eval_status(editor, t("editor.status.history_selection_unavailable"))
+        return
+    entries = _history_jump_entries(session, direction, steps)
+    if entries is None:
+        if _restore_persistent_history_jump(editor, session, direction, steps, deps):
+            return
+        deps.eval_status(editor, t("editor.status.history_selection_unavailable"))
+        return
+    for entry in entries:
+        deps.restore_history_entry(
+            editor,
+            session,
+            entry,
+            redo_current=direction == "undo",
+            status=undo_status_message(entry) if direction == "undo" else redo_status_message(entry),
+        )
+
+
+def _restore_persistent_history_jump(
+    editor: Any,
+    session: EditorSession,
+    direction: str,
+    steps: int,
+    deps: Any,
+) -> bool:
+    if direction != "undo" or session.undo_history.entries:
+        return False
+    restore_persistent_steps = getattr(deps, "restore_persistent_undo_steps", None)
+    if not callable(restore_persistent_steps) or not restore_persistent_steps(editor, session, steps):
+        return False
+    sync_history_availability(editor, session, deps)
+    request_history_availability_after_edit(editor, session, deps)
+    return True
+
+
+def _history_jump_request(editor: Any, payload: Any, deps: Any) -> tuple[str | None, int | None]:
+    field_ord = getattr(payload, "field_ord", None)
+    if field_ord is None or int(field_ord) != int(deps.current_field_index(editor)):
+        return None, None
+    direction = getattr(payload, "history_direction", None)
+    steps = getattr(payload, "history_steps", None)
+    max_steps = normalize_editor_history_size(_history_size(editor, deps))
+    if direction not in {"undo", "redo"} or not isinstance(steps, int) or steps < 1 or steps > max_steps:
+        return None, None
+    return direction, steps
+
+
+def _history_jump_entries(
+    session: EditorSession,
+    direction: str,
+    steps: int,
+) -> list[UndoEntry] | None:
+    stack = session.undo_history if direction == "undo" else session.redo_history
+    if len(stack.entries) < steps:
+        return None
+    entries: list[UndoEntry] = []
+    for _index in range(steps):
+        entry = stack.pop()
+        if entry is None:
+            return None
+        entries.append(entry)
+    return entries
 
 
 def restore_history_entry(
@@ -142,7 +234,3 @@ def restore_history_entry(
     deps.eval_playback_state(editor, field_index, "stopped", 0)
     if field_index in session.graph_active_fields:
         deps.request_graph_redraw(editor, entry.filename)
-
-
-def _can_undo(editor: Any, session: EditorSession, deps: Any) -> bool:
-    return bool(session.undo_history.entries) or bool(deps.can_persistent_undo(editor, session.field_index))

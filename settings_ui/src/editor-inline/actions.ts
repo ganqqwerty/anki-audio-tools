@@ -12,12 +12,14 @@ export { popEditorFrontendLog, popPendingGraphAnalysisRequest } from "./bridge.j
 export {
   anyBusy,
   clearStatus,
+  historySnapshot,
   historyAvailability,
   repeatDefaultFromConfig,
   restoreStatusForOrd,
   setCommandButtonLabel,
   setControlsBusy,
   setHistoryAvailability,
+  setHistorySnapshot,
   setStatus,
 } from "./control-actions.js";
 export { send } from "./command-actions.js";

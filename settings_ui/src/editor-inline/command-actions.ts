@@ -18,8 +18,10 @@ import {
 import type { EditorCommand, EditorCommandPayload } from "./types.js";
 import { anyBusy, setControlsBusy } from "./control-actions.js";
 
+type EditorDispatchCommand = EditorCommand | "aqe:history-jump";
+
 export function send(
-  command: EditorCommand,
+  command: EditorDispatchCommand,
   node: HTMLElement,
   ord: number,
   payload?: EditorCommandPayload,
@@ -53,7 +55,7 @@ export function send(
   if (shouldPlayAfterSuccessfulEdit(command)) {
     rememberPostEditPlaybackIntent(ord);
   }
-  if (BUSY_COMMANDS.has(command)) {
+  if (command !== "aqe:history-jump" && BUSY_COMMANDS.has(command)) {
     stopAllEditorPlayback();
     setControlsBusy(ord, true, processingMessage(command, payload));
   }
@@ -66,11 +68,17 @@ export function send(
     focusAndSendCommandPayload(ord, effectivePayload);
     return;
   }
+  if (command === "aqe:history-jump") return;
   focusAndSendCommand(ord, command);
 }
 
-function shouldPlayAfterSuccessfulEdit(command: EditorCommand): boolean {
-  return PROCESSING_COMMANDS.has(command) || command === "aqe:undo" || command === "aqe:redo";
+function shouldPlayAfterSuccessfulEdit(command: EditorDispatchCommand): boolean {
+  return (
+    command === "aqe:history-jump"
+    || command === "aqe:undo"
+    || command === "aqe:redo"
+    || PROCESSING_COMMANDS.has(command)
+  );
 }
 
 function stopAllEditorPlayback(): void {

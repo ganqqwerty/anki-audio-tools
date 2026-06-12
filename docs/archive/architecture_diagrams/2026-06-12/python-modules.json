@@ -1,0 +1,3292 @@
+[
+  {
+    "module": "anki_audio_quick_editor",
+    "file": "addon/anki_audio_quick_editor/__init__.py",
+    "layer": "entry_point",
+    "summary": "Anki Audio Quick Editor add-on package",
+    "imports": {
+      "anki": [
+        "aqt",
+        "aqt.qt"
+      ],
+      "addon": [
+        "anki_audio_quick_editor._version",
+        "anki_audio_quick_editor.config_migration",
+        "anki_audio_quick_editor.diagnostics_runtime",
+        "anki_audio_quick_editor.ffmpeg_defaults",
+        "anki_audio_quick_editor.i18n",
+        "anki_audio_quick_editor.release_info",
+        "anki_audio_quick_editor.runtime_installer_dialog",
+        "anki_audio_quick_editor.runtime_manager",
+        "anki_audio_quick_editor.vendor_runtime"
+      ],
+      "stdlib": [
+        "__future__",
+        "collections.abc",
+        "logging",
+        "logging.handlers",
+        "os",
+        "pathlib",
+        "typing"
+      ],
+      "third_party": [
+        "debugpy",
+        "importlib"
+      ]
+    }
+  },
+  {
+    "module": "anki_audio_quick_editor._version",
+    "file": "addon/anki_audio_quick_editor/_version.py",
+    "layer": "import_safe_core",
+    "summary": "Version metadata for Anki Audio Quick Editor",
+    "imports": {
+      "anki": [],
+      "addon": [],
+      "stdlib": [],
+      "third_party": []
+    }
+  },
+  {
+    "module": "anki_audio_quick_editor.audio_artifacts",
+    "file": "addon/anki_audio_quick_editor/audio_artifacts.py",
+    "layer": "import_safe_core",
+    "summary": "Pause pipeline artifact and manifest helpers",
+    "imports": {
+      "anki": [],
+      "addon": [
+        "anki_audio_quick_editor.audio_pipeline",
+        "anki_audio_quick_editor.audio_state",
+        "anki_audio_quick_editor.audio_tools",
+        "anki_audio_quick_editor.errors"
+      ],
+      "stdlib": [
+        "__future__",
+        "hashlib",
+        "os",
+        "pathlib"
+      ],
+      "third_party": [
+        "datetime"
+      ]
+    }
+  },
+  {
+    "module": "anki_audio_quick_editor.audio_commands",
+    "file": "addon/anki_audio_quick_editor/audio_commands.py",
+    "layer": "import_safe_core",
+    "summary": "Command and ffmpeg filter builders for audio processing",
+    "imports": {
+      "anki": [],
+      "addon": [
+        "anki_audio_quick_editor.audio_commands_runtime",
+        "anki_audio_quick_editor.audio_formats",
+        "anki_audio_quick_editor.audio_state",
+        "anki_audio_quick_editor.audio_types",
+        "anki_audio_quick_editor.errors",
+        "anki_audio_quick_editor.ffmpeg_output_contracts"
+      ],
+      "stdlib": [
+        "__future__",
+        "collections.abc",
+        "math",
+        "pathlib"
+      ],
+      "third_party": [
+        "shlex"
+      ]
+    }
+  },
+  {
+    "module": "anki_audio_quick_editor.audio_commands_runtime",
+    "file": "addon/anki_audio_quick_editor/audio_commands_runtime.py",
+    "layer": "import_safe_core",
+    "summary": "Noise-reduction and playback command builders",
+    "imports": {
+      "anki": [],
+      "addon": [
+        "anki_audio_quick_editor.ffmpeg_output_contracts"
+      ],
+      "stdlib": [
+        "__future__",
+        "collections.abc",
+        "pathlib"
+      ],
+      "third_party": []
+    }
+  },
+  {
+    "module": "anki_audio_quick_editor.audio_deps",
+    "file": "addon/anki_audio_quick_editor/audio_deps.py",
+    "layer": "import_safe_core",
+    "summary": "Typed audio processing dependency injection seam",
+    "imports": {
+      "anki": [],
+      "addon": [],
+      "stdlib": [
+        "__future__",
+        "collections.abc",
+        "dataclasses",
+        "pathlib",
+        "typing"
+      ],
+      "third_party": []
+    }
+  },
+  {
+    "module": "anki_audio_quick_editor.audio_external",
+    "file": "addon/anki_audio_quick_editor/audio_external.py",
+    "layer": "import_safe_core",
+    "summary": "External audio command execution helpers",
+    "imports": {
+      "anki": [],
+      "addon": [
+        "anki_audio_quick_editor.audio_state",
+        "anki_audio_quick_editor.audio_tools",
+        "anki_audio_quick_editor.diagnostics_runtime",
+        "anki_audio_quick_editor.errors",
+        "anki_audio_quick_editor.external_command_text",
+        "anki_audio_quick_editor.permission_guidance"
+      ],
+      "stdlib": [
+        "__future__",
+        "json",
+        "os",
+        "pathlib",
+        "subprocess",
+        "time",
+        "typing"
+      ],
+      "third_party": []
+    }
+  },
+  {
+    "module": "anki_audio_quick_editor.audio_formats",
+    "file": "addon/anki_audio_quick_editor/audio_formats.py",
+    "layer": "import_safe_core",
+    "summary": "Shared audio output format helpers",
+    "imports": {
+      "anki": [],
+      "addon": [],
+      "stdlib": [
+        "__future__",
+        "pathlib",
+        "typing"
+      ],
+      "third_party": []
+    }
+  },
+  {
+    "module": "anki_audio_quick_editor.audio_noise_reduction",
+    "file": "addon/anki_audio_quick_editor/audio_noise_reduction.py",
+    "layer": "import_safe_core",
+    "summary": "External denoise and voice-only extraction orchestration",
+    "imports": {
+      "anki": [],
+      "addon": [
+        "anki_audio_quick_editor.audio_commands",
+        "anki_audio_quick_editor.audio_external",
+        "anki_audio_quick_editor.audio_noise_reduction_bundled",
+        "anki_audio_quick_editor.audio_output_policy",
+        "anki_audio_quick_editor.audio_state",
+        "anki_audio_quick_editor.audio_tools",
+        "anki_audio_quick_editor.audio_types",
+        "anki_audio_quick_editor.errors"
+      ],
+      "stdlib": [
+        "__future__",
+        "collections.abc",
+        "pathlib",
+        "shutil",
+        "subprocess",
+        "tempfile",
+        "typing"
+      ],
+      "third_party": []
+    }
+  },
+  {
+    "module": "anki_audio_quick_editor.audio_noise_reduction_bundled",
+    "file": "addon/anki_audio_quick_editor/audio_noise_reduction_bundled.py",
+    "layer": "import_safe_core",
+    "summary": "Bundled RNNoise, DPDFNet, and Spleeter renderers",
+    "imports": {
+      "anki": [],
+      "addon": [
+        "anki_audio_quick_editor.audio_commands",
+        "anki_audio_quick_editor.audio_external",
+        "anki_audio_quick_editor.audio_noise_reduction_telemetry",
+        "anki_audio_quick_editor.audio_output_policy",
+        "anki_audio_quick_editor.audio_state",
+        "anki_audio_quick_editor.audio_tools",
+        "anki_audio_quick_editor.audio_types",
+        "anki_audio_quick_editor.errors",
+        "anki_audio_quick_editor.support"
+      ],
+      "stdlib": [
+        "__future__",
+        "collections.abc",
+        "pathlib",
+        "shutil",
+        "subprocess",
+        "tempfile"
+      ],
+      "third_party": []
+    }
+  },
+  {
+    "module": "anki_audio_quick_editor.audio_noise_reduction_telemetry",
+    "file": "addon/anki_audio_quick_editor/audio_noise_reduction_telemetry.py",
+    "layer": "import_safe_core",
+    "summary": "Support-incident telemetry helpers for bundled noise-reduction renderers",
+    "imports": {
+      "anki": [],
+      "addon": [
+        "anki_audio_quick_editor.support"
+      ],
+      "stdlib": [
+        "__future__",
+        "pathlib"
+      ],
+      "third_party": []
+    }
+  },
+  {
+    "module": "anki_audio_quick_editor.audio_operation_params",
+    "file": "addon/anki_audio_quick_editor/audio_operation_params.py",
+    "layer": "import_safe_core",
+    "summary": "Shared import-safe parameter handling for editor and batch audio operations",
+    "imports": {
+      "anki": [],
+      "addon": [
+        "anki_audio_quick_editor.audio_operation_params_config",
+        "anki_audio_quick_editor.audio_operation_params_normalize",
+        "anki_audio_quick_editor.audio_operation_params_types"
+      ],
+      "stdlib": [
+        "__future__"
+      ],
+      "third_party": []
+    }
+  },
+  {
+    "module": "anki_audio_quick_editor.audio_operation_params_config",
+    "file": "addon/anki_audio_quick_editor/audio_operation_params_config.py",
+    "layer": "import_safe_core",
+    "summary": "Config application for shared audio operation parameters",
+    "imports": {
+      "anki": [],
+      "addon": [
+        "anki_audio_quick_editor.audio_operation_params_types",
+        "anki_audio_quick_editor.audio_pause_settings",
+        "anki_audio_quick_editor.audio_size_reduction",
+        "anki_audio_quick_editor.audio_state"
+      ],
+      "stdlib": [
+        "__future__",
+        "dataclasses"
+      ],
+      "third_party": []
+    }
+  },
+  {
+    "module": "anki_audio_quick_editor.audio_operation_params_normalize",
+    "file": "addon/anki_audio_quick_editor/audio_operation_params_normalize.py",
+    "layer": "import_safe_core",
+    "summary": "Raw-value normalization for shared audio operation parameters",
+    "imports": {
+      "anki": [],
+      "addon": [
+        "anki_audio_quick_editor.audio_formats",
+        "anki_audio_quick_editor.audio_operation_params_types",
+        "anki_audio_quick_editor.audio_pause_settings",
+        "anki_audio_quick_editor.audio_size_reduction",
+        "anki_audio_quick_editor.dpdfnet_settings"
+      ],
+      "stdlib": [
+        "__future__",
+        "typing"
+      ],
+      "third_party": []
+    }
+  },
+  {
+    "module": "anki_audio_quick_editor.audio_operation_params_types",
+    "file": "addon/anki_audio_quick_editor/audio_operation_params_types.py",
+    "layer": "import_safe_core",
+    "summary": "Shared types and constants for audio operation parameter handling",
+    "imports": {
+      "anki": [],
+      "addon": [],
+      "stdlib": [
+        "__future__",
+        "dataclasses"
+      ],
+      "third_party": []
+    }
+  },
+  {
+    "module": "anki_audio_quick_editor.audio_operations",
+    "file": "addon/anki_audio_quick_editor/audio_operations.py",
+    "layer": "import_safe_core",
+    "summary": "Shared import-safe audio operation definitions and state transitions",
+    "imports": {
+      "anki": [],
+      "addon": [
+        "anki_audio_quick_editor.audio_state",
+        "anki_audio_quick_editor.i18n"
+      ],
+      "stdlib": [
+        "__future__",
+        "collections.abc",
+        "typing"
+      ],
+      "third_party": []
+    }
+  },
+  {
+    "module": "anki_audio_quick_editor.audio_output_policy",
+    "file": "addon/anki_audio_quick_editor/audio_output_policy.py",
+    "layer": "import_safe_core",
+    "summary": "Source-aware final audio output policy for FFmpeg renders",
+    "imports": {
+      "anki": [],
+      "addon": [
+        "anki_audio_quick_editor.audio_external",
+        "anki_audio_quick_editor.audio_formats",
+        "anki_audio_quick_editor.audio_state",
+        "anki_audio_quick_editor.audio_tools",
+        "anki_audio_quick_editor.errors",
+        "anki_audio_quick_editor.external_command_text",
+        "anki_audio_quick_editor.permission_guidance"
+      ],
+      "stdlib": [
+        "__future__",
+        "dataclasses",
+        "json",
+        "pathlib",
+        "subprocess"
+      ],
+      "third_party": []
+    }
+  },
+  {
+    "module": "anki_audio_quick_editor.audio_pause_pipeline",
+    "file": "addon/anki_audio_quick_editor/audio_pause_pipeline.py",
+    "layer": "import_safe_core",
+    "summary": "Pause-removal orchestration for silencedetect and Silero VAD",
+    "imports": {
+      "anki": [],
+      "addon": [
+        "anki_audio_quick_editor.audio_artifacts",
+        "anki_audio_quick_editor.audio_commands",
+        "anki_audio_quick_editor.audio_external",
+        "anki_audio_quick_editor.audio_pause_pipeline_stage",
+        "anki_audio_quick_editor.audio_pause_pipeline_steps",
+        "anki_audio_quick_editor.audio_state",
+        "anki_audio_quick_editor.audio_tools",
+        "anki_audio_quick_editor.audio_types",
+        "anki_audio_quick_editor.support"
+      ],
+      "stdlib": [
+        "__future__",
+        "collections.abc",
+        "dataclasses",
+        "json",
+        "pathlib",
+        "typing"
+      ],
+      "third_party": []
+    }
+  },
+  {
+    "module": "anki_audio_quick_editor.audio_pause_pipeline_detection",
+    "file": "addon/anki_audio_quick_editor/audio_pause_pipeline_detection.py",
+    "layer": "import_safe_core",
+    "summary": "Detector input preparation and algorithm-specific pause interval detection",
+    "imports": {
+      "anki": [],
+      "addon": [
+        "anki_audio_quick_editor.audio_artifacts",
+        "anki_audio_quick_editor.audio_commands",
+        "anki_audio_quick_editor.audio_pause_pipeline_stage",
+        "anki_audio_quick_editor.audio_pause_settings",
+        "anki_audio_quick_editor.audio_pipeline",
+        "anki_audio_quick_editor.audio_state",
+        "anki_audio_quick_editor.errors"
+      ],
+      "stdlib": [
+        "__future__",
+        "collections.abc",
+        "json",
+        "pathlib"
+      ],
+      "third_party": []
+    }
+  },
+  {
+    "module": "anki_audio_quick_editor.audio_pause_pipeline_stage",
+    "file": "addon/anki_audio_quick_editor/audio_pause_pipeline_stage.py",
+    "layer": "import_safe_core",
+    "summary": "External stage execution for pause-removal pipelines",
+    "imports": {
+      "anki": [],
+      "addon": [
+        "anki_audio_quick_editor.audio_external",
+        "anki_audio_quick_editor.errors",
+        "anki_audio_quick_editor.support"
+      ],
+      "stdlib": [
+        "__future__",
+        "collections.abc",
+        "subprocess",
+        "time"
+      ],
+      "third_party": [
+        "shlex"
+      ]
+    }
+  },
+  {
+    "module": "anki_audio_quick_editor.audio_pause_pipeline_steps",
+    "file": "addon/anki_audio_quick_editor/audio_pause_pipeline_steps.py",
+    "layer": "import_safe_core",
+    "summary": "Pause-removal render planning and final output stages",
+    "imports": {
+      "anki": [],
+      "addon": [
+        "anki_audio_quick_editor.audio_artifacts",
+        "anki_audio_quick_editor.audio_commands",
+        "anki_audio_quick_editor.audio_external",
+        "anki_audio_quick_editor.audio_pause_pipeline_detection",
+        "anki_audio_quick_editor.audio_pause_pipeline_stage",
+        "anki_audio_quick_editor.audio_pause_settings",
+        "anki_audio_quick_editor.audio_pipeline",
+        "anki_audio_quick_editor.audio_state",
+        "anki_audio_quick_editor.audio_types"
+      ],
+      "stdlib": [
+        "__future__",
+        "collections.abc",
+        "json",
+        "pathlib",
+        "shutil"
+      ],
+      "third_party": []
+    }
+  },
+  {
+    "module": "anki_audio_quick_editor.audio_pause_settings",
+    "file": "addon/anki_audio_quick_editor/audio_pause_settings.py",
+    "layer": "import_safe_core",
+    "summary": "Pause detection preset and parameter helpers",
+    "imports": {
+      "anki": [],
+      "addon": [],
+      "stdlib": [
+        "__future__",
+        "dataclasses",
+        "typing"
+      ],
+      "third_party": []
+    }
+  },
+  {
+    "module": "anki_audio_quick_editor.audio_pipeline",
+    "file": "addon/anki_audio_quick_editor/audio_pipeline.py",
+    "layer": "import_safe_core",
+    "summary": "Import-safe planning helpers for staged audio render pipelines",
+    "imports": {
+      "anki": [],
+      "addon": [],
+      "stdlib": [
+        "__future__",
+        "dataclasses",
+        "pathlib",
+        "re",
+        "uuid"
+      ],
+      "third_party": [
+        "datetime"
+      ]
+    }
+  },
+  {
+    "module": "anki_audio_quick_editor.audio_pitch_hum",
+    "file": "addon/anki_audio_quick_editor/audio_pitch_hum.py",
+    "layer": "import_safe_core",
+    "summary": "Praat-guided pitch hum resynthesis",
+    "imports": {
+      "anki": [],
+      "addon": [
+        "anki_audio_quick_editor.audio_commands",
+        "anki_audio_quick_editor.audio_external",
+        "anki_audio_quick_editor.audio_output_policy",
+        "anki_audio_quick_editor.audio_pitch_hum_frames",
+        "anki_audio_quick_editor.audio_pitch_hum_synthesis",
+        "anki_audio_quick_editor.audio_state",
+        "anki_audio_quick_editor.audio_tools",
+        "anki_audio_quick_editor.audio_types",
+        "anki_audio_quick_editor.errors",
+        "anki_audio_quick_editor.external_command_text",
+        "anki_audio_quick_editor.permission_guidance",
+        "anki_audio_quick_editor.prosody_settings"
+      ],
+      "stdlib": [
+        "__future__",
+        "collections.abc",
+        "pathlib",
+        "subprocess",
+        "tempfile",
+        "typing"
+      ],
+      "third_party": [
+        "importlib",
+        "importlib.util",
+        "parselmouth",
+        "wave"
+      ]
+    }
+  },
+  {
+    "module": "anki_audio_quick_editor.audio_pitch_hum_frames",
+    "file": "addon/anki_audio_quick_editor/audio_pitch_hum_frames.py",
+    "layer": "import_safe_core",
+    "summary": "Pitch hum frame cleanup and lookup helpers",
+    "imports": {
+      "anki": [],
+      "addon": [],
+      "stdlib": [
+        "__future__",
+        "collections.abc",
+        "dataclasses"
+      ],
+      "third_party": []
+    }
+  },
+  {
+    "module": "anki_audio_quick_editor.audio_pitch_hum_synthesis",
+    "file": "addon/anki_audio_quick_editor/audio_pitch_hum_synthesis.py",
+    "layer": "import_safe_core",
+    "summary": "Pitch-hum PCM synthesis helpers",
+    "imports": {
+      "anki": [],
+      "addon": [
+        "anki_audio_quick_editor.audio_pitch_hum_frames"
+      ],
+      "stdlib": [
+        "__future__",
+        "math",
+        "typing"
+      ],
+      "third_party": [
+        "array"
+      ]
+    }
+  },
+  {
+    "module": "anki_audio_quick_editor.audio_processor",
+    "file": "addon/anki_audio_quick_editor/audio_processor.py",
+    "layer": "import_safe_core",
+    "summary": "Backward-compatible facade for audio processing APIs",
+    "imports": {
+      "anki": [],
+      "addon": [
+        "anki_audio_quick_editor.audio_commands",
+        "anki_audio_quick_editor.audio_deps",
+        "anki_audio_quick_editor.audio_external",
+        "anki_audio_quick_editor.audio_noise_reduction",
+        "anki_audio_quick_editor.audio_output_policy",
+        "anki_audio_quick_editor.audio_pause_pipeline",
+        "anki_audio_quick_editor.audio_pause_pipeline_stage",
+        "anki_audio_quick_editor.audio_pause_pipeline_steps",
+        "anki_audio_quick_editor.audio_pitch_hum",
+        "anki_audio_quick_editor.audio_processor_rendering_portal",
+        "anki_audio_quick_editor.audio_processor_runtime",
+        "anki_audio_quick_editor.audio_rendering",
+        "anki_audio_quick_editor.audio_state",
+        "anki_audio_quick_editor.audio_tools",
+        "anki_audio_quick_editor.audio_types"
+      ],
+      "stdlib": [
+        "__future__",
+        "collections.abc",
+        "pathlib",
+        "shutil",
+        "subprocess",
+        "tempfile",
+        "typing",
+        "uuid"
+      ],
+      "third_party": []
+    }
+  },
+  {
+    "module": "anki_audio_quick_editor.audio_processor_rendering_portal",
+    "file": "addon/anki_audio_quick_editor/audio_processor_rendering_portal.py",
+    "layer": "import_safe_core",
+    "summary": "Render and transform wrappers for the audio processor facade",
+    "imports": {
+      "anki": [],
+      "addon": [
+        "anki_audio_quick_editor.audio_state",
+        "anki_audio_quick_editor.audio_types"
+      ],
+      "stdlib": [
+        "__future__",
+        "collections.abc",
+        "pathlib",
+        "typing"
+      ],
+      "third_party": [
+        "datetime",
+        "importlib"
+      ]
+    }
+  },
+  {
+    "module": "anki_audio_quick_editor.audio_processor_runtime",
+    "file": "addon/anki_audio_quick_editor/audio_processor_runtime.py",
+    "layer": "import_safe_core",
+    "summary": "Dependency sync helpers for the audio processor facade",
+    "imports": {
+      "anki": [],
+      "addon": [
+        "anki_audio_quick_editor.audio_deps"
+      ],
+      "stdlib": [
+        "__future__",
+        "subprocess",
+        "typing"
+      ],
+      "third_party": []
+    }
+  },
+  {
+    "module": "anki_audio_quick_editor.audio_recording",
+    "file": "addon/anki_audio_quick_editor/audio_recording.py",
+    "layer": "ui_adapter",
+    "summary": "Import-safe voice recording adapter primitives",
+    "imports": {
+      "anki": [],
+      "addon": [
+        "anki_audio_quick_editor.errors"
+      ],
+      "stdlib": [
+        "__future__",
+        "dataclasses",
+        "pathlib",
+        "struct",
+        "time",
+        "typing"
+      ],
+      "third_party": [
+        "PyQt6.QtCore",
+        "PyQt6.QtMultimedia",
+        "importlib",
+        "platform",
+        "wave"
+      ]
+    }
+  },
+  {
+    "module": "anki_audio_quick_editor.audio_rendering",
+    "file": "addon/anki_audio_quick_editor/audio_rendering.py",
+    "layer": "import_safe_core",
+    "summary": "Audio render orchestration and output path helpers",
+    "imports": {
+      "anki": [],
+      "addon": [
+        "anki_audio_quick_editor.audio_commands",
+        "anki_audio_quick_editor.audio_external",
+        "anki_audio_quick_editor.audio_formats",
+        "anki_audio_quick_editor.audio_output_policy",
+        "anki_audio_quick_editor.audio_pause_pipeline",
+        "anki_audio_quick_editor.audio_size_reduction",
+        "anki_audio_quick_editor.audio_state",
+        "anki_audio_quick_editor.audio_tools",
+        "anki_audio_quick_editor.audio_types",
+        "anki_audio_quick_editor.errors",
+        "anki_audio_quick_editor.external_command_text",
+        "anki_audio_quick_editor.permission_guidance"
+      ],
+      "stdlib": [
+        "__future__",
+        "collections.abc",
+        "os",
+        "pathlib",
+        "subprocess",
+        "tempfile",
+        "uuid"
+      ],
+      "third_party": [
+        "datetime"
+      ]
+    }
+  },
+  {
+    "module": "anki_audio_quick_editor.audio_size_reduction",
+    "file": "addon/anki_audio_quick_editor/audio_size_reduction.py",
+    "layer": "import_safe_core",
+    "summary": "Source-aware audio size reduction planning",
+    "imports": {
+      "anki": [],
+      "addon": [
+        "anki_audio_quick_editor.errors"
+      ],
+      "stdlib": [
+        "__future__",
+        "dataclasses",
+        "typing"
+      ],
+      "third_party": []
+    }
+  },
+  {
+    "module": "anki_audio_quick_editor.audio_state",
+    "file": "addon/anki_audio_quick_editor/audio_state.py",
+    "layer": "import_safe_core",
+    "summary": "Typed audio edit state and configuration helpers",
+    "imports": {
+      "anki": [],
+      "addon": [
+        "anki_audio_quick_editor.audio_formats",
+        "anki_audio_quick_editor.audio_pause_settings",
+        "anki_audio_quick_editor.audio_size_reduction",
+        "anki_audio_quick_editor.dpdfnet_settings",
+        "anki_audio_quick_editor.editor_history_settings",
+        "anki_audio_quick_editor.errors",
+        "anki_audio_quick_editor.ffmpeg_defaults"
+      ],
+      "stdlib": [
+        "__future__",
+        "dataclasses"
+      ],
+      "third_party": []
+    }
+  },
+  {
+    "module": "anki_audio_quick_editor.audio_tools",
+    "file": "addon/anki_audio_quick_editor/audio_tools.py",
+    "layer": "import_safe_core",
+    "summary": "Executable and bundled audio tool discovery",
+    "imports": {
+      "anki": [],
+      "addon": [
+        "anki_audio_quick_editor.error_codes",
+        "anki_audio_quick_editor.errors",
+        "anki_audio_quick_editor.runtime_manager"
+      ],
+      "stdlib": [
+        "__future__",
+        "collections.abc",
+        "pathlib",
+        "shutil"
+      ],
+      "third_party": [
+        "platform"
+      ]
+    }
+  },
+  {
+    "module": "anki_audio_quick_editor.audio_types",
+    "file": "addon/anki_audio_quick_editor/audio_types.py",
+    "layer": "import_safe_core",
+    "summary": "Shared audio processing result types",
+    "imports": {
+      "anki": [],
+      "addon": [],
+      "stdlib": [
+        "__future__",
+        "dataclasses",
+        "pathlib"
+      ],
+      "third_party": []
+    }
+  },
+  {
+    "module": "anki_audio_quick_editor.batch_operation_processing",
+    "file": "addon/anki_audio_quick_editor/batch_operation_processing.py",
+    "layer": "import_safe_core",
+    "summary": "Graph and transform processors for Browser batch operations",
+    "imports": {
+      "anki": [],
+      "addon": [
+        "anki_audio_quick_editor.audio_formats",
+        "anki_audio_quick_editor.audio_operation_params",
+        "anki_audio_quick_editor.audio_operations",
+        "anki_audio_quick_editor.audio_processor",
+        "anki_audio_quick_editor.audio_state",
+        "anki_audio_quick_editor.batch_operation_types",
+        "anki_audio_quick_editor.diagnostics_runtime",
+        "anki_audio_quick_editor.error_codes",
+        "anki_audio_quick_editor.errors",
+        "anki_audio_quick_editor.permission_guidance",
+        "anki_audio_quick_editor.prosody_svg",
+        "anki_audio_quick_editor.sound_refs"
+      ],
+      "stdlib": [
+        "__future__",
+        "collections.abc",
+        "dataclasses",
+        "logging",
+        "pathlib",
+        "shutil",
+        "typing"
+      ],
+      "third_party": [
+        "datetime"
+      ]
+    }
+  },
+  {
+    "module": "anki_audio_quick_editor.batch_operation_types",
+    "file": "addon/anki_audio_quick_editor/batch_operation_types.py",
+    "layer": "import_safe_core",
+    "summary": "Import-safe batch operation data contracts",
+    "imports": {
+      "anki": [],
+      "addon": [
+        "anki_audio_quick_editor.audio_operation_params",
+        "anki_audio_quick_editor.audio_operations"
+      ],
+      "stdlib": [
+        "__future__",
+        "dataclasses"
+      ],
+      "third_party": []
+    }
+  },
+  {
+    "module": "anki_audio_quick_editor.batch_operations",
+    "file": "addon/anki_audio_quick_editor/batch_operations.py",
+    "layer": "import_safe_core",
+    "summary": "Import-safe batch operation planning and per-note execution",
+    "imports": {
+      "anki": [],
+      "addon": [
+        "anki_audio_quick_editor.audio_operations",
+        "anki_audio_quick_editor.audio_processor",
+        "anki_audio_quick_editor.audio_state",
+        "anki_audio_quick_editor.batch_operation_processing",
+        "anki_audio_quick_editor.batch_operation_types",
+        "anki_audio_quick_editor.batch_operations_helpers",
+        "anki_audio_quick_editor.diagnostics_runtime",
+        "anki_audio_quick_editor.error_codes",
+        "anki_audio_quick_editor.errors",
+        "anki_audio_quick_editor.media_paths",
+        "anki_audio_quick_editor.prosody_cache",
+        "anki_audio_quick_editor.sound_refs"
+      ],
+      "stdlib": [
+        "__future__",
+        "collections.abc",
+        "logging",
+        "pathlib"
+      ],
+      "third_party": [
+        "datetime",
+        "html"
+      ]
+    }
+  },
+  {
+    "module": "anki_audio_quick_editor.batch_operations_helpers",
+    "file": "addon/anki_audio_quick_editor/batch_operations_helpers.py",
+    "layer": "import_safe_core",
+    "summary": "Small helpers for batch operation orchestration",
+    "imports": {
+      "anki": [],
+      "addon": [
+        "anki_audio_quick_editor.audio_processor",
+        "anki_audio_quick_editor.audio_state",
+        "anki_audio_quick_editor.audio_types",
+        "anki_audio_quick_editor.batch_operation_types"
+      ],
+      "stdlib": [
+        "__future__",
+        "collections.abc",
+        "pathlib"
+      ],
+      "third_party": []
+    }
+  },
+  {
+    "module": "anki_audio_quick_editor.browser_batch_runner",
+    "file": "addon/anki_audio_quick_editor/browser_batch_runner.py",
+    "layer": "ui_adapter",
+    "summary": "Browser batch operation execution and persistence",
+    "imports": {
+      "anki": [
+        "aqt"
+      ],
+      "addon": [
+        "anki_audio_quick_editor.audio_state",
+        "anki_audio_quick_editor.batch_operations",
+        "anki_audio_quick_editor.browser_report",
+        "anki_audio_quick_editor.diagnostics_runtime",
+        "anki_audio_quick_editor.error_codes",
+        "anki_audio_quick_editor.i18n"
+      ],
+      "stdlib": [
+        "__future__",
+        "logging",
+        "pathlib",
+        "threading",
+        "typing"
+      ],
+      "third_party": []
+    }
+  },
+  {
+    "module": "anki_audio_quick_editor.browser_dialog",
+    "file": "addon/anki_audio_quick_editor/browser_dialog.py",
+    "layer": "ui_adapter",
+    "summary": "WebView dialog for Browser batch audio operations",
+    "imports": {
+      "anki": [
+        "aqt.qt",
+        "aqt.webview"
+      ],
+      "addon": [
+        "anki_audio_quick_editor.audio_operations",
+        "anki_audio_quick_editor.batch_operations",
+        "anki_audio_quick_editor.browser_dialog_state",
+        "anki_audio_quick_editor.browser_report",
+        "anki_audio_quick_editor.error_codes",
+        "anki_audio_quick_editor.external_links",
+        "anki_audio_quick_editor.frontend_logs",
+        "anki_audio_quick_editor.i18n",
+        "anki_audio_quick_editor.webview_bridge",
+        "anki_audio_quick_editor.webview_shell"
+      ],
+      "stdlib": [
+        "__future__",
+        "collections.abc",
+        "json",
+        "logging",
+        "pathlib",
+        "threading",
+        "typing"
+      ],
+      "third_party": []
+    }
+  },
+  {
+    "module": "anki_audio_quick_editor.browser_dialog_state",
+    "file": "addon/anki_audio_quick_editor/browser_dialog_state.py",
+    "layer": "import_safe_core",
+    "summary": "Import-safe state and contract helpers for the Browser batch dialog",
+    "imports": {
+      "anki": [],
+      "addon": [
+        "anki_audio_quick_editor.audio_operation_params",
+        "anki_audio_quick_editor.audio_operations",
+        "anki_audio_quick_editor.audio_state",
+        "anki_audio_quick_editor.batch_operations",
+        "anki_audio_quick_editor.browser_report",
+        "anki_audio_quick_editor.contracts_generated",
+        "anki_audio_quick_editor.i18n"
+      ],
+      "stdlib": [
+        "__future__",
+        "typing"
+      ],
+      "third_party": []
+    }
+  },
+  {
+    "module": "anki_audio_quick_editor.browser_integration",
+    "file": "addon/anki_audio_quick_editor/browser_integration.py",
+    "layer": "ui_adapter",
+    "summary": "Browser menu integration for batch audio operations",
+    "imports": {
+      "anki": [
+        "aqt.qt",
+        "aqt.utils"
+      ],
+      "addon": [
+        "anki_audio_quick_editor.audio_state",
+        "anki_audio_quick_editor.batch_operations",
+        "anki_audio_quick_editor.browser_batch_runner",
+        "anki_audio_quick_editor.browser_dialog",
+        "anki_audio_quick_editor.diagnostics_runtime",
+        "anki_audio_quick_editor.i18n"
+      ],
+      "stdlib": [
+        "__future__",
+        "logging",
+        "typing"
+      ],
+      "third_party": []
+    }
+  },
+  {
+    "module": "anki_audio_quick_editor.browser_report",
+    "file": "addon/anki_audio_quick_editor/browser_report.py",
+    "layer": "import_safe_core",
+    "summary": "Browser batch report formatting",
+    "imports": {
+      "anki": [],
+      "addon": [
+        "anki_audio_quick_editor.batch_operations",
+        "anki_audio_quick_editor.i18n"
+      ],
+      "stdlib": [
+        "__future__",
+        "dataclasses",
+        "typing"
+      ],
+      "third_party": []
+    }
+  },
+  {
+    "module": "anki_audio_quick_editor.config_migration",
+    "file": "addon/anki_audio_quick_editor/config_migration.py",
+    "layer": "import_safe_core",
+    "summary": "Config migration helpers for Anki Audio Quick Editor",
+    "imports": {
+      "anki": [],
+      "addon": [
+        "anki_audio_quick_editor.audio_formats",
+        "anki_audio_quick_editor.audio_size_reduction",
+        "anki_audio_quick_editor.dpdfnet_settings",
+        "anki_audio_quick_editor.editor_button_visibility",
+        "anki_audio_quick_editor.editor_history_settings"
+      ],
+      "stdlib": [
+        "__future__",
+        "copy",
+        "typing"
+      ],
+      "third_party": []
+    }
+  },
+  {
+    "module": "anki_audio_quick_editor.contracts_generated",
+    "file": "addon/anki_audio_quick_editor/contracts_generated.py",
+    "layer": "import_safe_core",
+    "summary": "Generated JSON communication contracts. Do not edit by hand",
+    "imports": {
+      "anki": [],
+      "addon": [],
+      "stdlib": [
+        "dataclasses",
+        "enum",
+        "typing"
+      ],
+      "third_party": []
+    }
+  },
+  {
+    "module": "anki_audio_quick_editor.db_helpers",
+    "file": "addon/anki_audio_quick_editor/db_helpers.py",
+    "layer": "import_safe_core",
+    "summary": "Import-safe helpers for collection-backed diagnostics",
+    "imports": {
+      "anki": [],
+      "addon": [],
+      "stdlib": [
+        "__future__",
+        "typing"
+      ],
+      "third_party": []
+    }
+  },
+  {
+    "module": "anki_audio_quick_editor.diagnostics",
+    "file": "addon/anki_audio_quick_editor/diagnostics.py",
+    "layer": "import_safe_core",
+    "summary": "Import-safe runtime diagnostic helpers",
+    "imports": {
+      "anki": [],
+      "addon": [
+        "anki_audio_quick_editor.audio_processor",
+        "anki_audio_quick_editor.audio_tools",
+        "anki_audio_quick_editor.error_codes",
+        "anki_audio_quick_editor.external_command_text",
+        "anki_audio_quick_editor.permission_guidance",
+        "anki_audio_quick_editor.runtime_manager"
+      ],
+      "stdlib": [
+        "__future__",
+        "collections.abc",
+        "pathlib",
+        "subprocess",
+        "typing"
+      ],
+      "third_party": []
+    }
+  },
+  {
+    "module": "anki_audio_quick_editor.diagnostics_runtime",
+    "file": "addon/anki_audio_quick_editor/diagnostics_runtime.py",
+    "layer": "import_safe_core",
+    "summary": "Runtime diagnostics, breadcrumbs, and exception-boundary helpers",
+    "imports": {
+      "anki": [],
+      "addon": [
+        "anki_audio_quick_editor.diagnostics_runtime_json",
+        "anki_audio_quick_editor.diagnostics_runtime_storage"
+      ],
+      "stdlib": [
+        "__future__",
+        "collections",
+        "collections.abc",
+        "copy",
+        "logging",
+        "pathlib",
+        "sys",
+        "threading",
+        "typing",
+        "uuid"
+      ],
+      "third_party": [
+        "atexit",
+        "datetime",
+        "faulthandler",
+        "traceback"
+      ]
+    }
+  },
+  {
+    "module": "anki_audio_quick_editor.diagnostics_runtime_json",
+    "file": "addon/anki_audio_quick_editor/diagnostics_runtime_json.py",
+    "layer": "import_safe_core",
+    "summary": "JSON-safe diagnostics rendering helpers",
+    "imports": {
+      "anki": [],
+      "addon": [],
+      "stdlib": [
+        "__future__",
+        "pathlib",
+        "typing"
+      ],
+      "third_party": []
+    }
+  },
+  {
+    "module": "anki_audio_quick_editor.diagnostics_runtime_storage",
+    "file": "addon/anki_audio_quick_editor/diagnostics_runtime_storage.py",
+    "layer": "import_safe_core",
+    "summary": "Stateful diagnostics runtime helpers",
+    "imports": {
+      "anki": [],
+      "addon": [
+        "anki_audio_quick_editor.diagnostics_runtime_json"
+      ],
+      "stdlib": [
+        "__future__",
+        "collections",
+        "json",
+        "logging",
+        "os",
+        "pathlib",
+        "sys",
+        "threading",
+        "typing"
+      ],
+      "third_party": [
+        "faulthandler",
+        "types"
+      ]
+    }
+  },
+  {
+    "module": "anki_audio_quick_editor.dpdfnet_settings",
+    "file": "addon/anki_audio_quick_editor/dpdfnet_settings.py",
+    "layer": "import_safe_core",
+    "summary": "Shared DPDFNet aggressiveness settings",
+    "imports": {
+      "anki": [],
+      "addon": [],
+      "stdlib": [
+        "__future__",
+        "math",
+        "typing"
+      ],
+      "third_party": []
+    }
+  },
+  {
+    "module": "anki_audio_quick_editor.editor_actions",
+    "file": "addon/anki_audio_quick_editor/editor_actions.py",
+    "layer": "import_safe_core",
+    "summary": "Import-safe editor bridge commands and shared operation mapping",
+    "imports": {
+      "anki": [],
+      "addon": [
+        "anki_audio_quick_editor.audio_operation_params",
+        "anki_audio_quick_editor.audio_operations",
+        "anki_audio_quick_editor.audio_state",
+        "anki_audio_quick_editor.external_links"
+      ],
+      "stdlib": [
+        "__future__",
+        "dataclasses",
+        "json",
+        "typing"
+      ],
+      "third_party": []
+    }
+  },
+  {
+    "module": "anki_audio_quick_editor.editor_analysis",
+    "file": "addon/anki_audio_quick_editor/editor_analysis.py",
+    "layer": "ui_adapter",
+    "summary": "Prosody analysis behavior for the editor bridge",
+    "imports": {
+      "anki": [],
+      "addon": [
+        "anki_audio_quick_editor.audio_state",
+        "anki_audio_quick_editor.contracts_generated",
+        "anki_audio_quick_editor.diagnostics_runtime",
+        "anki_audio_quick_editor.editor_session",
+        "anki_audio_quick_editor.error_codes",
+        "anki_audio_quick_editor.errors",
+        "anki_audio_quick_editor.i18n",
+        "anki_audio_quick_editor.media_paths",
+        "anki_audio_quick_editor.permission_guidance",
+        "anki_audio_quick_editor.prosody_settings",
+        "anki_audio_quick_editor.prosody_types",
+        "anki_audio_quick_editor.sound_refs"
+      ],
+      "stdlib": [
+        "__future__",
+        "dataclasses",
+        "json",
+        "pathlib",
+        "typing"
+      ],
+      "third_party": []
+    }
+  },
+  {
+    "module": "anki_audio_quick_editor.editor_bridge",
+    "file": "addon/anki_audio_quick_editor/editor_bridge.py",
+    "layer": "ui_adapter",
+    "summary": "Bridge command decoding and dispatch for the editor UI",
+    "imports": {
+      "anki": [],
+      "addon": [
+        "anki_audio_quick_editor.diagnostics_runtime",
+        "anki_audio_quick_editor.editor_actions",
+        "anki_audio_quick_editor.error_codes",
+        "anki_audio_quick_editor.errors",
+        "anki_audio_quick_editor.frontend_logs",
+        "anki_audio_quick_editor.i18n"
+      ],
+      "stdlib": [
+        "__future__",
+        "json",
+        "logging",
+        "typing"
+      ],
+      "third_party": []
+    }
+  },
+  {
+    "module": "anki_audio_quick_editor.editor_button_visibility",
+    "file": "addon/anki_audio_quick_editor/editor_button_visibility.py",
+    "layer": "import_safe_core",
+    "summary": "Editor toolbar visibility normalization helpers",
+    "imports": {
+      "anki": [],
+      "addon": [],
+      "stdlib": [
+        "__future__",
+        "typing"
+      ],
+      "third_party": []
+    }
+  },
+  {
+    "module": "anki_audio_quick_editor.editor_callbacks",
+    "file": "addon/anki_audio_quick_editor/editor_callbacks.py",
+    "layer": "ui_adapter",
+    "summary": "Callback wrappers published by the editor integration facade",
+    "imports": {
+      "anki": [],
+      "addon": [
+        "anki_audio_quick_editor.editor_analysis",
+        "anki_audio_quick_editor.editor_bridge",
+        "anki_audio_quick_editor.editor_dependencies",
+        "anki_audio_quick_editor.editor_deps_protocols",
+        "anki_audio_quick_editor.editor_frontend_callbacks",
+        "anki_audio_quick_editor.editor_history",
+        "anki_audio_quick_editor.editor_persistent_undo",
+        "anki_audio_quick_editor.editor_playback",
+        "anki_audio_quick_editor.editor_processing",
+        "anki_audio_quick_editor.editor_recording",
+        "anki_audio_quick_editor.editor_region_delete",
+        "anki_audio_quick_editor.editor_runtime",
+        "anki_audio_quick_editor.editor_settings_actions",
+        "anki_audio_quick_editor.editor_sharing",
+        "anki_audio_quick_editor.editor_source_metadata",
+        "anki_audio_quick_editor.editor_split_defaults"
+      ],
+      "stdlib": [
+        "__future__",
+        "functools",
+        "typing"
+      ],
+      "third_party": [
+        "types"
+      ]
+    }
+  },
+  {
+    "module": "anki_audio_quick_editor.editor_conversion",
+    "file": "addon/anki_audio_quick_editor/editor_conversion.py",
+    "layer": "ui_adapter",
+    "summary": "Format conversion behavior for the editor bridge",
+    "imports": {
+      "anki": [],
+      "addon": [
+        "anki_audio_quick_editor.audio_formats",
+        "anki_audio_quick_editor.audio_state",
+        "anki_audio_quick_editor.editor_actions",
+        "anki_audio_quick_editor.editor_session",
+        "anki_audio_quick_editor.i18n"
+      ],
+      "stdlib": [
+        "__future__",
+        "pathlib",
+        "typing"
+      ],
+      "third_party": []
+    }
+  },
+  {
+    "module": "anki_audio_quick_editor.editor_dependencies",
+    "file": "addon/anki_audio_quick_editor/editor_dependencies.py",
+    "layer": "ui_adapter",
+    "summary": "Dependency namespace builders for editor callback modules",
+    "imports": {
+      "anki": [],
+      "addon": [
+        "anki_audio_quick_editor.audio_processor",
+        "anki_audio_quick_editor.audio_recording",
+        "anki_audio_quick_editor.editor_deps_protocols",
+        "anki_audio_quick_editor.editor_media",
+        "anki_audio_quick_editor.editor_runtime",
+        "anki_audio_quick_editor.file_sharing",
+        "anki_audio_quick_editor.i18n",
+        "anki_audio_quick_editor.prosody_cache",
+        "anki_audio_quick_editor.support"
+      ],
+      "stdlib": [
+        "__future__",
+        "logging",
+        "threading",
+        "typing"
+      ],
+      "third_party": [
+        "types"
+      ]
+    }
+  },
+  {
+    "module": "anki_audio_quick_editor.editor_deps_protocols",
+    "file": "addon/anki_audio_quick_editor/editor_deps_protocols.py",
+    "layer": "import_safe_core",
+    "summary": "Typed dependency contracts for editor workflow modules",
+    "imports": {
+      "anki": [],
+      "addon": [],
+      "stdlib": [
+        "__future__",
+        "collections.abc",
+        "pathlib",
+        "typing"
+      ],
+      "third_party": []
+    }
+  },
+  {
+    "module": "anki_audio_quick_editor.editor_frontend",
+    "file": "addon/anki_audio_quick_editor/editor_frontend/__init__.py",
+    "layer": "ui_adapter",
+    "summary": "Webview evaluation helpers for the editor frontend",
+    "imports": {
+      "anki": [],
+      "addon": [
+        "anki_audio_quick_editor.editor_frontend.bridge",
+        "anki_audio_quick_editor.editor_frontend.busy",
+        "anki_audio_quick_editor.editor_frontend.playback",
+        "anki_audio_quick_editor.editor_frontend.refresh",
+        "anki_audio_quick_editor.editor_frontend.status",
+        "anki_audio_quick_editor.editor_frontend.types"
+      ],
+      "stdlib": [
+        "__future__"
+      ],
+      "third_party": []
+    }
+  },
+  {
+    "module": "anki_audio_quick_editor.editor_frontend.bridge",
+    "file": "addon/anki_audio_quick_editor/editor_frontend/bridge.py",
+    "layer": "ui_adapter",
+    "summary": "Low-level editor webview bridge helpers",
+    "imports": {
+      "anki": [],
+      "addon": [],
+      "stdlib": [
+        "__future__",
+        "typing"
+      ],
+      "third_party": []
+    }
+  },
+  {
+    "module": "anki_audio_quick_editor.editor_frontend.busy",
+    "file": "addon/anki_audio_quick_editor/editor_frontend/busy.py",
+    "layer": "ui_adapter",
+    "summary": "Editor frontend busy-state helpers",
+    "imports": {
+      "anki": [],
+      "addon": [],
+      "stdlib": [
+        "__future__",
+        "json",
+        "typing"
+      ],
+      "third_party": []
+    }
+  },
+  {
+    "module": "anki_audio_quick_editor.editor_frontend.playback",
+    "file": "addon/anki_audio_quick_editor/editor_frontend/playback.py",
+    "layer": "ui_adapter",
+    "summary": "Editor frontend playback state and post-edit playback helpers",
+    "imports": {
+      "anki": [],
+      "addon": [],
+      "stdlib": [
+        "__future__",
+        "json",
+        "logging",
+        "typing"
+      ],
+      "third_party": []
+    }
+  },
+  {
+    "module": "anki_audio_quick_editor.editor_frontend.refresh",
+    "file": "addon/anki_audio_quick_editor/editor_frontend/refresh.py",
+    "layer": "ui_adapter",
+    "summary": "Editor frontend graph redraw and history availability refresh helpers",
+    "imports": {
+      "anki": [
+        "aqt.qt"
+      ],
+      "addon": [],
+      "stdlib": [
+        "__future__",
+        "json",
+        "typing"
+      ],
+      "third_party": []
+    }
+  },
+  {
+    "module": "anki_audio_quick_editor.editor_frontend.status",
+    "file": "addon/anki_audio_quick_editor/editor_frontend/status.py",
+    "layer": "ui_adapter",
+    "summary": "Status and basic webview state evaluation helpers",
+    "imports": {
+      "anki": [],
+      "addon": [
+        "anki_audio_quick_editor.editor_frontend.types",
+        "anki_audio_quick_editor.error_codes"
+      ],
+      "stdlib": [
+        "__future__",
+        "json",
+        "logging",
+        "typing"
+      ],
+      "third_party": []
+    }
+  },
+  {
+    "module": "anki_audio_quick_editor.editor_frontend.types",
+    "file": "addon/anki_audio_quick_editor/editor_frontend/types.py",
+    "layer": "ui_adapter",
+    "summary": "Shared editor frontend types",
+    "imports": {
+      "anki": [],
+      "addon": [],
+      "stdlib": [
+        "__future__"
+      ],
+      "third_party": []
+    }
+  },
+  {
+    "module": "anki_audio_quick_editor.editor_frontend_callbacks",
+    "file": "addon/anki_audio_quick_editor/editor_frontend_callbacks.py",
+    "layer": "ui_adapter",
+    "summary": "Frontend callback wrappers shared by editor modules",
+    "imports": {
+      "anki": [],
+      "addon": [
+        "anki_audio_quick_editor.editor_dependencies",
+        "anki_audio_quick_editor.editor_frontend",
+        "anki_audio_quick_editor.editor_recording_frontend"
+      ],
+      "stdlib": [
+        "__future__",
+        "typing"
+      ],
+      "third_party": [
+        "types"
+      ]
+    }
+  },
+  {
+    "module": "anki_audio_quick_editor.editor_history",
+    "file": "addon/anki_audio_quick_editor/editor_history.py",
+    "layer": "ui_adapter",
+    "summary": "Undo and redo behavior for editor audio edits",
+    "imports": {
+      "anki": [],
+      "addon": [
+        "anki_audio_quick_editor.editor_history_settings",
+        "anki_audio_quick_editor.editor_history_snapshot",
+        "anki_audio_quick_editor.editor_reload_status",
+        "anki_audio_quick_editor.editor_session",
+        "anki_audio_quick_editor.editor_status",
+        "anki_audio_quick_editor.errors",
+        "anki_audio_quick_editor.i18n",
+        "anki_audio_quick_editor.media_paths",
+        "anki_audio_quick_editor.sound_refs"
+      ],
+      "stdlib": [
+        "__future__",
+        "pathlib",
+        "typing"
+      ],
+      "third_party": []
+    }
+  },
+  {
+    "module": "anki_audio_quick_editor.editor_history_settings",
+    "file": "addon/anki_audio_quick_editor/editor_history_settings.py",
+    "layer": "import_safe_core",
+    "summary": "Shared editor history size limits and normalization",
+    "imports": {
+      "anki": [],
+      "addon": [],
+      "stdlib": [
+        "__future__"
+      ],
+      "third_party": []
+    }
+  },
+  {
+    "module": "anki_audio_quick_editor.editor_history_snapshot",
+    "file": "addon/anki_audio_quick_editor/editor_history_snapshot.py",
+    "layer": "ui_adapter",
+    "summary": "Build editor undo/redo history snapshots for frontend controls",
+    "imports": {
+      "anki": [],
+      "addon": [
+        "anki_audio_quick_editor.editor_history_settings",
+        "anki_audio_quick_editor.editor_session",
+        "anki_audio_quick_editor.i18n"
+      ],
+      "stdlib": [
+        "__future__",
+        "collections.abc",
+        "typing"
+      ],
+      "third_party": []
+    }
+  },
+  {
+    "module": "anki_audio_quick_editor.editor_integration",
+    "file": "addon/anki_audio_quick_editor/editor_integration.py",
+    "layer": "ui_adapter",
+    "summary": "Anki editor hook registration adapter",
+    "imports": {
+      "anki": [],
+      "addon": [
+        "anki_audio_quick_editor.editor_actions",
+        "anki_audio_quick_editor.editor_callbacks",
+        "anki_audio_quick_editor.editor_runtime",
+        "anki_audio_quick_editor.editor_session",
+        "anki_audio_quick_editor.editor_webview_injection"
+      ],
+      "stdlib": [
+        "__future__",
+        "typing"
+      ],
+      "third_party": []
+    }
+  },
+  {
+    "module": "anki_audio_quick_editor.editor_media",
+    "file": "addon/anki_audio_quick_editor/editor_media.py",
+    "layer": "import_safe_core",
+    "summary": "Media and field resolution helpers for the editor bridge",
+    "imports": {
+      "anki": [],
+      "addon": [
+        "anki_audio_quick_editor.editor_session",
+        "anki_audio_quick_editor.errors",
+        "anki_audio_quick_editor.i18n",
+        "anki_audio_quick_editor.media_paths",
+        "anki_audio_quick_editor.sound_refs"
+      ],
+      "stdlib": [
+        "__future__",
+        "pathlib",
+        "typing"
+      ],
+      "third_party": []
+    }
+  },
+  {
+    "module": "anki_audio_quick_editor.editor_media_replacement",
+    "file": "addon/anki_audio_quick_editor/editor_media_replacement.py",
+    "layer": "import_safe_core",
+    "summary": "Shared primitives for editor media replacement workflows",
+    "imports": {
+      "anki": [],
+      "addon": [
+        "anki_audio_quick_editor.errors",
+        "anki_audio_quick_editor.media_paths",
+        "anki_audio_quick_editor.sound_refs"
+      ],
+      "stdlib": [
+        "__future__",
+        "pathlib",
+        "typing"
+      ],
+      "third_party": []
+    }
+  },
+  {
+    "module": "anki_audio_quick_editor.editor_persistent_undo",
+    "file": "addon/anki_audio_quick_editor/editor_persistent_undo.py",
+    "layer": "ui_adapter",
+    "summary": "Editor-facing persistent undo helpers",
+    "imports": {
+      "anki": [],
+      "addon": [
+        "anki_audio_quick_editor.audio_state",
+        "anki_audio_quick_editor.editor_reload_status",
+        "anki_audio_quick_editor.editor_session",
+        "anki_audio_quick_editor.editor_status",
+        "anki_audio_quick_editor.error_codes",
+        "anki_audio_quick_editor.errors",
+        "anki_audio_quick_editor.i18n",
+        "anki_audio_quick_editor.media_paths",
+        "anki_audio_quick_editor.persistent_history",
+        "anki_audio_quick_editor.runtime_paths",
+        "anki_audio_quick_editor.sound_refs"
+      ],
+      "stdlib": [
+        "__future__",
+        "hashlib",
+        "logging",
+        "pathlib",
+        "time",
+        "typing"
+      ],
+      "third_party": []
+    }
+  },
+  {
+    "module": "anki_audio_quick_editor.editor_playback",
+    "file": "addon/anki_audio_quick_editor/editor_playback.py",
+    "layer": "ui_adapter",
+    "summary": "Playback behavior for the editor bridge",
+    "imports": {
+      "anki": [
+        "anki.sound",
+        "aqt.sound"
+      ],
+      "addon": [
+        "anki_audio_quick_editor.audio_state",
+        "anki_audio_quick_editor.diagnostics_runtime",
+        "anki_audio_quick_editor.editor_playback_bounds",
+        "anki_audio_quick_editor.editor_playback_request",
+        "anki_audio_quick_editor.editor_session",
+        "anki_audio_quick_editor.error_codes",
+        "anki_audio_quick_editor.errors",
+        "anki_audio_quick_editor.i18n",
+        "anki_audio_quick_editor.media_paths",
+        "anki_audio_quick_editor.permission_guidance",
+        "anki_audio_quick_editor.prosody_types"
+      ],
+      "stdlib": [
+        "__future__",
+        "logging",
+        "pathlib",
+        "shutil",
+        "typing"
+      ],
+      "third_party": []
+    }
+  },
+  {
+    "module": "anki_audio_quick_editor.editor_playback_bounds",
+    "file": "addon/anki_audio_quick_editor/editor_playback_bounds.py",
+    "layer": "import_safe_core",
+    "summary": "Cursor and selection bounds for editor playback requests",
+    "imports": {
+      "anki": [],
+      "addon": [
+        "anki_audio_quick_editor.prosody_types"
+      ],
+      "stdlib": [
+        "__future__",
+        "typing"
+      ],
+      "third_party": []
+    }
+  },
+  {
+    "module": "anki_audio_quick_editor.editor_playback_request",
+    "file": "addon/anki_audio_quick_editor/editor_playback_request.py",
+    "layer": "ui_adapter",
+    "summary": "Playback request normalization and frontend-owned playback state updates",
+    "imports": {
+      "anki": [
+        "aqt.sound"
+      ],
+      "addon": [
+        "anki_audio_quick_editor.editor_playback_bounds",
+        "anki_audio_quick_editor.editor_session",
+        "anki_audio_quick_editor.i18n",
+        "anki_audio_quick_editor.prosody_types"
+      ],
+      "stdlib": [
+        "__future__",
+        "logging",
+        "typing"
+      ],
+      "third_party": []
+    }
+  },
+  {
+    "module": "anki_audio_quick_editor.editor_processing",
+    "file": "addon/anki_audio_quick_editor/editor_processing.py",
+    "layer": "ui_adapter",
+    "summary": "Audio processing and denoise behavior for the editor bridge",
+    "imports": {
+      "anki": [],
+      "addon": [
+        "anki_audio_quick_editor.audio_state",
+        "anki_audio_quick_editor.diagnostics_runtime",
+        "anki_audio_quick_editor.editor_actions",
+        "anki_audio_quick_editor.editor_conversion",
+        "anki_audio_quick_editor.editor_media_replacement",
+        "anki_audio_quick_editor.editor_processing_shared",
+        "anki_audio_quick_editor.editor_reload_status",
+        "anki_audio_quick_editor.editor_session",
+        "anki_audio_quick_editor.editor_special_transforms",
+        "anki_audio_quick_editor.editor_status",
+        "anki_audio_quick_editor.error_codes",
+        "anki_audio_quick_editor.i18n",
+        "anki_audio_quick_editor.permission_guidance"
+      ],
+      "stdlib": [
+        "__future__",
+        "logging",
+        "pathlib",
+        "shutil",
+        "typing"
+      ],
+      "third_party": []
+    }
+  },
+  {
+    "module": "anki_audio_quick_editor.editor_processing_shared",
+    "file": "addon/anki_audio_quick_editor/editor_processing_shared.py",
+    "layer": "import_safe_core",
+    "summary": "Shared editor-processing helpers",
+    "imports": {
+      "anki": [],
+      "addon": [
+        "anki_audio_quick_editor.editor_session"
+      ],
+      "stdlib": [
+        "__future__",
+        "typing"
+      ],
+      "third_party": []
+    }
+  },
+  {
+    "module": "anki_audio_quick_editor.editor_recording",
+    "file": "addon/anki_audio_quick_editor/editor_recording.py",
+    "layer": "ui_adapter",
+    "summary": "Learner voice recording lifecycle for the editor bridge",
+    "imports": {
+      "anki": [
+        "anki.sound",
+        "aqt.qt",
+        "aqt.sound"
+      ],
+      "addon": [
+        "anki_audio_quick_editor.audio_recording",
+        "anki_audio_quick_editor.audio_state",
+        "anki_audio_quick_editor.diagnostics_runtime",
+        "anki_audio_quick_editor.editor_recording_analysis",
+        "anki_audio_quick_editor.editor_recording_frontend",
+        "anki_audio_quick_editor.editor_recording_requests",
+        "anki_audio_quick_editor.editor_session",
+        "anki_audio_quick_editor.error_codes",
+        "anki_audio_quick_editor.errors",
+        "anki_audio_quick_editor.i18n",
+        "anki_audio_quick_editor.permission_guidance",
+        "anki_audio_quick_editor.prosody_settings"
+      ],
+      "stdlib": [
+        "__future__",
+        "dataclasses",
+        "logging",
+        "pathlib",
+        "shutil",
+        "time",
+        "typing"
+      ],
+      "third_party": []
+    }
+  },
+  {
+    "module": "anki_audio_quick_editor.editor_recording_analysis",
+    "file": "addon/anki_audio_quick_editor/editor_recording_analysis.py",
+    "layer": "ui_adapter",
+    "summary": "Learner recording analysis result application helpers",
+    "imports": {
+      "anki": [],
+      "addon": [
+        "anki_audio_quick_editor.editor_recording_frontend",
+        "anki_audio_quick_editor.editor_recording_requests",
+        "anki_audio_quick_editor.editor_session",
+        "anki_audio_quick_editor.error_codes",
+        "anki_audio_quick_editor.prosody_types"
+      ],
+      "stdlib": [
+        "__future__",
+        "dataclasses",
+        "typing"
+      ],
+      "third_party": []
+    }
+  },
+  {
+    "module": "anki_audio_quick_editor.editor_recording_frontend",
+    "file": "addon/anki_audio_quick_editor/editor_recording_frontend.py",
+    "layer": "ui_adapter",
+    "summary": "Frontend publication helpers for learner recording state",
+    "imports": {
+      "anki": [],
+      "addon": [
+        "anki_audio_quick_editor.contracts_generated",
+        "anki_audio_quick_editor.editor_session",
+        "anki_audio_quick_editor.prosody_types"
+      ],
+      "stdlib": [
+        "__future__",
+        "json",
+        "typing"
+      ],
+      "third_party": []
+    }
+  },
+  {
+    "module": "anki_audio_quick_editor.editor_recording_requests",
+    "file": "addon/anki_audio_quick_editor/editor_recording_requests.py",
+    "layer": "ui_adapter",
+    "summary": "Request reconstruction for learner recording flows",
+    "imports": {
+      "anki": [],
+      "addon": [
+        "anki_audio_quick_editor.editor_session",
+        "anki_audio_quick_editor.errors",
+        "anki_audio_quick_editor.i18n",
+        "anki_audio_quick_editor.sound_refs"
+      ],
+      "stdlib": [
+        "__future__",
+        "dataclasses",
+        "pathlib",
+        "re",
+        "time",
+        "typing"
+      ],
+      "third_party": []
+    }
+  },
+  {
+    "module": "anki_audio_quick_editor.editor_region_delete",
+    "file": "addon/anki_audio_quick_editor/editor_region_delete.py",
+    "layer": "ui_adapter",
+    "summary": "Region-delete behavior for the editor bridge",
+    "imports": {
+      "anki": [],
+      "addon": [
+        "anki_audio_quick_editor.audio_state",
+        "anki_audio_quick_editor.diagnostics_runtime",
+        "anki_audio_quick_editor.editor_deps_protocols",
+        "anki_audio_quick_editor.editor_media_replacement",
+        "anki_audio_quick_editor.editor_processing_shared",
+        "anki_audio_quick_editor.editor_region_delete_request",
+        "anki_audio_quick_editor.editor_region_delete_worker",
+        "anki_audio_quick_editor.editor_reload_status",
+        "anki_audio_quick_editor.editor_session",
+        "anki_audio_quick_editor.editor_status",
+        "anki_audio_quick_editor.error_codes",
+        "anki_audio_quick_editor.i18n",
+        "anki_audio_quick_editor.media_paths",
+        "anki_audio_quick_editor.permission_guidance"
+      ],
+      "stdlib": [
+        "__future__",
+        "logging",
+        "pathlib",
+        "time",
+        "typing"
+      ],
+      "third_party": []
+    }
+  },
+  {
+    "module": "anki_audio_quick_editor.editor_region_delete_request",
+    "file": "addon/anki_audio_quick_editor/editor_region_delete_request.py",
+    "layer": "import_safe_core",
+    "summary": "Region-delete request parsing helpers",
+    "imports": {
+      "anki": [],
+      "addon": [
+        "anki_audio_quick_editor.editor_session",
+        "anki_audio_quick_editor.i18n",
+        "anki_audio_quick_editor.sound_refs"
+      ],
+      "stdlib": [
+        "__future__",
+        "typing"
+      ],
+      "third_party": []
+    }
+  },
+  {
+    "module": "anki_audio_quick_editor.editor_region_delete_worker",
+    "file": "addon/anki_audio_quick_editor/editor_region_delete_worker.py",
+    "layer": "ui_adapter",
+    "summary": "Background worker helpers for editor selected-region operations",
+    "imports": {
+      "anki": [],
+      "addon": [
+        "anki_audio_quick_editor.audio_state",
+        "anki_audio_quick_editor.diagnostics_runtime",
+        "anki_audio_quick_editor.editor_deps_protocols",
+        "anki_audio_quick_editor.editor_region_delete_request",
+        "anki_audio_quick_editor.editor_session",
+        "anki_audio_quick_editor.permission_guidance"
+      ],
+      "stdlib": [
+        "__future__",
+        "logging",
+        "pathlib",
+        "shutil",
+        "typing"
+      ],
+      "third_party": []
+    }
+  },
+  {
+    "module": "anki_audio_quick_editor.editor_reload_status",
+    "file": "addon/anki_audio_quick_editor/editor_reload_status.py",
+    "layer": "ui_adapter",
+    "summary": "Editor reload lifecycle helpers for status handoff",
+    "imports": {
+      "anki": [],
+      "addon": [
+        "anki_audio_quick_editor.editor_session"
+      ],
+      "stdlib": [
+        "__future__",
+        "typing"
+      ],
+      "third_party": []
+    }
+  },
+  {
+    "module": "anki_audio_quick_editor.editor_runtime",
+    "file": "addon/anki_audio_quick_editor/editor_runtime.py",
+    "layer": "ui_adapter",
+    "summary": "Shared editor runtime state and media helpers",
+    "imports": {
+      "anki": [],
+      "addon": [
+        "anki_audio_quick_editor.audio_state",
+        "anki_audio_quick_editor.editor_media",
+        "anki_audio_quick_editor.editor_playback",
+        "anki_audio_quick_editor.editor_session",
+        "anki_audio_quick_editor.editor_status",
+        "anki_audio_quick_editor.errors",
+        "anki_audio_quick_editor.i18n",
+        "anki_audio_quick_editor.media_paths"
+      ],
+      "stdlib": [
+        "__future__",
+        "collections.abc",
+        "dataclasses",
+        "pathlib",
+        "typing",
+        "weakref"
+      ],
+      "third_party": []
+    }
+  },
+  {
+    "module": "anki_audio_quick_editor.editor_session",
+    "file": "addon/anki_audio_quick_editor/editor_session.py",
+    "layer": "import_safe_core",
+    "summary": "Editor session state for inline audio editing",
+    "imports": {
+      "anki": [],
+      "addon": [
+        "anki_audio_quick_editor.audio_state"
+      ],
+      "stdlib": [
+        "__future__",
+        "dataclasses",
+        "pathlib",
+        "typing"
+      ],
+      "third_party": []
+    }
+  },
+  {
+    "module": "anki_audio_quick_editor.editor_settings_actions",
+    "file": "addon/anki_audio_quick_editor/editor_settings_actions.py",
+    "layer": "ui_adapter",
+    "summary": "Settings and file-reveal actions for the editor bridge",
+    "imports": {
+      "anki": [],
+      "addon": [
+        "anki_audio_quick_editor.editor_reload_status",
+        "anki_audio_quick_editor.editor_runtime",
+        "anki_audio_quick_editor.editor_session",
+        "anki_audio_quick_editor.error_codes",
+        "anki_audio_quick_editor.errors",
+        "anki_audio_quick_editor.file_reveal",
+        "anki_audio_quick_editor.i18n"
+      ],
+      "stdlib": [
+        "__future__",
+        "typing"
+      ],
+      "third_party": []
+    }
+  },
+  {
+    "module": "anki_audio_quick_editor.editor_sharing",
+    "file": "addon/anki_audio_quick_editor/editor_sharing.py",
+    "layer": "ui_adapter",
+    "summary": "Editor adapter for Catbox/Litterbox sharing",
+    "imports": {
+      "anki": [
+        "aqt.qt"
+      ],
+      "addon": [
+        "anki_audio_quick_editor.diagnostics_runtime",
+        "anki_audio_quick_editor.editor_actions",
+        "anki_audio_quick_editor.editor_session",
+        "anki_audio_quick_editor.error_codes",
+        "anki_audio_quick_editor.errors"
+      ],
+      "stdlib": [
+        "__future__",
+        "logging",
+        "threading",
+        "typing"
+      ],
+      "third_party": []
+    }
+  },
+  {
+    "module": "anki_audio_quick_editor.editor_source_metadata",
+    "file": "addon/anki_audio_quick_editor/editor_source_metadata.py",
+    "layer": "ui_adapter",
+    "summary": "Lazy source metadata bridge for editor compression advanced settings",
+    "imports": {
+      "anki": [],
+      "addon": [
+        "anki_audio_quick_editor.audio_state",
+        "anki_audio_quick_editor.diagnostics_runtime",
+        "anki_audio_quick_editor.i18n"
+      ],
+      "stdlib": [
+        "__future__",
+        "json",
+        "logging",
+        "pathlib",
+        "typing"
+      ],
+      "third_party": []
+    }
+  },
+  {
+    "module": "anki_audio_quick_editor.editor_special_transform_worker",
+    "file": "addon/anki_audio_quick_editor/editor_special_transform_worker.py",
+    "layer": "ui_adapter",
+    "summary": "Background worker helpers for editor special transforms",
+    "imports": {
+      "anki": [],
+      "addon": [
+        "anki_audio_quick_editor.audio_formats",
+        "anki_audio_quick_editor.audio_state",
+        "anki_audio_quick_editor.diagnostics_runtime",
+        "anki_audio_quick_editor.editor_session",
+        "anki_audio_quick_editor.errors",
+        "anki_audio_quick_editor.permission_guidance"
+      ],
+      "stdlib": [
+        "__future__",
+        "logging",
+        "pathlib",
+        "shutil",
+        "typing"
+      ],
+      "third_party": []
+    }
+  },
+  {
+    "module": "anki_audio_quick_editor.editor_special_transforms",
+    "file": "addon/anki_audio_quick_editor/editor_special_transforms.py",
+    "layer": "ui_adapter",
+    "summary": "Editor-side special transform orchestration",
+    "imports": {
+      "anki": [],
+      "addon": [
+        "anki_audio_quick_editor.audio_formats",
+        "anki_audio_quick_editor.audio_state",
+        "anki_audio_quick_editor.diagnostics_runtime",
+        "anki_audio_quick_editor.editor_actions",
+        "anki_audio_quick_editor.editor_media_replacement",
+        "anki_audio_quick_editor.editor_processing_shared",
+        "anki_audio_quick_editor.editor_reload_status",
+        "anki_audio_quick_editor.editor_session",
+        "anki_audio_quick_editor.editor_special_transform_worker",
+        "anki_audio_quick_editor.editor_status",
+        "anki_audio_quick_editor.i18n",
+        "anki_audio_quick_editor.media_paths",
+        "anki_audio_quick_editor.permission_guidance",
+        "anki_audio_quick_editor.prosody_settings",
+        "anki_audio_quick_editor.support"
+      ],
+      "stdlib": [
+        "__future__",
+        "dataclasses",
+        "logging",
+        "pathlib",
+        "typing"
+      ],
+      "third_party": []
+    }
+  },
+  {
+    "module": "anki_audio_quick_editor.editor_split_defaults",
+    "file": "addon/anki_audio_quick_editor/editor_split_defaults.py",
+    "layer": "ui_adapter",
+    "summary": "Persist editor split-button defaults from inline quick settings",
+    "imports": {
+      "anki": [],
+      "addon": [
+        "anki_audio_quick_editor.audio_operation_params",
+        "anki_audio_quick_editor.error_codes",
+        "anki_audio_quick_editor.i18n",
+        "anki_audio_quick_editor.prosody_settings"
+      ],
+      "stdlib": [
+        "__future__",
+        "typing"
+      ],
+      "third_party": []
+    }
+  },
+  {
+    "module": "anki_audio_quick_editor.editor_status",
+    "file": "addon/anki_audio_quick_editor/editor_status.py",
+    "layer": "ui_adapter",
+    "summary": "User-facing editor status summaries for completed operations",
+    "imports": {
+      "anki": [],
+      "addon": [
+        "anki_audio_quick_editor.audio_formats",
+        "anki_audio_quick_editor.audio_state",
+        "anki_audio_quick_editor.dpdfnet_settings",
+        "anki_audio_quick_editor.editor_actions",
+        "anki_audio_quick_editor.editor_session",
+        "anki_audio_quick_editor.i18n"
+      ],
+      "stdlib": [
+        "__future__"
+      ],
+      "third_party": []
+    }
+  },
+  {
+    "module": "anki_audio_quick_editor.editor_ui",
+    "file": "addon/anki_audio_quick_editor/editor_ui.py",
+    "layer": "import_safe_core",
+    "summary": "Inline editor UI bundle injection for Audio Quick Editor",
+    "imports": {
+      "anki": [],
+      "addon": [
+        "anki_audio_quick_editor.i18n"
+      ],
+      "stdlib": [
+        "__future__",
+        "json",
+        "pathlib"
+      ],
+      "third_party": []
+    }
+  },
+  {
+    "module": "anki_audio_quick_editor.editor_webview_injection",
+    "file": "addon/anki_audio_quick_editor/editor_webview_injection.py",
+    "layer": "ui_adapter",
+    "summary": "Shared inline editor webview injection script builder",
+    "imports": {
+      "anki": [],
+      "addon": [
+        "anki_audio_quick_editor.editor_callbacks",
+        "anki_audio_quick_editor.editor_history_settings",
+        "anki_audio_quick_editor.editor_history_snapshot",
+        "anki_audio_quick_editor.editor_media",
+        "anki_audio_quick_editor.editor_persistent_undo",
+        "anki_audio_quick_editor.editor_runtime",
+        "anki_audio_quick_editor.editor_session",
+        "anki_audio_quick_editor.editor_ui"
+      ],
+      "stdlib": [
+        "__future__",
+        "logging",
+        "typing"
+      ],
+      "third_party": []
+    }
+  },
+  {
+    "module": "anki_audio_quick_editor.error_codes",
+    "file": "addon/anki_audio_quick_editor/error_codes.py",
+    "layer": "import_safe_core",
+    "summary": "Stable user-facing error codes and help-link payloads",
+    "imports": {
+      "anki": [],
+      "addon": [],
+      "stdlib": [
+        "__future__",
+        "dataclasses",
+        "typing"
+      ],
+      "third_party": []
+    }
+  },
+  {
+    "module": "anki_audio_quick_editor.errors",
+    "file": "addon/anki_audio_quick_editor/errors.py",
+    "layer": "import_safe_core",
+    "summary": "Shared exception types for Anki Audio Quick Editor",
+    "imports": {
+      "anki": [],
+      "addon": [],
+      "stdlib": [],
+      "third_party": []
+    }
+  },
+  {
+    "module": "anki_audio_quick_editor.external_command_text",
+    "file": "addon/anki_audio_quick_editor/external_command_text.py",
+    "layer": "import_safe_core",
+    "summary": "Stable text decoding policy for external command output",
+    "imports": {
+      "anki": [],
+      "addon": [],
+      "stdlib": [
+        "__future__"
+      ],
+      "third_party": []
+    }
+  },
+  {
+    "module": "anki_audio_quick_editor.external_links",
+    "file": "addon/anki_audio_quick_editor/external_links.py",
+    "layer": "import_safe_core",
+    "summary": "Validation helpers for user-facing external links",
+    "imports": {
+      "anki": [],
+      "addon": [
+        "anki_audio_quick_editor.errors",
+        "anki_audio_quick_editor.file_reveal"
+      ],
+      "stdlib": [
+        "__future__",
+        "logging",
+        "typing",
+        "urllib.parse"
+      ],
+      "third_party": []
+    }
+  },
+  {
+    "module": "anki_audio_quick_editor.ffmpeg_defaults",
+    "file": "addon/anki_audio_quick_editor/ffmpeg_defaults.py",
+    "layer": "import_safe_core",
+    "summary": "Platform-specific defaults for external ffmpeg tools",
+    "imports": {
+      "anki": [],
+      "addon": [],
+      "stdlib": [
+        "__future__",
+        "copy",
+        "typing"
+      ],
+      "third_party": [
+        "platform"
+      ]
+    }
+  },
+  {
+    "module": "anki_audio_quick_editor.ffmpeg_output_contracts",
+    "file": "addon/anki_audio_quick_editor/ffmpeg_output_contracts.py",
+    "layer": "import_safe_core",
+    "summary": "Validation for ffmpeg output container and codec invariants",
+    "imports": {
+      "anki": [],
+      "addon": [
+        "anki_audio_quick_editor.errors"
+      ],
+      "stdlib": [
+        "__future__",
+        "collections.abc",
+        "pathlib"
+      ],
+      "third_party": []
+    }
+  },
+  {
+    "module": "anki_audio_quick_editor.file_reveal",
+    "file": "addon/anki_audio_quick_editor/file_reveal.py",
+    "layer": "import_safe_core",
+    "summary": "Cross-platform helpers for revealing local files to the user",
+    "imports": {
+      "anki": [
+        "aqt.qt"
+      ],
+      "addon": [
+        "anki_audio_quick_editor.errors",
+        "anki_audio_quick_editor.i18n"
+      ],
+      "stdlib": [
+        "__future__",
+        "logging",
+        "pathlib",
+        "shutil",
+        "subprocess"
+      ],
+      "third_party": [
+        "platform"
+      ]
+    }
+  },
+  {
+    "module": "anki_audio_quick_editor.file_sharing",
+    "file": "addon/anki_audio_quick_editor/file_sharing.py",
+    "layer": "import_safe_core",
+    "summary": "Stdlib-only file upload helpers for Catbox and Litterbox",
+    "imports": {
+      "anki": [],
+      "addon": [],
+      "stdlib": [
+        "__future__",
+        "pathlib",
+        "typing",
+        "urllib.error",
+        "urllib.parse",
+        "urllib.request",
+        "uuid"
+      ],
+      "third_party": [
+        "mimetypes"
+      ]
+    }
+  },
+  {
+    "module": "anki_audio_quick_editor.frontend_logs",
+    "file": "addon/anki_audio_quick_editor/frontend_logs.py",
+    "layer": "import_safe_core",
+    "summary": "Shared frontend diagnostic log handling",
+    "imports": {
+      "anki": [],
+      "addon": [
+        "anki_audio_quick_editor.contracts_generated",
+        "anki_audio_quick_editor.diagnostics_runtime"
+      ],
+      "stdlib": [
+        "__future__",
+        "json",
+        "logging",
+        "typing"
+      ],
+      "third_party": []
+    }
+  },
+  {
+    "module": "anki_audio_quick_editor.i18n",
+    "file": "addon/anki_audio_quick_editor/i18n.py",
+    "layer": "import_safe_core",
+    "summary": "JSON-catalog localization helpers for user-facing add-on text",
+    "imports": {
+      "anki": [
+        "anki",
+        "anki.lang"
+      ],
+      "addon": [],
+      "stdlib": [
+        "__future__",
+        "functools",
+        "json",
+        "pathlib",
+        "typing"
+      ],
+      "third_party": [
+        "string"
+      ]
+    }
+  },
+  {
+    "module": "anki_audio_quick_editor.media_paths",
+    "file": "addon/anki_audio_quick_editor/media_paths.py",
+    "layer": "import_safe_core",
+    "summary": "Cross-platform helpers for resolving Anki collection media files",
+    "imports": {
+      "anki": [],
+      "addon": [
+        "anki_audio_quick_editor.sound_refs"
+      ],
+      "stdlib": [
+        "__future__",
+        "pathlib"
+      ],
+      "third_party": [
+        "platform"
+      ]
+    }
+  },
+  {
+    "module": "anki_audio_quick_editor.permission_guidance",
+    "file": "addon/anki_audio_quick_editor/permission_guidance.py",
+    "layer": "import_safe_core",
+    "summary": "User-facing recovery guidance for bundled executable permission failures",
+    "imports": {
+      "anki": [],
+      "addon": [],
+      "stdlib": [
+        "__future__",
+        "pathlib"
+      ],
+      "third_party": [
+        "errno",
+        "platform",
+        "shlex"
+      ]
+    }
+  },
+  {
+    "module": "anki_audio_quick_editor.persistent_history",
+    "file": "addon/anki_audio_quick_editor/persistent_history.py",
+    "layer": "import_safe_core",
+    "summary": "SQLite-backed persistent undo history",
+    "imports": {
+      "anki": [],
+      "addon": [
+        "anki_audio_quick_editor.audio_state"
+      ],
+      "stdlib": [
+        "__future__",
+        "contextlib",
+        "dataclasses",
+        "hashlib",
+        "json",
+        "logging",
+        "pathlib",
+        "typing"
+      ],
+      "third_party": [
+        "sqlite3"
+      ]
+    }
+  },
+  {
+    "module": "anki_audio_quick_editor.prosody_analyzer",
+    "file": "addon/anki_audio_quick_editor/prosody_analyzer.py",
+    "layer": "import_safe_core",
+    "summary": "Prosody analyzer selection behind a stable import-safe interface",
+    "imports": {
+      "anki": [],
+      "addon": [
+        "anki_audio_quick_editor.audio_state",
+        "anki_audio_quick_editor.prosody_fallback",
+        "anki_audio_quick_editor.prosody_praat",
+        "anki_audio_quick_editor.prosody_types"
+      ],
+      "stdlib": [
+        "__future__",
+        "logging",
+        "pathlib"
+      ],
+      "third_party": []
+    }
+  },
+  {
+    "module": "anki_audio_quick_editor.prosody_cache",
+    "file": "addon/anki_audio_quick_editor/prosody_cache.py",
+    "layer": "import_safe_core",
+    "summary": "Small import-safe cache for prosody analysis results",
+    "imports": {
+      "anki": [],
+      "addon": [
+        "anki_audio_quick_editor.audio_state",
+        "anki_audio_quick_editor.prosody_analyzer",
+        "anki_audio_quick_editor.prosody_settings",
+        "anki_audio_quick_editor.prosody_types"
+      ],
+      "stdlib": [
+        "__future__",
+        "pathlib",
+        "threading"
+      ],
+      "third_party": []
+    }
+  },
+  {
+    "module": "anki_audio_quick_editor.prosody_fallback",
+    "file": "addon/anki_audio_quick_editor/prosody_fallback.py",
+    "layer": "import_safe_core",
+    "summary": "ffmpeg/PCM fallback prosody analyzer",
+    "imports": {
+      "anki": [],
+      "addon": [
+        "anki_audio_quick_editor.audio_processor",
+        "anki_audio_quick_editor.audio_state",
+        "anki_audio_quick_editor.errors",
+        "anki_audio_quick_editor.permission_guidance",
+        "anki_audio_quick_editor.prosody_settings",
+        "anki_audio_quick_editor.prosody_types"
+      ],
+      "stdlib": [
+        "__future__",
+        "math",
+        "pathlib",
+        "subprocess",
+        "sys"
+      ],
+      "third_party": [
+        "array"
+      ]
+    }
+  },
+  {
+    "module": "anki_audio_quick_editor.prosody_praat",
+    "file": "addon/anki_audio_quick_editor/prosody_praat.py",
+    "layer": "import_safe_core",
+    "summary": "Optional Parselmouth/Praat prosody analyzer backend",
+    "imports": {
+      "anki": [],
+      "addon": [
+        "anki_audio_quick_editor.audio_processor",
+        "anki_audio_quick_editor.audio_state",
+        "anki_audio_quick_editor.prosody_settings",
+        "anki_audio_quick_editor.prosody_types"
+      ],
+      "stdlib": [
+        "__future__",
+        "pathlib",
+        "typing"
+      ],
+      "third_party": [
+        "importlib.util",
+        "parselmouth"
+      ]
+    }
+  },
+  {
+    "module": "anki_audio_quick_editor.prosody_settings",
+    "file": "addon/anki_audio_quick_editor/prosody_settings.py",
+    "layer": "import_safe_core",
+    "summary": "Graph analysis settings and post-processing helpers",
+    "imports": {
+      "anki": [],
+      "addon": [
+        "anki_audio_quick_editor.audio_state",
+        "anki_audio_quick_editor.prosody_types"
+      ],
+      "stdlib": [
+        "__future__",
+        "collections.abc",
+        "dataclasses",
+        "typing"
+      ],
+      "third_party": []
+    }
+  },
+  {
+    "module": "anki_audio_quick_editor.prosody_svg",
+    "file": "addon/anki_audio_quick_editor/prosody_svg.py",
+    "layer": "import_safe_core",
+    "summary": "Render prosody tracks as standalone SVG media assets",
+    "imports": {
+      "anki": [],
+      "addon": [
+        "anki_audio_quick_editor.prosody_types"
+      ],
+      "stdlib": [
+        "__future__",
+        "dataclasses",
+        "math",
+        "pathlib"
+      ],
+      "third_party": [
+        "datetime",
+        "html"
+      ]
+    }
+  },
+  {
+    "module": "anki_audio_quick_editor.prosody_types",
+    "file": "addon/anki_audio_quick_editor/prosody_types.py",
+    "layer": "import_safe_core",
+    "summary": "Import-safe prosody data types and normalization helpers",
+    "imports": {
+      "anki": [],
+      "addon": [],
+      "stdlib": [
+        "__future__",
+        "dataclasses",
+        "math"
+      ],
+      "third_party": []
+    }
+  },
+  {
+    "module": "anki_audio_quick_editor.release_info",
+    "file": "addon/anki_audio_quick_editor/release_info.py",
+    "layer": "import_safe_core",
+    "summary": "Release provenance helpers for packaged add-ons",
+    "imports": {
+      "anki": [],
+      "addon": [],
+      "stdlib": [
+        "__future__",
+        "json",
+        "pathlib",
+        "typing"
+      ],
+      "third_party": []
+    }
+  },
+  {
+    "module": "anki_audio_quick_editor.reviewer_audio_targets",
+    "file": "addon/anki_audio_quick_editor/reviewer_audio_targets.py",
+    "layer": "import_safe_core",
+    "summary": "Import-safe Reviewer audio target HTML contract helpers",
+    "imports": {
+      "anki": [],
+      "addon": [],
+      "stdlib": [
+        "__future__",
+        "re"
+      ],
+      "third_party": [
+        "html"
+      ]
+    }
+  },
+  {
+    "module": "anki_audio_quick_editor.reviewer_integration",
+    "file": "addon/anki_audio_quick_editor/reviewer_integration.py",
+    "layer": "ui_adapter",
+    "summary": "Reviewer integration for reusing inline editor audio controls",
+    "imports": {
+      "anki": [
+        "aqt",
+        "aqt.qt"
+      ],
+      "addon": [
+        "anki_audio_quick_editor.editor_actions",
+        "anki_audio_quick_editor.editor_callbacks",
+        "anki_audio_quick_editor.editor_media",
+        "anki_audio_quick_editor.editor_runtime",
+        "anki_audio_quick_editor.editor_session",
+        "anki_audio_quick_editor.editor_webview_injection",
+        "anki_audio_quick_editor.media_paths",
+        "anki_audio_quick_editor.reviewer_audio_targets",
+        "anki_audio_quick_editor.sound_refs"
+      ],
+      "stdlib": [
+        "__future__",
+        "logging",
+        "typing"
+      ],
+      "third_party": []
+    }
+  },
+  {
+    "module": "anki_audio_quick_editor.reviewer_template_filter",
+    "file": "addon/anki_audio_quick_editor/reviewer_template_filter.py",
+    "layer": "import_safe_core",
+    "summary": "Import-safe rendering helpers for Reviewer template audio-panel filters",
+    "imports": {
+      "anki": [],
+      "addon": [
+        "anki_audio_quick_editor.reviewer_audio_targets",
+        "anki_audio_quick_editor.sound_refs"
+      ],
+      "stdlib": [
+        "__future__",
+        "typing"
+      ],
+      "third_party": []
+    }
+  },
+  {
+    "module": "anki_audio_quick_editor.reviewer_template_filter_integration",
+    "file": "addon/anki_audio_quick_editor/reviewer_template_filter_integration.py",
+    "layer": "ui_adapter",
+    "summary": "Anki template-filter hooks for the Reviewer audio panel trigger",
+    "imports": {
+      "anki": [
+        "anki.hooks",
+        "aqt.forms",
+        "aqt.qt",
+        "aqt.utils"
+      ],
+      "addon": [
+        "anki_audio_quick_editor.error_codes",
+        "anki_audio_quick_editor.reviewer_audio_targets",
+        "anki_audio_quick_editor.reviewer_template_filter"
+      ],
+      "stdlib": [
+        "__future__",
+        "typing"
+      ],
+      "third_party": [
+        "html"
+      ]
+    }
+  },
+  {
+    "module": "anki_audio_quick_editor.runtime_archive",
+    "file": "addon/anki_audio_quick_editor/runtime_archive.py",
+    "layer": "import_safe_core",
+    "summary": "Runtime archive extraction and verification helpers",
+    "imports": {
+      "anki": [],
+      "addon": [
+        "anki_audio_quick_editor.runtime_manifest"
+      ],
+      "stdlib": [
+        "__future__",
+        "pathlib",
+        "shutil",
+        "zipfile"
+      ],
+      "third_party": [
+        "stat"
+      ]
+    }
+  },
+  {
+    "module": "anki_audio_quick_editor.runtime_install",
+    "file": "addon/anki_audio_quick_editor/runtime_install.py",
+    "layer": "import_safe_core",
+    "summary": "Managed runtime installation and status orchestration",
+    "imports": {
+      "anki": [],
+      "addon": [
+        "anki_audio_quick_editor.error_codes",
+        "anki_audio_quick_editor.runtime_archive",
+        "anki_audio_quick_editor.runtime_install_io",
+        "anki_audio_quick_editor.runtime_lookup",
+        "anki_audio_quick_editor.runtime_manifest",
+        "anki_audio_quick_editor.runtime_paths",
+        "anki_audio_quick_editor.runtime_platform",
+        "anki_audio_quick_editor.runtime_state"
+      ],
+      "stdlib": [
+        "__future__",
+        "collections.abc",
+        "pathlib",
+        "shutil",
+        "threading",
+        "typing"
+      ],
+      "third_party": []
+    }
+  },
+  {
+    "module": "anki_audio_quick_editor.runtime_install_io",
+    "file": "addon/anki_audio_quick_editor/runtime_install_io.py",
+    "layer": "import_safe_core",
+    "summary": "Download, extraction, and promotion helpers for managed runtime installs",
+    "imports": {
+      "anki": [],
+      "addon": [
+        "anki_audio_quick_editor.runtime_archive",
+        "anki_audio_quick_editor.runtime_manifest",
+        "anki_audio_quick_editor.runtime_paths",
+        "anki_audio_quick_editor.runtime_state"
+      ],
+      "stdlib": [
+        "__future__",
+        "collections.abc",
+        "os",
+        "pathlib",
+        "shutil",
+        "time",
+        "urllib.error",
+        "urllib.request"
+      ],
+      "third_party": [
+        "socket"
+      ]
+    }
+  },
+  {
+    "module": "anki_audio_quick_editor.runtime_installer_dialog",
+    "file": "addon/anki_audio_quick_editor/runtime_installer_dialog.py",
+    "layer": "ui_adapter",
+    "summary": "Qt dialog for managed runtime installation and repair",
+    "imports": {
+      "anki": [
+        "aqt",
+        "aqt.qt"
+      ],
+      "addon": [
+        "anki_audio_quick_editor.i18n",
+        "anki_audio_quick_editor.runtime_manager"
+      ],
+      "stdlib": [
+        "__future__",
+        "logging",
+        "pathlib",
+        "threading",
+        "typing"
+      ],
+      "third_party": []
+    }
+  },
+  {
+    "module": "anki_audio_quick_editor.runtime_lookup",
+    "file": "addon/anki_audio_quick_editor/runtime_lookup.py",
+    "layer": "import_safe_core",
+    "summary": "Managed runtime path lookup and readiness checks",
+    "imports": {
+      "anki": [],
+      "addon": [
+        "anki_audio_quick_editor.runtime_manifest",
+        "anki_audio_quick_editor.runtime_paths",
+        "anki_audio_quick_editor.runtime_platform",
+        "anki_audio_quick_editor.runtime_state"
+      ],
+      "stdlib": [
+        "__future__",
+        "pathlib"
+      ],
+      "third_party": []
+    }
+  },
+  {
+    "module": "anki_audio_quick_editor.runtime_manager",
+    "file": "addon/anki_audio_quick_editor/runtime_manager.py",
+    "layer": "import_safe_core",
+    "summary": "Managed runtime asset installation and lookup facade",
+    "imports": {
+      "anki": [],
+      "addon": [
+        "anki_audio_quick_editor.runtime_install",
+        "anki_audio_quick_editor.runtime_lookup",
+        "anki_audio_quick_editor.runtime_manifest",
+        "anki_audio_quick_editor.runtime_paths",
+        "anki_audio_quick_editor.runtime_platform",
+        "anki_audio_quick_editor.runtime_state"
+      ],
+      "stdlib": [
+        "__future__"
+      ],
+      "third_party": []
+    }
+  },
+  {
+    "module": "anki_audio_quick_editor.runtime_manifest",
+    "file": "addon/anki_audio_quick_editor/runtime_manifest.py",
+    "layer": "import_safe_core",
+    "summary": "Managed runtime manifest parsing helpers",
+    "imports": {
+      "anki": [],
+      "addon": [],
+      "stdlib": [
+        "__future__",
+        "dataclasses",
+        "hashlib",
+        "json",
+        "pathlib",
+        "typing"
+      ],
+      "third_party": []
+    }
+  },
+  {
+    "module": "anki_audio_quick_editor.runtime_paths",
+    "file": "addon/anki_audio_quick_editor/runtime_paths.py",
+    "layer": "import_safe_core",
+    "summary": "Filesystem paths for managed runtime assets",
+    "imports": {
+      "anki": [],
+      "addon": [
+        "anki_audio_quick_editor.runtime_manifest"
+      ],
+      "stdlib": [
+        "__future__",
+        "pathlib"
+      ],
+      "third_party": []
+    }
+  },
+  {
+    "module": "anki_audio_quick_editor.runtime_platform",
+    "file": "addon/anki_audio_quick_editor/runtime_platform.py",
+    "layer": "import_safe_core",
+    "summary": "Platform detection and executable names for managed runtime assets",
+    "imports": {
+      "anki": [],
+      "addon": [],
+      "stdlib": [
+        "__future__"
+      ],
+      "third_party": [
+        "platform"
+      ]
+    }
+  },
+  {
+    "module": "anki_audio_quick_editor.runtime_state",
+    "file": "addon/anki_audio_quick_editor/runtime_state.py",
+    "layer": "import_safe_core",
+    "summary": "Runtime state and status payload helpers",
+    "imports": {
+      "anki": [],
+      "addon": [
+        "anki_audio_quick_editor.runtime_manifest",
+        "anki_audio_quick_editor.runtime_paths"
+      ],
+      "stdlib": [
+        "__future__",
+        "collections.abc",
+        "json",
+        "pathlib",
+        "typing"
+      ],
+      "third_party": []
+    }
+  },
+  {
+    "module": "anki_audio_quick_editor.settings",
+    "file": "addon/anki_audio_quick_editor/settings/__init__.py",
+    "layer": "settings_shell",
+    "summary": "Settings dialog shell for Anki Audio Quick Editor",
+    "imports": {
+      "anki": [
+        "aqt",
+        "aqt.qt",
+        "aqt.webview"
+      ],
+      "addon": [
+        "anki_audio_quick_editor.i18n",
+        "anki_audio_quick_editor.runtime_installer_dialog",
+        "anki_audio_quick_editor.settings.commands",
+        "anki_audio_quick_editor.settings.initial_state",
+        "anki_audio_quick_editor.webview_shell"
+      ],
+      "stdlib": [
+        "__future__",
+        "logging",
+        "pathlib",
+        "typing"
+      ],
+      "third_party": []
+    }
+  },
+  {
+    "module": "anki_audio_quick_editor.settings.async_commands",
+    "file": "addon/anki_audio_quick_editor/settings/async_commands.py",
+    "layer": "settings_backend",
+    "summary": "Threaded settings async command bridge",
+    "imports": {
+      "anki": [
+        "aqt"
+      ],
+      "addon": [
+        "anki_audio_quick_editor.contracts_generated",
+        "anki_audio_quick_editor.diagnostics_runtime",
+        "anki_audio_quick_editor.error_codes",
+        "anki_audio_quick_editor.settings.async_operations",
+        "anki_audio_quick_editor.webview_bridge"
+      ],
+      "stdlib": [
+        "__future__",
+        "collections.abc",
+        "json",
+        "logging",
+        "threading",
+        "typing",
+        "uuid"
+      ],
+      "third_party": []
+    }
+  },
+  {
+    "module": "anki_audio_quick_editor.settings.async_operations",
+    "file": "addon/anki_audio_quick_editor/settings/async_operations.py",
+    "layer": "settings_backend",
+    "summary": "Settings async operation implementations",
+    "imports": {
+      "anki": [
+        "aqt"
+      ],
+      "addon": [
+        "anki_audio_quick_editor._version",
+        "anki_audio_quick_editor.contracts_generated",
+        "anki_audio_quick_editor.db_helpers",
+        "anki_audio_quick_editor.diagnostics",
+        "anki_audio_quick_editor.diagnostics_runtime",
+        "anki_audio_quick_editor.errors",
+        "anki_audio_quick_editor.file_reveal",
+        "anki_audio_quick_editor.i18n",
+        "anki_audio_quick_editor.release_info",
+        "anki_audio_quick_editor.runtime_manager",
+        "anki_audio_quick_editor.support"
+      ],
+      "stdlib": [
+        "__future__",
+        "collections.abc",
+        "pathlib",
+        "typing"
+      ],
+      "third_party": []
+    }
+  },
+  {
+    "module": "anki_audio_quick_editor.settings.commands",
+    "file": "addon/anki_audio_quick_editor/settings/commands.py",
+    "layer": "settings_backend",
+    "summary": "Settings bridge command dispatcher for Anki Audio Quick Editor",
+    "imports": {
+      "anki": [
+        "aqt",
+        "aqt.mediacheck",
+        "aqt.qt"
+      ],
+      "addon": [
+        "anki_audio_quick_editor.contracts_generated",
+        "anki_audio_quick_editor.diagnostics_runtime",
+        "anki_audio_quick_editor.editor_button_visibility",
+        "anki_audio_quick_editor.error_codes",
+        "anki_audio_quick_editor.external_links",
+        "anki_audio_quick_editor.ffmpeg_defaults",
+        "anki_audio_quick_editor.frontend_logs",
+        "anki_audio_quick_editor.i18n",
+        "anki_audio_quick_editor.settings.async_commands",
+        "anki_audio_quick_editor.webview_bridge"
+      ],
+      "stdlib": [
+        "__future__",
+        "collections.abc",
+        "json",
+        "logging",
+        "typing"
+      ],
+      "third_party": []
+    }
+  },
+  {
+    "module": "anki_audio_quick_editor.settings.initial_state",
+    "file": "addon/anki_audio_quick_editor/settings/initial_state.py",
+    "layer": "settings_backend",
+    "summary": "Thin Anki wrapper for settings UI initial state",
+    "imports": {
+      "anki": [
+        "aqt"
+      ],
+      "addon": [
+        "anki_audio_quick_editor._version",
+        "anki_audio_quick_editor.i18n",
+        "anki_audio_quick_editor.release_info",
+        "anki_audio_quick_editor.runtime_manager",
+        "anki_audio_quick_editor.settings_state"
+      ],
+      "stdlib": [
+        "__future__",
+        "pathlib",
+        "typing"
+      ],
+      "third_party": []
+    }
+  },
+  {
+    "module": "anki_audio_quick_editor.settings_state",
+    "file": "addon/anki_audio_quick_editor/settings_state.py",
+    "layer": "import_safe_core",
+    "summary": "Import-safe settings initial state construction",
+    "imports": {
+      "anki": [],
+      "addon": [
+        "anki_audio_quick_editor.contracts_generated",
+        "anki_audio_quick_editor.ffmpeg_defaults"
+      ],
+      "stdlib": [
+        "__future__",
+        "json",
+        "os",
+        "typing"
+      ],
+      "third_party": []
+    }
+  },
+  {
+    "module": "anki_audio_quick_editor.sound_refs",
+    "file": "addon/anki_audio_quick_editor/sound_refs.py",
+    "layer": "import_safe_core",
+    "summary": "Helpers for parsing and replacing Anki ``[sound:...]`` references",
+    "imports": {
+      "anki": [],
+      "addon": [
+        "anki_audio_quick_editor.errors"
+      ],
+      "stdlib": [
+        "__future__",
+        "dataclasses",
+        "pathlib",
+        "re"
+      ],
+      "third_party": [
+        "html",
+        "ntpath",
+        "platform",
+        "posixpath"
+      ]
+    }
+  },
+  {
+    "module": "anki_audio_quick_editor.support",
+    "file": "addon/anki_audio_quick_editor/support.py",
+    "layer": "import_safe_core",
+    "summary": "Support helpers for collecting external-runtime failures and diagnostics",
+    "imports": {
+      "anki": [],
+      "addon": [
+        "anki_audio_quick_editor.i18n",
+        "anki_audio_quick_editor.support_reporting"
+      ],
+      "stdlib": [
+        "__future__",
+        "copy",
+        "pathlib",
+        "threading",
+        "typing"
+      ],
+      "third_party": [
+        "datetime"
+      ]
+    }
+  },
+  {
+    "module": "anki_audio_quick_editor.support_reporting",
+    "file": "addon/anki_audio_quick_editor/support_reporting.py",
+    "layer": "import_safe_core",
+    "summary": "Support report formatting helpers",
+    "imports": {
+      "anki": [],
+      "addon": [],
+      "stdlib": [
+        "__future__",
+        "json",
+        "pathlib",
+        "typing"
+      ],
+      "third_party": [
+        "datetime",
+        "shlex"
+      ]
+    }
+  },
+  {
+    "module": "anki_audio_quick_editor.vendor_runtime",
+    "file": "addon/anki_audio_quick_editor/vendor_runtime.py",
+    "layer": "import_safe_core",
+    "summary": "Activation for vendored Python wheels with native extensions",
+    "imports": {
+      "anki": [],
+      "addon": [
+        "anki_audio_quick_editor.runtime_paths",
+        "anki_audio_quick_editor.runtime_platform"
+      ],
+      "stdlib": [
+        "__future__",
+        "hashlib",
+        "pathlib",
+        "shutil",
+        "sys",
+        "zipfile"
+      ],
+      "third_party": []
+    }
+  },
+  {
+    "module": "anki_audio_quick_editor.webview_bridge",
+    "file": "addon/anki_audio_quick_editor/webview_bridge.py",
+    "layer": "import_safe_core",
+    "summary": "Shared WebView bridge command decoding",
+    "imports": {
+      "anki": [],
+      "addon": [],
+      "stdlib": [
+        "__future__",
+        "dataclasses",
+        "json",
+        "typing"
+      ],
+      "third_party": []
+    }
+  },
+  {
+    "module": "anki_audio_quick_editor.webview_shell",
+    "file": "addon/anki_audio_quick_editor/webview_shell.py",
+    "layer": "import_safe_core",
+    "summary": "Shared HTML assembly for Anki WebView-backed Svelte apps",
+    "imports": {
+      "anki": [],
+      "addon": [],
+      "stdlib": [
+        "__future__",
+        "json",
+        "logging",
+        "pathlib",
+        "typing"
+      ],
+      "third_party": []
+    }
+  }
+]

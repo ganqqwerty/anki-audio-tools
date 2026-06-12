@@ -29,6 +29,7 @@ const config: Config = {
   share_target: ShareTarget.Litterbox,
   show_graph_by_default: true,
   selection_marker_shift_buttons_enabled: false,
+  editor_history_size: 100,
   visible_editor_buttons: [
     VisibleEditorButton.AqePlay,
     VisibleEditorButton.AqeAnalyze,
@@ -92,5 +93,12 @@ describe("settings state helpers", () => {
       ...config,
       selection_marker_shift_buttons_enabled: true,
     }).selection_marker_shift_buttons_enabled).toBe(true);
+  });
+
+  it("preserves editor history size when building a save payload", () => {
+    expect(saveConfigPayload({
+      ...config,
+      editor_history_size: 25,
+    }).editor_history_size).toBe(25);
   });
 });

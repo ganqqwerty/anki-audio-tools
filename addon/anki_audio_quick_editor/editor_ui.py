@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+from collections.abc import Mapping
 from pathlib import Path
 
 from .i18n import active_context
@@ -19,7 +20,9 @@ def injection_script(
     audio_field_metadata: dict[int, dict[str, int | None]] | None = None,
     audio_field_sources: dict[int, str] | None = None,
     initial_history_availability_by_field: dict[int, dict[str, bool]] | None = None,
+    initial_history_snapshots_by_field: Mapping[int, object] | None = None,
     initial_status_by_field: dict[int, dict[str, str]] | None = None,
+    editor_history_size: int = 100,
     repeat_playback_by_default: bool = True,
     selection_marker_shift_buttons_enabled: bool = False,
     show_graph_by_default: bool = True,
@@ -35,7 +38,9 @@ def injection_script(
         "audioFieldMetadata": audio_field_metadata or {},
         "audioFieldSources": audio_field_sources or {},
         "initialHistoryAvailabilityByField": initial_history_availability_by_field or {},
+        "initialHistorySnapshotsByField": initial_history_snapshots_by_field or {},
         "initialStatusByField": initial_status_by_field or {},
+        "editorHistorySize": int(editor_history_size),
         "pendingPostEditPlayback": pending_post_edit_playback,
         "repeatPlaybackByDefault": bool(repeat_playback_by_default),
         "selectionMarkerShiftButtonsEnabled": bool(selection_marker_shift_buttons_enabled),
