@@ -16,6 +16,7 @@
   import { syncRecordingControls } from "./recording-actions.js";
   import { handleVisualizerKeyDown } from "./region-delete.js";
   import { handleChorusingMarkerPointerDown, installChorusingHandlers } from "./chorusing-controller.js";
+  import GraphAreaControls from "./GraphAreaControls.svelte";
   import SelectionMarkerShiftButtons from "./SelectionMarkerShiftButtons.svelte";
   import SelectionToolbar from "./SelectionToolbar.svelte";
   import TimeViewportScroller from "./TimeViewportScroller.svelte";
@@ -137,147 +138,155 @@
   hidden
 >
   <audio class="aqe-audio-clock" data-testid={`aqe-audio-clock-${target.ord}`} preload="metadata" hidden></audio>
-  <ZoomControls {target} />
-  <div
-    class="aqe-visualizer-plot"
-    data-testid={`aqe-visualizer-plot-${target.ord}`}
-    onwheel={handleGraphWheel}
-  >
-    <div class="aqe-selection-region-preview-halo aqe-selection-region-preview-halo-top" aria-hidden="true"></div>
-    <div class="aqe-selection-region-preview-halo aqe-selection-region-preview-halo-bottom" aria-hidden="true"></div>
+  <div class="aqe-graph-layout">
+    <GraphAreaControls {target} {visibleCommands} />
     <div
-      class="aqe-graph-countdown-overlay aqe-recording-countdown-overlay"
-      data-testid={`aqe-recording-countdown-overlay-${target.ord}`}
-      aria-live="polite"
-      aria-atomic="true"
-      hidden
+      class="aqe-graph-main"
+      data-testid={`aqe-graph-main-${target.ord}`}
     >
-      <span class="aqe-graph-countdown-value aqe-recording-countdown-value"></span>
-    </div>
-    <AqeTooltip side="bottom">
-      {#snippet trigger({ props })}
+      <div
+        class="aqe-visualizer-plot"
+        data-testid={`aqe-visualizer-plot-${target.ord}`}
+        onwheel={handleGraphWheel}
+      >
+        <div class="aqe-selection-region-preview-halo aqe-selection-region-preview-halo-top" aria-hidden="true"></div>
+        <div class="aqe-selection-region-preview-halo aqe-selection-region-preview-halo-bottom" aria-hidden="true"></div>
         <div
-          {...props}
-          class="aqe-chorusing-marker-hitbox aqe-tooltip-target"
-          data-aqe-tooltip-content={t("editor.chorusing.marker_row_tooltip")}
-          aria-hidden="true"
+          class="aqe-graph-countdown-overlay aqe-recording-countdown-overlay"
+          data-testid={`aqe-recording-countdown-overlay-${target.ord}`}
+          aria-live="polite"
+          aria-atomic="true"
           hidden
-          onpointerdown={(event) => handleChorusingMarkerPointerDown(event, target.ord)}
-        ></div>
-      {/snippet}
-    </AqeTooltip>
-    <svg
-      class="aqe-visualizer-svg"
-      data-testid={`aqe-graph-svg-${target.ord}`}
-      viewBox={`0 0 ${PLOT.width} ${PLOT.height}`}
-      preserveAspectRatio="xMinYMin meet"
-      role="img"
-      aria-label={t("editor.graph.image_aria")}
-      onpointerdown={(event) => handleVisualizerPointerDown(event, target.ord)}
-    >
-      <defs>
-        <clipPath id={plotClipId}>
+        >
+          <span class="aqe-graph-countdown-value aqe-recording-countdown-value"></span>
+        </div>
+        <AqeTooltip side="bottom">
+          {#snippet trigger({ props })}
+            <div
+              {...props}
+              class="aqe-chorusing-marker-hitbox aqe-tooltip-target"
+              data-aqe-tooltip-content={t("editor.chorusing.marker_row_tooltip")}
+              aria-hidden="true"
+              hidden
+              onpointerdown={(event) => handleChorusingMarkerPointerDown(event, target.ord)}
+            ></div>
+          {/snippet}
+        </AqeTooltip>
+        <svg
+          class="aqe-visualizer-svg"
+          data-testid={`aqe-graph-svg-${target.ord}`}
+          viewBox={`0 0 ${PLOT.width} ${PLOT.height}`}
+          preserveAspectRatio="xMinYMin meet"
+          role="img"
+          aria-label={t("editor.graph.image_aria")}
+          onpointerdown={(event) => handleVisualizerPointerDown(event, target.ord)}
+        >
+          <defs>
+            <clipPath id={plotClipId}>
+              <rect
+                x={PLOT.left}
+                y={PLOT.top}
+                width={PLOT.width - PLOT.left - PLOT.right}
+                height={PLOT.height - PLOT.top - PLOT.bottom}
+              ></rect>
+            </clipPath>
+          </defs>
           <rect
+            class="aqe-selection"
+            data-testid={`aqe-selection-${target.ord}`}
             x={PLOT.left}
             y={PLOT.top}
-            width={PLOT.width - PLOT.left - PLOT.right}
+            width="0"
             height={PLOT.height - PLOT.top - PLOT.bottom}
+            visibility="hidden"
           ></rect>
-        </clipPath>
-      </defs>
-      <rect
-        class="aqe-selection"
-        data-testid={`aqe-selection-${target.ord}`}
-        x={PLOT.left}
-        y={PLOT.top}
-        width="0"
-        height={PLOT.height - PLOT.top - PLOT.bottom}
-        visibility="hidden"
-      ></rect>
-      <path class="aqe-intensity" data-testid={`aqe-intensity-${target.ord}`} d="" clip-path={plotClipUrl}></path>
-      <g class="aqe-pitch" data-testid={`aqe-pitch-${target.ord}`} clip-path={plotClipUrl}></g>
-      <g class="aqe-learner-pitch" data-testid={`aqe-learner-pitch-${target.ord}`} clip-path={plotClipUrl}></g>
-      <rect
-        class="aqe-selection-outside-preview aqe-selection-outside-preview-before aqe-selection-rest-preview aqe-selection-rest-preview-before"
-        data-testid={`aqe-selection-outside-preview-before-${target.ord}`}
-        x={PLOT.left}
-        y={PLOT.top}
-        width="0"
-        height={PLOT.height - PLOT.top - PLOT.bottom}
-        visibility="hidden"
-      ></rect>
-      <rect
-        class="aqe-selection-outside-preview aqe-selection-outside-preview-after aqe-selection-rest-preview aqe-selection-rest-preview-after"
-        data-testid={`aqe-selection-outside-preview-after-${target.ord}`}
-        x={PLOT.left}
-        y={PLOT.top}
-        width="0"
-        height={PLOT.height - PLOT.top - PLOT.bottom}
-        visibility="hidden"
-      ></rect>
-      <g class="aqe-labels"></g>
-      <g class="aqe-x-axis" data-testid={`aqe-x-axis-${target.ord}`}></g>
-      <g
-        class="aqe-chorusing-marker-row"
-        data-testid={`aqe-chorusing-marker-row-${target.ord}`}
-        role="button"
-        aria-label={t("editor.chorusing.marker_row_aria")}
-        aria-hidden="true"
-        tabindex="0"
-        style="display: none"
-        onpointerdown={(event) => handleChorusingMarkerPointerDown(event, target.ord)}
-      ></g>
-    </svg>
-    <div class="aqe-selection-edge aqe-selection-start" data-testid={`aqe-selection-start-${target.ord}`} hidden></div>
-    <div class="aqe-selection-edge aqe-selection-end" data-testid={`aqe-selection-end-${target.ord}`} hidden></div>
-    <button
-      type="button"
-      class="aqe-selection-resize-handle aqe-selection-resize-start"
-      data-testid={`aqe-selection-resize-start-${target.ord}`}
-      aria-label="Resize selection start"
-      hidden
-      onpointerdown={(event) => {
-        if (event.shiftKey) return;
-        startSelectionResizeGesture(event, target.ord, "start");
-      }}
-    >
-      <span class="aqe-selection-resize-grip" aria-hidden="true">
-        <span></span>
-        <span></span>
-        <span></span>
-      </span>
-    </button>
-    <button
-      type="button"
-      class="aqe-selection-resize-handle aqe-selection-resize-end"
-      data-testid={`aqe-selection-resize-end-${target.ord}`}
-      aria-label="Resize selection end"
-      hidden
-      onpointerdown={(event) => {
-        if (event.shiftKey) return;
-        startSelectionResizeGesture(event, target.ord, "end");
-      }}
-    >
-      <span class="aqe-selection-resize-grip" aria-hidden="true">
-        <span></span>
-        <span></span>
-        <span></span>
-      </span>
-    </button>
-    <div class="aqe-css-cursor" data-testid={`aqe-css-cursor-${target.ord}`} aria-hidden="true">
-      <div class="aqe-css-cursor-line"></div>
-      <div class="aqe-css-cursor-flag">
-        <div class="aqe-css-cursor-flag-box">
-          <span class="aqe-css-cursor-flag-current">0 ms</span>
-          <span class="aqe-css-cursor-flag-pitch"> / -- Hz</span>
+          <path class="aqe-intensity" data-testid={`aqe-intensity-${target.ord}`} d="" clip-path={plotClipUrl}></path>
+          <g class="aqe-pitch" data-testid={`aqe-pitch-${target.ord}`} clip-path={plotClipUrl}></g>
+          <g class="aqe-learner-pitch" data-testid={`aqe-learner-pitch-${target.ord}`} clip-path={plotClipUrl}></g>
+          <rect
+            class="aqe-selection-outside-preview aqe-selection-outside-preview-before aqe-selection-rest-preview aqe-selection-rest-preview-before"
+            data-testid={`aqe-selection-outside-preview-before-${target.ord}`}
+            x={PLOT.left}
+            y={PLOT.top}
+            width="0"
+            height={PLOT.height - PLOT.top - PLOT.bottom}
+            visibility="hidden"
+          ></rect>
+          <rect
+            class="aqe-selection-outside-preview aqe-selection-outside-preview-after aqe-selection-rest-preview aqe-selection-rest-preview-after"
+            data-testid={`aqe-selection-outside-preview-after-${target.ord}`}
+            x={PLOT.left}
+            y={PLOT.top}
+            width="0"
+            height={PLOT.height - PLOT.top - PLOT.bottom}
+            visibility="hidden"
+          ></rect>
+          <g class="aqe-labels"></g>
+          <g class="aqe-x-axis" data-testid={`aqe-x-axis-${target.ord}`}></g>
+          <g
+            class="aqe-chorusing-marker-row"
+            data-testid={`aqe-chorusing-marker-row-${target.ord}`}
+            role="button"
+            aria-label={t("editor.chorusing.marker_row_aria")}
+            aria-hidden="true"
+            tabindex="0"
+            style="display: none"
+            onpointerdown={(event) => handleChorusingMarkerPointerDown(event, target.ord)}
+          ></g>
+        </svg>
+        <div class="aqe-selection-edge aqe-selection-start" data-testid={`aqe-selection-start-${target.ord}`} hidden></div>
+        <div class="aqe-selection-edge aqe-selection-end" data-testid={`aqe-selection-end-${target.ord}`} hidden></div>
+        <button
+          type="button"
+          class="aqe-selection-resize-handle aqe-selection-resize-start"
+          data-testid={`aqe-selection-resize-start-${target.ord}`}
+          aria-label="Resize selection start"
+          hidden
+          onpointerdown={(event) => {
+            if (event.shiftKey) return;
+            startSelectionResizeGesture(event, target.ord, "start");
+          }}
+        >
+          <span class="aqe-selection-resize-grip" aria-hidden="true">
+            <span></span>
+            <span></span>
+            <span></span>
+          </span>
+        </button>
+        <button
+          type="button"
+          class="aqe-selection-resize-handle aqe-selection-resize-end"
+          data-testid={`aqe-selection-resize-end-${target.ord}`}
+          aria-label="Resize selection end"
+          hidden
+          onpointerdown={(event) => {
+            if (event.shiftKey) return;
+            startSelectionResizeGesture(event, target.ord, "end");
+          }}
+        >
+          <span class="aqe-selection-resize-grip" aria-hidden="true">
+            <span></span>
+            <span></span>
+            <span></span>
+          </span>
+        </button>
+        <div class="aqe-css-cursor" data-testid={`aqe-css-cursor-${target.ord}`} aria-hidden="true">
+          <div class="aqe-css-cursor-line"></div>
+          <div class="aqe-css-cursor-flag">
+            <div class="aqe-css-cursor-flag-box">
+              <span class="aqe-css-cursor-flag-current">0 ms</span>
+              <span class="aqe-css-cursor-flag-pitch"> / -- Hz</span>
+            </div>
+          </div>
         </div>
+        {#if selectionMarkerShiftButtonsEnabled}
+          <SelectionMarkerShiftButtons {target} />
+        {/if}
+        <SelectionToolbar {buttonModes} {target} {visibleCommands} />
       </div>
+      <TimeViewportScroller {target} />
     </div>
-    {#if selectionMarkerShiftButtonsEnabled}
-      <SelectionMarkerShiftButtons {target} />
-    {/if}
-    <SelectionToolbar {buttonModes} {target} {visibleCommands} />
+    <ZoomControls {target} />
   </div>
-  <TimeViewportScroller {target} />
   <span class="aqe-cursor-label" data-testid={`aqe-progress-label-${target.ord}`}>0 ms</span>
 </div>

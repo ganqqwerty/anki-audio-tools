@@ -62,7 +62,7 @@ describe("editor inline plot helpers", () => {
     expect(pitchHzAtMs(track.points, 1000)).toBe(260);
   });
 
-  it("draws pitch paths, hertz labels, and x axis labels", () => {
+  it("draws pitch paths and x axis labels without y-axis hertz labels", () => {
     document.body.innerHTML = `
       <div class="aqe-visualizer">
         <svg>
@@ -79,10 +79,7 @@ describe("editor inline plot helpers", () => {
     drawXAxis(visualizer, track.durationMs);
 
     expect(visualizer.querySelectorAll(".aqe-pitch-path")).toHaveLength(2);
-    expect(Array.from(visualizer.querySelectorAll(".aqe-hz-label")).map((node) => node.textContent)).toEqual([
-      "300 Hz",
-      "100 Hz",
-    ]);
+    expect(visualizer.querySelectorAll(".aqe-hz-label")).toHaveLength(0);
     expect(Array.from(visualizer.querySelectorAll(".aqe-x-label")).map((node) => node.textContent)).toEqual([
       "0 ms",
       "500 ms",
@@ -108,8 +105,8 @@ describe("editor inline plot helpers", () => {
     const bounds = graphPixelBounds(svg);
     const ms = cursorMsFromEvent({ clientX: bounds.left + bounds.width * 0.75 }, svg, 2000);
 
-    expect(bounds.left).toBeCloseTo(54);
-    expect(bounds.width).toBeCloseTo(706);
+    expect(bounds.left).toBeCloseTo(20);
+    expect(bounds.width).toBeCloseTo(740);
     expect(ms).toBeCloseTo(1500);
   });
 

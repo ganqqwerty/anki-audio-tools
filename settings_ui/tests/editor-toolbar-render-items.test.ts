@@ -39,6 +39,15 @@ describe("editor toolbar render items", () => {
     ]);
   });
 
+  it("uses a play icon for the Play yours recording command", () => {
+    const playRecording = toolbarButtons().find((button) => button.command === "aqe:play-recording");
+
+    expect(playRecording).toMatchObject({
+      activeIcon: "pause",
+      icon: "play",
+    });
+  });
+
   it("keeps speed and volume as split run groups, not toolbar panels", () => {
     const items = buildEditorToolbarRenderItems(toolbarButtons());
 

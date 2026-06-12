@@ -28,6 +28,11 @@ export function buttonFor(ord: number, command: EditorCommand): HTMLButtonElemen
   return controls?.querySelector<HTMLButtonElement>(`[data-aqe-command="${command}"]`) ?? null;
 }
 
+export function buttonsFor(ord: number, command: EditorCommand): HTMLButtonElement[] {
+  const controls = controlsForOrd(ord);
+  return Array.from(controls?.querySelectorAll<HTMLButtonElement>(`[data-aqe-command="${command}"]`) ?? []);
+}
+
 export function graphButton(ord: number): HTMLButtonElement | null {
   return buttonFor(ord, "aqe:analyze");
 }
@@ -39,6 +44,11 @@ export function playButton(ord: number): HTMLButtonElement | null {
 export function repeatButtonForOrd(ord: number): HTMLButtonElement | null {
   const controls = controlsForOrd(ord);
   return controls?.querySelector<HTMLButtonElement>(".aqe-repeat-button") ?? null;
+}
+
+export function repeatButtonsForOrd(ord: number): HTMLButtonElement[] {
+  const controls = controlsForOrd(ord);
+  return Array.from(controls?.querySelectorAll<HTMLButtonElement>(".aqe-repeat-button") ?? []);
 }
 
 export function playRepeatMenuButtonForOrd(ord: number): HTMLButtonElement | null {

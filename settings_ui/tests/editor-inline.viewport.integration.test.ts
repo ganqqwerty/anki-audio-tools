@@ -5,6 +5,7 @@ import {
   initializeEditorRuntime,
   scan,
 } from "../src/editor-inline/runtime.js";
+import { PLOT, plotWidth } from "../src/editor-inline/plot.js";
 import {
   commandLog,
   dragGraphSelection,
@@ -158,7 +159,7 @@ describe("editor inline viewport controls", () => {
       timecodeFlagPitch: " / 260 Hz",
       timecodeFlagVisible: true,
     });
-    expect(state?.cursorX).toBeCloseTo(44 + 566 * 0.7);
+    expect(state?.cursorX).toBeCloseTo(PLOT.left + plotWidth() * 0.7);
 
     window.__aqeSetCursorForTest?.(0, 900, false);
     state = window.__aqeGraphStateForTest?.(0);
@@ -205,7 +206,7 @@ describe("editor inline viewport controls", () => {
       viewportEndMs: 500,
       viewportStartMs: 0,
     });
-    expect(state?.cursorX).toBeCloseTo(44 + 566 * 0.5);
+    expect(state?.cursorX).toBeCloseTo(PLOT.left + plotWidth() * 0.5);
     expect(commandLog().slice(commandsBeforeScroll.length)).not.toContain("aqe:set-cursor");
   });
 

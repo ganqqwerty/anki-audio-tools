@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { disposeEditorRuntime, initializeEditorRuntime, scan } from "../src/editor-inline/runtime.js";
-import { bridgeCommands, dragGraphSelection, muteConsole, renderFields, setRepeatMode, setGraphBounds, track } from "./editor-inline.integration.helpers.js";
+import { bridgeCommands, dragGraphSelection, graphClientX, muteConsole, renderFields, setRepeatMode, setGraphBounds, track } from "./editor-inline.integration.helpers.js";
 
 describe("editor inline playback fallback and diagnostics", () => {
   let restoreConsole: () => void;
@@ -55,7 +55,7 @@ describe("editor inline playback fallback and diagnostics", () => {
     const svg = document.querySelector<SVGSVGElement>('[data-testid="aqe-graph-svg-0"]')!;
     setGraphBounds(svg);
 
-    const result = window.__aqeSetCursorByClientXForTest?.(0, 44 + 566 * 0.6, true);
+    const result = window.__aqeSetCursorByClientXForTest?.(0, graphClientX(svg, 0.6), true);
 
     expect(result?.cursorMs).toBe(600);
     expect(window.__aqeGetCursorIntent?.()).toMatchObject({

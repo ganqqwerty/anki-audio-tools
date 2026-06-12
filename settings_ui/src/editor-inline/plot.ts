@@ -11,7 +11,7 @@ export interface PlotGeometry {
   width: number;
 }
 
-export const PLOT = { width: 620, height: 150, left: 44, right: 10, top: 28, bottom: 34 } as const;
+export const PLOT = { width: 620, height: 150, left: 10, right: 10, top: 28, bottom: 34 } as const;
 
 interface SvgViewBoxMetrics {
   height: number;
@@ -198,26 +198,13 @@ function drawPitchPaths(
 
 export function drawLabels(
   visualizer: VisualizerElement,
-  track: NormalizedProsodyTrack,
+  _track: NormalizedProsodyTrack,
   options: { pitchMaxHz?: number | null; pitchMinHz?: number | null; plot?: PlotGeometry } = {},
 ): void {
+  void options;
   const group = visualizer.querySelector<SVGGElement>(".aqe-labels");
   if (!group) return;
   group.textContent = "";
-  const maxHz = options.pitchMaxHz ?? track.pitchMaxHz ?? 500;
-  const minHz = options.pitchMinHz ?? track.pitchMinHz ?? 75;
-  const plot = options.plot ?? PLOT;
-  for (const item of [
-    [maxHz, plot.top + 10],
-    [minHz, plot.height - plot.bottom],
-  ] as const) {
-    const text = document.createElementNS("http://www.w3.org/2000/svg", "text");
-    text.setAttribute("class", "aqe-hz-label");
-    text.setAttribute("x", "2");
-    text.setAttribute("y", String(item[1]));
-    text.textContent = `${Math.round(item[0])} Hz`;
-    group.appendChild(text);
-  }
 }
 
 export function drawXAxis(

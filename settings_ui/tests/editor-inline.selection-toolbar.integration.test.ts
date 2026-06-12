@@ -107,7 +107,7 @@ describe("editor inline selection toolbar integration", () => {
       selectionEndMs: 600,
       selectionToolbarHidden: false,
     });
-    expect(state?.selectionToolbarLeftPx).toBeCloseTo(755.6, 1);
+    expect(state?.selectionToolbarLeftPx).toBeCloseTo(742, 1);
     expect(state?.selectionToolbarTopPx).toBeCloseTo(116, 1);
   });
 

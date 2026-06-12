@@ -72,6 +72,10 @@
   left: calc(var(--aqe-selection-end-edge-px, 0px) - 0.5px);
 }
 
+button.aqe-selection-resize-handle:not(:disabled) {
+  cursor: col-resize;
+}
+
 .aqe-selection-resize-handle {
   appearance: none;
   background: ButtonFace;
@@ -79,7 +83,6 @@
   border-radius: 3px;
   box-sizing: border-box;
   color: rgb(44 44 44 / 92%);
-  cursor: col-resize;
   filter: none;
   height: calc(var(--aqe-plot-height-px, 0px) * 0.8);
   left: 0;
@@ -91,11 +94,6 @@
   top: calc(var(--aqe-plot-top-px, 0px) + var(--aqe-plot-height-px, 0px) * 0.1);
   width: 10px;
   z-index: 2;
-}
-
-.aqe-selection-resize-handle,
-.aqe-selection-resize-handle * {
-  cursor: col-resize;
 }
 
 .aqe-selection-resize-start {

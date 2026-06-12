@@ -2,10 +2,9 @@ import { PROCESSING_COMMANDS, processingMessage } from "./commands.js";
 import { t } from "../lib/i18n.js";
 import {
   allButtons,
+  buttonsFor,
   buttonFor,
   controlsForOrd,
-  graphButton,
-  playButton,
   visualizerForOrd,
 } from "./dom-selectors.js";
 import { chorusingControlsForVisualizer } from "./chorusing-dom.js";
@@ -154,27 +153,25 @@ export function applyInitialHistoryAvailabilityForOrd(ord: number): void {
 }
 
 export function setCommandButtonLabel(ord: number, command: EditorCommand, label: string): void {
-  const button = command === "aqe:play"
-    ? playButton(ord)
-    : command === "aqe:analyze"
-      ? graphButton(ord)
-      : controlsForOrd(ord)?.querySelector<HTMLButtonElement>(`[data-aqe-command="${command}"]`) ?? null;
-  if (!button) return;
+  const buttons = buttonsFor(ord, command);
+  if (buttons.length === 0) return;
   const displayLabel = localizedButtonLabel(command, label);
-  const labelNode = button.querySelector<HTMLElement>(".aqe-button-label");
-  if (labelNode) {
-    labelNode.textContent = displayLabel;
-  } else {
-    button.textContent = displayLabel;
-  }
-  if (command === "aqe:play") {
-    button.dataset.aqeButtonState = label === "Pause" ? "pause" : "play";
-  }
-  if (command === "aqe:analyze") {
-    button.dataset.aqeButtonState = label === "Redraw" ? "redraw" : "graph";
-    const title = label === "Redraw" ? t("editor.command.redraw.title") : t("editor.command.graph.title");
-    button.dataset.aqeEnabledTitle = title;
-    setButtonTooltipContent(button, title);
+  for (const button of buttons) {
+    const labelNode = button.querySelector<HTMLElement>(".aqe-button-label");
+    if (labelNode) {
+      labelNode.textContent = displayLabel;
+    } else {
+      button.textContent = displayLabel;
+    }
+    if (command === "aqe:play") {
+      button.dataset.aqeButtonState = label === "Pause" ? "pause" : "play";
+    }
+    if (command === "aqe:analyze") {
+      button.dataset.aqeButtonState = label === "Redraw" ? "redraw" : "graph";
+      const title = label === "Redraw" ? t("editor.command.redraw.title") : t("editor.command.graph.title");
+      button.dataset.aqeEnabledTitle = title;
+      setButtonTooltipContent(button, title);
+    }
   }
 }
 

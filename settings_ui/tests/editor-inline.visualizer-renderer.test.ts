@@ -160,7 +160,7 @@ describe("editor inline visualizer renderer", () => {
     applyVisualizerTimeViewport(visualizer, { startMs: 0, endMs: 500, durationMs: 1000 });
     const zoomedPath = visualizer.querySelector<SVGPathElement>(".aqe-pitch-path")?.getAttribute("d") || "";
 
-    expect(fullPath).toContain("L 327.00 80.80");
+    expect(fullPath).toContain("L 310.00 80.80");
     expect(zoomedPath).toContain("L 610.00 80.80");
   });
 
@@ -175,7 +175,7 @@ describe("editor inline visualizer renderer", () => {
     const clipRect = visualizer.querySelector<SVGRectElement>("clipPath > rect")!;
     const lastTick = Array.from(visualizer.querySelectorAll<SVGLineElement>(".aqe-x-tick")).at(-1)!;
     expect(svg.getAttribute("viewBox")).toBe("0 0 1240 150");
-    expect(clipRect.getAttribute("width")).toBe("1186");
+    expect(clipRect.getAttribute("width")).toBe("1220");
     expect(intensity.getAttribute("d")).toContain("L 1230.00 116.00 Z");
     expect(lastTick.getAttribute("x1")).toBe("1230.00");
   });

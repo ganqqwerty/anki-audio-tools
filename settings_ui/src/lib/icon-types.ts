@@ -4,6 +4,7 @@ export type CommandIconName =
   | "chart-line"
   | "chevron-down"
   | "chevron-right"
+  | "circle"
   | "circle-help"
   | "fast-forward"
   | "file-audio"
