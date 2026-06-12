@@ -2,9 +2,11 @@
 
 from __future__ import annotations
 
+import sqlite3
 from pathlib import Path
 
 from e2e.editor_note_helpers import (
+    ADDON_NUMERIC_ID,
     _basic_audio_note,
     _button_selector,
     _click_and_wait_for_new_file,
@@ -33,6 +35,21 @@ def _history_labels_js(direction: str, ord_: int = 0) -> str:
     """
 
 
+def _persistent_history_rows(editor) -> list[dict[str, object]]:
+    addon_dir = Path(editor.mw.addonManager.addonsFolder(ADDON_NUMERIC_ID))
+    db_path = addon_dir / "user_files" / "persistent_undo.sqlite3"
+    with sqlite3.connect(db_path) as connection:
+        connection.row_factory = sqlite3.Row
+        rows = connection.execute(
+            """
+            select id, status_summary, undone_at_ms, expired_at_ms
+            from persistent_undo_operations
+            order by id
+            """
+        ).fetchall()
+    return [dict(row) for row in rows]
+
+
 def test_processing_persistent_history_survives_editor_reopen(anki_mw, ffmpeg_config) -> None:
     media_dir = Path(anki_mw.col.media.dir())
     source = media_dir / "editor_persistent_history_source.wav"
@@ -40,6 +57,7 @@ def test_processing_persistent_history_survives_editor_reopen(anki_mw, ffmpeg_co
     note = _basic_audio_note(anki_mw, source.name)
     _configure_ffmpeg(anki_mw, ffmpeg_config, editor_history_size=100)
 
+    rows_after_render: list[dict[str, object]] = []
     editor, parent = _open_editor(anki_mw, note)
     try:
         wait_for_selector(editor.web, _button_selector("aqe:faster"), timeout=10.0)
@@ -79,9 +97,17 @@ def test_processing_persistent_history_survives_editor_reopen(anki_mw, ffmpeg_co
             lambda status: status["text"] == "Decreased speed to x1.5.",
             timeout=10.0,
         )
+        rows_after_render = _persistent_history_rows(editor)
     finally:
         editor.set_note(None)
         parent.close()
+
+    assert [row["status_summary"] for row in rows_after_render[-3:]] == [
+        "Increased speed to x1.5.",
+        "Increased volume by 15 dB.",
+        "Decreased speed to x1.5.",
+    ]
+    assert [row["undone_at_ms"] for row in rows_after_render[-3:]] == [None, None, None]
 
     reopened, reopened_parent = _open_editor(anki_mw, note)
     try:
@@ -105,6 +131,12 @@ def test_processing_persistent_history_survives_editor_reopen(anki_mw, ffmpeg_co
             timeout=5.0,
             message="Persistent undo history jump did not restore the selected generated reference",
         )
+        rows_after_depth_restore = _persistent_history_rows(reopened)
+        assert [row["undone_at_ms"] is not None for row in rows_after_depth_restore[-3:]] == [
+            False,
+            True,
+            True,
+        ]
     finally:
         reopened.set_note(None)
         reopened_parent.close()
