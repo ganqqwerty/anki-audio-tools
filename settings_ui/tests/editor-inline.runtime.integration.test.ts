@@ -113,4 +113,37 @@ describe("editor inline runtime scan integration", () => {
         expect(document.querySelectorAll(".aqe-controls")).toHaveLength(1);
         expect(document.querySelector(".aqe-controls")?.getAttribute("data-aqe-source-filename")).toBe("second.ogg");
     });
+
+    it("mounts explicit audio controls when field containers appear after scheduled scans", async () => {
+        vi.useFakeTimers();
+        try {
+            document.body.innerHTML = `<main id="editor-root"></main>`;
+
+            initializeEditorRuntime({
+                audioFieldIndices: [1],
+                audioFieldSources: {1: "late-field.wav"},
+                showGraphByDefault: false,
+            });
+
+            vi.runOnlyPendingTimers();
+            expect(document.querySelectorAll(".aqe-controls")).toHaveLength(0);
+
+            document.getElementById("editor-root")!.insertAdjacentHTML(
+                "beforeend",
+                `
+            <div class="field-container" data-index="1">
+              <div contenteditable="true">Answer [sound:late-field.wav]</div>
+            </div>
+            `,
+            );
+
+            await Promise.resolve();
+            vi.runOnlyPendingTimers();
+
+            expect(document.querySelectorAll('.aqe-controls[data-aqe-field-ord="1"]')).toHaveLength(1);
+            expect(document.querySelector(".aqe-controls")?.getAttribute("data-aqe-source-filename")).toBe("late-field.wav");
+        } finally {
+            vi.useRealTimers();
+        }
+    });
 });
