@@ -356,6 +356,7 @@ source_modules = [
     "anki_audio_quick_editor.media_paths",
     "anki_audio_quick_editor.permission_guidance",
     "anki_audio_quick_editor.persistent_history",
+    "anki_audio_quick_editor.persistent_undo_chain",
     "anki_audio_quick_editor.prosody_analyzer",
     "anki_audio_quick_editor.prosody_cache",
     "anki_audio_quick_editor.prosody_fallback",

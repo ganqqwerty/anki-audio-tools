@@ -20,7 +20,14 @@ from e2e.editor_note_helpers import (
     _wait_for_status,
     _wait_for_status_flow,
 )
-from e2e.helpers import click_selector, generate_tone, run_js, wait_for_condition, wait_for_js_condition, wait_for_selector
+from e2e.helpers import (
+    click_selector,
+    generate_tone,
+    run_js,
+    wait_for_condition,
+    wait_for_js_condition,
+    wait_for_selector,
+)
 
 
 def _plot_pointer_script(ord_: int, start_ratio: float, end_ratio: float) -> str:

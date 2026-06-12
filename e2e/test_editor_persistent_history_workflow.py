@@ -57,7 +57,6 @@ def test_processing_persistent_history_survives_editor_reopen(anki_mw, ffmpeg_co
     note = _basic_audio_note(anki_mw, source.name)
     _configure_ffmpeg(anki_mw, ffmpeg_config, editor_history_size=100)
 
-    rows_after_render: list[dict[str, object]] = []
     editor, parent = _open_editor(anki_mw, note)
     try:
         wait_for_selector(editor.web, _button_selector("aqe:faster"), timeout=10.0)
@@ -98,16 +97,15 @@ def test_processing_persistent_history_survives_editor_reopen(anki_mw, ffmpeg_co
             timeout=10.0,
         )
         rows_after_render = _persistent_history_rows(editor)
+        assert [row["status_summary"] for row in rows_after_render[-3:]] == [
+            "Increased speed to x1.5.",
+            "Increased volume by 15 dB.",
+            "Decreased speed to x1.5.",
+        ]
+        assert [row["undone_at_ms"] for row in rows_after_render[-3:]] == [None, None, None]
     finally:
         editor.set_note(None)
         parent.close()
-
-    assert [row["status_summary"] for row in rows_after_render[-3:]] == [
-        "Increased speed to x1.5.",
-        "Increased volume by 15 dB.",
-        "Decreased speed to x1.5.",
-    ]
-    assert [row["undone_at_ms"] for row in rows_after_render[-3:]] == [None, None, None]
 
     reopened, reopened_parent = _open_editor(anki_mw, note)
     try:
