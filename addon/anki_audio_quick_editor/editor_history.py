@@ -39,6 +39,7 @@ def request_history_availability_after_edit(editor: Any, session: EditorSession,
 def history_snapshot(editor: Any, session: EditorSession, deps: Any) -> HistorySnapshot:
     """Return the current history snapshot for the session field."""
     latest_persistent_undo_item = getattr(deps, "latest_persistent_undo_item", lambda _editor, _field_index: None)
+    persistent_undo_items = getattr(deps, "persistent_undo_items", None)
     return history_snapshot_for_field(
         editor,
         field_index=session.field_index,
@@ -46,6 +47,7 @@ def history_snapshot(editor: Any, session: EditorSession, deps: Any) -> HistoryS
         history_size=_history_size(editor, deps),
         can_persistent_undo=deps.can_persistent_undo,
         latest_persistent_undo_item=latest_persistent_undo_item,
+        persistent_undo_items=persistent_undo_items,
     )
 
 
@@ -113,6 +115,8 @@ def history_jump(editor: Any, payload: Any, deps: Any) -> None:
         return
     entries = _history_jump_entries(session, direction, steps)
     if entries is None:
+        if _restore_persistent_history_jump(editor, session, direction, steps, deps):
+            return
         deps.eval_status(editor, t("editor.status.history_selection_unavailable"))
         return
     for entry in entries:
@@ -123,6 +127,23 @@ def history_jump(editor: Any, payload: Any, deps: Any) -> None:
             redo_current=direction == "undo",
             status=undo_status_message(entry) if direction == "undo" else redo_status_message(entry),
         )
+
+
+def _restore_persistent_history_jump(
+    editor: Any,
+    session: EditorSession,
+    direction: str,
+    steps: int,
+    deps: Any,
+) -> bool:
+    if direction != "undo" or session.undo_history.entries:
+        return False
+    restore_persistent_steps = getattr(deps, "restore_persistent_undo_steps", None)
+    if not callable(restore_persistent_steps) or not restore_persistent_steps(editor, session, steps):
+        return False
+    sync_history_availability(editor, session, deps)
+    request_history_availability_after_edit(editor, session, deps)
+    return True
 
 
 def _history_jump_request(editor: Any, payload: Any, deps: Any) -> tuple[str | None, int | None]:

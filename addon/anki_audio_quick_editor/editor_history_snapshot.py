@@ -30,6 +30,7 @@ def history_snapshot_for_field(
     history_size: object,
     can_persistent_undo: Callable[[Any, int | None], bool],
     latest_persistent_undo_item: Callable[[Any, int | None], HistorySnapshotItem | None],
+    persistent_undo_items: Callable[[Any, int | None, int], list[HistorySnapshotItem]] | None = None,
 ) -> HistorySnapshot:
     """Return the undo/redo menu data for one editor field."""
     limit = normalize_editor_history_size(history_size)
@@ -51,9 +52,12 @@ def history_snapshot_for_field(
             fallback_label=t("editor.history.redo_empty_label"),
         )
     if field_index is not None and not undo_items and can_persistent_undo(editor, field_index):
-        item = latest_persistent_undo_item(editor, field_index)
-        if item is not None:
-            undo_items.append(item)
+        if persistent_undo_items is not None:
+            undo_items.extend(persistent_undo_items(editor, field_index, limit))
+        else:
+            item = latest_persistent_undo_item(editor, field_index)
+            if item is not None:
+                undo_items.append(item)
     return {
         "canUndo": bool(undo_items),
         "canRedo": bool(redo_items),

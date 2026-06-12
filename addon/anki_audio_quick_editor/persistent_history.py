@@ -157,6 +157,41 @@ class PersistentHistoryRepository:
         )
         return operation
 
+    def recent_undoable(
+        self,
+        collection_id: str,
+        note_id: int,
+        field_index: int,
+        *,
+        limit: int,
+    ) -> list[PersistentHistoryOperation]:
+        """Return recent non-expired operations that have not been undone."""
+        self._migrate()
+        with closing(self._connect()) as connection:
+            rows = connection.execute(
+                """
+                select * from persistent_undo_operations
+                where collection_id = ?
+                  and note_id = ?
+                  and field_index = ?
+                  and undone_at_ms is null
+                  and expired_at_ms is null
+                order by id desc
+                limit ?
+                """,
+                (collection_id, note_id, field_index, max(0, int(limit))),
+            ).fetchall()
+        operations = [_operation_from_row(row) for row in rows]
+        logger.debug(
+            "persistent undo recent query count=%s collection=%s note_id=%s field_index=%s limit=%s",
+            len(operations),
+            _short_collection_id(collection_id),
+            note_id,
+            field_index,
+            limit,
+        )
+        return operations
+
     def mark_undone(self, operation_id: int, *, undone_at_ms: int) -> None:
         """Mark an operation as undone."""
         self._migrate()

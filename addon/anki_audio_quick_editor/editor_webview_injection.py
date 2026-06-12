@@ -138,6 +138,7 @@ def _initial_history_snapshots_by_field(
             history_size=history_size,
             can_persistent_undo=_can_persistent_undo,
             latest_persistent_undo_item=_latest_persistent_undo_item,
+            persistent_undo_items=_persistent_undo_items,
         )
     return snapshots
 
@@ -169,6 +170,15 @@ def _latest_persistent_undo_item(editor: Any, field_index: int | None) -> Histor
     if item is None:
         return None
     return {"id": item["id"], "label": item["label"]}
+
+
+def _persistent_undo_items(editor: Any, field_index: int | None, history_size: int) -> list[HistorySnapshotItem]:
+    try:
+        items = editor_persistent_undo.persistent_undo_items(editor, field_index, history_size)
+    except Exception:
+        logger.debug("Could not compute persistent undo items.", exc_info=True)
+        return []
+    return [{"id": item["id"], "label": item["label"]} for item in items]
 
 
 def _initial_status_by_field(session: EditorSession | None) -> dict[int, dict[str, str]]:

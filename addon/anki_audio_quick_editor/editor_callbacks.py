@@ -151,7 +151,12 @@ _write_generated_media = _with_deps(editor_processing.write_generated_media, _pr
 _record_standard_persistent_undo = editor_persistent_undo.record_standard_persistent_undo
 _can_persistent_undo = editor_persistent_undo.can_persistent_undo
 _latest_persistent_undo_item = editor_persistent_undo.latest_persistent_undo_item
+_persistent_undo_items = editor_persistent_undo.persistent_undo_items
 _restore_persistent_undo = _with_deps(editor_persistent_undo.restore_persistent_undo, _history_deps)
+_restore_persistent_undo_steps = _with_deps(
+    editor_persistent_undo.restore_persistent_undo_steps,
+    _history_deps,
+)
 _render_failed = _with_deps(editor_processing.render_failed, _processing_deps)
 _denoise_standard_async = _with_deps(editor_processing.denoise_standard_async, _processing_deps)
 _convert_async = _with_deps(editor_processing.convert_async, _processing_deps)

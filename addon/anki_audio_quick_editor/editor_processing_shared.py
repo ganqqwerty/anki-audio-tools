@@ -42,6 +42,7 @@ def _history_snapshot(editor: Any, session: EditorSession, deps: Any) -> Any | N
     try:
         config = deps.config(editor) if hasattr(deps, "config") else {}
         latest_persistent_undo_item = getattr(deps, "latest_persistent_undo_item", lambda _editor, _field_index: None)
+        persistent_undo_items = getattr(deps, "persistent_undo_items", None)
         return history_snapshot_for_field(
             editor,
             field_index=session.field_index,
@@ -49,6 +50,7 @@ def _history_snapshot(editor: Any, session: EditorSession, deps: Any) -> Any | N
             history_size=config.get("editor_history_size") if isinstance(config, dict) else None,
             can_persistent_undo=deps.can_persistent_undo,
             latest_persistent_undo_item=latest_persistent_undo_item,
+            persistent_undo_items=persistent_undo_items,
         )
     except (AttributeError, TypeError):
         return None

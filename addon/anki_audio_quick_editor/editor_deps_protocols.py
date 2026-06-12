@@ -23,6 +23,7 @@ class RegionDeleteDeps(Protocol):
     format_ffmpeg_command: Callable[[tuple[str, ...]], str]
     is_busy: Callable[[Any], bool]
     latest_persistent_undo_item: Callable[..., Any]
+    persistent_undo_items: Callable[..., Any]
     main: Callable[[Any, Callable[[], None]], None]
     make_output_filename: Callable[..., str]
     render_audio_region_deleted: Callable[..., Any]
