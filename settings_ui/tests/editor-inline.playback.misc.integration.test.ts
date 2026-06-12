@@ -1,7 +1,17 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { disposeEditorRuntime, initializeEditorRuntime, scan } from "../src/editor-inline/runtime.js";
-import { bridgeCommands, dragGraphSelection, graphClientX, muteConsole, renderFields, setRepeatMode, setGraphBounds, track } from "./editor-inline.integration.helpers.js";
+import {
+  bridgeCommands,
+  dragGraphSelection,
+  graphClientX,
+  muteConsole,
+  renderFields,
+  setFullGraphViewport,
+  setGraphBounds,
+  setRepeatMode,
+  track,
+} from "./editor-inline.integration.helpers.js";
 
 describe("editor inline playback fallback and diagnostics", () => {
   let restoreConsole: () => void;
@@ -24,6 +34,7 @@ describe("editor inline playback fallback and diagnostics", () => {
     window.__aqeSetVisualizer?.(0, track, 700);
     const svg = document.querySelector<SVGSVGElement>('[data-testid="aqe-graph-svg-0"]')!;
     setGraphBounds(svg);
+    setFullGraphViewport();
     dragGraphSelection(svg, 0.25, 0.75);
     await setRepeatMode(true);
     const audio = document.querySelector<HTMLAudioElement>('[data-testid="aqe-audio-clock-0"]')!;
@@ -54,6 +65,7 @@ describe("editor inline playback fallback and diagnostics", () => {
     window.__aqeSetVisualizer?.(0, track, 0);
     const svg = document.querySelector<SVGSVGElement>('[data-testid="aqe-graph-svg-0"]')!;
     setGraphBounds(svg);
+    setFullGraphViewport();
 
     const result = window.__aqeSetCursorByClientXForTest?.(0, graphClientX(svg, 0.6), true);
 

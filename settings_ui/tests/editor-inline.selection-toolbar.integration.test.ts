@@ -13,6 +13,7 @@ import {
   renderFields,
   renderTwoAudioFields,
   selectionToolbarButton,
+  setFullGraphViewport,
   setGraphBounds,
   track,
 } from "./editor-inline.integration.helpers.js";
@@ -43,6 +44,7 @@ describe("editor inline selection toolbar integration", () => {
     window.__aqeSetVisualizer?.(0, track, 250);
     const svg = document.querySelector<SVGSVGElement>('[data-testid="aqe-graph-svg-0"]')!;
     setGraphBounds(svg);
+    setFullGraphViewport();
 
     expect(window.__aqeGraphStateForTest?.(0)).toMatchObject({
       hasTrack: true,
@@ -68,6 +70,7 @@ describe("editor inline selection toolbar integration", () => {
     window.__aqeSetVisualizer?.(0, track, 250);
     const svg = document.querySelector<SVGSVGElement>('[data-testid="aqe-graph-svg-0"]')!;
     setGraphBounds(svg);
+    setFullGraphViewport();
 
     dispatchGraphPointer(svg, "pointerdown", graphClientX(svg, 0.2), true);
     dispatchGraphPointer(svg, "pointermove", graphClientX(svg, 0.6), true);
@@ -97,6 +100,7 @@ describe("editor inline selection toolbar integration", () => {
     const svg = document.querySelector<SVGSVGElement>('[data-testid="aqe-graph-svg-0"]')!;
     setGraphBounds(svg, { height: 150, width: 1240 });
     window.__aqeSetVisualizer?.(0, track, 250);
+    setFullGraphViewport();
 
     dragGraphSelection(svg, 0.2, 0.6);
 
@@ -117,6 +121,7 @@ describe("editor inline selection toolbar integration", () => {
     window.__aqeSetVisualizer?.(0, track, 250);
     const svg = document.querySelector<SVGSVGElement>('[data-testid="aqe-graph-svg-0"]')!;
     setGraphBounds(svg);
+    setFullGraphViewport();
     dragGraphSelection(svg, 0.2, 0.6);
 
     const play = selectionToolbarButton("play");
@@ -154,6 +159,7 @@ describe("editor inline selection toolbar integration", () => {
     window.__aqeSetVisualizer?.(0, track, 250);
     const svg = document.querySelector<SVGSVGElement>('[data-testid="aqe-graph-svg-0"]')!;
     setGraphBounds(svg);
+    setFullGraphViewport();
     dragGraphSelection(svg, 0.2, 0.6);
 
     expect(document.querySelector('[data-testid="aqe-selection-toolbar-delete-region-0"]')).toBeNull();
@@ -172,6 +178,7 @@ describe("editor inline selection toolbar integration", () => {
     window.__aqeSetVisualizer?.(0, track, 250);
     const svg = document.querySelector<SVGSVGElement>('[data-testid="aqe-graph-svg-0"]')!;
     setGraphBounds(svg);
+    setFullGraphViewport();
     dragGraphSelection(svg, 0.2, 0.6);
 
     expect(window.__aqeGraphStateForTest?.(0)).toMatchObject({
@@ -202,9 +209,11 @@ describe("editor inline selection toolbar integration", () => {
     window.__aqeSetVisualizer?.(0, track, 250);
     const svg = document.querySelector<SVGSVGElement>('[data-testid="aqe-graph-svg-0"]')!;
     setGraphBounds(svg);
+    setFullGraphViewport();
     dragGraphSelection(svg, 0.2, 0.6);
 
     window.__aqeSetVisualizer?.(0, { ...track, sourceFilename: "transformed-visible.mp3" }, 0);
+    setFullGraphViewport();
     dragGraphSelection(svg, 0.3, 0.7);
     expect(window.__aqeGraphStateForTest?.(0)).toMatchObject({
       selectionToolbarHidden: false,
@@ -216,6 +225,7 @@ describe("editor inline selection toolbar integration", () => {
     window.__aqeSetVisualizer?.(0, { ...track, sourceFilename: "transformed-remount.mp3" }, 0);
     const remountedSvg = document.querySelector<SVGSVGElement>('[data-testid="aqe-graph-svg-0"]')!;
     setGraphBounds(remountedSvg);
+    setFullGraphViewport();
     dragGraphSelection(remountedSvg, 0.35, 0.55);
     expect(window.__aqeGraphStateForTest?.(0)).toMatchObject({
       selectionToolbarHidden: false,
@@ -229,6 +239,7 @@ describe("editor inline selection toolbar integration", () => {
     window.__aqeSetVisualizer?.(0, track, 250);
     const svg = document.querySelector<SVGSVGElement>('[data-testid="aqe-graph-svg-0"]')!;
     setGraphBounds(svg);
+    setFullGraphViewport();
     dragGraphSelection(svg, 0.2, 0.6);
     const outsidePreviewBefore = document.querySelector<HTMLElement>(".aqe-selection-outside-preview-before");
     const outsidePreviewAfter = document.querySelector<HTMLElement>(".aqe-selection-outside-preview-after");
@@ -269,6 +280,8 @@ describe("editor inline selection toolbar integration", () => {
     const secondSvg = document.querySelector<SVGSVGElement>('[data-testid="aqe-graph-svg-1"]')!;
     setGraphBounds(firstSvg);
     setGraphBounds(secondSvg);
+    setFullGraphViewport(0);
+    setFullGraphViewport(1);
     dragGraphSelection(firstSvg, 0.2, 0.6);
     dragGraphSelection(secondSvg, 0.3, 0.7);
 

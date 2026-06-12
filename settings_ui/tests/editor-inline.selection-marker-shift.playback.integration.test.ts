@@ -6,6 +6,7 @@ import {
   muteConsole,
   prepareHtmlAudio,
   renderFields,
+  setFullGraphViewport,
   setGraphBounds,
   track,
 } from "./editor-inline.integration.helpers.js";
@@ -40,6 +41,7 @@ describe("editor inline selection marker shift playback integration", () => {
     await Promise.resolve();
     const svg = document.querySelector<SVGSVGElement>('[data-testid="aqe-graph-svg-0"]')!;
     setGraphBounds(svg);
+    setFullGraphViewport();
     dragGraphSelection(svg, 0, 1 / 3);
     const audio = prepareHtmlAudio();
 

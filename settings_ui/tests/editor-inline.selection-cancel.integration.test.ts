@@ -9,6 +9,7 @@ import {
   muteConsole,
   prepareHtmlAudio,
   renderFields,
+  setFullGraphViewport,
   setGraphBounds,
   track,
 } from "./editor-inline.integration.helpers.js";
@@ -34,6 +35,7 @@ describe("editor inline selection cancel integration", () => {
     const svg = document.querySelector<SVGSVGElement>('[data-testid="aqe-graph-svg-0"]')!;
     const band = document.querySelector('[data-testid="aqe-selection-0"]')!;
     setGraphBounds(svg);
+    setFullGraphViewport();
     dragGraphSelection(svg, 0.2, 0.6);
 
     dispatchGraphPointer(svg, "pointerdown", graphClientX(svg, 0.7), true);
@@ -68,6 +70,7 @@ describe("editor inline selection cancel integration", () => {
     const svg = document.querySelector<SVGSVGElement>('[data-testid="aqe-graph-svg-0"]')!;
     const band = document.querySelector('[data-testid="aqe-selection-0"]')!;
     setGraphBounds(svg);
+    setFullGraphViewport();
     dragGraphSelection(svg, 0.2, 0.6);
 
     dispatchGraphPointer(svg, "pointerdown", graphClientX(svg, 0.7), true);
@@ -99,6 +102,7 @@ describe("editor inline selection cancel integration", () => {
     window.__aqeSetVisualizer?.(0, track, 100);
     const svg = document.querySelector<SVGSVGElement>('[data-testid="aqe-graph-svg-0"]')!;
     setGraphBounds(svg);
+    setFullGraphViewport();
     dragGraphSelection(svg, 0.2, 0.6);
     const audio = prepareHtmlAudio();
 
