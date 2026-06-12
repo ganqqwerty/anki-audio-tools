@@ -334,6 +334,7 @@
   "editor.status.operation.redo": "Wiederholt: {summary}",
   "editor.status.nothing_to_undo": "Nichts zum Rückgängigmachen.",
   "editor.status.nothing_to_redo": "Nichts zum Wiederholen.",
+  "editor.status.history_selection_unavailable": "That history item is no longer available.",
   "editor.status.persistent_undo_unavailable": "Persistentes Rückgängigmachen ist nicht verfügbar, weil diese Anki-Version keine SQLite-Unterstützung bereitstellt.",
   "editor.status.region_read_failed": "Der ausgewählte Bereich konnte nicht gelesen werden.",
   "editor.status.graph_inactive": "Das ausgewählte Diagramm ist nicht mehr das aktive Feld.",

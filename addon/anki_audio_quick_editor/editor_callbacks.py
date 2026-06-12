@@ -221,6 +221,7 @@ _play_learner_recording = _with_deps(
 
 _undo = _with_deps(editor_history.undo, _history_deps)
 _redo = _with_deps(editor_history.redo, _history_deps)
+_history_jump = _with_deps(editor_history.history_jump, _history_deps)
 _restore_history_entry = _with_keyword_deps(editor_history.restore_history_entry, _history_deps)
 
 

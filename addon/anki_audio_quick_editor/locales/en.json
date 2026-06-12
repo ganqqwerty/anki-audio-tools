@@ -352,6 +352,7 @@
   "editor.status.operation.redo": "Redid: {summary}",
   "editor.status.nothing_to_undo": "Nothing to undo.",
   "editor.status.nothing_to_redo": "Nothing to redo.",
+  "editor.status.history_selection_unavailable": "That history item is no longer available.",
   "editor.status.persistent_undo_unavailable": "Persistent undo is unavailable because this Anki build does not provide SQLite support.",
   "editor.status.region_read_failed": "Could not read the selected region.",
   "editor.status.graph_inactive": "The selected graph is no longer the active field.",

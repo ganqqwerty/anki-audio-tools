@@ -44,6 +44,7 @@ CMD_SAVE_SPLIT_DEFAULTS = "aqe:save-split-defaults"
 CMD_SOURCE_METADATA = "aqe:source-metadata"
 CMD_STOP_PLAYBACK = "aqe:stop-playback"
 CMD_SETTINGS = "aqe:settings"
+CMD_HISTORY_JUMP = "aqe:history-jump"
 CMD_REDO = "aqe:redo"
 CMD_SHARE = "aqe:share"
 CMD_SHARE_RECORDING = "aqe:share-recording"
@@ -96,6 +97,7 @@ BRIDGE_COMMANDS = (
     CMD_DELETE_SELECTION,
     CMD_DELETE_REST,
     "aqe:undo",
+    CMD_HISTORY_JUMP,
     CMD_REDO,
     CMD_SETTINGS,
 )
@@ -147,6 +149,8 @@ class EditorCommandPayload:
 
     command: str
     field_ord: int | None = None
+    history_direction: str | None = None
+    history_steps: int | None = None
     overrides: EditorCommandOverrides = EditorCommandOverrides()
     graph_settings: dict[str, object] | None = None
     generation: int | None = None
@@ -221,6 +225,15 @@ def _pitch_hum_mode_or_none(value: Any) -> str | None:
     return text if text in {"direct", "pitch_tier"} else None
 
 
+def _history_direction_or_none(value: Any) -> str | None:
+    return value if value in {"undo", "redo"} else None
+
+
+def _history_steps_or_none(value: Any) -> int | None:
+    steps = _int_or_none(value)
+    return steps if steps is not None and steps >= 1 else None
+
+
 def _share_target_or_none(value: Any) -> str | None:
     text = str(value)
     return text if text in {"catbox", "litterbox"} else None
@@ -244,6 +257,8 @@ def decode_editor_command_payload(raw_command: str | EditorCommandPayload) -> Ed
     return EditorCommandPayload(
         command=command,
         field_ord=_int_or_none(raw_payload.get("fieldOrd")),
+        history_direction=_history_direction_or_none(raw_payload.get("direction")),
+        history_steps=_history_steps_or_none(raw_payload.get("steps")),
         overrides=_overrides_from_raw(raw_payload.get("overrides")),
         graph_settings=_graph_settings_from_raw(raw_payload.get("graphSettings")),
         generation=_int_or_none(raw_payload.get("generation")),
