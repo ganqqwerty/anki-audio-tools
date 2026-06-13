@@ -297,6 +297,9 @@ source_modules = [
     "anki_audio_quick_editor.audio_commands",
     "anki_audio_quick_editor.audio_commands_runtime",
     "anki_audio_quick_editor.audio_deps",
+    "anki_audio_quick_editor.audio_export_planning",
+    "anki_audio_quick_editor.audio_export_rendering",
+    "anki_audio_quick_editor.audio_export_types",
     "anki_audio_quick_editor.audio_external",
     "anki_audio_quick_editor.audio_output_policy",
     "anki_audio_quick_editor.audio_noise_reduction",
@@ -321,6 +324,7 @@ source_modules = [
     "anki_audio_quick_editor.batch_operation_types",
     "anki_audio_quick_editor.batch_operations",
     "anki_audio_quick_editor.batch_operations_helpers",
+    "anki_audio_quick_editor.browser_audio_export_state",
     "anki_audio_quick_editor.browser_dialog_state",
     "anki_audio_quick_editor.browser_report",
     "anki_audio_quick_editor.config_migration",
@@ -386,6 +390,8 @@ source_modules = [
 ]
 forbidden_modules = [
     "anki_audio_quick_editor.audio_recording",
+    "anki_audio_quick_editor.browser_audio_export_dialog",
+    "anki_audio_quick_editor.browser_audio_export_runner",
     "anki_audio_quick_editor.browser_batch_runner",
     "anki_audio_quick_editor.browser_dialog",
     "anki_audio_quick_editor.browser_integration",

@@ -14,6 +14,7 @@ from .audio_export_types import (
 from .batch_operations import BatchNoteSnapshot
 from .media_paths import existing_media_file_path
 from .sound_refs import (
+    SoundReference,
     find_sound_references,
     is_supported_audio_filename,
     safe_media_basename,
@@ -28,9 +29,10 @@ def default_audio_field_selections(
     grouped: dict[str, list[str]] = {}
     for note in notes:
         fields = grouped.setdefault(note.notetype_name, [])
-        for field_name, field_html in note.fields.items():
+        for field_name in note.fields:
             if field_name in fields:
                 continue
+            field_html = note.fields[field_name]
             if any(
                 is_supported_audio_filename(ref.filename)
                 for ref in find_sound_references(field_html)
@@ -56,51 +58,90 @@ def collect_audio_export_items(
     sequence = 1
 
     for note in notes:
-        selected_fields = selected.get(note.notetype_name)
-        if selected_fields is None:
-            continue
-        for field_name in selected_fields:
-            if field_name not in note.fields:
-                skipped.append(_notice(note, field_name, f"missing selected field {field_name!r}"))
-                continue
-
-            refs = tuple(
-                ref
-                for ref in find_sound_references(note.fields[field_name])
-                if is_supported_audio_filename(ref.filename)
-            )
-            if not refs:
-                skipped.append(
-                    _notice(
-                        note,
-                        field_name,
-                        f"field {field_name!r} has no supported sound reference",
-                    )
-                )
-                continue
-
-            for index, ref in enumerate(refs, start=1):
-                filename = safe_media_basename(ref.filename)
-                source_path = existing_media_file_path(media_dir, filename)
-                if source_path is None:
-                    failures.append(
-                        _notice(note, field_name, f"media file not found: {filename}", filename)
-                    )
-                    continue
-                items.append(
-                    AudioExportItem(
-                        sequence=sequence,
-                        note_id=note.note_id,
-                        notetype_name=note.notetype_name,
-                        field_name=field_name,
-                        field_sound_index=index,
-                        original_filename=filename,
-                        source_path=source_path,
-                    )
-                )
-                sequence += 1
+        sequence = _collect_note_export_items(
+            note,
+            selected_fields=selected.get(note.notetype_name),
+            media_dir=media_dir,
+            items=items,
+            skipped=skipped,
+            failures=failures,
+            sequence=sequence,
+        )
 
     return AudioExportPlan(items=tuple(items), skipped=tuple(skipped), failures=tuple(failures))
+
+
+def _collect_note_export_items(
+    note: BatchNoteSnapshot,
+    *,
+    selected_fields: tuple[str, ...] | None,
+    media_dir: Path,
+    items: list[AudioExportItem],
+    skipped: list[AudioExportNotice],
+    failures: list[AudioExportNotice],
+    sequence: int,
+) -> int:
+    if selected_fields is None:
+        return sequence
+    for field_name in selected_fields:
+        sequence = _collect_field_export_items(
+            note,
+            field_name=field_name,
+            media_dir=media_dir,
+            items=items,
+            skipped=skipped,
+            failures=failures,
+            sequence=sequence,
+        )
+    return sequence
+
+
+def _collect_field_export_items(
+    note: BatchNoteSnapshot,
+    *,
+    field_name: str,
+    media_dir: Path,
+    items: list[AudioExportItem],
+    skipped: list[AudioExportNotice],
+    failures: list[AudioExportNotice],
+    sequence: int,
+) -> int:
+    if field_name not in note.fields:
+        skipped.append(_notice(note, field_name, f"missing selected field {field_name!r}"))
+        return sequence
+
+    refs = _supported_sound_refs(note.fields[field_name])
+    if not refs:
+        skipped.append(_notice(note, field_name, f"field {field_name!r} has no supported sound reference"))
+        return sequence
+
+    for index, ref in enumerate(refs, start=1):
+        filename = safe_media_basename(ref.filename)
+        source_path = existing_media_file_path(media_dir, filename)
+        if source_path is None:
+            failures.append(_notice(note, field_name, f"media file not found: {filename}", filename))
+            continue
+        items.append(
+            AudioExportItem(
+                sequence=sequence,
+                note_id=note.note_id,
+                notetype_name=note.notetype_name,
+                field_name=field_name,
+                field_sound_index=index,
+                original_filename=filename,
+                source_path=source_path,
+            )
+        )
+        sequence += 1
+    return sequence
+
+
+def _supported_sound_refs(field_html: str) -> tuple[SoundReference, ...]:
+    return tuple(
+        ref
+        for ref in find_sound_references(field_html)
+        if is_supported_audio_filename(ref.filename)
+    )
 
 
 def make_zip_entry_name(item: AudioExportItem, *, used_names: set[str]) -> str:

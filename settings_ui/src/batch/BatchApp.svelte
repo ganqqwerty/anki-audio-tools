@@ -3,10 +3,8 @@
   import { sendBridgeEnvelope } from "$lib/bridge.js";
   import { configureI18n, t } from "$lib/i18n.js";
   import { createLogger } from "$lib/logger.js";
-  import { PRODUCT_LINKS } from "$lib/product-links.js";
   import AqeTooltipProvider from "$lib/AqeTooltipProvider.svelte";
   import ErrorMessage from "$lib/ErrorMessage.svelte";
-  import ProductLinkIcon from "$lib/ProductLinkIcon.svelte";
   import type { ErrorDisplayValue } from "$lib/user-facing-error.js";
   import {
     AQE_FRONTEND_UNEXPECTED,
@@ -23,6 +21,8 @@
   import BatchControls from "./BatchControls.svelte";
   import BatchExportControls from "./BatchExportControls.svelte";
   import BatchFooter from "./BatchFooter.svelte";
+  import BatchProgressPanel from "./BatchProgressPanel.svelte";
+  import BatchResourceLinks from "./BatchResourceLinks.svelte";
   import {
     audioExportCancel,
     audioExportChooseDestination,
@@ -195,24 +195,7 @@
     <header>
       <h1>{isAudioExportSurface ? t("audio_export.window_title") : t("batch.window_title")}</h1>
       <p><ErrorMessage error={status} /></p>
-      <nav class="resource-links" aria-label={t("batch.links.label")}>
-        <a href={PRODUCT_LINKS.githubPages} target="_blank" rel="noopener noreferrer">
-          <ProductLinkIcon className="resource-link-icon" icon="external-link" />
-          <span>{t("links.github_pages")}</span>
-        </a>
-        <a href={PRODUCT_LINKS.editorVideos.batchProcessing} target="_blank" rel="noopener noreferrer">
-          <ProductLinkIcon className="resource-link-icon" icon="external-link" />
-          <span>{t("links.see_video")}</span>
-        </a>
-        <a href={PRODUCT_LINKS.bugReport} target="_blank" rel="noopener noreferrer">
-          <ProductLinkIcon className="resource-link-icon" icon="bug" />
-          <span>{t("links.report_bug")}</span>
-        </a>
-        <a href={PRODUCT_LINKS.ideaRequest} target="_blank" rel="noopener noreferrer">
-          <ProductLinkIcon className="resource-link-icon" icon="idea" />
-          <span>{t("links.request_idea")}</span>
-        </a>
-      </nav>
+      <BatchResourceLinks />
     </header>
 
     {#if frontendRuntimeError}
@@ -232,22 +215,14 @@
       <BatchControls state={operationState} bind:form selected={selected} disabled={running} />
     {/if}
 
-    <section class="progress-panel" aria-live="polite">
-      <div class="progress-meta">
-        <span>{processed}/{total}</span>
-        <span class="progress-status">
-          {isAudioExportSurface
-            ? t("audio_export.progress", { processed, total, audio: t("audio_export.no_audio"), failures })
-            : t("batch.progress", { processed, total, audio: t("batch.no_audio"), failures })}
-        </span>
-        {#if running}
-          <button type="button" class="progress-cancel" onclick={cancel}>
-            {isAudioExportSurface ? t("audio_export.cancel") : t("batch.cancel")}
-          </button>
-        {/if}
-      </div>
-      <progress max={Math.max(total, 1)} value={processed} aria-valuenow={processed}></progress>
-    </section>
+    <BatchProgressPanel
+      isAudioExportSurface={isAudioExportSurface}
+      {running}
+      {processed}
+      {total}
+      {failures}
+      onCancel={cancel}
+    />
 
     <pre aria-label="Batch log">{logLines.join("\n")}</pre>
 
@@ -298,80 +273,13 @@
     line-height: 1.15;
   }
 
-  p,
-  .progress-meta {
+  p {
     color: var(--fg-subtle, currentColor);
   }
 
   .batch-error {
     color: var(--fg, currentColor);
     margin: 0;
-  }
-
-  .resource-links {
-    display: flex;
-    flex-wrap: wrap;
-    font-size: 11px;
-    gap: 8px 12px;
-  }
-
-  .resource-links a {
-    align-items: center;
-    border: 1px solid ButtonBorder;
-    border-radius: 7px;
-    color: inherit;
-    display: inline-flex;
-    gap: 5px;
-    min-height: 24px;
-    padding: 2px 6px;
-    text-decoration: none;
-  }
-
-  :global(.resource-link-icon) {
-    display: inline-flex;
-    flex: 0 0 auto;
-  }
-
-  .progress-panel {
-    display: grid;
-    gap: 8px;
-  }
-
-  .progress-meta {
-    align-items: center;
-    display: flex;
-    flex-wrap: wrap;
-    font-size: 11px;
-    gap: 10px;
-    justify-content: space-between;
-  }
-
-  .progress-status {
-    flex: 1 1 auto;
-    text-align: right;
-  }
-
-  .progress-cancel {
-    appearance: none;
-    background: transparent;
-    border: 1px solid ButtonBorder;
-    border-radius: 7px;
-    color: inherit;
-    cursor: pointer;
-    font: inherit;
-    font-size: 11px;
-    line-height: 1.2;
-    min-height: 24px;
-    padding: 2px 6px;
-  }
-
-  .progress-cancel:hover {
-    text-decoration: underline;
-  }
-
-  progress {
-    height: 12px;
-    width: 100%;
   }
 
   pre {

@@ -118,18 +118,24 @@ def audio_export_finish_payload(report: AudioExportReport) -> dict[str, Any]:
 def _field_selections(raw: object) -> tuple[AudioExportFieldSelection, ...]:
     if not isinstance(raw, list):
         return ()
-    selections: list[AudioExportFieldSelection] = []
-    for entry in raw:
-        if not isinstance(entry, dict):
-            continue
-        notetype_name = str(entry.get("notetype_name") or "")
-        fields = entry.get("fields")
-        if not notetype_name or not isinstance(fields, list):
-            continue
-        selected_fields = tuple(field for field in fields if isinstance(field, str) and field)
-        if selected_fields:
-            selections.append(AudioExportFieldSelection(notetype_name, selected_fields))
-    return tuple(selections)
+    return tuple(
+        selection
+        for entry in raw
+        if (selection := _field_selection_from_payload(entry)) is not None
+    )
+
+
+def _field_selection_from_payload(entry: object) -> AudioExportFieldSelection | None:
+    if not isinstance(entry, dict):
+        return None
+    notetype_name = str(entry.get("notetype_name") or "")
+    fields = entry.get("fields")
+    if not notetype_name or not isinstance(fields, list):
+        return None
+    selected_fields = tuple(field for field in fields if isinstance(field, str) and field)
+    if not selected_fields:
+        return None
+    return AudioExportFieldSelection(notetype_name, selected_fields)
 
 
 def _export_mode(raw: object) -> AudioExportMode:
