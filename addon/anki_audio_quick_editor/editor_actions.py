@@ -47,6 +47,7 @@ CMD_SETTINGS = "aqe:settings"
 CMD_HISTORY_JUMP = "aqe:history-jump"
 CMD_REDO = "aqe:redo"
 CMD_SHARE = "aqe:share"
+CMD_PRESET = "aqe:preset"
 CMD_SHARE_RECORDING = "aqe:share-recording"
 CMD_OPEN_URL = "aqe:open-url"
 CMD_RECORD_VOICE = "aqe:record-voice"
@@ -76,6 +77,7 @@ BRIDGE_COMMANDS = (
     CMD_POST_EDIT_PLAYBACK_READY,
     "aqe:show-file",
     CMD_SHARE,
+    CMD_PRESET,
     CMD_SHARE_RECORDING,
     CMD_SHOW_RECORDING_FILE,
     CMD_OPEN_URL,
@@ -154,6 +156,7 @@ class EditorCommandPayload:
     overrides: EditorCommandOverrides = EditorCommandOverrides()
     graph_settings: dict[str, object] | None = None
     generation: int | None = None
+    preset_id: str | None = None
     share_target: str | None = None
     source_filename: str | None = None
     start_cursor_ms: int | None = None
@@ -262,6 +265,7 @@ def decode_editor_command_payload(raw_command: str | EditorCommandPayload) -> Ed
         overrides=_overrides_from_raw(raw_payload.get("overrides")),
         graph_settings=_graph_settings_from_raw(raw_payload.get("graphSettings")),
         generation=_int_or_none(raw_payload.get("generation")),
+        preset_id=_str_or_none(raw_payload.get("presetId")),
         share_target=_share_target_or_none(raw_payload.get("shareTarget")),
         source_filename=_str_or_none(raw_payload.get("sourceFilename")),
         start_cursor_ms=_int_or_none(raw_payload.get("startCursorMs")),

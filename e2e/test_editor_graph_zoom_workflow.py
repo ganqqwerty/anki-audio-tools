@@ -108,21 +108,16 @@ def test_editor_graph_long_clip_initial_viewport_is_not_full_fit(
         parent.close()
 
 
-def test_editor_graph_horizontal_zoom_controls_preserve_time_selection(
+def test_editor_graph_zoom_in_narrows_viewport_around_cursor(
     anki_mw,
     ffmpeg_config,
 ) -> None:
-    media_dir = Path(anki_mw.col.media.dir())
-    source = media_dir / "editor_graph_zoom_source.wav"
-    generate_tone(ffmpeg_config, source, duration_s=4.0)
-    note = _basic_audio_note(anki_mw, source.name)
-    _configure_ffmpeg(anki_mw, ffmpeg_config)
-
-    editor, parent = _open_editor(anki_mw, note)
+    _media_dir, _source, editor, parent, _track = _open_zoom_graph_editor(
+        anki_mw,
+        ffmpeg_config,
+        "editor_graph_zoom_in_cursor.wav",
+    )
     try:
-        wait_for_selector(editor.web, _button_selector("aqe:analyze"), timeout=10.0)
-        _click_graph_and_wait(editor, lambda value: value["sourceFilename"] == source.name)
-
         zoomed = wait_for_js_condition(
             editor.web,
             """
@@ -140,7 +135,21 @@ def test_editor_graph_horizontal_zoom_controls_preserve_time_selection(
             timeout=5.0,
         )
         assert zoomed["viewportEndMs"] - zoomed["viewportStartMs"] < zoomed["durationMs"]
+    finally:
+        editor.set_note(None)
+        parent.close()
 
+
+def test_editor_graph_zoom_scroll_to_end_snaps_viewport(
+    anki_mw,
+    ffmpeg_config,
+) -> None:
+    _media_dir, _source, editor, parent, _track = _open_zoom_graph_editor(
+        anki_mw,
+        ffmpeg_config,
+        "editor_graph_zoom_scroll_end.wav",
+    )
+    try:
         scrolled = wait_for_js_condition(
             editor.web,
             """
@@ -154,13 +163,44 @@ def test_editor_graph_horizontal_zoom_controls_preserve_time_selection(
             })()
             """,
             lambda value: value is not None
-            and value["viewportStartMs"] > zoomed["viewportStartMs"]
             and value["viewportEndMs"] == value["durationMs"],
             timeout=5.0,
         )
-        assert scrolled["viewportStartMs"] > zoomed["viewportStartMs"]
+        assert scrolled["viewportStartMs"] > 0
+    finally:
+        editor.set_note(None)
+        parent.close()
 
+
+def test_editor_graph_zoom_fit_restores_full_viewport(
+    anki_mw,
+    ffmpeg_config,
+) -> None:
+    _media_dir, _source, editor, parent, _track = _open_zoom_graph_editor(
+        anki_mw,
+        ffmpeg_config,
+        "editor_graph_zoom_fit.wav",
+    )
+    try:
+        run_js(
+            editor.web,
+            """
+            (() => {
+              const state = window.__aqeGraphStateForTest?.(0);
+              if (!state) return false;
+              window.__aqeSetCursorForTest?.(0, state.durationMs / 2, false);
+              document.querySelector('[data-testid="aqe-zoom-in-0"]')?.click();
+              return true;
+            })()
+            """,
+        )
         wait_for_js_condition(
+            editor.web,
+            _graph_zoom_state_js(),
+            lambda value: value is not None and value["viewportStartMs"] > 0,
+            timeout=5.0,
+        )
+        fit = wait_for_js_condition(
             editor.web,
             """
             (() => {
@@ -173,7 +213,22 @@ def test_editor_graph_horizontal_zoom_controls_preserve_time_selection(
             and value["viewportEndMs"] == value["durationMs"],
             timeout=5.0,
         )
+        assert fit["viewportStartMs"] == 0
+    finally:
+        editor.set_note(None)
+        parent.close()
 
+
+def test_editor_graph_zoom_to_selection_fits_active_region(
+    anki_mw,
+    ffmpeg_config,
+) -> None:
+    _media_dir, _source, editor, parent, _track = _open_zoom_graph_editor(
+        anki_mw,
+        ffmpeg_config,
+        "editor_graph_zoom_selection.wav",
+    )
+    try:
         selected_zoom = wait_for_js_condition(
             editor.web,
             """
@@ -212,29 +267,6 @@ def test_editor_graph_horizontal_zoom_controls_preserve_time_selection(
             timeout=5.0,
         )
         assert selected_zoom["selectionEndMs"] > selected_zoom["selectionStartMs"]
-
-        fit = wait_for_js_condition(
-            editor.web,
-            """
-            (() => {
-              document.querySelector('[data-testid="aqe-zoom-fit-0"]')?.click();
-              return window.__aqeGraphStateForTest?.(0) || null;
-            })()
-            """,
-            lambda value: value is not None
-            and value["viewportStartMs"] == 0
-            and value["viewportEndMs"] == value["durationMs"],
-            timeout=5.0,
-        )
-        fit_zoom_state = wait_for_js_condition(
-            editor.web,
-            _graph_zoom_state_js(),
-            lambda value: value is not None
-            and value["viewportStartMs"] == 0
-            and value["viewportEndMs"] == fit["durationMs"],
-            timeout=5.0,
-        )
-        assert fit_zoom_state["viewportStartMs"] == 0
     finally:
         editor.set_note(None)
         parent.close()
@@ -425,8 +457,9 @@ def test_editor_graph_zoom_playback_follow_and_completion_restore_cursor(
             click_selector(editor.web, _button_selector("aqe:play"), timeout=5.0)
             followed = _wait_for_html_playback(
                 editor,
-                lambda state: state["progressMs"] >= 1900
-                and state["viewportStartMs"] > 1000,
+                lambda state: 1900 <= state["progressMs"] <= 2500
+                and state["viewportStartMs"] > 1000
+                and (state["progressMs"] - state["viewportStartMs"]) >= 750,
                 timeout=5.0,
             )
             _force_audio_boundary(editor)
@@ -446,6 +479,7 @@ def test_editor_graph_zoom_playback_follow_and_completion_restore_cursor(
 
         assert playback.attempts == []
         assert followed["playButtonLabel"] == "Pause"
+        assert followed["progressMs"] - followed["viewportStartMs"] >= 750
         assert finished["playButtonLabel"] == "Play"
     finally:
         editor.set_note(None)

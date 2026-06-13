@@ -6,6 +6,8 @@ Add a Settings-based processing preset constructor for named audio processing re
 
 The design uses a shared preset runner so editor and batch behavior stay consistent. Settings is the only place where preset parameters are edited; editor and batch run surfaces only select a named preset and the required fields.
 
+As of 2026-06-13, this is still a design-stage feature in the repository. The current shared batch/editor operation surface includes `reduce_size`, so the preset operation model must include Size Reduction before implementation.
+
 ## Terminology
 
 - **Processing preset**: a user-facing saved recipe that orders shared audio operations and optional terminal Graph output.
@@ -19,6 +21,7 @@ The design uses a shared preset runner so editor and batch behavior stay consist
 - Let a preset run from the inline editor against the active audio field.
 - Let a preset run from Browser batch against selected notes.
 - Store operation parameters per preset step so a preset is reproducible.
+- Include all current shared transform operations, including Size Reduction.
 - Keep Graph as an optional terminal output that analyzes the final audio.
 - Preserve existing non-destructive editor behavior: source media remains untouched, field replacement happens only after success, undo/redo sees one preset modification, and failed runs leave fields unchanged.
 - Preserve editor and batch parity by sharing validation and execution semantics.
@@ -101,6 +104,7 @@ Add a schema-backed `audio_processing_presets` array to config. Existing configs
 `operation` accepts only shared transform operations:
 
 - `convert`
+- `reduce_size`
 - `denoise`
 - `remove_pauses`
 - `slower`
@@ -147,6 +151,7 @@ Editor and batch integrations call this shared preset runner instead of independ
 Existing operation implementations remain the source of truth:
 
 - convert uses the existing convert renderer
+- size reduction uses the existing size-reduction renderer and MP3 output policy
 - denoise uses the existing batch/editor denoise path
 - shorten pauses, speed, and volume use `AudioEditState`, `effective_config_for_operation`, and `render_audio`
 - Graph uses the existing prosody analysis and SVG/inline rendering paths
@@ -163,7 +168,7 @@ For each transform step:
 
 Graph runs after transforms. If there are no transforms, Graph analyzes the original source audio.
 
-Convert-to-same-format is a step-level no-op. The preset continues if later steps exist. If all transform steps are no-ops and Graph is disabled, the run reports "nothing to change" and does not mutate fields.
+Convert-to-same-format is a step-level no-op. Size Reduction may report an already-compact source as a step-level no-op. The preset continues if later steps exist. If all transform steps are no-ops and Graph is disabled, the run reports "nothing to change" and does not mutate fields.
 
 ## Editor Integration
 
@@ -241,6 +246,7 @@ Unit tests:
 - duplicate IDs and empty-name rejection
 - operation allow-list enforcement
 - parameter normalization per operation
+- size-reduction mode and advanced encoder parameter handling
 - graph terminal validation
 - no-op handling
 - failure atomicity in the shared runner
@@ -251,6 +257,7 @@ Frontend tests:
 - create/rename/delete/duplicate/reorder preset
 - add step initialized from current defaults
 - operation-specific parameter editors
+- Size Reduction step editor behavior
 - save payload shape
 - editor preset dropdown behavior
 - batch preset mode field requirements
@@ -272,6 +279,7 @@ E2E tests:
 - editor post-edit playback uses the final audio
 - Browser batch preset writes transformed audio to a separate audio target field
 - Browser batch preset appends terminal Graph to a graph target field
+- Size Reduction preset step writes compact MP3 output or skips already-compact audio without mutating fields when no later output needs writing
 - graph-only preset behavior in editor and batch
 - failure leaves fields unchanged
 

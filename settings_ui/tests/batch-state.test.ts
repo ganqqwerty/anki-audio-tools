@@ -9,6 +9,8 @@ import {
 } from "../src/batch/batch-state.js";
 import {
   BatchOperationName,
+  BatchParameterKind,
+  BatchParameterName,
   BatchPauseAggressiveness,
   BatchPauseDetectionAlgorithm,
   DenoiseAlgorithm,
@@ -20,6 +22,9 @@ function form(overrides: Partial<BatchFormState> = {}): BatchFormState {
     operation: BatchOperationName.Graph,
     sourceField: "Audio",
     targetField: "Image",
+    presetId: "clean_graph",
+    audioTargetField: "Processed",
+    graphTargetField: "Image",
     speedStep: 1.5,
     volumeStepDb: 6,
     pauseAggressiveness: BatchPauseAggressiveness.Aggressive,
@@ -84,6 +89,57 @@ describe("batch-state", () => {
         faster,
       ),
     ).toBe(true);
+  });
+
+  it("requires preset-specific target fields only when the selected preset produces them", () => {
+    const operation = {
+      operation: BatchOperationName.Preset,
+      label: "Preset",
+      requires_target_field: false,
+      parameter_kind: BatchParameterKind.Preset,
+      parameter_name: BatchParameterName.PresetID,
+    };
+    const audioAndGraph = {
+      id: "clean_graph",
+      name: "Clean + graph",
+      has_transforms: true,
+      graph_enabled: true,
+    };
+    const graphOnly = {
+      id: "graph_only",
+      name: "Graph only",
+      has_transforms: false,
+      graph_enabled: true,
+    };
+
+    expect(
+      canStartBatch(
+        form({ operation: BatchOperationName.Preset }),
+        operation,
+        audioAndGraph,
+      ),
+    ).toBe(true);
+    expect(
+      canStartBatch(
+        form({ operation: BatchOperationName.Preset, audioTargetField: "" }),
+        operation,
+        audioAndGraph,
+      ),
+    ).toBe(false);
+    expect(
+      canStartBatch(
+        form({ operation: BatchOperationName.Preset, audioTargetField: "" }),
+        operation,
+        graphOnly,
+      ),
+    ).toBe(true);
+    expect(
+      canStartBatch(
+        form({ operation: BatchOperationName.Preset, graphTargetField: "" }),
+        operation,
+        graphOnly,
+      ),
+    ).toBe(false);
   });
 
   it("builds graph start requests with target field and no parameters", () => {
@@ -185,6 +241,34 @@ describe("batch-state", () => {
         size_reduction_mode: "aggressive",
         size_reduction_sample_rate_hz: 22050,
       },
+    });
+  });
+
+  it("builds preset start requests with conditional target fields", () => {
+    const operation = {
+      operation: BatchOperationName.Preset,
+      label: "Preset",
+      requires_target_field: false,
+      parameter_kind: BatchParameterKind.Preset,
+      parameter_name: BatchParameterName.PresetID,
+    };
+    const preset = {
+      id: "clean_graph",
+      name: "Clean + graph",
+      has_transforms: true,
+      graph_enabled: true,
+    };
+
+    expect(
+      batchStartRequest(form({ operation: BatchOperationName.Preset }), operation, preset),
+    ).toEqual({
+      operation: BatchOperationName.Preset,
+      source_field: "Audio",
+      target_field: null,
+      preset_id: "clean_graph",
+      audio_target_field: "Processed",
+      graph_target_field: "Image",
+      parameters: {},
     });
   });
 });

@@ -81,8 +81,9 @@ def test_open_batch_dialog_builds_field_groups_from_selected_notes(monkeypatch) 
         note_ids: list[int],
         groups: tuple[object, ...],
         config: AudioProcessingConfig,
+        processing_presets: tuple[object, ...],
     ) -> Dialog:
-        dialog_calls.append((note_ids, groups, config))
+        dialog_calls.append((note_ids, groups, config, processing_presets))
         return Dialog()
 
     col = SimpleNamespace(get_note=lambda _note_id: FakeNote(int(_note_id)))
@@ -111,6 +112,61 @@ def test_open_batch_dialog_builds_field_groups_from_selected_notes(monkeypatch) 
     assert config.speed_step == 2.0
     assert config.volume_step_db == 6.0
     assert config.pause_aggressiveness == "aggressive"
+    assert dialog_calls[0][3] == ()
+    assert dialog_calls[1] == ("exec", ())
+
+
+def test_open_batch_dialog_ignores_invalid_saved_processing_presets(monkeypatch, caplog) -> None:
+    dialog_calls: list[tuple[object, ...]] = []
+
+    class Dialog:
+        def exec(self) -> None:
+            dialog_calls.append(("exec", ()))  # type: ignore[arg-type]
+
+    def create_dialog(
+        _browser: object,
+        note_ids: list[int],
+        groups: tuple[object, ...],
+        config: AudioProcessingConfig,
+        processing_presets: tuple[object, ...],
+    ) -> Dialog:
+        dialog_calls.append((note_ids, groups, config, processing_presets))
+        return Dialog()
+
+    col = SimpleNamespace(get_note=lambda _note_id: FakeNote(int(_note_id)))
+    addon_manager = SimpleNamespace(
+        addonFromModule=lambda _module: "anki_audio_quick_editor",
+        getConfig=lambda _addon_id: {
+            "audio_processing_presets": [
+                {
+                    "id": "empty",
+                    "name": "Empty",
+                    "steps": [],
+                    "graph": {
+                        "enabled": False,
+                        "parameters": {
+                            "graph_voice_range": "general",
+                            "graph_recording_condition": "auto",
+                            "graph_smoothness": "very_smooth",
+                            "graph_connect_short_dropouts_ms": 240,
+                            "graph_voice_lock": "balanced",
+                        },
+                    },
+                }
+            ],
+        },
+    )
+    browser = SimpleNamespace(
+        selected_notes=lambda: [1],
+        mw=SimpleNamespace(col=col, addonManager=addon_manager),
+    )
+    monkeypatch.setattr("anki_audio_quick_editor.browser_integration._create_dialog", create_dialog)
+    caplog.set_level("WARNING", logger="anki_audio_quick_editor.browser_integration")
+
+    _open_batch_dialog(browser)
+
+    assert dialog_calls[0][3] == ()
+    assert "ignoring invalid processing presets" in caplog.text
     assert dialog_calls[1] == ("exec", ())
 
 

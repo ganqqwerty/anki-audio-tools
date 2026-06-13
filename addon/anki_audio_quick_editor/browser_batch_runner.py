@@ -16,6 +16,7 @@ from .batch_operations import (
     process_note_batch_operation,
 )
 from .browser_report import BatchRunReport, format_result_line
+from .browser_result_application import apply_result
 from .diagnostics_runtime import capture_exception, new_operation_id, record_breadcrumb
 from .error_codes import AQE_BATCH_INVALID_REQUEST, coded_error, format_coded_message
 from .i18n import active_context, format_message
@@ -57,7 +58,7 @@ def run_batch_in_background(
 
     def on_progress(processed: int, total: int, current_audio: str, failures: int) -> None:
         mw.taskman.run_on_main(
-            lambda: dialog.update_progress(processed, total, current_audio, failures)
+            lambda p=processed, t=total, a=current_audio, f=failures: dialog.update_progress(p, t, a, f)
         )
 
     def task() -> BatchRunReport:
@@ -232,79 +233,6 @@ def process_note(
     return result
 
 
-def apply_result(
-    col: Any,
-    report: BatchRunReport,
-    result: BatchNoteResult,
-    fallback_field: str,
-) -> BatchNoteResult:
-    """Apply one batch note result to the collection and report counters."""
-    if result.written:
-        try:
-            note = col.get_note(result.note_id)
-            assert result.target_field is not None
-            assert result.target_html is not None
-            if result.original_target_html is not None:
-                current_html = _note_field_value(note, result.target_field)
-                if current_html != result.original_target_html:
-                    report.failures += 1
-                    message = format_coded_message(
-                        AQE_BATCH_INVALID_REQUEST,
-                        f"target field {result.target_field!r} changed during batch processing",
-                    )
-                    return BatchNoteResult(
-                        note_id=result.note_id,
-                        status="failed",
-                        message=message,
-                        target_field=result.target_field,
-                        target_html=result.target_html,
-                        audio_filename=result.audio_filename,
-                        image_filename=result.image_filename,
-                        written_filename=result.written_filename,
-                        original_target_html=result.original_target_html,
-                    )
-            note[result.target_field] = result.target_html
-            col.update_note(note)
-            report.written += 1
-        except Exception as exc:
-            message = format_coded_message(
-                AQE_BATCH_INVALID_REQUEST,
-                str(exc) or f"failed to update target field {fallback_field!r}",
-            )
-            capture_exception(
-                "browser.batch.apply_result",
-                exc,
-                operation=f"browser.batch.{result.status}",
-                user_message=message,
-                context={
-                    "note_id": result.note_id,
-                    "target_field": result.target_field,
-                    "fallback_field": fallback_field,
-                    "audio_filename": result.audio_filename,
-                    "written_filename": result.written_filename,
-                },
-                log=logger,
-            )
-            report.failures += 1
-            return BatchNoteResult(
-                note_id=result.note_id,
-                status="failed",
-                message=message,
-                target_field=result.target_field,
-                target_html=result.target_html,
-                audio_filename=result.audio_filename,
-                image_filename=result.image_filename,
-                written_filename=result.written_filename,
-                original_target_html=result.original_target_html,
-            )
-        return result
-    if result.failure:
-        report.failures += 1
-    else:
-        report.skipped += 1
-    return result
-
-
 def publish_collection_changes(browser: Any, changes: Any) -> None:
     """Notify Anki that collection changes were produced by the batch run."""
     if changes is None:
@@ -326,27 +254,50 @@ def publish_collection_changes(browser: Any, changes: Any) -> None:
 
 
 def _format_parameters(request: BatchRunRequest) -> str:
-    params = request.parameters
-    values: list[str] = []
-    if request.operation in {"slower", "faster"} and params.speed_step is not None:
-        values.append(f"speed_step={params.speed_step}")
-    if request.operation in {"volume_down", "volume_up"} and params.volume_step_db is not None:
-        values.append(f"volume_step_db={params.volume_step_db}")
-    if request.operation == "remove_pauses" and params.pause_aggressiveness is not None:
-        values.append(f"pause_aggressiveness={params.pause_aggressiveness}")
-    if request.operation == "remove_pauses" and params.pause_detection_algorithm is not None:
-        values.append(f"pause_detection_algorithm={params.pause_detection_algorithm}")
+    values = [
+        *_preset_parameters(request),
+        *_speed_parameters(request),
+        *_volume_parameters(request),
+        *_pause_parameters(request),
+    ]
     return ", ".join(values) if values else "defaults"
 
 
-def _note_field_value(note: Any, field_name: str) -> str:
-    try:
-        return str(note[field_name])
-    except (KeyError, TypeError, AttributeError):
-        fields = getattr(note, "fields", None)
-        if isinstance(fields, dict):
-            return str(fields[field_name])
-        raise
+def _preset_parameters(request: BatchRunRequest) -> list[str]:
+    if request.operation != "preset":
+        return []
+    values: list[str] = []
+    if request.preset is not None:
+        values.append(f"preset={request.preset.name!r}")
+    if request.audio_target_field is not None:
+        values.append(f"audio_target_field={request.audio_target_field!r}")
+    if request.graph_target_field is not None:
+        values.append(f"graph_target_field={request.graph_target_field!r}")
+    return values
+
+
+def _speed_parameters(request: BatchRunRequest) -> list[str]:
+    if request.operation not in {"slower", "faster"} or request.parameters.speed_step is None:
+        return []
+    return [f"speed_step={request.parameters.speed_step}"]
+
+
+def _volume_parameters(request: BatchRunRequest) -> list[str]:
+    if request.operation not in {"volume_down", "volume_up"} or request.parameters.volume_step_db is None:
+        return []
+    return [f"volume_step_db={request.parameters.volume_step_db}"]
+
+
+def _pause_parameters(request: BatchRunRequest) -> list[str]:
+    if request.operation != "remove_pauses":
+        return []
+    values: list[str] = []
+    params = request.parameters
+    if params.pause_aggressiveness is not None:
+        values.append(f"pause_aggressiveness={params.pause_aggressiveness}")
+    if params.pause_detection_algorithm is not None:
+        values.append(f"pause_detection_algorithm={params.pause_detection_algorithm}")
+    return values
 
 
 def _tr(key: str, values: dict[str, object] | None = None) -> str:

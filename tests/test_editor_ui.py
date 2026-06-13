@@ -114,6 +114,29 @@ def test_injection_script_embeds_editor_button_modes() -> None:
     }
 
 
+def test_injection_script_embeds_processing_presets() -> None:
+    script = injection_script(
+        [0],
+        processing_presets=[
+            {
+                "id": "clean_graph",
+                "name": "Clean + graph",
+                "hasTransforms": True,
+                "graphEnabled": True,
+            }
+        ],
+    )
+
+    assert _embedded_config(script)["processingPresets"] == [
+        {
+            "id": "clean_graph",
+            "name": "Clean + graph",
+            "hasTransforms": True,
+            "graphEnabled": True,
+        }
+    ]
+
+
 def test_injection_script_embeds_audio_field_sources() -> None:
     script = injection_script([0, 2], audio_field_sources={0: "front.wav", 2: "back.mp3"})
 

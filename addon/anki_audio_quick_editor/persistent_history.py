@@ -307,7 +307,11 @@ def audio_edit_state_from_json(raw: str) -> AudioEditState | None:
     payload = json.loads(raw)
     if not isinstance(payload, dict):
         return None
-    return AudioEditState(**payload)
+    try:
+        return AudioEditState(**payload)
+    except (TypeError, ValueError):
+        logger.warning("persistent undo: malformed AudioEditState in stored JSON")
+        return None
 
 
 def sqlite_available() -> bool:

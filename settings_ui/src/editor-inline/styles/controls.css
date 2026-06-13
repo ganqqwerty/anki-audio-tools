@@ -70,10 +70,27 @@
   width: 100%;
 }
 
+html.night-mode .aqe-controls,
+body.nightMode .aqe-controls,
+[data-bs-theme="dark"] .aqe-controls {
+  --aqe-progress-color: #ff8a80;
+  --aqe-progress-halo: rgb(255 138 128 / 38%);
+  --aqe-progress-inner-halo: rgb(255 255 255 / 18%);
+  --aqe-resize-halo: rgb(0 0 0 / 58%);
+  --aqe-destructive-fill: rgb(251 113 133 / 34%);
+  --aqe-destructive-border: rgb(251 113 133 / 55%);
+  --aqe-destructive-preview-top: rgb(251 113 133 / 42%);
+  --aqe-destructive-preview-bottom: rgb(251 113 133 / 18%);
+  --aqe-destructive-text: rgb(254 205 211);
+  --aqe-record-button-fill: #ef4444;
+  --aqe-record-button-hover-fill: #dc2626;
+  --aqe-record-button-text: white;
+}
+
 @media (prefers-color-scheme: dark) {
   .aqe-controls {
-    --aqe-progress-color: #fb3d03;
-    --aqe-progress-halo: rgb(232 201 170 / 36%);
+    --aqe-progress-color: #ff8a80;
+    --aqe-progress-halo: rgb(255 138 128 / 38%);
     --aqe-progress-inner-halo: rgb(255 255 255 / 18%);
     --aqe-resize-halo: rgb(0 0 0 / 58%);
     --aqe-destructive-fill: rgb(251 113 133 / 34%);

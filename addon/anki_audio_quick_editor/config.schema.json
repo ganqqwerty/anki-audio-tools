@@ -26,6 +26,7 @@
     "graph_smoothness",
     "graph_connect_short_dropouts_ms",
     "graph_voice_lock",
+    "audio_processing_presets",
     "speed_step",
     "min_speed",
     "max_speed",
@@ -134,6 +135,7 @@
           "aqe:show-recording-file",
           "aqe:show-file",
           "aqe:share",
+          "aqe:preset",
           "aqe:convert",
           "aqe:reduce-size",
           "aqe:remove-pauses",
@@ -167,6 +169,7 @@
           "aqe:show-recording-file",
           "aqe:show-file",
           "aqe:share",
+          "aqe:preset",
           "aqe:convert",
           "aqe:reduce-size",
           "aqe:remove-pauses",
@@ -208,6 +211,10 @@
     "graph_voice_lock": {
       "type": "string",
       "enum": ["loose", "balanced", "stable"]
+    },
+    "audio_processing_presets": {
+      "type": "array",
+      "items": { "$ref": "#/definitions/AudioProcessingPreset" }
     },
     "speed_step": {
       "type": "number",
@@ -322,6 +329,147 @@
     "pitch_hum_mode": {
       "type": "string",
       "enum": ["direct", "pitch_tier"]
+    }
+  },
+  "definitions": {
+    "AudioProcessingPreset": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "name", "steps", "graph"],
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "steps": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/AudioProcessingPresetStep" }
+        },
+        "graph": { "$ref": "#/definitions/AudioProcessingPresetGraph" }
+      }
+    },
+    "AudioProcessingPresetStep": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "operation", "parameters"],
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "operation": {
+          "type": "string",
+          "enum": [
+            "convert",
+            "denoise",
+            "remove_pauses",
+            "slower",
+            "faster",
+            "volume_down",
+            "volume_up"
+          ]
+        },
+        "parameters": { "$ref": "#/definitions/AudioProcessingPresetParameters" }
+      }
+    },
+    "AudioProcessingPresetParameters": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "speed_step": {
+          "type": "number",
+          "minimum": 1.01,
+          "maximum": 5
+        },
+        "volume_step_db": {
+          "type": "number",
+          "minimum": 1,
+          "maximum": 40
+        },
+        "pause_aggressiveness": {
+          "type": "string",
+          "enum": ["gentle", "normal", "aggressive"]
+        },
+        "pause_detection_algorithm": {
+          "type": "string",
+          "enum": ["silencedetect", "silero_vad"]
+        },
+        "pause_threshold": {
+          "type": "number"
+        },
+        "pause_min_silence_seconds": {
+          "type": "number",
+          "minimum": 0.01,
+          "maximum": 10
+        },
+        "pause_min_speech_seconds": {
+          "type": "number",
+          "minimum": 0.01,
+          "maximum": 10
+        },
+        "pause_preprocess_denoise": {
+          "type": "boolean"
+        },
+        "denoise_algorithm": {
+          "type": "string",
+          "enum": ["standard", "rnnoise", "dpdfnet", "voice_only"]
+        },
+        "dpdfnet_attn_limit_db": {
+          "type": "number",
+          "enum": [6.0, 12.0, 18.0]
+        },
+        "target_format": {
+          "type": "string",
+          "enum": ["source", "mp3", "m4a", "wav", "flac"]
+        }
+      }
+    },
+    "AudioProcessingPresetGraph": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["enabled", "parameters"],
+      "properties": {
+        "enabled": { "type": "boolean" },
+        "parameters": { "$ref": "#/definitions/AudioProcessingPresetGraphParameters" }
+      }
+    },
+    "AudioProcessingPresetGraphParameters": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "graph_voice_range",
+        "graph_recording_condition",
+        "graph_smoothness",
+        "graph_connect_short_dropouts_ms",
+        "graph_voice_lock"
+      ],
+      "properties": {
+        "graph_voice_range": {
+          "type": "string",
+          "enum": ["bass", "low", "general", "high", "child"]
+        },
+        "graph_recording_condition": {
+          "type": "string",
+          "enum": ["auto", "very_noisy", "noisy", "normal", "clean", "studio"]
+        },
+        "graph_smoothness": {
+          "type": "string",
+          "enum": ["raw", "balanced", "smooth", "very_smooth"]
+        },
+        "graph_connect_short_dropouts_ms": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 500
+        },
+        "graph_voice_lock": {
+          "type": "string",
+          "enum": ["loose", "balanced", "stable"]
+        }
+      }
     }
   }
 }

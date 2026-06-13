@@ -5,7 +5,8 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 
 from .audio_operation_params import AudioOperationParameters
-from .audio_operations import requires_target_field, validate_operation
+from .audio_operations import OP_PRESET, requires_target_field, validate_operation
+from .audio_processing_presets import AudioProcessingPreset
 
 
 @dataclass(frozen=True)
@@ -16,14 +17,42 @@ class BatchRunRequest:
     source_field: str
     target_field: str | None = None
     parameters: AudioOperationParameters = field(default_factory=AudioOperationParameters)
+    preset_id: str | None = None
+    audio_target_field: str | None = None
+    graph_target_field: str | None = None
+    preset: AudioProcessingPreset | None = None
 
     def __post_init__(self) -> None:
-        operation = validate_operation(self.operation)
+        operation = _validated_batch_operation(self.operation)
         object.__setattr__(self, "operation", operation)
-        if not self.source_field:
-            raise ValueError("Choose a source field before starting.")
-        if requires_target_field(operation) and not self.target_field:
-            raise ValueError("Choose a target field before starting.")
+        _validate_batch_request(self)
+
+
+def _validated_batch_operation(operation: str) -> str:
+    if operation == OP_PRESET:
+        return OP_PRESET
+    return validate_operation(operation)
+
+
+def _validate_batch_request(request: BatchRunRequest) -> None:
+    if not request.source_field:
+        raise ValueError("Choose a source field before starting.")
+    if request.operation == OP_PRESET:
+        _validate_preset_request(request)
+        return
+    if requires_target_field(request.operation) and not request.target_field:
+        raise ValueError("Choose a target field before starting.")
+
+
+def _validate_preset_request(request: BatchRunRequest) -> None:
+    if not request.preset_id:
+        raise ValueError("Choose a preset before starting.")
+    if request.preset is None:
+        raise ValueError("Selected preset is unavailable.")
+    if request.preset.has_transforms and not request.audio_target_field:
+        raise ValueError("Choose an audio target field before starting.")
+    if request.preset.graph.enabled and not request.graph_target_field:
+        raise ValueError("Choose a graph target field before starting.")
 
 
 @dataclass(frozen=True)
@@ -56,6 +85,8 @@ class BatchNoteResult:
     image_filename: str | None = None
     written_filename: str | None = None
     original_target_html: str | None = None
+    field_updates: dict[str, str] | None = None
+    original_field_html: dict[str, str] | None = None
 
     @property
     def written(self) -> bool:
