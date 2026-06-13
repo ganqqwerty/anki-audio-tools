@@ -29,6 +29,17 @@ export interface ToggleChorusingMarkerResult {
   removed: boolean;
 }
 
+export interface ChorusingLoopBoundaryConfig {
+  autoAdvance: boolean;
+  repeatCount: number;
+}
+
+export interface ChorusingLoopBoundaryDecision {
+  action: "advance" | "ignore" | "pause" | "repeat";
+  consumed: boolean;
+  nextState: ChorusingState;
+}
+
 export function emptyChorusingState(): ChorusingState {
   return {
     activeMarkerIndex: null,
@@ -159,6 +170,53 @@ export function chorusingControlAvailability(state: ChorusingState): ChorusingCo
     canNext: navigation.canNext,
     canPrevious: navigation.canPrevious,
     canPractice: hasBaseRegion && hasMarkers,
+  };
+}
+
+export function resolveChorusingLoopBoundary(
+  state: ChorusingState,
+  config: ChorusingLoopBoundaryConfig,
+): ChorusingLoopBoundaryDecision {
+  if (state.practiceState !== "playing" || state.activeMarkerIndex === null || !config.autoAdvance) {
+    return {
+      action: "ignore",
+      consumed: false,
+      nextState: state,
+    };
+  }
+
+  const completed = state.repeatPassesCompleted + 1;
+  if (completed < config.repeatCount) {
+    return {
+      action: "repeat",
+      consumed: false,
+      nextState: {
+        ...state,
+        repeatPassesCompleted: completed,
+      },
+    };
+  }
+
+  const nextIndex = moveActiveMarkerIndex(state.markersMs, state.activeMarkerIndex, "next");
+  if (nextIndex === state.activeMarkerIndex) {
+    return {
+      action: "pause",
+      consumed: true,
+      nextState: {
+        ...state,
+        repeatPassesCompleted: completed,
+      },
+    };
+  }
+
+  return {
+    action: "advance",
+    consumed: true,
+    nextState: {
+      ...state,
+      activeMarkerIndex: nextIndex,
+      repeatPassesCompleted: 0,
+    },
   };
 }
 

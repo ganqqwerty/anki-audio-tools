@@ -14,11 +14,9 @@
   import { sendSplitDefaultSaveRequest } from "./bridge.js";
   import {
     buildSplitDefaultSaveRequest,
+    createChorusingSplitButtonStateHandlers,
     getSplitButtonState,
     promoteSplitDefaultsForField,
-    setChorusingAutoAdvanceForField,
-    setChorusingPauseSecondsForField,
-    setChorusingRepeatCountForField,
   } from "./split-button-state.js";
 
   const { button, displayMode, target }: {
@@ -37,15 +35,23 @@
   const primaryTooltip = $derived(buttonTooltipContent(button.label, button.title));
   const menuTitle = $derived(t("editor.chorusing.menu_title"));
 
-  function syncState(): void {
-    const state = getSplitButtonState(target.ord);
-    chorusingPauseSeconds = state.chorusingPauseSeconds;
-    chorusingAutoAdvance = state.chorusingAutoAdvance;
-    chorusingRepeatCount = state.chorusingRepeatCount;
-  }
+  const { syncFromState, applyPauseSeconds, applyAutoAdvance, applyRepeatCount } = createChorusingSplitButtonStateHandlers(
+    () => target.ord,
+    {
+      setChorusingPauseSeconds: (value) => {
+        chorusingPauseSeconds = value;
+      },
+      setChorusingAutoAdvance: (value) => {
+        chorusingAutoAdvance = value;
+      },
+      setChorusingRepeatCount: (value) => {
+        chorusingRepeatCount = value;
+      },
+    },
+  );
 
   function onOpenChange(nextOpen: boolean): void {
-    if (nextOpen) syncState();
+    if (nextOpen) syncFromState(getSplitButtonState(target.ord));
     open = nextOpen;
   }
 
@@ -66,15 +72,12 @@
   function saveCurrentDefaults(): void {
     const request = buildSplitDefaultSaveRequest("aqe:chorusing-practice", target.ord);
     sendSplitDefaultSaveRequest(request);
-    const nextState = promoteSplitDefaultsForField(target.ord, request.defaults);
-    chorusingPauseSeconds = nextState.chorusingPauseSeconds;
-    chorusingAutoAdvance = nextState.chorusingAutoAdvance;
-    chorusingRepeatCount = nextState.chorusingRepeatCount;
+    syncFromState(promoteSplitDefaultsForField(target.ord, request.defaults));
     showDefaultSaved();
   }
 
   onMount(() => {
-    syncState();
+    syncFromState(getSplitButtonState(target.ord));
     return () => {
       if (defaultSavedTimer !== undefined) window.clearTimeout(defaultSavedTimer);
     };
@@ -159,8 +162,7 @@
           value={chorusingPauseSeconds}
           ariaLabel={t("editor.chorusing.pause_between_repeats")}
           onValueInput={(value) => {
-            const state = setChorusingPauseSecondsForField(target.ord, value);
-            chorusingPauseSeconds = state.chorusingPauseSeconds;
+            applyPauseSeconds(value);
             defaultSaved = false;
           }}
         />
@@ -172,8 +174,7 @@
           data-testid={`aqe-split-${target.ord}-chorusing-auto-advance`}
           onchange={(event) => {
             const input = event.currentTarget as HTMLInputElement;
-            const state = setChorusingAutoAdvanceForField(target.ord, input.checked);
-            chorusingAutoAdvance = state.chorusingAutoAdvance;
+            applyAutoAdvance(input.checked);
             defaultSaved = false;
           }}
         />
@@ -191,8 +192,7 @@
           value={chorusingRepeatCount}
           ariaLabel={t("editor.chorusing.repeat_count")}
           onValueInput={(value) => {
-            const state = setChorusingRepeatCountForField(target.ord, value);
-            chorusingRepeatCount = state.chorusingRepeatCount;
+            applyRepeatCount(value);
             defaultSaved = false;
           }}
         />

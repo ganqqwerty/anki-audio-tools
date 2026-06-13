@@ -13,6 +13,7 @@ export {
 } from "../lib/audio-operation-parameters.js";
 export { formatSizeReductionMode } from "../lib/size-reduction-parameters.js";
 export { formatDenoiseAlgorithm, formatPitchHumMode, formatShareTarget } from "./split-button-formatters.js";
+export { createChorusingSplitButtonStateHandlers } from "./split-button-state-behavior.js";
 
 export {
   splitButtonDefaults,

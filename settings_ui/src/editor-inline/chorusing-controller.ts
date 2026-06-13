@@ -28,6 +28,7 @@ import {
   deriveActiveSuffix,
   emptyChorusingState,
   moveActiveMarkerIndex,
+  resolveChorusingLoopBoundary,
   type ChorusingMarkerDirection,
   type ChorusingState,
   toggleChorusingMarker,
@@ -304,28 +305,42 @@ function pauseChorusing(visualizer: VisualizerElement, state: ChorusingState): v
 
 export function handleChorusingLoopBoundary(
   visualizer: VisualizerElement,
-  _pass: PlaybackPass,
+  pass: PlaybackPass,
 ): boolean {
   const state = chorusingStateForVisualizer(visualizer);
-  if (state.practiceState !== "playing" || state.activeMarkerIndex === null) {
+  if (!chorusingPassMatchesActiveSuffix(state, pass)) {
     return false;
   }
   const splitState = getSplitButtonState(Number(visualizer.dataset.aqeFieldOrd || "0"));
-  if (!splitState.chorusingAutoAdvance) {
+  const decision = resolveChorusingLoopBoundary(state, {
+    autoAdvance: splitState.chorusingAutoAdvance,
+    repeatCount: splitState.chorusingRepeatCount,
+  });
+  if (decision.action === "ignore") {
     return false;
   }
-  const completed = state.repeatPassesCompleted + 1;
-  if (completed < splitState.chorusingRepeatCount) {
-    writeState(visualizer, { ...state, repeatPassesCompleted: completed });
+  if (decision.action === "repeat") {
+    writeState(visualizer, decision.nextState);
     return false;
   }
-  const nextIndex = moveActiveMarkerIndex(state.markersMs, state.activeMarkerIndex, "next");
-  if (nextIndex === state.activeMarkerIndex) {
-    pauseChorusing(visualizer, { ...state, repeatPassesCompleted: completed });
+  if (decision.action === "pause") {
+    pauseChorusing(visualizer, decision.nextState);
     return true;
   }
-  moveChorusing(visualizer, "next", { resetRepeatPasses: true });
-  return true;
+  writeState(visualizer, decision.nextState);
+  setSelectionToActiveSuffix(visualizer, decision.nextState);
+  startPracticePlayback(visualizer, decision.nextState);
+  return decision.consumed;
+}
+
+function chorusingPassMatchesActiveSuffix(state: ChorusingState, pass: PlaybackPass): boolean {
+  const suffix = deriveActiveSuffix(state.baseRegion, state.markersMs, state.activeMarkerIndex);
+  return Boolean(
+    suffix
+    && pass.regionMode === suffix.mode
+    && pass.startMs === Math.round(suffix.startMs)
+    && pass.endMs === Math.round(suffix.endMs),
+  );
 }
 
 function setSelectionToActiveSuffix(visualizer: VisualizerElement, state: ChorusingState) {
