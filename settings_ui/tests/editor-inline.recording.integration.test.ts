@@ -283,7 +283,7 @@ describe("editor inline learner recording integration", () => {
     });
   });
 
-  it("grows the active recording graph and reveals the time scrollbar once recording exceeds the target graph", async () => {
+  it("grows the active recording graph and reveals the time scrollbar once recording exceeds the visible span", async () => {
     initAndScan(recordingConfig());
     await setupAudioTrack();
     const initialScrollbar = document.querySelector<HTMLElement>('[data-testid="aqe-time-scrollbar-0"]')!;
@@ -293,7 +293,7 @@ describe("editor inline learner recording integration", () => {
     window.__aqeSetLearnerRecordingState?.({
       fieldOrd: 0,
       generation: 1,
-      recordingDurationMs: 400,
+      recordingDurationMs: 1200,
       startCursorMs: 900,
       status: "recording",
       targetDurationMs: track.durationMs,
@@ -302,8 +302,8 @@ describe("editor inline learner recording integration", () => {
 
     const scrollbar = document.querySelector<HTMLElement>('[data-testid="aqe-time-scrollbar-0"]')!;
     expect(window.__aqeGraphStateForTest?.(0)).toMatchObject({
-      durationMs: 1300,
-      learnerDurationMs: 1300,
+      durationMs: 2100,
+      learnerDurationMs: 2100,
       learnerRecordingStatus: "recording",
       targetDurationMs: 1000,
     });
@@ -335,7 +335,7 @@ describe("editor inline learner recording integration", () => {
     });
     await Promise.resolve();
 
-    now = 1250;
+    now = 2250;
     frames.shift()?.(now);
     await Promise.resolve();
     await Promise.resolve();

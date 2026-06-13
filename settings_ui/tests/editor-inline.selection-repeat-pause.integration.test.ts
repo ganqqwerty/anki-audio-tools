@@ -9,6 +9,7 @@ import {
   muteConsole,
   prepareHtmlAudio,
   renderFields,
+  setFullGraphViewport,
   setRepeatMode,
   setGraphBounds,
   track,
@@ -37,6 +38,7 @@ async function startSelectedRepeatWithPause(seconds: number) {
   window.__aqeSetVisualizer?.(0, track, 100);
   const svg = document.querySelector<SVGSVGElement>('[data-testid="aqe-graph-svg-0"]')!;
   setGraphBounds(svg);
+  setFullGraphViewport();
   dragGraphSelection(svg, 0.25, 0.75);
   await setRepeatMode(true);
   clearQueuedAnimationFrames(frames);

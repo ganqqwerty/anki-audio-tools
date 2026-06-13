@@ -2,12 +2,14 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { disposeEditorRuntime, initializeEditorRuntime, scan } from "../src/editor-inline/runtime.js";
 import { PLOT, plotWidth } from "../src/editor-inline/plot.js";
+import { CANONICAL_TIME_MS_PER_PIXEL } from "../src/editor-inline/time-viewport.js";
 import {
   commandLog,
   dragGraphSelection,
   graphClientX,
   muteConsole,
   renderFields,
+  setFullGraphViewport,
   setGraphBounds,
   track,
 } from "./editor-inline.integration.helpers.js";
@@ -33,6 +35,7 @@ describe("editor inline viewport workflow", () => {
     await Promise.resolve();
     const svg = document.querySelector<SVGSVGElement>('[data-testid="aqe-graph-svg-0"]')!;
     setGraphBounds(svg);
+    setFullGraphViewport();
 
     document.querySelector<HTMLButtonElement>('[data-testid="aqe-zoom-in-0"]')?.click();
     let state = window.__aqeGraphStateForTest?.(0);
@@ -61,6 +64,7 @@ describe("editor inline viewport workflow", () => {
     const svg = document.querySelector<SVGSVGElement>('[data-testid="aqe-graph-svg-0"]')!;
     const plot = document.querySelector<HTMLElement>('[data-testid="aqe-visualizer-plot-0"]')!;
     setGraphBounds(svg);
+    setFullGraphViewport();
 
     plot.dispatchEvent(new WheelEvent("wheel", {
       bubbles: true,
@@ -118,6 +122,7 @@ describe("editor inline viewport workflow", () => {
     const scrollbar = document.querySelector<HTMLElement>('[data-testid="aqe-time-scrollbar-0"]')!;
     const scrollport = document.querySelector<HTMLDivElement>('[data-testid="aqe-time-scrollbar-scroll-0"]')!;
     Object.defineProperty(scrollport, "clientWidth", { configurable: true, value: 200 });
+    setFullGraphViewport();
 
     expect(scrollbar.hidden).toBe(true);
 
@@ -206,7 +211,7 @@ describe("editor inline viewport workflow", () => {
     expect(commandLog().slice(commandsBeforeScroll.length)).not.toContain("aqe:set-cursor");
   });
 
-  it("resets zoom to fit when a graph is redrawn for a new track", async () => {
+  it("resets zoom to canonical scale when a graph is redrawn for a new track", async () => {
     initializeEditorRuntime({ audioFieldIndices: [0] });
     scan({ audioFieldIndices: [0] });
     await Promise.resolve();
@@ -217,6 +222,6 @@ describe("editor inline viewport workflow", () => {
 
     const state = window.__aqeGraphStateForTest?.(0);
     expect(state?.viewportStartMs).toBe(0);
-    expect(state?.viewportEndMs).toBe(2000);
+    expect(state?.viewportEndMs).toBe(plotWidth() * CANONICAL_TIME_MS_PER_PIXEL);
   });
 });

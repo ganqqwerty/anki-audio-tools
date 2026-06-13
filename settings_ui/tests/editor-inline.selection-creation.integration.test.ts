@@ -8,6 +8,7 @@ import {
   muteConsole,
   renderFields,
   setRepeatMode,
+  setFullGraphViewport,
   setGraphBounds,
   track,
 } from "./editor-inline.integration.helpers.js";
@@ -59,6 +60,7 @@ describe("editor inline selection creation integration", () => {
     window.__aqeSetVisualizer?.(0, track, 100);
     const svg = document.querySelector<SVGSVGElement>('[data-testid="aqe-graph-svg-0"]')!;
     setGraphBounds(svg);
+    setFullGraphViewport();
 
     dragGraphSelection(svg, 0.2, 0.6);
     expect(window.__aqeGraphStateForTest?.(0)).toMatchObject({
@@ -116,6 +118,7 @@ describe("editor inline selection creation integration", () => {
     const svg = document.querySelector<SVGSVGElement>('[data-testid="aqe-graph-svg-0"]')!;
     const band = document.querySelector('[data-testid="aqe-selection-0"]')!;
     setGraphBounds(svg);
+    setFullGraphViewport();
 
     dispatchGraphPointer(svg, "pointerdown", graphClientX(svg, 0.2), true);
     expect(window.__aqeGraphStateForTest?.(0)).toMatchObject({
@@ -167,6 +170,7 @@ describe("editor inline selection creation integration", () => {
     window.__aqeSetVisualizer?.(0, track, 100);
     const svg = document.querySelector<SVGSVGElement>('[data-testid="aqe-graph-svg-0"]')!;
     setGraphBounds(svg);
+    setFullGraphViewport();
 
     dragGraphSelection(svg, 0.2, 0.6);
     dispatchGraphPointer(svg, "pointerdown", graphClientX(svg, 0.8));
@@ -214,6 +218,7 @@ describe("editor inline selection creation integration", () => {
     window.__aqeSetVisualizer?.(0, track, 100);
     const svg = document.querySelector<SVGSVGElement>('[data-testid="aqe-graph-svg-0"]')!;
     setGraphBounds(svg);
+    setFullGraphViewport();
 
     dragGraphSelection(svg, 0.2, 0.6);
 
@@ -257,6 +262,7 @@ describe("editor inline selection creation integration", () => {
     window.__aqeSetVisualizer?.(0, track, 100);
     const svg = document.querySelector<SVGSVGElement>('[data-testid="aqe-graph-svg-0"]')!;
     setGraphBounds(svg);
+    setFullGraphViewport();
 
     dragGraphSelection(svg, 0.2, 0.6);
     await setRepeatMode(true);

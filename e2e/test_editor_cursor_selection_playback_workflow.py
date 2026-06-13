@@ -322,7 +322,7 @@ def test_zoomed_selected_repeat_stops_before_transformation_and_redraws_cleanly(
                 and state["selectionStartMs"] == 0
                 and abs(state["selectionEndMs"] - state["durationMs"]) <= 1
                 and state["viewportStartMs"] == 0
-                and state["viewportEndMs"] == state["durationMs"],
+                and state["viewportEndMs"] > state["viewportStartMs"],
                 timeout=10.0,
             )
 

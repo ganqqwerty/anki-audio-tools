@@ -8,6 +8,7 @@ import {
   muteConsole,
   prepareHtmlAudio,
   renderFields,
+  setFullGraphViewport,
   setGraphBounds,
   setRepeatMode,
   track,
@@ -203,9 +204,9 @@ describe("editor inline cursor, selection, playback integration", () => {
       selectionEndMs: 1000,
       selectionStartMs: 0,
       sourceFilename: "processed.mp3",
-      viewportEndMs: 1000,
       viewportStartMs: 0,
     });
+    expect(window.__aqeGraphStateForTest?.(0)?.viewportEndMs).toBeGreaterThan(track.durationMs);
   });
 });
 
@@ -216,6 +217,7 @@ async function setupGraph(): Promise<{ audio: HTMLAudioElement; svg: SVGSVGEleme
   window.__aqeSetVisualizer?.(0, track, 0);
   const svg = document.querySelector<SVGSVGElement>('[data-testid="aqe-graph-svg-0"]')!;
   setGraphBounds(svg);
+  setFullGraphViewport();
   const audio = prepareHtmlAudio();
   return { audio, svg };
 }

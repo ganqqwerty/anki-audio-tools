@@ -14,6 +14,7 @@ import {
   prepareHtmlAudio,
   renderFields,
   selectionToolbarButton,
+  setFullGraphViewport,
   setRepeatMode,
   setGraphBounds,
   track,
@@ -42,6 +43,7 @@ afterEach(() => {
     window.__aqeSetVisualizer?.(0, track, 100);
     const svg = document.querySelector<SVGSVGElement>('[data-testid="aqe-graph-svg-0"]')!;
     setGraphBounds(svg);
+    setFullGraphViewport();
     dragGraphSelection(svg, 0.2, 0.6);
     await setRepeatMode(true);
 
@@ -69,6 +71,7 @@ afterEach(() => {
     window.__aqeSetPlaybackState?.(0, "paused", 100);
     const svg = document.querySelector<SVGSVGElement>('[data-testid="aqe-graph-svg-0"]')!;
     setGraphBounds(svg);
+    setFullGraphViewport();
 
     dispatchGraphPointer(svg, "pointerdown", graphClientX(svg, 0.4));
     dispatchGraphPointer(svg, "pointerup", graphClientX(svg, 0.4));
@@ -95,6 +98,7 @@ afterEach(() => {
     window.__aqeSetVisualizer?.(0, track, 0);
     const svg = document.querySelector<SVGSVGElement>('[data-testid="aqe-graph-svg-0"]')!;
     setGraphBounds(svg);
+    setFullGraphViewport();
     prepareHtmlAudio();
 
     document.querySelector<HTMLButtonElement>('[data-testid="aqe-button-0-play"]')!.click();
@@ -136,6 +140,7 @@ afterEach(() => {
     window.__aqeSetVisualizer?.(0, track, 100);
     const svg = document.querySelector<SVGSVGElement>('[data-testid="aqe-graph-svg-0"]')!;
     setGraphBounds(svg);
+    setFullGraphViewport();
     dragGraphSelection(svg, 0.25, 0.75);
     await setRepeatMode(true);
     clearQueuedAnimationFrames(frames);
@@ -165,6 +170,7 @@ afterEach(() => {
     window.__aqeSetVisualizer?.(0, track, 100);
     const svg = document.querySelector<SVGSVGElement>('[data-testid="aqe-graph-svg-0"]')!;
     setGraphBounds(svg);
+    setFullGraphViewport();
     dragGraphSelection(svg, 0.2, 0.6);
     prepareHtmlAudio();
 
@@ -198,6 +204,7 @@ afterEach(() => {
     window.__aqeSetVisualizer?.(0, track, 100);
     const svg = document.querySelector<SVGSVGElement>('[data-testid="aqe-graph-svg-0"]')!;
     setGraphBounds(svg);
+    setFullGraphViewport();
     dragGraphSelection(svg, 0.25, 0.75);
     await setRepeatMode(true);
     clearQueuedAnimationFrames(frames);
@@ -225,6 +232,7 @@ afterEach(() => {
     window.__aqeSetVisualizer?.(0, track, 100);
     const svg = document.querySelector<SVGSVGElement>('[data-testid="aqe-graph-svg-0"]')!;
     setGraphBounds(svg);
+    setFullGraphViewport();
     dragGraphSelection(svg, 0.25, 0.75);
     await setRepeatMode(true);
 
@@ -261,6 +269,7 @@ afterEach(() => {
     window.__aqeSetVisualizer?.(0, track, 100);
     const svg = document.querySelector<SVGSVGElement>('[data-testid="aqe-graph-svg-0"]')!;
     setGraphBounds(svg);
+    setFullGraphViewport();
     dragGraphSelection(svg, 0.25, 0.75);
     const audio = prepareHtmlAudio();
 
@@ -309,6 +318,7 @@ afterEach(() => {
     window.__aqeSetVisualizer?.(0, track, 100);
     const svg = document.querySelector<SVGSVGElement>('[data-testid="aqe-graph-svg-0"]')!;
     setGraphBounds(svg);
+    setFullGraphViewport();
     dragGraphSelection(svg, 0.25, 0.75);
     const audio = prepareHtmlAudio();
 
@@ -346,6 +356,7 @@ afterEach(() => {
     window.__aqeSetVisualizer?.(0, track, 100);
     const svg = document.querySelector<SVGSVGElement>('[data-testid="aqe-graph-svg-0"]')!;
     setGraphBounds(svg);
+    setFullGraphViewport();
     dragGraphSelection(svg, 0.25, 0.75);
     window.__aqeSetPlaybackState?.(0, "paused", 500);
 

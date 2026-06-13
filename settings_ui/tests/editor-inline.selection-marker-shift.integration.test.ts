@@ -7,6 +7,7 @@ import {
   graphClientX,
   muteConsole,
   renderFields,
+  setFullGraphViewport,
   setGraphBounds,
   track,
 } from "./editor-inline.integration.helpers.js";
@@ -129,6 +130,7 @@ async function prepareShiftGraph(): Promise<SVGSVGElement> {
   await Promise.resolve();
   const svg = document.querySelector<SVGSVGElement>('[data-testid="aqe-graph-svg-0"]')!;
   setGraphBounds(svg);
+  setFullGraphViewport();
   return svg;
 }
 

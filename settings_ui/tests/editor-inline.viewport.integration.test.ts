@@ -38,8 +38,15 @@ describe("editor inline viewport controls", () => {
     const svg = document.querySelector<SVGSVGElement>('[data-testid="aqe-graph-svg-0"]')!;
     setGraphBounds(svg);
 
-    document.querySelector<HTMLButtonElement>('[data-testid="aqe-zoom-in-0"]')?.click();
     let state = window.__aqeGraphStateForTest?.(0);
+    expect(state?.viewportStartMs).toBe(0);
+    expect(state?.viewportEndMs).toBeGreaterThan(track.durationMs);
+
+    window.__aqeSetCursorForTest?.(0, track.durationMs / 2, false);
+    for (let index = 0; index < 4; index += 1) {
+      document.querySelector<HTMLButtonElement>('[data-testid="aqe-zoom-in-0"]')?.click();
+    }
+    state = window.__aqeGraphStateForTest?.(0);
     expect(state?.viewportStartMs).toBeGreaterThan(0);
     expect(state?.viewportEndMs).toBeLessThan(track.durationMs);
 
@@ -74,8 +81,18 @@ describe("editor inline viewport controls", () => {
     }));
     let state = window.__aqeGraphStateForTest?.(0);
     let span = (state?.viewportEndMs ?? 0) - (state?.viewportStartMs ?? 0);
-    expect(span).toBeLessThan(track.durationMs);
-    expect(span).toBeGreaterThan(track.durationMs * 0.75);
+    expect(span).toBeLessThan(1875);
+    expect(span).toBeGreaterThan(track.durationMs);
+
+    for (let index = 0; index < 4; index += 1) {
+      plot.dispatchEvent(new WheelEvent("wheel", {
+        bubbles: true,
+        clientX: graphClientX(svg, 0.5),
+        ctrlKey: true,
+        deltaY: -100,
+      }));
+    }
+    state = window.__aqeGraphStateForTest?.(0);
 
     const beforeShiftPanStart = state?.viewportStartMs ?? 0;
     plot.dispatchEvent(new WheelEvent("wheel", {
@@ -104,8 +121,6 @@ describe("editor inline viewport controls", () => {
     }));
     state = window.__aqeGraphStateForTest?.(0);
     expect(state?.viewportStartMs).toBe(beforeVerticalStart);
-    span = (state?.viewportEndMs ?? 0) - (state?.viewportStartMs ?? 0);
-    expect(span).toBeGreaterThan(track.durationMs * 0.75);
 
     const visualizer = document.querySelector<HTMLElement>('[data-testid="aqe-graph-0"]')!;
     visualizer.dispatchEvent(new KeyboardEvent("keydown", { bubbles: true, key: "0" }));
@@ -114,7 +129,7 @@ describe("editor inline viewport controls", () => {
     expect(state?.viewportEndMs).toBe(track.durationMs);
   });
 
-  it("scrolls the visible time viewport with a horizontal scrollbar", async () => {
+  it("scrolls the visible time viewport with a horizontal scrollbar only when audio is scrollable", async () => {
     initializeEditorRuntime({ audioFieldIndices: [0] });
     scan({ audioFieldIndices: [0] });
     window.__aqeSetVisualizer?.(0, track, 500);
@@ -125,14 +140,16 @@ describe("editor inline viewport controls", () => {
 
     expect(scrollbar.hidden).toBe(true);
 
-    document.querySelector<HTMLButtonElement>('[data-testid="aqe-zoom-in-0"]')?.click();
+    for (let index = 0; index < 4; index += 1) {
+      document.querySelector<HTMLButtonElement>('[data-testid="aqe-zoom-in-0"]')?.click();
+    }
     await Promise.resolve();
     await Promise.resolve();
     expect(scrollbar.hidden).toBe(false);
     const beforeScroll = window.__aqeGraphStateForTest?.(0);
-    expect(scrollport.querySelector<HTMLElement>(".aqe-time-scrollbar-spacer")?.style.width).toBe("125%");
+    expect(scrollport.querySelector<HTMLElement>(".aqe-time-scrollbar-spacer")?.style.width).not.toBe("100%");
 
-    scrollport.scrollLeft = 50;
+    scrollport.scrollLeft = 10_000;
     scrollport.dispatchEvent(new Event("scroll"));
 
     const afterScroll = window.__aqeGraphStateForTest?.(0);
@@ -210,7 +227,7 @@ describe("editor inline viewport controls", () => {
     expect(commandLog().slice(commandsBeforeScroll.length)).not.toContain("aqe:set-cursor");
   });
 
-  it("resets zoom to fit when a graph is redrawn for a new track", async () => {
+  it("resets zoom to canonical scale when a graph is redrawn for a new track", async () => {
     initializeEditorRuntime({ audioFieldIndices: [0] });
     scan({ audioFieldIndices: [0] });
     await Promise.resolve();
@@ -221,6 +238,6 @@ describe("editor inline viewport controls", () => {
 
     const state = window.__aqeGraphStateForTest?.(0);
     expect(state?.viewportStartMs).toBe(0);
-    expect(state?.viewportEndMs).toBe(2000);
+    expect(state?.viewportEndMs).toBe(1875);
   });
 });
