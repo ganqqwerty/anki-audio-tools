@@ -2,6 +2,7 @@ import { readFileSync } from "node:fs";
 import { waitFor } from "@testing-library/svelte";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
+import { handlePlaybackBoundary } from "../src/editor-inline/actions.js";
 import { disposeEditorRuntime, initializeEditorRuntime, scan } from "../src/editor-inline/runtime.js";
 import {
   dragGraphSelection,
@@ -273,6 +274,52 @@ describe("editor inline chorusing integration", () => {
       chorusingAutoAdvanceRepeats: 4,
     });
   });
+
+  it("auto-advances chorusing after the configured repeat count", async () => {
+    await prepareChorusingGraph();
+    prepareHtmlAudio();
+
+    document.querySelector<HTMLButtonElement>('[data-testid="aqe-split-0-chorusing-practice-menu"]')!.click();
+    await waitFor(() => {
+      expect(document.querySelector('[data-testid="aqe-split-0-chorusing-popover"]')).not.toBeNull();
+    });
+    document.querySelector<HTMLInputElement>('[data-testid="aqe-split-0-chorusing-auto-advance"]')!.click();
+    const repeatCount = document.querySelector<HTMLInputElement>(
+      '[data-testid="aqe-split-0-chorusing-repeat-count"]',
+    )!;
+    repeatCount.value = "2";
+    repeatCount.dispatchEvent(new Event("input", { bubbles: true }));
+
+    practiceButton().click();
+    await Promise.resolve();
+
+    expect(window.__aqeGraphStateForTest?.(0)).toMatchObject({
+      chorusingActiveMarkerIndex: 2,
+      chorusingState: "playing",
+      playbackStartMs: 667,
+      repeatEnabled: true,
+    });
+
+    handlePlaybackBoundary(visualizer(), 1000);
+    await Promise.resolve();
+
+    expect(window.__aqeGraphStateForTest?.(0)).toMatchObject({
+      chorusingActiveMarkerIndex: 2,
+      chorusingRepeatPassesCompleted: 1,
+      chorusingState: "playing",
+    });
+
+    handlePlaybackBoundary(visualizer(), 1000);
+    await Promise.resolve();
+
+    expect(window.__aqeGraphStateForTest?.(0)).toMatchObject({
+      chorusingActiveMarkerIndex: 1,
+      chorusingRepeatPassesCompleted: 0,
+      chorusingState: "playing",
+      playbackStartMs: 333,
+      selectionStartMs: 333,
+    });
+  });
 });
 
 function installVisualizerStyles(): void {
@@ -330,4 +377,8 @@ function nextButton(): HTMLButtonElement {
 
 function previousButton(): HTMLButtonElement {
   return document.querySelector<HTMLButtonElement>('[data-testid="aqe-button-0-chorusing-previous"]')!;
+}
+
+function visualizer(): HTMLElement {
+  return document.querySelector('.aqe-visualizer[data-aqe-field-ord="0"]')!;
 }

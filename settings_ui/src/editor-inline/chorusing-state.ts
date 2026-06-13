@@ -9,6 +9,7 @@ export interface ChorusingState {
   markersMs: number[];
   ordinaryRepeatEnabled: boolean | null;
   practiceState: ChorusingStatus;
+  repeatPassesCompleted: number;
   sourceFilename: string;
 }
 
@@ -35,6 +36,7 @@ export function emptyChorusingState(): ChorusingState {
     markersMs: [],
     ordinaryRepeatEnabled: null,
     practiceState: "stopped",
+    repeatPassesCompleted: 0,
     sourceFilename: "",
   };
 }

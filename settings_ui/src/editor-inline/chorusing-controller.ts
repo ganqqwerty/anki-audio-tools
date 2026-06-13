@@ -20,6 +20,7 @@ import {
   writeChorusingState,
 } from "./chorusing-dom.js";
 import { syncChorusingToolbarButtons } from "./chorusing-toolbar.js";
+import { getSplitButtonState } from "./split-button-state.js";
 import {
   activeMarkerIndexAfterMarkerToggle,
   chooseInitialActiveMarkerIndex,
@@ -31,6 +32,7 @@ import {
   type ChorusingState,
   toggleChorusingMarker,
 } from "./chorusing-state";
+import type { PlaybackPass } from "./playback-model.js";
 import {
   readVisualizerCursorMs,
   readVisualizerTargetDurationMs,
@@ -211,13 +213,18 @@ function toggleChorusing(visualizer: VisualizerElement): boolean {
   return true;
 }
 
-function moveChorusing(visualizer: VisualizerElement, direction: ChorusingMarkerDirection): boolean {
+function moveChorusing(
+  visualizer: VisualizerElement,
+  direction: ChorusingMarkerDirection,
+  options: { resetRepeatPasses?: boolean } = {},
+): boolean {
   const state = chorusingStateForVisualizer(visualizer);
   if (!state.baseRegion || !state.markersMs.length) return false;
   const nextIndex = moveActiveMarkerIndex(state.markersMs, state.activeMarkerIndex, direction);
   const nextState = {
     ...state,
     activeMarkerIndex: nextIndex,
+    repeatPassesCompleted: options.resetRepeatPasses === false ? state.repeatPassesCompleted : 0,
   };
   writeState(visualizer, nextState);
   setSelectionToActiveSuffix(visualizer, nextState);
@@ -264,6 +271,7 @@ function startPracticePlayback(visualizer: VisualizerElement, state: ChorusingSt
   writeState(visualizer, {
     ...state,
     practiceState: "playing",
+    repeatPassesCompleted: 0,
   });
   if (request.engine === "html") {
     startEditorHtmlPlayback(visualizer, request);
@@ -292,6 +300,32 @@ function pauseChorusing(visualizer: VisualizerElement, state: ChorusingState): v
     ...state,
     practiceState: "paused",
   });
+}
+
+export function handleChorusingLoopBoundary(
+  visualizer: VisualizerElement,
+  _pass: PlaybackPass,
+): boolean {
+  const state = chorusingStateForVisualizer(visualizer);
+  if (state.practiceState !== "playing" || state.activeMarkerIndex === null) {
+    return false;
+  }
+  const splitState = getSplitButtonState(Number(visualizer.dataset.aqeFieldOrd || "0"));
+  if (!splitState.chorusingAutoAdvance) {
+    return false;
+  }
+  const completed = state.repeatPassesCompleted + 1;
+  if (completed < splitState.chorusingRepeatCount) {
+    writeState(visualizer, { ...state, repeatPassesCompleted: completed });
+    return false;
+  }
+  const nextIndex = moveActiveMarkerIndex(state.markersMs, state.activeMarkerIndex, "next");
+  if (nextIndex === state.activeMarkerIndex) {
+    pauseChorusing(visualizer, { ...state, repeatPassesCompleted: completed });
+    return true;
+  }
+  moveChorusing(visualizer, "next", { resetRepeatPasses: true });
+  return true;
 }
 
 function setSelectionToActiveSuffix(visualizer: VisualizerElement, state: ChorusingState) {
