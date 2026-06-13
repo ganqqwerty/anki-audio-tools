@@ -7,6 +7,8 @@ from pathlib import Path
 ROOT = Path(__file__).parent.parent.parent
 EDITOR_INLINE = ROOT / "settings_ui" / "src" / "editor-inline"
 FIELD_STATE_STORE = EDITOR_INLINE / "field-state-store.ts"
+ACTIONS_AUDIO_CLOCK = EDITOR_INLINE / "actions-audio-clock.ts"
+AUDIO_CLOCK = EDITOR_INLINE / "audio-clock.ts"
 
 ALLOWED_FIELD_STATE_STORE_DATASET_LINES = {
     "target.dataset.progressMs = String(rounded);",
@@ -83,3 +85,39 @@ def test_production_editor_code_does_not_read_canonical_field_state_from_dataset
                     violations.append(f"{path.relative_to(ROOT)}:{line_no}: {stripped}")
 
     assert violations == [], "\n".join(violations)
+
+
+def test_audio_clock_event_callbacks_carry_media_event_facts() -> None:
+    source = AUDIO_CLOCK.read_text(encoding="utf-8")
+
+    assert "onEndedDuringPlayback?: (durationMs: number) => void;" in source
+    assert "onErrorDuringPlayback?: (cursorMs: number) => void;" in source
+
+
+def test_audio_clock_playback_event_callbacks_do_not_re_read_field_state() -> None:
+    source = ACTIONS_AUDIO_CLOCK.read_text(encoding="utf-8")
+    violations: list[str] = []
+    for callback_name in ("onErrorDuringPlayback", "onEndedDuringPlayback"):
+        body = _object_method_body(source, callback_name)
+        if "readFieldState(" in body:
+            violations.append(f"{ACTIONS_AUDIO_CLOCK.relative_to(ROOT)}:{callback_name} re-reads field state")
+
+    assert violations == [], "\n".join(violations)
+
+
+def _object_method_body(source: str, method_name: str) -> str:
+    marker = f"{method_name}("
+    start = source.find(marker)
+    assert start >= 0, f"{method_name} callback not found"
+    brace = source.find("{", start)
+    assert brace >= 0, f"{method_name} callback body not found"
+    depth = 0
+    for index in range(brace, len(source)):
+        char = source[index]
+        if char == "{":
+            depth += 1
+        elif char == "}":
+            depth -= 1
+            if depth == 0:
+                return source[brace:index + 1]
+    raise AssertionError(f"{method_name} callback body is not balanced")

@@ -63,13 +63,13 @@ export function installAudioClockHandlers(visualizer: VisualizerElement): void {
       }
       renderCursor(visualizer, readFieldState(ord).cursor.ms, durationMs);
     },
-    onErrorDuringPlayback() {
+    onErrorDuringPlayback(cursorMs) {
       const ord = fieldOrd(visualizer);
       logger.warn("audio clock failed during playback", { ord });
-      startManualProgressClock(visualizer, readFieldState(ord).cursor.ms);
+      startManualProgressClock(visualizer, cursorMs);
     },
-    onEndedDuringPlayback() {
-      handlePlaybackBoundary(visualizer, readFieldState(fieldOrd(visualizer)).graph.durationMs, { forceAudioPlay: true });
+    onEndedDuringPlayback(durationMs) {
+      handlePlaybackBoundary(visualizer, durationMs, { forceAudioPlay: true });
     },
   });
 }

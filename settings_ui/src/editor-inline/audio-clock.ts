@@ -2,8 +2,8 @@ import type { AudioClockElement, VisualizerElement } from "./types.js";
 import { readFieldState, updateFieldState } from "./field-state-store.js";
 
 export interface AudioClockHandlerCallbacks {
-  onEndedDuringPlayback?: () => void;
-  onErrorDuringPlayback?: () => void;
+  onEndedDuringPlayback?: (durationMs: number) => void;
+  onErrorDuringPlayback?: (cursorMs: number) => void;
   onLoadedMetadata?: (durationMs: number) => void;
 }
 
@@ -93,17 +93,33 @@ export function installAudioClockHandlers(
     visualizer.__aqeAudioClockFallback = true;
     const state = readFieldState(ord);
     if (state.playback.state === "playing" && state.playback.clockMode === "audio") {
-      callbacks.onErrorDuringPlayback?.();
+      callbacks.onErrorDuringPlayback?.(audioCurrentTimeMs(audio));
     }
   });
   audio.addEventListener("ended", () => {
     if (readFieldState(ord).playback.state === "playing") {
-      callbacks.onEndedDuringPlayback?.();
+      callbacks.onEndedDuringPlayback?.(audioBoundaryDurationMs(audio));
     }
   });
   audio.addEventListener("seeked", () => {
     visualizer.__aqeAudioClockLastSeekedMs = Math.round((Number(audio.currentTime) || 0) * 1000);
   });
+}
+
+function audioBoundaryDurationMs(audio: AudioClockElement): number {
+  return Math.max(audioDurationMs(audio), audioCurrentTimeMs(audio));
+}
+
+function audioDurationMs(audio: AudioClockElement): number {
+  const durationSeconds = Number(audio.duration);
+  if (!Number.isFinite(durationSeconds) || durationSeconds <= 0) return 0;
+  return Math.round(durationSeconds * 1000);
+}
+
+function audioCurrentTimeMs(audio: AudioClockElement): number {
+  const currentSeconds = Number(audio.currentTime);
+  if (!Number.isFinite(currentSeconds) || currentSeconds <= 0) return 0;
+  return Math.round(currentSeconds * 1000);
 }
 
 export function audioClockReady(visualizer: VisualizerElement | null): boolean {

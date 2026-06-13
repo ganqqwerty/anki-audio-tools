@@ -190,6 +190,51 @@ def test_hidden_full_repeat_resume_loops_from_beginning_without_graph(
         parent.close()
 
 
+def test_hidden_default_repeat_ended_replays_browser_audio_with_stale_field_state(
+    anki_mw,
+    ffmpeg_config,
+) -> None:
+    media_dir = Path(anki_mw.col.media.dir())
+    source = media_dir / "editor_hidden_default_repeat_stale_state.wav"
+    generate_tone(ffmpeg_config, source, duration_s=0.6)
+    note = _basic_audio_note(anki_mw, source.name)
+    _configure_ffmpeg(
+        anki_mw,
+        ffmpeg_config,
+        repeat_playback_by_default=True,
+        repeat_pause_seconds=0.0,
+    )
+
+    editor, parent = _open_editor(anki_mw, note)
+    try:
+        _prime_hidden_audio_duration(editor, 600)
+        _install_lagging_html_audio_driver(editor)
+
+        with _record_fake_playback(media_dir, {source.name: 600}, ffmpeg_config=ffmpeg_config) as playback:
+            click_selector(editor.web, _button_selector("aqe:play"), timeout=5.0)
+            _wait_for_html_playback(
+                editor,
+                lambda state: state["hidden"] is True
+                and state["hasTrack"] is False
+                and state["repeatEnabled"] is True
+                and state["progressMs"] >= 250,
+            )
+            assert _lagging_audio_play_calls(editor) == 1
+            _stale_field_duration_for_test(editor)
+            _dispatch_audio_ended(editor)
+            wait_for_js_condition(
+                editor.web,
+                "window.__aqeLaggingAudioPlayCalls ?? 0",
+                lambda value: value >= 2,
+                timeout=5.0,
+            )
+
+        assert playback.attempts == []
+    finally:
+        editor.set_note(None)
+        parent.close()
+
+
 def test_selected_non_repeat_resume_completion_resets_to_selection_start(
     anki_mw,
     ffmpeg_config,
@@ -256,4 +301,84 @@ def _prime_hidden_audio_duration(editor, duration_ms: int, ord_: int = 0) -> Non
         and state["durationMs"] == duration_ms
         and state["targetDurationMs"] == duration_ms,
         timeout=5.0,
+    )
+
+
+def _install_lagging_html_audio_driver(editor, ord_: int = 0) -> None:
+    wait_for_js_condition(
+        editor.web,
+        f"""
+        (() => {{
+          const visualizer = document.querySelector('[data-testid="aqe-graph-{ord_}"]');
+          const audio = document.querySelector('[data-testid="aqe-audio-clock-{ord_}"]');
+          if (!visualizer || !audio) return false;
+          const durationSeconds = Number(visualizer.dataset.durationMs || "0") / 1000;
+          const markReady = () => {{
+            try {{
+              Object.defineProperty(audio, "readyState", {{ configurable: true, value: 1 }});
+              Object.defineProperty(audio, "duration", {{
+                configurable: true,
+                get: () => durationSeconds,
+              }});
+            }} catch {{}}
+            visualizer.__aqeAudioClockAvailable = true;
+            visualizer.__aqeAudioClockFallback = false;
+          }};
+          window.__aqeLaggingAudioPlayCalls = 0;
+          audio.pause = function pause() {{}};
+          audio.play = function play() {{
+            window.__aqeLaggingAudioPlayCalls += 1;
+            return Promise.resolve();
+          }};
+          markReady();
+          audio.dispatchEvent(new Event("loadedmetadata"));
+          return true;
+        }})()
+        """,
+        lambda value: value is True,
+        timeout=5.0,
+    )
+
+
+def _stale_field_duration_for_test(editor, ord_: int = 0) -> None:
+    wait_for_js_condition(
+        editor.web,
+        f"""
+        (() => {{
+          if (typeof window.__aqeSetFieldStateForTest !== "function") return false;
+          const state = window.__aqeSetFieldStateForTest({ord_}, {{
+            graph: {{ durationMs: 0 }}
+          }});
+          return state !== null;
+        }})()
+        """,
+        lambda value: value is True,
+        timeout=5.0,
+    )
+
+
+def _dispatch_audio_ended(editor, ord_: int = 0) -> None:
+    wait_for_js_condition(
+        editor.web,
+        f"""
+        (() => {{
+          const audio = document.querySelector('[data-testid="aqe-audio-clock-{ord_}"]');
+          if (!audio) return false;
+          audio.dispatchEvent(new Event("ended"));
+          return true;
+        }})()
+        """,
+        lambda value: value is True,
+        timeout=5.0,
+    )
+
+
+def _lagging_audio_play_calls(editor) -> int:
+    return int(
+        wait_for_js_condition(
+            editor.web,
+            "window.__aqeLaggingAudioPlayCalls ?? 0",
+            lambda value: value is not None,
+            timeout=5.0,
+        )
     )

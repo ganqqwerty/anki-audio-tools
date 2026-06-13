@@ -9,6 +9,7 @@ import {
   pauseAudioClock,
   playbackRequest,
   seekAudioClock,
+  setRepeatEnabled,
   setPlaybackState,
   startManualProgressClock,
   stopEditorPlayback,
@@ -67,6 +68,7 @@ describe("editor inline audio-clock workflows", () => {
     const visualizer = await mountTrack(100);
     const audio = visualizer.querySelector<HTMLAudioElement>(".aqe-audio-clock")!;
     Object.defineProperty(audio, "readyState", { configurable: true, value: 1 });
+    Object.defineProperty(audio, "duration", { configurable: true, value: 1 });
     audio.pause = vi.fn<() => void>(() => undefined);
     audio.dispatchEvent(new Event("loadedmetadata"));
 
@@ -84,6 +86,72 @@ describe("editor inline audio-clock workflows", () => {
     audio.dispatchEvent(new Event("ended"));
     expect(bridgeCommands()).toContain("aqe:play-ended");
     expect(readFieldState(0).playback.state).toBe("stopped");
+  });
+
+  it("uses media duration when an ended event repeats with stale graph duration state", async () => {
+    vi.spyOn(window, "requestAnimationFrame").mockImplementation(() => 1);
+    vi.spyOn(window, "cancelAnimationFrame").mockImplementation(() => undefined);
+    const visualizer = await mountTrack(0);
+    const audio = visualizer.querySelector<HTMLAudioElement>(".aqe-audio-clock")!;
+    Object.defineProperty(audio, "readyState", { configurable: true, value: 1 });
+    Object.defineProperty(audio, "duration", { configurable: true, value: 1 });
+    audio.play = vi.fn<() => Promise<void>>(() => Promise.resolve());
+    audio.pause = vi.fn<() => void>(() => undefined);
+    audio.dispatchEvent(new Event("loadedmetadata"));
+    setRepeatEnabled(visualizer, true);
+    updateFieldState(0, (state) => ({
+      ...state,
+      playback: { ...state.playback, engine: "html" },
+    }));
+
+    setPlaybackState(0, "playing", 0);
+    await Promise.resolve();
+    await Promise.resolve();
+    expect(audio.play).toHaveBeenCalledTimes(1);
+
+    updateFieldState(0, (state) => ({
+      ...state,
+      graph: { ...state.graph, durationMs: 0 },
+    }));
+    audio.dispatchEvent(new Event("ended"));
+    await Promise.resolve();
+    await Promise.resolve();
+
+    expect(audio.play).toHaveBeenCalledTimes(2);
+  });
+
+  it("uses media current time when an audio error falls back with stale cursor state", async () => {
+    const frames: Array<(time: number) => void> = [];
+    vi.spyOn(window, "requestAnimationFrame").mockImplementation((callback) => {
+      frames.push(callback);
+      return frames.length;
+    });
+    vi.spyOn(window, "cancelAnimationFrame").mockImplementation(() => undefined);
+    const visualizer = await mountTrack(0);
+    const audio = visualizer.querySelector<HTMLAudioElement>(".aqe-audio-clock")!;
+    Object.defineProperty(audio, "readyState", { configurable: true, value: 1 });
+    Object.defineProperty(audio, "duration", { configurable: true, value: 1 });
+    audio.play = vi.fn<() => Promise<void>>(() => Promise.resolve());
+    audio.pause = vi.fn<() => void>(() => undefined);
+    audio.dispatchEvent(new Event("loadedmetadata"));
+    updateFieldState(0, (state) => ({
+      ...state,
+      playback: { ...state.playback, engine: "html" },
+    }));
+
+    setPlaybackState(0, "playing", 0);
+    await Promise.resolve();
+    await Promise.resolve();
+    audio.currentTime = 0.4;
+    updateFieldState(0, (state) => ({
+      ...state,
+      cursor: { ...state.cursor, ms: 0, progressMs: 0 },
+    }));
+
+    audio.dispatchEvent(new Event("error"));
+
+    expect(readFieldState(0).playback.clockMode).toBe("manual");
+    expect(readFieldState(0).cursor.progressMs).toBe(400);
   });
 
   it("computes pause/resume playback requests and stop hooks", async () => {
