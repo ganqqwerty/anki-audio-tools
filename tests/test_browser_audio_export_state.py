@@ -7,7 +7,7 @@ from anki_audio_quick_editor.audio_export_types import (
     AudioExportFieldSelection,
     AudioExportReport,
 )
-from anki_audio_quick_editor.batch_operations import BatchNoteSnapshot, FieldGroup
+from anki_audio_quick_editor.batch_operation_types import BatchNoteSnapshot, FieldGroup
 from anki_audio_quick_editor.browser_audio_export_state import (
     audio_export_finish_payload,
     audio_export_progress_payload,

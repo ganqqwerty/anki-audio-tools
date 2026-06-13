@@ -8,7 +8,7 @@ import threading
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
-from .batch_operations import BatchNoteSnapshot, FieldGroup
+from .batch_operation_types import BatchNoteSnapshot, FieldGroup
 from .browser_audio_export_runner import run_audio_export_in_background
 from .browser_audio_export_state import (
     audio_export_finish_payload,

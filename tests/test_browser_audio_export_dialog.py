@@ -9,7 +9,7 @@ from unittest.mock import MagicMock
 import aqt
 
 from anki_audio_quick_editor.audio_export_types import AudioExportReport
-from anki_audio_quick_editor.batch_operations import FieldGroup
+from anki_audio_quick_editor.batch_operation_types import FieldGroup
 from anki_audio_quick_editor.browser_audio_export_dialog import AudioExportDialog
 
 

@@ -16,9 +16,13 @@ def test_browser_audio_export_zip_leaves_note_fields_unchanged(
     tmp_path: Path,
 ) -> None:
     media_dir = Path(anki_mw.col.media.dir())
-    source = media_dir / "browser_export_zip_source.mp3"
-    generate_tone(ffmpeg_config, source, duration_s=0.4)
-    note = _add_audio_note(anki_mw, source.name)
+    sources = (
+        media_dir / "browser_export_zip_source_1.mp3",
+        media_dir / "browser_export_zip_source_2.mp3",
+    )
+    for source in sources:
+        generate_tone(ffmpeg_config, source, duration_s=0.4)
+    note = _add_audio_note(anki_mw, tuple(source.name for source in sources))
     original_html = note["Front"]
     output = tmp_path / "cards.zip"
 
@@ -32,7 +36,8 @@ def test_browser_audio_export_zip_leaves_note_fields_unchanged(
     assert _front_field(anki_mw, int(note.id)) == original_html
     with zipfile.ZipFile(output) as archive:
         assert archive.namelist() == [
-            f"0001__note-{int(note.id)}__Front__001__{source.name}"
+            f"0001__note-{int(note.id)}__Front__001__{sources[0].name}",
+            f"0002__note-{int(note.id)}__Front__002__{sources[1].name}",
         ]
 
 
@@ -42,9 +47,13 @@ def test_browser_audio_export_combined_mp3_leaves_note_fields_unchanged(
     tmp_path: Path,
 ) -> None:
     media_dir = Path(anki_mw.col.media.dir())
-    source = media_dir / "browser_export_mp3_source.mp3"
-    generate_tone(ffmpeg_config, source, duration_s=0.4)
-    note = _add_audio_note(anki_mw, source.name)
+    sources = (
+        media_dir / "browser_export_mp3_source_1.mp3",
+        media_dir / "browser_export_mp3_source_2.mp3",
+    )
+    for source in sources:
+        generate_tone(ffmpeg_config, source, duration_s=0.4)
+    note = _add_audio_note(anki_mw, tuple(source.name for source in sources))
     original_html = note["Front"]
     output = tmp_path / "cards.mp3"
 
@@ -64,11 +73,11 @@ def test_browser_audio_export_combined_mp3_leaves_note_fields_unchanged(
     assert _front_field(anki_mw, int(note.id)) == original_html
 
 
-def _add_audio_note(anki_mw, filename: str):
+def _add_audio_note(anki_mw, filenames: tuple[str, ...]):
     notetype = anki_mw.col.models.by_name("Basic")
     assert notetype is not None
     note = anki_mw.col.new_note(notetype)
-    note["Front"] = f"[sound:{filename}]"
+    note["Front"] = " ".join(f"[sound:{filename}]" for filename in filenames)
     note["Back"] = "Back"
     deck_id = anki_mw.col.decks.id("Default")
     assert deck_id is not None
@@ -88,11 +97,11 @@ def _run_export_dialog(
     mode: str,
     silence_seconds: float = 1.0,
 ):
-    batch_operations = import_runtime_addon_module(".batch_operations")
+    batch_operation_types = import_runtime_addon_module(".batch_operation_types")
     export_dialog_module = import_runtime_addon_module(".browser_audio_export_dialog")
     note = anki_mw.col.get_note(note_id)
-    field_group = batch_operations.FieldGroup("Basic", ("Front", "Back"))
-    snapshot = batch_operations.BatchNoteSnapshot(
+    field_group = batch_operation_types.FieldGroup("Basic", ("Front", "Back"))
+    snapshot = batch_operation_types.BatchNoteSnapshot(
         note_id,
         "Basic",
         {"Front": note["Front"], "Back": note["Back"]},

@@ -81,7 +81,7 @@ UI_CONTRACTS: dict[str, ModuleContract] = {
             "audio_export_types",
             "audio_external",
             "audio_processor",
-            "batch_operations",
+            "batch_operation_types",
             "error_codes",
             "i18n",
         ),
@@ -95,7 +95,7 @@ UI_CONTRACTS: dict[str, ModuleContract] = {
         "browser_audio_export_dialog",
         layer=Layer.UI_ADAPTER,
         allowed_addon_deps=(
-            "batch_operations",
+            "batch_operation_types",
             "browser_audio_export_runner",
             "browser_audio_export_state",
             "error_codes",
@@ -151,7 +151,7 @@ UI_CONTRACTS: dict[str, ModuleContract] = {
         allowed_addon_deps=(
             "audio_export_planning",
             "audio_export_types",
-            "batch_operations",
+            "batch_operation_types",
             "contracts_generated",
             "i18n",
         ),

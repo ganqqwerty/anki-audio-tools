@@ -11,7 +11,7 @@ from .audio_export_types import (
     AudioExportNotice,
     AudioExportPlan,
 )
-from .batch_operations import BatchNoteSnapshot
+from .batch_operation_types import BatchNoteSnapshot
 from .media_paths import existing_media_file_path
 from .sound_refs import (
     SoundReference,

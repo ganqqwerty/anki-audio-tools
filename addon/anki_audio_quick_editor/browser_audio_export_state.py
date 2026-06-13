@@ -16,7 +16,7 @@ from .audio_export_types import (
     AudioExportReport,
     AudioExportRequest,
 )
-from .batch_operations import BatchNoteSnapshot, FieldGroup
+from .batch_operation_types import BatchNoteSnapshot, FieldGroup
 from .contracts_generated import AudioExportStartRequest
 from .i18n import active_context
 

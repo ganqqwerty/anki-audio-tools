@@ -82,7 +82,7 @@ AUDIO_CONTRACTS: dict[str, ModuleContract] = {
         layer=Layer.IMPORT_SAFE_CORE,
         allowed_addon_deps=(
             "audio_export_types",
-            "batch_operations",
+            "batch_operation_types",
             "media_paths",
             "sound_refs",
         ),

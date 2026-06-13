@@ -8,7 +8,7 @@ from anki_audio_quick_editor.audio_export_planning import (
     make_zip_entry_name,
 )
 from anki_audio_quick_editor.audio_export_types import AudioExportFieldSelection
-from anki_audio_quick_editor.batch_operations import BatchNoteSnapshot
+from anki_audio_quick_editor.batch_operation_types import BatchNoteSnapshot
 
 
 def test_default_audio_field_selections_choose_fields_with_supported_sound_refs() -> None:

@@ -32,7 +32,7 @@ from .audio_external import (
     _run_external_command,
 )
 from .audio_processor import find_ffmpeg
-from .batch_operations import BatchNoteSnapshot
+from .batch_operation_types import BatchNoteSnapshot
 from .error_codes import AQE_BATCH_INVALID_REQUEST, coded_error
 from .i18n import active_context, format_message
 
