@@ -5,13 +5,7 @@ It is important to mock as little as possible in e2e tests.
 
 ## What It Verifies
 
-- the Tools menu entry exists
-- the settings action opens the settings dialog
-- the settings HTML includes initial state
-- saving settings writes config
-- the renamed add-on package loads under the local numeric add-on ID
-- ffmpeg trims/speeds generated audio to shorter durations when `ffmpeg` and `ffprobe` are installed
-- final rendered MP3 files can be written to Anki media without overwriting the original source file
+It veryfies all the requirements. e2e tests ARE the reuirements. 
 
 ## How It Works
 
