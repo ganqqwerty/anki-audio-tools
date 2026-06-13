@@ -111,6 +111,52 @@ def test_chorusing_practice_loops_suffixes_and_pauses_for_normal_play(
         parent.close()
 
 
+def test_chorusing_auto_advance_uses_split_menu_and_keeps_manual_navigation(
+    anki_mw,
+    ffmpeg_config,
+) -> None:
+    _media_dir, _source, _note, editor, parent, _track = _open_tone_editor(
+        anki_mw,
+        ffmpeg_config,
+        "editor_chorusing_auto_advance.wav",
+        2.0,
+    )
+    try:
+        _configure_chorusing_auto_advance(editor, pause_seconds=0.0, repeat_count=2)
+        _click_chorusing_practice(editor)
+
+        initial = _state(
+            editor,
+            lambda state: state["chorusingState"] == "playing"
+            and state["chorusingActiveMarkerIndex"] == 2
+            and state["selectionStartMs"] == 1333
+            and state["selectionEndMs"] == 2000
+            and state["repeatEnabled"] is True,
+        )
+
+        first_wrap = _force_repeat_wrap(editor, 1333)
+        second_wrap = _state(
+            editor,
+            lambda state: state["chorusingState"] == "playing"
+            and state["chorusingActiveMarkerIndex"] == 1
+            and state["selectionStartMs"] == 667
+            and state["selectionEndMs"] == 2000
+            and state["playbackStartMs"] == 667,
+        )
+
+        longer = _click_chorusing_next(editor, expected_index=0)
+        shorter = _click_chorusing_previous(editor, expected_index=1)
+
+        assert initial["chorusingRepeatPassesCompleted"] == 0
+        assert first_wrap["chorusingRepeatPassesCompleted"] == 1
+        assert second_wrap["chorusingRepeatPassesCompleted"] == 0
+        assert longer["chorusingActiveStartMs"] == 0
+        assert shorter["chorusingActiveStartMs"] == 667
+    finally:
+        editor.set_note(None)
+        parent.close()
+
+
 def test_chorusing_marker_row_is_immediately_editable_after_graph_shows(
     anki_mw,
     ffmpeg_config,
@@ -341,6 +387,31 @@ def _click_chorusing_practice(editor) -> None:
         })()
         """,
         lambda state: state is not None and state["chorusingState"] == "playing",
+        timeout=5.0,
+    )
+
+
+def _configure_chorusing_auto_advance(editor, *, pause_seconds: float, repeat_count: int) -> None:
+    wait_for_js_condition(
+        editor.web,
+        f"""
+        (() => {{
+          const menu = document.querySelector('[data-testid="aqe-split-0-chorusing-practice-menu"]');
+          const pause = document.querySelector('[data-testid="aqe-split-0-chorusing-pause-seconds"]');
+          const autoAdvance = document.querySelector('[data-testid="aqe-split-0-chorusing-auto-advance"]');
+          const repeatCount = document.querySelector('[data-testid="aqe-split-0-chorusing-repeat-count"]');
+          if (!menu) return null;
+          menu.click();
+          if (!pause || !autoAdvance || !repeatCount) return null;
+          pause.value = "{pause_seconds}";
+          pause.dispatchEvent(new Event("input", {{ bubbles: true }}));
+          if (!autoAdvance.checked) autoAdvance.click();
+          repeatCount.value = "{repeat_count}";
+          repeatCount.dispatchEvent(new Event("input", {{ bubbles: true }}));
+          return window.__aqeGraphStateForTest?.(0) || null;
+        }})()
+        """,
+        lambda state: state is not None,
         timeout=5.0,
     )
 
