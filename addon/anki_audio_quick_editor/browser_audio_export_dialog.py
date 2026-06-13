@@ -150,10 +150,10 @@ class AudioExportDialog:
             logger.warning("invalid audio export bridge command: %s", exc)
             return False
 
-        if command.name == "audio-export.start":
-            return self._handle_audio_export_start(command)
         if command.name == "audio-export.choose-destination":
             return self._handle_choose_destination(command.payload)
+        if command.name == "audio-export.start":
+            return self._handle_audio_export_start(command)
         if command.name == "audio-export.cancel":
             self._cancel_or_close()
             return True
