@@ -193,6 +193,7 @@ class AudioExportDialog:
 
         self._running = True
         self._finished = False
+        self.cancel_event.clear()
         self._log_lines.clear()
         self._emit(
             "onAudioExportProgress",
