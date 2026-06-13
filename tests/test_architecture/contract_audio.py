@@ -87,6 +87,11 @@ AUDIO_CONTRACTS: dict[str, ModuleContract] = {
             "sound_refs",
         ),
     ),
+    "audio_export_rendering": contract(
+        "audio_export_rendering",
+        layer=Layer.IMPORT_SAFE_CORE,
+        allowed_addon_deps=("audio_commands",),
+    ),
     "audio_external": contract(
         "audio_external",
         layer=Layer.IMPORT_SAFE_CORE,
