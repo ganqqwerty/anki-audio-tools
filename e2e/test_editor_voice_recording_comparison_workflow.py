@@ -10,6 +10,7 @@ from e2e.editor_graph_helpers import (
     _click_graph_and_wait,
     _drag_learner_pitch_to_ratio,
     _graph_state_js,
+    _inject_ready_learner_overlay,
     _install_html_audio_test_driver,
     _wait_for_html_playback,
 )
@@ -76,52 +77,6 @@ def _has_ready_learner_overlay(value: dict[str, Any] | None) -> bool:
     if value["learnerDurationMs"] <= value["targetDurationMs"]:
         return False
     return value["durationMs"] == value["learnerDurationMs"]
-
-
-def _inject_ready_learner_overlay(
-    editor,
-    *,
-    start_cursor_ms: int,
-    learner_duration_ms: int = 1600,
-    timeout: float = 5.0,
-) -> dict[str, Any]:
-    run_js(
-        editor.web,
-        f"""
-        (() => {{
-          window.__aqeSetLearnerRecordingState?.({{
-            fieldOrd: 0,
-            generation: 1,
-            startCursorMs: {start_cursor_ms},
-            status: "ready",
-            targetDurationMs: window.__aqeGraphStateForTest?.(0)?.targetDurationMs || 0,
-          }});
-          window.__aqeSetLearnerVisualizer?.(0, {{
-            analyzerName: "praat",
-            durationMs: {learner_duration_ms},
-            pitchMaxHz: 500,
-            pitchMinHz: 80,
-            points: [
-              [0, 130, 1, true],
-              [600, 210, 0.2, true],
-              [{learner_duration_ms}, 260, 0.1, true],
-            ],
-            sourceFilename: "target__aqe_voice.wav",
-          }});
-          return true;
-        }})()
-        """,
-    )
-    return wait_for_js_condition(
-        editor.web,
-        _graph_state_js(),
-        lambda value: value is not None
-        and value["learnerRecordingStatus"] == "ready"
-        and value["learnerStartCursorMs"] == start_cursor_ms
-        and value["learnerPitchPaths"] > 0
-        and value["learnerAlignmentOffsetMs"] == 0,
-        timeout=timeout,
-    )
 
 
 def test_editor_voice_recording_comparison_workflow(

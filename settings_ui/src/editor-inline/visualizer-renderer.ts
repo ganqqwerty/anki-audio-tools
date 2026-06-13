@@ -212,9 +212,10 @@ export function resetCursorProjection(visualizer: VisualizerElement): void {
   delete visualizer.__aqeCursorTextPaintedAtMs;
 }
 
-export function graphLogContext(ord: number, track: NormalizedProsodyTrack): {
-  analyzerName: string; durationMs: number; ord: number; points: number; sourceFilename: string
-} {
+export function graphLogContext(
+  ord: number,
+  track: NormalizedProsodyTrack,
+): { analyzerName: string; durationMs: number; ord: number; points: number; sourceFilename: string } {
   return {
     analyzerName: track.analyzerName,
     durationMs: track.durationMs,
@@ -238,6 +239,7 @@ function clearText(root: VisualizerElement, selector: string): void {
   const node = root.querySelector<HTMLElement | SVGElement>(selector);
   if (node) node.textContent = "";
 }
+
 export function renderProsodyTracks(visualizer: VisualizerElement): void {
   const target = visualizer.__aqeTrack;
   if (!target) return;
@@ -300,8 +302,9 @@ function combinedPitchRange(
   };
 }
 
-const isFiniteNumber = (value: number | null | undefined): value is number =>
-  typeof value === "number" && Number.isFinite(value);
+function isFiniteNumber(value: number | null | undefined): value is number {
+  return typeof value === "number" && Number.isFinite(value);
+}
 
 function effectiveLearnerDurationMs(learnerDurationMs: number, learnerAlignmentOffsetMs: number): number {
   return Math.max(0, learnerDurationMs + Math.max(0, learnerAlignmentOffsetMs));
@@ -317,6 +320,7 @@ function plotGeometryForVisualizer(visualizer: VisualizerElement): PlotGeometry 
   const svg = visualizer.querySelector<SVGSVGElement>(".aqe-visualizer-svg");
   return svg ? plotGeometryForSvg(svg) : PLOT;
 }
+
 function syncVisualizerViewBox(visualizer: VisualizerElement): PlotGeometry {
   const svg = visualizer.querySelector<SVGSVGElement>(".aqe-visualizer-svg");
   if (!svg) return PLOT;
@@ -391,6 +395,7 @@ function clampedCursorFlagX(cursorX: number, plot: PlotGeometry): number {
   const maxX = plot.width - plot.right - CURSOR_FLAG_HALF_WIDTH;
   return Math.max(minX, Math.min(cursorX, maxX));
 }
+
 function cssXForViewBoxX(visualizer: VisualizerElement, x: number): number {
   const svg = visualizer.querySelector<SVGSVGElement>(".aqe-visualizer-svg");
   return x * cssScaleFor(svg).x;

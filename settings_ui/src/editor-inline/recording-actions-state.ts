@@ -3,12 +3,7 @@ import { t } from "../lib/i18n.js";
 import { clearGraphCountdownOverlay, renderGraphCountdownOverlay } from "./graph-countdown-overlay.js";
 import { controlsForOrd, visualizerForOrd } from "./dom-selectors.js";
 import { ensurePlaybackCursorVisible } from "./viewport-actions.js";
-import {
-  clearLearnerVisualizerTrack,
-  renderCursor,
-  renderLearnerVisualizerTrack,
-  renderProsodyTracks,
-} from "./visualizer-renderer.js";
+import { clearLearnerVisualizerTrack, renderCursor, renderLearnerVisualizerTrack, renderProsodyTracks } from "./visualizer-renderer.js";
 import { readVisualizerTargetDurationMs } from "./visualizer-state.js";
 import type { LearnerPlaybackStatus, LearnerRecordingStatePayload, LearnerRecordingStatus } from "./recording-state.js";
 import { normalizeTrack, type NormalizedProsodyTrack, type ProsodyPoint, type VisualizerElement } from "./types.js";
