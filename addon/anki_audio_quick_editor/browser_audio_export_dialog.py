@@ -152,6 +152,8 @@ class AudioExportDialog:
 
         if command.name == "audio-export.start":
             return self._handle_audio_export_start(command)
+        if command.name == "audio-export.choose-destination":
+            return self._handle_choose_destination(command.payload)
         if command.name == "audio-export.cancel":
             self._cancel_or_close()
             return True
@@ -208,6 +210,15 @@ class AudioExportDialog:
         run_audio_export_in_background(self.browser, self, self.snapshots, request)
         return True
 
+    def _handle_choose_destination(self, raw_payload: object) -> bool:
+        mode = "zip"
+        if isinstance(raw_payload, dict):
+            mode = str(raw_payload.get("mode") or "zip")
+        destination = _choose_export_destination(self._dialog, mode)
+        if destination:
+            self._emit("onAudioExportDestination", {"destination_path": destination})
+        return True
+
     def _cancel_or_close(self) -> None:
         if self._running:
             self.cancel_event.set()
@@ -225,6 +236,28 @@ def _render_audio_export_content(initial_state: dict[str, Any]) -> tuple[str, st
         bundle_css=_BUNDLE_CSS,
         scope="batch",
     )
+
+
+def _default_export_filename(mode: str) -> str:
+    from datetime import UTC, datetime
+
+    extension = ".mp3" if mode == "combined_mp3" else ".zip"
+    return f"anki-audio-export-{datetime.now(UTC).strftime('%Y%m%d-%H%M%S')}{extension}"
+
+
+def _choose_export_destination(parent: Any, mode: str) -> str:
+    from aqt.qt import QFileDialog
+
+    filename = _default_export_filename(mode)
+    filter_text = "MP3 audio (*.mp3)" if mode == "combined_mp3" else "Zip archives (*.zip)"
+    selected, _filter = QFileDialog.getSaveFileName(parent, "Export Audio", filename, filter_text)
+    if not selected:
+        return ""
+    path = Path(selected)
+    suffix = ".mp3" if mode == "combined_mp3" else ".zip"
+    if path.suffix.lower() != suffix:
+        path = path.with_suffix(suffix)
+    return str(path)
 
 
 def _clipboard_set_text(text: str) -> None:

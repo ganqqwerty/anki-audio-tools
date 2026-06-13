@@ -149,6 +149,39 @@ def test_audio_export_dialog_start_clears_prior_cancel_event(monkeypatch, reques
     assert len(run_calls) == 1
 
 
+def test_default_audio_export_filename_uses_mode_extension() -> None:
+    from anki_audio_quick_editor.browser_audio_export_dialog import (
+        _default_export_filename,
+    )
+
+    assert _default_export_filename("zip").endswith(".zip")
+    assert _default_export_filename("combined_mp3").endswith(".mp3")
+
+
+def test_audio_export_dialog_choose_destination_emits_selected_path(monkeypatch, request) -> None:
+    dialog_module = _reload_audio_export_dialog_with_fake_qt(request)
+    monkeypatch.setattr(
+        dialog_module,
+        "_choose_export_destination",
+        lambda _parent, mode: f"/tmp/export.{mode}",
+    )
+
+    dialog = dialog_module.AudioExportDialog(
+        browser=object(),
+        note_ids=[1],
+        groups=(FieldGroup("Basic", ("Audio",)),),
+        snapshots=(),
+    )
+
+    command = "bridge:" + json.dumps(
+        {"command": "audio-export.choose-destination", "payload": {"mode": "combined_mp3"}}
+    )
+    assert dialog._webview.bridge(command) is True
+
+    assert any("onAudioExportDestination" in call for call in dialog._webview.eval_calls)
+    assert any("/tmp/export.combined_mp3" in call for call in dialog._webview.eval_calls)
+
+
 def test_audio_export_dialog_finish_payloads(monkeypatch, request) -> None:
     dialog_module = _reload_audio_export_dialog_with_fake_qt(request)
     dialog = dialog_module.AudioExportDialog(
