@@ -7,6 +7,7 @@ import logging
 from collections.abc import Callable
 from typing import Any
 
+from ..audio_processing_presets import presets_from_raw
 from ..contracts_generated import (
     Config,
     CopySupportReportPayload,
@@ -99,17 +100,12 @@ def _handle_settings_save(
     try:
         config = Config.from_dict(raw_config).to_dict()
     except CONTRACT_DECODE_ERRORS:
-        logger.error("settings save displayed error: invalid settings payload")
-        payload = json.dumps(
-            {
-                "error": "Invalid settings payload",
-                "user_error": coded_error(
-                    AQE_SETTINGS_INVALID_PAYLOAD,
-                    "Invalid settings payload",
-                ),
-            }
-        )
-        eval_fn(f"window.onSaveError({payload})")
+        _emit_settings_save_error(eval_fn, "Invalid settings payload")
+        return
+    try:
+        _validate_settings_config(config)
+    except ValueError as exc:
+        _emit_settings_save_error(eval_fn, str(exc) or "Invalid settings payload")
         return
 
     config["enabled"] = True
@@ -128,6 +124,25 @@ def _handle_settings_save(
         flush=True,
     )
     dialog.accept()
+
+
+def _validate_settings_config(config: dict[str, Any]) -> None:
+    presets_from_raw(config.get("audio_processing_presets"))
+
+
+def _emit_settings_save_error(eval_fn: Callable[[str], None], message: str) -> None:
+    log_message = "invalid settings payload" if message == "Invalid settings payload" else message
+    logger.error("settings save displayed error: %s", log_message)
+    payload = json.dumps(
+        {
+            "error": message,
+            "user_error": coded_error(
+                AQE_SETTINGS_INVALID_PAYLOAD,
+                message,
+            ),
+        }
+    )
+    eval_fn(f"window.onSaveError({payload})")
 
 
 def _sanitize_settings_payload(raw_config: Any) -> None:

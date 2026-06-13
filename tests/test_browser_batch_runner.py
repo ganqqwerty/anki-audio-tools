@@ -10,7 +10,8 @@ from unittest.mock import MagicMock
 import aqt
 
 from anki_audio_quick_editor.audio_operation_params import AudioOperationParameters
-from anki_audio_quick_editor.audio_operations import OP_FASTER, OP_GRAPH
+from anki_audio_quick_editor.audio_operations import OP_FASTER, OP_GRAPH, OP_PRESET
+from anki_audio_quick_editor.audio_processing_presets import presets_from_raw
 from anki_audio_quick_editor.audio_state import AudioProcessingConfig
 from anki_audio_quick_editor.batch_operations import BatchNoteResult, BatchRunRequest
 from anki_audio_quick_editor.browser_batch_runner import (
@@ -180,6 +181,67 @@ def test_run_batch_logs_transform_parameters(monkeypatch, tmp_path: Path) -> Non
 
     assert "parameters=" in logs[0]
     assert "speed_step=2" in logs[0]
+
+
+def test_run_batch_logs_preset_selection(monkeypatch, tmp_path: Path) -> None:
+    col = FakeCol()
+    preset = presets_from_raw(
+        [
+            {
+                "id": "clean",
+                "name": "Clean",
+                "steps": [
+                    {
+                        "id": "faster",
+                        "operation": "faster",
+                        "parameters": {"speed_step": 1.25},
+                    }
+                ],
+                "graph": {
+                    "enabled": True,
+                    "parameters": {
+                        "graph_voice_range": "general",
+                        "graph_recording_condition": "auto",
+                        "graph_smoothness": "very_smooth",
+                        "graph_connect_short_dropouts_ms": 240,
+                        "graph_voice_lock": "balanced",
+                    },
+                },
+            }
+        ]
+    )[0]
+    monkeypatch.setattr(
+        "anki_audio_quick_editor.browser_batch_runner.process_note",
+        lambda *_args, **_kwargs: BatchNoteResult(
+            note_id=1,
+            status="skipped",
+            message="source field 'Audio' has no supported sound reference",
+            audio_filename=None,
+        ),
+    )
+    logs: list[str] = []
+
+    run_batch(
+        col,
+        [1],
+        BatchRunRequest(
+            operation=OP_PRESET,
+            source_field="Audio",
+            preset_id="clean",
+            preset=preset,
+            audio_target_field="Processed",
+            graph_target_field="Graph",
+        ),
+        tmp_path,
+        AudioProcessingConfig(),
+        threading.Event(),
+        logs.append,
+        lambda *_args: None,
+    )
+
+    assert "preset='Clean'" in logs[0]
+    assert "audio_target_field='Processed'" in logs[0]
+    assert "graph_target_field='Graph'" in logs[0]
 
 
 def test_run_batch_in_background_publishes_changes_and_finishes_dialog(monkeypatch, tmp_path: Path) -> None:

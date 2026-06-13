@@ -17,6 +17,7 @@ import {
 } from "./chorusing-controller.js";
 import type { EditorCommand, EditorCommandPayload } from "./types.js";
 import { anyBusy, setControlsBusy } from "./control-actions.js";
+import { editorRuntimeConfig } from "./editor-runtime-config.js";
 
 type EditorDispatchCommand = EditorCommand | "aqe:history-jump";
 
@@ -57,7 +58,7 @@ export function send(
   }
   if (command !== "aqe:history-jump" && BUSY_COMMANDS.has(command)) {
     stopAllEditorPlayback();
-    setControlsBusy(ord, true, processingMessage(command, payload));
+    setControlsBusy(ord, true, processingMessage(command, payload, editorRuntimeConfig()));
   }
   const effectivePayload =
     payload ??

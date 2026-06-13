@@ -33,6 +33,9 @@ def test_composed_contract_schema_uses_config_schema_source() -> None:
     assert "graph_smoothness" in config["properties"]
     assert "graph_connect_short_dropouts_ms" in config["properties"]
     assert "graph_voice_lock" in config["properties"]
+    assert "audio_processing_presets" in config["properties"]
+    assert "definitions" not in config
+    assert "AudioProcessingPreset" in definitions
     assert "size_reduction_mode" in config["properties"]
 
 

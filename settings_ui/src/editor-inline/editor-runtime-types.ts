@@ -48,6 +48,7 @@ export interface EditorRuntimeConfig {
   repeatPlaybackByDefault?: boolean;
   selectionMarkerShiftButtonsEnabled?: boolean;
   showGraphByDefault?: boolean;
+  processingPresets?: ProcessingPresetOption[];
   splitButtonDefaults?: SplitButtonDefaults;
   visibleEditorButtons?: EditorCommand[];
   editorButtonModes?: EditorButtonModes;
@@ -56,6 +57,13 @@ export interface EditorRuntimeConfig {
 type DenoiseAlgorithm = "standard" | "rnnoise" | "dpdfnet" | "voice_only";
 type PauseDetectionAlgorithm = "silencedetect" | "silero_vad";
 type PitchHumMode = "direct" | "pitch_tier";
+
+export interface ProcessingPresetOption {
+  graphEnabled: boolean;
+  hasTransforms: boolean;
+  id: string;
+  name: string;
+}
 
 export interface SplitButtonDefaults {
   denoiseAlgorithm: DenoiseAlgorithm;
@@ -93,6 +101,7 @@ export interface EditorCommandPayload {
   direction?: "redo" | "undo";
   fieldOrd?: number;
   generation?: number;
+  presetId?: string;
   sourceFilename?: string;
   startCursorMs?: number;
   steps?: number;
