@@ -36,7 +36,7 @@ from e2e.helpers import (
 )
 
 
-def test_selected_repeat_resume_finishes_current_pass_then_loops_from_selection_start(
+def test_selected_repeat_play_after_pause_restarts_from_selection_start(
     anki_mw,
     ffmpeg_config,
 ) -> None:
@@ -65,15 +65,17 @@ def test_selected_repeat_resume_finishes_current_pass_then_loops_from_selection_
             )
 
             click_selector(editor.web, _button_selector("aqe:play"), timeout=5.0)
-            resumed = _wait_for_html_playback(
+            restarted = _wait_for_html_playback(
                 editor,
-                lambda state: state["progressMs"] >= paused["cursorMs"]
-                and state["playbackStartMs"] > state["selectionStartMs"] + PLAYBACK_INTERVAL_TOLERANCE_MS,
+                lambda state: state["progressMs"] >= state["selectionStartMs"]
+                and state["playbackStartMs"] == state["selectionStartMs"],
             )
             looped = _force_repeat_wrap(editor, 500)
 
         assert playback.attempts == []
-        assert resumed["playbackEndMs"] == 1300
+        assert restarted["playbackStartMs"] == 500
+        assert restarted["playbackEndMs"] == 1300
+        assert paused["cursorMs"] > restarted["playbackStartMs"] + PLAYBACK_INTERVAL_TOLERANCE_MS
         assert looped["playbackStartMs"] == 500
         assert looped["selectionStartMs"] == 500
     finally:
