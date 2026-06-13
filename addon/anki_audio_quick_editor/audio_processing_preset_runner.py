@@ -6,17 +6,39 @@ import shutil
 from collections.abc import Callable
 from dataclasses import dataclass, replace
 from pathlib import Path
-from typing import Any
+from typing import Any, Protocol
 
-from .audio_formats import format_label, is_same_visible_format
+from .audio_formats import (
+    CONCRETE_OUTPUT_FORMATS,
+    format_label,
+    is_same_visible_format,
+    visible_extension,
+)
 from .audio_operation_params import effective_config_for_operation
-from .audio_operations import OP_CONVERT, OP_DENOISE, OP_REDUCE_SIZE, apply_audio_operation
+from .audio_operations import (
+    OP_CONVERT,
+    OP_DENOISE,
+    OP_REDUCE_SIZE,
+    apply_audio_operation,
+)
 from .audio_processing_presets import (
     AudioProcessingPreset,
     AudioProcessingPresetGraph,
     AudioProcessingPresetStep,
 )
 from .audio_state import AudioEditState, AudioProcessingConfig
+
+
+class AudioOutputNameFactory(Protocol):
+    """Build the generated audio filename used for one preset step."""
+
+    def __call__(
+        self,
+        source_filename: str,
+        *,
+        output_format: str | None = None,
+    ) -> str:
+        ...
 
 
 @dataclass(frozen=True)
@@ -45,7 +67,7 @@ class ProcessingPresetRunResult:
 class ProcessingPresetRunnerAdapters:
     """Side-effect hooks used by the import-safe preset runner."""
 
-    make_audio_output_filename: Callable[..., str]
+    make_audio_output_filename: AudioOutputNameFactory
     make_graph_output_filename: Callable[[str], str]
     temp_output_path: Callable[[str], Path]
     render_audio: Callable[[Path, AudioEditState, AudioProcessingConfig, Path, Path | None], None]
@@ -80,6 +102,7 @@ def run_processing_preset(
                 step,
                 current_path=current_path,
                 current_filename=current_filename,
+                source_filename=source_filename,
                 config=config,
                 adapters=adapters,
                 artifact_root=artifact_root,
@@ -132,14 +155,22 @@ def _run_transform_step(
     *,
     current_path: Path,
     current_filename: str,
+    source_filename: str,
     config: AudioProcessingConfig,
     adapters: ProcessingPresetRunnerAdapters,
     artifact_root: Path | None,
 ) -> _StepOutput:
     effective_config = effective_config_for_operation(step.operation, config, step.parameters)
     if step.operation == OP_CONVERT:
-        return _run_convert_step(step, current_path, current_filename, effective_config, adapters)
-    desired_name = adapters.make_audio_output_filename(current_filename)
+        return _run_convert_step(
+            step,
+            current_path,
+            current_filename,
+            source_filename,
+            effective_config,
+            adapters,
+        )
+    desired_name = _step_output_name(step.operation, source_filename, current_filename, adapters)
     output_path = adapters.temp_output_path(desired_name)
     completed = False
     try:
@@ -180,6 +211,7 @@ def _run_convert_step(
     step: AudioProcessingPresetStep,
     current_path: Path,
     current_filename: str,
+    source_filename: str,
     effective_config: AudioProcessingConfig,
     adapters: ProcessingPresetRunnerAdapters,
 ) -> _StepOutput:
@@ -196,7 +228,7 @@ def _run_convert_step(
             output_name=None,
         )
     desired_name = adapters.make_audio_output_filename(
-        current_filename,
+        source_filename,
         output_format=target_format,
     )
     output_path = adapters.temp_output_path(desired_name)
@@ -217,6 +249,20 @@ def _run_convert_step(
         output_path=output_path,
         output_name=desired_name,
     )
+
+
+def _step_output_name(
+    operation: str,
+    source_filename: str,
+    current_filename: str,
+    adapters: ProcessingPresetRunnerAdapters,
+) -> str:
+    if operation == OP_REDUCE_SIZE:
+        return adapters.make_audio_output_filename(source_filename, output_format="mp3")
+    current_format = visible_extension(current_filename)
+    if current_format in CONCRETE_OUTPUT_FORMATS:
+        return adapters.make_audio_output_filename(source_filename, output_format=current_format)
+    return adapters.make_audio_output_filename(source_filename)
 
 
 def _graph_config(

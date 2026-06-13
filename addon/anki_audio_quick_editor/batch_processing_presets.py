@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import logging
 import shutil
 from collections.abc import Callable
 from dataclasses import dataclass
@@ -15,10 +16,18 @@ from .audio_state import AudioProcessingConfig
 from .batch_operation_processing import BatchOperationDeps, batch_preset_runner_adapters
 from .batch_operation_types import BatchNoteResult, BatchNoteSnapshot, BatchRunRequest
 from .batch_operations_helpers import skipped_batch_note
+from .diagnostics_runtime import capture_exception
+from .error_codes import (
+    AQE_AUDIO_PROCESSING_FAILED,
+    AQE_GRAPH_ANALYSIS_FAILED,
+    format_coded_message,
+)
+from .permission_guidance import message_with_permission_guidance
 from .sound_refs import SoundReference, replace_sound_reference
 
 MediaWriter = Callable[[str, bytes], str]
 AppendImageReference = Callable[[str, str], str]
+logger = logging.getLogger(__name__)
 
 
 @dataclass(frozen=True)
@@ -42,6 +51,7 @@ def process_preset_operation(
     artifact_root: Path | None,
     append_image_reference: AppendImageReference,
     deps: BatchOperationDeps,
+    operation_id: str,
 ) -> BatchNoteResult:
     assert request.preset is not None
     result: ProcessingPresetRunResult | None = None
@@ -67,10 +77,28 @@ def process_preset_operation(
             append_image_reference=append_image_reference,
         )
     except Exception as exc:
+        display_message = _preset_failure_message(request, exc)
+        capture_exception(
+            "browser.batch.note_preset",
+            exc,
+            operation="browser.batch.preset",
+            operation_id=operation_id,
+            user_message=display_message,
+            context={
+                "note_id": note.note_id,
+                "source_field": request.source_field,
+                "audio_target_field": request.audio_target_field,
+                "graph_target_field": request.graph_target_field,
+                "audio_filename": audio_filename,
+                "preset_id": request.preset.id,
+                "preset_name": request.preset.name,
+            },
+            log=logger,
+        )
         return BatchNoteResult(
             note_id=note.note_id,
             status="failed",
-            message=str(exc) or f"preset {request.preset.name!r} failed",
+            message=display_message,
             audio_filename=audio_filename,
         )
     finally:
@@ -115,6 +143,25 @@ def _run_batch_processing_preset(
         adapters=batch_preset_runner_adapters(deps),
         artifact_root=artifact_root,
     )
+
+
+def _preset_failure_message(request: BatchRunRequest, exc: Exception) -> str:
+    assert request.preset is not None
+    raw_message = str(exc)
+    message = (
+        message_with_permission_guidance(raw_message, exc)
+        if raw_message
+        else f"preset {request.preset.name!r} failed"
+    )
+    return format_coded_message(_preset_failure_code(request), message)
+
+
+def _preset_failure_code(request: BatchRunRequest) -> str:
+    assert request.preset is not None
+    if request.preset.has_transforms:
+        return AQE_AUDIO_PROCESSING_FAILED
+    return AQE_GRAPH_ANALYSIS_FAILED
+
 
 def _write_preset_field_updates(
     note: BatchNoteSnapshot,

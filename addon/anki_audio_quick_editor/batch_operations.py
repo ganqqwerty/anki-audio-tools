@@ -267,6 +267,7 @@ def _process_prepared_batch_operation(
             artifact_root=artifact_root,
             append_image_reference=append_image_reference,
             deps=_batch_operation_deps(),
+            operation_id=operation_id,
         )
 
     if is_transform_operation(request.operation):

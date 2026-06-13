@@ -147,7 +147,8 @@ def test_run_processing_preset_executes_steps_in_order_and_keeps_final_output(
     assert [call[0] for call in adapters.calls] == ["denoise", "audio"]
     assert result.final_audio_path is not None
     assert result.final_audio_path.exists()
-    assert result.final_audio_name == "clip.preset.preset.mp3"
+    assert result.final_audio_name == "clip.preset.mp3"
+    assert [path.name for path in adapters.paths] == ["clip.preset.mp3", "clip.preset.mp3"]
     assert result.graph_svg is None
     assert [step.status for step in result.steps] == ["rendered", "rendered"]
     assert adapters.paths[0].parent.exists() is False
@@ -183,6 +184,40 @@ def test_run_processing_preset_skips_same_format_convert_and_reports_noop(
     assert result.changed is False
     assert result.final_audio_path is None
     assert result.steps[0].status == "skipped"
+
+
+def test_run_processing_preset_size_reduction_outputs_mp3(tmp_path: Path) -> None:
+    source = tmp_path / "clip.wav"
+    source.write_bytes(b"source")
+    adapters = FakeAdapters(tmp_path)
+    preset = _preset(
+        {
+            "id": "smaller",
+            "name": "Smaller",
+            "steps": [
+                {
+                    "id": "reduce",
+                    "operation": "reduce_size",
+                    "parameters": {"size_reduction_mode": "aggressive"},
+                },
+            ],
+            "graph": _graph(False),
+        }
+    )
+
+    result = run_processing_preset(
+        preset,
+        source_path=source,
+        source_filename="clip.wav",
+        config=AudioProcessingConfig(size_reduction_mode="normal"),
+        adapters=adapters.as_adapters(),
+    )
+
+    assert adapters.calls == [("reduce_size", "clip.wav", "aggressive")]
+    assert result.final_audio_name == "clip.preset.mp3"
+    assert result.final_audio_path is not None
+    assert result.final_audio_path.read_bytes() == b"smaller"
+    assert result.steps[0].message == "rendered clip.preset.mp3"
 
 
 def test_run_processing_preset_graph_uses_final_audio(tmp_path: Path) -> None:

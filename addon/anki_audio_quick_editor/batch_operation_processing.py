@@ -232,54 +232,49 @@ def process_transform_operation(
 
 
 def batch_preset_runner_adapters(deps: BatchOperationDeps) -> ProcessingPresetRunnerAdapters:
+    def render_audio(
+        source_path: Path,
+        state: AudioEditState,
+        config: AudioProcessingConfig,
+        output_path: Path,
+        artifact_root: Path | None,
+    ) -> None:
+        deps.render_audio(
+            source_path,
+            state,
+            config,
+            output_path=output_path,
+            artifact_root=artifact_root,
+        )
+
+    def render_converted_audio(
+        source_path: Path,
+        config: AudioProcessingConfig,
+        target_format: str,
+        output_path: Path,
+    ) -> None:
+        deps.render_converted_audio(source_path, config, target_format, output_path=output_path)
+
+    def render_size_reduced_audio(
+        source_path: Path,
+        config: AudioProcessingConfig,
+        output_path: Path,
+    ) -> None:
+        deps.render_size_reduced_audio(
+            source_path,
+            config,
+            output_path=output_path,
+            mode=config.size_reduction_mode,
+        )
+
     return ProcessingPresetRunnerAdapters(
         make_audio_output_filename=make_output_filename,
         make_graph_output_filename=make_visualization_filename,
         temp_output_path=temp_final_path,
-        render_audio=lambda source_path, state, config, output_path, artifact_root: (
-            _render_preset_audio(deps, source_path, state, config, output_path, artifact_root)
-        ),
-        render_converted_audio=lambda source_path, config, target_format, output_path: (
-            _render_preset_converted_audio(deps, source_path, config, target_format, output_path)
-        ),
-        render_size_reduced_audio=lambda source_path, config, output_path: (
-            deps.render_size_reduced_audio(
-                source_path,
-                config,
-                output_path=output_path,
-                mode=config.size_reduction_mode,
-            )
-        ),
-        render_denoise_audio=lambda source_path, config, output_path: (
-            deps.render_batch_denoise(source_path, config, output_path)
-        ),
+        render_audio=render_audio,
+        render_converted_audio=render_converted_audio,
+        render_size_reduced_audio=render_size_reduced_audio,
+        render_denoise_audio=deps.render_batch_denoise,
         analyze_prosody=deps.analyze_prosody_cached,
         render_graph_svg=render_prosody_svg,
     )
-
-
-def _render_preset_audio(
-    deps: BatchOperationDeps,
-    source_path: Path,
-    state: AudioEditState,
-    config: AudioProcessingConfig,
-    output_path: Path,
-    artifact_root: Path | None,
-) -> None:
-    deps.render_audio(
-        source_path,
-        state,
-        config,
-        output_path=output_path,
-        artifact_root=artifact_root,
-    )
-
-
-def _render_preset_converted_audio(
-    deps: BatchOperationDeps,
-    source_path: Path,
-    config: AudioProcessingConfig,
-    target_format: str,
-    output_path: Path,
-) -> None:
-    deps.render_converted_audio(source_path, config, target_format, output_path=output_path)

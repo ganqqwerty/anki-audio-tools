@@ -198,6 +198,7 @@ UI_CONTRACTS: dict[str, ModuleContract] = {
         "settings.commands",
         layer=Layer.SETTINGS_BACKEND,
         allowed_addon_deps=(
+            "audio_processing_presets",
             "contracts_generated",
             "diagnostics_runtime",
             "editor_button_visibility",

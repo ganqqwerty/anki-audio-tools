@@ -65,7 +65,11 @@ def _open_batch_dialog(browser: Any) -> None:
 
     raw_config = browser.mw.addonManager.getConfig(browser.mw.addonManager.addonFromModule(__name__)) or {}
     config = AudioProcessingConfig.from_config(raw_config)
-    processing_presets = presets_from_raw(raw_config.get("audio_processing_presets"))
+    try:
+        processing_presets = presets_from_raw(raw_config.get("audio_processing_presets"))
+    except ValueError as exc:
+        logger.warning("browser batch: ignoring invalid processing presets: %s", exc)
+        processing_presets = ()
     dialog = _create_dialog(browser, note_ids, groups, config, processing_presets)
     dialog.exec()
 

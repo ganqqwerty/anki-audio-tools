@@ -150,6 +150,7 @@
   }
 
   function saveConfig(): void {
+    saveError = "";
     settingsSave(saveConfigPayload(config));
   }
 </script>
@@ -175,6 +176,12 @@
     {#if frontendRuntimeError}
       <p class="settings-error" data-testid="frontend-runtime-error">
         <ErrorMessage error={frontendRuntimeError} />
+      </p>
+    {/if}
+
+    {#if saveError}
+      <p class="settings-error" data-testid="save-error">
+        <ErrorMessage error={saveError} />
       </p>
     {/if}
 
@@ -215,7 +222,7 @@
 
     <section class="panel" role="tabpanel">
       {#if activeTab === "general"}
-        <GeneralSettingsPanel bind:config saveError={saveError} />
+        <GeneralSettingsPanel bind:config />
       {:else if activeTab === "presets"}
         <PresetSettingsPanel bind:config />
       {:else}

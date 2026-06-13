@@ -2,9 +2,19 @@
 
 from __future__ import annotations
 
+from pathlib import Path
+
 from e2e.conftest import ADDON_NUMERIC_ID
+from e2e.editor_note_helpers import (
+    _basic_audio_note,
+    _button_selector,
+    _configure_ffmpeg,
+    _open_editor,
+    _wait_for_generated_mp3,
+)
 from e2e.helpers import (
     click_selector,
+    generate_tone,
     run_js,
     wait_for_condition,
     wait_for_js_condition,
@@ -71,3 +81,50 @@ def test_settings_dialog_constructs_and_saves_processing_preset(anki_mw) -> None
         "graph_connect_short_dropouts_ms": 240,
         "graph_voice_lock": "balanced",
     }
+
+
+def test_editor_runs_processing_preset_against_current_field(anki_mw, ffmpeg_config) -> None:
+    media_dir = Path(anki_mw.col.media.dir())
+    source = media_dir / "editor_processing_preset_source.wav"
+    generate_tone(ffmpeg_config, source, duration_s=1.2)
+    note = _basic_audio_note(anki_mw, source.name)
+    _configure_ffmpeg(
+        anki_mw,
+        ffmpeg_config,
+        audio_processing_presets=[
+            {
+                "id": "faster_preset",
+                "name": "Faster preset",
+                "steps": [
+                    {
+                        "id": "faster",
+                        "operation": "faster",
+                        "parameters": {"speed_step": 1.25},
+                    }
+                ],
+                "graph": {
+                    "enabled": False,
+                    "parameters": {
+                        "graph_voice_range": "general",
+                        "graph_recording_condition": "auto",
+                        "graph_smoothness": "very_smooth",
+                        "graph_connect_short_dropouts_ms": 240,
+                        "graph_voice_lock": "balanced",
+                    },
+                },
+            }
+        ],
+    )
+
+    editor, parent = _open_editor(anki_mw, note)
+    try:
+        wait_for_selector(editor.web, _button_selector("aqe:preset"), timeout=10.0)
+        click_selector(editor.web, _button_selector("aqe:preset"), timeout=5.0)
+        generated_name = _wait_for_generated_mp3(note, media_dir, source.name)
+
+        assert generated_name.startswith("editor_processing_preset_source__aqe_")
+        assert generated_name.count("__aqe_") == 1
+        assert (media_dir / generated_name).is_file()
+    finally:
+        editor.set_note(None)
+        parent.close()

@@ -164,6 +164,41 @@ def test_settings_save_reports_invalid_payload(caplog) -> None:
     assert "settings save displayed error: invalid settings payload" in caplog.text
 
 
+def test_settings_save_rejects_invalid_processing_preset() -> None:
+    from aqt import mw
+
+    dialog = _make_dialog()
+    calls, eval_fn = _capture_eval()
+    config = {
+        **_full_config(),
+        "audio_processing_presets": [
+            {
+                "id": "empty",
+                "name": "Empty",
+                "steps": [],
+                "graph": {
+                    "enabled": False,
+                    "parameters": {
+                        "graph_voice_range": "general",
+                        "graph_recording_condition": "auto",
+                        "graph_smoothness": "very_smooth",
+                        "graph_connect_short_dropouts_ms": 240,
+                        "graph_voice_lock": "balanced",
+                    },
+                },
+            }
+        ],
+    }
+
+    handle_settings_command(_bridge_command("settings.save", config), eval_fn, dialog)
+
+    payload = _parse_callback(calls[0], "onSaveError")
+    assert payload["user_error"]["code"] == "AQE-SETTINGS-001"
+    assert "at least one transform step or Graph output" in payload["user_error"]["message"]
+    mw.addonManager.writeConfig.assert_not_called()
+    assert dialog.accepted is False
+
+
 def test_settings_cancel_rejects_dialog() -> None:
     dialog = _make_dialog()
     _, eval_fn = _capture_eval()

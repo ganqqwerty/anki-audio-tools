@@ -254,17 +254,50 @@ def publish_collection_changes(browser: Any, changes: Any) -> None:
 
 
 def _format_parameters(request: BatchRunRequest) -> str:
-    params = request.parameters
-    values: list[str] = []
-    if request.operation in {"slower", "faster"} and params.speed_step is not None:
-        values.append(f"speed_step={params.speed_step}")
-    if request.operation in {"volume_down", "volume_up"} and params.volume_step_db is not None:
-        values.append(f"volume_step_db={params.volume_step_db}")
-    if request.operation == "remove_pauses" and params.pause_aggressiveness is not None:
-        values.append(f"pause_aggressiveness={params.pause_aggressiveness}")
-    if request.operation == "remove_pauses" and params.pause_detection_algorithm is not None:
-        values.append(f"pause_detection_algorithm={params.pause_detection_algorithm}")
+    values = [
+        *_preset_parameters(request),
+        *_speed_parameters(request),
+        *_volume_parameters(request),
+        *_pause_parameters(request),
+    ]
     return ", ".join(values) if values else "defaults"
+
+
+def _preset_parameters(request: BatchRunRequest) -> list[str]:
+    if request.operation != "preset":
+        return []
+    values: list[str] = []
+    if request.preset is not None:
+        values.append(f"preset={request.preset.name!r}")
+    if request.audio_target_field is not None:
+        values.append(f"audio_target_field={request.audio_target_field!r}")
+    if request.graph_target_field is not None:
+        values.append(f"graph_target_field={request.graph_target_field!r}")
+    return values
+
+
+def _speed_parameters(request: BatchRunRequest) -> list[str]:
+    if request.operation not in {"slower", "faster"} or request.parameters.speed_step is None:
+        return []
+    return [f"speed_step={request.parameters.speed_step}"]
+
+
+def _volume_parameters(request: BatchRunRequest) -> list[str]:
+    if request.operation not in {"volume_down", "volume_up"} or request.parameters.volume_step_db is None:
+        return []
+    return [f"volume_step_db={request.parameters.volume_step_db}"]
+
+
+def _pause_parameters(request: BatchRunRequest) -> list[str]:
+    if request.operation != "remove_pauses":
+        return []
+    values: list[str] = []
+    params = request.parameters
+    if params.pause_aggressiveness is not None:
+        values.append(f"pause_aggressiveness={params.pause_aggressiveness}")
+    if params.pause_detection_algorithm is not None:
+        values.append(f"pause_detection_algorithm={params.pause_detection_algorithm}")
+    return values
 
 
 def _tr(key: str, values: dict[str, object] | None = None) -> str:
