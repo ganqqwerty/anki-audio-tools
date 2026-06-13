@@ -8,6 +8,7 @@ from e2e.conftest import import_runtime_addon_module
 from e2e.editor_graph_helpers import (
     _click_graph_and_wait,
     _graph_state_js,
+    _set_full_time_viewport,
     _wait_for_visualizer_track,
 )
 from e2e.editor_note_helpers import (
@@ -63,6 +64,7 @@ def _plot_pointer_script(ord_: int, start_ratio: float, end_ratio: float) -> str
 
 
 def _shift_drag_region(editor, start_ratio: float, end_ratio: float, ord_: int = 0) -> None:
+    _set_full_time_viewport(editor, ord_)
     run_js(editor.web, _plot_pointer_script(ord_, start_ratio, end_ratio))
 
 

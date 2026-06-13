@@ -10,6 +10,7 @@ import {
   muteConsole,
   prepareHtmlAudio,
   renderFields,
+  setFullGraphViewport,
   setGraphBounds,
   track,
 } from "./editor-inline.integration.helpers.js";
@@ -36,6 +37,7 @@ describe("editor inline selection resize edge cases", () => {
     const startHandle = document.querySelector<HTMLElement>('[data-testid="aqe-selection-resize-start-0"]')!;
     const endHandle = document.querySelector<HTMLElement>('[data-testid="aqe-selection-resize-end-0"]')!;
     setGraphBounds(svg);
+    setFullGraphViewport();
     dragGraphSelection(svg, 0.2, 0.6);
 
     expect(startHandle.hidden).toBe(false);
@@ -76,6 +78,7 @@ describe("editor inline selection resize edge cases", () => {
     const svg = document.querySelector<SVGSVGElement>('[data-testid="aqe-graph-svg-0"]')!;
     const handle = document.querySelector('[data-testid="aqe-selection-resize-end-0"]')!;
     setGraphBounds(svg);
+    setFullGraphViewport();
     dragGraphSelection(svg, 0.2, 0.6);
 
     const startResizeDraft = (): void => {
@@ -123,6 +126,7 @@ describe("editor inline selection resize edge cases", () => {
     window.__aqeSetVisualizer?.(0, track, 100);
     const svg = document.querySelector<SVGSVGElement>('[data-testid="aqe-graph-svg-0"]')!;
     setGraphBounds(svg);
+    setFullGraphViewport();
     dragGraphSelection(svg, 0.25, 0.75);
     const audio = prepareHtmlAudio();
 

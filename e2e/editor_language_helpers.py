@@ -32,6 +32,10 @@ def _rendered_pitch_points_js(ord_: int = 0) -> str:
       const visualizer = document.querySelector(`.aqe-visualizer[data-aqe-field-ord="${ord}"]`);
       if (!visualizer) return null;
       const durationMs = Number(visualizer.dataset.durationMs || "0");
+      const state = window.__aqeGraphStateForTest?.(ord);
+      const viewportStartMs = Number(state?.viewportStartMs ?? 0);
+      const viewportEndMs = Number(state?.viewportEndMs ?? durationMs);
+      const viewportSpanMs = Math.max(1, viewportEndMs - viewportStartMs);
       const svg = visualizer.querySelector(".aqe-visualizer-svg");
       const viewBoxWidth = svg?.viewBox?.baseVal?.width || 620;
       const plotWidth = viewBoxWidth - 44 - 10;
@@ -41,7 +45,7 @@ def _rendered_pitch_points_js(ord_: int = 0) -> str:
         for (let index = 0; index + 1 < values.length; index += 2) {
           const x = Number(values[index]);
           const y = Number(values[index + 1]);
-          const ms = ((x - 44) / plotWidth) * durationMs;
+          const ms = viewportStartMs + ((x - 44) / plotWidth) * viewportSpanMs;
           points.push({ ms, y });
         }
       }

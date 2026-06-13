@@ -10,6 +10,7 @@ import {
   muteConsole,
   prepareHtmlAudio,
   renderFields,
+  setFullGraphViewport,
   setRepeatMode,
   setGraphBounds,
   track,
@@ -38,6 +39,7 @@ describe("editor inline selection playback resize integration", () => {
     window.__aqeSetVisualizer?.(0, track, 100);
     const svg = document.querySelector<SVGSVGElement>('[data-testid="aqe-graph-svg-0"]')!;
     setGraphBounds(svg);
+    setFullGraphViewport();
     dragGraphSelection(svg, 0.25, 0.75);
     await setRepeatMode(true);
     clearQueuedAnimationFrames(frames);
@@ -93,6 +95,8 @@ describe("editor inline selection playback resize integration", () => {
     const secondSvg = document.querySelector<SVGSVGElement>('[data-testid="aqe-graph-svg-1"]')!;
     setGraphBounds(firstSvg);
     setGraphBounds(secondSvg);
+    setFullGraphViewport(0);
+    setFullGraphViewport(1);
     dragGraphSelection(firstSvg, 0.2, 0.6);
     await setRepeatMode(true);
     dragGraphSelection(secondSvg, 0.3, 0.5);

@@ -5,6 +5,7 @@ import type { EditorRuntimeConfig } from "../src/editor-inline/types.js";
 import {
   muteConsole,
   renderFields,
+  setFullGraphViewport,
   setGraphBounds,
   track,
 } from "./editor-inline.integration.helpers.js";
@@ -160,6 +161,7 @@ describe("editor inline graph-area controls", () => {
     window.__aqeSetVisualizer?.(0, track, 0);
     const svg = document.querySelector<SVGSVGElement>('[data-testid="aqe-graph-svg-0"]')!;
     setGraphBounds(svg);
+    setFullGraphViewport();
 
     const zoomControls = document.querySelector<HTMLElement>('[data-testid="aqe-zoom-controls-0"]')!;
     expect(zoomControls.closest(".aqe-graph-layout")).not.toBeNull();

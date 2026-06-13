@@ -8,6 +8,7 @@ from e2e.editor_graph_helpers import (
     _click_graph_and_wait,
     _graph_state_js,
     _install_html_audio_test_driver,
+    _set_full_time_viewport,
 )
 from e2e.editor_note_helpers import (
     _basic_audio_note,
@@ -33,6 +34,7 @@ def _open_tone_editor(anki_mw, ffmpeg_config, filename: str, duration_s: float, 
     _configure_ffmpeg(anki_mw, ffmpeg_config, **overrides)
     editor, parent = _open_editor(anki_mw, note)
     track = _click_graph_and_wait(editor, lambda value: value["sourceFilename"] == source.name)
+    _set_full_time_viewport(editor)
     _install_html_audio_test_driver(editor)
     return media_dir, source, note, editor, parent, track
 
@@ -112,6 +114,7 @@ def _shift_pointer_cancel(editor, ratio: float, ord_: int = 0) -> None:
 
 
 def _shift_drag_region(editor, start_ratio: float, end_ratio: float, ord_: int = 0) -> None:
+    _set_full_time_viewport(editor, ord_)
     run_js(editor.web, _plot_pointer_script(ord_, start_ratio, end_ratio, shift=True, move=True))
 
 

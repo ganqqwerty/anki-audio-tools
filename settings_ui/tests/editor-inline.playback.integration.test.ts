@@ -8,6 +8,7 @@ import {
   muteConsole,
   peekPendingCommandPayload,
   renderFields,
+  setFullGraphViewport,
   setRepeatMode,
   setGraphBounds,
   track,
@@ -263,17 +264,8 @@ afterEach(() => {
     await Promise.resolve();
     window.__aqeSetVisualizer?.(0, track, 400);
     const svg = document.querySelector<SVGSVGElement>('[data-testid="aqe-graph-svg-0"]')!;
-    svg.getBoundingClientRect = () => ({
-      bottom: 150,
-      height: 150,
-      left: 0,
-      right: 620,
-      top: 0,
-      width: 620,
-      x: 0,
-      y: 0,
-      toJSON: () => ({}),
-    });
+    setGraphBounds(svg);
+    setFullGraphViewport();
     dragGraphSelection(svg, 0.25, 0.75);
     const audio = document.querySelector<HTMLAudioElement>('[data-testid="aqe-audio-clock-0"]')!;
     Object.defineProperty(audio, "readyState", { configurable: true, value: 1 });
@@ -359,6 +351,7 @@ afterEach(() => {
     window.__aqeSetVisualizer?.(0, track, 700);
     const svg = document.querySelector<SVGSVGElement>('[data-testid="aqe-graph-svg-0"]')!;
     setGraphBounds(svg);
+    setFullGraphViewport();
     dragGraphSelection(svg, 0.25, 0.75);
     const audio = document.querySelector<HTMLAudioElement>('[data-testid="aqe-audio-clock-0"]')!;
     Object.defineProperty(audio, "readyState", { configurable: true, value: 1 });

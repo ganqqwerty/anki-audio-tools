@@ -26,21 +26,86 @@ from e2e.editor_region_loop_helpers import (
 from e2e.helpers import (
     click_selector,
     generate_tone,
+    run_js,
     wait_for_js_condition,
     wait_for_selector,
 )
 
 
-def _open_zoom_graph_editor(anki_mw, ffmpeg_config, filename: str):
+def _open_zoom_graph_editor(anki_mw, ffmpeg_config, filename: str, duration_s: float = 4.0):
     media_dir = Path(anki_mw.col.media.dir())
     source = media_dir / filename
-    generate_tone(ffmpeg_config, source, duration_s=4.0)
+    generate_tone(ffmpeg_config, source, duration_s=duration_s)
     note = _basic_audio_note(anki_mw, source.name)
     _configure_ffmpeg(anki_mw, ffmpeg_config)
     editor, parent = _open_editor(anki_mw, note)
     wait_for_selector(editor.web, _button_selector("aqe:analyze"), timeout=10.0)
     track = _click_graph_and_wait(editor, lambda value: value["sourceFilename"] == source.name)
     return media_dir, source, editor, parent, track
+
+
+def test_editor_graph_short_clip_initial_viewport_uses_canonical_pixel_scale(
+    anki_mw,
+    ffmpeg_config,
+) -> None:
+    _media_dir, _source, editor, parent, _track = _open_zoom_graph_editor(
+        anki_mw,
+        ffmpeg_config,
+        "editor_graph_zoom_short_canonical.wav",
+        duration_s=0.5,
+    )
+    try:
+        state = wait_for_js_condition(
+            editor.web,
+            """
+            (() => {
+              const state = window.__aqeGraphStateForTest?.(0);
+              const bounds = window.__aqeGraphPixelBoundsForTest?.(0);
+              if (!state || !bounds) return null;
+              const span = state.viewportEndMs - state.viewportStartMs;
+              return {
+                ...state,
+                audioWidthPx: span > 0 ? bounds.width * state.durationMs / span : 0,
+              };
+            })()
+            """,
+            lambda value: value is not None
+            and value["viewportStartMs"] == 0
+            and value["viewportEndMs"] > value["durationMs"]
+            and abs(value["audioWidthPx"] - 160) <= 12,
+            timeout=5.0,
+        )
+
+        assert state["durationMs"] <= 700
+    finally:
+        editor.set_note(None)
+        parent.close()
+
+
+def test_editor_graph_long_clip_initial_viewport_is_not_full_fit(
+    anki_mw,
+    ffmpeg_config,
+) -> None:
+    _media_dir, _source, editor, parent, _track = _open_zoom_graph_editor(
+        anki_mw,
+        ffmpeg_config,
+        "editor_graph_zoom_long_canonical.wav",
+        duration_s=4.0,
+    )
+    try:
+        state = wait_for_js_condition(
+            editor.web,
+            _graph_zoom_state_js(),
+            lambda value: value is not None
+            and value["viewportStartMs"] == 0
+            and value["viewportEndMs"] < value["durationMs"],
+            timeout=5.0,
+        )
+
+        assert state["viewportEndMs"] > 1000
+    finally:
+        editor.set_note(None)
+        parent.close()
 
 
 def test_editor_graph_horizontal_zoom_controls_preserve_time_selection(
@@ -263,6 +328,7 @@ def test_editor_graph_zoom_selection_handles_follow_true_visible_edges(
         "editor_graph_zoom_selection_edges.wav",
     )
     try:
+        run_js(editor.web, "window.__aqeSetTimeViewportForTest?.(0, 0, 4000)")
         _shift_drag_region(editor, 0.25, 0.75)
         selected = _state(
             editor,
@@ -334,6 +400,7 @@ def test_editor_graph_zoom_playback_follow_and_completion_restore_cursor(
     )
     try:
         _install_html_audio_test_driver(editor)
+        run_js(editor.web, "window.__aqeSetTimeViewportForTest?.(0, 0, 4000)")
         _shift_drag_region(editor, 0.25, 0.75)
         wait_for_js_condition(
             editor.web,

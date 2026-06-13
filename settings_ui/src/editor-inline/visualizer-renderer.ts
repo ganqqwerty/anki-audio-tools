@@ -11,6 +11,7 @@ import {
   pathForIntensity,
   pitchHzAtMs,
   plotGeometryForSvg,
+  plotWidth,
   svgViewBoxScale,
   xForMs,
 } from "./plot.js";
@@ -73,7 +74,8 @@ export function renderVisualizerTrack(visualizer: VisualizerElement, track: Norm
   visualizer.dataset.learnerDurationMs = "0";
   delete visualizer.__aqeLearnerTrack;
   visualizer.__aqeTrack = track;
-  resetVisualizerTimeViewport(visualizer, track.durationMs || 0);
+  const plot = syncVisualizerViewBox(visualizer);
+  resetVisualizerTimeViewport(visualizer, track.durationMs || 0, plotWidth(plot));
   renderProsodyTracks(visualizer);
 }
 

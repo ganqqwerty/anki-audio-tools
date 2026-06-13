@@ -148,6 +148,17 @@ export function setGraphBounds(
   });
 }
 
+export function setFullGraphViewport(ord = 0): void {
+  const state = window.__aqeGraphStateForTest?.(ord);
+  if (!state) {
+    throw new Error(`Graph state ${ord} is not available`);
+  }
+  const didSetViewport = window.__aqeSetTimeViewportForTest?.(ord, 0, state.durationMs);
+  if (!didSetViewport) {
+    throw new Error(`Graph viewport ${ord} could not be set`);
+  }
+}
+
 export function prepareHtmlAudio(ord = 0): HTMLAudioElement {
   const audio = document.querySelector<HTMLAudioElement>(`[data-testid="aqe-audio-clock-${ord}"]`)!;
   Object.defineProperty(audio, "readyState", { configurable: true, value: 1 });
