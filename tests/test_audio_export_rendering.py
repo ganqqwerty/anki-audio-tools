@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
+from anki_audio_quick_editor.audio_commands import conversion_codec_args
 from anki_audio_quick_editor.audio_export_rendering import (
     build_concat_list_text,
     build_final_mp3_command,
@@ -80,3 +81,5 @@ def test_build_final_mp3_command_uses_concat_demuxer_and_mp3_codec() -> None:
     assert command[7] == "/tmp/list.txt"
     assert command[-1] == "/tmp/out.mp3"
     assert "-vn" in command
+    mp3_codec_args = conversion_codec_args("mp3")
+    assert command[-(len(mp3_codec_args) + 1) : -1] == mp3_codec_args
