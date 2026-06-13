@@ -71,6 +71,19 @@ UI_CONTRACTS: dict[str, ModuleContract] = {
         ),
         allow_any_anki_imports=True,
     ),
+    "browser_audio_export_runner": contract(
+        "browser_audio_export_runner",
+        layer=Layer.UI_ADAPTER,
+        allowed_addon_deps=(
+            "audio_export_planning",
+            "audio_export_types",
+            "batch_operations",
+            "i18n",
+        ),
+        allowed_side_effects=(
+            SideEffect.TEMP_FILESYSTEM_CLEANUP,
+        ),
+    ),
     "browser_dialog": contract(
         "browser_dialog",
         layer=Layer.UI_ADAPTER,
