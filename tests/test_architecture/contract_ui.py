@@ -105,6 +105,17 @@ UI_CONTRACTS: dict[str, ModuleContract] = {
             "i18n",
         ),
     ),
+    "browser_audio_export_state": contract(
+        "browser_audio_export_state",
+        layer=Layer.IMPORT_SAFE_CORE,
+        allowed_addon_deps=(
+            "audio_export_planning",
+            "audio_export_types",
+            "batch_operations",
+            "contracts_generated",
+            "i18n",
+        ),
+    ),
     "browser_report": contract(
         "browser_report",
         layer=Layer.IMPORT_SAFE_CORE,
