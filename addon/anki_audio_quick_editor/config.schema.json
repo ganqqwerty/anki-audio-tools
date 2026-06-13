@@ -11,6 +11,9 @@
     "enable_reviewer_editor",
     "repeat_playback_by_default",
     "repeat_pause_seconds",
+    "chorusing_pause_seconds",
+    "chorusing_auto_advance_by_default",
+    "chorusing_auto_advance_repeats",
     "share_target",
     "voice_recording_countdown_seconds",
     "show_graph_by_default",
@@ -76,7 +79,24 @@
     "repeat_pause_seconds": {
       "type": "number",
       "minimum": 0,
-      "maximum": 10
+      "maximum": 10,
+      "default": 0.0
+    },
+    "chorusing_pause_seconds": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 10,
+      "default": 0.0
+    },
+    "chorusing_auto_advance_by_default": {
+      "type": "boolean",
+      "default": false
+    },
+    "chorusing_auto_advance_repeats": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 20,
+      "default": 3
     },
     "share_target": {
       "type": "string",

@@ -21,6 +21,14 @@ def test_composed_contract_schema_uses_config_schema_source() -> None:
     assert "deep_filter_post_filter" in config["properties"]
     assert "repeat_playback_by_default" in config["properties"]
     assert "repeat_pause_seconds" in config["properties"]
+    assert "chorusing_pause_seconds" in config["properties"]
+    assert config["properties"]["chorusing_pause_seconds"]["default"] == 0.0
+    assert "chorusing_auto_advance_by_default" in config["properties"]
+    assert (
+        config["properties"]["chorusing_auto_advance_by_default"]["default"] is False
+    )
+    assert "chorusing_auto_advance_repeats" in config["properties"]
+    assert config["properties"]["chorusing_auto_advance_repeats"]["default"] == 3
     assert "voice_recording_countdown_seconds" in config["properties"]
     assert "show_graph_by_default" in config["properties"]
     assert "selection_marker_shift_buttons_enabled" in config["properties"]

@@ -72,6 +72,13 @@ def editor_injection_script(editor: Any, note: Any) -> str:
             "volumeStepDb": float(config.get("volume_step_db", 15.0)),
             "speedStep": float(config.get("speed_step", 1.5)),
             "repeatPauseSeconds": float(config.get("repeat_pause_seconds", 0.0)),
+            "chorusingPauseSeconds": float(config.get("chorusing_pause_seconds", 0.0)),
+            "chorusingAutoAdvanceByDefault": bool(
+                config.get("chorusing_auto_advance_by_default", False)
+            ),
+            "chorusingAutoAdvanceRepeats": int(
+                config.get("chorusing_auto_advance_repeats", 3)
+            ),
             "voiceRecordingCountdownSeconds": int(
                 config.get("voice_recording_countdown_seconds", 0)
             ),

@@ -44,6 +44,41 @@ def test_split_default_updates_accept_and_reject_size_reduction_mode() -> None:
     assert split_default_config_updates({"defaults": {"sizeReductionMode": "tiny"}}) == {}
 
 
+def test_split_default_updates_accept_chorusing_defaults() -> None:
+    updates = split_default_config_updates(
+        {
+            "defaults": {
+                "chorusingPauseSeconds": 2.6,
+                "chorusingAutoAdvanceByDefault": True,
+                "chorusingAutoAdvanceRepeats": 5,
+            }
+        }
+    )
+
+    assert updates == {
+        "chorusing_pause_seconds": 2.6,
+        "chorusing_auto_advance_by_default": True,
+        "chorusing_auto_advance_repeats": 5,
+    }
+
+
+def test_split_default_updates_clamp_invalid_chorusing_defaults() -> None:
+    updates = split_default_config_updates(
+        {
+            "defaults": {
+                "chorusingPauseSeconds": -4,
+                "chorusingAutoAdvanceByDefault": "yes",
+                "chorusingAutoAdvanceRepeats": 200,
+            }
+        }
+    )
+
+    assert updates == {
+        "chorusing_pause_seconds": 0.0,
+        "chorusing_auto_advance_repeats": 20,
+    }
+
+
 def test_bridge_routes_share_payload_to_editor_sharing(monkeypatch) -> None:
     editor = make_editor()
     called: dict[str, object] = {}
