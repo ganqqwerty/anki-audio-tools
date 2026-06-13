@@ -438,7 +438,7 @@
         "messages"
       ],
       "properties": {
-        "surface": { "enum": ["audio_export"] },
+        "surface": { "$ref": "#/definitions/BatchSurface" },
         "note_count": { "type": "integer" },
         "field_groups": { "type": "array", "items": { "$ref": "#/definitions/BatchFieldGroup" } },
         "default_field_selections": {
