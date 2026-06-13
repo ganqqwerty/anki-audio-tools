@@ -7,6 +7,7 @@ from unittest.mock import MagicMock
 from anki_audio_quick_editor.editor_frontend import (
     eval_status,
     eval_visualizer_status_for_field,
+    graph_redraw_expression,
 )
 from anki_audio_quick_editor.error_codes import (
     AQE_MEDIA_CURRENT_FIELD_AUDIO_MISSING,
@@ -82,3 +83,9 @@ def test_eval_status_does_not_log_non_error_status(caplog) -> None:
     eval_status(editor, "plain info")
 
     assert caplog.text == ""
+
+
+def test_graph_redraw_expression_can_preserve_learner_overlay() -> None:
+    script = graph_redraw_expression(2, "updated.mp3", preserve_learner_overlay=True)
+
+    assert 'window.__aqeResetGraphAfterEdit(2, "updated.mp3", true)' in script
