@@ -224,6 +224,18 @@
   color: inherit;
 }
 
+.aqe-split-checkbox-row,
+.aqe-ui-root .aqe-split-checkbox-row {
+  align-items: center;
+  display: flex;
+  gap: 8px;
+}
+
+.aqe-split-checkbox-row input,
+.aqe-ui-root .aqe-split-checkbox-row input {
+  margin: 0;
+}
+
 .aqe-split-extra-field,
 .aqe-ui-root .aqe-split-extra-field {
   display: grid;

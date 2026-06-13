@@ -1,4 +1,5 @@
 import { readFileSync } from "node:fs";
+import { waitFor } from "@testing-library/svelte";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { disposeEditorRuntime, initializeEditorRuntime, scan } from "../src/editor-inline/runtime.js";
@@ -221,6 +222,55 @@ describe("editor inline chorusing integration", () => {
       chorusingActiveStartMs: 500,
       playbackStartMs: 500,
       selectionStartMs: 500,
+    });
+  });
+
+  it("opens a dedicated chorusing split menu and promotes its defaults", async () => {
+    await prepareChorusingGraph();
+
+    document.querySelector<HTMLButtonElement>('[data-testid="aqe-split-0-chorusing-practice-menu"]')!.click();
+
+    await waitFor(() => {
+      expect(document.querySelector('[data-testid="aqe-split-0-chorusing-popover"]')).not.toBeNull();
+    });
+
+    const pauseInput = document.querySelector<HTMLInputElement>(
+      '[data-testid="aqe-split-0-chorusing-pause-seconds"]',
+    )!;
+    pauseInput.value = "1.5";
+    pauseInput.dispatchEvent(new Event("input", { bubbles: true }));
+
+    const autoAdvance = document.querySelector<HTMLInputElement>(
+      '[data-testid="aqe-split-0-chorusing-auto-advance"]',
+    )!;
+    autoAdvance.click();
+
+    const repeatCount = document.querySelector<HTMLInputElement>(
+      '[data-testid="aqe-split-0-chorusing-repeat-count"]',
+    )!;
+    repeatCount.value = "4";
+    repeatCount.dispatchEvent(new Event("input", { bubbles: true }));
+
+    expect(window.__aqeSplitButtonStates?.[0]).toMatchObject({
+      chorusingPauseSeconds: 1.5,
+      chorusingAutoAdvance: true,
+      chorusingRepeatCount: 4,
+    });
+
+    document.querySelector<HTMLButtonElement>('[data-testid="aqe-split-0-chorusing-save-default"]')!.click();
+
+    expect(window.__aqePopPendingSplitDefaultSaveRequest?.()).toEqual({
+      defaults: {
+        chorusingPauseSeconds: 1.5,
+        chorusingAutoAdvanceByDefault: true,
+        chorusingAutoAdvanceRepeats: 4,
+      },
+      fieldOrd: 0,
+    });
+    expect(window.__AQE_EDITOR_CONFIG__?.splitButtonDefaults).toMatchObject({
+      chorusingPauseSeconds: 1.5,
+      chorusingAutoAdvanceByDefault: true,
+      chorusingAutoAdvanceRepeats: 4,
     });
   });
 });
