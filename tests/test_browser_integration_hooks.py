@@ -12,7 +12,9 @@ from anki_audio_quick_editor.batch_operations import FieldGroup
 from anki_audio_quick_editor.browser_dialog import BatchOperationsDialog
 from anki_audio_quick_editor.browser_integration import (
     ACTION_LABEL,
+    EXPORT_ACTION_LABEL,
     _on_browser_menus_did_init,
+    _open_audio_export_dialog,
     _open_batch_dialog,
     _tr,
     register_browser_hooks,
@@ -32,7 +34,8 @@ def test_register_browser_hooks() -> None:
 
     registered_hook(browser)
 
-    browser.form.menu_Cards.addAction.assert_called_once_with(ACTION_LABEL)
+    browser.form.menu_Cards.addAction.assert_any_call(ACTION_LABEL)
+    browser.form.menu_Cards.addAction.assert_any_call(EXPORT_ACTION_LABEL)
     hooks.browser_will_show_context_menu.append.assert_not_called()
 
 
@@ -41,8 +44,9 @@ def test_browser_menu_action_is_added() -> None:
 
     _on_browser_menus_did_init(browser)
 
-    browser.form.menu_Cards.addAction.assert_called_once_with(ACTION_LABEL)
-    assert aqt.qt.qconnect.called
+    browser.form.menu_Cards.addAction.assert_any_call(ACTION_LABEL)
+    browser.form.menu_Cards.addAction.assert_any_call(EXPORT_ACTION_LABEL)
+    assert aqt.qt.qconnect.call_count == 2
 
 
 def test_empty_selection_shows_warning() -> None:
@@ -167,6 +171,40 @@ def test_open_batch_dialog_ignores_invalid_saved_processing_presets(monkeypatch,
 
     assert dialog_calls[0][3] == ()
     assert "ignoring invalid processing presets" in caplog.text
+    assert dialog_calls[1] == ("exec", ())
+
+
+def test_open_audio_export_dialog_builds_field_groups_from_selected_notes(monkeypatch) -> None:
+    from anki_audio_quick_editor import browser_integration
+
+    dialog_calls: list[tuple[object, ...]] = []
+
+    class Dialog:
+        def exec(self) -> None:
+            dialog_calls.append(("exec", ()))  # type: ignore[arg-type]
+
+    def create_export_dialog(
+        _browser: object,
+        note_ids: list[int],
+        groups: tuple[object, ...],
+        snapshots: tuple[object, ...],
+    ) -> Dialog:
+        dialog_calls.append((note_ids, groups, snapshots))
+        return Dialog()
+
+    col = SimpleNamespace(get_note=lambda _note_id: FakeNote(int(_note_id)))
+    browser = SimpleNamespace(selected_notes=lambda: [2, 1, 2], mw=SimpleNamespace(col=col))
+    monkeypatch.setattr(browser_integration, "_create_export_dialog", create_export_dialog)
+
+    _open_audio_export_dialog(browser)
+
+    assert dialog_calls[0][0] == [2, 1]
+    groups = dialog_calls[0][1]
+    assert len(groups) == 1
+    assert groups[0].notetype_name == "Basic"
+    assert groups[0].fields == ("Audio", "Image")
+    snapshots = dialog_calls[0][2]
+    assert [snapshot.note_id for snapshot in snapshots] == [2, 1]
     assert dialog_calls[1] == ("exec", ())
 
 

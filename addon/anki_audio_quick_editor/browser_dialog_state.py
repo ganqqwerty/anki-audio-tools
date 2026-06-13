@@ -42,6 +42,7 @@ def build_batch_initial_state(
     if processing_presets:
         operations.append(_operation_option(OP_PRESET, messages))
     return {
+        "surface": "operations",
         "note_count": note_count,
         "operations": operations,
         "field_groups": [

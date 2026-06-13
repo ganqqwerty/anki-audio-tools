@@ -90,6 +90,25 @@ AUDIO_CONTRACTS: dict[str, ModuleContract] = {
         layer=Layer.IMPORT_SAFE_CORE,
         allowed_addon_deps=("audio_commands", "ffmpeg_output_contracts"),
     ),
+    "audio_export_types": contract(
+        "audio_export_types",
+        layer=Layer.IMPORT_SAFE_CORE,
+    ),
+    "audio_export_planning": contract(
+        "audio_export_planning",
+        layer=Layer.IMPORT_SAFE_CORE,
+        allowed_addon_deps=(
+            "audio_export_types",
+            "batch_operation_types",
+            "media_paths",
+            "sound_refs",
+        ),
+    ),
+    "audio_export_rendering": contract(
+        "audio_export_rendering",
+        layer=Layer.IMPORT_SAFE_CORE,
+        allowed_addon_deps=("audio_commands", "ffmpeg_output_contracts"),
+    ),
     "audio_external": contract(
         "audio_external",
         layer=Layer.IMPORT_SAFE_CORE,

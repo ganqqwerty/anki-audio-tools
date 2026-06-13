@@ -41,6 +41,7 @@ def test_build_batch_initial_state_contains_operations_fields_defaults_and_i18n(
     )
 
     assert state["note_count"] == 3
+    assert state["surface"] == "operations"
     assert state["field_groups"] == [{"notetype_name": "Basic", "fields": ["Audio", "Image"]}]
     assert state["defaults"] == {
         "speed_step": 2.0,

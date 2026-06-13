@@ -9,6 +9,7 @@ import {
   BatchParameterName,
   BatchPauseAggressiveness,
   BatchPauseDetectionAlgorithm,
+  BatchSurface,
   DenoiseAlgorithm,
   Direction,
   OutputFormat,
@@ -20,6 +21,7 @@ function setInitialState(): void {
   delete window.onBatchFinish;
   delete window.onBatchError;
   window.__AQE_BATCH_INITIAL_STATE__ = {
+    surface: BatchSurface.Operations,
     note_count: 2,
     operations: [
       {

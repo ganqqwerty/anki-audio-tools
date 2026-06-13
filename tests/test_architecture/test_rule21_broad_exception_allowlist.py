@@ -76,6 +76,12 @@ BROAD_EXCEPTION_ALLOWLIST: tuple[BroadExceptionAllowance, ...] = (
         "Anki background-task callback boundary reports unexpected task failures to the user.",
     ),
     BroadExceptionAllowance(
+        "browser_audio_export_runner",
+        "run_audio_export_in_background.done",
+        1,
+        "Anki background-task callback boundary reports unexpected export failures to the user.",
+    ),
+    BroadExceptionAllowance(
         "browser_integration",
         "_browser_hook_boundary._wrapped",
         1,

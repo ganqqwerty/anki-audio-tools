@@ -9,10 +9,12 @@ from .contracts import MODULE_CONTRACTS, SideEffect
 
 BROWSER_INTEGRATION = ADDON_DIR / "browser_integration.py"
 BROWSER_BATCH_RUNNER = ADDON_DIR / "browser_batch_runner.py"
+BROWSER_AUDIO_EXPORT_RUNNER = ADDON_DIR / "browser_audio_export_runner.py"
 BROWSER_DIALOG = ADDON_DIR / "browser_dialog.py"
 BROWSER_DIALOG_STATE = ADDON_DIR / "browser_dialog_state.py"
 ALLOWED_PERSISTENCE_FILES = {
     "browser_batch_runner.py",
+    "browser_audio_export_runner.py",
     "browser_result_application.py",
     "editor_processing.py",
     "reviewer_integration.py",
@@ -86,3 +88,6 @@ def test_direct_media_and_note_persistence_are_isolated_to_ui_adapters() -> None
     assert MODULE_CONTRACTS["browser_result_application"].allowed_side_effects >= frozenset(
         {SideEffect.NOTE_UPDATE}
     )
+    export_text = BROWSER_AUDIO_EXPORT_RUNNER.read_text(encoding="utf-8")
+    for forbidden in (".media.write_data(", ".update_note(", ".merge_undo_entries("):
+        assert forbidden not in export_text

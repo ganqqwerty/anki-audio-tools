@@ -9,12 +9,14 @@ from .inspection import ADDON_DIR
 BROWSER_INTEGRATION = ADDON_DIR / "browser_integration.py"
 BROWSER_BATCH_RUNNER = ADDON_DIR / "browser_batch_runner.py"
 BROWSER_DIALOG = ADDON_DIR / "browser_dialog.py"
+BROWSER_AUDIO_EXPORT_DIALOG = ADDON_DIR / "browser_audio_export_dialog.py"
 BATCH_OPERATIONS = ADDON_DIR / "batch_operations.py"
 PROCESSING_PRESET_RUNNER = ADDON_DIR / "audio_processing_preset_runner.py"
 
 
 def test_browser_batch_adapter_uses_shared_registry_and_executor() -> None:
     dialog_text = BROWSER_DIALOG.read_text(encoding="utf-8")
+    export_dialog_text = BROWSER_AUDIO_EXPORT_DIALOG.read_text(encoding="utf-8")
     integration_text = BROWSER_INTEGRATION.read_text(encoding="utf-8")
     runner_text = BROWSER_BATCH_RUNNER.read_text(encoding="utf-8")
     assert "build_batch_initial_state" in dialog_text
@@ -23,12 +25,14 @@ def test_browser_batch_adapter_uses_shared_registry_and_executor() -> None:
     assert "batch_finish_payload" in dialog_text
     assert "BatchRunRequest" in dialog_text
     assert "process_note_batch_operation" not in integration_text
+    assert "process_note_batch_operation" not in export_dialog_text
     assert "process_note_batch_operation" in runner_text
     assert MODULE_CONTRACTS["browser_integration"].allowed_addon_deps == frozenset(
         {
             "audio_processing_presets",
             "audio_state",
             "batch_operations",
+            "browser_audio_export_dialog",
             "browser_batch_runner",
             "browser_dialog",
             "diagnostics_runtime",

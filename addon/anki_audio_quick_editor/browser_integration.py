@@ -13,6 +13,7 @@ from .batch_operations import (
     field_groups_for_notes,
     unique_note_ids,
 )
+from .browser_audio_export_dialog import AudioExportDialog
 from .browser_batch_runner import run_batch_in_background, snapshot_from_note
 from .browser_dialog import BatchOperationsDialog
 from .diagnostics_runtime import capture_exception
@@ -21,6 +22,7 @@ from .i18n import active_context, format_message
 logger = logging.getLogger(__name__)
 
 ACTION_LABEL = "Run Audio Batch Operation..."
+EXPORT_ACTION_LABEL = "Export Audio..."
 
 
 def register_browser_hooks(gui_hooks: Any) -> None:
@@ -47,6 +49,9 @@ def _on_browser_menus_did_init(browser: Any) -> None:
     action = browser.form.menu_Cards.addAction(_tr("batch.action"))
     assert action is not None
     qconnect(action.triggered, lambda _checked=False, b=browser: _open_batch_dialog(b))
+    export_action = browser.form.menu_Cards.addAction(_tr("audio_export.action"))
+    assert export_action is not None
+    qconnect(export_action.triggered, lambda _checked=False, b=browser: _open_audio_export_dialog(b))
 
 
 def _open_batch_dialog(browser: Any) -> None:
@@ -74,6 +79,24 @@ def _open_batch_dialog(browser: Any) -> None:
     dialog.exec()
 
 
+def _open_audio_export_dialog(browser: Any) -> None:
+    from aqt.utils import showWarning
+
+    note_ids = unique_note_ids(browser.selected_notes())
+    if not note_ids:
+        showWarning(_tr("batch.no_cards_selected"), parent=browser)
+        return
+
+    snapshots = _snapshots_for_note_ids(browser.mw.col, note_ids)
+    groups = field_groups_for_notes(snapshots)
+    if not groups:
+        showWarning(_tr("batch.no_fields"), parent=browser)
+        return
+
+    dialog = _create_export_dialog(browser, note_ids, groups, tuple(snapshots))
+    dialog.exec()
+
+
 def _snapshots_for_note_ids(col: Any, note_ids: list[int]) -> list[BatchNoteSnapshot]:
     snapshots: list[BatchNoteSnapshot] = []
     for note_id in note_ids:
@@ -96,6 +119,15 @@ def _create_dialog(
         run_batch_in_background,
         processing_presets=processing_presets,
     )
+
+
+def _create_export_dialog(
+    browser: Any,
+    note_ids: list[int],
+    groups: tuple[FieldGroup, ...],
+    snapshots: tuple[BatchNoteSnapshot, ...],
+) -> Any:
+    return AudioExportDialog(browser, note_ids, groups, snapshots)
 
 
 def _tr(key: str, values: dict[str, object] | None = None) -> str:

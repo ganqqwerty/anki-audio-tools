@@ -43,6 +43,7 @@ def test_browser_integration_avoids_editor_actions_module() -> None:
             "audio_processing_presets",
             "audio_state",
             "batch_operations",
+            "browser_audio_export_dialog",
             "browser_batch_runner",
             "browser_dialog",
             "diagnostics_runtime",

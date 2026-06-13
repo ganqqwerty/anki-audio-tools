@@ -170,6 +170,8 @@ class _MediaManager:
 
 
 class _Note:
+    fields: dict[str, str] = {}
+
     def __init__(self) -> None:
         self._fields: dict[str, str] = {}
 
@@ -200,6 +202,7 @@ _QT_MOCKS = {name: _named_mock(f"aqt.qt.{name}") for name in _QT_CLASS_NAMES}
 _QT_STATIC_METHODS = {
     "QApplication": ("clipboard",),
     "QDesktopServices": ("openUrl",),
+    "QFileDialog": ("getSaveFileName",),
     "QMessageBox": ("warning",),
     "QTimer": ("singleShot",),
     "QUrl": ("fromLocalFile",),
