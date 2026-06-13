@@ -69,11 +69,28 @@ class AudioExportReport:
     @property
     def summary(self) -> str:
         if self.canceled:
-            return (
-                f"Audio export canceled after {self.processed}/{self.total} files. "
-                f"Exported: {self.exported}. Skipped: {self.skipped}. Failures: {self.failures}."
+            return self.messages.get(
+                "audio_export.canceled",
+                (
+                    "Audio export canceled after {processed}/{total} files. "
+                    "Exported: {exported}. Skipped: {skipped}. Failures: {failures}."
+                ),
+            ).format(
+                processed=self.processed,
+                total=self.total,
+                exported=self.exported,
+                skipped=self.skipped,
+                failures=self.failures,
             )
-        return (
-            f"Audio export completed. Exported: {self.exported}. "
-            f"Skipped: {self.skipped}. Failures: {self.failures}. Output: {self.output_path}"
+        return self.messages.get(
+            "audio_export.completed",
+            (
+                "Audio export completed. Exported: {exported}. "
+                "Skipped: {skipped}. Failures: {failures}. Output: {output}"
+            ),
+        ).format(
+            exported=self.exported,
+            skipped=self.skipped,
+            failures=self.failures,
+            output=self.output_path,
         )

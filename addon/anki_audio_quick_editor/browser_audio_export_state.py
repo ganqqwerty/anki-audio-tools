@@ -59,8 +59,8 @@ def request_from_audio_export_start_payload(raw_payload: object) -> AudioExportR
 
     mode = _export_mode(payload.get("mode"))
 
-    destination_path = str(payload.get("destination_path") or "")
-    if not destination_path:
+    destination_path = str(payload.get("destination_path") or "").strip()
+    if not destination_path or Path(destination_path) == Path():
         raise ValueError("Choose a destination before starting.")
 
     field_selections = _field_selections(payload.get("field_selections"))

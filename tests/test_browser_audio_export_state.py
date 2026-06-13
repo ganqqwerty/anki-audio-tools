@@ -15,6 +15,8 @@ from anki_audio_quick_editor.browser_audio_export_state import (
     request_from_audio_export_start_payload,
 )
 
+DESTINATION_ERROR = "Choose a destination before starting."
+
 
 def test_build_audio_export_initial_state_contains_defaults_fields_and_i18n() -> None:
     state = build_audio_export_initial_state(
@@ -81,6 +83,23 @@ def test_request_from_audio_export_start_payload_rejects_invalid_silence() -> No
         raise AssertionError("expected invalid silence to fail")
 
 
+def test_request_from_audio_export_start_payload_rejects_blank_destination() -> None:
+    for destination_path in ("   ", "."):
+        try:
+            request_from_audio_export_start_payload(
+                {
+                    "mode": "zip",
+                    "destination_path": destination_path,
+                    "field_selections": [{"notetype_name": "Basic", "fields": ["Audio"]}],
+                    "silence_between_clips_seconds": 1.0,
+                }
+            )
+        except ValueError as exc:
+            assert str(exc) == DESTINATION_ERROR
+        else:
+            raise AssertionError(f"expected destination {destination_path!r} to fail")
+
+
 def test_progress_and_finish_payloads_match_frontend_contract() -> None:
     progress = audio_export_progress_payload(
         processed=1,
@@ -116,3 +135,37 @@ def test_progress_and_finish_payloads_match_frontend_contract() -> None:
         "output_path": "/tmp/export.zip",
         "summary": report.summary,
     }
+
+
+def test_audio_export_report_summary_uses_messages_when_available() -> None:
+    completed = AudioExportReport(
+        total=3,
+        processed=3,
+        exported=2,
+        skipped=1,
+        failures=0,
+        output_path="/tmp/export.zip",
+        messages={
+            "audio_export.completed": (
+                "Done exported={exported} skipped={skipped} "
+                "failures={failures} output={output}"
+            )
+        },
+    )
+    canceled = AudioExportReport(
+        total=5,
+        processed=3,
+        exported=2,
+        skipped=1,
+        failures=1,
+        canceled=True,
+        messages={
+            "audio_export.canceled": (
+                "Stopped processed={processed}/{total} exported={exported} "
+                "skipped={skipped} failures={failures}"
+            )
+        },
+    )
+
+    assert completed.summary == "Done exported=2 skipped=1 failures=0 output=/tmp/export.zip"
+    assert canceled.summary == "Stopped processed=3/5 exported=2 skipped=1 failures=1"
