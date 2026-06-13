@@ -27,8 +27,6 @@ from .browser_report import BatchRunReport
 from .contracts_generated import BatchStartRequest
 from .i18n import active_context, format_message
 
-CONTRACT_DECODE_ERRORS = (AssertionError, TypeError, ValueError)
-
 
 def build_batch_initial_state(
     *,
@@ -101,7 +99,7 @@ def request_from_batch_start_payload(
         audio_target_field=payload.get("audio_target_field"),
         graph_target_field=payload.get("graph_target_field"),
         preset=(
-            preset_by_id(processing_presets, str(payload.get("preset_id") or ""))
+            _preset_by_id_safe(processing_presets, str(payload.get("preset_id") or ""))
             if payload.get("operation") == OP_PRESET
             else None
         ),
@@ -170,6 +168,16 @@ def batch_error_payload(
     if user_error is not None:
         payload["user_error"] = user_error
     return payload
+
+
+def _preset_by_id_safe(
+    processing_presets: tuple[AudioProcessingPreset, ...],
+    preset_id: str,
+) -> AudioProcessingPreset | None:
+    try:
+        return preset_by_id(processing_presets, preset_id)
+    except ValueError:
+        return None
 
 
 def invalid_start_message() -> str:

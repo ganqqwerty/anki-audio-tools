@@ -10,7 +10,9 @@ from anki_audio_quick_editor.audio_state import AudioEditState, AudioProcessingC
 from anki_audio_quick_editor.editor_callbacks import _handle_bridge_command
 from anki_audio_quick_editor.editor_runtime import SESSIONS
 from anki_audio_quick_editor.editor_session import EditorSession, PendingEditorStatus
-from anki_audio_quick_editor.editor_special_transforms import replace_current_field_after_noise_removal
+from anki_audio_quick_editor.editor_special_transforms import (
+    replace_current_field_after_noise_removal,
+)
 
 
 def test_standard_denoise_replaces_current_media_and_resets_state(tmp_path: Path, monkeypatch) -> None:
