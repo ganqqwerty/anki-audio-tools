@@ -1,6 +1,9 @@
 import type { FieldSplitButtonState, SplitButtonDefaults } from "./types.js";
 import { t } from "../lib/i18n.js";
-import { DEFAULT_OUTPUT_FORMAT } from "../lib/audio-operation-parameters.js";
+import {
+  DEFAULT_OUTPUT_FORMAT,
+  clampRepeatPauseSeconds,
+} from "../lib/audio-operation-parameters.js";
 import {
   editorRuntimeConfig,
   splitButtonDefaults as runtimeSplitButtonDefaults,
@@ -61,6 +64,13 @@ export function clampVoiceRecordingCountdownSeconds(value: unknown): number {
     return 0;
   }
   return Math.max(0, Math.min(10, Math.round(value)));
+}
+
+export function clampChorusingPauseSeconds(value: unknown): number {
+  if (typeof value === "boolean" || typeof value !== "number") {
+    return 0;
+  }
+  return clampRepeatPauseSeconds(value);
 }
 
 export function clampChorusingRepeatCount(value: unknown): number {
