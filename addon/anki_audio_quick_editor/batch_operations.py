@@ -5,10 +5,11 @@ from __future__ import annotations
 import html
 import logging
 from collections.abc import Callable, Sequence
+from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
 
-from .audio_operations import OP_GRAPH, is_transform_operation
+from .audio_operations import OP_GRAPH, OP_PRESET, is_transform_operation
 from .audio_processor import (
     render_audio,
     render_converted_audio,
@@ -31,12 +32,14 @@ from .batch_operation_types import (
     FieldGroup,
 )
 from .batch_operations_helpers import render_batch_denoise, skipped_batch_note
+from .batch_processing_presets import process_preset_operation
 from .diagnostics_runtime import new_operation_id, record_breadcrumb
 from .error_codes import AQE_MEDIA_REFERENCED_AUDIO_MISSING, format_coded_message
 from .errors import AudioQuickEditorError
 from .media_paths import existing_media_file_path
 from .prosody_cache import analyze_prosody_cached
 from .sound_refs import (
+    SoundReference,
     safe_media_basename,
     select_first_sound_reference,
 )
@@ -65,6 +68,14 @@ __all__ = [
     "render_voice_only_audio",
     "unique_note_ids",
 ]
+
+
+@dataclass(frozen=True)
+class _BatchAudioSource:
+    source_html: str
+    source_path: Path
+    selection: SoundReference
+    audio_filename: str
 
 
 def unique_note_ids(note_ids: Sequence[int]) -> list[int]:
@@ -135,6 +146,27 @@ def process_note_batch_operation(
 ) -> BatchNoteResult:
     """Process one batch operation for ``note``."""
     operation_id = new_operation_id("batch-note")
+    _record_batch_note_started(note, request, operation_id)
+    source = _prepare_batch_audio_source(note, request, media_dir)
+    if isinstance(source, BatchNoteResult):
+        return source
+    return _process_prepared_batch_operation(
+        note,
+        request=request,
+        source=source,
+        config=config,
+        media_writer=media_writer,
+        artifact_root=artifact_root,
+        now_provider=now_provider,
+        operation_id=operation_id,
+    )
+
+
+def _record_batch_note_started(
+    note: BatchNoteSnapshot,
+    request: BatchRunRequest,
+    operation_id: str,
+) -> None:
     record_breadcrumb(
         "browser.batch.note_started",
         source="browser",
@@ -147,6 +179,13 @@ def process_note_batch_operation(
             "target_field": request.target_field,
         },
     )
+
+
+def _prepare_batch_audio_source(
+    note: BatchNoteSnapshot,
+    request: BatchRunRequest,
+    media_dir: Path,
+) -> _BatchAudioSource | BatchNoteResult:
     if request.source_field not in note.fields:
         return skipped_batch_note(note.note_id, f"missing source field {request.source_field!r}")
 
@@ -169,38 +208,76 @@ def process_note_batch_operation(
             return skipped_batch_note(note.note_id, f"missing target field {target_field!r}")
     source_path = existing_media_file_path(media_dir, audio_filename)
     if source_path is None:
-        return BatchNoteResult(
-            note_id=note.note_id,
-            status="failed",
-            message=format_coded_message(
-                AQE_MEDIA_REFERENCED_AUDIO_MISSING,
-                f"media file not found: {audio_filename}",
-            ),
-            audio_filename=audio_filename,
-        )
+        return _missing_media_result(note.note_id, audio_filename)
+    return _BatchAudioSource(
+        source_html=source_html,
+        source_path=source_path,
+        selection=selection.selected,
+        audio_filename=audio_filename,
+    )
 
+
+def _missing_media_result(note_id: int, audio_filename: str) -> BatchNoteResult:
+    return BatchNoteResult(
+        note_id=note_id,
+        status="failed",
+        message=format_coded_message(
+            AQE_MEDIA_REFERENCED_AUDIO_MISSING,
+            f"media file not found: {audio_filename}",
+        ),
+        audio_filename=audio_filename,
+    )
+
+
+def _process_prepared_batch_operation(
+    note: BatchNoteSnapshot,
+    *,
+    request: BatchRunRequest,
+    source: _BatchAudioSource,
+    config: AudioProcessingConfig,
+    media_writer: MediaWriter,
+    artifact_root: Path | None,
+    now_provider: NowProvider | None,
+    operation_id: str,
+) -> BatchNoteResult:
     if request.operation == OP_GRAPH:
         return process_graph_operation(
             note,
             request=request,
-            source_path=source_path,
-            audio_filename=audio_filename,
+            source_path=source.source_path,
+            audio_filename=source.audio_filename,
             config=config,
             media_writer=media_writer,
             now_provider=now_provider,
             operation_id=operation_id,
             append_image_reference=append_image_reference,
             deps=_batch_operation_deps(),
+    )
+
+    if request.operation == OP_PRESET:
+        return process_preset_operation(
+            note,
+            request=request,
+            source_html=source.source_html,
+            source_path=source.source_path,
+            selection=source.selection,
+            audio_filename=source.audio_filename,
+            config=config,
+            media_writer=media_writer,
+            artifact_root=artifact_root,
+            append_image_reference=append_image_reference,
+            deps=_batch_operation_deps(),
+            operation_id=operation_id,
         )
 
     if is_transform_operation(request.operation):
         return process_transform_operation(
             note,
             request=request,
-            source_html=source_html,
-            source_path=source_path,
-            selection=selection.selected,
-            audio_filename=audio_filename,
+            source_html=source.source_html,
+            source_path=source.source_path,
+            selection=source.selection,
+            audio_filename=source.audio_filename,
             config=config,
             media_writer=media_writer,
             artifact_root=artifact_root,

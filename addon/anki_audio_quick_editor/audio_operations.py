@@ -17,6 +17,7 @@ OP_SLOWER = "slower"
 OP_FASTER = "faster"
 OP_VOLUME_DOWN = "volume_down"
 OP_VOLUME_UP = "volume_up"
+OP_PRESET = "preset"
 
 TRANSFORM_OPERATIONS = (
     OP_CONVERT,
@@ -41,6 +42,7 @@ OPERATION_LABELS: dict[str, str] = {
     OP_FASTER: "Faster",
     OP_VOLUME_DOWN: "Volume -",
     OP_VOLUME_UP: "Volume +",
+    OP_PRESET: "Preset",
 }
 
 OPERATION_LABEL_KEYS: dict[str, str] = {
@@ -53,6 +55,7 @@ OPERATION_LABEL_KEYS: dict[str, str] = {
     OP_FASTER: "operation.faster",
     OP_VOLUME_DOWN: "operation.volume_down",
     OP_VOLUME_UP: "operation.volume_up",
+    OP_PRESET: "operation.preset",
 }
 
 

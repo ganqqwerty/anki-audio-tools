@@ -16,13 +16,14 @@ import {
 import { DEFAULT_EDITOR_BUTTON_MODES } from "$lib/editor-toolbar-buttons.js";
 import type { Config, InitialState } from "$lib/types.js";
 
-export type SettingsTab = "general" | "diagnostics";
+export type SettingsTab = "general" | "presets" | "diagnostics";
 
 export const DEFAULT_VISIBLE_EDITOR_BUTTONS = [
   VisibleEditorButton.AqePlay,
   VisibleEditorButton.AqeAnalyze,
   VisibleEditorButton.AqeShowFile,
   VisibleEditorButton.AqeShare,
+  VisibleEditorButton.AqePreset,
   VisibleEditorButton.AqeDenoiseStandard,
   VisibleEditorButton.AqeRemovePauses,
   VisibleEditorButton.AqeSlower,
@@ -63,6 +64,7 @@ export const FALLBACK_INITIAL_STATE: InitialState = {
     graph_smoothness: GraphSmoothness.VerySmooth,
     graph_connect_short_dropouts_ms: 240,
     graph_voice_lock: GraphVoiceLock.Balanced,
+    audio_processing_presets: [],
     speed_step: 1.5,
     min_speed: 0.2,
     max_speed: 5.0,

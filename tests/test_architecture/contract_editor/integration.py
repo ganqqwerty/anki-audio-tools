@@ -26,6 +26,7 @@ EDITOR_INTEGRATION_CONTRACTS: dict[str, ModuleContract] = {
         "editor_webview_injection",
         layer=Layer.UI_ADAPTER,
         allowed_addon_deps=(
+            "audio_processing_presets",
             "editor_callbacks",
             "editor_history_settings",
             "editor_history_snapshot",

@@ -11,6 +11,7 @@ from .audio_operations import (
     OP_DENOISE,
     OP_FASTER,
     OP_GRAPH,
+    OP_PRESET,
     OP_REDUCE_SIZE,
     OP_REMOVE_PAUSES,
     OP_SLOWER,
@@ -19,6 +20,7 @@ from .audio_operations import (
     operation_label,
     requires_target_field,
 )
+from .audio_processing_presets import AudioProcessingPreset, preset_by_id
 from .audio_state import AudioProcessingConfig
 from .batch_operations import BatchRunRequest, FieldGroup
 from .browser_report import BatchRunReport
@@ -33,16 +35,23 @@ def build_batch_initial_state(
     note_count: int,
     groups: tuple[FieldGroup, ...],
     config: AudioProcessingConfig,
+    processing_presets: tuple[AudioProcessingPreset, ...] = (),
 ) -> dict[str, Any]:
     """Return JSON-serializable state consumed by the batch Svelte app."""
     i18n = active_context()
     messages = dict(i18n["messages"])
+    operations = [_operation_option(operation, messages) for operation in BATCH_OPERATIONS]
+    if processing_presets:
+        operations.append(_operation_option(OP_PRESET, messages))
     return {
         "note_count": note_count,
-        "operations": [_operation_option(operation, messages) for operation in BATCH_OPERATIONS],
+        "operations": operations,
         "field_groups": [
             {"notetype_name": group.notetype_name, "fields": list(group.fields)}
             for group in groups
+        ],
+        "processing_presets": [
+            _processing_preset_option(preset) for preset in processing_presets
         ],
         "defaults": {
             "speed_step": config.speed_step,
@@ -77,7 +86,10 @@ def build_batch_initial_state(
     }
 
 
-def request_from_batch_start_payload(raw_payload: object) -> BatchRunRequest:
+def request_from_batch_start_payload(
+    raw_payload: object,
+    processing_presets: tuple[AudioProcessingPreset, ...] = (),
+) -> BatchRunRequest:
     """Decode and validate one frontend batch start request."""
     payload = BatchStartRequest.from_dict(raw_payload).to_dict()
     params = payload.get("parameters") or {}
@@ -85,6 +97,14 @@ def request_from_batch_start_payload(raw_payload: object) -> BatchRunRequest:
         operation=str(payload.get("operation") or ""),
         source_field=str(payload.get("source_field") or ""),
         target_field=payload.get("target_field"),
+        preset_id=payload.get("preset_id"),
+        audio_target_field=payload.get("audio_target_field"),
+        graph_target_field=payload.get("graph_target_field"),
+        preset=(
+            preset_by_id(processing_presets, str(payload.get("preset_id") or ""))
+            if payload.get("operation") == OP_PRESET
+            else None
+        ),
         parameters=parameters_from_raw(
             speed_step=params.get("speed_step"),
             volume_step_db=params.get("volume_step_db"),
@@ -171,6 +191,15 @@ def _operation_option(operation: str, messages: dict[str, str]) -> dict[str, Any
     }
 
 
+def _processing_preset_option(preset: AudioProcessingPreset) -> dict[str, Any]:
+    return {
+        "id": preset.id,
+        "name": preset.name,
+        "has_transforms": preset.has_transforms,
+        "graph_enabled": preset.graph.enabled,
+    }
+
+
 def _parameter_kind(operation: str) -> str:
     if operation in {OP_SLOWER, OP_FASTER}:
         return "speed"
@@ -182,6 +211,8 @@ def _parameter_kind(operation: str) -> str:
         return "denoise"
     if operation == OP_CONVERT:
         return "format"
+    if operation == OP_PRESET:
+        return "preset"
     if operation == OP_REDUCE_SIZE:
         return "size_reduction"
     if operation == OP_GRAPH:
@@ -200,6 +231,8 @@ def _parameter_name(operation: str) -> str:
         return "denoise_algorithm"
     if operation == OP_CONVERT:
         return "target_format"
+    if operation == OP_PRESET:
+        return "preset_id"
     if operation == OP_REDUCE_SIZE:
         return "size_reduction_mode"
     return "none"

@@ -15,6 +15,7 @@ from . import (
     editor_history,
     editor_persistent_undo,
     editor_playback,
+    editor_presets,
     editor_processing,
     editor_recording,
     editor_region_delete,
@@ -164,6 +165,10 @@ _rnnoise_async = _with_deps(editor_processing.rnnoise_async, _processing_deps)
 _dpdfnet_async = _with_deps(editor_processing.dpdfnet_async, _processing_deps)
 _voice_only_async = _with_deps(editor_processing.voice_only_async, _processing_deps)
 _pitch_hum_async = _with_deps(editor_processing.pitch_hum_async, _processing_deps)
+_run_processing_preset_async = _with_deps(
+    editor_presets.run_processing_preset_async,
+    _processing_deps,
+)
 _reduce_size_async = _with_deps(editor_processing.reduce_size_async, _processing_deps)
 _run_special_audio_transform_async = _with_keyword_deps(
     editor_processing.run_special_audio_transform_async,

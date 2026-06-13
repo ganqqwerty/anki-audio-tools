@@ -34,6 +34,7 @@
   import DiagnosticsLinks from "./DiagnosticsLinks.svelte";
   import DiagnosticsPanel from "./DiagnosticsPanel.svelte";
   import GeneralSettingsPanel from "./GeneralSettingsPanel.svelte";
+  import PresetSettingsPanel from "./PresetSettingsPanel.svelte";
   import SettingsFooter from "./SettingsFooter.svelte";
   import {
     cloneConfig,
@@ -149,6 +150,7 @@
   }
 
   function saveConfig(): void {
+    saveError = "";
     settingsSave(saveConfigPayload(config));
   }
 </script>
@@ -177,6 +179,12 @@
       </p>
     {/if}
 
+    {#if saveError}
+      <p class="settings-error" data-testid="save-error">
+        <ErrorMessage error={saveError} />
+      </p>
+    {/if}
+
     <div class="tab-nav" role="tablist" aria-label={t("settings.tabs.label")}>
       <button
         class="settings-tab"
@@ -187,6 +195,17 @@
         onclick={() => (activeTab = "general")}
       >
         {t("settings.tab.general")}
+      </button>
+      <button
+        class="settings-tab"
+        class:active={activeTab === "presets"}
+        data-testid="settings-tab-presets"
+        role="tab"
+        aria-selected={activeTab === "presets"}
+        type="button"
+        onclick={() => (activeTab = "presets")}
+      >
+        {t("settings.tab.presets")}
       </button>
       <button
         class="settings-tab"
@@ -203,7 +222,9 @@
 
     <section class="panel" role="tabpanel">
       {#if activeTab === "general"}
-        <GeneralSettingsPanel bind:config saveError={saveError} />
+        <GeneralSettingsPanel bind:config />
+      {:else if activeTab === "presets"}
+        <PresetSettingsPanel bind:config />
       {:else}
         <DiagnosticsPanel
           bind:config

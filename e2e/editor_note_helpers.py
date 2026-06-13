@@ -22,6 +22,7 @@ DEFAULT_VISIBLE_EDITOR_BUTTONS = (
     "aqe:chorusing-next",
     "aqe:show-file",
     "aqe:share",
+    "aqe:preset",
     "aqe:convert",
     "aqe:reduce-size",
     "aqe:remove-pauses",
@@ -48,6 +49,7 @@ DEFAULT_EDITOR_BUTTON_MODES = {
     "aqe:play-recording": "icon",
     "aqe:show-file": "text",
     "aqe:share": "text",
+    "aqe:preset": "text",
     "aqe:convert": "text",
     "aqe:reduce-size": "text",
     "aqe:remove-pauses": "text",
@@ -116,6 +118,7 @@ def _configure_ffmpeg(anki_mw, ffmpeg_config, **overrides: Any) -> None:
             "selection_marker_shift_buttons_enabled": False,
             "visible_editor_buttons": list(DEFAULT_VISIBLE_EDITOR_BUTTONS),
             "editor_button_modes": dict(DEFAULT_EDITOR_BUTTON_MODES),
+            "audio_processing_presets": [],
             **overrides,
         }
     )

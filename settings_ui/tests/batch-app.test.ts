@@ -73,6 +73,7 @@ function setInitialState(): void {
       },
     ],
     field_groups: [{ notetype_name: "Basic", fields: ["Audio", "Image"] }],
+    processing_presets: [],
     defaults: {
       speed_step: 0.1,
       volume_step_db: 6,

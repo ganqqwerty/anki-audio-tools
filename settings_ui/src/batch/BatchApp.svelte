@@ -24,6 +24,7 @@
     initialBatchState,
     initialFormState,
     selectedOperation,
+    selectedPreset,
   } from "./batch-state.js";
 
   const batchState = initialBatchState();
@@ -43,7 +44,8 @@
   let logLines = $state<string[]>([]);
 
   let selected = $derived(selectedOperation(batchState, form.operation));
-  let canStart = $derived(canStartBatch(form, selected));
+  let preset = $derived(selectedPreset(batchState, form.presetId));
+  let canStart = $derived(canStartBatch(form, selected, preset));
 
   onMount(() => {
     const showFrontendRuntimeError = () => {
@@ -96,7 +98,7 @@
     failures = 0;
     logLines = [];
     status = t("batch.starting", { operation: selected?.label ?? form.operation });
-    batchStart(batchStartRequest(form, selected));
+    batchStart(batchStartRequest(form, selected, preset));
   }
 
   function cancel(): void {
@@ -136,7 +138,7 @@
       </p>
     {/if}
 
-    <BatchControls state={batchState} bind:form selected={selected} disabled={running} />
+    <BatchControls state={batchState} bind:form selected={selected} preset={preset} disabled={running} />
 
     <section class="progress-panel" aria-live="polite">
       <div class="progress-meta">
