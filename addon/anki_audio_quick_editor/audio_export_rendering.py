@@ -62,7 +62,7 @@ def build_final_mp3_command(
     output_path: Path,
 ) -> tuple[str, ...]:
     codec_args = conversion_codec_args("mp3")
-    validate_final_ffmpeg_output(output_path, codec_args)
+    validate_final_mp3_output(output_path)
     return (
         str(ffmpeg_path),
         "-y",
@@ -76,6 +76,10 @@ def build_final_mp3_command(
         *codec_args,
         str(output_path),
     )
+
+
+def validate_final_mp3_output(output_path: Path) -> None:
+    validate_final_ffmpeg_output(output_path, conversion_codec_args("mp3"))
 
 
 def _concat_escape(path: Path) -> str:

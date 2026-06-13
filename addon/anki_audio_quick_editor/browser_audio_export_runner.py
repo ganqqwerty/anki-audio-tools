@@ -16,6 +16,7 @@ from .audio_export_rendering import (
     build_final_mp3_command,
     build_normalize_wav_command,
     build_silence_wav_command,
+    validate_final_mp3_output,
 )
 from .audio_export_types import (
     EXPORT_MODE_COMBINED_MP3,
@@ -158,10 +159,17 @@ def _write_combined_mp3_export(
     on_progress: ProgressCallback,
 ) -> None:
     destination_path = request.destination_path
+    validate_final_mp3_output(destination_path)
     destination_path.parent.mkdir(parents=True, exist_ok=True)
     ffmpeg_path = find_ffmpeg()
     temp_root = Path(tempfile.mkdtemp(prefix="aqe_audio_export_"))
-    temp_output_path = destination_path.parent / f".{destination_path.name}.tmp.mp3"
+    file_descriptor, temp_output_name = tempfile.mkstemp(
+        prefix=f".{destination_path.name}.",
+        suffix=".tmp.mp3",
+        dir=destination_path.parent,
+    )
+    os.close(file_descriptor)
+    temp_output_path = Path(temp_output_name)
     normalized_paths: list[Path] = []
 
     try:

@@ -4,6 +4,8 @@ import threading
 import zipfile
 from pathlib import Path
 
+import pytest
+
 from anki_audio_quick_editor.audio_export_planning import (
     collect_audio_export_items,
     make_zip_entry_name,
@@ -15,6 +17,7 @@ from anki_audio_quick_editor.audio_export_types import (
 )
 from anki_audio_quick_editor.batch_operations import BatchNoteSnapshot
 from anki_audio_quick_editor.browser_audio_export_runner import run_audio_export
+from anki_audio_quick_editor.errors import AudioProcessingError
 
 
 def test_run_audio_export_writes_ordered_zip_without_mutating_notes(tmp_path: Path) -> None:
@@ -177,6 +180,48 @@ def test_run_audio_export_combined_mp3_invokes_render_steps(monkeypatch, tmp_pat
     assert len(commands) == 4
     assert commands[0][0] == "/bin/ffmpeg"
     assert commands[-1][-1].endswith(".mp3")
+
+
+def test_run_audio_export_combined_mp3_rejects_non_mp3_destination_before_rendering(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    media = tmp_path / "media"
+    media.mkdir()
+    (media / "a.mp3").write_bytes(b"a")
+    output = tmp_path / "out.wav"
+    commands: list[tuple[str, ...]] = []
+
+    monkeypatch.setattr(
+        "anki_audio_quick_editor.browser_audio_export_runner.find_ffmpeg",
+        lambda _path="": Path("/bin/ffmpeg"),
+    )
+
+    def fake_run(command, *_args, **_kwargs):
+        commands.append(tuple(command))
+        Path(command[-1]).write_bytes(b"rendered")
+
+    monkeypatch.setattr(
+        "anki_audio_quick_editor.browser_audio_export_runner._run_export_command",
+        fake_run,
+    )
+
+    with pytest.raises(AudioProcessingError):
+        run_audio_export(
+            (BatchNoteSnapshot(10, "Basic", {"Front": "[sound:a.mp3]"}),),
+            request=AudioExportRequest(
+                mode="combined_mp3",
+                destination_path=output,
+                field_selections=(AudioExportFieldSelection("Basic", ("Front",)),),
+            ),
+            media_dir=media,
+            cancel_event=threading.Event(),
+            on_log=lambda _line: None,
+            on_progress=lambda *_args: None,
+        )
+
+    assert commands == []
+    assert not output.exists()
 
 
 def report_plan_items_for_names(media_dir: Path) -> tuple[AudioExportItem, ...]:
