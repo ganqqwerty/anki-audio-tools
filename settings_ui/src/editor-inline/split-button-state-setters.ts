@@ -19,7 +19,12 @@ import {
   setPausePreprocessDenoiseOnState,
   setPauseThresholdOnState,
 } from "./pause-split-state.js";
-import { clampVoiceRecordingCountdownSeconds, pitchHumModeOrDefault } from "./split-button-state-defaults.js";
+import {
+  clampChorusingPauseSeconds,
+  clampChorusingRepeatCount,
+  clampVoiceRecordingCountdownSeconds,
+  pitchHumModeOrDefault,
+} from "./split-button-state-defaults.js";
 import { getSplitButtonState } from "./split-button-state-core.js";
 import type { PitchHumMode, ShareTarget } from "./split-button-state-defaults.js";
 
@@ -49,6 +54,27 @@ export function setRepeatPauseSecondsForField(ord: number, value: number): Field
   state.repeatPauseEdited = true;
   state.repeatPauseSeconds = clampRepeatPauseSeconds(value);
   notifyRepeatPauseStateChanged(ord, state);
+  return state;
+}
+
+export function setChorusingPauseSecondsForField(ord: number, value: number): FieldSplitButtonState {
+  const state = getSplitButtonState(ord);
+  state.chorusingEdited = true;
+  state.chorusingPauseSeconds = clampChorusingPauseSeconds(value);
+  return state;
+}
+
+export function setChorusingAutoAdvanceForField(ord: number, value: boolean): FieldSplitButtonState {
+  const state = getSplitButtonState(ord);
+  state.chorusingEdited = true;
+  state.chorusingAutoAdvance = value;
+  return state;
+}
+
+export function setChorusingRepeatCountForField(ord: number, value: number): FieldSplitButtonState {
+  const state = getSplitButtonState(ord);
+  state.chorusingEdited = true;
+  state.chorusingRepeatCount = clampChorusingRepeatCount(value);
   return state;
 }
 

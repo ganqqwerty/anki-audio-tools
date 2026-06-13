@@ -16,7 +16,7 @@ import {
   setCursor,
 } from "./actions.js";
 import { cursorMsFromEvent, graphPixelBounds, svgViewBoxScale } from "./plot.js";
-import { chorusingControlsForVisualizer } from "./chorusing-dom.js";
+import { chorusingControlsForVisualizer, chorusingStateForVisualizer } from "./chorusing-dom.js";
 import { applyVisualizerTimeViewport } from "./viewport-actions.js";
 import { readVisualizerTargetDurationMs, readVisualizerTimeViewport } from "./visualizer-state.js";
 import { readFieldState, updateFieldState, writeFieldState } from "./field-state-store.js";
@@ -262,6 +262,7 @@ export function graphStateForTest(ord: number): GraphStateForTest | null {
     chorusingCanPractice: chorusing.canPractice,
     chorusingMarkerVisibleXs: chorusing.visibleMarkers.map((marker) => marker.x),
     chorusingMarkersMs: chorusing.markersMs,
+    chorusingRepeatPassesCompleted: chorusingStateForVisualizer(visualizer).repeatPassesCompleted,
     chorusingState: chorusing.practiceState,
     chorusingVisibleActiveRangeEndX: chorusing.visibleActiveRange?.endX ?? null,
     chorusingVisibleActiveRangeStartX: chorusing.visibleActiveRange?.startX ?? null,

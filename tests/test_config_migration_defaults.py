@@ -99,6 +99,24 @@ class TestMigrateConfigDefaults:
         assert migrated["_config_version"] == CURRENT_CONFIG_VERSION
         assert changed is True
 
+    def test_picks_up_chorusing_defaults(self) -> None:
+        user = {"_config_version": 20, "enabled": True}
+        defaults = {
+            "_config_version": CURRENT_CONFIG_VERSION,
+            "enabled": True,
+            "chorusing_pause_seconds": 0.0,
+            "chorusing_auto_advance_by_default": False,
+            "chorusing_auto_advance_repeats": 3,
+        }
+
+        migrated, changed = migrate_config(user, defaults)
+
+        assert migrated["chorusing_pause_seconds"] == 0.0
+        assert migrated["chorusing_auto_advance_by_default"] is False
+        assert migrated["chorusing_auto_advance_repeats"] == 3
+        assert migrated["_config_version"] == CURRENT_CONFIG_VERSION
+        assert changed is True
+
     def test_picks_up_share_target_default(self) -> None:
         user = {"_config_version": 20, "enabled": True}
         defaults = {

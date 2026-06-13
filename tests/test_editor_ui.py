@@ -33,6 +33,9 @@ def test_injection_script_embeds_audio_field_indices_and_bundle() -> None:
     assert config["showGraphByDefault"] is True
     assert config["visibleEditorButtons"] is None
     assert config["splitButtonDefaults"]["repeatPauseSeconds"] == 0.0
+    assert config["splitButtonDefaults"]["chorusingPauseSeconds"] == 0.0
+    assert config["splitButtonDefaults"]["chorusingAutoAdvanceByDefault"] is False
+    assert config["splitButtonDefaults"]["chorusingAutoAdvanceRepeats"] == 3
     assert config["splitButtonDefaults"]["voiceRecordingCountdownSeconds"] == 0
     assert config["splitButtonDefaults"]["shareTarget"] == "litterbox"
     assert config["splitButtonDefaults"]["sizeReductionMode"] == "normal"
@@ -218,6 +221,9 @@ def test_injection_script_embeds_split_button_defaults() -> None:
             "volumeStepDb": 2.5,
             "speedStep": 0.1,
             "repeatPauseSeconds": 2.0,
+            "chorusingPauseSeconds": 1.5,
+            "chorusingAutoAdvanceByDefault": True,
+            "chorusingAutoAdvanceRepeats": 6,
             "pauseAggressiveness": "normal",
             "pauseDetectionAlgorithm": "silero_vad",
             "outputFormat": "mp3",
@@ -235,6 +241,9 @@ def test_injection_script_embeds_split_button_defaults() -> None:
         "volumeStepDb": 2.5,
         "speedStep": 0.1,
         "repeatPauseSeconds": 2.0,
+        "chorusingPauseSeconds": 1.5,
+        "chorusingAutoAdvanceByDefault": True,
+        "chorusingAutoAdvanceRepeats": 6,
         "pauseAggressiveness": "normal",
         "pauseDetectionAlgorithm": "silero_vad",
         "outputFormat": "mp3",

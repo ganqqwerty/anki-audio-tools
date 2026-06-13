@@ -157,6 +157,7 @@ export interface GraphStateForTest {
   chorusingCanPractice: boolean;
   chorusingMarkerVisibleXs: number[];
   chorusingMarkersMs: number[];
+  chorusingRepeatPassesCompleted: number;
   chorusingState: "paused" | "playing" | "stopped";
   chorusingVisibleActiveRangeEndX: number | null;
   chorusingVisibleActiveRangeStartX: number | null;

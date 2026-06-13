@@ -64,6 +64,7 @@ export interface PlaybackControllerDependencies {
   clearStatus: (ord: number) => void;
   effectivePlaybackRegion: (visualizer: VisualizerElement) => PlaybackRegion;
   focusAndSendCommand: (ord: number, command: string) => void;
+  handleLoopBoundary?: (visualizer: VisualizerElement, pass: PlaybackPass) => boolean;
   playbackEngineFor: (visualizer: VisualizerElement | null) => "html" | "native";
   repeatEnabledFor: (visualizer: VisualizerElement) => boolean;
   restoreStatus: (ord: number) => void;
@@ -96,6 +97,9 @@ export function handlePlaybackBoundary(
   });
   if (boundary.kind === "continue") return false;
   if (boundary.kind === "loop") {
+    if (deps.handleLoopBoundary?.(visualizer, boundary.pass) === true) {
+      return true;
+    }
     if (boundary.repeatPauseMs > 0) {
       scheduleRepeatLoopPlayback(visualizer, deps, options, boundary.pass, boundary.repeatPauseMs);
     } else {

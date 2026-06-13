@@ -20,6 +20,7 @@ import {
   writeChorusingState,
 } from "./chorusing-dom.js";
 import { syncChorusingToolbarButtons } from "./chorusing-toolbar.js";
+import { getSplitButtonState } from "./split-button-state.js";
 import {
   activeMarkerIndexAfterMarkerToggle,
   chooseInitialActiveMarkerIndex,
@@ -27,10 +28,12 @@ import {
   deriveActiveSuffix,
   emptyChorusingState,
   moveActiveMarkerIndex,
+  resolveChorusingLoopBoundary,
   type ChorusingMarkerDirection,
   type ChorusingState,
   toggleChorusingMarker,
 } from "./chorusing-state";
+import type { PlaybackPass } from "./playback-model.js";
 import {
   readVisualizerCursorMs,
   readVisualizerTargetDurationMs,
@@ -211,13 +214,18 @@ function toggleChorusing(visualizer: VisualizerElement): boolean {
   return true;
 }
 
-function moveChorusing(visualizer: VisualizerElement, direction: ChorusingMarkerDirection): boolean {
+function moveChorusing(
+  visualizer: VisualizerElement,
+  direction: ChorusingMarkerDirection,
+  options: { resetRepeatPasses?: boolean } = {},
+): boolean {
   const state = chorusingStateForVisualizer(visualizer);
   if (!state.baseRegion || !state.markersMs.length) return false;
   const nextIndex = moveActiveMarkerIndex(state.markersMs, state.activeMarkerIndex, direction);
   const nextState = {
     ...state,
     activeMarkerIndex: nextIndex,
+    repeatPassesCompleted: options.resetRepeatPasses === false ? state.repeatPassesCompleted : 0,
   };
   writeState(visualizer, nextState);
   setSelectionToActiveSuffix(visualizer, nextState);
@@ -264,6 +272,7 @@ function startPracticePlayback(visualizer: VisualizerElement, state: ChorusingSt
   writeState(visualizer, {
     ...state,
     practiceState: "playing",
+    repeatPassesCompleted: 0,
   });
   if (request.engine === "html") {
     startEditorHtmlPlayback(visualizer, request);
@@ -292,6 +301,46 @@ function pauseChorusing(visualizer: VisualizerElement, state: ChorusingState): v
     ...state,
     practiceState: "paused",
   });
+}
+
+export function handleChorusingLoopBoundary(
+  visualizer: VisualizerElement,
+  pass: PlaybackPass,
+): boolean {
+  const state = chorusingStateForVisualizer(visualizer);
+  if (!chorusingPassMatchesActiveSuffix(state, pass)) {
+    return false;
+  }
+  const splitState = getSplitButtonState(Number(visualizer.dataset.aqeFieldOrd || "0"));
+  const decision = resolveChorusingLoopBoundary(state, {
+    autoAdvance: splitState.chorusingAutoAdvance,
+    repeatCount: splitState.chorusingRepeatCount,
+  });
+  if (decision.action === "ignore") {
+    return false;
+  }
+  if (decision.action === "repeat") {
+    writeState(visualizer, decision.nextState);
+    return false;
+  }
+  if (decision.action === "pause") {
+    pauseChorusing(visualizer, decision.nextState);
+    return true;
+  }
+  writeState(visualizer, decision.nextState);
+  setSelectionToActiveSuffix(visualizer, decision.nextState);
+  startPracticePlayback(visualizer, decision.nextState);
+  return decision.consumed;
+}
+
+function chorusingPassMatchesActiveSuffix(state: ChorusingState, pass: PlaybackPass): boolean {
+  const suffix = deriveActiveSuffix(state.baseRegion, state.markersMs, state.activeMarkerIndex);
+  return Boolean(
+    suffix
+    && pass.regionMode === suffix.mode
+    && pass.startMs === Math.round(suffix.startMs)
+    && pass.endMs === Math.round(suffix.endMs),
+  );
 }
 
 function setSelectionToActiveSuffix(visualizer: VisualizerElement, state: ChorusingState) {

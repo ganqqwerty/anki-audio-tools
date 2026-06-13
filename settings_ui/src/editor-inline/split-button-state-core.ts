@@ -27,7 +27,15 @@ import {
   sizeReductionAdvancedDefaults,
   syncSizeReductionState,
 } from "./size-reduction-split-state.js";
-import { splitButtonDefaults, fieldStates, pitchHumModeOrDefault, shareTargetOrDefault, clampVoiceRecordingCountdownSeconds } from "./split-button-state-defaults.js";
+import {
+  clampChorusingPauseSeconds,
+  clampChorusingRepeatCount,
+  splitButtonDefaults,
+  fieldStates,
+  pitchHumModeOrDefault,
+  shareTargetOrDefault,
+  clampVoiceRecordingCountdownSeconds,
+} from "./split-button-state-defaults.js";
 import { updateEditorRuntimeConfig } from "./editor-runtime-config.js";
 
 type CompleteSplitButtonDefaults = Required<SplitButtonDefaults>;
@@ -60,6 +68,9 @@ export function getSplitButtonState(ord: number): FieldSplitButtonState {
   const defaultVolumeStepDb = clampVolumeStepDb(defaults.volumeStepDb);
   const defaultSpeedStep = clampSpeedStep(defaults.speedStep);
   const defaultRepeatPauseSeconds = clampRepeatPauseSeconds(defaults.repeatPauseSeconds);
+  const defaultChorusingPauseSeconds = clampChorusingPauseSeconds(defaults.chorusingPauseSeconds);
+  const defaultChorusingAutoAdvance = defaults.chorusingAutoAdvanceByDefault === true;
+  const defaultChorusingRepeatCount = clampChorusingRepeatCount(defaults.chorusingAutoAdvanceRepeats);
   const defaultVoiceRecordingCountdownSeconds = clampVoiceRecordingCountdownSeconds(
     defaults.voiceRecordingCountdownSeconds,
   );
@@ -76,6 +87,21 @@ export function getSplitButtonState(ord: number): FieldSplitButtonState {
       existing.repeatPauseSeconds = defaultRepeatPauseSeconds;
       existing.defaultRepeatPauseSeconds = defaultRepeatPauseSeconds;
       existing.repeatPauseEdited = false;
+    }
+    if (!Number.isFinite(existing.chorusingPauseSeconds)) {
+      existing.chorusingPauseSeconds = defaultChorusingPauseSeconds;
+      existing.defaultChorusingPauseSeconds = defaultChorusingPauseSeconds;
+      existing.chorusingEdited = false;
+    }
+    if (!Number.isFinite(existing.chorusingRepeatCount)) {
+      existing.chorusingRepeatCount = defaultChorusingRepeatCount;
+      existing.defaultChorusingRepeatCount = defaultChorusingRepeatCount;
+      existing.chorusingEdited = false;
+    }
+    if (typeof existing.chorusingAutoAdvance !== "boolean") {
+      existing.chorusingAutoAdvance = defaultChorusingAutoAdvance;
+      existing.defaultChorusingAutoAdvance = defaultChorusingAutoAdvance;
+      existing.chorusingEdited = false;
     }
     if (!Number.isFinite(existing.voiceRecordingCountdownSeconds)) {
       existing.voiceRecordingCountdownSeconds = defaultVoiceRecordingCountdownSeconds;
@@ -116,6 +142,18 @@ export function getSplitButtonState(ord: number): FieldSplitButtonState {
     if (!existing.repeatPauseEdited && existing.defaultRepeatPauseSeconds !== defaultRepeatPauseSeconds) {
       existing.defaultRepeatPauseSeconds = defaultRepeatPauseSeconds;
       existing.repeatPauseSeconds = defaultRepeatPauseSeconds;
+    }
+    if (!existing.chorusingEdited && existing.defaultChorusingPauseSeconds !== defaultChorusingPauseSeconds) {
+      existing.defaultChorusingPauseSeconds = defaultChorusingPauseSeconds;
+      existing.chorusingPauseSeconds = defaultChorusingPauseSeconds;
+    }
+    if (!existing.chorusingEdited && existing.defaultChorusingAutoAdvance !== defaultChorusingAutoAdvance) {
+      existing.defaultChorusingAutoAdvance = defaultChorusingAutoAdvance;
+      existing.chorusingAutoAdvance = defaultChorusingAutoAdvance;
+    }
+    if (!existing.chorusingEdited && existing.defaultChorusingRepeatCount !== defaultChorusingRepeatCount) {
+      existing.defaultChorusingRepeatCount = defaultChorusingRepeatCount;
+      existing.chorusingRepeatCount = defaultChorusingRepeatCount;
     }
     if (
       !existing.voiceRecordingCountdownEdited
@@ -176,6 +214,13 @@ export function getSplitButtonState(ord: number): FieldSplitButtonState {
     return existing;
   }
   const state: FieldSplitButtonState = {
+    chorusingAutoAdvance: defaultChorusingAutoAdvance,
+    chorusingEdited: false,
+    chorusingPauseSeconds: defaultChorusingPauseSeconds,
+    chorusingRepeatCount: defaultChorusingRepeatCount,
+    defaultChorusingAutoAdvance: defaultChorusingAutoAdvance,
+    defaultChorusingPauseSeconds: defaultChorusingPauseSeconds,
+    defaultChorusingRepeatCount: defaultChorusingRepeatCount,
     defaultDenoiseAlgorithm,
     defaultDpdfnetAttnLimitDb,
     defaultGraphConnectShortDropoutsMs,
@@ -248,6 +293,27 @@ function applyPromotedDefaultsToState(
     state.defaultRepeatPauseSeconds = clampRepeatPauseSeconds(defaults.repeatPauseSeconds);
     if (forceCurrentField || !state.repeatPauseEdited) state.repeatPauseSeconds = state.defaultRepeatPauseSeconds;
     if (forceCurrentField) state.repeatPauseEdited = false;
+  }
+  if (values.chorusingPauseSeconds !== undefined) {
+    state.defaultChorusingPauseSeconds = clampChorusingPauseSeconds(defaults.chorusingPauseSeconds);
+    if (forceCurrentField || !state.chorusingEdited) {
+      state.chorusingPauseSeconds = state.defaultChorusingPauseSeconds;
+    }
+    if (forceCurrentField) state.chorusingEdited = false;
+  }
+  if (values.chorusingAutoAdvanceByDefault !== undefined) {
+    state.defaultChorusingAutoAdvance = defaults.chorusingAutoAdvanceByDefault === true;
+    if (forceCurrentField || !state.chorusingEdited) {
+      state.chorusingAutoAdvance = state.defaultChorusingAutoAdvance;
+    }
+    if (forceCurrentField) state.chorusingEdited = false;
+  }
+  if (values.chorusingAutoAdvanceRepeats !== undefined) {
+    state.defaultChorusingRepeatCount = clampChorusingRepeatCount(defaults.chorusingAutoAdvanceRepeats);
+    if (forceCurrentField || !state.chorusingEdited) {
+      state.chorusingRepeatCount = state.defaultChorusingRepeatCount;
+    }
+    if (forceCurrentField) state.chorusingEdited = false;
   }
   if (values.voiceRecordingCountdownSeconds !== undefined) {
     state.defaultVoiceRecordingCountdownSeconds = clampVoiceRecordingCountdownSeconds(

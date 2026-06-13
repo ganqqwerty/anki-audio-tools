@@ -11,6 +11,7 @@
   import EditorToolbarPanel from "./EditorToolbarPanel.svelte";
   import GraphVisualizer from "./GraphVisualizer.svelte";
   import HistorySplitButton from "./HistorySplitButton.svelte";
+  import ChorusingSplitButton from "./ChorusingSplitButton.svelte";
   import PlaySplitButton from "./PlaySplitButton.svelte";
   import PresetSplitButton from "./PresetSplitButton.svelte";
   import SplitButton from "./SplitButton.svelte";
@@ -205,13 +206,21 @@
             {/if}
           {:else}
             {#each item.buttons as button (button.command)}
-              <EditorToolbarButton
-                {button}
-                displayMode={buttonDisplayMode(button.command, buttonModes)}
-                disabled={initialButtonDisabled(button.command)}
-                disabledTitle={disabledTitle(button.command)}
-                {target}
-              />
+              {#if item.definition.slug === "chorusing" && button.command === "aqe:chorusing-practice"}
+                <ChorusingSplitButton
+                  {button}
+                  displayMode={buttonDisplayMode(button.command, buttonModes)}
+                  {target}
+                />
+              {:else}
+                <EditorToolbarButton
+                  {button}
+                  displayMode={buttonDisplayMode(button.command, buttonModes)}
+                  disabled={initialButtonDisabled(button.command)}
+                  disabledTitle={disabledTitle(button.command)}
+                  {target}
+                />
+              {/if}
             {/each}
           {/if}
         </EditorToolbarPanel>

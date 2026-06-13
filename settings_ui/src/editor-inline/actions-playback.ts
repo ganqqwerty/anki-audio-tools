@@ -31,6 +31,7 @@ import {
 import { readVisualizerTargetDurationMs } from "./visualizer-state.js";
 import { notifySelectionChanged } from "./selection-events.js";
 import { readFieldState, writeFieldState } from "./field-state-store.js";
+import { handleChorusingLoopBoundary } from "./chorusing-controller.js";
 
 function fieldOrd(v: VisualizerElement): number {
   return Number(v.dataset.aqeFieldOrd || "0");
@@ -63,6 +64,7 @@ export function playbackControllerDependencies(): PlaybackControllerDependencies
     clearStatus: clearPlaybackStatusForOrd,
     effectivePlaybackRegion: effectivePlaybackRegionFromController,
     focusAndSendCommand,
+    handleLoopBoundary: handleChorusingLoopBoundary,
     playbackEngineFor,
     repeatEnabledFor,
     restoreStatus: restoreStatusForOrd,

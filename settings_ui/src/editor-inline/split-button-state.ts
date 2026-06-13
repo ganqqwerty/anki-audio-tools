@@ -13,8 +13,17 @@ export {
 } from "../lib/audio-operation-parameters.js";
 export { formatSizeReductionMode } from "../lib/size-reduction-parameters.js";
 export { formatDenoiseAlgorithm, formatPitchHumMode, formatShareTarget } from "./split-button-formatters.js";
+export { createChorusingSplitButtonStateHandlers } from "./split-button-state-behavior.js";
 
-export { splitButtonDefaults, clampVoiceRecordingCountdownSeconds, formatVoiceRecordingCountdownSeconds } from "./split-button-state-defaults.js";
+export {
+  splitButtonDefaults,
+  clampChorusingPauseSeconds,
+  clampChorusingRepeatCount,
+  clampVoiceRecordingCountdownSeconds,
+  formatVoiceRecordingCountdownSeconds,
+  CHORUSING_REPEAT_COUNT_MIN,
+  CHORUSING_REPEAT_COUNT_MAX,
+} from "./split-button-state-defaults.js";
 
 export {
   getSplitButtonState,
@@ -26,6 +35,9 @@ export {
   setSpeedStepForField,
   REPEAT_PAUSE_STATE_CHANGED_EVENT,
   type RepeatPauseStateChangedDetail,
+  setChorusingAutoAdvanceForField,
+  setChorusingPauseSecondsForField,
+  setChorusingRepeatCountForField,
   setRepeatPauseSecondsForField,
   setVoiceRecordingCountdownSecondsForField,
   setPauseAggressivenessForField,

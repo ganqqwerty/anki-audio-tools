@@ -1,6 +1,9 @@
 import type { GraphRecordingCondition, GraphSmoothness, GraphVoiceLock, GraphVoiceRange } from "./graph-settings.js";
 import type { FieldSplitButtonState } from "./types.js";
 import {
+  setChorusingAutoAdvanceForField,
+  setChorusingPauseSecondsForField,
+  setChorusingRepeatCountForField,
   setDenoiseAlgorithmForField,
   setDpdfnetAttnLimitDbForField,
   setOutputFormatForField,
@@ -37,6 +40,10 @@ export type PauseDetectionAlgorithm = FieldSplitButtonState["pauseDetectionAlgor
 export type PitchHumMode = FieldSplitButtonState["pitchHumMode"];
 export type SizeReductionMode = FieldSplitButtonState["sizeReductionMode"];
 export type ShareTarget = FieldSplitButtonState["shareTarget"];
+export type ChorusingSplitButtonState = Pick<
+  FieldSplitButtonState,
+  "chorusingPauseSeconds" | "chorusingAutoAdvance" | "chorusingRepeatCount"
+>;
 
 export interface SplitButtonStateMutators {
   setVolumeStepDb: (value: number) => void;
@@ -90,6 +97,19 @@ export interface SplitButtonStateHandlers {
   applyGraphConnectShortDropouts: (value: number) => void;
   applyGraphVoiceLock: (value: GraphVoiceLock) => void;
   applyVoiceRecordingCountdownSeconds: (value: number) => void;
+}
+
+export interface ChorusingSplitButtonMutators {
+  setChorusingPauseSeconds: (value: number) => void;
+  setChorusingAutoAdvance: (value: boolean) => void;
+  setChorusingRepeatCount: (value: number) => void;
+}
+
+export interface ChorusingSplitButtonHandlers {
+  syncFromState: (state: ChorusingSplitButtonState) => void;
+  applyPauseSeconds: (value: number) => void;
+  applyAutoAdvance: (value: boolean) => void;
+  applyRepeatCount: (value: number) => void;
 }
 
 export function createSplitButtonStateHandlers(
@@ -295,5 +315,35 @@ export function createSplitButtonStateHandlers(
     applyGraphConnectShortDropouts,
     applyGraphVoiceLock,
     applyVoiceRecordingCountdownSeconds,
+  };
+}
+
+export function createChorusingSplitButtonStateHandlers(
+  getTargetOrd: () => number,
+  mutators: ChorusingSplitButtonMutators,
+): ChorusingSplitButtonHandlers {
+  const {
+    setChorusingPauseSeconds,
+    setChorusingAutoAdvance,
+    setChorusingRepeatCount,
+  } = mutators;
+
+  const syncFromState = (state: ChorusingSplitButtonState): void => {
+    setChorusingPauseSeconds(state.chorusingPauseSeconds);
+    setChorusingAutoAdvance(state.chorusingAutoAdvance);
+    setChorusingRepeatCount(state.chorusingRepeatCount);
+  };
+
+  return {
+    syncFromState,
+    applyPauseSeconds: (value: number): void => {
+      syncFromState(setChorusingPauseSecondsForField(getTargetOrd(), value));
+    },
+    applyAutoAdvance: (value: boolean): void => {
+      syncFromState(setChorusingAutoAdvanceForField(getTargetOrd(), value));
+    },
+    applyRepeatCount: (value: number): void => {
+      syncFromState(setChorusingRepeatCountForField(getTargetOrd(), value));
+    },
   };
 }
