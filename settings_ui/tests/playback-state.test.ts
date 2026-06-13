@@ -97,7 +97,7 @@ describe("playback state", () => {
     })).toMatchObject({ action: "start", cursorMs: 400 });
   });
 
-  it("starts a paused selected-region restart from the repositioned cursor", () => {
+  it("starts a paused selected-repeat restart from the selection start", () => {
     expect(buildPlaybackRequestForPython({
       ...baseState,
       anchorMs: 650,
@@ -108,7 +108,7 @@ describe("playback state", () => {
       resumeRequiresRestart: true,
     })).toMatchObject({
       action: "start",
-      cursorMs: 650,
+      cursorMs: 400,
       endMs: 800,
       loop: true,
       regionMode: "selection",
