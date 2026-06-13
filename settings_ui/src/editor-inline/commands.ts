@@ -27,6 +27,7 @@ export const PROCESSING_COMMANDS = new Set<EditorCommand>([
   "aqe:dpdfnet",
   "aqe:voice-only",
   "aqe:pitch-hum",
+  "aqe:preset",
   "aqe:volume-down",
   "aqe:volume-up",
 ]);
@@ -38,6 +39,7 @@ export const BUSY_COMMANDS = new Set<EditorCommand>([
 ]);
 
 export interface ProcessingMessageConfig {
+  processingPresets?: { id: string; name: string }[];
   splitButtonDefaults?: {
     outputFormat?: unknown;
     sizeReductionMode?: unknown;
@@ -50,6 +52,10 @@ export function processingMessage(command: EditorCommand, payload?: EditorComman
   if (command === "aqe:dpdfnet") return `${t("editor.status.denoising_dpdfnet")}...`;
   if (command === "aqe:voice-only") return `${t("editor.status.extracting_voice")}...`;
   if (command === "aqe:pitch-hum") return `${t("editor.status.pitch_hum")}...`;
+  if (command === "aqe:preset") {
+    const preset = config.processingPresets?.find((item) => item.id === payload?.presetId);
+    return `${t("editor.status.running_preset", { preset: preset?.name ?? t("editor.command.preset.label") })}`;
+  }
   if (command === "aqe:share" || command === "aqe:share-recording") {
     const shareTarget = payload?.shareTarget ?? "litterbox";
     return shareTarget === "litterbox"

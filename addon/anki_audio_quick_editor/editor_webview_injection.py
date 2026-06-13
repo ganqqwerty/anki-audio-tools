@@ -6,6 +6,7 @@ import logging
 from typing import Any
 
 from . import editor_persistent_undo
+from .audio_processing_presets import presets_from_raw
 from .editor_history_settings import (
     DEFAULT_EDITOR_HISTORY_SIZE,
     normalize_editor_history_size,
@@ -68,6 +69,7 @@ def editor_injection_script(editor: Any, note: Any) -> str:
             for command, mode in editor_button_modes.items()
             if isinstance(command, str) and isinstance(mode, str)
         },
+        processing_presets=_editor_processing_preset_options(config),
         split_button_defaults={
             "volumeStepDb": float(config.get("volume_step_db", 15.0)),
             "speedStep": float(config.get("speed_step", 1.5)),
@@ -151,6 +153,22 @@ def _availability_by_field(snapshots: dict[int, HistorySnapshot]) -> dict[int, d
         }
         for field_index, snapshot in snapshots.items()
     }
+
+
+def _editor_processing_preset_options(config: dict[str, Any]) -> list[dict[str, object]]:
+    try:
+        presets = presets_from_raw(config.get("audio_processing_presets"))
+    except ValueError:
+        return []
+    return [
+        {
+            "id": preset.id,
+            "name": preset.name,
+            "hasTransforms": preset.has_transforms,
+            "graphEnabled": preset.graph.enabled,
+        }
+        for preset in presets
+    ]
 
 
 def _can_persistent_undo(editor: Any, field_index: int | None) -> bool:

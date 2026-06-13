@@ -6,12 +6,18 @@ Add automatic trigger rules that run Audio Quick Editor processing after manual 
 
 Triggers reuse the existing batch operation core and the processing preset runner through a headless one-note runner. The trigger layer owns automation policy: matching rules, detecting changed source audio, background scheduling, stale-completion guards, Graph replacement semantics, and loop prevention.
 
+## Current Baseline
+
+As of 2026-06-13, trigger automation and processing presets are still design-stage features in this repository. The committed config has no `audio_trigger_rules` or `audio_processing_presets` keys yet, and Settings still exposes only General and Diagnostics tabs. Trigger implementation should therefore add the Triggers tab against the then-current Settings layout, and should place it alongside the Presets tab if the processing preset feature has landed first.
+
+The shared batch/editor operation surface has changed since the original design. `audio_operations.py` now includes `reduce_size` as a transform operation backed by size-reduction parameters and `render_size_reduced_audio`. Trigger operation allow-lists and parameter editors must include it.
+
 ## Goals
 
 - Let users configure per-note-type trigger rules in Settings.
 - Support manual `add` and manual `edit` trigger events.
 - Run one configured action per rule: either a single batch-capable operation or a saved processing preset.
-- Support existing batch-capable operations: Graph, Convert, Denoise, Shorten Pauses, Slower, Faster, Volume Down, and Volume Up.
+- Support existing batch-capable operations: Graph, Convert, Size Reduction, Denoise, Shorten Pauses, Slower, Faster, Volume Down, and Volume Up.
 - Support processing presets when `audio_processing_presets` and the shared preset runner are available.
 - Store parameters on single-operation trigger rules so automatic behavior is reproducible and independent of later global default changes.
 - Reference processing presets by ID instead of copying preset steps into trigger rules.
@@ -25,7 +31,7 @@ Triggers reuse the existing batch operation core and the processing preset runne
 
 - Triggering from imports, Browser bulk edits, sync, add-ons, or arbitrary collection operations.
 - Multi-step trigger chains embedded directly in trigger rules. Processing presets cover grouped operations.
-- Triggering toolbar-only actions such as Play, Share, Record, Show File, Undo, Redo, Pitch Hum, Delete Selection, or Delete Rest.
+- Triggering toolbar-only or editor-session actions such as Play, Share, Record, Play Recording, Share Recording, Show File, Show Recording File, Chorusing Practice/Next/Previous, Undo, Redo, Pitch Hum, Delete Selection, or Delete Rest.
 - Blocking Add/Edit saves until processing finishes.
 - Editing note types to add hidden tracking fields.
 - Appending Graph output from triggers. Trigger Graph output replaces its target field in V1.
@@ -108,6 +114,32 @@ For Graph:
 }
 ```
 
+For Size Reduction:
+
+```json
+{
+  "id": "trigger_smaller_basic_audio",
+  "name": "Compress Basic audio on add",
+  "enabled": true,
+  "event": "add",
+  "note_type": {
+    "id": 1234567890,
+    "name": "Basic"
+  },
+  "source_field": "Audio",
+  "action_type": "operation",
+  "operation": "reduce_size",
+  "preset_id": null,
+  "target_field": null,
+  "parameters": {
+    "size_reduction_mode": "normal",
+    "size_reduction_bitrate_kbps": 64,
+    "size_reduction_sample_rate_hz": 32000,
+    "size_reduction_channels": 1
+  }
+}
+```
+
 For a processing preset:
 
 ```json
@@ -185,10 +217,11 @@ Existing modules remain the source of operation behavior:
 
 - `audio_operations.py` defines supported operation names.
 - `audio_operation_params.py` validates operation parameters.
+- `audio_size_reduction.py` owns size-reduction modes and encoder parameter normalization.
 - `batch_operation_types.py` provides `BatchRunRequest` and note result shapes where they fit.
 - `batch_operations.py` provides the import-safe one-note operation core.
-- `audio_processing_presets.py` provides saved preset model and validation.
-- `audio_processing_preset_runner.py` provides shared staged preset execution.
+- `audio_processing_presets.py` will provide saved preset model and validation when processing presets land.
+- `audio_processing_preset_runner.py` will provide shared staged preset execution when processing presets land.
 - `browser_batch_runner.py` provides useful snapshot/update patterns, but trigger runner should avoid browser-dialog assumptions.
 
 The trigger layer should not call editor bridge commands. Editor commands depend on active UI state, field ordinals, playback, graph UI state, and undo/redo behavior, which are the wrong abstraction for background note automation.
@@ -281,6 +314,12 @@ Preset trigger behavior uses the shared processing preset runner:
 - preset failure leaves all note fields unchanged
 - preset parameters remain owned by the preset definition; trigger rules only select the preset and graph target field when needed
 
+Size Reduction trigger behavior follows existing batch transform semantics:
+
+- the operation always writes MP3 output when it produces a new file
+- rule parameters include `size_reduction_mode`, `size_reduction_bitrate_kbps`, `size_reduction_sample_rate_hz`, and `size_reduction_channels`
+- if the renderer reports that the source is already compact, the trigger records a skipped result and marks the current field filename handled so unrelated text edits do not repeatedly retry the same compact source
+
 ## Error Handling And Feedback
 
 Expected skip cases should not be treated as crashes:
@@ -293,6 +332,7 @@ Expected skip cases should not be treated as crashes:
 - unresolved preset
 - stale completion
 - missing Graph target field
+- already-compact Size Reduction source
 
 Failures that happen during rendering, media writing, or note update should be logged through the existing diagnostics runtime with enough context to identify the rule, note id, action, and field names.
 
@@ -320,12 +360,14 @@ Adding trigger rules touches the schema-backed config path:
 
 - `addon/anki_audio_quick_editor/config.schema.json`
 - default `config.json`
-- config migration defaults
+- config migration defaults, starting from the current config version 2 baseline
 - `audio_processing_presets` config and contracts, because preset rules reference saved presets by ID
 - generated Python and TypeScript contracts
 - settings initial-state fixtures
 - Settings save sanitization
 - e2e default-config helpers
+
+The trigger schema must include the current Size Reduction parameter keys in `AudioOperationParameters`: `size_reduction_mode`, `size_reduction_bitrate_kbps`, `size_reduction_sample_rate_hz`, and `size_reduction_channels`.
 
 The Python backend remains authoritative for validation. Frontend validation should guide users before Save but must not be trusted as the only guard.
 
@@ -335,6 +377,7 @@ Unit tests:
 
 - config migration adds `audio_trigger_rules: []`
 - schema accepts valid transform and Graph rules
+- schema accepts valid Size Reduction rules
 - schema accepts valid preset rules
 - schema rejects invalid events, operations, missing source field, and missing Graph target field
 - schema rejects preset rules with missing preset IDs
@@ -346,6 +389,7 @@ Unit tests:
 - Graph trigger replaces target field instead of appending
 - preset trigger replaces source audio with final preset audio
 - preset trigger replaces terminal Graph target field instead of appending
+- Size Reduction trigger writes MP3 output and marks already-compact sources handled after a skipped result
 - transform trigger replaces the source field sound reference and preserves surrounding HTML
 - stale completion does not update a note after the source sound changed
 
@@ -371,6 +415,7 @@ E2E tests:
 - Quick repeated edits use latest-wins behavior.
 - Graph trigger replaces the configured target field.
 - Preset trigger runs the referenced preset and uses trigger Graph replacement semantics.
+- Size Reduction trigger uses the configured compression parameters and does not repeatedly retry already-compact audio on text-only edits.
 
 Full completion requires `python3 scripts/dev.py check` and `python3 scripts/dev.py test-e2e`.
 

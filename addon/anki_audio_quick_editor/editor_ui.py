@@ -30,6 +30,7 @@ def injection_script(
     pending_post_edit_playback: dict[str, object] | None = None,
     visible_editor_buttons: list[str] | None = None,
     editor_button_modes: dict[str, str] | None = None,
+    processing_presets: list[dict[str, object]] | None = None,
 ) -> str:
     """Return JavaScript that mounts compact controls next to audio fields."""
     i18n = active_context()
@@ -47,6 +48,7 @@ def injection_script(
         "showGraphByDefault": bool(show_graph_by_default),
         "visibleEditorButtons": visible_editor_buttons,
         "editorButtonModes": editor_button_modes,
+        "processingPresets": processing_presets or [],
         "splitButtonDefaults": split_button_defaults
         or {
             "volumeStepDb": 15.0,

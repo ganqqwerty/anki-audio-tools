@@ -24,6 +24,7 @@ export type EditorCommand =
   | "aqe:show-recording-file"
   | "aqe:show-file"
   | "aqe:share"
+  | "aqe:preset"
   | "aqe:convert"
   | "aqe:reduce-size"
   | "aqe:delete-selection"
@@ -62,6 +63,7 @@ function formatDenoiseAlgorithm(value: "standard" | "rnnoise" | "dpdfnet" | "voi
 }
 
 export interface EditorToolbarRuntimeConfig {
+  processingPresets?: readonly unknown[];
   splitButtonDefaults?: {
     dpdfnetAttnLimitDb?: number;
     outputFormat?: unknown;
@@ -72,6 +74,7 @@ export interface EditorToolbarRuntimeConfig {
 export function commandButtons(config: EditorToolbarRuntimeConfig = {}): readonly ToolbarButtonSpec[] {
   const outputFormat = outputFormatOrDefault(config.splitButtonDefaults?.outputFormat);
   const sizeReductionMode = sizeReductionModeOrDefault(config.splitButtonDefaults?.sizeReductionMode);
+  const includePresetButton = config.processingPresets === undefined || config.processingPresets.length > 0;
   return [
     {
       activeIcon: "pause",
@@ -103,6 +106,17 @@ export function commandButtons(config: EditorToolbarRuntimeConfig = {}): readonl
       label: t("editor.command.share.label"),
       title: t("editor.command.share.title"),
     },
+    ...(includePresetButton
+      ? [
+          {
+            command: "aqe:preset",
+            icon: "refresh-cw",
+            iconOnly: true,
+            label: t("editor.command.preset.label"),
+            title: t("editor.command.preset.title"),
+          } satisfies ToolbarButtonSpec,
+        ]
+      : []),
     denoiseTopLevelButton(),
     {
       command: "aqe:remove-pauses",

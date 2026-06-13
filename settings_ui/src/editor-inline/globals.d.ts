@@ -1,5 +1,6 @@
 import type { FrontendLogPayload, ProsodyPayload } from "../lib/generated/contracts.js";
 import type { UserFacingError } from "../lib/user-facing-error.js";
+import type { GraphSettings } from "./graph-settings.js";
 import type {
   CursorIntent,
   CursorPositionForTest,
@@ -44,6 +45,7 @@ declare global {
     __aqeLastCursorIntent?: CursorIntent | null;
     __aqeLastPlaybackRequest?: PlaybackRequest | null;
     __aqePendingGraphRedrawField?: number | null;
+    __aqePendingGraphRedrawPreserveLearnerOverlay?: boolean;
     __aqePendingGraphRedrawSource?: string | null;
     __aqePendingCommandPayload?: EditorCommandPayload | null;
     __aqePendingPlaybackRequest?: PlaybackRequest | null;
@@ -60,7 +62,12 @@ declare global {
     __aqePopPendingSourceMetadataRequest?: (() => SourceMetadataRequest | null) | undefined;
     __aqePopFrontendLog?: (() => FrontendLogPayload | null) | undefined;
     __aqePrepareForNewNote?: (() => void) | undefined;
-    __aqeResetGraphAfterEdit?: ((ord: number, sourceFilename?: string | null) => boolean) | undefined;
+    __aqeResetGraphAfterEdit?: ((
+      ord: number,
+      sourceFilename?: string | null,
+      graphSettingsOrPreserveLearnerOverlay?: GraphSettings | boolean | null,
+      preserveLearnerOverlay?: boolean,
+    ) => boolean) | undefined;
     __aqeScan?: (() => void) | undefined;
     __aqeSetBusy?: ((ord: number, busy: boolean, message?: string, command?: string) => void) | undefined;
     __aqeSetCursorByClientXForTest?: ((ord: number, clientX: number, notifyPython: boolean) => CursorPositionForTest | null) | undefined;

@@ -12,6 +12,7 @@
   import GraphVisualizer from "./GraphVisualizer.svelte";
   import HistorySplitButton from "./HistorySplitButton.svelte";
   import PlaySplitButton from "./PlaySplitButton.svelte";
+  import PresetSplitButton from "./PresetSplitButton.svelte";
   import SplitButton from "./SplitButton.svelte";
   import { historyAvailability } from "./actions.js";
   import type { InitialEditorStatus } from "./control-actions.js";
@@ -61,6 +62,7 @@
       "aqe:analyze",
       "aqe:record-voice",
       "aqe:share",
+      "aqe:preset",
       "aqe:convert",
       "aqe:reduce-size",
       "aqe:slower",
@@ -225,6 +227,12 @@
           button={item.button}
           displayMode={buttonDisplayMode(item.button.command, buttonModes)}
           disabledTitle={disabledTitle(item.button.command)}
+          {target}
+        />
+      {:else if item.button.command === "aqe:preset"}
+        <PresetSplitButton
+          button={item.button}
+          displayMode={buttonDisplayMode(item.button.command, buttonModes)}
           {target}
         />
       {:else if isSplitCommand(item.button.command)}

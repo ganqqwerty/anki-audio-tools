@@ -38,6 +38,7 @@ UI_CONTRACTS: dict[str, ModuleContract] = {
         "browser_integration",
         layer=Layer.UI_ADAPTER,
         allowed_addon_deps=(
+            "audio_processing_presets",
             "audio_state",
             "batch_operations",
             "browser_batch_runner",
@@ -57,6 +58,7 @@ UI_CONTRACTS: dict[str, ModuleContract] = {
         allowed_addon_deps=(
             "audio_state",
             "batch_operations",
+            "browser_result_application",
             "browser_report",
             "diagnostics_runtime",
             "error_codes",
@@ -71,11 +73,23 @@ UI_CONTRACTS: dict[str, ModuleContract] = {
         ),
         allow_any_anki_imports=True,
     ),
+    "browser_result_application": contract(
+        "browser_result_application",
+        layer=Layer.UI_ADAPTER,
+        allowed_addon_deps=(
+            "batch_operation_types",
+            "browser_report",
+            "diagnostics_runtime",
+            "error_codes",
+        ),
+        allowed_side_effects=(SideEffect.NOTE_UPDATE,),
+    ),
     "browser_dialog": contract(
         "browser_dialog",
         layer=Layer.UI_ADAPTER,
         allowed_addon_deps=(
             "audio_operations",
+            "audio_processing_presets",
             "batch_operations",
             "browser_dialog_state",
             "browser_report",
@@ -98,6 +112,7 @@ UI_CONTRACTS: dict[str, ModuleContract] = {
         allowed_addon_deps=(
             "audio_operation_params",
             "audio_operations",
+            "audio_processing_presets",
             "audio_state",
             "batch_operations",
             "browser_report",
@@ -183,6 +198,7 @@ UI_CONTRACTS: dict[str, ModuleContract] = {
         "settings.commands",
         layer=Layer.SETTINGS_BACKEND,
         allowed_addon_deps=(
+            "audio_processing_presets",
             "contracts_generated",
             "diagnostics_runtime",
             "editor_button_visibility",

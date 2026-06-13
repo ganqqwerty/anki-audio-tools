@@ -30,6 +30,7 @@ from .webview_bridge import (
 from .webview_shell import render_webview_content
 
 if TYPE_CHECKING:
+    from .audio_processing_presets import AudioProcessingPreset
     from .audio_state import AudioProcessingConfig
 
 logger = logging.getLogger(__name__)
@@ -49,12 +50,14 @@ class BatchOperationsDialog:
         groups: tuple[FieldGroup, ...],
         config: AudioProcessingConfig,
         run_batch_in_background: Callable[[Any, Any, list[int], BatchRunRequest], None],
+        processing_presets: tuple[AudioProcessingPreset, ...] = (),
     ) -> None:
         from aqt.qt import QDialog, QVBoxLayout
         from aqt.webview import AnkiWebView
 
         self.browser = browser
         self.note_ids = note_ids
+        self.processing_presets = processing_presets
         self._i18n = active_context()
         self._messages = dict(self._i18n["messages"])
         self.cancel_event = threading.Event()
@@ -74,7 +77,12 @@ class BatchOperationsDialog:
         self._webview.requiresCol = False
         self._webview.set_bridge_command(self._handle_bridge_command, self)
         body, head = _render_batch_content(
-            build_batch_initial_state(note_count=len(note_ids), groups=groups, config=config)
+            build_batch_initial_state(
+                note_count=len(note_ids),
+                groups=groups,
+                config=config,
+                processing_presets=processing_presets,
+            )
         )
         self._webview.stdHtml(body=body, head=head, context=self)
         layout.addWidget(self._webview)
@@ -172,7 +180,7 @@ class BatchOperationsDialog:
         if self._running:
             return True
         try:
-            request = request_from_batch_start_payload(command.payload)
+            request = request_from_batch_start_payload(command.payload, self.processing_presets)
         except (AssertionError, TypeError) as exc:
             message = self.tr("batch.failed", {"error": "Invalid batch request"})
             self.finish_with_error(

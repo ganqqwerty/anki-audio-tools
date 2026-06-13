@@ -40,6 +40,7 @@ def test_browser_integration_avoids_editor_actions_module() -> None:
     assert hits == []
     assert MODULE_CONTRACTS["browser_integration"].allowed_addon_deps == frozenset(
         {
+            "audio_processing_presets",
             "audio_state",
             "batch_operations",
             "browser_batch_runner",

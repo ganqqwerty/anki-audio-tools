@@ -40,21 +40,31 @@ export function clampMsToRegion(ms: number, region: Pick<PlaybackRegion, "startM
 }
 
 export function planPlaybackRequest(snapshot: PlaybackSnapshot): PlaybackRequest {
+  const fullCoverSelection = selectionCoversFullDuration(snapshot.region, snapshot.durationMs);
+  const pausedSelectedRepeatRestart = snapshot.playbackState === "paused"
+    && snapshot.repeat
+    && snapshot.region.mode === "selection"
+    && !fullCoverSelection;
   let action: PlaybackRequest["action"] = "start";
   if (snapshot.playbackState === "playing") action = "pause";
   if (snapshot.playbackState === "paused") {
-    action = snapshot.resumeRequiresRestart ? "start" : "resume";
+    action = snapshot.resumeRequiresRestart || pausedSelectedRepeatRestart ? "start" : "resume";
   }
 
   let cursorMs = progressOrFallback(null, snapshot.anchorMs, snapshot.cursorMs);
-  const pausedRestart = snapshot.playbackState === "paused" && snapshot.resumeRequiresRestart;
-  const fullCoverSelection = selectionCoversFullDuration(snapshot.region, snapshot.durationMs);
+  const pausedRestart = snapshot.playbackState === "paused"
+    && snapshot.resumeRequiresRestart
+    && !pausedSelectedRepeatRestart;
   if (action === "start" && snapshot.region.mode === "selection") {
-    cursorMs = pausedRestart
-      ? clampMsToRegion(progressOrFallback(snapshot.currentProgressMs, snapshot.cursorMs, cursorMs), snapshot.region)
-      : fullCoverSelection
-        ? clampMsToRegion(progressOrFallback(null, snapshot.anchorMs, snapshot.region.startMs), snapshot.region)
-        : snapshot.region.startMs;
+    if (pausedSelectedRepeatRestart) {
+      cursorMs = snapshot.region.startMs;
+    } else {
+      cursorMs = pausedRestart
+        ? clampMsToRegion(progressOrFallback(snapshot.currentProgressMs, snapshot.cursorMs, cursorMs), snapshot.region)
+        : fullCoverSelection
+          ? clampMsToRegion(progressOrFallback(null, snapshot.anchorMs, snapshot.region.startMs), snapshot.region)
+          : snapshot.region.startMs;
+    }
   }
   if (action === "pause") {
     cursorMs = progressOrFallback(snapshot.currentProgressMs, snapshot.cursorMs, cursorMs);

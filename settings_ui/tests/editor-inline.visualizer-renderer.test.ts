@@ -229,6 +229,54 @@ describe("editor inline visualizer renderer", () => {
     expect(learnerPath).toContain("L 610.00 63.20");
   });
 
+  it("preserves learner pitch when a replacement graph keeps the target duration", () => {
+    const visualizer = mountVisualizer(voicedTrack);
+    const learnerTrack: NormalizedProsodyTrack = {
+      ...voicedTrack,
+      points: [
+        [0, 150, 0.2, true],
+        [500, 210, 0.7, true],
+        [1000, 240, 0.5, true],
+      ],
+      sourceFilename: "learner.wav",
+    };
+
+    renderVisualizerTrack(visualizer, voicedTrack);
+    renderLearnerVisualizerTrack(visualizer, learnerTrack);
+
+    expect(visualizer.querySelectorAll(".aqe-learner-pitch-path")).toHaveLength(1);
+
+    renderVisualizerTrack(
+      visualizer,
+      { ...voicedTrack, sourceFilename: "cleaned.mp3" },
+      { preserveLearnerOverlay: true },
+    );
+
+    expect(visualizer.__aqeLearnerTrack).toEqual(learnerTrack);
+    expect(visualizer.dataset.learnerDurationMs).toBe("1000");
+    expect(visualizer.querySelectorAll(".aqe-learner-pitch-path")).toHaveLength(1);
+  });
+
+  it("drops preserved learner pitch when a replacement graph changes duration", () => {
+    const visualizer = mountVisualizer(voicedTrack);
+    const learnerTrack: NormalizedProsodyTrack = {
+      ...voicedTrack,
+      sourceFilename: "learner.wav",
+    };
+
+    renderVisualizerTrack(visualizer, voicedTrack);
+    renderLearnerVisualizerTrack(visualizer, learnerTrack);
+    renderVisualizerTrack(
+      visualizer,
+      { ...voicedTrack, durationMs: 1400, sourceFilename: "trimmed.mp3" },
+      { preserveLearnerOverlay: true },
+    );
+
+    expect(visualizer.__aqeLearnerTrack).toBeUndefined();
+    expect(visualizer.dataset.learnerDurationMs).toBe("0");
+    expect(visualizer.querySelectorAll(".aqe-learner-pitch-path")).toHaveLength(0);
+  });
+
   it("resets new graph tracks to canonical rendered-pixel scale", () => {
     const shortTrack: NormalizedProsodyTrack = {
       ...voicedTrack,
@@ -250,6 +298,7 @@ describe("editor inline visualizer renderer", () => {
     expect(pitchPath).toContain("L 170.00 63.20");
     expect(pitchPath).not.toContain("L 610.00");
   });
+
 
   it("syncs the plot clip and x-axis to the rendered SVG width", () => {
     const visualizer = mountVisualizer(voicedTrack);

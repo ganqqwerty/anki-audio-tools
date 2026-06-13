@@ -10,6 +10,7 @@ from anki_audio_quick_editor.audio_state import AudioEditState, AudioProcessingC
 from anki_audio_quick_editor.editor_callbacks import _handle_bridge_command
 from anki_audio_quick_editor.editor_runtime import SESSIONS
 from anki_audio_quick_editor.editor_session import EditorSession, PendingEditorStatus
+from anki_audio_quick_editor.editor_special_transforms import replace_current_field_after_noise_removal
 
 
 def test_standard_denoise_replaces_current_media_and_resets_state(tmp_path: Path, monkeypatch) -> None:
@@ -95,6 +96,50 @@ def test_standard_denoise_replaces_current_media_and_resets_state(tmp_path: Path
     assert session.pending_post_edit_playback_field_index == 0
     assert session.pending_post_edit_playback_generation == session.post_edit_playback_generation
     assert session.pending_post_edit_playback_source_filename == saved_name
+
+
+def test_special_transform_graph_redraw_preserves_learner_overlay(tmp_path: Path) -> None:
+    class Editor:
+        pass
+
+    media_dir = tmp_path / "media"
+    media_dir.mkdir()
+    (media_dir / "clip.mp3").write_bytes(b"source")
+    (media_dir / "cleaned.mp3").write_bytes(b"cleaned")
+
+    editor = Editor()
+    editor.currentField = 0
+    editor.note = SimpleNamespace(fields=["[sound:clip.mp3]"])
+    editor.loadNote = MagicMock()
+    editor.mw = SimpleNamespace(col=SimpleNamespace(media=SimpleNamespace(dir=MagicMock(return_value=str(media_dir)))))
+
+    session = EditorSession(
+        state=AudioEditState("clip.mp3", volume_db=3.0),
+        field_index=0,
+        current_filename="clip.mp3",
+    )
+    session.graph_active_fields.add(0)
+
+    deps = SimpleNamespace(
+        current_field_audio_missing="missing",
+        dispose_editor_frontend_controls=MagicMock(),
+        eval_history_availability=MagicMock(),
+        eval_playback_state=MagicMock(),
+        request_graph_redraw=MagicMock(),
+        request_history_availability_after_edit=MagicMock(),
+        request_playback_after_edit=MagicMock(),
+        sessions={editor: session},
+        set_busy=MagicMock(),
+    )
+
+    replace_current_field_after_noise_removal(editor, "cleaned.mp3", deps)
+
+    deps.request_graph_redraw.assert_called_once_with(
+        editor,
+        "cleaned.mp3",
+        preserve_learner_overlay=True,
+    )
+
 
 def test_rnnoise_replaces_current_media_and_resets_state(tmp_path: Path, monkeypatch) -> None:
     class ImmediateThread:
