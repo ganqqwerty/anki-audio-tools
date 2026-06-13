@@ -1,9 +1,11 @@
 import type { EditorFieldState } from "./field-state.js";
-import { visualizerForOrd } from "./dom-selectors.js";
+import { controlsForOrd, visualizerForOrd } from "./dom-selectors.js";
 
 export function syncFieldStateToDom(ord: number, state: EditorFieldState): void {
   const visualizer = visualizerForOrd(ord);
   if (!visualizer) return;
+  const controls = controlsForOrd(ord);
+  if (controls) controls.dataset.aqeSourceFilename = state.sourceFilename;
 
   visualizer.dataset.graphActive = String(state.graph.active);
   visualizer.dataset.graphBusy = String(state.graph.busy);

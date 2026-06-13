@@ -195,6 +195,49 @@ describe("editor inline post-edit playback integration", () => {
     expect(bridgeCommands()).toContain("aqe:command-payload");
   });
 
+  it("keeps post-edit playback deferred while learner pitch is preserved during graph redraw", async () => {
+    initializeEditorRuntime({
+      audioFieldIndices: [0],
+      pendingPostEditPlayback: {
+        fieldOrd: 0,
+        generation: 7,
+        requireGraphRedraw: true,
+        sourceFilename: "updated.mp3",
+      },
+    });
+    scan(window.__AQE_EDITOR_CONFIG__!);
+    window.__aqeSetVisualizer?.(0, track, 0);
+    window.__aqeSetLearnerVisualizer?.(0, {
+      ...track,
+      sourceFilename: "learner.wav",
+    });
+
+    expect(window.__aqeResetGraphAfterEdit?.(0, "updated.mp3", true)).toBe(false);
+
+    document.getElementById("f0")!.innerHTML = "[sound:updated.mp3]";
+    scan({
+      ...window.__AQE_EDITOR_CONFIG__!,
+      audioFieldSources: { 0: "updated.mp3" },
+    });
+    await Promise.resolve();
+
+    expect(window.__aqeGraphStateForTest?.(0)?.learnerPitchPaths).toBeGreaterThan(0);
+    expect(consumePendingCommandPayload()).toBeNull();
+    expect(bridgeCommands()).not.toContain("aqe:command-payload");
+
+    window.__aqeSetVisualizer?.(0, { ...track, sourceFilename: "updated.mp3" }, 0);
+    await Promise.resolve();
+
+    expect(consumePendingCommandPayload()).toEqual({
+      command: "aqe:post-edit-playback-ready",
+      fieldOrd: 0,
+      generation: 7,
+      sourceFilename: "updated.mp3",
+    });
+    expect(window.__aqeGraphStateForTest?.(0)?.learnerPitchPaths).toBeGreaterThan(0);
+    expect(bridgeCommands()).toContain("aqe:command-payload");
+  });
+
   it("does not require a new redraw when the matching post-edit graph is already rendered", async () => {
     initializeEditorRuntime({
       audioFieldIndices: [0],

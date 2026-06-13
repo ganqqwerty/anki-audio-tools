@@ -57,14 +57,19 @@ import { initialFieldState } from "./field-state.js";
 
 type EditorStatusMessage = string | UserFacingError;
 
+interface GraphRequestOptions {
+  preserveLearnerOverlay?: boolean;
+}
+
 export function requestGraph(
   ord: number,
   notifyPython: boolean,
   graphSettings?: GraphSettings,
   sourceOverride?: string,
+  options: GraphRequestOptions = {},
 ): void {
   const visualizer = visualizerForOrd(ord);
-  if (!visualizer || !prepareGraphRequest(ord)) return;
+  if (!visualizer || !prepareGraphRequest(ord, options)) return;
   window.__aqeActiveField = ord;
   logger.info("graph requested", { notifyPython, ord });
   if (notifyPython) {
@@ -96,12 +101,15 @@ export function requestDefaultGraph(target: DefaultGraphTarget): void {
   });
 }
 
-function prepareGraphRequest(ord: number): boolean {
+function prepareGraphRequest(ord: number, options: GraphRequestOptions = {}): boolean {
   const visualizer = visualizerForOrd(ord);
   if (!visualizer) return false;
   stopProgressClock(visualizer, { clearAudio: true });
-  resetLearnerRecordingState(ord);
-  renderGraphRequested(visualizer);
+  resetLearnerRecordingState(
+    ord,
+    options.preserveLearnerOverlay === true ? { clearOverlay: false } : {},
+  );
+  renderGraphRequested(visualizer, { preserveLearnerOverlay: options.preserveLearnerOverlay === true });
   clearSelection(visualizer, { origin: "system" });
   setCursor(visualizer, 0, false);
   setCommandButtonLabel(ord, "aqe:analyze", "Redraw");
@@ -109,9 +117,14 @@ function prepareGraphRequest(ord: number): boolean {
   return true;
 }
 
-export function resetGraphAfterEdit(ord: number, sourceFilename?: string | null): boolean {
+export function resetGraphAfterEdit(
+  ord: number,
+  sourceFilename?: string | null,
+  preserveLearnerOverlay = false,
+): boolean {
   window.__aqePendingGraphRedrawField = ord;
   window.__aqePendingGraphRedrawSource = sourceFilename || null;
+  window.__aqePendingGraphRedrawPreserveLearnerOverlay = preserveLearnerOverlay === true;
   return requestPendingGraphRedraw();
 }
 
@@ -119,6 +132,7 @@ export function requestPendingGraphRedraw(): boolean {
   const ord = window.__aqePendingGraphRedrawField;
   if (typeof ord !== "number") return false;
   const expectedSource = window.__aqePendingGraphRedrawSource || "";
+  const preserveLearnerOverlay = window.__aqePendingGraphRedrawPreserveLearnerOverlay === true;
   const currentSource = currentAudioSourceForOrd(ord) || audioFieldSource(editorRuntimeConfig(), ord) || "";
   if (expectedSource && currentSource !== expectedSource) return false;
   const visualizer = visualizerForOrd(ord);
@@ -126,7 +140,7 @@ export function requestPendingGraphRedraw(): boolean {
   const s = readFieldState(ord);
   if (s.graph.busy) return true;
   if (s.graph.hasTrack && (!expectedSource || s.sourceFilename === expectedSource)) return true;
-  requestGraph(ord, true, undefined, expectedSource || undefined);
+  requestGraph(ord, true, undefined, expectedSource || undefined, { preserveLearnerOverlay });
   return true;
 }
 
@@ -145,14 +159,16 @@ export function setVisualizer(ord: number, rawTrack: ProsodyPayload, cursorMs: n
   const visualizer = visualizerForOrd(ord);
   if (!visualizer || !rawTrack) return;
   const track = normalizeTrack(rawTrack);
-  renderVisualizerTrack(visualizer, track);
+  const pendingRedraw = pendingGraphRedrawMatches(ord, track.sourceFilename || "");
+  renderVisualizerTrack(visualizer, track, {
+    preserveLearnerOverlay: pendingRedraw && window.__aqePendingGraphRedrawPreserveLearnerOverlay === true,
+  });
   updateFieldState(ord, (state) => ({
     ...state,
     cursor: { ...state.cursor, anchorMs: 0 },
   }));
-  if (pendingGraphRedrawMatches(ord, track.sourceFilename || "")) {
-    window.__aqePendingGraphRedrawField = null;
-    window.__aqePendingGraphRedrawSource = null;
+  if (pendingRedraw) {
+    clearPendingGraphRedraw();
   }
   setSelection(visualizer, 0, track.durationMs || 0, { origin: "system", updateCursor: false });
   configureAudioClock(visualizer, track.sourceFilename || "");
@@ -176,8 +192,7 @@ export function setVisualizer(ord: number, rawTrack: ProsodyPayload, cursorMs: n
 
 export function setVisualizerStatusFromPython(ord: number, message: EditorStatusMessage, kind = "info"): void {
   if (kind !== "processing" && window.__aqePendingGraphRedrawField === ord) {
-    window.__aqePendingGraphRedrawField = null;
-    window.__aqePendingGraphRedrawSource = null;
+    clearPendingGraphRedraw();
   }
   const visualizer = visualizerForOrd(ord);
   if (visualizer) {
@@ -257,4 +272,10 @@ export function prepareForNewNote(): void {
     const spinner = controls.querySelector<HTMLElement>(".aqe-spinner");
     if (spinner) spinner.hidden = true;
   });
+}
+
+function clearPendingGraphRedraw(): void {
+  window.__aqePendingGraphRedrawField = null;
+  window.__aqePendingGraphRedrawSource = null;
+  window.__aqePendingGraphRedrawPreserveLearnerOverlay = false;
 }

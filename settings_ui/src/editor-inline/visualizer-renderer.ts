@@ -18,6 +18,7 @@ import {
 import { msVisibleInViewport } from "./time-viewport.js";
 import type { NormalizedProsodyTrack, VisualizerElement } from "./types.js";
 import { renderSelection } from "./visualizer-selection-renderer.js";
+import { learnerTrackForReplacement, type LearnerOverlayOptions } from "./visualizer-learner-overlay.js";
 import {
   readVisualizerDurationMs,
   readVisualizerSelectionState,
@@ -39,26 +40,37 @@ const CURSOR_FLAG_HALF_WIDTH = CURSOR_FLAG_WIDTH / 2;
 const CURSOR_FLAG_BOX_HEIGHT = 20;
 const PLAYBACK_TEXT_PAINT_INTERVAL_MS = 100;
 
-export function renderGraphRequested(visualizer: VisualizerElement): void {
+export function renderGraphRequested(visualizer: VisualizerElement, options: LearnerOverlayOptions = {}): void {
   visualizer.hidden = false;
   const ord = fieldOrd(visualizer);
+  const preserveLearnerOverlay = options.preserveLearnerOverlay === true && visualizer.__aqeLearnerTrack !== undefined;
+  if (preserveLearnerOverlay) {
+    visualizer.dataset.pendingLearnerOverlayTargetDurationMs = String(readVisualizerTargetDurationMs(visualizer));
+  } else {
+    delete visualizer.dataset.pendingLearnerOverlayTargetDurationMs;
+  }
   writeFieldState(ord, graphRequested(readFieldState(ord)));
   visualizer.dataset.targetDurationMs = "0";
-  visualizer.dataset.learnerDurationMs = "0";
+  if (!preserveLearnerOverlay) visualizer.dataset.learnerDurationMs = "0";
   visualizer.dataset.learnerRecordingStatus = "idle";
   visualizer.dataset.playbackResetCursorMs = "0";
   visualizer.dataset.playbackLoop = "false";
   resetVisualizerTimeViewport(visualizer, 0);
   delete visualizer.__aqeCursorPaintedAtMs;
   delete visualizer.__aqeCursorTextPaintedAtMs;
-  delete visualizer.__aqeLearnerTrack;
+  if (!preserveLearnerOverlay) delete visualizer.__aqeLearnerTrack;
   delete visualizer.__aqeTrack;
-  resetVisualizerPlot(visualizer);
+  resetVisualizerPlot(visualizer, { clearLearnerOverlay: !preserveLearnerOverlay });
 }
 
-export function renderVisualizerTrack(visualizer: VisualizerElement, track: NormalizedProsodyTrack): void {
+export function renderVisualizerTrack(
+  visualizer: VisualizerElement,
+  track: NormalizedProsodyTrack,
+  options: LearnerOverlayOptions = {},
+): void {
   visualizer.hidden = false;
   const ord = fieldOrd(visualizer);
+  const preservedLearnerTrack = learnerTrackForReplacement(visualizer, track, options);
   writeFieldState(ord, {
     ...readFieldState(ord),
     graph: {
@@ -71,8 +83,14 @@ export function renderVisualizerTrack(visualizer: VisualizerElement, track: Norm
     sourceFilename: track.sourceFilename || "",
   });
   visualizer.dataset.targetDurationMs = String(track.durationMs || 0);
-  visualizer.dataset.learnerDurationMs = "0";
-  delete visualizer.__aqeLearnerTrack;
+  delete visualizer.dataset.pendingLearnerOverlayTargetDurationMs;
+  if (preservedLearnerTrack) {
+    visualizer.__aqeLearnerTrack = preservedLearnerTrack;
+    visualizer.dataset.learnerDurationMs = String(preservedLearnerTrack.durationMs || 0);
+  } else {
+    visualizer.dataset.learnerDurationMs = "0";
+    delete visualizer.__aqeLearnerTrack;
+  }
   visualizer.__aqeTrack = track;
   const plot = syncVisualizerViewBox(visualizer);
   resetVisualizerTimeViewport(visualizer, track.durationMs || 0, plotWidth(plot));
@@ -167,10 +185,13 @@ function renderCursorProjection(
   }
 }
 
-export function resetVisualizerPlot(visualizer: VisualizerElement): void {
+export function resetVisualizerPlot(
+  visualizer: VisualizerElement,
+  options: { clearLearnerOverlay?: boolean } = {},
+): void {
   visualizer.querySelector<SVGPathElement>(".aqe-intensity")?.setAttribute("d", "");
   clearText(visualizer, ".aqe-pitch");
-  clearLearnerVisualizerTrack(visualizer);
+  if (options.clearLearnerOverlay !== false) clearLearnerVisualizerTrack(visualizer);
   clearText(visualizer, ".aqe-labels");
   clearText(visualizer, ".aqe-x-axis");
 }

@@ -79,8 +79,18 @@ def _eval_history_snapshot(editor: Any, field_index: int | None, snapshot: dict[
     editor_frontend.eval_history_snapshot(editor, field_index, snapshot)
 
 
-def _request_graph_redraw(editor: Any, expected_filename: str | None = None) -> None:
-    editor_frontend.request_graph_redraw(editor, _frontend_deps(), expected_filename)
+def _request_graph_redraw(
+    editor: Any,
+    expected_filename: str | None = None,
+    *,
+    preserve_learner_overlay: bool = False,
+) -> None:
+    editor_frontend.request_graph_redraw(
+        editor,
+        _frontend_deps(),
+        expected_filename,
+        preserve_learner_overlay=preserve_learner_overlay,
+    )
 
 
 def _request_playback_after_edit(
@@ -138,6 +148,7 @@ def _schedule_graph_redraw_attempt(
     field_index: int,
     *,
     expected_filename: str | None = None,
+    preserve_learner_overlay: bool = False,
     remaining: int,
     delay_ms: int,
 ) -> None:
@@ -145,6 +156,7 @@ def _schedule_graph_redraw_attempt(
         editor,
         field_index,
         expected_filename=expected_filename,
+        preserve_learner_overlay=preserve_learner_overlay,
         remaining=remaining,
         delay_ms=delay_ms,
         deps=_frontend_deps(),
@@ -189,8 +201,17 @@ def _schedule_history_snapshot_attempt(
     )
 
 
-def _graph_redraw_expression(field_index: int, expected_filename: str | None = None) -> str:
-    return editor_frontend.graph_redraw_expression(field_index, expected_filename)
+def _graph_redraw_expression(
+    field_index: int,
+    expected_filename: str | None = None,
+    *,
+    preserve_learner_overlay: bool = False,
+) -> str:
+    return editor_frontend.graph_redraw_expression(
+        field_index,
+        expected_filename,
+        preserve_learner_overlay=preserve_learner_overlay,
+    )
 
 
 def _playback_after_edit_expression(field_index: int) -> str:
@@ -209,6 +230,7 @@ def _retry_graph_redraw(
     editor: Any,
     field_index: int,
     expected_filename: str | None,
+    preserve_learner_overlay: bool,
     started: bool,
     remaining: int,
 ) -> None:
@@ -216,6 +238,7 @@ def _retry_graph_redraw(
         editor,
         field_index,
         expected_filename,
+        preserve_learner_overlay,
         started,
         remaining,
         _frontend_deps(),

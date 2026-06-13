@@ -6,6 +6,7 @@ import { PLOT, xForMs } from "../src/editor-inline/plot.js";
 import { applyVisualizerTimeViewport } from "../src/editor-inline/viewport-actions.js";
 import { readVisualizerTimeViewport } from "../src/editor-inline/visualizer-state.js";
 import {
+  renderLearnerVisualizerTrack,
   renderCursor,
   renderVisualizerTrack,
   renderPlaybackCursor,
@@ -170,6 +171,54 @@ describe("editor inline visualizer renderer", () => {
 
     expect(fullPath).toContain("L 170.00 80.80");
     expect(zoomedPath).toContain("L 610.00 80.80");
+  });
+
+  it("preserves learner pitch when a replacement graph keeps the target duration", () => {
+    const visualizer = mountVisualizer(voicedTrack);
+    const learnerTrack: NormalizedProsodyTrack = {
+      ...voicedTrack,
+      points: [
+        [0, 150, 0.2, true],
+        [500, 210, 0.7, true],
+        [1000, 240, 0.5, true],
+      ],
+      sourceFilename: "learner.wav",
+    };
+
+    renderVisualizerTrack(visualizer, voicedTrack);
+    renderLearnerVisualizerTrack(visualizer, learnerTrack);
+
+    expect(visualizer.querySelectorAll(".aqe-learner-pitch-path")).toHaveLength(1);
+
+    renderVisualizerTrack(
+      visualizer,
+      { ...voicedTrack, sourceFilename: "cleaned.mp3" },
+      { preserveLearnerOverlay: true },
+    );
+
+    expect(visualizer.__aqeLearnerTrack).toEqual(learnerTrack);
+    expect(visualizer.dataset.learnerDurationMs).toBe("1000");
+    expect(visualizer.querySelectorAll(".aqe-learner-pitch-path")).toHaveLength(1);
+  });
+
+  it("drops preserved learner pitch when a replacement graph changes duration", () => {
+    const visualizer = mountVisualizer(voicedTrack);
+    const learnerTrack: NormalizedProsodyTrack = {
+      ...voicedTrack,
+      sourceFilename: "learner.wav",
+    };
+
+    renderVisualizerTrack(visualizer, voicedTrack);
+    renderLearnerVisualizerTrack(visualizer, learnerTrack);
+    renderVisualizerTrack(
+      visualizer,
+      { ...voicedTrack, durationMs: 1400, sourceFilename: "trimmed.mp3" },
+      { preserveLearnerOverlay: true },
+    );
+
+    expect(visualizer.__aqeLearnerTrack).toBeUndefined();
+    expect(visualizer.dataset.learnerDurationMs).toBe("0");
+    expect(visualizer.querySelectorAll(".aqe-learner-pitch-path")).toHaveLength(0);
   });
 
   it("resets new graph tracks to canonical rendered-pixel scale", () => {
