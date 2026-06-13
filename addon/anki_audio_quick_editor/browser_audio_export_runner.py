@@ -9,6 +9,7 @@ import threading
 import zipfile
 from collections.abc import Callable, Sequence
 from pathlib import Path
+from typing import Any
 
 from .audio_export_planning import collect_audio_export_items, make_zip_entry_name
 from .audio_export_rendering import (
@@ -32,10 +33,54 @@ from .audio_external import (
 )
 from .audio_processor import find_ffmpeg
 from .batch_operations import BatchNoteSnapshot
+from .error_codes import AQE_BATCH_INVALID_REQUEST, coded_error
 from .i18n import active_context, format_message
 
 LogCallback = Callable[[str], None]
 ProgressCallback = Callable[[int, int, str, int], None]
+
+
+def run_audio_export_in_background(
+    browser: Any,
+    dialog: Any,
+    snapshots: Sequence[BatchNoteSnapshot],
+    request: AudioExportRequest,
+) -> None:
+    """Schedule a Browser audio export in Anki's background task manager."""
+    mw = getattr(browser, "mw", browser)
+    media_dir = Path(mw.col.media.dir())
+
+    def on_log(line: str) -> None:
+        mw.taskman.run_on_main(lambda value=line: dialog.append_log(value))
+
+    def on_progress(processed: int, total: int, current_audio: str, failures: int) -> None:
+        mw.taskman.run_on_main(
+            lambda: dialog.update_progress(processed, total, current_audio, failures)
+        )
+
+    def task() -> AudioExportReport:
+        return run_audio_export(
+            snapshots,
+            request=request,
+            media_dir=media_dir,
+            cancel_event=dialog.cancel_event,
+            on_log=on_log,
+            on_progress=on_progress,
+        )
+
+    def done(future: Any) -> None:
+        try:
+            report = future.result()
+        except Exception as exc:
+            message = _tr("audio_export.failed", {"error": exc})
+            dialog.finish_with_error(
+                message,
+                user_error=coded_error(AQE_BATCH_INVALID_REQUEST, message),
+            )
+            return
+        dialog.finish_with_report(report)
+
+    mw.taskman.run_in_background(task, done, uses_collection=True)
 
 
 def run_audio_export(
@@ -271,3 +316,7 @@ def _remove_temp_file(path: Path) -> None:
         path.unlink()
     except FileNotFoundError:
         pass
+
+
+def _tr(key: str, values: dict[str, object] | None = None) -> str:
+    return format_message(dict(active_context()["messages"]), key, values)

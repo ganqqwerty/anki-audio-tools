@@ -3,6 +3,8 @@ from __future__ import annotations
 import threading
 import zipfile
 from pathlib import Path
+from types import SimpleNamespace
+from unittest.mock import MagicMock
 
 import pytest
 
@@ -13,10 +15,14 @@ from anki_audio_quick_editor.audio_export_planning import (
 from anki_audio_quick_editor.audio_export_types import (
     AudioExportFieldSelection,
     AudioExportItem,
+    AudioExportReport,
     AudioExportRequest,
 )
 from anki_audio_quick_editor.batch_operations import BatchNoteSnapshot
-from anki_audio_quick_editor.browser_audio_export_runner import run_audio_export
+from anki_audio_quick_editor.browser_audio_export_runner import (
+    run_audio_export,
+    run_audio_export_in_background,
+)
 from anki_audio_quick_editor.errors import AudioProcessingError
 
 
@@ -222,6 +228,62 @@ def test_run_audio_export_combined_mp3_rejects_non_mp3_destination_before_render
 
     assert commands == []
     assert not output.exists()
+
+
+def test_run_audio_export_in_background_routes_callbacks_and_finishes(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    report = AudioExportReport(total=1, processed=1, exported=1)
+    snapshots = (BatchNoteSnapshot(10, "Basic", {"Front": "[sound:a.mp3]"}),)
+    request = AudioExportRequest(
+        mode="zip",
+        destination_path=tmp_path / "out.zip",
+        field_selections=(AudioExportFieldSelection("Basic", ("Front",)),),
+    )
+    calls: list[object] = []
+
+    class Taskman:
+        def run_on_main(self, callback) -> None:
+            callback()
+
+        def run_in_background(self, task, done, *, uses_collection: bool) -> None:
+            calls.append(("uses_collection", uses_collection))
+            calls.append(("task_result", task()))
+            done(SimpleNamespace(result=lambda: report))
+
+    media_dir = tmp_path / "media"
+    browser = SimpleNamespace(
+        mw=SimpleNamespace(
+            col=SimpleNamespace(media=SimpleNamespace(dir=lambda: str(media_dir))),
+            taskman=Taskman(),
+        )
+    )
+    dialog = SimpleNamespace(
+        cancel_event=threading.Event(),
+        append_log=MagicMock(),
+        update_progress=MagicMock(),
+        finish_with_report=MagicMock(),
+        finish_with_error=MagicMock(),
+    )
+
+    def fake_run(snapshots_arg, **kwargs):
+        assert snapshots_arg == snapshots
+        assert kwargs["request"] == request
+        assert kwargs["media_dir"] == media_dir
+        kwargs["on_log"]("line")
+        kwargs["on_progress"](1, 1, "a.mp3", 0)
+        return report
+
+    monkeypatch.setattr("anki_audio_quick_editor.browser_audio_export_runner.run_audio_export", fake_run)
+
+    run_audio_export_in_background(browser, dialog, snapshots, request)
+
+    assert calls == [("uses_collection", True), ("task_result", report)]
+    dialog.append_log.assert_called_once_with("line")
+    dialog.update_progress.assert_called_once_with(1, 1, "a.mp3", 0)
+    dialog.finish_with_report.assert_called_once_with(report)
+    dialog.finish_with_error.assert_not_called()
 
 
 def report_plan_items_for_names(media_dir: Path) -> tuple[AudioExportItem, ...]:

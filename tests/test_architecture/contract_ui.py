@@ -40,6 +40,7 @@ UI_CONTRACTS: dict[str, ModuleContract] = {
         allowed_addon_deps=(
             "audio_state",
             "batch_operations",
+            "browser_audio_export_dialog",
             "browser_batch_runner",
             "browser_dialog",
             "diagnostics_runtime",
@@ -81,12 +82,34 @@ UI_CONTRACTS: dict[str, ModuleContract] = {
             "audio_external",
             "audio_processor",
             "batch_operations",
+            "error_codes",
             "i18n",
         ),
         allowed_side_effects=(
+            SideEffect.BACKGROUND_TASK_DISPATCH,
             SideEffect.SUBPROCESS_RUN,
             SideEffect.TEMP_FILESYSTEM_CLEANUP,
         ),
+    ),
+    "browser_audio_export_dialog": contract(
+        "browser_audio_export_dialog",
+        layer=Layer.UI_ADAPTER,
+        allowed_addon_deps=(
+            "batch_operations",
+            "browser_audio_export_runner",
+            "browser_audio_export_state",
+            "error_codes",
+            "external_links",
+            "frontend_logs",
+            "i18n",
+            "webview_bridge",
+            "webview_shell",
+        ),
+        allowed_side_effects=(
+            SideEffect.ANKI_IMPORTS_ANYWHERE,
+            SideEffect.WEB_EVAL,
+        ),
+        allow_any_anki_imports=True,
     ),
     "browser_dialog": contract(
         "browser_dialog",
