@@ -425,8 +425,9 @@ def test_editor_graph_zoom_playback_follow_and_completion_restore_cursor(
             click_selector(editor.web, _button_selector("aqe:play"), timeout=5.0)
             followed = _wait_for_html_playback(
                 editor,
-                lambda state: state["progressMs"] >= 1900
-                and state["viewportStartMs"] > 1000,
+                lambda state: 1900 <= state["progressMs"] <= 2500
+                and state["viewportStartMs"] > 1000
+                and (state["progressMs"] - state["viewportStartMs"]) >= 750,
                 timeout=5.0,
             )
             _force_audio_boundary(editor)
@@ -446,6 +447,7 @@ def test_editor_graph_zoom_playback_follow_and_completion_restore_cursor(
 
         assert playback.attempts == []
         assert followed["playButtonLabel"] == "Pause"
+        assert followed["progressMs"] - followed["viewportStartMs"] >= 750
         assert finished["playButtonLabel"] == "Play"
     finally:
         editor.set_note(None)
