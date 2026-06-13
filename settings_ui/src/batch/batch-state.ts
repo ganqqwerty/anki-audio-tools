@@ -4,6 +4,7 @@ import {
   BatchParameterName,
   BatchPauseAggressiveness,
   BatchPauseDetectionAlgorithm,
+  BatchSurface,
   DenoiseAlgorithm,
   Direction,
   OutputFormat,
@@ -59,6 +60,7 @@ export interface BatchFormState {
 }
 
 export const FALLBACK_BATCH_INITIAL_STATE: BatchInitialState = {
+  surface: BatchSurface.Operations,
   note_count: 0,
   operations: [
     {

@@ -22,7 +22,14 @@
     "batchProgressPayload": { "$ref": "#/definitions/BatchProgressPayload" },
     "batchLogPayload": { "$ref": "#/definitions/BatchLogPayload" },
     "batchFinishPayload": { "$ref": "#/definitions/BatchFinishPayload" },
-    "batchErrorPayload": { "$ref": "#/definitions/BatchErrorPayload" }
+    "batchErrorPayload": { "$ref": "#/definitions/BatchErrorPayload" },
+    "audioExportInitialState": { "$ref": "#/definitions/AudioExportInitialState" },
+    "audioExportStartRequest": { "$ref": "#/definitions/AudioExportStartRequest" },
+    "audioExportDestinationRequest": { "$ref": "#/definitions/AudioExportDestinationRequest" },
+    "audioExportDestinationPayload": { "$ref": "#/definitions/AudioExportDestinationPayload" },
+    "audioExportProgressPayload": { "$ref": "#/definitions/AudioExportProgressPayload" },
+    "audioExportFinishPayload": { "$ref": "#/definitions/AudioExportFinishPayload" },
+    "audioExportErrorPayload": { "$ref": "#/definitions/BatchErrorPayload" }
   },
   "definitions": {
     "Config": {
@@ -278,6 +285,30 @@
     "SizeReductionMode": {
       "enum": ["gentle", "normal", "aggressive"]
     },
+    "BatchSurface": {
+      "enum": ["operations", "audio_export"]
+    },
+    "AudioExportMode": {
+      "enum": ["zip", "combined_mp3"]
+    },
+    "AudioExportFieldSelection": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["notetype_name", "fields"],
+      "properties": {
+        "notetype_name": { "type": "string" },
+        "fields": { "type": "array", "items": { "type": "string" } }
+      }
+    },
+    "AudioExportDefaults": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["mode", "silence_between_clips_seconds"],
+      "properties": {
+        "mode": { "$ref": "#/definitions/AudioExportMode" },
+        "silence_between_clips_seconds": { "type": "number", "minimum": 0, "maximum": 10 }
+      }
+    },
     "BatchDpdfnetAttnLimitDB": {
       "enum": [6.0, 12.0, 18.0]
     },
@@ -378,8 +409,9 @@
     "BatchInitialState": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["note_count", "operations", "field_groups", "defaults", "locale", "direction", "messages"],
+      "required": ["surface", "note_count", "operations", "field_groups", "defaults", "locale", "direction", "messages"],
       "properties": {
+        "surface": { "$ref": "#/definitions/BatchSurface" },
         "note_count": { "type": "integer" },
         "operations": { "type": "array", "items": { "$ref": "#/definitions/BatchOperationOption" } },
         "field_groups": { "type": "array", "items": { "$ref": "#/definitions/BatchFieldGroup" } },
@@ -390,6 +422,107 @@
           "type": "object",
           "additionalProperties": { "type": "string" }
         }
+      }
+    },
+    "AudioExportInitialState": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "surface",
+        "note_count",
+        "field_groups",
+        "default_field_selections",
+        "defaults",
+        "locale",
+        "direction",
+        "messages"
+      ],
+      "properties": {
+        "surface": { "enum": ["audio_export"] },
+        "note_count": { "type": "integer" },
+        "field_groups": { "type": "array", "items": { "$ref": "#/definitions/BatchFieldGroup" } },
+        "default_field_selections": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/AudioExportFieldSelection" }
+        },
+        "defaults": { "$ref": "#/definitions/AudioExportDefaults" },
+        "locale": { "type": "string" },
+        "direction": { "enum": ["ltr", "rtl"] },
+        "messages": {
+          "type": "object",
+          "additionalProperties": { "type": "string" }
+        }
+      }
+    },
+    "AudioExportDestinationRequest": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["mode"],
+      "properties": {
+        "mode": { "$ref": "#/definitions/AudioExportMode" }
+      }
+    },
+    "AudioExportDestinationPayload": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["destination_path"],
+      "properties": {
+        "destination_path": { "type": "string" }
+      }
+    },
+    "AudioExportStartRequest": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "mode",
+        "destination_path",
+        "field_selections",
+        "silence_between_clips_seconds"
+      ],
+      "properties": {
+        "mode": { "$ref": "#/definitions/AudioExportMode" },
+        "destination_path": { "type": "string" },
+        "field_selections": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/AudioExportFieldSelection" }
+        },
+        "silence_between_clips_seconds": { "type": "number", "minimum": 0, "maximum": 10 }
+      }
+    },
+    "AudioExportProgressPayload": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["processed", "total", "current_audio", "failures", "message"],
+      "properties": {
+        "processed": { "type": "integer" },
+        "total": { "type": "integer" },
+        "current_audio": { "type": "string" },
+        "failures": { "type": "integer" },
+        "message": { "type": "string" }
+      }
+    },
+    "AudioExportFinishPayload": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "processed",
+        "total",
+        "exported",
+        "skipped",
+        "failures",
+        "canceled",
+        "output_path",
+        "summary"
+      ],
+      "properties": {
+        "processed": { "type": "integer" },
+        "total": { "type": "integer" },
+        "exported": { "type": "integer" },
+        "skipped": { "type": "integer" },
+        "failures": { "type": "integer" },
+        "canceled": { "type": "boolean" },
+        "output_path": { "type": "string" },
+        "summary": { "type": "string" }
       }
     },
     "BatchStartRequest": {

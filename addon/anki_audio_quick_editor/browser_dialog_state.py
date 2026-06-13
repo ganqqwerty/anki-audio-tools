@@ -38,6 +38,7 @@ def build_batch_initial_state(
     i18n = active_context()
     messages = dict(i18n["messages"])
     return {
+        "surface": "operations",
         "note_count": note_count,
         "operations": [_operation_option(operation, messages) for operation in BATCH_OPERATIONS],
         "field_groups": [

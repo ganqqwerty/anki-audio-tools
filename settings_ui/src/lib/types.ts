@@ -1,6 +1,13 @@
 export type {
   AsyncDonePayload,
   AsyncProgressPayload,
+  AudioExportDestinationPayload,
+  AudioExportDestinationRequest,
+  AudioExportFieldSelection,
+  AudioExportFinishPayload,
+  AudioExportInitialState,
+  AudioExportProgressPayload,
+  AudioExportStartRequest,
   BatchErrorPayload,
   BatchFieldGroup,
   BatchFinishPayload,
@@ -24,11 +31,13 @@ export type {
   SupportReportResult,
 } from "./generated/contracts.js";
 export {
+  AudioExportMode,
   BatchOperationName,
   BatchParameterKind,
   BatchParameterName,
   BatchPauseAggressiveness,
   BatchPauseDetectionAlgorithm,
+  BatchSurface,
   BatchPauseAggressiveness as PauseAggressiveness,
   BatchPauseDetectionAlgorithm as PauseDetectionAlgorithm,
   DenoiseAlgorithm,
