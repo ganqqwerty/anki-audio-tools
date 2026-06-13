@@ -30,7 +30,7 @@ from e2e.helpers import (
 )
 
 
-def test_selected_repeat_loops_pauses_resumes_and_can_finish_current_pass(
+def test_selected_repeat_loops_pauses_restarts_and_can_finish_current_pass(
     anki_mw,
     ffmpeg_config,
 ) -> None:
@@ -67,9 +67,10 @@ def test_selected_repeat_loops_pauses_resumes_and_can_finish_current_pass(
             )
             frozen = _state(editor)
             click_selector(editor.web, _button_selector("aqe:play"), timeout=5.0)
-            resumed = _wait_for_html_playback(
+            restarted = _wait_for_html_playback(
                 editor,
-                lambda state: 500 <= state["progressMs"] <= 1300,
+                lambda state: state["playbackStartMs"] == 500
+                and 500 <= state["progressMs"] <= 1300,
             )
             _set_repeat(editor, False)
             _force_audio_boundary(editor)
@@ -85,14 +86,14 @@ def test_selected_repeat_loops_pauses_resumes_and_can_finish_current_pass(
         assert len(looped) == 3
         assert looped[-1]["playButtonLabel"] == "Pause"
         assert abs(frozen["progressMs"] - paused_progress) < PLAYBACK_INTERVAL_TOLERANCE_MS * 2
-        assert 500 <= resumed["progressMs"] <= 1300
+        assert restarted["playbackStartMs"] == 500
         assert finished["playbackEndMs"] == 1300
     finally:
         editor.set_note(None)
         parent.close()
 
 
-def test_selected_repeat_restarts_from_repositioned_paused_cursor(
+def test_selected_repeat_restarts_from_segment_start_after_repositioned_paused_cursor(
     anki_mw,
     ffmpeg_config,
 ) -> None:
@@ -139,7 +140,7 @@ def test_selected_repeat_restarts_from_repositioned_paused_cursor(
                     state["resumeRequiresRestart"] is True,
                 )),
             )
-            expected_restart_ms = repositioned["cursorMs"]
+            expected_restart_ms = repositioned["selectionStartMs"]
 
             click_selector(editor.web, _button_selector("aqe:play"), timeout=5.0)
             restarted = _wait_for_html_playback(

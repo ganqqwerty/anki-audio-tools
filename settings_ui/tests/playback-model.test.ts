@@ -76,7 +76,7 @@ describe("playback model", () => {
     });
   });
 
-  it("resumes paused playback from current progress", () => {
+  it("resumes paused non-repeat playback from current progress", () => {
     expect(planPlaybackRequest({
       ...baseSnapshot,
       currentProgressMs: 500,
@@ -85,6 +85,23 @@ describe("playback model", () => {
     })).toMatchObject({
       action: "resume",
       cursorMs: 500,
+      regionMode: "selection",
+    });
+  });
+
+  it("restarts paused selected repeat playback from the selection start", () => {
+    expect(planPlaybackRequest({
+      ...baseSnapshot,
+      currentProgressMs: 650,
+      cursorMs: 650,
+      playbackState: "paused",
+      region: { startMs: 400, endMs: 800, mode: "selection" },
+      repeat: true,
+    })).toMatchObject({
+      action: "start",
+      cursorMs: 400,
+      endMs: 800,
+      loop: true,
       regionMode: "selection",
     });
   });
@@ -102,6 +119,93 @@ describe("playback model", () => {
       cursorMs: 800,
       endMs: 800,
       regionMode: "selection",
+    });
+  });
+
+  it("ignores a repositioned paused cursor when restarting selected repeat playback", () => {
+    expect(planPlaybackRequest({
+      ...baseSnapshot,
+      anchorMs: 650,
+      currentProgressMs: 650,
+      cursorMs: 650,
+      playbackState: "paused",
+      region: { startMs: 400, endMs: 800, mode: "selection" },
+      repeat: true,
+      resumeRequiresRestart: true,
+    })).toMatchObject({
+      action: "start",
+      cursorMs: 400,
+      endMs: 800,
+      loop: true,
+      regionMode: "selection",
+    });
+  });
+
+  it("restarts paused selected repeat from the selection start when progress is past the segment", () => {
+    expect(planPlaybackRequest({
+      ...baseSnapshot,
+      currentProgressMs: 900,
+      cursorMs: 650,
+      playbackState: "paused",
+      region: { startMs: 400, endMs: 800, mode: "selection" },
+      repeat: true,
+    })).toMatchObject({
+      action: "start",
+      cursorMs: 400,
+      endMs: 800,
+      loop: true,
+      regionMode: "selection",
+    });
+  });
+
+  it("rounds selected repeat restart boundaries from fractional segment times", () => {
+    expect(planPlaybackRequest({
+      ...baseSnapshot,
+      currentProgressMs: 650.4,
+      cursorMs: 650.4,
+      playbackState: "paused",
+      region: { startMs: 400.6, endMs: 800.4, mode: "selection" },
+      repeat: true,
+    })).toMatchObject({
+      action: "start",
+      cursorMs: 401,
+      endMs: 800,
+      loop: true,
+      regionMode: "selection",
+    });
+  });
+
+  it("keeps full-cover selected repeat resume cursor semantics", () => {
+    expect(planPlaybackRequest({
+      ...baseSnapshot,
+      currentProgressMs: 650,
+      cursorMs: 650,
+      playbackState: "paused",
+      region: { startMs: 0, endMs: 1000, mode: "selection" },
+      repeat: true,
+    })).toMatchObject({
+      action: "resume",
+      cursorMs: 650,
+      endMs: 1000,
+      loop: true,
+      regionMode: "full",
+    });
+  });
+
+  it("preserves playback engine when restarting paused selected repeat", () => {
+    expect(planPlaybackRequest({
+      ...baseSnapshot,
+      currentProgressMs: 650,
+      cursorMs: 650,
+      engine: "native",
+      playbackState: "paused",
+      region: { startMs: 400, endMs: 800, mode: "selection" },
+      repeat: true,
+    })).toMatchObject({
+      action: "start",
+      cursorMs: 400,
+      engine: "native",
+      loop: true,
     });
   });
 
