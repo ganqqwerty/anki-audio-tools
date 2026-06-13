@@ -29,10 +29,13 @@ import {
   type SizeReductionMode as SizeReductionModeValue,
 } from "$lib/size-reduction-parameters.js";
 import type {
+  AudioExportInitialState,
   BatchInitialState,
   BatchOperationOption,
   BatchStartRequest,
 } from "$lib/types.js";
+
+export type BatchBundleInitialState = BatchInitialState | AudioExportInitialState;
 
 export interface BatchFormState {
   operation: BatchOperationName;
@@ -154,7 +157,7 @@ export const FALLBACK_BATCH_INITIAL_STATE: BatchInitialState = {
   messages: {},
 };
 
-export function initialBatchState(): BatchInitialState {
+export function initialBatchState(): BatchBundleInitialState {
   return window.__AQE_BATCH_INITIAL_STATE__ ?? FALLBACK_BATCH_INITIAL_STATE;
 }
 
@@ -296,6 +299,6 @@ export function activeBatchPauseParams(form: BatchFormState): {
 
 declare global {
   interface Window {
-    __AQE_BATCH_INITIAL_STATE__?: BatchInitialState;
+    __AQE_BATCH_INITIAL_STATE__?: BatchBundleInitialState;
   }
 }
