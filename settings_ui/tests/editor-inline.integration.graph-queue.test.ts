@@ -149,6 +149,78 @@ describe("editor inline graph queue integration", () => {
     expect(bridgeCommands().filter((command) => command === "aqe:analyze-field")).toHaveLength(1);
   });
 
+  it("preserves learner pitch through same-duration post-edit graph redraws", () => {
+    initializeEditorRuntime({ audioFieldIndices: [0] });
+    scan({ audioFieldIndices: [0] });
+    window.__aqeSetVisualizer?.(0, track, 0);
+    window.__aqeSetLearnerVisualizer?.(0, {
+      ...track,
+      sourceFilename: "learner.wav",
+    });
+
+    expect(window.__aqeGraphStateForTest?.(0)?.learnerPitchPaths).toBeGreaterThan(0);
+    expect(window.__aqeResetGraphAfterEdit?.(0, "updated.mp3", true)).toBe(false);
+
+    document.getElementById("f0")!.innerHTML = "[sound:updated.mp3]";
+    scan({ audioFieldIndices: [0] });
+
+    expect(window.__aqeGraphStateForTest?.(0)).toMatchObject({
+      busy: true,
+      hidden: false,
+    });
+    expect(window.__aqeGraphStateForTest?.(0)?.learnerPitchPaths).toBeGreaterThan(0);
+
+    window.__aqeSetVisualizer?.(0, { ...track, sourceFilename: "updated.mp3" }, 0);
+
+    expect(window.__aqeGraphStateForTest?.(0)?.learnerPitchPaths).toBeGreaterThan(0);
+  });
+
+  it("drops learner pitch when a preserved post-edit graph redraw changes duration", () => {
+    initializeEditorRuntime({ audioFieldIndices: [0] });
+    scan({ audioFieldIndices: [0] });
+    window.__aqeSetVisualizer?.(0, track, 0);
+    window.__aqeSetLearnerVisualizer?.(0, {
+      ...track,
+      sourceFilename: "learner.wav",
+    });
+
+    expect(window.__aqeResetGraphAfterEdit?.(0, "updated.mp3", true)).toBe(false);
+
+    document.getElementById("f0")!.innerHTML = "[sound:updated.mp3]";
+    scan({ audioFieldIndices: [0] });
+
+    expect(window.__aqeGraphStateForTest?.(0)?.learnerPitchPaths).toBeGreaterThan(0);
+
+    window.__aqeSetVisualizer?.(
+      0,
+      { ...track, durationMs: 1400, sourceFilename: "updated.mp3" },
+      0,
+    );
+
+    expect(window.__aqeGraphStateForTest?.(0)?.learnerPitchPaths).toBe(0);
+  });
+
+  it("clears learner pitch for manual graph redraws", () => {
+    initializeEditorRuntime({ audioFieldIndices: [0] });
+    scan({ audioFieldIndices: [0] });
+    window.__aqeSetVisualizer?.(0, track, 0);
+    window.__aqeSetLearnerVisualizer?.(0, {
+      ...track,
+      sourceFilename: "learner.wav",
+    });
+
+    expect(window.__aqeGraphStateForTest?.(0)?.learnerPitchPaths).toBeGreaterThan(0);
+
+    document.querySelector<HTMLButtonElement>('[data-testid="aqe-button-0-graph"]')!.click();
+
+    expect(window.__aqeGraphStateForTest?.(0)).toMatchObject({
+      busy: true,
+      hidden: false,
+      learnerPitchPaths: 0,
+    });
+    expect(bridgeCommands().filter((command) => command === "aqe:analyze-field")).toHaveLength(1);
+  });
+
   it("auto-queues default graphs for all mounted audio fields", async () => {
     renderTwoAudioFields();
     initializeEditorRuntime({ audioFieldIndices: [0, 1], showGraphByDefault: true });
