@@ -118,57 +118,46 @@ def wait_for_selector(target, selector: str, timeout: float = DEFAULT_E2E_TIMEOU
 
 
 def click_selector(target, selector: str, timeout: float = DEFAULT_E2E_TIMEOUT) -> None:
-    """Wait for a selector, then dispatch exactly one click in the webview."""
-    wait_for_js_condition(
-        target,
-        f"""
-        (() => {{
-          const node = document.querySelector({json.dumps(selector)});
-          if (!node) return false;
-          if (node.disabled === true || node.getAttribute("aria-disabled") === "true") return false;
-          return true;
-        }})()
-        """,
-        lambda value: value is True,
-        timeout=timeout,
-    )
-
+    deadline = time.time() + timeout
     clicked: list[bool | None] = [None]
 
     def _capture(value):
         clicked[0] = value is True
 
-    run_js(
-        target,
-        f"""
-        (() => {{
-          const node = document.querySelector({json.dumps(selector)});
-          if (!node) return false;
-          if (node.disabled === true || node.getAttribute("aria-disabled") === "true") return false;
-          const rect = node.getBoundingClientRect();
-          const clientX = rect.left + Math.min(rect.width / 2, Math.max(rect.width - 1, 1));
-          const clientY = rect.top + Math.min(rect.height / 2, Math.max(rect.height - 1, 1));
-          const base = {{ bubbles: true, button: 0, buttons: 1, clientX, clientY, composed: true }};
-          if (typeof PointerEvent === "function") {{
-            node.dispatchEvent(new PointerEvent("pointerdown", {{ ...base, pointerId: 1, pointerType: "mouse" }}));
-          }}
-          node.dispatchEvent(new MouseEvent("mousedown", base));
-          if (typeof PointerEvent === "function") {{
-            node.dispatchEvent(new PointerEvent("pointerup", {{ ...base, buttons: 0, pointerId: 1, pointerType: "mouse" }}));
-          }}
-          node.dispatchEvent(new MouseEvent("mouseup", {{ ...base, buttons: 0 }}));
-          node.dispatchEvent(new MouseEvent("click", {{ ...base, buttons: 0, detail: 1 }}));
-          return true;
-        }})()
-        """,
-        _capture,
-    )
-    deadline = time.time() + timeout
-    while clicked[0] is None and time.time() < deadline:
+    while time.time() < deadline:
+        clicked[0] = None
+        run_js(
+            target,
+            f"""
+            (() => {{
+              const node = document.querySelector({json.dumps(selector)});
+              if (!node) return false;
+              if (node.disabled === true || node.getAttribute("aria-disabled") === "true") return false;
+              const rect = node.getBoundingClientRect();
+              const clientX = rect.left + Math.min(rect.width / 2, Math.max(rect.width - 1, 1));
+              const clientY = rect.top + Math.min(rect.height / 2, Math.max(rect.height - 1, 1));
+              const base = {{ bubbles: true, button: 0, buttons: 1, clientX, clientY, composed: true }};
+              if (typeof PointerEvent === "function") {{
+                node.dispatchEvent(new PointerEvent("pointerdown", {{ ...base, pointerId: 1, pointerType: "mouse" }}));
+              }}
+              node.dispatchEvent(new MouseEvent("mousedown", base));
+              if (typeof PointerEvent === "function") {{
+                node.dispatchEvent(new PointerEvent("pointerup", {{ ...base, buttons: 0, pointerId: 1, pointerType: "mouse" }}));
+              }}
+              node.dispatchEvent(new MouseEvent("mouseup", {{ ...base, buttons: 0 }}));
+              node.dispatchEvent(new MouseEvent("click", {{ ...base, buttons: 0, detail: 1 }}));
+              return true;
+            }})()
+            """,
+            _capture,
+        )
+        while clicked[0] is None and time.time() < deadline:
+            _run_event_loop_step()
+        if clicked[0] is True:
+            _run_event_loop_step()
+            return
         _run_event_loop_step()
-    if clicked[0] is not True:
-        raise TimeoutError(f"Timed out clicking selector: {selector}")
-    _run_event_loop_step()
+    raise TimeoutError(f"Timed out clicking selector: {selector}")
 
 
 def generate_tone(ffmpeg_config, path: Path, duration_s: float) -> None:
