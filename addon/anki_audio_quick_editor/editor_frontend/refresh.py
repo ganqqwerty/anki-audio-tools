@@ -49,6 +49,8 @@ def request_graph_redraw(
     deps: Any,
     expected_filename: str | None = None,
     graph_settings: dict[str, object] | None = None,
+    *,
+    preserve_learner_overlay: bool = False,
 ) -> None:
     """Schedule graph redraw attempts after field contents are reloaded."""
     field_index = getattr(editor, "currentField", None)
@@ -62,6 +64,7 @@ def request_graph_redraw(
         int(field_index or 0),
         expected_filename=expected_filename,
         graph_settings=graph_settings,
+        preserve_learner_overlay=preserve_learner_overlay,
         remaining=12,
         delay_ms=150,
     )
@@ -107,6 +110,7 @@ def schedule_graph_redraw_attempt(
     *,
     expected_filename: str | None = None,
     graph_settings: dict[str, object] | None = None,
+    preserve_learner_overlay: bool = False,
     remaining: int,
     delay_ms: int,
     deps: Any,
@@ -120,12 +124,18 @@ def schedule_graph_redraw_attempt(
         try:
             deps.eval_with_callback(
                 editor,
-                deps.graph_redraw_expression(field_index, expected_filename, graph_settings),
+                deps.graph_redraw_expression(
+                    field_index,
+                    expected_filename,
+                    graph_settings,
+                    preserve_learner_overlay=preserve_learner_overlay,
+                ),
                 lambda started: deps.retry_graph_redraw(
                     editor,
                     field_index,
                     expected_filename,
                     graph_settings,
+                    preserve_learner_overlay,
                     bool(started),
                     remaining - 1,
                 ),
@@ -208,6 +218,8 @@ def graph_redraw_expression(
     field_index: int,
     expected_filename: str | None = None,
     graph_settings: dict[str, object] | None = None,
+    *,
+    preserve_learner_overlay: bool = False,
 ) -> str:
     """Return the frontend expression that restarts graph rendering."""
     return (
@@ -217,7 +229,8 @@ def graph_redraw_expression(
         "return window.__aqeResetGraphAfterEdit("
         f"{json.dumps(int(field_index))}, "
         f"{json.dumps(expected_filename)}, "
-        f"{json.dumps(graph_settings)}"
+        f"{json.dumps(graph_settings)}, "
+        f"{json.dumps(bool(preserve_learner_overlay))}"
         ");"
         "})()"
     )
@@ -264,6 +277,7 @@ def retry_graph_redraw(
     field_index: int,
     expected_filename: str | None,
     graph_settings: dict[str, object] | None,
+    preserve_learner_overlay: bool,
     started: bool,
     remaining: int,
     deps: Any,
@@ -276,6 +290,7 @@ def retry_graph_redraw(
         field_index,
         expected_filename=expected_filename,
         graph_settings=graph_settings,
+        preserve_learner_overlay=preserve_learner_overlay,
         remaining=remaining,
         delay_ms=100,
     )
