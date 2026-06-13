@@ -22,9 +22,9 @@
 </script>
 
 <div class="export-grid" data-testid="audio-export-controls">
-  <label class="export-control">
-    <span>{t("batch.operation")}</span>
-    <div class="export-choice-group" role="radiogroup" aria-label={t("batch.operation")}>
+  <fieldset class="export-control export-mode">
+    <legend>{t("batch.operation")}</legend>
+    <div class="export-choice-group">
       {#each modeOptions as option}
         <label class="export-choice">
           <input
@@ -37,22 +37,24 @@
         </label>
       {/each}
     </div>
-  </label>
+  </fieldset>
 
-  <label class="export-control export-destination">
-    <span>{t("audio_export.destination")}</span>
+  <div class="export-control export-destination">
+    <label class="destination-label" for="audio-export-destination-input">
+      {t("audio_export.destination")}
+    </label>
     <div class="destination-row">
       <input
+        id="audio-export-destination-input"
         readonly
         data-testid="audio-export-destination"
         value={form.destinationPath}
-        aria-label={t("audio_export.destination")}
       />
       <button type="button" disabled={disabled} onclick={onChooseDestination}>
         {t("audio_export.choose_destination")}
       </button>
     </div>
-  </label>
+  </div>
 
   {#if form.mode === AudioExportMode.CombinedMp3}
     <label class="export-control">
@@ -114,10 +116,17 @@
   }
 
   span,
-  legend {
+  legend,
+  .destination-label {
     color: var(--fg-subtle, currentColor);
     font-size: 11px;
     font-weight: 700;
+  }
+
+  .export-mode {
+    border: 0;
+    margin: 0;
+    padding: 0;
   }
 
   .export-choice-group,

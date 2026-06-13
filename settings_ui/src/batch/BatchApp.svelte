@@ -70,7 +70,7 @@
   );
   let frontendRuntimeError = $state<ErrorDisplayValue>("");
   let processed = $state(0);
-  let total = $state(batchState.note_count);
+  let total = $state(isAudioExportSurface ? 0 : batchState.note_count);
   let failures = $state(0);
   let logLines = $state<string[]>([]);
 
@@ -145,7 +145,7 @@
     running = true;
     finished = false;
     processed = 0;
-    total = batchState.note_count;
+    total = isAudioExportSurface ? 0 : batchState.note_count;
     failures = 0;
     logLines = [];
     if (isAudioExportSurface) {

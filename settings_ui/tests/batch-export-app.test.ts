@@ -60,12 +60,14 @@ describe("BatchApp audio export surface", () => {
   });
 
   it("renders export controls for the audio export surface", () => {
-    render(BatchApp);
+    const { container } = render(BatchApp);
 
     expect(screen.getByRole("heading", { name: "Export Audio" })).toBeInTheDocument();
     expect(screen.getByTestId("audio-export-controls")).toBeInTheDocument();
     expect(screen.getByLabelText("Destination")).toBeInTheDocument();
     expect(screen.queryByTestId("batch-operation")).not.toBeInTheDocument();
+    expect(container.querySelector("label label")).toBeNull();
+    expect(container.querySelector("label button")).toBeNull();
   });
 
   it("sends choose-destination with the current mode", async () => {
@@ -97,6 +99,8 @@ describe("BatchApp audio export surface", () => {
     window.onAudioExportDestination?.({ destination_path: "/tmp/cards.zip" });
     await fireEvent.click(screen.getByTestId("batch-start"));
 
+    expect(screen.getByText("0/0")).toBeInTheDocument();
+    expect(screen.getByText("Exported 0/0 audio files. Current audio: No audio. Failures: 0.")).toBeInTheDocument();
     expect(bridgeEnvelope("audio-export.start")).toEqual({
       command: "audio-export.start",
       payload: {
