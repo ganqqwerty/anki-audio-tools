@@ -109,6 +109,39 @@
       bind:value={config.voice_recording_countdown_seconds}
     />
   </label>
+{:else if command === "aqe:chorusing-practice"}
+  <label class="settings-field">
+    <span>{t("settings.chorusing_pause_seconds")}</span>
+    <UnitNumberInput
+      inputClass="settings-input"
+      testId="chorusing-pause-seconds"
+      min="0"
+      max="10"
+      step="0.1"
+      unit="s"
+      bind:value={config.chorusing_pause_seconds}
+    />
+  </label>
+  <label class="settings-toggle">
+    <input
+      data-testid="chorusing-auto-advance-by-default"
+      type="checkbox"
+      bind:checked={config.chorusing_auto_advance_by_default}
+    />
+    <span class="settings-label-text">{t("settings.chorusing_auto_advance_by_default")}</span>
+  </label>
+  <label class="settings-field">
+    <span>{t("settings.chorusing_auto_advance_repeats")}</span>
+    <UnitNumberInput
+      inputClass="settings-input"
+      testId="chorusing-auto-advance-repeats"
+      min="1"
+      max="20"
+      step="1"
+      unit="x"
+      bind:value={config.chorusing_auto_advance_repeats}
+    />
+  </label>
 {:else if command === "aqe:share"}
   <label class="settings-field">
     <span>{t("settings.share_target")}</span>
