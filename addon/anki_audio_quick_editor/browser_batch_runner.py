@@ -58,7 +58,7 @@ def run_batch_in_background(
 
     def on_progress(processed: int, total: int, current_audio: str, failures: int) -> None:
         mw.taskman.run_on_main(
-            lambda: dialog.update_progress(processed, total, current_audio, failures)
+            lambda p=processed, t=total, a=current_audio, f=failures: dialog.update_progress(p, t, a, f)
         )
 
     def task() -> BatchRunReport:

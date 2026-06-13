@@ -34,8 +34,8 @@ export function graphParametersFromConfig(config: Config): AudioProcessingPreset
     graph_smoothness: config.graph_smoothness,
     graph_connect_short_dropouts_ms: config.graph_connect_short_dropouts_ms,
     graph_voice_lock: config.graph_voice_lock,
-      };
-    }
+  };
+}
 
 export function parametersForOperation(
   operation: Operation,
@@ -97,20 +97,38 @@ export function applyPauseAggressiveness(
   step.parameters.pause_preprocess_denoise = preset.preprocessDenoise;
 }
 
-export function validatePresets(presets: AudioProcessingPreset[]): string[] {
-  const messages: string[] = [];
+export interface PresetValidationMessage {
+  presetIndex: number;
+  presetName: string;
+  message: string;
+}
+
+export function validatePresets(presets: AudioProcessingPreset[]): PresetValidationMessage[] {
+  const messages: PresetValidationMessage[] = [];
   const names = new Map<string, number>();
-  for (const preset of presets) {
+  presets.forEach((preset, index) => {
     const name = preset.name.trim();
-    if (!name) messages.push(t("settings.presets.validation.empty_name"));
+    if (!name) messages.push({
+      presetIndex: index,
+      presetName: preset.name || "?",
+      message: t("settings.presets.validation.empty_name"),
+    });
     if (preset.steps.length === 0 && !preset.graph.enabled) {
-      messages.push(t("settings.presets.validation.empty_preset", { name: name || "?" }));
+      messages.push({
+        presetIndex: index,
+        presetName: name || "?",
+        message: t("settings.presets.validation.empty_preset", { name: name || "?" }),
+      });
     }
     const key = name.toLowerCase();
     if (key) names.set(key, (names.get(key) ?? 0) + 1);
-  }
+  });
   for (const [name, count] of names) {
-    if (count > 1) messages.push(t("settings.presets.validation.duplicate_name", { name }));
+    if (count > 1) messages.push({
+      presetIndex: -1,
+      presetName: name,
+      message: t("settings.presets.validation.duplicate_name", { name }),
+    });
   }
   return messages;
 }

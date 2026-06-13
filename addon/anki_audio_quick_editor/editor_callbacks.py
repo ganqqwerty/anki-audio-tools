@@ -67,6 +67,14 @@ def _exports() -> SimpleNamespace:
 
 
 def _deps(builder: Callable[[Any, Any], SimpleNamespace]) -> SimpleNamespace:
+    """Build a dependency namespace for the given builder.
+
+    Passes the same ``_exports()`` namespace to both ``callbacks`` and
+    ``frontend_callbacks`` parameters.  The builders use separate parameter
+    names for readability and to document which side of the concern boundary
+    each dependency serves, but the underlying namespace is shared because
+    ``_exports()`` collects all ``_``-prefixed module-level callables.
+    """
     exports = _exports()
     return builder(exports, exports)
 

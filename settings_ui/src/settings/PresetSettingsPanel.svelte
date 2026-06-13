@@ -122,8 +122,8 @@
 
     {#if validationMessages.length > 0}
       <div class="settings-error" data-testid="preset-validation">
-        {#each validationMessages as message}
-          <p>{message}</p>
+        {#each validationMessages as msg}
+          <p>{msg.message}</p>
         {/each}
       </div>
     {/if}

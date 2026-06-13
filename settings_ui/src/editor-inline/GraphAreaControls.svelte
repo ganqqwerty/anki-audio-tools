@@ -40,6 +40,7 @@
   let graphConnectShortDropoutsMs = $state(240);
   let graphVoiceRange = $state<GraphVoiceRange>("general");
   let busy = $state(false);
+  let syncPending = false;
 
   const normalizedVisibleCommands = $derived(new Set(
     normalizeVisibleEditorButtons(toolbarButtons(), visibleCommands),
@@ -69,6 +70,15 @@
       || controls?.dataset.busy === "true"
       || fieldState.graph.busy;
     syncFromState(getSplitButtonState(target.ord));
+  }
+
+  function scheduleSyncFromDom(): void {
+    if (syncPending) return;
+    syncPending = true;
+    queueMicrotask(() => {
+      syncPending = false;
+      syncFromDom();
+    });
   }
 
   function graphIsReadyForRedraw(): boolean {
@@ -108,9 +118,9 @@
   onMount(() => {
     const visualizer = visualizerForOrd(target.ord);
     const controls = controlsForOrd(target.ord);
-    const visualizerObserver = new MutationObserver(syncFromDom);
-    const controlsObserver = new MutationObserver(syncFromDom);
-    const bodyObserver = new MutationObserver(syncFromDom);
+    const visualizerObserver = new MutationObserver(scheduleSyncFromDom);
+    const controlsObserver = new MutationObserver(scheduleSyncFromDom);
+    const bodyObserver = new MutationObserver(scheduleSyncFromDom);
     const handleGraphSplitStateChanged = (event: Event): void => {
       const detail = (event as CustomEvent<GraphSplitStateChangedDetail>).detail;
       if (detail?.ord !== target.ord) return;
