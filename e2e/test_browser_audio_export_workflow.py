@@ -128,4 +128,6 @@ def _run_export_dialog(
         )
         return dialog
     finally:
+        if dialog._running:
+            dialog.cancel_event.set()
         dialog._dialog.close()
