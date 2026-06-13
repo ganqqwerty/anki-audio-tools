@@ -19,6 +19,7 @@
     GRAPH_VOICE_RANGES,
   } from "$lib/graph-option-copy.js";
   import { t } from "$lib/i18n.js";
+  import UnitNumberInput from "$lib/UnitNumberInput.svelte";
   import {
     GraphRecordingCondition,
     GraphSmoothness,
@@ -112,13 +113,13 @@
       <span class="settings-label-text">{t("settings.graph_connect_short_dropouts_ms")}</span>
     </span>
     <span class="settings-field-note">{graphConnectDropoutsNote()}</span>
-    <input
-      class="settings-input"
-      data-testid="graph-connect-short-dropouts-ms"
-      type="number"
+    <UnitNumberInput
+      inputClass="settings-input"
+      testId="graph-connect-short-dropouts-ms"
       min="0"
       max="500"
       step="30"
+      unit="ms"
       bind:value={config.graph_connect_short_dropouts_ms}
     />
   </div>

@@ -5,7 +5,6 @@ from __future__ import annotations
 import json
 from dataclasses import dataclass
 from typing import Any
-from urllib.parse import urlparse
 
 from .audio_operation_params import (
     AudioOperationParameters,
@@ -15,6 +14,7 @@ from .audio_operation_params import (
 from .audio_operations import (
     OP_CONVERT,
     OP_FASTER,
+    OP_REDUCE_SIZE,
     OP_REMOVE_PAUSES,
     OP_SLOWER,
     OP_VOLUME_DOWN,
@@ -22,6 +22,7 @@ from .audio_operations import (
     apply_audio_operation,
 )
 from .audio_state import AudioEditState, AudioProcessingConfig
+from .external_links import trusted_external_url_or_none
 
 CMD_SLOWER = "aqe:slower"
 CMD_FASTER = "aqe:faster"
@@ -29,6 +30,7 @@ CMD_VOLUME_DOWN = "aqe:volume-down"
 CMD_VOLUME_UP = "aqe:volume-up"
 CMD_REMOVE_PAUSES = "aqe:remove-pauses"
 CMD_CONVERT = "aqe:convert"
+CMD_REDUCE_SIZE = "aqe:reduce-size"
 CMD_DENOISE_STANDARD = "aqe:denoise-standard"
 CMD_RNNOISE = "aqe:rnnoise"
 CMD_DPDFNET = "aqe:dpdfnet"
@@ -39,20 +41,22 @@ CMD_DELETE_REST = "aqe:delete-rest"
 CMD_ANALYZE_FIELD = "aqe:analyze-field"
 CMD_COMMAND_PAYLOAD = "aqe:command-payload"
 CMD_SAVE_SPLIT_DEFAULTS = "aqe:save-split-defaults"
+CMD_SOURCE_METADATA = "aqe:source-metadata"
 CMD_STOP_PLAYBACK = "aqe:stop-playback"
 CMD_SETTINGS = "aqe:settings"
 CMD_REDO = "aqe:redo"
 CMD_SHARE = "aqe:share"
 CMD_PRESET = "aqe:preset"
+CMD_SHARE_RECORDING = "aqe:share-recording"
 CMD_OPEN_URL = "aqe:open-url"
 CMD_RECORD_VOICE = "aqe:record-voice"
 CMD_STOP_RECORDING = "aqe:stop-recording"
 CMD_PLAY_RECORDING = "aqe:play-recording"
+CMD_SHOW_RECORDING_FILE = "aqe:show-recording-file"
 CMD_POST_EDIT_PLAYBACK_READY = "aqe:post-edit-playback-ready"
-
-TRUSTED_EXTERNAL_URL_HOST = "ganqqwerty.github.io"
-TRUSTED_EXTERNAL_URL_PATH = "/anki-audio-tools"
-TRUSTED_EXTERNAL_URL_PATH_PREFIX = f"{TRUSTED_EXTERNAL_URL_PATH}/"
+CMD_BACK_CHAIN_PRACTICE = "aqe:chorusing-practice"
+CMD_BACK_CHAIN_PREVIOUS = "aqe:chorusing-previous"
+CMD_BACK_CHAIN_NEXT = "aqe:chorusing-next"
 
 BRIDGE_COMMANDS = (
     "aqe:scan",
@@ -60,15 +64,21 @@ BRIDGE_COMMANDS = (
     CMD_ANALYZE_FIELD,
     CMD_COMMAND_PAYLOAD,
     CMD_SAVE_SPLIT_DEFAULTS,
+    CMD_SOURCE_METADATA,
     CMD_STOP_PLAYBACK,
     "aqe:set-cursor",
     "aqe:play",
     "aqe:play-ended",
+    CMD_BACK_CHAIN_PRACTICE,
+    CMD_BACK_CHAIN_PREVIOUS,
+    CMD_BACK_CHAIN_NEXT,
     "aqe:frontend-log",
     CMD_POST_EDIT_PLAYBACK_READY,
     "aqe:show-file",
     CMD_SHARE,
     CMD_PRESET,
+    CMD_SHARE_RECORDING,
+    CMD_SHOW_RECORDING_FILE,
     CMD_OPEN_URL,
     CMD_RECORD_VOICE,
     CMD_STOP_RECORDING,
@@ -79,6 +89,7 @@ BRIDGE_COMMANDS = (
     CMD_VOLUME_UP,
     CMD_REMOVE_PAUSES,
     CMD_CONVERT,
+    CMD_REDUCE_SIZE,
     CMD_DENOISE_STANDARD,
     CMD_RNNOISE,
     CMD_DPDFNET,
@@ -106,6 +117,7 @@ BRIDGE_COMMAND_TO_OPERATION = {
     CMD_VOLUME_UP: OP_VOLUME_UP,
     CMD_REMOVE_PAUSES: OP_REMOVE_PAUSES,
     CMD_CONVERT: OP_CONVERT,
+    CMD_REDUCE_SIZE: OP_REDUCE_SIZE,
 }
 
 
@@ -124,6 +136,10 @@ class EditorCommandOverrides:
     denoise_algorithm: str | None = None
     dpdfnet_attn_limit_db: float | None = None
     target_format: str | None = None
+    size_reduction_mode: str | None = None
+    size_reduction_bitrate_kbps: int | None = None
+    size_reduction_sample_rate_hz: int | None = None
+    size_reduction_channels: int | None = None
     pitch_hum_mode: str | None = None
 
 
@@ -139,6 +155,7 @@ class EditorCommandPayload:
     preset_id: str | None = None
     share_target: str | None = None
     source_filename: str | None = None
+    start_cursor_ms: int | None = None
     url: str | None = None
 
 
@@ -167,6 +184,10 @@ def _overrides_from_raw(raw: Any) -> EditorCommandOverrides:
         denoise_algorithm=raw.get("denoiseAlgorithm"),
         dpdfnet_attn_limit_db=raw.get("dpdfnetAttnLimitDb"),
         target_format=raw.get("targetFormat"),
+        size_reduction_mode=raw.get("sizeReductionMode"),
+        size_reduction_bitrate_kbps=raw.get("sizeReductionBitrateKbps"),
+        size_reduction_sample_rate_hz=raw.get("sizeReductionSampleRateHz"),
+        size_reduction_channels=raw.get("sizeReductionChannels"),
     )
     return EditorCommandOverrides(
         volume_step_db=params.volume_step_db,
@@ -180,6 +201,10 @@ def _overrides_from_raw(raw: Any) -> EditorCommandOverrides:
         denoise_algorithm=params.denoise_algorithm,
         dpdfnet_attn_limit_db=params.dpdfnet_attn_limit_db,
         target_format=params.target_format,
+        size_reduction_mode=params.size_reduction_mode,
+        size_reduction_bitrate_kbps=params.size_reduction_bitrate_kbps,
+        size_reduction_sample_rate_hz=params.size_reduction_sample_rate_hz,
+        size_reduction_channels=params.size_reduction_channels,
         pitch_hum_mode=_pitch_hum_mode_or_none(raw.get("pitchHumMode")),
     )
 
@@ -202,21 +227,6 @@ def _pitch_hum_mode_or_none(value: Any) -> str | None:
 def _share_target_or_none(value: Any) -> str | None:
     text = str(value)
     return text if text in {"catbox", "litterbox"} else None
-
-
-def _external_url_or_none(value: Any) -> str | None:
-    if not isinstance(value, str):
-        return None
-    parsed = urlparse(value)
-    if parsed.scheme != "https":
-        return None
-    if parsed.hostname != TRUSTED_EXTERNAL_URL_HOST:
-        return None
-    if parsed.username is not None or parsed.password is not None:
-        return None
-    if parsed.path != TRUSTED_EXTERNAL_URL_PATH and not parsed.path.startswith(TRUSTED_EXTERNAL_URL_PATH_PREFIX):
-        return None
-    return value
 
 
 def decode_editor_command_payload(raw_command: str | EditorCommandPayload) -> EditorCommandPayload:
@@ -243,7 +253,8 @@ def decode_editor_command_payload(raw_command: str | EditorCommandPayload) -> Ed
         preset_id=_str_or_none(raw_payload.get("presetId")),
         share_target=_share_target_or_none(raw_payload.get("shareTarget")),
         source_filename=_str_or_none(raw_payload.get("sourceFilename")),
-        url=_external_url_or_none(raw_payload.get("url")),
+        start_cursor_ms=_int_or_none(raw_payload.get("startCursorMs")),
+        url=trusted_external_url_or_none(raw_payload.get("url")),
     )
 
 
@@ -274,6 +285,10 @@ def processing_config_for_command(
             pause_min_speech_seconds=payload.overrides.pause_min_speech_seconds,
             pause_preprocess_denoise=payload.overrides.pause_preprocess_denoise,
             target_format=payload.overrides.target_format,
+            size_reduction_mode=payload.overrides.size_reduction_mode,
+            size_reduction_bitrate_kbps=payload.overrides.size_reduction_bitrate_kbps,
+            size_reduction_sample_rate_hz=payload.overrides.size_reduction_sample_rate_hz,
+            size_reduction_channels=payload.overrides.size_reduction_channels,
         ),
     )
 
@@ -289,6 +304,6 @@ def apply_processing_command(
     operation = operation_for_command(payload.command)
     if operation is None:
         return None
-    if operation == OP_CONVERT:
+    if operation in {OP_CONVERT, OP_REDUCE_SIZE}:
         return None
     return apply_audio_operation(operation, state, effective_config)

@@ -52,6 +52,7 @@ def test_browser_batch_adapter_uses_shared_registry_and_executor() -> None:
             "browser_dialog_state",
             "browser_report",
             "error_codes",
+            "external_links",
             "frontend_logs",
             "i18n",
             "webview_bridge",
@@ -71,7 +72,11 @@ def test_browser_batch_adapter_uses_shared_registry_and_executor() -> None:
         }
     )
     assert MODULE_CONTRACTS["audio_operation_params"].allowed_addon_deps == frozenset(
-        {"audio_formats", "audio_pause_settings", "audio_state", "dpdfnet_settings"}
+        {
+            "audio_operation_params_config",
+            "audio_operation_params_normalize",
+            "audio_operation_params_types",
+        }
     )
     assert MODULE_CONTRACTS["batch_processing_presets"].allowed_addon_deps == frozenset(
         {

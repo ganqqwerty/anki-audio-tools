@@ -1,4 +1,5 @@
-.aqe-controls {
+.aqe-controls,
+.aqe-ui-root .aqe-controls {
   --aqe-floating-z-index: 10000;
   --aqe-progress-color: #7a1600;
   --aqe-progress-halo: rgb(193 72 8 / 0.34);
@@ -13,7 +14,7 @@
 
   align-items: center;
   border: 1px solid;
-  border-color: ButtonBorder;
+  border-color: var(--aqe-border-color);
   border-radius: 10px;
   color: inherit;
   color-scheme: light dark;
@@ -25,19 +26,45 @@
   padding: 6px 8px;
 }
 
+.aqe-review-audio-panel-trigger {
+  appearance: none;
+  margin: 0.35rem 0;
+  padding: 0.35rem 0.65rem;
+  border: 1px solid var(--aqe-border-color, ButtonBorder);
+  border-radius: 6px;
+  background: ButtonFace;
+  color: ButtonText;
+  font: inherit;
+  line-height: 1.2;
+  cursor: pointer;
+}
+
+.aqe-review-audio-panel-trigger:hover,
+.aqe-review-audio-panel-trigger:focus-visible {
+  background: var(--aqe-accent-surface-color);
+  border-color: var(--aqe-accent-border-color);
+}
+
 .aqe-mount-host[data-aqe-surface="reviewer"] {
+  align-self: stretch;
+  box-sizing: border-box;
   clear: both;
   display: block;
   margin: 4px 0;
   max-width: 100%;
+  padding: 0;
+  width: 100%;
 }
 
 .aqe-mount-host[data-aqe-surface="reviewer"] .aqe-controls {
-  background: color-mix(in srgb, Canvas 92%, CanvasText 8%);
+  background: var(--aqe-reviewer-surface-color);
+  border-color: var(--aqe-border-color);
   box-sizing: border-box;
+  justify-content: flex-start;
   margin: 3px 0;
   max-width: 100%;
   padding: 4px 6px;
+  width: 100%;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -55,15 +82,17 @@
 }
 
 .aqe-button,
+.aqe-ui-root .aqe-button,
 .aqe-mount-host .aqe-button {
   align-items: center;
   background: transparent;
   border: 1px solid;
-  border-color: ButtonBorder;
+  border-color: var(--aqe-border-color);
   border-radius: 7px;
   color: inherit;
   cursor: pointer;
   display: inline-flex;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   font-size: 12px;
   font-weight: 400;
   gap: 5px;
@@ -83,14 +112,60 @@
   box-sizing: border-box;
 }
 
+.aqe-ui-root .aqe-button-label,
+.aqe-mount-host .aqe-button-label {
+  color: inherit;
+  font: inherit;
+  letter-spacing: normal;
+  line-height: inherit;
+  margin: 0;
+  padding: 0;
+  text-shadow: none;
+  text-transform: none;
+}
+
 .aqe-mount-host[data-aqe-surface="reviewer"] .aqe-button-icon,
 .aqe-mount-host[data-aqe-surface="reviewer"] .aqe-button-icon svg {
   filter: none;
   transform: none;
 }
 
-.aqe-button-tooltip-target {
+.aqe-button-tooltip-target,
+.aqe-ui-root .aqe-button-tooltip-target {
   display: inline-flex;
+  font: inherit;
+  margin: 0;
+  padding: 0;
+}
+
+.aqe-toolbar-panel,
+.aqe-ui-root .aqe-toolbar-panel {
+  align-items: center;
+  background: var(--aqe-toolbar-panel-surface-color);
+  border-radius: 9px;
+  display: inline-flex;
+  flex: 0 0 auto;
+  font: inherit;
+  gap: 3px;
+  margin: 0;
+  padding: 3px;
+}
+
+.aqe-toolbar-panel-label,
+.aqe-ui-root .aqe-toolbar-panel-label {
+  color: inherit;
+  display: inline-flex;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  font-size: 11px;
+  font-weight: 400;
+  line-height: 1.2;
+  padding: 0 5px;
+  white-space: nowrap;
+}
+
+.aqe-toolbar-panel .aqe-button,
+.aqe-ui-root .aqe-toolbar-panel .aqe-button {
+  background: color-mix(in srgb, Canvas 90%, transparent);
 }
 
 .aqe-icon-only {
@@ -171,24 +246,26 @@
 }
 
 .aqe-repeat-button[data-aqe-button-state="active"] {
+  background: color-mix(in srgb, Canvas 90%, var(--aqe-border-color));
+  border-color: var(--aqe-accent-border-color);
   border-style: solid;
-  box-shadow: inset 0 0 0 1px ButtonBorder;
+  box-shadow: inset 0 0 0 1px var(--aqe-accent-border-color);
+  color: inherit;
 }
 
-.aqe-play-repeat-menu-button[data-aqe-button-state="active"] {
-  box-shadow: inset 0 0 0 1px ButtonBorder;
-}
-
-.aqe-status {
+.aqe-status,
+.aqe-ui-root .aqe-status {
   font-size: 12px;
   margin-left: 4px;
 }
 
-.aqe-status[data-kind="error"] {
+.aqe-status[data-kind="error"],
+.aqe-ui-root .aqe-status[data-kind="error"] {
   font-weight: 700;
 }
 
-.aqe-status-row {
+.aqe-status-row,
+.aqe-ui-root .aqe-status-row {
   align-items: center;
   display: flex;
   flex: 1 0 100%;
@@ -197,9 +274,11 @@
   justify-content: flex-start;
   margin-top: 2px;
   min-width: 0;
+  padding: 0;
 }
 
-.aqe-status-row .aqe-status {
+.aqe-status-row .aqe-status,
+.aqe-ui-root .aqe-status-row .aqe-status {
   flex: 1 1 auto;
   margin-left: 0;
   min-width: 0;

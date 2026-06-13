@@ -63,7 +63,7 @@ def list_production_modules() -> list[str]:
         if path.stem != "__pycache__":
             modules.append(path.stem)
     for package in sorted(ADDON_DIR.iterdir()):
-        if not package.is_dir() or package.name in {"__pycache__", "templates", "vendor"}:
+        if not package.is_dir() or package.name in {"__pycache__", "templates", "vendor", ADDON_DIR.name}:
             continue
         if not (package / "__init__.py").exists():
             continue

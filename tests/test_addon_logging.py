@@ -141,6 +141,45 @@ def test_preinstall_release_only_for_current_addon(tmp_path: Path, monkeypatch) 
         _remove_added_handlers(static_logger, existing_static_handlers)
 
 
+def test_predelete_release_only_when_current_addon_selected(tmp_path: Path, monkeypatch) -> None:
+    import anki_audio_quick_editor as addon
+
+    runtime_name = "1000000002"
+    runtime_logger = logging.getLogger(runtime_name)
+    static_logger = logging.getLogger("anki_audio_quick_editor")
+    existing_runtime_handlers = list(runtime_logger.handlers)
+    existing_static_handlers = list(static_logger.handlers)
+    release_calls: list[str] = []
+    monkeypatch.setattr(addon, "__name__", runtime_name)
+    monkeypatch.setattr(addon.mw.addonManager, "addonFromModule", lambda _module: runtime_name)
+    monkeypatch.setattr(addon.mw.addonManager, "addonsFolder", lambda _addon_id: str(tmp_path))
+    monkeypatch.setattr(addon, "release_runtime_files", lambda: release_calls.append("release"))
+    dialog = SimpleNamespace(mgr=addon.mw.addonManager)
+
+    try:
+        addon._setup_file_logging()
+        handler = addon._file_log_handler
+        assert handler is not None
+        assert isinstance(handler, logging.FileHandler)
+
+        addon._release_delete_blocking_files(dialog, ["other_addon"])
+
+        assert addon._file_log_handler is handler
+        assert release_calls == []
+
+        addon._release_delete_blocking_files(dialog, ["other_addon", runtime_name])
+
+        assert addon._file_log_handler is None
+        assert release_calls == ["release"]
+        assert handler not in runtime_logger.handlers
+        assert handler not in static_logger.handlers
+        assert handler.stream is None
+    finally:
+        addon._release_file_logging()
+        _remove_added_handlers(runtime_logger, existing_runtime_handlers)
+        _remove_added_handlers(static_logger, existing_static_handlers)
+
+
 def test_postinstall_restore_only_for_current_addon(monkeypatch) -> None:
     import anki_audio_quick_editor as addon
 
@@ -151,12 +190,13 @@ def test_postinstall_restore_only_for_current_addon(monkeypatch) -> None:
     monkeypatch.setattr(addon, "_setup_file_logging", lambda: calls.append("file"))
     monkeypatch.setattr(addon, "_setup_diagnostics", lambda: calls.append("diagnostics"))
     monkeypatch.setattr(addon, "_apply_log_level", lambda: calls.append("level"))
+    monkeypatch.setattr(addon, "_setup_managed_runtime", lambda: calls.append("runtime"))
 
     addon._restore_install_logging(manager, "other_addon")
     assert calls == []
 
     addon._restore_install_logging(manager, runtime_name)
-    assert calls == ["file", "diagnostics", "level"]
+    assert calls == ["file", "diagnostics", "level", "runtime"]
 
 
 def _remove_added_handlers(

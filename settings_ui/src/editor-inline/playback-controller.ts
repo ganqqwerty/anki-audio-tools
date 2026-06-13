@@ -1,24 +1,57 @@
 import {
   audioClockFor,
   audioClockReady,
-  clearAudioClockSource,
   pauseAudioClock,
   seekAudioClock,
 } from "./audio-clock.js";
+import { startRepeatPauseCountdownOverlay } from "./graph-countdown-overlay.js";
 import { logger } from "./logger.js";
 import {
-  clearPlaybackPlan,
   clampProgressMs,
-  invalidatePlaybackFrames,
   liveProgressMs,
   repeatPauseDelayMs,
   startPlaybackPlan,
 } from "./playback-plan-state.js";
-import type { PlaybackRegion } from "./playback-state.js";
+import {
+  planPlaybackBoundary,
+  type PlaybackPass,
+  type PlaybackRegion,
+} from "./playback-model.js";
+import {
+  activePlaybackPass,
+  playbackEndMs,
+  plannedPlaybackPass,
+  setPlaybackPass,
+  writePlaybackPass,
+} from "./playback-controller-pass.js";
+import {
+  clearPlaybackFrame,
+  clearRepeatPauseTimer,
+} from "./playback-controller-frame.js";
+import { completePlayback, stopProgressClock } from "./playback-controller-state.js";
 import type { PlaybackState, VisualizerElement } from "./types.js";
 import {
   renderPlaybackCursor,
 } from "./visualizer-renderer.js";
+import { ensurePlaybackCursorVisible } from "./viewport-actions.js";
+import { readFieldState, writeFieldState } from "./field-state-store.js";
+import type { EditorFieldState } from "./field-state.js";
+
+export { clearPlaybackFrame };
+export {
+  audioProgressMs,
+  currentProgressMs,
+  manualProgressMs,
+} from "./playback-controller-audio.js";
+export {
+  completePlayback,
+  pauseProgressClock,
+  stopProgressClock,
+} from "./playback-controller-state.js";
+
+function fieldState(visualizer: VisualizerElement): EditorFieldState {
+  return readFieldState(Number(visualizer.dataset.aqeFieldOrd || "0"));
+}
 
 export interface ProgressClockOptions {
   engine?: "html" | "native" | "";
@@ -49,99 +82,50 @@ export interface PlaybackControllerDependencies {
   stopOtherPlayback: (activeVisualizer: VisualizerElement) => void;
 }
 
-export function clearPlaybackFrame(visualizer: VisualizerElement): void {
-  if (visualizer.__aqePlaybackTimer) {
-    window.cancelAnimationFrame(visualizer.__aqePlaybackTimer);
-    visualizer.__aqePlaybackTimer = null;
-  }
-  clearRepeatPauseTimer(visualizer);
-  clearPlaybackPlan(visualizer);
-  invalidatePlaybackFrames(visualizer);
-}
-
-function clearRepeatPauseTimer(visualizer: VisualizerElement): void {
-  if (visualizer.__aqeRepeatPauseTimer) {
-    window.clearTimeout(visualizer.__aqeRepeatPauseTimer);
-    visualizer.__aqeRepeatPauseTimer = null;
-  }
-  visualizer.dataset.repeatPauseWaiting = "false";
-}
-
-export function manualProgressMs(visualizer: VisualizerElement): number {
-  const planned = liveProgressMs(visualizer);
-  if (planned !== null) return planned;
-  const durationMs = Number(visualizer.dataset.durationMs || "0");
-  const elapsed = performance.now() - Number(visualizer.dataset.playStartedAt || "0");
-  return Math.min(durationMs, Number(visualizer.dataset.playStartMs || "0") + elapsed);
-}
-
-export function audioProgressMs(visualizer: VisualizerElement): number | null {
-  const audio = audioClockFor(visualizer);
-  if (!audio) return null;
-  const durationMs = Number(visualizer.dataset.durationMs || "0");
-  return Math.min(durationMs, (Number(audio.currentTime) || 0) * 1000);
-}
-
-export function currentProgressMs(visualizer: VisualizerElement): number | null {
-  const planned = liveProgressMs(visualizer);
-  if (planned !== null) return planned;
-  return Number(visualizer.dataset.progressMs || visualizer.dataset.cursorMs || "0");
-}
-
 export function handlePlaybackBoundary(
   visualizer: VisualizerElement,
   nextMs: number,
   deps: PlaybackControllerDependencies,
   options: { forceAudioPlay?: boolean } = {},
 ): boolean {
-  if (nextMs < playbackEndMs(visualizer, deps)) return false;
-  if (deps.repeatEnabledFor(visualizer)) {
-    restartLoopPlayback(visualizer, deps, options);
+  const boundary = planPlaybackBoundary({
+    nextMs,
+    pass: activePlaybackPass(visualizer, deps),
+    repeat: deps.repeatEnabledFor(visualizer),
+    repeatPauseMs: repeatPauseDelayMs(visualizer),
+  });
+  if (boundary.kind === "continue") return false;
+  if (boundary.kind === "loop") {
+    if (boundary.repeatPauseMs > 0) {
+      scheduleRepeatLoopPlayback(visualizer, deps, options, boundary.pass, boundary.repeatPauseMs);
+    } else {
+      restartLoopPlaybackNow(visualizer, deps, options, boundary.pass);
+    }
     return true;
   }
   completePlayback(visualizer, deps);
   return true;
 }
 
-export function completePlayback(visualizer: VisualizerElement, deps: PlaybackControllerDependencies): void {
-  const ord = Number(visualizer.dataset.aqeFieldOrd || "0");
-  const region = deps.effectivePlaybackRegion(visualizer);
-  const anchorMs = visualizer.dataset.playbackRegionMode === "selection"
-    ? region.startMs
-    : Number(visualizer.dataset.anchorMs || "0");
-  const preserveStatus = visualizer.dataset.preserveStatusOnPlaybackEnd === "true";
-  stopProgressClock(visualizer, deps);
-  deps.setCursor(visualizer, anchorMs, false, { updateAnchor: false });
-  if (audioClockReady(visualizer)) {
-    seekAudioClock(visualizer, anchorMs, Number(visualizer.dataset.durationMs || "0"));
-  }
-  if (preserveStatus) {
-    deps.restoreStatus(ord);
-  } else {
-    deps.clearStatus(ord);
-  }
-  visualizer.dataset.preserveStatusOnPlaybackEnd = "false";
-  window.__aqeActiveField = ord;
-  deps.focusAndSendCommand(ord, "aqe:play-ended");
-}
-
 export function paintProgressFromClock(visualizer: VisualizerElement, deps: PlaybackControllerDependencies): void {
   const generation = visualizer.__aqePlaybackGeneration ?? 0;
   const tick = (frameNowMs: number): void => {
     if (visualizer.__aqePlaybackGeneration !== generation) return;
-    if (visualizer.dataset.playbackState !== "playing") return;
+    const s = fieldState(visualizer);
+    if (s.playback.state !== "playing") return;
     const nextMs = liveProgressMs(visualizer, frameNowMs);
     if (nextMs === null) {
-      startManualProgressClock(visualizer, Number(visualizer.dataset.cursorMs || "0"), deps);
+      startManualProgressClock(visualizer, s.cursor.ms, deps);
       return;
     }
     if (handlePlaybackBoundary(visualizer, nextMs, deps)) {
       return;
     }
+    ensurePlaybackCursorVisible(visualizer, nextMs);
     renderPlaybackCursor(
       visualizer,
       nextMs,
-      Number(visualizer.dataset.durationMs || "0"),
+      s.graph.durationMs,
       frameNowMs,
     );
     visualizer.__aqePlaybackTimer = window.requestAnimationFrame(tick);
@@ -154,17 +138,31 @@ export function startManualProgressClock(
   startMs: number,
   deps: PlaybackControllerDependencies,
 ): void {
+  const s = fieldState(visualizer);
+  const clampedStartMs = s.graph.durationMs ? clampProgressMs(visualizer, startMs) : Math.max(0, Number(startMs) || 0);
+  const region = deps.effectivePlaybackRegion(visualizer);
+  const passStartMs = region.mode === "selection" ? region.startMs : clampedStartMs;
+  startManualPlaybackPass(visualizer, plannedPlaybackPass(visualizer, passStartMs, deps, region), deps, clampedStartMs);
+}
+
+function startManualPlaybackPass(
+  visualizer: VisualizerElement,
+  pass: PlaybackPass,
+  deps: PlaybackControllerDependencies,
+  clockStartMs: number = pass.startMs,
+): void {
   clearPlaybackFrame(visualizer);
   pauseAudioClock(visualizer);
-  const durationMs = Number(visualizer.dataset.durationMs || "0");
-  if (!durationMs) return;
-  const clampedStartMs = clampProgressMs(visualizer, startMs);
+  const s = fieldState(visualizer);
+  if (!s.graph.durationMs) return;
   visualizer.__aqeAudioClockFallback = true;
-  visualizer.dataset.playbackState = "playing";
-  visualizer.dataset.progressClockMode = "manual";
-  setPlaybackPass(visualizer, clampedStartMs, deps);
+  writeFieldState(s.ord, {
+    ...s,
+    playback: { ...s.playback, state: "playing", clockMode: "manual" },
+  });
+  writePlaybackPass(visualizer, pass);
   deps.setPlaybackButtonLabel(visualizer, "Pause");
-  startPlaybackPlan(visualizer, clampedStartMs, playbackEndMs(visualizer, deps));
+  startPlaybackPlan(visualizer, clockStartMs, pass.endMs);
   paintProgressFromClock(visualizer, deps);
 }
 
@@ -175,15 +173,19 @@ export function startAudioProgressClock(
   options: ProgressClockOptions = {},
 ): void {
   const audio = audioClockFor(visualizer);
-  if (!audio || !seekAudioClock(visualizer, startMs, Number(visualizer.dataset.durationMs || "0")) || typeof audio.play !== "function") {
+  const s = fieldState(visualizer);
+  if (!audio || !seekAudioClock(visualizer, startMs, s.graph.durationMs) || typeof audio.play !== "function") {
     if (options.manualFallback === false) {
       options.onAudioPlayFailed?.();
       return;
     }
-    startManualProgressClock(visualizer, startMs, deps);
+    startManualPlaybackPass(visualizer, activePlaybackPass(visualizer, deps), deps);
     return;
   }
-  visualizer.dataset.progressClockMode = "audio";
+  writeFieldState(s.ord, {
+    ...s,
+    playback: { ...s.playback, clockMode: "audio" },
+  });
   visualizer.__aqeAudioClockFallback = false;
   const playGeneration = visualizer.__aqePlaybackGeneration ?? 0;
   const handlePlaybackFailure = (): void => {
@@ -191,13 +193,17 @@ export function startAudioProgressClock(
       options.onAudioPlayFailed?.();
       return;
     }
-    startManualProgressClock(visualizer, startMs, deps);
+    startManualPlaybackPass(visualizer, activePlaybackPass(visualizer, deps), deps);
   };
   const startPainting = (): void => {
     if (visualizer.__aqePlaybackGeneration !== playGeneration) return;
-    if (visualizer.dataset.playbackState !== "playing") return;
+    const s2 = fieldState(visualizer);
+    if (s2.playback.state !== "playing") return;
     clearPlaybackFrame(visualizer);
-    visualizer.dataset.progressClockMode = "audio";
+    writeFieldState(s2.ord, {
+      ...s2,
+      playback: { ...s2.playback, clockMode: "audio" },
+    });
     startPlaybackPlan(visualizer, startMs, playbackEndMs(visualizer, deps));
     logger.info("html audio playback started", { ord: visualizer.dataset.aqeFieldOrd });
     paintProgressFromClock(visualizer, deps);
@@ -207,7 +213,7 @@ export function startAudioProgressClock(
     .then(startPainting)
     .catch(() => {
       if (visualizer.__aqePlaybackGeneration !== playGeneration) return;
-      if (visualizer.dataset.playbackState !== "playing") return;
+      if (fieldState(visualizer).playback.state !== "playing") return;
       logger.warn("html audio play rejected; using manual clock", { ord: visualizer.dataset.aqeFieldOrd });
       handlePlaybackFailure();
     });
@@ -219,27 +225,34 @@ export function startProgressClock(
   deps: PlaybackControllerDependencies,
   options: ProgressClockOptions = {},
 ): void {
-  const selectedEngine = options.engine || visualizer.dataset.playbackEngine || "";
+  const s = fieldState(visualizer);
+  const selectedEngine = options.engine || s.playback.engine || "";
   stopProgressClock(visualizer, deps, { clearEngine: false });
   deps.stopOtherPlayback(visualizer);
-  const durationMs = Number(visualizer.dataset.durationMs || "0");
-  const clampedStartMs = durationMs ? clampProgressMs(visualizer, startMs) : Math.max(0, Number(startMs) || 0);
-  visualizer.dataset.playbackEngine = selectedEngine;
-  visualizer.dataset.playbackState = "playing";
+  const clampedStartMs = s.graph.durationMs ? clampProgressMs(visualizer, startMs) : Math.max(0, Number(startMs) || 0);
+  const fresh = readFieldState(s.ord);
+  writeFieldState(s.ord, {
+    ...fresh,
+    playback: { ...fresh.playback, engine: selectedEngine, state: "playing" },
+  });
   visualizer.dataset.playStartedAt = String(performance.now());
   visualizer.dataset.playStartMs = String(clampedStartMs);
-  setPlaybackPass(visualizer, clampedStartMs, deps);
-  if (durationMs) {
+  const pass = setPlaybackPass(visualizer, clampedStartMs, deps);
+  if (s.graph.durationMs) {
     deps.setCursor(visualizer, clampedStartMs, false, { updateAnchor: false });
+    ensurePlaybackCursorVisible(visualizer, clampedStartMs);
   } else {
-    visualizer.dataset.cursorMs = String(Math.round(clampedStartMs));
-    visualizer.dataset.progressMs = String(Math.round(clampedStartMs));
+    const cur = readFieldState(s.ord);
+    writeFieldState(s.ord, {
+      ...cur,
+      cursor: { ...cur.cursor, ms: Math.round(clampedStartMs), progressMs: Math.round(clampedStartMs) },
+    });
   }
   deps.setPlaybackButtonLabel(visualizer, "Pause");
   logger.info("playback clock selected", { engine: selectedEngine || "auto", startMs: clampedStartMs });
-  if (!durationMs) return;
+  if (!s.graph.durationMs) return;
   if (selectedEngine === "native") {
-    startManualProgressClock(visualizer, clampedStartMs, deps);
+    startManualPlaybackPass(visualizer, pass, deps);
     return;
   }
   if (audioClockReady(visualizer)) {
@@ -250,98 +263,41 @@ export function startProgressClock(
     options.onAudioPlayFailed?.();
     return;
   }
-  startManualProgressClock(visualizer, clampedStartMs, deps);
-}
-
-export function pauseProgressClock(visualizer: VisualizerElement, deps: PlaybackControllerDependencies): void {
-  const currentMs = currentProgressMs(visualizer);
-  if (currentMs !== null) {
-    deps.setCursor(visualizer, currentMs, false, { updateAnchor: false });
-  }
-  clearPlaybackFrame(visualizer);
-  pauseAudioClock(visualizer);
-  visualizer.dataset.playbackState = "paused";
-  visualizer.dataset.progressClockMode = "stopped";
-  deps.setPlaybackButtonLabel(visualizer, "Play");
-}
-
-export function stopProgressClock(
-  visualizer: VisualizerElement,
-  deps: PlaybackControllerDependencies,
-  options: { clearAudio?: boolean; clearEngine?: boolean } = {},
-): void {
-  clearPlaybackFrame(visualizer);
-  pauseAudioClock(visualizer);
-  visualizer.dataset.playbackState = "stopped";
-  visualizer.dataset.progressClockMode = "stopped";
-  visualizer.dataset.resumeRequiresRestart = "false";
-  if (options.clearEngine !== false) {
-    visualizer.dataset.playbackEngine = "";
-  }
-  if (options.clearAudio) {
-    clearAudioClockSource(visualizer);
-  }
-  deps.setPlaybackButtonLabel(visualizer, "Play");
-}
-
-function setPlaybackPass(
-  visualizer: VisualizerElement,
-  startMs: number,
-  deps: PlaybackControllerDependencies,
-  region: PlaybackRegion = deps.effectivePlaybackRegion(visualizer),
-): void {
-  visualizer.dataset.playbackStartMs = String(Math.round(startMs));
-  visualizer.dataset.playbackEndMs = String(Math.round(region.endMs));
-  visualizer.dataset.playbackRegionMode = region.mode;
-}
-
-function playbackEndMs(visualizer: VisualizerElement, deps: PlaybackControllerDependencies): number {
-  const region = deps.effectivePlaybackRegion(visualizer);
-  const endMs = Number(visualizer.dataset.playbackEndMs || "0") || region.endMs;
-  return Math.max(region.startMs, Math.min(endMs, Number(visualizer.dataset.durationMs || "0") || 0));
-}
-
-function restartLoopPlayback(
-  visualizer: VisualizerElement,
-  deps: PlaybackControllerDependencies,
-  options: { forceAudioPlay?: boolean } = {},
-): void {
-  const region = deps.effectivePlaybackRegion(visualizer);
-  const delayMs = repeatPauseDelayMs(visualizer);
-  if (delayMs > 0) {
-    scheduleRepeatLoopPlayback(visualizer, deps, options, region, delayMs);
-    return;
-  }
-  restartLoopPlaybackNow(visualizer, deps, options, region);
+  startManualPlaybackPass(visualizer, pass, deps);
 }
 
 function scheduleRepeatLoopPlayback(
   visualizer: VisualizerElement,
   deps: PlaybackControllerDependencies,
   options: { forceAudioPlay?: boolean },
-  region: PlaybackRegion,
+  pass: PlaybackPass,
   delayMs: number,
 ): void {
-  const loopStartMs = region.startMs;
+  const loopStartMs = pass.startMs;
   clearPlaybackFrame(visualizer);
   pauseAudioClock(visualizer);
-  setPlaybackPass(visualizer, loopStartMs, deps, region);
+  writePlaybackPass(visualizer, pass);
   visualizer.dataset.playStartedAt = String(performance.now());
   visualizer.dataset.playStartMs = String(loopStartMs);
-  visualizer.dataset.playbackState = "playing";
-  visualizer.dataset.progressClockMode = "stopped";
+  const s = fieldState(visualizer);
+  writeFieldState(s.ord, {
+    ...s,
+    playback: { ...s.playback, state: "playing", clockMode: "stopped" },
+  });
   visualizer.dataset.repeatPauseWaiting = "true";
   deps.setCursor(visualizer, loopStartMs, false, { updateAnchor: false });
+  ensurePlaybackCursorVisible(visualizer, loopStartMs);
   deps.setPlaybackButtonLabel(visualizer, "Pause");
+  startRepeatPauseCountdownOverlay(visualizer, delayMs);
   visualizer.__aqeRepeatPauseTimer = window.setTimeout(() => {
     visualizer.__aqeRepeatPauseTimer = null;
-    visualizer.dataset.repeatPauseWaiting = "false";
-    if (visualizer.dataset.playbackState !== "playing") return;
+    clearRepeatPauseTimer(visualizer);
+    if (fieldState(visualizer).playback.state !== "playing") return;
     if (!deps.repeatEnabledFor(visualizer)) {
       completePlayback(visualizer, deps);
       return;
     }
-    restartLoopPlaybackNow(visualizer, deps, { ...options, forceAudioPlay: true }, region);
+    restartLoopPlaybackNow(visualizer, deps, { ...options, forceAudioPlay: true }, pass);
   }, delayMs);
 }
 
@@ -349,31 +305,40 @@ function restartLoopPlaybackNow(
   visualizer: VisualizerElement,
   deps: PlaybackControllerDependencies,
   options: { forceAudioPlay?: boolean } = {},
-  region: PlaybackRegion = deps.effectivePlaybackRegion(visualizer),
+  pass: PlaybackPass = activePlaybackPass(visualizer, deps),
 ): void {
-  const loopStartMs = region.startMs;
+  const loopStartMs = pass.startMs;
   clearRepeatPauseTimer(visualizer);
-  setPlaybackPass(visualizer, loopStartMs, deps, region);
+  writePlaybackPass(visualizer, pass);
   visualizer.dataset.playStartedAt = String(performance.now());
   visualizer.dataset.playStartMs = String(loopStartMs);
-  visualizer.dataset.playbackState = "playing";
+  const s = fieldState(visualizer);
+  writeFieldState(s.ord, {
+    ...s,
+    playback: { ...s.playback, state: "playing" },
+  });
   deps.setCursor(visualizer, loopStartMs, false, { updateAnchor: false });
+  ensurePlaybackCursorVisible(visualizer, loopStartMs);
   const canUseAudioClock = audioClockReady(visualizer)
-    && (visualizer.dataset.progressClockMode === "audio" || visualizer.dataset.playbackEngine === "html");
-  if (visualizer.dataset.progressClockMode !== "audio" || !audioClockReady(visualizer)) {
+    && (s.playback.clockMode === "audio" || s.playback.engine === "html");
+  if (s.playback.clockMode !== "audio" || !audioClockReady(visualizer)) {
     if (!canUseAudioClock) {
-      startManualProgressClock(visualizer, loopStartMs, deps);
+      startManualPlaybackPass(visualizer, pass, deps);
       return;
     }
-    visualizer.dataset.progressClockMode = "audio";
+    const fresh = readFieldState(s.ord);
+    writeFieldState(s.ord, {
+      ...fresh,
+      playback: { ...fresh.playback, clockMode: "audio" },
+    });
   }
-  if (!seekAudioClock(visualizer, loopStartMs, Number(visualizer.dataset.durationMs || "0"))) {
-    startManualProgressClock(visualizer, loopStartMs, deps);
+  if (!seekAudioClock(visualizer, loopStartMs, s.graph.durationMs)) {
+    startManualPlaybackPass(visualizer, pass, deps);
     return;
   }
-  if (!options.forceAudioPlay && visualizer.dataset.progressClockMode === "audio") {
+  if (!options.forceAudioPlay && readFieldState(s.ord).playback.clockMode === "audio") {
     clearPlaybackFrame(visualizer);
-    startPlaybackPlan(visualizer, loopStartMs, playbackEndMs(visualizer, deps));
+    startPlaybackPlan(visualizer, loopStartMs, pass.endMs);
     paintProgressFromClock(visualizer, deps);
     return;
   }
@@ -384,16 +349,20 @@ function restartLoopPlaybackNow(
   void Promise.resolve(audio.play())
     .then(() => {
       if (visualizer.__aqePlaybackGeneration !== playGeneration) return;
-      if (visualizer.dataset.playbackState === "playing") {
-        visualizer.dataset.progressClockMode = "audio";
-        startPlaybackPlan(visualizer, loopStartMs, playbackEndMs(visualizer, deps));
+      const s2 = fieldState(visualizer);
+      if (s2.playback.state === "playing") {
+        writeFieldState(s2.ord, {
+          ...s2,
+          playback: { ...s2.playback, clockMode: "audio" },
+        });
+        startPlaybackPlan(visualizer, loopStartMs, pass.endMs);
         paintProgressFromClock(visualizer, deps);
       }
     })
     .catch(() => {
       if (visualizer.__aqePlaybackGeneration !== playGeneration) return;
-      if (visualizer.dataset.playbackState === "playing") {
-        startManualProgressClock(visualizer, loopStartMs, deps);
+      if (fieldState(visualizer).playback.state === "playing") {
+        startManualPlaybackPass(visualizer, pass, deps);
       }
     });
 }

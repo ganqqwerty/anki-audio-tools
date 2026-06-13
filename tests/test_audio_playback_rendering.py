@@ -18,10 +18,8 @@ from anki_audio_quick_editor.audio_state import AudioProcessingConfig
 from anki_audio_quick_editor.errors import (
     AudioProcessingError,
 )
-from tests.audio_fixtures import (
-    FFMPEG_AVAILABLE,
-    FFMPEG_SKIP_REASON,
-)
+
+FFMPEG = str(Path("/bin/ffmpeg"))
 
 
 def test_make_playback_segment_filename_is_debuggable_and_sanitized() -> None:
@@ -123,7 +121,13 @@ def test_render_playback_segment_clamps_negative_start_and_invokes_ffmpeg(monkey
     monkeypatch.setattr("anki_audio_quick_editor.audio_processor.find_ffmpeg", fake_find_ffmpeg)
     monkeypatch.setattr("anki_audio_quick_editor.audio_processor.probe_duration_ms", lambda *_args: next(durations))
 
-    def fake_run(cmd: list[str], capture_output: bool, text: bool, check: bool) -> SimpleNamespace:
+    def fake_run(
+        cmd: list[str],
+        capture_output: bool,
+        text: bool,
+        check: bool,
+        **_kwargs: object,
+    ) -> SimpleNamespace:
         calls.append((cmd, capture_output, text, check))
         return SimpleNamespace(returncode=0, stdout="", stderr="")
 
@@ -139,7 +143,7 @@ def test_render_playback_segment_clamps_negative_start_and_invokes_ffmpeg(monkey
     )
 
     expected_command = (
-        "/bin/ffmpeg",
+        FFMPEG,
         "-y",
         "-i",
         str(tmp_path / "source.wav"),
@@ -168,7 +172,13 @@ def test_render_playback_segment_honors_selected_end_boundary(monkeypatch, tmp_p
     monkeypatch.setattr("anki_audio_quick_editor.audio_processor.find_ffmpeg", lambda _path: Path("/bin/ffmpeg"))
     monkeypatch.setattr("anki_audio_quick_editor.audio_processor.probe_duration_ms", lambda *_args: next(durations))
 
-    def fake_run(cmd: list[str], capture_output: bool, text: bool, check: bool) -> SimpleNamespace:
+    def fake_run(
+        cmd: list[str],
+        capture_output: bool,
+        text: bool,
+        check: bool,
+        **_kwargs: object,
+    ) -> SimpleNamespace:
         calls.append((cmd, capture_output, text, check))
         return SimpleNamespace(returncode=0, stdout="", stderr="")
 
@@ -185,7 +195,7 @@ def test_render_playback_segment_honors_selected_end_boundary(monkeypatch, tmp_p
     )
 
     expected_command = (
-        "/bin/ffmpeg",
+        FFMPEG,
         "-y",
         "-i",
         str(tmp_path / "source.wav"),
@@ -260,10 +270,7 @@ def test_render_playback_segment_uses_exact_end_of_audio_message(monkeypatch, tm
 
     assert str(exc_info.value) == "Cursor is at the end of the audio."
 
-@pytest.mark.skipif(
-    not FFMPEG_AVAILABLE,
-    reason=FFMPEG_SKIP_REASON,
-)
+@pytest.mark.allow_managed_runtime
 def test_render_playback_segment_from_70_percent_is_shorter(tmp_path: Path) -> None:
     source = tmp_path / "cursor source.wav"
     output = tmp_path / "cursor segment.mp3"
@@ -282,6 +289,8 @@ def test_render_playback_segment_from_70_percent_is_shorter(tmp_path: Path) -> N
         check=True,
         capture_output=True,
         text=True,
+        encoding="utf-8",
+        errors="replace",
     )
 
     result = render_playback_segment(

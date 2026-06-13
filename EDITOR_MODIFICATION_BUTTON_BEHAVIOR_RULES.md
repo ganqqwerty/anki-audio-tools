@@ -2,18 +2,18 @@
 
 This document is the shared behavior contract for inline editor buttons that modify an audio field. It applies to any command that creates, restores, or selects a generated audio file and replaces the field's supported `[sound:...]` reference.
 
-Ground truth for this document is the current toolbar registry in `settings_ui/src/lib/editor-toolbar-buttons.ts`, editor dispatch in `settings_ui/src/editor-inline/` and `addon/anki_audio_quick_editor/editor_*.py`, shared operation definitions in `audio_operations.py`, and the editor e2e tests under `e2e/`.
+Ground truth for this document is the current toolbar registry in `settings_ui/src/lib/editor-toolbar-buttons.ts`, the settings-facing button registry in `settings_ui/src/lib/settings-toolbar-buttons.ts`, editor dispatch in `settings_ui/src/editor-inline/` and `addon/anki_audio_quick_editor/editor_*.py`, shared operation definitions in `audio_operations.py`, and the editor e2e tests under `e2e/`.
 
-Available editor button commands are not the same as default-visible commands. The default config currently shows Play, Graph, Folder, Share, Preset, Shorten Pauses, Denoise, Slower, Faster, Undo, Redo, and Settings. The Preset button is hidden at runtime until at least one processing preset is configured. Convert, Pitch Hum, Volume -, Volume +, Record, and Play yours are available toolbar commands but are hidden by the default `visible_editor_buttons` list unless the user enables them.
+Available editor button commands are not the same as default-visible commands. The default config currently shows Play, Graph, Folder, Share, Reduce Size, Shorten Pauses, Denoise, Slower, Faster, Delete Region, Delete the rest, Undo, Redo, and Settings. Convert, Pitch Hum, Volume -, Volume +, and the Record / Play yours panel are available panel surfaces but are hidden by the default `visible_editor_buttons` list unless the user enables them.
 
 ## Current Command Inventory
 
 | Category | Commands | Contract status |
 |----------|----------|-----------------|
-| Generated-file modification commands | `aqe:preset`, `aqe:convert`, `aqe:remove-pauses`, `aqe:denoise-standard`, `aqe:rnnoise`, `aqe:dpdfnet`, `aqe:voice-only`, `aqe:pitch-hum`, `aqe:slower`, `aqe:faster`, `aqe:volume-down`, `aqe:volume-up`, `aqe:delete-selection`, `aqe:delete-rest` | Covered by this document, except explicit no-op cases such as same-format Convert. For `aqe:preset`, this applies when the selected preset has transform steps; graph-only presets follow graph behavior without replacing the audio field. |
+| Generated-file modification commands | `aqe:convert`, `aqe:remove-pauses`, `aqe:denoise-standard`, `aqe:rnnoise`, `aqe:dpdfnet`, `aqe:voice-only`, `aqe:pitch-hum`, `aqe:slower`, `aqe:faster`, `aqe:volume-down`, `aqe:volume-up`, `aqe:delete-selection`, `aqe:delete-rest` | Covered by this document, except explicit no-op cases such as same-format Convert. |
 | Generated-file history commands | `aqe:undo`, `aqe:redo` | Covered by this document where they restore/select generated media instead of rendering a new file. |
 | Non-mutating split buttons | `aqe:play`, `aqe:analyze`, `aqe:record-voice`, `aqe:share` | Not covered by the modification contract; see "Buttons Outside Or Diverging From This Contract". |
-| Non-mutating plain buttons | `aqe:play-recording`, `aqe:show-file`, `aqe:settings` | Not covered by the modification contract. |
+| Non-mutating plain buttons | `aqe:play-recording`, `aqe:share-recording`, `aqe:show-recording-file`, `aqe:show-file`, `aqe:settings` | Not covered by the modification contract. |
 | Recording lifecycle bridge commands | `aqe:stop-recording` | Not a standalone visible button. It is dispatched by the Record split button primary segment while a learner recording is active. |
 | Internal bridge commands | `aqe:command-payload`, `aqe:save-split-defaults`, `aqe:analyze-field`, `aqe:set-cursor`, `aqe:play-ended`, `aqe:frontend-log`, `aqe:scan` | Not buttons. They are bridge plumbing and must not be documented as user-facing modification commands. |
 
@@ -36,8 +36,8 @@ Current split-button shapes:
 
 | Shape | Commands |
 |-------|----------|
-| Individual split buttons | `aqe:play`, `aqe:analyze`, `aqe:record-voice`, `aqe:share`, `aqe:preset`, `aqe:convert`, `aqe:remove-pauses`, `aqe:denoise-standard`, `aqe:pitch-hum` |
-| Grouped split buttons | `aqe:slower` + `aqe:faster` share one Speed quick-settings menu; `aqe:volume-down` + `aqe:volume-up` share one Volume quick-settings menu. |
+| Individual split buttons | `aqe:play`, `aqe:analyze`, `aqe:share`, `aqe:convert`, `aqe:remove-pauses`, `aqe:denoise-standard`, `aqe:pitch-hum` |
+| Grouped split buttons | `aqe:record-voice`, `aqe:play-recording`, `aqe:share-recording`, and `aqe:show-recording-file` render as the Record / Play yours panel with one visibility setting and Record-owned quick settings; `aqe:slower` + `aqe:faster` share one Speed quick-settings menu; `aqe:volume-down` + `aqe:volume-up` share one Volume quick-settings menu. |
 | Plain modification buttons | `aqe:delete-selection`, `aqe:delete-rest`, `aqe:undo`, `aqe:redo` |
 
 `aqe:delete-selection` and `aqe:delete-rest` are selection-toolbar actions backed by a pending region-delete request. `aqe:delete-selection` can also be triggered from Backspace when the focused graph has a valid non-whole-clip selection.
@@ -75,7 +75,6 @@ Current split-button defaults include:
 | Convert output format | `output_format` |
 | Pitch Hum mode | `pitch_hum_mode` |
 | Voice recording countdown | `voice_recording_countdown_seconds` |
-| Processing presets | `audio_processing_presets` |
 
 Share target is persisted as a Settings default. The Share split menu initializes from `share_target`, lets the user pick Catbox or Litterbox locally per field, and exposes the same promote-default control as other split buttons.
 
@@ -93,12 +92,11 @@ Current shared batch/editor operations:
 | Speed | `aqe:slower`, `aqe:faster` with `speedStep` | `slower`, `faster` with `speed_step` |
 | Volume | `aqe:volume-down`, `aqe:volume-up` with `volumeStepDb` | `volume_down`, `volume_up` with `volume_step_db` |
 | Graph | `aqe:analyze` with graph settings | `graph` appends an SVG to a target field |
-| Processing preset | `aqe:preset` with `presetId` | `preset` with `preset_id` plus audio/graph target fields according to preset contents |
 
 Editor-only behavior:
 
 - `aqe:pitch-hum`, `aqe:delete-selection`, `aqe:delete-rest`, `aqe:undo`, and `aqe:redo` are editor-only today.
-- `aqe:play`, `aqe:record-voice`, `aqe:stop-recording`, `aqe:play-recording`, `aqe:share`, `aqe:show-file`, and `aqe:settings` are not batch operations.
+- `aqe:play`, `aqe:record-voice`, `aqe:stop-recording`, `aqe:play-recording`, `aqe:share-recording`, `aqe:show-recording-file`, `aqe:share`, `aqe:show-file`, and `aqe:settings` are not batch operations.
 - Selection-sensitive region deletion must not be added to Browser batch without a separate design, because it depends on editor graph selection state.
 
 ## Non-Destructive Media
@@ -195,8 +193,10 @@ These buttons are current UI surfaces that do not fully follow this modification
 |--------|------------------|--------------------------------------|
 | `aqe:play` | Split button for playback and repeat settings. It may use the current selection region and repeat pause values. | It does not render, replace media, write history, or update note fields. |
 | `aqe:analyze` | Split button for graph/prosody settings. It analyzes the current audio and renders an inline graph; Browser batch `graph` appends an SVG to a target field. | Editor Graph is analysis state, not a generated-audio modification. It does not replace the field's sound reference or push undo/redo history. |
-| `aqe:record-voice` / `aqe:stop-recording` | Record is an opt-in split button for learner voice capture. It defaults to icon mode but follows the standard editor button display-mode setting. It requires an existing target graph, stops target playback, clears any old learner overlay, shows the configured countdown, starts native recording, and toggles the primary action to Stop while recording. Stop finalizes the learner attempt, analyzes it, and overlays learner pitch only. | It creates sidecar learner media and analysis state for comparison, but intentionally does not replace the note field's sound reference, push undo/redo history, or trigger post-modification playback. |
-| `aqe:play-recording` | Opt-in button grouped next to Record when both commands are visible. It defaults to icon mode but follows the standard editor button display-mode setting. It plays the latest ready learner recording through native playback and is disabled until a learner attempt is ready. | It plays sidecar learner media only. It does not render new target media, replace fields, write history, or update note data. |
+| `aqe:record-voice` / `aqe:stop-recording` | Record is an opt-in split button for learner voice capture inside the Record / Play yours panel. The panel visibility is atomic with `aqe:play-recording`, `aqe:share-recording`, and `aqe:show-recording-file`, while each command keeps its own display-mode setting. Record requires an existing target graph, stops target playback, clears any old learner overlay, uses the current graph cursor as `startCursorMs`, shows the configured countdown, starts native recording, and toggles the primary action to Stop while recording. Stop finalizes the learner attempt into Anki media, analyzes it, and overlays learner pitch starting at `startCursorMs` without editing the WAV. | It creates sidecar learner media and analysis state for comparison, but intentionally does not replace the note field's sound reference, push undo/redo history, or trigger post-modification playback. |
+| `aqe:play-recording` | Opt-in plain button inside the Record / Play yours panel. It is shown or hidden together with Record, follows its own editor button display-mode setting, plays the latest ready learner recording through native playback, changes to Pause only while learner playback is active, and is disabled until a learner attempt is ready. | It plays sidecar learner media only. It does not render new target media, replace fields, write history, or update note data. |
+| `aqe:share-recording` | Opt-in plain button inside the Record / Play yours panel. It reuses the current field-local Share target default, uploads the latest ready learner recording, and copies the resulting URL. It is disabled until learner media is ready. | It uploads sidecar learner media only. It does not replace fields, write history, or update note data. |
+| `aqe:show-recording-file` | Opt-in plain button inside the Record / Play yours panel. It reveals the latest ready learner recording file in the OS file manager and is disabled until learner media is ready. | It has an external file-manager side effect for sidecar learner media only, with no audio rendering, field replacement, or history behavior. |
 | `aqe:share` | Split button for Catbox/Litterbox upload. It uploads the current audio, copies a URL, keeps the note unchanged, initializes from the `share_target` Settings default, and can promote the field-local target to the default. | It has field-local quick settings and busy state, but it intentionally does not create generated media or mutate the note. |
 | `aqe:show-file` | Opens/reveals the current media file through the OS. | It has an external shell/file-manager side effect but no audio rendering, field replacement, or history behavior. |
 | `aqe:settings` | Opens the add-on Settings dialog. | It configures defaults and toolbar visibility, but it is not an audio-field modification. |

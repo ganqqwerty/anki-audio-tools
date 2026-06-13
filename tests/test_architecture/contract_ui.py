@@ -18,9 +18,11 @@ UI_CONTRACTS: dict[str, ModuleContract] = {
             "i18n",
             "release_info",
             "reviewer_integration",
+            "reviewer_template_filter_integration",
             "runtime_installer_dialog",
             "runtime_manager",
             "settings",
+            "vendor_runtime",
         ),
         allowed_side_effects=(
             SideEffect.ANKI_IMPORTS_ANYWHERE,
@@ -92,6 +94,7 @@ UI_CONTRACTS: dict[str, ModuleContract] = {
             "browser_dialog_state",
             "browser_report",
             "error_codes",
+            "external_links",
             "frontend_logs",
             "i18n",
             "webview_bridge",
@@ -128,10 +131,12 @@ UI_CONTRACTS: dict[str, ModuleContract] = {
         allowed_addon_deps=(
             "editor_actions",
             "editor_callbacks",
-            "editor_integration",
             "editor_media",
             "editor_runtime",
             "editor_session",
+            "editor_webview_injection",
+            "media_paths",
+            "reviewer_audio_targets",
             "sound_refs",
         ),
         allowed_side_effects=(
@@ -144,6 +149,19 @@ UI_CONTRACTS: dict[str, ModuleContract] = {
         allow_module_level_anki_imports=True,
         allow_any_anki_imports=True,
         notes="Reviewer adapter reuses editor controls and persists note edits from review mode.",
+    ),
+    "reviewer_template_filter_integration": contract(
+        "reviewer_template_filter_integration",
+        layer=Layer.UI_ADAPTER,
+        allowed_addon_deps=("error_codes", "reviewer_audio_targets", "reviewer_template_filter"),
+        allowed_side_effects=(
+            SideEffect.ANKI_IMPORTS_ANYWHERE,
+            SideEffect.ANKI_IMPORTS_MODULE_LEVEL,
+            SideEffect.GUI_HOOK_REGISTRATION,
+        ),
+        allow_module_level_anki_imports=True,
+        allow_any_anki_imports=True,
+        notes="Template-filter adapter only registers the card-template trigger hook.",
     ),
     "settings": contract(
         "settings",
@@ -182,7 +200,9 @@ UI_CONTRACTS: dict[str, ModuleContract] = {
         allowed_addon_deps=(
             "contracts_generated",
             "diagnostics_runtime",
+            "editor_button_visibility",
             "error_codes",
+            "external_links",
             "ffmpeg_defaults",
             "frontend_logs",
             "i18n",

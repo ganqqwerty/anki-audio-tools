@@ -1,5 +1,8 @@
 import { vi } from "vitest";
 
+import { popPendingCommandPayload } from "../src/editor-inline/bridge.js";
+import { graphPixelBounds } from "../src/editor-inline/plot.js";
+import type { EditorCommandPayload } from "../src/editor-inline/types.js";
 import { pycmdMock } from "./setup.js";
 
 export const track = {
@@ -25,6 +28,19 @@ export function bridgeCommands(): string[] {
   return commandLog().filter((command) => command.startsWith("focus:") || command.startsWith("aqe:"));
 }
 
+export function consumePendingCommandPayload(): EditorCommandPayload | null {
+  const payload = popPendingCommandPayload();
+  return payload ? { ...payload } : null;
+}
+
+export function peekPendingCommandPayload(): EditorCommandPayload | null {
+  return window.__aqePendingCommandPayload ?? null;
+}
+
+export function clearPendingCommandPayload(): void {
+  window.__aqePendingCommandPayload = null;
+}
+
 export function renderFields(): void {
   document.body.innerHTML = `
     <div class="field-container" data-index="0">
@@ -48,8 +64,8 @@ export function renderTwoAudioFields(): void {
 }
 
 export function graphClientX(svg: SVGSVGElement, ratio: number): number {
-  const rect = svg.getBoundingClientRect();
-  return 44 + 566 * ratio + rect.left;
+  const bounds = graphPixelBounds(svg);
+  return bounds.left + bounds.width * ratio;
 }
 
 export function dispatchGraphPointer(svg: SVGSVGElement, type: string, clientX: number, shiftKey = false): void {
@@ -58,7 +74,7 @@ export function dispatchGraphPointer(svg: SVGSVGElement, type: string, clientX: 
   const event = new EventCtor(type, {
     bubbles: true,
     clientX,
-    clientY: rect.top + 20,
+    clientY: rect.top + 40,
     shiftKey,
   });
   if (type === "pointerdown") {
@@ -97,14 +113,10 @@ export function dragSelectionHandle(svg: SVGSVGElement, edge: "end" | "start", e
 }
 
 export function selectionToolbarButton(
-  kind: "collapse" | "delete-region" | "delete-rest" | "play",
+  kind: "delete-region" | "delete-rest" | "play",
   ord = 0,
 ): HTMLButtonElement {
   return document.querySelector<HTMLButtonElement>(`[data-testid="aqe-selection-toolbar-${kind}-${ord}"]`)!;
-}
-
-export function selectionToolbarDot(ord = 0): SVGSVGElement {
-  return document.querySelector<SVGSVGElement>(`[data-testid="aqe-selection-toolbar-dot-${ord}"]`)!;
 }
 
 export function hoverToolbarButton(button: HTMLElement): void {

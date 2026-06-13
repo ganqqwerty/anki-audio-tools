@@ -5,14 +5,19 @@ from __future__ import annotations
 import logging
 import shutil
 from collections.abc import Callable
+from dataclasses import dataclass
 from datetime import datetime
-from importlib import import_module
 from pathlib import Path
 from typing import Any
 
 from .audio_formats import format_label, is_same_visible_format
 from .audio_operation_params import effective_config_for_operation
-from .audio_operations import OP_CONVERT, OP_DENOISE, apply_audio_operation
+from .audio_operations import (
+    OP_CONVERT,
+    OP_DENOISE,
+    OP_REDUCE_SIZE,
+    apply_audio_operation,
+)
 from .audio_processing_preset_runner import ProcessingPresetRunnerAdapters
 from .audio_processor import (
     make_output_filename,
@@ -20,13 +25,13 @@ from .audio_processor import (
 )
 from .audio_state import AudioEditState, AudioProcessingConfig
 from .batch_operation_types import BatchNoteResult, BatchNoteSnapshot, BatchRunRequest
-from .batch_operations_helpers import render_batch_denoise
 from .diagnostics_runtime import capture_exception
 from .error_codes import (
     AQE_AUDIO_PROCESSING_FAILED,
     AQE_GRAPH_ANALYSIS_FAILED,
     format_coded_message,
 )
+from .errors import AudioAlreadyCompactError
 from .permission_guidance import message_with_permission_guidance
 from .prosody_svg import make_visualization_filename, render_prosody_svg
 from .sound_refs import SoundReference, replace_sound_reference
@@ -34,9 +39,13 @@ from .sound_refs import SoundReference, replace_sound_reference
 logger = logging.getLogger(__name__)
 
 
-def _facade_attr(name: str) -> Any:
-    facade = import_module(".batch_operations", package=__package__)
-    return getattr(facade, name)
+@dataclass(frozen=True)
+class BatchOperationDeps:
+    analyze_prosody_cached: Callable[..., Any]
+    render_audio: Callable[..., Any]
+    render_converted_audio: Callable[..., Any]
+    render_size_reduced_audio: Callable[..., Any]
+    render_batch_denoise: Callable[..., Any]
 
 
 def process_graph_operation(
@@ -50,11 +59,12 @@ def process_graph_operation(
     now_provider: Callable[[], datetime] | None,
     operation_id: str,
     append_image_reference: Callable[[str, str], str],
+    deps: BatchOperationDeps,
 ) -> BatchNoteResult:
     target_field = request.target_field
     assert target_field is not None
     try:
-        track = _facade_attr("analyze_prosody_cached")(source_path, config)
+        track = deps.analyze_prosody_cached(source_path, config)
         svg_bytes = render_prosody_svg(track)
         desired_name = make_visualization_filename(
             audio_filename,
@@ -115,6 +125,7 @@ def process_transform_operation(
     media_writer: Callable[[str, bytes], str],
     artifact_root: Path | None,
     operation_id: str,
+    deps: BatchOperationDeps,
 ) -> BatchNoteResult:
     output_path: Path | None = None
     try:
@@ -134,24 +145,33 @@ def process_transform_operation(
                 )
             desired_name = make_output_filename(audio_filename, output_format=target_format)
             output_path = temp_final_path(desired_name)
-            _facade_attr("render_converted_audio")(
+            deps.render_converted_audio(
                 source_path,
                 effective_config,
                 target_format,
                 output_path=output_path,
             )
+        elif request.operation == OP_REDUCE_SIZE:
+            desired_name = make_output_filename(audio_filename, output_format="mp3")
+            output_path = temp_final_path(desired_name)
+            deps.render_size_reduced_audio(
+                source_path,
+                effective_config,
+                output_path=output_path,
+                mode=effective_config.size_reduction_mode,
+            )
         else:
-            desired_name = make_output_filename(audio_filename)
+            desired_name = make_output_filename(audio_filename, output_format=effective_config.output_format)
             output_path = temp_final_path(desired_name)
             if request.operation == OP_DENOISE:
-                render_batch_denoise(source_path, effective_config, output_path)
+                deps.render_batch_denoise(source_path, effective_config, output_path)
             else:
                 updated_state = apply_audio_operation(
                     request.operation,
                     AudioEditState(source_file=audio_filename),
                     effective_config,
                 )
-                _facade_attr("render_audio")(
+                deps.render_audio(
                     source_path,
                     updated_state,
                     effective_config,
@@ -161,6 +181,13 @@ def process_transform_operation(
         with output_path.open("rb") as file:
             saved_name = media_writer(desired_name, file.read())
         replaced_html = replace_sound_reference(source_html, selection, saved_name)
+    except AudioAlreadyCompactError as exc:
+        return BatchNoteResult(
+            note_id=note.note_id,
+            status="skipped",
+            message=str(exc),
+            audio_filename=audio_filename,
+        )
     except Exception as exc:
         raw_message = str(exc)
         message = (
@@ -204,27 +231,42 @@ def process_transform_operation(
     )
 
 
-def batch_preset_runner_adapters() -> ProcessingPresetRunnerAdapters:
+def batch_preset_runner_adapters(deps: BatchOperationDeps) -> ProcessingPresetRunnerAdapters:
     return ProcessingPresetRunnerAdapters(
         make_audio_output_filename=make_output_filename,
         make_graph_output_filename=make_visualization_filename,
         temp_output_path=temp_final_path,
-        render_audio=_render_preset_audio,
-        render_converted_audio=_render_preset_converted_audio,
-        render_denoise_audio=_render_preset_denoise_audio,
-        analyze_prosody=_facade_attr("analyze_prosody_cached"),
+        render_audio=lambda source_path, state, config, output_path, artifact_root: (
+            _render_preset_audio(deps, source_path, state, config, output_path, artifact_root)
+        ),
+        render_converted_audio=lambda source_path, config, target_format, output_path: (
+            _render_preset_converted_audio(deps, source_path, config, target_format, output_path)
+        ),
+        render_size_reduced_audio=lambda source_path, config, output_path: (
+            deps.render_size_reduced_audio(
+                source_path,
+                config,
+                output_path=output_path,
+                mode=config.size_reduction_mode,
+            )
+        ),
+        render_denoise_audio=lambda source_path, config, output_path: (
+            deps.render_batch_denoise(source_path, config, output_path)
+        ),
+        analyze_prosody=deps.analyze_prosody_cached,
         render_graph_svg=render_prosody_svg,
     )
 
 
 def _render_preset_audio(
+    deps: BatchOperationDeps,
     source_path: Path,
     state: AudioEditState,
     config: AudioProcessingConfig,
     output_path: Path,
     artifact_root: Path | None,
 ) -> None:
-    _facade_attr("render_audio")(
+    deps.render_audio(
         source_path,
         state,
         config,
@@ -234,17 +276,10 @@ def _render_preset_audio(
 
 
 def _render_preset_converted_audio(
+    deps: BatchOperationDeps,
     source_path: Path,
     config: AudioProcessingConfig,
     target_format: str,
     output_path: Path,
 ) -> None:
-    _facade_attr("render_converted_audio")(source_path, config, target_format, output_path=output_path)
-
-
-def _render_preset_denoise_audio(
-    source_path: Path,
-    config: AudioProcessingConfig,
-    output_path: Path,
-) -> None:
-    render_batch_denoise(source_path, config, output_path)
+    deps.render_converted_audio(source_path, config, target_format, output_path=output_path)

@@ -9,6 +9,7 @@ from typing import Any
 
 from .audio_state import AudioProcessingConfig
 from .diagnostics_runtime import capture_exception
+from .editor_deps_protocols import RegionDeleteDeps
 from .editor_region_delete_request import (
     REGION_KEEP_OPERATION,
     region_operation_command_status,
@@ -26,7 +27,7 @@ logger = logging.getLogger(__name__)
 
 
 def render_region_operation(
-    deps: Any,
+    deps: RegionDeleteDeps,
     source_path: Path,
     request: RegionDeleteRequest,
     config: AudioProcessingConfig,
@@ -58,12 +59,12 @@ def run_region_delete_worker(
     guard: EditorProcessingGuard,
     started_at: float,
     operation_id: str,
-    deps: Any,
+    deps: RegionDeleteDeps,
 ) -> None:
     """Render a region operation and schedule a guarded main-thread completion."""
     output_path: Path | None = None
     try:
-        desired_name = deps.make_output_filename(source_path.name)
+        desired_name = deps.make_output_filename(source_path.name, output_format=config.output_format)
         output_path = deps.temp_final_path(desired_name)
 
         def _show_command(command: tuple[str, ...]) -> None:
@@ -99,7 +100,7 @@ def _schedule_region_delete_finish(
     output_duration_ms: int | None,
     started_at: float,
     guard: EditorProcessingGuard,
-    deps: Any,
+    deps: RegionDeleteDeps,
 ) -> None:
     if not is_current_processing_guard(session, guard):
         shutil.rmtree(output_path.parent, ignore_errors=True)
@@ -131,7 +132,7 @@ def _handle_region_delete_worker_failure(
     guard: EditorProcessingGuard,
     operation_id: str,
     exc: Exception,
-    deps: Any,
+    deps: RegionDeleteDeps,
 ) -> None:
     if output_path is not None:
         shutil.rmtree(output_path.parent, ignore_errors=True)
@@ -151,7 +152,7 @@ def _handle_region_delete_worker_failure(
     deps.main(editor, lambda: deps.render_failed(editor, message, guard=guard))
 
 
-def _discard_stale_region_delete(editor: Any, guard: EditorProcessingGuard, deps: Any) -> None:
+def _discard_stale_region_delete(editor: Any, guard: EditorProcessingGuard, deps: RegionDeleteDeps) -> None:
     if clear_processing_for_stale_guard(deps.sessions.get(editor), guard):
         deps.set_busy_for_field(editor, guard.field_index, False)
 

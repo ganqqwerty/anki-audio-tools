@@ -1,4 +1,5 @@
 import type { AudioClockElement, VisualizerElement } from "./types.js";
+import { invalidateFieldState } from "./field-state-store.js";
 
 export interface AudioClockHandlerCallbacks {
   onEndedDuringPlayback?: () => void;
@@ -19,6 +20,7 @@ export function resetAudioClockState(visualizer: VisualizerElement): void {
   visualizer.__aqeAudioClockFallback = false;
   visualizer.__aqeAudioClockLastSeekedMs = 0;
   visualizer.dataset.progressClockMode = "stopped";
+  invalidateFieldState(Number(visualizer.dataset.aqeFieldOrd || "0"));
 }
 
 export function pauseAudioClock(visualizer: VisualizerElement): void {

@@ -19,6 +19,7 @@ IGNORED_PATH_PARTS = {
     "__pycache__",
     ".pytest_cache",
     "vendor",
+    "user_files",
     "templates",
     "aqe_artifacts",
     ".mypy_cache",

@@ -1,0 +1,48 @@
+```mermaid
+flowchart LR
+
+    subgraph EditorWebView["Editor WebView"]
+        ts_editor["editor-inline/bridge.ts"]
+    end
+
+    subgraph SettingsWebView["Settings WebView"]
+        ts_settings["lib/bridge.ts"]
+    end
+
+    subgraph BatchWebView["Batch WebView"]
+        ts_batch["batch/bridge.ts"]
+    end
+
+    subgraph ReviewerWebView["Reviewer WebView"]
+        ts_reviewer["editor-inline/bridge.ts<br/>(reused)"]
+    end
+
+    subgraph Python["Python Add-on"]
+        py_editor["editor_bridge.py"]
+        py_settings["settings/commands.py"]
+        py_batch["browser_dialog.py"]
+        py_reviewer["reviewer_integration.py<br/>(wraps editor)"]
+    end
+
+    subgraph Services["Service Layer"]
+        audio["audio_processor.py<br/>Audio Core"]
+        cfg["config_migration.py<br/>Config"]
+        diag["diagnostics_runtime.py<br/>Diagnostics"]
+        support["support.py<br/>Support"]
+    end
+
+    ts_editor -->|"pycmd('aqe:*')"| py_editor
+    ts_settings -->|"pycmd('bridge:{json}')"| py_settings
+    ts_batch -->|"pycmd('bridge:{json}')"| py_batch
+    py_reviewer -->|"aqe:* | focus:*"| ts_reviewer
+    ts_reviewer -->|"pycmd('aqe:*')"| py_editor
+
+    py_editor --> audio
+    py_editor --> cfg
+    py_editor --> diag
+    py_settings --> cfg
+    py_settings --> diag
+    py_settings --> support
+    py_batch --> audio
+    py_batch --> diag
+```

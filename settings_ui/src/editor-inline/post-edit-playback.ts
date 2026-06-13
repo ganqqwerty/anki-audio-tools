@@ -1,12 +1,18 @@
-import { sendBridgeCommand } from "./bridge.js";
+import { sendCommandPayload } from "./bridge.js";
 import { allControls, visualizerForOrd } from "./dom-selectors.js";
+import {
+  editorRuntimeConfig,
+  repeatPlaybackByDefault as configRepeatPlaybackByDefault,
+} from "./editor-runtime-config.js";
 import { logger } from "./logger.js";
-import type { PostEditPlaybackIntent } from "./types.js";
+import { readFieldState } from "./field-state-store.js";
+import type { EditorCommandPayload, PostEditPlaybackIntent } from "./types.js";
 
 export function rememberPostEditPlaybackIntent(ord: number): void {
   const visualizer = visualizerForOrd(ord);
+  const s = visualizer ? readFieldState(ord) : null;
   postEditPlaybackIntents()[ord] = {
-    repeat: visualizer ? visualizer.dataset.repeatEnabled === "true" : repeatDefaultFromConfig(),
+    repeat: s ? s.playback.repeat : repeatDefaultFromConfig(),
     repeatPauseSeconds: normalizedRepeatPauseSeconds(
       visualizer ? Number(visualizer.dataset.repeatPauseSeconds || "0") : 0,
     ),
@@ -23,7 +29,7 @@ export function consumePostEditPlaybackIntent(ord: number): PostEditPlaybackInte
 }
 
 export function notifyPostEditPlaybackReady(ord: number, sourceFilename: string): void {
-  const pending = window.__AQE_EDITOR_CONFIG__?.pendingPostEditPlayback;
+  const pending = editorRuntimeConfig().pendingPostEditPlayback;
   if (!pending || pending.fieldOrd !== ord) return;
   if (pending.sourceFilename && pending.sourceFilename !== sourceFilename) {
     logger.warn("post-edit playback ready deferred: source mismatch", postEditPlaybackDiagnosticContext(ord, sourceFilename));
@@ -37,25 +43,23 @@ export function notifyPostEditPlaybackReady(ord: number, sourceFilename: string)
     logger.info("post-edit playback ready deferred: graph not ready", postEditPlaybackDiagnosticContext(ord, sourceFilename));
     return;
   }
-  window.__aqePendingCommandPayload = {
+  dispatchPostEditPlaybackReady({
     command: "aqe:post-edit-playback-ready",
     fieldOrd: ord,
     generation: pending.generation,
     sourceFilename,
-  };
-  logger.info("post-edit playback ready dispatched", postEditPlaybackDiagnosticContext(ord, sourceFilename));
-  sendBridgeCommand("aqe:command-payload");
+  }, ord, sourceFilename);
 }
 
 function postEditPlaybackGraphReady(ord: number, sourceFilename: string): boolean {
-  const pending = window.__AQE_EDITOR_CONFIG__?.pendingPostEditPlayback;
+  const pending = editorRuntimeConfig().pendingPostEditPlayback;
   if (!pending?.requireGraphRedraw) return true;
   const sourceToMatch = pending.sourceFilename || sourceFilename;
   const visualizer = visualizerForOrd(ord);
-  return !!visualizer
-    && visualizer.dataset.graphBusy !== "true"
-    && visualizer.dataset.hasTrack === "true"
-    && (!sourceToMatch || visualizer.dataset.sourceFilename === sourceToMatch);
+  if (!visualizer) return false;
+  const s = readFieldState(ord);
+  return !s.graph.busy && s.graph.hasTrack
+    && (!sourceToMatch || s.sourceFilename === sourceToMatch);
 }
 
 export function notifyMountedPostEditPlaybackReady(): void {
@@ -68,21 +72,36 @@ export function notifyMountedPostEditPlaybackReady(): void {
 }
 
 function postEditPlaybackDiagnosticContext(ord: number, sourceFilename: string): Record<string, unknown> {
-  const pending = window.__AQE_EDITOR_CONFIG__?.pendingPostEditPlayback;
+  const pending = editorRuntimeConfig().pendingPostEditPlayback;
   const visualizer = visualizerForOrd(ord);
+  const s = visualizer ? readFieldState(ord) : null;
   return {
     bodyBusy: document.body.dataset.aqeBusy || "",
     controlSourceFilename: sourceFilename,
-    graphBusy: visualizer?.dataset.graphBusy || "",
+    graphBusy: s ? String(s.graph.busy) : "",
     hasPending: !!pending,
-    hasTrack: visualizer?.dataset.hasTrack || "",
+    hasTrack: s ? String(s.graph.hasTrack) : "",
     ord,
     pendingFieldOrd: pending?.fieldOrd,
     pendingGeneration: pending?.generation,
     pendingRequireGraphRedraw: pending?.requireGraphRedraw === true,
     pendingSourceFilename: pending?.sourceFilename || "",
-    visualizerSourceFilename: visualizer?.dataset.sourceFilename || "",
+    visualizerSourceFilename: s?.sourceFilename || "",
   };
+}
+
+function dispatchPostEditPlaybackReady(
+  payload: EditorCommandPayload,
+  ord: number,
+  sourceFilename: string,
+): void {
+  const testDispatcher = window.__aqeDispatchPostEditPlaybackReadyForTest;
+  const dispatch = () => {
+    sendCommandPayload(payload);
+    logger.info("post-edit playback ready dispatched", postEditPlaybackDiagnosticContext(ord, sourceFilename));
+  };
+  if (testDispatcher?.(payload, dispatch) === true) return;
+  dispatch();
 }
 
 function postEditPlaybackIntents(): Record<number, PostEditPlaybackIntent> {
@@ -96,5 +115,5 @@ function normalizedRepeatPauseSeconds(value: number): number {
 }
 
 function repeatDefaultFromConfig(): boolean {
-  return window.__AQE_EDITOR_CONFIG__?.repeatPlaybackByDefault === true;
+  return configRepeatPlaybackByDefault(editorRuntimeConfig());
 }

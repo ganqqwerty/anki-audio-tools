@@ -6,16 +6,26 @@ from .contract_schema import Layer, ModuleContract, SideEffect, contract
 
 CORE_CONTRACTS: dict[str, ModuleContract] = {
     "_version": contract("_version", layer=Layer.IMPORT_SAFE_CORE),
+    "audio_deps": contract("audio_deps", layer=Layer.IMPORT_SAFE_CORE),
     "audio_formats": contract("audio_formats", layer=Layer.IMPORT_SAFE_CORE),
     "config_migration": contract(
         "config_migration",
         layer=Layer.IMPORT_SAFE_CORE,
-        allowed_addon_deps=("audio_formats", "dpdfnet_settings"),
+        allowed_addon_deps=(
+            "audio_formats",
+            "audio_size_reduction",
+            "dpdfnet_settings",
+            "editor_button_visibility",
+        ),
     ),
     "contracts_generated": contract(
         "contracts_generated",
         layer=Layer.IMPORT_SAFE_CORE,
         notes="Generated quicktype DTOs for owned JSON bridge contracts.",
+    ),
+    "editor_button_visibility": contract(
+        "editor_button_visibility",
+        layer=Layer.IMPORT_SAFE_CORE,
     ),
     "db_helpers": contract(
         "db_helpers",
@@ -29,6 +39,7 @@ CORE_CONTRACTS: dict[str, ModuleContract] = {
             "audio_processor",
             "audio_tools",
             "error_codes",
+            "external_command_text",
             "permission_guidance",
             "runtime_manager",
         ),
@@ -49,6 +60,12 @@ CORE_CONTRACTS: dict[str, ModuleContract] = {
     "dpdfnet_settings": contract("dpdfnet_settings", layer=Layer.IMPORT_SAFE_CORE),
     "error_codes": contract("error_codes", layer=Layer.IMPORT_SAFE_CORE),
     "errors": contract("errors", layer=Layer.IMPORT_SAFE_CORE),
+    "external_links": contract(
+        "external_links",
+        layer=Layer.IMPORT_SAFE_CORE,
+        allowed_addon_deps=("errors", "file_reveal"),
+    ),
+    "external_command_text": contract("external_command_text", layer=Layer.IMPORT_SAFE_CORE),
     "ffmpeg_defaults": contract("ffmpeg_defaults", layer=Layer.IMPORT_SAFE_CORE),
     "frontend_logs": contract(
         "frontend_logs",
@@ -79,6 +96,13 @@ CORE_CONTRACTS: dict[str, ModuleContract] = {
         allowed_addon_deps=("sound_refs",),
     ),
     "permission_guidance": contract("permission_guidance", layer=Layer.IMPORT_SAFE_CORE),
+    "persistent_history": contract(
+        "persistent_history",
+        layer=Layer.IMPORT_SAFE_CORE,
+        allowed_addon_deps=("audio_state",),
+        allowed_side_effects=(SideEffect.DB_ACCESS,),
+        notes="Add-on-owned SQLite journal for persistent audio undo history.",
+    ),
     "prosody_analyzer": contract(
         "prosody_analyzer",
         layer=Layer.IMPORT_SAFE_CORE,
@@ -124,6 +148,12 @@ CORE_CONTRACTS: dict[str, ModuleContract] = {
     ),
     "prosody_types": contract("prosody_types", layer=Layer.IMPORT_SAFE_CORE),
     "release_info": contract("release_info", layer=Layer.IMPORT_SAFE_CORE),
+    "reviewer_audio_targets": contract("reviewer_audio_targets", layer=Layer.IMPORT_SAFE_CORE),
+    "reviewer_template_filter": contract(
+        "reviewer_template_filter",
+        layer=Layer.IMPORT_SAFE_CORE,
+        allowed_addon_deps=("reviewer_audio_targets", "sound_refs"),
+    ),
     "runtime_archive": contract(
         "runtime_archive",
         layer=Layer.IMPORT_SAFE_CORE,
@@ -191,6 +221,11 @@ CORE_CONTRACTS: dict[str, ModuleContract] = {
         "runtime_state",
         layer=Layer.IMPORT_SAFE_CORE,
         allowed_addon_deps=("runtime_manifest", "runtime_paths"),
+    ),
+    "vendor_runtime": contract(
+        "vendor_runtime",
+        layer=Layer.IMPORT_SAFE_CORE,
+        allowed_addon_deps=("runtime_paths", "runtime_platform"),
     ),
     "settings_state": contract(
         "settings_state",

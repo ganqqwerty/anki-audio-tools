@@ -1,0 +1,65 @@
+# WebView injection map for Anki Audio Quick Editor.
+# Each screen documents which Anki hooks register bridge commands,
+# which assets are injected, and the frontend/backend entry points.
+#
+# This file is the source of truth for the webview-injection Mermaid diagram.
+# Regenerate the diagram with: python3 scripts/dev.py graphs-webview
+
+screens:
+  editor:
+    hooks:
+      - editor_did_init
+      - editor_will_load_note
+    bridge_registration: editor._links[cmd] = handler
+    protocol: "raw pycmd (aqe:* namespace, no envelope)"
+    assets:
+      - templates/editor/editor_bundle.js
+      - templates/editor/editor_bundle.css
+    frontend_entry: settings_ui/src/editor-inline/main.ts
+    frontend_root: settings_ui/src/editor-inline/EditorControls.svelte
+    python_entry: addon/anki_audio_quick_editor/editor_integration.py
+    python_dispatcher: addon/anki_audio_quick_editor/editor_bridge.py
+    ts_bridge: settings_ui/src/editor-inline/bridge.ts
+    window_contract: settings_ui/src/editor-inline/window-contract.ts
+
+  settings:
+    hooks:
+      - addonManager.setConfigAction
+    bridge_registration: webview.set_bridge_command(handler, dialog)
+    protocol: "bridge:{json} envelope (shared)"
+    assets:
+      - templates/settings/settings_bundle.js
+      - templates/settings/settings_bundle.css
+    frontend_entry: settings_ui/src/main.ts
+    frontend_root: settings_ui/src/settings/SettingsApp.svelte
+    python_entry: addon/anki_audio_quick_editor/settings/__init__.py
+    python_dispatcher: addon/anki_audio_quick_editor/settings/commands.py
+    ts_bridge: settings_ui/src/lib/bridge.ts
+
+  batch:
+    hooks:
+      - browser_menus_did_init
+      - browser_will_show_context_menu
+    bridge_registration: webview.set_bridge_command(handler, self)
+    protocol: "bridge:{json} envelope (shared)"
+    assets:
+      - templates/batch/batch_bundle.js
+      - templates/batch/batch_bundle.css
+    frontend_entry: settings_ui/src/batch/main.ts
+    frontend_root: settings_ui/src/batch/BatchApp.svelte
+    python_entry: addon/anki_audio_quick_editor/browser_integration.py
+    python_dispatcher: addon/anki_audio_quick_editor/browser_dialog.py
+    ts_bridge: settings_ui/src/batch/bridge.ts
+
+  reviewer:
+    hooks:
+      - webview_will_set_content
+    bridge_registration: webview.set_bridge_command(wrapper, reviewer)
+    protocol: "raw pycmd (aqe:* + focus:*, intercepts original bridge)"
+    assets: []  # reuses editor-inline controls
+    frontend_entry: settings_ui/src/editor-inline/ (reuses editor bundle)
+    frontend_root: settings_ui/src/editor-inline/EditorControls.svelte
+    python_entry: addon/anki_audio_quick_editor/reviewer_integration.py
+    python_dispatcher: addon/anki_audio_quick_editor/reviewer_integration.py
+    ts_bridge: settings_ui/src/editor-inline/bridge.ts
+    window_contract: settings_ui/src/editor-inline/window-contract.ts

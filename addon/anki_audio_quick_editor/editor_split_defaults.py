@@ -13,6 +13,17 @@ MAX_REPEAT_PAUSE_SECONDS = 10.0
 MAX_RECORDING_COUNTDOWN_SECONDS = 10
 PITCH_HUM_MODES = frozenset({"direct", "pitch_tier"})
 SHARE_TARGETS = frozenset({"catbox", "litterbox"})
+AUDIO_PARAMETER_CONFIG_KEYS = (
+    ("volume_step_db", "volume_step_db"),
+    ("speed_step", "speed_step"),
+    ("pause_aggressiveness", "pause_aggressiveness"),
+    ("denoise_algorithm", "denoise_algorithm"),
+    ("dpdfnet_attn_limit_db", "dpdfnet_attn_limit_db"),
+    ("size_reduction_mode", "size_reduction_mode"),
+    ("size_reduction_bitrate_kbps", "size_reduction_bitrate_kbps"),
+    ("size_reduction_sample_rate_hz", "size_reduction_sample_rate_hz"),
+    ("size_reduction_channels", "size_reduction_channels"),
+)
 
 
 def save_split_defaults_from_frontend(editor: Any, deps: Any) -> None:
@@ -74,24 +85,34 @@ def _audio_parameter_updates(raw_defaults: dict[str, object]) -> dict[str, objec
         pause_preprocess_denoise=raw_defaults.get("pausePreprocessDenoise"),
         denoise_algorithm=raw_defaults.get("denoiseAlgorithm"),
         dpdfnet_attn_limit_db=raw_defaults.get("dpdfnetAttnLimitDb"),
+        size_reduction_mode=raw_defaults.get("sizeReductionMode"),
+        size_reduction_bitrate_kbps=raw_defaults.get("sizeReductionBitrateKbps"),
+        size_reduction_sample_rate_hz=raw_defaults.get("sizeReductionSampleRateHz"),
+        size_reduction_channels=raw_defaults.get("sizeReductionChannels"),
     )
-    if params.volume_step_db is not None:
-        updates["volume_step_db"] = params.volume_step_db
-    if params.speed_step is not None:
-        updates["speed_step"] = params.speed_step
-    if params.pause_aggressiveness is not None:
-        updates["pause_aggressiveness"] = params.pause_aggressiveness
+    _apply_present_parameter_updates(updates, params, AUDIO_PARAMETER_CONFIG_KEYS)
+    _apply_pause_detection_updates(updates, params)
+    return updates
+
+
+def _apply_present_parameter_updates(
+    updates: dict[str, object],
+    params: Any,
+    fields: tuple[tuple[str, str], ...],
+) -> None:
+    for attr_name, config_key in fields:
+        value = getattr(params, attr_name)
+        if value is not None:
+            updates[config_key] = value
+
+
+def _apply_pause_detection_updates(updates: dict[str, object], params: Any) -> None:
     if params.pause_detection_algorithm is not None:
         updates["pause_detection_algorithm"] = params.pause_detection_algorithm
     if params.pause_detection_algorithm == "silero_vad":
         _apply_silero_pause_updates(updates, params)
     elif params.pause_detection_algorithm == "silencedetect":
         _apply_silencedetect_pause_updates(updates, params)
-    if params.denoise_algorithm is not None:
-        updates["denoise_algorithm"] = params.denoise_algorithm
-    if params.dpdfnet_attn_limit_db is not None:
-        updates["dpdfnet_attn_limit_db"] = params.dpdfnet_attn_limit_db
-    return updates
 
 
 def _apply_silencedetect_pause_updates(

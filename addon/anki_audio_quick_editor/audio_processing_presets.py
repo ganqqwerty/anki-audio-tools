@@ -135,6 +135,10 @@ def _parameters_from_raw(raw: Any) -> AudioOperationParameters:
         denoise_algorithm=raw.get("denoise_algorithm"),
         dpdfnet_attn_limit_db=raw.get("dpdfnet_attn_limit_db"),
         target_format=raw.get("target_format"),
+        size_reduction_mode=raw.get("size_reduction_mode"),
+        size_reduction_bitrate_kbps=raw.get("size_reduction_bitrate_kbps"),
+        size_reduction_sample_rate_hz=raw.get("size_reduction_sample_rate_hz"),
+        size_reduction_channels=raw.get("size_reduction_channels"),
     )
 
 

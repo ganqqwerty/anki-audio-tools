@@ -2,18 +2,19 @@
 
 from __future__ import annotations
 
-import math
+import importlib
 import sys
-import wave
 from array import array
 from pathlib import Path
 from types import SimpleNamespace
 
 import pytest
 
+from anki_audio_quick_editor.audio_output_policy import codec_args_for_output_policy
 from anki_audio_quick_editor.audio_pitch_hum import (
     HUM_SAMPLE_RATE,
     PitchHumFrame,
+    _pitch_hum_output_policy,
     _synthesize_pitch_hum_pcm,
     _synthesize_pitch_tier_pcm,
     render_pitch_hum_audio,
@@ -27,40 +28,12 @@ from anki_audio_quick_editor.audio_pitch_hum_synthesis import (
 from anki_audio_quick_editor.audio_state import AudioProcessingConfig
 from anki_audio_quick_editor.audio_types import AudioProcessingResult
 from anki_audio_quick_editor.errors import AudioProcessingError
-
-
-def _write_voiced_silence_voiced_wav(path: Path) -> None:
-    samples = array("h")
-    for duration_s, pitch_hz in ((0.35, 220.0), (0.35, None), (0.35, 330.0)):
-        segment_samples = round(duration_s * HUM_SAMPLE_RATE)
-        for sample_index in range(segment_samples):
-            if pitch_hz is None:
-                samples.append(0)
-                continue
-            phase = 2 * math.pi * pitch_hz * sample_index / HUM_SAMPLE_RATE
-            samples.append(round(math.sin(phase) * 0.35 * 32767))
-    with wave.open(str(path), "wb") as wav_file:
-        wav_file.setnchannels(1)
-        wav_file.setsampwidth(2)
-        wav_file.setframerate(HUM_SAMPLE_RATE)
-        wav_file.writeframes(samples.tobytes())
-
-
-def _read_wav_pcm(path: Path) -> tuple[int, array[int]]:
-    with wave.open(str(path), "rb") as wav_file:
-        sample_rate = wav_file.getframerate()
-        samples = array("h")
-        samples.frombytes(wav_file.readframes(wav_file.getnframes()))
-    return sample_rate, samples
-
-
-def _region_rms(samples: array[int], sample_rate: int, start_s: float, end_s: float) -> float:
-    start = round(start_s * sample_rate)
-    end = round(end_s * sample_rate)
-    region = samples[start:end]
-    if not region:
-        return 0.0
-    return math.sqrt(sum(sample * sample for sample in region) / len(region))
+from tests.audio_pitch_hum_fixtures import (
+    read_wav_pcm,
+    region_rms,
+    wav_source_metadata,
+    write_voiced_silence_voiced_wav,
+)
 
 
 def test_sanitize_pitch_hum_frames_clamps_to_pitch_range() -> None:
@@ -191,6 +164,35 @@ def test_pitch_hum_and_pitch_tier_synthesis_apply_shared_nasal_onsets(monkeypatc
     ]
 
 
+def test_pitch_hum_output_policy_preserves_source_bitrate_and_sample_rate(monkeypatch) -> None:
+    monkeypatch.setattr(
+        "anki_audio_quick_editor.audio_pitch_hum.probe_audio_metadata",
+        lambda source_path, _config: wav_source_metadata(
+            source_path,
+            visible_format="mp3",
+            codec_name="mp3",
+            sample_rate=24000,
+            channels=2,
+            bit_rate=128000,
+            bits_per_raw_sample=None,
+            sample_fmt=None,
+        ),
+    )
+
+    policy = _pitch_hum_output_policy(Path("clip.mp3"), AudioProcessingConfig(), Path("hum.mp3"))
+
+    assert codec_args_for_output_policy(policy) == (
+        "-codec:a",
+        "libmp3lame",
+        "-b:a",
+        "128k",
+        "-ar",
+        "24000",
+        "-ac",
+        "2",
+    )
+
+
 def test_pitch_hum_synthesis_keeps_unvoiced_frames_silent() -> None:
     frames = [
         PitchHumFrame(time_s=0.0, pitch_hz=None, intensity_db=None),
@@ -279,9 +281,10 @@ def test_renderers_preserve_voiced_regions_and_silence_unvoiced_gap(
     monkeypatch,
     tmp_path: Path,
 ) -> None:
-    pytest.importorskip("parselmouth")
+    importlib.import_module("parselmouth")
+
     source = tmp_path / "voiced-silence-voiced.wav"
-    _write_voiced_silence_voiced_wav(source)
+    write_voiced_silence_voiced_wav(source)
     region_levels: dict[str, dict[str, float]] = {}
 
     def fake_encode(
@@ -292,17 +295,21 @@ def test_renderers_preserve_voiced_regions_and_silence_unvoiced_gap(
         *,
         failure_message: str,
     ) -> AudioProcessingResult:
-        sample_rate, samples = _read_wav_pcm(wav_path)
+        sample_rate, samples = read_wav_pcm(wav_path)
         label = "pitch_tier" if "PitchTier" in failure_message else "direct"
         region_levels[label] = {
-            "first_voiced": _region_rms(samples, sample_rate, 0.12, 0.28),
-            "gap": _region_rms(samples, sample_rate, 0.47, 0.63),
-            "second_voiced": _region_rms(samples, sample_rate, 0.82, 0.98),
+            "first_voiced": region_rms(samples, sample_rate, 0.12, 0.28),
+            "gap": region_rms(samples, sample_rate, 0.47, 0.63),
+            "second_voiced": region_rms(samples, sample_rate, 0.82, 0.98),
         }
         output_path.write_bytes(b"encoded")
         return AudioProcessingResult(output_path=output_path, command=(), duration_ms=1050)
 
     monkeypatch.setattr("anki_audio_quick_editor.audio_pitch_hum._encode_pitch_hum_wav", fake_encode)
+    monkeypatch.setattr(
+        "anki_audio_quick_editor.audio_pitch_hum.probe_audio_metadata",
+        lambda source_path, _config: wav_source_metadata(source_path),
+    )
 
     render_pitch_hum_audio(source, AudioProcessingConfig(), tmp_path / "direct.mp3")
     render_pitch_tier_hum_audio(source, AudioProcessingConfig(), tmp_path / "pitch-tier.mp3")
@@ -359,6 +366,10 @@ def test_render_pitch_tier_hum_uses_pitch_tier_sine_not_overlap_add(monkeypatch,
         lambda name: SimpleNamespace(call=fake_call) if name == "parselmouth.praat" else None,
     )
     monkeypatch.setattr("anki_audio_quick_editor.audio_pitch_hum._encode_pitch_hum_wav", fake_encode)
+    monkeypatch.setattr(
+        "anki_audio_quick_editor.audio_pitch_hum.probe_audio_metadata",
+        lambda source_path, _config: wav_source_metadata(source_path),
+    )
 
     result = render_pitch_tier_hum_audio(tmp_path / "clip.wav", AudioProcessingConfig(), tmp_path / "out.mp3")
 

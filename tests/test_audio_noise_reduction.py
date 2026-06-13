@@ -5,6 +5,7 @@ from types import SimpleNamespace
 
 import pytest
 
+from anki_audio_quick_editor.audio_output_policy import AudioSourceMetadata
 from anki_audio_quick_editor.audio_processor import (
     _render_external_error_message,
     render_noise_reduced_audio,
@@ -16,12 +17,37 @@ from anki_audio_quick_editor.errors import (
 )
 from tests.audio_fixtures import (
     DEEP_FILTER_AVAILABLE,
-    FFMPEG_AVAILABLE,
     _db_drop,
     _decode_mono_pcm16,
     _generate_noisy_speech_like_clip,
     _window_rms,
 )
+
+DEEP_FILTER = str(Path("/bin/deep-filter"))
+FFMPEG = str(Path("/bin/ffmpeg"))
+
+
+def _source_metadata(
+    source_path: Path,
+    *,
+    visible_format: str = "mp3",
+    codec_name: str = "mp3",
+    sample_rate: int = 22050,
+    channels: int = 2,
+    bit_rate: int | None = 96000,
+    bits_per_raw_sample: int | None = None,
+    sample_fmt: str | None = None,
+) -> AudioSourceMetadata:
+    return AudioSourceMetadata(
+        path=source_path,
+        visible_format=visible_format,
+        codec_name=codec_name,
+        sample_rate=sample_rate,
+        channels=channels,
+        bit_rate=bit_rate,
+        bits_per_raw_sample=bits_per_raw_sample,
+        sample_fmt=sample_fmt,
+    )
 
 
 def test_select_deep_filter_output_accepts_exactly_one_wav(tmp_path: Path) -> None:
@@ -56,10 +82,20 @@ def test_render_noise_reduced_audio_runs_prepare_deep_filter_and_encode(
         lambda *_args: Path("/bin/deep-filter"),
     )
     monkeypatch.setattr("anki_audio_quick_editor.audio_processor.probe_duration_ms", lambda *_args: 1000)
+    monkeypatch.setattr(
+        "anki_audio_quick_editor.audio_processor.probe_audio_metadata",
+        lambda source_path, _config: _source_metadata(source_path),
+    )
 
-    def fake_run(cmd: list[str], capture_output: bool, text: bool, check: bool) -> SimpleNamespace:
+    def fake_run(
+        cmd: list[str],
+        capture_output: bool,
+        text: bool,
+        check: bool,
+        **_kwargs: object,
+    ) -> SimpleNamespace:
         calls.append(cmd)
-        if cmd[0] == "/bin/deep-filter":
+        if cmd[0] == DEEP_FILTER:
             output_dir = Path(cmd[cmd.index("-o") + 1])
             output_dir.mkdir(parents=True, exist_ok=True)
             (output_dir / "input_48k_mono.wav").write_bytes(b"cleaned")
@@ -76,7 +112,7 @@ def test_render_noise_reduced_audio_runs_prepare_deep_filter_and_encode(
     )
 
     assert calls[0][:10] == [
-        "/bin/ffmpeg",
+        FFMPEG,
         "-y",
         "-i",
         str(tmp_path / "source.mp3"),
@@ -87,9 +123,9 @@ def test_render_noise_reduced_audio_runs_prepare_deep_filter_and_encode(
         "48000",
         "-codec:a",
     ]
-    assert calls[1][0:3] == ["/bin/deep-filter", "-D", "--pf"]
-    assert calls[2][0:4] == ["/bin/ffmpeg", "-y", "-i", calls[2][3]]
-    assert calls[2][-9:] == ["-codec:a", "libmp3lame", "-q:a", "4", "-ar", "48000", "-ac", "1", str(output)]
+    assert calls[1][0:3] == [DEEP_FILTER, "-D", "--pf"]
+    assert calls[2][0:4] == [FFMPEG, "-y", "-i", calls[2][3]]
+    assert calls[2][-9:] == ["-codec:a", "libmp3lame", "-b:a", "96k", "-ar", "22050", "-ac", "2", str(output)]
     assert commands == [tuple(call) for call in calls]
     assert result.output_path == output
     assert result.command == tuple(calls[1])
@@ -105,9 +141,19 @@ def test_render_noise_reduced_audio_reports_deep_filter_parameter_errors(
         "anki_audio_quick_editor.audio_processor.find_deep_filter",
         lambda *_args: Path("/bin/deep-filter"),
     )
+    monkeypatch.setattr(
+        "anki_audio_quick_editor.audio_processor.probe_audio_metadata",
+        lambda source_path, _config: _source_metadata(source_path),
+    )
 
-    def fake_run(cmd: list[str], capture_output: bool, text: bool, check: bool) -> SimpleNamespace:
-        if cmd[0] == "/bin/deep-filter":
+    def fake_run(
+        cmd: list[str],
+        capture_output: bool,
+        text: bool,
+        check: bool,
+        **_kwargs: object,
+    ) -> SimpleNamespace:
+        if cmd[0] == DEEP_FILTER:
             return SimpleNamespace(returncode=2, stdout="", stderr="error: unexpected argument '--atten-lim'")
         return SimpleNamespace(returncode=0, stdout="", stderr="")
 
@@ -130,9 +176,19 @@ def test_render_noise_reduced_audio_reports_deep_filter_launch_errors(
         "anki_audio_quick_editor.audio_processor.find_deep_filter",
         lambda *_args: Path("/bin/deep-filter"),
     )
+    monkeypatch.setattr(
+        "anki_audio_quick_editor.audio_processor.probe_audio_metadata",
+        lambda source_path, _config: _source_metadata(source_path),
+    )
 
-    def fake_run(cmd: list[str], capture_output: bool, text: bool, check: bool) -> SimpleNamespace:
-        if cmd[0] == "/bin/deep-filter":
+    def fake_run(
+        cmd: list[str],
+        capture_output: bool,
+        text: bool,
+        check: bool,
+        **_kwargs: object,
+    ) -> SimpleNamespace:
+        if cmd[0] == DEEP_FILTER:
             raise PermissionError(13, "Permission denied", "/bin/deep-filter")
         return SimpleNamespace(returncode=0, stdout="", stderr="")
 
@@ -157,8 +213,18 @@ def test_render_noise_reduced_audio_reports_prepare_failure_before_deep_filter(
         "anki_audio_quick_editor.audio_processor.find_deep_filter",
         lambda *_args: Path("/bin/deep-filter"),
     )
+    monkeypatch.setattr(
+        "anki_audio_quick_editor.audio_processor.probe_audio_metadata",
+        lambda source_path, _config: _source_metadata(source_path),
+    )
 
-    def fake_run(cmd: list[str], capture_output: bool, text: bool, check: bool) -> SimpleNamespace:
+    def fake_run(
+        cmd: list[str],
+        capture_output: bool,
+        text: bool,
+        check: bool,
+        **_kwargs: object,
+    ) -> SimpleNamespace:
         calls.append(cmd)
         return SimpleNamespace(returncode=1, stdout="", stderr="prepare failed")
 
@@ -172,7 +238,7 @@ def test_render_noise_reduced_audio_reports_prepare_failure_before_deep_filter(
         )
 
     assert len(calls) == 1
-    assert calls[0][0] == "/bin/ffmpeg"
+    assert calls[0][0] == FFMPEG
 
 
 def test_render_noise_reduced_audio_reports_encode_failure_after_deep_filter(
@@ -187,10 +253,29 @@ def test_render_noise_reduced_audio_reports_encode_failure_after_deep_filter(
         "anki_audio_quick_editor.audio_processor.find_deep_filter",
         lambda *_args: Path("/bin/deep-filter"),
     )
+    monkeypatch.setattr(
+        "anki_audio_quick_editor.audio_processor.probe_audio_metadata",
+        lambda source_path, _config: AudioSourceMetadata(
+            path=source_path,
+            visible_format="mp3",
+            codec_name="mp3",
+            sample_rate=22050,
+            channels=2,
+            bit_rate=96000,
+            bits_per_raw_sample=None,
+            sample_fmt=None,
+        ),
+    )
 
-    def fake_run(cmd: list[str], capture_output: bool, text: bool, check: bool) -> SimpleNamespace:
+    def fake_run(
+        cmd: list[str],
+        capture_output: bool,
+        text: bool,
+        check: bool,
+        **_kwargs: object,
+    ) -> SimpleNamespace:
         calls.append(cmd)
-        if cmd[0] == "/bin/deep-filter":
+        if cmd[0] == DEEP_FILTER:
             output_dir = Path(cmd[cmd.index("-o") + 1])
             output_dir.mkdir(parents=True, exist_ok=True)
             (output_dir / "clean.wav").write_bytes(b"cleaned")
@@ -208,7 +293,7 @@ def test_render_noise_reduced_audio_reports_encode_failure_after_deep_filter(
         )
 
     assert str(exc_info.value) == "Could not encode DeepFilterNet output."
-    assert [call[0] for call in calls] == ["/bin/ffmpeg", "/bin/deep-filter", "/bin/ffmpeg"]
+    assert [call[0] for call in calls] == [FFMPEG, DEEP_FILTER, FFMPEG]
 
 
 def test_render_noise_reduced_audio_uses_default_temp_output_path(
@@ -220,10 +305,20 @@ def test_render_noise_reduced_audio_uses_default_temp_output_path(
         "anki_audio_quick_editor.audio_processor.find_deep_filter",
         lambda *_args: Path("/bin/deep-filter"),
     )
+    monkeypatch.setattr(
+        "anki_audio_quick_editor.audio_processor.probe_audio_metadata",
+        lambda source_path, _config: _source_metadata(source_path),
+    )
     monkeypatch.setattr("anki_audio_quick_editor.audio_processor.probe_duration_ms", lambda *_args: 1234)
 
-    def fake_run(cmd: list[str], capture_output: bool, text: bool, check: bool) -> SimpleNamespace:
-        if cmd[0] == "/bin/deep-filter":
+    def fake_run(
+        cmd: list[str],
+        capture_output: bool,
+        text: bool,
+        check: bool,
+        **_kwargs: object,
+    ) -> SimpleNamespace:
+        if cmd[0] == DEEP_FILTER:
             output_dir = Path(cmd[cmd.index("-o") + 1])
             output_dir.mkdir(parents=True, exist_ok=True)
             (output_dir / "clean.wav").write_bytes(b"cleaned")
@@ -271,11 +366,11 @@ def test_render_external_error_message_prefers_structured_and_plain_output(
     assert _render_external_error_message(result, default_message) == expected
 
 
-@pytest.mark.skipif(
-    not FFMPEG_AVAILABLE or not DEEP_FILTER_AVAILABLE,
-    reason="deep-filter, ffmpeg, and ffprobe are required for denoise quality smoke tests",
-)
+@pytest.mark.allow_managed_runtime
 def test_render_noise_reduced_audio_reduces_measured_noise_floor(tmp_path: Path) -> None:
+    if not DEEP_FILTER_AVAILABLE:
+        pytest.fail("deep-filter is required for denoise quality smoke tests")
+
     source = tmp_path / "noisy_speech_like.wav"
     output = tmp_path / "denoised.mp3"
     _generate_noisy_speech_like_clip(source)

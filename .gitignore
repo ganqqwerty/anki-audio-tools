@@ -1,4 +1,9 @@
-/addon/anki_audio_quick_editor/vendor/
+/addon/anki_audio_quick_editor/vendor/*
+!/addon/anki_audio_quick_editor/vendor/README.md
+!/addon/anki_audio_quick_editor/vendor/wheels.lock.json
+!/addon/anki_audio_quick_editor/vendor/wheels/
+!/addon/anki_audio_quick_editor/vendor/wheels/**
+/addon/anki_audio_quick_editor/user_files/
 /.venv/
 __pycache__/
 .DS_Store
@@ -45,3 +50,6 @@ node_modules
 /addon/anki_audio_quick_editor/anki_audio_quick_editor_events.jsonl
 /addon/anki_audio_quick_editor/anki_audio_quick_editor_session.json
 /addon/anki_audio_quick_editor/anki_audio_quick_editor_events.jsonl.1
+docs/graphs/*.dot
+docs/architecture/.structurizr/
+docs/architecture/workspace.json

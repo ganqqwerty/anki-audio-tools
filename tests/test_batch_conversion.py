@@ -5,13 +5,19 @@ from __future__ import annotations
 from pathlib import Path
 
 from anki_audio_quick_editor.audio_operation_params import AudioOperationParameters
-from anki_audio_quick_editor.audio_operations import OP_CONVERT
+from anki_audio_quick_editor.audio_operations import OP_CONVERT, OP_REDUCE_SIZE
 from anki_audio_quick_editor.audio_state import AudioProcessingConfig
+from anki_audio_quick_editor.batch_operation_processing import (
+    BatchOperationDeps,
+    process_transform_operation,
+)
 from anki_audio_quick_editor.batch_operations import (
     BatchNoteSnapshot,
     BatchRunRequest,
     process_note_batch_operation,
 )
+from anki_audio_quick_editor.errors import AudioAlreadyCompactError
+from anki_audio_quick_editor.sound_refs import SoundReference
 
 
 def test_process_note_batch_operation_converts_audio_to_target_format(
@@ -98,3 +104,170 @@ def test_process_note_batch_operation_skips_convert_when_visible_extension_match
     assert result.message == "already in MP3 format"
     assert result.audio_filename == "clip.MP3"
     assert result.written_filename is None
+
+
+def test_process_note_batch_operation_reduces_audio_size_to_mp3(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    source = tmp_path / "clip.wav"
+    source.write_bytes(b"audio")
+    note = BatchNoteSnapshot(10, "Basic", {"Audio": "before [sound:clip.wav] after"})
+    reduce_calls: list[tuple[str, str, str, int, int, int, str]] = []
+    writes: list[tuple[str, bytes]] = []
+
+    def fake_render_size_reduced_audio(
+        source_path,
+        config,
+        output_path=None,
+        on_command=None,
+        *,
+        mode=None,
+    ):
+        del on_command
+        assert output_path is not None
+        output_path.write_bytes(b"smaller")
+        reduce_calls.append(
+            (
+                source_path.name,
+                config.size_reduction_mode,
+                mode,
+                config.size_reduction_bitrate_kbps,
+                config.size_reduction_sample_rate_hz,
+                config.size_reduction_channels,
+                output_path.suffix,
+            )
+        )
+
+    monkeypatch.setattr(
+        "anki_audio_quick_editor.batch_operations.render_size_reduced_audio",
+        fake_render_size_reduced_audio,
+    )
+
+    def media_writer(name: str, data: bytes) -> str:
+        writes.append((name, data))
+        return name
+
+    result = process_note_batch_operation(
+        note,
+        request=BatchRunRequest(
+            operation=OP_REDUCE_SIZE,
+            source_field="Audio",
+            parameters=AudioOperationParameters(
+                size_reduction_mode="aggressive",
+                size_reduction_bitrate_kbps=32,
+                size_reduction_sample_rate_hz=16000,
+                size_reduction_channels=1,
+            ),
+        ),
+        media_dir=tmp_path,
+        config=AudioProcessingConfig(size_reduction_mode="normal"),
+        media_writer=media_writer,
+    )
+
+    assert result.written
+    assert result.written_filename is not None
+    assert result.written_filename.endswith(".mp3")
+    assert result.written_filename in result.target_html
+    assert reduce_calls == [("clip.wav", "aggressive", "aggressive", 32, 16000, 1, ".mp3")]
+    assert writes[0][0].endswith(".mp3")
+    assert writes[0][1] == b"smaller"
+
+
+def test_process_note_batch_operation_skips_size_reduction_when_already_compact(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    source = tmp_path / "clip.mp3"
+    source.write_bytes(b"audio")
+    note = BatchNoteSnapshot(10, "Basic", {"Audio": "[sound:clip.mp3]"})
+
+    def fake_render_size_reduced_audio(*_args, **_kwargs):
+        raise AudioAlreadyCompactError("already compact")
+
+    monkeypatch.setattr(
+        "anki_audio_quick_editor.batch_operations.render_size_reduced_audio",
+        fake_render_size_reduced_audio,
+    )
+
+    result = process_note_batch_operation(
+        note,
+        request=BatchRunRequest(
+            operation=OP_REDUCE_SIZE,
+            source_field="Audio",
+            parameters=AudioOperationParameters(size_reduction_mode="normal"),
+        ),
+        media_dir=tmp_path,
+        config=AudioProcessingConfig(),
+        media_writer=lambda name, data: name,
+    )
+
+    assert result.status == "skipped"
+    assert result.message == "already compact"
+    assert result.written_filename is None
+
+
+def test_process_transform_operation_uses_explicit_render_deps(tmp_path: Path) -> None:
+    source_path = tmp_path / "clip.wav"
+    source_path.write_bytes(b"audio")
+    source_html = "before [sound:clip.wav] after"
+    tag = "[sound:clip.wav]"
+    tag_start = source_html.index(tag)
+    selection = SoundReference(
+        tag=tag,
+        filename="clip.wav",
+        start=tag_start,
+        end=tag_start + len(tag),
+    )
+    note = BatchNoteSnapshot(10, "Basic", {"Audio": source_html})
+    calls: list[tuple[str, str, str]] = []
+    writes: list[tuple[str, bytes]] = []
+
+    def fake_render_converted_audio(*args, **kwargs):
+        output_path = kwargs["output_path"]
+        assert output_path is not None
+        output_path.write_bytes(b"converted")
+        calls.append(("convert", args[0].name, output_path.suffix))
+
+    deps = BatchOperationDeps(
+        analyze_prosody_cached=lambda *_args, **_kwargs: (_ for _ in ()).throw(
+            AssertionError("graph renderer should not run")
+        ),
+        render_audio=lambda *_args, **_kwargs: (_ for _ in ()).throw(
+            AssertionError("default renderer should not run")
+        ),
+        render_converted_audio=fake_render_converted_audio,
+        render_size_reduced_audio=lambda *_args, **_kwargs: (_ for _ in ()).throw(
+            AssertionError("size renderer should not run")
+        ),
+        render_batch_denoise=lambda *_args, **_kwargs: (_ for _ in ()).throw(
+            AssertionError("denoise renderer should not run")
+        ),
+    )
+
+    def media_writer(name: str, data: bytes) -> str:
+        writes.append((name, data))
+        return name
+
+    result = process_transform_operation(
+        note,
+        request=BatchRunRequest(
+            operation=OP_CONVERT,
+            source_field="Audio",
+            parameters=AudioOperationParameters(target_format="flac"),
+        ),
+        source_html=source_html,
+        source_path=source_path,
+        selection=selection,
+        audio_filename="clip.wav",
+        config=AudioProcessingConfig(output_format="mp3"),
+        media_writer=media_writer,
+        artifact_root=None,
+        operation_id="test-op",
+        deps=deps,
+    )
+
+    assert result.status == "written"
+    assert result.written_filename is not None
+    assert calls == [("convert", "clip.wav", ".flac")]
+    assert writes == [(result.written_filename, b"converted")]

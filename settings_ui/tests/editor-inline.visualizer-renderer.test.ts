@@ -1,12 +1,15 @@
 import { describe, expect, it, vi } from "vitest";
 
 import { PLOT, xForMs } from "../src/editor-inline/plot.js";
+import { applyVisualizerTimeViewport } from "../src/editor-inline/viewport-actions.js";
 import {
   renderCursor,
+  renderVisualizerTrack,
   renderPlaybackCursor,
   resetCursorProjection,
   startPlaybackCursorTransition,
 } from "../src/editor-inline/visualizer-renderer.js";
+import { renderSelection } from "../src/editor-inline/visualizer-selection-renderer.js";
 import type { NormalizedProsodyTrack, VisualizerElement } from "../src/editor-inline/types.js";
 
 const voicedTrack: NormalizedProsodyTrack = {
@@ -85,17 +88,17 @@ describe("editor inline visualizer renderer", () => {
     renderPlaybackCursor(visualizer, 0, voicedTrack.durationMs, 0);
     renderPlaybackCursor(visualizer, 100, voicedTrack.durationMs, 10);
 
-    expect(cssCursor.style.transform).toBe("");
+    expect(cssCursor.style.transform).toBe(`translate3d(${xForMs(100, voicedTrack.durationMs).toFixed(2)}px, 0, 0)`);
     expect(current.textContent).toBe("0 ms");
 
     renderPlaybackCursor(visualizer, 100, voicedTrack.durationMs, 17);
 
-    expect(cssCursor.style.transform).toBe("");
+    expect(cssCursor.style.transform).toBe(`translate3d(${xForMs(100, voicedTrack.durationMs).toFixed(2)}px, 0, 0)`);
     expect(current.textContent).toBe("0 ms");
 
     renderPlaybackCursor(visualizer, 200, voicedTrack.durationMs, 110);
 
-    expect(cssCursor.style.transform).toBe("");
+    expect(cssCursor.style.transform).toBe(`translate3d(${xForMs(200, voicedTrack.durationMs).toFixed(2)}px, 0, 0)`);
     expect(current.textContent).toBe("200 ms");
   });
 
@@ -148,12 +151,106 @@ describe("editor inline visualizer renderer", () => {
 
     expect(current.textContent).toBe("700 ms");
   });
+
+  it("redraws graph x positions through the visualizer viewport without changing pitch y scale", () => {
+    const visualizer = mountVisualizer(voicedTrack);
+
+    renderVisualizerTrack(visualizer, voicedTrack);
+    const fullPath = visualizer.querySelector<SVGPathElement>(".aqe-pitch-path")?.getAttribute("d") || "";
+    applyVisualizerTimeViewport(visualizer, { startMs: 0, endMs: 500, durationMs: 1000 });
+    const zoomedPath = visualizer.querySelector<SVGPathElement>(".aqe-pitch-path")?.getAttribute("d") || "";
+
+    expect(fullPath).toContain("L 327.00 80.80");
+    expect(zoomedPath).toContain("L 610.00 80.80");
+  });
+
+  it("syncs the plot clip and x-axis to the rendered SVG width", () => {
+    const visualizer = mountVisualizer(voicedTrack);
+    const svg = visualizer.querySelector<SVGSVGElement>(".aqe-visualizer-svg")!;
+    setSvgBounds(svg, 1240);
+
+    renderVisualizerTrack(visualizer, voicedTrack);
+
+    const intensity = visualizer.querySelector<SVGPathElement>(".aqe-intensity")!;
+    const clipRect = visualizer.querySelector<SVGRectElement>("clipPath > rect")!;
+    const lastTick = Array.from(visualizer.querySelectorAll<SVGLineElement>(".aqe-x-tick")).at(-1)!;
+    expect(svg.getAttribute("viewBox")).toBe("0 0 1240 150");
+    expect(clipRect.getAttribute("width")).toBe("1186");
+    expect(intensity.getAttribute("d")).toContain("L 1230.00 116.00 Z");
+    expect(lastTick.getAttribute("x1")).toBe("1230.00");
+  });
+
+  it("clips selection rendering to the visible viewport while preserving selected milliseconds", () => {
+    const visualizer = mountVisualizer(voicedTrack);
+    visualizer.dataset.targetDurationMs = "1000";
+    visualizer.dataset.viewportStartMs = "250";
+    visualizer.dataset.viewportEndMs = "750";
+
+    renderSelection(visualizer, { startMs: 100, endMs: 500, mode: "selection" }, null);
+
+    const band = visualizer.querySelector<SVGRectElement>(".aqe-selection")!;
+    expect(band.getAttribute("visibility")).toBe("visible");
+    expect(band.getAttribute("x")).toBe(PLOT.left.toFixed(2));
+    expect(Number(band.getAttribute("width"))).toBeGreaterThan(0);
+    const plot = visualizer.querySelector<HTMLElement>(".aqe-visualizer-plot")!;
+    expect(plot.dataset.selectionOverlayReady).toBe("true");
+    expect(plot.dataset.selectionStartEdgeVisible).toBe("false");
+    expect(plot.dataset.selectionEndEdgeVisible).toBe("true");
+    expect(plot.style.getPropertyValue("--aqe-selection-end-edge-px")).not.toBe("");
+  });
+
+  it("flags narrow selections to hide the inner marker-shift buttons", () => {
+    const visualizer = mountVisualizer(voicedTrack);
+
+    renderSelection(visualizer, { startMs: 480, endMs: 530, mode: "selection" }, null);
+
+    const plot = visualizer.querySelector<HTMLElement>(".aqe-visualizer-plot")!;
+    expect(plot.dataset.selectionShiftHideInner).toBe("true");
+  });
+
+  it("hides the visible cursor when the cursor is outside the zoomed viewport", () => {
+    const visualizer = mountVisualizer(voicedTrack);
+    const cssCursor = visualizer.querySelector<HTMLElement>(".aqe-css-cursor")!;
+    visualizer.dataset.viewportStartMs = "250";
+    visualizer.dataset.viewportEndMs = "750";
+
+    renderCursor(visualizer, 900, voicedTrack.durationMs);
+
+    expect(cssCursor.style.display).toBe("none");
+  });
 });
 
 function mountVisualizer(track: NormalizedProsodyTrack): VisualizerElement {
   document.body.innerHTML = `
-    <div class="aqe-visualizer" data-duration-ms="${track.durationMs}">
-      <svg class="aqe-visualizer-svg"></svg>
+    <div class="aqe-visualizer" data-aqe-field-ord="0" data-duration-ms="${track.durationMs}" data-target-duration-ms="${track.durationMs}">
+      <div class="aqe-visualizer-plot">
+        <svg class="aqe-visualizer-svg" viewBox="0 0 ${PLOT.width} ${PLOT.height}">
+          <defs>
+            <clipPath>
+              <rect
+                x="${PLOT.left}"
+                y="${PLOT.top}"
+                width="${PLOT.width - PLOT.left - PLOT.right}"
+                height="${PLOT.height - PLOT.top - PLOT.bottom}"
+              ></rect>
+            </clipPath>
+          </defs>
+          <rect class="aqe-selection" x="${PLOT.left}" y="${PLOT.top}" width="0" height="${PLOT.height - PLOT.top - PLOT.bottom}" visibility="hidden"></rect>
+          <path class="aqe-intensity"></path>
+          <g class="aqe-pitch"></g>
+          <g class="aqe-learner-pitch"></g>
+          <rect class="aqe-selection-outside-preview-before" visibility="hidden"></rect>
+          <rect class="aqe-selection-outside-preview-after" visibility="hidden"></rect>
+          <g class="aqe-labels"></g>
+          <g class="aqe-x-axis"></g>
+          <line class="aqe-selection-start" visibility="hidden"></line>
+          <line class="aqe-selection-end" visibility="hidden"></line>
+          <rect class="aqe-selection-resize-start" visibility="hidden"></rect>
+          <rect class="aqe-selection-resize-end" visibility="hidden"></rect>
+          <g class="aqe-selection-resize-grip-start" visibility="hidden"></g>
+          <g class="aqe-selection-resize-grip-end" visibility="hidden"></g>
+        </svg>
+      </div>
       <div class="aqe-css-cursor">
         <div class="aqe-css-cursor-line"></div>
         <div class="aqe-css-cursor-flag">
@@ -170,4 +267,18 @@ function mountVisualizer(track: NormalizedProsodyTrack): VisualizerElement {
   if (!visualizer) throw new Error("visualizer fixture did not mount");
   visualizer.__aqeTrack = track;
   return visualizer;
+}
+
+function setSvgBounds(svg: SVGSVGElement, width: number): void {
+  svg.getBoundingClientRect = () => ({
+    bottom: PLOT.height,
+    height: PLOT.height,
+    left: 0,
+    right: width,
+    top: 0,
+    width,
+    x: 0,
+    y: 0,
+    toJSON: () => ({}),
+  });
 }

@@ -42,10 +42,20 @@
 
   <section class="settings-section">
     <div class="diagnostics-config-stack">
-      <label class="settings-toggle">
-        <input type="checkbox" bind:checked={config.debug_logging} />
-        <span class="settings-label-text">{t("settings.debug_logging")}</span>
-      </label>
+      <div class="diagnostics-log-row" data-testid="debug-log-controls">
+        <label class="settings-toggle">
+          <input type="checkbox" bind:checked={config.debug_logging} />
+          <span class="settings-label-text">{t("settings.debug_logging")}</span>
+        </label>
+        <button
+          type="button"
+          class="settings-button"
+          data-testid="show-log-file"
+          onclick={onShowLogFile}
+        >
+          {t("diagnostics.show_log_file")}
+        </button>
+      </div>
       <label class="settings-toggle">
         <input type="checkbox" bind:checked={config.show_ffmpeg_commands} />
         <span class="settings-label-text">{t("settings.show_ffmpeg_commands")}</span>
@@ -133,14 +143,6 @@
       >
         {t("diagnostics.copy_support_report")}
       </button>
-      <button
-        type="button"
-        class="settings-button"
-        data-testid="show-log-file"
-        onclick={onShowLogFile}
-      >
-        {t("diagnostics.show_log_file")}
-      </button>
     </div>
 
     <div class="diagnostics-status">
@@ -179,6 +181,13 @@
   .diagnostics-config-stack {
     align-items: start;
     display: grid;
+    gap: 12px;
+  }
+
+  .diagnostics-log-row {
+    align-items: center;
+    display: flex;
+    flex-wrap: wrap;
     gap: 12px;
   }
 

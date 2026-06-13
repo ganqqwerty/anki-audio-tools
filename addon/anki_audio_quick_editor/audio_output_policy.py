@@ -7,7 +7,10 @@ import subprocess  # nosec B404
 from dataclasses import dataclass
 from pathlib import Path
 
-from .audio_external import _external_command_run_kwargs, _render_external_error_message
+from .audio_external import (
+    _external_command_run_kwargs,
+    _render_external_error_message,
+)
 from .audio_formats import (
     normalize_output_format,
     validate_target_format,
@@ -16,6 +19,10 @@ from .audio_formats import (
 from .audio_state import AudioProcessingConfig
 from .audio_tools import find_ffmpeg, find_ffprobe
 from .errors import AudioProcessingError
+from .external_command_text import (
+    EXTERNAL_COMMAND_TEXT_ENCODING,
+    EXTERNAL_COMMAND_TEXT_ERRORS,
+)
 from .permission_guidance import launch_error_message
 
 FFMPEG_AUDIO_CODEC_ARG = "-codec:a"
@@ -71,6 +78,8 @@ def probe_audio_metadata(source_path: Path, config: AudioProcessingConfig) -> Au
             capture_output=True,
             text=True,
             check=False,
+            encoding=EXTERNAL_COMMAND_TEXT_ENCODING,
+            errors=EXTERNAL_COMMAND_TEXT_ERRORS,
             **_external_command_run_kwargs(),
         )  # nosec B603
     except OSError as exc:
@@ -171,6 +180,23 @@ def synthetic_audio_metadata(
         bit_rate=bit_rate,
         bits_per_raw_sample=bits_per_raw_sample,
         sample_fmt=sample_fmt,
+    )
+
+
+def preserve_source_audio_characteristics(
+    metadata: AudioSourceMetadata,
+    source_metadata: AudioSourceMetadata,
+) -> AudioSourceMetadata:
+    """Keep synthetic output-format hints while reusing the source stream characteristics."""
+    return AudioSourceMetadata(
+        path=metadata.path,
+        visible_format=metadata.visible_format,
+        codec_name=source_metadata.codec_name,
+        sample_rate=source_metadata.sample_rate,
+        channels=source_metadata.channels,
+        bit_rate=source_metadata.bit_rate,
+        bits_per_raw_sample=source_metadata.bits_per_raw_sample,
+        sample_fmt=source_metadata.sample_fmt,
     )
 
 

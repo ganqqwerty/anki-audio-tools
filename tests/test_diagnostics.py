@@ -7,6 +7,8 @@ from pathlib import Path
 from types import SimpleNamespace
 
 from anki_audio_quick_editor.diagnostics import (
+    _health_from_probe_result,
+    _run_tool_probe,
     build_deep_filter_health,
     build_dpdfnet_health,
     build_rnnoise_health,
@@ -14,6 +16,8 @@ from anki_audio_quick_editor.diagnostics import (
     build_spleeter_health,
 )
 from anki_audio_quick_editor.errors import MissingDeepFilterError
+
+DEEP_FILTER = str(Path("/tools/deep-filter"))
 
 
 def test_deep_filter_health_reports_missing_executable(monkeypatch) -> None:
@@ -49,7 +53,7 @@ def test_deep_filter_health_reports_os_error(monkeypatch) -> None:
     health = build_deep_filter_health({})
 
     assert health["available"] is False
-    assert health["path"] == "/tools/deep-filter"
+    assert health["path"] == DEEP_FILTER
     assert health["source"] == "PATH"
     assert health["version"] == ""
     assert health["error"].startswith("AQE-RUNTIME-003:")
@@ -71,29 +75,38 @@ def test_deep_filter_health_reports_timeout(monkeypatch) -> None:
 
     assert health == {
         "available": False,
-        "path": "/tools/deep-filter",
+        "path": DEEP_FILTER,
         "source": "PATH",
         "version": "",
         "error": "deep-filter --version timed out.",
     }
 
 
-def test_deep_filter_health_reports_nonzero_version_stderr_with_problematic_filename(monkeypatch) -> None:
+def test_deep_filter_health_reports_nonzero_version_stderr_with_unicode_filename(monkeypatch) -> None:
     monkeypatch.setattr(
         "anki_audio_quick_editor.audio_processor.find_deep_filter",
         lambda: Path("/tools/deep-filter"),
     )
 
-    def fake_run(cmd, capture_output: bool, text: bool, check: bool, timeout: int) -> SimpleNamespace:
-        assert cmd == ["/tools/deep-filter", "--version"]
+    def fake_run(
+        cmd,
+        capture_output: bool,
+        text: bool,
+        check: bool,
+        timeout: int,
+        **kwargs: object,
+    ) -> SimpleNamespace:
+        assert cmd == [DEEP_FILTER, "--version"]
         assert capture_output is True
         assert text is True
         assert check is False
         assert timeout == 10
+        if kwargs.get("encoding") != "utf-8" or kwargs.get("errors") != "replace":
+            raise UnicodeDecodeError("charmap", b"\xe9\x9d\x92", 1, 2, "character maps to <undefined>")
         return SimpleNamespace(
             returncode=2,
             stdout="",
-            stderr="could not inspect 'bad name [final] #1.wav'",
+            stderr="could not inspect 'Даии_青山_voice.opus'",
         )
 
     monkeypatch.setattr("anki_audio_quick_editor.diagnostics.subprocess.run", fake_run)
@@ -102,10 +115,10 @@ def test_deep_filter_health_reports_nonzero_version_stderr_with_problematic_file
 
     assert health == {
         "available": False,
-        "path": "/tools/deep-filter",
+        "path": DEEP_FILTER,
         "source": "PATH",
         "version": "",
-        "error": "could not inspect 'bad name [final] #1.wav'",
+        "error": "could not inspect 'Даии_青山_voice.opus'",
     }
 
 
@@ -179,9 +192,51 @@ def test_health_checks_forward_window_visibility_kwargs(monkeypatch) -> None:
     assert build_spleeter_health()["available"] is True
     assert build_silero_vad_health()["available"] is True
     assert run_kwargs == [
-        {"creationflags": 0x08000000},
-        {"creationflags": 0x08000000},
-        {"creationflags": 0x08000000},
-        {"creationflags": 0x08000000},
-        {"creationflags": 0x08000000},
+        {"encoding": "utf-8", "errors": "replace", "creationflags": 0x08000000},
+        {"encoding": "utf-8", "errors": "replace", "creationflags": 0x08000000},
+        {"encoding": "utf-8", "errors": "replace", "creationflags": 0x08000000},
+        {"encoding": "utf-8", "errors": "replace", "creationflags": 0x08000000},
+        {"encoding": "utf-8", "errors": "replace", "creationflags": 0x08000000},
     ]
+
+
+def test_run_tool_probe_timeout_returns_health(monkeypatch) -> None:
+    def fake_run(*_args, **_kwargs):
+        raise subprocess.TimeoutExpired(["tool", "--version"], timeout=10)
+
+    monkeypatch.setattr("anki_audio_quick_editor.diagnostics.subprocess.run", fake_run)
+
+    result = _run_tool_probe(
+        Path("/tmp/tool"),
+        ("--version",),
+        source="managed",
+        run_kwargs={},
+        timeout_error="tool --version timed out.",
+    )
+
+    assert result == {
+        "available": False,
+        "path": "/tmp/tool",
+        "source": "managed",
+        "version": "",
+        "error": "tool --version timed out.",
+    }
+
+
+def test_health_from_probe_result_uses_stderr_on_failure() -> None:
+    result = SimpleNamespace(returncode=2, stdout="", stderr="bad arch")
+
+    health = _health_from_probe_result(
+        Path("/tmp/tool"),
+        source="bundled",
+        result=result,
+        failure_error="tool --version failed.",
+    )
+
+    assert health == {
+        "available": False,
+        "path": "/tmp/tool",
+        "source": "bundled",
+        "version": "",
+        "error": "bad arch",
+    }

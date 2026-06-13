@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, afterEach } from "vitest";
 
 import {
   clearVisualizerSelection,
@@ -12,13 +12,22 @@ import {
   setVisualizerSelection,
   setVisualizerSelectionDraft,
 } from "../src/editor-inline/visualizer-state.js";
+import { readFieldState, invalidateFieldState } from "../src/editor-inline/field-state-store.js";
 import type { VisualizerElement } from "../src/editor-inline/types.js";
 
 function visualizer(): VisualizerElement {
-  return document.createElement("div") as VisualizerElement;
+  const el = document.createElement("div") as VisualizerElement;
+  el.className = "aqe-visualizer";
+  el.dataset.aqeFieldOrd = "0";
+  document.body.append(el);
+  return el;
 }
 
 describe("visualizer state adapter", () => {
+  afterEach(() => {
+    invalidateFieldState(0);
+    document.body.innerHTML = "";
+  });
   it("reads numeric and boolean graph fields with safe defaults", () => {
     const node = visualizer();
 
@@ -29,6 +38,7 @@ describe("visualizer state adapter", () => {
     node.dataset.durationMs = "1500";
     node.dataset.cursorMs = "250";
     node.dataset.repeatEnabled = "true";
+    invalidateFieldState(0);
 
     expect(readVisualizerDurationMs(node)).toBe(1500);
     expect(readVisualizerCursorMs(node)).toBe(250);
@@ -37,6 +47,8 @@ describe("visualizer state adapter", () => {
 
   it("round-trips committed and draft selection state", () => {
     const node = visualizer();
+    node.dataset.durationMs = "1000";
+    node.dataset.targetDurationMs = "1000";
 
     setVisualizerSelection(node, { startMs: 125, endMs: 875 });
     setVisualizerSelectionDraft(node, { startMs: 200, endMs: 700 });
@@ -69,14 +81,15 @@ describe("visualizer state adapter", () => {
     setVisualizerPlaybackRegion(node, { startMs: 123.4, endMs: 987.6, mode: "selection" });
     setVisualizerResumeRequiresRestart(node, true);
 
-    expect(node.dataset.playbackStartMs).toBe("123");
-    expect(node.dataset.playbackEndMs).toBe("988");
-    expect(node.dataset.playbackRegionMode).toBe("selection");
-    expect(node.dataset.resumeRequiresRestart).toBe("true");
+    const s = readFieldState(0);
+    expect(s.playback.startMs).toBe(123);
+    expect(s.playback.endMs).toBe(988);
+    expect(s.playback.regionMode).toBe("selection");
+    expect(s.playback.resumeRequiresRestart).toBe(true);
 
     setVisualizerResumeRequiresRestart(node, false);
 
-    expect(node.dataset.resumeRequiresRestart).toBe("false");
+    expect(readFieldState(0).playback.resumeRequiresRestart).toBe(false);
   });
 
   it("treats invalid optional selection timestamps as absent", () => {

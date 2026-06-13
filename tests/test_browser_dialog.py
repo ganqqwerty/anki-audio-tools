@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import importlib
 import json
+import logging
 from types import SimpleNamespace
 from unittest.mock import MagicMock
 
@@ -133,7 +134,30 @@ def test_batch_dialog_bridge_start_cancel_copy_and_close(monkeypatch, request) -
     assert dialog._dialog.rejected is True
 
 
-def test_batch_dialog_validation_error_is_recoverable(monkeypatch, request) -> None:
+def test_batch_dialog_bridge_opens_trusted_external_url(monkeypatch, request) -> None:
+    dialog_module = _reload_browser_dialog_with_fake_qt(request)
+    opened = []
+    monkeypatch.setattr(
+        "anki_audio_quick_editor.external_links.open_external_url",
+        lambda url: opened.append(url),
+    )
+
+    dialog = dialog_module.BatchOperationsDialog(
+        browser=object(),
+        note_ids=[1],
+        groups=(),
+        config=AudioProcessingConfig(),
+        run_batch_in_background=lambda *args: None,
+    )
+
+    url = "https://ganqqwerty.github.io/anki-audio-tools/errors/AQE-BATCH-001/"
+    command = "bridge:" + json.dumps({"command": "webview.open_url", "payload": {"url": url}})
+
+    assert dialog._webview.bridge(command) is True
+    assert opened == [url]
+
+
+def test_batch_dialog_validation_error_is_recoverable(monkeypatch, request, caplog) -> None:
     dialog_module = _reload_browser_dialog_with_fake_qt(request)
     run_calls = []
     monkeypatch.setattr(
@@ -141,6 +165,7 @@ def test_batch_dialog_validation_error_is_recoverable(monkeypatch, request) -> N
         "request_from_batch_start_payload",
         lambda _payload, _presets: (_ for _ in ()).throw(ValueError("Choose a target field before starting.")),
     )
+    caplog.set_level(logging.ERROR, logger="anki_audio_quick_editor.browser_dialog")
 
     dialog = dialog_module.BatchOperationsDialog(
         browser=object(),
@@ -156,6 +181,7 @@ def test_batch_dialog_validation_error_is_recoverable(monkeypatch, request) -> N
     assert dialog._running is False
     assert dialog._finished is False
     assert any('"recoverable": true' in call for call in dialog._webview.eval_calls)
+    assert "batch dialog displayed error: AQE-BATCH-001: Choose a target field before starting." in caplog.text
 
 
 def _reload_browser_dialog_with_fake_qt(request):

@@ -177,7 +177,7 @@ afterEach(() => {
       playbackStartMs: 200,
       playbackEndMs: 600,
       selectionToolbarPlayState: "pause",
-      selectionToolbarPlayAriaLabel: "Pause selection",
+      selectionToolbarPlayAriaLabel: "Pause\nPause selection",
     });
 
     selectionToolbarButton("play").click();
@@ -186,7 +186,7 @@ afterEach(() => {
     expect(window.__aqeGraphStateForTest?.(0)).toMatchObject({
       playbackState: "paused",
       selectionToolbarPlayState: "play",
-      selectionToolbarPlayAriaLabel: "Play selection",
+      selectionToolbarPlayAriaLabel: "Play\nPlay selection",
     });
   });
 

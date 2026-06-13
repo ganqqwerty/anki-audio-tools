@@ -9,6 +9,7 @@ import {
 } from "../src/editor-inline/actions.js";
 import { disposeEditorRuntime } from "../src/editor-inline/runtime.js";
 import { bridgeCommands, mountTrack } from "./editor-inline.actions.helpers.js";
+import { readFieldState, invalidateFieldState } from "../src/editor-inline/field-state-store.js";
 
 describe("editor inline action progress clocks", () => {
   let warnSpy: ReturnType<typeof vi.spyOn>;
@@ -50,6 +51,29 @@ describe("editor inline action progress clocks", () => {
     expect(state).toMatchObject({ pitchMarkerVisible: false, pitchMarkerX: null, pitchMarkerY: null, progressMs: 700 });
   });
 
+  it("pans the zoomed viewport while painting manual playback progress", async () => {
+    const frames: Array<(time: number) => void> = [];
+    vi.spyOn(window, "requestAnimationFrame").mockImplementation((callback) => {
+      frames.push(callback);
+      return frames.length;
+    });
+    vi.spyOn(window, "cancelAnimationFrame").mockImplementation(() => undefined);
+    let now = 1000;
+    vi.spyOn(performance, "now").mockImplementation(() => now);
+    const visualizer = await mountTrack(0);
+    const audio = visualizer.querySelector<HTMLAudioElement>(".aqe-audio-clock")!;
+    audio.pause = vi.fn<() => void>(() => undefined);
+    window.__aqeSetTimeViewportForTest?.(0, 0, 500);
+
+    startManualProgressClock(visualizer, 450);
+    now = 1120;
+    frames.shift()?.(now);
+
+    const state = window.__aqeGraphStateForTest?.(0);
+    expect(state?.viewportStartMs).toBeGreaterThan(0);
+    expect(state?.progressMs).toBeGreaterThanOrEqual(450);
+  });
+
   it("loops manual progress clocks at the selected region boundary without play-ended", async () => {
     const frames: Array<(time: number) => void> = [];
     vi.spyOn(window, "requestAnimationFrame").mockImplementation((callback) => {
@@ -69,8 +93,8 @@ describe("editor inline action progress clocks", () => {
     now = 1100;
     frames.shift()?.(now);
 
-    expect(visualizer.dataset.playbackState).toBe("playing");
-    expect(visualizer.dataset.cursorMs).toBe("200");
+    expect(readFieldState(0).playback.state).toBe("playing");
+    expect(readFieldState(0).cursor.ms).toBe(200);
     expect(bridgeCommands()).not.toContain("aqe:play-ended");
   });
 
@@ -93,6 +117,7 @@ describe("editor inline action progress clocks", () => {
     audio.pause = vi.fn<() => void>(() => undefined);
     audio.dispatchEvent(new Event("loadedmetadata"));
     visualizer.dataset.playbackEngine = "html";
+    invalidateFieldState(0);
 
     setPlaybackState(0, "playing", 100);
     audio.currentTime = 0.9;
@@ -131,13 +156,14 @@ describe("editor inline action progress clocks", () => {
     audio.pause = vi.fn<() => void>(() => undefined);
     audio.dispatchEvent(new Event("loadedmetadata"));
     visualizer.dataset.playbackEngine = "html";
+    invalidateFieldState(0);
 
     setPlaybackState(0, "playing", 100);
     setPlaybackState(0, "playing", 500);
     await Promise.resolve();
     await Promise.resolve();
     expect(audio.play).toHaveBeenCalledTimes(2);
-    expect(visualizer.dataset.progressClockMode).toBe("audio");
+    expect(readFieldState(0).playback.clockMode).toBe("audio");
 
     rejectFirstPlay(new Error("blocked"));
     await Promise.resolve();
@@ -145,7 +171,7 @@ describe("editor inline action progress clocks", () => {
     now = 1150;
     frames.shift()?.(now);
 
-    expect(visualizer.dataset.progressClockMode).toBe("audio");
+    expect(readFieldState(0).playback.clockMode).toBe("audio");
     expect(Math.round(currentProgressMs(visualizer) ?? 0)).toBe(650);
   });
 });

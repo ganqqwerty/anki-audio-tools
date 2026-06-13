@@ -19,6 +19,7 @@ from e2e.editor_note_helpers import (
     _button_selector,
     _configure_ffmpeg,
     _open_editor,
+    _wait_for_status,
 )
 from e2e.editor_playback_helpers import (
     PLAYBACK_INTERVAL_TOLERANCE_MS,
@@ -34,7 +35,7 @@ from e2e.helpers import (
 
 
 def test_cursor_drag_updates_session_and_play_uses_html_audio(anki_mw, ffmpeg_config) -> None:
-    _SESSIONS = import_runtime_addon_module(".editor_integration")._SESSIONS
+    SESSIONS = import_runtime_addon_module(".editor_runtime").SESSIONS
 
     media_dir = Path(anki_mw.col.media.dir())
     source = media_dir / "editor_cursor_source.wav"
@@ -54,14 +55,14 @@ def test_cursor_drag_updates_session_and_play_uses_html_audio(anki_mw, ffmpeg_co
               const rect = svg.getBoundingClientRect();
               const EventCtor = window.PointerEvent || window.MouseEvent;
               const x = rect.left + rect.width * 0.65;
-              svg.dispatchEvent(new EventCtor('pointerdown', { clientX: x, clientY: rect.top + 20, bubbles: true }));
-              window.dispatchEvent(new EventCtor('pointerup', { clientX: x, clientY: rect.top + 20, bubbles: true }));
+              svg.dispatchEvent(new EventCtor('pointerdown', { clientX: x, clientY: rect.top + 40, bubbles: true }));
+              window.dispatchEvent(new EventCtor('pointerup', { clientX: x, clientY: rect.top + 40, bubbles: true }));
             })()
             """,
         )
         wait_for_condition(
             lambda: (
-                (session := _SESSIONS.get(editor)) is not None
+                (session := SESSIONS.get(editor)) is not None
                 and session.cursor_ms >= 1000
             ),
             timeout=5.0,
@@ -239,6 +240,66 @@ def test_play_without_graph_shown_uses_pause_button_until_native_playback_ends(
         assert playback.attempts[0].filename == source.name
         assert playback.attempts[0].start_ms == 0
         assert playing["playbackEngine"] == "native"
+    finally:
+        editor.set_note(None)
+        parent.close()
+
+
+def test_play_after_field_changes_to_missing_media_shows_error(anki_mw, ffmpeg_config) -> None:
+    media_dir = Path(anki_mw.col.media.dir())
+    source = media_dir / "editor_missing_media_playback_source.wav"
+    missing_name = "editor_missing_media_playback_missing.wav"
+    missing_field = f"Prompt [sound:{missing_name}]"
+    generate_tone(ffmpeg_config, source, duration_s=1.0)
+    (media_dir / missing_name).unlink(missing_ok=True)
+    note = _basic_audio_note(anki_mw, source.name)
+    _configure_ffmpeg(anki_mw, ffmpeg_config)
+
+    editor, parent = _open_editor(anki_mw, note)
+    try:
+        wait_for_js_condition(
+            editor.web,
+            _graph_state_js(),
+            lambda state: state is not None and state["playButtonLabel"] == "Play",
+            timeout=5.0,
+        )
+        with _record_fake_playback(media_dir, {source.name: 1000}) as playback:
+            click_selector(editor.web, _button_selector("aqe:play"), timeout=5.0)
+            wait_for_condition(
+                lambda: len(playback.attempts) == 1,
+                timeout=5.0,
+                message="Initial playback did not start before renaming the field audio",
+            )
+            run_js(editor.web, "pycmd('aqe:play-ended')")
+            wait_for_js_condition(
+                editor.web,
+                _graph_state_js(),
+                lambda state: state is not None
+                and state["playbackState"] == "stopped"
+                and state["playButtonLabel"] == "Play",
+                timeout=5.0,
+            )
+            note.fields[0] = missing_field
+            wait_for_condition(
+                lambda: editor.note.fields[0] == missing_field,
+                timeout=5.0,
+                message="Editor note did not update to the missing media reference",
+            )
+
+            click_selector(editor.web, _button_selector("aqe:play"), timeout=5.0)
+            status = _wait_for_status(
+                editor,
+                lambda value: value is not None
+                and value["kind"] == "error"
+                and "AQE-MEDIA-002:" in value["text"]
+                and "The referenced audio file was not found in Anki's media folder." in value["text"],
+                timeout=5.0,
+            )
+
+        assert len(playback.attempts) == 1
+        assert playback.attempts[0].filename == source.name
+        assert status["title"] == ""
+        assert note.fields[0] == missing_field
     finally:
         editor.set_note(None)
         parent.close()

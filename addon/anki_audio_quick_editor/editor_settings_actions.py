@@ -4,9 +4,17 @@ from __future__ import annotations
 
 from typing import Any, Callable
 
+from .editor_reload_status import reload_editor_with_pending_status
 from .editor_runtime import SettingsLifecycleCallbacks
-from .editor_session import PendingEditorStatus
-from .error_codes import AQE_SETTINGS_INVALID_PAYLOAD, coded_error
+from .editor_session import ready_learner_recording_media_path
+from .error_codes import (
+    AQE_FILE_REVEAL_FAILED,
+    AQE_MEDIA_CURRENT_FIELD_AUDIO_MISSING,
+    AQE_MEDIA_REFERENCED_AUDIO_MISSING,
+    AQE_SETTINGS_INVALID_PAYLOAD,
+    coded_error,
+)
+from .errors import AudioProcessingError, MissingMediaError
 from .file_reveal import open_external_url as open_url
 from .file_reveal import reveal_file
 from .i18n import t
@@ -58,21 +66,68 @@ def refresh_editor_after_settings_save(editor: Any, deps: Any, status_after_relo
         session.playback_active = False
         session.playback_paused = False
         session.playback_preparing = False
-        if status_after_reload:
-            session.pending_status = PendingEditorStatus(field_index, message=status_after_reload)
-    deps.dispose_editor_frontend_controls(editor)
-    editor.loadNote(focusTo=field_index)
-    if session is not None:
-        session.pending_status = None
+    reload_editor_with_pending_status(
+        editor,
+        session,
+        field_index,
+        message=status_after_reload,
+        deps=deps,
+    )
 
 
 def show_current_audio_file(editor: Any, deps: Any) -> None:
     """Reveal the current audio file in the platform file manager."""
-    session, media_path = deps.current_media_path(editor)
+    try:
+        session, media_path = deps.current_media_path(editor)
+    except MissingMediaError as exc:
+        deps.eval_status(
+            editor,
+            coded_error(AQE_MEDIA_REFERENCED_AUDIO_MISSING, str(exc)),
+            kind="error",
+        )
+        return
+    except AudioProcessingError as exc:
+        deps.eval_status(
+            editor,
+            coded_error(AQE_MEDIA_CURRENT_FIELD_AUDIO_MISSING, str(exc)),
+            kind="error",
+        )
+        return
+    show_media_file(editor, session, media_path, deps)
+
+
+def show_learner_recording_file(editor: Any, deps: Any) -> None:
+    """Reveal the latest learner recording sidecar in the platform file manager."""
+    session = deps.sessions.get(editor)
+    media_path = ready_learner_recording_media_path(session)
+    if session is None or media_path is None:
+        message = t("editor.status.referenced_audio_missing")
+        deps.eval_status(editor, coded_error(AQE_MEDIA_REFERENCED_AUDIO_MISSING, message), kind="error")
+        return
+    show_media_file(editor, session, media_path, deps)
+
+
+def show_media_file(editor: Any, session: Any, media_path: Any, deps: Any) -> None:
+    """Reveal an already-resolved editor media file."""
     if deps.is_busy(session):
         deps.eval_status(editor, deps.still_processing_message, kind="processing")
         return
-    reveal_file(media_path)
+    try:
+        reveal_file(media_path)
+    except MissingMediaError as exc:
+        deps.eval_status(
+            editor,
+            coded_error(AQE_MEDIA_REFERENCED_AUDIO_MISSING, str(exc)),
+            kind="error",
+        )
+        return
+    except AudioProcessingError as exc:
+        deps.eval_status(
+            editor,
+            coded_error(AQE_FILE_REVEAL_FAILED, str(exc)),
+            kind="error",
+        )
+        return
     deps.eval_status(editor, t("editor.status.showing_in_folder", {"filename": media_path.name}))
 
 

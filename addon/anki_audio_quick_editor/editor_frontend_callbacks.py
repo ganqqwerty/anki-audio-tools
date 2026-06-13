@@ -5,7 +5,7 @@ from __future__ import annotations
 from types import SimpleNamespace
 from typing import Any
 
-from . import editor_dependencies, editor_frontend
+from . import editor_dependencies, editor_frontend, editor_recording_frontend
 
 
 def _frontend_exports() -> SimpleNamespace:
@@ -56,6 +56,10 @@ def _eval_playback_state(
     cursor_ms: int,
 ) -> None:
     editor_frontend.eval_playback_state(editor, field_index, state, cursor_ms)
+
+
+def _eval_learner_recording_state(editor: Any, state: Any) -> None:
+    editor_recording_frontend.eval_learner_recording_state(editor, state)
 
 
 def _eval_history_availability(

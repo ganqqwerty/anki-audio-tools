@@ -5,7 +5,8 @@ from typing import Any
 from unittest.mock import MagicMock
 
 from anki_audio_quick_editor.audio_state import AudioEditState
-from anki_audio_quick_editor.editor_integration import _SESSIONS, EditorSession
+from anki_audio_quick_editor.editor_runtime import SESSIONS
+from anki_audio_quick_editor.editor_session import EditorSession
 
 
 class BridgeEditor:
@@ -30,5 +31,5 @@ def attach_clip_session(
     source = tmp_path / filename
     source.write_bytes(b"source")
     active_session = session or EditorSession(state=AudioEditState(filename), field_index=editor.currentField)
-    _SESSIONS[editor] = active_session
+    SESSIONS[editor] = active_session
     return active_session, source

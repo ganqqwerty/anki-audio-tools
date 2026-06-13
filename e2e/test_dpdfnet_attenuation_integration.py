@@ -3,24 +3,17 @@
 from __future__ import annotations
 
 import json
-from pathlib import Path
 from unittest.mock import patch
 
 from PyQt6.QtWidgets import QApplication
 
-from e2e.conftest import import_runtime_addon_module, runtime_addon_import_path
+from e2e.conftest import import_runtime_addon_module
 from e2e.editor_note_helpers import (
     ADDON_NUMERIC_ID,
-    _basic_audio_note,
-    _button_selector,
     _configure_ffmpeg,
-    _open_editor,
-    _sound_filename,
-    _wait_for_status_flow,
 )
 from e2e.helpers import (
     click_selector,
-    generate_tone,
     wait_for_condition,
     wait_for_js_condition,
     wait_for_selector,
@@ -67,78 +60,6 @@ def test_settings_dialog_saves_dpdfnet_aggressiveness(anki_mw) -> None:
 
     saved_config = mock_write.call_args.args[1]
     assert saved_config["dpdfnet_attn_limit_db"] == 18
-
-
-def test_editor_dpdfnet_uses_selected_aggressiveness(
-    anki_mw,
-    ffmpeg_config,
-    monkeypatch,
-) -> None:
-    audio_processing_config = import_runtime_addon_module(".audio_state").AudioProcessingConfig
-
-    captured: list[float] = []
-    media_dir = Path(anki_mw.col.media.dir())
-    source = media_dir / "editor_dpdfnet_attn_limit_source.wav"
-    generate_tone(ffmpeg_config, source, duration_s=1.0)
-    note = _basic_audio_note(anki_mw, source.name)
-    _configure_ffmpeg(anki_mw, ffmpeg_config, dpdfnet_attn_limit_db=18.0)
-
-    def fake_render_dpdfnet_audio(
-        _source_path: Path,
-        config: audio_processing_config,
-        output_path: Path,
-        **_kwargs,
-    ) -> None:
-        captured.append(config.dpdfnet_attn_limit_db)
-        output_path.write_bytes(b"denoised")
-
-    monkeypatch.setattr(
-        runtime_addon_import_path(".editor_dependencies", "render_dpdfnet_audio"),
-        fake_render_dpdfnet_audio,
-    )
-
-    editor, parent = _open_editor(anki_mw, note)
-    try:
-        wait_for_selector(editor.web, _button_selector("aqe:denoise-standard"), timeout=10.0)
-        click_selector(editor.web, _split_menu_selector("aqe:denoise-standard"), timeout=5.0)
-        wait_for_js_condition(
-            editor.web,
-            """
-            document.querySelector('[data-testid="aqe-split-0-denoise-standard-preset-dpdfnet"]')
-              ?.getAttribute('data-aqe-tooltip-content')
-            """,
-            lambda value: isinstance(value, str)
-            and value.startswith("Create a new file cleaned with DPDFNet, Aggressiveness: Aggressive"),
-            timeout=5.0,
-        )
-        click_selector(
-            editor.web,
-            '[data-testid="aqe-split-0-denoise-standard-preset-dpdfnet"]',
-            timeout=5.0,
-        )
-        wait_for_js_condition(
-            editor.web,
-            """
-            document.querySelector('[data-testid="aqe-button-0-denoise-standard"]')
-              ?.getAttribute('data-aqe-tooltip-content')
-            """,
-            lambda value: value == "Create a new file cleaned with DPDFNet",
-            timeout=5.0,
-        )
-        click_selector(editor.web, _button_selector("aqe:denoise-standard"), timeout=5.0)
-        wait_for_condition(
-            lambda: captured == [18.0] and _sound_filename(note.fields[0]) != source.name,
-            timeout=10.0,
-            message="Editor did not pass selected DPDFNet aggressiveness to renderer",
-        )
-        _wait_for_status_flow(
-            editor,
-            lambda status: status["text"] == "Cleaned audio with DPDFNet at Aggressive aggressiveness.",
-            timeout=10.0,
-        )
-    finally:
-        editor.set_note(None)
-        parent.close()
 
 
 def test_batch_dialog_loads_with_saved_dpdfnet_aggressiveness(anki_mw, ffmpeg_config) -> None:

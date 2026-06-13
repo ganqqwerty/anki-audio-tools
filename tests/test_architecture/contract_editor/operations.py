@@ -41,6 +41,19 @@ EDITOR_OPERATION_CONTRACTS: dict[str, ModuleContract] = {
         ),
         allowed_side_effects=(SideEffect.WEB_EVAL,),
     ),
+    "editor_source_metadata": contract(
+        "editor_source_metadata",
+        layer=Layer.UI_ADAPTER,
+        allowed_addon_deps=(
+            "audio_state",
+            "diagnostics_runtime",
+            "i18n",
+        ),
+        allowed_side_effects=(
+            SideEffect.THREAD_SPAWN,
+            SideEffect.WEB_EVAL,
+        ),
+    ),
     "editor_conversion": contract(
         "editor_conversion",
         layer=Layer.UI_ADAPTER,
@@ -59,6 +72,7 @@ EDITOR_OPERATION_CONTRACTS: dict[str, ModuleContract] = {
         allowed_addon_deps=(
             "audio_processor",
             "audio_recording",
+            "editor_deps_protocols",
             "editor_media",
             "editor_runtime",
             "file_sharing",
@@ -70,8 +84,39 @@ EDITOR_OPERATION_CONTRACTS: dict[str, ModuleContract] = {
     "editor_history": contract(
         "editor_history",
         layer=Layer.UI_ADAPTER,
-        allowed_addon_deps=("editor_session", "editor_status", "errors", "i18n", "media_paths", "sound_refs"),
+        allowed_addon_deps=(
+            "editor_reload_status",
+            "editor_session",
+            "editor_status",
+            "errors",
+            "i18n",
+            "media_paths",
+            "sound_refs",
+        ),
         allowed_side_effects=(SideEffect.WEB_EVAL,),
+    ),
+    "editor_reload_status": contract(
+        "editor_reload_status",
+        layer=Layer.UI_ADAPTER,
+        allowed_addon_deps=("editor_session",),
+    ),
+    "editor_persistent_undo": contract(
+        "editor_persistent_undo",
+        layer=Layer.UI_ADAPTER,
+        allowed_addon_deps=(
+            "audio_state",
+            "editor_reload_status",
+            "editor_session",
+            "editor_status",
+            "error_codes",
+            "errors",
+            "i18n",
+            "media_paths",
+            "persistent_history",
+            "runtime_paths",
+            "sound_refs",
+        ),
+        allowed_side_effects=(SideEffect.DB_ACCESS,),
     ),
     "editor_runtime": contract(
         "editor_runtime",
@@ -93,8 +138,10 @@ EDITOR_OPERATION_CONTRACTS: dict[str, ModuleContract] = {
         layer=Layer.UI_ADAPTER,
         allowed_addon_deps=(
             "editor_runtime",
+            "editor_reload_status",
             "editor_session",
             "error_codes",
+            "errors",
             "file_reveal",
             "i18n",
         ),

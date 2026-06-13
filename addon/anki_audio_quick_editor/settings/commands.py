@@ -18,7 +18,12 @@ from ..diagnostics_runtime import (
     record_breadcrumb,
     set_debug_enabled,
 )
+from ..editor_button_visibility import (
+    normalize_visible_editor_buttons,
+    supported_visible_editor_button_order,
+)
 from ..error_codes import AQE_SETTINGS_INVALID_PAYLOAD, coded_error
+from ..external_links import open_trusted_external_url_from_payload
 from ..frontend_logs import handle_frontend_log_payload
 from ..webview_bridge import (
     WebviewBridgeCommand,
@@ -68,11 +73,16 @@ def handle_settings_command(
     if command_name == "settings.async":
         handle_async_settings_command(command, eval_fn)
         return True
-    if command_name == "frontend.log":
-        _handle_frontend_log(command.payload)
-        return True
-    if command_name == "support.copy_report":
-        _handle_copy_support_report(command)
+    simple_handler = {
+        "frontend.log": lambda: _handle_frontend_log(command.payload),
+        "webview.open_url": lambda: open_trusted_external_url_from_payload(
+            command.payload,
+            logger=logger,
+        ),
+        "support.copy_report": lambda: _handle_copy_support_report(command),
+    }.get(command_name)
+    if simple_handler is not None:
+        simple_handler()
         return True
     return False
 
@@ -89,6 +99,7 @@ def _handle_settings_save(
     try:
         config = Config.from_dict(raw_config).to_dict()
     except CONTRACT_DECODE_ERRORS:
+        logger.error("settings save displayed error: invalid settings payload")
         payload = json.dumps(
             {
                 "error": "Invalid settings payload",
@@ -124,10 +135,13 @@ def _sanitize_settings_payload(raw_config: Any) -> None:
         return
     visible_buttons = raw_config.get("visible_editor_buttons")
     if isinstance(visible_buttons, list):
-        allowed_buttons = {button.value for button in VisibleEditorButton}
-        raw_config["visible_editor_buttons"] = [
-            button for button in visible_buttons if button in allowed_buttons
-        ]
+        button_order = supported_visible_editor_button_order(raw_config)
+        if not button_order:
+            button_order = [button.value for button in VisibleEditorButton]
+        raw_config["visible_editor_buttons"] = normalize_visible_editor_buttons(
+            visible_buttons,
+            button_order,
+        )
 
 
 def _handle_reset_defaults(dialog: Any) -> None:
@@ -140,6 +154,7 @@ def _handle_reset_defaults(dialog: Any) -> None:
     addon_id = mw.addonManager.addonFromModule(__name__)
     defaults = mw.addonManager.addonConfigDefaults(addon_id)
     if defaults is None:
+        logger.error("settings reset displayed error: config defaults are missing")
         QMessageBox.warning(
             dialog,
             t("settings.reset_failed.title"),

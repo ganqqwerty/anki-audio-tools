@@ -6,12 +6,14 @@ import type {
   PlaybackRequest,
   RegionDeleteRequest,
 } from "./types.js";
+import type { SourceMetadataRequest } from "./source-metadata-types.js";
 import type { SplitDefaultSaveRequest } from "./split-default-save-types.js";
 
 const frontendLogs: FrontendLogPayload[] = [];
 const pendingGraphAnalysisRequests: GraphAnalysisRequest[] = [];
 const pendingPlaybackRequests: PlaybackRequest[] = [];
 const pendingRegionDeleteRequests: RegionDeleteRequest[] = [];
+const pendingSourceMetadataRequests: SourceMetadataRequest[] = [];
 const pendingSplitDefaultSaveRequests: SplitDefaultSaveRequest[] = [];
 
 export function sendBridgeCommand(command: string): void {
@@ -25,15 +27,18 @@ export function focusAndSendCommand(ord: number, command: string): void {
   sendBridgeCommand(command);
 }
 
-export function focusAndSendCommandPayload(ord: number, payload: EditorCommandPayload): void {
-  sendBridgeCommand(`focus:${ord}`);
+export function sendCommandPayload(payload: EditorCommandPayload): void {
   window.__aqePendingCommandPayload = payload;
   sendBridgeCommand("aqe:command-payload");
 }
 
+export function focusAndSendCommandPayload(ord: number, payload: EditorCommandPayload): void {
+  sendBridgeCommand(`focus:${ord}`);
+  sendCommandPayload(payload);
+}
+
 export function sendExternalLinkRequest(url: string): void {
-  window.__aqePendingCommandPayload = { command: "aqe:open-url", url };
-  sendBridgeCommand("aqe:command-payload");
+  sendCommandPayload({ command: "aqe:open-url", url });
 }
 
 export function sendGraphAnalysisRequest(request: GraphAnalysisRequest): void {
@@ -49,6 +54,11 @@ export function sendEditorFrontendLog(payload: FrontendLogPayload): void {
 export function sendSplitDefaultSaveRequest(request: SplitDefaultSaveRequest): void {
   pendingSplitDefaultSaveRequests.push(request);
   sendBridgeCommand("aqe:save-split-defaults");
+}
+
+export function sendSourceMetadataRequest(request: SourceMetadataRequest): void {
+  pendingSourceMetadataRequests.push(request);
+  sendBridgeCommand("aqe:source-metadata");
 }
 
 export function popEditorFrontendLog(): FrontendLogPayload | null {
@@ -71,6 +81,7 @@ export function clearPendingNoteScopedBridgeRequests(): void {
   pendingGraphAnalysisRequests.length = 0;
   pendingPlaybackRequests.length = 0;
   pendingRegionDeleteRequests.length = 0;
+  pendingSourceMetadataRequests.length = 0;
   window.__aqePendingPlaybackRequest = null;
   window.__aqeLastPlaybackRequest = null;
 }
@@ -89,6 +100,16 @@ export function popPendingRegionDeleteRequest(): RegionDeleteRequest | null {
 
 export function popPendingSplitDefaultSaveRequest(): SplitDefaultSaveRequest | null {
   return pendingSplitDefaultSaveRequests.shift() ?? null;
+}
+
+export function popPendingSourceMetadataRequest(): SourceMetadataRequest | null {
+  return pendingSourceMetadataRequests.shift() ?? null;
+}
+
+export function popPendingCommandPayload(): EditorCommandPayload | null {
+  const payload = window.__aqePendingCommandPayload ?? null;
+  window.__aqePendingCommandPayload = null;
+  return payload;
 }
 
 export function setCursorIntent(intent: CursorIntent): void {

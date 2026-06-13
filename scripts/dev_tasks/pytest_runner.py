@@ -134,3 +134,6 @@ def _run_pytest(target: str, *, label: str) -> int:
         )
     finally:
         shutil.rmtree(pytest_cache_dir, ignore_errors=True)
+
+
+run_pytest = _run_pytest

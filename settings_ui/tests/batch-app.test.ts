@@ -37,11 +37,11 @@ function setInitialState(): void {
         parameter_name: BatchParameterName.TargetFormat,
       },
       {
-        operation: BatchOperationName.Preset,
-        label: "Preset",
+        operation: BatchOperationName.ReduceSize,
+        label: "Compress Audio",
         requires_target_field: false,
-        parameter_kind: BatchParameterKind.Preset,
-        parameter_name: BatchParameterName.PresetID,
+        parameter_kind: BatchParameterKind.SizeReduction,
+        parameter_name: BatchParameterName.SizeReductionMode,
       },
       {
         operation: BatchOperationName.RemovePauses,
@@ -72,15 +72,8 @@ function setInitialState(): void {
         parameter_name: BatchParameterName.VolumeStepDB,
       },
     ],
-    field_groups: [{ notetype_name: "Basic", fields: ["Audio", "Processed", "Image"] }],
-    processing_presets: [
-      {
-        id: "clean_graph",
-        name: "Clean + graph",
-        has_transforms: true,
-        graph_enabled: true,
-      },
-    ],
+    field_groups: [{ notetype_name: "Basic", fields: ["Audio", "Image"] }],
+    processing_presets: [],
     defaults: {
       speed_step: 0.1,
       volume_step_db: 6,
@@ -97,6 +90,10 @@ function setInitialState(): void {
       denoise_algorithm: DenoiseAlgorithm.Standard,
       dpdfnet_attn_limit_db: 12,
       output_format: OutputFormat.Mp3,
+      size_reduction_mode: BatchPauseAggressiveness.Normal,
+      size_reduction_bitrate_kbps: 64,
+      size_reduction_sample_rate_hz: 32000,
+      size_reduction_channels: 1,
     },
     locale: "en",
     direction: Direction.LTR,
@@ -180,6 +177,48 @@ describe("BatchApp", () => {
     expect(screen.getByTestId("batch-dpdfnet-attn-limit-db")).toBeInTheDocument();
   });
 
+  it("adds running-state clarification to disabled batch field tooltips", async () => {
+    setInitialState();
+    render(BatchApp);
+
+    await fireEvent.change(screen.getByTestId("batch-operation"), {
+      target: { value: BatchOperationName.RemovePauses },
+    });
+    await fireEvent.click(screen.getByTestId("batch-start"));
+
+    const aggressiveness = screen.getByTestId("batch-pause-aggressiveness-aggressive");
+    const aggressivenessTooltip = aggressiveness.closest<HTMLElement>(".field-tooltip-target");
+    expect(aggressiveness).toBeDisabled();
+    expect(aggressiveness).toHaveAttribute(
+      "data-aqe-tooltip-content",
+      expect.stringContaining("Aggressive\nCuts shorter pauses too"),
+    );
+    expect(aggressiveness).toHaveAttribute(
+      "data-aqe-tooltip-content",
+      expect.stringContaining("150 ms"),
+    );
+    expect(aggressiveness).toHaveAttribute(
+      "data-aqe-tooltip-content",
+      expect.stringContaining("Disabled while the batch is running."),
+    );
+    expect(aggressivenessTooltip).toHaveAttribute(
+      "data-aqe-tooltip-content",
+      expect.stringContaining("Disabled while the batch is running."),
+    );
+
+    const threshold = screen.getByTestId("batch-pause-threshold");
+    const thresholdTooltip = threshold.closest<HTMLElement>(".field-tooltip-target");
+    expect(threshold).toBeDisabled();
+    expect(thresholdTooltip).toHaveAttribute(
+      "data-aqe-tooltip-content",
+      expect.stringContaining("How quiet audio must be before ffmpeg treats it as silence"),
+    );
+    expect(thresholdTooltip).toHaveAttribute(
+      "data-aqe-tooltip-content",
+      expect.stringContaining("Disabled while the batch is running."),
+    );
+  });
+
   it("sends a convert start request with the selected format", async () => {
     setInitialState();
     render(BatchApp);
@@ -199,34 +238,6 @@ describe("BatchApp", () => {
       source_field: "Audio",
       target_field: null,
       parameters: { target_format: "flac" },
-    });
-  });
-
-  it("shows preset fields and sends preset target selections", async () => {
-    setInitialState();
-    render(BatchApp);
-
-    await fireEvent.change(screen.getByTestId("batch-operation"), {
-      target: { value: BatchOperationName.Preset },
-    });
-    await fireEvent.change(screen.getByTestId("batch-audio-target-field"), {
-      target: { value: "Processed" },
-    });
-    await fireEvent.change(screen.getByTestId("batch-graph-target-field"), {
-      target: { value: "Image" },
-    });
-    await fireEvent.click(screen.getByTestId("batch-start"));
-
-    const call = pycmdMock().mock.calls.find(([command]) => String(command).includes('"batch.start"'))?.[0] as string;
-    const envelope = JSON.parse(call.slice("bridge:".length));
-    expect(envelope.payload).toEqual({
-      operation: BatchOperationName.Preset,
-      source_field: "Audio",
-      target_field: null,
-      preset_id: "clean_graph",
-      audio_target_field: "Processed",
-      graph_target_field: "Image",
-      parameters: {},
     });
   });
 

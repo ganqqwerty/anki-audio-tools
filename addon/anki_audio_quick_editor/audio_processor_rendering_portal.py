@@ -61,6 +61,25 @@ def render_converted_audio(
     return cast(AudioProcessingResult, _rendering(facade).render_converted_audio(source_path, config, target_format, output_path, on_command))
 
 
+def render_size_reduced_audio(
+    source_path: Path,
+    config: AudioProcessingConfig,
+    output_path: Path | None = None,
+    on_command: Callable[[tuple[str, ...]], None] | None = None,
+    *,
+    mode: object | None = None,
+) -> AudioProcessingResult:
+    facade = _facade()
+    _sync(facade, "_sync_rendering_dependencies")
+    return cast(AudioProcessingResult, _rendering(facade).render_size_reduced_audio(
+        source_path,
+        config,
+        output_path,
+        on_command,
+        mode=mode,
+    ))
+
+
 def render_audio_region_deleted(
     source_path: Path,
     selection_start_ms: int,

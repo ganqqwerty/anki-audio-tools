@@ -4,6 +4,7 @@ import {
   formatDenoiseAlgorithm,
   formatOutputFormat,
   formatPauseDetectionAlgorithm,
+  formatSizeReductionMode,
   formatSpeedStep,
   formatVoiceRecordingCountdownSeconds,
   formatVolumeDb,
@@ -29,6 +30,10 @@ type SplitButtonValueState = {
   pauseDetectionAlgorithm: FieldSplitButtonState["pauseDetectionAlgorithm"];
   pitchHumMode: PitchHumMode;
   shareTarget: ShareTarget;
+  sizeReductionMode: FieldSplitButtonState["sizeReductionMode"];
+  sizeReductionBitrateKbps: number;
+  sizeReductionSampleRateHz: number;
+  sizeReductionChannels: number;
   speedStep: number;
   voiceRecordingCountdownSeconds: number;
   volumeStepDb: number;
@@ -57,12 +62,33 @@ export function primaryTitle(
   button: ButtonSpec,
   outputFormat: OutputFormatValue,
   denoiseAlgorithm: DenoiseAlgorithm,
+  sizeReductionMode: FieldSplitButtonState["sizeReductionMode"],
 ): string {
   if (button.command === "aqe:convert") {
     return t("editor.command.convert.title", { format: formatOutputFormat(outputFormat) });
   }
+  if (button.command === "aqe:reduce-size") {
+    return t("editor.command.reduce_size.title", { level: formatSizeReductionMode(sizeReductionMode) });
+  }
   if (!isDenoiseCommand(button.command)) return button.title;
   return t("editor.command.denoise.title", { algorithm: formatDenoiseAlgorithm(denoiseAlgorithm) });
+}
+
+export function primaryInitiallyDisabled(command: ButtonSpec["command"]): boolean {
+  return (
+    command === "aqe:record-voice" ||
+    command === "aqe:play-recording" ||
+    command === "aqe:share-recording" ||
+    command === "aqe:show-recording-file"
+  );
+}
+
+export function primaryDisabledReason(command: ButtonSpec["command"]): string | undefined {
+  if (command === "aqe:record-voice") return t("editor.command.record_voice.disabled_title");
+  if (command === "aqe:play-recording") return t("editor.command.play_recording.disabled_title");
+  if (command === "aqe:share-recording") return t("editor.command.share_recording.disabled_title");
+  if (command === "aqe:show-recording-file") return t("editor.command.show_recording_file.disabled_title");
+  return undefined;
 }
 
 function groupedSpeedValueLabel(speedStep: number): string {
@@ -96,6 +122,7 @@ export function currentValueLabel(
     return `${level} · ${formatPauseDetectionAlgorithm(state.pauseDetectionAlgorithm)}`;
   }
   if (button.command === "aqe:convert") return formatOutputFormat(state.outputFormat);
+  if (button.command === "aqe:reduce-size") return formatSizeReductionMode(state.sizeReductionMode);
   if (button.command === "aqe:share") {
     return state.shareTarget === "litterbox" ? t("editor.share.target.litterbox") : t("editor.share.target.catbox");
   }

@@ -7,7 +7,7 @@ from collections.abc import Callable
 
 import pytest
 
-from anki_audio_quick_editor.editor_integration import _handle_bridge_command
+from anki_audio_quick_editor.editor_callbacks import _handle_bridge_command
 
 
 def test_editor_frontend_log_callback_records_levels(caplog: pytest.LogCaptureFixture) -> None:

@@ -42,7 +42,9 @@ describe("editor inline selection creation integration", () => {
       playbackEndMs: 1000,
       selectionStartHandleVisible: true,
       selectionEndHandleVisible: true,
-      selectionToolbarHidden: true,
+      selectionToolbarDeleteRegionHidden: true,
+      selectionToolbarDeleteRestHidden: true,
+      selectionToolbarHidden: false,
       regionDeleteButtonHidden: true,
       regionDeleteButtonDisabled: true,
       regionDeleteRestButtonHidden: true,
@@ -66,10 +68,10 @@ describe("editor inline selection creation integration", () => {
       cursorMs: 200,
     });
     expect(document.querySelector('[data-testid="aqe-selection-0"]')).toHaveAttribute("visibility", "visible");
-    const startHandle = document.querySelector('[data-testid="aqe-selection-resize-start-0"]')!;
-    const endHandle = document.querySelector('[data-testid="aqe-selection-resize-end-0"]')!;
-    expect(startHandle).toHaveAttribute("visibility", "visible");
-    expect(endHandle).toHaveAttribute("visibility", "visible");
+    const startHandle = document.querySelector<HTMLElement>('[data-testid="aqe-selection-resize-start-0"]')!;
+    const endHandle = document.querySelector<HTMLElement>('[data-testid="aqe-selection-resize-end-0"]')!;
+    expect(startHandle.hidden).toBe(false);
+    expect(endHandle.hidden).toBe(false);
     expect(window.__aqeGraphStateForTest?.(0)).toMatchObject({
       selectionStartHandleVisible: true,
       selectionEndHandleVisible: true,
@@ -85,8 +87,26 @@ describe("editor inline selection creation integration", () => {
     dispatchGraphPointer(svg, "pointerup", graphClientX(svg, 0.5), true);
     expect(window.__aqeGraphStateForTest?.(0)?.selectionActive).toBe(false);
     expect(document.querySelector('[data-testid="aqe-selection-0"]')).toHaveAttribute("visibility", "hidden");
-    expect(startHandle).toHaveAttribute("visibility", "hidden");
-    expect(endHandle).toHaveAttribute("visibility", "hidden");
+    expect(startHandle.hidden).toBe(true);
+    expect(endHandle.hidden).toBe(true);
+  });
+
+  it("creates selections using visible viewport coordinates when zoomed", () => {
+    initializeEditorRuntime({ audioFieldIndices: [0] });
+    scan({ audioFieldIndices: [0] });
+    window.__aqeSetVisualizer?.(0, track, 100);
+    window.__aqeSetTimeViewportForTest?.(0, 250, 750);
+    const svg = document.querySelector<SVGSVGElement>('[data-testid="aqe-graph-svg-0"]')!;
+    setGraphBounds(svg);
+
+    dragGraphSelection(svg, 0.25, 0.75);
+
+    expect(window.__aqeGraphStateForTest?.(0)).toMatchObject({
+      viewportStartMs: 250,
+      viewportEndMs: 750,
+      selectionStartMs: 375,
+      selectionEndMs: 625,
+    });
   });
 
   it("shows and updates a draft selection during Shift-drag before commit", () => {

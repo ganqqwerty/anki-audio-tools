@@ -2,7 +2,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { disposeEditorRuntime, initializeEditorRuntime, scan } from "../src/editor-inline/runtime.js";
 import { PRODUCT_LINKS } from "../src/lib/product-links.js";
-import { bridgeCommands, muteConsole, renderFields, track } from "./editor-inline.integration.helpers.js";
+import { bridgeCommands, muteConsole, peekPendingCommandPayload, renderFields, track } from "./editor-inline.integration.helpers.js";
+import { invalidateFieldState } from "../src/editor-inline/field-state-store.js";
 
 describe("editor inline denoise integration", () => {
   let restoreConsole: () => void;
@@ -41,27 +42,28 @@ describe("editor inline denoise integration", () => {
 
     const help = document.querySelector<HTMLDetailsElement>('[data-testid="aqe-help-0"]')!;
     expect(help.open).toBe(false);
-    expect(help.querySelectorAll(".aqe-help-command")).toHaveLength(15);
+    expect(help.querySelectorAll(".aqe-help-command")).toHaveLength(16);
     expect(help.querySelector(".aqe-help-triangle")).not.toBeNull();
     expect(help).toHaveTextContent("Shift-drag on the graph to select a region.");
     expect(help).toHaveTextContent("Delete Region removes the selected region; Delete the rest keeps only the selected region.");
     expect(help).toHaveTextContent("Delete Region / Delete the rest");
     expect(help).toHaveTextContent("Creates a new file that removes the selected region or keeps only that region.");
     expect(help).toHaveTextContent("Creates a new file with louder audio.");
+    expect(help).toHaveTextContent("Creates a compressed MP3 by lowering safe audio parameters.");
     expect(help).toHaveTextContent("Creates a new file in a different format.");
     expect(help).toHaveTextContent("Creates a new pitch-preserving hum file for intonation practice.");
     expect(help).toHaveTextContent("Every edit creates a new media file and updates the field to point at it.");
     expect(help).toHaveTextContent("grey is loudness and lines are pitch of the voice.");
     expect(document.querySelector<HTMLButtonElement>('[data-testid="aqe-button-0-denoise-standard"]')?.getAttribute("data-aqe-tooltip-content")).toBe(
-      "Create a new file cleaned with Standard",
+      "Denoise\nCreate a new file cleaned with Standard",
     );
 
     document.querySelector<HTMLButtonElement>('[data-testid="aqe-button-0-pitch-hum"]')!.click();
     expect(bridgeCommands()).toContain("aqe:command-payload");
-    expect(window.__aqePendingCommandPayload?.command).toBe("aqe:pitch-hum");
-    expect(window.__aqePendingCommandPayload?.fieldOrd).toBe(0);
-    expect(window.__aqePendingCommandPayload?.overrides?.pitchHumMode).toBe("direct");
-    expect(window.__aqePendingCommandPayload?.graphSettings).toEqual({
+    expect(peekPendingCommandPayload()?.command).toBe("aqe:pitch-hum");
+    expect(peekPendingCommandPayload()?.fieldOrd).toBe(0);
+    expect(peekPendingCommandPayload()?.overrides?.pitchHumMode).toBe("direct");
+    expect(peekPendingCommandPayload()?.graphSettings).toEqual({
       connectShortDropoutsMs: 60,
       recordingCondition: "studio",
       smoothness: "very_smooth",
@@ -89,15 +91,15 @@ describe("editor inline denoise integration", () => {
     pitchTierPreset.click();
     await Promise.resolve();
     document.querySelector<HTMLButtonElement>('[data-testid="aqe-button-0-pitch-hum"]')!.click();
-    expect(window.__aqePendingCommandPayload?.command).toBe("aqe:pitch-hum");
-    expect(window.__aqePendingCommandPayload?.overrides?.pitchHumMode).toBe("pitch_tier");
+    expect(peekPendingCommandPayload()?.command).toBe("aqe:pitch-hum");
+    expect(peekPendingCommandPayload()?.overrides?.pitchHumMode).toBe("pitch_tier");
 
     window.__aqePrepareForNewNote?.();
     document.querySelector<HTMLButtonElement>('[data-testid="aqe-button-0-denoise-standard"]')!.click();
     expect(bridgeCommands()).toContain("aqe:command-payload");
-    expect(window.__aqePendingCommandPayload?.command).toBe("aqe:denoise-standard");
-    expect(window.__aqePendingCommandPayload?.fieldOrd).toBe(0);
-    expect(window.__aqePendingCommandPayload?.overrides?.denoiseAlgorithm).toBe("standard");
+    expect(peekPendingCommandPayload()?.command).toBe("aqe:denoise-standard");
+    expect(peekPendingCommandPayload()?.fieldOrd).toBe(0);
+    expect(peekPendingCommandPayload()?.overrides?.denoiseAlgorithm).toBe("standard");
 
     window.__aqePrepareForNewNote?.();
     document.querySelector<HTMLButtonElement>('[data-testid="aqe-split-0-denoise-standard-menu"]')!.click();
@@ -121,13 +123,13 @@ describe("editor inline denoise integration", () => {
         ?.getAttribute("aria-checked"),
     ).toBe("true");
     expect(document.querySelector<HTMLButtonElement>('[data-testid="aqe-button-0-denoise-standard"]')?.getAttribute("data-aqe-tooltip-content")).toBe(
-      "Create a new file cleaned with DPDFNet",
+      "Denoise\nCreate a new file cleaned with DPDFNet",
     );
     document.querySelector<HTMLButtonElement>('[data-testid="aqe-button-0-denoise-standard"]')!.click();
-    expect(window.__aqePendingCommandPayload?.command).toBe("aqe:dpdfnet");
-    expect(window.__aqePendingCommandPayload?.fieldOrd).toBe(0);
-    expect(window.__aqePendingCommandPayload?.overrides?.denoiseAlgorithm).toBe("dpdfnet");
-    expect(window.__aqePendingCommandPayload?.overrides?.dpdfnetAttnLimitDb).toBe(18);
+    expect(peekPendingCommandPayload()?.command).toBe("aqe:dpdfnet");
+    expect(peekPendingCommandPayload()?.fieldOrd).toBe(0);
+    expect(peekPendingCommandPayload()?.overrides?.denoiseAlgorithm).toBe("dpdfnet");
+    expect(peekPendingCommandPayload()?.overrides?.dpdfnetAttnLimitDb).toBe(18);
   });
 
   it("stops active playback before dispatching a denoise command", async () => {
@@ -149,6 +151,7 @@ describe("editor inline denoise integration", () => {
     visualizer.dataset.playbackState = "playing";
     visualizer.dataset.playbackEngine = "native";
     visualizer.dataset.progressClockMode = "manual";
+    invalidateFieldState(0);
 
     document.querySelector<HTMLButtonElement>('[data-testid="aqe-button-0-denoise-standard"]')!.click();
     await Promise.resolve();

@@ -12,6 +12,10 @@ from .audio_formats import ConcreteOutputFormat, validate_target_format
 from .audio_state import AudioEditState
 from .audio_types import RegionDeletePlan, RegionKeepPlan
 from .errors import AudioProcessingError
+from .ffmpeg_output_contracts import (
+    validate_final_ffmpeg_output,
+    validate_intermediate_ffmpeg_output,
+)
 
 FFMPEG_AUDIO_CODEC_ARG = "-codec:a"
 DEFAULT_MP3_CODEC_ARGS = (FFMPEG_AUDIO_CODEC_ARG, "libmp3lame", "-q:a", "4")
@@ -31,14 +35,35 @@ def conversion_codec_args(target_format: object) -> tuple[str, ...]:
 
 
 def build_convert_audio_command(
-    ffmpeg_path: Path,
-    source_path: Path,
-    output_path: Path,
-    target_format: object,
-    codec_args: Sequence[str] | None = None,
+        ffmpeg_path: Path,
+        source_path: Path,
+        output_path: Path,
+        target_format: object,
+        codec_args: Sequence[str] | None = None,
 ) -> tuple[str, ...]:
     """Build an ffmpeg command that converts audio without applying edit filters."""
     resolved_codec_args = tuple(codec_args) if codec_args is not None else conversion_codec_args(target_format)
+    validate_final_ffmpeg_output(output_path, resolved_codec_args)
+    return (
+        str(ffmpeg_path),
+        "-y",
+        "-i",
+        str(source_path),
+        "-vn",
+        *resolved_codec_args,
+        str(output_path),
+    )
+
+
+def build_size_reduction_audio_command(
+        ffmpeg_path: Path,
+        source_path: Path,
+        output_path: Path,
+        codec_args: Sequence[str],
+) -> tuple[str, ...]:
+    """Build an ffmpeg command that re-encodes audio for a smaller MP3 output."""
+    resolved_codec_args = tuple(codec_args)
+    validate_final_ffmpeg_output(output_path, resolved_codec_args)
     return (
         str(ffmpeg_path),
         "-y",
@@ -51,9 +76,9 @@ def build_convert_audio_command(
 
 
 def build_region_delete_plan(
-    selection_start_ms: int,
-    selection_end_ms: int,
-    duration_ms: int,
+        selection_start_ms: int,
+        selection_end_ms: int,
+        duration_ms: int,
 ) -> RegionDeletePlan:
     """Return a concat/trim plan for deleting one region from a clip."""
     duration = max(0, int(round(duration_ms)))
@@ -81,9 +106,9 @@ def build_region_delete_plan(
 
 
 def build_region_keep_plan(
-    selection_start_ms: int,
-    selection_end_ms: int,
-    duration_ms: int,
+        selection_start_ms: int,
+        selection_end_ms: int,
+        duration_ms: int,
 ) -> RegionKeepPlan:
     """Return a trim plan for keeping one selected region from a clip."""
     duration = max(0, int(round(duration_ms)))
@@ -101,13 +126,15 @@ def build_region_keep_plan(
 
 
 def build_ffmpeg_command(
-    ffmpeg_path: Path,
-    source_path: Path,
-    filters: str,
-    output_path: Path,
-    codec_args: Sequence[str] = DEFAULT_MP3_CODEC_ARGS,
+        ffmpeg_path: Path,
+        source_path: Path,
+        filters: str,
+        output_path: Path,
+        codec_args: Sequence[str] = DEFAULT_MP3_CODEC_ARGS,
 ) -> tuple[str, ...]:
     """Build the ffmpeg command used to render processed audio."""
+    resolved_codec_args = tuple(codec_args)
+    validate_final_ffmpeg_output(output_path, resolved_codec_args)
     return (
         str(ffmpeg_path),
         "-y",
@@ -116,7 +143,7 @@ def build_ffmpeg_command(
         "-vn",
         "-filter:a",
         filters,
-        *tuple(codec_args),
+        *resolved_codec_args,
         str(output_path),
     )
 
@@ -126,8 +153,11 @@ def build_wav_filter_command(
     source_path: Path,
     filters: str,
     output_path: Path,
+    codec_args: Sequence[str] | None = None,
 ) -> tuple[str, ...]:
     """Build an ffmpeg command that renders filtered PCM WAV output."""
+    resolved_codec_args = tuple(codec_args) if codec_args is not None else (FFMPEG_AUDIO_CODEC_ARG, "pcm_s16le")
+    validate_intermediate_ffmpeg_output(output_path, resolved_codec_args)
     return (
         str(ffmpeg_path),
         "-y",
@@ -136,18 +166,17 @@ def build_wav_filter_command(
         "-vn",
         "-filter:a",
         filters,
-        FFMPEG_AUDIO_CODEC_ARG,
-        "pcm_s16le",
+        *resolved_codec_args,
         str(output_path),
     )
 
 
 def build_silencedetect_command(
-    ffmpeg_path: Path,
-    source_path: Path,
-    *,
-    threshold_db: float,
-    min_duration_ms: int,
+        ffmpeg_path: Path,
+        source_path: Path,
+        *,
+        threshold_db: float,
+        min_duration_ms: int,
 ) -> tuple[str, ...]:
     """Build an ffmpeg command that emits silencedetect metadata to stderr."""
     return (
@@ -164,13 +193,15 @@ def build_silencedetect_command(
 
 
 def build_filter_complex_render_command(
-    ffmpeg_path: Path,
-    source_path: Path,
-    filter_script_path: Path,
-    output_path: Path,
-    codec_args: Sequence[str] = DEFAULT_MP3_CODEC_ARGS,
+        ffmpeg_path: Path,
+        source_path: Path,
+        filter_script_path: Path,
+        output_path: Path,
+        codec_args: Sequence[str] = DEFAULT_MP3_CODEC_ARGS,
 ) -> tuple[str, ...]:
     """Build an ffmpeg command that renders from a filter_complex script."""
+    resolved_codec_args = tuple(codec_args)
+    validate_final_ffmpeg_output(output_path, resolved_codec_args)
     return (
         str(ffmpeg_path),
         "-y",
@@ -181,19 +212,21 @@ def build_filter_complex_render_command(
         str(filter_script_path),
         "-map",
         "[out]",
-        *tuple(codec_args),
+        *resolved_codec_args,
         str(output_path),
     )
 
 
 def build_region_delete_command(
-    ffmpeg_path: Path,
-    source_path: Path,
-    filter_complex: str,
-    output_path: Path,
-    codec_args: Sequence[str] = DEFAULT_MP3_CODEC_ARGS,
+        ffmpeg_path: Path,
+        source_path: Path,
+        filter_complex: str,
+        output_path: Path,
+        codec_args: Sequence[str] = DEFAULT_MP3_CODEC_ARGS,
 ) -> tuple[str, ...]:
     """Build an ffmpeg command that removes one selected audio region."""
+    resolved_codec_args = tuple(codec_args)
+    validate_final_ffmpeg_output(output_path, resolved_codec_args)
     return (
         str(ffmpeg_path),
         "-y",
@@ -204,7 +237,7 @@ def build_region_delete_command(
         filter_complex,
         "-map",
         "[out]",
-        *tuple(codec_args),
+        *resolved_codec_args,
         str(output_path),
     )
 
@@ -215,8 +248,8 @@ def format_ffmpeg_command(command: tuple[str, ...]) -> str:
 
 
 def build_audio_filters(
-    duration_ms: int,
-    state: AudioEditState,
+        duration_ms: int,
+        state: AudioEditState,
 ) -> str:
     """Build the ffmpeg audio filter chain for an edit state."""
     filters = build_working_original_filters(duration_ms, state).split(",")
@@ -230,8 +263,8 @@ def build_audio_filters(
 
 
 def build_working_original_filters(
-    duration_ms: int,
-    state: AudioEditState,
+        duration_ms: int,
+        state: AudioEditState,
 ) -> str:
     """Build filters for original-derived audio before pause detection and rendering."""
     filters: list[str] = []

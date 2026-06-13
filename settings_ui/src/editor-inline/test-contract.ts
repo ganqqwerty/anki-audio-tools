@@ -15,8 +15,11 @@ import {
   selectionForVisualizer,
   setCursor,
 } from "./actions.js";
-import { cursorMsFromEvent, graphPixelBounds } from "./plot.js";
-import { readVisualizerTargetDurationMs } from "./visualizer-state.js";
+import { cursorMsFromEvent, graphPixelBounds, svgViewBoxScale } from "./plot.js";
+import { chorusingControlsForVisualizer } from "./chorusing-dom.js";
+import { applyVisualizerTimeViewport } from "./viewport-actions.js";
+import { readVisualizerTargetDurationMs, readVisualizerTimeViewport } from "./visualizer-state.js";
+import { readFieldState, invalidateFieldState } from "./field-state-store.js";
 import type {
   CursorPositionForTest,
   EditorCommand,
@@ -27,18 +30,28 @@ import type {
 } from "./types.js";
 import { isPlaybackState } from "./types.js";
 
+type GraphBoundsForTest = { left: number; width: number };
+
 export const EDITOR_TEST_WINDOW_CONTRACT_NAMES = [
+  "__aqeFieldState",
   "__aqeGraphStateForTest",
+  "__aqeGraphPixelBoundsForTest",
   "__aqeInstallAudioPlaybackTestDriverForTest",
+  "__aqeInvalidateFieldState",
   "__aqeSetCursorByClientXForTest",
   "__aqeSetCursorForTest",
+  "__aqeSetTimeViewportForTest",
 ] as const;
 
 export function installEditorTestWindowContract(): void {
+  window.__aqeFieldState = readFieldState;
   window.__aqeGraphStateForTest = graphStateForTest;
+  window.__aqeGraphPixelBoundsForTest = graphPixelBoundsForTest;
   window.__aqeInstallAudioPlaybackTestDriverForTest = installAudioPlaybackTestDriver;
+  window.__aqeInvalidateFieldState = (ord: number) => { invalidateFieldState(ord); };
   window.__aqeSetCursorByClientXForTest = setCursorByClientXForTest;
   window.__aqeSetCursorForTest = setCursorForTest;
+  window.__aqeSetTimeViewportForTest = setTimeViewportForTest;
 }
 
 export function installAudioPlaybackTestDriver(ord: number): boolean {
@@ -97,6 +110,7 @@ export function setCursorForTest(ord: number, ms: number, notifyPython: boolean)
   if (!visualizer) return false;
   visualizer.hidden = false;
   visualizer.dataset.graphActive = "true";
+  invalidateFieldState(ord);
   setCursor(visualizer, ms, !!notifyPython);
   return true;
 }
@@ -106,7 +120,7 @@ export function setCursorByClientXForTest(ord: number, clientX: number, notifyPy
   const svg = visualizer?.querySelector<SVGSVGElement>(".aqe-visualizer-svg") ?? null;
   if (!visualizer || !svg) return null;
   const durationMs = Number(visualizer.dataset.durationMs || "0");
-  const ms = cursorMsFromEvent({ clientX }, svg, durationMs);
+  const ms = cursorMsFromEvent({ clientX }, svg, durationMs, readVisualizerTimeViewport(visualizer));
   setCursor(visualizer, ms, !!notifyPython);
   return {
     cursorMs: Number(visualizer.dataset.cursorMs || "0"),
@@ -115,11 +129,29 @@ export function setCursorByClientXForTest(ord: number, clientX: number, notifyPy
   };
 }
 
+export function graphPixelBoundsForTest(ord: number): GraphBoundsForTest | null {
+  const visualizer = visualizerForOrd(ord);
+  const svg = visualizer?.querySelector<SVGSVGElement>(".aqe-visualizer-svg") ?? null;
+  if (!svg) return null;
+  return graphPixelBounds(svg);
+}
+
+export function setTimeViewportForTest(ord: number, startMs: number, endMs: number): boolean {
+  const visualizer = visualizerForOrd(ord);
+  if (!visualizer) return false;
+  applyVisualizerTimeViewport(visualizer, {
+    durationMs: readVisualizerTargetDurationMs(visualizer),
+    endMs,
+    startMs,
+  });
+  return true;
+}
+
 export function graphStateForTest(ord: number): GraphStateForTest | null {
   const visualizer = visualizerForOrd(ord);
   const graph = graphButton(ord);
   const play = playButton(ord);
-  const repeatMenu = controlsForOrd(ord)?.querySelector<HTMLButtonElement>(".aqe-play-repeat-menu-button") ?? null;
+  const repeatMenu = controlsForOrd(ord)?.querySelector<HTMLButtonElement>(".aqe-play-split-button .aqe-split-menu-button") ?? null;
   const regionDelete = controlsForOrd(ord)?.querySelector<HTMLButtonElement>(".aqe-delete-region-button") ?? null;
   const regionDeleteRest = controlsForOrd(ord)?.querySelector<HTMLButtonElement>(".aqe-delete-rest-button") ?? null;
   if (!visualizer) return null;
@@ -129,10 +161,10 @@ export function graphStateForTest(ord: number): GraphStateForTest | null {
   const audio = audioClockFor(visualizer);
   const selection = selectionForVisualizer(visualizer);
   const draftSelection = draftSelectionForVisualizer(visualizer);
-  const startHandle = visualizer.querySelector<SVGRectElement>(".aqe-selection-resize-start");
-  const endHandle = visualizer.querySelector<SVGRectElement>(".aqe-selection-resize-end");
+  const plot = visualizer.querySelector<HTMLElement>(".aqe-visualizer-plot");
+  const startHandle = visualizer.querySelector<HTMLElement>(".aqe-selection-resize-start");
+  const endHandle = visualizer.querySelector<HTMLElement>(".aqe-selection-resize-end");
   const selectionToolbar = visualizer.querySelector<HTMLElement>(".aqe-selection-toolbar");
-  const selectionToolbarDot = visualizer.querySelector<SVGSVGElement>(".aqe-selection-toolbar-dot");
   const selectionToolbarPlay = visualizer.querySelector<HTMLButtonElement>(".aqe-selection-toolbar-play");
   const selectionToolbarPreview = visualizer.dataset.selectionToolbarPreview;
   const cssCursor = visualizer.querySelector<HTMLElement>(".aqe-css-cursor");
@@ -141,6 +173,8 @@ export function graphStateForTest(ord: number): GraphStateForTest | null {
   const timecodeFlagPitch = visualizer.querySelector<HTMLElement>(".aqe-css-cursor-flag-pitch");
   const spinner = visualizer.closest<HTMLElement>(".aqe-controls")?.querySelector<HTMLElement>(".aqe-spinner")
     ?? visualizer.querySelector<HTMLElement>(".aqe-spinner");
+  const viewport = readVisualizerTimeViewport(visualizer);
+  const chorusing = chorusingControlsForVisualizer(visualizer);
   return {
     active: visualizer.dataset.graphActive === "true",
     busy: visualizer.dataset.graphBusy === "true",
@@ -148,8 +182,12 @@ export function graphStateForTest(ord: number): GraphStateForTest | null {
     hasTrack: visualizer.dataset.hasTrack === "true",
     durationMs: Number(visualizer.dataset.durationMs || "0"),
     targetDurationMs: readVisualizerTargetDurationMs(visualizer),
+    viewportStartMs: viewport.startMs,
+    viewportEndMs: viewport.endMs,
     learnerDurationMs: Number(visualizer.dataset.learnerDurationMs || "0"),
     learnerRecordingStatus: visualizer.dataset.learnerRecordingStatus || "idle",
+    learnerPlaybackStatus: visualizer.dataset.learnerPlaybackStatus || "stopped",
+    learnerStartCursorMs: Number(visualizer.dataset.learnerStartCursorMs || "0"),
     anchorMs: Number(visualizer.dataset.anchorMs || "0"),
     cursorMs: Number(visualizer.dataset.cursorMs || "0"),
     progressMs: Math.round(currentProgressMs(visualizer) ?? Number(visualizer.dataset.progressMs || "0")),
@@ -166,10 +204,10 @@ export function graphStateForTest(ord: number): GraphStateForTest | null {
     selectionDraftActive: draftSelection !== null,
     selectionDraftStartMs: draftSelection?.startMs ?? null,
     selectionDraftEndMs: draftSelection?.endMs ?? null,
-    selectionStartHandleVisible: startHandle?.getAttribute("visibility") === "visible",
-    selectionStartHandleX: startHandle?.getAttribute("x") ? Number(startHandle.getAttribute("x")) : null,
-    selectionEndHandleVisible: endHandle?.getAttribute("visibility") === "visible",
-    selectionEndHandleX: endHandle?.getAttribute("x") ? Number(endHandle.getAttribute("x")) : null,
+    selectionStartHandleVisible: startHandle ? !startHandle.hidden : false,
+    selectionStartHandleX: selectionHandleLeftPx(plot, "--aqe-selection-start-edge-px"),
+    selectionEndHandleVisible: endHandle ? !endHandle.hidden : false,
+    selectionEndHandleX: selectionHandleLeftPx(plot, "--aqe-selection-end-edge-px"),
     repeatEnabled: visualizer.dataset.repeatEnabled === "true",
     repeatPauseSeconds: Number(visualizer.dataset.repeatPauseSeconds || "0"),
     repeatPauseWaiting: visualizer.dataset.repeatPauseWaiting === "true",
@@ -178,14 +216,10 @@ export function graphStateForTest(ord: number): GraphStateForTest | null {
     regionDeleteButtonHidden: regionDelete ? !!regionDelete.hidden : true,
     regionDeleteRestButtonDisabled: !!regionDeleteRest?.disabled,
     regionDeleteRestButtonHidden: regionDeleteRest ? !!regionDeleteRest.hidden : true,
-    selectionToolbarCollapsed: visualizer.dataset.selectionToolbarCollapsed === "true",
     selectionToolbarDeleteRegionDisabled: !!regionDelete?.disabled,
     selectionToolbarDeleteRegionHidden: regionDelete ? !!regionDelete.hidden : true,
     selectionToolbarDeleteRestDisabled: !!regionDeleteRest?.disabled,
     selectionToolbarDeleteRestHidden: regionDeleteRest ? !!regionDeleteRest.hidden : true,
-    selectionToolbarDotHidden: selectionToolbarDot
-      ? selectionToolbarDot.hasAttribute("hidden") || selectionToolbarDot.getAttribute("aria-hidden") === "true"
-      : true,
     selectionToolbarHidden: selectionToolbar ? !!selectionToolbar.hidden : true,
     selectionToolbarLeftPx: selectionToolbar ? cssPixelNumber(selectionToolbar.style.left) : null,
     selectionToolbarPlayAriaLabel: selectionToolbarPlay?.getAttribute("aria-label") || "",
@@ -194,6 +228,19 @@ export function graphStateForTest(ord: number): GraphStateForTest | null {
       ? selectionToolbarPreview
       : "none",
     selectionToolbarTopPx: selectionToolbar ? cssPixelNumber(selectionToolbar.style.top) : null,
+    chorusingActiveEndMs: chorusing.activeSuffixEndMs,
+    chorusingActiveMarkerIndex: chorusing.activeMarkerIndex,
+    chorusingActiveStartMs: chorusing.activeSuffixStartMs,
+    chorusingBaseEndMs: chorusing.baseEndMs,
+    chorusingBaseStartMs: chorusing.baseStartMs,
+    chorusingCanNext: chorusing.canNext,
+    chorusingCanPrevious: chorusing.canPrevious,
+    chorusingCanPractice: chorusing.canPractice,
+    chorusingMarkerVisibleXs: chorusing.visibleMarkers.map((marker) => marker.x),
+    chorusingMarkersMs: chorusing.markersMs,
+    chorusingState: chorusing.practiceState,
+    chorusingVisibleActiveRangeEndX: chorusing.visibleActiveRange?.endX ?? null,
+    chorusingVisibleActiveRangeStartX: chorusing.visibleActiveRange?.startX ?? null,
     playbackStartMs: Number(visualizer.dataset.playbackStartMs || "0"),
     playbackEndMs: Number(visualizer.dataset.playbackEndMs || "0"),
     playbackRegionMode: visualizer.dataset.playbackRegionMode === "selection" ? "selection" : "full",
@@ -252,11 +299,17 @@ function cssPixelNumber(value: string): number | null {
   return Number.isFinite(parsed) ? parsed : null;
 }
 
+function selectionHandleLeftPx(plot: HTMLElement | null, propertyName: string): number | null {
+  const edgePx = cssPixelNumber(plot?.style.getPropertyValue(propertyName).trim() || "");
+  return edgePx === null ? null : edgePx - 5;
+}
+
 function cssCursorViewBoxX(visualizer: VisualizerElement): number {
   const cursor = visualizer.querySelector<HTMLElement>(".aqe-css-cursor");
   const transform = cursor?.style.transform || "";
   const match = /translate3d\((-?\d+(?:\.\d+)?)px/.exec(transform);
   const x = match ? Number(match[1]) : 0;
-  const scale = Number(visualizer.dataset.cssCursorScale || "1") || 1;
+  const svg = visualizer.querySelector<SVGSVGElement>(".aqe-visualizer-svg");
+  const scale = svg ? svgViewBoxScale(svg).x : 1;
   return x / scale;
 }

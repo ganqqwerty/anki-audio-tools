@@ -15,8 +15,8 @@ WARN_RUNTIME_PACK_BYTES = 500 * 1024 * 1024
 DEFAULT_RUNTIME_RELEASE_REPO = "https://github.com/ganqqwerty/anki-audio-tools"
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-import release_assets  # noqa: E402
-import scripts.release_asset_common as release_asset_common  # noqa: E402
+import release_assets
+import scripts.release_asset_common as release_asset_common
 
 
 def write_runtime_manifest(

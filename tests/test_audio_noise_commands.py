@@ -22,6 +22,12 @@ from anki_audio_quick_editor.audio_commands import (
 from anki_audio_quick_editor.audio_noise_reduction import select_deep_filter_output
 from anki_audio_quick_editor.errors import AudioProcessingError
 
+DEEP_FILTER = str(Path("/bin/deep-filter"))
+DPDFNET = str(Path("/bin/dpdfnet"))
+FFMPEG = str(Path("/bin/ffmpeg"))
+RNNOISE = str(Path("/bin/rnnoise-cli"))
+SPLEETER = str(Path("/bin/sherpa-spleeter"))
+
 
 def test_build_playback_segment_filters_starts_at_cursor_and_resets_timestamps() -> None:
     assert build_playback_segment_filters(700) == "atrim=start=0.700,asetpts=PTS-STARTPTS"
@@ -37,7 +43,7 @@ def test_build_playback_segment_filters_clamps_negative_cursor_to_zero() -> None
 
 def test_build_deep_filter_prepare_command_uses_48khz_mono_pcm(tmp_path: Path) -> None:
     assert build_deep_filter_prepare_command(Path("/bin/ffmpeg"), tmp_path / "source.mp3", tmp_path / "input.wav") == (
-        "/bin/ffmpeg",
+        FFMPEG,
         "-y",
         "-i",
         str(tmp_path / "source.mp3"),
@@ -52,9 +58,14 @@ def test_build_deep_filter_prepare_command_uses_48khz_mono_pcm(tmp_path: Path) -
     )
 
 
+def test_build_deep_filter_prepare_command_rejects_non_wav_intermediate_output(tmp_path: Path) -> None:
+    with pytest.raises(AudioProcessingError, match="WAV output"):
+        build_deep_filter_prepare_command(Path("/bin/ffmpeg"), tmp_path / "source.mp3", tmp_path / "input.mp3")
+
+
 def test_build_deep_filter_command_includes_post_filter_when_enabled(tmp_path: Path) -> None:
     assert build_deep_filter_command(Path("/bin/deep-filter"), tmp_path / "input.wav", tmp_path / "out", post_filter=True) == (
-        "/bin/deep-filter",
+        DEEP_FILTER,
         "-D",
         "--pf",
         "-o",
@@ -66,12 +77,12 @@ def test_build_deep_filter_command_includes_post_filter_when_enabled(tmp_path: P
 def test_build_deep_filter_command_omits_post_filter_when_disabled(tmp_path: Path) -> None:
     command = build_deep_filter_command(Path("/bin/deep-filter"), tmp_path / "input.wav", tmp_path / "out", post_filter=False)
     assert "--pf" not in command
-    assert command == ("/bin/deep-filter", "-D", "-o", str(tmp_path / "out"), str(tmp_path / "input.wav"))
+    assert command == (DEEP_FILTER, "-D", "-o", str(tmp_path / "out"), str(tmp_path / "input.wav"))
 
 
 def test_build_rnnoise_prepare_command_uses_48khz_mono_raw_pcm(tmp_path: Path) -> None:
     assert build_rnnoise_prepare_command(Path("/bin/ffmpeg"), tmp_path / "source.mp3", tmp_path / "input.s16le") == (
-        "/bin/ffmpeg",
+        FFMPEG,
         "-y",
         "-i",
         str(tmp_path / "source.mp3"),
@@ -88,9 +99,14 @@ def test_build_rnnoise_prepare_command_uses_48khz_mono_raw_pcm(tmp_path: Path) -
     )
 
 
+def test_build_rnnoise_prepare_command_rejects_non_raw_pcm_intermediate_output(tmp_path: Path) -> None:
+    with pytest.raises(AudioProcessingError, match="raw PCM output"):
+        build_rnnoise_prepare_command(Path("/bin/ffmpeg"), tmp_path / "source.mp3", tmp_path / "input.wav")
+
+
 def test_build_rnnoise_command_includes_json_and_overwrite(tmp_path: Path) -> None:
     assert build_rnnoise_command(Path("/bin/rnnoise-cli"), tmp_path / "input.s16le", tmp_path / "denoised.s16le") == (
-        "/bin/rnnoise-cli",
+        RNNOISE,
         "denoise",
         "--input",
         str(tmp_path / "input.s16le"),
@@ -108,7 +124,7 @@ def test_build_dpdfnet_command_uses_enhance_subcommand(tmp_path: Path) -> None:
         tmp_path / "denoised.wav",
         attn_limit_db=12.0,
     ) == (
-        "/bin/dpdfnet",
+        DPDFNET,
         "enhance",
         "--attn-limit-db",
         "12",
@@ -119,7 +135,7 @@ def test_build_dpdfnet_command_uses_enhance_subcommand(tmp_path: Path) -> None:
 
 def test_build_rnnoise_encode_command_reads_raw_pcm(tmp_path: Path) -> None:
     assert build_rnnoise_encode_command(Path("/bin/ffmpeg"), tmp_path / "denoised.s16le", tmp_path / "denoised.mp3") == (
-        "/bin/ffmpeg",
+        FFMPEG,
         "-y",
         "-f",
         "s16le",
@@ -140,7 +156,7 @@ def test_build_rnnoise_encode_command_reads_raw_pcm(tmp_path: Path) -> None:
 
 def test_build_spleeter_prepare_command_uses_44k1_stereo_wav(tmp_path: Path) -> None:
     assert build_spleeter_prepare_command(Path("/bin/ffmpeg"), tmp_path / "source.mp3", tmp_path / "input.wav") == (
-        "/bin/ffmpeg",
+        FFMPEG,
         "-y",
         "-i",
         str(tmp_path / "source.mp3"),
@@ -155,6 +171,11 @@ def test_build_spleeter_prepare_command_uses_44k1_stereo_wav(tmp_path: Path) -> 
     )
 
 
+def test_build_spleeter_prepare_command_rejects_non_wav_intermediate_output(tmp_path: Path) -> None:
+    with pytest.raises(AudioProcessingError, match="WAV output"):
+        build_spleeter_prepare_command(Path("/bin/ffmpeg"), tmp_path / "source.mp3", tmp_path / "input.mp3")
+
+
 def test_build_spleeter_command_uses_sherpa_source_separation_flags(tmp_path: Path) -> None:
     assert build_spleeter_command(
         Path("/bin/sherpa-spleeter"),
@@ -163,7 +184,7 @@ def test_build_spleeter_command_uses_sherpa_source_separation_flags(tmp_path: Pa
         tmp_path / "input.wav",
         tmp_path / "out",
     ) == (
-        "/bin/sherpa-spleeter",
+        SPLEETER,
         f"--spleeter-vocals={tmp_path / 'vocals.fp16.onnx'}",
         f"--spleeter-accompaniment={tmp_path / 'accompaniment.fp16.onnx'}",
         f"--input-wav={tmp_path / 'input.wav'}",
@@ -175,7 +196,7 @@ def test_build_spleeter_command_uses_sherpa_source_separation_flags(tmp_path: Pa
 
 def test_build_mp3_encode_command_uses_existing_output_policy(tmp_path: Path) -> None:
     assert build_mp3_encode_command(Path("/bin/ffmpeg"), tmp_path / "cleaned.wav", tmp_path / "cleaned.mp3") == (
-        "/bin/ffmpeg",
+        FFMPEG,
         "-y",
         "-i",
         str(tmp_path / "cleaned.wav"),

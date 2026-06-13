@@ -16,6 +16,10 @@ from .editor_actions import (
     processing_config_for_command,
 )
 from .editor_conversion import convert_async as _convert_async
+from .editor_media_replacement import (
+    persist_generated_media,
+    replace_first_sound_reference_in_field,
+)
 from .editor_processing_shared import (
     cancel_graph_analysis_for_processing as _cancel_graph_analysis_for_processing,
 )
@@ -25,10 +29,10 @@ from .editor_processing_shared import (
 from .editor_processing_shared import (
     sync_history_availability as _sync_history_availability,
 )
+from .editor_reload_status import reload_editor_with_pending_status
 from .editor_session import (
     EditorProcessingGuard,
     EditorSession,
-    PendingEditorStatus,
     begin_processing_guard,
     clear_processing_for_stale_guard,
     is_current_processing_guard,
@@ -40,10 +44,8 @@ from .error_codes import (
     AQE_MEDIA_CURRENT_FIELD_AUDIO_MISSING,
     coded_error,
 )
-from .errors import AudioProcessingError
 from .i18n import t
 from .permission_guidance import message_with_permission_guidance
-from .sound_refs import replace_sound_reference, select_first_sound_reference
 
 logger = logging.getLogger(__name__)
 convert_async = _convert_async
@@ -51,6 +53,7 @@ denoise_standard_async = _special_transforms.denoise_standard_async
 dpdfnet_async = _special_transforms.dpdfnet_async
 log_special_transform_failure = _special_transforms.log_special_transform_failure
 pitch_hum_async = _special_transforms.pitch_hum_async
+reduce_size_async = _special_transforms.reduce_size_async
 record_dpdfnet_failure_context = _special_transforms.record_dpdfnet_failure_context
 record_rnnoise_failure_context = _special_transforms.record_rnnoise_failure_context
 record_spleeter_failure_context = _special_transforms.record_spleeter_failure_context
@@ -134,7 +137,7 @@ def _run_standard_render_worker(
 ) -> None:
     output_path: Path | None = None
     try:
-        desired_name = deps.make_output_filename(source_path.name)
+        desired_name = deps.make_output_filename(source_path.name, output_format=config.output_format)
         output_path = deps.temp_final_path(desired_name)
 
         def _show_command(process_command: tuple[str, ...]) -> None:
@@ -235,23 +238,46 @@ def replace_current_field_after_render(
     session = deps.sessions.get(editor)
     if not _accept_guarded_render_replacement(editor, session, guard, deps):
         return
-    saved_name = _persist_standard_render_output(editor, saved_name, output_path, deps)
+    saved_name = persist_generated_media(editor, saved_name, output_path, deps)
     field_index = _render_replacement_field_index(editor, session, deps)
-    field_html = editor.note.fields[field_index]
-    selection = select_first_sound_reference(field_html)
-    if selection.selected is None:
-        raise AudioProcessingError(deps.current_field_audio_missing)
-    deps.dispose_editor_frontend_controls(editor)
-    editor.note.fields[field_index] = replace_sound_reference(field_html, selection.selected, saved_name)
+    old_field_html, new_field_html, old_filename = replace_first_sound_reference_in_field(
+        editor, field_index=field_index, saved_name=saved_name, missing_message=deps.current_field_audio_missing,
+    )
+    old_state = session.state if session else None
+    status_summary = session.next_status_summary if session else ""
+    try:
+        deps.record_standard_persistent_undo(
+            editor,
+            field_index=field_index,
+            old_field_html=old_field_html,
+            new_field_html=new_field_html,
+            old_filename=old_filename,
+            new_filename=saved_name,
+            old_state=old_state,
+            new_state=updated_state,
+            status_summary=status_summary,
+        )
+    except Exception:
+        logger.debug(
+            "Could not record persistent undo operation field_index=%s old=%s new=%s.",
+            field_index,
+            old_filename,
+            saved_name,
+            exc_info=True,
+        )
     should_redraw_graph = _replace_standard_render_session_state(session, field_index, saved_name, updated_state)
     deps.request_playback_after_edit(
         editor,
         field_index,
         require_graph_redraw=should_redraw_graph,
     )
-    editor.loadNote(focusTo=field_index)
-    if session:
-        session.pending_status = None
+    reload_editor_with_pending_status(
+        editor,
+        session,
+        field_index,
+        message=session.status_summary if session is not None else "",
+        deps=deps,
+    )
     _sync_history_availability(editor, session, deps)
     _request_history_availability_after_edit(editor, session, deps)
     deps.eval_playback_state(editor, field_index, "stopped", 0)
@@ -273,16 +299,6 @@ def _accept_guarded_render_replacement(
         deps.set_busy(editor, False)
     return False
 
-
-def _persist_standard_render_output(
-    editor: Any,
-    saved_name: str,
-    output_path: Path | None,
-    deps: Any,
-) -> str:
-    if output_path is None:
-        return saved_name
-    return cast(str, deps.write_generated_media(editor, saved_name, output_path))
 
 
 def _render_replacement_field_index(editor: Any, session: EditorSession | None, deps: Any) -> int:
@@ -306,7 +322,6 @@ def _replace_standard_render_session_state(
     session.field_index = field_index
     session.status_summary = session.next_status_summary or session.status_summary
     session.next_status_summary = ""
-    session.pending_status = PendingEditorStatus(field_index, message=session.status_summary)
     session.processing = False
     session.cursor_ms = 0
     session.playback_active = False

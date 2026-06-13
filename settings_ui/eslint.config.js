@@ -28,12 +28,24 @@ export default [
 
   js.configs.recommended,
 
+  // Global rules for all source files
+  {
+    files: ["src/**/*.{ts,svelte}", "tests/**/*.ts"],
+    rules: {
+      "eqeqeq": ["error", "always", { "null": "ignore" }],
+    },
+  },
+
   // TypeScript source files (non-bridge, non-test)
   {
     files: ["src/**/*.ts"],
     ignores: BRIDGE_FILES,
     languageOptions: {
       parser: tsParser,
+      parserOptions: {
+        projectService: true,
+        tsconfigRootDir: import.meta.dirname,
+      },
       globals: {
         ...globals.browser,
       },
@@ -71,6 +83,8 @@ export default [
       ],
       // Disallow console.log — use logger.ts instead
       "no-console": ["error", { allow: ["warn", "error"] }],
+      "@typescript-eslint/no-floating-promises": "error",
+      "@typescript-eslint/no-misused-promises": "error",
     },
   },
 
@@ -123,6 +137,10 @@ export default [
     files: BRIDGE_FILES,
     languageOptions: {
       parser: tsParser,
+      parserOptions: {
+        projectService: true,
+        tsconfigRootDir: import.meta.dirname,
+      },
       globals: {
         ...globals.browser,
       },
@@ -149,6 +167,10 @@ export default [
     files: ["tests/**/*.ts"],
     languageOptions: {
       parser: tsParser,
+      parserOptions: {
+        projectService: true,
+        tsconfigRootDir: import.meta.dirname,
+      },
       globals: {
         ...globals.browser,
         vi: "readonly",

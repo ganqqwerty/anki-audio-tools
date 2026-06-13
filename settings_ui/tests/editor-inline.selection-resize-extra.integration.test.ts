@@ -33,12 +33,13 @@ describe("editor inline selection resize edge cases", () => {
     scan({ audioFieldIndices: [0] });
     window.__aqeSetVisualizer?.(0, track, 100);
     const svg = document.querySelector<SVGSVGElement>('[data-testid="aqe-graph-svg-0"]')!;
-    const startHandle = document.querySelector('[data-testid="aqe-selection-resize-start-0"]')!;
-    const endHandle = document.querySelector('[data-testid="aqe-selection-resize-end-0"]')!;
+    const startHandle = document.querySelector<HTMLElement>('[data-testid="aqe-selection-resize-start-0"]')!;
+    const endHandle = document.querySelector<HTMLElement>('[data-testid="aqe-selection-resize-end-0"]')!;
     setGraphBounds(svg);
+    dragGraphSelection(svg, 0.2, 0.6);
 
-    expect(startHandle).toHaveAttribute("visibility", "visible");
-    expect(endHandle).toHaveAttribute("visibility", "visible");
+    expect(startHandle.hidden).toBe(false);
+    expect(endHandle.hidden).toBe(false);
     expect(window.__aqeGraphStateForTest?.(0)).toMatchObject({
       selectionStartHandleVisible: true,
       selectionEndHandleVisible: true,
@@ -52,9 +53,9 @@ describe("editor inline selection resize edge cases", () => {
       selectionStartHandleVisible: true,
       selectionEndHandleVisible: true,
     });
-    expect(startHandle).toHaveAttribute("visibility", "visible");
+    expect(startHandle.hidden).toBe(false);
     expect(startHandle).toHaveClass("aqe-selection-resize-dragging");
-    expect(endHandle).toHaveAttribute("visibility", "visible");
+    expect(endHandle.hidden).toBe(false);
     expect(endHandle).toHaveClass("aqe-selection-resize-dragging");
 
     dispatchGraphPointer(svg, "pointerup", graphClientX(svg, 0.6), true);

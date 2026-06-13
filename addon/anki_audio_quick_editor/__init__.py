@@ -5,7 +5,6 @@ from __future__ import annotations
 import logging
 import logging.handlers
 import os
-import sys
 from collections.abc import Callable
 from importlib import import_module
 from pathlib import Path
@@ -20,6 +19,7 @@ from .diagnostics_runtime import (
     set_debug_enabled,
 )
 from .release_info import read_release_info
+from .vendor_runtime import VendorActivationError, activate_vendor
 
 if TYPE_CHECKING:
     from .editor_runtime import SettingsLifecycleCallbacks
@@ -28,9 +28,11 @@ logging.basicConfig(level=logging.INFO, format="%(name)s: %(levelname)s: %(messa
 logger = logging.getLogger("anki_audio_quick_editor")
 logger.setLevel(logging.INFO)
 
-_VENDOR_DIR = Path(__file__).parent / "vendor"
-if str(_VENDOR_DIR) not in sys.path:
-    sys.path.insert(0, str(_VENDOR_DIR))
+try:
+    activate_vendor(Path(__file__).parent)
+except VendorActivationError as activation_error:
+    logger.warning("%s", activation_error)
+
 
 def _maybe_attach_debugger(*, wait_for_client: bool = True) -> None:
     """Attach debugpy when requested without making it a shipped dependency."""
@@ -149,6 +151,19 @@ def _release_install_blocking_files(manager: object, module: str) -> None:
     """Release open files before Anki deletes this add-on during install."""
     if not _is_this_addon(module, manager):
         return
+    _release_blocking_files()
+
+
+def _release_delete_blocking_files(dialog: object, ids: list[str]) -> None:
+    """Release open files before Anki deletes this add-on from the Add-ons dialog."""
+    manager = getattr(dialog, "mgr", mw.addonManager)
+    if not any(_is_this_addon(module, manager) for module in ids):
+        return
+    _release_blocking_files()
+
+
+def _release_blocking_files() -> None:
+    """Release files that would block add-on replacement or removal on Windows."""
     _release_file_logging()
     release_runtime_files()
 
@@ -273,6 +288,9 @@ def _setup_browser_integration() -> None:
 def _setup_reviewer_integration() -> None:
     """Register reviewer hooks for inline audio controls during learning."""
     import_module(f"{__name__}.reviewer_integration").register_reviewer_hooks(gui_hooks)
+    import_module(f"{__name__}.reviewer_template_filter_integration").register_reviewer_template_filter(
+        gui_hooks
+    )
 
 
 def _setup_menu() -> None:
@@ -286,7 +304,7 @@ def _setup_menu() -> None:
     reviewer_action = reviewer_integration.add_reviewer_editor_toggle_action(submenu)
 
     def _refresh_reviewer_action() -> None:
-        reviewer_action.setText(reviewer_integration.reviewer_editor_menu_label())
+        reviewer_integration.refresh_reviewer_editor_toggle_action(reviewer_action)
 
     if hasattr(submenu, "aboutToShow"):
         qconnect(submenu.aboutToShow, _refresh_reviewer_action)
@@ -322,6 +340,7 @@ gui_hooks.main_window_did_init.append(_with_hook_boundary("setup_reviewer_integr
 gui_hooks.main_window_did_init.append(_with_hook_boundary("setup_menu", _setup_menu))
 gui_hooks.addon_manager_will_install_addon.append(_release_install_blocking_files)
 gui_hooks.addon_manager_did_install_addon.append(_restore_install_logging)
+gui_hooks.addons_dialog_will_delete_addons.append(_release_delete_blocking_files)
 mw.addonManager.setConfigAction(__name__, _open_settings)
 
 logger.info("audio quick editor add-on loaded")

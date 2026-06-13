@@ -4,6 +4,7 @@ from anki_audio_quick_editor.audio_operations import (
     OP_FASTER,
     OP_GRAPH,
     OP_PRESET,
+    OP_REDUCE_SIZE,
     OP_REMOVE_PAUSES,
 )
 from anki_audio_quick_editor.audio_processing_presets import presets_from_raw
@@ -32,6 +33,10 @@ def test_build_batch_initial_state_contains_operations_fields_defaults_and_i18n(
             denoise_algorithm="dpdfnet",
             dpdfnet_attn_limit_db=18.0,
             output_format="flac",
+            size_reduction_mode="gentle",
+            size_reduction_bitrate_kbps=96,
+            size_reduction_sample_rate_hz=44100,
+            size_reduction_channels=2,
         ),
     )
 
@@ -53,12 +58,17 @@ def test_build_batch_initial_state_contains_operations_fields_defaults_and_i18n(
         "denoise_algorithm": "dpdfnet",
         "dpdfnet_attn_limit_db": 18.0,
         "output_format": "flac",
+        "size_reduction_mode": "gentle",
+        "size_reduction_bitrate_kbps": 96,
+        "size_reduction_sample_rate_hz": 44100,
+        "size_reduction_channels": 2,
     }
     graph = next(item for item in state["operations"] if item["operation"] == OP_GRAPH)
     faster = next(item for item in state["operations"] if item["operation"] == OP_FASTER)
     pause = next(item for item in state["operations"] if item["operation"] == OP_REMOVE_PAUSES)
     denoise = next(item for item in state["operations"] if item["operation"] == OP_DENOISE)
     convert = next(item for item in state["operations"] if item["operation"] == OP_CONVERT)
+    reduce_size = next(item for item in state["operations"] if item["operation"] == OP_REDUCE_SIZE)
     assert graph["requires_target_field"] is True
     assert graph["parameter_kind"] == "none"
     assert graph["parameter_name"] == "none"
@@ -70,6 +80,8 @@ def test_build_batch_initial_state_contains_operations_fields_defaults_and_i18n(
     assert denoise["parameter_name"] == "denoise_algorithm"
     assert convert["parameter_kind"] == "format"
     assert convert["parameter_name"] == "target_format"
+    assert reduce_size["parameter_kind"] == "size_reduction"
+    assert reduce_size["parameter_name"] == "size_reduction_mode"
     assert state["locale"] == "en"
     assert state["direction"] == "ltr"
     assert "batch.start" in state["messages"]
@@ -195,7 +207,6 @@ def test_request_from_batch_start_payload_builds_convert_parameters() -> None:
     assert request.operation == "convert"
     assert request.parameters.target_format == "flac"
 
-
 def test_request_from_batch_start_payload_resolves_processing_preset() -> None:
     presets = presets_from_raw(
         [
@@ -280,6 +291,28 @@ def test_request_from_batch_start_payload_rejects_missing_preset_audio_target() 
         assert str(exc) == "Choose an audio target field before starting."
     else:
         raise AssertionError("expected missing preset audio target to fail")
+
+
+def test_request_from_batch_start_payload_builds_size_reduction_parameters() -> None:
+    request = request_from_batch_start_payload(
+        {
+            "operation": "reduce_size",
+            "source_field": "Audio",
+            "target_field": None,
+            "parameters": {
+                "size_reduction_mode": "aggressive",
+                "size_reduction_bitrate_kbps": 32,
+                "size_reduction_sample_rate_hz": 16000,
+                "size_reduction_channels": 1,
+            },
+        }
+    )
+
+    assert request.operation == "reduce_size"
+    assert request.parameters.size_reduction_mode == "aggressive"
+    assert request.parameters.size_reduction_bitrate_kbps == 32
+    assert request.parameters.size_reduction_sample_rate_hz == 16000
+    assert request.parameters.size_reduction_channels == 1
 
 
 def test_request_from_batch_start_payload_rejects_missing_graph_target() -> None:

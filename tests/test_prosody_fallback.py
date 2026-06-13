@@ -16,23 +16,12 @@ from anki_audio_quick_editor.prosody_fallback import (
 )
 from anki_audio_quick_editor.prosody_settings import resolve_analysis_options
 
-FFMPEG_SKIP_REASON = "ffmpeg and ffprobe are required for fallback prosody tests"
+pytestmark = pytest.mark.allow_managed_runtime
 
 
 def _ffmpeg_paths() -> tuple[Path, Path]:
     ffmpeg_path = find_ffmpeg(AudioProcessingConfig().ffmpeg_path)
     return ffmpeg_path, find_ffprobe(ffmpeg_path)
-
-
-def _ffmpeg_available() -> bool:
-    try:
-        _ffmpeg_paths()
-    except Exception:
-        return False
-    return True
-
-
-FFMPEG_AVAILABLE = _ffmpeg_available()
 
 
 def test_decode_pcm_forwards_window_visibility_kwargs(monkeypatch, tmp_path: Path) -> None:
@@ -61,7 +50,6 @@ def test_decode_pcm_forwards_window_visibility_kwargs(monkeypatch, tmp_path: Pat
     assert run_kwargs == [{"creationflags": 0x08000000}]
 
 
-@pytest.mark.skipif(not FFMPEG_AVAILABLE, reason=FFMPEG_SKIP_REASON)
 def test_fallback_detects_pitch_on_generated_tone(tmp_path: Path) -> None:
     source = tmp_path / "tone.wav"
     _generate_tone(source, frequency_hz=440, duration_s=0.6)
@@ -75,7 +63,6 @@ def test_fallback_detects_pitch_on_generated_tone(tmp_path: Path) -> None:
     assert all(0.0 <= point.intensity_norm <= 1.0 for point in track.points)
 
 
-@pytest.mark.skipif(not FFMPEG_AVAILABLE, reason=FFMPEG_SKIP_REASON)
 def test_fallback_leaves_pitch_blank_for_silence(tmp_path: Path) -> None:
     source = tmp_path / "silence.wav"
     _run_ffmpeg("-f", "lavfi", "-i", "anullsrc=r=16000:cl=mono:d=0.4", str(source))
@@ -87,7 +74,6 @@ def test_fallback_leaves_pitch_blank_for_silence(tmp_path: Path) -> None:
     assert all(0.0 <= point.intensity_norm <= 1.0 for point in track.points)
 
 
-@pytest.mark.skipif(not FFMPEG_AVAILABLE, reason=FFMPEG_SKIP_REASON)
 @pytest.mark.parametrize("frequency_hz", [120, 220, 440, 480])
 def test_fallback_tracks_flat_tones_without_octave_errors(
     tmp_path: Path,
@@ -105,7 +91,6 @@ def test_fallback_tracks_flat_tones_without_octave_errors(
     assert max(voiced) / min(voiced) < 1.15
 
 
-@pytest.mark.skipif(not FFMPEG_AVAILABLE, reason=FFMPEG_SKIP_REASON)
 @pytest.mark.parametrize("frequency_hz", [75, 500])
 def test_fallback_tracks_pitch_near_supported_boundaries(
     tmp_path: Path,
@@ -121,7 +106,6 @@ def test_fallback_tracks_pitch_near_supported_boundaries(
     assert abs(sum(voiced) / len(voiced) - frequency_hz) < 25
 
 
-@pytest.mark.skipif(not FFMPEG_AVAILABLE, reason=FFMPEG_SKIP_REASON)
 @pytest.mark.parametrize("frequency_hz", [74, 501])
 def test_fallback_does_not_report_pitch_outside_supported_bounds(
     tmp_path: Path,
@@ -137,7 +121,6 @@ def test_fallback_does_not_report_pitch_outside_supported_bounds(
     assert all(options.pitch_floor_hz <= pitch_hz <= options.pitch_ceiling_hz for pitch_hz in voiced)
 
 
-@pytest.mark.skipif(not FFMPEG_AVAILABLE, reason=FFMPEG_SKIP_REASON)
 def test_fallback_preserves_pitch_gaps_for_internal_silence(tmp_path: Path) -> None:
     source = tmp_path / "tone_silence_tone.wav"
     _generate_tone_silence_tone(source)
@@ -150,7 +133,6 @@ def test_fallback_preserves_pitch_gaps_for_internal_silence(tmp_path: Path) -> N
     assert _voiced_segment_count(track.points) >= 2
 
 
-@pytest.mark.skipif(not FFMPEG_AVAILABLE, reason=FFMPEG_SKIP_REASON)
 def test_fallback_intensity_changes_without_pitch_drift(tmp_path: Path) -> None:
     source = tmp_path / "amplitude_steps.wav"
     _run_ffmpeg(
@@ -183,7 +165,6 @@ def test_fallback_intensity_changes_without_pitch_drift(tmp_path: Path) -> None:
     assert _mean_intensity(loud) > _mean_intensity(quiet) + 0.25
 
 
-@pytest.mark.skipif(not FFMPEG_AVAILABLE, reason=FFMPEG_SKIP_REASON)
 @pytest.mark.parametrize("duration_s", [0.08, 0.15, 0.3])
 def test_fallback_short_clips_produce_finite_bounded_points(
     tmp_path: Path,
@@ -239,6 +220,8 @@ def _run_ffmpeg(*args: str) -> None:
         check=True,
         capture_output=True,
         text=True,
+        encoding="utf-8",
+        errors="replace",
     )
 
 

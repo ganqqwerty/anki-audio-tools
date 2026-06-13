@@ -15,13 +15,26 @@ Always go through `python3 scripts/dev.py ...`. The task runner discovers Anki's
 
 ```bash
 python3 scripts/dev.py setup
+python3 scripts/dev.py runtime-install
+python3 scripts/dev.py test-e2e
 ```
 
-This:
+`setup`:
 
 - installs Python dev dependencies into Anki's Python
 - creates the add-on symlink in `addons21/1000000002`
 - runs `npm ci` in `settings_ui/` when `package-lock.json` is present, otherwise `npm install`
+- on Windows, discovers npm from `PATH` first and then from the installed Node.js directory if `npm.cmd` is not already exported on `PATH`
+- fails loudly when neither npm nor an existing `settings_ui/node_modules` tree is available, instead of silently leaving frontend commands unusable
+
+`runtime-install` downloads, verifies, extracts, and repairs the current
+platform's managed native runtime through the same core installer used by the
+in-app runtime dialog. It stages the ignored thin runtime manifest from
+`runtime_release.lock.json`, then installs into `user_files/runtime/`.
+
+`test-e2e` fails fast when the managed runtime or vendored Python wheels are
+missing or corrupt. It does not silently skip dependency-backed tests and does
+not auto-download runtime assets; run `runtime-install` first.
 
 ## Zsh Completion
 
@@ -49,6 +62,14 @@ python3 scripts/dev.py link-addon
 
 This repoints `~/Library/Application Support/Anki2/addons21/1000000002` at the current worktree's `addon/anki_audio_quick_editor/` and refuses to overwrite a real directory. Repoint it again when you switch worktrees so manual testing does not accidentally exercise old code. `python3 scripts/dev.py info` and frontend builds warn when the live Anki symlink target differs from the current worktree.
 
+For manual testing against the real Anki profile, use:
+
+```bash
+python3 scripts/dev.py run-anki
+```
+
+This builds the committed webview bundles, repoints the development add-on symlink to the current worktree, and launches the installed Anki app. If Anki is already running, quit and rerun the command so add-ons reload from the new symlink target.
+
 ## Runtime Package Name
 
 Anki imports add-ons by installed folder name. In local development and AnkiWeb installs, that name is numeric, such as `1000000002`, even though this source tree keeps the friendly package path `addon/anki_audio_quick_editor/`.
@@ -63,11 +84,24 @@ If that happens, remove `addon/anki_audio_quick_editor/meta.json` or use the set
 
 Anki add-ons cannot rely on `pip install` at user runtime. Audio Quick Editor uses the Python/Qt runtime bundled with Anki and downloads a locked native runtime payload for supported release platforms. The managed runtime matrix is macOS arm64, macOS x86_64, and Windows x86_64.
 
-Public release archives are thin. They include `bin/runtime_manifest.json`, but they do not embed `ffmpeg`, `ffprobe`, DeepFilterNet's `deep-filter`, `rnnoise-cli`, Sherpa's `sherpa-spleeter`, Sherpa's `silero-vad`, DPDFNet Lite, or shared Spleeter/Silero model files. On first load, startup schedules a background managed-runtime install into `user_files/runtime/<runtime_manifest_id>/<platform>/` and records state in `user_files/runtime_state.json`.
+Public release archives are thin. They include `bin/runtime_manifest.json`, but they do not embed `ffmpeg`, `ffprobe`, DeepFilterNet's `deep-filter`, `rnnoise-cli`, Sherpa's `sherpa-spleeter`, `silero-vad`, DPDFNet Lite, or shared Spleeter/Silero model files. They do embed compressed platform wheels under `vendor/wheels/` for Python runtime dependencies with native extensions. On first load, startup schedules a background managed-runtime install into `user_files/runtime/<runtime_manifest_id>/<platform>/`, extracts the current platform's vendored Python wheels into `user_files/python_vendor/<platform>/`, and records runtime state in `user_files/runtime_state.json`.
 
 Runtime discovery checks the configured ffmpeg path where supported, the managed downloaded runtime, package `bin/` as a source-tree development fallback, and `PATH` as a compatibility fallback for `ffmpeg`, `ffprobe`, and `deep-filter`. The settings diagnostics report whether each tool came from config, the managed runtime, the development fallback, or `PATH`.
 
+For local development, provision the current host's managed runtime with:
+
+```bash
+python3 scripts/dev.py runtime-install
+```
+
+The command reuses `runtime_manager.ensure_runtime(...)`, the same download and
+verification core used by the Qt installer dialog. The dev command is headless:
+it prints progress to the task runner and exits nonzero unless the final
+runtime status is `ready`.
+
 `release_assets.lock.json` remains the source of truth for the runtime matrix, source URLs, diagnostic arguments, and SHA-256 values. Keep runtime payloads available under the same staged source layout used by release scripts: non-FFmpeg runtime payloads under `addon/anki_audio_quick_editor/bin/<target>/` and `addon/anki_audio_quick_editor/bin/models/`, with cached `ffmpeg` and `ffprobe` under `.release-assets/bin/<target>/`. Runtime pack releases are built separately from add-on releases and recorded in `runtime_release.lock.json`. Thin add-on releases consume that metadata and write its immutable `runtime-vN` URLs into `bin/runtime_manifest.json`.
+
+`addon/anki_audio_quick_editor/vendor/wheels.lock.json` is the source of truth for vendored Python runtime wheels. It pins exact filenames, download URLs, sizes, SHA-256 digests, and wheel platform tags. Recreate the wheel directory with `python3 scripts/dev.py vendor-wheels download --prune`, then verify it with `python3 scripts/dev.py vendor-wheels verify`. `scripts/release.py` runs the verifier before staging and validates the final archive against the same lock.
 
 Release asset workflow:
 
@@ -115,9 +149,16 @@ need executable behavior checks on the current host.
 
 Sherpa Spleeter and Silero VAD are fetched from locked `sherpa-onnx` native archives. Packaging renames the upstream `sherpa-onnx-offline-source-separation` executable to `sherpa-spleeter` and `sherpa-onnx-vad` to `silero-vad`, stages the target-specific ONNX Runtime libraries beside them once per runtime pack path, and reads the committed shared Spleeter 2-stems fp16 model files plus `silero_vad.onnx` from `addon/anki_audio_quick_editor/bin/models/`.
 
+## Release Workflow
+
+Use this section as the canonical release checklist. Keep `runtime-vN` tags
+immutable; if a runtime release was published, do not overwrite its assets.
+
 Build and publish runtime packs only when native tools or model files change:
 
 ```bash
+python3 scripts/dev.py release-assets verify --target all
+python3 scripts/dev.py release-assets verify --target current --diagnostics
 python3 scripts/dev.py release-runtime build --runtime-version 1.0 --target all
 python3 scripts/dev.py release-runtime upload --metadata runtime_release.lock.json
 python3 scripts/dev.py release-runtime verify --metadata runtime_release.lock.json
@@ -129,17 +170,57 @@ records their whole-archive and inner-file SHA-256 values in
 Release tag, and verifies the uploaded archives by downloading and unpacking
 them.
 
-Package all thin add-on targets for public AnkiWeb distribution:
+If remote runtime verification is too quiet for the dev runner timeout, use
+`python3 scripts/dev.py --idle-timeout 900 release-runtime verify --metadata runtime_release.lock.json`
+or run `python3 scripts/release_runtime_cli.py verify --metadata runtime_release.lock.json`
+directly.
+
+For a public thin add-on release:
+
+1. Bump `pyproject.toml`, `addon/anki_audio_quick_editor/_version.py`,
+   and `addon/anki_audio_quick_editor/manifest.json`.
+2. Run `python3 scripts/dev.py vendor-wheels verify`,
+   `python3 scripts/dev.py check`, `python3 scripts/dev.py test-e2e`, and
+   `python3 scripts/release_runtime_cli.py verify --metadata runtime_release.lock.json`.
+3. Commit the version bump.
+4. Build the committed version:
 
 ```bash
 python3 scripts/release.py --target all --verify-runtime-urls
+python3 scripts/dev.py release-smoke dist/anki-audio-quick-editor-<version>.ankiaddon
 ```
+
+5. Run native acceptance on each supported platform before publishing. In
+   addition to managed runtime tools, verify the packaged Python wheels extract
+   and import under Anki's bundled CPython 3.13:
+
+```python
+import parselmouth
+import numpy
+print(parselmouth.__file__)
+print(numpy.__version__)
+```
+
+On Windows x86_64, `parselmouth.__file__` must point inside
+`user_files/python_vendor/windows-x86_64/.../site-packages/`, NumPy must be the
+bundled version, and editor Graph/Pitch Hum should use `praat-parselmouth`
+without showing the ffmpeg/PCM fallback warning.
+
+`scripts/release.py` verifies that all three add-on version sources match and
+that the vendored Python wheels match `wheels.lock.json` before building the
+archive. Archive validation also checks the packaged lock file and wheel bytes.
 
 `--verify-runtime-urls` downloads each URL from `runtime_release.lock.json` and
 verifies both the runtime pack SHA-256 and every inner file. It must run only
 after the referenced `runtime-vN` GitHub Release assets exist. Platform-limited
 `--target current` or single-target builds are for testing/private distribution,
 not public AnkiWeb release.
+
+Before publishing, inspect packaged `bin/runtime_manifest.json`: runtime pack
+URLs must point at `runtime-vN`, not the add-on tag, and pack names must use the
+runtime version. Publish the GitHub add-on release with only the
+`.ankiaddon` asset; do not upload runtime zips to add-on releases. Upload the
+same smoke-tested `.ankiaddon` to AnkiWeb and record its SHA-256.
 
 Run `release-smoke` with Anki's Python 3.13 runtime when validating a built archive. The smoke script imports the packaged add-on, so system Python versions older than Anki's runtime can fail on supported runtime APIs such as `datetime.UTC`.
 
@@ -149,7 +230,7 @@ Pause-shortening runs retain provenance under `<addon_dir>/aqe_artifacts/<run_id
 
 RNNoise denoising uses ffmpeg to convert arbitrary source audio to raw 48 kHz mono signed 16-bit PCM, runs RNNoise over that raw stream, then uses ffmpeg to encode the result as MP3.
 
-Prosody visualization can use `praat-parselmouth` when it is already available in Anki's Python, but the shipped add-on does not require it. The required cross-platform path is the built-in ffmpeg/PCM fallback. A dry-run compatibility check on this machine resolved `praat-parselmouth 0.4.7` and `numpy 2.4.4` for Anki Python 3.13, but those packages were not installed or vendored.
+Prosody visualization and Pitch Hum use bundled `praat-parselmouth 0.4.7` wheels for Anki's CPython 3.13 runtime on macOS arm64, macOS x86_64, and Windows x86_64. The bundled transitive NumPy wheel is `numpy 2.4.6`. Update these wheels by changing `addon/anki_audio_quick_editor/vendor/wheels.lock.json`, running `python3 scripts/dev.py vendor-wheels download --prune`, and committing both the lock and wheel files. The graph analyzer still has a required ffmpeg/PCM fallback for unsupported platforms or failed Praat analysis; PitchTier and direct Pitch Hum require Parselmouth.
 
 Local ffmpeg setup remains useful for development and e2e baselines:
 
@@ -162,7 +243,7 @@ When adding another external executable dependency, keep normal e2e coverage on 
 
 Python dev dependencies live in two places and must stay in sync:
 
-1. `scripts/dev.py` -> `DEV_DEPS`
+1. `scripts/dev_tasks/setup.py` -> `DEV_DEPS`
 2. `pyproject.toml` -> `[dependency-groups].dev`
 
 Qodana is an external CLI dependency, not a Python package. It is configured by
@@ -191,6 +272,10 @@ workers and can be adjusted with `DEV_E2E_JOBS`, for example:
 DEV_E2E_JOBS=2 python3 scripts/dev.py test-e2e-parallel
 ```
 
+Both e2e commands preflight the managed runtime and vendored Python wheels
+before rebuilding the frontend or collecting tests. Missing runtime tools,
+models, archives, or wheels are command failures, not pytest skips.
+
 Do not treat `settings_ui/src/` as the runtime artifact. During Anki and e2e runs, the add-on reads `addon/anki_audio_quick_editor/templates/settings/settings_bundle.{js,css}`, `addon/anki_audio_quick_editor/templates/editor/editor_bundle.{js,css}`, and `addon/anki_audio_quick_editor/templates/batch/batch_bundle.{js,css}`. Build output changes after `check`, `test-svelte`, or `test-e2e` are expected when source changed, but those generated files are ignored by git.
 
 Settings and Browser batch WebView commands use the shared `bridge:{ command, payload }` JSON envelope. Add new settings or batch bridge commands through `settings_ui/src/lib/bridge.ts` or `settings_ui/src/batch/bridge.ts`, decode them with `webview_bridge.py`, and keep payload shapes contract-backed when they cross the Python/TypeScript boundary.
@@ -204,6 +289,8 @@ python3 scripts/dev.py test-svelte
 ```
 
 That command requires `settings_ui/node_modules`, rebuilds the ignored generated bundles, then runs `npm run validate`, which chains `svelte-check`, ESLint, `tsc --noEmit`, and Vitest coverage thresholds.
+
+When Node.js is present but `npm` is not exported on `PATH`, the dev runner still executes frontend package scripts through a repo-local fallback runner. Fresh dependency installs still require a real npm CLI, so `python3 scripts/dev.py setup` now reports that case explicitly on Windows instead of pretending setup completed successfully.
 
 Generate and verify communication contracts with:
 

@@ -10,17 +10,23 @@ from types import SimpleNamespace
 from unittest.mock import MagicMock
 
 from anki_audio_quick_editor.audio_state import AudioEditState
+from anki_audio_quick_editor.editor_actions import BRIDGE_COMMANDS
+from anki_audio_quick_editor.editor_callbacks import _handle_bridge_command, _set_busy
 from anki_audio_quick_editor.editor_integration import (
-    _SESSIONS,
-    BRIDGE_COMMANDS,
-    EditorSession,
-    UndoHistory,
-    _audio_field_indices,
-    _handle_bridge_command,
-    _initial_status_by_field,
-    _set_busy,
-    editor_injection_script,
+    _on_editor_did_init,
+    _on_editor_will_load_note,
     register_editor_hooks,
+)
+from anki_audio_quick_editor.editor_media import audio_field_indices
+from anki_audio_quick_editor.editor_runtime import SESSIONS
+from anki_audio_quick_editor.editor_session import (
+    EditorSession,
+    PendingEditorStatus,
+    UndoHistory,
+)
+from anki_audio_quick_editor.editor_webview_injection import (
+    _initial_status_by_field,
+    editor_injection_script,
 )
 
 
@@ -31,6 +37,8 @@ def test_register_editor_hooks() -> None:
 
     hooks.editor_did_init.append.assert_called_once()
     hooks.editor_will_load_note.append.assert_called_once()
+    assert hooks.editor_did_init.append.call_args.args == (_on_editor_did_init,)
+    assert hooks.editor_will_load_note.append.call_args.args == (_on_editor_will_load_note,)
 
 
 def test_entrypoint_registers_editor_startup_hook() -> None:
@@ -57,59 +65,89 @@ def test_editor_init_registers_all_bridge_commands(tmp_path: Path) -> None:
 def test_audio_field_indices_are_detected_from_note_fields() -> None:
     note = SimpleNamespace(fields=["plain", "<b>[sound:first.mp3]</b>", "[sound:movie.mp4]"])
 
-    assert _audio_field_indices(note) == [1]
+    assert audio_field_indices(note) == [1]
 
 
-def test_editor_injection_script_embeds_processing_presets_from_config() -> None:
-    config = {
-        "audio_processing_presets": [
-            {
-                "id": "clean_graph",
-                "name": "Clean + graph",
-                "steps": [
-                    {
-                        "id": "denoise",
-                        "operation": "denoise",
-                        "parameters": {"denoise_algorithm": "standard"},
-                    }
-                ],
-                "graph": {
-                    "enabled": True,
-                    "parameters": {
-                        "graph_voice_range": "general",
-                        "graph_recording_condition": "auto",
-                        "graph_smoothness": "very_smooth",
-                        "graph_connect_short_dropouts_ms": 240,
-                        "graph_voice_lock": "balanced",
-                    },
-                },
-            }
-        ]
-    }
-    addon_manager = SimpleNamespace(
-        addonFromModule=lambda _module: "addon",
-        getConfig=lambda _addon_id: config,
-    )
+def test_editor_injection_script_never_probes_source_audio_metadata(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    media_dir = tmp_path / "media"
+    media_dir.mkdir()
+    (media_dir / "clip.mp3").write_bytes(b"audio")
+
     class Editor:
         pass
 
     editor = Editor()
-    editor.mw = SimpleNamespace(addonManager=addon_manager)
+    editor.mw = SimpleNamespace(
+        col=SimpleNamespace(media=SimpleNamespace(dir=lambda: str(media_dir))),
+        addonManager=SimpleNamespace(
+            addonFromModule=lambda _module: "addon",
+            getConfig=lambda _addon: {
+                "visible_editor_buttons": ["aqe:reduce-size"],
+            },
+        ),
+    )
     note = SimpleNamespace(fields=["[sound:clip.mp3]"])
+
+    def fail_probe(*_args: object, **_kwargs: object) -> object:
+        raise AssertionError("editor injection must not probe source metadata")
+
+    monkeypatch.setattr(
+        "anki_audio_quick_editor.editor_webview_injection.probe_audio_metadata",
+        fail_probe,
+        raising=False,
+    )
 
     script = editor_injection_script(editor, note)
 
     match = re.search(r"window\.__AQE_EDITOR_CONFIG__ = (?P<config>\{.*?\});", script)
     assert match is not None
-    embedded = json.loads(match.group("config"))
-    assert embedded["processingPresets"] == [
-        {
-            "id": "clean_graph",
-            "name": "Clean + graph",
-            "hasTransforms": True,
-            "graphEnabled": True,
-        }
-    ]
+    config = json.loads(match.group("config"))
+    assert config["audioFieldMetadata"] == {}
+    assert config["audioFieldSources"] == {"0": "clip.mp3"}
+
+
+def test_editor_injection_script_does_not_probe_when_compress_audio_hidden(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    media_dir = tmp_path / "media"
+    media_dir.mkdir()
+    (media_dir / "clip.mp3").write_bytes(b"audio")
+
+    class Editor:
+        pass
+
+    editor = Editor()
+    editor.mw = SimpleNamespace(
+        col=SimpleNamespace(media=SimpleNamespace(dir=lambda: str(media_dir))),
+        addonManager=SimpleNamespace(
+            addonFromModule=lambda _module: "addon",
+            getConfig=lambda _addon: {
+                "visible_editor_buttons": ["aqe:slower"],
+            },
+        ),
+    )
+    note = SimpleNamespace(fields=["[sound:clip.mp3]"])
+
+    def fail_probe(*_args: object, **_kwargs: object) -> object:
+        raise AssertionError("hidden Compress Audio must not probe source metadata")
+
+    monkeypatch.setattr(
+        "anki_audio_quick_editor.editor_webview_injection.probe_audio_metadata",
+        fail_probe,
+        raising=False,
+    )
+
+    script = editor_injection_script(editor, note)
+
+    match = re.search(r"window\.__AQE_EDITOR_CONFIG__ = (?P<config>\{.*?\});", script)
+    assert match is not None
+    config = json.loads(match.group("config"))
+    assert config["visibleEditorButtons"] == ["aqe:slower"]
+    assert config["audioFieldMetadata"] == {}
 
 
 def test_undo_history_restores_last_audio_modification_only() -> None:
@@ -154,7 +192,7 @@ def test_editor_undo_and_redo_restore_audio_references_without_processing(
         source_mtime_ns=generated.stat().st_mtime_ns,
     )
     session.undo_history.push(AudioEditState("clip.mp3"), "clip.mp3", status_summary="Original audio.")
-    _SESSIONS[editor] = session
+    SESSIONS[editor] = session
 
     monkeypatch.setattr("anki_audio_quick_editor.editor_runtime.stop_audio_playback", lambda: None)
     monkeypatch.setattr("aqt.qt.QTimer.singleShot", lambda _delay, callback: callback())
@@ -166,6 +204,7 @@ def test_editor_undo_and_redo_restore_audio_references_without_processing(
     assert session.current_filename == "clip.mp3"
     assert session.redo_history.pop().filename == "clip__aqe_first.mp3"
     assert reload_statuses[0] == {0: {"kind": "info", "message": "Undid: Original audio."}}
+    assert session.pending_status == PendingEditorStatus(0, message="Undid: Original audio.")
 
     session.redo_history.push(
         generated_state,
@@ -180,14 +219,13 @@ def test_editor_undo_and_redo_restore_audio_references_without_processing(
     assert session.undo_history.pop().filename == "clip.mp3"
     assert editor.loadNote.call_count == 2
     assert reload_statuses[1] == {0: {"kind": "info", "message": "Redid: Increased speed to x1.5."}}
+    assert session.pending_status == PendingEditorStatus(0, message="Redid: Increased speed to x1.5.")
     evals = [call.args[0] for call in editor.web.eval.call_args_list]
     assert any("window.__aqeSetHistoryAvailability && window.__aqeSetHistoryAvailability(0, false, true)" in call for call in evals)
     assert any("window.__aqeSetHistoryAvailability && window.__aqeSetHistoryAvailability(0, true, false)" in call for call in evals)
     assert session.pending_post_edit_playback_field_index == 0
     assert session.pending_post_edit_playback_generation == session.post_edit_playback_generation
     assert session.pending_post_edit_playback_source_filename == "clip__aqe_first.mp3"
-
-
 
 
 def test_editor_settings_command_opens_settings_and_refreshes_after_save(
@@ -217,7 +255,7 @@ def test_editor_settings_command_opens_settings_and_refreshes_after_save(
         playback_preparing=True,
     )
     editor.loadNote = MagicMock(side_effect=lambda **_kwargs: reload_statuses.append(_initial_status_by_field(session)))
-    _SESSIONS[editor] = session
+    SESSIONS[editor] = session
 
     def fake_settings_opener(callback):
         callbacks.append(callback)
@@ -239,6 +277,7 @@ def test_editor_settings_command_opens_settings_and_refreshes_after_save(
     assert session.playback_paused is False
     assert session.playback_preparing is False
     assert reload_statuses == [{0: {"kind": "info", "message": "Closed settings."}}]
+    assert session.pending_status == PendingEditorStatus(0, message="Closed settings.")
     assert editor.loadNote.call_args.args == ()
     assert editor.loadNote.call_args.kwargs == {"focusTo": 0}
     assert any("window.__aqeEditorDispose" in call.args[0] for call in editor.web.eval.call_args_list)
@@ -262,7 +301,7 @@ def test_editor_settings_command_reports_closed_settings_without_refresh_on_clos
     editor.web = MagicMock()
     editor.loadNote = MagicMock()
     editor.mw = SimpleNamespace(col=SimpleNamespace(media=SimpleNamespace(dir=lambda: str(media_dir))))
-    _SESSIONS[editor] = EditorSession(
+    SESSIONS[editor] = EditorSession(
         state=AudioEditState("clip.mp3"),
         field_index=0,
         current_filename="clip.mp3",
@@ -288,7 +327,7 @@ def test_set_busy_falls_back_to_session_field_index() -> None:
     editor = Editor()
     editor.currentField = None
     editor.web = MagicMock()
-    _SESSIONS[editor] = EditorSession(field_index=2)
+    SESSIONS[editor] = EditorSession(field_index=2)
 
     _set_busy(editor, False)
 

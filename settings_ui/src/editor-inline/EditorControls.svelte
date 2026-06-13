@@ -1,61 +1,60 @@
 <script lang="ts">
-  import { onMount } from "svelte";
   import AqeTooltip from "../lib/AqeTooltip.svelte";
   import AqeTooltipProvider from "../lib/AqeTooltipProvider.svelte";
-  import { testId, toolbarButtons, visibleToolbarButtons } from "./commands.js";
+  import { toolbarButtons, visibleToolbarButtons } from "./commands.js";
   import { buttonDisplayMode } from "../lib/editor-toolbar-buttons.js";
+  import type { ToolbarPanelSlug } from "../lib/editor-toolbar-panel-definitions.js";
   import { t } from "../lib/i18n.js";
-  import { EditorButtonMode } from "../lib/types.js";
-  import EditorCommandIcon from "./EditorCommandIcon.svelte";
+  import { buildEditorToolbarRenderItems } from "./editor-toolbar-render-items.js";
   import EditorHelp from "./EditorHelp.svelte";
+  import EditorToolbarButton from "./EditorToolbarButton.svelte";
+  import EditorToolbarPanel from "./EditorToolbarPanel.svelte";
+  import GraphVisualizer from "./GraphVisualizer.svelte";
   import PlaySplitButton from "./PlaySplitButton.svelte";
   import PresetSplitButton from "./PresetSplitButton.svelte";
-  import SelectionToolbar from "./SelectionToolbar.svelte";
   import SplitButton from "./SplitButton.svelte";
+  import { historyAvailability } from "./actions.js";
+  import type { InitialEditorStatus } from "./control-actions.js";
+  import type { FieldTarget } from "./types.js";
   import {
-    configureAudioClock,
-    handleVisualizerPointerDown,
-    historyAvailability,
-    initializePlaybackRegionState,
-    installAudioClockHandlers,
-    resetAudioClockState,
-    send,
-    startSelectionResizeGesture,
-  } from "./actions.js";
-  import { syncRecordingControls } from "./recording-actions.js";
-  import { visualizerForOrd } from "./dom-selectors.js";
-  import { handleVisualizerKeyDown } from "./region-delete.js";
-  import { notifyPostEditPlaybackReady } from "./post-edit-playback.js";
-  import { PLOT } from "./plot.js";
-  import type { ButtonSpec, FieldTarget } from "./types.js";
+    audioFieldSource,
+    editorButtonModes,
+    editorRuntimeConfig,
+    repeatPlaybackByDefault,
+    selectionMarkerShiftButtonsEnabled,
+    splitButtonDefaults,
+    visibleEditorButtons,
+  } from "./editor-runtime-config.js";
 
-  type ToolbarRenderItem =
-    | { button: ButtonSpec; kind: "button" }
-    | {
-      buttons: readonly [ButtonSpec, ButtonSpec];
-      kind: "group";
-      menuLabel: string;
-      menuSlug: "speed" | "volume";
-    }
-    | {
-      playRecording: ButtonSpec;
-      record: ButtonSpec;
-      kind: "recording-group";
-    };
+  const TOOLBAR_PANEL_CLASSES: Record<ToolbarPanelSlug, string> = {
+    "chorusing": "aqe-chorusing-toolbar-panel",
+    "record-play-yours": "aqe-recording-group",
+  };
 
-  const { target }: { target: FieldTarget } = $props();
-  const selectionPlotHeight = PLOT.height - PLOT.top - PLOT.bottom;
-  const selectionHandleHeight = selectionPlotHeight * 0.8;
-  const selectionHandleY = PLOT.top + (selectionPlotHeight - selectionHandleHeight) / 2;
-  const selectionHandleCenterY = selectionHandleY + selectionHandleHeight / 2;
-  const repeatDefault = window.__AQE_EDITOR_CONFIG__?.repeatPlaybackByDefault === true;
-  const repeatPauseDefault = window.__AQE_EDITOR_CONFIG__?.splitButtonDefaults?.repeatPauseSeconds ?? 0;
+  const TOOLBAR_PANEL_TEST_ID_PREFIXES: Record<ToolbarPanelSlug, string> = {
+    "chorusing": "chorusing",
+    "record-play-yours": "recording",
+  };
+
+  const {
+    initialStatus = null,
+    target,
+  }: { initialStatus?: InitialEditorStatus | null; target: FieldTarget } = $props();
+  const runtimeConfig = editorRuntimeConfig();
+  const defaults = splitButtonDefaults(runtimeConfig);
+  const repeatDefault = repeatPlaybackByDefault(runtimeConfig);
+  const repeatPauseDefault = defaults.repeatPauseSeconds ?? 0;
   const buttons = visibleToolbarButtons(
-    toolbarButtons(),
-    window.__AQE_EDITOR_CONFIG__?.visibleEditorButtons,
+    toolbarButtons(runtimeConfig),
+    visibleEditorButtons(runtimeConfig),
   );
-  const buttonModes = window.__AQE_EDITOR_CONFIG__?.editorButtonModes;
-  const renderItems = buildToolbarRenderItems(buttons);
+  const buttonModes = editorButtonModes(runtimeConfig);
+  const visibleCommands = visibleEditorButtons(runtimeConfig);
+  const markerShiftEnabled = selectionMarkerShiftButtonsEnabled(runtimeConfig);
+  const sourceFilename = $derived(audioFieldSource(runtimeConfig, target.ord));
+  const renderItems = buildEditorToolbarRenderItems(buttons);
+  const initialStatusKind = $derived(initialStatus?.kind || "info");
+  const initialStatusMessage = $derived(initialStatus?.message || "");
 
   function isSplitCommand(command: string): boolean {
     return [
@@ -64,6 +63,7 @@
       "aqe:share",
       "aqe:preset",
       "aqe:convert",
+      "aqe:reduce-size",
       "aqe:slower",
       "aqe:faster",
       "aqe:volume-down",
@@ -77,6 +77,9 @@
   function disabledTitle(command: string): string | undefined {
     if (command === "aqe:undo") return t("editor.command.undo.disabled_title");
     if (command === "aqe:redo") return t("editor.command.redo.disabled_title");
+    if (command === "aqe:chorusing-practice") return t("editor.command.chorusing_practice.disabled_title");
+    if (command === "aqe:chorusing-previous") return t("editor.command.chorusing_previous.disabled_title");
+    if (command === "aqe:chorusing-next") return t("editor.command.chorusing_next.disabled_title");
     return undefined;
   }
 
@@ -84,65 +87,25 @@
     const availability = historyAvailability(target.ord);
     if (command === "aqe:undo") return !availability.canUndo;
     if (command === "aqe:redo") return !availability.canRedo;
-    if (command === "aqe:record-voice" || command === "aqe:play-recording") return true;
+    if (command === "aqe:chorusing-next") return true;
+    if (command === "aqe:chorusing-previous") return true;
+    if (
+      command === "aqe:record-voice" ||
+      command === "aqe:play-recording" ||
+      command === "aqe:share-recording" ||
+      command === "aqe:show-recording-file"
+    ) return true;
     return false;
   }
 
-  function initialButtonTitle(button: { command: string; title: string }): string {
-    const unavailableTitle = disabledTitle(button.command);
-    return initialButtonDisabled(button.command) && unavailableTitle ? unavailableTitle : button.title;
+  function toolbarPanelClass(slug: ToolbarPanelSlug): string {
+    return TOOLBAR_PANEL_CLASSES[slug];
   }
 
-  function buildToolbarRenderItems(buttons: readonly ButtonSpec[]): readonly ToolbarRenderItem[] {
-    const items: ToolbarRenderItem[] = [];
-    for (let index = 0; index < buttons.length; index += 1) {
-      const button = buttons[index];
-      if (!button) continue;
-      const next = buttons[index + 1];
-      if (button.command === "aqe:record-voice" && next?.command === "aqe:play-recording") {
-        items.push({
-          kind: "recording-group",
-          playRecording: next,
-          record: button,
-        });
-        index += 1;
-        continue;
-      }
-      if (button.command === "aqe:slower" && next?.command === "aqe:faster") {
-        items.push({
-          buttons: [button, next],
-          kind: "group",
-          menuLabel: t("editor.split.group.speed"),
-          menuSlug: "speed",
-        });
-        index += 1;
-        continue;
-      }
-      if (button.command === "aqe:volume-down" && next?.command === "aqe:volume-up") {
-        items.push({
-          buttons: [button, next],
-          kind: "group",
-          menuLabel: t("editor.split.group.volume"),
-          menuSlug: "volume",
-        });
-        index += 1;
-        continue;
-      }
-      items.push({ button, kind: "button" });
-    }
-    return items;
+  function toolbarPanelTestId(slug: ToolbarPanelSlug): string {
+    return `aqe-${TOOLBAR_PANEL_TEST_ID_PREFIXES[slug]}-toolbar-panel-${target.ord}`;
   }
-  onMount(() => {
-    const visualizer = visualizerForOrd(target.ord);
-    if (!visualizer) return;
-    resetAudioClockState(visualizer);
-    initializePlaybackRegionState(visualizer);
-    installAudioClockHandlers(visualizer);
-    visualizer.dataset.sourceFilename = target.sourceFilename || "";
-    configureAudioClock(visualizer, target.sourceFilename || "");
-    syncRecordingControls(target.ord);
-    notifyPostEditPlaybackReady(target.ord, target.sourceFilename || "");
-  });
+
 </script>
 
 <AqeTooltipProvider>
@@ -152,14 +115,15 @@
     data-aqe-source-filename={target.sourceFilename}
     data-testid={`aqe-controls-${target.ord}`}
   >
-    {#each renderItems as item (item.kind === "group" ? `${item.menuSlug}:${item.buttons[0].command}` : item.kind === "recording-group" ? `recording:${item.record.command}` : item.button.command)}
-      {#if item.kind === "group"}
+    {#each renderItems as item (item.kind === "split-run-group" ? `${item.menuSlug}:${item.buttons[0].command}` : item.kind === "toolbar-panel" ? `${item.definition.slug}:${item.buttons[0]?.command}` : item.button.command)}
+      {#if item.kind === "split-run-group"}
         <span class="aqe-split-group">
           <SplitButton
             button={item.buttons[0]}
             displayMode={buttonDisplayMode(item.buttons[0].command, buttonModes)}
             primaryGroupPosition="start"
             showMenu={false}
+            {sourceFilename}
             {target}
           />
           <SplitButton
@@ -167,6 +131,7 @@
             displayMode={buttonDisplayMode(item.buttons[1].command, buttonModes)}
             primaryGroupPosition="middle"
             showMenu={false}
+            {sourceFilename}
             {target}
           />
           <SplitButton
@@ -176,35 +141,79 @@
             groupSlug={item.menuSlug}
             showPrimary={false}
             showRunButton={false}
+            {sourceFilename}
             {target}
           />
         </span>
-      {:else if item.kind === "recording-group"}
-        {@const playRecording = item.playRecording}
-        <span class="aqe-split-group aqe-recording-group">
-          <SplitButton
-            button={item.record}
-            displayMode={buttonDisplayMode(item.record.command, buttonModes)}
-            primaryGroupPosition="start"
-            showMenu={false}
-            {target}
-          />
-          <SplitButton
-            button={playRecording}
-            displayMode={buttonDisplayMode(playRecording.command, buttonModes)}
-            primaryGroupPosition="middle"
-            showMenu={false}
-            {target}
-          />
-          <SplitButton
-            button={item.record}
-            displayMode={buttonDisplayMode(item.record.command, buttonModes)}
-            groupLabel={t("editor.command.record_group.label")}
-            showPrimary={false}
-            showRunButton={false}
-            {target}
-          />
-        </span>
+      {:else if item.kind === "toolbar-panel"}
+        <EditorToolbarPanel
+          description={item.description}
+          label={item.label}
+          panelClass={toolbarPanelClass(item.definition.slug)}
+          testId={toolbarPanelTestId(item.definition.slug)}
+        >
+          {#if item.definition.slug === "record-play-yours"}
+            {@const record = item.buttons.find((button) => button.command === "aqe:record-voice")}
+            {@const playRecording = item.buttons.find((button) => button.command === "aqe:play-recording")}
+            {@const shareRecording = item.buttons.find((button) => button.command === "aqe:share-recording")}
+            {@const showRecordingFile = item.buttons.find((button) => button.command === "aqe:show-recording-file")}
+            {#if record && playRecording && shareRecording && showRecordingFile}
+              <span class="aqe-split-group">
+                <SplitButton
+                  button={record}
+                  displayMode={buttonDisplayMode(record.command, buttonModes)}
+                  primaryGroupPosition="start"
+                  showMenu={false}
+                  {sourceFilename}
+                  {target}
+                />
+                <SplitButton
+                  button={playRecording}
+                  displayMode={buttonDisplayMode(playRecording.command, buttonModes)}
+                  primaryGroupPosition="middle"
+                  showMenu={false}
+                  {sourceFilename}
+                  {target}
+                />
+                <SplitButton
+                  button={shareRecording}
+                  displayMode={buttonDisplayMode(shareRecording.command, buttonModes)}
+                  primaryGroupPosition="middle"
+                  showMenu={false}
+                  {sourceFilename}
+                  {target}
+                />
+                <SplitButton
+                  button={showRecordingFile}
+                  displayMode={buttonDisplayMode(showRecordingFile.command, buttonModes)}
+                  primaryGroupPosition="middle"
+                  showMenu={false}
+                  {sourceFilename}
+                  {target}
+                />
+                <SplitButton
+                  button={record}
+                  displayMode={buttonDisplayMode(record.command, buttonModes)}
+                  groupLabel={item.label}
+                  showPrimary={false}
+                  showRunButton={false}
+                  {sourceFilename}
+                  {target}
+                />
+              </span>
+            {/if}
+          {:else}
+            {#each item.buttons as button (button.command)}
+              <EditorToolbarButton
+                {button}
+                displayMode={buttonDisplayMode(button.command, buttonModes)}
+                disabled={initialButtonDisabled(button.command)}
+                disabledTitle={disabledTitle(button.command)}
+                {target}
+              />
+            {/each}
+          {/if}
+        </EditorToolbarPanel>
       {:else if item.button.command === "aqe:play"}
         <PlaySplitButton
           button={item.button}
@@ -222,200 +231,22 @@
         <SplitButton
           button={item.button}
           displayMode={buttonDisplayMode(item.button.command, buttonModes)}
+          {sourceFilename}
           {target}
         />
       {:else}
         {@const button = item.button}
-        {@const displayMode = buttonDisplayMode(button.command, buttonModes)}
-        <AqeTooltip>
-          {#snippet trigger({ props })}
-            <span
-              {...props}
-              class="aqe-button-tooltip-target aqe-tooltip-target"
-              data-aqe-tooltip-content={initialButtonTitle(button)}
-            >
-              <button
-                type="button"
-                class:aqe-icon-only={displayMode === EditorButtonMode.Icon}
-                class="aqe-button"
-                data-aqe-command={button.command}
-                data-aqe-button-state={button.command === "aqe:analyze" ? "graph" : "default"}
-                data-aqe-disabled-title={disabledTitle(button.command)}
-                data-aqe-enabled-title={button.title}
-                data-testid={testId(target.ord, button.command)}
-                disabled={initialButtonDisabled(button.command)}
-                aria-label={initialButtonTitle(button)}
-                onmousedown={(event) => event.preventDefault()}
-                onclick={() => send(button.command, target.node, target.ord)}
-              >
-                {#if displayMode === EditorButtonMode.Icon}
-                  <EditorCommandIcon className="aqe-button-icon-default" icon={button.icon} />
-                  {#if button.activeIcon}
-                    <EditorCommandIcon className="aqe-button-icon-active" icon={button.activeIcon} />
-                  {/if}
-                  <span class="aqe-button-label">{button.label}</span>
-                {:else}
-                  <span class="aqe-button-label">{button.label}</span>
-                {/if}
-              </button>
-            </span>
-          {/snippet}
-        </AqeTooltip>
+        <EditorToolbarButton
+          {button}
+          displayMode={buttonDisplayMode(button.command, buttonModes)}
+          disabled={initialButtonDisabled(button.command)}
+          disabledTitle={disabledTitle(button.command)}
+          {target}
+        />
       {/if}
     {/each}
     <EditorHelp ord={target.ord} />
-    <div
-      class="aqe-visualizer"
-      data-aqe-field-ord={target.ord}
-      data-anchor-ms="0"
-      data-cursor-ms="0"
-      data-progress-ms="0"
-      data-target-duration-ms="0"
-      data-learner-duration-ms="0"
-      data-learner-recording-status="idle"
-      data-graph-active="false"
-      data-graph-busy="false"
-      data-has-track="false"
-      data-playback-state="stopped"
-      data-playback-engine=""
-      data-playback-start-ms="0"
-      data-playback-end-ms="0"
-      data-playback-region-mode="full"
-      data-resume-requires-restart="false"
-      data-selection-active="false"
-      data-selection-start-ms=""
-      data-selection-end-ms=""
-      data-selection-draft-active="false"
-      data-selection-draft-start-ms=""
-      data-selection-draft-end-ms=""
-      data-repeat-enabled={repeatDefault ? "true" : "false"}
-      data-repeat-pause-seconds={repeatPauseDefault}
-      data-repeat-pause-waiting="false"
-      data-testid={`aqe-graph-${target.ord}`}
-      role="button"
-      aria-label={t("editor.graph.aria")}
-      tabindex="0"
-      onkeydown={(event) => handleVisualizerKeyDown(event, target.ord)}
-      hidden
-    >
-      <audio
-        class="aqe-audio-clock"
-        data-testid={`aqe-audio-clock-${target.ord}`}
-        preload="metadata"
-        hidden
-      ></audio>
-      <div class="aqe-visualizer-plot" data-testid={`aqe-visualizer-plot-${target.ord}`}>
-        <div class="aqe-selection-region-preview-halo aqe-selection-region-preview-halo-top" aria-hidden="true"></div>
-        <div class="aqe-selection-region-preview-halo aqe-selection-region-preview-halo-bottom" aria-hidden="true"></div>
-        <svg
-          class="aqe-visualizer-svg"
-          data-testid={`aqe-graph-svg-${target.ord}`}
-          viewBox={`0 0 ${PLOT.width} ${PLOT.height}`}
-          preserveAspectRatio="xMinYMin meet"
-          role="img"
-          aria-label={t("editor.graph.image_aria")}
-          onpointerdown={(event) => handleVisualizerPointerDown(event, target.ord)}
-        >
-      <rect
-        class="aqe-selection"
-        data-testid={`aqe-selection-${target.ord}`}
-        x={PLOT.left}
-        y={PLOT.top}
-        width="0"
-        height={PLOT.height - PLOT.top - PLOT.bottom}
-        visibility="hidden"
-      ></rect>
-      <path class="aqe-intensity" data-testid={`aqe-intensity-${target.ord}`} d=""></path>
-      <g class="aqe-pitch" data-testid={`aqe-pitch-${target.ord}`}></g>
-      <g class="aqe-learner-pitch" data-testid={`aqe-learner-pitch-${target.ord}`}></g>
-      <g class="aqe-labels"></g>
-      <g class="aqe-x-axis" data-testid={`aqe-x-axis-${target.ord}`}></g>
-      <line
-        class="aqe-selection-edge aqe-selection-start"
-        data-testid={`aqe-selection-start-${target.ord}`}
-        x1={PLOT.left}
-        x2={PLOT.left}
-        y1={PLOT.top}
-        y2={PLOT.height - PLOT.bottom}
-        visibility="hidden"
-      ></line>
-      <line
-        class="aqe-selection-edge aqe-selection-end"
-        data-testid={`aqe-selection-end-${target.ord}`}
-        x1={PLOT.left}
-        x2={PLOT.left}
-        y1={PLOT.top}
-        y2={PLOT.height - PLOT.bottom}
-        visibility="hidden"
-      ></line>
-      <rect
-        class="aqe-selection-resize-handle aqe-selection-resize-start"
-        data-testid={`aqe-selection-resize-start-${target.ord}`}
-        x={PLOT.left - 5}
-        y={selectionHandleY}
-        width="10"
-        height={selectionHandleHeight}
-        rx="3"
-        role="button"
-        aria-label="Resize selection start"
-        tabindex="0"
-        visibility="hidden"
-        onpointerdown={(event) => {
-          if (event.shiftKey) return;
-          startSelectionResizeGesture(event, target.ord, "start");
-        }}
-      ></rect>
-      <g
-        class="aqe-selection-resize-grip aqe-selection-resize-grip-start"
-        transform={`translate(${PLOT.left} ${selectionHandleCenterY})`}
-        visibility="hidden"
-        aria-hidden="true"
-      >
-        <line x1="-3" x2="3" y1="-10" y2="-10"></line>
-        <line x1="-3" x2="3" y1="0" y2="0"></line>
-        <line x1="-3" x2="3" y1="10" y2="10"></line>
-      </g>
-      <rect
-        class="aqe-selection-resize-handle aqe-selection-resize-end"
-        data-testid={`aqe-selection-resize-end-${target.ord}`}
-        x={PLOT.left - 5}
-        y={selectionHandleY}
-        width="10"
-        height={selectionHandleHeight}
-        rx="3"
-        role="button"
-        aria-label="Resize selection end"
-        tabindex="0"
-        visibility="hidden"
-        onpointerdown={(event) => {
-          if (event.shiftKey) return;
-          startSelectionResizeGesture(event, target.ord, "end");
-        }}
-      ></rect>
-      <g
-        class="aqe-selection-resize-grip aqe-selection-resize-grip-end"
-        transform={`translate(${PLOT.left} ${selectionHandleCenterY})`}
-        visibility="hidden"
-        aria-hidden="true"
-      >
-        <line x1="-3" x2="3" y1="-10" y2="-10"></line>
-        <line x1="-3" x2="3" y1="0" y2="0"></line>
-        <line x1="-3" x2="3" y1="10" y2="10"></line>
-      </g>
-        </svg>
-        <div class="aqe-css-cursor" data-testid={`aqe-css-cursor-${target.ord}`} aria-hidden="true">
-          <div class="aqe-css-cursor-line"></div>
-          <div class="aqe-css-cursor-flag">
-            <div class="aqe-css-cursor-flag-box">
-              <span class="aqe-css-cursor-flag-current">0 ms</span>
-              <span class="aqe-css-cursor-flag-pitch"> / -- Hz</span>
-            </div>
-          </div>
-        </div>
-        <SelectionToolbar {target} />
-      </div>
-      <span class="aqe-cursor-label" data-testid={`aqe-progress-label-${target.ord}`}>0 ms</span>
-    </div>
+    <GraphVisualizer {buttonModes} {repeatDefault} {repeatPauseDefault} selectionMarkerShiftButtonsEnabled={markerShiftEnabled} {target} visibleCommands={visibleCommands} />
     <div class="aqe-status-row" data-testid={`aqe-status-row-${target.ord}`}>
       <span
         class="aqe-spinner"
@@ -428,8 +259,12 @@
           <span
             {...props}
             class="aqe-status aqe-tooltip-target"
+            data-kind={initialStatusKind}
+            data-status-owner="edit"
+            data-stable-kind={initialStatusKind}
+            data-stable-message={initialStatusMessage}
             data-testid={`aqe-status-${target.ord}`}
-          ></span>
+          >{initialStatusMessage}</span>
         {/snippet}
       </AqeTooltip>
     </div>

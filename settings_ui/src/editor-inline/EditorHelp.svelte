@@ -69,6 +69,10 @@
           </span>
         </span>
         <span class="aqe-help-item">
+          <span class="aqe-help-command"><EditorCommandIcon icon="minimize-2" /><span>{t("editor.command.reduce_size.label")}</span></span>
+          <span class="aqe-help-description">{t("editor.help.reduce_size_desc")}</span>
+        </span>
+        <span class="aqe-help-item">
           <span class="aqe-help-command"><EditorCommandIcon icon="timer-reset" /><span>{t("editor.command.shorten_pauses.label")}</span></span>
           <span class="aqe-help-description">
             {t("editor.help.shorten_pauses_desc")}

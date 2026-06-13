@@ -14,6 +14,7 @@ import {
   xForMs,
   yForPitch,
 } from "../src/editor-inline/plot.js";
+import { msVisibleInViewport } from "../src/editor-inline/time-viewport.js";
 import type { NormalizedProsodyTrack } from "../src/editor-inline/types.js";
 
 const track: NormalizedProsodyTrack = {
@@ -91,6 +92,7 @@ describe("editor inline plot helpers", () => {
 
   it("uses rendered SVG bounds for cursor hit testing", () => {
     const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+    svg.setAttribute("viewBox", "0 0 760 150");
     svg.getBoundingClientRect = () => ({
       bottom: 150,
       height: 150,
@@ -106,6 +108,91 @@ describe("editor inline plot helpers", () => {
     const bounds = graphPixelBounds(svg);
     const ms = cursorMsFromEvent({ clientX: bounds.left + bounds.width * 0.75 }, svg, 2000);
 
+    expect(bounds.left).toBeCloseTo(54);
+    expect(bounds.width).toBeCloseTo(706);
     expect(ms).toBeCloseTo(1500);
+  });
+
+  it("maps cursor positions through the visible graph when the SVG viewBox width is stale", () => {
+    const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+    svg.setAttribute("viewBox", `0 0 ${PLOT.width} ${PLOT.height}`);
+    svg.setAttribute("preserveAspectRatio", "xMinYMin meet");
+    svg.getBoundingClientRect = () => ({
+      bottom: 150,
+      height: 150,
+      left: 0,
+      right: 650,
+      top: 0,
+      width: 650,
+      x: 0,
+      y: 0,
+      toJSON: () => ({}),
+    });
+
+    expect(cursorMsFromEvent({ clientX: PLOT.left }, svg, 1000)).toBeCloseTo(0);
+    expect(
+      cursorMsFromEvent({ clientX: PLOT.left + (PLOT.width - PLOT.left - PLOT.right) / 2 }, svg, 1000),
+    ).toBeCloseTo(500);
+    expect(cursorMsFromEvent({ clientX: PLOT.width - PLOT.right }, svg, 1000)).toBeCloseTo(1000);
+  });
+
+  it("maps time into the visible viewport when provided", () => {
+    const viewport = { startMs: 1000, endMs: 3000, durationMs: 4000 };
+
+    expect(xForMs(1000, 4000, viewport)).toBe(PLOT.left);
+    expect(xForMs(2000, 4000, viewport)).toBeCloseTo(PLOT.left + (PLOT.width - PLOT.left - PLOT.right) / 2);
+    expect(xForMs(3000, 4000, viewport)).toBe(PLOT.width - PLOT.right);
+  });
+
+  it("uses visible viewport bounds for pointer hit testing", () => {
+    const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+    svg.getBoundingClientRect = () => ({
+      bottom: 150,
+      height: 150,
+      left: 10,
+      right: 630,
+      top: 0,
+      width: 620,
+      x: 10,
+      y: 0,
+      toJSON: () => ({}),
+    });
+
+    const viewport = { startMs: 1000, endMs: 3000, durationMs: 4000 };
+    const bounds = graphPixelBounds(svg);
+
+    expect(cursorMsFromEvent({ clientX: bounds.left }, svg, 4000, viewport)).toBe(1000);
+    expect(cursorMsFromEvent({ clientX: bounds.left + bounds.width / 2 }, svg, 4000, viewport)).toBe(2000);
+    expect(cursorMsFromEvent({ clientX: bounds.left + bounds.width }, svg, 4000, viewport)).toBe(3000);
+  });
+
+  it("clamps x coordinates separately from viewport cursor visibility", () => {
+    const viewport = { startMs: 1000, endMs: 3000, durationMs: 4000 };
+
+    expect(xForMs(500, 4000, viewport)).toBe(PLOT.left);
+    expect(xForMs(3500, 4000, viewport)).toBe(PLOT.width - PLOT.right);
+    expect(msVisibleInViewport(1000, viewport)).toBe(true);
+    expect(msVisibleInViewport(3000, viewport)).toBe(true);
+    expect(msVisibleInViewport(999, viewport)).toBe(false);
+    expect(msVisibleInViewport(3001, viewport)).toBe(false);
+  });
+
+  it("draws visible x-axis labels from the viewport without changing default full-axis labels", () => {
+    document.body.innerHTML = `
+      <div class="aqe-visualizer">
+        <svg>
+          <g class="aqe-x-axis"></g>
+        </svg>
+      </div>
+    `;
+    const visualizer = document.querySelector<HTMLElement>(".aqe-visualizer")!;
+
+    drawXAxis(visualizer, 4000, { startMs: 1000, endMs: 3000, durationMs: 4000 });
+
+    expect(Array.from(visualizer.querySelectorAll(".aqe-x-label")).map((node) => node.textContent)).toEqual([
+      "1.00s",
+      "2.00s",
+      "3.00s",
+    ]);
   });
 });

@@ -10,7 +10,11 @@ from typing import Any, Callable, cast
 from .audio_formats import DEFAULT_OUTPUT_FORMAT
 from .audio_state import AudioEditState, AudioProcessingConfig
 from .diagnostics_runtime import new_operation_id, record_breadcrumb
-from .editor_actions import EditorCommandPayload
+from .editor_actions import EditorCommandPayload, processing_config_for_command
+from .editor_media_replacement import (
+    persist_generated_media,
+    replace_first_sound_reference_in_field,
+)
 from .editor_processing_shared import (
     cancel_graph_analysis_for_processing,
     request_history_availability_after_edit,
@@ -18,22 +22,20 @@ from .editor_processing_shared import (
     resolved_field_index,
     sync_history_availability,
 )
+from .editor_reload_status import reload_editor_with_pending_status
 from .editor_session import (
     EditorProcessingGuard,
     EditorSession,
-    PendingEditorStatus,
     begin_processing_guard,
     clear_processing_for_stale_guard,
     processing_guard_matches_editor,
 )
 from .editor_special_transform_worker import run_special_transform_worker
 from .editor_status import command_status_summary
-from .errors import AudioProcessingError
 from .i18n import t
 from .media_paths import existing_media_file_path
 from .permission_guidance import message_with_permission_guidance
 from .prosody_settings import config_with_graph_settings
-from .sound_refs import replace_sound_reference, select_first_sound_reference
 from .support import (
     format_denoise_support_log_block,
     format_spleeter_support_log_block,
@@ -53,6 +55,41 @@ def denoise_standard_async(editor: Any, deps: Any) -> None:
         failure_log_label="standard denoise failed",
         renderer=deps.render_noise_reduced_audio,
         command=EditorCommandPayload(command="aqe:denoise-standard"),
+    )
+
+
+def reduce_size_async(
+    editor: Any,
+    command: EditorCommandPayload | None = None,
+    deps: Any = None,
+) -> None:
+    if deps is None:
+        deps = command
+        command = EditorCommandPayload(command="aqe:reduce-size")
+    mode = command.overrides.size_reduction_mode if command is not None else None
+
+    def _renderer(
+        source_path: Path,
+        render_config: AudioProcessingConfig,
+        *,
+        output_path: Path,
+        on_command: Callable[[tuple[str, ...]], None] | None = None,
+    ) -> Any:
+        return deps.render_size_reduced_audio(
+            source_path,
+            render_config,
+            output_path=output_path,
+            on_command=on_command,
+            mode=mode,
+        )
+
+    deps.run_special_audio_transform_async(
+        editor,
+        label=t("editor.status.reducing_size"),
+        failure_log_label="size reduction failed",
+        renderer=_renderer,
+        command=command,
+        output_format="mp3",
     )
 
 
@@ -199,6 +236,8 @@ def _special_transform_config(
 ) -> AudioProcessingConfig:
     if command is None:
         return config
+    if command.command == "aqe:reduce-size":
+        return processing_config_for_command(command, config)
     if command.overrides.dpdfnet_attn_limit_db is not None:
         config = replace(config, dpdfnet_attn_limit_db=command.overrides.dpdfnet_attn_limit_db)
     if command.command == "aqe:pitch-hum":
@@ -219,24 +258,24 @@ def replace_current_field_after_noise_removal(
         if clear_processing_for_stale_guard(session, guard):
             deps.set_busy(editor, False)
         return
-    if output_path is not None:
-        saved_name = deps.write_generated_media(editor, saved_name, output_path)
+    saved_name = persist_generated_media(editor, saved_name, output_path, deps)
     field_index = resolved_field_index(session, editor, deps)
-    field_html = editor.note.fields[field_index]
-    selection = select_first_sound_reference(field_html)
-    if selection.selected is None:
-        raise AudioProcessingError(deps.current_field_audio_missing)
-    deps.dispose_editor_frontend_controls(editor)
-    editor.note.fields[field_index] = replace_sound_reference(field_html, selection.selected, saved_name)
+    replace_first_sound_reference_in_field(
+        editor, field_index=field_index, saved_name=saved_name, missing_message=deps.current_field_audio_missing,
+    )
     should_redraw_graph = _replace_noise_reduction_session_state(editor, session, field_index, saved_name)
     deps.request_playback_after_edit(
         editor,
         field_index,
         require_graph_redraw=should_redraw_graph,
     )
-    editor.loadNote(focusTo=field_index)
-    if session:
-        session.pending_status = None
+    reload_editor_with_pending_status(
+        editor,
+        session,
+        field_index,
+        message=session.status_summary if session is not None else "",
+        deps=deps,
+    )
     sync_history_availability(editor, session, deps)
     request_history_availability_after_edit(editor, session, deps)
     deps.eval_playback_state(editor, field_index, "stopped", 0)
@@ -261,7 +300,6 @@ def _replace_noise_reduction_session_state(
     session.field_index = field_index
     session.status_summary = session.next_status_summary or session.status_summary
     session.next_status_summary = ""
-    session.pending_status = PendingEditorStatus(field_index, message=session.status_summary)
     saved_path = existing_media_file_path(Path(editor.mw.col.media.dir()), saved_name)
     session.source_mtime_ns = saved_path.stat().st_mtime_ns if saved_path is not None else None
     session.processing = False

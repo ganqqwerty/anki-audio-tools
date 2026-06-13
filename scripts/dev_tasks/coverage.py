@@ -8,6 +8,13 @@ import subprocess
 import sys
 from pathlib import Path
 
+from scripts.dev_tasks.node_tools import (
+    SETTINGS_UI_DIR,
+    find_node_command,
+    find_npm_install_command,
+    frontend_npm_command,
+    frontend_runner_status,
+)
 from scripts.dev_tasks.process import _run
 from scripts.dev_tasks.python_env import (
     _die,
@@ -17,7 +24,6 @@ from scripts.dev_tasks.python_env import (
 )
 
 ROOT = Path(__file__).resolve().parents[2]
-SETTINGS_UI_DIR = ROOT / "settings_ui"
 PYTHON_COVERAGE_FAIL_UNDER = 80
 COVERAGE_XML = ROOT / "coverage.xml"
 SETTINGS_UI_LCOV = SETTINGS_UI_DIR / "coverage" / "lcov.info"
@@ -106,8 +112,12 @@ def cmd_sonar() -> int:
     if not (SETTINGS_UI_DIR / "node_modules").is_dir():
         print("ERROR: settings_ui/node_modules not found; run: python3 scripts/dev.py setup", file=sys.stderr)
         return 1
+    npm_command = frontend_npm_command("test:coverage", settings_ui_dir=SETTINGS_UI_DIR)
+    if not npm_command:
+        print("ERROR: npm or a supported frontend script runner not found. Install Node.js 18+.", file=sys.stderr)
+        return 1
     ui_rc = _run(
-        ["npm", "run", "test:coverage"],
+        npm_command,
         cwd=SETTINGS_UI_DIR,
         label="frontend UI coverage for sonar",
     )
@@ -129,22 +139,19 @@ def cmd_info() -> int:
     print(f"Anki Python:  {anki_python}")
     result = subprocess.run([str(anki_python), "--version"], capture_output=True, text=True)
     print(f"Python:       {result.stdout.strip()}")
-    node = shutil.which("node")
-    if node:
-        print(
-            "Node.js:      "
-            f"{subprocess.run([node, '--version'], capture_output=True, text=True).stdout.strip()}"
-        )
+    node_version, npm_status = frontend_runner_status(SETTINGS_UI_DIR)
+    print(f"Node.js:      {node_version or 'not found'}")
+    npm_command = find_npm_install_command(find_node_command())
+    if npm_command:
+        npm_version = subprocess.run(
+            [*npm_command, "--version"],
+            capture_output=True,
+            text=True,
+            check=False,
+        ).stdout.strip()
+        print(f"npm:          {npm_version or 'available'}")
     else:
-        print("Node.js:      not found")
-    npm = shutil.which("npm")
-    if npm:
-        print(
-            "npm:          "
-            f"{subprocess.run([npm, '--version'], capture_output=True, text=True).stdout.strip()}"
-        )
-    else:
-        print("npm:          not found")
+        print(f"npm:          {npm_status}")
     print(f"Project root: {ROOT}")
     print(f"Add-on dir:   {ROOT / 'addon' / 'anki_audio_quick_editor'}")
     _print_addon_symlink_info()

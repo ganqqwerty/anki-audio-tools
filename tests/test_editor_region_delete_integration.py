@@ -7,12 +7,12 @@ from types import SimpleNamespace
 from unittest.mock import MagicMock
 
 from anki_audio_quick_editor.audio_state import AudioEditState, AudioProcessingConfig
-from anki_audio_quick_editor.editor_integration import (
-    _SESSIONS,
-    EditorSession,
+from anki_audio_quick_editor.editor_callbacks import (
     _parse_region_delete_request,
     _replace_current_field_after_region_delete,
 )
+from anki_audio_quick_editor.editor_runtime import SESSIONS
+from anki_audio_quick_editor.editor_session import EditorSession, PendingEditorStatus
 
 
 def test_region_delete_request_parser_normalizes_payload() -> None:
@@ -227,7 +227,7 @@ def test_region_delete_replacement_updates_only_requested_field_and_history(
         current_filename="clip.mp3",
         source_mtime_ns=current.stat().st_mtime_ns,
     )
-    _SESSIONS[editor] = session
+    SESSIONS[editor] = session
     request = _parse_region_delete_request(
         {
             "ord": 1,
@@ -250,6 +250,7 @@ def test_region_delete_replacement_updates_only_requested_field_and_history(
     assert session.cursor_ms == 0
     assert session.redo_history.pop() is None
     assert session.undo_history.pop().filename == "clip.mp3"
+    assert session.pending_status == PendingEditorStatus(1, message="Deleted selection 250-750 ms.")
     assert editor.loadNote.call_args.kwargs == {"focusTo": 1}
     assert any(
         "__aqeSetHistoryAvailability(1, true, false)" in call.args[0]

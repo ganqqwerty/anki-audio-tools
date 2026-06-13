@@ -19,7 +19,6 @@ def _visualizer_js(ord_: int = 0) -> str:
       const visualizer = document.querySelector(`.aqe-visualizer[data-aqe-field-ord="${ord}"]`);
       if (!visualizer) return null;
       const toolbar = visualizer.querySelector('.aqe-selection-toolbar');
-      const toolbarDot = visualizer.querySelector('.aqe-selection-toolbar-dot');
       const toolbarPlay = visualizer.querySelector('.aqe-selection-toolbar-play');
       const toolbarDelete = visualizer.querySelector('.aqe-delete-region-button');
       const toolbarDeleteRest = visualizer.querySelector('.aqe-delete-rest-button');
@@ -69,8 +68,6 @@ def _visualizer_js(ord_: int = 0) -> str:
         selectionDraftEndMs: visualizer.dataset.selectionDraftEndMs ? Number(visualizer.dataset.selectionDraftEndMs) : null,
         repeatEnabled: visualizer.dataset.repeatEnabled === "true",
         selectionToolbarHidden: toolbar ? toolbar.hidden : true,
-        selectionToolbarCollapsed: visualizer.dataset.selectionToolbarCollapsed === "true",
-        selectionToolbarDotHidden: toolbarDot ? toolbarDot.hasAttribute("hidden") : true,
         selectionToolbarPreview: (
           visualizer.dataset.selectionToolbarPreview === "region"
           || visualizer.dataset.selectionToolbarPreview === "rest"
@@ -108,6 +105,24 @@ def _graph_state_js(ord_: int = 0) -> str:
     return f"window.__aqeGraphStateForTest ? window.__aqeGraphStateForTest({ord_}) : null"
 
 
+def _graph_zoom_state_js(ord_: int = 0) -> str:
+    return f"""
+    (() => {{
+      const state = window.__aqeGraphStateForTest?.({ord_});
+      if (!state) return null;
+      return {{
+        cursorMs: state.cursorMs,
+        durationMs: state.durationMs,
+        selectionEndMs: state.selectionEndMs,
+        selectionStartMs: state.selectionStartMs,
+        viewportEndMs: state.viewportEndMs,
+        viewportStartMs: state.viewportStartMs,
+        xAxisLabels: state.xAxisLabels,
+      }};
+    }})()
+    """
+
+
 def _click_graph_and_wait(editor, predicate=lambda track: True, ord_: int = 0, timeout: float = 10.0):
     selector = f'[data-testid="aqe-button-{ord_}-graph"]'
     wait_for_selector(editor.web, selector, timeout=5.0)
@@ -135,14 +150,13 @@ def _drag_cursor_to_ratio(editor, ratio: float, ord_: int = 0) -> None:
           const ord = __ORD__;
           const ratio = __RATIO__;
           const svg = document.querySelector(`.aqe-visualizer[data-aqe-field-ord="${ord}"] .aqe-visualizer-svg`);
-          const rect = svg.getBoundingClientRect();
-          const plot = { width: 620, left: 44, right: 10 };
-          const plotLeft = rect.left + (plot.left / plot.width) * rect.width;
-          const plotWidth = ((plot.width - plot.left - plot.right) / plot.width) * rect.width;
-          const x = plotLeft + plotWidth * ratio;
+          const rect = svg?.getBoundingClientRect();
+          const bounds = window.__aqeGraphPixelBoundsForTest?.(ord);
+          if (!svg || !rect || !bounds) return;
+          const x = bounds.left + bounds.width * ratio;
           const EventCtor = window.PointerEvent || window.MouseEvent;
-          svg.dispatchEvent(new EventCtor('pointerdown', { clientX: x, clientY: rect.top + 20, bubbles: true }));
-          window.dispatchEvent(new EventCtor('pointerup', { clientX: x, clientY: rect.top + 20, bubbles: true }));
+          svg.dispatchEvent(new EventCtor('pointerdown', { clientX: x, clientY: rect.top + 40, bubbles: true }));
+          window.dispatchEvent(new EventCtor('pointerup', { clientX: x, clientY: rect.top + 40, bubbles: true }));
         })()
         """.replace("__ORD__", json.dumps(ord_)).replace("__RATIO__", json.dumps(ratio)),
     )
@@ -169,3 +183,98 @@ def _install_html_audio_test_driver(editor, ord_: int = 0) -> None:
         lambda value: value is True,
         timeout=5.0,
     )
+
+
+def _visualizer_ready_js(ord_: int = 0) -> str:
+    return f"""
+    (() => {{
+      const v = document.querySelector(`.aqe-visualizer[data-aqe-field-ord="{ord_}"]`);
+      if (!v) return null;
+      if (v.dataset.hasTrack !== "true") return null;
+      if (!Number(v.dataset.durationMs)) return null;
+      if (Array.from(document.querySelectorAll('.aqe-button')).every((b) => b.disabled)) return null;
+      return {{ ord: {ord_} }};
+    }})()
+    """
+
+
+def _wait_for_visualizer_ready(editor, timeout: float = 10.0, ord_: int = 0):
+    return wait_for_js_condition(
+        editor.web,
+        _visualizer_ready_js(ord_),
+        lambda state: state is not None,
+        timeout=timeout,
+    )
+
+
+def _visualizer_source_js(ord_: int = 0) -> str:
+    return f"""
+    (() => {{
+      const v = document.querySelector(`.aqe-visualizer[data-aqe-field-ord="{ord_}"]`);
+      if (!v || v.dataset.hasTrack !== "true") return null;
+      return {{ sourceFilename: v.dataset.sourceFilename || "" }};
+    }})()
+    """
+
+
+def _visualizer_cursor_js(ord_: int = 0) -> str:
+    return f"""
+    (() => {{
+      const v = document.querySelector(`.aqe-visualizer[data-aqe-field-ord="{ord_}"]`);
+      if (!v || v.dataset.hasTrack !== "true") return null;
+      return {{
+        cursorMs: Number(v.dataset.cursorMs || "0"),
+        durationMs: Number(v.dataset.durationMs || "0"),
+      }};
+    }})()
+    """
+
+
+def _visualizer_selection_js(ord_: int = 0) -> str:
+    return f"""
+    (() => {{
+      const v = document.querySelector(`.aqe-visualizer[data-aqe-field-ord="{ord_}"]`);
+      if (!v || v.dataset.hasTrack !== "true") return null;
+      return {{
+        selectionActive: v.dataset.selectionActive === "true",
+        selectionStartMs: v.dataset.selectionStartMs ? Number(v.dataset.selectionStartMs) : null,
+        selectionEndMs: v.dataset.selectionEndMs ? Number(v.dataset.selectionEndMs) : null,
+      }};
+    }})()
+    """
+
+
+def _visualizer_playback_js(ord_: int = 0) -> str:
+    return f"""
+    (() => {{
+      const v = document.querySelector(`.aqe-visualizer[data-aqe-field-ord="{ord_}"]`);
+      if (!v || v.dataset.hasTrack !== "true") return null;
+      return {{
+        playbackState: v.dataset.playbackState || "stopped",
+        playbackStartMs: Number(v.dataset.playbackStartMs || "0"),
+        playbackEndMs: Number(v.dataset.playbackEndMs || "0"),
+        playbackRegionMode: v.dataset.playbackRegionMode || "full",
+        repeatEnabled: v.dataset.repeatEnabled === "true",
+        resumeRequiresRestart: v.dataset.resumeRequiresRestart === "true",
+      }};
+    }})()
+    """
+
+
+def _visualizer_buttons_js(ord_: int = 0) -> str:
+    return """
+    (() => {
+      const graph = document.querySelector(`[data-testid="aqe-button-${ord_}-graph"]`);
+      const play = document.querySelector(`[data-testid="aqe-button-${ord_}-play"]`);
+      const deleteBtn = document.querySelector(`[data-testid="aqe-button-${ord_}-delete-selection"]`);
+      const deleteRest = document.querySelector(`[data-testid="aqe-button-${ord_}-delete-rest"]`);
+      const allDisabled = Array.from(document.querySelectorAll('.aqe-button')).every((b) => b.disabled);
+      return {
+        graphButtonState: graph?.dataset.aqeButtonState || "",
+        playButtonState: play?.dataset.aqeButtonState || "",
+        regionDeleteButtonDisabled: deleteBtn ? deleteBtn.disabled : true,
+        regionDeleteRestButtonDisabled: deleteRest ? deleteRest.disabled : true,
+        allButtonsDisabled: allDisabled,
+      };
+    })()
+    """

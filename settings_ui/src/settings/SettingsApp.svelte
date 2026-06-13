@@ -4,7 +4,7 @@
 
   import AqeTooltipProvider from "$lib/AqeTooltipProvider.svelte";
   import ErrorMessage from "$lib/ErrorMessage.svelte";
-  import { handleAsyncDone, handleAsyncProgress, startAsyncOp } from "$lib/async-jobs.js";
+  import { handleAsyncDone, handleAsyncProgress, startAsyncOp } from "./async-jobs.js";
   import {
     copySupportReport,
     registerCallbacks,
@@ -13,7 +13,7 @@
     settingsOpenRuntimeInstaller,
     settingsResetDefaults,
     settingsSave,
-  } from "$lib/bridge.js";
+  } from "./bridge.js";
   import { configureI18n, t } from "$lib/i18n.js";
   import { logger } from "$lib/logger.js";
   import type { ErrorDisplayValue } from "$lib/user-facing-error.js";

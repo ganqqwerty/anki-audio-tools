@@ -2,9 +2,7 @@
 
 from __future__ import annotations
 
-import html
 import logging
-import re
 from typing import Any
 
 from aqt import mw
@@ -12,16 +10,19 @@ from aqt.qt import qconnect
 
 from .editor_actions import BRIDGE_COMMANDS, CMD_COMMAND_PAYLOAD
 from .editor_callbacks import _handle_bridge_command
-from .editor_integration import editor_injection_script
 from .editor_media import audio_field_sources
 from .editor_runtime import SESSIONS
 from .editor_session import EditorSession, reset_for_note_load
-from .sound_refs import safe_media_basename
+from .editor_webview_injection import editor_injection_script
+from .media_paths import media_filenames_match
+from .reviewer_audio_targets import (
+    explicit_target_field_indices,
+    target_html,
+)
+from .sound_refs import find_sound_references, safe_media_basename
 
 logger = logging.getLogger(__name__)
 
-_AQE_REVIEW_TARGET_CLASS = "aqe-review-audio-target"
-_SOUND_RE = re.compile(r"\[sound:([^\]]+)\]", re.IGNORECASE)
 _ADAPTERS: dict[int, ReviewerEditorAdapter] = {}
 _BRIDGE_WRAPPED_ATTR = "_aqe_reviewer_bridge_wrapped"
 _ORIGINAL_BRIDGE_ATTR = "_aqe_original_bridge_command"
@@ -29,6 +30,8 @@ _WRAPPER_BRIDGE_ATTR = "_aqe_reviewer_bridge_command"
 _SHOW_REVIEWER_EDITOR_LABEL = "Show audio editor"
 _HIDE_REVIEWER_EDITOR_LABEL = "Hide audio editor"
 _reviewer_editor_visible = True
+_reviewer_editor_manual_override = False
+_EXPLICIT_PANEL_CARD_KEYS: set[object] = set()
 
 
 class ReviewerEditorAdapter:
@@ -85,26 +88,36 @@ def reviewer_editor_menu_label(reviewer: Any | None = None) -> str:
     )
 
 
+def refresh_reviewer_editor_toggle_action(action: Any, reviewer: Any | None = None) -> None:
+    """Refresh a Reviewer audio-editor toggle action for the current state."""
+    if hasattr(action, "setText"):
+        action.setText(reviewer_editor_menu_label(reviewer))
+    if hasattr(action, "setEnabled"):
+        action.setEnabled(_reviewer_editor_action_enabled(reviewer))
+
+
 def add_reviewer_editor_toggle_action(menu: Any, reviewer: Any | None = None) -> Any:
     """Add a Show/Hide audio editor action to an Anki menu."""
     action = menu.addAction(reviewer_editor_menu_label(reviewer))
     assert action is not None
-    if hasattr(action, "setEnabled"):
-        action.setEnabled(_reviewer_editor_enabled())
+    refresh_reviewer_editor_toggle_action(action, reviewer)
     qconnect(action.triggered, toggle_reviewer_editor_visibility)
     return action
 
 
 def toggle_reviewer_editor_visibility() -> bool:
     """Toggle reviewer audio controls without changing the persistent setting."""
+    global _reviewer_editor_manual_override
     global _reviewer_editor_visible
     reviewer = getattr(mw, "reviewer", None)
     if _reviewer_editor_currently_shown(reviewer):
         _reviewer_editor_visible = False
+        _reviewer_editor_manual_override = False
         _dispose_reviewer_frontend()
         return False
     _reviewer_editor_visible = True
-    if _reviewer_editor_enabled() and _reviewer_showing_answer(reviewer):
+    _reviewer_editor_manual_override = not _reviewer_editor_enabled()
+    if _reviewer_showing_answer(reviewer):
         _render_current_reviewer_side(reviewer)
     return False
 
@@ -117,7 +130,10 @@ def _on_card_review_webview_did_init(webview: Any, kind: Any) -> None:
 def _on_card_will_show(text: str, card: Any, kind: str) -> str:
     if kind != "reviewAnswer":
         return text
-    if not _reviewer_editor_enabled() or not _reviewer_editor_visible:
+    existing_targets = explicit_target_field_indices(text)
+    if existing_targets:
+        _EXPLICIT_PANEL_CARD_KEYS.add(_card_key(card))
+    if not _reviewer_editor_requested():
         return text
     note = _card_note(card)
     if note is None:
@@ -125,17 +141,21 @@ def _on_card_will_show(text: str, card: Any, kind: str) -> str:
     targets = _review_audio_targets(text, note, card=card, kind=kind)
     if not targets:
         return text
-    return text + "".join(_target_html(field_index, filename) for field_index, filename in targets)
+    return text + "".join(
+        target_html(field_index, filename)
+        for field_index, filename in targets
+        if field_index not in existing_targets
+    )
 
 
 def _on_reviewer_did_show_card_side(card: Any) -> None:
-    if not _reviewer_editor_enabled() or not _reviewer_editor_visible:
-        _dispose_reviewer_frontend()
-        return
     reviewer = getattr(mw, "reviewer", None)
     if reviewer is None or getattr(reviewer, "card", None) is not card:
         return
     if not _reviewer_showing_answer(reviewer):
+        _dispose_reviewer_frontend()
+        return
+    if not _reviewer_editor_requested() and not _card_has_explicit_panel_target(card):
         _dispose_reviewer_frontend()
         return
     adapter = _adapter_for_reviewer(reviewer)
@@ -149,6 +169,7 @@ def _on_reviewer_did_show_card_side(card: Any) -> None:
 
 def _on_reviewer_did_answer_card(reviewer: Any, card: Any, ease: int) -> None:
     logger.debug("disposing reviewer editor state after card answer: card=%r ease=%s", card, ease)
+    _EXPLICIT_PANEL_CARD_KEYS.discard(_card_key(card))
     adapter = _ADAPTERS.get(id(reviewer))
     if adapter is None:
         return
@@ -250,7 +271,7 @@ def _review_audio_targets(
     if not sources:
         return []
     side_filenames = _card_side_audio_filenames(card, kind)
-    rendered_filenames = {safe_media_basename(match.group(1)) for match in _SOUND_RE.finditer(text)}
+    rendered_filenames = {safe_media_basename(ref.filename) for ref in find_sound_references(text)}
     targets: list[tuple[int, str]] = []
     matched_filenames: set[str] = set()
     for field_index, filename in sources.items():
@@ -267,13 +288,17 @@ def _review_target_matches(
     rendered_filenames: set[str],
     matched_filenames: set[str],
 ) -> bool:
-    if filename in matched_filenames:
+    if _contains_media_filename(matched_filenames, filename):
         return False
     if side_filenames:
-        return filename in side_filenames
+        return _contains_media_filename(side_filenames, filename)
     if rendered_filenames:
-        return filename in rendered_filenames
+        return _contains_media_filename(rendered_filenames, filename)
     return filename in text
+
+
+def _contains_media_filename(candidates: set[str], filename: str) -> bool:
+    return any(media_filenames_match(candidate, filename) for candidate in candidates)
 
 
 def _card_side_audio_filenames(card: Any | None, kind: str) -> set[str]:
@@ -290,14 +315,6 @@ def _card_side_audio_filenames(card: Any | None, kind: str) -> set[str]:
     }
 
 
-def _target_html(field_index: int, filename: str) -> str:
-    return (
-        f'<div class="{_AQE_REVIEW_TARGET_CLASS}" '
-        f'data-field-ord="{int(field_index)}" '
-        f'data-aqe-source-filename="{html.escape(filename, quote=True)}"></div>'
-    )
-
-
 def _card_note(card: Any) -> Any | None:
     if not hasattr(card, "note"):
         return None
@@ -307,9 +324,27 @@ def _card_note(card: Any) -> Any | None:
         return card.note
 
 
+def _card_key(card: Any) -> object:
+    key = getattr(card, "id", None)
+    return key if key is not None else id(card)
+
+
+def _card_has_explicit_panel_target(card: Any) -> bool:
+    return _card_key(card) in _EXPLICIT_PANEL_CARD_KEYS
+
+
 def _reviewer_editor_enabled() -> bool:
     config = mw.addonManager.getConfig(mw.addonManager.addonFromModule(__name__)) or {}
     return bool(config.get("enable_reviewer_editor", True))
+
+
+def _reviewer_editor_action_enabled(reviewer: Any | None) -> bool:
+    reviewer = reviewer if reviewer is not None else getattr(mw, "reviewer", None)
+    return reviewer is not None and getattr(reviewer, "card", None) is not None
+
+
+def _reviewer_editor_requested() -> bool:
+    return _reviewer_editor_visible and (_reviewer_editor_enabled() or _reviewer_editor_manual_override)
 
 
 def _reviewer_showing_answer(reviewer: Any | None) -> bool:
@@ -317,7 +352,7 @@ def _reviewer_showing_answer(reviewer: Any | None) -> bool:
 
 
 def _reviewer_editor_currently_shown(reviewer: Any | None) -> bool:
-    return _reviewer_editor_enabled() and _reviewer_editor_visible and _reviewer_showing_answer(reviewer)
+    return _reviewer_editor_requested() and _reviewer_showing_answer(reviewer)
 
 
 def _dispose_reviewer_frontend() -> None:

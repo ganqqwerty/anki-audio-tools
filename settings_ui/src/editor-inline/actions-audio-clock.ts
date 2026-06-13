@@ -18,6 +18,11 @@ import { logger } from "./logger.js";
 import { completePlayback, handlePlaybackBoundary, playbackStateFor, startManualProgressClock, stopProgressClock } from "./playback-actions.js";
 import { renderCursor } from "./visualizer-renderer.js";
 import type { VisualizerElement } from "./types.js";
+import { readFieldState, updateFieldState, writeFieldState } from "./field-state-store.js";
+
+function fieldOrd(v: VisualizerElement): number {
+  return Number(v.dataset.aqeFieldOrd || "0");
+}
 
 export function stopOtherPlayback(activeVisualizer: VisualizerElement): void {
   for (const visualizer of allVisualizers()) {
@@ -46,13 +51,17 @@ export function configureAudioClock(visualizer: VisualizerElement, filename: str
 export function installAudioClockHandlers(visualizer: VisualizerElement): void {
   installAudioClockElementHandlers(visualizer, {
     onLoadedMetadata(durationMs) {
-      if (visualizer.dataset.hasTrack === "true") return;
-      visualizer.dataset.durationMs = String(durationMs);
+      if (readFieldState(fieldOrd(visualizer)).graph.hasTrack) return;
+      const ord = fieldOrd(visualizer);
+      updateFieldState(ord, (s) => ({
+        ...s,
+        graph: { ...s.graph, durationMs },
+        playback: { ...s.playback, endMs: durationMs },
+      }));
       if ((Number(visualizer.dataset.targetDurationMs || "0") || 0) <= 0) {
         visualizer.dataset.targetDurationMs = String(durationMs);
       }
-      visualizer.dataset.playbackEndMs = String(durationMs);
-      renderCursor(visualizer, Number(visualizer.dataset.cursorMs || "0"), durationMs);
+      renderCursor(visualizer, readFieldState(ord).cursor.ms, durationMs);
     },
     onErrorDuringPlayback() {
       logger.warn("audio clock failed during playback", { ord: visualizer.dataset.aqeFieldOrd });
@@ -69,13 +78,17 @@ export function audioClockReady(visualizer: VisualizerElement | null): boolean {
 }
 
 export function clampProgressMs(visualizer: VisualizerElement, ms: number): number {
-  const durationMs = Number(visualizer.dataset.durationMs || "0");
+  const durationMs = readFieldState(fieldOrd(visualizer)).graph.durationMs;
   return Math.max(0, Math.min(Number(ms) || 0, durationMs || 0));
 }
 
 export function setRepeatEnabled(visualizer: VisualizerElement, enabled: boolean): void {
+  const ord = fieldOrd(visualizer);
+  writeFieldState(ord, {
+    ...readFieldState(ord),
+    playback: { ...readFieldState(ord).playback, repeat: enabled },
+  });
   visualizer.dataset.repeatEnabled = enabled ? "true" : "false";
-  const ord = Number(visualizer.dataset.aqeFieldOrd || "0");
   const button = repeatButtonForOrd(ord);
   if (button) {
     button.ariaPressed = enabled ? "true" : "false";
@@ -90,7 +103,6 @@ export function setRepeatEnabled(visualizer: VisualizerElement, enabled: boolean
         repeat: enabled ? t("editor.play.repeat_on") : t("editor.play.repeat_off"),
       }),
     });
-    menuButton.dataset.aqeButtonState = enabled ? "active" : "default";
     setButtonTooltipContent(menuButton, title);
   }
   if (!enabled && visualizer.dataset.repeatPauseWaiting === "true") {
@@ -99,5 +111,5 @@ export function setRepeatEnabled(visualizer: VisualizerElement, enabled: boolean
 }
 
 export function repeatEnabledFor(visualizer: VisualizerElement): boolean {
-  return visualizer.dataset.repeatEnabled === "true";
+  return readFieldState(fieldOrd(visualizer)).playback.repeat;
 }

@@ -12,7 +12,7 @@ from .audio_processing_preset_runner import (
     run_processing_preset,
 )
 from .audio_state import AudioProcessingConfig
-from .batch_operation_processing import batch_preset_runner_adapters
+from .batch_operation_processing import BatchOperationDeps, batch_preset_runner_adapters
 from .batch_operation_types import BatchNoteResult, BatchNoteSnapshot, BatchRunRequest
 from .batch_operations_helpers import skipped_batch_note
 from .sound_refs import SoundReference, replace_sound_reference
@@ -41,6 +41,7 @@ def process_preset_operation(
     media_writer: MediaWriter,
     artifact_root: Path | None,
     append_image_reference: AppendImageReference,
+    deps: BatchOperationDeps,
 ) -> BatchNoteResult:
     assert request.preset is not None
     result: ProcessingPresetRunResult | None = None
@@ -54,6 +55,7 @@ def process_preset_operation(
             audio_filename=audio_filename,
             config=config,
             artifact_root=artifact_root,
+            deps=deps,
         )
         writes = _write_preset_field_updates(
             note,
@@ -102,6 +104,7 @@ def _run_batch_processing_preset(
     audio_filename: str,
     config: AudioProcessingConfig,
     artifact_root: Path | None,
+    deps: BatchOperationDeps,
 ) -> ProcessingPresetRunResult:
     assert request.preset is not None
     return run_processing_preset(
@@ -109,7 +112,7 @@ def _run_batch_processing_preset(
         source_path=source_path,
         source_filename=audio_filename,
         config=config,
-        adapters=batch_preset_runner_adapters(),
+        adapters=batch_preset_runner_adapters(deps),
         artifact_root=artifact_root,
     )
 

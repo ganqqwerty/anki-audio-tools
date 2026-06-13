@@ -44,30 +44,29 @@ def _plot_pointer_script(ord_: int, start_ratio: float, end_ratio: float, *, shi
       const startRatio = {start_ratio};
       const endRatio = {end_ratio};
       const svg = document.querySelector(`.aqe-visualizer[data-aqe-field-ord="${{ord}}"] .aqe-visualizer-svg`);
-      const rect = svg.getBoundingClientRect();
-      const plot = {{ width: 620, left: 44, right: 10 }};
-      const plotLeft = rect.left + (plot.left / plot.width) * rect.width;
-      const plotWidth = ((plot.width - plot.left - plot.right) / plot.width) * rect.width;
-      const xFor = (ratio) => plotLeft + plotWidth * ratio;
+      const rect = svg?.getBoundingClientRect();
+      const bounds = window.__aqeGraphPixelBoundsForTest?.(ord);
+      if (!svg || !rect || !bounds) return;
+      const xFor = (ratio) => bounds.left + bounds.width * ratio;
       const EventCtor = window.PointerEvent || window.MouseEvent;
       svg.dispatchEvent(new EventCtor("pointerdown", {{
         bubbles: true,
         clientX: xFor(startRatio),
-        clientY: rect.top + 20,
+        clientY: rect.top + 40,
         shiftKey: {str(shift).lower()},
       }}));
       if ({str(move).lower()}) {{
         window.dispatchEvent(new EventCtor("pointermove", {{
           bubbles: true,
           clientX: xFor(endRatio),
-          clientY: rect.top + 20,
+          clientY: rect.top + 40,
           shiftKey: {str(shift).lower()},
         }}));
       }}
       window.dispatchEvent(new EventCtor("pointerup", {{
         bubbles: true,
         clientX: xFor(endRatio),
-        clientY: rect.top + 20,
+        clientY: rect.top + 40,
         shiftKey: {str(shift).lower()},
       }}));
     }})()
@@ -81,16 +80,15 @@ def _plot_pointer_event_script(ord_: int, ratio: float, event_type: str, *, shif
       const ord = {ord_};
       const ratio = {ratio};
       const svg = document.querySelector(`.aqe-visualizer[data-aqe-field-ord="${{ord}}"] .aqe-visualizer-svg`);
-      const rect = svg.getBoundingClientRect();
-      const plot = {{ width: 620, left: 44, right: 10 }};
-      const plotLeft = rect.left + (plot.left / plot.width) * rect.width;
-      const plotWidth = ((plot.width - plot.left - plot.right) / plot.width) * rect.width;
-      const x = plotLeft + plotWidth * ratio;
+      const rect = svg?.getBoundingClientRect();
+      const bounds = window.__aqeGraphPixelBoundsForTest?.(ord);
+      if (!svg || !rect || !bounds) return;
+      const x = bounds.left + bounds.width * ratio;
       const EventCtor = window.PointerEvent || window.MouseEvent;
       {target}.dispatchEvent(new EventCtor("{event_type}", {{
         bubbles: true,
         clientX: x,
-        clientY: rect.top + 20,
+        clientY: rect.top + 40,
         shiftKey: {str(shift).lower()},
       }}));
     }})()
@@ -139,16 +137,15 @@ def _selection_handle_pointer_event_script(
       const ratio = {ratio};
       const handle = document.querySelector(`[data-testid="aqe-selection-resize-${{edge}}-${{ord}}"]`);
       const svg = document.querySelector(`.aqe-visualizer[data-aqe-field-ord="${{ord}}"] .aqe-visualizer-svg`);
-      const rect = svg.getBoundingClientRect();
-      const plot = {{ width: 620, left: 44, right: 10 }};
-      const plotLeft = rect.left + (plot.left / plot.width) * rect.width;
-      const plotWidth = ((plot.width - plot.left - plot.right) / plot.width) * rect.width;
-      const x = plotLeft + plotWidth * ratio;
+      const rect = svg?.getBoundingClientRect();
+      const bounds = window.__aqeGraphPixelBoundsForTest?.(ord);
+      if (!handle || !svg || !rect || !bounds) return;
+      const x = bounds.left + bounds.width * ratio;
       const EventCtor = window.PointerEvent || window.MouseEvent;
       {target}.dispatchEvent(new EventCtor("{event_type}", {{
         bubbles: true,
         clientX: x,
-        clientY: rect.top + 20,
+        clientY: rect.top + 40,
       }}));
     }})()
     """

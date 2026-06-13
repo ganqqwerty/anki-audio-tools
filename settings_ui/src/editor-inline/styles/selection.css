@@ -1,11 +1,9 @@
 .aqe-selection {
-  fill: Highlight;
-  fill-opacity: 0.2;
-  filter:
-    drop-shadow(0 0 2px rgb(255 255 255 / 70%))
-    drop-shadow(0 0 8px rgb(72 145 255 / 52%));
+  fill: transparent;
+  fill-opacity: 0;
+  filter: none;
   pointer-events: none;
-  stroke: Highlight;
+  stroke: var(--aqe-accent-fill);
   stroke-opacity: 0.65;
   stroke-width: 1;
   vector-effect: non-scaling-stroke;
@@ -13,7 +11,7 @@
 
 .aqe-selection-draft {
   fill: currentColor;
-  fill-opacity: 0.24;
+  fill-opacity: 0;
   filter: none;
   stroke: currentColor;
 }
@@ -29,26 +27,83 @@
 
 .aqe-selection-region-preview-halo {
   display: none;
+  pointer-events: none;
+  position: absolute;
+  top: var(--aqe-plot-top-px, 0px);
+  height: var(--aqe-plot-height-px, 0px);
+  background: rgb(0 0 0 / 18%);
+  backdrop-filter: blur(3px);
+  -webkit-backdrop-filter: blur(3px);
+  z-index: 1;
+}
+
+.aqe-visualizer-plot[data-selection-overlay-ready="true"] .aqe-selection-region-preview-halo {
+  display: block;
+}
+
+.aqe-selection-region-preview-halo-top {
+  box-shadow: inset -10px 0 24px rgb(0 0 0 / 6%);
+  left: var(--aqe-plot-left-px, 0px);
+  width: max(0px, calc(var(--aqe-selection-start-px, 0px) - var(--aqe-plot-left-px, 0px)));
+}
+
+.aqe-selection-region-preview-halo-bottom {
+  box-shadow: inset 10px 0 24px rgb(0 0 0 / 6%);
+  right: var(--aqe-plot-right-px, 0px);
+  width: max(0px, calc(100% - var(--aqe-selection-end-px, 0px) - var(--aqe-plot-right-px, 0px)));
 }
 
 .aqe-selection-edge {
+  background: currentColor;
+  height: var(--aqe-plot-height-px, 0px);
   opacity: 0.65;
   pointer-events: none;
-  stroke: currentColor;
-  stroke-dasharray: none;
-  stroke-width: 1;
+  position: absolute;
+  top: var(--aqe-plot-top-px, 0px);
+  width: 1px;
+  z-index: 2;
+}
+
+.aqe-selection-start {
+  left: calc(var(--aqe-selection-start-edge-px, 0px) - 0.5px);
+}
+
+.aqe-selection-end {
+  left: calc(var(--aqe-selection-end-edge-px, 0px) - 0.5px);
 }
 
 .aqe-selection-resize-handle {
-  cursor: ew-resize;
-  fill: ButtonFace;
+  appearance: none;
+  background: ButtonFace;
+  border: 1.25px solid rgb(18 18 18 / 92%);
+  border-radius: 3px;
+  box-sizing: border-box;
+  color: rgb(44 44 44 / 92%);
+  cursor: col-resize;
   filter: none;
-  opacity: 0.96;
+  height: calc(var(--aqe-plot-height-px, 0px) * 0.8);
+  left: 0;
+  margin: 0;
   pointer-events: auto;
-  stroke: currentColor;
-  stroke-width: 1.25;
-  vector-effect: non-scaling-stroke;
-  opacity: 0.82;
+  opacity: 1;
+  padding: 0;
+  position: absolute;
+  top: calc(var(--aqe-plot-top-px, 0px) + var(--aqe-plot-height-px, 0px) * 0.1);
+  width: 10px;
+  z-index: 2;
+}
+
+.aqe-selection-resize-handle,
+.aqe-selection-resize-handle * {
+  cursor: col-resize;
+}
+
+.aqe-selection-resize-start {
+  left: calc(var(--aqe-selection-start-edge-px, 0px) - 5px);
+}
+
+.aqe-selection-resize-end {
+  left: calc(var(--aqe-selection-end-edge-px, 0px) - 5px);
 }
 
 .aqe-selection-resize-handle:hover {
@@ -56,74 +111,140 @@
 }
 
 .aqe-selection-resize-handle.aqe-selection-resize-dragging,
-.aqe-selection-resize-grip.aqe-selection-resize-dragging {
-  opacity: 0.42;
+.aqe-selection-resize-handle.aqe-selection-resize-dragging .aqe-selection-resize-grip {
+  opacity: 1;
 }
 
 .aqe-selection-resize-grip {
-  opacity: 0.48;
+  align-items: center;
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+  inset: 0;
+  justify-content: center;
+  opacity: 1;
   pointer-events: none;
-  stroke: currentColor;
-  stroke-linecap: round;
+  position: absolute;
+}
+
+.aqe-selection-resize-grip > span {
+  border-top: 1px solid currentColor;
+  border-radius: 999px;
+  display: block;
+  width: 6px;
+}
+
+.aqe-selection-outside-preview {
+  fill: rgb(0 0 0 / 18%);
+  pointer-events: none;
+  stroke: rgb(0 0 0 / 24%);
   stroke-width: 1;
   vector-effect: non-scaling-stroke;
 }
 
-.aqe-selection-rest-preview {
-  background: linear-gradient(180deg, var(--aqe-destructive-preview-top), var(--aqe-destructive-preview-bottom));
-  border-color: var(--aqe-destructive-border);
-  display: none;
-  height: var(--aqe-plot-height-px, 106px);
-  pointer-events: none;
-  position: absolute;
-  top: var(--aqe-plot-top-px, 10px);
-  z-index: 3;
-}
-
 .aqe-visualizer[data-selection-toolbar-preview="rest"] .aqe-selection-rest-preview {
-  display: block;
+  fill: var(--aqe-destructive-preview-top);
+  stroke: var(--aqe-destructive-border);
 }
 
-.aqe-selection-rest-preview-before {
-  border-right: 1px solid;
-  left: var(--aqe-plot-left-px, 44px);
-  width: max(0px, calc(var(--aqe-selection-start-px, 44px) - var(--aqe-plot-left-px, 44px)));
-}
-
-.aqe-selection-rest-preview-after {
-  border-left: 1px solid;
-  left: var(--aqe-selection-end-px, 0px);
-  right: var(--aqe-plot-right-px, 10px);
-}
-
-.aqe-selection-toolbar {
+.aqe-selection-toolbar,
+.aqe-ui-root .aqe-selection-toolbar {
   align-items: center;
-  background: Canvas;
+  background: var(--aqe-surface-color);
   border: 1px solid;
-  border-color: ButtonBorder;
+  border-color: var(--aqe-border-color);
   border-radius: 8px;
   box-shadow: 0 3px 10px rgb(0 0 0 / 20%);
   box-sizing: border-box;
   display: flex;
+  flex-wrap: nowrap;
   gap: 2px;
-  height: 30px;
   left: var(--aqe-selection-toolbar-left-px, 0px);
+  max-width: min(340px, calc(100vw - 16px));
+  min-height: 30px;
   padding: 2px;
   position: absolute;
   top: var(--aqe-selection-toolbar-top-px, 0px);
   transform: translate(calc(-100% + 6px), 4px);
-  z-index: 4;
+  width: max-content;
+  z-index: 2147483647;
 }
 
-.aqe-selection-toolbar[hidden],
-.aqe-selection-toolbar-dot[hidden],
-.aqe-selection-toolbar-dot[aria-hidden="true"] {
+.aqe-selection-toolbar[hidden] {
   display: none;
 }
 
-.aqe-selection-toolbar-button {
+.aqe-selection-shift-button,
+.aqe-ui-root .aqe-selection-shift-button {
+  border-radius: 999px;
+  height: 18px;
+  min-height: 18px;
+  min-width: 18px;
+  padding: 0;
+  position: absolute;
+  top: var(--aqe-selection-shift-top-px, 0px);
+  transform: translate3d(0, 0, 0) scale(1);
+  transition:
+    background-color 120ms ease,
+    box-shadow 120ms ease,
+    opacity 120ms ease,
+    transform 120ms ease;
+  width: 18px;
+  z-index: 4;
+}
+
+.aqe-selection-shift-button[hidden] {
+  display: none;
+}
+
+.aqe-selection-shift-button:hover:not(:disabled),
+.aqe-selection-shift-button:focus-visible:not(:disabled) {
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--aqe-accent-fill) 24%, transparent);
+  transform: translate3d(0, -1px, 0) scale(1.08);
+}
+
+.aqe-selection-shift-button:disabled {
+  cursor: default;
+  opacity: 0.58;
+}
+
+.aqe-selection-shift-button-start-previous {
+  left: calc(var(--aqe-selection-start-edge-px, 0px) - 22px);
+}
+
+.aqe-selection-shift-button-start-next {
+  left: calc(var(--aqe-selection-start-edge-px, 0px) + 4px);
+}
+
+.aqe-selection-shift-button-end-previous {
+  left: calc(var(--aqe-selection-end-edge-px, 0px) - 22px);
+}
+
+.aqe-selection-shift-button-end-next {
+  left: calc(var(--aqe-selection-end-edge-px, 0px) + 4px);
+}
+
+.aqe-selection-shift-triangle {
+  border-bottom: 4px solid transparent;
+  border-top: 4px solid transparent;
+  display: inline-block;
+  height: 0;
+  width: 0;
+}
+
+.aqe-selection-shift-button[data-selection-direction="next"] .aqe-selection-shift-triangle {
+  border-left: 6px solid currentColor;
+}
+
+.aqe-selection-shift-button[data-selection-direction="previous"] .aqe-selection-shift-triangle {
+  border-right: 6px solid currentColor;
+}
+
+.aqe-selection-toolbar-button,
+.aqe-ui-root .aqe-selection-toolbar-button {
   border-radius: 6px;
   box-sizing: border-box;
+  flex: 0 0 auto;
   gap: 0;
   height: 26px;
   justify-content: center;
@@ -133,85 +254,25 @@
   width: 26px;
 }
 
+.aqe-selection-toolbar-command-text,
+.aqe-ui-root .aqe-selection-toolbar-command-text {
+  font-size: 11px;
+  gap: 4px;
+  min-width: auto;
+  padding: 0 8px;
+  white-space: nowrap;
+  width: auto;
+}
 .aqe-selection-toolbar-button:hover {
   text-decoration: none;
 }
 
 .aqe-selection-toolbar-button:focus-visible {
-  outline: 2px solid Highlight;
+  outline: 2px solid var(--aqe-accent-focus-color);
   outline-offset: 2px;
-}
-
-.aqe-selection-toolbar-dot:focus-visible {
-  outline: none;
 }
 
 .aqe-selection-toolbar-button[disabled] {
   cursor: default;
   opacity: 0.55;
-}
-
-.aqe-selection-toolbar-dot {
-  box-sizing: border-box;
-  color: #2f80ed;
-  cursor: pointer;
-  height: 16px;
-  left: var(--aqe-selection-toolbar-left-px, 0px);
-  overflow: visible;
-  position: absolute;
-  top: var(--aqe-selection-toolbar-top-px, 0px);
-  transform: translate(-50%, 8px);
-  width: 16px;
-  z-index: 4;
-}
-
-.aqe-selection-toolbar-dot-halo {
-  animation: aqe-selection-toolbar-dot-pulse 6s ease-in-out infinite;
-  fill: none;
-  opacity: 0.2;
-  stroke: currentColor;
-  stroke-width: 3.25;
-}
-
-.aqe-selection-toolbar-dot-ring {
-  fill: Canvas;
-  stroke: currentColor;
-  stroke-width: 2.25;
-}
-
-.aqe-selection-toolbar-dot:hover .aqe-selection-toolbar-dot-halo,
-.aqe-selection-toolbar-dot:focus-visible .aqe-selection-toolbar-dot-halo {
-  animation-name: aqe-selection-toolbar-dot-pulse-strong;
-  opacity: 0.38;
-  stroke-width: 5.5;
-}
-
-.aqe-selection-toolbar-dot:focus-visible .aqe-selection-toolbar-dot-ring {
-  stroke-width: 3;
-}
-
-@keyframes aqe-selection-toolbar-dot-pulse {
-  0%,
-  100% {
-    opacity: 0.15;
-    stroke-width: 2.75;
-  }
-
-  50% {
-    opacity: 0.28;
-    stroke-width: 4.25;
-  }
-}
-
-@keyframes aqe-selection-toolbar-dot-pulse-strong {
-  0%,
-  100% {
-    opacity: 0.28;
-    stroke-width: 4;
-  }
-
-  50% {
-    opacity: 0.48;
-    stroke-width: 6;
-  }
 }

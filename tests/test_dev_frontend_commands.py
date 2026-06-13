@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-import scripts.dev as dev
+from scripts.dev_scripts import testing as test_commands
 from scripts.dev_tasks import frontend
 
 
@@ -12,12 +12,12 @@ def test_build_ui_generates_contracts_before_frontend_build(monkeypatch, tmp_pat
     calls: list[str] = []
 
     monkeypatch.setattr(frontend, "SETTINGS_UI_DIR", settings_ui)
-    monkeypatch.setattr(frontend.shutil, "which", lambda name: "/usr/bin/npm" if name == "npm" else None)
+    monkeypatch.setattr(frontend, "frontend_npm_command", lambda *args, **kwargs: ["/usr/bin/npm", "run", "build"])
     monkeypatch.setattr(frontend, "cmd_contracts_generate", lambda: calls.append("contracts-generate") or 0)
     monkeypatch.setattr(frontend, "_run", lambda cmd, **kwargs: calls.append(" ".join(cmd)) or 0)
 
     assert frontend.cmd_build_ui() == 0
-    assert calls == ["contracts-generate", "npm run build"]
+    assert calls == ["contracts-generate", "/usr/bin/npm run build"]
 
 
 def test_build_ui_stops_when_contract_generation_fails(monkeypatch, tmp_path: Path) -> None:
@@ -25,7 +25,7 @@ def test_build_ui_stops_when_contract_generation_fails(monkeypatch, tmp_path: Pa
     settings_ui.mkdir()
 
     monkeypatch.setattr(frontend, "SETTINGS_UI_DIR", settings_ui)
-    monkeypatch.setattr(frontend.shutil, "which", lambda name: "/usr/bin/npm" if name == "npm" else None)
+    monkeypatch.setattr(frontend, "frontend_npm_command", lambda *args, **kwargs: ["/usr/bin/npm", "run", "build"])
     monkeypatch.setattr(frontend, "cmd_contracts_generate", lambda: 19)
     monkeypatch.setattr(
         frontend,
@@ -42,7 +42,13 @@ def test_test_svelte_builds_frontend_before_validation(monkeypatch, tmp_path: Pa
     calls: list[str] = []
 
     monkeypatch.setattr(frontend, "SETTINGS_UI_DIR", settings_ui)
-    monkeypatch.setattr(frontend.shutil, "which", lambda name: "/usr/bin/npm" if name == "npm" else None)
+    monkeypatch.setattr(
+        frontend,
+        "frontend_npm_command",
+        lambda script, **kwargs: ["/usr/bin/npm", "run", script, "--", "--fix"]
+        if script == "lint"
+        else ["/usr/bin/npm", "run", script],
+    )
     monkeypatch.setattr(frontend, "cmd_build_ui", lambda: calls.append("build") or 0)
     monkeypatch.setattr(
         frontend,
@@ -51,7 +57,7 @@ def test_test_svelte_builds_frontend_before_validation(monkeypatch, tmp_path: Pa
     )
 
     assert frontend.cmd_test_svelte() == 0
-    assert calls == ["build", "npm run lint -- --fix", "npm run validate"]
+    assert calls == ["build", "/usr/bin/npm run lint -- --fix", "/usr/bin/npm run validate"]
 
 
 def test_test_svelte_stops_when_lint_autofix_fails(monkeypatch, tmp_path: Path) -> None:
@@ -60,7 +66,13 @@ def test_test_svelte_stops_when_lint_autofix_fails(monkeypatch, tmp_path: Path) 
     calls: list[str] = []
 
     monkeypatch.setattr(frontend, "SETTINGS_UI_DIR", settings_ui)
-    monkeypatch.setattr(frontend.shutil, "which", lambda name: "/usr/bin/npm" if name == "npm" else None)
+    monkeypatch.setattr(
+        frontend,
+        "frontend_npm_command",
+        lambda script, **kwargs: ["/usr/bin/npm", "run", script, "--", "--fix"]
+        if script == "lint"
+        else ["/usr/bin/npm", "run", script],
+    )
     monkeypatch.setattr(frontend, "cmd_build_ui", lambda: calls.append("build") or 0)
 
     def fake_run(cmd: list[str], **_kwargs: object) -> int:
@@ -70,7 +82,7 @@ def test_test_svelte_stops_when_lint_autofix_fails(monkeypatch, tmp_path: Path) 
     monkeypatch.setattr(frontend, "_run", fake_run)
 
     assert frontend.cmd_test_svelte() == 31
-    assert calls == ["build", "npm run lint -- --fix"]
+    assert calls == ["build", "/usr/bin/npm run lint -- --fix"]
 
 
 def test_test_svelte_stops_when_frontend_build_fails(monkeypatch, tmp_path: Path) -> None:
@@ -78,7 +90,7 @@ def test_test_svelte_stops_when_frontend_build_fails(monkeypatch, tmp_path: Path
     (settings_ui / "node_modules").mkdir(parents=True)
 
     monkeypatch.setattr(frontend, "SETTINGS_UI_DIR", settings_ui)
-    monkeypatch.setattr(frontend.shutil, "which", lambda name: "/usr/bin/npm" if name == "npm" else None)
+    monkeypatch.setattr(frontend, "frontend_npm_command", lambda script, **kwargs: ["/usr/bin/npm", "run", script])
     monkeypatch.setattr(frontend, "cmd_build_ui", lambda: 17)
     monkeypatch.setattr(
         frontend,
@@ -92,16 +104,28 @@ def test_test_svelte_stops_when_frontend_build_fails(monkeypatch, tmp_path: Path
 def test_test_e2e_builds_frontend_before_pytest(monkeypatch) -> None:
     calls: list[str] = []
 
-    monkeypatch.setattr(dev, "_COMMAND_ARGS", [])
-    monkeypatch.setattr(dev, "cmd_build_ui", lambda: calls.append("build") or 0)
+    monkeypatch.setattr(test_commands, "cmd_runtime_preflight", lambda: calls.append("preflight") or 0)
+    monkeypatch.setattr(test_commands, "cmd_build_ui", lambda: calls.append("build") or 0)
     monkeypatch.setattr(
-        dev,
-        "_run_pytest",
+        test_commands,
+        "run_pytest",
         lambda target, *, label: calls.append(f"{target} {label}") or 0,
     )
 
-    assert dev.cmd_test_e2e() == 0
-    assert calls == ["build", "e2e/ python e2e tests"]
+    assert test_commands.cmd_test_e2e([]) == 0
+    assert calls == ["preflight", "build", "e2e/ python e2e tests"]
+
+
+def test_test_e2e_prints_runtime_notice(monkeypatch, capsys) -> None:
+    monkeypatch.setattr(test_commands, "cmd_runtime_preflight", lambda: 0)
+    monkeypatch.setattr(test_commands, "cmd_build_ui", lambda: 0)
+    monkeypatch.setattr(test_commands, "run_pytest", lambda *_args, **_kwargs: 0)
+
+    assert test_commands.cmd_test_e2e([]) == 0
+
+    output = capsys.readouterr().out
+    assert "e2e tests usually take about 6 minutes" in output
+    assert "consider the run jammed if it exceeds 10 minutes" in output
 
 
 def test_test_e2e_forwards_explicit_pytest_targets(monkeypatch) -> None:
@@ -115,28 +139,72 @@ def test_test_e2e_forwards_explicit_pytest_targets(monkeypatch) -> None:
         "test_two_audio_fields_keep_region_state_scoped_and_single_active_playback"
     )
 
-    monkeypatch.setattr(dev, "_COMMAND_ARGS", [graph_default_target, multi_field_target])
-    monkeypatch.setattr(dev, "cmd_build_ui", lambda: calls.append("build") or 0)
+    monkeypatch.setattr(test_commands, "cmd_runtime_preflight", lambda: calls.append("preflight") or 0)
+    monkeypatch.setattr(test_commands, "cmd_build_ui", lambda: calls.append("build") or 0)
     monkeypatch.setattr(
-        dev,
-        "_run_pytest",
+        test_commands,
+        "run_pytest",
         lambda target, *, label: calls.append(f"{target} {label}") or 0,
     )
 
-    assert dev.cmd_test_e2e() == 0
+    assert test_commands.cmd_test_e2e([graph_default_target, multi_field_target]) == 0
     assert calls == [
+        "preflight",
         "build",
         f"{graph_default_target} python e2e tests: {graph_default_target}",
         f"{multi_field_target} python e2e tests: {multi_field_target}",
     ]
 
 
-def test_test_e2e_stops_when_frontend_build_fails(monkeypatch) -> None:
-    monkeypatch.setattr(dev, "cmd_build_ui", lambda: 23)
+def test_test_e2e_stops_when_runtime_preflight_fails(monkeypatch) -> None:
+    monkeypatch.setattr(test_commands, "cmd_runtime_preflight", lambda: 42)
     monkeypatch.setattr(
-        dev,
-        "_run_pytest",
+        test_commands,
+        "cmd_build_ui",
+        lambda: (_ for _ in ()).throw(AssertionError("frontend build should not run")),
+    )
+    monkeypatch.setattr(
+        test_commands,
+        "run_pytest",
         lambda *_args, **_kwargs: (_ for _ in ()).throw(AssertionError("e2e should not run")),
     )
 
-    assert dev.cmd_test_e2e() == 23
+    assert test_commands.cmd_test_e2e([]) == 42
+
+
+def test_test_e2e_stops_when_frontend_build_fails(monkeypatch) -> None:
+    monkeypatch.setattr(test_commands, "cmd_runtime_preflight", lambda: 0)
+    monkeypatch.setattr(test_commands, "cmd_build_ui", lambda: 23)
+    monkeypatch.setattr(
+        test_commands,
+        "run_pytest",
+        lambda *_args, **_kwargs: (_ for _ in ()).throw(AssertionError("e2e should not run")),
+    )
+
+    assert test_commands.cmd_test_e2e([]) == 23
+
+
+def test_test_e2e_parallel_runs_preflight_before_frontend_build(monkeypatch) -> None:
+    calls: list[str] = []
+
+    monkeypatch.setattr(test_commands, "cmd_runtime_preflight", lambda: calls.append("preflight") or 0)
+    monkeypatch.setattr(test_commands, "cmd_build_ui", lambda: calls.append("build") or 0)
+    monkeypatch.setattr(
+        test_commands,
+        "_cmd_test_e2e_parallel",
+        lambda command_args: calls.append(f"parallel {' '.join(command_args)}") or 0,
+    )
+
+    assert test_commands.cmd_test_e2e_parallel(["e2e/test_editor_async_race_workflow.py"]) == 0
+    assert calls == ["preflight", "build", "parallel e2e/test_editor_async_race_workflow.py"]
+
+
+def test_test_e2e_parallel_stops_when_runtime_preflight_fails(monkeypatch) -> None:
+    monkeypatch.setattr(test_commands, "cmd_runtime_preflight", lambda: 35)
+    monkeypatch.setattr(
+        test_commands,
+        "cmd_build_ui",
+        lambda: (_ for _ in ()).throw(AssertionError("frontend build should not run")),
+    )
+
+    assert test_commands.cmd_test_e2e_parallel([]) == 35

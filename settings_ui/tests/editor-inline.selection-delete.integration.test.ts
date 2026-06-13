@@ -36,7 +36,9 @@ describe("editor inline selection delete integration", () => {
       selectionActive: true,
       selectionStartMs: 0,
       selectionEndMs: 1000,
-      selectionToolbarHidden: true,
+      selectionToolbarHidden: false,
+      selectionToolbarDeleteRegionHidden: true,
+      selectionToolbarDeleteRegionDisabled: true,
       regionDeleteButtonHidden: true,
       regionDeleteButtonDisabled: true,
     });
@@ -82,7 +84,9 @@ describe("editor inline selection delete integration", () => {
       selectionActive: true,
       selectionStartMs: 0,
       selectionEndMs: 1000,
-      selectionToolbarHidden: true,
+      selectionToolbarHidden: false,
+      selectionToolbarDeleteRestHidden: true,
+      selectionToolbarDeleteRestDisabled: true,
       regionDeleteRestButtonHidden: true,
       regionDeleteRestButtonDisabled: true,
     });
@@ -156,7 +160,11 @@ describe("editor inline selection delete integration", () => {
     dragGraphSelection(svg, 0, 1);
     expect(window.__aqeGraphStateForTest?.(0)).toMatchObject({
       selectionActive: true,
-      selectionToolbarHidden: true,
+      selectionToolbarHidden: false,
+      selectionToolbarDeleteRegionHidden: true,
+      selectionToolbarDeleteRegionDisabled: true,
+      selectionToolbarDeleteRestHidden: true,
+      selectionToolbarDeleteRestDisabled: true,
       regionDeleteButtonHidden: true,
       regionDeleteButtonDisabled: true,
       regionDeleteRestButtonHidden: true,

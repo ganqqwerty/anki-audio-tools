@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import importlib
+import logging
 import sys
 from types import SimpleNamespace
 
@@ -41,7 +42,7 @@ class FakeQDialog:
     def accept(self) -> None:
         self.accepted = True
 
-    def closeEvent(self, _event: object) -> None:  # noqa: N802 - Qt API
+    def closeEvent(self, _event: object) -> None:
         pass
 
 
@@ -51,13 +52,13 @@ class FakeLayout:
         self.widgets: list[object] = []
         self.layouts: list[object] = []
 
-    def addWidget(self, widget: object) -> None:  # noqa: N802 - Qt API
+    def addWidget(self, widget: object) -> None:
         self.widgets.append(widget)
 
-    def addLayout(self, layout: object) -> None:  # noqa: N802 - Qt API
+    def addLayout(self, layout: object) -> None:
         self.layouts.append(layout)
 
-    def addStretch(self, _stretch: int) -> None:  # noqa: N802 - Qt API
+    def addStretch(self, _stretch: int) -> None:
         pass
 
 
@@ -66,7 +67,7 @@ class FakeLabel:
         del parent
         self.text = text
 
-    def setText(self, text: str) -> None:  # noqa: N802 - Qt API
+    def setText(self, text: str) -> None:
         self.text = text
 
 
@@ -76,10 +77,10 @@ class FakeProgressBar:
         self.range = (0, 0)
         self.value = 0
 
-    def setRange(self, minimum: int, maximum: int) -> None:  # noqa: N802 - Qt API
+    def setRange(self, minimum: int, maximum: int) -> None:
         self.range = (minimum, maximum)
 
-    def setValue(self, value: int) -> None:  # noqa: N802 - Qt API
+    def setValue(self, value: int) -> None:
         self.value = value
 
 
@@ -89,7 +90,7 @@ class FakeTextEdit:
         self.read_only = False
         self.lines: list[str] = []
 
-    def setReadOnly(self, read_only: bool) -> None:  # noqa: N802 - Qt API
+    def setReadOnly(self, read_only: bool) -> None:
         self.read_only = read_only
 
     def append(self, line: str) -> None:
@@ -102,7 +103,7 @@ class FakeButton:
         self.text = text
         self.clicked = FakeSignal()
 
-    def setText(self, text: str) -> None:  # noqa: N802 - Qt API
+    def setText(self, text: str) -> None:
         self.text = text
 
 
@@ -137,7 +138,11 @@ def test_runtime_installer_reject_cancels_and_warns(request) -> None:
 
     assert dialog._cancel_event.is_set()
     assert dialog.rejected is True
-    aqt.qt.QMessageBox.warning.assert_called_once()
+    aqt.qt.QMessageBox.warning.assert_called_once_with(
+        dialog,
+        dialog_module.t("runtime_installer.cancel_warning.title"),
+        dialog_module.t("runtime_installer.cancel_warning.message"),
+    )
 
 
 def test_runtime_installer_exec_updates_progress_and_final_status(monkeypatch, request) -> None:
@@ -169,6 +174,32 @@ def test_runtime_installer_exec_updates_progress_and_final_status(monkeypatch, r
     assert dialog._button.text == "Close"
     assert "Download zip: Downloaded bytes" in dialog._log.lines
     assert dialog._progress.value == 100
+
+
+def test_runtime_installer_logs_displayed_final_error(monkeypatch, request, caplog) -> None:
+    dialog_module = _reload_runtime_dialog_with_fake_qt(request)
+    final_status = {
+        "phase": "error",
+        "runtime_manifest_id": "runtime-test",
+        "platform": "macos-arm64",
+        "runtime_root": "",
+        "progress": 0,
+        "message": "Runtime install failed.",
+        "error": "Runtime manifest is not packaged.",
+    }
+
+    def ensure_runtime(_addon_dir, *, progress, cancel_event, force_verify):
+        return final_status
+
+    monkeypatch.setattr(dialog_module.threading, "Thread", ImmediateThread)
+    monkeypatch.setattr("anki_audio_quick_editor.runtime_manager.ensure_runtime", ensure_runtime)
+    caplog.set_level(logging.ERROR, logger="anki_audio_quick_editor.runtime_installer_dialog")
+
+    dialog = dialog_module.RuntimeInstallDialog(object(), "/addon", force_verify=True)
+    dialog.exec_install()
+
+    assert dialog.final_status == final_status
+    assert "runtime installer displayed error: Runtime manifest is not packaged." in caplog.text
 
 
 def _reload_runtime_dialog_with_fake_qt(request):

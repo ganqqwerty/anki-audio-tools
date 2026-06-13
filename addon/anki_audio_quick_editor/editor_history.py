@@ -5,7 +5,8 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any
 
-from .editor_session import EditorSession, PendingEditorStatus, UndoEntry
+from .editor_reload_status import reload_editor_with_pending_status
+from .editor_session import EditorSession, UndoEntry
 from .editor_status import (
     redo_status_message,
     restored_status_summary,
@@ -25,7 +26,7 @@ def sync_history_availability(editor: Any, session: EditorSession, deps: Any) ->
     deps.eval_history_availability(
         editor,
         session.field_index,
-        bool(session.undo_history.entries),
+        _can_undo(editor, session, deps),
         bool(session.redo_history.entries),
     )
 
@@ -35,7 +36,7 @@ def request_history_availability_after_edit(editor: Any, session: EditorSession,
     deps.request_history_availability_after_edit(
         editor,
         session.field_index,
-        bool(session.undo_history.entries),
+        _can_undo(editor, session, deps),
         bool(session.redo_history.entries),
     )
 
@@ -48,6 +49,10 @@ def undo(editor: Any, deps: Any) -> None:
         return
     previous = session.undo_history.pop()
     if previous is None:
+        if deps.restore_persistent_undo(editor, session):
+            sync_history_availability(editor, session, deps)
+            request_history_availability_after_edit(editor, session, deps)
+            return
         deps.eval_status(editor, t("editor.status.nothing_to_undo"))
         return
     deps.restore_history_entry(
@@ -97,7 +102,6 @@ def restore_history_entry(
         raise AudioProcessingError(deps.current_field_audio_missing)
     current_state = session.state
     current_filename = session.current_filename
-    deps.dispose_editor_frontend_controls(editor)
     editor.note.fields[field_index] = replace_sound_reference(field_html, selection.selected, entry.filename)
     if redo_current:
         session.redo_history.push(
@@ -116,7 +120,6 @@ def restore_history_entry(
     session.field_index = field_index
     session.status_summary = restored_status_summary(entry)
     session.next_status_summary = ""
-    session.pending_status = PendingEditorStatus(field_index, message=status)
     session.cursor_ms = 0
     session.playback_active = False
     session.playback_paused = False
@@ -127,10 +130,19 @@ def restore_history_entry(
         field_index,
         require_graph_redraw=field_index in session.graph_active_fields,
     )
-    editor.loadNote(focusTo=field_index)
-    session.pending_status = None
+    reload_editor_with_pending_status(
+        editor,
+        session,
+        field_index,
+        message=status,
+        deps=deps,
+    )
     sync_history_availability(editor, session, deps)
     request_history_availability_after_edit(editor, session, deps)
     deps.eval_playback_state(editor, field_index, "stopped", 0)
     if field_index in session.graph_active_fields:
         deps.request_graph_redraw(editor, entry.filename)
+
+
+def _can_undo(editor: Any, session: EditorSession, deps: Any) -> bool:
+    return bool(session.undo_history.entries) or bool(deps.can_persistent_undo(editor, session.field_index))

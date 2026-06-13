@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import logging
 import threading
 from pathlib import Path
 from typing import Any
@@ -20,6 +21,8 @@ from aqt.qt import (
 )
 
 from .i18n import t
+
+logger = logging.getLogger(__name__)
 
 
 class RuntimeInstallDialog(QDialog):
@@ -150,6 +153,11 @@ class RuntimeInstallDialog(QDialog):
 
     def _mark_finished(self, payload: dict[str, Any]) -> None:
         self._finished = True
+        if payload.get("phase") == "error" or payload.get("error"):
+            logger.error(
+                "runtime installer displayed error: %s",
+                payload.get("error") or payload.get("message") or "",
+            )
         if payload.get("phase") == "ready":
             self._progress.setValue(100)
         self._button.setText(t("runtime_installer.close"))

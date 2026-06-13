@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import logging
 from pathlib import Path
 from unittest.mock import MagicMock
 
@@ -9,10 +10,10 @@ import pytest
 
 from anki_audio_quick_editor.audio_state import AudioEditState
 from anki_audio_quick_editor.editor_integration import (
-    _SESSIONS,
-    EditorSession,
     _reset_editor_session_for_note_load,
 )
+from anki_audio_quick_editor.editor_runtime import SESSIONS
+from anki_audio_quick_editor.editor_session import EditorSession
 from anki_audio_quick_editor.errors import (
     AudioProcessingError,
     MissingMediaError,
@@ -33,7 +34,7 @@ def test_note_load_reset_skips_same_note_reload(monkeypatch) -> None:
         analysis_generation=5,
         playback_generation=3,
     )
-    _SESSIONS[editor] = session
+    SESSIONS[editor] = session
     stop_calls: list[str] = []
 
     monkeypatch.setattr(
@@ -67,22 +68,26 @@ def test_reveal_file_selects_file_on_macos(tmp_path: Path, monkeypatch) -> None:
     assert commands == [("open", "-R", str(source.resolve()))]
 
 
-def test_reveal_file_selects_file_on_windows(tmp_path: Path, monkeypatch) -> None:
+def test_reveal_file_selects_file_on_windows(tmp_path: Path, monkeypatch, caplog) -> None:
     media_dir = tmp_path / "User 1" / "collection.media"
     media_dir.mkdir(parents=True)
-    source = media_dir / "clip one.mp3"
+    source = media_dir / "Даии, 青山 clip one.opus"
     source.write_bytes(b"audio")
-    commands: list[str | tuple[str, ...]] = []
+    commands: list[tuple[str, ...]] = []
 
     monkeypatch.setattr("anki_audio_quick_editor.file_reveal.platform.system", lambda: "Windows")
     monkeypatch.setattr(
         "anki_audio_quick_editor.file_reveal._run_detached",
         lambda command: commands.append(command),
     )
+    caplog.set_level(logging.INFO, logger="anki_audio_quick_editor.file_reveal")
 
     reveal_file(source)
 
-    assert commands == [f'explorer.exe /select,"{source.resolve()}"']
+    assert commands == [("explorer.exe", "/select,", str(source.resolve()))]
+    assert "Windows Explorer reveal launch" in caplog.text
+    assert "explorer.exe" in caplog.text
+    assert str(source.resolve()) in caplog.text
 
 
 def test_reveal_file_opens_parent_folder_elsewhere(tmp_path: Path, monkeypatch) -> None:

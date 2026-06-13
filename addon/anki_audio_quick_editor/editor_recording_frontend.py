@@ -22,8 +22,10 @@ def eval_learner_recording_state(editor: Any, state: LearnerRecordingState) -> N
         "fieldOrd": state.field_index,
         "generation": state.generation,
         "targetDurationMs": state.target_duration_ms,
+        "startCursorMs": state.start_cursor_ms,
         "mediaFilename": state.media_filename,
         "recordingDurationMs": state.recording_duration_ms,
+        "playbackStatus": state.playback_status,
         "failureMessage": state.failure_message,
     }
     editor.web.eval(

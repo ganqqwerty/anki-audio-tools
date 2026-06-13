@@ -58,7 +58,7 @@
   <Tooltip.Portal>
     <Tooltip.Content
       align={align}
-      class="aqe-rich-tooltip"
+      class="aqe-ui-root aqe-rich-tooltip"
       collisionPadding={8}
       side={side}
       sideOffset={sideOffset}
@@ -69,7 +69,8 @@
 </Tooltip.Root>
 
 <style>
-  :global(.aqe-rich-tooltip) {
+  :global(.aqe-rich-tooltip),
+  :global(.aqe-ui-root.aqe-rich-tooltip) {
     background: color-mix(in srgb, var(--canvas-elevated, Canvas) 94%, var(--canvas, Canvas));
     border: 1px solid color-mix(in srgb, var(--border, ButtonBorder) 84%, transparent);
     border-radius: 8px;
@@ -77,13 +78,17 @@
       0 10px 24px rgb(0 0 0 / 18%),
       0 1px 0 rgb(255 255 255 / 14%) inset;
     color: var(--fg, CanvasText);
-    font-size: 11px;
-    line-height: 1.35;
+    font: 11px/1.35 -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    letter-spacing: normal;
+    margin: 0;
     max-width: min(32ch, calc(100vw - 24px));
     padding: 6px 8px;
     pointer-events: none;
+    text-align: left;
+    text-shadow: none;
+    text-transform: none;
     white-space: pre-line;
-    z-index: 12000;
+    z-index: 2147483647;
   }
 
   :global(.aqe-rich-tooltip[data-starting-style]) {

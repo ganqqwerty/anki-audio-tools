@@ -26,11 +26,54 @@ def test_detects_sound_reference_inside_html() -> None:
     assert selection.has_multiple is False
 
 
-def test_detects_sound_reference_trims_inner_whitespace() -> None:
+def test_detects_utf_sound_reference_inside_html() -> None:
+    selection = select_first_sound_reference("<div>before [sound:Даии_青山 voice.OPUS] after</div>")
+
+    assert selection.selected is not None
+    assert selection.selected.tag == "[sound:Даии_青山 voice.OPUS]"
+    assert selection.selected.filename == "Даии_青山 voice.OPUS"
+
+
+@pytest.mark.parametrize(
+    ("field_html", "expected_filename"),
+    [
+        ("[sound:bracket]name.opus]", "bracket]name.opus"),
+        ("[sound:amp&amp;name.opus]", "amp&name.opus"),
+        ("[sound: leading-space.opus]", " leading-space.opus"),
+        ("[sound:trailing-space.opus ]", "trailing-space.opus "),
+        ("[sound:hash#question?percent%.opus]", "hash#question?percent%.opus"),
+        ("[sound:quote'\"semi;colon.opus]", "quote'\"semi;colon.opus"),
+        ("[sound:line\nbreak.opus]", "line\nbreak.opus"),
+        ("[sound:trailing-newline.opus\n]", "trailing-newline.opus\n"),
+        ("[sound:trailing-dot.opus.]", "trailing-dot.opus."),
+        ("[sound:trailing-dot-space.opus .]", "trailing-dot-space.opus ."),
+    ],
+)
+def test_detects_problematic_os_filename_characters(
+    field_html: str,
+    expected_filename: str,
+) -> None:
+    selection = select_first_sound_reference(field_html)
+
+    assert selection.selected is not None
+    assert selection.selected.filename == expected_filename
+
+
+def test_multiple_sound_references_allow_bracket_inside_filename() -> None:
+    selection = select_first_sound_reference("[sound:first]one.opus] and [sound:second.ogg]")
+
+    assert selection.selected is not None
+    assert [ref.filename for ref in selection.references] == ["first]one.opus", "second.ogg"]
+    assert selection.selected.filename == "first]one.opus"
+    assert selection.has_multiple is True
+
+
+def test_detects_sound_reference_preserves_inner_whitespace() -> None:
     selection = select_first_sound_reference("[sound:  sentence.MP3  ]")
 
     assert selection.selected is not None
-    assert selection.selected.filename == "sentence.MP3"
+    assert selection.selected.filename == "  sentence.MP3  "
+    assert selection.selected.extension == ".mp3"
 
 
 def test_supported_audio_extensions_match_common_input_formats() -> None:
@@ -76,9 +119,35 @@ def test_replace_preserves_surrounding_html() -> None:
     assert replace_sound_reference(html, reference, "new.mp3") == "<p>Hello [sound:new.mp3] world</p>"
 
 
+def test_replace_preserves_utf_output_filename() -> None:
+    html = "<p>Hello [sound:old.wav] world</p>"
+    reference = find_sound_references(html)[0]
+
+    assert (
+        replace_sound_reference(html, reference, "Даии_青山 voice.ogg")
+        == "<p>Hello [sound:Даии_青山 voice.ogg] world</p>"
+    )
+
+
 def test_safe_media_basename_strips_path_components() -> None:
     assert safe_media_basename("../nested/audio.mp3") == "audio.mp3"
+
+
+def test_safe_media_basename_preserves_utf_basename() -> None:
+    assert safe_media_basename("../nested/Даии_青山_voice.opus") == "Даии_青山_voice.opus"
+
+
+def test_safe_media_basename_strips_windows_path_components_on_windows(monkeypatch) -> None:
+    monkeypatch.setattr("anki_audio_quick_editor.sound_refs.platform.system", lambda: "Windows")
+
     assert safe_media_basename(r"..\nested\audio.mp3") == "audio.mp3"
+    assert safe_media_basename(r"..\nested\訪日.yomi000A5D37_0342.ogg") == "訪日.yomi000A5D37_0342.ogg"
+
+
+def test_safe_media_basename_preserves_backslash_on_non_windows(monkeypatch) -> None:
+    monkeypatch.setattr("anki_audio_quick_editor.sound_refs.platform.system", lambda: "Darwin")
+
+    assert safe_media_basename(r"back\slash.opus") == r"back\slash.opus"
 
 
 def test_replace_only_updates_selected_reference_when_multiple_exist() -> None:

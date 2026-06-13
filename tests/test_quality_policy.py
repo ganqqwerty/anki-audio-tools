@@ -19,7 +19,7 @@ def test_unused_import_suppressions_are_not_allowed() -> None:
     offenders: list[str] = []
     for source_root in PYTHON_SOURCE_ROOTS:
         for path in source_root.rglob("*.py"):
-            if "vendor" in path.parts:
+            if "vendor" in path.parts or "user_files" in path.parts:
                 continue
             for line_number, line in enumerate(path.read_text(encoding="utf-8").splitlines(), start=1):
                 stripped = line.strip()

@@ -10,8 +10,10 @@ from . import (
     editor_analysis,
     editor_bridge,
     editor_dependencies,
+    editor_deps_protocols,
     editor_frontend_callbacks,
     editor_history,
+    editor_persistent_undo,
     editor_playback,
     editor_presets,
     editor_processing,
@@ -20,6 +22,7 @@ from . import (
     editor_runtime,
     editor_settings_actions,
     editor_sharing,
+    editor_source_metadata,
     editor_split_defaults,
 )
 
@@ -30,6 +33,7 @@ _eval_status = editor_frontend_callbacks._eval_status
 _eval_visualizer_status = editor_frontend_callbacks._eval_visualizer_status
 _eval_visualizer_status_for_field = editor_frontend_callbacks._eval_visualizer_status_for_field
 _eval_with_callback = editor_frontend_callbacks._eval_with_callback
+_eval_learner_recording_state = editor_frontend_callbacks._eval_learner_recording_state
 _graph_redraw_expression = editor_frontend_callbacks._graph_redraw_expression
 _history_availability_expression = editor_frontend_callbacks._history_availability_expression
 _handle_post_edit_playback_ready = editor_frontend_callbacks._handle_post_edit_playback_ready
@@ -70,8 +74,9 @@ def _processing_deps() -> SimpleNamespace:
     return _deps(editor_dependencies.processing_deps)
 
 
-def _region_delete_deps() -> SimpleNamespace:
-    return _deps(editor_dependencies.region_delete_deps)
+def _region_delete_deps() -> editor_deps_protocols.RegionDeleteDeps:
+    exports = _exports()
+    return editor_dependencies.region_delete_deps(exports, exports)
 
 
 def _playback_deps() -> SimpleNamespace:
@@ -98,7 +103,7 @@ def _share_deps() -> SimpleNamespace:
     return _deps(editor_dependencies.share_deps)
 
 
-def _with_deps(func: Callable[..., Any], deps_builder: Callable[[], SimpleNamespace]) -> Callable[..., Any]:
+def _with_deps(func: Callable[..., Any], deps_builder: Callable[[], Any]) -> Callable[..., Any]:
     @wraps(func)
     def _wrapper(*args: Any, **kwargs: Any) -> Any:
         return func(*args, deps_builder(), **kwargs)
@@ -108,7 +113,7 @@ def _with_deps(func: Callable[..., Any], deps_builder: Callable[[], SimpleNamesp
 
 def _with_keyword_deps(
     func: Callable[..., Any],
-    deps_builder: Callable[[], SimpleNamespace],
+    deps_builder: Callable[[], Any],
 ) -> Callable[..., Any]:
     @wraps(func)
     def _wrapper(*args: Any, **kwargs: Any) -> Any:
@@ -127,6 +132,10 @@ _save_split_defaults_from_frontend = _with_deps(
     editor_split_defaults.save_split_defaults_from_frontend,
     _bridge_deps,
 )
+_request_source_metadata = _with_deps(
+    editor_source_metadata.request_source_metadata,
+    _bridge_deps,
+)
 
 _update_state_and_render = _with_deps(editor_processing.update_state_and_render, _processing_deps)
 _render_and_replace_async = _with_deps(editor_processing.render_and_replace_async, _processing_deps)
@@ -135,6 +144,9 @@ _replace_current_field_after_render = _with_deps(
     _processing_deps,
 )
 _write_generated_media = _with_deps(editor_processing.write_generated_media, _processing_deps)
+_record_standard_persistent_undo = editor_persistent_undo.record_standard_persistent_undo
+_can_persistent_undo = editor_persistent_undo.can_persistent_undo
+_restore_persistent_undo = _with_deps(editor_persistent_undo.restore_persistent_undo, _history_deps)
 _render_failed = _with_deps(editor_processing.render_failed, _processing_deps)
 _denoise_standard_async = _with_deps(editor_processing.denoise_standard_async, _processing_deps)
 _convert_async = _with_deps(editor_processing.convert_async, _processing_deps)
@@ -146,6 +158,7 @@ _run_processing_preset_async = _with_deps(
     editor_presets.run_processing_preset_async,
     _processing_deps,
 )
+_reduce_size_async = _with_deps(editor_processing.reduce_size_async, _processing_deps)
 _run_special_audio_transform_async = _with_keyword_deps(
     editor_processing.run_special_audio_transform_async,
     _processing_deps,
@@ -226,11 +239,16 @@ def _show_current_audio_file(editor: Any) -> None:
     editor_settings_actions.show_current_audio_file(editor, _settings_action_deps())
 
 
+def _show_learner_recording_file(editor: Any) -> None:
+    editor_settings_actions.show_learner_recording_file(editor, _settings_action_deps())
+
+
 def _open_external_url(url: str) -> None:
     editor_settings_actions.open_external_url(url)
 
 
 _share_current_audio_file = _with_deps(editor_sharing.share_current_audio_file, _share_deps)
+_share_learner_recording_file = _with_deps(editor_sharing.share_learner_recording_file, _share_deps)
 _finish_shared_audio = _with_deps(editor_sharing.finish_shared_audio, _share_deps)
 _share_failed = _with_deps(editor_sharing.share_failed, _share_deps)
 

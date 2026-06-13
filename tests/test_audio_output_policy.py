@@ -9,11 +9,15 @@ from anki_audio_quick_editor.audio_output_policy import (
     AudioSourceMetadata,
     codec_args_for_output_policy,
     mime_type_for_output_format,
+    preserve_source_audio_characteristics,
     probe_audio_metadata,
     resolve_output_policy_from_metadata,
+    synthetic_audio_metadata,
 )
 from anki_audio_quick_editor.audio_state import AudioProcessingConfig
 from anki_audio_quick_editor.errors import AudioProcessingError
+
+FFPROBE = str(Path("/bin/ffprobe"))
 
 
 def metadata(
@@ -180,6 +184,36 @@ def test_output_path_extension_can_resolve_source_policy_without_renaming() -> N
     assert policy.extension == ".flac"
 
 
+def test_preserve_source_audio_characteristics_keeps_output_format_hints() -> None:
+    synthetic = synthetic_audio_metadata(
+        Path("clip.mp3"),
+        output_path=Path("edited.ogg"),
+        codec_name="pcm_s16le",
+        sample_rate=44100,
+        channels=1,
+        bits_per_raw_sample=16,
+    )
+    source = metadata(
+        filename="clip.opus",
+        codec_name="opus",
+        sample_rate=48000,
+        channels=2,
+        bit_rate=96000,
+        sample_fmt="fltp",
+    )
+
+    merged = preserve_source_audio_characteristics(synthetic, source)
+
+    assert merged.path == synthetic.path
+    assert merged.visible_format == "ogg"
+    assert merged.codec_name == "opus"
+    assert merged.sample_rate == 48000
+    assert merged.channels == 2
+    assert merged.bit_rate == 96000
+    assert merged.bits_per_raw_sample is None
+    assert merged.sample_fmt == "fltp"
+
+
 @pytest.mark.parametrize(
     ("output_format", "mime_type"),
     [
@@ -200,12 +234,14 @@ def test_mime_type_mapping(output_format: str, mime_type: str) -> None:
 
 def test_probe_audio_metadata_parses_first_audio_stream(monkeypatch, tmp_path: Path) -> None:
     calls: list[list[str]] = []
+    run_kwargs: list[dict[str, object]] = []
 
     monkeypatch.setattr("anki_audio_quick_editor.audio_output_policy.find_ffmpeg", lambda path: Path(path or "/bin/ffmpeg"))
     monkeypatch.setattr("anki_audio_quick_editor.audio_output_policy.find_ffprobe", lambda _path: Path("/bin/ffprobe"))
 
-    def fake_run(cmd: list[str], **_kwargs: object) -> SimpleNamespace:
+    def fake_run(cmd: list[str], **kwargs: object) -> SimpleNamespace:
         calls.append(cmd)
+        run_kwargs.append(kwargs)
         return SimpleNamespace(
             returncode=0,
             stdout=(
@@ -230,7 +266,7 @@ def test_probe_audio_metadata_parses_first_audio_stream(monkeypatch, tmp_path: P
     )
     assert calls == [
         [
-            "/bin/ffprobe",
+            FFPROBE,
             "-v",
             "error",
             "-select_streams",
@@ -242,6 +278,12 @@ def test_probe_audio_metadata_parses_first_audio_stream(monkeypatch, tmp_path: P
             str(source),
         ]
     ]
+    assert run_kwargs
+    assert run_kwargs[0]["capture_output"] is True
+    assert run_kwargs[0]["text"] is True
+    assert run_kwargs[0]["check"] is False
+    assert run_kwargs[0]["encoding"] == "utf-8"
+    assert run_kwargs[0]["errors"] == "replace"
 
 
 def test_probe_audio_metadata_raises_for_missing_audio_stream(monkeypatch, tmp_path: Path) -> None:

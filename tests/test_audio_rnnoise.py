@@ -5,6 +5,7 @@ from types import SimpleNamespace
 
 import pytest
 
+from anki_audio_quick_editor.audio_output_policy import AudioSourceMetadata
 from anki_audio_quick_editor.audio_processor import render_rnnoise_audio
 from anki_audio_quick_editor.audio_state import AudioProcessingConfig
 from anki_audio_quick_editor.errors import AudioProcessingError
@@ -12,6 +13,9 @@ from anki_audio_quick_editor.support import (
     clear_latest_denoise_support_incident,
     latest_denoise_support_incident,
 )
+
+FFMPEG = str(Path("/bin/ffmpeg"))
+RNNOISE = str(Path("/bin/rnnoise-cli"))
 
 
 def test_render_rnnoise_audio_runs_prepare_denoise_and_encode(
@@ -34,6 +38,19 @@ def test_render_rnnoise_audio_runs_prepare_denoise_and_encode(
         "anki_audio_quick_editor.audio_processor.probe_duration_ms",
         lambda *_args: 1000,
     )
+    monkeypatch.setattr(
+        "anki_audio_quick_editor.audio_processor.probe_audio_metadata",
+        lambda source_path, _config: AudioSourceMetadata(
+            path=source_path,
+            visible_format="mp3",
+            codec_name="mp3",
+            sample_rate=22050,
+            channels=2,
+            bit_rate=96000,
+            bits_per_raw_sample=None,
+            sample_fmt=None,
+        ),
+    )
 
     def fake_run(
         cmd: list[str],
@@ -41,10 +58,11 @@ def test_render_rnnoise_audio_runs_prepare_denoise_and_encode(
         text: bool,
         check: bool,
         timeout: float,
+        **_kwargs: object,
     ) -> SimpleNamespace:
         assert timeout > 0
         calls.append(cmd)
-        if cmd[0] == "/bin/rnnoise-cli":
+        if cmd[0] == RNNOISE:
             Path(cmd[cmd.index("--output") + 1]).write_bytes(b"denoised")
             return SimpleNamespace(returncode=0, stdout='{"ok":true}', stderr="")
         return SimpleNamespace(returncode=0, stdout="", stderr="")
@@ -60,7 +78,7 @@ def test_render_rnnoise_audio_runs_prepare_denoise_and_encode(
     )
 
     assert calls[0] == [
-        "/bin/ffmpeg",
+        FFMPEG,
         "-y",
         "-i",
         str(tmp_path / "source.mp3"),
@@ -75,7 +93,7 @@ def test_render_rnnoise_audio_runs_prepare_denoise_and_encode(
         "pcm_s16le",
         calls[0][-1],
     ]
-    assert calls[1][0] == "/bin/rnnoise-cli"
+    assert calls[1][0] == RNNOISE
     assert calls[1][1:] == [
         "denoise",
         "--input",
@@ -86,7 +104,7 @@ def test_render_rnnoise_audio_runs_prepare_denoise_and_encode(
         "--json",
     ]
     assert calls[2][0:8] == [
-        "/bin/ffmpeg",
+        FFMPEG,
         "-y",
         "-f",
         "s16le",
@@ -95,7 +113,7 @@ def test_render_rnnoise_audio_runs_prepare_denoise_and_encode(
         "-ac",
         "1",
     ]
-    assert calls[2][-9:] == ["-codec:a", "libmp3lame", "-q:a", "4", "-ar", "48000", "-ac", "1", str(output)]
+    assert calls[2][-9:] == ["-codec:a", "libmp3lame", "-b:a", "96k", "-ar", "22050", "-ac", "2", str(output)]
     assert commands == [tuple(call) for call in calls]
     assert result.output_path == output
     assert result.command == tuple(calls[1])
@@ -116,6 +134,19 @@ def test_render_rnnoise_audio_reports_denoise_errors(
         "anki_audio_quick_editor.audio_processor.find_rnnoise_bundle",
         lambda: Path("/bin/rnnoise-cli"),
     )
+    monkeypatch.setattr(
+        "anki_audio_quick_editor.audio_processor.probe_audio_metadata",
+        lambda source_path, _config: AudioSourceMetadata(
+            path=source_path,
+            visible_format="mp3",
+            codec_name="mp3",
+            sample_rate=22050,
+            channels=2,
+            bit_rate=96000,
+            bits_per_raw_sample=None,
+            sample_fmt=None,
+        ),
+    )
 
     def fake_run(
         cmd: list[str],
@@ -123,9 +154,10 @@ def test_render_rnnoise_audio_reports_denoise_errors(
         text: bool,
         check: bool,
         timeout: float,
+        **_kwargs: object,
     ) -> SimpleNamespace:
         assert timeout > 0
-        if cmd[0] == "/bin/rnnoise-cli":
+        if cmd[0] == RNNOISE:
             return SimpleNamespace(returncode=5, stdout='{"error":"invalid raw input"}', stderr="")
         return SimpleNamespace(returncode=0, stdout="", stderr="")
 
@@ -141,12 +173,10 @@ def test_render_rnnoise_audio_reports_denoise_errors(
     assert incident is not None
     assert incident["operation"] == "rnnoise_denoise"
     assert incident["media_filename"] == "source.mp3"
-    assert incident["ffmpeg_path"] == "/bin/ffmpeg"
-    assert incident["rnnoise_path"] == "/bin/rnnoise-cli"
+    assert incident["ffmpeg_path"] == FFMPEG
+    assert incident["rnnoise_path"] == RNNOISE
     assert len(incident["attempted_commands"]) == 2
-    assert incident["attempted_commands"][1]["command"].startswith(
-        "/bin/rnnoise-cli denoise"
-    )
+    assert incident["attempted_commands"][1]["argv"][:2] == [RNNOISE, "denoise"]
     assert incident["attempted_commands"][1]["returncode"] == 5
     assert incident["attempted_commands"][1]["stdout"] == '{"error":"invalid raw input"}'
 
@@ -164,6 +194,19 @@ def test_render_rnnoise_audio_reports_launch_errors(
         "anki_audio_quick_editor.audio_processor.find_rnnoise_bundle",
         lambda: Path("/bin/rnnoise-cli"),
     )
+    monkeypatch.setattr(
+        "anki_audio_quick_editor.audio_processor.probe_audio_metadata",
+        lambda source_path, _config: AudioSourceMetadata(
+            path=source_path,
+            visible_format="mp3",
+            codec_name="mp3",
+            sample_rate=22050,
+            channels=2,
+            bit_rate=96000,
+            bits_per_raw_sample=None,
+            sample_fmt=None,
+        ),
+    )
 
     def fake_run(
         cmd: list[str],
@@ -171,9 +214,10 @@ def test_render_rnnoise_audio_reports_launch_errors(
         text: bool,
         check: bool,
         timeout: float,
+        **_kwargs: object,
     ) -> SimpleNamespace:
         assert timeout > 0
-        if cmd[0] == "/bin/rnnoise-cli":
+        if cmd[0] == RNNOISE:
             raise PermissionError(13, "Permission denied", "/bin/rnnoise-cli")
         return SimpleNamespace(returncode=0, stdout="", stderr="")
 

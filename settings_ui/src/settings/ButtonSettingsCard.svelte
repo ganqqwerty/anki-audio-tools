@@ -1,15 +1,19 @@
 <script lang="ts">
   import CommandIcon from "$lib/CommandIcon.svelte";
+  import FieldTooltipTarget from "$lib/FieldTooltipTarget.svelte";
   import { t } from "$lib/i18n.js";
   import { EditorButtonMode } from "$lib/types.js";
   import type { CommandIconName } from "$lib/icon-types.js";
   import type { EditorButtonDisplayMode } from "$lib/editor-toolbar-buttons.js";
   import type { Snippet } from "svelte";
+  import ButtonSettingsPanelControls, { type ButtonSettingsPanelControl } from "./ButtonSettingsPanelControls.svelte";
 
   const {
     hasSettings = true,
     icon,
+    description = "",
     mode,
+    modeControls,
     modeLocked = false,
     onSetMode,
     onToggle,
@@ -19,59 +23,91 @@
     children,
   }: {
     children?: Snippet;
+    description?: string;
     hasSettings?: boolean;
     icon: CommandIconName;
-    mode: EditorButtonDisplayMode;
+    mode?: EditorButtonDisplayMode | undefined;
+    modeControls?: readonly ButtonSettingsPanelControl[] | undefined;
     modeLocked?: boolean;
-    onSetMode: (mode: EditorButtonDisplayMode) => void;
+    onSetMode?: ((mode: EditorButtonDisplayMode) => void) | undefined;
     onToggle: () => void;
     testId: string;
     title: string;
     visible: boolean;
   } = $props();
+
+  function lockedModeReason(locked: boolean | undefined): string | undefined {
+    return locked ? t("settings.toolbar_visibility.mode_locked_tooltip") : undefined;
+  }
+
+  const showTooltip = $derived(
+    modeControls ? t("settings.toolbar_visibility.show_panel_tooltip") : t("settings.toolbar_visibility.show_tooltip"),
+  );
+  const iconTooltip = $derived(t("settings.toolbar_visibility.icon_tooltip"));
 </script>
 
-<section class:button-settings-card-hidden={!visible} class="button-settings-card" data-testid={testId}>
+<section class="button-settings-card" data-testid={testId}>
   <header class="button-settings-card-header">
-    <span class="button-settings-card-title">
+    <div class="button-settings-card-title">
       <CommandIcon className="button-settings-card-icon" {icon} />
-      <h4>{title}</h4>
-    </span>
+      <div class="button-settings-card-title-copy">
+        <h4>{title}</h4>
+        {#if description}
+          <p class="button-settings-card-description" data-testid={`${testId}-description`}>{description}</p>
+        {/if}
+      </div>
+    </div>
 
     <span class="button-settings-controls">
       <label class="button-settings-checkbox">
-        <input
-          checked={visible}
-          data-testid={`${testId}-visibility-show`}
-          type="checkbox"
-          onchange={(event) => {
-            if ((event.currentTarget as HTMLInputElement).checked !== visible) onToggle();
-          }}
-        />
-        <span>{t("settings.toolbar_visibility.show")}</span>
+        <FieldTooltipTarget content={showTooltip}>
+          <input
+            checked={visible}
+            data-testid={`${testId}-visibility-show`}
+            type="checkbox"
+            onchange={(event) => {
+              if ((event.currentTarget as HTMLInputElement).checked !== visible) onToggle();
+            }}
+          />
+          <span>{modeControls ? t("settings.toolbar_visibility.show_panel") : t("settings.toolbar_visibility.show")}</span>
+        </FieldTooltipTarget>
       </label>
 
-      <label class="button-settings-checkbox">
-        <input
-          checked={mode === EditorButtonMode.Icon}
-          data-testid={`${testId}-mode-icon`}
-          disabled={modeLocked}
-          type="checkbox"
-          onchange={(event) =>
-            onSetMode((event.currentTarget as HTMLInputElement).checked ? EditorButtonMode.Icon : EditorButtonMode.Text)}
-        />
-        <span>{t("settings.toolbar_visibility.icon")}</span>
-      </label>
+      {#if !modeControls}
+        <label class="button-settings-checkbox">
+          <FieldTooltipTarget content={iconTooltip} disabledReason={lockedModeReason(modeLocked)}>
+            <input
+              checked={mode === EditorButtonMode.Icon}
+              data-testid={`${testId}-mode-icon`}
+              disabled={modeLocked}
+              type="checkbox"
+              onchange={(event) =>
+                onSetMode?.(
+                  (event.currentTarget as HTMLInputElement).checked
+                    ? EditorButtonMode.Icon
+                    : EditorButtonMode.Text,
+                )}
+            />
+            <span>{t("settings.toolbar_visibility.icon")}</span>
+          </FieldTooltipTarget>
+        </label>
+      {/if}
     </span>
   </header>
 
-  <div class:button-settings-card-body-empty={!hasSettings} class="button-settings-card-body">
-    {#if hasSettings && children}
+  {#if modeControls}
+    <ButtonSettingsPanelControls controls={modeControls} {testId} />
+  {/if}
+
+  {#if hasSettings && children}
+    <div class="button-settings-card-body">
       {@render children()}
-    {:else}
+    </div>
+  {:else if !modeControls}
+    <div class="button-settings-card-body button-settings-card-body-empty">
       <p class="button-settings-card-placeholder">{t("settings.toolbar_visibility.no_extra_settings")}</p>
-    {/if}
-  </div>
+    </div>
+  {/if}
 </section>
 
 <style>
@@ -85,10 +121,6 @@
     padding: 16px 0 18px;
   }
 
-  .button-settings-card-hidden {
-    color: var(--fg-subtle, currentColor);
-  }
-
   .button-settings-card-header {
     align-content: start;
     display: grid;
@@ -97,14 +129,27 @@
   }
 
   .button-settings-card-title {
-    align-items: center;
+    align-items: flex-start;
     display: flex;
     gap: 8px;
     min-width: 0;
   }
 
+  .button-settings-card-title-copy {
+    display: grid;
+    gap: 3px;
+    min-width: 0;
+  }
+
   .button-settings-card-header h4 {
     font-size: 0.9rem;
+    margin: 0;
+  }
+
+  .button-settings-card-description {
+    color: var(--fg-subtle, currentColor);
+    font-size: 0.8rem;
+    line-height: 1.35;
     margin: 0;
   }
 

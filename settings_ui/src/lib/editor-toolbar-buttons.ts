@@ -1,18 +1,32 @@
-import { formatDpdfnetAggressiveness, formatOutputFormat, outputFormatOrDefault } from "./audio-operation-parameters.js";
+import {
+  formatDpdfnetAggressiveness,
+  formatOutputFormat,
+  outputFormatOrDefault,
+} from "./audio-operation-parameters.js";
 import { t } from "./i18n.js";
+import { formatSizeReductionMode, sizeReductionModeOrDefault } from "./size-reduction-parameters.js";
 import type { CommandIconName } from "./icon-types.js";
 import { EditorButtonMode } from "./types.js";
+import { DEFAULT_EDITOR_BUTTON_MODES, DEFAULT_VISIBLE_EDITOR_BUTTONS } from "./editor-toolbar-defaults.js";
+
+export { DEFAULT_EDITOR_BUTTON_MODES, DEFAULT_VISIBLE_EDITOR_BUTTONS };
 
 export type EditorCommand =
   | "aqe:play"
   | "aqe:analyze"
+  | "aqe:chorusing-practice"
+  | "aqe:chorusing-previous"
+  | "aqe:chorusing-next"
   | "aqe:record-voice"
   | "aqe:stop-recording"
   | "aqe:play-recording"
+  | "aqe:share-recording"
+  | "aqe:show-recording-file"
   | "aqe:show-file"
   | "aqe:share"
   | "aqe:preset"
   | "aqe:convert"
+  | "aqe:reduce-size"
   | "aqe:delete-selection"
   | "aqe:delete-rest"
   | "aqe:remove-pauses"
@@ -41,42 +55,6 @@ export interface ToolbarButtonSpec {
   title: string;
 }
 
-export const DEFAULT_VISIBLE_EDITOR_BUTTONS = [
-  "aqe:play",
-  "aqe:analyze",
-  "aqe:show-file",
-  "aqe:share",
-  "aqe:preset",
-  "aqe:remove-pauses",
-  "aqe:denoise-standard",
-  "aqe:slower",
-  "aqe:faster",
-  "aqe:undo",
-  "aqe:redo",
-  "aqe:settings",
-] as const satisfies readonly EditorCommand[];
-
-export const DEFAULT_EDITOR_BUTTON_MODES = {
-  "aqe:play": EditorButtonMode.Icon,
-  "aqe:analyze": EditorButtonMode.Icon,
-  "aqe:record-voice": EditorButtonMode.Icon,
-  "aqe:play-recording": EditorButtonMode.Icon,
-  "aqe:show-file": EditorButtonMode.Icon,
-  "aqe:share": EditorButtonMode.Icon,
-  "aqe:preset": EditorButtonMode.Text,
-  "aqe:convert": EditorButtonMode.Text,
-  "aqe:remove-pauses": EditorButtonMode.Text,
-  "aqe:denoise-standard": EditorButtonMode.Text,
-  "aqe:pitch-hum": EditorButtonMode.Text,
-  "aqe:slower": EditorButtonMode.Icon,
-  "aqe:faster": EditorButtonMode.Icon,
-  "aqe:volume-down": EditorButtonMode.Icon,
-  "aqe:volume-up": EditorButtonMode.Icon,
-  "aqe:undo": EditorButtonMode.Icon,
-  "aqe:redo": EditorButtonMode.Icon,
-  "aqe:settings": EditorButtonMode.Icon,
-} as const satisfies EditorButtonModes;
-
 function formatDenoiseAlgorithm(value: "standard" | "rnnoise" | "dpdfnet" | "voice_only"): string {
   if (value === "rnnoise") return t("settings.denoise_algorithm.rnnoise");
   if (value === "dpdfnet") return t("settings.denoise_algorithm.dpdfnet");
@@ -84,8 +62,19 @@ function formatDenoiseAlgorithm(value: "standard" | "rnnoise" | "dpdfnet" | "voi
   return t("settings.denoise_algorithm.standard");
 }
 
-export function commandButtons(): readonly ToolbarButtonSpec[] {
-  const outputFormat = outputFormatOrDefault(window.__AQE_EDITOR_CONFIG__?.splitButtonDefaults?.outputFormat);
+export interface EditorToolbarRuntimeConfig {
+  processingPresets?: readonly unknown[];
+  splitButtonDefaults?: {
+    dpdfnetAttnLimitDb?: number;
+    outputFormat?: unknown;
+    sizeReductionMode?: unknown;
+  };
+}
+
+export function commandButtons(config: EditorToolbarRuntimeConfig = {}): readonly ToolbarButtonSpec[] {
+  const outputFormat = outputFormatOrDefault(config.splitButtonDefaults?.outputFormat);
+  const sizeReductionMode = sizeReductionModeOrDefault(config.splitButtonDefaults?.sizeReductionMode);
+  const includePresetButton = config.processingPresets === undefined || config.processingPresets.length > 0;
   return [
     {
       activeIcon: "pause",
@@ -104,21 +93,6 @@ export function commandButtons(): readonly ToolbarButtonSpec[] {
       title: t("editor.command.graph.title"),
     },
     {
-      activeIcon: "square",
-      command: "aqe:record-voice",
-      icon: "mic",
-      iconOnly: true,
-      label: t("editor.command.record_voice.label"),
-      title: t("editor.command.record_voice.title"),
-    },
-    {
-      command: "aqe:play-recording",
-      icon: "audio-lines",
-      iconOnly: true,
-      label: t("editor.command.play_recording.label"),
-      title: t("editor.command.play_recording.title"),
-    },
-    {
       command: "aqe:show-file",
       icon: "folder-open",
       iconOnly: true,
@@ -132,33 +106,24 @@ export function commandButtons(): readonly ToolbarButtonSpec[] {
       label: t("editor.command.share.label"),
       title: t("editor.command.share.title"),
     },
-    {
-      command: "aqe:preset",
-      icon: "refresh-cw",
-      iconOnly: true,
-      label: t("editor.command.preset.label"),
-      title: t("editor.command.preset.title"),
-    },
-    {
-      command: "aqe:convert",
-      icon: "file-audio",
-      iconOnly: true,
-      label: t("editor.command.convert.label"),
-      title: t("editor.command.convert.title", { format: formatOutputFormat(outputFormat) }),
-    },
+    ...(includePresetButton
+      ? [
+          {
+            command: "aqe:preset",
+            icon: "refresh-cw",
+            iconOnly: true,
+            label: t("editor.command.preset.label"),
+            title: t("editor.command.preset.title"),
+          } satisfies ToolbarButtonSpec,
+        ]
+      : []),
+    denoiseTopLevelButton(),
     {
       command: "aqe:remove-pauses",
       icon: "timer-reset",
       iconOnly: true,
       label: t("editor.command.shorten_pauses.label"),
       title: t("editor.command.shorten_pauses.title"),
-    },
-    {
-      command: "aqe:pitch-hum",
-      icon: "waves",
-      iconOnly: true,
-      label: t("editor.command.pitch_hum.label"),
-      title: t("editor.command.pitch_hum.title"),
     },
     {
       command: "aqe:slower",
@@ -187,6 +152,79 @@ export function commandButtons(): readonly ToolbarButtonSpec[] {
       iconOnly: true,
       label: t("editor.command.volume_up.label"),
       title: t("editor.command.volume_up.title"),
+    },
+    {
+      activeIcon: "pause",
+      command: "aqe:chorusing-practice",
+      icon: "bug-play",
+      iconOnly: true,
+      label: t("editor.command.chorusing_practice.label"),
+      title: t("editor.command.chorusing_practice.title"),
+    },
+    {
+      command: "aqe:chorusing-next",
+      icon: "skip-back",
+      iconOnly: true,
+      label: t("editor.command.chorusing_next.label"),
+      title: t("editor.command.chorusing_next.title"),
+    },
+    {
+      command: "aqe:chorusing-previous",
+      icon: "skip-forward",
+      iconOnly: true,
+      label: t("editor.command.chorusing_previous.label"),
+      title: t("editor.command.chorusing_previous.title"),
+    },
+    {
+      activeIcon: "square",
+      command: "aqe:record-voice",
+      icon: "mic",
+      iconOnly: true,
+      label: t("editor.command.record_voice.label"),
+      title: t("editor.command.record_voice.title"),
+    },
+    {
+      activeIcon: "pause",
+      command: "aqe:play-recording",
+      icon: "audio-lines",
+      iconOnly: true,
+      label: t("editor.command.play_recording.label"),
+      title: t("editor.command.play_recording.title"),
+    },
+    {
+      command: "aqe:share-recording",
+      icon: "share",
+      iconOnly: true,
+      label: t("editor.command.share_recording.label"),
+      title: t("editor.command.share_recording.title"),
+    },
+    {
+      command: "aqe:show-recording-file",
+      icon: "folder-open",
+      iconOnly: true,
+      label: t("editor.command.show_recording_file.label"),
+      title: t("editor.command.show_recording_file.title"),
+    },
+    {
+      command: "aqe:pitch-hum",
+      icon: "waves",
+      iconOnly: true,
+      label: t("editor.command.pitch_hum.label"),
+      title: t("editor.command.pitch_hum.title"),
+    },
+    {
+      command: "aqe:convert",
+      icon: "file-audio",
+      iconOnly: true,
+      label: t("editor.command.convert.label"),
+      title: t("editor.command.convert.title", { format: formatOutputFormat(outputFormat) }),
+    },
+    {
+      command: "aqe:reduce-size",
+      icon: "minimize-2",
+      iconOnly: true,
+      label: t("editor.command.reduce_size.label"),
+      title: t("editor.command.reduce_size.title", { level: formatSizeReductionMode(sizeReductionMode) }),
     },
     {
       command: "aqe:undo",
@@ -224,32 +262,8 @@ export function denoiseTopLevelButton(): ToolbarButtonSpec {
   };
 }
 
-export function toolbarButtons(): readonly ToolbarButtonSpec[] {
-  return commandButtons().flatMap((button) =>
-    button.command === "aqe:remove-pauses" ? [button, denoiseTopLevelButton()] : [button],
-  );
-}
-
-export function visibleToolbarButtons(
-  buttons: readonly ToolbarButtonSpec[],
-  visibleCommands: readonly EditorCommand[] | undefined,
-): readonly ToolbarButtonSpec[] {
-  const hasPresets = (window.__AQE_EDITOR_CONFIG__?.processingPresets?.length ?? 0) > 0;
-  const availableButtons = hasPresets
-    ? buttons
-    : buttons.filter((button) => button.command !== "aqe:preset");
-  if (!Array.isArray(visibleCommands)) {
-    return availableButtons.filter(
-      (button) => button.command !== "aqe:record-voice" && button.command !== "aqe:play-recording",
-    );
-  }
-  const availableCommands = new Set(availableButtons.map((button) => button.command));
-  const requested = new Set(
-    visibleCommands.filter((command): command is EditorCommand =>
-      availableCommands.has(command),
-    ),
-  );
-  return availableButtons.filter((button) => requested.has(button.command));
+export function toolbarButtons(config: EditorToolbarRuntimeConfig = {}): readonly ToolbarButtonSpec[] {
+  return commandButtons(config);
 }
 
 export function buttonDisplayMode(
@@ -259,14 +273,11 @@ export function buttonDisplayMode(
   const configuredMode = modes?.[command];
   if (configuredMode === EditorButtonMode.Icon) return EditorButtonMode.Icon;
   if (configuredMode === EditorButtonMode.Text) return EditorButtonMode.Text;
-  return (
-    DEFAULT_EDITOR_BUTTON_MODES[command as keyof typeof DEFAULT_EDITOR_BUTTON_MODES] ??
-    EditorButtonMode.Text
-  );
+  return DEFAULT_EDITOR_BUTTON_MODES[command] ?? EditorButtonMode.Text;
 }
 
-export function denoiseButtons(): readonly ToolbarButtonSpec[] {
-  const dpdfnetAttnLimitDb = window.__AQE_EDITOR_CONFIG__?.splitButtonDefaults?.dpdfnetAttnLimitDb ?? 12;
+export function denoiseButtons(config: EditorToolbarRuntimeConfig = {}): readonly ToolbarButtonSpec[] {
+  const dpdfnetAttnLimitDb = config.splitButtonDefaults?.dpdfnetAttnLimitDb ?? 12;
   return [
     {
       command: "aqe:denoise-standard",
@@ -295,35 +306,4 @@ export function denoiseButtons(): readonly ToolbarButtonSpec[] {
       title: t("editor.command.voice_only.title"),
     },
   ] as const;
-}
-
-export const COMMAND_SLUGS: Readonly<Record<EditorCommand, string>> = {
-  "aqe:play": "play",
-  "aqe:analyze": "graph",
-  "aqe:record-voice": "record-voice",
-  "aqe:stop-recording": "stop-recording",
-  "aqe:play-recording": "play-recording",
-  "aqe:show-file": "show-file",
-  "aqe:share": "share",
-  "aqe:preset": "preset",
-  "aqe:convert": "convert",
-  "aqe:delete-selection": "delete-selection",
-  "aqe:delete-rest": "delete-rest",
-  "aqe:remove-pauses": "remove-pauses",
-  "aqe:denoise-standard": "denoise-standard",
-  "aqe:rnnoise": "rnnoise",
-  "aqe:dpdfnet": "dpdfnet",
-  "aqe:voice-only": "voice-only",
-  "aqe:pitch-hum": "pitch-hum",
-  "aqe:slower": "slower",
-  "aqe:faster": "faster",
-  "aqe:volume-down": "volume-down",
-  "aqe:volume-up": "volume-up",
-  "aqe:undo": "undo",
-  "aqe:redo": "redo",
-  "aqe:settings": "settings",
-};
-
-export function testId(ord: number, command: EditorCommand): string {
-  return `aqe-button-${ord}-${COMMAND_SLUGS[command]}`;
 }

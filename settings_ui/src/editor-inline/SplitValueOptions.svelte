@@ -1,5 +1,4 @@
 <script lang="ts">
-  import AqeTooltip from "../lib/AqeTooltip.svelte";
   import { t } from "../lib/i18n.js";
   import {
     formatDenoiseAlgorithm,
@@ -7,6 +6,7 @@
     formatPauseAggressiveness,
     formatPitchHumMode,
     formatShareTarget,
+    formatSizeReductionMode,
     formatSpeedStep,
     formatVolumeDb,
   } from "./split-button-state.js";
@@ -17,12 +17,14 @@
     splitMenuDescription,
     splitMenuVideoLink,
     splitOptionLabel,
-    splitOptionTooltip,
     splitOptionValues,
   } from "./split-menu-content.js";
   import SplitDefaultSaveButton from "./SplitDefaultSaveButton.svelte";
   import SplitExtraFields from "./SplitExtraFields.svelte";
+  import SplitValuePresetGrid from "./SplitValuePresetGrid.svelte";
   import SplitRunButtons from "./SplitRunButtons.svelte";
+  import UnitNumberInput from "../lib/UnitNumberInput.svelte";
+  import ValueSlider from "../lib/ValueSlider.svelte";
   import type { ButtonSpec, FieldSplitButtonState } from "./types.js";
 
   type DenoiseAlgorithm = FieldSplitButtonState["denoiseAlgorithm"];
@@ -30,7 +32,7 @@
   type PauseDetectionAlgorithm = FieldSplitButtonState["pauseDetectionAlgorithm"];
   type PitchHumMode = FieldSplitButtonState["pitchHumMode"];
   type ShareTarget = FieldSplitButtonState["shareTarget"];
-
+  type SizeReductionMode = FieldSplitButtonState["sizeReductionMode"];
   const {
     button,
     denoiseAlgorithm,
@@ -51,6 +53,10 @@
     onSaveDefault,
     onRunCommand,
     onShareTarget,
+    onSizeReductionBitrateKbps,
+    onSizeReductionChannels,
+    onSizeReductionMode,
+    onSizeReductionSampleRateHz,
     onSpeedStep,
     onVolumeStep,
     pauseAggressiveness,
@@ -65,6 +71,11 @@
     shareTarget,
     showRunButton,
     showSaveDefault,
+    sizeReductionMode,
+    sizeReductionBitrateKbps,
+    sizeReductionSampleRateHz,
+    sizeReductionChannels,
+    sourceFilename = null,
     speedStep,
     targetOrd,
     volumeStepDb,
@@ -88,6 +99,10 @@
     onSaveDefault: () => void;
     onRunCommand: (command: ButtonSpec["command"]) => void;
     onShareTarget: (value: ShareTarget) => void;
+    onSizeReductionBitrateKbps: (value: number) => void;
+    onSizeReductionChannels: (value: number) => void;
+    onSizeReductionMode: (value: SizeReductionMode) => void;
+    onSizeReductionSampleRateHz: (value: number) => void;
     onSpeedStep: (value: number) => void;
     onVolumeStep: (value: number) => void;
     pauseAggressiveness: "gentle" | "normal" | "aggressive";
@@ -102,6 +117,11 @@
     shareTarget: ShareTarget;
     showRunButton: boolean;
     showSaveDefault: boolean;
+    sizeReductionMode: SizeReductionMode;
+    sizeReductionBitrateKbps: number;
+    sizeReductionSampleRateHz: number;
+    sizeReductionChannels: number;
+    sourceFilename?: string | null;
     speedStep: number;
     targetOrd: number;
     volumeStepDb: number;
@@ -129,15 +149,12 @@
     return formatSpeedStep(value, "aqe:faster");
   }
 
-  function descriptionText(): string {
-    return splitMenuDescription(button.command, groupSlug, menuLabel);
-  }
-
   function selectedOptionLabel(): string {
     if (isVolumeControl()) return formatVolumeDb(volumeStepDb);
     if (groupSlug === "speed") return groupedSpeedLabel(speedStep);
     if (isSpeedControl()) return formatSpeedStep(speedStep, button.command);
     if (button.command === "aqe:remove-pauses") return formatPauseAggressiveness(pauseAggressiveness);
+    if (button.command === "aqe:reduce-size") return formatSizeReductionMode(sizeReductionMode);
     if (button.command === "aqe:convert") return formatOutputFormat(outputFormat);
     if (button.command === "aqe:share") return formatShareTarget(shareTarget);
     if (
@@ -162,17 +179,14 @@
     if (isVolumeControl()) {
       return { min: "1", max: "40", step: "0.5", labels: ["1 dB", "40 dB"], presets: [3, 6, 15, 24, 40] };
     }
-    if (groupSlug === "speed") {
+    if (isSpeedControl()) {
       return {
         min: "1.01",
         max: "5",
         step: "0.01",
-        labels: [groupedSpeedLabel(1.01), groupedSpeedLabel(5)],
+        labels: groupSlug === "speed" ? [groupedSpeedLabel(1.01), groupedSpeedLabel(5)] : ["x1.01", "x5"],
         presets: [1.25, 1.5, 2, 3, 5],
       };
-    }
-    if (isSpeedControl()) {
-      return { min: "1.01", max: "5", step: "0.01", labels: ["x1.01", "x5"], presets: [1.25, 1.5, 2, 3, 5] };
     }
     return { min: "0", max: "0", step: "1", labels: ["", ""], presets: [] };
   }
@@ -181,16 +195,14 @@
     if (isVolumeControl()) {
       return { min: "1", max: "40", step: "0.5", label: t("settings.volume_step_db") };
     }
-    if (groupSlug === "speed") {
-      return { min: "1.01", max: "5", step: "0.01", label: t("settings.speed_step") };
-    }
     if (isSpeedControl()) return { min: "1.01", max: "5", step: "0.01", label: t("settings.speed_step") };
     return { min: "0", max: "0", step: "1", label: "" };
   }
 
-  function valueInputValue(): number {
-    if (isSpeedControl()) return speedStep;
-    return sliderValue();
+  function valueUnitConfig(): { unit: string; unitPosition: "prefix" | "suffix" } {
+    return isVolumeControl()
+      ? { unit: "dB", unitPosition: "suffix" }
+      : { unit: isSpeedControl() ? "x" : "", unitPosition: isSpeedControl() ? "prefix" : "suffix" };
   }
 
   function applyValueInput(value: number): void {
@@ -214,7 +226,10 @@
 
   function applyOption(value: string): void {
     if (value === "catbox" || value === "litterbox") onShareTarget(value);
-    if (value === "gentle" || value === "normal" || value === "aggressive") onPauseAggressiveness(value);
+    if (value === "gentle" || value === "normal" || value === "aggressive") {
+      if (button.command === "aqe:reduce-size") onSizeReductionMode(value);
+      else onPauseAggressiveness(value);
+    }
     if (value === "standard" || value === "rnnoise" || value === "dpdfnet" || value === "voice_only") onDenoiseAlgorithm(value);
     if (isOutputFormatValue(value)) onOutputFormat(value);
     if (value === "direct" || value === "pitch_tier") onPitchHumMode(value);
@@ -247,6 +262,9 @@
   function runTitle(command: ButtonSpec["command"]): string {
     if (command === "aqe:share") return t("editor.command.share.title");
     if (command === "aqe:convert") return t("editor.command.convert.title", { format: formatOutputFormat(outputFormat) });
+    if (command === "aqe:reduce-size") {
+      return t("editor.command.reduce_size.title", { level: formatSizeReductionMode(sizeReductionMode) });
+    }
     if (command === "aqe:remove-pauses") return t("editor.command.shorten_pauses.title");
     if (command === "aqe:pitch-hum") return t("editor.command.pitch_hum.title");
     if (command === "aqe:slower") return t("editor.command.slower.title");
@@ -269,16 +287,17 @@
   <span class="aqe-split-popover-title">
     <strong>{menuLabel}</strong>
     {#if !options.length}
-      <input
-        class="aqe-split-value-input"
-        data-testid={`aqe-split-${targetOrd}-${slug}-value`}
-        type="number"
+      <UnitNumberInput
+        inputClass="aqe-split-value-input"
+        testId={`aqe-split-${targetOrd}-${slug}-value`}
         min={valueInputConfig().min}
         max={valueInputConfig().max}
         step={valueInputConfig().step}
-        value={valueInputValue()}
-        aria-label={valueInputConfig().label}
-        oninput={(event) => applyValueInput((event.currentTarget as HTMLInputElement).valueAsNumber)}
+        value={isSpeedControl() ? speedStep : sliderValue()}
+        unit={valueUnitConfig().unit}
+        unitPosition={valueUnitConfig().unitPosition}
+        ariaLabel={valueInputConfig().label}
+        onValueInput={applyValueInput}
       />
     {/if}
   </span>
@@ -291,7 +310,7 @@
   {/if}
 </div>
 <p class="aqe-split-popover-description">
-  {descriptionText()}
+  {splitMenuDescription(button.command, groupSlug, menuLabel)}
   {#if videoLink}
     <a
       class="aqe-split-video-link"
@@ -305,25 +324,16 @@
   {/if}
 </p>
 {#if options.length}
-  <div class="aqe-split-presets">
-    {#each options as option}
-      <AqeTooltip>
-        {#snippet trigger({ props })}
-          <button
-            {...props}
-            type="button"
-            class="aqe-button aqe-split-preset aqe-tooltip-target"
-            data-aqe-tooltip-content={splitOptionTooltip(option, dpdfnetAttnLimitDb)}
-            data-testid={`aqe-split-${targetOrd}-${slug}-preset-${option}`}
-            aria-pressed={selectedOptionLabel() === optionLabel(option) ? "true" : "false"}
-            onclick={() => applyOption(option)}
-          >
-            <span class="aqe-split-preset-label">{optionLabel(option)}</span>
-          </button>
-        {/snippet}
-      </AqeTooltip>
-    {/each}
-  </div>
+  <SplitValuePresetGrid
+    command={button.command}
+    {dpdfnetAttnLimitDb}
+    onSelect={applyOption}
+    {optionLabel}
+    {options}
+    selectedLabel={selectedOptionLabel()}
+    {slug}
+    {targetOrd}
+  />
   <SplitExtraFields
     command={button.command}
     {denoiseAlgorithm}
@@ -331,27 +341,28 @@
     {onChange}
     {onDpdfnetAttnLimitDb}
     {onPauseDetectionAlgorithm}
-    {onPauseMinSilenceSeconds}
-    {onPauseMinSpeechSeconds}
-    {onPausePreprocessDenoise}
-    {onPauseThreshold}
-    {pauseMinSilenceSeconds}
-    {pauseMinSpeechSeconds}
-    {pausePreprocessDenoise}
-    {pauseThreshold}
+    {onPauseMinSilenceSeconds} {onPauseMinSpeechSeconds}
+    {onPausePreprocessDenoise} {onPauseThreshold}
+    {pauseMinSilenceSeconds} {pauseMinSpeechSeconds}
+    {pausePreprocessDenoise} {pauseThreshold}
     {pauseDetectionAlgorithm}
+    {onSizeReductionBitrateKbps} {onSizeReductionChannels}
+    {onSizeReductionSampleRateHz} {sizeReductionBitrateKbps}
+    {sizeReductionChannels} {sizeReductionSampleRateHz}
     {slug}
+    {sourceFilename}
     {targetOrd}
   />
 {:else}
-  <input
-    data-testid={`aqe-split-${targetOrd}-${slug}-slider`}
-    type="range"
+  <ValueSlider
+    testId={`aqe-split-${targetOrd}-${slug}-slider`}
     min={sliderConfig().min}
     max={sliderConfig().max}
     step={sliderConfig().step}
     value={sliderValue()}
-    oninput={(event) => applyValue(Number((event.currentTarget as HTMLInputElement).value))}
+    ariaLabel={valueInputConfig().label}
+    formatValue={presetLabel}
+    onValueInput={applyValue}
   />
   <div class="aqe-split-range-labels">
     <span>{sliderConfig().labels[0]}</span>

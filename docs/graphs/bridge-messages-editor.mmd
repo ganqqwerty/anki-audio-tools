@@ -1,0 +1,79 @@
+```mermaid
+flowchart TD
+
+    subgraph ProcessingCommands["Processing Commands<br/>(update_state_and_render)"]
+        aqe_slower["aqe:slower"]
+        aqe_faster["aqe:faster"]
+        aqe_volume_down["aqe:volume-down"]
+        aqe_volume_up["aqe:volume-up"]
+        aqe_remove_pauses["aqe:remove-pauses"]
+    end
+
+    subgraph NonProcessingCommands["Non-Processing Commands"]
+        aqe_play["aqe:play"]
+        aqe_stop_playback["aqe:stop-playback"]
+        aqe_play_ended["aqe:play-ended"]
+        aqe_undo["aqe:undo"]
+        aqe_redo["aqe:redo"]
+        aqe_scan["aqe:scan"]
+        aqe_analyze["aqe:analyze"]
+        aqe_analyze_field["aqe:analyze-field"]
+        aqe_set_cursor["aqe:set-cursor"]
+        aqe_settings["aqe:settings"]
+        aqe_show_file["aqe:show-file"]
+        aqe_open_url["aqe:open-url"]
+        aqe_frontend_log["aqe:frontend-log"]
+        aqe_command_payload["aqe:command-payload"]
+    end
+
+    subgraph RecordingCommands["Recording Commands"]
+        aqe_record_voice["aqe:record-voice"]
+        aqe_stop_recording["aqe:stop-recording"]
+        aqe_play_recording["aqe:play-recording"]
+        aqe_show_recording_file["aqe:show-recording-file"]
+        aqe_share_recording["aqe:share-recording"]
+    end
+
+    subgraph DenoiseCommands["Denoise Commands"]
+        aqe_denoise_standard["aqe:denoise-standard"]
+        aqe_rnnoise["aqe:rnnoise"]
+        aqe_dpdfnet["aqe:dpdfnet"]
+        aqe_voice_only["aqe:voice-only"]
+    end
+
+    subgraph PayloadCommands["Payload Commands"]
+        aqe_convert["aqe:convert"]
+        aqe_reduce_size["aqe:reduce-size"]
+        aqe_pitch_hum["aqe:pitch-hum"]
+        aqe_share["aqe:share"]
+        aqe_post_edit_playback_ready["aqe:post-edit-playback-ready"]
+        aqe_delete_selection["aqe:delete-selection"]
+        aqe_delete_rest["aqe:delete-rest"]
+        aqe_save_split_defaults["aqe:save-split-defaults"]
+        aqe_source_metadata["aqe:source-metadata"]
+    end
+
+    subgraph ChorusCommands["Chorusing Commands"]
+        aqe_chorusing_practice["aqe:chorusing-practice"]
+        aqe_chorusing_previous["aqe:chorusing-previous"]
+        aqe_chorusing_next["aqe:chorusing-next"]
+    end
+
+    subgraph Handlers["Python Handlers"]
+        editor_bridge["handle_bridge_command()"]
+        non_proc["handle_non_processing_command()"]
+        payload_handler["handle_payload_command()"]
+        update["update_state_and_render()"]
+    end
+
+    aqe_slower --> update
+    aqe_faster --> update
+    aqe_volume_down --> update
+    aqe_volume_up --> update
+    aqe_remove_pauses --> update
+
+    aqe_play --> non_proc
+    aqe_stop_playback --> non_proc
+    aqe_denoise_standard --> non_proc
+    aqe_convert --> payload_handler
+```

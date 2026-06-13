@@ -4,8 +4,9 @@ from __future__ import annotations
 
 import argparse
 import math
-from collections.abc import Callable
 from contextlib import suppress
+
+from scripts.dev_scripts.types import CommandRegistry
 
 
 def _idle_timeout_seconds(raw: str) -> float:
@@ -20,7 +21,7 @@ def _idle_timeout_seconds(raw: str) -> float:
     return value
 
 
-def build_parser(commands: dict[str, tuple[Callable[[], int], str]]) -> argparse.ArgumentParser:
+def build_parser(commands: CommandRegistry) -> argparse.ArgumentParser:
     def _escape_help(text: str) -> str:
         return text.replace("%", "%%")
 
@@ -65,7 +66,7 @@ def build_parser(commands: dict[str, tuple[Callable[[], int], str]]) -> argparse
 
 def parse_cli_args(
     args: list[str],
-    commands: dict[str, tuple[Callable[[], int], str]],
+    commands: CommandRegistry,
 ) -> tuple[str | None, list[str], bool, float | None]:
     parser = build_parser(commands)
     with suppress(ImportError):

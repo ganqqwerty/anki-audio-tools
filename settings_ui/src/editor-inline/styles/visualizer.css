@@ -1,4 +1,5 @@
-.aqe-visualizer {
+.aqe-visualizer,
+.aqe-ui-root .aqe-visualizer {
   align-self: stretch;
   flex: 1 0 100%;
   max-width: none;
@@ -6,8 +7,32 @@
   width: 100%;
 }
 
-.aqe-visualizer[hidden] {
+.aqe-visualizer[hidden],
+.aqe-ui-root .aqe-visualizer[hidden] {
   display: none;
+}
+
+.aqe-zoom-controls,
+.aqe-ui-root .aqe-zoom-controls {
+  align-items: center;
+  display: flex;
+  gap: 4px;
+  justify-content: flex-end;
+  margin-top: 8px;
+  padding: 0;
+  width: 100%;
+}
+
+.aqe-zoom-controls[hidden] {
+  display: none;
+}
+
+.aqe-zoom-button {
+  height: 26px;
+  min-height: 26px;
+  min-width: 26px;
+  padding: 0;
+  width: 26px;
 }
 
 .aqe-visualizer[data-has-track="false"] .aqe-visualizer-svg,
@@ -15,14 +40,84 @@
   display: none;
 }
 
-.aqe-visualizer-plot {
+.aqe-visualizer-plot,
+.aqe-ui-root .aqe-visualizer-plot {
   margin-top: 20px;
+  padding: 0;
   position: relative;
+}
+
+.aqe-graph-countdown-overlay,
+.aqe-ui-root .aqe-graph-countdown-overlay,
+.aqe-recording-countdown-overlay,
+.aqe-ui-root .aqe-recording-countdown-overlay {
+  align-items: center;
+  background: color-mix(in srgb, var(--aqe-surface-color) 84%, transparent);
+  border: 1px solid color-mix(in srgb, var(--aqe-border-color) 70%, transparent);
+  border-radius: 8px;
+  box-sizing: border-box;
+  color: inherit;
+  display: flex;
+  inset: 0;
+  justify-content: center;
+  pointer-events: none;
+  position: absolute;
+  z-index: 3;
+}
+
+.aqe-graph-countdown-overlay[hidden],
+.aqe-ui-root .aqe-graph-countdown-overlay[hidden],
+.aqe-recording-countdown-overlay[hidden],
+.aqe-ui-root .aqe-recording-countdown-overlay[hidden] {
+  display: none;
+}
+
+.aqe-graph-countdown-value,
+.aqe-ui-root .aqe-graph-countdown-value,
+.aqe-recording-countdown-value,
+.aqe-ui-root .aqe-recording-countdown-value {
+  font-size: 72px;
+  font-weight: 700;
+  line-height: 1;
+  text-align: center;
+}
+
+.aqe-time-scrollbar,
+.aqe-ui-root .aqe-time-scrollbar {
+  margin-top: 6px;
+  padding: 0;
+  width: 100%;
+}
+
+.aqe-time-scrollbar[hidden],
+.aqe-ui-root .aqe-time-scrollbar[hidden] {
+  display: none;
+}
+
+.aqe-time-scrollbar-scroll,
+.aqe-ui-root .aqe-time-scrollbar-scroll {
+  height: 14px;
+  max-width: 100%;
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding: 0;
+  scrollbar-width: thin;
+}
+
+.aqe-time-scrollbar-scroll:focus {
+  outline: 2px solid var(--aqe-accent-focus-color);
+  outline-offset: 2px;
+}
+
+.aqe-time-scrollbar-spacer,
+.aqe-ui-root .aqe-time-scrollbar-spacer {
+  height: 1px;
+  padding: 0;
 }
 
 .aqe-visualizer-svg {
   border: 1px solid;
-  border-color: ButtonBorder;
+  border-color: var(--aqe-border-color);
   border-radius: 8px;
   color: inherit;
   display: block;
@@ -31,12 +126,65 @@
   width: 100%;
 }
 
+.aqe-chorusing-marker-hitbox,
+.aqe-ui-root .aqe-chorusing-marker-hitbox {
+  height: 12%;
+  left: 0;
+  pointer-events: none;
+  position: absolute;
+  right: 0;
+  top: 6.67%;
+  z-index: 2;
+}
+
+.aqe-visualizer[data-has-track="true"] .aqe-chorusing-marker-hitbox {
+  pointer-events: all;
+}
+
+.aqe-chorusing-marker-row {
+  color: #2f80ed;
+  opacity: 1;
+  pointer-events: all;
+}
+
+.aqe-chorusing-marker-track {
+  fill: rgb(255 255 255);
+  stroke: color-mix(in srgb, var(--aqe-border-color) 72%, transparent);
+  stroke-width: 1;
+  vector-effect: non-scaling-stroke;
+}
+
+.aqe-chorusing-marker-row:hover .aqe-chorusing-marker-track,
+.aqe-chorusing-marker-row:focus-visible .aqe-chorusing-marker-track {
+  fill: color-mix(in srgb, var(--aqe-surface-color) 70%, var(--aqe-accent-fill));
+  stroke: var(--aqe-accent-border-color);
+}
+
+.aqe-chorusing-marker-row[aria-hidden="true"] {
+  display: none;
+}
+
+.aqe-chorusing-marker {
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-width: 3;
+  vector-effect: non-scaling-stroke;
+}
+
+.aqe-chorusing-boundary-marker {
+  box-sizing: border-box;
+  fill: var(--aqe-surface-color);
+  stroke: currentColor;
+  stroke-width: 2;
+  vector-effect: non-scaling-stroke;
+}
+
 .aqe-visualizer:focus {
   outline: none;
 }
 
 .aqe-visualizer:focus .aqe-visualizer-svg {
-  box-shadow: 0 0 0 2px Highlight;
+  box-shadow: 0 0 0 2px var(--aqe-accent-focus-color);
 }
 
 .aqe-intensity {

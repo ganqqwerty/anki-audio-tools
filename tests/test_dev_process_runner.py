@@ -132,3 +132,33 @@ def test_process_run_uses_configured_idle_timeout(capsys) -> None:
     captured = capsys.readouterr()
     assert rc != 0
     assert "FAILED: terminated after idle timeout" in captured.out
+
+
+def test_process_run_stays_silent_for_passing_quiet_test_commands(capsys) -> None:
+    process.set_verbose(False)
+
+    with process.quiet_test_output():
+        rc = process._run(
+            [sys.executable, "-c", "print('hidden success output')"],
+            label="passing test command",
+        )
+
+    captured = capsys.readouterr()
+    assert rc == 0
+    assert captured.out == ""
+
+
+def test_process_run_replays_failed_quiet_test_command_output(capsys) -> None:
+    process.set_verbose(False)
+
+    with process.quiet_test_output():
+        rc = process._run(
+            [sys.executable, "-c", "print('shown failure output'); raise SystemExit(9)"],
+            label="failing test command",
+        )
+
+    captured = capsys.readouterr()
+    assert rc == 9
+    assert "[dev] failing test command" in captured.out
+    assert "shown failure output" in captured.out
+    assert "finished with exit code 0" not in captured.out

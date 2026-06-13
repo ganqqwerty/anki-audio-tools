@@ -4,9 +4,38 @@
 
 Anki Audio Quick Editor keeps the human-facing architecture doc short and puts the executable source of truth in code:
 
-- architecture contracts live in `tests/test_architecture/contracts.py`
-- architecture observations and reporting live in `tests/test_architecture/inspection.py`
-- pass/fail enforcement happens through `tests/test_architecture/*.py`, `python3 scripts/dev.py architecture-report`, and `python3 scripts/dev.py arch`
+- architecture contracts live in [`tests/test_architecture/contracts.py`](tests/test_architecture/contracts.py) and its domain files ([`contract_audio.py`](tests/test_architecture/contract_audio.py), [`contract_core.py`](tests/test_architecture/contract_core.py), [`contract_ui.py`](tests/test_architecture/contract_ui.py), [`contract_editor/`](tests/test_architecture/contract_editor/))
+- module inspection lives in [`tests/test_architecture/inspection.py`](tests/test_architecture/inspection.py)
+- pass/fail enforcement lives in [`tests/test_architecture/`](tests/test_architecture/)
+- quick inspection: `python3 scripts/dev.py architecture-report`
+- import-linter enforcement: `python3 scripts/dev.py arch`
+- full local architecture enforcement: `python3 scripts/dev.py test`
+
+## Architecture Diagrams And Archives
+
+Human-readable diagrams live in [`docs/graphs/`](docs/graphs/). They are generated from scripts, not edited by hand:
+
+- `python3 scripts/dev.py graphs-python`
+- `python3 scripts/dev.py graphs-svelte`
+- `python3 scripts/dev.py graphs-bridge`
+- `python3 scripts/dev.py graphs-webview`
+- `python3 scripts/dev.py graphs-all`
+- `python3 scripts/dev.py graphs-check`
+
+For documentation audits, run `python3 scripts/dev.py graphs-archive`. It writes a date-stamped machine-readable snapshot under [`docs/archive/architecture_diagrams/`](docs/archive/architecture_diagrams/) with module catalogs, layer assignments, WebView injection surfaces, bridge commands, and cross-module relationships.
+
+Use that archive to understand current connections before updating prose. Keep executable contracts and tests authoritative for allowed dependencies and side effects; generated diagrams explain what currently connects, while `tests/test_architecture/` explains what is allowed and why.
+
+## Contract-Driven Architecture
+
+Every production module has an executable contract declared in one of the domain files above. Each contract specifies:
+
+- **layer** — which of the 5 runtime layers the module belongs to
+- **allowed add-on dependencies** — which other add-on modules it may import
+- **allowed side effects** — which of the 12 classified side effects it may perform (e.g. `SUBPROCESS_RUN`, `MEDIA_WRITE`, `GUI_HOOK_REGISTRATION`)
+- **forbidden imports** — prefixes that must not appear
+
+This is a data structure, not documentation. When you add or move a module, update its contract entry; the architecture tests enforce it. See [`contract_schema.py`](tests/test_architecture/contract_schema.py) for the `ModuleContract` dataclass, `Layer` enum, and `SideEffect` enum.
 
 ## Runtime Layers
 
@@ -14,9 +43,16 @@ Anki Audio Quick Editor keeps the human-facing architecture doc short and puts t
 |-------|---------|----------------|
 | Entry point | Startup hook registration, menu setup, config action |
 | Import-safe core | Logic that stays safe to inspect and test without loading Anki runtime objects |
-| UI adapters | User-facing Browser/editor behavior that touches Anki, Qt, playback, taskman, and media APIs |
+| UI adapters | User-facing Browser/editor/reviewer behavior that touches Anki, Qt, playback, taskman, and media APIs |
 | Settings shell | Thin `QDialog` + `AnkiWebView` host only |
 | Settings backend | Bridge dispatch and startup state |
+
+## Sub-Packages
+
+Two sub-packages contain groups of related modules:
+
+- [`editor_frontend/`](addon/anki_audio_quick_editor/editor_frontend/) — Python-side bridge to the Svelte editor-inline WebView (busy state, playback eval, graph refresh, status, types)
+- [`settings/`](addon/anki_audio_quick_editor/settings/) — Settings dialog backend commands, async operations, and initial state
 
 ## Bootstrap Hooks
 
@@ -27,6 +63,7 @@ Anki Audio Quick Editor keeps the human-facing architecture doc short and puts t
 - `_apply_log_level`
 - `_setup_editor_integration`
 - `_setup_browser_integration`
+- `_setup_reviewer_integration`
 - `_setup_managed_runtime`
 - `_setup_menu`
 
@@ -43,21 +80,14 @@ Anki Audio Quick Editor keeps the human-facing architecture doc short and puts t
 7. Special transform controls call external cleanup tools through `audio_processor.py`, including DeepFilterNet, RNNoise, DPDFNet Lite, and Sherpa Spleeter voice extraction from the managed runtime or development fallback.
 8. `editor_integration.py` writes the result through Anki's media manager and replaces the first supported sound reference in the field.
 9. Playback uses Anki's audio player against the latest generated reference, stopping any previous playback first and seeking to the visualizer cursor when set.
-10. Undo restores the previous generated reference and edit state without deleting generated media.
+10. Undo restores the previous generated reference and edit state without deleting generated media. Persistent undo survives editor close/reopen via `editor_persistent_undo.py`.
 
 The editor modification-button contract, quick-setting defaults, known exceptions, and e2e coverage map live in [`EDITOR_MODIFICATION_BUTTON_BEHAVIOR_RULES.md`](EDITOR_MODIFICATION_BUTTON_BEHAVIOR_RULES.md).
 
 ## Batchable Operations
 
-Shared batchable operations live in `audio_operations.py` and are the only supported cross-UI operation source of truth:
-
-- `graph`
-- `denoise`
-- `remove_pauses` (`Shorten Pauses` in the UI)
-- `slower`
-- `faster`
-- `volume_down`
-- `volume_up`
+Shared batchable operations are the authoritative single source of truth for cross-UI operations. They are defined in [`audio_operations.py`](addon/anki_audio_quick_editor/audio_operations.py).
+Current operation names are intentionally owned by [`audio_operations.py`](addon/anki_audio_quick_editor/audio_operations.py). Do not duplicate the list here; adapters should consume shared operation metadata so editor and Browser batch semantics stay aligned.
 
 Rules:
 
@@ -114,94 +144,17 @@ Runtime installation is managed by `runtime_manager.py` and `runtime_manifest.py
 
 1. Python renders HTML containing `window.__INITIAL_STATE__` through the shared `webview_shell.py` renderer.
 2. The committed `settings_bundle.js` mounts the settings Svelte app.
-3. The app sends commands through the shared `bridge:{ command, payload }` envelope in `settings_ui/src/lib/bridge.ts`.
-4. `settings/commands.py` decodes commands with `webview_bridge.py` and handles save/reset/log/async operations.
+3. The app sends commands through the shared `bridge:{ command, payload }` envelope in [`settings_ui/src/lib/bridge.ts`](settings_ui/src/lib/bridge.ts).
+4. [`settings/commands.py`](addon/anki_audio_quick_editor/settings/commands.py) decodes commands with `webview_bridge.py` and handles save/reset/log/async operations.
 5. Python sends async completion events back via `webview.eval(...)`.
 6. Diagnostics exposes managed runtime status plus an Install/Repair Runtime action backed by `runtime_status` and `runtime_install`.
 7. Settings, editor, and batch frontend diagnostics all pass through `frontend_logs.py` before being recorded in runtime diagnostics.
 
 ## Config
 
-Config defaults are stored in `config.json` and migrated into user config:
+Config defaults are stored in [`config.json`](addon/anki_audio_quick_editor/config.json) and validated by [`config.schema.json`](addon/anki_audio_quick_editor/config.schema.json). Migration into user config `meta.json` is handled by [`config_migration.py`](addon/anki_audio_quick_editor/config_migration.py).
 
-```json
-{
-  "_config_version": 1,
-  "enabled": true,
-  "debug_logging": false,
-  "show_ffmpeg_commands": false,
-  "repeat_playback_by_default": true,
-  "repeat_pause_seconds": 0.0,
-  "share_target": "litterbox",
-  "voice_recording_countdown_seconds": 3,
-  "show_graph_by_default": false,
-  "visible_editor_buttons": [
-    "aqe:play",
-    "aqe:analyze",
-    "aqe:show-file",
-    "aqe:share",
-    "aqe:preset",
-    "aqe:remove-pauses",
-    "aqe:denoise-standard",
-    "aqe:slower",
-    "aqe:faster",
-    "aqe:undo",
-    "aqe:redo",
-    "aqe:settings"
-  ],
-  "editor_button_modes": {
-    "aqe:play": "icon",
-    "aqe:analyze": "icon",
-    "aqe:record-voice": "icon",
-    "aqe:play-recording": "icon",
-    "aqe:show-file": "icon",
-    "aqe:share": "icon",
-    "aqe:preset": "text",
-    "aqe:convert": "text",
-    "aqe:remove-pauses": "text",
-    "aqe:denoise-standard": "text",
-    "aqe:pitch-hum": "text",
-    "aqe:slower": "icon",
-    "aqe:faster": "icon",
-    "aqe:volume-down": "icon",
-    "aqe:volume-up": "icon",
-    "aqe:undo": "icon",
-    "aqe:redo": "icon",
-    "aqe:settings": "icon"
-  },
-  "graph_voice_range": "general",
-  "graph_recording_condition": "auto",
-  "graph_smoothness": "very_smooth",
-  "graph_connect_short_dropouts_ms": 240,
-  "graph_voice_lock": "balanced",
-  "audio_processing_presets": [],
-  "speed_step": 1.5,
-  "min_speed": 0.2,
-  "max_speed": 5.0,
-  "volume_step_db": 15.0,
-  "min_volume_db": -40.0,
-  "max_volume_db": 40.0,
-  "pause_aggressiveness": "normal",
-  "pause_detection_algorithm": "silencedetect",
-  "pause_silencedetect_threshold_db": -45.0,
-  "pause_silencedetect_min_silence_seconds": 0.3,
-  "pause_silencedetect_min_speech_seconds": 0.1,
-  "pause_silencedetect_preprocess_denoise": true,
-  "pause_silero_threshold": 0.5,
-  "pause_silero_min_silence_seconds": 0.45,
-  "pause_silero_min_speech_seconds": 0.1,
-  "pause_silero_preprocess_denoise": false,
-  "output_format": "mp3",
-  "ffmpeg_path": "/opt/homebrew/bin/ffmpeg",
-  "deep_filter_post_filter": true,
-  "dpdfnet_attn_limit_db": 12.0,
-  "denoise_algorithm": "standard",
-  "pitch_hum_mode": "direct"
-}
-```
-
-`config_migration.py` deep-merges defaults into user config and stamps the current schema version.
-Editor split-button choices are field-local runtime overrides. Settings provide defaults for toolbar visibility/display mode, repeat playback and pause, Share target, prosody graph options, reusable processing presets, volume step, speed step, pause detector, pause aggressiveness, algorithm-specific pause Advanced Params, convert target format, denoise algorithm, DPDFNet aggressiveness, and pitch hum mode, but changing a split-button value in one editor field does not write back to persisted config or other fields unless the user promotes that field's quick setting to defaults. Processing presets are persisted Settings objects and are serialized into editor and Browser batch initial state as selectable preset options. See [`EDITOR_MODIFICATION_BUTTON_BEHAVIOR_RULES.md`](EDITOR_MODIFICATION_BUTTON_BEHAVIOR_RULES.md) for button defaults and non-persisted command choices.
+`editor_button_visibility.py` keeps `visible_editor_buttons` normalization import-safe for startup migration and Settings saves. Editor split-button choices are field-local runtime overrides. Settings provide defaults; changing a split-button value in one editor field does not write back to persisted config or other fields unless the user promotes that field's quick setting to defaults. See [`EDITOR_MODIFICATION_BUTTON_BEHAVIOR_RULES.md`](EDITOR_MODIFICATION_BUTTON_BEHAVIOR_RULES.md) for the full contract.
 
 ## Source Of Truth
 
@@ -212,22 +165,28 @@ Use these commands when changing architecture or boundaries:
 - `python3 scripts/dev.py test`
 - `python3 scripts/dev.py test-e2e`
 
-The canonical module contracts and allowed side effects are defined in `tests/test_architecture/contracts.py`. Keep this file authoritative and keep this document descriptive.
+The canonical module contracts and allowed side effects are defined in [`tests/test_architecture/contracts.py`](tests/test_architecture/contracts.py) and its domain files. Keep those files authoritative and keep this document descriptive.
+
+When you think you need to change boundaries, ask the user and provide justification.
 
 ## Import-Linter Contracts
 
 | Contract | Source modules | Forbidden modules |
 |----------|----------------|-------------------|
-| `import-safe-no-upper-layers` | Import-safe helper modules, including batch visualization, Browser batch state, runtime asset management, shared WebView bridge/shell helpers, frontend log handling, and prosody rendering/cache modules | Browser/editor UI modules and settings backend modules |
-| `settings-backend-no-ui` | `settings.commands`, `settings.initial_state` | `editor_integration` |
+| `import-safe-no-upper-layers` | Import-safe helper modules, including batch visualization, Browser batch state, runtime asset management, toolbar visibility normalization, shared WebView bridge/shell helpers, frontend log handling, and prosody rendering/cache modules | Browser/editor UI modules and settings backend modules |
+| `settings-backend-no-ui` | Settings backend modules (`settings.commands`, async command/operation handlers, and initial state) | `editor_integration` |
 
 ## Enforced Rules
 
+The enforced rules are located in [`tests/test_architecture/`](tests/test_architecture/). The list below is a principle summary, not a replacement for the tests:
 - Import policy, addon dependency policy, and side-effect policy are enforced by executable module contracts.
 - Python bridge command registration and injected editor UI commands must stay in sync.
 - Editor TypeScript/Svelte source is part of that bridge-command sync check, not only Python injection code.
+- Editor panel command buttons must stay accepted by settings visibility/display-mode config.
 - Shared batch operations must stay free of editor bridge strings and editor-adapter imports.
 - Optional analysis dependencies such as Parselmouth must stay isolated to their backend module and never become package-level imports.
 - The settings shell must stay a thin `QDialog` + `AnkiWebView` wrapper.
 - Every production module must have an executable contract entry.
 - Broad exception handlers must stay in the function-qualified architecture allowlist with a reason.
+
+When a boundary becomes important enough to explain, make it executable in tests first. This keeps the documentation focused on the principle and the test suite responsible for the exact rule.

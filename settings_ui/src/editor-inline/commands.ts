@@ -3,23 +3,24 @@ import {
   outputFormatOrDefault,
 } from "../lib/audio-operation-parameters.js";
 import { t } from "../lib/i18n.js";
+import { formatSizeReductionMode, sizeReductionModeOrDefault } from "../lib/size-reduction-parameters.js";
 import type { EditorCommand, EditorCommandPayload } from "./types.js";
 
 export {
-  COMMAND_SLUGS,
   DEFAULT_VISIBLE_EDITOR_BUTTONS,
   commandButtons,
   denoiseButtons,
   denoiseTopLevelButton,
-  testId,
   toolbarButtons,
-  visibleToolbarButtons,
 } from "../lib/editor-toolbar-buttons.js";
+export { COMMAND_SLUGS, testId } from "../lib/editor-toolbar-command-slugs.js";
+export { visibleToolbarButtons } from "../lib/editor-toolbar-visibility.js";
 
 export const PROCESSING_COMMANDS = new Set<EditorCommand>([
   "aqe:slower",
   "aqe:faster",
   "aqe:convert",
+  "aqe:reduce-size",
   "aqe:remove-pauses",
   "aqe:denoise-standard",
   "aqe:rnnoise",
@@ -34,19 +35,28 @@ export const PROCESSING_COMMANDS = new Set<EditorCommand>([
 export const BUSY_COMMANDS = new Set<EditorCommand>([
   ...PROCESSING_COMMANDS,
   "aqe:share",
+  "aqe:share-recording",
 ]);
 
-export function processingMessage(command: EditorCommand, payload?: EditorCommandPayload): string {
+export interface ProcessingMessageConfig {
+  processingPresets?: { id: string; name: string }[];
+  splitButtonDefaults?: {
+    outputFormat?: unknown;
+    sizeReductionMode?: unknown;
+  };
+}
+
+export function processingMessage(command: EditorCommand, payload?: EditorCommandPayload, config: ProcessingMessageConfig = {}): string {
   if (command === "aqe:denoise-standard") return `${t("editor.status.denoising_standard")}...`;
   if (command === "aqe:rnnoise") return `${t("editor.status.denoising_rnnoise")}...`;
   if (command === "aqe:dpdfnet") return `${t("editor.status.denoising_dpdfnet")}...`;
   if (command === "aqe:voice-only") return `${t("editor.status.extracting_voice")}...`;
   if (command === "aqe:pitch-hum") return `${t("editor.status.pitch_hum")}...`;
   if (command === "aqe:preset") {
-    const preset = window.__AQE_EDITOR_CONFIG__?.processingPresets?.find((item) => item.id === payload?.presetId);
+    const preset = config.processingPresets?.find((item) => item.id === payload?.presetId);
     return `${t("editor.status.running_preset", { preset: preset?.name ?? t("editor.command.preset.label") })}`;
   }
-  if (command === "aqe:share") {
+  if (command === "aqe:share" || command === "aqe:share-recording") {
     const shareTarget = payload?.shareTarget ?? "litterbox";
     return shareTarget === "litterbox"
       ? `${t("editor.status.sharing_litterbox")}...`
@@ -55,9 +65,16 @@ export function processingMessage(command: EditorCommand, payload?: EditorComman
   if (command === "aqe:convert") {
     const outputFormat = outputFormatOrDefault(
       payload?.overrides?.targetFormat ??
-        window.__AQE_EDITOR_CONFIG__?.splitButtonDefaults?.outputFormat,
+        config.splitButtonDefaults?.outputFormat,
     );
     return `${t("editor.status.converting", { format: formatOutputFormat(outputFormat) })}...`;
+  }
+  if (command === "aqe:reduce-size") {
+    const mode = sizeReductionModeOrDefault(
+      payload?.overrides?.sizeReductionMode ??
+        config.splitButtonDefaults?.sizeReductionMode,
+    );
+    return `${t("editor.status.reducing_size_with_level", { level: formatSizeReductionMode(mode) })}...`;
   }
   if (command === "aqe:delete-selection") return t("editor.status.deleting_region");
   if (command === "aqe:delete-rest") return t("editor.status.deleting_rest");

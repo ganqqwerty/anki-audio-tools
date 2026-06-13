@@ -1,12 +1,20 @@
 import { mount, unmount } from "svelte";
 
-import { applyInitialStatusForOrd } from "./control-actions.js";
+import {
+  consumeInitialStatusForOrd,
+  applyInitialHistoryAvailabilityForOrd,
+  setStatusForOrd,
+  type InitialEditorStatus,
+} from "./control-actions.js";
 import EditorControls from "./EditorControls.svelte";
 import { visualizerForOrd } from "./dom-selectors.js";
+import { initFieldState, readFieldState, removeFieldState } from "./field-state-store.js";
+import { initialFieldState } from "./field-state.js";
 import type { FieldTarget } from "./types.js";
 
 export interface FieldController {
-  component: Record<string, unknown>;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Svelte mount()/unmount() use Record<string, any>
+  component: Record<string, any>;
   host: HTMLElement;
   ord: number;
   sourceFilename: string;
@@ -23,6 +31,7 @@ export function mountedControllerCount(): number {
 }
 
 export function mountController(target: FieldTarget): FieldController | null {
+  const initialStatus = consumeInitialStatusForOrd(target.ord);
   const existing = controllers.get(target.ord);
   if (existing) {
     if (!document.body.contains(existing.host)) {
@@ -30,29 +39,34 @@ export function mountController(target: FieldTarget): FieldController | null {
     }
     removeDuplicateControls(target.ord, existing.host);
     if (!target.sourceFilename || existing.sourceFilename === target.sourceFilename) {
+      applyInitialStatus(target.ord, initialStatus);
       return existing;
     }
     const visualizer = visualizerForOrd(target.ord);
-    if (visualizer?.dataset.graphBusy === "true" || visualizer?.dataset.hasTrack === "true") {
-      const renderedSource = visualizer.dataset.sourceFilename || target.sourceFilename;
-      existing.sourceFilename = renderedSource;
-      const controls = document.querySelector<HTMLElement>(`.aqe-controls[data-aqe-field-ord="${target.ord}"]`);
-      if (controls) controls.dataset.aqeSourceFilename = renderedSource;
-      removeDuplicateControls(target.ord, existing.host);
-      return existing;
+    if (visualizer) {
+      const s = readFieldState(target.ord);
+      if (s.graph.busy || s.graph.hasTrack) {
+        const renderedSource = visualizer.dataset.sourceFilename || target.sourceFilename;
+        existing.sourceFilename = renderedSource;
+        const controls = document.querySelector<HTMLElement>(`.aqe-controls[data-aqe-field-ord="${target.ord}"]`);
+        if (controls) controls.dataset.aqeSourceFilename = renderedSource;
+        removeDuplicateControls(target.ord, existing.host);
+        applyInitialStatus(target.ord, initialStatus);
+        return existing;
+      }
     }
   }
 
   disposeController(target.ord);
   const host = document.createElement("div");
-  host.className = "aqe-mount-host";
+  host.className = "aqe-mount-host aqe-ui-root";
   host.dataset.aqeSurface = target.node.classList.contains("aqe-review-audio-target") ? "reviewer" : "editor";
   insertHostNearTarget(target, host);
   const component = mount(EditorControls, {
     target: host,
-    props: { target },
-  }) as Record<string, unknown>;
-  applyInitialStatusForOrd(target.ord);
+    props: { initialStatus, target },
+  });
+  applyInitialHistoryAvailabilityForOrd(target.ord);
   const controller = {
     component,
     host,
@@ -60,8 +74,14 @@ export function mountController(target: FieldTarget): FieldController | null {
     sourceFilename: target.sourceFilename,
   };
   controllers.set(target.ord, controller);
+  initFieldState(target.ord, initialFieldState({ ord: target.ord, sourceFilename: target.sourceFilename }));
   removeDuplicateControls(target.ord, host);
   return controller;
+}
+
+function applyInitialStatus(ord: number, initialStatus: InitialEditorStatus | null): void {
+  if (!initialStatus) return;
+  setStatusForOrd(ord, initialStatus.message, initialStatus.kind || "info", "", "edit");
 }
 
 export function disposeController(ord: number): void {
@@ -71,6 +91,7 @@ export function disposeController(ord: number): void {
     controller.host.remove();
     controllers.delete(ord);
   }
+  removeFieldState(ord);
   document.querySelectorAll<HTMLElement>(`.aqe-controls[data-aqe-field-ord="${ord}"]`).forEach((node) => node.remove());
 }
 
@@ -78,12 +99,17 @@ export function disposeAllControllers(): void {
   for (const controller of controllers.values()) {
     void unmount(controller.component);
     controller.host.remove();
+    removeFieldState(controller.ord);
   }
   controllers.clear();
   removeOrphanedControls();
 }
 
 function insertHostNearTarget(target: FieldTarget, host: HTMLElement): void {
+  if (target.node.classList.contains("aqe-review-audio-target")) {
+    target.node.append(host);
+    return;
+  }
   const parent = target.node.closest(".field-container")
     || target.node.closest(".field")
     || target.node.parentElement

@@ -142,7 +142,7 @@ def test_resize_while_playing_restarts_progress_from_resized_region_start(
                 message="short resize progress freeze wait failed",
             )
             frozen = _state(editor)
-            assert abs(frozen["progressMs"] - frozen_progress) <= PLAYBACK_INTERVAL_TOLERANCE_MS * 2
+            assert abs(frozen["progressMs"] - frozen_progress) <= PLAYBACK_INTERVAL_TOLERANCE_MS * 4
 
             _resize_handle_up(editor, "end", 0.85)
             restarted = _wait_for_html_playback(

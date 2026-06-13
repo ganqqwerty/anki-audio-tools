@@ -6,16 +6,28 @@ import {
   controlsForOrd,
   graphButton,
   playButton,
+  visualizerForOrd,
 } from "./dom-selectors.js";
+import { chorusingControlsForVisualizer } from "./chorusing-dom.js";
+import { readVisualizerTargetDurationMs } from "./visualizer-state.js";
 import { continueDefaultGraphQueue } from "./default-graph-queue.js";
 import { notifyMountedPostEditPlaybackReady } from "./post-edit-playback.js";
 import { syncAllSelectionToolbars } from "./selection-toolbar-state.js";
 import { errorHelpUrl } from "../lib/error-links.js";
+import { openEditorExternalLink } from "./external-links.js";
 import { setButtonTooltipContent, setTooltipContent } from "../lib/rich-tooltip.js";
+import { tooltipWithDisabledClarification } from "../lib/disabled-tooltip.js";
 import { isUserFacingError, type UserFacingError } from "../lib/user-facing-error.js";
+import {
+  editorRuntimeConfig,
+  repeatPlaybackByDefault as configRepeatPlaybackByDefault,
+} from "./editor-runtime-config.js";
 import type { EditorCommand } from "./types.js";
 import { defaultGraphQueueDependencies } from "./graph-actions.js";
 import { syncAllRecordingControls, syncRecordingControls } from "./recording-actions.js";
+
+export type InitialEditorStatus = { kind?: string; message: string };
+export type StatusOwner = "edit" | "error" | "graph" | "playback";
 
 type EditorStatusMessage = string | UserFacingError;
 
@@ -24,7 +36,7 @@ export function anyBusy(): boolean {
 }
 
 export function repeatDefaultFromConfig(): boolean {
-  return window.__AQE_EDITOR_CONFIG__?.repeatPlaybackByDefault === true;
+  return configRepeatPlaybackByDefault(editorRuntimeConfig());
 }
 
 export function playRepeatOptionsTitle(enabled: boolean): string {
@@ -36,7 +48,10 @@ export function setControlsBusy(ord: number, busy: boolean, message = "", comman
   document.querySelectorAll<HTMLElement>(".aqe-controls").forEach((controls) => {
     controls.dataset.busy = busy ? "true" : "false";
   });
-  allButtons().forEach(updateButtonDisabledState);
+  allButtons().forEach((button) => {
+    updateButtonDisabledState(button);
+    updateButtonTooltipForDisabledState(button);
+  });
   syncAllRecordingControls();
   syncAllSelectionToolbars();
   if (!busy) {
@@ -46,25 +61,31 @@ export function setControlsBusy(ord: number, busy: boolean, message = "", comman
   const status = statusForOrd(ord);
   if (!status) return;
   if (busy) {
-    renderStatus(status, message || "", "processing", command || "");
+    renderStatus(status, message || "", "processing", command || "", "graph");
     return;
   }
   if (message || command) {
-    setStatusForOrd(ord, message, "info", command);
+    setStatusForOrd(ord, message, "info", command, "edit");
     return;
   }
   restoreStableStatus(status);
 }
 
-export function setStatus(message: EditorStatusMessage, kind = "info"): void {
+export function setStatus(message: EditorStatusMessage, kind = "info", owner: StatusOwner = defaultStatusOwner(kind)): void {
   const ord = Number(window.__aqeActiveField ?? 0);
-  setStatusForOrd(ord, message, kind);
+  setStatusForOrd(ord, message, kind, "", owner);
 }
 
-export function setStatusForOrd(ord: number, message: EditorStatusMessage, kind = "info", command = ""): void {
+export function setStatusForOrd(
+  ord: number,
+  message: EditorStatusMessage,
+  kind = "info",
+  command = "",
+  owner: StatusOwner = defaultStatusOwner(kind),
+): void {
   const status = statusForOrd(ord);
   if (!status) return;
-  if (kind !== "processing") {
+  if (storesStableStatus(owner)) {
     status.dataset.stableMessage = statusText(message || "");
     if (isUserFacingError(message)) {
       status.dataset.stableUserError = JSON.stringify(message);
@@ -74,7 +95,23 @@ export function setStatusForOrd(ord: number, message: EditorStatusMessage, kind 
     status.dataset.stableKind = kind || "info";
     status.dataset.stableCommand = command || "";
   }
-  renderStatus(status, message || "", kind || "info", command || "");
+  renderStatus(status, message || "", kind || "info", command || "", owner);
+}
+
+export function setTransientStatusForOrd(
+  ord: number,
+  message: EditorStatusMessage,
+  kind = "info",
+  owner: StatusOwner = "graph",
+): void {
+  const status = statusForOrd(ord);
+  if (!status) return;
+  renderStatus(status, message || "", kind || "info", "", owner);
+}
+
+export function hasStableStatusForOrd(ord: number): boolean {
+  const status = statusForOrd(ord);
+  return Boolean(status?.dataset.stableMessage || status?.dataset.stableUserError);
 }
 
 export function clearStatus(ord: number): void {
@@ -84,7 +121,13 @@ export function clearStatus(ord: number): void {
   delete status.dataset.stableUserError;
   status.dataset.stableKind = "info";
   status.dataset.stableCommand = "";
-  renderStatus(status, "", "info", "");
+  renderStatus(status, "", "info", "", "edit");
+}
+
+export function clearPlaybackStatusForOrd(ord: number): void {
+  const status = statusForOrd(ord);
+  if (!status || status.dataset.statusOwner !== "playback") return;
+  restoreStableStatus(status);
 }
 
 export function restoreStatusForOrd(ord: number): void {
@@ -93,14 +136,21 @@ export function restoreStatusForOrd(ord: number): void {
   restoreStableStatus(status);
 }
 
-export function applyInitialStatusForOrd(ord: number): void {
-  const initialStatuses = window.__AQE_EDITOR_CONFIG__?.initialStatusByField;
+export function consumeInitialStatusForOrd(ord: number): InitialEditorStatus | null {
+  const initialStatuses = editorRuntimeConfig().initialStatusByField;
   const initialStatus = initialStatuses?.[ord];
-  if (!initialStatus?.message) return;
-  setStatusForOrd(ord, initialStatus.message, initialStatus.kind || "info");
   if (initialStatuses) {
     delete initialStatuses[ord];
   }
+  return initialStatus?.message ? initialStatus : null;
+}
+
+export function applyInitialHistoryAvailabilityForOrd(ord: number): void {
+  const initialAvailability = editorRuntimeConfig().initialHistoryAvailabilityByField;
+  const availability = initialAvailability?.[ord];
+  if (!availability) return;
+  setHistoryAvailability(ord, availability.canUndo, availability.canRedo);
+  delete initialAvailability[ord];
 }
 
 export function setCommandButtonLabel(ord: number, command: EditorCommand, label: string): void {
@@ -123,6 +173,7 @@ export function setCommandButtonLabel(ord: number, command: EditorCommand, label
   if (command === "aqe:analyze") {
     button.dataset.aqeButtonState = label === "Redraw" ? "redraw" : "graph";
     const title = label === "Redraw" ? t("editor.command.redraw.title") : t("editor.command.graph.title");
+    button.dataset.aqeEnabledTitle = title;
     setButtonTooltipContent(button, title);
   }
 }
@@ -166,6 +217,16 @@ function statusText(message: EditorStatusMessage): string {
   return isUserFacingError(message) ? message.message : message;
 }
 
+function defaultStatusOwner(kind: string): StatusOwner {
+  if (kind === "error") return "error";
+  if (kind === "processing") return "graph";
+  return "edit";
+}
+
+function storesStableStatus(owner: StatusOwner): boolean {
+  return owner === "edit" || owner === "error";
+}
+
 function renderStatusContent(status: HTMLElement, message: EditorStatusMessage): void {
   status.textContent = "";
   if (!isUserFacingError(message)) {
@@ -181,12 +242,20 @@ function renderStatusContent(status: HTMLElement, message: EditorStatusMessage):
   link.target = "_blank";
   link.rel = "noopener noreferrer";
   link.textContent = "Help";
+  link.addEventListener("click", (event) => openEditorExternalLink(event, link.href));
   status.append(code, ` ${message.message} `, link);
 }
 
-function renderStatus(status: HTMLElement, message: EditorStatusMessage, kind: string, command: string): void {
+function renderStatus(
+  status: HTMLElement,
+  message: EditorStatusMessage,
+  kind: string,
+  command: string,
+  owner: StatusOwner,
+): void {
   renderStatusContent(status, message);
   status.dataset.kind = kind;
+  status.dataset.statusOwner = owner;
   setTooltipContent(status, command);
   const spinner = status.closest<HTMLElement>(".aqe-status-row")?.querySelector<HTMLElement>(".aqe-spinner");
   if (spinner) spinner.hidden = kind !== "processing";
@@ -208,6 +277,7 @@ function restoreStableStatus(status: HTMLElement): void {
     message,
     status.dataset.stableKind || "info",
     status.dataset.stableCommand || "",
+    defaultStatusOwner(status.dataset.stableKind || "info"),
   );
 }
 
@@ -219,8 +289,27 @@ function updateHistoryButtonState(ord: number, command: "aqe:redo" | "aqe:undo")
   const fallbackTitle = button.getAttribute("aria-label") || "";
   const disabledTitle = button.dataset.aqeDisabledTitle || enabledTitle || fallbackTitle;
   const available = command === "aqe:undo" ? historyAvailability(ord).canUndo : historyAvailability(ord).canRedo;
-  const title = available ? (enabledTitle || fallbackTitle) : disabledTitle;
+  const reason = button.disabled
+    ? (anyBusy() && available ? t("tooltip.disabled.editor_busy") : disabledTitle)
+    : undefined;
+  const title = tooltipWithDisabledClarification(enabledTitle || fallbackTitle, reason);
   setButtonTooltipContent(button, title);
+}
+
+export function updateButtonTooltipForDisabledState(button: HTMLButtonElement): void {
+  const enabledTitle = button.dataset.aqeEnabledTitle || "";
+  const fallbackTitle = baseTooltipTitle(button);
+  const baseTitle = enabledTitle || fallbackTitle;
+  if (!baseTitle) return;
+  const reason = button.disabled
+    ? (anyBusy() ? t("tooltip.disabled.editor_busy") : button.dataset.aqeDisabledTitle)
+    : undefined;
+  setButtonTooltipContent(button, tooltipWithDisabledClarification(baseTitle, reason));
+}
+
+function baseTooltipTitle(button: HTMLButtonElement): string {
+  const currentTitle = button.getAttribute("data-aqe-tooltip-content") || button.getAttribute("aria-label") || "";
+  return currentTitle.split(/\n\s*\n/, 1)[0]?.trim() ?? "";
 }
 
 function updateButtonDisabledState(button: HTMLButtonElement): void {
@@ -235,5 +324,38 @@ function updateButtonDisabledState(button: HTMLButtonElement): void {
     button.disabled = busy || !historyAvailability(ord).canRedo;
     return;
   }
+  if (
+    command === "aqe:chorusing-practice"
+    || command === "aqe:chorusing-next"
+    || command === "aqe:chorusing-previous"
+  ) {
+    updateChorusingButtonDisabledState(button, ord, command, busy);
+    return;
+  }
   button.disabled = busy;
+}
+
+function updateChorusingButtonDisabledState(
+  button: HTMLButtonElement,
+  ord: number,
+  command: "aqe:chorusing-practice" | "aqe:chorusing-next" | "aqe:chorusing-previous",
+  busy: boolean,
+): void {
+  const visualizer = visualizerForOrd(ord);
+  if (!visualizer) {
+    button.disabled = true;
+    return;
+  }
+  const controls = chorusingControlsForVisualizer(visualizer);
+  if (command === "aqe:chorusing-next") {
+    button.disabled = busy || !controls.canNext;
+    return;
+  }
+  if (command === "aqe:chorusing-previous") {
+    button.disabled = busy || !controls.canPrevious;
+    return;
+  }
+  const hasPlayableTrack = visualizer.dataset.hasTrack === "true" && readVisualizerTargetDurationMs(visualizer) > 0;
+  const canInitialize = controls.baseStartMs === null && hasPlayableTrack;
+  button.disabled = busy || !(controls.canPractice || canInitialize);
 }

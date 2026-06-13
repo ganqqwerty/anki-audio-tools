@@ -53,6 +53,12 @@ const ERROR_COPY = {
     causes: ["Microphone permission is denied.", "The recording target graph no longer matches the current audio.", "The recorded file could not be saved or analyzed."],
     fixes: ["Check operating system microphone permission for Anki.", "Redraw the graph and record again.", "Copy a support report if recording still fails."]
   },
+  "AQE-UNDO-001": {
+    title: "Persistent undo is unavailable",
+    meaning: "Audio Quick Editor cannot use its persistent undo database because this Anki Python runtime does not provide SQLite support.",
+    causes: ["The bundled Python runtime was built without the sqlite3 module.", "The Python runtime installation is damaged."],
+    fixes: ["Restart Anki after updating to an official Anki build.", "Reinstall Anki if the same error appears.", "Copy a support report if the issue persists."]
+  },
   "AQE-BATCH-001": {
     title: "Invalid batch request",
     meaning: "The batch dialog could not start because the requested operation or fields were invalid.",

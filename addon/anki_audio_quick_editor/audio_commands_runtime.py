@@ -5,6 +5,11 @@ from __future__ import annotations
 from collections.abc import Sequence
 from pathlib import Path
 
+from .ffmpeg_output_contracts import (
+    validate_final_ffmpeg_output,
+    validate_intermediate_ffmpeg_output,
+)
+
 FFMPEG_AUDIO_CODEC_ARG = "-codec:a"
 DEFAULT_MP3_CODEC_ARGS = (FFMPEG_AUDIO_CODEC_ARG, "libmp3lame", "-q:a", "4")
 
@@ -15,6 +20,8 @@ def build_deep_filter_prepare_command(
     output_wav_path: Path,
 ) -> tuple[str, ...]:
     """Build the ffmpeg command that prepares a 48 kHz mono WAV for DeepFilterNet."""
+    codec_args = (FFMPEG_AUDIO_CODEC_ARG, "pcm_s16le")
+    validate_intermediate_ffmpeg_output(output_wav_path, codec_args)
     return (
         str(ffmpeg_path),
         "-y",
@@ -25,8 +32,7 @@ def build_deep_filter_prepare_command(
         "1",
         "-ar",
         "48000",
-        FFMPEG_AUDIO_CODEC_ARG,
-        "pcm_s16le",
+        *codec_args,
         str(output_wav_path),
     )
 
@@ -37,6 +43,8 @@ def build_silero_vad_prepare_command(
     output_wav_path: Path,
 ) -> tuple[str, ...]:
     """Build the ffmpeg command that prepares 16 kHz mono WAV for Silero VAD."""
+    codec_args = (FFMPEG_AUDIO_CODEC_ARG, "pcm_s16le")
+    validate_intermediate_ffmpeg_output(output_wav_path, codec_args)
     return (
         str(ffmpeg_path),
         "-y",
@@ -47,8 +55,7 @@ def build_silero_vad_prepare_command(
         "1",
         "-ar",
         "16000",
-        FFMPEG_AUDIO_CODEC_ARG,
-        "pcm_s16le",
+        *codec_args,
         str(output_wav_path),
     )
 
@@ -98,6 +105,8 @@ def build_rnnoise_prepare_command(
     output_raw_path: Path,
 ) -> tuple[str, ...]:
     """Build the ffmpeg command that prepares 48 kHz mono raw PCM for RNNoise."""
+    codec_args = (FFMPEG_AUDIO_CODEC_ARG, "pcm_s16le")
+    validate_intermediate_ffmpeg_output(output_raw_path, codec_args, muxer="s16le")
     return (
         str(ffmpeg_path),
         "-y",
@@ -110,8 +119,7 @@ def build_rnnoise_prepare_command(
         "48000",
         "-f",
         "s16le",
-        FFMPEG_AUDIO_CODEC_ARG,
-        "pcm_s16le",
+        *codec_args,
         str(output_raw_path),
     )
 
@@ -159,6 +167,8 @@ def build_rnnoise_encode_command(
     codec_args: Sequence[str] = DEFAULT_MP3_CODEC_ARGS,
 ) -> tuple[str, ...]:
     """Build the ffmpeg command that encodes RNNoise raw PCM output."""
+    resolved_codec_args = tuple(codec_args)
+    validate_final_ffmpeg_output(output_path, resolved_codec_args)
     return (
         str(ffmpeg_path),
         "-y",
@@ -171,7 +181,7 @@ def build_rnnoise_encode_command(
         "-i",
         str(source_raw_path),
         "-vn",
-        *tuple(codec_args),
+        *resolved_codec_args,
         str(output_path),
     )
 
@@ -182,6 +192,8 @@ def build_spleeter_prepare_command(
     output_wav_path: Path,
 ) -> tuple[str, ...]:
     """Build the ffmpeg command that prepares 44.1 kHz stereo WAV for Spleeter."""
+    codec_args = (FFMPEG_AUDIO_CODEC_ARG, "pcm_s16le")
+    validate_intermediate_ffmpeg_output(output_wav_path, codec_args)
     return (
         str(ffmpeg_path),
         "-y",
@@ -192,8 +204,7 @@ def build_spleeter_prepare_command(
         "2",
         "-ar",
         "44100",
-        FFMPEG_AUDIO_CODEC_ARG,
-        "pcm_s16le",
+        *codec_args,
         str(output_wav_path),
     )
 
@@ -233,13 +244,15 @@ def build_audio_encode_command(
     codec_args: Sequence[str] = DEFAULT_MP3_CODEC_ARGS,
 ) -> tuple[str, ...]:
     """Build the ffmpeg command used to encode processed audio output."""
+    resolved_codec_args = tuple(codec_args)
+    validate_final_ffmpeg_output(output_path, resolved_codec_args)
     return (
         str(ffmpeg_path),
         "-y",
         "-i",
         str(source_path),
         "-vn",
-        *tuple(codec_args),
+        *resolved_codec_args,
         str(output_path),
     )
 

@@ -18,7 +18,8 @@ from anki_audio_quick_editor.audio_processor import (
 )
 from anki_audio_quick_editor.audio_state import AudioEditState, AudioProcessingConfig
 from anki_audio_quick_editor.errors import AudioProcessingError
-from tests.audio_fixtures import FFMPEG_AVAILABLE, FFMPEG_SKIP_REASON
+
+FFMPEG = str(Path("/bin/ffmpeg"))
 
 
 def test_render_audio_region_deleted_uses_concat_filter(monkeypatch, tmp_path: Path) -> None:
@@ -27,10 +28,12 @@ def test_render_audio_region_deleted_uses_concat_filter(monkeypatch, tmp_path: P
     commands: list[tuple[str, ...]] = []
     monkeypatch.setattr("anki_audio_quick_editor.audio_processor.find_ffmpeg", lambda _path: Path("/bin/ffmpeg"))
     monkeypatch.setattr("anki_audio_quick_editor.audio_processor.probe_duration_ms", lambda *_args: next(durations))
-    monkeypatch.setattr("anki_audio_quick_editor.audio_processor.resolve_output_policy", lambda *_args, **_kwargs: _mp3_policy())
+    monkeypatch.setattr("anki_audio_quick_editor.audio_processor.resolve_output_policy",
+                        lambda *_args, **_kwargs: _mp3_policy())
     monkeypatch.setattr(
         "anki_audio_quick_editor.audio_processor.subprocess.run",
-        lambda cmd, capture_output, text, check: calls.append((cmd, capture_output, text, check)) or SimpleNamespace(returncode=0, stdout="", stderr=""),
+        lambda cmd, capture_output, text, check, **_kwargs: calls.append((cmd, capture_output, text, check))
+                                                            or SimpleNamespace(returncode=0, stdout="", stderr=""),
     )
     output = tmp_path / "cut.mp3"
     result = render_audio_region_deleted(
@@ -47,7 +50,7 @@ def test_render_audio_region_deleted_uses_concat_filter(monkeypatch, tmp_path: P
         "[a0][a1]concat=n=2:v=0:a=1[out]"
     )
     expected_command = (
-        "/bin/ffmpeg",
+        FFMPEG,
         "-y",
         "-i",
         str(tmp_path / "source.wav"),
@@ -58,8 +61,12 @@ def test_render_audio_region_deleted_uses_concat_filter(monkeypatch, tmp_path: P
         "[out]",
         "-codec:a",
         "libmp3lame",
-        "-q:a",
-        "4",
+        "-b:a",
+        "192k",
+        "-ar",
+        "44100",
+        "-ac",
+        "1",
         str(output),
     )
     assert calls == [(list(expected_command), True, True, False)]
@@ -75,10 +82,12 @@ def test_render_audio_region_kept_uses_single_trim_filter(monkeypatch, tmp_path:
     commands: list[tuple[str, ...]] = []
     monkeypatch.setattr("anki_audio_quick_editor.audio_processor.find_ffmpeg", lambda _path: Path("/bin/ffmpeg"))
     monkeypatch.setattr("anki_audio_quick_editor.audio_processor.probe_duration_ms", lambda *_args: next(durations))
-    monkeypatch.setattr("anki_audio_quick_editor.audio_processor.resolve_output_policy", lambda *_args, **_kwargs: _mp3_policy())
+    monkeypatch.setattr("anki_audio_quick_editor.audio_processor.resolve_output_policy",
+                        lambda *_args, **_kwargs: _mp3_policy())
     monkeypatch.setattr(
         "anki_audio_quick_editor.audio_processor.subprocess.run",
-        lambda cmd, capture_output, text, check: calls.append((cmd, capture_output, text, check)) or SimpleNamespace(returncode=0, stdout="", stderr=""),
+        lambda cmd, capture_output, text, check, **_kwargs: calls.append((cmd, capture_output, text, check))
+                                                            or SimpleNamespace(returncode=0, stdout="", stderr=""),
     )
     output = tmp_path / "kept.mp3"
     result = render_audio_region_kept(
@@ -90,7 +99,7 @@ def test_render_audio_region_kept_uses_single_trim_filter(monkeypatch, tmp_path:
         on_command=commands.append,
     )
     expected_command = (
-        "/bin/ffmpeg",
+        FFMPEG,
         "-y",
         "-i",
         str(tmp_path / "source.wav"),
@@ -101,8 +110,12 @@ def test_render_audio_region_kept_uses_single_trim_filter(monkeypatch, tmp_path:
         "[out]",
         "-codec:a",
         "libmp3lame",
-        "-q:a",
-        "4",
+        "-b:a",
+        "192k",
+        "-ar",
+        "44100",
+        "-ac",
+        "1",
         str(output),
     )
     assert calls == [(list(expected_command), True, True, False)]
@@ -116,7 +129,8 @@ def test_render_audio_uses_default_error_message_for_blank_stderr(monkeypatch, t
     monkeypatch.setattr("anki_audio_quick_editor.audio_processor.find_ffmpeg", lambda _path: Path("/bin/ffmpeg"))
     monkeypatch.setattr("anki_audio_quick_editor.audio_processor.probe_duration_ms", lambda *_args: 1000)
     monkeypatch.setattr("anki_audio_quick_editor.audio_processor.build_audio_filters", lambda *_args: "filters")
-    monkeypatch.setattr("anki_audio_quick_editor.audio_processor.resolve_output_policy", lambda *_args, **_kwargs: _mp3_policy())
+    monkeypatch.setattr("anki_audio_quick_editor.audio_processor.resolve_output_policy",
+                        lambda *_args, **_kwargs: _mp3_policy())
     monkeypatch.setattr(
         "anki_audio_quick_editor.audio_processor.subprocess.run",
         lambda *_args, **_kwargs: SimpleNamespace(returncode=1, stdout="", stderr="   "),
@@ -134,11 +148,11 @@ def _mp3_policy() -> SimpleNamespace:
     return SimpleNamespace(
         extension=".mp3",
         mime_type="audio/mpeg",
-        codec_args=("-codec:a", "libmp3lame", "-q:a", "4"),
+        codec_args=("-codec:a", "libmp3lame", "-b:a", "192k", "-ar", "44100", "-ac", "1"),
     )
 
 
-@pytest.mark.skipif(not FFMPEG_AVAILABLE, reason=FFMPEG_SKIP_REASON)
+@pytest.mark.allow_managed_runtime
 def test_render_audio_smoke_with_path_spaces_and_non_ascii(tmp_path: Path) -> None:
     source_dir = tmp_path / "media with spaces"
     source_dir.mkdir()
@@ -150,6 +164,8 @@ def test_render_audio_smoke_with_path_spaces_and_non_ascii(tmp_path: Path) -> No
         check=True,
         capture_output=True,
         text=True,
+        encoding="utf-8",
+        errors="replace",
     )
     result = render_audio(
         source,
@@ -163,7 +179,7 @@ def test_render_audio_smoke_with_path_spaces_and_non_ascii(tmp_path: Path) -> No
     assert 700 <= probe_duration_ms(output, AudioProcessingConfig()) <= 1000
 
 
-@pytest.mark.skipif(not FFMPEG_AVAILABLE, reason=FFMPEG_SKIP_REASON)
+@pytest.mark.allow_managed_runtime
 def test_render_audio_region_kept_smoke_outputs_selected_duration(tmp_path: Path) -> None:
     source = tmp_path / "source.wav"
     output = tmp_path / "kept.mp3"
@@ -173,6 +189,8 @@ def test_render_audio_region_kept_smoke_outputs_selected_duration(tmp_path: Path
         check=True,
         capture_output=True,
         text=True,
+        encoding="utf-8",
+        errors="replace",
     )
     result = render_audio_region_kept(source, 500, 1250, AudioProcessingConfig(), output_path=output)
     probed_duration_ms = probe_duration_ms(output, AudioProcessingConfig())

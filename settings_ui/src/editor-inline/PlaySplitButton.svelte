@@ -2,13 +2,17 @@
   import { Popover } from "bits-ui";
   import { onMount } from "svelte";
   import AqeTooltip from "../lib/AqeTooltip.svelte";
+  import { buttonTooltipContent } from "../lib/disabled-tooltip.js";
   import EditorCommandIcon from "./EditorCommandIcon.svelte";
   import { openEditorExternalLink } from "./external-links.js";
   import { PRODUCT_LINKS } from "../lib/product-links.js";
+  import UnitNumberInput from "../lib/UnitNumberInput.svelte";
+  import ValueSlider from "../lib/ValueSlider.svelte";
   import SplitDefaultSaveButton from "./SplitDefaultSaveButton.svelte";
   import { setRepeatEnabledForOrd, setRepeatPauseSecondsForOrd, send } from "./actions.js";
   import { sendSplitDefaultSaveRequest } from "./bridge.js";
   import { visualizerForOrd } from "./dom-selectors.js";
+  import { updateEditorRuntimeConfig } from "./editor-runtime-config.js";
   import {
     formatRepeatPauseSeconds,
     getSplitButtonState,
@@ -39,6 +43,9 @@
     }),
   }));
   const title = $derived(playSelection ? t("editor.command.play.title_selected") : t("editor.command.play.title"));
+  const primaryTooltip = $derived(buttonTooltipContent(button.label, title));
+  const repeatTooltip = $derived(buttonTooltipContent(t("editor.repeat.label"), t("editor.repeat.title")));
+  const playRunTooltip = $derived(buttonTooltipContent(t("editor.play.play_audio"), t("editor.command.play.title")));
   function close(): void {
     open = false;
   }
@@ -83,10 +90,7 @@
       fieldOrd: target.ord,
     };
     sendSplitDefaultSaveRequest(request);
-    window.__AQE_EDITOR_CONFIG__ = {
-      ...(window.__AQE_EDITOR_CONFIG__ ?? { audioFieldIndices: [] }),
-      repeatPlaybackByDefault: pressed,
-    };
+    updateEditorRuntimeConfig({ repeatPlaybackByDefault: pressed });
     repeatPauseSeconds = promoteSplitDefaultsForField(target.ord, request.defaults).repeatPauseSeconds;
     setRepeatPauseSecondsForOrd(target.ord, repeatPauseSeconds);
     showDefaultSaved();
@@ -126,9 +130,10 @@
           class="aqe-button aqe-split-primary aqe-tooltip-target"
           data-aqe-command={button.command}
           data-aqe-button-state="play"
-          data-aqe-tooltip-content={title}
+          data-aqe-enabled-title={primaryTooltip}
+          data-aqe-tooltip-content={primaryTooltip}
           data-testid={`aqe-button-${target.ord}-play`}
-          aria-label={title}
+          aria-label={primaryTooltip}
           onmousedown={(event) => event.preventDefault()}
           onclick={dispatchPrimary}
         >
@@ -143,8 +148,7 @@
       {/snippet}
     </AqeTooltip>
     <Popover.Trigger
-      class="aqe-button aqe-icon-only aqe-split-menu-button aqe-play-repeat-menu-button"
-      data-aqe-button-state={pressed ? "active" : "default"}
+      class="aqe-button aqe-icon-only aqe-split-menu-button"
       data-aqe-tooltip-content={menuTitle}
       data-testid={`aqe-split-${target.ord}-play-menu`}
       aria-label={menuTitle}
@@ -155,7 +159,7 @@
     <Popover.Content
       align="center"
       arrowPadding={14}
-      class="aqe-split-popover aqe-play-split-popover"
+      class="aqe-ui-root aqe-split-popover aqe-play-split-popover"
       collisionPadding={8}
       data-testid={`aqe-split-${target.ord}-play-popover`}
       onCloseAutoFocus={(event) => event.preventDefault()}
@@ -199,9 +203,9 @@
             type="button"
             class="aqe-button aqe-repeat-button aqe-repeat-toggle-button aqe-tooltip-target"
             data-aqe-button-state={pressed ? "active" : "default"}
-            data-aqe-tooltip-content={t("editor.repeat.title")}
+            data-aqe-tooltip-content={repeatTooltip}
             data-testid={`aqe-repeat-${target.ord}`}
-            aria-label={t("editor.repeat.aria")}
+            aria-label={repeatTooltip}
             aria-pressed={pressed ? "true" : "false"}
             onmousedown={(event) => event.preventDefault()}
             onclick={toggleRepeat}
@@ -213,29 +217,27 @@
       </AqeTooltip>
       <div class="aqe-split-popover-header">
         <strong>{t("editor.repeat.pause_seconds")}</strong>
-        <span style="align-items: center; display: inline-flex; gap: 4px; justify-content: flex-end;">
-          <input
-            class="aqe-split-value-input"
-            data-testid={`aqe-split-${target.ord}-repeat-value`}
-            type="number"
-            min="0"
-            max="10"
-            step="0.1"
-            value={repeatPauseSeconds}
-            aria-label={t("editor.repeat.pause_seconds")}
-            oninput={(event) => applyValue((event.currentTarget as HTMLInputElement).valueAsNumber)}
-          />
-          <span style="font-size: 11px; white-space: nowrap;"> s</span>
-        </span>
+        <UnitNumberInput
+          inputClass="aqe-split-value-input"
+          testId={`aqe-split-${target.ord}-repeat-value`}
+          min="0"
+          max="10"
+          step="0.1"
+          value={repeatPauseSeconds}
+          unit="s"
+          ariaLabel={t("editor.repeat.pause_seconds")}
+          onValueInput={applyValue}
+        />
       </div>
-      <input
-        data-testid={`aqe-split-${target.ord}-repeat-slider`}
-        type="range"
+      <ValueSlider
+        testId={`aqe-split-${target.ord}-repeat-slider`}
         min="0"
         max="10"
         step="0.1"
         value={repeatPauseSeconds}
-        oninput={(event) => applyValue(Number((event.currentTarget as HTMLInputElement).value))}
+        ariaLabel={t("editor.repeat.pause_seconds")}
+        formatValue={formatRepeatPauseSeconds}
+        onValueInput={applyValue}
       />
       <div class="aqe-split-range-labels">
         <span>0 s</span>
@@ -261,9 +263,9 @@
               {...props}
               type="button"
               class="aqe-button aqe-split-run-button aqe-tooltip-target"
-              data-aqe-tooltip-content={t("editor.command.play.title")}
+              data-aqe-tooltip-content={playRunTooltip}
               data-testid={`aqe-split-${target.ord}-play-run`}
-              aria-label={t("editor.command.play.title")}
+              aria-label={playRunTooltip}
               onclick={dispatchPrimary}
             >
               {t("editor.play.play_audio")}

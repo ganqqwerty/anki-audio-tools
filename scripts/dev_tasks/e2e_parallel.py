@@ -12,7 +12,13 @@ from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from pathlib import Path
 
-from scripts.dev_tasks.process import _format_duration, _run, _run_capture
+from scripts.dev_tasks.process import (
+    _format_duration,
+    _run,
+    _run_capture,
+    is_quiet_test_output,
+    is_verbose,
+)
 from scripts.dev_tasks.pytest_runner import _pytest_args
 from scripts.dev_tasks.python_env import _find_anki_python
 
@@ -127,6 +133,11 @@ def plan_shards(file_groups: Sequence[E2EFileGroup], worker_count: int) -> tuple
     return tuple(shards)
 
 
+def _emit_parallel_status(message: str, *, force: bool = False) -> None:
+    if force or is_verbose() or not is_quiet_test_output():
+        print(message)
+
+
 def cmd_test_e2e_parallel(command_args: Sequence[str]) -> int:
     anki_python = _find_anki_python()
     collect_cache_dir = Path(tempfile.mkdtemp(prefix="aqe-e2e-collect-cache-"))
@@ -145,16 +156,16 @@ def cmd_test_e2e_parallel(command_args: Sequence[str]) -> int:
     worker_count = requested_worker_count(os.environ, potential_shards)
     shards = plan_shards(file_groups, worker_count)
     if not shards:
-        print("[dev] no e2e tests collected")
+        _emit_parallel_status("[dev] no e2e tests collected", force=True)
         return 1
 
     total_items = sum(shard.item_count for shard in shards)
-    print(
+    _emit_parallel_status(
         f"[dev] e2e parallel: {total_items} item(s), "
         f"{len(shards)} shard(s), {worker_count} worker(s)"
     )
     for shard in shards:
-        print(
+        _emit_parallel_status(
             f"[dev] shard {shard.name}: {shard.item_count} item(s), "
             f"{', '.join(shard.files)}"
         )
@@ -168,11 +179,11 @@ def cmd_test_e2e_parallel(command_args: Sequence[str]) -> int:
 
     failed = [result for result in results if result.returncode != 0]
     if failed:
-        print(f"[dev] {len(failed)} e2e shard(s) failed")
+        _emit_parallel_status(f"[dev] {len(failed)} e2e shard(s) failed", force=True)
         for result in failed:
-            print(f"[dev] rerun {result.name}: {result.rerun_command}")
+            _emit_parallel_status(f"[dev] rerun {result.name}: {result.rerun_command}", force=True)
         return 1
-    print("[dev] all e2e shards passed")
+    _emit_parallel_status("[dev] all e2e shards passed")
     return 0
 
 
@@ -215,7 +226,7 @@ def _run_shard(anki_python: Path, shard: E2EShard) -> _ShardResult:
     finally:
         shutil.rmtree(cache_dir, ignore_errors=True)
     elapsed = _format_duration(time.monotonic() - start)
-    print(f"[dev] shard {shard.name} completed in {elapsed}")
+    _emit_parallel_status(f"[dev] shard {shard.name} completed in {elapsed}")
     return _ShardResult(shard.name, rc, _rerun_command(shard))
 
 

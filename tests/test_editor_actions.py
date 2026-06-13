@@ -7,6 +7,7 @@ from unittest.mock import patch
 from anki_audio_quick_editor.audio_operations import (
     OP_CONVERT,
     OP_FASTER,
+    OP_REDUCE_SIZE,
     OP_REMOVE_PAUSES,
     OP_SLOWER,
     OP_VOLUME_DOWN,
@@ -16,6 +17,7 @@ from anki_audio_quick_editor.audio_state import AudioEditState, AudioProcessingC
 from anki_audio_quick_editor.editor_actions import (
     BRIDGE_COMMAND_TO_OPERATION,
     BRIDGE_COMMANDS,
+    CMD_SOURCE_METADATA,
     PROCESSING_COMMANDS,
     apply_processing_command,
     decode_editor_command_payload,
@@ -35,6 +37,7 @@ def test_batchable_processing_commands_map_to_shared_operations() -> None:
         "aqe:volume-up": OP_VOLUME_UP,
         "aqe:remove-pauses": OP_REMOVE_PAUSES,
         "aqe:convert": OP_CONVERT,
+        "aqe:reduce-size": OP_REDUCE_SIZE,
     }
 
 
@@ -67,6 +70,21 @@ def test_decode_command_accepts_share_target_payload() -> None:
     assert decoded.command == "aqe:share"
     assert decoded.field_ord == 0
     assert decoded.share_target == "litterbox"
+
+
+def test_decode_record_voice_payload_accepts_start_cursor() -> None:
+    decoded = decode_editor_command_payload(
+        '{"command":"aqe:record-voice","fieldOrd":0,"startCursorMs":750}'
+    )
+
+    assert decoded.command == "aqe:record-voice"
+    assert decoded.field_ord == 0
+    assert decoded.start_cursor_ms == 750
+
+
+def test_learner_recording_sidecar_commands_are_registered_bridge_commands() -> None:
+    assert "aqe:share-recording" in BRIDGE_COMMANDS
+    assert "aqe:show-recording-file" in BRIDGE_COMMANDS
 
 
 def test_decode_post_edit_playback_ready_payload() -> None:
@@ -157,6 +175,19 @@ def test_decode_command_accepts_convert_target_format_override() -> None:
     assert decoded.overrides.target_format == "flac"
 
 
+def test_decode_command_accepts_size_reduction_mode_override() -> None:
+    decoded = decode_editor_command_payload(
+        '{"command":"aqe:reduce-size","fieldOrd":0,'
+        '"overrides":{"sizeReductionMode":"gentle","sizeReductionBitrateKbps":80,'
+        '"sizeReductionSampleRateHz":44100,"sizeReductionChannels":2}}'
+    )
+
+    assert decoded.overrides.size_reduction_mode == "gentle"
+    assert decoded.overrides.size_reduction_bitrate_kbps == 80
+    assert decoded.overrides.size_reduction_sample_rate_hz == 44100
+    assert decoded.overrides.size_reduction_channels == 2
+
+
 def test_decode_command_accepts_pitch_hum_mode_override() -> None:
     decoded = decode_editor_command_payload(
         '{"command":"aqe:pitch-hum","fieldOrd":0,"overrides":{"pitchHumMode":"pitch_tier"}}'
@@ -235,6 +266,13 @@ def test_apply_processing_command_returns_none_for_convert_command() -> None:
     assert apply_processing_command("aqe:convert", state, config) is None
 
 
+def test_apply_processing_command_returns_none_for_size_reduction_command() -> None:
+    config = AudioProcessingConfig()
+    state = AudioEditState("clip.mp3")
+
+    assert apply_processing_command("aqe:reduce-size", state, config) is None
+
+
 def test_play_graph_cursor_and_play_ended_are_not_processing_commands() -> None:
     assert {
         "aqe:play",
@@ -253,6 +291,9 @@ def test_play_graph_cursor_and_play_ended_are_not_processing_commands() -> None:
         "aqe:settings",
         "aqe:redo",
         "aqe:trim-silence",
+        "aqe:convert",
+        "aqe:reduce-size",
+        CMD_SOURCE_METADATA,
     }.isdisjoint(PROCESSING_COMMANDS)
 
     assert "aqe:denoise-standard" in BRIDGE_COMMANDS
@@ -263,6 +304,8 @@ def test_play_graph_cursor_and_play_ended_are_not_processing_commands() -> None:
     assert "aqe:settings" in BRIDGE_COMMANDS
     assert "aqe:redo" in BRIDGE_COMMANDS
     assert "aqe:analyze-field" in BRIDGE_COMMANDS
+    assert CMD_SOURCE_METADATA == "aqe:source-metadata"
+    assert CMD_SOURCE_METADATA in BRIDGE_COMMANDS
     assert ("aqe:" + "si" + "don") not in BRIDGE_COMMANDS
 
 

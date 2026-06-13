@@ -8,11 +8,10 @@ from types import SimpleNamespace
 from unittest.mock import MagicMock
 
 from anki_audio_quick_editor.audio_state import AudioEditState, AudioProcessingConfig
-from anki_audio_quick_editor.editor_integration import (
-    _SESSIONS,
-    EditorSession,
-    _handle_bridge_command,
-)
+from anki_audio_quick_editor.editor_callbacks import _handle_bridge_command
+from anki_audio_quick_editor.editor_runtime import SESSIONS
+from anki_audio_quick_editor.editor_session import EditorSession
+from anki_audio_quick_editor.errors import AudioAlreadyCompactError
 
 
 class ImmediateThread:
@@ -60,7 +59,7 @@ def _setup_editor(
             )
         ),
     )
-    _SESSIONS[editor] = EditorSession(
+    SESSIONS[editor] = EditorSession(
         state=AudioEditState(source_filename),
         field_index=0,
         current_filename=source_filename,
@@ -102,7 +101,7 @@ def test_convert_replaces_current_media_using_default_output_format(
     _handle_bridge_command(editor, "aqe:convert")
 
     saved_name = editor.mw.col.media.write_data.call_args.args[0]
-    session = _SESSIONS[editor]
+    session = SESSIONS[editor]
     assert rendered == [(source, "flac", ".flac")]
     assert saved_name.endswith(".flac")
     assert editor.note.fields == [f"[sound:{saved_name}]"]
@@ -134,7 +133,7 @@ def test_convert_records_pending_post_edit_playback(tmp_path: Path, monkeypatch)
     _handle_bridge_command(editor, "aqe:convert")
 
     saved_name = editor.mw.col.media.write_data.call_args.args[0]
-    session = _SESSIONS[editor]
+    session = SESSIONS[editor]
     assert editor.note.fields == [f"[sound:{saved_name}]"]
     assert session.pending_post_edit_playback_field_index == 0
     assert session.pending_post_edit_playback_generation == session.post_edit_playback_generation
@@ -194,5 +193,151 @@ def test_convert_same_visible_extension_is_noop(tmp_path: Path, monkeypatch) -> 
 
     editor.mw.col.media.write_data.assert_not_called()
     assert editor.note.fields == ["[sound:clip.MP3]"]
-    assert _SESSIONS[editor].processing is False
+    assert SESSIONS[editor].processing is False
     assert any("Already in MP3 format." in call.args[0] for call in editor.web.eval.call_args_list)
+
+
+def test_reduce_size_replaces_current_media_as_mp3(tmp_path: Path, monkeypatch) -> None:
+    editor, source = _setup_editor(tmp_path, config={"size_reduction_mode": "gentle"})
+    rendered: list[tuple[Path, str, str, str]] = []
+
+    def fake_render_size_reduced_audio(
+        source_path: Path,
+        config: AudioProcessingConfig,
+        output_path: Path,
+        **kwargs,
+    ) -> None:
+        rendered.append(
+            (
+                source_path,
+                config.size_reduction_mode,
+                kwargs["mode"],
+                output_path.suffix,
+            )
+        )
+        output_path.write_bytes(b"smaller")
+
+    _patch_common(monkeypatch)
+    monkeypatch.setattr(
+        "anki_audio_quick_editor.editor_dependencies.render_size_reduced_audio",
+        fake_render_size_reduced_audio,
+    )
+
+    _handle_bridge_command(editor, "aqe:reduce-size")
+
+    saved_name = editor.mw.col.media.write_data.call_args.args[0]
+    session = SESSIONS[editor]
+    assert rendered == [(source, "gentle", None, ".mp3")]
+    assert saved_name.endswith(".mp3")
+    assert editor.note.fields == [f"[sound:{saved_name}]"]
+    assert session.undo_history.pop().filename == "clip.wav"
+    assert session.state == AudioEditState(source_file=saved_name)
+    assert session.processing is False
+
+
+def test_reduce_size_uses_payload_mode_override(tmp_path: Path, monkeypatch) -> None:
+    editor, source = _setup_editor(tmp_path, config={"size_reduction_mode": "normal"})
+    rendered: list[tuple[Path, str, str, int, int, int]] = []
+
+    def fake_render_size_reduced_audio(
+        source_path: Path,
+        config: AudioProcessingConfig,
+        output_path: Path,
+        **kwargs,
+    ) -> None:
+        rendered.append(
+            (
+                source_path,
+                config.size_reduction_mode,
+                kwargs["mode"],
+                config.size_reduction_bitrate_kbps,
+                config.size_reduction_sample_rate_hz,
+                config.size_reduction_channels,
+            )
+        )
+        output_path.write_bytes(b"smaller")
+
+    _patch_common(monkeypatch)
+    monkeypatch.setattr(
+        "anki_audio_quick_editor.editor_dependencies.render_size_reduced_audio",
+        fake_render_size_reduced_audio,
+    )
+
+    _handle_bridge_command(
+        editor,
+        json.dumps(
+            {
+                "command": "aqe:reduce-size",
+                "fieldOrd": 0,
+                "overrides": {"sizeReductionMode": "aggressive"},
+            }
+        ),
+    )
+
+    assert rendered == [(source, "aggressive", "aggressive", 40, 22050, 1)]
+
+
+def test_reduce_size_uses_payload_advanced_overrides(tmp_path: Path, monkeypatch) -> None:
+    editor, source = _setup_editor(tmp_path, config={"size_reduction_mode": "normal"})
+    rendered: list[tuple[Path, str, int, int, int]] = []
+
+    def fake_render_size_reduced_audio(
+        source_path: Path,
+        config: AudioProcessingConfig,
+        output_path: Path,
+        **_kwargs,
+    ) -> None:
+        rendered.append(
+            (
+                source_path,
+                config.size_reduction_mode,
+                config.size_reduction_bitrate_kbps,
+                config.size_reduction_sample_rate_hz,
+                config.size_reduction_channels,
+            )
+        )
+        output_path.write_bytes(b"smaller")
+
+    _patch_common(monkeypatch)
+    monkeypatch.setattr(
+        "anki_audio_quick_editor.editor_dependencies.render_size_reduced_audio",
+        fake_render_size_reduced_audio,
+    )
+
+    _handle_bridge_command(
+        editor,
+        json.dumps(
+            {
+                "command": "aqe:reduce-size",
+                "fieldOrd": 0,
+                "overrides": {
+                    "sizeReductionMode": "gentle",
+                    "sizeReductionBitrateKbps": 80,
+                    "sizeReductionSampleRateHz": 44100,
+                    "sizeReductionChannels": 2,
+                },
+            }
+        ),
+    )
+
+    assert rendered == [(source, "gentle", 80, 44100, 2)]
+
+
+def test_reduce_size_already_compact_is_noop(tmp_path: Path, monkeypatch) -> None:
+    editor, _source = _setup_editor(tmp_path, source_filename="clip.mp3")
+
+    def fake_render_size_reduced_audio(*_args, **_kwargs) -> None:
+        raise AudioAlreadyCompactError("already compact")
+
+    _patch_common(monkeypatch)
+    monkeypatch.setattr(
+        "anki_audio_quick_editor.editor_dependencies.render_size_reduced_audio",
+        fake_render_size_reduced_audio,
+    )
+
+    _handle_bridge_command(editor, "aqe:reduce-size")
+
+    editor.mw.col.media.write_data.assert_not_called()
+    assert editor.note.fields == ["[sound:clip.mp3]"]
+    assert SESSIONS[editor].processing is False
+    assert any("already compact" in call.args[0] for call in editor.web.eval.call_args_list)

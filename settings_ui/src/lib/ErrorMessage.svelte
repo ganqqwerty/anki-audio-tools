@@ -1,5 +1,6 @@
 <script lang="ts">
   import { errorHelpUrl } from "./error-links.js";
+  import { openExternalLink } from "./external-links.js";
   import { isUserFacingError, type ErrorDisplayValue } from "./user-facing-error.js";
 
   let {
@@ -19,7 +20,13 @@
   {#if coded}
     <span class="error-code">{coded.code}:</span>
     {" "}{coded.message}
-    <a class="error-help-link" href={errorHelpUrl(coded.code)} target="_blank" rel="noopener noreferrer">Help</a>
+    <a
+      class="error-help-link"
+      href={errorHelpUrl(coded.code)}
+      onclick={(event) => openExternalLink(event, errorHelpUrl(coded.code))}
+      target="_blank"
+      rel="noopener noreferrer"
+    >Help</a>
   {:else}
     {error}
   {/if}

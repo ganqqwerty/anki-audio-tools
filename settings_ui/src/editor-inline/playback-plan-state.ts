@@ -7,6 +7,11 @@ import {
   startPlaybackCursorTransition,
   stopPlaybackCursorTransition,
 } from "./visualizer-renderer.js";
+import { readFieldState, writeFieldState, setCachedProgressMs } from "./field-state-store.js";
+
+function fieldOrd(v: VisualizerElement): number {
+  return Number(v.dataset.aqeFieldOrd || "0");
+}
 
 export function startPlaybackPlan(visualizer: VisualizerElement, startMs: number, endMs: number): void {
   const nowMs = performance.now();
@@ -18,7 +23,11 @@ export function startPlaybackPlan(visualizer: VisualizerElement, startMs: number
   delete visualizer.__aqeCursorTextPaintedAtMs;
   visualizer.dataset.playStartedAt = String(nowMs);
   visualizer.dataset.playStartMs = String(Math.round(plan.startMs));
-  visualizer.dataset.progressMs = String(Math.round(plan.startMs));
+  const ord = fieldOrd(visualizer);
+  writeFieldState(ord, {
+    ...readFieldState(ord),
+    cursor: { ...readFieldState(ord).cursor, progressMs: Math.round(plan.startMs) },
+  });
   startPlaybackCursorTransition(visualizer, plan.startMs, plan.endMs);
 }
 
@@ -27,10 +36,10 @@ export function liveProgressMs(
   nowMs: number = performance.now(),
 ): number | null {
   const plan = visualizer.__aqePlaybackPlan;
-  if (!plan || visualizer.dataset.playbackState !== "playing") return null;
+  if (!plan || readFieldState(fieldOrd(visualizer)).playback.state !== "playing") return null;
   const progressMs = progressMsForPlan(plan, nowMs);
   visualizer.__aqeLiveProgressMs = Math.round(progressMs);
-  visualizer.dataset.progressMs = String(Math.round(progressMs));
+  setCachedProgressMs(fieldOrd(visualizer), progressMs);
   return progressMs;
 }
 
@@ -53,6 +62,6 @@ export function repeatPauseDelayMs(visualizer: VisualizerElement): number {
 }
 
 export function clampProgressMs(visualizer: VisualizerElement, ms: number): number {
-  const durationMs = Number(visualizer.dataset.durationMs || "0");
+  const durationMs = readFieldState(fieldOrd(visualizer)).graph.durationMs;
   return Math.max(0, Math.min(Number(ms) || 0, durationMs || 0));
 }

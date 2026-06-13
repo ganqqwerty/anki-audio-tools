@@ -148,6 +148,18 @@ BROAD_EXCEPTION_ALLOWLIST: tuple[BroadExceptionAllowance, ...] = (
         "Background render worker boundary reports failed audio generation on the main thread.",
     ),
     BroadExceptionAllowance(
+        "editor_processing",
+        "replace_current_field_after_render",
+        1,
+        "Persistent undo journal writes are best-effort and must not block a completed render.",
+    ),
+    BroadExceptionAllowance(
+        "editor_webview_injection",
+        "_can_persistent_undo",
+        1,
+        "Initial editor injection must not fail note loading when the persistent history check fails.",
+    ),
+    BroadExceptionAllowance(
         "editor_special_transform_worker",
         "run_special_transform_worker",
         1,
@@ -173,9 +185,15 @@ BROAD_EXCEPTION_ALLOWLIST: tuple[BroadExceptionAllowance, ...] = (
     ),
     BroadExceptionAllowance(
         "editor_sharing",
-        "share_current_audio_file._run",
+        "share_media_path._run",
         1,
         "Background upload worker boundary reports Catbox/Litterbox failures on the main thread.",
+    ),
+    BroadExceptionAllowance(
+        "editor_source_metadata",
+        "_start_probe._run",
+        1,
+        "Lazy editor source metadata worker sends non-blocking UI error callbacks instead of leaking thread exceptions.",
     ),
     BroadExceptionAllowance(
         "editor_playback",
@@ -184,7 +202,7 @@ BROAD_EXCEPTION_ALLOWLIST: tuple[BroadExceptionAllowance, ...] = (
         "Best-effort playback backend integration cannot assume a stable Anki audio API surface.",
     ),
     BroadExceptionAllowance(
-        "editor_playback",
+        "editor_playback_request",
         "toggle_native_pause_resume",
         1,
         "Best-effort playback backend integration reports pause/resume unavailability as a warning.",
@@ -206,6 +224,12 @@ BROAD_EXCEPTION_ALLOWLIST: tuple[BroadExceptionAllowance, ...] = (
         "analyze_learner_recording_async._run",
         1,
         "Background learner-recording analysis worker reports analyzer failures on the main thread.",
+    ),
+    BroadExceptionAllowance(
+        "editor_recording",
+        "play_learner_recording",
+        1,
+        "Best-effort learner playback integration reports pause/resume unavailability as a warning.",
     ),
     BroadExceptionAllowance(
         "file_reveal",
@@ -295,7 +319,7 @@ def test_broad_exception_handlers_are_allowlisted_with_reasons() -> None:
 def _collect_broad_exception_handlers() -> Counter[tuple[str, str]]:
     observed: Counter[tuple[str, str]] = Counter()
     for path in sorted(ADDON_DIR.rglob("*.py")):
-        if "vendor" in path.parts:
+        if "vendor" in path.parts or "user_files" in path.parts:
             continue
         module = _module_name(path)
         visitor = BroadExceptionVisitor(module)

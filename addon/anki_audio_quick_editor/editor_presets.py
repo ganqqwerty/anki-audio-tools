@@ -203,6 +203,7 @@ def _editor_preset_runner_adapters(deps: Any) -> ProcessingPresetRunnerAdapters:
         temp_output_path=deps.temp_final_path,
         render_audio=_render_preset_audio(deps),
         render_converted_audio=_render_preset_converted_audio(deps),
+        render_size_reduced_audio=_render_preset_size_reduced_audio(deps),
         render_denoise_audio=_render_preset_denoise_audio(deps),
         analyze_prosody=deps.analyze_prosody_cached,
         render_graph_svg=lambda _track: b"",
@@ -240,6 +241,20 @@ def _render_preset_converted_audio(
         output_path: Path,
     ) -> None:
         deps.render_converted_audio(source_path, config, target_format, output_path=output_path)
+
+    return _render
+
+
+def _render_preset_size_reduced_audio(
+    deps: Any,
+) -> Callable[[Path, AudioProcessingConfig, Path], None]:
+    def _render(source_path: Path, config: AudioProcessingConfig, output_path: Path) -> None:
+        deps.render_size_reduced_audio(
+            source_path,
+            config,
+            output_path=output_path,
+            mode=config.size_reduction_mode,
+        )
 
     return _render
 

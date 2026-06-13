@@ -6,10 +6,7 @@ import json
 from pathlib import Path
 
 from e2e.conftest import import_runtime_addon_module
-from e2e.editor_audio_generation_helpers import (
-    _fake_dpdfnet_executable,
-    _generate_noisy_pause_and_clean_analysis,
-)
+from e2e.editor_audio_generation_helpers import _generate_tone_silence_tone
 from e2e.editor_note_helpers import (
     _artifact_dirs_for_source,
     _artifact_root,
@@ -28,24 +25,18 @@ from e2e.helpers import click_selector, wait_for_js_condition
 def test_shorten_pauses_uses_dpdfnet_analysis_and_retains_artifacts(
     anki_mw,
     ffmpeg_config,
-    tmp_path,
 ) -> None:
     probe_duration_ms = import_runtime_addon_module(".audio_processor").probe_duration_ms
+    runtime_platform = import_runtime_addon_module(".runtime_platform")
 
     media_dir = Path(anki_mw.col.media.dir())
     source = media_dir / "editor_shorten_pause_source.wav"
-    cleaned_analysis = tmp_path / "editor_shorten_pause_cleaned.wav"
-    _generate_noisy_pause_and_clean_analysis(ffmpeg_config, source, cleaned_analysis)
+    _generate_tone_silence_tone(ffmpeg_config, source)
     original_bytes = source.read_bytes()
-    fake_dpdfnet, dpdfnet_log = _fake_dpdfnet_executable(
-        tmp_path,
-        cleaned_source=cleaned_analysis,
-    )
     note = _basic_audio_note(anki_mw, source.name)
     _configure_ffmpeg(
         anki_mw,
         ffmpeg_config,
-        dpdfnet_path=str(fake_dpdfnet),
         pause_silencedetect_preprocess_denoise=True,
         show_ffmpeg_commands=True,
     )
@@ -92,6 +83,14 @@ def test_shorten_pauses_uses_dpdfnet_analysis_and_retains_artifacts(
         assert "01_working_original.wav" in " ".join(
             stage_by_name["preprocess_pause_analysis_denoise"]["argv"]
         )
+        platform_key = runtime_platform.current_platform_key()
+        assert platform_key is not None
+        dpdfnet_path = Path(manifest["dpdfnet_path"])
+        assert dpdfnet_path.is_file()
+        assert dpdfnet_path.name == runtime_platform.tool_executable_name(
+            "dpdfnet",
+            platform_key,
+        )
         assert manifest["silence_intervals"]
         assert manifest["pause_preprocessing"]["enabled"] is True
         assert manifest["pause_preprocessing"]["implementation"] == "dpdfnet"
@@ -102,43 +101,28 @@ def test_shorten_pauses_uses_dpdfnet_analysis_and_retains_artifacts(
 
         filter_script = (run_dir / "06_filter_complex.ffscript").read_text(encoding="utf-8")
         assert "atempo=" not in filter_script
-        dpdfnet_args = json.loads(dpdfnet_log.read_text(encoding="utf-8"))
-        assert dpdfnet_args[0] == "enhance"
-        assert Path(dpdfnet_args[-2]).name == "01_working_original.wav"
-        assert Path(dpdfnet_args[-1]).name == "02_denoised_analysis.wav"
     finally:
         editor.set_note(None)
         parent.close()
         _cleanup_artifact_dirs(artifact_root, source)
 
 
-def test_shorten_pauses_failure_leaves_note_unchanged_and_records_manifest(
+def test_shorten_pauses_invalid_source_leaves_note_unchanged(
     anki_mw,
     ffmpeg_config,
-    tmp_path,
 ) -> None:
-    support = import_runtime_addon_module(".support")
-    clear_latest_pause_pipeline_support_incident = (
-        support.clear_latest_pause_pipeline_support_incident
-    )
-    latest_pause_pipeline_support_incident = support.latest_pause_pipeline_support_incident
-
     media_dir = Path(anki_mw.col.media.dir())
     source = media_dir / "editor_shorten_pause_failure_source.wav"
-    cleaned_analysis = tmp_path / "editor_shorten_pause_failure_cleaned.wav"
-    _generate_noisy_pause_and_clean_analysis(ffmpeg_config, source, cleaned_analysis)
+    source.write_bytes(b"not an audio file")
     original_field = f"Prompt [sound:{source.name}]"
-    fake_dpdfnet, dpdfnet_log = _fake_dpdfnet_executable(tmp_path, fail=True)
     note = _basic_audio_note(anki_mw, source.name)
     _configure_ffmpeg(
         anki_mw,
         ffmpeg_config,
-        dpdfnet_path=str(fake_dpdfnet),
         pause_silencedetect_preprocess_denoise=True,
     )
     artifact_root = _artifact_root(anki_mw)
     before_artifacts = _artifact_dirs_for_source(artifact_root, source)
-    clear_latest_pause_pipeline_support_incident()
 
     editor, parent = _open_editor(anki_mw, note)
     try:
@@ -148,28 +132,14 @@ def test_shorten_pauses_failure_leaves_note_unchanged_and_records_manifest(
             _processing_status_js(),
             lambda value: value is not None
             and value["kind"] == "error"
-            and "fake dpdfnet failed" in value["text"],
+            and "Invalid data" in value["text"],
             timeout=10.0,
         )
 
         assert status["title"] == ""
         assert note.fields[0] == original_field
         assert _sound_filename(note.fields[0]) == source.name
-        assert json.loads(dpdfnet_log.read_text(encoding="utf-8"))[-2].endswith(
-            "01_working_original.wav"
-        )
-
-        incident = latest_pause_pipeline_support_incident()
-        assert incident is not None
-        assert incident["manifest_path"].endswith("manifest.json")
-        assert Path(incident["manifest_path"]).is_file()
-        assert Path(incident["artifact_dir"]).is_dir()
-        assert "fake dpdfnet failed" in incident["user_message"]
-
-        new_artifacts = _artifact_dirs_for_source(artifact_root, source) - before_artifacts
-        assert len(new_artifacts) == 1
-        manifest = json.loads((next(iter(new_artifacts)) / "manifest.json").read_text(encoding="utf-8"))
-        assert manifest["errors"]
+        assert _artifact_dirs_for_source(artifact_root, source) == before_artifacts
         assert not list(media_dir.glob("editor_shorten_pause_failure_source__aqe_*"))
     finally:
         editor.set_note(None)

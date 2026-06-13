@@ -86,10 +86,10 @@ def test_cursor_normalization_matches_pointer_position_at_multiple_widths(
                   const svg = document.querySelector('.aqe-visualizer[data-aqe-field-ord="0"] .aqe-visualizer-svg');
                   if (!svg || !window.__aqeSetCursorByClientXForTest) return 999;
                   const rect = svg.getBoundingClientRect();
-                  const viewBoxWidth = 620;
-                  const viewBoxHeight = 150;
+                  const viewBoxWidth = svg.viewBox?.baseVal?.width || 620;
+                  const viewBoxHeight = svg.viewBox?.baseVal?.height || 150;
                   const plotLeft = 44;
-                  const plotWidth = 566;
+                  const plotWidth = viewBoxWidth - 44 - 10;
                   const scale = Math.min(rect.width / viewBoxWidth, rect.height / viewBoxHeight);
                   const renderedViewBoxLeft = rect.left + (rect.width - viewBoxWidth * scale) / 2;
                   const renderedPlotLeft = renderedViewBoxLeft + plotLeft * scale;
@@ -153,6 +153,8 @@ def test_silence_visualizer_renders_pitch_gaps_without_crashing(anki_mw, ffmpeg_
         check=True,
         capture_output=True,
         text=True,
+        encoding="utf-8",
+        errors="replace",
     )
     note = _basic_audio_note(anki_mw, source.name)
     _configure_ffmpeg(anki_mw, ffmpeg_config)

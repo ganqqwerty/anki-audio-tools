@@ -7,6 +7,7 @@
   import EditorCommandIcon from "./EditorCommandIcon.svelte";
   import { send } from "./actions.js";
   import { COMMAND_SLUGS, testId } from "./commands.js";
+  import { editorRuntimeConfig } from "./editor-runtime-config.js";
   import type { ButtonSpec, EditorRuntimeConfig, FieldTarget } from "./types.js";
 
   type ProcessingPresetOption = NonNullable<EditorRuntimeConfig["processingPresets"]>[number];
@@ -21,7 +22,7 @@
     target: FieldTarget;
   } = $props();
 
-  const presets = window.__AQE_EDITOR_CONFIG__?.processingPresets ?? [];
+  const presets = editorRuntimeConfig().processingPresets ?? [];
   let open = $state(false);
   let presetId = $state(presets[0]?.id ?? "");
   const selectedPreset = $derived(

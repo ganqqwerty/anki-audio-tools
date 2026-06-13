@@ -9,6 +9,7 @@ from datetime import datetime
 from pathlib import Path
 
 PAUSE_PIPELINE_MANIFEST_VERSION = 1
+PAUSE_PIPELINE_RUN_ID_COMPONENT_MAX_LENGTH = 255
 
 _SILENCE_START_RE = re.compile(r"silence_start:\s*(-?\d+(?:\.\d+)?)")
 _SILENCE_END_RE = re.compile(r"silence_end:\s*(-?\d+(?:\.\d+)?)")
@@ -37,17 +38,20 @@ class TimelineSegment:
 
 
 def make_pause_pipeline_run_id(
-    source_filename: str,
-    *,
-    now: datetime | None = None,
-    token: str | None = None,
+        source_filename: str,
+        *,
+        max_length: int | None = None,
+        now: datetime | None = None,
+        token: str | None = None,
 ) -> str:
     """Return a stable, filesystem-safe run id for one retained pipeline run."""
     now = now or datetime.now()
     token = token or uuid.uuid4().hex[:8]
     stem = safe_filename_stem(Path(source_filename).stem or "audio")
     suffix = f"__{now:%Y%m%d_%H%M%S_%f}_{token}"
-    max_stem_length = max(1, 160 - len(suffix))
+    max_run_id_length = max_length if max_length is not None else PAUSE_PIPELINE_RUN_ID_COMPONENT_MAX_LENGTH
+    max_run_id_length = max(1, min(PAUSE_PIPELINE_RUN_ID_COMPONENT_MAX_LENGTH, max_run_id_length))
+    max_stem_length = max(1, max_run_id_length - len(suffix))
     return f"{stem[:max_stem_length]}{suffix}"
 
 
@@ -102,8 +106,8 @@ def parse_silero_vad_speech_intervals(stderr: str, duration_ms: int) -> tuple[Si
 
 
 def speech_intervals_to_silence_intervals(
-    speech_intervals: tuple[SilenceInterval, ...],
-    duration_ms: int,
+        speech_intervals: tuple[SilenceInterval, ...],
+        duration_ms: int,
 ) -> tuple[SilenceInterval, ...]:
     """Return non-speech gaps for a set of speech intervals."""
     duration_ms = max(0, int(duration_ms))
@@ -121,10 +125,10 @@ def speech_intervals_to_silence_intervals(
 
 
 def merge_short_speech_gaps(
-    silence_intervals: tuple[SilenceInterval, ...],
-    duration_ms: int,
-    *,
-    min_speech_ms: int,
+        silence_intervals: tuple[SilenceInterval, ...],
+        duration_ms: int,
+        *,
+        min_speech_ms: int,
 ) -> tuple[SilenceInterval, ...]:
     """Merge silence intervals separated by speech shorter than ``min_speech_ms``."""
     duration_ms = max(0, int(duration_ms))
@@ -145,9 +149,9 @@ def merge_short_speech_gaps(
 
 
 def filter_silence_intervals_by_duration(
-    silence_intervals: tuple[SilenceInterval, ...],
-    *,
-    min_silence_ms: int,
+        silence_intervals: tuple[SilenceInterval, ...],
+        *,
+        min_silence_ms: int,
 ) -> tuple[SilenceInterval, ...]:
     """Return only silence intervals long enough to remove."""
     min_silence_ms = max(1, int(min_silence_ms))
@@ -155,8 +159,8 @@ def filter_silence_intervals_by_duration(
 
 
 def plan_pause_removal_timeline(
-    duration_ms: int,
-    silence_intervals: tuple[SilenceInterval, ...],
+        duration_ms: int,
+        silence_intervals: tuple[SilenceInterval, ...],
 ) -> tuple[TimelineSegment, ...]:
     """Return keep-only segments for cutting detected pause intervals."""
     duration_ms = max(0, int(duration_ms))
@@ -179,10 +183,10 @@ def plan_pause_removal_timeline(
 
 
 def build_filter_complex_script(
-    segments: tuple[TimelineSegment, ...],
-    *,
-    volume_db: float,
-    speed: float,
+        segments: tuple[TimelineSegment, ...],
+        *,
+        volume_db: float,
+        speed: float,
 ) -> str:
     """Build an ffmpeg filter_complex script for a planned timeline."""
     usable_segments = _usable_timeline_segments(segments)

@@ -3,6 +3,7 @@ import {
   visualizerForOrd,
 } from "./dom-selectors.js";
 import type { DefaultGraphTarget } from "./types.js";
+import { readFieldState } from "./field-state-store.js";
 
 export interface DefaultGraphQueueDependencies {
   anyBusy: () => boolean;
@@ -38,9 +39,10 @@ export function enqueueDefaultGraphs(
     const key = defaultGraphKey(target);
     if (requestedKeys.has(key)) continue;
     const visualizer = visualizerForOrd(target.ord);
+    const s = visualizer ? readFieldState(target.ord) : null;
     if (
-      visualizer?.dataset.hasTrack === "true"
-      && visualizer.dataset.sourceFilename === target.sourceFilename
+      s?.graph.hasTrack
+      && s.sourceFilename === target.sourceFilename
     ) {
       requestedKeys.add(key);
       continue;
@@ -69,8 +71,8 @@ export function continueDefaultGraphQueue(dependencies: DefaultGraphQueueDepende
     const mountedSource = controls.dataset.aqeSourceFilename || next.sourceFilename;
     if (mountedSource !== next.sourceFilename) continue;
     if (
-      visualizer.dataset.hasTrack === "true"
-      && visualizer.dataset.sourceFilename === next.sourceFilename
+      readFieldState(next.ord).graph.hasTrack
+      && readFieldState(next.ord).sourceFilename === next.sourceFilename
     ) {
       continue;
     }

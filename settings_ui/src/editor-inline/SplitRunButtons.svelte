@@ -1,5 +1,6 @@
 <script lang="ts">
   import AqeTooltip from "../lib/AqeTooltip.svelte";
+  import { buttonTooltipContent } from "../lib/disabled-tooltip.js";
   import { COMMAND_SLUGS } from "./commands.js";
   import type { ButtonSpec } from "./types.js";
 
@@ -23,6 +24,10 @@
     const suffix = commands.length === 1 ? "" : `-${COMMAND_SLUGS[command]}`;
     return `aqe-split-${targetOrd}-${slug}-run${suffix}`;
   }
+
+  function tooltipFor(command: ButtonSpec["command"]): string {
+    return buttonTooltipContent(labelFor(command), titleFor(command));
+  }
 </script>
 
 {#each commands as command}
@@ -32,9 +37,9 @@
         {...props}
         type="button"
         class="aqe-button aqe-split-run-button aqe-tooltip-target"
-        data-aqe-tooltip-content={titleFor(command)}
+        data-aqe-tooltip-content={tooltipFor(command)}
         data-testid={testId(command)}
-        aria-label={titleFor(command)}
+        aria-label={tooltipFor(command)}
         onclick={() => onRun(command)}
       >
         {labelFor(command)}

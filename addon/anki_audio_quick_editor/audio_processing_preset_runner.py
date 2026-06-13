@@ -10,7 +10,7 @@ from typing import Any
 
 from .audio_formats import format_label, is_same_visible_format
 from .audio_operation_params import effective_config_for_operation
-from .audio_operations import OP_CONVERT, OP_DENOISE, apply_audio_operation
+from .audio_operations import OP_CONVERT, OP_DENOISE, OP_REDUCE_SIZE, apply_audio_operation
 from .audio_processing_presets import (
     AudioProcessingPreset,
     AudioProcessingPresetGraph,
@@ -50,6 +50,7 @@ class ProcessingPresetRunnerAdapters:
     temp_output_path: Callable[[str], Path]
     render_audio: Callable[[Path, AudioEditState, AudioProcessingConfig, Path, Path | None], None]
     render_converted_audio: Callable[[Path, AudioProcessingConfig, str, Path], None]
+    render_size_reduced_audio: Callable[[Path, AudioProcessingConfig, Path], None]
     render_denoise_audio: Callable[[Path, AudioProcessingConfig, Path], None]
     analyze_prosody: Callable[[Path, AudioProcessingConfig], Any]
     render_graph_svg: Callable[[Any], bytes]
@@ -144,6 +145,8 @@ def _run_transform_step(
     try:
         if step.operation == OP_DENOISE:
             adapters.render_denoise_audio(current_path, effective_config, output_path)
+        elif step.operation == OP_REDUCE_SIZE:
+            adapters.render_size_reduced_audio(current_path, effective_config, output_path)
         else:
             updated_state = apply_audio_operation(
                 step.operation,

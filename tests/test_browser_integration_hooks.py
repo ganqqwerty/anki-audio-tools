@@ -14,6 +14,7 @@ from anki_audio_quick_editor.browser_integration import (
     ACTION_LABEL,
     _on_browser_menus_did_init,
     _open_batch_dialog,
+    _tr,
     register_browser_hooks,
 )
 from anki_audio_quick_editor.webview_bridge import WebviewBridgeCommand
@@ -26,6 +27,12 @@ def test_register_browser_hooks() -> None:
     register_browser_hooks(hooks)
 
     hooks.browser_menus_did_init.append.assert_called_once()
+    registered_hook = hooks.browser_menus_did_init.append.call_args.args[0]
+    browser = SimpleNamespace(form=SimpleNamespace(menu_Cards=MagicMock()))
+
+    registered_hook(browser)
+
+    browser.form.menu_Cards.addAction.assert_called_once_with(ACTION_LABEL)
     hooks.browser_will_show_context_menu.append.assert_not_called()
 
 
@@ -43,7 +50,10 @@ def test_empty_selection_shows_warning() -> None:
 
     _open_batch_dialog(browser)
 
-    aqt.utils.showWarning.assert_called_once()
+    aqt.utils.showWarning.assert_called_once_with(
+        _tr("batch.no_cards_selected"),
+        parent=browser,
+    )
 
 
 def test_selection_without_fields_shows_warning(monkeypatch) -> None:

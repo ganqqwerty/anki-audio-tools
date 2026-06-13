@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import platform
 import shutil
+from collections.abc import Callable
 from pathlib import Path
 
 from . import runtime_manager
@@ -217,13 +218,17 @@ def expected_bundled_rnnoise_dir() -> Path | None:
     return _PACKAGE_DIR / "bin" / platform_key
 
 
-def find_rnnoise_bundle() -> Path:
+def find_rnnoise_bundle(
+    *,
+    expected_bundled_tool_path: Callable[..., Path | None] | None = None,
+) -> Path:
     """Return the bundled RNNoise executable path."""
+    _get_bundled_tool_path = expected_bundled_tool_path if expected_bundled_tool_path is not None else globals()["expected_bundled_tool_path"]
     managed = managed_tool_path("rnnoise-cli")
     if managed is not None:
         return managed
     managed_expected = expected_managed_tool_path("rnnoise-cli")
-    bundled_expected = expected_bundled_tool_path("rnnoise-cli")
+    bundled_expected = _get_bundled_tool_path("rnnoise-cli")
     if bundled_expected is not None and bundled_expected.is_file():
         return bundled_expected
     rnnoise_path = managed_expected or bundled_expected
@@ -265,21 +270,33 @@ def expected_bundled_spleeter_model_path(model_name: str) -> Path | None:
     return _PACKAGE_DIR / "bin" / "models" / "spleeter-2stems-fp16" / model_name
 
 
-def find_spleeter_bundle() -> tuple[Path, Path, Path]:
-    """Return bundled Sherpa Spleeter executable and model paths."""
+def _managed_spleeter_bundle() -> tuple[Path, Path, Path] | None:
     managed_executable = managed_tool_path("sherpa-spleeter")
     managed_vocals = runtime_manager.managed_spleeter_model_path(_PACKAGE_DIR, "vocals.fp16.onnx")
     managed_accompaniment = runtime_manager.managed_spleeter_model_path(_PACKAGE_DIR, "accompaniment.fp16.onnx")
     if managed_executable is not None and managed_vocals is not None and managed_accompaniment is not None:
         return managed_executable, managed_vocals, managed_accompaniment
+    return None
 
+
+def find_spleeter_bundle(
+    *,
+    expected_bundled_tool_path: Callable[..., Path | None] | None = None,
+    expected_bundled_spleeter_model_path: Callable[..., Path | None] | None = None,
+) -> tuple[Path, Path, Path]:
+    """Return bundled Sherpa Spleeter executable and model paths."""
+    managed = _managed_spleeter_bundle()
+    if managed is not None:
+        return managed
+    _get_bundled_tool_path = expected_bundled_tool_path if expected_bundled_tool_path is not None else globals()["expected_bundled_tool_path"]
+    _get_bundled_spleeter_model = expected_bundled_spleeter_model_path if expected_bundled_spleeter_model_path is not None else globals()["expected_bundled_spleeter_model_path"]
     managed_expected = expected_managed_tool_path("sherpa-spleeter")
-    bundled_expected = expected_bundled_tool_path("sherpa-spleeter")
+    bundled_expected = _get_bundled_tool_path("sherpa-spleeter")
     if bundled_expected is not None and bundled_expected.is_file():
         return (
             bundled_expected,
-            _required_spleeter_model("vocals.fp16.onnx"),
-            _required_spleeter_model("accompaniment.fp16.onnx"),
+            _required_spleeter_model("vocals.fp16.onnx", _get_bundled_spleeter_model=_get_bundled_spleeter_model),
+            _required_spleeter_model("accompaniment.fp16.onnx", _get_bundled_spleeter_model=_get_bundled_spleeter_model),
         )
     executable_path = managed_expected or bundled_expected
     if executable_path is None:
@@ -295,8 +312,8 @@ def find_spleeter_bundle() -> tuple[Path, Path, Path]:
 
     return (
         spleeter_path,
-        _required_spleeter_model("vocals.fp16.onnx"),
-        _required_spleeter_model("accompaniment.fp16.onnx"),
+        _required_spleeter_model("vocals.fp16.onnx", _get_bundled_spleeter_model=_get_bundled_spleeter_model),
+        _required_spleeter_model("accompaniment.fp16.onnx", _get_bundled_spleeter_model=_get_bundled_spleeter_model),
     )
 
 
@@ -307,8 +324,14 @@ def expected_bundled_silero_vad_model_path() -> Path | None:
     return _PACKAGE_DIR / "bin" / "models" / "silero-vad" / "silero_vad.onnx"
 
 
-def find_silero_vad_bundle() -> tuple[Path, Path]:
+def find_silero_vad_bundle(
+    *,
+    expected_bundled_tool_path: Callable[..., Path | None] | None = None,
+    expected_bundled_silero_vad_model_path: Callable[..., Path | None] | None = None,
+) -> tuple[Path, Path]:
     """Return bundled Sherpa ONNX Silero VAD executable and model paths."""
+    _get_bundled_tool_path = expected_bundled_tool_path if expected_bundled_tool_path is not None else globals()["expected_bundled_tool_path"]
+    _get_bundled_silero_vad_model = expected_bundled_silero_vad_model_path if expected_bundled_silero_vad_model_path is not None else globals()["expected_bundled_silero_vad_model_path"]
     managed_executable = managed_tool_path("silero-vad")
     managed_model = runtime_manager.managed_silero_vad_model_path(_PACKAGE_DIR)
     if managed_executable is not None and managed_model is not None:
@@ -320,9 +343,9 @@ def find_silero_vad_bundle() -> tuple[Path, Path]:
         )
 
     managed_expected = expected_managed_tool_path("silero-vad")
-    bundled_expected = expected_bundled_tool_path("silero-vad")
+    bundled_expected = _get_bundled_tool_path("silero-vad")
     if bundled_expected is not None and bundled_expected.is_file():
-        return bundled_expected, _required_silero_vad_model()
+        return bundled_expected, _required_silero_vad_model(_get_bundled_silero_vad_model=_get_bundled_silero_vad_model)
     executable_path = managed_expected or bundled_expected
     if executable_path is None:
         raise MissingSileroVadError(f"Silero VAD is not bundled for {platform_description()}.")
@@ -333,8 +356,13 @@ def find_silero_vad_bundle() -> tuple[Path, Path]:
     )
 
 
-def _required_spleeter_model(model_name: str) -> Path:
-    model_path = expected_bundled_spleeter_model_path(model_name)
+def _required_spleeter_model(
+    model_name: str,
+    *,
+    _get_bundled_spleeter_model: Callable[..., Path | None] | None = None,
+) -> Path:
+    _get_model = _get_bundled_spleeter_model or expected_bundled_spleeter_model_path
+    model_path = _get_model(model_name)
     if model_path is None:
         raise MissingSpleeterError(f"Sherpa Spleeter models are not bundled for {platform_description()}.")
     if not model_path.is_file():
@@ -346,8 +374,12 @@ def _required_spleeter_model(model_name: str) -> Path:
     return model_path
 
 
-def _required_silero_vad_model() -> Path:
-    model_path = expected_bundled_silero_vad_model_path()
+def _required_silero_vad_model(
+    *,
+    _get_bundled_silero_vad_model: Callable[..., Path | None] | None = None,
+) -> Path:
+    _get_model = _get_bundled_silero_vad_model or expected_bundled_silero_vad_model_path
+    model_path = _get_model()
     if model_path is None:
         raise MissingSileroVadError(f"Silero VAD model is not bundled for {platform_description()}.")
     if not model_path.is_file():

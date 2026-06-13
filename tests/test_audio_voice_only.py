@@ -5,6 +5,7 @@ from types import SimpleNamespace
 
 import pytest
 
+from anki_audio_quick_editor.audio_output_policy import AudioSourceMetadata
 from anki_audio_quick_editor.audio_processor import render_voice_only_audio
 from anki_audio_quick_editor.audio_state import AudioProcessingConfig
 from anki_audio_quick_editor.errors import AudioProcessingError
@@ -12,6 +13,24 @@ from anki_audio_quick_editor.support import (
     clear_latest_spleeter_support_incident,
     latest_spleeter_support_incident,
 )
+
+ACCOMPANIMENT_MODEL = str(Path("/models/accompaniment.fp16.onnx"))
+FFMPEG = str(Path("/bin/ffmpeg"))
+SPLEETER = str(Path("/bin/sherpa-spleeter"))
+VOCALS_MODEL = str(Path("/models/vocals.fp16.onnx"))
+
+
+def _source_metadata(source_path: Path) -> AudioSourceMetadata:
+    return AudioSourceMetadata(
+        path=source_path,
+        visible_format="mp3",
+        codec_name="mp3",
+        sample_rate=32000,
+        channels=1,
+        bit_rate=64000,
+        bits_per_raw_sample=None,
+        sample_fmt=None,
+    )
 
 
 def test_render_voice_only_audio_runs_prepare_spleeter_and_encode(
@@ -38,6 +57,10 @@ def test_render_voice_only_audio_runs_prepare_spleeter_and_encode(
         "anki_audio_quick_editor.audio_processor.probe_duration_ms",
         lambda *_args: 1234,
     )
+    monkeypatch.setattr(
+        "anki_audio_quick_editor.audio_processor.probe_audio_metadata",
+        lambda source_path, _config: _source_metadata(source_path),
+    )
 
     def fake_run(
         cmd: list[str],
@@ -45,9 +68,10 @@ def test_render_voice_only_audio_runs_prepare_spleeter_and_encode(
         text: bool,
         check: bool,
         timeout: float | None = None,
+        **_kwargs: object,
     ) -> SimpleNamespace:
         calls.append(cmd)
-        if cmd[0] == "/bin/sherpa-spleeter":
+        if cmd[0] == SPLEETER:
             vocals_arg = next(value for value in cmd if value.startswith("--output-vocals-wav="))
             Path(vocals_arg.split("=", 1)[1]).write_bytes(b"vocals")
             return SimpleNamespace(returncode=0, stdout='{"ok":true}', stderr="")
@@ -66,7 +90,7 @@ def test_render_voice_only_audio_runs_prepare_spleeter_and_encode(
     )
 
     assert calls[0] == [
-        "/bin/ffmpeg",
+        FFMPEG,
         "-y",
         "-i",
         str(tmp_path / "source.mp3"),
@@ -80,9 +104,9 @@ def test_render_voice_only_audio_runs_prepare_spleeter_and_encode(
         calls[0][-1],
     ]
     assert calls[1] == [
-        "/bin/sherpa-spleeter",
-        "--spleeter-vocals=/models/vocals.fp16.onnx",
-        "--spleeter-accompaniment=/models/accompaniment.fp16.onnx",
+        SPLEETER,
+        f"--spleeter-vocals={VOCALS_MODEL}",
+        f"--spleeter-accompaniment={ACCOMPANIMENT_MODEL}",
         f"--input-wav={calls[0][-1]}",
         calls[1][4],
         calls[1][5],
@@ -91,8 +115,8 @@ def test_render_voice_only_audio_runs_prepare_spleeter_and_encode(
     vocals_wav = calls[1][4].split("=", 1)[1]
     assert calls[1][4].startswith("--output-vocals-wav=")
     assert calls[1][5].startswith("--output-accompaniment-wav=")
-    assert calls[2][0:4] == ["/bin/ffmpeg", "-y", "-i", vocals_wav]
-    assert calls[2][-9:] == ["-codec:a", "libmp3lame", "-q:a", "4", "-ar", "44100", "-ac", "2", str(output)]
+    assert calls[2][0:4] == [FFMPEG, "-y", "-i", vocals_wav]
+    assert calls[2][-9:] == ["-codec:a", "libmp3lame", "-b:a", "64k", "-ar", "32000", "-ac", "1", str(output)]
     assert commands == [tuple(call) for call in calls]
     assert result.output_path == output
     assert result.command == tuple(calls[1])
@@ -114,6 +138,10 @@ def test_render_voice_only_audio_reports_spleeter_errors(
             Path("/models/accompaniment.fp16.onnx"),
         ),
     )
+    monkeypatch.setattr(
+        "anki_audio_quick_editor.audio_processor.probe_audio_metadata",
+        lambda source_path, _config: _source_metadata(source_path),
+    )
 
     def fake_run(
         cmd: list[str],
@@ -121,8 +149,9 @@ def test_render_voice_only_audio_reports_spleeter_errors(
         text: bool,
         check: bool,
         timeout: float | None = None,
+        **_kwargs: object,
     ) -> SimpleNamespace:
-        if cmd[0] == "/bin/sherpa-spleeter":
+        if cmd[0] == SPLEETER:
             return SimpleNamespace(returncode=5, stdout='{"error":"invalid wav"}', stderr="")
         return SimpleNamespace(returncode=0, stdout="", stderr="")
 
@@ -138,12 +167,12 @@ def test_render_voice_only_audio_reports_spleeter_errors(
     assert incident is not None
     assert incident["operation"] == "voice_only"
     assert incident["media_filename"] == "source.mp3"
-    assert incident["ffmpeg_path"] == "/bin/ffmpeg"
-    assert incident["spleeter_path"] == "/bin/sherpa-spleeter"
-    assert incident["vocals_model_path"] == "/models/vocals.fp16.onnx"
-    assert incident["accompaniment_model_path"] == "/models/accompaniment.fp16.onnx"
+    assert incident["ffmpeg_path"] == FFMPEG
+    assert incident["spleeter_path"] == SPLEETER
+    assert incident["vocals_model_path"] == VOCALS_MODEL
+    assert incident["accompaniment_model_path"] == ACCOMPANIMENT_MODEL
     assert len(incident["attempted_commands"]) == 2
-    assert incident["attempted_commands"][1]["command"].startswith("/bin/sherpa-spleeter")
+    assert incident["attempted_commands"][1]["argv"][0] == SPLEETER
     assert incident["attempted_commands"][1]["returncode"] == 5
     assert incident["attempted_commands"][1]["stdout"] == '{"error":"invalid wav"}'
 
@@ -174,6 +203,10 @@ def test_render_voice_only_audio_reports_output_launch_and_encode_failures(
             Path("/models/accompaniment.fp16.onnx"),
         ),
     )
+    monkeypatch.setattr(
+        "anki_audio_quick_editor.audio_processor.probe_audio_metadata",
+        lambda source_path, _config: _source_metadata(source_path),
+    )
 
     def fake_run(
         cmd: list[str],
@@ -181,8 +214,9 @@ def test_render_voice_only_audio_reports_output_launch_and_encode_failures(
         text: bool,
         check: bool,
         timeout: float | None = None,
+        **_kwargs: object,
     ) -> SimpleNamespace:
-        if cmd[0] == "/bin/sherpa-spleeter":
+        if cmd[0] == SPLEETER:
             if run_behavior == "launch_error":
                 raise PermissionError(13, "Permission denied", "/bin/sherpa-spleeter")
             if run_behavior != "missing_vocals":

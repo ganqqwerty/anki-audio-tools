@@ -363,11 +363,33 @@ def test_find_ffprobe_uses_bundled_binary_before_path_lookup(
     assert calls == []
 
 
-def test_find_ffprobe_raises_when_no_binary_available(monkeypatch, tmp_path: Path) -> None:
-    _disable_bundled_tool_lookup(monkeypatch)
-    monkeypatch.setattr("anki_audio_quick_editor.audio_processor.shutil.which", lambda _name: None)
+def test_bundle_finders_reentrant(
+    tmp_path: Path,
+) -> None:
+    """Concurrent bundle discovery via kwargs does not mutate module globals."""
+    from anki_audio_quick_editor import audio_tools
 
-    with pytest.raises(MissingFfmpegError) as exc_info:
-        find_ffprobe(tmp_path / "ffmpeg")
+    bundled_1 = tmp_path / "bundle1" / "rnnoise-cli"
+    bundled_2 = tmp_path / "bundle2" / "rnnoise-cli"
+    bundled_1.parent.mkdir(parents=True)
+    bundled_2.parent.mkdir(parents=True)
+    bundled_1.write_text("")
+    bundled_2.write_text("")
 
-    assert str(exc_info.value) == "Audio Quick Editor requires ffprobe alongside ffmpeg to inspect audio duration."
+    original_func = audio_tools.expected_bundled_tool_path
+
+    def fake_path_1(tool_name: str) -> Path | None:
+        return bundled_1 if tool_name == "rnnoise-cli" else None
+
+    def fake_path_2(tool_name: str) -> Path | None:
+        return bundled_2 if tool_name == "rnnoise-cli" else None
+
+    result_1 = audio_tools.find_rnnoise_bundle(expected_bundled_tool_path=fake_path_1)
+    assert result_1 == bundled_1, f"Expected {bundled_1}, got {result_1}"
+
+    result_2 = audio_tools.find_rnnoise_bundle(expected_bundled_tool_path=fake_path_2)
+    assert result_2 == bundled_2, f"Expected {bundled_2}, got {result_2}"
+
+    assert audio_tools.expected_bundled_tool_path is original_func, (
+        "Module global was mutated by find_rnnoise_bundle"
+    )

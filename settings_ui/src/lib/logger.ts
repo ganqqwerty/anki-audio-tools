@@ -10,7 +10,7 @@
 
 import type { FrontendLogPayload } from "./generated/contracts.js";
 import { Level } from "./generated/contracts.js";
-import { sendBridgeEnvelope } from "./bridge.js";
+import { sendBridgeEnvelope } from "./bridge-transport.js";
 
 type LogLevel = "debug" | "info" | "warn" | "error";
 type JsonLogValue = null | boolean | number | string | JsonLogValue[] | { [key: string]: JsonLogValue };

@@ -11,11 +11,15 @@
     PAUSE_DETECTION_ALGORITHM_VALUES,
     pauseDetectionAlgorithmOrDefault,
   } from "../lib/audio-operation-parameters.js";
+  import type { AudioSourceMetadataSummary } from "../lib/size-reduction-parameters.js";
   import PauseAdvancedParamsFields from "../lib/PauseAdvancedParamsFields.svelte";
+  import SizeReductionAdvancedParamsFields from "../lib/SizeReductionAdvancedParamsFields.svelte";
   import {
     formatDpdfnetAggressiveness,
     formatPauseDetectionAlgorithm,
   } from "./split-button-state.js";
+  import { formatSourceMetadata } from "./source-metadata-formatting.js";
+  import { requestSourceMetadata } from "./source-metadata-requests.js";
   import type { ButtonSpec, FieldSplitButtonState } from "./types.js";
 
   type DenoiseAlgorithm = FieldSplitButtonState["denoiseAlgorithm"];
@@ -32,12 +36,19 @@
     onPauseMinSpeechSeconds,
     onPausePreprocessDenoise,
     onPauseThreshold,
+    onSizeReductionBitrateKbps,
+    onSizeReductionChannels,
+    onSizeReductionSampleRateHz,
     pauseMinSilenceSeconds,
     pauseMinSpeechSeconds,
     pausePreprocessDenoise,
     pauseThreshold,
     pauseDetectionAlgorithm,
+    sizeReductionBitrateKbps,
+    sizeReductionChannels,
+    sizeReductionSampleRateHz,
     slug,
+    sourceFilename = null,
     targetOrd,
   }: {
     command: ButtonSpec["command"];
@@ -50,14 +61,28 @@
     onPauseMinSpeechSeconds: (value: number) => void;
     onPausePreprocessDenoise: (value: boolean) => void;
     onPauseThreshold: (value: number) => void;
+    onSizeReductionBitrateKbps: (value: number) => void;
+    onSizeReductionChannels: (value: number) => void;
+    onSizeReductionSampleRateHz: (value: number) => void;
     pauseMinSilenceSeconds: number;
     pauseMinSpeechSeconds: number;
     pausePreprocessDenoise: boolean;
     pauseThreshold: number;
     pauseDetectionAlgorithm: PauseDetectionAlgorithm;
+    sizeReductionBitrateKbps: number;
+    sizeReductionChannels: number;
+    sizeReductionSampleRateHz: number;
     slug: string;
+    sourceFilename?: string | null;
     targetOrd: number;
   } = $props();
+
+  let sourceMetadata = $state<AudioSourceMetadataSummary | null>(null);
+  let sourceMetadataErrorText = $state<string | null>(null);
+  let sourceMetadataLoading = $state(false);
+  let sourceMetadataRequested = false;
+
+  const sourceMetadataText = $derived(sourceMetadata ? formatSourceMetadata(sourceMetadata) : null);
 
   function applyDpdfnetAggressiveness(value: number): void {
     onDpdfnetAttnLimitDb(value);
@@ -89,6 +114,41 @@
   function applyPausePreprocessDenoise(value: boolean): void {
     onPausePreprocessDenoise(value);
     onChange();
+  }
+
+  function applySizeReductionBitrate(value: number): void {
+    onSizeReductionBitrateKbps(value);
+    onChange();
+  }
+
+  function applySizeReductionSampleRate(value: number): void {
+    onSizeReductionSampleRateHz(value);
+    onChange();
+  }
+
+  function applySizeReductionChannels(value: number): void {
+    onSizeReductionChannels(value);
+    onChange();
+  }
+
+  function requestSourceMetadataAfterAdvancedOpen(): void {
+    if (command !== "aqe:reduce-size") return;
+    if (sourceMetadataRequested || !sourceFilename) return;
+    sourceMetadataRequested = true;
+    sourceMetadataLoading = true;
+    sourceMetadataErrorText = null;
+    requestSourceMetadata(targetOrd, sourceFilename)
+      .then((metadata) => {
+        sourceMetadata = metadata;
+        sourceMetadataErrorText = null;
+      })
+      .catch(() => {
+        sourceMetadata = null;
+        sourceMetadataErrorText = t("settings.size_reduction_source_metadata.error");
+      })
+      .finally(() => {
+        sourceMetadataLoading = false;
+      });
   }
 
   function isDenoiseCommand(): boolean {
@@ -180,5 +240,21 @@
     onMinSpeechSeconds={applyPauseMinSpeechSeconds}
     onPreprocessDenoise={applyPausePreprocessDenoise}
     testPrefix={`aqe-split-${targetOrd}-${slug}-pause`}
+  />
+{/if}
+{#if command === "aqe:reduce-size"}
+  <SizeReductionAdvancedParamsFields
+    compact={true}
+    bitrateKbps={sizeReductionBitrateKbps}
+    sampleRateHz={sizeReductionSampleRateHz}
+    channels={sizeReductionChannels}
+    onBitrateKbps={applySizeReductionBitrate}
+    onSampleRateHz={applySizeReductionSampleRate}
+    onChannels={applySizeReductionChannels}
+    onAdvancedOpen={requestSourceMetadataAfterAdvancedOpen}
+    {sourceMetadataText}
+    {sourceMetadataErrorText}
+    {sourceMetadataLoading}
+    testPrefix={`aqe-split-${targetOrd}-${slug}-size-reduction`}
   />
 {/if}

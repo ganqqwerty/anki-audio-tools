@@ -12,6 +12,7 @@ from .audio_operations import (
     OP_FASTER,
     OP_GRAPH,
     OP_PRESET,
+    OP_REDUCE_SIZE,
     OP_REMOVE_PAUSES,
     OP_SLOWER,
     OP_VOLUME_DOWN,
@@ -74,6 +75,10 @@ def build_batch_initial_state(
             "denoise_algorithm": config.denoise_algorithm,
             "dpdfnet_attn_limit_db": config.dpdfnet_attn_limit_db,
             "output_format": config.output_format,
+            "size_reduction_mode": config.size_reduction_mode,
+            "size_reduction_bitrate_kbps": config.size_reduction_bitrate_kbps,
+            "size_reduction_sample_rate_hz": config.size_reduction_sample_rate_hz,
+            "size_reduction_channels": config.size_reduction_channels,
         },
         "locale": i18n["locale"],
         "direction": i18n["direction"],
@@ -112,6 +117,10 @@ def request_from_batch_start_payload(
             denoise_algorithm=params.get("denoise_algorithm"),
             dpdfnet_attn_limit_db=params.get("dpdfnet_attn_limit_db"),
             target_format=params.get("target_format"),
+            size_reduction_mode=params.get("size_reduction_mode"),
+            size_reduction_bitrate_kbps=params.get("size_reduction_bitrate_kbps"),
+            size_reduction_sample_rate_hz=params.get("size_reduction_sample_rate_hz"),
+            size_reduction_channels=params.get("size_reduction_channels"),
         ),
     )
 
@@ -204,6 +213,8 @@ def _parameter_kind(operation: str) -> str:
         return "format"
     if operation == OP_PRESET:
         return "preset"
+    if operation == OP_REDUCE_SIZE:
+        return "size_reduction"
     if operation == OP_GRAPH:
         return "none"
     return "none"
@@ -222,4 +233,6 @@ def _parameter_name(operation: str) -> str:
         return "target_format"
     if operation == OP_PRESET:
         return "preset_id"
+    if operation == OP_REDUCE_SIZE:
+        return "size_reduction_mode"
     return "none"

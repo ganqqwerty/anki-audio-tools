@@ -7,6 +7,7 @@ import shutil
 from pathlib import Path
 from typing import Any, Callable
 
+from .audio_formats import DEFAULT_OUTPUT_FORMAT
 from .audio_state import AudioProcessingConfig
 from .diagnostics_runtime import capture_exception
 from .editor_session import (
@@ -15,6 +16,7 @@ from .editor_session import (
     clear_processing_for_stale_guard,
     is_current_processing_guard,
 )
+from .errors import AudioAlreadyCompactError
 from .permission_guidance import message_with_permission_guidance
 
 logger = logging.getLogger(__name__)
@@ -38,7 +40,8 @@ def run_special_transform_worker(
     """Render a special transform and schedule a guarded main-thread completion."""
     output_path: Path | None = None
     try:
-        desired_name = deps.make_output_filename(current_path.name, output_format=output_format)
+        filename_output_format = config.output_format if output_format == DEFAULT_OUTPUT_FORMAT else output_format
+        desired_name = deps.make_output_filename(current_path.name, output_format=filename_output_format)
         output_path = deps.temp_final_path(desired_name)
 
         def _show_command(process_command: tuple[str, ...]) -> None:
@@ -52,6 +55,8 @@ def run_special_transform_worker(
 
         renderer(current_path, config, output_path=output_path, on_command=_show_command)
         _schedule_special_transform_finish(editor, session, desired_name, output_path, guard, deps)
+    except AudioAlreadyCompactError as exc:
+        _handle_already_compact(editor, session, output_path, guard, str(exc), deps)
     except Exception as exc:
         _handle_special_transform_worker_failure(
             editor,
@@ -132,6 +137,29 @@ def _handle_special_transform_worker_failure(
         deps.main(editor, lambda: _discard_stale_special_transform(editor, guard, deps))
         return
     deps.main(editor, lambda: deps.render_failed(editor, rendered_message, guard=guard))
+
+
+def _handle_already_compact(
+    editor: Any,
+    session: EditorSession,
+    output_path: Path | None,
+    guard: EditorProcessingGuard,
+    message: str,
+    deps: Any,
+) -> None:
+    if output_path is not None:
+        shutil.rmtree(output_path.parent, ignore_errors=True)
+    if not is_current_processing_guard(session, guard):
+        deps.main(editor, lambda: _discard_stale_special_transform(editor, guard, deps))
+        return
+
+    def _finish() -> None:
+        session.processing = False
+        session.next_status_summary = ""
+        deps.set_busy(editor, False)
+        deps.eval_status(editor, message)
+
+    deps.main(editor, _finish)
 
 
 def _discard_stale_special_transform(editor: Any, guard: EditorProcessingGuard, deps: Any) -> None:

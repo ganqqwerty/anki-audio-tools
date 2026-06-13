@@ -5,6 +5,7 @@ import {
   pauseAggressivenessTooltip,
   pitchHumModeTooltip,
   shareTargetTooltip,
+  sizeReductionModeTooltip,
 } from "../lib/audio-option-tooltips.js";
 import { t } from "../lib/i18n.js";
 import { PRODUCT_LINKS } from "../lib/product-links.js";
@@ -30,6 +31,7 @@ export function splitMenuDescription(
   if (groupSlug === "volume") return t("editor.split.description_volume");
   if (command === "aqe:share") return t("editor.split.description_share");
   if (command === "aqe:convert") return t("editor.split.description_convert");
+  if (command === "aqe:reduce-size") return t("editor.split.description_reduce_size");
   if (command === "aqe:remove-pauses") return t("editor.split.description_shorten_pauses");
   if (command === "aqe:pitch-hum") return t("editor.split.description_pitch_hum");
   if (isDenoiseCommand(command)) return t("editor.split.description_denoise");
@@ -44,6 +46,7 @@ export function splitMenuVideoLink(
   if (groupSlug === "volume") return PRODUCT_LINKS.editorVideos.volume;
   if (command === "aqe:share") return PRODUCT_LINKS.editorVideos.share;
   if (command === "aqe:convert") return PRODUCT_LINKS.editorVideos.convert;
+  if (command === "aqe:reduce-size") return null;
   if (command === "aqe:remove-pauses") return PRODUCT_LINKS.editorVideos.pauseShortening;
   if (command === "aqe:pitch-hum") return PRODUCT_LINKS.editorVideos.pitchHum;
   if (isDenoiseCommand(command)) return PRODUCT_LINKS.editorVideos.denoise;
@@ -52,8 +55,9 @@ export function splitMenuVideoLink(
 
 export function splitOptionValues(command: EditorCommand): string[] {
   if (command === "aqe:remove-pauses") return ["gentle", "normal", "aggressive"];
+  if (command === "aqe:reduce-size") return ["gentle", "normal", "aggressive"];
   if (isDenoiseCommand(command)) return ["standard", "rnnoise", "dpdfnet", "voice_only"];
-  if (command === "aqe:convert") return [...OUTPUT_FORMAT_VALUES];
+  if (command === "aqe:convert") return OUTPUT_FORMAT_VALUES.filter((value) => value !== "source");
   if (command === "aqe:share") return ["catbox", "litterbox"];
   if (command === "aqe:pitch-hum") return ["direct", "pitch_tier"];
   return [];
@@ -73,12 +77,12 @@ export function splitOptionLabel(value: string): string {
   return value;
 }
 
-export function splitOptionDescription(value: string): string {
+export function splitOptionDescription(value: string, command?: EditorCommand): string {
   if (isOutputFormatValue(value)) {
     return t(`editor.split.option.output_format.${value}.description`);
   }
   if (value === "aggressive" || value === "gentle" || value === "normal") {
-    return pauseAggressivenessTooltip(value);
+    return command === "aqe:reduce-size" ? sizeReductionModeTooltip(value) : pauseAggressivenessTooltip(value);
   }
   if (value === "direct" || value === "pitch_tier") {
     return pitchHumModeTooltip(value);
@@ -92,8 +96,12 @@ export function splitOptionDescription(value: string): string {
   return "";
 }
 
-export function splitOptionTooltip(value: string, dpdfnetAttnLimitDb: number): string {
-  return choiceTooltip(splitOptionTitle(value, dpdfnetAttnLimitDb), splitOptionDescription(value));
+export function splitOptionTooltip(
+  value: string,
+  dpdfnetAttnLimitDb: number,
+  command?: EditorCommand,
+): string {
+  return choiceTooltip(splitOptionTitle(value, dpdfnetAttnLimitDb), splitOptionDescription(value, command));
 }
 
 export function splitOptionTitle(value: string, dpdfnetAttnLimitDb: number): string {

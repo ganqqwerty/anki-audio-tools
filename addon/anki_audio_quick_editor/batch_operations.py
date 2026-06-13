@@ -16,10 +16,12 @@ from .audio_processor import (
     render_dpdfnet_audio,
     render_noise_reduced_audio,
     render_rnnoise_audio,
+    render_size_reduced_audio,
     render_voice_only_audio,
 )
 from .audio_state import AudioProcessingConfig
 from .batch_operation_processing import (
+    BatchOperationDeps,
     process_graph_operation,
     process_transform_operation,
 )
@@ -29,7 +31,7 @@ from .batch_operation_types import (
     BatchRunRequest,
     FieldGroup,
 )
-from .batch_operations_helpers import skipped_batch_note
+from .batch_operations_helpers import render_batch_denoise, skipped_batch_note
 from .batch_processing_presets import process_preset_operation
 from .diagnostics_runtime import new_operation_id, record_breadcrumb
 from .error_codes import AQE_MEDIA_REFERENCED_AUDIO_MISSING, format_coded_message
@@ -62,6 +64,7 @@ __all__ = [
     "render_dpdfnet_audio",
     "render_noise_reduced_audio",
     "render_rnnoise_audio",
+    "render_size_reduced_audio",
     "render_voice_only_audio",
     "unique_note_ids",
 ]
@@ -106,6 +109,16 @@ def append_image_reference(field_html: str, image_filename: str) -> str:
     """Append an Anki image media reference on a new visual line."""
     image_tag = f'<img src="{html.escape(image_filename, quote=True)}">'
     return f"{field_html}<br>{image_tag}" if field_html else image_tag
+
+
+def _batch_operation_deps() -> BatchOperationDeps:
+    return BatchOperationDeps(
+        analyze_prosody_cached=analyze_prosody_cached,
+        render_audio=render_audio,
+        render_converted_audio=render_converted_audio,
+        render_size_reduced_audio=render_size_reduced_audio,
+        render_batch_denoise=render_batch_denoise,
+    )
 
 
 def first_audio_filename(note: BatchNoteSnapshot, source_field: str) -> str | None:
@@ -238,6 +251,7 @@ def _process_prepared_batch_operation(
             now_provider=now_provider,
             operation_id=operation_id,
             append_image_reference=append_image_reference,
+            deps=_batch_operation_deps(),
     )
 
     if request.operation == OP_PRESET:
@@ -252,6 +266,7 @@ def _process_prepared_batch_operation(
             media_writer=media_writer,
             artifact_root=artifact_root,
             append_image_reference=append_image_reference,
+            deps=_batch_operation_deps(),
         )
 
     if is_transform_operation(request.operation):
@@ -266,6 +281,7 @@ def _process_prepared_batch_operation(
             media_writer=media_writer,
             artifact_root=artifact_root,
             operation_id=operation_id,
+            deps=_batch_operation_deps(),
         )
 
     raise ValueError(f"Unsupported batch operation: {request.operation}")

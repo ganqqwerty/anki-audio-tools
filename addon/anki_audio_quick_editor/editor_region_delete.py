@@ -5,11 +5,16 @@ from __future__ import annotations
 import logging
 import time
 from pathlib import Path
-from typing import Any, cast
+from typing import Any
 
 from . import editor_region_delete_request as _request
 from .audio_state import AudioEditState, AudioProcessingConfig
 from .diagnostics_runtime import capture_exception, new_operation_id, record_breadcrumb
+from .editor_deps_protocols import RegionDeleteDeps
+from .editor_media_replacement import (
+    persist_generated_media,
+    replace_first_sound_reference_in_field,
+)
 from .editor_processing_shared import (
     request_history_availability_after_edit as _request_history_availability_after_edit,
 )
@@ -28,10 +33,10 @@ from .editor_region_delete_worker import (
 from .editor_region_delete_worker import (
     run_region_delete_worker,
 )
+from .editor_reload_status import reload_editor_with_pending_status
 from .editor_session import (
     EditorProcessingGuard,
     EditorSession,
-    PendingEditorStatus,
     RegionDeleteRequest,
     begin_processing_guard,
     clear_processing_for_stale_guard,
@@ -43,11 +48,9 @@ from .error_codes import (
     AQE_GRAPH_ANALYSIS_FAILED,
     coded_error,
 )
-from .errors import AudioProcessingError
 from .i18n import t
 from .media_paths import existing_media_file_path, media_filenames_match
 from .permission_guidance import message_with_permission_guidance
-from .sound_refs import replace_sound_reference, select_first_sound_reference
 
 logger = logging.getLogger(__name__)
 parse_region_delete_request = _request.parse_region_delete_request
@@ -61,7 +64,7 @@ region_operation_command_status = _request.region_operation_command_status
 region_operation_whole_clip_message = _request.region_operation_whole_clip_message
 
 
-def delete_selection_from_frontend(editor: Any, deps: Any) -> None:
+def delete_selection_from_frontend(editor: Any, deps: RegionDeleteDeps) -> None:
     """Pop and process a pending frontend region-delete request."""
     deps.eval_with_callback(
         editor,
@@ -71,7 +74,7 @@ def delete_selection_from_frontend(editor: Any, deps: Any) -> None:
     )
 
 
-def delete_selection_with_request(editor: Any, request: Any, deps: Any) -> None:
+def delete_selection_with_request(editor: Any, request: Any, deps: RegionDeleteDeps) -> None:
     """Validate a region-delete payload and start deletion."""
     parsed = _parse_region_delete_request(request)
     if parsed is None:
@@ -133,7 +136,7 @@ def delete_selection_async(
     source_path: Path,
     request: RegionDeleteRequest,
     config: AudioProcessingConfig,
-    deps: Any,
+    deps: RegionDeleteDeps,
 ) -> None:
     """Render a media file with the requested region removed."""
     operation_id = new_operation_id("region")
@@ -174,7 +177,7 @@ def replace_current_field_after_region_delete(
     saved_name: str,
     output_duration_ms: int | None,
     started_at: float,
-    deps: Any,
+    deps: RegionDeleteDeps,
     *,
     guard: EditorProcessingGuard | None = None,
     output_path: Path | None = None,
@@ -184,16 +187,16 @@ def replace_current_field_after_region_delete(
     if not _accept_guarded_region_replacement(editor, session, guard, deps):
         return
     try:
-        saved_name = _persist_region_delete_output(editor, saved_name, output_path)
+        saved_name = persist_generated_media(editor, saved_name, output_path, deps)
         field_index = request.field_index
-        field_html = editor.note.fields[field_index]
-        selection = select_first_sound_reference(field_html)
-        if selection.selected is None:
-            raise AudioProcessingError(deps.current_field_audio_missing)
-        if not media_filenames_match(selection.selected.filename, request.source_filename):
-            raise AudioProcessingError(t("editor.status.graph_audio_mismatch"))
-        deps.dispose_editor_frontend_controls(editor)
-        editor.note.fields[field_index] = replace_sound_reference(field_html, selection.selected, saved_name)
+        replace_first_sound_reference_in_field(
+            editor,
+            field_index=field_index,
+            saved_name=saved_name,
+            missing_message=deps.current_field_audio_missing,
+            expected_filename=request.source_filename,
+            mismatch_message=t("editor.status.graph_audio_mismatch"),
+        )
         should_redraw_graph = _replace_region_delete_session_state(editor, session, field_index, saved_name, request)
         logger.info(
             "region delete completed: %s",
@@ -221,9 +224,13 @@ def replace_current_field_after_region_delete(
             field_index,
             require_graph_redraw=should_redraw_graph,
         )
-        editor.loadNote(focusTo=field_index)
-        if session:
-            session.pending_status = None
+        reload_editor_with_pending_status(
+            editor,
+            session,
+            field_index,
+            message=session.status_summary if session is not None else "",
+            deps=deps,
+        )
         _sync_history_availability(editor, session, deps)
         _request_history_availability_after_edit(editor, session, deps)
         deps.eval_playback_state(editor, field_index, "stopped", 0)
@@ -248,19 +255,13 @@ def _accept_guarded_region_replacement(
     editor: Any,
     session: EditorSession | None,
     guard: EditorProcessingGuard | None,
-    deps: Any,
+    deps: RegionDeleteDeps,
 ) -> bool:
     if guard is None or processing_guard_matches_editor(editor, session, guard, deps):
         return True
     if clear_processing_for_stale_guard(session, guard):
         deps.set_busy_for_field(editor, guard.field_index, False)
     return False
-
-
-def _persist_region_delete_output(editor: Any, saved_name: str, output_path: Path | None) -> str:
-    if output_path is None:
-        return saved_name
-    return cast(str, editor.mw.col.media.write_data(saved_name, output_path.read_bytes()))
 
 
 def _replace_region_delete_session_state(
@@ -279,7 +280,6 @@ def _replace_region_delete_session_state(
     session.field_index = field_index
     session.status_summary = region_operation_status_summary(request)
     session.next_status_summary = ""
-    session.pending_status = PendingEditorStatus(field_index, message=session.status_summary)
     saved_path = existing_media_file_path(Path(editor.mw.col.media.dir()), saved_name)
     session.source_mtime_ns = saved_path.stat().st_mtime_ns if saved_path is not None else None
     session.processing = False

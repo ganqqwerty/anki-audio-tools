@@ -75,7 +75,11 @@ def test_post_edit_playback_waits_for_frontend_ready_event(anki_mw, ffmpeg_confi
         parent.close()
 
 
-def test_undo_post_edit_playback_ignores_stale_graph_redraw_marker(anki_mw, ffmpeg_config, caplog) -> None:
+def test_post_edit_playback_ready_uses_the_rendered_graph_when_one_is_already_visible(
+    anki_mw,
+    ffmpeg_config,
+    caplog,
+) -> None:
     media_dir = Path(anki_mw.col.media.dir())
     source = media_dir / "editor_post_edit_playback_undo_stale_graph.wav"
     generate_tone(ffmpeg_config, source, duration_s=1.0)
@@ -86,12 +90,12 @@ def test_undo_post_edit_playback_ignores_stale_graph_redraw_marker(anki_mw, ffmp
     try:
         wait_for_selector(editor.web, _button_selector("aqe:faster"), timeout=10.0)
         _click_graph_and_wait(editor, lambda value: value["sourceFilename"] == source.name)
-        _install_post_edit_ready_probe_with_stale_graph_marker(editor, source.name)
+        _install_post_edit_ready_probe_for_rendered_graph(editor, source.name)
 
         wait_for_condition(
             lambda: any("post-edit playback ready dispatched" in record.message for record in caplog.records),
             timeout=5.0,
-            message="Post-edit ready notification was blocked by a stale graph redraw marker",
+            message="Post-edit ready notification was blocked even though the required graph was already rendered",
         )
     finally:
         editor.set_note(None)
@@ -103,25 +107,13 @@ def _delay_post_edit_playback_ready_event(editor, delay_ms: int) -> None:
         editor.web,
         f"""
         (() => {{
-          const originalPycmd = window.pycmd;
-          const delayMs = {delay_ms};
-          window.__aqeDelayedPostEditPlaybackReadyForTest = false;
-          window.pycmd = (command) => {{
-            const payload = window.__aqePendingCommandPayload;
-            if (
-              command === "aqe:command-payload"
-              && payload?.command === "aqe:post-edit-playback-ready"
-              && !window.__aqeDelayedPostEditPlaybackReadyForTest
-            ) {{
-              window.__aqeDelayedPostEditPlaybackReadyForTest = true;
-              window.__aqePendingCommandPayload = null;
-              setTimeout(() => {{
-                window.__aqePendingCommandPayload = payload;
-                originalPycmd(command);
-              }}, delayMs);
-              return;
+          window.__aqeDispatchPostEditPlaybackReadyForTest = (payload, dispatch) => {{
+            if (payload.command !== "aqe:post-edit-playback-ready") {{
+              return false;
             }}
-            originalPycmd(command);
+            window.__aqeDispatchPostEditPlaybackReadyForTest = undefined;
+            setTimeout(dispatch, {delay_ms});
+            return true;
           }};
           return true;
         }})()
@@ -129,7 +121,7 @@ def _delay_post_edit_playback_ready_event(editor, delay_ms: int) -> None:
     )
 
 
-def _install_post_edit_ready_probe_with_stale_graph_marker(editor, source_name: str) -> None:
+def _install_post_edit_ready_probe_for_rendered_graph(editor, source_name: str) -> None:
     run_js(
         editor.web,
         f"""
@@ -140,9 +132,6 @@ def _install_post_edit_ready_probe_with_stale_graph_marker(editor, source_name: 
             requireGraphRedraw: true,
             sourceFilename: {source_name!r},
           }};
-          window.__aqePendingCommandPayload = null;
-          window.__aqePendingGraphRedrawField = 0;
-          window.__aqePendingGraphRedrawSource = "stale-redraw-source.mp3";
           window.__aqeSetBusy(0, false);
           return true;
         }})()

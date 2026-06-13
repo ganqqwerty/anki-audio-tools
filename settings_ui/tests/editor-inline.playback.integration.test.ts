@@ -6,6 +6,7 @@ import {
   bridgeCommands,
   dragGraphSelection,
   muteConsole,
+  peekPendingCommandPayload,
   renderFields,
   setRepeatMode,
   setGraphBounds,
@@ -24,6 +25,7 @@ beforeEach(() => {
 afterEach(() => {
   disposeEditorRuntime();
   restoreConsole();
+  vi.useRealTimers();
   vi.restoreAllMocks();
 });
 
@@ -31,18 +33,26 @@ afterEach(() => {
     initializeEditorRuntime({ audioFieldIndices: [0] });
     scan({ audioFieldIndices: [0] });
 
+    const playButton = document.querySelector<HTMLButtonElement>('[data-testid="aqe-button-0-play"]')!;
+    expect(playButton).toHaveAttribute("data-aqe-tooltip-content", "Play\nPlay or pause the current audio");
+
     document.querySelector<HTMLButtonElement>('[data-testid="aqe-button-0-volume-up"]')!.click();
 
     expect(bridgeCommands()).toContain("aqe:command-payload");
-    expect(window.__aqePendingCommandPayload?.command).toBe("aqe:volume-up");
+    expect(peekPendingCommandPayload()?.command).toBe("aqe:volume-up");
     expect(window.__aqeGraphStateForTest?.(0)?.allButtonsDisabled).toBe(true);
     expect(window.__aqeGraphStateForTest?.(0)?.repeatControlDisabled).toBe(true);
+    expect(playButton).toHaveAttribute(
+      "data-aqe-tooltip-content",
+      "Play\nPlay or pause the current audio\n\nWait for the current audio operation to finish.",
+    );
     expect(document.querySelector('[data-testid="aqe-status-0"]')).toHaveTextContent("Processing...");
 
     window.__aqePrepareForNewNote?.();
 
     expect(window.__aqeGraphStateForTest?.(0)?.allButtonsDisabled).toBe(false);
     expect(window.__aqeGraphStateForTest?.(0)?.repeatControlDisabled).toBe(false);
+    expect(playButton).toHaveAttribute("data-aqe-tooltip-content", "Play\nPlay or pause the current audio");
     expect(document.querySelector('[data-testid="aqe-status-0"]')).toHaveTextContent("");
   });
 
@@ -121,6 +131,32 @@ afterEach(() => {
       "Undid: Increased speed to x1.5.",
     );
     expect(bridgeCommands()).toContain("aqe:play-ended");
+  });
+
+  it("clears playback-owned warning without erasing edit-owned status", async () => {
+    const config = {
+      audioFieldIndices: [0],
+      initialStatusByField: {
+        0: { kind: "info", message: "Closed settings." },
+      },
+    };
+    initializeEditorRuntime(config);
+    scan(config);
+    await Promise.resolve();
+    window.__aqeSetVisualizer?.(0, track, 400);
+
+    const status = document.querySelector<HTMLElement>('[data-testid="aqe-status-0"]')!;
+    const visualizer = document.querySelector('[data-testid="aqe-graph-0"]') as Parameters<typeof completePlayback>[0] | null;
+    expect(visualizer).not.toBeNull();
+
+    window.__aqeSetStatus?.("Selected repeat playback needs browser audio.", "warning", "playback");
+    expect(status).toHaveTextContent("Selected repeat playback needs browser audio.");
+    expect(status.dataset.statusOwner).toBe("playback");
+
+    completePlayback(visualizer!);
+
+    expect(status).toHaveTextContent("Closed settings.");
+    expect(status.dataset.statusOwner).toBe("edit");
   });
 
   it("uses HTML audio playback and queues the Python bridge request", async () => {

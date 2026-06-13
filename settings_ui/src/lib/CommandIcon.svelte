@@ -1,12 +1,16 @@
 <script lang="ts">
   import AudioLines from "@lucide/svelte/icons/audio-lines";
+  import BugPlay from "@lucide/svelte/icons/bug-play";
   import ChartLine from "@lucide/svelte/icons/chart-line";
   import ChevronDown from "@lucide/svelte/icons/chevron-down";
+  import ChevronRight from "@lucide/svelte/icons/chevron-right";
   import CircleHelp from "@lucide/svelte/icons/circle-help";
   import FastForward from "@lucide/svelte/icons/fast-forward";
   import FileAudio from "@lucide/svelte/icons/file-audio";
   import FolderOpen from "@lucide/svelte/icons/folder-open";
+  import Maximize2 from "@lucide/svelte/icons/maximize-2";
   import Mic from "@lucide/svelte/icons/mic";
+  import Minimize2 from "@lucide/svelte/icons/minimize-2";
   import Pause from "@lucide/svelte/icons/pause";
   import Play from "@lucide/svelte/icons/play";
   import Redo2 from "@lucide/svelte/icons/redo-2";
@@ -14,9 +18,12 @@
   import Repeat2 from "@lucide/svelte/icons/repeat-2";
   import Rewind from "@lucide/svelte/icons/rewind";
   import Save from "@lucide/svelte/icons/save";
+  import ScanSearch from "@lucide/svelte/icons/scan-search";
   import Scissors from "@lucide/svelte/icons/scissors";
   import Settings from "@lucide/svelte/icons/settings";
   import Share from "@lucide/svelte/icons/share";
+  import SkipBack from "@lucide/svelte/icons/skip-back";
+  import SkipForward from "@lucide/svelte/icons/skip-forward";
   import Snail from "@lucide/svelte/icons/snail";
   import Sparkles from "@lucide/svelte/icons/sparkles";
   import Square from "@lucide/svelte/icons/square";
@@ -28,6 +35,8 @@
   import VolumeX from "@lucide/svelte/icons/volume-x";
   import Waves from "@lucide/svelte/icons/waves";
   import X from "@lucide/svelte/icons/x";
+  import ZoomIn from "@lucide/svelte/icons/zoom-in";
+  import ZoomOut from "@lucide/svelte/icons/zoom-out";
   import SelectionRemoveOutsideIcon from "./icons/SelectionRemoveOutsideIcon.svelte";
 
   import type { CommandIconName } from "./icon-types.js";
@@ -48,10 +57,14 @@
 <span class={className} aria-hidden="true">
   {#if icon === "audio-lines"}
     <AudioLines {size} {strokeWidth} />
+  {:else if icon === "bug-play"}
+    <BugPlay {size} {strokeWidth} />
   {:else if icon === "chart-line"}
     <ChartLine {size} {strokeWidth} />
   {:else if icon === "chevron-down"}
     <ChevronDown {size} {strokeWidth} />
+  {:else if icon === "chevron-right"}
+    <ChevronRight {size} {strokeWidth} />
   {:else if icon === "circle-help"}
     <CircleHelp {size} {strokeWidth} />
   {:else if icon === "fast-forward"}
@@ -60,8 +73,12 @@
     <FileAudio {size} {strokeWidth} />
   {:else if icon === "folder-open"}
     <FolderOpen {size} {strokeWidth} />
+  {:else if icon === "maximize-2"}
+    <Maximize2 {size} {strokeWidth} />
   {:else if icon === "mic"}
     <Mic {size} {strokeWidth} />
+  {:else if icon === "minimize-2"}
+    <Minimize2 {size} {strokeWidth} />
   {:else if icon === "pause"}
     <Pause {size} {strokeWidth} />
   {:else if icon === "play"}
@@ -76,6 +93,8 @@
     <Rewind {size} {strokeWidth} />
   {:else if icon === "save"}
     <Save {size} {strokeWidth} />
+  {:else if icon === "scan-search"}
+    <ScanSearch {size} {strokeWidth} />
   {:else if icon === "scissors"}
     <Scissors {size} {strokeWidth} />
   {:else if icon === "selection-remove-inside"}
@@ -86,6 +105,10 @@
     <Settings {size} {strokeWidth} />
   {:else if icon === "share"}
     <Share {size} {strokeWidth} />
+  {:else if icon === "skip-back"}
+    <SkipBack {size} {strokeWidth} />
+  {:else if icon === "skip-forward"}
+    <SkipForward {size} {strokeWidth} />
   {:else if icon === "hare-running"}
     <!-- Framework7 hare, MIT. Modified with outline motion lines. -->
     <svg xmlns="http://www.w3.org/2000/svg" width={Math.round(size * 1.35)} height={size} viewBox="0 0 76 56" fill="none" stroke="currentColor" aria-hidden="true">
@@ -116,5 +139,9 @@
     <Waves {size} {strokeWidth} />
   {:else if icon === "x"}
     <X {size} {strokeWidth} />
+  {:else if icon === "zoom-in"}
+    <ZoomIn {size} {strokeWidth} />
+  {:else if icon === "zoom-out"}
+    <ZoomOut {size} {strokeWidth} />
   {/if}
 </span>

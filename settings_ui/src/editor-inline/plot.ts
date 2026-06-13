@@ -1,24 +1,53 @@
 import type { NormalizedProsodyTrack, ProsodyPoint, VisualizerElement } from "./types.js";
+import type { TimeViewport } from "./time-viewport.js";
+import { fullTimeViewport, msForViewportRatio, ratioForMsInViewport } from "./time-viewport.js";
 
-export const PLOT = { width: 620, height: 150, left: 44, right: 10, top: 10, bottom: 34 } as const;
-
-export function plotWidth(): number {
-  return PLOT.width - PLOT.left - PLOT.right;
+export interface PlotGeometry {
+  bottom: number;
+  height: number;
+  left: number;
+  right: number;
+  top: number;
+  width: number;
 }
 
-export function plotHeight(): number {
-  return PLOT.height - PLOT.top - PLOT.bottom;
+export const PLOT = { width: 620, height: 150, left: 44, right: 10, top: 28, bottom: 34 } as const;
+
+interface SvgViewBoxMetrics {
+  height: number;
+  width: number;
+  x: number;
+  y: number;
 }
 
-export function xForMs(ms: number, durationMs: number): number {
-  if (!durationMs) return PLOT.left;
-  return PLOT.left + Math.max(0, Math.min(1, ms / durationMs)) * plotWidth();
+export function plotWidth(plot: PlotGeometry = PLOT): number {
+  return plot.width - plot.left - plot.right;
 }
 
-export function yForPitch(pitchHz: number | null, minHz: number | null, maxHz: number | null): number {
-  if (!pitchHz || !minHz || !maxHz || maxHz <= minHz) return PLOT.height - PLOT.bottom;
+export function plotHeight(plot: PlotGeometry = PLOT): number {
+  return plot.height - plot.top - plot.bottom;
+}
+
+export function xForMs(
+  ms: number,
+  durationMs: number,
+  viewport?: TimeViewport | null,
+  plot: PlotGeometry = PLOT,
+): number {
+  const activeViewport = viewport ?? fullTimeViewport(durationMs);
+  const ratio = ratioForMsInViewport(ms, activeViewport);
+  return plot.left + Math.max(0, Math.min(1, ratio)) * plotWidth(plot);
+}
+
+export function yForPitch(
+  pitchHz: number | null,
+  minHz: number | null,
+  maxHz: number | null,
+  plot: PlotGeometry = PLOT,
+): number {
+  if (!pitchHz || !minHz || !maxHz || maxHz <= minHz) return plot.height - plot.bottom;
   const ratio = Math.max(0, Math.min(1, (pitchHz - minHz) / (maxHz - minHz)));
-  return PLOT.top + (1 - ratio) * plotHeight();
+  return plot.top + (1 - ratio) * plotHeight(plot);
 }
 
 export function formatTime(ms: number, durationMs: number): string {
@@ -59,20 +88,25 @@ export function pitchHzAtMs(points: readonly ProsodyPoint[], ms: number): number
   return previousPitch + (nextPitch - previousPitch) * ratio;
 }
 
-export function pathForIntensity(points: readonly ProsodyPoint[], durationMs: number): string {
+export function pathForIntensity(
+  points: readonly ProsodyPoint[],
+  durationMs: number,
+  viewport?: TimeViewport | null,
+  plot: PlotGeometry = PLOT,
+): string {
   if (!points.length || !durationMs) return "";
-  const base = PLOT.height - PLOT.bottom;
+  const base = plot.height - plot.bottom;
   const first = points[0];
   if (!first) return "";
-  const head = `M ${xForMs(first[0], durationMs).toFixed(2)} ${base.toFixed(2)}`;
+  const head = `M ${xForMs(first[0], durationMs, viewport, plot).toFixed(2)} ${base.toFixed(2)}`;
   const body = points.map((point) => {
-    const x = xForMs(point[0], durationMs).toFixed(2);
+    const x = xForMs(point[0], durationMs, viewport, plot).toFixed(2);
     const intensity = Math.max(0, Math.min(1, point[2] ?? 0));
-    const y = (base - intensity * plotHeight()).toFixed(2);
+    const y = (base - intensity * plotHeight(plot)).toFixed(2);
     return `L ${x} ${y}`;
   }).join(" ");
   const last = points.at(-1) ?? first;
-  const tail = `L ${xForMs(last[0], durationMs).toFixed(2)} ${base.toFixed(2)} Z`;
+  const tail = `L ${xForMs(last[0], durationMs, viewport, plot).toFixed(2)} ${base.toFixed(2)} Z`;
   return `${head} ${body} ${tail}`;
 }
 
@@ -81,6 +115,8 @@ export function pitchSegments(
   durationMs: number,
   minHz: number | null,
   maxHz: number | null,
+  viewport?: TimeViewport | null,
+  plot: PlotGeometry = PLOT,
 ): number[][][] {
   const segments: number[][][] = [];
   let current: number[][] = [];
@@ -92,7 +128,7 @@ export function pitchSegments(
       current = [];
       continue;
     }
-    current.push([xForMs(point[0], durationMs), yForPitch(pitchHz, minHz, maxHz)]);
+    current.push([xForMs(point[0], durationMs, viewport, plot), yForPitch(pitchHz, minHz, maxHz, plot)]);
   }
   if (current.length) segments.push(current);
   return segments;
@@ -104,12 +140,14 @@ interface PitchDrawOptions {
   pathClass: string;
   pitchMaxHz?: number | null;
   pitchMinHz?: number | null;
+  plot?: PlotGeometry;
+  viewport?: TimeViewport | null;
 }
 
 export function drawPitch(
   visualizer: VisualizerElement,
   track: NormalizedProsodyTrack,
-  options: Pick<PitchDrawOptions, "durationMs" | "pitchMaxHz" | "pitchMinHz"> = {},
+  options: Pick<PitchDrawOptions, "durationMs" | "pitchMaxHz" | "pitchMinHz" | "plot" | "viewport"> = {},
 ): void {
   drawPitchPaths(visualizer, track, {
     ...options,
@@ -121,7 +159,7 @@ export function drawPitch(
 export function drawLearnerPitch(
   visualizer: VisualizerElement,
   track: NormalizedProsodyTrack,
-  options: Pick<PitchDrawOptions, "durationMs" | "pitchMaxHz" | "pitchMinHz">,
+  options: Pick<PitchDrawOptions, "durationMs" | "pitchMaxHz" | "pitchMinHz" | "plot" | "viewport">,
 ): void {
   drawPitchPaths(visualizer, track, {
     ...options,
@@ -141,7 +179,8 @@ function drawPitchPaths(
   const durationMs = options.durationMs ?? track.durationMs;
   const minHz = options.pitchMinHz ?? track.pitchMinHz;
   const maxHz = options.pitchMaxHz ?? track.pitchMaxHz;
-  for (const segment of pitchSegments(track.points, durationMs, minHz, maxHz)) {
+  const plot = options.plot ?? PLOT;
+  for (const segment of pitchSegments(track.points, durationMs, minHz, maxHz, options.viewport, plot)) {
     if (segment.length < 2) continue;
     const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
     path.setAttribute("class", options.pathClass);
@@ -160,16 +199,17 @@ function drawPitchPaths(
 export function drawLabels(
   visualizer: VisualizerElement,
   track: NormalizedProsodyTrack,
-  options: { pitchMaxHz?: number | null; pitchMinHz?: number | null } = {},
+  options: { pitchMaxHz?: number | null; pitchMinHz?: number | null; plot?: PlotGeometry } = {},
 ): void {
   const group = visualizer.querySelector<SVGGElement>(".aqe-labels");
   if (!group) return;
   group.textContent = "";
   const maxHz = options.pitchMaxHz ?? track.pitchMaxHz ?? 500;
   const minHz = options.pitchMinHz ?? track.pitchMinHz ?? 75;
+  const plot = options.plot ?? PLOT;
   for (const item of [
-    [maxHz, PLOT.top + 10],
-    [minHz, PLOT.height - PLOT.bottom],
+    [maxHz, plot.top + 10],
+    [minHz, plot.height - plot.bottom],
   ] as const) {
     const text = document.createElementNS("http://www.w3.org/2000/svg", "text");
     text.setAttribute("class", "aqe-hz-label");
@@ -180,46 +220,156 @@ export function drawLabels(
   }
 }
 
-export function drawXAxis(visualizer: VisualizerElement, durationMs: number): void {
+export function drawXAxis(
+  visualizer: VisualizerElement,
+  durationMs: number,
+  viewport?: TimeViewport | null,
+  plot: PlotGeometry = PLOT,
+): void {
   const group = visualizer.querySelector<SVGGElement>(".aqe-x-axis");
   if (!group) return;
   group.textContent = "";
-  const ticks = [0, durationMs / 2, durationMs].filter((value, index, values) => index === 0 || value !== values[index - 1]);
+  const activeViewport = viewport ?? fullTimeViewport(durationMs);
+  const midpoint = activeViewport.startMs + (activeViewport.endMs - activeViewport.startMs) / 2;
+  const ticks = [activeViewport.startMs, midpoint, activeViewport.endMs]
+    .filter((value, index, values) => index === 0 || Math.round(value) !== Math.round(values[index - 1] ?? -1));
   for (const tick of ticks) {
-    const x = xForMs(tick, durationMs);
+    const x = xForMs(tick, durationMs, activeViewport, plot);
     const line = document.createElementNS("http://www.w3.org/2000/svg", "line");
     line.setAttribute("class", "aqe-x-tick");
     line.setAttribute("x1", x.toFixed(2));
     line.setAttribute("x2", x.toFixed(2));
-    line.setAttribute("y1", String(PLOT.height - PLOT.bottom));
-    line.setAttribute("y2", String(PLOT.height - PLOT.bottom + 4));
+    line.setAttribute("y1", String(plot.height - plot.bottom));
+    line.setAttribute("y2", String(plot.height - plot.bottom + 4));
     const text = document.createElementNS("http://www.w3.org/2000/svg", "text");
     text.setAttribute("class", "aqe-x-label");
     text.setAttribute("x", x.toFixed(2));
-    text.setAttribute("y", String(PLOT.height - 8));
+    text.setAttribute("y", String(plot.height - 8));
     text.textContent = formatTime(tick, durationMs);
     group.append(line, text);
   }
 }
 
-export function graphPixelBounds(svg: SVGSVGElement): { left: number; width: number } {
-  const rect = svg.getBoundingClientRect();
-  const rectWidth = Number(rect.width) || PLOT.width;
-  const rectHeight = Number(rect.height) || PLOT.height;
-  const scaleX = Math.min(rectWidth / PLOT.width, rectHeight / PLOT.height) || 1;
+export function svgViewBoxScale(svg: SVGSVGElement): { x: number; y: number } {
+  const metrics = renderedViewBoxMetrics(svg);
   return {
-    left: rect.left + PLOT.left * scaleX,
-    width: plotWidth() * scaleX,
+    x: metrics.scaleX,
+    y: metrics.scaleY,
   };
 }
 
-export function cursorMsFromEvent(event: Pick<PointerEvent, "clientX">, svg: SVGSVGElement, durationMs: number): number {
+export function plotGeometryForSvg(svg: SVGSVGElement): PlotGeometry {
+  const viewBoxWidth = svgViewBoxMetrics(svg).width;
+  return {
+    ...PLOT,
+    width: Math.max(PLOT.left + PLOT.right + 1, viewBoxWidth),
+  };
+}
+
+export function graphPixelBounds(svg: SVGSVGElement): { left: number; width: number } {
+  const metrics = renderedViewBoxMetrics(svg);
+  const plot = plotGeometryForSvg(svg);
+  const left = metrics.left + (plot.left - metrics.viewBox.x) * metrics.scaleX;
+  const right = metrics.left + (plot.width - plot.right - metrics.viewBox.x) * metrics.scaleX;
+  return {
+    left,
+    width: Math.max(1, right - left),
+  };
+}
+
+export function cursorMsFromEvent(
+  event: Pick<PointerEvent, "clientX">,
+  svg: SVGSVGElement,
+  durationMs: number,
+  viewport?: TimeViewport | null,
+): number {
   const bounds = graphPixelBounds(svg);
   const ratio = Math.max(0, Math.min(1, (event.clientX - bounds.left) / bounds.width));
-  return ratio * durationMs;
+  return msForViewportRatio(viewport ?? fullTimeViewport(durationMs), ratio);
 }
 
 function voicedPitch(point: ProsodyPoint): number | null {
   const pitchHz = point[1];
   return point[3] === true && typeof pitchHz === "number" && Number.isFinite(pitchHz) ? pitchHz : null;
+}
+
+function svgViewBoxMetrics(svg: SVGSVGElement): SvgViewBoxMetrics {
+  const base = svg.viewBox.baseVal;
+  const raw = (svg.getAttribute("viewBox") || "").trim().split(/\s+/);
+  const width = finitePositiveOrFallback(base.width, Number.parseFloat(raw[2] || ""), PLOT.width);
+  const height = finitePositiveOrFallback(base.height, Number.parseFloat(raw[3] || ""), PLOT.height);
+  return {
+    height,
+    width,
+    x: finiteOrFallback(base.x, Number.parseFloat(raw[0] || ""), 0),
+    y: finiteOrFallback(base.y, Number.parseFloat(raw[1] || ""), 0),
+  };
+}
+
+function renderedViewBoxMetrics(svg: SVGSVGElement): {
+  left: number;
+  scaleX: number;
+  scaleY: number;
+  top: number;
+  viewBox: SvgViewBoxMetrics;
+} {
+  const rect = svg.getBoundingClientRect();
+  const viewBox = svgViewBoxMetrics(svg);
+  const viewportWidth = finitePositiveOrFallback(svg.clientWidth, Number(rect.width), viewBox.width);
+  const viewportHeight = finitePositiveOrFallback(svg.clientHeight, Number(rect.height), viewBox.height);
+  const viewportLeft = rect.left + finiteOrFallback(svg.clientLeft, 0, 0);
+  const viewportTop = rect.top + finiteOrFallback(svg.clientTop, 0, 0);
+  const preserveAspectRatio = normalizedPreserveAspectRatio(svg.getAttribute("preserveAspectRatio"));
+  if (preserveAspectRatio.align === "none") {
+    return {
+      left: viewportLeft,
+      scaleX: viewportWidth / viewBox.width,
+      scaleY: viewportHeight / viewBox.height,
+      top: viewportTop,
+      viewBox,
+    };
+  }
+  const scale = preserveAspectRatio.mode === "slice"
+    ? Math.max(viewportWidth / viewBox.width, viewportHeight / viewBox.height)
+    : Math.min(viewportWidth / viewBox.width, viewportHeight / viewBox.height);
+  const extraX = viewportWidth - viewBox.width * scale;
+  const extraY = viewportHeight - viewBox.height * scale;
+  return {
+    left: viewportLeft + alignedOffset(extraX, preserveAspectRatio.align, "x"),
+    scaleX: scale,
+    scaleY: scale,
+    top: viewportTop + alignedOffset(extraY, preserveAspectRatio.align, "y"),
+    viewBox,
+  };
+}
+
+function normalizedPreserveAspectRatio(value: string | null): { align: string; mode: "meet" | "slice" } {
+  const tokens = (value || "").trim().split(/\s+/).filter(Boolean);
+  const filtered = tokens[0] === "defer" ? tokens.slice(1) : tokens;
+  const align = filtered[0] || "xMidYMid";
+  const mode = filtered[1] === "slice" ? "slice" : "meet";
+  return { align, mode };
+}
+
+function alignedOffset(extra: number, align: string, axis: "x" | "y"): number {
+  if (axis === "x") {
+    if (align.includes("xMax")) return extra;
+    if (align.includes("xMid")) return extra / 2;
+    return 0;
+  }
+  if (align.includes("YMax")) return extra;
+  if (align.includes("YMid")) return extra / 2;
+  return 0;
+}
+
+function finiteOrFallback(primary: number, fallback: number, defaultValue: number): number {
+  if (Number.isFinite(primary)) return primary;
+  if (Number.isFinite(fallback)) return fallback;
+  return defaultValue;
+}
+
+function finitePositiveOrFallback(primary: number, fallback: number, defaultValue: number): number {
+  if (Number.isFinite(primary) && primary > 0) return primary;
+  if (Number.isFinite(fallback) && fallback > 0) return fallback;
+  return defaultValue;
 }

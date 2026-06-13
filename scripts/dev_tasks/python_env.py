@@ -6,11 +6,14 @@ import os
 import platform
 import subprocess
 import sys
-from pathlib import Path
+from pathlib import Path, PurePosixPath, PureWindowsPath
 
 ROOT = Path(__file__).resolve().parents[2]
 ADDON_DIR = ROOT / "addon" / "anki_audio_quick_editor"
 ADDON_SYMLINK_ID = "1000000002"
+MACOS_ANKI_APP_PATH = Path("/Applications/Anki.app")
+ANKI_PYTHON_LAUNCHER = "import aqt, sys; sys.argv[0] = 'Anki'; aqt.run()"
+PathSegments = tuple[str, ...]
 
 
 def _load_dotenv() -> dict[str, str]:
@@ -31,21 +34,73 @@ def _load_dotenv() -> dict[str, str]:
     return result
 
 
-def _candidate_paths() -> list[Path]:
+def _posix_home_string() -> str:
+    """Return the current home directory rendered with POSIX separators."""
+    return str(Path.home()).replace("\\", "/")
+
+
+def _candidate_path_segments() -> list[PathSegments]:
+    """Return candidate Anki Python paths as plain segments.
+
+    Keeping the path pieces separate lets tests render Windows-style paths
+    deterministically even when they run on a POSIX host.
+    """
     system = platform.system()
     if system == "Darwin":
-        base = Path.home() / "Library" / "Application Support"
-        return [base / "AnkiProgramFiles" / ".venv" / "bin" / "python3"]
+        return [
+            (
+                _posix_home_string(),
+                "Library",
+                "Application Support",
+                "AnkiProgramFiles",
+                ".venv",
+                "bin",
+                "python3",
+            )
+        ]
     if system == "Linux":
         return [
-            Path.home() / ".local" / "share" / "AnkiProgramFiles" / ".venv" / "bin" / "python3",
-            Path.home() / ".var" / "app" / "net.ankiweb.Anki" / "data" / "AnkiProgramFiles" / ".venv" / "bin" / "python3",
+            (
+                _posix_home_string(),
+                ".local",
+                "share",
+                "AnkiProgramFiles",
+                ".venv",
+                "bin",
+                "python3",
+            ),
+            (
+                _posix_home_string(),
+                ".var",
+                "app",
+                "net.ankiweb.Anki",
+                "data",
+                "AnkiProgramFiles",
+                ".venv",
+                "bin",
+                "python3",
+            ),
         ]
     if system == "Windows":
-        appdata = os.environ.get("APPDATA", "")
-        if appdata:
-            return [Path(appdata) / "AnkiProgramFiles" / ".venv" / "Scripts" / "python.exe"]
+        candidates = []
+        for env_name in ("LOCALAPPDATA", "APPDATA"):
+            env_path = os.environ.get(env_name, "")
+            if env_path:
+                candidates.append((env_path, "AnkiProgramFiles", ".venv", "Scripts", "python.exe"))
+        return candidates
     return []
+
+
+def _render_candidate_path(segments: PathSegments, *, system: str) -> str:
+    """Render candidate path segments using the requested platform semantics."""
+    if system == "Windows":
+        return str(PureWindowsPath(*segments))
+    return str(PurePosixPath(*segments))
+
+
+def _candidate_paths() -> list[Path]:
+    system = platform.system()
+    return [Path(_render_candidate_path(segments, system=system)) for segments in _candidate_path_segments()]
 
 
 def _validate_python(python: Path) -> bool:
@@ -78,8 +133,17 @@ def _find_anki_python() -> Path:
     raise SystemExit(1)
 
 
+find_anki_python = _find_anki_python
+
+
 def _anki_bin_dir(anki_python: Path) -> Path:
     return anki_python.parent
+
+
+anki_bin_dir = _anki_bin_dir
+
+
+die = _die
 
 
 def _anki_addons_dir() -> Path | None:
@@ -182,4 +246,30 @@ def cmd_link_addon() -> int:
         return 1
     link.symlink_to(ADDON_DIR)
     print(f"Created: {link} -> {current}")
+    return 0
+
+
+def _anki_launch_command() -> list[str]:
+    if platform.system() == "Darwin":
+        app = str(MACOS_ANKI_APP_PATH) if MACOS_ANKI_APP_PATH.is_dir() else "Anki"
+        return ["open", "-a", app]
+    anki_python = _find_anki_python()
+    return [str(anki_python), "-c", ANKI_PYTHON_LAUNCHER]
+
+
+def cmd_launch_anki() -> int:
+    command = _anki_launch_command()
+    try:
+        if platform.system() == "Darwin":
+            result = subprocess.run(command, check=False)
+            if result.returncode != 0:
+                print(f"ERROR: Anki launcher failed with exit code {result.returncode}.", file=sys.stderr)
+                return result.returncode
+        else:
+            subprocess.Popen(command)
+    except OSError as exc:
+        print(f"ERROR: could not launch Anki: {exc}", file=sys.stderr)
+        return 1
+    print(f"Launched Anki: {' '.join(command)}")
+    print("If Anki was already running, quit and rerun so add-ons reload from this worktree.")
     return 0

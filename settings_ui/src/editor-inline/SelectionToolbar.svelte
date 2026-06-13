@@ -1,32 +1,46 @@
 <script lang="ts">
   import AqeTooltip from "../lib/AqeTooltip.svelte";
+  import { buttonTooltipContent } from "../lib/disabled-tooltip.js";
   import EditorCommandIcon from "./EditorCommandIcon.svelte";
   import { send } from "./actions.js";
   import { sendRegionDelete } from "./region-delete.js";
-  import {
-    collapseSelectionToolbarForOrd,
-    expandSelectionToolbarForOrd,
-    setSelectionToolbarPreviewForOrd,
-  } from "./selection-toolbar-state.js";
+  import { setSelectionToolbarPreviewForOrd } from "./selection-toolbar-state.js";
   import { t } from "../lib/i18n.js";
-  import type { FieldTarget } from "./types.js";
+  import { buttonDisplayMode } from "../lib/editor-toolbar-buttons.js";
+  import type { EditorButtonModes } from "../lib/editor-toolbar-buttons.js";
+  import { EditorButtonMode } from "../lib/types.js";
+  import type { EditorCommand, FieldTarget } from "./types.js";
 
-  const { target }: { target: FieldTarget } = $props();
+  const {
+    buttonModes,
+    target,
+    visibleCommands,
+  }: {
+    buttonModes: EditorButtonModes | undefined;
+    target: FieldTarget;
+    visibleCommands: EditorCommand[] | undefined;
+  } = $props();
+  type SelectionActionCommand = EditorCommand & ("aqe:delete-selection" | "aqe:delete-rest");
 
-  function expandCollapsedToolbar(): void {
-    expandSelectionToolbarForOrd(target.ord);
+  function commandVisible(command: SelectionActionCommand): boolean {
+    return !Array.isArray(visibleCommands) || visibleCommands.includes(command);
   }
 
-  function expandCollapsedToolbarFromKeyboard(event: KeyboardEvent): void {
-    if (event.key !== "Enter" && event.key !== " ") return;
-    event.preventDefault();
-    event.stopPropagation();
-    expandCollapsedToolbar();
+  function commandIconOnly(command: SelectionActionCommand): boolean {
+    return buttonDisplayMode(command, buttonModes) === EditorButtonMode.Icon;
   }
+
+  const playTooltip = $derived(
+    buttonTooltipContent(t("editor.command.play.label"), t("editor.command.play.title_selected")),
+  );
+  const deleteRegionTooltip = $derived(
+    buttonTooltipContent(t("editor.command.delete_region.label"), t("editor.command.delete_region.title")),
+  );
+  const deleteRestTooltip = $derived(
+    buttonTooltipContent(t("editor.command.delete_rest.label"), t("editor.command.delete_rest.title")),
+  );
 </script>
 
-<div class="aqe-selection-rest-preview aqe-selection-rest-preview-before" aria-hidden="true"></div>
-<div class="aqe-selection-rest-preview aqe-selection-rest-preview-after" aria-hidden="true"></div>
 <div
   class="aqe-selection-toolbar"
   data-testid={`aqe-selection-toolbar-${target.ord}`}
@@ -41,9 +55,9 @@
         type="button"
         class="aqe-button aqe-selection-toolbar-button aqe-selection-toolbar-play aqe-tooltip-target"
         data-aqe-button-state="play"
-        data-aqe-tooltip-content="Play selection"
+        data-aqe-tooltip-content={playTooltip}
         data-testid={`aqe-selection-toolbar-play-${target.ord}`}
-        aria-label="Play selection"
+        aria-label={playTooltip}
         onpointerdown={(event) => event.stopPropagation()}
         onmousedown={(event) => event.preventDefault()}
         onclick={() => send("aqe:play", target.node, target.ord)}
@@ -53,91 +67,64 @@
       </button>
     {/snippet}
   </AqeTooltip>
-  <AqeTooltip>
-    {#snippet trigger({ props })}
-      <button
-        {...props}
-        type="button"
-        class="aqe-button aqe-selection-toolbar-button aqe-delete-region-button aqe-tooltip-target"
-        data-aqe-command="aqe:delete-selection"
-        data-aqe-button-state="default"
-        data-aqe-tooltip-content={t("editor.command.delete_region.title")}
-        data-testid={`aqe-selection-toolbar-delete-region-${target.ord}`}
-        aria-label={t("editor.command.delete_region.title")}
-        hidden
-        onpointerdown={(event) => event.stopPropagation()}
-        onmousedown={(event) => event.preventDefault()}
-        onfocus={() => setSelectionToolbarPreviewForOrd(target.ord, "region")}
-        onblur={() => setSelectionToolbarPreviewForOrd(target.ord, "none")}
-        onmouseenter={() => setSelectionToolbarPreviewForOrd(target.ord, "region")}
-        onmouseleave={() => setSelectionToolbarPreviewForOrd(target.ord, "none")}
-        onclick={() => sendRegionDelete("button", target.node, target.ord)}
-      >
-        <EditorCommandIcon icon="selection-remove-inside" />
-      </button>
-    {/snippet}
-  </AqeTooltip>
-  <AqeTooltip>
-    {#snippet trigger({ props })}
-      <button
-        {...props}
-        type="button"
-        class="aqe-button aqe-selection-toolbar-button aqe-delete-rest-button aqe-tooltip-target"
-        data-aqe-command="aqe:delete-rest"
-        data-aqe-button-state="default"
-        data-aqe-tooltip-content={t("editor.command.delete_rest.title")}
-        data-testid={`aqe-selection-toolbar-delete-rest-${target.ord}`}
-        aria-label={t("editor.command.delete_rest.title")}
-        hidden
-        onpointerdown={(event) => event.stopPropagation()}
-        onmousedown={(event) => event.preventDefault()}
-        onfocus={() => setSelectionToolbarPreviewForOrd(target.ord, "rest")}
-        onblur={() => setSelectionToolbarPreviewForOrd(target.ord, "none")}
-        onmouseenter={() => setSelectionToolbarPreviewForOrd(target.ord, "rest")}
-        onmouseleave={() => setSelectionToolbarPreviewForOrd(target.ord, "none")}
-        onclick={() => sendRegionDelete("button", target.node, target.ord, "delete-rest")}
-      >
-        <EditorCommandIcon icon="selection-remove-outside" />
-      </button>
-    {/snippet}
-  </AqeTooltip>
-  <AqeTooltip>
-    {#snippet trigger({ props })}
-      <button
-        {...props}
-        type="button"
-        class="aqe-button aqe-selection-toolbar-button aqe-selection-toolbar-collapse aqe-tooltip-target"
-        data-aqe-tooltip-content="Collapse selection actions"
-        data-testid={`aqe-selection-toolbar-collapse-${target.ord}`}
-        aria-label="Collapse selection actions"
-        onpointerdown={(event) => event.stopPropagation()}
-        onmousedown={(event) => event.preventDefault()}
-        onclick={() => collapseSelectionToolbarForOrd(target.ord)}
-      >
-        <EditorCommandIcon icon="x" />
-      </button>
-    {/snippet}
-  </AqeTooltip>
+  {#if commandVisible("aqe:delete-selection")}
+    <AqeTooltip>
+      {#snippet trigger({ props })}
+        <button
+          {...props}
+          type="button"
+          class:aqe-icon-only={commandIconOnly("aqe:delete-selection")}
+          class:aqe-selection-toolbar-command-text={!commandIconOnly("aqe:delete-selection")}
+          class="aqe-button aqe-selection-toolbar-button aqe-delete-region-button aqe-tooltip-target"
+          data-aqe-command="aqe:delete-selection"
+          data-aqe-button-state="default"
+          data-aqe-enabled-title={deleteRegionTooltip}
+          data-aqe-tooltip-content={deleteRegionTooltip}
+          data-testid={`aqe-selection-toolbar-delete-region-${target.ord}`}
+          aria-label={deleteRegionTooltip}
+          hidden
+          onpointerdown={(event) => event.stopPropagation()}
+          onmousedown={(event) => event.preventDefault()}
+          onfocus={() => setSelectionToolbarPreviewForOrd(target.ord, "region")}
+          onblur={() => setSelectionToolbarPreviewForOrd(target.ord, "none")}
+          onmouseenter={() => setSelectionToolbarPreviewForOrd(target.ord, "region")}
+          onmouseleave={() => setSelectionToolbarPreviewForOrd(target.ord, "none")}
+          onclick={() => sendRegionDelete("button", target.node, target.ord)}
+        >
+          <EditorCommandIcon icon="selection-remove-inside" />
+          <span class="aqe-button-label">{t("editor.command.delete_region.label")}</span>
+        </button>
+      {/snippet}
+    </AqeTooltip>
+  {/if}
+  {#if commandVisible("aqe:delete-rest")}
+    <AqeTooltip>
+      {#snippet trigger({ props })}
+        <button
+          {...props}
+          type="button"
+          class:aqe-icon-only={commandIconOnly("aqe:delete-rest")}
+          class:aqe-selection-toolbar-command-text={!commandIconOnly("aqe:delete-rest")}
+          class="aqe-button aqe-selection-toolbar-button aqe-delete-rest-button aqe-tooltip-target"
+          data-aqe-command="aqe:delete-rest"
+          data-aqe-button-state="default"
+          data-aqe-enabled-title={deleteRestTooltip}
+          data-aqe-tooltip-content={deleteRestTooltip}
+          data-testid={`aqe-selection-toolbar-delete-rest-${target.ord}`}
+          aria-label={deleteRestTooltip}
+          hidden
+          onpointerdown={(event) => event.stopPropagation()}
+          onmousedown={(event) => event.preventDefault()}
+          onfocus={() => setSelectionToolbarPreviewForOrd(target.ord, "rest")}
+          onblur={() => setSelectionToolbarPreviewForOrd(target.ord, "none")}
+          onmouseenter={() => setSelectionToolbarPreviewForOrd(target.ord, "rest")}
+          onmouseleave={() => setSelectionToolbarPreviewForOrd(target.ord, "none")}
+          onclick={() => sendRegionDelete("button", target.node, target.ord, "delete-rest")}
+        >
+          <EditorCommandIcon icon="selection-remove-outside" />
+          <span class="aqe-button-label">{t("editor.command.delete_rest.label")}</span>
+        </button>
+      {/snippet}
+    </AqeTooltip>
+  {/if}
 </div>
-<AqeTooltip>
-  {#snippet trigger({ props })}
-    <svg
-      {...props}
-      class="aqe-selection-toolbar-dot aqe-tooltip-target"
-      data-aqe-tooltip-content="Expand selection actions"
-      data-testid={`aqe-selection-toolbar-dot-${target.ord}`}
-      viewBox="0 0 18 18"
-      role="button"
-      tabindex="0"
-      aria-label="Expand selection actions"
-      onpointerdown={(event) => event.stopPropagation()}
-      onmousedown={(event) => event.preventDefault()}
-      onkeydown={expandCollapsedToolbarFromKeyboard}
-      onclick={expandCollapsedToolbar}
-      aria-hidden="true"
-    >
-      <circle class="aqe-selection-toolbar-dot-halo" cx="9" cy="9" r="6.25"></circle>
-      <circle class="aqe-selection-toolbar-dot-ring" cx="9" cy="9" r="4.75"></circle>
-    </svg>
-  {/snippet}
-</AqeTooltip>

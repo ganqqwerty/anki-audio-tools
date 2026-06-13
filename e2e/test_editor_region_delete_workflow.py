@@ -17,6 +17,7 @@ from e2e.editor_note_helpers import (
     _open_editor,
     _sound_filename,
     _wait_for_generated_mp3,
+    _wait_for_status,
     _wait_for_status_flow,
 )
 from e2e.helpers import click_selector, generate_tone, run_js, wait_for_js_condition
@@ -27,28 +28,27 @@ def _plot_pointer_script(ord_: int, start_ratio: float, end_ratio: float) -> str
     (() => {{
       const ord = {ord_};
       const svg = document.querySelector(`.aqe-visualizer[data-aqe-field-ord="${{ord}}"] .aqe-visualizer-svg`);
-      const rect = svg.getBoundingClientRect();
-      const plot = {{ width: 620, left: 44, right: 10 }};
-      const plotLeft = rect.left + (plot.left / plot.width) * rect.width;
-      const plotWidth = ((plot.width - plot.left - plot.right) / plot.width) * rect.width;
-      const xFor = (ratio) => plotLeft + plotWidth * ratio;
+      const rect = svg?.getBoundingClientRect();
+      const bounds = window.__aqeGraphPixelBoundsForTest?.(ord);
+      if (!svg || !rect || !bounds) return;
+      const xFor = (ratio) => bounds.left + bounds.width * ratio;
       const EventCtor = window.PointerEvent || window.MouseEvent;
       svg.dispatchEvent(new EventCtor("pointerdown", {{
         bubbles: true,
         clientX: xFor({start_ratio}),
-        clientY: rect.top + 20,
+        clientY: rect.top + 40,
         shiftKey: true,
       }}));
       window.dispatchEvent(new EventCtor("pointermove", {{
         bubbles: true,
         clientX: xFor({end_ratio}),
-        clientY: rect.top + 20,
+        clientY: rect.top + 40,
         shiftKey: true,
       }}));
       window.dispatchEvent(new EventCtor("pointerup", {{
         bubbles: true,
         clientX: xFor({end_ratio}),
-        clientY: rect.top + 20,
+        clientY: rect.top + 40,
         shiftKey: true,
       }}));
     }})()
@@ -109,6 +109,12 @@ def test_delete_region_button_cuts_middle_region_and_redraws_graph(
             and abs(value["selectionEndMs"] - value["durationMs"]) <= 1
             and value["cursorMs"] == 0,
             timeout=10.0,
+        )
+        _wait_for_status(
+            editor,
+            lambda status: status["text"] == "Deleted selection 500-1250 ms."
+            and status["statusOwner"] == "edit",
+            timeout=5.0,
         )
 
         generated_duration = probe_duration_ms(media_dir / generated_name, audio_processing_config.from_config({}))
@@ -171,6 +177,12 @@ def test_delete_rest_button_keeps_selected_middle_region_and_redraws_graph(
             and abs(value["selectionEndMs"] - value["durationMs"]) <= 1
             and value["cursorMs"] == 0,
             timeout=10.0,
+        )
+        _wait_for_status(
+            editor,
+            lambda status: status["text"] == "Kept only selection 500-1250 ms."
+            and status["statusOwner"] == "edit",
+            timeout=5.0,
         )
 
         generated_duration = probe_duration_ms(media_dir / generated_name, audio_processing_config.from_config({}))

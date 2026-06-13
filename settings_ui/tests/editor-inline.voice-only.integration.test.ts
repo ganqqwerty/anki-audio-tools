@@ -8,6 +8,7 @@ import {
 import {
   bridgeCommands,
   muteConsole,
+  peekPendingCommandPayload,
   renderFields,
 } from "./editor-inline.integration.helpers.js";
 
@@ -35,7 +36,7 @@ describe("editor inline Voice Only integration", () => {
     document.querySelector<HTMLButtonElement>('[data-testid="aqe-button-0-denoise-standard"]')!.click();
 
     expect(bridgeCommands()).toContain("aqe:command-payload");
-    expect(window.__aqePendingCommandPayload).toMatchObject({
+    expect(peekPendingCommandPayload()).toMatchObject({
       command: "aqe:voice-only",
       fieldOrd: 0,
       overrides: {

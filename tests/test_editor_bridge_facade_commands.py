@@ -6,11 +6,9 @@ from unittest.mock import MagicMock
 
 from anki_audio_quick_editor import editor_callbacks, editor_frontend_callbacks
 from anki_audio_quick_editor.audio_state import AudioEditState
-from anki_audio_quick_editor.editor_integration import (
-    _SESSIONS,
-    EditorSession,
-    _handle_bridge_command,
-)
+from anki_audio_quick_editor.editor_callbacks import _handle_bridge_command
+from anki_audio_quick_editor.editor_runtime import SESSIONS
+from anki_audio_quick_editor.editor_session import EditorSession
 from anki_audio_quick_editor.editor_split_defaults import split_default_config_updates
 from tests.editor_bridge_command_fixtures import make_editor
 
@@ -25,6 +23,25 @@ def test_split_default_updates_accept_and_reject_share_target() -> None:
         "share_target": "catbox"
     }
     assert split_default_config_updates({"defaults": {"shareTarget": "invalid"}}) == {}
+
+
+def test_split_default_updates_accept_and_reject_size_reduction_mode() -> None:
+    assert split_default_config_updates(
+        {
+            "defaults": {
+                "sizeReductionMode": "aggressive",
+                "sizeReductionBitrateKbps": 32,
+                "sizeReductionSampleRateHz": 16000,
+                "sizeReductionChannels": 1,
+            }
+        }
+    ) == {
+        "size_reduction_mode": "aggressive",
+        "size_reduction_bitrate_kbps": 32,
+        "size_reduction_sample_rate_hz": 16000,
+        "size_reduction_channels": 1,
+    }
+    assert split_default_config_updates({"defaults": {"sizeReductionMode": "tiny"}}) == {}
 
 
 def test_bridge_routes_share_payload_to_editor_sharing(monkeypatch) -> None:
@@ -45,6 +62,56 @@ def test_bridge_routes_share_payload_to_editor_sharing(monkeypatch) -> None:
     assert called["payload"].share_target == "catbox"
 
 
+def test_bridge_routes_learner_share_payload_to_editor_sharing(monkeypatch) -> None:
+    editor = make_editor()
+    called: dict[str, object] = {}
+
+    monkeypatch.setattr(
+        "anki_audio_quick_editor.editor_callbacks._share_learner_recording_file",
+        lambda _editor, payload: called.update(editor=_editor, payload=payload),
+    )
+
+    _handle_bridge_command(
+        editor,
+        '{"command":"aqe:share-recording","fieldOrd":0,"shareTarget":"litterbox"}',
+    )
+
+    assert called["editor"] is editor
+    assert called["payload"].share_target == "litterbox"
+
+
+def test_bridge_routes_show_learner_recording_file(monkeypatch) -> None:
+    editor = make_editor()
+    called: dict[str, object] = {}
+
+    monkeypatch.setattr(
+        "anki_audio_quick_editor.editor_callbacks._show_learner_recording_file",
+        lambda _editor: called.update(editor=_editor),
+    )
+
+    _handle_bridge_command(editor, "aqe:show-recording-file")
+
+    assert called["editor"] is editor
+
+
+def test_bridge_passes_start_cursor_to_learner_recording(monkeypatch) -> None:
+    editor = make_editor()
+    called: dict[str, object] = {}
+
+    monkeypatch.setattr(
+        "anki_audio_quick_editor.editor_callbacks._record_learner_voice",
+        lambda _editor, **kwargs: called.update(editor=_editor, kwargs=kwargs),
+    )
+
+    _handle_bridge_command(
+        editor,
+        '{"command":"aqe:record-voice","fieldOrd":0,"startCursorMs":450}',
+    )
+
+    assert called["editor"] is editor
+    assert called["kwargs"]["start_cursor_ms"] == 450
+
+
 def test_stop_playback_command_stops_session_without_clearing_status() -> None:
     editor = make_editor()
     session = EditorSession(
@@ -54,7 +121,7 @@ def test_stop_playback_command_stops_session_without_clearing_status() -> None:
         playback_paused=True,
         playback_generation=4,
     )
-    _SESSIONS[editor] = session
+    SESSIONS[editor] = session
 
     _handle_bridge_command(editor, "aqe:stop-playback")
 

@@ -4,18 +4,20 @@
 
 ```bash
 python3 scripts/dev.py architecture-report
+python3 scripts/dev.py graphs-archive
 python3 scripts/dev.py test-anki-api
 python3 scripts/dev.py check
 python3 scripts/dev.py coverage
 python3 scripts/dev.py qodana
 python3 scripts/dev.py sonar
+python3 scripts/dev.py runtime-install
 python3 scripts/dev.py test-e2e
 python3 scripts/dev.py test-e2e-parallel
 ```
 
 ## What Gets Tested
 
-- `tests/` covers sound-reference parsing, edit-state validation, ffmpeg filter construction, managed runtime download/extract/verify behavior, thin release/runtime-pack packaging, unified Silencedetect/Silero pause-removal planning and artifacts, reusable processing preset validation/running, external denoiser command/render/error paths for DeepFilterNet, RNNoise, and DPDFNet, prosody analysis and serialization, SVG rendering, batch visualization decisions, Browser hook wiring, config migration, bootstrap behavior, editor bridge wiring, and settings command/state logic.
+- `tests/` covers sound-reference parsing, edit-state validation, ffmpeg filter construction, managed runtime download/extract/verify behavior, thin release/runtime-pack packaging, unified Silencedetect/Silero pause-removal planning and artifacts, external denoiser command/render/error paths for DeepFilterNet, RNNoise, and DPDFNet, prosody analysis and serialization, SVG rendering, batch visualization decisions, Browser hook wiring, config migration, bootstrap behavior, editor bridge wiring, and settings command/state logic.
 - `anki_api_contract/` discovers the Anki API surface from production add-on code and checks it against the real installed Anki Python runtime without launching a full Anki app.
 - `tests/test_architecture/` enforces layer boundaries, module classification, Anki-import-safe helper modules, import-safe runtime modules, editor bridge command sync, prosody dependency isolation, shell-thin settings rules, and DB access isolation.
 - `tests/test_runtime_package_imports.py` and the runtime-import architecture rule guard against hard-coded lazy imports of the friendly source package name, which would fail when Anki loads the add-on as a numeric package.
@@ -26,11 +28,16 @@ python3 scripts/dev.py test-e2e-parallel
 - `python3 scripts/dev.py coverage` runs Python unit tests with branch coverage and fails below 80%.
 - `python3 scripts/dev.py qodana` runs JetBrains Qodana with `qodana.yaml` and fails on any reported problem.
 - `python3 scripts/dev.py sonar` regenerates Python XML coverage and frontend LCOV from scratch, waits for the Sonar quality gate, and fails on missing reports or a failed quality gate.
-- `e2e/` exercises the real add-on inside a live Anki runtime via `aqt._run(exec=False)`, including ffmpeg-backed audio processing when `ffmpeg` and `ffprobe` are installed.
+- `e2e/` exercises the real add-on inside a live Anki runtime via `aqt._run(exec=False)`, including ffmpeg-backed audio processing through the same runtime-aware tool discovery used in production.
 
 ## Feature Completion Rule
 
-A feature is not complete until `python3 scripts/dev.py test-e2e` passes. The e2e command rebuilds the frontend bundles first so Anki tests never depend on stale webview output.
+A feature is not complete until `python3 scripts/dev.py test-e2e` passes. Run
+`python3 scripts/dev.py runtime-install` first when the managed runtime is not
+ready. The e2e command preflights managed runtime assets and vendored Python
+wheels, then rebuilds the frontend bundles so Anki tests never depend on stale
+webview output. Missing dependency-backed tools, models, archives, or wheels
+are failures, not skips.
 
 `python3 scripts/dev.py test-e2e-parallel` is available for faster local e2e
 feedback. It rebuilds the frontend once, collects e2e tests once, then runs
@@ -45,7 +52,7 @@ Race-sensitive workflows use targeted tests with barrier-controlled fake workers
 Use the focused checks while developing:
 
 ```bash
-python3 scripts/dev.py test tests/test_editor_async_race_guards.py tests/test_browser_integration.py tests/test_prosody_cache.py
+python3 scripts/dev.py test tests/test_editor_async_race_guards.py tests/test_browser_integration_hooks.py tests/test_prosody_cache.py
 cd settings_ui && npm test -- editor-inline.bridge-queue-race.test.ts --run
 python3 scripts/dev.py test-e2e e2e/test_editor_async_race_workflow.py
 python3 scripts/dev.py test-e2e e2e/test_browser_batch_race_workflow.py
@@ -73,6 +80,8 @@ Avoid running `npm run validate` or `pytest e2e` directly as the only verificati
 | Task | Command |
 |------|---------|
 | Architecture report | `python3 scripts/dev.py architecture-report` |
+| Architecture archive for docs/LLM audits | `python3 scripts/dev.py graphs-archive` |
+| Architecture diagrams freshness | `python3 scripts/dev.py graphs-check` |
 | Real Anki API compatibility | `python3 scripts/dev.py test-anki-api` |
 | Unit + architecture tests | `python3 scripts/dev.py test` |
 | Lint | `python3 scripts/dev.py lint` |
@@ -87,6 +96,7 @@ Avoid running `npm run validate` or `pytest e2e` directly as the only verificati
 | Dependency audit | `python3 scripts/dev.py deps` |
 | Complexity | `python3 scripts/dev.py complexity` |
 | Frontend validation | `python3 scripts/dev.py test-svelte` |
+| Managed runtime install/repair | `python3 scripts/dev.py runtime-install` |
 | E2E tests with frontend rebuild | `python3 scripts/dev.py test-e2e` |
 | Parallel local e2e feedback | `python3 scripts/dev.py test-e2e-parallel` |
 | Python branch coverage | `python3 scripts/dev.py coverage` |
@@ -129,23 +139,26 @@ Run archive smoke tests with Anki's Python 3.13 runtime, not the macOS system Py
 
 Thin archives are size-gated separately from runtime packs. Runtime packs have warning thresholds, while the `.ankiaddon` hard size gate continues to apply to the AnkiWeb artifact.
 
-## Focused Test Files
+## Focused Test Areas
 
-| Area | Files |
-|------|-------|
+Test files are named by subsystem. To find tests for a given area:
+
+| Area | Test files |
+|------|------------|
 | Real Anki API compatibility | `anki_api_contract/*.py`, `tests/test_anki_api_contract_mocks.py` |
-| Batch visualization core | `tests/test_batch_visualization.py` |
-| Browser menu/context integration | `tests/test_browser_integration.py` |
-| Browser batch WebView shell/state | `tests/test_browser_dialog.py`, `tests/test_browser_dialog_state.py` |
-| Shared WebView bridge/shell/log helpers | `tests/test_webview_bridge.py`, `tests/test_webview_shell.py`, `tests/test_frontend_logs.py` |
-| Processing presets | `tests/test_audio_processing_presets.py`, `tests/test_audio_processing_preset_runner.py`, `tests/test_batch_processing_presets.py`, `tests/test_editor_presets.py` |
-| Pause shortening pipeline | `tests/test_audio_pipeline.py`, `tests/test_audio_pause_pipeline.py` |
-| Prosody SVG media rendering | `tests/test_prosody_svg.py` |
-| Shared prosody analysis/cache and editor integration | `tests/test_prosody_analyzer.py`, `tests/test_prosody_fallback.py`, `tests/test_editor_integration.py` |
-| JSON contract generation | `tests/test_contract_generation.py` |
-| Managed runtime assets | `tests/test_runtime_manager.py` |
-| Release packaging | `tests/test_release.py` |
-| Architecture boundaries | `tests/test_architecture/*.py` |
+| Audio processing (operations, pipeline, denoise, pitch hum, rendering, recording) | [`tests/test_audio_*.py`](tests/) |
+| Editor (actions, bridge, playback, recording, status, sharing, integration) | [`tests/test_editor_*.py`](tests/) |
+| Browser batch operations | [`tests/test_browser_*.py`](tests/), [`tests/test_batch_*.py`](tests/) |
+| Config & migration | [`tests/test_config_*.py`](tests/) |
+| Prosody (analyzer, cache, fallback, SVG, settings) | [`tests/test_prosody_*.py`](tests/) |
+| Managed runtime | [`tests/test_runtime_*.py`](tests/) |
+| Release packaging | [`tests/test_release_*.py`](tests/) |
+| WebView bridge & shell | [`tests/test_webview_*.py`](tests/), [`tests/test_frontend_logs.py`](tests/test_frontend_logs.py) |
+| Settings dialog | [`tests/test_settings_*.py`](tests/) |
+| Reviewer integration | [`tests/test_reviewer_*.py`](tests/) |
+| Architecture boundaries | [`tests/test_architecture/`](tests/test_architecture/) |
+| Frontend (Svelte/Vitest) | [`settings_ui/tests/`](settings_ui/tests/) |
+| E2E (real Anki + Qt) | [`e2e/`](e2e/) |
 
 ## Pause Shortening Invariants
 
@@ -160,16 +173,7 @@ Pause removal has focused unit tests because it combines detector-specific comma
 
 Mutation testing is available as an advisory, opt-in workflow for the deterministic Python core. It is not part of `python3 scripts/dev.py check` and it is not a feature-completion gate.
 
-Current first-wave mutation scope:
-
-- `audio_state.py`
-- `config_migration.py`
-- `sound_refs.py`
-- `settings_state.py`
-- `prosody_svg.py`
-- `audio_processor.py`
-
-The mutmut run uses the Anki bundled Python environment via `scripts/dev.py`, mutates only covered lines, disables pytest randomization, and limits test selection to the matching focused unit-test files.
+The mutation scope is configured in [`pyproject.toml`](pyproject.toml) under `[tool.mutmut]`, which defines `paths_to_mutate` and `do_not_mutate`. The mutmut run uses the Anki bundled Python environment via `scripts/dev.py`, mutates only covered lines, disables pytest randomization, and limits test selection to the matching focused unit-test files.
 
 Useful commands:
 
@@ -196,6 +200,7 @@ Recommended workflow:
 | Module-level Anki import ban | Import-safe helpers, including batch and SVG modules, must not import `aqt` or `anki` at module load time. |
 | Runtime import safety | UI layers must not leak into import-safe modules, including shared WebView bridge/shell and frontend log helpers. |
 | Editor bridge contract | Injected editor UI commands and registered bridge commands must stay in sync. |
+| Editor panel button settings | Configurable editor panel command buttons must be accepted by settings visibility and display-mode config. |
 | Module classification | Every production module must be listed in one architecture layer. |
 | Prosody boundaries | Optional Parselmouth/Praat dependencies stay isolated and do not become package-level imports. |
 | Settings/backend isolation | Settings backend modules do not import UI modules; the settings shell remains thin. |
@@ -208,9 +213,10 @@ When changing module boundaries or side effects, use this order:
 
 1. Run `python3 scripts/dev.py test-e2e` to establish baseline runtime behavior.
 2. Run `python3 scripts/dev.py architecture-report`.
-3. Run `python3 scripts/dev.py arch`.
-4. Run `python3 scripts/dev.py test-anki-api`.
-5. Run `python3 scripts/dev.py test`.
+3. Run `python3 scripts/dev.py graphs-archive` if documentation or dependency diagrams need to be interpreted or updated.
+4. Run `python3 scripts/dev.py arch`.
+5. Run `python3 scripts/dev.py test-anki-api`.
+6. Run `python3 scripts/dev.py test`.
 
 If `test-e2e` fails before the architecture change, treat that as a baseline bug to classify before tightening contracts.
 
@@ -221,23 +227,29 @@ If `test-e2e` fails before the architecture change, treat that as a baseline bug
 | `import-safe-no-upper-layers` | Import-safe helpers cannot import Browser/editor UI modules or settings backend modules. |
 | `settings-backend-no-ui` | Settings backend modules cannot import editor integration. |
 
+## Architecture Graphs
+
+`python3 scripts/dev.py graphs-archive` creates a date-stamped JSON snapshot under [`docs/archive/architecture_diagrams/`](docs/archive/architecture_diagrams/) for documentation and review work. Use it to understand current module, Svelte, bridge, WebView, and relationship shape before writing prose.
+
+The archive explains what currently connects. The source of truth for what is allowed remains the executable contracts in [`tests/test_architecture/`](tests/test_architecture/) and import-linter config in [`pyproject.toml`](pyproject.toml).
+
 ## E2E Notes
 
 The e2e suite uses a temporary `ANKI_BASE`, copies the add-on under `addons21/1000000002`, and imports add-on modules through `e2e.conftest.import_runtime_addon_module(...)`. It intentionally does not alias `1000000002.*` to `anki_audio_quick_editor.*`, so numeric-package runtime import bugs stay visible.
 
 E2E tests run in randomized order and Anki config is persistent inside the temporary add-on profile for the duration of a test. When adding a config key, update the e2e default-config helpers so the new setting is explicitly reset to its production default unless a test opts into another value. This prevents one settings-dialog test from silently changing later editor tests.
 
-Audio rendering and fallback prosody tests require `ffmpeg` and `ffprobe`. On this machine they are installed with Homebrew as `ffmpeg 8.1.1` under `/opt/homebrew/bin/`; e2e tests prefer that Homebrew binary and do not use bundled app copies such as Migaku's ffmpeg.
+Audio rendering and fallback prosody tests require `ffmpeg` and `ffprobe`. Shared e2e defaults intentionally leave `ffmpeg_path` empty so those tests exercise the same lookup order as production: configured path when set, then managed runtime, package `bin/` as a source-tree fallback, then `PATH` as a compatibility fallback. Do not pin machine-specific Homebrew or Windows paths in the shared e2e defaults.
 
 External binary features should have two kinds of tests: normal-path coverage that runs the real executable in e2e when the binary is available, and focused unit/e2e fixtures with fake executables for exceptional behavior. Use fakes for missing tools, permission errors, invalid arguments, malformed output, timeout handling, and nonzero exits; do not replace the normal real-binary smoke path with a fake when the feature depends on actual media processing.
 
-Prosody visualization e2e coverage verifies that the real Anki editor renders intensity fill, pitch paths, Hertz labels, and cursor seeking, and that the graph refreshes after real ffmpeg-generated media changes.
+Prosody visualization e2e coverage verifies that the real Anki editor renders intensity fill, pitch paths, Hertz labels, cursor seeking, horizontal zoom controls, and selection-aware zooming, and that the graph refreshes after real ffmpeg-generated media changes.
 
 Settings that affect editor startup behavior need at least one same-session e2e check: open the real settings dialog, save the changed value, then load a later editor note in the same Anki runtime. Unit and Svelte tests can prove state plumbing, but only the Anki e2e path catches whether saved add-on config is read again without restarting Anki.
 
 The inline editor has an additional in-between integration layer in `settings_ui/tests/editor-inline.*.test.ts`: tests mount fake Anki editor fields in jsdom, replace `pycmd` with a bridge double, provide deterministic prosody/audio payloads, and drive the public `window.__aqe*` contract without loading Anki. The editor-inline coverage gate enforces at least 90% lines/statements/functions for `settings_ui/src/editor-inline/`; branch coverage is enforced separately for defensive DOM guards. This gate runs as part of `python3 scripts/dev.py test-svelte` because that command uses `npm run validate`.
 
-When adding or changing editor toolbar buttons, update [`EDITOR_MODIFICATION_BUTTON_BEHAVIOR_RULES.md`](EDITOR_MODIFICATION_BUTTON_BEHAVIOR_RULES.md). It maps current editor commands to behavior expectations, e2e/unit coverage, and known buttons that intentionally diverge from standard modification-button rules.
+When adding or changing editor toolbar or selection-panel command buttons, update [`EDITOR_MODIFICATION_BUTTON_BEHAVIOR_RULES.md`](EDITOR_MODIFICATION_BUTTON_BEHAVIOR_RULES.md) and keep the settings visibility/display-mode architecture guard passing. It maps current editor commands to behavior expectations, e2e/unit coverage, and known buttons that intentionally diverge from standard modification-button rules.
 
 Browser batch operations are covered by Python unit tests for hook registration, WebView shell behavior, state/contract decoding, batch progress/cancel semantics, SVG media writes, denoise parameter routing, skip/failure handling, and target-field appends. The Svelte batch UI is covered in `settings_ui/tests/`. Direct real-WebView batch dialog race coverage lives in `e2e/test_browser_batch_race_workflow.py`; there is still no full Browser-selection-to-dialog e2e workflow, so add one before making risky Browser selection or context-menu changes.
 

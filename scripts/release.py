@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import argparse
+import json
 import re
 import sys
 import tempfile
@@ -16,13 +17,14 @@ ADDON_DIR = ROOT / "addon" / "anki_audio_quick_editor"
 sys.path.insert(0, str(ROOT))
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
-import release_assets  # noqa: E402
-import scripts.release_bundle_freshness as release_bundle_freshness  # noqa: E402
-import scripts.release_manifest_selection as release_manifest_selection  # noqa: E402
-import scripts.release_runtime_metadata as release_runtime_metadata  # noqa: E402
-import scripts.release_runtime_remote as release_runtime_remote  # noqa: E402
-import scripts.release_validation as release_validation  # noqa: E402
-from dev import _find_anki_python  # noqa: E402
+import release_assets
+import scripts.release_bundle_freshness as release_bundle_freshness
+import scripts.release_manifest_selection as release_manifest_selection
+import scripts.release_runtime_metadata as release_runtime_metadata
+import scripts.release_runtime_remote as release_runtime_remote
+import scripts.release_validation as release_validation
+import scripts.vendor_wheels as vendor_wheels
+from scripts.dev_tasks.python_env import find_anki_python
 from scripts.release_archive import (
     build_archive as _build_archive,
 )
@@ -60,13 +62,30 @@ def _read_package_version() -> str:
     return match.group(1)
 
 
+def _read_manifest_version() -> str:
+    manifest_path = ADDON_DIR / "manifest.json"
+    manifest: dict[str, Any] = {}
+    try:
+        manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    except json.JSONDecodeError:
+        print("ERROR: Could not parse manifest.json")
+        sys.exit(1)
+    version = manifest.get("human_version")
+    if not isinstance(version, str) or not version:
+        print("ERROR: Could not find human_version in manifest.json")
+        sys.exit(1)
+    return version
+
+
 def _verify_versions(version: str) -> None:
     pyproject_ver = _read_pyproject_version()
     package_ver = _read_package_version()
-    if pyproject_ver != version or package_ver != version:
+    manifest_ver = _read_manifest_version()
+    if pyproject_ver != version or package_ver != version or manifest_ver != version:
         print(
             "ERROR: version mismatch "
-            f"(pyproject={pyproject_ver!r}, package={package_ver!r}, requested={version!r})"
+            f"(pyproject={pyproject_ver!r}, package={package_ver!r}, "
+            f"manifest={manifest_ver!r}, requested={version!r})"
         )
         sys.exit(1)
 
@@ -77,6 +96,14 @@ def _run_checks(*, full: bool) -> None:
 
 def _build_required_artifacts() -> None:
     release_bundle_freshness.build_required_artifacts(ROOT, ADDON_DIR)
+
+
+def _verify_vendor_wheels() -> None:
+    try:
+        vendor_wheels.assert_wheels_verified()
+    except vendor_wheels.VendorWheelError as exc:
+        print(f"ERROR: vendored Python wheels are not reproducible:\n{exc}")
+        sys.exit(1)
 
 
 def _selected_release_targets(value: str, lock: dict) -> tuple[list[str] | None, str]:
@@ -175,9 +202,10 @@ def main() -> None:
     _verify_versions(version)
 
     if not skip_quality_checks:
-        _find_anki_python()
+        find_anki_python()
         _run_checks(full=args.full)
     _build_required_artifacts()
+    _verify_vendor_wheels()
     lock = release_assets.load_lock()
     target_keys, target_label = _selected_release_targets(args.target, lock)
     include_ffmpeg = not args.no_bundle_ffmpeg

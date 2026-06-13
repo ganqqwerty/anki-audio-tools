@@ -8,6 +8,7 @@ from anki_audio_quick_editor.editor_actions import (
     CMD_DPDFNET,
     CMD_FASTER,
     CMD_PITCH_HUM,
+    CMD_REDUCE_SIZE,
     CMD_REMOVE_PAUSES,
     CMD_RNNOISE,
     CMD_SLOWER,
@@ -55,9 +56,10 @@ def test_processing_status_summaries_include_operation_parameters() -> None:
         ),
         config,
     ) == "Converted audio to FLAC."
+    assert command_status_summary(CMD_REDUCE_SIZE, config) == "Compressed audio with Normal level."
     assert command_status_summary(CMD_DENOISE_STANDARD, config) == "Cleaned audio with Standard."
     assert command_status_summary(CMD_RNNOISE, config) == "Cleaned audio with RNNoise."
-    assert command_status_summary(CMD_VOICE_ONLY, config) == "Cleaned audio with Voice Only."
+    assert command_status_summary(CMD_VOICE_ONLY, config) == "Cleaned audio with Spleeter."
     assert command_status_summary(
         EditorCommandPayload(
             command=CMD_DPDFNET,

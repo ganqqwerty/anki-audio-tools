@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import importlib
 import math
 import subprocess
 import wave
@@ -148,6 +149,8 @@ def _generate_audio_fixture(ffmpeg_config, path: Path, output_args: tuple[str, .
         check=True,
         capture_output=True,
         text=True,
+        encoding="utf-8",
+        errors="replace",
     )
 
 
@@ -306,7 +309,8 @@ def test_pitch_hum_algorithms_keep_unvoiced_regions_silent(
     tmp_path: Path,
     ffmpeg_config,
 ) -> None:
-    pytest.importorskip("parselmouth")
+    importlib.import_module("parselmouth")
+
     audio_processor = import_runtime_addon_module(".audio_processor")
 
     del anki_mw
@@ -336,7 +340,8 @@ def test_pitch_tier_hum_removes_original_harmonic_timbre(
     tmp_path: Path,
     ffmpeg_config,
 ) -> None:
-    pytest.importorskip("parselmouth")
+    importlib.import_module("parselmouth")
+
     audio_processor = import_runtime_addon_module(".audio_processor")
 
     del anki_mw
@@ -361,11 +366,13 @@ def test_dpdfnet_renders_from_locked_source_release_asset(
     audio_processor = import_runtime_addon_module(".audio_processor")
 
     del anki_mw
-    if audio_processor.current_platform_key() != "macos-arm64":
-        pytest.skip("DPDFNet Lite is bundled for macos-arm64 only in v1.")
-
+    runtime_platform = import_runtime_addon_module(".runtime_platform")
+    platform_key = audio_processor.current_platform_key()
+    assert platform_key is not None
     dpdfnet_path = audio_processor.find_dpdfnet_bundle()
-    assert dpdfnet_path.parts[-3:] == ("bin", "macos-arm64", "dpdfnet")
+    assert dpdfnet_path.name == runtime_platform.tool_executable_name("dpdfnet", platform_key)
+    assert platform_key in dpdfnet_path.parts
+    assert audio_processor.tool_source_label(dpdfnet_path) == "managed"
 
     source = tmp_path / "dpdfnet-source.wav"
     output = tmp_path / "dpdfnet-rendered.mp3"

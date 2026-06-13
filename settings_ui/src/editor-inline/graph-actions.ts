@@ -9,8 +9,13 @@ import {
 import { finishDefaultGraphRequest } from "./default-graph-queue.js";
 import { currentAudioSourceForOrd, visualizerForOrd } from "./dom-selectors.js";
 import type { GraphSettings } from "./graph-settings.js";
+import {
+  audioFieldSource,
+  editorRuntimeConfig,
+} from "./editor-runtime-config.js";
 import { logger } from "./logger.js";
 import { normalizeTrack, type DefaultGraphTarget, type VisualizerElement } from "./types.js";
+import { clearSourceMetadataRequests } from "./source-metadata-requests.js";
 import {
   graphLogContext,
   renderGraphRequested,
@@ -39,9 +44,16 @@ import {
   setControlsBusy,
   setHistoryAvailability,
   setStatusForOrd,
+  setTransientStatusForOrd,
+  updateButtonTooltipForDisabledState,
   clearStatus,
+  hasStableStatusForOrd,
+  restoreStatusForOrd,
 } from "./control-actions.js";
 import { graphSettingsForField } from "./graph-split-state.js";
+import { resetVisualizerTimeViewport } from "./visualizer-state.js";
+import { initFieldState, invalidateFieldState, readFieldState } from "./field-state-store.js";
+import { initialFieldState } from "./field-state.js";
 
 type EditorStatusMessage = string | UserFacingError;
 
@@ -92,7 +104,7 @@ function prepareGraphRequest(ord: number): boolean {
   stopProgressClock(visualizer, { clearAudio: true });
   resetLearnerRecordingState(ord);
   renderGraphRequested(visualizer);
-  clearSelection(visualizer);
+  clearSelection(visualizer, { origin: "system" });
   setCursor(visualizer, 0, false);
   setCommandButtonLabel(ord, "aqe:analyze", "Redraw");
   setVisualizerStatus(ord, t("editor.status.analyzing"), "processing");
@@ -115,13 +127,13 @@ export function requestPendingGraphRedraw(): boolean {
   if (typeof ord !== "number") return false;
   const expectedSource = window.__aqePendingGraphRedrawSource || "";
   const pendingSettings = pendingGraphRedrawSettings ?? undefined;
-  const currentSource = currentAudioSourceForOrd(ord) || window.__AQE_EDITOR_CONFIG__?.audioFieldSources?.[ord] || "";
+  const currentSource = currentAudioSourceForOrd(ord) || audioFieldSource(editorRuntimeConfig(), ord) || "";
   if (expectedSource && currentSource !== expectedSource) return false;
   const visualizer = visualizerForOrd(ord);
   if (!visualizer) return false;
-  if (visualizer.dataset.graphBusy === "true") return true;
-  const renderedSource = visualizer.dataset.sourceFilename || "";
-  if (visualizer.dataset.hasTrack === "true" && (!expectedSource || renderedSource === expectedSource)) return true;
+  const s = readFieldState(ord);
+  if (s.graph.busy) return true;
+  if (s.graph.hasTrack && (!expectedSource || s.sourceFilename === expectedSource)) return true;
   requestGraph(ord, true, pendingSettings, expectedSource || undefined);
   return true;
 }
@@ -134,7 +146,7 @@ export function setVisualizerStatus(ord: number, message: EditorStatusMessage, k
   const visualizer = visualizerForOrd(ord);
   if (!visualizer) return;
   renderVisualizerStatus(visualizer, visualizerStatusText(message), kind);
-  setStatusForOrd(ord, message, kind);
+  setStatusForOrd(ord, message, kind, "", kind === "error" ? "error" : "graph");
 }
 
 export function setVisualizer(ord: number, rawTrack: ProsodyPayload, cursorMs: number): void {
@@ -142,21 +154,29 @@ export function setVisualizer(ord: number, rawTrack: ProsodyPayload, cursorMs: n
   if (!visualizer || !rawTrack) return;
   const track = normalizeTrack(rawTrack);
   renderVisualizerTrack(visualizer, track);
-  visualizer.dataset.anchorMs = String(cursorMs || 0);
+  visualizer.dataset.anchorMs = "0";
+  invalidateFieldState(ord);
   if (pendingGraphRedrawMatches(ord, track.sourceFilename || "")) {
     window.__aqePendingGraphRedrawField = null;
     window.__aqePendingGraphRedrawSource = null;
     pendingGraphRedrawSettings = null;
   }
-  setSelection(visualizer, 0, track.durationMs || 0, { updateCursor: false });
+  setSelection(visualizer, 0, track.durationMs || 0, { origin: "system", updateCursor: false });
   configureAudioClock(visualizer, track.sourceFilename || "");
   setCommandButtonLabel(ord, "aqe:analyze", "Redraw");
-  setCursor(visualizer, cursorMs || 0, false);
+  setCursor(visualizer, cursorMs || 0, false, { updateAnchor: false });
   if (audioClockReady(visualizer)) {
     seekAudioClock(visualizer, cursorMs || 0);
   }
   renderVisualizerStatus(visualizer, "", "info");
   setControlsBusy(ord, false, "", "");
+  if (rawTrack.analysisWarning) {
+    setTransientStatusForOrd(ord, rawTrack.analysisWarning, "warning", "graph");
+    renderVisualizerStatus(visualizer, rawTrack.analysisWarning, "warning");
+    if (hasStableStatusForOrd(ord)) {
+      window.setTimeout(() => restoreStatusForOrd(ord), 4000);
+    }
+  }
   finishDefaultGraphRequest(ord, defaultGraphQueueDependencies());
   logger.info("graph rendered", graphLogContext(ord, track));
 }
@@ -174,6 +194,7 @@ export function setVisualizerStatusFromPython(ord: number, message: EditorStatus
     if (kind === "processing") {
       visualizer.dataset.hasTrack = "false";
     }
+    invalidateFieldState(ord);
     setCommandButtonLabel(ord, "aqe:analyze", "Redraw");
   }
   setVisualizerStatus(ord, message, kind);
@@ -197,6 +218,7 @@ function pendingGraphRedrawMatches(ord: number, sourceFilename: string): boolean
 
 export function prepareForNewNote(): void {
   clearPendingNoteScopedBridgeRequests();
+  clearSourceMetadataRequests();
   document.body.dataset.aqeBusy = "false";
   window.__aqeActiveField = null;
   window.__aqeLastCursorIntent = null;
@@ -213,6 +235,7 @@ export function prepareForNewNote(): void {
       if (button.dataset.aqeCommand === "aqe:play") {
         setCommandButtonLabel(ord, "aqe:play", "Play");
       }
+      updateButtonTooltipForDisabledState(button);
     });
     setHistoryAvailability(ord, false, false);
     clearStatus(ord);
@@ -221,29 +244,17 @@ export function prepareForNewNote(): void {
     clearPlaybackFrame(visualizer);
     clearAudioClockSource(visualizer);
     visualizer.hidden = true;
-    visualizer.dataset.anchorMs = "0";
-    visualizer.dataset.cursorMs = "0";
-    visualizer.dataset.progressMs = "0";
-    visualizer.dataset.graphActive = "false";
-    visualizer.dataset.graphBusy = "false";
-    visualizer.dataset.hasTrack = "false";
-    visualizer.dataset.playbackState = "stopped";
-    visualizer.dataset.playbackEngine = "";
-    visualizer.dataset.resumeRequiresRestart = "false";
-    visualizer.dataset.durationMs = "0";
+    initFieldState(ord, initialFieldState({ ord, repeatByDefault: repeatDefaultFromConfig() }));
+    resetVisualizerTimeViewport(visualizer, 0);
     visualizer.dataset.targetDurationMs = "0";
     visualizer.dataset.learnerDurationMs = "0";
     visualizer.dataset.learnerRecordingStatus = "idle";
-    visualizer.dataset.sourceFilename = "";
-    visualizer.dataset.analyzerName = "";
     visualizer.dataset.playStartedAt = "0";
     visualizer.dataset.playStartMs = "0";
-    visualizer.dataset.playbackStartMs = "0";
-    visualizer.dataset.playbackEndMs = "0";
-    visualizer.dataset.playbackRegionMode = "full";
-    visualizer.dataset.progressClockMode = "stopped";
+    visualizer.dataset.playbackResetCursorMs = "0";
+    visualizer.dataset.playbackLoop = "false";
     setRepeatEnabled(visualizer, repeatDefaultFromConfig());
-    clearSelection(visualizer);
+    clearSelection(visualizer, { origin: "system" });
     resetVisualizerPlot(visualizer);
     resetCursorProjection(visualizer);
     resetLearnerRecordingState(ord);

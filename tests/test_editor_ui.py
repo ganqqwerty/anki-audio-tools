@@ -5,6 +5,9 @@ from __future__ import annotations
 import json
 import re
 
+import pytest
+
+import anki_audio_quick_editor.editor_ui as editor_ui
 from anki_audio_quick_editor.editor_ui import injection_script
 
 
@@ -19,14 +22,21 @@ def test_injection_script_embeds_audio_field_indices_and_bundle() -> None:
     config = _embedded_config(script)
 
     assert config["audioFieldIndices"] == [1, 3]
+    assert config["audioFieldMetadata"] == {}
     assert config["audioFieldSources"] == {}
+    assert config["initialHistoryAvailabilityByField"] == {}
     assert config["pendingPostEditPlayback"] is None
     assert config["repeatPlaybackByDefault"] is True
+    assert config["selectionMarkerShiftButtonsEnabled"] is False
     assert config["showGraphByDefault"] is True
     assert config["visibleEditorButtons"] is None
     assert config["splitButtonDefaults"]["repeatPauseSeconds"] == 0.0
-    assert config["splitButtonDefaults"]["voiceRecordingCountdownSeconds"] == 3
+    assert config["splitButtonDefaults"]["voiceRecordingCountdownSeconds"] == 0
     assert config["splitButtonDefaults"]["shareTarget"] == "litterbox"
+    assert config["splitButtonDefaults"]["sizeReductionMode"] == "normal"
+    assert config["splitButtonDefaults"]["sizeReductionBitrateKbps"] == 64
+    assert config["splitButtonDefaults"]["sizeReductionSampleRateHz"] == 32000
+    assert config["splitButtonDefaults"]["sizeReductionChannels"] == 1
     assert config["splitButtonDefaults"]["pitchHumMode"] == "direct"
     assert config["splitButtonDefaults"]["pauseDetectionAlgorithm"] == "silencedetect"
     assert config["splitButtonDefaults"]["pauseSilencedetectThresholdDb"] == -45.0
@@ -49,6 +59,7 @@ def test_injection_script_embeds_audio_field_indices_and_bundle() -> None:
     assert "aqe:show-file" in script
     assert "aqe:share" in script
     assert "aqe:convert" in script
+    assert "aqe:reduce-size" in script
     assert "aqe:volume-down" in script
     assert "aqe:volume-up" in script
     assert "aqe:denoise-standard" in script
@@ -72,6 +83,12 @@ def test_injection_script_embeds_show_graph_default() -> None:
     script = injection_script([0], show_graph_by_default=True)
 
     assert _embedded_config(script)["showGraphByDefault"] is True
+
+
+def test_injection_script_embeds_selection_marker_shift_toggle() -> None:
+    script = injection_script([0], selection_marker_shift_buttons_enabled=False)
+
+    assert _embedded_config(script)["selectionMarkerShiftButtonsEnabled"] is False
 
 
 def test_injection_script_embeds_visible_editor_buttons() -> None:
@@ -121,6 +138,32 @@ def test_injection_script_embeds_audio_field_sources() -> None:
     assert '"audioFieldSources": {"0": "front.wav", "2": "back.mp3"}' in script
 
 
+def test_injection_script_embeds_initial_history_availability() -> None:
+    script = injection_script(
+        [0],
+        initial_history_availability_by_field={
+            0: {"canUndo": True, "canRedo": False},
+        },
+    )
+
+    assert _embedded_config(script)["initialHistoryAvailabilityByField"] == {
+        "0": {"canUndo": True, "canRedo": False},
+    }
+
+
+def test_injection_script_embeds_audio_field_metadata() -> None:
+    script = injection_script(
+        [0],
+        audio_field_metadata={
+            0: {"bitRate": 128000, "sampleRate": 44100, "channels": 2},
+        },
+    )
+
+    assert _embedded_config(script)["audioFieldMetadata"] == {
+        "0": {"bitRate": 128000, "sampleRate": 44100, "channels": 2},
+    }
+
+
 def test_injection_script_embeds_pending_post_edit_playback() -> None:
     script = injection_script(
         [0],
@@ -150,6 +193,10 @@ def test_injection_script_embeds_split_button_defaults() -> None:
             "pauseAggressiveness": "normal",
             "pauseDetectionAlgorithm": "silero_vad",
             "outputFormat": "mp3",
+            "sizeReductionMode": "aggressive",
+            "sizeReductionBitrateKbps": 40,
+            "sizeReductionSampleRateHz": 22050,
+            "sizeReductionChannels": 1,
             "denoiseAlgorithm": "standard",
             "pitchHumMode": "pitch_tier",
             "dpdfnetAttnLimitDb": 18.0,
@@ -163,6 +210,10 @@ def test_injection_script_embeds_split_button_defaults() -> None:
         "pauseAggressiveness": "normal",
         "pauseDetectionAlgorithm": "silero_vad",
         "outputFormat": "mp3",
+        "sizeReductionMode": "aggressive",
+        "sizeReductionBitrateKbps": 40,
+        "sizeReductionSampleRateHz": 22050,
+        "sizeReductionChannels": 1,
         "denoiseAlgorithm": "standard",
         "pitchHumMode": "pitch_tier",
         "dpdfnetAttnLimitDb": 18.0,
@@ -187,17 +238,23 @@ def test_injection_script_keeps_python_window_contract() -> None:
     assert "__aqeGraphStateForTest" in script
 
 
-def test_injection_script_injects_editor_css() -> None:
+def test_injection_script_inlines_editor_bundle_assets(monkeypatch: pytest.MonkeyPatch) -> None:
+    css_bundle = ".aqe-test { color: red; }"
+    js_bundle = "console.log('aqe test bundle');"
+
+    def fake_read_text(path) -> str:
+        if path == editor_ui._BUNDLE_CSS:
+            return css_bundle
+        if path == editor_ui._BUNDLE_JS:
+            return js_bundle
+        raise AssertionError(f"Unexpected bundle path: {path}")
+
+    monkeypatch.setattr(editor_ui, "_read_text", fake_read_text)
+
     script = injection_script([0])
 
     assert "const styleId = \"aqe-inline-style\";" in script
-    assert ".aqe-controls" in script
-    assert ".aqe-button:disabled" in script
-    assert "data-busy=true" in script
-    assert "border-style:dashed" in script
-    assert "filter:drop-shadow" in script
-    assert ".aqe-selection-draft" in script
-    assert "filter:none" in script
-    assert "stroke-dasharray:none" in script
-    assert "stroke-opacity:.65" in script
-    assert "aqe-spin" in script
+    assert "style = document.createElement('style');" in script
+    assert "document.head.appendChild(style);" in script
+    assert f"style.textContent = {json.dumps(css_bundle)};" in script
+    assert js_bundle in script

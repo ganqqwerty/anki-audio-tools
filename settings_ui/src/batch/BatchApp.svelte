@@ -231,10 +231,6 @@
     text-decoration: none;
   }
 
-  .resource-links a:hover {
-    text-decoration: underline;
-  }
-
   :global(.resource-link-icon) {
     display: inline-flex;
     flex: 0 0 auto;

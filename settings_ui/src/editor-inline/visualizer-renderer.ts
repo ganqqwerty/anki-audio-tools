@@ -1,6 +1,7 @@
-import type { PlaybackRegion } from "./playback-state.js";
+import { draftSelectionRegion, selectionRegion } from "./selection-state.js";
 import {
   PLOT,
+  type PlotGeometry,
   drawLabels,
   drawLearnerPitch,
   drawPitch,
@@ -9,9 +10,26 @@ import {
   formatTime,
   pathForIntensity,
   pitchHzAtMs,
+  plotGeometryForSvg,
+  svgViewBoxScale,
   xForMs,
 } from "./plot.js";
+import { msVisibleInViewport } from "./time-viewport.js";
 import type { NormalizedProsodyTrack, VisualizerElement } from "./types.js";
+import { renderSelection } from "./visualizer-selection-renderer.js";
+import {
+  readVisualizerDurationMs,
+  readVisualizerSelectionState,
+  readVisualizerTargetDurationMs,
+  readVisualizerTimeViewport,
+  resetVisualizerTimeViewport,
+} from "./visualizer-state.js";
+import { invalidateFieldState, readFieldState, writeFieldState } from "./field-state-store.js";
+import { graphRequested } from "./field-state.js";
+
+function fieldOrd(v: VisualizerElement): number {
+  return Number(v.dataset.aqeFieldOrd || "0");
+}
 
 type CursorRenderCache = NonNullable<VisualizerElement["__aqeCursorRenderCache"]>;
 
@@ -22,22 +40,14 @@ const PLAYBACK_TEXT_PAINT_INTERVAL_MS = 100;
 
 export function renderGraphRequested(visualizer: VisualizerElement): void {
   visualizer.hidden = false;
-  visualizer.dataset.graphActive = "true";
-  visualizer.dataset.graphBusy = "true";
-  visualizer.dataset.hasTrack = "false";
-  visualizer.dataset.durationMs = "0";
+  const ord = fieldOrd(visualizer);
+  writeFieldState(ord, graphRequested(readFieldState(ord)));
   visualizer.dataset.targetDurationMs = "0";
   visualizer.dataset.learnerDurationMs = "0";
   visualizer.dataset.learnerRecordingStatus = "idle";
-  visualizer.dataset.sourceFilename = "";
-  visualizer.dataset.anchorMs = "0";
-  visualizer.dataset.cursorMs = "0";
-  visualizer.dataset.progressMs = "0";
-  visualizer.dataset.resumeRequiresRestart = "false";
-  visualizer.dataset.playbackEngine = "";
-  visualizer.dataset.playbackStartMs = "0";
-  visualizer.dataset.playbackEndMs = "0";
-  visualizer.dataset.playbackRegionMode = "full";
+  visualizer.dataset.playbackResetCursorMs = "0";
+  visualizer.dataset.playbackLoop = "false";
+  resetVisualizerTimeViewport(visualizer, 0);
   delete visualizer.__aqeCursorPaintedAtMs;
   delete visualizer.__aqeCursorTextPaintedAtMs;
   delete visualizer.__aqeLearnerTrack;
@@ -47,21 +57,28 @@ export function renderGraphRequested(visualizer: VisualizerElement): void {
 
 export function renderVisualizerTrack(visualizer: VisualizerElement, track: NormalizedProsodyTrack): void {
   visualizer.hidden = false;
-  visualizer.dataset.graphActive = "true";
-  visualizer.dataset.graphBusy = "false";
-  visualizer.dataset.hasTrack = "true";
-  visualizer.dataset.durationMs = String(track.durationMs || 0);
+  const ord = fieldOrd(visualizer);
+  writeFieldState(ord, {
+    ...readFieldState(ord),
+    graph: {
+      active: true,
+      analyzerName: track.analyzerName || "",
+      busy: false,
+      durationMs: track.durationMs || 0,
+      hasTrack: true,
+    },
+    sourceFilename: track.sourceFilename || "",
+  });
   visualizer.dataset.targetDurationMs = String(track.durationMs || 0);
   visualizer.dataset.learnerDurationMs = "0";
-  visualizer.dataset.analyzerName = track.analyzerName || "";
-  visualizer.dataset.sourceFilename = track.sourceFilename || "";
   delete visualizer.__aqeLearnerTrack;
   visualizer.__aqeTrack = track;
+  resetVisualizerTimeViewport(visualizer, track.durationMs || 0);
   renderProsodyTracks(visualizer);
 }
 
 export function renderLearnerVisualizerTrack(visualizer: VisualizerElement, track: NormalizedProsodyTrack): void {
-  if (visualizer.dataset.hasTrack !== "true" || !visualizer.__aqeTrack) return;
+  if (!readFieldState(fieldOrd(visualizer)).graph.hasTrack || !visualizer.__aqeTrack) return;
   visualizer.__aqeLearnerTrack = track;
   visualizer.dataset.learnerDurationMs = String(track.durationMs || 0);
   renderProsodyTracks(visualizer);
@@ -71,78 +88,14 @@ export function renderVisualizerStatus(visualizer: VisualizerElement, message: s
   const spinner = visualizer.closest<HTMLElement>(".aqe-controls")?.querySelector<HTMLElement>(".aqe-spinner")
     ?? visualizer.querySelector<HTMLElement>(".aqe-spinner");
   const processing = kind === "processing";
-  visualizer.dataset.graphBusy = processing ? "true" : "false";
+  const ord = fieldOrd(visualizer);
+  const state = readFieldState(ord);
+  writeFieldState(ord, {
+    ...state,
+    graph: { ...state.graph, busy: processing },
+  });
   visualizer.dataset.statusMessage = message || "";
   if (spinner) spinner.hidden = !processing;
-}
-
-export function renderSelection(
-  visualizer: VisualizerElement,
-  selection: PlaybackRegion | null,
-  draftSelection: PlaybackRegion | null,
-): void {
-  const band = visualizer.querySelector<SVGRectElement>(".aqe-selection");
-  const startEdge = visualizer.querySelector<SVGLineElement>(".aqe-selection-start");
-  const endEdge = visualizer.querySelector<SVGLineElement>(".aqe-selection-end");
-  const startHandle = visualizer.querySelector<SVGRectElement>(".aqe-selection-resize-start");
-  const endHandle = visualizer.querySelector<SVGRectElement>(".aqe-selection-resize-end");
-  const startGrip = visualizer.querySelector<SVGGElement>(".aqe-selection-resize-grip-start");
-  const endGrip = visualizer.querySelector<SVGGElement>(".aqe-selection-resize-grip-end");
-  const activeSelection = draftSelection ?? selection;
-  const durationMs = Number(visualizer.dataset.durationMs || "0");
-  if (!band || !startEdge || !endEdge || !activeSelection || !durationMs) {
-    band?.setAttribute("width", "0");
-    band?.setAttribute("visibility", "hidden");
-    band?.classList.remove("aqe-selection-draft");
-    startEdge?.setAttribute("visibility", "hidden");
-    endEdge?.setAttribute("visibility", "hidden");
-    startHandle?.setAttribute("visibility", "hidden");
-    endHandle?.setAttribute("visibility", "hidden");
-    startHandle?.classList.remove("aqe-selection-resize-dragging");
-    endHandle?.classList.remove("aqe-selection-resize-dragging");
-    startGrip?.setAttribute("visibility", "hidden");
-    endGrip?.setAttribute("visibility", "hidden");
-    startGrip?.classList.remove("aqe-selection-resize-dragging");
-    endGrip?.classList.remove("aqe-selection-resize-dragging");
-    clearSelectionOverlayGeometry(visualizer);
-    return;
-  }
-  const startX = xForMs(activeSelection.startMs, durationMs);
-  const endX = xForMs(activeSelection.endMs, durationMs);
-  const plotTop = PLOT.top;
-  const plotBottom = PLOT.height - PLOT.bottom;
-  const plotHeight = plotBottom - plotTop;
-  const handleHeight = plotHeight * 0.8;
-  const handleY = plotTop + (plotHeight - handleHeight) / 2;
-  const handleCenterY = handleY + handleHeight / 2;
-  band.setAttribute("visibility", "visible");
-  band.classList.toggle("aqe-selection-draft", draftSelection !== null);
-  band.setAttribute("x", startX.toFixed(2));
-  band.setAttribute("y", String(plotTop));
-  band.setAttribute("width", Math.max(0, endX - startX).toFixed(2));
-  band.setAttribute("height", String(plotHeight));
-  startEdge.setAttribute("visibility", "visible");
-  endEdge.setAttribute("visibility", "visible");
-  for (const [edge, x] of [[startEdge, startX], [endEdge, endX]] as const) {
-    edge.setAttribute("x1", x.toFixed(2));
-    edge.setAttribute("x2", x.toFixed(2));
-    edge.setAttribute("y1", String(plotTop));
-    edge.setAttribute("y2", String(plotBottom));
-  }
-  const showHandles = selection !== null;
-  const handlesDragging = selection !== null && draftSelection !== null;
-  for (const [handle, grip, x] of [[startHandle, startGrip, startX], [endHandle, endGrip, endX]] as const) {
-    handle?.setAttribute("visibility", showHandles ? "visible" : "hidden");
-    handle?.classList.toggle("aqe-selection-resize-dragging", handlesDragging);
-    handle?.setAttribute("x", (x - 5).toFixed(2));
-    handle?.setAttribute("y", handleY.toFixed(2));
-    handle?.setAttribute("width", "10");
-    handle?.setAttribute("height", handleHeight.toFixed(2));
-    grip?.setAttribute("visibility", showHandles ? "visible" : "hidden");
-    grip?.classList.toggle("aqe-selection-resize-dragging", handlesDragging);
-    grip?.setAttribute("transform", `translate(${x.toFixed(2)} ${handleCenterY.toFixed(2)})`);
-  }
-  setSelectionOverlayGeometry(visualizer, startX, endX, plotTop, plotBottom);
 }
 
 export function renderCursor(visualizer: VisualizerElement, ms: number, durationMs: number): void {
@@ -160,8 +113,7 @@ export function renderPlaybackCursor(
   const lastTextPaintedAtMs = visualizer.__aqeCursorTextPaintedAtMs;
   const text = lastTextPaintedAtMs === undefined
     || nowMs - lastTextPaintedAtMs >= PLAYBACK_TEXT_PAINT_INTERVAL_MS;
-  if (!text) return;
-  renderCursorProjection(visualizer, ms, durationMs, { geometry: false, text });
+  renderCursorProjection(visualizer, ms, durationMs, { geometry: true, text });
   if (text) visualizer.__aqeCursorTextPaintedAtMs = nowMs;
 }
 
@@ -170,11 +122,14 @@ export function startPlaybackCursorTransition(
   startMs: number,
   endMs: number,
 ): void {
-  const durationMs = Number(visualizer.dataset.durationMs || "0");
+  const durationMs = readVisualizerDurationMs(visualizer);
   const nodes = cursorRenderCache(visualizer);
   if (!nodes.cssCursor || !durationMs || endMs <= startMs) return;
   renderCursorProjection(visualizer, startMs, durationMs, { geometry: true, text: true });
-  const endX = cssXForViewBoxX(visualizer, xForMs(endMs, durationMs));
+  const viewport = readVisualizerTimeViewport(visualizer);
+  if (!msVisibleInViewport(startMs, viewport) || !msVisibleInViewport(endMs, viewport)) return;
+  const plot = plotGeometryForVisualizer(visualizer);
+  const endX = cssXForViewBoxX(visualizer, xForMs(endMs, durationMs, viewport, plot));
   nodes.cssCursor.style.transition = "none";
   void nodes.cssCursor.offsetWidth;
   nodes.cssCursor.style.transition = `transform ${Math.max(0, endMs - startMs).toFixed(0)}ms linear`;
@@ -193,9 +148,11 @@ function renderCursorProjection(
   options: { geometry: boolean; text: boolean },
 ): void {
   const nodes = cursorRenderCache(visualizer);
-  const x = xForMs(ms, durationMs);
+  const viewport = readVisualizerTimeViewport(visualizer);
   if (options.geometry) {
-    renderCssCursorGeometry(visualizer, nodes, x);
+    const plot = nodes.svg ? plotGeometryForSvg(nodes.svg) : PLOT;
+    const x = xForMs(ms, durationMs, viewport, plot);
+    renderCssCursorGeometry(visualizer, nodes, x, plot, ms);
   }
   if (options.text) {
     const currentText = formatTime(ms, durationMs);
@@ -222,8 +179,9 @@ export function clearLearnerVisualizerTrack(visualizer: VisualizerElement): void
 
 export function resetCursorProjection(visualizer: VisualizerElement): void {
   const nodes = cursorRenderCache(visualizer);
+  const plot = plotGeometryForVisualizer(visualizer);
   stopPlaybackCursorTransition(visualizer);
-  renderCssCursorGeometry(visualizer, nodes, PLOT.left);
+  renderCssCursorGeometry(visualizer, nodes, plot.left, plot);
   if (nodes.label) nodes.label.textContent = "0 ms / -- Hz";
   if (nodes.cssFlagCurrent) nodes.cssFlagCurrent.textContent = "0 ms";
   if (nodes.cssFlagPitch) nodes.cssFlagPitch.textContent = " / -- Hz";
@@ -244,32 +202,50 @@ export function graphLogContext(
   };
 }
 
+export function renderCurrentSelectionFromState(visualizer: VisualizerElement): void {
+  const selectionState = readVisualizerSelectionState(visualizer);
+  const durationMs = readVisualizerTargetDurationMs(visualizer);
+  renderSelection(
+    visualizer,
+    selectionRegion(selectionState, durationMs),
+    draftSelectionRegion(selectionState, durationMs),
+  );
+}
+
 function clearText(root: VisualizerElement, selector: string): void {
   const node = root.querySelector<HTMLElement | SVGElement>(selector);
   if (node) node.textContent = "";
 }
 
-function renderProsodyTracks(visualizer: VisualizerElement): void {
+export function renderProsodyTracks(visualizer: VisualizerElement): void {
   const target = visualizer.__aqeTrack;
   if (!target) return;
+  const plot = syncVisualizerViewBox(visualizer);
   const learner = visualizer.__aqeLearnerTrack;
-  const durationMs = Math.max(target.durationMs || 0, learner?.durationMs || 0);
+  const learnerDurationMs = Math.max(Number(visualizer.dataset.learnerDurationMs || "0") || 0, learner?.durationMs || 0);
+  const durationMs = Math.max(target.durationMs || 0, learnerDurationMs);
+  const viewport = readVisualizerTimeViewport(visualizer);
   const pitchRange = combinedPitchRange(target, learner);
   visualizer.dataset.durationMs = String(durationMs);
+  invalidateFieldState(fieldOrd(visualizer));
   visualizer.dataset.targetDurationMs = String(target.durationMs || 0);
-  visualizer.dataset.learnerDurationMs = String(learner?.durationMs || 0);
+  visualizer.dataset.learnerDurationMs = String(learnerDurationMs);
   const intensity = visualizer.querySelector<SVGPathElement>(".aqe-intensity");
-  if (intensity) intensity.setAttribute("d", pathForIntensity(target.points, durationMs));
+  if (intensity) intensity.setAttribute("d", pathForIntensity(target.points, durationMs, viewport, plot));
   drawPitch(visualizer, target, {
     durationMs,
     pitchMaxHz: pitchRange.maxHz,
     pitchMinHz: pitchRange.minHz,
+    plot,
+    viewport,
   });
   if (learner) {
     drawLearnerPitch(visualizer, learner, {
       durationMs,
       pitchMaxHz: pitchRange.maxHz,
       pitchMinHz: pitchRange.minHz,
+      plot,
+      viewport,
     });
   } else {
     clearLearnerVisualizerTrack(visualizer);
@@ -277,8 +253,9 @@ function renderProsodyTracks(visualizer: VisualizerElement): void {
   drawLabels(visualizer, target, {
     pitchMaxHz: pitchRange.maxHz,
     pitchMinHz: pitchRange.minHz,
+    plot,
   });
-  drawXAxis(visualizer, durationMs);
+  drawXAxis(visualizer, durationMs, viewport, plot);
 }
 
 function combinedPitchRange(
@@ -297,81 +274,30 @@ function isFiniteNumber(value: number | null | undefined): value is number {
   return typeof value === "number" && Number.isFinite(value);
 }
 
-function plotWrapperFor(visualizer: VisualizerElement): HTMLElement | null {
-  return visualizer.querySelector<HTMLElement>(".aqe-visualizer-plot");
-}
-
-function setSelectionOverlayGeometry(
-  visualizer: VisualizerElement,
-  startX: number,
-  endX: number,
-  plotTop: number,
-  plotBottom: number,
-): void {
-  const wrapper = plotWrapperFor(visualizer);
+function plotGeometryForVisualizer(visualizer: VisualizerElement): PlotGeometry {
   const svg = visualizer.querySelector<SVGSVGElement>(".aqe-visualizer-svg");
-  if (!wrapper || !svg) return;
-  const rect = svg.getBoundingClientRect();
-  const rectWidth = Number(rect.width) || PLOT.width;
-  const rectHeight = Number(rect.height) || PLOT.height;
-  const scale = Math.min(rectWidth / PLOT.width, rectHeight / PLOT.height) || 1;
-  const startPx = startX * scale;
-  const endPx = endX * scale;
-  const plotTopPx = plotTop * scale;
-  const plotBottomPx = plotBottom * scale;
-  const plotHeightPx = Math.max(0, plotBottomPx - plotTopPx);
-  const plotLeftPx = PLOT.left * scale;
-  const plotRightEdgePx = (PLOT.width - PLOT.right) * scale;
-  const plotRightPx = Math.max(0, rectWidth - plotRightEdgePx);
-  const contentHeightPx = PLOT.height * scale;
-  const toolbarLeftPx = Math.max(plotLeftPx, Math.min(endPx, plotRightEdgePx - 6));
-  const toolbarTopPx = Math.max(plotTopPx, Math.min(plotBottomPx, contentHeightPx - 34));
-
-  wrapper.dataset.selectionOverlayReady = "true";
-  wrapper.style.setProperty("--aqe-selection-start-px", `${startPx.toFixed(2)}px`);
-  wrapper.style.setProperty("--aqe-selection-end-px", `${endPx.toFixed(2)}px`);
-  wrapper.style.setProperty("--aqe-selection-bottom-px", `${plotBottomPx.toFixed(2)}px`);
-  wrapper.style.setProperty("--aqe-selection-toolbar-left-px", `${toolbarLeftPx.toFixed(2)}px`);
-  wrapper.style.setProperty("--aqe-selection-toolbar-top-px", `${toolbarTopPx.toFixed(2)}px`);
-  wrapper.style.setProperty("--aqe-plot-left-px", `${plotLeftPx.toFixed(2)}px`);
-  wrapper.style.setProperty("--aqe-plot-right-px", `${plotRightPx.toFixed(2)}px`);
-  wrapper.style.setProperty("--aqe-plot-top-px", `${plotTopPx.toFixed(2)}px`);
-  wrapper.style.setProperty("--aqe-plot-height-px", `${plotHeightPx.toFixed(2)}px`);
-  setOverlayNodePosition(wrapper.querySelector<HTMLElement>(".aqe-selection-toolbar"), toolbarLeftPx, toolbarTopPx);
-  setOverlayNodePosition(wrapper.querySelector<HTMLElement>(".aqe-selection-toolbar-dot"), toolbarLeftPx, toolbarTopPx);
+  return svg ? plotGeometryForSvg(svg) : PLOT;
 }
 
-function clearSelectionOverlayGeometry(visualizer: VisualizerElement): void {
-  const wrapper = plotWrapperFor(visualizer);
-  if (!wrapper) return;
-  wrapper.dataset.selectionOverlayReady = "false";
-  for (const property of [
-    "--aqe-selection-start-px",
-    "--aqe-selection-end-px",
-    "--aqe-selection-bottom-px",
-    "--aqe-selection-toolbar-left-px",
-    "--aqe-selection-toolbar-top-px",
-    "--aqe-plot-left-px",
-    "--aqe-plot-right-px",
-    "--aqe-plot-top-px",
-    "--aqe-plot-height-px",
-  ]) {
-    wrapper.style.removeProperty(property);
-  }
-  clearOverlayNodePosition(wrapper.querySelector<HTMLElement>(".aqe-selection-toolbar"));
-  clearOverlayNodePosition(wrapper.querySelector<HTMLElement>(".aqe-selection-toolbar-dot"));
+function syncVisualizerViewBox(visualizer: VisualizerElement): PlotGeometry {
+  const svg = visualizer.querySelector<SVGSVGElement>(".aqe-visualizer-svg");
+  if (!svg) return PLOT;
+  const rectWidth = Number(svg.getBoundingClientRect().width) || PLOT.width;
+  const width = Math.max(PLOT.width, Math.round(rectWidth));
+  const viewBox = `0 0 ${width} ${PLOT.height}`;
+  if (svg.getAttribute("viewBox") !== viewBox) svg.setAttribute("viewBox", viewBox);
+  const plot = plotGeometryForSvg(svg);
+  syncPlotClipPath(svg, plot);
+  return plot;
 }
 
-function setOverlayNodePosition(node: HTMLElement | null, leftPx: number, topPx: number): void {
-  if (!node) return;
-  node.style.left = `${leftPx.toFixed(2)}px`;
-  node.style.top = `${topPx.toFixed(2)}px`;
-}
-
-function clearOverlayNodePosition(node: HTMLElement | null): void {
-  if (!node) return;
-  node.style.removeProperty("left");
-  node.style.removeProperty("top");
+function syncPlotClipPath(svg: SVGSVGElement, plot: PlotGeometry): void {
+  const clip = svg.querySelector<SVGRectElement>("clipPath > rect");
+  if (!clip) return;
+  clip.setAttribute("x", String(plot.left));
+  clip.setAttribute("y", String(plot.top));
+  clip.setAttribute("width", String(plot.width - plot.left - plot.right));
+  clip.setAttribute("height", String(plot.height - plot.top - plot.bottom));
 }
 
 function cursorRenderCache(visualizer: VisualizerElement): CursorRenderCache {
@@ -385,48 +311,53 @@ function cursorRenderCache(visualizer: VisualizerElement): CursorRenderCache {
     cssFlagPitch: cssFlag?.querySelector<HTMLElement>(".aqe-css-cursor-flag-pitch") ?? null,
     cssLine: visualizer.querySelector<HTMLElement>(".aqe-css-cursor-line"),
     label: visualizer.querySelector<HTMLElement>(".aqe-cursor-label"),
+    svg: visualizer.querySelector<SVGSVGElement>(".aqe-visualizer-svg"),
   };
   visualizer.__aqeCursorRenderCache = cache;
   return cache;
 }
 
-function renderCssCursorGeometry(visualizer: VisualizerElement, nodes: CursorRenderCache, cursorX: number): void {
-  const scale = cssScaleFor(visualizer);
+function renderCssCursorGeometry(
+  visualizer: VisualizerElement,
+  nodes: CursorRenderCache,
+  cursorX: number,
+  plot: PlotGeometry,
+  ms?: number,
+): void {
+  const viewport = readVisualizerTimeViewport(visualizer);
+  const scale = cssScaleFor(nodes.svg);
   const cursor = nodes.cssCursor;
   if (!cursor) return;
+  if (typeof ms === "number" && !msVisibleInViewport(ms, viewport)) {
+    cursor.style.display = "none";
+    cursor.style.transition = "none";
+    return;
+  }
   cursor.style.display = "block";
   cursor.style.transition = "none";
-  cursor.style.transform = `translate3d(${cssXForViewBoxX(visualizer, cursorX).toFixed(2)}px, 0, 0)`;
+  cursor.style.transform = `translate3d(${(cursorX * scale.x).toFixed(2)}px, 0, 0)`;
   if (nodes.cssLine) {
-    nodes.cssLine.style.top = `${(PLOT.top * scale).toFixed(2)}px`;
-    nodes.cssLine.style.height = `${((PLOT.height - PLOT.top - PLOT.bottom) * scale).toFixed(2)}px`;
+    nodes.cssLine.style.top = `${(plot.top * scale.y).toFixed(2)}px`;
+    nodes.cssLine.style.height = `${((plot.height - plot.top - plot.bottom) * scale.y).toFixed(2)}px`;
   }
   if (nodes.cssFlag) {
-    const flagX = clampedCursorFlagX(cursorX);
-    const flagOffsetPx = (flagX - cursorX) * scale - CURSOR_FLAG_HALF_WIDTH;
-    nodes.cssFlag.style.top = `${(PLOT.top * scale - CURSOR_FLAG_BOX_HEIGHT).toFixed(2)}px`;
+    const flagX = clampedCursorFlagX(cursorX, plot);
+    const flagOffsetPx = (flagX - cursorX) * scale.x - CURSOR_FLAG_HALF_WIDTH;
+    nodes.cssFlag.style.top = `${(plot.top * scale.y - CURSOR_FLAG_BOX_HEIGHT).toFixed(2)}px`;
     nodes.cssFlag.style.transform = `translateX(${flagOffsetPx.toFixed(2)}px)`;
   }
 }
 
-function clampedCursorFlagX(cursorX: number): number {
-  const minX = PLOT.left + CURSOR_FLAG_HALF_WIDTH;
-  const maxX = PLOT.width - PLOT.right - CURSOR_FLAG_HALF_WIDTH;
+function clampedCursorFlagX(cursorX: number, plot: PlotGeometry): number {
+  const minX = plot.left + CURSOR_FLAG_HALF_WIDTH;
+  const maxX = plot.width - plot.right - CURSOR_FLAG_HALF_WIDTH;
   return Math.max(minX, Math.min(cursorX, maxX));
 }
 
 function cssXForViewBoxX(visualizer: VisualizerElement, x: number): number {
-  return x * cssScaleFor(visualizer);
-}
-
-function cssScaleFor(visualizer: VisualizerElement): number {
-  const cached = Number(visualizer.dataset.cssCursorScale || "0");
-  if (cached > 0) return cached;
   const svg = visualizer.querySelector<SVGSVGElement>(".aqe-visualizer-svg");
-  const rect = svg?.getBoundingClientRect();
-  const rectWidth = Number(rect?.width) || PLOT.width;
-  const rectHeight = Number(rect?.height) || PLOT.height;
-  const scale = Math.min(rectWidth / PLOT.width, rectHeight / PLOT.height) || 1;
-  visualizer.dataset.cssCursorScale = String(scale);
-  return scale;
+  return x * cssScaleFor(svg).x;
+}
+function cssScaleFor(svg: SVGSVGElement | null): { x: number; y: number } {
+  return svg ? svgViewBoxScale(svg) : { x: 1, y: 1 };
 }

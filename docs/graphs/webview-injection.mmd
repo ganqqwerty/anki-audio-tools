@@ -1,0 +1,89 @@
+```mermaid
+flowchart TD
+
+    subgraph AnkiHooks["Anki Hooks"]
+        hook_0["editor_did_init"]
+        hook_1["editor_will_load_note"]
+        hook_2["addonManager.setConfigAction"]
+        hook_3["browser_menus_did_init"]
+        hook_4["browser_will_show_context_menu"]
+        hook_5["webview_will_set_content"]
+    end
+
+    subgraph PythonEntry["Python Entry Points"]
+        py_editor["editor: editor_integration.py"]
+        disp_editor["editor_bridge.py"]
+        py_settings["settings: __init__.py"]
+        disp_settings["commands.py"]
+        py_batch["batch: browser_integration.py"]
+        disp_batch["browser_dialog.py"]
+        py_reviewer["reviewer: reviewer_integration.py"]
+        disp_reviewer["reviewer_integration.py"]
+    end
+
+    subgraph SvelteApps["Svelte Applications"]
+        svelte_editor["editor: EditorControls.svelte"]
+        bridge_editor["bridge.ts"]
+        svelte_settings["settings: SettingsApp.svelte"]
+        bridge_settings["bridge.ts"]
+        svelte_batch["batch: BatchApp.svelte"]
+        bridge_batch["bridge.ts"]
+        svelte_reviewer["reviewer: EditorControls.svelte"]
+        bridge_reviewer["bridge.ts"]
+    end
+
+    subgraph Bundles["Generated Bundles"]
+        asset_editor_editor_bundle["editor_bundle.js"]
+        asset_editor_editor_bundle["editor_bundle.css"]
+        asset_settings_settings_bundle["settings_bundle.js"]
+        asset_settings_settings_bundle["settings_bundle.css"]
+        asset_batch_batch_bundle["batch_bundle.js"]
+        asset_batch_batch_bundle["batch_bundle.css"]
+        asset_reviewer_[["["]
+        asset_reviewer_]["]"]
+        asset_reviewer_ [" "]
+        asset_reviewer_ [" "]
+        asset_reviewer_#["#"]
+        asset_reviewer_ [" "]
+        asset_reviewer_r["r"]
+        asset_reviewer_e["e"]
+        asset_reviewer_u["u"]
+        asset_reviewer_s["s"]
+        asset_reviewer_e["e"]
+        asset_reviewer_s["s"]
+        asset_reviewer_ [" "]
+        asset_reviewer_e["e"]
+        asset_reviewer_d["d"]
+        asset_reviewer_i["i"]
+        asset_reviewer_t["t"]
+        asset_reviewer_o["o"]
+        asset_reviewer_r["r"]
+        asset_reviewer_-["-"]
+        asset_reviewer_i["i"]
+        asset_reviewer_n["n"]
+        asset_reviewer_l["l"]
+        asset_reviewer_i["i"]
+        asset_reviewer_n["n"]
+        asset_reviewer_e["e"]
+        asset_reviewer_ [" "]
+        asset_reviewer_c["c"]
+        asset_reviewer_o["o"]
+        asset_reviewer_n["n"]
+        asset_reviewer_t["t"]
+        asset_reviewer_r["r"]
+        asset_reviewer_o["o"]
+        asset_reviewer_l["l"]
+        asset_reviewer_s["s"]
+    end
+
+    hook_0 --> py_editor
+    hook_1 --> py_editor
+    svelte_editor -->|raw pycmd (aqe:* namespace, no...| py_editor
+    hook_2 --> py_settings
+    svelte_settings -->|bridge:{json} envelope (shared...| py_settings
+    hook_3 --> py_batch
+    hook_4 --> py_batch
+    svelte_batch -->|bridge:{json} envelope (shared...| py_batch
+    hook_5 --> py_reviewer
+    svelte_reviewer -->|raw pycmd (aqe:* + focus:*, in...| py_reviewer
+```

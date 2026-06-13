@@ -36,6 +36,9 @@ def _radon_complexity_violations(report: object) -> list[str]:
     return violations
 
 
+radon_complexity_violations = _radon_complexity_violations
+
+
 def _radon_maintainability_violations(report: object) -> list[str]:
     if not isinstance(report, dict):
         return ["radon maintainability output did not contain the expected file map"]
@@ -50,14 +53,17 @@ def _radon_maintainability_violations(report: object) -> list[str]:
     return violations
 
 
+radon_maintainability_violations = _radon_maintainability_violations
+
+
 def _radon_display_path(raw_path: object) -> str:
     path = Path(str(raw_path))
     if not path.is_absolute():
-        return str(path)
+        return str(path).replace("\\", "/")
     try:
-        return str(path.relative_to(ROOT))
+        return str(path.relative_to(ROOT)).replace("\\", "/")
     except ValueError:
-        return str(path)
+        return str(path).replace("\\", "/")
 
 
 def _mutmut_fix_stats_prefix_mismatch() -> bool:
@@ -97,6 +103,9 @@ def _mutmut_fix_stats_prefix_mismatch() -> bool:
     }
     stats_path.write_text(json.dumps(stats, indent=4))
     return True
+
+
+mutmut_fix_stats_prefix_mismatch = _mutmut_fix_stats_prefix_mismatch
 
 
 def locale_catalog_violations(locale_dir: Path = LOCALE_DIR) -> list[str]:

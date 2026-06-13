@@ -18,6 +18,7 @@ from .audio_commands import (
     build_region_delete_command,
     build_region_delete_plan,
     build_region_keep_plan,
+    build_size_reduction_audio_command,
 )
 from .audio_external import (
     _external_command_run_kwargs,
@@ -35,31 +36,36 @@ from .audio_output_policy import (
     PRESERVABLE_SOURCE_FORMATS,
     AudioOutputPolicy,
     codec_args_for_output_policy,
+    probe_audio_metadata,
     resolve_output_policy,
     resolve_output_policy_from_metadata,
     synthetic_audio_metadata,
 )
 from .audio_pause_pipeline import _render_pause_removal_pipeline_audio
+from .audio_size_reduction import size_reduction_plan_from_metadata
 from .audio_state import AudioEditState, AudioProcessingConfig
 from .audio_tools import find_ffmpeg
 from .audio_types import AudioProcessingResult
-from .errors import AudioProcessingError
+from .errors import AudioAlreadyCompactError, AudioProcessingError
+from .external_command_text import (
+    EXTERNAL_COMMAND_TEXT_ENCODING,
+    EXTERNAL_COMMAND_TEXT_ERRORS,
+)
 from .permission_guidance import launch_error_message
 
 
 def render_audio(
-    source_path: Path,
-    state: AudioEditState,
-    config: AudioProcessingConfig,
-    output_path: Path | None = None,
-    on_command: Callable[[tuple[str, ...]], None] | None = None,
-    artifact_root: Path | None = None,
+        source_path: Path,
+        state: AudioEditState,
+        config: AudioProcessingConfig,
+        output_path: Path | None = None,
+        on_command: Callable[[tuple[str, ...]], None] | None = None,
+        artifact_root: Path | None = None,
 ) -> AudioProcessingResult:
     """Render ``state`` from ``source_path`` to a final audio file."""
     ffmpeg_path = find_ffmpeg(config.ffmpeg_path)
     duration_ms = probe_duration_ms(source_path, config)
     state.validate(duration_ms, config)
-
 
     if state.remove_internal_pauses_enabled:
         output_policy = _resolve_filename_output_policy(source_path, config, output_path)
@@ -74,8 +80,6 @@ def render_audio(
             on_command,
             artifact_root=artifact_root,
             source_duration_ms=duration_ms,
-            codec_args=codec_args_for_output_policy(output_policy),
-            output_mime_type=output_policy.mime_type,
         )
 
     output_policy = resolve_output_policy(source_path, config, output_path=output_path)
@@ -105,11 +109,11 @@ def render_audio(
 
 
 def render_converted_audio(
-    source_path: Path,
-    config: AudioProcessingConfig,
-    target_format: object,
-    output_path: Path | None = None,
-    on_command: Callable[[tuple[str, ...]], None] | None = None,
+        source_path: Path,
+        config: AudioProcessingConfig,
+        target_format: object,
+        output_path: Path | None = None,
+        on_command: Callable[[tuple[str, ...]], None] | None = None,
 ) -> AudioProcessingResult:
     """Convert ``source_path`` to a supported output format without edit filters."""
     target = validate_target_format(target_format)
@@ -146,13 +150,59 @@ def render_converted_audio(
     )
 
 
+def render_size_reduced_audio(
+        source_path: Path,
+        config: AudioProcessingConfig,
+        output_path: Path | None = None,
+        on_command: Callable[[tuple[str, ...]], None] | None = None,
+        *,
+        mode: object | None = None,
+) -> AudioProcessingResult:
+    """Re-encode ``source_path`` to MP3 with source-aware smaller settings."""
+    ffmpeg_path = find_ffmpeg(config.ffmpeg_path)
+    metadata = probe_audio_metadata(source_path, config)
+    plan = size_reduction_plan_from_metadata(
+        metadata,
+        mode or config.size_reduction_mode,
+        bitrate_kbps=config.size_reduction_bitrate_kbps,
+        sample_rate_hz=config.size_reduction_sample_rate_hz,
+        channels=config.size_reduction_channels,
+    )
+    if output_path is None:
+        output_path = Path(tempfile.mkstemp(prefix="aqe_smaller_", suffix=".mp3")[1])
+
+    cmd = build_size_reduction_audio_command(
+        ffmpeg_path,
+        source_path,
+        output_path,
+        plan.codec_args,
+    )
+    if on_command:
+        on_command(cmd)
+    result = _run_render_command(cmd, "Could not start audio size reduction.")
+    if result.returncode != 0:
+        raise AudioProcessingError(
+            _render_external_error_message(result, "Audio size reduction failed.")
+        )
+    if output_path.stat().st_size >= source_path.stat().st_size:
+        output_path.unlink(missing_ok=True)
+        raise AudioAlreadyCompactError(
+            "Size reduction did not make a smaller file; note was left unchanged."
+        )
+    return AudioProcessingResult(
+        output_path=output_path,
+        command=cmd,
+        duration_ms=probe_duration_ms(output_path, config),
+    )
+
+
 def render_audio_region_deleted(
-    source_path: Path,
-    selection_start_ms: int,
-    selection_end_ms: int,
-    config: AudioProcessingConfig,
-    output_path: Path | None = None,
-    on_command: Callable[[tuple[str, ...]], None] | None = None,
+        source_path: Path,
+        selection_start_ms: int,
+        selection_end_ms: int,
+        config: AudioProcessingConfig,
+        output_path: Path | None = None,
+        on_command: Callable[[tuple[str, ...]], None] | None = None,
 ) -> AudioProcessingResult:
     """Render final audio with one selected region removed from ``source_path``."""
     duration_ms = probe_duration_ms(source_path, config)
@@ -173,12 +223,12 @@ def render_audio_region_deleted(
 
 
 def _render_region_filter_complex(
-    source_path: Path,
-    filter_complex: str,
-    config: AudioProcessingConfig,
-    output_path: Path,
-    codec_args: tuple[str, ...],
-    on_command: Callable[[tuple[str, ...]], None] | None = None,
+        source_path: Path,
+        filter_complex: str,
+        config: AudioProcessingConfig,
+        output_path: Path,
+        codec_args: tuple[str, ...],
+        on_command: Callable[[tuple[str, ...]], None] | None = None,
 ) -> AudioProcessingResult:
     ffmpeg_path = find_ffmpeg(config.ffmpeg_path)
     cmd = build_region_delete_command(ffmpeg_path, source_path, filter_complex, output_path, codec_args)
@@ -197,12 +247,12 @@ def _render_region_filter_complex(
 
 
 def render_audio_region_kept(
-    source_path: Path,
-    selection_start_ms: int,
-    selection_end_ms: int,
-    config: AudioProcessingConfig,
-    output_path: Path | None = None,
-    on_command: Callable[[tuple[str, ...]], None] | None = None,
+        source_path: Path,
+        selection_start_ms: int,
+        selection_end_ms: int,
+        config: AudioProcessingConfig,
+        output_path: Path | None = None,
+        on_command: Callable[[tuple[str, ...]], None] | None = None,
 ) -> AudioProcessingResult:
     """Render final audio with only one selected region kept from ``source_path``."""
     duration_ms = probe_duration_ms(source_path, config)
@@ -223,12 +273,12 @@ def render_audio_region_kept(
 
 
 def render_playback_segment(
-    source_path: Path,
-    start_ms: int,
-    config: AudioProcessingConfig,
-    output_path: Path | None = None,
-    on_command: Callable[[tuple[str, ...]], None] | None = None,
-    end_ms: int | None = None,
+        source_path: Path,
+        start_ms: int,
+        config: AudioProcessingConfig,
+        output_path: Path | None = None,
+        on_command: Callable[[tuple[str, ...]], None] | None = None,
+        end_ms: int | None = None,
 ) -> AudioProcessingResult:
     """Render a temporary segment for deterministic native playback."""
     ffmpeg_path = find_ffmpeg(config.ffmpeg_path)
@@ -258,11 +308,11 @@ def render_playback_segment(
 
 
 def make_output_filename(
-    source_filename: str,
-    now: datetime | None = None,
-    token: str | None = None,
-    *,
-    output_format: object = DEFAULT_OUTPUT_FORMAT,
+        source_filename: str,
+        now: datetime | None = None,
+        token: str | None = None,
+        *,
+        output_format: object = DEFAULT_OUTPUT_FORMAT,
 ) -> str:
     """Return the preferred generated filename for a final save."""
     now = now or datetime.now()
@@ -281,6 +331,8 @@ def _run_render_command(command: tuple[str, ...], launch_error: str) -> subproce
             capture_output=True,
             text=True,
             check=False,
+            encoding=EXTERNAL_COMMAND_TEXT_ENCODING,
+            errors=EXTERNAL_COMMAND_TEXT_ERRORS,
             **_external_command_run_kwargs(),
         )  # nosec B603
     except OSError as exc:
@@ -288,7 +340,8 @@ def _run_render_command(command: tuple[str, ...], launch_error: str) -> subproce
 
 
 def _safe_filename_stem(stem: str) -> str:
-    safe = "".join(ch if ch.isascii() and (ch.isalnum() or ch in {"-", "_"}) else "_" for ch in stem)  # pragma: no mutate
+    safe = "".join(
+        ch if ch.isascii() and (ch.isalnum() or ch in {"-", "_"}) else "_" for ch in stem)  # pragma: no mutate
     safe = "_".join(part for part in safe.split("_") if part)
     return safe or "audio"
 
@@ -303,9 +356,9 @@ def _output_extension_for_filename(source_filename: str, output_format: object) 
 
 
 def _resolve_filename_output_policy(
-    source_path: Path,
-    config: AudioProcessingConfig,
-    output_path: Path | None,
+        source_path: Path,
+        config: AudioProcessingConfig,
+        output_path: Path | None,
 ) -> AudioOutputPolicy:
     return resolve_output_policy_from_metadata(
         synthetic_audio_metadata(
@@ -327,9 +380,9 @@ def temp_final_path(filename: str) -> Path:
 
 
 def make_playback_segment_filename(
-    source_filename: str,
-    start_ms: int,
-    token: str | None = None,
+        source_filename: str,
+        start_ms: int,
+        token: str | None = None,
 ) -> str:
     """Return a debuggable temp filename for cursor playback segments."""
     token = token or uuid.uuid4().hex[:8]  # pragma: no mutate

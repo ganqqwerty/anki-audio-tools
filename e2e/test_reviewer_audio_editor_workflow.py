@@ -1,4 +1,4 @@
-"""E2E tests for Audio Quick Editor controls in Anki Reviewer."""
+"""Shared E2E helpers for Audio Quick Editor controls in the Anki reviewer."""
 
 from __future__ import annotations
 
@@ -7,10 +7,9 @@ from pathlib import Path
 
 from PyQt6.QtWidgets import QMenu
 
-from e2e.conftest import ADDON_NUMERIC_ID, import_runtime_addon_module
-from e2e.editor_note_helpers import _button_selector, _configure_ffmpeg, _sound_filename
+from e2e.conftest import import_runtime_addon_module
+from e2e.editor_note_helpers import _configure_ffmpeg
 from e2e.helpers import (
-    click_selector,
     generate_tone,
     wait_for_condition,
     wait_for_js,
@@ -36,6 +35,7 @@ def _reviewer_note(
     *,
     audio_field: str = "Back",
     card_css: str = "",
+    answer_template: str | None = None,
 ):
     models = anki_mw.col.models
     notetype = models.new(_unique_name("AQE E2E Reviewer"))
@@ -43,7 +43,7 @@ def _reviewer_note(
     models.add_field(notetype, models.new_field("Back"))
     template = models.new_template("Card 1")
     template["qfmt"] = "{{Front}}"
-    template["afmt"] = "{{FrontSide}}<hr id=answer>{{Back}}"
+    template["afmt"] = answer_template or "{{FrontSide}}<hr id=answer>{{Back}}"
     notetype["css"] = card_css
     models.add_template(notetype, template)
     models.add(notetype)
@@ -70,19 +70,32 @@ def _open_reviewer_for_note(anki_mw, note, deck_id: int):
         anki_mw.moveToState("deckBrowser")
     anki_mw.col.decks.select(deck_id)
     anki_mw.moveToState("review")
+    wait_for_condition(
+        lambda: anki_mw.state == "review",
+        timeout=10.0,
+        message="Anki did not enter review state",
+    )
     reviewer = anki_mw.reviewer
     card_ids = note.card_ids()
     assert card_ids
     reviewer.card = anki_mw.col.get_card(card_ids[0])
     reviewer.card.start_timer()
     reviewer._initWeb()
-    wait_for_js_condition(
-        reviewer.web,
-        "document.querySelector('#qa') !== null",
-        lambda value: value is True,
-        timeout=10.0,
-    )
     reviewer._showQuestion()
+    try:
+        wait_for_js_condition(
+            reviewer.web,
+            "document.querySelector('#qa') !== null",
+            lambda value: value is True,
+            timeout=10.0,
+        )
+    except TimeoutError as exc:
+        body = wait_for_js(
+            reviewer.web,
+            "document.body ? document.body.outerHTML.slice(0, 2000) : ''",
+            timeout=1.0,
+        )
+        raise TimeoutError(f"{exc}; initial reviewer body={body!r}") from exc
     wait_for_condition(
         lambda: (
             anki_mw.state == "review"
@@ -142,12 +155,30 @@ def _wait_for_no_controls(web) -> None:
     )
 
 
+def _wait_for_template_target_controls(web, field_ord: int) -> None:
+    wait_for_js_condition(
+        web,
+        (
+            "document.querySelector("
+            f"'.aqe-review-audio-target[data-field-ord=\"{field_ord}\"] "
+            f".aqe-controls[data-aqe-field-ord=\"{field_ord}\"]'"
+            ") !== null"
+        ),
+        lambda value: value is True,
+        timeout=5.0,
+    )
+
+
 def _menu_action(menu: QMenu, label: str):
     for action in menu.actions():
         if action.text() == label:
             return action
     labels = [action.text() for action in menu.actions()]
     raise AssertionError(f"menu action {label!r} not found; saw {labels!r}")
+
+
+def _trigger_action(action) -> None:
+    action.triggered.emit()
 
 
 def _reviewer_more_menu(reviewer) -> QMenu:
@@ -157,6 +188,14 @@ def _reviewer_more_menu(reviewer) -> QMenu:
     reviewer._addMenuItems(menu, reviewer._contextMenu())
     gui_hooks.reviewer_will_show_context_menu(reviewer, menu)
     return menu
+
+
+def _cleanup_reviewer_session(reviewer) -> None:
+    from aqt import gui_hooks
+
+    if getattr(reviewer, "card", None) is not None:
+        gui_hooks.reviewer_did_answer_card(reviewer, reviewer.card, 3)
+    reviewer.mw.moveToState("deckBrowser")
 
 
 def _tools_audio_menu(anki_mw) -> QMenu:
@@ -174,6 +213,7 @@ def _prepare_reviewer_note(
     *,
     audio_field: str = "Back",
     card_css: str = "",
+    answer_template: str | None = None,
 ):
     media_dir = Path(anki_mw.col.media.dir())
     source = media_dir / filename
@@ -183,105 +223,7 @@ def _prepare_reviewer_note(
         source.name,
         audio_field=audio_field,
         card_css=card_css,
+        answer_template=answer_template,
     )
     _configure_ffmpeg(anki_mw, ffmpeg_config, enable_reviewer_editor=True)
     return media_dir, source, note, deck_id, field_ord
-
-
-def test_reviewer_audio_editor_answer_workflow(anki_mw, ffmpeg_config) -> None:
-    hostile_css = """
-    .card button {
-      margin: 20px;
-      padding: 24px;
-      border-width: 8px;
-      text-transform: uppercase;
-    }
-    .card svg {
-      transform: scale(2);
-    }
-    """
-    _media_dir, _source, note, deck_id, field_ord = _prepare_reviewer_note(
-        anki_mw,
-        ffmpeg_config,
-        "reviewer_workflow_source.wav",
-        card_css=hostile_css,
-    )
-    reviewer = _open_reviewer_for_note(anki_mw, note, deck_id)
-    _wait_for_no_controls(reviewer.web)
-
-    _show_answer(reviewer)
-    _wait_for_controls(reviewer.web)
-    wait_for_js_condition(
-        reviewer.web,
-        f"document.querySelector({(_button_selector('aqe:play', field_ord))!r}) !== null",
-        lambda value: value is True,
-        timeout=5.0,
-    )
-
-    style = wait_for_js_condition(
-        reviewer.web,
-        f"""
-        (() => {{
-          const button = document.querySelector({(_button_selector('aqe:play', field_ord))!r});
-          const icon = button?.querySelector('svg, .aqe-button-icon');
-          if (!button) return null;
-          const buttonStyle = getComputedStyle(button);
-          const iconStyle = icon ? getComputedStyle(icon) : null;
-          return {{
-            borderTopWidth: buttonStyle.borderTopWidth,
-            marginLeft: buttonStyle.marginLeft,
-            paddingLeft: buttonStyle.paddingLeft,
-            textTransform: buttonStyle.textTransform,
-            iconTransform: iconStyle ? iconStyle.transform : null,
-          }};
-        }})()
-        """,
-        lambda value: isinstance(value, dict),
-        timeout=5.0,
-    )
-
-    assert style["borderTopWidth"] == "1px"
-    assert style["marginLeft"] == "0px"
-    assert style["paddingLeft"] != "24px"
-    assert style["textTransform"] != "uppercase"
-    if style["iconTransform"] is not None:
-        assert style["iconTransform"] in {"none", "matrix(1, 0, 0, 1, 0, 0)"}
-
-    hide_action = _menu_action(_reviewer_more_menu(reviewer), "Hide audio editor")
-    hide_action.trigger()
-    _wait_for_no_controls(reviewer.web)
-
-    show_action = _menu_action(_reviewer_more_menu(reviewer), "Show audio editor")
-    show_action.trigger()
-    _wait_for_controls(reviewer.web)
-
-    tools_menu = _tools_audio_menu(anki_mw)
-    tools_menu.aboutToShow.emit()
-    _menu_action(tools_menu, "Hide audio editor").trigger()
-    _wait_for_no_controls(reviewer.web)
-
-    tools_menu.aboutToShow.emit()
-    _menu_action(tools_menu, "Show audio editor").trigger()
-    _wait_for_controls(reviewer.web)
-
-    original_card_id = reviewer.card.id
-    click_selector(reviewer.web, _button_selector("aqe:faster", field_ord), timeout=5.0)
-    wait_for_condition(
-        lambda: (
-            (filename := _sound_filename(anki_mw.col.get_note(note.id).fields[field_ord])) != _source.name
-            and "__aqe_" in filename
-            and (_media_dir / filename).is_file()
-        ),
-        timeout=10.0,
-        message="Reviewer processing did not replace note audio",
-    )
-    assert reviewer.card.id == original_card_id
-    assert reviewer.state == "answer"
-
-    config = anki_mw.addonManager.getConfig(ADDON_NUMERIC_ID) or {}
-    config["enable_reviewer_editor"] = False
-    anki_mw.addonManager.writeConfig(ADDON_NUMERIC_ID, config)
-    _show_answer(reviewer)
-    _wait_for_no_controls(reviewer.web)
-    action = _menu_action(_reviewer_more_menu(reviewer), "Show audio editor")
-    assert action.isEnabled() is False

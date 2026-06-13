@@ -84,6 +84,15 @@ class FakeAdapters:
         self.calls.append(("denoise", source_path.name, config.denoise_algorithm))
         output_path.write_bytes(b"denoised")
 
+    def render_size_reduced_audio(
+        self,
+        source_path: Path,
+        config: AudioProcessingConfig,
+        output_path: Path,
+    ) -> None:
+        self.calls.append(("reduce_size", source_path.name, config.size_reduction_mode))
+        output_path.write_bytes(b"smaller")
+
     def analyze_prosody(self, source_path: Path, config: AudioProcessingConfig) -> dict[str, Any]:
         self.calls.append(("graph", source_path.name, config.graph_voice_range))
         return {"source": source_path.name}
@@ -98,6 +107,7 @@ class FakeAdapters:
             temp_output_path=self.temp_output_path,
             render_audio=self.render_audio,
             render_converted_audio=self.render_converted_audio,
+            render_size_reduced_audio=self.render_size_reduced_audio,
             render_denoise_audio=self.render_denoise_audio,
             analyze_prosody=self.analyze_prosody,
             render_graph_svg=self.render_graph_svg,

@@ -54,7 +54,7 @@ FRONTEND_EDITOR_CONTRACTS: dict[str, ModuleContract] = {
     "editor_frontend_callbacks": contract(
         "editor_frontend_callbacks",
         layer=Layer.UI_ADAPTER,
-        allowed_addon_deps=("editor_dependencies", "editor_frontend"),
+        allowed_addon_deps=("editor_dependencies", "editor_frontend", "editor_recording_frontend"),
         allowed_side_effects=(
             SideEffect.WEB_EVAL,
             SideEffect.BACKGROUND_TASK_DISPATCH,

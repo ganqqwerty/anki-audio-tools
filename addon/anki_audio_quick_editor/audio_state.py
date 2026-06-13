@@ -13,6 +13,14 @@ from .audio_pause_settings import (
     pause_detection_algorithm_or_default,
     preset_for_pause_detection,
 )
+from .audio_size_reduction import (
+    DEFAULT_SIZE_REDUCTION_ENCODER_PARAMS,
+    normalize_size_reduction_bitrate_kbps,
+    normalize_size_reduction_channels,
+    normalize_size_reduction_mode,
+    normalize_size_reduction_sample_rate_hz,
+    size_reduction_encoder_params_for_mode,
+)
 from .dpdfnet_settings import (
     DEFAULT_DPDFNET_ATTENUATION_LIMIT_DB,
     normalize_dpdfnet_attn_limit_db,
@@ -48,6 +56,10 @@ class AudioProcessingConfig:
     pause_silero_min_speech_seconds: float = 0.10
     pause_silero_preprocess_denoise: bool = False
     output_format: str = DEFAULT_OUTPUT_FORMAT
+    size_reduction_mode: str = "normal"
+    size_reduction_bitrate_kbps: int = DEFAULT_SIZE_REDUCTION_ENCODER_PARAMS.bitrate_kbps
+    size_reduction_sample_rate_hz: int = DEFAULT_SIZE_REDUCTION_ENCODER_PARAMS.sample_rate_hz
+    size_reduction_channels: int = DEFAULT_SIZE_REDUCTION_ENCODER_PARAMS.channels
     ffmpeg_path: str = field(default_factory=default_ffmpeg_path)
     deep_filter_post_filter: bool = True
     dpdfnet_attn_limit_db: float = DEFAULT_DPDFNET_ATTENUATION_LIMIT_DB
@@ -69,6 +81,10 @@ class AudioProcessingConfig:
         pause_detection_algorithm = pause_detection_algorithm_or_default(
             config.get("pause_detection_algorithm", cls.pause_detection_algorithm)
         )
+        size_reduction_mode = normalize_size_reduction_mode(
+            config.get("size_reduction_mode", cls.size_reduction_mode)
+        )
+        size_reduction_defaults = size_reduction_encoder_params_for_mode(size_reduction_mode)
         silencedetect_preset = preset_for_pause_detection("silencedetect", pause_aggressiveness)
         silero_preset = preset_for_pause_detection("silero_vad", pause_aggressiveness)
         return cls(
@@ -136,6 +152,25 @@ class AudioProcessingConfig:
                 silero_preset.preprocess_denoise,
             ),
             output_format=normalize_output_format(config.get("output_format", cls.output_format)),
+            size_reduction_mode=size_reduction_mode,
+            size_reduction_bitrate_kbps=normalize_size_reduction_bitrate_kbps(
+                config.get(
+                    "size_reduction_bitrate_kbps",
+                    size_reduction_defaults.bitrate_kbps,
+                ),
+                size_reduction_defaults.bitrate_kbps,
+            ),
+            size_reduction_sample_rate_hz=normalize_size_reduction_sample_rate_hz(
+                config.get(
+                    "size_reduction_sample_rate_hz",
+                    size_reduction_defaults.sample_rate_hz,
+                ),
+                size_reduction_defaults.sample_rate_hz,
+            ),
+            size_reduction_channels=normalize_size_reduction_channels(
+                config.get("size_reduction_channels", size_reduction_defaults.channels),
+                size_reduction_defaults.channels,
+            ),
             ffmpeg_path=str(config.get("ffmpeg_path", default_ffmpeg_path())),
             deep_filter_post_filter=bool(
                 config.get("deep_filter_post_filter", cls.deep_filter_post_filter)

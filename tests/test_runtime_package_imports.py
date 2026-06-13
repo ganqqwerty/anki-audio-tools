@@ -90,6 +90,10 @@ def test_runtime_helpers_import_siblings_under_numeric_package(tmp_path: Path) -
         ),
         encoding="utf-8",
     )
+    (package_dir / "batch_operation_types.py").write_text(
+        "from dataclasses import dataclass\n\n@dataclass(frozen=True)\nclass BatchNoteResult:\n    note_id: int\n    status: str\n    message: str\n",
+        encoding="utf-8",
+    )
 
     script = textwrap.dedent(
         f"""
@@ -120,7 +124,7 @@ def test_runtime_helpers_import_siblings_under_numeric_package(tmp_path: Path) -
             Path("clip.mp3"),
             config,
             Path("out.mp3"),
-        ) == "batch-standard"
+        ) == "standard"
         """
     )
 

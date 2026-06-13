@@ -1,12 +1,29 @@
 from __future__ import annotations
 
 import json
+import os
 import stat
 import zipfile
 from pathlib import Path
 
 import pytest
 from scripts import release_acceptance, release_assets
+
+
+def _target() -> str:
+    return "windows-x86_64" if os.name == "nt" else "macos-arm64"
+
+
+def _passing_script() -> bytes:
+    if os.name == "nt":
+        return b"@echo ok\r\nexit /b 0\r\n"
+    return b"#!/bin/sh\necho ok\nexit 0\n"
+
+
+def _failing_script() -> bytes:
+    if os.name == "nt":
+        return b"@echo broken 1>&2\r\nexit /b 42\r\n"
+    return b"#!/bin/sh\necho broken >&2\nexit 42\n"
 
 
 def _write_acceptance_archive(
@@ -41,21 +58,22 @@ def _write_acceptance_archive(
 
 
 def _tool_matrix(script: bytes | None) -> dict[str, tuple[str, bytes | None]]:
+    suffix = ".cmd" if os.name == "nt" else ""
     return {
-        "ffmpeg": ("ffmpeg", script),
-        "ffprobe": ("ffprobe", script),
-        "deep-filter": ("deep-filter", script),
-        "rnnoise-cli": ("rnnoise-cli", script),
-        "sherpa-spleeter": ("sherpa-spleeter", script),
-        "dpdfnet": ("dpdfnet", script),
+        "ffmpeg": (f"ffmpeg{suffix}", script),
+        "ffprobe": (f"ffprobe{suffix}", script),
+        "deep-filter": (f"deep-filter{suffix}", script),
+        "rnnoise-cli": (f"rnnoise-cli{suffix}", script),
+        "sherpa-spleeter": (f"sherpa-spleeter{suffix}", script),
+        "dpdfnet": (f"dpdfnet{suffix}", script),
     }
 
 
 def test_acceptance_fails_when_runtime_tool_is_missing(tmp_path: Path, monkeypatch) -> None:
-    target = "macos-arm64"
+    target = _target()
     archive = tmp_path / "missing-tool.ankiaddon"
-    tools = _tool_matrix(b"#!/bin/sh\nexit 0\n")
-    tools["ffmpeg"] = ("ffmpeg", None)
+    tools = _tool_matrix(_passing_script())
+    tools["ffmpeg"] = (f"ffmpeg{'.cmd' if os.name == 'nt' else ''}", None)
     _write_acceptance_archive(archive, target=target, tools=tools)
     monkeypatch.setattr(release_assets, "current_target_key", lambda: target)
     monkeypatch.setattr(release_acceptance, "ROOT", tmp_path)
@@ -66,12 +84,12 @@ def test_acceptance_fails_when_runtime_tool_is_missing(tmp_path: Path, monkeypat
 
 
 def test_acceptance_fails_when_runtime_tool_diagnostic_fails(tmp_path: Path, monkeypatch) -> None:
-    target = "macos-arm64"
+    target = _target()
     archive = tmp_path / "bad-diagnostic.ankiaddon"
     _write_acceptance_archive(
         archive,
         target=target,
-        tools=_tool_matrix(b"#!/bin/sh\necho broken >&2\nexit 42\n"),
+        tools=_tool_matrix(_failing_script()),
     )
     monkeypatch.setattr(release_assets, "current_target_key", lambda: target)
     monkeypatch.setattr(release_acceptance, "ROOT", tmp_path)
@@ -82,12 +100,12 @@ def test_acceptance_fails_when_runtime_tool_diagnostic_fails(tmp_path: Path, mon
 
 
 def test_acceptance_writes_report_when_runtime_tools_pass(tmp_path: Path, monkeypatch) -> None:
-    target = "macos-arm64"
+    target = _target()
     archive = tmp_path / "passing.ankiaddon"
     _write_acceptance_archive(
         archive,
         target=target,
-        tools=_tool_matrix(b"#!/bin/sh\necho ok\nexit 0\n"),
+        tools=_tool_matrix(_passing_script()),
     )
     monkeypatch.setattr(release_assets, "current_target_key", lambda: target)
     monkeypatch.setattr(release_acceptance, "ROOT", tmp_path)

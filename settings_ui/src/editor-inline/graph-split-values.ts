@@ -47,28 +47,36 @@ export function clampGraphConnectShortDropoutsMs(value: unknown): number {
   return Math.max(MIN_GRAPH_DROPOUT_MS, Math.min(MAX_GRAPH_DROPOUT_MS, rounded));
 }
 
+export function isGraphVoiceRange(value: unknown): value is GraphVoiceRange {
+  return typeof value === "string" && (GRAPH_VOICE_RANGES as readonly string[]).includes(value);
+}
+
+export function isGraphRecordingCondition(value: unknown): value is GraphRecordingCondition {
+  return typeof value === "string" && (GRAPH_RECORDING_CONDITIONS as readonly string[]).includes(value);
+}
+
+export function isGraphSmoothness(value: unknown): value is GraphSmoothness {
+  return typeof value === "string" && (GRAPH_SMOOTHNESSES as readonly string[]).includes(value);
+}
+
+export function isGraphVoiceLock(value: unknown): value is GraphVoiceLock {
+  return typeof value === "string" && (GRAPH_VOICE_LOCKS as readonly string[]).includes(value);
+}
+
 export function graphVoiceRangeOrDefault(value: unknown): GraphVoiceRange {
-  return GRAPH_VOICE_RANGES.includes(value as GraphVoiceRange)
-    ? value as GraphVoiceRange
-    : DEFAULT_GRAPH_VOICE_RANGE;
+  return isGraphVoiceRange(value) ? value : DEFAULT_GRAPH_VOICE_RANGE;
 }
 
 export function graphRecordingConditionOrDefault(value: unknown): GraphRecordingCondition {
-  return GRAPH_RECORDING_CONDITIONS.includes(value as GraphRecordingCondition)
-    ? value as GraphRecordingCondition
-    : DEFAULT_GRAPH_RECORDING_CONDITION;
+  return isGraphRecordingCondition(value) ? value : DEFAULT_GRAPH_RECORDING_CONDITION;
 }
 
 export function graphSmoothnessOrDefault(value: unknown): GraphSmoothness {
-  return GRAPH_SMOOTHNESSES.includes(value as GraphSmoothness)
-    ? value as GraphSmoothness
-    : DEFAULT_GRAPH_SMOOTHNESS;
+  return isGraphSmoothness(value) ? value : DEFAULT_GRAPH_SMOOTHNESS;
 }
 
 export function graphVoiceLockOrDefault(value: unknown): GraphVoiceLock {
-  return GRAPH_VOICE_LOCKS.includes(value as GraphVoiceLock)
-    ? value as GraphVoiceLock
-    : DEFAULT_GRAPH_VOICE_LOCK;
+  return isGraphVoiceLock(value) ? value : DEFAULT_GRAPH_VOICE_LOCK;
 }
 
 export {
