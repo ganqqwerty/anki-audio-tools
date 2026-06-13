@@ -117,9 +117,11 @@ export function pitchSegments(
   maxHz: number | null,
   viewport?: TimeViewport | null,
   plot: PlotGeometry = PLOT,
+  timeOffsetMs = 0,
 ): number[][][] {
   const segments: number[][][] = [];
   let current: number[][] = [];
+  const offsetMs = Number.isFinite(timeOffsetMs) ? timeOffsetMs : 0;
   for (const point of points) {
     const pitchHz = point[1];
     const voiced = point[3] === true && pitchHz !== null && pitchHz !== undefined;
@@ -128,7 +130,7 @@ export function pitchSegments(
       current = [];
       continue;
     }
-    current.push([xForMs(point[0], durationMs, viewport, plot), yForPitch(pitchHz, minHz, maxHz, plot)]);
+    current.push([xForMs(point[0] + offsetMs, durationMs, viewport, plot), yForPitch(pitchHz, minHz, maxHz, plot)]);
   }
   if (current.length) segments.push(current);
   return segments;
@@ -141,6 +143,7 @@ interface PitchDrawOptions {
   pitchMaxHz?: number | null;
   pitchMinHz?: number | null;
   plot?: PlotGeometry;
+  timeOffsetMs?: number;
   viewport?: TimeViewport | null;
 }
 
@@ -159,7 +162,7 @@ export function drawPitch(
 export function drawLearnerPitch(
   visualizer: VisualizerElement,
   track: NormalizedProsodyTrack,
-  options: Pick<PitchDrawOptions, "durationMs" | "pitchMaxHz" | "pitchMinHz" | "plot" | "viewport">,
+  options: Pick<PitchDrawOptions, "durationMs" | "pitchMaxHz" | "pitchMinHz" | "plot" | "timeOffsetMs" | "viewport">,
 ): void {
   drawPitchPaths(visualizer, track, {
     ...options,
@@ -180,7 +183,15 @@ function drawPitchPaths(
   const minHz = options.pitchMinHz ?? track.pitchMinHz;
   const maxHz = options.pitchMaxHz ?? track.pitchMaxHz;
   const plot = options.plot ?? PLOT;
-  for (const segment of pitchSegments(track.points, durationMs, minHz, maxHz, options.viewport, plot)) {
+  for (const segment of pitchSegments(
+    track.points,
+    durationMs,
+    minHz,
+    maxHz,
+    options.viewport,
+    plot,
+    options.timeOffsetMs,
+  )) {
     if (segment.length < 2) continue;
     const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
     path.setAttribute("class", options.pathClass);

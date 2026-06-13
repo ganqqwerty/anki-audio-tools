@@ -208,6 +208,7 @@ export function graphStateForTest(ord: number): GraphStateForTest | null {
     targetDurationMs: readVisualizerTargetDurationMs(visualizer),
     viewportStartMs: viewport.startMs,
     viewportEndMs: viewport.endMs,
+    learnerAlignmentOffsetMs: Number(visualizer.dataset.learnerAlignmentOffsetMs || "0"),
     learnerDurationMs: Number(visualizer.dataset.learnerDurationMs || "0"),
     learnerRecordingStatus: visualizer.dataset.learnerRecordingStatus || "idle",
     learnerPlaybackStatus: visualizer.dataset.learnerPlaybackStatus || "stopped",

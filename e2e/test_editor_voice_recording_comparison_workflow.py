@@ -6,7 +6,13 @@ from pathlib import Path
 from typing import Any
 
 from e2e.conftest import import_runtime_addon_module, runtime_addon_import_path
-from e2e.editor_graph_helpers import _click_graph_and_wait, _graph_state_js
+from e2e.editor_graph_helpers import (
+    _click_graph_and_wait,
+    _drag_learner_pitch_to_ratio,
+    _graph_state_js,
+    _install_html_audio_test_driver,
+    _wait_for_html_playback,
+)
 from e2e.editor_note_helpers import (
     DEFAULT_VISIBLE_EDITOR_BUTTONS,
     _basic_audio_note,
@@ -15,6 +21,7 @@ from e2e.editor_note_helpers import (
     _open_editor,
     _sound_filename,
 )
+from e2e.editor_region_loop_helpers import _shift_drag_region
 from e2e.editor_playback_helpers import _record_fake_playback
 from e2e.helpers import (
     click_selector,
@@ -69,6 +76,52 @@ def _has_ready_learner_overlay(value: dict[str, Any] | None) -> bool:
     if value["learnerDurationMs"] <= value["targetDurationMs"]:
         return False
     return value["durationMs"] == value["learnerDurationMs"]
+
+
+def _inject_ready_learner_overlay(
+    editor,
+    *,
+    start_cursor_ms: int,
+    learner_duration_ms: int = 1600,
+    timeout: float = 5.0,
+) -> dict[str, Any]:
+    run_js(
+        editor.web,
+        f"""
+        (() => {{
+          window.__aqeSetLearnerRecordingState?.({{
+            fieldOrd: 0,
+            generation: 1,
+            startCursorMs: {start_cursor_ms},
+            status: "ready",
+            targetDurationMs: window.__aqeGraphStateForTest?.(0)?.targetDurationMs || 0,
+          }});
+          window.__aqeSetLearnerVisualizer?.(0, {{
+            analyzerName: "praat",
+            durationMs: {learner_duration_ms},
+            pitchMaxHz: 500,
+            pitchMinHz: 80,
+            points: [
+              [0, 130, 1, true],
+              [600, 210, 0.2, true],
+              [{learner_duration_ms}, 260, 0.1, true],
+            ],
+            sourceFilename: "target__aqe_voice.wav",
+          }});
+          return true;
+        }})()
+        """,
+    )
+    return wait_for_js_condition(
+        editor.web,
+        _graph_state_js(),
+        lambda value: value is not None
+        and value["learnerRecordingStatus"] == "ready"
+        and value["learnerStartCursorMs"] == start_cursor_ms
+        and value["learnerPitchPaths"] > 0
+        and value["learnerAlignmentOffsetMs"] == 0,
+        timeout=timeout,
+    )
 
 
 def test_editor_voice_recording_comparison_workflow(
@@ -343,6 +396,172 @@ def test_editor_voice_recording_comparison_workflow(
             timeout=5.0,
             message="Share yours did not upload the learner recording file",
         )
+    finally:
+        editor.set_note(None)
+        parent.close()
+
+
+def test_editor_voice_recording_learner_drag_preserves_zoomed_viewport(
+    anki_mw,
+    ffmpeg_config,
+) -> None:
+    media_dir = Path(anki_mw.col.media.dir())
+    source = media_dir / "editor_voice_recording_zoom_drag.wav"
+    generate_tone(ffmpeg_config, source, duration_s=4.0)
+    note = _basic_audio_note(anki_mw, source.name)
+    _configure_ffmpeg(
+        anki_mw,
+        ffmpeg_config,
+        visible_editor_buttons=[*DEFAULT_VISIBLE_EDITOR_BUTTONS, "aqe:record-voice"],
+    )
+
+    editor, parent = _open_editor(anki_mw, note)
+    try:
+        track = _click_graph_and_wait(
+            editor,
+            lambda value: value["sourceFilename"] == source.name and value["pitchPaths"] > 0,
+            timeout=15.0,
+        )
+        wait_for_js_condition(
+            editor.web,
+            f"""
+            (() => {{
+              const state = window.__aqeGraphStateForTest?.(0);
+              if (!state) return null;
+              window.__aqeSetCursorForTest?.(0, state.durationMs / 2, false);
+              document.querySelector('[data-testid="aqe-zoom-in-0"]')?.click();
+              return window.__aqeGraphStateForTest?.(0) || null;
+            }})()
+            """,
+            lambda value: value is not None
+            and value["viewportStartMs"] > 0
+            and value["viewportEndMs"] < value["durationMs"],
+            timeout=5.0,
+        )
+        zoomed = _inject_ready_learner_overlay(editor, start_cursor_ms=900)
+
+        _drag_learner_pitch_to_ratio(editor, 0.6, 0.45)
+
+        dragged = wait_for_js_condition(
+            editor.web,
+            _graph_state_js(),
+            lambda value: value is not None
+            and value["learnerAlignmentOffsetMs"] < 0
+            and value["viewportStartMs"] == zoomed["viewportStartMs"]
+            and value["viewportEndMs"] == zoomed["viewportEndMs"],
+            timeout=5.0,
+        )
+        assert dragged["learnerPitchPaths"] > 0
+        assert dragged["targetDurationMs"] == track["durationMs"]
+    finally:
+        editor.set_note(None)
+        parent.close()
+
+
+def test_editor_voice_recording_learner_drag_preserves_selection_region(
+    anki_mw,
+    ffmpeg_config,
+) -> None:
+    media_dir = Path(anki_mw.col.media.dir())
+    source = media_dir / "editor_voice_recording_selection_drag.wav"
+    generate_tone(ffmpeg_config, source, duration_s=2.0)
+    note = _basic_audio_note(anki_mw, source.name)
+    _configure_ffmpeg(
+        anki_mw,
+        ffmpeg_config,
+        visible_editor_buttons=[*DEFAULT_VISIBLE_EDITOR_BUTTONS, "aqe:record-voice"],
+    )
+
+    editor, parent = _open_editor(anki_mw, note)
+    try:
+        _click_graph_and_wait(
+            editor,
+            lambda value: value["sourceFilename"] == source.name and value["pitchPaths"] > 0,
+            timeout=15.0,
+        )
+        _inject_ready_learner_overlay(editor, start_cursor_ms=300, learner_duration_ms=1900)
+        _shift_drag_region(editor, 0.25, 0.75)
+        selected = wait_for_js_condition(
+            editor.web,
+            _graph_state_js(),
+            lambda value: value is not None
+            and value["selectionActive"] is True
+            and value["selectionStartMs"] is not None
+            and value["selectionEndMs"] is not None
+            and value["selectionEndMs"] > value["selectionStartMs"],
+            timeout=5.0,
+        )
+
+        _drag_learner_pitch_to_ratio(editor, 0.55, 0.4)
+
+        dragged = wait_for_js_condition(
+            editor.web,
+            _graph_state_js(),
+            lambda value: value is not None
+            and value["learnerAlignmentOffsetMs"] < 0
+            and value["selectionActive"] is True
+            and value["selectionStartMs"] == selected["selectionStartMs"]
+            and value["selectionEndMs"] == selected["selectionEndMs"]
+            and value["cursorMs"] == selected["cursorMs"],
+            timeout=5.0,
+        )
+        assert dragged["playbackRegionMode"] == "selection"
+    finally:
+        editor.set_note(None)
+        parent.close()
+
+
+def test_editor_voice_recording_learner_drag_does_not_interrupt_target_playback(
+    anki_mw,
+    ffmpeg_config,
+) -> None:
+    media_dir = Path(anki_mw.col.media.dir())
+    source = media_dir / "editor_voice_recording_playback_drag.wav"
+    generate_tone(ffmpeg_config, source, duration_s=2.5)
+    note = _basic_audio_note(anki_mw, source.name)
+    _configure_ffmpeg(
+        anki_mw,
+        ffmpeg_config,
+        visible_editor_buttons=[*DEFAULT_VISIBLE_EDITOR_BUTTONS, "aqe:record-voice"],
+    )
+
+    editor, parent = _open_editor(anki_mw, note)
+    try:
+        _click_graph_and_wait(
+            editor,
+            lambda value: value["sourceFilename"] == source.name and value["pitchPaths"] > 0,
+            timeout=15.0,
+        )
+        _install_html_audio_test_driver(editor)
+        _inject_ready_learner_overlay(editor, start_cursor_ms=500, learner_duration_ms=1700)
+
+        click_selector(editor.web, _button_selector("aqe:play"), timeout=5.0)
+        playing = _wait_for_html_playback(
+            editor,
+            lambda value: value["playbackStartMs"] == 0 and value["playbackEndMs"] == 2500,
+            timeout=5.0,
+        )
+        moving = wait_for_js_condition(
+            editor.web,
+            _graph_state_js(),
+            lambda value: value is not None and value["audioClockCurrentMs"] > 0,
+            timeout=5.0,
+        )
+
+        _drag_learner_pitch_to_ratio(editor, 0.65, 0.45)
+
+        dragged = wait_for_js_condition(
+            editor.web,
+            _graph_state_js(),
+            lambda value: value is not None
+            and value["learnerAlignmentOffsetMs"] < 0
+            and value["playbackState"] == "playing"
+            and value["playbackEngine"] == "html"
+            and value["playbackStartMs"] == playing["playbackStartMs"]
+            and value["audioClockCurrentMs"] > moving["audioClockCurrentMs"],
+            timeout=5.0,
+        )
+        assert dragged["progressMs"] >= dragged["cursorMs"]
     finally:
         editor.set_note(None)
         parent.close()

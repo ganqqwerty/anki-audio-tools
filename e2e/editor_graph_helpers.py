@@ -178,6 +178,127 @@ def _drag_cursor_to_ratio(editor, ratio: float, ord_: int = 0) -> None:
     )
 
 
+def _drag_learner_pitch_to_ratio(editor, start_ratio: float, end_ratio: float, ord_: int = 0) -> None:
+    run_js(
+        editor.web,
+        """
+        (() => {
+          const ord = __ORD__;
+          const startRatio = __START_RATIO__;
+          const endRatio = __END_RATIO__;
+          const svg = document.querySelector(`.aqe-visualizer[data-aqe-field-ord="${ord}"] .aqe-visualizer-svg`);
+          const learnerPath = document.querySelector(
+            `.aqe-visualizer[data-aqe-field-ord="${ord}"] .aqe-learner-pitch-path`
+          );
+          const rect = svg?.getBoundingClientRect();
+          const bounds = window.__aqeGraphPixelBoundsForTest?.(ord);
+          if (!svg || !learnerPath || !rect || !bounds) return false;
+          const xFor = (ratio) => bounds.left + bounds.width * ratio;
+          const EventCtor = window.PointerEvent || window.MouseEvent;
+          learnerPath.dispatchEvent(new EventCtor("pointerdown", {
+            bubbles: true,
+            clientX: xFor(startRatio),
+            clientY: rect.top + 40,
+          }));
+          window.dispatchEvent(new EventCtor("pointermove", {
+            bubbles: true,
+            clientX: xFor(endRatio),
+            clientY: rect.top + 40,
+          }));
+          window.dispatchEvent(new EventCtor("pointerup", {
+            bubbles: true,
+            clientX: xFor(endRatio),
+            clientY: rect.top + 40,
+          }));
+          return true;
+        })()
+        """
+        .replace("__ORD__", json.dumps(ord_))
+        .replace("__START_RATIO__", json.dumps(start_ratio))
+        .replace("__END_RATIO__", json.dumps(end_ratio)),
+    )
+
+
+def _dispatch_learner_drag_sequence(
+    editor,
+    *,
+    start_ratio: float,
+    move_ratio: float | None = None,
+    end_event: str = "pointerup",
+    end_ratio: float | None = None,
+    ord_: int = 0,
+) -> None:
+    run_js(
+        editor.web,
+        """
+        (() => {
+          const ord = __ORD__;
+          const startRatio = __START_RATIO__;
+          const moveRatio = __MOVE_RATIO__;
+          const endEvent = __END_EVENT__;
+          const endRatio = __END_RATIO__;
+          const visualizer = document.querySelector(`.aqe-visualizer[data-aqe-field-ord="${ord}"]`);
+          const svg = visualizer?.querySelector('.aqe-visualizer-svg');
+          const learnerPath = visualizer?.querySelector('.aqe-learner-pitch-path');
+          const rect = svg?.getBoundingClientRect();
+          const bounds = window.__aqeGraphPixelBoundsForTest?.(ord);
+          if (!visualizer || !svg || !learnerPath || !rect || !bounds) return false;
+          const EventCtor = window.PointerEvent || window.MouseEvent;
+          const xFor = (ratio) => bounds.left + bounds.width * ratio;
+          learnerPath.dispatchEvent(new EventCtor("pointerdown", {
+            bubbles: true,
+            clientX: xFor(startRatio),
+            clientY: rect.top + 40,
+          }));
+          if (typeof moveRatio === "number") {
+            window.dispatchEvent(new EventCtor("pointermove", {
+              bubbles: true,
+              clientX: xFor(moveRatio),
+              clientY: rect.top + 40,
+            }));
+          }
+          if (endEvent === "blur") {
+            window.dispatchEvent(new Event("blur"));
+            return true;
+          }
+          if (endEvent === "lostpointercapture") {
+            svg.dispatchEvent(new EventCtor("lostpointercapture", {
+              bubbles: true,
+              clientX: xFor(typeof endRatio === "number" ? endRatio : (moveRatio ?? startRatio)),
+              clientY: rect.top + 40,
+            }));
+            return true;
+          }
+          window.dispatchEvent(new EventCtor(endEvent, {
+            bubbles: true,
+            clientX: xFor(typeof endRatio === "number" ? endRatio : (moveRatio ?? startRatio)),
+            clientY: rect.top + 40,
+          }));
+          return true;
+        })()
+        """
+        .replace("__ORD__", json.dumps(ord_))
+        .replace("__START_RATIO__", json.dumps(start_ratio))
+        .replace("__MOVE_RATIO__", json.dumps(move_ratio))
+        .replace("__END_EVENT__", json.dumps(end_event))
+        .replace("__END_RATIO__", json.dumps(end_ratio)),
+    )
+
+
+def _learner_drag_state_js(ord_: int = 0) -> str:
+    return f"""
+    (() => {{
+      const state = window.__aqeGraphStateForTest?.({ord_});
+      const visualizer = document.querySelector(`.aqe-visualizer[data-aqe-field-ord="{ord_}"]`);
+      if (!state || !visualizer) return null;
+      return {{
+        ...state,
+        learnerAlignmentDragging: visualizer.dataset.learnerAlignmentDragging === "true",
+      }};
+    }})()
+    """
+
+
 def _wait_for_html_playback(editor, predicate=lambda state: True, timeout: float = 5.0, ord_: int = 0):
     return wait_for_js_condition(
         editor.web,

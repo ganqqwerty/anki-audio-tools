@@ -51,6 +51,7 @@ export function renderGraphRequested(visualizer: VisualizerElement): void {
   resetVisualizerTimeViewport(visualizer, 0);
   delete visualizer.__aqeCursorPaintedAtMs;
   delete visualizer.__aqeCursorTextPaintedAtMs;
+  resetLearnerAlignmentOffset(visualizer);
   delete visualizer.__aqeLearnerTrack;
   delete visualizer.__aqeTrack;
   resetVisualizerPlot(visualizer);
@@ -72,6 +73,7 @@ export function renderVisualizerTrack(visualizer: VisualizerElement, track: Norm
   });
   visualizer.dataset.targetDurationMs = String(track.durationMs || 0);
   visualizer.dataset.learnerDurationMs = "0";
+  resetLearnerAlignmentOffset(visualizer);
   delete visualizer.__aqeLearnerTrack;
   visualizer.__aqeTrack = track;
   const plot = syncVisualizerViewBox(visualizer);
@@ -81,9 +83,27 @@ export function renderVisualizerTrack(visualizer: VisualizerElement, track: Norm
 
 export function renderLearnerVisualizerTrack(visualizer: VisualizerElement, track: NormalizedProsodyTrack): void {
   if (!readFieldState(fieldOrd(visualizer)).graph.hasTrack || !visualizer.__aqeTrack) return;
+  resetLearnerAlignmentOffset(visualizer);
   visualizer.__aqeLearnerTrack = track;
   visualizer.dataset.learnerDurationMs = String(track.durationMs || 0);
   renderProsodyTracks(visualizer);
+}
+
+export function readLearnerAlignmentOffsetMs(visualizer: VisualizerElement): number {
+  const runtimeOffset = visualizer.__aqeLearnerAlignmentOffsetMs;
+  if (typeof runtimeOffset === "number" && Number.isFinite(runtimeOffset)) return runtimeOffset;
+  return Number(visualizer.dataset.learnerAlignmentOffsetMs || "0") || 0;
+}
+
+export function setLearnerAlignmentOffsetMs(visualizer: VisualizerElement, offsetMs: number): void {
+  writeLearnerAlignmentOffset(visualizer, offsetMs);
+  renderProsodyTracks(visualizer);
+}
+
+export function resetLearnerAlignmentOffset(visualizer: VisualizerElement): void {
+  delete visualizer.__aqeLearnerAlignmentOffsetMs;
+  visualizer.dataset.learnerAlignmentOffsetMs = "0";
+  visualizer.dataset.learnerAlignmentDragging = "false";
 }
 
 export function renderVisualizerStatus(visualizer: VisualizerElement, message: string, kind = "info"): void {
@@ -176,6 +196,7 @@ export function resetVisualizerPlot(visualizer: VisualizerElement): void {
 }
 
 export function clearLearnerVisualizerTrack(visualizer: VisualizerElement): void {
+  resetLearnerAlignmentOffset(visualizer);
   clearText(visualizer, ".aqe-learner-pitch");
 }
 
@@ -191,10 +212,9 @@ export function resetCursorProjection(visualizer: VisualizerElement): void {
   delete visualizer.__aqeCursorTextPaintedAtMs;
 }
 
-export function graphLogContext(
-  ord: number,
-  track: NormalizedProsodyTrack,
-): { analyzerName: string; durationMs: number; ord: number; points: number; sourceFilename: string } {
+export function graphLogContext(ord: number, track: NormalizedProsodyTrack): {
+  analyzerName: string; durationMs: number; ord: number; points: number; sourceFilename: string
+} {
   return {
     analyzerName: track.analyzerName,
     durationMs: track.durationMs,
@@ -218,14 +238,17 @@ function clearText(root: VisualizerElement, selector: string): void {
   const node = root.querySelector<HTMLElement | SVGElement>(selector);
   if (node) node.textContent = "";
 }
-
 export function renderProsodyTracks(visualizer: VisualizerElement): void {
   const target = visualizer.__aqeTrack;
   if (!target) return;
   const plot = syncVisualizerViewBox(visualizer);
   const learner = visualizer.__aqeLearnerTrack;
   const learnerDurationMs = Math.max(Number(visualizer.dataset.learnerDurationMs || "0") || 0, learner?.durationMs || 0);
-  const durationMs = Math.max(target.durationMs || 0, learnerDurationMs);
+  const learnerAlignmentOffsetMs = readLearnerAlignmentOffsetMs(visualizer);
+  const durationMs = Math.max(
+    target.durationMs || 0,
+    effectiveLearnerDurationMs(learnerDurationMs, learnerAlignmentOffsetMs),
+  );
   const viewport = readVisualizerTimeViewport(visualizer);
   const pitchRange = combinedPitchRange(target, learner);
   const ord = fieldOrd(visualizer);
@@ -251,6 +274,7 @@ export function renderProsodyTracks(visualizer: VisualizerElement): void {
       pitchMaxHz: pitchRange.maxHz,
       pitchMinHz: pitchRange.minHz,
       plot,
+      timeOffsetMs: learnerAlignmentOffsetMs,
       viewport,
     });
   } else {
@@ -276,15 +300,23 @@ function combinedPitchRange(
   };
 }
 
-function isFiniteNumber(value: number | null | undefined): value is number {
-  return typeof value === "number" && Number.isFinite(value);
+const isFiniteNumber = (value: number | null | undefined): value is number =>
+  typeof value === "number" && Number.isFinite(value);
+
+function effectiveLearnerDurationMs(learnerDurationMs: number, learnerAlignmentOffsetMs: number): number {
+  return Math.max(0, learnerDurationMs + Math.max(0, learnerAlignmentOffsetMs));
+}
+
+function writeLearnerAlignmentOffset(visualizer: VisualizerElement, offsetMs: number): void {
+  const roundedOffsetMs = Math.round(Number.isFinite(offsetMs) ? offsetMs : 0);
+  visualizer.__aqeLearnerAlignmentOffsetMs = roundedOffsetMs;
+  visualizer.dataset.learnerAlignmentOffsetMs = String(roundedOffsetMs);
 }
 
 function plotGeometryForVisualizer(visualizer: VisualizerElement): PlotGeometry {
   const svg = visualizer.querySelector<SVGSVGElement>(".aqe-visualizer-svg");
   return svg ? plotGeometryForSvg(svg) : PLOT;
 }
-
 function syncVisualizerViewBox(visualizer: VisualizerElement): PlotGeometry {
   const svg = visualizer.querySelector<SVGSVGElement>(".aqe-visualizer-svg");
   if (!svg) return PLOT;
@@ -359,7 +391,6 @@ function clampedCursorFlagX(cursorX: number, plot: PlotGeometry): number {
   const maxX = plot.width - plot.right - CURSOR_FLAG_HALF_WIDTH;
   return Math.max(minX, Math.min(cursorX, maxX));
 }
-
 function cssXForViewBoxX(visualizer: VisualizerElement, x: number): number {
   const svg = visualizer.querySelector<SVGSVGElement>(".aqe-visualizer-svg");
   return x * cssScaleFor(svg).x;

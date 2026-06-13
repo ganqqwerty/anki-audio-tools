@@ -6,10 +6,13 @@ import { PLOT, xForMs } from "../src/editor-inline/plot.js";
 import { applyVisualizerTimeViewport } from "../src/editor-inline/viewport-actions.js";
 import { readVisualizerTimeViewport } from "../src/editor-inline/visualizer-state.js";
 import {
+  readLearnerAlignmentOffsetMs,
   renderCursor,
+  renderLearnerVisualizerTrack,
   renderVisualizerTrack,
   renderPlaybackCursor,
   resetCursorProjection,
+  setLearnerAlignmentOffsetMs,
   startPlaybackCursorTransition,
 } from "../src/editor-inline/visualizer-renderer.js";
 import { renderSelection } from "../src/editor-inline/visualizer-selection-renderer.js";
@@ -170,6 +173,60 @@ describe("editor inline visualizer renderer", () => {
 
     expect(fullPath).toContain("L 170.00 80.80");
     expect(zoomedPath).toContain("L 610.00 80.80");
+  });
+
+  it("moves only the learner pitch path when the transient learner offset changes", () => {
+    const visualizer = mountVisualizer(voicedTrack);
+
+    renderVisualizerTrack(visualizer, voicedTrack);
+    applyVisualizerTimeViewport(visualizer, {
+      startMs: 0,
+      endMs: voicedTrack.durationMs,
+      durationMs: voicedTrack.durationMs,
+    });
+    renderLearnerVisualizerTrack(visualizer, voicedTrack);
+    const modelPath = visualizer.querySelector<SVGPathElement>(".aqe-pitch-path")?.getAttribute("d") || "";
+    const learnerPath = visualizer.querySelector<SVGPathElement>(".aqe-learner-pitch-path")?.getAttribute("d") || "";
+
+    setLearnerAlignmentOffsetMs(visualizer, -100);
+
+    const movedModelPath = visualizer.querySelector<SVGPathElement>(".aqe-pitch-path")?.getAttribute("d") || "";
+    const movedLearnerPath = visualizer.querySelector<SVGPathElement>(".aqe-learner-pitch-path")?.getAttribute("d") || "";
+    expect(readLearnerAlignmentOffsetMs(visualizer)).toBe(-100);
+    expect(visualizer.dataset.learnerAlignmentOffsetMs).toBe("-100");
+    expect(movedModelPath).toBe(modelPath);
+    expect(movedLearnerPath).not.toBe(learnerPath);
+    expect(movedLearnerPath).toContain("L 250.00 80.80");
+  });
+
+  it("resets learner alignment when a fresh learner track renders", () => {
+    const visualizer = mountVisualizer(voicedTrack);
+
+    renderVisualizerTrack(visualizer, voicedTrack);
+    renderLearnerVisualizerTrack(visualizer, voicedTrack);
+    setLearnerAlignmentOffsetMs(visualizer, -100);
+    renderLearnerVisualizerTrack(visualizer, voicedTrack);
+
+    expect(readLearnerAlignmentOffsetMs(visualizer)).toBe(0);
+    expect(visualizer.dataset.learnerAlignmentOffsetMs).toBe("0");
+  });
+
+  it("extends graph duration when learner alignment shifts right past the current end", () => {
+    const visualizer = mountVisualizer(voicedTrack);
+
+    renderVisualizerTrack(visualizer, voicedTrack);
+    applyVisualizerTimeViewport(visualizer, {
+      startMs: 0,
+      endMs: voicedTrack.durationMs,
+      durationMs: voicedTrack.durationMs,
+    });
+    renderLearnerVisualizerTrack(visualizer, voicedTrack);
+    setLearnerAlignmentOffsetMs(visualizer, 200);
+
+    expect(visualizer.dataset.learnerDurationMs).toBe("1000");
+    expect(visualizer.dataset.durationMs).toBe("1200");
+    const learnerPath = visualizer.querySelector<SVGPathElement>(".aqe-learner-pitch-path")?.getAttribute("d") || "";
+    expect(learnerPath).toContain("L 610.00 63.20");
   });
 
   it("resets new graph tracks to canonical rendered-pixel scale", () => {

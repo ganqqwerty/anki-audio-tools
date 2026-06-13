@@ -35,6 +35,7 @@ import { readVisualizerTargetDurationMs, setVisualizerResumeRequiresRestart } fr
 import { audioClockReady } from "./actions-audio-clock.js";
 import { seekAudioClock } from "./actions-playback.js";
 import { playbackRequestForStart, setCursor } from "./actions-playback.js";
+import { startLearnerAlignmentGesture } from "./learner-alignment-gesture.js";
 import type { PlaybackRegion } from "./playback-state.js";
 import type { VisualizerElement } from "./types.js";
 
@@ -206,6 +207,8 @@ export function startSelectionResizeGesture(
 }
 
 export function handleVisualizerPointerDown(event: PointerEvent, ord: number): void {
-  visualizerForOrd(ord)?.focus();
+  const visualizer = visualizerForOrd(ord);
+  visualizer?.focus();
+  if (visualizer && startLearnerAlignmentGesture(event, visualizer)) return;
   handleVisualizerPointerDownGesture(event, ord, selectionGestureDependencies());
 }

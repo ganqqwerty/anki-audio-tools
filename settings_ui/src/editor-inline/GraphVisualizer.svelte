@@ -107,6 +107,8 @@
   data-viewport-start-ms="0"
   data-viewport-end-ms="0"
   data-learner-duration-ms="0"
+  data-learner-alignment-dragging="false"
+  data-learner-alignment-offset-ms="0"
   data-learner-recording-status="idle"
   data-graph-active="false"
   data-graph-busy="false"

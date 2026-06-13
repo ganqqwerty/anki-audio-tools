@@ -9,12 +9,18 @@
 }
 
 .aqe-learner-pitch-path {
+  cursor: grab;
   fill: none;
   opacity: 0.86;
+  pointer-events: stroke;
   stroke: #0f766e;
   stroke-linecap: round;
   stroke-linejoin: round;
   stroke-width: 2.5;
+}
+
+.aqe-visualizer[data-learner-alignment-dragging="true"] .aqe-learner-pitch-path {
+  cursor: grabbing;
 }
 
 @media (prefers-color-scheme: dark) {

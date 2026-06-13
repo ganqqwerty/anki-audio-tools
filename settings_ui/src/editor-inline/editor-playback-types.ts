@@ -97,6 +97,7 @@ export interface GraphStateForTest {
   hidden: boolean;
   intensity: string;
   learnerDurationMs: number;
+  learnerAlignmentOffsetMs: number;
   learnerIntensityPaths: number;
   learnerPitchPaths: number;
   learnerPlaybackStatus: string;
@@ -196,6 +197,7 @@ export type VisualizerElement = HTMLElement & {
   __aqeCursorRenderCache?: CursorRenderCache;
   __aqeCursorTextPaintedAtMs?: number;
   __aqeLiveProgressMs?: number;
+  __aqeLearnerAlignmentOffsetMs?: number;
   __aqePlaybackGeneration?: number;
   __aqePlaybackPlan?: PlaybackProgressPlan;
   __aqeChorusingState?: ChorusingState;
