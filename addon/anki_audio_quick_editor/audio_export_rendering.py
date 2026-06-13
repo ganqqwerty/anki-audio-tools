@@ -5,6 +5,7 @@ from __future__ import annotations
 from pathlib import Path
 
 from .audio_commands import conversion_codec_args
+from .ffmpeg_output_contracts import validate_final_ffmpeg_output
 
 EXPORT_SAMPLE_RATE_HZ = 44100
 EXPORT_CHANNELS = 2
@@ -63,6 +64,8 @@ def build_final_mp3_command(
     concat_list_path: Path,
     output_path: Path,
 ) -> tuple[str, ...]:
+    codec_args = conversion_codec_args("mp3")
+    validate_final_ffmpeg_output(output_path, codec_args)
     return (
         str(ffmpeg_path),
         "-y",
@@ -73,7 +76,7 @@ def build_final_mp3_command(
         "-i",
         str(concat_list_path),
         "-vn",
-        *conversion_codec_args("mp3"),
+        *codec_args,
         str(output_path),
     )
 

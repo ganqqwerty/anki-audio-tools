@@ -2,6 +2,8 @@ from __future__ import annotations
 
 from pathlib import Path
 
+import pytest
+
 from anki_audio_quick_editor.audio_commands import conversion_codec_args
 from anki_audio_quick_editor.audio_export_rendering import (
     build_concat_list_text,
@@ -9,6 +11,7 @@ from anki_audio_quick_editor.audio_export_rendering import (
     build_normalize_wav_command,
     build_silence_wav_command,
 )
+from anki_audio_quick_editor.errors import AudioProcessingError
 
 
 def test_build_normalize_wav_command_uses_stable_pcm_output() -> None:
@@ -83,3 +86,12 @@ def test_build_final_mp3_command_uses_concat_demuxer_and_mp3_codec() -> None:
     assert "-vn" in command
     mp3_codec_args = conversion_codec_args("mp3")
     assert command[-(len(mp3_codec_args) + 1) : -1] == mp3_codec_args
+
+
+def test_build_final_mp3_command_rejects_non_mp3_output_path() -> None:
+    with pytest.raises(AudioProcessingError, match="does not match ffmpeg audio codec"):
+        build_final_mp3_command(
+            ffmpeg_path=Path("/bin/ffmpeg"),
+            concat_list_path=Path("/tmp/list.txt"),
+            output_path=Path("/tmp/out.wav"),
+        )
