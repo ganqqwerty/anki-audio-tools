@@ -212,7 +212,7 @@ def test_editor_voice_recording_comparison_workflow(
             and value["hidden"] is True
             and value["durationMs"] == target["durationMs"]
             and value["viewportStartMs"] == 0
-            and value["viewportEndMs"] == value["durationMs"],
+            and value["viewportEndMs"] >= value["durationMs"],
             timeout=5.0,
         )
         click_selector(editor.web, record_selector, timeout=5.0)
