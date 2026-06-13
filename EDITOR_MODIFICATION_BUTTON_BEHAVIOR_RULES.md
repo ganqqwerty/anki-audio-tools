@@ -114,7 +114,7 @@ Modification buttons must never overwrite or delete the source media file.
 
 ## Undo And Redo
 
-Every successful modification must be reversible through the editor undo/redo buttons.
+Every successful modification must be reversible through the editor undo/redo buttons. History is saved in sqllite db. 
 
 - A new successful modification pushes the previous edit state and current filename onto undo history.
 - A new successful modification clears redo history.

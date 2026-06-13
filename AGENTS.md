@@ -39,7 +39,6 @@ After major refactors, package renames, config schema changes, hook changes, or 
 
 ## Key Facts
 
-- Anki desktop add-ons are Python, not Java.
 - Anki on this machine is version 25.09 and uses Python 3.13.5.
 - Add-ons directory: `~/Library/Application Support/Anki2/addons21/`
 - The local development add-on ID is `1000000002`.
@@ -66,9 +65,12 @@ When using any Anki API, read [`ANKI_API.md`](ANKI_API.md) first. Do not rely on
 
 ## Running Tests And Linter
 
-Use `python3 scripts/dev.py check` for the reusable QC gate. A feature is not complete until `python3 scripts/dev.py test-e2e` passes.
+Use `python3 scripts/dev.py check` for the reusable QC gate. A feature is not considered complete until `python3 scripts/dev.py test-e2e` or `test-e2e-parallel` passes.
 `scripts/dev.py` output is concise by default. Pytest-backed commands print failure-only diagnostics in concise mode.
 Add `--verbose` when you need live subprocess output or full command diagnostics, for example `python3 scripts/dev.py check --verbose`.
+
+Consider dev.py check to be relatively cheap operation, feel free to run it often: it works for 4-6 minutes. 
+Try `scripts/dev.py test-e2e-parallel` first, it's faster. parallel typically passes in 4-6 minutes, non-parallel - for 7-10 minutes.
 
 | Task | Command |
 |------|---------|
@@ -117,6 +119,8 @@ local/offline validation builds.
 
 Read [`DEBUGGING.md`](DEBUGGING.md) for the full guide. Short version:
 
+When I describe a bug, it's your responsibility to try to reproduce it in e2e test or integration test. Ask questions if some steps are unclear. 
+
 | Method | When to use |
 |--------|-------------|
 | Anki error popup | Startup/load crash with traceback |
@@ -124,9 +128,10 @@ Read [`DEBUGGING.md`](DEBUGGING.md) for the full guide. Short version:
 | `print(...)` | Terminal output while launching Anki from a shell |
 | VS Code + debugpy | Breakpoints and step-through debugging |
 
+
 ## Logging
 
-Use the unified package logger. File logging is initialized from the add-on bootstrap after the main window is ready.
+Use the unified package logger. File logging is initialized from the add-on bootstrap after the main window is ready. Log on python level and on svelte level. Users will give us logs and we will find bugs more easily. 
 
 ## Code Style
 
