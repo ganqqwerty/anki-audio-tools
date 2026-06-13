@@ -58,6 +58,9 @@ type PauseDetectionAlgorithm = "silencedetect" | "silero_vad";
 type PitchHumMode = "direct" | "pitch_tier";
 
 export interface SplitButtonDefaults {
+  chorusingAutoAdvanceByDefault?: boolean;
+  chorusingAutoAdvanceRepeats?: number;
+  chorusingPauseSeconds?: number;
   denoiseAlgorithm: DenoiseAlgorithm;
   dpdfnetAttnLimitDb?: number;
   graphConnectShortDropoutsMs?: number;
@@ -120,6 +123,13 @@ export interface EditorCommandPayload {
 }
 
 export interface FieldSplitButtonState {
+  chorusingAutoAdvance: boolean;
+  chorusingEdited: boolean;
+  chorusingPauseSeconds: number;
+  chorusingRepeatCount: number;
+  defaultChorusingAutoAdvance: boolean;
+  defaultChorusingPauseSeconds: number;
+  defaultChorusingRepeatCount: number;
   defaultDenoiseAlgorithm: DenoiseAlgorithm;
   defaultGraphConnectShortDropoutsMs: number;
   defaultGraphRecordingCondition: GraphRecordingCondition;

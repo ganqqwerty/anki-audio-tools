@@ -3,6 +3,9 @@ import { beforeEach, describe, expect, it } from "vitest";
 import {
   buildSplitCommandPayload,
   getSplitButtonState,
+  setChorusingAutoAdvanceForField,
+  setChorusingPauseSecondsForField,
+  setChorusingRepeatCountForField,
   setShareTargetForField,
   setRepeatPauseSecondsForField,
   setSpeedStepForField,
@@ -85,6 +88,29 @@ describe("split button state transitions", () => {
     expect(getSplitButtonState(0).repeatPauseSeconds).toBe(2);
     expect(getSplitButtonState(1).repeatPauseSeconds).toBe(0);
     expect(buildSplitCommandPayload("aqe:faster", 0).overrides).not.toHaveProperty("repeatPauseSeconds");
+  });
+
+  it("initializes chorusing state from split defaults", () => {
+    expect(getSplitButtonState(0).chorusingPauseSeconds).toBe(0);
+    expect(getSplitButtonState(0).chorusingAutoAdvance).toBe(false);
+    expect(getSplitButtonState(0).chorusingRepeatCount).toBe(3);
+    expect(getSplitButtonState(0).chorusingEdited).toBe(false);
+  });
+
+  it("keeps chorusing state isolated per field", () => {
+    setChorusingPauseSecondsForField(0, 1.5);
+    setChorusingAutoAdvanceForField(0, true);
+    setChorusingRepeatCountForField(0, 6);
+
+    expect(getSplitButtonState(0).chorusingPauseSeconds).toBe(1.5);
+    expect(getSplitButtonState(0).chorusingAutoAdvance).toBe(true);
+    expect(getSplitButtonState(0).chorusingRepeatCount).toBe(6);
+    expect(getSplitButtonState(0).chorusingEdited).toBe(true);
+
+    expect(getSplitButtonState(1).chorusingPauseSeconds).toBe(0);
+    expect(getSplitButtonState(1).chorusingAutoAdvance).toBe(false);
+    expect(getSplitButtonState(1).chorusingRepeatCount).toBe(3);
+    expect(getSplitButtonState(1).chorusingEdited).toBe(false);
   });
 
   it("persists local field state across editor bundle reinjection", () => {
