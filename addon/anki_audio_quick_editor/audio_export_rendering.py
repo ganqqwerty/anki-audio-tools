@@ -12,7 +12,6 @@ EXPORT_CHANNELS = 2
 
 
 def build_normalize_wav_command(
-    *,
     ffmpeg_path: Path,
     source_path: Path,
     output_path: Path,
@@ -34,7 +33,6 @@ def build_normalize_wav_command(
 
 
 def build_silence_wav_command(
-    *,
     ffmpeg_path: Path,
     duration_seconds: float,
     output_path: Path,
@@ -59,7 +57,6 @@ def build_concat_list_text(paths: list[Path] | tuple[Path, ...]) -> str:
 
 
 def build_final_mp3_command(
-    *,
     ffmpeg_path: Path,
     concat_list_path: Path,
     output_path: Path,

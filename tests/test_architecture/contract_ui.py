@@ -76,11 +76,15 @@ UI_CONTRACTS: dict[str, ModuleContract] = {
         layer=Layer.UI_ADAPTER,
         allowed_addon_deps=(
             "audio_export_planning",
+            "audio_export_rendering",
             "audio_export_types",
+            "audio_external",
+            "audio_processor",
             "batch_operations",
             "i18n",
         ),
         allowed_side_effects=(
+            SideEffect.SUBPROCESS_RUN,
             SideEffect.TEMP_FILESYSTEM_CLEANUP,
         ),
     ),

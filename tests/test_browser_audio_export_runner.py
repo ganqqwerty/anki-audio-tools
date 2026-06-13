@@ -136,6 +136,49 @@ def test_run_audio_export_cancellation_removes_temporary_zip(tmp_path: Path) -> 
     assert sorted(path.name for path in tmp_path.iterdir()) == ["media"]
 
 
+def test_run_audio_export_combined_mp3_invokes_render_steps(monkeypatch, tmp_path: Path) -> None:
+    media = tmp_path / "media"
+    media.mkdir()
+    (media / "a.mp3").write_bytes(b"a")
+    (media / "b.wav").write_bytes(b"b")
+    output = tmp_path / "out.mp3"
+    commands: list[tuple[str, ...]] = []
+
+    monkeypatch.setattr(
+        "anki_audio_quick_editor.browser_audio_export_runner.find_ffmpeg",
+        lambda _path="": Path("/bin/ffmpeg"),
+    )
+
+    def fake_run(command, *_args, **_kwargs):
+        commands.append(tuple(command))
+        Path(command[-1]).write_bytes(b"rendered")
+
+    monkeypatch.setattr(
+        "anki_audio_quick_editor.browser_audio_export_runner._run_export_command",
+        fake_run,
+    )
+
+    report = run_audio_export(
+        (BatchNoteSnapshot(10, "Basic", {"Front": "[sound:a.mp3] [sound:b.wav]"}),),
+        request=AudioExportRequest(
+            mode="combined_mp3",
+            destination_path=output,
+            field_selections=(AudioExportFieldSelection("Basic", ("Front",)),),
+            silence_between_clips_seconds=0.5,
+        ),
+        media_dir=media,
+        cancel_event=threading.Event(),
+        on_log=lambda _line: None,
+        on_progress=lambda *_args: None,
+    )
+
+    assert report.exported == 2
+    assert output.read_bytes() == b"rendered"
+    assert len(commands) == 4
+    assert commands[0][0] == "/bin/ffmpeg"
+    assert commands[-1][-1].endswith(".mp3")
+
+
 def report_plan_items_for_names(media_dir: Path) -> tuple[AudioExportItem, ...]:
     return collect_audio_export_items(
         [BatchNoteSnapshot(10, "Basic", {"Front": "[sound:a.mp3]", "Back": "[sound:b.wav]"})],
