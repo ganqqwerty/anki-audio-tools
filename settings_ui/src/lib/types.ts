@@ -1,6 +1,7 @@
 export type {
   AsyncDonePayload,
   AsyncProgressPayload,
+  AudioExportDefaults,
   AudioExportDestinationPayload,
   AudioExportDestinationRequest,
   AudioExportFieldSelection,
