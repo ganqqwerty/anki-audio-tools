@@ -58,6 +58,8 @@ def _create_convert_on_add_trigger_through_settings_ui(anki_mw) -> None:
         wait_for_selector(dialog, '[data-testid="trigger-name"]', timeout=5.0)
         _set_form_value(dialog, '[data-testid="trigger-name"]', "E2E convert on add")
         _set_form_value(dialog, '[data-testid="trigger-event"]', "add")
+        _select_option_by_text(dialog, '[data-testid="trigger-note-type"]', "Basic")
+        _set_form_value(dialog, '[data-testid="trigger-source-field"]', "Front")
         _set_form_value(dialog, '[data-testid="trigger-action-type"]', "operation")
         _set_form_value(dialog, '[data-testid="trigger-operation"]', "convert")
         wait_for_js_condition(
@@ -206,5 +208,31 @@ def _set_form_value(target: Any, selector: str, value: str) -> None:
         target,
         f"document.querySelector({json.dumps(selector)})?.value",
         lambda current: current == value,
+        timeout=5.0,
+    )
+
+
+def _select_option_by_text(target: Any, selector: str, text: str) -> None:
+    run_js(
+        target,
+        f"""
+        (() => {{
+          const node = document.querySelector({json.dumps(selector)});
+          if (!node) return false;
+          const option = Array.from(node.options).find(
+            (item) => item.textContent.trim() === {json.dumps(text)}
+          );
+          if (!option) return false;
+          node.value = option.value;
+          node.dispatchEvent(new Event("input", {{ bubbles: true }}));
+          node.dispatchEvent(new Event("change", {{ bubbles: true }}));
+          return true;
+        }})()
+        """,
+    )
+    wait_for_js_condition(
+        target,
+        f"document.querySelector({json.dumps(selector)})?.selectedOptions?.[0]?.textContent?.trim()",
+        lambda current: current == text,
         timeout=5.0,
     )

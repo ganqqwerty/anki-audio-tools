@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import sqlite3
+from contextlib import closing
 from pathlib import Path
 
 from e2e.editor_note_helpers import (
@@ -38,7 +39,7 @@ def _history_labels_js(direction: str, ord_: int = 0) -> str:
 def _persistent_history_rows(editor) -> list[dict[str, object]]:
     addon_dir = Path(editor.mw.addonManager.addonsFolder(ADDON_NUMERIC_ID))
     db_path = addon_dir / "user_files" / "persistent_undo.sqlite3"
-    with sqlite3.connect(db_path) as connection:
+    with closing(sqlite3.connect(db_path)) as connection:
         connection.row_factory = sqlite3.Row
         rows = connection.execute(
             """
